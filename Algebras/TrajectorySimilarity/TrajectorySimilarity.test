@@ -337,7 +337,7 @@ query to_dline([const tpointseq value (
 ### Test operator 'to_pointseq'.
 ###
 
-### to_tpointseq : mpoint -> pointseq
+### to_pointseq : mpoint -> pointseq
 
 #testcase ToPointSeqMPointUndefined
 #yields (pointseq undefined)
@@ -473,6 +473,124 @@ query to_tpointseq([const mpoint value (
   (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
   (("2015-12-29-01:30:20" "2015-12-29-01:30:20" TRUE TRUE) (-2.0 0.0 -2.0 0.0))
 )])
+
+
+
+###
+### Test operator 'sample_to_tpointseq'.
+###
+
+### sample_to_tpointseq : tpointseq x duration [x bool [x bool]] -> tpointseq
+
+#testcase SampleToTPointSeqTPointSeqUndefined
+#yields (tpointseq undefined)
+query sample_to_tpointseq(
+  [const tpointseq value undefined], [const duration value (0 1000)])
+
+#testcase SampleToTPointSeqTPointSeq0
+#yields (tpointseq ())
+query sample_to_tpointseq(
+  [const tpointseq value ()], [const duration value (0 1000)])
+
+#testcase SampleToTPointSeqTPointSeq1
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (0.0 0.0))))
+query sample_to_tpointseq([const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0)))],
+  [const duration value (0 1000)])
+
+#testcase SampleToTPointSeqTPointSeq2
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (0.0 0.0)) \
+  ("2015-12-29-01:23:46" (1.0 0.5)) \
+  ("2015-12-29-01:23:47" (2.0 1.0)) \
+  ("2015-12-29-01:23:48" (3.0 1.5))))
+query sample_to_tpointseq([const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:23:48" (3.0 1.5)))],
+  [const duration value (0 1000)])
+
+#testcase SampleToTPointSeqTPointSeq2NoEndPoint
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (0.0 0.0)) \
+  ("2015-12-29-01:23:47" (2.0 1.0))))
+query sample_to_tpointseq([const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:23:48" (3.0 1.5)))],
+  [const duration value (0 2000)])
+
+#testcase SampleToTPointSeqTPointSeq2KeepEndPoint
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (0.0 0.0)) \
+  ("2015-12-29-01:23:47" (2.0 1.0)) \
+  ("2015-12-29-01:23:48" (3.0 1.5))))
+query sample_to_tpointseq([const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:23:48" (3.0 1.5)))],
+  [const duration value (0 2000)],
+  [const bool value TRUE])
+
+#testcase SampleToTPointSeqTPointSeq3
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (0.0 0.0)) \
+  ("2015-12-29-01:23:46" (1.0 0.5)) \
+  ("2015-12-29-01:23:47" (2.0 1.0)) \
+  ("2015-12-29-01:23:48" (3.0 1.5)) \
+  ("2015-12-29-01:23:49" (3.0 2.0)) \
+  ("2015-12-29-01:23:50" (3.0 2.5)) \
+  ("2015-12-29-01:23:51" (3.0 3.0))))
+query sample_to_tpointseq([const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:23:48" (3.0 1.5))
+    ("2015-12-29-01:23:51" (3.0 3.0)))],
+  [const duration value (0 1000)])
+
+#testcase SampleToTPointSeqTPointSeq3NoMidPoint
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (0.0 0.0)) \
+  ("2015-12-29-01:23:47" (2.0 1.0)) \
+  ("2015-12-29-01:23:49" (3.0 2.0)) \
+  ("2015-12-29-01:23:51" (3.0 3.0))))
+query sample_to_tpointseq([const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:23:48" (3.0 1.5))
+    ("2015-12-29-01:23:51" (3.0 3.0)))],
+  [const duration value (0 2000)])
+
+#testcase SampleToTPointSeqTPointSeq3ExactPath
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (0.0 0.0)) \
+  ("2015-12-29-01:23:47" (2.0 1.0)) \
+  ("2015-12-29-01:23:48" (3.0 1.5)) \
+  ("2015-12-29-01:23:49" (3.0 2.0)) \
+  ("2015-12-29-01:23:51" (3.0 3.0))))
+query sample_to_tpointseq([const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:23:48" (3.0 1.5))
+    ("2015-12-29-01:23:51" (3.0 3.0)))],
+  [const duration value (0 2000)],
+  [const bool value TRUE],
+  [const bool value TRUE])
+
+#testcase SampleToTPointSeqTPointSeqDownSample
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (0.0 0.0))))
+query sample_to_tpointseq([const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:23:48" (3.0 1.5))
+    ("2015-12-29-01:23:51" (3.0 3.0)))],
+  [const duration value (0 10000)])
+
+#testcase SampleToTPointSeqTPointSeqDownSampleKeepEndPoint
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (0.0 0.0)) \
+  ("2015-12-29-01:23:51" (3.0 3.0))))
+query sample_to_tpointseq([const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:23:48" (3.0 1.5))
+    ("2015-12-29-01:23:51" (3.0 3.0)))],
+  [const duration value (0 10000)],
+  [const bool value TRUE])
 
 
 

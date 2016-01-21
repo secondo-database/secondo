@@ -93,6 +93,21 @@ The operator $to\_tpointseq : mpoint \rightarrow tpointseq$ extracts a
 If there is a temporal or spatial gap between two successive units or a unit
 makes a spatial move in no time, the ~tpointseq~ is ~undefined~.
 
+1.2.4 ~sample\_to\_tpointseq~
+
+The operator
+
+        $sample\_to\_tpointseq : tpointseq \times duration\ [\times bool\ [
+        \times bool]] \rightarrow tpointseq$
+
+with $sample\_to\_tpointseq(P, duration, keep\_end\_point, exact\_path)$
+resamples the sequence $P$ at intervals defined by $duration$. If
+$keep\_end\_point$ is ~TRUE~, the original last point is kept. If $exact\_path$
+is ~TRUE~, all original points are kept, including the last point. Both boolean
+parameters default to ~FALSE~.
+
+If $duration$ is ~undefined~ or not positive, the result is ~undefined~.
+
 
 2 Includes
 
@@ -103,6 +118,7 @@ makes a spatial move in no time, the ~tpointseq~ is ~undefined~.
 #include "TrajectorySimilarity.h"
 #include "VectorTypeMapUtils.h"
 
+#include "DateTime.h"          // DateTime
 #include "DLine.h"
 #include "Point.h"
 #include "Stream.h"
@@ -331,6 +347,89 @@ point to the sequence.
 
 
 /*
+Recreate the sequence from a ~TPointSeq~ with sampling.
+
+*/
+template<class T>
+void Sequence<T>::sample(
+    const TPointSeq& src, const datetime::DateTime& duration,
+    const bool keep_end_point, const bool exact_path)
+{
+  SetDefined(false);
+  seq.clean();
+
+  if (!src.IsDefined())
+    return;
+
+  SetDefined(true);
+  const size_t size = src.GetNoComponents();
+  if (size == 0)
+    return;
+
+/*
+Estimate number of items in the new sequence.
+
+*/
+  const datetime::DateTime overall_duration =
+      src.get(size - 1).getInstant() - src.get(0).getInstant();
+  size_t estimate = (overall_duration / duration) + 1;
+  if (exact_path)
+    estimate += size - 1;
+  else if (keep_end_point)
+    ++estimate;
+  seq.resize(estimate);
+
+/*
+Iterate source sequence.
+
+*/
+  TPoint prev_pt = src.get(0);
+  Instant prev_inst = prev_pt.getInstant();
+  append(prev_pt);
+  Instant next_inst = prev_inst + duration;
+
+  for (size_t i = 1; i < src.GetNoComponents(); ++i) {
+    const TPoint& pt = src.get(i);
+    const Instant inst = pt.getInstant();
+/*
+Interpolate points between the previous and the current point, if needed.
+
+*/
+    if (next_inst < inst) {
+      const datetime::DateTime d = inst - prev_inst;
+      const Point vec = pt.getPoint() - prev_pt.getPoint();
+      do {
+        const double factor = (next_inst - prev_inst) / d;
+        const Point new_pt = prev_pt.getPoint() + (vec * factor);
+        append(TPoint(next_inst, new_pt));
+        next_inst += duration;
+      } while (next_inst < inst);
+    }
+/*
+If the current point is exactly where the next point is expected, keep it.
+
+*/
+    if (next_inst == inst) {
+      append(pt);
+      next_inst += duration;
+    }
+/*
+Otherwise, also keep the current point, if either the exact path shall be kept
+or if it is the last point and shall be kept.
+
+*/
+    else if (exact_path ||
+             (keep_end_point && (i == src.GetNoComponents() - 1)))
+    {
+      append(pt);
+    }
+    prev_pt = pt;
+    prev_inst = inst;
+  }
+}
+
+
+/*
 Get the item at position ~pos~.
 
 */
@@ -517,6 +616,8 @@ void Sequence<T>::CopyFrom(const Attribute* rhs)
   seq.copyFrom(rps.seq);
 }
 
+
+
 /*
 4 Implementation of Class ~Point~
 
@@ -650,6 +751,7 @@ double sqrEuclideanDistance(
 }
 
 
+
 /*
 5 Implementation of Class ~PointSeq~
 
@@ -774,6 +876,7 @@ int TPoint::compare(const TPoint& rhs) const
 }
 
 
+
 /*
 7 Registration of Type Constructors
 
@@ -878,7 +981,7 @@ int IsEmptySelect(ListExpr args)
 { return mappings::vectorSelect(is_empty_maps, args); }
 
 template<class SEQ>
-int IsEmpty(
+int IsEmptyValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
   const SEQ& seq = *static_cast<SEQ*>(args[0].addr);
@@ -889,8 +992,8 @@ int IsEmpty(
 }
 
 ValueMapping is_empty_functions[] = {
-  IsEmpty<PointSeq>,
-  IsEmpty<TPointSeq>,
+  IsEmptyValueMap<PointSeq>,
+  IsEmptyValueMap<TPointSeq>,
   nullptr
 };
 
@@ -932,7 +1035,7 @@ int NoComponentsSelect(ListExpr args)
 { return mappings::vectorSelect(no_components_maps, args); }
 
 template<class SEQ>
-int NoComponents(
+int NoComponentsValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
   const SEQ& seq = *static_cast<SEQ*>(args[0].addr);
@@ -943,8 +1046,8 @@ int NoComponents(
 }
 
 ValueMapping no_components_functions[] = {
-  NoComponents<PointSeq>,
-  NoComponents<TPointSeq>,
+  NoComponentsValueMap<PointSeq>,
+  NoComponentsValueMap<TPointSeq>,
   nullptr
 };
 
@@ -986,7 +1089,7 @@ int ToDLineSelect(ListExpr args)
 { return mappings::vectorSelect(to_dline_maps, args); }
 
 template<class T>
-int ToDLine(
+int ToDLineValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
   const T& src = *static_cast<T*>(args[0].addr);
@@ -997,8 +1100,8 @@ int ToDLine(
 }
 
 ValueMapping to_dline_functions[] = {
-  ToDLine<PointSeq>,
-  ToDLine<TPointSeq>,
+  ToDLineValueMap<PointSeq>,
+  ToDLineValueMap<TPointSeq>,
   nullptr
 };
 
@@ -1043,7 +1146,7 @@ int ToPointSeqSelect(ListExpr args)
 { return mappings::vectorSelect(to_pointseq_maps, args); }
 
 template<class T>
-int ToPointSeq(
+int ToPointSeqValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
   const T& src = *static_cast<T*>(args[0].addr);
@@ -1054,8 +1157,8 @@ int ToPointSeq(
 }
 
 ValueMapping to_pointseq_functions[] = {
-  ToPointSeq<MPoint>,
-  ToPointSeq<TPointSeq>,
+  ToPointSeqValueMap<MPoint>,
+  ToPointSeqValueMap<TPointSeq>,
   nullptr
 };
 
@@ -1103,7 +1206,7 @@ int ToTPointSeqSelect(ListExpr args)
 { return mappings::vectorSelect(to_tpointseq_maps, args); }
 
 template<class T>
-int ToTPointSeq(
+int ToTPointSeqValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
   const T& src = *static_cast<T*>(args[0].addr);
@@ -1114,7 +1217,7 @@ int ToTPointSeq(
 }
 
 ValueMapping to_tpointseq_functions[] = {
-  ToTPointSeq<MPoint>,
+  ToTPointSeqValueMap<MPoint>,
   nullptr
 };
 
@@ -1140,6 +1243,105 @@ void TrajectorySimilarityAlgebra::addToTPointSeqOp()
   AddOperator(
       ToTPointSeqInfo(), to_tpointseq_functions,
       ToTPointSeqSelect, ToTPointSeqTypeMap);
+}
+
+
+/*
+8.6 ~sample\_to\_tpointseq~
+
+*/
+const mappings::VectorTypeMaps sample_to_tpointseq_maps = {
+  /*0*/ {{TPointSeq::BasicType(), Duration::BasicType()},
+    /* -> */ {TPointSeq::BasicType()}},
+  /*1*/ {{TPointSeq::BasicType(), Duration::BasicType(), CcBool::BasicType()},
+    /* -> */ {TPointSeq::BasicType()}},
+  /*2*/ {{TPointSeq::BasicType(), Duration::BasicType(), CcBool::BasicType(),
+    CcBool::BasicType()}, /* -> */ {TPointSeq::BasicType()}}
+};
+
+ListExpr SampleToTPointSeqTypeMap(ListExpr args)
+{ return mappings::vectorTypeMap(sample_to_tpointseq_maps, args); }
+
+int SampleToTPointSeqSelect(ListExpr args)
+{ return mappings::vectorSelect(sample_to_tpointseq_maps, args); }
+
+template<class SEQ, unsigned int PARAMS>
+int SampleToTPointSeqValueMap(
+    Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
+{
+  const SEQ& src = *static_cast<SEQ*>(args[0].addr);
+  const datetime::DateTime& duration =
+      *static_cast<datetime::DateTime*>(args[1].addr);
+  const CcBool* cc_keep_end_point =
+      (PARAMS >= 3) ? static_cast<CcBool*>(args[2].addr) : nullptr;
+  const CcBool* cc_exact_path =
+      (PARAMS >= 4) ? static_cast<CcBool*>(args[3].addr) : nullptr;
+  result = qp->ResultStorage(s);    // TPointSeq
+  TPointSeq& ps = *static_cast<TPointSeq*>(result.addr);
+
+/*
+Require a defined and positive $duration$.
+
+*/
+  if (!duration.IsDefined() || duration.GetType() != datetime::durationtype ||
+      duration.ToDouble() <= 0.0)
+  {
+    ps.SetDefined(false);
+    return 0;
+  }
+
+  const bool keep_end_point =
+      (cc_keep_end_point && cc_keep_end_point->IsDefined()) ?
+          cc_keep_end_point->GetBoolval() : false;
+  const bool exact_path =
+      (cc_exact_path && cc_exact_path->IsDefined()) ?
+          cc_exact_path->GetBoolval() : false;
+
+  ps.sample(src, duration, keep_end_point, exact_path);
+  return 0;
+}
+
+ValueMapping sample_to_tpointseq_functions[] = {
+  SampleToTPointSeqValueMap<TPointSeq, /*PARAMS*/ 2>,
+  SampleToTPointSeqValueMap<TPointSeq, /*PARAMS*/ 3>,
+  SampleToTPointSeqValueMap<TPointSeq, /*PARAMS*/ 4>,
+  nullptr
+};
+
+struct SampleToTPointSeqInfo : OperatorInfo
+{
+  SampleToTPointSeqInfo() : OperatorInfo()
+  {
+    name      = "sample_to_tpointseq";
+    signature = TPointSeq::BasicType() + " x " + Duration::BasicType()
+                + " -> " + TPointSeq::BasicType();
+    appendSignature(
+                TPointSeq::BasicType() + " x " + Duration::BasicType()
+                + " x " + CcBool::BasicType()
+                + " -> " + TPointSeq::BasicType());
+    appendSignature(
+                TPointSeq::BasicType() + " x " + Duration::BasicType()
+                + " x " + CcBool::BasicType() + " x " + CcBool::BasicType()
+                + " -> " + TPointSeq::BasicType());
+    syntax    = "sample_to_tpointseq("
+                "seq, duration[, keep_end_point[, exact_path]])";
+    meaning   = "Resample the sequence at intervals defined by duration. If "
+                "keep_end_point is TRUE, the last point is kept. If exact_path "
+                "is TRUE, all original points are kept, including the last "
+                "point. Both boolean parameters default to FALSE.\n"
+                "If the duration is undefined or not positive, the result is "
+                "undefined.\n"
+                "The time complexity is O(n+m), where n is the number of "
+                "points in the source sequence and m is the number of points "
+                "in the new sequence.";
+  }
+};
+
+void TrajectorySimilarityAlgebra::addSampleToTPointSeqOp()
+{
+  AddOperator(
+      SampleToTPointSeqInfo(), sample_to_tpointseq_functions,
+      SampleToTPointSeqSelect, SampleToTPointSeqTypeMap);
 }
 
 } //-- namespace tsa

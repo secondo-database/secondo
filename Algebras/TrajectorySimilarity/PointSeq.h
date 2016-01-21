@@ -159,6 +159,15 @@ Discard the current content of the sequence and recreate it from an ~MPoint~.
   void convertFrom(const MPoint& src) noexcept;
 
 /*
+Discard the current content of the sequence and recreate it from a ~TPointSeq~
+with sampling.
+
+*/
+  void sample(
+      const TPointSeq& src, const datetime::DateTime& duration,
+      bool keep_end_point = false, bool exact_path = false);
+
+/*
 3.4 Access
 
 The following methods provide access to the items of the sequence.
@@ -447,6 +456,24 @@ The usual comparison operators.
 /*
 4.5 Operators
 
+Arithmetic operations.
+
+*/
+  Point& operator+=(const Point& rhs) { x += rhs.x; y += rhs.y; return *this; }
+  Point& operator-=(const Point& rhs) { x -= rhs.x; y -= rhs.y; return *this; }
+  Point& operator*=(const double v) { x *= v; y *= v; return *this; }
+  Point& operator/=(const double v) { x /= v; y /= v; return *this; }
+
+  friend Point operator+(Point lhs, const Point& rhs)
+  { lhs += rhs; return lhs; }
+  friend Point operator-(Point lhs, const Point& rhs)
+  { lhs -= rhs; return lhs; }
+  friend Point operator*(Point lhs, const double v)
+  { lhs *= v; return lhs; }
+  friend Point operator/(Point lhs, const double v)
+  { lhs /= v; return lhs; }
+
+/*
 Euclidean ($L^2$) distance between two points.
 
 */
@@ -649,10 +676,11 @@ both coordinates are finite.
   { return instant.IsDefined() && point.isValid(); }
 
 /*
-Get the instant or the ~x~ or ~y~ coordinate, respectively.
+Get the instant, the point, or the ~x~ or ~y~ coordinate, respectively.
 
 */
-  Instant getInstant() const { return instant; }
+  const Instant& getInstant() const { return instant; }
+  const Point& getPoint() const { return point; }
   double getX() const { return point.getX(); }
   double getY() const { return point.getY(); }
 

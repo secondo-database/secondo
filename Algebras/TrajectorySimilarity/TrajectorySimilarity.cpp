@@ -84,6 +84,7 @@ Register operators.
   addToDLineOp();
   addToPointSeqOp();
   addToTPointSeqOp();
+  addSampleToTPointSeqOp();
 
   addEndPointDistOp();
   addEuclideanDistOp();

@@ -75,6 +75,7 @@ keep the interdependencies of the files low.
   void addToDLineOp();
   void addToPointSeqOp();
   void addToTPointSeqOp();
+  void addSampleToTPointSeqOp();
 
   void addEndPointDistOp();
   void addEuclideanDistOp();
