@@ -78,7 +78,11 @@ ListExpr vectorTypeMap(const VectorTypeMaps& maps, const ListExpr args)
       return toNList(tm.second).listExpr();
 
   std::ostringstream os;
-  os << "Argument types do not match. Expecting one of\n";
+  os << "Argument types do not match. Expecting";
+  if (maps.size() == 1)
+    os << "\n";
+  else
+    os << " one of\n";
   for (const VectorTypeMap& tm : maps)
     os << "  " << toNListEncloseSingleAtom(tm.first) << ",\n";
   os << "but got " << type << ".";
