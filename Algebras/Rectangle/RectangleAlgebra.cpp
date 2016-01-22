@@ -704,7 +704,7 @@ RectRectTypeMapReal( ListExpr args )
 /*
 4.1.7 Type mapping function ~RectRectTypeMapInt~
 
-Used for ~topleftmax~.
+Used for ~topleftclass~.
 
 */
 ListExpr
@@ -1984,12 +1984,12 @@ int scalerectValueMap( Word* args, Word& result, int message,
 
 
 /*
-4.4.13 Value mapping functions of operator ~topleftmax~
+4.4.13 Value mapping functions of operator ~topleftclass~
 
 */
 
 template<unsigned int dim>
-int RectangleTopleftmaxValueMap ( Word* args, Word& result, int message,
+int RectangleTopleftclassValueMap ( Word* args, Word& result, int message,
                                Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2688,10 +2688,10 @@ ValueMapping rectanglerectangle4map[] = { RectangleValueMap<CcInt, 4>,
 ValueMapping rectanglerectangle8map[] = { Rectangle8ValueMap<CcInt, 8>,
                                           Rectangle8ValueMap<CcReal, 8> };
 
-ValueMapping rectangletopleftmaxmap[] = { RectangleTopleftmaxValueMap<2>,
-                                          RectangleTopleftmaxValueMap<3>,
-                                          RectangleTopleftmaxValueMap<4>,
-                                          RectangleTopleftmaxValueMap<8>};
+ValueMapping rectangletopleftclassmap[] = { RectangleTopleftclassValueMap<2>,
+                                          RectangleTopleftclassValueMap<3>,
+                                          RectangleTopleftclassValueMap<4>,
+                                          RectangleTopleftclassValueMap<8>};
                                         
                                         
                                         
@@ -3032,17 +3032,17 @@ const string RectangleSpecBboxIntersects  =
         ") )";
 
     
-const string RectangleSpecTopleftmax  =
+const string RectangleSpecTopleftclass  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
         "( <text>(rect<d> x rect<d>) -> int</text--->"
-        "<text>topleftmax( _ , _ )</text--->"
+        "<text>topleftclass( _ , _ )</text--->"
         "<text>return the Top-Left-Max Value of two rectangles."
         "whereat the first rect intersect the second one:"
         "Scoring 2 for Top edge intersection," 
         "scoring 1 for Left edge intersection," 
         "scoring 3 for both" 
         "and scoring 0 for none of this</text--->"        
-        "<text>query topleftmax(rect1, rect2)</text--->"
+        "<text>query topleftclass(rect1, rect2)</text--->"
         "<text></text--->"
         ") )";
     
@@ -3151,10 +3151,10 @@ Operator rectangledistance( "distance",
                           RectRectTypeMapReal );
 
 
-Operator rectangletopleftmax( "topleftmax",
-                          RectangleSpecTopleftmax,
+Operator rectangletopleftclass( "topleftclass",
+                          RectangleSpecTopleftclass,
                           4,
-                          rectangletopleftmaxmap,
+                          rectangletopleftclassmap,
                           RectangleBinarySelect,
                           RectRectTypeMapInt );
 
@@ -3530,7 +3530,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectangleintersection );
     AddOperator( &rectangletranslate );
     AddOperator( &rectangledistance );
-    AddOperator( &rectangletopleftmax);
+    AddOperator( &rectangletopleftclass);
     AddOperator( &rectanglerectangle1 );
     AddOperator( &rectanglerectangle2 );
     AddOperator( &rectanglerectangle3 );
