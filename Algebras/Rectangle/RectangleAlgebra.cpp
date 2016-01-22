@@ -1983,14 +1983,10 @@ int scalerectValueMap( Word* args, Word& result, int message,
 }
 
 
-
-
 /*
-4.4.13 Value mapping functions of operator ~topleftmaxe~
+4.4.13 Value mapping functions of operator ~topleftmax~
 
 */
-
-
 
 template<unsigned int dim>
 int RectangleTopleftmaxValueMap ( Word* args, Word& result, int message,
@@ -2002,37 +1998,14 @@ int RectangleTopleftmaxValueMap ( Word* args, Word& result, int message,
   r1 = (Rectangle<dim> *) args[0].addr;
   r2 = (Rectangle<dim> *) args[1].addr;
   int value = 0;
+
+  if ( r1->MinD(0) <= r2->MinD(0) ) value++;
+  if ( r1->MaxD(1) >= r2->MaxD(1) ) value += 2; 
+
+  res->Set( true, value); 
+  return 0;  
+}
   
-  if ((r1->MinD(0) >= r2->MinD(0)) && (r1->MinD(0) <= r2->MaxD(0)))
-  {
-  value = value + 1; 
-    
-  }
-  
-  
-  if ((r1->MaxD(1) >= r2->MinD(1)) && (r1->MaxD(1) <= r2->MaxD(1)))
-  {
-   value= value + 2; 
-  }  
-   
-   
-   res->Set( true, value);
-   
-   return 0;
-  
-  }
-  
-
-
-
-
-
-
-
-
-
-
-
 
 /*
 4.4.4.1 Value mapping functions of operator ~bboxintersects~
