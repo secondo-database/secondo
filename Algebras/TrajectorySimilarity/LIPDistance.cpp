@@ -30,9 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Introduction
 
-This file implements and registers Locality In-between Polylines (LIP) distance
-operator for point sequences and the Spatio-temporal Locality In-between
-Polylines (STLIP) for ~tpoinseq~ objects as defined in \cite{PKM+07}.
+This file implements and registers diatance operators for point sequences based
+on the Locality In-between Polylines (LIP) measure defined in \cite{PKM+07}.
 
 The basic idea of the LIP operators is to measure the area of the shape formed
 by the two sequences, if their first points are connected and their last points
@@ -93,20 +92,21 @@ The operator
 
 with $dist\_stlip(P, Q, st\_factor, \delta)$ determines the Spatio-temporal
 Locality In-between Polylines (STLIP) distance for a pair of ~well-formed~
-~tpoinseq~ objects $P,\ Q$ that cover the same time interval, a non-negative
-~st\_factor~, and a non-negative duration $\delta$. If the pair of sequences is
-not ~well-formed~, the result is indefinite.
+~tpoinseq~ objects $P,\ Q$, a non-negative ~st\_factor~, and a non-negative
+duration $\delta$. If the pair of sequences is not ~well-formed~, the result is
+indefinite.
 
 STLIP extends LIP by multiplying each weighted polygon area with a factor that
 measures the temporal dissimilarity of the two portions of the two sequences
 that contribute to the polygon.
 
-$$D_{STLIP}(P,\ Q) = \sum_{\forall\ p\ \in\ Polygons} stlip(p)$$
+$$D_{STLIP}(P,\ Q,\ \delta) = \sum_{\forall\ p\ \in\ Polygons}
+stlip(p, \delta)$$
 
-$$stlip(p) = lip(p) \cdot (1 + st\_factor \cdot tlip(p))$$
+$$stlip(p,\ \delta) = lip(p) \cdot (1 + st\_factor \cdot tlip(p, \delta))$$
 
-$$tlip(p) = \left| 1 - \frac{2 \cdot mdi(p, \delta)}{duration(P) + duration(Q)}
-\right|$$
+$$tlip(p,\ \delta) = \left| 1 - \frac{2 \cdot mdi(p, \delta)}{duration(P) +
+duration(Q)} \right|$$
 
 $mdi(p, \delta)$ is the maximum duration of the temporal element that is the
 outcome of the intersection between $P|_p$ and either
@@ -122,9 +122,8 @@ interval within the tolerance $\delta$, they have highest similarity and thus
 a low $tlip(p)$. $st\_factor$ controls how much the temporal dissimilarity
 affects the result. With $st\_factor = 0$, STLIP yields the same result as LIP.
 
-If any of the sequences is undefined or has less than two points, if the
-sequences do not cover the same time interval, or if ~st\_factor~ or delta is
-negative, the result is ~undefined~.
+If any of the sequences is undefined or has less than two points or if
+~st\_factor~ or $\delta$ is negative, the result is ~undefined~.
 
 \cite{PKM+07} defines that STLIP first restricts the original sequences to the
 common temporal element and then uses the ~GenLIP~ algorithm to filter out bad
@@ -132,6 +131,56 @@ segments. This is not implemented here.
 
 Time and space complexity are the same as for the operator ~dist\_lip~ with
 higher constants for the time complexity.
+
+
+1.1.3 ~dist\_spxstlip~
+
+The operator
+
+        $dist\_spxstlip : tpoinseq \times tpoinseq \times real \times duration
+        \times real \rightarrow real$
+
+with $dist\_spxstlip(P, Q, st\_factor, \delta, sp\_factor)$ determines the
+experimental Speed-pattern Spatio-temporal Locality In-between Polylines
+(SPXSTLIP) distance for a pair of ~well-formed~ ~tpoinseq~ objects $P,\ Q$, a
+non-negative ~st\_factor~, a non-negative duration $\delta$, and a non-negative
+~sp\_factor~. If the pair of sequences is not ~well-formed~, the result is
+indefinite.
+
+SPXSTLIP extends STLIP by multiplying each STLIP polygon value with a factor
+that measures the dissimilarity in the velocity of the two sequences on the
+polygon. ~sp\_factor~ controls how much the differences in the velocities affect
+the result.
+
+$$D_{SPXSTLIP}(P,\ Q,\ \delta) = \sum_{\forall\ p\ \in\ Polygons} spxstlip(p,
+\delta)$$
+
+$$spxstlip(p,\ \delta) = stlip(p, \delta) \cdot (1 + sp\_factor \cdot
+spxlip(p))$$
+
+$$spxlip(p) = \left| 1 - \frac{2 \cdot speed(P|_p)}{speed(Q|_p) + speed(Q|_p)}
+\right|$$
+
+$speed(P|_p)$ measure the speed of the portion of sequence $P$ that contributes
+to the polygon $p$. With $sp\_factor = 0$, SPXSTLIP yields the same result as
+STLIP.
+
+If any of the sequences is undefined or has less than two points or if
+~st\_factor~, or $\delta$, or ~sp\_factor~ is negative, the result is
+~undefined~.
+
+\cite{PKM+07} defines a measure called SPSTLIP that also factors the speed
+pattern into the calculation, but that measure is only useful if the sequences
+have a common temporal element per polygon. In contrast, the experimental
+measure SPXSTLIP implemented here, is not affected by temporal shifts of the
+sequences.
+
+In addition, SPSTLIP would use the ~GenLIP~ algorithm to filter out bad
+segments. This is not implemented here.
+
+Time and space complexity are the same as for the operator ~dist\_stlip~ with
+higher constants for the time complexity.
+
 
 
 2 Includes
@@ -185,6 +234,12 @@ For STLIP: Maximum duration of the temporal element of the polygon as defined in
 
 */
   datetime::DateTime mdi{datetime::durationtype};
+
+/*
+For SPXSTLIP: Dissimilarity of velocities of the two sequences on the polygon.
+
+*/
+  double splip = 0.0;
 };
 
 
@@ -456,14 +511,15 @@ Create and return the region.
 protected:
   std::list<Point> list1;
   std::list<Point> list2;
+  double len1 = 0.0;
+  double len2 = 0.0;
 
 private:
   const Geoid* geoid = nullptr;
-  double len1 = 0.0;
-  double len2 = 0.0;
   double total_length = 0.0;
   std::list<Polygon> polygons;
 };
+
 
 /*
 3.3 Aggregator Class for STLIP
@@ -520,25 +576,28 @@ public:
     if (!polygon)
       return nullptr;
 
-    Interval iv_a(list2_iv.start,         list2_iv.end,         true, false);
-    Interval iv_b(list2_iv.start,         list2_iv.end + delta, true, false);
-    Interval iv_c(list2_iv.start - delta, list2_iv.end,         true, false);
+    if (st_factor != 0.0) {
+      Interval iv_a = list2_iv;
+      Interval iv_b(list2_iv.start,         list2_iv.end + delta, true, false);
+      Interval iv_c(list2_iv.start - delta, list2_iv.end,         true, false);
 
-    DateTime mdi(datetime::durationtype, 0);
-    if (iv_a.Intersects(list1_iv)) {
-      iv_a.IntersectionWith(list1_iv);
-      mdi = iv_a.end - iv_a.start;
-    }
-    if (iv_b.Intersects(list1_iv)) {
-      iv_b.IntersectionWith(list1_iv);
-      mdi = std::max(mdi, iv_b.end - iv_b.start);
-    }
-    if (iv_c.Intersects(list1_iv)) {
-      iv_c.IntersectionWith(list1_iv);
-      mdi = std::max(mdi, iv_c.end - iv_c.start);
+      DateTime mdi(datetime::durationtype, 0);
+      if (iv_a.Intersects(list1_iv)) {
+        iv_a.IntersectionWith(list1_iv);
+        mdi = iv_a.end - iv_a.start;
+      }
+      if (iv_b.Intersects(list1_iv)) {
+        iv_b.IntersectionWith(list1_iv);
+        mdi = std::max(mdi, iv_b.end - iv_b.start);
+      }
+      if (iv_c.Intersects(list1_iv)) {
+        iv_c.IntersectionWith(list1_iv);
+        mdi = std::max(mdi, iv_c.end - iv_c.start);
+      }
+
+      polygon->mdi = mdi;
     }
 
-    polygon->mdi = mdi;
     return polygon;
   }
 
@@ -551,24 +610,73 @@ public:
   inline double getDist(const Polygon& polygon) const
   {
     const double lip = Base::getDist(polygon);
-    const double tlip =
-        fabs(1.0 - (2.0 *
-            (polygon.mdi.ToDouble() / total_duration.ToDouble())));
-    const double stlip = lip * (1.0 + (st_factor * tlip));
-    return stlip;
+    if (st_factor != 0.0) {
+      const double tlip =
+          fabs(1.0 - (2.0 *
+              (polygon.mdi.ToDouble() / total_duration.ToDouble())));
+      const double stlip = lip * (1.0 + (st_factor * tlip));
+      return stlip;
+    }
+    else
+      return lip;
   }
+
+protected:
+  Interval list1_iv{Instant(), Instant(), /*lc*/ true, /*rc*/ false};
+  Interval list2_iv{Instant(), Instant(), /*lc*/ true, /*rc*/ false};
 
 private:
   const double st_factor;
   const DateTime& delta;
 
-  Interval list1_iv{Instant(), Instant(), /*lc*/ true, /*rc*/ false};
-  Interval list2_iv{Instant(), Instant(), /*lc*/ true, /*rc*/ false};
-
   Interval seq1_iv{Instant(), Instant(), /*lc*/ true, /*rc*/ false};
   Interval seq2_iv{Instant(), Instant(), /*lc*/ true, /*rc*/ false};
 
   DateTime total_duration{datetime::durationtype};
+};
+
+
+/*
+3.4 Aggregator Class for SPXSTLIP
+
+*/
+class SPXSTLIPAggregator : public STLIPAggregator
+{
+public:
+  using Base = STLIPAggregator;
+
+  SPXSTLIPAggregator(
+      const double st_factor, const DateTime& delta, const double sp_factor)
+    : STLIPAggregator(st_factor, delta), sp_factor(sp_factor)
+  { }
+
+  std::unique_ptr<Polygon> closePolygon()
+  {
+    std::unique_ptr<Polygon> polygon = Base::closePolygon();
+    if (!polygon)
+      return nullptr;
+
+    if (sp_factor != 0.0) {
+      const double speed1 = len1 / (list1_iv.end - list1_iv.start).ToDouble();
+      const double speed2 = len2 / (list2_iv.end - list2_iv.start).ToDouble();
+      const double splip = fabs(1.0 - (2.0 * speed1 / (speed1 + speed2)));
+      polygon->splip = splip;
+    }
+
+    return polygon;
+  }
+
+  inline double getDist(const Polygon& polygon) const
+  {
+    const double stlip = Base::getDist(polygon);
+    if (sp_factor != 0.0)
+      return stlip * (1.0 + (sp_factor * polygon.splip));
+    else
+      return stlip;
+  }
+
+private:
+  const double sp_factor;
 };
 
 
@@ -690,18 +798,6 @@ $st\_factor$ and defined duration $delta$.
   }
 
 /*
-Require that both sequences cover the same time interval.
-
-*/
-  if (seq1.get(0).getInstant() != seq2.get(0).getInstant() ||
-      seq1.get(seq1.GetNoComponents()-1).getInstant() !=
-      seq2.get(seq2.GetNoComponents()-1).getInstant())
-  {
-    dist.SetDefined(false);
-    return 0;
-  }
-
-/*
 Require a $st\_factor \ge 0$ and a $delta \ge 0$.
 
 */
@@ -732,8 +828,8 @@ struct DistSTLIPInfo : OperatorInfo
     syntax    = "dist_stlip(_, _, _, _)";
     meaning   = "Spatio-temporal Locality In-between Polylines distance "
                 "STLIP(P, Q, st_factor, delta) of a well-formed pair of "
-                "tpoinseq objects that cover the same time range, a "
-                "non-negative st_factor and a non-negative duration delta.\n"
+                "tpoinseq objects, a non-negative st_factor and a non-negative "
+                "duration delta.\n"
                 "STLIP extends LIP (operator dist_lip) by multiplying each "
                 "weighted polygon area with a factor that measures the "
                 "temporal dissimilarity of the two portions of the two "
@@ -744,8 +840,7 @@ struct DistSTLIPInfo : OperatorInfo
                 "STLIP yields the same result as LIP.\n"
                 "If the pair of sequences is not well-formed, the result is "
                 "indefinite. If any of the sequences is undefined or has less "
-                "than two points, if the sequences do not cover the same "
-                "time interval, or if st_factor or delta is negative, the "
+                "than two points or if st_factor or delta is negative, the "
                 "result is undefined.\n"
                 "Time and space complexity are the same as for dist_lip with "
                 "higher constants for the time complexity.";
@@ -764,6 +859,99 @@ int DistSTLIPSelect(ListExpr args)
 { return mappings::vectorSelect(dist_stlip_maps, args); }
 
 
+/*
+4.2 ~dist\_spxstlip~
+
+*/
+int SPXSTLIPDistValueMap(
+    Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
+{
+  const TPointSeq& seq1 = *static_cast<TPointSeq*>(args[0].addr);
+  const TPointSeq& seq2 = *static_cast<TPointSeq*>(args[1].addr);
+  const CcReal& cc_st_factor = *static_cast<CcReal*>(args[2].addr);
+  const datetime::DateTime& delta =
+      *static_cast<datetime::DateTime*>(args[3].addr);
+  const CcReal& cc_sp_factor = *static_cast<CcReal*>(args[4].addr);
+  result = qp->ResultStorage(s);    // CcReal
+  CcReal& dist = *static_cast<CcReal*>(result.addr);
+
+/*
+Require defined sequences with at least two points each, a defined
+$st\_factor$ and $sp\_factor$, and a defined duration $delta$.
+
+*/
+  if (seq1.GetNoComponents() < 2 || seq2.GetNoComponents() < 2 ||
+      !cc_st_factor.IsDefined() ||
+      !delta.IsDefined() || delta.GetType() != datetime::durationtype ||
+      !cc_sp_factor.IsDefined())
+  {
+    dist.SetDefined(false);
+    return 0;
+  }
+
+/*
+Require $st\_factor \ge 0$, $delta \ge 0$, and $sp\_factor \ge 0$.
+
+*/
+  const double st_factor = cc_st_factor.GetValue();
+  const double sp_factor = cc_sp_factor.GetValue();
+  if (st_factor < 0.0 || delta.ToDouble() < 0.0 || sp_factor < 0.0) {
+    dist.SetDefined(false);
+    return 0;
+  }
+
+  SPXSTLIPAggregator agg(st_factor, delta, sp_factor);
+  dist.Set(dist_lip(agg, seq1, seq2));
+  return 0;
+}
+
+ValueMapping dist_spxstlip_functions[] = {
+  SPXSTLIPDistValueMap,
+  nullptr
+};
+
+struct DistSPXSTLIPInfo : OperatorInfo
+{
+  DistSPXSTLIPInfo() : OperatorInfo()
+  {
+    name      = "dist_spxstlip";
+    signature = TPointSeq::BasicType() + " x " + TPointSeq::BasicType()
+                + " x " + CcReal::BasicType() + " x " + Duration::BasicType()
+                + " x " + CcReal::BasicType() + " -> " + CcReal::BasicType();
+    syntax    = "dist_spxstlip(_, _, _, _, _)";
+    meaning   = "Experimental Speed-pattern Spatio-temporal Locality "
+                "In-between Polylines distance SPXSTLIP(P, Q, st_factor, "
+                "delta, sp_factor) of a well-formed pair of tpoinseq objects, "
+                "a non-negative st_factor, a non-negative duration delta, and "
+                "a non-negative sp_factor.\n"
+                "SPXSTLIP extends STLIP (operator dist_stlip) by multiplying "
+                "each STLIP polygon value with a factor that measures the "
+                "dissimilarity in the velocity of the two sequences on the "
+                "polygon. sp_factor controls how much the differences in the "
+                "velocities affect the result. With an sp_factor of 0, "
+                "SPXSTLIP yields the same result as STLIP.\n"
+                "If the pair of sequences is not well-formed, the result is "
+                "indefinite. If any of the sequences is undefined or has less "
+                "than two points, or if st_factor, delta, or sp_factor is "
+                "negative, the result is undefined.\n"
+                "Time and space complexity are the same as for dist_stlip with "
+                "higher constants for the time complexity.";
+  }
+};
+
+const mappings::VectorTypeMaps dist_spxstlip_maps = {
+  /*0*/ {{TPointSeq::BasicType(), TPointSeq::BasicType(),
+    CcReal::BasicType(), Duration::BasicType(), CcReal::BasicType()},
+    /* -> */ {CcReal::BasicType()}}
+};
+
+ListExpr DistSPXSTLIPTypeMap(ListExpr args)
+{ return mappings::vectorTypeMap(dist_spxstlip_maps, args); }
+
+int DistSPXSTLIPSelect(ListExpr args)
+{ return mappings::vectorSelect(dist_spxstlip_maps, args); }
+
+
 void TrajectorySimilarityAlgebra::addLIPDistOp()
 {
   AddOperator(
@@ -772,6 +960,9 @@ void TrajectorySimilarityAlgebra::addLIPDistOp()
   AddOperator(
       DistSTLIPInfo(), dist_stlip_functions,
       DistSTLIPSelect, DistSTLIPTypeMap);
+  AddOperator(
+      DistSPXSTLIPInfo(), dist_spxstlip_functions,
+      DistSPXSTLIPSelect, DistSPXSTLIPTypeMap);
 }
 
 } //-- namespace tsa

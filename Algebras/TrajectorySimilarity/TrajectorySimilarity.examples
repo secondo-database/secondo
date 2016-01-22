@@ -214,3 +214,10 @@ Number   : 1
 Signature: tpointseq x tpointseq x real x duration -> real
 Example  : query dist_stlip([const tpointseq value (("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:30:20" (1.0 0.0)))], [const tpointseq value (("2015-12-29-01:23:45" (0.0 1.0)) ("2015-12-29-01:30:20" (1.0 0.5)))], [const real value 1.0], [const duration value (0 0)])
 Result   : (real 0.75)
+
+
+Operator : dist_spxstlip
+Number   : 1
+Signature: tpointseq x tpointseq x real x duration -> real
+Example  : query dist_spxstlip([const tpointseq value (("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:30:20" (1.0 0.0)))], [const tpointseq value (("2015-12-29-01:23:45" (0.0 1.0)) ("2015-12-29-01:30:20" (1.0 0.5)))], [const real value 1.0], [const duration value (0 0)], [const real value 1.0])
+Result   : (real 0.7917960675006309)
