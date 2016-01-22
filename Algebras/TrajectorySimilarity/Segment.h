@@ -134,7 +134,15 @@ it is negative.
   }
 
 /*
+Test whether the segment's start and end are almost equal.
+
+*/
+  const bool almostEmpty() const
+  { return AlmostEqual(start.toPoint(), end.toPoint()); }
+
+/*
 Get a ~HalfSegment~ object of the SpatialAlgebra that represents the segment.
+Works only, if $almostEmpty() = false$.
 
 */
   const HalfSegment toHalfSegment() const
@@ -170,8 +178,42 @@ bool intersection(
     const Segment<T>& seg1, const Segment<T>& seg2, Point& cross,
     const Geoid* geoid = nullptr)
 {
-  HalfSegment hs1 = seg1.toHalfSegment();
-  HalfSegment hs2 = seg2.toHalfSegment();
+  const bool empty1 = seg1.almostEmpty();
+  const bool empty2 = seg2.almostEmpty();
+
+  if (empty1 && empty2) {
+    if (AlmostEqual(seg1.getStart().toPoint(), seg2.getStart().toPoint()) ||
+        AlmostEqual(seg1.getStart().toPoint(), seg2.getEnd().toPoint()))
+    {
+      cross = seg1.getStart();
+      return true;
+    }
+    if (AlmostEqual(seg1.getEnd().toPoint(), seg2.getStart().toPoint()) ||
+        AlmostEqual(seg1.getEnd().toPoint(), seg2.getEnd().toPoint()))
+    {
+      cross = seg1.getEnd();
+      return true;
+    }
+    return false;
+  }
+
+  if (empty1 || empty2) {
+    const HalfSegment hs = (empty2 ? seg1 : seg2).toHalfSegment();
+    const ::Point p_start = (empty2 ? seg2 : seg1).getStart().toPoint();
+    const ::Point p_end = (empty2 ? seg2 : seg1).getEnd().toPoint();
+    if (hs.Contains(p_start)) {
+      cross = p_start;
+      return true;
+    }
+    if (hs.Contains(p_end)) {
+      cross = p_end;
+      return true;
+    }
+    return false;
+  }
+
+  const HalfSegment hs1 = seg1.toHalfSegment();
+  const HalfSegment hs2 = seg2.toHalfSegment();
   ::Point pt;
   if (!hs1.Intersection(hs2, pt, geoid))
     return false;
