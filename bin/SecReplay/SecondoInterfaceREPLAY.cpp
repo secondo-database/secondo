@@ -1287,6 +1287,10 @@ Send all images from search result to the node
   for (unsigned int i = 0; i < imageList.size(); ++i) {
      found = imageList[i].rfind("/");
      serverFileName = imageList[i].substr(found + 1);
+
+     // remove spaces in filename
+     serverFileName = stringutils::replaceAll(serverFileName," ","_");
+
      sendFileToNode(nodeNo, imageList[i], serverFileName, true);
 
     // no special thread handling needed, because the threads only fill 
