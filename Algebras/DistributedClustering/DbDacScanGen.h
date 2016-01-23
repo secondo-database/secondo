@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 
  
-[1]  DbDacScanGen
+[1] Implementation of Class DbDacScanGen
 
 August-February 2015, Daniel Fuchs 
 

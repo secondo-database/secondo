@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 //[_] [\_]
 
-[1] Distsamp
+[1] Implementation of Class Distsamp
 
 August-February 2015, Daniel Fuchs 
 
