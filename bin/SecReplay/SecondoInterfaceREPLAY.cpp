@@ -594,7 +594,7 @@ Check number of params of replay command
     cout << "Wrong parameter count for replayOSMImport" << endl;
     return false;
   } else if (replayImpCommand == "replayCSVImport" && (paramlist.size() < 7 ||
-                                                       paramlist.size() > 8)) {
+                                                       paramlist.size() > 9)) {
     cout << "Wrong parameter count for replayCSVImport" << endl;
     return false;
   } else if (replayImpCommand == "replaySHPImport" && (paramlist.size() < 3 ||
@@ -1908,12 +1908,23 @@ Execute of ReplayCSVImport.
      foundSep = currentFilePath.find_last_of("_");
      currentNo = stoi(currentFilePath.substr(foundSep + 1));
 
-     cmdText = "let " + paramlist[1] + "_" + 
+     if (paramlist.size() == 7 || paramlist.size() == 8) {
+       cmdText = "let " + paramlist[1] + "_" + 
                stringutils::int2str(currentNo) + 
                " = csvimport2('" + currentFilePath + "', " + paramlist[2] + 
                ",\"" + paramlist[3] +"\",\"" + paramlist[4] +"\"," + 
                paramlist[5] + "," + paramlist[6] + ") consume";
-
+     } else {
+       cmdText = "let " +  paramlist[1] + "_" + 
+               stringutils::int2str(currentNo) +
+               "= [ const rel(tuple([" +
+               stringutils::replaceAll(paramlist[8], "\n",",") +
+               "] )) value ()" +
+               "] " +
+               "csvimport['" + currentFilePath + "', " + paramlist[2] + 
+               ",\"" + paramlist[3] +"\",\"" + paramlist[4] +"\"," + 
+               paramlist[5] + "," + paramlist[6] + "] consume;";
+     }
      commandsPerNode[currentNode].push_back(cmdText);
   }  
 
@@ -3302,7 +3313,7 @@ For an explanation of the error codes refer to SecondoInterface.h
          }
       } else if (replayImpCommand == "replayCSVImport") {
         // Eight parameter for replayCSVImport
-        if (paramlist.size() == 8) {
+        if (paramlist.size() == 8 || paramlist.size() == 9) {
           if ( (paramlist[7] == "Replication") ||
                (paramlist[7] == "Partitioning") ) {
             replayImportMode = paramlist[7];
@@ -3376,25 +3387,4 @@ For an explanation of the error codes refer to SecondoInterface.h
     vector<std::future<bool>> futures;
 
     // start threads for sending commands to nodes
-    for (unsigned int i=0; i<nodes.size(); ++i) 
-    {
-      futures.push_back(async(std::launch::async, 
-                      &SecondoInterfaceREPLAY::sendCommandToNode, this, 
-                      i, commandType, cmdText));
-    }
-    // wait commands sent to all nodes
-    for (unsigned int i=0; i<futures.size(); ++i) {
-      try {
-        futureRes = futures[i].get();
-        if (futureRes == false) {
-          cout << "Error while sending command to node : " 
-               << nodes[i].hostname << endl;
-        }
-      } catch (const exception& e) {
-        cout << "SYSTEM ERROR FOR STARTING/FINISHING THREAD: " << e.what() 
-             << " for sending command to node: " << nodes[i].hostname
-             << "with ip:" << nodes[i].ip;
-      }
-    }
-  }
-}
+    for (unsigned int 
