@@ -1610,13 +1610,78 @@ Execute of ReplayOsmImport.
     commandsPerNode.push_back(vector <string>());
   }
 
+  unsigned int objCount;
+  std::size_t foundSep;
+
   // Now add the commands for the nodes to the array
   for (unsigned int i=0; i<transferFilePath.size(); ++i) {
      stringutils::StringTokenizer token(transferFilePath[i], ":");
      currentNode = stoi(token.nextToken());
      currentFilePath = token.nextToken();
-     cmdText = "query fullosmimport('" + currentFilePath + "',\"" + subFileName 
-               + stringutils::int2str(i) +"\")";
+
+     foundSep = currentFilePath.find_last_of("_");
+     objCount = stoi(currentFilePath.substr(foundSep + 1));
+
+     cmdText = "query fullosmimport('" + currentFilePath + "',\"" 
+               + subFileName 
+               + stringutils::int2str(objCount) +"\")";
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     // NodeTags
+     cmdText = "let CityNodeTags_" + stringutils::int2str(objCount) + 
+               " = " + 
+               subFileName + stringutils::int2str(objCount) + "NodeTags"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     cmdText = "delete " + subFileName + 
+               stringutils::int2str(objCount) + "NodeTags"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     // Nodes
+     cmdText = "let CityNodes_" + stringutils::int2str(objCount) + " = " + 
+               subFileName + stringutils::int2str(objCount) + "Nodes"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+     cmdText = "delete " + subFileName + 
+               stringutils::int2str(objCount) + "Nodes"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     // RelationTags
+     cmdText = "let CityRelationTags_" + 
+               stringutils::int2str(objCount) + " = " + 
+               subFileName + stringutils::int2str(objCount) + 
+               "RelationTags"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     cmdText = "delete " + subFileName + stringutils::int2str(objCount) + 
+               "RelationTags"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     // Relations
+     cmdText = "let CityRelations_" + stringutils::int2str(objCount) 
+               + " = " + 
+               subFileName + stringutils::int2str(objCount) + "Relations"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     cmdText = "delete " + subFileName + stringutils::int2str(objCount) +
+               "Relations"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     // WayTags
+     cmdText = "let CityWayTags_" + stringutils::int2str(objCount) + " = " + 
+               subFileName + stringutils::int2str(objCount) + "WayTags"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     cmdText = "delete " + subFileName + stringutils::int2str(objCount) + 
+               "WayTags"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     // Ways
+     cmdText = "let CityWays_" + stringutils::int2str(objCount) + " = " + 
+               subFileName + stringutils::int2str(objCount) + "Ways"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     cmdText = "delete " + subFileName + stringutils::int2str(objCount) + 
+               "Ways"; 
      commandsPerNode[currentNode].push_back(cmdText);
   }
 
