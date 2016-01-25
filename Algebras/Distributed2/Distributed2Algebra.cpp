@@ -12472,71 +12472,94 @@ bool startFileTransferators( AT* array, int port){
 20.1 Type Mapping
 
 */
+template<int d>
+ListExpr dmapXTM(ListExpr args){
 
-ListExpr dmap2TM(ListExpr args){
-
- string err = "d[f]array(X) x d[f]array[Y] x string x "
+ string err = "d[f]array(X) ^" + stringutils::int2str(d) + " x string x "
               "fun : (X x Y -> Z) x int expected";
- if(!nl->HasLength(args,5)){
+ if(!nl->HasLength(args,3 + d)){
    return listutils::typeError(err + " (wrong number of args)");
  }
- ListExpr first = nl->First(args);
- ListExpr second = nl->Second(args);
- ListExpr third = nl->Third(args);
- ListExpr fourth = nl->Fourth(args);
- ListExpr fifth = nl->Fifth(args);
 
- if(!nl->HasLength(first,2) || !nl->HasLength(second,2) ||
-    !nl->HasLength(third,2) || !nl->HasLength(fourth,2) ||
-    !nl->HasLength(fifth,2)){
-   return listutils::typeError("internal error");
- }
- // extract type information
- first = nl->First(first);
- second = nl->First(second);
- third = nl->First(third);
- fourth = nl->First(fourth);
- fifth = nl->First(fifth);
+ ListExpr ac = args;
 
- 
- if(     !DArray::checkType(first) 
-     && !DFArray::checkType(first)){
-   return listutils::typeError(err + "( first arg not a d[f]array)");
+ // check uses types in type mapping
+ while(!nl->IsEmpty(ac)){
+    if(!nl->HasLength(nl->First(ac),2)){
+       return listutils::typeError("internal error");
+    }
+    ac = nl->Rest(ac);
+
  }
- if(     !DArray::checkType(second) 
-     && !DFArray::checkType(second)){
-   return listutils::typeError(err + "( second arg not a d[f]array)");
- }
- if(!CcString::checkType(third)){
-   return  listutils::typeError(err + " (third arg is not a string)");
- }
- if(!listutils::isMap<2>(fourth)){
-   return listutils::typeError(err + " (fourth arg is not a function)"); 
- }
- if(!CcInt::checkType(fifth)){
-   return listutils::typeError(err + " (fifth arg is not an int)");
+ // copy arguments into partitions
+ ListExpr arrays[d];
+ ListExpr Name;
+ ListExpr name;
+ ListExpr Fun;
+ ListExpr fun;
+ ListExpr Port;
+ ListExpr port;
+
+ ac = args;
+ for(int i=0;i<d;i++){
+    arrays[i] = nl->First(nl->First(ac));
+    ac = nl->Rest(ac);
+ } 
+ Name = nl->First(ac);
+ name = nl->First(Name);
+ ac = nl->Rest(ac);
+ Fun = nl->First(ac);
+ fun = nl->First(Fun);
+ ac = nl->Rest(ac);
+ Port = nl->First(ac);
+ port = nl->First(Port);
+ ac = nl->Rest(ac);
+ assert(nl->IsEmpty(ac));
+
+ for(int i=0;i<d;i++){
+    if(     !DArray::checkType(arrays[i]) 
+         && !DFArray::checkType(arrays[i])){
+      return listutils::typeError(err + "( first " + stringutils::int2str(d) 
+                                      + " args must be of type d[f]array)");
+    }
  }
 
- ListExpr a1 = DFArray::checkType(first)
-               ? nl->TwoElemList( listutils::basicSymbol<frel>(),
-                                  nl->Second(nl->Second(first)))
-               : nl->Second(first);
+ if(!CcString::checkType(name)){
+   return  listutils::typeError(err + " (name (string) not found at "
+                                      "expected position)");
+ }
+ if(!listutils::isMap<d>(fun)){
+   return listutils::typeError(err + " (function not found at "
+                                        "expected position)");
+ }
+ if(!CcInt::checkType(port)){
+   return listutils::typeError(err + " (last argument not of type int)");
+ }
 
- ListExpr a2 = DFArray::checkType(second)
-               ? nl->TwoElemList( listutils::basicSymbol<frel>(),
-                                  nl->Second(nl->Second(second)))
-               : nl->Second(second);
- 
- ListExpr fa1 = nl->Second(fourth);
- ListExpr fa2 = nl->Third(fourth);
+
+ // buils an array of expected function arguments
+ ListExpr efunargs[d];
+ for(int i=0;i<d;i++){
+   efunargs[i] = DFArray::checkType(arrays[i])
+                    ? nl->TwoElemList( listutils::basicSymbol<frel>(),
+                                       nl->Second(nl->Second(arrays[i])))
+                    : nl->Second(arrays[i]);
+ }
+
+ // check whether function arguments fit to the expected one from the arrays
+ ListExpr funargs = fun;
+ funargs = nl->Rest(funargs);
+ for(int i=0;i<d;i++){
+    if(!nl->Equal(efunargs[i], nl->First(funargs))){
+      return listutils::typeError("type mismatch between darray subtype and "
+                                  "function argument at position "
+                                  + stringutils::int2str(i+1) );
+    }
+    funargs = nl->Rest(funargs);
+ }
+ assert(nl->HasLength(funargs,1));
+ ListExpr funres = nl->First(funargs);
  bool streamRes = false;
-
- if(!nl->Equal(a1,fa1) || !nl->Equal(a2,fa2)){
-   return listutils::typeError("function arguments do not fit to the "
-                               "darray subtypes");
- }
-
- ListExpr funres = nl->Fourth(fourth);
  ListExpr resType;
  if(listutils::isStream(funres)){
     if(!Stream<Tuple>::checkType(funres)){
@@ -12556,31 +12579,37 @@ ListExpr dmap2TM(ListExpr args){
                                  funres); 
  }
 
- ListExpr funQ = nl->Second(nl->Fourth(args)); 
- ListExpr funarg1 = nl->Second(funQ);
- ListExpr funarg2 = nl->Third(funQ);
+ ListExpr funQ = nl->Second(Fun); 
 
- ListExpr rfunarg1 = nl->TwoElemList(
-                         nl->First(funarg1),
-                         a1);
- ListExpr rfunarg2 = nl->TwoElemList(
-                         nl->First(funarg2),
-                         a2);
+ // rewrite function arguments
 
- ListExpr rfun = nl->FourElemList(
-      nl->First(funQ),
-      rfunarg1,
-      rfunarg2,
-      nl->Fourth(funQ)
-   );
+ ListExpr rfun = nl->OneElemList(nl->First(funQ));
+ ListExpr last = rfun;
 
- return nl->ThreeElemList(
+ funQ = nl->Rest(funQ);
+ for(int i=0;i<d;i++){
+    last = nl->Append(last,
+                nl->TwoElemList(
+                   nl->First(nl->First(funQ)),
+                   efunargs[i]
+                ));
+     funQ = nl->Rest(funQ);
+ }
+ assert(nl->HasLength(funQ,1));
+
+ last = nl->Append(last, nl->First(funQ));
+
+ ListExpr finalRes =  nl->ThreeElemList(
            nl->SymbolAtom(Symbols::APPEND()),
            nl->TwoElemList(
                  nl->BoolAtom(streamRes),
                  nl->TextAtom( nl->ToString(rfun))),
            resType);
+  return finalRes;
 }
+
+
+
 
 
 template<class A1, class A2, class R>
@@ -13011,7 +13040,7 @@ Operator dmap2Op(
   4,
   dmap2VM,
   dmap2Select,
-  dmap2TM
+  dmapXTM<2>
 );
 
 
@@ -15991,7 +16020,7 @@ int areduceVMT(Word* args, Word& result, int message,
          return 0;
       }
 
-      if(!matrix1->equalWorker(*matrix2)){
+      if(!matrix1->equalWorkers(*matrix2)){
          //cout << "different worker specification" << endl;
          res->makeUndefined();
          return 0;
