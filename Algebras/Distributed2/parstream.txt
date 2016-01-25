@@ -1,0 +1,203 @@
+
+/*
+2.33 Operator ~parstream~
+
+This operator can be inserted into a stream of Attribute  or a stream of tuples.
+It holds a buffer and fills it within a separated thread. Thus, parallel
+computation can be reached on a single system.
+
+*/
+
+ListExpr parstreamTM(ListExpr args){
+  string err = "stream(tuple) or stream(DATA) x int expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(   !Stream<Tuple>::checkType(nl->First(args))
+     && !Stream<Attribute>::checkType(nl->First(args))){
+    return listutils::typeError(err + " (wrong type in 1st arg)");
+  } 
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError(err + " (wrong type in 2nd arg)");
+  }
+  return nl->First(args);
+}
+
+
+
+template<class T>
+class syncBuffer{
+
+
+public:
+   syncBuffer(int count): buffer(), buffer_mutex(), full(0), 
+                          empty(count) {
+
+   }
+
+   void append(T* value){
+      empty.wait();            // wait for free slot
+      // fill buffer
+      buffer_mutex.lock();
+      buffer.push(value);
+      buffer_mutex.unlock();
+      // signal for new content
+      full.signal();
+   }
+
+   T* next(){
+      full.wait();
+      boost::lock_guard<boost::mutex> guard(buffer_mutex);
+      T* res = buffer.front();
+      buffer.pop();
+      empty.signal();
+      return res;
+   }
+
+
+private:
+   queue<T*> buffer;
+   boost::mutex buffer_mutex;
+   semaphore full;
+   semaphore empty;
+};
+
+
+template<class T>
+class parstreamInfo{
+
+  public:
+     parstreamInfo(Word _stream, CcInt* _count): stream(_stream){
+
+        cout << "Constructor called" << __PRETTY_FUNCTION__ << endl;
+        count = 10;
+        if(_count->IsDefined()){
+           count = _count->GetValue();
+           if(count < 2){
+               count = 2;
+           }
+        }
+        stop = false;
+        buffer = new syncBuffer<T>(count);
+        runner = new boost::thread(&parstreamInfo::run , this);
+     }
+
+     ~parstreamInfo(){
+
+        cout << "Destructor" << endl;
+        stop_mutex.lock();
+        stop = true;
+        stop_mutex.unlock();
+        cout << "overcomes stop" << endl;
+        runner->join();
+        cout << "runner joined " << endl;
+        delete runner;
+        cout << "runner deleted" << endl;
+        //T* victim;
+       /* 
+        while((victim=buffer->next(true))){
+           victim->DeleteIfAllowed();
+        } 
+        */
+        cout << "buffer emotyed" << endl;
+        delete buffer;
+        cout << "buffer deleted" << endl;
+      }
+
+      T* next(){
+         T* res = buffer->next();
+       //  if(res){
+       //      res->Print(cout);
+       //  }
+         return res;
+      }
+
+  private:
+    Stream<T> stream;
+    int count;
+    boost::thread* runner;
+    bool stop;
+    boost::mutex stop_mutex;
+    syncBuffer<T>* buffer; 
+
+
+    void run(){
+       cout << "run called" << endl;
+       stream.open();
+       cout << "stream is open" << endl;
+       T* nextT;
+       count = 0;
+       stop_mutex.lock();
+       while(!stop){
+         stop_mutex.unlock();
+         cout << count++ ;
+         nextT = stream.request();
+         cout << "  --> " << count << endl;
+         if(!nextT){
+              stop_mutex.lock();
+              stop = true;
+              stop_mutex.unlock();
+         } else {
+             buffer->append(nextT);
+         }
+       }
+       cout << "stop reached" << endl;
+       buffer->append(0);
+       stream.close();
+    }
+
+
+};
+
+
+template<class T>
+int parstreamVMT(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+   parstreamInfo<T>* li = (parstreamInfo<T>*) local.addr;
+   switch(message){
+      case OPEN :
+             if(li){
+               delete li;
+             }
+             local.addr = new parstreamInfo<T>(args[0], (CcInt*) args[1].addr);
+             return 0;
+      case REQUEST:
+             result.addr = li?li->next():0;
+             return result.addr?YIELD:CANCEL;
+     case CLOSE:
+             if(li){
+                delete li;
+                local.addr = 0;
+             }
+             return 0;
+   }
+   return -1;
+}
+
+ValueMapping parstreamVM[] = {
+   parstreamVMT<Attribute>,
+   parstreamVMT<Tuple>
+};
+
+int parstreamSelect(ListExpr args){
+ return Stream<Attribute>::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec parstreamSpec(
+  " stream(T) x int -> stream(T) , T in {tuple,DATA}",
+  " _ parstream[_]",
+  "This operator starts a new thread for buffering the incoming stream. ",
+  " query plz feed sort parstream[10] plz feed sort parstream[10] "
+  "mergejoin count"
+);
+
+Operator parstreamOP(
+ "parstream",
+ parstreamSpec.getStr(),
+ 2,
+ parstreamVM,  
+ parstreamSelect,
+ parstreamTM
+);
+
