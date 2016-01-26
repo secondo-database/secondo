@@ -1107,21 +1107,21 @@ query lcss(
 #yields (int 2)
 query lcss(
   [const pointseq value ((1.0 2.3) (-2.0 0.0))],
-  [const pointseq value ((2.5 1.2) (-0.6 3.2))],
+  [const pointseq value ((2.5 1.2) (-0.6 1.2))],
   [const real value 1.5])
 
 #testcase LCSSPointSeqVariant3
 #yields (int 1)
 query lcss(
   [const pointseq value ((1.0 2.3) (-2.0 0.0))],
-  [const pointseq value ((2.5 0.2) (-2.0 3.2))],
+  [const pointseq value ((2.5 0.2) (-2.0 1.2))],
   [const real value 1.5])
 
 #testcase LCSSPointSeqVariant4
 #yields (int 0)
 query lcss(
   [const pointseq value ((1.0 2.3) (-2.0 0.8))],
-  [const pointseq value ((2.5 -0.7) (2.5 3.8))],
+  [const pointseq value ((2.5 -0.7) (2.6 3.8))],
   [const real value 1.5])
 
 #testcase LCSSPointSeqDelta0
@@ -1375,21 +1375,21 @@ query rel_lcss(
 #yields (real 1.0)
 query rel_lcss(
   [const pointseq value ((1.0 2.3) (-2.0 0.0))],
-  [const pointseq value ((2.5 1.2) (-0.6 3.2))],
+  [const pointseq value ((2.5 1.2) (-0.6 1.2))],
   [const real value 1.5])
 
 #testcase RelLCSSPointSeqVariant3
 #yields (real 0.5)
 query rel_lcss(
   [const pointseq value ((1.0 2.3) (-2.0 0.0))],
-  [const pointseq value ((2.5 0.2) (-2.0 3.2))],
+  [const pointseq value ((2.5 0.2) (-2.0 1.2))],
   [const real value 1.5])
 
 #testcase RelLCSSPointSeqVariant4
 #yields (real 0.0)
 query rel_lcss(
   [const pointseq value ((1.0 2.3) (-2.0 0.8))],
-  [const pointseq value ((2.5 -0.7) (2.5 3.8))],
+  [const pointseq value ((2.5 -0.7) (2.6 3.8))],
   [const real value 1.5])
 
 #testcase RelLCSSPointSeqDelta0
@@ -1543,21 +1543,21 @@ query dist_lcss(
 #yields (real 0.0)
 query dist_lcss(
   [const pointseq value ((1.0 2.3) (-2.0 0.0))],
-  [const pointseq value ((2.5 1.2) (-0.6 3.2))],
+  [const pointseq value ((2.5 1.2) (-0.6 1.2))],
   [const real value 1.5])
 
 #testcase DistLCSSPointSeqVariant3
 #yields (real 0.5)
 query dist_lcss(
   [const pointseq value ((1.0 2.3) (-2.0 0.0))],
-  [const pointseq value ((2.5 0.2) (-2.0 3.2))],
+  [const pointseq value ((2.5 0.2) (-2.0 1.2))],
   [const real value 1.5])
 
 #testcase DistLCSSPointSeqVariant4
 #yields (real 1.0)
 query dist_lcss(
   [const pointseq value ((1.0 2.3) (-2.0 0.8))],
-  [const pointseq value ((2.5 -0.7) (2.5 3.8))],
+  [const pointseq value ((2.5 -0.7) (2.6 3.8))],
   [const real value 1.5])
 
 #testcase DistLCSSPointSeqDelta0

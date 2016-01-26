@@ -43,19 +43,20 @@ subsequence of $P$ and also of $Q$. This definition fits for discrete domains,
 but for continuous domains it is usually relaxed as follows: $P'$, a subsequence
 of $P$, is considered a common subsequence of $P$ and $Q$, if it ~matches~ a
 subsequence $Q'$ of $Q$. Two subsequences
-$P'= \langle p'_0,\ \dots,\ p'_{n-1}\rangle$ and
-$Q'= \langle q'_0,\ \dots,\ q'_{m-1}\rangle$ match, if they have the same number
-of items $n=m$ and for each $i \in \lbrack0,\ n \lbrack$ the item $p'_i$ matches
+$P'= \langle p'_0,\ \dots,\ p'_{m-1}\rangle$ and
+$Q'= \langle q'_0,\ \dots,\ q'_{n-1}\rangle$ match, if they have the same number
+of items $m=n$ and for each $i \in \lbrack0,\ n \lbrack$ the item $p'_i$ matches
 $q'_i$ within some neighbourhood.
 
 For point sequences, \cite[section 2]{COO05} defines that two points $p, q$
-match, if their spatial $L^1$ distance is less than $epsilon > 0$, that is
+match, if their maximum norm ($L^{\infty}$) distance is less than or equal to
+$\epsilon > 0$, that is
 
-        $(|p.x-q.x| < \epsilon) \lor (|p.y-q.y| < \epsilon).$
+        $(|p.x-q.x| \le \epsilon) \land (|p.y-q.y| \le \epsilon).$
 
-In addition, \cite{VGK02} requires that the index positions $i, j$ of the points
-$p, q$ in their original sequences $P, Q$ are at most $\delta \ge 0$ places
-apart, that is $|i-j| \le \delta$.
+In addition to the spatial criterion, \cite{VGK02} requires that the index
+positions $i, j$ of the points $p, q$ in their original sequences $P, Q$ are at most
+$\delta \ge 0$ places apart, that is $|i-j| \le \delta$.
 
 
 1.1 Operators
@@ -167,7 +168,7 @@ inline static bool items_match(
 {
   const Point p1 = seq1.get(i1);
   const Point p2 = seq2.get(i2);
-  return l1Distance(p1, p2) < epsilon;
+  return maxDistance(p1, p2) <= epsilon;
 }
 
 /*
