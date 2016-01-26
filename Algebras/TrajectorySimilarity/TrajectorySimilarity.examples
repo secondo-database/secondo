@@ -105,13 +105,13 @@ Operator : dist_origin_and_destination
 Number   : 1
 Signature: pointseq x pointseq -> real
 Example  : query dist_origin_and_destination([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))])
-Result   : (real 2.960447812311609)
+Result   : (real 5.920895624623218)
 
 Operator : dist_origin_and_destination
 Number   : 2
 Signature: pointseq x pointseq x geoid -> real
 Example  : query dist_origin_and_destination([const pointseq value ((1.0 2.3) (-2.0 0.0))], [const pointseq value ((2.5 1.2) (0.5 3.2))], create_geoid("WGS1984"))
-Result   : (real 327787.003176052)
+Result   : (real 655574.006352104)
 
 
 Operator : dist_euclidean

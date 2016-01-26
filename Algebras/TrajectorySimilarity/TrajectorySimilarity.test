@@ -895,13 +895,13 @@ query dist_origin_and_destination(
 #tolerance_real %0.1
 
 #testcase DistOriginAndDestinationPointSeq
-#yields (real 2.96)
+#yields (real 5.92)
 query dist_origin_and_destination(
   [const pointseq value ((1.0 2.3) (-2.0 0.0))],
   [const pointseq value ((2.5 1.2) (0.5 3.2))])
 
 #testcase DistOriginAndDestinationPointSeqSymmetry
-#yields (real 2.96)
+#yields (real 5.92)
 query dist_origin_and_destination(
   [const pointseq value ((2.5 1.2) (0.5 3.2))],
   [const pointseq value ((1.0 2.3) (-2.0 0.0))])
@@ -913,7 +913,7 @@ query dist_origin_and_destination(
   [const pointseq value ((2.5 1.2) (0.5 3.2))])
 
 #testcase DistOriginAndDestinationPointSeqGeoid
-#yields (real 327700.0)
+#yields (real 655570.0)
 query dist_origin_and_destination(
   [const pointseq value ((1.0 2.3) (-2.0 0.0))],
   [const pointseq value ((2.5 1.2) (0.5 3.2))],
@@ -949,7 +949,7 @@ query dist_origin_and_destination(
 # pointseqs.)
 
 #testcase DistOriginAndDestinationTPointSeq
-#yields (real 2.96)
+#yields (real 5.92)
 query dist_origin_and_destination(
   [const tpointseq value (
     ("2015-12-29-01:23:45" (1.0 2.3))

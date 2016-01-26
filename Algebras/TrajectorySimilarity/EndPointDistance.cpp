@@ -66,9 +66,8 @@ of two point sequences.
 
 1.1.2 ~dist\_origin\_and\_destination~
 
-The operator ~dist\_origin\_and\_destination~ measures the ~arithmetic mean~ of
-the distances between the first points and the last points of two point
-sequences.
+The operator ~dist\_origin\_and\_destination~ measures the ~sum~ of the
+distances between the first points and the last points of two point sequences.
 
 
 2 Includes
@@ -203,8 +202,7 @@ double dist_origin_and_destination(
   const Point pd1 = seq1.get(seq1.GetNoComponents() - 1);
   const Point pd2 = seq2.get(seq2.GetNoComponents() - 1);
   return
-      (euclideanDistance(po1, po2, geoid) +
-       euclideanDistance(pd1, pd2, geoid)) / 2.0;
+      euclideanDistance(po1, po2, geoid) + euclideanDistance(pd1, pd2, geoid);
 }
 
 ValueMapping dist_origin_and_destination_functions[] = {
