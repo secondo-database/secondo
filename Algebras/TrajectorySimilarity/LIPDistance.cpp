@@ -470,7 +470,7 @@ Copy the points to the cycle, but skip duplicates.
 
 */
     for (const Point &tsa_pt : points) {
-      const ::Point pt(tsa_pt.toPoint());
+      const ::Point pt(tsa_pt.toSAPoint());
       if (cycle.size() != 0 && AlmostEqual(pt, cycle.back()))
         continue;
       cycle.push_back(pt);

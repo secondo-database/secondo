@@ -138,7 +138,7 @@ Test whether the segment's start and end are almost equal.
 
 */
   const bool almostEmpty() const
-  { return AlmostEqual(start.toPoint(), end.toPoint()); }
+  { return AlmostEqual(start.toSAPoint(), end.toSAPoint()); }
 
 /*
 Get a ~HalfSegment~ object of the SpatialAlgebra that represents the segment.
@@ -146,7 +146,7 @@ Works only, if $almostEmpty() = false$.
 
 */
   const HalfSegment toHalfSegment() const
-  { return HalfSegment(/*ldm*/ true, start.toPoint(), end.toPoint()); }
+  { return HalfSegment(/*ldm*/ true, start.toSAPoint(), end.toSAPoint()); }
 
 /*
 Get a string representation for display purposes.
@@ -182,14 +182,14 @@ bool intersection(
   const bool empty2 = seg2.almostEmpty();
 
   if (empty1 && empty2) {
-    if (AlmostEqual(seg1.getStart().toPoint(), seg2.getStart().toPoint()) ||
-        AlmostEqual(seg1.getStart().toPoint(), seg2.getEnd().toPoint()))
+    if (AlmostEqual(seg1.getStart().toSAPoint(), seg2.getStart().toSAPoint()) ||
+        AlmostEqual(seg1.getStart().toSAPoint(), seg2.getEnd().toSAPoint()))
     {
       cross = seg1.getStart();
       return true;
     }
-    if (AlmostEqual(seg1.getEnd().toPoint(), seg2.getStart().toPoint()) ||
-        AlmostEqual(seg1.getEnd().toPoint(), seg2.getEnd().toPoint()))
+    if (AlmostEqual(seg1.getEnd().toSAPoint(), seg2.getStart().toSAPoint()) ||
+        AlmostEqual(seg1.getEnd().toSAPoint(), seg2.getEnd().toSAPoint()))
     {
       cross = seg1.getEnd();
       return true;
@@ -199,8 +199,8 @@ bool intersection(
 
   if (empty1 || empty2) {
     const HalfSegment hs = (empty2 ? seg1 : seg2).toHalfSegment();
-    const ::Point p_start = (empty2 ? seg2 : seg1).getStart().toPoint();
-    const ::Point p_end = (empty2 ? seg2 : seg1).getEnd().toPoint();
+    const ::Point p_start = (empty2 ? seg2 : seg1).getStart().toSAPoint();
+    const ::Point p_end = (empty2 ? seg2 : seg1).getEnd().toSAPoint();
     if (hs.Contains(p_start)) {
       cross = p_start;
       return true;

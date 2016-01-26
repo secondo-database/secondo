@@ -717,7 +717,7 @@ std::string Point::toString() const
 Get the point as a ~Point~ of the SpatialAlgebra.
 
 */
-::Point Point::toPoint() const
+::Point Point::toSAPoint() const
 {
   return ::Point(/*defined*/ true, x, y);
 }
@@ -748,7 +748,7 @@ double euclideanDistance(const Point& lhs, const Point& rhs, const Geoid* geoid)
   if (geoid == nullptr)
     return euclideanDistance(lhs, rhs);
 
-  return lhs.toPoint().Distance(rhs.toPoint(), geoid);
+  return lhs.toSAPoint().Distance(rhs.toSAPoint(), geoid);
 }
 
 
@@ -762,7 +762,7 @@ double sqrEuclideanDistance(
   if (geoid == nullptr)
     return sqrEuclideanDistance(lhs, rhs);
 
-  return pow(lhs.toPoint().Distance(rhs.toPoint(), geoid), 2);
+  return pow(lhs.toSAPoint().Distance(rhs.toSAPoint(), geoid), 2);
 }
 
 
@@ -869,9 +869,9 @@ std::string TPoint::toString() const
 Get the spatial projection of the point as a ~Point~ of the SpatialAlgebra.
 
 */
-::Point TPoint::toPoint() const
+::Point TPoint::toSAPoint() const
 {
-  return point.toPoint();
+  return point.toSAPoint();
 }
 
 

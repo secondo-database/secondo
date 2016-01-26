@@ -392,7 +392,7 @@ Get a string representation for display purposes.
 Get the point as a ~Point~ of the SpatialAlgebra.
 
 */
-  ::Point toPoint() const;
+  ::Point toSAPoint() const;
 
 
 /*
@@ -669,7 +669,7 @@ Get a string representation for display purposes.
 Get the spatial projection of the point as a ~Point~ of the SpatialAlgebra.
 
 */
-  ::Point toPoint() const;
+  ::Point toSAPoint() const;
 
 
 /*
