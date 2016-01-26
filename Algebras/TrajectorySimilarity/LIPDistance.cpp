@@ -37,9 +37,9 @@ The basic idea of the LIP operators is to measure the area of the shape formed
 by the two sequences, if their first points are connected and their last points
 are connected to close the shape.
 
-As \cite{PKM+07} points out, the LIP measures works correctly for point
-sequences that follow a stable trend with no dramatic rotations. Below such pair
-of sequences is called ~well-formed~. With other pairs of sequences the LIP
+As \cite{PKM+07} points out, the LIP measures work correctly for point sequences
+that follow a stable trend with no dramatic rotations. Below such pair of
+sequences is called ~well-formed~. With other pairs of sequences the LIP
 algorithm may yield self-intersecting polygons that can render the distance
 measure meaningless or indefinite. The authors propose a separate algorithm
 called ~GenLIP~, that searches a pair of sequences for bad segments and feeds
@@ -158,7 +158,7 @@ $$D_{SPXSTLIP}(P,\ Q,\ \delta) = \sum_{\forall\ p\ \in\ Polygons} spxstlip(p,
 $$spxstlip(p,\ \delta) = stlip(p, \delta) \cdot (1 + sp\_factor \cdot
 spxlip(p))$$
 
-$$spxlip(p) = \left| 1 - \frac{2 \cdot speed(P|_p)}{speed(Q|_p) + speed(Q|_p)}
+$$spxlip(p) = \left| 1 - \frac{2 \cdot speed(P|_p)}{speed(P|_p) + speed(Q|_p)}
 \right|$$
 
 $speed(P|_p)$ measure the speed of the portion of sequence $P$ that contributes
