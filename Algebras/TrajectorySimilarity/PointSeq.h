@@ -511,7 +511,14 @@ Manhattan distance.
 
 */
   friend inline double l1Distance(const Point& lhs, const Point& rhs)
-  { return std::min(fabs(lhs.x - rhs.x), fabs(lhs.y - rhs.y)); }
+  { return fabs(lhs.x - rhs.x) + fabs(lhs.y - rhs.y); }
+
+/*
+$L^\infty$ distance (maximum norm) between two points.
+
+*/
+  friend inline double maxDistance(const Point& lhs, const Point& rhs)
+  { return std::max(fabs(lhs.x - rhs.x), fabs(lhs.y - rhs.y)); }
 
 
 /*
