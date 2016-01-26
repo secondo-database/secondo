@@ -78,9 +78,9 @@ the SpatialAlgebra used here. If any of the two sequences is ~undefined~ or
 contains less than two points, the result is ~undefined~.
 
 The worst-case time complexity of the operator in the present implementation is
-$O(n^2)$ and the space complexity is $O(n)$, where $n$ is the total number of
-points in the sequences. The time complexity can be improved to $O(n \log n)$
-according to \cite{PKM+07}.
+$\mathcal{O}(n^2)$ and the space complexity is $\mathcal{O}(n)$, where $n$ is
+the total number of points in the sequences. The time complexity can be improved
+to $\mathcal{O}(n \log n)$ according to \cite{PKM+07}.
 
 
 1.1.2 ~dist\_stlip~
@@ -459,7 +459,7 @@ Create a ~Region~ object from a list of points.
 /*
 Create a cycle of points. In the worst case, that cycle has one more point than
 the original list of points, where the additional point is used to close the
-cycle. ~std::list::size()~ has $O(1)$ complexity in C++11.
+cycle. ~std::list::size()~ has $\mathcal{O}(1)$ complexity in C++11.
 
 */
     std::vector<::Point> cycle;

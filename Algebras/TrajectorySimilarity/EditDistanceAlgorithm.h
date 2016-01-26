@@ -72,7 +72,8 @@ Calculate the Edit Distance $d$ of two sequences, where $m$ is the length of the
 first sequence, $n$ is the length of the second sequence, and $match$ is a match
 function as described above. The result $d$ is in the range $[0,\ m+n]$.
 
-The time complexity is $O((m+n)d)$ and the space complexity is $O(\max(m, n))$.
+The time complexity is $\mathcal{O}((m+n)d)$ and the space complexity is
+$\mathcal{O}(\max(m, n))$.
 
 */
 size_t edit_distance(size_t m, size_t n, ed_match_t match);
@@ -83,7 +84,7 @@ $max$. If $max \ge m+n$, the result is never $-1$. Using this overload with
 $max = m+n$ is equivalent to calling the first overload, except for the return
 type.
 
-The time complexity is $O((m+n)max)$ and the space complexity is $O(max)$.
+The time complexity is $\mathcal{O}((m+n)max)$ and the space complexity is $\mathcal{O}(max)$.
 
 */
 ssize_t edit_distance(size_t m, size_t n, ed_match_t match, size_t max);
