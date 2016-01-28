@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
+
 [1] Implementation of Module Extended Relation Algebra
 
 [1] Using Storage Manager Berkeley DB
@@ -6016,7 +6017,7 @@ struct ExtendStreamLocalInfo: public ProgressLocalInfo
 public:
 
   ExtendStreamLocalInfo():
-	tupleX(0), resultTupleType(0) {};
+    tupleX(0), resultTupleType(0) {};
 
   ~ExtendStreamLocalInfo() {
     if( streamY.addr != 0 )
@@ -6205,7 +6206,7 @@ int ExtendStream(Word* args, Word& result, int message,
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
 
-	// 1. attribute sizes
+    // 1. attribute sizes
         eli->sizesChanged = false;
 
         if ( !eli->sizesInitialized )
@@ -6218,10 +6219,10 @@ int ExtendStream(Word* args, Word& result, int message,
         if ( !eli->sizesInitialized || p1.sizesChanged ||
            ( eli->returned >= eli->stableValue && !eli->sizesFinal ) )
         {
-	  eli->Size = 0.0;
-	  eli->SizeExt = 0.0;
+      eli->Size = 0.0;
+      eli->SizeExt = 0.0;
 
-          for( int i = 0; i < eli->noAttrs - 1; i++)	//old attrs
+          for( int i = 0; i < eli->noAttrs - 1; i++)    //old attrs
           {
             eli->attrSize[i] = p1.attrSize[i];
             eli->attrSizeExt[i] = p1.attrSizeExt[i];
@@ -6229,7 +6230,7 @@ int ExtendStream(Word* args, Word& result, int message,
             eli->SizeExt += eli->attrSizeExt[i];
           }
 
-          if ( eli->returned < eli->stableValue )		//new attrs
+          if ( eli->returned < eli->stableValue )       //new attrs
           {
             eli->attrSize[eli->noAttrs - 1] = 144;
             eli->attrSizeExt[eli->noAttrs - 1] = 144;
@@ -6239,9 +6240,9 @@ int ExtendStream(Word* args, Word& result, int message,
           else
           {
             eli->attrSize[eli->noAttrs - 1] = 
-              	eli->newAttrSize / ( eli->stableValue + 1 );
+                eli->newAttrSize / ( eli->stableValue + 1 );
             eli->attrSizeExt[eli->noAttrs - 1] = 
-		eli->newAttrSizeExt / ( eli->stableValue + 1 );
+        eli->newAttrSizeExt / ( eli->stableValue + 1 );
           }
           eli->Size += eli->attrSize[eli->noAttrs - 1];
           eli->SizeExt += eli->attrSizeExt[eli->noAttrs - 1];
@@ -6268,14 +6269,14 @@ int ExtendStream(Word* args, Word& result, int message,
         }
 
 
-	// 3. total time
+    // 3. total time
 
         pRes->Time = p1.Time +
-          p1.Card * wExtendStream +	// time per input tuple wo results
+          p1.Card * wExtendStream + // time per input tuple wo results
           pRes->Card * (uExtendStream + eli->noAttrs * vExtendStream);
-					// time per output tuple created
+                    // time per output tuple created
 
-	// 4. progress
+    // 4. progress
         if ( p1.BTime < 0.1 && pipelinedProgress )      //non-blocking,
                                                         //use pipelining
           pRes->Progress = p1.Progress;
@@ -6287,7 +6288,7 @@ int ExtendStream(Word* args, Word& result, int message,
             / pRes->Time;
 
 
-	// 5. blocking time and progress
+    // 5. blocking time and progress
 
         pRes->CopyBlocking(p1);    //non-blocking operator
 
@@ -7324,7 +7325,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
         tupleXY->CopyAttribute( eli->attrs[i], eli->tupleX, i );
 
       tupleXY->PutAttribute( eli->attrs.size(), 
-        			(Attribute*)wValueY.addr );
+                    (Attribute*)wValueY.addr );
 
       // for the first 50 tuples returned, observe attribute sizes of the 
       // new attribute.
@@ -7378,7 +7379,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
 
-	// 1. attribute sizes
+    // 1. attribute sizes
         eli->sizesChanged = false;
 
         if ( !eli->sizesInitialized )
@@ -7391,10 +7392,10 @@ int ProjectExtendStream(Word* args, Word& result, int message,
         if ( !eli->sizesInitialized || p1.sizesChanged ||
            ( eli->returned >= eli->stableValue && !eli->sizesFinal ) )
         {
-	  eli->Size = 0.0;
-	  eli->SizeExt = 0.0;
+      eli->Size = 0.0;
+      eli->SizeExt = 0.0;
 
-          for( int i = 0; i < eli->noOldAttrs; i++)	//old attrs
+          for( int i = 0; i < eli->noOldAttrs; i++) //old attrs
           {
             son = qp->GetSupplier(args[4].addr, i);
             qp->Request(son, elem2);
@@ -7405,7 +7406,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
             eli->SizeExt += eli->attrSizeExt[i];
           }
 
-          if ( eli->returned < eli->stableValue )	//new attr
+          if ( eli->returned < eli->stableValue )   //new attr
           {
             eli->attrSize[eli->noAttrs - 1] = 144;
             eli->attrSizeExt[eli->noAttrs - 1] = 144;
@@ -7415,9 +7416,9 @@ int ProjectExtendStream(Word* args, Word& result, int message,
           else
           {
             eli->attrSize[eli->noAttrs - 1] = 
-              	eli->newAttrSize / ( eli->stableValue + 1 );
+                eli->newAttrSize / ( eli->stableValue + 1 );
             eli->attrSizeExt[eli->noAttrs - 1] = 
-		eli->newAttrSizeExt / ( eli->stableValue + 1 );
+        eli->newAttrSizeExt / ( eli->stableValue + 1 );
           }
           eli->Size += eli->attrSize[eli->noAttrs - 1];
           eli->SizeExt += eli->attrSizeExt[eli->noAttrs - 1];
@@ -7436,14 +7437,14 @@ int ProjectExtendStream(Word* args, Word& result, int message,
           p1.Card * ( (double) (eli->returned + 1) / (eli->read + 1) );
 
 
-	// 3. total time
+    // 3. total time
 
         pRes->Time = p1.Time +
-          p1.Card * wExtendStream +	// time per input tuple wo results
+          p1.Card * wExtendStream + // time per input tuple wo results
           pRes->Card * (uExtendStream + eli->noAttrs * vExtendStream);
-					// time per output tuple created
+                    // time per output tuple created
 
-	// 4. progress
+    // 4. progress
         if ( p1.BTime < 0.1 && pipelinedProgress )      //non-blocking,
                                                         //use pipelining
           pRes->Progress = p1.Progress;
@@ -7455,7 +7456,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
             / pRes->Time;
 
 
-	// 5. blocking time and progress
+    // 5. blocking time and progress
 
         pRes->CopyBlocking(p1);    //non-blocking operator
 
@@ -8951,12 +8952,12 @@ ListExpr aggregateCTM(ListExpr args){
                 "t in DATA expected";
    if(!nl->HasLength(args,3)){
       return listutils::typeError(err);
-   }	   
+   }       
 
    ListExpr stream = nl->First(args); 
    if(!Stream<Tuple>::checkType(stream)){
       return listutils::typeError(err);
-   }	   
+   }       
 
 
    ListExpr start = nl->Third(args);
@@ -8966,7 +8967,7 @@ ListExpr aggregateCTM(ListExpr args){
 
    ListExpr map = nl->Second(args);
    if(!listutils::isMap<2>(map)){
-	   return listutils::typeError(err);
+       return listutils::typeError(err);
    }
 
    ListExpr t = nl->Second(stream);
@@ -11672,16 +11673,16 @@ ListExpr toFieldsType( ListExpr args ) {
   ListExpr resultattrlist = nl->FourElemList(
   nl->TwoElemList( nl->SymbolAtom( attrname ),
     type ),
-	nl->TwoElemList( nl->SymbolAtom( "Field" ),
-			 nl->SymbolAtom( CcString::BasicType() ) ),
-	nl->TwoElemList( nl->SymbolAtom( "Type" ),
-			 nl->SymbolAtom( FText::BasicType() ) ),
-	nl->TwoElemList( nl->SymbolAtom( "Value" ),
-			 nl->SymbolAtom( FText::BasicType() ) ) );
+    nl->TwoElemList( nl->SymbolAtom( "Field" ),
+             nl->SymbolAtom( CcString::BasicType() ) ),
+    nl->TwoElemList( nl->SymbolAtom( "Type" ),
+             nl->SymbolAtom( FText::BasicType() ) ),
+    nl->TwoElemList( nl->SymbolAtom( "Value" ),
+             nl->SymbolAtom( FText::BasicType() ) ) );
   ListExpr resultlist = nl->TwoElemList(
-	nl->SymbolAtom( Stream<Tuple>::BasicType() ), 
-	nl->TwoElemList( nl->SymbolAtom( Tuple::BasicType() ),
-			 resultattrlist ) );
+    nl->SymbolAtom( Stream<Tuple>::BasicType() ), 
+    nl->TwoElemList( nl->SymbolAtom( Tuple::BasicType() ),
+             resultattrlist ) );
   
   ListExpr attrs = nl->OneElemList( nl->StringAtom( nl->SymbolValue
                                   ( nl->First( nl->First( attrlist ) ) ) ) );
@@ -11706,8 +11707,8 @@ ListExpr toFieldsType( ListExpr args ) {
   ListExpr infolist = listutils::concat( infolist2, types );
   
   ListExpr result = nl->ThreeElemList( nl->SymbolAtom( "APPEND" ),
-				       infolist,
-				       resultlist );
+                       infolist,
+                       resultlist );
   return result;
 }
 
@@ -11720,7 +11721,7 @@ ListExpr toFieldsType( ListExpr args ) {
 class ToFieldsInfo {
   public:
     ToFieldsInfo( Word& is, vector<string> &fields1, vector<string> &types1,
-		  int position, ListExpr tl );
+          int position, ListExpr tl );
     ~ToFieldsInfo();
     Tuple* nextTuple();
   private:
@@ -11814,12 +11815,12 @@ Tuple* ToFieldsInfo::nextTuple() {
 */
 
 int toFieldsFun ( Word* args, Word& result, int message,
-		  Word& local, Supplier s ) {
+          Word& local, Supplier s ) {
   ToFieldsInfo* tfi = (ToFieldsInfo*) local.addr;
   switch( message ) {
     case OPEN: {
       if ( tfi ) {
-	delete tfi;
+    delete tfi;
       }
       int pos = ( (CcInt*)args[ 2 ].addr )->GetIntval();
       vector<string> fields, types;
@@ -11827,24 +11828,24 @@ int toFieldsFun ( Word* args, Word& result, int message,
       // there are 2*n+3 arguments
       int noattrs = ( n-3 ) / 2;
       for ( int i = 0; i < noattrs; i++ ) {
-	fields.push_back( ( (CcString*)args[ i + 3 ].addr )->GetValue() );
-	types.push_back( ( (FText*)args[ i + noattrs + 3 ].addr )->GetValue() );
+    fields.push_back( ( (CcString*)args[ i + 3 ].addr )->GetValue() );
+    types.push_back( ( (FText*)args[ i + noattrs + 3 ].addr )->GetValue() );
       }      
       local.addr = new ToFieldsInfo( args[ 0 ], fields, types, pos,
-				   nl->Second( GetTupleResultType( s ) ) );
+                   nl->Second( GetTupleResultType( s ) ) );
       return 0;
     }
     case REQUEST: {
       if ( !tfi ) {
-	return CANCEL;
+    return CANCEL;
       }
       result.addr = tfi->nextTuple();
       return result.addr?YIELD:CANCEL;
     }
     case CLOSE: {
       if ( tfi ) {
-	delete tfi;
-	local.addr = 0;
+    delete tfi;
+    local.addr = 0;
       }
       return 0;
     }
@@ -11866,7 +11867,7 @@ struct toFieldsInfo : OperatorInfo {
 
     name      = "toFields";
     signature = "((stream (tuple([a1:d1, ...,an:dn]))) x ai) -> "
-		"stream(tuple([ai, attrname, dj, aj]))";
+        "stream(tuple([ai, attrname, dj, aj]))";
     syntax    = "_ feed toFields [ _ ]";
     meaning   = "Decomposes a stream of tuples into its items.";
   }
@@ -12151,12 +12152,12 @@ class FromFieldsInfo {
 */
 
 int fromFieldsFun( Word* args, Word& result, int message,
-		   Word& local, Supplier s ) {
+           Word& local, Supplier s ) {
   FromFieldsInfo* ffi = (FromFieldsInfo*) local.addr;
   switch( message ) {
     case OPEN: {
       if ( ffi ) {
-	       delete ffi;
+           delete ffi;
       }
       int posF = ( ( CcInt* )args[ 2 ].addr )->GetValue();
       int posK = ( ( CcInt* )args[ 3 ].addr )->GetValue();
@@ -12168,15 +12169,15 @@ int fromFieldsFun( Word* args, Word& result, int message,
     }
     case REQUEST: {
       if ( !ffi ) {
-	       return CANCEL;
+           return CANCEL;
       }
       result.addr = ffi->nextTuple();
       return result.addr?YIELD:CANCEL;
     }
     case CLOSE: {
       if ( ffi ) {
-	       delete ffi;
-	       local.addr = 0;
+           delete ffi;
+           local.addr = 0;
       }
       return 0;
     }
@@ -12196,8 +12197,8 @@ struct fromFieldsInfo : OperatorInfo {
   fromFieldsInfo() : OperatorInfo() {
     name      = "fromFields";
     signature = "(stream(tuple(keyvalue: keytype, Field: string, "
-			      "Type: text, Value: text))) x (rel(tuple(X))) "
-		  "-> (stream(tuple(X)))";
+                  "Type: text, Value: text))) x (rel(tuple(X))) "
+          "-> (stream(tuple(X)))";
     syntax    = "_ feed fromFields [ _ ]";
     meaning   = "Composes a stream of tuple items into a certain relation.";
   }
@@ -12339,7 +12340,7 @@ class applyToAllLocalInfo{
 */
 
 int applyToAllVM( Word* args, Word& result, int message,
-		   Word& local, Supplier s ) {
+           Word& local, Supplier s ) {
 
 
   applyToAllLocalInfo* li = (applyToAllLocalInfo*) local.addr;
@@ -12433,7 +12434,7 @@ ListExpr equalStreamsTM(ListExpr args){
 */
 template<class StreamType, class Cmp>
 int equalStreamsVM1( Word* args, Word& result, int message,
-		   Word& local, Supplier s ) {
+           Word& local, Supplier s ) {
 
    result = qp->ResultStorage(s);
    CcBool* res = (CcBool*) result.addr;
@@ -12715,7 +12716,7 @@ class replaceAttrLocalInfo{
 */
 
 int replaceAttrVM( Word* args, Word& result, int message,
-		   Word& local, Supplier s ) {
+           Word& local, Supplier s ) {
 
   replaceAttrLocalInfo* li = (replaceAttrLocalInfo*) local.addr;
   switch(message){
@@ -12811,7 +12812,7 @@ ListExpr pfilterTM(ListExpr args){
 }
 
 int pfilterVM( Word* args, Word& result, int message,
-		   Word& local, Supplier s ) {
+           Word& local, Supplier s ) {
 
   Tuple* lastTuple = (Tuple*) local.addr;
   switch(message){
@@ -13051,7 +13052,7 @@ class extendXLocal{
 };
 
 int extendXVM( Word* args, Word& result, int message,
-		   Word& local, Supplier s ) {
+           Word& local, Supplier s ) {
 
  extendXLocal* li = (extendXLocal*)local.addr;
 
@@ -13123,7 +13124,7 @@ ListExpr countMtTM(ListExpr args){
 
 */
 int countMtVM( Word* args, Word& result, int message,
-		   Word& local, Supplier s ) {
+           Word& local, Supplier s ) {
 
     result =  qp->ResultStorage(s);
     CcInt* res = (CcInt*) result.addr;
@@ -13191,7 +13192,7 @@ ListExpr bringToMemoryTM(ListExpr args){
 }
 
 int bringToMemoryVM( Word* args, Word& result, int message,
-		   Word& local, Supplier s ) {
+           Word& local, Supplier s ) {
   Tuple* tuple = (Tuple*) args[0].addr;
   tuple->bringToMemory();
   result=qp->ResultStorage(s);
