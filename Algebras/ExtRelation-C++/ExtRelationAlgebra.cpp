@@ -13564,7 +13564,8 @@ int nthValueMapping(Word* args, Word& result, int message,
                     qp->Request(args[0].addr, tuple);
       
                    if(!qp->Received(args[0].addr))
-                    {
+                    { current = static_cast<Tuple*>(result.addr);
+                      current -> DeleteIfAllowed();      
                       result.addr = 0;
                       return CANCEL;
                     } 
