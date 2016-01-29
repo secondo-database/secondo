@@ -13619,7 +13619,12 @@ int nthValueMapping(Word* args, Word& result, int message,
      pRes = (ProgressInfo*) result.addr;
      if (qp-> RequestProgress(args[0].addr, &p1) )
      {  
-       pRes->Copy(p1);
+       
+       
+       pRes->Copy(p1);       
+       pRes->Card = p1.Card/intvalue;
+       
+       
        return YIELD;
      
       
