@@ -68,6 +68,8 @@ for my master's thesis
 
 #include "Stream.h"
 
+#include "Sort2Heaps.h"
+
 #include "../CostEstimation/ExtRelation2AlgebraCostEstimation.h"
 
 using namespace std;
@@ -2313,6 +2315,42 @@ Operator itHashJoin (
 );
 
 
+OperatorSpec sorthSpec(
+  "stream(tuple) -> stream(tuple)",
+  " _ sorth",
+  "Sorts a stream of tuples.",
+  "query plz feed sorth consume"
+);
+
+Operator sorthOP(
+  "sorth",
+  sorthSpec.getStr(),
+  Sort2HeapsVM,
+  Operator::SimpleSelect,
+  Sort2HeapsTM
+);
+
+
+OperatorSpec sortbyhSpec(
+  "stream(tuple) x list  -> stream(tuple)",
+  " _ sortbyh [ ]",
+  "Sorts a stream of tuples.",
+  "query plz feed sortbyh [PLZ desc] consume"
+);
+
+Operator sortbyhOP(
+  "sortbyh",
+  sortbyhSpec.getStr(),
+  Sort2HeapsVM,
+  Operator::SimpleSelect,
+  SortBy2HeapsTM
+);
+
+
+
+
+
+
 } // end of namespace extrel2
 
 /*
@@ -2368,6 +2406,11 @@ class ExtRelation2Algebra : public Algebra
     extrel2::itHashJoin.SetUsesMemory();
 
 
+    AddOperator(&extrel2::sorthOP);
+    extrel2::sorthOP.SetUsesMemory();
+
+    AddOperator(&extrel2::sortbyhOP);
+    extrel2::sortbyhOP.SetUsesMemory();
 
 #ifdef USE_PROGRESS
 // support for progress queries

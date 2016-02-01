@@ -41,3 +41,6 @@ operator tuplebuffer2 alias TUPLEBUFFER2 pattern _ op[_]
 
 operator itHashJoin alias ITHASHJOIN pattern _ _ op [_,_]
 
+operator sorth alias SORTH pattern _ op
+operator sortbyh alias SORTBYH pattern _ op [list]
+
