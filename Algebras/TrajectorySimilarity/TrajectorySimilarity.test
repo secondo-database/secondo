@@ -1684,7 +1684,7 @@ query dist_lip(
   [const pointseq value ((1.0 2.3) (-2.0 0.0))])
 
 
-### dist_lip : pointseq x pointseq [x geoid] -> real
+### dist_lip : pointseq x pointseq -> real
 
 #testcase DistLIPPointSeq
 #yields (real 0.75)
@@ -1740,15 +1740,6 @@ query dist_lip(
   [const pointseq value ((0.0 0.0) (1.0 0.0) (2.0 0.0) (3.0 0.0))],
   [const pointseq value ((0.0 0.0) (1.3 0.0))])
 
-##testcase DistLIPPointSeqGeoid
-## (Geoid support not yet implemented for HalfSegment::Intersection in
-## SpatialAlgebra.)
-##yields (real ???)
-#query dist_lip(
-#  [const pointseq value ((0.0 0.0) (1.0 0.0))],
-#  [const pointseq value ((0.0 1.0) (1.0 0.5))],
-#  create_geoid("WGS1984"))
-
 #testcase DistLIPPointSeqUndefined1
 #yields (real undefined)
 query dist_lip(
@@ -1776,11 +1767,13 @@ query dist_lip(
 #testcase DistLIPPointSeqLoops
 #yields (real 6.0)
 query dist_lip(
-  [const pointseq value ((0.0  1.0) (1.0  1.0) (2.0  2.0) (1.0  2.0) (2.0  1.0) (3.0  1.0))],
-  [const pointseq value ((0.0 -1.0) (1.0 -1.0) (2.0  0.0) (1.0  0.0) (2.0 -1.0) (3.0 -1.0))])
+  [const pointseq value (
+    (0.0  1.0) (1.0  1.0) (2.0  2.0) (1.0  2.0) (2.0  1.0) (3.0  1.0))],
+  [const pointseq value (
+    (0.0 -1.0) (1.0 -1.0) (2.0  0.0) (1.0  0.0) (2.0 -1.0) (3.0 -1.0))])
 
 
-### dist_lip : tpointseq x tpointseq [x geoid] -> real
+### dist_lip : tpointseq x tpointseq -> real
 # (Performing only a basic test, since this is the same implementation as for
 # pointseqs.)
 
@@ -2201,6 +2194,187 @@ query dist_spxstlip(
   [const real value 0.0],
   [const duration value (0 0)],
   [const real value 1.0])
+
+
+
+###
+### Test operator 'genlip'.
+###
+
+### Bad parameters
+
+#testcase GenLIPPointSeqParamsInconsistent
+#yields error
+query genlip(
+  [const pointseq value ((0.0 0.0) (1.0 0.0))],
+  [const pointseq value ((0.0 1.0) (1.0 0.5))],
+  [const int value 3],
+  fun(seq1 : tpointseq, seq2 : tpointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqParamsFunctionWithBadParamType
+#yields error
+query genlip(
+  [const pointseq value ((0.0 0.0) (1.0 0.0))],
+  [const pointseq value ((0.0 1.0) (1.0 0.5))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq)
+    dist_stlip(seq1, seq2, 0.0, [const duration value (0 0)]))
+
+
+### genlip : pointseq x pointseq x int x (pointseq x pointseq -> real) -> real
+# (This repeats the dist_lip tests.)
+
+#testcase GenLIPPointSeq
+#yields (real 0.75)
+query genlip(
+  [const pointseq value ((0.0 0.0) (1.0 0.0))],
+  [const pointseq value ((0.0 1.0) (1.0 0.5))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqSymmetry1
+#yields (real 0.75)
+query genlip(
+  [const pointseq value ((0.0 1.0) (1.0 0.5))],
+  [const pointseq value ((0.0 0.0) (1.0 0.0))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqSymmetry2
+#yields (real 0.75)
+query genlip(
+  [const pointseq value ((1.0 0.0) (0.0 0.0))],
+  [const pointseq value ((1.0 0.5) (0.0 1.0))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqVariant2
+# (Note: GenLIP considers only the minimum length of the two sequences.)
+#yields (real 0.55)
+query genlip(
+  [const pointseq value ((0.0 0.0) (0.2 0.0) (1.0 0.0))],
+  [const pointseq value ((0.0 1.0) (1.0 0.5))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqCross
+#yields (real 0.25)
+query genlip(
+  [const pointseq value ((0.0 0.0) (1.0 1.0))],
+  [const pointseq value ((0.0 1.0) (1.0 0.0))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqCrossExplicit
+#yields (real 0.25)
+query genlip(
+  [const pointseq value ((0.0 0.0) (0.5 0.5) (1.0 1.0))],
+  [const pointseq value ((0.0 1.0) (0.5 0.5) (1.0 0.0))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqNoSegments
+#yields (real undefined)
+query genlip(
+  [const pointseq value ((0.0 0.0) (1.0 0.0))],
+  [const pointseq value ((0.0 1.0))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqEqual
+#yields (real 0.0)
+query genlip(
+  [const pointseq value ((0.0 0.0) (1.0 0.0))],
+  [const pointseq value ((0.0 0.0) (1.0 0.0))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqFlat
+#yields (real 0.0)
+query genlip(
+  [const pointseq value ((0.0 0.0) (1.0 0.0) (2.0 0.0) (3.0 0.0))],
+  [const pointseq value ((0.0 0.0) (1.3 0.0))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqUndefined1
+#yields (real undefined)
+query genlip(
+  [const pointseq value undefined],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqUndefined2
+#yields (real undefined)
+query genlip(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value undefined],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqEmpty1
+#yields (real undefined)
+query genlip(
+  [const pointseq value ()],
+  [const pointseq value ((2.5 1.2) (0.5 3.2))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqEmpty2
+#yields (real undefined)
+query genlip(
+  [const pointseq value ((1.0 2.3) (-2.0 0.0))],
+  [const pointseq value ()],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPPointSeqLoops
+# (GenLIP is expected to detect the loops as 'bad' segments and to feed only the
+# remaining 'good' parts into the function.)
+#yields (real 2.0)
+query genlip(
+  [const pointseq value (
+    (0.0  1.0) (1.0  1.0) (2.0  2.0) (1.0  2.0) (2.0  1.0) (3.0  1.0))],
+  [const pointseq value (
+    (0.0 -1.0) (1.0 -1.0) (2.0  0.0) (1.0  0.0) (2.0 -1.0) (3.0 -1.0))],
+  [const int value 3],
+  fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+
+
+### genlip : tpointseq x tpointseq x int x (tpointseq x tpointseq -> real)
+###          -> real
+# (Performing only few basic tests, since this is the same implementation as for
+# pointseqs.)
+
+#testcase GenLIPTPointSeq
+#yields (real 0.75)
+query genlip(
+  [const tpointseq value (
+    ("2015-12-29-01:23:45" (0.0 0.0))
+    ("2015-12-29-01:30:20" (1.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:21:16" (0.0 1.0))
+    ("2015-12-29-01:32:28" (1.0 0.5)))],
+  [const int value 3],
+  fun(seq1 : tpointseq, seq2 : tpointseq) dist_lip(seq1, seq2))
+
+#testcase GenLIPTPointSeq2
+#yields (real 1.0)
+query genlip(
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 0.0))
+    ("2015-12-29-01:30:00" (1.0 0.0)))],
+  [const tpointseq value (
+    ("2015-12-29-01:20:00" (0.0 1.0))
+    ("2015-12-29-01:30:00" (1.0 1.0)))],
+  [const int value 3],
+  fun(seq1 : tpointseq, seq2 : tpointseq)
+    dist_spxstlip(seq1, seq2,
+      [const real value 0.0],
+      [const duration value (0 0)],
+      [const real value 1.0]))
+
 
 
 #teardown

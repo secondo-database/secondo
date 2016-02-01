@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Introduction
 
-This file implements and registers diatance operators for point sequences based
+This file implements and registers distance operators for point sequences based
 on the Locality In-between Polylines (LIP) measure defined in \cite{PKM+07}.
 
 The basic idea of the LIP operators is to measure the area of the shape formed
@@ -40,11 +40,10 @@ are connected to close the shape.
 As \cite{PKM+07} points out, the LIP measures work correctly for point sequences
 that follow a stable trend with no dramatic rotations. Below such pair of
 sequences is called ~well-formed~. With other pairs of sequences the LIP
-algorithm may yield self-intersecting polygons that can render the distance
-measure meaningless or indefinite. The authors propose a separate algorithm
-called ~GenLIP~, that searches a pair of sequences for bad segments and feeds
-the good parts into the LIP algorithm. The ~GenLIP~ algorithm is not implemented
-here.
+measures may yield self-intersecting polygons that can render the distance
+measure meaningless or indefinite. The separate ~GenLIP~ algorithm searches a
+pair of sequences for bad segments and feeds the ~well-formed~ parts into one of
+the LIP operators.
 
 
 1.1 Operators
@@ -53,7 +52,7 @@ here.
 
 The operator
 
-        $dist\_lip : SEQ \times SEQ\ [\times geoid] \rightarrow real$
+        $dist\_lip : SEQ \times SEQ \rightarrow real$
 
 with $SEQ \in \{pointseq,\ tpointseq\}$ determines the Locality In-between
 Polylines distance for a pair of ~well-formed~ point sequences $P,\ Q$ of type
@@ -72,10 +71,9 @@ the total length of the sequences.
 
 $$weight(p) = \frac{length(Q|_{p}) + length(P|_{p})}{length(Q) + length(P)}$$
 
-The temporal components of ~tpointseq~ objects are ignored. The computation
-takes the ~geoid~ into account, if specified and implemented in the functions of
-the SpatialAlgebra used here. If any of the two sequences is ~undefined~ or
-contains less than two points, the result is ~undefined~.
+The temporal components of ~tpointseq~ objects are ignored. If any of the two
+sequences is ~undefined~ or contains less than two points, the result is
+~undefined~.
 
 The worst-case time complexity of the operator in the present implementation is
 $\mathcal{O}(n^2)$ and the space complexity is $\mathcal{O}(n)$, where $n$ is
@@ -87,12 +85,12 @@ to $\mathcal{O}(n \log n)$ according to \cite{PKM+07}.
 
 The operator
 
-        $dist\_stlip : tpoinseq \times tpoinseq \times real \times duration
+        $dist\_stlip : tpointseq \times tpointseq \times real \times duration
         \rightarrow real$
 
 with $dist\_stlip(P, Q, st\_factor, \delta)$ determines the Spatio-temporal
 Locality In-between Polylines (STLIP) distance for a pair of ~well-formed~
-~tpoinseq~ objects $P,\ Q$, a non-negative ~st\_factor~, and a non-negative
+~tpointseq~ objects $P,\ Q$, a non-negative ~st\_factor~, and a non-negative
 duration $\delta$. If the pair of sequences is not ~well-formed~, the result is
 indefinite.
 
@@ -137,12 +135,12 @@ higher constants for the time complexity.
 
 The operator
 
-        $dist\_spxstlip : tpoinseq \times tpoinseq \times real \times duration
+        $dist\_spxstlip : tpointseq \times tpointseq \times real \times duration
         \times real \rightarrow real$
 
 with $dist\_spxstlip(P, Q, st\_factor, \delta, sp\_factor)$ determines the
 experimental Speed-pattern Spatio-temporal Locality In-between Polylines
-(SPXSTLIP) distance for a pair of ~well-formed~ ~tpoinseq~ objects $P,\ Q$, a
+(SPXSTLIP) distance for a pair of ~well-formed~ ~tpointseq~ objects $P,\ Q$, a
 non-negative ~st\_factor~, a non-negative duration $\delta$, and a non-negative
 ~sp\_factor~. If the pair of sequences is not ~well-formed~, the result is
 indefinite.
@@ -182,6 +180,24 @@ Time and space complexity are the same as for the operator ~dist\_stlip~ with
 higher constants for the time complexity.
 
 
+1.1.4 ~genlip~
+
+The operator
+
+        $genlip : SEQ \times SEQ \times int \times (SEQ \times SEQ \rightarrow
+        real) \rightarrow real$
+
+with $genlip(P, Q, max\_gap\_size, function)$ and $SEQ \in \{pointseq,\
+tpointseq\}$ performs the ~GenLIP~ algorithm on the two sequences. It searches
+the point sequences for series of $max\_gap\_size$ or more bad segments and
+feeds only the remaining (~well-formed~) parts into the $function$. The
+accumulated results of the $function$ are returned. If the two sequences contain
+no ~well-formed~ part, the result is ~undefined~.
+
+The time complexity of the ~GenLIP~ algorithm itself is $\mathcal{O}(n)$ (not
+including the runtime of the $function$), where $n$ is the total number of
+points in the sequences.
+
 
 2 Includes
 
@@ -193,7 +209,6 @@ higher constants for the time complexity.
 #include "VectorTypeMapUtils.h"
 
 #include "DateTime.h"         // DateTime, Instant
-#include "Geoid.h"
 #include "RegionTools.h"      // reverseCycle, buildRegion
 #include "SpatialAlgebra.h"   // Point, Region
 #include "TemporalAlgebra.h"  // Interval<T>
@@ -202,7 +217,7 @@ higher constants for the time complexity.
 namespace tsa {
 
 /*
-3 Algorithm
+3 LIP Algorithms
 
 3.1 Struct ~Polygon~
 
@@ -381,27 +396,25 @@ class LIPAggregator
 public:
   using segment_t = Segment<typename SEQ::point_t>;
 
-  LIPAggregator(const Geoid* geoid = nullptr)
-    : geoid(geoid)
-  { }
+  LIPAggregator() { }
 
   void list1Add(const Point& pt)
   {
     if (!list1.empty())
-      len1 += euclideanDistance(list1.back(), pt, geoid);
+      len1 += euclideanDistance(list1.back(), pt);
     list1.push_back(pt);
   }
 
   void list2Add(const Point& pt)
   {
     if (!list2.empty())
-      len2 += euclideanDistance(list2.front(), pt, geoid);
+      len2 += euclideanDistance(list2.front(), pt);
     list2.push_front(pt);
   }
 
   bool testIntersection(
       const segment_t& seg1, const segment_t& seg2, Point& cross)
-  { return intersection(seg1, seg2, cross, geoid); }
+  { return intersection(seg1, seg2, cross); }
 
   const Point getCross(const segment_t& /*seg*/, const Point& cross)
   { return cross; }
@@ -515,7 +528,6 @@ protected:
   double len2 = 0.0;
 
 private:
-  const Geoid* geoid = nullptr;
   double total_length = 0.0;
   std::list<Polygon> polygons;
 };
@@ -533,7 +545,7 @@ public:
   using DateTime = datetime::DateTime;
 
   STLIPAggregator(const double st_factor, const DateTime& delta)
-    : LIPAggregator(/*geoid*/ nullptr),
+    : LIPAggregator(),
       st_factor(st_factor), delta(delta)
   { }
 
@@ -682,18 +694,292 @@ private:
 
 
 /*
-4 Registration of Operators
+4 GenLIP Algorithm
 
-4.1 ~dist\_lip~
+4.1 LIP Criterion
+
+Test if the segment between two two end points crosses any of the preceding
+segments.
 
 */
-template<class SEQ, bool HAS_GEOID>
+template<class SEQ>
+static bool bad_end_segment(
+    const SegmentIt<SEQ> &sit1begin, const SegmentIt<SEQ> &sit1last,
+    const SegmentIt<SEQ> &sit2begin, const SegmentIt<SEQ> &sit2last)
+{
+/*
+If both sequences contain just one segment, there is nothing the segment
+between the end points could intersect.
+
+*/
+  if (sit1begin == sit1last && sit2begin == sit2last)
+    return false;
+
+/*
+According to \cite{PKM+07}, "the effect of the bad segments is local and can be
+treated by testing only a small number of segments for intersection." This
+implementation arbitrarily uses 3 as that small number.
+
+*/
+  const std::size_t max_look_back = 3;
+
+/*
+Create the segment that is defined by the end points of the two sequences.
+
+*/
+  const HalfSegment seg(
+      /*left point dom*/ true,
+      sit1last->getEnd().toSAPoint(),
+      sit2last->getEnd().toSAPoint());
+
+/*
+Iterate segments in reverse order starting at the next to the last segment of
+each sequence. If the end segment crosses any the the preceding segments, report
+the end segment as ~bad~.
+
+*/
+  SegmentIt<SEQ> sit1 = sit1last - 1;
+  SegmentIt<SEQ> sit2 = sit2last - 1;
+
+  for (std::size_t look_back = 0;
+       look_back < max_look_back;
+       ++look_back, --sit1, --sit2)
+  {
+    if (seg.Intersects(sit1->toHalfSegment()) ||
+        seg.Intersects(sit2->toHalfSegment()))
+    {
+      return true;
+    }
+
+    if (sit1 == sit1begin || sit2 == sit2begin)
+      break;
+  }
+
+/*
+No intersection found. Report the end segment as ~good~.
+
+*/
+  return false;
+}
+
+
+/*
+4.2 Call Function
+
+Call the specified function for the two subsequences.
+
+*/
+template<class SEQ>
+bool call_function(
+    const SegmentIt<SEQ>& sit1begin, const SegmentIt<SEQ>& sit1end,
+    const SegmentIt<SEQ>& sit2begin, const SegmentIt<SEQ>& sit2end,
+    void* function, double& res)
+{
+  SEQ seq1(sit1begin, sit1end);
+  SEQ seq2(sit2begin, sit2end);
+
+  ArgVector& args = *qp->Argument(function);
+  args[0].setAddr(&seq1);
+  args[1].setAddr(&seq2);
+
+  Word w = qp->Request(function);
+  const CcReal& cc_real = *static_cast<CcReal*>(w.addr);
+
+  const bool defined = cc_real.IsDefined();
+  if (defined)
+    res += cc_real.GetValue();
+
+  return defined;
+}
+
+
+/*
+4.3 GenLIP
+
+This implementation of the ~GenLIP~ algorithm unwinds the recursion (line 23)
+and the inner loop (lines 9-14) of the original algorithm. To do this it keeps
+track of subsequences of ~good~ segments and of the size of the current gap.
+Once the current gap exceeds the maximum gap size, the $function$ is calculated
+for the subsequences and new subsequences are started just after the gap.
+
+As the original ~GenLIP~ algorithm, this implementation processes only the
+minimum number of segments of both sequences. Therefore additional segments of
+the longer sequence are ignored.
+
+*/
+template<class SEQ>
+void genlip(
+    const SEQ& seq1, const SEQ& seq2, const std::size_t max_gap_size,
+    void* function, CcReal& result)
+{
+  result.SetDefined(false);
+
+  SegmentIt<SEQ> sit1 = SegmentIt<SEQ>::begin(seq1);
+  SegmentIt<SEQ> sit2 = SegmentIt<SEQ>::begin(seq2);
+  const SegmentIt<SEQ> sit1end = SegmentIt<SEQ>::end(seq1);
+  const SegmentIt<SEQ> sit2end = SegmentIt<SEQ>::end(seq2);
+
+/*
+If any of the sequences is empty, there are no ~well-formed~ parts to find.
+
+*/
+  if (sit1 == sit1end || sit2 == sit2end)
+    return;
+
+/*
+Iterators for the current subsequences of ~good~ segments.
+
+*/
+  SegmentIt<SEQ> sub1begin = sit1;
+  SegmentIt<SEQ> sub2begin = sit2;
+  SegmentIt<SEQ> sub1end = sit1;
+  SegmentIt<SEQ> sub2end = sit2;
+
+/*
+Current size of gap.
+
+*/
+  std::size_t gap_size = 0;
+
+/*
+Keep track whether at least one subsequence of ~good~ parts exists and has a
+defined result value.
+
+*/
+  bool defined = false;
+
+/*
+Accumulator for result values.
+
+*/
+  double acc = 0.0;
+
+  do {
+/*
+(GenLIP lines 1-2, 19)
+
+Check for exceeded maximum gap size.
+
+*/
+    if (gap_size > max_gap_size) {
+/*
+(GenLIP lines 15-17, 20-23)
+
+Add the result for the subsequences of ~good~ segments just before the gap and
+start new subsequences just after the gap.
+
+*/
+      defined |= call_function(
+          sub1begin, sub1end, sub2begin, sub2end, function, acc);
+/*
+(lines 21-22)
+
+*/
+      sub1begin = sit1;
+      sub2begin = sit2;
+      sub1end = sit1;
+      sub2end = sit2;
+/*
+(line 23)
+
+*/
+      gap_size = 0;
+    }
+
+/*
+Check the current pair of segments.
+
+*/
+    if (gap_size == 0) {
+/*
+(GenLIP lines 3-8)
+
+Iterating ~good~ segments, so far.
+
+*/
+      Point cross(0.0, 0.0);
+      if (intersection(*sit1, *sit2, cross) ||
+          !bad_end_segment(sub1begin, sit1, sub2begin, sit2))
+      {
+/*
+(GenLIP lines 3-6)
+
+Current segments contribute to subsequnces of ~good~ segments.
+
+*/
+        sub1end = sit1 + 1;
+        sub2end = sit2 + 1;
+
+      } else {
+/*
+(GenLIP lines 7-8)
+
+The begin of a gap was found.
+
+*/
+        gap_size = 1;
+      }
+
+    } else {
+/*
+(GenLIP lines 9-14)
+
+Iterating ~bad~ segments in a gap.
+
+*/
+      if (!bad_end_segment(sub1begin, sit1, sub2begin, sit2))
+      {
+/*
+(GenLIP lines 10-13)
+
+Current segments finish the gap, so the gap segments contribute to subsequnces
+of ~good~ segments.
+
+*/
+        sub1end = sit1 + 1;
+        sub2end = sit2 + 1;
+        gap_size = 0;
+
+      } else {
+/*
+(GenLIP lines 9, 14)
+
+Current segments are ~bad~ and contribute to the gap.
+
+*/
+        ++gap_size;
+      }
+    }
+
+  } while (++sit1 != sit1end && ++sit2 != sit2end);
+
+/*
+(GenLIP lines 20)
+
+Add the result for the last subsequence of ~good~ segments.
+
+*/
+  defined |= call_function(
+      sub1begin, sub1end, sub2begin, sub2end, function, acc);
+
+  if (defined)
+    result.Set(acc);
+}
+
+
+
+/*
+5 Registration of Operators
+
+5.1 ~dist\_lip~
+
+*/
+template<class SEQ>
 int LIPDistValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
   const SEQ& seq1 = *static_cast<SEQ*>(args[0].addr);
   const SEQ& seq2 = *static_cast<SEQ*>(args[1].addr);
-  const Geoid* geoid = HAS_GEOID ? static_cast<Geoid*>(args[2].addr) : nullptr;
   result = qp->ResultStorage(s);    // CcReal
   CcReal& dist = *static_cast<CcReal*>(result.addr);
 
@@ -706,16 +992,14 @@ Require defined sequences with at least two points each.
     return 0;
   }
 
-  LIPAggregator<SEQ> agg(geoid);
+  LIPAggregator<SEQ> agg;
   dist.Set(dist_lip(agg, seq1, seq2));
   return 0;
 }
 
 ValueMapping dist_lip_functions[] = {
-  LIPDistValueMap<PointSeq,  /*HAS_GEOID*/ false>,
-  LIPDistValueMap<PointSeq,  /*HAS_GEOID*/ true>,
-  LIPDistValueMap<TPointSeq, /*HAS_GEOID*/ false>,
-  LIPDistValueMap<TPointSeq, /*HAS_GEOID*/ true>,
+  LIPDistValueMap<PointSeq>,
+  LIPDistValueMap<TPointSeq>,
   nullptr
 };
 
@@ -727,24 +1011,16 @@ struct DistLIPInfo : OperatorInfo
     signature = PointSeq::BasicType() + " x " + PointSeq::BasicType()
                 + " -> " + CcReal::BasicType();
     appendSignature(
-                PointSeq::BasicType() + " x " + PointSeq::BasicType()
-                + " x " + Geoid::BasicType() + " -> " + CcReal::BasicType());
-    appendSignature(
                 TPointSeq::BasicType() + " x " + TPointSeq::BasicType()
                 + " -> " + CcReal::BasicType());
-    appendSignature(
-                TPointSeq::BasicType() + " x " + TPointSeq::BasicType()
-                + " x " + Geoid::BasicType() + " -> " + CcReal::BasicType());
     syntax    = "dist_lip(_, _[, _])";
     meaning   = "Locality In-between Polylines (LIP) distance of a well-formed "
                 "pair of point sequences. LIP is defined as the sum of the "
                 "weighted areas of the polygons defined by the intersection "
                 "points of the two sequences. If the pair of sequences is not "
                 "well-formed, the result is indefinite.\n"
-                "The geoid is taken into account, if specified and implemented "
-                "in the functions of the SpatialAlgebra used here. If any of "
-                "the sequences is undefined or has less than two points, the "
-                "result is undefined.\n"
+                "If any of the sequences is undefined or has less than two "
+                "points, the result is undefined.\n"
                 "The worst-case time complexity of the operator in the present "
                 "implementation is O(n^2) and the space complexity is O(n), "
                 "where n is the total number of points in the sequences.";
@@ -754,12 +1030,8 @@ struct DistLIPInfo : OperatorInfo
 const mappings::VectorTypeMaps dist_lip_maps = {
   /*0*/ {{PointSeq::BasicType(), PointSeq::BasicType()},
     /* -> */ {CcReal::BasicType()}},
-  /*1*/ {{PointSeq::BasicType(), PointSeq::BasicType(),
-    Geoid::BasicType()}, /* -> */ {CcReal::BasicType()}},
-  /*2*/ {{TPointSeq::BasicType(), TPointSeq::BasicType()},
-    /* -> */ {CcReal::BasicType()}},
-  /*3*/ {{TPointSeq::BasicType(), TPointSeq::BasicType(),
-    Geoid::BasicType()}, /* -> */ {CcReal::BasicType()}}
+  /*1*/ {{TPointSeq::BasicType(), TPointSeq::BasicType()},
+    /* -> */ {CcReal::BasicType()}}
 };
 
 ListExpr DistLIPTypeMap(ListExpr args)
@@ -770,7 +1042,7 @@ int DistLIPSelect(ListExpr args)
 
 
 /*
-4.2 ~dist\_stlip~
+5.2 ~dist\_stlip~
 
 */
 int STLIPDistValueMap(
@@ -828,8 +1100,8 @@ struct DistSTLIPInfo : OperatorInfo
     syntax    = "dist_stlip(_, _, _, _)";
     meaning   = "Spatio-temporal Locality In-between Polylines distance "
                 "STLIP(P, Q, st_factor, delta) of a well-formed pair of "
-                "tpoinseq objects, a non-negative st_factor and a non-negative "
-                "duration delta.\n"
+                "tpointseq objects, a non-negative st_factor and a "
+                "non-negative duration delta.\n"
                 "STLIP extends LIP (operator dist_lip) by multiplying each "
                 "weighted polygon area with a factor that measures the "
                 "temporal dissimilarity of the two portions of the two "
@@ -860,7 +1132,7 @@ int DistSTLIPSelect(ListExpr args)
 
 
 /*
-4.2 ~dist\_spxstlip~
+5.3 ~dist\_spxstlip~
 
 */
 int SPXSTLIPDistValueMap(
@@ -921,7 +1193,7 @@ struct DistSPXSTLIPInfo : OperatorInfo
     syntax    = "dist_spxstlip(_, _, _, _, _)";
     meaning   = "Experimental Speed-pattern Spatio-temporal Locality "
                 "In-between Polylines distance SPXSTLIP(P, Q, st_factor, "
-                "delta, sp_factor) of a well-formed pair of tpoinseq objects, "
+                "delta, sp_factor) of a well-formed pair of tpointseq objects, "
                 "a non-negative st_factor, a non-negative duration delta, and "
                 "a non-negative sp_factor.\n"
                 "SPXSTLIP extends STLIP (operator dist_stlip) by multiplying "
@@ -952,6 +1224,103 @@ int DistSPXSTLIPSelect(ListExpr args)
 { return mappings::vectorSelect(dist_spxstlip_maps, args); }
 
 
+/*
+5.4 ~genlip~
+
+*/
+template<class SEQ>
+int GenLIPDistValueMap(
+    Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
+{
+  const SEQ& seq1 = *static_cast<SEQ*>(args[0].addr);
+  const SEQ& seq2 = *static_cast<SEQ*>(args[1].addr);
+  const CcInt cc_max_gap_size = *static_cast<CcInt*>(args[2].addr);
+  void* function = args[3].addr;
+  result = qp->ResultStorage(s);    // CcReal
+  CcReal& res = *static_cast<CcReal*>(result.addr);
+
+/*
+Require defined sequences with at least two points each.
+
+*/
+  if (seq1.GetNoComponents() < 2 || seq2.GetNoComponents() < 2) {
+    res.SetDefined(false);
+    return -1;
+  }
+
+/*
+Require a defined and non-negative maximum gap size.
+
+*/
+  if (!cc_max_gap_size.IsDefined() || cc_max_gap_size.GetValue() < 0) {
+    res.SetDefined(false);
+    return -1;
+  }
+
+  genlip(seq1, seq2, cc_max_gap_size.GetValue(), function, res);
+  return -1;
+}
+
+ValueMapping genlip_functions[] = {
+  GenLIPDistValueMap<PointSeq>,
+  GenLIPDistValueMap<TPointSeq>,
+  nullptr
+};
+
+struct GenLIPInfo : OperatorInfo
+{
+  GenLIPInfo() : OperatorInfo()
+  {
+    name      = "genlip";
+    signature = PointSeq::BasicType() + " x " + PointSeq::BasicType()
+                + " x " + CcInt::BasicType() + " x (" + PointSeq::BasicType()
+                + " x " + PointSeq::BasicType() + " -> " + CcReal::BasicType()
+                + ") -> " + CcReal::BasicType();
+    appendSignature(
+                TPointSeq::BasicType() + " x " + TPointSeq::BasicType()
+                + " x " + CcInt::BasicType() + " x (" + TPointSeq::BasicType()
+                + " x " + TPointSeq::BasicType() + " -> " + CcReal::BasicType()
+                + ") -> " + CcReal::BasicType());
+    syntax    = "genlip(_, _, _, _)";
+    meaning   = "Calculate GenLIP(P, Q, max_gap_size, function) for a pair of "
+                "point sequences. The algorithm searches the point sequences "
+                "for series of max_gap_size or more bad segments and feeds "
+                "only the remaining (well-formed) parts into the function. The "
+                "accumulated results of the function are returned. If the two "
+                "sequences contain no well-formed part, the result is "
+                "undefined.\n"
+                "The time complexity of the ~GenLIP~ algorithm itself is O(n), "
+                "where n is the total number of points in the sequences.";
+  }
+};
+
+
+const mappings::NVectorTypeMaps GenLIPMaps()
+{
+  const mappings::NVectorTypeMaps maps = {
+    /*0*/ {NList(
+            NList(PointSeq::BasicType()), NList(PointSeq::BasicType()),
+            NList(CcInt::BasicType()), NList(NList(Symbols::MAP()),
+              NList(PointSeq::BasicType()), NList(PointSeq::BasicType()),
+              NList(CcReal::BasicType()))
+          ), /* -> */ NList(CcReal::BasicType())},
+    /*1*/ {NList(
+            NList(TPointSeq::BasicType()), NList(TPointSeq::BasicType()),
+            NList(CcInt::BasicType()), NList(NList(Symbols::MAP()),
+              NList(TPointSeq::BasicType()), NList(TPointSeq::BasicType()),
+              NList(CcReal::BasicType()))
+          ), /* -> */ NList(CcReal::BasicType())}
+  };
+  return maps;
+}
+
+ListExpr GenLIPTypeMap(ListExpr args)
+{ return mappings::vectorTypeMap(GenLIPMaps(), args); }
+
+int GenLIPSelect(ListExpr args)
+{ return mappings::vectorSelect(GenLIPMaps(), args); }
+
+
 void TrajectorySimilarityAlgebra::addLIPDistOp()
 {
   AddOperator(
@@ -963,6 +1332,9 @@ void TrajectorySimilarityAlgebra::addLIPDistOp()
   AddOperator(
       DistSPXSTLIPInfo(), dist_spxstlip_functions,
       DistSPXSTLIPSelect, DistSPXSTLIPTypeMap);
+  AddOperator(
+      GenLIPInfo(), genlip_functions,
+      GenLIPSelect, GenLIPTypeMap);
 }
 
 } //-- namespace tsa
