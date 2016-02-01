@@ -11298,6 +11298,9 @@ ListExpr extend_lastTM(ListExpr args){
   if(!Stream<Tuple>::checkType(stream)){
     return listutils::typeError(err + " (first arg is not a tuple stream");
   }
+  if(nl->AtomType(fundeflist)!=NoAtom){
+    return listutils::typeError("secondo argument is not a function list");
+  }
   if(nl->IsEmpty(fundeflist)){
     return listutils::typeError(err + " (funlist is empty)");
   }
@@ -11308,9 +11311,6 @@ ListExpr extend_lastTM(ListExpr args){
   ListExpr last;
   bool first = true;
 
-  if(nl->AtomType(fundeflist)!=NoAtom){
-    return listutils::typeError("Inavlid function definition list");
-  }
 
   while(!nl->IsEmpty(fundeflist)){
     ListExpr firstFun = nl->First(fundeflist);
