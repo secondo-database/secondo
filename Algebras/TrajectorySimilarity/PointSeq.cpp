@@ -783,7 +783,7 @@ PointSeq::PointSeq(
   append(begin->getStart());
 
   for (SegmentIt<PointSeq> it = begin; it != end; ++it)
-    append(begin->getEnd());
+    append(it->getEnd());
 }
 
 
@@ -925,7 +925,7 @@ TPointSeq::TPointSeq(
   append(begin->getStart());
 
   for (SegmentIt<TPointSeq> it = begin; it != end; ++it)
-    append(begin->getEnd());
+    append(it->getEnd());
 }
 
 
