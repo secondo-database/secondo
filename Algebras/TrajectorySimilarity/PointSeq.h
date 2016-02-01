@@ -76,6 +76,9 @@ class TPointSeq;
 template<class T>
 class Segment;
 
+template<class T>
+class SegmentIt;
+
 using temporalalgebra::MPoint;
 
 
@@ -563,7 +566,23 @@ class PointSeq : public Sequence<Point>
 public:
 
 /*
-5.1 Conversion
+5.1 Constructors
+
+The default constructor.
+
+*/
+  PointSeq() = default;
+
+/*
+Constructor to create a ~PointSeq~ object from segment iterators of an existing
+~PointSeq~ object.
+
+*/
+  PointSeq(const SegmentIt<PointSeq>& begin, const SegmentIt<PointSeq>& end);
+
+
+/*
+5.2 Conversion
 
 Make ~covertFrom()~ of the base class visible for overload resolution.
 
@@ -575,7 +594,6 @@ Discard the current content of the sequence and recreate it from a ~TPointSeq~.
 
 */
   void convertFrom(const TPointSeq& src) noexcept;
-
 };
 
 
@@ -775,7 +793,25 @@ or more items of type ~TPoint~ with instants in strictly increasing order.
 ~TPointSeq~ instantiates ~Sequence$<$T$>$~ with the item type $T=TPoint$.
 
 */
-class TPointSeq : public Sequence<TPoint> { };
+class TPointSeq : public Sequence<TPoint>
+{
+public:
+
+/*
+5.1 Constructors
+
+The default constructor.
+
+*/
+  TPointSeq() = default;
+
+/*
+Constructor to create a ~TPointSeq~ object from segment iterators of an existing
+~TPointSeq~ object.
+
+*/
+  TPointSeq(const SegmentIt<TPointSeq>& begin, const SegmentIt<TPointSeq>& end);
+};
 
 } //-- namespace tsa
 

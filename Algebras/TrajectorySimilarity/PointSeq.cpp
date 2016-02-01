@@ -130,6 +130,7 @@ If $duration$ is ~undefined~ or not positive, the result is ~undefined~.
 
 #include "PointSeq.h"
 
+#include "Segment.h"
 #include "TrajectorySimilarity.h"
 #include "VectorTypeMapUtils.h"
 
@@ -155,7 +156,6 @@ namespace tsa {
 Constructor to create a sequence from an ~NList~.
 
 */
-
 template<class T>
 Sequence<T>::Sequence(const NList& list)
   : Attribute(/*defined*/ false), seq(0)
@@ -770,10 +770,27 @@ double sqrEuclideanDistance(
 /*
 5 Implementation of Class ~PointSeq~
 
+Constructor to create a ~PointSeq~ object from segment iterators.
+
+*/
+PointSeq::PointSeq(
+    const SegmentIt<PointSeq>& begin, const SegmentIt<PointSeq>& end)
+  : Sequence<Point>(/*defined*/ true)
+{
+  if (begin == end)
+    return;
+
+  append(begin->getStart());
+
+  for (SegmentIt<PointSeq> it = begin; it != end; ++it)
+    append(begin->getEnd());
+}
+
+
+/*
 Recreate the sequence from a ~TPointSeq~.
 
 */
-
 void PointSeq::convertFrom(const TPointSeq& src) noexcept
 {
   SetDefined(false);
@@ -893,9 +910,30 @@ int TPoint::compare(const TPoint& rhs) const
 
 
 /*
-7 Registration of Type Constructors
+7 Implementation of Class ~TPointSeq~
 
-7.1 ~pointseq~
+Constructor to create a ~TPointSeq~ object from segment iterators.
+
+*/
+TPointSeq::TPointSeq(
+    const SegmentIt<TPointSeq>& begin, const SegmentIt<TPointSeq>& end)
+  : Sequence<TPoint>(/*defined*/ true)
+{
+  if (begin == end)
+    return;
+
+  append(begin->getStart());
+
+  for (SegmentIt<TPointSeq> it = begin; it != end; ++it)
+    append(begin->getEnd());
+}
+
+
+
+/*
+8 Registration of Type Constructors
+
+8.1 ~pointseq~
 
 */
 
@@ -936,7 +974,7 @@ void TrajectorySimilarityAlgebra::addPointSeqTC()
 
 
 /*
-7.2 ~tpointseq~
+8.2 ~tpointseq~
 
 */
 struct TPointSeqInfo : ConstructorInfo
@@ -979,9 +1017,9 @@ void TrajectorySimilarityAlgebra::addTPointSeqTC()
 
 
 /*
-8 Registration of Operators
+9 Registration of Operators
 
-8.1 ~isempty~
+9.1 ~isempty~
 
 */
 const mappings::VectorTypeMaps is_empty_maps = {
@@ -1035,7 +1073,7 @@ void TrajectorySimilarityAlgebra::addIsEmptyOp()
 
 
 /*
-8.2 ~no\_components~
+9.2 ~no\_components~
 
 */
 const mappings::VectorTypeMaps no_components_maps = {
@@ -1089,7 +1127,7 @@ void TrajectorySimilarityAlgebra::addNoComponentsOp()
 
 
 /*
-8.3 ~to\_dline~
+9.3 ~to\_dline~
 
 */
 const mappings::VectorTypeMaps to_dline_maps = {
@@ -1146,7 +1184,7 @@ void TrajectorySimilarityAlgebra::addToDLineOp()
 
 
 /*
-8.4 ~to\_pointseq~
+9.4 ~to\_pointseq~
 
 */
 const mappings::VectorTypeMaps to_pointseq_maps = {
@@ -1207,7 +1245,7 @@ void TrajectorySimilarityAlgebra::addToPointSeqOp()
 
 
 /*
-8.5 ~to\_tpointseq~
+9.5 ~to\_tpointseq~
 
 */
 const mappings::VectorTypeMaps to_tpointseq_maps = {
@@ -1262,7 +1300,7 @@ void TrajectorySimilarityAlgebra::addToTPointSeqOp()
 
 
 /*
-8.6 ~sample\_to\_pointseq~
+9.6 ~sample\_to\_pointseq~
 
 */
 const mappings::VectorTypeMaps sample_to_pointseq_maps = {
@@ -1362,7 +1400,7 @@ void TrajectorySimilarityAlgebra::addSampleToPointSeqOp()
 
 
 /*
-8.7 ~sample\_to\_tpointseq~
+9.7 ~sample\_to\_tpointseq~
 
 */
 const mappings::VectorTypeMaps sample_to_tpointseq_maps = {
