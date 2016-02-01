@@ -194,9 +194,25 @@ feeds only the remaining (~well-formed~) parts into the $function$. The
 accumulated results of the $function$ are returned. If the two sequences contain
 no ~well-formed~ part, the result is ~undefined~.
 
+As the original ~GenLIP~ algorithm, this operator processes only the minimum
+number of segments of both sequences and ignores additional segments of the
+longer sequence.
+
 The time complexity of the ~GenLIP~ algorithm itself is $\mathcal{O}(n)$ (not
 including the runtime of the $function$), where $n$ is the total number of
 points in the sequences.
+
+
+1.1.5 ~genlip2~
+
+The operator
+
+        $genlip2 : SEQ \times SEQ \times int \times (SEQ \times SEQ \rightarrow
+        real) \rightarrow real$
+
+is a variant of the $genlip$ operator. Deviating from the original specification
+of the ~GenLIP~ algorithm, $genlip2$ also processes additional segments of the
+longer sequence.
 
 
 2 Includes
@@ -802,12 +818,13 @@ track of subsequences of ~good~ segments and of the size of the current gap.
 Once the current gap exceeds the maximum gap size, the $function$ is calculated
 for the subsequences and new subsequences are started just after the gap.
 
-As the original ~GenLIP~ algorithm, this implementation processes only the
-minimum number of segments of both sequences. Therefore additional segments of
-the longer sequence are ignored.
+As the original ~GenLIP~ algorithm, by default this implementation processes
+only the minimum number of segments of both sequences and ignores additional
+segments of the longer sequence. If the template parameter ~PROCESS\_ALL~ is set
+to ~true~, additional segments of the longer sequence are also processed.
 
 */
-template<class SEQ>
+template<class SEQ, bool PROCESS_ALL=false>
 void genlip(
     const SEQ& seq1, const SEQ& seq2, const std::size_t max_gap_size,
     void* function, CcReal& result)
@@ -952,6 +969,16 @@ Current segments are ~bad~ and contribute to the gap.
     }
 
   } while (++sit1 != sit1end && ++sit2 != sit2end);
+
+
+/*
+Variant ~PROCESS\_ALL~: Also process additional segments of the longer sequence.
+
+*/
+  if (PROCESS_ALL) {
+    sub1end = sit1end;
+    sub2end = sit2end;
+  }
 
 /*
 (GenLIP lines 20)
@@ -1228,7 +1255,7 @@ int DistSPXSTLIPSelect(ListExpr args)
 5.4 ~genlip~
 
 */
-template<class SEQ>
+template<class SEQ, bool PROCESS_ALL=false>
 int GenLIPDistValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
@@ -1257,7 +1284,8 @@ Require a defined and non-negative maximum gap size.
     return -1;
   }
 
-  genlip(seq1, seq2, cc_max_gap_size.GetValue(), function, res);
+  genlip<SEQ, PROCESS_ALL>(
+      seq1, seq2, cc_max_gap_size.GetValue(), function, res);
   return -1;
 }
 
@@ -1289,11 +1317,13 @@ struct GenLIPInfo : OperatorInfo
                 "accumulated results of the function are returned. If the two "
                 "sequences contain no well-formed part, the result is "
                 "undefined.\n"
+                "As the original GenLIP algorithm, this operator processes "
+                "only the minimum number of segments of both sequences and "
+                "ignores additional segments of the longer sequence.\n"
                 "The time complexity of the ~GenLIP~ algorithm itself is O(n), "
                 "where n is the total number of points in the sequences.";
   }
 };
-
 
 const mappings::NVectorTypeMaps GenLIPMaps()
 {
@@ -1321,6 +1351,38 @@ int GenLIPSelect(ListExpr args)
 { return mappings::vectorSelect(GenLIPMaps(), args); }
 
 
+/*
+5.5 ~genlip2~
+
+*/
+ValueMapping genlip2_functions[] = {
+  GenLIPDistValueMap<PointSeq,  /*PROCESS_ALL*/ true>,
+  GenLIPDistValueMap<TPointSeq, /*PROCESS_ALL*/ true>,
+  nullptr
+};
+
+struct GenLIP2Info : OperatorInfo
+{
+  GenLIP2Info() : OperatorInfo()
+  {
+    name      = "genlip2";
+    signature = PointSeq::BasicType() + " x " + PointSeq::BasicType()
+                + " x " + CcInt::BasicType() + " x (" + PointSeq::BasicType()
+                + " x " + PointSeq::BasicType() + " -> " + CcReal::BasicType()
+                + ") -> " + CcReal::BasicType();
+    appendSignature(
+                TPointSeq::BasicType() + " x " + TPointSeq::BasicType()
+                + " x " + CcInt::BasicType() + " x (" + TPointSeq::BasicType()
+                + " x " + TPointSeq::BasicType() + " -> " + CcReal::BasicType()
+                + ") -> " + CcReal::BasicType());
+    syntax    = "genlip2(_, _, _, _)";
+    meaning   = "Variant of the genlip operator. Deviating from the original "
+                "specification of the GenLIP algorithm, genlip2 also processes "
+                "additional segments of the longer sequence.";
+  }
+};
+
+
 void TrajectorySimilarityAlgebra::addLIPDistOp()
 {
   AddOperator(
@@ -1334,6 +1396,9 @@ void TrajectorySimilarityAlgebra::addLIPDistOp()
       DistSPXSTLIPSelect, DistSPXSTLIPTypeMap);
   AddOperator(
       GenLIPInfo(), genlip_functions,
+      GenLIPSelect, GenLIPTypeMap);
+  AddOperator(
+      GenLIP2Info(), genlip2_functions,
       GenLIPSelect, GenLIPTypeMap);
 }
 

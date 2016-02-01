@@ -226,11 +226,24 @@ Result   : (real 0.7917960675006309)
 Operator : genlip
 Number   : 1
 Signature: pointseq x pointseq x int x (pointseq x pointseq -> real) -> real
-Example  : query genlip([const pointseq value ((0.0 0.0) (1.0 0.0))], [const pointseq value ((0.0 1.0) (1.0 0.5))], [const int value 3], fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
-Result   : (real 0.75)
+Example  : query genlip([const pointseq value ((0.0 0.0) (0.2 0.0) (1.0 0.0))], [const pointseq value ((0.0 1.0) (1.0 0.5))], [const int value 3], fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+Result   : (real 0.55)
 
 Operator : genlip
 Number   : 2
 Signature: tpointseq x tpointseq x int x (tpointseq x tpointseq -> real) -> real
 Example  : query genlip([const tpointseq value (("2015-12-29-01:20:00" (0.0 0.0)) ("2015-12-29-01:30:00" (1.0 0.0)))], [const tpointseq value (("2015-12-29-01:20:00" (0.0 1.0)) ("2015-12-29-01:30:00" (1.0 1.0)))], [const int value 3], fun(seq1 : tpointseq, seq2 : tpointseq) dist_spxstlip(seq1, seq2, [const real value 0.0], [const duration value (0 0)], [const real value 1.0]))
+Result   : (real 1.0)
+
+
+Operator : genlip2
+Number   : 1
+Signature: pointseq x pointseq x int x (pointseq x pointseq -> real) -> real
+Example  : query genlip2([const pointseq value ((0.0 0.0) (0.2 0.0) (1.0 0.0))], [const pointseq value ((0.0 1.0) (1.0 0.5))], [const int value 3], fun(seq1 : pointseq, seq2 : pointseq) dist_lip(seq1, seq2))
+Result   : (real 0.75)
+
+Operator : genlip2
+Number   : 2
+Signature: tpointseq x tpointseq x int x (tpointseq x tpointseq -> real) -> real
+Example  : query genlip2([const tpointseq value (("2015-12-29-01:20:00" (0.0 0.0)) ("2015-12-29-01:30:00" (1.0 0.0)))], [const tpointseq value (("2015-12-29-01:20:00" (0.0 1.0)) ("2015-12-29-01:30:00" (1.0 1.0)))], [const int value 3], fun(seq1 : tpointseq, seq2 : tpointseq) dist_spxstlip(seq1, seq2, [const real value 0.0], [const duration value (0 0)], [const real value 1.0]))
 Result   : (real 1.0)
