@@ -31,13 +31,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1 Introduction
 
 This file primarily declares the utility functions $vectorTypeMap()$ and
-$vectorSelect()$ and the type $VectorTypeMaps$. This is similar to the
-functions found in {\tt include/TypeMapUtils.h}, but the present function work
-on $std::vector$s instead of raw arrays. They provide two benefits:
+$vectorSelect()$ and the types $VectorTypeMaps$ and $NVectorTypeMaps$. This is
+similar to the functions found in {\tt include/TypeMapUtils.h}, but the present
+functions work on $std::vector$s instead of raw arrays. They provide two
+benefits:
 
   1 Overloads can have different numbers of arguments.
 
   2 Operators can have stream-type return values.
+
+The type $VectorTypeMaps$ is based on type names, whereas $NVectorTypeMaps$ is
+based on ~NList~s. The latter additionally allows for nesting of lists, but its
+interface is a bit more unclear due to the recurring appearance of ~NList(...)~.
 
 
 1.1 Examples
@@ -75,6 +80,24 @@ Implementation of type mapping and selection function:
      }
 ----
 
+The ~NList~-based type map
+
+---- const mappings::VectorTypeMaps my_2nd_operator_maps = {
+      {NList(
+        NList(CcReal::BasicType()),
+        NList(
+          NList(Symbols::MAP()),
+          NList(CcReal::BasicType()),
+          NList(CcBool::BasicType())
+        )
+      ), NList(CcInt::BasicType())}
+     };
+----
+
+defines the following signature:
+
+        $op : real \times (real \rightarrow bool) \rightarrow int$
+
 
 2 Includes, Constants, Forward and Using Declarations
 
@@ -104,27 +127,43 @@ types and the second vector represents the result types.
 using VectorTypeMap = std::pair<TypeNameVector, TypeNameVector>;
 
 /*
-A vector of type maps, where each element represents argument types and the
-corresponding result types.
+A vector of string-based type maps, where each element represents argument types
+and the corresponding result types.
 
 */
 using VectorTypeMaps = std::vector<VectorTypeMap>;
+
+/*
+A pair of ~NList~s, where the first ~NList~ represents the argument types and
+the second ~NList~ represents the result types.
+
+*/
+using NVectorTypeMap = std::pair<NList, NList>;
+
+/*
+A vector of NList-based  type maps, where each element represents argument types
+and the corresponding result types.
+
+*/
+using NVectorTypeMaps = std::vector<NVectorTypeMap>;
 
 
 /*
 4 Declaration of Utility Functions
 
-Generic "type mapping" function.
+Generic type mapping function.
 
 */
 ListExpr vectorTypeMap(const VectorTypeMaps& maps, const ListExpr args);
+ListExpr vectorTypeMap(const NVectorTypeMaps& maps, const ListExpr args);
 
 /*
 Generic select function.
 
 */
 int vectorSelect(const VectorTypeMaps& maps, const ListExpr args);
+int vectorSelect(const NVectorTypeMaps& maps, const ListExpr args);
 
 } //-- namespace mappings
 
-#endif  //-- __VECTOR_TYPE_MAP_UTILS_H__
+#endif  //-- "__VECTOR_TYPE_MAP_UTILS_H__"

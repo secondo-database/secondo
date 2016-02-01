@@ -90,11 +90,40 @@ ListExpr vectorTypeMap(const VectorTypeMaps& maps, const ListExpr args)
   return NList::typeError(os.str());
 }
 
+ListExpr vectorTypeMap(const NVectorTypeMaps& maps, const ListExpr args)
+{
+  const NList type(args);
+  for (const NVectorTypeMap& tm : maps)
+    if (type == tm.first)
+      return tm.second.listExpr();
+
+  std::ostringstream os;
+  os << "Argument types do not match. Expecting";
+  if (maps.size() == 1)
+    os << "\n";
+  else
+    os << " one of\n";
+  for (const NVectorTypeMap& tm : maps)
+    os << "  " << tm.first << ",\n";
+  os << "but got " << type << ".";
+
+  return NList::typeError(os.str());
+}
+
 int vectorSelect(const VectorTypeMaps& maps, const ListExpr args)
 {
   const NList type(args);
   for (size_t i = 0; i < maps.size(); ++i)
     if (type == toNListEncloseSingleAtom(maps[i].first))
+      return i;
+  assert(false);
+}
+
+int vectorSelect(const NVectorTypeMaps& maps, const ListExpr args)
+{
+  const NList type(args);
+  for (size_t i = 0; i < maps.size(); ++i)
+    if (type == maps[i].first)
       return i;
   assert(false);
 }
