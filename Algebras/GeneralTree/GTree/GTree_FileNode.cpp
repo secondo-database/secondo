@@ -109,16 +109,16 @@ Append node records, if neccessary (could only happen, if no records has been re
     char buffer[PAGESIZE * m_node->m_pagecount];
 
     // write count of extension pages to buffer
-    memcpy(buffer, &m_extPageCnt, sizeof(unsigned));
+    std::memcpy(buffer, &m_extPageCnt, sizeof(unsigned));
     int offset = sizeof(unsigned);
 
     // write id of first extension page to buffer
-    memcpy(buffer + offset, &m_extensionId, sizeof(SmiRecordId));
+    std::memcpy(buffer + offset, &m_extensionId, sizeof(SmiRecordId));
     offset += sizeof(SmiRecordId);
 
     // write node type-id to buffer
     NodeTypeId type = m_node->typeId();
-    memcpy(buffer + offset, &type, sizeof(size_t));
+    std::memcpy(buffer + offset, &type, sizeof(size_t));
     offset += sizeof(NodeTypeId);
 
     // write node to buffer
@@ -162,18 +162,18 @@ FileNode::get(SmiRecordId nodeId)
     record.Read(headerBuf, PAGESIZE, 0);
 
     // read count of extension pages
-    memcpy(&m_extPageCnt, headerBuf, sizeof(unsigned));
+    std::memcpy(&m_extPageCnt, headerBuf, sizeof(unsigned));
     int offset = sizeof(unsigned);
 
     // read id of first extension page (=0, if no exensions exist)
-    memcpy(&m_extensionId, headerBuf + offset, sizeof(SmiRecordId));
+    std::memcpy(&m_extensionId, headerBuf + offset, sizeof(SmiRecordId));
     offset += sizeof(SmiRecordId);
 
     // create read buffer
     char buffer[PAGESIZE * (m_extPageCnt+1)];
 
     // copy header buffer into buffer
-    memcpy(buffer, headerBuf, PAGESIZE);
+    std::memcpy(buffer, headerBuf, PAGESIZE);
 
     // read extension pages, if exist
     for (unsigned i = 0; i < m_extPageCnt; ++i)
@@ -185,7 +185,7 @@ FileNode::get(SmiRecordId nodeId)
 
     // read node type from buffer
     NodeTypeId typeId;
-    memcpy(&typeId, buffer + offset, sizeof(NodeTypeId));
+    std::memcpy(&typeId, buffer + offset, sizeof(NodeTypeId));
     offset += sizeof(NodeTypeId);
 
     // create new node of type "typeId"[4]

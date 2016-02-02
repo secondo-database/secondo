@@ -56,8 +56,8 @@ double SpatialDistfuns::euclDist(HPoint *p1, HPoint *p2)
 
     double result = 0.0;
     for (unsigned i = 0; i < p1->dim(); ++i)
-        result += pow(abs (p1->coord(i) - p2->coord(i)), 2);
-    return sqrt(result);
+        result += std::pow(std::abs (p1->coord(i) - p2->coord(i)), 2);
+    return std::sqrt(result);
 }
 
 
@@ -74,7 +74,7 @@ double SpatialDistfuns::euclDist2(HPoint *p1, HPoint *p2)
 
     double result = 0.0;
     for (unsigned i = 0; i < p1->dim(); ++i)
-        result += pow(abs (p1->coord(i) - p2->coord(i)), 2);
+        result += std::pow(std::abs (p1->coord(i) - p2->coord(i)), 2);
     return result;
 }
 
@@ -94,11 +94,11 @@ double SpatialDistfuns::minDist(HPoint *p, HRect *r)
     for (unsigned i = 0; i < p->dim(); ++i)
     {
         if (p->coord(i) < r->lb(i))
-            result += pow(p->coord(i) - r->lb(i), 2);
+            result += std::pow(p->coord(i) - r->lb(i), 2);
         else if (p->coord(i) > r->ub(i))
-            result += pow(p->coord(i) - r->ub(i), 2);
+            result += std::pow(p->coord(i) - r->ub(i), 2);
         else
-            result += pow(p->coord(i) - p->coord(i), 2);
+            result += std::pow(p->coord(i) - p->coord(i), 2);
     }
     return result;
 }
@@ -123,21 +123,21 @@ double SpatialDistfuns::minMaxDist(HPoint *p, HRect *r)
     for (unsigned i = 0; i < p->dim(); ++i)
     {
         if (p->coord(i) >= c[i])
-            S += pow(p->coord(i) - r->lb(i), 2);
+            S += std::pow(p->coord(i) - r->lb(i), 2);
         else
-            S += pow(p->coord(i) - r->ub(i), 2);
+            S += std::pow(p->coord(i) - r->ub(i), 2);
     }
 
     double min = S;
     if (p->coord(0) > c[0])
     {
-        min -= pow(p->coord(0) - r->lb(0), 2);
-        min += pow(p->coord(0) - r->ub(0), 2);
+        min -= std::pow(p->coord(0) - r->lb(0), 2);
+        min += std::pow(p->coord(0) - r->ub(0), 2);
     }
     else if (p->coord(0) < c[0])
     {
-        min -= pow(p->coord(0) - r->ub(0), 2);
-        min += pow(p->coord(0) - r->lb(0), 2);
+        min -= std::pow(p->coord(0) - r->ub(0), 2);
+        min += std::pow(p->coord(0) - r->lb(0), 2);
     }
 
     for (unsigned i = 1; i < p->dim(); ++i)
@@ -145,13 +145,13 @@ double SpatialDistfuns::minMaxDist(HPoint *p, HRect *r)
         double sum = S;
         if (p->coord(i) > c[i])
         {
-            sum -= pow(p->coord(i) - r->lb(i), 2);
-            sum += pow(p->coord(i) - r->ub(i), 2);
+            sum -= std::pow(p->coord(i) - r->lb(i), 2);
+            sum += std::pow(p->coord(i) - r->ub(i), 2);
         }
         else if (p->coord(i) < c[i])
         {
-            sum -= pow(p->coord(i) - r->ub(i), 2);
-            sum += pow(p->coord(i) - r->lb(i), 2);
+            sum -= std::pow(p->coord(i) - r->ub(i), 2);
+            sum += std::pow(p->coord(i) - r->lb(i), 2);
         }
 
         if (sum < min)

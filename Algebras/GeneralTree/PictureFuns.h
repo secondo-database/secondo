@@ -46,6 +46,7 @@ This headerfile contains the "PictureFuns"[4] class, which implements all functi
 #include "JPEGPicture.h"
 #include <limits>
 
+
 namespace gta
 {
 
@@ -111,73 +112,8 @@ This struct models a lab-color value, which will be computed in the constructor 
 struct Lab
 {
     signed char L, a, b;
+    Lab (unsigned char r_, unsigned char g_, unsigned char b_);
 
-    Lab (unsigned char r_, unsigned char g_, unsigned char b_)
-    {
-        double R, G, B;
-        double rd = (double) r_ / 255;
-        double gd = (double) g_ / 255;
-        double bd = (double) b_ / 255;
-
-        if (rd > 0.04045)
-            R = pow ((rd + 0.055) / 1.055, 2.2);
-        else
-            R = rd / 12.92;
-
-        if (gd > 0.04045)
-            G = pow ((gd + 0.055) / 1.055, 2.2);
-        else
-            G = gd / 12.92;
-
-        if (bd > 0.04045)
-            B = pow ((bd + 0.055) / 1.055, 2.2);
-        else
-            B = bd / 12.92;
-
-        // compute X,Y,Z coordinates of r,g,b
-        double X = 0.4124 * R + 0.3576 * G + 0.1805 * B;
-        double Y = 0.2127 * R + 0.7152 * G + 0.0722 * B;
-        double Z = 0.0193 * R + 0.1192 * G + 0.9500 * B;
-
-        /* used chromacity coordinates of whitepoint D65:
-        x = 0.312713, y = 0.329016
-
-        the respective XYZ coordinates are
-        Y = 1,
-        X = Y * x / y       = 0.9504492183, and
-        Z = Y * (1-x-y) / y = 1.0889166480
-        */
-
-        double eps = 0.008856; // = 216 / 24389
-        double x = X / 0.95045;
-        double y = Y;
-        double z = Z / 1.08892;
-        long double fx, fy, fz;
-
-        if (x > eps)
-            fx = pow (x, 0.333333);
-        else
-            fx = 7.787 * x + 0.137931;
-
-        if (y > eps)
-            fy = pow (y, 0.333333);
-        else
-            fy = 7.787 * y + 0.137931;
-
-        if (z > eps)
-            fz = pow (z, 0.333333);
-        else
-            fz = 7.787 * z + 0.137931;
-
-        // compute Lab coordinates
-        double Lab_Ld = ((116  * fy) - 16);
-        double Lab_ad = (500 * (fx - fy));
-        double Lab_bd = (200 * (fy - fz));
-
-        L = (signed char) Lab_Ld;
-        a = (signed char) Lab_ad;
-        b = (signed char) Lab_bd;
-    }
 }; // struct Lab
 
 /********************************************************************
@@ -189,46 +125,8 @@ This struct models a hsv-color value, which will be computed in the constructor 
 struct HSV
 {
     int h, s, v;
+    HSV (unsigned char r, unsigned char g, unsigned char b);
 
-    HSV (unsigned char r, unsigned char g, unsigned char b)
-    {
-        unsigned char rgbMin = std::min (std::min (r, g), b);
-        unsigned char rgbMax = std::max (std::max (r, g), b);
-        unsigned char delta = rgbMax - rgbMin;
-
-        // compute h
-        if (delta == 0)
-        {
-            h = 0;
-        }
-        else
-        {
-            if (rgbMax == r)
-            {
-                h = 60 * (g - b) / delta;
-            }
-            else if (rgbMax == g)
-            {
-                h = 120 * (g - b) / delta;
-            }
-            else // rgbMax == b
-            {
-                h = 240 * (g - b) / delta;
-            }
-        }
-
-        if (h < 0)
-            h += 360;
-
-        // compute s
-        if (rgbMax == 0)
-            s = 0;
-        else
-            s = 255 * delta / rgbMax;
-
-        // compute v
-        v = rgbMax;
-    }
 }; // struct HSV
 
 /********************************************************************
@@ -390,7 +288,7 @@ PictureFuns::getData_hsv8 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[8];
-    memset (hist_abs, 0, 8*sizeof (unsigned long));
+    std::memset (hist_abs, 0, 8*sizeof (unsigned long));
 
     for (int i = 0; i < 8; ++i)
         hist_abs[i] = 0;
@@ -432,7 +330,7 @@ PictureFuns::getData_hsv16 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[16];
-    memset (hist_abs, 0, 16*sizeof (unsigned long));
+    std::memset (hist_abs, 0, 16*sizeof (unsigned long));
 
     for (int i = 0; i < 16; ++i)
         hist_abs[i] = 0;
@@ -474,7 +372,7 @@ PictureFuns::getData_hsv32 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[32];
-    memset (hist_abs, 0, 32*sizeof (unsigned long));
+    std::memset (hist_abs, 0, 32*sizeof (unsigned long));
 
     for (int i = 0; i < 32; ++i)
         hist_abs[i] = 0;
@@ -516,7 +414,7 @@ PictureFuns::getData_hsv64 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[64];
-    memset (hist_abs, 0, 64*sizeof (unsigned long));
+    std::memset (hist_abs, 0, 64*sizeof (unsigned long));
 
     for (int i = 0; i < 64; ++i)
         hist_abs[i] = 0;
@@ -558,7 +456,7 @@ PictureFuns::getData_hsv128 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[128];
-    memset (hist_abs, 0, 128*sizeof (unsigned long));
+    std::memset (hist_abs, 0, 128*sizeof (unsigned long));
 
     for (int i = 0; i < 128; ++i)
         hist_abs[i] = 0;
@@ -600,7 +498,7 @@ PictureFuns::getData_hsv256 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[256];
-    memset (hist_abs, 0, 256*sizeof (unsigned long));
+    std::memset (hist_abs, 0, 256*sizeof (unsigned long));
 
     for (unsigned long pos = 0; pos < (numOfPixels); ++pos)
     {
@@ -659,7 +557,7 @@ PictureFuns::getData_lab256 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[256];
-    memset (hist_abs, 0, 256*sizeof (unsigned long));
+    std::memset (hist_abs, 0, 256*sizeof (unsigned long));
 
     for (unsigned long pos = 0; pos < numOfPixels; ++pos)
     {
@@ -775,9 +673,9 @@ PictureFuns::computeEucledeanDist (
 {
     result = 0;
     for (unsigned pos = 0; pos < dim; ++pos)
-        result  += pow(abs (v1[pos] - v2[pos]), 2);
+        result  += std::pow(std::abs (v1[pos] - v2[pos]), 2);
 
-    result = sqrt(result);
+    result = std::sqrt(result);
 }
 
 /*
@@ -810,7 +708,7 @@ PictureFuns::computeQuadraticDist (
         result += diff[pos1] * diff[pos2] *
                     simMatrix[ (pos1*dim) +pos2];
 
-    result = sqrt(result);
+    result = std::sqrt(result);
 }
 
 /*
@@ -874,14 +772,14 @@ PictureFuns::encodeHistogram (
                 sum*sizeof (TFloat) ];
 
     int indexCount = indizes.size();
-    memcpy (result, &indexCount, sizeof (int));
+    std::memcpy (result, &indexCount, sizeof (int));
     int offset = sizeof (int);
 
     for (std::list<unsigned char>::iterator it = indizes.begin();
             it != indizes.end(); ++it)
     {
         unsigned char index = *it;
-        memcpy (result + offset, &index, sizeof (char));
+        std::memcpy (result + offset, &index, sizeof (char));
         offset += sizeof (char);
     }
 
@@ -902,7 +800,7 @@ PictureFuns::encodeHistogram (
 
             for (;histPos < j; ++histPos)
             {
-                memcpy (result + offset,
+                std::memcpy (result + offset,
                         &hist[histPos], sizeof (TFloat));
                 offset += sizeof (TFloat);
             }
@@ -924,18 +822,18 @@ bool compressedData)
 
     if (!compressedData)
     {
-        memcpy (hist, data, size*sizeof (TFloat));
+        std::memcpy (hist, data, size*sizeof (TFloat));
         return;
     }
 
-    memset (hist, 0, size*sizeof (TFloat));
+    std::memset (hist, 0, size*sizeof (TFloat));
 
     int cnt;
-    memcpy (&cnt, data, sizeof (int));
+    std::memcpy (&cnt, data, sizeof (int));
     int offset = sizeof (int);
 
     unsigned char indizes[cnt];
-    memcpy (indizes, data + offset, cnt*sizeof (char));
+    std::memcpy (indizes, data + offset, cnt*sizeof (char));
     offset += cnt * sizeof (char);
 
     unsigned histPos = 0;
@@ -951,7 +849,7 @@ bool compressedData)
 
             for (;histPos < j; ++histPos)
             {
-                memcpy (&hist[histPos], data + offset, sizeof (TFloat));
+                std::memcpy (&hist[histPos], data + offset, sizeof (TFloat));
                 offset += sizeof (TFloat);
             }
         }

@@ -31,11 +31,123 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 January-May 2008, Mirko Dibbert
 
 */
-#include "PictureFuns.h"
 #include "DistfunReg.h"
 #include "PictureAlgebra.h"
+#include "PictureFuns.h"
 
 using namespace gta;
+using namespace std;
+
+
+Lab::Lab (unsigned char r_, unsigned char g_, unsigned char b_)
+{
+    double R, G, B;
+    double rd = (double) r_ / 255;
+    double gd = (double) g_ / 255;
+    double bd = (double) b_ / 255;
+
+    if (rd > 0.04045)
+        R = std::pow((rd + 0.055) / 1.055, 2.2);
+    else
+        R = rd / 12.92;
+
+    if (gd > 0.04045)
+        G = std::pow ((gd + 0.055) / 1.055, 2.2);
+    else
+        G = gd / 12.92;
+
+    if (bd > 0.04045)
+        B = std::pow ((bd + 0.055) / 1.055, 2.2);
+    else
+        B = bd / 12.92;
+
+    // compute X,Y,Z coordinates of r,g,b
+    double X = 0.4124 * R + 0.3576 * G + 0.1805 * B;
+    double Y = 0.2127 * R + 0.7152 * G + 0.0722 * B;
+    double Z = 0.0193 * R + 0.1192 * G + 0.9500 * B;
+
+    /* used chromacity coordinates of whitepoint D65:
+    x = 0.312713, y = 0.329016
+
+    the respective XYZ coordinates are
+    Y = 1,
+    X = Y * x / y       = 0.9504492183, and
+    Z = Y * (1-x-y) / y = 1.0889166480
+    */
+
+    double eps = 0.008856; // = 216 / 24389
+    double x = X / 0.95045;
+    double y = Y;
+    double z = Z / 1.08892;
+    long double fx, fy, fz;
+
+    if (x > eps)
+        fx = std::pow (x, 0.333333);
+    else
+        fx = 7.787 * x + 0.137931;
+
+    if (y > eps)
+        fy = std::pow (y, 0.333333);
+    else
+        fy = 7.787 * y + 0.137931;
+
+    if (z > eps)
+        fz = std::pow (z, 0.333333);
+    else
+        fz = 7.787 * z + 0.137931;
+
+    // compute Lab coordinates
+    double Lab_Ld = ((116  * fy) - 16);
+    double Lab_ad = (500 * (fx - fy));
+    double Lab_bd = (200 * (fy - fz));
+
+    L = (signed char) Lab_Ld;
+    a = (signed char) Lab_ad;
+    b = (signed char) Lab_bd;
+}
+
+
+HSV::HSV (unsigned char r, unsigned char g, unsigned char b)
+{
+    unsigned char rgbMin = std::min (std::min (r, g), b);
+    unsigned char rgbMax = std::max (std::max (r, g), b);
+    unsigned char delta = rgbMax - rgbMin;
+
+    // compute h
+    if (delta == 0)
+    {
+        h = 0;
+    }
+    else
+    {
+        if (rgbMax == r)
+        {
+            h = 60 * (g - b) / delta;
+        }
+        else if (rgbMax == g)
+        {
+            h = 120 * (g - b) / delta;
+        }
+        else // rgbMax == b
+        {
+            h = 240 * (g - b) / delta;
+        }
+    }
+
+    if (h < 0)
+        h += 360;
+
+    // compute s
+    if (rgbMax == 0)
+        s = 0;
+    else
+        s = 255 * delta / rgbMax;
+
+    // compute v
+    v = rgbMax;
+}
+
+
 
 /*
 initialize static members:
@@ -63,15 +175,15 @@ void PictureFuns::computeHsv64SimMatrix()
                     for (int s2 = 0; s2 < 4; ++s2)
                         for (int v2 = 0; v2 < 4; ++v2)
     {
-        double d1 = pow(0.25 * (v1 - v2), 2);
-        double d2 = pow((0.125 + (s1 * 0.25)) * cos((h1 * 90.0)) -
-                        (0.125 + (s2 * 0.25)) * cos((h2 * 90.0)), 2);
-        double d3 = pow((0.125 + (s1 * 0.25)) * sin((h1 * 90.0)) -
-                        (0.125 + (s2 * 0.25)) * sin((h2 * 90.0)), 2);
+        double d1 = std::pow(0.25 * (v1 - v2), 2);
+        double d2 = std::pow((0.125 + (s1 * 0.25)) * std::cos((h1 * 90.0)) -
+                        (0.125 + (s2 * 0.25)) * std::cos((h2 * 90.0)), 2);
+        double d3 = std::pow((0.125 + (s1 * 0.25)) * std::sin((h1 * 90.0)) -
+                        (0.125 + (s2 * 0.25)) * std::sin((h2 * 90.0)), 2);
 
         int pos1 = (16 * h1) + (4 * s1) + v1;
         int pos2 = (16 * h2) + (4 * s2) + v2;
-        simMatrix[pos1*64 + pos2] = exp((-2) * sqrt(d1 + d2 + d3));
+        simMatrix[pos1*64 + pos2] = std::exp((-2) * std::sqrt(d1 + d2 + d3));
     }
 }
 
@@ -93,15 +205,15 @@ void PictureFuns::computeHsv128SimMatrix()
                     for (int s2 = 0; s2 < 4; ++s2)
                         for (int v2 = 0; v2 < 4; ++v2)
     {
-        double d1 = pow(0.25 * (v1 - v2), 2);
-        double d2 = pow((0.125 + (s1 * 0.25)) * cos((h1 * 45.0)) -
-                        (0.125 + (s2 * 0.25)) * cos((h2 * 45.0)), 2);
-        double d3 = pow((0.125 + (s1 * 0.25)) * sin((h1 * 45.0)) -
-                        (0.125 + (s2 * 0.25)) * sin((h2 * 45.0)), 2);
+        double d1 = std::pow(0.25 * (v1 - v2), 2);
+        double d2 = std::pow((0.125 + (s1 * 0.25)) * std::cos((h1 * 45.0)) -
+                        (0.125 + (s2 * 0.25)) * std::cos((h2 * 45.0)), 2);
+        double d3 = std::pow((0.125 + (s1 * 0.25)) * std::sin((h1 * 45.0)) -
+                        (0.125 + (s2 * 0.25)) * std::sin((h2 * 45.0)), 2);
 
         int pos1 = (16 * h1) + (4 * s1) + v1;
         int pos2 = (16 * h2) + (4 * s2) + v2;
-        simMatrix[pos1*128 + pos2] = exp((-2) * sqrt(d1 + d2 + d3));
+        simMatrix[pos1*128 + pos2] = std::exp((-2) * std::sqrt(d1 + d2 + d3));
     }
 }
 
@@ -123,15 +235,15 @@ void PictureFuns::computeHsv256SimMatrix()
                     for (int s2 = 0; s2 < 4; ++s2)
                         for (int v2 = 0; v2 < 4; ++v2)
     {
-        double d1 = pow(0.25 * (v1 - v2), 2);
-        double d2 = pow((0.125 + (s1 * 0.25)) * cos((h1 * 22.5)) -
-                        (0.125 + (s2 * 0.25)) * cos((h2 * 22.5)), 2);
-        double d3 = pow((0.125 + (s1 * 0.25)) * sin((h1 * 22.5)) -
-                        (0.125 + (s2 * 0.25)) * sin((h2 * 22.5)), 2);
+        double d1 = std::pow(0.25 * (v1 - v2), 2);
+        double d2 = std::pow((0.125 + (s1 * 0.25)) * std::cos((h1 * 22.5)) -
+                        (0.125 + (s2 * 0.25)) * std::cos((h2 * 22.5)), 2);
+        double d3 = std::pow((0.125 + (s1 * 0.25)) * std::sin((h1 * 22.5)) -
+                        (0.125 + (s2 * 0.25)) * std::sin((h2 * 22.5)), 2);
 
         int pos1 = (16 * h1) + (4 * s1) + v1;
         int pos2 = (16 * h2) + (4 * s2) + v2;
-        simMatrix[pos1*256 + pos2] = exp((-2) * sqrt(d1 + d2 + d3));
+        simMatrix[pos1*256 + pos2] = std::exp((-2) * std::sqrt(d1 + d2 + d3));
     }
 }
 
@@ -153,14 +265,14 @@ void PictureFuns::computeLab256SimMatrix()
                     for (int a2 = 0; a2 < 8; ++a2)
                         for (int b2 = 0; b2 < 8; ++b2)
                         {
-                            double d = pow(25.0 * (L1 - L2), 2) +
-                                       pow(23.125 * (a1 - a2), 2) +
-                                       pow(25.250 * (b1 - b2), 2);
+                            double d = std::pow(25.0 * (L1 - L2), 2) +
+                                       std::pow(23.125 * (a1 - a2), 2) +
+                                       std::pow(25.250 * (b1 - b2), 2);
 
                             int pos1 = (64 * L1) + (8 * a1) + b1;
                             int pos2 = (64 * L2) + (8 * a2) + b2;
                             simMatrix[(pos1*256) + pos2] =
-                                exp((-2) * sqrt(d));
+                                std::exp((-2) * std::sqrt(d));
                         }
 }
 

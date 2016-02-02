@@ -32,9 +32,9 @@ January-May 2008, Mirko Dibbert
 
 */
 #include <sstream>
-#include "PictureFuns.h"
 #include "GeneralTreeAlgebra.h"
 #include "SpatialAlgebra.h"
+#include "PictureFuns.h"
 
 using namespace gta;
 using namespace std;

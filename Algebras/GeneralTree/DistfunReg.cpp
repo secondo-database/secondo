@@ -33,12 +33,12 @@ January-May 2008, Mirko Dibbert
 */
 #include <sstream>
 #include "DistfunReg.h"
-#include "PictureFuns.h"
 #include "GTA_SpatialAttr.h"
 #include "Coord.h"
 #include "Point.h"
 #include "SpatialAlgebra.h"
 #include "Algorithms.h"
+#include "PictureFuns.h"
 
 using namespace gta;
 using namespace std;
@@ -305,13 +305,13 @@ void DistfunReg::euclidPoint(
 
      Coord x1;
      Coord y1;
-     memcpy(&x1, data1->value(), sizeof(Coord));
-     memcpy(&y1, (char*) data1->value() + sizeof(Coord), sizeof(Coord));
+     std::memcpy(&x1, data1->value(), sizeof(Coord));
+     std::memcpy(&y1, (char*) data1->value() + sizeof(Coord), sizeof(Coord));
      Coord x2;
      Coord y2;
-     memcpy(&x2, data2->value(), sizeof(Coord));
-     memcpy(&y2, (char*) data2->value() + sizeof(Coord), sizeof(Coord));
-     result = sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)); 
+     std::memcpy(&x2, data2->value(), sizeof(Coord));
+     std::memcpy(&y2, (char*) data2->value() + sizeof(Coord), sizeof(Coord));
+     result = std::sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)); 
  }
 
 
@@ -338,28 +338,28 @@ void DistfunReg::specialPoints(
   while(o1<n1 && o2<n2){
      Coord x1;
      Coord x2;
-     memcpy(&x1, (char*)data1->value() + o1, sizeof(Coord));
-     memcpy(&x2, (char*)data2->value() +o2, sizeof(Coord));
+     std::memcpy(&x1, (char*)data1->value() + o1, sizeof(Coord));
+     std::memcpy(&x2, (char*)data2->value() +o2, sizeof(Coord));
      if(AlmostEqual(x1,x2)){
         o1 += sizeof(Coord);
         o2 += sizeof(Coord);
         Coord y1;
         Coord y2;
-        memcpy(&y1,(char*)data1->value() + o1, sizeof(Coord));
-        memcpy(&y2,(char*)data2->value() + o2, sizeof(Coord));
+        std::memcpy(&y1,(char*)data1->value() + o1, sizeof(Coord));
+        std::memcpy(&y2,(char*)data2->value() + o2, sizeof(Coord));
         result += abs(y1-y2);
         o1 += sizeof(Coord);
         o2 += sizeof(Coord);
      } else if(x1<x2) {
         o1 += sizeof(Coord);
         Coord y1;
-        memcpy(&y1,(char*)data1->value() + o1, sizeof(Coord));
+        std::memcpy(&y1,(char*)data1->value() + o1, sizeof(Coord));
         result += abs(y1);
         o1 += sizeof(Coord);
      } else {
         o2 += sizeof(Coord);
         Coord y2;
-        memcpy(&y2,(char*)data2->value() + o2, sizeof(Coord));
+        std::memcpy(&y2,(char*)data2->value() + o2, sizeof(Coord));
         result += abs(y2);
         o1 += sizeof(Coord);
         o2 += sizeof(Coord);
@@ -368,14 +368,14 @@ void DistfunReg::specialPoints(
   while(o1<n1){
         o1 += sizeof(Coord); // overread x
         Coord y1;
-        memcpy(&y1,(char*)data1->value() + o1, sizeof(Coord));
+        std::memcpy(&y1,(char*)data1->value() + o1, sizeof(Coord));
         result += abs(y1);
         o1 += sizeof(Coord);
   } 
   while(o2<n2){
         o2 += sizeof(Coord);
         Coord y2;
-        memcpy(&y2,(char*)data2->value() + o2, sizeof(Coord));
+        std::memcpy(&y2,(char*)data2->value() + o2, sizeof(Coord));
         result += abs(y2);
         o1 += sizeof(Coord);
         o2 += sizeof(Coord);
@@ -399,8 +399,8 @@ void DistfunReg::EuclideanHPoint(
 
     // extract dimensions and check for equality
     unsigned dim1, dim2;
-    memcpy(&dim1, buf1, sizeof(unsigned));
-    memcpy(&dim2, buf2, sizeof(unsigned));
+    std::memcpy(&dim1, buf1, sizeof(unsigned));
+    std::memcpy(&dim2, buf2, sizeof(unsigned));
     if (dim1 != dim2)
     {
         cmsg.error()
@@ -420,7 +420,7 @@ void DistfunReg::EuclideanHPoint(
 
     // compute eucledean distance
     for (unsigned i = 0; i < dim1; ++i)
-        result += pow(abs (coords1[i] - coords2[i]), 2);
+        result += std::pow(abs (coords1[i] - coords2[i]), 2);
     result = sqrt(result);
 }
 

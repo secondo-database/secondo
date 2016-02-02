@@ -122,7 +122,7 @@ Writes the spatial object to "buffer"[4] and increases "offset"[4].
 */
     void inline write(char *buffer, int &offset) const
     {
-        memcpy(buffer+offset, &m_dim, sizeof(unsigned));
+        std::memcpy(buffer+offset, &m_dim, sizeof(unsigned));
         offset += sizeof(unsigned);
     }
 
@@ -132,7 +132,7 @@ Reads the spatial object from "buffer"[4] and increases "offset"[4].
 */
     void inline read(const char *buffer, int &offset)
     {
-        memcpy(&m_dim, buffer+offset, sizeof(unsigned));
+        std::memcpy(&m_dim, buffer+offset, sizeof(unsigned));
         offset += sizeof(unsigned);
 
         m_vectorlen = m_dim * sizeof(GTA_SPATIAL_DOM);
@@ -166,7 +166,7 @@ Constructor.
     inline HPoint(unsigned dim, const GTA_SPATIAL_DOM *coords)
         : Spatial(dim),
           m_coords(new GTA_SPATIAL_DOM[dim]) { 
-         memcpy(m_coords, coords, vectorlen());
+         std::memcpy(m_coords, coords, vectorlen());
      }
 
 /*
@@ -176,7 +176,7 @@ Default Copy constructor.
     inline HPoint(const HPoint &e)
         : Spatial(e),
           m_coords(new GTA_SPATIAL_DOM[dim()])
-    { memcpy(m_coords, e.m_coords, vectorlen()); }
+    { std::memcpy(m_coords, e.m_coords, vectorlen()); }
 
 /*
 Constructor (reads the given hyper point from buffer and increases offset)
@@ -203,7 +203,7 @@ Assignment operator.
         m_vectorlen = m_dim * sizeof(GTA_SPATIAL_DOM);
         delete m_coords;
         m_coords = new GTA_SPATIAL_DOM[dim()];
-        memcpy(m_coords, rhs.m_coords, vectorlen());
+        std::memcpy(m_coords, rhs.m_coords, vectorlen());
         return *this;
     }
 
@@ -235,8 +235,8 @@ Returns the eucledean distance between "this"[4] and "p"[4].
     {
         double result = 1.0;
         for (unsigned i = 0; i < dim(); ++i)
-            result  += pow(coord(i) - p->coord(i), 2);
-        result = sqrt(result);
+            result  += std::pow(coord(i) - p->coord(i), 2);
+        result = std::sqrt(result);
         return result;
     }
 
@@ -248,7 +248,7 @@ Returns the square of eucledean distance between "this"[4] and "p"[4].
     {
         double result = 1.0;
         for (unsigned i = 0; i < dim(); ++i)
-            result  += pow(coord(i) - p->coord(i), 2);
+            result  += std::pow(coord(i) - p->coord(i), 2);
         return result;
     }
 
@@ -260,7 +260,7 @@ Writes the hyper point to "buffer"[4] and increases "offset"[4].
     {
         Spatial::write(buffer, offset);
 
-        memcpy(buffer+offset, m_coords, vectorlen());
+        std::memcpy(buffer+offset, m_coords, vectorlen());
         offset += vectorlen();
     }
 
@@ -273,7 +273,7 @@ Reads the hyper point from "buffer"[4] and increases "offset"[4].
         Spatial::read(buffer, offset);
 
         m_coords = new GTA_SPATIAL_DOM[dim()];
-        memcpy(m_coords, buffer+offset, vectorlen());
+        std::memcpy(m_coords, buffer+offset, vectorlen());
         offset += vectorlen();
     }
 
@@ -319,8 +319,8 @@ Constructor.
           m_lbVect(new GTA_SPATIAL_DOM[dim]),
           m_ubVect(new GTA_SPATIAL_DOM[dim])
     {
-        memcpy(m_lbVect, lb, vectorlen());
-        memcpy(m_ubVect, ub, vectorlen());
+        std::memcpy(m_lbVect, lb, vectorlen());
+        std::memcpy(m_ubVect, ub, vectorlen());
     }
 
 /*
@@ -332,8 +332,8 @@ Default copy constructor.
           m_lbVect(new GTA_SPATIAL_DOM[e.dim()]),
           m_ubVect(new GTA_SPATIAL_DOM[e.dim()])
     {
-        memcpy(m_lbVect, e.m_lbVect, vectorlen());
-        memcpy(m_ubVect, e.m_ubVect, vectorlen());
+        std::memcpy(m_lbVect, e.m_lbVect, vectorlen());
+        std::memcpy(m_ubVect, e.m_ubVect, vectorlen());
     }
 
 /*
@@ -364,8 +364,8 @@ Assignment operator.
         delete [] m_ubVect;
         m_lbVect = new GTA_SPATIAL_DOM[dim()];
         m_ubVect = new GTA_SPATIAL_DOM[dim()];
-        memcpy(m_lbVect, rhs.m_lbVect, vectorlen());
-        memcpy(m_ubVect, rhs.m_ubVect, vectorlen());
+        std::memcpy(m_lbVect, rhs.m_lbVect, vectorlen());
+        std::memcpy(m_ubVect, rhs.m_ubVect, vectorlen());
         return *this;
     }
 
@@ -460,7 +460,7 @@ Returns the margin of the hyper rectangle.
         double result = 0.0;
         for (unsigned i = 0; i < dim(); ++i)
             result += (ub(i) - lb(i));
-        result *= pow(2, (double)(dim()-1));
+        result *= std::pow(2, (double)(dim()-1));
         return result;
     }
 
@@ -611,9 +611,9 @@ Writes the hyper rectangle to "buffer"[4] and increases "offset"[4].
     {
         Spatial::write(buffer, offset);
 
-        memcpy(buffer+offset, m_lbVect, vectorlen());
+        std::memcpy(buffer+offset, m_lbVect, vectorlen());
         offset += vectorlen();
-        memcpy(buffer+offset, m_ubVect, vectorlen());
+        std::memcpy(buffer+offset, m_ubVect, vectorlen());
         offset += vectorlen();
     }
 
@@ -626,11 +626,11 @@ Reads the hyper rectangle from "buffer"[4] and increases "offset"[4].
         Spatial::read(buffer, offset);
 
         m_lbVect = new GTA_SPATIAL_DOM[dim()];
-        memcpy(m_lbVect, buffer+offset, vectorlen());
+        std::memcpy(m_lbVect, buffer+offset, vectorlen());
         offset += vectorlen();
 
         m_ubVect = new GTA_SPATIAL_DOM[dim()];
-        memcpy(m_ubVect, buffer+offset, vectorlen());
+        std::memcpy(m_ubVect, buffer+offset, vectorlen());
         offset += vectorlen();
     }
 
