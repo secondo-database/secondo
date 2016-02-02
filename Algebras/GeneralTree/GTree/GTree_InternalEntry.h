@@ -91,7 +91,7 @@ Writes the entry object to buffer and increses offset.
 */
     inline void write(char *const buffer, int &offset) const
     {
-        std::memcpy(buffer+offset, &m_chield, sizeof(SmiRecordId));
+        memcpy(buffer+offset, &m_chield, sizeof(SmiRecordId));
         offset += sizeof(SmiRecordId);
     }
 
@@ -101,7 +101,7 @@ Reads the entry object from buffer and increses offset.
 */
     inline void read(const char *const buffer, int &offset)
     {
-        std::memcpy(&m_chield, buffer+offset, sizeof(SmiRecordId));
+        memcpy(&m_chield, buffer+offset, sizeof(SmiRecordId));
         offset += sizeof(SmiRecordId);
     }
 

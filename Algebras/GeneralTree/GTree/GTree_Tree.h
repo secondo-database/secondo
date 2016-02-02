@@ -300,7 +300,7 @@ gtree::Tree<THeader, TTreeManager>::Tree(
     }
 
     // copy header
-    std::memcpy(&header, &tree.header, sizeof(THeader));
+    memcpy(&header, &tree.header, sizeof(THeader));
 
     nodeMngr->copyPrototypes(tree.nodeMngr);
 
@@ -429,7 +429,7 @@ void gtree::Tree<THeader, TTreeManager>::readHeader()
 {
     // create buffer
     char buffer[headerPageCount*PAGESIZE];
-    std::memset(buffer, 0, headerPageCount*PAGESIZE);
+    memset(buffer, 0, headerPageCount*PAGESIZE);
 
     // read header-data from file
     SmiRecord record;
@@ -443,7 +443,7 @@ void gtree::Tree<THeader, TTreeManager>::readHeader()
     }
 
     // copy buffer to header
-    std::memcpy(&header, buffer, sizeof(THeader));
+    memcpy(&header, buffer, sizeof(THeader));
 } // Tree::readHeader
 
 /*
@@ -455,8 +455,8 @@ void gtree::Tree<THeader, TTreeManager>::writeHeader()
 {
     // create buffer and copy header to buffer
     char buffer[headerPageCount*PAGESIZE];
-    std::memset(buffer, 0, headerPageCount*PAGESIZE);
-    std::memcpy(buffer, &header, sizeof(THeader));
+    memset(buffer, 0, headerPageCount*PAGESIZE);
+    memcpy(buffer, &header, sizeof(THeader));
 
     // write header-data to file
     SmiRecord record;

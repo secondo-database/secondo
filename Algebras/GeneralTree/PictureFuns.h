@@ -288,7 +288,7 @@ PictureFuns::getData_hsv8 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[8];
-    std::memset (hist_abs, 0, 8*sizeof (unsigned long));
+    memset (hist_abs, 0, 8*sizeof (unsigned long));
 
     for (int i = 0; i < 8; ++i)
         hist_abs[i] = 0;
@@ -330,7 +330,7 @@ PictureFuns::getData_hsv16 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[16];
-    std::memset (hist_abs, 0, 16*sizeof (unsigned long));
+    memset (hist_abs, 0, 16*sizeof (unsigned long));
 
     for (int i = 0; i < 16; ++i)
         hist_abs[i] = 0;
@@ -372,7 +372,7 @@ PictureFuns::getData_hsv32 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[32];
-    std::memset (hist_abs, 0, 32*sizeof (unsigned long));
+    memset (hist_abs, 0, 32*sizeof (unsigned long));
 
     for (int i = 0; i < 32; ++i)
         hist_abs[i] = 0;
@@ -414,7 +414,7 @@ PictureFuns::getData_hsv64 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[64];
-    std::memset (hist_abs, 0, 64*sizeof (unsigned long));
+    memset (hist_abs, 0, 64*sizeof (unsigned long));
 
     for (int i = 0; i < 64; ++i)
         hist_abs[i] = 0;
@@ -456,7 +456,7 @@ PictureFuns::getData_hsv128 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[128];
-    std::memset (hist_abs, 0, 128*sizeof (unsigned long));
+    memset (hist_abs, 0, 128*sizeof (unsigned long));
 
     for (int i = 0; i < 128; ++i)
         hist_abs[i] = 0;
@@ -498,7 +498,7 @@ PictureFuns::getData_hsv256 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[256];
-    std::memset (hist_abs, 0, 256*sizeof (unsigned long));
+    memset (hist_abs, 0, 256*sizeof (unsigned long));
 
     for (unsigned long pos = 0; pos < (numOfPixels); ++pos)
     {
@@ -557,7 +557,7 @@ PictureFuns::getData_lab256 (const void* attr)
     const unsigned int numOfPixels = rgbSize / 3;
 
     unsigned long hist_abs[256];
-    std::memset (hist_abs, 0, 256*sizeof (unsigned long));
+    memset (hist_abs, 0, 256*sizeof (unsigned long));
 
     for (unsigned long pos = 0; pos < numOfPixels; ++pos)
     {
@@ -772,14 +772,14 @@ PictureFuns::encodeHistogram (
                 sum*sizeof (TFloat) ];
 
     int indexCount = indizes.size();
-    std::memcpy (result, &indexCount, sizeof (int));
+    memcpy (result, &indexCount, sizeof (int));
     int offset = sizeof (int);
 
     for (std::list<unsigned char>::iterator it = indizes.begin();
             it != indizes.end(); ++it)
     {
         unsigned char index = *it;
-        std::memcpy (result + offset, &index, sizeof (char));
+        memcpy (result + offset, &index, sizeof (char));
         offset += sizeof (char);
     }
 
@@ -800,7 +800,7 @@ PictureFuns::encodeHistogram (
 
             for (;histPos < j; ++histPos)
             {
-                std::memcpy (result + offset,
+                memcpy (result + offset,
                         &hist[histPos], sizeof (TFloat));
                 offset += sizeof (TFloat);
             }
@@ -822,18 +822,18 @@ bool compressedData)
 
     if (!compressedData)
     {
-        std::memcpy (hist, data, size*sizeof (TFloat));
+        memcpy (hist, data, size*sizeof (TFloat));
         return;
     }
 
-    std::memset (hist, 0, size*sizeof (TFloat));
+    memset (hist, 0, size*sizeof (TFloat));
 
     int cnt;
-    std::memcpy (&cnt, data, sizeof (int));
+    memcpy (&cnt, data, sizeof (int));
     int offset = sizeof (int);
 
     unsigned char indizes[cnt];
-    std::memcpy (indizes, data + offset, cnt*sizeof (char));
+    memcpy (indizes, data + offset, cnt*sizeof (char));
     offset += cnt * sizeof (char);
 
     unsigned histPos = 0;
@@ -849,7 +849,7 @@ bool compressedData)
 
             for (;histPos < j; ++histPos)
             {
-                std::memcpy (&hist[histPos], data + offset, sizeof (TFloat));
+                memcpy (&hist[histPos], data + offset, sizeof (TFloat));
                 offset += sizeof (TFloat);
             }
         }

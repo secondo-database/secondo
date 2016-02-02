@@ -485,7 +485,7 @@ void GenericNodeBase<TEntry>::read(
 
     // read count of stored entries
     size_t count;
-    std::memcpy(&count, buffer+offset, sizeof(size_t));
+    memcpy(&count, buffer+offset, sizeof(size_t));
     offset += sizeof(size_t);
 
     // read entry vector
@@ -512,7 +512,7 @@ void GenericNodeBase<TEntry>::write(
 {
     // write count of stored entries
     size_t count = m_entries->size();
-    std::memcpy(buffer + offset, &count, sizeof(size_t));
+    memcpy(buffer + offset, &count, sizeof(size_t));
     offset += sizeof(size_t);
 
     // write the entry array

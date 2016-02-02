@@ -250,7 +250,7 @@ Constructor (initiates the object with a copy of the given "char"[4] array).
 */
     inline DistData(size_t size, const void* value)
         : m_size(size), m_value(new char[m_size])
-    { std::memcpy(m_value, value, m_size); }
+    { memcpy(m_value, value, m_size); }
 
 /*
 Constructor (initiates the object with the given string).
@@ -258,7 +258,7 @@ Constructor (initiates the object with the given string).
 */
     inline DistData(const std::string value)
         : m_size(value.size()+1), m_value(new char[m_size])
-    { std::memcpy(m_value, value.c_str(), m_size); }
+    { memcpy(m_value, value.c_str(), m_size); }
 
 /*
 Constructor (reads the object from "buffer"[4] and increases "offset"[4]).
@@ -267,12 +267,12 @@ Constructor (reads the object from "buffer"[4] and increases "offset"[4]).
     DistData(const char *buffer, int& offset)
     {
         // read m_size
-        std::memcpy(&m_size, buffer+offset, sizeof(size_t));
+        memcpy(&m_size, buffer+offset, sizeof(size_t));
         offset += sizeof(size_t);
 
         // read m_value
         m_value = new char[m_size];
-        std::memcpy(m_value, buffer+offset, m_size);
+        memcpy(m_value, buffer+offset, m_size);
         offset += m_size;
     }
 
@@ -282,7 +282,7 @@ Default copy constructor.
 */
     inline DistData(const DistData& e)
     : m_size (e.m_size), m_value(new char[e.m_size])
-    { std::memcpy(m_value, e.m_value, e.m_size); }
+    { memcpy(m_value, e.m_value, e.m_size); }
 
 /*
 Destructor.
@@ -319,11 +319,11 @@ Writes the object to "buffer"[4] and increases "offset"[4].
     void write(char *buffer, int& offset) const
     {
         // write m_size
-        std::memcpy(buffer+offset, &m_size, sizeof(size_t));
+        memcpy(buffer+offset, &m_size, sizeof(size_t));
         offset += sizeof(size_t);
 
         // write m_value
-        std::memcpy(buffer+offset, m_value, m_size);
+        memcpy(buffer+offset, m_value, m_size);
         offset += m_size;
     }
 

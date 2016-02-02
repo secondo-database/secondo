@@ -251,7 +251,7 @@ DistData* DistDataReg::getDataInt(const void* attr)
 {
     int value = static_cast<const CcInt*>(attr)->GetValue();
     char buffer[sizeof(int)];
-    std::memcpy(buffer, &value, sizeof(int));
+    memcpy(buffer, &value, sizeof(int));
     return new DistData(sizeof(int), buffer);
 }
 
@@ -263,7 +263,7 @@ DistData* DistDataReg::getDataReal(const void* attr)
 {
     SEC_STD_REAL value = static_cast<const CcReal*>(attr)->GetValue();
     char buffer[sizeof(SEC_STD_REAL)];
-    std::memcpy(buffer, &value, sizeof(SEC_STD_REAL));
+    memcpy(buffer, &value, sizeof(SEC_STD_REAL));
     return new DistData(sizeof(SEC_STD_REAL), buffer);
 }
 
@@ -290,9 +290,9 @@ DistData* DistDataReg::getDataPoints(const void* attr)
      points->Get(i,p);
      Coord x = p.GetX();
      Coord y = p.GetY();
-     std::memcpy(buffer + offset, &x, sizeof(Coord));
+     memcpy(buffer + offset, &x, sizeof(Coord));
      offset += sizeof(Coord);
-     std::memcpy(buffer + offset, &y, sizeof(Coord));
+     memcpy(buffer + offset, &y, sizeof(Coord));
      offset += sizeof(Coord);
   } 
   DistData* res = new DistData(s,buffer);
@@ -317,8 +317,8 @@ DistData* DistDataReg::getDataPoint(const void* attr) {
    Coord y = point->GetY();
 
    char buffer[2*sizeof(Coord)];
-   std::memcpy(buffer, &x, sizeof(Coord));
-   std::memcpy(buffer + sizeof(Coord), &y, sizeof(Coord));
+   memcpy(buffer, &x, sizeof(Coord));
+   memcpy(buffer + sizeof(Coord), &y, sizeof(Coord));
    return new DistData(2*sizeof(Coord) , buffer);
 }
 
@@ -335,8 +335,8 @@ DistData* DistDataReg::getDataHPoint(const void* attr)
     unsigned dim = p->dim();
     GTA_SPATIAL_DOM *coords = p->coords();
     char buffer[p->size()];
-    std::memcpy(buffer, &dim, sizeof(unsigned));
-    std::memcpy(buffer+sizeof(unsigned), coords, p->vectorlen());
+    memcpy(buffer, &dim, sizeof(unsigned));
+    memcpy(buffer+sizeof(unsigned), coords, p->vectorlen());
     delete p;
     return new DistData(p->size(), buffer);
 }

@@ -105,14 +105,14 @@ The basic procedure to implement such trees is as follows:
          void write(char *const buffer, int &offset) const
          {
             gtree::InternalNode::write(buffer, offset);
-            std::memcpy(buffer, &newMember, sizeof(int));
+            memcpy(buffer, &newMember, sizeof(int));
             offset += sizeof(int);
          }
 
          void read(const char *const buffer, int &offset)
          {
             gtree::InternalNode::read(buffer, offset);
-            std::memcpy(&newMember, buffer, sizeof(int));
+            memcpy(&newMember, buffer, sizeof(int));
             offset += sizeof(int);
          }
 
