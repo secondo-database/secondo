@@ -411,7 +411,7 @@ changes the ~this~ object and returns it.
           for(unsigned int i=1; i<dim; i++){
             accu *= (max[i] - min[i]);
           };
-          accu = abs(accu);
+          accu = std::abs(accu);
         }
         catch(...){ // catch any exception!
           accu = -1.0;
@@ -714,7 +714,7 @@ inline double Rectangle<dim>::Perimeter (const Geoid* geoid/*=0*/) const
   }
   double perimeter = 0.0;
   for( unsigned i = 0; i < dim; i++ )
-    perimeter += pow( 2, (double)dim-1 ) * ( max[i] - min[i] );
+    perimeter += std::pow( 2, (double)dim-1 ) * ( max[i] - min[i] );
   return perimeter;
 }
 
@@ -899,9 +899,9 @@ inline double Rectangle<dim>::Distance(const Rectangle<dim>& r,
   for( unsigned i = 0; i < dim; i++ )
   {
     if(r.min[i] >= max[i])
-      sum += pow( (max[i] - r.min[i]), 2 );
+      sum += std::pow( (max[i] - r.min[i]), 2 );
     else if(r.max[i] <= min[i])
-      sum += pow( (min[i] - r.max[i]), 2 );
+      sum += std::pow( (min[i] - r.max[i]), 2 );
     else if( (min[i] <= r.min[i] && r.min[i] <= max[i]) ||
              (r.min[i] <= min[i] && min[i] <= r.max[i]) )
       sum += 0;
