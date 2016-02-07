@@ -531,10 +531,21 @@ Force clockwise order of cycle, so that it makes a face of the region.
 /*
 Create and return the region.
 
+The LIP algorithm can produce a list of points that wrongly appears as a hole to
+the ~RegionCreator~ and triggers an exception in its method
+~findLeftNearestOuter()~ (throwing a ~std::string~). Therefore exception
+handling is used to silently ignore such cases.
+
 */
     std::vector<std::vector<::Point>> cycles;
     cycles.push_back(std::move(cycle));
-    return std::unique_ptr<Region>(buildRegion(cycles));
+    try {
+      std::unique_ptr<Region> region(buildRegion(cycles));
+      return region;
+    }
+    catch (const std::string& str) {
+      return nullptr;
+    }
   }
 
 protected:
