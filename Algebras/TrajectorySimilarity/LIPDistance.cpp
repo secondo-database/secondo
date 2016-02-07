@@ -743,10 +743,8 @@ implementation arbitrarily uses 3 as that small number.
 Create the segment that is defined by the end points of the two sequences.
 
 */
-  const HalfSegment seg(
-      /*left point dom*/ true,
-      sit1last->getEnd().toSAPoint(),
-      sit2last->getEnd().toSAPoint());
+  const Segment<typename SEQ::point_t> seg(
+      sit1last->getEnd(), sit2last->getEnd());
 
 /*
 Iterate segments in reverse order starting at the next to the last segment of
@@ -761,8 +759,9 @@ the end segment as ~bad~.
        look_back < max_look_back;
        ++look_back, --sit1, --sit2)
   {
-    if (seg.Intersects(sit1->toHalfSegment()) ||
-        seg.Intersects(sit2->toHalfSegment()))
+    Point cross(0.0, 0.0);
+    if (intersection(seg, *sit1, cross) ||
+        intersection(seg, *sit2, cross))
     {
       return true;
     }
