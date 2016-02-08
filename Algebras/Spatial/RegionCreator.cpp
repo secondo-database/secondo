@@ -472,12 +472,15 @@ DbArray<HalfSegment>*
 void RegionCreator::setPartnerNo(DbArray<HalfSegment>* hss){
   int size = hss->Size();
   int* tmp = new int[size/2];
-  memset(tmp,0,size*sizeof(int) / 2); 
+
+  for(int i=0; i<size/2; i++){
+    tmp[i] = -1;
+  }
   HalfSegment hs;
   for( int i = 0; i < size; i++ ) 
   {
     hss->Get( i, hs ); 
-    if( hs.IsLeftDomPoint() )
+    if(tmp[hs.attr.edgeno] == -1 )
     {
       tmp[hs.attr.edgeno] = i;
     }
