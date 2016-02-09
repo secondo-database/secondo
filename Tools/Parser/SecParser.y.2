@@ -236,6 +236,23 @@ basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
         }
 
     |    {paramno=0; emptystack();}
+      ZZPQUERY valueexpr
+        {
+        CLEAR();
+        PRINTF("(pquery "); PRINT($3);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
+    |    {paramno=0; emptystack();}
+      ZZPCOMPILE valueexpr
+        {
+        CLEAR();
+        PRINTF("(pcompile "); PRINT($3);
+        PRINTF(")\n");
+        $$ = NestedText::AtomC(yacc_outtext->c_str());
+        }
+
+    |    {paramno=0; emptystack();}
       ZZLET ZZIDENTIFIER ZZINFIXOP  valueexpr
        {
         CLEAR();
@@ -246,20 +263,6 @@ basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
           return -1;
         }
         PRINTF("(let "); PRINT($3);
-        PRINTF(" = "); PRINT($5); PRINTF(")\n");
-         $$ = NestedText::AtomC(yacc_outtext->c_str());
-        }
-    |    {paramno=0; emptystack();}
-      ZZLETNT ZZIDENTIFIER ZZINFIXOP  valueexpr
-       {
-        CLEAR();
-        string equalstr;
-        NestedText::CopyOut( $4, equalstr );
-        if(equalstr!="=") {
-          yyerror("let command expects a '=' at the third position");
-          return -1;
-        }
-        PRINTF("(letnt "); PRINT($3);
         PRINTF(" = "); PRINT($5); PRINTF(")\n");
          $$ = NestedText::AtomC(yacc_outtext->c_str());
         }

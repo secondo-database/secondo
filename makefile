@@ -150,6 +150,7 @@ makedirs:
 	$(MAKE) -C OptParser
 	$(MAKE) -C Algebras/Management
 	$(MAKE) -C QueryProcessor
+	$(MAKE)	-C ParallelTransform
 	$(MAKE) -C UserInterfaces
 
 

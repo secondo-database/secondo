@@ -30,7 +30,7 @@ LIBXML2 :=
 
 ifeq ($(platform),android)
 CC := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-g++ -D__SECONDO_ANDROID__
-LD := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-ld –L$(HOME)/gsl/lib –L$(HOME)/readline/lib –L$(HOME)/jpeg-6b/
+LD := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-ld ï¿½L$(HOME)/gsl/lib ï¿½L$(HOME)/readline/lib ï¿½L$(HOME)/jpeg-6b/
 CCFLAGS += -I$(SECONDO_BUILD_DIR)/../readline/include/
 
 else
@@ -86,7 +86,7 @@ endif
 
 BDB_OBJECTS :=   ../ClientServer/SecondoServer.$(OBJEXT)
 		 
-ALG_LIST    :=  SecondoInterfaceTTY.$(OBJEXT)  SecondoInterfaceCS.$(OBJEXT) SecondoInterfaceREPLAY.$(OBJEXT) AlgebraList.$(OBJEXT) SecondoInterfaceGeneral.$(OBJEXT)
+ALG_LIST    :=  SecondoInterfaceTTY.$(OBJEXT) SecondoPrologInterface.$(OBJEXT) SecondoInterfaceCS.$(OBJEXT) SecondoInterfaceREPLAY.$(OBJEXT) AlgebraList.$(OBJEXT) SecondoInterfaceGeneral.$(OBJEXT)
 
 
 COMMON_OBJECTS := cmsg.$(OBJEXT) SecondoInterfaceGeneral.$(OBJEXT) DisplayTTY.$(OBJEXT)

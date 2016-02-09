@@ -114,6 +114,7 @@ transactions of errorneous queries were not aborted.
 
 #include <iostream>
 #include <fstream>
+#include <list>
 #include <unistd.h>
 #include <signal.h>
 
@@ -153,6 +154,10 @@ transactions of errorneous queries were not aborted.
 #include "AlmostEqual.h"
 #include "WinUnix.h"
 
+// Zugriff auf Transformationen für Prolog Syntax
+#include "SWI-Prolog.h"
+#include "SecondoPrologInterface.h"
+
 #ifdef SECONDO_ANDROID
 #include "android/log.h"
 #endif
@@ -188,11 +193,10 @@ TypeInfoRel* typeInfoRel = 0;
 OperatorInfoRel* operatorInfoRel = 0;
 OperatorUsageRel* operatorUsageRel = 0;
 
-
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
 static SecondoSystem* ss = 0;
-
+SecondoPrologInterface prologInterface;
 Symbols sym;
 
 
@@ -227,6 +231,7 @@ SecondoInterfaceTTY::~SecondoInterfaceTTY()
     Terminate();
   }
 }
+
 
 
 
@@ -1519,6 +1524,49 @@ Command\_<name>.
     else if ( nl->IsEqual( first, "querynt" ) && (length == 2) )
     {
       errorCode = Command_Query( list, resultList, errorMessage, false );
+    }
+
+    // --- Parallel command 
+    // --- Have to call Prolog Transformer
+
+    else if ( nl->IsEqual( first, "pquery" ) && (length == 2) )
+    {
+	
+	cmsg.info() << endl << "### TEST Parallel Query Command ###" << endl;
+	cmsg.send();
+	cmsg.info() << endl << "The Nested List: " << endl;
+	nl->WriteListExpr(list, cmsg.info());
+     	cmsg.info() << endl;
+	cmsg.send();
+
+	prologInterface.startPrologEnginge();
+
+	ListExpr result = prologInterface.callPrologQueryTransform(list, nl);
+	cmsg.info() << endl << "The Result List: " << endl;
+	nl->WriteListExpr(result, cmsg.info());
+     	cmsg.info() << endl;
+	cmsg.send();
+	
+      	errorCode = 
+          Command_Query(result, resultList, errorMessage, true);
+    }
+    else if ( nl->IsEqual( first, "pcompile" ) && (length == 2) )
+    {
+
+	cmsg.info() << endl << "### TEST Parallel Compile Command ###" << endl;
+	cmsg.send();
+	cmsg.info() << endl << "The Nested List: " << endl;
+	nl->WriteListExpr(list, cmsg.info());
+     	cmsg.info() << endl;
+	cmsg.send();
+
+	prologInterface.startPrologEnginge();
+
+	ListExpr result = prologInterface.callPrologQueryTransform(list, nl);
+	cmsg.info() << endl << "The Result List: " << endl;
+	nl->WriteListExpr(result, cmsg.info());
+     	cmsg.info() << endl;
+	cmsg.send();
     }
 
     // --- Set command

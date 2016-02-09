@@ -29,7 +29,7 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 #ALGDEPFLAGS=$(addprefix -l, $(ALGEBRA_DEPS))
 
 
-LDFLAGS+=-L../lib/ -lsecondo  -lfl -ly  -lstdc++ $(ALGDEPS)  $(DEFAULTLIB)
+LDFLAGS+=-L../lib/ -lsecondo  -lfl -ly  -lstdc++ $(ALGDEPS)  $(DEFAULTLIB) -L$(PL_LIB_DIR) -l$(PL_LIB)
 
 ifeq ($(readline),true)
   LDFLAGS+=-lreadline 
@@ -54,7 +54,7 @@ LDFLAGS += -lpthread
 
 
 app$(EXEEXT): Example.o
-	$(CPPC) -o app$(EXEEXT) Example.o $(LDFLAGS) $(COMMON_LD_FLAGS) 
+	$(CPPC) -o app$(EXEEXT) Example.o /home/nico/secondo/lib/SecondoPrologInterface.o $(LDFLAGS) $(COMMON_LD_FLAGS) 
 	mkdir -p databases
 
 
