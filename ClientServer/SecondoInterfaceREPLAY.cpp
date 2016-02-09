@@ -594,7 +594,7 @@ Check number of params of replay command
     cout << "Wrong parameter count for replayOSMImport" << endl;
     return false;
   } else if (replayImpCommand == "replayCSVImport" && (paramlist.size() < 7 ||
-                                                       paramlist.size() > 8)) {
+                                                       paramlist.size() > 9)) {
     cout << "Wrong parameter count for replayCSVImport" << endl;
     return false;
   } else if (replayImpCommand == "replaySHPImport" && (paramlist.size() < 3 ||
@@ -1287,6 +1287,10 @@ Send all images from search result to the node
   for (unsigned int i = 0; i < imageList.size(); ++i) {
      found = imageList[i].rfind("/");
      serverFileName = imageList[i].substr(found + 1);
+
+     // remove spaces in filename
+     serverFileName = stringutils::replaceAll(serverFileName," ","_");
+
      sendFileToNode(nodeNo, imageList[i], serverFileName, true);
 
     // no special thread handling needed, because the threads only fill 
@@ -1606,13 +1610,78 @@ Execute of ReplayOsmImport.
     commandsPerNode.push_back(vector <string>());
   }
 
+  unsigned int objCount;
+  std::size_t foundSep;
+
   // Now add the commands for the nodes to the array
   for (unsigned int i=0; i<transferFilePath.size(); ++i) {
      stringutils::StringTokenizer token(transferFilePath[i], ":");
      currentNode = stoi(token.nextToken());
      currentFilePath = token.nextToken();
-     cmdText = "query fullosmimport('" + currentFilePath + "',\"" + subFileName 
-               + stringutils::int2str(i) +"\")";
+
+     foundSep = currentFilePath.find_last_of("_");
+     objCount = stoi(currentFilePath.substr(foundSep + 1));
+
+     cmdText = "query fullosmimport('" + currentFilePath + "',\"" 
+               + subFileName 
+               + stringutils::int2str(objCount) +"\")";
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     // NodeTags
+     cmdText = "let CityNodeTags_" + stringutils::int2str(objCount) + 
+               " = " + 
+               subFileName + stringutils::int2str(objCount) + "NodeTags"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     cmdText = "delete " + subFileName + 
+               stringutils::int2str(objCount) + "NodeTags"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     // Nodes
+     cmdText = "let CityNodes_" + stringutils::int2str(objCount) + " = " + 
+               subFileName + stringutils::int2str(objCount) + "Nodes"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+     cmdText = "delete " + subFileName + 
+               stringutils::int2str(objCount) + "Nodes"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     // RelationTags
+     cmdText = "let CityRelationTags_" + 
+               stringutils::int2str(objCount) + " = " + 
+               subFileName + stringutils::int2str(objCount) + 
+               "RelationTags"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     cmdText = "delete " + subFileName + stringutils::int2str(objCount) + 
+               "RelationTags"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     // Relations
+     cmdText = "let CityRelations_" + stringutils::int2str(objCount) 
+               + " = " + 
+               subFileName + stringutils::int2str(objCount) + "Relations"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     cmdText = "delete " + subFileName + stringutils::int2str(objCount) +
+               "Relations"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     // WayTags
+     cmdText = "let CityWayTags_" + stringutils::int2str(objCount) + " = " + 
+               subFileName + stringutils::int2str(objCount) + "WayTags"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     cmdText = "delete " + subFileName + stringutils::int2str(objCount) + 
+               "WayTags"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     // Ways
+     cmdText = "let CityWays_" + stringutils::int2str(objCount) + " = " + 
+               subFileName + stringutils::int2str(objCount) + "Ways"; 
+     commandsPerNode[currentNode].push_back(cmdText);
+
+     cmdText = "delete " + subFileName + stringutils::int2str(objCount) + 
+               "Ways"; 
      commandsPerNode[currentNode].push_back(cmdText);
   }
 
@@ -1839,12 +1908,23 @@ Execute of ReplayCSVImport.
      foundSep = currentFilePath.find_last_of("_");
      currentNo = stoi(currentFilePath.substr(foundSep + 1));
 
-     cmdText = "let " + paramlist[1] + "_" + 
+     if (paramlist.size() == 7 || paramlist.size() == 8) {
+       cmdText = "let " + paramlist[1] + "_" + 
                stringutils::int2str(currentNo) + 
                " = csvimport2('" + currentFilePath + "', " + paramlist[2] + 
                ",\"" + paramlist[3] +"\",\"" + paramlist[4] +"\"," + 
                paramlist[5] + "," + paramlist[6] + ") consume";
-
+     } else {
+       cmdText = "let " +  paramlist[1] + "_" + 
+               stringutils::int2str(currentNo) +
+               "= [ const rel(tuple([" +
+               stringutils::replaceAll(paramlist[8], "\n",",") +
+               "] )) value ()" +
+               "] " +
+               "csvimport['" + currentFilePath + "', " + paramlist[2] + 
+               ",\"" + paramlist[3] +"\",\"" + paramlist[4] +"\"," + 
+               paramlist[5] + "," + paramlist[6] + "] consume;";
+     }
      commandsPerNode[currentNode].push_back(cmdText);
   }  
 
@@ -2163,18 +2243,23 @@ Execute of ReplaySHPImport.
     commandsPerNode.push_back(vector <string>());
   }
 
+  unsigned int objCount;
+  std::size_t foundSep;
+
   // Now add the commands for the nodes to the array
-  int objCount = 0;
   for (unsigned int i=0; i<transferFilePath.size(); ++i) {
      stringutils::StringTokenizer token(transferFilePath[i], ":");
      currentNode = stoi(token.nextToken());
      currentFilePath = token.nextToken();
      currentType = currentFilePath.substr(currentFilePath.size() - 3);
      if (currentType == "shp") {
-       objCount++;
        currentFilePathDBF = currentFilePath.substr(0,
                                     currentFilePath.size() - 3) + "dbf";
        currentFilePathSHP = currentFilePath;
+
+       foundSep = currentFilePathSHP.find_last_of("_");
+       objCount = stoi(currentFilePath.substr(foundSep + 1));
+
        cmdText = "let " + paramlist[1] + "_" + stringutils::int2str(objCount) 
                  + " = dbimport2('" + currentFilePathDBF 
                  + "') addcounter[No, 1] " 
@@ -3228,7 +3313,7 @@ For an explanation of the error codes refer to SecondoInterface.h
          }
       } else if (replayImpCommand == "replayCSVImport") {
         // Eight parameter for replayCSVImport
-        if (paramlist.size() == 8) {
+        if (paramlist.size() == 8 || paramlist.size() == 9) {
           if ( (paramlist[7] == "Replication") ||
                (paramlist[7] == "Partitioning") ) {
             replayImportMode = paramlist[7];
