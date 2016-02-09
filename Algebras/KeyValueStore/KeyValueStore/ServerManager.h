@@ -40,7 +40,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "boost/thread.hpp"
 #include "boost/date_time.hpp"
 
-
 namespace KVS {
 
 class KeyValueStore;
@@ -57,9 +56,9 @@ class ServerManager {
 
   bool connect(Connection* conn);
 
-  vector<Connection*>& getConnectionList();
+  std::vector<Connection*>& getConnectionList();
 
-  vector<Connection*>& getRemoveList();
+  std::vector<Connection*>& getRemoveList();
 
   unsigned int connectionSize();
   Connection* getConnectionIdx(int index);
@@ -69,7 +68,7 @@ class ServerManager {
   int getAvailableServer();
 
   bool updateServerList(string separatedList);
-  string getServerListString();
+  std::string getServerListString();
 
  private:
   void startMonitorThread();
@@ -82,16 +81,16 @@ class ServerManager {
   boost::thread* monitorThread;
 
   boost::mutex activeThreadsMutex;
-  map<Connection*, boost::thread*> activeThreads;
+  std::map<Connection*, boost::thread*> activeThreads;
 
-  vector<Connection*> connectionList;
+  std::vector<Connection*> connectionList;
 
-  vector<Connection*> removeList;
+  std::vector<Connection*> removeList;
 
-  string logPath;
-  string configPath;
+  std::string logPath;
+  std::string configPath;
 
-  basic_streambuf<char>* backupCout;
+  std::basic_streambuf<char>* backupCout;
 
   KeyValueStore* instance;
 };

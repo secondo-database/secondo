@@ -34,7 +34,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "boost/thread.hpp"
 #include "boost/date_time.hpp"
 
-
 namespace KVS {
 
 //
@@ -77,13 +76,13 @@ class Distribution {
   virtual bool fromBin(const std::string& data) = 0;
 
   virtual std::string serverIdAssignment(std::string attributeName,
-                                    std::string distributionName,
-                                    bool requestOnly) = 0;
+                                         std::string distributionName,
+                                         bool requestOnly) = 0;
 
   virtual int split(int serverId) = 0;
   virtual void redistribute(int serverId,
                             int n) = 0;  // n: number of servers after serverId
-                                         // (referencing serverIdOrder order)
+  // (referencing serverIdOrder order)
 
   virtual int neighbourId(int id) = 0;
   virtual void changeServerId(int oldid, int newid) = 0;
@@ -109,6 +108,9 @@ class Distribution {
                        std::set<int>* resultIds) = 0;  // rect
   virtual void requestDebug(int nrcoords, double* coords,
                             std::set<int>* resultIds) = 0;  // rect
+
+  virtual void createAreaObjectCountList(
+      std::list<std::pair<double*, int> >* areaList) = 0;
 
   int type;
 

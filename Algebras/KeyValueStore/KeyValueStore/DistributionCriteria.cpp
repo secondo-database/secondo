@@ -221,8 +221,8 @@ void DistributionCriteria::evaluate(Distribution* dist, const double& average,
       ROUT << "ID " << serverId << ":";
 
       // check if local restructure is sufficient
-      vector<int>::iterator idPos = find(dist->serverIdOrder.begin(),
-                                         dist->serverIdOrder.end(), serverId);
+      std::vector<int>::iterator idPos = find(
+          dist->serverIdOrder.begin(), dist->serverIdOrder.end(), serverId);
 
       if (idPos == dist->serverIdOrder.end()) {
         continue;

@@ -719,7 +719,7 @@ void QuadTreeDistribution::insert(QuadNode* node, double* mbb,
           lastId = node->serverId;
         }
         return true;  // we don't want the tree to split so we always return
-                      // true
+        // true
       });
 
       if (node->serverId == -1) {
@@ -762,7 +762,7 @@ void QuadTreeDistribution::insertDebug(QuadNode* node, double* mbb,
           lastId = node->serverId;
         }
         return true;  // we don't want the tree to split so we always return
-                      // true
+        // true
       });
 
       if (node->serverId == -1) {
@@ -1140,6 +1140,21 @@ void QuadTreeDistribution::leafesInClusterOrderR(QuadNode* node,
             defaultPath[(pathIdx + ((i + 1) * step)) % 4], lastVisited, f);
       }
     }
+  }
+}
+
+void QuadTreeDistribution::createAreaObjectCountList(
+    std::list<std::pair<double*, int> >* areaList) {
+  if (root) {
+    propagateDown(root, [areaList](QuadNode* node) {
+      double* rect = new double[4];
+      rect[0] = node->x;
+      rect[1] = node->y;
+      rect[2] = node->x + node->width;
+      rect[3] = node->y + node->height;
+
+      areaList->push_back(make_pair(rect, node->weight));
+    });
   }
 }
 }

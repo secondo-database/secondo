@@ -29,17 +29,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <ctime>
 
-
 namespace KVS {
 
-extern ostream KOUT;
-extern ostream ROUT;
+extern std::ostream KOUT;
+extern std::ostream ROUT;
 
 class Distribution;
 
-string DebugTime();
-void SaveDebugFileStr(string path, string data);
-void SaveDebugFile(string path, Distribution* dist);
+std::string DebugTime();
+void SaveDebugFileStr(std::string path, std::string data);
+void SaveDebugFile(std::string path, Distribution* dist);
 }
 
 #endif /* KEYVALUESTOREDEBUG_H_ */

@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace KVS {
 
-KeyValueStoreIPCServer::KeyValueStoreIPCServer(string appPath, int appId,
+KeyValueStoreIPCServer::KeyValueStoreIPCServer(std::string appPath, int appId,
                                                bool useConsole)
     : appId(appId),
       appPath(appPath),
@@ -58,14 +58,14 @@ KeyValueStoreIPCServer::KeyValueStoreIPCServer(string appPath, int appId,
     gethostname(hostname, 255);
 #endif
 
-    stringstream extStr;
+    std::stringstream extStr;
     extStr << "_" << hostname << ".log";
 
-    kvsLogfile = new ofstream(
+    kvsLogfile = new std::ofstream(
         appPath.substr(0, appPath.find_last_of('.')) + extStr.str(), ios::app);
     KOUT.rdbuf(kvsLogfile->rdbuf());
 
-    restructureLogfile = new ofstream(
+    restructureLogfile = new std::ofstream(
         kvs.getRestructurePath() + PATH_SLASH + "kvsRestructure" + extStr.str(),
         ios::app);
     ROUT.rdbuf(restructureLogfile->rdbuf());
@@ -96,7 +96,7 @@ KeyValueStoreIPCServer::~KeyValueStoreIPCServer() {
 
 #ifdef SECONDO_WIN32
 bool KeyValueStoreIPCServer::checkExclusive() {
-  stringstream mutexName;
+  std::stringstream mutexName;
   mutexName << "Local\\SecondoApp" << appId;
 
   appMutexHandle = CreateMutexA(NULL,   // default security attributes
@@ -126,7 +126,7 @@ bool KeyValueStoreIPCServer::checkExclusive() {
 
 int KeyValueStoreIPCServer::run() {
   IPCGate gate(appId);
-  vector<IPCConnection*> connections;
+  std::vector<IPCConnection*> connections;
 
   unsigned int idleCounter = 0;
 

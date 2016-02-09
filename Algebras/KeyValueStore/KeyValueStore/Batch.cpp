@@ -65,7 +65,7 @@ bool Batch::initBatch() {
         if (!transferList[transferIdx]->init(
                 sm->getConnectionIdx(serverIdx)
                     ->kvsConn->requestTransferId())) {  // maybe use threads to
-                                                        // speed this up
+          // speed this up
           return false;
         }
       }
@@ -110,12 +110,12 @@ bool Batch::batchReady() {
 
 void Batch::updateTransferList() {
   // id - connection
-  vector<Connection*>& serverList = sm->getConnectionList();
+  std::vector<Connection*>& serverList = sm->getConnectionList();
 
   // unsigned int serverId;
   int serverIdx;
 
-  vector<int>::iterator maxId =
+  std::vector<int>::iterator maxId =
       max_element(dist->serverIdOrder.begin(), dist->serverIdOrder.end());
   if (*maxId >= static_cast<int>(transferList.size())) {
     transferList.resize(*maxId + 1, 0);
@@ -123,7 +123,7 @@ void Batch::updateTransferList() {
 
   for (unsigned int transferIdx = 0; transferIdx < transferList.size();
        ++transferIdx) {
-    vector<int>::iterator mappingPos = find(
+    std::vector<int>::iterator mappingPos = find(
         dist->serverIdOrder.begin(), dist->serverIdOrder.end(), transferIdx);
     if (mappingPos != dist->serverIdOrder.end()) {
       if (static_cast<int>(transferIdx) != instance->id) {

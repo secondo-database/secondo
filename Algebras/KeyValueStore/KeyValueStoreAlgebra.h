@@ -53,7 +53,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "KeyValueStoreIPC.h"
 
-
 namespace KVS {
 
 qtdistributionInfo qtdi;
@@ -91,9 +90,9 @@ class KeyValueStoreAlgebra : public Algebra {
     /*
      * ServerOperators
      */
-    AddOperator(kvsAddInfo(), kvsAddVM, kvsAddTM);
-    AddOperator(kvsRemoveInfo(), kvsRemoveVM, kvsRemoveTM);
-    AddOperator(kvsReconnectInfo(), kvsReconnectVM, kvsReconnectTM);
+    // AddOperator(kvsAddInfo(), kvsAddVM, kvsAddTM);
+    // AddOperator(kvsRemoveInfo(), kvsRemoveVM, kvsRemoveTM);
+    // AddOperator(kvsReconnectInfo(), kvsReconnectVM, kvsReconnectTM);
     AddOperator(kvsUpdateServerListInfo(), kvsUpdateServerListVM,
                 kvsUpdateServerListTM);
     AddOperator(kvsSyncServerListInfo(), kvsSyncServerListVM,
@@ -105,12 +104,12 @@ class KeyValueStoreAlgebra : public Algebra {
     /*
      * Quad Tree
      */
-    AddOperator(qtcreatedistInfo(), qtcreatedistVM, qtcreatedistTM);
-    AddOperator(qtserveridLocalInfo(), qtserveridLocalVM, qtserveridLocalTM);
-    AddOperator(qtserveridInfo(), qtserveridVM, qtserveridTM);
-    AddOperator(qtintersectsLocalInfo(), qtintersectsLocalVM,
-                qtintersectsLocalTM);
-    AddOperator(qtintersectsInfo(), qtintersectsVM, qtintersectsTM);
+    // AddOperator(qtcreatedistInfo(), qtcreatedistVM, qtcreatedistTM);
+    // AddOperator(qtserveridLocalInfo(), qtserveridLocalVM, qtserveridLocalTM);
+    // AddOperator(qtserveridInfo(), qtserveridVM, qtserveridTM);
+    // AddOperator(qtintersectsLocalInfo(), qtintersectsLocalVM,
+    //            qtintersectsLocalTM);
+    // AddOperator(qtintersectsInfo(), qtintersectsVM, qtintersectsTM);
     AddOperator(qtDistinctInfo(), qtDistinctVM, qtDistinctTM);
 
     /*
@@ -118,6 +117,7 @@ class KeyValueStoreAlgebra : public Algebra {
      */
     AddOperator(kvsServerIdInfo(), kvsServerIdVM, kvsServerIdTM);
     AddOperator(kvsSaveDistInfo(), kvsSaveDistVM, kvsSaveDistTM);
+    AddOperator(kvsDistStreamInfo(), kvsDistStreamVM, kvsDistStreamTM);
     AddOperator(kvsFilterInfo(), kvsFilterVM, kvsFilterTM);
 
     /*
@@ -142,14 +142,15 @@ class KeyValueStoreAlgebra : public Algebra {
      * Networkstreams & Distribution
      */
     AddOperator(kvsRemoteStreamInfo(), kvsRemoteStreamVM, kvsRemoteStreamTM);
-    AddOperator(kvsRemoteStreamSCPInfo(), kvsRemoteStreamSCPVM,
-                kvsRemoteStreamSCPTM);
+    // AddOperator(kvsRemoteStreamSCPInfo(), kvsRemoteStreamSCPVM,
+    //            kvsRemoteStreamSCPTM);
     AddOperator(kvsDistributeInfo(), kvsDistributeVM, kvsDistributeTM);
 
     /*
      * Data Source
      */
-    AddOperator(kvsDataSourceSCPInfo(), kvsDataSourceSCPVM, kvsDataSourceSCPTM);
+    // AddOperator(kvsDataSourceSCPInfo(), kvsDataSourceSCPVM,
+    // kvsDataSourceSCPTM);
   }
   ~KeyValueStoreAlgebra() {
     if (kvsIPC) {

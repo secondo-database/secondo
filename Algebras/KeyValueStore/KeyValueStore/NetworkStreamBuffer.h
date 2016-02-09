@@ -46,17 +46,17 @@ class NetworkStream {
   NetworkStream(unsigned int id);
   ~NetworkStream();
 
-  void setStreamType(const string& sType);
-  string getStreamType();
+  void setStreamType(const std::string& sType);
+  std::string getStreamType();
 
   void serveIPC(IPCConnection* conn);
 
-  SyncPseudoQueue<pair<unsigned int, char*>*> tupleQueue;
+  SyncPseudoQueue<std::pair<unsigned int, char*>*> tupleQueue;
 
  private:
   unsigned int id;
 
-  string streamType;
+  std::string streamType;
   boost::mutex streamTypeMutex;
   boost::condition_variable streamTypeCondition;
   bool streamTypeSet;
@@ -81,7 +81,7 @@ class NetworkStreamBuffer {
   bool removeStream(unsigned int id);
 
  private:
-  map<unsigned int, NetworkStream*> streams;
+  std::map<unsigned int, NetworkStream*> streams;
   boost::mutex streamsMutex;
   boost::condition_variable streamsCondition;
 

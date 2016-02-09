@@ -33,7 +33,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <vector>
 
-
 namespace KVS {
 
 class KeyValueStore;
@@ -57,7 +56,7 @@ class Batch {
 
   bool forceBatch;
 
-  vector<TransferMethod*> transferList;
+  std::vector<TransferMethod*> transferList;
   int tupleCount;
 
  private:
@@ -72,7 +71,7 @@ class Batch {
 
   DistributionParameter* distParams;
 
-  time_t batchStartTime;              // to calculate insert frequency
+  std::time_t batchStartTime;         // to calculate insert frequency
   const double MAX_BATCH_TIME = 180;  // in seconds
   const int MAX_BATCH_COUNT = 1000;
 

@@ -31,7 +31,7 @@ NetworkStream::NetworkStream(unsigned int id)
     : id(id), streamType(""), streamTypeSet(false) {}
 
 NetworkStream::~NetworkStream() {
-  pair<unsigned int, char*>* tuple;
+  std::pair<unsigned int, char*>* tuple;
 
   while ((tuple = tupleQueue.next()) != 0) {
     delete[] tuple->second;
@@ -39,14 +39,14 @@ NetworkStream::~NetworkStream() {
   }
 }
 
-void NetworkStream::setStreamType(const string& sType) {
+void NetworkStream::setStreamType(const std::string& sType) {
   boost::lock_guard<boost::mutex> guard(streamTypeMutex);
   streamType = sType;
   streamTypeSet = true;
   streamTypeCondition.notify_all();
 }
 
-string NetworkStream::getStreamType() {
+std::string NetworkStream::getStreamType() {
   boost::unique_lock<boost::mutex> lock(streamTypeMutex);
   while (!streamTypeSet) {
     streamTypeCondition.wait(lock);
@@ -55,7 +55,7 @@ string NetworkStream::getStreamType() {
 }
 
 void NetworkStream::serveIPC(IPCConnection* conn) {
-  pair<unsigned int, char*>* tuple;
+  std::pair<unsigned int, char*>* tuple;
 
   while ((tuple = tupleQueue.next()) != 0) {
     conn->write(&tuple->first);
@@ -74,7 +74,7 @@ bool NetworkStreamBuffer::addNetworkStream(unsigned int id,
                                            NetworkStream* stream) {
   boost::lock_guard<boost::mutex> guard(streamsMutex);
   if (streams.find(id) == streams.end()) {
-    streams.insert(make_pair(id, stream));
+    streams.insert(std::make_pair(id, stream));
 
     streamsCondition.notify_all();
     return true;
@@ -88,7 +88,7 @@ NetworkStream* NetworkStreamBuffer::createStream(unsigned int id) {
 
   if (streams.find(id) == streams.end()) {
     NetworkStream* temp = new NetworkStream(id);
-    streams.insert(make_pair(id, temp));
+    streams.insert(std::make_pair(id, temp));
     return temp;
   } else {
     return streams.find(id)->second;
@@ -129,7 +129,8 @@ bool NetworkStreamBuffer::removeStream(unsigned int id) {
     streamsCondition.wait(lock);
   }
 
-  map<unsigned int, NetworkStream*>::iterator streamItem = streams.find(id);
+  std::map<unsigned int, NetworkStream*>::iterator streamItem =
+      streams.find(id);
 
   if (streamItem != streams.end()) {
     delete streamItem->second;

@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <vector>
 #include <ctime>
 
-
 namespace KVS {
 
 class KeyValueStore;
@@ -50,8 +49,8 @@ class DistributionCriteria {
   void addTuple(unsigned int serverId);
   void addBytesTransferred(unsigned int serverId, int n);
 
-  vector<pair<int, int> > localRestructure;  // startIdx, n
-  vector<unsigned int> split;
+  std::vector<std::pair<int, int> > localRestructure;  // startIdx, n
+  std::vector<unsigned int> split;
 
   void reset();
 
@@ -68,19 +67,19 @@ class DistributionCriteria {
   void checkMaxData(Distribution* dist);
   void checkDataDistribution(Distribution* dist);
 
-  time_t insertIntervalStart;        // to calculate insert frequency
+  std::time_t insertIntervalStart;   // to calculate insert frequency
   double insertIntervalLength;       // in seconds
   double insertPercentageThreshold;  // expected + threshold
 
   int insertsOverall;
-  vector<unsigned int> insertDistribution;
+  std::vector<unsigned int> insertDistribution;
 
   unsigned int maxData;  // universal for all servers in Bytes
 
   unsigned int dataOverall;
-  vector<unsigned int> dataDistribution;
+  std::vector<unsigned int> dataDistribution;
 
-  vector<bool> restructurePotential;
+  std::vector<bool> restructurePotential;
 
   KeyValueStore* instance;
 };

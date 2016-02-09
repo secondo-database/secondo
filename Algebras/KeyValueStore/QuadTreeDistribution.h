@@ -107,7 +107,7 @@ class QuadTreeDistribution : public Distribution {
   int split(int serverId);
   void redistribute(int serverId,
                     int n);  // n: number of servers after serverId (referencing
-                             // serverIdMapping order)
+  // serverIdMapping order)
 
   int neighbourId(int id);
   void changeServerId(int oldid, int newid);
@@ -131,9 +131,11 @@ class QuadTreeDistribution : public Distribution {
   void request(int nrcoords, double* coords, std::set<int>* resultIds);
   void requestDebug(int nrcoords, double* coords, std::set<int>* resultIds);
 
-  std::string serverIdAssignment(std::string attributeName, 
+  std::string serverIdAssignment(std::string attributeName,
                                  std::string distributionName,
                                  bool requestOnly);
+
+  void createAreaObjectCountList(std::list<std::pair<double*, int> >* areaList);
 
   std::string toBin();
   bool fromBin(const std::string& data);

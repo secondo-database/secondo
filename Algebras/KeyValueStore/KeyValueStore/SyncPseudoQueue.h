@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "boost/thread.hpp"
 #include "boost/date_time.hpp"
 
-
 namespace KVS {
 
 /* only allows pointer types
@@ -85,7 +84,7 @@ class SyncPseudoQueue<T*> {
   unsigned int readPos;
   unsigned int actualSize;
 
-  vector<T*> data;
+  std::vector<T*> data;
   boost::mutex dataMutex;
   boost::condition_variable dataCondition;
 };

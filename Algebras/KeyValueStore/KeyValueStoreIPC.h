@@ -61,7 +61,7 @@ class KeyValueStoreIPC {
 
   unsigned int getGlobalTupelId();
 
-  bool initClients(std::string localIp, int localInterfacePort, 
+  bool initClients(std::string localIp, int localInterfacePort,
                    int localKvsPort);
 
   bool startClient(int port);
@@ -84,18 +84,17 @@ class KeyValueStoreIPC {
 
   bool execCommand(std::string command);
 
-  bool qtDistAdd(int refId, int nrcoords, double* coords, 
+  bool qtDistAdd(int refId, int nrcoords, double* coords,
                  std::set<int>* resultIds);
   int qtDistPointId(int refId, double interx, double intery);
   bool qtDistRequest(int refId, int nrcoords, double* coords,
                      std::set<int>* resultIds);
   bool qtDistinct(int refId, double x, double y);
 
-  bool distAddRect(int refId, int nrcoords, double* coords, 
-                   std::set<int>* resultIds,
-                   bool requestOnly);
-  bool distAddInt(int refId, int value, std::set<int>* resultIds, 
-                   bool requestOnly);
+  bool distAddRect(int refId, int nrcoords, double* coords,
+                   std::set<int>* resultIds, bool requestOnly);
+  bool distAddInt(int refId, int value, std::set<int>* resultIds,
+                  bool requestOnly);
 
   bool distFilter(int& refId, int& nrcoords, double* coords,
                   unsigned int& globalId, bool& update);

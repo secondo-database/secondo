@@ -44,6 +44,7 @@ operator qtDistinct alias QTDISTINCT pattern op (_, _)
 #
 operator kvsServerId alias KVSSERVERID pattern op (_, _, _)
 operator kvsSaveDist alias KVSSAVEDIST pattern op (_)
+operator kvsDistStream alias KVSDISTSTREAM pattern op (_)
 operator kvsFilter alias KVSFILTER pattern _ op [_, _, _, _]
 
 #

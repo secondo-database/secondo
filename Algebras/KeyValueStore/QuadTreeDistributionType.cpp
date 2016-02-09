@@ -38,8 +38,8 @@ QuadTreeDistributionType::QuadTreeDistributionType(
 
 QuadTreeDistributionType::~QuadTreeDistributionType() {}
 
-const std::string QuadTreeDistributionType::BasicType() { 
-    return "qtdistribution";
+const std::string QuadTreeDistributionType::BasicType() {
+  return "qtdistribution";
 }
 
 const bool QuadTreeDistributionType::checkType(const ListExpr type) {
@@ -63,7 +63,7 @@ Word QuadTreeDistributionType::In(const ListExpr typeInfo,
         !nl->IsAtom(Third)) {
       if (nl->ListLength(Third) == 0) {
         cmsg.inFunError(
-            "Third Paramter should be list with at least one element.");
+            "Third parameter should be a list with at least one element.");
         return w;
       } else {
         QuadTreeDistributionType* temp = new QuadTreeDistributionType(
@@ -76,7 +76,7 @@ Word QuadTreeDistributionType::In(const ListExpr typeInfo,
           if (nl->IsAtom(tempElem) && nl->AtomType(tempElem) == IntType) {
             temp->serverIdOrder[i] = nl->IntValue(tempElem);
           } else {
-            cmsg.inFunError("Third Paramter should be list of Int Atoms.");
+            cmsg.inFunError("Third parameter should be a  list of int atoms.");
             return w;
           }
         }

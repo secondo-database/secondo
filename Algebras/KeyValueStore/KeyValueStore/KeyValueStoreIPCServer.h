@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <functional>
 #include <fstream>
 
-
 namespace KVS {
 
 //
@@ -41,7 +40,7 @@ namespace KVS {
 //
 class KeyValueStoreIPCServer {
  public:
-  KeyValueStoreIPCServer(string appPath, int appId, bool useConsole);
+  KeyValueStoreIPCServer(std::string appPath, int appId, bool useConsole);
   ~KeyValueStoreIPCServer();
 
   bool checkExclusive();
@@ -55,9 +54,9 @@ class KeyValueStoreIPCServer {
 
  private:
   int appId;
-  string appPath;
+  std::string appPath;
 
-  map<IPCMessage, function<int(KVS::KeyValueStore*, IPCConnection*)> >
+  std::map<IPCMessage, std::function<int(KVS::KeyValueStore*, IPCConnection*)> >
       dispatchMap;
 
   void* appMutexHandle;
@@ -66,8 +65,8 @@ class KeyValueStoreIPCServer {
 
   IPCMessage lastMessage;
 
-  ofstream* kvsLogfile;
-  ofstream* restructureLogfile;
+  std::ofstream* kvsLogfile;
+  std::ofstream* restructureLogfile;
 };
 }
 

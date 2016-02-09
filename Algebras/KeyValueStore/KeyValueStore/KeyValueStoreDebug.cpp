@@ -30,27 +30,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace KVS {
 
-ostream KOUT(cout.rdbuf());
-ostream ROUT(cout.rdbuf());
+std::ostream KOUT(cout.rdbuf());
+std::ostream ROUT(cout.rdbuf());
 
-string DebugTime() {
+std::string DebugTime() {
   time_t now = time(NULL);
   struct tm* timeparts = localtime(&now);
 
   char buffer[32];
   strftime(buffer, 32, "%Y-%m-%d %H:%M:%S : ", timeparts);
-  return string(buffer);
+  return std::string(buffer);
 }
 
-void SaveDebugFileStr(string path, string data) {
-  ofstream out(path);
+void SaveDebugFileStr(std::string path, std::string data) {
+  std::ofstream out(path);
   if (out.is_open()) {
     out << data;
     out.close();
   }
 }
 
-void SaveDebugQuadNode(ofstream& out, QuadNode* node) {
+void SaveDebugQuadNode(std::ofstream& out, QuadNode* node) {
   if (node == 0) {
     out << "0 ";
   } else {
@@ -65,8 +65,8 @@ void SaveDebugQuadNode(ofstream& out, QuadNode* node) {
   }
 }
 
-void SaveDebugFile(string path, QuadTreeDistribution* dist) {
-  ofstream out(path);
+void SaveDebugFile(std::string path, QuadTreeDistribution* dist) {
+  std::ofstream out(path);
   if (out.is_open()) {
     out << "\r\n\r\n\r\n\r\n(" << dist->initialWidth << " "
         << dist->initialHeight << "\r\n(";
@@ -85,7 +85,7 @@ void SaveDebugFile(string path, QuadTreeDistribution* dist) {
   }
 }
 
-void SaveDebugFile(string path, Distribution* dist) {
+void SaveDebugFile(std::string path, Distribution* dist) {
   if (dist->type == Distribution::TYPE_QUADTREE) {
     SaveDebugFile(path, (QuadTreeDistribution*)dist);
   }

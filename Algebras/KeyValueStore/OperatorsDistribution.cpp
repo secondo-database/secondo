@@ -485,4 +485,154 @@ int kvsFilterVM(Word* args, Word& result, int message, Word& local,
   }
   return 0;
 }
+
+ListExpr kvsDistStreamTM(ListExpr args) {
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(
+        "Expecting 1 argument "
+        "[{distribution, text} = ({distribution, distributionName})].");
+  }
+
+  if (!Distribution::checkType(nl->First(nl->First(args))) &&
+      !FText::checkType(nl->First(nl->First(args)))) {
+    return listutils::typeError(
+        "1st argument should be distribution OR text(distribution name). "
+        "[{distribution, text} = ({distribution, distributionName})].");
+  }
+
+  // append distribution name
+  ListExpr dist_name;
+  if (FText::checkType(nl->First(nl->First(args)))) {
+    dist_name = nl->Second(nl->First(args));  // ((text 'distname')...)
+  } else {
+    string dist_name_str = nl->SymbolValue(nl->Second(nl->First(args)));
+    dist_name = nl->TextAtom(dist_name_str);  // ( (..) (distribution distname))
+  }
+
+  ListExpr resType = nl->TwoElemList(
+      listutils::basicSymbol<Stream<Tuple> >(),
+      nl->TwoElemList(
+          listutils::basicSymbol<Tuple>(),
+          nl->TwoElemList(
+              nl->TwoElemList(nl->SymbolAtom("Area"),
+                              nl->SymbolAtom(Rectangle<2>::BasicType())),
+              nl->TwoElemList(nl->SymbolAtom("Object-Count"),
+                              nl->SymbolAtom(CcInt::BasicType())))));
+
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                           nl->OneElemList(dist_name), resType);
+}
+
+int kvsDistStreamVM(Word* args, Word& result, int message, Word& local,
+                    Supplier s) {
+  result = qp->ResultStorage(s);
+
+  std::list<Tuple*>* resultStream = static_cast<list<Tuple*>*>(local.addr);
+
+  switch (message) {
+    case OPEN: {
+      delete resultStream;
+
+      Distribution* dist = 0;
+
+      int noSons = qp->GetNoSons(s);
+
+      // Distribution:
+      string distributionName =
+          static_cast<FText*>(args[noSons - 1].addr)->GetValue();
+      int distRef = kvsIPC->getDistributionRef(distributionName);
+
+      if (distRef < 0) {
+        ListExpr distributionType = qp->GetSupplierTypeExpr(qp->GetSon(s, 0));
+        if (Distribution::checkType(distributionType)) {
+          dist = static_cast<Distribution*>(args[0].addr);
+
+          distRef = kvsIPC->getDistributionRef(distributionName, dist->type,
+                                               dist->toBin());
+        } else {
+          cout << "Error: No Distribution specified";
+          return CANCEL;
+        }
+      }
+
+      if (distRef >= 0) {
+        resultStream = new std::list<Tuple*>;
+
+        // create tupleType
+        ListExpr resultTupleType = nl->TwoElemList(
+            nl->SymbolAtom(Tuple::BasicType()),
+            nl->TwoElemList(
+                nl->TwoElemList(nl->SymbolAtom("Area"),
+                                nl->SymbolAtom(Rectangle<2>::BasicType())),
+                nl->TwoElemList(nl->SymbolAtom("Object-Count"),
+                                nl->SymbolAtom(CcInt::BasicType()))));
+        ListExpr numResultTupleType =
+            SecondoSystem::GetCatalog()->NumericType(resultTupleType);
+        TupleType* tt = new TupleType(numResultTupleType);
+
+        // retrieve distribution
+        if (dist == 0) {
+          // get distribution snapshot from application
+
+          string distData;
+
+          if (kvsIPC->getDistributionData(distRef, &distData)) {
+            dist = Distribution::getInstance(distData);
+          }
+        }
+
+        // retrieve list
+        std::list<std::pair<double*, int> > areaList;
+
+        dist->createAreaObjectCountList(&areaList);
+
+        // create result stream
+
+        while (!areaList.empty()) {
+          double* mbb = areaList.front().first;
+          int count = areaList.front().second;
+
+          Tuple* tempTuple = new Tuple(tt);
+
+          CcInt* tempCount = new CcInt(count);
+          Rectangle<2>* tempRect = new Rectangle<2>(true, &mbb[0], &mbb[2]);
+
+          tempTuple->PutAttribute(0, tempRect);
+          tempTuple->PutAttribute(1, tempCount);
+
+          resultStream->push_back(tempTuple);
+
+          delete[] mbb;
+          areaList.pop_front();
+        }
+
+        tt->DeleteIfAllowed();
+
+        local.addr = resultStream;
+        result.addr = 0;
+        return 0;
+      } else {
+        return CANCEL;
+      }
+    }
+    case REQUEST: {
+      if (resultStream != 0 && !resultStream->empty()) {
+        Tuple* tempTuple = resultStream->front();
+        resultStream->pop_front();
+
+        result = SetWord(tempTuple);
+        return YIELD;
+      } else {
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    case CLOSE: {
+      delete resultStream;
+      local.addr = 0;
+    }
+      return CANCEL;
+  }
+  return CANCEL;
+}
 }

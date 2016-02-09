@@ -38,10 +38,10 @@ class DistributeIPC {
   DistributeIPC(IPCConnection* conn);
   ~DistributeIPC();
 
-  bool init(int distributionId, std::string streamType, 
-            std::string baseAttributeList,
-            std::string targetRelation, std::string insertCommand, 
-            std::string deleteCommand, bool restructure);
+  bool init(int distributionId, std::string streamType,
+            std::string baseAttributeList, std::string targetRelation,
+            std::string insertCommand, std::string deleteCommand,
+            bool restructure);
   bool health();
   bool checkResult();
   bool getResult();
