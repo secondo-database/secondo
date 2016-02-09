@@ -273,9 +273,11 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
   bool isQuery = false;
   size_t pos = cmd.find("query");
   size_t pos2 = cmd.find("querynt");
+  size_t pos3 = cmd.find("pquery");
 
-  if ((pos == string::npos) && (pos2==string::npos))
+  if ((pos == string::npos) && (pos2==string::npos) && (pos3==string::npos)){
     return isQuery;
+  }
 
 
   // remove leading brackets
@@ -283,7 +285,7 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
      cmdWord = cmdWord.substr(1);
   }
 
-  if ( (cmdWord == "QUERY") || (cmdWord== "QUERYNT") )
+  if ( (cmdWord == "QUERY") || (cmdWord== "QUERYNT") || (cmdWord=="PQUERY") )
   {
     isQuery = true;
   }
@@ -292,7 +294,7 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
     if ( cmdWord == "" )
     {
       cmdWord = ReadCommand(is);
-      if ( (cmdWord == "QUERY") || (cmdWord == "QUERYNT"))
+      if((cmdWord == "QUERY") || (cmdWord == "QUERYNT") || (cmdWord=="PQUERY"))
         isQuery = true;
       else
         isQuery = false;
