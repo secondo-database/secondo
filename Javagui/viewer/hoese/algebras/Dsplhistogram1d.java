@@ -637,9 +637,14 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
               String absFrequency = Double.toString( _binsVec[i] );
               //String absFrequencySmall =absFrequency.substring(0,Math.min(absFrequency.length(),absFrequency.indexOf(".")+3));
               String absFrequencySmall = absFrequency;
-              gfx.drawString("Bin: "+i, 10,15);
-              gfx.drawString("Rel. freq.: "+relFrequencySmall+" %", 70,15);
-              gfx.drawString("Abs. freq.: "+absFrequencySmall, 180,15);
+              String text1 = "Bin: " + i;
+              int w1 = gfx.getFontMetrics().stringWidth(text1);
+              gfx.drawString(text1, 10,15);
+              String text2 = "Rel. freq.: "+relFrequencySmall+" %"; 
+              int w2 = gfx.getFontMetrics().stringWidth(text2);
+              gfx.drawString(text2, 10+w1+10, 15);
+
+              gfx.drawString("Abs. freq.: "+absFrequencySmall, 10+w1+10+w2+10,15);
 						}
 					}
 
