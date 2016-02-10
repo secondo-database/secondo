@@ -54,7 +54,7 @@ LDFLAGS += -lpthread
 
 
 app$(EXEEXT): Example.o
-	$(CPPC) -o app$(EXEEXT) Example.o /home/nico/secondo/lib/SecondoPrologInterface.o $(LDFLAGS) $(COMMON_LD_FLAGS) 
+	$(CPPC) -o app$(EXEEXT) Example.o $(LIBDIR)/SecondoPrologInterface.o $(LDFLAGS) $(COMMON_LD_FLAGS) 
 	mkdir -p databases
 
 
