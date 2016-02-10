@@ -514,8 +514,6 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 		 * @param mainColor
 		 */
 		public void drawOneHistogram(Graphics g, double time,  double[] _rangesVec, double[] _binsVec, Color mainColor){
-//			   System.out.println("ich bin im drawOneHistogram 1!");
-
 			double binSum=0.0;
 			double freq = 0.0; //relative frequency
 			if (_rangesVec == null || _binsVec == null){
@@ -523,8 +521,6 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 			}
 
 			Rectangle2D rect = getHistBounds();
-//			System.out.println("rect.getWidth: "+rect.getWidth());
-//			System.out.println("rect.getHeight: "+rect.getHeight());
 			if(rect==null){
 				return;
 			}
@@ -535,16 +531,11 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 
 			Graphics2D gfx = (Graphics2D)g;
 
-
-//			   System.out.println("ich bin im drawOneHistogram 2!");
-
 			for (int bin=0; bin <_binsVec.length; bin++){
-//				System.out.println("_binsVec["+bin+"]: " + _binsVec[bin]);
 				if (binSum >= 0.0){
 					binSum = binSum+_binsVec[bin];
 				}
 			}
-//			System.out.println("****binSum: "+binSum);
 
 
 			double sumLength = 0.0; //length of total ranges
@@ -567,8 +558,9 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 
 			if (_rangesVec[0] > 0.0){
 				xAxisBegin = 0.0;
-			}
-			else xAxisBegin = _rangesVec[0];
+			} else{
+         xAxisBegin = _rangesVec[0];
+      }
 
 			if (getMin(this.binsHeightPaint) > 0.0){
 				yAxisBegin = 0.0;
@@ -576,6 +568,7 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 			else yAxisBegin = getMin(this.binsHeightPaint);
 
 			myNullX = (int)(50- xAxisBegin*unitX);
+
 			if (getMax(this.binsHeightPaint) == 0.0 && getMin(this.binsHeightPaint) == 0.0){
 			//	myNullY = (int)(500*unitY);
 				myNullY = (int)(200*unitY+50+(yAxisBegin*unitY));
@@ -587,8 +580,6 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 			// paint the columns
 			for(int i=0;i<_rangesVec.length-1;i++)
 			{
-//				   System.out.println("ich bin im drawOneHistogram 3!");
-
 				double height = this.binsHeightPaint[i]; //height to paint
 				double width = (_rangesVec[i+1] - _rangesVec[i]); //width to paint
 
@@ -608,12 +599,9 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 				}
 				else
 				{
-//					   System.out.println("ich bin im drawOneHistogram 4!");
 					gfx.fillRect(myNullX + (int) (sumLength*unitX), myNullY-(int)(height*unitY),(int) (width*unitX),(int) (height*unitY));
-//					   System.out.println("ich bin im drawOneHistogram 5!");
 					gfx.setColor(borderColor);
 					gfx.drawRect(myNullX + (int) (sumLength*unitX), myNullY-(int)(height*unitY),(int) (width*unitX),(int) (height*unitY));
-//					   System.out.println("ich bin im drawOneHistogram 6!");
 				}
 
 				//numbers
@@ -625,17 +613,12 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 				//only if there are only positiv bins
 				if (i == this.selectedBin){
 					gfx.setFont(new Font("Helvetica", Font.BOLD, 12));
-//					System.out.println("binsVec: "+_binsVec[i]);
-//					System.out.println("binSum: "+binSum);
-//					System.out.println("freq: "+freq);
 					if (binSum > 0.0){
 						if(_binsVec[i] >= 0.0){
 							freq = (_binsVec[i]/binSum)*100;
-//							System.out.println("freq: "+freq);
 							String relFrequency = Double.toString( freq);
               String relFrequencySmall =relFrequency.substring(0,Math.min(relFrequency.length(),relFrequency.indexOf(".")+3));
               String absFrequency = Double.toString( _binsVec[i] );
-              //String absFrequencySmall =absFrequency.substring(0,Math.min(absFrequency.length(),absFrequency.indexOf(".")+3));
               String absFrequencySmall = absFrequency;
               String text1 = "Bin: " + i;
               int w1 = gfx.getFontMetrics().stringWidth(text1);
@@ -643,12 +626,10 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
               String text2 = "Rel. freq.: "+relFrequencySmall+" %"; 
               int w2 = gfx.getFontMetrics().stringWidth(text2);
               gfx.drawString(text2, 10+w1+10, 15);
-
               gfx.drawString("Abs. freq.: "+absFrequencySmall, 10+w1+10+w2+10,15);
 						}
 					}
 
-//					   System.out.println("ich bin im drawOneHistogram 8!");
 
 					String _rangeSmallL = Double.toString( _rangesVec[i]);
           //String _rangeSmall =  _rangeSmallL.substring(0,Math.min(_rangeSmallL.length(),_rangeSmallL.indexOf(".")+3));
@@ -1048,6 +1029,55 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 			});
 		}
 
+void selectBinAtPixelX(int x){
+
+   if(rangesVec == null || binsVec == null){
+      return;
+   }
+   Rectangle2D rect = getHistBounds();
+   if(rect==null){
+     return;
+   }
+
+   //units for better painting
+   Point2D.Double paintUnits = this.getPaintUnits(rect.getWidth(), rect.getHeight(), this.getWidth()-100, this.getHeight()-100);
+   double unitX = paintUnits.x;
+
+   double sumLength = 0.0; //length of total ranges
+   if(rangesVec[0] < 0.0) {
+       sumLength = rangesVec[0];
+   } else {
+       sumLength = 0.0;
+   }
+
+   double xAxisBegin; //where to paint the beginning of the axis
+
+   int myNullX; //my point of origin for the coordinate system
+
+   if(rangesVec[0] > 0.0){
+     xAxisBegin = 0.0;
+   } else{
+     xAxisBegin = rangesVec[0];
+   }
+
+   myNullX = (int)(50- xAxisBegin*unitX);
+
+
+
+   for(int i=0;i<rangesVec.length-1;i++) {
+     double width = (rangesVec[i+1] - rangesVec[i]); //paint width of bin i
+     int minX = myNullX + (int) (sumLength*unitX);
+     int maxX = minX + (int) (width*unitX);
+     if(x < maxX){
+        selectedBin = i;
+        return;
+     }
+     sumLength = sumLength + width;
+   }
+   selectedBin = rangesVec.length-2;
+}
+
+
 		/**
 		 * to get the focus on the chosen panel
 		 * @author fp0708
@@ -1056,7 +1086,9 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 		public class MouseNavigator extends MouseAdapter implements MouseMotionListener{
 
 			public void mousePressed(MouseEvent e){
+
 				HistogramPanel.this.grabFocus();
+        HistogramPanel.this.selectBinAtPixelX(e.getX());
 				HistogramPanel.this.repaint();
 			}
 
