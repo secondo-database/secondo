@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef SECONDO_INTERFACE_REPLAY_H
 #define SECONDO_INTERFACE_REPLAY_H
 
+#include <string>
 #include "SecondoInterfaceCS.h"
 #include "FileSystem.h"
 
@@ -163,6 +164,11 @@ protected:
   bool DBLPtoSECONDO(const std::string& subFileName,
                      const unsigned int noSplitFiles);
 
+  bool importAllImgOnNode(const unsigned int nodeNo,
+			  std::vector<std::string> imageList,
+                          std::vector<int> numberer,
+                          const std::string relName);
+                          
   bool importImgOnNode(const unsigned int nodeNo,
                        const std::string relDesc,
                        const std::string relName);

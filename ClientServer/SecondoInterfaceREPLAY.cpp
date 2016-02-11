@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 The Implementation-Module SecondoInterfaceREPLAY
 
-January 2016 Matthias Kunsmann, ReplayVersion of the ~SecondoInterfaceCS~
+February 2016 Matthias Kunsmann, ReplayVersion of the ~SecondoInterfaceCS~
 
 [TOC]
 
@@ -632,7 +632,7 @@ SecondoInterfaceREPLAY::checkReplayCommand(string& cmdText) {
 Check the assigned command if it a command only for master or for master 
 and all nodes.
 
-1) Check if comand is one of the new s-commands, which only execute on 
+1) Check if command is one of the new s-commands, which only execute on 
    the master.
 
 2) Data Retrieval language command (query) only execute on the master.
@@ -2143,7 +2143,7 @@ Split an shape file in noSplitFiles files (shp+dbf-File)
     outfile_dbf.open(subFileName + "_" + stringutils::int2str(i) + ".dbf",
                      ios::binary|ios::out);
 
-    // read header and store it in local variable, nedded in every file
+    // read header and store it in local variable, needed in every file
     if (i == 0) {
       file_dbf.seekg(0,ios::beg);
       file_dbf.read(header_dbf, headerLength_dbf);
@@ -2578,18 +2578,40 @@ transfer it to the node and restore (import) it
   ofstream outputFile;
   string relFileName; 
 
-  relFileName = "relation_" + stringutils::int2str(nodeNo);
+  relFileName = relName;
   outputFile.open(relFileName);
   outputFile << relDesc << endl;
+
   outputFile.close();
+
   sendFileToNode(nodeNo, FileSystem::GetCurrentFolder() + "/" + relFileName, 
                  relFileName, true);
 
   string cmdText = "restore " + relName + " from '" 
                   + getNodeLastSendFilePath(nodeNo) 
                    + "/" + relFileName + "'"; 
- 
+
   sendCommandToNode(nodeNo, 1, cmdText);
+
+  return true;
+}
+
+bool
+SecondoInterfaceREPLAY::importAllImgOnNode(const unsigned int nodeNo,
+			                   std::vector<string> imageList,
+                                           std::vector<int> numberer,
+                                           const string relName) {
+/*
+Import the relations for the images
+
+*/
+
+  unsigned int counter = 0;
+  for (unsigned int i = 0; i < imageList.size(); i++) {
+      importImgOnNode(nodeNo, imageList[i], 
+                      relName + "_" + stringutils::int2str(numberer[i]));
+      counter++;
+  }
 
   return true;
 }
@@ -2781,19 +2803,9 @@ Execute of ReplayIMGImport.
   string currentFilePath;
   std::size_t found;
   string filename;
-  vector<string> relation;
+  vector< vector<string> > relation;
+  vector< vector<int> > numberer;
 
-  // create relation file for every node
-  for (unsigned int i = 0; i < nodes.size(); i++) {
-    relObject = "(OBJECT " + paramlist[2] + "() ";
-    relObject = relObject + R"X*X(
-
-      (rel (tuple ( (Filename filepath)(Picture picture ) ))) (
- 
-    )X*X";
-
-    relation.push_back(relObject);
-  }
 
   // get currentDate for relation file
   time_t now = time(0);
@@ -2802,13 +2814,29 @@ Execute of ReplayIMGImport.
                        stringutils::int2str(1 + ltm->tm_mon) + "-" + 
                        stringutils::int2str(ltm->tm_mday);
 
+  // create relation file for every file on the nodes
+   for (unsigned int i = 0; i < nodes.size(); i++) {
+   relation.push_back(vector <string>());
+   numberer.push_back(vector <int>());
+
+  }
+
   for (unsigned int i=0; i<transferFilePath.size(); ++i) {
+   
+    relObject = "(OBJECT " + paramlist[2] + "_" 
+                + stringutils::int2str(i) + "() ";
+    relObject = relObject + R"X*X(
+
+      (rel (tuple ( (Filename filepath)(Picture picture ) ))) (
+ 
+    )X*X";
+
     stringutils::StringTokenizer token(transferFilePath[i], ":");
     currentNode = stoi(token.nextToken());
     currentFilePath = token.nextToken();
     found = currentFilePath.rfind("/");
     filename = currentFilePath.substr(found + 1);
-    relObject = "";
+
     relObject = relObject + "   ( <text>" + currentFilePath + "</text--->\n";
     relObject = relObject + "     ( \"" + filename + "\" \n";
     relObject = relObject + "       \"" + currentDate + "\" \n";
@@ -2816,15 +2844,14 @@ Execute of ReplayIMGImport.
     relObject = relObject + "       TRUE \n";
     relObject = relObject + "     <file>" + currentFilePath + "</file--->) \n";
     relObject = relObject + "   ) \n";
-    relation[currentNode] = relation[currentNode] + relObject; 
-  }
 
-  for (unsigned int i = 0; i < nodes.size(); i++) {
-    relObject = relation[i];
     relObject = relObject + R"X*X(
     ))
     )X*X";
-    relation[i] = relObject;
+
+    relation[currentNode].push_back(relObject);
+    numberer[currentNode].push_back(i);
+
   }
 
   // Now write the file with the relation object for every node,
@@ -2835,8 +2862,8 @@ Execute of ReplayIMGImport.
   // start threads for importing images on nodes
   for (unsigned int i = 0; i < nodes.size(); i++) {
     futures.push_back(async(std::launch::async,
-                    &SecondoInterfaceREPLAY::importImgOnNode,
-                    this, i, relation[i], paramlist[2]));
+                    &SecondoInterfaceREPLAY::importAllImgOnNode,
+                    this, i, relation[i], numberer[i], paramlist[2]));
   }
 
   for (unsigned int i=0; i<futures.size(); ++i) {
@@ -2853,20 +2880,20 @@ Execute of ReplayIMGImport.
     }
   }
 
-  // Remove filelocations from transferFilePath for current instance
-  transferFilePath.clear();
-
   // cleanup system from temp data (relation description for every node)
   // no deletion of images
   string relFileName;
-  for (unsigned int i = 0; i < nodes.size(); i++) {
-    relFileName = "relation_" + stringutils::int2str(i);
+  for (unsigned int i = 0; i < transferFilePath.size(); i++) {
+    relFileName = paramlist[2] + "_" + stringutils::int2str(i);
     filename = FileSystem::GetCurrentFolder() + "/" + relFileName;
 
     if (FileSystem::FileOrFolderExists(filename)) {
       FileSystem::DeleteFileOrFolder(filename);
     }
   }
+
+  // Remove filelocations from transferFilePath for current instance
+  transferFilePath.clear();
 
   return true;
 }
