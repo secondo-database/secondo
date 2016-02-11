@@ -59,6 +59,10 @@ qtdistributionInfo qtdi;
 qtdistributionFunctions qtdf;
 TypeConstructor qtdistributionTC(qtdi, qtdf);
 
+qtnodeInfo qtni;
+qtnodeFunctions qtnf;
+TypeConstructor qtnodeTC(qtni, qtnf);
+
 KeyValueStoreIPC* kvsIPC;
 
 /*
@@ -78,9 +82,11 @@ class KeyValueStoreAlgebra : public Algebra {
     */
 
     AddTypeConstructor(&qtdistributionTC);
+    AddTypeConstructor(&qtnodeTC);
 
     //! is this a good idea? seems wrong
     qtdistributionTC.AssociateKind(Kind::SIMPLE());
+    qtnodeTC.AssociateKind(Kind::SIMPLE());
 
     /*
 

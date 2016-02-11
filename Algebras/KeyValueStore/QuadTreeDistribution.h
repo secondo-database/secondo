@@ -34,9 +34,11 @@ namespace KVS {
 
 class QuadNode {
  public:
+  QuadNode();
   QuadNode(double x, double y, double width, double height);
   QuadNode(QuadNode* parent, double x, double y, double width, double height);
   QuadNode(QuadNode* node);
+  QuadNode(const QuadNode& node);
 
   ~QuadNode();
 

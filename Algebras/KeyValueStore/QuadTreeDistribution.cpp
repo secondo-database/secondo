@@ -33,6 +33,8 @@ using namespace std;
 
 namespace KVS {
 
+QuadNode::QuadNode() : QuadNode(100, 100, 10, 10) {}
+
 QuadNode::QuadNode(double x, double y, double width, double height)
     : QuadNode(0, x, y, width, height) {}
 
@@ -61,6 +63,23 @@ QuadNode::QuadNode(QuadNode* node)
   for (int i = 0; i < 4; ++i) {
     if (node->children[i]) {
       children[i] = new QuadNode(node->children[i]);
+      children[i]->parent = this;
+    }
+  }
+}
+
+QuadNode::QuadNode(const QuadNode& node)
+    : parent(0),
+      x(node.x),
+      y(node.y),
+      width(node.width),
+      height(node.height),
+      serverId(node.serverId),
+      weight(node.weight),
+      maxGlobalId(node.maxGlobalId) {
+  for (int i = 0; i < 4; ++i) {
+    if (node.children[i]) {
+      children[i] = new QuadNode(node.children[i]);
       children[i]->parent = this;
     }
   }
