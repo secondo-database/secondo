@@ -1016,9 +1016,9 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 				public void focusGained(FocusEvent arg0) {
 
 					if (HistogramPanel.this.binsVecPaint != null && HistogramPanel.this.binsVecPaint.length > 0){
-						HistogramPanel.this.selectedBin = 0;
+						//HistogramPanel.this.selectedBin = 0;
 					}
-					HistogramPanel.this.repaint();
+					//HistogramPanel.this.repaint();
 				}
 
 				public void focusLost(FocusEvent arg0) {
@@ -1029,7 +1029,10 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 			});
 		}
 
-void selectBinAtPixelX(int x){
+void selectBinAtPixelX(int x, Object source){
+
+	 double[] rangesVec = source==extWin.myPan1?Dsplhistogram1d.rangesVec:Dsplhistogram1d.rangesVecOld;
+   double[] binsVec =  source==extWin.myPan1?Dsplhistogram1d.binsVec:Dsplhistogram1d.binsVecOld;
 
    if(rangesVec == null || binsVec == null){
       return;
@@ -1088,7 +1091,7 @@ void selectBinAtPixelX(int x){
 			public void mousePressed(MouseEvent e){
 
 				HistogramPanel.this.grabFocus();
-        HistogramPanel.this.selectBinAtPixelX(e.getX());
+        HistogramPanel.this.selectBinAtPixelX(e.getX(), e.getSource());
 				HistogramPanel.this.repaint();
 			}
 
