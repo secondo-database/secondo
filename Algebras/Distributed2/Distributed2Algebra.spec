@@ -13,8 +13,8 @@ operator prequestFile alias PREQUESTFILE  pattern _ op [_,_,_]
 operator getRequestFolder alias GETREQUESTFOLDER pattern op(_)
 operator getSendFolder alias GETSENDFOLDER pattern op(_)
 operator pconnect alias PCONNECT pattern _ op[_,_,_]
-operator pquery alias PQUERY  pattern _ op[_,_]
-operator pquery2 alias PQUERY2  pattern _ op[_,_,_,_,_]
+operator prquery alias PRQUERY  pattern _ op[_,_]
+operator prquery2 alias PRQUERY2  pattern _ op[_,_,_,_,_]
 
 operator put alias PUT pattern op (_,_,_)
 operator get alias GET pattern op (_,_)

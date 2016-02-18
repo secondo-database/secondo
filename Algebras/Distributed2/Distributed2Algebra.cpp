@@ -4835,7 +4835,7 @@ Operator pconnectOp (
 
 
 /*
-1.8 Operator pquery
+1.8 Operator prquery
 
 This operators performs the same query on a set of servers. The result type 
 of the query is asked by a specified server. It's assumed that each server 
@@ -4909,7 +4909,7 @@ bool  getQueryType(const string& query1, int serverNo,
    return true;
 }
 
-ListExpr pqueryTM(ListExpr args){
+ListExpr prqueryTM(ListExpr args){
   string err="stream(int) x {string.text} x {int} expected";
   if(!nl->HasLength(args,3)){
    return listutils::typeError(err + "( wrong number of args)" );
@@ -4985,9 +4985,9 @@ ListExpr pqueryTM(ListExpr args){
 */
 
 
-class PQueryInfo : public CommandListener<ListExpr>{
+class PRQueryInfo : public CommandListener<ListExpr>{
   public:
-    PQueryInfo(Word& _stream , const string& _query,  ListExpr _tt) : 
+    PRQueryInfo(Word& _stream , const string& _query,  ListExpr _tt) : 
       stream(_stream), query(_query){
        tt = new TupleType(_tt);
        stream.open();
@@ -5024,10 +5024,10 @@ class PQueryInfo : public CommandListener<ListExpr>{
        inObject = am->InObj(algId,typeId);
        createObject = am->CreateObj(algId,typeId);
 
-       runner = boost::thread(boost::bind(&PQueryInfo::run,this));
+       runner = boost::thread(boost::bind(&PRQueryInfo::run,this));
     }
 
-    virtual ~PQueryInfo(){
+    virtual ~PRQueryInfo(){
         stop = true;
         runner.join();
 
@@ -5154,10 +5154,10 @@ class PQueryInfo : public CommandListener<ListExpr>{
 
 */
 template<class T>
-int pqueryVMT(Word* args, Word& result, int message,
+int prqueryVMT(Word* args, Word& result, int message,
                 Word& local, Supplier s ){
 
-   PQueryInfo* li = (PQueryInfo*) local.addr;
+   PRQueryInfo* li = (PRQueryInfo*) local.addr;
    switch(message){
      case OPEN:{
            if(li){
@@ -5170,7 +5170,7 @@ int pqueryVMT(Word* args, Word& result, int message,
               return 0;
            }
            algInstance->initProgress();
-           local.addr = new PQueryInfo(args[0], query->GetValue(), tt);
+           local.addr = new PRQueryInfo(args[0], query->GetValue(), tt);
            return 0;
        }
      case REQUEST:
@@ -5192,12 +5192,12 @@ int pqueryVMT(Word* args, Word& result, int message,
 
 */
 
-ValueMapping pqueryVM[] = {
-  pqueryVMT<CcString>,
-  pqueryVMT<FText>
+ValueMapping prqueryVM[] = {
+  prqueryVMT<CcString>,
+  prqueryVMT<FText>
 };
 
-int pquerySelect(ListExpr args){
+int prquerySelect(ListExpr args){
   return CcString::checkType(nl->Second(args))?0:1;
 }
 
@@ -5205,9 +5205,9 @@ int pquerySelect(ListExpr args){
 1.8.5 Sepcification
 
 */
-OperatorSpec pquerySpec(
+OperatorSpec prquerySpec(
      " stream(int) x {text, string} x int -> stream(tuple(int, DATA))",
-     " _ pquery[_,_]  ",
+     " _ prquery[_,_]  ",
      " Performs the same query on a set of remote servers. "
      "The first argument is a stream of integer specifying the servers. "
      "The second argument is the query to execute. The result of this "
@@ -5215,7 +5215,7 @@ OperatorSpec pquerySpec(
      "for determining the exact result type of the query. The result is "
      "a stream of tuples consisting of the server number and the result "
      "of this server.",
-     "query intstream(0,3) pquery['query ten count', 0] sum[Result]");
+     "query intstream(0,3) prquery['query ten count', 0] sum[Result]");
 
 /*
 1.8.6
@@ -5223,22 +5223,22 @@ OperatorSpec pquerySpec(
 Operator instance
 
 */
-Operator pqueryOp (
-    "pquery",             //name
-     pquerySpec.getStr(),         //specification
+Operator prqueryOp (
+    "prquery",             //name
+     prquerySpec.getStr(),         //specification
      2,
-     pqueryVM,        //value mapping
-     pquerySelect,   //trivial selection function
-     pqueryTM        //type mapping
+     prqueryVM,        //value mapping
+     prquerySelect,   //trivial selection function
+     prqueryTM        //type mapping
 );
 
 
 /*
-1.9 Operator ~pquery2~
+1.9 Operator ~prquery2~
 
-This operator works quite similar as the pquery operator. The difference is
+This operator works quite similar as the prquery operator. The difference is
 that the first argument is a tuple stream with at least two integer values.
-The first value corresponds to the server number (like in pquery), the 
+The first value corresponds to the server number (like in prquery), the 
 second number is a parameter for the remote query. The remote query contains 
 somewhere the keywords SERVER and PART which are replaced by the 
 corresponding values. For determining the result type, some
@@ -5249,7 +5249,7 @@ default parameters for part and server are given.
 
 */
 
-ListExpr pquery2TM(ListExpr args){
+ListExpr prquery2TM(ListExpr args){
 
   string err = "stream(tuple) x {string,text} x AttrName x AttrName "
                "x int x int expected";
@@ -5372,9 +5372,9 @@ ListExpr pquery2TM(ListExpr args){
 1.9.2 LocalInfo Class
 
 */
-class PQuery2Info : public CommandListener<ListExpr>{
+class PRQuery2Info : public CommandListener<ListExpr>{
   public:
-    PQuery2Info(Word& _stream , const string& _query,  
+    PRQuery2Info(Word& _stream , const string& _query,  
                 int _serverAttr, int _partAttr, ListExpr _tt) : 
       stream(_stream), serverAttr(_serverAttr), 
       partAttr(_partAttr), query(_query) {
@@ -5406,10 +5406,10 @@ class PQuery2Info : public CommandListener<ListExpr>{
        AlgebraManager* am = SecondoSystem::GetAlgebraManager();
        inObject = am->InObj(algId,typeId);
        createObject = am->CreateObj(algId,typeId);
-       runner = boost::thread(boost::bind(&PQuery2Info::run,this));
+       runner = boost::thread(boost::bind(&PRQuery2Info::run,this));
     }
 
-    virtual ~PQuery2Info(){
+    virtual ~PRQuery2Info(){
         stop = true;
         runner.join();
 
@@ -5577,10 +5577,10 @@ class PQuery2Info : public CommandListener<ListExpr>{
 */
 
 template<class T>
-int pquery2VMT(Word* args, Word& result, int message,
+int prquery2VMT(Word* args, Word& result, int message,
                 Word& local, Supplier s ){
 
-   PQuery2Info* li = (PQuery2Info*) local.addr;
+   PRQuery2Info* li = (PRQuery2Info*) local.addr;
 
    switch(message){
      case OPEN : {
@@ -5593,7 +5593,7 @@ int pquery2VMT(Word* args, Word& result, int message,
                      return 0;
                    }
                    algInstance->initProgress();
-                   local.addr = new PQuery2Info(args[0], q->GetValue(),
+                   local.addr = new PRQuery2Info(args[0], q->GetValue(),
                                  ((CcInt*) args[6].addr)->GetValue(),
                                  ((CcInt*) args[7].addr)->GetValue(),
                                  qp->GetType(s));
@@ -5619,12 +5619,12 @@ int pquery2VMT(Word* args, Word& result, int message,
 
 */
 
-ValueMapping pquery2VM[] = {
-  pquery2VMT<CcString>,
-  pquery2VMT<FText>
+ValueMapping prquery2VM[] = {
+  prquery2VMT<CcString>,
+  prquery2VMT<FText>
 };
 
-int pquery2Select(ListExpr args){
+int prquery2Select(ListExpr args){
   return CcString::checkType(nl->Second(args))?0:1;
 }
 
@@ -5632,10 +5632,10 @@ int pquery2Select(ListExpr args){
 1.8.5 Sepcification
 
 */
-OperatorSpec pquery2Spec(
+OperatorSpec prquery2Spec(
      " stream(tuple(...)) x {text, string} x AttrName x AttrName x "
      "int x int -> stream(tuple)",
-     " _ pquery2[_,_,_,_,_]  ",
+     " _ prquery2[_,_,_,_,_]  ",
      " Performs a slightly different  query on a set of remote servers.  "
      " The first argument is a stream of tuples containing the server numbers"
      " as well as the modification number."
@@ -5645,7 +5645,7 @@ OperatorSpec pquery2Spec(
      " the fourth argument specifies the attribute name for the part component."
      " The last two arguments are integer numbers used in typemapping as "
      " default values for server and part.",
-     " query serverparts feed  pquery2['query ten_SERVER_PART count', Server, "
+     " query serverparts feed  prquery2['query ten_SERVER_PART count', Server, "
      "PART,0.5] sum[Result]");
 
 /*
@@ -5654,13 +5654,13 @@ OperatorSpec pquery2Spec(
 Operator instance
 
 */
-Operator pquery2Op (
-    "pquery2",             //name
-     pquery2Spec.getStr(),         //specification
+Operator prquery2Op (
+    "prquery2",             //name
+     prquery2Spec.getStr(),         //specification
      2,
-     pquery2VM,        //value mapping
-     pquerySelect,   //trivial selection function
-     pquery2TM        //type mapping
+     prquery2VM,        //value mapping
+     prquerySelect,   //trivial selection function
+     prquery2TM        //type mapping
 );
 
 
@@ -16954,10 +16954,10 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&getRequestFolderOp);
    AddOperator(&getSendFolderOp);
    AddOperator(&pconnectOp);
-   AddOperator(&pqueryOp);
-   pqueryOp.SetUsesArgsInTypeMapping();
-   AddOperator(&pquery2Op);
-   pquery2Op.SetUsesArgsInTypeMapping();
+   AddOperator(&prqueryOp);
+   prqueryOp.SetUsesArgsInTypeMapping();
+   AddOperator(&prquery2Op);
+   prquery2Op.SetUsesArgsInTypeMapping();
 
    AddOperator(&putOp);
    AddOperator(&getOp);
