@@ -1,0 +1,106 @@
+Database    : opt
+Restore     : NO
+
+Operator    : createfbtree
+Number      : 1
+Signature   : stream(tuple(X))x{string, text}xIdentxIdent -> stream(tuple(X))
+Example     : query plz feed addid createfbtree['plzOrte', Ort, TID] count
+Result      : 41267
+
+Operator    : createfbtree
+Number      : 2
+Signature   : stream(tuple(X))x{string, text}xIdentxIdentxint -> stream(tuple(X))
+Example     : query plz feed addid createfbtree['plzOrte', Ort, TID, 200] count
+Result      : 41267
+
+Operator    : bulkloadfbtree
+Number      : 1
+Signature   : stream(tuple(X))x{string, text}xIdentxIdent -> stream(tuple(X))
+Example     : query thousand feed addid bulkloadfbtree['ix_opt_thousand_no.bin', No, TID] count
+Result      : 1000
+
+Operator    : insertfbtree
+Number      : 1
+Signature   : stream(tuple(X))x{string, text}xIdentxIdent -> stream(tuple(X))
+Example     : query plz feed addid insertfbtree['plzOrte', Ort, TID] count
+Result      : 41267
+
+Operator    : deletefbtree
+Number      : 1
+Signature   : stream(tuple(X))x{string, text}xIdentxIdent -> stream(tuple(X))
+Example     : query plz feed addid deletefbtree['plzOrte', Ort, TID] count
+Result      : 41267
+
+Operator    : rebuildfbtree
+Number      : 1
+Signature   : {string, text}x{string, text} -> bool
+Example     : query rebuildfbtree('sample', 'rebuildSample')
+Result      : TRUE
+
+Operator    : frange
+Number      : 1
+Signature   : {text , string} × T × T -> stream( tid )
+Example     : query "ix_opt_thousand_no.bin" frange[201,300] count
+Result      : 100
+
+Operator    : frange
+Number      : 2
+Signature   : {text , string} × T × T -> stream( tid )
+Example     : query "ix_opt_thousand_no.bin" frange[300,201] count
+Result      : 100
+
+Operator    : fleftrange
+Number      : 1
+Signature   : {text , string} × T -> stream(tid)
+Example     : query "ix_opt_thousand_no.bin" fleftrange[200] count
+Result      : 200
+
+Operator    : frightrange
+Number      : 1
+Signature   : {text , string} × T -> stream(tid)
+Example     : query "ix_opt_thousand_no.bin" frightrange[801] count
+Result      : 200
+
+Operator    : fexactmatch
+Number      : 1
+Signature   : {text , string} × T -> stream(tid)
+Example     : query "ix_opt_thousand_no.bin" fexactmatch[123] count
+Result      : 1
+
+Operator    : createfrtree
+Number      : 1
+Signature   : stream(tuple(X))x{string,text}xIdentxIdentxint->stream(tuple(X))
+Example     : query strassen feed addid createfrtree["strassen_GeoData_rtree.bin",GeoData, TID, 2] count
+Result      : 41267
+
+Operator    : insertfrtree
+Number      : 1
+Signature   : stream(tuple(X))x{string, text}xIdentxIdent -> stream(tuple(X))
+Example     : query strassen feed addid insertfrtree["strassen_GeoData_rtree.bin", GeoData, TID] count
+Result      : 41267
+
+Operator    : bulkloadfrtree
+Number      : 1
+Signature   : stream(tuple(X))x{string, text}xIdentxIdentxintxreal->stream(tuple(X))
+Example     : query strassen feed addid bulkloadfrtree ['strassen_GeoData_rtree.bin', GeoData, TID, 10, 0] count
+Result      : 41267
+
+Operator    : deletefrtree
+Number      : 1
+Signature   : stream(tuple(X))x{string, text}xIdentxIdent -> stream(tuple(X))
+Example     : query strassen feed addid deletefrtree['strassen_GeoData_rtree.bin', GeoData, TID] count
+Result      : 41267
+
+Operator    : fwindowintersects
+Number      : 1
+Signature   : {string, text}xR -> stream(tid)
+Example     : query fwindowintersects('strassen_GeoData_rtree', rectan) count
+Result      : 41267
+
+Operator    : rebuildfrtree
+Number      : 1
+Signature   : {string, text}x{string, text} -> bool
+Example     : query rebuildfrtree ('strassen_GeoData_rtree', 'strassen_GeoData_rtree1') count
+Result      : 41267
+
+
