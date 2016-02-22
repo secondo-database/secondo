@@ -13,6 +13,7 @@ public class StlReader implements SecondoImporter{
 
   public ListExpr getList(String fileName){
 
+
      File f = new File(fileName);
      errorMsg = "NO_ERROR";
      if(!f.exists()){
@@ -50,8 +51,9 @@ public class StlReader implements SecondoImporter{
            BufferedInputStream in = new BufferedInputStream(new FileInputStream(f));
            int b;
            while( (b = in.read())>=0){
-              if(b<32 || b>126){
+              if(b<9 || b>126){
                  in.close();
+                 System.out.println("found non-printable char : " + b);
                  return true;
               }
            }
@@ -200,6 +202,7 @@ public class StlReader implements SecondoImporter{
  }
 
  private ListExpr getTrianglesASCII(File file) throws IOException{
+
     FileTokenizer ft = new FileTokenizer(file,null);
     String t = ft.nextToken(0);
     if(!"solid".equals(t)) {errorMsg = "missing solid"; return null;}
@@ -238,9 +241,15 @@ public class StlReader implements SecondoImporter{
 
  private ListExpr  getTriangles(File file) throws IOException{
     ListExpr res = null;
-    if(isBinary(file)){
-       res =  getTrianglesBinary(file);
-    }  else {
+    if(isBinary(file)){ 
+       try{
+          res =  getTrianglesBinary(file);
+       } catch(Exception e){
+          System.err.println("Binary import of stl file failed  " + e);
+          res = null;
+       }
+    }
+    if(res==null) {
        res = getTrianglesASCII(file);
     }
     
