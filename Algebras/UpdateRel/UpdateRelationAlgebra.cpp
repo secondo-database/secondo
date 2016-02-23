@@ -3057,42 +3057,31 @@ Operator extrelupdatesearchsave (
 
 ListExpr appendIdentifierTypeMap (ListExpr args)
 {
-  ListExpr first, rest,listn,lastlistn, outList;
-    string argstr;
 
-  if(nl->ListLength(args)!=1){
-   return listutils::typeError("one argument expected");
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one Argument expected");
   }
-
-  first = nl->First(args);
-
-  if(!listutils::isTupleStream(first)){
-    return  listutils::typeError("tuple stream expected");
+  ListExpr arg = nl->First(args);
+  if(!Stream<Tuple>::checkType(arg)){
+     return listutils::typeError("argument must be a stream of tuples");
   }
-
-  // build resultlist
-  rest = nl->Second(nl->Second(first));
-  listn = nl->OneElemList(nl->First(rest));
-  lastlistn = listn;
-  rest = nl->Rest(rest);
-  while (!(nl->IsEmpty(rest)))
-  {
-    lastlistn = nl->Append(lastlistn,nl->First(rest));
-    rest = nl->Rest(rest);
+  ListExpr attrList = nl->Second(nl->Second(arg));
+  ListExpr type;
+  int index = listutils::findAttribute(attrList, "TID", type);
+  if(index!=0){
+    return listutils::typeError("Attribute TID already " 
+                                "present in tuple stream.");
   }
-  lastlistn =
-    nl->Append(
-      lastlistn,
-      nl->TwoElemList(
-        nl->SymbolAtom("TID"),
-        nl->SymbolAtom(TupleIdentifier::BasicType())));
-  outList =
-    nl->TwoElemList(
-      nl->SymbolAtom(Symbol::STREAM()),
-      nl->TwoElemList(
-        nl->SymbolAtom(Tuple::BasicType()),
-        listn));
-  return outList;
+ 
+  ListExpr addList = nl->OneElemList(nl->TwoElemList( 
+                       nl->SymbolAtom("TID"),
+                       listutils::basicSymbol<TupleIdentifier>()));
+
+  return nl->TwoElemList(
+                listutils::basicSymbol<Stream<Tuple> >(),
+                nl->TwoElemList(
+                    listutils::basicSymbol<Tuple>(),
+                    listutils::concat(attrList, addList)));
 }
 
 
