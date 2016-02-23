@@ -720,6 +720,9 @@ class RangeIterator{
       }
   
       const T* next(){
+       if(s.empty()){
+          return 0;
+       }
        std::pair<const MTreeNode<T,DistComp>*,int> top = s.top();
        findNext();
        return ((MTreeLeafNode<T,DistComp>*)top.first)->getObject(top.second);
