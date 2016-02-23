@@ -1,0 +1,76 @@
+####### Balanced Similarity Based Partitioning
+#
+# Example: Partition Buildings of NRW by distance to a set of core points determined 
+# here, called SmallCore in the end.
+
+# The algorithm is the following:
+
+#  1 Take a sample SS from the set S. Here the sample is taken from Buildings and is of size 10000. Extend each building by Center, the center point of its bounding box.
+
+#  2 For each sample point, determine the distance to its kth nearest neighbor, here k = 50, for example. Add this distance as the Radius. The radius will be small in dense areas, large in sparse areas. Also number sample points in attribute N. Initialize the set Core with these extended sample points.
+
+#  3 For each sample point p in Core, compute the set of other sample points P from Core whose associated circle intersects its circle (i.e., where the distance is less than the sum of their radii). This step is implemented currently as bounding box overlap which works only in geometric settings. If p has the smallest number N among all elements it intersects, then insert it into a set SmallCore. 
+
+#    Here the idea is to continuously place sample points (with their circles) in the plane. If they are the first to arrive (i.e. they do not intersect any other circle with smaller number), then they can be placed.
+
+#  4 Remove from Core all elements whose circles intersect circles from SmallCore.
+
+#  5 If Core is not empty, go to step 3.
+
+# The procedure terminates after several iterations of steps 3 - 5 when Core has become empty. In first experiments, three to seven iterations were used. For k = 50, there were 7 iterations and the time required was 1:40 minutes.
+
+# Initialization:
+
+# delete SS
+# delete SS_Center
+delete Core;
+delete Core_Box;
+delete SmallCore;
+delete CoreDel;
+delete NInserted;
+
+let SS = Buildings feedNth[(Buildings count) div 10000, FALSE] 
+  extend[Center: center(bbox(.GeoData))]
+  consume
+
+let SS_Center = SS creatertree[Center]
+
+let Core = SS feed extend[N: 0, Radius: 0.0, Box: bbox(.Center), C: [const region value ()]] head[0] consume;
+
+let Core_Box = Core creatertree[Box];
+
+let SmallCore = Core;
+
+let CoreDel = Core;
+
+let NInserted = 0;
+
+query SS feed addcounter[N, 1] 
+  extend[Radius: 
+    distance(SS_Center SS distancescan[.Center, 50] tail[1] extract[Center],
+      .Center)]
+  extend[Box: enlargeRect(bbox(.Center), .Radius, .Radius)] 
+  extend[C: circle(.Center, .Radius, 20)]
+  filter[fun(t: TUPLE) 
+    (Core_Box Core windowintersects[attr(t, Box)] count) = 0] 
+  Core insert
+  Core_Box insertrtree[Box]
+  count
+
+while (Core count) > 0 do
+{ update NInserted := Core feed filter[fun(t: TUPLE) 
+    Core_Box Core windowintersects[attr(t, Box)] min[N] = attr(t, N)]
+  SmallCore insert
+  count
+|
+  query NInserted
+|
+  update CoreDel := SmallCore feed loopsel[Core_Box Core windowintersects[.Box]] consume
+|
+  query CoreDel count
+|
+  update Core := Core feed sort CoreDel feed sort mergediff consume
+|
+  update Core_Box := Core creatertree[Box]
+}
+endwhile
