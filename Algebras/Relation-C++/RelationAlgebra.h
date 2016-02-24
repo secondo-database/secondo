@@ -1612,6 +1612,39 @@ class TupleCompareBy
 };
 
 
+class TupleCmpBy
+{
+  public:
+    TupleCmpBy( const SortOrderSpecification &spec ):
+      spec( spec ) 
+      {}
+
+    inline int operator()( const Tuple* a,
+                           const Tuple* b ) const
+    {
+        SortOrderSpecification::const_iterator iter = spec.begin();
+        while( iter != spec.end() )
+        {
+          const int pos = iter->first-1;
+          const Attribute* aAttr = (const Attribute*) a->GetAttribute(pos);
+          const Attribute* bAttr = (const Attribute*) b->GetAttribute(pos);
+          const int cmpValue = aAttr->Compare( bAttr );
+          if( cmpValue !=  0 )
+          {
+            return iter->second? cmpValue : -1 * cmpValue;
+          }
+          // the current attribute is equal
+          iter++;
+        }
+        // all attributes are equal
+        return 0;
+   }
+
+  private:
+    SortOrderSpecification spec;
+};
+
+
 class TupleCompareBy_Reverse : public TupleCompareBy
 {
   public:
