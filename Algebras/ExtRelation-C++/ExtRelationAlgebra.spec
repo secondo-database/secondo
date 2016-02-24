@@ -106,6 +106,7 @@ operator obojoin alias OBOJOIN pattern _ _ op
 
 operator obojoinD alias OBOJOIND pattern _ _ op[list]
 operator gettuples alias GETTUPLES pattern _ _ op
-
+operator isOrdered alias ISORDERED pattern _ op
+operator isOrderedBy alias ISORDEREDBY pattern _ op[list]
 
 

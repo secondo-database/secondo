@@ -466,4 +466,17 @@ Signature : stream(tid) x rel(X) -> stream(X)
 Example   : query intstream(0,10) replaceElem[ int2tid( . )]  Kinos gettuples count
 Result    : 10
 
+Operator  : isOrdered
+Number    : 1
+Signature : stream(tuple) -> bool
+Example   : query Kinos feed sort isOrdered
+Result    : TRUE
+
+Operator  : isOrderedBy
+Number    : 1
+Signature : stream(tuple) x <orderspec> -> bool
+Example   : query Kinos feed sortby[Name asc, GeoData]  isOrderedBy[Name asc, GeoData]
+Result    : TRUE
+
+
 

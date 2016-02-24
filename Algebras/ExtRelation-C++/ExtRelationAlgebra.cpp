@@ -14078,6 +14078,233 @@ Operator gettuplesOP(
 
 
 
+/*
+2.30 operator isOrdered
+
+checks whether a tuple stream is ascending ordered
+
+2.30.1 Type Mapping
+
+*/
+ListExpr isOrderedTM(ListExpr args){
+  string err = "stream(tuple) expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err + "wrong number of args");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+/*
+2.30.2 Value Mapping
+
+*/
+
+int isOrderedVM(Word* args, Word& result, int message,
+                     Word& local, Supplier s) {
+
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+
+   Stream<Tuple> stream(args[0]);
+   stream.open();
+   Tuple* last = stream.request();
+   res->Set(true,true);
+   LexicographicalTupleCmp cmp;
+
+   if(last){
+      Tuple* current;
+      while( (current = stream.request()) ){
+         int c = cmp(last,current);
+         if(c>0){ // invalid order found
+            last->DeleteIfAllowed();
+            current->DeleteIfAllowed();
+            stream.close();
+            res->Set(true,false); 
+            return 0;
+         } 
+         last->DeleteIfAllowed();
+         last = current;
+      }
+      last->DeleteIfAllowed();
+   }
+   stream.close();
+   return 0;
+}
+
+/*
+2.30.3 Specification
+
+*/
+
+OperatorSpec isOrderedSpec(
+  " stream(tuple) -> bool ",
+  " _ isOrdered",
+  "checks whether a tuple stream is in ascending order",
+  "query Kinos feed sort isOrdered"
+);
+
+/*
+2.30.4 Instance
+
+*/
+
+Operator isOrderedOP(
+  "isOrdered",
+  isOrderedSpec.getStr(),
+  isOrderedVM,
+  Operator::SimpleSelect,
+  isOrderedTM
+);
+
+
+/*
+2.34 ~isOrderedBy~
+
+2.34.1 Type Mapping
+
+*/
+ListExpr isOrderedByTM(ListExpr args){
+  string err="stream(tuple) x attrlist expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError(err + " first arg is not a tuple stream)");
+  }
+  ListExpr alist = nl->Second(args);
+  if(nl->AtomType(alist) != NoAtom){
+    return listutils::typeError("Expected list as second arg");
+  }
+  vector<pair<int,bool> > orderspec;
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+
+
+  while(!nl->IsEmpty(alist)){
+    ListExpr first = nl->First(alist);
+    alist = nl->Rest(alist);
+    string aname;
+    bool asc;
+    if(nl->AtomType(first)==SymbolType) {
+        aname = nl->SymbolValue(first);
+        asc = true;
+    } else if(!nl->HasLength(args,2)){
+         return listutils::typeError("invalid by part");
+    } else if( (nl->AtomType(nl->First(first)) != SymbolType) 
+            ||(nl->AtomType(nl->Second(first)) != SymbolType)) {
+         return listutils::typeError("invalid by part");
+    } else {
+      aname = nl->SymbolValue(nl->First(first));
+      ListExpr o = nl->Second(first);
+      if(!listutils::isSymbol(o,"asc") && !listutils::isSymbol(o,"desc")){
+          return listutils::typeError("sorting criterion must be asc or desc");
+      }
+      asc = listutils::isSymbol(o,"asc");
+    }
+    ListExpr type;
+    int index = listutils::findAttribute(attrList, aname, type);
+    if(!index){
+        return listutils::typeError("Attribute " + aname 
+                                    + " not present in tuple");
+    }
+    orderspec.push_back(make_pair(index,asc));
+  }
+  if(orderspec.empty()){
+    return listutils::typeError("missing order specification");
+  }
+  ListExpr appendList = nl->OneElemList( 
+                             nl->IntAtom(orderspec[0].first));
+  ListExpr last = appendList;
+  last = nl->Append(last, nl->BoolAtom(orderspec[0].second));
+  for(size_t i=1;i<orderspec.size();i++){
+    last = nl->Append(last, nl->IntAtom(orderspec[i].first));
+    last = nl->Append(last, nl->BoolAtom(orderspec[i].second));
+  }
+
+
+  return nl->ThreeElemList(
+                  nl->SymbolAtom(Symbols::APPEND()),
+                  appendList,
+                  listutils::basicSymbol<CcBool>());
+}
+
+/*
+2.34.2 Value Mapping
+
+*/
+
+int isOrderedByVM(Word* args, Word& result, int message,
+                     Word& local, Supplier s) {
+
+   result= qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   res->Set(true,true);
+   Stream<Tuple> stream(args[0]);
+   stream.open();
+
+   SortOrderSpecification orderspec;
+   int arg = 2;
+   while(arg < qp->GetNoSons(s)){
+      int pos = ((CcInt*) args[arg].addr)->GetValue();
+      arg++;
+      bool asc = ((CcBool*) args[arg].addr)->GetValue();
+      arg++;
+      orderspec.push_back(make_pair(pos,asc));
+   } 
+ 
+   TupleCmpBy cmp(orderspec);
+   Tuple* last = stream.request();
+   if(last){
+      Tuple* current;
+      while( (current = stream.request()) ){
+         int c = cmp(last,current);
+         if(c>0){ // invalid order found
+            last->DeleteIfAllowed();
+            current->DeleteIfAllowed();
+            res->Set(true,false);
+            stream.close(); 
+            return 0;
+         } 
+         last->DeleteIfAllowed();
+         last = current;
+      }
+      last->DeleteIfAllowed();
+   }
+   stream.close();
+   return 0;
+}
+
+/*
+2.34.3 Specification
+
+*/
+
+OperatorSpec isOrderedBySpec(
+  " stream(tuple) x orderspec -> bool ",
+  " _ isOrderedBy[<orderspec> ",
+  "Checks whether a tuple stream is ordered in the way that "
+  "given by orderspec. where orderspec is a list of pairs constisting "
+  "of an attribute name and {asc,desc}. The latter can be omitted.",
+  "query Kinos feed sortby[Name desc, GeoData] isOrderedBy[Name desc, GeoData]"
+);
+
+/*
+2.35.4 Instance
+
+*/
+
+Operator isOrderedByOP(
+  "isOrderedBy",
+  isOrderedBySpec.getStr(),
+  isOrderedByVM,
+  Operator::SimpleSelect,
+  isOrderedByTM
+);
+
+
+
 
 /*
 
@@ -14195,6 +14422,8 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&obojoinOP);
     AddOperator(&obojoinDOP);
     AddOperator(&gettuplesOP);
+    AddOperator(&isOrderedOP);
+    AddOperator(&isOrderedByOP);
 
 
 #ifdef USE_PROGRESS
