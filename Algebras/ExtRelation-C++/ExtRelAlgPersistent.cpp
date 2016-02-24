@@ -92,6 +92,8 @@ extern QueryProcessor* qp;
 
 using namespace std;
 
+namespace extrelationalg{
+
 /*
 2 Operators
 
@@ -2049,6 +2051,9 @@ mergejoin_vm<true>(Word* args, Word& result, int message,
 template int
 mergejoin_vm<false>(Word* args, Word& result, int message,
                  Word& local, Supplier s);
+
+
+} // end of namespace extrelalg
 
 
 

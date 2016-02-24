@@ -138,6 +138,9 @@ extern Operator extrelsymmouterjoin;
 using namespace listutils;
 using namespace std;
 
+
+namespace extrelationalg{
+
 /*
 2 Operators
 
@@ -13970,6 +13973,112 @@ Operator obojoinDOP(
   obojoinDTM
 );
 
+
+/*
+2.29 ~gettuples~
+
+This operator retrieves tuples from arelation given by a stream of 
+tuple ids.
+
+*/
+ListExpr gettuplesTM(ListExpr args){
+
+  string err = " stream(tid) x rel expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(!Stream<TupleIdentifier>::checkType(nl->First(args))){
+    return listutils::typeError(err + " (first arg is not a stream of tids)");
+  }
+  if(!Relation::checkType(nl->Second(args))){
+    return listutils::typeError(err + "(second arg is not a relation)");
+  }
+  return nl->TwoElemList(
+               listutils::basicSymbol<Stream<Tuple> >(),
+               nl->Second(nl->Second(args)));
+}
+
+
+class gettuplesInfo{
+
+  public:
+     gettuplesInfo(Word w, GenericRelation* _rel): stream(w), rel(_rel){
+         stream.open();
+     }
+   
+     ~gettuplesInfo(){
+        stream.close();
+      }
+
+     Tuple* next(){
+       TupleIdentifier* res;
+       while( (res = stream.request())){
+          if(!res->IsDefined()){
+            res->DeleteIfAllowed();
+          } else {
+            TupleId id = res->GetTid();
+            res->DeleteIfAllowed();
+            if(id!=0){
+              Tuple* tuple = rel->GetTuple(id,true);
+              if(tuple){
+                 return tuple;
+              }
+            }
+          }
+       }
+       return 0;
+     }
+
+  private:
+     Stream<TupleIdentifier> stream;
+     GenericRelation* rel;
+
+};
+
+
+int gettuplesVM(Word* args, Word& result, int message,
+                     Word& local, Supplier s) {
+  
+     gettuplesInfo* li = (gettuplesInfo*) local.addr;
+     switch(message){
+         case OPEN : if(li){
+                       delete li;
+                       local.addr = 0;
+                     }
+                     local.addr = new gettuplesInfo(args[0], 
+                                          (GenericRelation*) args[1].addr);
+                     return 0;
+         case REQUEST:
+                     result.addr = li?li->next():0;
+                     return result.addr?YIELD:CANCEL;
+         case CLOSE:
+                  if(li){
+                      delete li;
+                      local.addr = 0;
+                  }
+                  return 0;    
+     } 
+     return -1;
+}
+
+OperatorSpec gettuplesSpec(
+  "stream(tid) x rel",
+  " _ _ gettuples",
+  "Retrieves tuples form a relation based on a tuple id stream",
+  "query intstream(1,0) use( int2tid(.) ) Kinos gettuples consume"
+);
+
+Operator gettuplesOP(
+  "gettuples",
+  gettuplesSpec.getStr(),
+  gettuplesVM,
+  Operator::SimpleSelect,
+  gettuplesTM
+);
+
+
+
+
 /*
 
 3 Class ~ExtRelationAlgebra~
@@ -14085,6 +14194,8 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelnth);
     AddOperator(&obojoinOP);
     AddOperator(&obojoinDOP);
+    AddOperator(&gettuplesOP);
+
 
 #ifdef USE_PROGRESS
 // support for progress queries
@@ -14115,6 +14226,8 @@ class ExtRelationAlgebra : public Algebra
   ~ExtRelationAlgebra() {};
 };
 
+} // end of namespace extrelationalg
+
 /*
 
 4 Initialization
@@ -14142,6 +14255,6 @@ InitializeExtRelationAlgebra( NestedList* nlRef,
   nl = nlRef;
   qp = qpRef;
   am = amRef;
-  return (new ExtRelationAlgebra());
+  return (new extrelationalg::ExtRelationAlgebra());
 }
 

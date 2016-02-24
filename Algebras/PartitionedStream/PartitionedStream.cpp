@@ -3897,8 +3897,10 @@ sortmergejoinr3_vm( Word* args, Word& result,
                     int message, Word& local, Supplier s );
 
 
+namespace extrelationalg{
 template<bool, int> extern ListExpr
 JoinTypeMap(ListExpr args);
+}
 
 
 // Defining static member sym
@@ -4185,15 +4187,15 @@ class PartStreamAlgebra : public Algebra
 
       AddOperator( sortmergejoinrInfo("sortmergejoin_r"),
                    sortmergejoinr_vm,
-                   JoinTypeMap<false, 1> );
+                   extrelationalg::JoinTypeMap<false, 1> );
 
       AddOperator( sortmergejoinrInfo("sortmergejoin_r2"),
                    sortmergejoinr2_vm,
-                   JoinTypeMap<false, 1> );
+                   extrelationalg::JoinTypeMap<false, 1> );
 
       AddOperator( sortmergejoinrInfo("sortmergejoin_r3"),
                    sortmergejoinr3_vm,
-                   JoinTypeMap<false, 1> );
+                   extrelationalg::JoinTypeMap<false, 1> );
 
     }
 

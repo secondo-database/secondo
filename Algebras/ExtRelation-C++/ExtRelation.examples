@@ -460,3 +460,10 @@ Signature : stream({tuple(X), DATA}) x stream({tuple(Y),DATA}) [ x ID [ x ID]]->
 Example  : query intstream(0,10)  intstream(0,100) obojoinD[No1,No2] count
 Result    : 11
 
+Operator  : gettuples
+Number    : 1
+Signature : stream(tid) x rel(X) -> stream(X)
+Example   : query intstream(0,10) replaceElem[ int2tid( . )]  Kinos gettuples count
+Result    : 10
+
+
