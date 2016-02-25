@@ -1684,7 +1684,7 @@ class DistCount{
         cnt =0;
      }
 
-     size_t getCount() {
+     size_t getCount() const {
         return cnt;
      }
 

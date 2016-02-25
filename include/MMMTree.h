@@ -66,6 +66,16 @@ This function returns true if this node represents a leaf.
   
       virtual bool isLeaf() const = 0;
 
+
+/*
+~memSize~
+
+Returns the amount of memory occupied by the subtree represented by this node.
+
+*/
+      virtual size_t memSize() const = 0;
+
+
 /*
 1.3 ~getRoutingObject~
 
@@ -528,6 +538,16 @@ Returns the number of nodes of  this subtree.
      return sum + 1;
    }
 
+
+   size_t memSize() const{
+     size_t res = sizeof(*this) + 
+                  sizeof(void*) * MTreeNode<T,DistComp>::maxEntries+1;
+     for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+         res += sons[i]->memSize();
+     }
+     return res;
+   }
+
    private:
 /*
 2.4 Member variables
@@ -685,6 +705,15 @@ write a textual representation fo this leaf to ~out~.
          return print(out, di);
       }
 
+      size_t memSize() const{
+        size_t res = sizeof(*this) +
+                     MTreeNode<T,DistComp>::maxEntries * sizeof(void*);
+        for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+          res += sizeof(* Objects[i]);
+        }
+        return res;
+      }
+
   
    private:
 
@@ -728,7 +757,7 @@ class RangeIterator{
        return ((MTreeLeafNode<T,DistComp>*)top.first)->getObject(top.second);
       }
 
-      size_t noComparisons(){
+      size_t noComparisons() const{
           return di.getCount();
       }
 
@@ -990,8 +1019,16 @@ Returns the number of nodes of this tree.
     }
 
 
-    size_t noComparisons(){
+    size_t noComparisons() const{
        return di.getCount(); 
+    }
+
+    size_t memSize() const {
+       size_t res = sizeof(*this);
+       if(root){
+         res += root->memSize();
+       }
+       return res;
     }
 
 

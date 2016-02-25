@@ -3670,7 +3670,6 @@ int mcreateMtree2VMT (Word* args, Word& result, int message,
    Stream<Tuple> stream(args[0]);
    stream.open();
    Tuple* tuple;
-   size_t usedMem=0;
 
    while( (tuple = stream.request())){
       T* attr = (T*) tuple->GetAttribute(index1);
@@ -3679,14 +3678,11 @@ int mcreateMtree2VMT (Word* args, Word& result, int message,
         T copy = *attr;
         pair<T,TupleId> p(copy, tid->GetTid());
         tree->insert(p);
-        usedMem += attr->GetMemSize() + sizeof(TupleId);
       }
       tuple->DeleteIfAllowed();
    }
    stream.close();
-   // add size of tree structure
-   //    usedMem += tree->getStructureMemSize();
-   // TODO: implement this function in mmmtree
+   size_t usedMem = tree->memSize();
 
    MemoryMtreeObject<pair<T, TupleId>,StdDistComp<T> >* mtree = 
           new MemoryMtreeObject<pair<T,TupleId>, StdDistComp<T> > (tree,  
@@ -4157,19 +4153,14 @@ int mcreateMtreeVMT (Word* args, Word& result, int message,
 
    vector<Tuple*>* rel = mrel->getmmrel();
 
-   size_t usedMem = 0;
-
    // insert attributes
    for(size_t i=0;i<rel->size();i++){
        T* attr = (T*) (*rel)[i]->GetAttribute(index);
-       usedMem += attr->GetMemSize();
        pair<T,TupleId> p(*attr,i);
        tree->insert(p); 
    }
-   // add size of tree structure
-   //    usedMem += tree->getStructureMemSize(); 
-   // TODO: implement this function in mmmtree
 
+   size_t usedMem = tree->memSize();
    MemoryMtreeObject<pair<T, TupleId>,StdDistComp<T> >* mtree = 
           new MemoryMtreeObject<pair<T,TupleId>, StdDistComp<T> > (tree,  
                              usedMem, 
