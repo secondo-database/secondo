@@ -182,3 +182,51 @@ Number    : 30
 Signature : stream(Tuple) x T x string -> string
 Example   : query "strassen" mfeed projectextend [Name,Typ, GeoData; TID: tupleid(.)] mcreateRtree2 [GeoData, "strassen_GeoData"]
 Result    : "strassen_GeoData"
+
+Operator  : mcreateMtree2
+Number    : 31
+Signature : stream(Tuple) x T x T x string -> string
+Example   : query Kinos feed addid mcreateMtree2 [GeoData, TID,  "kinos_GeoData_mtree"]
+Result    : "kinos_GeoData_mtree"
+
+Operator  : mdistRange2 
+Number    : 32
+Signature : string x T x real -> stream(tid)
+Example   :  query "kinos_GeoData_mtree" mdistRange2[alexanderplatz, 2000.0] transformstream Kinos gettuples sort = Kinos feed filter[ distance(.GeoData, alexanderplatz) < 2000.0] sort 
+Result    : TRUE
+
+Operator  : mdistScan2
+Number    : 33
+Signature : string x T -> stream(tid)
+Example   : query "kinos_GeoData_mtree" mdistScan2[alexanderplatz] transformstream Kinos gettuples projectextend[; D : distance(.GeoData, alexanderplatz)] transformstream isOrdered
+Result    : TRUE
+
+
+Operator  : memload
+Number    : 34
+Signature : string -> bool
+Example   : query memload ("Kinos")
+Result    : TRUE
+
+Operator  : mcreateMtree
+Number    : 35
+Signature : string x Ident x string -> string
+Example   : query "Kinos" mcreateMtree[GeoData, "Kinos_GeoData_mtree"]
+Result    : "Kinos_GeoData_mtree"
+
+Operator : mdistRange
+Number    : 36
+Signature: string x string x T x real -> stream(tuple)
+Example  : query "Kinos_GeoData_mtree" "Kinos" mdistRange[alexanderplatz, 2000.0] count
+Result   : 17
+
+Operator : mdistScan
+Number    : 37
+Signature: string x string x T -> stream(tuple)
+Example  : query "Kinos_GeoData_mtree" "Kinos" mdistScan[alexanderplatz] head[17] extend[D : distance(.GeoData, alexanderplatz)] max[D]  <= 2000.0
+Result   : TRUE
+
+
+
+
+

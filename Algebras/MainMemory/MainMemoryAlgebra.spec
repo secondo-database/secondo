@@ -42,3 +42,15 @@ operator mexactmatch alias MEXACTMATCH pattern _ _ op [_]
 operator mrange alias MRANGE pattern _ _ op [_, _]
 operator matchbelow alias MATCHBELOW pattern _ _ op [_]
 operator mcreateRtree2 alias MCREATERTREE2 pattern _ op [_,_]
+
+operator mcreateMtree2 alias MCREATEMTREE2 pattern _ op [_,_,_]
+operator mdistRange2 alias MDISTRANGE2 pattern _ op [_,_]
+operator mdistScan2 alias MDISTSCAN2 pattern _ op [_]
+
+operator mcreateMtree alias MCREATEMTREE pattern _ op [_,_]
+operator mdistRange alias MDISTRANGE pattern _ _ op [_,_]
+operator mdistScan alias MDISTSCAN  pattern _ _ op [_]
+
+
+
+

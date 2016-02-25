@@ -8,16 +8,19 @@
 #ifndef MAINMEMORY_H
 #define MAINMEMORY_H
 
+#include <map>
+#include <vector>
+#include <string>
+#include <limits>
 
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include <string>
-#include <map>
 #include "RelationAlgebra.h"
-#include <vector>
 #include "MMRTree.h"
+#include "MMMTree.h"
 #include "AvlTree.h"
+#include "Point.h"
 
 
 
@@ -280,6 +283,39 @@ class MemoryRtreeObject : public MemoryObject {
     private:
          mmrtree::RtreeT<dim, size_t>* rtree;
 
+};
+
+template <class T, class DistComp>
+class MemoryMtreeObject : public MemoryObject {
+
+    public:
+        MemoryMtreeObject(MMMTree<T, DistComp>* _mtree,
+                        size_t _memSize, 
+                        std::string _objectTypeExpr, 
+                        bool _flob,
+                        std::string _database){
+
+                        mtree = _mtree;
+                        memSize = _memSize;
+                        objectTypeExpr =_objectTypeExpr;
+                        flob = _flob;
+                        database = _database;
+
+                        };
+        ~MemoryMtreeObject(){
+            if (mtree){
+                delete mtree;
+            }
+        };
+
+        MMMTree<T, DistComp>* getmtree(){
+            return mtree;
+        };
+
+
+
+    private:
+         MMMTree<T, DistComp>* mtree;
 };
 
 

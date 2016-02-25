@@ -28,10 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include <vector>
 #include "Stream.h"
+#include "MainMemory.h"
 
 using namespace std;
 
-#include "MainMemory.h"
 namespace mmalgebra {
 
 extern MemCatalog* catalog;
@@ -114,6 +114,9 @@ MemoryObject* MemCatalog::getMMObject(const string& objectName){
 
     map<string,MemoryObject*>::iterator it;
     it = memContents.find(objectName);
+    if(it==memContents.end()){
+      return 0;
+    }
     return it->second;
 }
 
