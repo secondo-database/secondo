@@ -3604,14 +3604,13 @@ ListExpr mcreateMtree2TM(ListExpr args){
                          nl->IntAtom(index2-1),
                          nl->StringAtom(nl->ToString(type))),
                      listutils::basicSymbol<CcString>());
-  if(     Point::checkType(type)
-       || CcString::checkType(type)
-       || CcInt::checkType(type)
-       || CcReal::checkType(type)   ){
-    return result;
-  }
-  return listutils::typeError("there is no known distance fuction for type "
+
+  int no = mtreehelper::getTypeNo(type,9);
+  if(no <0){
+     return listutils::typeError("there is no known distance fuction for type "
                                + nl->ToString(type));
+  }
+  return result;
 }
 
 
@@ -4104,17 +4103,11 @@ ListExpr mcreateMtreeTM(ListExpr args){
                           ),
                           listutils::basicSymbol<CcString>());
 
-
-
-  if(     Point::checkType(at)
-       || CcString::checkType(at)
-       || CcInt::checkType(at)
-       || CcReal::checkType(at)   ){
-    return result;
+  if(mtreehelper::getTypeNo(at,9) < 0){
+     return listutils::typeError("Type " + nl->ToString(at) 
+                                  + " not supported by m-tree");
   }
-
-  return listutils::typeError("Type " + nl->ToString(at) 
-                              + " not supported by m-tree");
+  return result;
 }
 
 
@@ -4171,6 +4164,18 @@ int mcreateMtreeVMT (Word* args, Word& result, int message,
    return 0;
 }
 
+ValueMapping mcreatetreeVMA[] = {
+  mcreateMtreeVMT<mtreehelper::t1>,
+  mcreateMtreeVMT<mtreehelper::t2>,
+  mcreateMtreeVMT<mtreehelper::t3>,
+  mcreateMtreeVMT<mtreehelper::t4>,
+  mcreateMtreeVMT<mtreehelper::t5>,
+  mcreateMtreeVMT<mtreehelper::t6>,
+  mcreateMtreeVMT<mtreehelper::t7>,
+  mcreateMtreeVMT<mtreehelper::t8>,
+  mcreateMtreeVMT<mtreehelper::t9>
+};
+
 
 int mcreateMtreeVM (Word* args, Word& result, int message,
                     Word& local, Supplier s) {
@@ -4180,21 +4185,11 @@ int mcreateMtreeVM (Word* args, Word& result, int message,
   if(!nl->ReadFromString(tn,tnl)){
      assert(false);
   }
-  if(Point::checkType(tnl)) {
-       return mcreateMtreeVMT<Point>(args, result, message, local, s);
-  }
-  if(CcString::checkType(tnl)) {
-       return mcreateMtreeVMT<CcString>(args, result, message, local, s);
-  }
-  if(CcInt::checkType(tnl)) {
-       return mcreateMtreeVMT<CcInt>(args, result, message, local, s);
-  }
-  if(CcReal::checkType(tnl)) {
-       return mcreateMtreeVMT<CcReal>(args, result, message, local, s);
-  }
-  assert(false);
-  return -1;
-
+  int typeno = mtreehelper::getTypeNo(tnl,9);
+  if(typeno<0){
+    assert(false);
+  } 
+  return mcreatetreeVMA[typeno](args,result,message,local,s);
 }
 
 OperatorSpec mcreateMtreeSpec(
