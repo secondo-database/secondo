@@ -7194,7 +7194,7 @@ int createDArrayVMT(Word* args, Word& result, int message,
      }
      for(size_t i=0;i<groups.size();i++){
        vector<pair<DArrayElement,size_t> >& g = groups[i];
-       DArrayElement elem = g[1].first;
+       DArrayElement elem = g[0].first;
        ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
        if(!ci){
          throw new SecondoException("worker cannot be reached");
