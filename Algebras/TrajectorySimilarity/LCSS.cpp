@@ -55,8 +55,8 @@ $\epsilon > 0$, that is
         $(|p.x-q.x| \le \epsilon) \land (|p.y-q.y| \le \epsilon).$
 
 In addition to the spatial criterion, \cite{VGK02} requires that the index
-positions $i, j$ of the points $p, q$ in their original sequences $P, Q$ are at most
-$\delta \ge 0$ places apart, that is $|i-j| \le \delta$.
+positions $i, j$ of the points $p, q$ in their original sequences $P, Q$ are at
+most $\delta \ge 0$ places apart, that is $|i-j| \le \delta$.
 
 
 1.1 Operators
@@ -87,15 +87,16 @@ The point sequence overloads
 
         $\circ : SEQ \times SEQ \times real\ \rightarrow RESULT$
 
-with $\circ(P,\ Q,\ \epsilon)$ consider two points matching, if their $L^1$
-distance is less than $\epsilon$, as described in \cite[section 2]{COO05}. The
-point sequence overloads
+with $\circ(P,\ Q,\ \epsilon)$ consider two points matching, if their maximum
+norm distance ($L^{\infty}$) is less than $\epsilon$, as described in
+\cite[section 2]{COO05}. The point sequence overloads
 
         $\circ : SEQ \times SEQ \times real \times int\ \rightarrow RESULT$
 
 with $\circ(P,\ Q,\ \epsilon,\ \delta)$ consider two points matching, if their
-$L^1$ distance is less than $\epsilon$ and their index positions in the original
-sequences are at most $\delta$ places apart, as described in \cite{VGK02}.
+maximum norm distance ($L^{\infty}$) is less than $\epsilon$ and their index
+positions in the original sequences are at most $\delta$ places apart, as
+described in \cite{VGK02}.
 
 Similarly, the ~mlabel~ overloads
 
@@ -107,35 +108,35 @@ with $\circ(P,\ Q)$ consider two labels matching, if they are equal. The
         $\circ : mlabel \times mlabel \times int\ \rightarrow RESULT$
 
 with $\circ(P,\ Q,\ \delta)$ consider two labels matching, if they are equal and
-their index positions in the original ~mpoint~s are at most $\delta$ places
+their index positions in the original ~mlabel~s are at most $\delta$ places
 apart.
 
 1.1.1 ~lcss~
 
 The operator ~lcss~ determines the absolute length of the Longest Common
-Subsequence of two point sequences. The result is in the range
-$[0,\ \min(m,\ n)]$, where $m,\ n$ are the lengths of the input sequences and a
-greater result value indicates higher similarity. If any of the two sequences is
-~undefined~, the result is ~undefined~.
+Subsequence of two sequences. The result is in the range $[0,\ \min(m,\ n)]$,
+where $m,\ n$ are the lengths of the input sequences and a greater result value
+indicates higher similarity. If any of the two sequences is ~undefined~, the
+result is ~undefined~.
 
 1.1.2 ~rel\_lcss~
 
 The operator ~rel\_lcss~ determines the relative length of the Longest Common
-Subsequence of two point sequences, that is the absolute length of the LCSS
-divided by the length of the shorter of the two sequences. \cite[def.\ 2]{VGK02}
-presents this as the similarity function $S1$. The result is in the range
-$[0,\ 1]$, where a value of 0 indicates low similarity and a value of 1
-indicates that the shorter sequence is a subsequence of the longer sequence. If
-any of the two sequences is ~undefined~ or empty (i.e. it contains no point),
-the result is ~undefined~.
+Subsequence of two sequences, that is the absolute length of the LCSS divided by
+the length of the shorter of the two sequences. \cite[def.\ 2]{VGK02} presents
+this as the similarity function $S1$. The result is in the range $[0,\ 1]$,
+where a value of 0 indicates low similarity and a value of 1 indicates that the
+shorter sequence is a subsequence of the longer sequence. If any of the two
+sequences is ~undefined~ or empty (i.e. it contains no point or label), the
+result is ~undefined~.
 
 1.1.3 ~dist\_lcss~
 
-The operator ~dist\_lcss~ measures the distance of two point sequences in the
-range $[0,\ 1]$. It is defined as $dist\_lcss = 1 - rel\_lcss$.
-\cite[def.\ 4]{VGK02} presents this as the distance function $D1$. If
-any of the two sequences is ~undefined~ or empty (i.e. it contains no point),
-the result is ~undefined~.
+The operator ~dist\_lcss~ measures the distance of two  sequences in the range
+$[0,\ 1]$. It is defined as $dist\_lcss = 1 - rel\_lcss$. \cite[def.\ 4]{VGK02}
+presents this as the distance function $D1$. If any of the two sequences is
+~undefined~ or empty (i.e. it contains no point or label), the result is
+~undefined~.
 
 
 2 Includes
@@ -157,8 +158,8 @@ namespace tsa {
 
 Function template that tests if the items at positions $i1, i2$ of sequences
 $seq1, seq2$, respectively, match. The default implementation for point
-sequences tests if the spatial $L^1$ distance of the points is less than
-$epsilon$.
+sequences tests if the spatial maximum norm distance ($L^{\infty}$) of the
+points is less than $epsilon$.
 
 */
 template<class SEQ>
@@ -350,8 +351,8 @@ struct LCSSInfo : OperatorInfo
                 "higher similarity. If any of the two sequences is undefined, "
                 "the result is undefined.\n"
                 "The point sequence overloads lcss(P, Q, epsilon) consider "
-                "two points matching, if they are within spatial L^1 distance "
-                "epsilon.\n"
+                "two points matching, if they are within spatial maximum norm "
+                "distance epsilon.\n"
                 "The point sequence overloads lcss(P, Q, epsilon, delta) "
                 "additionally require that the indices of the two points in "
                 "the original sequences P, Q are at most delta places apart.\n"
