@@ -27,6 +27,8 @@ import  java.awt.image.*;
 import  sj.lang.ListExpr;
 import viewer.HoeseViewer;
 import java.util.Properties;
+import java.util.HashMap;
+import java.util.Random;
 import tools.Reporter;
 import java.io.File;
 
@@ -100,6 +102,9 @@ public class Category
  private Color minColor = Color.GREEN;
  private Color maxColor = Color.RED;
 
+ private HashMap<Double,Color> colorMap = new HashMap<Double,Color>();
+ private Random random = new Random();
+
 
  /**
   The next attributes control playing audio.
@@ -114,9 +119,10 @@ public class Category
  /** represents a attribute depending render method **/
  public static final int RENDER_POINTSIZE=1;
  public static final int RENDER_LINE_COLOR = 2;
+ public static final int RENDER_RANDOM_COLOR = 3; 
 
  /** represents a attribute depending render method **/
- public static final int RENDER_LINEWIDTH=3; // should have the biggest number
+ public static final int RENDER_LINEWIDTH=4; // should have the biggest number
                                              // of all rendering methods
 
 
@@ -275,7 +281,7 @@ public class Category
   public Paint getFillStyle(RenderAttribute renderAttribute, double time){
     
 
-    if(renderAttribute==null || attrRenderMethod!=RENDER_COLOR){
+    if(renderAttribute==null || attrRenderMethod!=RENDER_COLOR && attrRenderMethod!=RENDER_RANDOM_COLOR){
         return  FillStyle;
     } else {
         if(Double.isInfinite(minValue) || Double.isInfinite(maxValue)){
@@ -290,17 +296,32 @@ public class Category
         if(value>maxValue){
              value = maxValue;
         }
-        double r1 = minColor.getRed();
-        double g1 = minColor.getGreen();
-        double b1 = minColor.getBlue();
-        double r2 = maxColor.getRed();
-        double g2 = maxColor.getGreen();
-        double b2 = maxColor.getBlue();
-        double delta = (maxValue>minValue)?(value-minValue)/ (maxValue-minValue):0;
-        int r = (int)(r1 + delta*(r2-r1));
-        int g = (int)(g1 + delta*(g2-g1));
-        int b = (int)(b1 + delta*(b2-b1));
-        return new Color(r,g,b);
+        if(attrRenderMethod==RENDER_RANDOM_COLOR){
+           Double d = new Double(value);
+           Color c = colorMap.get(d);
+           if(c!=null){
+              return c;
+           }
+           
+           c = new Color(Math.abs(random.nextInt()%255),
+                         Math.abs(random.nextInt()%255),
+                         Math.abs(random.nextInt()%255));
+           colorMap.put(d,c);
+           return c;
+
+        } else {
+           double r1 = minColor.getRed();
+           double g1 = minColor.getGreen();
+           double b1 = minColor.getBlue();
+           double r2 = maxColor.getRed();
+           double g2 = maxColor.getGreen();
+           double b2 = maxColor.getBlue();
+           double delta = (maxValue>minValue)?(value-minValue)/ (maxValue-minValue):0;
+           int r = (int)(r1 + delta*(r2-r1));
+           int g = (int)(g1 + delta*(g2-g1));
+           int b = (int)(b1 + delta*(b2-b1));
+           return new Color(r,g,b);
+        }
     }
   }
 

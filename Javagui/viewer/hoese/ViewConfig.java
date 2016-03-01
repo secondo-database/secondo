@@ -73,6 +73,8 @@ public class ViewConfig extends javax.swing.JDialog {
   static String RENDER_GREEN_BROWN ="green -> brown";
   static String RENDER_BLUE_RED   ="blue -> red";
   static String RENDER_BLUE_GREEN ="blue -> green";
+  static String RENDER_RANDOM_COLOR = "random color";
+
 
   static String RENDER_LINE_WHITE_BLACK="white -> black (border)";
   static String RENDER_LINE_WHITE_RED  ="white -> red (border)";
@@ -485,6 +487,7 @@ public class ViewConfig extends javax.swing.JDialog {
     RendTypeCB.addItem(RENDER_GREEN_BROWN);
     RendTypeCB.addItem(RENDER_BLUE_RED);
     RendTypeCB.addItem(RENDER_BLUE_GREEN);
+    RendTypeCB.addItem(RENDER_RANDOM_COLOR);
     RendTypeCB.addItem(RENDER_POINTSIZE);
     RendTypeCB.addItem(RENDER_LINEWIDTH);
     RendTypeCB.addItem(RENDER_LINE_WHITE_RED);
@@ -937,6 +940,9 @@ public class ViewConfig extends javax.swing.JDialog {
     }
     if (RendType.equals(RENDER_BLUE_GREEN)) {
       NewCat.setColorRange(Color.BLUE,Color.GREEN);
+    }
+    if (RendType.equals(RENDER_RANDOM_COLOR)) {
+      NewCat.setRenderMethod(Category.RENDER_RANDOM_COLOR);
     }
     if (RendType.equals(RENDER_POINTSIZE)) {
        NewCat.setRenderMethod(Category.RENDER_POINTSIZE); 
