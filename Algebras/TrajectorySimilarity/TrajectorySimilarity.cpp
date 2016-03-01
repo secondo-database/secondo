@@ -53,8 +53,6 @@ and operators themselves are implemented in separate files of this algebra.
 
 #include "TrajectorySimilarity.h"
 
-#include "PointSeq.h"
-
 
 namespace tsa {
 
