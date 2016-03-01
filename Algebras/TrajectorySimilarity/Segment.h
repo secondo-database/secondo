@@ -339,6 +339,13 @@ represented. They may only be used, if the iterator points at a segment.
     return &seg;
   }
 
+/*
+Get the current position of the iterator in the sequence.
+
+*/
+  std::size_t getPos() const
+  { return pos; }
+
 private:
   const SEQ &seq;
   std::size_t pos = 0;
