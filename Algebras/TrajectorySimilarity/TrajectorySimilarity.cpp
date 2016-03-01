@@ -28,16 +28,48 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Introduction
 
-The Trajectory Similarity Algebra provides operators to measure the similarity
-or distance of trajectories.
+The Trajectory Similarity Algebra provides operators to measure the distance
+or similarity of trajectories.
 
-Some of the similarity measures work on sequences of points or on sequences of
-tuples of instants and points. Therefore this algebra provides the type
-constructors ~pointseq~ and ~tpointseq~. See the file {\tt PointSeq.cpp} for
-more information.
+These similarity measures work on sequences of points or on sequences of tuples
+of instants and points. Therefore this algebra provides the type constructors
+~pointseq~ and ~tpointseq~. See the file {\tt PointSeq.cpp} for more
+information.
 
-(TODO: Add introductory information about similarity measures, once
-implemented.)
+The distance and similarity operators are implemented and described in detail in
+the following files:
+
+  * {\tt EndPointDistance.cpp}
+
+    * ~dist\_origin~
+
+    * ~dist\_destination~
+
+    * ~dist\_origin\_and\_destination~
+
+  * {\tt EuclideanDistance.cpp}
+
+    * ~dist\_euclidean~
+
+  * {\tt LCSS.cpp}
+
+    * ~lcss~
+
+    * ~rel\_lcss~
+
+    * ~dist\_lcss~
+
+  * {\tt LIPDistance.cpp}
+
+    * ~dist\_lip~
+
+    * ~dist\_stlip~
+
+    * ~dist\_spstlip2~
+
+    * ~genlip~
+
+    * ~genlip2~
 
 The classes, structs, and functions of this algebra reside in the C++ namespace
 {\tt tsa} (short for Trajectory Similarity Algebra).
