@@ -59,6 +59,7 @@ public:
   TrajectorySimilarityAlgebra();
   ~TrajectorySimilarityAlgebra() { }
 
+private:
 /*
 The following methods perform the actual registration of type constructors and
 operators. They are implemented in the {\tt .cpp} files of the corresponding
