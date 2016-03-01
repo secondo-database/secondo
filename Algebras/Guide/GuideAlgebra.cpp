@@ -1050,7 +1050,7 @@ within Secondo's ~bin~ directory.
 
 In this section, we describe the implementation of an overloaded
 operator using  the example of the ~distN~ operator. An overloaded 
-operator can handle more the one type combination as its 
+operator can handle more than one type combination as its 
 arguments and may have a different result type for each type 
 combination. 
 
