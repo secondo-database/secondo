@@ -37,6 +37,6 @@ operator dist_lcss alias DIST_LCSS pattern op(_, _, _)
 
 operator dist_lip alias DIST_LIP pattern op(_, _)
 operator dist_stlip alias DIST_STLIP pattern op(_, _, _, _)
-operator dist_spxstlip alias DIST_SPXSTLIP pattern op(_, _, _, _, _)
+operator dist_spstlip2 alias DIST_SPSTLIP2 pattern op(_, _, _, _, _)
 operator genlip alias GENLIP pattern op(_, _, _, _)
 operator genlip2 alias GENLIP2 pattern op(_, _, _, _)

@@ -2016,32 +2016,32 @@ query dist_stlip(
 
 
 ###
-### Test operator 'dist_spxstlip'.
+### Test operator 'dist_spstlip2'.
 ###
 
 ### Bad parameters
 
-#testcase DistSPXSTLIPParams0
+#testcase DistSPSTLIP2Params0
 #yields error
-query dist_spxstlip()
+query dist_spstlip2()
 
-#testcase DistSPXSTLIPParams1
+#testcase DistSPSTLIP2Params1
 #yields error
-query dist_spxstlip(
+query dist_spstlip2(
     [const tpointseq value (
     ("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:30:20" (1.0 0.0)))])
 
-#testcase DistSPXSTLIPParams2
+#testcase DistSPSTLIP2Params2
 #yields error
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:30:20" (1.0 0.0)))],
   [const tpointseq value (
     ("2015-12-29-01:23:45" (0.0 1.0)) ("2015-12-29-01:30:20" (1.0 0.5)))])
 
-#testcase DistSPXSTLIPParams3
+#testcase DistSPSTLIP2Params3
 #yields error
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-01:23:45" (0.0 0.0)) ("2015-12-29-01:30:20" (1.0 0.0)))],
   [const tpointseq value (
@@ -2050,11 +2050,11 @@ query dist_spxstlip(
     ("2015-12-29-01:23:45" (0.0 1.0)) ("2015-12-29-01:30:20" (1.0 0.5)))])
 
 
-### dist_spxstlip : tpointseq x tpointseq x real x duration x real -> real
+### dist_spstlip2 : tpointseq x tpointseq x real x duration x real -> real
 
-#testcase DistSPXSTLIPTPointSeq
+#testcase DistSPSTLIP2TPointSeq
 #yields (real 1.0)
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-01:20:00" (0.0 0.0))
     ("2015-12-29-01:30:00" (1.0 0.0)))],
@@ -2065,9 +2065,9 @@ query dist_spxstlip(
   [const duration value (0 0)],
   [const real value 1.0])
 
-#testcase DistSPXSTLIPTPointSeqTimeShift
+#testcase DistSPSTLIP2TPointSeqTimeShift
 #yields (real 1.0)
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-01:20:00" (0.0 0.0))
     ("2015-12-29-01:30:00" (1.0 0.0)))],
@@ -2078,9 +2078,9 @@ query dist_spxstlip(
   [const duration value (0 0)],
   [const real value 1.0])
 
-#testcase DistSPXSTLIPTPointSeqTimeStretch
+#testcase DistSPSTLIP2TPointSeqTimeStretch
 #yields (real 1.333)
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-01:15:00" (0.0 0.0))
     ("2015-12-29-01:35:00" (1.0 0.0)))],
@@ -2091,9 +2091,9 @@ query dist_spxstlip(
   [const duration value (0 0)],
   [const real value 1.0])
 
-#testcase DistSPXSTLIPTPointSeqTimeStretchSymmetry
+#testcase DistSPSTLIP2TPointSeqTimeStretchSymmetry
 #yields (real 1.333)
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-01:20:00" (0.0 1.0))
     ("2015-12-29-01:30:00" (1.0 1.0)))],
@@ -2104,9 +2104,9 @@ query dist_spxstlip(
   [const duration value (0 0)],
   [const real value 1.0])
 
-#testcase DistSPXSTLIPTPointSeqVariant
+#testcase DistSPSTLIP2TPointSeqVariant
 #yields (real 0.792)
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-01:23:45" (0.0 0.0))
     ("2015-12-29-01:30:20" (1.0 0.0)))],
@@ -2117,9 +2117,9 @@ query dist_spxstlip(
   [const duration value (0 0)],
   [const real value 1.0])
 
-#testcase DistSPXSTLIPTPointSeqVariant2
+#testcase DistSPSTLIP2TPointSeqVariant2
 #yields (real 0.792)
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-01:20:00" (0.0 0.0))
     ("2015-12-29-01:25:00" (0.5 0.0))
@@ -2132,9 +2132,9 @@ query dist_spxstlip(
   [const duration value (0 0)],
   [const real value 1.0])
 
-#testcase DistSPXSTLIPTPointSeqEqual
+#testcase DistSPSTLIP2TPointSeqEqual
 #yields (real 0.0)
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-01:20:00" (0.0 0.0))
     ("2015-12-29-01:25:00" (0.5 0.0))
@@ -2147,9 +2147,9 @@ query dist_spxstlip(
   [const duration value (0 0)],
   [const real value 1.0])
 
-#testcase DistSPXSTLIPPointSeqCross
+#testcase DistSPSTLIP2PointSeqCross
 #yields (real 0.25)
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-01:20:00" (0.0 0.0))
     ("2015-12-29-01:30:00" (1.0 1.0)))],
@@ -2160,9 +2160,9 @@ query dist_spxstlip(
   [const duration value (0 0)],
   [const real value 1.0])
 
-#testcase DistSPXSTLIPPointSeqCrossExplicit
+#testcase DistSPSTLIP2PointSeqCrossExplicit
 #yields (real 0.25)
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-01:20:00" (0.0 0.0))
     ("2015-12-29-01:25:00" (0.5 0.5))
@@ -2175,9 +2175,9 @@ query dist_spxstlip(
   [const duration value (0 0)],
   [const real value 1.0])
 
-#testcase DistSPXSTLIPPointSeqSkewedCross
+#testcase DistSPSTLIP2PointSeqSkewedCross
 #yields (real 0.35)
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-01:20:00" (0.0 0.0))
     ("2015-12-29-01:23:00" (0.5 0.5))
@@ -2190,9 +2190,9 @@ query dist_spxstlip(
   [const duration value (0 0)],
   [const real value 1.0])
 
-#testcase DistSPXSTLIPPointSeqSkewedCrossSymmetry
+#testcase DistSPSTLIP2PointSeqSkewedCrossSymmetry
 #yields (real 0.35)
-query dist_spxstlip(
+query dist_spstlip2(
   [const tpointseq value (
     ("2015-12-29-02:20:00" (0.0 1.0))
     ("2015-12-29-02:27:00" (0.5 0.5))
@@ -2391,7 +2391,7 @@ query genlip(
     ("2015-12-29-01:30:00" (1.0 1.0)))],
   [const int value 3],
   fun(seq1 : tpointseq, seq2 : tpointseq)
-    dist_spxstlip(seq1, seq2,
+    dist_spstlip2(seq1, seq2,
       [const real value 0.0],
       [const duration value (0 0)],
       [const real value 1.0]))
@@ -2583,7 +2583,7 @@ query genlip2(
     ("2015-12-29-01:30:00" (1.0 1.0)))],
   [const int value 3],
   fun(seq1 : tpointseq, seq2 : tpointseq)
-    dist_spxstlip(seq1, seq2,
+    dist_spstlip2(seq1, seq2,
       [const real value 0.0],
       [const duration value (0 0)],
       [const real value 1.0]))

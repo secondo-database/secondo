@@ -131,36 +131,36 @@ Time and space complexity are the same as for the operator ~dist\_lip~ with
 higher constants for the time complexity.
 
 
-1.1.3 ~dist\_spxstlip~
+1.1.3 ~dist\_spstlip2~
 
 The operator
 
-        $dist\_spxstlip : tpointseq \times tpointseq \times real \times duration
+        $dist\_spstlip2 : tpointseq \times tpointseq \times real \times duration
         \times real \rightarrow real$
 
-with $dist\_spxstlip(P, Q, st\_factor, \delta, sp\_factor)$ determines the
+with $dist\_spstlip2(P, Q, st\_factor, \delta, sp\_factor)$ determines the
 experimental Speed-pattern Spatio-temporal Locality In-between Polylines
-(SPXSTLIP) distance for a pair of ~well-formed~ ~tpointseq~ objects $P,\ Q$, a
+(SPSTLIP2) distance for a pair of ~well-formed~ ~tpointseq~ objects $P,\ Q$, a
 non-negative ~st\_factor~, a non-negative duration $\delta$, and a non-negative
 ~sp\_factor~. If the pair of sequences is not ~well-formed~, the result is
 indefinite.
 
-SPXSTLIP extends STLIP by multiplying each STLIP polygon value with a factor
+SPSTLIP2 extends STLIP by multiplying each STLIP polygon value with a factor
 that measures the dissimilarity in the velocity of the two sequences on the
 polygon. ~sp\_factor~ controls how much the differences in the velocities affect
 the result.
 
-$$D_{SPXSTLIP}(P,\ Q,\ \delta) = \sum_{\forall\ p\ \in\ Polygons} spxstlip(p,
+$$D_{SPSTLIP2}(P,\ Q,\ \delta) = \sum_{\forall\ p\ \in\ Polygons} spstlip2(p,
 \delta)$$
 
-$$spxstlip(p,\ \delta) = stlip(p, \delta) \cdot (1 + sp\_factor \cdot
-spxlip(p))$$
+$$spstlip2(p,\ \delta) = stlip(p, \delta) \cdot (1 + sp\_factor \cdot
+splip2(p))$$
 
-$$spxlip(p) = \left| 1 - \frac{2 \cdot speed(P|_p)}{speed(P|_p) + speed(Q|_p)}
+$$splip2(p) = \left| 1 - \frac{2 \cdot speed(P|_p)}{speed(P|_p) + speed(Q|_p)}
 \right|$$
 
 $speed(P|_p)$ measure the speed of the portion of sequence $P$ that contributes
-to the polygon $p$. With $sp\_factor = 0$, SPXSTLIP yields the same result as
+to the polygon $p$. With $sp\_factor = 0$, SPSTLIP2 yields the same result as
 STLIP.
 
 If any of the sequences is ~undefined~ or has less than two points or if
@@ -170,7 +170,7 @@ If any of the sequences is ~undefined~ or has less than two points or if
 \cite{PKM+07} defines a measure called SPSTLIP that also factors the speed
 pattern into the calculation, but that measure is only useful if the sequences
 have a common temporal element per polygon. In contrast, the experimental
-measure SPXSTLIP implemented here, is not affected by temporal shifts of the
+measure SPSTLIP2 implemented here, is not affected by temporal shifts of the
 sequences.
 
 In addition, SPSTLIP would use the ~GenLIP~ algorithm to filter out bad
@@ -267,7 +267,7 @@ For STLIP: Maximum duration of the temporal element of the polygon as defined in
   datetime::DateTime mdi{datetime::durationtype};
 
 /*
-For SPXSTLIP: Dissimilarity of velocities of the two sequences on the polygon.
+For SPSTLIP2: Dissimilarity of velocities of the two sequences on the polygon.
 
 */
   double splip = 0.0;
@@ -281,7 +281,7 @@ This function template implements the LIP measures for two point sequences, each
 with at least two points (i.\ e.\ one segment).
 
 The aggregator ~agg~ of class ~AGG~ performs the operations that are specific
-to the LIP, STLIP, or SPXSTLIP distance measure. It maintains two lists of
+to the LIP, STLIP, or SPSTLIP2 distance measure. It maintains two lists of
 points, $list1$ and $list2$, and a list of polygons.
 
 */
@@ -676,15 +676,15 @@ private:
 
 
 /*
-3.4 Aggregator Class for SPXSTLIP
+3.4 Aggregator Class for SPSTLIP2
 
 */
-class SPXSTLIPAggregator : public STLIPAggregator
+class SPSTLIP2Aggregator : public STLIPAggregator
 {
 public:
   using Base = STLIPAggregator;
 
-  SPXSTLIPAggregator(
+  SPSTLIP2Aggregator(
       const double st_factor, const DateTime& delta, const double sp_factor)
     : STLIPAggregator(st_factor, delta), sp_factor(sp_factor)
   { }
@@ -1169,10 +1169,10 @@ int DistSTLIPSelect(ListExpr args)
 
 
 /*
-5.3 ~dist\_spxstlip~
+5.3 ~dist\_spstlip2~
 
 */
-int SPXSTLIPDistValueMap(
+int SPSTLIP2DistValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
   const TPointSeq& seq1 = *static_cast<TPointSeq*>(args[0].addr);
@@ -1209,36 +1209,36 @@ Require $st\_factor \ge 0$, $delta \ge 0$, and $sp\_factor \ge 0$.
     return 0;
   }
 
-  SPXSTLIPAggregator agg(st_factor, delta, sp_factor);
+  SPSTLIP2Aggregator agg(st_factor, delta, sp_factor);
   dist.Set(dist_lip(agg, seq1, seq2));
   return 0;
 }
 
-ValueMapping dist_spxstlip_functions[] = {
-  SPXSTLIPDistValueMap,
+ValueMapping dist_spstlip2_functions[] = {
+  SPSTLIP2DistValueMap,
   nullptr
 };
 
-struct DistSPXSTLIPInfo : OperatorInfo
+struct DistSPSTLIP2Info : OperatorInfo
 {
-  DistSPXSTLIPInfo() : OperatorInfo()
+  DistSPSTLIP2Info() : OperatorInfo()
   {
-    name      = "dist_spxstlip";
+    name      = "dist_spstlip2";
     signature = TPointSeq::BasicType() + " x " + TPointSeq::BasicType()
                 + " x " + CcReal::BasicType() + " x " + Duration::BasicType()
                 + " x " + CcReal::BasicType() + " -> " + CcReal::BasicType();
-    syntax    = "dist_spxstlip(_, _, _, _, _)";
+    syntax    = "dist_spstlip2(_, _, _, _, _)";
     meaning   = "Experimental Speed-pattern Spatio-temporal Locality "
-                "In-between Polylines distance SPXSTLIP(P, Q, st_factor, "
+                "In-between Polylines distance SPSTLIP2(P, Q, st_factor, "
                 "delta, sp_factor) of a well-formed pair of tpointseq objects, "
                 "a non-negative st_factor, a non-negative duration delta, and "
                 "a non-negative sp_factor.\n"
-                "SPXSTLIP extends STLIP (operator dist_stlip) by multiplying "
+                "SPSTLIP2 extends STLIP (operator dist_stlip) by multiplying "
                 "each STLIP polygon value with a factor that measures the "
                 "dissimilarity in the velocity of the two sequences on the "
                 "polygon. sp_factor controls how much the differences in the "
                 "velocities affect the result. With an sp_factor of 0, "
-                "SPXSTLIP yields the same result as STLIP.\n"
+                "SPSTLIP2 yields the same result as STLIP.\n"
                 "If the pair of sequences is not well-formed, the result is "
                 "indefinite. If any of the sequences is undefined or has less "
                 "than two points, or if st_factor, delta, or sp_factor is "
@@ -1248,17 +1248,17 @@ struct DistSPXSTLIPInfo : OperatorInfo
   }
 };
 
-const mappings::VectorTypeMaps dist_spxstlip_maps = {
+const mappings::VectorTypeMaps dist_spstlip2_maps = {
   /*0*/ {{TPointSeq::BasicType(), TPointSeq::BasicType(),
     CcReal::BasicType(), Duration::BasicType(), CcReal::BasicType()},
     /* -> */ {CcReal::BasicType()}}
 };
 
-ListExpr DistSPXSTLIPTypeMap(ListExpr args)
-{ return mappings::vectorTypeMap(dist_spxstlip_maps, args); }
+ListExpr DistSPSTLIP2TypeMap(ListExpr args)
+{ return mappings::vectorTypeMap(dist_spstlip2_maps, args); }
 
-int DistSPXSTLIPSelect(ListExpr args)
-{ return mappings::vectorSelect(dist_spxstlip_maps, args); }
+int DistSPSTLIP2Select(ListExpr args)
+{ return mappings::vectorSelect(dist_spstlip2_maps, args); }
 
 
 /*
@@ -1402,8 +1402,8 @@ void TrajectorySimilarityAlgebra::addLIPDistOp()
       DistSTLIPInfo(), dist_stlip_functions,
       DistSTLIPSelect, DistSTLIPTypeMap);
   AddOperator(
-      DistSPXSTLIPInfo(), dist_spxstlip_functions,
-      DistSPXSTLIPSelect, DistSPXSTLIPTypeMap);
+      DistSPSTLIP2Info(), dist_spstlip2_functions,
+      DistSPSTLIP2Select, DistSPSTLIP2TypeMap);
   AddOperator(
       GenLIPInfo(), genlip_functions,
       GenLIPSelect, GenLIPTypeMap);
