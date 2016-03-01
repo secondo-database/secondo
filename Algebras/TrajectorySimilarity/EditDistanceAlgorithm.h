@@ -84,7 +84,8 @@ $max$. If $max \ge m+n$, the result is never $-1$. Using this overload with
 $max = m+n$ is equivalent to calling the first overload, except for the return
 type.
 
-The time complexity is $\mathcal{O}((m+n)max)$ and the space complexity is $\mathcal{O}(max)$.
+The time complexity is $\mathcal{O}((m+n)max)$ and the space complexity is
+$\mathcal{O}(max)$.
 
 */
 ssize_t edit_distance(size_t m, size_t n, ed_match_t match, size_t max);
