@@ -163,7 +163,7 @@ $speed(P|_p)$ measure the speed of the portion of sequence $P$ that contributes
 to the polygon $p$. With $sp\_factor = 0$, SPXSTLIP yields the same result as
 STLIP.
 
-If any of the sequences is undefined or has less than two points or if
+If any of the sequences is ~undefined~ or has less than two points or if
 ~st\_factor~, or $\delta$, or ~sp\_factor~ is negative, the result is
 ~undefined~.
 
@@ -281,8 +281,8 @@ This function template implements the LIP measures for two point sequences, each
 with at least two points (i.\ e.\ one segment).
 
 The aggregator ~agg~ of class ~AGG~ performs the operations that are specific
-to the LIP or STLIP distance measure. It maintains two lists of points, $list1$
-and $list2$, and a list of polygons.
+to the LIP, STLIP, or SPXSTLIP distance measure. It maintains two lists of
+points, $list1$ and $list2$, and a list of polygons.
 
 */
 template<class SEQ, class AGG>
@@ -428,7 +428,7 @@ public:
     list2.push_front(pt);
   }
 
-  bool testIntersection(
+  static bool testIntersection(
       const segment_t& seg1, const segment_t& seg2, Point& cross)
   { return intersection(seg1, seg2, cross); }
 
