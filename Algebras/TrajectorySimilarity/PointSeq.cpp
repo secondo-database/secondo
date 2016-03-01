@@ -46,25 +46,33 @@ A ~pointseq~ is either ~undefined~ or it is a sequence of zero or more
 A ~tpointseq~ is either ~undefined~ or it is a sequence of zero or more
 tuples $(inst,\ (x,\ y))$, each with a defined instant $inst$ and a
 2-dimensional point $(x,\ y)$ with finite, real-valued coordinates $x$ and $y$.
+The instants are in strictly increasing order.
 
 
 1.2 Operators
 
 1.2.1 ~isempty~
 
-The operator $isempty : (pointseq|tpointseq) \rightarrow bool$ yields ~TRUE~ if
-the sequence is ~undefined~ or contains no items and ~FALSE~ otherweise.
+The operator $isempty : (pointseq|tpointseq) \rightarrow bool$ yields ~TRUE~, if
+the sequence is ~undefined~ or contains no items, and ~FALSE~ otherwise.
 
 1.2.2 ~no\_components~
 
 The operator $no\_components : (pointseq|tpointseq) \rightarrow int$ determines
 the number of items in the given sequence, if it is defined, and 0 otherwise.
 
-1.2.3 ~to\_pointseq~
+1.2.3 ~to\_dline~
+
+The operator $to\_dline : (pointseq|tpointseq) \rightarrow dline$ creates a
+dline from a point sequence for display purposes. Each pair of successive points
+yields a segment of the dline. If the sequence contains just one point, the
+dline consists of single segment whose start and end are the same point.
+
+1.2.4 ~to\_pointseq~
 
 The operator ~to\_pointseq~ extracts a ~pointseq~ from some input object.
 
-  * The overload $to\_tpointseq : mpoint \rightarrow pointseq$ is equivalent to
+  * The overload $to\_pointseq : mpoint \rightarrow pointseq$ is equivalent to
     $to\_pointseq(to\_tpointseq(m))$ (see below) for an ~mpoint m~. It extracts
     a ~pointseq~ from a moving point object as
 
@@ -79,7 +87,7 @@ The operator ~to\_pointseq~ extracts a ~pointseq~ from some input object.
   * The overload $to\_pointseq : tpointseq \rightarrow pointseq$ computes the
     spatial projection of the ~tpointseq~.
 
-1.2.3 ~to\_tpointseq~
+1.2.5 ~to\_tpointseq~
 
 The operator $to\_tpointseq : mpoint \rightarrow tpointseq$ extracts a
 ~tpointseq~ from a moving point object as
@@ -93,12 +101,12 @@ The operator $to\_tpointseq : mpoint \rightarrow tpointseq$ extracts a
 If there is a temporal or spatial gap between two successive units or a unit
 makes a spatial move in no time, the ~tpointseq~ is ~undefined~.
 
-1.2.4 ~sample\_to\_pointseq~
+1.2.6 ~sample\_to\_pointseq~
 
 The operator
 
         $sample\_to\_pointseq : tpointseq \times duration\ [\times bool\ [
-        \times bool]] \rightarrow tpointseq$
+        \times bool]] \rightarrow pointseq$
 
 with $sample\_to\_pointseq(P, duration, keep\_end\_point, exact\_path)$
 resamples the sequence $P$ at intervals defined by $duration$ and projects it to
@@ -108,7 +116,7 @@ last point. Both boolean parameters default to ~FALSE~.
 
 If $duration$ is ~undefined~ or not positive, the result is ~undefined~.
 
-1.2.5 ~sample\_to\_tpointseq~
+1.2.7 ~sample\_to\_tpointseq~
 
 The operator
 
@@ -708,7 +716,7 @@ Get a string representation for display purposes.
 std::string Point::toString() const
 {
   std::ostringstream os;
-  os << "(" << x << ", " << y << ")";
+  os << std::setprecision(10) << "(" << x << ", " << y << ")";
   return os.str();
 }
 

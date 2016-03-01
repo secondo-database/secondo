@@ -40,8 +40,8 @@ classes ~Point~ and ~TPoint~ serve as item types of the sequence. A ~Point~
 represents a 2-dimensional point, and a ~TPoint~ represents a tuple of an
 instant and a 2-dimensional point.
 
-The sequence types ~PointSeq~ and ~TPointSeq~ are derived of instantiations of
-the class template ~Sequence$<$T$>$~ with item type ~Point~ and ~TPoint~,
+The sequence types ~PointSeq~ and ~TPointSeq~ are derived from instantiations of
+the class template ~Sequence$<$T$>$~ with item types ~Point~ and ~TPoint~,
 respectively.
 
 
@@ -790,7 +790,7 @@ private:
 
 An object of the class ~TPointSeq~ is either ~undefined~ or it consists of zero
 or more items of type ~TPoint~ with instants in strictly increasing order.
-~TPointSeq~ instantiates ~Sequence$<$T$>$~ with the item type $T=TPoint$.
+~TPointSeq~ derives from ~Sequence$<$TPoint$>$~.
 
 */
 class TPointSeq : public Sequence<TPoint>
