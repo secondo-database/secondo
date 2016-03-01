@@ -1906,7 +1906,7 @@ This first method is the classical one, defining a lot of independent functions
 as input for a Secondo type constructor. This method should be used if an existing
 Secondo data type is to tranfer into an attribute data type or in some
 special cases. If the type is planned
-to be an attribute data type from the beginning, the secondo method is to prefer.
+to be an attribute data type from the beginning, the second method is to prefer.
 The second method uses static member functions 
 of the class for defining an attribute data type using a generic template class.
 
@@ -2694,7 +2694,7 @@ computed within the type mapping to the value mapping. The
 standard case is the index of an attribute within a tuple for
 a certain attribute name. Another application are default 
 arguments. For this purpose, Secondo provides
-the so-called APPEND mechanism. In general is works as follows. 
+the so-called APPEND mechanism. In general it works as follows. 
 Instead of returning just the result type within the type mapping,
 a list of length three of the form (~APPEND args result~)
 where APPEND is a keyword (symbol), ~args~ is a list containing additional
@@ -3316,7 +3316,7 @@ void PAVLTree::balance( Node& root, stack<Node>& predecessors){
           setRoot(y,predecessors);
           return;
        }
-   } else if(balanceVal(root)==2){ // left subtree is height
+   } else if(balanceVal(root)==2){ // left subtree is heigher
       Node left = getNode(root.getLeft());
       if(balanceVal(left) == 1){  // right rotation
         Node  y = getNode(root.getLeft());
