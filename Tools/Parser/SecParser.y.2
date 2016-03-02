@@ -476,6 +476,7 @@ typeexpr  :  constructor  {$$ = $1;}
 constructor  :  ZZIDENTIFIER  {$$ = $1;}
     |  ZZTUPLE    {$$ = $1;}
     |  ZZGROUP    {$$ = $1;}
+    |  ZZINTEGER  {$$ = $1;} 
     ;
 
 typeexprs  :  typeexpr  {$$ = $1;}
