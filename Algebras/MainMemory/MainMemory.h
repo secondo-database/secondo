@@ -62,7 +62,7 @@ class MemCatalog {
 
         bool insert (const std::string& name, MemoryObject* obj);
 
-        bool deleteObject (const std::string& name);
+        bool deleteObject (const std::string& name, const bool erase=true);
 
         void clear ();
 
@@ -112,59 +112,6 @@ class MemoryObject {
 
 };
 
-
-
-
-class MemoryRelType {
-
-    public:
-    MemoryRelType();
-    MemoryRelType(bool _defined, std::string _value);
-    ~MemoryRelType();
-
-
-    bool IsDefined();
-
-    void SetDefined(bool _defined);
-
-    void Set( const bool d, const std::string& v );
-
-    std::string GetValue();
-
-    static Word In( const ListExpr typeInfo, const ListExpr value,
-                        const int errorPos, ListExpr& errorInfo,
-                        bool& correct );
-
-    static ListExpr Out( ListExpr typeInfo, Word value );
-
-    static bool KindCheck( ListExpr type, ListExpr& errorInfo );
-
-    static Word create(const ListExpr typeInfo);
-
-    static void Close (const ListExpr typeInfo, Word& w);
-
-    static Word Clone (const ListExpr typeInfo, const Word& w);
-
-    static void* Cast (void* addr);
-
-    static int SizeOfObj();
-
-    static void Delete(const ListExpr typeInfo, Word& w);
-
-    static const std::string BasicType();
-
-    static const bool checkType(const ListExpr type);
-
-
-    static ListExpr Property();
-
-
-    private:
-    std::string value;
-    bool defined;
-
-
-};
 
 
 class MemoryRelObject : public MemoryObject {
@@ -291,16 +238,14 @@ class MemoryMtreeObject : public MemoryObject {
     public:
         MemoryMtreeObject(MMMTree<T, DistComp>* _mtree,
                         size_t _memSize, 
-                        std::string _objectTypeExpr, 
+                        const std::string& _objectTypeExpr, 
                         bool _flob,
-                        std::string _database){
-
+                        const std::string& _database){
                         mtree = _mtree;
                         memSize = _memSize;
                         objectTypeExpr =_objectTypeExpr;
                         flob = _flob;
                         database = _database;
-
                         };
         ~MemoryMtreeObject(){
             if (mtree){
@@ -312,6 +257,19 @@ class MemoryMtreeObject : public MemoryObject {
             return mtree;
         };
 
+        static std::string BasicType(){
+           return "mtree";
+        }
+
+        static bool checkType( ListExpr list){
+           if(!nl->HasLength(list,2)){
+             return false;
+           }
+           if(!listutils::isSymbol(nl->First(list),BasicType())){
+              return false;
+           }
+           return T::checkType(nl->Second(list));
+        }
 
 
     private:
@@ -325,18 +283,24 @@ class MemoryAVLObject : public MemoryObject {
     public:
         MemoryAVLObject();
         MemoryAVLObject( avltree::AVLTree< std::pair<Attribute*,size_t>,
-            KeyComparator >* tree, size_t _memSize, std::string _objectTypeExpr,
-            std::string _keyType, bool _flob, std::string _database );
+            KeyComparator >* tree, size_t _memSize, 
+            std::string _objectTypeExpr, 
+            bool _flob, std::string _database );
         ~MemoryAVLObject();
 
         avltree::AVLTree< std::pair<Attribute*,size_t>,KeyComparator >* 
                     getAVLtree();
 
-        std::string getKeyType();
+        static std::string BasicType(){ return "avltree"; }
+
+        static bool checkType(ListExpr type){
+            return    nl->HasLength(type,2) 
+                   && listutils::isSymbol(nl->First(type),BasicType());
+        }
+
 
     private:
          avltree::AVLTree< std::pair<Attribute*,size_t>,KeyComparator >* tree;
-         std::string keyType;
 };
 
 class KeyComparator{
@@ -403,6 +367,147 @@ class KeyComparator{
      }
 
 };
+
+
+
+/*
+5.20 Type ~mem~
+
+This type encapsulates just a string. 
+
+*/
+class Mem: public Attribute{
+  public:
+     Mem(){}
+     Mem(int i) : Attribute(false) {
+        strcpy(value,"");
+     }
+
+     Mem(const Mem& src): Attribute(src){
+        strcpy(value, src.value);
+     }
+
+     Mem& operator=(const Mem& src){
+        Attribute::operator=(src);
+        strcpy(value, src.value);
+        return *this;
+     }
+     
+     ~Mem(){}
+
+      void set(const bool def, const std::string& v){
+         SetDefined(def);
+         if(def){
+            strcpy(value,v.c_str());
+         }
+      }
+
+      std::string GetValue() const{
+        assert(IsDefined());
+        return std::string(value);
+      }
+
+     
+     static const std::string BasicType(){ return "mem"; }
+
+     static const bool checkType(ListExpr type){
+        if(!nl->HasLength(type,2)){
+           return false;
+        }
+        if(!listutils::isSymbol(nl->First(type), BasicType())){
+          return false;
+        }
+        // TODO: check whether the second element is a valid type
+        return true;
+     }  
+
+     inline virtual int NumOfFLOBs() const{
+        return 0;
+     }
+     inline virtual Flob* GetFLOB(const int i){
+        assert(false);
+        return 0;
+     }
+
+     int Compare(const Attribute* arg) const{
+        if(!IsDefined() && !arg->IsDefined()){
+          return 0;
+        }
+        if(!IsDefined()){
+          return -1;
+        }
+        if(!arg->IsDefined()){
+          return 1;
+        }
+        return strcmp(value,((Mem*)arg)->value);
+     }
+
+     bool Adjacent(const Attribute* arg) const{
+        return false;
+     }
+     size_t Sizeof() const{
+        return sizeof(*this);
+     }
+
+     size_t HashValue() const{
+        if(!IsDefined()){
+           return 0;
+        }
+        size_t m = 5;
+        size_t l = std::min(m, strlen(value));
+        int sum = 0;
+        for(size_t i=0;i<l;i++){
+          sum = sum*10 + value[i];
+        }
+        return sum;
+     }
+
+     void CopyFrom(const Attribute* arg){
+        *this = *((Mem*) arg);
+     }
+
+     Attribute* Clone() const{
+       return new Mem(*this);
+     }
+
+     
+
+
+     static ListExpr Property() {
+          return gentc::GenProperty( "-> DATA",
+                                    "("+ BasicType() + " <subtype> )",
+                                    "<string>",
+                                    "\"testobj\"");
+                                    
+     }
+     static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+        return checkType(type);
+     }
+
+     bool ReadFrom(ListExpr le, const ListExpr typeInfo){
+        if(listutils::isSymbolUndefined(le)){
+          SetDefined(false);
+          return true;
+        }         
+        if(nl->AtomType(le)!=StringType){
+           return false;
+        }
+        set(true, nl->StringValue(le));
+        return true; 
+     }
+
+     ListExpr ToListExpr( const ListExpr typeInfo){
+       if(!IsDefined()){
+         return listutils::getUndefined();
+       }
+       return nl->StringAtom(value);
+     } 
+     
+  private:
+     STRING_T value;
+
+};
+
 
 
 } //ende namespace mmalgebra

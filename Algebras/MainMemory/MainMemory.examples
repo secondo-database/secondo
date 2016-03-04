@@ -16,7 +16,7 @@ Result    : 256
 
 Operator  : mfeed
 Number    : 3
-Signature : string -> stream(tuple)
+Signature : string -> stream(tuple) | mem(rel(tuple)) -> stream(tuple)
 Example   : query "ten" mfeed count
 Result    : 10
 
@@ -24,7 +24,7 @@ Operator  : letmconsume
 Number    : 4
 Signature : stream(tuple(...)) x string -> string
 Example   : query "ten" mfeed letmconsume ["zehn"]
-Result    : ((memoryRelType(tuple((No int))))"zehn")
+Result    : ((mem(rel(tuple((No int))))) "zehn")
 
 
 Operator  : memobject
@@ -72,8 +72,8 @@ Result    : TRUE
 Operator  : mcreateRtree
 Number    : 12
 Signature : string x string -> string
-Example   : query "strassen" mcreateRtree ["GeoData"]
-Result    : "strassen_GeoData"
+Example   : query "strassen" mcreateRtree [GeoData]
+Result    : ( (mem(rtree 2 )) "strassen_GeoData")
 
 Operator  : memsize
 Number    : 13
@@ -90,140 +90,146 @@ Result    : TRUE
 Operator  : minsert
 Number    : 15
 Signature : stream(tuple) x string -> stream(tuple)
-Example   : query minsert (ten feed head [5], "ten") count
-Result    : 15
+Example   : query ten feed head[5] minsert["ten"] count
+Result    : 5
 
 Operator  : mwindowintersects
 Number    : 16
 Signature : string x string x T -> stream(tuple) where T in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D U SPATIAL8D
-Example   : query mwindowintersects("strassen_GeoData", "strassen", bbox(thecenter)) count
+Example   : query "strassen_GeoData" "strassen" mwindowintersects[thecenter] count
+Result    : 1266
+
+Operator  : mwindowintersectsS
+Number    : 17
+Signature : {string, mem(rtree)} x  T -> stream(tuple) 
+Example   : query "strassen_GeoData" mwindowintersectsS[thecenter] count
 Result    : 1266
 
 Operator  : mconsume
-Number    : 17
+Number    : 18
 Signature : stream(tuple) -> memoryRelObject
 Example   : query "ten" mfeed head[2] mconsume
 Result    : ((memoryRelObject(tuple((No int))))((1)(2)))
 
 Operator  : memclear
-Number    : 18
+Number    : 19
 Signature : -> bool
 Example   : query memclear ()
 Result    : TRUE
 
 Operator  : memload
-Number    : 19
+Number    : 20
 Signature : string -> bool
 Example   : query memload ("Staedte")
 Result    : TRUE
 
 Operator  : mcreateAVLtree
-Number    : 20
+Number    : 21
 Signature : string x string -> string
-Example   : query "Staedte" mcreateAVLtree ["SName"]
-Result    : "Staedte_SName"
+Example   : query "Staedte" mcreateAVLtree [SName]
+Result    : ( (mem (avltree string)) "Staedte_SName")
 
 Operator  : mexactmatch
-Number    : 21
+Number    : 22
 Signature : string x string x key -> stream(tuple)
 Example   : query "Staedte_SName" "Staedte" mexactmatch ["Aachen"] count;
 Result    : 1
 
 Operator  : mrange
-Number    : 22
+Number    : 23
 Signature : string x string x key x key-> stream(tuple)
 Example   : query "Staedte_SName" "Staedte" mrange ["Aachen", "Dortmund"] count;
 Result    : 10
 
 Operator  : memload
-Number    : 23
+Number    : 24
 Signature : string -> bool
 Example   : query memload ("ten")
 Result    : TRUE
 
 Operator  : mcreateAVLtree
-Number    : 24
+Number    : 25
 Signature : string x string -> string
-Example   : query "ten" mcreateAVLtree ["No"]
-Result    : "ten_No"
+Example   : query "ten" mcreateAVLtree[No]
+Result    : ((mem (avltree int )) "ten_No")
 
 Operator  : matchbelow
-Number    : 25
+Number    : 26
 Signature : string x string x key -> stream(tuple)
 Example   : query "ten_No" "ten" matchbelow [2] count;
 Result    : 1
 
 Operator  : memloadflob
-Number    : 26
+Number    : 27
 Signature : string -> bool
 Example   : query memloadflob ("Trains")
 Result    : TRUE
 
 Operator  : letmconsumeflob
-Number    : 27
+Number    : 28
 Signature : stream(tuple(...)) x string -> string
 Example   : query Trains feed letmconsumeflob ["trainsFlob"]
-Result    : ((memoryRelType(tuple((Id int)(Line int)(Up bool)(Trip mpoint))))"trainsFlob")
+Result    : ((mem(rel(tuple((Id int)(Line int)(Up bool)(Trip mpoint))))) "trainsFlob")
 
 Operator  : memletflob
-Number    : 28
+Number    : 29
 Signature : string x m:MEMLOADABLE -> bool
 Example   : query memletflob ("trains5", Trains feed head[5])
 Result    : TRUE
 
 Operator  : memload
-Number    : 29
+Number    : 30
 Signature : string -> bool
 Example   : query memload ("strassen")
 Result    : TRUE
 
 Operator  : mcreateRtree2
-Number    : 30
+Number    : 31
 Signature : stream(Tuple) x T x string -> string
 Example   : query "strassen" mfeed projectextend [Name,Typ, GeoData; TID: tupleid(.)] mcreateRtree2 [GeoData, "strassen_GeoData"]
-Result    : "strassen_GeoData"
+Result    : ((mem(rtree 2 )) "strassen_GeoData")
 
 Operator  : mcreateMtree2
-Number    : 31
+Number    : 32
 Signature : stream(Tuple) x T x T x string -> string
 Example   : query Kinos feed addid mcreateMtree2 [GeoData, TID,  "kinos_GeoData_mtree"]
-Result    : "kinos_GeoData_mtree"
+Result    : ((mem (mtree point))"kinos_GeoData_mtree")
 
 Operator  : mdistRange2 
-Number    : 32
+Number    : 33
 Signature : string x T x real -> stream(tid)
 Example   :  query "kinos_GeoData_mtree" mdistRange2[alexanderplatz, 2000.0] transformstream Kinos gettuples sort = Kinos feed filter[ distance(.GeoData, alexanderplatz) < 2000.0] sort 
 Result    : TRUE
 
 Operator  : mdistScan2
-Number    : 33
+Number    : 34
 Signature : string x T -> stream(tid)
 Example   : query "kinos_GeoData_mtree" mdistScan2[alexanderplatz] transformstream Kinos gettuples projectextend[; D : distance(.GeoData, alexanderplatz)] transformstream isOrdered
 Result    : TRUE
 
 
 Operator  : memload
-Number    : 34
+Number    : 35
 Signature : string -> bool
 Example   : query memload ("Kinos")
 Result    : TRUE
 
 Operator  : mcreateMtree
-Number    : 35
+Number    : 36
 Signature : string x Ident x string -> string
-Example   : query "Kinos" mcreateMtree[GeoData, "Kinos_GeoData_mtree"]
-Result    : "Kinos_GeoData_mtree"
+Example   : query "Kinos" mcreateMtree[GeoData, "Kinos_GeoData_mtree2"]
+Result    : ((mem (mtree point)) "Kinos_GeoData_mtree2")
 
 Operator : mdistRange
-Number    : 36
+Number    : 37
 Signature: string x string x T x real -> stream(tuple)
-Example  : query "Kinos_GeoData_mtree" "Kinos" mdistRange[alexanderplatz, 2000.0] count
+Example  : query "Kinos_GeoData_mtree2" "Kinos" mdistRange[alexanderplatz, 2000.0] count
 Result   : 17
 
 Operator : mdistScan
-Number    : 37
+Number    : 38
 Signature: string x string x T -> stream(tuple)
-Example  : query "Kinos_GeoData_mtree" "Kinos" mdistScan[alexanderplatz] head[17] extend[D : distance(.GeoData, alexanderplatz)] max[D]  <= 2000.0
+Example  : query "Kinos_GeoData_mtree2" "Kinos" mdistScan[alexanderplatz] head[17] extend[D : distance(.GeoData, alexanderplatz)] max[D]  <= 2000.0
 Result   : TRUE
 
 

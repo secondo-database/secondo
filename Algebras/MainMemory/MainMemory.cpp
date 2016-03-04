@@ -77,11 +77,13 @@ bool MemCatalog::insert (const string& name, MemoryObject* obj){
     return true;
 }
 
-bool MemCatalog::deleteObject (const string& name){
+bool MemCatalog::deleteObject (const string& name, const bool erase/*=true*/){
      if(isMMObject(name)){
         usedMemSize -= getMMObject(name)->getMemSize();
         delete getMMObject(name);
-        memContents.erase(name);
+        if(erase){
+           memContents.erase(name);
+        }
         return true;
      }
     return false;
@@ -91,10 +93,11 @@ bool MemCatalog::deleteObject (const string& name){
 void MemCatalog::clear (){
     map<string,MemoryObject*>::iterator it;
     it = memContents.begin();
-    while (it!=memContents.end()){
-        deleteObject(it->first);
+    while(it!=memContents.end()){
+        deleteObject(it->first, false);
         it++;
     }
+    memContents.clear();
 }
 
 bool MemCatalog::isMMObject(const string& objectName){
@@ -136,10 +139,19 @@ ListExpr MemCatalog::getMMObjectTypeExpr(const string& oN){
 };
 
 bool MemCatalog::isAccessible(const string& name) {
+    MemoryObject* obj = getMMObject(name);
+    if(!obj){
+      return false;
+    }  
+    if(obj->hasflob()){
+      return true;
+    }
     SecondoSystem* sys = SecondoSystem::GetInstance();
-    return   (isMMObject(name) &&
-        ((getMMObject(name)->getDatabase()==sys->GetDatabaseName())
-            || getMMObject(name)->hasflob()) );
+    if(obj->getDatabase() == sys->GetDatabaseName()){
+      return true;
+    }
+    return false;
+
 }
 
 MemoryObject::~MemoryObject(){}
@@ -163,134 +175,8 @@ bool MemoryObject::hasflob(){
     return flob;
 }
 
-MemoryRelType::MemoryRelType(){};
 
-MemoryRelType::MemoryRelType(bool _defined, string _value){
-        defined = _defined;
-        value = _value;
-    };
-MemoryRelType::~MemoryRelType(){
-    };
-
-
-bool MemoryRelType::IsDefined(){
-        return defined;
-    }
-
-void MemoryRelType::SetDefined(bool _defined){
-        defined = _defined;
-    }
-
-void MemoryRelType::Set( const bool d, const string& v ){
-        SetDefined(d);
-        value = v;
-
-    }
-
-string MemoryRelType::GetValue(){
-        return value;
-    }
-
-Word MemoryRelType::In( const ListExpr typeInfo, const ListExpr value,
-                        const int errorPos, ListExpr& errorInfo,
-                        bool& correct ){
-          if ( nl->IsAtom( value ) && nl->AtomType( value ) == StringType ){
-                        correct = true;
-                        string s = nl->StringValue( value );
-                      MemoryRelType* rt = new MemoryRelType( true, s );
-                      return SetWord( rt );
-        }
-        else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
-            && listutils::isSymbolUndefined(value) )
-        {
-            correct = true;
-            MemoryRelType* rt = new MemoryRelType( false, "" );
-            return (SetWord(rt));
-        }
-        else
-        {
-            correct = false;
-            return (SetWord( Address( 0 ) ));
-        }
-    }
-
-ListExpr MemoryRelType::Out( ListExpr typeInfo, Word value ){
-        MemoryRelType* t = (MemoryRelType*) value.addr;
-        if( t->IsDefined() ){
-            return (nl->StringAtom(t->GetValue()));
-        } else {
-            return (nl->SymbolAtom(Symbol::UNDEFINED()));
-        }
-    }
-
-bool MemoryRelType::KindCheck( ListExpr type, ListExpr& errorInfo ){
-        return checkType(type);
-    }
-
-Word MemoryRelType::create(const ListExpr typeInfo){
-        Word w;
-        w.addr = (new MemoryRelType(false, ""));
-        return w;
-    }
-
-void MemoryRelType::Close (const ListExpr typeInfo, Word& w){
-        delete (MemoryRelType*)w.addr;
-        w.addr = 0;
-    };
-
-Word MemoryRelType::Clone (const ListExpr typeInfo, const Word& w) {
-        MemoryRelType* rt = (MemoryRelType*) w.addr;
-        Word res;
-        res.addr = new MemoryRelType(rt->IsDefined(), rt->GetValue() );
-        return res;
-  }
-
-void* MemoryRelType::Cast (void* addr){
-        return (new (addr) MemoryRelType);
-    }
-
-int MemoryRelType::SizeOfObj(){
-        return sizeof(MemoryRelType);
-    }
-
-void MemoryRelType::Delete(const ListExpr typeInfo, Word& w){
-        delete (MemoryRelType*)w.addr;
-        w.addr = 0;
-    };
-
-const string MemoryRelType::BasicType(){
-        return "memoryRelType";
-    }
-
-const bool MemoryRelType::checkType(const ListExpr type){
-
-        if (nl->ListLength(type)!=2){
-            return false;
-        }
-        ListExpr first = nl->First(type);
-        ListExpr second = nl->Second(type);
-
-        return (listutils::isTupleDescription(second) &&
-            (nl ->IsEqual(first,BasicType())));
-    }
-
-
-ListExpr MemoryRelType::Property(){
-        return (nl->TwoElemList (
-            nl->FourElemList (
-                nl->StringAtom("Signature"),
-                nl->StringAtom("Example Type List"),
-                nl->StringAtom("List Rep"),
-                nl->StringAtom("Example List")),
-            nl->FourElemList (
-                nl->StringAtom("-> SIMPLE"),
-                nl->StringAtom(MemoryRelType::BasicType()),
-                nl->StringAtom("(<stringvalue>)"),
-                nl->StringAtom("EinString")
-            )));
-}
-
-// MEMORYRELOBJECT
+  // MEMORYRELOBJECT
 
 MemoryRelObject::MemoryRelObject(){
     mmrel = new vector<Tuple*>();
@@ -351,8 +237,11 @@ void MemoryRelObject::addTuple(Tuple* tup){
     }
 }
 
-bool MemoryRelObject::relToVector(GenericRelation* r, ListExpr le = 0,
-                        string _database = "", bool _flob = false) {
+bool MemoryRelObject::relToVector(
+                        GenericRelation* r, 
+                        ListExpr le,
+                        string _database = "", 
+                        bool _flob = false) {
     GenericRelationIterator* rit;
     rit = r->MakeScan();
     Tuple* tup;
@@ -381,9 +270,9 @@ bool MemoryRelObject::relToVector(GenericRelation* r, ListExpr le = 0,
             }
     }
     delete rit;
-    delete r;
     memSize = usedMainMemory;
-    objectTypeExpr = nl->ToString(le);
+    objectTypeExpr = nl->ToString(nl->TwoElemList( 
+                               listutils::basicSymbol<Mem>(),le));
     flob = _flob;
     database = _database;
     return true;
@@ -422,7 +311,11 @@ bool MemoryRelObject::tupleStreamToRel(Word arg, ListExpr le,
         }
     }
     memSize = usedMainMemory;
-    objectTypeExpr = nl->ToString(le);
+    objectTypeExpr = nl->ToString(nl->TwoElemList(
+                                  listutils::basicSymbol<Mem>(),
+                                  nl->TwoElemList( 
+                                    listutils::basicSymbol<Relation>(),
+                                    nl->Second(le))));
     flob = _flob;
     database = _database;
 
@@ -638,7 +531,8 @@ bool MemoryAttributeObject::attrToMM(Attribute* attr,
         }
     attributeObject = attr->Copy();
     memSize = usedMainMemory;
-    objectTypeExpr = nl->ToString(le);
+    objectTypeExpr = nl->ToString(nl->TwoElemList(
+                                     listutils::basicSymbol<Mem>(),le));
     flob = _flob;
     database = _database;
     return true;
@@ -648,12 +542,11 @@ bool MemoryAttributeObject::attrToMM(Attribute* attr,
 MemoryAVLObject::MemoryAVLObject(){};
 MemoryAVLObject::MemoryAVLObject( avltree::AVLTree< pair<Attribute*,size_t>,
             KeyComparator >* _tree, size_t _memSize, string _objectTypeExpr,
-            string _keyType,bool _flob, string _database){
+            bool _flob, string _database){
 
             tree = _tree;
             memSize = _memSize;
             objectTypeExpr = _objectTypeExpr;
-            keyType = _keyType;
             flob = _flob;
             database = _database;
             };
@@ -668,10 +561,6 @@ avltree::AVLTree< pair<Attribute*,size_t>,KeyComparator >*
         return tree;
 };
 
-string MemoryAVLObject::getKeyType(){
-
-        return keyType;
-};
 
 }//end namespace mmalgebra
 

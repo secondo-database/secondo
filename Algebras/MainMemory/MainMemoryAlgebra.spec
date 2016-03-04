@@ -33,8 +33,9 @@ operator mcreateRtree alias MCREATERTREE pattern _ op [_]
 operator memgetcatalog alias MEMGETCATALOG pattern op()
 operator memsize alias MEMSIZE pattern op()
 operator memclear alias MEMCLEAR pattern op()
-operator minsert alias MINSERT pattern op(_,_)
-operator mwindowintersects alias MWINDOWINTERSECTS pattern op(_,_,_)
+operator minsert alias MINSERT pattern _ op[_]
+operator mwindowintersects alias MWINDOWINTERSECTS pattern _ _ op[_]
+operator mwindowintersectsS alias MWINDOWINTERSECTSS pattern  _ op[_]
 operator mconsume alias MCONSUME pattern _ op
 #operator mcreateAVLtree alias MCREATEAVLTREE pattern op(_,_)
 operator mcreateAVLtree alias  MCREATEAVLTREE pattern _ op [_]
