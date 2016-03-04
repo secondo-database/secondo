@@ -302,7 +302,7 @@ string trim(string s, const string& delim = " \t\r\n")
 }
 
 
-int memload (Word* args, Word& result,
+int memload(Word* args, Word& result,
                     int message, Word& local, Supplier s, bool flob) {
 
     result  = qp->ResultStorage(s);

@@ -240,14 +240,18 @@ void MemoryRelObject::addTuple(Tuple* tup){
 bool MemoryRelObject::relToVector(
                         GenericRelation* r, 
                         ListExpr le,
-                        string _database = "", 
-                        bool _flob = false) {
+                        string _database, 
+                        bool _flob) {
+
     GenericRelationIterator* rit;
     rit = r->MakeScan();
     Tuple* tup;
     int tupleSize=0;
     unsigned long availableMemSize = catalog->getAvailabeMemSize();
     unsigned long usedMainMemory=0;
+    mmrel->clear();
+    this->flob = _flob;
+
     while ((tup = rit->GetNextTuple()) != 0){
         if (flob){
             tup->bringToMemory();
