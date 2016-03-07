@@ -263,6 +263,31 @@ Removes all entries from the tree.
    }
 
 
+ void destroy( void (*kill)(contenttype&)){
+    if(root){
+       destroy(root, kill);
+       delete root;
+       root = NULL;
+    }
+ }
+
+ static void destroy(AvlNode<contenttype,Comparator>* root,
+                void (*kill)(contenttype&)){
+    if(root->left){
+       destroy(root->left,kill);
+       delete root->left;
+       root->left = 0;
+    }
+    if(root->right){
+       destroy(root->right,kill);
+       delete root->right;
+       root->right=0;
+    }
+    kill(root->content);
+ }
+
+
+
 /*
 2.2 Copy Constructor
 
@@ -304,6 +329,9 @@ Creates a depth copy of the argument.
               : NULL;
        return  *this;
     }
+
+
+
 
 
 /*
