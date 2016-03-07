@@ -233,6 +233,39 @@ Example   : query "Kinos_GeoData_mtree2" "Kinos" mdistScan[alexanderplatz] head[
 Result    : TRUE
 
 
+Operator  : mcreateAVLtree2
+Number    : 39
+Signature : stream(tuple) x ident x ident x string -> mem(rel(tuple))
+Example   : query strassen feed addid mcreateAVLtree2[Name, TID, "strassen_Name7"]
+Result    : ( (mem (avltree string)) "strassen_Name7")
+
+Operator  : mexactmatchS
+Number    : 40
+Signature : {string, mem(avltree T) } x T -> stream(TID)
+Example   : query "strassen_Name7" mexactmatchS["Hirzerweg"] count
+Result    : 5
+
+Operator  : mrangeS
+Number    : 41  
+Signature : {string, mem(avltree T} x T x T -> stream(TID)
+Example   : query "strassen_Name7" mrangeS["A", "B"] count
+Result    : 247
+
+Operator  : matchbelowS
+Number    : 42  
+Signature : {string, mem(avltree T} x T -> stream(TID)
+Example   : query "strassen_Name7" matchbelowS["B"] count
+Result    : 1
+
+
+Operator  : memclear
+Number    : 43
+Signature : -> bool
+Example   : query memclear()
+Result    : TRUE
+
+
+
 
 
 

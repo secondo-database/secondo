@@ -54,8 +54,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RectangleAlgebra.h"
 
 
-std::ostream& operator<<(std::ostream& o, 
-                         const std::pair<Attribute*,size_t>& t);
+std::ostream& operator<<(std::ostream& o, const mmalgebra::avlPair& t);
 
 #include "AvlTree.h"
 
@@ -64,7 +63,7 @@ extern NestedList* nl;
 extern QueryProcessor *qp;
 extern SecondoSystem* instance;
 
-ostream& operator<<(ostream& o, const pair<Attribute*,size_t>& t){
+ostream& operator<<(ostream& o, const mmalgebra::avlPair& t){
   o << "(";
   t.first->Print(o);
   o << ", " << t.second   << ")";
@@ -77,6 +76,8 @@ namespace mmalgebra {
 MemCatalog* catalog;
 
 #define MEMORYMTREEOBJECT "memoryMTreeObject"
+
+
 
 
 /*
@@ -241,6 +242,69 @@ class StdDistComp{
 
 
 };
+
+
+template<class T>
+memAVLtree* getAVLtree(T* treeN, ListExpr subtype){
+   if(!treeN->IsDefined()){
+      return 0;
+   }
+   string treen = treeN->GetValue();
+   if(!catalog->isMMObject(treen) || !catalog->isAccessible(treen)){
+      return 0;
+   }
+   ListExpr treet = nl->Second(catalog->getMMObjectTypeExpr(treen));
+   if(!MemoryAVLObject::checkType(treet)){
+       return 0;
+   }
+   if(!nl->Equal(nl->Second(treet),subtype)){
+      return 0;
+   }
+   MemoryAVLObject* mao = (MemoryAVLObject*)catalog->getMMObject(treen);
+   return mao->getAVLtree();
+}
+
+
+template<class T>
+MemoryRelObject* getMemRel(T* relN, ListExpr tupleType){
+  if(!relN->IsDefined()){
+     return 0;
+  }
+  string reln = relN->GetValue();
+  if(!catalog->isMMObject(reln) || !catalog->isAccessible(reln)){
+    return 0;
+  }
+  ListExpr relType = nl->Second(catalog->getMMObjectTypeExpr(reln));
+  if(!Relation::checkType(relType)){
+     return 0;
+  }
+  if(!nl->Equal(nl->Second(relType), tupleType)){
+     return 0;
+  }
+  return (MemoryRelObject*) catalog->getMMObject(reln);
+}
+
+
+template<class T>
+MemoryAttributeObject* getMemAttribute(T* aN, ListExpr _type){
+  if(!aN->IsDefined()){
+     return 0;
+  }
+  string an = aN->GetValue();
+  if(!catalog->isMMObject(an) || !catalog->isAccessible(an)){
+    return 0;
+  }
+  ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(an));
+  if(!Attribute::checkType(type)){
+    return 0;
+  }
+  if(!nl->Equal(type,_type)){
+    return 0;
+  }
+  return (MemoryAttributeObject*) catalog->getMMObject(an);
+}
+
+
 
 
 
@@ -697,37 +761,11 @@ int mfeedValMap (Word* args, Word& result,
              local.addr=0;
           }
           T* oN = (T*) args[0].addr;
-          if(!oN->IsDefined()){
-             return 0;
-          }
-          string objectName = oN->GetValue();
-
-          MemoryObject* mo = catalog->getMMObject(objectName);
-          if(!mo){
-            cerr << "mfeed: object " << objectName << " not found" << endl;
+          MemoryRelObject* rel=getMemRel(oN, nl->Second(qp->GetType(s)));
+          if(!rel){
             return 0;
           }
-          ListExpr rt = catalog->getMMObjectTypeExpr(objectName);
-          if(!Mem::checkType(rt)){
-              cerr << "MainMemoryAlgebra internal error" << endl;
-              return 0;
-          }
-          rt = nl->Second(rt);
-          if(!Relation::checkType(rt)){
-              cerr << "Type mismatch in mfeed: not a relation " << endl;
-              return 0;
-          }
-          rt = nl->Second(rt);
-          if(!nl->Equal(rt, nl->Second(qp->GetType(s)))){
-              cerr << "Type mismatch in mfeed: attribute lists differ" << endl;
-              return 0;
-          }
-
-          //the type mapping assures that it is a main memory member
-          MemoryRelObject* mro = (MemoryRelObject*)mo;
-          vector<Tuple*>* relation;
-          relation = mro->getmmrel();
-          local.addr= new mfeedInfo(relation);
+          local.addr= new mfeedInfo(rel->getmmrel());
           return 0;
         }
 
@@ -1103,78 +1141,39 @@ ListExpr memobjectTypeMap(ListExpr args) {
 template<class T>
 int memobjectValMap (Word* args, Word& result,
                 int message, Word& local, Supplier s) {
-
-
         result = qp->ResultStorage(s);
-        bool isDATA = Attribute::checkType(qp->GetType(s));
+        ListExpr resType = qp->GetType(s);
         T* oN = (T*) args[0].addr;
-        if(!oN->IsDefined()){
-            if(isDATA){
-               Attribute* res = (Attribute*) result.addr;
-               res->SetDefined(0);
-            }
-            return 0;
-        }
-        string objectName = oN->GetValue();
-
-        if(   !catalog->isMMObject(objectName) 
-           || !catalog->isAccessible(objectName)){
-            cerr << "Object " << objectName << " not found in memory catalog"
-                 << endl;
-            if(isDATA){
-               Attribute* res = (Attribute*) result.addr;
-               res->SetDefined(0);
-            }
-            return 0;
-        }
-        ListExpr typeExpr = catalog->getMMObjectTypeExpr(objectName);
-        if(!Mem::checkType(typeExpr)){
-            cerr << "invalid type found in catalog" << endl;
-            if(isDATA){
-               Attribute* res = (Attribute*) result.addr;
-               res->SetDefined(0);
-            }
-            return 0;
-        }
-        typeExpr = nl->Second(typeExpr);
-        if(!nl->Equal(qp->GetType(s), typeExpr)){
-            cerr << "expected type and type found in catalog differ" << endl;
-            if(isDATA){
-               Attribute* res = (Attribute*) result.addr;
-               res->SetDefined(0);
-            }
-            return 0;
-        }
-
-        if(isDATA){
-            MemoryAttributeObject* memObject =
-                    (MemoryAttributeObject*)catalog->getMMObject(objectName);
-            Attribute* attr = (Attribute*) result.addr;
-            attr->CopyFrom(memObject->getAttributeObject());
-            result.setAddr(attr);
-            return 0;
-        }
-    
-        if(Relation::checkType(typeExpr)){ 
-            MemoryRelObject* memObject =
-                    (MemoryRelObject*)catalog->getMMObject(objectName);
-            GenericRelation* rel = (GenericRelation*)result.addr;
-            if(rel->GetNoTuples() > 0) {
-                rel->Clear();
+        if(Attribute::checkType(resType)){  // Attribute
+           MemoryAttributeObject* mao = getMemAttribute(oN, resType);
+           if(!mao){
+              ((Attribute*) result.addr)->SetDefined(false);
+              return 0;
+           }
+           ((Attribute*) result.addr)->CopyFrom(mao->getAttributeObject());
+           return 0;
+        } else if(Relation::checkType(resType)){ // relation
+           GenericRelation* r = (GenericRelation*) result.addr;
+            if(r->GetNoTuples() > 0) {
+                r->Clear();
             }
 
-            vector<Tuple*>* relation = memObject->getmmrel();
-            vector<Tuple*>::iterator it;
-            it=relation->begin();
+           MemoryRelObject* mro = getMemRel(oN, nl->Second(resType));
+           if(!mro){
+              return 0;
+           }
+           vector<Tuple*>* relation = mro->getmmrel();
+           vector<Tuple*>::iterator it;
+           it=relation->begin();
 
-            while( it!=relation->end()){
+           while( it!=relation->end()){
                 Tuple* tup = *it;
-                rel->AppendTuple(tup);
+                r->AppendTuple(tup);
                 it++;
             }
             return 0;
         }
-        cerr << "memObject: unsupported Type" << endl;
+        assert(false); // unsupported type
         return 0;
 }
 
@@ -1870,7 +1869,7 @@ bool mcreateRtree(MemoryRelObject* mmrel,
 
     StandardSpatialAttribute<dim>* attr=0;
     size_t usedMainMemory=0;
-    unsigned long availableMemSize = catalog->getAvailabeMemSize();
+    unsigned long availableMemSize = catalog->getAvailableMemSize();
     while( it!=relVec->end()){
         Tuple* tup = *it;
         attr=(StandardSpatialAttribute<dim>*)tup->GetAttribute(attrPos);
@@ -2118,7 +2117,7 @@ int mcreateRtree2ValMapT (Word* args, Word& result,
     Mem* str = static_cast<Mem*>(result.addr);
     bool succeed = false;
     size_t usedMainMemory=0;
-    unsigned long availableMemSize = catalog->getAvailabeMemSize();
+    unsigned long availableMemSize = catalog->getAvailableMemSize();
 
     //get r-tree name
     string name = ((CcString*)args[2].addr)->GetValue();
@@ -2477,28 +2476,11 @@ int minsertValMap (Word* args, Word& result,
                local.addr=0;
             }
             T* oN = (T*) args[1].addr;
-            if(!oN->IsDefined()){
-                return 0;
-            }
-            string objectName = oN->GetValue();
-            if(!catalog->isMMObject(objectName)){
+            ListExpr tt = nl->Second(qp->GetType(qp->GetSon(s,0)));
+            MemoryRelObject* mro = getMemRel(oN,tt);
+            if(!mro){
               return 0;
             }
-            ListExpr memType = catalog->getMMObjectTypeExpr(objectName);
-            if(!Mem::checkType(memType)){
-              return 0;
-            }
-            memType = nl->Second(memType);
-            if(!Relation::checkType(memType)){
-               return 0;
-            }
-            ListExpr st = qp->GetType(qp->GetSon(s,0));
-            if(!nl->Equal(nl->Second(st), nl->Second(memType))){
-               return 0;
-            }
-            MemoryRelObject* mro =
-                    (MemoryRelObject*)catalog->getMMObject(objectName);
-
             local.addr = new minsertInfo(args[0], mro->getmmrel(), 
                                          mro->hasflob()); 
             return 0;
@@ -2689,25 +2671,18 @@ int mwindowintersectsValMapT (Word* args, Word& result,
              typedef StandardSpatialAttribute<dim> W;
              typedef  MemoryRtreeObject<dim> treetype;
              W* window = (W*) args[2].addr;
-             if(    !tree->IsDefined() || !rel->IsDefined() 
-                 || !window->IsDefined()){
+             ListExpr tupleT = nl->Second(qp->GetType(s));
+             MemoryRelObject* mro = getMemRel(rel,tupleT);
+             if(!mro){
+               return 0;
+             }
+             if( !tree->IsDefined()  || !window->IsDefined()){
                  return 0;
              }
              string ts = tree->GetValue();
-             string rs = rel->GetValue();
              Rectangle<dim> box = window->BoundingBox();
-             if(!catalog->isMMObject(ts) || !catalog->isMMObject(rs)
-                || !box.IsDefined()){
+             if(!catalog->isMMObject(ts) || !box.IsDefined()){
                 return 0;
-             }
-             ListExpr rt = nl->Second(catalog->getMMObjectTypeExpr(rs));
-             if(!Relation::checkType(rt)){
-                // not a relation
-                return 0;
-             }
-             if(!nl->Equal(nl->Second(rt) , nl->Second(qp->GetType(s)))){
-               // different tuple types
-               return 0;
              }
              ListExpr tt = nl->Second(catalog->getMMObjectTypeExpr(ts));
              if(!rtreehelper::checkType(tt)){
@@ -2718,10 +2693,9 @@ int mwindowintersectsValMapT (Word* args, Word& result,
              if(rtdim != dim){
                  return 0;
              }  
-             MemoryRelObject* r = (MemoryRelObject*) catalog->getMMObject(rs);
              treetype* t = (treetype*) catalog->getMMObject(ts);
-             local.addr = new mwiInfo<dim>(t, r, box);
-          return 0;
+             local.addr = new mwiInfo<dim>(t, mro, box);
+             return 0;
         }
 
         case REQUEST:
@@ -3195,18 +3169,17 @@ int mcreateAVLtreeValMapT (Word* args, Word& result,
     it=relVec->begin();
     unsigned int i=0;
 
-    avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree
-            = new avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >;
+    memAVLtree* tree = new memAVLtree();
     Attribute* attr;
-    pair<Attribute*,size_t> aPair;
+    avlPair aPair;
 
     size_t usedMainMemory = 0;
-    unsigned long availableMemSize = catalog->getAvailabeMemSize();
+    unsigned long availableMemSize = catalog->getAvailableMemSize();
 
     while ( it!=relVec->end()){
         Tuple* tup = *it;
         attr=tup->GetAttribute(attrPos);
-        aPair = pair<Attribute*,size_t>(attr,i);
+        aPair = avlPair(attr->Copy(),i);
         // size for a pair is 16 bytes, plus an additional pointer 8 bytes
         size_t entrySize = 24;
         if (entrySize<availableMemSize){
@@ -3286,6 +3259,149 @@ Operator mcreateAVLtreeOp (
 
 
 /*
+5.17 Operator createAVLtree2
+
+This operator creates an AVL tree from a tuple stream.
+
+*/
+ListExpr mcreateAVLtree2TM(ListExpr args){
+  string err = "stream(tuple) x Ident x Indent x string expected";
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError(err + " ( first arg is not a tuple stream)");
+  }
+  if(nl->AtomType(nl->Second(args)) != SymbolType){
+    return listutils::typeError(err + " (second arg is not a "
+                                "valid identifier)");
+  }
+  if(nl->AtomType(nl->Third(args)) != SymbolType){
+    return listutils::typeError(err + " (third arg is not a "
+                                "valid identifier)");
+  }
+  if(!CcString::checkType(nl->Fourth(args))){
+    return listutils::typeError(err+ " (fourth arg is not a string)");
+  }
+
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  string keyName = nl->SymbolValue(nl->Second(args));
+  string tidName = nl->SymbolValue(nl->Third(args));
+  ListExpr keyType;
+  int keyIndex = listutils::findAttribute(attrList, keyName, keyType);
+  if(!keyIndex){
+     return listutils::typeError("attribute " + keyName 
+                                 + " not found in tuple");
+  }
+  ListExpr tidType;
+  int tidIndex = listutils::findAttribute(attrList, tidName, tidType);
+  if(!tidIndex){
+     return listutils::typeError("attribute " + tidName 
+                                 + " not found in tuple");
+  }
+  if(!TupleIdentifier::checkType(tidType)){
+     return listutils::typeError("attribute " + tidName + " is not a tid");
+  }
+  ListExpr resType = nl->TwoElemList(
+                          listutils::basicSymbol<Mem>(),
+                          nl->TwoElemList(
+                               listutils::basicSymbol<MemoryAVLObject>(),
+                               keyType));
+
+  return nl->ThreeElemList(
+                  nl->SymbolAtom(Symbols::APPEND()),
+                  nl->TwoElemList( nl->IntAtom(keyIndex-1),
+                                   nl->IntAtom(tidIndex-1)),
+                  resType);
+}
+
+
+int mcreateAVLtree2VM (Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+    result = qp->ResultStorage(s);
+    Mem* res = (Mem*) result.addr;
+
+    CcString* memName = (CcString*) args[3].addr;
+    if(!memName->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+    }
+    string name = memName->GetValue();
+    if(catalog->isMMObject(name)){
+      res->SetDefined(false);
+      return 0;
+    }
+
+    int keyIndex = ((CcInt*) args[4].addr)->GetValue();
+    int tidIndex = ((CcInt*) args[5].addr)->GetValue();
+
+    Stream<Tuple> stream(args[0]);
+    Tuple* tuple;
+    memAVLtree* tree = new memAVLtree();
+
+    stream.open();
+    size_t availableMem = catalog->getAvailableMemSize();
+    size_t usedMem = 0;
+    size_t count = 0;
+
+    while((tuple=stream.request()) && (usedMem < availableMem)){
+      TupleIdentifier* tid = (TupleIdentifier*) tuple->GetAttribute(tidIndex);
+      if(tid->IsDefined()){
+          count++;
+          Attribute* key = tuple->GetAttribute(keyIndex);
+          key->bringToMemory();
+          key = key->Copy();
+          avlPair p(key, tid->GetTid());
+          usedMem += key->GetMemSize() + sizeof(size_t);
+          tree->insert(p); 
+      }
+      tuple->DeleteIfAllowed();
+    }
+    stream.close();
+    if(usedMem > availableMem){
+       delete tree;         
+       res->SetDefined(false);
+       return 0;
+    }
+    MemoryAVLObject* mo = new MemoryAVLObject(tree, usedMem, 
+                       nl->ToString(qp->GetType(s)), true, getDBname());
+
+    bool success = catalog->insert(name, mo);
+    if(!success){
+       delete mo;
+    }
+    res->set(success,name);
+    return 0;
+}
+
+
+OperatorSpec mcreateAVLtree2Spec(
+  "stream(tuple) x Ident x Ident x string -> mem(avltree ...)",
+  "_ mcreateAVLtree2[_,_,_] ",
+  "creates an avl tree over an tuple stream. The second argument "
+  "specifies the attribute over that the index ist to build, the "
+  "third argument specifies a TID attribute within the tuple. "
+  "The last argument specifies the name in the memory representation",
+  "query strassen feed addid createAVLtree2[Name, TID, \"strassen_Name\"]"
+);
+
+
+Operator mcreateAVLtree2Op (
+    "mcreateAVLtree2",
+    mcreateAVLtree2Spec.getStr(),
+    mcreateAVLtree2VM,
+    Operator::SimpleSelect,
+    mcreateAVLtree2TM
+);
+
+
+
+
+
+
+/*
 5.17 Operator ~mexactmatch~
         Uses the given MemoryAVLObject (as first argument)to find all tuples
         in the given MemoryRelObject (as second argument)
@@ -3346,14 +3462,14 @@ ListExpr mexactmatchTypeMap(ListExpr args)
 class avlOperLI{
     public:
         avlOperLI(
-           avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* _tree,
+           memAVLtree* _tree,
            vector<Tuple*>* _relation, 
            Attribute* _attr1,
            Attribute* _attr2, 
            string _keyType)
            :relation(_relation), tree(_tree), attr1(_attr1), attr2(_attr2),
            keyType(_keyType){
-           it = tree->tail(pair<Attribute*,size_t>(attr1,0));
+           it = tree->tail(avlPair(attr1,0));
            res = true; 
         }
 
@@ -3406,7 +3522,7 @@ class avlOperLI{
             if (res){
                 int i = relation->size();
                 hit = tree->GetNearestSmallerOrEqual
-                            (pair<Attribute*,size_t>(attr1,i));
+                            (avlPair(attr1,i));
                 if (hit==0){
                     return 0;
                 }
@@ -3420,13 +3536,12 @@ class avlOperLI{
 
     private:
         vector<Tuple*>* relation;
-        avltree::AVLTree< pair<Attribute*,size_t>, KeyComparator >* tree;
+        memAVLtree* tree;
         Attribute* attr1;
         Attribute* attr2;
         string keyType;
-        avltree::AVLTree< pair<Attribute*, size_t>,
-                            KeyComparator >::iterator it;
-        const pair<Attribute*,size_t>* hit;
+        avlIterator  it;
+        const avlPair* hit;
         bool res;
 };
 
@@ -3450,52 +3565,23 @@ int mexactmatchVMT (Word* args, Word& result,
                 delete li;
                 local.addr=0;
             }
-            T* tree = (T*) args[0].addr;
-            R* rel = (R*) args[1].addr;
-            Attribute* key = (Attribute*) args[2].addr;
-
-            if(!tree->IsDefined() || !rel->IsDefined()){
-               return 0;
-            }
-
-            string treeN = tree->GetValue();
-            string relN = rel->GetValue();
-            if(!catalog->isMMObject(treeN) || ! catalog->isMMObject(relN)){
-               cerr << "not a memory object" << endl;
-               return 0;
-            }
-            ListExpr treeT = catalog->getMMObjectTypeExpr(treeN);
-            ListExpr relT = catalog->getMMObjectTypeExpr(relN);
-            if(!Mem::checkType(treeT) || !Mem::checkType(relT)){
-              cerr << "internal error" << endl;
+            T* treeN = (T*) args[0].addr;
+            ListExpr subtype = qp->GetType(qp->GetSon(s,2));
+            memAVLtree* tree = getAVLtree(treeN, subtype);
+            if(!tree){
               return 0;
             }
-            treeT = nl->Second(treeT);
-            relT = nl->Second(relT);
-            if(   !MemoryAVLObject::checkType(treeT) 
-               || !Relation::checkType(relT)){
-               cerr << "invalid type" << endl;
-               return 0;
-            }
-            ListExpr keyT = qp->GetType(qp->GetSon(s,2));
-            if(!nl->Equal(keyT, nl->Second(treeT))){
-               cerr << "avl type and key type differ" << endl;
-               return 0;
-            }
-            if(!nl->Equal(nl->Second(relT), nl->Second(qp->GetType(s)))){
-                cerr << "unexpected tuple description" << endl;
-                return 0;
-            }
-            MemoryAVLObject* avlObject =
-                    (MemoryAVLObject*)catalog->getMMObject(treeN);
 
-            MemoryRelObject* mro =
-                    (MemoryRelObject*)catalog->getMMObject(relN);
-
-            local.addr= new avlOperLI(avlObject->getAVLtree(),
+            R* relN = (R*) args[1].addr;
+            MemoryRelObject* mro = getMemRel(relN, nl->Second(qp->GetType(s)));
+            if(!mro){
+              return 0;
+            }
+            Attribute* key = (Attribute*) args[2].addr;
+            local.addr= new avlOperLI(tree,
                                       mro->getmmrel(),
                                       key,key,
-                                      nl->ToString(keyT));
+                                      nl->ToString(subtype));
             return 0;
         }
 
@@ -3674,39 +3760,23 @@ int mrangeVMT (Word* args, Word& result,
                 delete li;
                 local.addr=0;
             }
-            T* tree = (T*) args[0].addr;
-            R* rel = (R*) args[1].addr;
-            if(!tree->IsDefined() || !rel->IsDefined()){
-               cerr << "undefined object" << endl;
-               return 0;
-            }
-            string treeN = tree->GetValue();
-            string relN = rel->GetValue();
-            if(!catalog->isMMObject(treeN) || !catalog->isMMObject(relN)){
-               cerr << "memory object not found" << endl;
-               return 0;
-            } 
-            ListExpr treeT = nl->Second(catalog->getMMObjectTypeExpr(treeN));
-            ListExpr relT = nl->Second(catalog->getMMObjectTypeExpr(relN));
-            if(   !MemoryAVLObject::checkType(treeT) 
-               || !Relation::checkType(relT)){
-               cerr << "detected type problem";
-               return 0;
-            }
+            T* treeN = (T*) args[0].addr;
+
             ListExpr keyT = qp->GetType(qp->GetSon(s,2));
-            if(!nl->Equal(nl->Second(treeT), keyT)){
-              cerr << "avl key differs to range keys";
+            memAVLtree* tree = getAVLtree(treeN, keyT); 
+            if(!tree){
               return 0;
             }
-            MemoryAVLObject* avlObject =
-                    (MemoryAVLObject*)catalog->getMMObject(treeN);
 
-            MemoryRelObject* mro =
-                    (MemoryRelObject*)catalog->getMMObject(relN);
+
+            R* relN = (R*) args[1].addr;
+            MemoryRelObject* mro = getMemRel(relN, nl->Second(qp->GetType(s)));
+            if(!mro){
+              return 0;
+            }
             Attribute* key1 = (Attribute*) args[2].addr;
             Attribute* key2 = (Attribute*) args[3].addr;
-
-            local.addr= new avlOperLI(avlObject->getAVLtree(),
+            local.addr= new avlOperLI(tree,
                                       mro->getmmrel(),
                                       key1,key2,
                                       nl->ToString(keyT));
@@ -3769,6 +3839,270 @@ Operator mrangeOp (
     mrangeVM,
     mrangeSelect,
     mrangeTypeMap
+);
+
+
+
+/*
+Operators providing a tid-stream
+
+mexactzmatchS
+mrangeS
+matchbelowS
+
+*/
+ListExpr mexactmatchSTM(ListExpr args){
+  string err =" (mem (avl T)) x T  expected";
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError(err + " (wrong number of args)");
+  }
+  string errMsg;
+  ListExpr a1 = nl->First(args);
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
+    return listutils::typeError(err + "\n problem in 1st arg: " + errMsg);
+  }
+  a1 = nl->Second(a1);
+  if(!MemoryAVLObject::checkType(a1)){
+    return listutils::typeError(err + " (1st arg i not an avl tree)");
+  }
+  if(!nl->Equal(nl->Second(a1), nl->First(nl->Second(args)))){
+     return listutils::typeError("avl type and search type differ");
+  }
+  return nl->TwoElemList( listutils::basicSymbol<Stream<TupleIdentifier> >(),
+                          listutils::basicSymbol<TupleIdentifier>());
+}
+
+ListExpr mrangeSTM(ListExpr args){
+  string err =" (mem (avl T)) x T x T  expected";
+  if(!nl->HasLength(args,3)){
+     return listutils::typeError(err + " (wrong number of args)");
+  }
+  string errMsg;
+  ListExpr a1 = nl->First(args);
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
+    return listutils::typeError(err + "\n problem in 1st arg: " + errMsg);
+  }
+  a1 = nl->Second(a1);
+  if(!MemoryAVLObject::checkType(a1)){
+    return listutils::typeError(err + " (1st arg i not an avl tree)");
+  }
+  if(!nl->Equal(nl->Second(a1), nl->First(nl->Second(args)))){
+     return listutils::typeError("avl type and search type  1 differ");
+  }
+  if(!nl->Equal(nl->Second(a1), nl->First(nl->Third(args)))){
+     return listutils::typeError("avl type and search type 2 differ");
+  }
+  
+  return nl->TwoElemList( listutils::basicSymbol<Stream<TupleIdentifier> >(),
+                          listutils::basicSymbol<TupleIdentifier>());
+}
+
+
+class AVLOpS{
+
+  public:
+     AVLOpS(memAVLtree* _tree, 
+            Attribute* _beg, Attribute* _end): 
+        tree(_tree), end(_end){
+        it = tree->tail(avlPair(_beg,0));
+     }
+
+     TupleIdentifier* next(){
+         if(it.onEnd()){
+           return 0;
+         } 
+         const avlPair* p = *it;
+         it++;
+         int cmp = p->first->Compare(end);
+         if(cmp>0){
+           return 0;
+         }
+         return new TupleIdentifier(true,p->second);
+     }
+
+
+   private:
+       memAVLtree* tree;
+       Attribute* end;
+       avlIterator it;
+};
+
+
+template<class T>
+int mrangeSVMT (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+
+  AVLOpS* li = (AVLOpS*) local.addr;
+  switch(message){
+     case OPEN:{
+        if(li){
+          delete li;
+          local.addr = 0;
+        }
+        T* treeN = (T*) args[0].addr;
+        memAVLtree* tree = getAVLtree(treeN, qp->GetType(qp->GetSon(s,1)));
+        if(!tree){
+           return 0;
+        }
+        Attribute* beg = (Attribute*) args[1].addr;
+        Attribute* end = (Attribute*) args[qp->GetNoSons(s)-1].addr;
+        local.addr = new AVLOpS(tree,beg,end);
+        return 0;
+     }
+     case REQUEST: {
+        result.addr = li?li->next():0;
+        return result.addr?YIELD:CANCEL;
+     }
+          
+     case CLOSE:{
+         if(li){
+            delete li;
+            local.addr = 0;
+         }
+         return 0;
+     }
+  }
+  return -1;
+}
+
+
+ValueMapping mrangeSVM[] = {
+   mrangeSVMT<CcString>,
+   mrangeSVMT<Mem>
+};
+
+int mrangeSSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+
+OperatorSpec mexactmatchSSpec(
+  "{string, mem(avltree T) x T -> stream(tid) ",
+  "_ memexactmatch[_]",
+  "Retrieves the tuple ids from an avl-tree whose "
+  "keys have the value given by the second arg.",
+  "query \"strassen_Name\" mexactmatch[\"Hirzerweg\"] count"
+);
+
+OperatorSpec mrangeSSpec(
+  "{string, mem(avltree T) x T x T -> stream(tid)",
+  "_ mrangeS[_,_] ",
+  "Retrives the tuple ids from an avl-tree whose key "
+  "is withing the range defined by the arguments.",
+  "query \"strassen_Name\" mrangeS[\"A\",\"B\"] count"
+);
+
+Operator mexactmatchSOp(
+  "mexactmatchS",
+  mexactmatchSpec.getStr(),
+  2,
+  mrangeSVM,
+  mrangeSSelect,
+  mexactmatchSTM
+);
+
+Operator mrangeSOp(
+  "mrangeS",
+  mrangeSpec.getStr(),
+  2,
+  mrangeSVM,
+  mrangeSSelect,
+  mrangeSTM
+);
+
+
+ListExpr matchbelowSTM(ListExpr args){
+  string err =" (mem (avl T)) x T  expected";
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError(err + " (wrong number of args)");
+  }
+  string errMsg;
+  ListExpr a1 = nl->First(args);
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
+    return listutils::typeError(err + "\n problem in 1st arg: " + errMsg);
+  }
+  a1 = nl->Second(a1);
+  if(!MemoryAVLObject::checkType(a1)){
+    return listutils::typeError(err + " (1st arg i not an avl tree)");
+  }
+  if(!nl->Equal(nl->Second(a1), nl->First(nl->Second(args)))){
+     return listutils::typeError("avl type and search type differ");
+  }
+  return nl->TwoElemList( listutils::basicSymbol<Stream<TupleIdentifier> >(),
+                          listutils::basicSymbol<TupleIdentifier>());
+}
+
+
+template<class T>
+int matchbelowSVMT (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+   TupleIdentifier* tid = (TupleIdentifier*) local.addr;
+   switch (message){
+      case OPEN: {
+           if(tid){
+             delete tid;
+             local.addr=0;
+           }
+           T* treeN = (T*) args[0].addr;
+           memAVLtree* tree = getAVLtree(treeN, qp->GetType(qp->GetSon(s,1)));
+           if(!tree){
+             return 0;
+           }
+
+
+           Attribute* attr = (Attribute*) args[1].addr;
+           avlPair searchP(attr, numeric_limits<size_t>::max()); 
+           const avlPair* p = tree->GetNearestSmallerOrEqual(searchP);
+           if(p){
+              local.addr = new TupleIdentifier(true,p->second);
+           } 
+           return 0;
+      }
+      case REQUEST : {
+             result.addr = tid;
+             local.addr = 0;
+             return result.addr?YIELD:CANCEL;
+      }
+      case CLOSE :{
+             if(tid){
+                delete tid;
+                local.addr = 0;
+             }
+             return 0;
+      }
+
+   }
+   return -1;
+}
+
+ValueMapping matchbelowSVM[] = {
+   matchbelowSVMT<CcString>,
+   matchbelowSVMT<Mem>
+};
+
+int matchbelowSSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec matchbelowSSpec(
+  "{string, mem(avltree T) x T -> stream(TID) ",
+  "_ matchbelowS[_]",
+  "Returns the tid of the entry in the avl tree whose key "
+  "is smaller or equal to the key attribute. If the given "
+  "key is smaller than all stored values, the resulting stream "
+  "will be empty.",
+  "query \"strassen_Name\" matchbelowS[\"B\"] count"
+);
+
+Operator matchbelowSOp(
+  "matchbelowS",
+  matchbelowSSpec.getStr(),
+  2,
+  matchbelowSVM,
+  matchbelowSSelect,
+  matchbelowSTM
 );
 
 
@@ -4598,26 +4932,25 @@ int mdistRangeVMT (Word* args, Word& result, int message,
                  local.addr = 0;
                }
                T* tree = (T*) args[0].addr;
-               R* rel = (R*) args[1].addr;
+               R* relN = (R*) args[1].addr;
                CcReal* dist = (CcReal*) args[3].addr;
-               if(!tree->IsDefined() || !rel->IsDefined()
-                  || !dist->IsDefined()){
+               MemoryRelObject* rel = getMemRel(relN, 
+                                         nl->Second(qp->GetType(s)));
+               if(!rel){
+                 return 0;
+               }
+
+               if(!tree->IsDefined() || !dist->IsDefined()){
                  cerr << "tree, rel or dist undefined" << endl;
                  return 0;
                }          
                string treeN = tree->GetValue();
-               string relN = rel->GetValue();
 
-               if(!catalog->isMMObject(treeN) || !catalog->isMMObject(relN)){
+               if(!catalog->isMMObject(treeN)){
                   cerr << "tree or rel not found in memory" << endl;
                   return 0;
                }
-               ListExpr relT = nl->Second(catalog->getMMObjectTypeExpr(relN));
                ListExpr treeT = nl->Second(catalog->getMMObjectTypeExpr(treeN));
-               if(!Relation::checkType(relT)){
-                  cerr << "second arg is not a relation" << endl;
-                  return 0;
-               }
                if(   !nl->HasLength(treeT,2) 
                   || !listutils::isSymbol(nl->First(treeT), 
                         mtreehelper::BasicType())){
@@ -4632,10 +4965,8 @@ int mdistRangeVMT (Word* args, Word& result, int message,
                MemoryMtreeObject<pair<K,TupleId>, StdDistComp<K> >* m =
                     (MemoryMtreeObject<pair<K,TupleId>, StdDistComp<K> >*) 
                       catalog->getMMObject(treeN);
-               MemoryRelObject* relo = (MemoryRelObject*) 
-                         catalog->getMMObject(relN);
-               if(m && relo){
-                   local.addr = new distRangeInfo<K>(m,relo,key,d);
+               if(m){
+                   local.addr = new distRangeInfo<K>(m,rel,key,d);
                 }
                return 0;
              }
@@ -4809,24 +5140,22 @@ int mdistScanVMT (Word* args, Word& result, int message,
                  local.addr = 0;
                }
                T* tree = (T*) args[0].addr;
-               R* rel = (R*) args[1].addr;
-               if(!tree->IsDefined() || !rel->IsDefined()){
+               R* relN = (R*) args[1].addr;
+               MemoryRelObject* mro=getMemRel(relN, nl->Second(qp->GetType(s)));
+               if(!mro){
+                 return 0;
+               }
+ 
+
+               if(!tree->IsDefined()){
                  // undefined mem object
                  return 0;
                }
-               string relN = rel->GetValue();
                string treeN = tree->GetValue();
-               if(   !catalog->isMMObject(relN) 
-                  || !catalog->isMMObject(treeN)){
+               if(!catalog->isMMObject(treeN)){
                  // not found in memory
                  return 0;
                } 
-               ListExpr relT = nl->Second(catalog->getMMObjectTypeExpr(relN));
-               if(!Relation::checkType(relT)){
-                 // second arg is not a relation
-                 return 0;
-               }
-
                ListExpr treeT = nl->Second(catalog->getMMObjectTypeExpr(treeN));
                if(   !nl->HasLength(treeT,2) 
                   || !listutils::isSymbol(nl->First(treeT),
@@ -4842,10 +5171,8 @@ int mdistScanVMT (Word* args, Word& result, int message,
                MemoryMtreeObject<pair<K,TupleId>, StdDistComp<K> >* m =
                        (MemoryMtreeObject<pair<K,TupleId>, StdDistComp<K> >*) 
                         catalog->getMMObject(treeN);
-               MemoryRelObject* relo = (MemoryRelObject*) 
-                        catalog->getMMObject(relN);
-               if(m && rel){
-                     local.addr = new distScanInfo<K>(m,relo,key);
+               if(m){
+                     local.addr = new distScanInfo<K>(m,mro,key);
                }
                return 0;
              }
@@ -5002,6 +5329,7 @@ class MainMemoryAlgebra : public Algebra
         AddOperator (&mcreateAVLtreeOp);
         mcreateAVLtreeOp.SetUsesArgsInTypeMapping();
 
+        AddOperator (&mcreateAVLtree2Op);
         AddOperator (&mexactmatchOp);
         mexactmatchOp.SetUsesArgsInTypeMapping();
 
@@ -5022,6 +5350,12 @@ class MainMemoryAlgebra : public Algebra
         AddOperator(&mdistScanOp);
         mdistScanOp.SetUsesArgsInTypeMapping();
 
+        AddOperator(&mexactmatchSOp);
+        mexactmatchSOp.SetUsesArgsInTypeMapping();
+        AddOperator(&mrangeSOp);
+        mrangeSOp.SetUsesArgsInTypeMapping();
+        AddOperator(&matchbelowSOp);
+        matchbelowSOp.SetUsesArgsInTypeMapping();
 
         }
         ~MainMemoryAlgebra() {
@@ -5064,7 +5398,5 @@ InitializeMainMemoryAlgebra(NestedList* nlRef, QueryProcessor* qpRef)
 
   return (new mmalgebra::MainMemoryAlgebra);
 }
-
-
 
 

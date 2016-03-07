@@ -37,7 +37,7 @@ operator minsert alias MINSERT pattern _ op[_]
 operator mwindowintersects alias MWINDOWINTERSECTS pattern _ _ op[_]
 operator mwindowintersectsS alias MWINDOWINTERSECTSS pattern  _ op[_]
 operator mconsume alias MCONSUME pattern _ op
-#operator mcreateAVLtree alias MCREATEAVLTREE pattern op(_,_)
+operator mcreateAVLtree2 alias MCREATEAVLTREE2 pattern _ op[_,_,_]
 operator mcreateAVLtree alias  MCREATEAVLTREE pattern _ op [_]
 operator mexactmatch alias MEXACTMATCH pattern _ _ op [_]
 operator mrange alias MRANGE pattern _ _ op [_, _]
@@ -54,4 +54,6 @@ operator mdistScan alias MDISTSCAN  pattern _ _ op [_]
 
 
 
-
+operator mexactmatchS alias MEXACTMATCHS pattern _ op [_]
+operator mrangeS alias MRANGES pattern _ op[_,_]
+operator matchbelowS alias MATCHBELOWS pattern _ op[_]

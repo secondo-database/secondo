@@ -53,7 +53,7 @@ unsigned long MemCatalog::getUsedMemSize() {
             return usedMemSize;
 }
 
-unsigned long MemCatalog::getAvailabeMemSize() {
+unsigned long MemCatalog::getAvailableMemSize() {
 
     return (memSizeTotal*1024*1024)-(usedMemSize);
 }
@@ -224,7 +224,7 @@ void MemoryRelObject::addTuple(Tuple* tup){
     size_t tupleSize = 0;
     tupleSize = tup->GetMemSize();
     unsigned long availableMemSize =
-            catalog->getAvailabeMemSize();
+            catalog->getAvailableMemSize();
     if ((size_t)tupleSize<availableMemSize){
         tup->SetTupleId(mmrel->size());
         mmrel->push_back(tup);
@@ -247,7 +247,7 @@ bool MemoryRelObject::relToVector(
     rit = r->MakeScan();
     Tuple* tup;
     int tupleSize=0;
-    unsigned long availableMemSize = catalog->getAvailabeMemSize();
+    unsigned long availableMemSize = catalog->getAvailableMemSize();
     unsigned long usedMainMemory=0;
     mmrel->clear();
     this->flob = _flob;
@@ -286,7 +286,7 @@ bool MemoryRelObject::tupleStreamToRel(Word arg, ListExpr le,
                 string _database = "", bool _flob = false){
 
     Stream<Tuple> stream(arg);
-    size_t availableMemSize = catalog->getAvailabeMemSize();
+    size_t availableMemSize = catalog->getAvailableMemSize();
     unsigned long usedMainMemory =0;
     Tuple* tup;
     int tupleSize = 0;
@@ -523,7 +523,7 @@ Attribute* MemoryAttributeObject::getAttributeObject(){
 
 bool MemoryAttributeObject::attrToMM(Attribute* attr,
             ListExpr le, string _database, bool _flob){
-    size_t availableMemSize = catalog->getAvailabeMemSize();
+    size_t availableMemSize = catalog->getAvailableMemSize();
     unsigned long usedMainMemory=0;
     if(_flob){
         attr->bringToMemory();
@@ -544,9 +544,11 @@ bool MemoryAttributeObject::attrToMM(Attribute* attr,
 
 
 MemoryAVLObject::MemoryAVLObject(){};
-MemoryAVLObject::MemoryAVLObject( avltree::AVLTree< pair<Attribute*,size_t>,
-            KeyComparator >* _tree, size_t _memSize, string _objectTypeExpr,
-            bool _flob, string _database){
+MemoryAVLObject::MemoryAVLObject( memAVLtree* _tree, 
+                                  size_t _memSize, 
+                                  const string& _objectTypeExpr,
+                                  bool _flob, 
+                                  const string& _database){
 
             tree = _tree;
             memSize = _memSize;
@@ -554,15 +556,22 @@ MemoryAVLObject::MemoryAVLObject( avltree::AVLTree< pair<Attribute*,size_t>,
             flob = _flob;
             database = _database;
             };
+
+
+void pairdestroy(avlPair& p){
+  p.first->DeleteIfAllowed();
+  p.first = 0;
+}
+
 MemoryAVLObject::~MemoryAVLObject(){
     if (tree){
+        tree->destroy(pairdestroy);
         delete tree;
     }
 }
 
-avltree::AVLTree< pair<Attribute*,size_t>,KeyComparator >*
-                                MemoryAVLObject::getAVLtree(){
-        return tree;
+memAVLtree* MemoryAVLObject::getAVLtree(){
+    return tree;
 };
 
 

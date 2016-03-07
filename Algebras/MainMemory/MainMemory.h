@@ -56,7 +56,7 @@ class MemCatalog {
             usedMemSize = usedMemSize + i;
         }
 
-        unsigned long getAvailabeMemSize();  //in Byte
+        unsigned long getAvailableMemSize();  //in Byte
 
         std::map<std::string,MemoryObject*>* getMemContent();
 
@@ -277,19 +277,69 @@ class MemoryMtreeObject : public MemoryObject {
 };
 
 
+typedef std::pair<Attribute*, size_t> avlPair;
+
+class KeyComparator{
+
+    public:
+        static bool smaller(const avlPair& o1,
+                            const avlPair& o2){
+
+
+            Attribute* thisAttr = o1.first;
+            Attribute* rhs = o2.first;
+            int res  = thisAttr->Compare(rhs);
+            if (res < 0 ) {
+                return true;
+            }
+            if( res > 0){
+              return false;
+            }
+            return o1.second < o2.second;
+        }
+
+
+        static bool equal(const avlPair& o1,
+                          const avlPair& o2){
+          Attribute* thisAttr = o1.first;
+          Attribute* rhs = o2.first;
+          int res = thisAttr->Compare(rhs);
+          return (res == 0) && (o1.second == o2.second);
+        }
+
+
+        static bool greater(const avlPair& o1,
+                            const avlPair& o2){
+         Attribute* thisAttr = o1.first;
+         Attribute* rhs = o2.first;
+         int res = thisAttr->Compare(rhs);
+         if(res > 0){
+           return true;
+         }
+         if(res < 0){
+            return false;
+         }
+         return o1.second > o2.second;
+     }
+
+};
+
+
+typedef avltree::AVLTree<avlPair,KeyComparator> memAVLtree;
+typedef typename memAVLtree::iterator avlIterator;
 
 class MemoryAVLObject : public MemoryObject {
 
     public:
         MemoryAVLObject();
-        MemoryAVLObject( avltree::AVLTree< std::pair<Attribute*,size_t>,
-            KeyComparator >* tree, size_t _memSize, 
-            std::string _objectTypeExpr, 
-            bool _flob, std::string _database );
-        ~MemoryAVLObject();
+        MemoryAVLObject( memAVLtree* tree, size_t _memSize, 
+                         const std::string& _objectTypeExpr, 
+                         bool _flob, 
+                         const std::string& _database );
+      
+         ~MemoryAVLObject();
 
-        avltree::AVLTree< std::pair<Attribute*,size_t>,KeyComparator >* 
-                    getAVLtree();
+        memAVLtree* getAVLtree();
 
         static std::string BasicType(){ return "avltree"; }
 
@@ -300,72 +350,7 @@ class MemoryAVLObject : public MemoryObject {
 
 
     private:
-         avltree::AVLTree< std::pair<Attribute*,size_t>,KeyComparator >* tree;
-};
-
-class KeyComparator{
-
-    public:
-        static bool smaller(const std::pair<Attribute*,size_t>& o1,
-                                const std::pair<Attribute*,size_t>& o2){
-
-
-            Attribute* thisAttr = o1.first;
-            Attribute* rhs = o2.first;
-            int ergebnis = thisAttr->Compare(rhs);
-
-            if (ergebnis == -1) {
-
-                return true;
-            }
-
-            if (ergebnis == 0 && (o1.second < o2.second)){
-
-                return true;
-            }
-
-            return false;
-        }
-
-
-        static bool equal(const std::pair<Attribute*,size_t>& o1,
-                                const std::pair<Attribute*,size_t>& o2){
-
-                    Attribute* thisAttr = o1.first;
-                    Attribute* rhs = o2.first;
-                    int ergebnis = thisAttr->Compare(rhs);
-
-
-
-                    if (ergebnis == 0 && (o1.second == o2.second)){
-                        return true;
-                    }
-
-                    return false;
-        }
-
-
-        static bool greater(const std::pair<Attribute*,size_t>& o1,
-                                const std::pair<Attribute*,size_t>& o2){
-
-                    Attribute* thisAttr = o1.first;
-                    Attribute* rhs = o2.first;
-                    int ergebnis = thisAttr->Compare(rhs);
-
-                    if (ergebnis == 1) {
-
-                        return true;
-                    }
-
-                    if (ergebnis == 0 && (o1.second > o2.second)){
-
-                        return true;
-                    }
-
-                    return false;
-
-     }
-
+        memAVLtree* tree;
 };
 
 
