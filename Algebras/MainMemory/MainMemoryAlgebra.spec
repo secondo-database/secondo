@@ -57,3 +57,5 @@ operator mdistScan alias MDISTSCAN  pattern _ _ op [_]
 operator mexactmatchS alias MEXACTMATCHS pattern _ op [_]
 operator mrangeS alias MRANGES pattern _ op[_,_]
 operator matchbelowS alias MATCHBELOWS pattern _ op[_]
+
+operator gettuples alias GETTUPLES pattern _ _ op

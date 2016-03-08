@@ -112,8 +112,16 @@ namespace rtreehelper{
       }
       int dim = nl->IntValue(nl->Second(type));
       return (dim==2) || (dim==3) || (dim==4) || (dim==8);
-    
    }
+
+   bool checkType(ListExpr type, int dim){
+     if(!checkType(type)){
+       return false;
+     }
+     return nl->IntValue(nl->Second(type))==dim;
+   }
+
+
 
 }
 
@@ -239,10 +247,17 @@ class StdDistComp{
     }
   
     void reset(){} // not sure
-
-
 };
 
+
+/*
+Some functions for getting a certain memory object by name.
+The name may be given as a CcString or as a Mem instance. 
+A lot of checkes ensure correctness of operations. If one of 
+the test failes, the result will be 0 , otherwise a 
+pointer to the memory object.
+
+*/
 
 template<class T>
 memAVLtree* getAVLtree(T* treeN, ListExpr subtype){
@@ -305,15 +320,65 @@ MemoryAttributeObject* getMemAttribute(T* aN, ListExpr _type){
 }
 
 
+template<class T, int dim>
+MemoryRtreeObject<dim>* getRtree(T* tN){
+  if(!tN->IsDefined()){
+    return 0;
+  }
+  string tn = tN->GetValue();
+  if(!catalog->isMMObject(tn)){ 
+    // because we store only rectangle, we do'nt have to check
+    // accessibility
+    return 0;
+  }
+  ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(tn));
+  if(!rtreehelper::checkType(type,dim)){
+     return 0;
+  }
+  return (MemoryRtreeObject<dim>*) catalog->getMMObject(tn);
+}
 
+template<class T, class K>
+MemoryMtreeObject<K, StdDistComp<K> >* getMtree(T* name){
+  if(!name->IsDefined()){
+    return 0;
+  }
+  string n = name->GetValue();
+  if(!catalog->isMMObject(n)){
+    return 0;
+  } 
+  ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(n));
+  if(!MemoryMtreeObject<K, StdDistComp<K> >::checkType(type)){
+    return 0;
+  }
+  if(!K::checkType(nl->Second(type))){
+     return 0;
+  }
+  return (MemoryMtreeObject<K, StdDistComp<K> >*) 
+          catalog->getMMObject(n);
+}
 
+/*
+Function returning the current database name.
+
+*/
 
 string getDBname() {
     SecondoSystem* sys = SecondoSystem::GetInstance();
     return sys->GetDatabaseName();
 }
 
+/*
+This function extract the type information from a 
+memory object. If the type is given as mem object,
+just this type is set to be the result. Otherwise type
+has to be a CcString having the given value.
+In case of an error (missing objects or whatever), the
+result will be false and some errorsmessage is set. 
+In the other case, the reuslt is true, errMsg is keept unchanged
+and result will have the type in the memory.
 
+*/
 bool getMemType(ListExpr type, ListExpr value, 
                 ListExpr & result, string& error){
 
@@ -347,7 +412,10 @@ bool getMemType(ListExpr type, ListExpr value,
 }
 
 
+/*
+some functions related to strings.
 
+*/
 
 string rtrim(string s, const string& delim = " \t\r\n")
 {
@@ -365,6 +433,20 @@ string trim(string s, const string& delim = " \t\r\n")
   return ltrim(rtrim(s, delim), delim);
 }
 
+
+
+/*
+2 Operator ~memload~
+
+This operator transfers a DB object into the main memory.
+The object can be of type rel or mus be in kind DATA.
+
+
+The operator supports two variants. One variant loads also the 
+flobs into the memory, the other variant does not touches the flobs.
+The next function supports both variants.
+
+*/
 
 int memload(Word* args, Word& result,
                     int message, Word& local, Supplier s, bool flob) {
@@ -684,9 +766,6 @@ Operator meminitOp (
 ~mfeed~ produces a stream of tuples from a main memory relation,
 similar to the ~feed~-operator
 
-*/
-
-/*
 5.4.1 Type Mapping Functions of operator ~mfeed~ (string -> stream(Tuple))
 
 */
@@ -750,9 +829,7 @@ template<class T>
 int mfeedValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
-
    mfeedInfo* li = (mfeedInfo*) local.addr;
-
    switch (message)
    {
         case OPEN: {
@@ -803,8 +880,6 @@ int mfeedSelect(ListExpr args){
 
 */
 
-
-
 OperatorSpec mfeedSpec(
     "{string, mem(rel(tuple(x))}  -> stream(Tuple)",
     "_ mfeed",
@@ -826,6 +901,139 @@ Operator mfeedOp (
     mfeedSelect,
     mfeedTypeMap
 );
+
+
+/*
+5.5 Operator gettuples
+
+This operator gets a stream of tuple ids, 
+and a main memory relation and returns the
+tuples from the ids out of the relation.
+
+*/
+ListExpr gettuplesTM(ListExpr args){
+  string err ="stream(tid) x {string, mem(rel(tuple))} expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  ListExpr a1 = nl->First(nl->First(args));
+  if(!Stream<TupleIdentifier>::checkType(a1)){
+    return listutils::typeError(err + " (1st arg is not a tid stream)");
+  }
+  ListExpr a2 = nl->Second(args);
+  string errMsg;
+  if(!getMemType(nl->First(a2), nl->Second(a2), a2, errMsg)){
+     return listutils::typeError(err + "\nproblem in 2nd arg: " + errMsg);
+  }
+  a2 = nl->Second(a2);
+  if(!Relation::checkType(a2)){
+    return listutils::typeError(err + " (second arg is not a "
+                                "memory relation.)");
+  }
+  return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                          nl->Second(a2));
+  
+}
+
+
+class gettuplesInfo{
+  public:
+    gettuplesInfo(Word _stream, MemoryRelObject* _rel): 
+        stream(_stream), rel(_rel->getmmrel()){
+      stream.open();
+    }
+
+    ~gettuplesInfo(){
+        stream.close();
+     }
+
+     Tuple* next(){
+        TupleIdentifier* tid;
+        while((tid=stream.request())){
+           if(!tid->IsDefined()){
+             cout << "ignore undefined tuple id" << endl;
+             tid->DeleteIfAllowed();
+           } else {
+              TupleId id = tid->GetTid();
+              tid->DeleteIfAllowed();
+              if(id>=0 && id<rel->size()){
+                 Tuple* res = (*rel)[id];
+                 res->IncReference();
+                 res->SetTupleId(id);
+                 return res;
+              } else {
+                 cout << "ignore id " << id << endl;
+              }
+           }
+        }
+        return 0;
+     }
+
+  private:
+     Stream<TupleIdentifier> stream;
+     vector<Tuple*>* rel;
+};
+
+template<class T>
+int gettuplesVMT (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+    gettuplesInfo* li = (gettuplesInfo*) local.addr;
+    switch(message){
+         case OPEN :{
+             if(li){
+                delete li;
+                local.addr = 0;
+             }
+             T* n = (T*) args[1].addr;
+             MemoryRelObject* rel = getMemRel(n,nl->Second(qp->GetType(s)));
+             if(!rel){
+               return 0;
+             }
+             local.addr = new gettuplesInfo(args[0], rel);
+             return 0; 
+
+         }
+         case REQUEST: 
+                result.addr = li?li->next():0;
+                return result.addr?YIELD:CANCEL;
+         case CLOSE: {
+               if(li){
+                 delete li;
+                 local.addr = 0;
+               }
+               return 0;
+         }
+    }    
+    return -1;
+}
+
+ValueMapping gettuplesVM[] =  {
+   gettuplesVMT<CcString>,
+   gettuplesVMT<Mem>
+};
+
+int gettuplesSelect(ListExpr args){
+  return CcString::checkType(nl->Second(args))?0:1;
+}
+
+OperatorSpec gettuplesSpec(
+  "stream(tid) x {string, mem(rel(tuple(X)))} -> stream(tuple(X))",
+  "_ _ gettuples",
+  "Retrieves tuples from a main memory relation whose ids are "
+  "specified in the incoming stream.",
+  "query \"strassen_Name\" mdistScan2[\"str\"] \"strassen\" gettuples consume"
+);
+
+Operator gettuplesOp(
+  "gettuples",
+  gettuplesSpec.getStr(),
+  2,
+  gettuplesVM,
+  gettuplesSelect,
+  gettuplesTM
+);
+
 
 
 int letmconsume (Word* args, Word& result,
@@ -946,10 +1154,6 @@ Operator letmconsumeOp (
 ~letmconsumeflob~ produces a main memory relation from a stream(tuples),
 similar to the ~consume~-operator. The name of the main memory relation is given
 by the second parameter. The associated flobs will be loaded to main memory too.
-
-*/
-
-/*
 
 5.5.3  The Value Mapping Functions of operator ~letmconsumeflob~
 
@@ -1102,9 +1306,6 @@ Operator memdeleteOp (
 
 ~memobject~ gets a name of a main memory object and return a persistent version
 
-*/
-
-/*
 5.7.1 Type Mapping Functions of operator ~memobject~ (string -> m:MEMLOADABLE)
 
 */
@@ -1185,7 +1386,7 @@ int memobjectValMap (Word* args, Word& result,
 OperatorSpec memobjectSpec(
     "string | mem(X)  -> m:MEMLOADABLE , X in {DATA, rel}",
     "memobject (_)",
-    "returns a persistent Object created from a main memory Object",
+    "returns a persistent object created from a main memory object",
     "query memobject (\"Trains100\")"
 );
 
@@ -1372,7 +1573,7 @@ int memgetcatalogValMap (Word* args, Word& result,
 OperatorSpec memgetcatalogSpec(
     " -> stream(Tuple)",
     "memgetcatalog()",
-    "returns a stream(Tuple) with information of main memory objects",
+    "returns a stream(Tuple) with information about  main memory objects",
     "query memgetcatalog()"
 );
 
@@ -1454,9 +1655,6 @@ creates a new main memory object. The first parameter is the
 name of the new main memory object, the second is the query/the
 MEMLOADABLE object from which the mm-object will be created.
 
-*/
-
-/*
 5.9.1 Type Mapping Functions of operator ~memlet~
 
         (string X m:MEMLOADABLE -> bool)
@@ -1533,6 +1731,7 @@ Operator memletOp (
 
 /*
 5.9 Operator ~memletflob~
+
 creates a new main memory object. The first parameter is the
 name of the new main memory object, the second is the query/the
 MEMLOADABLE object from which the mm-object will be created.
@@ -1561,7 +1760,7 @@ int memletflobValMap (Word* args, Word& result,
 */
 
 OperatorSpec memletflobSpec(
-    "string x m:MEMLOADABLE -> bool",
+    "string x MEMLOADABLE -> bool",
     "memletflob (_,_)",
     "creates a main memory object from a given MEMLOADABLE."
     "the associated flobs will be loaded",
@@ -1591,9 +1790,6 @@ updates a main memory object. The tuple description for a stream or a relation
 must be the same as the one of the main memory object.
 
 
-*/
-
-/*
 5.10.1 Type Mapping Functions of operator ~memupdate~
         (string x m:MEMLOADABLE -> bool)
 
@@ -1606,7 +1802,7 @@ ListExpr memupdateTypeMap(ListExpr args)
     }
 
     ListExpr arg2 = nl->First(nl->Second(args));
-    // replace <stream> by <rel> if necessary
+    // replace <stream> by <rel> if necessary. this enables unique handling
     if(Stream<Tuple>::checkType(arg2)){
        arg2 = nl->TwoElemList( listutils::basicSymbol<Relation>(),
                                nl->Second(arg2));
@@ -1776,9 +1972,6 @@ Operator memupdateOp (
 5.10 Operator ~mcreateRtree~
 creates a an mmRTree over a given main memory relation
 
-*/
-
-/*
 5.10.1 Type Mapping Functions of operator ~mcreateRtree~
         (string x Ident -> string ||
          mem(rel(tuple)) x Ident -> mem(rtree dim))
@@ -2011,9 +2204,9 @@ int mcreateRtreeSelect(ListExpr args){
 OperatorSpec mcreateRtreeSpec(
     "string x string -> string || mem(rel(tuple)) x string -> mem(rtree)",
     "_ mcreateRtree [_]",
-    "creates an mmrtree over a main memory relation given by the"
-    "first string || mem(rel(tuple)) and an attribute"
-    "given by the second argument",
+    "creates an main memory r-tree over a main memory relation given by the "
+    "first string || mem(rel(tuple)) and an attribute "
+    "given by the second argument.",
     "query 'WFlaechen' mcreateRtree [GeoData]"
 );
 
@@ -2040,9 +2233,6 @@ Operator mcreateRtreeOp (
 creates a an mmRTree the keytype must be of Kind SPATIAL2D,
 SPATIAL3D, SPATIAL4D, SPATIAL8D, or of type rect
 
-*/
-
-/*
 5.10.1 Type Mapping Functions of operator ~mcreateRtree2~
         (stream(Tuple) x T x string-> string) mit T of KIND SPATIAL2D,
         SPATIAL3D, SPATIAL4D, SPATIAL8D, or of type rect
@@ -2210,10 +2400,12 @@ ValueMapping mcreateRtree2ValMap[] =
 */
 
 OperatorSpec mcreateRtree2Spec(
-    "stream(Tuple) x iDENT  x string -> mem(rtree)",
+    "stream(Tuple) x Ident  x string -> mem(rtree)",
     "_ mcreateRtree2 [_,_]",
-    "creates an mmrtree<d>, the key type must be of kind SPATAL2D"
-    "SPATIAL3D, SPATIAL4D, SPATIAL8D, or of type rect>d>",
+    "creates a main memory r-tree over a tuple stream (1st argument)."
+    "The second argument specifies the attribute over that the index "
+    "is created. The type of this attribute must be in kind SPATIALxD. "
+    "The third argument specifies the name of the main memory object.",
     "query strassen feed head[5] mcreateRtree2 [GeoData, 'strassen_GeoData']"
 );
 
@@ -2240,9 +2432,6 @@ Operator mcreateRtree2Op (
 
 returns the currently set main memory size
 
-*/
-
-/*
 5.11.1 Type Mapping Functions of operator ~memsize~ (->int)
 
 */
@@ -2311,9 +2500,6 @@ Operator memsizeOp (
 
 deletes all main memory objects
 
-*/
-
-/*
 5.12.1 Type Mapping Functions of operator ~memclear~ (-> bool)
 
 */
@@ -2382,9 +2568,6 @@ Operator memclearOp (
 
 inserts the tuple of a stream into a existing main memory relation
 
-*/
-
-/*
 5.13.1 Type Mapping Functions of operator ~minsert~
     (stream(tuple(x)) x string -> stream(tuple(x))
     the second argument identifies the main memory relation
@@ -2521,7 +2704,7 @@ int minsertSelect(ListExpr args){
 OperatorSpec minsertSpec(
     "stream(Tuple) x {string, mem(rel)}  -> stream(Tuple)",
     "minsert(_,_)",
-    "inserts the tuple of a stream into a "
+    "inserts the tuple of a stream into an "
     "existing main memory relation",
     "query minsert (ten feed head[5],'ten') count"
 );
@@ -2547,9 +2730,6 @@ Operator minsertOp (
         in the given MemoryRelObject (as second argument)
         with intersects the third argument value's bounding box
 
-*/
-
-/*
 5.14.1 Type Mapping Functions of operator ~mwindowintersects~
     string x string x T -> stream(Tuple)
     where T in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D U SPATIAL8D
@@ -2666,35 +2846,28 @@ int mwindowintersectsValMapT (Word* args, Word& result,
                delete li;
                local.addr=0;
              }
-             T* tree = (T*) args[0].addr;
-             R* rel = (R*) args[1].addr;
+             T* treeN = (T*) args[0].addr;
+             R* relN = (R*) args[1].addr;
              typedef StandardSpatialAttribute<dim> W;
              typedef  MemoryRtreeObject<dim> treetype;
              W* window = (W*) args[2].addr;
              ListExpr tupleT = nl->Second(qp->GetType(s));
-             MemoryRelObject* mro = getMemRel(rel,tupleT);
+             MemoryRelObject* mro = getMemRel(relN,tupleT);
              if(!mro){
                return 0;
              }
-             if( !tree->IsDefined()  || !window->IsDefined()){
+             treetype* tree = getRtree<T,dim>(treeN);
+             if(!tree){
+               return 0;
+             }
+             if(!window->IsDefined()){
                  return 0;
              }
-             string ts = tree->GetValue();
              Rectangle<dim> box = window->BoundingBox();
-             if(!catalog->isMMObject(ts) || !box.IsDefined()){
+             if(!box.IsDefined()){ // empty spatial object
                 return 0;
              }
-             ListExpr tt = nl->Second(catalog->getMMObjectTypeExpr(ts));
-             if(!rtreehelper::checkType(tt)){
-                // not an r-tree
-                return 0;
-             }  
-             int rtdim = nl->IntValue(nl->Second(tt));
-             if(rtdim != dim){
-                 return 0;
-             }  
-             treetype* t = (treetype*) catalog->getMMObject(ts);
-             local.addr = new mwiInfo<dim>(t, mro, box);
+             local.addr = new mwiInfo<dim>(tree, mro, box);
              return 0;
         }
 
@@ -2766,14 +2939,13 @@ ValueMapping mwindowintersectsValMap[] =
 */
 
 OperatorSpec mwindowintersectsSpec(
-    "string x string x T -> stream(Tuple) "
-    "where T in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D U SPATIAL8D",
-    "mwindowintersects(_,_,_)",
-    "Uses the given rtree to find all tuples"
-      " in the given relation which intersects the "
-      " argument value's bounding box.",
-    "query mwindowintersects"
-    "('strassen_GeoData', 'strassen', bbox(thecenter)) count"
+   "{string, mem(rtree <dim>) x {string, mem(rel(X)) x T -> stream(tuple(X)) "
+   "where T in SPATIAL<dim>D",
+   "_ _ mwindowintersects[_]",
+   "Uses the given rtree to find all tuples"
+   " in the given relation which intersects the "
+   " argument value's bounding box.",
+   "query \"strassen_GeoData\" \"strassen\" mwindowintersects[thecenter] count"
 );
 
 /*
@@ -2799,7 +2971,7 @@ Operator mwindowintersectsOp (
 
 ListExpr mwindowintersectsSTM(ListExpr args){
 
-  string err = " {string, memory(rtree )} x SPATIALxD expected";
+  string err = " {string, memory(rtree <dim> )} x SPATIAL<dim>D expected";
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err + " (wrong number of args)");
   }
@@ -2844,27 +3016,20 @@ int mwindowintersectsSVMT (Word* args, Word& result,
                local.addr = 0;
              }
              T* name = (T*) args[0].addr;
-             typedef StandardSpatialAttribute<dim> boxtype;
-             boxtype* o = (boxtype*) args[1].addr;
-             if(!name->IsDefined() || !o->IsDefined()){
-               return 0;
-             }
-             string n = name->GetValue();
-             Rectangle<dim> box = o->BoundingBox();
-             if(!catalog->isMMObject(n) || !box.IsDefined()){
-               return 0;
-             }
-             ListExpr tt = catalog->getMMObjectTypeExpr(n);
-             if(!Mem::checkType(tt) || 
-                !rtreehelper::checkType(nl->Second(tt))){
-               return 0;
-             }
-             if(nl->IntValue(nl->Second(nl->Second(tt)))!=dim){
+             MemoryRtreeObject<dim>* tree = getRtree<T,dim>(name);
+             if(!tree){
                 return 0;
              }
-             MemoryRtreeObject<dim>* mr = (MemoryRtreeObject<dim>*) 
-                                     catalog->getMMObject(n);
-             local.addr = mr->getrtree()->find(box);
+             typedef StandardSpatialAttribute<dim> boxtype;
+             boxtype* o = (boxtype*) args[1].addr;
+             if(!o->IsDefined()){
+               return 0;
+             }
+             Rectangle<dim> box = o->BoundingBox();
+             if(!box.IsDefined()){ // empty spatial object
+               return 0;
+             }
+             local.addr = tree->getrtree()->find(box);
              return 0;
       }
       case REQUEST : {
@@ -2913,7 +3078,7 @@ int mwindowintersectsSSelect(ListExpr args){
 
 
 OperatorSpec mwindowintersectsSSpec(
-  " {string, memory(rtree)} x SPATIALxD -> stream(tid)",
+  "{string, memory(rtree <dim>)} x SPATIAL<dim>D -> stream(tid)",
   " _ mwindowintersectsS[_]",
   "Returns the tuple ids belonging to rectangles intersecting the "
   "bounding box of the second argument. ",
@@ -2937,10 +3102,6 @@ Operator mwindowintersectsSOp(
 
 ~mconsume~ Collects objects from a stream in a ~MemoryRelObject~
 
-*/
-
-/*
-
 5.4.1 Type Mapping Functions of operator ~mconsume~
         (stream(Tuple) -> memoryRelObject)
 
@@ -2950,16 +3111,11 @@ ListExpr mconsumeTypeMap(ListExpr args)
     if(nl->ListLength(args)!=1){
         return listutils::typeError("(wrong number of arguments)");
     }
-
     if (!Stream<Tuple>::checkType(nl->First(args))) {
-        return listutils::typeError ("stream(Tuple) expected!");
-        }
-
+        return listutils::typeError ("stream(tuple) expected!");
+    }
     ListExpr l1 = nl->Second(nl->First(args));
     ListExpr l2 = nl->SymbolAtom(MemoryRelObject::BasicType());
-
-
-
     return nl->TwoElemList (l2,l1);;
 }
 
@@ -2974,8 +3130,6 @@ int mconsumeValMap (Word* args, Word& result,
                 int message, Word& local, Supplier s) {
     Supplier t = qp->GetSon( s, 0 );
     ListExpr le = qp->GetType(t);
-
-
     result  = qp->ResultStorage(s);
     MemoryRelObject* mrel = (MemoryRelObject*)result.addr;
     Stream<Tuple> stream(args[0]);
@@ -2986,13 +3140,8 @@ int mconsumeValMap (Word* args, Word& result,
     }
     mrel->setObjectTypeExpr(nl->ToString(nl->Second(le)));
     stream.close();
-
-
     return 0;
-
 }
-
-
 
 
 /*
@@ -3004,7 +3153,7 @@ int mconsumeValMap (Word* args, Word& result,
 OperatorSpec mconsumeSpec(
     "stream(Tuple) -> memoryrelobject",
     "_ mconsume",
-    "collects the objects from a stream(Tuple)",
+    "collects the objects from a stream(tuple) into a memory relation",
     "query 'ten' mfeed mconsume"
 );
 
@@ -3030,9 +3179,6 @@ Operator mconsumeOp (
 5.16 Operator ~mcreateAVLtree~
 creates a an AVLTree over a given main memory relation
 
-*/
-
-/*
 5.16.1 Type Mapping Functions of operator ~mcreateAVLtree~
         (string x string -> string  ||
         mem(rel(tuple)) x string -> string)
@@ -3108,92 +3254,86 @@ int mcreateAVLtreeValMapT (Word* args, Word& result,
 
    // the main memory relation
    T* roN = (T*) args[0].addr;
-    if(!roN->IsDefined()){
+   if(!roN->IsDefined()){
         str->SetDefined(false);
         return 0;
-    }
-    string relObjectName = roN->GetValue();
+   }
+   string relObjectName = roN->GetValue();
 
-    int attrPos = ((CcInt*) args[2].addr)->GetValue();
+   int attrPos = ((CcInt*) args[2].addr)->GetValue();
 
-    ListExpr memObjectType = catalog->getMMObjectTypeExpr(relObjectName);
-    if(!Mem::checkType(memObjectType)){
-       cerr << "invalid object name " << endl;
-       str->SetDefined(false);
-       return 0;
-    }
-    
-    memObjectType = nl->Second(memObjectType);
+   ListExpr memObjectType = catalog->getMMObjectTypeExpr(relObjectName);
+   memObjectType = nl->Second(memObjectType);
 
-    if(!Relation::checkType(memObjectType)){
-       cerr << "object " << relObjectName  << "is not a relation" << endl;
-       str->SetDefined(false);
-       return false;
-    } 
+   if(!Relation::checkType(memObjectType)){
+     cerr << "object " << relObjectName  << "is not a relation" << endl;
+     str->SetDefined(false);
+     return false;
+   } 
 
-    // extract attribute 
-    ListExpr attrList = nl->Second(nl->Second(memObjectType));
-    int ap = attrPos;
-    while(!nl->IsEmpty(attrList) && ap>0){
-        attrList = nl->Rest(attrList);
-        ap--;
-    }
-    if(nl->IsEmpty(attrList)){
-       cerr << "not eneogh attributes in tuple";
-       str->SetDefined(false);
-       return 0;
-    }
-    ListExpr relattrType = nl->Second(nl->First(attrList));
-    ListExpr avlattrType = nl->Second(nl->Second(qp->GetType(s)));
+   // extract attribute 
+   ListExpr attrList = nl->Second(nl->Second(memObjectType));
+   int ap = attrPos;
+   while(!nl->IsEmpty(attrList) && ap>0){
+      attrList = nl->Rest(attrList);
+      ap--;
+   }
+   if(nl->IsEmpty(attrList)){
+     cerr << "not enough attributes in tuple";
+     str->SetDefined(false);
+     return 0;
+   }
+   ListExpr relattrType = nl->Second(nl->First(attrList));
+   ListExpr avlattrType = nl->Second(nl->Second(qp->GetType(s)));
 
-    if(!nl->Equal(relattrType, avlattrType)){
-      cerr << "expected type and type in relation differ" << endl;
+   if(!nl->Equal(relattrType, avlattrType)){
+     cerr << "expected type and type in relation differ" << endl;
+     str->SetDefined(false);
+     return 0;
+   }
+
+   string attrName = ((CcString*)args[3].addr)->GetValue();
+
+   string resName = relObjectName + "_" + attrName;
+   if(catalog->isMMObject(resName)){
+      cerr << "object " << resName << "already exists" << endl;
       str->SetDefined(false);
       return 0;
-    }
+   }
 
-    string attrName = ((CcString*)args[3].addr)->GetValue();
-
-    string resName = relObjectName + "_" + attrName;
-    if(catalog->isMMObject(resName)){
-       cerr << "object " << resName << "already exists" << endl;
-       str->SetDefined(false);
-       return 0;
-    }
-
-    MemoryRelObject* mmrel =
+   MemoryRelObject* mmrel =
         (MemoryRelObject*)catalog->getMMObject(relObjectName);
-    bool flob = mmrel->hasflob();
-    vector<Tuple*>* relVec = mmrel->getmmrel();
-    vector<Tuple*>::iterator it;
-    it=relVec->begin();
-    unsigned int i=0;
+   bool flob = mmrel->hasflob();
+   vector<Tuple*>* relVec = mmrel->getmmrel();
+   vector<Tuple*>::iterator it;
+   it=relVec->begin();
+   unsigned int i=0;
 
-    memAVLtree* tree = new memAVLtree();
-    Attribute* attr;
-    avlPair aPair;
+   memAVLtree* tree = new memAVLtree();
+   Attribute* attr;
+   avlPair aPair;
 
-    size_t usedMainMemory = 0;
-    unsigned long availableMemSize = catalog->getAvailableMemSize();
+   size_t usedMainMemory = 0;
+   unsigned long availableMemSize = catalog->getAvailableMemSize();
 
-    while ( it!=relVec->end()){
-        Tuple* tup = *it;
-        attr=tup->GetAttribute(attrPos);
-        aPair = avlPair(attr->Copy(),i);
-        // size for a pair is 16 bytes, plus an additional pointer 8 bytes
-        size_t entrySize = 24;
-        if (entrySize<availableMemSize){
-            tree->insert(aPair);
-            usedMainMemory += (entrySize);
-            availableMemSize -= (entrySize);
-            it++;
-            i++;
-        } else {
-            cout<<"there is not enough main memory available"
-            " to create an AVLTree"<<endl;
-            delete tree;
-            str->SetDefined(false);
-            return 0;
+   while ( it!=relVec->end()){
+       Tuple* tup = *it;
+       attr=tup->GetAttribute(attrPos);
+       aPair = avlPair(attr->Copy(),i);
+       // size for a pair is 16 bytes, plus an additional pointer 8 bytes
+       size_t entrySize = 24;
+       if (entrySize<availableMemSize){
+           tree->insert(aPair);
+           usedMainMemory += (entrySize);
+           availableMemSize -= (entrySize);
+           it++;
+           i++;
+       } else {
+          cout<<"there is not enough main memory available"
+          " to create an AVLTree"<<endl;
+          delete tree;
+          str->SetDefined(false);
+          return 0;
         }
     }
     MemoryAVLObject* avlObject =
@@ -3236,11 +3376,9 @@ OperatorSpec mcreateAVLtreeSpec(
     "_ mcreateAVLtree [_]",
     "creates an AVLtree over a main memory relation given by the"
     "first string || mem(rel(tuple))  and an attribute "
-    "given by the second string",
-    "query 'Staedte' mcreateAVLtree ['SName']"
+    "given by the second iargument",
+    "query \"Staedte\" mcreateAVLtree [SName]"
 );
-
-
 
 /*
 
@@ -3381,9 +3519,9 @@ OperatorSpec mcreateAVLtree2Spec(
   "stream(tuple) x Ident x Ident x string -> mem(avltree ...)",
   "_ mcreateAVLtree2[_,_,_] ",
   "creates an avl tree over an tuple stream. The second argument "
-  "specifies the attribute over that the index ist to build, the "
+  "specifies the attribute over that the index is build, the "
   "third argument specifies a TID attribute within the tuple. "
-  "The last argument specifies the name in the memory representation",
+  "The last argument specifies the name in the memory representation.",
   "query strassen feed addid createAVLtree2[Name, TID, \"strassen_Name\"]"
 );
 
@@ -3395,10 +3533,6 @@ Operator mcreateAVLtree2Op (
     Operator::SimpleSelect,
     mcreateAVLtree2TM
 );
-
-
-
-
 
 
 /*
@@ -3417,7 +3551,7 @@ Operator mcreateAVLtree2Op (
 
 ListExpr mexactmatchTypeMap(ListExpr args)
 {
-    string err ="{string, mem(avltree(t)) } x {string, mem(rel)} x T expected";
+    string err ="{string, mem(avltree(T)) } x {string, mem(rel)} x T expected";
     if(nl->ListLength(args)!=3){
         return listutils::typeError("three arguments expected");
     }
@@ -3516,11 +3650,9 @@ class avlOperLI{
         }
 
 
-
-
         Tuple* matchbelow(){
             if (res){
-                int i = relation->size();
+                size_t i = relation->size();
                 hit = tree->GetNearestSmallerOrEqual
                             (avlPair(attr1,i));
                 if (hit==0){
@@ -3632,12 +3764,13 @@ int mexactmatchSelect(ListExpr args){
 */
 
 OperatorSpec mexactmatchSpec(
-    "string x string x key -> stream(Tuple) ",
+    "{string, mem(avltree T) x {string, mem(rel(tuple(X)))} "
+    " x T -> stream(Tuple(X))",
     "_ _ mexactmatch[_]",
-    "Uses the given MemoryAVLObject (as first argument)to find all tuples"
-        "in the given MemoryRelObject (as second argument)"
-        "which have the same attribute value",
-    "query 'Staedte_SName', 'Staedte'mexactmatch ['Dortmund'] count"
+    "Uses the given MemoryAVLObject (as first argument) to find all tuples "
+    "in the given MemoryRelObject (as second argument) "
+    "that have the same attribute value",
+    "query \"Staedte_SName\", \"Staedte\" mexactmatch [\"Dortmund\"] count"
 );
 
 /*
@@ -3662,13 +3795,13 @@ Operator mexactmatchOp (
 */
 
 OperatorSpec matchbelowSpec(
-    "string x string x key -> stream(Tuple) ",
+    "{string, mem(avltree T)}  x {string, mem(rel(tuple(X)))}  "
+    "x T -> stream(tuple(X)) ",
     "_ _ matchbelow[_]",
-    "returns for a key X (third argument) the tuple which "
+    "returns for a key  (third argument) the tuple which "
     " contains the biggest attribute value in the AVLtree (first argument) "
-    " which is smaller or equal X",
-    "query 'Staedte_SName' 'Staedte' matchbelow ['Dortmund'] count"
-
+    " which is smaller than key  or equal to key",
+    "query \"Staedte_SName\" \"Staedte\" matchbelow [\"Dortmund\"] count"
 );
 
 Operator matchbelowOp (
@@ -3688,9 +3821,6 @@ Operator matchbelowOp (
         which are between the first and the second attribute value
         (as third and fourth argument)
 
-*/
-
-/*
 5.18.1 Type Mapping Functions of operator ~mrange~
     string x string x key x key -> stream(Tuple)
 
@@ -3818,13 +3948,13 @@ int mrangeSelect(ListExpr args){
 */
 
 OperatorSpec mrangeSpec(
-    "{string,mem} x {string,mem} x key x key -> stream(Tuple) ",
+    "{string,mem(avltree T) } x {string, mem(rel(tuple(X)))} "
+    "x T x T -> stream(Tuple(X)) ",
     "_ _ mrange[_,_]",
-    "Uses the given rtree to find all tuples"
-      " in the given relation which are between "
-      "the first and the second attribute value.",
-    "query 'Staedte_SName' 'Staedte' mrange ['Aachen','Dortmund'] count"
-
+    "Uses the given avl-tree to find all tuples"
+    " in the given relation which are between "
+     "the first and the second attribute value.",
+    "query \"Staedte_SName\" \"Staedte\" mrange [\"Aachen\",\"Dortmund\"] count"
 );
 
 /*
@@ -3979,7 +4109,7 @@ int mrangeSSelect(ListExpr args){
 
 OperatorSpec mexactmatchSSpec(
   "{string, mem(avltree T) x T -> stream(tid) ",
-  "_ memexactmatch[_]",
+  "_ memexactmatchS[_]",
   "Retrieves the tuple ids from an avl-tree whose "
   "keys have the value given by the second arg.",
   "query \"strassen_Name\" mexactmatch[\"Hirzerweg\"] count"
@@ -3988,8 +4118,8 @@ OperatorSpec mexactmatchSSpec(
 OperatorSpec mrangeSSpec(
   "{string, mem(avltree T) x T x T -> stream(tid)",
   "_ mrangeS[_,_] ",
-  "Retrives the tuple ids from an avl-tree whose key "
-  "is withing the range defined by the arguments.",
+  "Retrieves the tuple ids from an avl-tree whose key "
+  "is within the range defined by the last two arguments.",
   "query \"strassen_Name\" mrangeS[\"A\",\"B\"] count"
 );
 
@@ -4050,8 +4180,6 @@ int matchbelowSVMT (Word* args, Word& result,
            if(!tree){
              return 0;
            }
-
-
            Attribute* attr = (Attribute*) args[1].addr;
            avlPair searchP(attr, numeric_limits<size_t>::max()); 
            const avlPair* p = tree->GetNearestSmallerOrEqual(searchP);
@@ -4121,16 +4249,7 @@ TypeConstructor MemoryRelObjectTC(
     MemoryRelObject::SizeOfObj,      // sizeof function
     MemoryRelObject::KindCheck);      // kind checking
 
-
-
-
 GenTC<Mem> MemTC;
-
-
-
-
-
-
 
 /*
 6 M-tree support
@@ -4141,9 +4260,6 @@ GenTC<Mem> MemTC;
 6.1.1 Type Mapping
 
 */
-
-
-
 
 
 ListExpr mcreateMtree2TM(ListExpr args){
@@ -4272,8 +4388,8 @@ int mcreateMtree2VMT (Word* args, Word& result, int message,
                                  nl->SymbolAtom(mtreehelper::BasicType()),
                                  nl->SymbolAtom(tn)));
 
-   MemoryMtreeObject<pair<T, TupleId>,StdDistComp<T> >* mtree = 
-          new MemoryMtreeObject<pair<T,TupleId>, StdDistComp<T> > (tree,  
+   MemoryMtreeObject<T,StdDistComp<T> >* mtree = 
+          new MemoryMtreeObject<T, StdDistComp<T> > (tree,  
                              usedMem, 
                              nl->ToString(typeList), 
                              !flobused, getDBname());
@@ -4314,7 +4430,7 @@ OperatorSpec mcreateMtree2Spec(
   "stream(tuple) x attrname x attrname x string -> mem(mtree X) ",
   "elements mcreateMtreeSpec[ indexAttr, TID_attr, mem_name]",
   "creates an main memory m tree from a tuple stream",
-  "query kinos feed addid mcreateMtree2[GeoData, TID, \"kinos_mtree\""
+  "query kinos feed addid mcreateMtree2[GeoData, TID, \"kinos_mtree\"]"
 );
 
 Operator mcreateMtree2Op(
@@ -4389,31 +4505,16 @@ int mdistRange2VMT (Word* args, Word& result, int message,
                return 0;
             }
             N* Name = (N*) args[0].addr;
-            if(!Name->IsDefined()){
-               return 0;
-            }            
-            string name = Name->GetValue();
-            if(!catalog->isMMObject(name)){
-               return 0;
-            }
-            ListExpr t = nl->Second(catalog->getMMObjectTypeExpr(name));
-            ListExpr expType = nl->TwoElemList(
-                                nl->SymbolAtom(mtreehelper::BasicType()),
-                                qp->GetType(qp->GetSon(s,1)));
-            if(!nl->Equal(t,expType)){
+            typedef  MemoryMtreeObject<T,StdDistComp<T> > mtot;
+            mtot* mtreeo = getMtree<N,T>(Name);
+            if(!mtreeo){
               return 0;
-            }
-
-            MemoryMtreeObject<pair<T, TupleId>,StdDistComp<T> >* mtreeo  =
-               (MemoryMtreeObject<pair<T, TupleId>,StdDistComp<T> >*)
-                   catalog->getMMObject(name);
-            if(mtreeo){
-              MMMTree<pair<T, TupleId>,StdDistComp<T> >* mtree 
-                = mtreeo->getmtree();
-              if(mtree){
-                  T a = *attr;
-                  local.addr = mtree->rangeSearch(pair<T,TupleId>(a,0), d);
-              }
+            }            
+            typedef MMMTree<pair<T,TupleId>,StdDistComp<T> > mtt;
+            mtt* mtree = mtreeo->getmtree();
+            if(mtree){
+                T a = *attr;
+                local.addr = mtree->rangeSearch(pair<T,TupleId>(a,0), d);
             }
             return 0;
           }
@@ -4544,27 +4645,15 @@ int mdistScan2VMT (Word* args, Word& result, int message,
             }
             T* attr = (T*) args[1].addr;
             N* Name = (N*) args[0].addr;
-            if(!Name->IsDefined()){
+            typedef MemoryMtreeObject<T,StdDistComp<T> > mtot;
+            mtot* tree = getMtree<N,T>(Name);
+            if(!tree){
               return 0;
             }
-            string name = Name->GetValue();
-            if(!catalog->isMMObject(name)){
-              return 0;
-            }
-            ListExpr treeT = nl->Second(catalog->getMMObjectTypeExpr(name));
-            ListExpr keyT = qp->GetType(qp->GetSon(s,1));
-            if(!mtreehelper::checkType(treeT, keyT)){
-              return 0;
-            }
-
-            MemoryMtreeObject<pair<T, TupleId>,StdDistComp<T> >* mtreeo  =
-               (MemoryMtreeObject<pair<T, TupleId>,StdDistComp<T> >*)
-                   catalog->getMMObject(name);
             MMMTree<pair<T, TupleId>,StdDistComp<T> >* mtree = 
-                    mtreeo->getmtree();
+                    tree->getmtree();
             if(mtree){
-              T a = *attr;
-              pair<T,TupleId> p(a,0);
+              pair<T,TupleId> p(*attr,0);
               local.addr = mtree->nnSearch(p);
             }
             return 0;
@@ -4785,8 +4874,8 @@ int mcreateMtreeVMT (Word* args, Word& result, int message,
        tree->insert(p); 
    }
    size_t usedMem = tree->memSize();
-   MemoryMtreeObject<pair<T, TupleId>,StdDistComp<T> >* mtree = 
-          new MemoryMtreeObject<pair<T,TupleId>, StdDistComp<T> > (tree,  
+   MemoryMtreeObject<T,StdDistComp<T> >* mtree = 
+          new MemoryMtreeObject<T, StdDistComp<T> > (tree,  
                              usedMem, 
                              nl->ToString(qp->GetType(s)),
                              mrel->hasflob(), getDBname());
@@ -4887,7 +4976,7 @@ template<class T>
 class distRangeInfo{
   public:
 
-     distRangeInfo( MemoryMtreeObject<pair<T,TupleId>, StdDistComp<T> >* mtree, 
+     distRangeInfo( MemoryMtreeObject<T, StdDistComp<T> >* mtree, 
                     MemoryRelObject* mrel, 
                     T* ref, 
                     double dist){
@@ -4931,43 +5020,28 @@ int mdistRangeVMT (Word* args, Word& result, int message,
                  delete li;
                  local.addr = 0;
                }
-               T* tree = (T*) args[0].addr;
                R* relN = (R*) args[1].addr;
-               CcReal* dist = (CcReal*) args[3].addr;
                MemoryRelObject* rel = getMemRel(relN, 
                                          nl->Second(qp->GetType(s)));
                if(!rel){
                  return 0;
                }
-
-               if(!tree->IsDefined() || !dist->IsDefined()){
-                 cerr << "tree, rel or dist undefined" << endl;
+               CcReal* dist = (CcReal*) args[3].addr;
+               if(!dist->IsDefined()){
                  return 0;
-               }          
-               string treeN = tree->GetValue();
-
-               if(!catalog->isMMObject(treeN)){
-                  cerr << "tree or rel not found in memory" << endl;
+               }
+               double d = dist->GetValue();
+               if(d<0){
                   return 0;
                }
-               ListExpr treeT = nl->Second(catalog->getMMObjectTypeExpr(treeN));
-               if(   !nl->HasLength(treeT,2) 
-                  || !listutils::isSymbol(nl->First(treeT), 
-                        mtreehelper::BasicType())){
-                  cout << "first arg is not a m-tree" << endl;
-                  return 0;
-               }     
-               if(!K::checkType(nl->Second(treeT))){
-                  return 0;
-               }                
+               
+               T* treeN = (T*) args[0].addr;
+               MemoryMtreeObject<K, StdDistComp<K> >* m = getMtree<T,K>(treeN);
+               if(!m){
+                 return 0;
+               }
                K* key = (K*) args[2].addr;
-               double d = dist->GetValue();
-               MemoryMtreeObject<pair<K,TupleId>, StdDistComp<K> >* m =
-                    (MemoryMtreeObject<pair<K,TupleId>, StdDistComp<K> >*) 
-                      catalog->getMMObject(treeN);
-               if(m){
-                   local.addr = new distRangeInfo<K>(m,rel,key,d);
-                }
+               local.addr = new distRangeInfo<K>(m,rel,key,d);
                return 0;
              }
       case REQUEST:
@@ -5038,7 +5112,8 @@ ValueMapping mdistRangeVM[] = {
 };
 
 OperatorSpec mdistRangeSpec(
-  "string x string x DATA x real -> stream(tid) ",
+  "{string, mem(mtree T)} x {string, mem(rel(tuple))}  x T  "
+  "x real -> stream(tuple) ",
   "mem_mtree mem_rel mdistRange[keyAttr, maxDist] ",
   "Retrieves those tuples from a memory relation "
   "having a distance smaller or equals to a given dist "
@@ -5096,7 +5171,7 @@ template<class T>
 class distScanInfo{
   public:
 
-     distScanInfo( MemoryMtreeObject<pair<T,TupleId> , StdDistComp<T> >* mtree, 
+     distScanInfo( MemoryMtreeObject<T, StdDistComp<T> >* mtree, 
                     MemoryRelObject* mrel, 
                     T* ref){
                  
@@ -5139,40 +5214,18 @@ int mdistScanVMT (Word* args, Word& result, int message,
                  delete li;
                  local.addr = 0;
                }
-               T* tree = (T*) args[0].addr;
                R* relN = (R*) args[1].addr;
                MemoryRelObject* mro=getMemRel(relN, nl->Second(qp->GetType(s)));
                if(!mro){
                  return 0;
                }
- 
 
-               if(!tree->IsDefined()){
-                 // undefined mem object
-                 return 0;
-               }
-               string treeN = tree->GetValue();
-               if(!catalog->isMMObject(treeN)){
-                 // not found in memory
-                 return 0;
-               } 
-               ListExpr treeT = nl->Second(catalog->getMMObjectTypeExpr(treeN));
-               if(   !nl->HasLength(treeT,2) 
-                  || !listutils::isSymbol(nl->First(treeT),
-                                          mtreehelper::BasicType())){
-                 // fisrt arg in not an m tree
-                 return 0;
-               }
-               if(!K::checkType(nl->Second(treeT))){
-                 // m-tree type and search type differ
-                 return 0;
-               }
                K* key = (K*) args[2].addr;
-               MemoryMtreeObject<pair<K,TupleId>, StdDistComp<K> >* m =
-                       (MemoryMtreeObject<pair<K,TupleId>, StdDistComp<K> >*) 
-                        catalog->getMMObject(treeN);
+
+               T* tree = (T*) args[0].addr;
+               MemoryMtreeObject<K, StdDistComp<K> >*m = getMtree<T,K>(tree);
                if(m){
-                     local.addr = new distScanInfo<K>(m,mro,key);
+                 local.addr = new distScanInfo<K>(m,mro,key);
                }
                return 0;
              }
@@ -5246,7 +5299,7 @@ ValueMapping mdistScanVM[] = {
 };
 
 OperatorSpec mdistScanSpec(
-  "string x string x DATA -> stream(tuple) ",
+  "{string, mem(mtree T)} x {string, mem(rel(tuple))}  x T -> stream(tuple) ",
   "mem_mtree mem_rel mdistScan[keyAttr] ",
   "Retrieves tuples from an memory relation in increasing "
   "distance to a reference object aided by a memory based "
@@ -5262,9 +5315,6 @@ Operator mdistScanOp(
    mdistScanSelect,
    mdistScanTM
 );
-
-
-
 
 
 
@@ -5357,6 +5407,9 @@ class MainMemoryAlgebra : public Algebra
         AddOperator(&matchbelowSOp);
         matchbelowSOp.SetUsesArgsInTypeMapping();
 
+        AddOperator(&gettuplesOp);
+        gettuplesOp.SetUsesArgsInTypeMapping();
+
         }
         ~MainMemoryAlgebra() {
         };
@@ -5366,7 +5419,7 @@ class MainMemoryAlgebra : public Algebra
 
 
 
-} // ende namespace mmalgebra
+} // end of namespace mmalgebra
 
 /*
 7 Initialization

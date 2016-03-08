@@ -257,9 +257,16 @@ Signature : {string, mem(avltree T} x T -> stream(TID)
 Example   : query "strassen_Name7" matchbelowS["B"] count
 Result    : 1
 
+Operator  : gettuples
+Number    : 43
+Signature : stream(tid) x {string, mem(rel(tuple(X)))} -> stream(tuple(X))
+Example   : query "ten_No" mrangeS[4, 5] "ten" gettuples consume count 
+Result    : 2
+
+
 
 Operator  : memclear
-Number    : 43
+Number    : 44
 Signature : -> bool
 Example   : query memclear()
 Result    : TRUE

@@ -236,7 +236,7 @@ template <class T, class DistComp>
 class MemoryMtreeObject : public MemoryObject {
 
     public:
-        MemoryMtreeObject(MMMTree<T, DistComp>* _mtree,
+        MemoryMtreeObject(MMMTree<std::pair<T, TupleId>, DistComp>* _mtree,
                         size_t _memSize, 
                         const std::string& _objectTypeExpr, 
                         bool _flob,
@@ -253,7 +253,7 @@ class MemoryMtreeObject : public MemoryObject {
             }
         };
 
-        MMMTree<T, DistComp>* getmtree(){
+        MMMTree<std::pair<T, TupleId>, DistComp>* getmtree(){
             return mtree;
         };
 
@@ -273,7 +273,7 @@ class MemoryMtreeObject : public MemoryObject {
 
 
     private:
-         MMMTree<T, DistComp>* mtree;
+         MMMTree< std::pair<T, TupleId>, DistComp>* mtree;
 };
 
 
