@@ -4773,13 +4773,13 @@ ListExpr mcreateMtreeTM(ListExpr args){
     return listutils::typeError(err + " (third arg is not a string)");
   }
 
-  ListExpr resNameV = nl->Second(nl->Third(args));
-  if(nl->AtomType(resNameV)!=StringType){
-    return listutils::typeError("third arg must be a constant string");
-  }
-  if(catalog->isMMObject(nl->StringValue(resNameV))){
-    return listutils::typeError("memory object already there.");
-  }
+  // ListExpr resNameV = nl->Second(nl->Third(args));
+  // if(nl->AtomType(resNameV)!=StringType){
+  //  return listutils::typeError("third arg must be a constant string");
+  // }
+  // if(catalog->isMMObject(nl->StringValue(resNameV))){
+  //  return listutils::typeError("memory object already there.");
+  // }
 
   ListExpr attrList = nl->Second(nl->Second(a1));
   ListExpr at;
@@ -5414,10 +5414,6 @@ class MainMemoryAlgebra : public Algebra
         ~MainMemoryAlgebra() {
         };
 };
-
-
-
-
 
 } // end of namespace mmalgebra
 
