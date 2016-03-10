@@ -1035,9 +1035,9 @@ Operator gettuplesOp(
 );
 
 
-
-int letmconsume (Word* args, Word& result,
-                int message, Word& local, Supplier s, bool flob) {
+template<bool flob>
+int letmconsumeValMap(Word* args, Word& result,
+                int message, Word& local, Supplier s) {
 
     result  = qp->ResultStorage(s);
     Mem* str = (Mem*)result.addr;
@@ -1106,19 +1106,6 @@ ListExpr letmconsumeTypeMap(ListExpr args)
 
 /*
 
-5.5.3  The Value Mapping Functions of operator ~letmconsume~
-
-*/
-
-int letmconsumeValMap (Word* args, Word& result,
-                int message, Word& local, Supplier s) {
-
-    return letmconsume(args, result, message, local, s, false);
-}
-
-
-/*
-
 5.5.4 Description of operator ~letmconsume~
 
 */
@@ -1141,31 +1128,10 @@ OperatorSpec letmconsumeSpec(
 Operator letmconsumeOp (
     "letmconsume",
     letmconsumeSpec.getStr(),
-    letmconsumeValMap,
+    letmconsumeValMap<false>,
     Operator::SimpleSelect,
     letmconsumeTypeMap
 );
-
-
-/*
-
-5.5 Operator ~letmconsumeflob~
-
-~letmconsumeflob~ produces a main memory relation from a stream(tuples),
-similar to the ~consume~-operator. The name of the main memory relation is given
-by the second parameter. The associated flobs will be loaded to main memory too.
-
-5.5.3  The Value Mapping Functions of operator ~letmconsumeflob~
-
-*/
-
-int letmconsumeflobValMap (Word* args, Word& result,
-                int message, Word& local, Supplier s) {
-
-    return letmconsume(args, result, message, local, s, true);
-}
-
-
 
 
 /*
@@ -1193,7 +1159,7 @@ OperatorSpec letmconsumeflobSpec(
 Operator letmconsumeflobOp (
     "letmconsumeflob",
     letmconsumeflobSpec.getStr(),
-    letmconsumeflobValMap,
+    letmconsumeValMap<true>,
     Operator::SimpleSelect,
     letmconsumeTypeMap
 );
