@@ -117,14 +117,15 @@ class SecondoTTY : public Application
 
  private:
   void Usage();
-  bool ProcessFile( const string& fileName, const bool stopOnError );
+  bool ProcessFile( const string& fileName, const bool stopOnError,
+                    const bool isPD );
   bool ProcessCommand();
-  bool ProcessCommands( const bool stopOnError);
+  bool ProcessCommands( const bool stopOnError, const bool isPD);
   void ShowPrompt( const bool first );
   void TypeOutputList ( ListExpr list );
   void TypeOutputListFormatted ( ListExpr list );
   bool IsInternalCommand( const string& line );
-  bool GetCommand();
+  bool GetCommand( const bool isPD);
   void ShowQueryResult( ListExpr list );
   ListExpr CallSecondo();
   void CallSecondo2();
@@ -190,11 +191,16 @@ SecondoTTY::Usage()
   "The following internal commands are available:\n" <<
   "\n" <<
   "  ?, HELP  - display this message\n" <<
+  "\n" << 
   "  @FILE    - read commands from file 'FILE' (may be nested)\n" <<
-  "  @@FILE   - read commands from file 'FILE' until 'FILE' is " <<
-  "completly processed or an error is occurred\n" <<
-  "  DEBUG n  - set debug level to n where n is an integer where each " <<
-  "bit corresponds to one setting:\n" <<
+  "  @@FILE   - read commands from file 'FILE' until 'FILE' is \n" <<
+  "             completly processed or an error is occurred\n" <<
+  "  @\%FILE   - read commands from file ignoring comments in pd style\n" <<
+  "  @&FILE   - read commands from file ignoring comments in pd style\n" <<
+  "             until file is completely processed or an error is occurred\n"<<
+  "\n" <<
+  "  DEBUG n  - set debug level to n where n is an integer where each \n" <<
+  "             bit corresponds to one setting:\n" <<
   "           bit  0: debug mode (show annotated query and operator tree)\n" <<
   "           bit  1: trace (show recursive calls)\n" <<
   "           bit  2: trace nodes (construction of nodes of the op. tree,\n" <<
@@ -202,14 +208,15 @@ SecondoTTY::Usage()
   "           bit  3: localInfo (prints a warning if an operator did not\n" <<
   "                   destroy its localinfo before the operator tree\n"<<
   "                   is deconstructed)\n" <<
-  "           bit  4: debug progress (after sending a REQUESTPROGRESS\n " <<
+  "           bit  4: debug progress (after sending a REQUESTPROGRESS\n" <<
   "                   message to an operator, the ranges in the \n" <<
   "                   ProgressInfo are checked for whether tey are\n" <<
   "                   reasonable. If not so, the according operator and \n" <<
   "                   ProgressInfo are reported) \n" <<
-  "           bit  5: trace progress (prints the result of \n " <<
+  "           bit  5: trace progress (prints the result of \n" <<
   "                   each REQUESTPROGRESS message) \n" <<
   "           bit  6: show type mappings \n" <<
+  "\n" <<
   "  Q, QUIT  - exit the program\n" <<
   "  # ...    - comment line (first character on line has to be '#')\n" <<
   "  REPEAT n <query> - execute <query> n times.\n" <<
@@ -226,7 +233,8 @@ SecondoTTY::Usage()
 }
 
 bool
-SecondoTTY::ProcessFile( const string& fileName , const bool stopOnError)
+SecondoTTY::ProcessFile( const string& fileName , const bool stopOnError,
+                         const bool isPD)
 {
   bool saveIsStdInput = isStdInput;
   streambuf* oldBuffer;
@@ -239,7 +247,7 @@ SecondoTTY::ProcessFile( const string& fileName , const bool stopOnError)
     StopWatch scriptTime;
     scriptTime.start();
 
-    bool res = ProcessCommands(stopOnError);
+    bool res = ProcessCommands(stopOnError, isPD);
 
     cout << "Runtime for " << fileName << ": "
          << scriptTime.diffTimes() << endl;
@@ -332,12 +340,22 @@ bool SecondoTTY::ProcessCommand()
   {
     bool stopOnError = false;
     int start=1;
+    bool pdfile=false;
     if(cmdWord.length()>1 && cmdWord[1] == '@'){
       start = 2;
       stopOnError = true;
     }
+    if(cmdWord.length()>1 && cmdWord[1] == '%'){
+       start = 2;
+       pdfile = true;       
+    }
+    if(cmdWord.length()>1 && cmdWord[1] == '&'){
+       start = 2;
+       pdfile = true;       
+       stopOnError = true;
+    }
     success = ProcessFile( cmd.substr( start, ( cmd.length() - start ) ),
-                           stopOnError );
+                           stopOnError, pdfile );
   }
   else if ( cmdWord == "REPEAT" )
   {
@@ -422,12 +440,13 @@ SecondoTTY::IsInternalCommand( const string& line )
 }
 
 bool
-SecondoTTY::GetCommand()
+SecondoTTY::GetCommand( const bool isPD)
 {
   bool complete = false;
   bool first = true;
   string line = "";
   cmd = "";
+  bool inPD = false;
   while (!complete && !cin.eof() && !cin.fail())
   {
     line = "";
@@ -441,13 +460,46 @@ SecondoTTY::GetCommand()
       else
     #endif
          getline( cin, line );
-    if ( line.length() > 0 )
-    {
+
+
+
+    if ( line.length() > 0  || inPD) {
       if ( !isStdInput )           // Echo input if not standard input
       {
         cout << " " << line << endl;
       }
-      if ( line[0] != '#' )        // Process if not comment line
+      bool comment = false;
+      if(!isPD){
+         comment = line[0] == '#';
+      } else {
+        if(!inPD){
+          if(line.length()>0){
+             comment = line[0] == '#';
+          } 
+          if(!comment) {
+            if(line.length()>1){
+              if((line[0]=='/') && (line[1]=='/')){ // single line comment
+                 comment = true;
+              } else if((line[0]=='/') && (line[1]=='*')) { // big comment
+                 comment = true;
+                 inPD = true;
+              }
+            }
+          }
+        } else {
+          comment = true;
+          if(line.length()>1){
+            if( (line[0]=='*') && (line[1]=='/')){
+              inPD = false;
+              line = line.substr(2);
+              line = trim(line);
+              comment = line.empty();
+            }
+          }
+        }
+     }
+
+      if ( !comment )        // Process if not comment line
       {
         if ( line[line.length()-1] == ';' )
         {
@@ -475,6 +527,8 @@ SecondoTTY::GetCommand()
       first = true;
     }
   }
+
+
   // remove spaces from the end of cmd
   size_t end = cmd.find_last_not_of(" \t");
   if(end==string::npos)
@@ -500,12 +554,11 @@ SecondoTTY::GetCommand()
 }
 
 bool
-SecondoTTY::ProcessCommands(const bool stopOnError)
-{
+SecondoTTY::ProcessCommands(const bool stopOnError, const bool isPD) {
   bool errorFound = false;;
   while (!cin.eof() && !quit && ( !stopOnError || !errorFound ))
   {
-    if ( GetCommand() )
+    if ( GetCommand(isPD) )
     {
       try {
         if( ! ProcessCommand()){
@@ -777,11 +830,11 @@ SecondoTTY::Execute()
     {
       cout << endl << "Secondo TTY ready for operation." << endl
            << "Type 'HELP' to get a list of available commands." << endl;
-      ProcessCommands( false);
+      ProcessCommands( false, false);
     }
     else
     {
-      ProcessFile(iFileName, false);
+      ProcessFile(iFileName, false, false);
     }
 
     if ( useOutputFile ){
