@@ -283,9 +283,10 @@ bool MemoryRelObject::relToVector(
 }
 
 bool MemoryRelObject::tupleStreamToRel(Word arg, ListExpr le,
-                string _database = "", bool _flob = false){
+                string _database, bool _flob){
 
     Stream<Tuple> stream(arg);
+    flob = _flob;
     size_t availableMemSize = catalog->getAvailableMemSize();
     unsigned long usedMainMemory =0;
     Tuple* tup;
