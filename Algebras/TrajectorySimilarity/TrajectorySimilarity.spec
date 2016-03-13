@@ -20,8 +20,8 @@
 operator isempty alias ISEMPTY pattern op(_)
 operator no_components alias NO_COMPONENTS pattern op(_)
 operator to_dline alias TO_DLINE pattern op(_)
-operator to_pointseq alias TO_POINTSEQ pattern op(_)
-operator to_tpointseq alias TO_TPOINTSEQ pattern op(_)
+operator to_pointseq alias TO_POINTSEQ pattern op(_, _)
+operator to_tpointseq alias TO_TPOINTSEQ pattern op(_, _)
 operator sample_to_pointseq alias SAMPLE pattern op(_, _)
 operator sample_to_tpointseq alias SAMPLE pattern op(_, _)
 

@@ -72,34 +72,49 @@ dline consists of single segment whose start and end are the same point.
 
 The operator ~to\_pointseq~ extracts a ~pointseq~ from some input object.
 
-  * The overload $to\_pointseq : mpoint \rightarrow pointseq$ is equivalent to
-    $to\_pointseq(to\_tpointseq(m))$ (see below) for an ~mpoint m~. It extracts
-    a ~pointseq~ from a moving point object as
-
-    * the start point of the first unit of the moving point object followed by
-
-    * the end point of each unit of the moving point object whose interval
-      contains not just a single instant.
-
-    If there is a temporal or spatial gap between two successive units or a unit
-    makes a spatial move in no time, the ~pointseq~ is ~undefined~.
+  * The overload $to\_pointseq : mpoint [\times bool] \rightarrow pointseq$ with
+    $to\_pointseq(m[, ignore\_temporal\_gaps])$ is equivalent to
+    $to\_pointseq(to\_tpointseq(m[, ignore\_temporal\_gaps]))$ (see below).
 
   * The overload $to\_pointseq : tpointseq \rightarrow pointseq$ computes the
     spatial projection of the ~tpointseq~.
 
 1.2.5 ~to\_tpointseq~
 
-The operator $to\_tpointseq : mpoint \rightarrow tpointseq$ extracts a
-~tpointseq~ from a moving point object as
+The operator
+
+        $to\_tpointseq : mpoint [\times bool] \rightarrow tpointseq$
+
+with $to\_tpointseq(m[, ignore\_temporal\_gaps])$ extracts a ~tpointseq~ from a
+moving point object.
+
+If used without ~ignore\_temporal\_gaps~ or with ~ignore\_temporal\_gaps=false~,
+the operator extracts a ~tpointseq~ from a moving point object as
 
   * the start instant and point of the first unit of the moving point object
     followed by
 
-  * the end instant and point of each unit of the moving point object whose
-    interval contains not just a single instant.
+  * the end instant and point of each unit whose interval contains not just a
+    single instant.
 
 If there is a temporal or spatial gap between two successive units or a unit
 makes a spatial move in no time, the ~tpointseq~ is ~undefined~.
+
+If used with ~ignore\_temporal\_gaps=true~, the operator extracts a ~tpointseq~
+from a moving point object as
+
+  * the start instant and point of the first unit of the moving point object
+    followed by
+
+  * the end instant and point of each unit whose interval contains not just a
+    single instant and
+
+  * the start instant and point of each unit that directly follows a temporal
+    gap.
+
+If there is a spatial gap between two temporally adjacent units or a unit
+makes a spatial move in no time, the ~tpointseq~ is ~undefined~.
+
 
 1.2.6 ~sample\_to\_pointseq~
 
@@ -297,7 +312,8 @@ Recreate the sequence from an ~MPoint~.
 
 */
 template<class T>
-void Sequence<T>::convertFrom(const MPoint& src) noexcept
+void Sequence<T>::convertFrom(
+    const MPoint& src, const bool ignore_temporal_gaps) noexcept
 {
   SetDefined(false);
   seq.clean();
@@ -332,12 +348,34 @@ Copy the start point of the first upoint.
     }
     else {
 /*
-Bail out if there is a temporal or spatial gap between upoints.
+Check for a temporal gap.
 
 */
-      if (!prec_ival.R_Adjacent(ival) || !AlmostEqual(prec_p1, p0)) {
-        seq.clean();
-        return;
+      if (!prec_ival.R_Adjacent(ival)) {
+/*
+Bail out if temporal gaps are not ignored.
+
+*/
+        if (!ignore_temporal_gaps) {
+          seq.clean();
+          return;
+        }
+/*
+Otherwise also copy the start point of the first upoint after the gap.
+
+*/
+        append(T(ival.start, Point(p0)));
+      }
+      else {
+
+/*
+Bail out if there is a spatial gap between temporally adjacent upoints.
+
+*/
+        if (!AlmostEqual(prec_p1, p0)) {
+          seq.clean();
+          return;
+        }
       }
     }
 
@@ -1197,7 +1235,9 @@ void TrajectorySimilarityAlgebra::addToDLineOp()
 */
 const mappings::VectorTypeMaps to_pointseq_maps = {
   /*0*/ {{MPoint::BasicType()},  /* -> */ {PointSeq::BasicType()}},
-  /*1*/ {{TPointSeq::BasicType()}, /* -> */ {PointSeq::BasicType()}}
+  /*1*/ {{MPoint::BasicType(), CcBool::BasicType()},
+    /* -> */ {PointSeq::BasicType()}},
+  /*2*/ {{TPointSeq::BasicType()}, /* -> */ {PointSeq::BasicType()}}
 };
 
 ListExpr ToPointSeqTypeMap(ListExpr args)
@@ -1206,11 +1246,28 @@ ListExpr ToPointSeqTypeMap(ListExpr args)
 int ToPointSeqSelect(ListExpr args)
 { return mappings::vectorSelect(to_pointseq_maps, args); }
 
-template<class T>
-int ToPointSeqValueMap(
+template<unsigned int PARAMS=1>
+int ToPointSeqValueMapMPoint(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
-  const T& src = *static_cast<T*>(args[0].addr);
+  const MPoint& src = *static_cast<MPoint*>(args[0].addr);
+  const CcBool* cc_ignore_temporal_gaps =
+      (PARAMS >= 2) ? static_cast<CcBool*>(args[1].addr) : nullptr;
+  result = qp->ResultStorage(s);    // PointSeq
+  PointSeq& ps = *static_cast<PointSeq*>(result.addr);
+
+  const bool ignore_temporal_gaps =
+      (cc_ignore_temporal_gaps && cc_ignore_temporal_gaps->IsDefined()) ?
+          cc_ignore_temporal_gaps->GetBoolval() : false;
+
+  ps.convertFrom(src, ignore_temporal_gaps);
+  return 0;
+}
+
+int ToPointSeqValueMapTPointSeq(
+    Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
+{
+  const TPointSeq& src = *static_cast<TPointSeq*>(args[0].addr);
   result = qp->ResultStorage(s);    // PointSeq
   PointSeq& ps = *static_cast<PointSeq*>(result.addr);
   ps.convertFrom(src);
@@ -1218,8 +1275,9 @@ int ToPointSeqValueMap(
 }
 
 ValueMapping to_pointseq_functions[] = {
-  ToPointSeqValueMap<MPoint>,
-  ToPointSeqValueMap<TPointSeq>,
+  ToPointSeqValueMapMPoint,
+  ToPointSeqValueMapMPoint</*PARAMS*/ 2>,
+  ToPointSeqValueMapTPointSeq,
   nullptr
 };
 
@@ -1230,15 +1288,15 @@ struct ToPointSeqInfo : OperatorInfo
     name      = "to_pointseq";
     signature = MPoint::BasicType() + " -> " + PointSeq::BasicType();
     appendSignature(
+                MPoint::BasicType() + " x " + CcBool::BasicType() +
+                " -> " + PointSeq::BasicType());
+    appendSignature(
                 TPointSeq::BasicType() + " -> " + PointSeq::BasicType());
-    syntax    = "to_pointseq(_)";
-    meaning   = "For an mpoint: Extracts the start point of the first unit of "
-                "the moving point object followed by the end point of each "
-                "unit of the moving point object whose interval contains "
-                "not just a single instant. If there is a temporal or spatial "
-                "gap between two successive units or a unit makes a spatial "
-                "move in no time, the pointseq if undefined. This is "
-                "equivalent to to_tpointseq(to_pointseq(m)) with an mpoint m.\n"
+    syntax    = "to_pointseq(_, [ignore_temporal_gaps])";
+    meaning   = "For an mpoint m and an optional boolean value "
+                "ignore_temporal_gaps this is equivalent to "
+                "to_pointseq(to_tpointseq(m, ignore_temporal_gaps)), but it "
+                "avoids a second iteration of the mpoint."
                 "For a tpointseq: Spatial projection of the tpointseq.\n"
                 "The time complexity is O(n).";
   }
@@ -1257,7 +1315,9 @@ void TrajectorySimilarityAlgebra::addToPointSeqOp()
 
 */
 const mappings::VectorTypeMaps to_tpointseq_maps = {
-  /*0*/ {{MPoint::BasicType()},  /* -> */ {TPointSeq::BasicType()}}
+  /*0*/ {{MPoint::BasicType()},  /* -> */ {TPointSeq::BasicType()}},
+  /*1*/ {{MPoint::BasicType(), CcBool::BasicType()},
+    /* -> */ {TPointSeq::BasicType()}}
 };
 
 ListExpr ToTPointSeqTypeMap(ListExpr args)
@@ -1266,19 +1326,27 @@ ListExpr ToTPointSeqTypeMap(ListExpr args)
 int ToTPointSeqSelect(ListExpr args)
 { return mappings::vectorSelect(to_tpointseq_maps, args); }
 
-template<class T>
+template<unsigned int PARAMS=1>
 int ToTPointSeqValueMap(
     Word* args, Word& result, int /*message*/, Word& /*local*/, Supplier s)
 {
-  const T& src = *static_cast<T*>(args[0].addr);
+  const MPoint& src = *static_cast<MPoint*>(args[0].addr);
+  const CcBool* cc_ignore_temporal_gaps =
+      (PARAMS >= 2) ? static_cast<CcBool*>(args[1].addr) : nullptr;
   result = qp->ResultStorage(s);    // TPointSeq
   TPointSeq& ps = *static_cast<TPointSeq*>(result.addr);
-  ps.convertFrom(src);
+
+  const bool ignore_temporal_gaps =
+      (cc_ignore_temporal_gaps && cc_ignore_temporal_gaps->IsDefined()) ?
+          cc_ignore_temporal_gaps->GetBoolval() : false;
+
+  ps.convertFrom(src, ignore_temporal_gaps);
   return 0;
 }
 
 ValueMapping to_tpointseq_functions[] = {
-  ToTPointSeqValueMap<MPoint>,
+  ToTPointSeqValueMap,
+  ToTPointSeqValueMap</*PARAMS*/ 2>,
   nullptr
 };
 
@@ -1288,13 +1356,25 @@ struct ToTPointSeqInfo : OperatorInfo
   {
     name      = "to_tpointseq";
     signature = MPoint::BasicType() + " -> " + TPointSeq::BasicType();
-    syntax    = "to_tpointseq(_)";
-    meaning   = "Extracts the start instant and point of the first unit of the "
+    appendSignature(
+                MPoint::BasicType() + " x " + CcBool::BasicType() +
+                " -> " + TPointSeq::BasicType());
+    syntax    = "to_tpointseq(_, [ignore_temporal_gaps])";
+    meaning   = "With just one parameter or with ignore_temporal_gaps=false: "
+                "Extracts the start instant and point of the first unit of the "
                 "moving point object followed by the end instant and point of "
-                "each unit of the moving point object whose interval contains "
-                "not just a single instant. If there is a temporal or spatial "
-                "gap between two successive units or a unit makes a spatial "
-                "move in no time, the tpointseq if undefined.\n"
+                "each unit whose interval contains not just a single instant. "
+                "If there is a temporal or spatial gap between two successive "
+                "units or a unit makes a spatial move in no time, the "
+                "tpointseq is undefined.\n"
+                "With ignore_temporal_gaps=true: Extracts the start instant "
+                "and point of the first unit of the moving point object "
+                "followed by the end instant and point of each unit whose "
+                "interval contains not just a single instant and the start "
+                "instant and point of each unit that directly follows a "
+                "temporal gap. If there is a spatial gap between two "
+                "temporally adjacent units or a unit makes a spatial move in "
+                "no time, the tpointseq is undefined.\n"
                 "The time complexity is O(n).";
   }
 };

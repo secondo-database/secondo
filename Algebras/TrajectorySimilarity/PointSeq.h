@@ -159,7 +159,8 @@ Create a ~DLine~ from the sequence.
 Discard the current content of the sequence and recreate it from an ~MPoint~.
 
 */
-  void convertFrom(const MPoint& src) noexcept;
+  void convertFrom(
+        const MPoint& src, bool ignore_temporal_gaps = false) noexcept;
 
 /*
 Discard the current content of the sequence and recreate it from a ~TPointSeq~

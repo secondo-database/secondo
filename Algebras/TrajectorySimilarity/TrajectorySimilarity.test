@@ -391,6 +391,67 @@ query to_pointseq([const mpoint value (
 )])
 
 
+### to_pointseq : mpoint x bool -> pointseq
+
+#testcase ToPointSeqMPointBoolUndefined
+#yields (pointseq undefined)
+query to_pointseq([const mpoint value undefined], TRUE)
+
+#testcase ToPointSeqMPointBool0
+#yields (pointseq ())
+query to_pointseq([const mpoint value ()], TRUE)
+
+#testcase ToPointSeqMPointBool1
+#yields (pointseq ((1.0 2.3) (-2.0 0.0)))
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+)], TRUE)
+
+#testcase ToPointSeqMPointBool2
+#yields (pointseq ((1.0 2.3) (-2.0 0.0) (4.5 6.7)))
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) (-2.0 0.0 4.5 6.7))
+)], TRUE)
+
+#testcase ToPointSeqMPointBoolTemporalGap
+#yields (pointseq ((1.0 2.3) (-2.0 0.0) (-2.0 0.0) (4.5 6.7)))
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:31:20" "2015-12-29-01:33:05" TRUE FALSE) (-2.0 0.0 4.5 6.7))
+)], TRUE)
+
+#testcase ToPointSeqMPointBoolTemporalGap2
+#yields (pointseq ((1.0 2.3) (-2.0 0.0) (-2.0 1.0) (4.5 6.7)))
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:31:20" "2015-12-29-01:33:05" TRUE FALSE) (-2.0 1.0 4.5 6.7))
+)], TRUE)
+
+#testcase ToPointSeqMPointBoolSpatialGap
+#yields (pointseq undefined)
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) (-1.5 0.5 4.5 6.7))
+)], TRUE)
+
+#testcase ToPointSeqMPointBoolTeleport
+#yields (pointseq undefined)
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:30:20" TRUE TRUE) (-2.0 0.0 4.5 6.7))
+)], TRUE)
+
+#testcase ToPointSeqMPointBoolInstantUnitWithNoMove
+#yields (pointseq ((1.0 2.3) (-2.0 0.0)))
+## Second unit contains just one instant and does not move in time. Therefore it
+## shall be skipped.
+query to_pointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:30:20" TRUE TRUE) (-2.0 0.0 -2.0 0.0))
+)], TRUE)
+
+
 ### to_pointseq : tpointseq -> pointseq
 
 #testcase ToPointSeqTPointSeqUndefined
@@ -473,6 +534,80 @@ query to_tpointseq([const mpoint value (
   (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
   (("2015-12-29-01:30:20" "2015-12-29-01:30:20" TRUE TRUE) (-2.0 0.0 -2.0 0.0))
 )])
+
+
+### to_tpointseq : mpoint x bool -> tpointseq
+
+#testcase ToTPointSeqMPointBoolUndefined
+#yields (tpointseq undefined)
+query to_tpointseq([const mpoint value undefined], TRUE)
+
+#testcase ToTPointSeqMPointBool0
+#yields (tpointseq ())
+query to_tpointseq([const mpoint value ()], TRUE)
+
+#testcase ToTPointSeqMPointBool1
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (1.0 2.3)) ("2015-12-29-01:30:20" (-2.0 0.0))))
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+)], TRUE)
+
+#testcase ToTPointSeqMPointBool2
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (1.0 2.3)) \
+  ("2015-12-29-01:30:20" (-2.0 0.0)) \
+  ("2015-12-29-01:33:05" (4.5 6.7))))
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) (-2.0 0.0 4.5 6.7))
+)], TRUE)
+
+#testcase ToTPointSeqMPointBoolTemporalGap
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (1.0 2.3)) \
+  ("2015-12-29-01:30:20" (-2.0 0.0)) \
+  ("2015-12-29-01:31:20" (-2.0 0.0)) \
+  ("2015-12-29-01:33:05" (4.5 6.7))))
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:31:20" "2015-12-29-01:33:05" TRUE FALSE) (-2.0 0.0 4.5 6.7))
+)], TRUE)
+
+#testcase ToTPointSeqMPointBoolTemporalGap2
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (1.0 2.3)) \
+  ("2015-12-29-01:30:20" (-2.0 0.0)) \
+  ("2015-12-29-01:31:20" (-2.0 1.0)) \
+  ("2015-12-29-01:33:05" (4.5 6.7))))
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:31:20" "2015-12-29-01:33:05" TRUE FALSE) (-2.0 1.0 4.5 6.7))
+)], TRUE)
+
+#testcase ToTPointSeqMPointBoolSpatialGap
+#yields (tpointseq undefined)
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:33:05" TRUE FALSE) (-1.5 0.5 4.5 6.7))
+)], TRUE)
+
+#testcase ToTPointSeqMPointBoolTeleport
+#yields (tpointseq undefined)
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:30:20" TRUE TRUE) (-2.0 0.0 4.5 6.7))
+)], TRUE)
+
+#testcase ToTPointSeqMPointBoolInstantUnitWithNoMove
+#yields (tpointseq ( \
+  ("2015-12-29-01:23:45" (1.0 2.3)) ("2015-12-29-01:30:20" (-2.0 0.0))))
+## Second unit contains just one instant and does not move in time. Therefore it
+## shall be skipped.
+query to_tpointseq([const mpoint value (
+  (("2015-12-29-01:23:45" "2015-12-29-01:30:20" TRUE FALSE) (1.0 2.3 -2.0 0.0))
+  (("2015-12-29-01:30:20" "2015-12-29-01:30:20" TRUE TRUE) (-2.0 0.0 -2.0 0.0))
+)], TRUE)
 
 
 
