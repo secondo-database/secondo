@@ -20,8 +20,13 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 ----
+//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
+//paragraph [2] Filename: [{\tt \begin{center}] [\end{center}}]
 
-\title{Trajectory Similarity Algebra} \author{Manuel Sierich} \maketitle
+[1] Trajectory Similarity Algebra
+
+[2] TrajectorySimilarity.cpp
+
 \tableofcontents
 
 \noindent

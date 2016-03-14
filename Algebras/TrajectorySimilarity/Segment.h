@@ -21,8 +21,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 ----
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
+//paragraph [2] Filename: [{\tt \begin{center}] [\end{center}}]
 
 [1] Segment Class Templates
+
+[2] Segment.h
 
 \tableofcontents
 
