@@ -41,6 +41,7 @@ Started July 2014, Fabio Vald\'{e}s
 #include "BasicTypes.h"
 #include "InvertedFile.h"
 #include "LongInt.h"
+#include "Geoid.h"
  
  
  namespace stj {
@@ -293,7 +294,7 @@ class Tools {
                             const SetRel rel) {
     switch (rel) {
       case STANDARD: {
-        if (reg.Intersects(mp.BoundingBoxSpatial())) {
+        if (reg.Distance(mp.BoundingBoxSpatial()) == 0.0) {
           temporalalgebra::MPoint mpAtReg(true);
           mp.AtRegion(&reg, mpAtReg);
           return !mpAtReg.IsEmpty();
@@ -301,7 +302,7 @@ class Tools {
         return false;
       }
       case DISJOINT: {
-        if (reg.Intersects(mp.BoundingBoxSpatial())) {
+        if (reg.Distance(mp.BoundingBoxSpatial()) == 0.0) {
           return !mp.Passes(reg);
         }
         return true;
@@ -313,7 +314,7 @@ class Tools {
         return false;
       }
       case INTERSECT: {
-        if (reg.Intersects(mp.BoundingBoxSpatial())) {
+        if (reg.Distance(mp.BoundingBoxSpatial()) == 0.0) {
           return mp.Passes(reg);
         }
         return false;

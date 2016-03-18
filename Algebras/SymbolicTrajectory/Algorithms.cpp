@@ -870,7 +870,7 @@ void TMatch::GetInterval(const int u, SecInterval& iv) const {
 */
 bool TMatch::labelsMatch(const set<string>& tlabels, const int atom, 
                          const int pos) {
-  set<string> plabels, plabelsTemp;
+  set<string> plabels;
   pair<Word, SetRel> values = p->elems[atom].values[pos];
   if (values.first.addr == 0) {
     return true;
@@ -954,6 +954,9 @@ bool TMatch::otherValuesMatch(const int pos, const SecInterval& iv,
     return true;
   }
   pair<int, string> attrInfo = relevantAttrs[pos];
+  if (attrInfo.first == attrno) {
+    return true;
+  }
   int start(-1), end(-1);
   if (attrInfo.second == "mlabel") {
     MLabel *mlabel = (MLabel*)t->GetAttribute(attrInfo.first);
@@ -961,6 +964,15 @@ bool TMatch::otherValuesMatch(const int pos, const SecInterval& iv,
     end = mlabel->Position(iv.end);
     if (start == -1 || end == -1) {
       return false;
+    }
+    temporalalgebra::SecInterval iv1, iv2;
+    mlabel->GetInterval(start, iv1);
+    mlabel->GetInterval(end, iv2);
+    if (!iv.lc && iv.start == iv1.end) {
+      start++;
+    }
+    if (!iv.rc && iv.end == iv2.start) {
+      end--;
     }
     set<string> tlabels, plabels, labels;
     string label;
@@ -1106,7 +1118,6 @@ bool TMatch::valuesMatch(const int u, const int atom) {
       return false;
     }
   }
-
   return true;
 }
 
@@ -1458,7 +1469,7 @@ ListExpr TupleIndex::Out(ListExpr typeInfo, Word value) {
     val.addr = ti->rtrees2[i];
     last2 = nl->Append(last2, OutRTree<2>(nl->FourElemList(nl->Empty(),
                 nl->Empty(), nl->Empty(), nl->BoolAtom(true)), val));
-  }  
+  }
   return nl->ThreeElemList(overviewlist, rtree1list, rtree2list);
 }
 
@@ -2085,7 +2096,11 @@ void TupleIndex::deleteIndexes() {
 */
 TMatchIndexLI::TMatchIndexLI(Relation *r, ListExpr tt, TupleIndex *t, int a, 
                              Pattern *pat, int majorValueNo, DataType type) :
-  IndexMatchSuper(r, pat, a, type), ttList(tt), ti(t), valueNo(majorValueNo) {} 
+  IndexMatchSuper(r, pat, a, type), ttList(tt), ti(t), valueNo(majorValueNo) {
+    TupleType *tupletype = rel->GetTupleType();
+    relevantAttrs = Tools::getRelevantAttrs(tupletype, a, majorValueNo);
+    tupletype->DeleteIfAllowed();
+  } 
 
 /*
 \subsection{Function ~tiCompatibleToRel~}
@@ -2388,7 +2403,8 @@ bool TMatchIndexLI::getResultForAtomTime(const int atomNo,
 \subsection{Function ~storeIndexResult~}
 
 */
-void TMatchIndexLI::storeIndexResult(int atomNo) {
+void TMatchIndexLI::storeIndexResult(int atomNo, int &noResults) {
+  noResults = 0;
   PatElem atom;
   p->getElem(atomNo, atom);
   map<int, pair<IndexType, int> >::iterator it;
@@ -2466,6 +2482,7 @@ void TMatchIndexLI::storeIndexResult(int atomNo) {
       if (indexResult[atomNo][i] == 0) {
         indexResult[atomNo][i] = new IndexRetrieval(pred, i, result[i]);
         memset(indexResult[atomNo][i], 0, sizeof(void*));
+        noResults++;
       }
       pred = i;
     }
@@ -2526,6 +2543,9 @@ void TMatchIndexLI::initMatchInfo() {
     if (active[id]) {
       activeTuples++;
       IndexMatchInfo imi(false);
+      if (loopStates.find(0) != loopStates.end()) {
+        imi.range = true;
+      }
       for (int s = 0; s < p->getNFAsize(); s++) {
         matchInfo[s][id] = new IndexMatchSlot();
         matchInfo[s][id]->pred = pred;
@@ -2558,36 +2578,46 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
   set<string> ivs;
   atom.getI(ivs);
   SecInterval iv;
-  vector<pair<int, string> > relevantAttrs;
   vector<TupleId> toRemove;
   p->getElem(trans.first, atom);
   bool transition = false;
   IndexMatchInfo *imiPtr = 0;
   if (atom.isRelevantForTupleIndex()) {
     if (indexResult[trans.first] == 0) {
-      storeIndexResult(trans.first);
+      int noResults;
+      storeIndexResult(trans.first, noResults);
     }
     TupleId id = indexResult[trans.first][0]->succ;
+    int minUnit = INT_MAX;
     while (id > 0) {
       bool totalMatch = false;
       set<int>::reverse_iterator it = 
                                    indexResult[trans.first][id]->units.rbegin();
       while (active[id] && it != indexResult[trans.first][id]->units.rend()) {
-//         cout << state << "|" << trans.first << "," << trans.second << "#"
-//              << id << " " << (matchInfo[state][id] != 0) << endl;
+//         cout << state << "---" << trans.first << "-->" << trans.second
+//             << " # " << id << " " 
+//             << indexResult[trans.first][id]->units.size() 
+//             << " " << *it << endl;
         unsigned int numOfIMIs = (matchInfo[state][id] != 0 ?
                                   matchInfo[state][id]->imis.size() : 0);
-//         cout << "  while loop: consider unit " << *it << " and " << numOfIMIs
-//              << " imis" << endl;
         for (unsigned int i = 0; i < numOfIMIs; i++) {
-          Tuple *t = rel->GetTuple(id, false);
-          TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
           imiPtr = &matchInfo[state][id]->imis[i];
-          bool ok = imiPtr->range ? imiPtr->next <= *it : imiPtr->next == *it;
+          bool ok = (imiPtr->range ? imiPtr->next <= *it : imiPtr->next == *it);
           if (ok) {
-            if (tmatch.valuesMatch(*it, trans.first) &&
-                Tools::timesMatch(iv, ivs) &&
-                tmatch.easyCondsMatch(*it, trans.first)) {
+            Tuple *t = rel->GetTuple(id, false);
+            TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
+            bool match = false;
+            bool matchKnown = (matchRecord[trans.first][id] != 0);
+            if (matchKnown) {
+              match = (matchRecord[trans.first][id]->units.find(*it) !=
+                       matchRecord[trans.first][id]->units.end());
+            }
+            else {
+              match = tmatch.valuesMatch(*it, trans.first) &&
+                      Tools::timesMatch(iv, ivs) &&
+                      tmatch.easyCondsMatch(*it, trans.first);
+            }
+            if (match) {
               transition = true;
               IndexMatchInfo newIMI(false, *it + 1, imiPtr->binding,
                                     imiPtr->prevElem);
@@ -2613,6 +2643,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
               }
               if (totalMatch) {
                 matches.push_back(id); // complete match
+//                 cout << "MATCH for id " << id << endl;
                 toRemove.push_back(id);
     //         cout << id << " removed (wild match) " << activeTuples 
     //              << " active tuples" << endl;
@@ -2620,19 +2651,42 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                 active[id] = false;
               }
               else if (!newIMI.exhausted(trajSize[id])) { // continue
+                if (loopStates.find(trans.second) != loopStates.end()) {
+                  newIMI.range = true;
+                }
                 newMatchInfo[trans.second][id]->imis.push_back(newIMI);
-//                 cout << "newIMI pushed back for " << trans.second << ", " 
-//                      << id << endl;
+                if (!matchKnown) {
+                  matchRecord[trans.first][id] = new UnitSet(*it);
+                }
+              }
+              if (*it < minUnit) {
+                minUnit = *it;
               }
             }
-            unitCtr = *it; //set counter to minimum of index results
+            else {
+              if (!matchKnown) {
+                matchRecord[trans.first][id] = new UnitSet();
+              }
+              if (imiPtr->range && canBeDeactivated(id, state, trans.first)) {
+//                 cout << "*Deactivate id " << id << endl;
+                toRemove.push_back(id);
+              }
+            }
+            t->DeleteIfAllowed();
           }
-          t->DeleteIfAllowed();
         }
         it++;
       }
+      TupleId oldId = id;
       id = indexResult[trans.first][id]->succ;
+      if (canBeDeactivated(oldId, state, trans.first, true)) {
+//         cout << "#### deactivate " << oldId << endl;
+        toRemove.push_back(oldId);
+      }
       remove(toRemove);
+    }
+    if (minUnit > unitCtr && minUnit < INT_MAX) {
+      unitCtr = minUnit; //set counter to minimum of index results
     }
   }
   else { // consider all existing imi instances
@@ -2657,9 +2711,18 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
               if (!ivs.empty()) {
                 getInterval(id, imiPtr->next, iv);
               }
-              if (tmatch.valuesMatch(imiPtr->next, trans.first) &&
-                  Tools::timesMatch(iv, ivs) &&
-                  tmatch.easyCondsMatch(imiPtr->next, trans.first)) {
+              bool match = false;
+              bool matchKnown = (matchRecord[trans.first][id] != 0);
+              if (matchKnown) {
+                match = (matchRecord[trans.first][id]->units.find(imiPtr->next)
+                         != matchRecord[trans.first][id]->units.end());
+              }
+              else {
+                match = tmatch.valuesMatch(imiPtr->next, trans.first) &&
+                        Tools::timesMatch(iv, ivs) &&
+                        tmatch.easyCondsMatch(imiPtr->next, trans.first);
+              }
+              if (match) {
                 transition = true;
                 IndexMatchInfo newIMI(false, imiPtr->next + 1, imiPtr->binding,
                                       imiPtr->prevElem);
@@ -2685,6 +2748,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                 }
                 if (totalMatch) {
                   matches.push_back(id); // complete match
+                  cout << "MATCH for id " << id << endl;
                   toRemove.push_back(id);
       //         cout << id << " removed (wild match) " << activeTuples 
       //              << " active tuples" << endl;
@@ -2693,6 +2757,14 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                 }
                 else if (!newIMI.exhausted(trajSize[id])) { // continue
                   newMatchInfo[trans.second][id]->imis.push_back(newIMI);
+                  if (!matchKnown) {
+                    matchRecord[trans.first][id] = new UnitSet(imiPtr->next);
+                  }
+                }
+              }
+              else {
+                if (!matchKnown) {
+                  matchRecord[trans.first][id] = new UnitSet();
                 }
               }
             }
@@ -2700,9 +2772,18 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
               int k = imiPtr->next;
               while (k < trajSize[id]) {
                 getInterval(id, k, iv);
-                if (tmatch.valuesMatch(k, trans.first) &&
-                    Tools::timesMatch(iv, ivs) &&
-                    tmatch.easyCondsMatch(k, trans.first)) {
+                bool match = false;
+                bool matchKnown = (matchRecord[trans.first][id] != 0);
+                if (matchKnown) {
+                  match = (matchRecord[trans.first][id]->units.find(k) !=
+                          matchRecord[trans.first][id]->units.end());
+                }
+                else {
+                  match = tmatch.valuesMatch(k, trans.first) &&
+                          Tools::timesMatch(iv, ivs) &&
+                          tmatch.easyCondsMatch(k, trans.first);
+                }
+                if (match) {
                   transition = true;
                   IndexMatchInfo newIMI(false, k + 1, imiPtr->binding,
                                         imiPtr->prevElem);
@@ -2727,6 +2808,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                                newIMI.finished(trajSize[id]);
                   if (totalMatch) {
                     matches.push_back(id); // complete match
+//                     cout << "MATCH for id " << id << " !!" << endl;
                     toRemove.push_back(id);
       //         cout << id << " removed (wild match) " << activeTuples 
       //              << " active tuples" << endl;
@@ -2736,6 +2818,18 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                   }
                   else if (!newIMI.exhausted(trajSize[id])) { // continue
                     newMatchInfo[trans.second][id]->imis.push_back(newIMI);
+                    if (!matchKnown) {
+                      matchRecord[trans.first][id] = new UnitSet(k);
+                    }
+                  }
+                }
+                else {
+                  if (!matchKnown) {
+                    matchRecord[trans.first][id] = new UnitSet();
+                  }
+                  if (canBeDeactivated(id, state, trans.first)) {
+//                     cout << "Deactivate id " << id << endl;
+                    toRemove.push_back(id);
                   }
                 }
                 k++;
@@ -2767,7 +2861,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
             }
             if (totalMatch) {
               matches.push_back(id); // complete match
-//            cout << "complete match for id " << id << ", pushed into matches";
+//               cout << "complete match for id " << id << endl;
               toRemove.push_back(id);
       //         cout << id << " removed (wild match) " << activeTuples 
       //              << " active tuples" << endl;
@@ -2776,8 +2870,6 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
             }
             else if (!newIMI.exhausted(trajSize[id])) { // continue
               newMatchInfo[trans.second][id]->imis.push_back(newIMI);
-//               cout << "  imi pushed back from wc, id " << id << ", state " 
-//                    << trans.second << ", next " << newIMI.next << endl;
             }
           }
           t->DeleteIfAllowed();
@@ -2797,7 +2889,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
       remove(toRemove);
     }
   }
-//   cout << "return " << (transition ? "TRUE" : "FALSE") << endl;
+//   cout << "........ return " << (transition ? "TRUE" : "FALSE") << endl;
   return transition;
 }
 
@@ -2816,7 +2908,6 @@ void TMatchIndexLI::applyNFA() {
     for (is = states.rbegin(); is != states.rend(); is++) {
       map<int, int> trans = p->getTransitions(*is);
       for (im = trans.rbegin(); im != trans.rend() && activeTuples > 0; im++) {
-    // TODO: invoke atomMatch iff newStates.find(im->second) != newStates.end()
         if (atomMatch(*is, *im)) {
           newStates.insert(im->second);
         }
@@ -2825,13 +2916,13 @@ void TMatchIndexLI::applyNFA() {
     states.clear();
     states.swap(newStates);
 //     cout << "Current states: ";
+    clearMatchInfo();
+    unitCtr++;
 //     for (set<int>::iterator it = states.begin(); it != states.end(); it++) {
 //       cout << *it << ",";
 //     }
-//     cout << "   " << !newStates.empty() << endl;
-    clearMatchInfo();
-    unitCtr++;
-//     cout << "unitCtr set to " << unitCtr << endl;
+//     cout << "unitCtr set to " << unitCtr << ";   activeTuples: " 
+//          << activeTuples << endl;
   }
 }
 
@@ -2850,16 +2941,63 @@ bool TMatchIndexLI::initialize() {
   p->findNFApaths(simpleNFA, paths);
   set<int> cruElems;
   p->getCrucialElems(paths, crucialAtoms);
+  for (int state = 0; state < p->getNFAsize(); state++) {
+    if (p->nfaHasLoop(state)) {
+      loopStates.insert(state);
+    }
+  }
   indexResult = new IndexRetrieval**[p->getSize()];
   memset(indexResult, 0, p->getSize() * sizeof(void*));
   active = new bool[rel->GetNoTuples() + 1];
   memset(active, 1, (rel->GetNoTuples() + 1) * sizeof(bool));
   matches.push_back(1);
   trajSize = new int[rel->GetNoTuples() + 1];
+  int minResultPos = -1;
+  int minResults(INT_MAX), curResults(0);
   memset(trajSize, 0, (rel->GetNoTuples() + 1) * sizeof(int));
+  matchRecord = new UnitSet**[p->getSize()];
+  memset(matchRecord, 0, p->getSize() * sizeof(void*));
+  PatElem atom;
+  for (int i = 0; i < p->getSize(); i++) {
+    p->getElem(i, atom);
+    if (atom.hasValuesWithContent()) {
+      matchRecord[i] = new UnitSet*[rel->GetNoTuples() + 1];
+      memset(matchRecord[i], 0, (rel->GetNoTuples() + 1) * sizeof(void*));
+    }
+  }
   for (set<int>::iterator it = crucialAtoms.begin(); it != crucialAtoms.end(); 
        it++) {
-    storeIndexResult(*it);
+    storeIndexResult(*it, curResults);
+    if (curResults < minResults) {
+      minResults = curResults;
+      minResultPos = *it;
+    }
+  }
+  if (minResultPos > -1) {
+    int removed = 0;
+    for (set<int>::iterator it = crucialAtoms.begin(); it != crucialAtoms.end();
+         it++) {
+      PatElem atom;
+      p->getElem(*it, atom);
+      if (*it != minResultPos && atom.isRelevantForTupleIndex()) {
+        TupleId oldId = 0;
+        TupleId id = indexResult[*it][0]->succ;
+        while (id != 0) {
+          if (indexResult[minResultPos][id] == 0) {
+            oldId = id;
+            id = indexResult[*it][id]->succ;
+            removeIdFromIndexResult(oldId);
+            active[oldId] = false;
+            removed++;
+          }
+          else {
+            id = indexResult[*it][id]->succ;
+          }
+        }
+      }
+    }
+//     cout << removed << " tuples removed due to crucial atom " 
+//          << minResultPos << endl;
   }
   Tuple *firstTuple = rel->GetTuple(1, false);
   if (!p->initEasyCondOpTrees(firstTuple, ttList)) {
@@ -2882,6 +3020,8 @@ Tuple* TMatchIndexLI::nextTuple() {
   if (matches[0] == 0 || matches[0] >= matches.size() || matches.size() <= 1) {
     return 0;
   }
+//   cout << "size: " << matches.size() << "; elem 0: " << matches[0] << " : " 
+//        << matches[matches[0]] << endl;
   Tuple *result = rel->GetTuple(matches[matches[0]], false);
   matches[0]++;
   return result;
@@ -3523,6 +3663,47 @@ void Pattern::deleteAtomValues(vector<pair<int, string> > &relevantAttrs) {
   }
 }
 
+bool Pattern::startsWithAsterisk() const {
+  if (getSize() == 0) {
+    return false;
+  }
+  PatElem atom;
+  getElem(0, atom);
+  if (atom.getW() == STAR) {
+    if (!regEx.empty()) {
+      return (regEx[0] != '(');
+    }
+  }
+  return false;
+}
+
+bool Pattern::startsWithPlus() const {
+  if (getSize() == 0) {
+    return false;
+  }
+  PatElem atom;
+  getElem(0, atom);
+  if (atom.getW() == PLUS) {
+    if (!regEx.empty()) {
+      return (regEx[0] != '(');
+    }
+  }
+  return false;
+}
+
+bool Pattern::nfaHasLoop(const int state) const {
+  if ((int)(nfa.size()) <= state) {
+    return false;
+  }
+  for (map<int, int>::const_iterator it = nfa[state].begin(); 
+       it != nfa[state].end(); it++) {
+    if (it->second == state) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool PatElem::hasValuesWithContent() const {
   for (unsigned int i = 0; i < values.size(); i++) {
     if (values[i].first.addr != 0) {
@@ -3966,30 +4147,43 @@ IndexMatchSuper::~IndexMatchSuper() {
         delete indexResult[i][0];
         delete[] indexResult[i];
       }
+      if (matchRecord[i] != 0) {
+        for (int j = 0; j <= rel->GetNoTuples(); j++) {
+          if (matchRecord[i][j] != 0) {
+            delete matchRecord[i][j];
+          }
+        }
+        delete[] matchRecord[i];
+      }
     }
     for (int i = 0; i < p->getNFAsize(); i++) {
-      if (matchInfo[i] != 0) {
-        id = matchInfo[i][0]->succ;
-        while (id != 0 && matchInfo[i][id] != 0) {
-          pred = id;
-          id = matchInfo[i][id]->succ;
-          delete matchInfo[i][pred];
+      if (matchInfo != 0) {
+        if (matchInfo[i] != 0) {
+          id = matchInfo[i][0]->succ;
+          while (id != 0 && matchInfo[i][id] != 0) {
+            pred = id;
+            id = matchInfo[i][id]->succ;
+            delete matchInfo[i][pred];
+          }
+          delete matchInfo[i][0];
+          delete[] matchInfo[i];
         }
-        delete matchInfo[i][0];
-        delete[] matchInfo[i];
       }
-      if (newMatchInfo[i] != 0) {
-        id = newMatchInfo[i][0]->succ;
-        while (id != 0 && newMatchInfo[i][id] != 0) {
-          pred = id;
-          id = newMatchInfo[i][id]->succ;
-          delete newMatchInfo[i][pred];
+      if (newMatchInfo != 0) {
+        if (newMatchInfo[i] != 0) {
+          id = newMatchInfo[i][0]->succ;
+          while (id != 0 && newMatchInfo[i][id] != 0) {
+            pred = id;
+            id = newMatchInfo[i][id]->succ;
+            delete newMatchInfo[i][pred];
+          }
+          delete newMatchInfo[i][0];
+          delete[] newMatchInfo[i];
         }
-        delete newMatchInfo[i][0];
-        delete[] newMatchInfo[i];
       }
     }
     delete[] indexResult;
+    delete[] matchRecord;
     delete[] matchInfo;
     delete[] newMatchInfo;
     delete[] trajSize;
@@ -4143,8 +4337,10 @@ void IndexMatchSuper::remove(std::vector<TupleId> &toRemove) {
     return;
   }
   for (unsigned int i = 0; i < toRemove.size(); i++) {
-    removeIdFromMatchInfo(toRemove[i]);
-    removeIdFromIndexResult(toRemove[i]);
+    if (active[toRemove[i]]) {
+      removeIdFromMatchInfo(toRemove[i]);
+      removeIdFromIndexResult(toRemove[i]);
+    }
   }
   toRemove.clear();
 }
@@ -4213,6 +4409,48 @@ void IndexMatchSuper::removeIdFromMatchInfo(const TupleId id) {
   active[id] = false;
   activeTuples -= (removed ? 1 : 0);
 //   cout << "ID " << id << " removed; activeTuples=" << activeTuples << endl;
+}
+
+/*
+\subsection{Function ~canBeDeactivated~}
+
+*/
+bool IndexMatchSuper::canBeDeactivated(const TupleId id, const int state,
+                    const int atom, const bool checkRange /* = false */) const {
+  if (crucialAtoms.find(atom) != crucialAtoms.end()) {
+    for (int i = state + 1; i < p->getNFAsize(); i++) {
+      if (matchInfo[i] != 0) {
+        if (matchInfo[i][id] != 0) {
+          if (!matchInfo[i][id]->imis.empty()) {
+//             cout << "------------DO NOT deactivate id " << id 
+//                  << ", has mI[" << i << "]" << endl;
+            return false;
+          }
+        }
+      }
+      if (newMatchInfo[i] != 0) {
+        if (newMatchInfo[i][id] != 0) {
+          if (!newMatchInfo[i][id]->imis.empty()) {
+//             cout << "-----------DO NOT deactivate id " << id 
+//                  << ", has nMI[" << i << "]" << endl;
+            return false;
+          }
+        }
+      }
+    }
+  }
+  if (checkRange) {
+    if (matchInfo[state][id] != 0) {
+      for (unsigned int i = 0; i < matchInfo[state][id]->imis.size(); i++) {
+        if (!matchInfo[state][id]->imis[i].range) {
+//           cout << "-----------DO NOT deactivate id " << id 
+//                << ", range=FALSE" << endl;
+          return false;
+        }
+      }
+    }
+  }
+  return true;
 }
 
 /*
@@ -4403,9 +4641,6 @@ void IndexMatchSuper::extendBinding(IndexMatchInfo& imi, const int e) {
 
 */
 void IndexMatchSuper::deletePattern() {
-  int majorAttrNo;
-  vector<pair<int, string> > relevantAttrs = Tools::getRelevantAttrs(
-                                      rel->GetTupleType(), attrNo, majorAttrNo);
   p->deleteAtomValues(relevantAttrs);
   delete p;
   p = 0;
@@ -4477,6 +4712,7 @@ bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
     id = matchInfo[state][id]->succ;
   }
   return ok;
+  cout << "return ok" << endl;
 }
 
 /*

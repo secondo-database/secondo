@@ -2880,7 +2880,7 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
         else {
           cout << "invalid pattern" << endl;
         }
-        firstTuple->DeleteIfAllowed();
+//         firstTuple->DeleteIfAllowed();
       }
       local.addr = li;
       return 0;

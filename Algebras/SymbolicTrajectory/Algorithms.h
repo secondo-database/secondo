@@ -237,7 +237,9 @@ class MBasic : public Attribute {
 
   void serialize(size_t &size, char *bytes) const;
   void deserialize(const char *bytes);
-  int Position(const Instant& inst) const;
+  int Position(const Instant& inst, const bool ignoreClosedness = false) const;
+  int FirstPosFrom(const Instant& inst) const;
+  int LastPosUntil(const Instant& inst) const;
   void Get(const int i, UBasic<B>& result) const;
   void GetInterval(const int i, temporalalgebra::SecInterval& result) const;
   void GetBasic(const int i, B& result) const;
@@ -312,7 +314,9 @@ class MBasics : public Attribute {
   
   void serialize(size_t &size, char *bytes) const;
   void deserialize(const char *bytes);
-  int Position(const Instant& inst) const;
+  int Position(const Instant& inst, const bool ignoreClosedness = false) const;
+  int FirstPosFrom(const Instant& inst) const;
+  int LastPosUntil(const Instant& inst) const;
   void Get(const int i, UBasics<B>& result) const;
   void GetBasics(const int i, B& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
@@ -664,6 +668,9 @@ class Pattern {
   void deleteCondOpTrees();
   void deleteEasyCondOpTrees();
   void deleteAtomValues(std::vector<std::pair<int, std::string> > &attrs);
+  bool startsWithAsterisk() const;
+  bool startsWithPlus() const;
+  bool nfaHasLoop(const int state) const;
 
   std::vector<PatElem>   getElems()              {return elems;}
   std::vector<Condition>* getConds()             {return &conds;}
@@ -722,7 +729,7 @@ class Pattern {
   bool  isRelevant(std::string var)  {return relevantVars.count(var);}
   std::string            getVarFromElem(int elem){return elemToVar[elem];}
   int               getElemFromAtom(int atom) {return atomicToElem[atom];}
-  
+
   std::vector<PatElem> elems;
   std::vector<Assign> assigns;
   std::vector<Condition> easyConds; // evaluated during matching
@@ -978,19 +985,30 @@ class TupleIndex {
 };
 
 /*
+\section{Struct ~UnitSet~}
+
+*/
+struct UnitSet {
+  UnitSet() {}
+  UnitSet(std::set<int>& u) : units(u) {}
+  UnitSet(int unit) {units.insert(unit);}
+  
+  std::set<int> units;
+};
+
+/*
 \section{Struct ~IndexRetrieval~}
 
 */
-struct IndexRetrieval {
+struct IndexRetrieval : public UnitSet {
   IndexRetrieval() : pred(0), succ(0) {}
   IndexRetrieval(unsigned int p, unsigned int s = 0) : pred(p), succ(s) {}
   IndexRetrieval(unsigned int p, unsigned int s, std::set<int>& u) : 
-                 pred(p), succ(s), units(u) {}
+                 UnitSet(u), pred(p), succ(s) {}
   IndexRetrieval(unsigned int p, unsigned int s, std::vector<int>& u) : 
                  pred(p), succ(s) {units.insert(u.begin(), u.end());}
   
   unsigned int pred, succ;
-  std::set<int> units;
 };
 
 /*
@@ -1051,6 +1069,8 @@ class IndexMatchSuper {
   void remove(std::vector<TupleId> &toRemove);
   void removeIdFromIndexResult(const TupleId id);
   void removeIdFromMatchInfo(const TupleId id);
+  bool canBeDeactivated(const TupleId id, const int state, const int atom,
+                        const bool checkRange = false) const;
   void clearMatchInfo();
   bool hasIdIMIs(const TupleId id, const int state = -1);
   void extendBinding(IndexMatchInfo& imi, const int e);
@@ -1059,17 +1079,16 @@ class IndexMatchSuper {
   Relation *rel;
   Pattern *p;
   int attrNo;
+  std::vector<std::pair<int, std::string> > relevantAttrs;
   DataType mtype;
   std::vector<TupleId> matches;
+  UnitSet ***matchRecord; // state x tuple id
   bool *active;
   int *trajSize;
   int activeTuples, unitCtr;
+  std::set<int> loopStates, crucialAtoms;
   IndexRetrieval ***indexResult;
   IndexMatchSlot ***matchInfo, ***newMatchInfo;
-//   std::vector<std::vector<IndexMatchSlot> > matchInfo, newMatchInfo; 
-                                                      // state, tupleid
-//   std::vector<std::vector<IndexMatchSlot> > *matchInfoPtr, *newMatchInfoPtr;
-  
 };
 
 /*
@@ -1102,7 +1121,7 @@ class TMatchIndexLI : public IndexMatchSuper {
                           bool checkPrev = false);
   bool getResultForAtomTime(const int atomNo, 
                             std::vector<temporalalgebra::Periods*> &result);
-  void storeIndexResult(int atomNo);
+  void storeIndexResult(int atomNo, int &noResults);
   void initMatchInfo();
   bool atomMatch(int state, std::pair<int, int> trans);
   void applyNFA();
@@ -1113,7 +1132,6 @@ class TMatchIndexLI : public IndexMatchSuper {
   ListExpr ttList;
   TupleIndex *ti;
   int valueNo;
-  std::set<int> crucialAtoms;
 };
 
 /*
@@ -2069,7 +2087,8 @@ void MBasic<B>::deserialize(const char *bytes) {
 
 */
 template<class B>
-int MBasic<B>::Position(const Instant& inst) const {
+int MBasic<B>::Position(const Instant& inst, 
+                        const bool ignoreClosedness /* = false */) const {
   assert(IsDefined());
   assert(inst.IsDefined());
   int first = 0, last = GetNoComponents() - 1;
@@ -2081,7 +2100,8 @@ int MBasic<B>::Position(const Instant& inst) const {
     }
     typename B::unitelem unit;
     units.Get(mid, unit);
-    if (((temporalalgebra::Interval<Instant>)(unit.iv)).Contains(t1)) {
+    if (((temporalalgebra::Interval<Instant>)(unit.iv)).Contains(t1, 
+                                                            ignoreClosedness)) {
       return mid;
     }
     else { // not contained
@@ -2094,6 +2114,100 @@ int MBasic<B>::Position(const Instant& inst) const {
       else {
         return -1; // should never be reached.
       }
+    }
+  }
+  return -1;
+}
+
+/*
+\subsection{Function ~FirstPosFrom~}
+
+*/
+template<class B>
+int MBasic<B>::FirstPosFrom(const Instant& inst) const {
+  assert(IsDefined());
+  assert(inst.IsDefined());
+  typename B::unitelem unit;
+  units.Get(0, unit);
+  if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+    return 0; //
+  }
+  units.Get(GetNoComponents() - 1, unit);
+  if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+    return -1;
+  }
+  int first(0), last(GetNoComponents() - 1);
+  while (first <= last) {
+    int mid = (first + last) / 2;
+    units.Get(mid, unit);
+    if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+      if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+        return mid;
+      }
+      first = mid + 1;
+    }
+    else if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+      int beforeMid = mid - 1;
+      units.Get(beforeMid, unit);
+      if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+        return mid;
+      }
+      else if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+        last = mid - 1;
+      }
+      else {
+        return mid;
+      }
+    }
+    else {
+      return mid;
+    }
+  }
+  return -1;
+}
+
+/*
+\subsection{Function ~LastPosUntil~}
+
+*/
+template<class B>
+int MBasic<B>::LastPosUntil(const Instant& inst) const {
+  assert(IsDefined());
+  assert(inst.IsDefined());
+  typename B::unitelem unit;
+  units.Get(0, unit);
+  if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+    return -1; //
+  }
+  units.Get(GetNoComponents() - 1, unit);
+  if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+    return GetNoComponents() - 1;
+  }
+  int first(0), last(GetNoComponents() - 1);
+  while (first <= last) {
+    int mid = (first + last) / 2;
+    units.Get(mid, unit);
+    if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+      if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+        return mid;
+      }
+      last = mid - 1;
+    }
+    else if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+      int afterMid = mid + 1;
+      units.Get(afterMid, unit);
+      if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+        return mid;
+      }
+      else if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+        first = mid + 1;
+      }
+      else {
+        return mid;
+      }
+    }
+    else {
+      return mid;
     }
   }
   return -1;
@@ -2936,7 +3050,8 @@ std::ostream& operator<<(std::ostream& o, const MBasics<B>& mbs) {
 
 */
 template<class B>
-int MBasics<B>::Position(const Instant& inst) const {
+int MBasics<B>::Position(const Instant& inst,
+                         const bool ignoreClosedness /* = false */) const {
   assert(IsDefined());
   assert(inst.IsDefined());
   int first = 0, last = GetNoComponents() - 1;
@@ -2948,7 +3063,8 @@ int MBasics<B>::Position(const Instant& inst) const {
     }
     SymbolicUnit unit;
     units.Get(mid, unit);
-    if (((temporalalgebra::Interval<Instant>)(unit.iv)).Contains(t1)) {
+    if (((temporalalgebra::Interval<Instant>)(unit.iv)).Contains(t1, 
+                                                            ignoreClosedness)) {
       return mid;
     }
     else { // not contained
@@ -2961,6 +3077,100 @@ int MBasics<B>::Position(const Instant& inst) const {
       else {
         return -1; // should never be reached.
       }
+    }
+  }
+  return -1;
+}
+
+/*
+\subsection{Function ~FirstPosFrom~}
+
+*/
+template<class B>
+int MBasics<B>::FirstPosFrom(const Instant& inst) const {
+  assert(IsDefined());
+  assert(inst.IsDefined());
+  typename B::unitelem unit;
+  units.Get(0, unit);
+  if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+    return 0; //
+  }
+  units.Get(GetNoComponents() - 1, unit);
+  if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+    return -1;
+  }
+  int first(0), last(GetNoComponents() - 1);
+  while (first <= last) {
+    int mid = (first + last) / 2;
+    units.Get(mid, unit);
+    if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+      if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+        return mid;
+      }
+      first = mid + 1;
+    }
+    else if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+      int beforeMid = mid - 1;
+      units.Get(beforeMid, unit);
+      if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+        return mid;
+      }
+      else if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+        last = mid - 1;
+      }
+      else {
+        return mid;
+      }
+    }
+    else {
+      return mid;
+    }
+  }
+  return -1;
+}
+
+/*
+\subsection{Function ~LastPosUntil~}
+
+*/
+template<class B>
+int MBasics<B>::LastPosUntil(const Instant& inst) const {
+  assert(IsDefined());
+  assert(inst.IsDefined());
+  typename B::unitelem unit;
+  units.Get(0, unit);
+  if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+    return -1; //
+  }
+  units.Get(GetNoComponents() - 1, unit);
+  if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+    return GetNoComponents() - 1;
+  }
+  int first(0), last(GetNoComponents() - 1);
+  while (first <= last) {
+    int mid = (first + last) / 2;
+    units.Get(mid, unit);
+    if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+      if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
+        return mid;
+      }
+      last = mid - 1;
+    }
+    else if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+      int afterMid = mid + 1;
+      units.Get(afterMid, unit);
+      if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+        return mid;
+      }
+      else if (inst > ((temporalalgebra::Interval<Instant>)(unit.iv)).end) {
+        first = mid + 1;
+      }
+      else {
+        return mid;
+      }
+    }
+    else {
+      return mid;
     }
   }
   return -1;
@@ -5272,14 +5482,32 @@ void IndexMatchSuper::periodsToUnits(const temporalalgebra::Periods *per,
     per->Get(i, iv);
     start = traj->Position(iv.start);
     end = traj->Position(iv.end);
-    if (start == -1 && end >= 0) {
-      start = 0;
+    if (end > start && !iv.rc) {
+      temporalalgebra::SecInterval trajIv;
+      traj->GetInterval(end, trajIv);
+      if (!trajIv.rc) {
+        end--;
+      }
     }
-    else if (end == -1 && start >= 0) {
-      end = getTrajSize(tId, mtype) - 1;
+    if (start == -1) {
+      start = traj->FirstPosFrom(iv.start);
     }
-    for (int j = start; j <= end; j++) {
-      units.insert(units.end(), j);
+    if (end == -1) {
+      end = traj->LastPosUntil(iv.end);
+    }
+    if (end == start - 1) {
+      end++;
+    }
+    if (start > -1 && end > -1) {
+      if (start == -1 && end >= 0) {
+        start = 0;
+      }
+      else if (end == -1 && start >= 0) {
+        end = getTrajSize(tId, mtype) - 1;
+      }
+      for (int j = start; j <= end; j++) {
+        units.insert(units.end(), j);
+      }
     }
   }
   t->DeleteIfAllowed();

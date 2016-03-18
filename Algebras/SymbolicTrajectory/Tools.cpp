@@ -1116,6 +1116,8 @@ void Tools::queryTrie(InvertedFile *inv, string str, vector<set<int> > &result){
   charPosType cc;
   eit = inv->getExactIterator(str, 16777216);
   while (eit->next(id, wc, cc)) {
+//     cout << "insert " << wc << " at pos " << id << " from " 
+//          << result.size() << endl;
     result[id].insert(wc);
   }
   delete eit;
