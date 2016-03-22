@@ -144,3 +144,51 @@ Example  : query theater contains (theater cut [100,100,200,200])
 Result   : bug
 Remark   : Due to the JPEG compression this operator does not work properly.
 
+Operator  : distance
+Number    : 1
+Signature : hist_hsvD x hist_hsvD -> real
+Example   : query distance( getHistHsv8(paper), getHistHsv8(paper))
+Result    : (real 0.0)
+
+Operator  : getHistHsv8 
+Number    : 1
+Signature : picture -> hist_hsv_8
+Example   : query distance( getHistHsv8(paper), getHistHsv8(paper))
+Result    : (real 0.0)
+
+Operator  : getHistHsv16 
+Number    : 1
+Signature : picture -> hist_hsv_16
+Example   : query distance( getHistHsv16(paper), getHistHsv16(paper))
+Result    : (real 0.0)
+
+Operator  : getHistHsv32 
+Number    : 1
+Signature : picture -> hist_hsv_32
+Example   : query distance( getHistHsv32(paper), getHistHsv32(paper))
+Result    : (real 0.0)
+
+Operator  : getHistHsv64 
+Number    : 1
+Signature : picture -> hist_hsv_64
+Example   : query distance( getHistHsv64(paper), getHistHsv64(paper))
+Result    : (real 0.0)
+
+Operator  : getHistHsv128 
+Number    : 1
+Signature : picture -> hist_hsv_128
+Example   : query distance( getHistHsv128(paper), getHistHsv128(paper))
+Result    : (real 0.0)
+
+Operator  : getHistHsv256 
+Number    : 1
+Signature : picture -> hist_hsv_256
+Example   : query distance( getHistHsv256(paper), getHistHsv256(paper))
+Result    : (real 0.0)
+
+Operator  : getHistLab256 
+Number    : 1
+Signature : picture -> hist_lab_256
+Example   : query distance( getHistLab256(paper), getHistLab256(paper))
+Result    : (real 0.0)
+

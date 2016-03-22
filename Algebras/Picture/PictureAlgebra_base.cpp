@@ -35,6 +35,8 @@ SECONDO types ~picture~ and ~histogram~ are located in other modules.
 #include "PictureAlgebra.h"
 #include "Symbols.h"
 #include "StringUtils.h"
+#include "hist_hsv.h"
+#include "JPEGPicture.h"
 
 using namespace std;
 
@@ -577,6 +579,463 @@ static Operator exportop(
     PictureExportTypeMap                   //type mapping
 );
 
+
+/*
+hsv histograms
+
+*/
+
+GenTC<hist_hsv<8,false> > hist_hsv8;
+GenTC<hist_hsv<16, false> > hist_hsv16;
+GenTC<hist_hsv<32, false> > hist_hsv32;
+GenTC<hist_hsv<64, false> > hist_hsv64;
+GenTC<hist_hsv<128, false> > hist_hsv128;
+GenTC<hist_hsv<256, false> > hist_hsv256;
+GenTC<hist_hsv<256, true> > hist_lab256;
+
+
+
+/*
+
+Operators on hsv histograms
+
+*/
+
+ListExpr distanceTM(ListExpr args){
+  string err = "hist_hsvD x hist_hsvD expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(!nl->Equal(nl->First(args), nl->Second(args))){
+    return listutils::typeError(err + " (argument types differ)");
+  }
+  ListExpr a1 = nl->First(args);
+  if(   !hist_hsv<8, false>::checkType(a1)
+     && !hist_hsv<16, false>::checkType(a1)
+     && !hist_hsv<32, false>::checkType(a1)
+     && !hist_hsv<64, false>::checkType(a1)
+     && !hist_hsv<128, false>::checkType(a1)
+     && !hist_hsv<256, false>::checkType(a1)
+     && !hist_hsv<256, true>::checkType(a1)){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcReal>();
+}
+
+
+template<unsigned int dim, bool lab>
+int distanceVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   hist_hsv<dim, lab>* a1 = (hist_hsv<dim, lab>*) args[0].addr;
+   hist_hsv<dim, lab>* a2 = (hist_hsv<dim, lab>*) args[1].addr;
+   result = qp->ResultStorage(s);
+   CcReal* res = (CcReal*) result.addr;
+   bool d;
+   double dist;
+   a1->distance(*a2,d,dist);
+   res->Set(d,dist);
+   return 0;
+}
+
+ValueMapping distanceVM[] = {
+    distanceVMT<8, false>,
+    distanceVMT<16, false>,
+    distanceVMT<32, false>,
+    distanceVMT<64, false>,
+    distanceVMT<128, false>,
+    distanceVMT<256, false>,
+    distanceVMT<256, true>,
+};
+
+int distanceSelect(ListExpr args){
+  ListExpr a1 = nl->First(args);
+  if(hist_hsv<8, false>::checkType(a1)) return 0;
+  if(hist_hsv<16, false>::checkType(a1)) return 1;
+  if(hist_hsv<32, false>::checkType(a1)) return 2;
+  if(hist_hsv<64, false>::checkType(a1)) return 3;
+  if(hist_hsv<128, false>::checkType(a1)) return 4;
+  if(hist_hsv<256, false>::checkType(a1)) return 5;
+  if(hist_hsv<256, true>::checkType(a1)) return 6;
+  return -1;
+}
+
+OperatorSpec distanceSpec(
+   "hist_hsvD x hist_hsvD -> real",
+   "distance(_,_)",
+   "computes the distances between two hsv histograms",
+   "query distance(getHSV8(theater) , getHSV8(paper)"
+);
+
+Operator distanceOp(
+  "distance",
+  distanceSpec.getStr(),
+  7,
+  distanceVM,
+  distanceSelect,
+  distanceTM
+);
+
+
+
+template<unsigned int dim, bool lab>
+ListExpr getHistHsvTM(ListExpr args){
+  string err = "picture expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(!Picture::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<hist_hsv<dim, lab> >();
+
+}
+
+class HSV{
+
+public:
+ HSV(unsigned char r, unsigned char g, unsigned char b){
+
+    unsigned char rgbMin = std::min (std::min (r, g), b); 
+    unsigned char rgbMax = std::max (std::max (r, g), b); 
+    unsigned char delta = rgbMax - rgbMin;
+
+    // compute h
+    if (delta == 0) {   
+      h = 0;
+    } else {   
+      if (rgbMax == r) {   
+        h = 60 * (g - b) / delta;
+      }   else if (rgbMax == g) {   
+        h = 120 * (g - b) / delta;
+      }   else  { // rgbMax == b
+        h = 240 * (g - b) / delta;
+      }   
+    }   
+
+    if (h < 0){
+        h += 360;
+    }
+
+    // compute s
+    if (rgbMax == 0)
+        s = 0;
+    else
+        s = 255 * delta / rgbMax;
+
+    // compute v
+    v = rgbMax;
+
+ }
+
+ int h;
+ int s;
+ int v;
+};
+
+
+unsigned* pictureLabOffsetTable=0;
+
+
+class Lab{
+  public:
+    Lab (unsigned char r_, unsigned char g_, unsigned char b_){
+      double R, G, B;
+    double rd = (double) r_ / 255;
+    double gd = (double) g_ / 255;
+    double bd = (double) b_ / 255;
+
+    if (rd > 0.04045)
+        R = std::pow((rd + 0.055) / 1.055, 2.2);
+    else
+        R = rd / 12.92;
+
+    if (gd > 0.04045)
+        G = std::pow ((gd + 0.055) / 1.055, 2.2);
+    else
+        G = gd / 12.92;
+
+    if (bd > 0.04045)
+        B = std::pow ((bd + 0.055) / 1.055, 2.2);
+    else
+        B = bd / 12.92;
+
+    // compute X,Y,Z coordinates of r,g,b
+    double X = 0.4124 * R + 0.3576 * G + 0.1805 * B;
+    double Y = 0.2127 * R + 0.7152 * G + 0.0722 * B;
+    double Z = 0.0193 * R + 0.1192 * G + 0.9500 * B;
+
+    /* used chromacity coordinates of whitepoint D65:
+    x = 0.312713, y = 0.329016
+
+    the respective XYZ coordinates are
+    Y = 1,
+    X = Y * x / y       = 0.9504492183, and
+    Z = Y * (1-x-y) / y = 1.0889166480
+    */
+    double eps = 0.008856; // = 216 / 24389
+    double x = X / 0.95045;
+    double y = Y;
+    double z = Z / 1.08892;
+    long double fx, fy, fz;
+
+    if (x > eps)
+        fx = std::pow (x, 0.333333);
+    else
+        fx = 7.787 * x + 0.137931;
+
+    if (y > eps)
+        fy = std::pow (y, 0.333333);
+    else
+        fy = 7.787 * y + 0.137931;
+
+    if (z > eps)
+        fz = std::pow (z, 0.333333);
+    else
+        fz = 7.787 * z + 0.137931;
+
+    // compute Lab coordinates
+    double Lab_Ld = ((116  * fy) - 16);
+    double Lab_ad = (500 * (fx - fy));
+    double Lab_bd = (200 * (fy - fz));
+
+    L = (signed char) Lab_Ld;
+    a = (signed char) Lab_ad;
+    b = (signed char) Lab_bd;
+ }
+
+
+    signed char L, a, b;
+};
+
+void initLabOffsetTable(){
+   assert(!pictureLabOffsetTable);
+
+   pictureLabOffsetTable = new unsigned[64*64*64];
+   for(signed char r = 0; r < 64; r++)
+     for(signed char g = 0; g < 64; g++)
+       for(signed char b = 0; b < 64; b++) {   
+         Lab lab (2 + (r*4), 2 + (g*4), 2 + (b*4));
+
+         // map values [0, 99] x [-86, 98] x [-107,94] to
+         // [0, 3] x [0, 7] x [0, 7] (4 x 8 x 8 = 256 bins)
+         int L_offset = (int) (lab.L / 25);
+         int a_offset = (int) ((lab.a + 86) / 23.125);
+         int b_offset = (int) ((lab.b + 107) / 25.1);
+         pictureLabOffsetTable[r*4096 + g*64 + b] =
+             64 * L_offset + 8 * a_offset + b_offset;
+       }   
+}
+
+
+
+
+unsigned int getHSVIndex(int h, int s, int v, int dim){
+  if(dim==8){
+    int h_offset = h / 180;  // 2 parts
+    int s_offset = s / 128;  // 2 parts
+    int v_offset = v / 256; // 2 parts
+    return 4*h_offset + 2*s_offset + v_offset;
+  }
+
+  if(dim==16){
+    int h_offset = h / 90;  // 4 parts
+    int s_offset = s / 128;  // 2 parts
+    int v_offset = v / 256; // 2 parts
+    return 4*h_offset + 2*s_offset + v_offset;
+  }
+   
+  if(dim==32){
+    int h_offset = h / 90;  // 4 parts
+    int s_offset = s / 128;  // 2 parts
+    int v_offset = v / 128; // 4 parts
+    return 8*h_offset + 4*s_offset + v_offset;
+  }
+
+  if(dim == 64){
+    int h_offset = h / 90;  // 4 parts
+    int s_offset = s / 64;  // 4 parts
+    int v_offset = v / 128; // 4 parts
+    return 16*h_offset + 4*s_offset + v_offset;
+
+  }
+
+  if(dim==128){
+    int h_offset = h / 45;  // 8 parts
+    int s_offset = s / 64;  // 4 parts
+    int v_offset = v / 128; // 4 parts
+    return 16*h_offset + 4*s_offset + v_offset;
+
+  }
+
+  if(dim==256){
+    int h_offset = (int) (h / 22.5); // 16 parts
+    int s_offset = s / 64;        // 4 parts
+    int v_offset = v / 128;       // 4 parts
+    unsigned int res =  16*h_offset + 4*s_offset + v_offset;
+    return res;
+  }
+  assert(false);
+  return 0;
+}
+
+
+template<unsigned int dim, bool lab>
+void getHistHsv(Picture* picture, hist_hsv<dim, lab>* hist){
+   if(!picture->IsDefined()){
+     hist->SetDefined(false);
+     return;
+   }
+   unsigned long size;
+   const char* imgdata = picture->GetJPEGData (size);
+   JPEGPicture rgb ((unsigned char *) imgdata, size);
+
+   unsigned long int rgbSize;
+   unsigned char* rgbData = rgb.GetImageData (rgbSize);
+
+    const unsigned int numOfPixels = rgbSize / 3;
+
+    unsigned long hist_abs[dim];
+
+    for (int i = 0; i < dim; ++i){
+        hist_abs[i] = 0;
+    }
+
+    for (unsigned long pos = 0; pos < (numOfPixels); ++pos) {   
+        unsigned char r = rgbData[ (3*pos) ];
+        unsigned char g = rgbData[ (3*pos) +1];
+        unsigned char b = rgbData[ (3*pos) +2];
+        unsigned int index;
+        if(lab){
+          index = pictureLabOffsetTable[ ((r/4)*4096) + ((g/4)*64) + b/4];
+        } else {
+           HSV hsv (r, g, b);
+           index = getHSVIndex(hsv.h, hsv.s, hsv.v, dim);
+        }
+        ++hist_abs[index];
+    } 
+
+    delete[] imgdata;
+
+    hist->set(hist_abs, numOfPixels);  
+}
+
+
+template<unsigned int dim,bool lab>
+int getHistHsvVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+  Picture* arg = (Picture*) args[0].addr;
+  result = qp->ResultStorage(s);
+  hist_hsv<dim, lab>* res = (hist_hsv<dim, lab>*) result.addr;
+  getHistHsv<dim,lab>(arg, res);
+  return 0;
+}
+
+OperatorSpec getHistHsv8Spec(
+  "picture -> hist_hsv8",
+  "getHistHsv8(_)",
+  "computes a histogram from a picture",
+  "query getHistHsv8(paper)"
+);
+
+OperatorSpec getHistHsv16Spec(
+  "picture -> hist_hsv16",
+  "getHistHsv16(_)",
+  "computes a histogram from a picture",
+  "query getHistHsv16(paper)"
+);
+
+OperatorSpec getHistHsv32Spec(
+  "picture -> hist_hsv32",
+  "getHistHsv32(_)",
+  "computes a histogram from a picture",
+  "query getHistHsv32(paper)"
+);
+
+OperatorSpec getHistHsv64Spec(
+  "picture -> hist_hsv64",
+  "getHistHsv64(_)",
+  "computes a histogram from a picture",
+  "query getHistHsv64(paper)"
+);
+
+OperatorSpec getHistHsv128Spec(
+  "picture -> hist_hsv128",
+  "getHistHsv8(_)",
+  "computes a histogram from a picture",
+  "query getHistHsv128(paper)"
+);
+
+OperatorSpec getHistHsv256Spec(
+  "picture -> hist_hsv256",
+  "getHistHsv256(_)",
+  "computes a histogram from a picture",
+  "query getHistHsv256(paper)"
+);
+
+OperatorSpec getHistLab256Spec(
+  "picture -> hist_lab_256",
+  "getHistLab256(_)",
+  "computes a histogram from a picture",
+  "query getHistLab256(paper)"
+);
+
+Operator getHistHsv8Op(
+   "getHistHsv8",
+   getHistHsv8Spec.getStr(),
+   getHistHsvVMT<8, false>,
+   Operator::SimpleSelect,
+   getHistHsvTM<8, false>
+);
+
+Operator getHistHsv16Op(
+   "getHistHsv16",
+   getHistHsv16Spec.getStr(),
+   getHistHsvVMT<16, false>,
+   Operator::SimpleSelect,
+   getHistHsvTM<16, false>
+);
+
+Operator getHistHsv32Op(
+   "getHistHsv32",
+   getHistHsv32Spec.getStr(),
+   getHistHsvVMT<32, false>,
+   Operator::SimpleSelect,
+   getHistHsvTM<32, false>
+);
+
+Operator getHistHsv64Op(
+   "getHistHsv64",
+   getHistHsv64Spec.getStr(),
+   getHistHsvVMT<64, false>,
+   Operator::SimpleSelect,
+   getHistHsvTM<64, false>
+);
+
+Operator getHistHsv128Op(
+   "getHistHsv128",
+   getHistHsv128Spec.getStr(),
+   getHistHsvVMT<128, false>,
+   Operator::SimpleSelect,
+   getHistHsvTM<128, false>
+);
+
+Operator getHistHsv256Op(
+   "getHistHsv256",
+   getHistHsv256Spec.getStr(),
+   getHistHsvVMT<256, false>,
+   Operator::SimpleSelect,
+   getHistHsvTM<256, false>
+);
+
+Operator getHistLab256Op(
+   "getHistLab256",
+   getHistLab256Spec.getStr(),
+   getHistHsvVMT<256, true>,
+   Operator::SimpleSelect,
+   getHistHsvTM<256, true>
+);
+
 /*
 
 7 Algebra creation and initialisation
@@ -594,6 +1053,22 @@ public:
 
         picture->AssociateKind(Kind::DATA());
         histogram->AssociateKind(Kind::DATA());
+
+        AddTypeConstructor(&hist_hsv8);
+        AddTypeConstructor(&hist_hsv16);
+        AddTypeConstructor(&hist_hsv32);
+        AddTypeConstructor(&hist_hsv64);
+        AddTypeConstructor(&hist_hsv128);
+        AddTypeConstructor(&hist_hsv256);
+        AddTypeConstructor(&hist_lab256);
+
+        hist_hsv8.AssociateKind(Kind::DATA());
+        hist_hsv16.AssociateKind(Kind::DATA());
+        hist_hsv32.AssociateKind(Kind::DATA());
+        hist_hsv64.AssociateKind(Kind::DATA());
+        hist_hsv128.AssociateKind(Kind::DATA());
+        hist_hsv256.AssociateKind(Kind::DATA());
+        hist_lab256.AssociateKind(Kind::DATA());
 
         AddOperator(&height);
         AddOperator(&width);
@@ -613,8 +1088,22 @@ public:
         AddOperator(&mirror);
         AddOperator(&display);
         AddOperator(&exportop);
+
+        AddOperator(&distanceOp);
+        AddOperator(&getHistHsv8Op);
+        AddOperator(&getHistHsv16Op);
+        AddOperator(&getHistHsv32Op);
+        AddOperator(&getHistHsv64Op);
+        AddOperator(&getHistHsv128Op);
+        AddOperator(&getHistHsv256Op);
+        AddOperator(&getHistLab256Op);
+
+        initLabOffsetTable();
+
     }
-    ~PictureAlgebra() {}
+    ~PictureAlgebra() {
+         delete[] pictureLabOffsetTable;
+     }
 };
 
 extern "C"
