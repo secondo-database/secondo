@@ -1,0 +1,9 @@
+# has a tuple for each distributed index
+# DistObj: the d[f]array-object that represents the distributed relation
+# Attr: the attribute which the index was created on
+# IndexType: btree or rtree
+# IndexObj: the d[f]array which represents the distributed index
+
+let SEC2DISTINDEXES = [const rel(tuple([DistObj: string, Attr: string, IndexType: string, IndexObj: string]))
+value (("NaturalDFunctionIndex" "Type" "btree" "NaturalDFunctionIndex_Type")
+("BuildingsDSpatialIndex" "GeoData" "rtree" "BuildingsDSpatialIndex_GeoData"))]

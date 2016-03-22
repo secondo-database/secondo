@@ -1,0 +1,59 @@
+let grid = [const cellgrid2d value (7.29 51.37 0.025 0.025 20)];
+
+query share ("grid", TRUE);
+
+#for Hagen- db only: let grid = [const cellgrid2d value (7.34 51.12 0.016 0.016 20)]
+
+### added
+
+query share("grid", TRUE, SEC2WORKERS)
+
+let eichlinghofen = [const region value ( 
+    ( 
+        ( 
+            (7.394967670776298 51.47332155746125)
+            (7.419515247680575 51.47332155746125)
+            (7.419515247680575 51.48716614802665)
+            (7.394967670776298 51.48716614802665))))];
+            
+let EichlinghofenUpper = eichlinghofen;
+
+### added
+
+query share("eichlinghofen", TRUE, SEC2WORKERS)
+
+### added
+
+query share("EichlinghofenUpper", TRUE, SEC2WORKERS)
+
+#random distribution of the Roads relation
+let RoadsDfRandom = Roads feed dfdistribute3["RoadsDfRandom", 50, TRUE, SEC2WORKERS];
+
+# 1:59 min
+
+#Roads distribution with spatial attribute 
+let RoadsDfSpatial = RoadsDfRandom partitionF["", . feed extend[EnlargedBox: enlargeRect(bbox(.GeoData), 0.01, 0.01)] extendstream[Cell: cellnumber(.EnlargedBox, grid)] extend[Original: .Cell = cellnumber(.EnlargedBox, grid) transformstream extract[Elem]], ..Cell, 0] collect2["RoadsDfSpatial", 54321];
+
+# 2:53 min
+
+#distribute places  
+let PlacesDfModuloPop = Places feed dfdistribute2["PlacesDfModuloPop", Population,50, SEC2WORKERS];
+
+# 2.3 sec
+
+#create BuildingsDSpatialIndex as darray distributed over geometry- attribute via grid
+let BuildingsDSpatialIndex = Buildings feed extend[EnlargedBox: enlargeRect(bbox(.GeoData), 0.01, 0.01)] extendstream[Cell: cellnumber(.EnlargedBox, grid)] extend[Original: .Cell = cellnumber(.EnlargedBox, grid) transformstream extract[Elem]] ddistribute2["BuildingsDSpatialIndex", Cell, 50, SEC2WORKERS];
+
+#spatial index for buildings
+let BuildingsDSpatialIndex_GeoData = BuildingsDSpatialIndex dloop["", . feed addid extend[Box: scalerect(.EnlargedBox, 1000000.0, 1000000.0)] 
+sortby[Box] remove[Box] bulkloadrtree[EnlargedBox]];
+
+#distribute Waterways 
+let WaterwaysDFunction = Waterways feed ddistribute4["WaterwaysDFunction", hashvalue(.Type, 999997),50, SEC2WORKERS];
+
+#replicate railways
+query share ("Railways", TRUE, SEC2WORKERS);
+
+#distribute Natural and create index
+let NaturalDFunctionIndex = Natural feed ddistribute4["NaturalDFunctionIndex", hashvalue(.Type, 999997),50, SEC2WORKERS];
+let NaturalDFunctionIndex_Type = NaturalDFunctionIndex dloop["NaturalDFunctionIndex_Type", . createbtree[Type]];
