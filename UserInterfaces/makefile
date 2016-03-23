@@ -33,10 +33,16 @@ CC := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-g++ -D__SECONDO_AND
 LD := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-ld �L$(HOME)/gsl/lib �L$(HOME)/readline/lib �L$(HOME)/jpeg-6b/
 CCFLAGS += -I$(SECONDO_BUILD_DIR)/../readline/include/
 
+
 else
 CC := g++
 LD := g++
 endif
+
+SECONDOPLMODE1 := SecondoPLMode
+SECONDOPLMODE2 := SecondoPLTTYMode
+
+# SECONDOPLMODE := SecondoPLTTYMode   
 
 APPLOBJECTS := \
 	SecondoTTY.$(OBJEXT) \
@@ -76,8 +82,8 @@ CCFLAGS += -DSECONDO_USE_ENTROPY
 endif
 
 ifeq ($(optimizer),"true")
-PLOBJ := SecondoPL.$(OBJEXT) SecondoPLMode.$(OBJEXT)
-PLCSOBJ := SecondoPLCS.$(OBJEXT) SecondoPLMode.$(OBJEXT)
+PLOBJ := SecondoPL.$(OBJEXT) $(SECONDOPLMODE1).$(OBJEXT) $(SECONDOPLMODE2).$(OBJEXT)
+PLCSOBJ := SecondoPLCS.$(OBJEXT) $(SECONDOPLMODE1).$(OBJEXT) $(SECONDOPLMODE2).$(OBJEXT)
 PL_OBJECTS := $(PLOBJ) $(ENTROPY_OBJ)
 PLCS_OBJECTS := $(PLCSOBJ)  $(ENTROPY_OBJ)
 APPLOBJECTS += $(PLOBJ)

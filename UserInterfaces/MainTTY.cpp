@@ -58,6 +58,7 @@ using namespace std;
 extern int SecondoTTYMode(const TTYParameter&);
 extern int SecondoTestRunner(const TTYParameter&);
 extern int SecondoPLMode(TTYParameter&);
+extern int SecondoPLTTYMode(TTYParameter&);
 
 #ifndef SEC_TTYCS
 extern int SecondoServerMode( const int, const char**);
@@ -90,6 +91,12 @@ main( const int argc, char* argv[] )
 #ifdef SECONDO_PL 
   if ( tp.isPLMode() )
     return SecondoPLMode(tp);
+#endif
+
+
+#ifdef SECONDO_PL 
+  if ( tp.isPLTTYMode() )
+    return SecondoPLTTYMode(tp);
 #endif
 
   cout << License::getStr() << endl;

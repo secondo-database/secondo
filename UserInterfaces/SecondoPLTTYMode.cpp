@@ -70,7 +70,13 @@ extern bool StartSecondoC(TTYParameter& tp);
 extern SecondoInterface* si;
 NestedList* mnl;
 
+bool globalAbort = false;
 
+
+namespace pltty{
+
+
+bool processCommands(istream&, bool,bool);
 
 
 bool isStdInput = true;
@@ -94,33 +100,94 @@ bool IsInternalCommand(const string& cmd){
   if(cmd=="quit") return true;
   if(cmd=="q") return true;
   if(cmd=="?") return true;
+  if(cmd.size()>1){
+    if(cmd[0]=='@'){
+      return true;
+    }
+  }
   return false;
 }
 
-void processInternalCommand(const string& cmd){
+
+bool processQuit(){
+   cout << "Thank you for using Secondo." << endl;
+   globalAbort = true; 
+   return true;
+}
+
+bool processHelp(){
+  cout << endl
+       << "secondo or optimizer command are executes as usual " << endl
+       << "?        -  show this help" << endl
+       << "@FILE    - read commands from file " << endl
+       << "@@FILE   - read commands from file until error " << endl
+       << "@\%FILE   - read commands from file ignoring pd comments" << endl
+       << "@&FILE   - read commands from file ignoring pd comments "
+       << "until error" << endl
+       << "quit for quit the program" << endl;
+     return true;
+}
+
+bool processScript(const string& cmd){
+   bool isPD = false;
+   bool haltOnErrors = false;
+   int pos=1;
+   char second = cmd[1];
+   if(second=='@'){
+      haltOnErrors = true;
+      pos++;
+   }else if(second=='%'){
+      isPD = true;
+      pos++;
+   } else if(second=='&'){
+      isPD=true;
+      haltOnErrors = true;
+      pos++;
+   }  
+   string filename = cmd.substr(pos);
+   stringutils::trim(filename);
+   ifstream in(filename.c_str());
+   if(!in){
+     cout << "Error: could not open file: " << filename << endl;
+     return false;
+   }
+   bool res = processCommands(in,haltOnErrors, isPD);
+   if(!res){
+     cout << "there was errors during processing " << filename << endl;
+   }
+   in.close();
+   return res;
+}
+
+
+
+bool processInternalCommand(const string& cmd){
   if(cmd=="quit" || cmd=="q"){
-     cout << "Thank you for using Secondo." << endl;
-     return;
+     return processQuit();
   }
   if(cmd=="?"){
-     cout << endl
-          << "enter commands " << endl
-          << "quit for quit the program" << endl;
-     return;
+     return processHelp();
   }
-  assert(false); // unhandlet internal command
+  if(cmd.size()>1){
+    if(cmd[0]=='@'){
+      return processScript(cmd);
+    }
+  }
+  cout << "Error: command " << cmd << " recognized as an internal "
+       <<   "command but handlet not correctly";
+  return false;
 }
 
 
 
 
-string getCommand(bool isPD){
+string getCommand(istream& in, bool isPD){
   bool complete = false;
   bool first = true;
   string line = "";
   string cmd = "";
   bool inPD = false;
-  while (!complete && !cin.eof() && !cin.fail())
+  while (!complete && !in.eof() && !in.fail())
   {
     line = "";
     ShowPrompt( first );
@@ -132,7 +199,7 @@ string getCommand(bool isPD){
       }
       else
     #endif
-         getline( cin, line );
+         getline( in, line );
 
 
 
@@ -397,7 +464,7 @@ string checkPrologCommand(const string& cmd, bool& correct, string& errMsg){
 }
 
 
-void processOpenCommand(string rest){
+bool processOpenCommand(string rest){
 
     term_t a0 = PL_new_term_refs(2);
     static predicate_t p;
@@ -419,10 +486,10 @@ void processOpenCommand(string rest){
     } else {
       cout << "opening database failed" << endl;
     }
-  
+    return ok;
 }
 
-void processSqlCommand(string cmd){
+bool processSqlCommand(string cmd){
  
     term_t a0 = PL_new_term_refs(2);
     PL_put_atom_chars(a0, (cmd).c_str());
@@ -450,31 +517,31 @@ void processSqlCommand(string cmd){
     }
     if(!ok){
       cout << "error in optimization" << endl;
-      return;
+      return false;
     }
     if((count !=1)){
        cout << "found more than one solution in optimization" << endl;
        cout << "number of solutions " << count << endl;
-       return;
+       return false;
     }
     cout << "optimized plan  is "  << plan << endl;
-    processDirectSecondoCommand(plan);
+    return processDirectSecondoCommand(plan);
  
 };
 
-void processGeneralCommand(const string& cmd){
+bool processGeneralCommand(const string& cmd){
    cout << "general commands are not supported yet" << endl;
-
+   return false;
 }
 
-void processPrologCommand(string cmd){
+bool processPrologCommand(string cmd){
   bool ok;
   string errMsg;
   stringutils::trim(cmd);
   stringutils::StringTokenizer st(cmd, " \t\n\r");
   if(!st.hasNextToken()){
     cout << "empty command found" << endl;
-    return;
+    return true;
   }
 
   string keyword = st.nextToken();
@@ -483,41 +550,50 @@ void processPrologCommand(string cmd){
     cmd = checkPrologCommand(cmd,ok, errMsg);
     if(!ok){
       cout << "Error in command " << errMsg << endl;
-      return;
+      return false;
     }
   }
 
   // handle some special commands
   if(keyword=="open"){
-     processOpenCommand(st.getRest());
+     return processOpenCommand(st.getRest());
   } else if(keyword=="sql"){
-     processSqlCommand(cmd);
+     return processSqlCommand(cmd);
   } else {
-     processGeneralCommand(cmd);
+     return processGeneralCommand(cmd);
   }
+
+
 }
 
-void processCommand(const string& cmd){
+bool processCommand(string& cmd){
   if(IsInternalCommand(cmd)){
-     processInternalCommand(cmd);
+     return processInternalCommand(cmd);
   } else if(isDirectSecondoCommand(cmd)){
-     processDirectSecondoCommand(cmd);
+     return processDirectSecondoCommand(cmd);
   } else {
-     processPrologCommand(cmd);
+     return processPrologCommand(cmd);
   }
 }
 
 
 
-int processCommands(){
+bool  processCommands(istream& in, bool haltOnErrors, bool pdstyle ){
   string cmd = "";
-  while((cmd!="quit") && (cmd!="q")){
-    cmd = getCommand(false);
-    processCommand(cmd);
+  bool error = false;
+  while((cmd!="quit") && (cmd!="q") && !globalAbort){
+    cmd = getCommand(in, pdstyle);
+    if(!processCommand(cmd)){
+      cout << "Error occurred during command " <<  cmd << endl;
+      cout << "exit processing" << endl;
+      error = true;
+    }
   }
-  return 0;
+  return !error;
 }
 
+
+} // end of namespace pltty
 
 /*
 2 SecondoPLMode
@@ -526,8 +602,7 @@ This function is the ~main~ function of SecondoPL.
 
 */
 
-int
-SecondoPLMode(TTYParameter& tp)
+int SecondoPLTTYMode(TTYParameter& tp)
 {
   atexit(handle_exit);
 
@@ -631,7 +706,7 @@ SecondoPLMode(TTYParameter& tp)
   DisplayTTY::Set_SI(si);
   DisplayTTY::Set_NL(mnl); 
   DisplayTTY::Initialize();
-  int rc =  processCommands();
+  int rc =  pltty::processCommands(cin, false, false);
 
 #ifdef READLINE
   /* save the last xxx enties in the history to a file */
