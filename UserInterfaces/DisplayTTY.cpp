@@ -76,12 +76,9 @@ which will be read.
 
 #include "../include/DisplayTTY.h"
 #include "../include/NestedList.h"
-#include "../include/NList.h"
-#include "../include/SecondoInterface.h"
 #include "../include/AlgebraTypes.h"
 #include "../include/Base64.h"
 #include "../include/CharTransform.h"
-#include "../include/NList.h"
 #include "../include/Symbols.h"
 #include "../include/StandardTypes.h"
 
@@ -112,7 +109,6 @@ is indexed by a string created from the algebraId and the typeId of
 the corresponding type constructor.
 
 */
-SecondoInterface* DisplayFunction::si = 0;
 NestedList*       DisplayFunction::nl = 0;
 
 double
@@ -121,14 +117,10 @@ DisplayFunction::GetNumeric(ListExpr value, bool &err){
 }
 
 void
-DisplayFunction::CallDisplayFunction( const ListExpr idPair,
+DisplayFunction::CallDisplayFunction( const string& name,
                                       ListExpr type,
-                                      ListExpr numType,
-                                      ListExpr value )
-{
-   DisplayTTY::GetInstance().CallDisplayFunction( idPair, type,
-                                                   numType, value );
-
+                                      ListExpr value ) {
+   DisplayTTY::GetInstance().CallDisplayFunction( name, type,value );
 }
 
 void
@@ -155,7 +147,6 @@ DisplayFunction::DisplayResult( ListExpr type, ListExpr value )
   }
 
 
-SecondoInterface*      DisplayTTY::si = 0;
 NestedList*            DisplayTTY::nl = 0;
 DisplayTTY*            DisplayTTY::dtty = 0;
 //DisplayTTY::DisplayMap DisplayTTY::displayFunctions;
@@ -180,32 +171,21 @@ function.
 
 */
 
-void DisplayTTY::CallDisplayFunction( const ListExpr idPair,
-                                            ListExpr type,
-                                            ListExpr numType,
-                                            ListExpr value )
-{
+void DisplayTTY::CallDisplayFunction( const string& name,
+                                      ListExpr type,
+                                      ListExpr value ) {
 
-  ostringstream osId;
-  osId << "[" << nl->IntValue( nl->First( idPair ) )
-      << "|" << nl->IntValue( nl->Second( idPair ) ) << "]";
-  map<string,DisplayFunction*>::iterator dfPos =
-      displayFunctions.find( osId.str() );
-  if ( dfPos != displayFunctions.end() )
-  {
-    try
-    {
-      (dfPos->second)->Display( type, numType, value );
-    }
-    catch ( const exception& e)
-    {
+  
+  DisplayMap::iterator dfPos = displayFunctions.find(name );
+  if ( dfPos != displayFunctions.end() ) {
+    try {
+      (dfPos->second)->Display( type, value );
+    } catch ( const exception& e) {
       cerr << "Error in display function: " << e.what() << endl << endl;
-      DisplayGeneric( type, numType, value );
+      DisplayGeneric( type, value );
     }
-  }
-  else
-  {
-    DisplayGeneric( type, numType, value );
+  } else {
+    DisplayGeneric( type, value );
   }
 }
 
@@ -218,15 +198,7 @@ determined by the type constructor name given as first argument.
 
 void DisplayTTY::Insert( const string& name, DisplayFunction* df )
 {
-  int algebraId, typeId;
-  si->GetTypeId( name, algebraId, typeId );
-  ostringstream osId;
-  osId << "[" << algebraId << "|" << typeId << "]";
-  if(algebraId>0){ // otherwise the corresponding algebra is not included
-    displayFunctions[osId.str()] = df;
-  } else {
-    delete df;
-  }
+  displayFunctions[name] = df;
 }
 
 /*
@@ -235,9 +207,7 @@ void DisplayTTY::Insert( const string& name, DisplayFunction* df )
 */
 
 void
-DisplayTTY::DisplayGeneric( ListExpr type,
-                                ListExpr numType,
-                                ListExpr value )
+DisplayTTY::DisplayGeneric( ListExpr type, ListExpr value )
 {
   cout << "Generic display function used!" << endl;
   cout << "Type : ";
@@ -246,295 +216,70 @@ DisplayTTY::DisplayGeneric( ListExpr type,
   nl->WriteListExpr( value, cout );
 }
 
-  /*
-  int
-  DisplayTTY::MaxHeaderLength( ListExpr type )
-  {
-   int max, len;
-   string s;
-   max = 0;
-   while (!nl->IsEmpty( type ))
-   {
-     s = nl->StringValue( nl->First( type ) );
-     len = s.length();
-     if ( len > max )
-     {
-       max = len;
-     }
-     type = nl->Rest( type );
-   }
-   return (max);
-  }
-  */
-
- /*
- ListExpr
- DisplayTTY::ConcatLists( ListExpr list1, ListExpr list2)
- {
-   if (nl->IsEmpty(list1))
-   {
-     return list2;
-   }
-   else
-   {
-     ListExpr first = nl->First(list1);
-     ListExpr rest = nl->Rest(list1);
-
-     ListExpr second =  ConcatLists(rest, list2);
-
-     ListExpr newnode = nl->Cons(first,second);
-     return newnode;
-   }
- }
-  */
 
 void
 DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
 {
-  NList list(value);
   string errMsg = string("Error: Unknown List Format. ") +
       "Expecting (name (labels) (entries)) but got \n" +
-      list.convertToString() + "\n";
+      nl->ToString(value) + "\n";
 
-  if ( !list.hasLength(3) ) {
+  if ( !nl->HasLength(value,3)) {
     cout << errMsg << endl;
     return;
   }
 
-  NList nameSymbol = list.first();
-  NList labels = list.second();
-  NList entries  = list.third();
+  ListExpr nameSymbol = nl->First(value);
+  ListExpr labels = nl->Second(value); 
+  ListExpr entries = nl->Third(value) ;
 
-  if ( ! (  nameSymbol.isSymbol()
-            && labels.isList()
-            && entries.isList()   ) )
-  {
+  if (    (nl->AtomType(nameSymbol) != SymbolType)
+       || (nl->AtomType(labels)!=NoAtom) 
+       || (nl->AtomType(entries)!=NoAtom)) {
     cout << errMsg;
     return;
   }
 
-  if ( !(labels.length() == entries.length()) )
-  {
-    cout << "Error: Length of the label list does not "
-        << "equal the length of the entries list." << endl;
-cout << errMsg << endl;
-    return;
-  }
-
   cout << endl;
-  string name = nameSymbol.str();
+  string name = nl->SymbolValue(nameSymbol);
   string blanks = "";
   blanks.assign( maxNameLen-4 , ' ' );
   cout << blanks << "Name: " << name << endl;
 
-  try {
-    while ( !labels.isEmpty() )
-    {
-      string s = labels.first().str();
+  while ( !nl->IsEmpty(labels) && !nl->IsEmpty(entries)) {
+      string s = nl->ToString(nl->First(labels));
       blanks.assign( maxNameLen - s.length() , ' ' );
      //cout << blanks << s << ": ";
       string printstr = blanks + s + ": ";
-      printstr += entries.first().str();
+      printstr += nl->ToString(nl->First(entries));
       cout << wordWrap((size_t)0, (size_t)(maxNameLen+2),
                        (size_t)LINELENGTH, printstr) << endl;
-      labels.rest();
-      entries.rest();
+      labels = nl->Rest(labels);
+      entries = nl->Rest(entries);
     }
-  }
-  catch (NListErr err) {
-    cout << "The elements of the two sublists labels and entries"
-        << " need to be text or string atoms." << endl
-        << err.msg() << endl;
-  }
 }
 
-void
+bool
 DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
 {
-  int algebraId=0, typeId=0;
   string  name("");
-  si->LookUpTypeExpr( type, name, algebraId, typeId );
-  ListExpr numType = si->NumericTypeExpr( type );
-  if ( !nl->IsAtom( type ) )
-  {
-    CallDisplayFunction( nl->First( numType ), type, numType, value );
+  if(nl->AtomType(type)==SymbolType){
+     CallDisplayFunction(nl->SymbolValue(type), type, value);
+  } else {
+     if(!nl->HasLength(type,2)){
+        return false;
+     } 
+     ListExpr mt = nl->First(type);
+     if(nl->AtomType(mt)!=SymbolType){
+        return false;
+     }
+     CallDisplayFunction(nl->SymbolValue(mt), type, value);
   }
-  else
-  {
-    CallDisplayFunction( numType, type, numType, value );
-  }
-  nl->Destroy( numType );
-  cout << endl;
+  //cout << endl;
+  return true;
 }
 
 
-
-/*
-The function below is not a display function but used to display
-lists starting with (inquiry ...). It is called directly by
-SecondoTTY.
-
-*/
-
-void
-DisplayTTY::DisplayResult2( ListExpr value )
-{
-  ListExpr InquiryType = nl->First(value);
-  string TypeName = nl->SymbolValue(InquiryType);
-  ListExpr v = nl->Second(value);
-  if(TypeName=="databases")
-  {
-    cout << endl << "--------------------" << endl;
-    cout << "Database(s)" << endl;
-    cout << "--------------------" << endl;
-    if(nl->ListLength(v)==0)
-      cout << "none" << endl;
-    while(!nl->IsEmpty(v)){
-      cout << "  " << nl->SymbolValue(nl->First(v)) << endl;
-      v = nl->Rest(v);
-    }
-    return;
-  }
-  else if(TypeName=="algebras")
-  {
-    cout << endl << "--------------------" << endl;
-    cout << "Algebra(s) " << endl;
-    cout << "--------------------" << endl;
-    if(nl->ListLength(v)==0)
-      cout << "none" << endl;
-    while(!nl->IsEmpty(v))
-    {
-      cout << "  " << nl->SymbolValue(nl->First(v)) << endl;
-      v = nl->Rest(v);
-    }
-    return;
-  }
-  else if(TypeName=="types")
-  {
-    nl->WriteListExpr(v,cout);
-    return;
-  }
-  else if(TypeName=="objects")
-  {
-    ListExpr tmp = nl->Rest(v); // ignore the OBJECTS
-    cout << " complete list " << endl;
-    nl->WriteListExpr(v,cout);
-    cout << endl << "---------------" << endl;
-    if(! nl->IsEmpty(tmp))
-    {
-      cout << " short list " << endl << endl;
-      while(!nl->IsEmpty(tmp))
-      {
-        cout << "  * " << nl->SymbolValue(nl->Second(nl->First(tmp)));
-        cout << endl;
-        tmp = nl->Rest(tmp);
-      }
-    }
-    return;
-  }
-  else if(TypeName=="constructors" || TypeName=="operators")
-  {
-    cout << endl << "--------------------" << endl;
-    if(TypeName=="constructors")
-      cout <<"Type Constructor(s)\n";
-    else
-      cout << "Operator(s)" << endl;
-    cout << "--------------------" << endl;
-    if(nl->IsEmpty(v))
-    {
-      cout <<"  none " << endl;
-    }
-    else
-    {
-      ListExpr headerlist = v;
-      int MaxLength = 0;
-      int currentlength;
-      while(!nl->IsEmpty(headerlist))
-      {
-        ListExpr tmp = (nl->Second(nl->First(headerlist)));
-        while(!nl->IsEmpty(tmp))
-        {
-          currentlength = (nl->StringValue(nl->First(tmp))).length();
-          tmp = nl->Rest(tmp);
-          if(currentlength>MaxLength)
-            MaxLength = currentlength;
-        }
-        headerlist = nl->Rest(headerlist);
-      }
-
-      while (!nl->IsEmpty( v ))
-      {
-        DisplayDescriptionLines( nl->First(v), MaxLength );
-        v   = nl->Rest( v );
-      }
-    }
-  }
-  else if(TypeName=="algebra")
-  {
-    string AlgebraName = nl->SymbolValue(nl->First(v));
-    cout << endl << "-----------------------------------" << endl;
-    cout << "Algebra : " << AlgebraName << endl;
-    cout << "-----------------------------------" << endl;
-    ListExpr Cs = nl->First(nl->Second(v));
-    ListExpr Ops = nl->Second(nl->Second(v));
-    // determine the headerlength
-    ListExpr tmp1 = Cs;
-    int maxLength=0;
-    int len;
-    while(!nl->IsEmpty(tmp1))
-    {
-      ListExpr tmp2 = nl->Second(nl->First(tmp1));
-      while(!nl->IsEmpty(tmp2))
-      {
-        len = (nl->StringValue(nl->First(tmp2))).length();
-        if(len>maxLength)
-          maxLength=len;
-        tmp2 = nl->Rest(tmp2);
-      }
-      tmp1 = nl->Rest(tmp1);
-    }
-    tmp1 = Ops;
-    while(!nl->IsEmpty(tmp1))
-    {
-      ListExpr tmp2 = nl->Second(nl->First(tmp1));
-      while(!nl->IsEmpty(tmp2))
-      {
-        len = (nl->StringValue(nl->First(tmp2))).length();
-        if(len>maxLength)
-          maxLength=len;
-        tmp2 = nl->Rest(tmp2);
-      }
-      tmp1 = nl->Rest(tmp1);
-    }
-
-    cout << endl << "-------------------------" << endl;
-    cout << "  "<< "Type Constructor(s)" << endl;
-    cout << "-------------------------" << endl;
-    if(nl->ListLength(Cs)==0)
-      cout << "  none" << endl;
-    while(!nl->IsEmpty(Cs))
-    {
-      DisplayDescriptionLines(nl->First(Cs),maxLength);
-      Cs = nl->Rest(Cs);
-    }
-
-    cout << endl << "-------------------------" << endl;
-    cout << "  " << "Operator(s)" << endl;
-    cout << "-------------------------" << endl;
-    if(nl->ListLength(Ops)==0)
-      cout << "  none" << endl;
-    while(!nl->IsEmpty(Ops))
-    {
-      DisplayDescriptionLines(nl->First(Ops),maxLength);
-      Ops = nl->Rest(Ops);
-    }
-  }
-  else
-  {
-    cout << "unknow inquiry type" << endl;
-    nl->WriteListExpr(value,cout);
-  }
-}
 
 /*
 2 User Defined Display Functions
@@ -550,12 +295,10 @@ and subvalue, respectively.
 
 struct DisplayRelation : DisplayFunction {
 
-  virtual void Display( ListExpr type,
-                        ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     type = nl->Second( type );
-    numType = nl->Second( numType );
-    CallDisplayFunction( nl->First( numType ), type, numType, value );
+    CallDisplayFunction(nl->SymbolValue(nl->First(type)), type, value );
   }
 };
 
@@ -564,110 +307,54 @@ struct DisplayTuples : DisplayFunction {
 
   DisplayTuples() : DisplayFunction() {}
 
-  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
-  {
-    int maxAttribNameLen = MaxAttributLength( nl->Second( numType ) );
+  virtual void Display( ListExpr type, ListExpr value ) {
+    int maxAttribNameLen = MaxAttributLength( nl->Second( type ) );
     while (!nl->IsEmpty( value ))
     {
-      DisplayTuple( nl->Second( type ), nl->Second( numType ),
-                    nl->First( value ), maxAttribNameLen );
+      DisplayTuple( nl->Second( type ), nl->First( value ), maxAttribNameLen );
       value = nl->Rest( value );
       cout << endl;
     }
   }
 
-  void DisplayTuple( ListExpr type, ListExpr numType,
-                                ListExpr value, const int maxNameLen )
-  {
-    while (!nl->IsEmpty( value ))
-    {
+  void DisplayTuple( ListExpr type, ListExpr value, const int maxNameLen ) {
+
+    while (!nl->IsEmpty( value )) { // for each attribute
       cout << endl;
-      string s = nl->ToString( nl->First( nl->First( numType ) ) );
-      string attr = string( maxNameLen-s.length() , ' ' ) + s + string(" : ");
+      ListExpr namedAttrType = nl->First(type);
+      ListExpr attrValue = nl->First(value);
+      string attrName = nl->SymbolValue(nl->First(namedAttrType));     
+      string attr = string( maxNameLen-attrName.length() , ' ' ) + attrName 
+                    + string(" : ");
       cout << attr;
       DisplayTTY::maxIndent = attr.length();
 
-      if( nl->IsAtom( nl->First( nl->Second( nl->First( numType ) ) ) ) )
-      {
-         CallDisplayFunction( nl->Second( nl->First( numType ) ),
-                        nl->Second( nl->First( type ) ),
-                        nl->Second( nl->First( numType ) ),
-                        nl->First( value ) );
-      }
-      else
-      {
-         CallDisplayFunction(
-                        nl->First( nl->Second( nl->First( numType ) ) ),
-                        nl->Second( nl->First( type ) ),
-                        nl->Second( nl->First( numType ) ),
-                        nl->First( value ) );
-      }
-      DisplayTTY::maxIndent = 0;
+      ListExpr attrType = nl->Second(namedAttrType);
 
+      string attrtypename="";
+      if(nl->AtomType(attrType)==SymbolType){
+        attrtypename = nl->SymbolValue(attrType);
+      } else {
+        attrtypename = nl->SymbolValue(nl->First(attrType));
+      }  
+
+      CallDisplayFunction(attrtypename, attrType, attrValue);
+ 
+      DisplayTTY::maxIndent = 0;
       type    = nl->Rest( type );
-      numType = nl->Rest( numType );
       value   = nl->Rest( value );
     }
-
   }
-
-
 };
 
 
 
 struct DisplayNestedRelation : DisplayFunction
 {
-  virtual void Display( ListExpr type,
-                                 ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     type = nl->Second( type );
-    numType = nl->Second( numType );
-    DisplayNestedTuples ( type, numType, value );
-  }
-
-  void DisplayNestedTuples( ListExpr type, ListExpr numType, ListExpr value )
-  {
-    int maxAttribNameLen = MaxAttributLength( nl->Second( numType ) );
-    while (!nl->IsEmpty( value ))
-    {
-      DisplayTuple( nl->Second( type ), nl->Second( numType ),
-                  nl->First( value ), maxAttribNameLen );
-      value = nl->Rest( value );
-      cout << "------------" << endl << endl;
-    }
-  }
-
-  void DisplayTuple( ListExpr type, ListExpr numType,
-                                ListExpr value, const int maxNameLen )
-  {
-    while (!nl->IsEmpty( value ))
-    {
-      cout << endl;
-      string s = nl->ToString( nl->First( nl->First( numType ) ) );
-      string attr =  s + string( maxNameLen-s.length() , ' ' ) + string(" : ");
-      cout << attr;
-      DisplayTTY::maxIndent = attr.length();
-      if( nl->IsAtom( nl->First( nl->Second( nl->First( numType ) ) ) ) )
-      {
-         CallDisplayFunction( nl->Second( nl->First( numType ) ),
-                        nl->Second( nl->First( type ) ),
-                        nl->Second( nl->First( numType ) ),
-                        nl->First( value ) );
-      }
-      else
-      {
-         CallDisplayFunction(
-                        nl->First( nl->Second( nl->First( numType ) ) ),
-                        nl->Second( nl->First( type ) ),
-                        nl->Second( nl->First( numType ) ),
-                        nl->First( value ) );
-      }
-      DisplayTTY::maxIndent = 0;
-      type    = nl->Rest( type );
-      numType = nl->Rest( numType );
-      value   = nl->Rest( value );
-    }
+    CallDisplayFunction(nl->SymbolValue(nl->First(type)), type, value );
   }
 };
 
@@ -676,15 +363,13 @@ struct DisplayAttributeRelation : DisplayFunction
 {
   DisplayAttributeRelation() : DisplayFunction() {}
 
-  virtual void Display( ListExpr type, ListExpr numType,
-                                          ListExpr value)
+  virtual void Display( ListExpr type, ListExpr value)
   {
     int select = nl->IntValue(nl->First(value));
     value = nl->Rest(value);
     if (select == 0)//means that this arel is an attribute of a nested relation
     {
-      int maxAttribNameLen = MaxAttributLength( nl->Second
-                                              ( nl->Second( numType ) ) );
+      int maxAttribNameLen = MaxAttributLength(nl->Second(nl->Second(type)));
       int ind;
       if (maxAttribNameLen >= (DisplayTTY::maxIndent - 3))
         ind = 4;
@@ -693,8 +378,7 @@ struct DisplayAttributeRelation : DisplayFunction
       cout << endl;
       while (!nl->IsEmpty( value ))
       {
-        DisplayArelTuple( nl->Second( nl->Second( type ) ), nl->Second
-                    ( nl->Second( numType ) ), nl->First( value ),
+        DisplayArelTuple( nl->Second( nl->Second( type ) ), nl->First( value ),
                       maxAttribNameLen, ind );
         value = nl->Rest( value );
         if (!nl->IsEmpty(value))
@@ -704,52 +388,45 @@ struct DisplayAttributeRelation : DisplayFunction
     }
     else
     {
-      NList val(value);
       long tid;
       cout << endl << "Saved TupleIds: " << endl << endl;
       int i = 1;
-      while (!val.isEmpty())
+      while (!nl->IsEmpty(value))
       {
-        tid = val.first().intval();
+        tid = nl->IntValue(nl->First(value)); 
         cout << "TupleId no. " << i << ": " << tid << endl;
-        val.rest();
+        value = nl->Rest(value); 
         i++;
       }
     }
   }
 
-  void DisplayArelTuple( ListExpr type, ListExpr numType,
-                              ListExpr value, const int maxNameLen,
-                              int ind )
-  {
+  void DisplayArelTuple( ListExpr type, 
+                         ListExpr value, 
+                         const int maxNameLen,
+                         int ind ) {
 
     while (!nl->IsEmpty( value ))
     {
-      string s = nl->ToString( nl->First( nl->First( numType ) ) );
+      string s = nl->ToString( nl->First( nl->First( type ) ) ); // attrname
       int i = maxNameLen - s.length();
-      if ( i < 0)
+      if ( i < 0) {
         i = 0;
+      }
       string attr = string(ind , ' ') + s +
                   string( i , ' ') + string(" : ");
       cout << attr;
       DisplayTTY::maxIndent = attr.length();
-      if( nl->IsAtom( nl->First( nl->Second( nl->First( numType ) ) ) ) )
-      {
-        CallDisplayFunction( nl->Second( nl->First( numType ) ),
-                           nl->Second( nl->First( type ) ),
-                           nl->Second( nl->First( numType ) ),
-                           nl->First( value ) );
+      string tn = "";
+      ListExpr attrType = nl->Second(nl->First(type));
+      if(nl->AtomType(attrType)==SymbolType){
+         tn = nl->SymbolValue(attrType);
+      } else {
+         tn = nl->SymbolValue(nl->First(attrType));
       }
-      else
-      {
-        CallDisplayFunction( nl->First( nl->Second( nl->First( numType ) ) ),
-                           nl->Second( nl->First( type ) ),
-                           nl->Second( nl->First( numType ) ),
-                           nl->First( value ) );
-      }
+      CallDisplayFunction(tn, nl->First(nl->First(type)), nl->First(value));
       cout << endl;
       type    = nl->Rest( type );
-      numType = nl->Rest( numType );
       value   = nl->Rest( value );
     }
   }
@@ -757,11 +434,171 @@ struct DisplayAttributeRelation : DisplayFunction
 
 
 
+struct DisplayInquiry: DisplayFunction{
+
+  virtual void Display(ListExpr type, ListExpr value){
+
+    if(!nl->HasLength(value,2)){
+       cout << "invalid format for inquiry" << endl;
+       cout << nl->ToString(value) << endl;
+    }
+    
+    ListExpr InquiryType = nl->First(value);
+    string TypeName = nl->SymbolValue(InquiryType);
+
+    ListExpr v = nl->Second(value);
+    if(TypeName=="databases") {
+      cout << endl << "--------------------" << endl;
+      cout << "Database(s)" << endl;
+      cout << "--------------------" << endl;
+      if(nl->ListLength(v)==0)
+         cout << "none" << endl;
+      while(!nl->IsEmpty(v)){
+         cout << "  " << nl->SymbolValue(nl->First(v)) << endl;
+         v = nl->Rest(v);
+      }
+      return;
+    }
+    if(TypeName=="algebras") {
+      cout << endl << "--------------------" << endl;
+      cout << "Algebra(s) " << endl;
+      cout << "--------------------" << endl;
+      if(nl->ListLength(v)==0)
+        cout << "none" << endl;
+      while(!nl->IsEmpty(v)) {
+        cout << "  " << nl->SymbolValue(nl->First(v)) << endl;
+        v = nl->Rest(v);
+      }
+      return;
+    }
+    if(TypeName=="types") {
+       nl->WriteListExpr(v,cout);
+       return;
+    }
+    if(TypeName=="objects") {
+      ListExpr tmp = nl->Rest(v); // ignore the OBJECTS
+      cout << " complete list " << endl;
+      nl->WriteListExpr(v,cout);
+      cout << endl << "---------------" << endl;
+      if(! nl->IsEmpty(tmp)) {
+        cout << " short list " << endl << endl;
+        while(!nl->IsEmpty(tmp)) {
+          cout << "  * " << nl->SymbolValue(nl->Second(nl->First(tmp)));
+          cout << endl;
+          tmp = nl->Rest(tmp);
+        }
+      }
+      return;
+    }
+    if(TypeName=="constructors" || TypeName=="operators") {
+      cout << endl << "--------------------" << endl;
+      if(TypeName=="constructors")
+         cout <<"Type Constructor(s)\n";
+      else
+         cout << "Operator(s)" << endl;
+      cout << "--------------------" << endl;
+      if(nl->IsEmpty(v)) {
+         cout <<"  none " << endl;
+      } else {
+        ListExpr headerlist = v;
+        int MaxLength = 0;
+        int currentlength;
+
+
+        try{
+
+        while(!nl->IsEmpty(headerlist)) {
+          ListExpr tmp = (nl->Second(nl->First(headerlist)));
+          while(!nl->IsEmpty(tmp)) {
+            currentlength = (nl->StringValue(nl->First(tmp))).length();
+            tmp = nl->Rest(tmp);
+            if(currentlength>MaxLength)
+              MaxLength = currentlength;
+          }
+          headerlist = nl->Rest(headerlist);
+        }
+
+        while (!nl->IsEmpty( v )) {
+          DisplayTTY::DisplayDescriptionLines( nl->First(v), MaxLength );
+          v   = nl->Rest( v );
+        }
+
+        } catch(...){
+            cerr << "Exception " << endl;
+        }
+
+      }
+
+
+
+      return;
+    }
+
+
+    if(TypeName=="algebra") {
+      string AlgebraName = nl->SymbolValue(nl->First(v));
+      cout << endl << "-----------------------------------" << endl;
+      cout << "Algebra : " << AlgebraName << endl;
+      cout << "-----------------------------------" << endl;
+      ListExpr Cs = nl->First(nl->Second(v));
+      ListExpr Ops = nl->Second(nl->Second(v));
+      // determine the headerlength
+      ListExpr tmp1 = Cs;
+      int maxLength=0;
+      int len;
+      while(!nl->IsEmpty(tmp1)) {
+         ListExpr tmp2 = nl->Second(nl->First(tmp1));
+         while(!nl->IsEmpty(tmp2)) {
+           len = (nl->StringValue(nl->First(tmp2))).length();
+           if(len>maxLength)
+              maxLength=len;
+           tmp2 = nl->Rest(tmp2);
+         }
+         tmp1 = nl->Rest(tmp1);
+      }
+      tmp1 = Ops;
+      while(!nl->IsEmpty(tmp1)) {
+         ListExpr tmp2 = nl->Second(nl->First(tmp1));
+         while(!nl->IsEmpty(tmp2)) {
+            len = (nl->StringValue(nl->First(tmp2))).length();
+            if(len>maxLength)
+               maxLength=len;
+            tmp2 = nl->Rest(tmp2);
+         }
+         tmp1 = nl->Rest(tmp1);
+      }
+
+      cout << endl << "-------------------------" << endl;
+      cout << "  "<< "Type Constructor(s)" << endl;
+      cout << "-------------------------" << endl;
+      if(nl->ListLength(Cs)==0)
+        cout << "  none" << endl;
+      while(!nl->IsEmpty(Cs)) {
+        DisplayTTY::DisplayDescriptionLines(nl->First(Cs),maxLength);
+        Cs = nl->Rest(Cs);
+      }
+
+      cout << endl << "-------------------------" << endl;
+      cout << "  " << "Operator(s)" << endl;
+      cout << "-------------------------" << endl;
+      if(nl->ListLength(Ops)==0)
+        cout << "  none" << endl;
+      while(!nl->IsEmpty(Ops)) {
+        DisplayTTY::DisplayDescriptionLines(nl->First(Ops),maxLength);
+        Ops = nl->Rest(Ops);
+      }
+      return;
+  }
+  cout << "unknow inquiry type" << endl;
+  nl->WriteListExpr(value,cout);
+  }
+};
+
 
 
 struct DisplayInt : DisplayFunction {
 
-  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -778,7 +615,7 @@ struct DisplayInt : DisplayFunction {
 
 struct DisplayLongInt : DisplayFunction {
 
-  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -810,7 +647,7 @@ struct DisplayLongInt : DisplayFunction {
 
 struct DisplayRational : DisplayFunction {
 
-  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type,  ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -857,7 +694,7 @@ struct DisplayRational : DisplayFunction {
 
 struct DisplayDRM : DisplayFunction {
 
-  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -882,7 +719,7 @@ struct DisplayDRM : DisplayFunction {
 
 struct DisplayReal : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -905,7 +742,7 @@ struct DisplayReal : DisplayFunction {
 
 struct DisplayBoolean : DisplayFunction {
 
-  virtual void Display( ListExpr list, ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr list, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -928,7 +765,7 @@ struct DisplayBoolean : DisplayFunction {
 
 struct DisplayString : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -945,7 +782,7 @@ struct DisplayString : DisplayFunction {
 
 struct DisplayText : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type,  ListExpr value )
   {
 
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
@@ -966,7 +803,7 @@ struct DisplayText : DisplayFunction {
 
 struct DisplayFun : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     cout << "Function type: ";
     nl->WriteListExpr( type, cout );
@@ -978,7 +815,7 @@ struct DisplayFun : DisplayFunction {
 
 struct DisplayDate : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type, ListExpr value)
   {
     if (nl->IsAtom(value) && nl->AtomType(value)==StringType)
       cout <<nl->StringValue(value);
@@ -990,7 +827,7 @@ struct DisplayDate : DisplayFunction {
 
 struct DisplayBinfile : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type, ListExpr value)
   {
     cout << "binary file";
   }
@@ -1068,7 +905,7 @@ double DisplayTTY::GetNumeric(ListExpr value, bool &err)
 
 struct DisplayXPoint : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
     if(nl->ListLength(value)!=2)
       throw runtime_error(stdErrMsg);
@@ -1089,7 +926,7 @@ struct DisplayXPoint : DisplayFunction {
 
 struct DisplayPoint : DisplayFunction {
 
-virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+virtual void Display( ListExpr type, ListExpr value)
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1116,7 +953,7 @@ virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
 
 struct DisplayTBTree : DisplayFunction {
 
-virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+virtual void Display( ListExpr type,  ListExpr value)
 {
   if(nl->AtomType(value)!=TextType){
      throw runtime_error(" invalid representation of a tbtree ");
@@ -1129,7 +966,7 @@ virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
 
 struct DisplayRect : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1192,7 +1029,7 @@ DisplayRect3
 
 struct DisplayRect3 : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1255,7 +1092,7 @@ DisplayRect4
 
 struct DisplayRect4 : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1318,7 +1155,7 @@ DisplayRect8
 
 struct DisplayRect8 : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1381,7 +1218,7 @@ DisplayMP3
 
 struct DisplayMP3 : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1397,7 +1234,7 @@ DisplayID3
 */
 struct DisplayID3 : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1434,7 +1271,7 @@ DisplayLyrics
 
 struct DisplayLyrics : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1462,7 +1299,7 @@ DisplayMidi
 */
 struct DisplayMidi  : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type, ListExpr value)
   {
     int size = nl->IntValue(nl->Second(value));
     int noOfTracks = nl->IntValue(nl->Third(value));
@@ -1477,7 +1314,7 @@ DisplayArray
 */
 struct DisplayArray : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type, ListExpr value)
   {
     if(    (nl->AtomType(value) == SymbolType )
         && (nl->SymbolValue(value)==Symbol::UNDEFINED())){
@@ -1486,19 +1323,16 @@ struct DisplayArray : DisplayFunction {
       cout << "an empty array";
     }else{
       ListExpr AType = nl->Second(type);
-      ListExpr ANumType = nl->Second(numType);
-       // find the idpair
-      ListExpr idpair = ANumType;
-      while(nl->AtomType(nl->First(idpair))!=IntType)
-        idpair = nl->First(idpair);
-
       int No = 0;
       cout << "*************** BEGIN ARRAY ***************" << endl;
+      ListExpr t = AType;
+      while(nl->AtomType(t)!=SymbolType){
+         t = nl->First(t);
+      }
       while( !nl->IsEmpty(value)){
         cout << "--------------- Field No: ";
         cout << No++ << " ---------------" << endl;
-        CallDisplayFunction( idpair, AType,
-                             ANumType, nl->First(value) );
+        CallDisplayFunction( nl->SymbolValue(t), AType,nl->First(value));
         cout << endl;
         value = nl->Rest(value);
       }
@@ -1514,36 +1348,32 @@ DisplayDArray
 */
 struct DisplayDArray_old : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
     if(nl->ListLength(value) == 1)
       cout << "an empty darray";
     else{
       ListExpr AType = nl->Second(type);
-      ListExpr ANumType = nl->Second(numType);
-       // find the idpair
-      ListExpr idpair = ANumType;
-      while(nl->AtomType(nl->First(idpair))!=IntType)
-        idpair = nl->First(idpair);
+      ListExpr t = AType;
+      while(nl->AtomType(t)!=SymbolType){
+        t = nl->First(t);
+      }
 
       int No = 0;
       bool skipFirst = true;
       cout << "*************** BEGIN DARRAY ***************" << endl;
       if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
-        {
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() ) {
           cout << Symbol::UNDEFINED() << endl;
-
-        }
-      else
-        {
+      } else {
           while( !nl->IsEmpty(value)){
             if (!skipFirst)
               {
                 cout << "------------ DArray Index: ";
                 cout << No++ << " ---------------" << endl;
-                CallDisplayFunction( idpair, AType,
-                                     ANumType, nl->First(value) );
+                CallDisplayFunction( nl->SymbolValue(t), 
+                                     AType,
+                                     nl->First(value) );
                 cout << endl;
               }
             else
@@ -1576,7 +1406,7 @@ DisplayInstant
 */
 struct DisplayInstant : DisplayFunction {
 
-  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1597,7 +1427,7 @@ DisplayDuration
 */
 struct DisplayDuration : DisplayFunction {
 
-  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type,  ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1641,7 +1471,7 @@ DisplayTid
 */
 struct DisplayTid : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1661,7 +1491,7 @@ DisplayHtml
 */
 struct DisplayHtml : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
     if(nl->ListLength(value)!=3)
       throw runtime_error(stdErrMsg);
@@ -1697,7 +1527,7 @@ DisplayPage
 */
 struct DisplayPage : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
     if(nl->ListLength(value)<1)
       throw runtime_error(stdErrMsg);
@@ -1744,7 +1574,7 @@ DisplayUrl
 */
 struct DisplayUrl : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
     if(nl->ListLength(value)!=3)
       throw runtime_error(stdErrMsg);
@@ -1772,7 +1602,7 @@ DisplayVertex
 */
 struct DisplayVertex : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1812,7 +1642,7 @@ DisplayEdge
 */
 struct DisplayEdge : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1846,7 +1676,7 @@ DisplayPath
 */
 struct DisplayPath : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -1923,7 +1753,7 @@ DisplayGraph
 */
 struct DisplayGraph : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -2008,9 +1838,10 @@ DisplayHistogram2d
 
 struct DisplayHistogram2d : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
     cout << setprecision(16);
+    NList::setNLRef(nl);
     NList val = NList(value);
     bool err;
     if (val.isAtom() && val.isSymbol() && val.str() == Symbol::UNDEFINED())
@@ -2034,7 +1865,7 @@ struct DisplayHistogram2d : DisplayFunction {
       NList bins = val.third();
 
       // Maximum ermitteln, zur Skalierung
-      NList elem, temp = NList();
+      NList elem, temp = NList(nl);
       double maxRangeY = 0;
       double minRange = 1e300;
       double last = GetNumeric(rangesY.first().listExpr(), err);
@@ -2055,7 +1886,7 @@ struct DisplayHistogram2d : DisplayFunction {
       rangesY = temp;
 
       // Maximum ermitteln, zur Skalierung
-      temp = NList();
+      temp = NList(nl);
       double maxBin = 1;
       //double d;
       while (!bins.isEmpty())
@@ -2178,10 +2009,11 @@ DisplayHistogram1d
 
 struct DisplayHistogram1d : DisplayFunction {
 
-  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type,  ListExpr value )
   {
+    NList::setNLRef(nl);
     cout << setprecision(16);
-    NList val = NList(value);
+    NList val = NList(value,nl);
     bool err;
     if ( val.isAtom() && val.isSymbol() &&
          val.str() == Symbol::UNDEFINED() )
@@ -2206,7 +2038,7 @@ struct DisplayHistogram1d : DisplayFunction {
       NList bins = val.second();
 
                   // Maximum ermitteln, zur Skalierung
-      NList elem, temp = NList();
+      NList elem, temp = NList(nl);
       double maxRange = 0;
       double minRange = 1e300;
       double last = GetNumeric(ranges.first().listExpr(), err);
@@ -2228,7 +2060,7 @@ struct DisplayHistogram1d : DisplayFunction {
 
       // Maximum ermitteln, zur Skalierung
       /*NList elem,*/
-      temp = NList();
+      temp = NList(nl);
       double maxBin = 1;
       //double d;
       while(!bins.isEmpty())
@@ -2330,7 +2162,7 @@ DisplayPosition
 */
 struct DisplayPosition : DisplayFunction {
 
-  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     string agents[ 64 ];
 
@@ -2415,7 +2247,7 @@ DisplayMove
 
 struct DisplayMove : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type,  ListExpr value )
   {
     if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
          nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -2539,7 +2371,7 @@ Chess Algebra 08/09
 
 struct DisplayMoveB  : DisplayFunction {
 
-  virtual void Display( ListExpr, ListExpr, ListExpr value )
+  virtual void Display( ListExpr, ListExpr value )
   {
       cout << nl->ToString( value );
   }
@@ -2548,7 +2380,7 @@ struct DisplayMoveB  : DisplayFunction {
 
 struct DisplayPositionB  : DisplayFunction {
 
-  virtual void Display( ListExpr, ListExpr, ListExpr value )
+  virtual void Display( ListExpr, ListExpr value )
   {
     struct mapper
     {
@@ -2649,7 +2481,7 @@ struct DisplayPositionB  : DisplayFunction {
 
 struct DisplayField : DisplayFunction {
 
-  virtual void Display( ListExpr, ListExpr, ListExpr value )
+  virtual void Display( ListExpr,ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -2671,7 +2503,7 @@ struct DisplayField : DisplayFunction {
 
 struct DisplayPiece  : DisplayFunction {
 
-  virtual void Display( ListExpr, ListExpr, ListExpr value )
+  virtual void Display( ListExpr, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
@@ -2693,7 +2525,7 @@ struct DisplayPiece  : DisplayFunction {
 
 struct DisplayMaterial : DisplayFunction {
 
-  virtual void Display( ListExpr, ListExpr, ListExpr value )
+  virtual void Display( ListExpr, ListExpr value )
   {
     stringstream msg;
 
@@ -2736,27 +2568,23 @@ DisplayVector
 
 */
 struct DisplayVector : DisplayFunction {
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type, ListExpr value)
   {
     if(nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
        && nl->SymbolValue( value ) == Symbol::UNDEFINED()) {
       cout << "Undefined vector";
-    }
-    else{
+    } else{
       ListExpr AType = nl->Second(type);
-      ListExpr ANumType = nl->Second(numType);
-       // find the idpair
-      ListExpr idpair = ANumType;
-      while(nl->AtomType(nl->First(idpair))!=IntType)
-        idpair = nl->First(idpair);
-
+      ListExpr tn = AType;
+      while(nl->AtomType(tn)!=SymbolType){
+        tn = nl->First(tn);
+      }
       int No = 0;
       cout << "*************** BEGIN VECTOR ***************" << endl;
       while( !nl->IsEmpty(value)){
         cout << "--------------- Elem No: ";
         cout << No++ << " ---------------" << endl;
-        CallDisplayFunction( idpair, AType,
-                             ANumType, nl->First(value) );
+        CallDisplayFunction(nl->SymbolValue(tn), AType, nl->First(value));
         cout << endl;
         value = nl->Rest(value);
       }
@@ -2771,29 +2599,28 @@ DisplaySet
 */
 struct DisplaySet : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
 
     if(nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
        && nl->SymbolValue( value ) == Symbol::UNDEFINED()) {
       cout << "Undefined set";
-       }
-       else{
-         ListExpr AType = nl->Second(type);
-         ListExpr ANumType = nl->Second(numType);
-       // find the idpair
-         ListExpr idpair = ANumType;
-         while(nl->AtomType(nl->First(idpair))!=IntType)
-           idpair = nl->First(idpair);
-
-         cout << "*************** BEGIN SET ***************" << endl;
-         while( !nl->IsEmpty(value)){
-           CallDisplayFunction( idpair, AType,
-                                ANumType, nl->First(value) );
-           cout << endl;
-           value = nl->Rest(value);
-         }
-         cout << "***************  END SET  ***************";
+    } else{
+      ListExpr AType = nl->Second(type);
+      ListExpr tn = AType;
+      while(nl->AtomType(tn)!=SymbolType){
+        tn = nl->First(tn);
+      }
+      int No = 0;
+      cout << "*************** BEGIN SET ***************" << endl;
+      while( !nl->IsEmpty(value)){
+        cout << "--------------- Elem No: ";
+        cout << No++ << " ---------------" << endl;
+        CallDisplayFunction(nl->SymbolValue(tn), AType, nl->First(value));
+        cout << endl;
+        value = nl->Rest(value);
+      }
+      cout << "***************  END SET  ***************";
 
        }
   }
@@ -2805,43 +2632,39 @@ DisplaySet
 */
 struct DisplayMultiset : DisplayFunction {
 
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  virtual void Display( ListExpr type,  ListExpr value)
   {
 
     if(nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
        && nl->SymbolValue( value ) == Symbol::UNDEFINED()) {
       cout << "Undefined multiset";
-       }
-       else{
-         ListExpr AType = nl->Second(type);
-         ListExpr ANumType = nl->Second(numType);
-       // find the idpair
-         ListExpr idpair = ANumType;
-         while(nl->AtomType(nl->First(idpair))!=IntType)
-           idpair = nl->First(idpair);
-
-         cout << "*************** BEGIN MULTISET ***************" << endl;
-         ListExpr elemList;
-         int times;
-         while( !nl->IsEmpty(value)){
-           elemList = nl->First(nl->First(value));
-           times = nl->IntValue(nl->Second(nl->First(value)));
-           CallDisplayFunction( idpair, AType,
-                                ANumType, elemList );
-           cout << " (contained " << times << " times)."<< endl;
-           value = nl->Rest(value);
-         }
-         cout << "***************  END MULTISET  ***************";
-
-       }
+    } else{
+      ListExpr AType = nl->Second(type);
+      ListExpr tn = AType;
+      while(nl->AtomType(tn)!=SymbolType){
+        tn = nl->First(tn);
+      }
+      int No = 0;
+      cout << "*************** BEGIN MULTISET ***************" << endl;
+      while( !nl->IsEmpty(value)){
+        cout << "--------------- Elem No: ";
+        cout << No++ << " ---------------" << endl;
+        CallDisplayFunction(nl->SymbolValue(tn), AType, 
+                            nl->First(nl->First(value)));
+        int times = nl->IntValue(nl->Second(nl->First(value)));
+        cout << " (contained " << times << " times)."<< endl;
+        value = nl->Rest(value);
+      }
+      cout << "***************  END MULTISET  ***************";
   }
+}
 };
 
 
 
 struct DisplayCellgrid2D : DisplayFunction {
 
-  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     if(nl->IsEqual(value,Symbol::UNDEFINED())){
         cout << Symbol::UNDEFINED();
@@ -2860,7 +2683,7 @@ struct DisplayCellgrid2D : DisplayFunction {
 
 struct DisplayCellgrid3D : DisplayFunction {
 
-  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  virtual void Display( ListExpr type, ListExpr value )
   {
     if(nl->IsEqual(value,Symbol::UNDEFINED())){
         cout << Symbol::UNDEFINED();
@@ -2884,15 +2707,16 @@ Displayfunctions for JNetAlgebra
 
 */
 struct DisplayJDirection : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type,  ListExpr value)
   {
-    NList in_inst(value);
+    NList::setNLRef(nl);
+    NList in_inst(value,nl);
     cout << in_inst.first().str() << " direction";
   }
 };
 
 struct DisplayRouteLocation : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type, ListExpr value)
   {
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
@@ -2909,7 +2733,7 @@ struct DisplayRouteLocation : DisplayFunction {
 };
 
 struct DisplayJRouteInterval : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type,  ListExpr value)
   {
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
@@ -2927,7 +2751,7 @@ struct DisplayJRouteInterval : DisplayFunction {
 };
 
 struct DisplayJListInt : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type, ListExpr value)
   {
     cout << "List of int: ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
@@ -2954,7 +2778,7 @@ struct DisplayJListInt : DisplayFunction {
 
 
 struct DisplayJListRLoc : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type, ListExpr value)
   {
     cout << "List of route locations: ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
@@ -2977,7 +2801,7 @@ struct DisplayJListRLoc : DisplayFunction {
 
 
 struct DisplayJListRInt : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type,  ListExpr value)
   {
     cout << "List of route intervals: ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
@@ -2999,7 +2823,7 @@ struct DisplayJListRInt : DisplayFunction {
 };
 
 struct DisplayNDG : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type, ListExpr value)
   {
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
@@ -3016,7 +2840,7 @@ struct DisplayNDG : DisplayFunction {
 };
 
 struct DisplayJListNDG : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type, ListExpr value)
   {
     cout << "List of NetDistanceGroups: ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
@@ -3038,7 +2862,7 @@ struct DisplayJListNDG : DisplayFunction {
 };
 
 struct DisplayJPoint : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type, ListExpr value)
   {
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
@@ -3055,7 +2879,7 @@ struct DisplayJPoint : DisplayFunction {
 };
 
 struct DisplayJLine : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type, ListExpr value)
   {
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
@@ -3078,13 +2902,14 @@ struct DisplayJLine : DisplayFunction {
 };
 
 struct DisplayJPoints : DisplayFunction{
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type,  ListExpr value)
   {
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      NList nid (nl->First(value));
+      NList::setNLRef(nl);
+      NList nid (nl->First(value),nl);
       cout << "Positions in network " << nid.str()
            << ": " << endl;
 
@@ -3101,7 +2926,7 @@ struct DisplayJPoints : DisplayFunction{
 };
 
 struct DisplayJNetwork : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type, ListExpr value)
   {
     ListExpr subtype = nl->TheEmptyList();
     cout << "JNetwork: ";
@@ -3110,7 +2935,8 @@ struct DisplayJNetwork : DisplayFunction {
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      NList nid(nl->First(value));
+      NList::setNLRef(nl);
+      NList nid(nl->First(value),nl);
       cout << nid.str() << endl;
       cout << "tolerance: " << nl->RealValue(nl->Second(value)) << endl;
       cout << "Junctions: " << endl;
@@ -3151,7 +2977,7 @@ struct DisplayJNetwork : DisplayFunction {
         cout << "Id: " << nl->IntValue(nl->First(first));
         cout << ", Length: " << nl->RealValue(nl->Seventh(first));
         cout << ", Speedlimit: " << nl->RealValue(nl->Sixth(first));
-        NList dir(nl->Fifth(first));
+        NList dir(nl->Fifth(first),nl);
         cout << ", Direction: " << dir.first().str() << endl;
         cout << "Startjunction: " << nl->IntValue(nl->Third(first)) << endl;
         cout << "Targetjunction: " << nl->IntValue(nl->Fourth(first)) << endl;
@@ -3219,7 +3045,7 @@ struct DisplayJNetwork : DisplayFunction {
 };
 
 struct DisplayIJPoint : DisplayFunction{
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type, ListExpr value)
   {
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
@@ -3235,12 +3061,13 @@ struct DisplayIJPoint : DisplayFunction{
 };
 
 struct DisplayUJPoint : DisplayFunction{
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type, ListExpr value)
   {
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
+      NList::setNLRef(nl);
       NList netL(nl->First(value));
       cout << "Network: " << netL.str() << " " << endl;
       ListExpr subtype = nl->TheEmptyList();
@@ -3251,7 +3078,7 @@ struct DisplayUJPoint : DisplayFunction{
 };
 
 struct DisplayJUnit : DisplayFunction{
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type, ListExpr value)
   {
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
@@ -3272,12 +3099,13 @@ struct DisplayJUnit : DisplayFunction{
 };
 
 struct DisplayMJPoint : DisplayFunction{
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type,  ListExpr value)
   {
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
+      NList::setNLRef(nl); 
       NList netL(nl->First(value));
       cout << "Network: " << netL.str() << " " << endl;
       ListExpr subtype = nl->TheEmptyList();
@@ -3293,7 +3121,7 @@ struct DisplayMJPoint : DisplayFunction{
 };
 
 struct DisplayRegEx : DisplayFunction{
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value){
+  virtual void Display(ListExpr type, ListExpr value){
      if(nl->IsEqual(value,Symbol::UNDEFINED())){
        cout << Symbol::UNDEFINED() << endl;
        return;
@@ -3442,7 +3270,7 @@ Display Hadoop file list
 
 */
 struct DisplayFileList : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  virtual void Display(ListExpr type, ListExpr value)
   {
     if (nl->IsEqual(value, Symbol::UNDEFINED())){
       cout << Symbol::UNDEFINED();
@@ -3537,7 +3365,7 @@ Display LUBool
 */
 struct DisplayLUType : DisplayFunction {
 
-    virtual void Display (ListExpr type, ListExpr numType, ListExpr value)
+    virtual void Display (ListExpr type, ListExpr value)
     {
         if (nl->IsAtom(value)
             && nl->AtomType(value) == SymbolType
@@ -3589,7 +3417,7 @@ struct DisplayLUType : DisplayFunction {
 
 struct DisplayLType : DisplayFunction
 {
-virtual void Display(ListExpr type,  ListExpr numType, ListExpr value)
+virtual void Display(ListExpr type,  ListExpr value)
     {
         int No = 1;
         string unittype;
@@ -3639,6 +3467,7 @@ DisplayTTY::Initialize()
 {
   DisplayTTY& d = DisplayTTY::GetInstance();
 
+  d.Insert("inquiry", new DisplayInquiry());
   d.Insert( "int",     new DisplayInt() );
   d.Insert( "longint", new DisplayLongInt() );
   d.Insert( "rational", new DisplayRational() );

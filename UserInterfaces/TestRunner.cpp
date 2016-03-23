@@ -1515,7 +1515,7 @@ TestRunner::Execute()
       }
       nl = si->GetNestedList();
 
-      DisplayTTY::Set_SI(si);
+     // DisplayTTY::Set_SI(si);
       DisplayTTY::Set_NL(nl);
       DisplayTTY::Initialize();
 

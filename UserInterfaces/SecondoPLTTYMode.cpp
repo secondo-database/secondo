@@ -295,22 +295,30 @@ string getCommand(istream& in, bool isPD){
 
 
 
-
+// recognizes secondo commands without involving optimizer
 bool isDirectSecondoCommand(const string& cmd){
    stringutils::StringTokenizer st(cmd, " \n\r\t");
    if(!st.hasNextToken()){
      return false;
    } 
    string first = st.nextToken();
-   return first=="query" || first=="while";  // to be continued
+   if(first=="query" || first=="while" || first =="list"
+      || first=="begin" || first=="commit" || first=="abort"
+      || first=="save"  || first=="if" ){
+     return true;
+   }
+   return false;
+      
 }
 
 void showResult(ListExpr res){
    if(!mnl->HasLength(res,2)){
       mnl->WriteStringTo(res,cout);
    } else {
-       DisplayTTY::GetInstance().DisplayResult(mnl->First(res),
-                         mnl->Second(res));
+       if(!DisplayTTY::GetInstance().DisplayResult(mnl->First(res),
+                         mnl->Second(res))){
+         mnl->WriteStringTo(res,cout);
+       }
    }
    cout << endl << endl;
 }
@@ -319,7 +327,7 @@ void showResult(ListExpr res){
 bool processDirectSecondoCommand(const string& cmd){
    SecErrInfo err;
    ListExpr resList;
-   si->Secondo(cmd, resList, err);   
+   si->Secondo(cmd, resList, err);
    if(err.code==0){
       showResult(resList);
    } else {
@@ -703,9 +711,14 @@ int SecondoPLTTYMode(TTYParameter& tp)
   }
 
   mnl = si->GetNestedList();
-  DisplayTTY::Set_SI(si);
+  //DisplayTTY::Set_SI(si);
   DisplayTTY::Set_NL(mnl); 
+  NList::setNLRef(mnl);
   DisplayTTY::Initialize();
+
+  
+
+
   int rc =  pltty::processCommands(cin, false, false);
 
 #ifdef READLINE

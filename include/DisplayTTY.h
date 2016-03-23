@@ -71,8 +71,8 @@ parameter is this value in nested list format.
 #include <string>
 #include <map>
 
-#include "SecondoInterface.h"
 #include "NestedList.h"
+#include "NList.h"
 
 struct DisplayFunction {
 
@@ -80,19 +80,16 @@ struct DisplayFunction {
   virtual ~DisplayFunction() {} 
 
   virtual void Display( ListExpr type,
-                        ListExpr numType,
                         ListExpr value    ) = 0;
 
 
   double GetNumeric(ListExpr value, bool &err);
   void DisplayResult( ListExpr type, ListExpr value );
-  void CallDisplayFunction( const ListExpr idPair,
-                                   ListExpr type,
-                                   ListExpr numType,
-                                   ListExpr value );
+  void CallDisplayFunction( const std::string& name,
+                            ListExpr type,
+                            ListExpr value );
 
 
-  static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container
 
   int MaxAttributLength( ListExpr type );
@@ -136,23 +133,16 @@ Removes the instance for displaying objects.
 
   
 
-  void DisplayResult( ListExpr type, ListExpr value );
+  bool DisplayResult( ListExpr type, ListExpr value );
 /*
 Displays a ~value~ of ~type~ using the defined display functions. Both
 paramaters are given as nested lists.
 
 */
 
-  void DisplayResult2( ListExpr value );
-/*
-Displays all type constructors and operators, currently registered, 
-in formatted manner.
-
-*/
-  void CallDisplayFunction( const ListExpr idPair,
-                                   ListExpr type,
-                                   ListExpr numType,
-                                   ListExpr value );
+  void CallDisplayFunction( const std::string& name,
+                            ListExpr type,
+                            ListExpr value );
 /*
 The method ~CallDisplayFunction~ uses its first argument ~idPair~ ---
 consisting of the two-elem-list $<$algebraId, typeId$>$ --- to find
@@ -181,18 +171,23 @@ Create an instance and initialize the dtty pointer if necessary.
 */   
    void Insert( const std::string& name, DisplayFunction* df );
 
-   static void Set_SI(SecondoInterface* SI) 
-   { 
-     si = SI; 
-     DisplayFunction::si = SI; 
-   }
    static void Set_NL(NestedList* NL) 
    { 
      nl = NL; 
-     DisplayFunction::nl = NL; 
+     DisplayFunction::nl = NL;
+     NList::setNLRef(NL);  
    }
 
    static int maxIndent;
+  
+
+static void DisplayDescriptionLines( ListExpr value, int  maxNameLen);
+/*
+Displays a single type constructor or operator formatted, similar 
+display function for relations.
+
+*/
+
  protected:
     
            
@@ -207,29 +202,14 @@ the second argument into the map ~displayFunctions~ at the index which is
 determined by the type constructor ~name~ given as first argument.
 
 */
-   void DisplayGeneric( ListExpr type,
-                              ListExpr numType,
-                              ListExpr value );
+   void DisplayGeneric( ListExpr type, ListExpr value );
 /*
 Is a generic display function used as default for types to which not special
 display function was assigned:
 
 */
 
-  //SPM: Obsolete auxiliary functions 
-  //
-  //ListExpr ConcatLists ( ListExpr l1, ListExpr l2 );
-  //static int  MaxHeaderLength( ListExpr type );
 
-  void DisplayDescriptionLines( ListExpr value, int  maxNameLen);
-/*
-Displays a single type constructor or operator formatted, similar 
-display function for relations.
-
-*/
-
-
-  static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container
 
   typedef std::map<std::string,DisplayFunction*> DisplayMap; 

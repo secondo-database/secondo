@@ -32,7 +32,7 @@ namespace raster2
 {
   struct Displaygrid3 : DisplayFunction
   {
-    virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+    virtual void Display(ListExpr type, ListExpr value)
     {
       if(nl->IsAtom(value) &&
          nl->AtomType(value) == SymbolType &&

@@ -31,7 +31,7 @@ namespace raster2
 {
   class Displaymstype: public DisplayFunction
   {
-    virtual void Display(ListExpr type,  ListExpr numType, ListExpr value)
+    virtual void Display(ListExpr type, ListExpr value)
     {
       NList list(value);
       

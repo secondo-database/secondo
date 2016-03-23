@@ -123,7 +123,6 @@ class SecondoTTY : public Application
   bool ProcessCommands( const bool stopOnError, const bool isPD);
   void ShowPrompt( const bool first );
   void TypeOutputList ( ListExpr list );
-  void TypeOutputListFormatted ( ListExpr list );
   bool IsInternalCommand( const string& line );
   bool GetCommand( const bool isPD);
   void ShowQueryResult( ListExpr list );
@@ -595,28 +594,6 @@ SecondoTTY::TypeOutputList ( ListExpr list )
   }
 }
 
-/*
-8 TypeOutputListFormatted
-
-TypeOutputList prints the result of a nonquery input (e. g. list) in formatted
-manner.
-
-*/
-
-void
-SecondoTTY::TypeOutputListFormatted ( ListExpr list )
-{
-  if ( nl->IsEmpty( list ) )
-  {
-    cout << "=> []" << endl;
-  }
-  else
-  {
-    cout << "=> Result:" << endl;
-    DisplayTTY::GetInstance().DisplayResult2( list );
-    cout << endl;
-  }
-}
 
 /*
 9 ShowQueryResult
@@ -737,30 +714,15 @@ SecondoTTY::CallSecondo2()
   cerr << endl << "### ResultStr: " << nl->ToString(result) << endl;
 #endif
 
-  if ( isQuery )
-  {
+  if ( isQuery ) {
     ShowQueryResult( result );
   }
-  else
-  {
-    if (!nl->IsEmpty( result ))
-    {
-      if ( nl->IsAtom(nl->First(result)) &&
-           nl->AtomType(nl->First(result)) == SymbolType &&
-           nl->SymbolValue(nl->First(result)) == "inquiry"  )
-      {
-        TypeOutputListFormatted( nl->Second( result ));
-        //TypeOutputList( result );
-      }
-      else
-      {
-        TypeOutputList( result );
-      }
-
-    }
-    else
-    {
-      TypeOutputList( result );
+  else {
+    if(nl->HasLength(result,2) &&
+       nl->IsEqual(nl->First(result),"inquiry")){
+       ShowQueryResult( result );
+    } else {
+       TypeOutputList( result );
     }
   }
   nl->initializeListMemory();
@@ -807,7 +769,7 @@ SecondoTTY::Execute()
     // initialize the pointer to the nested list instance
     nl = si->GetNestedList();
     NList::setNLRef(nl);
-    DisplayTTY::Set_SI( si );
+  //  DisplayTTY::Set_SI( si );
     DisplayTTY::Set_NL( nl );
     DisplayTTY::Initialize();
 

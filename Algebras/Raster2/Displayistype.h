@@ -31,7 +31,7 @@ namespace raster2
 {
   class Displayistype: public DisplayFunction
   {
-    virtual void Display(ListExpr type,  ListExpr numType, ListExpr value)
+    virtual void Display(ListExpr type,  ListExpr value)
     {
       std::cout << "Type : ";
       nl->WriteListExpr(type, cout);

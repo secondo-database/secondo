@@ -42,7 +42,7 @@ type that is based on ~stype$<$T, Helper$>$~.
       public:
         DisplaySType() {};
         virtual ~DisplaySType() {};
-        virtual void Display(ListExpr type,  ListExpr numType, ListExpr value)
+        virtual void Display(ListExpr type, ListExpr value)
         {
             NList list(value);
             std::cout << "Origin: (" << list.first().first().realval()
