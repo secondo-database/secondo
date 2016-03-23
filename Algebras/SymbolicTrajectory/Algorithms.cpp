@@ -2621,6 +2621,9 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
               transition = true;
               IndexMatchInfo newIMI(false, *it + 1, imiPtr->binding,
                                     imiPtr->prevElem);
+              if (loopStates.find(trans.second) != loopStates.end()) {
+                newIMI.range = true;
+              }
               if (p->hasConds()) { // extend binding for a complete match
                 extendBinding(newIMI, trans.first);
                 if (p->isFinalState(trans.second) && 
@@ -2628,12 +2631,13 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                   string var = p->getVarFromElem
                                               (p->getElemFromAtom(trans.first));
                   int oldEnd = newIMI.binding[var].second;
-                  newIMI.binding[var].second = trajSize[id] - 1;
+//                   newIMI.binding[var].second = trajSize[id] - 1;
                   TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
                   totalMatch = tmatch.conditionsMatch(newIMI.binding);
                   if (!totalMatch) { // reset unsuccessful binding
                     newIMI.binding[var].second = oldEnd;
                     newIMI.prevElem = imiPtr->prevElem;
+                    // TODO: correct resetting of bindings
                   }
                 }
               }
@@ -2651,10 +2655,9 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                 active[id] = false;
               }
               else if (!newIMI.exhausted(trajSize[id])) { // continue
-                if (loopStates.find(trans.second) != loopStates.end()) {
-                  newIMI.range = true;
-                }
                 newMatchInfo[trans.second][id]->imis.push_back(newIMI);
+//                 cout << "Pushed back imi for id " << id << ", range="
+//                      << (newIMI.range ? "TRUE" : "FALSE") << endl;
                 if (!matchKnown) {
                   matchRecord[trans.first][id] = new UnitSet(*it);
                 }
@@ -2733,7 +2736,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                     string var = p->getVarFromElem
                                               (p->getElemFromAtom(trans.first));
                     int oldEnd = newIMI.binding[var].second;
-                    newIMI.binding[var].second = trajSize[id] - 1;
+//                     newIMI.binding[var].second = trajSize[id] - 1;
                     TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
                     totalMatch = tmatch.conditionsMatch(newIMI.binding);
                     if (!totalMatch) { // reset unsuccessful binding
@@ -2794,7 +2797,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                       string var = p->getVarFromElem
                                               (p->getElemFromAtom(trans.first));
                       int oldEnd = newIMI.binding[var].second;
-                      newIMI.binding[var].second = trajSize[id] - 1;
+//                       newIMI.binding[var].second = trajSize[id] - 1;
                       TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, 
                                     valueNo);
                       totalMatch = tmatch.conditionsMatch(newIMI.binding);
