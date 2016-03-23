@@ -93,6 +93,15 @@ struct TTYParameter
     }
     return rc ;   
   } 
+  
+  bool isPLTTYMode() 
+  { 
+    bool rc = removeFirstArg("-pltty"); 
+    if (rc) {
+      runMode = Optimizer;
+    }
+    return rc ;   
+  } 
  
   bool isServerMode() 
   { 
