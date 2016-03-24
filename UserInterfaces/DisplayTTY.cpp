@@ -76,11 +76,8 @@ which will be read.
 
 #include "../include/DisplayTTY.h"
 #include "../include/NestedList.h"
-#include "../include/AlgebraTypes.h"
 #include "../include/Base64.h"
-#include "../include/CharTransform.h"
 #include "../include/Symbols.h"
-#include "../include/StandardTypes.h"
 
 #include "../Algebras/Raster2/DisplaySType.h"
 #include "../Algebras/Raster2/Displaymstype.h"
@@ -217,9 +214,22 @@ DisplayTTY::DisplayGeneric( ListExpr type, ListExpr value )
 }
 
 
+string DisplayTTY::getStr(ListExpr le){
+
+  int at = nl->AtomType(le);
+  switch(at){
+    case StringType : return nl->StringValue(le);
+    case TextType : return nl->Text2String(le);
+    case SymbolType : return nl->SymbolValue(le);
+    default : return nl->ToString(le);
+  };
+}
+
+
 void
 DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
 {
+
   string errMsg = string("Error: Unknown List Format. ") +
       "Expecting (name (labels) (entries)) but got \n" +
       nl->ToString(value) + "\n";
@@ -247,11 +257,11 @@ DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
   cout << blanks << "Name: " << name << endl;
 
   while ( !nl->IsEmpty(labels) && !nl->IsEmpty(entries)) {
-      string s = nl->ToString(nl->First(labels));
+      string s = getStr(nl->First(labels));
       blanks.assign( maxNameLen - s.length() , ' ' );
-     //cout << blanks << s << ": ";
       string printstr = blanks + s + ": ";
-      printstr += nl->ToString(nl->First(entries));
+      string e = getStr(nl->First(entries));
+      printstr += e;
       cout << wordWrap((size_t)0, (size_t)(maxNameLen+2),
                        (size_t)LINELENGTH, printstr) << endl;
       labels = nl->Rest(labels);
@@ -275,7 +285,7 @@ DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
      }
      CallDisplayFunction(nl->SymbolValue(mt), type, value);
   }
-  //cout << endl;
+  cout << endl;
   return true;
 }
 
@@ -1841,90 +1851,76 @@ struct DisplayHistogram2d : DisplayFunction {
   virtual void Display( ListExpr type,  ListExpr value)
   {
     cout << setprecision(16);
-    NList::setNLRef(nl);
-    NList val = NList(value);
     bool err;
-    if (val.isAtom() && val.isSymbol() && val.str() == Symbol::UNDEFINED())
-    {
+    if(   nl->AtomType(value)==SymbolType 
+       && nl->IsEqual(value, Symbol::UNDEFINED()))  {
       cout << Symbol::UNDEFINED();
     }
 
-    else if (val.length() != 3 || ((val.first().length()-1) *
-             (val.second().length()-1)!= val.third().length()))
-    {
+    else if(!nl->HasLength(value,3) || 
+                (nl->ListLength(nl->First(value))-1) 
+             * (nl->ListLength(nl->Second(value))-1)
+             != nl->ListLength(nl->Third(value))){
       err = true;
       throw runtime_error(stdErrMsg);
       nl->WriteListExpr(value, cout);
-    }
-    else
-    {
+    } else {
 
-      NList rangesX = val.first();
-      NList rangesY = val.second();
-      NList rangesYCopy = val.second();
-      NList bins = val.third();
+      ListExpr rangesX = nl->First(value);
+      ListExpr rangesY = nl->Second(value);
+      ListExpr bins = nl->Third(value);
 
-      // Maximum ermitteln, zur Skalierung
-      NList elem, temp = NList(nl);
+
+      // determine Maximum for scale
       double maxRangeY = 0;
       double minRange = 1e300;
-      double last = GetNumeric(rangesY.first().listExpr(), err);
+      double last = GetNumeric(nl->First(rangesY), err);
       double d, dist;
-      temp.append(rangesY.first());
-      rangesY.rest();
-      while (!rangesY.isEmpty())
-      {
-        elem = rangesY.first();
-        d = GetNumeric(elem.listExpr(), err);
+      rangesY = nl->Rest(rangesY);
+      while(!nl->IsEmpty(rangesY)) {
+        ListExpr elem = nl->First(rangesY);
+        d = GetNumeric(elem, err);
         dist = d - last;
         maxRangeY = maxRangeY > dist ? maxRangeY : dist;
         minRange = minRange < dist ? minRange : dist;
         last = d;
-        rangesY.rest(); // erstes Element entfernen
-        temp.append(elem);
+        rangesY = nl->Rest(rangesY);
       }
-      rangesY = temp;
+      rangesY = nl->Second(value); 
 
       // Maximum ermitteln, zur Skalierung
-      temp = NList(nl);
       double maxBin = 1;
-      //double d;
-      while (!bins.isEmpty())
-      {
-        elem = bins.first();
-        d = GetNumeric(elem.listExpr(), err);
+      while (!nl->IsEmpty(bins) ) {
+        ListExpr elem = nl->First(bins);
+        d = GetNumeric(elem, err);
         maxBin = maxBin > d ? maxBin : d;
-
-        bins.rest(); // erstes Element entfernen
-        temp.append(elem);
+        bins = nl->Rest(bins);
       }
-      bins = temp;
+      bins = nl->Third(value);
 
       cout << endl;
       cout << "HISTOGRAM2D:" << endl;
       cout<< endl;
 
-      double _rangeX = GetNumeric(rangesX.first().listExpr(), err);
+      double _rangeX = GetNumeric(nl->First(rangesX), err);
       cout << "************* RangeX: "<< _rangeX;
       cout << " **************"<< endl;
-      rangesX.rest(); //paints first rangeX
+      rangesX = nl->Rest(rangesX); //paints first rangeX
 
       int height;
       int width;
 
-      while ( !(rangesX.isEmpty()))
-      {
-        double rangeY = GetNumeric(rangesY.first().listExpr(), err);
+      while ( !nl->IsEmpty(rangesX)) {
+        double rangeY = GetNumeric(nl->First(rangesY), err);
         cout << "y: " << rangeY << endl;
-        rangesY.rest(); //paints first rangeY
+        rangesY = nl->Rest(rangesY); //paints first rangeY
 
-        double rangeX = GetNumeric(rangesX.first().listExpr(), err);
+        double rangeX = GetNumeric(nl->First(rangesX), err);
 
-        while ( !(rangesY.isEmpty()))
-        {
+        while ( !nl->IsEmpty(rangesY)) {
           double lastRange = rangeY;
-          rangeY = GetNumeric(rangesY.first().listExpr(), err);
-          double bin = GetNumeric(bins.first().listExpr(), err);
+          rangeY = GetNumeric(nl->First(rangesY), err);
+          double bin = GetNumeric(nl->First(bins), err);
 
           // only scale, if bin greater than 80
           if (maxBin <= 80)
@@ -1983,20 +1979,16 @@ struct DisplayHistogram2d : DisplayFunction {
           cout << "|" << (bin/(rangeY-lastRange)) << endl;
           cout << "y: "<< rangeY << endl;
 
-          rangesY.rest();
-          bins.rest();
-
+          rangesY = nl->Rest(rangesY);
+          bins = nl->Rest(bins);
         } // while ( !(rangesY.isEmpty()))
 
-        rangesY = rangesYCopy;
+        rangesY = nl->Second(value);
         cout << "*********** RangeX: " << rangeX;
         cout << " ***************" << endl;
-        rangesX.rest();
-
+        rangesX = nl->Rest(rangesX);
       } // while ( !(rangesX.isEmpty()))
-
     }
-
     cout << endl;
   }
 };
@@ -2011,84 +2003,63 @@ struct DisplayHistogram1d : DisplayFunction {
 
   virtual void Display( ListExpr type,  ListExpr value )
   {
-    NList::setNLRef(nl);
     cout << setprecision(16);
-    NList val = NList(value,nl);
     bool err;
-    if ( val.isAtom() && val.isSymbol() &&
-         val.str() == Symbol::UNDEFINED() )
-    {
+    if (    nl->AtomType(value)==SymbolType 
+         && nl->IsEqual(value, Symbol::UNDEFINED())){ 
       cout << Symbol::UNDEFINED();
-    }
-
-
-    else if ( val.length() != 2 ||
-              (val.first().length()
-              != val.second().length() + 1))
-    {
+    } else if ( !nl->HasLength(value,2) ||
+                nl->ListLength(nl->First(value)) 
+               != (nl->ListLength(nl->Second(value)) + 1)) {
       err = true;
       throw runtime_error(stdErrMsg);
       nl->WriteListExpr(value, cout);
-    }
+    } else {
+      ListExpr ranges = nl->First(value);
+      ListExpr bins = nl->Second(value);
 
-
-    else
-    {
-      NList ranges = val.first();
-      NList bins = val.second();
-
-                  // Maximum ermitteln, zur Skalierung
-      NList elem, temp = NList(nl);
+      // Maximum ermitteln, zur Skalierung
       double maxRange = 0;
       double minRange = 1e300;
-      double last = GetNumeric(ranges.first().listExpr(), err);
+      double last = GetNumeric(nl->First(ranges), err);
       double d, dist;
-      temp.append(ranges.first());
-      ranges.rest();
-      while(!ranges.isEmpty())
-      {
-        elem = ranges.first();
-        d = GetNumeric(elem.listExpr(), err);
+      ranges = nl->Rest(ranges);
+      while(!nl->IsEmpty(ranges)) {
+        ListExpr elem = nl->First(ranges);
+        d = GetNumeric(elem, err);
         dist = d - last;
         maxRange = maxRange > dist ? maxRange : dist;
         minRange = minRange < dist ? minRange : dist;
         last = d;
-        ranges.rest(); // erstes Element entfernen
-        temp.append(elem);
+        ranges = nl->Rest(ranges); 
       }
-      ranges = temp;
+      ranges = nl->First(value);
 
       // Maximum ermitteln, zur Skalierung
-      /*NList elem,*/
-      temp = NList(nl);
       double maxBin = 1;
       //double d;
-      while(!bins.isEmpty())
-      {
-        elem = bins.first();
-        d = GetNumeric(elem.listExpr(), err);
+      while(!nl->IsEmpty(bins)) {
+        ListExpr elem = nl->First(bins);
+        d = GetNumeric(elem, err);
         maxBin = maxBin > d ? maxBin : d;
-
-        bins.rest(); // erstes Element entfernen
-        temp.append(elem);
+        bins = nl->Rest(bins);
       }
-      bins = temp;
+      bins = nl->Second(value);
 
       cout << endl;
       cout << "HISTOGRAM:" << endl;
       cout<< endl;
-      double range = GetNumeric(ranges.first().listExpr(), err);
+      double range = GetNumeric(nl->First(ranges), err);
       cout << range << endl;
-      ranges.rest();
+      ranges = nl->Rest(ranges);
       int height;
       int width;
-      while ( !(ranges.isEmpty()) ){
+      while ( !nl->IsEmpty(ranges)) {
         double lastRange = range;
-        range = GetNumeric(ranges.first().listExpr(), err);
+        range = GetNumeric(nl->First(ranges), err);
+        double bin = GetNumeric(nl->First(bins), err);
 
-        double bin = GetNumeric(bins.first().listExpr(), err);
-
-          // only scale, if bin greater than 80
+       // only scale, if bin greater than 80
         if (maxBin <= 80)
         {
           height = static_cast<int>(bin+1);
@@ -2144,8 +2115,8 @@ struct DisplayHistogram1d : DisplayFunction {
         cout << "|" << bin/(range-lastRange) << endl;
         cout << range << endl;
 
-        ranges.rest();
-        bins.rest();
+        ranges = nl->Rest(ranges);
+        bins = nl->Rest(bins);
       }
 
     }
@@ -2709,9 +2680,7 @@ Displayfunctions for JNetAlgebra
 struct DisplayJDirection : DisplayFunction {
   virtual void Display(ListExpr type,  ListExpr value)
   {
-    NList::setNLRef(nl);
-    NList in_inst(value,nl);
-    cout << in_inst.first().str() << " direction";
+    cout << nl->ToString(nl->First(value)) << " direction";
   }
 };
 
@@ -2908,9 +2877,9 @@ struct DisplayJPoints : DisplayFunction{
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      NList::setNLRef(nl);
-      NList nid (nl->First(value),nl);
-      cout << "Positions in network " << nid.str()
+      ListExpr nid = nl->First(value);
+
+      cout << "Positions in network " << nl->ToString(nid)
            << ": " << endl;
 
       ListExpr subtype = nl->TheEmptyList();
@@ -2935,9 +2904,8 @@ struct DisplayJNetwork : DisplayFunction {
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      NList::setNLRef(nl);
-      NList nid(nl->First(value),nl);
-      cout << nid.str() << endl;
+      ListExpr nid = nl->First(value);
+      cout << nl->ToString(nid) << endl;
       cout << "tolerance: " << nl->RealValue(nl->Second(value)) << endl;
       cout << "Junctions: " << endl;
       ListExpr rest = nl->Third(value);
@@ -2977,8 +2945,8 @@ struct DisplayJNetwork : DisplayFunction {
         cout << "Id: " << nl->IntValue(nl->First(first));
         cout << ", Length: " << nl->RealValue(nl->Seventh(first));
         cout << ", Speedlimit: " << nl->RealValue(nl->Sixth(first));
-        NList dir(nl->Fifth(first),nl);
-        cout << ", Direction: " << dir.first().str() << endl;
+        ListExpr dir = nl->Fifth(first); 
+        cout << ", Direction: " << nl->ToString(nl->First(dir)) << endl;
         cout << "Startjunction: " << nl->IntValue(nl->Third(first)) << endl;
         cout << "Targetjunction: " << nl->IntValue(nl->Fourth(first)) << endl;
         cout << "Represented route parts: " << endl;
@@ -3067,9 +3035,8 @@ struct DisplayUJPoint : DisplayFunction{
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      NList::setNLRef(nl);
-      NList netL(nl->First(value));
-      cout << "Network: " << netL.str() << " " << endl;
+      ListExpr netL =nl->First(value);
+      cout << "Network: " << nl->ToString(netL) << " " << endl;
       ListExpr subtype = nl->TheEmptyList();
       nl->ReadFromString("junit", subtype);
       DisplayTTY::GetInstance().DisplayResult(subtype, nl->Second(value));
@@ -3105,9 +3072,8 @@ struct DisplayMJPoint : DisplayFunction{
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      NList::setNLRef(nl); 
-      NList netL(nl->First(value));
-      cout << "Network: " << netL.str() << " " << endl;
+      ListExpr netL = nl->First(value);
+      cout << "Network: " << nl->ToString(netL) << " " << endl;
       ListExpr subtype = nl->TheEmptyList();
       nl->ReadFromString("junit", subtype);
       ListExpr unitList = nl->Second(value);
