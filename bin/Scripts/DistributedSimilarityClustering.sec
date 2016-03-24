@@ -1,0 +1,57 @@
+####### Similarity Based Clustering
+#
+# Example: Cluster Buildings of NRW with parameters epsilon = 100 meters, n = 10. Hence a building is a core point if it has 10 buildings within 100 meters radius.
+
+The algorithm is the following:
+
+Let S (= Buildings) be the given set of objects.
+
+  1 Determine a set of core points C using the script SimilarityPartitioning. Core points are now available as set C = SmallCore.
+
+  2 Distribute S = Buildings as fast as possible to workers using round robin, for example. The set BuildingsB1 has been built in this way.
+
+  3 Share C = SmallCore with all workers.
+
+For each partition S_i:
+
+  4 Assign each element s in S_i to its closest core point in C. Add to s the index N of its core point and the distance D to its core point (in Gauss-Krüger, hence meters).
+
+  5 Create an R-tree index over S_i for CenterGK, S_CenterGK_rtree
+
+end 
+
+  5 Repartition S by N, call it T. Now partitions correspond to core points.
+
+  6 For each partition T_i, determine the maximum value of D. Let this be Radius_i. 
+
+  7 For each partition S_i, for each core point c_j in C, search on S_CenterGK_rtree with the radius Radius_j + epsilon. Repartition the result set by N into U.
+
+    We now have partitions S_i with an arbitrary subset of S, T_j with the points assigned to some core c_j called members of the partition, and U_j with the points within distance Radius_j + epsilon from core c_j (those that are not members are called neighbors of the partition).
+
+  8 For each point p in T_j, search on U_j with a circle of size epsilon. If the result set has size >= n, extend p by attribute IsCorePoint = true, else false. Also for each neighbor q encountered, store the triple (p_id, IsCorePoint, q_id). Call the set of triples Triple_j.
+
+  9 Perform clustering with parameters epsilon, n on T_j. Assuming we have less than 100 core points, multiply each cluster number with 100 and add the index j of the partition. So we have clusters with distinct numbers globally.
+
+ 10 Extend the triples of Triple_j with the cluster numbers for p.
+
+On the master:
+
+ 11 Collect all triples on the master.
+
+ 12 For each pair of triples (p_id, IsCorePoint, ClusterNo_p, q_id) and (q_id, IsCorePoint, ClusterNo_q, p_id) on the master:
+
+    If IsCorePoint is true in both triples: generate a task of merging clusters ClusterNo_p and ClusterNo_q.
+
+ 13 Construct a graph G over tasks with pairs of cluster numbers (c_a, c_b); pairs are edges, cluster numbers are nodes.
+
+ 14 Compute connected components in that graph; assign each component a new number c_x. Create a global table R of renumberings.
+
+ 15 Send the table R with renumberings to all partitions. 
+
+ 16 For each partition T_u, apply the renumberings of R. 
+
+Now all points have received their correct cluster number.
+
+ 
+
+  
