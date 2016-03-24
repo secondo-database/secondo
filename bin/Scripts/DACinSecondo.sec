@@ -1,9 +1,7 @@
+# In this example, the order of tuples in relation Orte is reversed by a DAC algorithm. Initially, one task is created for each tuple in this relation. Then, in each step the number of tasks is halved, merging the tuple sets of two adjacent tasks, until just one task is left.
 
-let Tasks = ten feed addcounter[C, 1] nest[C; Tuples]  
-  addcounter[D, 2] project[C, D, Tuples] consume
 
-let Tasks = thousand feed addcounter[C, 1] nest[C; Tuples]  
-  addcounter[D, 2] project[C, D, Tuples] consume
+
 
 let Tasks = Orte feed addcounter[C, 1] nest[C; Tuples]  
   addcounter[D, 2] project[C, D, Tuples] consume
