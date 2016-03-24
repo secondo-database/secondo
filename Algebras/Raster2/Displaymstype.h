@@ -31,50 +31,49 @@ namespace raster2
 {
   class Displaymstype: public DisplayFunction
   {
-    virtual void Display(ListExpr type, ListExpr value)
+    virtual void Display(ListExpr type, ListExpr list)
     {
-      NList list(value);
+      ListExpr first = nl->First(list);
+      std::cout << "Origin: (" << nl->RealValue(nl->First(first))
+                << ", " << nl->RealValue(nl->Second(first))<< ")\n";
+      std::cout << "Length: " << nl->RealValue(nl->Third(first)) 
+                << ", " << "\n";
+      std::cout << "Duration: " << nl->RealValue(nl->Fourth(first)) 
+                << "\n";
       
-      std::cout << "Origin: (" << list.first().first().realval()
-                << ", " << list.first().second().realval() << ")\n";
-      std::cout << "Length: " << list.first().third().realval() << ", " << "\n";
-      std::cout << "Duration: " << list.first().fourth().realval() << "\n";
-      
-      list.rest();
-      int rows = list.first().first().intval();
-      int cols = list.first().second().intval();
-      int times = list.first().third().intval();
-      list.rest();
+      list = nl->Rest(list);
+      first = nl->First(list);
+      int rows = nl->IntValue(nl->First(first));
+      int cols = nl->IntValue(nl->Second(first));
+      int times = nl->IntValue(nl->Third(first));
+      list = nl->Rest(list);
       
       std::cout << "Values: ";
       bool has_values = false;
       
-      while (!list.isEmpty())
-      {
-        NList head = list.first();
-        list.rest();
-        int row = head.first().intval();
-        int col = head.second().intval();
-        int time = head.third().intval();
-        
-        NList values = head.fourth();
-        
+      while(!nl->IsEmpty(list)) {
+        ListExpr head = nl->First(list);
+        list = nl->Rest(list);
+        int row = nl->IntValue(nl->First(head));
+        int col = nl->IntValue(nl->Second(head));
+        int time = nl->IntValue(nl->Third(head));
+       
+        ListExpr values = nl->Fourth(head);
+ 
         for(int t = 0; t < times; ++t)
         {
             for(int r = 0; r < rows; ++r)
             {
                 for(int c = 0; c < cols; ++c)
                 {
-                    NList element = values.elem(
-                            1 + Cardinal(c + (r*cols) + (t*rows*cols)));
-
-                    if(!element.isSymbol(Symbol::UNDEFINED()))
-                    {
+                    int p = 1 + Cardinal(c + (r*cols) + (t*rows*cols));
+                    ListExpr element = nl->Nth(p, values);
+                    if(!nl->IsEqual(element,Symbol::UNDEFINED())) {
                       has_values = true;
                       std::cout << "\n        (" << (row + r) << ", "
                                                  << (col + c) << ", "
                                                  << (time + t) << "): "
-                                << element.convertToString();
+                                << nl->ToString(element);
                     }
                 }
 

@@ -44,30 +44,34 @@ type that is based on ~stype$<$T, Helper$>$~.
         virtual ~DisplaySType() {};
         virtual void Display(ListExpr type, ListExpr value)
         {
-            NList list(value);
-            std::cout << "Origin: (" << list.first().first().realval()
-                      << ", " << list.first().second().realval() << ")\n";
-            std::cout << "Length: " << list.first().third().realval() << "\n";
-            list.rest();
-            int rows = list.first().first().intval();
-            int cols = list.first().second().intval();
-            list.rest();
+            std::cout << "Origin: (" 
+                      << nl->RealValue(nl->First(nl->First(value)))
+                      << ", " << nl->RealValue(nl->Second(nl->First(value)))
+                      << ")\n";
+            std::cout << "Length: " 
+                      << nl->RealValue(nl->Third(nl->First(value)))
+                      << "\n";
+            value = nl->Rest(value);
+            int rows = nl->IntValue(nl->First(nl->First(value)));
+            int cols = nl->IntValue(nl->Second(nl->First(value)));
+            value = nl->Rest(value);
             std::cout << "Values: ";
             bool has_values = false;
-            while (!list.isEmpty()) {
-                NList head = list.first();
-                list.rest();
-                int row = head.first().intval();
-                int col = head.second().intval();
-                NList values = head.third();
+            while (!nl->IsEmpty(value)) {
+                ListExpr  head = nl->First(value);
+                value = nl->Rest(value);
+                int row = nl->IntValue(nl->First(head));
+                int col = nl->IntValue(nl->Second(head));
+                ListExpr values = nl->Third(head);
                 for (int r = 0; r < rows; ++r) {
                     for (int c = 0; c < cols; ++c) {
-                        NList element = values.elem(1 + Cardinal(r * rows + c));
-                        if (!element.isSymbol(Symbol::UNDEFINED())) {
+                        int p = 1 + Cardinal(r*rows+c);
+                        ListExpr element = nl->Nth(p,values);
+                        if (!nl->IsEqual(element,Symbol::UNDEFINED())) {
                             has_values = true;
                             std::cout << "\n        (" << (row + r) << ", "
                                                      << (col + c) << "): "
-                                      << element.convertToString();
+                                      << nl->ToString(element);
                         }
                     }
                 }
