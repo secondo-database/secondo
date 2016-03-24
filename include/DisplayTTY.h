@@ -72,7 +72,6 @@ parameter is this value in nested list format.
 #include <map>
 
 #include "NestedList.h"
-#include "NList.h"
 
 struct DisplayFunction {
 
@@ -175,7 +174,6 @@ Create an instance and initialize the dtty pointer if necessary.
    { 
      nl = NL; 
      DisplayFunction::nl = NL;
-     NList::setNLRef(NL);  
    }
 
    static int maxIndent;
@@ -211,6 +209,9 @@ display function was assigned:
 
 
   static NestedList*       nl; // Ref. to nested list container
+
+
+  static std::string getStr(ListExpr e);
 
   typedef std::map<std::string,DisplayFunction*> DisplayMap; 
   DisplayMap displayFunctions;
