@@ -1610,10 +1610,10 @@ ensureSampleJexists(DCrel) :-
 createSample(ExtSample, ExtRel, RequestedCard, ActualCard) :-
   dm(dbhandling,['\nTry: createSample(',ExtSample,',',ExtRel,',',
                  RequestedCard,',',ActualCard,').']),
-  sampleQuery(ExtSample, ExtRel, RequestedCard, QueryAtom),
-  tryCreate(QueryAtom),
   dcName2externalName(DCrel,ExtRel),
   card(DCrel, Card),
+  sampleQuery(ExtSample, ExtRel, Card, RequestedCard, QueryAtom),
+  tryCreate(QueryAtom),
   % the following line implements the calculation done by the sample-operator:
   ActualCard is truncate(min(Card, RequestedCard)).
 
@@ -1740,31 +1740,22 @@ createSampleS(DCRel) :-
        )
   ), !.
 
-% special case: trel (used for system tables)
-sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
-  dm(dbhandling,['\nTry: sampleQuery(',ExtSample,',',ExtRel,',',SampleSize,',',
-                 QueryAtom,').']),
-  % NVK MODIFIED NR 
-  % Support for samples on nrel relations.
-  % Because currentliy there exists no ~sample~ operator for nrel relations, 
-  % and the sample operator don't work on streams, this method is used and
-  % not the predicate below this that uses the sample operator.
-  %secondoCatalogInfo(_,ExtRel,_,[[trel, [tuple, _]]]),
-  secondoCatalogInfo(_,ExtRel,_,[[RelType, [tuple, _]]]),
-  member(RelType, [trel, nrel]),
-  % NVK MODIFIED NR END
-  my_concat_atom(['derive ', ExtSample, ' = ', ExtRel,
-    ' feed head[', SampleSize, ']
-      extend[XxxNo: randint(20000)] sortby[XxxNo asc] remove[XxxNo]
-      consume'], '', QueryAtom).
 
-% standard case: rel
-sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
+
+sampleQuery(ExtSample, ExtRel, Card, SampleSize, QueryAtom) :-
   dm(dbhandling,['\nTry: sampleQuery(',ExtSample,',',ExtRel,',',SampleSize,',',
                  QueryAtom,').']),
+  secondoCatalogInfo(_,ExtRel,_,[[RelType, [tuple, _]]]),
   secOptConstant(sampleScalingFactor, SF),
+  N1 is Card / SampleSize, 
+  N2 is 1 / SF, 
+  N is max(1, floor(min(N1, N2))),
+  FinalCard is floor(max(SampleSize, Card * SF)),
+  % distinguish system tables and nested relations from relations
+  ( member(RelType, [trel, nrel] ) 
+    -> FeedNth = ' feed nth'; FeedNth = ' feedNth' ),
   my_concat_atom(['derive ', ExtSample, ' = ', ExtRel,
-    ' sample[', SampleSize, ',', SF, ']
+      FeedNth, '[', N, ', FALSE] head[', FinalCard, '] consume feed
       extend[XxxNo: randint(20000)] sortby[XxxNo asc] remove[XxxNo]
       consume'], '', QueryAtom).
 
