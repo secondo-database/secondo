@@ -24,7 +24,6 @@
 ########################################################################
 
 include ../makefile.env
-INCLUDEFLAGS += $(PLINCLUDEFLAGS)
 
 LIBOBJECTS=\
 	$(LIBDIR)/SecondoPrologInterface.$(OBJEXT)
@@ -32,7 +31,7 @@ LIBOBJECTS=\
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJECTS)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) --std=c++11 $(shell pkg-config swipl --cflags) -I../Algebras/Relation-C++ -I../Algebras/TupleIdentifier
+CCFLAGS+= $(PLINCLUDEFLAGS) $(PICFLAG) $(DEFAULTCCFLAGS) --std=c++11 $(shell pkg-config swipl --cflags) -I../Algebras/Relation-C++ -I../Algebras/TupleIdentifier
 
 $(LIBDIR)/%.$(OBJEXT): %.$(OBJEXT)
 	$(CP) $< $@ 
