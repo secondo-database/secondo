@@ -573,6 +573,11 @@ selectivity queries:
 
 */
 
+/*
+1.3.1 Spatial Selection Predicate with Bounding-Box-Checking
+
+*/
+
 % spatial selection predicate with bbox-checking
 selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
         FilterResCard, InputCard) :-
@@ -655,6 +660,11 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   ),
   !.
 
+/*
+1.3.1 Normal Selection Predicate
+
+*/
+
 % normal selection predicate
 selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard, InputCard) :-
   Pred =.. [OP|_],
@@ -734,8 +744,10 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBox, ResCard, InputCard) :-
   throw(error_Internal(statistics_selectivityQuerySelection(Pred, Rel,QueryTime,
         BBox, ResCard, InputCard)::selectivityQueryFailed)),  fail.
 
+/*
+1.3.1 Spatial Join Predicate with Bounding-Box-Checking
 
-
+*/
 
 % spatial join predicate with bbox-checking
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
@@ -889,6 +901,11 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
   TotalResCard is BBoxResCard * FilterSel,
 	write_list(['TotalResultCard = ', TotalResCard]), nl,
   !.
+
+/*
+1.3.1 Normal Join Predicate
+
+*/
 
 % normal join predicate
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox, _,
