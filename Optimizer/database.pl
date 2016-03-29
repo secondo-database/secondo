@@ -1800,7 +1800,7 @@ createSamples(DCrel, SelectionCard, JoinCard) :-
 
 User-level command.
 Resize (or possibly create) samples for ~DCRel~ (in down cased spellinf)
-manually, speciying the size (cardinality) of selection and join samples.
+manually, specifying the size (cardinality) of selection and join samples.
 
 Update the stored metadata on the relation samples.
 
