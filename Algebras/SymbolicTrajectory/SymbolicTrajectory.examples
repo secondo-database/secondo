@@ -389,8 +389,14 @@ Result   : TRUE
 
 Operator : createtupleindex
 Number   : 1
-Signature: stream(tuple(X)) -> tupleindex
+Signature: stream(tuple(X)) x IDENT -> tupleindex
 Example  : query Dotraj tmatches[Trajectory, '()', (Dotraj feed createtupleindex[Trajectory])] count
+Result   : 0
+
+Operator : bulkloadtupleindex
+Number   : 1
+Signature: rel(tuple(X)) x IDENT -> tupleindex
+Example  : query Dotraj tmatches[Trajectory, '()', (Dotraj bulkloadtupleindex[Trajectory])] count
 Result   : 0
 
 Operator : tmatches

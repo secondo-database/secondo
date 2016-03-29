@@ -2736,6 +2736,104 @@ struct createtupleindexInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~bulkloadtupleindex~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr bulkloadtupleindexTM(ListExpr args) {
+  string err = "Operator expects a relation of tuples where at least one "
+               "attribute is a symbolic trajectory. Optionally, the user can "
+               "specify the name of the main attribute.";
+  if (!nl->HasLength(args, 1) && !nl->HasLength(args, 2)) {
+    return listutils::typeError(err + " (" 
+     + stringutils::int2str(nl->ListLength(args)) + " arguments instead of 1)");
+  }
+  if (!listutils::isRelDescription(nl->First(args))) {
+    return listutils::typeError(err + " (no relation received)");
+  }
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  string attrName;
+  int pos = -1;
+  if (nl->HasLength(args, 1)) {
+    string symAttrNames[] = {"mlabel", "mlabels", "mplace", "mplaces"};
+    int found = 0;
+    for (int i = 0; i < 4; i++) {
+      found += listutils::findType(attrList, nl->SymbolAtom(symAttrNames[i]),
+                                   attrName);
+      if (found != 0 && pos == -1) {
+        pos = found;
+      }
+    }
+    if (found == 0) {
+      return listutils::typeError(err + " (no symbolic attribute found)");
+    }
+  }
+  else {
+    attrName = nl->SymbolValue(nl->Second(args));
+    ListExpr type;
+    pos = listutils::findAttribute(attrList, attrName, type);
+    if (pos == 0 || !Tools::isSymbolicType(type)) {
+      return listutils::typeError(err + " (" + attrName + " is not the name of "
+             + "a symbolic attribute)");
+    }
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                           nl->OneElemList(nl->IntAtom(pos - 1)),
+                           nl->SymbolAtom(TupleIndex::BasicType()));
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int bulkloadtupleindexVM(Word* args, Word& result, int message, Word& local, 
+                         Supplier s) {
+  result = qp->ResultStorage(s);
+  Relation *rel = static_cast<Relation*>(args[0].addr);
+  CcInt *attrno = static_cast<CcInt*>(args[2].addr);
+  TupleIndex* ti = static_cast<TupleIndex*>(result.addr);
+  if (rel->GetNoTuples() == 0) {
+    return 0;
+  }
+  TupleType *tt = rel->GetTupleType();
+  ti->initialize(tt, attrno->GetIntval());
+  int majorValueNo;
+  vector<pair<int, string> > relevantAttrs = 
+                 Tools::getRelevantAttrs(tt, attrno->GetIntval(), majorValueNo);
+  Supplier s0 = qp->GetSon(s, 0);
+  ListExpr ttList = nl->Second(qp->GetType(s0));
+  int relevantAttrCount = 0;
+  for (int a = 0; a < tt->GetNoAttributes(); a++) {
+    if (Tools::isMovingAttr(ttList, a)) {
+      string typeName = relevantAttrs[relevantAttrCount].second;
+      cout << "type is " << typeName << endl;
+//       ti->collectAndSortValues(rel, a, typeName);
+      cout << "all tuples extracted for attr " << a << endl;
+//       ti->bulkloadValues(typeName);
+      cout << "all values inserted into index" << endl;
+      relevantAttrCount++;
+    }
+    
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct bulkloadtupleindexInfo : OperatorInfo {
+  bulkloadtupleindexInfo() {
+    name      = "bulkloadtupleindex";
+    signature = "relation(tuple(X)) [ x ATTRNAME] --> bool";
+    syntax    = "_ bulkloadtupleindex";
+    meaning   = "Creates a multiple index for all moving attributes of the "
+                "relation.";
+  }
+};
+
+/*
 \section{Operator ~tmatches~}
 
 \subsection{Type Mapping}
@@ -4616,6 +4714,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   matches.SetUsesArgsInTypeMapping();
   
   AddOperator(createtupleindexInfo(), createtupleindexVM, createtupleindexTM);
+  
+  AddOperator(bulkloadtupleindexInfo(), bulkloadtupleindexVM, 
+	      bulkloadtupleindexTM);
    
   AddOperator(&tmatches);
   tmatches.SetUsesArgsInTypeMapping();
@@ -4626,12 +4727,12 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(createunitrtreeInfo(), createunitrtreeVMs, createunitrtreeSelect,
               createunitrtreeTM);
   
-  ValueMapping indexmatchesVMs[] = {indexmatchesVM<MLabel, FText>, 
-    indexmatchesVM<MLabels, FText>, indexmatchesVM<MPlace, FText>, 
-    indexmatchesVM<MPlaces, FText>, indexmatchesVM<MLabel, PatPersistent>,
-    indexmatchesVM<MLabels, PatPersistent>, 
-    indexmatchesVM<MPlace, PatPersistent>,
-    indexmatchesVM<MPlaces, PatPersistent>, 0};
+//   ValueMapping indexmatchesVMs[] = {indexmatchesVM<MLabel, FText>, 
+//     indexmatchesVM<MLabels, FText>, indexmatchesVM<MPlace, FText>, 
+//     indexmatchesVM<MPlaces, FText>, indexmatchesVM<MLabel, PatPersistent>,
+//     indexmatchesVM<MLabels, PatPersistent>, 
+//     indexmatchesVM<MPlace, PatPersistent>,
+//     indexmatchesVM<MPlaces, PatPersistent>, 0};
 //   AddOperator(indexmatchesInfo(), indexmatchesVMs, indexmatchesSelect,
 //               indexmatchesTM);
 

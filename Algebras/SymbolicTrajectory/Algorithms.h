@@ -1047,6 +1047,54 @@ struct IndexMatchSlot {
 };
 
 /*
+\section{struct ~DoubleUnitSet~}
+
+*/
+struct DoubleUnitSet {
+  DoubleUnitSet() {}
+  
+  DoubleUnitSet(std::set<int>& u, bool m = true) {
+    if (m) {
+      match = u;
+    }
+    else {
+      mismatch = u;
+    }
+  }
+  
+  DoubleUnitSet(int u, bool m = true) {
+    if (m) {
+      match.insert(u);
+    }
+    else {
+      mismatch.insert(u);
+    }
+  }
+  
+  ExtBool getMatchRecord(int u) {
+    if (match.find(u) != match.end()) {
+      return TRUE;
+    }
+    if (mismatch.find(u) != mismatch.end()) {
+      return FALSE;
+    }
+    return UNDEF;
+  }
+  
+  void addMatchRecord(int u, bool m = true) {
+    if (m) {
+      match.insert(u);
+    }
+    else {
+      mismatch.insert(u);
+    }
+  }
+  
+  std::set<int> match;
+  std::set<int> mismatch;
+};
+
+/*
 \section{class ~IndexMatchSuper~}
 
 */
@@ -1082,7 +1130,7 @@ class IndexMatchSuper {
   std::vector<std::pair<int, std::string> > relevantAttrs;
   DataType mtype;
   std::vector<TupleId> matches;
-  UnitSet ***matchRecord; // state x tuple id
+  DoubleUnitSet ***matchRecord; // state x tuple id
   bool *active;
   int *trajSize;
   int activeTuples, unitCtr;

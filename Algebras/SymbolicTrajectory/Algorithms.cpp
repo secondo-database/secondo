@@ -2594,10 +2594,6 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
       set<int>::reverse_iterator it = 
                                    indexResult[trans.first][id]->units.rbegin();
       while (active[id] && it != indexResult[trans.first][id]->units.rend()) {
-//         cout << state << "---" << trans.first << "-->" << trans.second
-//             << " # " << id << " " 
-//             << indexResult[trans.first][id]->units.size() 
-//             << " " << *it << endl;
         unsigned int numOfIMIs = (matchInfo[state][id] != 0 ?
                                   matchInfo[state][id]->imis.size() : 0);
         for (unsigned int i = 0; i < numOfIMIs; i++) {
@@ -2607,15 +2603,21 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
             Tuple *t = rel->GetTuple(id, false);
             TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
             bool match = false;
-            bool matchKnown = (matchRecord[trans.first][id] != 0);
-            if (matchKnown) {
-              match = (matchRecord[trans.first][id]->units.find(*it) !=
-                       matchRecord[trans.first][id]->units.end());
+            ExtBool matchRec = UNDEF;
+            if (matchRecord[trans.first][id] != 0) {
+              matchRec = matchRecord[trans.first][id]->getMatchRecord(*it);
+              if (matchRec == TRUE) {
+                match = true;
+              }
             }
             else {
+              matchRecord[trans.first][id] = new DoubleUnitSet();
+            }
+            if (matchRec == UNDEF) {
               match = tmatch.valuesMatch(*it, trans.first) &&
                       Tools::timesMatch(iv, ivs) &&
                       tmatch.easyCondsMatch(*it, trans.first);
+              matchRecord[trans.first][id]->addMatchRecord(*it, match);
             }
             if (match) {
               transition = true;
@@ -2658,18 +2660,12 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                 newMatchInfo[trans.second][id]->imis.push_back(newIMI);
 //                 cout << "Pushed back imi for id " << id << ", range="
 //                      << (newIMI.range ? "TRUE" : "FALSE") << endl;
-                if (!matchKnown) {
-                  matchRecord[trans.first][id] = new UnitSet(*it);
-                }
               }
               if (*it < minUnit) {
                 minUnit = *it;
               }
             }
             else {
-              if (!matchKnown) {
-                matchRecord[trans.first][id] = new UnitSet();
-              }
               if (imiPtr->range && canBeDeactivated(id, state, trans.first)) {
 //                 cout << "*Deactivate id " << id << endl;
                 toRemove.push_back(id);
@@ -2715,15 +2711,23 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                 getInterval(id, imiPtr->next, iv);
               }
               bool match = false;
-              bool matchKnown = (matchRecord[trans.first][id] != 0);
-              if (matchKnown) {
-                match = (matchRecord[trans.first][id]->units.find(imiPtr->next)
-                         != matchRecord[trans.first][id]->units.end());
+              ExtBool matchRec = UNDEF;
+              if (matchRecord[trans.first][id] != 0) {
+                matchRec = matchRecord[trans.first][id]->
+                                                   getMatchRecord(imiPtr->next);
+                if (matchRec == TRUE) {
+                  match = true;
+                }
               }
               else {
+                matchRecord[trans.first][id] = new DoubleUnitSet();
+              }
+              if (matchRec == UNDEF) {
                 match = tmatch.valuesMatch(imiPtr->next, trans.first) &&
                         Tools::timesMatch(iv, ivs) &&
                         tmatch.easyCondsMatch(imiPtr->next, trans.first);
+                matchRecord[trans.first][id]->
+                                            addMatchRecord(imiPtr->next, match);
               }
               if (match) {
                 transition = true;
@@ -2751,7 +2755,6 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                 }
                 if (totalMatch) {
                   matches.push_back(id); // complete match
-                  cout << "MATCH for id " << id << endl;
                   toRemove.push_back(id);
       //         cout << id << " removed (wild match) " << activeTuples 
       //              << " active tuples" << endl;
@@ -2760,14 +2763,12 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                 }
                 else if (!newIMI.exhausted(trajSize[id])) { // continue
                   newMatchInfo[trans.second][id]->imis.push_back(newIMI);
-                  if (!matchKnown) {
-                    matchRecord[trans.first][id] = new UnitSet(imiPtr->next);
-                  }
                 }
               }
               else {
-                if (!matchKnown) {
-                  matchRecord[trans.first][id] = new UnitSet();
+                if (imiPtr->range && canBeDeactivated(id, state, trans.first)) {
+//                   cout << "*Deactivate id " << id << endl;
+                  toRemove.push_back(id);
                 }
               }
             }
@@ -2776,15 +2777,23 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
               while (k < trajSize[id]) {
                 getInterval(id, k, iv);
                 bool match = false;
-                bool matchKnown = (matchRecord[trans.first][id] != 0);
-                if (matchKnown) {
-                  match = (matchRecord[trans.first][id]->units.find(k) !=
-                          matchRecord[trans.first][id]->units.end());
+                ExtBool matchRec = UNDEF;
+                if (matchRecord[trans.first][id] != 0) {
+                  matchRec = matchRecord[trans.first][id]->
+                                                   getMatchRecord(imiPtr->next);
+                  if (matchRec == TRUE) {
+                    match = true;
+                  }
                 }
                 else {
-                  match = tmatch.valuesMatch(k, trans.first) &&
+                  matchRecord[trans.first][id] = new DoubleUnitSet();
+                }
+                if (matchRec == UNDEF) {
+                  match = tmatch.valuesMatch(imiPtr->next, trans.first) &&
                           Tools::timesMatch(iv, ivs) &&
-                          tmatch.easyCondsMatch(k, trans.first);
+                          tmatch.easyCondsMatch(imiPtr->next, trans.first);
+                  matchRecord[trans.first][id]->
+                                            addMatchRecord(imiPtr->next, match);
                 }
                 if (match) {
                   transition = true;
@@ -2821,21 +2830,15 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                   }
                   else if (!newIMI.exhausted(trajSize[id])) { // continue
                     newMatchInfo[trans.second][id]->imis.push_back(newIMI);
-                    if (!matchKnown) {
-                      matchRecord[trans.first][id] = new UnitSet(k);
+                  }
+                  else {
+                    if (canBeDeactivated(id, state, trans.first)) {
+//                     cout << "Deactivate id " << id << endl;
+                      toRemove.push_back(id);
                     }
                   }
+                  k++;
                 }
-                else {
-                  if (!matchKnown) {
-                    matchRecord[trans.first][id] = new UnitSet();
-                  }
-                  if (canBeDeactivated(id, state, trans.first)) {
-//                     cout << "Deactivate id " << id << endl;
-                    toRemove.push_back(id);
-                  }
-                }
-                k++;
               }
             }
           }
@@ -2958,13 +2961,13 @@ bool TMatchIndexLI::initialize() {
   int minResultPos = -1;
   int minResults(INT_MAX), curResults(0);
   memset(trajSize, 0, (rel->GetNoTuples() + 1) * sizeof(int));
-  matchRecord = new UnitSet**[p->getSize()];
+  matchRecord = new DoubleUnitSet**[p->getSize()];
   memset(matchRecord, 0, p->getSize() * sizeof(void*));
   PatElem atom;
   for (int i = 0; i < p->getSize(); i++) {
     p->getElem(i, atom);
     if (atom.hasValuesWithContent()) {
-      matchRecord[i] = new UnitSet*[rel->GetNoTuples() + 1];
+      matchRecord[i] = new DoubleUnitSet*[rel->GetNoTuples() + 1];
       memset(matchRecord[i], 0, (rel->GetNoTuples() + 1) * sizeof(void*));
     }
   }
