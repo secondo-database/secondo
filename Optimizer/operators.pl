@@ -124,7 +124,7 @@ Standard scaling factor for samples.
 
 RHG 04.06.2014: Constants enlarged to be able to get good selectivity estimations for larger relations (up to 10 million tuples).
 
-We will now use samples of at least 1 % of the relation size. Samples are put in random order to be able to process queries on prefixes of the sample.
+We will now use samples of at least 1 \% of the relation size. Samples are put in random order to be able to process queries on prefixes of the sample.
 
 Selectivity queries will be restricted to the first 2000 tuples of the selection sample, as before.
 
