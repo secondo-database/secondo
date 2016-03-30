@@ -51,6 +51,20 @@ class NewPair {
    
   F first;
   S second;
+  
+  bool operator == (const NewPair& np) const {
+    return (first == np.first && second == np.second);
+  }
+  
+  bool operator < (const NewPair& np) const {
+    if (first < np.first) {
+      return true;
+    }
+    if (first == np.first) {
+      return second < np.second;
+    }
+    return false;
+  }
 };
   
 struct SymbolicUnit {

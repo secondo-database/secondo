@@ -972,6 +972,16 @@ class TupleIndex {
   static bool insertIntoRTree2(RTree2TLLI *rt, TupleId tid, Attribute *m,
                                std::string type);
   void deleteIndexes();
+  
+  void processTimeIntervals(Relation *rel, const int attr, 
+                            const std::string &typeName);
+  void processRTree2(Relation *rel, const int attr,const std::string &typeName);
+  void processRTree1(Relation *rel, const int attr);
+  void processBTree(Relation *rel, const int attr);
+  void processTrie(Relation *rel, const int attr, const std::string &typeName,
+                   const size_t memSize);
+  void collectSortInsert(Relation *rel, const int attr, 
+                         const std::string &typeName, const size_t memSize);
 
  private:
   std::vector<InvertedFile*> tries;

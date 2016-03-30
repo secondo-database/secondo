@@ -2089,6 +2089,334 @@ void TupleIndex::deleteIndexes() {
 }
 
 /*
+\subsection{Function ~processTimeIntervals~}
+
+*/
+void TupleIndex::processTimeIntervals(Relation *rel, const int attr, 
+                                      const std::string &typeName) {
+  vector<NewPair<NewPair<double, double>, NewPair<TupleId, int> > > values;
+  TupleId noTuples = rel->GetNoTuples();
+  SecInterval iv(true);
+  if (typeName == "mlabel") {
+    MLabel *ml = 0;
+    for (TupleId i = 1; i <= noTuples; i++) {
+      Tuple *t = rel->GetTuple(i, false);
+      ml = (MLabel*)t->GetAttribute(attr);
+      int noComponents = ml->GetNoComponents();
+      for (int j = 0; j < noComponents; j++) {
+        ml->GetInterval(j, iv);
+        NewPair<double,double> ivDouble(iv.start.ToDouble(), iv.end.ToDouble());
+        NewPair<NewPair<double, double>, NewPair<TupleId, int> > value
+                                        (ivDouble, NewPair<TupleId, int>(i, j));
+        values.push_back(value);
+      }
+      t->DeleteIfAllowed();
+    }
+  }
+  else if (typeName == "mlabels") {
+    MLabels *mls = 0;
+    for (TupleId i = 1; i <= noTuples; i++) {
+      Tuple *t = rel->GetTuple(i, false);
+      mls = (MLabels*)t->GetAttribute(attr);
+      int noComponents = mls->GetNoComponents();
+      for (int j = 0; j < noComponents; j++) {
+        mls->GetInterval(j, iv);
+        NewPair<double,double> ivDouble(iv.start.ToDouble(), iv.end.ToDouble());
+        NewPair<NewPair<double, double>, NewPair<TupleId, int> > value
+                                        (ivDouble, NewPair<TupleId, int>(i, j));
+        values.push_back(value);
+      }
+      t->DeleteIfAllowed();
+    }
+  }
+  else if (typeName == "mplace") {
+    // TODO
+  }
+  else if (typeName == "mplaces") {
+    // TODO
+  }
+  cout << values.size() << " time intervals in vector" << endl;
+  std::sort(values.begin(), values.end());
+  cout << " ............ sorted" << endl;
+  double start[1], end[1];
+  bool bulkLoadInitialized = timeIndex->InitializeBulkLoad();
+  assert(bulkLoadInitialized);
+  for (unsigned int i = 0; i < values.size(); i++) {
+    start[0] = values[i].first.first;
+    end[0] = values[i].first.second;
+    Rectangle<1> doubleIv(true, start, end);
+    TwoLayerLeafInfo position(values[i].second.first, values[i].second.second,
+                              values[i].second.second);
+    R_TreeLeafEntry<1, TwoLayerLeafInfo> entry(doubleIv, position);
+    timeIndex->InsertBulkLoad(entry);
+  }
+  bool bulkLoadFinalized = timeIndex->FinalizeBulkLoad();
+  assert(bulkLoadFinalized);
+  cout << "... written into rtree1" << endl;
+}
+
+/*
+\subsection{Function ~processRTree2~}
+
+*/
+void TupleIndex::processRTree2(Relation *rel, const int attr,
+                               const std::string &typeName) {
+  vector<NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
+                 NewPair<TupleId, int> > > values;
+  TupleId noTuples = rel->GetNoTuples();
+  if (typeName == "mpoint") {
+    MPoint *mp = 0;
+    UPoint up(true);
+    for (TupleId i = 1; i <= noTuples; i++) {
+      Tuple *t = rel->GetTuple(i, false);
+      mp = (MPoint*)t->GetAttribute(attr);
+      int noComponents = mp->GetNoComponents();
+      for (int j = 0; j < noComponents; j++) {
+        mp->Get(j, up);
+        Rectangle<2> bbox = up.BoundingBoxSpatial();
+        NewPair<NewPair<double, double>, NewPair<double, double> > bboxValues(
+          NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
+          NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
+        NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
+        NewPair<TupleId, int> > value(bboxValues, NewPair<TupleId, int>(i, j));
+        values.push_back(value);
+      }
+      t->DeleteIfAllowed();
+    }
+  }
+  else if (typeName == "mregion") {
+    MRegion *mr = 0;
+    URegionEmb ur(true);
+    for (TupleId i = 1; i <= noTuples; i++) {
+      Tuple *t = rel->GetTuple(i, false);
+      mr = (MRegion*)t->GetAttribute(attr);
+      int noComponents = mr->GetNoComponents();
+      for (int j = 0; j < noComponents; j++) {
+        mr->Get(j, ur);
+        Rectangle<3> bbox = ur.BoundingBox();
+        NewPair<NewPair<double, double>, NewPair<double, double> > bboxValues(
+          NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
+          NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
+        NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
+         NewPair<TupleId, int> > value(bboxValues, NewPair<TupleId, int>(i, j));
+        values.push_back(value);
+      }
+      t->DeleteIfAllowed();
+    }
+  }
+  cout << values.size() << " 2D boxes in vector" << endl;
+  std::sort(values.begin(), values.end());
+  cout << " ............ sorted" << endl;
+  RTree2TLLI *rtree = rtrees2[attrToIndex[attr].second];
+  double min[2], max[2];
+  bool bulkLoadInitialized = rtree->InitializeBulkLoad();
+  assert(bulkLoadInitialized);
+  for (unsigned int i = 0; i < values.size(); i++) {
+    min[0] = values[i].first.first.first;
+    min[1] = values[i].first.first.second;
+    max[0] = values[i].first.second.first;
+    max[1] = values[i].first.second.second;
+    Rectangle<2> rect(true, min, max);
+    TwoLayerLeafInfo position(values[i].second.first, values[i].second.second,
+                              values[i].second.second);
+    R_TreeLeafEntry<2, TwoLayerLeafInfo> entry(rect, position);
+    rtree->InsertBulkLoad(entry);
+  }
+  bool bulkLoadFinalized = rtree->FinalizeBulkLoad();
+  assert(bulkLoadFinalized);
+  cout << "... written into rtree2" << endl;
+}
+
+/*
+\subsection{Function ~processRTree1~}
+
+*/
+void TupleIndex::processRTree1(Relation *rel, const int attr) {
+  vector<NewPair<NewPair<double, double>, NewPair<TupleId, int> > > values;
+  TupleId noTuples = rel->GetNoTuples();
+  MReal *mr = 0;
+  UReal ur(true);
+  double start, end;
+  bool correct1, correct2;
+  for (TupleId i = 1; i <= noTuples; i++) {
+    Tuple *t = rel->GetTuple(i, false);
+    mr = (MReal*)t->GetAttribute(attr);
+    int noComponents = mr->GetNoComponents();
+    for (int j = 0; j < noComponents; j++) {
+      mr->Get(j, ur);
+      start = ur.Min(correct1);
+      end = ur.Max(correct2);
+      NewPair<NewPair<double, double>, NewPair<TupleId, int> > value
+             (NewPair<double, double>(start, end), NewPair<TupleId, int>(i, j));
+      values.push_back(value);
+    }
+    t->DeleteIfAllowed();
+  }
+  cout << values.size() << " real intervals in vector" << endl;
+  std::sort(values.begin(), values.end());
+  cout << ".......... sorted" << endl;
+  RTree1TLLI *rtree = rtrees1[attrToIndex[attr].second];
+  double min[1], max[1];
+  bool bulkLoadInitialized = rtree->InitializeBulkLoad();
+  assert(bulkLoadInitialized);
+  for (unsigned int i = 0; i < values.size(); i++) {
+    min[0] = values[i].first.first;
+    max[0] = values[i].first.second;
+    Rectangle<1> rect(true, min, max);
+    TwoLayerLeafInfo position(values[i].second.first, values[i].second.second,
+                              values[i].second.second);
+    R_TreeLeafEntry<1, TwoLayerLeafInfo> entry(rect, position);
+    rtree->InsertBulkLoad(entry);
+  }
+  bool bulkLoadFinalized = rtree->FinalizeBulkLoad();
+  assert(bulkLoadFinalized);
+  cout << "... written into rtree1" << endl;
+}
+
+/*
+\subsection{Function ~processBTree~}
+
+*/
+void TupleIndex::processBTree(Relation *rel, const int attr) {
+  vector<NewPair<int, LongInt> > values;
+  TupleId noTuples = rel->GetNoTuples();
+  MInt *mi = 0;
+  UInt ui(true);
+  for (TupleId i = 1; i <= noTuples; i++) {
+    Tuple *t = rel->GetTuple(i, false);
+    mi = (MInt*)t->GetAttribute(attr);
+    int noComponents = mi->GetNoComponents();
+    int64_t tid_64(i);
+    tid_64 = tid_64<<32;
+    for (int j = 0; j < noComponents; j++) {
+      mi->Get(j, ui);
+      LongInt pos(tid_64 | (uint32_t)j);
+      NewPair<int, LongInt> value(ui.constValue.GetValue(), pos);
+      values.push_back(value);
+    }
+    t->DeleteIfAllowed();
+  }
+  cout << values.size() << " integers in vector" << endl;
+  std::sort(values.begin(), values.end());
+  cout << ".......... sorted" << endl;
+  BTree_t<LongInt> *btree = btrees[attrToIndex[attr].second];
+  for (unsigned int i = 0; i < values.size(); i++) {
+    btree->Append(values[i].first, values[i].second);
+  }
+  cout << "... written into btree" << endl;
+}
+
+/*
+\subsection{Function ~processTrie~}
+
+*/
+void TupleIndex::processTrie(Relation *rel, const int attr,
+                            const std::string &typeName, const size_t memSize) {
+  vector<NewPair<std::string, NewPair<TupleId, int> > > values;
+  TupleId noTuples = rel->GetNoTuples();
+  if (typeName == "mlabel") {
+    MLabel *ml = 0;
+    std::string label;
+    for (TupleId i = 1; i <= noTuples; i++) {
+      Tuple *t = rel->GetTuple(i, false);
+      ml = (MLabel*)t->GetAttribute(attr);
+      int noComponents = ml->GetNoComponents();
+      for (int j = 0; j < noComponents; j++) {
+        ml->GetValue(j, label);
+        NewPair<std::string, NewPair<TupleId, int> > value
+                                           (label, NewPair<TupleId, int>(i, j));
+        values.push_back(value);
+      }
+      t->DeleteIfAllowed();
+    }
+  }
+  else if (typeName == "mlabel") {
+    MLabels *mls = 0;
+    std::set<std::string> labels;
+    std::set<std::string>::iterator it;
+    for (TupleId i = 1; i <= noTuples; i++) {
+      Tuple *t = rel->GetTuple(i, false);
+      mls = (MLabels*)t->GetAttribute(attr);
+      int noComponents = mls->GetNoComponents();
+      for (int j = 0; j < noComponents; j++) {
+        mls->GetValues(j, labels);
+        NewPair<TupleId, int> pos(i, j);
+        it = labels.begin();
+        while (it != labels.end()) {
+          NewPair<std::string, NewPair<TupleId, int> > value(*it, pos);
+          values.push_back(value);
+        }
+      }
+      t->DeleteIfAllowed();
+    }
+  }
+  else if (typeName == "mplace") {
+    // TODO
+  }
+  else if (typeName == "mplaces") {
+    // TODO
+  }
+  cout << values.size() << " labels in vector" << endl;
+  std::sort(values.begin(), values.end());
+  cout << ".......... sorted" << endl;
+  InvertedFile *trie = tries[attrToIndex[attr].second];
+  size_t maxMem = memSize * 16 * 1024 * 1024;
+  size_t trieCacheSize = maxMem / 20;
+  if (trieCacheSize < 4096) {
+    trieCacheSize = 4096;
+  }
+  size_t invCacheSize;
+  if (trieCacheSize + 4096 > maxMem) {
+    invCacheSize = 4096;
+  }
+  else {
+    invCacheSize = maxMem - trieCacheSize;
+  }
+  appendcache::RecordAppendCache* cache = trie->createAppendCache(invCacheSize);
+  TrieNodeCacheType* trieCache = trie->createTrieCache(trieCacheSize);
+  for (unsigned int i = 0; i < values.size(); i++) {
+    trie->insertString(values[i].second.first, values[i].first,
+                       values[i].second.second, 0, cache, trieCache);
+  }
+  delete trieCache;
+  delete cache;
+  cout << "... written into trie" << endl;
+}
+
+/*
+\subsection{Function ~collectSortInsert~}
+
+*/
+void TupleIndex::collectSortInsert(Relation *rel, const int attr, 
+                            const std::string &typeName, const size_t memSize) {
+  if (attr == mainAttr) {
+    processTimeIntervals(rel, attr, typeName);
+  }
+  IndexType indexType = attrToIndex[attr].first;
+  switch (indexType) {
+    case TRIE: {
+      processTrie(rel, attr, typeName, memSize);
+      break;
+    }
+    case BTREE: {
+      processBTree(rel, attr);
+      break;
+    }
+    case RTREE1: {
+      processRTree1(rel, attr);
+      break;
+    }
+    case RTREE2: {
+      processRTree2(rel, attr, typeName);
+      break;
+    }
+    case NONE: { // nothing to do
+      break;
+    }
+  }
+}
+
+/*
 \section{Functions for class ~TMatchIndexLI~}
 
 \subsection{Constructor}

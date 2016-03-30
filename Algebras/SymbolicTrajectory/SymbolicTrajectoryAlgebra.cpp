@@ -2804,17 +2804,12 @@ int bulkloadtupleindexVM(Word* args, Word& result, int message, Word& local,
   Supplier s0 = qp->GetSon(s, 0);
   ListExpr ttList = nl->Second(qp->GetType(s0));
   int relevantAttrCount = 0;
-  for (int a = 0; a < tt->GetNoAttributes(); a++) {
+  for (int a = 1; a <= tt->GetNoAttributes(); a++) {
     if (Tools::isMovingAttr(ttList, a)) {
       string typeName = relevantAttrs[relevantAttrCount].second;
-      cout << "type is " << typeName << endl;
-//       ti->collectAndSortValues(rel, a, typeName);
-      cout << "all tuples extracted for attr " << a << endl;
-//       ti->bulkloadValues(typeName);
-      cout << "all values inserted into index" << endl;
+      ti->collectSortInsert(rel, a - 1, typeName, qp->GetMemorySize(s));
       relevantAttrCount++;
     }
-    
   }
   return 0;
 }
@@ -2823,6 +2818,14 @@ int bulkloadtupleindexVM(Word* args, Word& result, int message, Word& local,
 \subsection{Operator Info}
 
 */
+const string bulkloadtupleindexSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> relation(tuple(X)) [x attrname] --> bool </text--->"
+  "<text> _ bulkloadtupleindex[attr] </text--->"
+  "<text> Creates a multiple index for all moving attributes of the \n"
+  "relation. </text--->"
+  "<text> Dotraj bulkloadtupleindex[Trajectory]</text--->) )";
+
 struct bulkloadtupleindexInfo : OperatorInfo {
   bulkloadtupleindexInfo() {
     name      = "bulkloadtupleindex";
@@ -2832,6 +2835,9 @@ struct bulkloadtupleindexInfo : OperatorInfo {
                 "relation.";
   }
 };
+
+Operator bulkloadtupleindex("bulkloadtupleindex", bulkloadtupleindexSpec, 
+            bulkloadtupleindexVM, Operator::SimpleSelect, bulkloadtupleindexTM);
 
 /*
 \section{Operator ~tmatches~}
@@ -4715,8 +4721,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   AddOperator(createtupleindexInfo(), createtupleindexVM, createtupleindexTM);
   
-  AddOperator(bulkloadtupleindexInfo(), bulkloadtupleindexVM, 
-	      bulkloadtupleindexTM);
+  AddOperator(&bulkloadtupleindex);
+  bulkloadtupleindex.SetUsesMemory();
    
   AddOperator(&tmatches);
   tmatches.SetUsesArgsInTypeMapping();
