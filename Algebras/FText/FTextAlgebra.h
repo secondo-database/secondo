@@ -46,6 +46,7 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 #include "../../Tools/Flob/Flob.h"
 #include "ListUtils.h"
 #include "StringUtils.h"
+#include <algorithm>
 
 // switch off log messages
 #undef LOGMSG
@@ -67,6 +68,7 @@ public:
   inline void  Set( bool newDefined, const char *newString );
   inline void  Set( bool newDefined, const std::string& newString );
   inline int TextLength() const;
+  inline size_t Length() const;
   inline char *Get() const;
   inline const std::string GetValue() const;
 
@@ -279,6 +281,15 @@ inline void FText::Set( bool newDefined, const std::string& newString )
 inline int FText::TextLength() const
 {
   return theText.getSize() - 1;
+}
+
+
+inline size_t FText::Length() const
+{
+  if(!IsDefined()){
+    return 0;
+  }
+  return std::max(0,(int)theText.getSize() - 1);
 }
 
 // SPM: caller is responsible for delete

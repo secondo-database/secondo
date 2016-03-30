@@ -2094,6 +2094,7 @@ ListExpr trimAllTM(ListExpr args){
   if(nl->IsEmpty(appendList)){
     return arg;
   } 
+
   return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
                             appendList,
                             arg);
@@ -6245,7 +6246,7 @@ int isValidIDVM( Word* args, Word& result, int message,
 4.27.1 Simple cases stream<text> and stream<string>
 
 */
-template<class T>
+template<class T, bool undef>
 int trimAllVM1(Word* args, Word& result, int message,
               Word& local,Supplier s){
 
@@ -6255,12 +6256,18 @@ int trimAllVM1(Word* args, Word& result, int message,
                 return 0;
                }
     case REQUEST: {
-                 Word res;
-                 qp->Request(args[0].addr,res);
+                 Word elem;
+                 qp->Request(args[0].addr,elem);
                  if(qp->Received(args[0].addr)){
-                   result.addr = ((T*)res.addr)->Clone();
-                   ((T*)result.addr)->trim();
-                   ((T*)res.addr)->DeleteIfAllowed();
+                   T* r = ((T*) elem.addr)->Clone();
+                   r->trim();
+                   if(undef){
+                     if(r->IsDefined() && r->Length()==0){
+                        r->SetDefined(false);
+                     }
+                   }
+                   result.addr = r;
+                   ((T*)elem.addr)->DeleteIfAllowed();
                    return YIELD;
                  } else {
                    return CANCEL;
@@ -6280,7 +6287,7 @@ int trimAllVM1(Word* args, Word& result, int message,
 4.27.2 trimAll for a tupleStream
 
 */
-
+template<bool undef>
 class TrimAllInfo{
   public:
 
@@ -6292,6 +6299,7 @@ class TrimAllInfo{
      for(int i=1; i< count; i += 2){
         pair<int, bool> p ( ((CcInt*)args[i].addr)->GetIntval(), 
                            ((CcBool*)args[i+1].addr)->GetBoolval());
+        strings.push_back(p);
      }
      stream.open();
   }
@@ -6319,10 +6327,20 @@ class TrimAllInfo{
          if(isText){
             FText* t = ((FText*)src->GetAttribute(pos))->Clone();
             t->trim();
+            if(undef){
+               if(t->IsDefined() && (t->Length()==0)){
+                   t->SetDefined(false);
+               }
+            }
             res->PutAttribute(pos,t);
          } else {
             CcString* s = ((CcString*)src->GetAttribute(pos))->Clone();
             s->trim();
+            if(undef){
+               if(s->IsDefined() && s->Length()==0){
+                   s->SetDefined(false);
+               }
+            }
             res->PutAttribute(pos,s);
          }
          vpos++;
@@ -6345,18 +6363,18 @@ class TrimAllInfo{
     vector< pair <int , bool> > strings;
 };
 
-
+template<bool undef>
 int trimAllVM2(Word* args, Word& result, int message,
               Word& local,Supplier s){
 
 
-  TrimAllInfo* li = (TrimAllInfo*) local.addr;
+  TrimAllInfo<undef>* li = (TrimAllInfo<undef>*) local.addr;
   switch(message){
     case OPEN: {
                  if(li){
                    delete li;
                  }
-                 local.addr = new TrimAllInfo(args[0], s, args);
+                 local.addr = new TrimAllInfo<undef>(args[0], s, args);
                  return 0;
                }
     case REQUEST: {
@@ -6382,9 +6400,13 @@ Vampue MApping array and Selection function.
 
 */
 
-ValueMapping trimAllVM[] = { trimAllVM1<CcString>, 
-                             trimAllVM1<FText>,
-                             trimAllVM2 };
+ValueMapping trimAllVM[] = { trimAllVM1<CcString, false>, 
+                             trimAllVM1<FText, false>,
+                             trimAllVM2<false> };
+
+ValueMapping trimAllUndefVM[] = { trimAllVM1<CcString, true>, 
+                             trimAllVM1<FText, true>,
+                             trimAllVM2<true> };
 
 int trimAllSelect(ListExpr args){
   ListExpr arg = nl->First(args);
@@ -7131,6 +7153,18 @@ const string trimAllSpec =
     " </text--->"
     "<text>query trains trimAll count </text--->"
     ") )";
+
+const string trimAllUndefSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> stream(string> -> stream(string) , "
+    "stream(text) -> stream(text), stream(tuple(X)) -> stream(tuple(X))"
+    " </text--->"
+    "<text>  _ trimAll </text--->"
+    "<text>Trims all occurences of text and string within the stream,"
+    "empty strings are maked undefined"
+    " </text--->"
+    "<text>query trains trimAll count </text--->"
+    ") )";
 /*
 Operator Definitions
 
@@ -7733,6 +7767,16 @@ Operator trimAll
  trimAllSpec,
  3,
  trimAllVM,
+ trimAllSelect,
+ trimAllTM
+);
+
+Operator trimAllUndef
+(
+ "trimAllUndef",
+ trimAllUndefSpec,
+ 3,
+ trimAllUndefVM,
  trimAllSelect,
  trimAllTM
 );
@@ -12193,6 +12237,7 @@ Operator getParamOP(
       AddOperator( &attr2text);
       AddOperator( &isValidID);
       AddOperator( &trimAll);
+      AddOperator( &trimAllUndef);
       AddOperator(&str2real);
       AddOperator(&cn2en);
       AddOperator(&str2int);
