@@ -1399,7 +1399,7 @@ class SimTripsInfo{
       pausedur.SetToZero();
       if(pause){
         if(!move){
-          move = new MPoint(source->GetNoComponents() - pos);
+          move = new MPoint(16);
           move->StartBulkLoad();
         }
         UPoint up;
@@ -1447,7 +1447,7 @@ class SimTripsInfo{
 
    void appendToPause(UPoint& up){
        if(!pause){
-         pause = new MPoint(source->GetNoComponents()-pos);
+         pause = new MPoint(16);
          pause->StartBulkLoad();
        }
        pause->MergeAdd(up);
@@ -1457,7 +1457,7 @@ class SimTripsInfo{
    }
    void appendToMove(UPoint& up){
        if(!move){
-         move = new MPoint(source->GetNoComponents()-pos);
+         move = new MPoint(16);
          move->StartBulkLoad();
        }
        move->MergeAdd(up);
