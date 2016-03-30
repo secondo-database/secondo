@@ -1384,6 +1384,15 @@ class CcString : public Attribute
   }
 
 
+  size_t Length() const{
+#ifdef USE_SERIALIZATION
+    return stringval.length();
+#else
+    return strlen(stringval);
+#endif
+  }
+
+
 #ifdef USE_SERIALIZATION
   inline virtual size_t SerializedSize() const
   {
@@ -1679,6 +1688,14 @@ class CcString : public Attribute
 
   inline virtual StorageType GetStorageType() const { return Extension; }
 #endif
+  
+  size_t Length() const{
+#ifdef USE_SERIALIZATION
+    return size;
+#else
+    return strlen(stringval);
+#endif
+  }
 
 
  private:
