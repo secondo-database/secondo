@@ -53,10 +53,13 @@ class StringTokenizer{
 1.1 Constructor
 
 Constructs a tokenizer for the given string and the given delimiters.
+If singleDelim is set to true, sequences of delimiters are treated as
+a single delimiter.
 
 */
 
-       StringTokenizer(const std::string& s, const std::string& _delims);
+       StringTokenizer(const std::string& s, const std::string& _delims,
+                       const bool _singleDelim = false);
 
 /*
 1.2 Checks whether more tokens are available.
@@ -95,6 +98,7 @@ Returns the next token.
    private:
        std::string str;
        std::string delims;
+       bool singleDelim;
        size_t pos;
 };
 
@@ -105,7 +109,7 @@ removes whitespaces at the begin and at the end of the string.
 
 */
 
-void trim(std::string& str);
+void trim(std::string& str, std::string whitespaces=" \r\n\t" );
 
 /*
 The following function is used to replace all occurences of a pattern within a

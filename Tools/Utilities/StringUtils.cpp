@@ -46,8 +46,11 @@ namespace stringutils {
 */
 
       StringTokenizer::StringTokenizer(const std::string& s, 
-                                       const std::string& _delims): 
-           str(s), delims(_delims), pos(0){}
+                                       const std::string& _delims, 
+                                       const bool _singleDelim): 
+           str(s), delims(_delims), singleDelim(_singleDelim), pos(0){
+         trim(str,delims);
+      }
 
 /*
 ~hasNextToken~
@@ -98,6 +101,9 @@ Returns the next token for this tokenizer.
           }
           std::string res = str.substr(pos,nextPos-(pos));
           pos = nextPos+1;
+          if(singleDelim){
+             pos = str.find_first_not_of(delims,pos);
+          }
           return res;
        }
        
@@ -109,8 +115,7 @@ Remove white spaces at the begin and at the end of a string.
 
 */
 
-void trim(std::string& str) {
-    std::string whiteSpaces = " \r\n\t";
+void trim(std::string& str, std::string whiteSpaces) {
     std::string::size_type pos = str.find_last_not_of(whiteSpaces);
     if(pos != std::string::npos) {
       str.erase(pos + 1);
