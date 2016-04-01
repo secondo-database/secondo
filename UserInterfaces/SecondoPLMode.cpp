@@ -82,11 +82,11 @@ SecondoPLMode(TTYParameter& tp)
   char** argv = tp.Get_plargs(argc);
 
   cerr << endl <<__FILE__ << ":" << __LINE__ 
-       << " Calling PL_initialize with ";	  
+       << " Calling PL_initialize with ";    
 
   for (int i = 0; i < argc; i++) {
-    cerr << argv[i] << " ";	  
-  }	  
+    cerr << argv[i] << " ";    
+  }    
   cerr << endl << endl;
 
   if( !PL_initialise(argc,argv) ) 
@@ -95,7 +95,7 @@ SecondoPLMode(TTYParameter& tp)
   }
   else
   {
-     	  
+         
       {
       // VTA - 15.11.2005
       // I added this piece of code in order to run with newer versions
