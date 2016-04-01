@@ -1,0 +1,23 @@
+# Script can be used to correct an existing nrw database containing string values with appendend blanks or completely empty strings. Using the operator trimAllUndef, strings are trimmed removing leading or trailing blanks, and empty strings are set undefined.
+#
+# Running the script takes about 15 minutes.
+
+
+
+update Roads := Roads feed trimAllUndef consume
+
+update Waterways := Waterways feed trimAllUndef consume
+
+update Railways := Railways feed trimAllUndef consume
+
+update Points := Points feed trimAllUndef consume
+
+update Places := Places feed trimAllUndef consume
+
+update Natural := Natural feed trimAllUndef consume
+
+update Buildings := Buildings feed trimAllUndef consume
+
+update Landuse := Landuse feed trimAllUndef consume
+
+
