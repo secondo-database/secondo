@@ -244,6 +244,10 @@ type constructors are added to Secondo.
 % Section:Start:display_2_b
 % Section:End:display_2_b
 
+display(_, undefined) :-
+  !,
+  write('-').
+
 display(int, N) :-
   !,
   write(N).
