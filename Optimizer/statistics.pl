@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 While module [~database.pl~] handles basic information on database objects,
 like types/ schemas, tuple sizes, cardinalities etc. this module deals with
-statistics on databases, that rely to predicate evaluation.
+statistics on databases, that rely on predicate evaluation.
 
 Above all, it covers the estimation of predicate selectivities, predicate
 evaluation times (PETs), and type inference for expressions.
@@ -661,7 +661,63 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   !.
 
 /*
-1.3.1 Normal Selection Predicate
+1.3.1 Selection Predicate with Index Support (=, starts)
+
+For simple predicates of the form 'attrname = value' on strings or integers, or of the form 'attrname starts value' on strings, there is a special support as follows. From the Rel\_sample\_s, an index is built as an ordered relation with the name Rel\_AttrName\_Cnt. For each attribute value it has the number of tuples in the sample with this value. The index is built automatically on the first selectivity query with a predicate of the above form.
+
+The selectivity query is then evaluated by a query on the index.
+
+For relations up to several million tuples, the index on the sample is built in less than a second. Furtheron, selectivity queries of these forms require only about 30 ms for evaluation. In contrast, on larger samples they might require a few hundred milliseconds if evaluated in the standard way, i.e., checking all tuples of the sample.
+
+*/
+
+selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard, InputCard) :-
+  not(optimizerOption(dynamicSample)),
+	write('Pred = '), write(Pred), nl,
+	write('Rel = '), write(Rel), nl,
+  ( ( Pred = (attr(AttrName, _, _) = value_expr(Type, List)),
+      member(Type, [string, int]) );
+    ( Pred = (attr(AttrName, _, _) starts value_expr(Type, List)), 
+      member(Type, [string]))
+  ),
+  plan_to_atom(value_expr(Type, List), Val),
+  Rel = rel(DCRel, _),
+  dcName2externalName(DCRel, ExtRel),
+  dcName2externalName(DCRel:AttrName, ExtAttrName),
+  ensureSampleSexists(DCRel),
+  my_concat_atom([ExtRel, '_', ExtAttrName, '_Cnt'],'', CntIndex),
+  my_concat_atom(['query isDBObject("', CntIndex, '")'], '', Query1),
+	write('Query1 = '), write(Query1), nl,
+  secondo(Query1, Result1),
+        write('Result = '), write(Result1), nl, 
+  ( Result1 = [bool, false] -> 
+      ( my_concat_atom(['let ', CntIndex, ' = ', 
+          ExtRel, '_sample_s feedproject[', ExtAttrName,
+          '] sort groupby[', ExtAttrName, '; Cnt: group count] oconsume[', 
+          ExtAttrName, ']' ], '', Query3) ,
+	write('Query3 = '), write(Query3), nl, 
+        secondo(Query3) )
+      ; true 
+  ),
+  ( Pred =.. [=, _, _] ->
+      my_concat_atom(['query ', CntIndex, ' orange[', Val, '; ', Val, 
+      '] extract[Cnt]'], '', Query2);
+    Pred =.. [starts, _, _] ->
+      my_concat_atom(['query ', CntIndex, ' orange[', Val, '; ', Val, 
+      '++] sum[Cnt]'], '', Query2)
+  ),
+	write('Query2 = '), write(Query2), nl, nl,
+  secondo(Query2, ResultList),
+	write('ResultList = '), write(ResultList), nl, nl,
+  ResultList = [int, Res],
+  ( Res = undefined -> ResCard is 1 ; ResCard = Res ),
+  getSampleSname(DCRel, Sample),
+  card(Sample, InputCard),
+  QueryTime is 1.0e-6,
+  !.
+  
+/*
+1.3.1 Other Selection Predicate
 
 */
 
