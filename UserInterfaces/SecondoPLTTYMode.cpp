@@ -22,6 +22,31 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 
+In this file, the pltty mode is defined.
+Is the name of the mode suggest, this mode is a mix between the 
+optimizer interface and the usual secondo interface. 
+
+In this mode, four different kinds of commands are distinguished.
+
+The first catefory of commands are internal commands. These commands are
+handled directly by the user interface. Examples are '@<filename>', 'help' or
+'quit'.
+
+The second category include sql commands. These commands will be translated
+into a plan using the sqlToPlan predicate defined in the optimizer. Before 
+optimization, some rewritings are done within the command. For example, symbols
+starting with a upper case letter are replaced by lower case letters. Furthermore,
+brackets are checked before optimization. If the optimization succeds, the generated
+plan is send to the kernel. The result is displayed using the kernel display 
+functions.
+
+The third category of commands are commands that are directly send to the 
+kernel without aid of the optimizer. 
+
+If a command cannot assigned to one of the categories mentioned before, it is tried to
+convert it into a callable prolog term and call it using the prolog engine. All generated
+solutions are printed out.
+
 */
 
 /*
@@ -52,6 +77,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
+
+
 string blanks = " \t\n\r";
 
 
@@ -59,7 +86,7 @@ string blanks = " \t\n\r";
 2 predicates
 
 The ~predicates~ array contains all prolog extensions required by
-Secondo.
+Secondo. These things are defined in SecondoPL. 
 
 */
 
@@ -80,13 +107,20 @@ namespace pltty{
 bool processCommands(istream&, bool,bool);
 
 
+/*
+~isStdInput~
+
+This boolean value describes whether the current input is cin or
+a file.
+
+
+*/
+
 bool isStdInput = true;
 string prompt = "";
 
 void ShowPrompt( const bool first ) {
-
   prompt = first ? "SecondoPL => ": "SecondoPL -> ";
-
   #ifdef READLINE
     rl_set_prompt( prompt.c_str() );
   #else
@@ -95,7 +129,12 @@ void ShowPrompt( const bool first ) {
 }
 
 
+/*
+~IsInternalCommand~
 
+This function checks whether a command should be handeld internally.
+
+*/
 
 bool IsInternalCommand(const string& cmd){
   if(cmd=="quit") return true;
@@ -109,13 +148,24 @@ bool IsInternalCommand(const string& cmd){
   return false;
 }
 
+/*
+~processQuit~
 
+This function is called if a wuit command is executed.
+
+*/
 bool processQuit(){
    cout << "Thank you for using Secondo." << endl;
    globalAbort = true; 
    return true;
 }
 
+/*
+~processHelp~
+
+This function is the implementation of the help command.
+
+*/
 bool processHelp(){
   cout << endl
        << "secondo or optimizer command are executes as usual " << endl
@@ -129,11 +179,17 @@ bool processHelp(){
      return true;
 }
 
+
+/*
+~processScript~
+
+This command is called if the command starts with an @ mentioning the
+execution of some script.
+
+*/
+
 bool processScript(const string& cmd){
-
-
    bool lastStdInput = isStdInput;
-
    bool isPD = false;
    bool haltOnErrors = false;
    int pos=1;
@@ -163,13 +219,22 @@ bool processScript(const string& cmd){
 
    if(!res){
      cout << "there was errors during processing " << filename << endl;
+   } else {
+     cout << "file " << filename << " successfull processed" << endl;
    }
    in.close();
    return res;
 }
 
 
+/*
+~processInternalCommand~
 
+This function is called if an internal command has been recognized.
+It checks the kind of the internal command and calles the 
+appropriate function.
+
+*/
 bool processInternalCommand(const string& cmd){
   if(cmd=="quit" || cmd=="q"){
      return processQuit();
@@ -189,7 +254,14 @@ bool processInternalCommand(const string& cmd){
 
 
 
+/*
+~getCommand~
 
+This function extracts the next command from the input stream.
+If the isPD flag is set to true, comments in PD-style are 
+ignored.
+
+*/
 string getCommand(istream& in, bool isPD){
   bool complete = false;
   bool first = true;
@@ -330,6 +402,15 @@ bool isDirectSecondoCommand(const string& cmd){
    return false;
 }
 
+
+/*
+~catalogChanges~
+
+This funciton checks whether a direct secondo command manipulates 
+the content of a database. In suche cases. the optimizer has to be
+informed about this.
+
+*/
 bool catalogChanges(const string& cmd){
    stringutils::StringTokenizer st(cmd, blanks, true);
    if(!st.hasNextToken()){
@@ -345,6 +426,13 @@ bool catalogChanges(const string& cmd){
    return false;
 }
 
+
+/*
+~closeOptDB~
+
+This function calles the closeDB predicate of the optimizer.
+
+*/
 bool closeOptDB(){
   fid_t fid = PL_open_foreign_frame();
   static predicate_t p;
@@ -366,6 +454,13 @@ bool closeOptDB(){
 }
 
 
+
+/*
+~updateOptCatalog~
+
+This function updates the optimizer's catalog.
+
+*/
 bool updateOptCatalog(){
    fid_t fid = PL_open_foreign_frame();
    static predicate_t p;
@@ -389,6 +484,13 @@ bool updateOptCatalog(){
     return ok;
 }
 
+
+/*
+~showResult~
+
+Shows a nested list in a formatted manner.
+
+*/
 void showResult(ListExpr res){
    if(!mnl->HasLength(res,2)){
       mnl->WriteStringTo(res,cout);
@@ -401,6 +503,14 @@ void showResult(ListExpr res){
    cout << endl << endl;
 }
 
+
+/*
+~processDirectSecondoCommand~
+
+This functions sends a command to the kernel and shows the
+result.
+
+*/
 bool processDirectSecondoCommand(const string& cmd){
    SecErrInfo err;
    ListExpr resList;
@@ -437,30 +547,55 @@ bool processDirectSecondoCommand(const string& cmd){
       cout << "error code = " << err.code << endl;
       cout << err.msg << endl << endl;
    }
-
-
-
    return err.code==0;
 }
 
 
+/*
+~isUpperCase~
 
+Auxiliary function chinging whether an character is an upper case.
+
+*/
 bool isUpperCase(char c){
   return (c>='A') && (c <='Z');
 }
 
+/*
+~tolower~
+
+This function converts an upper case character into a lower case.
+
+*/
 char tolower(char c){
    if(!isUpperCase(c)) return c;
    return  (c + 'a') - 'A';
 }
 
 
+/*
+~isIdentChar~
 
+This functions checks whether a character is allowed to be part of
+an identifier.
+
+*/
 bool isIdentChar(char c){
   return stringutils::isLetter(c) || stringutils::isDigit(c) || (c=='_');
 }
 
 
+/*
+~checkSQLCommand~
+
+This function checks the brackets within an command. 
+The command itselfs is rewritten by converting symbols starting
+with an upper case into lower case symbols. If brackets are 
+not correct, the problem description is stored into errMsg and 
+correct is set to false;
+
+
+*/
 string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
    stack<char> brackets;
 
@@ -478,7 +613,7 @@ string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
 
     while(pos < cmd.size()){
      char c = cmd[pos];
-     switch(state){
+     switch(state){ // somewhere
         case 0: {
           if(c=='"'){
              state = 1;
@@ -528,13 +663,19 @@ string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
                               }
                               break;
                } 
+             } else if(c=='.') { // replace followed by a letter  by a ':'
+                if(pos<cmd.size()-1){
+                  if(stringutils::isLetter(cmd[pos+1])){
+                     c = ':';
+                  }
+                }
              }
              res << c;
           }
           pos++;
           break;
         }
-        case 1 : {
+        case 1 : { // within an double quoted string
            res << c;
            if(c=='"'){
               state = 0;
@@ -542,7 +683,7 @@ string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
            pos++;
            break;
         }
-        case 2: {
+        case 2: { // within a single quoted string
            res << c;
            if(c=='\''){
              state = 0;
@@ -550,7 +691,7 @@ string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
            pos++;
            break;
         } 
-        case 3:
+        case 3: // within an identifier to reqrite
             if(isIdentChar(c)){
                res << tolower(c);
                pos++;
@@ -559,7 +700,7 @@ string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
             }
             break;
         case 4:
-            if(isIdentChar(c)){
+            if(isIdentChar(c)){ // whithin an normal identifier
                res << c;
                pos++;
             } else {
@@ -568,6 +709,7 @@ string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
             break;
         }
      }
+     // check whether all opened brackts are closed
      if(!brackets.empty()){
           correct = false;
           errMsg = "found unclosed brackets";
@@ -578,7 +720,12 @@ string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
      return res.str();
 }
 
+/*
+~processOpenCommand~
 
+Sends an command for opening a database to the optimizer.
+
+*/
 bool processOpenCommand(string cmd){
    stringutils::StringTokenizer st(cmd,blanks,true);
    string rest = st.nextToken();
@@ -608,10 +755,28 @@ bool processOpenCommand(string cmd){
     return ok;
 }
 
+
+/*
+~show Error~
+
+prints ou some error message.
+
+*/
 void showError(const string& s){
   cerr << s << endl;
 }
 
+
+/*
+
+~processSqlCommand~
+
+This function rewrites the command by replacing upper cases to lower cases
+and sends the result to the optimizers ~sqlToPlan~ predicate. If this
+was successful, the result is sent to the kernel and the result of this
+call is displayed.
+
+*/
 
 bool processSqlCommand(string cmd){
    bool correct;
@@ -671,96 +836,24 @@ bool processSqlCommand(string cmd){
     return processDirectSecondoCommand(plan);
 };
 
-string typestr(int no){
-
-  switch(no){
-   case PL_VARIABLE : return "PL_VARIABLE";
-     case PL_ATOM  : return "PL_ATOM";
-  //     case PL_NIL : return  "PL_NIL";
-  //   case PL_BLOB : return "PL_BLOB";
-     case PL_STRING : return "PL_STRING";
-     case PL_INTEGER : return "PL_INTEGER";
-     case PL_FLOAT : return "PL_FLOAT";
-     case PL_TERM : return "PL_TERM ";
-  //   case PL_LIST_PAIR : return  "PL_LIST_PAIR";
-  //   case PL_DICT : return "PL_DICT";
-     default : return "unknown";
-  }
-
-}
 
 
-string getDescr(term_t& t){
+/*
+~getBindings~
 
- stringstream out;
+Converts a bindings description into a vector of bindings/term pairs.
 
- out << typestr(PL_term_type(t));
-
- if(PL_is_variable(t)){
-    out << ", isVariable" << endl;
- }
- if(PL_is_ground(t)){
-    out << ", isGround" << endl;
- }
- if(PL_is_atom(t)){
-    out << ", isAtom" << endl;
- }
- if(PL_is_string(t)){
-    out << ", is_string" << endl;
- }
- if(PL_is_integer(t)){
-    out << ", is_integer" << endl;
- }
- if(PL_is_float(t)){
-    out << ", is_float" << endl;
- }
- if(PL_is_callable(t)){
-    out << ", is_callable" << endl;
- }
- if(PL_is_compound(t)){
-    out << ", is_compound" << endl;
- }
- //if(PL_is_functor(t)){
- //   out << ", is_functor" << endl;
- //}
- if(PL_is_list(t)){
-    out << ", is_list" << endl;
- }
- //if(PL_is_pair(t)){
- //   out << ", is_pair" << endl;
- //}
- if(PL_is_atomic(t)){
-    out << ", is_atomic" << endl;
- }
- if(PL_is_number(t)){
-    out << ", is_number" << endl;
- }
- if(PL_is_acyclic(t)){
-    out << ", is_acylic" << endl;
- }
- return out.str();
-}
-
-
-
-
-bool getBindings( term_t term, term_t bindings, 
-                  predicate_t& p, 
-                  term_t& args, 
-                  vector<pair<int, string> > & res  ){
+*/
+bool getBindings( term_t bindings, 
+                  vector<pair<string, term_t> > & res  ){
 
    
+  // bindings should be a list of  ' = ( name, term )'
   if(!PL_is_list(bindings)){
      cerr << "bindings is not a list" << endl;
      return false;
   }
 
-
-  cout << "analyse bindings" << endl;
-
-  // analyse bindings,
-  // bindings should be a list of  ' = ( usename, origName )'
-  map<string,string> nm;
   while(!PL_get_nil(bindings)){
      term_t head = PL_new_term_ref();
      term_t tail = PL_new_term_ref();
@@ -768,12 +861,16 @@ bool getBindings( term_t term, term_t bindings,
         cerr << "problem in dividing list" << endl;
         return false;
      }
-     bindings = tail;
+     bindings = tail;  // get the rest of the list
      int arity;
      term_t name  = PL_new_term_ref();
      if(!PL_get_name_arity(head, &name, &arity)){
        cerr << "name_arity failöed" << endl;
        return false;
+     }
+     if(arity!=2){
+        cerr << "found invalid arity in binding" << endl;
+        return false;
      }
      term_t a1 = PL_new_term_ref();
      if(!PL_get_arg(1, head,a1)){
@@ -786,7 +883,6 @@ bool getBindings( term_t term, term_t bindings,
         return false;
      }
      string s1;
-     string s2;
      char* s;  
      if(PL_get_chars(a1,&s, CVT_ALL)){
         s1 = string(s);
@@ -794,121 +890,89 @@ bool getBindings( term_t term, term_t bindings,
         cerr << "getting a1's name failed" << endl;
         return false;
      }
-     if(PL_get_chars(a2,&s, CVT_VARIABLE)){
-        s2 = string(s);
-     } else {
-        cerr << "getting a2's name failed" << endl;
-        return false;
-     }
-     nm[s2] = s1;
+     pair<string,term_t> p(s1, a2);
+     res.push_back(p);
   }
-  cout << "bindings ok" << endl;
-
-  map<string,string>::iterator it = nm.begin();
-  while(it!=nm.end()){
-    cout << it->first << " -> " << it->second << endl;
-    it++;
-  } 
-
-
-  // now, the important things a known
-
-  term_t n = PL_new_term_ref();
-  int arity;
-
-
-  cout << "try get_name_arity" << endl;
-  cout << "term type : " << typestr(PL_term_type(term)) << endl;
-
-  cout << "detailed_type : " << getDescr(term) << endl;
-
-  functor_t func = PL_new_term_ref();
-
-  if(!PL_get_functor(term, &func)){
-     cerr << "cannot extract functor" << endl;
-     return false;
-  }
-
-  cout << "func type : " <<  getDescr(func) << endl;
-  
+  return true;
+ }
 
 
 
+/*
+3.5 ~display~
 
-  if(!PL_get_name_arity(term, &n, &arity)){
-    cerr << "could not get name and arity of term" << endl;
-    return false;
-  }
+This function is mainly overtaken from swi prolog 
+C interface documentation. Some corrected has been made
+to make the code compiling and to use cout instead of
+printf calls.
 
+*/
+bool display(term_t t)
+{ 
+  int arity,  n;  
+  size_t len;
+  char *s; 
 
+  switch( PL_term_type(t) )
+  { case PL_VARIABLE:
+      if(!  PL_get_chars(t, &s, CVT_VARIABLE)){
+         assert(false);
+      }   
+      cout << s;
+      break;
+    case PL_ATOM:
+    case PL_INTEGER:
+    case PL_FLOAT:
+      if(!  PL_get_chars(t, &s, CVT_ALL)){
+         assert(false);
+      }   
+      cout << s;
+      break;
+    case PL_STRING:
+      PL_get_string_chars(t, &s, &len);
+      cout << "'" << s <<'"';
+      break;
+    case PL_TERM:
+    { term_t a = PL_new_term_ref();
 
-  // return false;
-  cout << "got name and arity" << endl;
-  cout << "arity = " << arity << endl;
-  cout << "name type : " <<  getDescr(n) << endl;
-  char* pn;
-  if(!PL_get_chars(n,&pn,CVT_ALL | REP_UTF8)){
-    cerr << "could not get main name" << endl;
-    return false;
-  }
-
-
-  cout << "arity = " << arity;
-  cout << "name = " << pn << endl;
-  
-  p = PL_predicate(pn, arity, "");
-
-
-   
-
-
-
-
-
-  args = PL_new_term_refs(arity); 
-
-  for(int i=0;i<arity;i++){
-     cout << "process arg " << i << endl;
-     if(!PL_get_arg(i+1, term, args+i)){
-          cerr << "could not get arg " << (i+1) << endl;
-          return false;
-     }
-     if(PL_term_type(args+i)==PL_VARIABLE){
-         char* arg_n;
-         if(PL_get_chars(args+i, &arg_n, CVT_VARIABLE)){
-             string working_name(arg_n);
-             map<string,string>::iterator it = nm.find(working_name);
-             if(it!=nm.end()){
-                pair<int,string> p(i+1, it->second);
-                res.push_back(p);
-             } else {
-                cerr << working_name << " not bind " << endl;
-             }
-         } else {
-            cerr << "get chars faield" << endl;
-         }
-     }
+      if(!PL_get_name_arity(t, &a, &arity)){
+          assert(false);
+      }   
+      cout<< PL_atom_chars(a) << "(";
+      for(n=1; n<=arity; n++) { 
+        if(!PL_get_arg(n, t, a)){
+          assert(false);
+        }   
+        if ( n > 1 ) 
+          cout << ", ";
+        display(a);
+      }   
+      cout << ")";
+    }   
+      break;
+    default:
+      return false;   /* should not happen */
   }
 
-  return false;
   return true;
 }
 
 
+/*
+~processPrologCommand~
 
+This function processes an arbitrary prolog question. 
+It converts the string into a term and extract the variables
+within the term.
+After that, the predicate is called and for each existing 
+solution, the values are printed out.
 
-
+*/
 bool processPrologCommand(const string& cmd){
-
-   cerr << "general prolog commands not implemented yet" << endl;
-   return false; 
-
-
 
    fid_t fid = PL_open_foreign_frame();
 
   // convert command into a string and get list of bindings
-
    predicate_t conv = PL_predicate("atom_to_term", 3,"");
    term_t a0 = PL_new_term_refs(3);
    term_t term = a0+1;
@@ -920,81 +984,44 @@ bool processPrologCommand(const string& cmd){
       PL_discard_foreign_frame(fid);
       return false;
    }
-  
-   predicate_t p;
-   term_t args;
-   vector<pair<int, string> > b;
-   if(!getBindings(term, bindings, p, args, b)){
+
+   if(!PL_is_callable(term)){
+      cerr << "Created term is not a query" << endl;
+      return false;
+   }
+ 
+   // extract variables and there names 
+   vector<pair<string, term_t> > b;
+   if(!getBindings( bindings, b)){
       cerr << "problem in analyisng term" << endl;
       PL_discard_foreign_frame(fid);
       return false;
    }
 
-
-   
-
-    
-   
-
-
-
-
-  /*
-   if (!PL_chars_to_term(cmd.c_str(), g) ) {
-     cout << "could not create a prolog term" << endl;
-     ok = false;
+   // try to avaluate the term using the call predicate
+   predicate_t pl_call = PL_predicate("call",1,"");
+   qid_t qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, pl_call, term);
+   // print all solutions
+   int count = 0;
+   bool next = true; 
+   while(next && PL_next_solution(qid)){
+     count++;
+     for(size_t i=0;i<b.size();i++){
+         cout << b[i].first << " = ";
+         display(b[i].second);
+         cout << endl;
+     }
+   }
+   if(count==0){
+     cerr << "no" << endl;;
    } else {
-    int arity;
-    atom_t name = PL_new_term_ref();
-    if(!PL_get_name_arity(g, &name, &arity)){
-      cout << "could not determine name and arity of predicate" << endl;
-      ok = false;
-    } else {
-      cout << "arity : " << arity << endl;
-      int g_type = PL_term_type(g);
-      cout << "type of g : " << typestr(g_type) << endl;
-      int name_type = PL_term_type(name);
-      cout << "type of name : " << typestr(name_type) << endl;
-      char* n;
-      if(PL_get_chars(name, &n,CVT_ALL)){
-        cout << "Name = " << n << endl;
-      } else {
-         cout << "PL_get__chars failed" << endl;
-      }
-      // determine the variables
-      term_t arg = PL_new_term_ref();
-      vector<pair<int,string> > variables;
-      for(int i=0;i<arity;i++){
-          if(!PL_get_arg(i+1,g , arg)){
-            cout << "error during getting arg " << (i+1) << endl;
-          } else {
-             int arg_type = PL_term_type(arg);
-             if(arg_type==PL_VARIABLE){
-               cout << "found variable as arg" << (i+1) << endl;
-               char* s;
-               string vn;
-               if(PL_get_chars(arg,&s, CVT_VARIABLE)){
-                  vn = string(s);
-               } else {
-                  cout << "problem in getting name of vatriable at position "
-                       << (i+1) << endl;
-                  vn = "unknown";
-               }
-               variables.push_back(pair<int,string>(i+1,vn));
-             }
-          }
-      }
-      cout << "found " << variables.size() << " variables " << endl;
-      for(size_t i=0;i<variables.size();i++){
-          cout << variables[i].first << " : " << variables[i].second << endl;
-      }
+     cout << "computed " << count << " solution" << (count!=1?"s":"")<< endl;
+   }
 
+   PL_close_query(qid);
 
-
-    }
-  } 
-  */
-
+   PL_discard_foreign_frame(fid);
+   return true;
   PL_discard_foreign_frame(fid);
   return true;
 }
@@ -1002,7 +1029,12 @@ bool processPrologCommand(const string& cmd){
 
 
 
+/*
+~isSqlCommand~
 
+This function checks whether a command is a sql command.
+
+*/
 
 bool isSqlCommand(string& cmd){
    string cmdcopy = cmd;
@@ -1059,6 +1091,13 @@ bool isSqlCommand(string& cmd){
    return false; 
 }
 
+
+/*
+~isOpenCommand~
+
+This funciton checks whether ~cmd~ is an open database command.
+
+*/
 bool isOpenCommand(const string& cmd){
   stringutils::StringTokenizer st(cmd, blanks, true);
   if(!st.hasNextToken()){
@@ -1081,37 +1120,58 @@ bool isOpenCommand(const string& cmd){
   return !st.hasNextToken();
 }
 
+/*
+~processCommand~
 
+This function determines the kind of the command and calles the
+appropriate command handler.
+
+*/
 bool processCommand(string& cmd){
   stringutils::trim(cmd);
   if(IsInternalCommand(cmd)){
-     cout << "internal command recognized" << endl;
+     // cout << "internal command recognized" << endl;
      return processInternalCommand(cmd);
   } else if (isSqlCommand(cmd)) {
-     cout << "sql command recognized" << endl;
+     // cout << "sql command recognized" << endl;
      return processSqlCommand(cmd);
   } else if(isOpenCommand(cmd)){
-     cout << "open command recognized" << endl;
+     // cout << "open command recognized" << endl;
      return processOpenCommand(cmd);
   } else if(isDirectSecondoCommand(cmd)){
-     cout << "direct secondo command recognized" << endl;
+     // cout << "direct secondo command recognized" << endl;
      return processDirectSecondoCommand(cmd);
   } else {
-     cout << "general prolog command recognized" << endl;
+     // cout << "general prolog command recognized" << endl;
      return processPrologCommand(cmd);
   }
 }
 
 
+/*
+~processCommands~
 
+This function extracts commands from a stream and executes them.
+If haltOnErrors is true, the processing is stoped immediately
+if an error is occured. If the flag ~pdstyle~ is set, comments
+in pd style in the  stream are ignored during processing.
+
+*/
 bool  processCommands(istream& in, bool haltOnErrors, bool pdstyle ){
   string cmd = "";
   bool error = false;
-  while((cmd!="quit") && (cmd!="q") && !globalAbort){
+  bool stop = false;
+  while((cmd!="quit") && (cmd!="q") && !globalAbort && !stop && !in.eof()){
     cmd = getCommand(in, pdstyle);
-    if(!processCommand(cmd)){
-      cout << "Error occurred during command '" <<  cmd << "'" << endl;
-      error = true;
+    stringutils::trim(cmd);
+    if(cmd.length()>0){
+       if(!processCommand(cmd)){
+         cout << "Error occurred during command '" <<  cmd << "'" << endl;
+         error = true;
+         if(haltOnErrors){
+           stop = true;
+         }       
+       }
     }
   }
   return !error;
@@ -1120,12 +1180,22 @@ bool  processCommands(istream& in, bool haltOnErrors, bool pdstyle ){
 
 } // end of namespace pltty
 
-/*
-2 SecondoPLMode
 
-This function is the ~main~ function of SecondoPL.
+/*
+The function ~secondo_completion~  enables 
+tab extension if the readline library is used.
 
 */
+extern char** secondo_completion(const char* text, int start, int end);
+
+
+/*
+2 SecondoPLTTYMode
+
+This function is the ~main~ function of SecondoPLTTY.
+
+*/
+
 
 int SecondoPLTTYMode(TTYParameter& tp)
 {
@@ -1142,6 +1212,7 @@ int SecondoPLTTYMode(TTYParameter& tp)
   string historyFile;
   rl_initialize();
   rl_readline_name = "secondopl";
+  rl_attempted_completion_function = secondo_completion;
   //rl_attempted_completion_function = secondo_completion;
   /* read the history from file */
   ifstream hist_file(HISTORY_FILE);
@@ -1173,8 +1244,6 @@ int SecondoPLTTYMode(TTYParameter& tp)
     out_history.open(HISTORY_FILE, ios::out);
   }
 #endif
-
-
 
   /* Start PROLOG interpreter with our extensions. */
   PL_register_extensions(predicates);
@@ -1210,8 +1279,9 @@ int SecondoPLTTYMode(TTYParameter& tp)
       term_t t0 = PL_new_term_refs(2),
              t1 = t0+1;
       PL_put_atom_chars(t0, "x");
-      int t = PL_put_list_chars(t1, "");
-      cout << t;
+      if(!PL_put_list_chars(t1, "")){
+        assert(false);
+      }
       predicate_t p = PL_predicate("member",2,"");
       PL_call_predicate(NULL,PL_Q_NORMAL,p,t0);
       // end VTA 
@@ -1232,8 +1302,12 @@ int SecondoPLTTYMode(TTYParameter& tp)
   DisplayTTY::Set_NL(mnl); 
   NList::setNLRef(mnl);
   DisplayTTY::Initialize();
-
-  int rc =  pltty::processCommands(cin, false, false);
+  bool ok;
+  if(tp.iFileName.length()==0){
+      ok =  pltty::processCommands(cin, false, false);
+  } else {
+      ok = pltty::processScript("@"+tp.iFileName);
+  }
 
 #ifdef READLINE
   /* save the last xxx enties in the history to a file */
@@ -1259,10 +1333,9 @@ int SecondoPLTTYMode(TTYParameter& tp)
 
   DisplayTTY::Finish();
 
-  //PL_halt(1);
+  PL_halt(0);
 
-  return rc;
-
+  return ok?0:1;
 
 }
 
