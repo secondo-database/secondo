@@ -1,27 +1,41 @@
 Database : berlintest
 Restore  : No 
 
-Operator  : dloop3 
+Operator  : dloopS 
 Number    : 1
 Signature : darray(X) x string x (X -> Y) -> code(Y)
-Example   : query [const darray(int) value (da1 2 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dloop3["da3", fun( x : DARRAYELEM) x ] toTasks count    
+Example   : query [const darray(int) value (da1 2 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dloopS["da3", fun( x : DARRAYELEM) x ] toTasks count    
 Result    : 2
+
+Operator  : dloop2S 
+Number    : 1
+Signature : darray(X) x darray(Y) x string x (X,Y -> Z) -> code(Z)
+Example   : query da1 da2 dloop2S["da3", . + ..]
+Result    : bug
+Remark    : under construction
 
 Operator  : toTasks 
 Number    : 1
 Signature : code(X) -> stream(tuble)
-Example   : query [const darray(int) value (da1 2 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dloop3["da3", fun( x : DARRAYELEM) x ] toTasks count      
+Example   : query [const darray(int) value (da1 2 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dloopS["da3", fun( x : DARRAYELEM) x ] toTasks count      
 Result    : 2
+
+Operator  : schedule 
+Number    : 1
+Signature : code(X) x rel -> darray(X)
+Example   : query [const darray(int) value (da1 2 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dloopS["da3", fun( x : DARRAYELEM) x ] schedule[worker]      
+Result    : bug
+Remark    : remote server required
 
 Operator  : DARRAYELEM
 Number    : 1
 Signature : code(X) -> X
-Example   : query [const darray(int) value (da1 2 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dloop3["da3", fun( x : DARRAYELEM) x ] toTasks count  
+Example   : query [const darray(int) value (da1 2 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dloopS["da3", fun( x : DARRAYELEM) x ] toTasks count  
 Result    : 2
 
 Operator  : DARRAYELEM2 
 Number    : 1
 Signature : code(X) -> X
-Example   : query da1 da2  dloop2["da3", . + .. ]
+Example   : query da1 da2 dloop2S["da3", . + ..]
 Result    : bug
 Remark    : under construction

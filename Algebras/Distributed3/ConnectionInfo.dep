@@ -1,6 +1,5 @@
-Distributed3Algebra.o: Distributed3Algebra.cpp \
- ../Distributed2/semaphore.h ../Distributed2/fsrel.h \
- /home/guenther/secondo/include/NestedList.h \
+ConnectionInfo.o: ConnectionInfo.cpp ConnectionInfo.h \
+ ../Distributed2/fsrel.h /home/guenther/secondo/include/NestedList.h \
  /home/guenther/secondo/include/../Tools/BigArray/BigArray.h \
  /home/guenther/secondo/include/WinUnix.h \
  /home/guenther/secondo/include/SecondoException.h \
@@ -69,5 +68,4 @@ Distributed3Algebra.o: Distributed3Algebra.cpp \
  /home/guenther/secondo/include/StopWatch.h \
  /home/guenther/secondo/include/Bash.h \
  /home/guenther/secondo/include/DebugWriter.h \
- ../Distributed2/FileRelations.h ../Distributed2/FileAttribute.h \
- ConnectionInfo.h
+ ../Distributed2/FileRelations.h ../Distributed2/FileAttribute.h
