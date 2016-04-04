@@ -684,7 +684,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard, InputCard) :-
   Rel = rel(DCRel, _),
   dcName2externalName(DCRel, ExtRel),
   ( AttrName = _:Suffix -> Name = Suffix; Name = AttrName ),
-  dcName2externalName(DCRel:Name, ExtAttrName),
+  internalName2externalName(Name, ExtAttrName),
   ensureSampleSexists(DCRel),
   my_concat_atom([ExtRel, '_', ExtAttrName, '_Cnt'],'', CntIndex),
   my_concat_atom(['query isDBObject("', CntIndex, '")'], '', Query1),
