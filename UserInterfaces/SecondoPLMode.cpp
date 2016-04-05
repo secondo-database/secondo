@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Application.h"
 #include "TTYParameter.h"
 #include <string>
+#include <assert.h>
 
 using namespace std;
 
@@ -53,6 +54,9 @@ extern void handle_exit(void);
 //extern char* GetConfigFileNameFromArgV(int&, char**);
 //extern char* GetParameterFromArg(int&, char**,string,string);
 extern bool StartSecondoC(TTYParameter& tp);
+
+
+
 
 /*
 2 SecondoPLMode
@@ -81,13 +85,13 @@ SecondoPLMode(TTYParameter& tp)
   int argc = 0;
   char** argv = tp.Get_plargs(argc);
 
-  cerr << endl <<__FILE__ << ":" << __LINE__ 
-       << " Calling PL_initialize with ";    
+  //cerr << endl <<__FILE__ << ":" << __LINE__ 
+  //     << " Calling PL_initialize with ";    
 
-  for (int i = 0; i < argc; i++) {
-    cerr << argv[i] << " ";    
-  }    
-  cerr << endl << endl;
+  //for (int i = 0; i < argc; i++) {
+  //  cerr << argv[i] << " ";    
+  //}    
+  //cerr << endl << endl;
 
   if( !PL_initialise(argc,argv) ) 
   {
@@ -108,7 +112,10 @@ SecondoPLMode(TTYParameter& tp)
       term_t t0 = PL_new_term_refs(2),
              t1 = t0+1;
       PL_put_atom_chars(t0, "x");
-      PL_put_list_chars(t1, "");
+      if(! PL_put_list_chars(t1, "")){
+        cerr << "problem with prolog interface" << endl;
+        assert(false);
+      }
       predicate_t p = PL_predicate("member",2,"");
       PL_call_predicate(NULL,PL_Q_NORMAL,p,t0);
       // end VTA 
@@ -126,13 +133,15 @@ SecondoPLMode(TTYParameter& tp)
 
 // readline support is only needed on unix systems.
 #ifndef SECONDO_WIN32
+  string histfile=".secondopl_history";
   PL_install_readline();
+  term_t ah = PL_new_term_refs(1);
+  static predicate_t prh = PL_predicate("rl_read_history",1,"");
+  PL_put_atom_chars(ah,histfile.c_str());
+  PL_call_predicate(NULL, PL_Q_CATCH_EXCEPTION, prh, ah);
 #endif
 
   return PL_toplevel();
-  // this function never returns. Entering "halt." at the Userinterface
-  // calls exit().
-
 }
 
 
