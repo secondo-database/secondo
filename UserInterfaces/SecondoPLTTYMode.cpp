@@ -71,7 +71,7 @@ solutions are printed out.
   #include <stdio.h>
   #include <readline/readline.h>
   #include <readline/history.h>
-  #define HISTORY_FILE ".secondopl_history"
+  #define HISTORY_FILE ".secondopltty_history"
   #define HISTORY_FILE_ENTRIES 200
 #endif
 
@@ -389,17 +389,222 @@ bool isDirectSecondoCommand(const string& cmd){
      return false;
    } 
    string first = st.nextToken();
-   if(   first=="query"   || first=="while"   || first =="list"
-      || first=="begin"   || first=="commit"  || first=="abort"
-      || first=="save"    || first=="if"      
-      || stringutils::startsWith(cmd, "{") 
-      || first=="kill"    || first =="delete" || first=="derive"
-      || first=="create"  || first=="let"     || first=="close" 
-      || first=="restore" || first=="save"    
-      || stringutils::startsWith(cmd, "(")){
-     return true;
+   // simple, recognize using the first keyword
+   if(    first=="query"   
+       || first=="if"
+       || first=="while"
+       || stringutils::startsWith(cmd,"(") // nl command
+       || stringutils::startsWith(cmd,"{") // command sequence
+      ){
+       return true;
+    }
+   // inquiries
+   if(first=="list"){
+     if(!st.hasNextToken()){
+       return false;
+     }
+     string second = st.nextToken();
+     if(   second=="operators" 
+        || second=="algebras"
+        || second=="databases"
+        || second=="types"
+        || second=="objects"){
+        return !st.hasNextToken();
+     }
+     if(second=="type"){
+        if(!st.hasNextToken()){
+          return false;
+        }
+        string third = st.nextToken();
+        if(third!="constructors"){
+           return false;
+        }
+        return !st.hasNextToken();
+     }
+     if(second=="algebra"){
+       if(!st.hasNextToken()){
+           return false;
+       }
+       string third = st.nextToken();
+       if(!stringutils::isIdent(third)){
+         return false;
+       }
+       return !st.hasNextToken();
+     }
+     return false;
    }
+   // transactions
+   if(     first=="begin"
+       ||  first=="commit"
+       ||  first=="abort"){
+      if(!st.hasNextToken()){
+        return false;
+      }
+      string second = st.nextToken();
+      if(second!="transaction"){
+          return false;
+      }
+      return !st.hasNextToken();
+   }
+   // close database
+   if(first=="close"){
+      if(!st.hasNextToken()){
+        return false;
+      }
+      string second = st.nextToken();
+      if(second!="database"){
+         return false;
+      }
+      return !st.hasNextToken();
+   }
+   // kill
+   if(first=="kill"){
+     if(!st.hasNextToken()){
+        return false;
+     }
+     string second = st.nextToken();
+     if(!stringutils::isIdent(second)){
+        return false;
+     }
+     return !st.hasNextToken();
+   }
+   // save
+   if(first=="save"){
+     if(!st.hasNextToken()){
+        return false;
+     }
+     string second = st.nextToken();
+     if(!stringutils::isIdent(second)){
+        // not that also 'database' is a valid identifier
+        return false;
+     }
+     if(!st.hasNextToken()){
+        return false;
+     }
+     if(st.nextToken()!="to"){
+        return false;
+     }
+     // filename must be given
+     return st.hasNextToken();
+   }
+   // restore
+   if(first=="restore"){
+      if(!st.hasNextToken()){
+        return false;
+      }
+      string second = st.nextToken();
+      if(!stringutils::isIdent(second)){
+        return false;
+      }
+      // bring object restore and database restore to the same rest
+      if(second=="database"){
+         if(!st.hasNextToken()){
+            return false;
+         }
+         second==st.nextToken();
+         if(!stringutils::isIdent(second)){
+           return false;
+         }
+      }
+      // check from <file>
+      if(!st.hasNextToken()){
+        return false;
+      }
+      if(st.nextToken()!="to"){
+        return false;
+      }
+      return st.hasNextToken(); // the filename
+   }
+   // delete variants
+   if(first=="delete"){
+      if(!st.hasNextToken()){
+         return false;
+      }
+      string second = st.nextToken();
+      if(!stringutils::isIdent(second)){
+         return false;
+      }
+      if(!st.hasNextToken()){ // delete object
+         return true; 
+      }
+      if(second!="database" && second != "type"){
+          return false;
+      }
+      if(!st.hasNextToken()){ // type or database name
+         return false;
+      }
+      string third = st.nextToken();
+      if(!stringutils::isIdent(third)){
+           return false;
+      }
+      return !st.hasNextToken();
+   } 
+   // create commands
+   if(first=="create"){
+      if(!st.hasNextToken()){
+        return false;
+      }
+      string second = st.nextToken();
+      if(!stringutils::isIdent(second)){
+          return false;
+      }
+      if(!st.hasNextToken()){
+          return false;
+      }
+      string third = st.nextToken();
+      if(second=="database"){
+          if(!stringutils::isIdent(third)){
+            return false;
+          }
+          return !st.hasNextToken();
+      }
+      // object creattion
+      if(third!=":"){
+        return false;
+      }
+      return st.hasNextToken();
+   }
+   // let, derive & type
+   if(first=="let" || first=="derive" || first=="type"){
+       if(!st.hasNextToken()){
+          return false;
+       }
+       string second = st.nextToken();
+       if(!stringutils::isIdent(second)){
+         return false;
+       }
+       if(!st.hasNextToken()){
+           return false;
+       } 
+       string third = st.nextToken();
+       if(third!="="){
+          return false;
+       }
+       return st.hasNextToken();
+   }
+   // update
+   if(first=="update"){
+       if(!st.hasNextToken()){
+          return false;
+       }
+       string second = st.nextToken();
+       if(!stringutils::isIdent(second)){
+         return false;
+       }
+       if(!st.hasNextToken()){
+           return false;
+       } 
+       string third = st.nextToken();
+       if(third!=":="){
+          return false;
+       }
+       return st.hasNextToken();
+   }
+   // currently, no other secondo commands are known
+   // extend here if this changed
+
    return false;
+
 }
 
 
@@ -516,6 +721,7 @@ bool processDirectSecondoCommand(const string& cmd){
    ListExpr resList;
 
   if(stringutils::startsWith(cmd,"close")){
+      // redirect to close predicate
       bool ok = closeOptDB();
       if(ok){
          cout << "database successfully closed" << endl;
@@ -532,6 +738,7 @@ bool processDirectSecondoCommand(const string& cmd){
       }
       si->Secondo(cmdList, resList,err);
    } else {
+       // usual secondo command without in user level syntax
        si->Secondo(cmd, resList, err);
    }
    if(err.code==0){
@@ -611,7 +818,7 @@ string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
 
    size_t pos = 0;
 
-    while(pos < cmd.size()){
+   while(pos < cmd.size()){
      char c = cmd[pos];
      switch(state){ // somewhere
         case 0: {
@@ -720,40 +927,6 @@ string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
      return res.str();
 }
 
-/*
-~processOpenCommand~
-
-Sends an command for opening a database to the optimizer.
-
-*/
-bool processOpenCommand(string cmd){
-   stringutils::StringTokenizer st(cmd,blanks,true);
-   string rest = st.nextToken();
-   rest = st.getRest();
-   fid_t fid = PL_open_foreign_frame();
-    term_t a0 = PL_new_term_refs(2);
-    static predicate_t p;
-    p=PL_predicate("open",1,"");
-    PL_put_atom_chars(a0, rest.c_str());
-    qid_t id;
-    bool ok= false;
-    try{
-       id = PL_open_query(NULL, PL_Q_NORMAL, p, a0);
-       if(PL_next_solution(id)){
-         ok = true;
-       }
-       PL_close_query(id);
-    } catch(...){
-        ok = false;
-    }
-    if(ok){
-      cout << "opening database successful" << endl;
-    } else {
-      cout << "opening database failed" << endl;
-    }
-    PL_discard_foreign_frame(fid);
-    return ok;
-}
 
 
 /*
@@ -767,74 +940,6 @@ void showError(const string& s){
 }
 
 
-/*
-
-~processSqlCommand~
-
-This function rewrites the command by replacing upper cases to lower cases
-and sends the result to the optimizers ~sqlToPlan~ predicate. If this
-was successful, the result is sent to the kernel and the result of this
-call is displayed.
-
-*/
-
-bool processSqlCommand(string cmd){
-   bool correct;
-   string errMsg;
-   cmd = checkSQLCommand(cmd,correct, errMsg);
- 
-   if(!correct){
-     cout << "syntax error in command :" << errMsg << endl;
-     return false;
-   } 
-   fid_t fid = PL_open_foreign_frame();
-    term_t a0 = PL_new_term_refs(2);
-    PL_put_atom_chars(a0, (cmd).c_str());
-    predicate_t p = PL_predicate("sqlToPlan",2,"");
-    qid_t id;
-    bool ok= true;
-    string plan="";
-    int count =0;
-
-    try{
-       id = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, p, a0);
-       if(PL_next_solution(id)){
-         count++;
-         char* res;
-         if(PL_get_atom_chars(a0+1,&res)){
-            string answer(res);
-            if(stringutils::startsWith(answer,"::ERROR::")){
-                errMsg = answer.substr(9);
-               ok = false;
-            } else {
-                plan = "query "+ answer; 
-            }
-         } else {
-            ok = false;
-         }
-       }
-       PL_close_query(id);
-    } catch(...){
-        errMsg =  "Exception occurred";
-        ok = false;
-    }
-    PL_discard_foreign_frame(fid);
-
-
-    if(!ok){
-      cout << "error in optimization" << endl;
-      if(errMsg.size()>0){
-         showError(errMsg);
-      }
-      return false;
-    }
-    if((count !=1)){
-       cout << "found no solution in optimization" << endl;
-       return false;
-    }
-    cout << "optimized plan  is "  << plan << endl;
-    return processDirectSecondoCommand(plan);
-};
 
 
 
@@ -1027,6 +1132,85 @@ bool processPrologCommand(const string& cmd){
 }
 
 
+/*
+
+~processSqlCommand~
+
+This function rewrites the command by replacing upper cases to lower cases
+and sends the result to the optimizers ~sqlToPlan~ predicate. If this
+was successful, the result is sent to the kernel and the result of this
+call is displayed.
+
+*/
+
+bool processSqlCommand(string& cmd){
+   bool correct;
+   string errMsg;
+   cmd = checkSQLCommand(cmd,correct, errMsg);
+ 
+   if(!correct){
+     cout << "syntax error in command :" << errMsg << endl;
+     return false;
+   } 
+
+   stringutils::StringTokenizer st(cmd,blanks,true);
+   string s = st.nextToken(); // always sql
+   s = st.nextToken();
+   if(s!="select"){
+     // handle only select statements using sqlToPlan
+     // all other kinds of sql statements are directly
+     // handled by the optimizer
+     return processPrologCommand(cmd);
+   }
+
+    fid_t fid = PL_open_foreign_frame();
+    term_t a0 = PL_new_term_refs(2);
+    PL_put_atom_chars(a0, (cmd).c_str());
+    predicate_t p = PL_predicate("sqlToPlan",2,"");
+    qid_t id;
+    bool ok= true;
+    string plan="";
+    int count =0;
+
+    try{
+       id = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, p, a0);
+       if(PL_next_solution(id)){
+         count++;
+         char* res;
+         if(PL_get_atom_chars(a0+1,&res)){
+            string answer(res);
+            if(stringutils::startsWith(answer,"::ERROR::")){
+                errMsg = answer.substr(9);
+               ok = false;
+            } else {
+                plan = "query "+ answer; 
+            }
+         } else {
+            ok = false;
+         }
+       }
+       PL_close_query(id);
+    } catch(...){
+        errMsg =  "Exception occurred";
+        ok = false;
+    }
+    PL_discard_foreign_frame(fid);
+
+
+    if(!ok){
+      cout << "error in optimization" << endl;
+      if(errMsg.size()>0){
+         showError(errMsg);
+      }
+      return false;
+    }
+    if((count !=1)){
+       cout << "found no solution in optimization" << endl;
+       return false;
+    }
+    cout << "optimized plan  is "  << plan << endl;
+    return processDirectSecondoCommand(plan);
+};
 
 
 /*
@@ -1092,33 +1276,6 @@ bool isSqlCommand(string& cmd){
 }
 
 
-/*
-~isOpenCommand~
-
-This funciton checks whether ~cmd~ is an open database command.
-
-*/
-bool isOpenCommand(const string& cmd){
-  stringutils::StringTokenizer st(cmd, blanks, true);
-  if(!st.hasNextToken()){
-    return false;
-  }
-  if(st.nextToken()!="open"){
-    return false;
-  }
-  if(!st.hasNextToken()){
-    return false;
-  }
-  if(st.nextToken()!="database"){
-    return false;
-  }
-  // name of the database to open required
-  if(!st.hasNextToken()){
-    return false;
-  }
-  st.nextToken();
-  return !st.hasNextToken();
-}
 
 /*
 ~processCommand~
@@ -1135,9 +1292,6 @@ bool processCommand(string& cmd){
   } else if (isSqlCommand(cmd)) {
      // cout << "sql command recognized" << endl;
      return processSqlCommand(cmd);
-  } else if(isOpenCommand(cmd)){
-     // cout << "open command recognized" << endl;
-     return processOpenCommand(cmd);
   } else if(isDirectSecondoCommand(cmd)){
      // cout << "direct secondo command recognized" << endl;
      return processDirectSecondoCommand(cmd);
