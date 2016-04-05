@@ -1123,6 +1123,11 @@ initializeOptions :-
 
 :- assert(helpLine(quit,0,[],'Quit the optimizer.')).
 
+quit :-
+  rl_write_history('.secondopl_history'),
+  !,
+  halt.
+
 quit :- halt. % aliasing 'halt/0' in conformity to the Secondo system
 
 
