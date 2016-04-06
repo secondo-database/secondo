@@ -109,6 +109,10 @@ public:
    }
 
    bool ReadFrom(const ListExpr LE, const ListExpr& typeInfo) {
+     if (listutils::isSymbolUndefined(LE)) {
+       SetDefined(false);
+       return true;
+     }     
      if(!nl->HasLength(LE,4)){
         return false;
      }
