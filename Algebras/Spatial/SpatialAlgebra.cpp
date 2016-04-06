@@ -25430,6 +25430,80 @@ Operator elementsOP(
 );
 
 
+/*
+Operator  twist
+
+Creates a dline.
+
+*/
+ListExpr twistTM(ListExpr args){
+  string err = "real x int x int expected";
+  if(!nl->HasLength(args,3)){
+     return listutils::typeError(err);
+  }
+  if(   !CcReal::checkType(nl->First(args))
+     || !CcInt::checkType(nl->Second(args))
+     || !CcInt::checkType(nl->Third(args))){
+     return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<DLine>();
+}
+
+
+int twistVM(Word* args, Word& result, int message, Word& local,Supplier s){
+   result = qp->ResultStorage(s);
+   DLine* res = (DLine*) result.addr;
+   CcReal* size = (CcReal*) args[0].addr;
+   CcInt* corners = (CcInt*) args[1].addr;
+   CcInt* offset = (CcInt*) args[2].addr;
+
+   if(!size->IsDefined() || !corners->IsDefined() || !offset->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   double si = size->GetValue();
+   int c = corners->GetValue();
+   int o = offset->GetValue();
+   if(si<=0 || c<1 || o % c == 0){
+      res->SetDefined(false);
+   } 
+   res->clear();
+   int i = 0;
+   double a = 360.0 / c;
+   a = (a * 3.14159265359) / 180;
+   double x1 = si * sin((((i*o)%c)*a));
+   double y1 = si * cos((((i*o)%c)*a));
+   i++;
+   while(i <= c){
+     double x2 = si * sin((((i*o)%c)*a));
+     double y2 = si * cos((((i*o)%c*a)));
+     res->append(SimpleSegment(x1,y1,x2,y2));
+     x1 = x2;
+     y1 = y2;
+     i++; 
+   }
+   return 0;
+}
+
+
+OperatorSpec twistSpec(
+  " real x int x int -> dline",
+  " twist(size, corners, offset)",
+  " Creates a nice  dline. ",
+  " query twist(40.0,9,4)"
+);
+
+Operator twistOp(
+  "twist",
+  twistSpec.getStr(),
+  twistVM,
+  Operator::SimpleSelect,
+  twistTM
+);
+
+
+
+
 
 /*
 11 Creating the Algebra
@@ -25606,6 +25680,8 @@ class SpatialAlgebra : public Algebra
     AddOperator(&berlin2wgs);
 
     AddOperator(&elementsOP);
+
+    AddOperator(&twistOp);
 
   }
   ~SpatialAlgebra() {};

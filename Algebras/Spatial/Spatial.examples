@@ -1249,4 +1249,11 @@ Signature : points -> stream(point)
 Example   : query (elements(train7stations) count) =  ( components(train7stations) count)
 Result    : TRUE
 
+Operator  : twist
+Number    : 1
+Signature : real x int x int -> dline
+Example   : query no_segments(twist(40.0,5,2))
+Result    : 5
+
+
 
