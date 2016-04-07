@@ -208,6 +208,9 @@ class DLine : public StandardSpatialAttribute<2>{
 
      
      ListExpr ToListExpr(ListExpr typeInfo) const {
+        if(!IsDefined()){
+           return listutils::getUndefined();
+        }
         if(segments.Size()<1){
            return nl->TheEmptyList();
         }
@@ -223,6 +226,7 @@ class DLine : public StandardSpatialAttribute<2>{
      }
 
      bool ReadFrom(ListExpr LE, const ListExpr typeInfo) {
+        SetDefined(true);
         segments.clean();
         bbox.SetDefined(false);
         if(listutils::isSymbolUndefined(LE)){
