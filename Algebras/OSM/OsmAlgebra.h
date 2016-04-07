@@ -56,14 +56,17 @@ enum entityKind {NODE, WAY, RELATION};
 
 class FullOsmImport {
   public:
-     FullOsmImport(const string& fileName, const string& prefix);
-     FullOsmImport(const string& fileName, const string& _subFileName,
-                   const int _size, const string& prefix);
-     FullOsmImport(const string& prefix);
+     FullOsmImport(const std::string& fileName, const std::string& prefix,
+                   const int suf = -1);
+     FullOsmImport(const std::string& fileName, const std::string& _subFileName,
+                   const int _size, const std::string& prefix, 
+                   const bool createrels);
+     FullOsmImport(const std::string& prefix);
     ~FullOsmImport();
     
-    bool initRelations(const string& prefix, const string& suffix, bool all);
-    bool openFile(const string&fileName);
+    bool initRelations(const std::string& prefix, const std::string& suffix,
+                       bool all);
+    bool openFile(const std::string&fileName);
     void defineRelations(bool all);
     void fillRelations();
     void processNode(xmlTextReaderPtr reader);
@@ -73,13 +76,13 @@ class FullOsmImport {
     void processRelMemberRef(xmlTextReaderPtr reader);
     void processTag(xmlTextReaderPtr reader, entityKind kind);
     void storeRelations(bool all);
-    void storeRel(string name, ListExpr type, Relation *rel);
-    void divideOSMfile(const string& fileName);
-    string getFileName(LongInt dest);
-    string trim(const string &s);
+    void storeRel(std::string name, ListExpr type, Relation *rel);
+    void divideOSMfile(const std::string& fileName, const bool deletetts);
+    std::string getFileName(LongInt dest);
+    std::string trim(const std::string &s);
     bool isWhitespace(const char c);
-    bool isFileSwitchAllowed(const string& line);
-    void insertNodes(list<Point> &points, LongInt &wayId, Tuple *tuple,
+    bool isFileSwitchAllowed(const std::string& line);
+    void insertNodes(std::list<Point> &points, LongInt &wayId, Tuple *tuple,
                      Word *args);
     void insertWayTags(LongInt &wayId, Tuple *tuple, Word *args);
     void processStream(Stream<Tuple> &stream, int attrNo, Word *args);
@@ -94,15 +97,15 @@ class FullOsmImport {
     ListExpr nodeTypeInfo, nodeTagTypeInfo, wayTypeInfo, wayTagTypeInfo,
         relTypeInfo, relTagTypeInfo, numNodeTypeInfo, numNodeTagTypeInfo,
         numWayTypeInfo, numWayTagTypeInfo, numRelTypeInfo, numRelTagTypeInfo;
-    string relNames[6];
-    string subFileName;
+    std::string relNames[6];
+    std::string subFileName;
     unsigned int tupleCount[6];
     Tuple *node, *tag, *way, *rel;
     int read, next, refCount, size;
     LongInt currentId;
     bool tagged, newWay;
-    set<Point> storedPts;
-    map<Point, LongInt> pt2Id;
+    std::set<Point> storedPts;
+    std::map<Point, LongInt> pt2Id;
 };
 
 namespace osm {

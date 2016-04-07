@@ -60,7 +60,7 @@ Including header-files
 
 */
 
-using namespace std;
+// using namespace std;
 #include "OsmAlgebra.h"
 #include "AlgebraManager.h"
 #include "NestedList.h"
@@ -99,7 +99,7 @@ extern QueryProcessor* qp;
 
 // --- shpimport3-operator
 // Specification of operator shpimport3
-const string shpimport3Spec  =
+const std::string shpimport3Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "(<text> text -> stream(T), T in {point, points, line, region}</text--->"
     "<text>shpimport3(_)</text--->"
@@ -195,12 +195,12 @@ ListExpr shpimport3TypeMap(ListExpr args){
        return listutils::typeError("filename evaluated to be undefined");
    }
 
-   string name = resText->GetValue();
+   std::string name = resText->GetValue();
    resText->DeleteIfAllowed();
 
-   string shpType;
+   std::string shpType;
    bool correct;
-   string errmsg;
+   std::string errmsg;
 
    shpType = ShpFileReader::getShpType(name, correct, errmsg);
    if(!correct){
@@ -222,7 +222,7 @@ Operator shpimport3( "shpimport3",
 
 // --- osmimport-operator
 // Specification of operator osmimport
-const string osmimportSpec  =
+const std::string osmimportSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "(<text> text x ('node','way','restriction') -> stream (tuple(...)) "
     "</text--->"
@@ -365,7 +365,7 @@ Operator osmimport( "osmimport",
 
 // --- getconnectivitycode-operator
 // Specification of operator getconnectivitycode
-const string getconnectivitycodeSpec  =
+const std::string getconnectivitycodeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "(<text> d1 x d2 x d3 x d4 x o1 x o2 x o3 x o4 -> c"
     ", d1, d2, d3, d4, c int, o1, o2, o3, o4 bool</text--->"
@@ -458,7 +458,7 @@ Operator getconnectivitycode( "getconnectivitycode",
 
 // --- binor-operator
 // Specification of operator binor
-const string binorSpec  =
+const std::string binorSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "(<text> d1 x d2 -> c, d1, d2, c int</text--->"
     "<text>binor(_,_)</text--->"
@@ -529,7 +529,7 @@ Operator binor( "binor",
 
 // --- getscalefactorx-operator
 // Specification of operator getscalefactorx
-const string getscalefactorxSpec  =
+const std::string getscalefactorxSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "(<text> -> int</text--->"
     "<text>getscalefactorx()</text--->"
@@ -566,7 +566,7 @@ Operator getscalefactorx( "getscalefactorx",
 
 // --- getscalefactory-operator
 // Specification of operator getscalefactory
-const string getscalefactorySpec  =
+const std::string getscalefactorySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "(<text> -> int</text--->"
     "<text>getscalefactory()</text--->"
@@ -600,7 +600,7 @@ Operator getscalefactory( "getscalefactory",
 
 // --- setscalefactorx-operator
 // Specification of operator setscalefactorx
-const string setscalefactorxSpec  =
+const std::string setscalefactorxSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "(<text> int -> int</text--->"
     "<text>setscalefactorx(_)</text--->"
@@ -646,7 +646,7 @@ Operator setscalefactorx( "setscalefactorx",
 
 // --- setscalefactory-operator
 // Specification of operator setscalefactory
-const string setscalefactorySpec  =
+const std::string setscalefactorySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "(<text> int -> int</text--->"
     "<text>setscalefactory(_)</text--->"
@@ -702,24 +702,33 @@ Operator setscalefactory( "setscalefactory",
 1.1 Specification of operator fullosmimport
 
 */
-const string fullosmimportSpec =
+const std::string fullosmimportSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "(<text> text x string -> bool</text--->"
+    "(<text> text x string (x int) -> bool</text--->"
     "<text>fullosmimport(_)</text--->"
-    "<text>imports an osm file into six new relations</text--->"
-    "<text>query fullosmimport('dortmund.osm', \"dortmund\") count</text--->))";
+    "<text>imports an osm file into six new relations with an optional integer"
+    " appended to the name</text--->"
+    "<text>query fullosmimport('dortmund.osm', \"dortmund\")</text--->))";
 
 /*
 1.2 Type mapping function for operator fullosmimport
 
 */
 ListExpr fullosmimportTypeMap(ListExpr args) {
-  if (!nl->HasLength(args, 2))
-    return listutils::typeError("two arguments expected");
-  if (!listutils::isSymbol(nl->First(args), FText::BasicType()))
+  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
+    return listutils::typeError("two or three arguments expected");
+  }
+  if (!listutils::isSymbol(nl->First(args), FText::BasicType())) {
     return listutils::typeError("type text required for the first argument");
-  if (!listutils::isSymbol(nl->First(nl->Rest(args)), CcString::BasicType()))
+  }
+  if (!listutils::isSymbol(nl->First(nl->Rest(args)), CcString::BasicType())) {
     return listutils::typeError("type string required for the 2nd argument");  
+  }
+  if (nl->HasLength(args, 3)) {
+    if (!listutils::isSymbol(nl->Third(args), CcInt::BasicType())) {
+      return listutils::typeError("type int required for the 3rd argument");
+    }
+  }
   return nl->SymbolAtom(CcBool::BasicType());
 }
 
@@ -727,11 +736,18 @@ ListExpr fullosmimportTypeMap(ListExpr args) {
 1.3 Constructor and functions of class FullOsmImport
 
 */
-FullOsmImport::FullOsmImport(const string& fileName, const string& prefix) {
+FullOsmImport::FullOsmImport(const std::string& fileName, 
+                          const std::string& prefix, const int suf /* = -1 */) {
   sc = SecondoSystem::GetCatalog();
   isTemp = false;
   reader = 0;
-  relationsInitialized = initRelations(prefix, "", true);
+  std::string suffix = "";
+  if (suf > -1) {
+    std::ostringstream strstr;
+    strstr << "_" << suf;
+    suffix = strstr.str();
+  }
+  relationsInitialized = initRelations(prefix, suffix, true);
   if(!relationsInitialized) {
     cout << "relations could not be initialized" << endl;
     return;
@@ -753,8 +769,8 @@ FullOsmImport::FullOsmImport(const string& fileName, const string& prefix) {
 
 FullOsmImport::~FullOsmImport() {}
 
-bool FullOsmImport::initRelations(const string& prefix, const string& suffix,
-                                  bool all) {
+bool FullOsmImport::initRelations(const std::string& prefix, 
+                                  const std::string& suffix, bool all) {
   relNames[0] = prefix + "Nodes" + suffix;
   relNames[1] = prefix + "NodeTags" + suffix;
   relNames[2] = prefix + "Ways" + suffix;
@@ -767,7 +783,7 @@ bool FullOsmImport::initRelations(const string& prefix, const string& suffix,
         cout << relNames[i] << " is already defined" << endl;
         return false;
       }
-      string errMsg = "error";
+      std::string errMsg = "error";
       if (!sc->IsValidIdentifier(relNames[i], errMsg, true)) {
         cout << errMsg << endl;
         return false;
@@ -782,7 +798,7 @@ bool FullOsmImport::initRelations(const string& prefix, const string& suffix,
   return true;
 } 
 
-bool FullOsmImport::openFile(const string& fileName) {
+bool FullOsmImport::openFile(const std::string& fileName) {
   // check whether the file can be opened and is an osm file
   reader = xmlReaderForFile(fileName.c_str(), NULL, 0);
   if (reader == NULL) {
@@ -914,7 +930,7 @@ void FullOsmImport::processNode(xmlTextReaderPtr reader) {
     read = xmlTextReaderRead(reader);
     next = xmlTextReaderNext(reader);
     subNameXml = xmlTextReaderLocalName(reader);
-    string subName = (char *)subNameXml;
+    std::string subName = (char *)subNameXml;
     xmlFree(subNameXml);
     while (subName == "tag") {
       processTag(reader, NODE);
@@ -936,7 +952,7 @@ void FullOsmImport::processWay(xmlTextReaderPtr reader) {
     read = xmlTextReaderRead(reader);
     next = xmlTextReaderNext(reader);
     subNameXml = xmlTextReaderLocalName(reader);
-    string subName = (char *)subNameXml;
+    std::string subName = (char *)subNameXml;
     xmlFree(subNameXml);
     while (subName == "nd") {
       processWayNodeRef(reader);
@@ -960,7 +976,7 @@ void FullOsmImport::processWayNodeRef(xmlTextReaderPtr reader) {
   nodeRef = xmlTextReaderGetAttribute(reader, (xmlChar *)"ref");
   if (nodeRef != NULL) {
     way->PutAttribute(1, new CcInt(true, refCount));
-    way->PutAttribute(2, new LongInt(string((const char*)nodeRef)));
+    way->PutAttribute(2, new LongInt(std::string((const char*)nodeRef)));
     refCount++;
     attrCount++;
     xmlFree(nodeRef);
@@ -984,7 +1000,7 @@ void FullOsmImport::processRel(xmlTextReaderPtr reader) {
     read = xmlTextReaderRead(reader);
     next = xmlTextReaderNext(reader);
     subNameXml = xmlTextReaderLocalName(reader);
-    string subName = (char *)subNameXml;
+    std::string subName = (char *)subNameXml;
     xmlFree(subNameXml);
     while (subName == "member") {
       processRelMemberRef(reader);
@@ -1008,7 +1024,7 @@ void FullOsmImport::processRelMemberRef(xmlTextReaderPtr reader) {
   memberRef = xmlTextReaderGetAttribute(reader, (xmlChar *)"ref");
   if (memberRef != NULL) {
     rel->PutAttribute(1, new CcInt(true, refCount));
-    rel->PutAttribute(3, new LongInt(string((const char*)memberRef)));
+    rel->PutAttribute(3, new LongInt(std::string((const char*)memberRef)));
     refCount++;
     attrCount++;
     xmlFree(memberRef);
@@ -1084,7 +1100,7 @@ void FullOsmImport::fillRelations() {
   way = new Tuple(wayType);
   rel = new Tuple(relType);
   memset(tupleCount, 0 , 6 * sizeof(int));
-  string currentName = "undefined string";
+  std::string currentName = "undefined string";
   read = xmlTextReaderRead(reader);
   next = xmlTextReaderNext(reader);
   
@@ -1138,33 +1154,67 @@ void FullOsmImport::storeRelations(bool all) {
   }
 }
 
-void FullOsmImport::storeRel(string name, ListExpr typeInfo, Relation *rel) {
+void FullOsmImport::storeRel(std::string name, ListExpr typeInfo, 
+                             Relation *rel) {
   ListExpr type = nl->TwoElemList(nl->SymbolAtom(Relation::BasicType()),
                                   typeInfo);
   Word relWord;
   relWord.setAddr(rel);
   sc->InsertObject(name, "", type, relWord, true);
 }
+
+/*
+1.4 Selection function for operator fullosmimport
+
+*/
+int fullosmimportSelect(ListExpr args) {
+  return (nl->HasLength(args, 3) ? 1 : 0);
+}
+
 /*
 1.4 Value mapping function for operator fullosmimport
 
 */
+template<int noArgs>
 int fullosmimportValueMap(Word* args, Word& result, int message, Word& local,
-                           Supplier s) {
-  FText *file = (FText *)(args[0].addr);
-  string fileName = file->GetValue();
-  string prefix = ((CcString *)args[1].addr)->GetValue();
-  FullOsmImport fullOsmImport(fileName, prefix);
+                          Supplier s) {
   result = qp->ResultStorage(s);
-  CcBool* res = (CcBool*) result.addr;    
-  if (!(fullOsmImport.relationsInitialized && fullOsmImport.fileOk)) {
+  CcBool* res = (CcBool*) result.addr;
+  FText *file = (FText *)(args[0].addr);
+  if (!file->IsDefined()) {
     res->Set(true, false);
+    return 0;
   }
-  else { // success
-    res->Set(true, true);
+  std::string fileName = file->GetValue();
+  CcString *pr = (CcString*)args[1].addr;
+  if (!pr->IsDefined()) {
+    res->Set(true, false);
+    return 0;
   }
-  return 0;                           
+  std::string prefix = pr->GetValue();
+  if (noArgs == 3) {
+    CcInt *suf = (CcInt*)args[2].addr;
+    if (!suf->IsDefined()) {
+      res->Set(true, false);
+      return 0;
+    }
+    if (suf->GetValue() < 0) {
+      res->Set(true, false);
+      return 0;
+    }
+    int suffix = suf->GetValue();
+    FullOsmImport fullOsmImport(fileName, prefix, suffix);
+    res->Set(true, fullOsmImport.relationsInitialized && fullOsmImport.fileOk);
+  }
+  else {
+    FullOsmImport fullOsmImport(fileName, prefix);
+    res->Set(true, fullOsmImport.relationsInitialized && fullOsmImport.fileOk);
+  }  
+  return 0;
 }
+
+ValueMapping fullosmimportVMs[] = {fullosmimportValueMap<2>, 
+                                   fullosmimportValueMap<3>};
 
 /*
 1.5 Operator instance
@@ -1172,8 +1222,9 @@ int fullosmimportValueMap(Word* args, Word& result, int message, Word& local,
 */
 Operator fullosmimport( "fullosmimport",
                 fullosmimportSpec,
-                fullosmimportValueMap,
-                Operator::SimpleSelect,
+                2,
+                fullosmimportVMs,
+                fullosmimportSelect,
                 fullosmimportTypeMap);
 
 /*
@@ -1183,8 +1234,8 @@ Operator fullosmimport( "fullosmimport",
 
 */
 ListExpr convertstreetsTM(ListExpr args) {
-  string err = "Expected syntax: stream(tuple(..., x: line, ...)) x IDENT x "
-               "string";
+  std::string err = "Expected syntax: stream(tuple(..., x: line, ...)) x IDENT "
+               "x string";
   if (!nl->HasLength(args, 3)) {
     return listutils::typeError(err + " (wrong number of arguments)");
   }
@@ -1196,7 +1247,7 @@ ListExpr convertstreetsTM(ListExpr args) {
   if (!Stream<Tuple>::checkType(stream) || !listutils::isSymbol(anlist)){
     return listutils::typeError(err);
   }
-  string attr = nl->SymbolValue(anlist);
+  std::string attr = nl->SymbolValue(anlist);
   ListExpr attrlist = nl->Second(nl->Second(stream));
   ListExpr type;
   int index = listutils::findAttribute(attrlist, attr, type);
@@ -1234,14 +1285,14 @@ ListExpr convertstreetsTM(ListExpr args) {
 subsection{Specification}
 
 */
-const string convertstreetsSpec =
+const std::string convertstreetsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "(<text> stream(tuple(..., x:line, ...)) x IDENT x string -> bool</text--->"
     "<text>_ convertstreets[ _ , _ ]</text--->"
     "<text>Converts BerlinMOD streets into Node and Way relations.</text--->"
     "<text>query strassen feed convertstreets[GeoData, \"Berlin\"]</text--->))";
 
-FullOsmImport::FullOsmImport(const string& prefix) :
+FullOsmImport::FullOsmImport(const std::string& prefix) :
          isTemp(false), reader(0), nodeRel(0), wayRel(0), wayTagRel(0), node(0),
          tag(0), way(0), rel(0), currentId(0), tagged(false), newWay(true) {
   for (int i = 0; i < 6; i++) {
@@ -1255,13 +1306,13 @@ FullOsmImport::FullOsmImport(const string& prefix) :
   defineRelations(false);
 }
 
-void FullOsmImport::insertNodes(list<Point> &points, LongInt &wayId,
+void FullOsmImport::insertNodes(std::list<Point> &points, LongInt &wayId,
                                 Tuple *tuple, Word *args) {
   if (points.empty()) {
     return;
   }
   int refCounter = 0;
-  for (list<Point>::iterator it = points.begin(); it != points.end(); it++) {
+  for (std::list<Point>::iterator it= points.begin(); it != points.end(); it++){
     way = new Tuple(wayType);
     way->PutAttribute(0, new LongInt(wayId));
     if (storedPts.find(*it) != storedPts.end()) { // point found
@@ -1306,7 +1357,6 @@ void FullOsmImport::insertWayTags(LongInt &wayId, Tuple *tuple, Word *args) {
         tag->PutAttribute(2,
                new FText(true, ((FText*)(tuple->GetAttribute(i)))->GetValue()));
       }
-      
       wayTagRel->AppendTuple(tag);
       tupleCount[3]++;
     }
@@ -1317,7 +1367,7 @@ void FullOsmImport::processStream(Stream<Tuple> &stream, int attrNo,
                                   Word *args) {
   stream.open();
   Tuple *tuple = stream.request();
-  list<Point> points; // store segments in correct order
+  std::list<Point> points; // store segments in correct order
   LongInt wayId = 0;
   while (tuple) {
     Line *line = (Line*)(tuple->GetAttribute(attrNo));
@@ -1382,7 +1432,7 @@ Randomly divides an OSM file into a number of sub-files.
 
 */
 ListExpr divide_osmTM(ListExpr args) {
-  const string errMsg = "Expecting text x string x int x string";
+  const std::string errMsg = "Expecting text x string x int x string";
   if (nl->HasLength(args, 4)) {
     if (FText::checkType(nl->First(args))
      && CcString::checkType(nl->Second(args))
@@ -1398,33 +1448,36 @@ ListExpr divide_osmTM(ListExpr args) {
 subsection{Specification}
 
 */
-const string divide_osmSpec =
+const std::string divide_osmSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "(<text> text x string x int x string -> bool</text--->"
-    "<text>divide_osm(_ _ _ _)</text--->"
+    "<text>divide_osm(_, _, _, _)</text--->"
     "<text>Randomly divides an OSM file into a number of sub-files.</text--->"
     "<text>query divide_osm('dortmund.osm', \"do\", 1909, \"DO\")</text--->))";
 
-FullOsmImport::FullOsmImport(const string& fileName, const string& _subFileName,
-                             const int _size, const string& prefix) :
+FullOsmImport::FullOsmImport(const std::string& fileName, 
+                             const std::string& _subFileName, const int _size,
+                             const std::string& prefix, const bool createrels) :
          isTemp(false), reader(0), subFileName(_subFileName), node(0), tag(0),
          way(0), rel(0), size(_size), tagged(false) {
   for (int i = 0; i < 6; i++) {
     tupleCount[i] = 0;
   }
-  sc = SecondoSystem::GetCatalog();
-  relationsInitialized = initRelations(prefix, "_type", true);
-  if(!relationsInitialized) {
-    cout << "relations could not be initialized" << endl;
-    return;
+  if (createrels) {
+    sc = SecondoSystem::GetCatalog();
+    relationsInitialized = initRelations(prefix, "_type", true);
+    if (!relationsInitialized) {
+      cout << "relations could not be initialized" << endl;
+      return;
+    }
+    defineRelations(true);
+    storeRelations(true);
   }
-  defineRelations(true);
-  storeRelations(true);
-  divideOSMfile(fileName);
+  divideOSMfile(fileName, createrels);
 }
 
-string FullOsmImport::getFileName(LongInt dest) {
-  stringstream result;
+std::string FullOsmImport::getFileName(LongInt dest) {
+  std::stringstream result;
   result << subFileName << "_" << dest;
   return result.str().c_str();
 }
@@ -1433,15 +1486,15 @@ bool FullOsmImport::isWhitespace(const char c) {
   return c == ' ' || c == '\n' || c == '\t' || c == '\r' || c == 11;
 }
 
-string FullOsmImport::trim(const string &s) {
+std::string FullOsmImport::trim(const std::string &s) {
   size_t first = s.find_first_not_of(" \n\t\r");
-  if (first == string::npos) {
-    return string();
+  if (first == std::string::npos) {
+    return std::string();
   }
   return s.substr(first);
 }
 
-bool FullOsmImport::isFileSwitchAllowed(const string& line) {
+bool FullOsmImport::isFileSwitchAllowed(const std::string& line) {
   if ((line.substr(0,5) == "<node") && (line.substr(line.length() -2) == "/>")){
     return true;
   }
@@ -1452,30 +1505,31 @@ bool FullOsmImport::isFileSwitchAllowed(const string& line) {
   return false;
 }
 
-void FullOsmImport::divideOSMfile(const string& fileName) {
-  ifstream source;
-  ofstream dest;
-  source.open(fileName.c_str(), ios::in);
+void FullOsmImport::divideOSMfile(const std::string& fileName, 
+                                  const bool deletetts) {
+  std::ifstream source;
+  std::ofstream dest;
+  source.open(fileName.c_str(), std::ios::in);
   if(!source.good()){
-     cerr << "Problem in open file " << fileName << endl;
+     std::cerr << "Problem in open file " << fileName << endl;
      return;
   }
-  string line;
+  std::string line;
   LongInt numOfChars(0), charCounter(0), destId(-1), nextLimit(0);
-  source.seekg(0, ios::end);
+  source.seekg(0, std::ios::end);
   numOfChars = (LongInt)source.tellg();
   source.close();
-  source.open(fileName.c_str(), ios::in);
+  source.open(fileName.c_str(), std::ios::in);
   getline(source, line);
   for (LongInt i = 0; i < size; i++) { // clear destination files if existing
-    dest.open(getFileName(i).c_str(), ios::trunc);
+    dest.open(getFileName(i).c_str(), std::ios::trunc);
     dest.close();
   }
   line = trim(line);
   while (!source.eof() && source.good() &&
          (trim(line).substr(0, 5) != "<node")) { // copy head
     for (LongInt file = 0; file < size; file++) {
-      dest.open(getFileName(file).c_str(), ios::app);
+      dest.open(getFileName(file).c_str(), std::ios::app);
       dest << line << endl;
       dest.close();
     }
@@ -1484,13 +1538,13 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
     charCounter += line.length();
   }
   if(!source.good()){
-     cerr << "problem in reading file(2)" << fileName << endl;
+     std::cerr << "problem in reading file(2)" << fileName << endl;
      return;
   }
   charCounter -= line.length();
   nextLimit = charCounter;
   LongInt partSize = (numOfChars - source.tellg() - 1) / size + 1;
-  dest.open(getFileName(0).c_str(), ios::app);
+  dest.open(getFileName(0).c_str(), std::ios::app);
   dest << line << endl;
   dest.close();
   while (!source.eof() && source.good()) { // copy rest
@@ -1501,7 +1555,7 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
       }
       nextLimit += partSize;
       destId++;
-      dest.open(getFileName(destId).c_str(), ios::app);
+      dest.open(getFileName(destId).c_str(), std::ios::app);
     }
     getline(source, line);
     charCounter += line.length();
@@ -1511,12 +1565,14 @@ void FullOsmImport::divideOSMfile(const string& fileName) {
   source.close();
   dest.close();
   fileOk = true;
-  nodeType->DeleteIfAllowed();
-  nodeTagType->DeleteIfAllowed();
-  wayType->DeleteIfAllowed();
-  wayTagType->DeleteIfAllowed();
-  relType->DeleteIfAllowed();
-  relTagType->DeleteIfAllowed();
+  if (deletetts) {
+    nodeType->DeleteIfAllowed();
+    nodeTagType->DeleteIfAllowed();
+    wayType->DeleteIfAllowed();
+    wayTagType->DeleteIfAllowed();
+    relType->DeleteIfAllowed();
+    relTagType->DeleteIfAllowed();
+  }
 }
 
 /*
@@ -1532,11 +1588,11 @@ int divide_osmVM(Word* args, Word& result, int message, Word& local,Supplier s){
         return 0;
      }
   }
-  string fileName = ((FText*)args[0].addr)->GetValue();
-  string subFileName = ((CcString*)args[1].addr)->GetValue();
+  std::string fileName = ((FText*)args[0].addr)->GetValue();
+  std::string subFileName = ((CcString*)args[1].addr)->GetValue();
   int size = ((CcInt*)args[2].addr)->GetValue();
-  string prefix = ((CcString*)args[3].addr)->GetValue();
-  FullOsmImport osm(fileName, subFileName, size, prefix);  
+  std::string prefix = ((CcString*)args[3].addr)->GetValue();
+  FullOsmImport osm(fileName, subFileName, size, prefix, true);
   if (!(osm.relationsInitialized && osm.fileOk)) {
     res->Set(true, false);
   }
@@ -1555,6 +1611,71 @@ Operator divide_osm( "divide_osm",
                 divide_osmVM,
                 Operator::SimpleSelect,
                 divide_osmTM);
+
+/*
+\section{Operator ~divide_osm2~}
+
+Randomly divides an OSM file into a number of sub-files without creating
+relations.
+
+\subsection{Type Mapping}
+
+*/
+ListExpr divide_osm2TM(ListExpr args) {
+  const std::string errMsg = "Expecting text x string x int";
+  if (nl->HasLength(args, 3)) {
+    if (FText::checkType(nl->First(args))
+     && CcString::checkType(nl->Second(args))
+     && CcInt::checkType(nl->Third(args))) {
+      return nl->SymbolAtom(CcBool::BasicType());
+    }
+  }
+  return listutils::typeError(errMsg);
+}
+
+/*
+subsection{Specification}
+
+*/
+const std::string divide_osm2Spec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> text x string x int -> bool</text--->"
+    "<text>divide_osm(_, _, _)</text--->"
+    "<text>Randomly divides an OSM file into a number of sub-files without "
+    "creating relations.</text--->"
+    "<text>query divide_osm2('dortmund.osm', \"do\", 1909)</text--->))";
+
+/*
+\subsection{Value Mapping}
+
+*/
+int divide_osm2VM(Word* args, Word& result, int message, Word& local,
+                  Supplier s) {
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*)result.addr;
+  for (int i = 0; i < 3; i++) {
+    if (!((Attribute*)args[i].addr)->IsDefined()) {
+      res->Set(true, false);
+      return 0;
+    }
+  }
+  std::string fileName = ((FText*)args[0].addr)->GetValue();
+  std::string subFileName = ((CcString*)args[1].addr)->GetValue();
+  int size = ((CcInt*)args[2].addr)->GetValue();
+  FullOsmImport osm(fileName, subFileName, size, "", false);
+  res->Set(true, osm.fileOk);
+  return 0;
+}
+
+/*
+\subsection{Operator instance}
+
+*/
+Operator divide_osm2( "divide_osm2",
+                divide_osm2Spec,
+                divide_osm2VM,
+                Operator::SimpleSelect,
+                divide_osm2TM);
 
 // --- Constructors
 // Constructor
@@ -1578,6 +1699,7 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
     osmimport.SetUsesArgsInTypeMapping();;
     AddOperator(&fullosmimport);
     AddOperator(&divide_osm);
+    AddOperator(&divide_osm2);
 //     AddOperator(&convertstreets);
 }
 
