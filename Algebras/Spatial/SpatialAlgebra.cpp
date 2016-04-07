@@ -25502,6 +25502,272 @@ Operator twistOp(
 );
 
 
+/*
+Operator creating the contour of a dline value.
+
+
+*/
+
+enum join_style{join_none,join_bevel};
+
+class Contour2{
+
+ public:
+    Contour2(DLine* line, double w){
+       fillPolylines(line);
+       plpos = 0;
+       clpos = 0;
+       closed = false;
+       width=w;
+       join = join_bevel;
+    }
+
+   // by contruction, the interior of the region 
+   // is always left to the directed segments
+    vector<SimplePoint>* next(){
+       while(plpos<polylines.size()){
+          vector<SimplePoint>& pl = polylines[plpos];
+          size_t end = closed?pl.size():pl.size()-1;
+          if(clpos==end){ // start new polyline
+             plpos++;
+             clpos=0;
+          } else {
+             bool left_end = !closed && clpos==0;
+             bool right_end = !closed && clpos==end-1;
+             vector<SimplePoint>* res = getContour(pl[clpos], 
+                                                   pl[(clpos+1) % pl.size()],
+                                                   pl[(clpos+2)%pl.size()],
+                                                   left_end, right_end);
+             clpos++;
+             return res;
+          }
+       }
+       return 0;
+    }
+
+
+
+ private:
+    vector<vector<SimplePoint> > polylines;
+    size_t plpos; // position in polylines
+    size_t clpos; // position in current polyline
+    bool closed;
+    double width;
+    join_style join;
+   
+    enum direction{left, right, forward};
+
+
+    void fillPolylines(DLine* line){
+        SimpleSegment s;
+        for(int i=0;i<line->Size();i++){
+           line->get(i,s);
+           addSegment(s);  
+         }
+     }
+
+     void addSegment(SimpleSegment& s){
+        if(polylines.empty()){
+           addFreshVector(s);
+        } else {
+           if(SimplePoint(s.x1,s.y1) != getLastPoint()){
+             addFreshVector(s);
+           } else {
+              polylines.back().push_back(SimplePoint(s.x2,s.y2)); 
+           }
+        }
+     }
+
+     void addFreshVector(SimpleSegment& s){
+         vector<SimplePoint> v;
+         v.push_back(SimplePoint(s.x1,s.y1));
+         v.push_back(SimplePoint(s.x2,s.y2));
+         polylines.push_back(v);
+     }
+
+     SimplePoint& getLastPoint(){
+        return polylines.back().back();
+     }
+
+     vector<SimplePoint>* getContour(SimplePoint& p1, SimplePoint& p2, 
+                              SimplePoint& p3, bool left_end, bool right_end){
+          vector<SimplePoint>* r = getRectangle(p1,p2); 
+          if((join==join_none) || right_end){
+              return r;
+          }
+          direction dir = getDirection(p1,p2,p3);
+          if(dir==forward){
+            return r;
+          }
+          vector<SimplePoint>* r2 = getRectangle(p2,p3);
+          
+          if(join==join_bevel){
+            if(dir==right){
+               cout << "right" << endl;
+               vector<SimplePoint>* res = new vector<SimplePoint>();
+               res->push_back(r->at(0));
+               res->push_back(r->at(1));
+               res->push_back(p2);
+               res->push_back(r2->at(3));
+               res->push_back(r->at(2));
+               res->push_back(r->at(3));
+               delete r;
+               delete r2;
+               return res;
+            } else {
+               vector<SimplePoint>* res = new vector<SimplePoint>();
+               res->push_back(r->at(0));
+               res->push_back(r->at(1));
+               res->push_back(r2->at(0));
+               res->push_back(p2);
+               res->push_back(r->at(2));
+               res->push_back(r->at(3));
+               delete r;
+               delete r2;
+               return res;
+            }
+          }
+          return 0;
+
+      }
+
+     vector<SimplePoint>* getRectangle(SimplePoint& p1,SimplePoint& p2){
+           double x1 = p1.getX();
+           double y1 = p1.getY();
+           double x2 = p2.getX();
+           double y2 = p2.getY();
+           double dx = x2 - x1;
+           double dy = y2 - y1; 
+           double length = sqrt(dx*dx + dy*dy);
+           double f = width / (2*length);
+           dx = dx*f;
+           dy = dy*f;
+           vector<SimplePoint>* res = new vector<SimplePoint>();
+           res->push_back(SimplePoint(x1 + dy, y1 - dx));
+           res->push_back(SimplePoint(x2 + dy, y2 - dx));
+           res->push_back(SimplePoint(x2 - dy, y2 + dx));
+           res->push_back(SimplePoint(x1 - dy, y1 + dx));
+           return res;
+     }
+
+    static direction getDirection(SimplePoint& point1, 
+                                  SimplePoint& point2, 
+                                  SimplePoint& point3){
+       double p1 = point1.getX();
+       double p2 = point1.getY();
+       double q1 = point2.getX();
+       double q2 = point2.getY();
+       double r1 = point3.getX();
+       double r2 = point3.getY();
+       // directed triangle area
+       double A = (r1-p1)*(r2+p2) + (q1-r1)*(q2+r2) + (p1-q1)*(p2+q2);
+       if(AlmostEqual(A,0)){
+         return forward;
+       }
+       return A>0?left: right;
+    }
+
+
+
+};
+
+
+
+
+ListExpr contour2TM(ListExpr le){
+   // to be extended by further arguments
+   // currently only dline and width
+   string err = "dline x real expected";
+   if(!nl->HasLength(le,2)){
+     return listutils::typeError(err);
+   }
+   if(   !DLine::checkType(nl->First(le))
+       ||!CcReal::checkType(nl->Second(le))){
+      return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<Region>();
+}
+
+void buildRegion(vector<SimplePoint>& pl, Region* res){
+   res->Clear();
+   res->SetDefined(true);
+   if(pl.size()<3){
+     assert(false);
+   } 
+   res->StartBulkLoad();
+   for(size_t i= 0; i<pl.size();i++){
+      Point p1 = pl[i].getPoint();
+      Point p2 = pl[(i+1) % pl.size()].getPoint();
+      HalfSegment hs(true, p1,p2);
+      hs.attr.faceno =0;
+      hs.attr.cycleno=0;
+      hs.attr.edgeno = i;
+      hs.attr.coverageno = 0;
+      hs.attr.partnerno = i;
+      hs.attr.insideAbove = p1 < p2;
+      (*res) += hs;
+      hs.SetLeftDomPoint(false);
+      (*res) += hs;
+   }
+   res->EndBulkLoad(true,true,true,false);
+}
+
+
+
+int contour2VM(Word* args, Word& result, int message, Word& local,Supplier s){
+   result = qp->ResultStorage(s);
+   Region* res = (Region*) result.addr;
+   DLine*  L = (DLine*) args[0].addr;
+   CcReal* W = (CcReal*) args[1].addr;
+
+   if(!L->IsDefined() || !W->IsDefined()){
+      res->SetDefined(false);
+      return 0;    
+   } 
+   double w = W->GetValue();
+   if(w<=0){
+        res->Clear();
+        return 0;
+   }
+   vector<SimplePoint>* poly;
+   Contour2 C(L,w);
+   Region temp1(0);
+   res->SetDefined(true);
+   Region* t2 = new Region(0);
+   Region* tr = res;
+   while( (poly= C.next())){
+      buildRegion(*poly,&temp1);
+      // we have to build the union between res and temp
+      tr->Union(temp1, *t2);
+      swap(tr,t2);
+   }
+   if(tr==res){
+     delete t2;
+   } else {
+     res->CopyFrom(tr);
+     delete tr;  
+   }
+   return 0;
+
+}
+
+
+OperatorSpec contour2Spec(
+  "dline x real -> region",
+  "_ contour2 [_] ",
+  "Adds a buffer around the segments of a dline",
+  " query sl contour2[3.0]"
+);
+
+Operator contour2Op(
+     "contour2",
+     contour2Spec.getStr(),
+     contour2VM,
+     Operator::SimpleSelect,
+     contour2TM
+);
+
+
 
 
 
@@ -25682,6 +25948,8 @@ class SpatialAlgebra : public Algebra
     AddOperator(&elementsOP);
 
     AddOperator(&twistOp);
+
+    AddOperator(&contour2Op);
 
   }
   ~SpatialAlgebra() {};

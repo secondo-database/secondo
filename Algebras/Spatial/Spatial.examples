@@ -1256,4 +1256,11 @@ Example   : query no_segments(twist(40.0,5,2))
 Result    : 5
 
 
+Operator  : contour2 
+Number    : 1
+Signature : dline x real -> region
+Example   : query twist(10,2,1) contour2[4]
+Result    : bug
+Remark    : under development
+
 

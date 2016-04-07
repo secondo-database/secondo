@@ -4054,6 +4054,9 @@ class SimplePoint{
      bool operator==(const SimplePoint& p) const{
          return AlmostEqual(x,p.x)&& AlmostEqual(y,p.y);
      }
+     bool operator!=(const SimplePoint& p) const{
+         return !AlmostEqual(x,p.x) ||  !AlmostEqual(y,p.y);
+     }
 
     bool operator>(const SimplePoint& p) const{
          return !(AlmostEqual(x,p.x) && AlmostEqual(y,p.y)) && !isLess(p);
