@@ -35,17 +35,17 @@ handled directly by the user interface. Examples are '@<filename>', 'help' or
 The second category include sql commands. These commands will be translated
 into a plan using the sqlToPlan predicate defined in the optimizer. Before 
 optimization, some rewritings are done within the command. For example, symbols
-starting with a upper case letter are replaced by lower case letters. Furthermore,
-brackets are checked before optimization. If the optimization succeds, the generated
-plan is send to the kernel. The result is displayed using the kernel display 
-functions.
+starting with a upper case letter are replaced by lower case letters. 
+Furthermore, brackets are checked before optimization. If the optimization 
+succeds, the generated plan is send to the kernel. The result is displayed 
+using the kernel display functions.
 
 The third category of commands are commands that are directly send to the 
 kernel without aid of the optimizer. 
 
-If a command cannot assigned to one of the categories mentioned before, it is tried to
-convert it into a callable prolog term and call it using the prolog engine. All generated
-solutions are printed out.
+If a command cannot assigned to one of the categories mentioned before, 
+it is tried to convert it into a callable prolog term and call it using the 
+prolog engine. All generated solutions are printed out.
 
 */
 
@@ -126,6 +126,174 @@ void ShowPrompt( const bool first ) {
   #else
     cout << prompt;
   #endif
+}
+
+/*
+~isUpperCase~
+
+Auxiliary function chinging whether an character is an upper case.
+
+*/
+bool isUpperCase(char c){
+  return (c>='A') && (c <='Z');
+}
+
+/*
+~tolower~
+
+This function converts an upper case character into a lower case.
+
+*/
+char tolower(char c){
+   if(!isUpperCase(c)) return c;
+   return  (c + 'a') - 'A';
+}
+
+
+/*
+~isIdentChar~
+
+This functions checks whether a character is allowed to be part of
+an identifier.
+
+*/
+bool isIdentChar(char c){
+  return stringutils::isLetter(c) || stringutils::isDigit(c) || (c=='_');
+}
+
+/*
+~checkSQLCommand~
+
+This function checks the brackets within an command. 
+The command itselfs is rewritten by converting symbols starting
+with an upper case into lower case symbols. If brackets are 
+not correct, the problem description is stored into errMsg and 
+correct is set to false;
+
+
+*/
+string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
+   stack<char> brackets;
+
+   int state = 0; // start of a word
+
+   // states
+   // 0 begin of a symbol
+   // 1 within a double quoted string
+   // 2 within a single quoted string
+   // 3 within a symbol starting with a capital
+   // 4 within a symbol starting lower case
+   stringstream res;
+
+   size_t pos = 0;
+
+   while(pos < cmd.size()){
+     char c = cmd[pos];
+     switch(state){ // somewhere
+        case 0: {
+          if(c=='"'){
+             state = 1;
+             res << c; 
+          } else if(c=='\''){
+             state = 2;
+             res << c;
+          } else if(stringutils::isLetter(c)){
+               if(isUpperCase(c)){
+                   state = 3;
+                   res << tolower(c);
+               } else {
+                   state = 4;
+                   res << c;
+               }
+          } else {
+             if((c=='(') ||  c=='[' || c=='{'){
+               brackets.push(c);
+             } else if(c==')' || c==']' || c=='}'){
+               if(brackets.empty()){
+                 errMsg = string("found closing ") + c + " that was not opened";
+                 correct = false;
+                 return "";
+               } 
+               char open = brackets.top();
+               brackets.pop();
+               switch(c){
+                   case ')' : if (open!='(') {
+                              errMsg = string("closing ") + c 
+                                       + " was opened by " + open;
+                              correct= false;
+                              return "";
+                              }
+                              break;
+                   case ']' : if (open!='[') {
+                                 errMsg = string("closing ") + c 
+                                           + " was opened by " + open;
+                                 correct = false;
+                                 return "";
+                              }
+                              break;
+                   case '}' : if (open!='}') {
+                                 errMsg = string("closing ") + c 
+                                          + " was opened by " + open;
+                                 correct = false;
+                                 return "";
+                              }
+                              break;
+               } 
+             } else if(c=='.') { // replace followed by a letter  by a ':'
+                if(pos<cmd.size()-1){
+                  if(stringutils::isLetter(cmd[pos+1])){
+                     c = ':';
+                  }
+                }
+             }
+             res << c;
+          }
+          pos++;
+          break;
+        }
+        case 1 : { // within an double quoted string
+           res << c;
+           if(c=='"'){
+              state = 0;
+           }
+           pos++;
+           break;
+        }
+        case 2: { // within a single quoted string
+           res << c;
+           if(c=='\''){
+             state = 0;
+           }
+           pos++;
+           break;
+        } 
+        case 3: // within an identifier to reqrite
+            if(isIdentChar(c)){
+               res << tolower(c);
+               pos++;
+            } else {
+               state = 0;
+            }
+            break;
+        case 4:
+            if(isIdentChar(c)){ // whithin an normal identifier
+               res << c;
+               pos++;
+            } else {
+               state = 0;
+            }
+            break;
+        }
+     }
+     // check whether all opened brackts are closed
+     if(!brackets.empty()){
+          correct = false;
+          errMsg = "found unclosed brackets";
+          return "";
+     } 
+     correct = true;
+     errMsg = "";
+     return res.str();
 }
 
 
@@ -709,6 +877,234 @@ void showResult(ListExpr res){
 }
 
 
+bool isBlank(char c){
+  for(size_t i=0;i<blanks.length();i++){
+    if(c==blanks[i]) return true;
+  }
+  return false;
+}
+
+
+vector<pair<int,int> > detectSelects(const string& cmd, bool& ok){
+   vector<pair<int,int> > res;
+   // search for ( <blank>* select ... ) within cmd and 
+   // returns the positions of the brackets within cmd
+   // if several such constrvcts are present in cmd, all
+   // occurrences will be returned
+   size_t pos=0;
+   size_t state = 0; 
+       // 0  = outside select
+       // 1  = inside double quoted string outside select
+       // 2  = inside single quoted string outside select
+       // 3  = after bracket outside select
+       // 4  = after s
+       // 5  = after e
+       // 6  = after l
+       // 7  = after e
+       // 8  = after c
+       // 9  = after t
+       // 10 = select reached
+       // 11 = inside double quoted string inside select
+       // 12 = inside single quoted string inside select
+
+   int open_brackets = 0; // number of open round brackets 
+                         // within select
+
+  int begin=-1;
+
+   while(pos < cmd.length()){
+      char c = cmd[pos];
+      switch(state){
+       case 0 : 
+          switch(c){
+             case '"'  : state = 1; break;
+             case '\'' : state = 2; break;
+             case '('  : state = 3; 
+                         begin = pos;
+                         break;
+             // for all other cases, the state is not changed
+          }
+          pos++;
+          break;
+       case 1 :
+           if(c=='"'){
+             state = 0;
+           }    
+           pos++;
+           break;
+       case 2 :
+           if(c=='\''){
+             state = 0;
+           }    
+           pos++;
+           break;
+       case 3:
+           if(c=='s'){
+              state = 4;
+              pos++;
+           } else if(isBlank(c)){
+              pos++;
+           } else {
+              state = 0;
+           }
+           break;
+       case 4:
+           if(c=='e'){
+              state = 5;
+              pos++;
+           } else {
+              state = 0;
+           }
+           break;
+       case 5:
+           if(c=='l'){
+              state = 6;
+              pos++;
+           } else {
+              state = 0;
+           }
+           break;
+       case 6:
+           if(c=='e'){
+              state = 7;
+              pos++;
+           } else {
+              state = 0;
+           }
+           break;
+       case 7:
+           if(c=='c'){
+              state = 8;
+              pos++;
+           } else {
+              state = 0;
+           }
+           break;
+       case 8:
+           if(c=='t'){
+              state = 9;
+              pos++;
+           } else {
+              state = 0;
+           }
+           break;
+       case 9:
+           if(isBlank(c)){
+              state = 10;
+              pos++;
+           } else {
+              state = 0;
+           }
+           break;
+
+       case 10:
+          switch(c){
+             case '"'  : state=11; break;
+             case '\'' : state=12; break;
+             case '('  : open_brackets++; break;
+             case ')' :
+                 if(open_brackets==0){
+                    // end of select reached
+                    res.push_back(pair<int,int>(begin,pos));
+                    state = 0;
+                 } else {
+                    open_brackets--;
+                 }
+          }
+          pos++;
+          break;
+       case 11: 
+            if(c=='"'){
+              state=10;
+            }
+            pos++;
+            break;
+       case 12:
+            if(c=='\''){
+              state=10;
+            }
+            pos++;
+            break;
+       default : assert(false);
+      }
+   }
+   ok = (state==0) &&  (open_brackets==0);
+   return res;
+}
+
+
+string select2Secondo(const string& select, bool& correct){
+   string errMsg;
+   string cmd = checkSQLCommand("sql "+select,correct, errMsg);
+   if(!correct){
+     cout << "syntax error in command :" << errMsg << endl;
+     return "";
+   }
+   fid_t fid = PL_open_foreign_frame();
+   term_t a0 = PL_new_term_refs(2);
+   PL_put_atom_chars(a0, (cmd).c_str());
+   predicate_t p = PL_predicate("sqlToPlan",2,"");
+   qid_t id;
+   string plan="";
+   int count =0;
+
+   try{
+      id = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, p, a0);
+      if(PL_next_solution(id)){
+        count++;
+        char* res;
+        if(PL_get_atom_chars(a0+1,&res)){
+           string answer(res);
+           if(stringutils::startsWith(answer,"::ERROR::")){
+               errMsg = answer.substr(9);
+               correct = false;
+           } else {
+                cmd =  answer; 
+            }
+         } else {
+            correct =  false;
+         }
+       }
+       PL_close_query(id);
+    } catch(...){
+        errMsg =  "Exception occurred";
+        correct = false;
+    }
+    PL_discard_foreign_frame(fid);
+    return cmd;
+}
+
+
+string rewriteSelects(const string& cmd, bool& ok){
+   vector<pair<int,int> > selects = detectSelects(cmd,ok);
+   if((selects.size()==0) || !ok){
+     return cmd;
+   }
+   string res="";
+   size_t posCmd = 0;
+   size_t posSel = 0;
+   while(posCmd <  cmd.length() && ok){
+      int l = selects[posSel].first - posCmd;
+      res += cmd.substr(posCmd, l);
+      res += "( "+ select2Secondo(cmd.substr(selects[posSel].first + 1, 
+              selects[posSel].second - (1 + selects[posSel].first)),ok)
+             + " )";
+      posCmd = selects[posSel].second + 1;
+      posSel++;
+      if(posSel==selects.size()){
+          res += cmd.substr(posCmd);
+          posCmd = cmd.length(); 
+      }
+   }
+   if(ok){
+      cout << "command after reqplacing embedded select clauses:" << endl;
+      cout << res << endl << endl;
+   }
+
+   return res;
+}
+
+
 /*
 ~processDirectSecondoCommand~
 
@@ -716,7 +1112,7 @@ This functions sends a command to the kernel and shows the
 result.
 
 */
-bool processDirectSecondoCommand(const string& cmd){
+bool processDirectSecondoCommand(string cmd){
    SecErrInfo err;
    ListExpr resList;
 
@@ -739,6 +1135,12 @@ bool processDirectSecondoCommand(const string& cmd){
       si->Secondo(cmdList, resList,err);
    } else {
        // usual secondo command without in user level syntax
+       bool ok=true;
+       cmd = rewriteSelects(cmd, ok);
+       if(!ok){
+         cout << "error during detecting embedded select clauses" << endl;
+         return false;
+       } 
        si->Secondo(cmd, resList, err);
    }
    if(err.code==0){
@@ -758,174 +1160,6 @@ bool processDirectSecondoCommand(const string& cmd){
 }
 
 
-/*
-~isUpperCase~
-
-Auxiliary function chinging whether an character is an upper case.
-
-*/
-bool isUpperCase(char c){
-  return (c>='A') && (c <='Z');
-}
-
-/*
-~tolower~
-
-This function converts an upper case character into a lower case.
-
-*/
-char tolower(char c){
-   if(!isUpperCase(c)) return c;
-   return  (c + 'a') - 'A';
-}
-
-
-/*
-~isIdentChar~
-
-This functions checks whether a character is allowed to be part of
-an identifier.
-
-*/
-bool isIdentChar(char c){
-  return stringutils::isLetter(c) || stringutils::isDigit(c) || (c=='_');
-}
-
-
-/*
-~checkSQLCommand~
-
-This function checks the brackets within an command. 
-The command itselfs is rewritten by converting symbols starting
-with an upper case into lower case symbols. If brackets are 
-not correct, the problem description is stored into errMsg and 
-correct is set to false;
-
-
-*/
-string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
-   stack<char> brackets;
-
-   int state = 0; // start of a word
-
-   // states
-   // 0 begin of a symbol
-   // 1 within a double quoted string
-   // 2 within a single quoted string
-   // 3 within a symbol starting with a capital
-   // 4 within a symbol starting lower case
-   stringstream res;
-
-   size_t pos = 0;
-
-   while(pos < cmd.size()){
-     char c = cmd[pos];
-     switch(state){ // somewhere
-        case 0: {
-          if(c=='"'){
-             state = 1;
-             res << c; 
-          } else if(c=='\''){
-             state = 2;
-             res << c;
-          } else if(stringutils::isLetter(c)){
-               if(isUpperCase(c)){
-                   state = 3;
-                   res << tolower(c);
-               } else {
-                   state = 4;
-                   res << c;
-               }
-          } else {
-             if((c=='(') ||  c=='[' || c=='{'){
-               brackets.push(c);
-             } else if(c==')' || c==']' || c=='}'){
-               if(brackets.empty()){
-                 errMsg = string("found closing ") + c + " that was not opened";
-                 correct = false;
-                 return "";
-               } 
-               char open = brackets.top();
-               brackets.pop();
-               switch(c){
-                   case ')' : if (open!='(') {
-                              errMsg = string("closing ") + c 
-                                       + " was opened by " + open;
-                              correct= false;
-                              return "";
-                              }
-                              break;
-                   case ']' : if (open!='[') {
-                                 errMsg = string("closing ") + c 
-                                           + " was opened by " + open;
-                                 correct = false;
-                                 return "";
-                              }
-                              break;
-                   case '}' : if (open!='}') {
-                                 errMsg = string("closing ") + c 
-                                          + " was opened by " + open;
-                                 correct = false;
-                                 return "";
-                              }
-                              break;
-               } 
-             } else if(c=='.') { // replace followed by a letter  by a ':'
-                if(pos<cmd.size()-1){
-                  if(stringutils::isLetter(cmd[pos+1])){
-                     c = ':';
-                  }
-                }
-             }
-             res << c;
-          }
-          pos++;
-          break;
-        }
-        case 1 : { // within an double quoted string
-           res << c;
-           if(c=='"'){
-              state = 0;
-           }
-           pos++;
-           break;
-        }
-        case 2: { // within a single quoted string
-           res << c;
-           if(c=='\''){
-             state = 0;
-           }
-           pos++;
-           break;
-        } 
-        case 3: // within an identifier to reqrite
-            if(isIdentChar(c)){
-               res << tolower(c);
-               pos++;
-            } else {
-               state = 0;
-            }
-            break;
-        case 4:
-            if(isIdentChar(c)){ // whithin an normal identifier
-               res << c;
-               pos++;
-            } else {
-               state = 0;
-            }
-            break;
-        }
-     }
-     // check whether all opened brackts are closed
-     if(!brackets.empty()){
-          correct = false;
-          errMsg = "found unclosed brackets";
-          return "";
-     } 
-     correct = true;
-     errMsg = "";
-     return res.str();
-}
 
 
 
