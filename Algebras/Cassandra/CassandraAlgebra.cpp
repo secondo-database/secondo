@@ -418,7 +418,7 @@ public:
     : contactPoint(myContactPoint), keyspace(myKeyspace), 
     relationName(myRelationName), consistence(myConsistence), 
     systemname(mySystemname), attrIndex(myAttrIndex), tupleType(myTupleType),
-sendTuple(0) { 
+    sendTuple(0), writtenBytes(0) { 
       
 #ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
@@ -457,6 +457,12 @@ sendTuple(0) {
   }
   
   virtual ~CSpreadLocalInfo() {
+
+       cout << endl;
+       cout << "Wrote " << writtenBytes / (1024 * 1024) 
+            << " MB to cassandra" << endl;
+       cout << endl;
+
        if(statement != NULL) {
           cassandra -> freePreparedStatement(statement);
           statement = NULL;
@@ -493,7 +499,7 @@ sendTuple(0) {
    //blockSize += sizeof(blockSize) + sizeof(u_int16_t);
    char data[blockSize];
    tuple->WriteToBin(data, coreSize, extensionSize, flobSize);
- 
+   writtenBytes = writtenBytes + blockSize;
           stringstream tss;
           tss << sendTuple;
           string tupleNumberStr = tss.str();
@@ -528,8 +534,9 @@ private:
   int attrIndex;               // Index of attribute to cluster
   string tupleType;            // Type of the tuples (Nested List String)
   CassandraAdapter *cassandra; // Cassandra connection
- size_t sendTuple;            // Number of send tuple
-   const CassPrepared *statement; // The prepared statement
+  size_t sendTuple;            // Number of send tuple
+  const CassPrepared *statement; // The prepared statement
+  size_t writtenBytes;
 };
 
 int CSpread(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -1036,7 +1043,7 @@ public:
   
     : tupleType(myType), contactPoint(myContactPoint), keyspace(myKeyspace), 
     relationName(myRelationName), consistence(myConsistence),
-    cassandra(NULL), result(NULL) {
+    cassandra(NULL), result(NULL), readBytes(0) {
 
 #ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
@@ -1048,6 +1055,11 @@ public:
   
   virtual ~CCollectLocalInfo() {
     
+    cout << endl;
+    cout << "Read " << readBytes / (1024 * 1024) 
+         << " MB from cassandra" << endl;
+    cout << endl;
+
     if(result != NULL) {
       result -> shutdownQueue();
       delete result;
@@ -1107,7 +1119,9 @@ public:
      
       char *bytes = (char *)malloc(fetchedTuple->size() + 1);
       memcpy(bytes, fetchedTuple->c_str(), fetchedTuple->size() + 1);
-            
+
+      readBytes = readBytes + fetchedTuple->size();            
+
       // Build tuple and return
       Tuple* tuple = new Tuple(tupleType);
       tuple->ReadFromBin(bytes);
@@ -1137,6 +1151,7 @@ private:
   string beginToken;           // Begin Token
   string endToken;             // End Token
   int    queryId;              // Queryid
+  size_t readBytes;            // The amount of read bytes
 };
 
 template<CollectFetchMode fetchMode>
