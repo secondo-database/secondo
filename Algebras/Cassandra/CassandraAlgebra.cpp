@@ -1041,9 +1041,11 @@ public:
   CCollectLocalInfo(ListExpr myType, string myContactPoint, string myKeyspace,
                     string myRelationName, string myConsistence) 
   
-    : tupleType(myType), contactPoint(myContactPoint), keyspace(myKeyspace), 
+    : tupleType(NULL), contactPoint(myContactPoint), keyspace(myKeyspace), 
     relationName(myRelationName), consistence(myConsistence),
     cassandra(NULL), result(NULL), readBytes(0) {
+
+      tupleType = new TupleType(myType);
 
 #ifdef __DEBUG__
       cout << "Contact point is " << contactPoint << endl;
@@ -1059,6 +1061,10 @@ public:
     cout << "Read " << readBytes / (1024 * 1024) 
          << " MB from cassandra" << endl;
     cout << endl;
+
+    if(tupleType != NULL) {
+        tupleType -> DeleteIfAllowed();
+    }
 
     if(result != NULL) {
       result -> shutdownQueue();
@@ -1110,7 +1116,7 @@ public:
   }
   
   Tuple* fetchNextTuple() {
-     
+    
       string *fetchedTuple = result -> getNextTuple();
          
       if(fetchedTuple == NULL) {
@@ -1141,7 +1147,7 @@ public:
   }
   
 private:
-  ListExpr tupleType;          // Tuple Type
+  TupleType* tupleType;          // Tuple Type
   string contactPoint;         // Contactpoint for our cluster
   string keyspace;             // Keyspace
   string relationName;         // Relation name to delete
@@ -1170,8 +1176,6 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
 
   cli = (CCollectLocalInfo<fetchMode>*)local.addr;
   
-  ListExpr resultType = GetTupleResultType(s);
-  
   switch(message) {
     case OPEN: 
 
@@ -1193,7 +1197,8 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
        cout << "Unknown consistence level: " << consistenceLevel << endl; 
      } else {
  
-        cli = new CCollectLocalInfo<fetchMode>(nl -> Second(resultType),
+        cli = new CCollectLocalInfo<fetchMode>(
+                      nl -> Second(GetTupleResultType(s)),
                       host,
                       keyspace,
                       (((FText*)args[0].addr)->GetValue()),
@@ -1239,7 +1244,7 @@ int CCollect(Word* args, Word& result, int message, Word& local, Supplier s)
       
       // Fetch next tuple from cassandra
       result.addr = cli -> fetchNextTuple();
-      
+
       if(result.addr != NULL) {     
         return YIELD;
       } else  {     
@@ -1747,7 +1752,7 @@ int CQueryList(Word* args, Word& result, int message, Word& local, Supplier s)
       // Fetch next query from cassandra
       result.addr = cli -> fetchNextTuple();
       
-      if(result.addr != NULL) {     
+        if(result.addr != NULL) {     
         return YIELD;
       } else  {     
         return CANCEL;
