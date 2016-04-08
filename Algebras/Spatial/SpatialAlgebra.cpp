@@ -25569,7 +25569,8 @@ class Contour2{
            line->get(i,s);
            addSegment(s);  
          }
-         if(closed && (polylines.back()[0] != polylines.back().back())){
+         if(    (polylines.size()>0) && closed 
+             && (polylines.back()[0] != polylines.back().back())){
            polylines.back().push_back(polylines.back()[0]);
          }
      }
