@@ -4082,6 +4082,8 @@ class SimplePoint{
      double getX()const{ return x;}
      double getY()const{ return y;}
 
+     void  setX( const double _x){ x=_x;}
+     void  setY( const double _y){ y=_y;}
 
   private:
      double x;

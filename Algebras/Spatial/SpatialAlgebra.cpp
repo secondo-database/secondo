@@ -25508,18 +25508,19 @@ Operator creating the contour of a dline value.
 
 */
 
-enum join_style{join_none,join_bevel};
+enum join_style{join_none,join_bevel, join_miter};
 
 class Contour2{
 
  public:
-    Contour2(DLine* line, double w){
-       fillPolylines(line);
+    Contour2(DLine* line, double w, join_style _join, bool _closed ){
        plpos = 0;
        clpos = 0;
-       closed = false;
+       closed = _closed;
        width=w;
-       join = join_bevel;
+       join = _join;
+       maxMiter = 3*w;
+       fillPolylines(line);
     }
 
    // by contruction, the interior of the region 
@@ -25527,19 +25528,22 @@ class Contour2{
     vector<SimplePoint>* next(){
        while(plpos<polylines.size()){
           vector<SimplePoint>& pl = polylines[plpos];
-          size_t end = closed?pl.size():pl.size()-1;
+          size_t end = pl.size()-1;
           if(clpos==end){ // start new polyline
              plpos++;
              clpos=0;
           } else {
-             bool left_end = !closed && clpos==0;
-             bool right_end = !closed && clpos==end-1;
+             bool left_end = !closed && (clpos==0);
+             bool right_end = !closed && (clpos==end-1);
+             int o = closed?(clpos==end-1?1:0):0;
              vector<SimplePoint>* res = getContour(pl[clpos], 
                                                    pl[(clpos+1) % pl.size()],
-                                                   pl[(clpos+2)%pl.size()],
+                                                   pl[(clpos+2+o) % pl.size()],
                                                    left_end, right_end);
              clpos++;
-             return res;
+             if(res){
+               return res;
+             }
           }
        }
        return 0;
@@ -25554,6 +25558,7 @@ class Contour2{
     bool closed;
     double width;
     join_style join;
+    double maxMiter;
    
     enum direction{left, right, forward};
 
@@ -25564,6 +25569,9 @@ class Contour2{
            line->get(i,s);
            addSegment(s);  
          }
+         if(closed && (polylines.back()[0] != polylines.back().back())){
+           polylines.back().push_back(polylines.back()[0]);
+         }
      }
 
      void addSegment(SimpleSegment& s){
@@ -25571,6 +25579,9 @@ class Contour2{
            addFreshVector(s);
         } else {
            if(SimplePoint(s.x1,s.y1) != getLastPoint()){
+             if(closed&&(polylines.back()[0] != polylines.back().back())){
+               polylines.back().push_back(polylines.back()[0]);
+             }
              addFreshVector(s);
            } else {
               polylines.back().push_back(SimplePoint(s.x2,s.y2)); 
@@ -25591,8 +25602,13 @@ class Contour2{
 
      vector<SimplePoint>* getContour(SimplePoint& p1, SimplePoint& p2, 
                               SimplePoint& p3, bool left_end, bool right_end){
+
+          if(p1==p2){
+            return 0;
+          }
+
           vector<SimplePoint>* r = getRectangle(p1,p2); 
-          if((join==join_none) || right_end){
+          if((join==join_none) || right_end || (p2==p3) ){
               return r;
           }
           direction dir = getDirection(p1,p2,p3);
@@ -25603,7 +25619,6 @@ class Contour2{
           
           if(join==join_bevel){
             if(dir==right){
-               cout << "right" << endl;
                vector<SimplePoint>* res = new vector<SimplePoint>();
                res->push_back(r->at(0));
                res->push_back(r->at(1));
@@ -25625,6 +25640,44 @@ class Contour2{
                delete r;
                delete r2;
                return res;
+            }
+          }
+          if(join == join_miter){
+            if(dir==right){
+              SimplePoint ip = intersectionPoint(r->at(2), r->at(3), 
+                                                r2->at(2), r2->at(3));
+              if(dist(p2,ip) > maxMiter){
+                  setDist(p2,ip,maxMiter);
+              }
+              vector<SimplePoint>* res = new vector<SimplePoint>();
+              res->push_back(r->at(0)); 
+              res->push_back(r->at(1));
+              res->push_back(p2);
+              res->push_back(r2->at(3));
+              res->push_back(ip);
+              res->push_back(r->at(2));
+              res->push_back(r->at(3)); 
+              delete r;
+              delete r2;
+              return res;
+            } else {
+               SimplePoint ip = intersectionPoint(r->at(0), r->at(1),
+                                                r2->at(0), r2->at(1));
+              if(dist(p2,ip) > maxMiter){
+                  setDist(p2,ip,maxMiter);
+              }
+              vector<SimplePoint>* res = new vector<SimplePoint>();
+              res->push_back(r->at(0));
+              res->push_back(r->at(1));
+              res->push_back(ip);
+              res->push_back(r2->at(0));
+              res->push_back(p2);
+              res->push_back(r->at(2));
+              res->push_back(r->at(3));
+              delete r;
+              delete r2;
+              return res;
+                 
             }
           }
           return 0;
@@ -25667,6 +25720,45 @@ class Contour2{
        return A>0?left: right;
     }
 
+    static SimplePoint intersectionPoint(SimplePoint& p1, SimplePoint& p2,
+                                         SimplePoint& p3, SimplePoint& p4){
+     double u = p2.getX()- p1.getX();
+     double v = p3.getX() - p4.getX();
+     double w = p1.getX() - p3.getX();
+     double x = p2.getY() - p1.getY();
+     double y = p3.getY() - p4.getY();
+     double z = p1.getY() - p3.getY();
+     double k = y*u-v*x;
+     if(k==0){  // segments are parallel
+        assert(false); 
+     }   
+     double delta2 = (w*x-z*u) / k;
+     double delta1;
+     if(abs(u) > abs(x)){
+        delta1 = -1*((w+delta2*v)/u);
+     } else {
+        delta1 = -1*((z+delta2*y)/x);
+     }   
+     double xp = p1.getX() + delta1*(p2.getX()-p1.getX());
+     double yp = p1.getY() + delta1*(p2.getY() - p1.getY());
+     // just for check
+     return SimplePoint(xp,yp);
+   }
+
+   void setDist(const SimplePoint& p1, SimplePoint& p2, double dist){
+       double dx = p2.getX() - p1.getX();
+       double dy = p2.getY() - p1.getY();
+       double l = sqrt(dx*dx + dy*dy);
+       double delta = dist/l;
+       p2.setX(p1.getX() + delta*dx);
+       p2.setY(p1.getY() + delta*dy);
+   }
+   double dist(const SimplePoint& p1, const SimplePoint& p2){
+       double dx = p2.getX() - p1.getX();
+       double dy = p2.getY() - p2.getY();
+       return sqrt(dx*dx + dy*dy);
+   }
+
 
 
 };
@@ -25677,12 +25769,14 @@ class Contour2{
 ListExpr contour2TM(ListExpr le){
    // to be extended by further arguments
    // currently only dline and width
-   string err = "dline x real expected";
-   if(!nl->HasLength(le,2)){
+   string err = "dline x real x int x bool expected";
+   if(!nl->HasLength(le,4)){
      return listutils::typeError(err);
    }
    if(   !DLine::checkType(nl->First(le))
-       ||!CcReal::checkType(nl->Second(le))){
+       ||!CcReal::checkType(nl->Second(le))
+       ||!CcInt::checkType(nl->Third(le))
+       ||!CcBool::checkType(nl->Fourth(le))){
       return listutils::typeError(err);
    }
    return listutils::basicSymbol<Region>();
@@ -25719,8 +25813,10 @@ int contour2VM(Word* args, Word& result, int message, Word& local,Supplier s){
    Region* res = (Region*) result.addr;
    DLine*  L = (DLine*) args[0].addr;
    CcReal* W = (CcReal*) args[1].addr;
+   CcInt* J = (CcInt*) args[2].addr;
+   CcBool* C = (CcBool*) args[3].addr;
 
-   if(!L->IsDefined() || !W->IsDefined()){
+   if(!L->IsDefined() || !W->IsDefined() || !J->IsDefined() || !C->IsDefined()){
       res->SetDefined(false);
       return 0;    
    } 
@@ -25730,12 +25826,20 @@ int contour2VM(Word* args, Word& result, int message, Word& local,Supplier s){
         return 0;
    }
    vector<SimplePoint>* poly;
-   Contour2 C(L,w);
+   join_style join = join_none;
+   switch(J->GetValue()){
+      case 0 : join = join_none; break;
+      case 1 : join = join_bevel; break;
+      case 2 : join = join_miter; break;
+   }
+   
+   Contour2 Co(L,w, join, C->GetValue());
+   
    Region temp1(0);
    res->SetDefined(true);
    Region* t2 = new Region(0);
    Region* tr = res;
-   while( (poly= C.next())){
+   while( (poly= Co.next())){
       buildRegion(*poly,&temp1);
       // we have to build the union between res and temp
       tr->Union(temp1, *t2);
@@ -25753,9 +25857,14 @@ int contour2VM(Word* args, Word& result, int message, Word& local,Supplier s){
 
 
 OperatorSpec contour2Spec(
-  "dline x real -> region",
-  "_ contour2 [_] ",
-  "Adds a buffer around the segments of a dline",
+  "dline x real x int x bool -> region",
+  "_ contour2 [_,_,_] ",
+  "Adds a buffer around the segments of a dline."
+  "The second argument specifies the half width of the buffer."
+  "The third argument specifies the join style, currently imlemented "
+  "style are: 1 : bevel join, 1 : miter join. All other number will "
+  "lead to no join. The boolean argument specifies the closeness of the "
+  "result." ,
   " query sl contour2[3.0]"
 );
 

@@ -116,6 +116,12 @@ class SimpleSegment{
          return true;
       }
 
+      bool isPoint() const{
+        return SimplePoint(x1,y2) == SimplePoint(x2,y2); 
+      }
+
+      
+
 
       static int comp(const double d1, const double d2){
          if(d1<d2) return -1;
@@ -189,6 +195,9 @@ class DLine : public StandardSpatialAttribute<2>{
      }
 
      void append(const SimpleSegment& s) {
+        if(s.isPoint()){
+           return;
+        }
         segments.Append(s);
         bbox.Extend(s.getBox());
      }
