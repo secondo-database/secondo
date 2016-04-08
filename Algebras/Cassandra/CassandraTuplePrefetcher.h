@@ -64,7 +64,8 @@ public:
    CassandraTuplePrefetcher(CassSession* mySession, 
            string myStatement, CassConsistency myConsistenceLevel) 
        : session(mySession), consistenceLevel(myConsistenceLevel), 
-           receivedTerminals(0), shutdown(false), workdone(false) {
+           receivedTerminals(0), shutdown(false), workdone(false),
+           queueEmpty(0), queueFull(0) {
           
       queries.push_back(myStatement);
       init();
@@ -73,7 +74,8 @@ public:
    CassandraTuplePrefetcher(CassSession* mySession, vector<string> myQueries,
       CassConsistency myConsistenceLevel) 
        : session(mySession), consistenceLevel(myConsistenceLevel), 
-         queries(myQueries), receivedTerminals(0) {
+         queries(myQueries), receivedTerminals(0), queueEmpty(0),
+         queueFull(0) {
           
       init();
    }
@@ -154,6 +156,8 @@ private:
    size_t receivedTerminals;
    volatile bool shutdown;
    volatile bool workdone;
+   size_t queueEmpty;   // How often was the queue empty
+   size_t queueFull;    // How often was the queue full
 };
 
 } // Namespace
