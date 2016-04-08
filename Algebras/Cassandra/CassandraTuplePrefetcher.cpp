@@ -57,6 +57,7 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
       pthread_mutex_lock(&tupleQueueMutex);
       
       while(tuples.size() >= MAX_PREFETCH_TUPLES) {
+         queueFull++;
          pthread_cond_wait(&tupleQueueCondition, &tupleQueueMutex);
       }
    
@@ -65,6 +66,7 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
       tuples.push(fetchedTuple);
    
       if(wasEmpty) {
+         queueEmpty++;
          pthread_cond_broadcast(&tupleQueueCondition);
       }
       
@@ -190,6 +192,14 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
              break;
           }
        }
+
+       // Print statistics
+#ifdef __DEBUG__
+       cout << "The prefetch queue was " << queueEmpty 
+            << " times empty" << endl;
+       cout << "The prefetch queue was " << queueFull
+            << " times full" << endl;
+#endif
    }
    
    void CassandraTuplePrefetcher::startTuplePrefetch() {
