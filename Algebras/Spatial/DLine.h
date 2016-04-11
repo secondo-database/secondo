@@ -117,7 +117,7 @@ class SimpleSegment{
       }
 
       bool isPoint() const{
-        return SimplePoint(x1,y2) == SimplePoint(x2,y2); 
+        return SimplePoint(x1,y1) == SimplePoint(x2,y2); 
       }
 
       
