@@ -25219,11 +25219,12 @@ Creates a dline.
 
 */
 ListExpr twistTM(ListExpr args){
-  string err = "real x int x int expected";
+  string err = "{real,int} x int x int expected";
   if(!nl->HasLength(args,3)){
      return listutils::typeError(err);
   }
-  if(   !CcReal::checkType(nl->First(args))
+  if(   (   !CcReal::checkType(nl->First(args))
+          &&!CcInt::checkType(nl->First(args)))
      || !CcInt::checkType(nl->Second(args))
      || !CcInt::checkType(nl->Third(args))){
      return listutils::typeError(err);
@@ -25231,11 +25232,11 @@ ListExpr twistTM(ListExpr args){
   return listutils::basicSymbol<DLine>();
 }
 
-
-int twistVM(Word* args, Word& result, int message, Word& local,Supplier s){
+template<class S>
+int twistVMT(Word* args, Word& result, int message, Word& local,Supplier s){
    result = qp->ResultStorage(s);
    DLine* res = (DLine*) result.addr;
-   CcReal* size = (CcReal*) args[0].addr;
+   S* size = (S*) args[0].addr;
    CcInt* corners = (CcInt*) args[1].addr;
    CcInt* offset = (CcInt*) args[2].addr;
 
@@ -25267,9 +25268,18 @@ int twistVM(Word* args, Word& result, int message, Word& local,Supplier s){
    return 0;
 }
 
+ValueMapping twistVM[] = {
+    twistVMT<CcInt>,
+    twistVMT<CcReal>
+};
+
+int twistSelect(ListExpr args){
+  return CcInt::checkType(nl->First(args))?0:1;
+}
+
 
 OperatorSpec twistSpec(
-  " real x int x int -> dline",
+  " {real,int} x int x int -> dline",
   " twist(size, corners, offset)",
   " Creates a nice  dline. ",
   " query twist(40.0,9,4)"
@@ -25278,8 +25288,9 @@ OperatorSpec twistSpec(
 Operator twistOp(
   "twist",
   twistSpec.getStr(),
+  2,
   twistVM,
-  Operator::SimpleSelect,
+  twistSelect,
   twistTM
 );
 
