@@ -62,35 +62,36 @@ for region in $regions; do
 
    echo "delete Natural_$secondo_region;" >> $tmpfile
    echo "delete Roads_$secondo_region;" >> $tmpfile
+   echo "delete Buildings_$secondo_region;" >> $tmpfile
+
    echo "let Natural_$secondo_region = dbimport2('../bin/$datadir/$region/natural.dbf') addcounter [No , 1] shpimport2 ('../bin/$datadir/$region/natural.shp') namedtransformstream [GeoData ] addcounter [No2, 1] mergejoin [No, No2] remove [No, No2 ] filter [ isdefined ( bbox(.GeoData ))] validateAttr consume;" >> $tmpfile
    echo "let Roads_$secondo_region = dbimport2('../bin/$datadir/$region/roads.dbf') addcounter [No , 1] shpimport2 ('../bin/$datadir/$region/roads.shp') namedtransformstream [GeoData ] addcounter [No2, 1] mergejoin [No, No2] remove [No, No2 ] filter [ isdefined ( bbox(.GeoData ))] validateAttr consume;" >> $tmpfile
+   echo "let Buildings_$secondo_region = dbimport2('../bin/$datadir/$region/buildings.dbf') addcounter [No , 1] shpimport2 ('../bin/$datadir/$region/buildings.shp') namedtransformstream [GeoData ] addcounter [No2, 1] mergejoin [No, No2] remove [No, No2 ] filter [ isdefined ( bbox(.GeoData ))] validateAttr consume;" >> $tmpfile
 done
 
-# Merge natural regions
+# Merge regions
 arr=($secondo_regions)
 firstregion=${arr[0]};
 echo "delete Natural;" >> $tmpfile
-echo -n "let Natural=Natural_$firstregion feed " >> $tmpfile 
+echo "delete Roads;" >> $tmpfile
+echo "delete Buildings;" >> $tmpfile
+
+natural="let Natural=Natural_$firstregion feed " 
+roads="let Roads=Roads_$firstregion feed " 
+buildings="let Buildings=Buildings_$firstregion feed " 
 
 for ((i=1; i<${#arr[*]}; i++)); do
-   echo -n "Natural_${arr[i]} feed concat " >> $tmpfile 
+   natural="$natural Natural_${arr[i]} feed concat " 
+   roads="$roads Roads_${arr[i]} feed concat "
+   buildings="$buildings Buildings_${arr[i]} feed concat "
 done
-echo "trimAllUndef consume;" >> $tmpfile
+echo "$natural trimAllUndef consume;" >> $tmpfile
+echo "$roads trimAllUndef consume;" >> $tmpfile
+echo "$buildings trimAllUndef consume;" >> $tmpfile
 
 # Create forest region
 echo "delete Forest;" >> $tmpfile
 echo "let Forest = Natural feed filter [.Type contains 'forest'] consume;" >> $tmpfile
-
-# Merge road regions
-arr=($secondo_regions)
-firstregion=${arr[0]};
-echo "delete Roads;" >> $tmpfile
-echo -n "let Roads=Roads_$firstregion feed " >> $tmpfile 
-
-for ((i=1; i<${#arr[*]}; i++)); do
-   echo -n "Roads_${arr[i]} feed concat " >> $tmpfile 
-done
-echo "trimAllUndef consume;" >> $tmpfile
 
 # Create database in SECONDO
 cat $tmpfile
