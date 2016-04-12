@@ -85,7 +85,6 @@ operator toline alias TOLINE pattern op( _ )
 operator utm alias UTM pattern op( _ )
 operator scale alias SCALE pattern _ op [ _, _ ]
 operator create_triangle alias CREATE_TRIANGLE pattern op(_, _, _)
-operator bufferLine alias BUFFERLINE pattern op(_,_)
 operator circle alias CIRCLE pattern op ( _ , _ , _ )
 operator longlines alias LONGLINES pattern _ op
 operator splitslineatpoints alias SPLITSLINEATPOINTS pattern op ( _ , _ )

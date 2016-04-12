@@ -21037,226 +21037,8 @@ Operator spatialgetendpoint (
 10 Type Constructor ~geoid~
 
 */
-    GenTC<Geoid> geoid_t;
+ GenTC<Geoid> geoid_t;
 
-
-
-/*
-9.23 Operator bufferLine
-
-9.23.1 Type Mapping
-
-Signature is :
-
-   line x real -> region
-
-*/
-
-ListExpr bufferLineTM(ListExpr args){
-  string err = "line x real [x bool] expected";
-  int len = nl->ListLength(args);
-  if((len!=2) && (len!=3 )){
-    return listutils::typeError(err + " (wrong number of arguments)");
-  }
-  if(!Line::checkType(nl->First(args))){
-    return listutils::typeError(err);
-  }
-  if(!CcReal::checkType(nl->Second(args))){
-    return listutils::typeError(err);
-  }
-  if(len==2){
-    return nl->ThreeElemList( nl->SymbolAtom( Symbol::APPEND()),
-                          nl->OneElemList(nl->BoolAtom(false)),
-                          nl->SymbolAtom(Region::BasicType()));
-
-  }
-  if(!CcBool::checkType(nl->Third(args))){
-    return listutils::typeError(err);
-  }
-  return nl->SymbolAtom(Region::BasicType());
-}
-
-
-/*
-9.23.2 Value Mapping
-
-
-Auxiliary Function seg2reg
-
-This funtion converts a halfsegment into a region by adding a buffer
-zone of a given size.
-
-*/
-
-Region* seg2reg(HalfSegment& hs, double& buffer, const bool round = false){
-
-  Point p1 = hs.GetLeftPoint();
-  Point p2 = hs.GetRightPoint();
-
-  double len = hs.Length();
-
-  double dx = p2.GetX() - p1.GetX();
-  double dy = p2.GetY() - p1.GetY();
-
-  dx = (dx*buffer)/len;
-  dy = (dy*buffer)/len;
-
-  if(!round){ // use rectangular extension
-     p1.Translate(-dx/2, -dy/2);
-     p2.Translate(dx/2, dy/2);
-  }
-
-
-
-  Point r1(true, p1.GetX() + dy/2, p1.GetY() - dx/2);
-  Point r2(true, p1.GetX() - dy/2, p1.GetY() + dx/2);
-
-  Point r3(true, p2.GetX() + dy/2, p2.GetY() - dx/2);
-  Point r4(true, p2.GetX() - dy/2, p2.GetY() + dx/2);
-
-  AttrType attr(0);
-  int edgeno = 0;
-
-  Region* res = new Region(8);
-
-  res->StartBulkLoad();
-
-
-  HalfSegment hs1(true,r1,r2);
-  hs1.attr.edgeno=edgeno;
-  hs1.attr.insideAbove = dy>0;
-  (*res) += hs1;
-  hs1.SetLeftDomPoint(false);
-  (*res) += hs1;
-  edgeno++;
-
-
-  HalfSegment hs2(true,r1,r3);
-  hs2.attr.edgeno=edgeno;
-  hs2.attr.insideAbove = true;
-  (*res) += hs2;
-  hs2.SetLeftDomPoint(false);
-  (*res) += hs2;
-  edgeno++;
-
-
-  HalfSegment hs3(true,r3,r4);
-  hs3.attr.edgeno=edgeno;
-  hs3.attr.insideAbove = dy<=0;
-  (*res) += hs3;
-  hs3.SetLeftDomPoint(false);
-  (*res) += hs3;
-  edgeno++;
-
-
-  HalfSegment hs4(true,r2,r4);
-  hs4.attr.edgeno=edgeno;
-  hs4.attr.insideAbove = false;
-  (*res) += hs4;
-  hs4.SetLeftDomPoint(false);
-  (*res) += hs4;
-  edgeno++;
-  res->EndBulkLoad();
-
-  if(round){
-     Region* c1 = new Region(100);
-     Region* c2 = new Region(100);
-     double r = buffer/2;
-     int n = buffer/2;
-     if(n<8){
-       n=8;
-     }
-     if(n>100){
-       n = 100;
-     }
-     generateCircle(&p1,r,n,c1);
-     generateCircle(&p2,r,n,c2);
-     Region* tmp1 = new Region(200);
-     c1->Union(*c2,*tmp1);
-     delete c1;
-     c2->Clear();
-     res->Union(*tmp1,*c2);
-     delete res;
-     res = c2;
-  }
-  return res;
-}
-
-
-
-
-int bufferLineVM(Word* args, Word& result, int message,
-                               Word& local, Supplier s){
-
-  Line* line = (Line*) args[0].addr;
-  CcReal* buffer = (CcReal*) args[1].addr;
-  CcBool* round1 = (CcBool*) args[2].addr;
-
-  bool round = round1->IsDefined() && round1->GetValue();
-
-  result = qp->ResultStorage(s);
-  Region* res = (Region*) result.addr;
-
-  if(!line->IsDefined() || !buffer->IsDefined() || buffer->GetValue() <= 0){
-     res->SetDefined(false);
-     return 0;
-  }
-
-  double b = buffer->GetValue();
-
-  res->Clear();
-  Region* currentReg = 0;
-  Region* wholeReg = 0;
-
-  // cout << "Process " << line->Size() << "HalfSegments " << endl;
-
-  for(int i=0;i<line->Size();i++){
-     HalfSegment hs;
-     line->Get(i,hs);
-     if(hs.IsLeftDomPoint()){
-
-         // cout << "Process HalfSegment no " << i << endl;
-
-         currentReg = seg2reg(hs,b, round);
-
-
-         if(wholeReg==0){
-         //   cout << "This was the fisrt region" << endl;
-            wholeReg = currentReg;
-            currentReg = 0;
-         } else {
-          //  cout << "Not the first region, try to union" << endl;
-            Region* tmp = new Region(0);
-            wholeReg->Union(*currentReg,*tmp);
-            wholeReg->DeleteIfAllowed();
-            currentReg->DeleteIfAllowed();
-            wholeReg = tmp;
-            tmp=0;
-          //  cout << "union finished" << endl;
-         }
-      }
-  }
-  res->CopyFrom(wholeReg);
-  wholeReg->DeleteIfAllowed();
-  return 0;
-}
-
-
-const string bufferLineSpec =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text> line x real [ x round] -> region</text--->"
-"<text> bufferline(_,_ [, _]) </text--->"
-"<text>Converts a line into a region by adding a buffer.</text--->"
-"<text>query bufferLine(BGrenzenLinie,200)</text---> ) )";
-
-
-Operator bufferLine (
-  "bufferLine",
-  bufferLineSpec,
-  bufferLineVM,
-  Operator::SimpleSelect,
-  bufferLineTM
-);
 
 
 
@@ -25522,6 +25304,17 @@ class Contour2{
        maxMiter = 3*w;
        fillPolylines(line);
     }
+    
+
+    Contour2(Line* line, double w, join_style _join, bool _closed ){
+       plpos = 0;
+       clpos = 0;
+       closed = _closed;
+       width=w;
+       join = _join;
+       maxMiter = 3*w;
+       fillPolylines(line);
+    }
 
    // by contruction, the interior of the region 
    // is always left to the directed segments
@@ -25573,6 +25366,95 @@ class Contour2{
              && (polylines.back()[0] != polylines.back().back())){
            polylines.back().push_back(polylines.back()[0]);
          }
+     }
+
+
+     void fillPolylines(const Line* line){
+         int size = line->Size();
+         bool* used = new bool[size];
+         memset(used,0, size*sizeof(bool));
+         for(int i=0;i< size;i++){
+             if(!used[i]){
+                  HalfSegment hs;
+                  line->Get(i,hs);
+                  if(hs.IsLeftDomPoint()){
+                     addPolyLine(line, i, used);
+                  }
+             }
+         }
+         delete[] used;
+     }
+
+     void addPolyLine(const Line* line, int pos, bool*& used){
+        assert(!used[pos]);
+        HalfSegment hs;
+        line->Get(pos,hs);
+        assert(hs.IsLeftDomPoint());
+        used[pos] = true;
+        vector<SimplePoint> pl;
+        SimplePoint p1(hs.GetDomPoint().GetX(), hs.GetDomPoint().GetY());
+        SimplePoint p2(hs.GetSecPoint().GetX(), hs.GetSecPoint().GetY());
+        pl.push_back(p1);
+        pl.push_back(p2);
+        // extend polyline so far as possible 
+        int pn = hs.attr.partnerno;
+        used[pn] = true;
+        line->Get(pn,hs);
+        int next;
+        while( (next = getExtension(line, pn, used, hs)) >=0){
+           SimplePoint p(hs.GetSecPoint().GetX(), hs.GetSecPoint().GetY());
+           pl.push_back(p);
+           used[pn] = true;
+           pn = hs.attr.partnerno;
+           used[pn] = true;
+           line->Get(pn,hs);
+        }
+
+        if(closed && pl[0] != pl.back() && pl.size()>1){
+           pl.push_back(pl[0]);
+        }
+        if(pl.size()>1){
+          polylines.push_back(pl);
+        }
+
+     }
+
+     int getExtension(const Line* line, int &partner, 
+                      bool* used, HalfSegment& hs){
+          // extract the halfsegment
+          line->Get(partner, hs);
+          Point p(hs.GetDomPoint());
+          int po = partner;
+          // search at the left side for extension
+          partner--;
+          while( partner >= 0){
+             line->Get(partner,hs);
+             Point p2(hs.GetDomPoint());
+             if(!AlmostEqual(p,p2)){
+                partner = -1; // break
+             } else {
+                if(!used[partner]){ // extension foundA
+                   return partner;
+                }
+             }
+             partner --;
+          } 
+          // nothing found left, search right
+          partner = po;
+          partner++;
+          while(partner < line->Size()){
+             line->Get(partner,hs);
+             Point p2(hs.GetDomPoint());
+             if(!AlmostEqual(p,p2)){
+                partner = line->Size(); // break
+             } else {
+                if(!used[partner]){ // extension found
+                   return partner;
+                }
+             }
+             partner ++;
+          }
+          return -1; // no extension found 
      }
 
      void addSegment(SimpleSegment& s){
@@ -25764,9 +25646,6 @@ class Contour2{
 
 };
 
-
-
-
 ListExpr contour2TM(ListExpr le){
    // to be extended by further arguments
    // currently only dline and width
@@ -25774,8 +25653,9 @@ ListExpr contour2TM(ListExpr le){
    if(!nl->HasLength(le,4)){
      return listutils::typeError(err);
    }
-   if(   !DLine::checkType(nl->First(le))
-       ||!CcReal::checkType(nl->Second(le))
+   if(   (!DLine::checkType(nl->First(le)) && !Line::checkType(nl->First(le)))
+       ||(    !CcReal::checkType(nl->Second(le)) 
+           && !CcInt::checkType(nl->Second(le)))
        ||!CcInt::checkType(nl->Third(le))
        ||!CcBool::checkType(nl->Fourth(le))){
       return listutils::typeError(err);
@@ -25808,12 +25688,12 @@ void buildRegion(vector<SimplePoint>& pl, Region* res){
 }
 
 
-
-int contour2VM(Word* args, Word& result, int message, Word& local,Supplier s){
+template<class Li, class Wi>
+int contour2VMT(Word* args, Word& result, int message, Word& local,Supplier s){
    result = qp->ResultStorage(s);
    Region* res = (Region*) result.addr;
-   DLine*  L = (DLine*) args[0].addr;
-   CcReal* W = (CcReal*) args[1].addr;
+   Li*  L = (Li*) args[0].addr;
+   Wi* W = (Wi*) args[1].addr;
    CcInt* J = (CcInt*) args[2].addr;
    CcBool* C = (CcBool*) args[3].addr;
 
@@ -25858,7 +25738,7 @@ int contour2VM(Word* args, Word& result, int message, Word& local,Supplier s){
 
 
 OperatorSpec contour2Spec(
-  "dline x real x int x bool -> region",
+  "{dline,line} x {real,int} x int x bool -> region",
   "_ contour2 [_,_,_] ",
   "Adds a buffer around the segments of a dline."
   "The second argument specifies the half width of the buffer."
@@ -25869,11 +25749,27 @@ OperatorSpec contour2Spec(
   " query sl contour2[3.0]"
 );
 
+
+ValueMapping contour2VM[] = {
+   contour2VMT<DLine, CcInt>,
+   contour2VMT<DLine, CcReal>,
+   contour2VMT<Line, CcInt>,
+   contour2VMT<Line, CcReal>
+};
+
+int contour2Select(ListExpr args){
+  int n1 = DLine::checkType(nl->First(args))?0:2;
+  int n2 = CcInt::checkType(nl->Second(args))?0:1;
+  return n1+n2;
+}
+
+
 Operator contour2Op(
      "contour2",
      contour2Spec.getStr(),
+     4,
      contour2VM,
-     Operator::SimpleSelect,
+     contour2Select,
      contour2TM
 );
 
@@ -26023,7 +25919,6 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialHeadingToDirection );
     AddOperator( &spatialCreateTriangle );
 
-    AddOperator(&bufferLine);
     AddOperator(&spatialcircle);
     AddOperator(&spatiallonglines);
     AddOperator(&spatialsplitslineatpoints);

@@ -1059,12 +1059,6 @@ Signature : point x point x point -> region
 Example   : query create_triangle(makepoint(0,0),makepoint(10,10),makepoint(10,-10))
 Result    : (region ((( (10.0 -10.0) (0.0 0.0) (10.0 10.0)))))
 
-Operator : bufferLine
-Number : 1
-Signature : line x real -> region
-Example   : query area(bufferLine( BGrenzenLine, 200.0)) > 0
-Result    : TRUE
-
 
 Operator : circle
 Number   : 1
@@ -1259,8 +1253,7 @@ Result    : 5
 Operator  : contour2 
 Number    : 1
 Signature : dline x real -> region
-Example   : query twist(10,2,1) contour2[4]
-Result    : bug
-Remark    : under development
+Example   : query area(boundary(thecenter) contour2[16, 2, TRUE]) > 0
+Result    : TRUE
 
 
