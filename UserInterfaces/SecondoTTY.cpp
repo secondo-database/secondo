@@ -193,10 +193,10 @@ SecondoTTY::Usage()
   "\n" << 
   "  @FILE    - read commands from file 'FILE' (may be nested)\n" <<
   "  @@FILE   - read commands from file 'FILE' until 'FILE' is \n" <<
-  "             completly processed or an error is occurred\n" <<
+  "             completely processed or an error occurred\n" <<
   "  @\%FILE   - read commands from file ignoring comments in pd style\n" <<
   "  @&FILE   - read commands from file ignoring comments in pd style\n" <<
-  "             until file is completely processed or an error is occurred\n"<<
+  "             until file is completely processed or an error occurred\n"<<
   "\n" <<
   "  DEBUG n  - set debug level to n where n is an integer where each \n" <<
   "             bit corresponds to one setting:\n" <<

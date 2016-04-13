@@ -339,11 +339,11 @@ bool processHelp(){
        << "secondo or optimizer command are executes as usual " << endl
        << "?        -  show this help" << endl
        << "@FILE    - read commands from file " << endl
-       << "@@FILE   - read commands from file until error " << endl
+       << "@@FILE   - read commands from file until an error occurred" << endl
        << "@\%FILE   - read commands from file ignoring pd comments" << endl
        << "@&FILE   - read commands from file ignoring pd comments "
-       << "until error" << endl
-       << "quit for quit the program" << endl;
+       << "until an error occurred" << endl
+       << "quit     - exits the program" << endl;
      return true;
 }
 
