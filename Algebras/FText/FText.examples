@@ -1314,4 +1314,10 @@ Signature : {string, text} x {string,text} x {string,text} [ x {string,text}] ->
 Example   : query getParam('Environment', 'AlgebraLevel', 'Descriptive' )  contains "Exe"
 Result    : TRUE
 
+Operator  : saveto
+Number    : 1
+Signature : {string, text} x {string, text} -> bool
+Example   : query 'hello world' saveto 'hello.txt'
+Result    : TRUE
+
 

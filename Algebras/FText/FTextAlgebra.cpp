@@ -12143,6 +12143,82 @@ Operator getParamOP(
   getParamTM
 );
 
+/*
+Operator saveto
+
+*/
+ListExpr savetoTM(ListExpr args){
+   string err = "{string,text} x {string,text} expected";
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+   }
+   if(!CcString::checkType(nl->First(args)) 
+      && !FText::checkType(nl->First(args))){
+     return listutils::typeError(err);
+   }
+   if(!CcString::checkType(nl->Second(args)) 
+      && !FText::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<CcBool>();
+}
+
+template<class S, class F>
+int savetoVMT( Word* args, Word& result, int message, 
+                 Word& local, Supplier s ) {
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  S* source = (S*) args[0].addr;
+  F* filename = (F*) args[1].addr;
+  if(!source->IsDefined() || !filename->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  string fn = filename->GetValue();
+  try{
+     ofstream out(fn.c_str(), ios::out| ios::trunc);
+     if(!out){
+        res->Set(false,false);
+     }
+     out << source->GetValue();
+     out.close();
+     res->Set(true,true);
+  } catch(...){
+     res->Set(true,false);
+  }
+  return 0;
+}
+
+OperatorSpec savetoSpec(
+  "{string,text} x {string,text} -> bool",
+  "_ saveto _",
+  "saves the content of a text or string into a file",
+  "query 'hello world' saveto 'hello.txt'"
+);
+
+ValueMapping savetoVM[] = {
+   savetoVMT<CcString,CcString>,
+   savetoVMT<CcString,FText>,
+   savetoVMT<FText,CcString>,
+   savetoVMT<FText,FText>
+};
+
+int savetoSelect(ListExpr args){
+   int n1 = CcString::checkType(nl->First(args))?0:2;
+   int n2 = CcString::checkType(nl->Second(args))?0:1;
+   return n1+n2;
+}
+
+Operator savetoOp(
+  "saveto",
+  savetoSpec.getStr(),
+  4,
+  savetoVM,
+  savetoSelect,
+  savetoTM
+);
+
+
 
 
 /*
@@ -12291,6 +12367,7 @@ Operator getParamOP(
 
       AddOperator(&getConfigOP);
       AddOperator(&getParamOP);
+      AddOperator(&savetoOp);
 
 
 
