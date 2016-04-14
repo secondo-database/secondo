@@ -4586,18 +4586,19 @@ planEdge(Source, Target,  PropertiesIn, Plan, [[Result, P3] | PRest], Result) :-
 
 % Remaining edges without intermediate results
 
-planEdge(Source, Target, [], Plan, [[Result, P]], Result) :-
+planEdge(Source, Target, PropertiesIn, Plan, [[Result, P] | PropertiesIn], 
+	Result) :-
   edge(Source, Target, Term, Result, _, _),
   Term = select(arg(_), _),
   Term => PlanExpr,
   getProperties(PlanExpr, Plan, P).
 
-planEdge(Source, Target, [], Plan, [[Result, P]], Result) :-
+planEdge(Source, Target, PropertiesIn, Plan, [[Result, P] | PropertiesIn], 
+	Result) :-
   edge(Source, Target, Term, Result, _, _),
   Term = join(arg(_), arg(_), _),
   Term => PlanExpr,
   getProperties(PlanExpr, Plan, P).
-
 
 
 getProperties([Plan, P], Plan, P) :- !.
@@ -6351,6 +6352,7 @@ the center, updating their distance if they are already present, to obtain
 putsuccessors(Boundary, Node, BoundaryNew) :-  
   findall(Succ, successor(Node, Succ), Successors),
 
+    % nl, nl, nl,
     % write('successors of '), write(Node), nl,
     % writeList(Successors), nl, nl,
 
