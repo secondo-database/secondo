@@ -137,10 +137,15 @@ class ProgressView
        double bProgress = progress.BProgress;
        bProgress = std::min(1.0,std::max(0.0,bProgress));
 
+       int cp = (int) (currentProgress*PROGRESS_NORM);
+       if(cp<0){  // found invalid value
+          return;
+       }
+
        msgList = NList( NList("progress"),
-              NList( NList((int) (currentProgress*PROGRESS_NORM)), 
+              NList( NList(cp), 
                      NList(PROGRESS_NORM)));
-       msg->Send(nl,msgList.listExpr(),-1);
+        msg->Send(nl,msgList.listExpr(),-1);
               
       if (DETPROT & 2)
       {
