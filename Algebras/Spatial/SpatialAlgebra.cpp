@@ -14884,12 +14884,13 @@ ListExpr SegmentsTypeMap(ListExpr args){
   if(nl->ListLength(args)!=1){
     return listutils::typeError("Invalid number of arguments");
   }
-  if(!nl->IsEqual(nl->First(args),Line::BasicType())){
+  if(   !Line::checkType(nl->First(args)) 
+     && !DLine::checkType(nl->First(args))){
     return listutils::typeError("line expected");
   }
   return nl->TwoElemList(
                nl->SymbolAtom(Symbol::STREAM()),
-               nl->SymbolAtom(Line::BasicType())
+               nl->First(args)
          );
 }
 
@@ -17804,19 +17805,28 @@ int SpatialPolylines(Word* args, Word& result, int message,
 10.4.30 Value Mapping for the ~segments~ operator
 
 */
+template<class LT>
 class SegmentsInfo{
   public:
-    SegmentsInfo(Line* line){
-       this->theLine =(Line*) line->Copy(); // increase the ref counter of line
+    SegmentsInfo(LT* line){
+       this->theLine = line; // increase the ref counter of line
        this->position = 0;
        this->size = line->Size();
     }
-    ~SegmentsInfo(){
-      if(theLine!=0){
-         theLine->DeleteIfAllowed(); // mark as free'd
-      }
+    ~SegmentsInfo(){ }
+
+
+    LT* NextSegment(){
+       return next(theLine);
     }
-    Line* NextSegment(){
+
+  private:
+     int position;
+     int size;
+     LT* theLine;
+
+
+    Line* next(Line* line) {
        HalfSegment hs;
        // search for a segment with left dominating point
        bool found = false;
@@ -17843,48 +17853,59 @@ class SegmentsInfo{
           return res;
        }
     }
-  private:
-     int position;
-     int size;
-     Line* theLine;
+
+    DLine* next(DLine* line){
+       if(position>=size){
+           return 0;
+       }
+       SimpleSegment s;
+       line->get(position,s);
+       position++;
+       DLine* res = new DLine(1);
+       res->append(s);
+       return res;
+    }
+
 };
 
-
-int SpatialSegments(Word* args, Word& result, int message,
+template<class LT>
+int SpatialSegmentsVMT(Word* args, Word& result, int message,
                     Word& local, Supplier s){
 
- SegmentsInfo* si=0;
- Line* res =0;
+ SegmentsInfo<LT>* si= (SegmentsInfo<LT>*) local.addr;;
  switch(message){
     case OPEN:
-      if( !((Line*)args[0].addr)->IsEmpty() ) // subsumes undef
-        local.addr = new SegmentsInfo((Line*)args[0].addr);
-      else
-        local.setAddr( 0 );
+      if(si){
+         delete si;
+         local.addr = 0;
+      }
+      if( !((LT*)args[0].addr)->IsEmpty() ){ // subsumes undef
+        local.addr = new SegmentsInfo<LT>((LT*)args[0].addr);
+      }
       return 0;
 
    case REQUEST:
-      if( !local.addr )
-        return CANCEL;
-      si = (SegmentsInfo*) local.addr;
-      res = si->NextSegment();
-      if(res){
-         result.setAddr(res);
-         return YIELD;
-      } else {
-         return CANCEL;
-      }
+      result.addr = si?si->NextSegment():0;
+      return result.addr?YIELD:CANCEL;
 
     case CLOSE:
-      if(local.addr)
+      if(si)
       {
-        si = (SegmentsInfo*) local.addr;
         delete si;
         local.setAddr(0);
       }
       return 0;
  }
  return 0;
+}
+
+ValueMapping SpatialSegmentsVM[] = {
+   SpatialSegmentsVMT<Line>,
+   SpatialSegmentsVMT<DLine>
+};
+
+int SpatialSegmentsSelect(ListExpr args){
+  return Line::checkType(nl->First(args))?0:1;
 }
 
 
@@ -20252,8 +20273,9 @@ Operator spatialpolylinesC (
 Operator spatialsegments (
   "segments",
   SpatialSpecSegments,
-  SpatialSegments,
-  Operator::SimpleSelect,
+  2,
+  SpatialSegmentsVM,
+  SpatialSegmentsSelect,
   SegmentsTypeMap );
 
 Operator spatialget (
@@ -25680,8 +25702,8 @@ ListExpr contour2TM(ListExpr le){
    return listutils::basicSymbol<Region>();
 }
 
-void buildRegion(vector<SimplePoint>& pl, Region* res){
-   res->Clear();
+Region* buildRegion(vector<SimplePoint>& pl){
+   Region* res = new Region(pl.size()*2);
    res->SetDefined(true);
    if(pl.size()<3){
      assert(false);
@@ -25702,6 +25724,7 @@ void buildRegion(vector<SimplePoint>& pl, Region* res){
       (*res) += hs;
    }
    res->EndBulkLoad(true,true,true,false);
+   return res;
 }
 
 
@@ -25709,6 +25732,7 @@ template<class Li, class Wi>
 int contour2VMT(Word* args, Word& result, int message, Word& local,Supplier s){
    result = qp->ResultStorage(s);
    Region* res = (Region*) result.addr;
+   res->Clear();
    Li*  L = (Li*) args[0].addr;
    Wi* W = (Wi*) args[1].addr;
    CcInt* J = (CcInt*) args[2].addr;
@@ -25733,21 +25757,49 @@ int contour2VMT(Word* args, Word& result, int message, Word& local,Supplier s){
    
    Contour2 Co(L,w, join, C->GetValue());
    
-   Region temp1(0);
    res->SetDefined(true);
-   Region* t2 = new Region(0);
-   Region* tr = res;
+   
+   stack<pair<Region*,int> > st; 
    while( (poly= Co.next())){
-      buildRegion(*poly,&temp1);
-      // we have to build the union between res and temp
-      tr->Union(temp1, *t2);
-      swap(tr,t2);
+      Region* reg = buildRegion(*poly);
+      delete poly;
+      pair<Region*, int> p(reg,1);
+      while(!st.empty() &&st.top().second == p.second){
+         pair<Region*,int> p2 = st.top();
+         st.pop();
+         Region* res = new Region(0);
+         p.first->Union(*p2.first, *res);
+         delete p.first;
+         delete p2.first;
+         p.first=res;
+         p.second++;
+      }
+      st.push(p);
    }
-   if(tr==res){
-     delete t2;
-   } else {
-     res->CopyFrom(tr);
-     delete tr;  
+   // now, we have to build the union of the stack elements 
+   // in a linear way
+   Region* reg1=0;
+   Region* reg2=0;
+   while(!st.empty()){
+       pair<Region*, int> t = st.top();
+       st.pop();
+       if(reg1==0){
+          reg1 = t.first;
+       } else {
+          if(!reg2){
+            reg2 = new Region(0);
+          }
+          reg1->Union(*t.first, *reg2);
+          delete t.first;
+          swap(reg1,reg2);
+       }
+   } 
+   if(reg1){
+     res->CopyFrom(reg1);
+     delete reg1;
+   }
+   if(reg2){
+      delete reg2;
    }
    return 0;
 
