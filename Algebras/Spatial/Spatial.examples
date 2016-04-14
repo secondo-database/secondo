@@ -1257,3 +1257,16 @@ Example   : query area(boundary(thecenter) contour2[16, 2, TRUE]) > 0
 Result    : TRUE
 
 
+Operator  : twist2 
+Number    : 1
+Signature : dline x int x bool -> dline
+Example   : query no_segments(twist2([const dline value ((1 1 1 10)(1 1 10 1))], 2, FALSE))
+Result    : 2
+
+Operator  : toSVG 
+Number    : 1
+Signature : dline -> FText
+Example   : query toSVG([const dline value ((0 0 10 10))] ) contains "svg"
+Result    : TRUE
+
+

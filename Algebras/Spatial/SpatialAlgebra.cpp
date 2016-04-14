@@ -63,6 +63,7 @@ For more detailed information see SpatialAlgebra.h.
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
+#include "FTextAlgebra.h"
 #include "SecondoConfig.h"
 #include "AvlTree.h"
 #include "AVLSegment.h"
@@ -94,6 +95,7 @@ For more detailed information see SpatialAlgebra.h.
 #include "RobustSetOps.h"
 
 #include "DLine.h"
+#include "Segment.h"
 
 #include "DRM.h"
 #include "Disc.h"
@@ -13456,7 +13458,11 @@ GenTC<Label> label;
 */
 GenTC<Disc> disc;
 
+/*
+8.17 Type constructor for Segment
 
+*/
+GenTC<Segment> segment;
 
 
 
@@ -25448,7 +25454,7 @@ class Contour2{
                    return partner;
                 }
              }
-             partner --;
+             partner--;
           } 
           // nothing found left, search right
           partner = po;
@@ -25753,8 +25759,8 @@ OperatorSpec contour2Spec(
   "_ contour2 [_,_,_] ",
   "Adds a buffer around the segments of a dline."
   "The second argument specifies the half width of the buffer."
-  "The third argument specifies the join style, currently imlemented "
-  "style are: 1 : bevel join, 1 : miter join. All other number will "
+  "The third argument specifies the join style, currently implemented "
+  "styles are: 1 : bevel join, 1 : miter join. All other number will "
   "lead to no join. The boolean argument specifies the closeness of the "
   "result." ,
   " query sl contour2[3.0]"
@@ -25785,6 +25791,278 @@ Operator contour2Op(
 );
 
 
+/*
+
+Operator twist2
+
+*/
+ListExpr twist2TM(ListExpr args){
+  // 1st arg: dline providing the segments
+  // 2nd arg: int, how often each segment is to divide
+  // 3th arg: bool, close, connect the last with the first segment
+  string err="dline x int x bool [x bool] expected";
+  if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
+    return listutils::typeError(err);
+  }
+  if(   !DLine::checkType(nl->First(args))
+     || !CcInt::checkType(nl->Second(args))
+     || !CcBool::checkType(nl->Third(args))){
+    return listutils::typeError(err);
+  }
+  if(nl->HasLength(args,4)){
+     if(!CcBool::checkType(nl->Fourth(args))){
+        return listutils::typeError(err);
+     }
+     return listutils::basicSymbol<DLine>();
+  }
+
+  return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->BoolAtom(false)),
+               listutils::basicSymbol<DLine>());
+}
+
+
+void insertTwist(const SimpleSegment& s1, const SimpleSegment& s2, 
+                 int num, DLine* res){
+
+    double s1_x = s1.x1;
+    double s1_y = s1.y1;
+
+    double dx1 = s1.x2 - s1_x;
+    double dy1 = s1.y2 - s1_y;
+  
+    double s2_x = s2.x1;
+    double s2_y = s2.y1;
+
+    double dx2 = s2.x2 - s2_x;
+    double dy2 = s2.y2 - s2_y;
+
+    for(int i=0; i<=num;i++){
+       SimplePoint p1( s1_x + (i*dx1) / num, s1_y + (i*dy1)/num);
+       SimplePoint p2( s2_x + (i*dx2) / num, s2_y + (i*dy2)/num);
+       if(p1!=p2){
+          res->append(SimpleSegment(p1.getX(), p1.getY(),p2.getX(), p2.getY()));
+       }
+    }
+
+
+}
+
+vector<SimplePoint> computeSLTwist(vector<SimpleSegment>& segments, int num){
+
+  vector<SimplePoint> res;
+  for(int i=0; i<=num; i++){
+     for(size_t sn=0; sn<segments.size();sn++){
+        SimpleSegment s = segments[sn];
+        double x = s.x1 + i*(s.x2-s.x1)/num;
+        double y = s.y1 + i*(s.y2-s.y1)/num;
+        res.push_back(SimplePoint(x,y));
+     }
+  }
+  return res;
+}
+
+int twist2VM(Word* args, Word& result, int message, Word& local,Supplier s){
+   result = qp->ResultStorage(s);
+   DLine* res = (DLine*) result.addr;
+   DLine* line = (DLine*) args[0].addr;
+   CcInt* num = (CcInt*) args[1].addr;
+   CcBool* closed = (CcBool*) args[2].addr;
+   CcBool* singleLine = (CcBool*) args[3].addr;
+   res->clear();
+   // undefined argument
+   if(   !line->IsDefined() || !num->IsDefined() || !closed->IsDefined()
+      || !singleLine->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   // invalid sized
+   if(line->getSize()<2 || num->GetValue()<2){
+      res->clear();
+      return 0;
+   }
+
+   if(!singleLine->GetValue()){
+     // simple lines
+     int e = closed->GetValue()?line->getSize():line->getSize()-1;
+     res->resize(num->GetValue()*e);
+     SimpleSegment s1;
+     SimpleSegment s2;
+     for(int i=0;i<e;i++){
+        line->get(i,s1);
+        line->get((i+1)%line->Size(), s2);
+        insertTwist(s1,s2,num->GetValue(),res);
+     }
+     return 0;
+   } else {
+     vector<SimpleSegment> v;
+     for(int i=0;i<line->getSize(); i++){
+        SimpleSegment s;
+        line->get(i,s);
+        v.push_back(s);
+     }
+     vector<SimplePoint> pl = computeSLTwist(v,num->GetValue());
+     res->clear();
+     if(pl.size()<2){
+         return 0;
+     }
+     for(size_t i=0;i<pl.size()-1; i++){
+         res->append(SimpleSegment(pl[i].getX(), pl[i].getY(),
+                                   pl[i+1].getX(), pl[i+1].getY()));
+     }
+     return 0;
+   }
+}
+
+OperatorSpec twist2Spec(
+  "dline x int x bool [x bool]",
+  "twist2(line,num,closed[,singleLine)) ",
+  "Connects consecutive segments in the dline by a set of segments."
+  "Each segment of the dline is divided into num parts."
+  "If the closed argument is set to true, also the last segment of "
+  "the dline is connected with the first one. If the singleLine argument "
+  "is true, the resulting dline will consist of a single polyline. This "
+  "implies also the closed shape independly of the given value. ",
+  "query twist2(dl, 10, TRUE)"
+);
+
+
+Operator twist2Op(
+     "twist2",
+     twist2Spec.getStr(),
+     twist2VM,
+     Operator::SimpleSelect,
+     twist2TM
+);
+
+
+/*
+Operator toSVG
+
+*/
+ListExpr toSVGTM(ListExpr args){
+   string err="dline expected";
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+   }
+   if(!DLine::checkType(nl->First(args))){
+     return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<FText>();
+}
+
+vector<vector<SimplePoint> > findPolylines(vector<SimpleSegment>& segments){
+  // todo find non-simple extensions
+  vector<vector<SimplePoint> > res;
+  for(size_t i=0;i<segments.size(); i++){
+     if(i==0 || res.back().back()!=SimplePoint(segments[i].x1, segments[i].y1)){
+         vector<SimplePoint> v;
+         v.push_back(SimplePoint(segments[i].x1, segments[i].y1));
+         v.push_back(SimplePoint(segments[i].x2, segments[i].y2));
+         res.push_back(v);
+     } else {
+         res.back().push_back(SimplePoint(segments[i].x2, segments[i].y2));
+     }
+  }
+  return res;
+}
+
+
+string toSVG(vector<SimpleSegment>& segments, double w, double h){
+   vector<vector<SimplePoint> > pls = findPolylines(segments);
+   stringstream ss;
+   ss << "<?xml version=\"1.0\"?>" << endl;
+   ss << "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" "
+      << "\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">" << endl;
+   ss << "<svg version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" "; 
+   ss << "width=\""<< w <<"\" height=\""<<h<<"\"";
+   ss << ">" << endl;
+   for(size_t i=0;i<pls.size();i++){
+     ss << "<path style=\"fill:none;stroke:black;stroke-linejoin=bevel\" d=\"";
+     for(size_t p=0;p<pls[i].size();p++){
+        ss << (p==0?"M":"L");
+        ss << pls[i][p].getX() << " " << pls[i][p].getY() << " ";
+     }
+     ss << "\" />" << endl;
+   }
+   ss << "</svg>" << endl;
+   return ss.str();
+}
+
+vector<SimpleSegment> getSVGSegments(DLine* line,double&w, double& h ){
+
+   vector<SimpleSegment> res;
+   double x1=0;
+   double x2=0;
+   double y1=0;
+   double y2=0;
+   for(int i=0;i<line->Size();i++){
+      SimpleSegment s;
+      line->get(i,s);
+      if(i==0){
+         x1 = min(s.x1,s.x2);
+         x2 = max(s.x1,s.x2);
+         y1 = min(s.y1,s.y2);
+         y2 = max(s.y1,s.y2);
+      }else {
+         x1 = min(x1,min(s.x1,s.x2));
+         x2 = max(x2,max(s.x1,s.x2));
+         y1 = min(y1,min(s.y1,s.y2));
+         y2 = max(y2,max(s.y1,s.y2));
+      }
+      res.push_back(s);
+   }
+   // move box to (0,0) and mirror the y-direction
+   w = x2-x1;
+   h = y2-y1;
+   if(x1!=0 || y1!=0){
+       for(size_t i=0;i<res.size();i++){
+          SimpleSegment& s = res[i];
+          s.x1 = s.x1 - x1;
+          s.x2 = s.x2 - x1;
+          s.y1 = h - (s.y1 - y1);
+          s.y2 = h - (s.y2 - y1); 
+       }
+   }
+   if(w==0) w=1;
+   if(h==0) h=1;
+   return res;
+
+}
+
+
+int toSVGVM(Word* args, Word& result, int message, Word& local,Supplier s){
+  DLine* line = (DLine*) args[0].addr;
+  result = qp->ResultStorage(s);
+  FText* res = (FText*) result.addr;
+  if(!line->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  } 
+  double w;
+  double h;
+  vector<SimpleSegment> segs = getSVGSegments(line,w , h);
+  res->Set(true, toSVG(segs,w,h));
+  return 0;
+}
+
+
+OperatorSpec toSVGSpec(
+  "dline -> text",
+  "toSVG(_)",
+  "converts a dline into an svg representation",
+  "query toSVG([const dline value ((0 0 10 10))] )"
+);
+
+
+Operator toSVGOp(
+     "toSVG",
+     toSVGSpec.getStr(),
+     toSVGVM,
+     Operator::SimpleSelect,
+     toSVGTM
+);
 
 
 
@@ -25848,6 +26126,9 @@ class SpatialAlgebra : public Algebra
 
     AddTypeConstructor(&disc);
     disc.AssociateKind(Kind::DATA());
+
+    AddTypeConstructor(&segment);
+    segment.AssociateKind(Kind::DATA());
 
 
     AddOperator( &spatialisempty );
@@ -25952,20 +26233,17 @@ class SpatialAlgebra : public Algebra
     AddOperator(&splitline);
     AddOperator(&computeDRM);
     AddOperator(&computeOIM);
-
     AddOperator(&collectDline);
     AddOperator(&computeLabelOP);
     AddOperator(&centroidDiscOP);
     AddOperator(&calcDiscOP);
     AddOperator(&createDiscOP);
-    
     AddOperator(&berlin2wgs);
-
     AddOperator(&elementsOP);
-
     AddOperator(&twistOp);
-
     AddOperator(&contour2Op);
+    AddOperator(&twist2Op);
+    AddOperator(&toSVGOp);
 
   }
   ~SpatialAlgebra() {};

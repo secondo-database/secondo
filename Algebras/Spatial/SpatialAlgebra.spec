@@ -95,5 +95,6 @@ operator collect_line2 alias COLLECT_LINE2 pattern _ op
 operator berlin2wgs alias BERLIN2WGS pattern op( _ )
 operator twist alias TWIST pattern op(_,_,_)
 operator contour2 alias CONTOUR2 pattern _ op[_,_,_]
+operator twist2 alias TWIST2 pattern  op(_,_,_)
 
 

@@ -3966,10 +3966,7 @@ class SimplePoint{
        this->y = p.GetY();
      }
 
-     SimplePoint(){
-        x = 0;
-        y = 0;
-     }
+     SimplePoint(){ }
 
      SimplePoint(double x, double y){
        this->x = x;
@@ -3986,6 +3983,17 @@ class SimplePoint{
        this->y = p.y;
        return *this;
      }
+
+     int compare(const SimplePoint& p)const{
+         if(AlmostEqual(x,p.x)){
+            if(AlmostEqual(y,p.y)){
+                return 0;
+            }
+            return y<p.y?-1:1;
+         }
+         return x<p.x?-1:1;
+     }
+
 
      ~SimplePoint(){}
 
@@ -4084,6 +4092,10 @@ class SimplePoint{
 
      void  setX( const double _x){ x=_x;}
      void  setY( const double _y){ y=_y;}
+
+     size_t hash() const{
+        return (size_t)( x*y + y);
+      }
 
   private:
      double x;
