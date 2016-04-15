@@ -9564,8 +9564,9 @@ optimize(Query, QueryOut, CostOut) :-
 %	, nl, write('After plan_to_atom: '), nl, write(QueryOut), nl, nl
 	.
 
+
 /*
-----    sqlToPlan(QueryText, Plan)
+----    sqlToPlan(QueryText, Plan, Costs)
 ----
 
 Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
@@ -9591,21 +9592,22 @@ returned as the message content.
 
 */
 
-sqlToPlan2(QueryText, Plan) :-
+sqlToPlan2(QueryText, Plan, Costs) :-
   string(QueryText),
   my_string_to_atom(QueryText,AtomText),
   term_to_atom(Query, AtomText),
-  optimize(Query, Plan, _).
+  optimize(Query, Plan, Costs).
 
 % special treatment for create and drop queries
-sqlToPlan2(QueryText, 'done') :-
+sqlToPlan2(QueryText, 'done', Costs) :-
   term_to_atom(sql Query, QueryText),
   ( Query =.. [create| _]; Query =.. [drop| _]), !,
+  Costs = 0,
   sql Query.
 
-sqlToPlan2(QueryText, Plan) :-
+sqlToPlan2(QueryText, Plan, Costs) :-
   term_to_atom(sql Query, QueryText),
-  optimize(Query, Plan, _).
+  optimize(Query, Plan, Costs).
 
 /*
 ----    sqlToPlan2(QueryText, Plan)
@@ -9617,19 +9619,20 @@ Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
 */
 
 % special treatment for create and drop queries
-sqlToPlan2(QueryText, 'done') :-
+sqlToPlan2(QueryText, 'done', Costs) :-
   term_to_atom(Query, QueryText),
   ( Query =.. [create| _]; Query =.. [drop| _]), !,
+  Costs = 0,
   sql Query.
 
-sqlToPlan2(QueryText, Plan) :-
+sqlToPlan2(QueryText, Plan, Costs) :-
   term_to_atom(Query, QueryText),
-  optimize(Query, Plan, _).
+  optimize(Query, Plan, Costs).
 
-sqlToPlan(QueryText, ResultText) :-
+sqlToPlan(QueryText, ResultText, Costs) :-
   asserta(errorHandlingRethrow), % force rethrowing of exceptions to handle them
                                  % here finally
-  catch( sqlToPlan2(QueryText, ResultText),
+  catch( sqlToPlan2(QueryText, ResultText, Costs),
          Exc, % catch all exceptions!
          ( write('\nsqlToPlan: Exception \''),write(Exc),write('\' caught.'),nl,
            ( ( Exc = error_SQL(ErrorTerm),
@@ -9663,17 +9666,11 @@ sqlToPlan(QueryText, ResultText) :-
   true.
 
 
+% variant ignoring costs
+sqlToPlan(QueryText, ResultText) :-
+  sqlToPlan(QueryText, ResultText, _).
 
 
-/*
-----    sqlToPlanStr(QueryText, Plan)
-----
-
-The same as the predicate before, but using a string-atom instead a simple atom.
-Thus, we can avoid problems when coding single quotes in queries, e.g. within
-the ~aggregate~ command.
-
-*/
 
 
 
