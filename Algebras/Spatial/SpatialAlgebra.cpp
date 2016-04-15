@@ -3087,6 +3087,26 @@ void Points::Translate( const Coord& x, const Coord& y, Points& result ) const
 }
 
 
+void Points::Scale( const Coord& x, const Coord& y, Points& result ) const
+{
+  result.Clear();
+  if( !IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  result.Resize(Size());
+  result.StartBulkLoad();
+  Point p;
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, p );
+    p.Scale( x, y );
+    result += p;
+  }
+  result.EndBulkLoad( true, true );
+}
+
 void Points::Rotate( const Coord& x, const Coord& y,
                      const double alpha,
                      Points& result ) const
@@ -5977,6 +5997,27 @@ result.EndBulkLoad(); // reordering may be required
 
 }
 
+void Line::Scale( const Coord& sx, const Coord& sy,
+                  Line& result ) const {
+  result.Clear();
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.Resize(Size());
+  result.SetDefined(true);
+
+  result.StartBulkLoad();
+  HalfSegment hso;
+
+  for( int i = 0; i < Size(); i++ ) {
+     Get( i, hso );
+     if(hso.Scale(sx,sy)){
+        result += hso;
+     }
+  }
+  result.EndBulkLoad(); // reordering may be required
+}
 
 /*
 ~getNext~
@@ -10055,6 +10096,32 @@ void Region::Rotate( const Coord& x, const Coord& y,
   result.EndBulkLoad(true,true,true,false); // reordering may be required
 
 }
+
+
+void Region::Scale( const Coord& sx, const Coord& sy,
+                   Region& result ) const
+{
+  result.Clear();
+  if( !IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.Resize(Size());
+  result.SetDefined( true );
+  result.StartBulkLoad();
+  HalfSegment hso;
+  for( int i = 0; i < Size(); i++ ) {
+    Get( i, hso );
+    if(!hso.Scale(sx,sy)){
+       result.Clear();
+       result.SetDefined(false);
+       return;
+    }
+    result += hso;
+  }
+  result.EndBulkLoad(); // reordering may be required
+}
+
 
 void Region::TouchPoints( const Line& l, Points& result,
                           const Geoid* geoid/*=0*/ ) const
@@ -14433,87 +14500,7 @@ SpatialBBoxMap( ListExpr args )
   return (nl->SymbolAtom( Rectangle<2>::BasicType() ));
 }
 
-/*
-10.1.17 Type mapping function for operator ~translate~
 
-This type mapping function is used for the ~translate~ operator. This operator
-moves a region parallelly to another place and gets another region.
-
-*/
-ListExpr
-SpatialTranslateMap( ListExpr args )
-{
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if(!nl->HasLength(arg2,2)){
-       return listutils::typeError("Invalid number of parameter");
-    }
-
-    if( SpatialTypeOfSymbol( arg1 ) == stregion &&
-        nl->IsEqual(nl->First( arg2 ), CcReal::BasicType()) &&
-        nl->IsEqual(nl->Second( arg2 ), CcReal::BasicType()))
-      return (nl->SymbolAtom( Region::BasicType() ));
-
-    if( SpatialTypeOfSymbol( arg1 ) == stline &&
-        nl->IsEqual(nl->First( arg2 ), CcReal::BasicType()) &&
-        nl->IsEqual(nl->Second( arg2 ), CcReal::BasicType()))
-      return (nl->SymbolAtom( Line::BasicType() ));
-
-    if( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-        nl->IsEqual(nl->First( arg2 ), CcReal::BasicType()) &&
-        nl->IsEqual(nl->Second( arg2 ), CcReal::BasicType()))
-      return (nl->SymbolAtom( Points::BasicType() ));
-
-    if( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-        nl->IsEqual(nl->First( arg2 ), CcReal::BasicType()) &&
-        nl->IsEqual(nl->Second( arg2 ), CcReal::BasicType()))
-      return (nl->SymbolAtom( Point::BasicType() ));
-  }
-  return listutils::typeError("");
-}
-
-/*
-10.1.17 Type mapping function for operator ~rotate~
-
-This type mapping function is used for the ~rotate~ operator.
-The mamp is spatialtype x real x real x real -> spatialtype
-
-*/
-ListExpr
-SpatialRotateMap( ListExpr args )
-{
-  if ( nl->ListLength( args ) != 4 )
-  { ErrorReporter::ReportError("wrong number of arguments (4 expected)");
-    return nl->TypeError();
-  }
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
-  ListExpr arg3 = nl->Third(args);
-  ListExpr arg4 = nl->Fourth(args);
-
-  if( !nl->IsEqual(arg2,CcReal::BasicType()) ||
-      !nl->IsEqual(arg3,CcReal::BasicType()) ||
-      !nl->IsEqual(arg4,CcReal::BasicType())){
-    ErrorReporter::ReportError("spatial x real x real x real expected");
-    return nl->TypeError();
-  }
-
-  if(nl->AtomType(arg1)!=SymbolType){
-    ErrorReporter::ReportError("spatial x real x real x real expected");
-    return nl->TypeError();
-  }
-  string st = nl->SymbolValue(arg1);
-  if( st!=Point::BasicType() && st!=Points::BasicType() &&
-      st!=Line::BasicType() && st!=Region::BasicType()){
-    ErrorReporter::ReportError("spatial x real x real x real expected");
-    return nl->TypeError();
-  }
-  return nl->SymbolAtom(st);
-
-}
 
 /*
 10.1.16 Type Mapping function for center.
@@ -14576,33 +14563,6 @@ SpatialWindowClippingMap( ListExpr args )
   return listutils::typeError("");
 }
 
-/*
-10.1.18 Type mapping function for operator ~scale~
-
-This type mapping function is used for the ~scale~ operator. This operator
-scales a spatial object by a given factor.
-
-*/
-ListExpr SpatialScaleMap(ListExpr args)
-{
-   if(nl->ListLength(args)!=2){
-      return listutils::typeError("operator scale requires two arguments");
-   }
-   ListExpr arg1 = nl->First(args);
-   ListExpr arg2 = nl->Second(args);
-   if(!(nl->IsEqual(arg2 , CcReal::BasicType()))){
-      return listutils::typeError("expectes real as 2nd");
-   }
-   if(nl->IsEqual(arg1,Region::BasicType()))
-     return nl->SymbolAtom(Region::BasicType());
-   if(nl->IsEqual(arg1,Line::BasicType()))
-     return nl->SymbolAtom(Line::BasicType());
-   if(nl->IsEqual(arg1,Point::BasicType()))
-     return nl->SymbolAtom(Point::BasicType());
-   if(nl->IsEqual(arg1,Points::BasicType()))
-     return nl->SymbolAtom(Points::BasicType());
-   return listutils::typeError("Expected 1st to be of {region, line, "
-                               "points, points}");}
 
 /*
 10.1.6 Type mapping function for operator ~atpoint~
@@ -15795,32 +15755,6 @@ SpatialComponentsSelect( ListExpr args )
   return -1; // This point should never be reached
 }
 
-/*
-10.3.19 Selection function ~SpatialSelectTranslate~
-
-This select function is used for the ~translate~, rotate,
-and ~scale~ operators.
-
-*/
-int
-SpatialSelectTranslate( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-
-  if (SpatialTypeOfSymbol( arg1 ) == stpoint)
-    return 0;
-
-  if (SpatialTypeOfSymbol( arg1 ) == stpoints)
-    return 1;
-
-  if (SpatialTypeOfSymbol( arg1 ) == stline)
-    return 2;
-
-  if (SpatialTypeOfSymbol( arg1 ) == stregion)
-    return 3;
-
-  return -1; // This point should never be reached
-}
 
 /*
 10.3.19 Selection function ~SpatialSelectWindowClipping~
@@ -16632,16 +16566,52 @@ int SpatialCommonBorder_rr( Word* args, Word& result, int message,
   return 0;
 }
 
+
 /*
-10.4.26 Value mapping functions of operator ~translate~
+
+10.3 Operator ~translate~
+
+10.3.1  Type mapping function for operator ~translate~
 
 */
-int SpatialTranslate_p( Word* args, Word& result, int message,
+ListExpr
+SpatialTranslateMap( ListExpr args )
+{
+  string err = "SPATIAL x (real x real) expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+
+  ListExpr a1 = nl->First(args);
+  if(   !Point::checkType(a1)
+     && !Points::checkType(a1)
+     && !Line::checkType(a1)
+     && !Region::checkType(a1)
+     && !DLine::checkType(a1)){
+     return listutils::typeError(err + " (first arg not supported)");
+   }
+   ListExpr a2 = nl->Second(args);
+   if(!nl->HasLength(a2,2)){
+     return listutils::typeError("invalid number od arguments");
+   }
+   if(   !CcReal::checkType(nl->First(a2))
+      || !CcReal::checkType(nl->Second(a2))){
+     return listutils::typeError("translation arguments must be of type real");
+   }
+   return a1;
+}
+
+/*
+10.3.2 Value Mapping template
+
+*/
+template<class T>
+int SpatialTranslateVMT( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *res = static_cast<Point*>(result.addr);
-  const Point *p= (const Point*)args[0].addr;
+  T* res = static_cast<T*>(result.addr);
+  const T* a = (const T*)args[0].addr;
 
   Supplier son = qp->GetSupplier( args[1].addr, 0 );
   Word t;
@@ -16652,67 +16622,87 @@ int SpatialTranslate_p( Word* args, Word& result, int message,
   qp->Request( son, t );
   const CcReal *ty = ((CcReal *)t.addr);
 
-  if( p->IsDefined() && tx->IsDefined() && ty->IsDefined()){
-     *res = *p;
-     res->Translate( tx->GetRealval(),  ty->GetRealval() );
+  if(!a->IsDefined() || !tx->IsDefined() || !ty->IsDefined()){
+    res->SetDefined(false);
   } else {
-     res->SetDefined( false );
+     a->Translate(tx->GetValue(), ty->GetValue(), *res);
   }
   return 0;
 }
 
-int SpatialTranslate_ps( Word* args, Word& result, int message,
-                         Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
+ValueMapping spatialtranslatemap[] = {
+  SpatialTranslateVMT<Point>,
+  SpatialTranslateVMT<Points>,
+  SpatialTranslateVMT<Line>,
+  SpatialTranslateVMT<Region>,
+  SpatialTranslateVMT<DLine> };
 
-  const Points *ps = (const Points*)args[0].addr;
+/*
+10.3.19 Selection function ~SpatialSelectTranslate~
 
-  Supplier son = qp->GetSupplier( args[1].addr, 0 );
-  Word t;
-  qp->Request( son, t );
-  const CcReal *tx = ((CcReal *)t.addr);
+This select function is used for the ~translate~, rotate,
+and ~scale~ operators.
 
-  son = qp->GetSupplier( args[1].addr, 1 );
-  qp->Request( son, t );
-  const CcReal *ty = ((CcReal *)t.addr);
-
-  if( ps->IsDefined() && tx->IsDefined() && ty->IsDefined() )
-      ps->Translate( tx->GetRealval(),
-                     ty->GetRealval(),
-                     *((Points*)result.addr) );
-  else
-    ((Points*)result.addr)->SetDefined( false );
-
-  return 0;
+*/
+int SpatialSelectTranslate( ListExpr args ) {
+  ListExpr arg1 = nl->First( args );
+  if(Point::checkType(arg1)) return 0;
+  if(Points::checkType(arg1)) return 1;
+  if(Line::checkType(arg1)) return 2;
+  if(Region::checkType(arg1)) return 3;
+  if(DLine::checkType(arg1)) return 4;
+  return -1;
 }
 
-int SpatialTranslate_l( Word* args, Word& result, int message,
-                        Word& local, Supplier s )
+const string SpatialSpecTranslate  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(point||points||line||region x real x real) -> "
+  "point||points||line||region</text--->"
+  "<text> _ translate[ dx, dy ]</text--->"
+  "<text> move the object parallely for some distance.</text--->"
+  "<text> query region1 translate[3.5, 15.1]</text--->"
+  ") )";
+
+
+Operator spatialtranslate (
+  "translate",
+  SpatialSpecTranslate,
+  5,
+  spatialtranslatemap,
+  SpatialSelectTranslate,
+  SpatialTranslateMap );
+
+
+
+/*
+10.4 Operator ~rotate~
+
+10.4.1  Type mapping 
+
+*/
+ListExpr
+SpatialRotateMap( ListExpr args )
 {
-  result = qp->ResultStorage( s );
-
-  Line *cl = (Line *)args[0].addr,
-       *pResult = (Line *)result.addr;
-
-  Supplier son = qp->GetSupplier( args[1].addr, 0 );
-  Word t;
-  qp->Request( son, t );
-  const CcReal *tx = ((CcReal *)t.addr);
-
-  son = qp->GetSupplier( args[1].addr, 1 );
-  qp->Request( son, t );
-  const CcReal *ty = ((CcReal *)t.addr);
-
-  if(  cl->IsDefined()&& tx->IsDefined() && ty->IsDefined() ) {
-      const Coord txval = (Coord)(tx->GetRealval()),
-                  tyval = (Coord)(ty->GetRealval());
-      cl->Translate( txval, tyval, *pResult );
+  if ( nl->ListLength( args ) != 4 ) {
+    return listutils::typeError("wrong number of args");
   }
-  else
-    ((Line*)result.addr)->SetDefined( false );
+  // first arg must be of type point, points, line, region, dline
 
-  return 0;
+  ListExpr a1 = nl->First(args);
+  if(   !Point::checkType(a1)
+     && !Points::checkType(a1)
+     && !Line::checkType(a1)
+     && !Region::checkType(a1)
+     && !DLine::checkType(a1)){
+    return listutils::typeError("first arg is not a supported spatial type");
+  }
+  // the remaining arguments have to be of type real
+  if(   !CcReal::checkType(nl->Second(args))
+     || !CcReal::checkType(nl->Third(args))
+     || !CcReal::checkType(nl->Fourth(args))){
+     return listutils::typeError("rotation arguments have to be of type real");
+  }
+  return a1;
 }
 
 template<class T>
@@ -16733,6 +16723,129 @@ int SpatialRotate( Word* args, Word& result, int message,
   st->Rotate(x->GetRealval(),y->GetRealval(),angle,*res);
   return 0;
 }
+
+
+ValueMapping spatialrotatemap[] = {
+  SpatialRotate<Point>,
+  SpatialRotate<Points>,
+  SpatialRotate<Line>,
+  SpatialRotate<Region>,
+  SpatialRotate<DLine>};
+
+
+int SpatialSelectRotate( ListExpr args ) {
+  ListExpr arg1 = nl->First( args );
+  if(Point::checkType(arg1)) return 0;
+  if(Points::checkType(arg1)) return 1;
+  if(Line::checkType(arg1)) return 2;
+  if(Region::checkType(arg1)) return 3;
+  if(DLine::checkType(arg1)) return 4;
+  return -1;
+}
+
+const string SpatialSpecRotate  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(point|points|line|region|dline x real x real x real) -> "
+  "point||points||line||region|dline</text--->"
+  "<text> _ translate[ x, y, theta ]</text--->"
+  "<text> rotates the spatial object by 'theta' degrees around (x,y) </text--->"
+  "<text> query region1 rotate[3.5, 15.1, 10.0]</text--->"
+  ") )";
+
+
+Operator spatialrotate (
+  "rotate",
+  SpatialSpecRotate,
+  5,
+  spatialrotatemap,
+  SpatialSelectRotate,
+  SpatialRotateMap );
+
+
+
+/*
+10.5 Operator ~scale~
+
+10.5.1 Type Mapping
+
+*/
+ListExpr SpatialScaleMap(ListExpr args) {
+  string err = "SPATIAL x (real x real) expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err);
+  }
+
+  ListExpr a1 = nl->First(args);
+  if(   !Point::checkType(a1)
+     && !Points::checkType(a1)
+     && !Line::checkType(a1)
+     && !Region::checkType(a1)
+     && !DLine::checkType(a1)){
+     return listutils::typeError(err + " (first arg not supported)");
+   }
+   if(   !CcReal::checkType(nl->Second(args))
+      || !CcReal::checkType(nl->Third(args))){
+     return listutils::typeError("translation arguments must be of type real");
+   }
+   return a1;
+}
+
+template<class T>
+int SpatialScaleVMT( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  T* res = static_cast<T*>(result.addr);
+  const T* a = (const T*)args[0].addr;
+  const CcReal *tx = (CcReal *) args[1].addr;
+  const CcReal *ty = (CcReal *) args[2].addr;
+  if(!a->IsDefined() || !tx->IsDefined() || !ty->IsDefined()){
+    res->SetDefined(false);
+  } else {
+     a->Scale(tx->GetValue(), ty->GetValue(), *res);
+  }
+  return 0;
+}
+
+ValueMapping spatialscalemap[] = {
+  SpatialScaleVMT<Point>,
+  SpatialScaleVMT<Points>,
+  SpatialScaleVMT<Line>,
+  SpatialScaleVMT<Region>,
+  SpatialScaleVMT<DLine> };
+
+
+int SpatialSelectScale( ListExpr args ) {
+  ListExpr arg1 = nl->First( args );
+  if(Point::checkType(arg1)) return 0;
+  if(Points::checkType(arg1)) return 1;
+  if(Line::checkType(arg1)) return 2;
+  if(Region::checkType(arg1)) return 3;
+  if(DLine::checkType(arg1)) return 4;
+  return -1;
+}
+
+const string SpatialSpecScale  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>for T in {point, points, line, region}: "
+  "T x real -> T</text--->"
+  "<text> _ scale [ _ ] </text--->"
+  "<text> scales an object by the given factor.</text--->"
+  "<text> query region1 scale[1000.0]</text--->"
+  ") )";
+
+
+Operator spatialscale (
+  "scale",
+  SpatialSpecScale,
+  5,
+  spatialscalemap,
+  SpatialSelectScale,
+  SpatialScaleMap
+ );
+
+
+
 
 
 int SpatialCenter( Word* args, Word& result, int message,
@@ -16898,129 +17011,8 @@ SpatialWindowClippingOut_r( Word* args, Word& result, int message,
   return 0;
 }
 
-/*
-10.4.27 Value Mapping functions of the Operator Scale
 
-*/
-int SpatialScale_p( Word* args, Word& result, int message,
-                    Word& local, Supplier s ){
-  result = qp->ResultStorage(s);
-  Point* p = (Point*) args[0].addr;
-  CcReal*  factor = (CcReal*) args[1].addr;
-  Point* res = (Point*) result.addr;
-  if ( !p->IsDefined() || !factor->IsDefined() )
-  {
-    res->SetDefined(false);
-  }
-  else
-  {
-    res->SetDefined(true);
-    res->Set(p->GetX(),p->GetY());
-    double f = factor->GetRealval();
-    res->Scale(f);
-  }
-  return 0;
-}
 
-int SpatialScale_ps( Word* args, Word& result, int message,
-                     Word& local, Supplier s ){
-  result = qp->ResultStorage(s);
-  Points* p = (Points*) args[0].addr;
-  CcReal*  factor = (CcReal*) args[1].addr;
-  Points* res = (Points*) result.addr;
-  if( !p->IsDefined() || !factor->IsDefined() )
-  {
-    res->SetDefined(false);
-  }
-  else
-  {
-    res->SetDefined(true);
-    double f = factor->GetRealval();
-    // make res empty if it is not already
-    if(!res->IsEmpty()){
-       Points P(0);
-       (*res) = P;
-    }
-    if(!p->IsEmpty()){
-       res->StartBulkLoad();
-       int size = p->Size();
-       Point PTemp;
-       for(int i=0;i<size;i++){
-           p->Get(i,PTemp);
-           Point aux( PTemp );
-           aux.Scale(f);
-           (*res) += aux;
-        }
-        res->EndBulkLoad();
-    }
-  }
-  return 0;
-}
-
-int SpatialScale_l( Word* args, Word& result, int message,
-                    Word& local, Supplier s ){
-  result = qp->ResultStorage(s);
-  Line* L = (Line*) args[0].addr;
-  CcReal* factor = (CcReal*) args[1].addr;
-  Line* res = (Line*) result.addr;
-  if( !L->IsDefined() || !factor->IsDefined() )
-  {
-    res->SetDefined(false);
-  }
-  else
-  {
-    res->SetDefined(true);
-    double f = factor->GetRealval();
-    // delete result if not empty
-    if(!res->IsEmpty()){
-       Line Lempty(0);
-       (*res) = Lempty;
-    }
-    if(!L->IsEmpty()){
-       res->StartBulkLoad();
-       int size = L->Size();
-       HalfSegment hs;
-       for(int i=0;i<size;i++){
-         L->Get(i,hs);
-         HalfSegment aux( hs );
-         aux.Scale(f);
-         (*res) += aux;
-       }
-       res->EndBulkLoad();
-    }
-  }
-  return 0;
-}
-
-int SpatialScale_r( Word* args, Word& result, int message,
-                    Word& local, Supplier s ){
-  result    = qp->ResultStorage(s);
-  Region *R      = (Region*) args[0].addr;
-  CcReal *factor = (CcReal*) args[1].addr;
-  Region *res    = (Region*) result.addr;
-  if( !R->IsDefined() || !factor->IsDefined() )
-  {
-    res->SetDefined(false);
-  }
-  else
-  {
-    res->Clear();
-    res->SetDefined(true);
-    double f = factor->GetRealval();
-    if(!R->IsEmpty()){
-       res->StartBulkLoad();
-       int size = R->Size();
-       HalfSegment hs;
-       for(int i=0;i<size;i++){
-         R->Get(i,hs);
-         hs.Scale(f);
-         (*res) += hs;
-       }
-      res->EndBulkLoad();
-    }
-  }
-  return 0;
-}
 
 /*
 10.4.27 Value mapping functions of operator ~components~
@@ -19109,17 +19101,7 @@ ValueMapping spatialtouchpointsmap[] = {
   SpatialTouchPoints_rl,
   SpatialTouchPoints_rr };
 
-ValueMapping spatialtranslatemap[] = {
-  SpatialTranslate_p,
-  SpatialTranslate_ps,
-  SpatialTranslate_l,
-  SpatialTranslate_r };
 
-ValueMapping spatialrotatemap[] = {
-  SpatialRotate<Point>,
-  SpatialRotate<Points>,
-  SpatialRotate<Line>,
-  SpatialRotate<Region>};
 
 ValueMapping spatialwindowclippinginmap[] = {
   SpatialWindowClippingIn_l,
@@ -19129,11 +19111,6 @@ ValueMapping spatialwindowclippingoutmap[] = {
   SpatialWindowClippingOut_l,
   SpatialWindowClippingOut_r };
 
-ValueMapping spatialscalemap[] = {
-  SpatialScale_p,
-  SpatialScale_ps,
-  SpatialScale_l,
-  SpatialScale_r };
 
 ValueMapping spatialcomponentsmap[] = {
   SpatialComponents_ps,
@@ -19471,23 +19448,6 @@ const string SpatialSpecCommonborder  =
   "<text> query commonborder(region1, region2)</text--->"
   ") )";
 
-const string SpatialSpecTranslate  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||region x real x real) -> "
-  "point||points||line||region</text--->"
-  "<text> _ translate[ dx, dy ]</text--->"
-  "<text> move the object parallely for some distance.</text--->"
-  "<text> query region1 translate[3.5, 15.1]</text--->"
-  ") )";
-
-const string SpatialSpecRotate  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||region x real x real x real) -> "
-  "point||points||line||region</text--->"
-  "<text> _ translate[ x, y, theta ]</text--->"
-  "<text> rotates the spatial object by 'theta' degrees around (x,y) </text--->"
-  "<text> query region1 rotate[3.5, 15.1, 10.0]</text--->"
-  ") )";
 
 const string SpatialSpecCenter  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -19530,14 +19490,6 @@ const string SpatialSpecWindowClippingOut  =
   "<text> query windowclippingout(line1, rect)</text--->"
   ") )";
 
-const string SpatialSpecScale  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>for T in {point, points, line, region}: "
-  "T x real -> T</text--->"
-  "<text> _ scale [ _ ] </text--->"
-  "<text> scales an object by the given factor.</text--->"
-  "<text> query region1 scale[1000.0]</text--->"
-  ") )";
 
 const string SpatialSpecComponents  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -20093,21 +20045,7 @@ Operator spatialcommonborder (
   Operator::SimpleSelect,
   SpatialCommonBorderMap );
 
-Operator spatialtranslate (
-  "translate",
-  SpatialSpecTranslate,
-  4,
-  spatialtranslatemap,
-  SpatialSelectTranslate,
-  SpatialTranslateMap );
 
-Operator spatialrotate (
-  "rotate",
-  SpatialSpecRotate,
-  4,
-  spatialrotatemap,
-  SpatialSelectTranslate,
-  SpatialRotateMap );
 
 
 Operator spatialcenter (
@@ -20148,13 +20086,6 @@ Operator spatialwindowclippingout (
   SpatialSelectWindowClipping,
   SpatialWindowClippingMap );
 
-Operator spatialscale (
-  "scale",
-  SpatialSpecScale,
-  4,
-  spatialscalemap,
-  SpatialSelectTranslate,
-  SpatialScaleMap );
 
 Operator spatialcomponents (
   "components",

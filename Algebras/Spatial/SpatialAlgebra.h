@@ -514,6 +514,14 @@ angle ~alpha~.
   void Rotate( const Coord& x, const Coord& y, double alpha,
                Points& res ) const;
 
+/*
+4.3.15 Operation ~scale~
+
+Performes a scale transformation.
+
+*/
+
+  void Scale( const Coord& x, const Coord& y, Points& res ) const;
 
 /*
 4.3.16 Operation ~center~
@@ -1189,6 +1197,8 @@ points where more than 2 segments have a common endpoint.
 
     void Rotate( const Coord& x, const Coord& y, double alpha,
                     Line& l ) const;
+    
+    void Scale( const Coord& x, const Coord& y, Line& l ) const;
 
 /*
 4.3.14 Operation ~transform~
@@ -2802,6 +2812,7 @@ Moves the region according x and y and stores the result in result.
 */
 
     void Translate(const Coord& x, const Coord& y, Region& result) const;
+    void Scale(const Coord& x, const Coord& y, Region& result) const;
 
     void Rotate(const Coord& x, const Coord& y, const double alpha,
                 Region& result) const;
@@ -3566,6 +3577,10 @@ inline void Point::Translate(const Coord& x, const Coord& y){
     this->x += x;
     this->y += y;
   }
+}
+
+inline void Point::Translate(const Coord& tx, const Coord& ty, Point& res)const{
+  res.Set(IsDefined(), x+tx, y+ty);
 }
 
 /*

@@ -177,6 +177,19 @@ Scales the half segment given a factor ~f~.
       lp.Scale( f );
       rp.Scale( f );
     }
+
+
+    inline bool Scale( const double& sx, const double sy )
+    {
+      lp.Scale( sx,sy );
+      rp.Scale( sx,sy );
+      if(sx<0){
+          std::swap(lp,rp);
+      }
+      return !AlmostEqual(lp,rp); 
+    }
+
+
 /*
 Sets the value of the "attr" attribute of a half segment.
 

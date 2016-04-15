@@ -168,7 +168,39 @@ class SimpleSegment{
          }
       }
 
+      void translate(const double& dx, const double& dy){
+         x1 += dx;
+         x2 += dx;
+         y1 += dy;
+         y2 += dy;
+      }
 
+      void rotate(const double& x, const double &y, const double& alpha){ 
+
+         double s = sin(alpha);
+         double c = cos(alpha);
+
+         double m00 = c;
+         double m01 = -s; 
+         double m02 = x - x*c + y*s;
+         double m10 = s;
+         double m11 = c;
+         double m12 = y - x*s-y*c;
+         double nx1 = m00*x1 + m01*y1+m02;
+         y1 = m10*x1 + m11*y1+m12;
+         x1 = nx1;
+
+         double nx2 = m00*x2 + m01*y2+m02;
+         y2 = m10*x2 + m11*y2+m12;
+         x2 = nx2;
+      }
+
+      void scale(const double& sx, const double& sy){
+         x1 *= sx;
+         x2 *= sx;
+         y1 *= sy;
+         y2 *= sy;
+      }
 };
 
 
@@ -429,7 +461,59 @@ class DLine : public StandardSpatialAttribute<2>{
 
      void StartBulkLoad(){}
 
-      bool EndBulkLoad() { return true; }
+     bool EndBulkLoad() { return true; }
+
+
+     void Rotate(const double x, const double y, const double alpha, 
+                 DLine& result)const{
+            result.clear();
+            if(!IsDefined()){
+               result.SetDefined(false);
+               return;
+            }
+            result.resize(segments.Size());
+            SimpleSegment s;
+            for(int i=0;i<segments.Size();i++) {
+                segments.Get(i,s);
+                s.rotate(x,y,alpha);
+                result.append(s);
+            }
+
+     }
+
+     void Translate(const double x, const double y, DLine& result)const{
+            result.clear();
+            if(!IsDefined()){
+               result.SetDefined(false);
+               return;
+            }
+            result.resize(segments.Size());
+            SimpleSegment s;
+            for(int i=0;i<segments.Size();i++) {
+                segments.Get(i,s);
+                s.translate(x,y);
+                result.append(s);
+            }
+
+     }
+     
+     void Scale(const double sx, const double sy, DLine& result)const{
+            result.clear();
+            if(!IsDefined()){
+               result.SetDefined(false);
+               return;
+            }
+            result.resize(segments.Size());
+            SimpleSegment s;
+            for(int i=0;i<segments.Size();i++) {
+                segments.Get(i,s);
+                s.scale(sx,sy);
+                if(!s.isPoint()){
+                  result.append(s);
+                }
+            }
+
+     }
  
 
   private:

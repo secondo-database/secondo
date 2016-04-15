@@ -131,6 +131,11 @@ Returns the point's bounding box which is a rectangle with (almost)
 Sets the value of the point object.
 
 */
+    inline void Set( const bool _defined, const Coord& _x, const Coord _y){
+      SetDefined(_defined);
+      x = _x;
+      y = _y; 
+    }
     void Set( const Coord& x, const Coord& y );
     void Set( const Point& p);
 /*
@@ -516,6 +521,18 @@ This function moves the position of this Point object instance.
 */
 
     inline void Translate(const Coord& x, const Coord& y);
+    inline void Translate(const Coord& x, const Coord& y, Point& result)const;
+
+    inline void Scale(const Coord& sx, const Coord& sy){
+       x *= sx;
+       y *= sy;
+    }
+    inline void Scale(const Coord& sx, const Coord& sy, Point& result) const{
+       result.Set(IsDefined(), x*sx,y*sy);
+    }
+
+   
+
 
 /*
 4.3.15 Operation ~rotate~
