@@ -218,14 +218,20 @@ cost(filter(X, _), Sel, Pred, Res, Mem, Card,
   storedBBoxSel(DB, P, Sel2),
 	write('passed selectivity is '), write(Sel), nl,
 	write('filter step called with selectivity '), write(Sel2), nl,
+	RefSel is Sel / Sel2,
+	write('hence refinement selectivity is '), write(RefSel), nl,
   cost(X, Sel2, Pred, Res, Mem, Card1, NAttrs, TSize, Cost1),
 	write('returned filter step cardinality is '), write(Card1), nl, 
+	write('filter step cost is '), write(Cost1), nl, 
   getPET(Pred, _, ExpPET),   % fetch stored predicate evaluation time
   filterC(PerTuple),
   ( (ExpPET =< 0.2) -> (PET is 0.0); PET is ExpPET),
   Card is Card1 * (Sel / Sel2),
+	write('PET is '), write(PET), nl,
 	write('returned total cardinality is '), write(Card), nl,
-  Cost is Cost1 + Card1 * (PerTuple + PET).
+  Cost is Cost1 + Card1 * (PerTuple + PET),
+	RefCost is Cost - Cost1,
+	write('refinement step cost is '), write(RefCost), nl.
 
 
 
