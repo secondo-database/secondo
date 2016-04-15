@@ -66,6 +66,10 @@ prolog engine. All generated solutions are printed out.
 #include "SecondoInterface.h"
 #include "DisplayTTY.h"
 
+#include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
+
 
 #ifdef READLINE
   #include <stdio.h>
@@ -120,13 +124,31 @@ bool isStdInput = true;
 string prompt = "";
 
 void ShowPrompt( const bool first ) {
-  prompt = first ? "SecondoPL => ": "SecondoPL -> ";
+  prompt = first ? "SecondoPLTTY => ": "SecondoPLTTY -> ";
   #ifdef READLINE
     rl_set_prompt( prompt.c_str() );
   #else
     cout << prompt;
   #endif
 }
+
+
+
+char getChar(){
+   struct termios old,n;
+   char res;
+   tcgetattr(fileno(stdin),&old);
+   n=old;
+   n.c_lflag &= ~ICANON;
+   n.c_lflag &= ~ECHO;
+   tcsetattr(fileno(stdin),TCSANOW,&n);
+   res = getc(stdin);
+   tcsetattr(fileno(stdin),TCSANOW,&old);
+   return res;
+}
+
+
+
 
 /*
 ~isUpperCase~
@@ -159,6 +181,30 @@ an identifier.
 */
 bool isIdentChar(char c){
   return stringutils::isLetter(c) || stringutils::isDigit(c) || (c=='_');
+}
+
+
+
+string term2string(term_t t){
+   string res ="<error>";
+   fid_t fid = PL_open_foreign_frame();
+   predicate_t pl_convert = PL_predicate("term_to_atom",2,"");
+   term_t args = PL_new_term_refs(2);
+   term_t r = args+1;
+   PL_put_term(args, t);
+   qid_t qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, pl_convert, args);
+   if(!PL_next_solution(qid)){
+     PL_close_query(qid);
+     PL_discard_foreign_frame(fid);
+     return res;
+   }
+   char* s;
+   if( PL_get_atom_chars(r,&s)){
+        res = string(s);
+   } 
+   PL_close_query(qid);
+   PL_discard_foreign_frame(fid);
+   return res;
 }
 
 /*
@@ -336,7 +382,9 @@ This function is the implementation of the help command.
 */
 bool processHelp(){
   cout << endl
-       << "secondo or optimizer command are executes as usual " << endl
+       << "secondo or optimizer command are executed as usual " << endl
+       << "if an sql select statement ends with a dot, the user is " << endl
+       << "ask whether the optimized query should be executed " << endl
        << "?        -  show this help" << endl
        << "@FILE    - read commands from file " << endl
        << "@@FILE   - read commands from file until an error occurred" << endl
@@ -416,7 +464,7 @@ bool processInternalCommand(const string& cmd){
     }
   }
   cout << "Error: command " << cmd << " recognized as an internal "
-       <<   "command but handlet not correctly";
+       <<   "command but handled not correctly";
   return false;
 }
 
@@ -1097,7 +1145,8 @@ string rewriteSelects(const string& cmd, bool& ok){
       }
    }
    if(ok){
-      cout << "command after reqplacing embedded select clauses:" << endl;
+      cout << endl;
+      cout << "command after replacing embedded select clauses:" << endl;
       cout << res << endl << endl;
    }
 
@@ -1159,10 +1208,6 @@ bool processDirectSecondoCommand(string cmd){
    return err.code==0;
 }
 
-
-
-
-
 /*
 ~show Error~
 
@@ -1172,9 +1217,6 @@ prints ou some error message.
 void showError(const string& s){
   cerr << s << endl;
 }
-
-
-
 
 
 /*
@@ -1240,62 +1282,12 @@ bool getBindings( term_t bindings,
 /*
 3.5 ~display~
 
-This function is mainly overtaken from swi prolog 
-C interface documentation. Some corrected has been made
-to make the code compiling and to use cout instead of
-printf calls.
-
 */
-bool display(term_t t)
-{ 
-  int arity,  n;  
-  size_t len;
-  char *s; 
-
-  switch( PL_term_type(t) )
-  { case PL_VARIABLE:
-      if(!  PL_get_chars(t, &s, CVT_VARIABLE)){
-         assert(false);
-      }   
-      cout << s;
-      break;
-    case PL_ATOM:
-    case PL_INTEGER:
-    case PL_FLOAT:
-      if(!  PL_get_chars(t, &s, CVT_ALL)){
-         assert(false);
-      }   
-      cout << s;
-      break;
-    case PL_STRING:
-      PL_get_string_chars(t, &s, &len);
-      cout << "'" << s <<'"';
-      break;
-    case PL_TERM:
-    { term_t a = PL_new_term_ref();
-
-      if(!PL_get_name_arity(t, &a, &arity)){
-          assert(false);
-      }   
-      cout<< PL_atom_chars(a) << "(";
-      for(n=1; n<=arity; n++) { 
-        if(!PL_get_arg(n, t, a)){
-          assert(false);
-        }   
-        if ( n > 1 ) 
-          cout << ", ";
-        display(a);
-      }   
-      cout << ")";
-    }   
-      break;
-    default:
-      return false;   /* should not happen */
-  }
-
-  return true;
+bool display(term_t t) { 
+   string st = term2string(t);
+   cout << st;
+   return true; 
 }
-
 
 /*
 ~processPrologCommand~
@@ -1344,13 +1336,28 @@ bool processPrologCommand(const string& cmd){
    int count = 0;
    bool next = true; 
    while(next && PL_next_solution(qid)){
-     count++;
-     for(size_t i=0;i<b.size();i++){
+     if(count > 0){
+        char k = getChar();
+        next = k!='.';
+        if(next){
+          cout << ";" << endl;
+        }
+     }
+     if(next){
+       count++;
+       for(size_t i=0;i<b.size();i++){
          cout << b[i].first << " = ";
          display(b[i].second);
-         cout << endl;
+         if(i<b.size()-1){
+           cout << endl;
+         }
+       }
      }
    }
+   if(b.size()>0){
+      cout << ".";
+   } 
+   cout << endl;
    if(count==0){
      cerr << "no" << endl;;
    } else {
@@ -1377,7 +1384,7 @@ call is displayed.
 
 */
 
-bool processSqlCommand(string& cmd){
+bool processSqlCommand(string& cmd, bool isDot){
    bool correct;
    string errMsg;
    cmd = checkSQLCommand(cmd,correct, errMsg);
@@ -1398,12 +1405,13 @@ bool processSqlCommand(string& cmd){
    }
 
     fid_t fid = PL_open_foreign_frame();
-    term_t a0 = PL_new_term_refs(2);
+    term_t a0 = PL_new_term_refs(3);
     PL_put_atom_chars(a0, (cmd).c_str());
-    predicate_t p = PL_predicate("sqlToPlan",2,"");
+    predicate_t p = PL_predicate("sqlToPlan",3,"");
     qid_t id;
     bool ok= true;
     string plan="";
+    string costs="";
     int count =0;
 
     try{
@@ -1417,7 +1425,8 @@ bool processSqlCommand(string& cmd){
                 errMsg = answer.substr(9);
                ok = false;
             } else {
-                plan = "query "+ answer; 
+                plan = "query "+ answer;
+                costs = term2string(a0+2); 
             }
          } else {
             ok = false;
@@ -1442,7 +1451,23 @@ bool processSqlCommand(string& cmd){
        cout << "found no solution in optimization" << endl;
        return false;
     }
-    cout << "optimized plan  is "  << plan << endl;
+    cout << endl;
+    cout << "Optimized plan is:" << endl << plan << endl;
+    cout << "Estimated Costs are:" << endl << costs << endl << endl;
+
+    if(isStdInput && isDot){
+      char k=' ';
+       do{
+          cout << "execute query ? (y/n) ";
+          k = getChar();
+          k = tolower(k);
+       } while((k!='n') && (k!='y'));
+       cout << endl;
+       if(k=='n'){
+          return true;
+       }      
+    }
+
     return processDirectSecondoCommand(plan);
 };
 
@@ -1520,12 +1545,13 @@ appropriate command handler.
 */
 bool processCommand(string& cmd){
   stringutils::trim(cmd);
+  bool  isDot = !cmd.empty() && (cmd[cmd.length()-1]=='.');
   if(IsInternalCommand(cmd)){
      // cout << "internal command recognized" << endl;
      return processInternalCommand(cmd);
   } else if (isSqlCommand(cmd)) {
      // cout << "sql command recognized" << endl;
-     return processSqlCommand(cmd);
+     return processSqlCommand(cmd,isDot);
   } else if(isDirectSecondoCommand(cmd)){
      // cout << "direct secondo command recognized" << endl;
      return processDirectSecondoCommand(cmd);
