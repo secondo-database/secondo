@@ -843,121 +843,158 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
        )
   ),
 
+/*
+The problem is here to determine (i) the bounding box selectivity within the filter step, and (ii) the refinement selectivity and the predicate cost of the refinement step.
 
-  secOptConstant(sampleTimeout, Timeout),
+We use the following method:
+
+  1 A spatial join is performed on the two samples. We collect up to one hundred result pairs and store them in a relation xxxTemp.
+
+  2 Let ~n~ be the number of results stored in x
+xxTemp. If ~n~ is 0, we set the bbox-selectivity to 1/(cardinality of the input). Further we set the refinement selectivity to 1 and the  predicate cost to 1.0 ms (as we really don't know).
+
+  3 We run the query 'xxxTemp feed filter[Pred] count' to determine the refinement selectivity. As usual, if the result is 0, we set it to 1, hence then the refinement selectivity is 1/n.
+
+  4 If ~n~ is greater 0, we set the bbox-selectivity to n/(cardinality of the input). Further we determine an integer factor ~f~ to enlarge the result size to about 100. That is, f = 100 div n. This means that n * f is close to 100 and at least 51.
+
+  5 We run the query 'intstream(1, f) transformstream extend[X: XxxTemp feed count] count' three times and determine the average running time ~Tbase~.
+
+  6 We run the query 'intstream(1, f) transformstream extend[X: XxxTemp feed filter[Pred] count] count' three times and determine the average running time ~Tbrutto~. Let Tpred = Tbrutto - Tbase. We then set the predicate cost to Tpred / (n * f).
+
+*/
+
+  % step 1
   Arg1 = attr(_, _, _),
   Arg2 = attr(_, _, _),
-  Query1 = count(head(itSpatialJoin(
-    counter(Rel1Query, 1), 
-    counter(Rel2Query, 2), attrname(Arg1), attrname(Arg2)), 100000)),
+  Query1 = consume(
+    head(
+      itSpatialJoin(counter(Rel1Query, 1), counter(Rel2Query, 2), 
+        attrname(Arg1), attrname(Arg2)), 
+    100)),
 
-  Query2 = count(timeout(
-    filter(
-      counter(
-        head(
-          itSpatialJoin(Rel1Query, Rel2Query, attrname(Arg1), attrname(Arg2)), 
-          1000), 
-        1), 
-      Pred), value_expr(real, Timeout))),
+  ( secondo('query isDBObject("xxxTemp")', [bool, true]) -> delete 'xxxTemp'
+    ; true ),
 
-  plan_to_atom(Query1, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  dm(selectivity,['\nSelectivity query 1: ', QueryAtom, '\n']),
-    ( secondo(QueryAtom, ResultList)
-      -> (true)
-      ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
-                       'whether predicate \'', Pred, '\' is a boolean ',
-                       'function! ']), nl,
-           throw(error_Internal(statistics_selectivityQueryJoin(
-             Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
-	     TotalResCard, InputCard)::selectivityQueryFailed)),
-           fail
-         )
-    ),
-
-  ( ResultList = [int, BBoxResCard]
-    -> true
-    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
-                     'selectivity query:\n',
-                     'Expected \'[int, <intvalue>]\' but got \'',
-                     ResultList, '\'.']), nl,
-         throw(error_Internal(statistics_selectivityQueryJoin(
-             Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
-	     TotalResCard, InputCard)::unexpectedListType)),
-         fail
-       )
-  ),
-
-  secondo('list counters',  ResultList2),
-  ( ResultList2 = [[1, InputCardRel1], [2, InputCardRel2] |_]
-    -> true
-    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
-                  'list counters query:\n',
-                  'Expected \'[[1, InputCardRel1],[2, InputCardRel2],',
-                  '[3, BBoxResCard]|_]\' but got \'', ResultList2, '\'.']), nl,
-         throw(error_Internal(statistics_selectivityQueryJoin(
-           Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
-           TotalResCard, InputCard)::unexpectedListType)),
-         fail
-       )
-  ),
+  plan_to_atom(Query1, QueryAtom1a),
+  atom_concat('let xxxTemp = ', QueryAtom1a, QueryAtom1),
+  dm(selectivity,['\nSelectivity query 1: ', QueryAtom1, '\n']),
+  secondo(QueryAtom1, _),
+  
+  secondo('list counters',  ResultList1),
+  ResultList1 = [[1, InputCardRel1], [2, InputCardRel2] |_],
 
   InputCard is InputCardRel1 * InputCardRel2,
 	write_list(['InputCard = ', InputCard]), nl,
 	write_list(['InputCard1 = ', InputCardRel1]), nl, 
 	write_list(['InputCard2 = ', InputCardRel2]), nl,
-	write_list(['BBoxResultCard = ', BBoxResCard]), nl,
 
-  plan_to_atom(Query2, QueryAtom3),
-  atom_concat('query ', QueryAtom3, QueryAtom2),
-  dm(selectivity,['\nSelectivity query 2: ', QueryAtom2, '\n']),
-  getTime(
-    ( secondo(QueryAtom2, ResultList3)
-      -> (true)
-      ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
+
+
+  % step 2 check whether resultsize is 0.
+  secondo('query xxxTemp count', [int, Card]), 
+  ( Card = 0 -> 
+      ( BBoxResCard = 0, FilterInputCard = 0, TotalResCard = 0, 
+        QueryTime = 1.0 )
+    ; 
+
+      ( BBoxResCard = Card,
+
+        % all the remainder of this predicate is the else-branch with Card > 0.
+
+        % step 3 determine selectivity of refinement step.
+        secOptConstant(sampleTimeout, TimeOut),
+        Query2 = 
+          count(
+            timeout(
+              filter(counter(feed(xxxTemp), 1), Pred),
+              value_expr(real, TimeOut))),
+    
+        % Pred for example: attr(r:geoData,1,u)intersects attr(n:geoData,2,u)
+
+        plan_to_atom(Query2, QueryAtom2a),
+        atom_concat('query ', QueryAtom2a, QueryAtom2),
+        dm(selectivity,['\nSelectivity query 2: ', QueryAtom2, '\n']),
+
+        ( secondo(QueryAtom2, ResultList3)
+          -> (true)
+          ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
                        'whether predicate \'', Pred, '\' is a boolean ',
                        'function! ']), nl,
-           throw(error_Internal(statistics_selectivityQueryJoin( 
-	     Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
-	     TotalResCard, InputCard)::selectivityQueryFailed)),
-           fail
-         )
-    ),
-    QueryTime
-  ),
+             throw(error_Internal(statistics_selectivityQueryJoin( 
+	       Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
+	       TotalResCard, InputCard)::selectivityQueryFailed)),
+             fail
+            )
+        ),
+ 
+          ResultList3 = [int, FilterResCard],
+	secondo('list counters',  ResultList4), 
+          ResultList4 = [[1, FilterInputCard] |_],
+            write_list(['FilterInputCard = ', FilterInputCard]), nl,
+            write_list(['FilterResultCard = ', FilterResCard]), nl,
+        FilterSel is (FilterResCard / FilterInputCard),
+        TotalResCard is BBoxResCard * FilterSel,
+	    write_list(['TotalResultCard = ', TotalResCard]), nl,
 
-  ( ResultList3 = [int, FilterResCard]
-    -> true
-    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
-                     'selectivity query:\n',
-                     'Expected \'[int, <intvalue>]\' but got \'',
-                     ResultList3, '\'.']), nl,
-         throw(error_Internal(statistics_selectivityQueryJoin(
-             Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
-	     TotalResCard, InputCard)::unexpectedListType)),
-         fail
-       )
+
+        % step 4 determine factor
+	Factor is 100 // BBoxResCard, 
+
+        % step 5 + 6 determine PET
+	% step 5 run base query
+        Query3 = 
+          count(
+            extend(
+              transformstream(intstream(1, Factor)),
+              [field( attr(x, 0, u), count(feed(xxxTemp)) )])),
+
+        plan_to_atom(Query3, QueryAtom3a),
+        atom_concat('query ', QueryAtom3a, QueryAtom3),
+        dm(selectivity,['\nSelectivity query 3: ', QueryAtom3, '\n']),
+
+        getTime(
+          ( secondo(QueryAtom3, _),
+            secondo(QueryAtom3, _),
+            secondo(QueryAtom3, _)
+          ), 
+          Tbase
+        ),
+
+
+	% step 6 run refinement query
+        Query4 = 
+          count(
+            extend(
+              transformstream(intstream(1, Factor)),
+              [field( attr(x, 0, u), count(filter(feed(xxxTemp), Pred)) )])),
+
+        plan_to_atom(Query4, QueryAtom4a),
+        atom_concat('query ', QueryAtom4a, QueryAtom4),
+        dm(selectivity,['\nSelectivity query 4: ', QueryAtom3, '\n']),
+
+        getTime(
+          ( secondo(QueryAtom4, _),
+            secondo(QueryAtom4, _),
+            secondo(QueryAtom4, _)
+          ), 
+          Tbrutto
+        ),
+            write_list(['BBoxResCard = ', BBoxResCard]), nl,
+            write_list(['Tbase = ', Tbase]), nl,
+            write_list(['Tbrutto = ', Tbrutto]), nl,
+
+        Tdiff is (Tbrutto - Tbase) / 3,
+        QueryTime is Tdiff / Factor,
+
+            write_list(['Tdiff = ', Tdiff]), nl,
+            write_list(['QueryTime = ', QueryTime]), nl
+
+      )
   ),
-  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']),
-  secondo('list counters',  ResultList4),
-  ( ResultList4 = [[1, FilterInputCard] |_]
-    -> true
-    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
-           'list counters query:\n',
-           'Expected \'[[1, FilterInputCard]|_]\' but got \'', 
-           ResultList4, '\'.']), nl,
-         throw(error_Internal(statistics_selectivityQueryJoin(
-           Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterInputCard,
-	   TotalResCard, InputCard)::unexpectedListType)),
-         fail
-       )
-  ),
-	write_list(['FilterInputCard = ', FilterInputCard]), nl,
-	write_list(['FilterResultCard = ', FilterResCard]), nl,
-  FilterSel is (FilterResCard / FilterInputCard),
-  TotalResCard is BBoxResCard * FilterSel,
-	write_list(['TotalResultCard = ', TotalResCard]), nl,
   !.
+
+
+
 
 /*
 1.3.1 Normal Join Predicate
