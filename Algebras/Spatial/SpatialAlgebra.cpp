@@ -24385,17 +24385,14 @@ int collectDlineVMpoint(Word* args, Word& result, int message, Word& local,
      while( (p = stream.request()) ){
        if(!p->IsDefined()){
           if(stopUndef){
-             res->clear();
-             res->SetDefined(false);
-             if(lastP){
-               lastP->DeleteIfAllowed();
-             }
-             p->DeleteIfAllowed();
-             stream.close();
-             return 0;
-          } else {
-            p->DeleteIfAllowed();
+            if(lastP){
+              lastP->DeleteIfAllowed();
+              lastP=0;
+            }
           }
+          p->DeleteIfAllowed();
+          p=0;
+          
         } else {
             if(lastP){
                 SimpleSegment s(lastP->GetX(), lastP->GetY(), 
