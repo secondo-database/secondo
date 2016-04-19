@@ -859,7 +859,7 @@ xxTemp. If ~n~ is 0, we set the bbox-selectivity to 1/(cardinality of the input)
 
   5 We run the query 'intstream(1, f) transformstream extend[X: XxxTemp feed count] count' three times and determine the average running time ~Tbase~.
 
-  6 We run the query 'intstream(1, f) transformstream extend[X: XxxTemp feed filter[Pred] count] count' three times and determine the average running time ~Tbrutto~. Let Tpred = Tbrutto - Tbase. We then set the predicate cost to Tpred / (n * f).
+  6 We run the query 'intstream(1, f) transformstream extend[X: XxxTemp feed {1} filter[Pred] count] count' three times and determine the average running time ~Tbrutto~. Let Tpred = Tbrutto - Tbase. We then set the predicate cost to Tpred / (n * f).
 
 */
 
@@ -929,10 +929,10 @@ xxTemp. If ~n~ is 0, we set the bbox-selectivity to 1/(cardinality of the input)
  
           ResultList3 = [int, FilterResCard],
 	secondo('list counters',  ResultList4), 
-          ResultList4 = [[1, FilterInputCard] |_],
-            write_list(['FilterInputCard = ', FilterInputCard]), nl,
+          ResultList4 = [[1, FilterInputCardA] |_],
+            write_list(['FilterInputCard = ', FilterInputCardA]), nl,
             write_list(['FilterResultCard = ', FilterResCard]), nl,
-        FilterSel is (FilterResCard / FilterInputCard),
+        FilterSel is (FilterResCard / FilterInputCardA),
         TotalResCard is BBoxResCard * FilterSel,
 	    write_list(['TotalResultCard = ', TotalResCard]), nl,
 
@@ -962,20 +962,28 @@ xxTemp. If ~n~ is 0, we set the bbox-selectivity to 1/(cardinality of the input)
 
 
 	% step 6 run refinement query
+        % intstream(1, Factor) transformstream extend[X: xxxTemp feed {1} 
+        % filter[Pred] timeout[3.5] count
         Query4 = 
           count(
-            extend(
-              transformstream(intstream(1, Factor)),
-              [field( attr(x, 0, u), count(filter(feed(xxxTemp), Pred)) )])),
+            timeout(
+              extend(
+                transformstream(intstream(1, Factor)),
+                [field( attr(x, 0, u), 
+                  count(filter(counter(feed(xxxTemp), 1), Pred)) )]), 
+              value_expr(real, 3.5))),
 
         plan_to_atom(Query4, QueryAtom4a),
         atom_concat('query ', QueryAtom4a, QueryAtom4),
         dm(selectivity,['\nSelectivity query 4: ', QueryAtom3, '\n']),
 
         getTime(
-          ( secondo(QueryAtom4, _),
-            secondo(QueryAtom4, _),
-            secondo(QueryAtom4, _)
+          ( secondo(QueryAtom4, _), 
+              secondo('list counters', [[1, FilterInputCard1] |_]),
+            secondo(QueryAtom4, _), 
+              secondo('list counters', [[1, FilterInputCard2] |_]),
+            secondo(QueryAtom4, _), 
+              secondo('list counters', [[1, FilterInputCard3] |_])            
           ), 
           Tbrutto
         ),
@@ -983,17 +991,16 @@ xxTemp. If ~n~ is 0, we set the bbox-selectivity to 1/(cardinality of the input)
             write_list(['Tbase = ', Tbase]), nl,
             write_list(['Tbrutto = ', Tbrutto]), nl,
 
-        Tdiff is (Tbrutto - Tbase) / 3,
-        QueryTime is Tdiff / Factor,
-
-            write_list(['Tdiff = ', Tdiff]), nl,
+        QueryTime is (Tbrutto - Tbase),
+        FilterInputCard is 
+          FilterInputCard1 + FilterInputCard2 + FilterInputCard3,
+        
+            write_list(['FilterInputCard = ', FilterInputCard]), nl,
             write_list(['QueryTime = ', QueryTime]), nl
 
       )
   ),
   !.
-
-
 
 
 /*
