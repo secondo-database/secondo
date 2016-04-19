@@ -1063,30 +1063,22 @@ bool TMatch::otherValuesMatch(const int pos, const SecInterval& iv,
     return false;
   }
   else if (attrInfo.second == "mreal") {
-    Range<CcReal> trange(true), prange(true);
+    Range<CcReal> trange(true);
     MReal *mreal = (MReal*)t->GetAttribute(attrInfo.first);
     UReal ureal(true), urealTemp(true);
     int firstpos(mreal->Position(iv.start)), lastpos(mreal->Position(iv.end));
     if (firstpos >= 0 && lastpos >= firstpos &&
         lastpos < mreal->GetNoComponents()) {
-      mreal->Get(firstpos, ureal);
-      ureal.AtInterval(iv, urealTemp);
       bool correct = true;
-      CcReal ccmin(urealTemp.Min(correct)), ccmax(urealTemp.Max(correct));
+      CcReal ccmin(0.0, true), ccmax(0.0, true);
       Interval<CcReal> minMax(ccmin, ccmax, true, true);
       set<Interval<CcReal>, ivCmp> ivSet;
-      ivSet.insert(minMax);
-      for (int i = firstpos + 1; i < lastpos; i++) {
+      for (int i = firstpos; i <= lastpos; i++) {
         mreal->Get(i, ureal);
         minMax.start.Set(ureal.Min(correct));
         minMax.end.Set(ureal.Max(correct));
         ivSet.insert(minMax);
       }
-      mreal->Get(mreal->Position(iv.end), ureal);
-      ureal.AtInterval(iv, urealTemp);
-      minMax.start.Set(urealTemp.Min(correct));
-      minMax.end.Set(urealTemp.Max(correct));
-      ivSet.insert(minMax);
       for (set<Interval<CcReal>, ivCmp>::iterator it = ivSet.begin();
            it != ivSet.end(); it++) {
         trange.MergeAdd(*it);
@@ -1096,10 +1088,10 @@ bool TMatch::otherValuesMatch(const int pos, const SecInterval& iv,
     }
     return false;
   }
-  else {
+  else { // error
     cout << "TYPE is " << attrInfo.second << endl;
+    return false;
   }
-  
   return true;
 }
 
@@ -3238,7 +3230,7 @@ void TMatchIndexLI::applyNFA() {
   map<int, int>::reverse_iterator im;
   while ((activeTuples > 0) && !states.empty()) {
 //     cout << "WHILE loop: activeTuples=" << activeTuples << "; " 
-//          << matches.size() << " matches; states:";
+//          << matches.size() - 1 << " matches" << endl;
     for (is = states.rbegin(); is != states.rend(); is++) {
       map<int, int> trans = p->getTransitions(*is);
       for (im = trans.rbegin(); im != trans.rend() && activeTuples > 0; im++) {
