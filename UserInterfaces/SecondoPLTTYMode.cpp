@@ -1453,7 +1453,7 @@ bool processSqlCommand(string& cmd, bool isDot){
     }
     cout << endl;
     cout << "Optimized plan is:" << endl << plan << endl;
-    cout << "Estimated Costs are:" << endl << costs << endl << endl;
+    cout << endl << "Estimated Costs are:" << endl << costs << endl << endl;
 
     if(isStdInput && isDot){
       char k=' ';
