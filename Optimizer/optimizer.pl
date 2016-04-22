@@ -3012,14 +3012,13 @@ filter is used.
 
 
 % Generic indexselect translation for predicates checking on mbbs
-indexselect(arg(N), pr(Pred, _/*Rel*/)) =>
-  filter(windowintersects(dbobject(IndexName), rel(Name, *), Y), Pred)
+indexselect(arg(N), pr(Pred, _)) =>
+  filter(windowintersects(dbobject(IndexName), rel(Name, *), Box), Pred)
   :-
   (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y]
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)] ),
   isBBoxPredicate(OP),
-%   getTypeTree(Pred,[(1,Rel)],[OP,Args,ResType]),
-%   findall(T,(member([_,_,T],Args)),ArgTypes),
+  ( (OP = passes)  -> Box = bbox2d(Y) ; Box = bbox(Y)),
   argument(N, rel(Name, *)),
   (     hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree)
       ; hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree3)
@@ -3028,13 +3027,15 @@ indexselect(arg(N), pr(Pred, _/*Rel*/)) =>
   ),
   dcName2externalName(DCindex,IndexName).
 
+
 indexselect(arg(N), pr(Pred, _)) =>
-  filter(rename(windowintersects(dbobject(IndexName), rel(Name,*),bbox(Y)),
+  filter(rename(windowintersects(dbobject(IndexName), rel(Name,*), Box),
                 RelAlias), Pred)
   :-
   (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y]
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)]),
   isBBoxPredicate(OP),
+  ( ( OP = passes ) -> Box = bbox2d(Y) ; Box = Y),
   argument(N, rel(Name, RelAlias)), RelAlias \= *,
   (   hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree)
     ; hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree3)
@@ -3042,6 +3043,7 @@ indexselect(arg(N), pr(Pred, _)) =>
     ; hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree8)
   ),
   dcName2externalName(DCindex,IndexName).
+
 
 % exploit commutativity of operators (additional cases)
 indexselect(arg(N), pr(Pred, Rel)) => X :-
@@ -4155,6 +4157,7 @@ join(Arg1, arg(N), pr(Pred, _, _))
   isBBoxPredicate(Op),        % a bbox-predicate
   isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
   isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
+  ( (Op = passes)  -> Box = bbox2d(Expr1) ; Box = Expr1),
   argument(N, RelDescription),% get info on 2nd relation
   (                           % the relation has an index on Attr2:
       hasIndex(RelDescription, Attr2, DCindex, rtree)
@@ -4164,7 +4167,7 @@ join(Arg1, arg(N), pr(Pred, _, _))
   ),
   dcName2externalName(DCindex,IndexName),
   Arg1 => Arg1S,
-  rtreeindexlookupexpr(IndexName, arg(N), Expr1) => RTreeLookupExpr.
+  rtreeindexlookupexpr(IndexName, arg(N), Box) => RTreeLookupExpr.
 
 join(arg(N), Arg2, pr(Pred, _, _))
   => filter(loopjoin(Arg2S, RTreeLookupExpr), Pred) :-
@@ -4172,6 +4175,7 @@ join(arg(N), Arg2, pr(Pred, _, _))
   isBBoxPredicate(Op),
   isOfFirst(Attr1, X, Y),
   isNotOfFirst(Expr2, X, Y),
+  ( (Op = passes)  -> Box = bbox2d(Expr2) ; Box = Expr2),
   argument(N, RelDescription),
   (   hasIndex(RelDescription, Attr1, DCindex, rtree)
     ; hasIndex(RelDescription, Attr1, DCindex, rtree3)
@@ -4180,7 +4184,7 @@ join(arg(N), Arg2, pr(Pred, _, _))
   ),
   dcName2externalName(DCindex,IndexName),
   Arg2 => Arg2S,
-  rtreeindexlookupexpr(IndexName, arg(N), Expr2) => RTreeLookupExpr.
+  rtreeindexlookupexpr(IndexName, arg(N), Box) => RTreeLookupExpr.
 
 /*
 8.5.2 Support for Distance Scan
