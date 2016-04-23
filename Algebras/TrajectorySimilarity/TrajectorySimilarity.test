@@ -286,7 +286,7 @@ query no_components([const tpointseq value (
 ###
 
 #testcase ToDLinePointSeqUndefined
-#yields (dline ())
+#yields (dline undefined)
 ## The list representation of the undefined dline is '()' and not 'undefined'.
 query to_dline([const pointseq value undefined])
 
@@ -295,7 +295,7 @@ query to_dline([const pointseq value undefined])
 query to_dline([const pointseq value ()])
 
 #testcase ToDLinePointSeq1
-#yields (dline ((1.0 2.3 1.0 2.3)))
+#yields (dline ())
 query to_dline([const pointseq value ((1.0 2.3))])
 
 #testcase ToDLinePointSeq2
@@ -307,7 +307,7 @@ query to_dline([const pointseq value ((1.0 2.3) (-2.0 0.0))])
 query to_dline([const pointseq value ((1.0 2.3) (-2.0 0.0) (4.5 6.7))])
 
 #testcase ToDLineTPointSeqUndefined
-#yields (dline ())
+#yields (dline undefined)
 ## The list representation of the undefined dline is '()' and not 'undefined'.
 query to_dline([const tpointseq value undefined])
 
@@ -316,7 +316,7 @@ query to_dline([const tpointseq value undefined])
 query to_dline([const tpointseq value ()])
 
 #testcase ToDLineTPointSeq1
-#yields (dline ((1.0 2.3 1.0 2.3)))
+#yields (dline ())
 query to_dline([const tpointseq value (("2015-12-29-01:23:45" (1.0 2.3)))])
 
 #testcase ToDLineTPointSeq2
