@@ -1263,6 +1263,14 @@ Signature : dline x int x bool -> dline
 Example   : query no_segments(twist2([const dline value ((1 1 1 10)(1 1 10 1))], 2, FALSE))
 Result    : 2
 
+
+Operator  : twist3
+Number    : 1
+Signature : dline x  double -> dline
+Example   : query no_segments(twist3([const dline value ((1 1 1 10)(1 10 10 1)(10 1 1 1))],0.4))
+Result    : 56
+
+
 Operator  : toSVG 
 Number    : 1
 Signature : dline -> FText

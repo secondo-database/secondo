@@ -25918,6 +25918,100 @@ Operator twist2Op(
 
 
 /*
+twist 3
+
+*/
+ListExpr twist3TM(ListExpr args){
+  string err= "dline x double expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(!DLine::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }  
+  if(   !CcReal::checkType(nl->Second(args))
+     && !CcInt::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<DLine>();
+
+}
+
+template<class D>
+int twist3VMT(Word* args, Word& result, int message, Word& local,Supplier s){
+  DLine* line = (DLine*) args[0].addr;
+  D* dist = (D*) args[1].addr;
+  result = qp->ResultStorage(s);
+  DLine* res = (DLine*) result.addr;
+
+  if(!line->IsDefined() || !dist->IsDefined()){
+    res->SetDefined(false);
+    return  0;
+  }
+  res->clear();
+  queue<SimpleSegment> q;
+  for(int i=0;i<line->Size(); i++){
+     SimpleSegment s;
+     line->get(i,s);
+     res->append(s);
+     q.push(s);
+  }
+  double d = dist->GetValue();
+  if(q.size()<2 || d<=0){
+    return 0;
+  }
+  SimpleSegment first = q.front();
+  SimplePoint cp(first.x1,first.y1);
+  q.pop();
+  first = q.front();
+
+  double length;
+  while( (length=first.length()) > d){
+      double delta = d / length;
+      SimplePoint np ( first.x1 + delta * (first.x2-first.x1),
+                       first.y1 + delta * (first.y2-first.y1));
+      SimpleSegment s( cp.getX(), cp.getY(), np.getX(), np.getY());
+      res->append(s);
+      q.push(s);
+      cp = np;
+      q.pop();
+      first = q.front();
+  } 
+  while(!q.empty()){
+    res->append(q.front());
+    q.pop();
+  }
+  return 0;
+}
+
+ValueMapping twist3VM[] = {
+   twist3VMT<CcInt>,
+   twist3VMT<CcReal>
+};
+
+int twist3Select(ListExpr args){
+   return CcInt::checkType(nl->Second(args))?0:1;
+}
+
+OperatorSpec twist3Spec(
+  "dline x double -> dline",
+  "twist3(line,offset) ",
+  "produces interesting patterns",
+  "query twist2(dl, 10.0)"
+);
+
+Operator twist3Op(
+   "twist3",
+   twist3Spec.getStr(),
+   2,
+   twist3VM,
+   twist3Select,
+   twist3TM
+);
+
+
+
+/*
 Operator toSVG
 
 */
@@ -26223,6 +26317,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&twistOp);
     AddOperator(&contour2Op);
     AddOperator(&twist2Op);
+    AddOperator(&twist3Op);
     AddOperator(&toSVGOp);
 
   }
