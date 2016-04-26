@@ -31,6 +31,8 @@ Started March 2012, Fabio Vald\'{e}s
 This is the lex file that does the lexical analysis for the Symbolic Trajectory
 Algebra.
 
+      TODO: process double quotes separately in conditions.
+
 */
 %{
 #include "PatternParser.tab.h"
@@ -41,6 +43,10 @@ using namespace std;
 void deleteCurrentPatternBuffer() {
     yy_delete_buffer(YY_CURRENT_BUFFER);
 }
+
+int openParentheses = 0;
+int openBrackets = 0;
+bool openQuotes = false;
 
 %}
 %option prefix="pattern"
@@ -86,6 +92,7 @@ closeregex (\]\+)|(\]\*)|(\]\?)|\]
 %option yylineno
 %option noyywrap
 %%
+
 <INITIAL>[ \a\b\f\t\v\r]+ {}
 <INITIAL>\( {return '(';}
 <INITIAL>\) {return ')';}
@@ -101,11 +108,32 @@ closeregex (\]\+)|(\]\*)|(\]\?)|\]
 <condition>{vardottype} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_TYPE;}
 <condition>{rightarrow} {BEGIN(result); return ZZRIGHTARROW;}
 <condition>{const_op} {patternlval.text = strdup(patterntext); return ZZCONST_OP;}
-<condition>\, {return ',';}
-<condition>\( {return '(';}
-<condition>\) {return ')';}
-<condition>\[ {return '[';}
-<condition>\] {return ']';}
+<condition>\, {if (!openQuotes && openParentheses == 0 && openBrackets == 0) {
+                 return ',';
+               }
+               else {return ZZCOMMA;}
+              }
+<condition>\( {if (!openQuotes) {
+                 ++openParentheses; 
+                 return '(';
+               }
+              }
+<condition>\) {if (!openQuotes) {
+                 --openParentheses;
+                 return ')';
+               }
+              }
+<condition>\[ {if (!openQuotes) {
+                 ++openBrackets;
+                 return '[';
+               }
+              }
+<condition>\] {if (!openQuotes) {
+                 --openBrackets;
+                 return ']';
+               }
+              }
+<condition>\" {openQuotes = !openQuotes;}
 <condition>\n {BEGIN(INITIAL); return ZZEND;}
 <result>{variable} {patternlval.text = strdup(patterntext); return ZZVARIABLE;}
 <result>\( {return '(';}

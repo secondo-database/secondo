@@ -170,8 +170,6 @@ class Tools {
   static void createNFAfromPersistent(DbArray<NFAtransition> &trans, 
           DbArray<int> &fs, std::vector<std::map<int, int> > &nfa, 
           std::set<int> &finalStates);
-  static void printBinding(const std::map<std::string, 
-                           std::pair<int, int> > &b);
   static double distance(const std::string& str1, const std::string& str2, 
                          const int fun);
   static double distance(const std::pair<std::string, unsigned int>& val1, 

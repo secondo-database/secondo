@@ -77,6 +77,7 @@ class PatElem;
 class Assign;
 class ClassifyLI;
 class IndexLI;
+struct IndexMatchInfo;
 
 Pattern* parseString(const char* input, bool classify, Tuple *t,ListExpr ttype);
 void patternFlushBuffer();
@@ -457,8 +458,8 @@ class Condition {
   template<class M>
   void    setPointerToEmptyValue(const int pos, M *traj);
   template<class M>
-  bool    evaluate(const std::map<std::string, std::pair<int, int> > &binding,
-                    M *traj,
+  bool    evaluate(const IndexMatchInfo &imi, M *traj,
+                   std::map<std::string, int> &varToElem,
                    Tuple *tuple = 0, ListExpr ttype = 0);
 };
 
@@ -727,7 +728,15 @@ class Pattern {
                         regEx.find_first_of("()|") != std::string::npos;}
   void  addRelevantVar(std::string var) {relevantVars.insert(var);}
   bool  isRelevant(std::string var)  {return relevantVars.count(var);}
-  std::string            getVarFromElem(int elem){return elemToVar[elem];}
+  std::string       getVarFromElem(int elem){return elemToVar[elem];}
+  std::map<std::string, int> getVarToElem() {return varToElem;}
+  void              setVarToElem(std::map<std::string, int> &vtm)
+                                                              {varToElem = vte;}
+  int               getElemFromVar(std::string var) {
+                                   if (varToElem.find(var) == varToElem.end()) {
+                                     return -1;
+                                   }
+                                   return varToElem[var];}
   int               getElemFromAtom(int atom) {return atomicToElem[atom];}
 
   std::vector<PatElem> elems;
@@ -738,6 +747,7 @@ class Pattern {
   std::map<std::string, std::pair<int, int> > varPos;
   std::map<int, int> atomicToElem;
   std::map<int, std::string> elemToVar;
+  std::map<std::string, int> varToElem;
   std::map<int, std::set<int> > easyCondPos;
   std::set<std::string> assignedVars; 
                          // variables on the right side of an assignment
@@ -865,20 +875,6 @@ class Classifier : public Attribute {
 };
 
 /*
-\section{Struct ~BindingElem~}
-
-*/
-struct BindingElem {
-  BindingElem() : from(-1), to(-1) {}
-
-  BindingElem(std::string v, unsigned int f, unsigned int t) :
-    var(v), from(f), to(t) {}
-    
-  std::string var;
-  unsigned int from, to;
-};
-
-/*
 \section{Class ~TMatch~}
 
 */
@@ -910,17 +906,14 @@ class TMatch {
             const int atom, const int pos);
   bool mainValuesMatch(const int u, const int atom);
   bool otherValuesMatch(const int pos, 
-                        const temporalalgebra::SecInterval& iv, 
-                        const int atom);
+                        const temporalalgebra::SecInterval& iv, const int atom);
   bool valuesMatch(const int u, const int atom);
   bool easyCondsMatch(const int u, const int atom);
   bool performTransitions(const int u, std::set<int>& states);
   bool performTransitionsWithMatrix(const int u, std::set<int>& states);
   bool findMatchingBinding(const int startState);
-  bool conditionsMatch(
-            const std::map<std::string, std::pair<int, int> > &binding);
-  bool findBinding(const int u, const int atom, 
-                   std::map<std::string, std::pair<int, int> > &binding);
+  bool conditionsMatch(const IndexMatchInfo& imi);
+  bool findBinding(const int u, const int atom, IndexMatchInfo& imi);
 };
 
 extern TypeConstructor tupleindexTC;
@@ -1026,20 +1019,96 @@ struct IndexRetrieval : public UnitSet {
 
 */
 struct IndexMatchInfo {
+  IndexMatchInfo() {}
+  
+  IndexMatchInfo(std::vector<int> &b) : binding(b) {}
+  
   IndexMatchInfo(bool r, int n = 0) : 
        range(r), next(n), prevElem(-1) {binding.clear();}
-  IndexMatchInfo(bool r, int n, const std::map<std::string, 
-                 std::pair<int, int> >& b, int e) :
+       
+  IndexMatchInfo(bool r, int n, const std::vector<int> b, const int e) :
        range(r), next(n), prevElem(e) {if (b.size() > 0) {binding = b;}}
+       
+  IndexMatchInfo(const int elem, const int u) : range(false), next(-1), 
+       prevElem(-1) {
+    for (int i = 0; i < elem - 1; i++) {
+      binding.push_back(-1);
+    }
+    binding.push_back(u - 1);
+    binding.push_back(u);
+  }
   
   void print(const bool printBinding);
   bool finished(const int size) const {return range || (next >= size);}
   bool exhausted(const int size) const {return next >= size;}
   bool matches(const int unit) const {return (range ? next<=unit : next==unit);}
-
+  
+  void set(const int elem, const int to) {
+    if (elem >= 0 && (int)binding.size() > elem) {
+      binding[elem] = to;
+    }
+    else if (elem >= 0) {
+      while ((int)binding.size() < elem) {
+        binding.push_back(-1);
+      }
+      binding.push_back(to);
+    }
+  }
+  
+  int getTo(const int elem) const {
+    if ((int)binding.size() > elem) {
+      return binding[elem];
+    }
+    return -1;
+  }
+  
+  int getFrom(const int elem) const {
+    if (elem >= -1 && (int)binding.size() > elem) {
+      if (binding[elem] == -1) {
+        return -1;
+      }
+      for (int i = elem - 1; i >= 0; i--) {
+        if (binding[i] != -1) {
+          return binding[i] + 1;
+        }
+      }
+      return 0;
+    }
+    return -1;
+  }
+  
+  bool extendOrInsert(const int elem, const int u) {
+    if ((int)binding.size() > elem) {
+      binding[elem]++;
+      return false;
+    }
+    else {
+      for (int i = binding.size(); i < elem; i++) {
+        binding.push_back(-1);
+      }
+      binding.push_back(u);
+      return true;
+    }
+  }
+  
+  void reduceOrErase(const int elem, const bool inserted) {
+    if (inserted) {
+      binding.pop_back();
+    }
+    else {
+      binding[elem]--;
+    }
+  }
+  
+  void reset(const int oldEnd) {
+    if (prevElem >= 0 && (int)binding.size() > prevElem) {
+      binding[prevElem] = oldEnd;
+    }
+  }
+  
   bool range;
   int next, prevElem;
-  std::map<std::string, std::pair<int, int> > binding;
+  std::vector<int> binding; //holds right ends of bindings for each pattern elem
 };
 
 /*
@@ -1131,7 +1200,8 @@ class IndexMatchSuper {
                         const bool checkRange = false) const;
   void clearMatchInfo();
   bool hasIdIMIs(const TupleId id, const int state = -1);
-  void extendBinding(IndexMatchInfo& imi, const int e);
+  void extendBinding(IndexMatchInfo& imi, const int atom, const bool wc,
+                     const TupleId id = 0);
   void deletePattern();
   
   Relation *rel;
@@ -1234,12 +1304,10 @@ class Match {
   bool findBinding(unsigned int ulId, 
                    unsigned int pId, std::vector<PatElem> &elems,
                    std::vector<Condition> &conds, 
-                   std::map<int, std::string> &elemToVar,
-                   std::map<std::string, std::pair<int, int> > &binding);
+                   std::map<int, std::string> &elemToVar, IndexMatchInfo &imi);
   void cleanPaths(std::map<int, int> &atomicToElem);
   bool cleanPath(unsigned int ulId, unsigned int pId);
-  bool conditionsMatch(std::vector<Condition> &conds,
-                 const std::map<std::string, std::pair<int, int> > &binding);
+  bool conditionsMatch(std::vector<Condition> &conds,const IndexMatchInfo &imi);
   bool evaluateEmptyM();
   bool isSensiblyBound(const std::map<std::string, std::pair<int, int> > &b,
                        std::string& var);
@@ -1296,9 +1364,7 @@ class RewriteLI {
   ~RewriteLI() {}
 
   M* getNextResult();
-  static M* rewrite(M *src, 
-            std::map<std::string, std::pair<int, int> > binding, 
-                    std::vector<Assign> &assigns);
+  M* rewrite(M *src, IndexMatchInfo &imi, std::vector<Assign> &assigns);
   void resetBinding(int limit);
   bool findNextBinding(unsigned int ulId, unsigned int pId, Pattern *p,
                        int offset);
@@ -1306,8 +1372,8 @@ class RewriteLI {
  protected:
   std::stack<BindingStackElem> bindingStack;
   Match<M> *match;
-  std::map<std::string, std::pair<int, int> > binding;
-  std::set<std::map<std::string, std::pair<int, int> > > rewBindings;
+  std::vector<int> binding;
+  std::set<std::vector<int> > rewBindings;
 };
 
 /*
@@ -1369,6 +1435,7 @@ class MultiRewriteLI : public ClassifyLI, public RewriteLI<M> {
                 // elem no |-> (pat no, first pat elem)
   std::map<int, int> atomicToElem;
   std::map<int, std::string> elemToVar;
+  std::map<std::string, int> varToElem;
 };
 
 /*
@@ -4038,17 +4105,18 @@ binding matches a certain condition.
 
 */
 template<class M>
-bool Condition::evaluate(const std::map<std::string, 
-                         std::pair<int, int> > &binding, M *traj,
+bool Condition::evaluate(const IndexMatchInfo& imi, M *traj, 
+                         std::map<std::string, int> &varToElem,
                          Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
   Word qResult;
   unsigned int from, to;
   for (int i = 0; i < getVarKeysSize(); i++) {
-    std::string var = getVar(i);
-    if ((var != "") && binding.count(var)) {
-      from = binding.find(var)->second.first;
-      to = binding.find(var)->second.second;
+    int elem = varToElem[getVar(i)];
+    from = imi.getFrom(elem);
+    to = imi.getTo(elem);
+    if (elem != -1 && from != -1 && to != -1 && from <= to) {
       int key = getKey(i);
+//       cout << elem << ": [" << from << ", " << to << "]; " << key << endl;
       if (key > 99) { // reference to attribute of tuple
         if (!tuple || !ttype) {
           return false;
@@ -4401,11 +4469,10 @@ bool Match<M>::findMatchingBinding(std::vector<std::map<int, int> > &nfa,
     return true;
   }
   std::map<int, int> transitions = nfa[startState];
-  std::map<std::string, std::pair<int, int> > binding;
+  IndexMatchInfo imi;
   std::map<int, int>::reverse_iterator itm;
   for (itm = transitions.rbegin(); itm != transitions.rend(); itm++) {
-    if (findBinding(0, atomicToElem[itm->first], elems, conds, elemToVar,
-                    binding)) {
+    if (findBinding(0, atomicToElem[itm->first], elems, conds, elemToVar, imi)){
       return true;
     }
   }
@@ -4421,23 +4488,12 @@ they fulfill every condition, stopping immediately after the first success.
 */
 template<class M>
 bool Match<M>::findBinding(unsigned int ulId, unsigned int pId,
-                      std::vector<PatElem> &elems, 
-                      std::vector<Condition> &conds,
-                      std::map<int, std::string> &elemToVar,
-                      std::map<std::string, std::pair<int, int> > &binding) {
+                   std::vector<PatElem> &elems, std::vector<Condition> &conds,
+                   std::map<int, std::string> &elemToVar, IndexMatchInfo &imi) {
   std::string var = elemToVar[pId];
-  bool inserted = false;
-  if (!var.empty()) {
-    if (binding.count(var)) { // extend existing binding
-      binding[var].second++;
-    }
-    else { // add new variable
-      binding[var] = std::make_pair(ulId, ulId);
-      inserted = true;
-    }
-  }
+  bool inserted = imi.extendOrInsert(pId, ulId);
   if (*(matching[ulId][pId].begin()) == UINT_MAX) { // complete match
-    if (conditionsMatch(conds, binding)) {
+    if (conditionsMatch(conds, imi)) {
       return true;
     }
   }
@@ -4445,19 +4501,12 @@ bool Match<M>::findBinding(unsigned int ulId, unsigned int pId,
     for (std::set<unsigned int>::reverse_iterator 
             it = matching[ulId][pId].rbegin();
          it != matching[ulId][pId].rend(); it++) {
-      if (findBinding(ulId + 1, *it, elems, conds, elemToVar, binding)) {
+      if (findBinding(ulId + 1, *it, elems, conds, elemToVar, imi)) {
         return true;
       }
     }
   }
-  if (!var.empty()) { // unsuccessful: reset binding
-    if (inserted) {
-      binding.erase(var);
-    }
-    else {
-      binding[var].second--;
-    }
-  }
+  imi.reduceOrErase(pId, inserted);
   return false;
 }
 
@@ -4505,12 +4554,18 @@ bool Match<M>::easyCondsMatch(int ulId, PatElem const &elem,
   if (elem.getW() || pos.empty() || easyConds.empty()) {
     return true;
   }
-  std::map<std::string, std::pair<int, int> > binding;
+  std::vector<int> binding;
   std::string var;
   elem.getV(var);
-  binding[var] = std::make_pair(ulId, ulId);
+  int elemPos = p->getElemFromVar(var);
+  while (binding.size() < elemPos) {
+    binding.push_back(-1);
+  }
+  binding.push_back(ulId);
+  IndexMatchInfo imi(binding);
+  std::map<std::string, int> varToElem = p->getVarToElem();
   for (std::set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
-    if (!easyConds[*it].evaluate<M>(binding, m)) {
+    if (!easyConds[*it].evaluate<M>(imi, m, varToElem)) {
       return false;
     }
   }
@@ -4526,12 +4581,13 @@ and only if there is (at least) one binding that matches every condition.
 */
 template<class M>
 bool Match<M>::conditionsMatch(std::vector<Condition> &conds,
-                const std::map<std::string, std::pair<int, int> > &binding) {
+                const IndexMatchInfo &imi) {
   if (!m->GetNoComponents()) { // empty MLabel
     return evaluateEmptyM();
   }
+  std::map<std::string, int> varToElem = p->getVarToElem();
   for (unsigned int i = 0; i < conds.size(); i++) {
-    if (!conds[i].evaluate<M>(binding, m)) {
+    if (!conds[i].evaluate<M>(imi, m, varToElem)) {
 //       cout << conds[i].getText() << " | ";
 //       Tools::printBinding(binding);
       return false;
@@ -4683,22 +4739,25 @@ RewriteLI<M>::RewriteLI(M *src, Pattern *pat) {
 
 */
 template<class M>
-M* RewriteLI<M>::rewrite(
-       M *src, std::map<std::string, std::pair<int, int> > binding,
-       std::vector<Assign> &assigns){
+M* RewriteLI<M>::rewrite(M *src, IndexMatchInfo &imi,
+                         std::vector<Assign> &assigns) {
+  Pattern *p = match->getPattern();
   M *result = new M(true);
   Word qResult;
   Instant start(datetime::instanttype), end(datetime::instanttype);
   temporalalgebra::SecInterval iv(true), iv2(true);
   bool lc(false), rc(false);
+  int elem = -1;
   std::pair<unsigned int, unsigned int> segment;
   assert(src->IsValid());
   for (unsigned int i = 0; i < assigns.size(); i++) {
     for (int j = 0; j <= 9; j++) {
       if (!assigns[i].getText(j).empty()) {
         for (int k = 0; k < assigns[i].getRightSize(j); k++) {
-          if (binding.count(assigns[i].getRightVar(j, k))) {
-            segment = binding[assigns[i].getRightVar(j, k)];
+          elem = p->getElemFromVar(assigns[i].getRightVar(j, k));
+          if (imi.getTo(elem) > -1) {
+            segment.first = imi.getFrom(elem);
+            segment.second = imi.getTo(elem);
             switch (assigns[i].getRightKey(j, k)) {
               case 0: { // label
                 std::string lvalue;
@@ -4832,8 +4891,9 @@ M* RewriteLI<M>::rewrite(
       pls = *((Places*)qResult.addr);
     }
      // information from assignment i collected
-    if (binding.count(assigns[i].getV())) { // variable occurs in binding
-      segment = binding[assigns[i].getV()];
+    if (imi.getTo(p->getElemFromVar(assigns[i].getV())) > -1) { // var occurs
+      segment.first = imi.getFrom(elem);
+      segment.second = imi.getTo(elem);
       if (segment.second == segment.first) { // 1 source ul
         src->GetInterval(segment.first, iv);
         if (!assigns[i].getText(2).empty()) {
@@ -4961,15 +5021,16 @@ M* RewriteLI<M>::getNextResult() {
   if (!match) {
     return 0;
   }
+  IndexMatchInfo imi(binding);
   if (!match->m->GetNoComponents()) { // empty mlabel
     if (bindingStack.empty()) {
       return 0;
     }
     bindingStack.pop();
     std::vector<Condition> *conds = match->p->getConds();
-    if (match->conditionsMatch(*conds, binding)) {
+    if (match->conditionsMatch(*conds, imi)) {
       M *source = match->m;
-      return rewrite(source, binding, match->p->getAssigns());
+      return rewrite(source, imi, match->p->getAssigns());
     }
     return 0;
   }
@@ -4985,7 +5046,7 @@ M* RewriteLI<M>::getNextResult() {
         if (!rewBindings.count(binding)) {
           rewBindings.insert(binding);
           M *source = match->m;
-          return rewrite(source, binding, match->p->getAssigns());
+          return rewrite(source, imi, match->p->getAssigns());
         }
       }
     }
@@ -4999,18 +5060,17 @@ M* RewriteLI<M>::getNextResult() {
 
 template<class M>
 void RewriteLI<M>::resetBinding(int limit) {
-  std::vector<std::string> toDelete;
-  std::map<std::string, std::pair<int, int> >::iterator it;
-  for (it = binding.begin(); it != binding.end(); it++) {
-    if (it->second.first >= limit) {
-      toDelete.push_back(it->first);
+  IndexMatchInfo imi(binding);
+  bool found = false;
+  unsigned int pos = 0;
+  while (pos < binding.size() && !found) {
+    if (imi.getTo(pos) >= limit) {
+      imi.set(pos, limit - 1);
+      found = true;
+      for (unsigned int j = pos + 1; j < binding.size(); pos++) {
+        binding.pop_back();
+      }
     }
-    else if (it->second.second >= limit) {
-      it->second.second = limit - 1;
-    }
-  }
-  for (unsigned int i = 0; i < toDelete.size(); i++) {
-    binding.erase(toDelete[i]);
   }
 }
 
@@ -5020,17 +5080,12 @@ bool RewriteLI<M>::findNextBinding(unsigned int ulId, unsigned int peId,
 //   cout << "findNextBinding(" << ulId << ", " << peId << ", " << offset
 //        << ") called" << endl;
   std::string var = p->getVarFromElem(peId - offset);
-  if (!var.empty() && p->isRelevant(var)) {
-    if (binding.count(var)) { // extend existing binding
-      binding[var].second++;
-    }
-    else { // add new variable
-      binding[var] = std::make_pair(ulId, ulId);
-    }
-  }
+  IndexMatchInfo imi(binding);
+  imi.set(peId - offset, ulId);
   if (*(match->matching[ulId][peId].begin()) == UINT_MAX) { // complete match
     std::vector<Condition> *conds = p->getConds();
-    return match->conditionsMatch(*conds, binding);
+    match->p = p;
+    return match->conditionsMatch(*conds, imi);
   }
   if (match->matching[ulId][peId].empty()) {
     return false;
@@ -5193,6 +5248,7 @@ MultiRewriteLI<M>::MultiRewriteLI(Word _tstream, Word _pstream, int _pos) :
               p->getElem(i, elem);
               elem.getV(var);
               elemToVar[elemCount+p->getElemFromAtom(i)] = var;
+              varToElem[var] = elemCount+p->getElemFromAtom(i);
               patElems.push_back(elem);
               patOffset[elemCount + p->getElemFromAtom(i)] =
                                  std::make_pair(pats.size() - 1, elemCount);
@@ -5254,8 +5310,8 @@ M* MultiRewriteLI<M>::nextResult() {
     std::pair<int, int> patNo = patOffset[bE.peId];
     if (this->findNextBinding(bE.ulId, bE.peId, pats[patNo.first], 
         patNo.second)) {
-      return RewriteLI<M>::rewrite(traj, this->binding, 
-                                   pats[patNo.first]->getAssigns());
+      IndexMatchInfo imi(this->binding);
+      return RewriteLI<M>::rewrite(traj, imi, pats[patNo.first]->getAssigns());
     }
   }
   Tuple *tuple = 0;
@@ -5293,10 +5349,11 @@ M* MultiRewriteLI<M>::nextResult() {
       this->bindingStack.pop();
       this->resetBinding(bE.ulId);
       std::pair<int, int> patNo = patOffset[bE.peId];
+      pats[patNo.first]->setVarToElem(varToElem);
       if (this->findNextBinding(bE.ulId, bE.peId, pats[patNo.first], 
                                 patNo.second)) {
-        return RewriteLI<M>::rewrite(traj, this->binding, 
-                                     pats[patNo.first]->getAssigns());
+        IndexMatchInfo imi(this->binding);
+        return RewriteLI<M>::rewrite(traj, imi,pats[patNo.first]->getAssigns());
       }
     }
     tuple->DeleteIfAllowed();
@@ -5439,7 +5496,7 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
         match.easyCondsMatch(unit, elem, p->easyConds, p->getEasyCondPos(e))) {
       if (unit + 1 >= unitCtr) {
         IndexMatchInfo newIMI(false, unit + 1, imi.binding, imi.prevElem);
-        extendBinding(newIMI, e);
+        extendBinding(newIMI, e, false);
 //         if (newIMI.finished(trajSize[id])) {
 //           newIMI.print(true); cout << "   ";
 //         }
@@ -5470,7 +5527,7 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
           match.easyCondsMatch(i, elem, p->easyConds, p->getEasyCondPos(e))) {
         if (i + 1 >= unitCtr) {
           IndexMatchInfo newIMI(false, i + 1, imi.binding, imi.prevElem);
-          extendBinding(newIMI, e);
+          extendBinding(newIMI, e, false);
           if (p->isFinalState(newState) && imi.finished(trajSize[id]) &&
               checkConditions(id, newIMI)) { // complete match
             removeIdFromMatchInfo(id);
@@ -5500,7 +5557,7 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
      match.easyCondsMatch(imi.next, elem, p->easyConds, p->getEasyCondPos(e))) {
       if (imi.next + 1 >= unitCtr) {
         IndexMatchInfo newIMI(false, imi.next + 1, imi.binding, imi.prevElem);
-        extendBinding(newIMI, e);
+        extendBinding(newIMI, e, false);
         if (p->isFinalState(newState) && imi.finished(trajSize[id]) && 
             checkConditions(id, newIMI)) { // complete match
           removeIdFromMatchInfo(id);

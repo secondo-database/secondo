@@ -1122,34 +1122,34 @@ bool TMatch::easyCondsMatch(const int u, const int atom) {
   if (p->elems[atom].getW() || pos.empty() || p->easyConds.empty()) {
     return true;
   }
-  map<string, pair<int, int> > binding;
-  binding[p->elems[atom].var] = make_pair(u, u);
+  IndexMatchInfo imi(p->getElemFromAtom(atom), u);
+  std::map<std::string, int> vte = p->getVarToElem();
   for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
     switch (type) {
       case MLABEL: {
         MLabel *traj = (MLabel*)t->GetAttribute(attrno);
-        if (!p->easyConds[*it].evaluate<MLabel>(binding, traj, t, ttype)) {
+        if (!p->easyConds[*it].evaluate<MLabel>(imi, traj, vte, t, ttype)) {
           return false;
         }
         break;
       }
       case MLABELS: {
         MLabels *traj = (MLabels*)t->GetAttribute(attrno);
-        if (!p->easyConds[*it].evaluate<MLabels>(binding, traj, t, ttype)) {
+        if (!p->easyConds[*it].evaluate<MLabels>(imi, traj, vte, t, ttype)) {
           return false;
         }
         break;
       }
       case MPLACE: {
         MPlace *traj = (MPlace*)t->GetAttribute(attrno);
-        if (!p->easyConds[*it].evaluate<MPlace>(binding, traj, t, ttype)) {
+        if (!p->easyConds[*it].evaluate<MPlace>(imi, traj, vte, t, ttype)) {
           return false;
         }
         break;
       }
       case MPLACES: {
         MPlaces *traj = (MPlaces*)t->GetAttribute(attrno);
-        if (!p->easyConds[*it].evaluate<MPlaces>(binding, traj, t, ttype)) {
+        if (!p->easyConds[*it].evaluate<MPlaces>(imi, traj, vte, t, ttype)) {
           return false;
         }
         break;
@@ -1268,34 +1268,32 @@ bool TMatch::performTransitions(const int u, set<int>& states) {
 \subsection{Function ~conditionsMatch~}
 
 */
-bool TMatch::conditionsMatch(const map<string, pair<int, int> > &binding) {
+bool TMatch::conditionsMatch(const IndexMatchInfo &imi) {
+  Attribute *attr = t->GetAttribute(attrno);
+  std::map<std::string, int> varToElem = p->getVarToElem();
   for (unsigned int i = 0; i < p->conds.size(); i++) {
     switch (type) {
       case MLABEL: {
-        if (!p->conds[i].evaluate(binding, (MLabel*)t->GetAttribute(attrno), t,
-                                  ttype)) {
+        if (!p->conds[i].evaluate(imi, (MLabel*)attr, varToElem, t, ttype)) {
 //           cout << "False cond " << p->conds[i].getText() << endl;
           return false;
         }
         break;
       }
       case MLABELS: {
-        if (!p->conds[i].evaluate(binding, (MLabels*)t->GetAttribute(attrno), t,
-                                  ttype)){
+        if (!p->conds[i].evaluate(imi, (MLabels*)attr, varToElem, t, ttype)) {
           return false;
         }
         break;
       }
       case MPLACE: {
-        if (!p->conds[i].evaluate(binding, (MPlace*)t->GetAttribute(attrno), t,
-                                  ttype)) {
+        if (!p->conds[i].evaluate(imi, (MPlace*)attr, varToElem, t, ttype)) {
           return false;
         }
         break;
       }
       case MPLACES: {
-        if (!p->conds[i].evaluate(binding,(MPlaces*)t->GetAttribute(attrno), t,
-                                  ttype)) {
+        if (!p->conds[i].evaluate(imi, (MPlaces*)attr, varToElem, t, ttype)) {
           return false;
         }
         break;
@@ -1316,40 +1314,22 @@ Recursively finds all bindings in the matching set matrix and checks whether
 they fulfill every condition, stopping immediately after the first success.
 
 */
-bool TMatch::findBinding(const int u, const int elem,
-                         map<string, pair<int, int> > &binding) {
-  string var = p->elemToVar[elem];
-  bool inserted = false;
-  if (!var.empty()) {
-    if (binding.count(var)) { // extend existing binding
-      binding[var].second++;
-    }
-    else { // add new variable
-      binding[var] = make_pair(u, u);
-      inserted = true;
-    }
-  }
+bool TMatch::findBinding(const int u, const int elem, IndexMatchInfo& imi) {
+  bool inserted = imi.extendOrInsert(elem, u);
   if (*(pathMatrix[u][elem].begin()) == UINT_MAX) { // complete match
-    if (conditionsMatch(binding)) {
+    if (conditionsMatch(imi)) {
       return true;
     }
   }
   else {
     for (set<unsigned int>::reverse_iterator it = pathMatrix[u][elem].rbegin();
          it != pathMatrix[u][elem].rend(); it++) {
-      if (findBinding(u + 1, *it, binding)) {
+      if (findBinding(u + 1, *it, imi)) {
         return true;
       }
     }
   }
-  if (!var.empty()) { // unsuccessful: reset binding
-    if (inserted) {
-      binding.erase(var);
-    }
-    else {
-      binding[var].second--;
-    }
-  }
+  imi.reduceOrErase(elem, inserted);
   return false;
 }
 
@@ -1368,10 +1348,10 @@ bool TMatch::findMatchingBinding(const int startState) {
     return true;
   }
   map<int, int> transitions = p->nfa[startState];
-  map<string, pair<int, int> > binding;
+  IndexMatchInfo imi;
   map<int, int>::reverse_iterator itm;
   for (itm = transitions.rbegin(); itm != transitions.rend(); itm++) {
-    if (findBinding(0, p->atomicToElem[itm->first], binding)) {
+    if (findBinding(0, p->atomicToElem[itm->first], imi)) {
       return true;
     }
   }
@@ -2901,6 +2881,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
   vector<TupleId> toRemove;
   p->getElem(trans.first, atom);
   bool transition = false;
+//   int oldEnd = -1;
   IndexMatchInfo *imiPtr = 0;
   if (atom.isRelevantForTupleIndex()) {
     if (indexResult[trans.first] == 0) {
@@ -2946,26 +2927,14 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
               if (loopStates.find(trans.second) != loopStates.end()) {
                 newIMI.range = true;
               }
+              totalMatch = p->isFinalState(trans.second) &&
+                           newIMI.finished(trajSize[id]);
               if (p->hasConds()) { // extend binding for a complete match
-                extendBinding(newIMI, trans.first);
-                if (p->isFinalState(trans.second) && 
-                    newIMI.finished(trajSize[id])) {
-                  string var = p->getVarFromElem
-                                              (p->getElemFromAtom(trans.first));
-                  int oldEnd = newIMI.binding[var].second;
-//                   newIMI.binding[var].second = trajSize[id] - 1;
+                extendBinding(newIMI, trans.first, false, totalMatch ? id : 0);
+                if (totalMatch) {
                   TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
-                  totalMatch = tmatch.conditionsMatch(newIMI.binding);
-                  if (!totalMatch) { // reset unsuccessful binding
-                    newIMI.binding[var].second = oldEnd;
-                    newIMI.prevElem = imiPtr->prevElem;
-                    // TODO: correct resetting of bindings
-                  }
+                  totalMatch = tmatch.conditionsMatch(newIMI);
                 }
-              }
-              else {
-                totalMatch = p->isFinalState(trans.second) &&
-                             newIMI.finished(trajSize[id]);
               }
               if (totalMatch) {
                 matches.push_back(id); // complete match
@@ -3053,25 +3022,14 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                 transition = true;
                 IndexMatchInfo newIMI(false, imiPtr->next + 1, imiPtr->binding,
                                       imiPtr->prevElem);
+                totalMatch = p->isFinalState(trans.second) &&
+                             newIMI.finished(trajSize[id]);
                 if (p->hasConds()) { // extend binding for a complete match
-                  extendBinding(newIMI, trans.first);
-                  if (p->isFinalState(trans.second) && 
-                      newIMI.finished(trajSize[id])) {
-                    string var = p->getVarFromElem
-                                              (p->getElemFromAtom(trans.first));
-                    int oldEnd = newIMI.binding[var].second;
-//                     newIMI.binding[var].second = trajSize[id] - 1;
+                  extendBinding(newIMI, trans.first, false,totalMatch ? id : 0);
+                  if (totalMatch) {
                     TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
-                    totalMatch = tmatch.conditionsMatch(newIMI.binding);
-                    if (!totalMatch) { // reset unsuccessful binding
-                      newIMI.binding[var].second = oldEnd;
-                      newIMI.prevElem = imiPtr->prevElem;
-                    }
+                    totalMatch = tmatch.conditionsMatch(newIMI);
                   }
-                }
-                else {
-                  totalMatch = p->isFinalState(trans.second) &&
-                               newIMI.finished(trajSize[id]);
                 }
                 if (totalMatch) {
                   matches.push_back(id); // complete match
@@ -3119,25 +3077,16 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                   transition = true;
                   IndexMatchInfo newIMI(false, k + 1, imiPtr->binding,
                                         imiPtr->prevElem);
-                  if (p->hasConds()) { // extend binding for a complete match
-                    extendBinding(newIMI, trans.first);
-                    if (p->isFinalState(trans.second) && 
-                        newIMI.finished(trajSize[id])) {
-                      string var = p->getVarFromElem
-                                              (p->getElemFromAtom(trans.first));
-                      int oldEnd = newIMI.binding[var].second;
-//                       newIMI.binding[var].second = trajSize[id] - 1;
-                      TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, 
-                                    valueNo);
-                      totalMatch = tmatch.conditionsMatch(newIMI.binding);
-                      if (!totalMatch) { // reset unsuccessful binding
-                        newIMI.binding[var].second = oldEnd;
-                        newIMI.prevElem = imiPtr->prevElem;
-                      }
-                    }
-                  }
                   totalMatch = p->isFinalState(trans.second) &&
                                newIMI.finished(trajSize[id]);
+                  if (p->hasConds()) { // extend binding for a complete match
+                    extendBinding(newIMI, trans.first, false, totalMatch?id:0);
+                    if (totalMatch) {
+                      TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, 
+                                    valueNo);
+                      totalMatch = tmatch.conditionsMatch(newIMI);
+                    }
+                  }
                   if (totalMatch) {
                     matches.push_back(id); // complete match
 //                     cout << "MATCH for id " << id << " !!" << endl;
@@ -3166,24 +3115,14 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
             transition = true;
             IndexMatchInfo newIMI(true, imiPtr->next + 1, imiPtr->binding,
                                   imiPtr->prevElem);
+            totalMatch = p->isFinalState(trans.second) &&
+                         newIMI.finished(trajSize[id]);
             if (p->hasConds()) { // extend binding for a complete match
-              extendBinding(newIMI, trans.first);
-              if (p->isFinalState(trans.second) && 
-                  newIMI.finished(trajSize[id])) {
-                string var = p->getVarFromElem(p->getElemFromAtom(trans.first));
-                int oldEnd = newIMI.binding[var].second;
-                newIMI.binding[var].second = trajSize[id] - 1;
+              extendBinding(newIMI, trans.first, true, totalMatch ? id : 0);
+              if (totalMatch) {
                 TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
-                totalMatch = tmatch.conditionsMatch(newIMI.binding);
-                if (!totalMatch) { // reset unsuccessful binding
-                  newIMI.binding[var].second = oldEnd;
-                  newIMI.prevElem = imiPtr->prevElem;
-                }
+                totalMatch = tmatch.conditionsMatch(newIMI);
               }
-            }
-            else { // no conditions
-              totalMatch = p->isFinalState(trans.second) &&
-                           newIMI.finished(trajSize[id]);
             }
             if (totalMatch) {
               matches.push_back(id); // complete match
@@ -4866,100 +4805,35 @@ bool IndexMatchSuper::hasIdIMIs(const TupleId id, const int state /* = -1 */) {
 \subsection{Function ~extendBinding~}
 
 */
-void IndexMatchSuper::extendBinding(IndexMatchInfo& imi, const int e) {
+void IndexMatchSuper::extendBinding(IndexMatchInfo& imi, const int atom,
+                           const bool wc, const TupleId id /* = 0 */) {
   if (!p->hasConds()) {
     return;
   }
-  PatElem elem, prevElem;
-  string var, prevVar;
-  p->getElem(e, elem);
-  if (imi.prevElem > -1) {
-    p->getElem(imi.prevElem, prevElem);
-    prevElem.getV(prevVar);
+  int elem = p->getElemFromAtom(atom);
+  imi.set(elem, imi.next - 1);
+//   cout << elem << " set! to " << imi.next - 1 << endl;
+  PatElem prevE;
+  bool prevW = false;
+  if (elem > 0) {
+    p->getElem(elem - 1, prevE);
+    prevW = (prevE.getW() != NO);
   }
-  elem.getV(var);
-//   cout << "extendBinding called: " << imi.next << " " << imi.prevElem << " " 
-//        << prevVar << " " << var << " " << e << " " 
-//        << imi.binding[prevVar].second << " | ";
-  if (e < imi.prevElem) { // possible for repeated regex
-    if (var == prevVar) { // valid case
-      if (var != "") { // X [() * ()]+
-        imi.binding[var].second = imi.next - 1;
-//         cout << "right limit of " << var << " is " << imi.next - 1 << endl;
-      }
-      else { // [() ()]+
-//         cout << "no variable for atom " << e << " => no changes" << endl;
-      }
-    }
-    else { // invalid case
-//       cout << "ERROR: " << e << ", " << var << " after " << imi.prevElem
-//            << ", " << prevVar << endl;
-    }
+  if (!wc && prevW) {
+    imi.set(elem - 1, imi.next - 2);
+//     cout << elem - 1 << " set* to " << imi.next - 2 << endl;
   }
-  else if (e == imi.prevElem) { // same elem (and same variable) as before
-    if (var != "") { // X * or X [...]+
-      imi.binding[var].second = imi.next - 1;
-//       cout << "upper limit of " << var << " set to " << imi.next - 1 << endl;
+  if (id > 0) { // totalMatch
+    int lastElem = p->getElemFromAtom(p->getSize() - 1);
+    for (int i = elem + 1; i < lastElem; i++) {
+      imi.set(i, -1);
+//       cout << i << " set% to " << -1 << endl;
     }
-    else { // no variable
-//       cout << "no variable for atom " << e << " ===> no changes" << endl;
-    }
+    imi.set(lastElem, trajSize[id] - 1);
+//     cout << lastElem << " set§ to " << trajSize[id] - 1 << endl;
   }
-  else { // different elems
-    if (var == prevVar) { // X [() +]
-      if (var != "") {
-        imi.binding[var].second = imi.next - 1;
-//         cout << "ceiling of " << var << " set to " << imi.next - 1 << endl;
-      }
-      else { // no variable
-//         cout << "no variable for atom " << e << " ====>> no changes" << endl;
-      }
-    }
-    else { // different variables
-      if ((var != "") && (prevVar == "")) { // () X ()
-        if (imi.next == 0) { // first atom
-          imi.binding[var] = make_pair(0, 0);
-//           cout << "new var " << var << " bound to 0" << endl;
-        }
-        else {
-          imi.binding[var] = make_pair(imi.next - 1, imi.next - 1);
-//           cout << "new var " << var << " bound to " << imi.next - 1 << endl;
-        }
-      }
-      else if (var == "") { // X () ()
-        if (prevElem.getW() != NO) {
-          imi.binding[prevVar].second = imi.next - 2;
-//           cout << "prevVar " << prevVar << " finishes at " << imi.next - 2
-//                << endl;
-        }
-      }
-      else { // X ... Y ...
-        if (elem.getW() == NO) { // X * Y () or X () Y ()
-          imi.binding[prevVar].second = imi.next - 2;
-//           cout << "prevVar " << prevVar << " extended to " << imi.next - 2
-//                << endl;
-          imi.binding[var] = make_pair(imi.next - 1, imi.next - 1);
-        }
-        else { // wildcard
-          if (prevElem.getW() != NO) { // X * Y *
-            imi.binding[prevVar].second = imi.next - 2;
-//             cout << "prev " << prevVar << " extended to " << imi.next - 2 
-//                  << endl;
-          }
-          else { // X () Y *
-            imi.binding[var] = make_pair(imi.binding[prevVar].second + 1, 
-                                         imi.next - 1);
-            imi.binding[prevVar].second = imi.binding[prevVar].first;
-          }
-        }
-      }
-    }
-    if (prevVar != "" && prevElem.getW() != NO) {
-      imi.binding[prevVar].second = imi.next - 2;
-    }
-  }
-  imi.prevElem = e;
-//   Tools::printBinding(imi.binding);
+  imi.prevElem = p->getElemFromAtom(atom);
+//   imi.print(true);
 }
 
 /*
@@ -4979,6 +4853,7 @@ void IndexMatchSuper::deletePattern() {
 bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
   IndexMatchInfo *imiPtr;
   bool ok = false;
+  int oldEnd = -1;
   TupleId id = matchInfo[state][0]->succ; // first active tuple id
   while (id > 0) {
 //      cout << "wildcardMatch: " << (*matchInfoPtr)[state][id].imis.size() 
@@ -4994,14 +4869,12 @@ bool IndexMatchesLI::wildcardMatch(const int state, pair<int, int> trans) {
         IndexMatchInfo newIMI(true, imiPtr->next + 1, imiPtr->binding, 
                               imiPtr->prevElem);
         if (p->hasConds()) { // extend binding for a complete match
-          extendBinding(newIMI, trans.first);
+          extendBinding(newIMI, trans.first, true);
           if (p->isFinalState(trans.second) && imiPtr->finished(trajSize[id])) {
-            string var = p->getVarFromElem(p->getElemFromAtom(trans.first));
-            int oldEnd = newIMI.binding[var].second;
-            newIMI.binding[var].second = trajSize[id] - 1;
+            oldEnd = newIMI.getTo(p->getElemFromAtom(trans.first));
             match = checkConditions(id, newIMI);
             if (!match) { // reset unsuccessful binding
-              newIMI.binding[var].second = oldEnd;
+              newIMI.reset(oldEnd);
             }
           }
         }
@@ -5224,25 +5097,25 @@ bool IndexMatchesLI::checkConditions(const TupleId id, IndexMatchInfo& imi) {
     case MLABEL: {
       MLabel *ml = (MLabel*)(tuple->GetAttribute(attrNo));
       Match<MLabel> match(p, ml);
-      result = match.conditionsMatch(*(p->getConds()), imi.binding);
+      result = match.conditionsMatch(*(p->getConds()), imi);
       break;
     }
     case MLABELS: {
       MLabels *mls = (MLabels*)(tuple->GetAttribute(attrNo));
       Match<MLabels> match(p, mls);
-      result = match.conditionsMatch(*(p->getConds()), imi.binding);
+      result = match.conditionsMatch(*(p->getConds()), imi);
       break;
     }
     case MPLACE: {
       MPlace *mp = (MPlace*)(tuple->GetAttribute(attrNo));
       Match<MPlace> match(p, mp);
-      result = match.conditionsMatch(*(p->getConds()), imi.binding);
+      result = match.conditionsMatch(*(p->getConds()), imi);
       break;
     }
     default: { // PLACES
       MPlaces *mps = (MPlaces*)(tuple->GetAttribute(attrNo));
       Match<MPlaces> match(p, mps);
-      result = match.conditionsMatch(*(p->getConds()), imi.binding);
+      result = match.conditionsMatch(*(p->getConds()), imi);
       break;
     }
   }
@@ -5258,7 +5131,11 @@ void IndexMatchInfo::print(const bool printBinding) {
     cout << "next: {" << next << "}" << endl;
   }
   if (printBinding) {
-    Tools::printBinding(binding);
+    cout << binding.size() << ": ";
+    for (unsigned int i = 0; i < binding.size(); i++) {
+      cout << i << " ---> [" << getFrom(i) << ", " << getTo(i) << "],   ";
+    }
+    cout << endl;
   }
 }
 

@@ -1473,18 +1473,6 @@ void Tools::createNFAfromPersistent(DbArray<NFAtransition> &trans,
   }
 }
 
-void Tools::printBinding(const map<string, pair<int, int> > &b) {
-  if (b.empty()) {
-    return;
-  }
-  map<string, pair<int, int> >::const_iterator it;
-  for (it = b.begin(); it != b.end(); it++) {
-    cout << it->first << " --> [" << it->second.first << ","
-         << it->second.second << "]  ";
-  }
-  cout << endl;
-}
-
 double Tools::distance(const string& str1, const string& str2, const int fun) {
   if (!str1.length() && !str2.length()) {
     return 0;

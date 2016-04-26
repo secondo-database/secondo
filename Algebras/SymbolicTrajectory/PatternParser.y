@@ -31,7 +31,7 @@ Started March 2012, Fabio Vald\'{e}s
 This is the bison file that parses the user input for the Symbolic Trajectory
 Algebra.
 
-\section{Defines and Includes}
+        TODO: remove expressionlistcomma
 
 */
 %{
@@ -77,7 +77,7 @@ ExprList exprList;
 bool doublePars(false), firstAssign(true), assignNow(false), easyCond(true);
 string regEx, expr;
 set<string> curIvs, patVars, resultVars, condVars;
-unsigned int pos(0), regExLength(1), numOfElems(0);
+unsigned int pos(0), regExLength(1), numOfElems;
 vector<int> posBeforeOpen;
 Tuple *tup = 0;
 ListExpr tupleType = 0;
@@ -94,7 +94,7 @@ char* errMsg;
 %name-prefix="pattern"
 
 %token ZZEND
-%token<text> ZZVARIABLE ZZCONTENTS ZZWILDCARD ZZDOUBLESLASH ZZVAR_DOT_TYPE 
+%token<text> ZZVARIABLE ZZCONTENTS ZZWILDCARD ZZDOUBLESLASH ZZVAR_DOT_TYPE ZZCOMMA
              ZZRIGHTARROW ZZCONST_OP ZZASSIGN ZZOPENREGEX ZZCLOSEREGEX ZZERROR
 %type<text> variable patternelement conditionsequence condition expression
             resultsequence result assignment element separator regexseq
@@ -352,12 +352,23 @@ expressionlistenclosed : expression {
                            $$ = &exprList;
 /*                            cout << "expressionlistenclosed reads \"" << exprList.toString() << "\"" << endl; */
                          }
+                       | expressionlistenclosed ZZCOMMA expression {
+                           expr.assign($3);
+                           int exprSize = exprList.exprs.size();
+                           if (exprSize > 0) {
+                             exprList.exprs[exprSize - 1].append(",");
+                             exprList.exprs[exprSize - 1].append(expr);
+                           }
+                           free($3);
+                           $$ = &exprList;
+/*                            cout << "expressionlistenclosed reads \"" << exprList.toString() << "\"" << endl; */
+                         }
                        ;
 
 expressionlistcomma : ',' expression {
                         expr.assign($2);
                         expr.insert(0, ",");
-/*                         cout << "one elem list = " << expr << endl; */
+/*                         cout << "one elem comma list = " << expr << endl; */
                         exprList.exprs.push_back(expr);
                         free($2);
                         $$ = &exprList;
@@ -528,7 +539,9 @@ Pattern* stj::parseString(const char* input, bool classify = false,
   firstAssign = true;
   assignNow = false;
   easyCond = true;
-  numOfElems = 0;
+  if (!classify) {
+    numOfElems = 0;
+  }
   tup = t;
   tupleType = ttype;
   if (patternparse() != 0) {
@@ -901,6 +914,7 @@ void Pattern::addVarPos(string var, int pos) {
     }
   }
   elemToVar[numOfElems] = var;
+  varToElem[var] = numOfElems;
 }
 
 void Pattern::addAtomicPos() {
