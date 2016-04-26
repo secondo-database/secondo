@@ -730,7 +730,7 @@ class Pattern {
   bool  isRelevant(std::string var)  {return relevantVars.count(var);}
   std::string       getVarFromElem(int elem){return elemToVar[elem];}
   std::map<std::string, int> getVarToElem() {return varToElem;}
-  void              setVarToElem(std::map<std::string, int> &vtm)
+  void              setVarToElem(std::map<std::string, int> &vte)
                                                               {varToElem = vte;}
   int               getElemFromVar(std::string var) {
                                    if (varToElem.find(var) == varToElem.end()) {
