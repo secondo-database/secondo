@@ -811,10 +811,14 @@ public boolean storeSelectedObject(){
   } else{
        SecondoObject SO = (SecondoObject) Objects.get(index);
        String SOName = SO.getName().trim();
+       if(SOName.endsWith("[++]")){
+           SOName = SOName.substring(0, SOName.length()-4).trim();
+       }
        if (SOName.indexOf(" ")>=0){  // a space cannot be in objectname
            Reporter.showWarning("objectname " + SOName+ " contains spaces\n please rename");
        }
        else{
+
           String cmd;
           ListExpr SOList = SO.toListExpr();
           ListExpr type = SOList.first();
