@@ -886,6 +886,16 @@ Checks whether the list represents a stream.
   }
 
 
+   bool isMapX(int x, ListExpr map){
+    int a = x+2;
+
+
+    return nl->ListLength(map)==a &&
+           nl->AtomType(nl->First(map))==SymbolType &&
+           nl->SymbolValue(nl->First(map)) == "map";
+
+  }
+
 
 
 

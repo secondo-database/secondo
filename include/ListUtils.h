@@ -92,6 +92,8 @@ Check for map
   }
 
 
+   bool isMapX(int x, ListExpr map);
+
 /*
 Returns the symbol typeerror.
 
