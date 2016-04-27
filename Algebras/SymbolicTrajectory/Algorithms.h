@@ -4108,31 +4108,33 @@ template<class M>
 bool Condition::evaluate(const IndexMatchInfo& imi, M *traj, 
                          std::map<std::string, int> &varToElem,
                          Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
+//   cout << "EVAL \'" << text << "\'; " << getVarKeysSize() << endl;
   Word qResult;
   unsigned int from, to;
   for (int i = 0; i < getVarKeysSize(); i++) {
     int elem = varToElem[getVar(i)];
     from = imi.getFrom(elem);
     to = imi.getTo(elem);
+//     cout << elem << ", " << getVar(i) << ": [" << from << ", " << to 
+//          << "]; " << getKey(i) << endl;
     if (elem != -1 && from != -1 && to != -1 && from <= to) {
       int key = getKey(i);
-//       cout << elem << ": [" << from << ", " << to << "]; " << key << endl;
       if (key > 99) { // reference to attribute of tuple
         if (!tuple || !ttype) {
           return false;
         }
         if (Tools::isMovingAttr(ttype, key - 99)) {
-//           cout << "restrict: " << var << " " << from << " " << to << " " 
-//                << key-99 << endl;
+//           cout << "restrict: " << getVar(i) << " " << from << " " << to 
+//                << " " << key-99 << endl;
           restrictPtr(i, traj, from, to, tuple, ttype, key - 99);
         }
         else {
           pointers[i]->CopyFrom(tuple->GetAttribute(key - 100));
         }
-        getQP()->EvalS(getOpTree(), qResult, OPEN);
-        return ((CcBool*)qResult.addr)->GetValue();
       }
-      setPointerToValue<M>(i, traj, from, to);
+      else {
+        setPointerToValue<M>(i, traj, from, to);
+      }
     }
     else { // variable bound to empty sequence
       setPointerToEmptyValue<M>(i, traj);
