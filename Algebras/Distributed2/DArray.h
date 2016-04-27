@@ -78,7 +78,7 @@ class DArrayElement{
      
      bool operator>(const DArrayElement& other) const;
      
-     ListExpr toListExpr();
+     ListExpr toListExpr() const;
 
      bool readFrom(SmiRecord& valueRecord, size_t& offset);
 
@@ -139,83 +139,32 @@ the algebra instance.
 
 */
 
-enum arrayType{DARRAY,DFARRAY,DFMATRIX};
+enum arrayType{DARRAY,DFARRAY, DFMATRIXXX};
+
+std::string getName(const arrayType  a);
 
 
 
-class DArrayType{
+class DistTypeBase{
  public:
+   DistTypeBase(const std::vector<DArrayElement>& worker,
+              const std::string& _name);
+               
+   DistTypeBase( const std::string& _name);
+
+   DistTypeBase( const DistTypeBase& src);
+
+   // DistTypeBase() {}
+   explicit DistTypeBase(const int dummy) {}
+     
+   DistTypeBase& operator=(const DistTypeBase& src);
+
+   virtual ~DistTypeBase(){}
+
+
    virtual arrayType getType() const = 0; 
-   virtual ~DArrayType(){};
-};
+   bool IsDefined() const{ return defined; }
 
-
-template<arrayType Type>
-class DArrayT: public DArrayType{
-  public:
-
-/*
-3.1 Constructors
-
-The constructors create a darray from predefined values.
-
-*/
-
-     DArrayT(const std::vector<uint32_t>& _map, const std::string& _name);
-
-     DArrayT(const size_t _size , const std::string& _name);
-
-     DArrayT(const std::vector<uint32_t>& _map, const std::string& _name, 
-               const std::vector<DArrayElement>& _worker);
-
-     DArrayT(const size_t _size, const std::string& _name, 
-               const std::vector<DArrayElement>& _worker);
-
-     explicit DArrayT(int dummy) {} // only for cast function
-
-     DArrayT(const DArrayT<Type>& src);
-
-/*
-3.2 Assignment Operator
-
-*/
-     template<arrayType T>
-     DArrayT& operator=(const DArrayT<T>& src);
-
-/*
-3.3 Destructor
-
-*/
-     ~DArrayT();
-
-
-/*
-3.4 ~getWorkerNum~
-
-This fucntion returns the worker that is responsible for
-the given index. This operation cannot applied to a 
-DFMATRIX.
-
-*/
-    uint32_t getWorkerNum(uint32_t index);
-
-/*
-3.5 ~getType~
-
-Returns the template type.
-
-*/
-    arrayType getType() const;
-
-/*
-3.6 ~setSize~
-
-Sets a new size. This operation is only allowed for
-the DFMATRIX type.
-
-*/
-
-    void setSize(size_t newSize);
 
 /*
 3.6 ~set~
@@ -225,8 +174,120 @@ darray. The map from index to workers is the
 standard map.
 
 */
-    void set(const size_t size, const std::string& name, 
-              const std::vector<DArrayElement>& worker);
+   virtual void set(const std::string& name, 
+                    const std::vector<DArrayElement>& worker);
+
+
+     size_t numOfWorkers() const;
+
+     virtual size_t getSize() const = 0;
+     
+     DArrayElement getWorker(int i);
+
+     std::string getName() const;
+     bool setName( const std::string& n);
+
+
+     virtual void makeUndefined();
+     bool equalWorkers(const DistTypeBase&  a) const;
+
+     const std::vector<DArrayElement>& getWorkers() const{
+       return worker;
+     }     
+
+
+ protected:
+    std::vector<DArrayElement> worker; // connection information
+    std::string name;  // the basic name used on workers
+    bool defined; // defined state of this array
+
+
+/*
+3.24 ~equalWorker~
+
+Check for equaliness of workers.
+
+*/
+   bool equalWorkers(const std::vector<DArrayElement>& w) const;
+
+
+
+};
+
+
+class DArrayBase: public DistTypeBase{
+  public:
+
+/*
+3.1 Constructors
+
+The constructors create a darray from predefined values.
+
+*/
+
+     DArrayBase(const std::vector<uint32_t>& _map, const std::string& _name);
+
+     DArrayBase(const size_t _size , const std::string& _name);
+
+     DArrayBase(const std::vector<uint32_t>& _map, const std::string& _name, 
+               const std::vector<DArrayElement>& _worker);
+
+     DArrayBase(const size_t _size, const std::string& _name, 
+               const std::vector<DArrayElement>& _worker);
+
+     explicit DArrayBase(int dummy):DistTypeBase(dummy) {}
+     // only for cast function
+
+     DArrayBase(const DArrayBase& src);
+
+/*
+3.2 Assignment Operator
+
+*/
+     DArrayBase& operator=(const DArrayBase& src);
+
+     
+     void copyFrom(const DArrayBase& src){
+        *this = src;
+     }
+
+     void copyFrom(const DistTypeBase& src){
+         DistTypeBase::operator=(src);
+         setStdMap(src.getSize());
+     }
+ 
+
+/*
+3.3 Destructor
+
+*/
+     virtual ~DArrayBase() {}
+
+
+/*
+3.4 ~getWorkerNum~
+
+This fucntion returns the worker that is responsible for
+the given index. 
+
+*/
+    uint32_t getWorkerNum(uint32_t index);
+
+
+
+/*
+3.5 ~getType~
+
+*/
+    arrayType getType() const = 0;
+
+
+    const std::vector<uint32_t> getMap()const{
+       return map;
+    }
+
+
+    size_t getSize() const;
 
 
 /*
@@ -236,10 +297,18 @@ Checks whether the mappings from indexes to the workers
 are equal for two darray types.
 
 */
-     template<class AT>
-     bool equalMapping(AT& a, bool ignoreSize );
+     bool equalMapping(DistTypeBase& a, bool ignoreSize )const;
 
 
+/*
+3.8 ~set~
+
+Sets size, name and workers. Set to a standard map.
+
+*/
+
+     virtual void set(const size_t size, const std::string& name, 
+                    const std::vector<DArrayElement>& worker);
 /*
 3.9 ~set~
 
@@ -250,43 +319,6 @@ The size is extracted from the mapping.
     void set(const std::vector<uint32_t>& m, const std::string& name, 
               const std::vector<DArrayElement>& worker);
 
-/*
-3.10 ~IsDefined~
-
-Checks whether this darray is in a defined state.
-
-*/
-     bool IsDefined();
-
-/*
-3.11 ~BasicType~
-
-Returns the basic type of a  darray. The result depend on the
-template type.
-
-*/
-
-     static const std::string BasicType();
-
-/*
-3.12 ~checkType~
-
-Checks wether the argument is complete decsription of a darray.
-
-*/
-     static const bool checkType(const ListExpr list);
-
-/*
-3.13 Some Getters
-
-*/
-     size_t numOfWorkers() const;
-
-     size_t getSize() const;
-     
-     DArrayElement getWorker(int i);
-
-     std::string getName() const;
 
 
 /*
@@ -294,7 +326,7 @@ Checks wether the argument is complete decsription of a darray.
 
 */
 
-     void makeUndefined();
+     virtual void makeUndefined();
 
      void setStdMap(size_t size);
 
@@ -304,7 +336,6 @@ Checks wether the argument is complete decsription of a darray.
      
      void setResponsible(size_t slot, size_t _worker);
 
-     bool setName( const std::string& n);
 
 /*
 3.15 ~toListExpr~
@@ -313,7 +344,7 @@ Returns the list representation for this darray.
 
 */
 
-     ListExpr toListExpr();
+     ListExpr toListExpr() const;
 
 
 /*
@@ -324,7 +355,8 @@ description, null is returned. The caller is responsible for
 deleting the return value, if the is one.
 
 */
-     static DArrayT<Type>* readFrom(ListExpr list);
+     template<class R>
+     static R* readFrom(ListExpr list);
 
 /*
 3.17 ~open~
@@ -332,7 +364,7 @@ deleting the return value, if the is one.
 Reads the content of darray from a SmiRecord.
 
 */
-
+     template<class R>
      static bool open(SmiRecord& valueRecord, size_t& offset, 
                       const ListExpr typeInfo, Word& result);
 
@@ -362,18 +394,43 @@ worker.
 Writes the content to an output stream.
 
 */
-     void print(std::ostream& out);
-
+     void print(std::ostream& out)const;
 
 
 /*
-3.21 ~equalWorker~
+3.21 ~getObjectNameForSlot~
 
-Checks whether the worker definitions are equal.
+Returns the name of the remote object
 
 */
-      template<class TE>
-      bool equalWorkers(const TE& a) const;
+  std::string getObjectNameForSlot(const size_t slot) const{
+     std::stringstream ss;
+     ss << name << "_" << slot;
+     return ss.str();
+  }
+
+/*
+3.22 ~getFilePath~
+
+*/
+  std::string getFilePath(const std::string& home, const std::string& dbname,
+                          const size_t slot){
+    std::stringstream ss;
+    ss << home << "/dfarrays/" << dbname << "/" << name << "/" 
+       << name << "_" << slot << ".bin";
+    return ss.str();
+  }
+
+/*
+3.22 ~getFilePath~
+
+*/
+  std::string getPath(const std::string& home, const std::string& dbname){
+    std::stringstream ss;
+    ss << home << "/dfarrays/" << dbname << "/" << name << "/"; 
+    return ss.str();
+  }
+
 
 
 /*
@@ -389,23 +446,15 @@ of type C (CcString of FText) describes the configuration file
 for connecting with the worker. 
 
 */
-      template<class H, class C>
-      static DArrayT<Type> createFromRel(Relation* rel, int size, 
+      template<class H, class C, class R>
+      static R createFromRel(Relation* rel, int size, 
                               std::string name,
                               int hostPos, int portPos, int configPos);
 
+      bool equalMapping(DArrayBase& a, bool ignoreSize ) const;
 
-
-  friend class DArrayT<DARRAY>;
-  friend class DArrayT<DFARRAY>;
-  friend class DArrayT<DFMATRIX>;
-
-  private:
-    std::vector<DArrayElement> worker; // connection information
+  protected:
     std::vector<uint32_t> map;  // map from index to worker
-    size_t  size; // corresponds with map size except map is empty
-    std::string name;  // the basic name used on workers
-    bool defined; // defined state of this array
 
 
 /*
@@ -422,35 +471,35 @@ Checks whether the contained map is valid.
 Checks whether the contained map is a standard map.
 
 */
-   bool isStdMap();
+   bool isStdMap() const;
 
 
-/*
-3.24 ~equalWorker~
-
-Check for equaliness of workers.
-
-*/
-   bool equalWorker(const std::vector<DArrayElement>& w) const;
 
 };
 
 
-template<arrayType Type>
- template<class H, class C>
- DArrayT<Type> DArrayT<Type>::createFromRel(Relation* rel, int size,
+
+std::ostream& operator<<(std::ostream& o, const DArrayBase& a);
+
+
+
+ template<class H, class C, class R>
+ R DArrayBase::createFromRel(Relation* rel, int size,
                          std::string name, int hostPos, int portPos, int 
                          configPos){
      std::vector<uint32_t> m;
-     DArrayT<Type> result(m,"");
+     R result(m,"");
      if(size<=0){
-        result.defined = false;
+        result.makeUndefined();
         return result;
      }
+
+
      if(!stringutils::isIdent(name)){
-        result.defined = false;
+        result.makeUndefined();
         return result;
      }
+
      result.defined = true;
      result.name = name;
 
@@ -469,15 +518,97 @@ template<arrayType Type>
      } 
      delete it;
      result.setStdMap(size);
+
      return result;
 
- }
+}
 
 
+template<arrayType type>
+class DArrayT: public DArrayBase{
+ public: 
+ 
+   DArrayT(const std::vector<uint32_t>&v, const std::string& name):
+       DArrayBase(v,name) {} 
+
+   DArrayT(const int dummy):DArrayBase(dummy) {}
+
+   DArrayT(const DArrayBase& src) : DArrayBase(src) {}
+   
+   DArrayT& operator=(const DArrayBase& src){
+      DArrayBase::operator=(src);
+      return *this;
+   }
+
+  static const std::string BasicType(){
+     return distributed2::getName(type);;
+  }
+
+
+  static DArrayT* readFrom(ListExpr list){
+    return DArrayBase::readFrom<DArrayT<type> >(list);
+  }
+
+
+  arrayType getType()const{ return type; }
+
+  static const bool checkType(const ListExpr list);
+
+};
 
 typedef DArrayT<DARRAY> DArray;
 typedef DArrayT<DFARRAY> DFArray;
-typedef DArrayT<DFMATRIX> DFMatrix;
+
+
+
+class DFMatrix: public DistTypeBase{
+   public: 
+     DFMatrix(const size_t _size, const std::string& _name);
+     DFMatrix(const size_t _size, const std::string& _name, 
+              const std::vector<DArrayElement>& _worker); 
+   
+     
+     explicit DFMatrix(int dummy):DistTypeBase(dummy) {} 
+     // only for cast function
+
+     void setSize(size_t newSize);
+     static const std::string BasicType();
+
+     static bool open(SmiRecord& valueRecord, size_t& offset,     
+                 const ListExpr typeInfo, Word& result);
+
+     virtual arrayType getType() const {
+        return DFMATRIXXX;
+     } 
+
+     static bool save(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value);
+
+     static bool checkType(ListExpr e);
+
+     
+     ListExpr toListExpr() const;
+     static DFMatrix* readFrom(ListExpr list);
+
+     size_t getSize() const{
+       return size; 
+     }
+
+     void copyFrom(const DFMatrix& M){
+        *this = M;
+     }
+
+     void copyFrom(const DArrayBase& A){
+         DistTypeBase::operator=(A);
+         size = A.getSize();
+     }
+
+
+   private:
+      size_t  size; 
+
+}; 
+
 
 } // end of namespace distributed2
 

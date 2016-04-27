@@ -549,4 +549,24 @@ Result    : unpredictable
 Remark    : result depends of existence of certain files
 
 
+Operator  : saveObjectToFile
+Number    : 1
+Signature : D x {string, text} -> fobj(D)
+Example   : query ten saveObjectToFile["ten.file"]
+Result    : (fobj (rel(tuple( (No int)))) 'ten.file')
+
+
+Operator  : getObjectFromFile
+Number    : 1
+Signature : {string, text, fobj(X)} -> X
+Example   : query "strassen.bin" getObjectFromFile count
+Result    : 3212
+
+Operator  : dmap2n
+Number    : 1
+Signature : d[f]array^X x string x fun( K_i .. k_X -> r) -> f[f]array(r)
+Example   : query dfa1 dfa2  dmap2["da3", . feed  .. feed  product, 1238 ]
+Result    : bug
+Remark    : under construction
+
 

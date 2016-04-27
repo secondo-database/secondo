@@ -103,7 +103,7 @@ bool DArrayElement::operator>(const DArrayElement& other) const {
    return false;
 }
 
-ListExpr DArrayElement::toListExpr(){
+ListExpr DArrayElement::toListExpr() const{
    return nl->ThreeElemList(
               nl->TextAtom(server),
               nl->IntAtom(port),
@@ -199,151 +199,170 @@ bool InDArrayElement(ListExpr list, DArrayElement& result){
 }
 
 
+std::string getName(const arrayType a){
+  switch(a){
+    case DARRAY: return "darray";
+    case DFARRAY: return "dfarray";
+    case DFMATRIXXX: return "dfmatrix";
+  }
+  assert(false);
+  return "unknown";
+}
+
+
 /*
-3.2 Implementation of DArrayT
+3.1 Implementation of DistTypeBase
+
+3.1.1 Constructors 
 
 */
-template<arrayType Type>
-DArrayT<Type>::DArrayT(const std::vector<uint32_t>& _map, 
-                       const std::string& _name): 
-      worker(),map(_map), size(map.size()),name(_name) {
-   if(!stringutils::isIdent(name) || map.size() ==0 ){ // invalid
-      name = "";
-      defined = false;
-      map.clear();
-      size = 0;
-      return;
+
+   DistTypeBase::DistTypeBase(const std::vector<DArrayElement>& _worker,
+              const string& _name): 
+      worker(_worker), name(_name), defined(true){}
+               
+   DistTypeBase::DistTypeBase( const string& _name):
+      worker(), name(_name), defined(true){}
+   
+   DistTypeBase::DistTypeBase( const DistTypeBase& src): worker(src.worker),
+            name(src.name), defined(src.defined) {}
+
+   DistTypeBase& DistTypeBase::operator=(const DistTypeBase& src){
+      worker = src.worker;
+      name = src.name;
+      defined = src.defined;
+      return *this;
    }
-   defined = true;
-}
-
-template<arrayType Type>
-DArrayT<Type>::DArrayT(const size_t _size , const std::string& _name): 
-      worker(),map(), size(_size),name(_name) {
-   assert(Type == DFMATRIX);
-   if(!stringutils::isIdent(name) || size ==0 ){ // invalid
-      name = "";
-      defined = false;
-      map.clear();
-      size = 0;
-      return;
-   }
-   defined = true;
-}
-
-template<arrayType Type>
-DArrayT<Type>::DArrayT(const std::vector<uint32_t>& _map, 
-                       const std::string& _name, 
-          const std::vector<DArrayElement>& _worker): 
-    worker(_worker),map(_map), size(map.size()),name(_name) {
-
-   if(!stringutils::isIdent(name) || map.size() ==0 || !checkMap()){ 
-      // invalid
-      name = "";
-      defined = false;
-      map.clear();
-      size = 0;
-      return;
-   }
-   defined = true;
-}
-
-template<arrayType Type>
-DArrayT<Type>::DArrayT(const size_t _size, const std::string& _name, 
-          const std::vector<DArrayElement>& _worker): 
-    worker(_worker),map(), size(_size),name(_name) {
-
-   assert(Type == DFMATRIX);
-   if(!stringutils::isIdent(name) || size ==0 ){ 
-      // invalid
-      name = "";
-      defined = false;
-      map.clear();
-      size = 0;
-      return;
-   }
-   defined = true;
-}
 
 
-
-
-
-template<arrayType Type>
-DArrayT<Type>::DArrayT(const DArrayT<Type>& src): 
-        worker(src.worker), map(src.map), name(src.name), 
-        defined(src.defined)
-  {
-  }
-
-template<arrayType Type>
-template<arrayType T>
-DArrayT<Type>& DArrayT<Type>::operator=(const DArrayT<T>& src) {
-   this->worker = src.worker;
-   this->map = src.map;
-   this->size = src.size;
-   this->name = src.name;
-   this->defined = src.defined;
-   return *this;
-}     
-
-template<arrayType Type>
-DArrayT<Type>::~DArrayT() {
-}
-
-
-template<arrayType Type>
-uint32_t DArrayT<Type>::getWorkerNum(uint32_t index){
-  assert(Type!=DFMATRIX);
-  return map[index];
-}
-
-
-template<arrayType Type>
-arrayType DArrayT<Type>::getType() const{
-  return Type;
-}
-
-
-template<arrayType Type>
-void DArrayT<Type>::setSize(size_t newSize){
-  assert(newSize > 0);
-  assert(Type == DFMATRIX);
-  this->size = newSize;
-}
-
-
-template<arrayType Type>
-void DArrayT<Type>::set(const size_t size, const std::string& name, 
+void DistTypeBase::set(const std::string& name, 
          const std::vector<DArrayElement>& worker){
-   if(!stringutils::isIdent(name) || size ==0){ // invalid
+   if(!stringutils::isIdent(name)){ // invalid
       this->name = "";
       this->defined = false;
       return;
    }
    defined = true;
    this->name = name;
-   this->size = size;
-   if(Type!=DFMATRIX){
-        this->map = createStdMap(size,worker.size());
-   } else {
-        map.clear();
-   }
    this->worker = worker;
 }
 
-template<arrayType Type>
-template<class AT>
-bool DArrayT<Type>::equalMapping(AT& a, bool ignoreSize ){
-   if(Type==DFMATRIX){ // mapping does not exist in DFMATRIX
+
+ bool DistTypeBase::equalWorkers(const DistTypeBase& other) const{
+    return equalWorkers(other.worker);
+ }
+
+ bool DistTypeBase::equalWorkers(const std::vector<DArrayElement>& w) const{
+      if(worker.size() != w.size()){
+          return false;
+      }
+      for(size_t i=0;i<worker.size();i++){
+           if(worker[i] != w[i]){
+              return false;
+           }
+      }
       return true;
+ }
+
+size_t DistTypeBase::numOfWorkers() const{
+  return worker.size();
+}
+
+DArrayElement DistTypeBase::getWorker(int i){
+   if(i< 0 || i >= (int) worker.size()){
+       assert(false);
+      // throw "Invalid worker number";
    }
-   if(!ignoreSize && (map.size()!=a.map.size())){
+   return worker[i];
+}
+
+std::string DistTypeBase::getName() const{
+   return name;
+}
+
+
+void DistTypeBase::makeUndefined(){
+   worker.clear();
+   name = "";
+   defined = false;
+}
+
+bool DistTypeBase::setName( const std::string& n){
+   if(!stringutils::isIdent(n)){
       return false;
    }
-   size_t minV = std::min(map.size(), a.map.size());
+   name = n;
+   return true;
+ }
+
+/*
+3.2 Implementation of DArrayT
+
+*/
+DArrayBase::DArrayBase(const std::vector<uint32_t>& _map, 
+                       const std::string& _name): 
+      DistTypeBase(_name),
+      map(_map){
+   if(!stringutils::isIdent(name) || map.size() ==0 ){ // invalid
+      makeUndefined();
+      return;
+   }
+   defined = true;
+}
+
+
+size_t DArrayBase::getSize() const{
+  return map.size();
+}
+
+
+DArrayBase::DArrayBase(const std::vector<uint32_t>& _map, 
+                       const std::string& _name, 
+          const std::vector<DArrayElement>& _worker):
+    DistTypeBase(_worker, _name), map(_map){
+
+   if(!stringutils::isIdent(name) || map.size() ==0 || !checkMap()){ 
+      // invalid
+      name = "";
+      defined = false;
+      return;
+   }
+   defined = true;
+}
+
+
+
+
+
+
+DArrayBase::DArrayBase(const DArrayBase& src):
+        DistTypeBase(src), map(src.map) {}
+ 
+
+DArrayBase& DArrayBase::operator=(const DArrayBase& src) {
+   DistTypeBase::operator=(src);
+   this->map = src.map;
+   return *this;
+}     
+
+void DArrayBase::set(const size_t size, const std::string& name, 
+         const std::vector<DArrayElement>& worker){
+   DistTypeBase::set(name, worker);
+   this->map = createStdMap(size,worker.size());
+}
+
+bool DArrayBase::equalMapping(DArrayBase& a, bool ignoreSize )const{
+   if(getType()==DFMATRIXXX){
+       return false;
+   }
+   const vector<uint32_t> m = a.getMap();
+
+   if(!ignoreSize && (map.size()!=m.size())){
+      return false;
+   }
+   size_t minV = std::min(map.size(), m.size());
    for(size_t i=0;i<minV;i++){
-      if(map[i]!=a.map[i]){
+      if(map[i]!=m[i]){
          return false;
       }
    }
@@ -352,8 +371,7 @@ bool DArrayT<Type>::equalMapping(AT& a, bool ignoreSize ){
 
 
 
-template<arrayType Type>
-void DArrayT<Type>::set(const std::vector<uint32_t>& m, 
+void DArrayBase::set(const std::vector<uint32_t>& m, 
          const std::string& name, 
          const std::vector<DArrayElement>& worker){
    if(!stringutils::isIdent(name) || m.size() ==0){ // invalid
@@ -363,124 +381,45 @@ void DArrayT<Type>::set(const std::vector<uint32_t>& m,
    defined = true;
    this->name = name;
    this->map = m;
-   this->size = m.size();
    this->worker = worker;
-   if(Type==DFMATRIX){
-      map.clear();
-   }
    if(!checkMap()){
         makeUndefined();
    }
 }
 
 
-template<arrayType Type>
-bool DArrayT<Type>::IsDefined(){
-   return defined;
-}
 
-template<arrayType Type>
-const std::string DArrayT<Type>::BasicType() { 
-  switch(Type){
-     case DARRAY : return "darray";
-     case DFARRAY : return "dfarray";
-     case DFMATRIX : return "dfmatrix";
-  }
-  assert(false);
-  return "typeerror";
-}
-
-template<arrayType Type>
-const bool DArrayT<Type>::checkType(const ListExpr list){
-    if(!nl->HasLength(list,2)){
-       return false;
-    }  
-    if(!listutils::isSymbol(nl->First(list), BasicType())){
-        return false;
-    }
-    // for dfarrays and dmatrices, only relations 
-    // are allowed as subtype
-    if((Type == DFARRAY) || (Type==DFMATRIX)){
-      return Relation::checkType(nl->Second(list));
-    }
-
-    // for a darray, each type is allowed
-    SecondoCatalog* ctl = SecondoSystem::GetCatalog();
-    std::string name;
-    int algid, type;
-    if(!ctl->LookUpTypeExpr(nl->Second(list), name, algid, type)){
-       return false;
-    }
-    AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-    ListExpr errorInfo = listutils::emptyErrorInfo();
-    if(!am->TypeCheck(algid,type,nl->Second(list),errorInfo)){
-       return false;
-    }
-    return true;
-}
-
-template<arrayType Type>
-size_t DArrayT<Type>::numOfWorkers() const{
-  return worker.size();
-}
-template<arrayType Type>
-size_t DArrayT<Type>::getSize() const{
-   return size;
-}
-
-template<arrayType Type>
-void DArrayT<Type>::setStdMap(size_t size){
-    if(Type!=DFMATRIX){
-       map = createStdMap(size, worker.size());
-       this->size = size;
-    } else {
-       this->size = size;
-       map.clear();
-    }
+void DArrayBase::setStdMap(size_t size){
+    map = createStdMap(size, worker.size());
 }
 
 
-template<arrayType Type>
-DArrayElement DArrayT<Type>::getWorkerForSlot(int i){
-   assert(Type!=DFMATRIX);
-   if(i<0 || i>= map.size()){
+DArrayElement DArrayBase::getWorkerForSlot(int i){
+   if(i<0 || i>= (int) map.size()){
+      cerr << "access for worker " << i << endl;
+      cerr << "number of workers is " << map.size() << endl;
       assert(false);
    }
    return getWorker(map[i]);
 }
 
-template<arrayType Type>
-size_t DArrayT<Type>::getWorkerIndexForSlot(int i){
-   assert(Type!=DFMATRIX);
-   if(i<0 || i>= map.size()){
+size_t DArrayBase::getWorkerIndexForSlot(int i){
+   if(i<0 || i>= (int)map.size()){
       assert(false);
    }
    return map[i];
 }
 
 
-template<arrayType Type>
-DArrayElement DArrayT<Type>::getWorker(int i){
-   if(i< 0 || i >= (int) worker.size()){
-       assert(false);
-      // throw "Invalid worker number";
-   }
-   return worker[i];
-}
 
-template<arrayType Type>
-void DArrayT<Type>::setResponsible(size_t slot, size_t _worker){
-
-  assert(size == map.size());
-  assert(slot < size);
+void DArrayBase::setResponsible(size_t slot, size_t _worker){
+  assert(slot < map.size());
   assert(_worker < worker.size());
-  assert(Type!=DFMATRIX);
   map[slot] = _worker;
 }
 
 
-template<arrayType Type>
-ListExpr DArrayT<Type>::toListExpr(){
+ListExpr DArrayBase::toListExpr() const{
   if(!defined){
     return listutils::getUndefined();
   }
@@ -496,9 +435,9 @@ ListExpr DArrayT<Type>::toListExpr(){
         last = nl->Append(last, worker[i].toListExpr());
       }
   }
-  if(isStdMap() || (Type==DFMATRIX)){ 
+  if(isStdMap()){ 
      return nl->ThreeElemList(nl->SymbolAtom(name), 
-                              nl->IntAtom(size), 
+                              nl->IntAtom(getSize()), 
                               wl); 
   } else if(map.empty()) {
      return nl->ThreeElemList(nl->SymbolAtom(name), 
@@ -514,12 +453,11 @@ ListExpr DArrayT<Type>::toListExpr(){
   }
 }
 
-
-template<arrayType Type>
-DArrayT<Type>* DArrayT<Type>::readFrom(ListExpr list){
+template<class R>
+R* DArrayBase::readFrom(ListExpr list){
    if(listutils::isSymbolUndefined(list)){
       std::vector<uint32_t> m;
-      return new DArrayT<Type>(m,"");
+      return new R(m,"");
    }
    if(!nl->HasLength(list,3)){
       return 0;
@@ -564,20 +502,21 @@ DArrayT<Type>* DArrayT<Type>::readFrom(ListExpr list){
              return 0;
           }
           int mv = nl->IntValue(first);
-          if(mv<0 || mv>=v.size()){
+          if(mv<0 || mv>=(int)v.size()){
              return 0;
           }
           m.push_back(mv);
       }
    }
-   DArrayT<Type>* result = new DArrayT<Type>(m,name);
+   R* result = new R(m,name);
    swap(result->worker,v);
    result->defined = true;
    return result;
 }
 
-template<arrayType Type>
-bool DArrayT<Type>::open(SmiRecord& valueRecord, size_t& offset, 
+
+template<class R>
+bool DArrayBase::open(SmiRecord& valueRecord, size_t& offset, 
                  const ListExpr typeInfo, Word& result){
    bool defined;
    result.addr = 0;
@@ -586,7 +525,7 @@ bool DArrayT<Type>::open(SmiRecord& valueRecord, size_t& offset,
    } 
    if(!defined){
      std::vector<uint32_t> m;
-     result.addr = new DArrayT<Type>(m,"");
+     result.addr = new R(m,"");
      return true;
    }
    // array in smirecord is defined, read size
@@ -603,20 +542,18 @@ bool DArrayT<Type>::open(SmiRecord& valueRecord, size_t& offset,
    // read  map
    uint32_t me;
    std::vector<uint32_t> m;
-   DArrayT<Type>* res = 0; 
+   DArrayBase* res = 0; 
 
-   if(Type!=DFMATRIX){
-      for(size_t i=0;i<size;i++){
-          if(!readVar<uint32_t>(me,valueRecord,offset)){
-             return false;
-          }
-          m.push_back(me);
-      }
-      res = new DArrayT<Type>(m,name);
-   } else {
-      res = new DArrayT<Type>(size,name);
-   }
+   for(size_t i=0;i<size;i++){
+        if(!readVar<uint32_t>(me,valueRecord,offset)){
+           return false;
+        }
+        m.push_back(me);
+    }
+    res = new R(m,name);
    int wn = 0;
+
+
    // append workers
    size_t numWorkers;
    if(!readVar<size_t>(numWorkers,valueRecord, offset)){
@@ -637,11 +574,241 @@ bool DArrayT<Type>::open(SmiRecord& valueRecord, size_t& offset,
    return true;
 }
 
-template<arrayType Type>
-bool DArrayT<Type>::save(SmiRecord& valueRecord, size_t& offset,
+bool DArrayBase::save(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value) {
 
-    DArrayT<Type>* a = (DArrayT<Type>*) value.addr;
+    DArrayBase* a = (DArrayBase*) value.addr;
+    // defined flag
+    if(!writeVar(a->defined,valueRecord,offset)){
+      return false;
+    }
+    if(!a->defined){
+       return true;
+    }
+    // size
+    size_t s = a->getSize();
+    if(!writeVar(s,valueRecord,offset)){
+      return false;
+    }
+    // name
+    if(!writeVar(a->name, valueRecord, offset)){
+      return false;
+    }
+    // map
+    for(size_t i=0;i<a->map.size();i++){
+        if(!writeVar(a->map[i], valueRecord,offset)){
+           return false;
+        }
+    }
+    // workers
+    if(!writeVar(a->worker.size(), valueRecord, offset)){
+      return false;
+    }
+    for(size_t i=0;i<a->worker.size();i++){
+         if(!a->worker[i].saveTo(valueRecord,offset)){
+            return false;
+         }
+    }
+    return true; 
+}
+
+
+std::vector<uint32_t> DArrayBase::createStdMap(const uint32_t size, 
+                                     const int numWorkers){
+   std::vector<uint32_t> map;
+   for(uint32_t i=0;i<size;i++){
+       map.push_back(i%numWorkers);
+   }
+   return map;
+}
+
+
+void DArrayBase::print(std::ostream& out)const{
+  if(!defined){
+     out << "undefined";
+     return;
+  }
+
+  out << "Name : " << name <<", size : " << map.size()
+      << " workers : [" ;
+  for(size_t i =0;i<worker.size();i++){
+     if(i>0) out << ", ";
+     worker[i].print(out);
+  }
+  out << "]";
+  out << "map = [";
+  for(uint32_t i=0;i<map.size();i++){
+    if(i>0){
+      out << ", ";
+    }
+    out << i << " -> " << map[i];
+  }
+  out << "]";
+}
+
+void DArrayBase::makeUndefined(){
+   DistTypeBase::makeUndefined();
+   map.clear();
+}
+
+
+
+
+
+ bool DArrayBase::checkMap(){
+     for(size_t i=0;i<map.size();i++){
+       if(map[i] >= worker.size()){
+         return false;
+       }
+     }
+     return true;
+   }
+
+bool DArrayBase::isStdMap() const{
+  int s = worker.size();
+  for(size_t i=0;i<map.size();i++){
+    if(map[i]!= i%s){
+      return false;
+    }
+  }
+  return true;
+}
+
+
+
+
+ostream& operator<<(ostream& out, const DArrayElement& elem){
+  elem.print(out);
+  return out;
+}
+
+
+ostream& operator<<(ostream& out, const DArrayBase& a){
+  a.print(out);
+  return out;
+}
+
+
+template<arrayType T>
+const bool DArrayT<T>::checkType(const ListExpr list){
+    if(!nl->HasLength(list,2)){
+       return false;
+    }  
+    if(!listutils::isSymbol(nl->First(list), BasicType())){
+        return false;
+    }
+    // for other than DARRAY, only relations are allowed as a
+    // subtype
+    if(T!=DARRAY){
+      return Relation::checkType(nl->Second(list));
+    }
+    // check that second arghument is an valid tyoe
+    SecondoCatalog* ctl = SecondoSystem::GetCatalog();
+    std::string name;
+    int algid, type;
+    if(!ctl->LookUpTypeExpr(nl->Second(list), name, algid, type)){
+       return false;
+    }
+    AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+    ListExpr errorInfo = listutils::emptyErrorInfo();
+    if(!am->TypeCheck(algid,type,nl->Second(list),errorInfo)){
+       return false;
+    }
+    return true;
+}
+
+
+
+/*
+Implementation of ~DMatrix~
+
+*/
+
+const std::string DFMatrix::BasicType(){
+     return "dfmatrix";
+}
+
+DFMatrix::DFMatrix(const size_t _size , const std::string& _name):
+      DistTypeBase(_name), size(_size) {
+   if(!stringutils::isIdent(name) || size ==0 ){ // invalid
+      name = "";
+      defined = false;
+      size = 0;
+      return;
+   }
+   defined = true;
+}
+
+
+DFMatrix::DFMatrix(const size_t _size, const std::string& _name, 
+          const std::vector<DArrayElement>& _worker): 
+   DistTypeBase(_worker, _name), size(_size) {
+   if(!stringutils::isIdent(name) || size ==0 ){ 
+      // invalid
+      name = "";
+      defined = false;
+      size = 0;
+      return;
+   }
+   defined = true;
+}
+
+void DFMatrix::setSize(size_t newSize){
+  assert(newSize > 0);
+  this->size = newSize;
+}
+
+bool DFMatrix::open(SmiRecord& valueRecord, size_t& offset, 
+                 const ListExpr typeInfo, Word& result){
+   bool defined;
+   result.addr = 0;
+   if(!readVar<bool>(defined,valueRecord,offset)){
+      return false;
+   } 
+   if(!defined){
+     std::vector<uint32_t> m;
+     result.addr = new DFMatrix(0,"");
+     return true;
+   }
+   // array in smirecord is defined, read size
+   size_t size;
+   if(!readVar<size_t>(size,valueRecord,offset)){
+      return false;
+   }
+   // read name
+   std::string name;
+   if(!readVar<std::string>(name,valueRecord, offset)){
+       return false;
+   }
+
+   DFMatrix* res = new DFMatrix(size,name);
+   int wn = 0;
+
+
+   // append workers
+   size_t numWorkers;
+   if(!readVar<size_t>(numWorkers,valueRecord, offset)){
+     return false;
+   }
+   for(size_t i=0; i< numWorkers; i++){
+      DArrayElement elem("",0,0,"");
+      if(!elem.readFrom(valueRecord, offset)){
+          delete res;
+          return false;
+      }
+      elem.setNum(wn);
+      wn++;
+      res->worker.push_back(elem);
+   }
+
+   result.addr = res;
+   return true;
+}
+
+bool DFMatrix::save(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value) {
+
+    DFMatrix* a = (DFMatrix*) value.addr;
     // defined flag
     if(!writeVar(a->defined,valueRecord,offset)){
       return false;
@@ -658,14 +825,6 @@ bool DArrayT<Type>::save(SmiRecord& valueRecord, size_t& offset,
     if(!writeVar(a->name, valueRecord, offset)){
       return false;
     }
-    if(Type!=DFMATRIX){
-      // map
-      for(size_t i=0;i<a->map.size();i++){
-          if(!writeVar(a->map[i], valueRecord,offset)){
-             return false;
-          }
-      }
-    }
     // workers
     if(!writeVar(a->worker.size(), valueRecord, offset)){
       return false;
@@ -678,163 +837,98 @@ bool DArrayT<Type>::save(SmiRecord& valueRecord, size_t& offset,
     return true; 
 }
 
-
-template<arrayType Type>
-std::vector<uint32_t> DArrayT<Type>::createStdMap(const uint32_t size, 
-                                     const int numWorkers){
-   std::vector<uint32_t> map;
-   if(Type!=DFMATRIX){
-      for(uint32_t i=0;i<size;i++){
-         map.push_back(i%numWorkers);
-      }
-   } 
-   return map;
+bool DFMatrix::checkType(ListExpr e){
+  if(!nl->HasLength(e,2)) {
+    return false;
+  }
+  if(!listutils::isSymbol(nl->First(e), BasicType())){
+    return false;
+  }
+  return Relation::checkType(nl->Second(e));
 }
 
 
-template<arrayType Type>
-void DArrayT<Type>::print(std::ostream& out){
+ListExpr DFMatrix::toListExpr()const{
   if(!defined){
-     out << "undefined";
-     return;
+    return listutils::getUndefined();
   }
 
-  out << "Name : " << name <<", size : " << map.size()
-      << " workers : [" ;
-  for(size_t i =0;i<worker.size();i++){
-     if(i>0) out << ", ";
-     worker[i].print(out);
+  ListExpr wl;
+  if(worker.empty()){
+    wl =  nl->TheEmptyList();
+  } else {
+      wl = nl->OneElemList(
+                   worker[0].toListExpr());
+      ListExpr last = wl;
+      for(size_t i=1;i<worker.size();i++){
+        last = nl->Append(last, worker[i].toListExpr());
+      }
   }
-  out << "]";
-  if(Type != DFMATRIX){
-    out << "map = [";
-    for(uint32_t i=0;i<map.size();i++){
-      if(i>0){
-        out << ", ";
+  return nl->ThreeElemList(nl->SymbolAtom(name), 
+                          nl->IntAtom(size), 
+                          wl); 
+}
+
+
+DFMatrix* DFMatrix::readFrom(ListExpr list){
+   if(listutils::isSymbolUndefined(list)){
+      return new DFMatrix(0,"");
+   }
+   if(!nl->HasLength(list,3)){
+      return 0;
+   }
+   ListExpr Name = nl->First(list);
+   ListExpr Workers = nl->Third(list);
+   if(   (nl->AtomType(Name) != SymbolType)
+       ||(nl->AtomType(Workers)!=NoAtom)){
+      return 0;
+   }
+   std::string name = nl->SymbolValue(Name);
+   if(!stringutils::isIdent(name)){
+      return 0;
+   }
+   std::vector<DArrayElement> v;
+   int wn = 0;
+   while(!nl->IsEmpty(Workers)){
+      DArrayElement elem("",0,0,"");
+      if(!InDArrayElement(nl->First(Workers), elem)){
+         return 0;
       }
-      out << i << " -> " << map[i];
-    }
-    out << "]";
-  }
-}
-
-template<arrayType Type>
-void DArrayT<Type>::makeUndefined(){
-   worker.clear();
-   map.clear();
-   size = 0;
-   name = "";
-   defined = false;
-}
-
-template<arrayType Type>
-std::string DArrayT<Type>::getName() const{
-   return name;
-}
-
-template<arrayType Type>
- bool DArrayT<Type>::setName( const std::string& n){
-   if(!stringutils::isIdent(n)){
-      return false;
+      elem.setNum(wn);
+      wn++;
+      v.push_back(elem);
+      Workers = nl->Rest(Workers);
    }
-   name = n;
-   return true;
- }
-
-template<arrayType Type>
- template<class TE>
- bool DArrayT<Type>::equalWorkers(const TE& a) const{
-    return equalWorker(a.worker);
- }
-
-
-
-
-template<arrayType Type>
-   bool DArrayT<Type>::checkMap(){
-     if(Type!=DFMATRIX){
-        for(int i=0;i<map.size();i++){
-           if(map[i] >= worker.size()){
-              return false;
-           }
-        }
-        return true;
-     }
-     return map.empty();
-   }
-
-template<arrayType Type>
-bool DArrayT<Type>::isStdMap(){
-     if(Type!=DFMATRIX){
-        int s = worker.size();
-        for(size_t i=0;i<map.size();i++){
-             if(map[i]!= i%s){
-                 return false;
-             }
-        }
-        return true;
-     }
-     return map.empty();
-   }
-
-
-
-template<arrayType Type>
-bool DArrayT<Type>::equalWorker(const std::vector<DArrayElement>& w) const{
-      if(worker.size() != w.size()){
-          return false;
+   std::vector<uint32_t> m;
+   size_t s;
+   if(nl->AtomType(nl->Second(list)==IntType)){
+      int size = nl->IntValue(nl->Second(list));
+      if(size <=0){
+         return 0;
       }
-      for(size_t i=0;i<worker.size();i++){
-           if(worker[i] != w[i]){
-              return false;
-           }
-      }
-      return true;
+      s = size;
+   } else {
+      return 0;
    }
-
-
-ostream& operator<<(ostream& out, const DArrayElement& elem){
-  elem.print(out);
-  return out;
+   DFMatrix* result = new DFMatrix(s, name, v);
+   result->defined = true;
+   return result;
 }
 
-// the classes
+
+
+// template instantiaons
+
+template bool DArrayBase::open<DArray>(SmiRecord&, unsigned long&, 
+                                       unsigned long, Word&);
+template bool DArrayBase::open<DFArray>(SmiRecord&, unsigned long&, 
+                                        unsigned long, Word&);
+
+template DArray* DArrayBase::readFrom<DArray>(ListExpr);
+template DFArray* DArrayBase::readFrom<DFArray>(ListExpr);
+
 template class DArrayT<DARRAY>;
 template class DArrayT<DFARRAY>;
-template class DArrayT<DFMATRIX>;
-
-// all combinations of assignment
-template DArray& DArray::operator=(const DArray&);
-template DArray& DArray::operator=(const DFArray&);
-template DArray& DArray::operator=(const DFMatrix&);
-template DFArray& DFArray::operator=(const DArray&);
-template DFArray& DFArray::operator=(const DFArray&);
-template DFArray& DFArray::operator=(const DFMatrix&);
-template DFMatrix& DFMatrix::operator=(const DArray&);
-template DFMatrix& DFMatrix::operator=(const DFArray&);
-template DFMatrix& DFMatrix::operator=(const DFMatrix&);
-
-// all combinations of equalMapping
-template bool DArray::equalMapping(DArray&, bool);
-template bool DArray::equalMapping(DFArray&, bool);
-template bool DArray::equalMapping(DFMatrix&, bool);
-template bool DFArray::equalMapping(DArray&, bool);
-template bool DFArray::equalMapping(DFArray&, bool);
-template bool DFArray::equalMapping(DFMatrix&, bool);
-template bool DFMatrix::equalMapping(DArray&, bool);
-template bool DFMatrix::equalMapping(DFArray&, bool);
-template bool DFMatrix::equalMapping(DFMatrix&, bool);
-
-// the same game for equalWorker
-template bool DArray::equalWorkers(const DArray&) const;
-template bool DArray::equalWorkers(const DFArray&) const;
-template bool DArray::equalWorkers(const DFMatrix&) const;
-template bool DFArray::equalWorkers(const DArray&) const;
-template bool DFArray::equalWorkers(const DFArray&) const;
-template bool DFArray::equalWorkers(const DFMatrix&) const;
-template bool DFMatrix::equalWorkers(const DArray&) const;
-template bool DFMatrix::equalWorkers(const DFArray&) const;
-template bool DFMatrix::equalWorkers(const DFMatrix&) const;
 
 
 

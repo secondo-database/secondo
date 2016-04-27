@@ -143,6 +143,7 @@ ffeed5Info::ffeed5Info(const std::string& filename){
   in.open(filename.c_str(), std::ios::in | std::ios::binary);
   inBuffer = new char[FILE_BUFFER_SIZE];
   ok = in.good();
+  tt = 0;
   if(ok){
     in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
     readHeader(0);
@@ -158,7 +159,9 @@ ffeed5Info::ffeed5Info(const std::string& filename){
 
     
 ffeed5Info::~ffeed5Info(){
-  tt->DeleteIfAllowed();
+  if(tt){
+     tt->DeleteIfAllowed();
+  }
   in.close();
   delete[] inBuffer;
 }

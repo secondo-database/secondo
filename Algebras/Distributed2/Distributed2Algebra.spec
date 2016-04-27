@@ -44,6 +44,8 @@ operator dloop2 alias DLOOP2 pattern _ _ op[_,fun] implicit parameters elem1, el
 
 operator dmap alias DMAP pattern _ op[_,fun] implicit parameter dmapelem type ARRAYFUNARG1
 operator dmap2 alias DMAP2 pattern _ _ op[_,fun,_] implicit parameters elem1, elem2 types ARRAYFUNARG1, ARRAYFUNARG2
+operator dmap2n alias DMAP2n pattern _ _ op[_,fun,_] implicit parameters elem1, elem2 types ARRAYFUNARG1, ARRAYFUNARG2
+
 
 operator dsummarize alias DSUMMARIZE pattern _ op
 
@@ -95,5 +97,10 @@ operator loadAttr alias LOADATTR pattern  op(_)
 operator createFrel alias CREATEFREL pattern op(_,_,_)
 
 operator createFSrel alias CREATEFSREL pattern _ op[_]
+
+operator saveObjectToFile alias SAVEOBJECTTOFILE pattern _ op[_]
+
+operator getObjectFromFile alias GETOBJECTFROMFILE pattern _ op
+
 
 

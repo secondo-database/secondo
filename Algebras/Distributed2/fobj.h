@@ -26,8 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef FREL_H
-#define FREL_H
+#ifndef FOBJ_H
+#define FOBJ_H
 
 #include <string>
 #include "NestedList.h"
@@ -37,17 +37,17 @@ union Word;
 
 namespace distributed2{
 
-class frel{
+class fobj{
 
 public:
-  frel();
-  frel(const frel& src);
-  explicit frel(const std::string& name);
+  fobj();
+  fobj(const fobj& src);
+  explicit fobj(const std::string& name);
 
   void set(const std::string& value);
  
   // secondo support 
-  static inline std::string BasicType(){return "frel";}
+  static inline std::string BasicType(){return "fobj";}
   static bool checkType(const ListExpr list);
   static ListExpr Property();
   static Word In(const ListExpr typeInfo, const ListExpr instance,
@@ -71,7 +71,7 @@ public:
   
 
 private:
-  explicit frel(const int dummy);
+  explicit fobj(const int dummy);
   std::string value;
   bool defined;
 };
