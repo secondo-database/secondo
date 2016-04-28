@@ -16770,11 +16770,10 @@ Operator spatialrotate (
 
 */
 ListExpr SpatialScaleMap(ListExpr args) {
-  string err = "SPATIAL x (real x real) expected";
-  if(!nl->HasLength(args,3)){
+  string err = "SPATIAL x (real x real) or SPATIAL x real expected";
+  if (!nl->HasLength(args, 3) && !nl->HasLength(args, 2)) {
     return listutils::typeError(err);
   }
-
   ListExpr a1 = nl->First(args);
   if(   !Point::checkType(a1)
      && !Points::checkType(a1)
@@ -16783,15 +16782,20 @@ ListExpr SpatialScaleMap(ListExpr args) {
      && !DLine::checkType(a1)){
      return listutils::typeError(err + " (first arg not supported)");
    }
-   if(   !CcReal::checkType(nl->Second(args))
-      || !CcReal::checkType(nl->Third(args))){
-     return listutils::typeError("translation arguments must be of type real");
+   if (!CcReal::checkType(nl->Second(args))) {
+     return listutils::typeError("translation argument(s) must have type real");
+   }
+   if (nl->HasLength(args, 3)) {
+     if (!CcReal::checkType(nl->Third(args))) {
+       return listutils::
+                       typeError("translation argument(s) must have type real");
+     }
    }
    return a1;
 }
 
 template<class T>
-int SpatialScaleVMT( Word* args, Word& result, int message,
+int SpatialScaleVMT3( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -16807,21 +16811,51 @@ int SpatialScaleVMT( Word* args, Word& result, int message,
   return 0;
 }
 
+template<class T>
+int SpatialScaleVMT2(Word* args, Word& result, int message, Word& local,
+                     Supplier s) {
+  result = qp->ResultStorage( s );
+  T* res = static_cast<T*>(result.addr);
+  const T* a = (const T*)args[0].addr;
+  const CcReal *t = (CcReal*) args[1].addr;
+  if(!a->IsDefined() || !t->IsDefined()){
+    res->SetDefined(false);
+  } 
+  else {
+     a->Scale(t->GetValue(), t->GetValue(), *res);
+  }
+  return 0;
+}
+
 ValueMapping spatialscalemap[] = {
-  SpatialScaleVMT<Point>,
-  SpatialScaleVMT<Points>,
-  SpatialScaleVMT<Line>,
-  SpatialScaleVMT<Region>,
-  SpatialScaleVMT<DLine> };
+  SpatialScaleVMT3<Point>,
+  SpatialScaleVMT3<Points>,
+  SpatialScaleVMT3<Line>,
+  SpatialScaleVMT3<Region>,
+  SpatialScaleVMT3<DLine>,
+  SpatialScaleVMT2<Point>,
+  SpatialScaleVMT2<Points>,
+  SpatialScaleVMT2<Line>,
+  SpatialScaleVMT2<Region>,
+  SpatialScaleVMT2<DLine>};
 
 
 int SpatialSelectScale( ListExpr args ) {
-  ListExpr arg1 = nl->First( args );
-  if(Point::checkType(arg1)) return 0;
-  if(Points::checkType(arg1)) return 1;
-  if(Line::checkType(arg1)) return 2;
-  if(Region::checkType(arg1)) return 3;
-  if(DLine::checkType(arg1)) return 4;
+  ListExpr arg1 = nl->First(args);
+  if (nl->HasLength(args, 3)) {
+    if(Point::checkType(arg1)) return 0;
+    if(Points::checkType(arg1)) return 1;
+    if(Line::checkType(arg1)) return 2;
+    if(Region::checkType(arg1)) return 3;
+    if(DLine::checkType(arg1)) return 4;
+  }
+  else {
+    if(Point::checkType(arg1)) return 5;
+    if(Points::checkType(arg1)) return 6;
+    if(Line::checkType(arg1)) return 7;
+    if(Region::checkType(arg1)) return 8;
+    if(DLine::checkType(arg1)) return 9;
+  }
   return -1;
 }
 
@@ -16838,7 +16872,7 @@ const string SpatialSpecScale  =
 Operator spatialscale (
   "scale",
   SpatialSpecScale,
-  5,
+  10,
   spatialscalemap,
   SpatialSelectScale,
   SpatialScaleMap
