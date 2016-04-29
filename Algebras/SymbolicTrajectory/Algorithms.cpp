@@ -3225,10 +3225,8 @@ bool TMatchIndexLI::initialize() {
   PatElem atom;
   for (int i = 0; i < p->getSize(); i++) {
     p->getElem(i, atom);
-    if (atom.hasValuesWithContent()) {
-      matchRecord[i] = new DoubleUnitSet*[rel->GetNoTuples() + 1];
-      memset(matchRecord[i], 0, (rel->GetNoTuples() + 1) * sizeof(void*));
-    }
+    matchRecord[i] = new DoubleUnitSet*[rel->GetNoTuples() + 1];
+    memset(matchRecord[i], 0, (rel->GetNoTuples() + 1) * sizeof(void*));
   }
   for (set<int>::iterator it = crucialAtoms.begin(); it != crucialAtoms.end(); 
        it++) {
