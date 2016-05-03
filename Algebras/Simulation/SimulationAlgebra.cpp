@@ -1366,6 +1366,7 @@ class SimTripsInfo{
     }
 
     MPoint* nextMPoint(){
+
        appendUnits();
        if(move){
          MPoint* res = move;
@@ -1374,10 +1375,12 @@ class SimTripsInfo{
          return res;
        }
        MPoint* res = pause;
+
        pause = 0;
        if(res){
           res->EndBulkLoad(false,false);
        }
+       pausedur.SetToZero();
        return res;
     } 
 
@@ -1399,8 +1402,9 @@ class SimTripsInfo{
       pausedur.SetToZero();
       if(pause){
         if(!move){
-          move = new MPoint(16);
-          move->StartBulkLoad();
+           move = pause;
+           pause = 0;
+           return;
         }
         UPoint up;
         for(int i=0;i<pause->GetNoComponents();i++){
@@ -1417,7 +1421,6 @@ class SimTripsInfo{
          UPoint up;
          source->Get(pos,up);
          bool ok;
-         bool isStatic = IsAlmostStationaryUPoint(up,minVel, geoid, ok);
          if(pause!=0 || move!=0){
             if( (up.timeInterval.start > end) || 
                 ((up.timeInterval.start == end) && !rc && !up.timeInterval.lc)){
@@ -1428,6 +1431,7 @@ class SimTripsInfo{
                return;
             }
          }         
+         bool isStatic = IsAlmostStationaryUPoint(up,minVel, geoid, ok);
 
          if(isStatic){
             appendToPause(up);
