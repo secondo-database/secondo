@@ -642,9 +642,16 @@ valueexpr  : ZZIDENTIFIER        {$$ = $1;}
     | '[' list ']'        {$$ = $2;}
 
     | '.'          {$$ = NestedText::AtomC(param1);}
+    | ZZSINGLE     {$$ = NestedText::AtomC(param1);}
 
-    | ZZDOUBLE         {$$ = NestedText::AtomC(param2);}
-
+    | ZZDOUBLE     {$$ = NestedText::AtomC(param2);}
+    | ZZARG3     {$$ = NestedText::AtomC(param3);}
+    | ZZARG4     {$$ = NestedText::AtomC(param4);}
+    | ZZARG5     {$$ = NestedText::AtomC(param5);}
+    | ZZARG6     {$$ = NestedText::AtomC(param6);}
+    | ZZARG7     {$$ = NestedText::AtomC(param7);}
+    | ZZARG8     {$$ = NestedText::AtomC(param8);}
+    | ZZARG9     {$$ = NestedText::AtomC(param9);}
     | ZZTUPLE        {$$ = NestedText::AtomC(param1);}
 
     | ZZGROUP        {$$ = NestedText::AtomC(param1);}

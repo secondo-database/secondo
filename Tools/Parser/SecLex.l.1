@@ -103,8 +103,17 @@ file	  	"<file>"[^<\n]+"</file--->"
 
 
 
-"."{ident}     {yylval = NestedText::Atom( yytext+1, yyleng-1 ); return ZZATTRABBR;}
-".."{ident}    {yylval = NestedText::Atom( yytext+2, yyleng-2 ); return ZZATTRABBR2;}
+"."{ident}      {yylval = NestedText::Atom( yytext+1, yyleng-1 ); return ZZATTRABBR;}
+".."{ident}     {yylval = NestedText::Atom( yytext+2, yyleng-2 ); return ZZATTRABBR2;}
+"$1."{ident}    {yylval = NestedText::Atom( yytext+3, yyleng-3 ); return ZZATTRABBR;}
+"$2."{ident}    {yylval = NestedText::Atom( yytext+3, yyleng-3 ); return ZZATTRABBR2;}
+"$3."{ident}    {yylval = NestedText::Atom( yytext+3, yyleng-3 ); return ZZATTRABBR3;}
+"$4."{ident}    {yylval = NestedText::Atom( yytext+3, yyleng-3 ); return ZZATTRABBR4;}
+"$5."{ident}    {yylval = NestedText::Atom( yytext+3, yyleng-3 ); return ZZATTRABBR5;}
+"$6."{ident}    {yylval = NestedText::Atom( yytext+3, yyleng-3 ); return ZZATTRABBR6;}
+"$7."{ident}    {yylval = NestedText::Atom( yytext+3, yyleng-3 ); return ZZATTRABBR7;}
+"$8."{ident}    {yylval = NestedText::Atom( yytext+3, yyleng-3 ); return ZZATTRABBR8;}
+"$9."{ident}    {yylval = NestedText::Atom( yytext+3, yyleng-3 ); return ZZATTRABBR9;}
 "::"           { yylval = NestedText::Atom(yytext, yyleng); return ZZDEFAULTSEP;}
 -?[0-9]+  	{yylval = NestedText::Atom( yytext, yyleng ); return ZZINTEGER;}
 {number}	{yylval = NestedText::Atom( yytext, yyleng ); return ZZREAL;}
@@ -149,7 +158,16 @@ operators	{yylval = NestedText::Atom( yytext, yyleng ); return ZZOPERATORS;}
 types		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTYPES;}
 objects		{yylval = NestedText::Atom( yytext, yyleng ); return ZZOBJECTS;}
 counters	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCOUNTERS;}
+"$1"    {yylval = NestedText::Atom( yytext, yyleng ); return ZZSINGLE;}
 ".."		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDOUBLE;}
+"$2"		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDOUBLE;}
+"$3"		{yylval = NestedText::Atom( yytext, yyleng ); return ZZARG3;}
+"$4"		{yylval = NestedText::Atom( yytext, yyleng ); return ZZARG4;}
+"$5"		{yylval = NestedText::Atom( yytext, yyleng ); return ZZARG5;}
+"$6"		{yylval = NestedText::Atom( yytext, yyleng ); return ZZARG6;}
+"$7"		{yylval = NestedText::Atom( yytext, yyleng ); return ZZARG7;}
+"$8"		{yylval = NestedText::Atom( yytext, yyleng ); return ZZARG8;}
+"$9"		{yylval = NestedText::Atom( yytext, yyleng ); return ZZARG9;}
 value		{yylval = NestedText::Atom( yytext, yyleng ); return ZZVALUE;}
 pointer		{yylval = NestedText::Atom( yytext, yyleng ); return ZZPOINTER;}
 "="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZINFIXOP;}

@@ -537,10 +537,10 @@ void print_complex_postfix(){
 
     // build the string for functions from the implicit parameters
    int sizei = currenttranslation.implicitNames->size();
-   if(sizei>2){
+   if(sizei>9){
       cerr << " Error: too many implicit parameters at line " 
            << yylineno <<  endl;
-      cerr << " allowed numbe is 2, found " << sizei << " ones " << endl;
+      cerr << " allowed numbe is 9, found " << sizei << " ones " << endl;
       cerr << " The operator is " << opname << endl; 
       removeFiles();
       exit(1);
