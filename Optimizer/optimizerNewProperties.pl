@@ -1444,6 +1444,20 @@ plan_to_atom(isknn(TID, K, dbobject(QueryObj), Rel1, MPointAttr1, IDAttr1,
   .
 
 
+/*
+Special treatment of the tmatches operator
+
+*/
+
+plan_to_atom(tmatches(X, Y), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  my_concat_atom(['. tmatches[', XAtom, ', ', YAtom,']'],'', 
+                Result),
+  !.
+
+
+
 % special rule to handle special attribute ~rowid~
 plan_to_atom(rowid,' tupleid(.)' ) :- !.
 

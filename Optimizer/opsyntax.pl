@@ -118,6 +118,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, satisfies).
 :- op(800, xfx, simpleequals).
 :- op(800, xfx, starts).
+:- op(800, xfx, tmatches).
 :- op(800, xfx, touchpoints).
 :- op(800, xfx, union).
 :- op(800, xfx, when).
