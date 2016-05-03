@@ -421,7 +421,7 @@ Operator : rewrite
 Number   : 0
 Signature: mlabel x text -> stream(mlabel)
 Example  : query rewrite(mlabel1, 'X * Y [(_ "Scharnhorst") | (_ "Brackel")]+ Z * => Y') count
-Result   : 1
+Result   : 3
  
 Operator : classify
 Number   : 1
@@ -439,7 +439,7 @@ Operator : multirewrite
 Number   : 1
 Signature: stream(tuple(X)) x IDENT x stream(text) -> stream(mT), T in {mlabel(s), mplace(s)}
 Example  : query Dotraj feed multirewrite[Trajectory, rewrite1 feed projecttransformstream[Pattern]] count
-Result   : 0
+Result   : 3
 
 Operator : concat
 Number   : 1
