@@ -71,3 +71,4 @@ operator atRect alias atRect pattern _ infixop _
 operator contains alias CONTAINS pattern _ infixop _
 
 operator swapcoord alias SWAPCOORD pattern op ( _ )
+operator getInterval alias getInterval  pattern op ( _ )

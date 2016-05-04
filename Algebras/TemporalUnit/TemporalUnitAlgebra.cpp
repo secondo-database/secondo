@@ -11020,6 +11020,158 @@ Operator temporalswapcoord("swapcoord",
                            Operator::SimpleSelect,
                            swapcoordTM);
 
+
+
+/*
+5.49 Operator ~getInterval~
+
+This operator computes bounding interval of a moving 
+object.
+
+*/
+ListExpr getIntervalTM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("one arg expected");
+   }
+   ListExpr a = nl->First(args);
+   if(   !MString::checkType(a)
+      && !MRegion::checkType(a)
+      && !MReal::checkType(a)
+      && !MPoint::checkType(a)
+      && !MInt::checkType(a)
+      && !MBool::checkType(a)
+      && !Periods::checkType(a)
+      && !UString::checkType(a)
+      && !URegion::checkType(a)
+      && !UReal::checkType(a)
+      && !UPoint::checkType(a)
+      && !UInt::checkType(a)
+      && !UBool::checkType(a)){
+     return listutils::typeError("unsupported type found");
+   }
+   return listutils::basicSymbol<SecInterval>();
+}
+
+template<class A>
+int getIntervalVM_Unit(Word* args, Word& result, 
+                      int message, Word& local, Supplier s){
+
+  A* arg = (A*) args[0].addr;
+  result=qp->ResultStorage(s); 
+  SecInterval* res = (SecInterval*) result.addr;
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  (*res) = arg->timeInterval;
+  return 0; 
+}
+
+
+int getIntervalVM_Periods(Word* args, Word& result, 
+                      int message, Word& local, Supplier s){
+
+  Periods* arg = (Periods*) args[0].addr;
+  result=qp->ResultStorage(s); 
+  SecInterval* res = (SecInterval*) result.addr;
+  if(!arg->IsDefined() || arg->GetNoComponents()<1){
+    res->SetDefined(false);
+    return 0;
+  }
+  Interval<Instant> iv(false);
+  arg->Get(0,iv);
+  (*res) = iv;
+  if(arg->GetNoComponents()==1){
+     return 0;
+  }
+  arg->Get(arg->GetNoComponents()-1, iv);
+  res->SetEnd(iv.end, iv.rc);
+  return 0;
+}
+
+
+template<class A>
+int getIntervalVM_Moving(Word* args, Word& result, 
+                      int message, Word& local, Supplier s){
+   A* arg = (A*) args[0].addr;
+   result = qp->ResultStorage(s);
+   typedef typename A::unittype U;
+   SecInterval* res = (SecInterval*) result.addr;
+
+   if(!arg->IsDefined() || arg->GetNoComponents()<1){
+     res->SetDefined(false);
+     return 0;
+   }
+   U unit(false);
+   arg->Get(0,unit);
+   (*res) = unit.timeInterval;
+   if(arg->GetNoComponents()==1){
+      return 0;
+   }
+   arg->Get(arg->GetNoComponents()-1, unit);
+   res->SetEnd(unit.timeInterval.end, unit.timeInterval.rc);
+   return 0; 
+}
+
+
+
+
+ValueMapping getIntervalVM[] = {
+   getIntervalVM_Unit<UString>,
+   getIntervalVM_Unit<URegion>,
+   getIntervalVM_Unit<UReal>,
+   getIntervalVM_Unit<UPoint>,
+   getIntervalVM_Unit<UInt>,
+   getIntervalVM_Unit<UBool>,
+   getIntervalVM_Periods,
+   getIntervalVM_Moving<MString>,
+   getIntervalVM_Moving<MRegion>,
+   getIntervalVM_Moving<MReal>,
+   getIntervalVM_Moving<MPoint>,
+   getIntervalVM_Moving<MInt>,
+   getIntervalVM_Moving<MBool>
+};
+
+
+int getIntervalSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(UString::checkType(a) ) return 0;
+  if(URegion::checkType(a) ) return 1;
+  if(UReal::checkType(a) ) return 2;
+  if(UPoint::checkType(a) ) return 3;
+  if(UInt::checkType(a) ) return 4;
+  if(UBool::checkType(a) ) return 5;
+  if(Periods::checkType(a) ) return 6;
+  if(MString::checkType(a) ) return 7;
+  if(MRegion::checkType(a) ) return 8;
+  if(MReal::checkType(a) ) return 9;
+  if(MPoint::checkType(a) ) return 10;
+  if(MInt::checkType(a) ) return 11;
+  if(MBool::checkType(a) ) return 12;
+  return -1;
+}
+
+OperatorSpec getIntervalSpec(
+   "uX, uX -> interval, "
+   "X in {string, region, real, int, boll, point, periods}",
+   "getInterval(_)",
+   "Computes the time interval (boxed).",
+   "query getInterval(train1)"
+);
+
+Operator getIntervalOp(
+  "getInterval",
+  getIntervalSpec.getStr(),
+  13,
+  getIntervalVM,
+  getIntervalSelect,
+  getIntervalTM
+);
+
+
+
+
+
 /*
 6 Creating the Algebra
 
@@ -11088,6 +11240,7 @@ public:
     AddOperator( &atRectU);
     AddOperator(&temporalcontains);
     AddOperator(&temporalswapcoord);
+    AddOperator(&getIntervalOp);
   }
   ~TemporalUnitAlgebra() {};
 };

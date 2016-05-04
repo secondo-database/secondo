@@ -726,3 +726,11 @@ Number    : 1
 Signature : upoint x rect -> upoint
 Example   : query deftime(getunit(train7,55) atRect bbox(thecenter)) 
 Result    : (periods(("2003-11-20-06:22" "2003-11-20-06:22:10.300" TRUE FALSE)))
+
+Operator  : getInterval
+Number    : 1
+Signature : periods x TEMPORAL -> interval
+Example   : query compare(getInterval(deftime(train1)) , getInterval(train1) )
+Result    : 0
+
+
