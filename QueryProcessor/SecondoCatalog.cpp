@@ -2199,17 +2199,15 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
   cout << endl
        << "Initializing operator specs ..." << endl;
 
-  const string bdir = 
-          Environment::getInstance().getString("SECONDO_BUILD_DIR");
+  const string bdir = Environment::getInstance().getString("SECONDO_BUILD_DIR");
 
   if(bdir.compare("") == 0) {
      cerr << "Unable to read environment variable: "
-             "SECONDO_BUILD_DIR, exiting" << endl;
+          << "SECONDO_BUILD_DIR, exiting" << endl;
      exit(EXIT_FAILURE);
   }
 
-  while ( am->NextAlgebraId(algId))
-  {
+  while ( am->NextAlgebraId(algId)) {
     string algName =  am->GetAlgebraName(algId);
     int n = am->OperatorNumber(algId);
 
@@ -2221,8 +2219,7 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
     ExampleWriter* examples = new ExampleWriter(fileName, "");
 
 
-    if (!skipExamples)
-    {
+    if (!skipExamples) {
       cout << "Processing '" << algName << "'";
       cout << " (" << n << " operators)" << endl;
       string algShort = algName;
@@ -2230,8 +2227,7 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
       fileName = bdir+"/bin/tmp/"+algShort+".examples";
       CFile expectedFile(fileName);
 
-      if (!expectedFile.exists())
-      {
+      if (!expectedFile.exists()) {
          cerr << "  Missing file " << fileName << "!" << endl;
          fileExists = false;
       }
@@ -2244,36 +2240,41 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
         if (!parseOk) {
            cerr << "  File is not correct! Please repair." << endl << endl;
         }
-        //int n = atoi(getenv("MAX_PARSE"));
-        //ctr++;
-        //assert(ctr <= n);
       }
     }
 
     int opId=0;
-    while ( opId < n)
-    {
-      if (! skipExamples && traceExpl)
+    while ( opId < n) {
+      if (! skipExamples && traceExpl){
         cout << am->getOperator( algId, opId )->GetName() << endl;
+      }
+     
+      Operator* op = am->getOperator( algId, opId );
+      OperatorInfo oi = op->GetOpInfo();
 
-      OperatorInfo oi = am->getOperator( algId, opId )->GetOpInfo();
-
-      if (skipExamples)
+      if (skipExamples){
         fileExists=false;
+      }
 
-      if (!fileExists)
-      {
+      if (!fileExists ) {
         // copy to Example Info
         ExampleInfo ex;
         ex.opName = oi.name;
         ex.number = 1;
         ex.signature = oi.signature;
         ex.example = oi.example;
-
         examples->add(oi.name, 1, ex);
-      }
-      else
-      {
+        OperatorInfoTuple& t = *(new OperatorInfoTuple());
+        t.name = oi.name;
+        t.algebra = algName;
+        t.signature = oi.signature;
+        t.syntax = oi.syntax;
+        t.meaning = oi.meaning;
+        t.example = oi.example;
+        t.remark = oi.remark;
+        t.result = "";
+        r->append(&t, false);
+      } else {
 
         ExampleInfo ex2;
         ExampleReader::ExampleList list;
@@ -2283,84 +2284,93 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
         if (parseOk) {
           specFound = examples->find(oi.name, ex2);
 
-        if ( !specFound ) {
-          cerr << "  * excluding operator " << oi.name
-	       << " since it provides no example!" << endl;
+          if ( !specFound ) {
+             if(op->GetNumOfFun()<1){ 
+                // do not force example for 
+                // type map operators
+                OperatorInfoTuple& t = *(new OperatorInfoTuple());
+                t.name = oi.name;
+                t.algebra = algName;
+                t.signature = oi.signature;
+                t.syntax = oi.syntax;
+                t.meaning = oi.meaning;
+                t.example = oi.example;
+                t.remark = oi.remark;
+                if(t.remark==""){
+                 t.remark="type map operator";
+                }
+                t.result = "";
+                r->append(&t, false);
+             } else {
+                cerr << "  * excluding operator " << oi.name
+                     << " since it provides no example!" << endl;
 
-          // to do: punishment, e.g. removing the operator from the
-          // algebra manager.
-	   LocalOperatorCatalog::iterator pos = operators.find( oi.name );
+                 // to do: punishment, e.g. removing the operator from the
+                 // algebra manager.
+                 LocalOperatorCatalog::iterator pos = operators.find( oi.name );
+                if (  pos != operators.end() ) {
+                   CatalogEntrySet *operatorSet = pos->second;
+                   CatalogEntrySet::iterator it = operatorSet->begin();
+                   for ( ; it!= operatorSet->end(); it++) {
+                       if( algId == it->algebraId && opId == it->entryId ) {
+                          operatorSet->erase(it);
+                          break;
+                       }
+                   }
+                }
+             }
+          } else {
 
-            if (  pos != operators.end() )
-            {
-              CatalogEntrySet *operatorSet = pos->second;
-              CatalogEntrySet::iterator it = operatorSet->begin();
-	      for ( ; it!= operatorSet->end(); it++) {
-               if( algId == it->algebraId && opId == it->entryId ) {
-	         operatorSet->erase(it);
-		 break;
-	       }
-              }
-	    }
+             // examples for the current operator are available
 
-        }
-        else {
+             list = examples->find(oi.name);
+             int i = 0;
+             for (it = list.begin(); it != list.end(); it++) {
+               OperatorInfoTuple& t = *(new OperatorInfoTuple());
+               ex2 = **it;
+               if (traceExpl) {
+                  cout << ex2.example << endl;
+               }
+               bool secOk = false;
+               SecParser sp;
+               string exList = "";
+               int rc = sp.Text2List( ex2.example, exList );
+               secOk = (rc == 0);
+               if ( !secOk ) {
+                  t.remark = "Return Secondo Parse Error!";
+                  cerr << "Operator: " << ex2.opName << endl
+                       << "Example : " << ex2.example << endl
+                       << "In line : " << ex2.lineNo << endl << endl;
+               }
 
-        // examples for the current operator are available
+               t.name = oi.name;
+               t.algebra = algName;
+               t.signature = oi.signature;
+               t.syntax = oi.syntax;
+               t.meaning = oi.meaning;
+               t.result = ex2.result;
 
-        list = examples->find(oi.name);
-
-        int i = 0;
-        for (it = list.begin(); it != list.end(); it++)
-        {
-        OperatorInfoTuple& t = *(new OperatorInfoTuple());
-        ex2 = **it;
-
-        if (traceExpl)
-          cout << ex2.example << endl;
-
-        bool secOk = false;
-        SecParser sp;
-        string exList = "";
-        int rc = sp.Text2List( ex2.example, exList );
-        secOk = (rc == 0);
-        if ( !secOk )
-        {
-          t.remark = "Return Secondo Parse Error!";
-
-            cerr << "Operator: " << ex2.opName << endl
-                 << "Example : " << ex2.example << endl
-                 << "In line : " << ex2.lineNo << endl << endl;
-        }
-
-        t.name = oi.name;
-        t.algebra = algName;
-        t.signature = oi.signature;
-        t.syntax = oi.syntax;
-        t.meaning = oi.meaning;
-        t.result = ex2.result;
-
-        if (ex2.remark != "")
-          t.remark = ex2.remark;
-        else
-          t.remark = oi.remark;
+               if (ex2.remark != "") {
+                 t.remark = ex2.remark;
+               } else {
+                 t.remark = oi.remark;
+               }
 
 
-        // define example values
-        t.example = ex2.example;
+               // define example values
+               t.example = ex2.example;
 
-        if (i==0) {
-        // overrule operator spec of the .cpp file.
-        oi. example = ex2.example;
-        am->getOperator( algId, opId )->SetOpInfo(oi);
-        }
-        i++;
+               if (i==0) {
+                  // overrule operator spec of the .cpp file.
+                  oi. example = ex2.example;
+                  am->getOperator( algId, opId )->SetOpInfo(oi);
+               }
+               i++;
+               r->append(&t, false);
 
-        r->append(&t, false);
-
-        } // end for
-        } // end !specFound
-        } // end parseOk
+              } // end for
+            } // end !specFound
+          } // end parseOk
 
       } // end file exists
       opId++;
@@ -2578,19 +2588,19 @@ Precondition: ~IsOperatorName( opName)~ delivers TRUE.
 
     if (operatorSetIterator != operatorSet->end()) {
       opList = nl->OneElemList(
-		 nl->TwoElemList(
-		   nl->IntAtom( operatorSetIterator->algebraId ),
-		     nl->IntAtom( operatorSetIterator->entryId ) ) );
+     nl->TwoElemList(
+       nl->IntAtom( operatorSetIterator->algebraId ),
+         nl->IntAtom( operatorSetIterator->entryId ) ) );
       ListExpr last = opList;
 
       while ( ++operatorSetIterator != operatorSet->end() )
       {
-	int algId = operatorSetIterator->algebraId;
-	int opId =  operatorSetIterator->entryId;
-	last = nl->Append( last,
-		 nl->TwoElemList(
-		   nl->IntAtom( algId ),
-		      nl->IntAtom( opId ) ) );
+  int algId = operatorSetIterator->algebraId;
+  int opId =  operatorSetIterator->entryId;
+  last = nl->Append( last,
+     nl->TwoElemList(
+       nl->IntAtom( algId ),
+          nl->IntAtom( opId ) ) );
       }
       return opList;
     }
