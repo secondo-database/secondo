@@ -1401,7 +1401,7 @@ int makemvalueSymbolicVM(Word* args, Word& result, int message,
     }
     else if (curAttr->IsDefined()) {
       Unit unit(*((Unit*)curAttr));
-      m->MergeAdd(unit);
+      m->Add(unit);
     }
     else {
       cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. " << endl;
