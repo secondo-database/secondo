@@ -103,3 +103,6 @@ operator createCellGrid3D alias CREATECELLGRID3D pattern op( _, _, _, _, _, _, _
 
 operator components alias COMPONENTS pattern op(_)
 
+operator replace alias REPLACE pattern op(_,_,_)
+
+

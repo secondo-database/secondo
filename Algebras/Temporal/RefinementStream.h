@@ -69,16 +69,16 @@ be returned.
 
   RefinementStream(const Mapping1* m1, const Mapping2* m2);
 
-  RefinementStream(const Unit1* _u1, const Mapping2* _m2):
-    m1(0), m2(_m2), unit1(_u1), unit2(0) {
-    reset();
-  }
+  //  RefinementStream(const Unit1* _u1, const Mapping2* _m2):
+  //    m1(0), m2(_m2), unit1(_u1), unit2(0) {
+  //   reset();
+  // }
 
-  RefinementStream(const Mapping1* _m1, const Unit2* _u2):
-    m1(_m1), m2(0), unit1(0), unit2(_u2)
-  {
-    reset();
-  }
+  // RefinementStream(const Mapping1* _m1, const Unit2* _u2):
+  //  m1(_m1), m2(0), unit1(0), unit2(_u2)
+  // {
+  //  reset();
+  // }
 
   RefinementStream(const Unit1* _u1, const Unit2* _u2):
      m1(0), m2(0), unit1(_u1), unit2(_u2){

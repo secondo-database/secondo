@@ -2533,6 +2533,8 @@ class UPoint : public SpatialTemporalUnit<Point, 3>
 */
   public:
 
+  typedef UPoint unittype;
+
   UPoint() {};
 
   UPoint(bool is_defined):
@@ -3155,6 +3157,12 @@ template <class Unit, class Alpha>
 class Mapping : public Attribute
 {
   public:
+
+  typedef Unit unittype;
+  typedef Alpha  alphatype;
+
+
+
 /*
 3.9.1 Constructors and Destructor
 
@@ -3802,6 +3810,7 @@ private:
 class MPoint : public Mapping< UPoint, Point >
 {
   public:
+
 /*
 3.12.1 Constructors and Destructor
 

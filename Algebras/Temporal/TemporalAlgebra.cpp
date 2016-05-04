@@ -19150,7 +19150,111 @@ Operator containsOP
    containsTM        //type mapping
   );
 
+
+
+/*
+16 Operator ~replace~
+
+This Operator replaces part of a moving point by 
+another moving point.
+
+16.1 Type Mapping
+
+*/
+ListExpr replaceTM(ListExpr args){
+  string err = "mpoint x {mpoint, upoint} expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (invalid number of args)");
+  }
+  if(!MPoint::checkType(nl->First(args))){
+    return listutils::typeError(err + " (first argument is not an mpoint)");
+  }
+  if(   !MPoint::checkType(nl->Second(args))
+     && !UPoint::checkType(nl->Second(args))){
+    return listutils::typeError(err + " (invalid second arg type)");
+  }
+  return nl->First(args);
 }
+
+/*
+16.2 Value Mapping template
+
+*/
+template<class A1, class A2>
+int replaceVMT( Word* args, Word& result, int message, Word&
+                   local, Supplier s ){
+
+   A1* arg1 = (A1*) args[0].addr;
+   A2* arg2 = (A2*) args[1].addr;
+   result = qp->ResultStorage(s);
+   A1* res  = (A1*) result.addr;
+
+   res->Clear();
+   if(!arg1->IsDefined() || !arg2->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }   
+   res->SetDefined(true);
+   res->StartBulkLoad();
+
+   typedef typename A1::unittype U1;
+
+   RefinementStream<A1,A2, U1, U1> refine(arg1,arg2);
+
+   Interval<Instant> iv;
+   int pos1;
+   int pos2;
+   U1 unit(false); 
+   U1 unit_restricted(false);
+
+   while( refine.getNext(iv,pos1,pos2)){
+      if(pos2>=0){
+          arg2->Get(pos2,unit);
+      } else {
+          arg1->Get(pos1,unit);
+      }
+      unit.AtInterval(iv, unit_restricted);
+      res->MergeAdd(unit_restricted);
+   }
+   res->EndBulkLoad();
+   return 0;
+}
+
+/*
+16.3 Value Mapping Array and Selection
+
+*/
+ValueMapping replaceVM[] = {
+    replaceVMT<MPoint,MPoint>,
+    replaceVMT<MPoint,UPoint>
+ };
+
+int replaceSelect(ListExpr args){
+  return MPoint::checkType(nl->Second(args))?0:1;
+}
+
+OperatorSpec replaceSpec(
+  "mpoint x {mpoint, upoint} -> mpoint",
+  "replace(_,_)",
+  "Replaces parts of y moving points by definitions "
+  "within another moving point.",
+  "query replace(train1 , train7)"
+);
+
+
+Operator replaceOp(
+   "replace",
+   replaceSpec.getStr(),
+   2,
+   replaceVM,
+   replaceSelect,
+   replaceTM 
+);
+
+
+
+
+} // end of namespace ct
 
 
 
@@ -19330,6 +19434,7 @@ class TemporalAlgebra : public Algebra
 
     AddOperator(&createPeriodsOp);
     AddOperator(&ct::containsOP);
+    AddOperator(&ct::replaceOp);
 
 
 #ifdef USE_PROGRESS

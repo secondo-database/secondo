@@ -748,4 +748,10 @@ Signature : periods x instant -> bool
 Example   : query theyear(2014) contains [const instant value "2014-02-14"]
 Result    : TRUE
 
+Operator  : replace 
+Number    : 1
+Signature : mpoint x {mpoint, upoint} -> mpoint
+Example   : query final(train6) = final(replace(train1, train6))
+Result    : TRUE
+
 
