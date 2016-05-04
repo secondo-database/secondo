@@ -1401,7 +1401,7 @@ int makemvalueSymbolicVM(Word* args, Word& result, int message,
     }
     else if (curAttr->IsDefined()) {
       Unit unit(*((Unit*)curAttr));
-      m->Add(unit);
+      m->MergeAdd(unit); // in contrast to makemvalue2
     }
     else {
       cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. " << endl;
@@ -1425,10 +1425,79 @@ struct makemvalueSymbolicInfo : OperatorInfo {
                 "T in {label, labels, place, places}";
     syntax    = "_ makemvalue[ _ ]";
     meaning   = "Creates a moving object from a (not necessarily sorted) tuple "
-                "stream containing a ulabel(s) or uplace attribute. No two unit"
-                " time intervals may overlap. Undefined units are allowed and "
-                "will be ignored. A stream without defined units will result in"
-                " an \'empty\' moving object, not in an \'undef\'.";
+                "stream containing a ulabel(s) or uplace(s) attribute. No two "
+                "unit time intervals may overlap. Undefined units are allowed "
+                "and will be ignored. A stream without defined units will "
+                "result in an \'empty\' moving object, not in an \'undef\'."
+                "Consecutive units with equal values are compressed.";
+  }
+};
+
+/*
+\subsection{Operator ~makemvalue2~}
+
+makemvalue: stream (tuple ((x1 t1)...(xi uT)...(xn tn))) xi -> mT,   with T in
+{label, labels, place, places}
+
+*/
+/*
+\subsubsection{Value Mapping}
+
+*/
+template<class Unit, class Mapping>
+int makemvalue2SymbolicVM(Word* args, Word& result, int message,
+                          Word& local, Supplier s) {
+  Mapping* m;
+  Word curTupleWord;
+  assert(args[2].addr != 0);
+  assert(args[3].addr != 0);
+  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, curTupleWord);
+  result = qp->ResultStorage(s);
+  m = (Mapping*)result.addr;
+  m->Clear();
+  m->SetDefined(true);
+  m->StartBulkLoad();
+  while (qp->Received(args[0].addr)) { // get all tuples
+    Tuple* curTuple = (Tuple*)curTupleWord.addr;
+    Attribute* curAttr = (Attribute*)curTuple->GetAttribute(attrIndex);
+    if (curAttr == 0) {
+      cout << endl << "ERROR in " << __PRETTY_FUNCTION__
+           << ": received Nullpointer!" << endl;
+      assert(false);
+    }
+    else if (curAttr->IsDefined()) {
+      Unit unit(*((Unit*)curAttr));
+      m->Add(unit); // in contrast to makemvalue
+    }
+    else {
+      cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. " << endl;
+    }
+    curTuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, curTupleWord);
+  }
+  m->EndBulkLoad(true, true); // force Mapping to sort the units
+  qp->Close(args[0].addr);    // and mark invalid Mapping as undefined
+  return 0;
+}
+
+/*
+\subsubsection{Operator Info}
+
+*/
+struct makemvalue2SymbolicInfo : OperatorInfo {
+  makemvalue2SymbolicInfo() {
+    name      = "makemvalue2";
+    signature = "stream (tuple ((x1 t1)...(xi uT)...(xn tn))) xi -> mT,   with"
+                "T in {label, labels, place, places}";
+    syntax    = "_ makemvalue2[ _ ]";
+    meaning   = "Creates a moving object from a (not necessarily sorted) tuple "
+                "stream containing a ulabel(s) or uplace(s) attribute. No two "
+                "unit time intervals may overlap. Undefined units are allowed "
+                "and will be ignored. A stream without defined units will "
+                "result in an \'empty\' moving object, not in an \'undef\'. "
+                "Consecutive units with equal values are NOT compressed.";
   }
 };
 
@@ -4626,6 +4695,13 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     makemvalueSymbolicVM<ULabels, MLabels>, makemvalueSymbolicVM<UPlace,MPlace>,
     makemvalueSymbolicVM<UPlaces, MPlaces>, 0};
   AddOperator(makemvalueSymbolicInfo(), makemvalueSymbolicVMs,
+              makemvalueSymbolicSelect, makemvalueSymbolic_TM);
+
+  ValueMapping makemvalue2SymbolicVMs[] = {makemvalue2SymbolicVM<ULabel,MLabel>,
+    makemvalue2SymbolicVM<ULabels, MLabels>, 
+    makemvalue2SymbolicVM<UPlace, MPlace>,
+    makemvalue2SymbolicVM<UPlaces, MPlaces>, 0};
+  AddOperator(makemvalue2SymbolicInfo(), makemvalue2SymbolicVMs,
               makemvalueSymbolicSelect, makemvalueSymbolic_TM);
   
   ValueMapping passesSymbolicVMs[] = {passesSymbolicVM<MLabel, Label>,

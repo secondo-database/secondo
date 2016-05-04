@@ -22,6 +22,7 @@ operator classify alias CLASSIFY pattern op ( _ , _ )
 operator indexclassify alias INDEXCLASSIFY pattern _ op [ _ , _ , _ ]
 operator compress alias COMPRESS pattern op ( _ )
 operator fillgaps alias FILLGAPS pattern op ( _ , _ )
+operator makemvalue2 alias MAKEMVALUE2 pattern _ op [ _ ]
 operator createml alias CREATEML pattern op ( _ , _ )
 operator createmlrelation alias CREATEMLRELATION pattern op ( _ , _ , _ )
 operator createtrie alias CREATETRIE pattern _ op [ _ ]
