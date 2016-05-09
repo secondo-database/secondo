@@ -19,28 +19,40 @@
 
 package  viewer;
 
-import  javax.swing.*;
-import  java.awt.*;
-import  java.awt.event.*;
-import  java.net.URL;
-import  java.io.*;
-import  javazoom.jl.player.advanced.*;
-import  javazoom.jl.player.*;
-import  java.util.Properties;
-import  java.util.Vector;
-import  java.util.StringTokenizer;
-import  sj.lang.ListExpr;
-import  java.util.ListIterator;
-import  javax.swing.event.*;
-import  java.awt.geom.*;
-import  javax.swing.border.*;
-import  viewer.hoese.*;
-import  gui.SecondoObject;
-import  gui.idmanager.*;
-import  project.*;
-import  components.*;
-import  java.util.TimerTask;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import  java.util.Timer;
+import  java.util.TimerTask;
+import  java.util.Vector;
+
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.JToolBar;
+import javax.swing.JViewport;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+
+import  gui.SecondoObject;
+import javazoom.jl.decoder.JavaLayerException;
+import javazoom.jl.player.AudioDevice;
+import javazoom.jl.player.Player;
+import  sj.lang.ListExpr;
 import tools.Reporter;
 import viewer.hoese.DsplGeneric;
 
@@ -57,7 +69,7 @@ interface PositionUpdater{
 public class MP3V extends SecondoViewer
     implements ActionListener, ListSelectionListener, PositionUpdater {
     /* Threads which play MP3 songs and display lyrics. */
-    private PlayerThread player;
+ //   private PlayerThread player;
     private LyricsThread lyricsplayer;
     private Timer onetimer;
 
@@ -73,7 +85,8 @@ public class MP3V extends SecondoViewer
 
     private ImageIcon playIcon = new ImageIcon(ClassLoader.getSystemResource("res/play2.png"));
     private ImageIcon pauseIcon = new ImageIcon(ClassLoader.getSystemResource("res/pause2.png"));
-
+    private ImageIcon stopIcon = new ImageIcon(ClassLoader.getSystemResource("res/stop2.png"));
+    
     /* In this text field general information about an MP3, ID3
        or lyrics object is shown.
 
@@ -90,10 +103,10 @@ public class MP3V extends SecondoViewer
     private JList lyricsarea;
     /* starts the playing of an MP3 */
 
-    private JButton PlayButton;
+    private JButton StopButton;
     /* stops the playing of an MP3 */
 
-    private JButton PauseButton;
+    private JButton PlayPauseButton;
     private JLabel positionLabel;
 
     /* mychoice displays the elements of a relation in a JList. */
@@ -109,6 +122,7 @@ public class MP3V extends SecondoViewer
     private static final int INTTYPE = 6;
     private static final int LYRICSTYPE = 7;
     private static final int FILEPATHTYPE = 8;
+    
 
     /* typeselect indicates supported types for this viewer. */
     private int typeselect;
@@ -141,7 +155,153 @@ public class MP3V extends SecondoViewer
     private int selectedattribute;
     private int numberoftuple;
     private int numberofattr;
+    
+    private PausablePlayer2 p;
+// ----------------------------------------------------------------
+    private class PausablePlayer2 {
 
+        private final static int NOTSTARTED = 0;
+        private final static int PLAYING = 1;
+        private final static int PAUSED = 2;
+        private final static int FINISHED = 3;
+
+        // the player actually doing all the work
+        private final Player player;
+
+        // locking object used to communicate with player thread
+        private final Object playerLock = new Object();
+
+        // status variable what player thread is doing/supposed to do
+        private int playerStatus = NOTSTARTED;
+
+        public PausablePlayer2(final InputStream inputStream) throws JavaLayerException {
+            this.player = new Player(inputStream);
+        }
+
+        public PausablePlayer2(final InputStream inputStream, final AudioDevice audioDevice) throws JavaLayerException {
+            this.player = new Player(inputStream, audioDevice);
+        }
+
+        /**
+         * Starts playback (resumes if paused)
+         */
+        public void play() throws JavaLayerException {
+            synchronized (playerLock) {
+                switch (playerStatus) {
+                    case NOTSTARTED:
+                        final Runnable r = new Runnable() {
+                            public void run() {
+                                playInternal();
+                            }
+                        };
+                        final Thread t = new Thread(r);
+                      //  t.setDaemon(true);           
+                        t.setPriority(Thread.MAX_PRIORITY);
+                        playerStatus = PLAYING;
+    System.out.println("Starte PlayerThread");
+                        t.start();
+                        break;
+                    case PAUSED:
+                        resume();
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        /**
+         * Pauses playback. Returns true if new state is PAUSED.
+         */
+        public boolean pause() {
+ System.out.println("Pause"); 
+        	synchronized (playerLock) {
+                if (playerStatus == PLAYING) {
+                    playerStatus = PAUSED;
+                }
+                return playerStatus == PAUSED;
+            }
+        }
+
+        /**
+         * Resumes playback. Returns true if the new state is PLAYING.
+         */
+        public boolean resume() {
+System.out.println("PP:Resume");
+        	synchronized (playerLock) {
+                if (playerStatus == PAUSED) {
+                    playerStatus = PLAYING;
+                    playerLock.notifyAll();
+                }
+                return playerStatus == PLAYING;
+            }
+        }
+
+        /**
+		         * Stops playback. If not playing, does nothing
+		         */
+		        public void stop() {
+System.out.println("PP:Stop");
+		        	synchronized (playerLock) {
+		                playerStatus = FINISHED;
+		                playerLock.notifyAll();
+		            }
+		        }
+
+		/**
+		         * Closes the player, regardless of current state.
+		         */
+		        public void close() {
+System.out.println("PP:close"); 
+		        	synchronized (playerLock) {
+		                playerStatus = FINISHED;
+		            }
+		            try {
+		                player.close();
+		            } catch (final Exception e) {
+		                // ignore, we are terminating anyway
+		            }
+		        }
+
+		private void playInternal() {
+ System.out.println("PP:Play");
+        	while (playerStatus != FINISHED) {
+                try {
+                    if (!player.play(1)) {
+                        break;
+                    }
+                } catch (final JavaLayerException e) {
+                    break;
+                }
+                // check if paused or terminated
+                synchronized (playerLock) {
+                    while (playerStatus == PAUSED) {
+                        try {
+                            playerLock.wait();
+                        } catch (final InterruptedException e) {
+                            // terminate player
+                            break;
+                        }
+                    }
+                }
+            }
+            close();
+        }
+        
+        public boolean isRunning() {
+        	if (playerStatus == PLAYING){
+        		return true;
+        	}
+        	else return false;
+        }
+        public int getPlayerStatus(){
+        	return playerStatus;
+        }
+
+    }
+    
+  // ------------------------------------------------------
+    
     /** implemented method of interface ActionListener
     This method is called if a user presses the
     start or stop button. */
@@ -150,11 +310,11 @@ public class MP3V extends SecondoViewer
 
     if (command.equals("stop")) {
         /* stop a song */
-        StopPlay();
+    	StopPlay();
         StopLyrics();
     } else if (command.equals("play")) {
         /* start a song */
-        StartPlay();
+    	StartPlay();
         StartLyrics();
     }
     }
@@ -454,7 +614,7 @@ public class MP3V extends SecondoViewer
   }
 
   public void endReached(){
-    PauseButton.setIcon(playIcon);
+    PlayPauseButton.setIcon(playIcon);
   }
 
 
@@ -476,10 +636,8 @@ public class MP3V extends SecondoViewer
     // north component
     add(
         newJToolBarJPanel(new Component[] {
-        PauseButton = newJButton("play",
-                     new ImageIcon(ClassLoader.getSystemResource("res/play2.png"))),
-         PlayButton = newJButton ("stop",
-                     new ImageIcon(ClassLoader.getSystemResource("res/stop2.png"))),
+        PlayPauseButton = newJButton("play",playIcon),
+         StopButton = newJButton ("stop",stopIcon),
       positionLabel=new JLabel("")
         }),
         BorderLayout.NORTH
@@ -603,12 +761,23 @@ public class MP3V extends SecondoViewer
 
     /* starts the MP3 player. */
     private void StartPlay() {
-    try {
+ 
+   	System.out.println("MP3-StartPlay: Methode Play:");
+   	if (p==null) {
+   		System.out.println("-> Player Status = NULL");}
+   	
+   	else {
+  		System.out.println("-> Player Status = "+p.getPlayerStatus());
+   		}
+   	
+    	
+    	try {
       
-         if(player!=null){ 
-             if(player.isRunning()){ 
-                player.close();
-                PauseButton.setIcon(playIcon); 
+         if(p!=null){ 
+             if(p.isRunning()){ 
+                p.pause();
+                PlayPauseButton.setIcon(playIcon); 
+                PlayPauseButton.setText("resume");
                 return;
              } 
          } 
@@ -621,25 +790,30 @@ public class MP3V extends SecondoViewer
                 infoarea.setText ("Song: UNDEFINED");
             } else {
              /* songbuffer is not empty. */
-            if(player==null){
-               player = new PlayerThread(songbuffer,this);
-               player.start();
+            if(p==null){
+               p = new PausablePlayer2(songbuffer.decodeText());
+               p.play();
             } else {
-                player.continuePlayback();
+                p.resume();
             }
-            PauseButton.setIcon(pauseIcon);
+            PlayPauseButton.setIcon(pauseIcon);
+            PlayPauseButton.setText("pause");
            }
         } else { // filepath variant
             if (DsplGeneric.isUndefined(filepath)){
                 infoarea.setText ("FSong: UNDEFINED");
             } else {
-              if(player==null){
-                 player = new PlayerThread(filepath.textValue(),this);
-                 player.start();
+              if(p==null){
+                 FileInputStream fis = new FileInputStream(filepath.textValue()); 
+
+                 p = new PausablePlayer2(fis);
+                 p.play();
               } else {
-                  player.continuePlayback();
+                  p.resume();
               }
-              PauseButton.setIcon(pauseIcon);
+              PlayPauseButton.setIcon(pauseIcon);
+              PlayPauseButton.setText("pause");
+
             }
         }
     }
@@ -651,9 +825,12 @@ public class MP3V extends SecondoViewer
 
     /* stops the MP3 player. */
     private void StopPlay () {
-    if (player!=null) {
-        player.close();
-        player=null;
+    if (p!=null){    	
+        p.stop();
+        p=null;
+        PlayPauseButton.setIcon(playIcon);
+        PlayPauseButton.setText("play");
+
     }
     }
 
@@ -1022,7 +1199,9 @@ public class MP3V extends SecondoViewer
 
     /* This class is used to start a seperate thread witch plays
        MP3 songs. */
-   private class PlayerThread extends PlaybackListener implements Runnable {
+   
+    
+ /*   private class PlayerThread extends PlaybackListener implements Runnable {
 
 
 
@@ -1134,7 +1313,7 @@ public class MP3V extends SecondoViewer
                     } catch(Exception e){}
                 }
                 in = null;
-                in = new BufferedInputStream(new FileInputStream(fileSource));
+                in = ;
               } catch(Exception e){
                 return false;
               }
@@ -1156,7 +1335,7 @@ public class MP3V extends SecondoViewer
     BufferedInputStream in;
   }
 
-
+*/
 
 
 
