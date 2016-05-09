@@ -268,5 +268,18 @@ Signature: rect x int x int -> stream(rect)
 Example  : query partitionRect(bbox(BGrenzenLine),2,2) count = 4
 Result   : TRUE
 
+Operator : extendGeo
+Number   : 1
+Signature: rect x {int, real} -> rect
+Example  : query  bbox(BGrenzenLine) extendGeo[300]
+Result   : (rect undefined)
+Remark   : there is no object in geo coordinates in berlintest database
 
+
+Operator : perimeter
+Number   : 1
+Signature: rect -> real
+Example  : query  perimeter(bbox(BGrenzenLine))
+Result   : 166066.0
+Tolerance: 0.001
 

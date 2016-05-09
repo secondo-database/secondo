@@ -53,11 +53,22 @@ struct ~Rectangle~, and the definitions of the type constructur
 #include "Symbols.h"
 #include "CellGrid.h"
 
+#include <math.h>
+
+#ifndef M_PI
+#define M_PI   3.14159265358979323846  
+#endif
+
+
 using namespace std;
 using namespace temporalalgebra;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+
+
+
+namespace rectangle{
 
 /*
 3 Type Constructor ~rect1~
@@ -3491,6 +3502,172 @@ Operator partitionRect( "partitionRect",
 
 
 /*
+28 Operator ~extendGeo~
+
+This operator extends an rectangle with about x meters if the rectangle 
+is given in geo coordinates. 
+
+*/
+ListExpr extendGeoTM(ListExpr args){
+   string err = "rect x {real,int} expected";
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError(err+" (invalid number of args)");
+   }
+   
+   if(!Rectangle<2>::checkType(nl->First(args))){
+     return listutils::typeError(err + " (fisrt arg is not an rect");
+   }
+   if(  !CcInt::checkType(nl->Second(args)) 
+      &&!CcReal::checkType(nl->Second(args))){
+     return listutils::typeError(err + " (invalid type in 2nd arg.)");
+   }
+   return nl->First(args);
+}
+
+
+static double earthradius = 6378137.0;  // eath radius in meters
+static double earthperimeter = 2.0*M_PI*earthradius;
+
+
+template<class E>
+int extendGeoVMT(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+   Rectangle<2>* rect = (Rectangle<2>*) args[0].addr;
+   E* Eps = (E*) args[1].addr;
+   result = qp->ResultStorage(s);
+   Rectangle<2>* res = (Rectangle<2>*) result.addr;
+   if(!rect->IsDefined() || !Eps->IsDefined()){
+     res->SetDefined(0);
+     return 0;
+   }
+   double minX = rect->MinD(0);
+   double maxX = rect->MaxD(0);
+   double minY = rect->MinD(1);
+   double maxY = rect->MaxD(1);
+
+   if(minX < -180 || maxX>180 || minY<-90 || maxY>90){
+     res->SetDefined(false);
+     return 0;
+   }
+   double eps = Eps->GetValue();
+
+   // the distances in y-direction are proportional to the 
+   // latitude, 1 degree has earthperimeter / 360 meter
+
+   double dy = (360 * eps) / earthperimeter;
+   minY -=  dy;
+   maxY +=  dy;
+
+   if(minY >= maxY){
+      res->SetDefined(false);
+      return 0;
+   }
+
+   // take the y-value nearer to the aquator
+   
+   double ay = std::abs(minY) < std::abs(maxY)? minY : maxY;
+
+   ay = (ay * M_PI)/180.0;
+   double k = std::cos(ay);
+   if(k==0){
+      res->SetDefined(false);
+      return 0;
+   }
+
+   double dx = dy / std::cos(ay);
+   minX -= dx;
+   maxX += dx;
+   if(minX>=maxX){
+     res->SetDefined(false);
+     return 0;
+   }
+   double Min[] = {minX,minY};
+   double Max[] = {maxX,maxY};
+    
+ 
+   res->Set(true,Min,Max);
+   return 0;
+}
+
+
+ValueMapping extendGeoVM[] = {
+   extendGeoVMT<CcInt>,
+   extendGeoVMT<CcReal>
+};
+
+int extendGeoSelect(ListExpr args){
+   return CcInt::checkType(nl->Second(args))?0:1;
+}
+
+OperatorSpec extendGeoSpec(
+  " rext x {int,rasl} -> rect ",
+  " _ extendGeo [_] ",
+  " Extends a rectangle using geographic coordinates "
+  " approximative with a border given in meters.",
+  " query bbox(geoobj) extendGeo[300]"
+);
+
+Operator extendGeoOp(
+  "extendGeo",
+  extendGeoSpec.getStr(),
+  2,
+  extendGeoVM,
+  extendGeoSelect,
+  extendGeoTM
+
+);
+
+/*
+Operator perimeter
+
+
+*/
+ListExpr perimeterTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one arg expected");
+  }
+  if(!Rectangle<2>::checkType(nl->First(args))){
+    return listutils::typeError("one arg expected");
+  }
+  return listutils::basicSymbol<CcReal>();
+}
+
+
+int perimeterVM(Word* args, Word& result,
+                 int message, Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   Rectangle<2>* rect = (Rectangle<2>*) args[0].addr;
+   CcReal* res = (CcReal*) result.addr;
+   if(!rect->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   double p =  2* (  (rect->MaxD(0) - rect->MinD(0))
+                    + (rect->MaxD(1) - rect->MinD(1)));
+   res->Set(true,p);
+   return 0;
+}
+
+OperatorSpec perimeterSpec(
+  " rect -> real",
+  " perimeter(_)",
+  " Compuetes the perimeter of a rectangle.",
+  " query perimeter(bbox(thecenter))"
+);
+
+Operator perimeterOp(
+  "perimeter",
+  perimeterSpec.getStr(),
+  perimeterVM,
+  Operator::SimpleSelect,
+  perimeterTM
+);
+
+
+
+
+/*
 5 Creating the Algebra
 
 */
@@ -3551,9 +3728,14 @@ class RectangleAlgebra : public Algebra
     AddOperator( &gridcell2rect);
     AddOperator( &rectanglecenter);
     AddOperator( &partitionRect);
+    AddOperator( &extendGeoOp);
+    AddOperator( &perimeterOp);
   }
   ~RectangleAlgebra() {};
 };
+
+
+} // end of namespace rectangle
 
 /*
 6 Initialization
@@ -3578,7 +3760,7 @@ InitializeRectangleAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (new RectangleAlgebra());
+  return (new rectangle::RectangleAlgebra());
 }
 
 
