@@ -105,4 +105,6 @@ operator components alias COMPONENTS pattern op(_)
 
 operator replace alias REPLACE pattern op(_,_,_)
 
+operator removePeriods alias REMOVEPERIODS pattern _ op [_,_] 
+
 

@@ -19252,6 +19252,105 @@ Operator replaceOp(
 );
 
 
+/*
+17 Operator ~remove~
+
+This operator removes certain imtervals from a moving object.
+
+*/
+ListExpr removeTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError("two arguments expected");
+  }
+  if(!Periods::checkType(nl->Second(args))){
+     return listutils::typeError("second argument must be of type period.");
+  }
+  ListExpr a = nl->First(args);
+ if(   !MString::checkType(a)
+      && !MReal::checkType(a)
+      && !MPoint::checkType(a)
+      && !MInt::checkType(a)
+      && !MBool::checkType(a)
+      && !Periods::checkType(a)){
+   return listutils::typeError("first argument is usupported");    
+ }
+ return a;
+}
+
+
+template<class M>
+int removeVMT( Word* args, Word& result, int message, Word&
+               local, Supplier s ){
+   M* moving = (M*) args[0].addr;
+   Periods* p = (Periods*) args[1].addr;
+   result = qp->ResultStorage(s);
+   M* res = (M*) result.addr;
+   res->Clear();
+   if(!moving->IsDefined() || !p->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   res->SetDefined(true);
+   res->StartBulkLoad();   
+
+   typedef typename M::unittype U;
+
+   RefinementStream<M,Periods, U, Periods::unittype> refine(moving,p);
+   Interval<Instant> iv;
+   int pos1;
+   int pos2;
+   U unit(false); 
+   U unit_restricted(false);
+
+   while( refine.getNext(iv,pos1,pos2)){
+      if(pos1>=0 && pos2<0){
+        moving->Get(pos1,unit);
+        unit.AtInterval(iv, unit_restricted);
+        res->MergeAdd(unit_restricted);
+      } 
+   }
+   res->EndBulkLoad();
+   return 0;
+}
+
+
+ValueMapping removeVM[] = {
+  removeVMT<MString>,
+  removeVMT<MReal>,
+  removeVMT<MPoint>,
+  removeVMT<MInt>,
+  removeVMT<MBool>,
+  removeVMT<Periods>
+};
+  
+int removeSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(MString::checkType(a)) return 0;
+  if(MReal::checkType(a)) return 1;
+  if(MPoint::checkType(a)) return 2;
+  if(MInt::checkType(a)) return 3;
+  if(MBool::checkType(a)) return 4;
+  if(Periods::checkType(a)) return 5;
+  return -1;
+}
+
+
+OperatorSpec removeSpec(
+  "X x periods -> X, X in {mpoint, mint, mreal, mstring, mbool, periods}",
+  "_ removePeriods[_]",
+  "Removes intervals given by the second argument from the first one. ",
+  "query train1 removePeriods[deftime(tran6)]"
+);
+
+Operator removeOp(
+  "removePeriods",
+  removeSpec.getStr(),
+  6,
+  removeVM,
+  removeSelect,
+  removeTM
+);
+
 
 
 } // end of namespace ct
@@ -19435,6 +19534,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&createPeriodsOp);
     AddOperator(&ct::containsOP);
     AddOperator(&ct::replaceOp);
+    AddOperator(&ct::removeOp);
 
 
 #ifdef USE_PROGRESS

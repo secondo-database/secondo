@@ -316,6 +316,13 @@ and ~false~ otherwise.
 */
 
   void Intersection( const Interval<Alpha>& i, Interval<Alpha>& result ) const;
+  // for compatibility with moving types, we need an alias for intersection
+  void AtInterval( const Interval<Alpha>& i, Interval<Alpha>& result ) const{
+     Intersection(i,result);
+  }
+
+
+
   void IntersectionWith( const Interval<Alpha>& i);
 /*
 Return the intersection of this interval and ~i~ into ~result~.
@@ -1620,6 +1627,9 @@ typedef Range<CcString> RString;
 */
 class Periods : public Range<Instant> {
   public:
+
+   typedef Interval<Instant> unittype;
+
 /*
 Constructors
 
