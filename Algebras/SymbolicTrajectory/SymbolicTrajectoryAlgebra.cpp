@@ -1145,8 +1145,9 @@ struct distanceInfo : OperatorInfo {
 
 \subsection{Operator ~the\_unit~}
 
-the\_unit: T x instant x instant x bool x bool -> uT,   with T in 
-{label, labels, place, places}
+the\_unit: T x instant x instant x bool x bool -> uT,
+           T x interval -> uT,
+           with T in {label, labels, place, places}
 
 \subsubsection{Type Mapping}
 
@@ -1154,7 +1155,9 @@ the\_unit: T x instant x instant x bool x bool -> uT,   with T in
 ListExpr the_unitSymbolicTM(ListExpr args) {
   if (nl->Equal(nl->Rest(args), nl->FourElemList(
     nl->SymbolAtom(Instant::BasicType()), nl->SymbolAtom(Instant::BasicType()),
-    nl->SymbolAtom(CcBool::BasicType()), nl->SymbolAtom(CcBool::BasicType())))){
+    nl->SymbolAtom(CcBool::BasicType()), nl->SymbolAtom(CcBool::BasicType())))
+  || nl->Equal(nl->Rest(args), 
+               nl->OneElemList(nl->SymbolAtom(SecInterval::BasicType())))) {
     if (Label::checkType(nl->First(args))) {
       return nl->SymbolAtom(ULabel::BasicType());
     }
@@ -1170,12 +1173,8 @@ ListExpr the_unitSymbolicTM(ListExpr args) {
   }
   return listutils::typeError(
     "Operator 'the_unit' expects a list with structure\n"
-    "'(point point instant instant bool bool)', or \n"
-    "'(ipoint ipoint bool bool)', or \n"
-    "'(real real real bool instant instant bool bool)', or\n"
     "'(T instant instant bool bool)', or \n"
-    "'(iT duration bool bool)'\n for T in "
-    "{bool, int, string, label, labels, place, places}.");
+    "'(T interval)'\n for T in {label, labels, place, places}.");
 }
 
 /*
@@ -1183,10 +1182,16 @@ ListExpr the_unitSymbolicTM(ListExpr args) {
 
 */
 int the_unitSymbolicSelect(ListExpr args) {
-  if (Label::checkType(nl->First(args))) return 0;
-  if (Labels::checkType(nl->First(args))) return 1;
-  if (Place::checkType(nl->First(args))) return 2;
-  if (Places::checkType(nl->First(args))) return 3;
+  if (!SecInterval::checkType(nl->Second(args))) {
+    if (Label::checkType(nl->First(args)))  return 0;
+    if (Labels::checkType(nl->First(args))) return 1;
+    if (Place::checkType(nl->First(args)))  return 2;
+    if (Places::checkType(nl->First(args))) return 3;
+  }
+  if (Label::checkType(nl->First(args)))  return 4;
+  if (Labels::checkType(nl->First(args))) return 5;
+  if (Place::checkType(nl->First(args)))  return 6;
+  if (Places::checkType(nl->First(args))) return 7;
   return -1;
 }
 
@@ -1228,6 +1233,22 @@ int the_unitSymbolicVM(Word* args, Word& result,
   return 0;
 }
 
+template<class Value, class Unit>
+int the_unitIvSymbolicVM(Word* args, Word& result, 
+                       int message, Word& local, Supplier s) {
+  result = (qp->ResultStorage(s));
+  Unit *res = static_cast<Unit*>(result.addr);
+  Value *value = static_cast<Value*>(args[0].addr);
+  SecInterval *iv = static_cast<SecInterval*>(args[1].addr);
+  if (!value->IsDefined() || !iv->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  res->timeInterval = *iv;
+  res->constValue = *value;
+  return 0;
+}
+
 /*
 \subsubsection{Operator Info}
 
@@ -1239,7 +1260,11 @@ struct the_unitSymbolicInfo : OperatorInfo {
     appendSignature("labels x instant x instant x bool x bool -> ulabels");
     appendSignature("place x instant x instant x bool x bool -> uplace");
     appendSignature("places x instant x instant x bool x bool -> uplaces");
-    syntax    = "the_unit( _ _ _ _ _ )";
+    appendSignature("label x interval -> ulabel");
+    appendSignature("labels x interval -> ulabels");
+    appendSignature("place x interval -> uplace");
+    appendSignature("places x interval -> uplaces");
+    syntax    = "the_unit( _ _ _ _ _ );   the_unit( _ _ )";
     meaning   = "Creates a ulabel(s) / uplace(s) from its components.";
   }
 };
@@ -4770,7 +4795,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
   ValueMapping the_unitSymbolicVMs[] = {the_unitSymbolicVM<Label, ULabel>,
     the_unitSymbolicVM<Labels, ULabels>, the_unitSymbolicVM<Place, UPlace>,
-    the_unitSymbolicVM<Places, UPlaces>, 0};
+    the_unitSymbolicVM<Places, UPlaces>, the_unitIvSymbolicVM<Label, ULabel>,
+    the_unitIvSymbolicVM<Labels, ULabels>, the_unitIvSymbolicVM<Place, UPlace>,
+    the_unitIvSymbolicVM<Places, UPlaces>, 0};
   AddOperator(the_unitSymbolicInfo(), the_unitSymbolicVMs,
               the_unitSymbolicSelect, the_unitSymbolicTM);
   
