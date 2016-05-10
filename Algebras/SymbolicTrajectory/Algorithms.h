@@ -169,6 +169,7 @@ class UBasic : public temporalalgebra::ConstTemporalUnit<B> {
 
   void Initial(IBasic<B>& result) const;
   void Final(IBasic<B>& result) const;
+  void GetInterval(temporalalgebra::SecInterval& result) const;
 };
 
 /*
@@ -197,6 +198,7 @@ class UBasics : public temporalalgebra::ConstTemporalUnit<B> {
   
   void Initial(IBasics<B>& result) const;
   void Final(IBasics<B>& result) const;
+  void GetInterval(temporalalgebra::SecInterval& result) const;
 };
 
 class MLabel;
@@ -243,6 +245,7 @@ class MBasic : public Attribute {
   int LastPosUntil(const Instant& inst) const;
   void Get(const int i, UBasic<B>& result) const;
   void GetInterval(const int i, temporalalgebra::SecInterval& result) const;
+  void GetInterval(temporalalgebra::SecInterval& result) const;
   void GetBasic(const int i, B& result) const;
   void GetValue(const int i, typename B::base& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
@@ -323,6 +326,7 @@ class MBasics : public Attribute {
   bool IsEmpty() const {return units.Size() == 0;}
   void GetValues(const int i, std::set<typename B::base>& result) const;
   void GetInterval(const int i, temporalalgebra::SecInterval& result) const;
+  void GetInterval(temporalalgebra::SecInterval& result) const;
   int GetNoComponents() const {return units.Size();}
   int GetNoValues() const {return pos.Size();}
   void Clear();
@@ -1870,6 +1874,20 @@ void UBasic<B>::Final(IBasic<B>& result) const {
 }
 
 /*
+\subsection{Function ~GetInterval~}
+
+*/
+template<class B>
+void UBasic<B>::GetInterval(temporalalgebra::SecInterval& result) const {
+  if (this->IsDefined()) {
+    result = this->timeInterval;
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
 \section{Implementation of class ~UBasics~}
 
 \subsection{Constructors}
@@ -1973,6 +1991,20 @@ void UBasics<B>::Final(IBasics<B>& result) const {
     result.instant = this->timeInterval.end;
     result.value = this->constValue;
     result.SetDefined(true);
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+\subsection{Function ~GetInterval~}
+
+*/
+template<class B>
+void UBasics<B>::GetInterval(temporalalgebra::SecInterval& result) const {
+  if (this->IsDefined()) {
+    result = this->timeInterval;
   }
   else {
     result.SetDefined(false);
@@ -2381,6 +2413,19 @@ void MBasic<B>::GetInterval(const int i,
   typename B::unitelem unit;
   units.Get(i, unit);
   result = unit.iv;
+}
+
+template<class B>
+void MBasic<B>::GetInterval(temporalalgebra::SecInterval& result) const {
+  if (this->IsDefined() && !this->IsEmpty()) {
+    temporalalgebra::SecInterval first(true), last(true);
+    this->GetInterval(0, first);
+    this->GetInterval(this->GetNoComponents() - 1, last);
+    result.Set(first.start, last.end, first.lc, last.rc);
+  }
+  else {
+    result.SetDefined(false);
+  }
 }
 
 /*
@@ -3414,6 +3459,19 @@ void MBasics<B>::GetInterval(const int i,
   SymbolicUnit unit;
   units.Get(i, unit);
   result = unit.iv;
+}
+
+template<class B>
+void MBasics<B>::GetInterval(temporalalgebra::SecInterval& result) const {
+  if (this->IsDefined() && !this->IsEmpty()) {
+    temporalalgebra::SecInterval first(true), last(true);
+    this->GetInterval(0, first);
+    this->GetInterval(this->GetNoComponents() - 1, last);
+    result.Set(first.start, last.end, first.lc, last.rc);
+  }
+  else {
+    result.SetDefined(false);
+  }
 }
 
 /*

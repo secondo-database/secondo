@@ -1920,6 +1920,89 @@ struct nocomponentsSymbolicInfo : OperatorInfo {
 };
 
 /*
+\subsection{Operator ~getInterval~}
+
+This operator returns the interval of a symbolic unit or the bounding interval 
+of a symbolic trajectory.
+
+\subsubsection{Type Mapping}
+
+*/
+ListExpr getIntervalSymbolicTM(ListExpr args) {
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError("One argument expected.");
+  }
+  if (!MLabel::checkType(nl->First(args)) &&
+      !MLabels::checkType(nl->First(args)) &&
+      !MPlace::checkType(nl->First(args)) &&
+      !MPlaces::checkType(nl->First(args)) &&
+      !ULabel::checkType(nl->First(args)) &&
+      !ULabels::checkType(nl->First(args)) &&
+      !UPlace::checkType(nl->First(args)) &&
+      !UPlaces::checkType(nl->First(args))) {
+    return listutils::typeError("Symbolic trajectory or symbolic unit "
+                                "expected.");
+  }
+  return nl->SymbolAtom(SecInterval::BasicType());
+}
+
+/*
+\subsubsection{Selection Function}
+
+*/
+int getIntervalSymbolicSelect(ListExpr args) {
+  if (MLabel::checkType(nl->First(args)))  return 0;
+  if (MLabels::checkType(nl->First(args))) return 1;
+  if (MPlace::checkType(nl->First(args)))  return 2;
+  if (MPlaces::checkType(nl->First(args))) return 3;
+  if (ULabel::checkType(nl->First(args)))  return 4;
+  if (ULabels::checkType(nl->First(args))) return 5;
+  if (UPlace::checkType(nl->First(args)))  return 6;
+  if (UPlaces::checkType(nl->First(args))) return 7;
+  return -1;
+}
+
+/*
+\subsubsection{Value Mapping}
+
+*/
+template<class M>
+int getIntervalSymbolicVM(Word* args, Word& result, int message, Word& local,
+                          Supplier s) {
+  result = qp->ResultStorage(s);
+  M *src = static_cast<M*>(args[0].addr);
+  SecInterval *res = static_cast<SecInterval*>(result.addr);
+  if (src->IsDefined()) {
+    src->GetInterval(*res);
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsubsection{Operator Info}
+
+*/
+struct getIntervalSymbolicInfo : OperatorInfo {
+  getIntervalSymbolicInfo() {
+    name      = "getInterval";
+    signature = "mlabel -> interval";
+    appendSignature("mlabels -> interval");
+    appendSignature("mplace -> interval");
+    appendSignature("mplaces -> interval");
+    appendSignature("ulabel -> interval");
+    appendSignature("ulabels -> interval");
+    appendSignature("uplace -> interval");
+    appendSignature("uplaces -> interval");
+    syntax    = "getInterval ( _ )";
+    meaning   = "This operator returns the interval of a symbolic unit or the "
+                "bounding interval of a symbolic trajectory.";
+  }
+};
+
+/*
 \subsection{Operator ~getunit~}
 
 getunit: mlabel x int -> ulabel
@@ -4742,6 +4825,14 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     nocomponentsSymbolicVM<Places>, 0};
   AddOperator(nocomponentsSymbolicInfo(), nocomponentsSymbolicVMs,
               nocomponentsSymbolicSelect, nocomponentsSymbolicTM);
+  
+  ValueMapping getIntervalSymbolicVMs[] = {getIntervalSymbolicVM<MLabel>,
+    getIntervalSymbolicVM<MLabels>, getIntervalSymbolicVM<MPlace>, 
+    getIntervalSymbolicVM<MPlaces>, getIntervalSymbolicVM<ULabel>,
+    getIntervalSymbolicVM<ULabels>, getIntervalSymbolicVM<UPlace>, 
+    getIntervalSymbolicVM<UPlaces>, 0};
+  AddOperator(getIntervalSymbolicInfo(), getIntervalSymbolicVMs, 
+              getIntervalSymbolicSelect, getIntervalSymbolicTM);
   
   ValueMapping getunitSymbolicVMs[] = {getunitSymbolicVM<MLabel, ULabel>,
     getunitSymbolicVM<MLabels, ULabels>, getunitSymbolicVM<MPlace, UPlace>, 

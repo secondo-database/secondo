@@ -211,6 +211,12 @@ Signature: mlabel x int -> ulabel
 Example  : query getunit(mlabel1, 0)
 Result   : (ulabel (("2012-01-01" "2012-01-01-00:30" TRUE FALSE) 'Eving'))
 
+Operator : getInterval
+Number   : 1
+Signature: mlabel -> interval
+Example  : query getInterval(mlabel1)
+Result   : (interval ("2012-01-01" "2012-01-01-03:00" TRUE FALSE))
+
 Operator : initial
 Number   : 12
 Signature: ulabel -> ilabel
