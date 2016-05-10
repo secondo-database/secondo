@@ -93,6 +93,9 @@ class StandardSpatialAttribute : public Attribute
 
 };
 
+
+
+
 /*
 3 Class ~Rectangle~
 
@@ -882,6 +885,18 @@ inline bool Rectangle<dim>::Proper() const
 Distance: returns the Euclidean distance between two rectangles
 
 */
+template<unsigned dim>
+double geoDistance(const Rectangle<dim>& r1, const Rectangle<dim>& r2,
+                   const Geoid* geoid){
+   assert(false);
+   return -1;
+}
+
+double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2, 
+                   const Geoid* geoid);
+   
+
+
 
 template <unsigned dim>
 inline double Rectangle<dim>::Distance(const Rectangle<dim>& r,
@@ -891,10 +906,9 @@ inline double Rectangle<dim>::Distance(const Rectangle<dim>& r,
   assert(r.del.isDefined );
   assert( !geoid || geoid->IsDefined() );
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<std::endl;
-    assert(false); // TODO: Implement spherical geometry case.
+    return geoDistance(*this, r, geoid);
   }
+   
   double sum = 0;
   for( unsigned i = 0; i < dim; i++ )
   {

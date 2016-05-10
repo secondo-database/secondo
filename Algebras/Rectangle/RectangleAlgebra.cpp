@@ -52,6 +52,7 @@ struct ~Rectangle~, and the definitions of the type constructur
 #include "ListUtils.h"
 #include "Symbols.h"
 #include "CellGrid.h"
+#include "Point.h"
 
 #include <math.h>
 
@@ -65,6 +66,146 @@ using namespace temporalalgebra;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+
+
+
+double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2, 
+                   const Geoid* geoid){
+
+     // in this case dim is two
+     // step one: determine the position of r 
+     //   Q1 |  Q2  | Q3
+     //   ---------------
+     //   Q4 |  Q5  | Q6
+     //   ----------------
+     //   Q7 |  Q8  | Q9
+     // where Q5 correponds to this
+     // with some priorities:
+     // Q5 > Q2 = Q4 = Q6 = Q8 > Q1 = Q3 = Q7 = Q9
+     double  xmin1 = r1.MinD(0);
+     double  xmax1 = r1.MaxD(0);
+     double  ymin1 = r1.MinD(1);
+     double  ymax1 = r1.MaxD(1);
+
+     double  xmin2 = r2.MinD(0);
+     double  xmax2 = r2.MaxD(0);
+     double  ymin2 = r2.MinD(1);
+     double  ymax2 = r2.MaxD(1);
+
+     int Q = 0;
+     if(ymin2 >= ymax1){ // 2 above 1
+       // Q1 - Q3
+       if(xmax2 < xmin1){ // left
+          Q = 1;
+       } else if(xmax1 < xmin2){ // right
+          Q = 3;
+       } else {
+          Q = 2;
+       }
+     } else if (ymin1 >= ymax2){ // 2 below 2
+       // Q7 - Q9
+       if(xmax2 < xmin1){
+          Q = 7;
+       } else if(xmax1 < xmin2){
+          Q = 9;
+       } else {
+          Q = 8;
+       }
+     } else {
+       // Q4 - Q5
+       if(xmax2 < xmin1){
+          Q = 4;
+       } else if(xmax1 < xmin2){
+          Q = 6;
+       } else {
+          Q = 5;
+       }
+     }
+
+     if(Q==5){ // found intersection
+        return 0;
+     }
+     bool valid;
+     if(Q==1 || Q == 3){ // above but not direct
+        Point p1_1(true,xmin1,ymax1);
+        Point p1_2(true,xmax1,ymax1);
+        Point p2_1(true,xmin2, ymin2);
+        Point p2_2(true,xmax2, ymin2);
+        double d1 = p1_1.DistanceOrthodrome(p2_1, *geoid,valid);
+        if(!valid) return -1;
+        double d2 = p1_1.DistanceOrthodrome(p2_2, *geoid,valid);
+        if(!valid) return -1;
+        double d3 = p1_2.DistanceOrthodrome(p2_1, *geoid,valid);
+        if(!valid) return -1;
+        double d4 = p1_2.DistanceOrthodrome(p2_2, *geoid,valid);
+        if(!valid) return -1;
+        return std::min(d1, std::min(d2, std::min(d3,d4)));
+     }
+     if(Q==7 || Q==9){ // below but not direct
+        Point p1_1(true,xmin1,ymin1);
+        Point p1_2(true,xmax1,ymin1);
+        Point p2_1(true,xmin2, ymax2);
+        Point p2_2(true,xmax2, ymax2);
+        double d1 = p1_1.DistanceOrthodrome(p2_1, *geoid,valid);
+        if(!valid) return -1;
+        double d2 = p1_1.DistanceOrthodrome(p2_2, *geoid, valid);
+        if(!valid) return -1;
+        double d3 = p1_2.DistanceOrthodrome(p2_1, *geoid, valid);
+        if(!valid) return -1;
+        double d4 = p1_2.DistanceOrthodrome(p2_2, *geoid, valid);
+        if(!valid) return -1;
+        return std::min(d1, std::min(d2, std::min(d3,d4)));
+     }
+
+     if(Q==2){ // direct above
+       Point p1(true,xmin2, ymax1); 
+       Point p2(true,xmin2, ymin2);
+       double d = p1.DistanceOrthodrome(p2,*geoid, valid);
+       if(!valid) return -1;
+       return d;
+     }
+     if(Q==8){ // direct above
+       Point p1(true,xmin2, ymin1);
+       Point p2(true,xmin2, ymax2);
+       double d =  p1.DistanceOrthodrome(p2,*geoid, valid);
+       if(!valid){ return -1; }
+       return d;
+     }
+     // Q4 or Q6
+     // restrict y to common partA
+     double ymin = ymin1 < ymin2 ? ymin2 : ymin1;
+     double ymax = ymax1 > ymax2 ? ymax2 : ymax1;
+
+     // get the y value farther from the aquator to
+     // minimize the distance
+     double y = abs(ymin) > abs(ymax) ? ymin : ymax; 
+
+
+     if(Q==4){
+       double d1 = (Point(true,xmax2,y)).DistanceOrthodrome(Point(true,xmin1,y),
+                                                        *geoid, valid);
+       if(!valid) return -1;
+       double d2 = (Point(true,xmin2,y)).DistanceOrthodrome(Point(true,xmax1,y),
+                                                        *geoid, valid);
+       if(!valid) return -1;
+       return std::min(d1,d2);
+     }  
+     if(Q==6){
+        Point p1(true,xmax1, y);
+        Point p2(true,xmin2, y);
+
+        double d1 = p1.DistanceOrthodrome(p2, *geoid, valid);
+        if(!valid) return -1;
+
+        Point p3(true,xmin1,y);
+        Point p4(true,xmax2,y);
+        double d2 = p3.DistanceOrthodrome(p4, *geoid, valid);
+        if(!valid) return -1;
+        return std::min(d1,d2);
+     }  
+     assert(false); // forgetten case
+     return -1;
+}
 
 
 
