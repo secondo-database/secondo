@@ -14168,7 +14168,7 @@ bool sphericalDistImplemented(ListExpr arg1, ListExpr arg2){
       return    Point::checkType(arg2) ;
    }
    if(Rectangle<2>::checkType(arg1)){
-      return false;
+      return Rectangle<2>::checkType(arg2);
    }
    if(Region::checkType(arg1)){
       return false;
