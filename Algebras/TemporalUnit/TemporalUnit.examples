@@ -597,14 +597,14 @@ Result   : (mpoint ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9396.0 9
 
 Operator : the_unit
 Number   : 1
-Signature: point  point  instant instant bool bool --> ubool
+Signature: point  point  instant instant bool bool --> upoint
 Example  : query the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)
 Result   : (upoint (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9396.0 9871.0 11068.0 12895.0)))
 
 
 Operator : the_unit
 Number   : 2
-Signature: ipoint ipoint bool    bool              --> ubool
+Signature: ipoint ipoint bool    bool              --> upoint
 Example  : query the_unit(the_ivalue(six30,mehringdamm), the_ivalue(six30,makepoint(10,100)), TRUE, TRUE)
 Result   : (upoint (("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(10.0 100.0 9396.0 9871.0)))
 
@@ -628,6 +628,21 @@ Number   : 5
 Signature: T instant instant bool bool --> uT
 Example  : query the_unit(TRUE, six30, nine, FALSE, TRUE)
 Result   : (ubool (("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE) TRUE))
+
+
+Operator : the_unit
+Number   : 6
+Signature: T interval --> uT
+Example  : query the_unit(TRUE, [const interval value ("2015-01-01" "2016-01-01" TRUE FALSE)])
+Result   : (ubool (("2015-01-01" "2016-01-01" TRUE FALSE) TRUE))
+
+
+Operator : the_unit
+Number   : 7
+Signature: point  point  interval  --> upoint
+Example  : query the_unit(mehringdamm, alexanderplatz, [const interval value ("2015-01-01" "2016-01-01" TRUE FALSE)])
+Result   : (upoint (("2015-01-01" "2016-01-01" TRUE FALSE)(9396.0 9871.0 11068.0 12895.0)))
+
 
 
 Operator : trajectory
@@ -675,7 +690,7 @@ Tolerance: 0.0000001
 Operator : canmeet
 Number   : 1
 Signature: (upoint upoint real duration) -> bool
-Example  : query units(train7) transformstream {a} units(train7down) transformstream {b} symmjoin[deftime(.Elem_a) intersects deftime(..Elem_b)] filter[canmeet(.Elem_a, .Elem_b, 100.0, create_duration(0, 60000))] count
+Example  : query units(train7) transformstream {x} units(train7down) transformstream {y} symmjoin[deftime(.Elem_x) intersects deftime(..Elem_y)] filter[canmeet(.Elem_x, .Elem_y, 100.0, create_duration(0, 60000))] count
 Result   : 6
 
 

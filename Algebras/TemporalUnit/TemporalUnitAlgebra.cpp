@@ -8295,6 +8295,35 @@ ListExpr TU_TM_TheUnit( ListExpr args )
                                          nl->SymbolAtom(CcBool::BasicType())))){
     return nl->SymbolAtom( UString::BasicType() );
   }
+  
+  if (nl->Equal(args, nl->TwoElemList(nl->SymbolAtom(CcString::BasicType()),
+                                   nl->SymbolAtom(SecInterval::BasicType())))) {
+    return nl->SymbolAtom(UString::BasicType());
+  }
+  
+  if (nl->Equal(args, nl->TwoElemList(nl->SymbolAtom(CcInt::BasicType()),
+                                   nl->SymbolAtom(SecInterval::BasicType())))) {
+    return nl->SymbolAtom(UInt::BasicType());
+  }
+  
+  if (nl->Equal(args, nl->TwoElemList(nl->SymbolAtom(CcBool::BasicType()),
+                                   nl->SymbolAtom(SecInterval::BasicType())))) {
+    return nl->SymbolAtom(UBool::BasicType());
+  }
+  
+  if (nl->Equal(args, nl->FiveElemList(nl->SymbolAtom(CcReal::BasicType()),
+                                       nl->SymbolAtom(CcReal::BasicType()),
+                                       nl->SymbolAtom(CcReal::BasicType()),
+                                       nl->SymbolAtom(CcBool::BasicType()),
+                                   nl->SymbolAtom(SecInterval::BasicType())))) {
+    return nl->SymbolAtom(UReal::BasicType());
+  }
+  
+  if (nl->Equal(args, nl->ThreeElemList(nl->SymbolAtom(Point::BasicType()),
+                                        nl->SymbolAtom(Point::BasicType()),
+                                   nl->SymbolAtom(SecInterval::BasicType())))) {
+    return nl->SymbolAtom(UPoint::BasicType());
+  }
 
   return listutils::typeError(
      "Operator 'the_unit' expects a list with structure\n"
@@ -8302,7 +8331,10 @@ ListExpr TU_TM_TheUnit( ListExpr args )
      "'(ipoint ipoint bool bool)', or \n"
      "'(real real real bool instant instant bool bool)', or\n"
      "'(T instant instant bool bool)', or \n"
-     "'(iT duration bool bool)'\n for T in {bool, int, string}.");
+     "'(iT duration bool bool)'\n for T in {bool, int, string}, or\n"
+     "'(T interval)' for T in {bool, int, string}, or\n"
+     "'(real real real bool interval)', or\n"
+     "'(point point interval)'");
 }
 
 /*
@@ -8513,6 +8545,62 @@ int TU_VM_TheUnit_Tiibb(Word* args, Word& result,
 }
 
 
+// template for constant unit types:
+// T x interval --> uT
+template<class T>
+int TU_VM_TheUnit_Tiv(Word* args, Word& result, int message, Word& local, 
+                      Supplier s) {
+  result = qp->ResultStorage(s);
+  ConstTemporalUnit<T> *res = static_cast<ConstTemporalUnit<T> *>(result.addr);
+  T *value = static_cast<T*>(args[0].addr);
+  SecInterval *iv = static_cast<SecInterval*>(args[1].addr);
+  if (!value->IsDefined() || !iv->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  *res = ConstTemporalUnit<T>(*iv, *value);
+  return 0;
+}
+
+
+// real real real bool interval -> ubool
+int TU_VM_TheUnit_rrrbiv(Word* args, Word& result, int message, Word& local, 
+                         Supplier s) {
+  result = qp->ResultStorage(s);
+  UReal *res = (UReal*)result.addr;
+  CcReal *a = (CcReal*)args[0].addr;
+  CcReal *b = (CcReal*)args[1].addr;
+  CcReal *c = (CcReal*)args[2].addr;
+  CcBool *r = (CcBool*)args[3].addr;
+  SecInterval *iv = (SecInterval*)args[4].addr;
+  if (!a->IsDefined() || !b->IsDefined() || !c->IsDefined() || !r->IsDefined()
+   || !iv->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  *res = UReal(*iv, a->GetRealval(), b->GetRealval(), c->GetRealval(), 
+               r->GetBoolval());
+  return 0;
+}
+
+
+// point point interval --> ubool
+int TU_VM_TheUnit_ppiv(Word* args, Word& result, int message, Word& local, 
+                       Supplier s) {
+  result = qp->ResultStorage(s);
+  UPoint *res = (UPoint*)result.addr;
+  Point *p1 = (Point*)args[0].addr;
+  Point *p2 = (Point*)args[1].addr;
+  SecInterval *iv = (SecInterval*)args[2].addr;
+  if (!p1->IsDefined() || !p2->IsDefined() || !iv->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  *res = UPoint(*iv, *p1, *p2);
+  return 0;
+}
+
+
 /*
 5.41.3 Specification for operator ~the\_unit~
 
@@ -8526,7 +8614,10 @@ const string  TU_Spec_TheUnit =
   "ipoint x ipoint x bool x bool --> upoint\n"
   "real x real x real x bool x instant x instant x bool x bool --> ureal\n"
   "iT x duration x bool x bool --> uT\n"
-  "T x instant x instant x bool x bool --> uT"
+  "T x instant x instant x bool x bool --> uT\n"
+  "T x interval --> uT\n"
+  "real x real x real x bool x interval --> ureal\n"
+  "point x point x interval --> upoint\n"
   "</text--->"
   "<text>the_unit( pstart, pend, tstart, tend, cl, cr )\n"
   "the_unit( ip1, ip2, cl, cr )\n"
@@ -8546,29 +8637,20 @@ int TU_Select_TheUnit( ListExpr args )
   string argstr;
   nl->WriteToString(argstr, args);
 
-  if (argstr == "(point point instant instant bool bool)")
-    return 0;
-  if (argstr == "(ipoint ipoint bool bool)")
-    return 1;
-
-  if (argstr == "(real real real bool instant instant bool bool)")
-    return 2;
-
-  if (argstr == "(bool instant instant bool bool)")
-    return 3;
-  if (argstr == "(ibool duration bool bool)")
-    return 4;
-
-  if (argstr == "(int instant instant bool bool)")
-    return 5;
-  if (argstr == "(iint duration bool bool)")
-    return 6;
-
-  if (argstr == "(string instant instant bool bool)")
-    return 7;
-  if (argstr == "(istring duration bool bool)")
-    return 8;
-
+  if (argstr == "(point point instant instant bool bool)")          return 0;
+  if (argstr == "(ipoint ipoint bool bool)")                        return 1;
+  if (argstr == "(real real real bool instant instant bool bool)")  return 2;
+  if (argstr == "(bool instant instant bool bool)")                 return 3;
+  if (argstr == "(ibool duration bool bool)")                       return 4;
+  if (argstr == "(int instant instant bool bool)")                  return 5;
+  if (argstr == "(iint duration bool bool)")                        return 6;
+  if (argstr == "(string instant instant bool bool)")               return 7;
+  if (argstr == "(istring duration bool bool)")                     return 8;
+  if (argstr == "(string interval)")                                return 9;
+  if (argstr == "(int interval)")                                   return 10;
+  if (argstr == "(bool interval)")                                  return 11;
+  if (argstr == "(real real real bool interval)")                   return 12;
+  if (argstr == "(point point interval)")                           return 13;
   return -1; // should not be reached!
 }
 
@@ -8582,14 +8664,19 @@ ValueMapping TU_VMMap_TheUnit[] =
     TU_VM_TheUnit_Tiibb<CcInt>,
     TU_VM_TheUnit_iTdbb<CcInt>,     //6
     TU_VM_TheUnit_Tiibb<CcString>,
-    TU_VM_TheUnit_iTdbb<CcString>}; //8
+    TU_VM_TheUnit_iTdbb<CcString>,  //8
+    TU_VM_TheUnit_Tiv<CcString>,
+    TU_VM_TheUnit_Tiv<CcInt>,      //10
+    TU_VM_TheUnit_Tiv<CcBool>,
+    TU_VM_TheUnit_rrrbiv,          //12
+    TU_VM_TheUnit_ppiv};
 /*
 5.41.5 Definition of operator ~the\_unit~
 
 */
 Operator temporalunittheupoint( "the_unit",
                             TU_Spec_TheUnit,
-                            9,
+                            14,
                             TU_VMMap_TheUnit,
                             TU_Select_TheUnit,
                             TU_TM_TheUnit);
