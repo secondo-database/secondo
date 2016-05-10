@@ -26173,6 +26173,209 @@ Operator toSVGOp(
 );
 
 
+/*
+
+Operator ~simpleProject~
+
+This operator projects spatial objects using a very simple
+projection method. Its just to test whether it works.
+
+*/
+ListExpr simpleProjectTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("wrong number of arguments (expected one)");
+  }
+  ListExpr a = nl->First(args);   
+
+  if(Point::checkType(a)) {  return a;}
+  if(Points::checkType(a)) {  return a;}
+  if(DLine::checkType(a)) {  return a;}
+
+  return listutils::typeError("unsupprted Type");
+
+
+}
+static double earthradius = 6378137.0;  // eath radius in meters
+static double earthperimeter = 2.0*M_PI*earthradius;
+static double earthfactor = earthperimeter/360;
+
+
+bool isGeo(Rectangle<2>& r){
+  if(r.MinD(0) < -180) return false;
+  if(r.MaxD(0) > 180) return false;
+  if(r.MinD(1) < -90) return false;
+  if(r.MaxD(1) > 90) return false;
+  return true; 
+}
+
+
+void simpleProjectFun( double& x, double& y){
+  x = x * cos((M_PI*y)/180) * earthfactor;
+  y = y * earthfactor;
+}
+
+void simpleProjectFun(Point* a, Point* r){
+  double x = a->GetX();
+  double y = a->GetY();
+  simpleProjectFun(x,y);
+  r->Set(true,x,y);
+}
+
+
+void simpleProjectFun(Points* a, Points* r){
+   Point pa(true,0,0);
+   Point pr(true,0,0);
+   r->StartBulkLoad();
+   for(int i=0;i<a->Size();i++){
+      a->Get(i,pa);
+      simpleProjectFun(&pa,&pr);
+      (*r) += pr;
+   }
+   r->EndBulkLoad(true,false,true);
+}
+
+
+void simpleProjectFun(SimpleSegment* sa, SimpleSegment* sr){
+
+    *sr = *sa;
+     simpleProjectFun(sr->x1,sr->y1);
+     simpleProjectFun(sr->x2,sr->y2);
+}
+
+void simpleProjectFun(DLine* a, DLine* r){
+   SimpleSegment sa; 
+   SimpleSegment sr;
+   for(int i=0;i<a->Size();i++){
+      a->get(i,sa);
+      simpleProjectFun(&sa,&sr);
+      r->append(sr);
+   }
+}
+
+template<class A>
+int simpleProjectVMT(Word* args, Word& result, int message, 
+                    Word& local,Supplier s){
+  A* arg = (A*) args[0].addr;
+  result = qp->ResultStorage(s);
+  A* res = (A*) result.addr;
+  if(!arg->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  } 
+  res->Clear();
+  Rectangle<2> bbox = arg->BoundingBox();
+  if(!bbox.IsDefined()){
+    // original object was empty
+    return 0;
+  } 
+  if(!isGeo(bbox)){
+    res->SetDefined(false);
+    return 0;
+  }
+  simpleProjectFun(arg,res);
+  return 0;
+}
+
+
+ValueMapping simpleProjectVM[] = {
+   simpleProjectVMT<Point>,
+   simpleProjectVMT<Points>,
+   simpleProjectVMT<DLine>
+};
+
+int simpleProjectSelect(ListExpr args){
+   ListExpr a = nl->First(args);
+   if(Point::checkType(a)) return 0;
+   if(Points::checkType(a)) return 1;
+   if(DLine::checkType(a)) return 2;
+   return -1;
+}
+
+OperatorSpec simpleProjectSpec(
+   "SPATIAL -> SPATIAL",
+   "simpleProject(_)",
+   "Performs a simple projection to spatial objects",
+   " query simpleProjection([const point value (7.475 ,51.359444)])"
+);
+
+Operator simpleProject(
+   "simpleProject",
+   simpleProjectSpec.getStr(),
+   3,
+   simpleProjectVM,
+   simpleProjectSelect,
+   simpleProjectTM
+);
+
+
+/*
+Operator  ~todline~
+
+Converts a line or a region value into a dline.
+
+*/
+
+ListExpr todlineTM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+      return listutils::typeError("one argument expected");
+   }
+   if(  !Region::checkType(nl->First(args))
+      &&!Line::checkType(nl->First(args))){
+     return listutils::typeError("line or region expected");
+   }
+   return listutils::basicSymbol<DLine>();
+}
+
+template<class A>
+int todlineVMT(Word* args, Word& result, int message, 
+                    Word& local,Supplier s){
+   A* a = (A*) args[0].addr;
+   result = qp->ResultStorage(s);
+   DLine* res = (DLine*) result.addr;
+   res->clear();
+   if(!a->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   res->SetDefined(true);
+   HalfSegment hs;
+   for(int i=0;i<a->Size();i++){
+        a->Get(i,hs);
+        if(hs.IsLeftDomPoint()){
+            SimpleSegment ss(hs);
+            res->append(ss);
+        }
+   }
+   return 0;
+}
+
+ValueMapping todlineVM[] = {
+    todlineVMT<Line>,
+    todlineVMT<Region>
+};
+
+int todlineSelect(ListExpr args){
+  return Line::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec todlineSpec(
+  "{line,region} -> dline",
+  " _ todline",
+  " converts a line or the boundary of a region into"
+  " a dline value",
+  " query thecenter todline"
+);
+
+Operator todlineOp(
+   "todline",
+   todlineSpec.getStr(),
+   2,
+   todlineVM,
+   todlineSelect,
+   todlineTM
+);
+
+
 
 /*
 11 Creating the Algebra
@@ -26353,7 +26556,8 @@ class SpatialAlgebra : public Algebra
     AddOperator(&twist2Op);
     AddOperator(&twist3Op);
     AddOperator(&toSVGOp);
-
+    AddOperator(&simpleProject);
+    AddOperator(&todlineOp);
   }
   ~SpatialAlgebra() {};
 };

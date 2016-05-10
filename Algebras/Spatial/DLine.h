@@ -232,6 +232,10 @@ class DLine : public StandardSpatialAttribute<2>{
         bbox.SetDefined(false);
      }
 
+     void Clear(){ // renaming for compatibility
+        clear();
+     }
+
      void append(const SimpleSegment& s) {
         if(s.isPoint()){
            return;

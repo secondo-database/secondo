@@ -1277,4 +1277,17 @@ Signature : dline -> FText
 Example   : query toSVG([const dline value ((0 0 10 10))] ) contains "svg"
 Result    : TRUE
 
+Operator  : simpleProject
+Number    : 1
+Signature : SPATIAL -> SPATIAL
+Example   : query simpleProject([const point value (0 0)])
+Result    : (point (0.0 0.0))
+
+Operator  : todline
+Number    : 1
+Signature : {line, region} -> dline
+Example   : query [const line value ((0 0 1 1)(1 2 2 2))] todline
+Result    : (dline ( (0.0 0.0 1.0 1.0) (1.0 2.0 2.0 2.0)))
+
+
 

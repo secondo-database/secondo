@@ -127,6 +127,9 @@ Returns the point's bounding box which is a rectangle with (almost)
 
 */
     inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
+
+    void Clear() {} // for compatibility with other spatial objects
+
 /*
 Sets the value of the point object.
 
