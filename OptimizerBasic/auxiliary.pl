@@ -268,7 +268,22 @@ can be issued as
 in the PROLOG interface via the ~query~ operator. The operators
 ~delete~, ~let~, ~create~, ~open~, and ~update~ work the same way.
 
+Special queries need some preliminary work done before executing.
+In this case a list of query terms is given. The queries get executed
+in the order they appear in the list.
+
+A case for composite queries can be a distributed select containing 
+a predicate with a secondo object. Here the object needs to be 
+shared to all workers.
+
 */
+
+query([]).
+
+query([Query|Tail]) :-
+  query(Query) ,
+  query(Tail),
+  !.
 
 query(Query) :-
   atom(Query),
