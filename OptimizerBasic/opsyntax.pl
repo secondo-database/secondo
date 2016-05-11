@@ -1,6 +1,23 @@
-
-
 /*
+//paragraph [10] title:    [{\Large \bf ]    [}]
+//characters [1] formula:     [$]     [$]
+//[ae] [\"{a}]
+//[oe] [\"{o}]
+//[ue] [\"{u}]
+//[ss] [{\ss}]
+//[Ae] [\"{A}]
+//[Oe] [\"{O}]
+//[Ue] [\"{U}]
+//[**] [$**$]
+//[toc] [\tableofcontents]
+//[=>] [\verb+=>+]
+//[:Section Translation] [\label{sec:translation}]
+//[Section Translation] [Section~\ref{sec:translation}]
+//[:Section 4.1.1] [\label{sec:4.1.1}]
+//[Section 4.1.1] [Section~\ref{sec:4.1.1}]
+//[newpage] [\newpage]
+
+
 1 Operator Syntax
 
 [File ~opsyntax.pl~]
@@ -54,11 +71,47 @@ translated by default.
 
 For all other forms, a plan\_to\_atom rule has to be programmed explicitly.
 
+
+  * postfix, N arguments: corresponds to \_ \# and \_ \_ \#, ...
+
+  * postfixbrackets, N:  $N \geq 1$ arments before the functor, the rest following it
+      within squared brackets, separated by commas:
+        \_ \# [ \_ ], \_ \# [ \_ , \_ ], \_ \# [ \_ , \_ , \_ ] ...
+
+  * prefix, N: $N \geq 0$ arguments following the functor in round parantheses,
+      separated by commas:: \# (\_, \_)
+
+----     Quick Reference:
+
+         OperatorSyntax         |    Use: OperatorType, NoArgs
+         -----------------------+-----------------------------
+         # ()                   |    prefix, 0
+         # ( _ )                |    prefix, 1
+         # ( _, _ )             |    prefix, 2
+         # (  _, _, _, ...)     |    prefix, n ( n>=1 )
+         _ #                    |    postfix, 1
+         _ # _                  |    infix, 2
+         _ # [ _ ]              |    postfixbrackets, 1
+         _ # [ _, _ ]           |    postfixbrackets, 1
+         _ # [ _, _, ... ]      |    postfixbrackets, 1
+         _ _ #                  |    postfix, 2
+         _ _ # [ _ ]            |    postfixbrackets, 2
+         _ _ # [ _, _ ]         |    postfixbrackets, 2
+         _ _ # [ _, _, ... ]    |    postfixbrackets, 2
+         _ _ _ #                |    postfix, 3
+         _ _ _ # [ _ ]          |    postfixbrackets, 3
+         _ _ _ # [ _, _ ]       |    postfixbrackets, 3
+         _ _ _ # [ _, _, ... ]  |    postfixbrackets, 3
+        any using list          |    special, _
+        any using funlist       |    special, _
+        all others,             |    special, _
+----
+
 */
 
 
-secondoOp(distance, prefix, 2).
 
+secondoOp(distance, prefix, 2).
 
 secondoOp(feed, postfix, 1).
 secondoOp(consume, postfix, 1).
@@ -67,6 +120,7 @@ secondoOp(product, postfix, 2).
 secondoOp(filter, postfixbrackets, 2).
 secondoOp(loopjoin, postfixbrackets, 2).
 secondoOp(exactmatch, postfixbrackets, 3).
+
 secondoOp(leftrange, postfixbrackets, 3).
 secondoOp(rightrange, postfixbrackets, 3).
 secondoOp(extend, postfixbrackets, 2).
@@ -80,21 +134,11 @@ secondoOp(max, postfixbrackets, 2).
 secondoOp(avg, postfixbrackets, 2).
 secondoOp(tuplesize, postfix, 1).
 
+% fapra 2015/16 distributed queries
 
- 
+secondoOp(Op, Syntax, NoArgs) :-
+  secondoOpD(Op, Syntax, NoArgs).
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+% end fapra 2015/16
 
 
