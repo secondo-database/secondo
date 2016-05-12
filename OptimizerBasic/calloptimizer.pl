@@ -25,4 +25,4 @@ The optimizer is started by loading this file.
   [searchtree],
   [auxiliary],
   [distributed],
-  [testcases].
+  [testcasesDistributed].
