@@ -17,9 +17,12 @@ The optimizer is started by loading this file.
   assert(highNode(0)),
   assert(boundarySize(0)),
   assert(boundaryMaxSize(0)),
-  [optimizer],
+  [optimizerNewProperties],
   [database],
   [statistics],
   [operators],
   [boundary],
-  [searchtree].
+  [searchtree],
+  [auxiliary],
+  [distributed],
+  [testcases].
