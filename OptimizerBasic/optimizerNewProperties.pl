@@ -987,7 +987,8 @@ plan_to_atom(a(X, _, _), X2) :-
 % predicate variants like plan_to_atomD defined in distributed.pl
 
 plan_to_atom(Plan, Atom) :-
-  plan_to_atomD(Plan, Atom).
+  plan_to_atomD(Plan, Atom),
+  !.
 
 % end fapra 2015/16
 
