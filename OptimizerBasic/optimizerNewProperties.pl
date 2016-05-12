@@ -497,9 +497,9 @@ writeEdgeList([edge(Source, Target, Term, _, _, _) | Edges]) :-
 4.1 Storing and Deleting Nodes and Edges
 
 ----    storeNodes(NodeList).
-    storeEdges(EdgeList).
-    deleteNodes.
-    deleteEdges.
+    	storeEdges(EdgeList).
+    	deleteNodes.
+    	deleteEdges.
 ----
 
 Just as the names say. Store a list of nodes or edges, repectively, as facts; 
@@ -713,13 +713,13 @@ In the target language, we use the following operators:
     	exactmatch:    btree(Tuple, AttrType) x rel(Tuple) x AttrType
                 -> stream(Tuple)
 
-    extend:        stream(Tuple1) x (Newname x (Tuple -> Attrtype))+
+	extend:        stream(Tuple1) x (Newname x (Tuple -> Attrtype))+
                 -> stream(Tuple2)
 
                 where     Tuple2 is Tuple1 to which pairs
                     (Newname, Attrtype) have been appended
 
-    remove:        stream(Tuple1) x Attrname+ -> stream(Tuple2)
+	remove:        stream(Tuple1) x Attrname+ -> stream(Tuple2)
 
                 where    Tuple2 is Tuple1 from which the mentioned
                     attributes have been removed.
@@ -779,7 +779,7 @@ upper(Lower, Upper) :-
   atom_codes(Upper, UpperList).
 
 wp(Plan) :-
-  plan_to_atom(Plan, PlanAtom),
+  plan_to_atom_string(Plan, PlanAtom),
   write(PlanAtom).
 
 /*
@@ -839,7 +839,8 @@ plan_to_atom(res(N), Result) :-
 plan_to_atom(Term, Result) :-
     is_list(Term), Term = [First | _], atomic(First), !,
     atom_codes(TermRes, Term),
-    concat_atom(['"', TermRes, '"'], '', Result).
+    normalize_space(atom(Out),TermRes),
+    concat_atom(['"', Out, '"'], '', Result).
 
 /*
 Lists:
@@ -946,6 +947,10 @@ plan_to_atom(attribute(X, Y), Result) :-
   concat_atom(['attr(', XAtom, ', ', YAtom, ')'], '', Result),
   !.
 
+plan_to_atom(increment(X), Result) :-
+  plan_to_atom(X, XAtom),
+  concat_atom([XAtom, '++'], '', Result),
+  !.
 
 
 /*
@@ -976,6 +981,15 @@ plan_to_atom(a(A:B, _, _), Result) :-
 plan_to_atom(a(X, _, _), X2) :-
   upper(X, X2),
   !.
+
+
+% fapra 2015/16 distributed queries
+% predicate variants like plan_to_atomD defined in distributed.pl
+
+plan_to_atom(Plan, Atom) :-
+  plan_to_atomD(Plan, Atom).
+
+% end fapra 2015/16
 
 
 /*
@@ -1042,6 +1056,131 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg2, Res2),
   concat_atom([Op, '(', Res1, ',', Res2, ') '], '', Result),
     !.
+
+
+/*
+Additional plan\_to\_atom rules to map Distributed2-operators. Of general interest.
+
+*/
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 1),
+  secondoOp(Op, prefix, 1),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  concat_atom([Op, '(', Res1, ') '], '', Result),
+    !.
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 4),
+  secondoOp(Op, prefix, 4),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  arg(3, Term, Arg3),
+  plan_to_atom(Arg3, Res3),
+  arg(4, Term, Arg4),
+  plan_to_atom(Arg4, Res4),
+  concat_atom([Op, '(', Res1, ',', Res2, ', ', Res3, 
+  ', ', Res4, ') '], '', Result),
+    !.
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 4),
+  secondoOp(Op, postfixbrackets, 4),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  arg(3, Term, Arg3),
+  plan_to_atom(Arg3, Res3),
+  arg(4, Term, Arg4),
+  plan_to_atom(Arg4, Res4),
+  concat_atom([Res1, ' ', Res2, ' ', Op, '[', Res3, ', ', 
+    Res4, ']'], ''  , Result),
+  !.
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 3),
+  secondoOp(Op, postfixbrackets2, 3),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  arg(3, Term, Arg3),
+  plan_to_atom(Arg3, Res3),
+  concat_atom([Res1, ' ', Op, '[', Res2, ', ', Res3, '] '], '', Result),
+  !.
+  
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 4),
+  secondoOp(Op, postfixbrackets3, 4),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  arg(3, Term, Arg3),
+  plan_to_atom(Arg3, Res3),
+  arg(4, Term, Arg4),
+  plan_to_atom(Arg4, Res4),
+  concat_atom([Res1, ' ', Op, '[', Res2, ', ', Res3,', ',
+               Res4, '] '], '', Result),
+  !.
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 5),
+  secondoOp(Op, postfixbrackets3, 5),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  arg(3, Term, Arg3),
+  plan_to_atom(Arg3, Res3),
+  arg(4, Term, Arg4),
+  plan_to_atom(Arg4, Res4),
+  arg(5, Term, Arg5),
+  plan_to_atom(Arg5, Res5),
+  concat_atom([Res1, ' ', Res2, ' ', Op, '[', Res3, ', ',
+   Res4,', ',Res5, '] '], '', Result),
+  !.
+  
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 5),
+  secondoOp(Op, postfixbrackets4, 5),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  arg(3, Term, Arg3),
+  plan_to_atom(Arg3, Res3),
+  arg(4, Term, Arg4),
+  plan_to_atom(Arg4, Res4),
+  arg(5, Term, Arg5),
+  plan_to_atom(Arg5, Res5),
+  concat_atom([Res1, ' ', Op, '[', Res2, ', ', Res3, ', ', 
+   Res4,', ',Res5, '] '], '', Result),
+  !.
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 6),
+  secondoOp(Op, postfixbrackets5, 6),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  arg(3, Term, Arg3),
+  plan_to_atom(Arg3, Res3),
+  arg(4, Term, Arg4),
+  plan_to_atom(Arg4, Res4),
+  arg(5, Term, Arg5),
+  plan_to_atom(Arg5, Res5),
+  arg(6, Term, Arg6),
+  plan_to_atom(Arg6, Res6),
+  concat_atom([Res1, ' ', Op, '[', Res2, ', ', Res3, ', ', Res4,', ',
+   Res5,', ',Res6, '] '], '', Result),
+  !.
+
 
 
 /*
@@ -1144,11 +1283,22 @@ res(N) => [res(N), none].
 % arg(N) => rename(feed(rel(Name, Var, Case)), Var) :-
 %   argument(N, rel(Name, Var, Case)).
 
-
-
-
 [res(N), P] => [res(N), P].
 
+
+% fapra 2015/16 distributed
+
+:-op(900, xfx, translatesD).	% translatesD used in place of =>
+                                % in distributed translation.
+                                % Used in file distributed.pl
+
+% Translate into distributed argument
+arg(N) => [Plan, Properties] :-
+  isDistributedQuery,
+  !,
+  distributedarg(N) translatesD [Plan, Properties].
+
+% end fapra 2015/16 distributed queries
 
 
 arg(N) => [feed(rel(Name, *, Case)), [order(X)]] :-
@@ -1165,6 +1315,16 @@ arg(N) => [rename(feed(rel(Name, Var, Case)), Var), [order(Var:X)]] :-
 5.2.2 Translation of Selections
 
 */
+
+% fapra 2015/16 distributed queries
+
+% Translate selection into distributed selection.
+select(Arg, Y) => X :-
+  isDistributedQuery,
+  !, /* Operand is distributed. Do not translate into local selection. */
+  distributedselect(Arg, Y) translatesD X.
+
+% end fapra 2015/16
 
 % select(Arg, pr(Pred, _)) => filter(ArgS, Pred) :-
 %   Arg => ArgS.
@@ -1255,6 +1415,28 @@ A join can always be translated to filtering the Cartesian product.
 
 */
 
+% fapra 2015/16 distributed queries
+
+% we have two variants of joins in place, see if the first one can
+% handle. If yes, cut and use its result.
+join(Arg1, Arg2, Pred) => SecondoPlan:-
+  isDistributedQuery, 
+  distributedjoin(Arg1, Arg2, Pred) translatesD _, !,
+  distributedjoin(Arg1, Arg2, Pred) translatesD SecondoPlan.
+
+join(Arg1, Arg2, Pred) => SecondoPlan:-
+  isDistributedQuery, !,
+  Arg1 = arg(N1),
+  Arg2 = arg(N2),
+  not(N1=N2),
+  Arg1 => [ObjName1, _],
+  Arg2 => [ObjName2, _],
+  distributedRels(_, ObjName1, _, _, _),
+  distributedRels(_, ObjName2, _, _, _),
+  distributedjoin(ObjName1, ObjName2, Pred) translatesD SecondoPlan.
+
+% end fapra 2015/16
+
 join(Arg1, Arg2, pr(Pred, _, _)) => [filter(product(Arg1S, Arg2S), Pred), P1] :-
   Arg1 => [Arg1S, P1],
   Arg2 => [Arg2S, _].
@@ -1308,16 +1490,16 @@ second argument by a new attribute containing the value of the expression. For
 example, the query
 
 ----    select *
-    from plz as p1, plz as p2
-    where p1.PLZ = p2.PLZ + 1
+    	from plz as p1, plz as p2
+    	where p1.PLZ = p2.PLZ + 1
 ----
 
 can be translated to
 
 ----    plz feed {p1} plz feed {p2} extend[newPLZ: PLZ_p2 + 1]
-    hashjoin[PLZ_p1, newPLZ, 997]
-    remove[newPLZ]
-    consume
+    	hashjoin[PLZ_p1, newPLZ, 997]
+    	remove[newPLZ]
+    	consume
 ----
 
 This technique is built into the optimizer as follows. We first define the four
@@ -1393,12 +1575,6 @@ join00([Arg1S, _], [Arg2S, _], pr(X = Y, _, _)) => [hashjoin(Arg2S, Arg1S,
     attrname(Attr2), attrname(Attr1), 999997), [none]]   :-
   isOfFirst(Attr1, X, Y), 
   isOfSecond(Attr2, X, Y).
-
-
-
-
-
- 
 
 /*
 
@@ -1516,9 +1692,22 @@ writePlanEdge :-
   pe(N), retract(pe(_)), N1 is N + 1, assert(pe(N1)),  % count edges
   fail.
 
+
+writePlanEdgesProp :-
+  planEdge(Source, Target, _, Plan, Prop, Result),
+  write('Source: '), write(Source), nl,
+  write('Target: '), write(Target), nl,
+  write('Plan: '), wp(Plan), nl,
+  write(Prop), nl,
+  % write(Plan), nl,
+  write('Result: '), write(Result), nl, nl,
+  pe(N), retract(pe(_)), N1 is N + 1, assert(pe(N1)),  % count edges
+  fail.
+
 writePlanEdges :- 
   assert(pe(0)), 
   not(writePlanEdge),
+  not(writePlanEdgesProp),
   pe(N),
   write('The total number of plan edges is '), write(N), write('.'), nl.
 
@@ -1530,7 +1719,7 @@ wpe :- writePlanEdges.
 7 Assigning Sizes and Selectivities to the Nodes and Edges of the POG
 
 ----    assignSizes.
-    deleteSizes.
+    	deleteSizes.
 ----
 
 Assign sizes (numbers of tuples) to all nodes in the pog, based on the
@@ -1648,6 +1837,16 @@ operator of this kind occurs within the term.
 
 */
 
+% fapra 2015/16 distributed queries
+
+cost(Obj, Sel, Size, Cost) :-
+  distributedRels(Rel, Obj, _, DistType, _, _),
+  not(DistType = share),
+  cost(Rel, Sel, Size, Cost).
+
+% end fapra 2015/16
+  
+
 cost(rel(Rel, _, _), _, Size, 0) :-
   card(Rel, Size).
 
@@ -1674,6 +1873,21 @@ cost(consume(X), Sel, S, C) :-
   cost(X, Sel, S, C1),
   consumeTC(A),
   C is C1 + A * S.
+
+% fapra 2015/16 distributed queries
+
+cost(filter(X, Pred), _, S, C) :-
+  % This is a special case for spatially distributed relations
+  % we cannot determine the selectivity for the predicate because
+  % it does not exist as a local relation on the master.
+  % We assume very little overlap in the spatial distribution.
+  Pred=attr(original, l, u), !,
+  cost(X, 1, SizeX, CostX),
+  filterTC(A),
+  S is SizeX * 0.9,
+  C is CostX + A * SizeX.
+
+% end fapra 2015/16
 
 cost(filter(X, _), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
@@ -1802,6 +2016,15 @@ cost(rename(X, _), Sel, S, C) :-
   cost(X, Sel, S, C1),
   renameTC(A),
   C is C1 + A * S.
+
+
+% fapra 2015/16 distributed queries
+
+cost(Term, Sel, S, C) :-
+  costD(Term, Sel, S, C).
+
+% end fapra 2015/16
+
 
 
 /*
@@ -2202,19 +2425,6 @@ otherProperties(Props1, Props2) :-
   not(included(Props1, Props2)).
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-  
 /* 
 
 9.2 Interface ~Boundary~
@@ -2266,6 +2476,20 @@ Returns the boundary, where the node with name ~Name~ is deleted.
 The plan corresponding to ~Path~ is ~Plan~.
 
 */
+
+% fapra 15/16 distributed queries
+
+plan(Path, Plan) :-
+  isDistributedQuery,
+  !,
+  deleteNodePlans,
+  mergePlanEdges(Path, MergedPath),
+  traversePath(MergedPath),
+  highNode(N),
+  nodePlan(N, Plan).
+
+% end fapra 15/16
+
 plan(Path, Plan) :-
   deleteNodePlans,
   traversePath(Path),
@@ -2337,17 +2561,17 @@ bestPlan(Plan, Cost) :-
 It is now time to test efficiency with a larger example. We consider the query:
 
 ----    select *
-    from Staedte, plz as p1, plz as p2, plz as p3,
-    where SName = p1.Ort
-      and p1.PLZ = p2.PLZ + 1
-      and p2.PLZ = p3.PLZ * 5
-      and Bev > 300000
-      and Bev < 500000
-      and p2.PLZ > 50000
-       and p2.PLZ < 60000
-      and Kennzeichen starts "W"
-      and p3.Ort contains "burg"
-      and p3.Ort starts "M"
+    	from Staedte, plz as p1, plz as p2, plz as p3,
+    	where SName = p1.Ort
+      	  and p1.PLZ = p2.PLZ + 1
+          and p2.PLZ = p3.PLZ * 5
+          and Bev > 300000
+          and Bev < 500000
+          and p2.PLZ > 50000
+          and p2.PLZ < 60000
+          and Kennzeichen starts "W"
+          and p3.Ort contains "burg"
+          and p3.Ort starts "M"
 ----
 
 This translates to:
@@ -2448,30 +2672,30 @@ similar to SQL, but suitable for being written directly in PROLOG.
 The basic select-from-where statement will be written as
 
 ----    select <attr-list>
-    from <rel-list>
-    where <pred-list>
+    	from <rel-list>
+    	where <pred-list>
 ----
 
 The first example query from [Section 4.1.1] can then be written as:
 
 ----    select [sname, bev]
-    from [staedte]
-    where [bev > 500000]
+    	from [staedte]
+    	where [bev > 500000]
 ----
 
 Instead of lists consisting of a single element we will also support writing
 just the element, hence the query can also be written:
 
 ----    select [sname, bev]
-    from staedte
-    where bev > 500000
+    	from staedte
+    	where bev > 500000
 ----
 
 The second query can be written as:
 
 ----    select *
-    from [staedte as s, plz as p]
-    where [sname = p:ort, p:plz > 40000]
+    	from [staedte as s, plz as p]
+    	where [sname = p:ort, p:plz > 40000]
 ----
 
 Note that all relation names and attribute names are written just in lower
@@ -2482,44 +2706,42 @@ Furthermore, it will be possible to add a groupby- and an orderby-clause:
   * groupby
 
 ----    select <aggr-list>
-    from <rel-list>
-    where <pred-list>
-    groupby <group-attr-list>
+    	from <rel-list>
+    	where <pred-list>
+    	groupby <group-attr-list>
 ----
 
 Example:
 
-----    
-    select [ort, min(plz) as minplz, max(plz) as maxplz,  count(*) as cntplz]
-    from plz
-    where plz > 40000
-    groupby ort
+---- 	select [ort, min(plz) as minplz, max(plz) as maxplz,  count(*) as cntplz]
+    	from plz
+    	where plz > 40000
+    	groupby ort
 ----
 
   * orderby
 
 ----    select <attr-list>
-    from <rel-list>
-    where <pred-list>
-    orderby <order-attr-list>
+    	from <rel-list>
+    	where <pred-list>
+    	orderby <order-attr-list>
 ----
 
 Example:
 
 ----    select [ort, plz]
-    from plz
-    orderby [ort asc, plz desc]
+    	from plz
+    	orderby [ort asc, plz desc]
 ----
 
 This example also shows that the where-clause may be omitted. It is also
 possible to combine grouping and ordering:
 
-----    
-    select [ort, min(plz) as minplz, max(plz) as maxplz,  count(*) as cntplz]
-    from plz
-    where plz > 40000
-    groupby ort
-    orderby cntplz desc
+----	select [ort, min(plz) as minplz, max(plz) as maxplz,  count(*) as cntplz]
+    	from plz
+    	where plz > 40000
+    	groupby ort
+    	orderby cntplz desc
 ----
 
 Currently only a basic part of this language has been implemented.
@@ -2559,13 +2781,13 @@ That this works, can be tested with:
 The result is:
 
 ----    P = select s:sname from staedte as s where s:bev>500000
-    X = select s:sname
-    Y = staedte as s where s:bev>500000
-    AttrList = s:sname
-    RelList = staedte as s
-    PredList = s:bev>500000
-    Rel = staedte
-    Var = s
+    	X = select s:sname
+    	Y = staedte as s where s:bev>500000
+    	AttrList = s:sname
+    	RelList = staedte as s
+    	PredList = s:bev>500000
+    	Rel = staedte
+    	Var = s
 ----
 
 11.3 Schema Lookup
@@ -2580,15 +2802,15 @@ In the file ~database~ we maintain the following tables.
 Relation schemas are written as:
 
 ----    relation(staedte, [sname, bev, plz, vorwahl, kennzeichen]).
-    relation(plz, [plz, ort]).
+    	relation(plz, [plz, ort]).
 ----
 
 The spelling of relation or attribute names is given in a table
 
 ----    spelling(staedte:plz, pLZ).
-    spelling(staedte:sname, sName).
-    spelling(plz, lc(plz)).
-    spelling(plz:plz, pLZ).
+    	spelling(staedte:sname, sName).
+    	spelling(plz, lc(plz)).
+    	spelling(plz:plz, pLZ).
 ----
 
 The default assumption is that the first letter of a name is upper case and all
@@ -2604,14 +2826,28 @@ callLookup(Query, Query2) :-
   newQuery,
   lookup(Query, Query2), !.
 
+% fapra 2015/16 distributed queries
+
+/*
+Added clearIsDistributedQuery
+
+*/
+
 newQuery :- not(clearVariables), not(clearQueryRelations), 
-  not(clearQueryAttributes).
+  not(clearQueryAttributes), not(clearIsDistributedQuery),
+  not(clearIsLocalQuery).
 
 clearVariables :- retract(variable(_, _)), fail.
 
 clearQueryRelations :- retract(queryRel(_, _)), fail.
 
 clearQueryAttributes :- retract(queryAttr(_)), fail.
+
+clearIsDistributedQuery :- retract(isDistributedQuery), fail.
+
+clearIsLocalQuery :- retract(isLocalQuery), fail.
+
+% end fapra 2015/16
 
 /*
 
@@ -2626,6 +2862,7 @@ attribute names have the form as required in [Section Translation].
 lookup(select Attrs from Rels where Preds,
     select Attrs2 from Rels2List where Preds2List) :-
   lookupRels(Rels, Rels2),
+  checkDistributedQuery,		% fapra 2015/16
   lookupAttrs(Attrs, Attrs2),
   lookupPreds(Preds, Preds2),
   makeList(Rels2, Rels2List),
@@ -2634,6 +2871,7 @@ lookup(select Attrs from Rels where Preds,
 lookup(select Attrs from Rels,
     select Attrs2 from Rels2) :-
   lookupRels(Rels, Rels2),
+  checkDistributedQuery,		% fapra 2015/16
   lookupAttrs(Attrs, Attrs2).
 
 lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
@@ -2688,16 +2926,18 @@ Translate and store a single relation definition.
   queryAttr/1.
 
 lookupRel(Rel as Var, rel(Rel2, Var, Case)) :-
-  relation(Rel, _), !,
-  spelled(Rel, Rel2, Case),
+  removeDistributedSuffix(Rel,DRel),		% fapra 2015/16
+  relation(DRel, _), !,
+  spelled(DRel, Rel2, Case),
   not(defined(Var)),
   assert(variable(Var, rel(Rel2, Var, Case))).
 
 lookupRel(Rel, rel(Rel2, *, Case)) :-
-  relation(Rel, _), !,
-  spelled(Rel, Rel2, Case),
+  removeDistributedSuffix(Rel,DRel),		% fapra 2015/16
+  relation(DRel, _), !,
+  spelled(DRel, Rel2, Case),
   not(duplicateAttrs(Rel)),
-  assert(queryRel(Rel, rel(Rel2, *, Case))).
+  assert(queryRel(DRel, rel(Rel2, *, Case))).	% fapra 2015/16
 
 lookupRel(Term, Term) :-
   write('Error in query: relation '), write(Term), write(' not known'),
@@ -2886,6 +3126,27 @@ lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
 
 % may need to be extended to operators with more than three arguments.
 
+% fapra 2015/16 distributed queries
+
+/*
+Lookup generic, non-relation objects. 
+
+If ~Term~ is a secondo object, so mark it with the the functor 
+ ~obj(Term, Type, Case)~, where ~Term~ is the identifier starting with
+ a lower case character and ~Type~ the kind of object. ~Case~ indicates if the 
+ object name's first letter is written with a capital letter or not (u,l).
+
+*/
+
+lookupPred1(Term, ObjTerm, N, Rels, N, Rels) :-
+  atom(Term), 
+  not(is_list(Term)),
+  spelledObj(Term,Obj,Type,Case),
+  ObjTerm = obj(Obj,Type,Case),
+  !.
+
+% end fapra 2015/16
+
 lookupPred1(Term, Term, N, Rels, N, Rels) :-
   atom(Term),
   not(is_list(Term)),
@@ -2927,8 +3188,28 @@ spelled(Rel, Rel2, u) :-
   downcase_atom(Rel, DCRel),
   spelling(DCRel, Rel2), !.
  
-spelled(_, _, _) :- !, fail.  % no rel entry in spelling table.
+% fapra 2015/16
 
+% if we do not get a spelling hint,
+% assume it was spelled correctly
+
+spelled(Rel, Rel, u) :-
+  atom_chars(Rel, [FirstChar|_]),
+  char_type(FirstChar, upper),
+  write('spelling of '), 
+  write(Rel),
+  write(' could not be determined. Assume it is spelled uppercase'), !.
+
+spelled(Rel, Rel, l) :-
+  atom_chars(Rel, [FirstChar|_]),
+  char_type(FirstChar, lower), 
+  write('spelling of '), 
+  write(Rel),
+  write(' could not be determined. Assume it is spelled uppercase'), !.
+
+% end fapra 2015/16
+
+spelled(_, _, _) :- !, fail.  % no rel entry in spelling table.
 
 
 /*
@@ -2999,17 +3280,33 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   bestPlan(Stream, Cost),
   !.
 
+
+% fapra 2015/16 distributed queries
+
 translate(Select from Rel, feed(Rel), Select, 0) :-
+  not(isDistributedQuery),
+  not(is_list(Rel)),
+  !.
+  
+translate(Select from Rel, ObjName,Select, 0) :-
+  isDistributedQuery,
+  distributedRels(Rel, ObjName, _, _, _), 
+  not(is_list(Rel)),
+  !.  
+  
+translate(Select from Rel, dist(Rel,ObjName),Select, 0) :-
+  isDistributedQuery,
+  distributedRels(Rel, ObjName, _, _, _), 
   not(is_list(Rel)),
   !.
 
 translate(Select from [Rel], feed(Rel), Select, 0).
 
 translate(Select from [Rel | Rels], product(feed(Rel), Stream), Select, 0) :-
+  not(isDistributedQuery),
   translate(Select from Rels, Stream, Select, _).
 
-
-
+% end fapra 2015/16
 
 /*
 ----    translateFields(Select, GroupAttrs, Fields, Select2) :-
@@ -3098,17 +3395,43 @@ Translate the ~Query~ into a ~Plan~. The ~Cost~ for evaluating the conjunctive
 query is also returned. The ~Query~ must be such that relation and attribute
 names have been looked up already.
 
+% fapra 15/16 distributed queries:
+
+We have a duplicate of each non-distributed clause which treats the distributed case. These clauses are guarded with an ~isDistributedQuery~ goal.
+
 */
+
+queryToPlan(Query, consume(dsummarize(Stream)), Cost) :-
+  selectClause(Query, *),
+  isDistributedQuery,
+  !,
+  translate(Query, Stream, select *, Cost).
 
 queryToPlan(Query, consume(Stream), Cost) :-
   selectClause(Query, *),
   !,
   translate(Query, Stream, select *, Cost).
 
+queryToPlan(Query, count(dsummarize(Stream)), Cost) :-
+  selectClause(Query, count(*)),
+  isDistributedQuery,
+  !,
+  translate(Query, Stream, select count(*), Cost).
+
 queryToPlan(Query, count(Stream), Cost) :-
   selectClause(Query, count(*)),
   !,
   translate(Query, Stream, select count(*), Cost).
+
+%TF: changed to execute projection in dmap operator
+queryToPlan(Query, consume(dsummarize(dmap(Stream," ", 
+  project(Plan,AttrNames)))), Cost) :-
+  isDistributedQuery,
+  !,
+  translate(Query, dist(rel(_,Var,_),Stream), select Attrs, Cost), !,
+  feedRenameRelation(rel(dot,Var,_),Plan),
+  makeList(Attrs, Attrs2),
+  attrnames(Attrs2, AttrNames).
 
 queryToPlan(Query, consume(project(Stream, AttrNames)), Cost) :-
   translate(Query, Stream, select Attrs, Cost), !,
@@ -3214,7 +3537,8 @@ Optimize ~Query~ and print the best ~Plan~.
 optimize(Query) :-
   callLookup(Query, Query2),
   queryToPlan(Query2, Plan, Cost),
-  plan_to_atom(Plan, SecondoQuery),
+  writeln(Plan),
+  plan_to_atom_string(Plan, SecondoQuery),	%f apra 2015/16
   write('The plan is: '), nl, nl,
   write(SecondoQuery), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl.
@@ -3223,7 +3547,7 @@ optimize(Query) :-
 optimize(Query, QueryOut, CostOut) :-
   callLookup(Query, Query2),
   queryToPlan(Query2, Plan, CostOut),
-  plan_to_atom(Plan, QueryOut).
+  plan_to_atom_string(Plan, QueryOut).		% fapra 2015/16
 
 /*
 ----    sqlToPlan(QueryText, Plan)
@@ -3521,11 +3845,11 @@ returning a stream.
 streamOptimize(Term, Query, Cost) :-
   callLookup(Term, Term2),
   queryToStream(Term2, Plan, Cost),
-  plan_to_atom(Plan,  Query).
+  plan_to_atom_string(Plan,  Query).		%fapra 2015/16
 
 /*
 ----    mOptimize(Term, Query, Cost) :-
-    mStreamOptimize(union [Term], Query, Cost) :-
+    	mStreamOptimize(union [Term], Query, Cost) :-
 ----
 
 Means ``multi-optimize''. Optimize a ~Term~ possibly consisting of several 
@@ -3581,14 +3905,14 @@ Some auxiliary stuff.
 
 bestPlanCount :-
   bestPlan(P, _),
-  plan_to_atom(P, S),
+  plan_to_atom_string(P, S),		% fapra 2015716
   atom_concat(S, ' count', Q),
   nl, write(Q), nl,
   query(Q).
 
 bestPlanConsume :-
   bestPlan(P, _),
-  plan_to_atom(P, S),
+  plan_to_atom_string(P, S),		% fapra 2015/16
   atom_concat(S, ' consume', Q),
   nl, write(Q), nl,
   query(Q).
