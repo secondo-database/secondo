@@ -135,10 +135,11 @@ SecondoPLMode(TTYParameter& tp)
 #ifndef SECONDO_WIN32
   string histfile=".secondopl_history";
   PL_install_readline();
-  term_t ah = PL_new_term_refs(1);
-  static predicate_t prh = PL_predicate("rl_read_history",1,"");
-  PL_put_atom_chars(ah,histfile.c_str());
-  PL_call_predicate(NULL, PL_Q_CATCH_EXCEPTION, prh, ah);
+  
+  // term_t ah = PL_new_term_refs(1);
+  // static predicate_t prh = PL_predicate("rl_read_history",1,"");
+  // PL_put_atom_chars(ah,histfile.c_str());
+  // PL_call_predicate(NULL, PL_Q_CATCH_EXCEPTION, prh, ah);
 #endif
 
   return PL_toplevel();
