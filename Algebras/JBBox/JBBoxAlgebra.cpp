@@ -113,7 +113,6 @@ the Initialize() function.
 
 */
 
-using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -126,6 +125,7 @@ using namespace std;
 #include <JVMInit.h>
 #include "Symbols.h"
 
+using namespace std;
 namespace jbbox {
 
 
@@ -199,7 +199,8 @@ class JPoint: public Attribute{
       size_t Sizeof() const;
       // will be invoked if the Java object must
       // be reconstructed from a FLOB
-      void Initialize();
+      void Initialize(SmiFileId fileId,
+                      TupleId tupleId, int attrno);
       jobject GetObject() const;
       // the function for the algebra operator
       bool Equals(JPoint* P);
@@ -242,7 +243,8 @@ class JBox: public Attribute{
       size_t Sizeof() const;
       // will be invoked if the Java object must be
       // reconstructed from a FLOB
-      void Initialize();
+      void Initialize(SmiFileId fileId,
+                      TupleId tupleId, int attrno);
       jobject GetObject() const;
       // the functions for the algebra operators
       bool Equals(const JBox* P) const;
@@ -527,7 +529,8 @@ This means, the contained FLOB is created but the pointer structure
 for the Java object must be created from this FLOB.
 
 */
-void JPoint::Initialize(){
+void JPoint::Initialize(SmiFileId fileId,
+                      TupleId tupleId, int attrno){
   RestoreJavaObjectFromFLOB();
 }
 
@@ -856,7 +859,8 @@ This means, the contained FLOB is created and the pointer structure
 for the Java object must be created from this FLOB.
 
 */
-void JBox::Initialize(){
+void JBox::Initialize(SmiFileId fileId,
+                      TupleId tupleId, int attrno){
   RestoreJavaObjectFromFLOB();
 }
 

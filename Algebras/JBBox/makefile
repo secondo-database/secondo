@@ -31,7 +31,7 @@ include ../../makefile.env
 
 MODNAME = JBBoxAlgebra
 
-CCFLAGS = $(DEFAULTCCFLAGS) $(JNIINCLUDE) $(LDFLAGS)
+CCFLAGS = $(DEFAULTCCFLAGS) $(JNIINCLUDE)
 
 .PHONY: all
 all: alljava allcpp

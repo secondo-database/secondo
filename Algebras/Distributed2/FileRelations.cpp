@@ -201,7 +201,7 @@ Tuple* ffeed5Info::next(){
     return 0;
   }
   Tuple* res = new Tuple(tt);
-  res->ReadFromBin(buffer );
+  res->ReadFromBin(0, buffer );
   res->SetTupleId(id);
   delete[] buffer;
   return res;

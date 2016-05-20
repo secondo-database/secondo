@@ -81,6 +81,7 @@ class OrderedRelationIterator : public GenericRelationIterator {
     bool endOfScan;
     TupleType* tupleType;
     TupleType* outtype;
+    SmiFileId fileId;
     SmiFileId lobFileId;
     CompositeKey key;
     TupleId appendix;
@@ -208,6 +209,11 @@ class OrderedRelation : public GenericRelation {
      }
 
     std::ostream& Print(std::ostream& os) const;
+
+     inline SmiFileId GetFileId() const{
+       return tupleFile->GetFileId();
+     }
+
   private:
     OrderedRelation();
     SmiBtreeFile* tupleFile;

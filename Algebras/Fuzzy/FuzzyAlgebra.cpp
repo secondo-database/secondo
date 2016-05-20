@@ -54,7 +54,6 @@ previous versions.
 1.1 Includes
 
 */
-using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -75,6 +74,7 @@ static JavaVM *jvm;
 static jclass PointCls;
 static jclass SimplePointCls;
 
+using namespace std;
 /*
 1.2 Error Function.
 
@@ -119,7 +119,8 @@ public:
    int NumOfFLOBs() const;
    Flob *GetFLOB(const int i);
    size_t Sizeof() const;
-   void Initialize();
+   void Initialize(SmiFileId fileId, 
+                  TupleId tupleId, int attrno);
    jobject GetObject() const;
     // the methods for operators
    CcFPoint* Add(CcFPoint* P);
@@ -176,7 +177,8 @@ class CcFLine : public Attribute{
      int NumOfFLOBs() const;
      Flob *GetFLOB(const int i);
      size_t Sizeof() const;
-     void Initialize();
+     void Initialize(SmiFileId fileId, 
+                  TupleId tupleId, int attrno);
      jobject GetObject() const;
      ListExpr toListExpr() const;
      // functions for operators
@@ -236,7 +238,8 @@ public:
    int NumOfFLOBs() const;
    Flob *GetFLOB(const int i);
    size_t Sizeof() const;
-   void Initialize();
+   void Initialize(SmiFileId fileId, 
+                  TupleId tupleId, int attrno);
    jobject GetObject() const;
    ListExpr toListExpr() const;
 
@@ -506,7 +509,8 @@ size_t CcFPoint::Sizeof() const{
 ~Initialize~
 
 */
-void CcFPoint::Initialize() {
+void CcFPoint::Initialize(SmiFileId fileId, 
+                  TupleId tupleId, int attrno) {
   RestoreJavaObjectFromFLOB();
 }
 
@@ -883,7 +887,8 @@ size_t CcFLine::Sizeof() const{
   return sizeof(*this);
 }
 
-void CcFLine::Initialize(){
+void CcFLine::Initialize(SmiFileId fileId, 
+                  TupleId tupleId, int attrno){
    RestoreJavaObjectFromFLOB();
 }
 
@@ -1476,7 +1481,8 @@ size_t CcFRegion::Sizeof() const{
   return sizeof(*this);
 }
 
-void CcFRegion::Initialize(){
+void CcFRegion::Initialize(SmiFileId fileId, 
+                  TupleId tupleId, int attrno){
    RestoreJavaObjectFromFLOB();
 }
 

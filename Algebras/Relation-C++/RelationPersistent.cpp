@@ -852,19 +852,19 @@ bool Tuple::Open( SmiRecordFile* tuplefile,
     return false;
   }
   // the first two bytes in data contain the rootsize
-  InitializeAttributes(data);
+  InitializeAttributes(tuplefile->GetFileId(),data);
   free(data);
   return true;
 }
 
 
-bool Tuple::ReadFrom(SmiRecord& record){
+bool Tuple::ReadFrom(SmiFileId fileId, SmiRecord& record){
   SmiSize size;
   char* data = record.GetData( size);
   if(!data){
     return false;
   }
-  InitializeAttributes(data);
+  InitializeAttributes(fileId,data);
   free(data);
   return true;
 }
@@ -892,7 +892,7 @@ bool Tuple::Open(TupleFileIterator *iter)
     if (data)
     {
       assert(rootSize < MAX_TUPLESIZE);
-      InitializeAttributes(data);
+      InitializeAttributes(iter->GetFileId(), data);
       free(data);
       return true;
     }
@@ -944,7 +944,8 @@ char* Tuple::GetSMIBufferData(PrefetchingIterator* iter, uint16_t& rootSize)
 
 
 
-void Tuple::InitializeAttributes(char* src, bool containLOBs/* = false*/)
+void Tuple::InitializeAttributes(SmiFileId fileId,
+                                 char* src, bool containLOBs/* = false*/)
 {
   TRACE_ENTER
 
@@ -1030,7 +1031,7 @@ void Tuple::InitializeAttributes(char* src, bool containLOBs/* = false*/)
     }
     // Call the Initialize function for every attribute
     // and initialize the reference counter
-    attributes[i]->Initialize();
+    attributes[i]->Initialize(fileId, tupleId, i );
     attributes[i]->InitRefs();
   } // end for
 
@@ -1038,7 +1039,8 @@ void Tuple::InitializeAttributes(char* src, bool containLOBs/* = false*/)
 
 }
 
-void Tuple::InitializeSomeAttributes( const list<int>& aIds,
+void Tuple::InitializeSomeAttributes( SmiFileId fileId,
+                                      const list<int>& aIds,
                                       char* src )
 {
   TRACE_ENTER
@@ -1092,7 +1094,7 @@ void Tuple::InitializeSomeAttributes( const list<int>& aIds,
 
     // Call the Initialize function for every attribute
     // and initialize the reference counter
-    attributes[i]->Initialize();
+    attributes[i]->Initialize(fileId, tupleId, i);
     attributes[i]->InitRefs();
 
   }
@@ -1106,7 +1108,8 @@ without Flob and the length header that is a int16.
 Therefore, the flobOffset should be reduced accordingly.
 
 */
-void Tuple::InitializeNoFlobAttributes(char* src,
+void Tuple::InitializeNoFlobAttributes(SmiFileId fileId,
+                                       char* src,
   string flobFile/* = ""*/, size_t flobOffset/* = 0*/)
 {
   TRACE_ENTER
@@ -1160,7 +1163,7 @@ void Tuple::InitializeNoFlobAttributes(char* src,
     }
     // Call the Initialize function for every attribute
     // and initialize the reference counter
-    attributes[i]->Initialize();
+    attributes[i]->Initialize(fileId, tupleId, i);
     attributes[i]->InitRefs();
   } // end for
 
@@ -1206,7 +1209,7 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
   char* data = GetSMIBufferData(iter, rootSize);
 
   if (data) {
-    InitializeAttributes(data);
+    InitializeAttributes(tuplefile->GetFileId(),data);
     free ( data );
     return true;
   }
@@ -1235,7 +1238,8 @@ bool Tuple::OpenPartial( TupleType* newtype, const list<int>& attrIdList,
   char* data = GetSMIBufferData(iter, rootSize);
 
   if (data) {
-    InitializeSomeAttributes(attrIdList, data);
+    InitializeSomeAttributes(tuplefile->GetFileId(),
+                             attrIdList, data);
     ChangeTupleType(newtype, attrIdList);
     free ( data );
     return true;
@@ -1371,7 +1375,7 @@ string Tuple::WriteToBinStr()
   return stringutils::replaceAll(binStr, "\n", "");
 }
 
-void Tuple::ReadFromBinStr(string binStr)
+void Tuple::ReadFromBinStr(SmiFileId fileId,string& binStr)
 {
   Base64 b64;
   int sizeDecoded = b64.sizeDecoded(binStr.size());
@@ -1379,7 +1383,7 @@ void Tuple::ReadFromBinStr(string binStr)
   int result = b64.decode( binStr, bytes );
   assert( result <= sizeDecoded );
 
-  ReadFromBin(bytes);
+  ReadFromBin(fileId, bytes);
 }
 
 /*
@@ -1471,7 +1475,8 @@ Read a tuple from a binary block, created by ~WriteToBin~ function.
 The block contains a tuple's complete data, including its big Flobs.
 
 */
-u_int32_t Tuple::ReadFromBin(char* buf, u_int32_t bSize/* = 0*/)
+u_int32_t Tuple::ReadFromBin(SmiFileId fileId,
+                             char* buf, u_int32_t bSize/* = 0*/)
 {
   assert(buf);
 
@@ -1481,7 +1486,7 @@ u_int32_t Tuple::ReadFromBin(char* buf, u_int32_t bSize/* = 0*/)
     memcpy(&blockSize, buf, sizeof(blockSize));
     buf += sizeof(blockSize);
 
-    InitializeAttributes(buf, true);
+    InitializeAttributes(fileId, buf, true);
     return blockSize;
   }
   else
@@ -1493,7 +1498,7 @@ u_int32_t Tuple::ReadFromBin(char* buf, u_int32_t bSize/* = 0*/)
     bool containLOBs =
         ( (u_int32_t)(tupleSize + sizeof(tupleSize)) != blockSize);
 
-    InitializeAttributes(buf, containLOBs);
+    InitializeAttributes(fileId,buf, containLOBs);
     return blockSize;
   }
 }
@@ -1508,17 +1513,17 @@ Consequently, the created tuple sets the Flob mode to 2 and
 links the Flob reference to the flobFile.
 
 */
-u_int32_t Tuple::ReadTupleFromBin(char* buf, u_int32_t bSize,
+u_int32_t Tuple::ReadTupleFromBin(SmiFileId fileId,char* buf, u_int32_t bSize,
     string flobFile, size_t flobOffset)
 {
   assert(buf);
-  InitializeNoFlobAttributes(buf, flobFile, flobOffset);
+  InitializeNoFlobAttributes(fileId, buf, flobFile, flobOffset);
   return bSize;
 }
 
-void Tuple::ReadTupleFromBin(char* buf){
+void Tuple::ReadTupleFromBin(SmiFileId fileId,char* buf){
   assert(buf);
-  InitializeNoFlobAttributes(buf);
+  InitializeNoFlobAttributes(fileId,buf);
 }
 
 
@@ -1651,6 +1656,10 @@ char* TupleFileIterator::readData(size_t& size)
     size = 0;
     return 0;
   }
+}
+
+SmiFileId TupleFileIterator::GetFileId() const{
+  return tupleFile.GetFileId();
 }
 
 bool TupleFile::traceMode = false;

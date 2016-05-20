@@ -994,13 +994,15 @@ record.
                 std::vector<double>& attrSize,
                 bool ignorePersistentLOBs, TupleId tupleId);
 
-  bool OpenOrel( SmiFileId lobfileId,
+  bool OpenOrel( SmiFileId fileId,
+                 SmiFileId lobfileId,
                  SmiRecord& record, TupleId tupleId );
 
-  bool OpenOrel(SmiFileId lobFileId,
+  bool OpenOrel(SmiFileId fileId, SmiFileId lobFileId,
                 PrefetchingIterator* iter, TupleId tupleId);
 
-  bool OpenPartialOrel( TupleType* newtype,
+  bool OpenPartialOrel( SmiFileId fileId,
+                        TupleType* newtype,
                         const std::list<int>& attrList,
                         SmiFileId lobfileId,
                         PrefetchingIterator* iter,
@@ -1061,7 +1063,8 @@ Transform the tuple value to a Base 64 code string
 Read a tuple value from a Base 64 code string
 
 */
-  void ReadFromBinStr(std::string binStr);
+  void ReadFromBinStr(SmiFileId fileId,
+                      std::string& binStr);
 
 /*
 Write a complete tuple into an allocated binary block,
@@ -1109,14 +1112,16 @@ The blockSize recorded in the first tuple data does not count the
 Read a tuple from a binary block written by ~WriteToBin~.
 
 */
-  u_int32_t ReadFromBin(char* buf, u_int32_t bSize = 0);
+  u_int32_t ReadFromBin(SmiFileId fileId,
+                        char* buf, u_int32_t bSize = 0);
 
 /*
 Read a tuple from a binary block written by ~WriteToBin~,
 but leave the FLOB data untouched
 
 */
-  u_int32_t ReadTupleFromBin(char* buf, u_int32_t bSize,
+  u_int32_t ReadTupleFromBin(SmiFileId fileId,
+                        char* buf, u_int32_t bSize,
                         std::string flobFile, size_t flobOffset);
 
 /*
@@ -1127,7 +1132,7 @@ The flob mode is set 3 if the pDS is non-nagtive,
 or else the flob is kept locally and the can be read as usual.
 
 */
-  void ReadTupleFromBin(char* buf);
+  void ReadTupleFromBin(SmiFileId fileId, char* buf);
 
 /*
 Read the data from the disk file to a Flob with mode 1
@@ -1362,7 +1367,8 @@ and it's big enough to express the tuple's size
   char* GetSMIBufferData(PrefetchingIterator* iter,
                          uint16_t& rootSize);
 
-  void InitializeAttributes(char* src, bool containLOBs = false);
+  void InitializeAttributes(SmiFileId fileId, char* src, 
+                            bool containLOBs = false);
 
 /*
 In ~WriteToBlock~, the big flobs may also be written into the memory
@@ -1377,10 +1383,12 @@ does some evil thing, but it's not clear enough.
 
 */
 
-  void InitializeSomeAttributes( const std::list<int>& attrList,
+  void InitializeSomeAttributes( SmiFileId fileId,
+                                 const std::list<int>& attrList,
                                  char* src);
 
   void InitializeNoFlobAttributes(
+    SmiFileId fileId,
     char* src, std::string flobFile = "", size_t flobOffset = 0);
 /*
 It reads the block data created by ~WriteToBlock~  with no FLOB data.
@@ -1390,7 +1398,7 @@ Or else, just change the flob mode to 3.
 
 */
 
-  bool ReadFrom(SmiRecord& record);
+  bool ReadFrom(SmiFileId fileId, SmiRecord& record);
 
 
 
@@ -1777,6 +1785,8 @@ data block.
 
 */
 
+  SmiFileId GetFileId() const;
+
 private:
 
   TupleFile& tupleFile;
@@ -1907,7 +1917,11 @@ data block. This method is called from class ~Tuple~ after
 the tuple and its attributes have been packed into a
 memory block.
 
-*/
+*/ 
+
+  SmiFileId GetFileId(){
+     return 0;
+  }
 
 private:
 

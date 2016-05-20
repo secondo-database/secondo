@@ -33,7 +33,7 @@ This class provides some functions useful in jni calls.
 
 
 bool JNITool::initialized=false;
-
+using namespace std;
 
 
 /*

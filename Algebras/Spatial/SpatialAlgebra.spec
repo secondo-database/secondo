@@ -98,5 +98,5 @@ operator contour2 alias CONTOUR2 pattern _ op[_,_,_]
 operator twist2 alias TWIST2 pattern  op(_,_,_)
 operator simpleProject alias SIMPLEPROJECT pattern op(_)
 operator todline  alias TODLINE pattern _ op
-
+operator distanceWithin alias DISTANCEWITHIN pattern op(_,_,_)
 

@@ -64,6 +64,9 @@ derived attribute class must implement.
 #include "SecondoSMI.h"
 #include "AlmostEqual.h"
 
+
+typedef SmiRecordId TupleId;
+
 /*
 3.5 Struct ~AttrDelete~
 
@@ -439,7 +442,8 @@ This function is called to restrict a current attribute to a
 set of intervals. This function is used in double indexing.
 
 */
-    inline virtual void Initialize() {}
+    inline virtual void Initialize( SmiFileId fileId, 
+                                    TupleId tupleId, int attrno) {}
     inline virtual void Finalize() {}
 /*
 These two functions are used to initialize and finalize values of

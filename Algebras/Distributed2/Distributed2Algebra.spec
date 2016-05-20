@@ -44,8 +44,17 @@ operator dloop2 alias DLOOP2 pattern _ _ op[_,fun] implicit parameters elem1, el
 
 operator dmap alias DMAP pattern _ op[_,fun] implicit parameter dmapelem type ARRAYFUNARG1
 operator dmap2 alias DMAP2 pattern _ _ op[_,fun,_] implicit parameters elem1, elem2 types ARRAYFUNARG1, ARRAYFUNARG2
+
+
 operator dmap2n alias DMAP2n pattern _ _ op[_,fun,_] implicit parameters elem1, elem2 types ARRAYFUNARG1, ARRAYFUNARG2
 
+
+operator dmap3 alias DMAP3 pattern _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3
+operator dmap4 alias DMAP4 pattern _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4
+operator dmap5 alias DMAP5 pattern _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4 , elem5  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5
+operator dmap6 alias DMAP6 pattern _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6
+operator dmap7 alias DMAP7 pattern _ _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6, elem7  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, ARRAYFUNARG7
+operator dmap8 alias DMAP8 pattern _ _ _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6, elem7, elem8  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, ARRAYFUNARG7, ARRAYFUNARG8
 
 operator dsummarize alias DSUMMARIZE pattern _ op
 

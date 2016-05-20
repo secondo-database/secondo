@@ -964,7 +964,8 @@ private static void printClassDeclaration(PrintStream out, Class C, Vector metho
    out.println("     // functions required for persistent storing");
    out.println("     void RestoreJavaObjectFromFLOB();");
    out.println("     void RestoreFLOBFromJavaObject();");
-   out.println("     void Initialize(){__TRACE__ obj=0;}");
+   out.println("     void Initialize(SmiFileId fileId,");
+   out.println("                     TupleId tupleId, int attrno){__TRACE__ obj=0;}");
    out.println("     void Finalize(){__TRACE__ ");
    out.println("                     if(obj) ");
    out.println("                       env->DeleteLocalRef(obj);");

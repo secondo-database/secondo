@@ -26376,6 +26376,152 @@ Operator todlineOp(
 );
 
 
+/*
+52 Operator ~distanceWithin~
+
+Checks whether the distance between two objects is smaller than a
+given value.
+
+*/
+ListExpr distanceWithinTM(ListExpr args){
+   string err = "SPATIAL x SPATIAL x {int, double} [x geoid] expected";
+   if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
+     return listutils::typeError(err+ " (wrong number of args)");
+   }
+   if(nl->HasLength(args,4) && !Geoid::checkType(nl->Fourth(args))){
+     return listutils::typeError(err + " (4th arg not of type geoid)");
+   }
+   if(  !CcInt::checkType(nl->Third(args)) 
+      &&!CcReal::checkType(nl->Third(args))){
+     return listutils::typeError(err + " (third arg not of type int or real)");
+   }
+   ListExpr a = nl->First(args);
+   if(   !Rectangle<2>::checkType(a)
+      && !Point::checkType(a)
+      && !Points::checkType(a)
+      && !Line::checkType(a)
+      && !Region::checkType(a)
+      && !DLine::checkType(a)){
+     return listutils::typeError(err + "(first arg not supported)");
+   }
+   a = nl->Second(args);
+   if(   !Rectangle<2>::checkType(a)
+      && !Point::checkType(a)
+      && !Points::checkType(a)
+      && !Line::checkType(a)
+      && !Region::checkType(a)
+      && !DLine::checkType(a)){
+     return listutils::typeError(err + "(first arg not supported)");
+   }
+   return listutils::basicSymbol<CcBool>(); 
+}
+
+
+// generic solution
+template<class A1, class A2>
+bool distWithin(A1* a1, A2* a2, double dist, Geoid* geoid){
+   cout << "called" << __PRETTY_FUNCTION__ << endl;
+   double d = a1->Distance(*a2,geoid);
+   cout << " d = " << d << endl;
+   return d <= dist;
+}
+
+
+template<class A1, class A2, class D, bool swap>
+int distanceWithinVMT(Word* args, Word& result, int message, 
+                    Word& local,Supplier s){
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   A1* a1 = 0;
+   A2* a2 = 0;
+   if(swap){
+     a1 = (A1*) args[1].addr;
+     a2 = (A2*) args[0].addr;
+   } else {
+     a1 = (A1*) args[0].addr;
+     a2 = (A2*) args[1].addr;
+   }
+   D*  d = (D*) args[2].addr;
+   Geoid* geoid = qp->GetNoSons(s)==4?(Geoid*)args[3].addr:0;
+   if(!a1->IsDefined() || !a2->IsDefined() || !d->IsDefined()
+      || (geoid && !geoid->IsDefined())){
+     res->SetDefined(0);
+   }
+   double dist = d->GetValue();
+   if(dist<0){
+     res->Set(true,false);
+     return 0;
+   }
+   Rectangle<2> b1 = a1->BoundingBox();
+   Rectangle<2> b2 = a2->BoundingBox();
+   if(geoid){
+      if(!isGeo(b1) || !isGeo(b2)){
+          res->SetDefined(false);
+      }
+   }   
+   double bd = b1.Distance(b2, geoid);
+   if(bd > dist){
+      res->Set(true,false);
+      return 0;
+   }
+   res->Set(true, distWithin(a1,a2,dist,geoid));
+   return 0;
+}
+
+ValueMapping distanceWithinVM[] = {
+   distanceWithinVMT<Point,Point, CcInt, false>,
+   distanceWithinVMT<Point,Point, CcReal, false>,
+   distanceWithinVMT<Line,Point, CcInt, false>,
+   distanceWithinVMT<Line,Point, CcReal, false>,
+   distanceWithinVMT<Line,Point, CcInt, true>,
+   distanceWithinVMT<Line,Point, CcReal, true>,
+};
+
+
+int distanceWithinSelect(ListExpr args){
+  ListExpr a1 = nl->First(args);
+  ListExpr a2 = nl->Second(args);
+  ListExpr a3 = nl->Third(args);
+  if(Point::checkType(a1) && Point::checkType(a2) && CcInt::checkType(a3)){
+     return 0;
+  }
+  if(Point::checkType(a1) && Point::checkType(a2) && CcReal::checkType(a3)){
+     return 1;
+  }
+  if(Line::checkType(a1) && Point::checkType(a2) && CcInt::checkType(a3)){
+     return 2;
+  }
+  if(Line::checkType(a1) && Point::checkType(a2) && CcReal::checkType(a3)){
+     return 3;
+  }
+  if(Point::checkType(a1) && Line::checkType(a2) && CcInt::checkType(a3)){
+     return 4;
+  }
+  if(Point::checkType(a1) && Line::checkType(a2) && CcReal::checkType(a3)){
+     return 5;
+  }
+  return -1;
+}
+
+OperatorSpec distanceWithinSpec(
+  "SPATIAL x SPATIAL x {int, real} [x geoid] -> bool",
+  "distanceWithin(_,_,_[,_])",
+  "Checks whether the distance between two Objects is smaller "
+  "than a given value", 
+  "query distanceWithin(alexanderplatz, mehringdamm, 2000)"
+);
+
+Operator distanceWithinOp(
+  "distanceWithin",
+  distanceWithinSpec.getStr(),
+  6,
+  distanceWithinVM,
+  distanceWithinSelect,
+  distanceWithinTM
+);
+
+
+
 
 /*
 11 Creating the Algebra
@@ -26558,6 +26704,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&toSVGOp);
     AddOperator(&simpleProject);
     AddOperator(&todlineOp);
+    AddOperator(&distanceWithinOp);
   }
   ~SpatialAlgebra() {};
 };

@@ -58,16 +58,16 @@ void Tuple::SaveOrel(SmiRecord* record, SmiFileId& lobFileId, double& extSize,
   free(data);
 }
 
-bool Tuple::OpenOrel(SmiFileId lobfileId,
+bool Tuple::OpenOrel(SmiFileId fileId,SmiFileId lobfileId,
                       SmiRecord& record, TupleId tupleId )
 {
   this->tupleId = tupleId;
   this->tupleFile = 0;
   this->lobFileId = lobfileId;
-  return ReadFrom( record );
+  return ReadFrom( fileId, record );
 }
 
-bool Tuple::OpenOrel(SmiFileId lobfileId,
+bool Tuple::OpenOrel(SmiFileId fileId, SmiFileId lobfileId,
                   PrefetchingIterator *iter, TupleId tupleId )
 {
   TRACE_ENTER
@@ -81,7 +81,7 @@ bool Tuple::OpenOrel(SmiFileId lobfileId,
   char* data = GetSMIBufferData(iter, rootSize);
   
   if (data) {
-    InitializeAttributes(data);
+    InitializeAttributes(fileId, data);
     free ( data );
     return true;
   }
@@ -93,7 +93,8 @@ bool Tuple::OpenOrel(SmiFileId lobfileId,
 }
 
 
-bool Tuple::OpenPartialOrel( TupleType* newtype, const list<int>& attrIdList,
+bool Tuple::OpenPartialOrel( SmiFileId fileId,
+                         TupleType* newtype, const list<int>& attrIdList,
                          SmiFileId lobfileId,
                          PrefetchingIterator *iter,
                          TupleId tupleId)
@@ -109,7 +110,7 @@ bool Tuple::OpenPartialOrel( TupleType* newtype, const list<int>& attrIdList,
   char* data = GetSMIBufferData(iter, rootSize);
 
   if (data) {
-   InitializeSomeAttributes(attrIdList, data);
+   InitializeSomeAttributes(fileId, attrIdList, data);
    ChangeTupleType(newtype, attrIdList);
    free ( data );
    return true;

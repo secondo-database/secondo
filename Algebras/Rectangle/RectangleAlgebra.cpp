@@ -127,34 +127,18 @@ double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2,
      }
      bool valid;
      if(Q==1 || Q == 3){ // above but not direct
-        Point p1_1(true,xmin1,ymax1);
-        Point p1_2(true,xmax1,ymax1);
-        Point p2_1(true,xmin2, ymin2);
-        Point p2_2(true,xmax2, ymin2);
-        double d1 = p1_1.DistanceOrthodrome(p2_1, *geoid,valid);
-        if(!valid) return -1;
-        double d2 = p1_1.DistanceOrthodrome(p2_2, *geoid,valid);
-        if(!valid) return -1;
-        double d3 = p1_2.DistanceOrthodrome(p2_1, *geoid,valid);
-        if(!valid) return -1;
-        double d4 = p1_2.DistanceOrthodrome(p2_2, *geoid,valid);
-        if(!valid) return -1;
-        return std::min(d1, std::min(d2, std::min(d3,d4)));
+        HalfSegment hs(true, Point(true, xmin1, ymax1), 
+                             Point(true, xmax1, ymax1));
+        double d1 = hs.Distance(Point(true,xmin2, ymin2), geoid);
+        double d2 = hs.Distance(Point(true,xmax2, ymin2), geoid);
+        return std::min(d1,d2);
      }
      if(Q==7 || Q==9){ // below but not direct
-        Point p1_1(true,xmin1,ymin1);
-        Point p1_2(true,xmax1,ymin1);
-        Point p2_1(true,xmin2, ymax2);
-        Point p2_2(true,xmax2, ymax2);
-        double d1 = p1_1.DistanceOrthodrome(p2_1, *geoid,valid);
-        if(!valid) return -1;
-        double d2 = p1_1.DistanceOrthodrome(p2_2, *geoid, valid);
-        if(!valid) return -1;
-        double d3 = p1_2.DistanceOrthodrome(p2_1, *geoid, valid);
-        if(!valid) return -1;
-        double d4 = p1_2.DistanceOrthodrome(p2_2, *geoid, valid);
-        if(!valid) return -1;
-        return std::min(d1, std::min(d2, std::min(d3,d4)));
+        HalfSegment hs(true, Point(true,xmin2,ymax2), 
+                             Point(true,xmax2, ymax2));
+        double d1 = hs.Distance(Point(true,xmin1, ymin1), geoid);
+        double d2 = hs.Distance(Point(true,xmax1, ymin1), geoid);
+        return std::min(d1,d2);
      }
 
      if(Q==2){ // direct above
@@ -173,6 +157,9 @@ double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2,
      }
      // Q4 or Q6
      // restrict y to common partA
+
+     // TODO use distance computation using halfsegments
+
      double ymin = ymin1 < ymin2 ? ymin2 : ymin1;
      double ymax = ymax1 > ymax2 ? ymax2 : ymax1;
 

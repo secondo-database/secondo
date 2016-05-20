@@ -1290,4 +1290,12 @@ Example   : query [const line value ((0 0 1 1)(1 2 2 2))] todline
 Result    : (dline ( (0.0 0.0 1.0 1.0) (1.0 2.0 2.0 2.0)))
 
 
+Operator  : distanceWithin
+Number    : 1
+Signature : SPATIAL x SPATIAL x {int, real} [x geoid] -> bool
+Example   : query distanceWithin(alexanderplatz, mehringdamm, 2000)
+Result    : FALSE
+
+
+
 

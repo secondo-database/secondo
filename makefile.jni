@@ -22,6 +22,9 @@ JNITool_O_FILE = $(SECONDO_BUILD_DIR)/Tools/Jni/JNITool.o
 
 JNILIBFILES = $(JVMINIT_O_FILE) $(JNITool_O_FILE)
 
+
+LDFLAGS += $(JNILIBFILES)
+
 ifeq ($(platform),win32)
 
 space :=
@@ -57,8 +60,8 @@ LIBJAVA_DIR := $(J2SDK_ROOT)/$(J2SDK_LIB)
 LIBJVM_DIR := $(J2SDK_ROOT)/$(J2SDK_JVMLIB)
 else
 # assume the default directory for 32bit systems
-LIBJAVA_DIR := $(J2SDK_ROOT)/jre/lib/i386
-LIBJVM_DIR := $(LIBJAVA_DIR)/client
+LIBJAVA_DIR := $(J2SDK_ROOT)/jre/lib/amd64
+LIBJVM_DIR := $(LIBJAVA_DIR)/server
 endif
 
 LIBVERIFY_DIR := $(LIBJAVA_DIR)

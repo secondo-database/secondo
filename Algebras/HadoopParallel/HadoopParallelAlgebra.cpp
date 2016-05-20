@@ -628,14 +628,14 @@ GenericRelationIterator* phjLocalInfo::getNewProducts( Supplier s)
       {
       case 1:{
         tupleA = new Tuple(tupleTypeA);
-        tupleA->ReadFromBinStr(sTupStr);
+        tupleA->ReadFromBinStr(0,sTupStr);
         tbA->AppendTuple(tupleA);
         tupleA->DeleteIfAllowed();
         break;
       }
       case 2:{
         tupleB = new Tuple(tupleTypeB);
-        tupleB->ReadFromBinStr(sTupStr);
+        tupleB->ReadFromBinStr(0,sTupStr);// no fileId in TupleBuffer
         tbB->AppendTuple(tupleB);
         tupleB->DeleteIfAllowed();
         break;
@@ -1172,7 +1172,7 @@ void pjLocalInfo::loadTuples()
       case 1:
       {
         tupleA = new Tuple(tupleTypeA);
-        tupleA->ReadFromBinStr(sTupStr);
+        tupleA->ReadFromBinStr(0,sTupStr);
         tbA->AppendTuple(tupleA);
         tupleA->DeleteIfAllowed();
         break;
@@ -1180,7 +1180,7 @@ void pjLocalInfo::loadTuples()
       case 2:
       {
         tupleB = new Tuple(tupleTypeB);
-        tupleB->ReadFromBinStr(sTupStr);
+        tupleB->ReadFromBinStr(0,sTupStr);
         tbB->AppendTuple(tupleB);
         tupleB->DeleteIfAllowed();
         break;
@@ -6031,7 +6031,7 @@ bool FetchFlobLocalInfo::isPreparedAll(Tuple* tuple, TupleFlobInfo* tif,
   bool allPrepared = true;
   int source, times;
   rs.resize(faLen);
-  for (int i = 0; i < faLen; i++){
+  for (size_t i = 0; i < faLen; i++){
     rs[i].resize(maxFlobNum);
   }
   for (size_t no = 0; no < faLen; no++)
@@ -6107,14 +6107,14 @@ Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
         }
 
         bool isLocal = true;
-        int sdsVec[faLen];
+        //int sdsVec[faLen];
         for (size_t no = 0; no < faLen; no++)
         {
           int ai = faVec[no];
           Attribute* attr = tuple->GetAttribute(ai);
           if ( attr->NumOfFLOBs() > 0){
             char mode = attr->GetFLOB(0)->getMode();
-            sdsVec[no] = attr->GetFLOB(0)->getRecordId();
+          //  sdsVec[no] = attr->GetFLOB(0)->getRecordId();
             if (mode > 2)
               isLocal = false;
           }
@@ -7673,7 +7673,7 @@ Tuple* readTupleFromFile(ifstream* file, TupleType* type, int mode,
       file->read(tupleBlock, blockSize);
 
       t = new Tuple(type);
-      t->ReadFromBin(tupleBlock, blockSize);
+      t->ReadFromBin(0,tupleBlock, blockSize);
       delete[] tupleBlock;
     }
   }
@@ -7699,7 +7699,7 @@ Tuple* readTupleFromFile(ifstream* file, TupleType* type, int mode,
       size_t flobOffset = file->tellg();
 
       t = new Tuple(type);
-      t->ReadTupleFromBin(tupleOnlyBlock, tupleSize, flobFile, flobOffset);
+      t->ReadTupleFromBin(0,tupleOnlyBlock, tupleSize, flobFile, flobOffset);
 
       u_int32_t flobLength = blockSize - sizeof(tupleSize) - tupleSize;
       if (flobLength != 0){
@@ -7732,11 +7732,11 @@ Tuple* readTupleFromFile(ifstream* file, TupleType* type, int mode,
 
       if (flobLength == 0){
         //read as ffeed3
-        t->ReadTupleFromBin(tupleOnlyBlock);
+        t->ReadTupleFromBin(0,tupleOnlyBlock);
       }
       else {
         //read as ffeed2
-        t->ReadTupleFromBin(tupleOnlyBlock, tupleSize, flobFile, flobOffset);
+        t->ReadTupleFromBin(0,tupleOnlyBlock, tupleSize, flobFile, flobOffset);
       }
 
       if (flobLength != 0){

@@ -728,6 +728,7 @@ OrderedRelationIterator::OrderedRelationIterator(const OrderedRelation* orel,
 cout << "Konstruktor_OrelIter" << endl;
 #endif
   tupleType->IncReference();
+  fileId = orel->GetFileId();
   if(outtype!=0) outtype->IncReference();
   endOfScan = true;
   if(from.IsDefined() || to.IsDefined()) {
@@ -764,7 +765,7 @@ cout << "GetNextTuple_OrelIter" << endl;
     return 0;
   }
   Tuple* t = new Tuple(tupleType);
-  if(t->OpenOrel(lobFileId, it, appendix)) {
+  if(t->OpenOrel(fileId, lobFileId, it, appendix)) {
     return t;
   } else {
     delete t;
@@ -777,7 +778,7 @@ Tuple* OrderedRelationIterator::GetNextTuple(const list<int>& attrList) {
     return 0;
   }
   Tuple* t = new Tuple(tupleType);
-  if(t->OpenPartialOrel(outtype, attrList, lobFileId, it, appendix)) {
+  if(t->OpenPartialOrel(fileId,outtype, attrList, lobFileId, it, appendix)) {
     return t;
   } else {
     delete t;
@@ -1198,7 +1199,8 @@ Tuple* OrderedRelation::GetTuple(const CompositeKey& key) const {
   SmiRecord record;
   if(tupleFile->SelectRecord(key.GetSmiKey(), record)) {
       t = new Tuple(tupleType);
-      t->OpenOrel(lobFileId, record, key.GetAppendix());
+      t->OpenOrel(tupleFile->GetFileId(), lobFileId, record, 
+                  key.GetAppendix());
   }
   return t;
 }

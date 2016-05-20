@@ -13426,10 +13426,12 @@ class dmapXInfo{
 
 */
     dmapXInfo( vector<DArrayBase*>& _arguments, vector<bool>& _isRelation, 
-               const string& _name, const string& _funText, 
+               vector<ListExpr> _argTypes,const string& _name, 
+               const string& _funText, 
                const bool _isStreamRes, const int _port, DArrayBase* _res): 
                arguments(_arguments),
-               isRelation(_isRelation), name(_name), funText(_funText), 
+               isRelation(_isRelation), argTypes(_argTypes),
+               name(_name), funText(_funText), 
                isStreamRes(_isStreamRes), port(_port), res(_res) {}
 
 
@@ -13502,7 +13504,9 @@ determines the distribution of the result array.
 
  private:
      vector<DArrayBase*> arguments;
-     vector<bool> isRelation;// for each argument, flag whether it is a relation
+     vector<bool> isRelation;   // for each argument, flag whether 
+                                //it is a relation
+     vector<ListExpr> argTypes; // the type of each arg
      string name;            // name of the result
      string funText;         // the text of the function
      bool isStreamRes;       // result of the function is a stream ?
@@ -13764,6 +13768,13 @@ the sources and the correspnding function arguments are created.
            string errMsg;
            double rt;
            string result;
+           // if the result is an object, delete existings objects before
+           if(info->res->getType()==DARRAY){
+               string n = info->res->getObjectNameForSlot(slot);
+               ci->simpleCommand("delete " + n,err,errMsg, result, false, rt);
+               // ignore error, may be there is no such an object
+           }
+ 
            ci->simpleCommandFromList(cmd, err, errMsg, result, false, rt);
            if(err){
               cerr << __FILE__ << "@"  << __LINE__ << endl;
@@ -13892,7 +13903,9 @@ funargs.
                  return true;
              }  else {
                 string fname = fileNameOnI;
-                string fa = "( frel '"+fname+"')";
+                string type ="(frel " + nl->ToString(nl->Second(
+                              nl->Second(info->argTypes[arrayNumber]))) + ")";
+                string fa = "("+ type + "  '"+fname+"')"; 
                 funargs.push_back(fa);
                 sourceNames.push_back(pair<bool,string>(true,fname)); 
                 return true;
@@ -13906,7 +13919,9 @@ funargs.
               } else {
                 string fname = ai->getFilePath(ci->getSecondoHome(), 
                                                info->dbname, slot);
-                string fa = "( frel '"+fname+"')";
+                string type ="(frel " + nl->ToString(nl->Second(
+                              nl->Second(info->argTypes[arrayNumber]))) + ")";
+                string fa = "( "+ type + " '"+fname+"')";
                 funargs.push_back(fa);
                 sourceNames.push_back(pair<bool,string>(false,fname)); 
               }
@@ -13961,6 +13976,10 @@ from other than the result worker.
 
 */
        void removeTempData(size_t arg, ConnectionInfo* ci){
+          if(sourceNames.size()<= arg){
+             cerr << "too less source names for arg " << arg << endl;
+             return;
+          }
           pair<bool,string> toDelete = sourceNames[arg];
           if(!toDelete.first){
              // the source is original, not a good idea to delete it
@@ -14037,8 +14056,12 @@ int dmapXVM(Word* args, Word& result, int message,
         ((DArrayBase*) result.addr)->makeUndefined();
         return 0;
     }
-    
-    dmapXInfo info(arrays, isRelation, name, funtext, streamRes, 
+    vector<ListExpr> argTypes;    
+    for(int i=0;i<x;i++){
+        argTypes.push_back(qp->GetType(qp->GetSon(s,i)));
+    }
+
+    dmapXInfo info(arrays, isRelation, argTypes,  name, funtext, streamRes, 
                    port, (DArrayBase*) result.addr);
     info.start();
 
@@ -14099,6 +14122,59 @@ Operator dmap2nOp(
   Operator::SimpleSelect,
   dmapXTM
 );
+
+
+Operator dmap3Op(
+  "dmap3",
+  dmapXSpec.getStr(),
+  dmapXVM,
+  Operator::SimpleSelect,
+  dmapXTMT<3>
+);
+
+
+Operator dmap4Op(
+  "dmap4",
+  dmapXSpec.getStr(),
+  dmapXVM,
+  Operator::SimpleSelect,
+  dmapXTMT<4>
+);
+
+
+Operator dmap5Op(
+  "dmap5",
+  dmapXSpec.getStr(),
+  dmapXVM,
+  Operator::SimpleSelect,
+  dmapXTMT<5>
+);
+
+Operator dmap6Op(
+  "dmap6",
+  dmapXSpec.getStr(),
+  dmapXVM,
+  Operator::SimpleSelect,
+  dmapXTMT<6>
+);
+
+Operator dmap7Op(
+  "dmap7",
+  dmapXSpec.getStr(),
+  dmapXVM,
+  Operator::SimpleSelect,
+  dmapXTMT<7>
+);
+
+Operator dmap8Op(
+  "dmap8",
+  dmapXSpec.getStr(),
+  dmapXVM,
+  Operator::SimpleSelect,
+  dmapXTMT<8>
+);
+
+
 
 /*
 Type Map Operator subtype
@@ -14173,7 +14249,7 @@ Operator SUBTYPE2OP(
 
 
 /*
-TypeMapOperators ARRAYFUNARG1 and ARRAYFUNARG2
+TypeMapOperators ARRAYFUNARG1, ARRAYFUNARG2 up to ARRAYFUNARG8
 
 */
 template<int pos, bool makeFS>
@@ -14238,6 +14314,93 @@ Operator ARRAYFUNARG2OP(
    ARRAYFUNARG<2, false>
 );
 
+OperatorSpec ARRAYFUNARG3SPEC(
+  "darray(X) x ... -> X, dfarray(rel(X)) x ... -> frel(X)",
+  "ARRAYFUNARG3(_,_,_)",
+  "Type mapping operator.",
+  "query df1 df2 df3 dmap3 [\"df9\" . count]"
+);
+
+Operator ARRAYFUNARG3OP(
+  "ARRAYFUNARG3",
+   ARRAYFUNARG3SPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   ARRAYFUNARG<3, false>
+);
+OperatorSpec ARRAYFUNARG4SPEC(
+  "darray(X) x ... -> X, dfarray(rel(X)) x ... -> frel(X)",
+  "ARRAYFUNARG4(_,_,_,_)",
+  "Type mapping operator.",
+  "query df1 df2 df3 df4 dmap4 [\"df9\" . count]"
+);
+
+Operator ARRAYFUNARG4OP(
+  "ARRAYFUNARG4",
+   ARRAYFUNARG4SPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   ARRAYFUNARG<4, false>
+);
+OperatorSpec ARRAYFUNARG5SPEC(
+  "darray(X) x ... -> X, dfarray(rel(X)) x ... -> frel(X)",
+  "ARRAYFUNARG5(_,_,_,_,_)",
+  "Type mapping operator.",
+  "query df1 df2 df3 df4 df5 dmap5 [\"df9\" . count]"
+);
+
+Operator ARRAYFUNARG5OP(
+  "ARRAYFUNARG5",
+   ARRAYFUNARG5SPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   ARRAYFUNARG<5, false>
+);
+
+OperatorSpec ARRAYFUNARG6SPEC(
+  "darray(X) x ... -> X, dfarray(rel(X)) x ... -> frel(X)",
+  "ARRAYFUNARG6(_,_,_,_,_,_)",
+  "Type mapping operator.",
+  "query df1 df2 df3 df4 df5 df5 dmap6 [\"df9\" . count]"
+);
+
+Operator ARRAYFUNARG6OP(
+  "ARRAYFUNARG6",
+   ARRAYFUNARG6SPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   ARRAYFUNARG<6, false>
+);
+
+OperatorSpec ARRAYFUNARG7SPEC(
+  "darray(X) x ... -> X, dfarray(rel(X)) x ... -> frel(X)",
+  "ARRAYFUNARG7(_,_,_,_,_,_,_)",
+  "Type mapping operator.",
+  "query df1 df2 df3 df4 df5 df6 df7 dmap7 [\"df9\" . count]"
+);
+
+Operator ARRAYFUNARG7OP(
+  "ARRAYFUNARG7",
+   ARRAYFUNARG7SPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   ARRAYFUNARG<7, false>
+);
+
+OperatorSpec ARRAYFUNARG8SPEC(
+  "darray(X) x ... -> X, dfarray(rel(X)) x ... -> frel(X)",
+  "ARRAYFUNARG8(_)",
+  "Type mapping operator.",
+  "query df1 df2 df3 df4 df5 df6 df7 df8 dmap8 [\"df3\" . count]"
+);
+
+Operator ARRAYFUNARG8OP(
+  "ARRAYFUNARG8",
+   ARRAYFUNARG8SPEC.getStr(),
+   0,
+   Operator::SimpleSelect,
+   ARRAYFUNARG<8, false>
+);
 
 OperatorSpec AREDUCEARG1SPEC(
   "darray(X) x ... -> X, dfarray(rel(X)) x ... -> stream(X)",
@@ -18437,9 +18600,27 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&dmap2nOp);
    dmap2nOp.SetUsesArgsInTypeMapping();
 
+   AddOperator(&dmap3Op);
+   dmap3Op.SetUsesArgsInTypeMapping();
+   AddOperator(&dmap4Op);
+   dmap4Op.SetUsesArgsInTypeMapping();
+   AddOperator(&dmap5Op);
+   dmap5Op.SetUsesArgsInTypeMapping();
+   AddOperator(&dmap6Op);
+   dmap6Op.SetUsesArgsInTypeMapping();
+   AddOperator(&dmap7Op);
+   dmap7Op.SetUsesArgsInTypeMapping();
+   AddOperator(&dmap8Op);
+   dmap8Op.SetUsesArgsInTypeMapping();
 
    AddOperator(&ARRAYFUNARG1OP);
    AddOperator(&ARRAYFUNARG2OP);
+   AddOperator(&ARRAYFUNARG3OP);
+   AddOperator(&ARRAYFUNARG4OP);
+   AddOperator(&ARRAYFUNARG5OP);
+   AddOperator(&ARRAYFUNARG6OP);
+   AddOperator(&ARRAYFUNARG7OP);
+   AddOperator(&ARRAYFUNARG8OP);
 
    AddOperator(&AREDUCEARG1OP);
    AddOperator(&AREDUCEARG2OP);
