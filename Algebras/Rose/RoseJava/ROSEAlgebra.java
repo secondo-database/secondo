@@ -20,12 +20,12 @@ import java.io.*;
 /**
  * The ROSEAlgebra class implements the operations for the ROSE's data types Points, Lines and Regions.
  * The algebra itself was invented and described in two papers <p><ul>
- * <li>R.H. Güting and M. Schneider, Realm-Based Spatial Data Types: The ROSE Algebra. VLDB Journal 4 (1995), 100-143.
- * <li>R.H. Güting, Th. de Ridder, and M. Schneider, Implementation of the ROSE Algebra: Efficient Algorithms for Realm-Based Spatial Data Types. Proc. of the 4th Intl. Symposium on Large Spatial Databases (Portland, August 1995), 216-239
+ * <li>R.H. Gueting and M. Schneider, Realm-Based Spatial Data Types: The ROSE Algebra. VLDB Journal 4 (1995), 100-143.
+ * <li>R.H. Gueting, Th. de Ridder, and M. Schneider, Implementation of the ROSE Algebra: Efficient Algorithms for Realm-Based Spatial Data Types. Proc. of the 4th Intl. Symposium on Large Spatial Databases (Portland, August 1995), 216-239
  * </ul><p>
  * This implementation of the ROSE algebra and its data types (presented in the classes Points, Lines, Regions)
  * uses the 2D-SACK approach. That approach was invented by Dirk Ansorge
- * and R.H. Güting. It shows how simplices and operations on them together with some generic set operations can be used
+ * and R.H. Gueting. It shows how simplices and operations on them together with some generic set operations can be used
  * to reimplement the ROSE algebra.
  * <p>
  * This work is part of the Ph.D. thesis of Dirk Ansorge.

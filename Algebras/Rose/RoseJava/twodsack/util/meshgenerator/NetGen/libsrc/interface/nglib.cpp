@@ -58,9 +58,9 @@ namespace nglib
 // initialize, deconstruct Netgen library:
 void Ng_Init ()
 {
-  mycout = &cout;
-  myerr = &cerr;
-  testout = new ofstream ("test.out");
+  mycout = &std::cout;
+  myerr = &std::cerr;
+  testout = new std::ofstream ("test.out");
 }
 
 void Ng_Exit ()
@@ -374,7 +374,7 @@ Ng_STL_Geometry * Ng_STL_LoadGeometry (const char * filename, int binary)
   int i;
   STLGeometry geom;
   STLGeometry* geo;
-  ifstream ist(filename);
+  std::ifstream ist(filename);
 
   if (binary)
     {
@@ -513,22 +513,22 @@ Ng_Result Ng_STL_GenerateSurfaceMesh (Ng_STL_Geometry * geom,
   int retval = STLSurfaceMeshing (*stlgeometry, *me);
   if (retval == MESHING3_OK)
     {
-      (*mycout) << "Success !!!!" << endl;
+      (*mycout) << "Success !!!!" << std::endl;
       stlgeometry->surfacemeshed = 1;
       stlgeometry->surfaceoptimized = 0;
       stlgeometry->volumemeshed = 0;
     } 
   else if (retval == MESHING3_OUTERSTEPSEXCEEDED)
     {
-      (*mycout) << "ERROR: Give up because of too many trials. Meshing aborted!" << endl;
+      (*mycout) << "ERROR: Give up because of too many trials. Meshing aborted!" << std::endl;
     }
   else if (retval == MESHING3_TERMINATE)
     {
-      (*mycout) << "Meshing Stopped!" << endl;
+      (*mycout) << "Meshing Stopped!" << std::endl;
     }
   else
     {
-      (*mycout) << "ERROR: Surface meshing not successful. Meshing aborted!" << endl;
+      (*mycout) << "ERROR: Surface meshing not successful. Meshing aborted!" << std::endl;
     }
 
 
@@ -590,13 +590,13 @@ namespace netgen
 
 void MyError (const char * ch)
 {
-  cerr << ch;
+  std::cerr << ch;
 }
 
 //Destination for messages, errors, ...
 void Ng_PrintDest(const char * s)
 {
-  (*mycout) << s << flush;
+  (*mycout) << s << std::flush;
 }
 
 double GetTime ()

@@ -47,7 +47,7 @@ public:
   /// Save flags to file
   void SaveFlags (const char * filename) const;
   /// write flags to stream
-  void PrintFlags (ostream & ost) const;
+  void PrintFlags (std::ostream & ost) const;
   /// Load flags from file
   void LoadFlags (const char * filename);
   /// set flag of form -name=hello -val=0.5 -defined

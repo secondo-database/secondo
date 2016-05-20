@@ -442,7 +442,7 @@ int IntersectTetTriangle (const Point3d ** tet, const Point3d ** tri,
       }
     }
 
-  (*testout) << "hit, cnt = " << cnt << endl;
+  (*testout) << "hit, cnt = " << cnt << std::endl;
   return 1;
 }
 
@@ -751,7 +751,7 @@ int IntersectTetTriangleRef (const Point3d ** tri, const int * tripi)
       }
     }
 
-  (*testout) << "hit, cnt = " << cnt << endl;
+  (*testout) << "hit, cnt = " << cnt << std::endl;
   return 1;
 }
 
@@ -823,7 +823,7 @@ int IntersectTriangleTriangle (const Point3d ** tri1, const Point3d ** tri2)
 
 	    if (IntersectTriangleLine (tri1, &line[0]))
 	      {
-		(*testout) << "int1, line = " << *line[0] << " - " << *line[1] << endl;
+		(*testout) << "int1, line = " << *line[0] << " - " << *line[1] << std::endl;
 		return 1;
 	      }
 	  }	
@@ -835,7 +835,7 @@ int IntersectTriangleTriangle (const Point3d ** tri1, const Point3d ** tri2)
 
 	    if (IntersectTriangleLine (tri2, &line[0]))
 	      {
-		(*testout) << "int2, line = " << *line[0] << " - " << *line[1] << endl;
+		(*testout) << "int2, line = " << *line[0] << " - " << *line[1] << std::endl;
 		return 1;
 	      }
 	  }	
@@ -914,7 +914,7 @@ int CalcSphereCenter (const Point3d ** pts, Point3d & c)
   Vec3d sol;
   if (SolveLinearSystem (row1, row2, row3, rhs, sol))
     {
-      (*testout) << "CalcSphereCenter: degenerated" << endl;
+      (*testout) << "CalcSphereCenter: degenerated" << std::endl;
       return 1;
     }
 
@@ -944,7 +944,7 @@ int CalcTriangleCenter (const Point3d ** pts, Point3d & c)
 
   if (fabs (a.Det()) <= 1e-12 * h * h)
     {
-      (*testout) << "CalcTriangleCenter: degenerated" << endl;
+      (*testout) << "CalcTriangleCenter: degenerated" << std::endl;
       return 1;
     }
 
@@ -1165,7 +1165,7 @@ double MinDistTP2 (const Point3d & tp1, const Point3d & tp2,
   double res2 =  - pol.MaxUnitTriangle ();
 
   if (fabs (res - res2) > 1e-8)
-    cout << "res and res2 differ: " << res << " != " << res2 << endl;
+    std::cout << "res and res2 differ: " << res << " != " << res2 << std::endl;
   return res2;
 }
 

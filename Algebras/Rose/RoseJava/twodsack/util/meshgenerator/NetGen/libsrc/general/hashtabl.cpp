@@ -38,24 +38,26 @@ namespace netgen
   }
 
 
-  ostream & operator<<(ostream  & s, const INDEX_2 & i2)
+  std::ostream & operator<<(std::ostream  & s, const INDEX_2 & i2)
   {
     return s << i2.I1() << ", " << i2.I2();
   }
 
-  ostream & operator<<(ostream  & s, const INDEX_3 & i3)
+  std::ostream & operator<<(std::ostream  & s, const INDEX_3 & i3)
   {
     return s << i3.I1() << ", " << i3.I2() << ", " << i3.I3();
   }
 
-  ostream & operator<<(ostream  & s, const INDEX_4 & i4)
+  std::ostream & operator<<(std::ostream  & s, const INDEX_4 & i4)
   {
-    return s << i4.I1() << ", " << i4.I2() << ", " << i4.I3() << ", " << i4.I4();
+    return s << i4.I1() << ", " << i4.I2() << ", " << i4.I3() 
+             << ", " << i4.I4();
   }
 
-  ostream & operator<<(ostream  & s, const INDEX_4Q & i4)
+  std::ostream & operator<<(std::ostream  & s, const INDEX_4Q & i4)
   {
-    return s << i4.I1() << ", " << i4.I2() << ", " << i4.I3() << ", " << i4.I4();
+    return s << i4.I1() << ", " << i4.I2() << ", " << i4.I3() 
+             << ", " << i4.I4();
   }
 
 
@@ -64,7 +66,7 @@ namespace netgen
     int i;
     for (i = 1; i <= hash.EntrySize (bnr); i++)
       if (hash.Get(bnr, i) == ind)
-	return i;
+    return i;
     return 0;
   }
 
@@ -76,12 +78,12 @@ namespace netgen
     int i;
     for (i = 1; i <= hash.EntrySize (bnr); i++)
       if (hash.Get(bnr, i) == ind)
-	return i;
+    return i;
     return 0;
   }
   */  
 
-  void BASE_INDEX_2_HASHTABLE :: PrintStat (ostream & ost) const
+  void BASE_INDEX_2_HASHTABLE :: PrintStat (std::ostream & ost) const
   {
     int n = hash.Size();
     int i;
@@ -89,15 +91,15 @@ namespace netgen
 
     for (i = 1; i <= n; i++)
       {
-	sumn += hash.EntrySize(i);
-	sumnn += sqr (hash.EntrySize(i));
+    sumn += hash.EntrySize(i);
+    sumnn += sqr (hash.EntrySize(i));
       }
 
-    ost << "Hashtable: " << endl
-	<< "size             : " << n << endl
-	<< "elements per row : " << (double(sumn) / double(n)) << endl
-	<< "av. acces time   : " 
-	<< (sumn ? (double (sumnn) / double(sumn)) : 0) << endl;
+    ost << "Hashtable: " << std::endl
+    << "size             : " << n << std::endl
+    << "elements per row : " << (double(sumn) / double(n)) << std::endl
+    << "av. acces time   : " 
+    << (sumn ? (double (sumnn) / double(sumn)) : 0) << std::endl;
   }
 
 
@@ -163,10 +165,10 @@ namespace netgen
     i = HashValue(ind);
     while (1)
       {
-	i++;
-	if (i > hash.Size()) i = 1;
-	if (hash.Get(i) == ind) return i;
-	if (hash.Get(i).I1() == invalid) return 0;
+    i++;
+    if (i > hash.Size()) i = 1;
+    if (hash.Get(i) == ind) return i;
+    if (hash.Get(i).I1() == invalid) return 0;
       }
   }
 
@@ -180,19 +182,19 @@ namespace netgen
     i = HashValue(ind);
     while (1)
       {
-	i++;
-	if (i > hash.Size()) i = 1;
-	if (hash.Get(i) == ind) 
-	  {
-	    apos = i;
-	    return 0;
-	  }
-	if (hash.Get(i).I1() == invalid) 
-	  {
-	    hash.Elem(i) = ind;
-	    apos = i;
-	    return 1;
-	  }
+    i++;
+    if (i > hash.Size()) i = 1;
+    if (hash.Get(i) == ind) 
+      {
+        apos = i;
+        return 0;
+      }
+    if (hash.Get(i).I1() == invalid) 
+      {
+        hash.Elem(i) = ind;
+        apos = i;
+        return 1;
+      }
       }
   }
 
@@ -202,7 +204,7 @@ namespace netgen
     int cnt = 0;
     for (i = 1; i <= n; i++)
       if (hash.Get(i).I1() != invalid)
-	cnt++;
+    cnt++;
     return cnt;
   }
 
@@ -246,10 +248,10 @@ namespace netgen
     i = HashValue(ind);
     while (1)
       {
-	i++;
-	if (i > hash.Size()) i = 1;
-	if (hash.Get(i) == ind) return i;
-	if (hash.Get(i).I1() == invalid) return 0;
+    i++;
+    if (i > hash.Size()) i = 1;
+    if (hash.Get(i) == ind) return i;
+    if (hash.Get(i).I1() == invalid) return 0;
       }
   }
 
@@ -263,19 +265,19 @@ namespace netgen
     i = HashValue(ind);
     while (1)
       {
-	i++;
-	if (i > hash.Size()) i = 1;
-	if (hash.Get(i) == ind) 
-	  {
-	    apos = i;
-	    return 0;
-	  }
-	if (hash.Get(i).I1() == invalid) 
-	  {
-	    hash.Elem(i) = ind;
-	    apos = i;
-	    return 1;
-	  }
+    i++;
+    if (i > hash.Size()) i = 1;
+    if (hash.Get(i) == ind) 
+      {
+        apos = i;
+        return 0;
+      }
+    if (hash.Get(i).I1() == invalid) 
+      {
+        hash.Elem(i) = ind;
+        apos = i;
+        return 1;
+      }
       }
   }
 
@@ -285,7 +287,7 @@ namespace netgen
     int cnt = 0;
     for (i = 1; i <= n; i++)
       if (hash.Get(i).I1() != invalid)
-	cnt++;
+    cnt++;
     return cnt;
   }
 

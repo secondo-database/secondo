@@ -154,7 +154,7 @@ public:
 };
 
 
-extern ostream & operator<< (ostream & ost, const DenseMatrix & m);
+extern std::ostream & operator<< (std::ostream & ost, const DenseMatrix & m);
 
 
 

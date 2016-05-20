@@ -11,6 +11,8 @@
 #include <mystdlib.h>
 #include <myadt.hpp>
 
+using namespace std;
+
 namespace netgen
 {
   using namespace netgen;

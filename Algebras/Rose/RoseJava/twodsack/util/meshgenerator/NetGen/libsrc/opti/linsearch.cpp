@@ -21,6 +21,7 @@
 #include <linalg.hpp>
 #include "opti.hpp"
 
+using namespace std;
 
 namespace netgen
 {
@@ -72,18 +73,20 @@ double MinFunction :: FuncGrad (const Vector & x, Vector & g) const
 }
 
 
-double MinFunction :: FuncDeriv (const Vector & x, const Vector & dir, double & deriv) const
+double MinFunction :: FuncDeriv (const Vector & x, 
+                      const Vector & dir, double & deriv) const
 {
   Vector g(x.Size());
   double f = FuncGrad (x, g);
   deriv = (g * dir);
 
-  //  (*testout) << "g = " << g << ", dir = " << dir << ", deriv = " << deriv << endl;
+  //  (*testout) << "g = " << g << ", dir = " << dir 
+  //             << ", deriv = " << deriv << endl;
   return f;
 }
 
 void MinFunction :: ApproximateHesse (const Vector & x,
-				      DenseMatrix & hesse) const
+                      DenseMatrix & hesse) const
 {
   int n = x.Size();
   int i, j;
@@ -97,24 +100,24 @@ void MinFunction :: ApproximateHesse (const Vector & x,
   for (i = 1; i <= n; i++)
     {
       for (j = 1; j < i; j++)
-	{
-	  hx = x;
-	  hx.Elem(i) = x.Get(i) + eps;
-	  hx.Elem(j) = x.Get(j) + eps;
-	  f11 = Func(hx);
-	  hx.Elem(i) = x.Get(i) + eps;
-	  hx.Elem(j) = x.Get(j) - eps;
-	  f12 = Func(hx);
-	  hx.Elem(i) = x.Get(i) - eps;
-	  hx.Elem(j) = x.Get(j) + eps;
-	  f21 = Func(hx);
-	  hx.Elem(i) = x.Get(i) - eps;
-	  hx.Elem(j) = x.Get(j) - eps;
-	  f22 = Func(hx);
+    {
+      hx = x;
+      hx.Elem(i) = x.Get(i) + eps;
+      hx.Elem(j) = x.Get(j) + eps;
+      f11 = Func(hx);
+      hx.Elem(i) = x.Get(i) + eps;
+      hx.Elem(j) = x.Get(j) - eps;
+      f12 = Func(hx);
+      hx.Elem(i) = x.Get(i) - eps;
+      hx.Elem(j) = x.Get(j) + eps;
+      f21 = Func(hx);
+      hx.Elem(i) = x.Get(i) - eps;
+      hx.Elem(j) = x.Get(j) - eps;
+      f22 = Func(hx);
 
-	  hesse.Elem(i, j) = hesse.Elem(j, i) =
-	    (f11 + f22 - f12 - f21) / (2 * eps * eps);
-	}
+      hesse.Elem(i, j) = hesse.Elem(j, i) =
+        (f11 + f22 - f12 - f21) / (2 * eps * eps);
+    }
 
       hx = x;
       f = Func(x);
@@ -136,25 +139,25 @@ void MinFunction :: ApproximateHesse (const Vector & x,
 
 /// Line search, modified Mangasarien conditions
 void lines (Vector & x,         // i: initial point of line-search
-	    Vector & xneu,      // o: solution, if successful
-	    Vector & p,         // i: search direction
-	    double & f,         // i: function-value at x
-	    // o: function-value at xneu, iff ifail = 0
-	    Vector & g,         // i: gradient at x
-	    // o: gradient at xneu, iff ifail = 0
-	    const MinFunction & fun,  // function to minimize
-	    const OptiParameters & par,
-	     double & alphahat,  // i: initial value for alpha_hat
-	    // o: solution alpha iff ifail = 0
-	     double fmin,        // i: lower bound for f
-	     double mu1,         // i: Parameter mu_1 of Alg.2.1
-	     double sigma,       // i: Parameter sigma of Alg.2.1
-	     double xi1,         // i: Parameter xi_1 of Alg.2.1
-	     double xi2,         // i: Parameter xi_1 of Alg.2.1
-	     double tau,         // i: Parameter tau of Alg.2.1
-	     double tau1,        // i: Parameter tau_1 of Alg.2.1
-	     double tau2,        // i: Parameter tau_2 of Alg.2.1
-	     int & ifail)        // o: 0 on success
+        Vector & xneu,      // o: solution, if successful
+        Vector & p,         // i: search direction
+        double & f,         // i: function-value at x
+        // o: function-value at xneu, iff ifail = 0
+        Vector & g,         // i: gradient at x
+        // o: gradient at xneu, iff ifail = 0
+        const MinFunction & fun,  // function to minimize
+        const OptiParameters & par,
+         double & alphahat,  // i: initial value for alpha_hat
+        // o: solution alpha iff ifail = 0
+         double fmin,        // i: lower bound for f
+         double mu1,         // i: Parameter mu_1 of Alg.2.1
+         double sigma,       // i: Parameter sigma of Alg.2.1
+         double xi1,         // i: Parameter xi_1 of Alg.2.1
+         double xi2,         // i: Parameter xi_1 of Alg.2.1
+         double tau,         // i: Parameter tau of Alg.2.1
+         double tau1,        // i: Parameter tau_1 of Alg.2.1
+         double tau2,        // i: Parameter tau_2 of Alg.2.1
+         int & ifail)        // o: 0 on success
   //    -1 bei termination because lower limit fmin
   //     1 bei illegal termination due to different reasons
 
@@ -197,94 +200,95 @@ void lines (Vector & x,         // i: initial point of line-search
       //      (*testout) << "f = " << f << " phip = " << phihatprime << endl;
 
       if (f < fmin)
-	{
-	  ifail = -1;
-	  break;
-	}
+    {
+      ifail = -1;
+      break;
+    }
 
 
       if (alpha2 - alpha1 < eps0 * alpha2)
-	{
-	  ifail = 0;
-	  break;
-	}
+    {
+      ifail = 0;
+      break;
+    }
 
-      //      (*testout) << "i = " << it << " al = " << alphahat << " f = " << f << " fprime " << phihatprime << endl;;
+      //      (*testout) << "i = " << it << " al = " << alphahat << " f = " 
+      //                 << f << " fprime " << phihatprime << endl;;
 
       if (f - phi0 > mu1 * alphahat * phi1prime + eps0 * fabs (phi0))
 
-	{
+    {
 
-	  flag = 0;
-	  alpha2 = alphahat;
+      flag = 0;
+      alpha2 = alphahat;
 
-	  c = 
-	    (f - phi1 - phi1prime * (alphahat-alpha1)) / 
-	    sqr (alphahat-alpha1);
+      c = 
+        (f - phi1 - phi1prime * (alphahat-alpha1)) / 
+        sqr (alphahat-alpha1);
 
-	  alphahat = alpha1 - 0.5 * phi1prime / c;
+      alphahat = alpha1 - 0.5 * phi1prime / c;
 
-	  if (alphahat > alpha2)
-	    alphahat = alpha1 + 1/(4*c) *
-	      ( (sigma+mu1) * phi0prime - 2*phi1prime
-		+ sqrt (sqr(phi1prime - mu1 * phi0prime) -
-			4 * (phi1 - phi0 - mu1 * alpha1 * phi0prime) * c));
+      if (alphahat > alpha2)
+        alphahat = alpha1 + 1/(4*c) *
+          ( (sigma+mu1) * phi0prime - 2*phi1prime
+        + sqrt (sqr(phi1prime - mu1 * phi0prime) -
+            4 * (phi1 - phi0 - mu1 * alpha1 * phi0prime) * c));
 
-	  alphahat = max2 (alphahat, alpha1 + tau * (alpha2 - alpha1));
-	  alphahat = min2 (alphahat, alpha2 - tau * (alpha2 - alpha1));
-	  
-	  //	  (*testout) << " if-branch" << endl;
+      alphahat = max2 (alphahat, alpha1 + tau * (alpha2 - alpha1));
+      alphahat = min2 (alphahat, alpha2 - tau * (alpha2 - alpha1));
+      
+      //      (*testout) << " if-branch" << endl;
 
-	}
+    }
 
       else
 
-	{
-	  /*
-	  f = fun.FuncGrad (xneu, g);
-	  phihatprime = g * p;
-	  */
-	  f = fun.FuncDeriv (xneu, p, phihatprime);
+    {
+      /*
+      f = fun.FuncGrad (xneu, g);
+      phihatprime = g * p;
+      */
+      f = fun.FuncDeriv (xneu, p, phihatprime);
 
-	  if (phihatprime < sigma * phi0prime * (1 + eps0))
+      if (phihatprime < sigma * phi0prime * (1 + eps0))
 
-	    {
-	      if (phi1prime < phihatprime)   
-		// Approximationsfunktion ist konvex
+        {
+          if (phi1prime < phihatprime)   
+        // Approximationsfunktion ist konvex
 
-		alphaincr = (alphahat - alpha1) * phihatprime /
-		  (phi1prime - phihatprime);
+        alphaincr = (alphahat - alpha1) * phihatprime /
+          (phi1prime - phihatprime);
 
-	      else
-		alphaincr = 1e99; // MAXDOUBLE;
+          else
+        alphaincr = 1e99; // MAXDOUBLE;
 
-	      if (flag)
-		{
-		  alphaincr = max2 (alphaincr, xi1 * (alphahat-alpha1));
-		  alphaincr = min2 (alphaincr, xi2 * (alphahat-alpha1));
-		}
-	      else
-		{
-		  alphaincr = max2 (alphaincr, tau1 * (alpha2 - alphahat));
-		  alphaincr = min2 (alphaincr, tau2 * (alpha2 - alphahat));
-		}
+          if (flag)
+        {
+          alphaincr = max2 (alphaincr, xi1 * (alphahat-alpha1));
+          alphaincr = min2 (alphaincr, xi2 * (alphahat-alpha1));
+        }
+          else
+        {
+          alphaincr = max2 (alphaincr, tau1 * (alpha2 - alphahat));
+          alphaincr = min2 (alphaincr, tau2 * (alpha2 - alphahat));
+        }
 
-	      alpha1 = alphahat;
-	      alphahat += alphaincr;
-	      phi1 = f;
-	      phi1prime = phihatprime;
-	    }
+          alpha1 = alphahat;
+          alphahat += alphaincr;
+          phi1 = f;
+          phi1prime = phihatprime;
+        }
 
-	  else
+      else
 
-	    {
-	      ifail = 0;     // Erfolg !!
-	      break;
-	    }
-	  
-	  //	  (*testout) << " else, " << endl;
+        {
+          ifail = 0;     // Erfolg !!
+          break;
+        }
+      
+      //      (*testout) << " else, " << endl;
 
-	}
+    }
 
     }
 
@@ -318,7 +322,7 @@ void lines (Vector & x,         // i: initial point of line-search
 
 
 void SteepestDescent (Vector & x, const MinFunction & fun,
-		      const OptiParameters & par)
+              const OptiParameters & par)
 {
   int it, n = x.Size();
   Vector xnew(n), p(n), g(n), g2(n);
@@ -337,7 +341,7 @@ void SteepestDescent (Vector & x, const MinFunction & fun,
       p.Set (-1, g);
 
       lines (x, xnew, p, val, g, fun, par, alphahat, -1e5,
-	     0.1, 0.1, 1, 10, 0.1, 0.1, 0.6, fail);
+         0.1, 0.1, 1, 10, 0.1, 0.1, 0.6, fail);
 
       x = xnew;
     }

@@ -432,11 +432,11 @@ public:
   void Compress ();
 
   ///
-  void Save (const string & filename) const;
+  void Save (const std::string & filename) const;
   ///
-  void Load (const string & filename);
+  void Load (const std::string & filename);
   ///
-  void Merge (const string & filename);
+  void Merge (const std::string & filename);
 
 
   ///
@@ -609,7 +609,7 @@ public:
   ///
   friend void OptimizeRestart (Mesh & mesh3d);
   ///
-  void PrintMemInfo (ostream & ost) const;
+  void PrintMemInfo (std::ostream & ost) const;
   /// 
   friend class Meshing3;
 };

@@ -7,13 +7,15 @@
 #include <opti.hpp>
 
 
+using namespace std;
+
 namespace netgen
 {
   
 
   PointFunction1 :: PointFunction1 (Mesh::T_POINTS & apoints, 
-				    const ARRAY<INDEX_3> & afaces,
-				    double ah)
+                    const ARRAY<INDEX_3> & afaces,
+                    double ah)
     : points(apoints), faces(afaces)
   {
     h = ah;
@@ -28,13 +30,13 @@ namespace netgen
 
     for (j = 0; j < faces.Size(); j++)
       {
-	const INDEX_3 & el = faces[j];
+    const INDEX_3 & el = faces[j];
 
-	double bad = CalcTetBadness (points[el.I1()], 
-				     points[el.I3()], 
-				     points[el.I2()], 
-				     pp, 0);
-	badness += bad;
+    double bad = CalcTetBadness (points[el.I1()], 
+                     points[el.I3()], 
+                     points[el.I2()], 
+                     pp, 0);
+    badness += bad;
       }
  
     return badness;
@@ -51,8 +53,8 @@ namespace netgen
     double dirlen = dir.L2Norm();
     if (dirlen < 1e-14)
       {
-	deriv = 0;
-	return Func(x);
+    deriv = 0;
+    return Func(x);
       }
 
     hx.Set(1, x);
@@ -76,13 +78,13 @@ namespace netgen
     hx = x;
     for (int i = 1; i <= 3; i++)
       {
-	hx.Elem(i) = x.Get(i) + eps * h;
-	double fr = Func (hx);
-	hx.Elem(i) = x.Get(i) - eps * h;
-	double fl = Func (hx);
-	hx.Elem(i) = x.Get(i);
+    hx.Elem(i) = x.Get(i) + eps * h;
+    double fr = Func (hx);
+    hx.Elem(i) = x.Get(i) - eps * h;
+    double fl = Func (hx);
+    hx.Elem(i) = x.Get(i);
 
-	g.Elem(i) = (fr - fl) / (2 * eps * h);
+    g.Elem(i) = (fr - fl) / (2 * eps * h);
       }
 
     return Func(x);
@@ -107,16 +109,16 @@ namespace netgen
     double h;
   public:
     CheapPointFunction1 (Mesh::T_POINTS & apoints, 
-			 const ARRAY<INDEX_3> & afaces,
-			 double ah);
+             const ARRAY<INDEX_3> & afaces,
+             double ah);
   
     virtual double Func (const Vector & x) const;
     virtual double FuncGrad (const Vector & x, Vector & g) const;
   };
 
   CheapPointFunction1 :: CheapPointFunction1 (Mesh::T_POINTS & apoints, 
-					      const ARRAY<INDEX_3> & afaces,
-					      double ah)
+                          const ARRAY<INDEX_3> & afaces,
+                          double ah)
     : points(apoints), faces(afaces)
   {
     h = ah;
@@ -128,19 +130,19 @@ namespace netgen
   
     for (i = 1; i <= nf; i++)
       {
-	const Point3d & p1 = points[faces.Get(i).I1()];
-	const Point3d & p2 = points[faces.Get(i).I2()];
-	const Point3d & p3 = points[faces.Get(i).I3()];
-	Vec3d v1 (p1, p2);
-	Vec3d v2 (p1, p3);
-	Vec3d n;
-	Cross (v1, v2, n);
-	n /= n.Length();
+    const Point3d & p1 = points[faces.Get(i).I1()];
+    const Point3d & p2 = points[faces.Get(i).I2()];
+    const Point3d & p3 = points[faces.Get(i).I3()];
+    Vec3d v1 (p1, p2);
+    Vec3d v2 (p1, p3);
+    Vec3d n;
+    Cross (v1, v2, n);
+    n /= n.Length();
 
-	m.Elem(i, 1) = n.X();
-	m.Elem(i, 2) = n.Y();
-	m.Elem(i, 3) = n.Z();
-	m.Elem(i, 4) = - (n.X() * p1.X() + n.Y() * p1.Y() + n.Z() * p1.Z());
+    m.Elem(i, 1) = n.X();
+    m.Elem(i, 2) = n.Y();
+    m.Elem(i, 3) = n.Z();
+    m.Elem(i, 4) = - (n.X() * p1.X() + n.Y() * p1.Y() + n.Z() * p1.Z());
       } 
   }
   
@@ -178,10 +180,10 @@ namespace netgen
 
     for (i = 1; i <= res.Size(); i++)
       {
-	if (res.Get(i) < 1e-10)
-	  badness += 1e24;
-	else
-	  badness += 1 / res.Get(i);
+    if (res.Get(i) < 1e-10)
+      badness += 1e24;
+    else
+      badness += 1 / res.Get(i);
       }
  
     return badness;
@@ -196,13 +198,13 @@ namespace netgen
     hx = x;
     for (int i = 1; i <= 3; i++)
       {
-	hx.Elem(i) = x.Get(i) + eps * h;
-	double fr = Func (hx);
-	hx.Elem(i) = x.Get(i) - eps * h;
-	double fl = Func (hx);
-	hx.Elem(i) = x.Get(i);
+    hx.Elem(i) = x.Get(i) + eps * h;
+    double fr = Func (hx);
+    hx.Elem(i) = x.Get(i) - eps * h;
+    double fl = Func (hx);
+    hx.Elem(i) = x.Get(i);
 
-	g.Elem(i) = (fr - fl) / (2 * eps * h);
+    g.Elem(i) = (fr - fl) / (2 * eps * h);
       }
 
     return Func(x);
@@ -236,21 +238,23 @@ namespace netgen
   
   public:
     PointFunction (Mesh::T_POINTS & apoints, 
-		   const Mesh::T_VOLELEMENTS & aelements);
+           const Mesh::T_VOLELEMENTS & aelements);
   
     virtual void SetPointIndex (PointIndex aactpind);
     void SetLocalH (double ah) { h = ah; }
     double GetLocalH () const { return h; }
     virtual double PointFunctionValue (const Point3d & pp) const;
-    virtual double PointFunctionValueGrad (const Point3d & pp, Vector & grad) const;
-    virtual double PointFunctionValueDeriv (const Point3d & pp, const Vec3d & dir, double & deriv) const;
+    virtual double PointFunctionValueGrad (const Point3d & pp, 
+                                           Vector & grad) const;
+    virtual double PointFunctionValueDeriv (const Point3d & pp, 
+                           const Vec3d & dir, double & deriv) const;
 
     int MovePointToInner ();
   };
 
 
   PointFunction :: PointFunction (Mesh::T_POINTS & apoints, 
-				  const Mesh::T_VOLELEMENTS & aelements)
+                  const Mesh::T_VOLELEMENTS & aelements)
     : points(apoints), elements(aelements), elementsonpoint(apoints.Size())
   {
     INDEX i;
@@ -258,9 +262,9 @@ namespace netgen
   
     for (i = 1; i <= elements.Size(); i++)
       {
-	if (elements.Get(i).NP() == 4)
-	  for (j = 1; j <= elements.Get(i).NP(); j++)
-	    elementsonpoint.Add (elements.Get(i).PNum(j), i);  
+    if (elements.Get(i).NP() == 4)
+      for (j = 1; j <= elements.Get(i).NP(); j++)
+        elementsonpoint.Add (elements.Get(i).PNum(j), i);  
       }
   }
 
@@ -285,12 +289,12 @@ namespace netgen
 
     for (j = 0; j < elementsonpoint[actpind].Size(); j++)
       {
-	eli = elementsonpoint[actpind][j];
-	el = &elements.Get(eli);
-	badness += CalcTetBadness (points[el->PNum(1)], 
-				   points[el->PNum(2)], 
-				   points[el->PNum(3)], 
-				   points[el->PNum(4)], -1);
+    eli = elementsonpoint[actpind][j];
+    el = &elements.Get(eli);
+    badness += CalcTetBadness (points[el->PNum(1)], 
+                   points[el->PNum(2)], 
+                   points[el->PNum(3)], 
+                   points[el->PNum(4)], -1);
       }
   
     points[actpind] = hp; 
@@ -298,7 +302,8 @@ namespace netgen
   }
 
 
-  double PointFunction :: PointFunctionValueGrad (const Point3d & pp, Vector & grad) const
+  double PointFunction :: PointFunctionValueGrad (const Point3d & pp, 
+                                                 Vector & grad) const
   {
     double f, delta = h * 1e-6;
     Point3d hpp;
@@ -344,18 +349,18 @@ namespace netgen
 
     for (j = 0; j < elementsonpoint[actpind].Size(); j++)
       {
-	eli = elementsonpoint[actpind][j];
-	const Element & el = elements.Get(eli);
+    eli = elementsonpoint[actpind][j];
+    const Element & el = elements.Get(eli);
 
-	for (k = 1; k <= 4; k++)
-	  if (el.PNum(k) == actpind)
-	    {
-	      CalcTetBadnessGrad (points[el.PNum(1)], 
-				  points[el.PNum(2)], 
-				  points[el.PNum(3)], 
-				  points[el.PNum(4)], -1, k, vgradi);
-	      vgrad += vgradi;
-	    }
+    for (k = 1; k <= 4; k++)
+      if (el.PNum(k) == actpind)
+        {
+          CalcTetBadnessGrad (points[el.PNum(1)], 
+                  points[el.PNum(2)], 
+                  points[el.PNum(3)], 
+                  points[el.PNum(4)], -1, k, vgradi);
+          vgrad += vgradi;
+        }
       }
     points[actpind] = hp; 
 
@@ -366,8 +371,9 @@ namespace netgen
   }
 
 
-  double PointFunction :: PointFunctionValueDeriv (const Point3d & pp, const Vec3d & dir,
-						   double & deriv) const
+  double PointFunction :: PointFunctionValueDeriv (const Point3d & pp, 
+                           const Vec3d & dir,
+                           double & deriv) const
   {
     double f;
     Point3d hpp;
@@ -389,19 +395,19 @@ namespace netgen
 
     for (j = 0; j < elementsonpoint[actpind].Size(); j++)
       {
-	eli = elementsonpoint[actpind][j];
-	const Element & el = elements.Get(eli);
+    eli = elementsonpoint[actpind][j];
+    const Element & el = elements.Get(eli);
 
-	for (k = 1; k <= 4; k++)
-	  if (el.PNum(k) == actpind)
-	    {
-	      f += CalcTetBadnessGrad (points[el.PNum(1)], 
-				       points[el.PNum(2)], 
-				       points[el.PNum(3)], 
-				       points[el.PNum(4)], -1, k, vgradi);
+    for (k = 1; k <= 4; k++)
+      if (el.PNum(k) == actpind)
+        {
+          f += CalcTetBadnessGrad (points[el.PNum(1)], 
+                       points[el.PNum(2)], 
+                       points[el.PNum(3)], 
+                       points[el.PNum(4)], -1, k, vgradi);
 
-	      vgrad += vgradi;
-	    }
+          vgrad += vgradi;
+        }
       }
 
     points[actpind] = hp; 
@@ -418,25 +424,25 @@ namespace netgen
   
     for (j = 0; j < elementsonpoint[actpind].Size(); j++)
       {
-	const Element & el = 
-	  elements.Get(elementsonpoint[actpind][j]);
+    const Element & el = 
+      elements.Get(elementsonpoint[actpind][j]);
       
-	for (k = 1; k <= 4; k++)
-	  if (el.PNum(k) == actpind)
-	    {
-	      Element2d face;
-	      el.GetFace (k, face);
-	      Swap (face.PNum(2), face.PNum(3));
-	      faces.Append (face);
-	    }
+    for (k = 1; k <= 4; k++)
+      if (el.PNum(k) == actpind)
+        {
+          Element2d face;
+          el.GetFace (k, face);
+          Swap (face.PNum(2), face.PNum(3));
+          faces.Append (face);
+        }
       }
   
     Point3d hp;
     int hi = FindInnerPoint (points, faces, hp);
     if (hi)
       {
-	cout << "inner point found" << endl;
-	points[actpind] = hp;
+    cout << "inner point found" << endl;
+    points[actpind] = hp;
       }
     else
       cout << "no inner point found" << endl;
@@ -454,15 +460,16 @@ namespace netgen
     DenseMatrix m;
   public:
     CheapPointFunction (Mesh::T_POINTS & apoints, 
-			const Mesh::T_VOLELEMENTS & aelements);
+            const Mesh::T_VOLELEMENTS & aelements);
     virtual void SetPointIndex (PointIndex aactpind);
     virtual double PointFunctionValue (const Point3d & pp) const;
-    virtual double PointFunctionValueGrad (const Point3d & pp, Vector & grad) const;
+    virtual double PointFunctionValueGrad (const Point3d & pp, 
+                                           Vector & grad) const;
   };
 
 
   CheapPointFunction :: CheapPointFunction (Mesh::T_POINTS & apoints, 
-					    const Mesh::T_VOLELEMENTS & aelements)
+                        const Mesh::T_VOLELEMENTS & aelements)
     : PointFunction (apoints, aelements)
   {
     ;
@@ -481,38 +488,38 @@ namespace netgen
 
     for (i = 0; i < n; i++)
       {
-	pi1 = 0;
-	pi2 = 0;
-	pi3 = 0;
+    pi1 = 0;
+    pi2 = 0;
+    pi3 = 0;
 
-	const Element & el = elements.Get (elementsonpoint[actpind][i]);
-	for (j = 1; j <= 4; j++)
-	  if (el.PNum(j) != actpind)
-	    {
-	      pi3 = pi2;
-	      pi2 = pi1;
-	      pi1 = el.PNum(j);
-	    }
+    const Element & el = elements.Get (elementsonpoint[actpind][i]);
+    for (j = 1; j <= 4; j++)
+      if (el.PNum(j) != actpind)
+        {
+          pi3 = pi2;
+          pi2 = pi1;
+          pi1 = el.PNum(j);
+        }
 
-	const Point3d & p1 = points[pi1];
-	Vec3d v1 (p1, points[pi2]);
-	Vec3d v2 (p1, points[pi3]);
-	Vec3d n;
-	Cross (v1, v2, n);
-	n /= n.Length();
+    const Point3d & p1 = points[pi1];
+    Vec3d v1 (p1, points[pi2]);
+    Vec3d v2 (p1, points[pi3]);
+    Vec3d n;
+    Cross (v1, v2, n);
+    n /= n.Length();
 
-	Vec3d v (p1, points[actpind]);
-	double c = v * n;
+    Vec3d v (p1, points[actpind]);
+    double c = v * n;
       
-	if (c < 0)
-	  n *= -1;    
+    if (c < 0)
+      n *= -1;    
       
-	// n is inner normal
+    // n is inner normal
 
-	m.Elem(i, 1) = n.X();
-	m.Elem(i, 2) = n.Y();
-	m.Elem(i, 3) = n.Z();
-	m.Elem(i, 4) = - (n.X() * p1.X() + n.Y() * p1.Y() + n.Z() * p1.Z());
+    m.Elem(i, 1) = n.X();
+    m.Elem(i, 2) = n.Y();
+    m.Elem(i, 3) = n.Z();
+    m.Elem(i, 4) = - (n.X() * p1.X() + n.Y() * p1.Y() + n.Z() * p1.Z());
       }
   }
 
@@ -533,10 +540,10 @@ namespace netgen
     double sum = 0;
     for (int i = 1; i <= n; i++)
       {
-	if (di.Get(i) > 0)
-	  sum += 1 / di.Get(i);
-	else
-	  return 1e16;
+    if (di.Get(i) > 0)
+      sum += 1 / di.Get(i);
+    else
+      return 1e16;
       }
     return sum;
   }
@@ -544,7 +551,8 @@ namespace netgen
 
 
 
-  double CheapPointFunction :: PointFunctionValueGrad (const Point3d & pp, Vector & grad) const
+  double CheapPointFunction :: PointFunctionValueGrad (const Point3d & pp, 
+                                                   Vector & grad) const
   {
     static Vector p4(4);
     static Vector di;
@@ -564,18 +572,18 @@ namespace netgen
     grad = 0;
     for (int i = 1; i <= n; i++)
       {
-	if (di.Get(i) > 0)
-	  {
-	    double idi = 1 / di.Get(i);
-	    sum += idi;
-	    grad.Elem(1) -= idi * idi * m.Get(i, 1);
-	    grad.Elem(2) -= idi * idi * m.Get(i, 2);
-	    grad.Elem(3) -= idi * idi * m.Get(i, 3);
-	  }
-	else
-	  {
-	    return 1e16;
-	  }
+    if (di.Get(i) > 0)
+      {
+        double idi = 1 / di.Get(i);
+        sum += idi;
+        grad.Elem(1) -= idi * idi * m.Get(i, 1);
+        grad.Elem(2) -= idi * idi * m.Get(i, 2);
+        grad.Elem(3) -= idi * idi * m.Get(i, 3);
+      }
+    else
+      {
+        return 1e16;
+      }
       }
     return sum;
   }
@@ -597,10 +605,11 @@ namespace netgen
     void SetPoint (const Point3d & asp1) { sp1 = asp1; }
     virtual double Func (const Vector & x) const;
     virtual double FuncGrad (const Vector & x, Vector & g) const;
-    virtual double FuncDeriv (const Vector & x, const Vector & dir, double & deriv) const;  
+    virtual double FuncDeriv (const Vector & x, 
+                             const Vector & dir, double & deriv) const;  
     virtual double GradStopping (const Vector & x) const;
     virtual void ApproximateHesse (const Vector & x,
-				   DenseMatrix & hesse) const;
+                   DenseMatrix & hesse) const;
   };
 
 
@@ -622,7 +631,8 @@ namespace netgen
     return pf.PointFunctionValue (pp);
   }
   
-  double Opti3FreeMinFunction :: FuncGrad (const Vector & x, Vector & grad) const
+  double Opti3FreeMinFunction :: FuncGrad (const Vector & x, 
+                                           Vector & grad) const
   {
     Point3d pp;
     pp.X() = sp1.X() + x.Get(1);
@@ -632,7 +642,8 @@ namespace netgen
     return pf.PointFunctionValueGrad (pp, grad);
   }
 
-  double Opti3FreeMinFunction :: FuncDeriv (const Vector & x, const Vector & dir, double & deriv) const
+  double Opti3FreeMinFunction :: FuncDeriv (const Vector & x, 
+                             const Vector & dir, double & deriv) const
   {
     Point3d pp;
     pp.X() = sp1.X() + x.Get(1);
@@ -655,7 +666,7 @@ namespace netgen
 
 
   void Opti3FreeMinFunction :: ApproximateHesse (const Vector & x,
-						 DenseMatrix & hesse) const
+                         DenseMatrix & hesse) const
   {
     int n = x.Size();
     int i, j;
@@ -671,34 +682,34 @@ namespace netgen
   
     for (i = 1; i <= n; i++)
       {
-	for (j = 1; j < i; j++)
-	  {
-	    /*
-	      hx = x;
-	      hx.Elem(i) = x.Get(i) + eps;
-	      hx.Elem(j) = x.Get(j) + eps;
-	      f11 = Func(hx);
-	      hx.Elem(i) = x.Get(i) + eps;
-	      hx.Elem(j) = x.Get(j) - eps;
-	      f12 = Func(hx);
-	      hx.Elem(i) = x.Get(i) - eps;
-	      hx.Elem(j) = x.Get(j) + eps;
-	      f21 = Func(hx);
-	      hx.Elem(i) = x.Get(i) - eps;
-	      hx.Elem(j) = x.Get(j) - eps;
-	      f22 = Func(hx);
-	    */
-	    hesse.Elem(i, j) = hesse.Elem(j, i) = 0;
-	    //	    (f11 + f22 - f12 - f21) / (2 * eps * eps);
-	  }
+    for (j = 1; j < i; j++)
+      {
+        /*
+          hx = x;
+          hx.Elem(i) = x.Get(i) + eps;
+          hx.Elem(j) = x.Get(j) + eps;
+          f11 = Func(hx);
+          hx.Elem(i) = x.Get(i) + eps;
+          hx.Elem(j) = x.Get(j) - eps;
+          f12 = Func(hx);
+          hx.Elem(i) = x.Get(i) - eps;
+          hx.Elem(j) = x.Get(j) + eps;
+          f21 = Func(hx);
+          hx.Elem(i) = x.Get(i) - eps;
+          hx.Elem(j) = x.Get(j) - eps;
+          f22 = Func(hx);
+        */
+        hesse.Elem(i, j) = hesse.Elem(j, i) = 0;
+        //        (f11 + f22 - f12 - f21) / (2 * eps * eps);
+      }
 
-	hx = x;
-	hx.Elem(i) = x.Get(i) + eps;
-	f11 = Func(hx);
-	hx.Elem(i) = x.Get(i) - eps;
-	f22 = Func(hx);
+    hx = x;
+    hx.Elem(i) = x.Get(i) + eps;
+    f11 = Func(hx);
+    hx.Elem(i) = x.Get(i) - eps;
+    f22 = Func(hx);
 
-	hesse.Elem(i, i) = (f11 + f22 - 2 * f) / (eps * eps) + 1e-12;
+    hesse.Elem(i, i) = (f11 + f22 - 2 * f) / (eps * eps) + 1e-12;
       }
   }
 
@@ -732,7 +743,8 @@ namespace netgen
     ;
   }
 
-  void Opti3SurfaceMinFunction :: SetPoint (const Surface * asurf, const Point3d & asp1)
+  void Opti3SurfaceMinFunction :: SetPoint (const Surface * asurf, 
+                                            const Point3d & asp1)
   { 
     Vec3d n;
     sp1 = asp1; 
@@ -749,7 +761,7 @@ namespace netgen
 
   
   void Opti3SurfaceMinFunction :: CalcNewPoint (const Vector & x, 
-						Point3d & np) const
+                        Point3d & np) const
   {
     np.X() = sp1.X() + x.Get(1) * t1.X() + x.Get(2) * t2.X();
     np.Y() = sp1.Y() + x.Get(1) * t1.Y() + x.Get(2) * t2.Y();
@@ -771,7 +783,8 @@ namespace netgen
 
 
 
-  double Opti3SurfaceMinFunction :: FuncGrad (const Vector & x, Vector & grad) const
+  double Opti3SurfaceMinFunction :: FuncGrad (const Vector & x, 
+                                              Vector & grad) const
   {
     Vec3d n, vgrad;
     Point3d pp1;
@@ -817,7 +830,7 @@ namespace netgen
     Opti3EdgeMinFunction (const PointFunction & apf);
   
     void SetPoint (const Surface * asurf1, const Surface * asurf2,
-		   const Point3d & asp1);
+           const Point3d & asp1);
     void CalcNewPoint (const Vector & x, Point3d & np) const; 
     virtual double FuncGrad (const Vector & x, Vector & g) const;
     virtual double Func (const Vector & x) const;
@@ -830,8 +843,8 @@ namespace netgen
   }
   
   void Opti3EdgeMinFunction :: SetPoint (const Surface * asurf1, 
-					 const Surface * asurf2, 
-					 const Point3d & asp1) 
+                     const Surface * asurf2, 
+                     const Point3d & asp1) 
   { 
     Vec3d n1, n2;
     sp1 = asp1; 
@@ -847,7 +860,7 @@ namespace netgen
   }
 
   void Opti3EdgeMinFunction :: CalcNewPoint (const Vector & x,
-					     Point3d & np) const
+                         Point3d & np) const
 {
   np.X() = sp1.X() + x.Get(1) * t1.X();
   np.Y() = sp1.Y() + x.Get(1) * t1.Y();
@@ -898,20 +911,20 @@ double Opti3EdgeMinFunction :: FuncGrad (const Vector & x, Vector & grad) const
 
 
 double CalcBad (const Mesh::T_POINTS & points, const Element & elem,
-		double h)
+        double h)
 {
   if (elem.GetType() == TET)
     return CalcTetBadness (points[elem.PNum(1)], 
-			   points[elem.PNum(2)],  
-			   points[elem.PNum(3)],  
-			   points[elem.PNum(4)], h);  
+               points[elem.PNum(2)],  
+               points[elem.PNum(3)],  
+               points[elem.PNum(4)], h);  
   return 0;
 }
 
 
 extern double teterrpow;
 double CalcTotalBad (const Mesh::T_POINTS & points, 
-		     const Mesh::T_VOLELEMENTS & elements)
+             const Mesh::T_VOLELEMENTS & elements)
 {
   int i;
   double sum = 0;
@@ -979,18 +992,19 @@ public:
   
 public:
   JacobianPointFunction (Mesh::T_POINTS & apoints, 
-			 const Mesh::T_VOLELEMENTS & aelements);
+             const Mesh::T_VOLELEMENTS & aelements);
   
   virtual void SetPointIndex (PointIndex aactpind);
   virtual double Func (const Vector & x) const;
   virtual double FuncGrad (const Vector & x, Vector & g) const;
-  virtual double FuncDeriv (const Vector & x, const Vector & dir, double & deriv) const;
+  virtual double FuncDeriv (const Vector & x, 
+                            const Vector & dir, double & deriv) const;
 };
 
 
 JacobianPointFunction :: 
 JacobianPointFunction (Mesh::T_POINTS & apoints, 
-		       const Mesh::T_VOLELEMENTS & aelements)
+               const Mesh::T_VOLELEMENTS & aelements)
   : points(apoints), elements(aelements), elementsonpoint(apoints.Size())
 {
   INDEX i;
@@ -999,7 +1013,7 @@ JacobianPointFunction (Mesh::T_POINTS & apoints,
   for (i = 1; i <= elements.Size(); i++)
     {
       for (j = 1; j <= elements.Get(i).NP(); j++)
-	elementsonpoint.Add1 (elements.Get(i).PNum(j), i);  
+    elementsonpoint.Add1 (elements.Get(i).PNum(j), i);  
     }
 }
 
@@ -1054,21 +1068,21 @@ FuncGrad (const Vector & x, Vector & g) const
 
       lpi = 0;
       for (k = 1; k <= el.GetNP(); k++)
-	if (el.PNum(k) == actpind)
-	  lpi = k;
+    if (el.PNum(k) == actpind)
+      lpi = k;
       if (!lpi) cerr << "loc point not found" << endl;
 
       for (k = 1; k <= 3; k++)
-	{
-	  vdir = Vec3d(0,0,0);
-	  vdir.X(k) = 1;
+    {
+      vdir = Vec3d(0,0,0);
+      vdir.X(k) = 1;
 
-	  hbad = elements.Get(eli).
-	    CalcJacobianBadnessDirDeriv (points, lpi, vdir, hderiv);
-	  g.Elem(k) += hderiv;
-	  if (k == 1)
-	    badness += hbad;
-	}
+      hbad = elements.Get(eli).
+        CalcJacobianBadnessDirDeriv (points, lpi, vdir, hderiv);
+      g.Elem(k) += hderiv;
+      if (k == 1)
+        badness += hbad;
+    }
     }
   
   points.Elem(actpind) = hp; 
@@ -1098,12 +1112,12 @@ FuncDeriv (const Vector & x, const Vector & dir, double & deriv) const
 
       lpi = 0;
       for (k = 1; k <= el.GetNP(); k++)
-	if (el.PNum(k) == actpind)
-	  lpi = k;
+    if (el.PNum(k) == actpind)
+      lpi = k;
       if (!lpi) cerr << "loc point not found" << endl;
 
       badness += elements.Get(eli).
-	CalcJacobianBadnessDirDeriv (points, lpi, vdir, hderiv);
+    CalcJacobianBadnessDirDeriv (points, lpi, vdir, hderiv);
       deriv += hderiv;
     }
   
@@ -1210,18 +1224,18 @@ void Mesh :: ImproveMesh (const CSGeometry & geometry, OPTIMIZEGOAL goal)
       if (ptyps.Get(i) != INNERPOINT) continue;
 
       if (multithread.terminate)
-	throw NgException ("Meshing stopped");
+    throw NgException ("Meshing stopped");
       /*
       if (multithread.terminate)
-	break;
+    break;
       */
       multithread.percent = 100.0 * i /points.Size();
 
       if (points.Size() < 1000)
-	PrintDot ();
+    PrintDot ();
       else
-	if (i % 10 == 0)
-	  PrintDot ('+');
+    if (i % 10 == 0)
+      PrintDot ('+');
       
       //    (*testout) << "Now point " << i << "\n";
       //    (*testout) << "Old: " << points.Get(i) << "\n";
@@ -1230,79 +1244,79 @@ void Mesh :: ImproveMesh (const CSGeometry & geometry, OPTIMIZEGOAL goal)
 
       //      if (uselocalh)
       {
-	double lh = GetH (points.Get(i));
-	pf->SetLocalH (GetH (points.Get(i)));
-	par.typx = lh / 10;
-	//	  (*testout) << "lh(" << points.Get(i) << ") = " << lh << "\n";
+    double lh = GetH (points.Get(i));
+    pf->SetLocalH (GetH (points.Get(i)));
+    par.typx = lh / 10;
+    //      (*testout) << "lh(" << points.Get(i) << ") = " << lh << "\n";
       }
 
       surf1 = surf2 = surf3 = 0;
 
       for (j = 1; j <= surfelementsonpoint.EntrySize(i); j++)
-	{
-	  eli = surfelementsonpoint.Get(i, j);
-	  int surfi = surfelements.Get(eli).GetIndex();
+    {
+      eli = surfelementsonpoint.Get(i, j);
+      int surfi = surfelements.Get(eli).GetIndex();
 
-	  if (surfi)
-	    {
-	      surf = GetFaceDescriptor(surfi).SurfNr();
-	    
-	      if (!surf1)
-		surf1 = surf;
-	      else if (surf1 != surf)
-		{
-		  if (!surf2)
-		    surf2 = surf;
-		  else if (surf2 != surf)
-		    surf3 = surf;
-		}
-	    }
-	  else
-	    {
-	      surf1 = surf2 = surf3 = 1;   // simulates corner point
-	    }
-	}
+      if (surfi)
+        {
+          surf = GetFaceDescriptor(surfi).SurfNr();
+        
+          if (!surf1)
+        surf1 = surf;
+          else if (surf1 != surf)
+        {
+          if (!surf2)
+            surf2 = surf;
+          else if (surf2 != surf)
+            surf3 = surf;
+        }
+        }
+      else
+        {
+          surf1 = surf2 = surf3 = 1;   // simulates corner point
+        }
+    }
 
 
       if (surf2 && !surf3)
-	{
-	  //      (*testout) << "On Edge" << "\n";
-	  /*
-	    xedge = 0;
-	    edgeminf.SetPoint (geometry.GetSurface(surf1),
-	    geometry.GetSurface(surf2), 
-	    points.Elem(i));
-	    BFGS (xedge, edgeminf, par);
+    {
+      //      (*testout) << "On Edge" << "\n";
+      /*
+        xedge = 0;
+        edgeminf.SetPoint (geometry.GetSurface(surf1),
+        geometry.GetSurface(surf2), 
+        points.Elem(i));
+        BFGS (xedge, edgeminf, par);
 
-	    edgeminf.CalcNewPoint (xedge, points.Elem(i));
-	  */
-	}
+        edgeminf.CalcNewPoint (xedge, points.Elem(i));
+      */
+    }
 
       if (surf1 && !surf2)
-	{
-	  //      (*testout) << "In Surface" << "\n";
-	  /*
-	    xsurf = 0;
-	    surfminf.SetPoint (geometry.GetSurface(surf1),
-	    points.Get(i));
-	    BFGS (xsurf, surfminf, par);
+    {
+      //      (*testout) << "In Surface" << "\n";
+      /*
+        xsurf = 0;
+        surfminf.SetPoint (geometry.GetSurface(surf1),
+        points.Get(i));
+        BFGS (xsurf, surfminf, par);
    
-	    surfminf.CalcNewPoint (xsurf, points.Elem(i));
-	  */
-	}
+        surfminf.CalcNewPoint (xsurf, points.Elem(i));
+      */
+    }
  
       if (!surf1)
-	{
-	  //      (*testout) << "In Volume" << "\n";
-	  x = 0;
-	  freeminf.SetPoint (points.Elem(i));
-	  //	  par.typx = 
-	  BFGS (x, freeminf, par);
+    {
+      //      (*testout) << "In Volume" << "\n";
+      x = 0;
+      freeminf.SetPoint (points.Elem(i));
+      //      par.typx = 
+      BFGS (x, freeminf, par);
 
-	  points.Elem(i).X() += x.Get(1);
-	  points.Elem(i).Y() += x.Get(2);
-	  points.Elem(i).Z() += x.Get(3);
-	}
+      points.Elem(i).X() += x.Get(1);
+      points.Elem(i).Y() += x.Get(2);
+      points.Elem(i).Z() += x.Get(3);
+    }
       
       //    (*testout) << "New Point: " << points.Elem(i) << "\n" << "\n";
     
@@ -1337,21 +1351,21 @@ void Mesh :: ImproveMesh (OPTIMIZEGOAL goal)
   if (goal == OPT_QUALITY)
     {
       for (int i = 1; i <= ne; i++)
-	{
-	  const Element & el = VolumeElement(i);
-	  if (el.GetType() != TET)
-	    continue;
-	  
-	  double hbad = CalcBad (points, el, 0);
-	  for (j = 0; j < 4; j++)
-	    perrs[el[j]] += hbad;
-	  
-	  bad1 += hbad;
-	}
+    {
+      const Element & el = VolumeElement(i);
+      if (el.GetType() != TET)
+        continue;
+      
+      double hbad = CalcBad (points, el, 0);
+      for (j = 0; j < 4; j++)
+        perrs[el[j]] += hbad;
+      
+      bad1 += hbad;
+    }
       
       for (PointIndex i = PointIndex::BASE; i < np+PointIndex::BASE; i++)
-	if (perrs[i] > badmax) 
-	  badmax = perrs[i];
+    if (perrs[i] > badmax) 
+      badmax = perrs[i];
       badmax = 0;
     }
 
@@ -1392,44 +1406,44 @@ void Mesh :: ImproveMesh (OPTIMIZEGOAL goal)
        i < points.Size()+PointIndex::BASE; i++)
     if (PointType(i) == INNERPOINT && perrs[i] > 0.01 * badmax)
       {
-	if (multithread.terminate)
-	  throw NgException ("Meshing stopped");
+    if (multithread.terminate)
+      throw NgException ("Meshing stopped");
 
-	multithread.percent = 100.0 * (i+1-PointIndex::BASE) / points.Size();
+    multithread.percent = 100.0 * (i+1-PointIndex::BASE) / points.Size();
 
-	if (points.Size() < 1000)
-	  PrintDot ();
-	else
-	  if ( (i+1-PointIndex::BASE) % 10 == 0)
-	    PrintDot ('+');
+    if (points.Size() < 1000)
+      PrintDot ();
+    else
+      if ( (i+1-PointIndex::BASE) % 10 == 0)
+        PrintDot ('+');
 
-	double lh = GetH(points[i]);
-	pf->SetLocalH (lh);
-	par.typx = lh;
+    double lh = GetH(points[i]);
+    pf->SetLocalH (lh);
+    par.typx = lh;
 
-	freeminf.SetPoint (points[i]);
-	pf->SetPointIndex (i);
+    freeminf.SetPoint (points[i]);
+    pf->SetPointIndex (i);
 
-	x = 0;
-	int pok;
-	pok = freeminf.Func (x) < 1e10; 
+    x = 0;
+    int pok;
+    pok = freeminf.Func (x) < 1e10; 
 
-	if (!pok)
-	  {
-	    pok = pf->MovePointToInner ();
+    if (!pok)
+      {
+        pok = pf->MovePointToInner ();
 
-	    freeminf.SetPoint (points[i]);
-	    pf->SetPointIndex (i);
-	  }
+        freeminf.SetPoint (points[i]);
+        pf->SetPointIndex (i);
+      }
 
-	if (pok)
-	  {
-	    BFGS (x, freeminf, par);
-	    
-	    points[i].X() += x.Get(1);
-	    points[i].Y() += x.Get(2);
-	    points[i].Z() += x.Get(3);
-	  }
+    if (pok)
+      {
+        BFGS (x, freeminf, par);
+        
+        points[i].X() += x.Get(1);
+        points[i].Y() += x.Get(2);
+        points[i].Z() += x.Get(3);
+      }
       }
   PrintDot ('\n');
   
@@ -1480,8 +1494,8 @@ void Mesh :: ImproveMeshJacobian (OPTIMIZEGOAL goal)
       const Element & el = VolumeElement(i);
       double bad = el.CalcJacobianBadness (Points());
       if (bad > 1)
-	for (j = 1; j <= el.GetNP(); j++)
-	  badnodes.Set (el.PNum(j));
+    for (j = 1; j <= el.GetNP(); j++)
+      badnodes.Set (el.PNum(j));
     }
 
 
@@ -1492,47 +1506,47 @@ void Mesh :: ImproveMeshJacobian (OPTIMIZEGOAL goal)
     if (PointType(i) == INNERPOINT)
       {
 
-	(*testout) << "improvejac, p = " << i << endl;
+    (*testout) << "improvejac, p = " << i << endl;
 
-	if (goal == OPT_WORSTCASE && !badnodes.Test(i))
-	  continue;
-	//	(*testout) << "smoot p " << i << endl;
+    if (goal == OPT_WORSTCASE && !badnodes.Test(i))
+      continue;
+    //    (*testout) << "smoot p " << i << endl;
 
-	/*
-	if (multithread.terminate)
-	  break;
-	*/
-	if (multithread.terminate)
-	  throw NgException ("Meshing stopped");
+    /*
+    if (multithread.terminate)
+      break;
+    */
+    if (multithread.terminate)
+      throw NgException ("Meshing stopped");
 
-	multithread.percent = 100.0 * i / points.Size();
+    multithread.percent = 100.0 * i / points.Size();
 
-	if (points.Size() < 1000)
-	  PrintDot ();
-	else
-	  if (i % 10 == 0)
-	    PrintDot ('+');
+    if (points.Size() < 1000)
+      PrintDot ();
+    else
+      if (i % 10 == 0)
+        PrintDot ('+');
 
-	double lh = GetH(points.Get(i));
-	par.typx = lh;
+    double lh = GetH(points.Get(i));
+    par.typx = lh;
 
-	pf.SetPointIndex (i);
+    pf.SetPointIndex (i);
 
-	x = 0;
-	int pok = (pf.Func (x) < 1e10); 
+    x = 0;
+    int pok = (pf.Func (x) < 1e10); 
 
-	if (pok)
-	  {
-	    BFGS (x, pf, par);
+    if (pok)
+      {
+        BFGS (x, pf, par);
 
-	    points.Elem(i).X() += x.Get(1);
-	    points.Elem(i).Y() += x.Get(2);
-	    points.Elem(i).Z() += x.Get(3);
-	  }
-	else
-	  {
-	    cout << "el not ok" << endl;
-	  }
+        points.Elem(i).X() += x.Get(1);
+        points.Elem(i).Y() += x.Get(2);
+        points.Elem(i).Z() += x.Get(3);
+      }
+    else
+      {
+        cout << "el not ok" << endl;
+      }
       }
   PrintDot ('\n');
   

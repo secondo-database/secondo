@@ -217,7 +217,7 @@ namespace netgen
   }
 
 
-  void ADTree :: PrintRec (ostream & ost, const ADTreeNode * node) const
+  void ADTree :: PrintRec (std::ostream & ost, const ADTreeNode * node) const
   {
   
     if (node->data)
@@ -226,7 +226,7 @@ namespace netgen
 	ost << node->nchilds << " childs, ";
 	for (int i = 0; i < dim; i++)
 	  ost << node->data[i] << " ";
-	ost << endl;
+	ost << std::endl;
       }
     if (node->left)
       {
@@ -448,7 +448,7 @@ namespace netgen
       }
   }
 
-  void ADTree3 :: PrintRec (ostream & ost, const ADTreeNode3 * node) const
+  void ADTree3 :: PrintRec (std::ostream & ost, const ADTreeNode3 * node) const
   {
   
     if (node->data)
@@ -457,7 +457,7 @@ namespace netgen
 	ost << node->nchilds << " childs, ";
 	for (int i = 0; i < 3; i++)
 	  ost << node->data[i] << " ";
-	ost << endl;
+	ost << std::endl;
       }
     if (node->left)
       PrintRec (ost, node->left);
@@ -474,7 +474,7 @@ namespace netgen
 
 #ifdef ABC
 
-  /* ******************************* ADTree3Div ******************************* */
+  /* ******************************* ADTree3Div *************************** */
 
 
   ADTreeNode3Div :: ADTreeNode3Div()
@@ -595,7 +595,7 @@ namespace netgen
 	bmin[dir] = nbmin;
 	bmax[dir] = nbmax;
 
-	//      (*testout) << "new bmin, max = " << bmin[dir] << "-" << bmax[dir] << endl;
+	//  (*testout) << "new bmin, max = " << bmin[dir] << "-" << bmax[dir] << endl;
 
       
 	/*      
@@ -733,10 +733,11 @@ namespace netgen
       {
 	ost << node->pi << ": ";
 	ost << node->nchilds << " childs, ";
-	ost << " from " << node->minx << " - " << node->minx + node->dist*ADTN_DIV << "  ";
+	ost << " from " << node->minx << " - " 
+      << node->minx + node->dist*ADTN_DIV << "  ";
 	for (int i = 0; i < 3; i++)
 	  ost << node->data[i] << " ";
-	ost << endl;
+	ost << std::endl;
       }
     int i;
     for (i = 0; i < ADTN_DIV; i++)
@@ -979,7 +980,7 @@ namespace netgen
 	ost << node->nchilds << " childs, ";
 	for (int i = 0; i < 3; i++)
 	  ost << node->data[i] << " ";
-	ost << endl;
+	ost << std::endl;
       }
     if (node->left)
       PrintRec (ost, node->left);
@@ -1236,7 +1237,7 @@ namespace netgen
 	ost << node->nchilds << " childs, ";
 	for (i = 0; i < 3; i++)
 	  ost << node->data[i] << " ";
-	ost << endl;
+	ost << std::endl;
       }
 
     for (i = 0; i < 8; i++)
@@ -1256,7 +1257,7 @@ namespace netgen
 
 
 
-  /* ******************************* ADTree3FM ******************************* */
+  /* ******************************* ADTree3FM *************************** */
 
 
   ADTreeNode3FM :: ADTreeNode3FM()
@@ -1513,7 +1514,7 @@ namespace netgen
 	ost << node->nchilds << " childs, ";
 	for (i = 0; i < 3; i++)
 	  ost << node->data[i] << " ";
-	ost << endl;
+	ost << std::endl;
       }
 
     for (i = 0; i < 8; i++)
@@ -1682,12 +1683,13 @@ namespace netgen
       }
   }
 
-  void ADTree6 :: PrintMemInfo (ostream & ost) const
+  void ADTree6 :: PrintMemInfo (std::ostream & ost) const
   {
     ost << Elements() << " elements a " << sizeof(ADTreeNode6) 
 	<< " Bytes = "
-	<< Elements() * sizeof(ADTreeNode6) << endl;
-    ost << "maxind = " << ela.Size() << " = " << sizeof(ADTreeNode6*) * ela.Size() << " Bytes" << endl;
+	<< Elements() * sizeof(ADTreeNode6) << std::endl;
+    ost << "maxind = " << ela.Size() << " = " 
+        << sizeof(ADTreeNode6*) * ela.Size() << " Bytes" << std::endl;
   }
 
 
@@ -1828,7 +1830,7 @@ namespace netgen
   */
 
 
-  void ADTree6 :: PrintRec (ostream & ost, const ADTreeNode6 * node) const
+  void ADTree6 :: PrintRec (std::ostream & ost, const ADTreeNode6 * node) const
   {
   
     if (node->data)
@@ -1837,7 +1839,7 @@ namespace netgen
 	ost << node->nchilds << " childs, ";
 	for (int i = 0; i < 6; i++)
 	  ost << node->data[i] << " ";
-	ost << endl;
+	ost << std::endl;
       }
     if (node->left)
       PrintRec (ost, node->left);
@@ -2127,7 +2129,7 @@ namespace netgen
 	ost << node->nchilds << " childs, ";
 	for (i = 0; i < 6; i++)
 	  ost << node->data[i] << " ";
-	ost << endl;
+	ost << std::endl;
       }
 
     for (i = 0; i < 64; i++)
@@ -2172,7 +2174,8 @@ namespace netgen
     tree->Insert (pd, pi);
   }
 
-  void Point3dTree :: GetIntersecting (const Point3d & pmin, const Point3d & pmax, 
+  void Point3dTree :: GetIntersecting (const Point3d & pmin, 
+               const Point3d & pmax, 
 				       ARRAY<int> & pis) const
   {
     float pmi[3], pma[3];

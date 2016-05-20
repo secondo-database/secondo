@@ -1,6 +1,9 @@
 #ifndef FILE_TEMPLATE
 #define FILE_TEMPLATE
 
+
+#include <iostream>
+
 /**************************************************************************/
 /* File:   template.hh                                                    */
 /* Author: Joachim Schoeberl                                              */
@@ -20,13 +23,13 @@
 // #include <iostream>
 /** output stream for testing.
   testout is opened by main */
-extern ostream * testout;
+extern std::ostream * testout;
 
 /** use instead of cout */
-extern ostream * mycout;
+extern std::ostream * mycout;
 
 /** error output stream */
-extern ostream * myerr;
+extern std::ostream * myerr;
 
 /** Error messages display.
   Error messages are displayed by this function */
@@ -118,7 +121,7 @@ class fourint { public: int i1, i2, i3, i4; fourint() {}; };
 
 ///
 class INDEX_2;
-ostream & operator<<(ostream  & s, const INDEX_2 & i2);
+std::ostream & operator<<(std::ostream  & s, const INDEX_2 & i2);
 
 
 class INDEX_2
@@ -181,7 +184,7 @@ public:
   ///
   const int & operator[] (int j) const { return i[j]; }
   ///
-  friend ostream & operator<<(ostream  & s, const INDEX_2 & i2);
+  friend std::ostream & operator<<(std::ostream  & s, const INDEX_2 & i2);
 };
 
 
@@ -249,7 +252,7 @@ public:
   const int & operator[] (int j) const { return i[j]; }
 
   ///
-  friend ostream & operator<<(ostream  & s, const INDEX_3 & i3);
+  friend std::ostream & operator<<(std::ostream  & s, const INDEX_3 & i3);
 };
 
 
@@ -306,7 +309,7 @@ public:
   const int & operator[] (int j) const { return i[j]; }
 
   ///
-  friend ostream & operator<<(ostream  & s, const INDEX_4 & i4);
+  friend std::ostream & operator<<(std::ostream  & s, const INDEX_4 & i4);
 };
 
 
@@ -363,7 +366,7 @@ public:
   ///
   const INDEX & I (int j) const { return i[j-1]; }
   ///
-  friend ostream & operator<<(ostream  & s, const INDEX_4Q & i4);
+  friend std::ostream & operator<<(std::ostream  & s, const INDEX_4Q & i4);
 };
 
 

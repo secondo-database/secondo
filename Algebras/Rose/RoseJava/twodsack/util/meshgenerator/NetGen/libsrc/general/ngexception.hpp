@@ -1,6 +1,8 @@
 #ifndef FILE_NGEXCEPTION
 #define FILE_NGEXCEPTION
 
+#include <string>
+
 /**************************************************************************/
 /* File:   ngexception.hpp                                                */
 /* Author: Joachim Schoeberl                                              */
@@ -12,19 +14,19 @@
 class NgException 
 {
   /// verbal description of exception
-  string what;
+  std::string what;
 public:
   ///
-  NgException (const string & s);
+  NgException (const std::string & s);
   ///
   virtual ~NgException ();
 
   /// append string to description
-  void Append (const string & s);
+  void Append (const std::string & s);
   //  void Append (const char * s);
   
   /// verbal description of exception
-  const string & What() const { return what; }
+  const std::string & What() const { return what; }
 };
 
 #endif

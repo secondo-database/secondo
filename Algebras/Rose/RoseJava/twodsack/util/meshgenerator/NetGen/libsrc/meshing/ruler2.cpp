@@ -1,6 +1,8 @@
 #include <mystdlib.h>
 #include "meshing.hpp"
 
+using namespace std;
+
 namespace netgen
 {
 static double CalcElementBadness (const ARRAY<Point2d> & points,

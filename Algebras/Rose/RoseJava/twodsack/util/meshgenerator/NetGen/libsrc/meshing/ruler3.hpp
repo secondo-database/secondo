@@ -191,7 +191,7 @@ public:
   ///
   const char * Name () const { return name; }
   ///
-  void LoadRule (istream & ist);
+  void LoadRule (std::istream & ist);
 
   ///
   const ARRAY<Point3d> & GetTransFreeZone () { return transfreezone; }

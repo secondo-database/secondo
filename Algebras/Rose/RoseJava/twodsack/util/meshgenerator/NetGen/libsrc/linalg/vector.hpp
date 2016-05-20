@@ -124,10 +124,10 @@ inline double operator* (const FlatVector & v1, const FlatVector & v2)
 
 
 
-inline ostream & operator<< (ostream & ost, const FlatVector & v)
+inline std::ostream & operator<< (std::ostream & ost, const FlatVector & v)
 {
   for (int i = 0; i < v.Size(); i++)
-    ost << " " << setw(7) << v[i];
+    ost << " " << std::setw(7) << v[i];
   return ost;
 }
 
@@ -294,9 +294,9 @@ public:
 				 const BaseVector & elvec);
 
   ///
-  friend ostream & operator<<(ostream & s, const BaseVector & v);
+  friend std::ostream & operator<<(std::ostream & s, const BaseVector & v);
   ///
-  virtual ostream & Print (ostream & s) const { return s; }
+  virtual std::ostream & Print (std::ostream & s) const { return s; }
 
   ///
   virtual BaseVector * Copy () const;
@@ -450,7 +450,7 @@ public:
   virtual void SetRandom ();
 
   ///
-  virtual ostream & Print (ostream & s) const;
+  virtual std::ostream & Print (std::ostream & s) const;
   ///
   virtual BaseVector * Copy () const;
   ///

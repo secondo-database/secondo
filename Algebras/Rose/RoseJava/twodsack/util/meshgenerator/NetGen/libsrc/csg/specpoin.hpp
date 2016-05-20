@@ -44,7 +44,7 @@ public:
   SpecialPoint & operator= (const SpecialPoint & sp2);
   
   ///
-  void Print (ostream & str);
+  void Print (std::ostream & str);
 
 
   int GetLayer() const { return layer; }

@@ -153,7 +153,7 @@ public:
   ///
   void SetInverse (bool ainverse) { inverse = ainverse; }
   /// 
-  virtual void Print (ostream & str) const = 0;
+  virtual void Print (std::ostream & str) const = 0;
   
   ///
   virtual void Reduce (const BoxSphere<3> & /* box */) { };

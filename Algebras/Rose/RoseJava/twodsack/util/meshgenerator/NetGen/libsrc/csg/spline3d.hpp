@@ -88,5 +88,5 @@ class splinetube : public Surface
   ///
   virtual Point<3> GetSurfacePoint () const;
   ///
-  virtual void Print (ostream & str) const;
+  virtual void Print (std::ostream & str) const;
   };  

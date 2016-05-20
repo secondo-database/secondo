@@ -25,13 +25,13 @@ namespace netgen
   {
     for (int k = 0; k < cnt; k++)
       if (mgi[k].trignum == gi.trignum)
-	return 0;
+    return 0;
     
     if (cnt < MULTIPOINTGEOMINFO_MAX)
       {
-	mgi[cnt] = gi;
-	cnt++;
-	return 0;
+    mgi[cnt] = gi;
+    cnt++;
+    return 0;
       }
 
     throw NgException ("Please report error: MPGI Size too small\n");
@@ -111,7 +111,7 @@ namespace netgen
   }
 
 
-  ostream & operator<<(ostream  & s, const Segment & seg)
+  std::ostream & operator<<(std::ostream  & s, const Segment & seg)
   {
     s << seg.p1 << "(gi=" << seg.geominfo[0].trignum << ") - "
       << seg.p2 << "(gi=" << seg.geominfo[1].trignum << ")"
@@ -123,8 +123,8 @@ namespace netgen
   { 
     for (int i = 0; i < ELEMENT2D_MAXPOINTS; i++)
       {
-	pnum[i] = 0;
-	geominfo[i].trignum = 0;
+    pnum[i] = 0;
+    geominfo[i].trignum = 0;
       }
     np = anp;
     index = 0;
@@ -145,8 +145,8 @@ namespace netgen
   { 
     for (int i = 0; i < ELEMENT2D_MAXPOINTS; i++)
       {
-	pnum[i] = 0;
-	geominfo[i].trignum = 0;
+    pnum[i] = 0;
+    geominfo[i].trignum = 0;
       }
 
     SetType (atyp);
@@ -233,18 +233,19 @@ void Element2d :: Invert2()
     {
     case TRIG:
       {
-	Swap (pnum[1], pnum[2]);
-	break;
+    Swap (pnum[1], pnum[2]);
+    break;
       }
     case QUAD:
       {
-	Swap (pnum[0], pnum[3]);
-	Swap (pnum[1], pnum[2]);
-	break;
+    Swap (pnum[0], pnum[3]);
+    Swap (pnum[1], pnum[2]);
+    break;
       }
     default:
       {
-	cerr << "Element2d::Invert2, illegal element type " << int(typ) << endl;
+    std::cerr << "Element2d::Invert2, illegal element type " 
+              << int(typ) << std::endl;
       }
     }
 }
@@ -255,11 +256,11 @@ int Element2d::HasFace(const Element2d& el) const
   for (int i = 1; i <= 3; i++)
     {
       if (PNumMod(i)   == el[0] && 
-	  PNumMod(i+1) == el[1] && 
-	  PNumMod(i+2) == el[2])
-	{
-	  return 1;
-	}
+      PNumMod(i+1) == el[1] && 
+      PNumMod(i+2) == el[2])
+    {
+      return 1;
+    }
     }
   return 0;
 }
@@ -270,35 +271,35 @@ void Element2d :: NormalizeNumbering2 ()
     {
       PointIndex pi1;
       if (PNum(1) < PNum(2) && PNum(1) < PNum(3))
-	return;
+    return;
       else
-	{
-	  if (PNum(2) < PNum(3))
-	    {
-	      pi1 = PNum(2);
-	      PNum(2) = PNum(3);
-	      PNum(3) = PNum(1);
-	      PNum(1) = pi1;
-	    }
-	  else
-	    {
-	      pi1 = PNum(3);
-	      PNum(3) = PNum(2);
-	      PNum(2) = PNum(1);
-	      PNum(1) = pi1;
-	    }
-	}
+    {
+      if (PNum(2) < PNum(3))
+        {
+          pi1 = PNum(2);
+          PNum(2) = PNum(3);
+          PNum(3) = PNum(1);
+          PNum(1) = pi1;
+        }
+      else
+        {
+          pi1 = PNum(3);
+          PNum(3) = PNum(2);
+          PNum(2) = PNum(1);
+          PNum(1) = pi1;
+        }
+    }
     }
   else
     {
-	  int mini = 1;
-		int	i;
+      int mini = 1;
+        int    i;
       for (i = 2; i <= GetNP(); i++)
-	if (PNum(i) < PNum(mini)) mini = i;
+    if (PNum(i) < PNum(mini)) mini = i;
       
       Element2d hel = (*this);
       for (i = 1; i <= GetNP(); i++)
-	PNum(i) = hel.PNumMod (i+mini-1);
+    PNum(i) = hel.PNumMod (i+mini-1);
     }
 }
 
@@ -353,7 +354,7 @@ GetIntegrationPoint (int ip, Point2d & p, double & weight) const
 
 void Element2d :: 
 GetTransformation (int ip, const ARRAY<Point2d> & points,
-		   DenseMatrix & trans) const
+           DenseMatrix & trans) const
 {
   int np = GetNP();
   static DenseMatrix pmat(2, np), dshape(2, np);
@@ -371,15 +372,15 @@ GetTransformation (int ip, const ARRAY<Point2d> & points,
 
   /*
   (*testout) << "p = " << p  << endl
-	     << "pmat = " << pmat << endl
-	     << "dshape = " << dshape << endl
-	     << "tans = " << trans << endl;
+         << "pmat = " << pmat << endl
+         << "dshape = " << dshape << endl
+         << "tans = " << trans << endl;
   */
 }
 
 void Element2d :: 
 GetTransformation (int ip, class DenseMatrix & pmat,
-		   class DenseMatrix & trans) const
+           class DenseMatrix & trans) const
 {
   int np = GetNP();
 
@@ -410,7 +411,7 @@ void Element2d :: GetShape (const Point2d & p, Vector & shape) const
 {
   if (shape.Size() != GetNP())
     {
-      cerr << "Element::GetShape: Length not fitting" << endl;
+      std::cerr << "Element::GetShape: Length not fitting" << std::endl;
       return;
     }
 
@@ -472,14 +473,14 @@ GetDShape (const Point2d & p, DenseMatrix & dshape) const
 
 void Element2d :: 
 GetPointMatrix (const ARRAY<Point2d> & points,
-		DenseMatrix & pmat) const
+        DenseMatrix & pmat) const
 {
   int np = GetNP();
 
 #ifdef DEBUG
   if (pmat.Width() != np || pmat.Height() != 2)
     {
-      cerr << "Element::GetPointMatrix: sizes don't fit" << endl;
+      std::cerr << "Element::GetPointMatrix: sizes don't fit" << std::endl;
       return;
     }
 #endif
@@ -514,16 +515,16 @@ double Element2d :: CalcJacobianBadness (const ARRAY<Point2d> & points) const
       // Frobenius norm
       double frob = 0;
       for (j = 1; j <= 4; j++)
-	frob += sqr (trans.Get(j));
+    frob += sqr (trans.Get(j));
       frob = sqrt (frob);
       frob /= 2;
 
       double det = trans.Det();
 
       if (det <= 0)
-	err += 1e12;
+    err += 1e12;
       else
-	err += frob * frob / det;
+    err += frob * frob / det;
     }
 
   err /= nip;
@@ -541,7 +542,7 @@ static const int qip_table[4][4] =
 
 double Element2d :: 
 CalcJacobianBadnessDirDeriv (const ARRAY<Point2d> & points,
-			     int pi, Vec2d & dir, double & dd) const
+                 int pi, Vec2d & dir, double & dd) const
 {
   if (typ == QUAD)
     {
@@ -549,11 +550,11 @@ CalcJacobianBadnessDirDeriv (const ARRAY<Point2d> & points,
       Mat<2,4> vmat, pmat;
       
       for (int j = 0; j < 4; j++)
-	{
-	  const Point2d & p = points.Get( (*this)[j] );
-	  pmat(0, j) = p.X();
-	  pmat(1, j) = p.Y();
-	}
+    {
+      const Point2d & p = points.Get( (*this)[j] );
+      pmat(0, j) = p.X();
+      pmat(1, j) = p.Y();
+    }
 
       vmat = 0.0;
       vmat(0, pi-1) = dir.X();
@@ -563,55 +564,55 @@ CalcJacobianBadnessDirDeriv (const ARRAY<Point2d> & points,
       dd = 0;
 
       for (int i = 0; i < 4; i++)
-	{
-	  int ix1 = qip_table[i][0];
-	  int ix2 = qip_table[i][1];
-	  int iy1 = qip_table[i][2];
-	  int iy2 = qip_table[i][3];
-	      
-	  trans(0,0) = pmat(0, ix2) - pmat(0,ix1);
-	  trans(1,0) = pmat(1, ix2) - pmat(1,ix1);
-	  trans(0,1) = pmat(0, iy2) - pmat(0,iy1);
-	  trans(1,1) = pmat(1, iy2) - pmat(1,iy1);
+    {
+      int ix1 = qip_table[i][0];
+      int ix2 = qip_table[i][1];
+      int iy1 = qip_table[i][2];
+      int iy2 = qip_table[i][3];
+          
+      trans(0,0) = pmat(0, ix2) - pmat(0,ix1);
+      trans(1,0) = pmat(1, ix2) - pmat(1,ix1);
+      trans(0,1) = pmat(0, iy2) - pmat(0,iy1);
+      trans(1,1) = pmat(1, iy2) - pmat(1,iy1);
 
-	  double det = trans(0,0)*trans(1,1)-trans(1,0)*trans(0,1);
+      double det = trans(0,0)*trans(1,1)-trans(1,0)*trans(0,1);
 
-	  if (det <= 0)
-	    {
-	      dd = 0;
-	      return 1e12;
-	    }
-	  
-	  dtrans(0,0) = vmat(0, ix2) - vmat(0,ix1);
-	  dtrans(1,0) = vmat(1, ix2) - vmat(1,ix1);
-	  dtrans(0,1) = vmat(0, iy2) - vmat(0,iy1);
-	  dtrans(1,1) = vmat(1, iy2) - vmat(1,iy1);
+      if (det <= 0)
+        {
+          dd = 0;
+          return 1e12;
+        }
+      
+      dtrans(0,0) = vmat(0, ix2) - vmat(0,ix1);
+      dtrans(1,0) = vmat(1, ix2) - vmat(1,ix1);
+      dtrans(0,1) = vmat(0, iy2) - vmat(0,iy1);
+      dtrans(1,1) = vmat(1, iy2) - vmat(1,iy1);
 
 
-	  // Frobenius norm
-	  double frob = 0;
-		int j;
-	  for (j = 0; j < 4; j++) 
-	    frob += sqr (trans(j));
-	  frob = sqrt (frob);
-	  
-	  double dfrob = 0;
-	  for (j = 0; j < 4; j++)
-	    dfrob += trans(j) * dtrans(j);
-	  dfrob = dfrob / frob;
-	  
-	  frob /= 2;      
-	  dfrob /= 2;
-	  
-	  
-	  // ddet = \sum_j det (m_j)   with m_j = trans, except col j = dtrans
-	  double ddet 
-	    = dtrans(0,0) * trans(1,1) - trans(0,1) * dtrans(1,0)
-	    + trans(0,0) * dtrans(1,1) - dtrans(0,1) * trans(1,0);
-	  
-	  err += frob * frob / det;
-	  dd += (2 * frob * dfrob * det - frob * frob * ddet) / (det * det);
-	}
+      // Frobenius norm
+      double frob = 0;
+        int j;
+      for (j = 0; j < 4; j++) 
+        frob += sqr (trans(j));
+      frob = sqrt (frob);
+      
+      double dfrob = 0;
+      for (j = 0; j < 4; j++)
+        dfrob += trans(j) * dtrans(j);
+      dfrob = dfrob / frob;
+      
+      frob /= 2;      
+      dfrob /= 2;
+      
+      
+      // ddet = \sum_j det (m_j)   with m_j = trans, except col j = dtrans
+      double ddet 
+        = dtrans(0,0) * trans(1,1) - trans(0,1) * dtrans(1,0)
+        + trans(0,0) * dtrans(1,1) - dtrans(0,1) * trans(1,0);
+      
+      err += frob * frob / det;
+      dd += (2 * frob * dfrob * det - frob * frob * ddet) / (det * det);
+    }
       
       err /= 4;
       dd /= 4;
@@ -642,14 +643,14 @@ CalcJacobianBadnessDirDeriv (const ARRAY<Point2d> & points,
 
       // Frobenius norm
       double frob = 0;
-	  int j;
+      int j;
       for (j = 1; j <= 4; j++)
-	frob += sqr (trans.Get(j));
+    frob += sqr (trans.Get(j));
       frob = sqrt (frob);
       
       double dfrob = 0;
       for (j = 1; j <= 4; j++)
-	dfrob += trans.Get(j) * dtrans.Get(j);
+    dfrob += trans.Get(j) * dtrans.Get(j);
       dfrob = dfrob / frob;
       
       frob /= 2;      
@@ -659,16 +660,16 @@ CalcJacobianBadnessDirDeriv (const ARRAY<Point2d> & points,
 
       // ddet = \sum_j det (m_j)   with m_j = trans, except col j = dtrans
       double ddet 
-	= dtrans(0,0) * trans(1,1) - trans(0,1) * dtrans(1,0)
-	+ trans(0,0) * dtrans(1,1) - dtrans(0,1) * trans(1,0);
+    = dtrans(0,0) * trans(1,1) - trans(0,1) * dtrans(1,0)
+    + trans(0,0) * dtrans(1,1) - dtrans(0,1) * trans(1,0);
 
       if (det <= 0)
-	err += 1e12;
+    err += 1e12;
       else
-	{
-	  err += frob * frob / det;
-	  dd += (2 * frob * dfrob * det - frob * frob * ddet) / (det * det);
-	}
+    {
+      err += frob * frob / det;
+      dd += (2 * frob * dfrob * det - frob * frob * ddet) / (det * det);
+    }
     }
 
   err /= nip;
@@ -707,15 +708,15 @@ CalcJacobianBadness (const T_POINTS & points, const Vec3d & n) const
       // Frobenius norm
       double frob = 0;
       for (j = 1; j <= 4; j++)
-	frob += sqr (trans.Get(j));
+    frob += sqr (trans.Get(j));
       frob = sqrt (frob);
       frob /= 2;
 
       double det = trans.Det();
       if (det <= 0)
-	err += 1e12;
+    err += 1e12;
       else
-	err += frob * frob / det;
+    err += frob * frob / det;
     }
 
   err /= nip;
@@ -748,10 +749,10 @@ void Element2d :: ComputeIntegrationPointData () const
       GetDShape (hp, ipd->dshape);
 
       switch (np)
-	{
-	case 3: ipdtrig.Append (ipd); break;
-	case 4: ipdquad.Append (ipd); break;
-	}
+    {
+    case 3: ipdtrig.Append (ipd); break;
+    case 4: ipdquad.Append (ipd); break;
+    }
     }
 }
 
@@ -764,7 +765,7 @@ void Element2d :: ComputeIntegrationPointData () const
 
 
 
-ostream & operator<<(ostream  & s, const Element2d & el)
+std::ostream & operator<<(std::ostream  & s, const Element2d & el)
 {
   s << "np = " << el.GetNP();
   for (int j = 1; j <= el.GetNP(); j++)
@@ -773,7 +774,7 @@ ostream & operator<<(ostream  & s, const Element2d & el)
 }
 
 
-ostream & operator<<(ostream  & s, const Element & el)
+std::ostream & operator<<(std::ostream  & s, const Element & el)
 {
   s << "np = " << el.GetNP();
   for (int j = 0; j < el.GetNP(); j++)
@@ -824,7 +825,8 @@ Element :: Element (int anp)
     case 6: typ = PRISM; break;
     case 8: typ = HEX; break;
     case 10: typ = TET10; break;
-    default: cerr << "Element::Element: unknown element with " << np << " points" << endl;
+    default: std::cerr << "Element::Element: unknown element with " 
+                  << np << " points" << std::endl;
     }
   order = 1;
 }
@@ -880,7 +882,8 @@ void Element :: SetNP (int anp)
     case 10: typ = TET10; break;
       // 
     default: break;
-      cerr << "Element::SetNP unknown element with " << np << " points" << endl;
+      std::cerr << "Element::SetNP unknown element with " << np 
+                << " points" << std::endl;
     }
 }
 
@@ -908,31 +911,31 @@ void Element :: Invert()
     {
     case 4:
       {
-	Swap (PNum(3), PNum(4));
-	break;
+    Swap (PNum(3), PNum(4));
+    break;
       }
     case 5:
       {
-	Swap (PNum(1), PNum(4));
-	Swap (PNum(2), PNum(3));
-	break;
+    Swap (PNum(1), PNum(4));
+    Swap (PNum(2), PNum(3));
+    break;
       }
     case 6:
       {
-	Swap (PNum(1), PNum(4));
-	Swap (PNum(2), PNum(5));
-	Swap (PNum(3), PNum(6));
-	break;
+    Swap (PNum(1), PNum(4));
+    Swap (PNum(2), PNum(5));
+    Swap (PNum(3), PNum(6));
+    break;
       }
     }
 }
 
 
-void Element :: Print (ostream & ost) const
+void Element :: Print (std::ostream & ost) const
 {
   ost << np << " Points: ";
   for (int i = 1; i <= np; i++)
-    ost << pnum[i-1] << " " << endl;
+    ost << pnum[i-1] << " " << std::endl;
 }
 
 void Element :: GetBox (const T_POINTS & points, Box3d & box) const
@@ -952,7 +955,7 @@ double Element :: Volume (const T_POINTS & points) const
   Vec3d v3 = points.Get(PNum(4)) - 
     points.Get(PNum(1)); 
          
-  return -(Cross (v1, v2) * v3) / 6;	 
+  return -(Cross (v1, v2) * v3) / 6;     
 }  
 
 
@@ -985,26 +988,26 @@ void Element :: GetFace2 (int i, Element2d & face) const
     case 4: // tet
     case 10: // tet
       {
-	face.SetType(TRIG);
-	for (int j = 1; j <= 3; j++)
-	  face.PNum(j) = PNum(tetfaces[i-1][j]);
-	break;
+    face.SetType(TRIG);
+    for (int j = 1; j <= 3; j++)
+      face.PNum(j) = PNum(tetfaces[i-1][j]);
+    break;
       }
     case 5: // pyramid
       {
-	// face.SetNP(pyramidfaces[i-1][0]);
-	face.SetType ( (i == 1) ? QUAD : TRIG);
-	for (int j = 1; j <= face.GetNP(); j++)
-	  face.PNum(j) = PNum(pyramidfaces[i-1][j]);
-	break;
+    // face.SetNP(pyramidfaces[i-1][0]);
+    face.SetType ( (i == 1) ? QUAD : TRIG);
+    for (int j = 1; j <= face.GetNP(); j++)
+      face.PNum(j) = PNum(pyramidfaces[i-1][j]);
+    break;
       }
     case 6: // prism
       {
-	//	face.SetNP(prismfaces[i-1][0]);
-	face.SetType ( (i >= 3) ? QUAD : TRIG);
-	for (int j = 1; j <= face.GetNP(); j++)
-	  face.PNum(j) = PNum(prismfaces[i-1][j]);
-	break;
+    //    face.SetNP(prismfaces[i-1][0]);
+    face.SetType ( (i >= 3) ? QUAD : TRIG);
+    for (int j = 1; j <= face.GetNP(); j++)
+      face.PNum(j) = PNum(prismfaces[i-1][j]);
+    break;
       }
     }
 }
@@ -1028,91 +1031,92 @@ void Element :: GetTetsLocal (ARRAY<Element> & locels) const
     {
     case TET:
       {
-	int linels[1][4] = 
-	{ { 1, 2, 3, 4 },
-	};
-	for (i = 0; i < 1; i++)
-	  {
-	    Element tet(4);
-	    for (j = 1; j <= 4; j++)
-	      tet.PNum(j) = linels[i][j-1];
-	    locels.Append (tet);
-	  }
-	break;
+    int linels[1][4] = 
+    { { 1, 2, 3, 4 },
+    };
+    for (i = 0; i < 1; i++)
+      {
+        Element tet(4);
+        for (j = 1; j <= 4; j++)
+          tet.PNum(j) = linels[i][j-1];
+        locels.Append (tet);
+      }
+    break;
       }
     case TET10:
       {
-	int linels[8][4] = 
-	{ { 1, 5, 6, 7 },
-	  { 5, 2, 8, 9 },
-	  { 6, 8, 3, 10 },
-	  { 7, 9, 10, 4 },
-	  { 5, 6, 7, 9 },
-	  { 5, 6, 9, 8 },
-	  { 6, 7, 9, 10 },
-	  { 6, 8, 10, 9 } };
-	for (i = 0; i < 8; i++)
-	  {
-	    Element tet(4);
-	    for (j = 1; j <= 4; j++)
-	      tet.PNum(j) = linels[i][j-1];
-	    locels.Append (tet);
-	  }
-	break;
+    int linels[8][4] = 
+    { { 1, 5, 6, 7 },
+      { 5, 2, 8, 9 },
+      { 6, 8, 3, 10 },
+      { 7, 9, 10, 4 },
+      { 5, 6, 7, 9 },
+      { 5, 6, 9, 8 },
+      { 6, 7, 9, 10 },
+      { 6, 8, 10, 9 } };
+    for (i = 0; i < 8; i++)
+      {
+        Element tet(4);
+        for (j = 1; j <= 4; j++)
+          tet.PNum(j) = linels[i][j-1];
+        locels.Append (tet);
+      }
+    break;
       }
     case PYRAMID:
       {
-	int linels[2][4] = 
-	{ { 1, 2, 3, 5 },
-	  { 1, 3, 4, 5 } };
-	for (i = 0; i < 2; i++)
-	  {
-	    Element tet(4);
-	    for (j = 1; j <= 4; j++)
-	      tet.PNum(j) = linels[i][j-1];
-	    locels.Append (tet);
-	  }
-	break;
+    int linels[2][4] = 
+    { { 1, 2, 3, 5 },
+      { 1, 3, 4, 5 } };
+    for (i = 0; i < 2; i++)
+      {
+        Element tet(4);
+        for (j = 1; j <= 4; j++)
+          tet.PNum(j) = linels[i][j-1];
+        locels.Append (tet);
+      }
+    break;
       }
     case PRISM:
     case PRISM12:
       {
-	int linels[3][4] = 
-	{ { 1, 2, 3, 4 },
-	  { 4, 2, 3, 5 },
-	  { 6, 5, 4, 3 }
-	};
-	for (i = 0; i < 3; i++)
-	  {
-	    Element tet(4);
-	    for (j = 0; j < 4; j++)
-	      tet[j] = linels[i][j];
-	    locels.Append (tet);
-	  }
-	break;
+    int linels[3][4] = 
+    { { 1, 2, 3, 4 },
+      { 4, 2, 3, 5 },
+      { 6, 5, 4, 3 }
+    };
+    for (i = 0; i < 3; i++)
+      {
+        Element tet(4);
+        for (j = 0; j < 4; j++)
+          tet[j] = linels[i][j];
+        locels.Append (tet);
+      }
+    break;
       }
     case HEX:
       {
-	int linels[6][4] = 
-	{ { 1, 7, 2, 3 },
-	  { 1, 7, 3, 4 },
-	  { 1, 7, 4, 8 },
-	  { 1, 7, 8, 5 },
-	  { 1, 7, 5, 6 },
-	  { 1, 7, 6, 2 }
-	};
-	for (i = 0; i < 6; i++)
-	  {
-	    Element tet(4);
-	    for (j = 0; j < 4; j++)
-	      tet[j] = linels[i][j];
-	    locels.Append (tet);
-	  }
-	break;
+    int linels[6][4] = 
+    { { 1, 7, 2, 3 },
+      { 1, 7, 3, 4 },
+      { 1, 7, 4, 8 },
+      { 1, 7, 8, 5 },
+      { 1, 7, 5, 6 },
+      { 1, 7, 6, 2 }
+    };
+    for (i = 0; i < 6; i++)
+      {
+        Element tet(4);
+        for (j = 0; j < 4; j++)
+          tet[j] = linels[i][j];
+        locels.Append (tet);
+      }
+    break;
       }
     default:
       {
-	cerr << "GetTetsLocal not implemented for el with " << GetNP() << " nodes" << endl;
+    std::cerr << "GetTetsLocal not implemented for el with " 
+       << GetNP() << " nodes" << std::endl;
       }
     }
 }
@@ -1170,39 +1174,40 @@ void Element :: GetNodesLocal (ARRAY<Point3d> & points) const
     {
     case TET:
       {
-	np = 4;
-	pp = tetpoints;
-	break;
+    np = 4;
+    pp = tetpoints;
+    break;
       }
     case PRISM:
     case PRISM12:
       {
-	np = 6;
-	pp = prismpoints;
-	break;
+    np = 6;
+    pp = prismpoints;
+    break;
       }
     case TET10:
       {
-	np = 10;
-	pp = tet10points;
-	break;
+    np = 10;
+    pp = tet10points;
+    break;
       }
     case PYRAMID:
       {
-	np = 5;
-	pp = pyramidpoints;
-	break;
+    np = 5;
+    pp = pyramidpoints;
+    break;
       }
     case HEX:
       {
-	np = 8;
-	pp = hexpoints;
-	break;
+    np = 8;
+    pp = hexpoints;
+    break;
       }
     default:
       {
-	cout << "GetNodesLocal not impelemented for element " << GetType() << endl;
-	np = 0;
+    std::cout << "GetNodesLocal not impelemented for element " << GetType() 
+          << std::endl;
+    np = 0;
       }
     }
   
@@ -1276,39 +1281,40 @@ void Element :: GetNodesLocalNew (ARRAY<Point3d> & points) const
     {
     case TET:
       {
-	np = 4;
-	pp = tetpoints;
-	break;
+    np = 4;
+    pp = tetpoints;
+    break;
       }
     case PRISM:
     case PRISM12:
       {
-	np = 6;
-	pp = prismpoints;
-	break;
+    np = 6;
+    pp = prismpoints;
+    break;
       }
     case TET10:
       {
-	np = 10;
-	pp = tet10points;
-	break;
+    np = 10;
+    pp = tet10points;
+    break;
       }
     case PYRAMID:
       {
-	np = 5;
-	pp = pyramidpoints;
-	break;
+    np = 5;
+    pp = pyramidpoints;
+    break;
       }
     case HEX:
       {
-	np = 8;
-	pp = hexpoints;
-	break;
+    np = 8;
+    pp = hexpoints;
+    break;
       }
     default:
       {
-	cout << "GetNodesLocal not impelemented for element " << GetType() << endl;
-	np = 0;
+    std::cout << "GetNodesLocal not impelemented for element " 
+         << GetType() << std::endl;
+    np = 0;
       }
     }
   
@@ -1398,39 +1404,39 @@ void Element :: GetSurfaceTriangles (ARRAY<Element2d> & surftrigs) const
     {
     case TET:
       {
-	nf = 4;
-	fp = tet4trigs;
-	break;
+    nf = 4;
+    fp = tet4trigs;
+    break;
       }
     case PYRAMID:
       {
-	nf = 6;
-	fp = pyramidtrigs;
-	break;
+    nf = 6;
+    fp = pyramidtrigs;
+    break;
       }
     case PRISM:
     case PRISM12:
       {
-	nf = 8;
-	fp = prismtrigs;
-	break;
+    nf = 8;
+    fp = prismtrigs;
+    break;
       }
     case TET10:
       {
-	nf = 7;
-	fp = tet10trigs;
-	break;
+    nf = 7;
+    fp = tet10trigs;
+    break;
       }
     case HEX:
       {
-	nf = 12;
-	fp = hextrigs;
-	break;
+    nf = 12;
+    fp = hextrigs;
+    break;
       }
     default:
       {
-	nf = 0;
-	fp = NULL;
+    nf = 0;
+    fp = NULL;
       }
     }
 
@@ -1500,7 +1506,7 @@ GetIntegrationPoint (int ip, Point3d & p, double & weight) const
 
 void Element :: 
 GetTransformation (int ip, const T_POINTS & points,
-		   DenseMatrix & trans) const
+           DenseMatrix & trans) const
 {
   int np = GetNP();
   static DenseMatrix pmat(3, np), dshape(3, np);
@@ -1518,21 +1524,21 @@ GetTransformation (int ip, const T_POINTS & points,
 
   /*
   (*testout) << "p = " << p  << endl
-	     << "pmat = " << pmat << endl
-	     << "dshape = " << dshape << endl
-	     << "tans = " << trans << endl;
+         << "pmat = " << pmat << endl
+         << "dshape = " << dshape << endl
+         << "tans = " << trans << endl;
   */
 }
 
 void Element :: 
 GetTransformation (int ip, class DenseMatrix & pmat,
-		   class DenseMatrix & trans) const
+           class DenseMatrix & trans) const
 {
   int np = GetNP();
 
   if (pmat.Width() != np || pmat.Height() != 3)
     {
-      (*testout) << "GetTransofrmation: pmat doesn't fit" << endl;
+      (*testout) << "GetTransofrmation: pmat doesn't fit" << std::endl;
       return;
     }
 
@@ -1553,7 +1559,7 @@ void Element :: GetShape (const Point3d & p, Vector & shape) const
 {
   if (shape.Size() != GetNP())
     {
-      cerr << "Element::GetShape: Length not fitting" << endl;
+      std::cerr << "Element::GetShape: Length not fitting" << std::endl;
       return;
     }
 
@@ -1561,60 +1567,60 @@ void Element :: GetShape (const Point3d & p, Vector & shape) const
     {
     case TET:
       {
-	shape.Elem(1) = 1 - p.X() - p.Y() - p.Z(); 
-	shape.Elem(2) = p.X();
-	shape.Elem(3) = p.Y();
-	shape.Elem(4) = p.Z();
-	break;
+    shape.Elem(1) = 1 - p.X() - p.Y() - p.Z(); 
+    shape.Elem(2) = p.X();
+    shape.Elem(3) = p.Y();
+    shape.Elem(4) = p.Z();
+    break;
       }
     case TET10:
       {
-	double lam1 = 1 - p.X() - p.Y() - p.Z();
-	double lam2 = p.X();
-	double lam3 = p.Y();
-	double lam4 = p.Z();
-	
-	shape.Elem(5) = 4 * lam1 * lam2;
-	shape.Elem(6) = 4 * lam1 * lam3;
-	shape.Elem(7) = 4 * lam1 * lam4;
-	shape.Elem(8) = 4 * lam2 * lam3;
-	shape.Elem(9) = 4 * lam2 * lam4;
-	shape.Elem(10) = 4 * lam3 * lam4;
-	
-	shape.Elem(1) = lam1 - 
-	  0.5 * (shape.Elem(5) + shape.Elem(6) + shape.Elem(7));
-	shape.Elem(2) = lam2 - 
-	  0.5 * (shape.Elem(5) + shape.Elem(8) + shape.Elem(9));
-	shape.Elem(3) = lam3 - 
-	  0.5 * (shape.Elem(6) + shape.Elem(8) + shape.Elem(10));
-	shape.Elem(4) = lam4 - 
-	  0.5 * (shape.Elem(7) + shape.Elem(9) + shape.Elem(10));
-	break;
+    double lam1 = 1 - p.X() - p.Y() - p.Z();
+    double lam2 = p.X();
+    double lam3 = p.Y();
+    double lam4 = p.Z();
+    
+    shape.Elem(5) = 4 * lam1 * lam2;
+    shape.Elem(6) = 4 * lam1 * lam3;
+    shape.Elem(7) = 4 * lam1 * lam4;
+    shape.Elem(8) = 4 * lam2 * lam3;
+    shape.Elem(9) = 4 * lam2 * lam4;
+    shape.Elem(10) = 4 * lam3 * lam4;
+    
+    shape.Elem(1) = lam1 - 
+      0.5 * (shape.Elem(5) + shape.Elem(6) + shape.Elem(7));
+    shape.Elem(2) = lam2 - 
+      0.5 * (shape.Elem(5) + shape.Elem(8) + shape.Elem(9));
+    shape.Elem(3) = lam3 - 
+      0.5 * (shape.Elem(6) + shape.Elem(8) + shape.Elem(10));
+    shape.Elem(4) = lam4 - 
+      0.5 * (shape.Elem(7) + shape.Elem(9) + shape.Elem(10));
+    break;
       }
 
     case PRISM:
       {
-	Point<3> hp = p; 
-	shape(0) = hp(0) * (1-hp(2));
-	shape(1) = hp(1) * (1-hp(2));
-	shape(2) = (1-hp(0)-hp(1)) * (1-hp(2));
-	shape(3) = hp(0) * hp(2);
-	shape(4) = hp(1) * hp(2);
-	shape(5) = (1-hp(0)-hp(1)) * hp(2);
-	break;
+    Point<3> hp = p; 
+    shape(0) = hp(0) * (1-hp(2));
+    shape(1) = hp(1) * (1-hp(2));
+    shape(2) = (1-hp(0)-hp(1)) * (1-hp(2));
+    shape(3) = hp(0) * hp(2);
+    shape(4) = hp(1) * hp(2);
+    shape(5) = (1-hp(0)-hp(1)) * hp(2);
+    break;
       }
     case HEX:
       {
-	Point<3> hp = p; 
-	shape(0) = (1-hp(0))*(1-hp(1))*(1-hp(2));
-	shape(1) = (  hp(0))*(1-hp(1))*(1-hp(2));
-	shape(2) = (  hp(0))*(  hp(1))*(1-hp(2));
-	shape(3) = (1-hp(0))*(  hp(1))*(1-hp(2));
-	shape(4) = (1-hp(0))*(1-hp(1))*(  hp(2));
-	shape(5) = (  hp(0))*(1-hp(1))*(  hp(2));
-	shape(6) = (  hp(0))*(  hp(1))*(  hp(2));
-	shape(7) = (1-hp(0))*(  hp(1))*(  hp(2));
-	break;
+    Point<3> hp = p; 
+    shape(0) = (1-hp(0))*(1-hp(1))*(1-hp(2));
+    shape(1) = (  hp(0))*(1-hp(1))*(1-hp(2));
+    shape(2) = (  hp(0))*(  hp(1))*(1-hp(2));
+    shape(3) = (1-hp(0))*(  hp(1))*(1-hp(2));
+    shape(4) = (1-hp(0))*(1-hp(1))*(  hp(2));
+    shape(5) = (  hp(0))*(1-hp(1))*(  hp(2));
+    shape(6) = (  hp(0))*(  hp(1))*(  hp(2));
+    shape(7) = (1-hp(0))*(  hp(1))*(  hp(2));
+    break;
       }
     }
 }
@@ -1634,49 +1640,49 @@ void Element :: GetShapeNew (const Point<3> & p, FlatVector & shape) const
     {
     case TET:
       {
-	shape(0) = p(0);
-	shape(1) = p(1);
-	shape(2) = p(2);
-	shape(3) = 1-p(0)-p(1)-p(2);
-	break;
+    shape(0) = p(0);
+    shape(1) = p(1);
+    shape(2) = p(2);
+    shape(3) = 1-p(0)-p(1)-p(2);
+    break;
       }
 
     case PYRAMID:
       {
-	double noz = 1-p(2);
-	if (noz == 0.0) noz = 1e-10;
+    double noz = 1-p(2);
+    if (noz == 0.0) noz = 1e-10;
 
-	double xi  = p(0) / noz;
-	double eta = p(1) / noz;
-	shape(0) = (1-xi)*(1-eta) * (noz);
-	shape(1) = (  xi)*(1-eta) * (noz);
-	shape(2) = (  xi)*(  eta) * (noz);
-	shape(3) = (1-xi)*(  eta) * (noz);
-	shape(4) = p(2);
-	break;
+    double xi  = p(0) / noz;
+    double eta = p(1) / noz;
+    shape(0) = (1-xi)*(1-eta) * (noz);
+    shape(1) = (  xi)*(1-eta) * (noz);
+    shape(2) = (  xi)*(  eta) * (noz);
+    shape(3) = (1-xi)*(  eta) * (noz);
+    shape(4) = p(2);
+    break;
       }
 
     case PRISM:
       {
-	shape(0) = p(0) * (1-p(2));
-	shape(1) = p(1) * (1-p(2));
-	shape(2) = (1-p(0)-p(1)) * (1-p(2));
-	shape(3) = p(0) * p(2);
-	shape(4) = p(1) * p(2);
-	shape(5) = (1-p(0)-p(1)) * p(2);
-	break;
+    shape(0) = p(0) * (1-p(2));
+    shape(1) = p(1) * (1-p(2));
+    shape(2) = (1-p(0)-p(1)) * (1-p(2));
+    shape(3) = p(0) * p(2);
+    shape(4) = p(1) * p(2);
+    shape(5) = (1-p(0)-p(1)) * p(2);
+    break;
       }
     case HEX:
       {
-	shape(0) = (1-p(0))*(1-p(1))*(1-p(2));
-	shape(1) = (  p(0))*(1-p(1))*(1-p(2));
-	shape(2) = (  p(0))*(  p(1))*(1-p(2));
-	shape(3) = (1-p(0))*(  p(1))*(1-p(2));
-	shape(4) = (1-p(0))*(1-p(1))*(  p(2));
-	shape(5) = (  p(0))*(1-p(1))*(  p(2));
-	shape(6) = (  p(0))*(  p(1))*(  p(2));
-	shape(7) = (1-p(0))*(  p(1))*(  p(2));
-	break;
+    shape(0) = (1-p(0))*(1-p(1))*(1-p(2));
+    shape(1) = (  p(0))*(1-p(1))*(1-p(2));
+    shape(2) = (  p(0))*(  p(1))*(1-p(2));
+    shape(3) = (1-p(0))*(  p(1))*(1-p(2));
+    shape(4) = (1-p(0))*(1-p(1))*(  p(2));
+    shape(5) = (  p(0))*(1-p(1))*(  p(2));
+    shape(6) = (  p(0))*(  p(1))*(  p(2));
+    shape(7) = (1-p(0))*(  p(1))*(  p(2));
+    break;
       }
     }
 }
@@ -1690,7 +1696,7 @@ GetDShape (const Point3d & p, DenseMatrix & dshape) const
   int np = GetNP();
   if (dshape.Height() != 3 || dshape.Width() != np)
     {
-      cerr << "Element::DShape: Sizes don't fit" << endl;
+      std::cerr << "Element::DShape: Sizes don't fit" << std::endl;
       return;
     }
 
@@ -1707,7 +1713,7 @@ GetDShape (const Point3d & p, DenseMatrix & dshape) const
       GetShape (pr, shaper);
       GetShape (pl, shapel);
       for (j = 1; j <= np; j++)
-	dshape.Elem(i, j) = (shaper.Get(j) - shapel.Get(j)) / (2 * eps);
+    dshape.Elem(i, j) = (shaper.Get(j) - shapel.Get(j)) / (2 * eps);
     }
 }
 
@@ -1720,60 +1726,60 @@ GetDShapeNew (const Point<3> & p, MatrixFixWidth<3> & dshape) const
     {
     case TET:
       {
-	dshape = 0;
-	dshape(0,0) = 1;
-	dshape(1,1) = 1;
-	dshape(2,2) = 1;
-	dshape(3,0) = -1;
-	dshape(3,1) = -1;
-	dshape(3,2) = -1;
-	break;
+    dshape = 0;
+    dshape(0,0) = 1;
+    dshape(1,1) = 1;
+    dshape(2,2) = 1;
+    dshape(3,0) = -1;
+    dshape(3,1) = -1;
+    dshape(3,2) = -1;
+    break;
       }
     case PRISM:
       {
-	dshape = 0;
-	dshape(0,0) = 1-p(2);
-	dshape(0,2) = -p(0);
-	dshape(1,1) = 1-p(2);
-	dshape(1,2) = -p(1);
-	dshape(2,0) = -(1-p(2));
-	dshape(2,1) = -(1-p(2));
-	dshape(2,2) = -(1-p(0)-p(1));
+    dshape = 0;
+    dshape(0,0) = 1-p(2);
+    dshape(0,2) = -p(0);
+    dshape(1,1) = 1-p(2);
+    dshape(1,2) = -p(1);
+    dshape(2,0) = -(1-p(2));
+    dshape(2,1) = -(1-p(2));
+    dshape(2,2) = -(1-p(0)-p(1));
 
-	dshape(3,0) = p(2);
-	dshape(3,2) = p(0);
-	dshape(4,1) = p(2);
-	dshape(4,2) = p(1);
-	dshape(5,0) = -p(2);
-	dshape(5,1) = -p(2);
-	dshape(5,2) = 1-p(0)-p(1);
-	break;
+    dshape(3,0) = p(2);
+    dshape(3,2) = p(0);
+    dshape(4,1) = p(2);
+    dshape(4,2) = p(1);
+    dshape(5,0) = -p(2);
+    dshape(5,1) = -p(2);
+    dshape(5,2) = 1-p(0)-p(1);
+    break;
       }
 
     default:
       {
-	int np = GetNP();
-	double eps = 1e-6;
-	Vector shaper(np), shapel(np);
-	
-	for (int i = 1; i <= 3; i++)
-	  {
-	    Point3d pr(p), pl(p);
-	    pr.X(i) += eps;
-	    pl.X(i) -= eps;
-	    
-	    GetShapeNew (pr, shaper);
-	    GetShapeNew (pl, shapel);
-	    for (int j = 1; j <= np; j++)
-	      dshape.Elem(j, i) = (shaper.Get(j) - shapel.Get(j)) / (2 * eps);
-	  }
+    int np = GetNP();
+    double eps = 1e-6;
+    Vector shaper(np), shapel(np);
+    
+    for (int i = 1; i <= 3; i++)
+      {
+        Point3d pr(p), pl(p);
+        pr.X(i) += eps;
+        pl.X(i) -= eps;
+        
+        GetShapeNew (pr, shaper);
+        GetShapeNew (pl, shapel);
+        for (int j = 1; j <= np; j++)
+          dshape.Elem(j, i) = (shaper.Get(j) - shapel.Get(j)) / (2 * eps);
+      }
       }
     }
 }
 
 void Element :: 
 GetPointMatrix (const T_POINTS & points,
-		DenseMatrix & pmat) const
+        DenseMatrix & pmat) const
 {
   int np = GetNP();
   /*
@@ -1815,16 +1821,16 @@ double Element :: CalcJacobianBadness (const T_POINTS & points) const
       // Frobenius norm
       double frob = 0;
       for (j = 1; j <= 9; j++)
-	frob += sqr (trans.Get(j));
+    frob += sqr (trans.Get(j));
       frob = sqrt (frob);
       frob /= 3;
 
       double det = -trans.Det();
       
       if (det <= 0)
-	err += 1e12;
+    err += 1e12;
       else
-	err += frob * frob * frob / det;
+    err += frob * frob * frob / det;
     }
 
   err /= nip;
@@ -1833,7 +1839,7 @@ double Element :: CalcJacobianBadness (const T_POINTS & points) const
 
 double Element :: 
 CalcJacobianBadnessDirDeriv (const T_POINTS & points,
-			     int pi, Vec3d & dir, double & dd) const
+                 int pi, Vec3d & dir, double & dd) const
 {
   int i, j, k, l;
   int nip = GetNIP();
@@ -1865,12 +1871,12 @@ CalcJacobianBadnessDirDeriv (const T_POINTS & points,
       // Frobenius norm
       double frob = 0;
       for (j = 1; j <= 9; j++)
-	frob += sqr (trans.Get(j));
+    frob += sqr (trans.Get(j));
       frob = sqrt (frob);
       
       double dfrob = 0;
       for (j = 1; j <= 9; j++)
-	dfrob += trans.Get(j) * dtrans.Get(j);
+    dfrob += trans.Get(j) * dtrans.Get(j);
       dfrob = dfrob / frob;
       
       frob /= 3;      
@@ -1881,12 +1887,12 @@ CalcJacobianBadnessDirDeriv (const T_POINTS & points,
       double ddet = 0;
       
       for (j = 1; j <= 3; j++)
-	{
-	  hmat = trans;
-	  for (k = 1; k <= 3; k++)
-	    hmat.Elem(k, j) = dtrans.Get(k, j);
-	  ddet += hmat.Det();
-	}
+    {
+      hmat = trans;
+      for (k = 1; k <= 3; k++)
+        hmat.Elem(k, j) = dtrans.Get(k, j);
+      ddet += hmat.Det();
+    }
 
 
       det *= -1;
@@ -1894,12 +1900,13 @@ CalcJacobianBadnessDirDeriv (const T_POINTS & points,
 
       
       if (det <= 0)
-	err += 1e12;
+    err += 1e12;
       else
-	{
-	  err += frob * frob * frob / det;
-	  dd += (3 * frob * frob * dfrob * det - frob * frob * frob * ddet) / (det * det);
-	}
+    {
+      err += frob * frob * frob / det;
+      dd += (3 * frob * frob * dfrob * det 
+            - frob * frob * frob * ddet) / (det * det);
+    }
     }
 
   err /= nip;
@@ -1918,7 +1925,8 @@ void Element :: ComputeIntegrationPointData () const
     case TET: if (ipdtet.Size()) return; break;
     case TET10: if (ipdtet10.Size()) return; break;
     default:
-      PrintSysError ("Element::ComputeIntegrationPoint, illegal type ", int(typ));
+      PrintSysError ("Element::ComputeIntegrationPoint, illegal type ",
+                      int(typ));
     }
 
   int i;
@@ -1933,12 +1941,13 @@ void Element :: ComputeIntegrationPointData () const
       GetDShape (ipd->p, ipd->dshape);
 
       switch (GetType())
-	{
-	case TET: ipdtet.Append (ipd); break;
-	case TET10: ipdtet10.Append (ipd); break;
-	default:
-	  PrintSysError ("Element::ComputeIntegrationPoint(2), illegal type ", int(typ));
-	}
+    {
+    case TET: ipdtet.Append (ipd); break;
+    case TET10: ipdtet10.Append (ipd); break;
+    default:
+      PrintSysError ("Element::ComputeIntegrationPoint(2), illegal type ",
+                    int(typ));
+    }
     }
 }
 
@@ -1987,7 +1996,7 @@ int FaceDescriptor ::  SegmentFits (const Segment & seg)
 }
 
 
-ostream & operator<<(ostream  & s, const FaceDescriptor & fd)
+std::ostream & operator<<(std::ostream  & s, const FaceDescriptor & fd)
 {
   s << "surfnr = " << fd.surfnr 
     << ", domin = " << fd.domin
@@ -2054,7 +2063,8 @@ int Identifications :: GetSymmetric (PointIndex pi1, PointIndex pi2) const
 }
 
 
-void Identifications :: GetMap (int identnr, ARRAY<int,PointIndex::BASE> & identmap) const
+void Identifications :: GetMap (int identnr, 
+                           ARRAY<int,PointIndex::BASE> & identmap) const
 {
   identmap.SetSize (mesh.GetNP());
   identmap = 0;
@@ -2062,18 +2072,18 @@ void Identifications :: GetMap (int identnr, ARRAY<int,PointIndex::BASE> & ident
   for (int i = 1; i <= identifiedpoints->GetNBags(); i++)
     for (int j = 1; j <= identifiedpoints->GetBagSize(i); j++)
       {
-	INDEX_2 i2;
-	int nr;
-	identifiedpoints->GetData (i, j, i2, nr);
-	
-	if (nr == identnr || !identnr)
-	  identmap.Elem(i2.I1()) = i2.I2();
+    INDEX_2 i2;
+    int nr;
+    identifiedpoints->GetData (i, j, i2, nr);
+    
+    if (nr == identnr || !identnr)
+      identmap.Elem(i2.I1()) = i2.I2();
       }  
 }
  
 
 void Identifications :: GetPairs (int identnr, 
-				  ARRAY<INDEX_2> & identpairs) const
+                  ARRAY<INDEX_2> & identpairs) const
 {
   int i, j;
   
@@ -2082,12 +2092,12 @@ void Identifications :: GetPairs (int identnr,
   for (i = 1; i <= identifiedpoints->GetNBags(); i++)
     for (j = 1; j <= identifiedpoints->GetBagSize(i); j++)
       {
-	INDEX_2 i2;
-	int nr;
-	identifiedpoints->GetData (i, j, i2, nr);
-	
-	if (identnr == 0 || nr == identnr)
-	  identpairs.Append (i2);
+    INDEX_2 i2;
+    int nr;
+    identifiedpoints->GetData (i, j, i2, nr);
+    
+    if (identnr == 0 || nr == identnr)
+      identpairs.Append (i2);
       }  
 }
 
@@ -2097,15 +2107,15 @@ void Identifications :: SetMaxPointNr (int maxpnum)
   for (int i = 1; i <= identifiedpoints->GetNBags(); i++)
     for (int j = 1; j <= identifiedpoints->GetBagSize(i); j++)
       {
-	INDEX_2 i2;
-	int nr;
-	identifiedpoints->GetData (i, j, i2, nr);
-	
-	if (i2.I1() > maxpnum || i2.I2() > maxpnum)
-	  {
-	    i2.I1() = i2.I2() = -1;
-	    identifiedpoints->SetData (i, j, i2, -1);	    
-	  }
+    INDEX_2 i2;
+    int nr;
+    identifiedpoints->GetData (i, j, i2, nr);
+    
+    if (i2.I1() > maxpnum || i2.I2() > maxpnum)
+      {
+        i2.I1() = i2.I2() = -1;
+        identifiedpoints->SetData (i, j, i2, -1);        
+      }
       }
 }
 
@@ -2147,44 +2157,44 @@ MeshingParameters :: MeshingParameters ()
   secondorder = 0;
 }
 
-void MeshingParameters :: Print (ostream & ost) const
+void MeshingParameters :: Print (std::ostream & ost) const
 {
-  ost << "Meshing parameters: " << endl
-      << "optimize3d = " << optimize3d << endl
-      << "optsteps3d = " << optsteps3d << endl
-      << " optimize2d = " <<  optimize2d << endl
-      << " optsteps2d = " <<  optsteps2d << endl
-      << " opterrpow = " <<  opterrpow << endl
-      << " blockfill = " <<  blockfill << endl
-      << " filldist = " <<  filldist << endl
-      << " safety = " <<  safety << endl
-      << " relinnersafety = " <<  relinnersafety << endl
-      << " uselocalh = " <<  uselocalh << endl
-      << " grading = " <<  grading << endl
-      << " delaunay = " <<  delaunay << endl
-      << " maxh = " <<  maxh << endl;
+  ost << "Meshing parameters: " << std::endl
+      << "optimize3d = " << optimize3d << std::endl
+      << "optsteps3d = " << optsteps3d << std::endl
+      << " optimize2d = " <<  optimize2d << std::endl
+      << " optsteps2d = " <<  optsteps2d << std::endl
+      << " opterrpow = " <<  opterrpow << std::endl
+      << " blockfill = " <<  blockfill << std::endl
+      << " filldist = " <<  filldist << std::endl
+      << " safety = " <<  safety << std::endl
+      << " relinnersafety = " <<  relinnersafety << std::endl
+      << " uselocalh = " <<  uselocalh << std::endl
+      << " grading = " <<  grading << std::endl
+      << " delaunay = " <<  delaunay << std::endl
+      << " maxh = " <<  maxh << std::endl;
   if(meshsizefilename)
-    ost << " meshsizefilename = " <<  meshsizefilename << endl;
+    ost << " meshsizefilename = " <<  meshsizefilename << std::endl;
   else
-    ost << " meshsizefilename = NULL" << endl;
-  ost << " startinsurface = " <<  startinsurface << endl
-      << " checkoverlap = " <<  checkoverlap << endl
-      << " checkchartboundary = " <<  checkchartboundary << endl
-      << " curvaturesafety = " <<  curvaturesafety << endl
-      << " segmentsperedge = " <<  segmentsperedge << endl
-      << " parthread = " <<  parthread << endl
-      << " elsizeweight = " <<  elsizeweight << endl
-      << " giveuptol = " <<  giveuptol << endl
-      << " maxoutersteps = " <<  maxoutersteps << endl
-      << " starshapeclass = " <<  starshapeclass << endl
-      << " baseelnp        = " <<  baseelnp        << endl
-      << " sloppy = " <<  sloppy << endl
-      << " badellimit = " <<  badellimit << endl
-      << " secondorder = " <<  secondorder << endl
-      << " elementorder = " <<  elementorder << endl
-      << " quad = " <<  quad << endl
-      << " inverttets = " <<  inverttets << endl
-      << " inverttrigs = " <<  inverttrigs << endl;
+    ost << " meshsizefilename = NULL" << std::endl;
+  ost << " startinsurface = " <<  startinsurface << std::endl
+      << " checkoverlap = " <<  checkoverlap << std::endl
+      << " checkchartboundary = " <<  checkchartboundary << std::endl
+      << " curvaturesafety = " <<  curvaturesafety << std::endl
+      << " segmentsperedge = " <<  segmentsperedge << std::endl
+      << " parthread = " <<  parthread << std::endl
+      << " elsizeweight = " <<  elsizeweight << std::endl
+      << " giveuptol = " <<  giveuptol << std::endl
+      << " maxoutersteps = " <<  maxoutersteps << std::endl
+      << " starshapeclass = " <<  starshapeclass << std::endl
+      << " baseelnp        = " <<  baseelnp        << std::endl
+      << " sloppy = " <<  sloppy << std::endl
+      << " badellimit = " <<  badellimit << std::endl
+      << " secondorder = " <<  secondorder << std::endl
+      << " elementorder = " <<  elementorder << std::endl
+      << " quad = " <<  quad << std::endl
+      << " inverttets = " <<  inverttets << std::endl
+      << " inverttrigs = " <<  inverttrigs << std::endl;
 }
 
 void MeshingParameters :: CopyFrom(const MeshingParameters & other)

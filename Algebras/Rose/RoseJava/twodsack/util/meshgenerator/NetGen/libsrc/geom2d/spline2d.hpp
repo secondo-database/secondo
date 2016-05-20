@@ -64,11 +64,11 @@ public:
     the polynomial
     $$ a x^2 + b y^2 + c x y + d x + e y + f = 0 $$
     are written to ost */
-  virtual void PrintCoeff (ostream & ost) const = 0;
+  virtual void PrintCoeff (std::ostream & ost) const = 0;
 
   virtual void GetPoints (int n, ARRAY<Point<2> > & points);
 
-  virtual string GetType(void) const {return "splinebase";}
+  virtual std::string GetType(void) const {return "splinebase";}
 };
 
 
@@ -89,9 +89,9 @@ public:
   ///
   virtual const GeomPoint2d & EndPI () const { return p2; }
   ///
-  virtual void PrintCoeff (ostream & ost) const;
+  virtual void PrintCoeff (std::ostream & ost) const;
 
-  virtual string GetType(void) const {return "line";}
+  virtual std::string GetType(void) const {return "line";}
 };
 
 
@@ -112,9 +112,9 @@ public:
   ///
   virtual const GeomPoint2d & EndPI () const { return p3; }
   ///
-  virtual void PrintCoeff (ostream & ost) const;
+  virtual void PrintCoeff (std::ostream & ost) const;
 
-  virtual string GetType(void) const {return "spline3";}
+  virtual std::string GetType(void) const {return "spline3";}
 };
 
 
@@ -139,7 +139,7 @@ public:
   ///
   virtual const GeomPoint2d & EndPI () const { return p3; }
   ///
-  virtual void PrintCoeff (ostream & ost) const;
+  virtual void PrintCoeff (std::ostream & ost) const;
   ///
   double Radius() const { return radius; }
   ///
@@ -147,7 +147,7 @@ public:
   ///
   double EndAngle() const { return w3; }
 
-  virtual string GetType(void) const {return "circle";}
+  virtual std::string GetType(void) const {return "circle";}
 };
 
 
@@ -194,7 +194,7 @@ public:
   ///
   virtual const GeomPoint2d & EndPI () const { return p2; }
   ///
-  virtual void PrintCoeff (ostream & /* ost */) const { ; }
+  virtual void PrintCoeff (std::ostream & /* ost */) const { ; }
 };
 
 

@@ -31,8 +31,8 @@ int operator <= (const MyStr &, const MyStr &);
 int operator > (const MyStr &, const MyStr &);
 int operator >= (const MyStr &, const MyStr &);
 int operator != (const MyStr &, const MyStr &);
-ostream& operator << (ostream &, const MyStr &);
-istream& operator >> (istream &, MyStr &);
+std::ostream& operator << (std::ostream &, const MyStr &);
+std::istream& operator >> (std::istream &, MyStr &);
 
 class MyStr
 {
@@ -81,8 +81,8 @@ public:
   friend int operator > (const MyStr &, const MyStr &);
   friend int operator >= (const MyStr &, const MyStr &);
   friend int operator != (const MyStr &, const MyStr &);
-  friend ostream& operator << (ostream &, const MyStr &);
-  friend istream& operator >> (istream &, MyStr &);
+  friend std::ostream& operator << (std::ostream &, const MyStr &);
+  friend std::istream& operator >> (std::istream &, MyStr &);
   static void SetToErrHandler(void (*)());
 private:
   MyStr(unsigned, int);
@@ -194,7 +194,7 @@ inline int operator != (const MyStr &s1, const MyStr& s2)
   return !(s1 == s2);
 }
 
-inline ostream& operator << (ostream& os, const MyStr& s)
+inline std::ostream& operator << (std::ostream& os, const MyStr& s)
 {
   return os << s.str;
 }

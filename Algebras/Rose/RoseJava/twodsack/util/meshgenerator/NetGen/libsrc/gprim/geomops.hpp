@@ -346,7 +346,7 @@ inline Mat<W,H> Trans (const Mat<H,W> & m)
 
 
 template <int D>
-inline ostream & operator<< (ostream & ost, const Vec<D> & a)
+inline std::ostream & operator<< (std::ostream & ost, const Vec<D> & a)
 {
   ost << "(";
   for (int i = 0; i < D-1; i++)
@@ -356,7 +356,7 @@ inline ostream & operator<< (ostream & ost, const Vec<D> & a)
 }
 
 template <int D>
-inline ostream & operator<< (ostream & ost, const Point<D> & a)
+inline std::ostream & operator<< (std::ostream & ost, const Point<D> & a)
 {
   ost << "(";
   for (int i = 0; i < D-1; i++)
@@ -366,21 +366,21 @@ inline ostream & operator<< (ostream & ost, const Point<D> & a)
 }
 
 template <int D>
-inline ostream & operator<< (ostream & ost, const Box<D> & b)
+inline std::ostream & operator<< (std::ostream & ost, const Box<D> & b)
 {
   ost << b.PMin() << " - " << b.PMax();
   return ost;
 }
 
 template <int H, int W>
-inline ostream & operator<< (ostream & ost, const Mat<H,W> & m)
+inline std::ostream & operator<< (std::ostream & ost, const Mat<H,W> & m)
 {
   ost << "(";
   for (int i = 0; i < H; i++)
     {
       for (int j = 0; j < W; j++)
 	ost << m(i,j) << "   ";
-      ost << endl;
+      ost << std::endl;
     }
   return ost;
 }

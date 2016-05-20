@@ -25,7 +25,7 @@ inline Point3d Center (const Point3d & p1, const Point3d & p2);
 inline Point3d Center (const Point3d & p1, const Point3d & p2, const Point3d & p3);
 inline Point3d Center (const Point3d & p1, const Point3d & p2, 
 				const Point3d & p3, const Point3d & p4);
-ostream & operator<<(ostream  & s, const Point3d & p);
+std::ostream & operator<<(std::ostream  & s, const Point3d & p);
 inline Vec3d operator- (const Vec3d & p1, const Vec3d & v);
 inline Vec3d operator+ (const Vec3d & p1, const Vec3d & v);
 inline Vec3d operator* (double scal, const Vec3d & v);
@@ -36,7 +36,7 @@ double Angle (const Vec3d & v);
 double FastAngle (const Vec3d & v);
 double Angle (const Vec3d & v1, const Vec3d & v2);
 double FastAngle (const Vec3d & v1, const Vec3d & v2);
-ostream & operator<<(ostream  & s, const Vec3d & v);
+std::ostream & operator<<(std::ostream  & s, const Vec3d & v);
 void Transpose (Vec3d & v1, Vec3d & v2, Vec3d & v3);
 int SolveLinearSystem (const Vec3d & col1,
 		       const Vec3d & col2,
@@ -162,7 +162,7 @@ public:
   friend inline Point3d Center (const Point3d & p1, const Point3d & p2, 
 				const Point3d & p3, const Point3d & p4);
   ///
-  friend ostream & operator<<(ostream  & s, const Point3d & p);
+  friend std::ostream & operator<<(std::ostream  & s, const Point3d & p);
   
   ///
   friend class Vec3d;
@@ -307,7 +307,7 @@ public:
   }
 
   ///
-  friend ostream & operator<<(ostream  & s, const Vec3d & v);
+  friend std::ostream & operator<<(std::ostream  & s, const Vec3d & v);
 
   ///
   friend class Point3d;
@@ -661,9 +661,9 @@ public:
 					 sqr(maxx[2]-minx[2])); }
 
   ///
-  void WriteData(ofstream& fout) const;
+  void WriteData(std::ofstream& fout) const;
   ///
-  void ReadData(ifstream& fin);
+  void ReadData(std::ifstream& fin);
 };
 
 

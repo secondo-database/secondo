@@ -207,7 +207,7 @@ void STLGeometry :: SmoothNormals()
 
 	  if (!nbt)
 	    {
-	      cerr << "ERROR: stlgeom::Smoothnormals, nbt = 0" << endl;
+	      std::cerr << "ERROR: stlgeom::Smoothnormals, nbt = 0" << std::endl;
 	    }
 
 	  // smoothed normal
@@ -666,7 +666,7 @@ void STLGeometry :: ImportEdges()
   StoreEdgeData();
 
   PrintMessage(5, "import edges from file 'edges.ng'");
-  ifstream fin("edges.ng");
+  std::ifstream fin("edges.ng");
 
   int ne;
   fin >> ne;
@@ -753,7 +753,7 @@ void STLGeometry :: ImportExternalEdges(const char * filename)
 {
   //AVL edges!!!!!!
 
-  ifstream inf (filename);
+  std::ifstream inf (filename);
   char ch;
   int cnt = 0;
   int records, units, i, j;
@@ -926,12 +926,12 @@ void STLGeometry :: ExportEdges()
 {
   PrintFnStart("Save edges to file 'edges.ng'");
 
-  ofstream fout("edges.ng");
+  std::ofstream fout("edges.ng");
   fout.precision(16);
 
   int n = edgedata.GetNConfEdges();
   
-  fout << n << endl;
+  fout << n << std::endl;
 
   int i;
   for (i = 1; i <= edgedata.Size(); i++)
@@ -939,8 +939,8 @@ void STLGeometry :: ExportEdges()
       if (edgedata.Get(i).GetStatus() == ED_CONFIRMED)
 	{
 	  const STLTopEdge & e = edgedata.Get(i);
-	  fout << GetPoint(e.PNum(1))(0) << " " << GetPoint(e.PNum(1))(1) << " " << GetPoint(e.PNum(1))(2) << endl;
-	  fout << GetPoint(e.PNum(2))(0) << " " << GetPoint(e.PNum(2))(1) << " " << GetPoint(e.PNum(2))(2) << endl;
+	  fout << GetPoint(e.PNum(1))(0) << " " << GetPoint(e.PNum(1))(1) << " " << GetPoint(e.PNum(1))(2) << std::endl;
+	  fout << GetPoint(e.PNum(2))(0) << " " << GetPoint(e.PNum(2))(1) << " " << GetPoint(e.PNum(2))(2) << std::endl;
 	}
     }
 
@@ -951,7 +951,7 @@ void STLGeometry :: LoadEdgeData(const char* file)
   StoreEdgeData();
 
   PrintFnStart("Load edges from file '", file, "'");
-  ifstream fin(file);
+  std::ifstream fin(file);
 
   edgedata.Read(fin);
 
@@ -961,7 +961,7 @@ void STLGeometry :: LoadEdgeData(const char* file)
 void STLGeometry :: SaveEdgeData(const char* file)
 {
   PrintFnStart("save edges to file '", file, "'");
-  ofstream fout(file);
+  std::ofstream fout(file);
 
   edgedata.Write(fout);
 }
@@ -1497,7 +1497,7 @@ void STLGeometry :: ShowSelectedTrigCoords()
 void STLGeometry :: LoadMarkedTrigs()
 {
   PrintFnStart("load marked trigs from file 'markedtrigs.ng'");
-  ifstream fin("markedtrigs.ng");
+  std::ifstream fin("markedtrigs.ng");
 
   int n;
   fin >> n;
@@ -1527,10 +1527,10 @@ void STLGeometry :: LoadMarkedTrigs()
 void STLGeometry :: SaveMarkedTrigs()
 {
   PrintFnStart("save marked trigs to file 'markedtrigs.ng'");
-  ofstream fout("markedtrigs.ng");
+  std::ofstream fout("markedtrigs.ng");
 
   int n = GetNT();
-  fout << n << endl;
+  fout << n << std::endl;
 
   int i, m;
   for (i = 1; i <= n; i++)
@@ -1539,7 +1539,7 @@ void STLGeometry :: SaveMarkedTrigs()
     }
 
   n = GetNMarkedSegs();
-  fout << n << endl;
+  fout << n << std::endl;
 
   Point<3> p1,p2;
   for (i = 1; i <= n; i++)

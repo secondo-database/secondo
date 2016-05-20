@@ -15,6 +15,9 @@
 #include "opti.hpp"
 
 
+using namespace std;
+
+
 namespace netgen
 {
 

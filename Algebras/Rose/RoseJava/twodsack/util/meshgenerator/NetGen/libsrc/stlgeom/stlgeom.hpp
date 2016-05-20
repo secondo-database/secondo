@@ -73,8 +73,8 @@ namespace netgen
 
     int GetNConfEdges() const;
 
-    void Write(ofstream& of) const;
-    void Read(ifstream& ifs);
+    void Write(std::ofstream& of) const;
+    void Read(std::ifstream& ifs);
 
     void BuildLineWithEdge(int ep1, int ep2, ARRAY<twoint>& line);
     void BuildClusterWithEdge(int ep1, int ep2, ARRAY<twoint>& line);

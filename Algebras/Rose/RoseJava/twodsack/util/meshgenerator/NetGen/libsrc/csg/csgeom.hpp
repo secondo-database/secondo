@@ -28,7 +28,7 @@ class TopLevelObject
   double red, blue, green;
   bool visible, transp;
   double maxh;
-  string material;
+  std::string material;
   int layer;
   int bc;     // for surface patches, only
 public:
@@ -41,8 +41,8 @@ public:
   const Surface * GetSurface () const { return surface; }
   Surface  * GetSurface () { return surface; }
 
-  void GetData (ostream & ost);
-  void SetData (istream & ist);
+  void GetData (std::ostream & ost);
+  void SetData (std::istream & ist);
 
   void SetMaxH (double amaxh) { maxh = amaxh; } 
   double GetMaxH () const { return maxh; }
@@ -66,8 +66,8 @@ public:
   { visible = avisible; }
   bool GetVisible () const { return visible; }
 
-  const string GetMaterial () const { return material; }
-  void SetMaterial (const string & mat) { material = mat; }
+  const std::string GetMaterial () const { return material; }
+  void SetMaterial (const std::string & mat) { material = mat; }
 
   int GetLayer () const { return layer; }
   void SetLayer (int alayer) { layer = alayer; }
@@ -116,17 +116,17 @@ private:
 
 
   /// filename of inputfile
-  string filename;
+  std::string filename;
 
 public:
   CSGeometry ();
-  CSGeometry (const string & afilename);
+  CSGeometry (const std::string & afilename);
   ~CSGeometry ();
 
   void Clean ();
 
-  void Save (ostream & ost);
-  void Load (istream & ist);
+  void Save (std::ostream & ost);
+  void Load (std::istream & ist);
 
   int GetChangeVal() { return changeval; }
   void Change() { changeval++; }
@@ -142,7 +142,7 @@ public:
 
   void SetSolid (const char * name, Solid * sol);
   const Solid * GetSolid (const char * name) const;
-  const Solid * GetSolid (const string & name) const;
+  const Solid * GetSolid (const std::string & name) const;
   int GetNSolids () const { return solids.Size(); }
   const Solid * GetSolid (int i) { return solids[i]; }
   const SYMBOLTABLE<Solid*> & GetSolids () const { return solids; }

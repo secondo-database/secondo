@@ -4,6 +4,9 @@
 // #define MARK
 // #include <prof.h>
 
+using namespace std;
+
+
 namespace netgen
 {
 extern double minother;

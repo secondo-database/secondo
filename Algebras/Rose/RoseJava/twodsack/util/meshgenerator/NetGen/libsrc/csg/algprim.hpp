@@ -42,9 +42,9 @@ public:
   virtual Point<3> GetSurfacePoint () const;
 
 
-  virtual void Print (ostream & ist) const;
-  virtual void Read (istream & ist);
-  void PrintCoeff (ostream & ost) const;
+  virtual void Print (std::ostream & ist) const;
+  virtual void Read (std::istream & ist);
+  void PrintCoeff (std::ostream & ost) const;
 };
 
 

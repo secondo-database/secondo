@@ -25,7 +25,8 @@ class Neighbour
   int orient[3];
 
 public:
-  Neighbour () { nr[0] = nr[1] = nr[2] = -1; orient[0] = orient[1] = orient[2] = 0; }
+  Neighbour () { nr[0] = nr[1] = nr[2] = -1; 
+                 orient[0] = orient[1] = orient[2] = 0; }
 
   void SetNr (int side, int anr) { nr[side-1] = anr; }
   int GetNr (int side) { return nr[side-1]; }
@@ -115,7 +116,8 @@ void MeshOptimize2d :: EdgeSwapping (Mesh & mesh, int usemetric)
   Vec3d nv1, nv2;
   double horder;
   double loch;
-  static const double minangle[] = { 0, 1.481, 2.565, 3.627, 4.683, 5.736, 7, 9 };
+  static const double minangle[] = { 0, 1.481, 2.565, 3.627, 
+                                     4.683, 5.736, 7, 9 };
 
   pangle = 0;
 
@@ -137,7 +139,8 @@ void MeshOptimize2d :: EdgeSwapping (Mesh & mesh, int usemetric)
   for (pi = PointIndex::BASE; 
        pi < mesh.GetNP()+PointIndex::BASE; pi++)
     {
-      if (mesh.PointType(pi) == INNERPOINT || mesh.PointType(pi) == SURFACEPOINT)
+      if (mesh.PointType(pi) == INNERPOINT 
+          || mesh.PointType(pi) == SURFACEPOINT)
 	pdef[pi] = -6;
       else
 	for (j = 0; j < 8; j++)
@@ -494,7 +497,7 @@ void MeshOptimize2d :: CombineImprove (Mesh & mesh)
 	      }
 	  if (k == 3)
 	    {
-	      cerr << "Neuer Fehler von Joachim, code 17121" << endl;
+	      std::cerr << "Neuer Fehler von Joachim, code 17121" << std::endl;
 	    }
 	}
     }
@@ -528,7 +531,7 @@ void MeshOptimize2d :: CombineImprove (Mesh & mesh)
 	  if (debugflag)
 	    {
 	      (*testout) << "Combineimprove, face = " << faceindex 
-			 << "pi1 = " << pi1 << " pi2 = " << pi2 << endl;
+			 << "pi1 = " << pi1 << " pi2 = " << pi2 << std::endl;
 	    }
 
 	  /*
@@ -589,7 +592,7 @@ void MeshOptimize2d :: CombineImprove (Mesh & mesh)
 	      }
 	  if (k == 3)
 	    {
-	      cerr << "Neuer Fehler von Joachim, code 32434" << endl;
+	      std::cerr << "Neuer Fehler von Joachim, code 32434" << std::endl;
 	    }
 
 
@@ -664,7 +667,7 @@ void MeshOptimize2d :: CombineImprove (Mesh & mesh)
        
 	  if (debugflag)
 	    {
-	      (*testout) << "bad1 = " << bad1 << ", bad2 = " << bad2 << endl;
+	      (*testout) << "bad1 = " << bad1 << ", bad2 = " << bad2 << std::endl;
 	    }
 
 
@@ -689,11 +692,12 @@ void MeshOptimize2d :: CombineImprove (Mesh & mesh)
 	      
 	      Element2d *el1p;
 	      l=0;
-	      while(mesh[elementsonnode[pi1][l]].IsDeleted() && l<elementsonnode.EntrySize(pi1)) l++;
+	      while(   mesh[elementsonnode[pi1][l]].IsDeleted() 
+              && l<elementsonnode.EntrySize(pi1)) l++;
 	      if(l<elementsonnode.EntrySize(pi1))
 		el1p = &mesh[elementsonnode[pi1][l]];
 	      else
-		cerr << "OOPS!" << endl;
+		std::cerr << "OOPS!" << std::endl;
 
 	      for (l = 0; l < el1p->GetNP(); l++)
 		if ((*el1p)[l] == pi1)

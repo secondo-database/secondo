@@ -1,6 +1,9 @@
 #ifndef FILE_ARRAY
 #define FILE_ARRAY
 
+
+#include <string.h>
+
 /**************************************************************************/
 /* File:   array.hpp                                                      */
 /* Author: Joachim Schoeberl                                              */
@@ -121,10 +124,10 @@ public:
 
 // print array
 template <class T, int BASE>
-inline ostream & operator<< (ostream & s, const FlatArray<T,BASE> & a)
+inline std::ostream & operator<< (std::ostream & s, const FlatArray<T,BASE> & a)
 {
   for (int i = BASE; i < a.Size()+BASE; i++)
-    s << i << ": " << a[i] << endl;
+    s << i << ": " << a[i] << std::endl;
   return s;
 }
 
@@ -434,10 +437,10 @@ public:
   }
 
   ///
-  void PrintMemInfo (ostream & ost) const
+  void PrintMemInfo (std::ostream & ost) const
   {
     ost << Size() << " elements of size " << sizeof(T) << " = " 
-	<< Size() * sizeof(T) << endl;
+	<< Size() * sizeof(T) << std::endl;
   }
 
   MoveableArray & operator= (const T & el)
@@ -447,7 +450,7 @@ public:
     return *this;
   }
 
-  void SetName (char * aname)
+  void SetName (const char * aname)
   {
     data.SetName(aname);
   }
@@ -460,10 +463,10 @@ private:
 
 
 template <class T>
-inline ostream & operator<< (ostream & ost, MoveableArray<T> & a)
+inline std::ostream & operator<< (std::ostream & ost, MoveableArray<T> & a)
 {
   for (int i = 0; i < a.Size(); i++)
-    ost << i << ": " << a[i] << endl;
+    ost << i << ": " << a[i] << std::endl;
   return ost;
 }
 

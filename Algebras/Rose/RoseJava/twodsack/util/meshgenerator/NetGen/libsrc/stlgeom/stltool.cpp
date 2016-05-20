@@ -69,7 +69,7 @@ double GetDistFromInfiniteLine(const Point<3>& lp1, const Point<3>& lp2, const P
 
 
 
-void FIOReadInt(istream& ios, int& i)
+void FIOReadInt(std::istream& ios, int& i)
 {
   const int ilen = sizeof(int);
   
@@ -82,7 +82,7 @@ void FIOReadInt(istream& ios, int& i)
   memcpy(&i, &buf, ilen);
 }
 
-void FIOWriteInt(ostream& ios, const int& i)
+void FIOWriteInt(std::ostream& ios, const int& i)
 {
   const int ilen = sizeof(int);
   
@@ -96,7 +96,7 @@ void FIOWriteInt(ostream& ios, const int& i)
     }
 }
 
-void FIOReadDouble(istream& ios, double& i)
+void FIOReadDouble(std::istream& ios, double& i)
 {
   const int ilen = sizeof(double);
   
@@ -109,7 +109,7 @@ void FIOReadDouble(istream& ios, double& i)
   memcpy(&i, &buf, ilen);
 }
 
-void FIOWriteDouble(ostream& ios, const double& i)
+void FIOWriteDouble(std::ostream& ios, const double& i)
 {
   const int ilen = sizeof(double);
   
@@ -123,7 +123,7 @@ void FIOWriteDouble(ostream& ios, const double& i)
     }
 }
 
-void FIOReadFloat(istream& ios, float& i)
+void FIOReadFloat(std::istream& ios, float& i)
 {
   const int ilen = sizeof(float);
   
@@ -136,7 +136,7 @@ void FIOReadFloat(istream& ios, float& i)
   memcpy(&i, &buf, ilen);
 }
 
-void FIOWriteFloat(ostream& ios, const float& i)
+void FIOWriteFloat(std::ostream& ios, const float& i)
 {
   const int ilen = sizeof(float);
   
@@ -150,7 +150,7 @@ void FIOWriteFloat(ostream& ios, const float& i)
      }
 }
 
-void FIOReadString(istream& ios, char* str, int len)
+void FIOReadString(std::istream& ios, char* str, int len)
 {
   int j;
   for (j = 0; j < len; j++)
@@ -160,7 +160,7 @@ void FIOReadString(istream& ios, char* str, int len)
 }
 
 //read string and add terminating 0
-void FIOReadStringE(istream& ios, char* str, int len)
+void FIOReadStringE(std::istream& ios, char* str, int len)
 {
   int j;
   for (j = 0; j < len; j++)
@@ -170,7 +170,7 @@ void FIOReadStringE(istream& ios, char* str, int len)
   str[len] = 0;
 }
 
-void FIOWriteString(ostream& ios, char* str, int len)
+void FIOWriteString(std::ostream& ios, char* str, int len)
 {
   int j;
   for (j = 0; j < len; j++)
@@ -599,7 +599,7 @@ int STLTriangle :: HasEdge(int p1, int p2) const
   return 0;
 }
 
-ostream& operator<<(ostream& os, const STLTriangle& t)
+std::ostream& operator<<(std::ostream& os, const STLTriangle& t)
 {
   os << "[";
   os << t[0] << ",";
@@ -1219,15 +1219,15 @@ STLDoctorParams :: STLDoctorParams()
 
 STLDoctorParams stldoctor;
 
-void STLDoctorParams :: Print (ostream & ost) const
+void STLDoctorParams :: Print (std::ostream & ost) const
 {
-  ost << "STL doctor parameters:" << endl
-      << "selecttrig = " << selecttrig << endl
-      << "selectlocalpoint = " << nodeofseltrig << endl
-      << "selectwithmouse = " << selectwithmouse << endl
-      << "showmarkedtrigs = " << showmarkedtrigs << endl
-      << "dirtytrigfact = " << dirtytrigfact << endl
-      << "smoothangle = " << smoothangle << endl;
+  ost << "STL doctor parameters:" << std::endl
+      << "selecttrig = " << selecttrig << std::endl
+      << "selectlocalpoint = " << nodeofseltrig << std::endl
+      << "selectwithmouse = " << selectwithmouse << std::endl
+      << "showmarkedtrigs = " << showmarkedtrigs << std::endl
+      << "dirtytrigfact = " << dirtytrigfact << std::endl
+      << "smoothangle = " << smoothangle << std::endl;
 }
 
 
@@ -1258,27 +1258,27 @@ STLParameters ::   STLParameters()
   recalc_h_opt = 1;
 }
 
-void STLParameters :: Print (ostream & ost) const
+void STLParameters :: Print (std::ostream & ost) const
 {
-  ost << "STL parameters:" << endl
-      << "yellow angle = " << yangle << endl
-      << "continued yellow angle = " << contyangle << endl
-      << "edgecornerangle = " << edgecornerangle << endl
-      << "chartangle = " << chartangle << endl
-      << "outerchartangle = " << outerchartangle << endl
-      << "restrict h due to ..., enable and safety factor: " << endl
+  ost << "STL parameters:" << std::endl
+      << "yellow angle = " << yangle << std::endl
+      << "continued yellow angle = " << contyangle << std::endl
+      << "edgecornerangle = " << edgecornerangle << std::endl
+      << "chartangle = " << chartangle << std::endl
+      << "outerchartangle = " << outerchartangle << std::endl
+      << "restrict h due to ..., enable and safety factor: " << std::endl
       << "surface curvature: " << resthsurfcurvenable
-      << ", fac = " << resthsurfcurvfac << endl
+      << ", fac = " << resthsurfcurvfac << std::endl
       << "atlas surface curvature: " << resthatlasenable
-      << ", fac = " << resthatlasfac << endl
+      << ", fac = " << resthatlasfac << std::endl
       << "chart distance: " << resthchartdistenable
-      << ", fac = " << resthchartdistfac << endl
+      << ", fac = " << resthchartdistfac << std::endl
       << "line length: " << resthlinelengthenable
-      << ", fac = " << resthlinelengthfac << endl
+      << ", fac = " << resthlinelengthfac << std::endl
       << "close edges: " << resthcloseedgeenable
-      << ", fac = " << resthcloseedgefac << endl
+      << ", fac = " << resthcloseedgefac << std::endl
       << "edge angle: " << resthedgeangleenable
-      << ", fac = " << resthedgeanglefac << endl;
+      << ", fac = " << resthedgeanglefac << std::endl;
 }
 
 

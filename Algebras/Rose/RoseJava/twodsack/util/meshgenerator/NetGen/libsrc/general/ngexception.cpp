@@ -12,7 +12,7 @@ namespace netgen
 
 
 
-  NgException :: NgException (const string & s) 
+  NgException :: NgException (const std::string & s) 
     : what(s)
   {
     ; 
@@ -25,7 +25,7 @@ namespace netgen
   }
 
   /// append string to description
-  void NgException :: Append (const string & s)
+  void NgException :: Append (const std::string & s)
   { 
     what += s; 
   }

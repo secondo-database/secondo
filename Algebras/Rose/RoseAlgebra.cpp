@@ -41,7 +41,6 @@ by Sheng Liang. This book is online available as PDF file at www.sun.com.
 
 */
 
-using namespace std;
 
 #include "Algebra.h"
 #include "Application.h"
@@ -51,6 +50,7 @@ using namespace std;
 #include "StandardTypes.h"
 #include "Attribute.h"
 #include "Symbols.h"
+#include "../Rectangle/RectangleAlgebra.h"
 
 #include <stack>
 #include <time.h>
@@ -62,6 +62,8 @@ extern QueryProcessor* qp;
 #include "Attribute.h"
 #include <jni.h>
 #include <JVMInit.h>
+
+using namespace std;
 
 /*
  The JVMInitializer provides access to a pointer to
@@ -261,7 +263,7 @@ c) Used JAR archives must also have an entry in that file.
 
 */
 
-static void error(char *name, int line) {
+static void error(const string &name, int line) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   cerr << "Error in " << name << " in line: " << line << "." << endl;
   if(env->ExceptionOccurred())
@@ -1032,7 +1034,8 @@ public:
   bool Adjacent(const Attribute *arg) const;
   int NumOfFLOBs() const;
   Flob *GetFLOB(const int i);
-  void Initialize();
+  void Initialize(SmiFileId fileId, 
+                  TupleId tupleId, int attrno);
   void Finalize() {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     env->DeleteLocalRef(obj);
@@ -1144,7 +1147,8 @@ Flob *CcPoints::GetFLOB(const int i){
    return &objectData;
 }
 
-void CcPoints::Initialize() {
+void CcPoints::Initialize(SmiFileId fileId, 
+                  TupleId tupleId, int attrno) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = 0;
   SetDefined(true);
@@ -1577,7 +1581,8 @@ public:
   bool Adjacent(const Attribute *arg) const;
   int NumOfFLOBs() const;
   Flob *GetFLOB(const int i);
-  void Initialize();
+  void Initialize(SmiFileId fileId, 
+                  TupleId tupleId, int attrno);
   void Finalize() {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     env->DeleteLocalRef(obj);
@@ -1691,7 +1696,8 @@ Flob *CcLines::GetFLOB(const int i) {
   return &objectData;
 }
 
-void CcLines::Initialize() {
+void CcLines::Initialize(SmiFileId fileId, 
+                  TupleId tupleId, int attrno) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = 0;
   SetDefined(true);
@@ -2119,7 +2125,8 @@ public:
   bool Adjacent(const Attribute *arg) const;
   int NumOfFLOBs() const;
   Flob *GetFLOB(const int i);
-  void Initialize();
+  void Initialize(SmiFileId fileId, 
+                  TupleId tupleId, int attrno);
   void Finalize() {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     env->DeleteLocalRef(obj);
@@ -2228,7 +2235,8 @@ Flob *CcRegions::GetFLOB(const int i){
   return &objectData;
 }
 
-void CcRegions::Initialize() {
+void CcRegions::Initialize(SmiFileId fileId, 
+                  TupleId tupleId, int attrno) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = 0;
   SetDefined(true);
@@ -3051,8 +3059,9 @@ This is a general type mapping function for all Rose methods
    which take two parameters.
 
 */
-static ListExpr typeMappingRose (ListExpr args, char *type1,
-                                 char *type2, char *resulttype) {
+static ListExpr typeMappingRose (ListExpr args, const char *type1,
+                                 const char *type2, 
+                                 const char *resulttype) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1, arg2;
 
@@ -3072,8 +3081,8 @@ static ListExpr typeMappingRose (ListExpr args, char *type1,
 
 */
 
-static ListExpr typeMappingRose (ListExpr args, char *type1,
-                                 char *resulttype) {
+static ListExpr typeMappingRose (ListExpr args, const char *type1,
+                                 const char *resulttype) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1;
 
@@ -3093,7 +3102,7 @@ static ListExpr typeMappingRose (ListExpr args, char *type1,
 
 static ListExpr ccregionsccregionsBool(ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return typeMappingRose(args, "rregion", "rregion", CcBool::BasicType());
+  return typeMappingRose(args, "rregion", "rregion", "bool");
 }
 
 
@@ -3126,7 +3135,7 @@ static ListExpr ccregionscclines(ListExpr args) {
 
 static ListExpr ccregionsDouble(ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return typeMappingRose(args, "rregion", CcReal::BasicType());
+  return typeMappingRose(args, "rregion", CcReal::BasicType().c_str());
 }
 
 /*
@@ -3136,7 +3145,7 @@ static ListExpr ccregionsDouble(ListExpr args) {
 
 static ListExpr cclinesDouble(ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return typeMappingRose(args, "rline", CcReal::BasicType());
+  return typeMappingRose(args, "rline", CcReal::BasicType().c_str());
 }
 
 /*
@@ -3615,7 +3624,7 @@ static int ll_equalFun(Word* args, Word& result, int message,
                                             ls1->GetObj(),ls2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -3657,7 +3666,7 @@ static int rr_equalFun(Word* args, Word& result, int message,
                                             rs1->GetObj(),rs2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -3696,7 +3705,7 @@ static int pp_unequalFun(Word* args, Word& result, int message,
                                             ccps1->GetObj(),ccps2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -3736,7 +3745,7 @@ static int ll_unequalFun(Word* args, Word& result, int message,
                                             ccl1->GetObj(),ccl2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -3777,7 +3786,7 @@ static int rr_unequalFun(Word* args, Word& result, int message,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -3817,7 +3826,7 @@ static int pp_disjointFun(Word* args, Word& result, int message,
                                             ccp1->GetObj(),ccp2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -3857,7 +3866,7 @@ static int ll_disjointFun(Word* args, Word& result, int message,
                                             ccl1->GetObj(),ccl2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -3895,7 +3904,7 @@ static int rr_disjointFun(Word* args, Word& result, int message,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -3934,7 +3943,7 @@ static int pr_insideFun(Word* args, Word& result, int message,
                                             ccp->GetObj(),ccr->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -3973,7 +3982,7 @@ static int lr_insideFun(Word* args, Word& result, int message,
                                             ccl->GetObj(),ccr->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4012,7 +4021,7 @@ static int rr_insideFun(Word* args, Word& result, int message,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4053,7 +4062,7 @@ static int rr_area_disjointFun(Word* args, Word& result, int message,
                                             ccr2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4096,7 +4105,7 @@ static int rr_edge_disjointFun(Word* args, Word& result, int message,
                                             ccr2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4139,7 +4148,7 @@ static int rr_edge_insideFun(Word* args, Word& result, int message,
                                             ccr2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4182,7 +4191,7 @@ static int rr_vertex_insideFun(Word* args, Word& result, int message,
                                             ccr2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4223,7 +4232,7 @@ static int rr_intersectsFun(Word* args, Word& result, int message,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4262,7 +4271,7 @@ static int rr_meetsFun(Word* args, Word& result, int message,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4303,7 +4312,7 @@ static int rr_border_in_commonFun(Word* args, Word& result, int message,
                                             ccr2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4344,7 +4353,7 @@ static int rr_adjacentFun(Word* args, Word& result, int message,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4383,7 +4392,7 @@ static int rr_enclosesFun(Word* args, Word& result, int message,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4636,7 +4645,7 @@ static int ll_intersectsFun(Word* args, Word& result, int message,
                                             ccl1->GetObj(),ccl2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4675,7 +4684,7 @@ static int lr_intersectsFun(Word* args, Word& result, int message,
                                             ccl->GetObj(),ccr->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4714,7 +4723,7 @@ static int rl_intersectsFun(Word* args, Word& result, int message,
                                             ccr->GetObj(),ccl->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4753,7 +4762,7 @@ static int ll_meetsFun(Word* args, Word& result, int message,
                                             ccl1->GetObj(),ccl2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4792,7 +4801,7 @@ static int lr_meetsFun(Word* args, Word& result, int message,
                                             ccl->GetObj(),ccr->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4831,7 +4840,7 @@ static int rl_meetsFun(Word* args, Word& result, int message,
                                             ccr->GetObj(),ccl->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4872,7 +4881,7 @@ static int ll_border_in_commonFun(Word* args, Word& result, int message,
                                             ccl2->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4915,7 +4924,7 @@ static int lr_border_in_commonFun(Word* args, Word& result, int message,
                                             ccr->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4957,7 +4966,7 @@ static int rl_border_in_commonFun(Word* args, Word& result, int message,
                                             ccr->GetObj(),ccl->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -4999,7 +5008,7 @@ static int pl_on_border_ofFun(Word* args, Word& result, int message,
                                             ccp->GetObj(),ccl->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -5040,7 +5049,7 @@ static int pr_on_border_ofFun(Word* args, Word& result, int message,
                                             ccp->GetObj(),ccr->GetObj());
   if (env->ExceptionOccurred()) {
     RoseError();
-    obj = false;
+    obj = 0;
   }
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
@@ -7186,12 +7195,12 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   if(midPointsPrint == 0) error(__FILE__,__LINE__);
   midLinesRect =
     env->GetMethodID(clsLines,
-                     Rectangle<2>::BasicType(),
+                     Rectangle<2>::BasicType().c_str(),
                      "()Ltwodsack/setelement/datatype/basicdatatype/Rect;");
   if(midLinesRect == 0) error(__FILE__,__LINE__);
   midPointsRect =
     env->GetMethodID(clsPoints,
-                     Rectangle<2>::BasicType(),
+                     Rectangle<2>::BasicType().c_str(),
                      "()Ltwodsack/setelement/datatype/basicdatatype/Rect;");
   if(midPointsRect == 0) error(__FILE__,__LINE__);
   midLinesCompare = env->GetMethodID(clsLines,"compare","(LLines;)I");
@@ -7229,7 +7238,7 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   if (midROSEChooseTriangulator == 0) error(__FILE__,__LINE__);
   midRegionsRect =
     env->GetMethodID(clsRegions,
-                     Rectangle<2>::BasicType(),
+                     Rectangle<2>::BasicType().c_str(),
                      "()Ltwodsack/setelement/datatype/basicdatatype/Rect;");
   if (midRegionsRect == 0) error(__FILE__,__LINE__);
   midRectGetTopLeftX = env->GetMethodID(clsRect,"getTopLeftX","()D");

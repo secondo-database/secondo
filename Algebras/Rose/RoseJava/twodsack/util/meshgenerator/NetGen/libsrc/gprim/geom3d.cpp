@@ -6,12 +6,12 @@
 
 namespace netgen
 {
-ostream & operator<<(ostream  & s, const Point3d & p)
+std::ostream & operator<<(std::ostream  & s, const Point3d & p)
   {
   return s << "(" << p.x[0] << ", " << p.x[1] << ", " << p.x[2] << ")";
   }
 
-ostream & operator<<(ostream  & s, const Vec3d & v)
+std::ostream & operator<<(std::ostream  & s, const Vec3d & v)
   {
   return s << "(" << v.x[0] << ", " << v.x[1] << ", " << v.x[2] << ")";
   }
@@ -102,7 +102,8 @@ double Cross (const Vec3d & v1, const Vec3d & v2)
 */
 
 /*
-void ROTDenseMatrix3D :: CalcRotMat(double ag, double bg, double lg, double size2, Vec3d r)
+void ROTDenseMatrix3D :: CalcRotMat(double ag, double bg, 
+                 double lg, double size2, Vec3d r)
   {
   size = size2;
   txx=size * ( cos(bg) * cos(lg) );
@@ -119,7 +120,8 @@ void ROTDenseMatrix3D :: CalcRotMat(double ag, double bg, double lg, double size
 
   deltaR=r;
   }
-ROTDenseMatrix3D :: ROTDenseMatrix3D(double ag, double bg, double lg, double size2, Vec3d r)
+ROTDenseMatrix3D :: ROTDenseMatrix3D(double ag, double bg, 
+              double lg, double size2, Vec3d r)
   {CalcRotMat(ag, bg, lg, size2, r); }
 
 ROTDenseMatrix3D :: ROTDenseMatrix3D(Vec3d rot2)
@@ -290,7 +292,7 @@ void Box3d :: CreateNegMinMaxBox()
 }
 */
 
-void Box3d :: WriteData(ofstream& fout) const
+void Box3d :: WriteData(std::ofstream& fout) const
 {
   for(int i = 0; i < 3; i++)
     {
@@ -299,7 +301,7 @@ void Box3d :: WriteData(ofstream& fout) const
   fout << "\n";
 }
 
-void Box3d :: ReadData(ifstream& fin)
+void Box3d :: ReadData(std::ifstream& fin)
 {
   for(int i = 0; i < 3; i++)
     {
@@ -312,8 +314,8 @@ void Box3d :: ReadData(ifstream& fin)
 
 
 Box3dSphere :: Box3dSphere ( double aminx, double amaxx,
-			     double aminy, double amaxy,
-			     double aminz, double amaxz )
+                 double aminy, double amaxy,
+                 double aminz, double amaxz )
   : Box3d (aminx, amaxx, aminy, amaxy, aminz, amaxz)
 {
   CalcDiamCenter ();
@@ -323,14 +325,16 @@ Box3dSphere :: Box3dSphere ( double aminx, double amaxx,
 void Box3dSphere :: CalcDiamCenter ()
 {
   diam = sqrt( sqr (maxx[0] - minx[0]) +
-	       sqr (maxx[1] - minx[1]) + 
-	       sqr (maxx[2] - minx[2]));
+           sqr (maxx[1] - minx[1]) + 
+           sqr (maxx[2] - minx[2]));
   
   c.X() = 0.5 * (minx[0] + maxx[0]);
   c.Y() = 0.5 * (minx[1] + maxx[1]);
   c.Z() = 0.5 * (minx[2] + maxx[2]);
   
-  inner = min2 ( min2 (maxx[0] - minx[0], maxx[1] - minx[1]), maxx[2] - minx[2]) / 2;
+  inner = min2 ( min2 (maxx[0] - minx[0], 
+                 maxx[1] - minx[1]), 
+                 maxx[2] - minx[2]) / 2;
 }
 
 
@@ -382,8 +386,8 @@ void Box3dSphere :: GetSubBox (int i, Box3dSphere & sbox) const
 
 /*
 double Determinant (const Vec3d & col1,
-		    const Vec3d & col2,
-		    const Vec3d & col3)
+            const Vec3d & col2,
+            const Vec3d & col3)
 {
   return
     col1.x[0] * ( col2.x[1] * col3.x[2] - col2.x[2] * col3.x[1]) +
@@ -401,8 +405,8 @@ void Transpose (Vec3d & v1, Vec3d & v2, Vec3d & v3)
 
 
 int SolveLinearSystem (const Vec3d & col1, const Vec3d & col2,
-		       const Vec3d & col3, const Vec3d & rhs,
-		       Vec3d & sol)
+               const Vec3d & col3, const Vec3d & rhs,
+               Vec3d & sol)
 {
   Vec3d cr;
   Cross (col1, col2, cr);
@@ -428,7 +432,7 @@ int SolveLinearSystem (const Vec3d & col1, const Vec3d & col2,
     {
       det = Determinant (col1, col2, col3);
       if (fabs (det) < 1e-40)
-	return 1;
+    return 1;
       
       sol.X() = Determinant (rhs, col2, col3) / det;
       sol.Y() = Determinant (col1, rhs, col3) / det;
@@ -440,9 +444,9 @@ int SolveLinearSystem (const Vec3d & col1, const Vec3d & col2,
 
 
 int SolveLinearSystemLS (const Vec3d & col1,
-			 const Vec3d & col2,
-			 const Vec2d & rhs,
-			 Vec3d & sol)
+             const Vec3d & col2,
+             const Vec2d & rhs,
+             Vec3d & sol)
 {
   double a11 = col1 * col1;
   double a12 = col1 * col2;
@@ -477,9 +481,9 @@ int SolveLinearSystemLS (const Vec3d & col1,
 }
 
 int SolveLinearSystemLS2 (const Vec3d & col1,
-			 const Vec3d & col2,
-			 const Vec2d & rhs,
-			 Vec3d & sol, double & x, double & y)
+             const Vec3d & col2,
+             const Vec2d & rhs,
+             Vec3d & sol, double & x, double & y)
 {
   double a11 = col1 * col1;
   double a12 = col1 * col2;
@@ -519,9 +523,9 @@ int SolveLinearSystemLS2 (const Vec3d & col1,
 }
 
 int PseudoInverse (const Vec3d & col1,
-		   const Vec3d & col2,
-		   Vec3d & inv1,
-		   Vec3d & inv2)
+           const Vec3d & col2,
+           Vec3d & inv1,
+           Vec3d & inv2)
 {
   double a11 = col1 * col1;
   double a12 = col1 * col2;
@@ -575,9 +579,9 @@ QuadraticFunction3d (const Point3d & p, const Vec3d & v)
 
   /*
   (*testout) << "c0 = " << c0
-	     << " clin = " << cx << " " << cy << " " << cz 
-	     << " cq = " << cxx << " " << cyy << " " << czz
-	     << cxy << " " << cyz << " " << cyz << endl;
+         << " clin = " << cx << " " << cy << " " << cz 
+         << " cq = " << cxx << " " << cyy << " " << czz
+         << cxy << " " << cyz << " " << cyz << endl;
   */
 }
 

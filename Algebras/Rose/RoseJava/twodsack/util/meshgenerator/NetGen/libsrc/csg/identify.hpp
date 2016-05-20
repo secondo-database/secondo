@@ -26,8 +26,8 @@ protected:
 public:
   Identification (int anr, const CSGeometry & ageom);
   virtual ~Identification ();
-  virtual void Print (ostream & ost) const = 0;
-  virtual void GetData (ostream & ost) const = 0;
+  virtual void Print (std::ostream & ost) const = 0;
+  virtual void GetData (std::ostream & ost) const = 0;
 
   /// obsolete
   //  virtual void IdentifySpecialPoints (ARRAY<class SpecialPoint> & points);
@@ -64,7 +64,7 @@ public:
   /// get list of identified faces
   virtual void GetIdentifiedFaces (ARRAY<INDEX_2> & idfaces) const;
 
-  friend ostream & operator<< (ostream & ost, Identification & ident);
+  friend std::ostream & operator<< (std::ostream & ost, Identification & ident);
 };
 
 
@@ -78,8 +78,8 @@ public:
 			  const Surface * as1,
 			  const Surface * as2);
   virtual ~PeriodicIdentification ();
-  virtual void Print (ostream & ost) const;
-  virtual void GetData (ostream & ost) const;
+  virtual void Print (std::ostream & ost) const;
+  virtual void GetData (std::ostream & ost) const;
 
 
   //  virtual void IdentifySpecialPoints (ARRAY<class SpecialPoint> & points);
@@ -123,8 +123,8 @@ public:
 			      const Flags & flags);
   virtual ~CloseSurfaceIdentification ();
 
-  virtual void Print (ostream & ost) const;
-  virtual void GetData (ostream & ost) const;
+  virtual void Print (std::ostream & ost) const;
+  virtual void GetData (std::ostream & ost) const;
 
 
   //  virtual void IdentifySpecialPoints (ARRAY<class SpecialPoint> & points);
@@ -164,8 +164,8 @@ public:
 			    const Surface * as1,
 			    const Surface * as2);
   virtual ~CloseEdgesIdentification ();
-  virtual void Print (ostream & ost) const;
-  virtual void GetData (ostream & ost) const;
+  virtual void Print (std::ostream & ost) const;
+  virtual void GetData (std::ostream & ost) const;
 
   //  virtual void IdentifySpecialPoints (ARRAY<class SpecialPoint> & points);
   virtual int Identifyable (const SpecialPoint & sp1, const SpecialPoint & sp2) const;

@@ -13,6 +13,8 @@ namespace netgen
 {
 #include "spline2d.hpp"
 
+using namespace std;
+
 
   void CalcPartition (double l, double h, double r1, double r2,
 		      double ra, double elto0, ARRAY<double> & points);
@@ -312,7 +314,7 @@ namespace netgen
 
 
 
-  DiscretePointsSegment ::   DiscretePointsSegment (const ARRAY<Point<2> > & apts)
+  DiscretePointsSegment::DiscretePointsSegment (const ARRAY<Point<2> > & apts)
     : pts (apts),
       p1 (apts[0](0), apts[0](1), 1),
       p2 (apts.Last()(0), apts.Last()(1), 1)

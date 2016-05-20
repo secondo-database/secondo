@@ -1075,7 +1075,7 @@ public class SupportOps {
      * Then, these vertex arrays are traversed in parallel. For every pair of equal vertices, we have to 
      * examine, whether any of the both predicates holds. Consider the vertex we are currently examining as the
      * middle point M. Then, all outgoing edges end up in other points V1 and V2, depending on the graph they
-     * belong to. We start now at an arbitrary point and define the degree D at this point as 0°. All other points Vx
+     * belong to. We start now at an arbitrary point and define the degree D at this point as 0 degree. All other points Vx
      * are sorted. Then, these vertices are traversed in ascending D-order. We count the number of changes
      * from vertices of V1 to V2 and vice versa. If the number gets higher than 2, the intersects predicate holds.
      * in all other cases, the meets predicate holds.<p>
@@ -1129,7 +1129,7 @@ public class SupportOps {
 		    //traverse both arrays in parallel using the angularly sorting
 		    double[] angle1 = new double[neighbours1.length];
 		    double[] angle2 = new double[neighbours2.length];
-		    //compute the angles of the other vertices compared to the 0° which is a 
+		    //compute the angles of the other vertices compared to the 0 degree which is a 
 		    //horizontally drawn segment from the center point to the right.
 		    Point midP = (Point)actV1.value;
 		    Point startP = new Point(midP.x.plus(RationalFactory.constRational(10)),midP.y);

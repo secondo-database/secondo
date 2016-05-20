@@ -51,7 +51,7 @@ public:
   ///
   virtual Point<2> CurvCircle (double t) const;
   ///
-  virtual void Print (ostream & /* str */) const { };
+  virtual void Print (std::ostream & /* str */) const { };
   
   ///
   virtual int SectionUsed (double /* t */) const { return 1; }
@@ -93,7 +93,7 @@ public:
   ///
   virtual Vec<2> EvalPrimePrime (double t) const;
   ///
-  virtual void Print (ostream & str) const;
+  virtual void Print (std::ostream & str) const;
 
   ///
   virtual int SectionUsed (double t) const;

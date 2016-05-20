@@ -47,7 +47,7 @@ public:
 
 extern volatile multithreadt multithread;
 
-extern string ngdir;
+extern std::string ngdir;
 extern DebugParameters debugparam;
 extern bool verbose;  
 

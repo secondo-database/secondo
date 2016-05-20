@@ -2,6 +2,8 @@
 #include "meshing.hpp"
 
 
+using namespace std;
+
 namespace netgen
 {
   GeomSearch3d :: GeomSearch3d() 
@@ -19,7 +21,8 @@ namespace netgen
       } 
   }
 
-  void GeomSearch3d :: Init (ARRAY <FrontPoint3,PointIndex::BASE> *pointsi, ARRAY <FrontFace> *facesi)
+  void GeomSearch3d :: Init (ARRAY <FrontPoint3,PointIndex::BASE> *pointsi,
+                             ARRAY <FrontFace> *facesi)
   {
     points = pointsi;
     faces = facesi;
@@ -28,7 +31,8 @@ namespace netgen
     hashcount = 1;
   }
 
-  void GeomSearch3d :: ElemMaxExt(Point3d& minp, Point3d& maxp, const Element2d& elem)
+  void GeomSearch3d :: ElemMaxExt(Point3d& minp, Point3d& maxp, 
+                                  const Element2d& elem)
   {
     maxp.X()=(*points)[elem.PNum(1)].P().X();
     maxp.Y()=(*points)[elem.PNum(1)].P().Y();
@@ -179,7 +183,8 @@ namespace netgen
       }
   }
 
-  void GeomSearch3d :: GetLocals(ARRAY<Element2d> & locfaces,  ARRAY<INDEX> & findex,
+  void GeomSearch3d :: GetLocals(ARRAY<Element2d> & locfaces, 
+         ARRAY<INDEX> & findex,
 				 INDEX fstind, const Point3d& p0, double xh)
   {
     hashcount++;

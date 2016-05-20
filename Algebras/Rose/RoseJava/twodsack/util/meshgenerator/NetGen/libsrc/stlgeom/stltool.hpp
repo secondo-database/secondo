@@ -24,15 +24,15 @@ extern double GetDistFromLine(const Point<3>& lp1, const Point<3>& lp2, Point<3>
 extern double GetDistFromInfiniteLine(const Point<3>& lp1, const Point<3>& lp2, const Point<3>& p);
 
 
-extern void FIOReadInt(istream& ios, int& i);
-extern void FIOWriteInt(ostream& ios, const int& i);
-extern void FIOReadDouble(istream& ios, double& i);
-extern void FIOWriteDouble(ostream& ios, const double& i);
-extern void FIOReadFloat(istream& ios, float& i);
-extern void FIOWriteFloat(ostream& ios, const float& i);
-extern void FIOReadString(istream& ios, char* str, int len);
-extern void FIOReadStringE(istream& ios, char* str, int len);
-extern void FIOWriteString(ostream& ios, char* str, int len);
+extern void FIOReadInt(std::istream& ios, int& i);
+extern void FIOWriteInt(std::ostream& ios, const int& i);
+extern void FIOReadDouble(std::istream& ios, double& i);
+extern void FIOWriteDouble(std::ostream& ios, const double& i);
+extern void FIOReadFloat(std::istream& ios, float& i);
+extern void FIOWriteFloat(std::ostream& ios, const float& i);
+extern void FIOReadString(std::istream& ios, char* str, int len);
+extern void FIOReadStringE(std::istream& ios, char* str, int len);
+extern void FIOWriteString(std::ostream& ios, char* str, int len);
 
 
 typedef ARRAY <int> * ARRAYINTPTR;
@@ -199,7 +199,7 @@ public:
   ///
   STLDoctorParams();
   ///
-  void Print (ostream & ost) const;
+  void Print (std::ostream & ost) const;
 };
 
 extern STLDoctorParams stldoctor;
@@ -248,7 +248,7 @@ public:
   ///
   STLParameters();
   ///
-  void Print (ostream & ost) const;
+  void Print (std::ostream & ost) const;
 };
 
 extern STLParameters stlparam;

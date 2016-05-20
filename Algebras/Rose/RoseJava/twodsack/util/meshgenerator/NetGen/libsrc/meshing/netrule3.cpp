@@ -4,6 +4,7 @@
 // #define MARK
 // #include <prof.h>
 
+using namespace std;
 
 namespace netgen
 {
@@ -59,7 +60,7 @@ void vnetrule :: SetFreeZoneTransformation (const Vector & allp, int tolclass)
   for (i = 1; i <= 3; i++)
     {
       for (j = 1; j <= np; j++)
-	vp.Elem(j) = allp.Get(i+3*j-3);
+    vp.Elem(j) = allp.Get(i+3*j-3);
 
       oldutofreezone->Mult (vp, vfp1);
       oldutofreezonelimit->Mult (vp, vfp2);
@@ -68,7 +69,7 @@ void vnetrule :: SetFreeZoneTransformation (const Vector & allp, int tolclass)
       vfp1.Add (lam2, vfp2);
 
       for (j = 1; j <= nfp; j++)
-	transfreezone.Elem(j).X(i) = vfp1.Elem(j);
+    transfreezone.Elem(j).X(i) = vfp1.Elem(j);
     }
 
   // MARK(setfz2);
@@ -88,37 +89,37 @@ void vnetrule :: SetFreeZoneTransformation (const Vector & allp, int tolclass)
       DenseMatrix & freesetinequ = *freefaceinequ.Get(fs);
       
       for (i = 1; i <= freesetfaces.Size(); i++)
-	{
-	  ti = &freesetfaces.Get(i);
-	  const Point3d & p1 = transfreezone.Get(ti->i1);
-	  const Point3d & p2 = transfreezone.Get(ti->i2);
-	  const Point3d & p3 = transfreezone.Get(ti->i3);
+    {
+      ti = &freesetfaces.Get(i);
+      const Point3d & p1 = transfreezone.Get(ti->i1);
+      const Point3d & p2 = transfreezone.Get(ti->i2);
+      const Point3d & p3 = transfreezone.Get(ti->i3);
 
-	  Vec3d v1(p1, p2);   
-	  Vec3d v2(p1, p3);   
-	  Vec3d n;
-	  Cross (v1, v2, n);
+      Vec3d v1(p1, p2);   
+      Vec3d v2(p1, p3);   
+      Vec3d n;
+      Cross (v1, v2, n);
 
-	  nl = n.Length();
+      nl = n.Length();
 
-	  if (nl < 1e-10)
-	    {
-	      freesetinequ.Set(1, 1, 0);
-	      freesetinequ.Set(1, 2, 0);
-	      freesetinequ.Set(1, 3, 0);
-	      freesetinequ.Set(1, 4, -1);
-	    }
-	  else
-	    {
-	      //	      n /= nl;
-	      
-	      freesetinequ.Set(i, 1, n.X()/nl);
-	      freesetinequ.Set(i, 2, n.Y()/nl);
-	      freesetinequ.Set(i, 3, n.Z()/nl);
-	      freesetinequ.Set(i, 4,
-			       -(p1.X() * n.X() + p1.Y() * n.Y() + p1.Z() * n.Z()) / nl);
-	    }
-	}
+      if (nl < 1e-10)
+        {
+          freesetinequ.Set(1, 1, 0);
+          freesetinequ.Set(1, 2, 0);
+          freesetinequ.Set(1, 3, 0);
+          freesetinequ.Set(1, 4, -1);
+        }
+      else
+        {
+          //          n /= nl;
+          
+          freesetinequ.Set(i, 1, n.X()/nl);
+          freesetinequ.Set(i, 2, n.Y()/nl);
+          freesetinequ.Set(i, 3, n.Z()/nl);
+          freesetinequ.Set(i, 4,
+                   -(p1.X() * n.X() + p1.Y() * n.Y() + p1.Z() * n.Z()) / nl);
+        }
+    }
     }
 
   /*
@@ -147,18 +148,18 @@ int vnetrule :: ConvexFreeZone () const
       // const ARRAY<threeint> & freesetfaces = *freefaces.Get(fs);
       
       for (i = 1; i <= freesetedges.Size(); i++)
-	{
-	  j = freesetedges.Get(i).i1;    //triangle j with opposite point k
-	  k = freesetedges.Get(i).i2;
-	  
-	  if ( freesetinequ.Get(j, 1) * transfreezone.Get(k).X() +
-	       freesetinequ.Get(j, 2) * transfreezone.Get(k).Y() +
-	       freesetinequ.Get(j, 3) * transfreezone.Get(k).Z() +
-	       freesetinequ.Get(j, 4) > 0 )
-	    {
-	      ret1=0;
-	    }
-	}
+    {
+      j = freesetedges.Get(i).i1;    //triangle j with opposite point k
+      k = freesetedges.Get(i).i2;
+      
+      if ( freesetinequ.Get(j, 1) * transfreezone.Get(k).X() +
+           freesetinequ.Get(j, 2) * transfreezone.Get(k).Y() +
+           freesetinequ.Get(j, 3) * transfreezone.Get(k).Z() +
+           freesetinequ.Get(j, 4) > 0 )
+        {
+          ret1=0;
+        }
+    }
       
     }
 
@@ -179,11 +180,11 @@ int vnetrule :: IsInFreeZone (const Point3d & p) const
       DenseMatrix & freesetinequ = *freefaceinequ.Get(fs);
       
       for (i = 1; i <= freesetfaces.Size() && inthis; i++)
-	{
-	  if (freesetinequ.Get(i, 1) * p.X() + freesetinequ.Get(i, 2) * p.Y() +
-	      freesetinequ.Get(i, 3) * p.Z() + freesetinequ.Get(i, 4) > 0)
-	    inthis = 0;
-	}
+    {
+      if (freesetinequ.Get(i, 1) * p.X() + freesetinequ.Get(i, 2) * p.Y() +
+          freesetinequ.Get(i, 3) * p.Z() + freesetinequ.Get(i, 4) > 0)
+        inthis = 0;
+    }
       
       if (inthis) return 1;
     }
@@ -193,9 +194,9 @@ int vnetrule :: IsInFreeZone (const Point3d & p) const
 
 
 int vnetrule :: IsTriangleInFreeZone (const Point3d & p1, 
-				      const Point3d & p2,
-				      const Point3d & p3, 
-				      const ARRAY<int> & pi, int newone)
+                      const Point3d & p2,
+                      const Point3d & p3, 
+                      const ARRAY<int> & pi, int newone)
 {
   int fs;
   int infreeset, cannot = 0;
@@ -209,23 +210,23 @@ int vnetrule :: IsTriangleInFreeZone (const Point3d & p1,
     {
       pfi.Elem(i) = 0;
       if (pi.Get(i))
-	{
-	  for (j = 1; j <= freezonepi.Size(); j++)
-	    if (freezonepi.Get(j) == pi.Get(i))
-	      pfi.Elem(i) = j;
-	}
+    {
+      for (j = 1; j <= freezonepi.Size(); j++)
+        if (freezonepi.Get(j) == pi.Get(i))
+          pfi.Elem(i) = j;
+    }
     }
 
   for (fs = 1; fs <= freesets.Size(); fs++)
     {
       const ARRAY<int> & freeseti = *freesets.Get(fs);
       for (i = 1; i <= 3; i++)
-	{
-	  pfi2.Elem(i) = 0;
-	  for (j = 1; j <= freeseti.Size(); j++)
-	    if (pfi.Get(i) == freeseti.Get(j))
-	      pfi2.Elem(i) = pfi.Get(i);
-	}
+    {
+      pfi2.Elem(i) = 0;
+      for (j = 1; j <= freeseti.Size(); j++)
+        if (pfi.Get(i) == freeseti.Get(j))
+          pfi2.Elem(i) = pfi.Get(i);
+    }
 
       infreeset = IsTriangleInFreeSet(p1, p2, p3, fs, pfi2, newone);
       if (infreeset == 1) return 1;
@@ -239,7 +240,7 @@ int vnetrule :: IsTriangleInFreeZone (const Point3d & p1,
 
 int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
                                      const Point3d & p3, int fs,
-				     const ARRAY<int> & pi, int newone)
+                     const ARRAY<int> & pi, int newone)
 {
   int i, ii;
   Vec3d n;
@@ -266,7 +267,8 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
     if (pi.Get(i)) cnt++;
 
   /*
-  (*testout) << "trig in free set : " << p1 << " - " << p2 << " - " << p3 << endl;
+  (*testout) << "trig in free set : " << p1 << " - " 
+             << p2 << " - " << p3 << endl;
   (*testout) << "common points: " << cnt << endl;
   */
   if (!newone)
@@ -278,34 +280,34 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
 
       int upi = 0, lpiu = 0;
       for (i = 1; i <= 3; i++)
-	if (pi.Get(i))
-	  {
-	    upi = i;
-	    lpiu = pi.Get(i);
-	  }
+    if (pi.Get(i))
+      {
+        upi = i;
+        lpiu = pi.Get(i);
+      }
 
       Vec3d v1, v2;
       switch (upi)
-	{
-	case 1:
-	  {
-	    v1 = p2 - p1;
-	    v2 = p3 - p1;
-	    break;
-	  }
-	case 2:
-	  {
-	    v1 = p3 - p2;
-	    v2 = p1 - p2;
-	    break;
-	  }
-	case 3:
-	  {
-	    v1 = p1 - p3;
-	    v2 = p2 - p3;
-	    break;
-	  }
-	}
+    {
+    case 1:
+      {
+        v1 = p2 - p1;
+        v2 = p3 - p1;
+        break;
+      }
+    case 2:
+      {
+        v1 = p3 - p2;
+        v2 = p1 - p2;
+        break;
+      }
+    case 3:
+      {
+        v1 = p1 - p3;
+        v2 = p2 - p3;
+        break;
+      }
+    }
 
       v1 /= v1.Length();
       v2 /= v2.Length();
@@ -314,96 +316,97 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
 
       //      (*testout) << "Test new: " << endl;
       for (i = 1; i <= freesetfaces.Size(); i++)
-	{
-	  if ( (freesetfaces.Get(i).i1 == lpiu) || 
-	       (freesetfaces.Get(i).i2 == lpiu) ||
-	       (freesetfaces.Get(i).i3 == lpiu) )
-	    {
-	      // freeface has point
+    {
+      if ( (freesetfaces.Get(i).i1 == lpiu) || 
+           (freesetfaces.Get(i).i2 == lpiu) ||
+           (freesetfaces.Get(i).i3 == lpiu) )
+        {
+          // freeface has point
 
 
-	      Vec3d a (freesetinequ.Get(i, 1),
-		       freesetinequ.Get(i, 2),
-		       freesetinequ.Get(i, 3));
-	      
-	      //	      if (1 - fabs (a * n) < 1e-8 ) 
-	      //		continue;
+          Vec3d a (freesetinequ.Get(i, 1),
+               freesetinequ.Get(i, 2),
+               freesetinequ.Get(i, 3));
+          
+          //          if (1 - fabs (a * n) < 1e-8 ) 
+          //        continue;
 
-	      Vec3d an;
-	      Cross (a, n, an);
-	      double lan = an.Length();
-	      if (lan < 1e-10)
-		continue;
+          Vec3d an;
+          Cross (a, n, an);
+          double lan = an.Length();
+          if (lan < 1e-10)
+        continue;
 
-	      an /= lan;
-	      
-	      int out1 = (a * v1) > 0;
-	      int out2 = (a * v2) > 0;
-	      //	      (*testout) << "out1, out2 = " << out1 << ", " << out2 << endl;
-	      if (out1 && out2)
-		return 0;
+          an /= lan;
+          
+          int out1 = (a * v1) > 0;
+          int out2 = (a * v2) > 0;
+          //(*testout) << "out1, out2 = " << out1 << ", " << out2 << endl;
+          if (out1 && out2)
+        return 0;
 
-	      if (!out1 && !out2) 
-		continue;
-
-
-	      //	      if ( ( (an * v1) < 0) &&  ( (an * v2) < 0) )   // falsch !!!!
-	      //		an *= -1;
-
-	      // solve  an = lam1 v1 + lam2 v2
-	      double vii11 = v1 * v1;
-	      double vii12 = v1 * v2;
-	      double vii22 = v2 * v2;
-	      double det = vii11 * vii22 - vii12 * vii12;
-	      if ( fabs (det) < 1e-10 )
-		continue;
-	      double rs1 = an * v1;
-	      double rs2 = an * v2;
-	      
-	      double lam1 = rs1 * vii22 - rs2 * vii12;
-	      double lam2 = rs2 * vii11 - rs1 * vii12;
-
-	      if (fabs (lam1) > fabs (lam2))
-		{
-		  if (lam1 < 0)
-		    an *= -1;
-		}
-	      else
-		{
-		  if (lam2 < 0)
-		    an *= -1;
-		}
+          if (!out1 && !out2) 
+        continue;
 
 
-	      if (lam1 * lam2 < 0 && 0)
-		{
-		  if (fabs (lam1) > 1e-14 && fabs (lam2) > 1e-14)
-		    {
-		      //		      (*mycout) << "lam1 lam2 < 0" << endl;
-		      (*testout) << "lami different" << endl;
-		      (*testout) << "v1 = " << v1 << endl;
-		      (*testout) << "v2 = " << v2 << endl;
-		      (*testout) << "n = " << n << endl;
-		      (*testout) << "a = " << a << endl;
-		      (*testout) << "an = " << an << endl;
-		      (*testout) << "a * v1 = " << (a * v1) << endl;
-		      (*testout) << "a * v2 = " << (a * v2) << endl;
-		      (*testout) << "an * v1 = " << (an * v1) << endl;
-		      (*testout) << "an * v2 = " << (an * v2) << endl;
-		      
-		      (*testout) << "vii = " << vii11 << ", " << vii12 << ", " << vii22 << endl;
-		      (*testout) << "lami = " << lam1 << ", " << lam2 << endl;
-		      (*testout) << "rs = " << rs1 << ", " << rs2 << endl;
-		      continue;
-		    }
-		}
+          // if ( ( (an * v1) < 0) &&  ( (an * v2) < 0) )   // falsch !!!!
+          // an *= -1;
 
-	      if (out1)
-		v1 = an;
-	      else
-		v2 = an;
-	    }
-	}
+          // solve  an = lam1 v1 + lam2 v2
+          double vii11 = v1 * v1;
+          double vii12 = v1 * v2;
+          double vii22 = v2 * v2;
+          double det = vii11 * vii22 - vii12 * vii12;
+          if ( fabs (det) < 1e-10 )
+        continue;
+          double rs1 = an * v1;
+          double rs2 = an * v2;
+          
+          double lam1 = rs1 * vii22 - rs2 * vii12;
+          double lam2 = rs2 * vii11 - rs1 * vii12;
+
+          if (fabs (lam1) > fabs (lam2))
+        {
+          if (lam1 < 0)
+            an *= -1;
+        }
+          else
+        {
+          if (lam2 < 0)
+            an *= -1;
+        }
+
+
+          if (lam1 * lam2 < 0 && 0)
+        {
+          if (fabs (lam1) > 1e-14 && fabs (lam2) > 1e-14)
+            {
+              //              (*mycout) << "lam1 lam2 < 0" << endl;
+              (*testout) << "lami different" << endl;
+              (*testout) << "v1 = " << v1 << endl;
+              (*testout) << "v2 = " << v2 << endl;
+              (*testout) << "n = " << n << endl;
+              (*testout) << "a = " << a << endl;
+              (*testout) << "an = " << an << endl;
+              (*testout) << "a * v1 = " << (a * v1) << endl;
+              (*testout) << "a * v2 = " << (a * v2) << endl;
+              (*testout) << "an * v1 = " << (an * v1) << endl;
+              (*testout) << "an * v2 = " << (an * v2) << endl;
+              
+              (*testout) << "vii = " << vii11 << ", " << vii12 
+                         << ", " << vii22 << endl;
+              (*testout) << "lami = " << lam1 << ", " << lam2 << endl;
+              (*testout) << "rs = " << rs1 << ", " << rs2 << endl;
+              continue;
+            }
+        }
+
+          if (out1)
+        v1 = an;
+          else
+        v2 = an;
+        }
+    }
       
       return 1;
 
@@ -414,26 +417,26 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
       */
 
       switch (upi)
-	{
-	case 1:
-	  {
-	    v1 = p2 - p1;
-	    v2 = p3 - p1;
-	    break;
-	  }
-	case 2:
-	  {
-	    v1 = p3 - p2;
-	    v2 = p1 - p2;
-	    break;
-	  }
-	case 3:
-	  {
-	    v1 = p1 - p3;
-	    v2 = p2 - p3;
-	    break;
-	  }
-	}
+    {
+    case 1:
+      {
+        v1 = p2 - p1;
+        v2 = p3 - p1;
+        break;
+      }
+    case 2:
+      {
+        v1 = p3 - p2;
+        v2 = p1 - p2;
+        break;
+      }
+    case 3:
+      {
+        v1 = p1 - p3;
+        v2 = p2 - p3;
+        break;
+      }
+    }
 
       v1 /= v1.Length();
       v2 /= v2.Length();
@@ -444,106 +447,107 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
 
       
       for (i = 1; i <= freesetfaces.Size(); i++)
-	{
-	  if ( (freesetfaces.Get(i).i1 == lpiu) || 
-	       (freesetfaces.Get(i).i2 == lpiu) ||
-	       (freesetfaces.Get(i).i3 == lpiu) )
-	    {
-	      /*
-	      (*testout) << "v1, v2, now = " << v1 << ", " << v2 << endl;
+    {
+      if ( (freesetfaces.Get(i).i1 == lpiu) || 
+           (freesetfaces.Get(i).i2 == lpiu) ||
+           (freesetfaces.Get(i).i3 == lpiu) )
+        {
+          /*
+          (*testout) << "v1, v2, now = " << v1 << ", " << v2 << endl;
 
-	      // freeface has point
-	      (*testout) << "freesetface: "
-			 << freesetfaces.Get(i).i1 << " "
-			 << freesetfaces.Get(i).i2 << " "
-			 << freesetfaces.Get(i).i3 << " ";
-	      */
+          // freeface has point
+          (*testout) << "freesetface: "
+             << freesetfaces.Get(i).i1 << " "
+             << freesetfaces.Get(i).i2 << " "
+             << freesetfaces.Get(i).i3 << " ";
+          */
 
-	      Vec3d a (freesetinequ.Get(i, 1),
-		       freesetinequ.Get(i, 2),
-		       freesetinequ.Get(i, 3));
-	      //	      (*testout) << "a = " <<  a << endl;
-
-
-	      Vec3d an;
-	      Cross (a, n, an);
-	      double lan = an.Length();
-	      
-	      //	      (*testout) << "an = " << an << endl;
-
-	      if (lan < 1e-10)
-		continue;
-
-	      an /= lan;
-
-	      //	      (*testout) << "a*v1 = " << (a*v1) << " a*v2 = " << (a*v2) << endl;
-	      
-	      int out1 = (a * v1) > 0;
-	      // int out2 = (a * v2) > 0;
+          Vec3d a (freesetinequ.Get(i, 1),
+               freesetinequ.Get(i, 2),
+               freesetinequ.Get(i, 3));
+          //          (*testout) << "a = " <<  a << endl;
 
 
-	      //	      (*testout) << "out1, 2 = " << out1 << ", " << out2 << endl;
+          Vec3d an;
+          Cross (a, n, an);
+          double lan = an.Length();
+          
+          //          (*testout) << "an = " << an << endl;
 
-	      
-	      double vii11 = v1 * v1;
-	      double vii12 = v1 * v2;
-	      double vii22 = v2 * v2;
-	      double det = vii11 * vii22 - vii12 * vii12;
-	      if ( fabs (det) < 1e-10 )
-		continue;
-	      double rs1 = an * v1;
-	      double rs2 = an * v2;
-	      
-	      double lam1 = rs1 * vii22 - rs2 * vii12;
-	      double lam2 = rs2 * vii11 - rs1 * vii12;
+          if (lan < 1e-10)
+        continue;
 
-	      //	      (*testout) << "lam1, lam2 = " << lam1 << ", " << lam2 << endl;
+          an /= lan;
 
-
-	      if (fabs (lam1) > fabs (lam2))
-		{
-		  if (lam1 < 0)
-		    an *= -1;
-		}
-	      else
-		{
-		  if (lam2 < 0)
-		    an *= -1;
-		}
+          // (*testout) << "a*v1 = " << (a*v1) << " a*v2 = " << (a*v2) << endl;
+          
+          int out1 = (a * v1) > 0;
+          // int out2 = (a * v2) > 0;
 
 
-	      if (lam1 * lam2 < 0)
-		{
-		  if (fabs (lam1) > 1e-14 && fabs (lam2) > 1e-14)
-		    {
-		      //		      (*mycout) << "lam1 lam2 < 0" << endl;
-		      (*testout) << "lami different" << endl;
-		      (*testout) << "v1 = " << v1 << endl;
-		      (*testout) << "v2 = " << v2 << endl;
-		      (*testout) << "n = " << n << endl;
-		      (*testout) << "a = " << a << endl;
-		      (*testout) << "an = " << an << endl;
-		      (*testout) << "a * v1 = " << (a * v1) << endl;
-		      (*testout) << "a * v2 = " << (a * v2) << endl;
-		      (*testout) << "an * v1 = " << (an * v1) << endl;
-		      (*testout) << "an * v2 = " << (an * v2) << endl;
-		      
-		      (*testout) << "vii = " << vii11 << ", " << vii12 << ", " << vii22 << endl;
-		      (*testout) << "lami = " << lam1 << ", " << lam2 << endl;
-		      (*testout) << "rs = " << rs1 << ", " << rs2 << endl;
-		      continue;
-		    }
-		}
+          //(*testout) << "out1, 2 = " << out1 << ", " << out2 << endl;
 
-	      if (out1)
-		v1 = an;
-	      else
-		v2 = an;
+          
+          double vii11 = v1 * v1;
+          double vii12 = v1 * v2;
+          double vii22 = v2 * v2;
+          double det = vii11 * vii22 - vii12 * vii12;
+          if ( fabs (det) < 1e-10 )
+        continue;
+          double rs1 = an * v1;
+          double rs2 = an * v2;
+          
+          double lam1 = rs1 * vii22 - rs2 * vii12;
+          double lam2 = rs2 * vii11 - rs1 * vii12;
+
+          // (*testout) << "lam1, lam2 = " << lam1 << ", " << lam2 << endl;
 
 
+          if (fabs (lam1) > fabs (lam2))
+        {
+          if (lam1 < 0)
+            an *= -1;
+        }
+          else
+        {
+          if (lam2 < 0)
+            an *= -1;
+        }
 
-	    }
-	}
+
+          if (lam1 * lam2 < 0)
+        {
+          if (fabs (lam1) > 1e-14 && fabs (lam2) > 1e-14)
+            {
+              //              (*mycout) << "lam1 lam2 < 0" << endl;
+              (*testout) << "lami different" << endl;
+              (*testout) << "v1 = " << v1 << endl;
+              (*testout) << "v2 = " << v2 << endl;
+              (*testout) << "n = " << n << endl;
+              (*testout) << "a = " << a << endl;
+              (*testout) << "an = " << an << endl;
+              (*testout) << "a * v1 = " << (a * v1) << endl;
+              (*testout) << "a * v2 = " << (a * v2) << endl;
+              (*testout) << "an * v1 = " << (an * v1) << endl;
+              (*testout) << "an * v2 = " << (an * v2) << endl;
+              
+              (*testout) << "vii = " << vii11 << ", " << vii12 
+                         << ", " << vii22 << endl;
+              (*testout) << "lami = " << lam1 << ", " << lam2 << endl;
+              (*testout) << "rs = " << rs1 << ", " << rs2 << endl;
+              continue;
+            }
+        }
+
+          if (out1)
+        v1 = an;
+          else
+        v2 = an;
+
+
+
+        }
+    }
 
       return 1;
     }
@@ -552,7 +556,7 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
 
   if (cnt == 2)
     {
-      //      (*testout) << "tripoitns: " << p1 << " " << p2 << " " << p3 << endl;
+      // (*testout) << "tripoitns: " << p1 << " " << p2 << " " << p3 << endl;
 
       // MARK(triinfz2);
 
@@ -560,51 +564,51 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
       Vec3d a1, a2;  // outer normals
       Vec3d trivec;  // vector from common edge to third point of triangle
       for (i = 1; i <= 3; i++)
-	if (pi.Get(i))
-	  {
-	    pi2 = pi1;
-	    pi1 = pi.Get(i);
-	  }
-	else
-	  pi3 = i;
+    if (pi.Get(i))
+      {
+        pi2 = pi1;
+        pi1 = pi.Get(i);
+      }
+    else
+      pi3 = i;
 
       switch (pi3)
-	{
-	case 1: trivec = (p1 - p2); break;
-	case 2: trivec = (p2 - p3); break;
-	case 3: trivec = (p3 - p2); break;
-	}
+    {
+    case 1: trivec = (p1 - p2); break;
+    case 2: trivec = (p2 - p3); break;
+    case 3: trivec = (p3 - p2); break;
+    }
 
       ARRAY<int> lpi(freezonepi.Size());
       for (i = 1; i <= lpi.Size(); i++)
-	lpi.Elem(i) = 0;
+    lpi.Elem(i) = 0;
       lpi.Elem(pi1) = 1;
       lpi.Elem(pi2) = 1;
       
       int ff1 = 0, ff2 = 0;
       for (i = 1; i <= freesetfaces.Size(); i++)
-	{
-	  if (lpi.Get(freesetfaces.Get(i).i1) + 
-	      lpi.Get(freesetfaces.Get(i).i2) + 
-	      lpi.Get(freesetfaces.Get(i).i3) == 2)
-	    {
-	      ff2 = ff1;
-	      ff1 = i;
-	    }
-	}
+    {
+      if (lpi.Get(freesetfaces.Get(i).i1) + 
+          lpi.Get(freesetfaces.Get(i).i2) + 
+          lpi.Get(freesetfaces.Get(i).i3) == 2)
+        {
+          ff2 = ff1;
+          ff1 = i;
+        }
+    }
 
       if (ff2 == 0)
-	return 1;
+    return 1;
 
       a1 = Vec3d (freesetinequ.Get(ff1, 1),
-		  freesetinequ.Get(ff1, 2),
-		  freesetinequ.Get(ff1, 3));
+          freesetinequ.Get(ff1, 2),
+          freesetinequ.Get(ff1, 3));
       a2 = Vec3d (freesetinequ.Get(ff2, 1),
-		  freesetinequ.Get(ff2, 2),
-		  freesetinequ.Get(ff2, 3));
+          freesetinequ.Get(ff2, 2),
+          freesetinequ.Get(ff2, 3));
 
       if ( ( (a1 * trivec) > 0) || ( (a2 * trivec) > 0))
-	return 0;
+    return 0;
 
       return 1;
     }
@@ -616,20 +620,20 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
 
       ARRAY<int> lpi(freezonepi.Size());
       for (i = 1; i <= lpi.Size(); i++)
-	lpi.Elem(i) = 0;
+    lpi.Elem(i) = 0;
 
       for (i = 1; i <= 3; i++)
-	lpi.Elem(pi.Get(i)) = 1;
+    lpi.Elem(pi.Get(i)) = 1;
       
       for (i = 1; i <= freesetfaces.Size(); i++)
-	{
-	  if (lpi.Get(freesetfaces.Get(i).i1) + 
-	      lpi.Get(freesetfaces.Get(i).i2) + 
-	      lpi.Get(freesetfaces.Get(i).i3) == 3)
-	    {
-	      return 0;
-	    }
-	}
+    {
+      if (lpi.Get(freesetfaces.Get(i).i1) + 
+          lpi.Get(freesetfaces.Get(i).i2) + 
+          lpi.Get(freesetfaces.Get(i).i3) == 3)
+        {
+          return 0;
+        }
+    }
       return 1;
     }
 
@@ -644,19 +648,19 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
   for (i = 1; i <= freesetfaces.Size(); i++)
     {
       hos1 = freesetinequ.Get(i, 1) * p1.X() +
-	freesetinequ.Get(i, 2) * p1.Y() +
-	freesetinequ.Get(i, 3) * p1.Z() +
-	freesetinequ.Get(i, 4) > -1E-5;
+    freesetinequ.Get(i, 2) * p1.Y() +
+    freesetinequ.Get(i, 3) * p1.Z() +
+    freesetinequ.Get(i, 4) > -1E-5;
       
       hos2 = freesetinequ.Get(i, 1) * p2.X() +
-	freesetinequ.Get(i, 2) * p2.Y() +
-	freesetinequ.Get(i, 3) * p2.Z() +
-	freesetinequ.Get(i, 4) > -1E-5;
+    freesetinequ.Get(i, 2) * p2.Y() +
+    freesetinequ.Get(i, 3) * p2.Z() +
+    freesetinequ.Get(i, 4) > -1E-5;
       
       hos3 = freesetinequ.Get(i, 1) * p3.X() +
-	freesetinequ.Get(i, 2) * p3.Y() +
-	freesetinequ.Get(i, 3) * p3.Z() +
-	freesetinequ.Get(i, 4) > -1E-5;
+    freesetinequ.Get(i, 2) * p3.Y() +
+    freesetinequ.Get(i, 3) * p3.Z() +
+    freesetinequ.Get(i, 4) > -1E-5;
       
       if (hos1 && hos2 && hos3) return 0;
       
@@ -687,8 +691,8 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
     {
       const Point3d & p = transfreezone.Get(i);
       float scal = (p.X() - p1.X()) * n.X() +
-	(p.Y() - p1.Y()) * n.Y() +
-	(p.Z() - p1.Z()) * n.Z();
+    (p.Y() - p1.Y()) * n.Y() +
+    (p.Z() - p1.Z()) * n.Z();
 
       if ( scal >  1E-8 ) allleft = 0;
       if ( scal < -1E-8 ) allright = 0;
@@ -720,10 +724,10 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
       if (lam1 + lam2 > 1) lam1 = 1 - lam2;
 
       if (it > minit)
-	{
-	  (*testout) << "it = " << it << endl;
-	  (*testout) << "lam1/2 = " << lam1 << "  " << lam2 << endl;
-	}
+    {
+      (*testout) << "it = " << it << endl;
+      (*testout) << "lam1/2 = " << lam1 << "  " << lam2 << endl;
+    }
 
       hpx = p1.X() + lam1 * v1x + lam2 * v2x;
       hpy = p1.Y() + lam1 * v1y + lam2 * v2y;
@@ -737,121 +741,121 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
       isin = 1;
 
       for (i = 1; i <= activefaces.Size(); i++)
-	{
-	  ii = activefaces.Get(i);
+    {
+      ii = activefaces.Get(i);
 
-	  hf = freesetinequ.Get(ii, 1) * hpx +
-	    freesetinequ.Get(ii, 2) * hpy +
-	    freesetinequ.Get(ii, 3) * hpz +
-	    freesetinequ.Get(ii, 4);
+      hf = freesetinequ.Get(ii, 1) * hpx +
+        freesetinequ.Get(ii, 2) * hpy +
+        freesetinequ.Get(ii, 3) * hpz +
+        freesetinequ.Get(ii, 4);
 
-	  if (hf > -1E-7) isin = 0;
+      if (hf > -1E-7) isin = 0;
 
-	  hf += 1E-4;
-	  if (hf > 0)
-	    {
-	      f += hf * hf;
+      hf += 1E-4;
+      if (hf > 0)
+        {
+          f += hf * hf;
 
-	      v1n = freesetinequ.Get(ii, 1) * v1x +
-		freesetinequ.Get(ii, 2) * v1y +
-		freesetinequ.Get(ii, 3) * v1z;
-	      v2n = freesetinequ.Get(ii, 1) * v2x +
-		freesetinequ.Get(ii, 2) * v2y +
-		freesetinequ.Get(ii, 3) * v2z;
+          v1n = freesetinequ.Get(ii, 1) * v1x +
+        freesetinequ.Get(ii, 2) * v1y +
+        freesetinequ.Get(ii, 3) * v1z;
+          v2n = freesetinequ.Get(ii, 1) * v2x +
+        freesetinequ.Get(ii, 2) * v2y +
+        freesetinequ.Get(ii, 3) * v2z;
 
-	      h11 += 2 * v1n * v1n;
-	      h12 += 2 * v1n * v2n;
-	      h22 += 2 * v2n * v2n;
-	      dflam1 += 2 * hf * v1n;
-	      dflam2 += 2 * hf * v2n;
-	      cntout++;
-	    }
-	}
+          h11 += 2 * v1n * v1n;
+          h12 += 2 * v1n * v2n;
+          h22 += 2 * v2n * v2n;
+          dflam1 += 2 * hf * v1n;
+          dflam2 += 2 * hf * v2n;
+          cntout++;
+        }
+    }
 
       if (isin) return 1;
 
       if (it > minit)
-	{
-	  (*testout) << "f = " << f
-		     << "  dfdlam = " << dflam1 << "  " << dflam2 << endl;
-	  (*testout) << "h = " << h11 << "  " << h12 << "  " << h22 << endl;
-	  (*testout) << "active: " << cntout << endl;
-	  (*testout) << "lam1-lam1old = " << (lam1 - lam1old) << endl;
-	  (*testout) << "lam2-lam2old = " << (lam2 - lam2old) << endl;
-	}
+    {
+      (*testout) << "f = " << f
+             << "  dfdlam = " << dflam1 << "  " << dflam2 << endl;
+      (*testout) << "h = " << h11 << "  " << h12 << "  " << h22 << endl;
+      (*testout) << "active: " << cntout << endl;
+      (*testout) << "lam1-lam1old = " << (lam1 - lam1old) << endl;
+      (*testout) << "lam2-lam2old = " << (lam2 - lam2old) << endl;
+    }
 
 
       if (f >= fold)
-	{
-	  lam1 = 0.100000000000000 * lam1 + 0.9000000000000000 * lam1old;
-	  lam2 = 0.100000000000000 * lam2 + 0.9000000000000000 * lam2old;
-	}
+    {
+      lam1 = 0.100000000000000 * lam1 + 0.9000000000000000 * lam1old;
+      lam2 = 0.100000000000000 * lam2 + 0.9000000000000000 * lam2old;
+    }
       else
-	{
-	  lam1old = lam1;
-	  lam2old = lam2;
-	  fold = f;
+    {
+      lam1old = lam1;
+      lam2old = lam2;
+      fold = f;
 
 
-	  if (f < 1E-9) return 1;
+      if (f < 1E-9) return 1;
 
-	  h11 += 1E-10;
-	  h22 += 1E-10;
-	  c1 = - ( h22 * dflam1 - h12 * dflam2) / (h11 * h22 - h12 * h12);
-	  c2 = - (-h12 * dflam1 + h11 * dflam2) / (h11 * h22 - h12 * h12);
-	  alpha = 1;
-
-
-	  if (it > minit)
-	    (*testout) << "c1/2 = " << c1 << "  " << c2 << endl;
-
-	  act1 = lam1 <= 1E-6 && c1 <= 0;
-	  act2 = lam2 <= 1E-6 && c2 <= 0;
-	  act3 = lam1 + lam2 >= 1 - 1E-6 && c1 + c2 >= 0;
-
-	  if (it > minit)
-	    (*testout) << "act1,2,3 = " << act1 << act2 << act3 << endl;
-
-	  if (act1 && act2 || act1 && act3 || act2 && act3) return 0;
-
-	  if (act1)
-	    {
-	      c1 = 0;
-	      c2 = - dflam2 / h22;
-	    }
-
-	  if (act2)
-	    {
-	      c1 = - dflam1 / h11;
-	      c2 = 0;
-	    }
-
-	  if (act3)
-	    {
-	      c1 = - (dflam1 - dflam2) / (h11 + h22 - 2 * h12);
-	      c2 = -c1;
-	    }
-
-	  if (it > minit)
-	    (*testout) << "c1/2 now = " << c1 << "  " << c2 << endl;
+      h11 += 1E-10;
+      h22 += 1E-10;
+      c1 = - ( h22 * dflam1 - h12 * dflam2) / (h11 * h22 - h12 * h12);
+      c2 = - (-h12 * dflam1 + h11 * dflam2) / (h11 * h22 - h12 * h12);
+      alpha = 1;
 
 
-	  if (f > 100 * sqrt (sqr (c1) + sqr (c2))) return 0;
+      if (it > minit)
+        (*testout) << "c1/2 = " << c1 << "  " << c2 << endl;
+
+      act1 = lam1 <= 1E-6 && c1 <= 0;
+      act2 = lam2 <= 1E-6 && c2 <= 0;
+      act3 = lam1 + lam2 >= 1 - 1E-6 && c1 + c2 >= 0;
+
+      if (it > minit)
+        (*testout) << "act1,2,3 = " << act1 << act2 << act3 << endl;
+
+      if (act1 && act2 || act1 && act3 || act2 && act3) return 0;
+
+      if (act1)
+        {
+          c1 = 0;
+          c2 = - dflam2 / h22;
+        }
+
+      if (act2)
+        {
+          c1 = - dflam1 / h11;
+          c2 = 0;
+        }
+
+      if (act3)
+        {
+          c1 = - (dflam1 - dflam2) / (h11 + h22 - 2 * h12);
+          c2 = -c1;
+        }
+
+      if (it > minit)
+        (*testout) << "c1/2 now = " << c1 << "  " << c2 << endl;
 
 
-	  if (lam1 + alpha * c1 < 0 && !act1)
-	    alpha = -lam1 / c1;
-	  if (lam2 + alpha * c2 < 0 && !act2)
-	    alpha = -lam2 / c2;
-	  if (lam1 + lam2 + alpha * (c1 + c2) > 1 && !act3)
-	    alpha = (1 - lam1 - lam2) / (c1 + c2);
+      if (f > 100 * sqrt (sqr (c1) + sqr (c2))) return 0;
 
-	  if (it > minit)
-	    (*testout) << "alpha = " << alpha << endl;
 
-	  lam1 += alpha * c1;
-	  lam2 += alpha * c2;
-	}
+      if (lam1 + alpha * c1 < 0 && !act1)
+        alpha = -lam1 / c1;
+      if (lam2 + alpha * c2 < 0 && !act2)
+        alpha = -lam2 / c2;
+      if (lam1 + lam2 + alpha * (c1 + c2) > 1 && !act3)
+        alpha = (1 - lam1 - lam2) / (c1 + c2);
+
+      if (it > minit)
+        (*testout) << "alpha = " << alpha << endl;
+
+      lam1 += alpha * c1;
+      lam2 += alpha * c2;
+    }
     }
 }
 
@@ -859,10 +863,10 @@ int vnetrule :: IsTriangleInFreeSet (const Point3d & p1, const Point3d & p2,
 
 
 int vnetrule :: IsQuadInFreeZone (const Point3d & p1, 
-				  const Point3d & p2,
-				  const Point3d & p3, 
-				  const Point3d & p4, 
-				  const ARRAY<int> & pi, int newone)
+                  const Point3d & p2,
+                  const Point3d & p3, 
+                  const Point3d & p4, 
+                  const ARRAY<int> & pi, int newone)
 {
   int fs;
   int infreeset, cannot = 0;
@@ -876,23 +880,23 @@ int vnetrule :: IsQuadInFreeZone (const Point3d & p1,
     {
       pfi.Elem(i) = 0;
       if (pi.Get(i))
-	{
-	  for (j = 1; j <= freezonepi.Size(); j++)
-	    if (freezonepi.Get(j) == pi.Get(i))
-	      pfi.Elem(i) = j;
-	}
+    {
+      for (j = 1; j <= freezonepi.Size(); j++)
+        if (freezonepi.Get(j) == pi.Get(i))
+          pfi.Elem(i) = j;
+    }
     }
 
   for (fs = 1; fs <= freesets.Size(); fs++)
     {
       const ARRAY<int> & freeseti = *freesets.Get(fs);
       for (i = 1; i <= 4; i++)
-	{
-	  pfi2.Elem(i) = 0;
-	  for (j = 1; j <= freeseti.Size(); j++)
-	    if (pfi.Get(i) == freeseti.Get(j))
-	      pfi2.Elem(i) = pfi.Get(i);
-	}
+    {
+      pfi2.Elem(i) = 0;
+      for (j = 1; j <= freeseti.Size(); j++)
+        if (pfi.Get(i) == freeseti.Get(j))
+          pfi2.Elem(i) = pfi.Get(i);
+    }
 
       infreeset = IsQuadInFreeSet(p1, p2, p3, p4, fs, pfi2, newone);
       if (infreeset == 1) return 1;
@@ -904,8 +908,8 @@ int vnetrule :: IsQuadInFreeZone (const Point3d & p1,
 
 
 int vnetrule :: IsQuadInFreeSet (const Point3d & p1, const Point3d & p2,
-				 const Point3d & p3, const Point3d & p4, 
-				 int fs, const ARRAY<int> & pi, int newone)
+                 const Point3d & p3, const Point3d & p4, 
+                 int fs, const ARRAY<int> & pi, int newone)
 {
   int i;
   
@@ -914,7 +918,8 @@ int vnetrule :: IsQuadInFreeSet (const Point3d & p1, const Point3d & p2,
     if (pi.Get(i)) cnt++;
   
   /*
-  (*testout) << "test quad in freeset: " << p1 << " - " << p2 << " - " << p3 << " - " << p4 << endl;
+  (*testout) << "test quad in freeset: " << p1 << " - " << p2 
+             << " - " << p3 << " - " << p4 << endl;
   (*testout) << "pi = ";
   for (i = 1; i <= pi.Size(); i++)
     (*testout) << pi.Get(i) << " ";
@@ -1008,7 +1013,7 @@ int vnetrule :: TestOk () const
   for (i = 1; i <= cntpused.Size(); i++)
     if (cntpused.Get(i) > 0 && cntpused.Get(i) < 2)
       {
-	return 0;
+    return 0;
       }
 
 
@@ -1017,39 +1022,39 @@ int vnetrule :: TestOk () const
     {
       //      (*testout) << "face " << i << endl;
       for (j = 1; j <= faces.Get(i).GetNP(); j++)
-	{
-	  pi1 = 0; pi2 = 0;
-	  if (delf.Get(i))
-	    {
-	      pi1 = faces.Get(i).PNumMod(j);
-	      pi2 = faces.Get(i).PNumMod(j+1);
-	    }
-	  if (i > noldf)
-	    {
-	      pi1 = faces.Get(i).PNumMod(j+1);
-	      pi2 = faces.Get(i).PNumMod(j);
-	    }
+    {
+      pi1 = 0; pi2 = 0;
+      if (delf.Get(i))
+        {
+          pi1 = faces.Get(i).PNumMod(j);
+          pi2 = faces.Get(i).PNumMod(j+1);
+        }
+      if (i > noldf)
+        {
+          pi1 = faces.Get(i).PNumMod(j+1);
+          pi2 = faces.Get(i).PNumMod(j);
+        }
 
-	  found = 0;
-	  if (pi1)
-	    {
-	      for (k = 1; k <= edge1.Size(); k++)
-		if (edge1.Get(k) == pi1 && edge2.Get(k) == pi2)
-		  {
-		    found = 1;
-		    edge1.DeleteElement(k);
-		    edge2.DeleteElement(k);
-		    k--;
-		    //		    (*testout) << "Del edge " << pi1 << "-" << pi2 << endl;
-		  }
-	      if (!found)
-		{
-		  edge1.Append (pi2);
-		  edge2.Append (pi1);
-		  //		  (*testout) << "Add edge " << pi1 << "-" << pi2 << endl;
-		}
-	    }
-	}
+      found = 0;
+      if (pi1)
+        {
+          for (k = 1; k <= edge1.Size(); k++)
+        if (edge1.Get(k) == pi1 && edge2.Get(k) == pi2)
+          {
+            found = 1;
+            edge1.DeleteElement(k);
+            edge2.DeleteElement(k);
+            k--;
+            // (*testout) << "Del edge " << pi1 << "-" << pi2 << endl;
+          }
+          if (!found)
+        {
+          edge1.Append (pi2);
+          edge2.Append (pi1);
+          // (*testout) << "Add edge " << pi1 << "-" << pi2 << endl;
+        }
+        }
+    }
     }
 
 

@@ -59,7 +59,7 @@ static void STLFindEdges (STLGeometry & geom,
   for (i = 1; i <= meshlines.Size(); i++)
     {
       STLLine* line = meshlines.Get(i);
-      (*testout) << "store line " << i << endl;
+      (*testout) << "store line " << i << std::endl;
       for (j = 1; j <= line->GetNS(); j++)
 	{
 	  int p1, p2;
@@ -68,7 +68,7 @@ static void STLFindEdges (STLGeometry & geom,
 	  int trig1, trig2, trig1b, trig2b;
 
 	  if (p1 == p2) 
-	    cout << "Add Segment, p1 == p2 == " << p1 << endl;
+	    std::cout << "Add Segment, p1 == p2 == " << p1 << std::endl;
 
 	  // Test auf geschlossener Rand mit 2 Segmenten 
 	      
@@ -94,20 +94,20 @@ static void STLFindEdges (STLGeometry & geom,
 	  trig1b = line->GetLeftTrig(j+1);
 	  trig2b = line->GetRightTrig(j+1);
 	  
-	  (*testout) << "j = " << j << ", p1 = " << p1 << ", p2 = " << p2 << endl;
+	  (*testout) << "j = " << j << ", p1 = " << p1 << ", p2 = " << p2 << std::endl;
 	  (*testout) << "segm-trigs: "
 		   << "trig1 = " << trig1
 		   << ", trig1b = " << trig1b
 		   << ", trig2 = " << trig2
-		   << ", trig2b = " << trig2b << endl;
+		   << ", trig2b = " << trig2b << std::endl;
 
 	  if (trig1 <= 0 || trig2 <= 0 || trig1b <= 0 || trig2b <= 0)
 	    {
-	      cout << "negative trigs, "
+	      std::cout << "negative trigs, "
 		   << ", trig1 = " << trig1
 		   << ", trig1b = " << trig1b
 		   << ", trig2 = " << trig2
-		   << ", trig2b = " << trig2b << endl;
+		   << ", trig2b = " << trig2b << std::endl;
 	    }
 	  /*
 	  (*testout) << "   trigs p1: " << trig1 << " - " << trig2 << endl;
@@ -162,10 +162,10 @@ static void STLFindEdges (STLGeometry & geom,
 
 	  if (Dist (mesh.Point(seg.p1), mesh.Point(seg.p2)) < 1e-10)
 	    {
-	      (*testout) << "ERROR: Line segment of length 0" << endl;
-	      (*testout) << "pi1, 2 = " << seg.p1 << ", " << seg.p2 << endl;
+	      (*testout) << "ERROR: Line segment of length 0" << std::endl;
+	      (*testout) << "pi1, 2 = " << seg.p1 << ", " << seg.p2 << std::endl;
 	      (*testout) << "p1, 2 = " << mesh.Point(seg.p1)
-			 << ", " << mesh.Point(seg.p2) << endl;
+			 << ", " << mesh.Point(seg.p2) << std::endl;
 	      throw NgException ("Line segment of length 0");
 	    }
 	  
@@ -260,7 +260,7 @@ int STLSurfaceMeshing (STLGeometry & geom,
       const Segment & seg = mesh.LineSegment (i);
       if (seg.geominfo[0].trignum <= 0 || seg.geominfo[1].trignum <= 0)
 	{
-	  (*testout) << "Problem with segment " << i << ": " << seg << endl;
+	  (*testout) << "Problem with segment " << i << ": " << seg << std::endl;
 	}
     }
 
@@ -587,7 +587,7 @@ void STLSurfaceMeshing1 (STLGeometry & geom,
 	}
       else
 	{
-	  cerr << "illegal face index" << endl;
+	  std::cerr << "illegal face index" << std::endl;
 	}
     }
 
@@ -706,7 +706,7 @@ void STLSurfaceOptimization (STLGeometry & geom,
 	if (multithread.terminate)
 	  break;
 
-	(*testout) << "optimize, before, step = " << mparam.optimize2d[j-1] << mesh.Point (3679) << endl;
+	(*testout) << "optimize, before, step = " << mparam.optimize2d[j-1] << mesh.Point (3679) << std::endl;
 
 	mesh.CalcSurfacesOfNode();
 	switch (mparam.optimize2d[j-1])
@@ -732,7 +732,7 @@ void STLSurfaceOptimization (STLGeometry & geom,
 	      break;
 	    }
 	  }
-	(*testout) << "optimize, after, step = " << mparam.optimize2d[j-1] << mesh.Point (3679) << endl;
+	(*testout) << "optimize, after, step = " << mparam.optimize2d[j-1] << mesh.Point (3679) << std::endl;
       }
 
   geom.surfaceoptimized = 1;
@@ -1113,7 +1113,7 @@ PointBetween (const Point3d & p1, const Point3d & p2, double secpoint,
 
 void RefinementSTLGeometry :: ProjectToSurface (Point<3> & p, int surfi)
 {
-  cout << "RefinementSTLGeometry :: ProjectToSurface not implemented!" << endl;
+  std::cout << "RefinementSTLGeometry :: ProjectToSurface not implemented!" << std::endl;
 };
 
 

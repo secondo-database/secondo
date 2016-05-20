@@ -318,7 +318,7 @@ void STLEdgeDataList :: Add(const STLEdgeData& ed, int i)
 }
 */
 
-void STLEdgeDataList :: Write(ofstream& of) const
+void STLEdgeDataList :: Write(std::ofstream& of) const
 {
   
   /*
@@ -335,7 +335,7 @@ void STLEdgeDataList :: Write(ofstream& of) const
   of.precision(16);
   int i, ne = geom.GetNTE();
   //of << GetNConfEdges() << endl;
-  of << geom.GetNTE() << endl;
+  of << geom.GetNTE() << std::endl;
 
   for (i = 1; i <= ne; i++)
     {
@@ -350,12 +350,12 @@ void STLEdgeDataList :: Write(ofstream& of) const
 	 << p1.Z() << " "
 	 << p2.X() << " "
 	 << p2.Y() << " "
-	 << p2.Z() << endl;
+	 << p2.Z() << std::endl;
     }
   
 }
 
-void STLEdgeDataList :: Read(ifstream& ifs)
+void STLEdgeDataList :: Read(std::ifstream& ifs)
 {
   int i, nce;
   Point3d p1, p2;

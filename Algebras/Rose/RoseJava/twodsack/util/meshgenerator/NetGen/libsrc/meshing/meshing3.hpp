@@ -30,7 +30,7 @@ class Meshing3
   double tolfak;
 public:
   /// 
-  Meshing3 (const string & rulefilename); 
+  Meshing3 (const std::string & rulefilename); 
   /// 
   Meshing3 (const char ** rulep);
   ///

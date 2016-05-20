@@ -1,6 +1,7 @@
 #include <mystdlib.h>
 #include "meshing.hpp"
 
+using namespace std;
 
 namespace netgen
 {
@@ -370,7 +371,8 @@ namespace netgen
       
     if (wrongels)
       {
-	cout << "WARNING: " << wrongels << " illegal element(s) found" << endl;
+	cout << "WARNING: " << wrongels 
+       << " illegal element(s) found" << endl;
 
 	int np = mesh.GetNP();
 	ARRAY<Point3d> should(np);

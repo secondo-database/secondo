@@ -180,7 +180,7 @@ public:
   ///
   void GetPoints (ARRAY<Point3d> & apoints) const;
   ///
-  void Print (ostream & ost) const;
+  void Print (std::ostream & ost) const;
 
   ///
   bool Empty () const
@@ -231,7 +231,7 @@ public:
   ///
   void SetStartFront ();
   ///
-  void PrintOpenSegments (ostream & ost) const;
+  void PrintOpenSegments (std::ostream & ost) const;
 };
 
 

@@ -154,7 +154,7 @@ public:
   const char * Name () const { return name; }
 
   ///
-  void LoadRule (istream & ist);
+  void LoadRule (std::istream & ist);
 };
 
 

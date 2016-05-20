@@ -37,7 +37,8 @@ namespace netgen
 
 void DefaultStringErrHandler()
 {
-  cerr << "Fehler : Bereichsüberschreitung bei Stringoperation\n" << flush;
+  std::cerr << "Fehler : Bereichsüberschreitung bei Stringoperation\n" 
+            << std::flush;
 }
 
 void (*MyStr::ErrHandler)() = DefaultStringErrHandler;
@@ -339,7 +340,7 @@ MyStr MyStr::operator () (unsigned l, unsigned r)
   }
 }
 
-istream& operator >> (istream& is, MyStr& s)
+std::istream& operator >> (std::istream& is, MyStr& s)
 {
   const int buflen = 1000;
   char buffer[buflen+1];

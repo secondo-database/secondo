@@ -1973,7 +1973,7 @@ public class SetOps {
     /**
      * From two sets <tt>E,F</tt> and a predicate <tt>p</tt> this method computes a set of pairs <tt>(e,f)</tt> with <tt>e</tt> element of
      * <tt>E</tt>, <tt>f</tt> element of <tt>F</tt> and <tt>p(e,f) == true</tt>.<p>
-     * The predicate's signature must be <tt>Element x Element -> boolean</tt>. This method uses a O(n²) algorithm.
+     * The predicate's signature must be <tt>Element x Element -> boolean</tt>. This method uses a O(n*n) algorithm.
      *
      * @param ems1 the first set
      * @param ems2 the second set

@@ -9,6 +9,8 @@ genmesh2d.cpp is part of the NETGEN package
 #include <geometry2d.hpp>
 #include "meshing.hpp"
 
+using namespace std;
+
 namespace netgen
 {
 

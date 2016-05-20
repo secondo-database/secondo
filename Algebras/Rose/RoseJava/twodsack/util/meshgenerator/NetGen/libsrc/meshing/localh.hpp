@@ -111,7 +111,7 @@ public:
   const Box3d & GetBoundingBox () const
   { return boundingbox; }
   ///
-  void PrintMemInfo (ostream & ost) const;
+  void PrintMemInfo (std::ostream & ost) const;
 private:
   /// 
   double GetMinHRec (const Point3d & pmin, const Point3d & pmax,

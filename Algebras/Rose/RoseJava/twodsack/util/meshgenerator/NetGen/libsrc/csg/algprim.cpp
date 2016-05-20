@@ -4,6 +4,7 @@
 #include <linalg.hpp>
 #include <csg.hpp>
 
+using namespace std;
 
 namespace netgen
 {
@@ -106,7 +107,7 @@ void Plane :: Transform (Transformation<3> & trans)
 
 
 void Plane :: GetPrimitiveData (char *& classname, 
-				ARRAY<double> & coeffs) const
+                ARRAY<double> & coeffs) const
 {
   classname = "plane";
   coeffs.SetSize (6);
@@ -168,8 +169,8 @@ void Plane :: DefineTangentialPlane (const Point<3> & ap1, const Point<3> & ap2)
 
 
 void Plane :: ToPlane (const Point<3> & p3d, 
-		       Point<2> & pplane, 
-		       double h, int & zone) const
+               Point<2> & pplane, 
+               double h, int & zone) const
 {
   Vec<3> p1p;
 
@@ -180,7 +181,8 @@ void Plane :: ToPlane (const Point<3> & p3d,
   zone = 0;
 }
 
-void Plane :: FromPlane (const Point<2> & pplane, Point<3> & p3d, double h) const
+void Plane :: FromPlane (const Point<2> & pplane,
+                         Point<3> & p3d, double h) const
 {
   /*
   Vec<3> p1p;
@@ -214,54 +216,54 @@ INSOLID_TYPE Plane :: BoxInSolid (const BoxSphere<3> & box) const
     {
       /*
       double modify = 
-	((box.MaxX()-box.MinX()) * fabs (cx) + 
-	 (box.MaxY()-box.MinY()) * fabs (cy) + 
-	 (box.MaxZ()-box.MinZ()) * fabs (cz)) / 2;
+    ((box.MaxX()-box.MinX()) * fabs (cx) + 
+     (box.MaxY()-box.MinY()) * fabs (cy) + 
+     (box.MaxZ()-box.MinZ()) * fabs (cz)) / 2;
       */
       Vec<3> vdiag = box.PMax() - box.PMin();
       double modify = (vdiag(0) * fabs (cx) + 
-		       vdiag(1) * fabs (cy) + 
-		       vdiag(2) * fabs (cz) ) / 2;
+               vdiag(1) * fabs (cy) + 
+               vdiag(2) * fabs (cz) ) / 2;
 
       if (val - modify < 0)
-	return DOES_INTERSECT;
+    return DOES_INTERSECT;
       return IS_OUTSIDE;
 
       // only outside or intersect possible
       for (i = 0; i < 8; i++)
-	{
-	  p = box.GetPointNr (i);
-	  val = Plane::CalcFunctionValue (p);
-	  if (val < 0) 
-	    return DOES_INTERSECT;
-	}
+    {
+      p = box.GetPointNr (i);
+      val = Plane::CalcFunctionValue (p);
+      if (val < 0) 
+        return DOES_INTERSECT;
+    }
       return IS_OUTSIDE;
     }
   else
     {
       /*
-	double modify = 
-	((box.MaxX()-box.MinX()) * fabs (cx) + 
-	(box.MaxY()-box.MinY()) * fabs (cy) + 
-	(box.MaxZ()-box.MinZ()) * fabs (cz)) / 2;
+    double modify = 
+    ((box.MaxX()-box.MinX()) * fabs (cx) + 
+    (box.MaxY()-box.MinY()) * fabs (cy) + 
+    (box.MaxZ()-box.MinZ()) * fabs (cz)) / 2;
       */
       Vec<3> vdiag = box.PMax() - box.PMin();
       double modify =  (vdiag(0) * fabs (cx) + 
-			vdiag(1) * fabs (cy) + 
-			vdiag(2) * fabs (cz) ) / 2;
+            vdiag(1) * fabs (cy) + 
+            vdiag(2) * fabs (cz) ) / 2;
       if (val + modify > 0)
-	return DOES_INTERSECT;
+    return DOES_INTERSECT;
       return IS_INSIDE;
 
 
       // only inside or intersect possible
       for (i = 0; i < 8; i++)
-	{
-	  p = box.GetPointNr (i);
-	  val = Plane::CalcFunctionValue (p);
-	  if (val > 0) 
-	    return DOES_INTERSECT;
-	}
+    {
+      p = box.GetPointNr (i);
+      val = Plane::CalcFunctionValue (p);
+      if (val > 0) 
+        return DOES_INTERSECT;
+    }
       return IS_INSIDE;
     }
 
@@ -353,7 +355,8 @@ Sphere :: Sphere (const Point<3> & ac, double ar)
   c1 = (c(0) * c(0) + c(1) * c(1) + c(2) * c(2)) / (2 * r) - r / 2;
 }
 
-void Sphere :: GetPrimitiveData (char *& classname, ARRAY<double> & coeffs) const
+void Sphere :: GetPrimitiveData (char *& classname, 
+                                  ARRAY<double> & coeffs) const
 {
   classname = "sphere";
   coeffs.SetSize (4);
@@ -422,7 +425,8 @@ int Sphere :: IsIdentic (const Surface & s2, int & inv, double eps) const
 }
 
 
-void Sphere :: DefineTangentialPlane (const Point<3> & ap1, const Point<3> & ap2)
+void Sphere :: DefineTangentialPlane (const Point<3> & ap1, 
+                                      const Point<3> & ap2)
 {
   Surface::DefineTangentialPlane (ap1, ap2);
 
@@ -437,7 +441,8 @@ void Sphere :: DefineTangentialPlane (const Point<3> & ap1, const Point<3> & ap2
 }
 
 
-void Sphere :: ToPlane (const Point<3> & p, Point<2> & pplane, double h, int & zone) const
+void Sphere :: ToPlane (const Point<3> & p, Point<2> & pplane, 
+                        double h, int & zone) const
 {
   Vec<3> p1p;
   
@@ -553,21 +558,21 @@ void Sphere :: GetTriangleApproximation
   for (j = 0; j <= n; j++)
     for (i = 0; i <= n; i++)
       {
-	lg = 2 * M_PI * double (i) / n;
-	bg = M_PI * (double(j) / n - 0.5);
+    lg = 2 * M_PI * double (i) / n;
+    bg = M_PI * (double(j) / n - 0.5);
 
-	Point<3> p(c(0) + r * cos(bg) * sin (lg),
-		  c(1) + r * cos(bg) * cos (lg),
-		  c(2) + r * sin(bg));
-	tas.AddPoint (p);
+    Point<3> p(c(0) + r * cos(bg) * sin (lg),
+          c(1) + r * cos(bg) * cos (lg),
+          c(2) + r * sin(bg));
+    tas.AddPoint (p);
       }
 
   for (j = 0; j < n; j++)
     for (i = 0; i < n; i++)
       {
-	int pi = i + (n+1) * j;
-	tas.AddTriangle (TATriangle (0, pi, pi+1, pi+n+2));
-	tas.AddTriangle (TATriangle (0, pi, pi+n+2, pi+n+1));
+    int pi = i + (n+1) * j;
+    tas.AddTriangle (TATriangle (0, pi, pi+1, pi+n+2));
+    tas.AddTriangle (TATriangle (0, pi, pi+n+2, pi+n+1));
       }
 }
 
@@ -577,7 +582,7 @@ void Sphere :: GetTriangleApproximation
 
 Ellipsoid :: 
 Ellipsoid (const Point<3> & aa,
-	   const Vec<3> & av1, const Vec<3> & av2, const Vec<3> & av3)
+       const Vec<3> & av1, const Vec<3> & av2, const Vec<3> & av3)
 {
   a = aa;
   v1 = av1;
@@ -618,7 +623,8 @@ void Ellipsoid :: CalcData ()
   Vec<3> va (a);
   c1 = sqr(va * hv1) + sqr(va * hv2) + sqr(va * hv3) - 1;
   
-  Vec<3> v = -2 * (va * hv1) * hv1 - 2 * (va * hv2) * hv2  - 2 * (va * hv3) * hv3;
+  Vec<3> v = -2 * (va * hv1) * hv1 - 2 * (va * hv2) * hv2  
+             - 2 * (va * hv3) * hv3;
   cx = v(0);
   cy = v(1);
   cz = v(2);
@@ -639,7 +645,8 @@ INSOLID_TYPE Ellipsoid :: BoxInSolid (const BoxSphere<3> & box) const
   double r = box.Diam() / 2;
   double maxval = grad * r + ggrad * r * r;
 
-  //  (*testout) << "box = " << box << ", val = " << val << ", maxval = " << maxval << endl;
+  //  (*testout) << "box = " << box << ", val = " << val 
+  //<< ", maxval = " << maxval << endl;
 
   if (val > maxval) return IS_OUTSIDE;
   if (val < -maxval) return IS_INSIDE;
@@ -670,24 +677,24 @@ void Ellipsoid :: GetTriangleApproximation
   for (j = 0; j <= n; j++)
     for (i = 0; i <= n; i++)
       {
-	lg = 2 * M_PI * double (i) / n;
-	bg = M_PI * (double(j) / n - 0.5);
+    lg = 2 * M_PI * double (i) / n;
+    bg = M_PI * (double(j) / n - 0.5);
 
 
-	Point<3> p(a + 
-		   sin (bg) * v1 + 
-		   cos (bg) * sin (lg) * v2 +
-		   cos (bg) * cos (lg) * v3);
+    Point<3> p(a + 
+           sin (bg) * v1 + 
+           cos (bg) * sin (lg) * v2 +
+           cos (bg) * cos (lg) * v3);
 
-	tas.AddPoint (p);
+    tas.AddPoint (p);
       }
 
   for (j = 0; j < n; j++)
     for (i = 0; i < n; i++)
       {
-	int pi = i + (n+1) * j;
-	tas.AddTriangle (TATriangle (0, pi, pi+1, pi+n+2));
-	tas.AddTriangle (TATriangle (0, pi, pi+n+2, pi+n+1));
+    int pi = i + (n+1) * j;
+    tas.AddTriangle (TATriangle (0, pi, pi+1, pi+n+2));
+    tas.AddTriangle (TATriangle (0, pi, pi+n+2, pi+n+1));
       }
 }
 
@@ -746,7 +753,8 @@ Cylinder :: Cylinder (const Point<3> & aa, const Point<3> & ab, double ar)
 
 
 
-void Cylinder :: GetPrimitiveData (char *& classname, ARRAY<double> & coeffs) const
+void Cylinder :: GetPrimitiveData (char *& classname, 
+                                  ARRAY<double> & coeffs) const
 {
   classname = "cylinder";
   coeffs.SetSize (7);
@@ -875,7 +883,8 @@ void Cylinder :: Transform (Transformation<3> & trans)
 
 
 
-void Cylinder :: DefineTangentialPlane (const Point<3> & ap1, const Point<3> & ap2)
+void Cylinder :: DefineTangentialPlane (const Point<3> & ap1, 
+                                 const Point<3> & ap2)
 {
   Surface::DefineTangentialPlane (ap1, ap2);
 
@@ -892,8 +901,8 @@ void Cylinder :: DefineTangentialPlane (const Point<3> & ap1, const Point<3> & a
 
 
 void Cylinder :: ToPlane (const Point<3> & p, 
-			  Point<2> & pplane, 
-			  double h, int & zone) const
+              Point<2> & pplane, 
+              double h, int & zone) const
 {
   Point<3> cp1p2 = Center (p1, p2);
   Project (cp1p2);
@@ -943,7 +952,8 @@ void Cylinder :: ToPlane (const Point<3> & p,
 
   /*
   (*testout) << "p1 = " << p1 << ",  p2 = " << p2 << endl;
-  (*testout) << "p = " << p << ",  pp = " << pp << ",  pplane = " << pplane << endl;
+  (*testout) << "p = " << p << ",  pp = " << pp << ",  pplane = "
+             << pplane << endl;
   */
 
   /*
@@ -967,7 +977,8 @@ void Cylinder :: ToPlane (const Point<3> & p,
     */
 }
 
-void Cylinder :: FromPlane (const Point<2> & pplane, Point<3> & p, double h) const
+void Cylinder :: FromPlane (const Point<2> & pplane,
+                            Point<3> & p, double h) const
 {
   Point<2> pplane2 (pplane);
 
@@ -1052,22 +1063,22 @@ void Cylinder :: GetTriangleApproximation
   for (j = 0; j <= n; j++)
     for (i = 0; i <= n; i++)
       {
-	lg = 2 * M_PI * double (i) / n;
-	bg = double(j) / n;
+    lg = 2 * M_PI * double (i) / n;
+    bg = double(j) / n;
 
-	Point<3> p = a + (bg * lvab) 
-	  + ((r * cos(lg)) * n1) 
-	  + ((r * sin(lg)) * n2);
+    Point<3> p = a + (bg * lvab) 
+      + ((r * cos(lg)) * n1) 
+      + ((r * sin(lg)) * n2);
 
-	tas.AddPoint (p);
+    tas.AddPoint (p);
       }
 
   for (j = 0; j < n; j++)
     for (i = 0; i < n; i++)
       {
-	int pi = i + (n+1) * j;
-	tas.AddTriangle (TATriangle (0, pi, pi+1, pi+n+2));
-	tas.AddTriangle (TATriangle (0, pi, pi+n+2, pi+n+1));
+    int pi = i + (n+1) * j;
+    tas.AddTriangle (TATriangle (0, pi, pi+1, pi+n+2));
+    tas.AddTriangle (TATriangle (0, pi, pi+n+2, pi+n+1));
       }
 }
 
@@ -1081,7 +1092,7 @@ void Cylinder :: GetTriangleApproximation
 
 EllipticCylinder :: 
 EllipticCylinder (const Point<3> & aa,
-		  const Vec<3> & avl, const Vec<3> & avs)
+          const Vec<3> & avl, const Vec<3> & avs)
 {
   a = aa;
   vl = avl;
@@ -1132,7 +1143,8 @@ INSOLID_TYPE EllipticCylinder :: BoxInSolid (const BoxSphere<3> & box) const
   double r = box.Diam() / 2;
   double maxval = grad * r + ggrad * r * r;
 
-  // (*testout) << "box = " << box << ", val = " << val << ", maxval = " << maxval << endl;
+  // (*testout) << "box = " << box << ", val = " << val 
+  // << ", maxval = " << maxval << endl;
 
   if (val > maxval) return IS_OUTSIDE;
   if (val < -maxval) return IS_INSIDE;
@@ -1165,21 +1177,21 @@ void EllipticCylinder :: GetTriangleApproximation
   for (j = 0; j <= n; j++)
     for (i = 0; i <= n; i++)
       {
-	lg = 2 * M_PI * double (i) / n;
-	bg = double(j) / n;
+    lg = 2 * M_PI * double (i) / n;
+    bg = double(j) / n;
 
-	Point<3> p = a + (bg * axis)
-	  + cos(lg) * vl + sin(lg) * vs;
+    Point<3> p = a + (bg * axis)
+      + cos(lg) * vl + sin(lg) * vs;
 
-	tas.AddPoint (p);
+    tas.AddPoint (p);
       }
 
   for (j = 0; j < n; j++)
     for (i = 0; i < n; i++)
       {
-	int pi = i + (n+1) * j;
-	tas.AddTriangle (TATriangle (0, pi, pi+1, pi+n+2));
-	tas.AddTriangle (TATriangle (0, pi, pi+n+2, pi+n+1));
+    int pi = i + (n+1) * j;
+    tas.AddTriangle (TATriangle (0, pi, pi+1, pi+n+2));
+    tas.AddTriangle (TATriangle (0, pi, pi+n+2, pi+n+1));
       }
 }
 
@@ -1193,7 +1205,7 @@ void EllipticCylinder :: GetTriangleApproximation
 
 
 Cone :: Cone (const Point<3> & aa, const Point<3> & ab, 
-	      double ara, double arb)
+          double ara, double arb)
 {
   a = aa;
   b = ab;
@@ -1312,7 +1324,7 @@ double Cone :: HesseNorm () const
 
 
 double Cone ::  LocH (const Point<3> & p, double x, 
-				  double c, double hmax) const
+                  double c, double hmax) const
 {
   double bloch = Surface::LocH (p, x, c, hmax);
   Vec<3> g;
@@ -1324,7 +1336,8 @@ double Cone ::  LocH (const Point<3> & p, double x,
        +2 * g(1)*g(2)*cyz - 2 * cxx * (g(1)*g(1)+g(2)*g(2))
        +2 * g(0)*g(2)*cxz - 2 * cyy * (g(0)*g(0)+g(2)*g(2))) / (3*lam*lam*lam);
 
-  // cout << "type = " << typeid(*this).name() << ", baseh = " << bloch << ", meancurv = " << meancurv << endl;
+  // cout << "type = " << typeid(*this).name() << ", baseh = " << bloch 
+  //      << ", meancurv = " << meancurv << endl;
   // return bloch;
   
   meancurv = fabs (meancurv);
@@ -1368,22 +1381,22 @@ void Cone :: GetTriangleApproximation
   for (j = 0; j <= n; j++)
     for (i = 0; i <= n; i++)
       {
-	lg = 2 * M_PI * double (i) / n;
-	bg = double(j) / n;
+    lg = 2 * M_PI * double (i) / n;
+    bg = double(j) / n;
 
-	Point<3> p = a + (bg * lvab) 
-	  + (( (ra+(rb-ra)*bg)  * cos(lg)) * n1) 
-	  + (( (ra+(rb-ra)*bg)  * sin(lg)) * n2);
+    Point<3> p = a + (bg * lvab) 
+      + (( (ra+(rb-ra)*bg)  * cos(lg)) * n1) 
+      + (( (ra+(rb-ra)*bg)  * sin(lg)) * n2);
 
-	tas.AddPoint (p);
+    tas.AddPoint (p);
       }
 
   for (j = 0; j < n; j++)
     for (i = 0; i < n; i++)
       {
-	int pi = i + (n+1) * j;
-	tas.AddTriangle (TATriangle (0, pi, pi+1, pi+n+2));
-	tas.AddTriangle (TATriangle (0, pi, pi+n+2, pi+n+1));
+    int pi = i + (n+1) * j;
+    tas.AddTriangle (TATriangle (0, pi, pi+1, pi+n+2));
+    tas.AddTriangle (TATriangle (0, pi, pi+n+2, pi+n+1));
       }
 }
 }

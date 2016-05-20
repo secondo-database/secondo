@@ -21,7 +21,7 @@ GradingBox :: GradingBox (const double * ax1, const double * ax2)
 
   /*
   (*testout) << "new box: " << xmid[0] << "-" << xmid[1] << "-" << xmid[2] 
-	     << " h = " << (x2[0] - x1[0]) << endl;
+         << " h = " << (x2[0] - x1[0]) << endl;
   */
 
   for (i = 0; i < 8; i++)
@@ -63,9 +63,9 @@ void GradingBox :: DeleteChilds()
   for (i = 0; i < 8; i++)
     if (childs[i])
       {
-	childs[i]->DeleteChilds();
-	delete childs[i];
-	childs[i] = NULL;
+    childs[i]->DeleteChilds();
+    delete childs[i];
+    childs[i] = NULL;
       }
 }
 
@@ -164,37 +164,37 @@ void LocalH :: SetH (const Point3d & p, double h)
 
       double h2 = box->h2;
       if (childnr & 1)
-	{
-	  x1[0] = box->xmid[0];
-	  x2[0] = x1[0]+h2;   // box->x2[0];
-	}
+    {
+      x1[0] = box->xmid[0];
+      x2[0] = x1[0]+h2;   // box->x2[0];
+    }
       else
-	{
-	  x2[0] = box->xmid[0];
-	  x1[0] = x2[0]-h2;   // box->x1[0];
-	}
+    {
+      x2[0] = box->xmid[0];
+      x1[0] = x2[0]-h2;   // box->x1[0];
+    }
 
       if (childnr & 2)
-	{
-	  x1[1] = box->xmid[1];
-	  x2[1] = x1[1]+h2;   // box->x2[1];
-	}
+    {
+      x1[1] = box->xmid[1];
+      x2[1] = x1[1]+h2;   // box->x2[1];
+    }
       else
-	{
-	  x2[1] = box->xmid[1];
-	  x1[1] = x2[1]-h2;   // box->x1[1];
-	}
+    {
+      x2[1] = box->xmid[1];
+      x1[1] = x2[1]-h2;   // box->x1[1];
+    }
 
       if (childnr & 4)
-	{
-	  x1[2] = box->xmid[2];
-	  x2[2] = x1[2]+h2;  // box->x2[2];
-	}
+    {
+      x1[2] = box->xmid[2];
+      x2[2] = x1[2]+h2;  // box->x2[2];
+    }
       else
-	{
-	  x2[2] = box->xmid[2];
-	  x1[2] = x2[2]-h2;  // box->x1[2];
-	}
+    {
+      x2[2] = box->xmid[2];
+      x1[2] = x2[2]-h2;  // box->x1[2];
+    }
 
       ngb = new GradingBox (x1, x2);
       box->childs[childnr] = ngb;
@@ -227,13 +227,13 @@ void LocalH :: SetH (const Point3d & p, double h)
   for (i1 = -1; i1 <= 1; i1++)
     for (i2 = -1; i2 <= 1; i2++)
       for (i3 = -1; i3 <= 1; i3++)
-	{
-	  np.X() = p.X() + hbox * i1;
-	  np.Y() = p.Y() + hbox * i2;
-	  np.Z() = p.Z() + hbox * i3;
+    {
+      np.X() = p.X() + hbox * i1;
+      np.Y() = p.Y() + hbox * i2;
+      np.Z() = p.Z() + hbox * i3;
 
-	  SetH (np, hnp);
-	}
+      SetH (np, hnp);
+    }
   */
 }
 
@@ -253,13 +253,13 @@ double LocalH :: GetH (const Point3d & x) const
       if (x.Z() > box->xmid[2]) childnr += 4;
       nbox = box->childs[childnr];
       if (nbox)
-	box = nbox;
+    box = nbox;
       else
-	{
-	  //	  (*testout) << "diam = " << (box->x2[0] - box->x1[0])
-	  //		     << " h = " << box->hopt << endl;
-	  return box->hopt;
-	}
+    {
+      //      (*testout) << "diam = " << (box->x2[0] - box->x1[0])
+      //             << " h = " << box->hopt << endl;
+      return box->hopt;
+    }
     }
 }
 
@@ -279,7 +279,7 @@ double LocalH :: GetMinH (const Point3d & pmin, const Point3d & pmax) const
 
 
 double LocalH :: GetMinHRec (const Point3d & pmin, const Point3d & pmax,
-			     const GradingBox * box) const
+                 const GradingBox * box) const
 {
   double h2 = box->h2;
   if (pmax.X() < box->xmid[0]-h2 || pmin.X() > box->xmid[0]+h2 ||
@@ -300,11 +300,11 @@ double LocalH :: GetMinHRec (const Point3d & pmin, const Point3d & pmax,
   for (i = 0; i <= 7; i++)
     {
       if (box->childs[i])
-	{
-	  double hi = GetMinHRec (pmin, pmax, box->childs[i]);
-	  if (hi < hmin)
-	    hmin = hi;
-	}	  
+    {
+      double hi = GetMinHRec (pmin, pmax, box->childs[i]);
+      if (hi < hmin)
+        hmin = hi;
+    }      
     }
 
   return hmin;
@@ -312,7 +312,7 @@ double LocalH :: GetMinHRec (const Point3d & pmin, const Point3d & pmax,
 
 
 void LocalH :: CutBoundaryRec (const Point3d & pmin, const Point3d & pmax,
-			       GradingBox * box)
+                   GradingBox * box)
 {
   double h2 = box->h2;
   if (pmax.X() < box->xmid[0]-h2 || pmin.X() > box->xmid[0]+h2 ||
@@ -335,9 +335,10 @@ void LocalH :: CutBoundaryRec (const Point3d & pmin, const Point3d & pmax,
 
 
 
-void LocalH :: FindInnerBoxes ( // int (*sameside)(const Point3d & p1, const Point3d & p2),
-			       AdFront3 * adfront,
-			       int (*testinner)(const Point3d & p1))
+void LocalH :: FindInnerBoxes ( 
+            // int (*sameside)(const Point3d & p1, const Point3d & p2),
+                   AdFront3 * adfront,
+                   int (*testinner)(const Point3d & p1))
 {
   int i, j;
 
@@ -358,7 +359,8 @@ void LocalH :: FindInnerBoxes ( // int (*sameside)(const Point3d & p1, const Poi
   
   if (testinner)
     (*testout) << "inner = " << root->flags.pinner << " =?= " 
-	       << testinner(Point3d(root->xmid[0], root->xmid[1], root->xmid[2])) << endl;
+           << testinner(Point3d(root->xmid[0], root->xmid[1], root->xmid[2]))
+           << std::endl;
   
   ARRAY<int> faceinds(nf);
   ARRAY<Box3d> faceboxes(nf);
@@ -376,9 +378,9 @@ void LocalH :: FindInnerBoxes ( // int (*sameside)(const Point3d & p1, const Poi
 
 void LocalH :: 
 FindInnerBoxesRec2 (GradingBox * box,
-		    class AdFront3 * adfront, 
-		    ARRAY<Box3d> & faceboxes,
-		    ARRAY<int> & faceinds, int nfinbox)
+            class AdFront3 * adfront, 
+            ARRAY<Box3d> & faceboxes,
+            ARRAY<int> & faceinds, int nfinbox)
 {
   if (!box) return;
   
@@ -411,12 +413,12 @@ FindInnerBoxesRec2 (GradingBox * box,
       const Box3d & facebox = faceboxes.Get(faceinds.Get(j));
   
       if (boxc.Intersect (facebox))
-	faceused.Append(faceinds.Get(j));
+    faceused.Append(faceinds.Get(j));
       else
-	facenotused.Append(faceinds.Get(j));
+    facenotused.Append(faceinds.Get(j));
 
       if (boxcfc.Intersect (facebox))
-	faceused2.Append (faceinds.Get(j));
+    faceused2.Append (faceinds.Get(j));
     }
   
   for (j = 1; j <= faceused.Size(); j++)
@@ -435,19 +437,19 @@ FindInnerBoxesRec2 (GradingBox * box,
       Point3d cf(father->xmid[0], father->xmid[1], father->xmid[2]);
       
       if (father->flags.isinner)
-	box->flags.pinner = 1;
+    box->flags.pinner = 1;
       else
-	{
-	  if (adfront->SameSide (c, cf, &faceused2))
-	    box->flags.pinner = father->flags.pinner;
-	  else
-	    box->flags.pinner = 1 - father->flags.pinner;
-	}
+    {
+      if (adfront->SameSide (c, cf, &faceused2))
+        box->flags.pinner = father->flags.pinner;
+      else
+        box->flags.pinner = 1 - father->flags.pinner;
+    }
       
       if (box->flags.cutboundary)
-	box->flags.isinner = 0;
+    box->flags.isinner = 0;
       else
-	box->flags.isinner = box->flags.pinner;
+    box->flags.isinner = box->flags.pinner;
     }
 
   int nf = faceused.Size();
@@ -466,82 +468,22 @@ FindInnerBoxesRec2 (GradingBox * box,
 
 
 
-/*
-void LocalH :: FindInnerBoxes ( // int (*sameside)(const Point3d & p1, const Point3d & p2),
-			       AdFront3 * adfront,
-			       int (*testinner)(const Point3d & p1))
-{
-  int i;
-  for (i = 1; i <= boxes.Size(); i++)
-    boxes.Elem(i)->flags.isinner = 0;
-
-  root->flags.isinner = 0;
-
-  Point3d rpmid(root->xmid[0], root->xmid[1], root->xmid[2]);
-  Point3d rx2 = rpmid + Vec3d (root->h2, root->h2, root->h2);
-
-  root->flags.pinner = !adfront->SameSide (rpmid, rx2);
-  
-  if (testinner)
-    (*testout) << "inner = " << root->flags.pinner << " =?= " 
-	       << testinner(Point3d(root->xmid[0], root->xmid[1], root->xmid[2])) << endl;
-  
-
-  for (i = 2; i <= boxes.Size(); i++)
-    {
-      GradingBox * box = boxes.Elem(i);
-      GradingBox * father = box -> father;
-
-      Point3d c(box->xmid[0], box->xmid[1], box->xmid[2]);
-      Vec3d v(box->h2, box->h2, box->h2);
-      Point3d x1 = c-v;
-      Point3d x2 = c+v;
-
-
-      if (!father->flags.cutboundary)
-	{
-	  box->flags.isinner = father->flags.isinner;
-	  box->flags.pinner = father->flags.pinner;
-	}
-      else
-	{
-	  Point3d cf(father->xmid[0], father->xmid[1], father->xmid[2]);
-
-	  if (father->flags.isinner)
-	    box->flags.pinner = 1;
-	  else
-	    {
-	      if (adfront->SameSide (c, cf))
-		box->flags.pinner = father->flags.pinner;
-	      else
-		box->flags.pinner = 1 - father->flags.pinner;
-	    }
-
-	  if (box->flags.cutboundary)
-	    box->flags.isinner = 0;
-	  else
-	    box->flags.isinner = box->flags.pinner;
-	}
-    }
-  //  FindInnerBoxesRec (inner, root);
-}
-*/
 
 
 void LocalH :: FindInnerBoxesRec ( int (*inner)(const Point3d & p),
-				   GradingBox * box)
+                   GradingBox * box)
 {
   int i;
   if (box->flags.cutboundary)
     {
       for (i = 0; i < 8; i++)
-	if (box->childs[i])
-	  FindInnerBoxesRec (inner, box->childs[i]);
+    if (box->childs[i])
+      FindInnerBoxesRec (inner, box->childs[i]);
     }
   else
     {
       if (inner (Point3d (box->xmid[0], box->xmid[1], box->xmid[2])))
-	SetInnerBoxesRec (box);
+    SetInnerBoxesRec (box);
     }
 }
 
@@ -576,14 +518,14 @@ void LocalH :: WidenRefinement ()
       double h = box->hopt;
       Point3d c(box->xmid[0], box->xmid[1], box->xmid[2]);
       //      (*testout) << " i = " << i 
-      //		 << " c = " << c << " h = " << h << endl;
+      //         << " c = " << c << " h = " << h << endl;
 
       for (int i1 = -1; i1 <= 1; i1++)
-	for (int i2 = -1; i2 <= 1; i2++)
-	  for (int i3 = -1; i3 <= 1; i3++)
-	    SetH (Point3d (c.X() + i1 * h, 
-			   c.Y() + i2 * h,
-			   c.Z() + i3 * h), 1.001 * h);     
+    for (int i2 = -1; i2 <= 1; i2++)
+      for (int i3 = -1; i3 <= 1; i3++)
+        SetH (Point3d (c.X() + i1 * h, 
+               c.Y() + i2 * h,
+               c.Z() + i3 * h), 1.001 * h);     
     }
 }
 
@@ -596,18 +538,18 @@ void LocalH :: GetInnerPoints (ARRAY<Point3d> & points)
       GradingBox * box = boxes.Get(i);
       /*
       if (box->flags.pinner)
-	points.Append (box->randomip);
+    points.Append (box->randomip);
       */
       //      if (box->flags.pinner)
       if (box->flags.isinner)
-	{
-	  Point3d c(box->xmid[0], box->xmid[1], box->xmid[2]);
-	  points.Append (c);
-	  /*
-	  cout << "add point " << c << "; h = " << box->hopt
-	       << "; max-min = " << (box->x2[0]-box->x1[0]) << endl;
-	  */
-	}
+    {
+      Point3d c(box->xmid[0], box->xmid[1], box->xmid[2]);
+      points.Append (c);
+      /*
+      cout << "add point " << c << "; h = " << box->hopt
+           << "; max-min = " << (box->x2[0]-box->x1[0]) << endl;
+      */
+    }
     }
 }
 
@@ -621,11 +563,11 @@ void LocalH :: GetOuterPoints (ARRAY<Point3d> & points)
     {
       GradingBox * box = boxes.Get(i);
       if (!box->flags.isinner &&
-	  !box->flags.cutboundary)
-	{
-	  Point3d c(box->xmid[0], box->xmid[1], box->xmid[2]);
-	  points.Append (c);
-	}
+      !box->flags.cutboundary)
+    {
+      Point3d c(box->xmid[0], box->xmid[1], box->xmid[2]);
+      points.Append (c);
+    }
     }
 }
 
@@ -653,14 +595,14 @@ void LocalH :: ConvexifyRec (GradingBox * box)
     {
       hp = center;
       switch (i)
-	{
-	case 1: hp.X() += dx; break;
-	case 2: hp.X() -= dx; break;
-	case 3: hp.Y() += dx; break;
-	case 4: hp.Y() -= dx; break;
-	case 5: hp.Z() += dx; break;
-	case 6: hp.Z() -= dx; break;
-	}
+    {
+    case 1: hp.X() += dx; break;
+    case 2: hp.X() -= dx; break;
+    case 3: hp.Y() += dx; break;
+    case 4: hp.Y() -= dx; break;
+    case 5: hp.Z() += dx; break;
+    case 6: hp.Z() -= dx; break;
+    }
       
       double hh = GetH (hp);
       if (hh > maxh) maxh = hh;
@@ -674,9 +616,9 @@ void LocalH :: ConvexifyRec (GradingBox * box)
       ConvexifyRec (box->childs[i]);  
 }
 
-void LocalH :: PrintMemInfo (ostream & ost) const
+void LocalH :: PrintMemInfo (std::ostream & ost) const
 {
   ost << "LocalH: " << boxes.Size() << " boxes of " << sizeof(GradingBox)
-      << " bytes = " << boxes.Size()*sizeof(GradingBox) << " bytes" << endl;
+      << " bytes = " << boxes.Size()*sizeof(GradingBox) << " bytes" << std::endl;
 }
 }

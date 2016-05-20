@@ -32,7 +32,7 @@ void Surface :: SetName (const char * aname)
 
 
 int Surface :: PointOnSurface (const Point<3> & p,
-			       double eps) const
+                   double eps) const
 {
   double val = CalcFunctionValue (p);
   return fabs (val) < eps;
@@ -55,9 +55,9 @@ void Surface :: CalcHesse (const Point<3> & point, Mat<3> & hesse) const
 
       CalcGradient (hp1, g1);
       CalcGradient (hp2, g2);
-      	
+          
       for (int j = 0; j < 3; j++)
-	hesse(i, j) = (g1(j) - g2(j)) / (2 * dx);
+    hesse(i, j) = (g1(j) - g2(j)) / (2 * dx);
     }
 }
   
@@ -77,7 +77,7 @@ Vec<3> Surface :: GetNormalVector (const Point<3> & p) const
 }
 
 void Surface :: DefineTangentialPlane (const Point<3> & ap1, 
-				       const Point<3> & ap2)
+                       const Point<3> & ap2)
 {
   p1 = ap1;
   p2 = ap2;
@@ -90,7 +90,7 @@ void Surface :: DefineTangentialPlane (const Point<3> & ap1,
 }
 
 void Surface :: ToPlane (const Point<3> & p3d, Point<2> & pplane, 
-			 double h, int & zone) const
+             double h, int & zone) const
 {
   Vec<3> p1p, n;
 
@@ -107,10 +107,10 @@ void Surface :: ToPlane (const Point<3> & p3d, Point<2> & pplane,
   pplane(0) = (p1p * ex) / h;
   pplane(1) = (p1p * ey) / h;
   zone = 0;
-}	
+}    
 
 void Surface :: FromPlane (const Point<2> & pplane, 
-			   Point<3> & p3d, double h) const 
+               Point<3> & p3d, double h) const 
 { 
   p3d = p1 
     + (h * pplane(0)) * ex 
@@ -128,7 +128,7 @@ void Surface :: Project (Point<3> & p) const
     {
       val = CalcFunctionValue (p);
       if (fabs (val) < 1e-12) return;
-	
+    
       CalcGradient (p, n);
       p -= (val / Abs2 (n)) * n;
     }
@@ -148,7 +148,7 @@ MaxCurvatureLoc (const Point<3> & /* c */ , double /* rad */) const
 
 
 double Surface :: LocH (const Point<3> & p, double x, 
-			double c, double hmax) const
+            double c, double hmax) const
   // finds h <= hmax, s.t.  h * \kappa_x*h < c
 {
   /*
@@ -213,7 +213,7 @@ void Primitive :: SetSurfaceId (int i, int id)
 
 
 void Primitive :: GetPrimitiveData (char *& classname, 
-				    ARRAY<double> & coeffs) const
+                    ARRAY<double> & coeffs) const
 {
   classname = "undef";
   coeffs.SetSize (0);
@@ -237,34 +237,33 @@ Primitive * Primitive :: CreatePrimitive (const char * classname)
   if (strcmp (classname, "brick") == 0)
     return Brick::CreateDefault();
 
-  cout << "cannot create primitive " << classname << endl;
+  std::cout << "cannot create primitive " << classname << std::endl;
   return NULL;
 }
 
 
 Primitive * Primitive :: Copy () const
 {
-  cout << "Primitive called for baseclass" << endl;
+  std::cout << "Primitive called for baseclass" << std::endl;
   return NULL;
 }
 
 
 void Primitive :: Transform (Transformation<3> & trans)
 {
-  cout << "transform called for baseclass" << endl;
+  std::cout << "transform called for baseclass" << std::endl;
 }
 
 
 INSOLID_TYPE Primitive :: 
 VecInSolid2 (const Point<3> & p,
-	     const Vec<3> & v1,
-	     const Vec<3> & v2,
-	     double eps) const
+         const Vec<3> & v1,
+         const Vec<3> & v2,
+         double eps) const
 {
   Point<3> hp = p + 1e-3 * v1 + 1e-5 * v2;
 
   INSOLID_TYPE res = PointInSolid (hp, eps);
-  //  (*testout) << "vectorin2, type = " << typeid(*this).name() << ", res = " << res << endl;
 
   return res;
 }
@@ -287,7 +286,7 @@ OneSurfacePrimitive :: ~OneSurfacePrimitive()
 
 INSOLID_TYPE OneSurfacePrimitive :: 
 PointInSolid (const Point<3> & p,
-	      double eps) const
+          double eps) const
 {
   double hv1 = (GetSurface(0).CalcFunctionValue(p));
   if (hv1 <= -eps)
@@ -299,7 +298,7 @@ PointInSolid (const Point<3> & p,
  
 INSOLID_TYPE OneSurfacePrimitive :: 
 VecInSolid (const Point<3> & p, const Vec<3> & v,
-	    double eps) const
+        double eps) const
 {
   Vec<3> hv;
   double hv1;
@@ -318,9 +317,9 @@ VecInSolid (const Point<3> & p, const Vec<3> & v,
 
 INSOLID_TYPE OneSurfacePrimitive :: 
 VecInSolid2 (const Point<3> & p,
-	     const Vec<3> & v1,
-	     const Vec<3> & v2,
-	     double eps) const
+         const Vec<3> & v1,
+         const Vec<3> & v2,
+         double eps) const
 {
   Vec<3> hv;
   double hv1, hv2;

@@ -77,8 +77,8 @@ namespace netgen
   void Meshing2 :: EndMesh ()
   {
     for (int i = 0; i < ruleused.Size(); i++)
-      (*testout) << setw(4) << ruleused[i]
-		 << " times used rule " << rules[i] -> Name() << endl;
+      (*testout) << std::setw(4) << ruleused[i]
+		 << " times used rule " << rules[i] -> Name() << std::endl;
   }
 
   void Meshing2 :: SetStartTime (double astarttime)
@@ -247,7 +247,7 @@ namespace netgen
     double totalarea = Area ();
     double meshedarea = 0;
 
-    cout << "searchtree..." << endl;
+    std::cout << "searchtree..." << std::endl;
     // search tree for surface elements:
     for (sei = 0; sei < mesh.GetNSE(); sei++)
       {
@@ -290,7 +290,7 @@ namespace netgen
 
     adfront ->SetStartFront ();
 
-    cout << "adfront..." << endl;
+    std::cout << "adfront..." << std::endl;
     int plotnexttrial = 999;
     //  starttime = GetTime();
     while (!adfront ->Empty()) //  && !multithread.terminate)
@@ -354,7 +354,8 @@ namespace netgen
 	   }
 	*/
 
-	baselineindex = adfront -> SelectBaseLine (p1, p2, blgeominfo1, blgeominfo2, qualclass);
+	baselineindex = adfront -> SelectBaseLine (p1, p2, blgeominfo1, 
+                                             blgeominfo2, qualclass);
 
 	found = 1;
 
@@ -403,7 +404,7 @@ namespace netgen
 	if (debugparam.haltface && debugparam.haltfacenr == facenr)
 	  {
 	    debugflag = 1;
-	    cout << "set debugflag" << endl;
+	    std::cout << "set debugflag" << std::endl;
 	  }
 	
 	if (debugparam.haltlargequalclass && qualclass > 50)
@@ -429,7 +430,7 @@ namespace netgen
 	    oldnl = loclines.Size();
 	  
 	    if (debugflag)
-	      (*testout) << "define new transformation" << endl;
+	      (*testout) << "define new transformation" << std::endl;
 
 	    DefineTransformation (p1, p2, blgeominfo1, blgeominfo2);
 	  
@@ -479,7 +480,7 @@ namespace netgen
 			    v = pout - pin;
 			    double len = v.Length();
 			    if (len <= 1e-6)
-			      (*testout) << "WARNING(js): inner-outer: short vector" << endl;
+			      (*testout) << "WARNING(js): inner-outer: short vector" << std::endl;
 			    else
 			      v /= len;
 			  
@@ -848,12 +849,12 @@ namespace netgen
 			    lam1 > 0 && lam2 > 0 && (lam1 + lam2) < 1)
 			  {
 #ifdef DEVELOP
-			    cout << "overlap" << endl;
-			    (*testout) << "overlap:" << endl
-				       << "tri = " << tp1 << "-" << tp2 << "-" << tp3 << endl
-				       << "point = " << p << endl
-				       << "lam1, 2 = " << lam1 << ", " << lam2 << endl
-				       << "lam3 = " << lam3 << endl;
+			    cout << "overlap" << std::endl;
+			    (*testout) << "overlap:" << std::endl
+				       << "tri = " << tp1 << "-" << tp2 << "-" << tp3 << std::endl
+				       << "point = " << p << std::endl
+				       << "lam1, 2 = " << lam1 << ", " << lam2 << std::endl
+				       << "lam3 = " << lam3 << std::endl;
 			  
 			    //		      cout << "overlap !!!" << endl;
 #endif
@@ -898,8 +899,8 @@ namespace netgen
 		    int exval = adfront->ExistsLine (nlgpi1, nlgpi2);
 		    if (exval)
 		      {
-			cout << "ERROR: new line exits, val = " << exval << endl;
-			(*testout) << "ERROR: new line exits, val = " << exval << endl;
+			std::cout << "ERROR: new line exits, val = " << exval << std::endl;
+			(*testout) << "ERROR: new line exits, val = " << exval << std::endl;
 			found = 0;
 
 
@@ -935,13 +936,13 @@ namespace netgen
 		if (pindex.Get(loclines.Get(i).I1()) == 0 || 
 		    pindex.Get(loclines.Get(i).I2()) == 0)
 		  {
-		    (*testout) << "pindex is 0" << endl;
+		    (*testout) << "pindex is 0" << std::endl;
 		  }
 
 		if (!upgeominfo.Get(loclines.Get(i).I1()).trignum || 
 		    !upgeominfo.Get(loclines.Get(i).I2()).trignum)
 		  {
-		    cout << "new el: illegal geominfo" << endl;
+		    std::cout << "new el: illegal geominfo" << std::endl;
 		  }
 
 		adfront -> AddLine (pindex.Get(loclines.Get(i).I1()),
@@ -1034,7 +1035,7 @@ namespace netgen
 		      {
 			illegalpoint[gpi] = 1;
 			//		      cout << "illegal point: " << gpi << endl;
-			(*testout) << "illegal point: " << gpi << endl;
+			(*testout) << "illegal point: " << gpi << std::endl;
 		      }
 
 		    static int mtonnode = 0;
@@ -1059,7 +1060,7 @@ namespace netgen
 
 	    if (morerisc)
 	      {
-		cout << "generated due to morerisc" << endl;
+		std::cout << "generated due to morerisc" << std::endl;
 		//	      multithread.drawing = 1;
 		//	      glrender(1);
 	      }
@@ -1069,16 +1070,16 @@ namespace netgen
 	  
 	    if ( debugparam.haltsuccess || debugflag )
 	      {
-		cout << "success of rule" << rules.Get(rulenr)->Name() << endl;
+		std::cout << "success of rule" << rules.Get(rulenr)->Name() << std::endl;
 		multithread.drawing = 1;
 		multithread.testmode = 1;
 		multithread.pause = 1;
 
 
-		(*testout) << "success of rule" << rules.Get(rulenr)->Name() << endl;
-		(*testout) << "trials = " << trials << endl;
+		(*testout) << "success of rule" << rules.Get(rulenr)->Name() << std::endl;
+		(*testout) << "trials = " << trials << std::endl;
 
-		(*testout) << "old number of lines = " << oldnl << endl;
+		(*testout) << "old number of lines = " << oldnl << std::endl;
 		for (i = 1; i <= loclines.Size(); i++)
 		  {
 		    (*testout) << "line ";
@@ -1096,7 +1097,7 @@ namespace netgen
 			       << plainpoints.Get(loclines.Get(i).I2()) << " 3d: "
 			       << locpoints.Get(loclines.Get(i).I1()) << " - "
 			       << locpoints.Get(loclines.Get(i).I2()) 
-			       << endl;
+			       << std::endl;
 		  }
 
 
@@ -1110,11 +1111,11 @@ namespace netgen
 
 	    if ( debugparam.haltnosuccess || debugflag )
 	      {
-		cout << "Problem with seg " << gpi1 << " - " << gpi2
-		     << ", class = " << qualclass << endl;
+		std::cout << "Problem with seg " << gpi1 << " - " << gpi2
+		     << ", class = " << qualclass << std::endl;
 
 		(*testout) << "Problem with seg " << gpi1 << " - " << gpi2
-			   << ", class = " << qualclass << endl;
+			   << ", class = " << qualclass << std::endl;
 
 		multithread.drawing = 1;
 		multithread.testmode = 1;

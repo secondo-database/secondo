@@ -52,7 +52,7 @@ public:
     : trignum(-1), u(0), v(0) { ; }
 };
 
-inline ostream & operator<< (ostream & ost, const PointGeomInfo & gi)
+inline std::ostream & operator<< (std::ostream & ost, const PointGeomInfo & gi)
 {
   return (ost << gi.trignum);
 }
@@ -93,7 +93,7 @@ public:
   }
 };
 
-inline ostream & operator<< (ostream & ost, const EdgePointGeomInfo & gi)
+inline std::ostream & operator<< (std::ostream & ost, const EdgePointGeomInfo & gi)
 {
   return (ost << gi.edgenr);
 }
@@ -122,12 +122,12 @@ public:
 #endif  
 };
 
-inline istream & operator>> (istream & ist, PointIndex & pi)
+inline std::istream & operator>> (std::istream & ist, PointIndex & pi)
 {
   int i; ist >> i; pi = i; return ist;
 }
 
-inline ostream & operator<< (ostream & ost, const PointIndex & pi)
+inline std::ostream & operator<< (std::ostream & ost, const PointIndex & pi)
 {
   return (ost << pi.GetInt());
 }
@@ -148,12 +148,12 @@ public:
   ElementIndex & operator-- (int) { i--; return *this; }
 };
 
-inline istream & operator>> (istream & ist, ElementIndex & pi)
+inline std::istream & operator>> (std::istream & ist, ElementIndex & pi)
 {
   int i; ist >> i; pi = i; return ist;
 }
 
-inline ostream & operator<< (ostream & ost, const ElementIndex & pi)
+inline std::ostream & operator<< (std::ostream & ost, const ElementIndex & pi)
 {
   return (ost << int(pi));
 }
@@ -173,12 +173,12 @@ public:
   SurfaceElementIndex & operator-- (int) { i--; return *this; }
 };
 
-inline istream & operator>> (istream & ist, SurfaceElementIndex & pi)
+inline std::istream & operator>> (std::istream & ist, SurfaceElementIndex & pi)
 {
   int i; ist >> i; pi = i; return ist;
 }
 
-inline ostream & operator<< (ostream & ost, const SurfaceElementIndex & pi)
+inline std::ostream & operator<< (std::ostream & ost, const SurfaceElementIndex & pi)
 {
   return (ost << int(pi));
 }
@@ -197,12 +197,12 @@ public:
   SegmentIndex & operator-- (int) { i--; return *this; }
 };
 
-inline istream & operator>> (istream & ist, SegmentIndex & pi)
+inline std::istream & operator>> (std::istream & ist, SegmentIndex & pi)
 {
   int i; ist >> i; pi = i; return ist;
 }
 
-inline ostream & operator<< (ostream & ost, const SegmentIndex & pi)
+inline std::ostream & operator<< (std::ostream & ost, const SegmentIndex & pi)
 {
   return (ost << int(pi));
 }
@@ -243,7 +243,7 @@ typedef ARRAY<MeshPoint,PointIndex::BASE> T_POINTS;
 
 
 class Element2d;
-ostream & operator<<(ostream  & s, const Element2d & el);
+std::ostream & operator<<(std::ostream  & s, const Element2d & el);
 
 /**
   Triangle element for surface mesh generation.
@@ -362,7 +362,7 @@ public:
 
   bool BadElement() const { return badel; }
 
-  friend ostream & operator<<(ostream  & s, const Element2d & el);
+  friend std::ostream & operator<<(std::ostream  & s, const Element2d & el);
   friend class Mesh;
 
 
@@ -430,7 +430,7 @@ public:
 
 
 class Element;
-ostream & operator<<(ostream  & s, const Element & el);
+std::ostream & operator<<(std::ostream  & s, const Element & el);
 
 
 
@@ -536,7 +536,7 @@ public:
   /// Calculates Volume of elemenet
   double Volume (const T_POINTS & points) const;
   ///
-  virtual void Print (ostream & ost) const;
+  virtual void Print (std::ostream & ost) const;
   ///
   int GetNFaces () const
     {
@@ -599,7 +599,7 @@ public:
 				      int pi, Vec3d & dir, double & dd) const;
 
   ///
-  friend ostream & operator<<(ostream  & s, const Element & el);
+  friend std::ostream & operator<<(std::ostream  & s, const Element & el);
 
   void SetRefinementFlag (bool rflag = 1) 
   { flags.refflag = rflag; }
@@ -640,7 +640,7 @@ public:
 
 
 class Segment;
-ostream & operator<<(ostream  & s, const Segment & seg);
+std::ostream & operator<<(std::ostream  & s, const Segment & seg);
 
 
 /**
@@ -652,7 +652,7 @@ public:
   ///
   Segment();
 
-  friend ostream & operator<<(ostream  & s, const Segment & seg);
+  friend std::ostream & operator<<(std::ostream  & s, const Segment & seg);
 
   /// point index 1
   PointIndex p1;
@@ -703,7 +703,7 @@ public:
 
 // class Surface;  
 class FaceDescriptor;
-ostream & operator<< (ostream  & s, const FaceDescriptor & fd);
+std::ostream & operator<< (std::ostream  & s, const FaceDescriptor & fd);
 
 ///
 class FaceDescriptor
@@ -736,7 +736,7 @@ public:
   void SetDomainOut (int dom) { domout = dom; }
   void SetBCProperty (int bc) { bcprop = bc; }
 
-  friend ostream & operator<<(ostream  & s, const FaceDescriptor & fd);
+  friend std::ostream & operator<<(std::ostream  & s, const FaceDescriptor & fd);
 
 
   ///
@@ -846,7 +846,7 @@ public:
   ///
   MeshingParameters ();
   ///
-  void Print (ostream & ost) const;
+  void Print (std::ostream & ost) const;
 
   void CopyFrom(const MeshingParameters & other);
 };

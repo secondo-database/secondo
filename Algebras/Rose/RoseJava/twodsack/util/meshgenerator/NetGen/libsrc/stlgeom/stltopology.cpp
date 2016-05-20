@@ -27,7 +27,7 @@ STLTopology :: ~STLTopology()
 
 
 
-STLGeometry *  STLTopology :: LoadBinary (istream & ist)
+STLGeometry *  STLTopology :: LoadBinary (std::istream & ist)
 {
   STLGeometry * geom = new STLGeometry();
   ARRAY<STLReadTriangle> readtrigs;
@@ -89,7 +89,7 @@ STLGeometry *  STLTopology :: LoadBinary (istream & ist)
 
 void STLTopology :: SaveBinary (const char* filename, const char* aname)
 {
-  ofstream ost(filename);
+  std::ofstream ost(filename);
   PrintFnStart("Write STL binary file '",filename,"'");
 
   if (sizeof(int) != 4 || sizeof(float) != 4) 
@@ -148,17 +148,17 @@ void STLTopology :: SaveBinary (const char* filename, const char* aname)
 
 void STLTopology :: SaveSTLE (const char* filename)
 {
-  ofstream outf (filename);
+  std::ofstream outf (filename);
   int i, j;
   
-  outf << GetNT() << endl;
+  outf << GetNT() << std::endl;
   for (i = 1; i <= GetNT(); i++)
     {
       const STLTriangle & t = GetTriangle(i);
       for (j = 1; j <= 3; j++)
 	{
 	  const Point3d p = GetPoint(t.PNum(j));
-	  outf << p.X() << " " << p.Y() << " " << p.Z() << endl;
+	  outf << p.X() << " " << p.Y() << " " << p.Z() << std::endl;
 	}
     }
 
@@ -170,7 +170,7 @@ void STLTopology :: SaveSTLE (const char* filename)
 	ned++;
     }
   
-  outf << ned << endl;
+  outf << ned << std::endl;
 
   for (i = 1; i <= GetNTE(); i++)
     {
@@ -179,14 +179,14 @@ void STLTopology :: SaveSTLE (const char* filename)
 	for (j = 1; j <= 2; j++)
 	  {
 	    const Point3d p = GetPoint(edge.PNum(j));
-	    outf << p.X() << " " << p.Y() << " " << p.Z() << endl;
+	    outf << p.X() << " " << p.Y() << " " << p.Z() << std::endl;
 	  }
     }      
 }
 
 
 
-STLGeometry *  STLTopology :: LoadNaomi (istream & ist)
+STLGeometry *  STLTopology :: LoadNaomi (std::istream & ist)
 {
   int i;
   STLGeometry * geom = new STLGeometry();
@@ -267,7 +267,7 @@ void STLTopology :: Save (const char* filename)
 { 
   PrintFnStart("Write stl-file '",filename, "'");
 
-  ofstream fout(filename);
+  std::ofstream fout(filename);
   fout << "solid\n";
 
   char buf1[50];
@@ -307,9 +307,9 @@ void STLTopology :: Save (const char* filename)
 
   
   // write also NETGEN surface mesh:
-  ofstream fout2("geom.surf");
-  fout2 << "surfacemesh" << endl;
-  fout2 << GetNP() << endl;
+  std::ofstream fout2("geom.surf");
+  fout2 << "surfacemesh" << std::endl;
+  fout2 << GetNP() << std::endl;
   for (i = 1; i <= GetNP(); i++)
     {
       for (j = 0; j < 3; j++)
@@ -318,10 +318,10 @@ void STLTopology :: Save (const char* filename)
 	  fout2 << GetPoint(i)(j);
 	}
 
-      fout2 << endl;
+      fout2 << std::endl;
     }
 
-  fout2 << GetNT() << endl;
+  fout2 << GetNT() << std::endl;
   for (i = 1; i <= GetNT(); i++)
     {
       const STLTriangle & t = GetTriangle(i);  
@@ -330,12 +330,12 @@ void STLTopology :: Save (const char* filename)
 	  fout2.width(8);
 	  fout2 << t.PNum(j);
 	}
-      fout2 << endl;
+      fout2 << std::endl;
     }
 }
 
 
-STLGeometry *  STLTopology ::Load (istream & ist)
+STLGeometry *  STLTopology ::Load (std::istream & ist)
 {
   int i;
   STLGeometry * geom = new STLGeometry();
