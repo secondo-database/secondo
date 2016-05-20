@@ -919,10 +919,10 @@ DFMatrix* DFMatrix::readFrom(ListExpr list){
 
 // template instantiaons
 
-template bool DArrayBase::open<DArray>(SmiRecord&, unsigned long&, 
-                                       unsigned long, Word&);
-template bool DArrayBase::open<DFArray>(SmiRecord&, unsigned long&, 
-                                        unsigned long, Word&);
+template bool DArrayBase::open<DArray>(SmiRecord&, size_t&, 
+                                       const ListExpr, Word&);
+template bool DArrayBase::open<DFArray>(SmiRecord&, size_t&, 
+                                       const ListExpr, Word&);
 
 template DArray* DArrayBase::readFrom<DArray>(ListExpr);
 template DFArray* DArrayBase::readFrom<DFArray>(ListExpr);
