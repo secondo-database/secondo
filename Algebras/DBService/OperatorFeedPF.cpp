@@ -26,28 +26,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceAlgebra.hpp"
-#include "Algebra.h"
 #include "OperatorFeedPF.hpp"
-#include "OperatorLetDConsume.hpp"
 
 namespace DBService
 {
 
-DBServiceAlgebra::DBServiceAlgebra()
-: Algebra()
+OperatorFeedPF::OperatorFeedPF()
 {
-	AddOperator(OperatorFeedPF(),
-	            OperatorFeedPF::mapValue(),
-	            OperatorFeedPF::mapType());
-	AddOperator(OperatorLetDConsume(),
-	            OperatorLetDConsume::mapValue(),
-	            OperatorLetDConsume::mapType());
+    // TODO Auto-generated constructor stub
+
 }
 
-DBServiceAlgebra::~DBServiceAlgebra()
+OperatorFeedPF::~OperatorFeedPF()
 {
-	// TODO Auto-generated destructor stub
+    // TODO Auto-generated destructor stub
+}
+
+TypeMapping OperatorFeedPF::mapType(ListExpr args)
+{
+    return 0;
+}
+
+ListExpr OperatorFeedPF::selectFunction()
+{
+    return 0;
+}
+
+ValueMapping OperatorFeedPF::mapValue()
+{
+    return 0;
 }
 
 } /* namespace DBService */

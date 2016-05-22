@@ -26,28 +26,33 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceAlgebra.hpp"
-#include "Algebra.h"
-#include "OperatorFeedPF.hpp"
-#include "OperatorLetDConsume.hpp"
+#ifndef ALGEBRAS_DBSERVICE_OPERATORFEEDPF_HPP_
+#define ALGEBRAS_DBSERVICE_OPERATORFEEDPF_HPP_
 
 namespace DBService
 {
 
-DBServiceAlgebra::DBServiceAlgebra()
-: Algebra()
+struct FeedPFInfo: OperatorInfo
 {
-	AddOperator(OperatorFeedPF(),
-	            OperatorFeedPF::mapValue(),
-	            OperatorFeedPF::mapType());
-	AddOperator(OperatorLetDConsume(),
-	            OperatorLetDConsume::mapValue(),
-	            OperatorLetDConsume::mapType());
-}
+    FeedPFInfo()
+    {
+        name = "feedpf";
+        signature = ""; // TODO
+        syntax = ""; // TODO
+        meaning = "feed project filter";
+    }
+};
 
-DBServiceAlgebra::~DBServiceAlgebra()
+class OperatorFeedPF
 {
-	// TODO Auto-generated destructor stub
-}
+public:
+    OperatorFeedPF();
+    virtual ~OperatorFeedPF();
+    static TypeMapping mapType(); // TODO return value and signature
+    static ListExpr selectFunction(); // TODO return value and signature
+    static ValueMapping mapValue(); // TODO return value and signature
+};
 
 } /* namespace DBService */
+
+#endif /* ALGEBRAS_DBSERVICE_OPERATORFEEDPF_HPP_ */

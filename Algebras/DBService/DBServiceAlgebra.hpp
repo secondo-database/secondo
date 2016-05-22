@@ -29,6 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_DBSERVICEALGEBRA_HPP_
 #define ALGEBRAS_DBSERVICE_DBSERVICEALGEBRA_HPP_
 
+extern NestedList* nl;
+extern QueryProcessor* qp;
+
 namespace DBService
 {
 
@@ -40,5 +43,12 @@ public:
 };
 
 } /* namespace DBService */
+
+extern "C"
+Algebra*
+InitializeDBServiceAlgebra(NestedList* nlRef, QueryProcessor* qpRef)
+{
+	return new DBService::DBServiceAlgebra;
+}
 
 #endif /* ALGEBRAS_DBSERVICE_DBSERVICEALGEBRA_HPP_ */
