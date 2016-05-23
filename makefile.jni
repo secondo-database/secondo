@@ -23,7 +23,7 @@ JNITool_O_FILE = $(SECONDO_BUILD_DIR)/Tools/Jni/JNITool.o
 JNILIBFILES = $(JVMINIT_O_FILE) $(JNITool_O_FILE)
 
 
-LDFLAGS += $(JNILIBFILES)
+JNILDFLAGS += $(JNILIBFILES)
 
 ifeq ($(platform),win32)
 
