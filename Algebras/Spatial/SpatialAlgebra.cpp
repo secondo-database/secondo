@@ -101,6 +101,8 @@ For more detailed information see SpatialAlgebra.h.
 #include "Disc.h"
 #include "Stack.h"
 
+#include "GeoDist.h"
+
 using namespace std;
 
 extern NestedList* nl;
@@ -4675,6 +4677,9 @@ double HalfSegment::Distance( const Point& p,
     return result;
   }
 
+  return geodist::getDist(*this, p, geoid);
+
+  /*
   // else: spherical geometry
   bool ok = true;
   double d13 = p.DistanceOrthodrome(GetLeftPoint(),*geoid,ok);
@@ -4690,6 +4695,7 @@ double HalfSegment::Distance( const Point& p,
     return res;
   } // else: error
   return -666.666;
+  */
 }
 
 double HalfSegment::Distance( const HalfSegment& hs,
