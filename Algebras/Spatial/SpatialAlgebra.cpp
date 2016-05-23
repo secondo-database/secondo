@@ -26436,6 +26436,7 @@ bool distWithin(A1* a1, A2* a2, double dist, Geoid* geoid){
 template<class A1, class A2, class D, bool swap>
 int distanceWithinVMT(Word* args, Word& result, int message, 
                     Word& local,Supplier s){
+
    result = qp->ResultStorage(s);
    CcBool* res = (CcBool*) result.addr;
    A1* a1 = 0;
@@ -26474,9 +26475,37 @@ int distanceWithinVMT(Word* args, Word& result, int message,
    return 0;
 }
 
+// overloaded for point
+template<class D>
+int distanceWithinVMT(Word* args, Word& result, int message, 
+                    Word& local,Supplier s){
+
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   Point* a1 = (Point*) args[0].addr;
+   Point* a2 = (Point*) args[1].addr;;
+   D*  d = (D*) args[2].addr;
+   Geoid* geoid = qp->GetNoSons(s)==4?(Geoid*)args[3].addr:0;
+   if(!a1->IsDefined() || !a2->IsDefined() || !d->IsDefined()
+      || (geoid && !geoid->IsDefined())){
+     res->SetDefined(0);
+   }
+   double dist = d->GetValue();
+   if(dist<0){
+     res->Set(true,false);
+     return 0;
+   }
+   double bd = a1->Distance(*a2, geoid);
+   res->Set(true, bd<= dist);
+   return 0;
+}
+
+
+
+
 ValueMapping distanceWithinVM[] = {
-   distanceWithinVMT<Point,Point, CcInt, false>,
-   distanceWithinVMT<Point,Point, CcReal, false>,
+   distanceWithinVMT<CcInt>,
+   distanceWithinVMT<CcReal>,
    distanceWithinVMT<Line,Point, CcInt, false>,
    distanceWithinVMT<Line,Point, CcReal, false>,
    distanceWithinVMT<Line,Point, CcInt, true>,
