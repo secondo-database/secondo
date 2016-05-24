@@ -244,7 +244,7 @@ class Tools {
   }
   
   static bool relationHolds(const temporalalgebra::Range<CcReal>& range, 
-                           const std::set<int>& intSet,
+                            const std::set<int>& intSet,
                             const SetRel rel) {
     std::set<int>::iterator it;
     switch (rel) {
@@ -288,8 +288,7 @@ class Tools {
   }
   
   static bool relationHolds(const temporalalgebra::MPoint &mp, 
-                            const Region &reg, 
-                            const SetRel rel) {
+                            const Region &reg, const SetRel rel) {
     switch (rel) {
       case STANDARD: {
         if (reg.Distance(mp.BoundingBoxSpatial()) == 0.0) {
@@ -324,8 +323,7 @@ class Tools {
   }
   
     static bool relationHolds(const temporalalgebra::MRegion &mreg, 
-                             const Region &reg, 
-                              const SetRel rel) {
+                             const Region &reg, const SetRel rel) {
     // TODO: a lot. use MRegion2 ?
     Rectangle<3> bb3 = mreg.BoundingBox();
     Rectangle<2> bbox(true, bb3.MinD(0), bb3.MaxD(0), bb3.MinD(1), bb3.MaxD(1));

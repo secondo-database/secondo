@@ -1221,6 +1221,7 @@ int the_unitSymbolicVM(Word* args, Word& result,
     res->SetDefined(false); // illegal interval setting
     return 0;
   }
+  res->SetDefined(true);
   if (*i1 < *i2) { // sorted instants
     Interval<Instant> iv(*i1, *i2, clb, crb);
     res->timeInterval = iv;
@@ -1244,6 +1245,7 @@ int the_unitIvSymbolicVM(Word* args, Word& result,
     res->SetDefined(false);
     return 0;
   }
+  res->SetDefined(true);
   res->timeInterval = *iv;
   res->constValue = *value;
   return 0;
