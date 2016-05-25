@@ -1245,7 +1245,13 @@ even if the file is located outside the requestFile directory.
              tt->DeleteIfAllowed();
              result.addr = resultrel;
              return result;
-          } 
+          }
+
+
+       ostream& print(ostream& o) const{
+         o << host << ", " << port << ", " << config;
+         return o;
+       } 
 
   private:
     string host;
@@ -1286,6 +1292,12 @@ even if the file is located outside the requestFile directory.
     }
 
 };
+
+
+ostream& operator<<(ostream& o, const ConnectionInfo& sc){
+    return sc.print(o);
+}
+
 
 
 /*
@@ -13585,7 +13597,8 @@ a specified array type.
         if(!cs || !ct){
            return false;
         }
-        return cs->getSecondoHome() != ct->getSecondoHome();
+        bool res =  cs->getSecondoHome() != ct->getSecondoHome();
+        return res;
      }
 
 
@@ -13623,13 +13636,24 @@ the result for their slot.
         }
 
         vector<dmapXRunner*> runners;
+
+      // temporarly sequentiell for easy debugging ---   
+      // correct ist again                         /////////
+
         for(size_t i=0; i<minSlots; i++){
+            cout << "process slot " << i 
+ << "----------------------------------------------------------" << endl;
             dmapXRunner* runner = new dmapXRunner(i, this);
             runners.push_back(runner); 
+            delete runners[i];
+            runners[i] = 0;
+            cout << "slot " << i 
+<< " processed ------------------------------------------------" << endl;
+            
         }
-        for(size_t i=0; i<minSlots; i++){
-          delete runners[i]; 
-        }
+       // for(size_t i=0; i<minSlots; i++){
+       //   delete runners[i]; 
+       // }
         return true; 
      }
 
@@ -13816,21 +13840,35 @@ funargs.
           double rt;
           bool formerObject;
 
+
           if(info->transferRequired(elem0,elemi, ai->getType())){
 
-         // 1 create temporal file on remote server if required, (not a dfarray)
+            // 1 create temporal file on remote server 
+            //if required, (not a dfarray)
+             string fileNameOnI1;
              string fileNameOnI;
              if(ai->getType() != DFARRAY){
-             // usual darray, we have to store the object into a temporal file
-                fileNameOnI =  "darrays/TMP_"
+               // usual darray, we have to store the object into a temporal file
+                fileNameOnI1 =  "darrays/TMP_"
                                + info->dbname+ "_"
                                + stringutils::int2str(slot) + "_"
                                + stringutils::int2str(WinUnix::getpid()) +"_"
                                + stringutils::int2str(ci->serverPid()) + "_"
                                + ".bobj";
-                 fileNameOnI = ci->getSecondoHome()+"/"+fileNameOnI;
+                 string odir = ci->getSecondoHome() + "/dfarrays/" 
+                               + info->dbname+"/";
+                 string cmd = "query createDirectory('" + odir+"', TRUE)";
+                 ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
+                 if(errorCode){
+                    cerr << "command " << cmd << "failed with code : " 
+                         << errorCode << endl;
+                    cerr << errMsg;
+                    return false;
+                 } 
+                 
+                 fileNameOnI = odir + fileNameOnI1;
                  string oname = ai->getObjectNameForSlot(slot);
-                 string cmd = "query " + oname + " saveObjectToFile['" 
+                 cmd = "query " + oname + " saveObjectToFile['" 
                               + fileNameOnI+ "']";
               
                  ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
@@ -13850,10 +13888,11 @@ funargs.
              }
 
              // 1.2 transfer file from i to 0
+             string fileNameOn0 = c0->getSecondoHome()+"/"+fileNameOnI1; 
              string cmd =    "query getFileTCP('" + fileNameOnI + "', '" 
                             + ci->getHost() 
                             + "', " + stringutils::int2str(info->port) 
-                            + ", TRUE, '" + fileNameOnI +"')";
+                            + ", TRUE, '" + fileNameOn0 +"')";
               c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
               if(errorCode){
                  cerr << "command " << cmd << "failed with code : " 
@@ -13880,17 +13919,17 @@ funargs.
              if(formerObject){
                 string oname = a0->getObjectNameForSlot(slot);
                 string end = info->isRelation[arrayNumber]?"consume":"";
-                string cmd = "let " + oname + " =  '"+fileNameOnI
+                string cmd = "let " + oname + " =  '"+fileNameOn0
                               +"' getObjectFromFile " + end;
                 c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
                 if(errorCode){
                     cerr << "command " << cmd << "failed with code : " 
                          << errorCode << endl;
                     cerr << errMsg;
-                    return false;
+                   // return false; //ignore, may be object already there
                  }
                  // remove temp file 
-                 cmd = "query removeFile('" + fileNameOnI+ "')";
+                 cmd = "query removeFile('" + fileNameOn0+ "')";
                  c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
                  if(errorCode){
                     cerr << "command " << cmd << "failed with code : " 
@@ -13902,7 +13941,7 @@ funargs.
                  funargs.push_back(oname);
                  return true;
              }  else {
-                string fname = fileNameOnI;
+                string fname = fileNameOn0;
                 string type ="(frel " + nl->ToString(nl->Second(
                               nl->Second(info->argTypes[arrayNumber]))) + ")";
                 string fa = "("+ type + "  '"+fname+"')"; 
@@ -13910,7 +13949,7 @@ funargs.
                 sourceNames.push_back(pair<bool,string>(true,fname)); 
                 return true;
              }
-          } else {
+          } else { // file or object already on the server
               // create entries in funargs and sourceNames
               if(ai->getType()==DARRAY){
                 string oname = ai->getObjectNameForSlot(slot);
@@ -13936,12 +13975,21 @@ Creates the command for computing the result for this slot.
 
 */
        string createCommand(ConnectionInfo* ci){
+
+          cout << "create Command for " << (*ci) << endl;
+          cout << "size fo funargs = " << funargs.size() << endl;
+
+
           string funText = info->funText;
           string funCall = "( " + funText;
           for(size_t i=0;i<funargs.size(); i++){
             funCall = funCall + " " + funargs[i];
           }
           funCall += " )";
+
+
+
+
           arrayType resType = info->res->getType();
           if(resType == DARRAY){
               // command creates an object (let)
@@ -15657,6 +15705,12 @@ class fileCopy{
          errMsg = "local file already exists";
          return false;
       }
+      // create directory if not exist
+      string pf = FileSystem::GetParentFolder(local);
+      if(!FileSystem::CreateFolderEx(pf)){
+         cerr <<  "could not create directory "  << pf;
+      }
+
       ofstream out(local.c_str(), ios::binary|ios::trunc);
       if(!out.good()){
          errMsg = "could not create local file";
