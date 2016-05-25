@@ -1199,7 +1199,7 @@ Checks whether the time interval ~uIv~ is completely enclosed by each of the
 intervals specified in ~ivs~. If ~ivs~ is empty, the result is ~true~.
 
 */
-bool Tools::timesMatch(const Interval<DateTime>& iv, const set<string>& ivs) {
+bool Tools::timesMatch(const Interval<Instant>& iv, const set<string>& ivs) {
   if (ivs.empty()) {
     return true;
   }

@@ -149,7 +149,7 @@ class Tools {
   static void queryRtree2(RTree2TLLI *rtree, Rectangle<2> &box,
                           std::vector<std::set<int> > &result);
   static bool timesMatch(
-                   const temporalalgebra::Interval<datetime::DateTime>& iv, 
+                   const temporalalgebra::Interval<Instant>& iv, 
                    const std::set<std::string>& ivs);
   static std::pair<QueryProcessor*, OpTree> processQueryStr(
                            std::string query, int type);

@@ -2667,24 +2667,31 @@ bool TMatchIndexLI::getResultForAtomTime(const int atomNo,
   temp2.resize(rel->GetNoTuples() + 1);
   set<int> tmp;
   bool first = true;
+  bool indexApplied = false;
   for (set<string>::iterator it = ivs.begin(); it != ivs.end(); it++) {
     Tools::stringToInterval(*it, ivInst);
     start.Set(true, ivInst.start.ToDouble());
     end.Set(true, ivInst.end.ToDouble());
-    Interval<CcReal> iv(start, end, true, false);
-    if (first) {
-      Tools::queryRtree1(ti->timeIndex, iv, temp1);
-      first = false;
-    }
-    else {
-      Tools::queryRtree1(ti->timeIndex, iv, temp2);
-      for (int i = 1; i <= rel->GetNoTuples(); i++) {
-        std::set_intersection(temp1[i].begin(), temp1[i].end(),
-             temp2[i].begin(), temp2[i].end(), std::inserter(tmp, tmp.begin()));
-        temp1[i] = tmp;
-        tmp.clear();
+    if (!(start == end) || start.GetValue() != 0.0) {
+      Interval<CcReal> iv(start, end, true, false);
+      if (first) {
+        Tools::queryRtree1(ti->timeIndex, iv, temp1);
+        first = false;
       }
+      else {
+        Tools::queryRtree1(ti->timeIndex, iv, temp2);
+        for (int i = 1; i <= rel->GetNoTuples(); i++) {
+          std::set_intersection(temp1[i].begin(), temp1[i].end(),
+             temp2[i].begin(), temp2[i].end(), std::inserter(tmp, tmp.begin()));
+          temp1[i] = tmp;
+          tmp.clear();
+        }
+      }
+      indexApplied = true;
     }
+  }
+  if (!indexApplied) {
+    return false;
   }
   for (int i = 1; i <= rel->GetNoTuples(); i++) {
     if (!temp1[i].empty()) {
@@ -2875,13 +2882,13 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
 //   cout << "atomMatch(" << state << ", " << trans.first << ", " 
 //        << trans.second << ") called" << endl;
   PatElem atom;
+  p->getElem(trans.first, atom);
   set<string> ivs;
   atom.getI(ivs);
   SecInterval iv;
   vector<TupleId> toRemove;
   p->getElem(trans.first, atom);
   bool transition = false;
-//   int oldEnd = -1;
   IndexMatchInfo *imiPtr = 0;
   if (atom.isRelevantForTupleIndex()) {
     if (indexResult[trans.first] == 0) {
@@ -2915,6 +2922,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
               matchRecord[trans.first][id] = new DoubleUnitSet();
             }
             if (matchRec == UNDEF) {
+              getInterval(id, *it, iv);
               match = tmatch.valuesMatch(*it, trans.first) &&
                       Tools::timesMatch(iv, ivs) &&
                       tmatch.easyCondsMatch(*it, trans.first);
@@ -3012,6 +3020,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                 matchRecord[trans.first][id] = new DoubleUnitSet();
               }
               if (matchRec == UNDEF) {
+                getInterval(id, imiPtr->next, iv);
                 match = tmatch.valuesMatch(imiPtr->next, trans.first) &&
                         Tools::timesMatch(iv, ivs) &&
                         tmatch.easyCondsMatch(imiPtr->next, trans.first);
@@ -3067,6 +3076,7 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                   matchRecord[trans.first][id] = new DoubleUnitSet();
                 }
                 if (matchRec == UNDEF) {
+                  getInterval(id, imiPtr->next, iv);
                   match = tmatch.valuesMatch(imiPtr->next, trans.first) &&
                           Tools::timesMatch(iv, ivs) &&
                           tmatch.easyCondsMatch(imiPtr->next, trans.first);
