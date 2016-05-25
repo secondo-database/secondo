@@ -13850,7 +13850,7 @@ funargs.
              if(ai->getType() != DFARRAY){
                // usual darray, we have to store the object into a temporal file
                 fileNameOnI1 =  "darrays/TMP_"
-                               + info->dbname+ "_"
+                               + info->dbname+ "_" + ai->getName() +"_"
                                + stringutils::int2str(slot) + "_"
                                + stringutils::int2str(WinUnix::getpid()) +"_"
                                + stringutils::int2str(ci->serverPid()) + "_"
@@ -13923,12 +13923,14 @@ funargs.
                               +"' getObjectFromFile " + end;
                 c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
                 if(errorCode){
+                    cerr << "on server " << (*c0) << endl;
                     cerr << "command " << cmd << "failed with code : " 
                          << errorCode << endl;
                     cerr << errMsg;
                    // return false; //ignore, may be object already there
                  }
                  // remove temp file 
+                 /*
                  cmd = "query removeFile('" + fileNameOn0+ "')";
                  c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
                  if(errorCode){
@@ -13937,6 +13939,7 @@ funargs.
                     cerr << errMsg;
                     return false;
                  } 
+                 */
                  sourceNames.push_back(pair<bool,string>(true,oname));
                  funargs.push_back(oname);
                  return true;
@@ -15721,6 +15724,8 @@ class fileCopy{
                               Socket::SockGlobalDomain, 3, 1);
 
       if(!socket){
+           out.close();
+           
            errMsg = "could not connect";
            return false;
       }
@@ -18246,6 +18251,11 @@ int saveObjectToFileVMT(Word* args, Word& result, int message,
    res->set(n);
    ListExpr st = qp->GetType(qp->GetSon(s,0));
 
+   // create target directory
+   string dir = FileSystem::GetParentFolder(n);
+   FileSystem::CreateFolderEx(dir);
+
+
    if(Stream<Tuple>::checkType(st)){
      ofstream out(n.c_str(),ios::out|ios::binary);
      if(!out){
@@ -18382,6 +18392,9 @@ ListExpr getObjectFromFileTM(ListExpr args){
     return listutils::typeError("only constant expressions are allowed");
   }
   string fn = at==StringType?nl->StringValue(a1v):nl->Text2String(a1v);
+  if(!FileSystem::FileOrFolderExists(fn)){
+    return listutils::typeError("file " + fn + " does not exist");
+  }
   ListExpr r = getFileType(fn);
   if(nl->IsEmpty(r)){
     return listutils::typeError("file " + fn + " has an unknown format");
