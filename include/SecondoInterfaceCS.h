@@ -200,6 +200,8 @@ public:
    virtual int getPid();
    virtual bool cancelQuery(int pid);
 
+   std::string getHost() const;
+
   private:
      int  maxAttempts; // maximum number of attemps when connecting
      int  timeout; // timeout in second per connection attemp 

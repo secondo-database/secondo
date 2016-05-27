@@ -247,6 +247,10 @@ SecondoInterfaceCS::Terminate()
 }
 
 
+std::string SecondoInterfaceCS::getHost() const{
+  return server?server->GetSocketAddress():"unknown";
+}
+
 
 
 /**************************************************************************
