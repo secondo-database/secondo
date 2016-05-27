@@ -13961,11 +13961,6 @@ Creates the command for computing the result for this slot.
 
 */
        string createCommand(ConnectionInfo* ci){
-
-          cout << "create Command for " << (*ci) << endl;
-          cout << "size fo funargs = " << funargs.size() << endl;
-
-
           string funText = info->funText;
           string funCall = "( " + funText;
           for(size_t i=0;i<funargs.size(); i++){
@@ -18323,7 +18318,12 @@ Operator saveObjectToFileOp(
 
 */
 
-ListExpr getFileType(const string& fn){
+ListExpr getFileType(const string& fn, string& errorMsg){
+  if(!FileSystem::FileOrFolderExists(fn)){
+     errorMsg = "file " + fn + " does not exist";
+     return nl->TheEmptyList();
+  }
+
   // first try: a relation
   ffeed5Info info(fn);
   if(info.isOK()){
@@ -18342,6 +18342,7 @@ ListExpr getFileType(const string& fn){
   }
   nl->ReadBinaryFrom(in, r);
   if(!nl->HasLength(r,2)){
+     errorMsg = "file " + fn + " has an unknown format";
      return nl->TheEmptyList();
   }
   return nl->First(r);
@@ -18379,9 +18380,10 @@ ListExpr getObjectFromFileTM(ListExpr args){
   if(!FileSystem::FileOrFolderExists(fn)){
     return listutils::typeError("file " + fn + " does not exist");
   }
-  ListExpr r = getFileType(fn);
+  string msg;
+  ListExpr r = getFileType(fn,msg);
   if(nl->IsEmpty(r)){
-    return listutils::typeError("file " + fn + " has an unknown format");
+    return listutils::typeError(msg);
   } 
   if(Relation::checkType(r)){
      r = nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
