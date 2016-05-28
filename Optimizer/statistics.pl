@@ -693,7 +693,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard, InputCard) :-
         write('Result = '), write(Result1), nl, 
   ( Result1 = [bool, false] -> 
       ( my_concat_atom(['let ', CntIndex, ' = ', 
-          ExtRel, '_sample_s feedproject[', ExtAttrName,
+          ExtRel, '_sample_s feed project[', ExtAttrName,
           '] sort groupby[', ExtAttrName, '; Cnt: group count] oconsume[', 
           ExtAttrName, ']' ], '', Query3) ,
 	write('Query3 = '), write(Query3), nl, 
