@@ -201,12 +201,12 @@ plan_to_atomD(our_attrname(attr(Name, Arg, Case)), Result) :-
 
 plan_to_atomD(our_a(_:B, _, _), Result) :-
   upper(B, B2),
-  concat_atom(['..', B2], Result),
+  atom_concat('..', B2, Result),
   !.
 
 plan_to_atomD(our_a(X, _, _), Result) :-
   upper(X, X2),
-  concat_atom(['..', X2], Result),
+  atom_concat('..', X2, Result),
   !.
 
 
@@ -313,30 +313,29 @@ distributedarg(N) translatesD [Plan, [distribution(DistType, DistAttr, Grid),
 
 */
 
-
 /*
-5.2.1 Using a Spatial Index
+5.2.1 Selection Without Index
 
 */
 
-% Use spatial index for an intersection predicate.
-distributedselect(arg(N), pr(Attr intersects Val, rel(_, Var)) )
-  translatesD [dmap2(IndexObj, RelObj, value_expr(string, ""), 
-    filter(Intersection, Pred), 1238),
-    [distributedobjecttype(dfarray), disjointpartitioning]] :-
-    argument(N, rel(DCRel, _)),
-    % We need a materialized argument relation to use the index
-    distributedRels(rel(DCRel, _), RelObj, _, DistType, _, _),
-    ( DistType = spatial 
-      -> Pred = and(Attr intersects Val, Original)  % remove duplicates
-      ;  Pred = Attr intersects Val
-    ),
-    % Lookup an rtree index for the relation + attribute
-    attrnameDCAtom(Attr, DCAttr),
-    distributedIndex(RelObj, DCAttr, rtree, IndexObj),
-    renameStream(windowintersects(dot, dotdot, Val),
-      Var, Intersection),
-    renamedRelAttr(attr(original, 1, u), Var, Original).
+% Generic case. Remove duplicates if needed.
+distributedselect(Arg, pr(Cond, rel(_, Var))) translatesD
+  [dmap(ArgS, value_expr(string, ""), filter(Plan, Cond2)), P2] :-
+  Arg  => [ArgS, P],
+	write('ArgS = '), write(ArgS), nl, nl,
+	write('P = '), write(P), nl, nl,
+  % we accept darrays and dfarrays
+  (member(distributedobjecttype(dfarray), P) ;
+    member(distributedobjecttype(darray), P)),
+  % partitions of the argument relations need to be disjoint
+  ( member(disjointpartitioning, P) 
+    -> Cond2 = Cond, P2 = P
+    ; Cond2 = and(Cond, Original), 
+      append(P, [disjointpartitioning], P2)
+  ),
+  % rename if needed
+  feedRenameRelation(dot, Var, Plan),
+  renamedRelAttr(attr(original, 1, u), Var, Original).
 
 /*
 5.2.2 Using a Standard Index (B-Tree)
@@ -362,29 +361,32 @@ distributedselect(arg(N), pr(Attr starts Val, rel(_, Var)))
       Var, Range),
     renamedRelAttr(attr(original, 1, u), Var, Original).
 
+
 /*
-5.2.3 Selection Without Index
+5.2.3 Using a Spatial Index
 
 */
 
-% Generic case. Remove duplicates if needed.
-distributedselect(Arg, pr(Cond, rel(_, Var))) translatesD
-  [dmap(ArgS, value_expr(string, ""), filter(Plan, Cond2)), P2] :-
-  Arg  => [ArgS, P],
-	write('ArgS = '), write(ArgS), nl, nl,
-	write('P = '), write(P), nl, nl,
-  % we accept darrays and dfarrays
-  (member(distributedobjecttype(dfarray), P) ;
-    member(distributedobjecttype(darray), P)),
-  % partitions of the argument relations need to be disjoint
-  ( member(disjointpartitioning, P) 
-    -> Cond2 = Cond, P2 = P
-    ; Cond2 = and(Cond, Original), 
-      P2 = [disjointpartitioning | P]
-  ),
-  % rename if needed
-  feedRenameRelation(dot, Var, Plan),
-  renamedRelAttr(attr(original, 1, u), Var, Original).
+% Use spatial index for an intersection predicate.
+distributedselect(arg(N), pr(Attr intersects Val, rel(_, Var)) )
+  translatesD [dmap2(IndexObj, RelObj, value_expr(string, ""), 
+    filter(Intersection, Pred), 1238),
+    [distributedobjecttype(dfarray), disjointpartitioning]] :-
+    argument(N, rel(DCRel, _)),
+    % We need a materialized argument relation to use the index
+    distributedRels(rel(DCRel, _), RelObj, _, DistType, _, _),
+    ( DistType = spatial 
+      -> Pred = and(Attr intersects Val, Original)  % remove duplicates
+      ;  Pred = (Attr intersects Val)
+    ),
+    % Lookup an rtree index for the relation + attribute
+    attrnameDCAtom(Attr, DCAttr),
+    distributedIndex(RelObj, DCAttr, rtree, IndexObj),
+    renameStream(windowintersects(dot, dotdot, Val),
+      Var, Intersection),
+    renamedRelAttr(attr(original, 1, u), Var, Original).
+
+
 
 /*
 5.3 Distributed Join
@@ -397,7 +399,7 @@ distributedselect(Arg, pr(Cond, rel(_, Var))) translatesD
 distributedjoin(Arg1, Arg2, Pred)
 translatesD [SecondoPlan, [DistAttr1, distributedobjecttype(dfarray), 
 disjointpartitioning]]:-
-  Pred = pr(Attr1 intersects Attr2, rel(_, Rel1Var, _), rel(_, Rel2Var, _)),
+  Pred = pr(Attr1 intersects Attr2, rel(_, Rel1Var), rel(_, Rel2Var)),
   isOfFirst(Attr1, Rel1, Rel2),
   isOfSecond(Attr2, Rel1, Rel2),
   attrnameDCAtom(Attr1, Attr1Name),
@@ -513,8 +515,8 @@ distributedjoin(ObjName1, ObjName2, pr(attr(X1,X2,X3)=attr(Y1,Y2,Y3),
 translatesD [SecondoPlan, [none]] :-
  X=attr(X1,X2,X3),
  Y=attr(Y1,Y2,Y3),
- Rel1 = rel(_, _, _),
- Rel2 = rel(_, _, _),
+ Rel1 = rel(_, _),
+ Rel2 = rel(_, _),
  isOfFirst(_, X, Y), 
  isOfSecond(_, X, Y),
  buildSecondoPlan(ObjName1, ObjName2, pr(X=Y, Rel1, Rel2), 
@@ -523,8 +525,8 @@ translatesD [SecondoPlan, [none]] :-
 %Standard Join           
 distributedjoin(ObjName1, ObjName2, pr(Pred,Rel1, Rel2)) 
 translatesD [SecondoPlan, [none]] :-
- Rel1 = rel(_, _, _),
- Rel2 = rel(_, _, _),
+ Rel1 = rel(_, _),
+ Rel2 = rel(_, _),
  buildStdSecondoPlan(ObjName1, ObjName2, pr(Pred, Rel1, Rel2),
 		  SecondoPlan, false). 
 
@@ -556,8 +558,8 @@ buildSecondoPlan(ObjName1, ObjName2, pr(X=Y, Rel1, Rel2),
  plan_to_atom(simple_attrname(Y), Y2),
  distributedRels(_, ObjName1, _, 'modulo', X2),
  distributedRels(_, ObjName2, _, 'modulo', Y2),
- Rel1 = rel(_, Rel1Var, _),
- Rel2 = rel(_, Rel2Var, _),
+ Rel1 = rel(_, Rel1Var),
+ Rel2 = rel(_, Rel2Var),
  % rename the parameter relations of the dmapped plan if needed
  feedRenameRelation(dot, Rel1Var, Feed1),
  feedRenameRelation(dotdot, Rel2Var, Feed2),
@@ -574,8 +576,8 @@ buildSecondoPlan(ObjName1, ObjName2, pr(X=Y, Rel1, Rel2),
  plan_to_atom(simple_attrname(Y), Y2),
  distributedRels(_, ObjName1, _, 'function', X2),
  distributedRels(_, ObjName2, _, 'function', Y2),
- Rel1 = rel(_, Rel1Var, _),
- Rel2 = rel(_, Rel2Var, _),
+ Rel1 = rel(_, Rel1Var),
+ Rel2 = rel(_, Rel2Var),
  % rename the parameter relations of the dmapped plan if needed
  feedRenameRelation(dot, Rel1Var, Feed1),
  feedRenameRelation(dotdot, Rel2Var, Feed2),
@@ -590,8 +592,8 @@ buildSecondoPlan(ObjName1, ObjName2, pr(X=Y, Rel1, Rel2),
 		 SecondoPlan, _):-
  distributedRels(_ ,ObjName1,_ ,'share',_ ),
  isPartitioned(ObjName2),
- Rel1 = rel(_, Rel1Var, _),
- Rel2 = rel(_, Rel2Var, _),
+ Rel1 = rel(_, Rel1Var),
+ Rel2 = rel(_, Rel2Var),
  % rename the parameter relations of the dmapped plan if needed
  feedRenameRelation(ObjName1, Rel1Var, Feed1),
  feedRenameRelation(dot, Rel2Var, Feed2),
@@ -614,21 +616,21 @@ buildSecondoPlan(ObjName1, ObjName2, pr(X=Y, Rel1, Rel2),
 	         SecondoPlan, _):-	   
   isPartitioned(ObjName1),
   isPartitioned(ObjName2),
-  Rel1 = rel(_, Rel1Var, _),
-  Rel2 = rel(_, Rel2Var, _),
+  Rel1 = rel(_, Rel1Var),
+  Rel2 = rel(_, Rel2Var),
   % rename the parameter relations of the dmapped plan if needed
   feedRenameRelation(dot, Rel1Var, Feed1),
   feedRenameRelation(dotdot, Rel2Var, Feed2),
   !,	         
   SecondoPlan = dmap2(
 	collect2( 
-	   partitionF(ObjName1, "LeftPartOfJoin", feed(dot), 
+	   partitionF(ObjName1, value_expr(string, ""), feed(dot), 
 	   hashvalue(our_attrname(X), 999997), 0),
-	   "L", 1238),
+	   value_expr(string, ""), 1238),
 	collect2(
-	   partitionF(ObjName2, "RightPartOfJoin", feed(dot),
+	   partitionF(ObjName2, value_expr(string, ""), feed(dot),
 	   hashvalue(our_attrname(Y), 999997), 0),
-	   "R", 1238),
+	   value_expr(string, ""), 1238),
 	value_expr(string, ""), 
 	hashjoin(Feed1,
 	      Feed2, 
@@ -670,8 +672,8 @@ buildStdSecondoPlan(ObjName1, ObjName2, pr(Pred, Rel1, Rel2),
     DistArgrel = ObjName1, ReplArgrel = ObjName2),
   distributedRels(_, ReplArgrel, _ , 'share', _),
   isPartitioned(DistArgrel),
-  Rel1 = rel(_, Rel1Var, _),
-  Rel2 = rel(_, Rel2Var, _),
+  Rel1 = rel(_, Rel1Var),
+  Rel2 = rel(_, Rel2Var),
   % rename the parameter relations of the dmapped plan if needed
   feedRenameRelation(dot, Rel2Var, Feed2),
   feedRenameRelation(ReplArgrel, Rel1Var, Feed1),
@@ -1018,9 +1020,22 @@ mergeDmaps(
   dmap(dmap(X, _, InnerPlanX), _, OuterPlan),
   dmap(Y, value_expr(string, ""), Plan)) :-
   mergeDmaps(dmap(X, _, InnerPlanX), dmap(Y, _, InnerPlanY)),
-  substituteSubterm(feed(dot), InnerPlanY, OuterPlan, Plan).
-  
+  substituteSubterm(feed(dot), InnerPlanY, OuterPlan, Plan),
+  !.
 
+mergeDmaps(
+  dmap(dmap(X, _, InnerPlanX), _, OuterPlan),
+  dmap2(Y, Z, value_expr(string, ""), Plan, FileServer)) :-
+  mergeDmaps(dmap(X, _, InnerPlanX), dmap2(Y, Z, _, InnerPlanY, FileServer)),
+  substituteSubterm(feed(dot), InnerPlanY, OuterPlan, Plan),
+  !.
+  
+% recursive merge still missing
+mergeDmaps(
+  dmap(dmap2(X, Y, _, InnerPlan, FileServer), _, OuterPlan),
+  dmap2(X, Y, value_expr(string, ""), Plan, FileServer)) :-
+  substituteSubterm(feed(dot), InnerPlan, OuterPlan, Plan),
+  !.
 
 
 
@@ -1227,13 +1242,6 @@ Variable ~ORel~
 removeDistributedSuffix(DRel as _, ORel) :-
     removeDistributedSuffix(DRel, ORel),!.
 
-% removeDistributedSuffix(DRel, ORel) :-
-%     atom(DRel),
-%     string_concat(X,'_d', DRel),
-%     string_to_atom(X, ORel),
-%     isDistributedRelation(rel(ORel,_,_)),!,
-%     assertOnce(isDistributedQuery).
-
 removeDistributedSuffix(DRel, ORel) :-
     atom(DRel),
     atom_concat(X,'_d', DRel),
@@ -1361,19 +1369,6 @@ storeDistributedRels([[RelName, ObjName, DistType,
   storeDistributedRel(RelName, ObjName, DistType, 
     PartType, DistAttr, DistParam), 
   storeDistributedRels(T).
-
-% storeDistributedRel(RelName, ObjName, DistType, 
-%   PartType, DistAttr, DistParam) :-         
-%   spelled(RelName, Rel, CaseRel),
-%   spelledDistributedRel(ObjName, Arr, CaseArr),
-%   (checkOnlineWorkers(ObjName, PartType)
-%   -> assert(storedDistributedRelation(rel(Rel,'*',CaseRel), 
-%          rel(Arr,'*',CaseArr), 
-%          DistType, PartType, DistAttr, DistParam));
-%   ansi_format([fg(red)], 'Warning: listed object "~w" in \c
-%       SEC2DISTRIBUTED relation is not available => \c
-%       ignored for further processing \n',[ObjName])),
- %  !.
 
 storeDistributedRel(RelName, ObjName, DistType, 
   PartType, DistAttr, DistParam) :-
