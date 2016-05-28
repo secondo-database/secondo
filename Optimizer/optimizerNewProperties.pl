@@ -9506,9 +9506,10 @@ queryToPlan(select count(*) from Rel,
   isDistributedQuery, 
   Rel = rel(R, _),
   distributedRels(rel(R, _), Object, DistType, PartType, _, _),
-  not(PartType = spatial),
-  ( DistType = darray -> Access = dot ; 
-    Access = feed(dot) ), 	
+  ( PartType = spatial 
+    -> Access = filter(feed(dot), attr(original, 1, u)) 
+    ; ( DistType = darray -> Access = dot ; Access = feed(dot) ) 
+  ),	
   not(is_nrel(R)),
   !.
 

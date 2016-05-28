@@ -921,7 +921,7 @@ The predicate recursively processes the given mixed plan, adding for each operat
 
 transform2DPlan(Plan, Plan, seqstart) :-
   (   Plan = dmap(_, _, _) 
-    ; Plan = dmap2(_, _, _, _)
+    ; Plan = dmap2(_, _, _, _, _)
     ; Plan = dmap(dbotherobject(_), _, _)
   ),
   !.
@@ -986,12 +986,12 @@ combinePlans(DistributedPlan, SequentialPlan, Plan) :-
 
 % general case. Use dsummarize.
 combinePlans(DistributedPlan, SequentialPlan, Plan) :-
-  %	nl, write('DistributedPlan = '), write(DistributedPlan), nl,
-  %	nl, write('SequentialPlan = '), write(SequentialPlan), nl,
+  	nl, write('DistributedPlan = '), write(DistributedPlan), nl,
+  	nl, write('SequentialPlan = '), write(SequentialPlan), nl,
   mergeDmaps(DistributedPlan, DistributedPlan2),
   substituteSubterm(seqstart, dsummarize(DistributedPlan2), 
-    SequentialPlan, Plan).
-  %	nl, write('Plan = '), write(Plan), nl.
+    SequentialPlan, Plan),
+  	nl, write('Plan = '), write(Plan), nl.
   
 
 
@@ -1009,7 +1009,9 @@ Descends into terms and merges dmaps if possible.
 
 
 mergeDmaps(Plan, Plan) :-
-  Plan = dmap(dbotherobject(_), _, _),
+  ( Plan = dmap(dbotherobject(_), _, _) 
+    ; Plan = dmap2(_, _, _, _, _) 	% this case to be improved
+  ),
   !.
 
 mergeDmaps(
