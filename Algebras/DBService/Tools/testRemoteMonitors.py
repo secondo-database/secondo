@@ -6,7 +6,6 @@ from env import UnsuitableEnvironmentException
 
 class RemoteMonitorsTest(unittest.TestCase):
 
-
     def setUp(self):
         """save environment variables to be able to restore them after the test"""
         self.platformEnvKey = "SECONDO_PLATFORM"
@@ -25,7 +24,7 @@ class RemoteMonitorsTest(unittest.TestCase):
         if key is not None:
             os.environ[key] = originalValue
         else:
-            os.unsetenv(key)
+            del os.environ[key]
 
     def runEnvironmentVariableTest(self, key):
         del os.environ[key]
