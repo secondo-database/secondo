@@ -420,6 +420,7 @@ Returns the name of the remote object
     std::stringstream ss;
     ss << home << "/dfarrays/" << dbname << "/" << name << "/" 
        << name << "_" << slot << ".bin";
+    ss.flush();
     return ss.str();
   }
 

@@ -230,12 +230,6 @@ Example   : query da1 da2  dloop2["da3", . + .. ]
 Result    : bug
 Remark    : remote server required
 
-Operator  : dmap2 
-Number    : 1
-Signature : d[f]array(X) x d[f]array(Y) x string x (X x Y -> Z) x int -> d[f]array(Z)
-Example   : query dfa1 dfa2  dmap2["da3", . feed  .. feed  product, 1238 ]
-Result    : bug
-Remark    : remote server required
 
 Operator  : ARRAYFUNARG1 
 Number    : 1
@@ -562,7 +556,7 @@ Signature : {string, text, fobj(X)} -> X
 Example   : query "strassen.bin" getObjectFromFile count
 Result    : 3212
 
-Operator  : dmap2n
+Operator  : dmap2
 Number    : 1
 Signature : d[f]array^X x string x fun( K_i .. k_X -> r) -> df[f]array(r)
 Example   : query dfa1 dfa2  dmap2["da3", . feed  .. feed  product, 1238 ]
