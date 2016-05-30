@@ -111,7 +111,9 @@ closeregex (\]\+)|(\]\*)|(\]\?)|\]
 <condition>\, {if (!openQuotes && openParentheses == 0 && openBrackets == 0) {
                  return ',';
                }
-               else {return ZZCOMMA;}
+               else {
+                 return ZZCOMMA;
+               }
               }
 <condition>\( {if (!openQuotes) {
                  ++openParentheses; 

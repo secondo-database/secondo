@@ -1047,7 +1047,9 @@ struct IndexMatchInfo {
     for (int i = 0; i < elem - 1; i++) {
       binding.push_back(-1);
     }
-    binding.push_back(u - 1);
+    if (u > 0) {
+      binding.push_back(u - 1);
+    }
     binding.push_back(u);
   }
   

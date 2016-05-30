@@ -3004,9 +3004,6 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
           if (atom.getW() == NO) { // () or disjoint{...} or (monday _); no wc
             TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
             if (imiPtr->range == false) { // exact matching required
-              if (!ivs.empty()) {
-                getInterval(id, imiPtr->next, iv);
-              }
               bool match = false;
               ExtBool matchRec = UNDEF;
               if (matchRecord[trans.first][id] != 0) {
@@ -3062,12 +3059,11 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
             else { // wildcard before this transition; check all successors
               int k = imiPtr->next;
               while (k < trajSize[id]) {
-                getInterval(id, k, iv);
                 bool match = false;
                 ExtBool matchRec = UNDEF;
                 if (matchRecord[trans.first][id] != 0) {
                   matchRec = matchRecord[trans.first][id]->
-                                                   getMatchRecord(imiPtr->next);
+                                                   getMatchRecord(k);
                   if (matchRec == TRUE) {
                     match = true;
                   }
@@ -3076,12 +3072,11 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                   matchRecord[trans.first][id] = new DoubleUnitSet();
                 }
                 if (matchRec == UNDEF) {
-                  getInterval(id, imiPtr->next, iv);
-                  match = tmatch.valuesMatch(imiPtr->next, trans.first) &&
+                  getInterval(id, k, iv);
+                  match = tmatch.valuesMatch(k, trans.first) &&
                           Tools::timesMatch(iv, ivs) &&
-                          tmatch.easyCondsMatch(imiPtr->next, trans.first);
-                  matchRecord[trans.first][id]->
-                                            addMatchRecord(imiPtr->next, match);
+                          tmatch.easyCondsMatch(k, trans.first);
+                  matchRecord[trans.first][id]-> addMatchRecord(k, match);
                 }
                 if (match) {
                   transition = true;
