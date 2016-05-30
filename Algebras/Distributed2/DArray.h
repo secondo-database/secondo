@@ -306,6 +306,8 @@ are equal for two darray types.
 Sets size, name and workers. Set to a standard map.
 
 */
+     void set(const std::string& name, 
+                    const std::vector<DArrayElement>& worker);
 
      virtual void set(const size_t size, const std::string& name, 
                     const std::vector<DArrayElement>& worker);

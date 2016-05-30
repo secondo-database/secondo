@@ -345,6 +345,11 @@ DArrayBase& DArrayBase::operator=(const DArrayBase& src) {
    return *this;
 }     
 
+void DArrayBase::set(const std::string& name, 
+                    const std::vector<DArrayElement>& worker){
+   DistTypeBase::set(name, worker);
+   this->map = createStdMap(worker.size(),worker.size());
+}
 void DArrayBase::set(const size_t size, const std::string& name, 
          const std::vector<DArrayElement>& worker){
    DistTypeBase::set(name, worker);
