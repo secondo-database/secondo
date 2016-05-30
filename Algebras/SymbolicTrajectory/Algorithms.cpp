@@ -2940,8 +2940,21 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
               if (p->hasConds()) { // extend binding for a complete match
                 extendBinding(newIMI, trans.first, false, totalMatch ? id : 0);
                 if (totalMatch) {
-                  TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
-                  totalMatch = tmatch.conditionsMatch(newIMI);
+                  ExtBool condRec = UNDEF;
+                  if (condRecord[id] != 0) {
+                    condRec = condRecord[id]->getCondRecord(newIMI);
+                  }
+                  else {
+                    condRecord[id] = new DoubleBindingSet();
+                  }
+                  if (condRec != UNDEF) {
+                    totalMatch = (condRec == TRUE ? true : false);
+                  }
+                  else {
+                    TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
+                    totalMatch = tmatch.conditionsMatch(newIMI);
+                    condRecord[id]->addCondRecord(newIMI, totalMatch);
+                  }
                 }
               }
               if (totalMatch) {
@@ -3033,8 +3046,22 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                 if (p->hasConds()) { // extend binding for a complete match
                   extendBinding(newIMI, trans.first, false,totalMatch ? id : 0);
                   if (totalMatch) {
-                    TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
-                    totalMatch = tmatch.conditionsMatch(newIMI);
+                    ExtBool condRec = UNDEF;
+                    if (condRecord[id] != 0) {
+                      condRec = condRecord[id]->getCondRecord(newIMI);
+                    }
+                    else {
+                      condRecord[id] = new DoubleBindingSet();
+                    }
+                    if (condRec != UNDEF) {
+                      totalMatch = (condRec == TRUE ? true : false);
+                    }
+                    else {
+                      TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, 
+                                    valueNo);
+                      totalMatch = tmatch.conditionsMatch(newIMI);
+                      condRecord[id]->addCondRecord(newIMI, totalMatch);
+                    }
                   }
                 }
                 if (totalMatch) {
@@ -3087,9 +3114,22 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
                   if (p->hasConds()) { // extend binding for a complete match
                     extendBinding(newIMI, trans.first, false, totalMatch?id:0);
                     if (totalMatch) {
-                      TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, 
-                                    valueNo);
-                      totalMatch = tmatch.conditionsMatch(newIMI);
+                      ExtBool condRec = UNDEF;
+                      if (condRecord[id] != 0) {
+                        condRec = condRecord[id]->getCondRecord(newIMI);
+                      }
+                      else {
+                        condRecord[id] = new DoubleBindingSet();
+                      }
+                      if (condRec != UNDEF) {
+                        totalMatch = (condRec == TRUE ? true : false);
+                      }
+                      else {
+                        TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, 
+                                      valueNo);
+                        totalMatch = tmatch.conditionsMatch(newIMI);
+                        condRecord[id]->addCondRecord(newIMI, totalMatch);
+                      }
                     }
                   }
                   if (totalMatch) {
@@ -3125,8 +3165,21 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans) {
             if (p->hasConds()) { // extend binding for a complete match
               extendBinding(newIMI, trans.first, true, totalMatch ? id : 0);
               if (totalMatch) {
-                TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
-                totalMatch = tmatch.conditionsMatch(newIMI);
+                ExtBool condRec = UNDEF;
+                if (condRecord[id] != 0) {
+                  condRec = condRecord[id]->getCondRecord(newIMI);
+                }
+                else {
+                  condRecord[id] = new DoubleBindingSet();
+                }
+                if (condRec != UNDEF) {
+                  totalMatch = (condRec == TRUE ? true : false);
+                }
+                else {
+                  TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
+                  totalMatch = tmatch.conditionsMatch(newIMI);
+                  condRecord[id]->addCondRecord(newIMI, totalMatch);
+                }
               }
             }
             if (totalMatch) {
@@ -3232,6 +3285,10 @@ bool TMatchIndexLI::initialize() {
     p->getElem(i, atom);
     matchRecord[i] = new DoubleUnitSet*[rel->GetNoTuples() + 1];
     memset(matchRecord[i], 0, (rel->GetNoTuples() + 1) * sizeof(void*));
+  }
+  if (p->hasConds()) {
+    condRecord = new DoubleBindingSet*[rel->GetNoTuples() + 1];
+    memset(condRecord, 0, (rel->GetNoTuples() + 1) * sizeof(void*));
   }
   for (set<int>::iterator it = crucialAtoms.begin(); it != crucialAtoms.end(); 
        it++) {
@@ -4449,6 +4506,14 @@ IndexMatchSuper::~IndexMatchSuper() {
           delete[] newMatchInfo[i];
         }
       }
+    }
+    if (condRecord != 0) {
+      for (int i = 0; i <= rel->GetNoTuples(); i++) {
+        if (condRecord[i]) {
+          delete condRecord[i];
+        }
+      }
+      delete[] condRecord;
     }
     delete[] indexResult;
     delete[] matchRecord;

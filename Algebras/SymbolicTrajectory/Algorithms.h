@@ -1195,14 +1195,54 @@ struct DoubleUnitSet {
 };
 
 /*
+\section{struct ~DoubleBindingSet~}
+
+*/
+struct DoubleBindingSet {
+  DoubleBindingSet() {}
+  
+  DoubleBindingSet(IndexMatchInfo& imi, bool m = true) {
+    if (m) {
+      match.insert(imi.binding);
+    }
+    else {
+      mismatch.insert(imi.binding);
+    }
+  }
+  
+  ExtBool getCondRecord(IndexMatchInfo &imi) {
+    if (match.find(imi.binding) != match.end()) {
+      return TRUE;
+    }
+    if (mismatch.find(imi.binding) != mismatch.end()) {
+      return FALSE;
+    }
+    return UNDEF;
+  }
+  
+  void addCondRecord(IndexMatchInfo &imi, bool m = true) {
+    if (m) {
+      match.insert(imi.binding);
+    }
+    else {
+      mismatch.insert(imi.binding);
+    }
+  }
+  
+  std::set<std::vector<int> > match;
+  std::set<std::vector<int> > mismatch;
+};
+
+/*
 \section{class ~IndexMatchSuper~}
 
 */
 class IndexMatchSuper {
  public:
   IndexMatchSuper(Relation *r, Pattern *_p, int a, DataType t) :
-    rel(r), p(_p), attrNo(a), mtype(t), trajSize(0), activeTuples(0),
-    unitCtr(0), indexResult(0), matchInfo(0), newMatchInfo(0) {}
+    rel(r), p(_p), attrNo(a), mtype(t), matchRecord(0), condRecord(0),
+    trajSize(0), activeTuples(0), unitCtr(0), indexResult(0), matchInfo(0), 
+    newMatchInfo(0) {}
   
   ~IndexMatchSuper();
   
@@ -1232,6 +1272,7 @@ class IndexMatchSuper {
   DataType mtype;
   std::vector<TupleId> matches;
   DoubleUnitSet ***matchRecord; // state x tuple id
+  DoubleBindingSet **condRecord; // tuple id
   bool *active;
   int *trajSize;
   int activeTuples, unitCtr;
