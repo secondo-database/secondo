@@ -66,12 +66,31 @@ echo -e "\n\n *** Sorry, but committing files to CVS is currently not allowed fo
 
 fi
 
+
+
+ function checkExtension {
+
+    invalid="dep project cproject o a"
+
+    for i in $invalid; do
+      if [[ "$1" == *.$i ]]; then
+        echo "1"
+        return
+      fi
+    done
+    echo "0"
+}
+
+
+
 prefix="/home/spieker/cvs-snapshot"
 
 pdDir="$prefix/Tools/pd"
 scriptDir="$prefix/CM-Scripts"
+usingdir="$prefix/Tools/usingcheck"
 
-export PATH="$pdDir:$scriptDir:$PATH:."
+
+export PATH="$pdDir:$scriptDir:$usingdir:$PATH:."
 export PD_HEADER="$pdDir/pd.header"
 
 files=$(find $PWD -path "*CVS" -prune -o -type f -print)
@@ -92,12 +111,35 @@ for f in $files; do
   echo -e "  $f\n"
 done
 
-checksize.sh 712000 $files
+checksize.sh 71200000 $files
 rc=$?
 if [ $rc -ne 0 ]; then
   exit $rc;
 fi
 
+extensionOK="true"
+for f in $files; do
+   rc=$(checkExtension $f)
+   if [ "$rc" != "0" ]; then
+     echo "found invalid file extension in file "  $f
+     extensionOK="false"
+   fi  
+done
+
+if [ "$extensionOK" == "false" ]; then
+   exit 1;
+fi
+
+
+
 checkpd --strong
+
+rc=$?
+if [ $rc -ne 0 ]; then
+  exit $rc;
+fi
+
+checkusing
+
 
 exit $? 
