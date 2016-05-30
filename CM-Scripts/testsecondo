@@ -80,6 +80,7 @@ logdir=$basedir/secondotestlogs
 failed_log_dir=$logdir/failed
 
 last_run=$logdir/last_run
+last_successful_run=$logdir/last_successful_run
 make_log_first=$logdir/make_first.log
 make_log_current=$logdir/make.log
 checkout_log=$logdir/checkout.log
@@ -140,6 +141,7 @@ function createaccessfiles {
 local lastrun=$1
 local logdir=$2
 local users=$3
+local lastsuccrun=$4
 
   firstrun="true"
   lastrundate="1 day ago"
@@ -150,9 +152,15 @@ local users=$3
 
   echo "lastrundate = $lastrundate" >$logdir/lastrundate.txt
 
+  lastsuccrundate=$lastrundate
+  if [ -f "$lastsuccrun" ]; then
+     lastsuccrundate=$(fileDate $lastsuccrun)
+  fi
+  echo "lastsuccrundate = $lastsuccrundate" >$logdir/lastsuccrundate.txt
+
+  # check for changes since last run
+
   cvs history -xMAR -a -D "$lastrundate" -p secondo | grep -v 'No records selected'   >$logdir/Changes.txt
-  cat $logdir/Changes.txt | awk '{print $5}' | sort | uniq | sort >$logdir/changerNames.txt
-  cat /cvsroot/CVSROOT/users | sort -t: | join -t: -  $logdir/changerNames.txt | sed "s/.*://"  >$logdir/ChangerMails.txt
   
   if [ "$firstrun" == "true" ]; then 
      echo "yes"
@@ -161,10 +169,18 @@ local users=$3
      if [ "$noChanges" == "0" ]; then
         echo "no"
      else
+        # collect all changes since last successful run and get the names of the changers
+        cvs history -xMAR -a -D "$lastsuccrundate" -p secondo | grep -v 'No records selected'   >$logdir/Changes.txt
+        cat $logdir/Changes.txt | awk '{print $5}' | sort | uniq | sort >$logdir/changerNames.txt
+        cat /cvsroot/CVSROOT/users | sort -t: | join -t: -  $logdir/changerNames.txt | sed "s/.*://"  >$logdir/ChangerMails.txt
         echo "yes"
      fi
   fi
 }
+
+
+
+
 
 function showValue
 {
@@ -195,7 +211,7 @@ mkdir -p $failed_log_dir; echo "logdir created"
 # changes since the last test
 
 
-changes=$(createaccessfiles $last_run $logdir $users)
+changes=$(createaccessfiles $last_run $logdir $users $last_successful_run)
 
 showValue changes
 
@@ -282,6 +298,9 @@ if [ "$n" != "0" ]; then
  exit 1
 fi
 
+# mark test as successful
+touch $last_successful_run
+
 # tests were successful, set LAST_STABLE tag in Secondo
 
 cd $secondodir
@@ -355,7 +374,7 @@ if [ "$n" != "0" ]; then
   if [ -z "$additionalcs" ]; then
     echo "Making public version failed." | mailx -s "making public version failed" -a make.log.gz -r $from -S smtp=smtp://$server $to
   else 
-    echo "Making public version failed." | mailx -s "making public version failed"  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
+    echo "Making public version failed." | mailx -s "making public version failed" -a make.log.gz  -r $from -c "$additionalcs" -S smtp=smtp://$server $to
   fi
   exit 1
 else
