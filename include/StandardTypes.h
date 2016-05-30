@@ -138,10 +138,6 @@ class CcInt : public Attribute
     intsDeleted++;
   }
 
-  inline void Initialize()
-  {
-  }
-
   inline void Finalize()
   {
     intsDeleted++;
@@ -678,9 +674,6 @@ class CcReal : public Attribute
     realsDeleted++;
   }
 
-  inline void Initialize()
-  {}
-
   inline void Finalize()
   {
     realsDeleted++;
@@ -992,8 +985,6 @@ class CcBool : public Attribute
     boolsDeleted++;
   }
 
-  inline void Initialize()
-  {}
 
   inline void Finalize()
   {
@@ -1486,9 +1477,6 @@ class CcString : public Attribute
   {
     stringsDeleted++;
   }
-
-  inline void Initialize()
-  {}
 
   inline void Finalize()
   {
