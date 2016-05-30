@@ -828,7 +828,7 @@ optDebugLevel(translation).      % Details on translation rule matching
 % loaded by default!
 loadFiles(standard) :-
   ( not(loadedModule(standard)),
-    [optimizer],
+    [optimizerNewProperties],
     [statistics],
     [database],
     [operators],
@@ -837,6 +837,7 @@ loadFiles(standard) :-
     [relations],
     [testExamples],
     [operatorSQL],	% operatorSQL
+    [distributed],
 % Section:Start:loadFiles_1_i
 % Section:End:loadFiles_1_i
     retractall(loadedModule(_)),
@@ -897,7 +898,7 @@ loadFiles(largequeries) :-
 %LargeQueries end
 
 
-% Optional files for usage of Xris' cost functions
+% Optional files for usage of Xris cost functions
 loadFiles(improvedcosts) :-
   ( not(loadedModule(improvedcosts)),
     [improvedcosts],
