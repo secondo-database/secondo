@@ -128,7 +128,7 @@ fi
 
 if [ "$1" == "sendMail" ]; then  
 
-LU_SENDMAIL_FROM="spieker@bassi"
+LU_SENDMAIL_FROM="fabio.valdes@fernuni-hagen.de"
 LU_SENDMAIL="$2"
 XmailBody="This is a generated message!  
 

@@ -44,7 +44,7 @@ declare -i usage=$?
 
 if (( $usage > $treshold )); then
 
-LU_SENDMAIL_FROM="spieker@bassi"
+LU_SENDMAIL_FROM="Simone.Jandt@fernuni-hagen.de"
 LU_SENDMAIL="true"
 XmailBody="This is a generated message!  
  
@@ -53,5 +53,5 @@ XmailBody="This is a generated message!
   Fill rate : ${usage}%
 "
 
-  sendMail "disk alert! on $HOST" "spieker@bassi" "$XmailBody"
+  sendMail "disk alert! on $HOST" "fabio.valdes@fernuni-hagen.de" "$XmailBody"
 fi
