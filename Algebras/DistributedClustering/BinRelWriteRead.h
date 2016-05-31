@@ -254,7 +254,7 @@ enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
           in.read(buffer, size);
           if(in.good()){
             Tuple* tuple = new Tuple(ftt); // use fileTupleType
-            tuple->ReadFromBin(buffer);
+            tuple->ReadFromBin(0,buffer);
             tuple->SetTupleId(id); 
             delete[] buffer;
             TYPE* obj;
