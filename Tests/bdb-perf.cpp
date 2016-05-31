@@ -65,7 +65,7 @@ main( int argc, char** argv )
   }
   param1 = atoi(argv[2]);
 
-  DbEnv bdb(0u); // Environment
+  DbEnv bdb((u_int32_t)0u); // Environment
   //Db db(&bdb, 0);  // Database
  
   const int pageSize = 4096;
