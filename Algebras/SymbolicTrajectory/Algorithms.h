@@ -453,9 +453,8 @@ class Condition {
   bool    isTreeOk()               {return treeOk;}
   void    setTreeOk(bool value)    {treeOk = value;}
   template<class M>
-  void    restrictPtr(const int pos, M *traj, const unsigned int from,
-                      const unsigned int to, Tuple *tuple, ListExpr ttype, 
-                      const int key);
+  void    restrictPtr(const int pos, M *traj, const int from, const int to, 
+                      Tuple *tuple, ListExpr ttype, const int key);
   template<class M>
   void    setPointerToValue(const int pos, M *traj, const int from, 
                             const int to);
@@ -4022,10 +4021,10 @@ double MBasics<B>::Distance(const MBasics<B>& mbs) const {
 
 */
 template<class M>
-void Condition::restrictPtr(const int pos, M *traj, const unsigned int from,
-           const unsigned int to, Tuple *tuple, ListExpr ttype, const int key) {
+void Condition::restrictPtr(const int pos, M *traj, const int from,
+                    const int to, Tuple *tuple, ListExpr ttype, const int key) {
   temporalalgebra::Periods per(true);
-  if (from > -1 && to > -1) {
+  if (from > -1 && to > -1 && to >= from) {
     temporalalgebra::SecInterval iv(true), ivtemp(true);
     traj->GetInterval(from, iv);
     traj->GetInterval(to, ivtemp);
@@ -4239,8 +4238,6 @@ bool Condition::evaluate(const IndexMatchInfo& imi, M *traj,
     int elem = varToElem[getVar(i)];
     from = imi.getFrom(elem);
     to = imi.getTo(elem);
-//     cout << elem << ", " << getVar(i) << ": [" << from << ", " << to 
-//          << "]; " << getKey(i) << endl;
     if (elem != -1 && from != -1 && to != -1 && from <= to) {
       int key = getKey(i);
       if (key > 99) { // reference to attribute of tuple
