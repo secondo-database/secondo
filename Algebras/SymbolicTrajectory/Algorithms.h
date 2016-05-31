@@ -460,7 +460,8 @@ class Condition {
   void    setPointerToValue(const int pos, M *traj, const int from, 
                             const int to);
   template<class M>
-  void    setPointerToEmptyValue(const int pos, M *traj);
+  void    setPointerToEmptyValue(const int pos, M *traj, Tuple *t = 0, 
+                                 ListExpr ttype = 0);
   template<class M>
   bool    evaluate(const IndexMatchInfo &imi, M *traj,
                    std::map<std::string, int> &varToElem,
@@ -4023,13 +4024,15 @@ double MBasics<B>::Distance(const MBasics<B>& mbs) const {
 template<class M>
 void Condition::restrictPtr(const int pos, M *traj, const unsigned int from,
            const unsigned int to, Tuple *tuple, ListExpr ttype, const int key) {
-  temporalalgebra::SecInterval iv(true), ivtemp(true);
-  traj->GetInterval(from, iv);
-  traj->GetInterval(to, ivtemp);
-  iv.end = ivtemp.end;
-  iv.rc = ivtemp.rc;
   temporalalgebra::Periods per(true);
-  per.Add(iv);
+  if (from > -1 && to > -1) {
+    temporalalgebra::SecInterval iv(true), ivtemp(true);
+    traj->GetInterval(from, iv);
+    traj->GetInterval(to, ivtemp);
+    iv.end = ivtemp.end;
+    iv.rc = ivtemp.rc;
+    per.Add(iv);
+  }
   std::string attrtype = nl->ToString(nl->Second(nl->Nth(key, 
                                       nl->Second(ttype))));
   if (attrtype == "mbool") {
@@ -4166,7 +4169,8 @@ void Condition::setPointerToValue(const int pos, M *traj, const int from,
 
 */
 template<class M>
-void Condition::setPointerToEmptyValue(const int pos, M *traj) {
+void Condition::setPointerToEmptyValue(const int pos, M *traj, 
+                                 Tuple *t /* = 0 */, ListExpr ttype /* = 0 */) {
   temporalalgebra::SecInterval iv(true);
   switch (getKey(pos)) {
     case 0: { // label
@@ -4208,6 +4212,10 @@ void Condition::setPointerToEmptyValue(const int pos, M *traj) {
     }
     case 9: {
       cleanPlacesPtr(pos);
+      break;
+    }
+    default: {
+      restrictPtr(pos, traj, -1, -1, t, ttype, getKey(pos) - 99);
       break;
     }
   }
@@ -4253,7 +4261,7 @@ bool Condition::evaluate(const IndexMatchInfo& imi, M *traj,
       }
     }
     else { // variable bound to empty sequence
-      setPointerToEmptyValue<M>(i, traj);
+      setPointerToEmptyValue<M>(i, traj, tuple, ttype);
     }
   }
   getQP()->EvalS(getOpTree(), qResult, OPEN);
