@@ -312,7 +312,7 @@ FileSystem::RenameFileOrFolder( const string& currentName,
 #else
   string command = "mv " + currentName + " " + newName;
   int syserr = ::system( command.c_str() );
-  return (syserr != 127 && syserr != -1);
+  return (syserr == 0);
 #endif
 }
 
