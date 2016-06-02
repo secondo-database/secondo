@@ -5724,34 +5724,37 @@ Operator readFile ( "readFile",
 Move a file to another location within the file system. Returns TRUE,
 iff this succeeds.
 
-16.1 TypeMapping for ~moveFile~
+16.1 TypeMapping for ~moveFile~ and copyFile
 
 ---- {text|string} x {text|string} -> bool
 ----
 
 */
 
-ListExpr stringORtext_stringORtext2boolTM(ListExpr args){
-  string err = "{text|string} expected";
+ListExpr moveOrCopyFileTM(ListExpr args){
+  string err = "{text,string}  x {string,text} [x bool] expected";
   int listLength = nl->ListLength(args);
-  if(listLength!=2){
-    ErrorReporter::ReportError(err);
+  if(listLength!=2 && listLength!=3){
+    ErrorReporter::ReportError(err + " (wrong number of args)");
     return nl->TypeError();
   }
-
-  if(    !nl->IsEqual(nl->First(args),CcString::BasicType())
-      && !nl->IsEqual(nl->First(args),FText::BasicType())){
-    ErrorReporter::ReportError(err);
-    return nl->TypeError();
+  if(listLength==3 && !CcBool::checkType(nl->Third(args))){
+     return listutils::typeError(err + " ( third arg is not a bool)");
   }
-
-  if(    !nl->IsEqual(nl->Second(args),CcString::BasicType())
-      && !nl->IsEqual(nl->Second(args),FText::BasicType())){
-    ErrorReporter::ReportError(err);
-    return nl->TypeError();
+  if(   !CcString::checkType(nl->First(args))
+     && !FText::checkType(nl->First(args))){
+   return listutils::typeError(err + " (first arg is not a strinbg or text)");
   }
-
-  return nl->SymbolAtom(CcBool::BasicType());
+  if(   !CcString::checkType(nl->Second(args))
+     && !FText::checkType(nl->Second(args))){
+   return listutils::typeError(err + " (2nd arg is not a strinbg or text)");
+  }
+  if(listLength==3){
+    return listutils::basicSymbol<CcBool>();
+  }
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                            nl->OneElemList(nl->BoolAtom(false)),
+                            listutils::basicSymbol<CcBool>());
 }
 
 /*
@@ -5767,6 +5770,8 @@ int moveOrCopyFileVM(Word* args, Word& result,
   CcBool* res = static_cast<CcBool*>(result.addr);
   T* fileNameOld = static_cast<T*>(args[0].addr);
   S* fileNameNew = static_cast<S*>(args[1].addr);
+  CcBool* createDir = static_cast<CcBool*>(args[2].addr);
+  bool create = createDir->IsDefined()?createDir->GetValue():false;
   if(!fileNameOld->IsDefined() || !fileNameNew->IsDefined()){
     res->Set(false,false);
     return 0;
@@ -5780,6 +5785,15 @@ int moveOrCopyFileVM(Word* args, Word& result,
     res->Set(true,false);
     return 0;
   }
+  if(create){
+    string parent = FileSystem::GetParentFolder(fileNameNewS);
+    if(parent!=""){
+      if(!FileSystem::FileOrFolderExists(parent)){
+          FileSystem::CreateFolderEx(parent);
+      }
+    }
+  }
+
   bool  boolresult = isMOVE 
                      ?  FileSystem::RenameFileOrFolder(fileNameOldS,
                                                        fileNameNewS)
@@ -5822,7 +5836,7 @@ Operator moveFile ( "moveFile",
                    4,
                    moveFilevaluemap,
                    stringORtext_stringORtext_Select,
-                   stringORtext_stringORtext2boolTM);
+                   moveOrCopyFileTM);
 
 
 OperatorSpec copyFileSpec(
@@ -5843,7 +5857,7 @@ Operator copyFile( "copyFile",
                    4,
                    copyFileVM,
                    stringORtext_stringORtext_Select,
-                   stringORtext_stringORtext2boolTM);
+                   moveOrCopyFileTM);
 
 /*
 17 Operator ~basename~
