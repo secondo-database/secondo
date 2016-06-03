@@ -1450,7 +1450,7 @@ Special treatment of the tmatches operator
 */
 
 plan_to_atom(tmatches(X, Y), Result) :-
-  plan_to_atom(X, XAtom),
+  plan_to_atom(attrname(X), XAtom),
   plan_to_atom(Y, YAtom),
   my_concat_atom(['. tmatches[', XAtom, ', ', YAtom,']'],'', 
                 Result),
@@ -3020,7 +3020,8 @@ select(arg(N), Y) => [project(X, RenamedAttrNames), [none]] :-
   renameAttributes(Var, AttrNames, RenamedAttrNames).
 
 
-% generic handling of renaming in index access
+% generic handling of renaming in index access. Note that indexselect2 
+% must return properties.
 
 indexselect(arg(N), Y) => [X, P] :-
   argument(N, rel(_, *)),
@@ -3029,8 +3030,6 @@ indexselect(arg(N), Y) => [X, P] :-
 indexselect(arg(N), Y) => [rename(X, Var), P] :-
   argument(N, rel(_, Var)), Var \= *,
   indexselect2(arg(N), Y ) => [X, P].
-
-
 
 
 
@@ -3044,8 +3043,6 @@ indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
 indexselect2(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => [X, P] :-
   not(isSubquery(Y)),
   indexselect2(arg(N), pr(Y = attr(AttrName, Arg, Case), Rel)) => [X, P].
-
-
 
 
 
@@ -3082,6 +3079,15 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   dcName2externalName(DCindex,IndexName),
   IndexType = mtree.
 
+
+% rule for (Attr tmatches Pattern): symbolic pattern search using tupleindex
+indexselect2(arg(N), pr(Attr tmatches X, _) ) =>
+  [indextmatches(dbindexobject(IndexName), rel(Name, Z), attrname(Attr), X), 
+    [none]]
+  :-
+  argument(N, rel(Name, Z)),
+  hasIndex(rel(Name, Z), Attr, DCindex, tupleindex),
+  dcName2externalName(DCindex, IndexName).
 
 
 
@@ -3758,9 +3764,9 @@ Option ~noSymmjoin~ is only used in experiments. Has to be off for the optimizer
 
 % we have two variants of joins in place, see if the first one can
 % handle. If yes, cut and use its result.
-join(Arg1, Arg2, Pred) => SecondoPlan:-
+join(Arg1, Arg2, Pred) => SecondoPlan :-
   isDistributedQuery, 
-  distributedjoin(Arg1, Arg2, Pred) translatesD _, !,
+%  distributedjoin(Arg1, Arg2, Pred) translatesD _, !,
   distributedjoin(Arg1, Arg2, Pred) translatesD SecondoPlan.
 
 join(Arg1, Arg2, Pred) => SecondoPlan:-
@@ -3770,8 +3776,8 @@ join(Arg1, Arg2, Pred) => SecondoPlan:-
   not(N1=N2),
   Arg1 => [ObjName1, _],
   Arg2 => [ObjName2, _],
-  distributedRels(_, ObjName1, _, _, _),
-  distributedRels(_, ObjName2, _, _, _),
+  distributedRels(_, ObjName1, _, _, _, _, _),
+  distributedRels(_, ObjName2, _, _, _, _, _),
   distributedjoin(ObjName1, ObjName2, Pred) translatesD SecondoPlan.
 
 % end fapra 2015/16
@@ -5439,13 +5445,7 @@ It is assumed that only a single operator of this kind occurs within the term.
 */
 
 
-% fapra 2015/16 distributed queries
 
-cost(Term, Sel, Pred, Size, Cost) :-
-  costD(Term, Sel, Pred, Size, Cost),	% see distributed.pl
-  !.
-
-% end fapra 2015/16
 
 
 /*
@@ -5476,6 +5476,11 @@ cost(rel(Rel, X1_), X2_, Pred_, Size, 0) :-
 
 cost(res(N), _, _, Size, 0) :-
   resultSize(N, Size).
+
+% Substituted arguments
+cost(dot(Size), _, _, Size, 0).
+
+cost(dotdot(Size), _, _, Size, 0).
 
 /*
 8.1.2 Operators
@@ -5661,6 +5666,12 @@ cost(rangeS(dbindexobject(Index), _KeyValue), Sel, _P, Size, Cost) :-
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
 
+cost(indextmatches(_, Rel, _, _), Sel, P, Size, Cost) :-
+  cost(Rel, 1, P, RelSize, _),
+  indextmatchesTC(C),
+  Size is Sel * RelSize,
+  Cost is RelSize * C.
+
 
 % Cost function for inverted file access. Not yet determined, for the moment
 % using formula similar to rangeS.
@@ -5675,10 +5686,6 @@ cost(gettuples(rdup(sortby(
   exactmatchTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
-
-
-
-
 
 
 /*
@@ -5807,7 +5814,7 @@ Simple cost estimation for ~symmjoin~
 
 */
 cost(symmjoin(X, Y, _), Sel, P, S, C) :-
-	not(optimizerOption(costs2014)),	% replaced there
+%	not(optimizerOption(costs2014)),	% replaced there
   cost(X, 1, P, SizeX, CostX),
   cost(Y, 1, P, SizeY, CostY),
   getPET(P, _, ExpPET),                 % fetch stored predicate evaluation time
@@ -6043,12 +6050,18 @@ costEdge(Source, Target, PropertiesIn, Plan, PropertiesOut, Result,
   ),
   determineCost(Plan, Sel, Pred, Result, Size, Cost).
 
-
+:- dynamic nslots/2.
 
 determineCost(Term, Sel, Pred, Result, Size, Cost) :-
   getMemory(Memory),
   cost(Term, Sel, Pred, Result, Memory, Size, _NAttrs, _TupleSize, Cost),
   !.
+
+determineCost(Term, Sel, Pred, Result, Size, Cost) :-
+  isDistributedQuery, !,
+  costD(Term, Sel, Pred, Size, NSlots, Cost1),
+  assertOnce(nslots(Result, NSlots)),
+  Cost is Cost1 / 1000.	
 
 determineCost(Term, Sel, Pred, _, Size, Cost) :-
   cost(Term, Sel, Pred, Size, Cost1), 
@@ -7308,7 +7321,8 @@ newQuery :-
   clearIsStarQuery,
   clearSelectivityQuery,
   clearIsDistributedQuery,	% fapra 2015/16
-  clearIsLocalQuery.		% fapra 2015/16
+  clearIsLocalQuery,		% fapra 2015/16
+  retractall(nslots(_, _)).	% distributed
 
 
 clearVariables       :- retractall(variable(_, _)).
@@ -8016,6 +8030,11 @@ lookupPred(Pred, pr(Pred2, Rel)) :-
 % Section:Start:lookupPred_2_b
 % Section:End:lookupPred_2_b
 
+% support for tmatches
+lookupPred(Pred, pr(Pred2, Rel)) :-
+  nextCounter(selectionPred,_),
+  lookupPred1(Pred, Pred2, [], [Rel]),
+  (isTmatchesQuery(Pred2) -> assert(isStarQuery)), !.
 
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
@@ -8253,6 +8272,11 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
   lookupPred1(Me,     Me2,     RelsBefore,  RelsAfterMe),
   lookupPred2(Others, Others2, RelsAfterMe, RelsAfter),
   !.
+
+% support for tmatches
+isTmatchesQuery(Pred) :-
+  functor(Pred, Op, 2),
+  Op = 'tmatches', !. 
 
 /*
 ----    lookupTransformations(+Transf, -Transf2)
@@ -8676,7 +8700,7 @@ translate(Select from Rel, Stream, Select2, Update, 0) :-
 translate(Select from Rel, ObjName, Select2, Update, 0) :-
   isDistributedQuery,
   not(is_list(Rel)),
-  distributedRels(Rel, ObjName, _, _, _),
+  distributedRels(Rel, ObjName, _, _, _, _, _),
   (optimizerOption(pathTiming)
     -> write('\nTIMING for path creation: No optimization.\n') ; true
   ), splitSelect(Select, Select2, Update), !.
@@ -9505,7 +9529,7 @@ queryToPlan(select count(*) from Rel,
     value_expr(string, ""), count(Access))), dot + dotdot), 0) :-
   isDistributedQuery, 
   Rel = rel(R, _),
-  distributedRels(rel(R, _), Object, DistType, PartType, _, _),
+  distributedRels(rel(R, _), Object, DistType, _, PartType, _, _),
   ( PartType = spatial 
     -> Access = filter(feed(dot), attr(original, 1, u)) 
     ; ( DistType = darray -> Access = dot ; Access = feed(dot) ) 
