@@ -5825,15 +5825,20 @@ cost(symmjoin(X, Y, _), Sel, P, S, C) :-
                                         %         and evaluate the predicate
     B * S.                              % cost to produce result tuples
 
-cost(spatialjoin(X, Y, _, _), Sel, P, S, C) :-
-  cost(X, 1, P, SizeX, CostX),
-  cost(Y, 1, P, SizeY, CostY),
-  spatialjoinTC(A, B),
+/*
+Simple cost estimation for ~itSpatialJoin~
+
+*/
+
+cost(itSpatialJoin(X, Y, _, _), Sel, _, S, C) :-
+  cost(X, 1, _, SizeX, CostX),
+  cost(Y, 1, _, SizeY, CostY),
+  itSpatialJoinTC(A, B),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY +
-  A * (SizeX + SizeY) +           % effort is essentially proportional to the
-                                  % sizes of argument streams
-  B * S.                          % cost to produce result tuples
+  A * (SizeX + SizeY) +
+  B * S.
+                          % cost to produce result tuples
 
 
 /*
