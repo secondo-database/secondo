@@ -21,17 +21,7 @@
 
 [10] Query Optimization for Distributed Query Processing
 
-Fapra group 2015/2016: 
-
-  * Thomas Fischer
-
-  * Korinna Kurrer
-
-  * Andreas Obergrusberger
-
-  * Thomas Peredery
-
-  * Luciana Plocki
+Fapra group 2015/16 and Ralf Hartmut G[ue]ting, June 2016.
 
 [toc]
 
@@ -166,15 +156,27 @@ createSharedClause(Obj, SharedCommand) :-
 plan_to_atom_string(X, Result) :-
   isDistributedQuery,
   retractall(replicatedObject(_)),
-  plan_to_atom(X,QueryPart),
+  plan_to_atom(X, QueryPart),
   replicateObjects(QueryPart, Result),
   !.
   
 plan_to_atom_string(X, Result) :-
   not(isDistributedQuery),
-  plan_to_atom(X,Result),
+  plan_to_atom(X, Result),
   !.
 
+
+
+% preliminary translation of dproduct (before operator exists)
+plan_to_atomD(dproduct(X, Y, _, Plan, Server), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(value_expr(string, ""), S),
+  plan_to_atom(Plan, PlanAtom),
+  plan_to_atom(Server, ServerAtom),
+  atomic_list_concat([XAtom, ' ', YAtom, ' dproduct[', S, ', ', 
+    PlanAtom, ', ', ServerAtom, ']'], '', Result).
+  
 
 % remember objects to be shared (replicated) in the distributed case, 
 % called dbobject
@@ -255,78 +257,33 @@ Treat translation into distributed arguments. The properties we use are...
 */
 
 % Translate into object found in SEC2DISTRIBUTED.
-distributedarg(N) translatesD [Object, X] :-
-  X =[distribution(DistType, DCDistAttr, DistParam),
-  distributedobjecttype(DistObjType), disjointpartitioning],
+distributedarg(N) translatesD [Object, P] :-
+  X = [distribution(DistType, DCDistAttr, DistParam),
+  distributedobjecttype(DistObjType)],
   argument(N, Rel),
   Rel = rel(DCName, _),
-  distributedRels(rel(DCName, _), Object, DistObjType, 
+  distributedRels(rel(DCName, _), Object, DistObjType, _,
     DistType, DistAttr, DistParam),
-  not(DistType = spatial),
+  ( (DistType = spatial) -> P = X 
+    ; append(X, [disjointpartitioning], P) 
+  ),
   downcase_atom(DistAttr, DCDistAttr).
 
-% Spatial partitioning with filtering on original attribute
-% does not in general yield disjoint partitions
-distributedarg(N) translatesD [Object, 
-  [distribution(DistType, DCDistAttr, DistParam),
-  distributedobjecttype(DistObjType)]] :-
-  argument(N, Rel),
-  Rel = rel(DCName, _),
-  distributedRels(rel(DCName, _), Object, DistObjType, 
-    DistType, DistAttr, DistParam),
-  DistType = spatial,
-  downcase_atom(DistAttr, DCDistAttr).
-
-
-/*
-Redistribute argument relation to be spatially distributed using the provided attribute. The distribution type must be spatial and the attribute must be provided as a ground term. The grid may be provided to be used for the distribution. If it is not provided we fall back to using the grid object called grid. You need to have this in your database. Yields a dfarray or a dfmatrix.
-
-*/
-
-distributedarg(N) translatesD [Plan, [distribution(DistType, DistAttr, Grid),
-  distributedobjecttype(DistObjType)]] :-
-  % only use this in one direction. Might be generalized in the future.
-  ground(DistAttr),
-  ground(DistType),
-  % if we do not have a grid specified, use the grid-object
-  (ground(Grid) -> true; Grid = grid),
-  DistType = spatial,
-  argument(N, Rel),
-  Rel = rel(DCName, _),
-  distributedRels(rel(DCName, _), Object, _, OriginalDistType, _, _),
-  % cannot redistribute replicated relations
-  not(OriginalDistType = share),
-  spelled(DCName:DistAttr, AttrTerm),
-  InnerPlan = partitionF(Object, value_expr(string, ""), 
-    extendstream(feed(dot), 
-    attrname(attr(cell, *, u)), cellnumber(bbox(AttrTerm), Grid)),
-    attr('.Cell', *, u), 0), %there should be another option to add the 2nd dot
-  % collect into dfarray or simply be content with the dfmatrix
-  (DistObjType = dfarray,
-    Plan = collect2(InnerPlan, value_expr(string, ""), 1238);
-    DistObjType = dfmatrix,
-    Plan = InnerPlan).
 
 /* 
 
 5.2 Translation of Selections that Concern Distributed Relations
 
-*/
-
-/*
 5.2.1 Selection Without Index
 
 */
 
 % Generic case. Remove duplicates if needed.
 distributedselect(Arg, pr(Cond, rel(_, Var))) translatesD
-  [dmap(ArgS, value_expr(string, ""), filter(Plan, Cond2)), P2] :-
-  Arg  => [ArgS, P],
-	write('ArgS = '), write(ArgS), nl, nl,
-	write('P = '), write(P), nl, nl,
-  % we accept darrays and dfarrays
-  (member(distributedobjecttype(dfarray), P) ;
-    member(distributedobjecttype(darray), P)),
+  [dmap(ArgA, value_expr(string, ""), filter(Plan, Cond2)), P2] :-
+  Arg => [ArgA, P],
+  %	write('ArgA = '), write(ArgA), nl, nl,
+  %	write('P = '), write(P), nl, nl,
   % partitions of the argument relations need to be disjoint
   ( member(disjointpartitioning, P) 
     -> Cond2 = Cond, P2 = P
@@ -346,13 +303,16 @@ distributedselect(Arg, pr(Cond, rel(_, Var))) translatesD
 distributedselect(arg(N), pr(Attr starts Val, rel(_, Var)))
   translatesD [dmap2(IndexObj, RelObj, value_expr(string, ""), 
     Range2, 1238), 
-    [distributedobjecttype(dfarray), disjointpartitioning]] :-
-    argument(N, rel(DCRel, _)),
-    distributedRels(rel(DCRel, _), RelObj, _, DistType, _, _),
+    [distribution(DistType, DCDistAttr, DistParam), 
+       distributedobjecttype(dfarray), disjointpartitioning]] :-
+    argument(N, rel(DCName, _)),
+    distributedRels(rel(DCName, _), RelObj, _, _,
+      DistType, DistAttr, DistParam),
     ( DistType = spatial 
       -> Range2 = filter(Range, Original)  % remove duplicates
       ;  Range2 = Range
     ),
+    downcase_atom(DistAttr, DCDistAttr),
     attrnameDCAtom(Attr, DCAttr),
    	write('we got here'), nl, nl, nl, 
     % Lookup a btree index for the relation + attribute
@@ -371,14 +331,17 @@ distributedselect(arg(N), pr(Attr starts Val, rel(_, Var)))
 distributedselect(arg(N), pr(Attr intersects Val, rel(_, Var)) )
   translatesD [dmap2(IndexObj, RelObj, value_expr(string, ""), 
     filter(Intersection, Pred), 1238),
-    [distributedobjecttype(dfarray), disjointpartitioning]] :-
-    argument(N, rel(DCRel, _)),
+    [distribution(DistType, DCDistAttr, DistParam), 
+      distributedobjecttype(dfarray), disjointpartitioning]] :-
+    argument(N, rel(DCName, _)),
     % We need a materialized argument relation to use the index
-    distributedRels(rel(DCRel, _), RelObj, _, DistType, _, _),
+    distributedRels(rel(DCName, _), RelObj, _, _,
+      DistType, DistAttr, DistParam),
     ( DistType = spatial 
       -> Pred = and(Attr intersects Val, Original)  % remove duplicates
       ;  Pred = (Attr intersects Val)
     ),
+    downcase_atom(DistAttr, DCDistAttr),
     % Lookup an rtree index for the relation + attribute
     attrnameDCAtom(Attr, DCAttr),
     distributedIndex(RelObj, DCAttr, rtree, IndexObj),
@@ -391,483 +354,298 @@ distributedselect(arg(N), pr(Attr intersects Val, rel(_, Var)) )
 /*
 5.3 Distributed Join
 
-5.3.1 Distributed Spatial Join
+5.3.1 Distributed Generic Join
 
 */
 
-% Translate a distributed spatial join with an intersection predicate.
-distributedjoin(Arg1, Arg2, Pred)
-translatesD [SecondoPlan, [DistAttr1, distributedobjecttype(dfarray), 
-disjointpartitioning]]:-
-  Pred = pr(Attr1 intersects Attr2, rel(_, Rel1Var), rel(_, Rel2Var)),
-  isOfFirst(Attr1, Rel1, Rel2),
-  isOfSecond(Attr2, Rel1, Rel2),
-  attrnameDCAtom(Attr1, Attr1Name),
-  attrnameDCAtom(Attr2, Attr2Name),
-  % allow using replicated + any distribution or both distributed by
-  % join predicate
-  ((DistAttr1 = distribution(_, _, _),
-    DistAttr2 = distribution(share, _, _));
-  (DistAttr1 = distribution(spatial, Attr2Name, GridObj),
-    DistAttr2 = distribution(spatial, Attr1Name, GridObj))),
-  Arg1 => [ObjName1, [DistAttr1| Props1]],
-  Arg2 => [ObjName2, [DistAttr2| Props2]],
-  % rename the parameter relations if needed
-  feedRenameRelation(param1, Rel1Var, Param1Plan),
-  feedRenameRelation(param2, Rel2Var, Param2Plan),
+% Asymmetric, different orders have different costs.
+distributedjoin(Arg1, Arg2, pr(Pred, rel(_, Var1), rel(_, Var2))) 
+    translatesD [Plan, P] :-
+  Arg1 => [Arg1A, _],		% Arg1A = Arg1Array
+  Arg2 => [Arg2A, _],
+  Plan = dproduct(Arg1A, Arg2A, e, symmjoin(Arg1S, Arg2S, Pred), 1238),
+  P = [distribution(random, *, *), distributedobjecttype(dfarray)],
+  feedRenameRelation(dot, Var1, Arg1S),		% Arg1S = Arg1Stream
+  feedRenameRelation(dotdot, Var2, Arg2S).
+
+distributedjoin(Arg1, Arg2, pr(Pred, rel(_, Var1), rel(_, Var2))) 
+    translatesD [Plan, P] :-
+  Arg1 => [Arg1A, _],		 
+  Arg2 => [Arg2A, _],
+  Plan = dproduct(Arg2A, Arg1A, e, symmjoin(Arg2S, Arg1S, Pred), 1238),
+  P = [distribution(random, *, *), distributedobjecttype(dfarray)],
+  feedRenameRelation(dot, Var2, Arg1S),		 
+  feedRenameRelation(dotdot, Var1, Arg2S).
+
+
+/*
+5.3.2 Equijoin
+
+*/
+
+% Both arguments are NOT distributed for this equijoin. Redistribute both and 
+% use areduce.
+distributedjoin(Arg1, Arg2, pr(X = Y, rel(_, Var1), rel(_, Var2)))
+    translatesD [Plan, P] :-
+  Arg1 => [Arg1A, P1],		 
+  Arg2 => [Arg2A, P2], 
+  X = attr(_, _, _),
+  Y = attr(_, _, _),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  attrnameDCAtom(Attr1, DCAttr1),
+  attrnameDCAtom(Attr2, DCAttr2),
+  % repartition each argument 
+  not(member(distribution(_, DCAttr1, _), P1)),
+  not(member(distribution(_, DCAttr2, _), P2)),
+	write('we get here. '), nl, nl,
+  feedRenameRelation(dot, Var1, Arg1S),	
+  feedRenameRelation(dotdot, Var2, Arg2S),
+  InnerPlan = hashjoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2), 999997),
+  Plan = areduce2(
+    partitionF(Arg1A, value_expr(string, ""), feed(dot), 
+        hashvalue(our_attrname(X), 999997), 0),
+    partitionF(Arg2A, value_expr(string, ""), feed(dot), 
+        hashvalue(our_attrname(X), 999997), 0),
+    value_expr(string, ""),
+    InnerPlan, 1238),
+	write('The plan is (areduce2): '), write(Plan), nl,
+  P = [distribution(function, DCAttr1, hash), 
+    distribution(function, DCAttr2, hash),
+    distributedobjecttype(dfarray)].
+  
+
+% At least one argument is already distributed for this equijoin. Distribute 
+% the other one if needed.
+distributedjoin(Arg1, Arg2, pr(X = Y, rel(_, Var1), rel(_, Var2)))
+    translatesD [Plan, P] :-
+  Arg1 => [Arg1A, P1],		 
+  Arg2 => [Arg2A, P2], 
+  X = attr(_, _, _),
+  Y = attr(_, _, _),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  attrnameDCAtom(Attr1, DCAttr1),
+  attrnameDCAtom(Attr2, DCAttr2),
+  % repartition each argument if necessary
+  ( member(distribution(_, DCAttr1, _), P1) -> Arg1B = Arg1A
+    ;
+    Arg1B = collect2(
+      partitionF(Arg1A, value_expr(string, ""), feed(dot), 
+        hashvalue(our_attrname(X), 999997), 0),
+      value_expr(string, ""), 1238)
+  ),
+  ( member(distribution(_, DCAttr2, _), P2) -> Arg2B = Arg2A
+    ;
+    Arg2B = collect2(
+      partitionF(Arg2A, value_expr(string, ""), feed(dot), 
+        hashvalue(our_attrname(X), 999997), 0),
+      value_expr(string, ""), 1238)
+  ),
+  InnerPlan = hashjoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2), 999997),
+  Plan = dmap2(Arg1B, Arg2B, value_expr(string, ""), InnerPlan, 1238),
+  P = [distribution(function, DCAttr1, hash), 
+    distribution(function, DCAttr2, hash),
+    distributedobjecttype(dfarray)],
+  feedRenameRelation(dot, Var1, Arg1S),		% Arg1S = Arg1Stream
+  feedRenameRelation(dotdot, Var2, Arg2S).
+  
+  
+/*
+5.3.3 Spatial Join
+
+*/
+
+% Distribute arguments for spatial join as needed.
+distributedjoin(Arg1, Arg2, pr(X intersects Y, rel(_, Var1), rel(_, Var2)))
+    translatesD [Plan, P] :-
+  Arg1 => [Arg1A, P1],		 
+  Arg2 => [Arg2A, P2], 
+  X = attr(_, _, _),
+  Y = attr(_, _, _),
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  attrnameDCAtom(Attr1, DCAttr1),
+  attrnameDCAtom(Attr2, DCAttr2),
+  % repartition each argument if necessary
+  ( member(distribution(_, DCAttr1, _), P1) -> Arg1B = Arg1A
+    ;
+    Arg1B = collect2(
+      partitionF(Arg1A, value_expr(string, ""), 
+        extendstream(feed(dot), field(attr(cell, 1, u), 
+          cellnumber(bbox(Attr2), grid))),
+        attr2(cell, 2, u), 0),
+      value_expr(string, ""), 1238)
+  ),
+  ( member(distribution(_, DCAttr2, _), P2) -> Arg2B = Arg2A
+    ;
+    Arg2B = collect2(
+      partitionF(Arg2A, value_expr(string, ""), 
+        extendstream(feed(dot), field(attr(cell, 1, u), 
+          cellnumber(bbox(Attr2), grid))),
+        attr2(cell, 2, u), 0),
+      value_expr(string, ""), 1238)
+  ),
   % rename the cell attribute if needed
-  renamedRelAttr(attr(cell, 1, u), Rel1Var, CellAttr1),
-  renamedRelAttr(attr(cell, 2, u), Rel2Var, CellAttr2),
-  Scheme =
+  renamedRelAttr(attr(cell, 1, u), Var1, CellAttr1),
+  renamedRelAttr(attr(cell, 2, u), Var2, CellAttr2),
+  InnerPlan = 
     filter(
-        filter(
-            filter( 
-                itSpatialJoin(
-                    Param1Plan,
-                    Param2Plan, 
-                    attrname(Attr1),
-                    attrname(Attr2)
-                    ),
-                CellAttr1 = CellAttr2
-                ),
-            gridintersects(
-                GridObj, 
-                bbox(Attr1), 
-                bbox(Attr2), 
-                CellAttr1
-                )
-            ),
-        Attr1 intersects Attr2
-        ),
-  % We have the actual query now. Distribute it to the workers.
-  distributedquery([ObjName1, [DistAttr1| Props1]], 
-    [ObjName2, [DistAttr2| Props2]], Scheme)
-    translatesD SecondoPlan.
-
-/*
-5.3.2 Handling Distribution Types (Replicated vs. Partitioned) and Distributed Object Types (~darray~ vs. ~dfarray~)
-
-----    distributedquery(Arg1, Arg2, QueryScheme)
-----
-
-Distribute the query given by ~QueryScheme~ to the workers. The scheme has
-  the place holders ~param1~ and ~param2~ for its argument. The actual arguments
-  are given in ~Arg1~ and ~Arg2~ as a pair of a plan and a property list. 
-  Several cases might arise depening on ~Arg1~'s and ~Arg2~'s distribution type (replicated vs partitioned) and their distributed object type (d(f)array vs dfmatrix).
-
-*/
-
-% Arg1 replicated, Arg2 partitioned, Arg2 is a d(f)array
-distributedquery([Arg1S, P1], [Arg2S, P2], QueryScheme) translatesD Query :-
-  not(isPartitioned([Arg1S, P1])),
-  isPartitioned([Arg2S, P2]),
-  not(isDfmatrix([Arg2S, P2])),
-  substituteSubterm(param2, dot, QueryScheme, QueryScheme1),
-  substituteSubterm(param1, Arg2S, QueryScheme1, QueryScheme2),
-  Query = dmap(Arg2S, value_expr(string, ""), QueryScheme2), !.
-
-% Arg2 replicated, Arg1 partitioned, Arg1 is a d(f)array
-distributedquery([Arg1S, P1], [Arg2S, P2], QueryScheme) translatesD Query :-
-  isPartitioned([Arg1S, P1]),
-  not(isPartitioned([Arg2S, P2])),
-  not(isDfmatrix([Arg1S, P1])),
-  substituteSubterm(param1, dot, QueryScheme, QueryScheme1),
-  substituteSubterm(param2, Arg2S, QueryScheme1, QueryScheme2),
-  Query = dmap(Arg1S, value_expr(string, ""), QueryScheme2), !.
-
-% Arg1 partitioned, Arg2 partitioned, both are d(f)arrays
-distributedquery([Arg1S, P1], [Arg2S, P2], QueryScheme) translatesD Query :-
-  isPartitioned([Arg1S, P1]),
-  isPartitioned([Arg2S, P2]),
-  not(isDfmatrix([Arg2S, P2])),
-  not(isDfmatrix([Arg1S, P1])),
-  substituteSubterm(param1, dot, QueryScheme, QueryScheme1),
-  substituteSubterm(param2, dotdot, QueryScheme1, QueryScheme2),
-  Query = dmap2(Arg1S, Arg2S, value_expr(string, ""), QueryScheme2, 1238), !.
-
-% Arg1 partitioned, Arg2 partitioned, both dfmatrices
-distributedquery([Arg1S, P1], [Arg2S, P2], QueryScheme) translatesD Query :-
-  isPartitioned([Arg1S, P1]),
-  isPartitioned([Arg2S, P2]),
-  isDfmatrix([Arg2S, P2]),
-  isDfmatrix([Arg1S, P1]),
-  substituteSubterm(param1, dot, QueryScheme, QueryScheme1),
-  substituteSubterm(param2, dotdot, QueryScheme1, QueryScheme2),
-  Query = areduce2(Arg1S, Arg2S, "", QueryScheme2, 1238), !.
-
-% Arg1 replicated, Arg2 replicated
-distributedquery([Arg1S, P1], [Arg2S, P2], _) translatesD _ :-
-  not(isPartitioned([Arg1S, P1])),
-  not(isPartitioned([Arg2S, P2])),
-  write('A potential plan edge could not be generated because '),
-  write('queries with two replicated arguments '),
-  write('cannot be formulated using DistributedAlgebra as of now.\n'),
-  fail.
-
-/*
-5.3.3 Equijoin
-
-*/
-
-%Equijoin    
-distributedjoin(ObjName1, ObjName2, pr(attr(X1,X2,X3)=attr(Y1,Y2,Y3),
-                Rel1, Rel2)) 
-translatesD [SecondoPlan, [none]] :-
- X=attr(X1,X2,X3),
- Y=attr(Y1,Y2,Y3),
- Rel1 = rel(_, _),
- Rel2 = rel(_, _),
- isOfFirst(_, X, Y), 
- isOfSecond(_, X, Y),
- buildSecondoPlan(ObjName1, ObjName2, pr(X=Y, Rel1, Rel2), 
-		  SecondoPlan, false). 
-           
-%Standard Join           
-distributedjoin(ObjName1, ObjName2, pr(Pred,Rel1, Rel2)) 
-translatesD [SecondoPlan, [none]] :-
- Rel1 = rel(_, _),
- Rel2 = rel(_, _),
- buildStdSecondoPlan(ObjName1, ObjName2, pr(Pred, Rel1, Rel2),
-		  SecondoPlan, false). 
-
-/*
-It is assumed that if "function" is specified in
-the system relation "SEC2DISTRIBUTED", then a deterministic
-function using the specified attribute was used.
-The functions used for partitioning both used relations are assumed
-to result in the same values if given the same attribute value. E.g.
-both used the same hashvalue.
-
-Equijoin Secondo Plan for both are partitioned by join attribute
- using modulo. 
- Modulo is the most efficient compared to the other options, 
- because we do not need to repartition and also there is no
- need to calculate the worker, on which a tuple is located, 
- the worker number is already the modulo value. Thus it is 
- slightly more efficient than any other function (i.e. hash).
- In case it is possible in the future to deploy different secondo plans
- to different workers (i.e. tell each worker which part of the shared
- relation it should use), having 2 replicated relations
- is the most efficient solution. 
-
-*/
-
-buildSecondoPlan(ObjName1, ObjName2, pr(X=Y, Rel1, Rel2), 
-		 SecondoPlan, _):-		 
- plan_to_atom(simple_attrname(X), X2),
- plan_to_atom(simple_attrname(Y), Y2),
- distributedRels(_, ObjName1, _, 'modulo', X2),
- distributedRels(_, ObjName2, _, 'modulo', Y2),
- Rel1 = rel(_, Rel1Var),
- Rel2 = rel(_, Rel2Var),
- % rename the parameter relations of the dmapped plan if needed
- feedRenameRelation(dot, Rel1Var, Feed1),
- feedRenameRelation(dotdot, Rel2Var, Feed2),
- !,
- SecondoPlan = dmap2(ObjName1, ObjName2, value_expr(string, ""),
-               hashjoin(Feed1, Feed2,attrname(X), 
-               attrname(Y), 999997), 1238).
-               
-%Equijoin Secondo Plan for both are partitioned by join attribute
-%using a function
-buildSecondoPlan(ObjName1, ObjName2, pr(X=Y, Rel1, Rel2), 
-		 SecondoPlan, _):-		 
- plan_to_atom(simple_attrname(X), X2),
- plan_to_atom(simple_attrname(Y), Y2),
- distributedRels(_, ObjName1, _, 'function', X2),
- distributedRels(_, ObjName2, _, 'function', Y2),
- Rel1 = rel(_, Rel1Var),
- Rel2 = rel(_, Rel2Var),
- % rename the parameter relations of the dmapped plan if needed
- feedRenameRelation(dot, Rel1Var, Feed1),
- feedRenameRelation(dotdot, Rel2Var, Feed2),
- !,
- SecondoPlan = dmap2(ObjName1, ObjName2, value_expr(string, ""),
-               hashjoin(Feed1, Feed2,attrname(X), 
-               attrname(Y), 999997), 1238). 
-
-%Equijoin Secondo Plan for one replicated (relation) and
-%one partitioned (darray/dfarray)
-buildSecondoPlan(ObjName1, ObjName2, pr(X=Y, Rel1, Rel2), 
-		 SecondoPlan, _):-
- distributedRels(_ ,ObjName1,_ ,'share',_ ),
- isPartitioned(ObjName2),
- Rel1 = rel(_, Rel1Var),
- Rel2 = rel(_, Rel2Var),
- % rename the parameter relations of the dmapped plan if needed
- feedRenameRelation(ObjName1, Rel1Var, Feed1),
- feedRenameRelation(dot, Rel2Var, Feed2),
-  !,
- SecondoPlan = dmap(ObjName2, value_expr(string, ""), 
- hashjoin(Feed1,
-	  Feed2, 
-          attrname(X), attrname(Y), 999997)).
-
-%Commutativity for Equijoin & Standard Join
-buildSecondoPlan(ObjName1, ObjName2, pr(Pred, Rel1, Rel2), 
-	         SecondoPlan, false):-  
- buildSecondoPlan(ObjName2, ObjName1, pr(Pred, Rel1, Rel2),
-		  SecondoPlan, true).
-	  		  
-	         	         
-%Equijoin Secondo Plan for repartitioning 2 "wrongly"
-%partitioned relations (darray/dfarray)
-buildSecondoPlan(ObjName1, ObjName2, pr(X=Y, Rel1, Rel2), 
-	         SecondoPlan, _):-	   
-  isPartitioned(ObjName1),
-  isPartitioned(ObjName2),
-  Rel1 = rel(_, Rel1Var),
-  Rel2 = rel(_, Rel2Var),
-  % rename the parameter relations of the dmapped plan if needed
-  feedRenameRelation(dot, Rel1Var, Feed1),
-  feedRenameRelation(dotdot, Rel2Var, Feed2),
-  !,	         
-  SecondoPlan = dmap2(
-	collect2( 
-	   partitionF(ObjName1, value_expr(string, ""), feed(dot), 
-	   hashvalue(our_attrname(X), 999997), 0),
-	   value_expr(string, ""), 1238),
-	collect2(
-	   partitionF(ObjName2, value_expr(string, ""), feed(dot),
-	   hashvalue(our_attrname(Y), 999997), 0),
-	   value_expr(string, ""), 1238),
-	value_expr(string, ""), 
-	hashjoin(Feed1,
-	      Feed2, 
-	      attrname(X), attrname(Y), 999997), 
-	      1238).	
-	    
-%Equijoin Secondo Plan for repartitioning 2 replicated rels
-buildSecondoPlan(ObjName1, ObjName2, pr(attr(_,_,_)=attr(_,_,_), _, _), 
-	         _, true):-	         	         
-  distributedRels(_ ,ObjName1,_ ,'share',_ ),
-  distributedRels(_, ObjName2, _,'share', _),
-  !,
-  write('Both relations are replicated, the query cannot be executed!'),
-  false.
-
-% Plan yields a dfmatrix
-isDfmatrix([_, P]) :-
-  member(distributedobjecttype(dfmatrix), P).
-
-% Plan yields a partitioned distribution.
-isPartitioned([_, P]):-
- is_list(P), !,(
- member(distribution('function', _, _), P);
- member(distribution('modulo', _, _), P);
- member(distribution('random', _, _), P);
- member(distribution('spatial', _, _), P)).                     
-
-% Secondo object represents a partitioned distribution.
-isPartitioned(ObjName):-
- distributedRels(_, ObjName,_ ,'function', _);
- distributedRels(_, ObjName,_ ,'modulo', _);
- distributedRels(_, ObjName,_ ,'random', _);
- distributedRels(_, ObjName,_ ,'spatial', _).
-
-%Standard Join Secondo Plan (one replicated, one partitioned)	
-buildStdSecondoPlan(ObjName1, ObjName2, pr(Pred, Rel1, Rel2), 
-	         SecondoPlan, _):-
-  (DistArgrel = ObjName2, ReplArgrel = ObjName1;
-    DistArgrel = ObjName1, ReplArgrel = ObjName2),
-  distributedRels(_, ReplArgrel, _ , 'share', _),
-  isPartitioned(DistArgrel),
-  Rel1 = rel(_, Rel1Var),
-  Rel2 = rel(_, Rel2Var),
-  % rename the parameter relations of the dmapped plan if needed
-  feedRenameRelation(dot, Rel2Var, Feed2),
-  feedRenameRelation(ReplArgrel, Rel1Var, Feed1),
-  !,
-  SecondoPlan = dmap(DistArgrel, value_expr(string, ""), 
-  filter(product(Feed2,Feed1), Pred)).
+      itSpatialJoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2)),
+      ((CellAttr1 = CellAttr2) and (X intersects Y)) and 
+        gridintersects(grid, bbox(X), bbox(Y), CellAttr1) ),
+  Plan = dmap2(Arg1B, Arg2B, value_expr(string, ""), InnerPlan, 1238),
+  P = [distribution(spatial, DCAttr1, grid), 
+    distribution(spatial, DCAttr2, grid),
+    distributedobjecttype(dfarray)],
+  feedRenameRelation(dot, Var1, Arg1S),		
+  feedRenameRelation(dotdot, Var2, Arg2S).
   
-%Standard Join Secondo Plan, both are partitioned 
-buildStdSecondoPlan(ObjName1, ObjName2, pr(_, _, _), 
-	         _, true):-
-  isPartitioned(ObjName1),
-  isPartitioned(ObjName2),
-  !,
-  write('The joined relations are both partitioned and thus'), 
-  write(' not distributed correctly for standard join.'),
-  false.
-  
-%Standard Join Secondo Plan, if repartitioning is needed 
-buildStdSecondoPlan(_, _, pr(_, _, _), _, true):-
-  !,
-  write('The joined relations are not distributed correctly '),
-  write('for standard join.'),
-  false.
 
-  
+ 
 /*
 6 Cost Functions
 
+----    costD(+Arg, +Sel, +Pred, -Size, -NSlots, -Cost) :-
+----
+
+The cost of argument ~Arg~ for given selectivity ~Sel~ and predicate ~Pred~ is ~Cost~, the resulting dfarray has ~NSlots~ slots, each with a relation of size ~Size~.
+
+Costs are in microseconds, as for standard cost estimation.
+
+6.1 Preliminary Definitions for Cost Estimation
+
 */
 
-% Taken from standard optimizer.
-costD(itSpatialJoin(X, Y, _, _), Sel, _, S, C) :-
-  cost(X, 1, _, SizeX, CostX),
-  cost(Y, 1, _, SizeY, CostY),
-  itSpatialJoinTC(A, B),
-  S is SizeX * SizeY * Sel,
-  C is CostX + CostY +
-  A * (SizeX + SizeY) +
-  B * S.
+moveCost(NSlots, Size, X) :-
+  X is NSlots * Size * 10.0.	% Wild guess, means ten seconds 
+                                % for a million tuples.
+				% To be studied, also tuple size plays a role.
 
+partitionCost(NSlots, Size, X) :-
+  nWorkers(NWorkers),
+  NRounds is (NSlots // NWorkers) + 1,
+  PerSlot is Size * 2.0,
+  X is NRounds * PerSlot.	% Guess, means two seconds are needed to 
+                                % distribute a million tuples on one worker. 
+                                % To be studied.
+
+collectCost(NSlots, Size, X) :-
+    X is NSlots * Size * 2.0.	% Guess, means two seconds are needed to  
+                                % read a column with a million tuples.
+
+nWorkers(14).	% Preliminary.
+
+/*
+
+6.2 Arguments
+
+*/
+
+% Distributed base object
+costD(Obj, _, _, Size, NSlots, 0) :-
+  distributedRels(rel(DCName, _), Obj, _, NSlots, _, _, _),
+  cost(rel(DCName, _), _, _, RelSize, _),
+  Size is RelSize / NSlots.
+
+% Intermediate result
+costD(res(N), _, _, Size, NSlots, 0) :-
+  cost(res(N), _, _, ResSize, _),
+  nslots(N, NSlots),
+  Size is ResSize / NSlots.
   
-costD(hashvalue(_,_), _, _, 1, 0).
-
-costD(dmap(Obj, _, InnerPlan), Sel, Pred, S, C) :-
-  distributedRels(LocalMasterRel, Obj, _, DistType, _, _),
-  substituteSubterm(dot, LocalMasterRel, InnerPlan, LocalInnerPlan),
-  cost(LocalInnerPlan, Sel, Pred, S, InnerC),
-  ( DistType = spatial -> DuplCost = 1000 ; DuplCost = 0 ), % extra charge
-                                                            % for duplicates
-  !,
-  C is InnerC + DuplCost.
-
-costD(dmap(Obj, _, InnerPlan), Sel, Pred, S, C) :-
-  substituteSubterm(dot, Obj, InnerPlan, LocalInnerPlan),
-  cost(LocalInnerPlan, Sel, Pred, S, InnerC),
-  !,
-  C is InnerC.
-
-% if we cannot determine cost of first dmap-argument
-costD(dmap(_, _, X), Sel, Pred, S, C) :-
-  cost(X, 1, Pred, SizeX, CostX),
-  dmapTC(A),
-  S is SizeX * Sel,
-  C is CostX + A * SizeX.
-
- costD(dmap2(_, RelObj, _, InnerPlan, _), Sel, Pred, S, C) :-
-  distributedRels(LocalMasterRel, RelObj, _, _, _),
-  substituteSubterm(dotdot, LocalMasterRel, 
-    InnerPlan, LocalInnerPlan),
-  dmap2TC(A),
-  cost(LocalMasterRel, 1, _, Card, _),
-  cost(LocalInnerPlan, Sel, Pred, _, InnerCost),
-  !,
-  S is Sel * Card,
-  C is InnerCost + A * S.  
-
-% we have two d/farray-objects as arguments
-costD(dmap2(RelObj1, RelObj2, _, InnerPlan, _), Sel, Pred, _, C) :-
-  distributedRels(LocalMasterRel1, RelObj1, _, _, _),
-  distributedRels(LocalMasterRel2, RelObj2, _, _, _),
-  substituteSubterm(dot, LocalMasterRel1, 
-    InnerPlan, LocalInnerPlan1),
-  substituteSubterm(dotdot, LocalMasterRel2, 
-    LocalInnerPlan1, LocalInnerPlan),
-  dmap2TC(A),
-  cost(LocalMasterRel1, 1, _, Card1, _),
-  cost(LocalMasterRel2, 1, _, Card2, _),
-  cost(LocalInnerPlan, Sel, Pred, _, InnerCost),
-  !,
-  S1 is Sel * Card1,
-  S2 is Sel * Card2,
-  C is InnerCost + A * S1 + A * S2.
-
-% we have two d/farray-values as arguments 
-costD(dmap2(Arg1, Arg2, _, InnerPlan, _), Sel, Pred, _, C) :-
-  cost(Arg1, _, _,  _, C1),
-  cost(Arg2, _, _,  _, C2),
-  substituteSubterm(dot, Arg1, 
-    InnerPlan, LocalInnerPlan1),
-  substituteSubterm(dotdot, Arg2, 
-    LocalInnerPlan1, LocalInnerPlan),
-  cost(LocalInnerPlan, Sel, Pred, _, InnerCost),
-  dmap2TC(A),
-  !,
-  ArgS1 is Sel * C1,
-  ArgS2 is Sel * C2,
-  C is InnerCost + A * ArgS1 + A * ArgS2.
-  
- costD(dmap2(RelObj1, RelObj2, _, InnerPlan, _), Sel, Pred, _, C) :-
- substituteSubterm(dot, "#!SUBST1!#", RelObj1, RelObj_Mod1),
-  substituteSubterm(dot, "#!SUBST2!#", RelObj2, RelObj_Mod2),
-  substituteSubterm(dot, RelObj_Mod1, InnerPlan, TempPlan1),
-  substituteSubterm(dotdot, RelObj_Mod2, TempPlan1, TempPlan2),
-  substituteSubterm( "#!SUBST1!#", dot,TempPlan2, TempPlan3),
-  substituteSubterm( "#!SUBST2!#", dot,TempPlan3, FinallyGoodPlan),
-  dmap2TC(A),
-  cost(RelObj1, 1, _, Card1, _),
-  cost(RelObj2, 1, _, Card2, _),
-  cost(FinallyGoodPlan, Sel, Pred, _, InnerCost),
-  !,
-  S1 is Sel * Card1,
-  S2 is Sel * Card2,
-  C is InnerCost + A * S1 + A * S2.
-
-% we have two d/fmatrix-values as arguments 
-costD(areduce2(Arg1, Arg2, _, InnerPlan, _), Sel, Pred, _, C) :-
-  cost(Arg1, _, _, _, C1),
-  cost(Arg2, _, _, _, C2),
-  substituteSubterm(dot, Arg1, 
-    InnerPlan, LocalInnerPlan1),
-  substituteSubterm(dotdot, Arg2, 
-    LocalInnerPlan1, LocalInnerPlan),
-  cost(LocalInnerPlan, Sel, Pred, _, InnerCost),
-  areduce2TC(A),
-  !,
-  ArgS1 is Sel * C1,
-  ArgS2 is Sel * C2,
-  C is InnerCost + A * ArgS1 + A * ArgS2.
-
- costD(collect2(InnerPlan, _ , _), Sel, Pred, S, C) :-
-  cost(InnerPlan, Sel, Pred, S, InnerCost),
-  collect2TC(A),
-  C is InnerCost + A * S.  
-  
- costD(partitionF(RelObj, _, InnerPlan, _, _), Sel, Pred, S, C) :-
-   distributedRels(LocalMasterRel, RelObj, _, _, _),
-  substituteSubterm(dot, LocalMasterRel, 
-    InnerPlan, LocalInnerPlan),
-  partitionFTC(A),
-  cost(LocalMasterRel, 1, _, S, _),
-  cost(LocalInnerPlan, Sel, Pred, _, InnerCost),
-  !,
-  C is (InnerCost + A) * S.
-
-  % generic case
- costD(partitionF(RelObj, _, _, _), _, _, S, C) :-
-  cost(RelObj, 1, _, RS, RC),
-  partitionFTC(A),
-  S is RS,
-  C is RC + S * A.
-
- costD(extendstream(Stream, _, cellnumber(bbox(_), _)), _, _, S, C) :-
-  cost(Stream, 1, _, S, StreamC),
-  extendstreamTC(ETC),
-  bboxTC(BTC),
-  cellnumberTC(CTC),
-  TC is  ETC + BTC + CTC,
-  C is S * TC + StreamC.
-
-costD(range(_, Rel, _, _), Sel, _, S, C) :-
-  cost(Rel, 1, _, Card, _),
-  S is Sel * Card,
-  leftrangeTC(A),
-  C is A * S.
-
-costD(dloop2(_, RelObj, _, InnerPlan), Sel, Pred, S, C) :-
-  distributedRels(LocalMasterRel, RelObj, _, _, _),
-  substituteSubterm(dotdot, LocalMasterRel, 
-    InnerPlan, LocalInnerPlan),
-  dloopTC(A),
-  cost(LocalMasterRel, 1, _, Card, _),
-  cost(LocalInnerPlan, Sel, Pred, _, InnerCost),
-  !,
-  S is Sel * Card,
-  C is InnerCost + A * S.
 
 
-/* dummy for dsummarize */
-costD(dsummarize(_), _, _, _, 0).
+/*
+6.2 dproduct
 
-costD(dsummarize(X), Sel, Pred, S, C) :-
-  cost(X, Sel, Pred, S, C1),
-  dsummarizeTC(A),
-  C is C1 + A * S.
+Product moves for each slot ~i~ of the first argument all slots of the second argument to the worker processing slot ~i~. There it applies the parameter plan to the relation of slot ~i~ and the complete relation of the second argument.
+
+*/
+
+costD(dproduct(X, Y, _, Plan, _), Sel, Pred, Size, NSlots, Cost) :-
+  costD(X, 1, _, SizeX, NSlots, CostX),
+	% SizeX is the number of tuples per slot.
+	% NSlots is the number of slots of the distributed array.
+	% CostX is the cost to produce this argument.
+  costD(Y, 1, _, SizeY, NSlots, CostY),
+  SizeB is SizeY * NSlots,
+  substituteSubterm(dot, dot(SizeX), Plan, Plan1),
+  substituteSubterm(dotdot, dotdot(SizeB), Plan1, Plan2),
+  	write('Plan cost product = '), write(Plan2), nl, nl,
+  cost(Plan2, Sel, Pred, Size, PlanCost), 
+  moveCost(NSlots, SizeB, CMove),
+  nWorkers(NWorkers),
+  NRounds is (NSlots // NWorkers) + 1,
+  Cost is CostX + CostY + CMove + NRounds * PlanCost.
+
+/*
+6.3 dmap, dmap2
+
+*/
+
+costD(dmap(X, _, Plan), Sel, Pred, Size, NSlots, Cost) :-
+  costD(X, 1, _, SizeX, NSlots, CostX),
+  substituteSubterm(dot, dot(SizeX), Plan, Plan2),
+  	write('Plan cost dmap = '), write(Plan2), nl, nl,
+  cost(Plan2, Sel, Pred, Size, PlanCost), 
+  nWorkers(NWorkers),
+  NRounds is (NSlots // NWorkers) + 1,
+  Cost is CostX + NRounds * PlanCost.
+
+
+costD(dmap2(X, Y, _, Plan, _), Sel, Pred, Size, NSlots, Cost) :-
+  costD(X, 1, _, SizeX, NSlots, CostX),
+  costD(Y, 1, _, SizeY, NSlots, CostY),
+  substituteSubterm(dot, dot(SizeX), Plan, Plan1),
+  substituteSubterm(dotdot, dotdot(SizeY), Plan1, Plan2),
+  	write('Plan cost dmap2 = '), write(Plan2), nl,
+	write('Sel = '), write(Sel), nl,
+	write('Pred = '), write(Pred), nl, nl,
+  Sel2 is Sel * NSlots,
+  cost(Plan2, Sel2, Pred, Size, PlanCost), 
+        write('The cost of the inner plan is: '), write(PlanCost), nl,
+  nWorkers(NWorkers),
+  NRounds is (NSlots // NWorkers) + 1,
+  Cost is CostX + CostY + NRounds * PlanCost.
+
+
+/*
+6.4 partitionF, collect2
+
+*/
+
+costD(partitionF(X, _, _, _, _), _, _, SizeX, NSlots, Cost) :-
+  costD(X, 1, _, SizeX, NSlots, CostX),
+  partitionCost(NSlots, SizeX, Cost2),
+  Cost is CostX + Cost2.
+
+costD(collect2(X, _, _), _, _, SizeX, NSlots, Cost) :-
+  costD(X, 1, _, SizeX, NSlots, CostX),
+  nWorkers(NWorkers),
+  NRounds is (NSlots // NWorkers) + 1,
+  collectCost(NSlots, SizeX, Cost2),
+  Cost is CostX + NRounds * Cost2.
+
+
+/*
+6.5 areduce2
+
+*/
+
+costD(areduce2(X, Y, _, Plan, _), Sel, Pred, Size, NSlots, Cost) :-
+  costD(X, 1, _, SizeX, NSlots, CostX),
+  costD(Y, 1, _, SizeY, NSlots, CostY),
+  collectCost(NSlots, SizeX, CostX1),
+  collectCost(NSlots, SizeY, CostY1),
+  substituteSubterm(dot, dot(SizeX), Plan, Plan1),
+  substituteSubterm(dotdot, dotdot(SizeY), Plan1, Plan2),
+  	write('Plan2 areduce2 = '), write(Plan2), nl, nl,
+  Sel2 is Sel * NSlots,
+  cost(Plan2, Sel2, Pred, Size, PlanCost), 
+  nWorkers(NWorkers),
+  NRounds is (NSlots // NWorkers) + 1,
+  Cost is CostX + CostY + NRounds * (CostX1 + CostY1 + PlanCost).
 
 
 
@@ -921,12 +699,7 @@ The predicate recursively processes the given mixed plan, adding for each operat
 */
 
 
-transform2DPlan(Plan, Plan, seqstart) :-
-  (   Plan = dmap(_, _, _) 
-    ; Plan = dmap2(_, _, _, _, _)
-    ; Plan = dmap(dbotherobject(_), _, _)
-  ),
-  !.
+
 
 transform2DPlan(consume(Plan), DistPlan, consume(SeqPlan)) :-
   transform2DPlan(Plan, DistPlan, SeqPlan),
@@ -971,6 +744,15 @@ transform2DPlan(count(Plan), DistPlan, count(SeqPlan)) :-
   transform2DPlan(Plan, DistPlan, SeqPlan),
   !.
 
+transform2DPlan(Plan, Plan, seqstart) :-
+  (   Plan = dmap(_, _, _) 
+    ; Plan = dmap2(_, _, _, _, _)
+    ; Plan = dmap(dbotherobject(_), _, _)
+    ; Plan = dproduct(_, _, _, _, _)
+    ; Plan = areduce2(_, _, _, _, _)
+  ),
+  !.
+
 /*
 ----    combinePlans(+DistributedPlan, +SequentialPlan, -Plan) :-
 ----
@@ -1009,13 +791,6 @@ Descends into terms and merges dmaps if possible.
 
 */
 
-
-mergeDmaps(Plan, Plan) :-
-  ( Plan = dmap(dbotherobject(_), _, _) 
-    ; Plan = dmap2(_, _, _, _, _) 	% this case to be improved
-  ),
-  !.
-
 mergeDmaps(
   dmap(dmap(X, _, InnerPlanX), _, OuterPlan),
   dmap(Y, value_expr(string, ""), Plan)) :-
@@ -1036,8 +811,90 @@ mergeDmaps(
   dmap2(X, Y, value_expr(string, ""), Plan, FileServer)) :-
   substituteSubterm(feed(dot), InnerPlan, OuterPlan, Plan),
   !.
+  
+
+% dproduct, preceding dmaps
+mergeDmaps(
+  dproduct(X, Y, _, OuterPlan, FileServer),
+  dproduct(X1, Z, value_expr(string, ""), Plan, FileServer)) :-
+  mergeDmaps(X, dmap(X1, _, InnerPlan)),
+  mergeDmaps(Y, Z), 
+  substituteSubterm(feed(dot), InnerPlan, OuterPlan, Plan),
+  !.
+
+% dproduct, following dmaps
+mergeDmaps(
+  dmap(dproduct(X, Y, _, InnerPlan, FileServer), _, OuterPlan),
+  dproduct(X1, Y1, value_expr(string, ""), Plan, FileServer)) :-
+  mergeDmaps(
+    dproduct(X, Y, _, InnerPlan, FileServer),
+    dproduct(X1, Y1, _, InnerPlan1, FileServer)),
+  substituteSubterm(feed(dot), InnerPlan1, OuterPlan, Plan),
+  !.
 
 
+% areduce2 + partitionF, preceding dmaps
+mergeDmaps(
+  areduce2(
+    partitionF(X, _, InnerPlanX, Func, FS),
+    partitionF(Y, _, InnerPlanY, Func, FS), 
+    _, Outerplan, N),
+  areduce2(
+    partitionF(X1, value_expr(string, ""), InnerPlanX1, Func, FS),
+    partitionF(Y1, value_expr(string, ""), InnerPlanY1, Func, FS), 
+    value_expr(string, ""), Outerplan, N)) :-
+	write('areduce2 0'), nl, 
+  mergeDmaps(
+    partitionF(X, _, InnerPlanX, Func, FS), 
+    partitionF(X1, _, InnerPlanX1, Func, FS)),
+	write('areduce2 1'), nl, 
+  mergeDmaps(
+    partitionF(Y, value_expr(string, ""), InnerPlanY, Func, FS), 
+    partitionF(Y1, value_expr(string, ""), InnerPlanY1, Func, FS)),
+	write('areduce2 2'), nl, 
+  !.
+
+
+% areduce, following dmaps
+mergeDmaps(
+  dmap(areduce2(X, Y, S, InnerPlan, FS), S, OuterPlan),
+  areduce2(X1, Y1, S, Plan, FS))
+  :-
+  mergeDmaps(
+    areduce2(X, Y, S, InnerPlan, FS),
+    areduce2(X1, Y1, S, InnerPlan1, FS)),
+  substituteSubterm(feed(dot), InnerPlan1, OuterPlan, Plan),
+  !.
+  
+
+% partitionF, preceding dmaps
+mergeDmaps(
+  partitionF(dmap(X, S, InnerPlan), S, OuterPlan, Func, FS),
+  partitionF(X1, S, Plan, Func, FS))
+  :-
+  mergeDmaps(dmap(X, S, InnerPlan), dmap(X1, S, InnerPlan1)),
+  substituteSubterm(feed(dot), InnerPlan1, OuterPlan, Plan),
+  !.
+  
+
+  
+mergeDmaps(Plan, Plan) :-
+  ( Plan = dmap(dbotherobject(_), _, _) 
+    ; Plan = dmap2(_, _, _, _, _) 	% this case to be improved
+    ; Plan = dproduct(_, _, _, _, _)
+  ),
+  !.
+
+mergeDmaps(Plan, Plan).
+
+/*
+Yet to be done:
+
+  * Merge a preceding dmap on first or second argument into dmap2.
+
+  * Merge a preceding dmap on first argument only (!) into dproduct (because second argument is moved before execution starts and could be reduced in dmap before movement).
+ 
+*/
 
 
 
@@ -1204,6 +1061,7 @@ feedRenameRelation(rel(Rel, Var), Plan) :-
   feedRenameRelation(Rel, Var, Plan),!.
 
 
+
 /*
 11 Extensions to File ~database.pl~
 
@@ -1307,50 +1165,50 @@ objectCatalog(DcObj, FlObj, Type) :-
 11.3 Reading the catalogue of distributed relations
 
 Get metainformation about the distributed relations in this db.
-Use distributedRels/5 predicate in conjuction with isDistributedQuery
+Use distributedRels/7 predicate in conjuction with isDistributedQuery
 to cover special cases for distributed queries. 
 
 */
 
 :-
-  dynamic(storedDistributedRelation/6),
+  dynamic(storedDistributedRelation/7),
   dynamic(onlineWorker/3).
 
-distributedRels(Rel, Obj, DistType, PartType, DistAttr) :-
-  distributedRels(Rel, Obj, DistType, PartType, DistAttr, _).
+% distributedRels(Rel, Obj, DistObjType, NSlots, PartType, DistAttr) :-
+%   distributedRels(Rel, Obj, DistObjType, NSlots, PartType, DistAttr, _).
 
-distributedRels(rel(Rel, Var), ObjName, DistType, 
+distributedRels(rel(Rel, Var), ObjName, DistObjType, NSlots, 
   PartType, DistAttr, DistParam) :-
-    storedDistributedRelation(_,_,_,_,_,_), 
+    storedDistributedRelation(_, _, _, _, _, _, _), 
     ground(Var), !,% first argument instantiated - but do not match against Var
     storedDistributedRelation(rel(Rel, _), ObjName, 
-    DistType, PartType, DistAttr, DistParam).
+    DistObjType, NSlots, PartType, DistAttr, DistParam).
 
-distributedRels(rel(Rel, Var), ObjName, DistType, 
+distributedRels(rel(Rel, Var), ObjName, DistObjType, NSlots, 
   PartType, DistAttr, DistParam) :-
-    storedDistributedRelation(_,_,_,_,_,_), !,
+    storedDistributedRelation(_, _, _, _, _, _, _), !,
     storedDistributedRelation(rel(Rel, Var), ObjName, 
-    DistType, PartType, DistAttr, DistParam).
+    DistObjType, NSlots, PartType, DistAttr, DistParam).
 
-distributedRels(rel(Rel, Var), ObjName, DistType, 
+distributedRels(rel(Rel, Var), ObjName, DistObjType, NSlots, 
   PartType, DistAttr, DistParam) :-
-    not(storedDistributedRelation(_,_,_,_,_,_)),
+    not(storedDistributedRelation(_, _, _, _, _, _, _)),
     ground(Var), !,% first argument instantiated - but do not match against Var
     queryDistributedRels,!,
     storedDistributedRelation(rel(Rel, _), ObjName, 
-    DistType, PartType, DistAttr, DistParam).
+    DistObjType, NSlots, PartType, DistAttr, DistParam).
 
-distributedRels(rel(Rel,Var), ObjName, DistType, 
+distributedRels(rel(Rel,Var), ObjName, DistObjType, NSlots, 
   PartType, DistAttr, DistParam) :-
-    not(storedDistributedRelation(_,_,_,_,_,_)),
+    not(storedDistributedRelation(_, _, _, _, _, _, _)),
     queryDistributedRels,!,
     storedDistributedRelation(rel(Rel, Var), ObjName, 
-    DistType, PartType, DistAttr, DistParam).
+    DistObjType, NSlots, PartType, DistAttr, DistParam).
 
 
 %check whether the relation is distributed or not
 isDistributedRelation(rel(Rel, _)) :-
-  distributedRels(rel(Rel,'*'), _, _,_,_),
+  distributedRels(rel(Rel,'*'), _, _, _, _, _, _),
   !.
 
 /* 
@@ -1364,19 +1222,19 @@ opening and closing quote and have to be stripped off these.
 
 storeDistributedRels([]).
 
-storeDistributedRels([[RelName, ObjName, DistType, 
+storeDistributedRels([[RelName, ObjName, DistObjType, NSlots, 
   PartType, DistAttr, DistParam]|T]) :-
-  storeDistributedRel(RelName, ObjName, DistType, 
+  storeDistributedRel(RelName, ObjName, DistObjType, NSlots, 
     PartType, DistAttr, DistParam), 
   storeDistributedRels(T).
 
-storeDistributedRel(RelName, ObjName, DistType, 
+storeDistributedRel(RelName, ObjName, DistObjType, NSlots, 
   PartType, DistAttr, DistParam) :-
   downcase_atom(RelName, DCRelName),
   downcase_atom(ObjName, DCObjName),
   assert(storedDistributedRelation(rel(DCRelName, '*'), 
          dbotherobject(DCObjName), 
-         DistType, PartType, DistAttr, DistParam)),
+         DistObjType, NSlots, PartType, DistAttr, DistParam)),
   !.
 
 storeDistributedRel(_, _, _, _, _) :- !.
@@ -1467,16 +1325,11 @@ If necessary the two relations will be created without content.
 */
 
 queryDistributedRels :-
-  retractall(storedDistributedRelation(_,_,_,_,_)),
+  retractall(storedDistributedRelation(_, _, _, _, _, _, _)),
   distributedRelsAvailable,
   secondo('query SEC2DISTRIBUTED',[_, Tuples]), 
   !,
-  maplist(maplist(stringWithoutQuotes), Tuples, StrippedTuples),
-	write('Tuples: '), write(Tuples), nl, nl, nl, 
-	write('StrippedTuples: '), write(StrippedTuples), nl, nl, nl, 
-%  maplist(maplist(string_to_atom), StrippedTuples, ObjList),
-  maplist(maplist(atom_string), ObjList, StrippedTuples),
-	write('ObjList: '), write(ObjList), nl, nl, nl, 
+  maplist(maplist(stringWithoutQuotes), Tuples, ObjList),
   storeDistributedRels(ObjList),
   !.
 
@@ -1489,6 +1342,7 @@ distributedRelsAvailable :-
              [RelName: string,\c 
               ArrayRef: string, \c 
               DistType: string, \c
+              NSlots: int, \c
               PartType: string, \c
               PartAttribute: string, \c
               PartParam: string]))value()]',_),
