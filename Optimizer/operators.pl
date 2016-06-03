@@ -69,6 +69,8 @@ createbtreeTC(0.12).
 sorttidTC(0.1).  % used for sorting tuple ids after a windowIntersectsS
 rdupTC(0.1).
 
+indextmatchesTC(14.53).
+
 /*
 1.2 General Constants
 
