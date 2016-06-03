@@ -428,23 +428,29 @@ Signature: mlabel x text -> bool
 Example  : query mlabel1 matches '(_ "Eving") * (_ "Innenstadt-Ost") +'
 Result   : TRUE
 
+Operator : tmatches
+Number   : 1
+Signature: tuple(X) x IDENT x (text | pattern) -> bool
+Example  : query Dotraj feed filter[. tmatches [Trajectory, '()']] count
+Result   : 0
+
 
 Operator : createtupleindex
 Number   : 1
 Signature: stream(tuple(X)) x IDENT -> tupleindex
-Example  : query Dotraj tmatches[Trajectory, '()', (Dotraj feed createtupleindex[Trajectory])] count
+Example  : query (Dotraj feed createtupleindex[Trajectory]) Dotraj indextmatches[Trajectory, '()'] count
 Result   : 0
 
 Operator : bulkloadtupleindex
 Number   : 1
 Signature: rel(tuple(X)) x IDENT -> tupleindex
-Example  : query Dotraj tmatches[Trajectory, '()', (Dotraj bulkloadtupleindex[Trajectory])] count
+Example  : query Dotraj bulkloadtupleindex[Trajectory] Dotraj indextmatches[Trajectory, '()'] count
 Result   : 0
 
-Operator : tmatches
+Operator : indextmatches
 Number   : 1
-Signature: tuple(X) x IDENT x (text | pattern) -> bool
-Example  : query Dotraj feed filter[. tmatches [Trajectory, '()']] count
+Signature: tupleindex x rel(tuple(X)) x IDENT x (text | pattern) -> stream(tuple(X))
+Example  : query Dotraj bulkloadtupleindex[Trajectory] Dotraj indextmatches[Trajectory, '()'] count
 Result   : 0
 
 Operator : filtermatches

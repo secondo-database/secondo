@@ -3025,32 +3025,20 @@ Operator bulkloadtupleindex("bulkloadtupleindex", bulkloadtupleindexSpec,
 
 */
 ListExpr tmatchesTM(ListExpr args) {
-  string err = "the expected syntax is: tuple(X) x attrname x (text | pattern) "
-               "\n or rel(tuple(X)) x attrname x (text | pattern) x tupleindex";
-  if (!nl->HasLength(args, 3) && !nl->HasLength(args, 4)) {
+  string err = "the expected syntax is: tuple(X) x attrname x (text | pattern)";
+  if (!nl->HasLength(args, 3)) {
     return listutils::typeError(err + " (wrong number of arguments)");
   }
   ListExpr attrs;
-  ListExpr tList;
-  if (nl->HasLength(args, 3)) {
-    if (!Tuple::checkType(nl->First(nl->First(args)))) {
-      return listutils::typeError(err + " (first argument is not a tuple)");
-    }
-    attrs = nl->Second(nl->First(nl->First(args)));
+  if (!Tuple::checkType(nl->First(nl->First(args)))) {
+    return listutils::typeError(err + " (first argument is not a tuple)");
   }
-  else {
-    if (!Relation::checkType(nl->First(nl->First(args)))) {
-      return listutils::typeError(err + " (first argument is not a relation)");
-    }
-    tList = nl->Second(nl->First(nl->First(args)));
-    attrs = nl->Second(tList);
-  }
+  attrs = nl->Second(nl->First(nl->First(args)));
   if (!listutils::isSymbol(nl->First(nl->Second(args))) ||
       (!FText::checkType(nl->First(nl->Third(args))) && 
         !PatPersistent::checkType(nl->First(nl->Third(args))))) {
     return listutils::typeError(err + " (error in 2nd or 3rd argument)");
   }
-  
   string name = nl->SymbolValue(nl->First(nl->Second(args)));
   ListExpr type;
   int index = listutils::findAttribute(attrs, name, type);
@@ -3062,14 +3050,6 @@ ListExpr tmatchesTM(ListExpr args) {
     return listutils::typeError("Attribute " + name + " is not a symbolic "
                               "trajectory (MLabel, MLabels, MPlace, MPlaces)");
   }
-  if (nl->HasLength(args, 4)) {
-    if (!TupleIndex::checkType(nl->First(nl->Fourth(args)))) {
-      return listutils::typeError(err + " (4th argument is not a tuple index)");
-    }
-    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                             nl->OneElemList(nl->IntAtom(index - 1)), 
-                      nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), tList));
-  }
   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                            nl->OneElemList(nl->IntAtom(index - 1)), 
                            nl->SymbolAtom(CcBool::BasicType()));
@@ -3080,12 +3060,7 @@ ListExpr tmatchesTM(ListExpr args) {
 
 */
 int tmatchesSelect(ListExpr args) {
-  if (nl->HasLength(args, 3)) {
-    return FText::checkType(nl->Third(args)) ? 0 : 1;
-  }
-  else {
-    return FText::checkType(nl->Third(args)) ? 2 : 3;
-  }
+  return FText::checkType(nl->Third(args)) ? 0 : 1;
 }
 
 /*
@@ -3122,8 +3097,80 @@ int tmatchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   return 0;
 }
 
+/*
+\subsection{Operator Info}
+
+*/
+const string tmatchesSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> tuple(X) x attrname x (pattern | text) -> bool </text--->"
+  "<text> t matches [attr, p] </text--->"
+  "<text> Checks whether the moving type attributes of the tuple match the\n"
+  "pattern. The given attribute name has to be the name of a symbolic\n"
+  "trajectory attribute. It is treated as a master attribute."
+  "<text>query Part feed filter[. matches [ML, "
+  "'* (_ _ superset{\"BKA\"}) *']] count </text--->) )";
+
+ValueMapping tmatchesVMs[] = {tmatchesVM<FText>, tmatchesVM<PatPersistent>};
+
+Operator tmatches("tmatches", tmatchesSpec, 2, tmatchesVMs, tmatchesSelect,
+                  tmatchesTM);
+
+
+
+
+/*
+\section{Operator ~indextmatches~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr indextmatchesTM(ListExpr args) {
+  string err = "the expected syntax is: tupleindex x rel x attrname x "
+               "(text | pattern)";
+  if (!TupleIndex::checkType(nl->First(nl->First(args)))) {
+    return listutils::typeError(err + " (first argument is not a tuple index)");
+  }
+  if (!Relation::checkType(nl->First(nl->Second(args)))) {
+    return listutils::typeError(err + " (second argument is not a relation)");
+  }
+  if (!listutils::isSymbol(nl->First(nl->Third(args))) ||
+          (!FText::checkType(nl->First(nl->Fourth(args))) && 
+           !PatPersistent::checkType(nl->First(nl->Fourth(args))))) {
+    return listutils::typeError(err + " (error in 3rd or 4th argument)");
+  }
+  ListExpr tList = nl->Second(nl->First(nl->Second(args)));
+  ListExpr attrs = nl->Second(tList);
+  string name = nl->SymbolValue(nl->First(nl->Third(args)));
+  ListExpr type;
+  int index = listutils::findAttribute(attrs, name, type);
+  if (!index) {
+    return listutils::typeError("Attribute " + name + " not found in relation");
+  }
+  if (!MLabel::checkType(type) && !MLabels::checkType(type) &&
+      !MPlace::checkType(type) && !MPlaces::checkType(type)) {
+    return listutils::typeError("Attribute " + name + " is not a symbolic "
+                              "trajectory (MLabel, MLabels, MPlace, MPlaces)");
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                           nl->OneElemList(nl->IntAtom(index - 1)), 
+                      nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), tList));
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int indextmatchesSelect(ListExpr args) {
+  return FText::checkType(nl->Fourth(args)) ? 0 : 1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
 template<class P>
-int tmatchesindexVM(Word* args, Word& result, int message, Word& local, 
+int indextmatchesVM(Word* args, Word& result, int message, Word& local, 
                     Supplier s) {
   TMatchIndexLI *li = (TMatchIndexLI*)local.addr;
   switch (message) {
@@ -3132,13 +3179,13 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
         delete li;
         local.addr = 0;
       }
-      Relation *rel = static_cast<Relation*>(args[0].addr);
+      Relation *rel = static_cast<Relation*>(args[1].addr);
       CcInt *attrno = static_cast<CcInt*>(args[4].addr);
-      TupleIndex *ti = static_cast<TupleIndex*>(args[3].addr);
-      FText* pText = static_cast<FText*>(args[2].addr);
+      TupleIndex *ti = static_cast<TupleIndex*>(args[0].addr);
+      FText* pText = static_cast<FText*>(args[3].addr);
       Pattern *p = 0;
       if (pText->IsDefined() && attrno->IsDefined() && rel->GetNoTuples() > 0) {
-        Supplier s0 = qp->GetSon(s, 0);
+        Supplier s0 = qp->GetSon(s, 1);
         ListExpr ttList = nl->Second(qp->GetType(s0));
 //         cout << "ttype is " << nl->ToString(ttList) << endl;
         Tuple *firstTuple = rel->GetTuple(1, false);
@@ -3187,21 +3234,21 @@ int tmatchesindexVM(Word* args, Word& result, int message, Word& local,
 \subsection{Operator Info}
 
 */
-const string tmatchesSpec =
+const string indextmatchesSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text> tuple(X) x attrname x (pattern | text) -> bool </text--->"
-  "<text> t matches [attr, p] </text--->"
-  "<text> Checks whether the moving type attributes of the tuple match the\n"
+  "<text> tupleindex rel indextmatches [attr, p] </text--->"
+  "<text> Checks whether the moving type attributes of the relation match the\n"
   "pattern. The given attribute name has to be the name of a symbolic\n"
-  "trajectory attribute. It is treated as a master attribute."
-  "<text>query Part feed filter[. matches [ML, "
-  "'* (_ _ superset{\"BKA\"}) *']] count </text--->) )";
+  "trajectory attribute. It is treated as a main attribute."
+  "<text>query Part bulkloadtupleindex[ML] Part indextmatches[ML, "
+  "'* (_ _ superset{\"BKA\"}) *'] count </text--->) )";
 
-ValueMapping tmatchesVMs[] = {tmatchesVM<FText>, tmatchesVM<PatPersistent>,
-  tmatchesindexVM<FText>, tmatchesindexVM<PatPersistent>};
+ValueMapping indextmatchesVMs[] = {indextmatchesVM<FText>, 
+                                   indextmatchesVM<PatPersistent>};
 
-Operator tmatches("tmatches", tmatchesSpec, 4, tmatchesVMs, tmatchesSelect,
-                  tmatchesTM);
+Operator indextmatches("indextmatches", indextmatchesSpec, 2, indextmatchesVMs,
+                       indextmatchesSelect, indextmatchesTM);
 
 /*
 \section{Operator ~createunitrtree~}
@@ -4922,6 +4969,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
    
   AddOperator(&tmatches);
   tmatches.SetUsesArgsInTypeMapping();
+  
+  AddOperator(&indextmatches);
+  indextmatches.SetUsesArgsInTypeMapping();
   
   ValueMapping createunitrtreeVMs[] = {createunitrtreeVM<MLabel>,
     createunitrtreeVM<MLabels>, createunitrtreeVM<MPlace>, 
