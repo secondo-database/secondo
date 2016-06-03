@@ -2443,6 +2443,7 @@ indexType( rtree8, [[rtree8|_]] ).
 indexType( mtree,  [mtree]      ).
 indexType( xtree,  [xtree]      ).
 indexType( invfile,[invfile]    ).
+indexType( tupleindex, [tupleindex]).
 
 
 % Section:Start:indexType_2_e
@@ -2684,6 +2685,14 @@ logicalIndexType(constuni, constuni(btree), btree,
 logicalIndexType(invfile, invfile, invfile, [rel|[tuple|_]],
     ['__REL__', 'createtrie[', '__ATTR__', ']'],
     undefined, undefined, undefined).
+
+
+logicalIndexType(tupleindex, tupleindex, tupleindex,
+    [mlabel, mlabels, mplace, mplaces],
+    ['__REL__', ' bulkloadtupleindex[', '__ATTR__', ']'],
+    undefined,
+    undefined,
+    undefined).
 
 % Section:Start:logicalIndexType_8_e
 % Section:End:logicalIndexType_8_e
