@@ -14,6 +14,19 @@ Example   : query da1 da2 dloop2S["da3", . + ..]
 Result    : bug
 Remark    : under construction
 
+Operator  : dmapS 
+Number    : 1
+Signature : darray(X) x string x (X -> Y) -> code(Y)
+Example   : query [const darray(int) value (da1 2 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))] dmapS["da3", fun( x : DARRAYELEM) x ] toTasks count    
+Result    : 2
+
+Operator  : dmap2S 
+Number    : 1
+Signature : darray(X) x darray(Y) x string x (X,Y -> Z) -> code(Z)
+Example   : query da1 da2 dmap2S["da3", . + ..]
+Result    : bug
+Remark    : under construction
+
 Operator  : toTasks 
 Number    : 1
 Signature : code(X) -> stream(tuble)

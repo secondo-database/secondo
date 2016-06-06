@@ -972,7 +972,6 @@ class TaskElement{
     string resName;
     size_t resPart;
     size_t resWorker;
-
 };
 
 
@@ -1371,7 +1370,7 @@ class Code{
         delete taskDependenceOn[index];
         taskDependenceOn[index] = 0;
       }
-     }
+    }
     
     void BuildDependenciesVector(){
 
@@ -1745,11 +1744,9 @@ int dloopSVM_Array(Word* args, Word& result, int message,
    for(size_t i=0; i < array->getSize(); i++){
       pos++;
       worker1 = res->mapIndex(array->getWorkerForSlot(i));
-      element = new TaskElement(pos,
-                                a1Name,i,worker1,
+      element = new TaskElement(pos,a1Name,i,worker1,
                                 a2Name,part2,worker2,
-                                fun,
-                                resName,i,0);
+                                fun,resName,i,0);
       tasks.push_back(element);
    }
       cout << "Wir waren da!"  << endl;
@@ -2058,11 +2055,9 @@ int dloop2SVM_ArrayArray(Word* args, Word& result, int message,
       pos++;
       worker1 = res->mapIndex(array1->getWorkerForSlot(i));
       worker2 = res->mapIndex(array2->getWorkerForSlot(i));
-      element = new TaskElement(pos,
-                                a1Name,i,worker1,
+      element = new TaskElement(pos,a1Name,i,worker1,
                                 a2Name,i,worker2,
-                                fun,
-                                resName,i,0);
+                                fun,resName,i,0);
       tasks.push_back(element);
    }
    res->set(tasks);
@@ -2317,6 +2312,1144 @@ Operator dloop2SOp(
   dloop2STM
 );
 
+/*
+17 Operator ~dmapS~
+
+This operator maps the content of a dfarray to another value.
+Depending on the result of the function, the result is a 
+dfarray (result is a relation) or a darray (result is 
+something other).
+The result is a list of tasks in a Code Object, that can be 
+executed by the schedule operator
+
+*/
+
+ListExpr dmapSTM(ListExpr args){
+  string err = "d[f]array(X)  x string x fun expected";
+  if(!nl->HasLength(args,3)){
+    return  listutils::typeError(err + " (wrong number of args)");
+  }
+  // check for internal correctness
+  if(   !nl->HasLength(nl->First(args),2)
+      ||!nl->HasLength(nl->Second(args),2)
+      ||!nl->HasLength(nl->Third(args),2)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr arg1Type = nl->First(nl->First(args));
+  ListExpr arg2Type = nl->First(nl->Second(args));
+  ListExpr arg3Type = nl->First(nl->Third(args));
+
+    if(  (!DFArray::checkType(arg1Type) 
+    && !DArray::checkType(arg1Type) && !Code::checkType(arg1Type))
+     ||!CcString::checkType(arg2Type)
+     ||!listutils::isMap<1>(arg3Type)){
+    return listutils::typeError(err);
+  }
+
+  /* am schluss muss das wieder gehen!
+  if(   DArray::checkType(arg1Type) 
+     && !Relation::checkType(nl->Second(arg1Type))){
+     return listutils::typeError("subtype of darray is not a relation");
+  }
+  */
+
+  ListExpr frelt = 0;
+  
+  //nl->TwoElemList(listutils::basicSymbol<frel>(),
+  //                   nl->Second(nl->Second(arg1Type)));
+
+  ListExpr funArg = nl->Second(arg3Type);
+  
+  ListExpr expFunArg;
+  if(DArray::checkType(arg1Type) || Code::checkType(arg1Type))
+    expFunArg = nl->Second(arg1Type);
+  else{
+    expFunArg = frelt; 
+  }
+
+  if(!nl->Equal(expFunArg,funArg)){
+     stringstream ss;
+     ss << "type mismatch between function argument and "
+        << " subtype of d(f)array or code " << endl
+        << "subtype is " << nl->ToString(expFunArg) << endl
+        << "funarg is " << nl->ToString(funArg) << endl;
+    
+     return listutils::typeError(ss.str());
+  }
+
+  ListExpr funq = nl->Second(nl->Third(args));
+
+  ListExpr funargs = nl->Second(funq);
+  ListExpr rfunargs = nl->TwoElemList(
+                         nl->First(funargs),
+                          funArg);
+
+  ListExpr rfun = nl->ThreeElemList(
+                    nl->First(funq),
+                    rfunargs,
+                    nl->Third(funq)
+                  );
+  ListExpr funRes = nl->Third(arg3Type);
+  
+  cout << "Stream<Tuple>::checkType(funRes): " <<  nl->ToString(funRes) << endl;
+
+  //Das sollte beim Aufruf passieren!
+//  bool isRel = Relation::checkType(funRes);
+//  bool isStream = Stream<Tuple>::checkType(funRes);
+
+/*  if(listutils::isStream(funRes) && !isStream){
+    return listutils::typeError("function produces a stream of non-tuples.");
+  }
+
+  if(isStream){
+    funRes = nl->TwoElemList(
+               listutils::basicSymbol<Relation>(),
+               nl->Second(funRes));
+  }
+  
+
+  ListExpr resType = nl->TwoElemList(
+              isRel||isStream?listutils::basicSymbol<DFArray>()
+                   :listutils::basicSymbol<DArray>(),
+               funRes);
+
+  return nl->ThreeElemList(
+          nl->SymbolAtom(Symbols::APPEND()),
+          nl->ThreeElemList( nl->TextAtom(nl->ToString(rfun)),
+                            nl->BoolAtom(isRel),
+                            nl->BoolAtom(isStream)),
+          resType
+       ); 
+  
+ */ 
+  
+  
+  //ListExpr resultType = nl->Third(funType); 
+  ListExpr result = nl->TwoElemList(listutils::basicSymbol<Code>(),
+                                    funRes);
+
+   if(DArray::checkType(nl->First(nl->First(args))) 
+    && CcString::checkType(nl->First(nl->Second(args)))
+    && listutils::isMap<1>(nl->First(nl->Third(args)))){
+ 
+    return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->TextAtom(nl->ToString(rfun))),
+               result);
+  }
+
+   if(DFArray::checkType(nl->First(nl->First(args))) 
+    && CcString::checkType(nl->First(nl->Second(args)))
+    && listutils::isMap<1>(nl->First(nl->Third(args)))){
+ 
+    return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->TextAtom(nl->ToString(rfun))),
+               result);
+  }
+
+  if(Code::checkType(nl->First(nl->First(args))) 
+    && CcString::checkType(nl->First(nl->Second(args)))
+    && listutils::isMap<1>(nl->First(nl->Third(args)))){
+    
+    return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->TextAtom(nl->ToString(rfun))),
+               result);
+  }
+  return listutils::typeError(err);
+
+}
+
+template<class A>
+int dmapSVM_Array(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   A* array = (A*) args[0].addr;
+   result = qp->ResultStorage(s);
+   Code* res = (Code*) result.addr;
+   
+   if(! array->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }  
+   string a1Name = array->getName();
+   size_t  worker1 = 0;
+   size_t as = array->getSize();
+   res->setSize(as);
+   string a2Name = "";
+   size_t  part2 = 0;
+   size_t  worker2 = 0;
+
+   string resName;
+   CcString* name = (CcString*) args[1].addr;
+   if(name->IsDefined() && !(name->GetValue().length()==0)){
+      resName = name->GetValue();
+   }
+
+   string fun = ((FText*) args[3].addr)->GetValue();
+
+   vector<TaskElement*> tasks;
+   int pos = 0;
+   TaskElement* element;
+   for(size_t i=0; i < array->getSize(); i++){
+      pos++;
+      worker1 = res->mapIndex(array->getWorkerForSlot(i));
+      element = new TaskElement(pos,a1Name,i,worker1,
+                                a2Name,part2,worker2,
+                                fun,resName,i,0);
+      tasks.push_back(element);
+   }
+   res->set(tasks);
+   return 0; 
+}
+
+int dmapSVM_Code(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   Code* code = (Code*) args[0].addr;
+   result = qp->ResultStorage(s);
+   Code* res = (Code*) result.addr;
+
+   if(!code->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }  
+
+   size_t as = code->getSize();
+   res->setSize(as);
+   
+   CcString* name = (CcString*) args[1].addr;
+   string resName;
+   if(name->IsDefined() && !(name->GetValue().length()==0)){
+      resName = name->GetValue();
+   }
+   if(!stringutils::isIdent(resName)){
+    res->makeUndefined();
+    return 0;
+   }
+   
+   string fun = ((FText*) args[3].addr)->GetValue();
+    
+   vector<TaskElement*> tasks;
+   TaskElement* e;
+   TaskElement* element;
+
+   size_t size = code->sizeOfTasks();
+   for(size_t i = 0; i < size; i++){
+     e = code->getTask(i);
+     DArrayElement* worker1 = code->GetWorker(e->GetWorker1());
+     res->AddIfNotContains(*worker1);
+     DArrayElement* worker2 = code->GetWorker(e->GetWorker2()); 
+     res->AddIfNotContains(*worker2);
+     element = new TaskElement( e->GetPos(),
+                   e->GetA1Name(),e->GetPart1(),e->GetWorker1(),
+                   e->GetA2Name(),e->GetPart2(),e->GetWorker2(),
+                   e->GetFunQuery(),
+                   e->GetResName(),e->GetResPart(),e->GetResWorker());
+     tasks.push_back(element);
+   }
+
+   string a2Name = "";
+   size_t  part2 = 0;
+   size_t  worker2 = 0;
+
+   size_t pos = size;
+   for(size_t i = code->GetStartIndexOfLastResult(); i < size;i++){
+     pos++;
+     e = code->getTask(i);
+     element = new TaskElement( pos,
+                  e->GetResName(),e->GetResPart(),e->GetResWorker(),
+                  a2Name,part2,worker2,
+                  e->GetFunQuery(),
+                  resName,e->GetResPart(),0);
+     tasks.push_back(element);
+   }
+   res->set(tasks);
+   return 0; 
+}
+
+ValueMapping dmapSVM[] = {
+  dmapSVM_Array<DArray>,
+  dmapSVM_Array<DFArray>,
+  dmapSVM_Code
+  
+};
+
+
+int dmapSSelect(ListExpr args){
+  if(DArray::checkType(nl->First(args))){
+    return 0;
+  }
+  if(DFArray::checkType(nl->First(args))){
+    return 1;
+  }
+  return 2;
+}
+
+
+
+OperatorSpec dmapSSpec(
+  "{d[f]array(X), code(d[f]array(X))}  x string x fun -> code(d[f]array(X))",
+  "_ dmapS[_,_]",
+  "Defines a function on a distributed file array. "
+  "If the string argument is empty or undefined, a name for "
+  "the result is chosen automatically. If not, the string "
+  "specifies the name. The result is of type code(array). "
+  "If the function produces a tuple stream or a relation "
+  "the type of the code will be a DFArray, "
+  "otherwise the result is a DArray.",
+  "query dfa8 dmapS[\"\", . head[23]] "
+);
+
+Operator dmapSOp(
+  "dmapS",
+  dmapSSpec.getStr(),
+  3,
+  dmapSVM,
+  dmapSSelect,
+  dmapSTM
+);
+
+/*
+17 Operator ~dmap2S~
+
+This operator maps the content of a dfarray to another value.
+Depending on the result of the function, the result is a 
+dfarray (result is a relation) or a darray (result is 
+something other).
+The result is a list of tasks in a Code Object, that can be 
+executed by the schedule operator
+
+*/
+
+ListExpr dmap2STM(ListExpr args){
+  string err = "d[f]array(X)  x d[f]array(X)  x string x fun expected";
+  if(!nl->HasLength(args,4)){
+    return  listutils::typeError(err + " (wrong number of args)");
+  }
+
+  // check for internal correctness
+  if(   !nl->HasLength(nl->First(args),2)
+      ||!nl->HasLength(nl->Second(args),2)
+      ||!nl->HasLength(nl->Third(args),2)
+      ||!nl->HasLength(nl->Fourth(args),2)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr arg1Type = nl->First(nl->First(args));
+  ListExpr arg2Type = nl->First(nl->Second(args));
+  ListExpr arg3Type = nl->First(nl->Third(args));
+  ListExpr arg4Type = nl->First(nl->Fourth(args));
+
+  if(!DFArray::checkType(arg1Type) 
+    && !DArray::checkType(arg1Type) && !Code::checkType(arg1Type)){
+    return listutils::typeError(err);
+  }
+    
+  if(!DFArray::checkType(arg2Type) 
+    && !DArray::checkType(arg2Type)  && !Code::checkType(arg2Type)){
+      return listutils::typeError(err);
+  }
+  if(!CcString::checkType(arg3Type)
+    ||!listutils::isMap<2>(arg4Type)){
+    return listutils::typeError(err);
+  }
+
+  /* am schluss muss das wieder gehen!
+  if(   DArray::checkType(arg1Type) 
+     && !Relation::checkType(nl->Second(arg1Type))){
+     return listutils::typeError("subtype of darray is not a relation");
+  }
+  if(   DArray::checkType(arg2Type) 
+     && !Relation::checkType(nl->Second(arg2Type))){
+     return listutils::typeError("subtype of darray is not a relation");
+  }
+  */
+
+  ListExpr frelt1 = 0;
+  //nl->TwoElemList(listutils::basicSymbol<frel>(),
+  //                   nl->Second(nl->Second(arg1Type)));
+
+  cout << "arg4Type: " << nl->ToString(arg4Type) << endl;
+  ListExpr funArg1 = nl->Second(arg4Type);
+
+  ListExpr expFunArg1;
+  if(DArray::checkType(arg1Type) || Code::checkType(arg1Type))
+    expFunArg1 = nl->Second(arg1Type);
+  else{
+    expFunArg1 = frelt1; 
+  }
+  
+  if(!nl->Equal(expFunArg1,funArg1)){
+     stringstream ss;
+     ss << "type mismatch between first function argument and "
+        << " subtype of dfarray" << endl
+        << "subtype is " << nl->ToString(expFunArg1) << endl
+        << "funarg is " << nl->ToString(funArg1) << endl;
+    
+     return listutils::typeError(ss.str());
+  }
+
+
+  ListExpr frelt2 = 0;
+  //nl->TwoElemList(listutils::basicSymbol<frel>(),
+  //                   nl->Second(nl->Second(arg2Type)));
+  ListExpr funArg2 = nl->Third(arg4Type);
+  
+  ListExpr expFunArg2;
+  if(DArray::checkType(arg2Type) || Code::checkType(arg2Type))
+    expFunArg2 = nl->Second(arg1Type);
+  else{
+    expFunArg2 = frelt2; 
+  }
+
+  if(!nl->Equal(expFunArg2,funArg2)){
+     stringstream ss;
+     ss << "type mismatch between second function argument and "
+        << " subtype of dfarray" << endl
+        << "subtype is " << nl->ToString(expFunArg2) << endl
+        << "funarg is " << nl->ToString(funArg2) << endl;
+    
+     return listutils::typeError(ss.str());
+  }
+
+  /*
+  ListExpr funq = nl->Second(nl->Fourth(args));
+
+  ListExpr funargs = nl->Second(funq);
+  ListExpr rfunargs = nl->TwoElemList(
+                         nl->First(funargs),
+                          funArg);
+  */
+  
+   // replace eventually type mapping operators by the
+   // resulting types
+
+   ListExpr funQuery = nl->Second(nl->Fourth(args));
+   ListExpr fa1o = nl->Second(funQuery);
+   ListExpr fa1 = nl->TwoElemList(
+                       nl->First(fa1o),
+                       nl->Second(nl->First(nl->First(args))));
+   ListExpr fa2o = nl->Third(funQuery);
+   ListExpr fa2 = nl->TwoElemList(
+                       nl->First(fa2o),
+                       nl->Second(nl->First(nl->Second(args))));
+   funQuery = nl->FourElemList(
+                   nl->First(funQuery),
+                   fa1, fa2, nl->Fourth(funQuery));
+   string rfun = nl->ToString(funQuery);   
+
+   cout << "rfun in dmap2TM: " << rfun << endl;
+
+  ListExpr result = nl->TwoElemList(listutils::basicSymbol<Code>(),
+                                    arg4Type);
+  
+  /*  
+  ListExpr rfun = nl->ThreeElemList(
+                    nl->First(funq),
+                    rfunargs,
+                    nl->Third(funq)
+                  );
+  ListExpr funRes = nl->Third(arg3Type);
+  */
+  //Das sollte beim Aufruf passieren!
+//  bool isRel = Relation::checkType(funRes);
+//  bool isStream = Stream<Tuple>::checkType(funRes);
+
+  /*  if(listutils::isStream(funRes) && !isStream){
+    return listutils::typeError("function produces a stream of non-tuples.");
+  }
+
+  if(isStream){
+    funRes = nl->TwoElemList(
+               listutils::basicSymbol<Relation>(),
+               nl->Second(funRes));
+  }
+  
+
+  ListExpr resType = nl->TwoElemList(
+              isRel||isStream?listutils::basicSymbol<DFArray>()
+                   :listutils::basicSymbol<DArray>(),
+               funRes);
+
+  return nl->ThreeElemList(
+          nl->SymbolAtom(Symbols::APPEND()),
+          nl->ThreeElemList( nl->TextAtom(nl->ToString(rfun)),
+                            nl->BoolAtom(isRel),
+                            nl->BoolAtom(isStream)),
+          resType
+       ); 
+  
+   */ 
+  
+  
+  //ListExpr resultType = nl->Third(funType); 
+  //ListExpr result = nl->TwoElemList(listutils::basicSymbol<Code>(),
+  //                                  funRes);
+    return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->TextAtom(rfun)),
+               result);
+
+  /*   if(DArray::checkType(nl->First(nl->First(args))) 
+    && CcString::checkType(nl->First(nl->Second(args)))
+    && listutils::isMap<1>(nl->First(nl->Third(args)))){
+ 
+    return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->TextAtom(nl->ToString(rfun))),
+               result);
+  }
+    cout << "We are not here !!!!" << endl;
+
+   if(DFArray::checkType(nl->First(nl->First(args))) 
+    && CcString::checkType(nl->First(nl->Second(args)))
+    && listutils::isMap<1>(nl->First(nl->Third(args)))){
+ 
+    return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->TextAtom(nl->ToString(rfun))),
+               result);
+  }
+
+  if(Code::checkType(nl->First(nl->First(args))) 
+    && CcString::checkType(nl->First(nl->Second(args)))
+    && listutils::isMap<1>(nl->First(nl->Third(args)))){
+    
+    return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->OneElemList(nl->TextAtom(nl->ToString(rfun))),
+               result);
+  }
+  return listutils::typeError(err);
+  */
+}
+
+template<class A, class B>
+int dmap2SVM_ArrayArray(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   A* array1 = (A*) args[0].addr;
+   B* array2 = (B*) args[1].addr;
+   result = qp->ResultStorage(s);
+   Code* res = (Code*) result.addr;
+   
+   if(!array1->IsDefined() || !array1->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }  
+   string a1Name = array1->getName();
+   size_t  worker1 = 0;
+   size_t as = array1->getSize();
+   res->setSize(as);
+   string a2Name = array2->getName();
+   size_t  part2 = 0;
+   size_t  worker2 = 0;
+
+   string resName;
+   CcString* name = (CcString*) args[4].addr;
+   if(name->IsDefined() && !(name->GetValue().length()==0)){
+      resName = name->GetValue();
+   }
+
+   string fun = ((FText*) args[4].addr)->GetValue();
+
+   vector<TaskElement*> tasks;
+   int pos = 0;
+   TaskElement* element;
+   for(size_t i=0; i < array1->getSize(); i++){
+      pos++;
+      worker1 = res->mapIndex(array1->getWorkerForSlot(i));
+      worker2 = res->mapIndex(array2->getWorkerForSlot(i));
+      element = new TaskElement(pos,a1Name,i,worker1,
+                                    a2Name,part2,worker2,
+                                    fun,resName,i,0);
+      tasks.push_back(element);
+   }
+   res->set(tasks);
+   return 0; 
+}
+
+template<class A>
+int dmap2SVM_CodeArray(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   Code* code = (Code*) args[0].addr;
+   A* array = (A*) args[1].addr;
+   result = qp->ResultStorage(s);
+   Code* res = (Code*) result.addr;
+   string fun = ((FText*) args[4].addr)->GetValue();
+   
+  if(!array->IsDefined() || !code->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }  
+
+   CcString* name = (CcString*) args[2].addr;
+   string resName;
+   if(name->IsDefined() && !(name->GetValue().length()==0)){
+      resName = name->GetValue();
+   }
+   if(!stringutils::isIdent(resName)){
+    res->makeUndefined();
+    return 0;
+   }
+   
+   vector<TaskElement*> tasks;
+   TaskElement* e;
+   TaskElement* element;
+   
+   string a2Name = array->getName();
+   size_t as = array->getSize();
+   res->setSize(as);
+
+   size_t size = code->sizeOfTasks();
+   for(size_t i = 0; i < size; i++){
+     e = code->getTask(i);
+     DArrayElement* worker1 = code->GetWorker(e->GetWorker1());
+     res->AddIfNotContains(*worker1);
+     DArrayElement* worker2 = code->GetWorker(e->GetWorker2()); 
+     res->AddIfNotContains(*worker2);
+     element = new TaskElement( e->GetPos(),
+                   e->GetA1Name(),e->GetPart1(),e->GetWorker1(),
+                   e->GetA2Name(),e->GetPart2(),e->GetWorker2(),
+                   e->GetFunQuery(),
+                   e->GetResName(),e->GetResPart(),e->GetResWorker());
+     tasks.push_back(element);
+   }
+   
+   size_t pos = size;
+   size_t worker2;
+   size_t startIndexOfLastResult = code->GetStartIndexOfLastResult();
+   for(size_t i = startIndexOfLastResult; i < size;i++){
+     pos++;
+     e = code->getTask(i);
+     worker2 = res->mapIndex(array->getWorkerForSlot(e->GetResPart()));
+     element = new TaskElement( pos,
+                   e->GetResName(),e->GetResPart(),e->GetResWorker(),
+                   a2Name,e->GetResPart(),worker2,
+                   fun,
+                   resName,e->GetResPart(),0);
+     tasks.push_back(element);
+   }
+   res->set(tasks);
+   return 0; 
+}
+
+template<class A>
+int dmap2SVM_ArrayCode(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   Code* code = (Code*) args[1].addr;
+   DArray* array = (DArray*) args[0].addr;
+   result = qp->ResultStorage(s);
+   Code* res = (Code*) result.addr;
+   string fun = ((FText*) args[4].addr)->GetValue();
+   
+  if(!array->IsDefined() || !code->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }  
+
+   CcString* name = (CcString*) args[2].addr;
+   string resName;
+   if(name->IsDefined() && !(name->GetValue().length()==0)){
+      resName = name->GetValue();
+   }
+   if(!stringutils::isIdent(resName)){
+    res->makeUndefined();
+    return 0;
+   }
+   
+   vector<TaskElement*> tasks;
+   TaskElement* e;
+   TaskElement* element;
+   
+   string a1Name = array->getName();
+   size_t as = array->getSize();
+   res->setSize(as);
+
+   size_t size = code->sizeOfTasks();
+   for(size_t i = 0; i < size; i++){
+     e = code->getTask(i);
+     DArrayElement* worker1 = code->GetWorker(e->GetWorker1());
+     res->AddIfNotContains(*worker1);
+     DArrayElement* worker2 = code->GetWorker(e->GetWorker2()); 
+     res->AddIfNotContains(*worker2);
+     element = new TaskElement( e->GetPos(),
+                   e->GetA1Name(),e->GetPart1(),e->GetWorker1(),
+                   e->GetA2Name(),e->GetPart2(),e->GetWorker2(),
+                   e->GetFunQuery(),
+                   e->GetResName(),e->GetResPart(),e->GetResWorker());
+     tasks.push_back(element);
+   }
+   
+   size_t pos = size;
+   size_t worker2;
+   size_t startIndexOfLastResult = code->GetStartIndexOfLastResult();
+   for(size_t i = startIndexOfLastResult; i < size;i++){
+     pos++;
+     e = code->getTask(i);
+     worker2 = res->mapIndex(array->getWorkerForSlot(e->GetResPart()));
+     element = new TaskElement( pos,
+                   e->GetResName(),e->GetResPart(),e->GetResWorker(),
+                   a1Name,e->GetResPart(),worker2,
+                   fun,
+                   resName,e->GetResPart(),0);
+     tasks.push_back(element);
+   }
+   res->set(tasks);
+   return 0; 
+}
+
+int dmap2SVM_CodeCode(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   Code* code1 = (Code*) args[0].addr;
+   Code* code2 = (Code*) args[1].addr;
+
+   result = qp->ResultStorage(s);
+   Code* res = (Code*) result.addr;
+
+   if(!code1->IsDefined() || !code2->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }  
+   
+   CcString* name = (CcString*) args[2].addr;
+   string resName;
+   if(name->IsDefined() && !(name->GetValue().length()==0)){
+      resName = name->GetValue();
+   }
+   if(!stringutils::isIdent(resName)){
+    res->makeUndefined();
+    return 0;
+   }
+   
+   string fun = ((FText*) args[4].addr)->GetValue();
+   
+   vector<TaskElement*> tasks;
+   TaskElement* e;
+   TaskElement* element;
+
+   size_t size1 = code1->sizeOfTasks();
+   for(size_t i = 0; i < size1; i++){
+     e = code1->getTask(i);
+     DArrayElement* worker1 = code1->GetWorker(e->GetWorker1());
+     res->AddIfNotContains(*worker1);
+     DArrayElement* worker2 = code1->GetWorker(e->GetWorker2()); 
+     res->AddIfNotContains(*worker2);
+     element = new TaskElement( e->GetPos(),
+                   e->GetA1Name(),e->GetPart1(),e->GetWorker1(),
+                   e->GetA2Name(),e->GetPart2(),e->GetWorker2(),
+                   e->GetFunQuery(),
+                   e->GetResName(),e->GetResPart(),e->GetResWorker());
+     tasks.push_back(element);
+   }
+
+   size_t pos = code1->sizeOfTasks();
+   size_t size2 = code2->sizeOfTasks();
+   for(size_t i = 0; i < size2; i++){
+     pos++;
+     e = code2->getTask(i);
+     DArrayElement* worker1 = code2->GetWorker(e->GetWorker1());
+     res->AddIfNotContains(*worker1);
+     DArrayElement* worker2 = code2->GetWorker(e->GetWorker2()); 
+     res->AddIfNotContains(*worker2);
+     element = new TaskElement( pos,
+                   e->GetA1Name(),e->GetPart1(),e->GetWorker1(),
+                   e->GetA2Name(),e->GetPart2(),e->GetWorker2(),
+                   e->GetFunQuery(),
+                   e->GetResName(),e->GetResPart(),e->GetResWorker());
+     tasks.push_back(element);
+   }
+
+   TaskElement* e1;
+   TaskElement* e2;
+   size_t i2 = code2->GetStartIndexOfLastResult();
+   for(size_t i1 = code1->GetStartIndexOfLastResult(); i1 < size1;i1++){
+     pos++;
+     e1 = code1->getTask(i1);
+     e2 = code2->getTask(i2);
+     element = new TaskElement( pos,
+                   e1->GetResName(),e1->GetResPart(),e1->GetResWorker(),
+                   e2->GetResName(),e2->GetResPart(),e2->GetResWorker(),
+                   fun,
+                   resName,e1->GetResPart(),0);
+     tasks.push_back(element);
+     i2++;
+   }
+   
+   res->setSize(pos - (size1 + size2));
+   res->set(tasks);
+   return 0; 
+}
+
+ValueMapping dmap2SVM[] = {
+  dmap2SVM_CodeArray<DArray>,
+  dmap2SVM_CodeArray<DFArray>,
+  dmap2SVM_ArrayCode<DArray>,
+  dmap2SVM_ArrayCode<DFArray>,
+  dmap2SVM_ArrayArray<DArray,DArray>,
+  dmap2SVM_ArrayArray<DArray,DFArray>,
+  dmap2SVM_ArrayArray<DFArray,DArray>,
+  dmap2SVM_ArrayArray<DFArray,DFArray>,
+  dmap2SVM_CodeCode  
+};
+
+  /*
+template<class A>
+class Mapper{
+ public: 
+   Mapper(A* _array, ListExpr _aType, CcString* _name, FText* _funText ,
+          bool _isRel, bool _isStream, void* res):
+          array(_array), aType(_aType), ccname(_name), 
+          funText(_funText), isRel(_isRel),
+          isStream(_isStream) {
+       if(isRel || isStream){
+         dfarray = (DFArray*) res;
+         darray = 0; 
+       } else {
+         dfarray = 0;
+         darray = (DArray*) res;
+       }
+   }
+
+   void start(){
+       if(dfarray){
+          startDFArray();
+       } else {
+          startDArray();
+       }
+    }
+
+ private:
+    A* array;
+    ListExpr aType;
+    CcString* ccname;
+    FText* funText;
+    bool isRel;
+    bool isStream;
+    DFArray* dfarray;
+    DArray* darray;
+    string name;
+
+
+    void startDArray(){
+       if(!array->IsDefined()){
+         darray->makeUndefined();
+       }
+       *darray = (*array);
+       if(array->numOfWorkers()<1){
+         darray->makeUndefined();
+       }
+       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+       if(!ccname->IsDefined() || ccname->GetValue().length()==0){
+          algInstance->getWorkerConnection(array->getWorker(0),dbname);
+          name = algInstance->getTempName();            
+       } else {
+          name = ccname->GetValue();
+       }
+       if(!stringutils::isIdent(name)){
+           darray->makeUndefined();
+           return;
+       }
+       darray->setName(name);
+       if(array->getSize()<1){
+          // no slots -> nothing to do
+          return;
+       }
+       vector<dRun*> w;
+       vector<boost::thread*> runners;
+
+       for( size_t i=0;i< array->getSize();i++){
+          ConnectionInfo* ci = algInstance->getWorkerConnection(
+                                 array->getWorkerForSlot(i), dbname);
+          dRun* r = new dRun(ci,dbname, i, this);
+          w.push_back(r);
+          boost::thread* runner = new boost::thread(&dRun::run, r);
+          runners.push_back(runner);
+       }
+
+       for( size_t i=0;i< array->getSize();i++){
+          runners[i]->join();
+          delete runners[i];
+          delete w[i];
+       }
+       
+    }
+
+
+    void startDFArray(){
+       if(!array->IsDefined()){
+           dfarray->makeUndefined();
+           return;
+       }
+      *dfarray = *array;
+       
+       if(array->numOfWorkers()<1){
+          dfarray->makeUndefined();
+          return;
+       }
+
+       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+       if(!ccname->IsDefined() || ccname->GetValue().length()==0){
+          algInstance->getWorkerConnection(array->getWorker(0),dbname);
+          name = algInstance->getTempName();            
+       } else {
+          name = ccname->GetValue();
+       }
+
+
+       if(!stringutils::isIdent(name)){
+           dfarray->makeUndefined();
+           return;
+       }
+       dfarray->setName(name);
+       if(array->getSize()<1){
+          return;
+       }
+
+       vector<fRun*> w;
+       vector<boost::thread*> runners;
+       for( size_t i=0;i< array->getSize();i++){
+          ConnectionInfo* ci = algInstance->getWorkerConnection(
+                                 array->getWorkerForSlot(i), dbname);
+          fRun* r = new fRun(ci,dbname, i, this);
+          w.push_back(r);
+          boost::thread* runner = new boost::thread(&fRun::run, r);
+          runners.push_back(runner);
+       }
+       for( size_t i=0;i< array->getSize();i++){
+          runners[i]->join();
+          delete runners[i];
+          delete w[i];
+       }
+    }
+
+   
+    class fRun{
+      public:
+        fRun(ConnectionInfo* _ci, const string& _dbname, int _nr, 
+             Mapper* _mapper):
+           ci(_ci), dbname(_dbname), nr(_nr), mapper(_mapper) {}
+
+        void run(){
+           if(!ci){
+             return;
+           }
+
+           // create temporal function
+           string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
+                             + "_"+ stringutils::int2str(nr);
+
+           string fun = mapper->funText->GetValue();
+
+           string cmd = "(let " + funName + " = " + fun +")";
+           int err; string errMsg; string r;
+           double runtime;
+           ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
+           ci->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
+           if(err!=0){
+             cerr << "problem in command " << cmd;
+             cerr << "code : " << err << endl;
+             cerr << "msg : " << errMsg << endl;
+             return;
+           } 
+           string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
+           if(mapper->array->getType()==DFARRAY){
+               string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+                   + mapper->array->getName() + "/"
+                   + n + ".bin";
+               ListExpr frelType = nl->TwoElemList(
+                                     listutils::basicSymbol<frel>(),
+                                     nl->Second(nl->Second(mapper->aType))); 
+               string funarg = "[ const " + getUDRelType(frelType) 
+                               + " value  '" + fname1 +"' ]"; 
+               cmd = "query "+ funName +"( "+funarg +" )";
+           } else {
+               cmd = "query " + funName+"( " + n +" )";
+           }
+            
+           string targetDir = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+                              + mapper->name + "/" ;
+
+           string cd = "query createDirectory('"+targetDir+"', TRUE)";
+           ci->simpleCommand(cd, err, errMsg,r, false, runtime);
+           if(err){
+             cerr << "creating directory failed, cmd = " << cd << endl;
+             cerr << errMsg << endl;
+           }
+
+           string fname2 =   targetDir
+                           + mapper->name + "_" + stringutils::int2str(nr)
+                           + ".bin";
+
+           if(mapper->isRel) {
+             cmd += " feed fconsume5['"+fname2+"'] count";
+           } else {
+             cmd += "fconsume5['"+fname2+"'] count";
+           }
+
+           ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
+           if((err!=0) ){ 
+              cerr << "command " + cmd << " failed with code " << err 
+                   << endl;
+              cerr << "message is " << errMsg;  
+           }
+           ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
+
+        }
+
+      private:
+        ConnectionInfo* ci;
+        string dbname;
+        size_t nr;
+        Mapper* mapper;
+
+    };
+
+ 
+    class dRun{
+      public:
+        dRun(ConnectionInfo* _ci, const string& _dbname, int _nr, 
+             Mapper* _mapper):
+           ci(_ci), dbname(_dbname), nr(_nr), mapper(_mapper) {}
+
+        void run(){
+          if(!ci){
+             return;
+          }
+             // create temporal function
+          string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
+                           + "_" + stringutils::int2str(nr);
+          string cmd = "(let " + funName + " = " 
+                     + mapper->funText->GetValue() +")";
+          int err; string errMsg; string r;
+          double runtime;
+          ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
+          ci->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
+          if(err!=0){
+           cerr << "problem in command " << cmd;
+           cerr << "code : " << err << endl;
+           cerr << "msg : " << errMsg << endl;
+           return;
+          } 
+             
+          string funarg;
+          string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
+
+          if(mapper->array->getType()==DFARRAY){  
+              string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+                              + mapper->array->getName() + "/"
+                              + n + ".bin";
+               ListExpr frelType = nl->TwoElemList(
+                                     listutils::basicSymbol<frel>(),
+                                     nl->Second(nl->Second(mapper->aType))); 
+               funarg = "[ const " + getUDRelType(frelType) 
+                               + " value  '" + fname1 +"' ]"; 
+          } else {
+               funarg = n + " ";
+          }
+
+          string name2 = mapper->name + "_" + stringutils::int2str(nr);
+          cmd = "let "+ name2 +" = " + funName +"( " + funarg + ")";
+
+          ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
+          if((err!=0)  ){ // ignore type map errors
+                                    // because reason is a missing file
+             cerr << "command " + cmd << " failed with code " << err 
+                  << endl;
+             cerr << "message is " << errMsg;  
+          }
+          ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
+        }
+
+      private:
+        ConnectionInfo* ci;
+        string dbname;
+        size_t nr;
+        Mapper* mapper;
+
+    };
+};
+
+template<class A>
+int dmapVMT(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  A* array = (A*) args[0].addr;
+  CcString* name = (CcString*) args[1].addr;
+   // ignore original fun at args[2];
+  FText* funText = (FText*) args[3].addr;
+  bool isRel = ((CcBool*) args[4].addr)->GetValue();
+  bool isStream = ((CcBool*) args[5].addr)->GetValue();
+  Mapper<A> mapper(array, qp->GetType(qp->GetSon(s,0)), name, funText, 
+                   isRel, isStream, result.addr);
+  mapper.start();
+  return 0;
+}
+   */
+
+int dmap2SSelect(ListExpr args){
+  if(Code::checkType(nl->First(args)) 
+    && DArray::checkType(nl->Second(args))){
+    return 0;
+  }
+  if(Code::checkType(nl->First(args)) 
+    && DFArray::checkType(nl->Second(args))){
+    return 1;
+  }
+  if(DArray::checkType(nl->First(args)) 
+    && Code::checkType(nl->Second(args))){
+    return 2;
+  }
+  if(DFArray::checkType(nl->First(args)) 
+    && Code::checkType(nl->Second(args))){
+    return 3;
+  }
+  if(DArray::checkType(nl->First(args)) 
+    && DArray::checkType(nl->Second(args))){
+    return 4;
+  }
+  if(DArray::checkType(nl->First(args)) 
+    && DFArray::checkType(nl->Second(args))){
+    return 5;
+  }
+  if(DFArray::checkType(nl->First(args)) 
+    && DArray::checkType(nl->Second(args))){
+    return 6;
+  }
+  if(DFArray::checkType(nl->First(args)) 
+    && DFArray::checkType(nl->Second(args))){
+    return 7;
+  }
+  return 8;
+}
+
+OperatorSpec dmap2SSpec(
+  "{d[f]array(X), code(d[f]array(X))}  x {d[f]array(X), code(d[f]array(X))}"
+  "  x string x fun -> code(d[f]array(X))",
+  "_ dmap2S[_,_]",
+  "Defines a function on a distributed file array. "
+  "If the string argument is empty or undefined, a name for "
+  "the result is chosen automatically. If not, the string "
+  "specifies the name. The result is of type code(array). "
+  "If the function produces a tuple stream or a relation "
+  "the type of the code will be a DFArray, "
+  "otherwise the result is a DArray.",
+  "query dfa8 dmap[\"\", . head[23]] "
+);
+
+Operator dmap2SOp(
+  "dmap2S",
+  dmap2SSpec.getStr(),
+  9,
+  dmap2SVM,
+  dmap2SSelect,
+  dmap2STM
+);
+
 
 /*
 1.17 Operator ~DARRAYELEM~ , ~DARRAYELEM2~
@@ -2402,6 +3535,7 @@ This operator has a code object as arguments. The output is a stream of tasks.
 ListExpr  toTasksTM(ListExpr args){
   string err = "Code object  expected";
 
+  cout << "toTasksTM !" << endl;
   if (nl->ListLength(args) != 1)
     return listutils::typeError(err);
   
@@ -2459,6 +3593,7 @@ ListExpr  toTasksTM(ListExpr args){
               nl->TwoElemList(
                  listutils::basicSymbol<Tuple>(),
                   attrList));  
+
   return returnList;
 }
 
@@ -2470,6 +3605,8 @@ ListExpr  toTasksTM(ListExpr args){
 
 int toTasksVM( Word* args, Word& result, int message,
                   Word& local, Supplier s ){
+    cout << "toTasksVM !" << endl;
+
   TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
   Code* c = (Code*)args[0].addr;
   switch (message) {
@@ -2716,7 +3853,6 @@ class ScheduleRunner{
   ScheduleRunner(Code* _code, TaskElement* _task, DArrayElement* worker ){
     code = _code;
     task = _task;
-    done = false;
   }
   
   size_t GetTaskId(){
@@ -2726,26 +3862,21 @@ class ScheduleRunner{
   void run(){
     cout << "start run task" << task->GetPos() << endl;
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    ConnectionInfo* c1 = algInstance->getWorkerConnection(
+                        *code->GetWorker(task->GetWorker1()),dbname);
+    ConnectionInfo* c2 = algInstance->getWorkerConnection(
+                        *code->GetWorker(task->GetWorker2()),dbname);
     ConnectionInfo* cRes = algInstance->getWorkerConnection(
                         *code->GetWorker(task->GetResWorker()),dbname);
     if(task->GetResWorker() != task->GetWorker1()){
-      cout << "retrieveObject for task->GetPos(): " << task->GetPos() << endl;
-      cout << "task->GetResWorker(): " << task->GetResWorker() << endl;
-      cout << "task->GetWorker1(): " << task->GetWorker1() << endl;
-      ConnectionInfo* c1 = algInstance->getWorkerConnection(
-                        *code->GetWorker(task->GetWorker1()),dbname);
       retrieveObject(task->GetA1Name(),task->GetPart1(),cRes,c1);
     }
     if(task->GetResWorker() != task->GetWorker1()){
-      cout << "retrieveObject for task->GetPos(): " << task->GetPos() << endl;
-      cout << "task->GetResWorker(): " << task->GetResWorker() << endl;
-      cout << "task->GetWorker1(): " << task->GetWorker1() << endl;
-      ConnectionInfo* c2 = algInstance->getWorkerConnection(
-                        *code->GetWorker(task->GetWorker2()),dbname);
       retrieveObject(task->GetA2Name(),task->GetPart2(),cRes,c2);
     }
 
-    int err = 0;
+    double runtime;
+    int err;
     string errMsg;
     string strres;
     string resName = task->GetResName() + "_" + 
@@ -2755,30 +3886,25 @@ class ScheduleRunner{
     string nameA2 = task->GetA2Name() + "_" + 
       stringutils::int2str(task->GetPart2());
     // remove old stuff
-    //cRes->simpleCommand("delete " + resName,err,errMsg,strres,false,runtime);
+    cRes->simpleCommand("delete " + resName,err,errMsg,strres,false,runtime);
     // create new one
     string cmd ="(let " + resName + " = ( " + 
       task->GetFunQuery() + " " + nameA1 + " " + nameA2 +"))";
 
-    //cRes->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime);
+    cRes->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime);
     if(err!=0){
-      cout << "error in creating result via " << cmd << endl;
-      cout << errMsg << endl;
+      cerr << "error in creating result via " << cmd << endl;
+      cerr << errMsg << endl;
       return;
     }
-    done = true;
+    
     cout << "end run task" << task->GetPos() << endl;
   }
 
-  bool Done(){
-    return done;
-  }
-  
   private:
     Code* code;
     TaskElement* task;
     DArrayElement* worker;
-    bool done;
 };
 
 
@@ -2831,8 +3957,6 @@ int scheduleVM( Word* args, Word& result, int message,
   for(size_t i = 0;i < workerSize; i++){
     worker = c->GetWorker(i);
     task = c->GetNextTask(i);
-
-    cout << "worker [" << i << "]" << "get task" << task->GetPos() << endl;
     if(task != 0){
       task->SetResWorker(i);
       sr = new ScheduleRunner(c, task, worker);
@@ -2845,13 +3969,12 @@ int scheduleVM( Word* args, Word& result, int message,
   //Execute all other tasks
   while(!c->Done()){
     for(size_t i = 0;i < workerSize; i++){
-      if(srs[i] != 0 && srs[i]->Done() == true){
-        runners[i]->join();
+      if(runners[i] != 0 && 
+        runners[i]->try_join_for(boost::chrono::nanoseconds(1))){
         c->ClearDependency(srs[i]->GetTaskId());  
         delete runners[i];
         runners[i] = 0;
         delete srs[i];
-        srs[i] = 0;
       }
       if(runners[i] == 0){
         task = c->GetNextTask(i);  
@@ -2867,13 +3990,9 @@ int scheduleVM( Word* args, Word& result, int message,
 
   //Delete all threads
   for( size_t i=0;i< workerSize;i++){
-    if(runners[i] != 0){
-      runners[i]->join();
-      delete runners[i];
-      runners[i] = 0;
-      delete srs[i];
-      srs[i] = 0;
-    }
+    runners[i]->join();
+    delete runners[i];
+    delete srs[i];
   }
   return 0;
 }
@@ -2921,6 +4040,12 @@ Distributed3Algebra::Distributed3Algebra(){
 
    AddOperator(&dloop2SOp);
    dloop2SOp.SetUsesArgsInTypeMapping();
+
+   AddOperator(&dmapSOp);
+   dmapSOp.SetUsesArgsInTypeMapping();
+
+   AddOperator(&dmap2SOp);
+   dmap2SOp.SetUsesArgsInTypeMapping();
 
    AddOperator(&toTasksOp);
 
