@@ -1449,7 +1449,7 @@ Special treatment of the tmatches operator
 */
 
 plan_to_atom(tmatches(X, Y), Result) :-
-  plan_to_atom(X, XAtom),
+  plan_to_atom(attrname(X), XAtom),
   plan_to_atom(Y, YAtom),
   my_concat_atom(['. tmatches[', XAtom, ', ', YAtom,']'],'', 
                 Result),
@@ -2925,6 +2925,16 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   hasIndex(rel(Name,Var),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
   dcName2externalName(DCindex,IndexName),
   IndexType = mtree.
+  
+
+% rule for (Attr tmatches Pattern): symbolic pattern search using tupleindex
+indexselect2(arg(N), pr(Attr tmatches X, _) ) =>
+  indextmatches(dbindexobject(IndexName), rel(Name, Z), attrname(Attr), X)
+  :-
+  argument(N, rel(Name, Z)),
+  hasIndex(rel(Name, Z), Attr, DCindex, tupleindex),
+  dcName2externalName(DCindex, IndexName).
+  
 
 % replace (Attr <= Term) with (Term >= Attr)
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) <= Y, Rel)) => X :-
@@ -5425,6 +5435,12 @@ cost(rangeS(dbobject(Index), _KeyValue), Sel, _P, Size, Cost) :-
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
 
+cost(indextmatches(_, Rel, _, _), Sel, P, Size, Cost) :-
+  cost(Rel, 1, P, RelSize, _),
+  indextmatchesTC(C),
+  Size is Sel * RelSize,
+  Cost is RelSize * C.
+
 
 % Cost function for inverted file access. Not yet determined, for the moment
 % using formula similar to rangeS.
@@ -7553,6 +7569,12 @@ lookupPred(Pred, pr(Pred2, Rel)) :-
 % Section:Start:lookupPred_2_b
 % Section:End:lookupPred_2_b
 
+% support for tmatches
+lookupPred(Pred, pr(Pred2, Rel)) :-
+  nextCounter(selectionPred,_),
+  lookupPred1(Pred, Pred2, [], [Rel]),
+  (isTmatchesQuery(Pred2) -> assert(isStarQuery)), !.
+
 
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
@@ -7788,6 +7810,11 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
   lookupPred1(Me,     Me2,     RelsBefore,  RelsAfterMe),
   lookupPred2(Others, Others2, RelsAfterMe, RelsAfter),
   !.
+
+% support for tmatches
+isTmatchesQuery(Pred) :-
+  functor(Pred, Op, 2),
+  Op = 'tmatches', !. 
 
 /*
 ----    lookupTransformations(+Transf, -Transf2)
