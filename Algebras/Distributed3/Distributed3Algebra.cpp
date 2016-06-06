@@ -3925,8 +3925,8 @@ int scheduleVM( Word* args, Word& result, int message,
   DArray* res = (DArray*) result.addr;
   size_t sizeOfResultArray = c->getSize();
   string nameOfResultArray = c->GetResultName();
-  (*res) =  DArray::createFromRel<CcString,CcString>(rel,sizeOfResultArray,
-                   nameOfResultArray,hostPos,portPos,configPos);
+  (*res) =  DArray::createFromRel<CcString,CcString,DArray>(
+    rel,sizeOfResultArray,nameOfResultArray,hostPos,portPos,configPos);
 
   if(!res->IsDefined()){
     return 0;
