@@ -12878,6 +12878,31 @@ bool startFileTransferators( AT* array, int port){
 }
 
 
+bool startFileTransferators( vector<DArrayElement>&  array, int port){
+   assert(port>0);
+   set<string> usedIPs;
+   vector<transferatorStarter*> starters;
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+   for(size_t i=0;i<array.size();i++){
+     DArrayElement e = array[i];
+     string host = e.getHost();
+     if(usedIPs.find(host)==usedIPs.end()){
+        ConnectionInfo* ci = algInstance->getWorkerConnection(e,dbname);
+        if(ci){
+           usedIPs.insert(host);
+           starters.push_back(new transferatorStarter(ci,port));
+        } else {
+          return false;
+        }
+     }
+   }
+   for(size_t i=0;i<starters.size();i++){
+      delete starters[i];
+   }
+   starters.clear();
+   return true;
+
+}
 
 
 /*
@@ -13040,7 +13065,187 @@ ListExpr dmapXTMT(ListExpr args){
 }
 
 
+/*
+7 ~transferRequired~
 
+checks whether a transfer is required from source to target if source has
+a specified array type.
+
+*/
+ bool transferRequired(DArrayElement& target, DArrayElement& source, 
+                     arrayType T, const string& dbname){
+   if(source.getHost() != target.getHost()){
+      // data are on different hosts
+      return true;
+   }
+   // data are on the same host
+   // we assume, the whole file system is accessible from each worker
+   if(T==DFARRAY){
+      return false;
+   }
+   ConnectionInfo* cs = algInstance->getWorkerConnection(source, dbname);
+   ConnectionInfo* ct = algInstance->getWorkerConnection(target, dbname);
+   if(!cs || !ct){
+      return false;
+   }
+   bool res =  cs->getSecondoHome() != ct->getSecondoHome();
+   return res;
+}
+
+/*
+7 ~retrieveData~
+
+This function transfers argument data to the target worker if
+required. Additionally, one entry is added to both, the sourceNames and the
+funargs.
+
+
+*/
+       bool retrieveData(DArrayBase* target, DArrayBase* source, int slot,
+                         const string& dbname, const int port, bool isRelation,
+                         vector<pair<bool,string> >& sourceNames,
+                         vector<string>& funargs,
+                         ListExpr argType, bool createObjectIfNecessary=true){
+          DArrayBase* a0 = target; // note: array 0 determines the 
+                                               // distribution of the result
+          DArrayBase* ai = source;
+          DArrayElement elem0 = a0->getWorkerForSlot(slot);
+          DArrayElement elemi = ai->getWorkerForSlot(slot);
+          ConnectionInfo* ci = algInstance->getWorkerConnection(elemi,dbname);
+          ConnectionInfo* c0 = algInstance->getWorkerConnection(elem0,dbname);
+          int errorCode;
+          string errMsg;
+          string resList;
+          double rt;
+          bool formerObject;
+
+
+          if(transferRequired(elem0,elemi, ai->getType(),dbname)){
+
+             // this code will be processed if the ip's  are different or
+             // 
+ 
+
+            // 1 create temporal file on remote server 
+            //if required, (not a dfarray)
+             string fileNameOnI1;
+             string fileNameOnI;
+             bool moved = false;
+             if(ai->getType() != DFARRAY){
+               // darray, we have to store the object into a temporal file
+                fileNameOnI1 =  "darrays/TMP_"
+                               + dbname+ "_" + ai->getName() +"_"
+                               + stringutils::int2str(slot) + "_"
+                               + stringutils::int2str(WinUnix::getpid()) +"_"
+                               + stringutils::int2str(ci->serverPid()) + "_"
+                               + ".bobj";
+                 string odir = ci->getSecondoHome() + "/dfarrays/" 
+                               + dbname+"/";
+                 fileNameOnI = odir + fileNameOnI1;
+                 string oname = ai->getObjectNameForSlot(slot);
+
+                 string cmd = "query " + oname + " saveObjectToFile['" 
+                              + fileNameOnI+ "']";
+              
+                 ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
+                 if(errorCode){
+                    cerr << __FILE__ << "@"  << __LINE__ << endl;
+                    showError(ci,cmd,errorCode,errMsg);
+                    return false;
+                 } 
+                 formerObject = true; 
+             } else { // already a file object on ci, hust set file names 
+                fileNameOnI = ai->getFilePath(ci->getSecondoHome(), 
+                                             dbname, slot);
+                fileNameOnI1 = ai->getFilePath("", 
+                                             dbname, slot);
+                formerObject = false;
+             }
+
+             // 1.2 transfer file from i to 0
+             string fileNameOn0 = source->getFilePath(c0->getSecondoHome(),
+                                                       dbname, slot); 
+             string cmd;
+             if(c0->getHost() != ci->getHost()){ // use TCP transfer or 
+                                                 // disc utils
+                   cmd =    "query getFileTCP('" + fileNameOnI + "', '" 
+                            + ci->getHost() 
+                            + "', " + stringutils::int2str(port) 
+                            + ", TRUE, '" + fileNameOn0 +"')";
+
+              } else {
+                   string op = formerObject?"moveFile":"copyFile";
+                   moved = formerObject;
+                   cmd =   "query " + op + "('" + fileNameOnI + "','"
+                         + fileNameOn0 + "', TRUE)";
+              }
+              c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
+              if(errorCode){
+                 cerr << __FILE__ << "@"  << __LINE__ << endl;
+                 showError(c0, cmd, errorCode, errMsg);
+                 return false;
+             } 
+
+             // remove temp file from original server
+             if(formerObject && !moved){
+                 string cmd = "query removeFile('" + fileNameOnI+ "')";
+                 ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
+                 if(errorCode){
+                    cerr << __FILE__ << "@"  << __LINE__ << endl;
+                    showError(ci,cmd,errorCode, errMsg);
+                    return false;
+                 } 
+             }
+
+             // step 2: create object if required
+             if(formerObject && createObjectIfNecessary){
+                string oname = ai->getObjectNameForSlot(slot);
+                string end = isRelation?"consume":"";
+                string cmd = "let " + oname + " =  '"+fileNameOn0
+                              +"' getObjectFromFile " + end;
+                c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
+                if(errorCode){
+                    cerr << __FILE__ << "@"  << __LINE__ << endl;
+                    showError(c0,cmd,errorCode,errMsg);
+                   // return false; //ignore, may be object already there
+                 }
+                 cmd = "query removeFile('" + fileNameOn0+ "')";
+                 c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
+                 if(errorCode){
+                    cerr << __FILE__ << "@"  << __LINE__ << endl;
+                    showError(c0,cmd,errorCode,errMsg);
+                    return false;
+                 } 
+                 sourceNames.push_back(pair<bool,string>(true,oname));
+                 funargs.push_back(oname);
+                 return true;
+             }  else {
+                string fname = fileNameOn0;
+                string type ="(frel " + nl->ToString(nl->Second(
+                              nl->Second(argType))) + ")";
+                string fa = "("+ type + "  '"+fname+"')"; 
+                funargs.push_back(fa);
+                sourceNames.push_back(pair<bool,string>(true,fname)); 
+                return true;
+             }
+          } else { // file or object already on the server
+              // create entries in funargs and sourceNames
+              if(ai->getType()==DARRAY){
+                string oname = ai->getObjectNameForSlot(slot);
+                funargs.push_back(oname);
+                sourceNames.push_back(pair<bool,string>(false,oname));     
+              } else {
+                string fname = ai->getFilePath(ci->getSecondoHome(), 
+                                               dbname, slot);
+                string type ="(frel " + nl->ToString(nl->Second(
+                              nl->Second(argType))) + ")";
+                string fa = "( "+ type + " '"+fname+"')";
+                funargs.push_back(fa);
+                sourceNames.push_back(pair<bool,string>(false,fname)); 
+              }
+              return true;             
+          }
+       }
 
 /*
 8.1 Class ~DMapXInfo~
@@ -13187,39 +13392,13 @@ filetransfer is required into the result vector.
          for(size_t i=0;i<minSlots;i++){
              DArrayElement a0 = arguments[0]->getWorkerForSlot(i);
              DArrayElement ai = arguments[arg]->getWorkerForSlot(i);
-             if(transferRequired(a0,ai,array->getType())){
+             if(transferRequired(a0,ai,array->getType(),dbname)){
                  result.push_back(ai);
              }  
          }
          return true;
      }
 
-/*
-8.9 ~transferRequired~
-
-checks whether a transfer is required from source to target if source has
-a specified array type.
-
-*/
-     bool transferRequired(DArrayElement& target, DArrayElement& source, 
-                           arrayType T){
-        if(source.getHost() != target.getHost()){
-           // data are on different hosts
-           return true;
-        }
-        // data are on the same host
-        // we assume, the whole file system is accessible from each worker
-        if(T==DFARRAY){
-           return false;
-        }
-        ConnectionInfo* cs = algInstance->getWorkerConnection(source, dbname);
-        ConnectionInfo* ct = algInstance->getWorkerConnection(target, dbname);
-        if(!cs || !ct){
-           return false;
-        }
-        bool res =  cs->getSecondoHome() != ct->getSecondoHome();
-        return res;
-     }
 
 
 /*
@@ -13386,9 +13565,10 @@ the sources and the correspnding function arguments are created.
 */
        void run(){
            for(size_t i=0;i <info->arguments.size(); i++){
-               retrieveData(i); // get data if required and create an 
-                                // entry in both
-                                // source names and funargs
+               distributed2::retrieveData(info->arguments[0], 
+                            info->arguments[i], slot,
+                            info->dbname, info->port, info->isRelation[i],
+                            sourceNames, funargs, info->argTypes[i]);
            }
 
            // get the info for the worker belonging to the result.
@@ -13422,155 +13602,6 @@ the sources and the correspnding function arguments are created.
        }
 
 
-
-/*
-8.13.4 ~retrieveData~
-
-This function transfers argument data to the target worker if
-required. Additionally, one entry is added to both, the sourceNames and the
-funargs.
-
-
-*/
-       bool retrieveData(size_t arrayNumber){
-          DArrayBase* a0 = info->arguments[0]; // note: array 0 determines the 
-                                               // distribution of the result
-          DArrayBase* ai = info->arguments[arrayNumber];
-          DArrayElement elem0 = a0->getWorkerForSlot(slot);
-          DArrayElement elemi = ai->getWorkerForSlot(slot);
-          ConnectionInfo* ci = algInstance->getWorkerConnection(elemi,
-                                                                info->dbname);
-          ConnectionInfo* c0 = algInstance->getWorkerConnection(elem0,
-                                                                info->dbname);
-          int errorCode;
-          string errMsg;
-          string resList;
-          double rt;
-          bool formerObject;
-
-
-          if(info->transferRequired(elem0,elemi, ai->getType())){
-
-            // 1 create temporal file on remote server 
-            //if required, (not a dfarray)
-             string fileNameOnI1;
-             string fileNameOnI;
-             if(ai->getType() != DFARRAY){
-               // usual darray, we have to store the object into a temporal file
-                fileNameOnI1 =  "darrays/TMP_"
-                               + info->dbname+ "_" + ai->getName() +"_"
-                               + stringutils::int2str(slot) + "_"
-                               + stringutils::int2str(WinUnix::getpid()) +"_"
-                               + stringutils::int2str(ci->serverPid()) + "_"
-                               + ".bobj";
-                 string odir = ci->getSecondoHome() + "/dfarrays/" 
-                               + info->dbname+"/";
-                 string cmd = "query createDirectory('" + odir+"', TRUE)";
-                 ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
-                 if(errorCode){
-                    cerr << __FILE__ << "@"  << __LINE__ << endl;
-                    showError(ci,cmd,errorCode,errMsg);
-                    return false;
-                 } 
-                 
-                 fileNameOnI = odir + fileNameOnI1;
-                 string oname = ai->getObjectNameForSlot(slot);
-                 cmd = "query " + oname + " saveObjectToFile['" 
-                              + fileNameOnI+ "']";
-              
-                 ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
-                 if(errorCode){
-                    cerr << __FILE__ << "@"  << __LINE__ << endl;
-                    showError(ci,cmd,errorCode,errMsg);
-                    return false;
-                 } 
-                 formerObject = true; 
-
-    
-             } else { // already a file object on ci 
-                fileNameOnI = ai->getFilePath(ci->getSecondoHome(), 
-                                             info->dbname, slot);
-                fileNameOnI1 = ai->getFilePath("", 
-                                             info->dbname, slot);
-                formerObject = false;
-             }
-
-             // 1.2 transfer file from i to 0
-             string fileNameOn0 = c0->getSecondoHome()+"/"+fileNameOnI1; 
-             string cmd =    "query getFileTCP('" + fileNameOnI + "', '" 
-                            + ci->getHost() 
-                            + "', " + stringutils::int2str(info->port) 
-                            + ", TRUE, '" + fileNameOn0 +"')";
-              c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
-              if(errorCode){
-                 cerr << __FILE__ << "@"  << __LINE__ << endl;
-                 showError(c0, cmd, errorCode, errMsg);
-                 return false;
-              } 
-
-
-
-             // remove temp file from original server
-             if(formerObject){
-                 string cmd = "query removeFile('" + fileNameOnI+ "')";
-                 ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
-                 if(errorCode){
-                    cerr << __FILE__ << "@"  << __LINE__ << endl;
-                    showError(ci,cmd,errorCode, errMsg);
-                    return false;
-                 } 
-             }
-
-             // step 2: create object if required
-             if(formerObject){
-                string oname = ai->getObjectNameForSlot(slot);
-                string end = info->isRelation[arrayNumber]?"consume":"";
-                string cmd = "let " + oname + " =  '"+fileNameOn0
-                              +"' getObjectFromFile " + end;
-                c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
-                if(errorCode){
-                    cerr << __FILE__ << "@"  << __LINE__ << endl;
-                    showError(c0,cmd,errorCode,errMsg);
-                   // return false; //ignore, may be object already there
-                 }
-                 cmd = "query removeFile('" + fileNameOn0+ "')";
-                 c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
-                 if(errorCode){
-                    cerr << __FILE__ << "@"  << __LINE__ << endl;
-                    showError(c0,cmd,errorCode,errMsg);
-                    return false;
-                 } 
-                 sourceNames.push_back(pair<bool,string>(true,oname));
-                 funargs.push_back(oname);
-                 return true;
-             }  else {
-                string fname = fileNameOn0;
-                string type ="(frel " + nl->ToString(nl->Second(
-                              nl->Second(info->argTypes[arrayNumber]))) + ")";
-                string fa = "("+ type + "  '"+fname+"')"; 
-                funargs.push_back(fa);
-                sourceNames.push_back(pair<bool,string>(true,fname)); 
-                return true;
-             }
-          } else { // file or object already on the server
-              // create entries in funargs and sourceNames
-              if(ai->getType()==DARRAY){
-                string oname = ai->getObjectNameForSlot(slot);
-                funargs.push_back(oname);
-                sourceNames.push_back(pair<bool,string>(false,oname));     
-              } else {
-                string fname = ai->getFilePath(ci->getSecondoHome(), 
-                                               info->dbname, slot);
-                string type ="(frel " + nl->ToString(nl->Second(
-                              nl->Second(info->argTypes[arrayNumber]))) + ")";
-                string fa = "( "+ type + " '"+fname+"')";
-                funargs.push_back(fa);
-                sourceNames.push_back(pair<bool,string>(false,fname)); 
-              }
-              return true;             
-          }
-       }
-
 /*
 8.13.5 ~createCommand~
 
@@ -13584,9 +13615,6 @@ Creates the command for computing the result for this slot.
             funCall = funCall + " " + funargs[i];
           }
           funCall += " )";
-
-
-
 
           arrayType resType = info->res->getType();
           if(resType == DARRAY){
@@ -13735,7 +13763,7 @@ Operator dmap2Op(
   dmapXSpec.getStr(),
   dmapXVM,
   Operator::SimpleSelect,
-  dmapXTM
+  dmapXTMT<2>
 );
 
 
@@ -13789,6 +13817,641 @@ Operator dmap8Op(
   dmapXTMT<8>
 );
 
+
+
+/*
+3.16 Operator ~dproduct~
+
+This operator connects all slots of the fisrt argument with all slots of
+the second argument using a parameter function. 
+
+*/
+
+
+ListExpr dproductTM(ListExpr args){
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError("5 arguments expected");
+  }
+  string err =" d[f]array(rel T1)) x d[f]array(rel T2) x string x "
+              "(stream(T1) x stream(T2) -> stream(T3)) x int expected";
+
+  ListExpr c = args;
+  // check for args in type mapping
+  while(!nl->IsEmpty(c)){
+    if(!nl->HasLength(nl->First(c),2)){
+      return listutils::typeError("interbal error");
+    }
+    c = nl->Rest(c);
+  }
+
+  if(    !DArray::checkType(nl->First(nl->First(args))) 
+      && !DFArray::checkType(nl->First(nl->First(args)))){
+    return listutils::typeError(err + " (first arg is not a d[f]array)");
+  }
+  if(    !DArray::checkType(nl->First(nl->Second(args))) 
+      && !DFArray::checkType(nl->First(nl->Second(args)))){
+    return listutils::typeError(err + " (2nd arg is not a d[f]array)");
+  }
+  if(!CcString::checkType(nl->First(nl->Third(args)))){
+    return listutils::typeError(err + " (third arg is not a string)");
+  }
+  if(!listutils::isMap<2>(nl->First(nl->Fourth(args)))){
+    return listutils::typeError(err + " (4th arg is not a binary function)");
+  }
+  if(!CcInt::checkType(nl->First(nl->Fifth(args)))){
+    return listutils::typeError(err + " (5th arg is not an integer)");
+  }
+  ListExpr a1 = nl->First(nl->First(args));
+  ListExpr a2 = nl->First(nl->Second(args));
+  if(   !Relation::checkType(nl->Second(a1))
+     || !Relation::checkType(nl->Second(a2))){
+    return listutils::typeError(err + " ( only relationa are allowed for the "
+                                      "subtypes of the d[f]arrays)");
+  }
+
+  ListExpr s1 = nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                       nl->Second(nl->Second(a1)));
+   
+  ListExpr s2 = nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                       nl->Second(nl->Second(a2)));
+
+  ListExpr fun = nl->First(nl->Fourth(args));
+  if(    !nl->Equal(s1, nl->Second(fun))
+     ||  !nl->Equal(s2, nl->Third(fun))){
+     return listutils::typeError(err + " (function arguments does not "
+                                       "fit the d[f]array types");
+  }
+  // check the resulting type of the function. if it is a stream, it has to be a
+  // tuple stream 
+  ListExpr funres = nl->Fourth(fun);
+  bool isStream = false;
+  if(listutils::isStream(funres)){
+     isStream= true;
+     if(!Stream<Tuple>::checkType(funres)){
+       return listutils::typeError("invalid function result, stream, "
+                                   "but not a tuple stream");
+     }
+  }
+
+  // replace function arguments
+  ListExpr funQuery = nl->Second(nl->Fourth(args));
+  ListExpr rfunQuery = nl->FourElemList(
+                          nl->First(funQuery),
+                          nl->TwoElemList(nl->First(nl->Second(funQuery)), s1),
+                          nl->TwoElemList(nl->First(nl->Third(funQuery)), s2),
+                          nl->Fourth(funQuery));
+                    
+   ListExpr resType = isStream? nl->TwoElemList( 
+                                      listutils::basicSymbol<Relation>(), 
+                                      nl->Second(funres))
+                              : funres;
+
+   if(isStream || Relation::checkType(funres)){
+      resType = nl->TwoElemList(listutils::basicSymbol<DFArray>(), resType);
+   } else {
+      resType = nl->TwoElemList(listutils::basicSymbol<DArray>(), resType);
+   }
+
+   ListExpr appendList =
+        nl->TwoElemList( nl->TextAtom(nl->ToString(rfunQuery)), 
+                         nl->BoolAtom(isStream));
+
+
+   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                             appendList,
+                             resType);
+}
+
+
+
+
+
+class dproductInfo{
+ public:
+
+    dproductInfo(DArrayBase* _arg0, DArrayBase* _arg1, DArrayBase* _result,
+                const string& _funText,ListExpr _a0Type, ListExpr _a1Type,
+                int _transferPort, bool _streamRes ): arg0(_arg0), arg1(_arg1),
+                result(_result), funText(_funText), a0Type(_a0Type), 
+                a1Type(_a1Type), port(_transferPort), streamRes(_streamRes) {
+                    dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+                }
+
+    void run(){
+       if(!arg0->IsDefined() || !arg1->IsDefined()){
+          result->makeUndefined();
+          return;
+       }
+       copySlots(); // copy missing slots to the workers
+      
+       // after copying, all slots of the second arg are accessible on
+       // each worker of the first argument.
+       // if the slot was already there, it can be accessed by the 
+       // original access method (object or frel), otherwise, it can be 
+       // accessed  only via frel
+       computeResult(); // perform the function to compute the result
+       removeTemp(); // removes any temporarly files
+    }
+
+
+
+
+
+ private:
+     DArrayBase* arg0;
+     DArrayBase* arg1;
+     DArrayBase* result;
+     string funText;
+     ListExpr a0Type;
+     ListExpr a1Type;
+     int port;
+     bool streamRes;
+     string dbname;
+     map<string,string> Ip2Home;
+     vector<pair<DArrayElement, vector<string> > > temps; 
+
+
+     string getHome(string IP){
+        return Ip2Home[IP];
+     }
+
+    void copySlots(){
+       // step 1: start on each IP related to arg1 a 
+       // filetransferator
+
+       vector<DArrayElement> workers;
+       set<string> usedIPs;
+       for(size_t i=0;i<arg1->numOfWorkers();i++){
+          DArrayElement w = arg1->getWorker(i);
+          string ip = w.getHost();
+          if(usedIPs.find(ip)==usedIPs.end()){
+             workers.push_back(w);
+             usedIPs.insert(ip);
+          }
+       }
+      
+
+       // start file transferators for workers of arg 1 
+
+       startFileTransferators(workers, port);
+
+       // for each ip adress of arg0, select the workers running on this ip
+       // the first worker in the vector will determine the filename of the 
+       // target
+       map<string,vector<DArrayElement> > groups;
+       for(size_t i=0;i<arg0->numOfWorkers(); i++){
+          DArrayElement elem = arg0->getWorker(i);
+          string ip = elem.getHost();
+          typename map<string, vector<DArrayElement> >::iterator it;
+          it = groups.find(ip);
+          if(it==groups.end()){
+            // open a new group
+            vector<DArrayElement> newGroup;
+            newGroup.push_back(elem);
+            ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
+            Ip2Home[ip] = ci->getSecondoHome(); 
+            groups[ip] = newGroup;
+          } else {
+             it->second.push_back(elem);
+          }   
+       }
+
+       vector<vector<int> > missingSlots; // there will be build a 
+                                          // one to one connection to 
+                                          // the groups array
+
+       // step 2: compute for each worker which slots are missing 
+       typename map<string,vector<DArrayElement> >::iterator  git;
+       for(git=groups.begin(); git!=groups.end(); git++){
+           DArrayElement elem = git->second[0];
+           vector<int> v;
+           missingSlots.push_back(v);
+           for(size_t j=0;j<arg1->getSize();j++){
+               DArrayElement e2 = arg1->getWorkerForSlot(j);
+               if(transferRequired(elem, e2, arg1->getType(),dbname)){
+                   // files is required in each case
+                   missingSlots.back().push_back(j);
+               }
+           }
+       }
+
+
+       // transfer data in parallel
+       vector<copyTask*> coper;
+       int k = 0;
+       for(git=groups.begin(); git!=groups.end(); git++){
+           coper.push_back(new copyTask(git->second[0], arg1, 
+                                        missingSlots[k],port, this));
+           k++;
+       }
+       for(size_t i=0; i< coper.size(); i++){
+           vector<pair<bool,string> >& onames = coper[i]->getONames();
+           vector<string> victims;
+           for(size_t j=0 ;j<onames.size();j++){
+                if(onames[j].first){
+                   victims.push_back(onames[j].second);
+                }
+           } 
+           temps.push_back(make_pair(workers[i], victims));
+           delete coper[i];
+       }
+    }
+
+  
+    void computeResult(){
+       // we start an resultrunner for each slot and wait for 
+       // finishing of all of them
+
+      // TODO: make parallel
+
+       vector<resultRunner*> runners;
+       for(size_t i=0;i<arg0->getSize(); i++){
+            resultRunner* runner = new resultRunner(this,i);
+            runners.push_back(runner); 
+            delete runners.back();
+       }
+       for(size_t i=0;i<runners.size();i++){
+        //   delete runners[i];
+       }
+    }
+
+    void removeTemp(){
+       // collect the workers with different ips from arg0
+       set<string> usedIPs;
+       vector<DArrayElement> w;
+       for(size_t i=0;i<arg0->numOfWorkers(); i++){
+           DArrayElement elem = arg0->getWorker(i);
+           if(usedIPs.find(elem.getHost())==usedIPs.end()){
+              w.push_back(elem);
+              usedIPs.insert(elem.getHost());
+           }
+       }
+
+       // start for each worker a remove job
+       vector<removeJob*> remover;
+       for(size_t i=0;i<w.size(); i++){
+         remover.push_back(new removeJob(w[i], this));
+       }
+
+       // wait until removing files is done
+       for(size_t i=0; i< remover.size(); i++){
+          delete remover[i]; 
+       }
+
+    }
+
+   
+
+    class copyTask{
+        public:
+           copyTask(DArrayElement& _elem, 
+                    DArrayBase* _source, 
+                    vector<int>& _missingSlots, 
+                    int _port, dproductInfo* _pi): elem(_elem), 
+                    source(_source), missingSlots(_missingSlots),
+                    port(_port), pi(_pi) {
+                    runner =  new boost::thread(&copyTask::run , this);
+ 
+           }
+
+
+           ~copyTask(){
+              runner->join();
+              delete runner;
+            }
+
+            vector<pair<bool, string> >& getONames(){
+              return sourceNames;
+            }           
+ 
+
+        private:
+           DArrayElement elem;
+           DArrayBase* source;
+           vector<int> missingSlots;
+           int port;
+           dproductInfo* pi;
+           bool isRelation;
+           vector<pair<bool, string> > sourceNames;
+           vector<string> funargs;
+           boost::thread* runner; 
+
+        void run() {
+           for(size_t i=0;i<missingSlots.size();i++){
+               int slot = missingSlots[i];
+
+               retrieveData(pi->arg0,pi->arg1, slot, pi->dbname, port,
+                           isRelation, sourceNames, funargs, pi->a1Type,
+                           false);
+           }
+        }
+    };
+
+    class resultRunner{
+        public:
+           resultRunner(dproductInfo* _pi, int _slot): pi(_pi), slot(_slot){
+             runner = new boost::thread(&resultRunner::run, this);
+           }
+
+           ~resultRunner(){
+               runner->join();
+               delete runner;
+           }
+        private:
+           dproductInfo* pi;
+           int slot;
+           boost::thread* runner;
+
+
+           void run(){
+              string funarg1;
+              DArrayElement w0 = pi->arg0->getWorkerForSlot(slot);
+              ConnectionInfo* c0;
+              c0 = algInstance->getWorkerConnection(w0, pi->dbname);
+              if(pi->arg0->getType()==DARRAY){
+                 funarg1 = "(feed " + pi->arg0->getObjectNameForSlot(slot)+")";
+              } else {
+                 funarg1 = "(feed (" +
+                           nl->ToString(
+                               nl->TwoElemList(listutils::basicSymbol<frel>(),
+                               nl->Second(nl->Second(pi->a0Type))))
+                           + "'" 
+                           + pi->arg0->getFilePath(c0->getSecondoHome(), 
+                                                   pi->dbname, slot) 
+                           + "'))";
+                                        
+              }
+              string funarg2;
+              // funarg2 consists of the concatenation of all slots of argument1
+              for(size_t i=0;i<pi->arg1->getSize(); i++){
+                 string slotarg = getSlotArg(pi->arg0->getWorkerForSlot(slot),
+                                             i, pi->arg1->getType(), c0);
+                 if(i==0){
+                    funarg2 = slotarg;
+                 } else {
+                    funarg2 = "(concat " + funarg2 + " " + slotarg +") ";
+                 }
+              }
+              string funcall = "( " + pi->funText+ " " + funarg1 + " " 
+                               + funarg2 + ")";
+
+              string cmd;
+              if(pi->result->getType()==DARRAY){
+                 cmd =   "(let " + pi->result->getObjectNameForSlot(slot)
+                       + " =  " + funcall + " )";
+              }  else {
+                 cmd =   "(query count (fconsume5 " + funcall + "'" 
+                      + pi->result->getFilePath(c0->getSecondoHome(), 
+                                                pi->dbname, slot) 
+                      + "' ))";
+              }
+              int ec;
+              string errMsg;
+              double rt;
+              string resList;
+              c0->simpleCommandFromList(cmd, ec, errMsg, resList, false, rt);
+              if(ec){
+                  cout << __FILE__ << "@" << __LINE__ << endl;
+                  showError(c0,cmd,ec,errMsg);
+              }
+           }
+
+           string getSlotArg(DArrayElement target, size_t slot, arrayType type,
+                             ConnectionInfo* c0){
+              string res = "(feed ";
+              DArrayElement source = pi->arg1->getWorkerForSlot(slot);
+              if(   (type==DFARRAY) 
+                 || transferRequired(target, source, type, pi->dbname)){
+                 res += "(" +  nl->ToString(
+                               nl->TwoElemList(listutils::basicSymbol<frel>(),
+                               nl->Second(nl->Second(pi->a1Type))))
+                            + "'" 
+                            + pi->arg1->getFilePath(c0->getSecondoHome(), 
+                                                    pi->dbname, slot) 
+                            + "')";
+
+   
+              } else {
+                 res += pi->arg1->getObjectNameForSlot(slot);
+              } 
+              res += ")";
+              return res;
+           }
+
+
+    };
+
+    class removeJob{
+      public:
+         removeJob(DArrayElement& _elem, dproductInfo* _pi) :
+             elem(_elem), pi(_pi){
+              runner = new boost::thread(&removeJob::run, this);
+         }
+         ~removeJob(){
+             runner->join();
+             delete runner;
+         }
+
+      private:
+        DArrayElement elem;
+        dproductInfo* pi;
+        boost::thread* runner;
+
+        void run(){
+           ConnectionInfo* c0 = algInstance->getWorkerConnection(elem,
+                                                           pi->dbname);
+           for(size_t i=0;i<pi->arg1->getSize(); i++){
+              DArrayElement source = pi->arg1->getWorkerForSlot(i);
+              if(transferRequired(elem, source, pi->arg1->getType(), 
+                                  pi->dbname)){
+
+                 // the file has to be deleted
+                 string fname = pi->arg1->getFilePath(c0->getSecondoHome(), 
+                                                      pi->dbname,i);
+
+                 string cmd = "query removeFile('"+fname+"')";
+                 int errCode;
+                 string errMsg;
+                 double rt;
+                 c0->simpleCommand(cmd, errCode, errMsg, false, rt);
+                 if(errCode){
+                    cout << __FILE__ << "@" << __LINE__ << endl;
+                    showError(c0, cmd, errCode, errMsg);
+                 }
+              }
+           }
+        }
+        
+
+
+    };
+
+
+
+};
+
+
+template<class A1, class A2, class R>
+int dproductVMT( Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+  
+   A1* a1 = (A1*) args[0].addr;
+   A2* a2 = (A2*) args[1].addr;
+   CcString* ccname = (CcString*) args[2].addr;
+   // ignore fun, use funtext
+   CcInt* ccport = (CcInt*) args[4].addr; 
+   string fun  = ((FText*) args[5].addr)->GetValue();
+   bool isStream = ((CcBool*) args[6].addr)->GetValue();
+
+   result = qp->ResultStorage(s);
+   R* res = (R*) result.addr;
+   string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+
+   if(!ccport->IsDefined()){
+      res->makeUndefined();
+      return 0;
+   }
+   int port = ccport->GetValue();
+   if(port <=0){
+      res->makeUndefined();
+      return 0;
+   }
+   string name = "";
+   if(ccname->IsDefined()){
+     name = ccname->GetValue();
+   }
+   if(a1->numOfWorkers()<1 || a2->numOfWorkers() < 1){
+      res->makeUndefined();
+      return 0;
+   }
+   if(name==""){
+      algInstance->getWorkerConnection(a1->getWorker(0),dbname);
+      name = algInstance->getTempName();            
+   }
+   if(!stringutils::isIdent(name)){
+      // name is invalid
+      res->makeUndefined();
+      return 0;
+   }
+   (*res) = (*a1);
+   res->setName(name);
+
+   dproductInfo info(a1, a2, res, fun, qp->GetType(qp->GetSon(s,0)),
+                     qp->GetType(qp->GetSon(s,1)), port, isStream);
+
+   info.run();
+  
+   return 0; 
+
+}
+
+
+ValueMapping dproductVM[] = {
+   dproductVMT<DArray,DArray,DArray>,
+   dproductVMT<DArray,DArray,DFArray>,
+   dproductVMT<DArray,DFArray,DArray>,
+   dproductVMT<DArray,DFArray,DFArray>,
+   dproductVMT<DFArray,DArray,DArray>,
+   dproductVMT<DFArray,DArray,DFArray>,
+   dproductVMT<DFArray,DFArray,DArray>,
+   dproductVMT<DFArray,DFArray,DFArray>,
+};
+
+int dproductSelect(ListExpr args){
+
+  int a1 = DArray::checkType(nl->First(args))?0:4;
+  int a2 = DArray::checkType(nl->Second(args))?0:2;
+  ListExpr fr = nl->Fourth(nl->Fourth(args));
+  int a3 = Relation::checkType(fr) || listutils::isStream(fr)?1:0;
+  return a1+a2+a3;
+
+}
+
+
+OperatorSpec dproductSpec(
+  "d[f]array(rel T1)  x d[f]array(rel T2) x string x "
+  "( stream(T1) x stream(T2) -> K) x int -> d[f]array(K)",
+  "_ _ dproduct[_,_,_] ",
+  "Connects the slots of the first argument with all slots of the "
+  "second argument using the specified function." 
+  "The string argument is the name of the result, if empty or undefined, "
+  "a name is generated automatically. "
+  "The int argument specifies a port that is used for transferring data "
+  "between workers.",
+  "query dplz1 dplz2[ \"\", . .. hashjoin[P1,P2] , 1238] "
+);
+
+
+Operator dproductOp(
+  "dproduct",
+  dproductSpec.getStr(),
+  8,
+  dproductVM,
+  dproductSelect,
+  dproductTM
+);
+
+
+/*
+Operator arraytypestream
+
+A type mapping operator.
+
+*/
+
+
+template<int pos>
+ListExpr arraytypeStreamTMT(ListExpr args){
+  if(!nl->HasMinLength(args,pos)){
+    return listutils::typeError("too less arguments");
+  }
+  for(int i=1;i<pos;i++){
+     args = nl->Rest(args);
+  }
+  ListExpr arg = nl->First(args);
+  if(!DArray::checkType(arg) && !DFArray::checkType(arg)){
+    return listutils::typeError("Argument number " + stringutils::int2str(pos) 
+                                 + " has to be a d[f]array");
+  } 
+  ListExpr subtype = nl->Second(arg);
+  if(!Relation::checkType(subtype)){
+    return listutils::typeError("subtype of d[f]array is not a relation");
+  }
+  return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                          nl->Second(subtype));
+
+}
+
+OperatorSpec arraytypeStream1Spec(
+  "d[f]array(rel X) x ... -> stream(X)",
+  "arraytypeStream1(_)",
+  "Type Mapping operator",
+  "query dfa1 dfa2 dproductspec[\"\", . . product , 1238" 
+);
+
+
+OperatorSpec arraytypeStream2Spec(
+  " . x d[f]array(rel X) x ... -> stream(X)",
+  "arraytypeStream2(_)",
+  "Type Mapping operator",
+  "query dfa1 dfa2 dproductspec[\"\", . . product , 1238" 
+);
+
+Operator arraytypeStream1Op(
+  "arraytypeStream1",
+  arraytypeStream1Spec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  arraytypeStreamTMT<1>
+);
+
+Operator arraytypeStream2Op(
+  "arraytypeStream2",
+  arraytypeStream1Spec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  arraytypeStreamTMT<1>
+);
 
 
 /*
@@ -18323,7 +18986,12 @@ Distributed2Algebra::Distributed2Algebra(){
    getObjectFromFileOp.SetUsesArgsInTypeMapping();
 
 
-   
+  //  AddOperator(&dproductOp);   
+  //  dproductOp.SetUsesArgsInTypeMapping();
+
+    AddOperator(&arraytypeStream1Op);   
+    AddOperator(&arraytypeStream2Op);   
+
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);

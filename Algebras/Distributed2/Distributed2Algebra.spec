@@ -111,5 +111,6 @@ operator saveObjectToFile alias SAVEOBJECTTOFILE pattern _ op[_]
 
 operator getObjectFromFile alias GETOBJECTFROMFILE pattern _ op
 
+operator dproduct alias DPRODUCT  pattern _ _ op[_,fun,_] implicit parameters elem1, elem2 types arraytypeStream1, arraytypeStream2
 
 
