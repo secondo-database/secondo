@@ -291,7 +291,8 @@ distributedselect(Arg, pr(Cond, rel(_, Var))) translatesD
       append(P, [disjointpartitioning], P2)
   ),
   % rename if needed
-  feedRenameRelation(dot, Var, Plan),
+  % feedRenameRelation(dot, Var, Plan),
+  feedRenameRelation2(Arg, dot, Var, Plan),
   renamedRelAttr(attr(original, 1, u), Var, Original).
 
 /*
@@ -365,8 +366,8 @@ distributedjoin(Arg1, Arg2, pr(Pred, rel(_, Var1), rel(_, Var2)))
   Arg2 => [Arg2A, _],
   Plan = dproduct(Arg1A, Arg2A, e, symmjoin(Arg1S, Arg2S, Pred), 1238),
   P = [distribution(random, *, *), distributedobjecttype(dfarray)],
-  feedRenameRelation(dot, Var1, Arg1S),		% Arg1S = Arg1Stream
-  feedRenameRelation(dotdot, Var2, Arg2S).
+  feedRenameRelation2(Arg1, dot, Var1, Arg1S),	% Arg1S = Arg1Stream
+  feedRenameRelation2(Arg2, dotdot, Var2, Arg2S).
 
 distributedjoin(Arg1, Arg2, pr(Pred, rel(_, Var1), rel(_, Var2))) 
     translatesD [Plan, P] :-
@@ -374,8 +375,8 @@ distributedjoin(Arg1, Arg2, pr(Pred, rel(_, Var1), rel(_, Var2)))
   Arg2 => [Arg2A, _],
   Plan = dproduct(Arg2A, Arg1A, e, symmjoin(Arg2S, Arg1S, Pred), 1238),
   P = [distribution(random, *, *), distributedobjecttype(dfarray)],
-  feedRenameRelation(dot, Var2, Arg1S),		 
-  feedRenameRelation(dotdot, Var1, Arg2S).
+  feedRenameRelation2(Arg2, dot, Var2, Arg1S),		 
+  feedRenameRelation2(Arg1, dotdot, Var1, Arg2S).
 
 
 /*
@@ -399,8 +400,8 @@ distributedjoin(Arg1, Arg2, pr(X = Y, rel(_, Var1), rel(_, Var2)))
   not(member(distribution(_, DCAttr1, _), P1)),
   not(member(distribution(_, DCAttr2, _), P2)),
 	write('we get here. '), nl, nl,
-  feedRenameRelation(dot, Var1, Arg1S),	
-  feedRenameRelation(dotdot, Var2, Arg2S),
+  feedRenameRelation2(Arg1, dot, Var1, Arg1S),	
+  feedRenameRelation2(Arg2, dotdot, Var2, Arg2S),
   InnerPlan = hashjoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2), 999997),
   Plan = areduce2(
     partitionF(Arg1A, value_expr(string, ""), feed(dot), 
@@ -447,8 +448,8 @@ distributedjoin(Arg1, Arg2, pr(X = Y, rel(_, Var1), rel(_, Var2)))
   P = [distribution(function, DCAttr1, hash), 
     distribution(function, DCAttr2, hash),
     distributedobjecttype(dfarray)],
-  feedRenameRelation(dot, Var1, Arg1S),		% Arg1S = Arg1Stream
-  feedRenameRelation(dotdot, Var2, Arg2S).
+  feedRenameRelation2(Arg1, dot, Var1, Arg1S),	  % Arg1S = Arg1Stream
+  feedRenameRelation2(Arg2, dotdot, Var2, Arg2S).
   
   
 /*
@@ -472,23 +473,25 @@ distributedjoin(Arg1, Arg2, pr(X intersects Y, rel(_, Var1), rel(_, Var2)))
     ;
     Arg1B = collect2(
       partitionF(Arg1A, value_expr(string, ""), 
-        extendstream(feed(dot), field(attr(cell, 1, u), 
+        extendstream(feed(dot), field(CellAttr1, 
           cellnumber(bbox(Attr2), grid))),
-        attr2(cell, 2, u), 0),
+        CellDistAttr1, 0),
       value_expr(string, ""), 1238)
   ),
   ( member(distribution(_, DCAttr2, _), P2) -> Arg2B = Arg2A
     ;
     Arg2B = collect2(
       partitionF(Arg2A, value_expr(string, ""), 
-        extendstream(feed(dot), field(attr(cell, 1, u), 
+        extendstream(feed(dot), field(CellAttr2, 
           cellnumber(bbox(Attr2), grid))),
-        attr2(cell, 2, u), 0),
+        CellDistAttr2, 0),
       value_expr(string, ""), 1238)
   ),
   % rename the cell attribute if needed
-  renamedRelAttr(attr(cell, 1, u), Var1, CellAttr1),
-  renamedRelAttr(attr(cell, 2, u), Var2, CellAttr2),
+  renamedRelAttr2(Arg1, attr(cell, 1, u), Var1, CellAttr1),
+  renamedRelAttr2(Arg2, attr(cell, 2, u), Var2, CellAttr2),
+  renamedRelAttr2(Arg1, attr2(cell, 2, u), Var1, CellDistAttr1),
+  renamedRelAttr2(Arg2, attr2(cell, 2, u), Var2, CellDistAttr2),
   InnerPlan = 
     filter(
       itSpatialJoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2)),
@@ -498,8 +501,8 @@ distributedjoin(Arg1, Arg2, pr(X intersects Y, rel(_, Var1), rel(_, Var2)))
   P = [distribution(spatial, DCAttr1, grid), 
     distribution(spatial, DCAttr2, grid),
     distributedobjecttype(dfarray)],
-  feedRenameRelation(dot, Var1, Arg1S),		
-  feedRenameRelation(dotdot, Var2, Arg2S).
+  feedRenameRelation2(Arg1, dot, Var1, Arg1S),		
+  feedRenameRelation2(Arg2, dotdot, Var2, Arg2S).
   
 
  
@@ -1017,6 +1020,21 @@ renamedRelAttr(RelAttr, Var, RelAttr) :-
 renamedRelAttr(attr(Name, N, C), Var, attr(Var:Name, N, C)).
 
 
+
+
+renamedRelAttr2(Arg, RelAttr, Var, RelAttr) :-
+  ( Var = * ; Arg = arg(_) ),
+  !.
+
+renamedRelAttr2(_, attr(Name, N, C), Var, attr(Var:Name, N, C)).
+
+renamedRelAttr2(_, attr2(Name, N, C), Var, attr2(Var:Name, N, C)).
+
+
+
+
+
+
 % Extract the down case name from an attr term.
 attrnameDCAtom(Attr, DCAttrName) :-
   Attr = attr(_:Name, _, _),
@@ -1059,6 +1077,25 @@ feedRenameRelation(Rel, Var, Plan) :-
 
 feedRenameRelation(rel(Rel, Var), Plan) :-
   feedRenameRelation(Rel, Var, Plan),!.
+
+
+
+
+feedRenameRelation2(Arg, Rel, Var, Plan) :-
+  Arg = arg(_),
+  Var \= *,   
+  Plan = rename(feed(Rel), Var),
+  !.
+
+feedRenameRelation2(_, Rel, _, feed(Rel)).
+
+
+
+
+
+
+
+
 
 
 
