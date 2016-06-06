@@ -2929,7 +2929,7 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
 
 % rule for (Attr tmatches Pattern): symbolic pattern search using tupleindex
 indexselect2(arg(N), pr(Attr tmatches X, _) ) =>
-  indextmatches(dbindexobject(IndexName), rel(Name, Z), attrname(Attr), X)
+  indextmatches(dbobject(IndexName), rel(Name, Z), attrname(Attr), X)
   :-
   argument(N, rel(Name, Z)),
   hasIndex(rel(Name, Z), Attr, DCindex, tupleindex),
