@@ -1470,9 +1470,12 @@ plan_to_atom(dbobject(Name), ExtName) :-	% fapra 2015/16
   plan_to_atomD(dbobject(Name), ExtName), !.	% distributed.pl
 
 
-% objects not to be distributed for queries: dbotherobject, dbindexobject.
+% objects not to be distributed for queries: dbotherobject, dbindexobject,
+% dbdistindexobject.
 
-plan_to_atom(dbotherobject(Name),ExtName) :-
+plan_to_atom(DBObject, ExtName) :-
+  ( DBObject = dbotherobject(Name) ; DBObject = dbindexobject(Name) ;
+    DBObject = dbdistindexobject(Name) ),
   dcName2externalName(DCname, Name),       % convert to DC-spelling
   ( dcName2externalName(DCname,ExtName)    % if Name is known
     -> true
@@ -1484,17 +1487,6 @@ plan_to_atom(dbotherobject(Name),ExtName) :-
   ),
   !.
 
-plan_to_atom(dbindexobject(Name),ExtName) :-
-  dcName2externalName(DCname, Name),       % convert to DC-spelling
-  ( dcName2externalName(DCname,ExtName)    % if Name is known
-    -> true
-    ; ( write_list(['\nERROR:\tCannot translate \'',dbobject(DCname),'\'.']),
-        throw(error_Internal(optimizer_plan_to_atom(dbobject(DCname),
-                                                  ExtName)::missingData)),
-        fail
-      )
-  ),
-  !.
 
 plan_to_atom(Rel, Result) :-
   rel_to_atom(Rel, Name),
@@ -5482,6 +5474,8 @@ cost(dot(Size), _, _, Size, 0).
 
 cost(dotdot(Size), _, _, Size, 0).
 
+
+
 /*
 8.1.2 Operators
 
@@ -5653,7 +5647,7 @@ cost(rightrangeS(dbindexobject(Index), _KeyValue), Sel, _P, Size, Cost) :-
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
 
-cost(range(_, Rel, _), Sel, P, Size, Cost) :-
+cost(range(_, Rel, _, _), Sel, P, Size, Cost) :-
   cost(Rel, 1, P, RelSize, _),
   exactmatchTC(C),
   Size is Sel * RelSize,
