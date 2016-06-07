@@ -114,38 +114,30 @@ dsummarize    darray(DATA) -> stream(DATA) , d[f]array(rel(X)) -> stream(X)
 3 Replication
 
 To consider distributed queries with predicates containing non-relation
- objects, it is necessary to replicate the objects to the 
- involved workers. 
+objects, it is necessary to replicate the objects to the 
+involved workers. 
 
 For now we assume that every found object is contained in the distributed
- part of the query (function of dmap or dmap2).
-
-A possible later extension is to examine the distributed relations and 
- to share the objects only to workers containing parts of those relations.
+part of the query (function of dmap or dmap2).
 
 */
 
 :- dynamic(replicatedObject/1).
-% :- dynamic(shared/1).	% has already been shared once in this session
+:- dynamic(shared/1).	% has already been shared once in this session
 
-%distributed query without objects
-replicateObjects(QueryPart, QueryPart) :-
-  findall(X,replicatedObject(X), ObjectList),
-  length(ObjectList,0),!.
 
-%distributed query using objects in predicate
-replicateObjects(QueryPart, Result) :-
-  findall(X,replicatedObject(X), ObjectList),
-  length(ObjectList,Length),
-  Length >0,
-  maplist(createSharedClause,ObjectList,CommandList),
-  append(CommandList,[QueryPart], Result).
+replicateObjects :- not(replicateObjects2).
 
-createSharedClause(Obj, SharedCommand) :-
-%   not(shared(Obj)),
-  atom_concat('share("', Obj, StrObj),
-  atom_concat(StrObj,'", TRUE)', SharedCommand).
-%   assert(shared(Obj)).
+replicateObjects2 :-
+  replicatedObject(X),
+  not(shared(X)),
+  atom_string(X, XString),
+  plan_to_atom(share(value_expr(string, XString), true, 
+    dbotherobject(sec2workers)), Query),
+  atom_concat('query ', Query, Command),
+  secondo(Command),
+  assert(shared(X)),
+  fail.
 
 
 /*
@@ -156,8 +148,8 @@ createSharedClause(Obj, SharedCommand) :-
 plan_to_atom_string(X, Result) :-
   isDistributedQuery,
   retractall(replicatedObject(_)),
-  plan_to_atom(X, QueryPart),
-  replicateObjects(QueryPart, Result),
+  plan_to_atom(X, Result),
+  replicateObjects,
   !.
   
 plan_to_atom_string(X, Result) :-
@@ -182,10 +174,9 @@ plan_to_atomD(dproduct(X, Y, _, Plan, Server), Result) :-
 % called dbobject
 
 plan_to_atomD(dbobject(Name), ExtName) :-  
-  dcName2externalName(DCname, Name),       % convert to DC-spelling
- ( dcName2externalName(DCname,ExtName)    % if Name is known
-%   -> ( isDistributedQuery -> assertOnce(replicatedObject(ExtName)) ; true )
-%  sharing objects disabled for the moment
+  dcName2externalName(DCname, Name),      % convert to DC-spelling
+  ( dcName2externalName(DCname, ExtName)  % if Name is known
+   -> ( isDistributedQuery -> assertOnce(replicatedObject(ExtName)) ; true )
    -> true
    ; ( write_list(['\nERROR:\tCannot translate \'',dbobject(DCname),'\'.']),
        throw(error_Internal(optimizer_plan_to_atom(dbobject(DCname),
