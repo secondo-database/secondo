@@ -43,5 +43,29 @@ class RemoteMonitorsTest(unittest.TestCase):
     def testSdkNone(self):
         self.runEnvironmentVariableTest(self.sdkEnvKey)
 
+    def testRunWithNoneAsArg(self):
+        rm = RemoteMonitors(logging.getLogger(__name__))
+        try:#TODO use assertRaises
+            rm.run(None, None)
+            self.fail("run method must throw an exception if called with None as args")
+        except ValueError as err:
+            self.assertEquals("Call with exactly one action: [start|stop|check]", err.message)
+
+    def testRunWithMoreThanOneArg(self):
+        rm = RemoteMonitors(logging.getLogger(__name__))
+        try:#TODO use assertRaises
+            rm.run(None, ["start", "check"])
+            self.fail("run method must throw an exception if called with more than one arg")
+        except ValueError as err:
+            self.assertEquals("Call with exactly one action: [start|stop|check]", err.message)
+
+    def testRunWithInvalidActionAsArg(self):
+        rm = RemoteMonitors(logging.getLogger(__name__))
+        try:#TODO use assertRaises
+            rm.run(None, ["sleep"])
+            self.fail("run method must throw an exception if action is invalid")
+        except ValueError as err:
+            self.assertEquals("Action must be one of [start|stop|check]", err.message)
+
 if __name__ == "__main__":
     unittest.main()
