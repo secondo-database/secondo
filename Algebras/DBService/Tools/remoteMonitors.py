@@ -13,6 +13,7 @@ class RemoteMonitors():
         self.platform = self.__getEnvironmentVariable("SECONDO_PLATFORM")
         self.buildDir = self.__getEnvironmentVariable("SECONDO_BUILD_DIR")
         self.secondoSDK = self.__getEnvironmentVariable("SECONDO_SDK")
+        self.homeDir = self.__getEnvironmentVariable("HOME")
 
     def __getEnvironmentVariable(self, key):
         value = os.getenv(key, None)
@@ -20,10 +21,21 @@ class RemoteMonitors():
             raise UnsuitableEnvironmentException("Environment variable %s is not set" % key)
         return value
 
+    def __requestParameter(requestText, defaultValue):
+        value = raw_input(requestText + " [%s]" % str(defaultValue) + ": ")
+        return (value or defaultValue)
+
+    def __evaluateOptions(self, options):
+        if options.verbose:
+            self.logger.setLevel(logging.DEBUG)
+        self.logger.debug(options)
+        self.diskPath = options.diskPath
+
     def run(self, options, args):
         if not args or len(args) != 1:
             raise ValueError("Call with exactly one action: [start|stop|check]")
         action = args[0]
+        self.__evaluateOptions(options)
         if action == "start":
             self.start()
         elif action == "check":
@@ -49,8 +61,10 @@ if __name__=="__main__":
     logger.info("Checking configuration.")
     remoteMonitors = RemoteMonitors(logger)
     parser = OptionParser(usage="%prog [start|stop|check]")
-    parser.add_option("-c", "--configFile", dest="filename",
-                  help="use configuration from specified file", metavar="FILE")
-
+    parser.add_option("-dp", "--diskPath", help="use this path to store secondo data", dest="diskPath", default=os.path.join(self.homeDir, "secondo-disks"))
+    parser.add_option("-v", "--verbose", help="print debug output", dest="verbose", default=False)
+    #TODO number of workers
+    #TODO hostnames
+    #TODO configfiles
     (options, args) = parser.parse_args()
     remoteMonitors.run(options, args)
