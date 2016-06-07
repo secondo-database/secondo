@@ -474,7 +474,7 @@ distributedjoin(Arg1, Arg2, pr(X intersects Y, rel(_, Var1), rel(_, Var2)))
     Arg1B = collect2(
       partitionF(Arg1A, value_expr(string, ""), 
         extendstream(feed(dot), field(CellAttr1, 
-          cellnumber(bbox(Attr2), grid))),
+          cellnumber(bbox(Attr1), grid))),
         CellDistAttr1, 0),
       value_expr(string, ""), 1238)
   ),
@@ -591,12 +591,14 @@ costD(dmap(X, _, Plan), Sel, Pred, Size, NSlots, Cost) :-
   costD(X, 1, _, SizeX, NSlots, CostX),
   substituteSubterm(dot, dot(SizeX), Plan, Plan2),
   	write('Plan cost dmap = '), write(Plan2), nl, nl,
+	write('Sel = '), write(Sel), nl,
+	write('Pred = '), write(Pred), nl, nl,
   cost(Plan2, Sel, Pred, Size, PlanCost), 
   nWorkers(NWorkers),
   NRounds is (NSlots // NWorkers) + 1,
   Cost is CostX + NRounds * PlanCost.
 
-
+% cost for join operations
 costD(dmap2(X, Y, _, Plan, _), Sel, Pred, Size, NSlots, Cost) :-
   costD(X, 1, _, SizeX, NSlots, CostX),
   costD(Y, 1, _, SizeY, NSlots, CostY),
@@ -611,6 +613,24 @@ costD(dmap2(X, Y, _, Plan, _), Sel, Pred, Size, NSlots, Cost) :-
   nWorkers(NWorkers),
   NRounds is (NSlots // NWorkers) + 1,
   Cost is CostX + CostY + NRounds * PlanCost.
+
+% cost for index access. Index is first argument, relation is second.
+costD(dmap2(_, X, _, Plan, _), Sel, Pred, Size, NSlots, Cost) :-
+  costD(X, 1, _, SizeX, NSlots, CostX),
+  substituteSubterm(dotdot, dotdot(SizeX), Plan, Plan2),
+  	write('Plan cost dmap2 = '), write(Plan2), nl,
+	write('Sel = '), write(Sel), nl,
+	write('Pred = '), write(Pred), nl, nl,
+  Sel2 is Sel,
+  cost(Plan2, Sel2, Pred, Size, PlanCost), 
+        write('The cost of the inner plan is: '), write(PlanCost), nl,
+  nWorkers(NWorkers),
+  NRounds is (NSlots // NWorkers) + 1,
+  Cost is CostX + NRounds * PlanCost.
+
+
+
+
 
 
 /*
@@ -794,27 +814,87 @@ Descends into terms and merges dmaps if possible.
 
 */
 
+% final dmaps
+
+% following dmap2
 mergeDmaps(
-  dmap(dmap(X, _, InnerPlanX), _, OuterPlan),
-  dmap(Y, value_expr(string, ""), Plan)) :-
-  mergeDmaps(dmap(X, _, InnerPlanX), dmap(Y, _, InnerPlanY)),
-  substituteSubterm(feed(dot), InnerPlanY, OuterPlan, Plan),
+  dmap(X, _, OuterPlan),
+  dmap2(X1, Y1, value_expr(string, ""), Plan, FS))
+  :-
+	% write('second dmap, 1'), nl,
+  mergeDmaps(X, dmap2(X1, Y1, _, InnerPlan, FS)),
+	% write('second dmap, 2'), nl,
+  substituteSubterm(feed(dot), InnerPlan, OuterPlan, Plan),
+	% write('second dmap, 3'), nl,
   !.
 
+% following dmap
 mergeDmaps(
-  dmap(dmap(X, _, InnerPlanX), _, OuterPlan),
-  dmap2(Y, Z, value_expr(string, ""), Plan, FileServer)) :-
-  mergeDmaps(dmap(X, _, InnerPlanX), dmap2(Y, Z, _, InnerPlanY, FileServer)),
-  substituteSubterm(feed(dot), InnerPlanY, OuterPlan, Plan),
+  dmap(X, _, OuterPlan),
+  dmap(X1, value_expr(string, ""), Plan))
+  :-
+  % write('first dmap, 1'), write('     '), write('X = '), write(X), nl,
+  mergeDmaps(X, dmap(X1, _, InnerPlan)), 
+  % write('first dmap, 2'), nl, write('     '), write('X1 = '), write(X1), nl,
+  substituteSubterm(feed(dot), InnerPlan, OuterPlan, Plan),
+	% write('first dmap, 3'), nl,
   !.
-  
-% recursive merge still missing
+
+
+
+% dmap2, following dmap
+
+% dmap2 for index access
 mergeDmaps(
-  dmap(dmap2(X, Y, _, InnerPlan, FileServer), _, OuterPlan),
-  dmap2(X, Y, value_expr(string, ""), Plan, FileServer)) :-
+  dmap(dmap2(dbdistindexobject(Index), Rel, _, InnerPlan, FileServer), _, 
+    OuterPlan),
+  dmap2(dbdistindexobject(Index), Rel, value_expr(string, ""), Plan, 
+    FileServer)) :-
   substituteSubterm(feed(dot), InnerPlan, OuterPlan, Plan),
   !.
-  
+
+% dmap2 for joins
+mergeDmaps(
+  dmap(dmap2(X, Y, _, InnerPlan, FileServer), _, OuterPlan),
+  dmap2(X1, Y1, value_expr(string, ""), Plan, FileServer)) :-
+  mergeDmaps(
+    dmap2(X, Y, _, InnerPlan, FileServer),
+    dmap2(X1, Y1, _, InnerPlan1, FileServer)),
+  substituteSubterm(feed(dot), InnerPlan1, OuterPlan, Plan),
+  !.
+
+
+% dmap2, preceding dmaps and other operations
+
+% dmap2 for index access
+mergeDmaps(
+  dmap2(dbdistindexobject(Index), Rel, _, Plan, FileServer),
+  dmap2(dbdistindexobject(Index), Rel, value_expr(string, ""), Plan, 
+    FileServer)) :-
+  !.
+
+
+% dmap2 for joins. Each argument can be dmap or something else, e.g. collect2 
+% or simply an argument.
+mergeDmaps(
+  dmap2(X, Y, _, OuterPlan, FileServer),
+  dmap2(XArg, YArg, value_expr(string, ""), Plan2, FileServer) )
+  :-
+  mergeDmaps(X, XPlan), 
+  ( XPlan =  dmap(X1, _, InnerPlanX)
+    -> substituteSubterm(feed(dot), InnerPlanX, OuterPlan, Plan1),
+       XArg = X1
+    ;  XArg = XPlan, Plan1 = OuterPlan
+  ),
+  mergeDmaps(Y, YPlan), 
+  ( YPlan =  dmap(Y1, _, InnerPlanY)
+    -> substituteSubterm(feed(dot), feed(dotdot), InnerPlanY, InnerPlanY2),
+       substituteSubterm(feed(dotdot), InnerPlanY2, Plan1, Plan2),
+       YArg = Y1
+    ;  YArg = YPlan, Plan2 = Plan1
+  ),
+  !.
+
 
 % dproduct, preceding dmaps
 mergeDmaps(
@@ -879,6 +959,14 @@ mergeDmaps(
   substituteSubterm(feed(dot), InnerPlan1, OuterPlan, Plan),
   !.
   
+
+% collect2
+mergeDmaps(
+  collect2(X, _, N),
+  collect2(X1, value_expr(string, ""), N)) :-
+  mergeDmaps(X, X1),
+  !.
+
 
   
 mergeDmaps(Plan, Plan) :-
@@ -1410,7 +1498,7 @@ distributedRelsAvailable :-
 % switch to dynamic predicate sometime in the future
 
 distributedIndex(dbotherobject(DistRelObj), DCAttr, IndexType, 
-    dbotherobject(IndexObj)) :-
+    dbdistindexobject(IndexObj)) :-
   distributedIndex2(DowncaseAtomTuples),
   member([DistRelObj, DCAttr, IndexType, IndexObj], DowncaseAtomTuples).
 
