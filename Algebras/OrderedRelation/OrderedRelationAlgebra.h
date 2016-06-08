@@ -205,7 +205,7 @@ class OrderedRelation : public GenericRelation {
     static const std::string BasicType() { return "orel"; }
 
      static const bool checkType(ListExpr list){
-      return listutils::isRelDescription2(list, BasicType());
+      return listutils::isOrelDescription(list);
      }
 
     std::ostream& Print(std::ostream& os) const;
