@@ -693,7 +693,7 @@ Returns the complete path where files are stored.
                                    const int port, string& config){
 
               NestedList* mynl = new NestedList();
-              SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl);
+              SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, false);
               string user="";
               string passwd = "";
               string errMsg;
@@ -2527,7 +2527,7 @@ int connectVMT( Word* args, Word& result, int message,
       return 0;
    }
    NestedList* mynl = new NestedList();
-   SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl);
+   SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, false);
    string user="";
    string passwd = "";
    string errMsg;
@@ -4911,7 +4911,7 @@ class Connector{
         }
 
         NestedList* mynl = new NestedList();
-        SecondoInterfaceCS* si = new SecondoInterfaceCS(false, mynl);
+        SecondoInterfaceCS* si = new SecondoInterfaceCS(false, mynl,false);
         si->setMaxAttempts(4);
         si->setTimeout(1);
         string errMsg;
@@ -13965,6 +13965,16 @@ ListExpr dproductTM(ListExpr args){
 
 
 
+void performCommand(ConnectionInfo* ci, const string& cmd){
+     int errorCode;
+     string errorMsg;
+     double rt;
+     string res;
+     ci->simpleCommand(cmd, errorCode, errorMsg, res, false, rt);
+     if(errorCode){
+           showError(ci,cmd, errorCode, errorMsg);
+     }
+}
 
 
 class dproductInfo{
@@ -13991,8 +14001,7 @@ class dproductInfo{
        // original access method (object or frel), otherwise, it can be 
        // accessed  only via frel
        computeResult(ch); // perform the function to compute the result
-      // removeTemp(); // removes any temporarly files
-
+       removeTemp(ch); // removes temporarly files
        delete ch;
     }
 
@@ -14235,16 +14244,6 @@ class dproductInfo{
                performCommand(target, cmd);
            } 
 
-           void performCommand(ConnectionInfo* ci, const string& cmd){
-               int errorCode;
-               string errorMsg;
-               double rt;
-               string res;
-               ci->simpleCommand(cmd, errorCode, errorMsg, res, false, rt);
-               if(errorCode){
-                  showError(ci,cmd, errorCode, errorMsg);
-               }
-           }
 
 
         }; 
@@ -14363,10 +14362,6 @@ class dproductInfo{
        return ch;
     }
 
-
-
-
-  
     void computeResult( copyHelper* ch ){
        // we start an resultrunner for each slot and wait for 
        // finishing of all of them
@@ -14382,30 +14377,135 @@ class dproductInfo{
        }
     }
 
-    void removeTemp(){
-       // collect the workers with different ips from arg0
-       set<string> usedIPs;
-       vector<DArrayElement> w;
-       for(size_t i=0;i<arg0->numOfWorkers(); i++){
-           DArrayElement elem = arg0->getWorker(i);
-           if(usedIPs.find(elem.getHost())==usedIPs.end()){
-              w.push_back(elem);
-              usedIPs.insert(elem.getHost());
-           }
+    void removeTemp(copyHelper* ch){
+       // temporary file are create for the second argument
+       // if the second argument is a darray, we can  
+       // remove the complete corresponding directory on the workers
+       // otherwise we have to select the files which have been copied
+       // from other IP adresses
+       if(arg1->getType()==DARRAY){
+           removeDirs(ch);
+       } else {
+           removeFiles(ch);
        }
-
-       // start for each worker a remove job
-       vector<removeJob*> remover;
-       for(size_t i=0;i<w.size(); i++){
-         remover.push_back(new removeJob(w[i], this));
-       }
-
-       // wait until removing files is done
-       for(size_t i=0; i< remover.size(); i++){
-          delete remover[i]; 
-       }
-
     }
+
+    void removeDirs(copyHelper* ch){
+       // we build a vector of pairs consisting of the ConnectionInfo
+       // and the directory which is to remove
+       copyHelper::iter it;
+       vector<pair<ConnectionInfo*, string> > v;
+       for(it = ch->scan(); it!=ch->end(); it++){ // go through ip adresses
+           set<string> usedHomes;
+           vector<ConnectionInfo*>& cis = it->second.first;
+           for(size_t i=0;i<cis.size();i++){
+              ConnectionInfo* ci = cis[i];
+              string home = ci->getSecondoHome();
+              if(usedHomes.find(home)==usedHomes.end()){
+                  usedHomes.insert(home);
+                  string s0 = arg1->getFilePath(home, dbname, 0);
+                  v.push_back(make_pair(ci, FileSystem::GetParentFolder(s0)));
+              }
+           }    
+       }
+       vector<dirRemover*> runners;
+       for(size_t i=0;i<v.size();i++){
+          runners.push_back(new dirRemover(v[i].first, v[i].second));
+       }
+       for(size_t i=0;i<v.size();i++){
+          delete runners[i];
+       }
+    }
+
+    void removeFiles(copyHelper* ch){
+       vector< pair<ConnectionInfo*, vector<string> > > files;
+       // we collect the files which should be removed   
+       copyHelper::iter it;
+       for(it = ch->scan(); it!=ch->end(); it++){
+           vector<ConnectionInfo*>& cis = it->second.first;
+           vector<string> filenames;
+           vector< pair<bool, string> >& homes = it->second.second;
+           for(size_t i=0;i<homes.size(); i++){
+               if(homes[i].first){
+                  string f = arg1->getFilePath(homes[i].second,dbname,i);
+                  filenames.push_back(f);
+               }
+           }
+           // assign to each connection info in cis a set of filenames
+           size_t number = filenames.size()/cis.size(); 
+           number = number>0?number:1;
+           size_t pos = 0;
+           for( size_t i=0; i< cis.size() && pos < filenames.size(); i++){
+               vector<string> v;
+               size_t cp = pos;
+               while(cp < filenames.size() && cp < pos + number){
+                   v.push_back(filenames[cp]);
+                   cp++;
+               }
+               pos = cp; 
+               files.push_back(make_pair(cis[i],v));
+           }
+           assert(pos == filenames.size());
+       }
+       // send command for removing files
+       vector<fileRemover*> runners;
+       for(size_t i=0; i< files.size(); i++){
+           runners.push_back(new fileRemover(files[i].first, files[i].second));
+       }
+       for(size_t i=0; i< files.size(); i++){
+            delete runners[i];
+       }
+    }
+
+    class fileRemover{
+       public:
+           fileRemover(ConnectionInfo* _ci, vector<string>& _files):
+               ci(_ci), files(_files){
+              runner = new boost::thread(&fileRemover::run, this);
+           }
+           ~fileRemover(){
+               runner->join();
+               delete runner;
+            }
+       private:
+           ConnectionInfo* ci;
+           vector<string> files;
+           boost::thread* runner;
+
+           void run(){
+              for(size_t i= 0; i< files.size(); i++){
+                 string cmd = "query removeFile('"+files[i]+"')";
+                 performCommand(ci, cmd);
+              }
+           }
+
+    };
+
+
+    class dirRemover{
+       public:
+          dirRemover(ConnectionInfo* _ci, string& _dir): ci(_ci), dir(_dir){
+             runner = new boost::thread(&dirRemover::run, this);
+             cout << "remove " << dir << " on " << ci->getHost() << endl;
+          }
+          ~dirRemover(){
+              runner->join();
+              delete runner;
+          }
+
+       private:
+           ConnectionInfo* ci;
+           string dir;
+           boost::thread* runner;
+           void run(){
+              string cmd = "query removeDirectory('"+dir+"', TRUE)";
+              performCommand(ci,cmd); 
+           }
+    };
+
+
+
+
 
    
 
@@ -14546,50 +14646,6 @@ class dproductInfo{
 
     };
 
-    class removeJob{
-      public:
-         removeJob(DArrayElement& _elem, dproductInfo* _pi) :
-             elem(_elem), pi(_pi){
-              runner = new boost::thread(&removeJob::run, this);
-         }
-         ~removeJob(){
-             runner->join();
-             delete runner;
-         }
-
-      private:
-        DArrayElement elem;
-        dproductInfo* pi;
-        boost::thread* runner;
-
-        void run(){
-           ConnectionInfo* c0 = algInstance->getWorkerConnection(elem,
-                                                           pi->dbname);
-           for(size_t i=0;i<pi->arg1->getSize(); i++){
-              DArrayElement source = pi->arg1->getWorkerForSlot(i);
-              if(transferRequired(elem, source, pi->arg1->getType(), 
-                                  pi->dbname)){
-
-                 // the file has to be deleted
-                 string fname = pi->arg1->getFilePath(c0->getSecondoHome(), 
-                                                      pi->dbname,i);
-
-                 string cmd = "query removeFile('"+fname+"')";
-                 int errCode;
-                 string errMsg;
-                 double rt;
-                 c0->simpleCommand(cmd, errCode, errMsg, false, rt);
-                 if(errCode){
-                    cout << __FILE__ << "@" << __LINE__ << endl;
-                    showError(c0, cmd, errCode, errMsg);
-                 }
-              }
-           }
-        }
-        
-
-
-    };
 
 
 
@@ -19295,8 +19351,8 @@ Distributed2Algebra::Distributed2Algebra(){
    getObjectFromFileOp.SetUsesArgsInTypeMapping();
 
 
-   //AddOperator(&dproductOp);   
-   //dproductOp.SetUsesArgsInTypeMapping();
+   AddOperator(&dproductOp);   
+   dproductOp.SetUsesArgsInTypeMapping();
 
     AddOperator(&arraytypeStream1Op);   
     AddOperator(&arraytypeStream2Op);   
