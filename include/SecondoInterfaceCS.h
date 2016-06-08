@@ -35,7 +35,8 @@ class SecondoInterfaceCS : public SecondoInterface{
   
   
 public:
-  SecondoInterfaceCS(bool isServer = false, NestedList* _nl=0);
+  SecondoInterfaceCS(bool isServer = false, NestedList* _nl=0, 
+                     bool verbose=true);
   
   ~SecondoInterfaceCS();
   
@@ -207,6 +208,7 @@ public:
      int  timeout; // timeout in second per connection attemp 
      int  server_pid;
      bool debugSecondoMethod;
+     bool verbose;
 
 };
 

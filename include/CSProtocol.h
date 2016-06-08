@@ -717,7 +717,6 @@ bool ReceiveFile( const std::string& localFileName )
   unsigned int bufSize=512;
   char buf[bufSize];
   size_t calls=0;
-  uint64_t size2=size;
 
   // get data and write them to local file
 
@@ -731,8 +730,8 @@ bool ReceiveFile( const std::string& localFileName )
     localFile.write(buf, read);
     size -= read; 
   }
-  cout << "Average read bytes per iosock.read(): " 
-       << (1.0*size2)/calls << std::endl;
+  //cout << "Average read bytes per iosock.read(): " 
+  //     << (1.0*size2)/calls << std::endl;
   localFile.close();
 
   // check protool end sequence

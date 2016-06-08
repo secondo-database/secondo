@@ -59,13 +59,15 @@ using namespace std;
 DebugWriter dwriter;
 
 SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
-                                       NestedList* _nl /*=0 */):
+                                       NestedList* _nl, /*=0 */
+                                       bool _verbose /*=true*/ ):
  SecondoInterface(isServer,_nl) {
     externalNL = _nl!=0;
     maxAttempts = DEFAULT_CONNECT_MAX_ATTEMPTS;
     timeout = DEFAULT_RECONNECT_TIMEOUT;
     server_pid = -1;
     debugSecondoMethod = false;
+    verbose = _verbose;
  }
 
 
@@ -90,7 +92,9 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
   server_pid = -1;  
   if ( !initialized )
   {
-    cout << "Initializing the Secondo system ..." << endl;
+    if(verbose){
+       cout << "Initializing the Secondo system ..." << endl;
+    }
 
     // initialize runtime flags
     if(RTFlag::empty()){
@@ -102,9 +106,13 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
 
     bool ok=false;
     if(externalNL){
-      cout << "use already existing nested list storage" << endl;
+      if(verbose){
+          cout << "use already existing nested list storage" << endl;
+      }
     } else {
-      cout << "Setting up temporary Berkeley-DB envinronment" << endl;
+      if(verbose){
+         cout << "Setting up temporary Berkeley-DB envinronment" << endl;
+      }
       if ( SmiEnvironment::SetHomeDir(parmFile) ) {
            SmiEnvironment::SetUser( user ); // TODO: Check for valid user/pswd
            ok = true;
@@ -141,9 +149,10 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
       }
     }
     if ( secHost.length() > 0 && secPort.length() > 0 )
-    {
-      cout << "Connecting with Secondo server '" << secHost << "' on port "
-           << secPort << " ..." << endl;
+    { if(verbose){
+        cout << "Connecting with Secondo server '" << secHost << "' on port "
+             << secPort << " ..." << endl;
+      }
       server = Socket::Connect( secHost, secPort, Socket::SockGlobalDomain,
                                 maxAttempts, timeout );
       if ( server != 0 && server->IsOk() )
@@ -168,7 +177,9 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
               getline( iosock, line );
               if ( line != "</SecondoIntro>" )
               {
-                cout << line << endl;
+                if(verbose){
+                  cout << line << endl;
+                }
               }
             }
             while (line != "</SecondoIntro>");
