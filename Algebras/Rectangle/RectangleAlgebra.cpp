@@ -3728,7 +3728,7 @@ int extendGeoSelect(ListExpr args){
 }
 
 OperatorSpec extendGeoSpec(
-  " rext x {int,rasl} -> rect ",
+  " rext x {int,real} -> rect ",
   " _ extendGeo [_] ",
   " Extends a rectangle using geographic coordinates "
   " approximative with a border given in meters.",
