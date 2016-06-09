@@ -9488,7 +9488,7 @@ Signature: darray(X) x string x (X->Y) -> darray(Y)
 ListExpr dloopTM(ListExpr args){
 
 
-  string err = "darray(X) x string x fun: X -> Y  expected";
+  string err = "d[f]array(X) x string x fun: X -> Y  expected";
   if(!nl->HasLength(args,3) ){
     return listutils::typeError(err + "(wrong number of args)");
   }
@@ -9512,16 +9512,32 @@ ListExpr dloopTM(ListExpr args){
   ListExpr funType = nl->First(fun);
   ListExpr arrayType = nl->First(darray);
 
-  if(!DArray::checkType(arrayType)){
-    return listutils::typeError(err + ": first arg not a darray");
+  if(!DArray::checkType(arrayType) && !DFArray::checkType(arrayType)){
+    return listutils::typeError(err + ": first arg not a d[f]array");
   }
   if(!listutils::isMap<1>(funType)){
-    return listutils::typeError(err + ": last arg is not a function");
+    return listutils::typeError(err + ": last arg is not a unary function");
   }
 
-  if(!nl->Equal(nl->Second(arrayType), nl->Second(funType))){
-    return listutils::typeError("type mismatch between darray and "
-                                "function arg");
+  if(DArray::checkType(arrayType)){
+    if(!nl->Equal(nl->Second(arrayType), nl->Second(funType))){
+      return listutils::typeError("type mismatch between darray and "
+                                  "function arg");
+     }
+  } else {
+     if(!Relation::checkType(nl->Second(arrayType))){
+        return listutils::typeError("sub type of dfarray is not a relation");
+     }
+     if(!frel::checkType(nl->Second(funType))){
+        return listutils::typeError("funarg is not an frel");
+     }
+     	if(!nl->Equal(nl->Second(nl->Second(arrayType)), 
+                    nl->Second(nl->Second(funType)))){
+        return listutils::typeError("type mismatch between array "
+                                    "type and function arg");
+        
+      }
+
   }
 
   ListExpr result = nl->TwoElemList(listutils::basicSymbol<DArray>(),
@@ -9536,6 +9552,13 @@ ListExpr dloopTM(ListExpr args){
   ListExpr funargs = nl->Second(funquery);
 
   ListExpr dat = nl->Second(arrayType);
+
+  if(DFArray::checkType(arrayType)){
+      dat = nl->TwoElemList(
+                   listutils::basicSymbol<frel>(),
+                   nl->Second(dat));
+  }
+
 
   ListExpr rfunargs = nl->TwoElemList(
                         nl->First(funargs),
@@ -9561,10 +9584,12 @@ ListExpr dloopTM(ListExpr args){
 class dloopInfo{
 
   public:
-   dloopInfo(DArray* _array, int _index, string& _resName,string& _fun) : 
+   dloopInfo(DArrayBase* _array, int _index, string& _resName,string& _fun,
+             ListExpr srcType) : 
      index(_index), resName(_resName), fun(_fun), elem("",0,0,""){
      elem = _array->getWorkerForSlot(index);
-     srcName = _array->getName();
+     array = _array; 
+     sourceType = srcType;     
      runner = boost::thread(&dloopInfo::run, this);
   }
 
@@ -9578,7 +9603,9 @@ class dloopInfo{
     string resName;
     string fun;
     DArrayElement elem;
-    string srcName;
+    DArrayBase* array; 
+    ListExpr sourceType;
+    
     boost::thread runner;
 
     void run(){
@@ -9594,10 +9621,19 @@ class dloopInfo{
        double runtime;
        string errMsg;
        // delete old array content
+       string funarg;
+       if(array->getType()==DARRAY){
+         funarg = array->getObjectNameForSlot(index); 
+       } else {
+          string home = ci->getSecondoHome();
+          ListExpr ft = nl->TwoElemList( listutils::basicSymbol<frel>(),
+                                     nl->Second(nl->Second(sourceType)));
+          string fn = array->getFilePath(home, dbname,  index);
+          funarg ="(" + nl->ToString(ft) + " '"+fn+"')";
+       }
        ci->simpleCommand("delete "+ bn, err,strres, false, runtime);
        // create new object by applying the function
-       string cmd =   "(let "+bn+" = ("+fun+" " + srcName + "_" 
-                    + stringutils::int2str(index) +"))";
+       string cmd =   "(let "+bn+" = ("+fun+" " +  funarg +"))";
        ci->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime);
        if(err!=0){ 
            sendMessage(" Problem in command " + cmd + ":" + errMsg);
@@ -9606,12 +9642,12 @@ class dloopInfo{
 
 };
 
-
-int dloopVM(Word* args, Word& result, int message,
+template<class A>
+int dloopVMT(Word* args, Word& result, int message,
            Word& local, Supplier s ){
 
    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-   DArray* array = (DArray*) args[0].addr;
+   A* array = (A*) args[0].addr;
    result = qp->ResultStorage(s);
    DArray* res = (DArray*) result.addr;
    
@@ -9643,7 +9679,7 @@ int dloopVM(Word* args, Word& result, int message,
    string f = fun->GetValue();
 
    for(size_t i=0; i<array->getSize(); i++){
-     dloopInfo* r = new dloopInfo(array,i,n,f);
+     dloopInfo* r = new dloopInfo(array,i,n,f,qp->GetType(qp->GetSon(s,0)));
      runners.push_back(r);
    }
 
@@ -9652,6 +9688,16 @@ int dloopVM(Word* args, Word& result, int message,
    }
    return 0; 
 }
+
+ValueMapping dloopVM[] = {
+   dloopVMT<DArray>,
+   dloopVMT<DFArray>
+};
+
+int dloopSelect(ListExpr args){
+   return DArray::checkType(nl->First(args))?0:1;
+}
+
 
 
 OperatorSpec dloopSpec(
@@ -9666,8 +9712,9 @@ OperatorSpec dloopSpec(
 Operator dloopOp(
   "dloop",
   dloopSpec.getStr(),
+  2,
   dloopVM,
-  Operator::SimpleSelect,
+  dloopSelect,
   dloopTM
 );
 
@@ -19169,6 +19216,234 @@ Operator getObjectFromFileOp(
 );
 
 
+/*
+98 Operator ~ddistribute~
+
+This operator partitions a tuple stream into a array(darray)
+corresponding to two functions.
+
+*/
+ListExpr ddistributeTM(ListExpr args){
+    // tuples , name, size1 , size2, fun1 , fun2, workers
+    string err = "stream(tuple(X)) x string x int x int x "
+                 "(X -> int) x (X->int) x rel expected";
+   if(!nl->HasLength(args,7)){
+     return listutils::typeError(err + " (wrong number of args)");
+   }
+   if(!Stream<Tuple>::checkType(nl->First(args))){
+     return listutils::typeError(err + " (first arg is not a tuple stream)");
+   }
+   if(! CcString::checkType(nl->Second(args))){
+      return listutils::typeError(err+ " (second arg is not a string)");
+   }
+   if(!CcInt::checkType(nl->Third(args))){
+      return listutils::typeError(err+ " (third arg is not an int)");
+   }
+   if(!CcInt::checkType(nl->Fourth(args))){
+      return listutils::typeError(err+ " (fourth arg is not an int)");
+   }
+   if(!listutils::isMap<1>(nl->Fifth(args))){
+      return listutils::typeError(err+ " (5th arg is not an unary function");
+   }
+   if(!listutils::isMap<1>(nl->Sixth(args))){
+      return listutils::typeError(err+ " (6th arg is not an unary function");
+   }
+   ListExpr workerPositions;
+   ListExpr workerTypes;
+   string errMsg;
+   if(!isWorkerRelDesc(nl->Sixth(nl->Rest(args)), workerPositions, 
+                       workerTypes, errMsg)){
+      return listutils::typeError(err+ " (7th arg is not a worker relation: "
+                                  + errMsg);
+   }
+
+   // check function arguments and result
+   ListExpr tupleType = nl->Second(nl->First(args));
+   ListExpr fun1Arg = nl->Second(nl->Fifth(args));
+   ListExpr fun1Res = nl->Third(nl->Fifth(args));
+   if(!nl->Equal(tupleType,fun1Arg)){
+     return listutils::typeError(err + " (fun arg 1 does in unequal "
+                                       "to the tuple type)");
+   } 
+   if(!CcInt::checkType(fun1Res)){
+      return listutils::typeError(err + " (fun res 1 is not a bool)");
+   }
+   
+   ListExpr appendList = listutils::concat(workerPositions, 
+                         nl->TwoElemList( 
+                             nl->BoolAtom(
+                                 CcString::checkType(nl->First(workerTypes))),
+                             nl->BoolAtom(
+                                 CcString::checkType(nl->Third(workerTypes)))));
+    
+   ListExpr subType = nl->TwoElemList(
+                         listutils::basicSymbol<Relation>(),
+                         nl->Second(nl->First(args)));
+
+   ListExpr daType = nl->TwoElemList(
+                            listutils::basicSymbol<DArray>(),
+                            subType);
+   ListExpr resType = nl->TwoElemList(
+                          listutils::basicSymbol<arrayalgebra::Array>(),
+                          daType);
+   return nl->ThreeElemList(
+             nl->SymbolAtom(Symbols::APPEND()),
+             appendList,
+             resType
+          );
+                                              
+}
+
+
+
+template<class AType, class HType, class CType>
+int ddistributeVMT(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+  result=qp->ResultStorage(s);
+  arrayalgebra::Array* res = (arrayalgebra::Array*) result.addr;
+  CcString* ccName = (CcString*) args[1].addr;
+  CcInt* ccSize1 = (CcInt*) args[2].addr;
+  CcInt* ccSize2 = (CcInt*) args[3].addr;
+  int hostPos = ((CcInt*) args[7].addr)->GetValue();
+  int portPos = ((CcInt*) args[8].addr)->GetValue();
+  int configPos = ((CcInt*) args[9].addr)->GetValue();
+
+  if(!ccName->IsDefined() || !ccSize1->IsDefined() || !ccSize2->IsDefined()){
+     res->setUndefined();
+     return 0;
+  }
+
+  string name = ccName->GetValue();
+  int size1 = ccSize1->GetValue();
+  int size2 = ccSize2->GetValue();
+  if(size1<1 || size2<1 || !stringutils::isIdent(name)){
+     res->setUndefined();
+     return 0;
+  }
+
+  // create a darray template for filling up all array slots
+  AType temp = DArrayBase::createFromRel<HType, CType, AType>(
+               (Relation*) args[6].addr, 
+                size2,"blah", hostPos, portPos, configPos );  
+  
+  if(temp.numOfWorkers()< 1){
+     res->setUndefined();
+     return 0;
+  } 
+
+  // fill up the result array 
+  ListExpr at = listutils::basicSymbol<AType>();
+  string tname;
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+  int algId;
+  int typeId;
+  if(!ctlg->LookUpTypeExpr(at, tname, algId, typeId)){
+    assert(false);
+  }
+  Word darrays[size1];
+  for(int i=0;i< size1; i++){
+     string slotname = name +"_" + stringutils::int2str(i);
+     AType* a = new AType(at);
+     a->setName(slotname);
+     darrays[i].addr = a;    
+  }
+  // result is ready, now distribute the data
+
+  // first step of distribution: distribute to files
+  Stream<Tuple> stream(args[0]);
+  stream.open();
+  Tuple* tuple;
+  ArgVectorPointer fun1arg = qp->Argument(args[4].addr);
+  Word fun1result;
+  ArgVectorPointer fun2arg = qp->Argument(args[5].addr);
+  Word fun2result;
+
+  int nstreams = size1*size2;
+  ostream* outputs[nstreams];
+  // create empty file to write in data
+  ListExpr relType = nl->Second(nl->Second(qp->GetType(s)));
+
+  for(int i=0;i<nstreams;i++){
+    int array_num = i / size2;
+    int darray_num = i % size2;
+    string fname = name + "_" + stringutils::int2str(array_num) 
+                   + "_" + stringutils::int2str(darray_num);
+    outputs[i] = new ofstream(fname.c_str(),ios::out|ios::binary);
+    BinRelWriter::writeHeader(*outputs[i],relType);
+  }
+
+
+
+  while( (tuple = stream.request())!=0){
+     (*fun1arg)[0].addr = tuple;
+     (*fun2arg)[0].addr = tuple;
+      qp->Request(args[4].addr, fun1result);
+      qp->Request(args[5].addr, fun2result);
+      CcInt* f1res = (CcInt*) fun1result.addr;
+      CcInt* f2res = (CcInt*) fun2result.addr;
+      int f1 = f1res->IsDefined()?f1res->GetValue():0;
+      int f2 = f2res->IsDefined()?f2res->GetValue():0;
+      f1 = f1 % size1;
+      f2 = f2 % size2;
+      int pos = f1*size2 + f2; // TODO: think about correctness
+      BinRelWriter::writeNextTuple(*outputs[pos], tuple);
+      tuple->DeleteIfAllowed();
+  }
+  // finish the files
+  for(int i=0;i<nstreams;i++){
+    BinRelWriter::finish(*outputs[i]);
+    delete outputs[i]; 
+  }
+  // next step: transfer the files to the target computers
+  // TODO: implement distribution
+  return 0;
+}
+
+
+ValueMapping ddistributeVM[] = {
+  ddistributeVMT<DArray, CcString, CcString>,
+  ddistributeVMT<DArray, CcString, FText>,
+  ddistributeVMT<DArray, FText, CcString>,
+  ddistributeVMT<DArray, FText, FText>
+};
+
+
+int ddistributeSelect(ListExpr args){
+   ListExpr workerPositions;
+   ListExpr workerTypes;
+   string errMsg;
+   if(!isWorkerRelDesc(nl->Sixth(nl->Rest(args)), workerPositions, 
+                       workerTypes, errMsg)){
+      assert(false); // type map and selection are not compatible
+   }
+   int n1 = CcString::checkType(nl->First(workerTypes))?0:2;
+   int n2 = CcString::checkType(nl->Third(workerTypes))?0:1;
+   return n1 + n2;
+}
+
+OperatorSpec ddistributeSpec(
+  "stream(tuple) x string x int x int x fun x fun x rel -> "
+  "array(darray(real(tuple)))",
+  "_ ddsistribute[_,_,_,_,_,_]",
+  "distributes a tuple stream to an array of darrays."
+  "The first iut specifies the size of the array, the second int "
+  "specifies the number of slots of the contained darrays. "
+  " The first function determines the slot of the main arrays, wheras the "
+  " second function determines the slot within the distributed sub array.",
+  "query plz feed ddistribute[\"aplz\", 7, 20, .PLZ, .PLZ, workers] "
+);
+
+Operator ddistributeOp(
+  "ddsitribute",
+  ddistributeSpec.getStr(),
+  4,
+  ddistributeVM,
+  ddistributeSelect,
+  ddistributeTM
+);
+
+
 
 
 /*
@@ -19354,8 +19629,11 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&dproductOp);   
    dproductOp.SetUsesArgsInTypeMapping();
 
-    AddOperator(&arraytypeStream1Op);   
-    AddOperator(&arraytypeStream2Op);   
+   AddOperator(&arraytypeStream1Op);   
+   AddOperator(&arraytypeStream2Op);   
+
+
+ //  AddOperator(&ddistributeOp);   
 
 
    pprogView = new PProgressView();
@@ -19385,7 +19663,6 @@ Distributed2Algebra::~Distributed2Algebra(){
       delete pprogView;
    }
 }
-
 
 } // end of namespace distributed2
 

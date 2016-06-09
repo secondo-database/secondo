@@ -38,7 +38,7 @@ operator fdistribute7 alias FDISTRIBUTE7 pattern _ op[_,fun,_,_] implicit parame
 operator closeWorkers alias closeWorkers pattern op(_)
 operator showWorkers alias showWorkers pattern op(_)
 
-operator dloop alias DLOOP pattern _ op[_,fun] implicit parameter darrayelem type DARRAYELEM
+operator dloop alias DLOOP pattern _ op[_,fun] implicit parameter darrayelem type ARRAYFUNARG1 
 operator dloop2 alias DLOOP2 pattern _ _ op[_,fun] implicit parameters elem1, elem2 types DARRAYELEM, DARRAYELEM2
 
 
@@ -112,5 +112,7 @@ operator saveObjectToFile alias SAVEOBJECTTOFILE pattern _ op[_]
 operator getObjectFromFile alias GETOBJECTFROMFILE pattern _ op
 
 operator dproduct alias DPRODUCT  pattern _ _ op[_,fun,_] implicit parameters elem1, elem2 types arraytypeStream1, arraytypeStream2
+
+operator ddistribute8  alias DDISTRIBUTE pattern _ op[_,fun, fun, _,_,_] implicit parameter elem type STREAMELEM
 
 

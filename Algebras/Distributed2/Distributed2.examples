@@ -617,6 +617,14 @@ Example   : query dfa1 dfa2  dproduct["da3", .   ..   product, 1238 ]
 Result    : bug
 Remark    : under construction
 
+Operator  : ddsitribute
+Number    : 1
+Signature : stream(tuple) x string x (tuple -> int) x (tuple->int) x int x int x rel -> array(darray(rel(tuple)))
+Example   : query plz feed ddistribute["ddplz", .PLZ , hashValue(.Ort,2000), 5, 4, workers]
+Result    : bug
+Remark    : under construction
+
+
 
 
 
