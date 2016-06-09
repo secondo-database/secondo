@@ -133,6 +133,7 @@ Operator::Operator( const string& nm,
   specString     = specStr;
   numOfFunctions = noF;
   selectFunc     = sf;
+  excluded = false;
   valueMap       = new ValueMapping[numOfFunctions];
   calls          = new unsigned int[numOfFunctions];
   createCostEstimation = new CreateCostEstimation[numOfFunctions];
@@ -167,6 +168,7 @@ Operator::Operator( const string& nm,
   name           = nm;
   specString     = specStr;
   selectFunc     = sf;
+  excluded = false;
   if(vm){
      numOfFunctions = 1;
      valueMap       = new ValueMapping[1];
@@ -205,6 +207,7 @@ Operator::Operator( const OperatorInfo& oi,
   name           = oi.name;
   specString     = oi.str();
   spec           = oi;
+  excluded = false;
 
 
   if(vm){
@@ -245,6 +248,7 @@ Operator::Operator( const OperatorInfo& oi,
                     TypeMapping tm,
                     CreateCostEstimation* createCE )
 {
+  excluded = false;
   int max = 0;
   while ( vms[max] != 0 ) { max++; }
 

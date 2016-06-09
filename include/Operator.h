@@ -503,6 +503,14 @@ Returns the number of calls for this operator.
 std::ostream& Print(std::ostream& o) const;
 
 
+    void Exclude(){
+        excluded=true;
+    }
+    bool isExcluded() const{
+        return excluded; 
+    }
+
+
     private:
 
     bool AddValueMapping( const int index, ValueMapping f );
@@ -526,6 +534,8 @@ Adds a value mapping function to the list of overloaded operator functions.
                                   // function
     bool           usesMemory;     // Operator uses a large memory buffer
                                    // like a tuple buffer
+    bool           excluded;
+
     CreateCostEstimation* createCostEstimation; // array to creation
                                                 //functions for
                                                 // dynamic progress estimation

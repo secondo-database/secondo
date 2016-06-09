@@ -2316,9 +2316,10 @@ will be processed.
               ListExpr opList = nl->Third( first );
 
               if ( !nl->HasMinLength(opList,1)  ) {
-    stringstream err;
-    err << "Expecting a list but got " << nl->ToString(opList);
-          throw qp_error( err.str() );
+                   stringstream err;
+                   err << "Expecting a list but got " << nl->ToString(opList);
+                   err << endl << "May be an excluded operator has been used.";
+                   throw qp_error( err.str() );
               }
 
      //for all three lists, remove the first argument 
@@ -2700,6 +2701,13 @@ QueryProcessor::TestOverloadedOperators( const string&
         cout  << traceMsg.str() << "rejected!" << endl;
       else
         cout << traceMsg.str() << "accepted!" << endl;
+    }
+    bool excluded = algebraManager->getOperator(alId,opId)->isExcluded();
+    if(excluded){
+       resultType = nl->TypeError();
+       string msg = "";
+       ErrorReporter::GetErrorMessage(msg);
+       ErrorReporter::ReportError("operator has been excluded (no example)");
     }
 
     if ( !ErrorReporter::TypeMapError )

@@ -2274,6 +2274,7 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
         t.remark = oi.remark;
         t.result = "";
         r->append(&t, false);
+        op->SetOpInfo(oi);
       } else {
 
         ExampleInfo ex2;
@@ -2305,20 +2306,9 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
              } else {
                 cerr << "  * excluding operator " << oi.name
                      << " since it provides no example!" << endl;
-
-                 // to do: punishment, e.g. removing the operator from the
-                 // algebra manager.
-                LocalOperatorCatalog::iterator pos = operators.find( oi.name );
-                if (  pos != operators.end() ) {
-                   CatalogEntrySet *operatorSet = pos->second;
-                   CatalogEntrySet::iterator it = operatorSet->begin();
-                   for ( ; it!= operatorSet->end(); it++) {
-                       if( algId == it->algebraId && opId == it->entryId ) {
-                          operatorSet->erase(it);
-                          break;
-                       }
-                   }
-                }
+                oi.remark="Excluded (no example)";
+                op->Exclude();
+                op->SetOpInfo(oi);
              }
           } else {
 
