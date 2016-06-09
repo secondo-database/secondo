@@ -2288,26 +2288,27 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
              if(op->GetNumOfFun()<1){ 
                 // do not force example for 
                 // type map operators
-                OperatorInfoTuple& t = *(new OperatorInfoTuple());
-                t.name = oi.name;
-                t.algebra = algName;
-                t.signature = oi.signature;
-                t.syntax = oi.syntax;
-                t.meaning = oi.meaning;
-                t.example = oi.example;
-                t.remark = oi.remark;
-                if(t.remark==""){
-                 t.remark="type map operator";
+                OperatorInfoTuple* t = new OperatorInfoTuple();
+                t->name = oi.name;
+                t->algebra = algName;
+                t->signature = oi.signature;
+                t->syntax = oi.syntax;
+                t->meaning = oi.meaning;
+                t->example = oi.example;
+                t->remark = oi.remark;
+                if(t->remark==""){
+                 t->remark="type map operator";
                 }
-                t.result = "";
-                r->append(&t, false);
+                t->result = "";
+                r->append(t, false);
+                op->SetOpInfo(oi);
              } else {
                 cerr << "  * excluding operator " << oi.name
                      << " since it provides no example!" << endl;
 
                  // to do: punishment, e.g. removing the operator from the
                  // algebra manager.
-                 LocalOperatorCatalog::iterator pos = operators.find( oi.name );
+                LocalOperatorCatalog::iterator pos = operators.find( oi.name );
                 if (  pos != operators.end() ) {
                    CatalogEntrySet *operatorSet = pos->second;
                    CatalogEntrySet::iterator it = operatorSet->begin();
@@ -2729,6 +2730,7 @@ specifications from [BeG95b, Section3.1].
 ListExpr
 SecondoCatalog::ListOperators( int algebraId )
 {
+
   int k;
   ListExpr last = 0, list;
   ListExpr opList = nl->TheEmptyList();
