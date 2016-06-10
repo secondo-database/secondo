@@ -693,7 +693,7 @@ Returns the complete path where files are stored.
                                    const int port, string& config){
 
               NestedList* mynl = new NestedList();
-              SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, false);
+              SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl,true);
               string user="";
               string passwd = "";
               string errMsg;
@@ -2527,7 +2527,7 @@ int connectVMT( Word* args, Word& result, int message,
       return 0;
    }
    NestedList* mynl = new NestedList();
-   SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, false);
+   SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
    string user="";
    string passwd = "";
    string errMsg;
@@ -4911,7 +4911,7 @@ class Connector{
         }
 
         NestedList* mynl = new NestedList();
-        SecondoInterfaceCS* si = new SecondoInterfaceCS(false, mynl,false);
+        SecondoInterfaceCS* si = new SecondoInterfaceCS(false, mynl,true);
         si->setMaxAttempts(4);
         si->setTimeout(1);
         string errMsg;
@@ -9531,7 +9531,7 @@ ListExpr dloopTM(ListExpr args){
      if(!frel::checkType(nl->Second(funType))){
         return listutils::typeError("funarg is not an frel");
      }
-     	if(!nl->Equal(nl->Second(nl->Second(arrayType)), 
+         if(!nl->Equal(nl->Second(nl->Second(arrayType)), 
                     nl->Second(nl->Second(funType)))){
         return listutils::typeError("type mismatch between array "
                                     "type and function arg");
@@ -13181,11 +13181,9 @@ This function transfers argument data to the target worker if
 required. Additionally, one entry is added to both, the sourceNames and the
 funargs.
 
-
-
 */
-       bool retrieveData(DArrayBase* target, DArrayBase* source, 
-                         int targetslot, int sourceslot,
+
+ bool retrieveData(DArrayBase* target, DArrayBase* source, int slot,
                          const string& dbname, const int port, bool isRelation,
                          vector<pair<bool,string> >& sourceNames,
                          vector<string>& funargs,
@@ -13193,9 +13191,8 @@ funargs.
           DArrayBase* a0 = target; // note: array 0 determines the 
                                                // distribution of the result
           DArrayBase* ai = source;
-          int usedslot = targetslot<0?sourceslot: -1;
-          DArrayElement elem0 = a0->getWorkerForSlot(usedslot);
-          DArrayElement elemi = ai->getWorkerForSlot(sourceslot);
+          DArrayElement elem0 = a0->getWorkerForSlot(slot);
+          DArrayElement elemi = ai->getWorkerForSlot(slot);
           ConnectionInfo* ci = algInstance->getWorkerConnection(elemi,dbname);
           ConnectionInfo* c0 = algInstance->getWorkerConnection(elem0,dbname);
           int errorCode;
@@ -13205,8 +13202,7 @@ funargs.
           bool formerObject;
 
 
-          if(transferRequired(elem0,elemi, ai->getType(),dbname) 
-             || targetslot<0){
+          if(transferRequired(elem0,elemi, ai->getType(),dbname)){
 
              // this code will be processed if the ip's  are different or
              // 
@@ -13221,14 +13217,14 @@ funargs.
                // darray, we have to store the object into a temporal file
                 fileNameOnI1 =  "darrays/TMP_"
                                + dbname+ "_" + ai->getName() +"_"
-                               + stringutils::int2str(sourceslot) + "_"
+                               + stringutils::int2str(slot) + "_"
                                + stringutils::int2str(WinUnix::getpid()) +"_"
                                + stringutils::int2str(ci->serverPid()) + "_"
                                + ".bobj";
                  string odir = ci->getSecondoHome() + "/dfarrays/" 
                                + dbname+"/";
                  fileNameOnI = odir + fileNameOnI1;
-                 string oname = ai->getObjectNameForSlot(sourceslot);
+                 string oname = ai->getObjectNameForSlot(slot);
 
                  string cmd = "query " + oname + " saveObjectToFile['" 
                               + fileNameOnI+ "']";
@@ -13242,17 +13238,15 @@ funargs.
                  formerObject = true; 
              } else { // already a file object on ci, hust set file names 
                 fileNameOnI = ai->getFilePath(ci->getSecondoHome(), 
-                                             dbname, sourceslot);
+                                             dbname, slot);
                 fileNameOnI1 = ai->getFilePath("", 
-                                             dbname, sourceslot);
+                                             dbname, slot);
                 formerObject = false;
              }
 
              // 1.2 transfer file from i to 0
              string fileNameOn0 = source->getFilePath(c0->getSecondoHome(),
-                                                       dbname, sourceslot); 
-
-
+                                                       dbname, slot); 
              string cmd;
              if(c0->getHost() != ci->getHost()){ // use TCP transfer or 
                                                  // disc utils
@@ -13287,7 +13281,7 @@ funargs.
 
              // step 2: create object if required
              if(formerObject && createObjectIfNecessary){
-                string oname = ai->getObjectNameForSlot(sourceslot);
+                string oname = ai->getObjectNameForSlot(slot);
                 string end = isRelation?"consume":"";
                 string cmd = "let " + oname + " =  '"+fileNameOn0
                               +"' getObjectFromFile " + end;
@@ -13319,12 +13313,12 @@ funargs.
           } else { // file or object already on the server
               // create entries in funargs and sourceNames
               if(ai->getType()==DARRAY){
-                string oname = ai->getObjectNameForSlot(sourceslot);
+                string oname = ai->getObjectNameForSlot(slot);
                 funargs.push_back(oname);
                 sourceNames.push_back(pair<bool,string>(false,oname));     
               } else {
                 string fname = ai->getFilePath(ci->getSecondoHome(), 
-                                               dbname, sourceslot);
+                                               dbname, slot);
                 string type ="(frel " + nl->ToString(nl->Second(
                               nl->Second(argType))) + ")";
                 string fa = "( "+ type + " '"+fname+"')";
@@ -13334,6 +13328,7 @@ funargs.
               return true;             
           }
        }
+
 
 /*
 8.1 Class ~DMapXInfo~
@@ -13654,7 +13649,7 @@ the sources and the correspnding function arguments are created.
        void run(){
            for(size_t i=0;i <info->arguments.size(); i++){
                distributed2::retrieveData(info->arguments[0], 
-                            info->arguments[i], slot, slot,
+                            info->arguments[i], slot, 
                             info->dbname, info->port, info->isRelation[i],
                             sourceNames, funargs, info->argTypes[i]);
            }
@@ -14551,55 +14546,6 @@ class dproductInfo{
     };
 
 
-
-
-
-   
-
-    class copyTask{
-        public:
-           copyTask(DArrayElement& _elem, 
-                    DArrayBase* _source, 
-                    vector<int>& _missingSlots, 
-                    int _port, dproductInfo* _pi): elem(_elem), 
-                    source(_source), missingSlots(_missingSlots),
-                    port(_port), pi(_pi) {
-                    runner =  new boost::thread(&copyTask::run , this);
- 
-           }
-
-
-           ~copyTask(){
-              runner->join();
-              delete runner;
-            }
-
-            vector<pair<bool, string> >& getONames(){
-              return sourceNames;
-            }           
- 
-
-        private:
-           DArrayElement elem;
-           DArrayBase* source;
-           vector<int> missingSlots;
-           int port;
-           dproductInfo* pi;
-           bool isRelation;
-           vector<pair<bool, string> > sourceNames;
-           vector<string> funargs;
-           boost::thread* runner; 
-
-        void run() {
-           for(size_t i=0;i<missingSlots.size();i++){
-               int slot = missingSlots[i];
-
-               retrieveData(pi->arg0,pi->arg1,-1,  slot, pi->dbname, port,
-                           isRelation, sourceNames, funargs, pi->a1Type,
-                           false);
-           }
-        }
-    };
 
     class resultRunner{
         public:
@@ -19348,6 +19294,9 @@ int ddistributeVMT(Word* args, Word& result, int message,
      a->setName(slotname);
      darrays[i].addr = a;    
   }
+  res->initialize(algId, typeId, size1, darrays);
+
+
   // result is ready, now distribute the data
 
   // first step of distribution: distribute to files
@@ -19435,7 +19384,7 @@ OperatorSpec ddistributeSpec(
 );
 
 Operator ddistributeOp(
-  "ddsitribute",
+  "ddistribute8",
   ddistributeSpec.getStr(),
   4,
   ddistributeVM,
@@ -19633,7 +19582,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&arraytypeStream2Op);   
 
 
- //  AddOperator(&ddistributeOp);   
+   AddOperator(&ddistributeOp);   
 
 
    pprogView = new PProgressView();
