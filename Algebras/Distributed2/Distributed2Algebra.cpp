@@ -8135,17 +8135,31 @@ on a remote server within an own thread.
 class RelFileRestorer{
 
  public:
-   RelFileRestorer(ListExpr _relType, const string& _objName,
+   RelFileRestorer(const string& _objName,
                    DArray* _array, int _arrayIndex, 
                    const string& _filename):
-    //relType(_relType), 
-    objName(_objName), array(_array), 
-    arrayIndex(_arrayIndex), filename(_filename),
+    objNames(), array(_array), 
+    arrayIndex(_arrayIndex), filenames(),
     started(false){
+    objNames.push_back(_objName);
+    filenames.push_back(_filename);
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     ci = algInstance->getWorkerConnection(
                          array->getWorkerForSlot(arrayIndex),dbname);
    }
+
+   RelFileRestorer(const vector<string>& _objNames,
+                   DArray* _array, int _arrayIndex, 
+                   const vector<string>& _filenames):
+    objNames(_objNames), array(_array), 
+    arrayIndex(_arrayIndex), filenames(_filenames),
+    started(false){
+    assert(objNames.size() == filenames.size());
+    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    ci = algInstance->getWorkerConnection(
+                         array->getWorkerForSlot(arrayIndex),dbname);
+   }
+
 
    ~RelFileRestorer(){
      boost::lock_guard<boost::mutex> guard(mtx);
@@ -8173,10 +8187,10 @@ class RelFileRestorer{
 
  private:
     //ListExpr relType;
-    string objName;
+    vector<string> objNames;
     DArray* array;
     int arrayIndex;
-    string filename;
+    vector<string> filenames;
     bool started;
     boost::mutex mtx;
     boost::thread runner;
@@ -8189,14 +8203,18 @@ class RelFileRestorer{
 
     void run(){
       if(ci){
-         res = ci->createOrUpdateRelationFromBinFile(objName,filename);
-         if(!res){
-           cerr << "createorUpdateObject failed" << endl;
-         }
-         sermtx.lock();
-         pair<string,int> p(ci->getHost(), ci->getPort());
-         serializer[p]->unlock();
-         sermtx.unlock();
+        for(size_t i=0;i<objNames.size();i++){
+           string& objName = objNames[i];
+           string& filename = filenames[i];
+           res = ci->createOrUpdateRelationFromBinFile(objName,filename);
+           if(!res){
+             cerr << "createorUpdateObject failed" << endl;
+           }
+           sermtx.lock();
+           pair<string,int> p(ci->getHost(), ci->getPort());
+           serializer[p]->unlock();
+           sermtx.unlock();
+       }
       } else {
         cerr << "connection failed" << endl;
       }
@@ -8224,24 +8242,37 @@ class FRelCopy{
 
   public:
 
-     FRelCopy(ListExpr _relType, const string& _objName,
+     FRelCopy(const string& _objName,
               DFArray* _array, int _arrayIndex, 
               const string& _filename):
-     name(_filename), slot(_arrayIndex), array(_array), started(false),ci(0)
+     names(), slot(_arrayIndex), array(_array), started(false),ci(0)
      {
+        names.push_back(_filename);
+        dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+        ci = algInstance->getWorkerConnection(
+                                      array->getWorkerForSlot(slot), dbname);
 
+     }
+     
+
+     FRelCopy(const vector<string>& _objNames,
+              DFArray* _array, int _arrayIndex, 
+              const vector<string>& _filenames):
+     names(_filenames), slot(_arrayIndex), array(_array), started(false),ci(0)
+     {
         dbname = SecondoSystem::GetInstance()->GetDatabaseName();
         ci = algInstance->getWorkerConnection(
                                       array->getWorkerForSlot(slot), dbname);
 
      }
 
+
+
+
    ~FRelCopy(){
      boost::lock_guard<boost::mutex> guard(mtx);
      runner.join();
     }
-
-
 
    void start(){
      boost::lock_guard<boost::mutex> guard(mtx);
@@ -8255,9 +8286,9 @@ class FRelCopy{
 
 
   private:
-     string name;
+     vector<string> names;   // filename
      int slot;
-     DFArray* array;
+     DFArray* array; 
      bool started;
      ConnectionInfo* ci;
      string dbname;
@@ -8269,51 +8300,43 @@ class FRelCopy{
           cerr << "Connection failed" << endl;
           return;
         }
-        // send file to remote server
-        ci->sendFile(name,name,true);
-        // get target directory
-        int err;
-        string errmsg;
-        ListExpr result; 
-        double runtime;
-        string home = ci->getSecondoHome();
+        for(size_t i=0;i<names.size();i++){
+          string& name = names[i];
+          // send file to remote server
+          ci->sendFile(name,name,true);
+          // get target directory
+          int err;
+          string errmsg;
+          ListExpr result; 
+          double runtime;
+          string home = ci->getSecondoHome();
 
-        string targetDir = home +"/dfarrays/"+dbname+ "/" + array->getName();
-        // create target directory
-        string cmd = "query createDirectory('"+targetDir+"', TRUE)";
+          string targetDir = home +"/dfarrays/"+dbname+ "/" + array->getName();
 
+          // result will be false, if directory already exists
+          // hence ignore result here
+          string sendDir = ci->getSendFolder();
+          string src = home+'/'+sendDir + "/"+name;
+          string target = targetDir+"/"+name;
+          string cmd = "query moveFile('"+src+"','"+target+"', TRUE)";
+          ci->simpleCommand(cmd,err,errmsg, result,false, runtime);
+          if(err!=0){
+              cerr << "command " << cmd << " failed" << endl;
+              cerr << err << " : " << errmsg << endl;
+          }
+          if(!nl->HasLength(result,2) || 
+              nl->AtomType(nl->Second(result))!=BoolType){
+              cerr << "moveFile returns unexpected result: " 
+                   << nl->ToString(result) << endl;
+          }
+
+          if(!nl->BoolValue(nl->Second(result))){
+             cerr << "moving file from: " << src << endl
+                  << "to " << target << endl
+                  << "failed" << endl;   
         
-        ci->simpleCommand(cmd,err,errmsg, result,false, runtime);
-        if(err!=0){
-            cerr << "command " << cmd << " failed" << endl;
-            cerr << err << " : " << errmsg << endl;
-            return;
-        }
-        // result will be false, if directory already exists
-        // hence ignore result here
-        string sendDir = ci->getSendFolder();
-        string src = home+'/'+sendDir + "/"+name;
-        string target = targetDir+"/"+name;
-        cmd = "query moveFile('"+src+"','"+target+"')";
-        ci->simpleCommand(cmd,err,errmsg, result,false, runtime);
-        if(err!=0){
-            cerr << "command " << cmd << " failed" << endl;
-            cerr << err << " : " << errmsg << endl;
-            return;
-        }
-        if(!nl->HasLength(result,2) || 
-            nl->AtomType(nl->Second(result))!=BoolType){
-            cerr << "moveFile returns unexpected result: " 
-                 << nl->ToString(result) << endl;
-            return;
-        }
-
-        if(!nl->BoolValue(nl->Second(result))){
-           cerr << "moving file from: " << src << endl
-                << "to " << target << endl
-                << "failed" << endl;   
-        
-        }
+          } 
+      }
      }
 };
 
@@ -8426,7 +8449,7 @@ int ddistribute2VMT(Word* args, Word& result, int message,
          delete it->second.second.first;
          delete[] it->second.second.second;
       }
-      restorers.push_back(new DType(relType, objName,res, i, fn));
+      restorers.push_back(new DType( objName,res, i, fn));
    }
 
 
@@ -8708,7 +8731,7 @@ int distribute3VMT(Word* args, Word& result, int message,
    for(size_t i = 0; i<files.size(); i++) {
       string objName = res->getName()+"_"+stringutils::int2str(i);     
       string fn = objName + ".bin";
-      restorers.push_back(new DType(relType, objName,res, 
+      restorers.push_back(new DType(objName,res, 
                                     i, fn));
    }
 
@@ -8945,7 +8968,7 @@ int distribute4VMT(Word* args, Word& result, int message,
          delete it->second.second.first;
          delete[] it->second.second.second;
       }
-      restorers.push_back(new DType(relType, objName,res, i, fn));
+      restorers.push_back(new DType(objName,res, i, fn));
    }
 
 
@@ -13903,6 +13926,86 @@ Operator dmap8Op(
 
 
 /*
+3.21 Type Map Operators ~DPRODUCTARG1~ and ~DPRODUCTARG2~
+
+This operator is a special implementation for handling 
+dproduct arguments. Depending on the position  of the argument 
+as well as the type of the last argument, it will produce
+different result types.
+
+case 1: pos is 1, we check whether the first arg is a d[f] array
+        and return the subtype or an frel conversion
+
+case 2: pos is 2, we check whether the second argument is a d[f]array
+       and the subtype is a relation and return an frel for both types
+
+*/
+template<int pos>
+ListExpr dproductargT(ListExpr args){
+   assert( (pos==1) || (pos==2) );
+   if(!nl->HasMinLength(args,pos)){
+      return listutils::typeError("too less arguments");
+   }
+   for(int i=1; i<pos ; i++){
+     args = nl->Rest(args);
+   }
+   ListExpr arg = nl->First(args);
+   if(!DArray::checkType(arg) && !DFArray::checkType(arg)){
+     return listutils::typeError(  "the argument at position " 
+                                 + stringutils::int2str(pos) 
+                                 + "is not of type  d[f]array");
+   }
+   if(pos == 1){
+      if(DArray::checkType(arg)){
+         return nl->Second(arg);
+      }
+      return nl->TwoElemList( listutils::basicSymbol<frel>(),
+                              nl->Second(nl->Second(arg)));
+   }
+   // pos == 2
+   ListExpr subtype = nl->Second(arg);
+   if(!Relation::checkType(subtype)){
+      return listutils::typeError("subtype type of second d[f]array "
+                                  "is not a relation");
+   }
+
+   return nl->TwoElemList( listutils::basicSymbol<fsrel>(),
+                           nl->Second(subtype));
+
+}
+
+OperatorSpec dproductarg1Spec (
+  " darray(X) x ... -> X | dfarray(rel(x)) -> frel(X) ",
+  " op(_,_,_)",
+  "A type map operator",
+  "query dplz1 dplz2 dproduct[\"\", .. feed . feed concat , 1234]"
+);
+
+OperatorSpec dproductarg2Spec (
+  "  ? x d[f]array(rel(X)) x ... -> fsrel(X) ",
+  " op(_,_,_)",
+  "A type map operator",
+  "query dplz1 dplz2 dproduct[\"\", .. feed . feed concat , 1234]"
+);
+
+Operator dproductarg1Op(
+  "DPRODUCTARG1",
+  dproductarg1Spec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  dproductargT<1>
+);
+
+Operator dproductarg2Op(
+  "DPRODUCTARG2",
+  dproductarg2Spec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  dproductargT<2>
+);
+
+
+/*
 3.16 Operator ~dproduct~
 
 This operator connects all slots of the fisrt argument with all slots of
@@ -14585,15 +14688,15 @@ class dproductInfo{
               }
               string funarg2;
               // funarg2 consists of the concatenation of all slots of argument1
+              funarg2 = "("   + nl->ToString(
+                                     nl->Second(nl->Second(pi->a1Type))) 
+                       +"( ";
               for(size_t i=0;i<pi->arg1->getSize(); i++){
-                 string slotarg = getSlotArg(pi->arg0->getWorkerForSlot(slot),
-                                             i, c0, ch);
-                 if(i==0){
-                    funarg2 = slotarg;
-                 } else {
-                    funarg2 = "(concat " + funarg2 + " " + slotarg +") ";
-                 }
+                 string slotFile = getSlotFile(pi->arg0->getWorkerForSlot(slot),
+                                            i, c0, ch);
+                   funarg2 += " " + slotFile;
               }
+              funarg2 += "))";
 
               string funcall = "( " + pi->funText+ " " + funarg1 + " " 
                                + funarg2 + ")";
@@ -14619,21 +14722,11 @@ class dproductInfo{
               }
            }
 
-           string getSlotArg(DArrayElement target, size_t slot, 
+           string getSlotFile(DArrayElement target, size_t slot, 
                              ConnectionInfo* c0, copyHelper* sh ){
-
-
               string dir = ch->getInfo(target.getHost())->second[slot].second;
-              string res = "(feed ";
               DArrayElement source = pi->arg1->getWorkerForSlot(slot);
-              res += "(" +  nl->ToString(
-                               nl->TwoElemList(listutils::basicSymbol<frel>(),
-                               nl->Second(nl->Second(pi->a1Type))))
-                            + "'" 
-                            + pi->arg1->getFilePath(dir , pi->dbname, slot)
-                            + "')";
-              res += ")";
-              return res;
+              return  "'" + pi->arg1->getFilePath(dir , pi->dbname, slot) + "'";
            }
 
 
@@ -14804,7 +14897,7 @@ Operator arraytypeStream2Op(
   arraytypeStream1Spec.getStr(),
   0,
   Operator::SimpleSelect,
-  arraytypeStreamTMT<1>
+  arraytypeStreamTMT<2>
 );
 
 
@@ -19242,7 +19335,7 @@ ListExpr ddistributeTM(ListExpr args){
 
 
 
-template<class AType, class HType, class CType>
+template<class AType, class HType, class CType, class  DType>
 int ddistributeVMT(Word* args, Word& result, int message,
              Word& local, Supplier s ){
 
@@ -19351,10 +19444,10 @@ int ddistributeVMT(Word* args, Word& result, int message,
 
 
 ValueMapping ddistributeVM[] = {
-  ddistributeVMT<DArray, CcString, CcString>,
-  ddistributeVMT<DArray, CcString, FText>,
-  ddistributeVMT<DArray, FText, CcString>,
-  ddistributeVMT<DArray, FText, FText>
+  ddistributeVMT<DArray, CcString, CcString, RelFileRestorer>,
+  ddistributeVMT<DArray, CcString, FText, RelFileRestorer>,
+  ddistributeVMT<DArray, FText, CcString, RelFileRestorer>,
+  ddistributeVMT<DArray, FText, FText, RelFileRestorer>
 };
 
 
@@ -19584,9 +19677,14 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&ddistributeOp);   
 
+   AddOperator(&dproductarg1Op);
+   AddOperator(&dproductarg2Op);
+
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);
+
+
 
    
 
