@@ -14025,7 +14025,7 @@ ListExpr dproductTM(ListExpr args){
   // check for args in type mapping
   while(!nl->IsEmpty(c)){
     if(!nl->HasLength(nl->First(c),2)){
-      return listutils::typeError("interbal error");
+      return listutils::typeError("internal error");
     }
     c = nl->Rest(c);
   }
@@ -14055,10 +14055,12 @@ ListExpr dproductTM(ListExpr args){
                                       "subtypes of the d[f]arrays)");
   }
 
-  ListExpr s1 = nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
-                       nl->Second(nl->Second(a1)));
+  ListExpr s1 =   DFArray::checkType(a1)
+                ? nl->TwoElemList(listutils::basicSymbol<frel> (),
+                                  nl->Second(nl->Second(a1)))
+                : nl->Second(a1);
    
-  ListExpr s2 = nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+  ListExpr s2 = nl->TwoElemList(listutils::basicSymbol<fsrel>(),
                        nl->Second(nl->Second(a2)));
 
   ListExpr fun = nl->First(nl->Fourth(args));
@@ -14674,22 +14676,23 @@ class dproductInfo{
               ConnectionInfo* c0;
               c0 = algInstance->getWorkerConnection(w0, pi->dbname);
               if(pi->arg0->getType()==DARRAY){
-                 funarg1 = "(feed " + pi->arg0->getObjectNameForSlot(slot)+")";
+                 funarg1 =  pi->arg0->getObjectNameForSlot(slot);
               } else {
-                 funarg1 = "(feed (" +
+                 funarg1 = "(" +
                            nl->ToString(
                                nl->TwoElemList(listutils::basicSymbol<frel>(),
                                nl->Second(nl->Second(pi->a0Type))))
                            + "'" 
                            + pi->arg0->getFilePath(c0->getSecondoHome(), 
                                                    pi->dbname, slot) 
-                           + "'))";
+                           + "')";
                                         
               }
               string funarg2;
               // funarg2 consists of the concatenation of all slots of argument1
-              funarg2 = "("   + nl->ToString(
-                                     nl->Second(nl->Second(pi->a1Type))) 
+              funarg2 = "("   + nl->ToString( nl->TwoElemList(
+                                     listutils::basicSymbol<fsrel>(),
+                                     nl->Second(nl->Second(pi->a1Type))) )
                        +"( ";
               for(size_t i=0;i<pi->arg1->getSize(); i++){
                  string slotFile = getSlotFile(pi->arg0->getWorkerForSlot(slot),
