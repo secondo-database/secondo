@@ -14568,7 +14568,7 @@ class dproductInfo{
        vector< pair<ConnectionInfo*, vector<string> > > files;
        // we collect the files which should be removed   
        copyHelper::iter it;
-       for(it = ch->scan(); it!=ch->end(); it++){
+       for(it = ch->scan(); it!=ch->end(); it++){ //go through ip adresses
            vector<ConnectionInfo*>& cis = it->second.first;
            vector<string> filenames;
            vector< pair<bool, string> >& homes = it->second.second;
@@ -14592,8 +14592,11 @@ class dproductInfo{
                pos = cp; 
                files.push_back(make_pair(cis[i],v));
            }
-           assert(pos == filenames.size());
+          // assert(pos == filenames.size()); 
+         //  TODO: think about why this is wrong
        }
+
+
        // send command for removing files
        vector<fileRemover*> runners;
        for(size_t i=0; i< files.size(); i++){
@@ -19357,8 +19360,8 @@ int ddistributeVMT(Word* args, Word& result, int message,
   }
 
   string name = ccName->GetValue();
-  int size1 = ccSize1->GetValue();
-  int size2 = ccSize2->GetValue();
+  int size1 = ccSize1->GetValue(); // size of the outer array
+  int size2 = ccSize2->GetValue(); // sizes of the inner distributed arrays
   if(size1<1 || size2<1 || !stringutils::isIdent(name)){
      res->setUndefined();
      return 0;
@@ -19441,7 +19444,20 @@ int ddistributeVMT(Word* args, Word& result, int message,
     delete outputs[i]; 
   }
   // next step: transfer the files to the target computers
-  // TODO: implement distribution
+ 
+  // collect vectors of object and file names (which are the same)
+  vector<vector<string> > names;
+  for(size_t islots=0;islots<size2;islots++){
+     vector<string> snames;
+     for(size_t oslots=0;oslots<size1;oslots++){
+         snames.push_back(name + "_" + stringutils::int2str(oslots)
+                               + "_" + stringutils::int2str(islots));
+     }
+  }
+  
+
+
+
   return 0;
 }
 
