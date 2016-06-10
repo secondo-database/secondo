@@ -81,7 +81,7 @@ CompositeKey::CompositeKey(SmiKey& key):
     return;
 
   int32_t iVal;
-  int32_t lVal;
+  int64_t lVal;
   double dVal;
   string sVal;
   switch(kdt) {
