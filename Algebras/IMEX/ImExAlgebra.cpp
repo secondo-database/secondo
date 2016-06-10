@@ -5813,10 +5813,12 @@ ValueMapping moveFilevaluemap[] = {moveOrCopyFileVM<CcString, CcString, true>,
 */
 const string moveFileSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> {text|string} -> text </text--->"
+    "( <text> {text|string} [ x bool ] -> text </text--->"
     "<text> moveFile( OldName, NewName ) </text--->"
     "<text> Move file OldName to file NewName. Can also be used to rename a "
-    "file.\nReturns TRUE, iff move-command succeeds.\n"
+    "file.\nReturns TRUE, iff move-command succeeds.\n If the optional boolean"
+    " argument is present and TRUE, the parent directory of the target is "
+    "created automatically.\n"
     "WARNING: Be extremely carefully about moving files!\n"
     "         The operator also overwrites existing files!</text--->"
     "<text> query moveFile('data.csv', 'data.csv.old')  </text--->"
