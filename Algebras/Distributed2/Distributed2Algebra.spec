@@ -113,6 +113,7 @@ operator getObjectFromFile alias GETOBJECTFROMFILE pattern _ op
 
 operator dproduct alias DPRODUCT  pattern _ _ op[_,fun,_] implicit parameters elem1, elem2 types DPRODUCTARG1, DPRODUCTARG2 
 
-operator ddistribute8  alias DDISTRIBUTE pattern _ op[_,_,_,fun, fun, _] implicit parameter elem type STREAMELEM
+operator ddistribute8  alias DDISTRIBUTE pattern _ op[_,fun, fun,_,_, _] implicit parameter elem type STREAMELEM
+operator dfdistribute8  alias DFDISTRIBUTE pattern _ op[_,fun, fun,_,_, _] implicit parameter elem type STREAMELEM
 
 

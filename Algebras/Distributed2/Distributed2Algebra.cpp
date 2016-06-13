@@ -200,6 +200,14 @@ bool getConstEx(const string& objName, string& result){
 }
 
 
+template<class T>
+void print(vector<T>& v, ostream& out){
+  for(size_t i=0;i<v.size();i++){
+     out << v[i] << " ";
+  }
+}
+
+
 
 /*
 rewrites a query. Replaces dollar signs by numbers.
@@ -8265,9 +8273,6 @@ class FRelCopy{
                                       array->getWorkerForSlot(slot), dbname);
 
      }
-
-
-
 
    ~FRelCopy(){
      boost::lock_guard<boost::mutex> guard(mtx);
@@ -19262,13 +19267,13 @@ Operator getObjectFromFileOp(
 
 
 /*
-98 Operator ~ddistribute~
+98 Operator ~ddistribute8~
 
 This operator partitions a tuple stream into a array(darray)
 corresponding to two functions.
 
 */
-ListExpr ddistributeTM(ListExpr args){
+ListExpr ddistribute8TM(ListExpr args){
     // tuples , name, size1 , size2, fun1 , fun2, workers
     string err = "stream(tuple(X)) x string x int x int x "
                  "(X -> int) x (X->int) x rel expected";
@@ -19281,17 +19286,17 @@ ListExpr ddistributeTM(ListExpr args){
    if(! CcString::checkType(nl->Second(args))){
       return listutils::typeError(err+ " (second arg is not a string)");
    }
-   if(!CcInt::checkType(nl->Third(args))){
+   if(!listutils::isMap<1>(nl->Third(args))){
+      return listutils::typeError(err+ " (3th arg is not an unary function");
+   }
+   if(!listutils::isMap<1>(nl->Fourth(args))){
+      return listutils::typeError(err+ " (4th arg is not an unary function");
+   }
+   if(!CcInt::checkType(nl->Fifth(args))){
       return listutils::typeError(err+ " (third arg is not an int)");
    }
-   if(!CcInt::checkType(nl->Fourth(args))){
+   if(!CcInt::checkType(nl->Sixth(args))){
       return listutils::typeError(err+ " (fourth arg is not an int)");
-   }
-   if(!listutils::isMap<1>(nl->Fifth(args))){
-      return listutils::typeError(err+ " (5th arg is not an unary function");
-   }
-   if(!listutils::isMap<1>(nl->Sixth(args))){
-      return listutils::typeError(err+ " (6th arg is not an unary function");
    }
    ListExpr workerPositions;
    ListExpr workerTypes;
@@ -19304,14 +19309,24 @@ ListExpr ddistributeTM(ListExpr args){
 
    // check function arguments and result
    ListExpr tupleType = nl->Second(nl->First(args));
-   ListExpr fun1Arg = nl->Second(nl->Fifth(args));
-   ListExpr fun1Res = nl->Third(nl->Fifth(args));
+   ListExpr fun1Arg = nl->Second(nl->Third(args));
+   ListExpr fun1Res = nl->Third(nl->Third(args));
    if(!nl->Equal(tupleType,fun1Arg)){
      return listutils::typeError(err + " (fun arg 1 does in unequal "
                                        "to the tuple type)");
    } 
    if(!CcInt::checkType(fun1Res)){
-      return listutils::typeError(err + " (fun res 1 is not a bool)");
+      return listutils::typeError(err + " (fun res 1 is not an int) ");
+   }
+
+   ListExpr fun2Arg = nl->Second(nl->Fourth(args));
+   ListExpr fun2Res = nl->Third(nl->Fourth(args));
+   if(!nl->Equal(tupleType,fun2Arg)){
+     return listutils::typeError(err + " (fun arg 2 does in unequal "
+                                       "to the tuple type)");
+   } 
+   if(!CcInt::checkType(fun2Res)){
+      return listutils::typeError(err + " (fun res 2 is not an int) ");
    }
    
    ListExpr appendList = listutils::concat(workerPositions, 
@@ -19342,14 +19357,14 @@ ListExpr ddistributeTM(ListExpr args){
 
 
 template<class AType, class HType, class CType, class  DType>
-int ddistributeVMT(Word* args, Word& result, int message,
+int ddistribute8VMT(Word* args, Word& result, int message,
              Word& local, Supplier s ){
 
   result=qp->ResultStorage(s);
   arrayalgebra::Array* res = (arrayalgebra::Array*) result.addr;
   CcString* ccName = (CcString*) args[1].addr;
-  CcInt* ccSize1 = (CcInt*) args[2].addr;
-  CcInt* ccSize2 = (CcInt*) args[3].addr;
+  CcInt* ccSize1 = (CcInt*) args[4].addr;
+  CcInt* ccSize2 = (CcInt*) args[5].addr;
   int hostPos = ((CcInt*) args[7].addr)->GetValue();
   int portPos = ((CcInt*) args[8].addr)->GetValue();
   int configPos = ((CcInt*) args[9].addr)->GetValue();
@@ -19389,7 +19404,7 @@ int ddistributeVMT(Word* args, Word& result, int message,
   Word darrays[size1];
   for(int i=0;i< size1; i++){
      string slotname = name +"_" + stringutils::int2str(i);
-     AType* a = new AType(at);
+     AType* a = new AType(temp);
      a->setName(slotname);
      darrays[i].addr = a;    
   }
@@ -19402,9 +19417,9 @@ int ddistributeVMT(Word* args, Word& result, int message,
   Stream<Tuple> stream(args[0]);
   stream.open();
   Tuple* tuple;
-  ArgVectorPointer fun1arg = qp->Argument(args[4].addr);
+  ArgVectorPointer fun1arg = qp->Argument(args[2].addr);
   Word fun1result;
-  ArgVectorPointer fun2arg = qp->Argument(args[5].addr);
+  ArgVectorPointer fun2arg = qp->Argument(args[3].addr);
   Word fun2result;
 
   int nstreams = size1*size2;
@@ -19426,18 +19441,19 @@ int ddistributeVMT(Word* args, Word& result, int message,
   while( (tuple = stream.request())!=0){
      (*fun1arg)[0].addr = tuple;
      (*fun2arg)[0].addr = tuple;
-      qp->Request(args[4].addr, fun1result);
-      qp->Request(args[5].addr, fun2result);
+      qp->Request(args[2].addr, fun1result);
+      qp->Request(args[3].addr, fun2result);
       CcInt* f1res = (CcInt*) fun1result.addr;
       CcInt* f2res = (CcInt*) fun2result.addr;
       int f1 = f1res->IsDefined()?f1res->GetValue():0;
       int f2 = f2res->IsDefined()?f2res->GetValue():0;
       f1 = f1 % size1;
       f2 = f2 % size2;
-      int pos = f1*size2 + f2; // TODO: think about correctness
+      int pos = f1*size2 + f2; 
       BinRelWriter::writeNextTuple(*outputs[pos], tuple);
       tuple->DeleteIfAllowed();
   }
+
   // finish the files
   for(int i=0;i<nstreams;i++){
     BinRelWriter::finish(*outputs[i]);
@@ -19453,24 +19469,32 @@ int ddistributeVMT(Word* args, Word& result, int message,
          snames.push_back(name + "_" + stringutils::int2str(oslots)
                                + "_" + stringutils::int2str(islots));
      }
+     names.push_back(snames);
   }
-  
-
-
+  vector<DType*> transfers;
+  for(size_t i=0;i<names.size();i++){
+     DType* transfer = new DType(names[i], (AType*) darrays[0].addr, 
+                                 i, names[i]);
+     transfer->start();
+     transfers.push_back(transfer);
+  }
+  for(size_t i=0;i<transfers.size();i++){
+     delete transfers[i];
+  }
 
   return 0;
 }
 
 
-ValueMapping ddistributeVM[] = {
-  ddistributeVMT<DArray, CcString, CcString, RelFileRestorer>,
-  ddistributeVMT<DArray, CcString, FText, RelFileRestorer>,
-  ddistributeVMT<DArray, FText, CcString, RelFileRestorer>,
-  ddistributeVMT<DArray, FText, FText, RelFileRestorer>
+ValueMapping ddistribute8VM[] = {
+  ddistribute8VMT<DArray, CcString, CcString, RelFileRestorer>,
+  ddistribute8VMT<DArray, CcString, FText, RelFileRestorer>,
+  ddistribute8VMT<DArray, FText, CcString, RelFileRestorer>,
+  ddistribute8VMT<DArray, FText, FText, RelFileRestorer>
 };
 
 
-int ddistributeSelect(ListExpr args){
+int ddistribute8Select(ListExpr args){
    ListExpr workerPositions;
    ListExpr workerTypes;
    string errMsg;
@@ -19483,28 +19507,55 @@ int ddistributeSelect(ListExpr args){
    return n1 + n2;
 }
 
-OperatorSpec ddistributeSpec(
-  "stream(tuple) x string x int x int x fun x fun x rel -> "
+OperatorSpec ddistribute8Spec(
+  "stream(tuple) x string x fun x fun x int x int x rel -> "
   "array(darray(real(tuple)))",
-  "_ ddsistribute[_,_,_,_,_,_]",
-  "distributes a tuple stream to an array of darrays."
+  "_ ddistribute8[_,_,_,_,_,_]",
+  "Distributes a tuple stream to an array of darrays."
   "The first iut specifies the size of the array, the second int "
   "specifies the number of slots of the contained darrays. "
-  " The first function determines the slot of the main arrays, wheras the "
-  " second function determines the slot within the distributed sub array.",
+  "The first function determines the slot of the main arrays, wheras the "
+  "second function determines the slot within the distributed sub array.",
   "query plz feed ddistribute[\"aplz\", 7, 20, .PLZ, .PLZ, workers] "
 );
 
-Operator ddistributeOp(
+Operator ddistribute8Op(
   "ddistribute8",
-  ddistributeSpec.getStr(),
+  ddistribute8Spec.getStr(),
   4,
-  ddistributeVM,
-  ddistributeSelect,
-  ddistributeTM
+  ddistribute8VM,
+  ddistribute8Select,
+  ddistribute8TM
 );
 
 
+ValueMapping dfdistribute8VM[] = {
+  ddistribute8VMT<DFArray, CcString, CcString, FRelCopy>,
+  ddistribute8VMT<DFArray, CcString, FText, FRelCopy>,
+  ddistribute8VMT<DFArray, FText, CcString, FRelCopy>,
+  ddistribute8VMT<DFArray, FText, FText, FRelCopy>
+};
+
+OperatorSpec dfdistribute8Spec(
+  "stream(tuple) x string x fun x fun x int x int x rel -> "
+  "array(dfarray(real(tuple)))",
+  "_ ddistribute8[_,_,_,_,_,_]",
+  "Distributes a tuple stream to an array of dfarrays."
+  "The first iut specifies the size of the array, the second int "
+  "specifies the number of slots of the contained dfarrays. "
+  " The first function determines the slot of the main arrays, wheras the "
+  " second function determines the slot within the distributed sub array.",
+  "query plz feed dfdistribute8[\"afplz\", .PLZ, .PLZ, 12, 7, workers] "
+);
+
+Operator dfdistribute8Op(
+  "dfdistribute8",
+  dfdistribute8Spec.getStr(),
+  4,
+  dfdistribute8VM,
+  ddistribute8Select,
+  ddistribute8TM
+);
 
 
 /*
@@ -19694,7 +19745,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&arraytypeStream2Op);   
 
 
-   AddOperator(&ddistributeOp);   
+   AddOperator(&ddistribute8Op);   
+   AddOperator(&dfdistribute8Op);   
 
    AddOperator(&dproductarg1Op);
    AddOperator(&dproductarg2Op);
