@@ -625,6 +625,12 @@ Result    : bug
 Remark    : under construction
 
 
+Operator  : dfdistribute8
+Number    : 1
+Signature : stream(tuple) x string x (tuple -> int) x (tuple->int) x int x int x rel -> array(dfarray(rel(tuple)))
+Example   : query plz feed dfdistribute["dfdplz", .PLZ , hashValue(.Ort,2000), 5, 4, workers]
+Result    : bug
+Remark    : under construction
 
 
 
