@@ -60,6 +60,7 @@ shows examples of these spatial data types.
 #include <queue>
 #include <limits>
 #include "Attribute.h"
+#include "SimplePoint.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "../Rectangle/RectangleAlgebra.h"
 #include "WinUnix.h"
@@ -73,6 +74,7 @@ shows examples of these spatial data types.
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "Berlin2WGS.h"
+
 
 /*
 Coordinates are represented by real numbers.
@@ -3967,156 +3969,6 @@ Classes suppoorting the computation of the convex hull of
 an pointset.
 
 */
-std::ostream& operator<<(std::ostream& o,const SimplePoint& p);
-
-class SimplePoint{
-  public:
-     explicit SimplePoint(const Point* p){
-       this->x = p->GetX();
-       this->y = p->GetY();
-     }
-
-     explicit SimplePoint(Point& p){
-       this->x = p.GetX();
-       this->y = p.GetY();
-     }
-
-     SimplePoint(){ }
-
-     SimplePoint(double x, double y){
-       this->x = x;
-       this->y = y;
-     }
-
-     SimplePoint(const SimplePoint& p){
-        this->x = p.x;
-        this->y = p.y;
-     }
-
-     SimplePoint& operator=(const SimplePoint& p){
-       this->x = p.x;
-       this->y = p.y;
-       return *this;
-     }
-
-     int compare(const SimplePoint& p)const{
-         if(AlmostEqual(x,p.x)){
-            if(AlmostEqual(y,p.y)){
-                return 0;
-            }
-            return y<p.y?-1:1;
-         }
-         return x<p.x?-1:1;
-     }
-
-
-     ~SimplePoint(){}
-
-     SimplePoint relTo(const SimplePoint& p) const{
-        return SimplePoint(this->x - p.x, this->y-p.y);
-     }
-
-     void makeRelTo(const SimplePoint& p){
-        this->x -= p.x;
-        this->y -= p.y;
-     }
-
-     SimplePoint moved(const double x0, const double y0)const{
-        return SimplePoint(x+x0, y+y0);
-     }
-
-     SimplePoint reversed()const{
-        return SimplePoint(-x,-y);
-     }
-
-     bool isLower(const SimplePoint& p)const{
-        if(!AlmostEqual(y,p.y)){
-           return y < p.y;
-        }
-        if(AlmostEqual(x,p.x)){ // equal points
-           return false;
-        }
-        return x < p.x;
-     }
-
-     double mdist()const{ // manhatten distance to (0,0)
-       return abs(x) + abs(y);
-     }
-
-     double mdist(const SimplePoint p)const{
-        return abs(x-p.x) + abs(y-p.y);
-     }
-
-     bool isFurther(const SimplePoint& p)const{
-        return mdist() > p.mdist();
-     }
-
-     bool isBetween(const SimplePoint& p0, const SimplePoint p1) const{
-        return p0.mdist(p1) >= mdist(p0)+mdist(p1);
-     }
-
-     double cross(const SimplePoint& p)const{
-        return x*p.y - p.x*y;
-     }
-
-     bool isLess(const SimplePoint& p) const{
-        double f = cross(p);
-        bool res;
-        if(AlmostEqual(f,0.0)){
-          res = isFurther(p);
-        } else {
-          res = f>0;
-        }
-        return  res;
-     }
-
-     bool operator<(const SimplePoint& p) const{
-         return isLess(p);
-     }
-
-     bool operator==(const SimplePoint& p) const{
-         return AlmostEqual(x,p.x)&& AlmostEqual(y,p.y);
-     }
-     bool operator!=(const SimplePoint& p) const{
-         return !AlmostEqual(x,p.x) ||  !AlmostEqual(y,p.y);
-     }
-
-    bool operator>(const SimplePoint& p) const{
-         return !(AlmostEqual(x,p.x) && AlmostEqual(y,p.y)) && !isLess(p);
-     }
-
-     double area2(const SimplePoint& p0, const SimplePoint& p1) const{
-        return p0.relTo(*this).cross(p1.relTo(*this));
-     }
-
-     bool isConvex(const SimplePoint& p0, const SimplePoint& p1) const {
-        double f = area2(p0,p1);
-        if(AlmostEqual(f,0.0)){
-           bool between = isBetween(p0,p1);
-           return !between;
-        }
-        return f<0;
-     }
-
-     Point getPoint()const {
-        return Point(true,x,y);
-     }
-
-     double getX()const{ return x;}
-     double getY()const{ return y;}
-
-     void  setX( const double _x){ x=_x;}
-     void  setY( const double _y){ y=_y;}
-
-     size_t hash() const{
-        return (size_t)( x*y + y);
-      }
-
-  private:
-     double x;
-     double y;
-
-}; // end of class SimplePoint
 
 
 class GrahamScan{
