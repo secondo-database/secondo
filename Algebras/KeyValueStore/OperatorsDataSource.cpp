@@ -123,7 +123,7 @@ int kvsDataSourceSCPVM(Word* args, Word& result, int message, Word& local,
           char* tupleBuffer = new char[tupleBlockSize];
           dataSource->currentFile->read(tupleBuffer, tupleBlockSize);
 
-          tempTuple->ReadFromBin(tupleBuffer);
+          tempTuple->ReadFromBin(0,tupleBuffer);
 
           delete[] tupleBuffer;
 

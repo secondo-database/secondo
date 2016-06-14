@@ -107,7 +107,7 @@ int kvsRemoteStreamVM(Word* args, Word& result, int message, Word& local,
           tupleType = new TupleType(nl->Second(resultType));
 
           Tuple* tempTuple = new Tuple(tupleType);
-          tempTuple->ReadFromBin(tupleBuffer);
+          tempTuple->ReadFromBin(0,tupleBuffer);
 
           delete[] tupleBuffer;
 
@@ -229,7 +229,7 @@ int kvsRemoteStreamSCPVM(Word* args, Word& result, int message, Word& local,
         char* tupleBuffer = new char[tupleBlockSize];
         dataFile->read(tupleBuffer, tupleBlockSize);
 
-        tempTuple->ReadFromBin(tupleBuffer);
+        tempTuple->ReadFromBin(0,tupleBuffer);
 
         delete[] tupleBuffer;
 
@@ -587,7 +587,7 @@ int kvsDistributeVM(Word* args, Word& result, int message, Word& local,
           tupleType = new TupleType(nl->Second(resultType));
 
           Tuple* tempTuple = new Tuple(tupleType);
-          tempTuple->ReadFromBin(tupleBuffer);
+          tempTuple->ReadFromBin(0,tupleBuffer);
 
           delete[] tupleBuffer;
 
