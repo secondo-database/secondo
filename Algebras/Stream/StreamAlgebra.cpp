@@ -174,6 +174,11 @@ having a single element of type T.
 ListExpr
 TypeMapStreamfeed( ListExpr args )
 {
+  // if it is a stream, just pass the incoming stream
+  if(nl->HasLength(args,1) && listutils::isStream(nl->First(args))){
+    return nl->First(args);
+  }
+
   string err = "one argument of kind DATA expected";
   if(nl->ListLength(args)!=1){
     return listutils::typeError(err);
@@ -303,6 +308,43 @@ int MappingStreamFeed( Word* args, Word& result, int message,
   return -1; // should not be reached
 }
 
+
+int MappingStreamFeedStream( Word* args, Word& result, int message,
+                  Word& local, Supplier s )
+{
+  switch(message){
+    case OPEN:
+        qp->Open(args[0].addr);
+        return 0;
+
+    case REQUEST:
+        qp->Request(args[0].addr, result);
+        return qp->Received(args[0].addr)? YIELD:CANCEL;
+
+    case CLOSE:
+         qp->Close(args[0].addr);
+         return 0;
+    case CLOSEPROGRESS: break;
+    case REQUESTPROGRESS:
+      ProgressInfo* pRes;
+      pRes = (ProgressInfo*) result.addr;
+      if ( qp->RequestProgress(args[0].addr, pRes) ){
+        return YIELD;
+      } else {
+        result.addr = 0; 
+        return CANCEL;
+      }    
+      break;
+  } 
+  return 0;
+
+}
+
+
+
+
+
+
 /*
 5.19.3 Specification for operator ~feed~
 
@@ -322,11 +364,11 @@ StreamSpecfeed=
 
 */
 
-ValueMapping streamfeedmap[] = { MappingStreamFeed };
+ValueMapping streamfeedmap[] = { MappingStreamFeed, MappingStreamFeedStream };
 
 int StreamfeedSelect( ListExpr args )
 {
-  return 0;
+  return listutils::isStream(nl->First(args))?1:0;
 }
 
 /*
@@ -335,7 +377,7 @@ int StreamfeedSelect( ListExpr args )
 */
 Operator streamfeed( "feed",
                      StreamSpecfeed,
-                     1,
+                     2,
                      streamfeedmap,
                      StreamfeedSelect,
                      TypeMapStreamfeed);
