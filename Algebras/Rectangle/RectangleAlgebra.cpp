@@ -2686,7 +2686,7 @@ int gridcell2rect_vm(Word* args, Word& result,
     return 0;
   }
 
-  if(is3D){ // 3D grid
+  if(is3D && (DIM>2)){ // 3D grid
     x0 = (static_cast<CcReal*>(args[1].addr))->GetValue();
     y0 = (static_cast<CcReal*>(args[2].addr))->GetValue();
     z0 = (static_cast<CcReal*>(args[3].addr))->GetValue();
