@@ -14,10 +14,15 @@
 function getVersion {
 
   #echo "args: $1 $2 $3"
-  local version1=$($2 $3| sed -nr '1s#.* ([0-9]+)[.]([0-9]+)[.]?([0-9]+)?.*#\1x\2y\3#p')
+ # local version1=$($2 $3| sed -nr '1s#.* ([0-9]+)[.]([0-9]+)[.]?([0-9]+)?.*#\1x\2y\3#p')
 
-  local -i n1=$[${version1%x*}]
-  local rest=${version1#*x}
+
+  local version2=$($2 $3 | sed "s/[^0-9.]*//"  | sed "s/\./x/" | sed "s/\./y/" | sed "s/ .*//g"   ) 
+
+  local version3=$(echo $version2 | sed "s/ .*//g")
+
+  local -i n1=$[${version3%x*}]
+  local rest=${version3#*x}
   #showValue rest
   local -i n2=$[${rest%y*}]
   local -i n3=$[${rest#*y}]
