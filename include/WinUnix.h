@@ -59,7 +59,7 @@ public:
      return 1 + (int) (n * 1.0 * (rand() / (RAND_MAX + 1.0)));
    }
 
-   static void srand(unsigned int seed) { return srand(seed); }
+   static void srand(unsigned int seed) { return std::srand(seed); }
 
    static void string2stdout(const char* string);
    static void stacktrace(const char* appName, const char* stacktraceOutput);
