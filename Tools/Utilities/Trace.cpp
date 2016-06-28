@@ -53,7 +53,7 @@ string Array2HexStr(const char* data, size_t size, size_t offset /*= 0*/)
 
 string Array2Str(const char* data, size_t size)
 {
-  char* buf = new char(size+1);
+  char* buf = new char[size+1];
   memcpy(buf,data,size);
   buf[size] = '\0';
   string res(buf);
