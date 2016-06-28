@@ -1564,7 +1564,7 @@ void SpatialJoinLocalInfo<dim>::Write
 
   for (MI p = g.first; p != g.second; ++p)
   {
-    memcpy ( buffer + offset, &(p->second), sizeof(p->second) );
+    memcpy ( buffer + offset,(void*)&(p->second), sizeof(p->second) );
     offset += sizeof(p->second);
   }
 
