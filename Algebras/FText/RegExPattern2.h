@@ -570,7 +570,7 @@ Secondo specific operators
              valueRecord.Read(buffer,srcLength,offset);
              offset += srcLength;
              p->src = std::string(buffer,srcLength);
-             delete buffer; 
+             delete [] buffer; 
           }
        }
        value.addr = p;
