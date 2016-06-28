@@ -3831,7 +3831,7 @@ void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
              if(lastValue==fillValue){
                 lastUnit.timeInterval.rc = true;
                 units.Put(size-1, lastUnit);
-                units.Append(&unit);
+                units.Append(unit);
              } else if(newValue==fillValue){
                 UInt copy(unit);
                 copy.timeInterval.lc = true;
