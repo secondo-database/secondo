@@ -3264,7 +3264,6 @@ class shpimportInfo{
    uint32_t type;
    streampos fileend;
    char* buffer;
-   size_t buffersize;
 
    bool readHeader(unsigned int allowedType){
       file.seekg(0,ios::end);
