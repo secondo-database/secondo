@@ -929,11 +929,11 @@ std::pair<unsigned int,unsigned int>
     double d2 = sons[0]->box.Union(grptwo->box).Area();
     unsigned int index = 0;
     unsigned int bestgrp = -1;
-    double d = abs(d1-d2);
+    double d = std::abs(d1-d2);
     for(int i=1;i<count;i++){
         d1 = sons[i]->box.Union(grpone->box).Area();
         d2 = sons[i]->box.Union(grptwo->box).Area();
-        double d3 = abs(d1-d2);
+        double d3 = std::abs(d1-d2);
         if(d3>d){
            d = d3;
            index = i;

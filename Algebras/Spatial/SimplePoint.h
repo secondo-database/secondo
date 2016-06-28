@@ -108,11 +108,11 @@ class SimplePoint{
      }
 
      double mdist()const{ // manhatten distance to (0,0)
-       return abs(x) + abs(y);
+       return std::fabs(x) + std::fabs(y);
      }
 
      double mdist(const SimplePoint p)const{
-        return abs(x-p.x) + abs(y-p.y);
+        return std::fabs(x-p.x) + std::abs(y-p.y);
      }
 
      bool isFurther(const SimplePoint& p)const{

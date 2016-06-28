@@ -129,7 +129,7 @@ namespace geodist{
                    const Geoid* geoid) {
          // should be   return distance(a,t)+distance(b,t)==distance(a,b), 
          // but due to rounding errors, we use: 
-     return abs(   HaversineInKM(a[0], a[1], b[0], b[1], geoid) 
+     return std::abs(   HaversineInKM(a[0], a[1], b[0], b[1], geoid) 
                  - HaversineInKM(a[0], a[1], t[0], t[1], geoid)
                  - HaversineInKM(b[0], b[1], t[0], t[1], geoid)) < PRECISION;
    }
