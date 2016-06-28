@@ -36,7 +36,7 @@ class Array
     Array(int, int, int, Word*);
     Array();
     ~Array();
-    void initialize(int, int, int, Word*);
+    void initialize(int algId, int typeId , int size , Word* elements);
     bool isDefined();
     void setUndefined();
     int getSize();
