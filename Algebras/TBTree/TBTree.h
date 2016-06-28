@@ -796,7 +796,7 @@ class QNodeSplitter{
     double d2 = source->getEntry(0)->getBox().Union(grptwo->getBox()).Area();
     unsigned int index = 0;
     unsigned int bestgrp = -1;
-    double d = abs(d1-d2);
+    double d = std::fabs(d1-d2);
     Rectangle<Dim> b1 = grpone->getBox();
     Rectangle<Dim> b2 = grptwo->getBox();
     double a1 = b1.Area();
@@ -805,7 +805,7 @@ class QNodeSplitter{
     for(int i=1;i<source->entryCount();i++){
         d1 = source->getEntry(i)->getBox().Union(b1).Area();
         d2 = source->getEntry(i)->getBox().Union(b2).Area();
-        double d3 = abs(d1-d2);
+        double d3 = std::fabs(d1-d2);
         if(d3>d){
            d = d3;
            index = i;
