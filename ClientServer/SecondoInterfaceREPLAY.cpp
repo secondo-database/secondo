@@ -31,6 +31,7 @@ February 2016 Matthias Kunsmann, ReplayVersion of the ~SecondoInterfaceCS~
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <array>
 
 //#define TRACE_ON 1
 
@@ -1731,9 +1732,10 @@ Execute of ReplayOsmImport.
   // prefixNodes_type, prefixNodeTags_type
   // prefixWays_type, prefixWayTags_type
   // prefixRelations_type, prefixRelationTags_type
-  array<string, 6> delTypes = {"Nodes_type", "NodeTags_type", "Ways_type",
+  std::array<std::string, 6> delTypes{{"Nodes_type", "NodeTags_type",
+                      "Ways_type",
                       "WayTags_type", "Relations_type",
-                      "RelationTags_type"};
+                      "RelationTags_type"}};
 
   for (unsigned int i = 0; i < delTypes.size(); ++i) {
     cmdText = "delete " + prefix + delTypes[i];
