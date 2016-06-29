@@ -535,7 +535,10 @@ virtual void restoreHeader(char* buffer,
  bool copyTo(Flob& dest) const{
    DbArray<DbArrayElement>* dbdest =
                     static_cast<DbArray<DbArrayElement>* >(&dest);
-   return copyTo(*dbdest);
+    bool res = Flob::copyTo(dest);
+    dbdest->nElements = nElements;
+    dbdest->maxElements = maxElements;
+    return res;
  }
 
 
