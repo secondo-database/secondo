@@ -882,7 +882,6 @@ progress. No effect when called for an operator not supporting progress.
   bool debugMode;
   bool traceMode;
   bool traceNodes;
-  bool debugTM;
   bool debugLocal;
   bool debugProgress;
   bool traceProgress;
