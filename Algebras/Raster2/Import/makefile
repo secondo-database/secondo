@@ -77,7 +77,7 @@ ifndef file
 endif
 
 CC := g++
-CCFLAGS := -I../../../StorageManager -I../../../Algebras/TupleIdentifier $(DEFAULTCCFLAGS) $(myflags)
+CCFLAGS := -I../../../StorageManager -I../../../Algebras/TupleIdentifier $(DEFAULTCCFLAGS) $(myflags) -Werror
 LIBS := ../../../UserInterfaces/cmsg.o $(LD_LINK_LIBS)
 
 .PHONY: all 

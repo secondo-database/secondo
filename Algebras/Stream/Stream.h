@@ -82,7 +82,7 @@ Returns "stream"
 Checks whether list is a description of a stream with given type.
 
 */
-     static const bool checkType(const ListExpr type){
+     static bool checkType(const ListExpr type){
         if(!nl->HasLength(type,2)){
           return false;
         }

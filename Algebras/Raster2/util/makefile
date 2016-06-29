@@ -27,7 +27,7 @@
 include ../../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += -I ../../Temporal -I ../../Spatial -I ../../Rectangle -I ../../RTree -I ../../Relation-C++ -I ../../BTree  -I ../../FText -I ../../Stream
+CCFLAGS += -I ../../Temporal -I ../../Spatial -I ../../Rectangle -I ../../RTree -I ../../Relation-C++ -I ../../BTree  -I ../../FText -I ../../Stream -Werror
 ifneq ($(platform),mac_osx)
   CCFLAGS += -std=c++0x
 endif
