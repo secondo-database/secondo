@@ -1643,7 +1643,7 @@ bool PrefetchingIteratorImpl::RightBoundaryExceeded()
     return false;
   }
 
-  assert(rightBoundary != 0);
+  //assert(rightBoundary != 0);
 
   switch(state)
   {
