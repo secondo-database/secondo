@@ -364,8 +364,7 @@ ListExpr constGraphTypeMap( ListExpr args )
         func,      //The listexpr for the costs function
         pointidx1,    //The listexpr for the first point attibute
         pointidx2,     //The listexpr for the first point attibute
-        errorInfo,attrtype;
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+        attrtype;
   string argstr, argstr2,attrname1,attrname2;
   int j,k,l,m;        //The indices of the attributes in the tuple inTuple
   switch (characteristic)
