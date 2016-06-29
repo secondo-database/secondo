@@ -1567,7 +1567,7 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
 
         if (!rbCorrectUTurn || nPointsOfLastSection > 5)
         {
-            double dMaxDistanceGPS = 0.0;
+            //double dMaxDistanceGPS = 0.0;
             for (size_t i = 0; i < nPointsOfLastSection - 1; ++i)
             {
                 const MHTRouteCandidate::PointDataPtr& pData1 = rvecPoints[i];
@@ -1589,7 +1589,7 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
 
                         if (dDist > dMaxDistance)
                         {
-                            dMaxDistanceGPS = dDist;
+                           // dMaxDistanceGPS = dDist;
 
                             PtMaxDistance1 = rPt1;
                             PtMaxDistance2 = rPt2;

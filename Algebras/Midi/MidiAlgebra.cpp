@@ -1032,7 +1032,7 @@ bool InChannelVoiceNoRun(Event *& actualEvent,stringstream& byteStream,
                          bool& multisysex, bool& sequenceSpecified,
                          bool& runmodepossible, int tracknr)
 {
-  int datalength;
+  //int datalength;
   char ch;
 
   if (multisysex)
@@ -1053,13 +1053,13 @@ bool InChannelVoiceNoRun(Event *& actualEvent,stringstream& byteStream,
     if((typebyte & 0xF0) == Event::PROGRAM_CHANGE ||
        (typebyte & 0xF0) == Event::CHANNEL_PRESSURE)
     {
-      datalength = 1;
+      //datalength = 1;
       actualEvent->SetShortMessageDataLength(1);
       actualEvent->SetShortMessageData(0, namebyte);
     }
     else
     {
-      datalength = 2;
+      //datalength = 2;
       actualEvent-> SetShortMessageDataLength(2);
       actualEvent-> SetShortMessageData(0, namebyte);
       byteStream.get(ch);
