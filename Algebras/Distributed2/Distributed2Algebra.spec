@@ -116,4 +116,10 @@ operator dproduct alias DPRODUCT  pattern _ _ op[_,fun,_] implicit parameters el
 operator ddistribute8  alias DDISTRIBUTE pattern _ op[_,fun, fun,_,_, _] implicit parameter elem type STREAMELEM
 operator dfdistribute8  alias DFDISTRIBUTE pattern _ op[_,fun, fun,_,_, _] implicit parameter elem type STREAMELEM
 
+operator partition8Local alias PARTITION8LOCAL pattern _ op[ fun,fun, _,_,_,_,_] implicit parameter elem type STREAMELEM
+
+operator partitionF8 alias PARTITIONF8 pattern  _ op [ _, fun, fun, fun, _,_] implicit parameter elem type P8TM 
+
+
+
 

@@ -522,7 +522,8 @@ R* DArrayBase::readFrom(ListExpr list){
 
 template<class R>
 bool DArrayBase::open(SmiRecord& valueRecord, size_t& offset, 
-                 const ListExpr typeInfo, Word& result){
+                 const ListExpr __attribute__((unused)) typeInfo,
+                 Word& result){
    bool defined;
    result.addr = 0;
    if(!readVar<bool>(defined,valueRecord,offset)){
@@ -580,7 +581,8 @@ bool DArrayBase::open(SmiRecord& valueRecord, size_t& offset,
 }
 
 bool DArrayBase::save(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value) {
+                 const ListExpr __attribute__((unused)) typeInfo, 
+                 Word& value) {
 
     DArrayBase* a = (DArrayBase*) value.addr;
     // defined flag
@@ -695,7 +697,7 @@ ostream& operator<<(ostream& out, const DArrayBase& a){
 
 
 template<arrayType T>
-const bool DArrayT<T>::checkType(const ListExpr list){
+bool DArrayT<T>::checkType(const ListExpr list){
     if(!nl->HasLength(list,2)){
        return false;
     }  
@@ -764,7 +766,8 @@ void DFMatrix::setSize(size_t newSize){
 }
 
 bool DFMatrix::open(SmiRecord& valueRecord, size_t& offset, 
-                 const ListExpr typeInfo, Word& result){
+                 const ListExpr __attribute__((unused)) typeInfo, 
+                 Word& result){
    bool defined;
    result.addr = 0;
    if(!readVar<bool>(defined,valueRecord,offset)){
@@ -811,7 +814,8 @@ bool DFMatrix::open(SmiRecord& valueRecord, size_t& offset,
 }
 
 bool DFMatrix::save(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value) {
+                 const ListExpr __attribute__((unused)) typeInfo, 
+                 Word& value) {
 
     DFMatrix* a = (DFMatrix*) value.addr;
     // defined flag

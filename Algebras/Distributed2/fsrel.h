@@ -92,7 +92,7 @@ public:
   
 
 private:
-  explicit fsrel(const int dummy) {}
+  explicit fsrel(const int __attribute__((unused)) dummy) {}
   std::vector<std::string> values;
   bool defined;
 

@@ -42,7 +42,7 @@ namespace distributed2{
 fobj::fobj():value(""), defined(false){}
 fobj::fobj(const fobj& src): value(src.value), defined(src.defined){}
 
-fobj::fobj(const int dummy){}
+fobj::fobj(const int __attribute__((unused))dummy){}
 
 fobj::fobj(const std::string& name):
    value(name), defined(true){}
@@ -83,8 +83,10 @@ ListExpr fobj::Property(){
   );
 }
 
-Word fobj::In(const ListExpr typeInfo, const ListExpr instance,
-              const int errorPos, ListExpr& errorInfo, bool& correct){
+Word fobj::In(const ListExpr __attribute__((unused)) typeInfo, 
+              const ListExpr instance,
+              const int __attribute__((unused)) errorPos, 
+              ListExpr __attribute__((unused)) & errorInfo, bool& correct){
 
   Word res((void*)0);
   if(listutils::isSymbolUndefined(instance)){
@@ -105,7 +107,8 @@ Word fobj::In(const ListExpr typeInfo, const ListExpr instance,
 }
 
 
-ListExpr fobj::Out(ListExpr typeInfo, Word value){
+ListExpr fobj::Out(ListExpr __attribute__((unused)) typeInfo, 
+                   Word value){
   fobj* v = (fobj*) value.addr;
   if(!v->IsDefined()){
     return listutils::getUndefined();
@@ -113,17 +116,18 @@ ListExpr fobj::Out(ListExpr typeInfo, Word value){
   return nl->TextAtom(v->value);
 }
 
-Word fobj::Create(const ListExpr typeInfo){
+Word fobj::Create(const ListExpr __attribute__((unused)) typeInfo){
   return Word(new fobj(""));
 }
 
-void fobj::Delete(const ListExpr typeInfo, Word& w){
+void fobj::Delete(const ListExpr __attribute__((unused))typeInfo, Word& w){
    delete (fobj*) w.addr;
    w.addr = 0;
 }
 
 bool fobj::Save(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value){
+                 const ListExpr __attribute__((unused)) typeInfo, 
+                 Word& value){
  fobj* v = (fobj*) value.addr;
  if(!v->IsDefined()){
    char def = 0;
@@ -146,7 +150,8 @@ bool fobj::Save(SmiRecord& valueRecord, size_t& offset,
 }
 
 bool fobj::Open(SmiRecord& valueRecord,
-                   size_t& offset, const ListExpr typeInfo,
+                   size_t& offset, 
+                   const ListExpr __attribute__((unused)) typeInfo,
                    Word& value){
 
   char def;
@@ -171,12 +176,14 @@ bool fobj::Open(SmiRecord& valueRecord,
   delete[] name;
   return true;
 }
-void fobj::Close(const ListExpr typeInfo, Word& w){
+void fobj::Close(const ListExpr __attribute__((unused)) typeInfo, 
+                 Word& w){
    delete (fobj*) w.addr;
    w.addr = 0;
 }
 
-Word fobj::Clone(const ListExpr typeInfo, const Word& v){
+Word fobj::Clone(const ListExpr __attribute__((unused)) typeInfo, 
+                 const Word& v){
   fobj* src = (fobj*) v.addr;
   Word res(new fobj(*src));
   return res;
@@ -186,7 +193,8 @@ void* fobj::Cast(void* addr){
   return new (addr) fobj(42);
 }
 
-bool fobj::TypeCheck(ListExpr type, ListExpr& errorInfo){
+bool fobj::TypeCheck(ListExpr type, 
+                     ListExpr __attribute__((unused))& errorInfo){
    return checkType(type);
 }
 

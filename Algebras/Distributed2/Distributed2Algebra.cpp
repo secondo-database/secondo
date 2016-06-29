@@ -2691,8 +2691,10 @@ class checkConLocal{
 };
 
 
-int checkConnectionsVM( Word* args, Word& result, int message,
-                  Word& local, Supplier s ){
+int checkConnectionsVM( Word __attribute__((unused))* args, 
+                        Word& result, int message,
+                        Word& local, 
+                        Supplier __attribute__((unused)) s ){
 
   checkConLocal* li = (checkConLocal*) local.addr;
   switch(message){
@@ -14129,6 +14131,18 @@ void performCommand(ConnectionInfo* ci, const string& cmd){
 }
 
 
+void performListCommand(ConnectionInfo* ci, const string& cmd){
+     int errorCode;
+     string errorMsg;
+     double rt;
+     string res;
+     ci->simpleCommandFromList(cmd, errorCode, errorMsg, res, false, rt);
+     if(errorCode){
+           showError(ci,cmd, errorCode, errorMsg);
+     }
+}
+
+
 class dproductInfo{
  public:
 
@@ -17212,7 +17226,7 @@ OperatorSpec partitionSpec(
   "The last argument (int) determines the number of slots "
   "of the redistribution. If this value is smaller or equal to "
   "zero, the number of slots is overtaken from the array argument.",
-  "query da2 partition[ hashValue(.Name,2000) + 23, \"dm2\",0]"
+  "query da2 partition[ hashvalue(.Name,2000) + 23, \"dm2\",0]"
 );
 
 int partitionSelect(ListExpr args){
@@ -19508,15 +19522,17 @@ int ddistribute8Select(ListExpr args){
 }
 
 OperatorSpec ddistribute8Spec(
-  "stream(tuple) x string x fun x fun x int x int x rel -> "
-  "array(darray(real(tuple)))",
+  "stream(tuple) x string x (tuple->int) x (tuple->int) x int x int x rel -> "
+  "array(darray(rel(tuple)))",
   "_ ddistribute8[_,_,_,_,_,_]",
-  "Distributes a tuple stream to an array of darrays."
-  "The first iut specifies the size of the array, the second int "
+  "Distributes a tuple stream into an array of darrays."
+  "The first int argument  specifies the size of the main array, the second"
+  " int "
   "specifies the number of slots of the contained darrays. "
-  "The first function determines the slot of the main arrays, wheras the "
-  "second function determines the slot within the distributed sub array.",
-  "query plz feed ddistribute[\"aplz\", 7, 20, .PLZ, .PLZ, workers] "
+  "The first function determines the slot within  the main array, whereas the "
+  "second function determines the slot within the distributed array.",
+  "query plz feed ddistribute8[\"plzd8\", .PLZ, hashvalue(.Ort,58], "
+  "4, 12 ,workers] "
 );
 
 Operator ddistribute8Op(
@@ -19537,15 +19553,16 @@ ValueMapping dfdistribute8VM[] = {
 };
 
 OperatorSpec dfdistribute8Spec(
-  "stream(tuple) x string x fun x fun x int x int x rel -> "
-  "array(dfarray(real(tuple)))",
-  "_ ddistribute8[_,_,_,_,_,_]",
-  "Distributes a tuple stream to an array of dfarrays."
+  "stream(tuple) x string x (tuple->int) x (tuple->int) x int x int x rel -> "
+  "array(dfarray(rel(tuple)))",
+  "_ dfdistribute8[_,_,_,_,_,_]",
+  "Distributes a tuple stream into an array of dfarrays."
   "The first iut specifies the size of the array, the second int "
   "specifies the number of slots of the contained dfarrays. "
-  " The first function determines the slot of the main arrays, wheras the "
-  " second function determines the slot within the distributed sub array.",
-  "query plz feed dfdistribute8[\"afplz\", .PLZ, .PLZ, 12, 7, workers] "
+  "The first function determines the slot in the main arrays, whereas the "
+  "second function determines the slot within the distributed array.",
+  "query plz feed ddistribute8[\"plzd8\", .PLZ, hashvalue(.Ort,58], "
+  "4, 12 ,workers] "
 );
 
 Operator dfdistribute8Op(
@@ -19556,6 +19573,712 @@ Operator dfdistribute8Op(
   ddistribute8Select,
   ddistribute8TM
 );
+
+
+
+
+/*
+97 operator partition8Local
+
+This operator gets a tuple stream, two functions, two strings and 
+two integer values and distributes the tuple stream according to
+the functions and the sizes into a subdirectory given by one string
+treated as home according to  dfmatrixes with names.
+
+*/
+
+ListExpr partition8LocalTM(ListExpr args){
+  if(!nl->HasLength(args,8)){
+     return listutils::typeError("8 arguments expected");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+     return listutils::typeError("first arg is not a tuple stream");
+  }
+  if(!listutils::isMap<1>(nl->Second(args))){
+     return listutils::typeError("second arg is not an unary function");
+  }
+  if(!listutils::isMap<1>(nl->Third(args))){
+     return listutils::typeError("Third arg is not an unary function");
+  }
+  if(!FText::checkType(nl->Fourth(args))){
+     return listutils::typeError("fourth arg is not a text");
+  }
+  if(!CcString::checkType(nl->Fifth(args))){
+     return listutils::typeError("fifth arg is not a string");
+  }
+  if(!CcInt::checkType(nl->Sixth(args))){
+     return listutils::typeError("sixth arg is not an int");
+  }
+  if(!CcInt::checkType(nl->Sixth(nl->Rest(args)))){
+     return listutils::typeError("seventh arg is not an int");
+  } 
+  if(!CcInt::checkType(nl->Sixth(nl->Rest(nl->Rest(args))))){
+     return listutils::typeError(" eight arg is not an int");
+  } 
+  // check whether the function arguments corresponds to the
+  // tuple type of the tuple stream
+  ListExpr tt = nl->Second(nl->First(args));
+  ListExpr fun1 = nl->Second(args);
+  ListExpr fun2 = nl->Third(args);
+  if(!nl->Equal(tt, nl->Second(fun1))){
+     return listutils::typeError("argument of function one is not equal "
+                                 "to the tuple type of the stream");
+  } 
+  if(!nl->Equal(tt, nl->Second(fun2))){
+     return listutils::typeError("argument of function two is not equal "
+                                 "to the tuple type of the stream");
+  } 
+  if(!CcInt::checkType(nl->Third(fun1))){
+    return listutils::typeError("result of the first function is not an int");
+  }
+  if(!CcInt::checkType(nl->Third(fun2))){
+    return listutils::typeError("result of the 2nd function is not an int");
+  }
+  return nl->First(args); 
+}
+
+class partition8LocalInfo{
+
+  public:
+     partition8LocalInfo(Word _stream, Word _fun1, Word _fun2,
+                    const string& _home, const string& _name, int _size1,
+                    int _size2, int _wnum, ListExpr streamType ): 
+                    stream(_stream), fun1(_fun1.addr),
+                    fun2(_fun2.addr), home(_home), name(_name), size1(_size1),
+                    size2(_size2), wnum(_wnum), 
+                    outputFiles((size_t)size1*size2, 0){
+          fun1Arg = qp->Argument(fun1);
+          fun2Arg = qp->Argument(fun2);
+          stream.open();
+          dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+          createDirectories();
+          relType = nl->TwoElemList( listutils::basicSymbol<Relation>(),
+                                     nl->Second(streamType));
+   }
+
+   ~partition8LocalInfo(){
+      stream.close();
+      for(size_t i=0;i< outputFiles.size();i++){
+         if(outputFiles[i]){
+           BinRelWriter::finish(*outputFiles[i]);
+           outputFiles[i]->close();
+           delete outputFiles[i];
+         } 
+      }
+    }
+
+    Tuple* getNext(){
+       Tuple* res = stream.request();
+       if(res){
+          storeTuple(res);
+       }
+       return res;
+    }
+
+
+
+  private:
+      Stream<Tuple> stream;
+      void* fun1;
+      void* fun2;
+      string home;
+      string name;
+      int size1;
+      int size2;
+      int wnum;
+      ListExpr relType;
+      vector<ofstream*> outputFiles;
+      ArgVectorPointer fun1Arg; 
+      ArgVectorPointer fun2Arg; 
+      string dbname;
+
+
+      void createDirectories(){
+         // matrix directories are build as
+         // home/dfarrays/dbname/name/worker/name_slot.bin
+         // because we have to distribute to size_1 matrices,
+         // name is name_0 ... name_{size1-1}
+         for(int i=0;i<size1; i++){
+            FileSystem::CreateFolderEx( getDirName(i));
+         }
+      }
+
+      string getDirName(int i){
+            string n = getName(i);
+            return home +"/dfarrays/"+ dbname + "/" + n + "/"
+                             + stringutils::int2str(wnum)+"/";
+      }
+
+      string getName(int i){
+          return name + "_" + stringutils::int2str(i);
+      }
+
+
+      void storeTuple(Tuple* tuple){
+          Word result;
+          (* fun1Arg[0]) = tuple;
+          qp->Request(fun1, result);
+          CcInt* CcRes1 = (CcInt*) result.addr;
+          int res1 = CcRes1->IsDefined()?CcRes1->GetValue():0;
+          res1 = res1 % size1;
+        
+          (* fun2Arg[0]) = tuple;
+          qp->Request(fun2, result);
+          CcInt* CcRes2 = (CcInt*) result.addr;
+          int res2 = CcRes2->IsDefined()?CcRes2->GetValue():0;
+          res2 = res2 % size2;
+
+          int index = size1*res2 + res1;
+          if(!outputFiles[index]){
+              string filename =   getDirName(res1) + getName(res1) 
+                                + "_" + stringutils::int2str(res2) +".bin";
+              outputFiles[index] = new ofstream(filename.c_str(),  
+                                                ios::out | ios::binary);
+              
+              BinRelWriter::writeHeader(*outputFiles[index], relType); 
+          }
+          BinRelWriter::writeNextTuple(*outputFiles[index], tuple);
+      }
+};
+
+
+
+int partition8LocalVM(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+   partition8LocalInfo* li = (partition8LocalInfo*) local.addr;
+   switch(message){
+      case OPEN : {
+              if(li){
+                 delete li;
+                 local.addr = 0;
+              }
+              // 1: stream, 2: fun1, 3 : fun2, 
+              // 4: home , 5 : name,
+              // 6: size1, 7:  size2 , 8 : worker number
+              FText* home = (FText*) args[3].addr;
+              CcString* name = (CcString*) args[4].addr;
+              CcInt* size1 = (CcInt*) args[5].addr;
+              CcInt* size2 = (CcInt*) args[6].addr;
+              CcInt* wnum  = (CcInt*) args[7].addr;
+              if(!home->IsDefined() || !name->IsDefined()
+                 || !size1->IsDefined() || !size2->IsDefined()){
+                 return 0;
+              }
+              if(   size1->GetValue()<1 || size2->GetValue() < 1 
+                 ||  wnum->GetValue()<0 || name->GetValue().empty()
+                 || home->GetValue().empty()){
+                 return 0;
+              }
+              local.addr = new partition8LocalInfo( args[0], args[1], args[2],
+                                    home->GetValue(),
+                                    name->GetValue(),  size1->GetValue(),
+                                    size2->GetValue(), wnum->GetValue(),
+                                    qp->GetType(qp->GetSon(s,0)));
+               return 0;
+          }
+      case  REQUEST:
+               result.addr = li?li->getNext():0;
+               return result.addr?YIELD:CANCEL;
+      case CLOSE:
+              if(li){
+                 delete li;
+                 local.addr = 0;
+              }
+              return 0;
+   }
+   return 0;
+
+}
+
+
+OperatorSpec partition8LocalSpec(
+  " stream(Tuple) x (tuple->int) x tuple->int x text x "
+  "string x int x int x int -> stream(tuple)",
+  " stream partition8Local[ arrayFun , darrayFun, home, "
+  "name, arraySize, darraySize, workerNumber] ",
+  "Distributes a tuple stream according to the results of 2 functions "
+  "to a set of files.\n "
+  "ONLY FOR INTERNAL USE.",
+  "query plz feed partition8Local[ .PLZ , hashvalue(.Ort,31)," 
+  "     '/home/user/secondo-databases', \"myName\", 8, 4, 1] count",
+  "Only for internal usage."
+);
+
+
+Operator partition8LocalOp(
+  "partition8Local",
+  partition8LocalSpec.getStr(),
+  partition8LocalVM,
+  Operator::SimpleSelect,
+  partition8LocalTM
+);
+
+
+
+/*
+98 Operator ~partitionF8~
+
+This operator wokrs similar to the partitionF operator. It creates an array of
+dfmatrixes using two partition functions. As already implemented for the 
+~partitionF~ operator, a furthre function can be applied firstly to filter or
+to manipulate the incoming stream.
+
+*/
+ListExpr partitionP8TM(ListExpr args){
+  if(!nl->HasLength(args,7)){
+    return listutils::typeError("7 arguments expected");
+  }
+  // check for correct usesArgsInTypeMapping
+  ListExpr tmp = args;
+  while(!nl->IsEmpty(tmp)){
+    if(!nl->HasLength(nl->First(tmp),2)){
+      return listutils::typeError("internal error");
+    }
+    tmp = nl->Rest(tmp); 
+  }
+  ListExpr at = nl->First(nl->First(args));   // d[f]array
+  ListExpr nt = nl->First(nl->Second(args));  // name
+  ListExpr f1t = nl->First(nl->Third(args));  // first fun
+  ListExpr f2t = nl->First(nl->Fourth(args)); // array distribution
+  ListExpr f3t = nl->First(nl->Fifth(args));  // darray distribution
+  ListExpr ast  = nl->First(nl->Sixth(args));  // array size
+  ListExpr mst  = nl->First(nl->Sixth(nl->Rest(args)));  // matrix size
+
+  if(!DArray::checkType(at) && !DFArray::checkType(at)){
+    return listutils::typeError("first argument must be a d[f]array");
+  }
+  if(!Relation::checkType(nl->Second(at))){
+    return listutils::typeError("subtype of the darray must be a relation");
+  }
+
+  if(!CcString::checkType(nt)){
+    return listutils::typeError("Second arguent must be a string");
+  }
+  if(!listutils::isMap<1>(f1t)){
+    return listutils::typeError("third arg must be a unary function");
+  }
+  if(!listutils::isMap<1>(f2t)){
+    return listutils::typeError("fourth arg must be a unary function");
+  }
+  if(!listutils::isMap<1>(f3t)){
+    return listutils::typeError("fifth arg must be a unary function");
+  }
+
+  if(!CcInt::checkType(ast)){
+    return listutils::typeError("sixth argument must be of type int");
+  }
+  if(!CcInt::checkType(mst)){
+    return listutils::typeError("seventh argument must be of type int");
+  }
+  
+
+  // check arguments of the functions
+
+  ListExpr f1a = nl->Second(f1t);
+  ListExpr f2a = nl->Second(f2t);
+  ListExpr f3a = nl->Second(f3t);
+
+  ListExpr rel = nl->Second(at);
+  ListExpr stream = nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                                     nl->Second(rel));
+
+
+  if(!nl->Equal(f1a,nl->Second(at)) &&
+     !nl->Equal(f1a, stream)){
+    return listutils::typeError("Argument type of the first function must be "
+                                "equal to the darray's subtype");
+  }
+  ListExpr f1r = nl->Third(f1t);
+  if(!Stream<Tuple>::checkType(f1r)){
+     return listutils::typeError("result of the first function must be "
+                                 "a stream of tuples");
+  }
+  ListExpr tuplet = nl->Second(f1r);
+  if(!nl->Equal(f2a,tuplet)){
+     return listutils::typeError("argument type of the second function must be"
+                                 " equal to the tuple type of the result of the"
+                                 " first function");
+  }  
+  if(!nl->Equal(f3a,tuplet)){
+     return listutils::typeError("argument type of the third function must be"
+                                 " equal to the tuple type of the result of the"
+                                 " first function");
+  }  
+
+
+  // result of the last two functions must be int
+  if(!CcInt::checkType(nl->Third(f2t))){
+    return listutils::typeError("result of the second function mut be of "
+                                "type int");
+  }
+
+  if(!CcInt::checkType(nl->Third(f3t))){
+     return listutils::typeError("result of the third function must be of "
+                                  "type int");
+  }
+
+  // get the function definitions
+  ListExpr f1def = nl->Second(nl->Third(args)); 
+  ListExpr f2def = nl->Second(nl->Fourth(args));
+  ListExpr f3def = nl->Second(nl->Fifth(args));
+
+  // replace the function types that can be just a type map operator name
+  f1def = nl->ThreeElemList( 
+                  nl->First(f1def),
+                  nl->TwoElemList( nl->First(nl->Second(f1def)),
+                                   stream),
+                  nl->Third(f1def));
+
+   f2def = nl->ThreeElemList(
+                   nl->First(f2def),
+                   nl->TwoElemList( nl->First(nl->Second(f2def)),
+                                    tuplet),
+                   nl->Third(f2def));
+
+   f3def = nl->ThreeElemList(
+                   nl->First(f3def),
+                   nl->TwoElemList( nl->First(nl->Second(f3def)),
+                                    tuplet),
+                   nl->Third(f3def));
+ 
+
+
+    // now we can build the result
+    ListExpr restype = nl->TwoElemList(
+                          listutils::basicSymbol<arrayalgebra::Array>(),
+                          nl->TwoElemList(
+                             listutils::basicSymbol<DFMatrix>(),
+                             nl->Second(at)));
+
+    ListExpr appendList = nl->ThreeElemList(
+                             nl->TextAtom(nl->ToString(f1def)),
+                             nl->TextAtom(nl->ToString(f2def)),
+                             nl->TextAtom(nl->ToString(f3def)));      
+
+    return nl->ThreeElemList(
+                   nl->SymbolAtom(Symbols::APPEND()),
+                   appendList,
+                   restype);
+
+}
+
+
+template<class AType>
+class partitionF8Runner{
+  public:
+     partitionF8Runner(AType* _array, ListExpr  _atype,
+                   int  _workerNumber,
+                   int  _asize, int _msize, const string& _fun1,
+                   const string&  _fun2, const string& _fun3,
+                   const string _name,
+                   const vector<int>& _slots): array(_array), atype(_atype),
+                   workerNumber(_workerNumber), asize(_asize), msize(_msize),
+                   fun1(_fun1), fun2(_fun2), fun3(_fun3), 
+                   name(_name), slots(_slots){
+                   runner = new boost::thread(&partitionF8Runner::run, this); 
+     }
+
+     ~partitionF8Runner(){
+        runner->join();
+        delete runner;
+     }
+
+
+   private:
+      AType* array;
+      ListExpr atype;
+      int workerNumber;
+      int asize;
+      int msize;
+      string fun1;
+      string fun2;
+      string fun3;
+      string name;
+      vector<int> slots;
+      boost::thread* runner;
+      ConnectionInfo* ci;
+      string home;
+      string dbname;
+
+
+      void run(){
+         dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+         const DArrayElement& elem = array->getWorker(workerNumber);
+         ci = algInstance->getWorkerConnection(elem,dbname);
+         if(ci){
+            home = ci->getSecondoHome();
+            string query = createQuery();
+            performListCommand(ci, query);
+         } else {
+            cerr << "could not connet to " 
+                 << elem.getHost() << "@" 
+                 << elem.getPort() << endl;
+         }
+      }
+
+
+       string createQuery(){
+
+          string res =   string("( count (partition8Local ")
+                  + "(" + fun1 + getStream() + " ) " + " " + fun2 + " " + fun3 
+                  + " '"+home+"' \"" + name +"\" " 
+                  + stringutils::int2str(asize) + " " 
+                  + stringutils::int2str(msize) + " " 
+                  + stringutils::int2str(workerNumber) + "))";
+          return "(query " + res + ")";  
+       }
+
+       string getStream(){
+         if(array->getType() == DFARRAY){
+            string res = string("( feed (  (fsrel " )
+                       + nl->ToString(nl->Second(nl->Second(atype))) + ")";
+            for(size_t i=0; i< slots.size(); i++){
+                string fn =  array->getFilePath(home, dbname, slots[i]);
+                res += " '"+fn+"'";
+            }
+            res += ") )";
+            return res;
+         }
+         assert(array->getType() == DARRAY);
+         string res = "(feed  " + array->getObjectNameForSlot(slots[0]) + ")";
+         for( size_t i=1; i< slots.size(); i++){
+            res = "(concat " + res + "( feed "
+                + array->getObjectNameForSlot(slots[i]) + "))";
+          }
+          return res;
+       }
+
+};
+
+
+
+
+
+template<class AType>
+int partitionF8VMT(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+
+   result = qp->ResultStorage(s);
+   arrayalgebra::Array* res = (arrayalgebra::Array*) result.addr;
+   AType* array = (AType*) args[0].addr;
+   CcString* CcName = (CcString*) args[1].addr;
+   CcInt* CcASize = (CcInt*) args[5].addr;
+   CcInt* CcMSize = (CcInt*) args[6].addr;
+
+   if(!array->IsDefined()){
+     res->setUndefined();
+     return 0;
+   }
+   if(array->numOfWorkers()<1){
+     res->setUndefined();
+     return 0;
+   }
+
+   if(!CcASize->IsDefined()){
+     res->setUndefined();
+     return 0;
+   }
+
+   int asize = CcASize->GetValue();
+
+   if(asize < 1){
+      res->setUndefined();
+      return 0;
+   }
+
+
+   if(!CcMSize->IsDefined()){
+      res->setUndefined();
+      return 0;
+   }
+   
+   int msize = CcMSize->GetValue();
+   if(msize <1){
+      msize = array->getSize(); // overtake old value
+   } 
+
+   string name = "";
+   if(CcName->IsDefined()){
+      name = CcName->GetValue();
+   }
+   if(name==""){
+     name = algInstance->getTempName(array->getWorker(0));
+   }
+   if(!stringutils::isIdent(name)){
+     res->setUndefined();
+     return 0;
+   }
+
+   // create array entries
+   Word elements[asize];
+   const vector<DArrayElement>& workers = array->getWorkers();
+   int algId;
+   int typeId;
+   string tname;
+   SecondoSystem::GetCatalog()->LookUpTypeExpr(nl->Second(qp->GetType(s)),
+                                               tname, algId, typeId);
+
+
+   for(int i=0;i<asize;i++){
+     string n = name +"_" + stringutils::int2str(i);
+     elements[i].addr = new DFMatrix(msize, n, workers);
+   }
+   res->initialize(algId, typeId, asize, elements);   
+
+   
+
+
+
+   // get the function defintions as texts (appended by tm)
+   string fun1 = ((FText*) args[7].addr)->GetValue(); 
+   string fun2 = ((FText*) args[8].addr)->GetValue(); 
+   string fun3 = ((FText*) args[9].addr)->GetValue(); 
+
+   
+
+
+
+
+   // now, create the remote content
+
+   // for each worker, we collect all slots for that the worker
+   // is responsible
+   vector<vector<int> > responsible;
+   // fill with empty vectors
+   for(size_t i=0;i<array->numOfWorkers();i++){
+      vector<int> v;
+      responsible.push_back(v);
+   }
+   // fill with  slots
+   for(size_t i=0;i<array->getSize();i++){
+      int w = array->getWorkerIndexForSlot(i);
+      responsible[w].push_back(i);
+   }
+
+   // start for each worker a runner instance
+   vector<partitionF8Runner<AType>*> runners;
+   ListExpr atype = qp->GetType(qp->GetSon(s,0));
+   for(size_t i=0;i<array->numOfWorkers(); i++){
+       if(!responsible[i].empty()){
+          partitionF8Runner<AType>* run = 
+             new partitionF8Runner<AType>(array, atype, i, asize, 
+                                          msize, fun1, fun2, fun3,
+                                          name, 
+                                          responsible[i]);
+          runners.push_back(run); 
+       }
+   }
+   for(size_t i=0;i<runners.size(); i++){
+     delete runners[i];
+   }
+   return 0;
+}
+
+
+ValueMapping partitionF8VM[] = {
+   partitionF8VMT<DArray>,
+   partitionF8VMT<DFArray>
+};
+
+
+int partitionF8Select(ListExpr args){
+  return DArray::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec partitionF8Spec(
+  "d[f]array(rel(tuple(X))) x string x (rel(tuple(X)) -> stream(tuple(Y))) "
+  " x (tuple(Y) -> int) x (tuple(Y) -> int) x int x int "
+  "-> array(dfmatrx(rel(tuple(Y)))",
+  " array partitionF8[ name, prefunction, funA, funD , sizeA , sizeD] ",
+  "Redistributes a d[f]array into an array of dfmatrix. "
+  " The string argument is uses to determine a base name for the "
+  "dfmatrices within the containing array. Each dfmatrix's name is "
+  " extended by the slot number of the array that contains the matrix. "
+  "The very fisrt function is used to generate a tuple stream from the "
+  " relation conatained in the array elements." 
+  "The second function determines the slot of a tuple within the main array. "
+  "The third function determines the slot of a tuple within the dfmatrix."
+  "size1 gives the number of slots in the main  array. " 
+  "size2 determines the number of slots of the dfmatrices. If this "
+  "value is smaller "
+  "then one, the size of the original array will be used. ",
+  "query array partitionF8[\"mynewname\",  . feed addcouunter[B, 16],"
+  " .PLZ , .B , 8, 16]"
+);
+
+
+Operator partitionF8Op(
+  "partitionF8",
+   partitionF8Spec.getStr(),
+   2,
+   partitionF8VM,
+   partitionF8Select,
+   partitionP8TM
+);
+
+
+/*
+TypeMap for the partition F8 operator.
+
+*/
+ListExpr P8TM(ListExpr args){
+  int len = nl->ListLength(args);
+  if(len<2 || len>4){
+    return listutils::typeError("between 2 and 4 arguments expected");
+  }  
+  ListExpr first = nl->First(args);
+  if(!DArray::checkType(first) && !DFArray::checkType(first)){
+    return listutils::typeError("first arg must be of thy d[f]array.");
+  }
+  ListExpr rel = nl->Second(first);
+  if(!Relation::checkType(rel)){
+    return listutils::typeError("sub type of the d[f]array is not a relation");
+  }
+ 
+  ListExpr stream = nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                           nl->Second(rel));
+
+  if(len==2){
+    return stream;
+  }
+  ListExpr fun1=nl->Third(args);
+  if(!listutils::isMap<1>(fun1)){
+    return listutils::typeError("third arg is not an unary function");
+  } 
+  // check whether the function arg corresponds to rel
+  if(!nl->Equal(rel, nl->Second(fun1)) && 
+     !nl->Equal(stream, nl->Second(fun1))){
+     return listutils::typeError("funtion argument and relation/stream differ");
+  }
+  ListExpr funRes = nl->Third(fun1);
+  if(!Stream<Tuple>::checkType(funRes)){
+    return listutils::typeError("result of the first function is "
+                                "not a tuple stream");
+  }
+  return nl->Second(funRes);
+}
+
+OperatorSpec P8TMSpec(
+  "d[f]array(rel) x X -> rel | "
+  "d[f]array(rel) x X x rel -> stream(tuple) x ... -> tuple",
+  " P8TM(_,_,_) ",
+  "Type Map operator.",
+  "query array partitionF8[\"mynewname\",  . feed addcouunter[B, 16],"
+  " .PLZ , .B , 8, 16]"
+);
+
+
+Operator P8TMOp(
+  "P8TM",
+  P8TMSpec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  P8TM
+);
+
+
 
 
 /*
@@ -19750,6 +20473,12 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&dproductarg1Op);
    AddOperator(&dproductarg2Op);
+   
+
+   AddOperator(&partition8LocalOp);
+   AddOperator(&partitionF8Op);
+   partitionF8Op.SetUsesArgsInTypeMapping();
+   AddOperator(&P8TMOp);
 
 
    pprogView = new PProgressView();

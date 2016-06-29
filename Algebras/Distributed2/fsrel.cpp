@@ -83,8 +83,10 @@ ListExpr fsrel::Property(){
 }
 
 
-Word fsrel::In(const ListExpr typeInfo, const ListExpr instance,
-        const int errorPos, ListExpr& errorInfo, bool& correct) {
+Word fsrel::In(const ListExpr __attribute__((unused))  typeInfo, 
+               const ListExpr instance,
+               const int __attribute__((unused)) errorPos, 
+               ListExpr __attribute__((unused)) & errorInfo, bool& correct) {
 
   Word res((void*)0);
   if(listutils::isSymbolUndefined(instance)){
@@ -111,7 +113,8 @@ Word fsrel::In(const ListExpr typeInfo, const ListExpr instance,
   return res;
 }
 
-ListExpr fsrel::Out(ListExpr typeInfo, Word value){
+ListExpr fsrel::Out(ListExpr __attribute__((unused)) typeInfo, 
+                    Word value){
    fsrel* r = (fsrel*) value.addr;
    if(!r->IsDefined()){
       return listutils::getUndefined();
@@ -128,18 +131,19 @@ ListExpr fsrel::Out(ListExpr typeInfo, Word value){
 }
 
 
-Word fsrel::Create(const ListExpr typeInfo) {
+Word fsrel::Create(const ListExpr __attribute__((unused)) typeInfo) {
    return SetWord(new fsrel(false));
 }
 
-void fsrel::Delete(const ListExpr typeInfo, Word& w){
+void fsrel::Delete(const ListExpr __attribute__((unused)) typeInfo, Word& w){
     delete (fsrel*) w.addr;
     w.addr = 0;
 }
 
 
 bool fsrel::Save(SmiRecord& valueRecord, size_t& offset,
-          const ListExpr typeInfo, Word& value){
+          const ListExpr __attribute__((unused)) typeInfo, 
+          Word& value){
   fsrel* r = (fsrel*) value.addr;
   char def = r->IsDefined()?1:0;
   bool ok = true;
@@ -157,7 +161,8 @@ bool fsrel::Save(SmiRecord& valueRecord, size_t& offset,
 
 
 bool fsrel::Open(SmiRecord& valueRecord,
-          size_t& offset, const ListExpr typeInfo,
+                 size_t& offset, 
+                 const ListExpr __attribute__((unused)) typeInfo,
           Word& value){
    value.addr = 0;
    char def;
@@ -186,11 +191,12 @@ bool fsrel::Open(SmiRecord& valueRecord,
 }
 
 
-void fsrel::Close(const ListExpr typeInfo, Word& w){
+void fsrel::Close(const ListExpr __attribute__((unused)) typeInfo, Word& w){
     delete (fsrel*) w.addr;
     w.addr = 0;
 }
-Word fsrel::Clone(const ListExpr typeInfo, const Word& v){
+Word fsrel::Clone(const ListExpr __attribute__((unused)) typeInfo, 
+                  const Word& v){
   Word res( new fsrel( *((fsrel*) v.addr)));
   return res;
 }
@@ -199,7 +205,8 @@ void* fsrel::Cast(void* addr) {
    return new (addr) fsrel(0);
 }
 
-bool fsrel::TypeCheck(ListExpr type, ListExpr& errorInfo){
+bool fsrel::TypeCheck(ListExpr __attribute__((unused)) type, 
+                      ListExpr __attribute__((unused)) & errorInfo){
   return checkType(type);
 }
 

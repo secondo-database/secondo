@@ -155,7 +155,7 @@ class DistTypeBase{
    DistTypeBase( const DistTypeBase& src);
 
    // DistTypeBase() {}
-   explicit DistTypeBase(const int dummy) {}
+   explicit DistTypeBase(const int __attribute__((unused)) dummy) {}
      
    DistTypeBase& operator=(const DistTypeBase& src);
 
@@ -555,7 +555,7 @@ class DArrayT: public DArrayBase{
 
   arrayType getType()const{ return type; }
 
-  static const bool checkType(const ListExpr list);
+  static bool checkType(const ListExpr list);
 
 };
 
