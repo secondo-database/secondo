@@ -5643,8 +5643,8 @@ any.
     cr.EndBulkLoad();
 
 
-    bool nonTrivialInitial = false;
-    bool nonTrivialFinal = false;
+    //bool nonTrivialInitial = false;
+    //bool nonTrivialFinal = false;
 
     if (MRA_DEBUG)
         for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
@@ -5673,10 +5673,10 @@ and inside below segments, we can ignore the entire list.
         uregion->GetSegment(segments, i, auxDms);
         MSegmentData dms( auxDms );
 
-        if (!dms.GetPointInitial() && dms.GetDegeneratedInitialNext() < 0)
-            nonTrivialInitial = true;
-        if (!dms.GetPointFinal() && dms.GetDegeneratedFinalNext() < 0)
-            nonTrivialFinal = true;
+        //if (!dms.GetPointInitial() && dms.GetDegeneratedInitialNext() < 0)
+        //    nonTrivialInitial = true;
+        //if (!dms.GetPointFinal() && dms.GetDegeneratedFinalNext() < 0)
+        //    nonTrivialFinal = true;
 
         if (dms.GetDegeneratedInitial() == DGM_UNKNOWN) {
             if (dms.GetDegeneratedInitialNext() >= 0) {

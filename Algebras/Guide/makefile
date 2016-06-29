@@ -32,7 +32,7 @@ ALGEBRA_DEPENDENCIES += RelationAlgebra
 
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
+CCFLAGS += $(ALG_INC_DIRS) -Werror 
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
