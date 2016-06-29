@@ -1559,11 +1559,12 @@ void StatusLine::Insert(Coord x, SSSEntry& entry, Segment sgs[],
    BinTreeNode<SSSEntry>* en = ssl.Insert(entry, x, sgs);
    BinTreeNode<SSSEntry>* pred = en->GetPred();
    BinTreeNode<SSSEntry>* succ = en->GetNext();
-   bool inter;
+   //bool inter;
    int segnr = entry.GetSeg();
    if (pred != 0 ) { // test for intersection with predecessor
      int psegnr = pred->GetEntry().GetSeg();
-     inter = InsertIntersection (sgs[psegnr].GetCHS(),
+     //inter = 
+       InsertIntersection (sgs[psegnr].GetCHS(),
        sgs[segnr].GetCHS(), psegnr, segnr, pq);
        /*if (inter) { // pred and entry intersects comm
          BinTreeNode<SSSEntry>* predpred = pred->GetPred();
@@ -1587,7 +1588,8 @@ void StatusLine::Insert(Coord x, SSSEntry& entry, Segment sgs[],
    } // pred !=0
    if (succ != 0) {   // test for intersection with successor
     int sSegnr = succ->GetEntry().GetSeg();
-      inter = InsertIntersection (sgs[segnr].GetCHS(),
+      //inter = 
+       InsertIntersection (sgs[segnr].GetCHS(),
          sgs[sSegnr].GetCHS(), segnr, sSegnr, pq);
       /*if (inter) { // intersection entry- succ comm
         BinTreeNode<SSSEntry>* succsucc = succ->GetNext();
@@ -4947,12 +4949,12 @@ bool MakeOp::Intersects (const Region* reg, const Line* line) {
          BinTreeNode<SEntry>* pred = node->GetPred() ;
          if (status == FIRST ) {
             // insert HalfSegment from region into sweepline
-            int np = 0;
-            int ms, ns;
-            if (pred != 0) np = pred->GetEntry().GetO();
+            //int np = 0;
+            //int ms, ns;
+            if (pred != 0) pred->GetEntry().GetO();
             // calculate new segmentclass of new ChalfSegment
-            ms = np;
-            ns = np;
+            //ms = np;
+            //ns = np;
             if (hs1.attr.insideAbove == true)
                { ent.SetU(0); ent.SetO(1); }
             else

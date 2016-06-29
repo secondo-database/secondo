@@ -27,7 +27,7 @@
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
+CCFLAGS += $(ALG_INC_DIRS) -Werror
 ifeq ($(platform),android)
 CCFLAGS += -I$(HOME)/jpeg-6b/
 endif

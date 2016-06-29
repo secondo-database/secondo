@@ -286,7 +286,7 @@ typedef struct
                                 unsigned long PictureSize)
   {
     bool      compressed;
-    int        lang;
+    //int        lang;
     unsigned long  y,size;
     unsigned char  *dest_buffer, *ptr;
   #define        cachesize  1024
@@ -332,7 +332,7 @@ typedef struct
   }
 
   size    = m_ulWidth*m_ulHeight*bytes;
-  lang    = m_ulWidth*bytes;
+  //lang    = m_ulWidth*bytes;
   dest_buffer  = new unsigned char[size];
 
   if (compressed == false)
@@ -614,7 +614,7 @@ bool CImageConverter::LoadPCX(unsigned char *PictureBuffer,
   pcx_head    header;
   int        x, y, plane, b, anzahl;
   unsigned char  *ptr;
-  int        skip;
+  //int        skip;
   unsigned char  spritepal[768];
   unsigned char  *src_buffer = PictureBuffer;
   unsigned char  *dest_buffer;
@@ -647,7 +647,7 @@ bool CImageConverter::LoadPCX(unsigned char *PictureBuffer,
   }
 
   size    = m_ulWidth*m_ulHeight*bytes;
-  skip    = header.linelen - m_ulWidth;  // Zeile-Overhead
+  //skip    = header.linelen - m_ulWidth;  // Zeile-Overhead
   dest_buffer  = new unsigned char[size + 1];
 
   for (y=0;y<(int)m_ulHeight;y++)
@@ -660,12 +660,12 @@ bool CImageConverter::LoadPCX(unsigned char *PictureBuffer,
       x=0;
       while (x<header.linelen && plane<bytes)
       {
-        int  c;
+        //int  c;
 
         memcpy(&b, src_buffer, sizeof(unsigned char));
         src_buffer += sizeof(unsigned char);
 
-        c = b&0xc0;
+        //c = b&0xc0;
 
         if ( (b&0xc0)==0xc0)
         {
