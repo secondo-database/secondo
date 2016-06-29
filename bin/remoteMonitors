@@ -40,13 +40,33 @@ if [ $action != start ]; then
   if [ $action != stop ]; then
     if [ $action != check ]; then
       if [ $action != update ]; then
-        echo "invalid action"
-        echo allowed are start, stop, update, and check
-        exit 1
+        if [ $action != createHomes ]; then
+           echo "invalid action"
+           echo allowed are start, stop, update, and check
+           exit 1
+        fi
       fi
     fi
   fi
 fi
+
+function createHomesLine {
+  if [ -z "$1" ]; then  # empty line
+    return
+  fi
+  server=$1
+  home=$3
+  if [ -z "$home" ]; then
+     echo "no home specified for server $server"
+     return
+  fi
+  if [ -n "$5" ]; then
+    user="$5@"
+  fi
+  ssh "$user$server mkdir -p $home"
+
+}
+
   
 
 
@@ -55,8 +75,6 @@ fi
 usedServers=""
 
 function updateLine {
-
-  echo "process line $*" 
 
   if [ -z "$1" ]; then  # empty line
     return
@@ -305,10 +323,12 @@ else if [ $action == stop ]; then
    while read line; do stopLine $line ;done <$1
 else if [ $action == check ]; then
    while read line; do checkLine $line ;done <$1
-else 
+else if [$action == update ]; then 
    while read line; do updateLine $line ;done <$1
+else 
+   while read line; do createHomesLine $line ;done <$1
 fi
 fi
 fi
-
+fi
 
