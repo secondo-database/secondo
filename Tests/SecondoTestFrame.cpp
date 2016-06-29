@@ -161,8 +161,8 @@ SecondoTestFrame::CheckConfiguration()
     if ( argSwitch == "-?" || argSwitch == "--help" )  // Help
     {
       cout << "Usage: SecondoTTY{BDB|ORA|CS} [options]" << endl << endl
-           << "Options:      ""
-           <<                                       (Environment)" << endl
+           << "Options:      "
+           << "                                     (Environment)" << endl
            << "  -c config  : Secondo configuration file     "
            << "       (SECONDO_CONFIG)" << endl
            << "  -i input   : Name of input file  (default: stdin)" << endl
