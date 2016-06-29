@@ -78,13 +78,13 @@ double Utils :: getArea(vector<CHLine> lines)
 */    
 vector<LineWA*> Utils :: convexHull(LineWA *lt, int ltlength)
 {  
-    int minpoint; 
+    //int minpoint; 
     double miny, minx, tmpx, tmpy;
     vector<LineWA*> unfinishedhull;
     int a, index,i;
     double hyp;
     LineWA *point1, *point2, tmp;
-    minpoint = 0;
+    //minpoint = 0;
     index = 0;
     miny = numeric_limits<int> :: max();
     minx = numeric_limits<int> :: max();        
