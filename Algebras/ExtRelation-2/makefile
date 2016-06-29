@@ -27,7 +27,7 @@
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
+CCFLAGS += $(ALG_INC_DIRS) -Werror
 
 # Activate preprocessor output
 #CCFLAGS += -E 
