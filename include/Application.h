@@ -169,12 +169,12 @@ Returns the name of the executable file.
 Returns the path name where the application was started from.
 
 */
-  const ProcessId GetOwnProcessId() { return (ownpid); };
+   ProcessId GetOwnProcessId() { return (ownpid); };
 /*
 Returns the real process identification of the process itself.
 
 */
-  const ProcessId GetParent() { return (parent); };
+   ProcessId GetParent() { return (parent); };
 /*
 Returns the real process identification of the parent process, if available.
 If it is not available "INVALID\_PID"[4] is returned.
@@ -258,7 +258,9 @@ Returns the current state of the abort mode. If the abort mode is
 activated "true"[4] is returned, otherwise "false"[4].
 
 */
-  virtual bool AbortOnSignal ( int sig )const { return (true); };
+  virtual bool AbortOnSignal ( int __attribute__((unused)) sig )const { 
+      return (true);
+   };
 /*
 Is called by the application's default signal handler whenever
 a signal is caught that would have aborted the process anyway. This

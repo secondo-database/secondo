@@ -79,22 +79,25 @@ version of this function.
 
 */
 
-    virtual bool getCosts(const size_t NoTuples, const size_t sizeOfTuple,
-                          const size_t noAttributes, const double selectivity,
-                          const double memoryMB, double& costs) const{
+    virtual bool getCosts(const size_t NoTuples __attribute__((unused)), 
+                          const size_t sizeOfTuple __attribute__((unused)),
+                          const size_t noAttributes __attribute__((unused)), 
+                          const double selectivity __attribute__((unused)),
+                          const double memoryMB __attribute__((unused)), 
+                          double& costs __attribute__((unused))) const{
          costs = 0;
          return false;
     }
     
-    virtual bool getCosts(const size_t NoTuples1, 
-                          const size_t sizeOfTuple1,
-                          const size_t noAttributes1,
-                          const size_t NoTuples2, 
-                          const size_t sizeOfTuple2, 
-                          const size_t noAttributes2,
-                          const double selectivity, 
-                          const double memoryMB, 
-                          double &costs) const{
+    virtual bool getCosts(const size_t NoTuples1 __attribute__((unused)), 
+                          const size_t sizeOfTuple1 __attribute__((unused)),
+                          const size_t noAttributes1 __attribute__((unused)),
+                          const size_t NoTuples2 __attribute__((unused)), 
+                          const size_t sizeOfTuple2 __attribute__((unused)), 
+                          const size_t noAttributes2 __attribute__((unused)),
+                          const double selectivity __attribute__((unused)), 
+                          const double memoryMB __attribute__((unused)), 
+                          double &costs __attribute__((unused))) const{
          costs = 0;
          return false;
     }
@@ -107,13 +110,13 @@ time at 16 MB available memory.
 
 */
    virtual bool getLinearParams(
-            const size_t NoTuples, 
-            const size_t sizeOfTuple, 
-            const size_t noAttributes,
-            const double selectivity,
-            double& sufficientMemory, 
-            double& timeAtSuffMemory,
-            double& timeAt16MB ) const { 
+            const size_t NoTuples __attribute__((unused)), 
+            const size_t sizeOfTuple __attribute__((unused)), 
+            const size_t noAttributes __attribute__((unused)),
+            const double selectivity __attribute__((unused)),
+            double& sufficientMemory __attribute__((unused)), 
+            double& timeAtSuffMemory __attribute__((unused)),
+            double& timeAt16MB __attribute__((unused)) ) const { 
       sufficientMemory=0;
       timeAtSuffMemory=0;
       timeAt16MB=0;
@@ -121,16 +124,16 @@ time at 16 MB available memory.
    }
 
    virtual bool getLinearParams(
-            const size_t NoTuples1, 
-            const size_t sizeOfTuple1,
-            const size_t noAttributes1,
-            const size_t NoTuples2, 
-            const size_t sizeOfTuple2,
-            const size_t noAttributes2,
-            const double selectivity,
-            double& sufficientMemory,
-            double& timeAtSuffMemory,
-            double& timeAt16MB ) const{ 
+            const size_t NoTuples1 __attribute__((unused)), 
+            const size_t sizeOfTuple1 __attribute__((unused)),
+            const size_t noAttributes1 __attribute__((unused)),
+            const size_t NoTuples2 __attribute__((unused)), 
+            const size_t sizeOfTuple2 __attribute__((unused)),
+            const size_t noAttributes2 __attribute__((unused)),
+            const double selectivity __attribute__((unused)),
+            double& sufficientMemory __attribute__((unused)),
+            double& timeAtSuffMemory __attribute__((unused)),
+            double& timeAt16MB __attribute__((unused)) ) const{ 
       sufficientMemory=0;
       timeAtSuffMemory=0;
       timeAt16MB=0;

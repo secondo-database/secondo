@@ -688,7 +688,7 @@ struct CopyStackRecord
 };
 
 
-const ListExpr
+ListExpr
 NestedList::SimpleCopy(const ListExpr list, NestedList* target) const
 {
 #ifdef THREAD_SAFE

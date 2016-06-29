@@ -77,10 +77,10 @@ class StopWatch {
     static const std::string timeStr(const time_t& inTime = 0);
 
     // return times in seconds
-    const double diffSecondsReal();
-    const double diffSecondsCPU();
+    double diffSecondsReal();
+    double diffSecondsCPU();
 
-    const std::string minutesAndSeconds(const double seconds);
+    std::string minutesAndSeconds(const double seconds);
 
     static std::string currentTime();
 

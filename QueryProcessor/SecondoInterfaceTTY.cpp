@@ -242,8 +242,10 @@ SecondoInterfaceTTY::~SecondoInterfaceTTY()
 */
 
 bool
-SecondoInterfaceTTY::Initialize( const string& user, const string& pswd,
-                              const string& host, const string& port,
+SecondoInterfaceTTY::Initialize( const string& user, 
+                                 const string& pswd,
+                                 const string __attribute__((unused))& host,
+                                 const string __attribute__((unused))& port,
                               string& parmFile, string& errorMsg,
                               const bool multiUser
                               )
@@ -2679,7 +2681,7 @@ bool SecondoInterfaceTTY::getCosts(const int algId,
               const int opId,
               const int funId,
               const size_t noTuples1,
-              const size_t sizeOfTuple1,
+              const size_t sizeOfTuple1 __attribute__((unused)),
               const size_t noAttributes1,
               const size_t noTuples2,
               const size_t sizeOfTuple2,

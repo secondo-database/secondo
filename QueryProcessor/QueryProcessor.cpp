@@ -3054,8 +3054,8 @@ QueryProcessor::SubtreeX( const ListExpr expr )
 
 OpTree
 QueryProcessor::Subtree( const ListExpr expr,
-                         bool&  first,
-                         const OpNode* fatherNode /* = 0 */
+                   bool&  first,
+                   const OpNode __attribute__((unused))* fatherNode /* = 0 */
 )
 {
   OpTree node = 0;
@@ -3929,7 +3929,7 @@ QueryProcessor::MsgToStr(const int msg) {
 void
 QueryProcessor::EvalP( void* node,
                       Word& result,
-                      const int message)
+                      const int __attribute__((unused)) message)
 {
   //progressView = new ProgressView();
   allowProgress = true;
@@ -3953,7 +3953,7 @@ QueryProcessor::EvalP( void* node,
 void
 QueryProcessor::EvalS( void* node,
                       Word& result,
-                      const int message)
+                      const int __attribute__((unused)) message)
 {
   //progressView = 0;
   allowProgress = false;
@@ -4480,9 +4480,10 @@ QueryProcessor::Open( const Supplier s )
   Eval( tree, result, OPEN );
 }
 
-void QueryProcessor::SetEvaluable(Supplier s, bool value){
+void QueryProcessor::SetEvaluable(Supplier s, 
+               bool value){
     OpNode* tree = static_cast<OpNode*>(s);
-    tree->evaluable=false;
+    tree->evaluable=value;
 }
 
 
@@ -4651,8 +4652,11 @@ void QueryProcessor::SetMaxMemPerOperator(size_t value)
 /*
 Returns the maximum memory available per operator.
 
+Deprecated, will abort the programm.
+
 */
-size_t QueryProcessor::MemoryAvailableForOperator( const Supplier s ) 
+size_t QueryProcessor::MemoryAvailableForOperator( 
+  const Supplier __attribute__((unused))  s ) 
 { 
   cout << "MemoryAvailableForOperator = " << maxMemPerOperator;
   assert(false);

@@ -146,7 +146,7 @@ static const std::string BasicType(){
      return "tid";
   }
 
-static const bool checkType(const ListExpr type){
+static bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }
 

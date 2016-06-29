@@ -486,7 +486,8 @@ class ServerMessage : public MessageHandler {
   bool ignore;
   
   public:
-  virtual bool handleMsg(NestedList* nl, ListExpr msg, int source) {
+  virtual bool handleMsg(NestedList* nl, ListExpr msg, 
+                         int source __attribute__((unused))) {
 
    if (ignore) {
      std::cerr << "Warning: Last request was not <Secondo>! "

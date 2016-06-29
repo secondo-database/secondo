@@ -1027,9 +1027,9 @@ Precondition: dbState = dbOpen.
 
 bool
 SecondoCatalog::CreateObject( const string& objectName,
-                              const string& typeName,
-                              const ListExpr typeExpr,
-                              const int sizeOfComponents )
+                          const string& typeName,
+                          const ListExpr typeExpr,
+                          const int __attribute__((unused)) sizeOfComponents )
 {
 /*
 Creates a new object with identifier ~objectName~ defined with type name ~typeName~

@@ -579,7 +579,7 @@ CcInt operator--(int){
     return "int";
   }
 
-  static const bool checkType(const ListExpr list){
+  static bool checkType(const ListExpr list){
     return listutils::isSymbol(list, BasicType());
   }
 
@@ -605,13 +605,16 @@ CcInt operator--(int){
     return sizeof(int32_t) + 1;
   }
 
-  inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
+  inline virtual void Serialize(char* storage,  
+                                size_t __attribute__((unused)) sz, 
+                                size_t offset) const
   {
     WriteVar<int32_t>(intval, storage, offset);
     WriteVar<bool>(IsDefined(), storage, offset);
   }
 
-  inline virtual void Rebuild(char* state,  size_t sz )
+  inline virtual void Rebuild(char* state,  
+                              size_t __attribute__((unused)) sz )
   {
     size_t offset = 0;
     ReadVar<int32_t>(intval, state, offset);
@@ -930,7 +933,7 @@ class CcReal : public Attribute
     return "real";
   }
 
-  static const bool checkType(const ListExpr list){
+  static bool checkType(const ListExpr list){
     return listutils::isSymbol(list, BasicType());
   }
 
@@ -939,13 +942,16 @@ class CcReal : public Attribute
     return sizeof(SEC_STD_REAL) + 1;
   }
 
-  inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
+  inline virtual void Serialize(char* storage, 
+                                size_t __attribute__((unused)) sz, 
+                                size_t offset) const
   {
     WriteVar<SEC_STD_REAL>(realval, storage, offset);
     WriteVar<bool>(IsDefined(), storage, offset);
   }
 
-  inline virtual void Rebuild(char* state,  size_t sz )
+  inline virtual void Rebuild(char* state,  
+                              size_t __attribute__((unused))  sz )
   {
     size_t offset = 0;
     ReadVar<SEC_STD_REAL>(realval, state, offset);
@@ -1036,7 +1042,7 @@ class CcBool : public Attribute
                               IsDefined(), rhs->IsDefined() );
   }
 
-  inline bool Adjacent( const Attribute* arg ) const
+  inline bool Adjacent( const Attribute __attribute__((unused))*  arg ) const
   {
     return 1;
   }
@@ -1127,7 +1133,7 @@ class CcBool : public Attribute
      return "bool";
   }
 
-  static const bool checkType(const ListExpr list){
+  static bool checkType(const ListExpr list){
     return listutils::isSymbol(list, BasicType());
   }
 
@@ -1638,7 +1644,7 @@ class CcString : public Attribute
   static const std::string BasicType(){
     return "string";
   }
-  static const bool checkType(const ListExpr list){
+  static bool checkType(const ListExpr list){
     return listutils::isSymbol(list, BasicType());
   }
 
@@ -1658,14 +1664,16 @@ class CcString : public Attribute
     return  sizeof(uint8_t) + 1 /* defined */ + size;
   }
 
-  inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
+  inline virtual void Serialize(char* storage, 
+                                size_t __attribute__((unused)) sz, 
+                                size_t offset) const
   {
     WriteVar<uint8_t>(size, storage, offset);
     WriteVar<bool>(IsDefined(), storage, offset);
     memcpy(&storage[offset], stringval, size);
   }
 
-  inline virtual void Rebuild(char* state,  size_t sz )
+  inline virtual void Rebuild(char* state,  size_t __attribute__((unused))sz )
   {
     size_t offset = 0;
     ReadVar<uint8_t>(size, state, offset);

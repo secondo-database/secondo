@@ -518,7 +518,7 @@ flob representation. This funtion is required for supporting the
 creation of evil flobs.
 
 */
-   inline const SmiSize getOffset() const{
+   inline SmiSize getOffset() const{
       return id.getOffset();
    }
 
@@ -527,16 +527,16 @@ creation of evil flobs.
 
 
 */
-   inline const SmiFileId getFileId() const{
+   inline  SmiFileId getFileId() const{
      return id.getFileId();
    }
 
 
-   inline const char getMode() const{
+   inline char getMode() const{
      return id.getMode();
    }
 
-   inline const SmiRecordId getRecordId() const{
+   inline SmiRecordId getRecordId() const{
      return id.getRecordId();
    }
 
@@ -616,7 +616,7 @@ Returns the amount of data required to save header information.
 
 */
 
-  inline static const size_t headerSize() {
+  inline static size_t headerSize() {
      return sizeof(FlobId) + sizeof(SmiSize);;
   }
 

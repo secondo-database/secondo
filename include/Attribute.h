@@ -243,7 +243,7 @@ Returns the size of uncotrolled flob memory.
 Checks whether the argument is in Kind DATA.
 
 */
-  static const bool checkType(const ListExpr type){
+  static bool checkType(const ListExpr type){
     return listutils::isDATA(type);
   }
 
@@ -423,7 +423,7 @@ does not contain FLOBs, it is not necessary to implement this
 function.
 
 */
-    inline virtual Flob* GetFLOB( const int i )
+    inline virtual Flob* GetFLOB( const int i __attribute__((unused)) )
     {
       assert( false );
       return 0;
@@ -435,15 +435,17 @@ be called.
 
 */
     inline virtual
-    void Restrict( const std::vector< std::pair<int, int> >& interval )
+    void Restrict( const std::vector< std::pair<int, int> >
+                    __attribute__((unused))& interval )
     {}
 /*
 This function is called to restrict a current attribute to a
 set of intervals. This function is used in double indexing.
 
 */
-    inline virtual void Initialize( SmiFileId fileId, 
-                                    TupleId tupleId, int attrno) {}
+    inline virtual void Initialize( SmiFileId __attribute__((unused)) fileId, 
+                                    TupleId __attribute__((unused)) tupleId, 
+                                    int  __attribute__((unused)) attrno) {}
     inline virtual void Finalize() {}
 /*
 These two functions are used to initialize and finalize values of
@@ -643,7 +645,7 @@ Print the delete reference info to a string (for debugging)
     return "";
   }
 
-  virtual bool fromText(const std::string& value) {
+  virtual bool fromText(const std::string __attribute__((unused))& value) {
     SetDefined(false);
     return false;
   }
@@ -682,7 +684,7 @@ Print the delete reference info to a string (for debugging)
 
 
 
-   virtual void ReadFromString(std::string value){
+   virtual void ReadFromString(std::string __attribute__((unused)) value){
        SetDefined(false);
    }
 

@@ -86,7 +86,8 @@ purposes. Your own message handler classes can do more complex things.
 class SimpleHandler : public MessageHandler {
 
   public:
-  virtual bool handleMsg(NestedList* nl, ListExpr list, int source){
+  virtual bool handleMsg(NestedList* nl, ListExpr list, 
+                         int source __attribute__((unused))){
      #ifdef THREAD_SAFE
      boost::lock_guard<boost::mutex> guard(mtx);
      #endif

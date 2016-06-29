@@ -134,7 +134,7 @@ struct ConstructorInfo {
   }
 
 
-  const ListExpr list() const {
+  ListExpr list() const {
 
      ListExpr headList =
                nl->FiveElemList( nl->StringAtom("Signature"),
@@ -321,7 +321,8 @@ Dummy methods used as placeholders for type constructor functions.
 */
  private:
 
-  inline bool SimpleCheck( ListExpr type, ListExpr& errorInfo )
+  inline bool SimpleCheck( ListExpr type, 
+                           ListExpr __attribute__((unused))& errorInfo )
   {
     return (nl->IsEqual( type, name ));
   }

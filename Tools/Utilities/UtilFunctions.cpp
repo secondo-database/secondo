@@ -132,7 +132,7 @@ boost::lock_guard<boost::mutex> guard(mtx);
 }
 
 
-const double
+double
 StopWatch::diffSecondsReal() {
 
 #ifdef THREAD_SAFE
@@ -155,7 +155,7 @@ return result;
 }
 
 
-const double
+double
 StopWatch::diffSecondsCPU() {
 
 #ifdef THREAD_SAFE
@@ -175,7 +175,7 @@ boost::lock_guard<boost::mutex> guard(mtx);;
 }
 
 
-const string
+string
 StopWatch::minutesAndSeconds(const double seconds) {
 
   char sbuf[20+1];

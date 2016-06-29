@@ -154,7 +154,7 @@ Resets all values to 0.
 Sets the report flag with the value of ~reportVal~.
 
 */
-  static void reportValues(const int CmdNr = -1 )
+  static void reportValues(const int CmdNr __attribute__((unused)) = -1 )
   {
     int colSepWidth = 2; 
     int windowWidth = 80;

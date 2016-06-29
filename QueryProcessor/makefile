@@ -25,6 +25,8 @@
 
 include ../makefile.env
 
+DEFAULTCCFLAGS+=-Werror 
+
 LIBOBJECTS=\
 	$(LIBDIR)/SecondoInterfaceTTY.$(OBJEXT) \
 	$(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT)

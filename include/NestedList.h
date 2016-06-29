@@ -463,7 +463,7 @@ struct Tolerance
 
   // 4 byte double values have only 16 correct decimal digits thus their
   // ~natural~ relative error is about 1e-15  = 2^(-50)
-  inline static const double minErr() { return MINERR; }
+  inline static double minErr() { return MINERR; }
   static const double MINERR;
 
 /*
@@ -1022,7 +1022,7 @@ There are corresponding procedures to get typed values from atoms:
 
 */
 
- const ListExpr TypeError() const { return typeError; }
+ ListExpr TypeError() const { return typeError; }
  ListExpr& GetErrorList() { return errorList; }
 
 /*
@@ -1132,7 +1132,7 @@ private CTable members and the underlying vector classes.
 
 */
 
-  static const bool IsPersistentImpl() { return true; }
+  static bool IsPersistentImpl() { return true; }
   std::string MemoryModel();
 
 
@@ -1168,7 +1168,7 @@ ones.
 
 */
 
-  const ListExpr CopyList( const ListExpr list, NestedList* target )
+  ListExpr CopyList( const ListExpr list, NestedList* target )
   {
     return SimpleCopy(list, target);
   }
@@ -1315,10 +1315,10 @@ template functions
   }
 
   // list copying methods
-  const ListExpr SimpleCopy( const ListExpr list, NestedList* target ) const;
-  const ListExpr SophisticatedCopy( const ListExpr list,
+  ListExpr SimpleCopy( const ListExpr list, NestedList* target ) const;
+  ListExpr SophisticatedCopy( const ListExpr list,
                                     const NestedList* target ) const;
-  const ListExpr CopyRecursive( const ListExpr list, const NestedList* target );
+  ListExpr CopyRecursive( const ListExpr list, const NestedList* target );
 
 /*
 prototypes for functions used for the binary encoding/decoding of lists

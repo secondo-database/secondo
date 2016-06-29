@@ -413,9 +413,9 @@ Destroys a key.
 
 */
   SmiKey& operator=( const SmiKey& other );
-  const bool operator==( const SmiKey& other ) const;
-  const bool operator>( const SmiKey& other ) const;
-  const KeyDataType GetType() const;
+  bool operator==( const SmiKey& other ) const;
+  bool operator>( const SmiKey& other ) const;
+  KeyDataType GetType() const;
 /*
 Returns the type of the key.
 

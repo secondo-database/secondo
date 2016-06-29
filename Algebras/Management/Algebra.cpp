@@ -82,7 +82,7 @@ OperatorInfo::OperatorInfo( const string& opName, const string& specStr)
 }
 
 
-const string
+string
 OperatorInfo::str() const {
 
   const string S("<text>");
@@ -99,7 +99,7 @@ OperatorInfo::str() const {
 }
 
 
-const ListExpr
+ListExpr
 OperatorInfo::list() const {
 
   assert(nl);

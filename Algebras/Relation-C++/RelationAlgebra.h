@@ -702,7 +702,7 @@ the objects.
     static const std::string BasicType(){
       return "tuple";
     }
-    static const bool checkType(const ListExpr type){
+    static bool checkType(const ListExpr type){
       return listutils::isTupleDescription(type);
     }
 
@@ -1988,7 +1988,10 @@ The virtual destructor.
 
 */
     virtual Tuple* GetNextTuple() = 0;
-    virtual Tuple* GetNextTuple( const std::list<int>& attrList ) { return 0; }
+    virtual Tuple* GetNextTuple( 
+            const std::list<int> __attribute__((unused))& attrList ) { 
+            return 0;
+     }
 /*
 The function to retrieve the next tuple.
 
@@ -2117,7 +2120,10 @@ by ~intervals~. This function is used in Double Indexing
 
 */
     virtual GenericRelationIterator *MakeScan() const = 0;
-    virtual GenericRelationIterator *MakeScan(TupleType* tt) const { return 0; }
+    virtual GenericRelationIterator *MakeScan(
+                   TupleType __attribute__((unused))* tt) const { 
+            return 0;
+     }
 /*
 The function to initialize a scan returning the iterator.
 
@@ -2294,7 +2300,7 @@ Checks if the tuple buffer is empty or not.
 */
 
 
-   virtual bool DeleteTuple(Tuple* t){
+   virtual bool DeleteTuple(Tuple __attribute__((unused))* t){
       bool implemented = false;
       assert(implemented);
       return false;
@@ -2303,9 +2309,9 @@ Checks if the tuple buffer is empty or not.
   The function that deletes the given Tuple from the relation
 
 */
-  virtual void UpdateTuple( Tuple *tuple,
-                            const std::vector<int>& changedIndices,
-                            const std::vector<Attribute *>& newAttrs ){
+  virtual void UpdateTuple( Tuple __attribute__((unused)) *tuple,
+           const std::vector<int>__attribute__((unused))& changedIndices,
+           const std::vector<Attribute *>__attribute__((unused))& newAttrs ){
      bool implemented = false;
      assert(implemented);
   }
@@ -2766,7 +2772,7 @@ To get the type name of a temporary relation, use TempRelation::BasicType().
 */
     inline static const std::string BasicType() { return "rel"; }
 
-    static const bool checkType(const ListExpr type){
+    static bool checkType(const ListExpr type){
       return listutils::isRelDescription(type);
     }
 

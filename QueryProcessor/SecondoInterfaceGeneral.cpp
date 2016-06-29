@@ -335,7 +335,7 @@ Todo: Translation of the ~params~ list.
 */
 string
 SecondoInterface::GetErrorMessage( const int errorCode,
-                       const ListExpr params /* = 0*/ )
+                       const ListExpr params __attribute__((unused)) /* = 0*/ )
 {
   ErrorMap::const_iterator errPos = errors.find( errorCode );
   if ( errPos != errors.end() )

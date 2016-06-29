@@ -310,7 +310,7 @@ class NList {
   }
 
 
-   NList(const bool b, const bool dummy) :
+   NList(const bool b, const bool dummy __attribute__((unused))) :
        nl(nlGlobal),
        l( nl->BoolAtom(b) ),
        e( nl->Empty() ),

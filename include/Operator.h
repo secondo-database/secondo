@@ -143,8 +143,8 @@ struct OperatorInfo {
    remark.clear();
 }
 
- const std::string str() const;
- const ListExpr list() const;
+ std::string str() const;
+ ListExpr list() const;
 
  void appendSignature(const std::string& sig);
 
@@ -383,7 +383,7 @@ Defines a simple selection function for operators.
 Returns the name of the operator.
 
 */
-  const ListExpr GetSpecList()   const { return spec.list(); }
+  ListExpr GetSpecList()   const { return spec.list(); }
   const std::string&  GetSpecString() const { return specString; }
 /*
 Returns the specification of operator ~operatorId~ of algebra ~algebraId~

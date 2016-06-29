@@ -107,7 +107,7 @@ SmiKey::operator=( const SmiKey& other )
   return *this;
 }
 
-const bool
+bool
 SmiKey::operator==( const SmiKey& other ) const
 {
   if( keyType != other.GetType() )
@@ -144,7 +144,7 @@ SmiKey::operator==( const SmiKey& other ) const
   return (ok);
 }
 
-const bool
+bool
 SmiKey::operator>( const SmiKey& other ) const
 {
   assert( keyType == other.GetType() );
@@ -185,7 +185,7 @@ SmiKey::operator>( const SmiKey& other ) const
   return (ok);
 }
 
-const SmiKey::KeyDataType
+SmiKey::KeyDataType
 SmiKey::GetType() const
 {
   return keyType;

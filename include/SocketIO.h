@@ -797,18 +797,20 @@ Flushes all output data from the buffer to the associated socket.
       std::cerr << "showmanyc called!" << std::endl; return 0;
   }
 
-  std::streampos seekpos ( std::streampos sp,
-    std::ios_base::openmode which = std::ios_base::in | std::ios_base::out )
+  std::streampos seekpos ( std::streampos __attribute__((unused)) sp,
+    std::ios_base::openmode __attribute__((unused))  which 
+        = std::ios_base::in | std::ios_base::out )
   {
     std::cerr << "streampos called!" << std::endl;
     return EOF;
   }
 
-  std::streambuf * setbuf ( char * s, std::streamsize n )
+  std::streambuf * setbuf ( char __attribute__((unused)) * s, 
+                            std::streamsize __attribute__((unused))  n )
   {
       std::cerr << "setbuf called!" << std::endl; return this;
   };
-  void imbue ( const std::locale & loc ) { 
+  void imbue ( const std::locale __attribute__((unused)) & loc ) { 
         std::cerr << "imbue called!" << std::endl;
   }
 

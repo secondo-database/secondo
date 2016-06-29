@@ -117,7 +117,7 @@ public:
      return "text";
   }
 
-  static const bool checkType(const ListExpr type){
+  static bool checkType(const ListExpr type){
      return listutils::isSymbol(type, BasicType());
   }
 
