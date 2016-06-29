@@ -426,7 +426,7 @@ void Picture::CopyFrom(const Attribute* attr) {
             cerr << "Picture::CopyFrom() filename" << p->filename << endl;
 
         jpegData.copyFrom(p->jpegData);
-        memcpy(histogram, p->histogram, sizeof(histogram));
+        memcpy((void*)histogram,(void*) p->histogram, sizeof(histogram));
     }
 }
 
