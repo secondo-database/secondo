@@ -610,7 +610,7 @@ of the MP3 song will be recalculated.
 */
 void MP3::Decode( const string& textBytes ) {
     Base64 b;
-    int previousheaderpos;
+    //int previousheaderpos;
     int sizeDecoded = b.sizeDecoded( textBytes.size() );
     char *bytes = (char *)malloc( sizeDecoded );
 
@@ -629,7 +629,7 @@ void MP3::Decode( const string& textBytes ) {
        calculate some general value like length, number
        of frames, etc. */
     while ((headerpos >= 0) && (headerpos < (result - 4))) {
-        previousheaderpos = headerpos;
+        //previousheaderpos = headerpos;
         headerpos=FindNextHeader(headerpos, bytes, result);
         if (headerpos >= 0) {
             framecount++;
@@ -930,7 +930,7 @@ bool MP3::LoadMP3FromFile( const string fileName ) {
   // read the file
   char* bytes = new char[ filesize ];
   file.seekg(0,ios::end);
-  streampos fileend = file.tellg();
+  //streampos fileend = file.tellg();
   file.seekg(0,ios::beg);
   file.read(bytes,filesize);
   file.close();
@@ -945,9 +945,9 @@ bool MP3::LoadMP3FromFile( const string fileName ) {
     /* We have to scan through the MP3 file in order to
   calculate some general value like length, number
   of frames, etc. */
-  int previousheaderpos = 0;
+  //int previousheaderpos = 0;
   while ((headerpos >= 0) && (headerpos < (filesize - 4))) {
-    previousheaderpos = headerpos;
+    //previousheaderpos = headerpos;
     headerpos=FindNextHeader(headerpos, bytes, filesize);
     if (headerpos >= 0) {
       framecount++;
@@ -1554,7 +1554,7 @@ void ID3::MakeID3Dump (char *iddump) {
 
     bool found = false;
     byte genrenumber = 127;
-    for (int i=0; i<= 127; i++)
+    for (int i=0; i<= 127 &&!found; i++)
     {
         if  (strncmp (genre, GetGenreName (i),21) == 0 )
         {
