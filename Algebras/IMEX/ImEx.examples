@@ -380,5 +380,12 @@ Signature : {text, string} [x bool] -> bool
 Example   : query removeDirectory("Blub.dir",FALSE)
 Result    : FALSE
 
+Operator : shpBox
+Number   : 1
+Signature : string | text -> rect
+Example   : query size(shpBox('kinos.shp'))> 0
+Result    : TRUE
+
+
 
 

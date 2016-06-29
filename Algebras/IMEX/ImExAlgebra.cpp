@@ -7052,9 +7052,106 @@ Operator removeDirectoryOp(
 
 
 
+ListExpr shpBoxTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError("One argument expected");
+  }
+  ListExpr arg = nl->First(args);
+  if(!CcString::checkType(arg) && !FText::checkType(arg)){
+     return listutils::typeError("string or text expected");
+  }
+  return listutils::basicSymbol<Rectangle<2> >();
+}
 
 
+template<class T>
+int shpBoxVMT(Word* args, Word& result,
+                  int message, Word& local, Supplier s){
 
+    T* f = (T*) args[0].addr;
+    result = qp->ResultStorage(s);
+    Rectangle<2>* res = (Rectangle<2>*) result.addr;
+    if(!f->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+    }
+    ifstream in(f->GetValue().c_str(), ios::in|ios::binary);
+    if(!in.good()){
+       res->SetDefined(false);
+       return 0;
+    }
+
+    in.seekg(0,ios::beg);
+    uint32_t code;
+    uint32_t version;
+    uint32_t type;
+    in.read(reinterpret_cast<char*>(&code),4);
+    in.seekg(28,ios::beg);
+    in.read(reinterpret_cast<char*>(&version),4);
+    in.read(reinterpret_cast<char*>(&type),4);
+    if(WinUnix::isLittleEndian()){
+        code = WinUnix::convertEndian(code);
+    } else {
+       version = WinUnix::convertEndian(version);
+       type = WinUnix::convertEndian(type);
+    }
+    if(code!=9994){ // not a shapefile
+      res->SetDefined(false);
+      return 0;
+    } 
+    uint64_t xmin;
+    uint64_t ymin;
+    uint64_t xmax;
+    uint64_t ymax;
+    in.read(reinterpret_cast<char*>(&xmin),8);
+    in.read(reinterpret_cast<char*>(&ymin),8);
+    in.read(reinterpret_cast<char*>(&xmax),8);
+    in.read(reinterpret_cast<char*>(&ymax),8);
+    if(!in.good()){ // corrupt file
+      res->SetDefined(false);
+      return 0;
+    }
+    in.close();
+    if(!WinUnix::isLittleEndian()){
+       xmin = WinUnix::convertEndian(xmin);
+       ymin = WinUnix::convertEndian(ymin);
+       xmax = WinUnix::convertEndian(xmax);
+       ymax = WinUnix::convertEndian(ymax);
+    } 
+    double xmind = *(reinterpret_cast<double*>((void*)&xmin));
+    double ymind = *(reinterpret_cast<double*>((void*)&ymin));
+    double xmaxd = *(reinterpret_cast<double*>((void*)&xmax));
+    double ymaxd = *(reinterpret_cast<double*>((void*)&ymax));
+    double minD[] = {xmind,ymind};
+    double maxD[] = {xmaxd, ymaxd};
+    res->Set(true, minD, maxD );
+    return 0;
+}
+
+ValueMapping shpBoxVM[] = {
+    shpBoxVMT<CcString>,
+    shpBoxVMT<FText>
+} ;
+
+int shpBoxSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec shpBoxSpec(
+   " string|text -> rect",
+   " shpBox(_)",
+   "Extracts the bounding box information from a shapefile.",
+   "query shpBox('kinos.shp')"
+);
+
+Operator shpBoxOp(
+   "shpBox",
+   shpBoxSpec.getStr(),
+   2,
+   shpBoxVM,
+   shpBoxSelect,
+   shpBoxTM
+);
 
    
 
@@ -7112,6 +7209,7 @@ public:
     #ifndef SECONDO_WIN32
     AddOperator( &rtf2txtfile);
     #endif
+    AddOperator(&shpBoxOp);
   }
   ~ImExAlgebra() {};
 };
