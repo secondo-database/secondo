@@ -12,6 +12,7 @@ if [ "$1" == "--help" ]; then
   echo "start starts the monitors"
   echo "stop stops running monitors"
   echo "check shows status of monitors"
+  echo "update updates secondo on remote server via CVS"
   echo
   echo "each line within the config file has to be in format"
   echo "<server> <config> [<home> [<port> [<user>]]]"
@@ -27,9 +28,8 @@ if [ "$1" == "--help" ]; then
   exit
 fi
 
-
 if [ -z "$2" ]; then
-  echo "start stop as second parameter missing "
+  echo "second parameter missing "
   exit 1;
 fi
 
@@ -39,13 +39,69 @@ action=$2
 if [ $action != start ]; then
   if [ $action != stop ]; then
     if [ $action != check ]; then
-      echo "invalid action"
-      echo allowed are start, stop, and check
-      exit 1
+      if [ $action != update ]; then
+        echo "invalid action"
+        echo allowed are start, stop, update, and check
+        exit 1
+      fi
     fi
   fi
 fi
   
+
+
+# global variable holding server values 
+# to avoid multiple update on a single server
+usedServers=""
+
+function updateLine {
+
+  echo "process line $*" 
+
+  if [ -z "$1" ]; then  # empty line
+    return
+  fi
+
+
+  server=$1
+  if [ -n "$5" ]; then
+    user="$5@"
+  fi
+
+
+  # check whether server was already updatet
+  if [[ $usedServers == *"$server"* ]]; then
+    echo "Server $server already processed"
+    return
+  fi
+  echo "update server $server"
+
+  usedServers="$usedServers $server"
+
+  remotedir=$(ssh "$user$server" 'source $HOME/.bashrc; echo $SECONDO_BUILD_DIR')
+
+  echo "remote SECONDO_BUILD_DIR= $remotedir"
+
+  if [ -z "$remotedir" ]; then
+    echo "cannot determine SECONDO_BUILD_DIR on server $server"
+    return
+  fi
+
+  # copy current makefile.algebras to remote server
+  scp $SECONDO_BUILD_DIR/makefile.algebras $user$server:$remotedir/
+
+  script=UpdateMonitortemp.sh
+  echo 'source $HOME/.bashrc' >$script
+  echo 'cd $SECONDO_BUILD_DIR' >>$script
+  echo 'cvs update -PdA' >>$script
+  echo 'make' >> $script
+  echo >>$script
+  ssh $user$server 'bash -s' <$script
+  rm $script
+  echo "Server $server processed" 
+  return 
+}
+
 
 
 function startLine {
@@ -245,12 +301,14 @@ function checkLine {
 
 if [ $action == start ]; then
    while read line; do startLine $line ;done <$1
-else
-  if [ $action == stop ]; then
-     while read line; do stopLine $line ;done <$1
-  else
-     while read line; do checkLine $line ;done <$1
-  fi
+else if [ $action == stop ]; then
+   while read line; do stopLine $line ;done <$1
+else if [ $action == check ]; then
+   while read line; do checkLine $line ;done <$1
+else 
+   while read line; do updateLine $line ;done <$1
+fi
+fi
 fi
 
 
