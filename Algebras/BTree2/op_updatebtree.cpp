@@ -290,7 +290,6 @@ updatebtree::ValueMapping1(Word* args, Word& result, int message,
   Word elem;
   Attribute* key, *keyOld;
   Attribute* value;
-  bool res = false;
 
   switch (message)
   {
@@ -319,7 +318,7 @@ updatebtree::ValueMapping1(Word* args, Word& result, int message,
         if ( (key->Compare(keyOld) != 0) )
         {
           if (info->btree->DeleteGeneric(keyOld,value))
-            res = info->btree->AppendGeneric(key,value);
+             info->btree->AppendGeneric(key,value);
         }
         result.setAddr(tuple);
         return YIELD;
@@ -350,7 +349,6 @@ updatebtree::ValueMapping2(Word* args, Word& result, int message,
   Word elem;
   Attribute* key;
   Attribute* value;
-  bool res = false;
 
   switch (message)
   {
@@ -374,11 +372,11 @@ updatebtree::ValueMapping2(Word* args, Word& result, int message,
         tuple = (Tuple*)elem.addr;
         key = tuple->GetAttribute(info->keyIndex);
         if (info->valueIndex == -1){
-          res = info->btree->AppendGeneric(key, 0);
+           info->btree->AppendGeneric(key, 0);
         }
         else{
           value = tuple->GetAttribute(info->valueIndex);
-          res = info->btree->UpdateGeneric(key, value);
+           info->btree->UpdateGeneric(key, value);
         }
         result.setAddr(tuple);
         return YIELD;

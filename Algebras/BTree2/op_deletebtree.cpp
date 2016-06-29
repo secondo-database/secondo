@@ -225,7 +225,6 @@ deletebtree::ValueMapping1(Word* args, Word& result, int message,
   Word elem;
   Attribute* key;
   Attribute* value;
-  bool res = false;
 
   switch (message)
   {
@@ -249,11 +248,11 @@ deletebtree::ValueMapping1(Word* args, Word& result, int message,
         tuple = (Tuple*)elem.addr;
         key = tuple->GetAttribute(info->keyIndex);
         if (info->valueIndex == -1){
-          res = info->btree->DeleteGeneric(key);
+          info->btree->DeleteGeneric(key);
         }
         else{
           value = tuple->GetAttribute(info->valueIndex);
-          res = info->btree->DeleteGeneric(key, value);
+          info->btree->DeleteGeneric(key, value);
         }
         result.setAddr(tuple);
         return YIELD;
@@ -284,7 +283,6 @@ deletebtree::ValueMapping2(Word* args, Word& result, int message,
   Word elem;
   Attribute* key;
   Attribute* value;
-  bool res = false;
 
   switch (message)
   {
@@ -308,11 +306,11 @@ deletebtree::ValueMapping2(Word* args, Word& result, int message,
         tuple = (Tuple*)elem.addr;
         key = tuple->GetAttribute(info->keyIndex);
         if (info->valueIndex == -1){
-          res = info->btree->DeleteGeneric(key);
+          info->btree->DeleteGeneric(key);
         }
         else{
           value = tuple->GetAttribute(info->valueIndex);
-          res = info->btree->DeleteGeneric(key, value);
+          info->btree->DeleteGeneric(key, value);
         }
         result.setAddr(tuple);
         return YIELD;
