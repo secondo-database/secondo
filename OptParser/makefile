@@ -18,7 +18,7 @@ parser.o: parser.c
 	$(CPPC) $(CCFLAGS) $(PLINCLUDEFLAGS) -x c++ -c -o parser.o  parser.c
 
 scanner.o: scanner.c
-	$(CPPC) $(CCFLAGS) $(PLINCLUDEFLAGS) -c -o scanner.o scanner.c
+	$(CPPC) $(CCFLAGS) $(PLINCLUDEFLAGS) -x c++ -c -o scanner.o scanner.c
 
 scanner.c: parser.h OptParser.l Types.h
 	$(LEX)  -o scanner.c OptParser.l
