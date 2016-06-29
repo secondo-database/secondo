@@ -2849,14 +2849,14 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
     if ((thisDenom == 0) || (bsDenom == 0)) {
      SimpleSegment vertical;
      SimpleSegment second;
-     long long vXL, vXR, vYL, vYR;
+     long long vXL, vYL, vYR;
      long long sXL, sXR, sYL, sYR;
 
      if (isVertical(i)) {
       vertical = segments[i];
       second = bs.segments[j];
       vXL = tXL;
-      vXR = tXR;
+      //vXR = tXR;
       vYL = tYL;
       vYR = tYR;
       sXL = bsXL;
@@ -2868,7 +2868,7 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
       vertical = bs.segments[j];
       second = segments[i];
       vXL = bsXL;
-      vXR = bsXR;
+      //vXR = bsXR;
       vYL = bsYL;
       vYR = bsYR;
       sXL = tXL;
