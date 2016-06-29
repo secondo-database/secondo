@@ -2101,9 +2101,8 @@ Type mapping for ~nest~ is
 ListExpr nestTypeMap( ListExpr args )
 {
 
-   ListExpr errorInfo, attrtype, outlist;
+   ListExpr attrtype, outlist;
    bool allArel = true;
-   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
    string argstr, argstr2, attrname, type;
 
    if(nl->ListLength(args)!=3){

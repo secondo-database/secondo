@@ -29,7 +29,7 @@ include ../../makefile.env
 MODNAME = OsmAlgebra
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS)
+CCFLAGS += $(ALG_INC_DIRS) -Werror
 #CCFLAGS += -DWITH_LIBXML2_SUPPORT -I/opt/local/include/libxml2/
 CCFLAGS += -DWITH_LIBXML2_SUPPORT 
 
