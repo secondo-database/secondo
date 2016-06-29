@@ -2,7 +2,7 @@ import unittest
 import os
 from remoteMonitors import RemoteMonitors
 import logging
-from env import UnsuitableEnvironmentException
+from Exceptions import UnsuitableEnvironmentException
 
 class RemoteMonitorsTest(unittest.TestCase):
 
@@ -46,7 +46,7 @@ class RemoteMonitorsTest(unittest.TestCase):
     def testRunWithNoneAsArg(self):
         rm = RemoteMonitors(logging.getLogger(__name__))
         try:#TODO use assertRaises
-            rm.run(None, None)
+            rm._doAction(None, None)
             self.fail("run method must throw an exception if called with None as args")
         except ValueError as err:
             self.assertEquals("Call with exactly one action: [start|stop|check]", err.message)
@@ -54,7 +54,7 @@ class RemoteMonitorsTest(unittest.TestCase):
     def testRunWithMoreThanOneArg(self):
         rm = RemoteMonitors(logging.getLogger(__name__))
         try:#TODO use assertRaises
-            rm.run(None, ["start", "check"])
+            rm._doAction(None, ["start", "check"])
             self.fail("run method must throw an exception if called with more than one arg")
         except ValueError as err:
             self.assertEquals("Call with exactly one action: [start|stop|check]", err.message)
@@ -62,7 +62,7 @@ class RemoteMonitorsTest(unittest.TestCase):
     def testRunWithInvalidActionAsArg(self):
         rm = RemoteMonitors(logging.getLogger(__name__))
         try:#TODO use assertRaises
-            rm.run(None, ["sleep"])
+            rm._doAction(None, ["sleep"])
             self.fail("run method must throw an exception if action is invalid")
         except ValueError as err:
             self.assertEquals("Action must be one of [start|stop|check]", err.message)
