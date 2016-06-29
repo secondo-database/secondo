@@ -717,7 +717,7 @@ bool isDirectSecondoCommand(const string& cmd){
          if(!st.hasNextToken()){
             return false;
          }
-         second==st.nextToken();
+         second=st.nextToken();
          if(!stringutils::isIdent(second)){
            return false;
          }

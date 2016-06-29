@@ -149,12 +149,16 @@ ListExprToTerm(ListExpr expr, NestedList* nl)
     {
       case IntType:
         intValue = nl->IntValue(expr);
-        PL_put_integer(result, intValue);
+        if(!PL_put_integer(result, intValue)){
+          assert(false);
+        }
         break;
 
       case RealType:
         realValue = nl->RealValue(expr);
-        PL_put_float(result, realValue);
+        if(!PL_put_float(result, realValue)){
+          assert(false);
+        }
         break;
 
       case BoolType:
@@ -200,7 +204,9 @@ ListExprToTerm(ListExpr expr, NestedList* nl)
     for(iter = listElements.begin(); iter != listElements.end(); iter++)
     {
       elem = ListExprToTerm(*iter, nl);
-      PL_cons_list(result, elem, result);
+      if(!PL_cons_list(result, elem, result)){
+        assert(false);
+      }
     }
   }
 
@@ -289,22 +295,30 @@ TermToListExpr(term_t t, NestedList* nl, bool& error)
       break;
 
     case PL_INTEGER:
-      PL_get_long(t, &intValue);
+      if(!PL_get_long(t, &intValue)){
+        cerr << "PL_get_long failed" << endl;
+      }
       result = nl->IntAtom(intValue);
       break;
 
     case PL_FLOAT:
-      PL_get_float(t, &realValue);
+      if(!PL_get_float(t, &realValue)){
+        cerr << "PL_get_float failed" << endl;
+      }
       result = nl->RealAtom(realValue);
       break;
 
     case PL_ATOM:
-      PL_get_atom_chars(t, &charValue);
+      if(!PL_get_atom_chars(t, &charValue)){
+        cerr << "PL_get_atom failed" << endl;
+      }
       result = AtomToListExpr(nl, charValue, error);
       break;
 
     case PL_STRING:
-      PL_get_string_chars(t, &charValue, &len);
+      if(!PL_get_string_chars(t, &charValue, &len)){
+        cerr << "PL_get_string failed" << endl;
+      }
       strValue = new char[len + 1];
       strValue[len] = 0;
       memcpy(strValue, charValue, len);
@@ -654,10 +668,18 @@ static foreign_t getOperatorIndexes(
       PL_fail;
    }
    // convert results back to prolog terms
-   PL_unify(resList, ListExprToTerm(resListC, si->GetNestedList()));
-   PL_unify_integer(algId,algIdC);
-   PL_unify_integer(opId,opIdC);
-   PL_unify_integer(funId,funIdC); 
+   if(!PL_unify(resList, ListExprToTerm(resListC, si->GetNestedList()))){
+      cerr << "PL_unify failed" << endl;
+   }
+   if(!PL_unify_integer(algId,algIdC)){
+     cerr << "PL_unify_interger failed" << endl;
+   }
+   if(!PL_unify_integer(opId,opIdC)){
+     cerr << "PL_unify_integer failed" << endl;
+   }
+   if(!PL_unify_integer(funId,funIdC)){
+     cerr << "PL_unify_integer failed" << endl;
+   }
    // todo: error handling in conversion
    PL_succeed;
 }
@@ -767,7 +789,9 @@ static foreign_t  getCosts5(
       PL_fail;
    }  else {
       int intCosts = (int) costsC;
-      PL_unify_integer(costs,intCosts);
+      if(!PL_unify_integer(costs,intCosts)){
+       cerr << "PL_unify_integer failed" << endl;
+      }
       PL_succeed;
    }
 }
@@ -824,7 +848,9 @@ static foreign_t getCosts6(
       PL_fail;
    }  else {
       int intCosts = (int) costsC;
-      PL_unify_integer(costs,intCosts);
+      if(!PL_unify_integer(costs,intCosts)){
+        cerr << "PL_unify_integer failed" << endl;
+      }
       PL_succeed;
    }
 }
@@ -868,9 +894,12 @@ static foreign_t getLinearParams6(
        selectivity, sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC)){
       PL_fail;
    } else {
-      PL_unify_float(sufficientMemory,sufficientMemoryC);
-      PL_unify_float(timeAtSuffMemory, timeAtSuffMemoryC);
-      PL_unify_float(timeAt16MB, timeAt16MBC);
+     if(
+           !PL_unify_float(sufficientMemory,sufficientMemoryC)
+        || !PL_unify_float(timeAtSuffMemory, timeAtSuffMemoryC)
+        || !PL_unify_float(timeAt16MB, timeAt16MBC)){
+        cerr << "PL_unify_float failed" << endl;
+      }
       PL_succeed;
    }
 }
@@ -915,9 +944,11 @@ static foreign_t getLinearParams7(
       selectivityC, sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC)){
       PL_fail;
    } else {
-      PL_unify_float(sufficientMemory,sufficientMemoryC);
-      PL_unify_float(timeAtSuffMemory, timeAtSuffMemoryC);
-      PL_unify_float(timeAt16MB, timeAt16MBC);
+     if(   !PL_unify_float(sufficientMemory,sufficientMemoryC)
+        || !PL_unify_float(timeAtSuffMemory, timeAtSuffMemoryC)
+        || !PL_unify_float(timeAt16MB, timeAt16MBC)){
+        cerr << "PL_unify_floar failed" << endl;
+      }
       PL_succeed;
    }
 }
@@ -970,7 +1001,9 @@ static foreign_t getFunction5(
             aC,bC,cC,dC)){
       PL_fail;
    } else {
-      PL_unify_integer(funType,funTypeC);
+      if(!PL_unify_integer(funType,funTypeC)){
+        cerr << "PL_unify_integer failed" << endl;
+      }
       NestedList* nl = si->GetNestedList();
       ListExpr clist = nl->OneElemList(nl->RealAtom(sufficientMemoryC));
       ListExpr last = clist;
@@ -980,7 +1013,9 @@ static foreign_t getFunction5(
       last = nl->Append(last, nl->RealAtom(bC));
       last = nl->Append(last, nl->RealAtom(cC));
       last = nl->Append(last, nl->RealAtom(dC));
-      PL_unify(dlist, ListExprToTerm(clist, nl));
+      if(!PL_unify(dlist, ListExprToTerm(clist, nl))){
+        cerr << "PL_unify failed" << endl;
+      }
       PL_succeed;
    }
 }
@@ -1030,7 +1065,9 @@ static foreign_t getFunction6(
               aC,bC,cC,dC)){
       PL_fail;
    } else {
-      PL_unify_integer(funType,funTypeC);
+      if(!PL_unify_integer(funType,funTypeC)){
+        cerr << "PL_unify_integer failed" << endl;
+      }
       NestedList* nl = si->GetNestedList();
       ListExpr clist = nl->OneElemList(nl->RealAtom(sufficientMemoryC));
       ListExpr last = clist;
@@ -1040,7 +1077,9 @@ static foreign_t getFunction6(
       last = nl->Append(last, nl->RealAtom(bC));
       last = nl->Append(last, nl->RealAtom(cC));
       last = nl->Append(last, nl->RealAtom(dC));
-      PL_unify(dlist, ListExprToTerm(clist, nl));
+      if(!PL_unify(dlist, ListExprToTerm(clist, nl))){
+        cerr << "PL_unify failed" << endl;
+      }
       PL_succeed;
    }
 }
@@ -1206,6 +1245,8 @@ The code in comments won't work, as soon as i include the QueryProcessor.h, seco
 Note that GetGlobalMemory function needs to be implemented fist within QueryProcessor.cpp and QueryProcessor.h.
 
 */
+
+  /*
 static foreign_t pl_global_memory(term_t value) {
   string sbd = getenv("SECONDO_BUILD_DIR");
   int globalMem = 512; // Unit: MiB
@@ -1215,10 +1256,6 @@ static foreign_t pl_global_memory(term_t value) {
   }
   else
     PL_fail;
-  /*
-  QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
-  size_t globalMem=qp.GetGlobalMemory();
-  */
   int unify1 = PL_unify_integer(value, globalMem);
   if(unify1 != 0) {
     PL_succeed;
@@ -1227,6 +1264,7 @@ static foreign_t pl_global_memory(term_t value) {
     PL_fail;
   }
 }
+  */
 // NVK ADDED MA END
 
 
