@@ -442,7 +442,7 @@ char* BigArray<T>::ensurePageInCache(size_t pageNo){
    if(pagesInFile > pageNo){ // data already on disk, get from there
       file->seekg(pageNo*pagesize);
       file->read(page, pagesize);
-      assert(file->tellg() == (pageNo+1) * pagesize);
+      assert((size_t)file->tellg() == (pageNo+1) * pagesize);
    } else {
       //memset(page,0,pagesize);
    }
