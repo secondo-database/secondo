@@ -83,11 +83,15 @@ result value will be 0.
 
 #define YYERROR_VERBOSE
 
-extern int yylex();
-extern int yyerror();
-extern void yy_scan_string(const char*);
-extern void tree_scan_string(const char*);
-extern void deleteCurrentBuffer();
+#ifdef __cplusplus
+extern "C" {
+  extern int yylex();
+  extern int treeerror();
+  extern void yy_scan_string(const char*);
+  extern void tree_scan_string(const char*);
+  extern void deleteCurrentBuffer();
+}
+#endif
 
 
 /*

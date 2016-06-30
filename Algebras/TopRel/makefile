@@ -15,7 +15,7 @@ MODNAME = TopRelAlgebra
 
 # Use the mace CCFLAGS to add special compiler flags if needed.
 # In this case the defaults are sufficient
-CCFLAGS = $(DEFAULTCCFLAGS) -I../FText -I../Rectangle -I../Spatial
+CCFLAGS = $(DEFAULTCCFLAGS) -I../FText -I../Rectangle -I../Spatial -Werror
 
 # The next rule will create a ".o" file for every ".cpp" file and
 # creates a "lib$(MODNAME).a" file in the secondo/lib dir. Rules
