@@ -384,7 +384,8 @@ Operator : shpBox
 Number   : 1
 Signature : string | text -> rect
 Example   : query size(shpBox('kinos.shp'))> 0
-Result    : TRUE
+Result    : unpredictable
+Remark    : depends on the presence of a file, may be true or undefined 
 
 
 
