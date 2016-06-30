@@ -743,7 +743,7 @@ void MPointExt::At( Line* ln, MPoint &result ) const
                       }
                       unitincopy.At( inter_chs.GetLeftPoint(), trash1 );
                       unitincopy.At( inter_chs.GetRightPoint(), trash2 );
-                      bool inv_def = true, ls = true, rs = true;
+                      bool inv_def = true;
 
                       if(!trash1.timeInterval.lc && !trash1.timeInterval.rc)
                         inv_def = false;
@@ -754,12 +754,12 @@ void MPointExt::At( Line* ln, MPoint &result ) const
                       if(inv_def && trash1.timeInterval.lc &&
                          trash2.timeInterval.rc) {
 
-                        if(!trash1.timeInterval.lc){
-                          ls = false;
-                        }
-                        if(!trash2.timeInterval.rc) {
-                          rs = false;
-                        }
+                       // if(!trash1.timeInterval.lc){
+                       //   ls = false;
+                       // }
+                       // if(!trash2.timeInterval.rc) {
+                       //   rs = false;
+                       // }
 
                         Interval<Instant> ii(
                             ((trash1.timeInterval.start
