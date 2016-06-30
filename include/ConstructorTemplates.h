@@ -77,7 +77,7 @@ struct ConstructorFunctions
     return (new (addr)T ); 
   }
 
-  static Word Create( const ListExpr typeInfo )
+  static Word Create( const ListExpr __attribute__((unused)) typeInfo )
   {
     return (SetWord( new T() ));
   }
@@ -125,14 +125,18 @@ struct ConstructorFunctions
   }
 
 
-  static ListExpr Out( ListExpr typeInfo, Word value )
+  static ListExpr Out( ListExpr __attribute__((unused)) typeInfo, 
+                       Word __attribute__((unused))  value )
   {
     assert(false);
     return 0;
   }
 
-  static Word In( const ListExpr typeInfo, const ListExpr instance,
-                  const int errorPos, ListExpr& errorInfo, bool& correct )
+  static Word In( const ListExpr __attribute__((unused)) typeInfo, 
+                  const ListExpr __attribute__((unused))  instance,
+                  const int __attribute__((unused))  errorPos, 
+                  ListExpr __attribute__((unused)) & errorInfo, 
+                  bool __attribute__((unused)) & correct )
   {
     assert(false);
     return SetWord(Address(0));
