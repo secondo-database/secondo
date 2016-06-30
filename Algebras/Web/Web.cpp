@@ -1415,7 +1415,6 @@ bool HTML::containsURL(const URL *url){
 bool HTML::checkURI(string value,URL& url){
   WebLex lexer(0);
   stringstream ss;
-  int symbol;
 
 //  __TRACE__
   //cout << "Prfe URL " << value << endl;
@@ -1432,7 +1431,7 @@ bool HTML::checkURI(string value,URL& url){
   lexer.switchStartCond (MURI);
   ss << value;
   lexer.yyrestart(&ss);
-  symbol= lexer.nextToken();
+  lexer.nextToken();
 
 
 
