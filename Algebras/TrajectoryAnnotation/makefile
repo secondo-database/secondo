@@ -34,7 +34,7 @@ ALGEBRA_DEPENDENCIES := StandardAlgebra
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
+CCFLAGS += $(ALG_INC_DIRS)  -Werror
 CCFLAGS += -DWITH_LIBXML2_SUPPORT
 
 # create objects and algebra library. The values for the variables
