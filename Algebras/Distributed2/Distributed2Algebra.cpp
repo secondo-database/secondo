@@ -12558,6 +12558,8 @@ class Mapper{
           array(_array), aType(_aType), ccname(_name), 
           funText(_funText), isRel(_isRel),
           isStream(_isStream) {
+
+       dbname = SecondoSystem::GetInstance()->GetDatabaseName();
        if(isRel || isStream){
          dfarray = (DFArray*) res;
          darray = 0; 
@@ -12585,6 +12587,7 @@ class Mapper{
     DFArray* dfarray;
     DArray* darray;
     string name;
+    string dbname;
 
 
     void startDArray(){
@@ -12691,24 +12694,16 @@ class Mapper{
              return;
            }
 
+
            // create temporal function
            string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
                              + "_"+ stringutils::int2str(nr);
 
            string fun = mapper->funText->GetValue();
 
-           string cmd = "(let " + funName + " = " + fun +")";
-           int err; string errMsg; string r;
-           double runtime;
-           ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
-           ci->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
-           if(err!=0){
-             cerr << "problem in command " << cmd;
-             cerr << "code : " << err << endl;
-             cerr << "msg : " << errMsg << endl;
-             return;
-           } 
            string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
+           string cmd;
+
            if(mapper->array->getType()==DFARRAY){
                string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
                    + mapper->array->getName() + "/"
@@ -12716,17 +12711,22 @@ class Mapper{
                ListExpr frelType = nl->TwoElemList(
                                      listutils::basicSymbol<frel>(),
                                      nl->Second(nl->Second(mapper->aType))); 
-               string funarg = "[ const " + getUDRelType(frelType) 
-                               + " value  '" + fname1 +"' ]"; 
-               cmd = "query "+ funName +"( "+funarg +" )";
+
+                string funarg =   "(" + nl->ToString(frelType) 
+                                + " '" +fname1+"' )";
+               cmd = " ("+ fun +" "+funarg +" )";
            } else {
-               cmd = "query " + funName+"( " + n +" )";
+               cmd = " (" + fun+" " + n +" )";
            }
             
            string targetDir = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
                               + mapper->name + "/" ;
 
            string cd = "query createDirectory('"+targetDir+"', TRUE)";
+           int err;
+           string errMsg;
+           string r;
+           double runtime;
            ci->simpleCommand(cd, err, errMsg,r, false, runtime);
            if(err){
              cerr << "creating directory failed, cmd = " << cd << endl;
@@ -12737,13 +12737,17 @@ class Mapper{
                            + mapper->name + "_" + stringutils::int2str(nr)
                            + ".bin";
 
+           
            if(mapper->isRel) {
-             cmd += " feed fconsume5['"+fname2+"'] count";
+
+             cmd =   "(query (count (fconsume5 (feed " + cmd +" )'" 
+                   + fname2+"' )))";
+
            } else {
-             cmd += "fconsume5['"+fname2+"'] count";
+             cmd = "(query (count (fconsume5 "+ cmd +" '"+ fname2+"' )))";
            }
 
-           ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
+           ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime);
            if((err!=0) ){ 
               showError(ci,cmd,err,errMsg);
            }
@@ -12771,44 +12775,33 @@ class Mapper{
              return;
           }
              // create temporal function
-          string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
-                           + "_" + stringutils::int2str(nr);
-          string cmd = "(let " + funName + " = " 
-                     + mapper->funText->GetValue() +")";
+          string fundef =  mapper->funText->GetValue();
           int err; string errMsg; string r;
           double runtime;
-          ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
-          ci->simpleCommandFromList(cmd,err,errMsg,r,true, runtime);
-          if(err!=0){
-            showError(ci,"delete "+funName,err,errMsg);
-           return;
-          } 
-             
           string funarg;
           string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
 
           if(mapper->array->getType()==DFARRAY){  
-              string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
-                              + mapper->array->getName() + "/"
-                              + n + ".bin";
+              string fname1 = mapper->array->getFilePath(ci->getSecondoHome(),
+                                                         mapper->dbname,
+                                                         nr);
                ListExpr frelType = nl->TwoElemList(
                                      listutils::basicSymbol<frel>(),
                                      nl->Second(nl->Second(mapper->aType))); 
-               funarg = "[ const " + getUDRelType(frelType) 
-                               + " value  '" + fname1 +"' ]"; 
+               funarg = "( " + nl->ToString(frelType) + " " 
+                             + "'" + fname1 + "')";
           } else {
                funarg = n + " ";
           }
 
           string name2 = mapper->name + "_" + stringutils::int2str(nr);
-          cmd = "let "+ name2 +" = " + funName +"( " + funarg + ")";
+          string cmd = "(let "+ name2 +" = (" + fundef +" " + funarg + " ))";
 
-          ci->simpleCommand(cmd,err,errMsg,r,false, runtime);
+          ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime);
           if((err!=0)  ){ // ignore type map errors
                                     // because reason is a missing file
              showError(ci,cmd,err,errMsg);
           }
-          ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
         }
 
       private:
