@@ -14176,7 +14176,7 @@ class dproductInfo{
      ListExpr a0Type;
      ListExpr a1Type;
      int port;
-     bool streamRes;
+     bool streamRes __attribute__((unused));
      string dbname;
      map<string,string> Ip2Home;
      vector<pair<DArrayElement, vector<string> > > temps; 
@@ -14196,7 +14196,7 @@ class dproductInfo{
              // for each slot a pair whether file creation  or
              // file transfer is required
          typedef map<string, ipinfo > content; // meaning ip-> ipinfo
-         typedef typename content::iterator iter;
+         typedef content::iterator iter;
 
          void add(ConnectionInfo* info, DArrayBase* source, string& dbname){
             string ip = info->getHost();
@@ -14457,7 +14457,7 @@ class dproductInfo{
       for(size_t i = 0; i< array->getSize(); i++){
          DArrayElement  elem= array->getWorkerForSlot(i);
          ConnectionInfo* ci = algInstance->getWorkerConnection(elem, dbname);
-         typename map<ConnectionInfo*, vector<int> >::iterator it;
+         map<ConnectionInfo*, vector<int> >::iterator it;
          it = resp.find(ci);
          if(it!=resp.end()){
             it->second.push_back(i);
@@ -14468,7 +14468,7 @@ class dproductInfo{
          }
       }
       vector<fileCreator*> runners;
-      typename map<ConnectionInfo*, vector<int> >::iterator it;
+      map<ConnectionInfo*, vector<int> >::iterator it;
       for(it = resp.begin(); it!=resp.end(); it++){
          runners.push_back(new fileCreator(arg1, it->first,
                                             &(it->second), dbname));          
@@ -19408,7 +19408,7 @@ int ddistribute8VMT(Word* args, Word& result, int message,
   if(!ctlg->LookUpTypeExpr(at, tname, algId, typeId)){
     assert(false);
   }
-  Word darrays[size1];
+  Word* darrays = new Word[size1];
   for(int i=0;i< size1; i++){
      string slotname = name +"_" + stringutils::int2str(i);
      AType* a = new AType(temp);
@@ -19488,7 +19488,7 @@ int ddistribute8VMT(Word* args, Word& result, int message,
   for(size_t i=0;i<transfers.size();i++){
      delete transfers[i];
   }
-
+  delete [] darrays;
   return 0;
 }
 
@@ -20105,7 +20105,7 @@ int partitionF8VMT(Word* args, Word& result, int message,
    }
 
    // create array entries
-   Word elements[asize];
+   Word* elements = new Word[asize];
    const vector<DArrayElement>& workers = array->getWorkers();
    int algId;
    int typeId;
@@ -20166,6 +20166,7 @@ int partitionF8VMT(Word* args, Word& result, int message,
    for(size_t i=0;i<runners.size(); i++){
      delete runners[i];
    }
+   delete [] elements;
    return 0;
 }
 
