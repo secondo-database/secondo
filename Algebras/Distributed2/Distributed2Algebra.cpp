@@ -14141,9 +14141,9 @@ class dproductInfo{
 
     dproductInfo(DArrayBase* _arg0, DArrayBase* _arg1, DArrayBase* _result,
                 const string& _funText,ListExpr _a0Type, ListExpr _a1Type,
-                int _transferPort, bool _streamRes ): arg0(_arg0), arg1(_arg1),
+                int _transferPort ): arg0(_arg0), arg1(_arg1),
                 result(_result), funText(_funText), a0Type(_a0Type), 
-                a1Type(_a1Type), port(_transferPort), streamRes(_streamRes) {
+                a1Type(_a1Type), port(_transferPort) {
                     dbname = SecondoSystem::GetInstance()->GetDatabaseName();
                 }
 
@@ -14176,7 +14176,6 @@ class dproductInfo{
      ListExpr a0Type;
      ListExpr a1Type;
      int port;
-     bool streamRes __attribute__((unused));
      string dbname;
      map<string,string> Ip2Home;
      vector<pair<DArrayElement, vector<string> > > temps; 
@@ -14766,7 +14765,7 @@ int dproductVMT( Word* args, Word& result, int message,
    // ignore fun, use funtext
    CcInt* ccport = (CcInt*) args[4].addr; 
    string fun  = ((FText*) args[5].addr)->GetValue();
-   bool isStream = ((CcBool*) args[6].addr)->GetValue();
+   //bool isStream = ((CcBool*) args[6].addr)->GetValue();
 
    result = qp->ResultStorage(s);
    R* res = (R*) result.addr;
@@ -14802,7 +14801,7 @@ int dproductVMT( Word* args, Word& result, int message,
    res->setName(name);
 
    dproductInfo info(a1, a2, res, fun, qp->GetType(qp->GetSon(s,0)),
-                     qp->GetType(qp->GetSon(s,1)), port, isStream);
+                     qp->GetType(qp->GetSon(s,1)), port);
 
    info.run();
   
