@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_OPERATORFEEDPF_HPP_
 #define ALGEBRAS_DBSERVICE_OPERATORFEEDPF_HPP_
 
+#include "Operator.h"
+
 namespace DBService
 {
 
@@ -43,14 +45,14 @@ struct FeedPFInfo: OperatorInfo
     }
 };
 
-class OperatorFeedPF
+class OperatorFeedPF : public OperatorInfo
 {
 public:
     OperatorFeedPF();
     virtual ~OperatorFeedPF();
     static TypeMapping mapType(); // TODO return value and signature
-    static ListExpr selectFunction(); // TODO return value and signature
-    static ValueMapping mapValue(); // TODO return value and signature
+    static SelectFunction selectFunction(); // TODO return value and signature
+    static ValueMapping* mapValue(); // TODO return value and signature
 };
 
 } /* namespace DBService */

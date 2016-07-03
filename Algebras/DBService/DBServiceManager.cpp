@@ -26,18 +26,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBService.hpp"
+#include "DBServiceManager.hpp"
 
 namespace DBService
 {
 
-DBService::DBService()
+DBServiceManager::DBServiceManager()
 {
 	// TODO Auto-generated constructor stub
 
 }
 
-DBService::~DBService()
+DBServiceManager::~DBServiceManager()
 {
 	// TODO Auto-generated destructor stub
 }

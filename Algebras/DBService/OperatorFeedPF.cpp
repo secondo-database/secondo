@@ -42,17 +42,17 @@ OperatorFeedPF::~OperatorFeedPF()
     // TODO Auto-generated destructor stub
 }
 
-TypeMapping OperatorFeedPF::mapType(ListExpr args)
+TypeMapping OperatorFeedPF::mapType()
 {
     return 0;
 }
 
-ListExpr OperatorFeedPF::selectFunction()
+SelectFunction OperatorFeedPF::selectFunction()
 {
     return 0;
 }
 
-ValueMapping OperatorFeedPF::mapValue()
+ValueMapping* OperatorFeedPF::mapValue()
 {
     return 0;
 }

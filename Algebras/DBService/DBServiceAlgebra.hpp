@@ -28,6 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #ifndef ALGEBRAS_DBSERVICE_DBSERVICEALGEBRA_HPP_
 #define ALGEBRAS_DBSERVICE_DBSERVICEALGEBRA_HPP_
+#include "NList.h"
+#include "QueryProcessor.h"
+#include "Algebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

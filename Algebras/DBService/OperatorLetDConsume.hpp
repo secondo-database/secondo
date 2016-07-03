@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_OPERATORLETDCONSUME_HPP_
 #define ALGEBRAS_DBSERVICE_OPERATORLETDCONSUME_HPP_
 
+#include "Operator.h"
+
 namespace DBService
 {
 
@@ -43,14 +45,14 @@ struct LetDConsumeInfo: OperatorInfo
     }
 };
 
-class OperatorLetDConsume
+class OperatorLetDConsume : public OperatorInfo
 {
 public:
-    OperatorLetDConsume();
+    OperatorLetDConsume() ;
     virtual ~OperatorLetDConsume();
     static TypeMapping mapType(); // TODO return value and signature
     static SelectFunction selectFunction(); // TODO return value and signature
-    static ValueMapping mapValue(); // TODO return value and signature
+    static ValueMapping* mapValue(); // TODO return value and signature
 };
 
 } /* namespace DBService */

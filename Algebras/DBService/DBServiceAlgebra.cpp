@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "DBServiceAlgebra.hpp"
-#include "Algebra.h"
 #include "OperatorFeedPF.hpp"
 #include "OperatorLetDConsume.hpp"
 
@@ -37,11 +36,13 @@ namespace DBService
 DBServiceAlgebra::DBServiceAlgebra()
 : Algebra()
 {
-	AddOperator(OperatorFeedPF(),
+    AddOperator(OperatorFeedPF(),
 	            OperatorFeedPF::mapValue(),
+	            OperatorFeedPF::selectFunction(),
 	            OperatorFeedPF::mapType());
-	AddOperator(OperatorLetDConsume(),
+    AddOperator(OperatorLetDConsume(),
 	            OperatorLetDConsume::mapValue(),
+	            OperatorLetDConsume::selectFunction(),
 	            OperatorLetDConsume::mapType());
 }
 

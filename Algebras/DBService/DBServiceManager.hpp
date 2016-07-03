@@ -26,19 +26,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DBSERVICE_HPP_
-#define ALGEBRAS_DBSERVICE_DBSERVICE_HPP_
+#ifndef ALGEBRAS_DBSERVICE_DBSERVICEMANAGER_HPP_
+#define ALGEBRAS_DBSERVICE_DBSERVICEMANAGER_HPP_
 
 namespace DBService
 {
 
-class DBService
+class DBServiceManager
 {
 public:
-	DBService();
-	virtual ~DBService();
+	DBServiceManager();
+	virtual ~DBServiceManager();
 };
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_DBSERVICE_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_DBSERVICEMANAGER_HPP_ */

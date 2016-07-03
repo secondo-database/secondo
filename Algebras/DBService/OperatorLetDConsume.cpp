@@ -51,7 +51,7 @@ SelectFunction OperatorLetDConsume::selectFunction()
     return 0;
 }
 
-ValueMapping OperatorLetDConsume::mapValue()
+ValueMapping* OperatorLetDConsume::mapValue()
 {
     return 0;
 }
