@@ -24,7 +24,7 @@
 ########################################################################
 
 
-CURRENT_ALGEBRA := FTextAlgebra
+CURRENT_ALGEBRA := Distributed2Algebra
 
 
 ALGEBRA_DEPENDENCIES := StandardAlgebra
