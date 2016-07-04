@@ -648,4 +648,21 @@ Result    : bug
 Remark    : remote server required
 
 
+Operator  : da2enableLog
+Number    : 1
+Signature : bool -> bool
+Example   : query da2enableLog(TRUE)
+Result    ; TRUE
 
+Operator  : da2clearLog
+Number    : 1
+Signature : -> bool
+Example   : query da2clearLog()
+Result    : TRUE
+
+Operator  : da2Log
+Number    : 1
+Signature : -> stream(tuple(...))
+Example   : query da2Log count
+Result    : unpredictable
+Remark    : depends on former executed operations

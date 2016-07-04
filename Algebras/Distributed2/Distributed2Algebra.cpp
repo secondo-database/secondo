@@ -54,6 +54,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SocketIO.h"
 #include "StopWatch.h"
 
+#include "LongInt.h"
+
 #include "Bash.h"
 #include "DebugWriter.h"
 
@@ -264,6 +266,119 @@ bool rewriteQuery(const string& orig, string& result){
   return true;
 }
 
+class CommandLog{
+
+  private: 
+     struct LogEntry{
+
+        LogEntry(void* _id, 
+                 const string& _server,
+                 const string& _home,
+                 const string& _query,
+                 const double _runtime,
+                 const int _errorCode
+        ):
+             id(_id), server(_server), home(_home),
+             query(_query), runtime(_runtime),
+             errorCode(_errorCode){} 
+
+
+        void*  id; // used connectioninfo
+        string server;
+        string home;
+        string query;
+        double runtime;
+        int errorCode;
+     };
+
+  public:
+
+     CommandLog(){}
+  
+     void clear(){
+        entries.clear();
+      }
+
+      void insert( ConnectionInfo* ci,
+                   const string& server,
+                   const string& home,
+                   const string& query,
+                   const double& runtime,
+                   const int errorCode){
+        boost::lock_guard<boost::mutex> gurad(mtx);
+        entries.push_back(LogEntry((void*)ci,server,home,
+                                    query,runtime,
+                                    errorCode));
+     }
+ 
+    static  ListExpr getTupleDescription(){
+       ListExpr attrList = 
+            nl->SixElemList(
+              nl->TwoElemList( nl->SymbolAtom("ConnectionId"),
+                               listutils::basicSymbol<LongInt>()),
+              nl->TwoElemList( nl->SymbolAtom("Server"),
+                               listutils::basicSymbol<FText>()),
+              nl->TwoElemList( nl->SymbolAtom("Home"),
+                               listutils::basicSymbol<FText>()),
+              nl->TwoElemList( nl->SymbolAtom("Command"),
+                               listutils::basicSymbol<FText>()),
+              nl->TwoElemList( nl->SymbolAtom("RunTime"),
+                               listutils::basicSymbol<CcReal>()),
+              nl->TwoElemList( nl->SymbolAtom("ErrorCode"),
+                               listutils::basicSymbol<CcInt>()));
+        return nl->TwoElemList(
+                 listutils::basicSymbol<Tuple>(),
+                 attrList);
+     } 
+
+
+     class Iterator{
+        public:
+          Iterator(const CommandLog& log): entries(log.entries), pos(0){
+            ListExpr numTuple =SecondoSystem::GetCatalog()->NumericType( 
+                                         CommandLog::getTupleDescription() );
+            tt = new TupleType(numTuple);
+          }
+
+          ~Iterator(){
+              tt->DeleteIfAllowed();
+           }
+
+          Tuple* nextTuple(){
+            if(pos>= entries.size()){
+              return 0;
+            }
+            Tuple* res = new Tuple(tt);
+            res->PutAttribute(0, new LongInt(true, (int64_t) entries[pos].id));
+            res->PutAttribute(1, new FText(true, entries[pos].server));
+            res->PutAttribute(2, new FText(true, entries[pos].home));
+            res->PutAttribute(3, new FText(true, entries[pos].query));
+            res->PutAttribute(4, new CcReal(true, entries[pos].runtime));
+            res->PutAttribute(5, new CcInt(true, entries[pos].errorCode));
+            pos++;
+            return res;
+          }
+
+         private: 
+           vector<LogEntry> entries;
+           size_t pos;
+           TupleType * tt;
+
+     };
+
+
+  private:
+     vector<LogEntry> entries;
+     boost::mutex mtx;
+
+};
+
+
+CommandLog commandLog;
+bool logOn = false;
+
+
+
 /*
 1 Class Connection
 
@@ -353,7 +468,14 @@ Checks whether the remote server is working by sending a simple command.
           {
              boost::lock_guard<boost::recursive_mutex> guard(simtx);
              showCommand(si,host,port,cmd, true);
+             StopWatch sw;
              si->Secondo(cmd,res,err);
+             double rt = sw.diffSecondsReal();
+             if(logOn){
+               commandLog.insert(this,this->getHost(), 
+                                 this->getSecondoHome(),
+                                 cmd, rt, err.code);
+             }
              showCommand(si,host,port,cmd, false);
           }  
           return err.code==0;
@@ -397,6 +519,11 @@ Performs a command on the remote server. The result is stored as a string.
              showCommand(si,host,port,command, false);
              runtime = sw.diffSecondsReal();
              err = serr.code;
+             if(logOn){
+               commandLog.insert(this,this->getHost(), 
+                                 this->getSecondoHome(),
+                                 command, runtime, err );
+             }
              if(err==0){
                 result = mynl->ToString(resList);
              } else {
@@ -509,6 +636,11 @@ This variant of ~simpleCommand~ returns the result as a list.
              si->Secondo(command, myResList, serr);
              showCommand(si,host,port,command,false);
              runtime = sw.diffSecondsReal();
+             if(logOn){
+                 commandLog.insert(this,this->getHost(), 
+                                   this->getSecondoHome(),
+                                   command, runtime, serr.code );
+             }
              error = serr.code;
              errMsg = serr.msg;
 
@@ -551,6 +683,11 @@ Performs a command that is given in nested list format.
           si->Secondo(cmd, myResList, serr);
           showCommand(si,host,port,command, false);
           runtime = sw.diffSecondsReal();
+          if(logOn){
+             commandLog.insert(this,this->getHost(), 
+                               this->getSecondoHome(),
+                               command, runtime, serr.code );
+          }
           error = serr.code;
           errMsg = serr.msg;
 
@@ -575,7 +712,7 @@ This variant provides the result as a list.
 
        void simpleCommand(const string& command1, int& error, string& errMsg, 
                           ListExpr& resList, const bool rewrite,
-                          double& runtime){
+                          double& runtime, bool log = logOn){
 
 
           string command;
@@ -592,6 +729,11 @@ This variant provides the result as a list.
           si->Secondo(command, myResList, serr);
           showCommand(si,host,port,command, false);
           runtime = sw.diffSecondsReal();
+          if(log){
+             commandLog.insert(this,this->getHost(), 
+                               this->getSecondoHome(),
+                               command, runtime, serr.code );
+          }
           error = serr.code;
           errMsg = serr.msg;
           // copy resultlist from local nested list to global nested list
@@ -736,7 +878,15 @@ creates a new object or updates an existing one on remote server.
               ListExpr resList;
               string cmd = "delete " + name;
               showCommand(si,host,port,cmd,true);
+              StopWatch sw;
               si->Secondo(cmd, resList, serr);
+              double runtime = sw.diffSecondsReal();
+              if(logOn){
+                 commandLog.insert(this,this->getHost(), 
+                                   this->getSecondoHome(),
+                                  cmd, runtime, serr.code );
+              }
+
               showCommand(si,host,port,cmd,false);
               // ignore error (object must not exist)
               string filename = name + "_" + 
@@ -745,7 +895,14 @@ creates a new object or updates an existing one on remote server.
               storeObjectToFile(name, value, typelist, filename);
               cmd = "restore " + name + " from '" + filename + "'";
               showCommand(si,host,port,cmd,true);
+              sw.start();
               si->Secondo(cmd, resList, serr);
+              runtime = sw.diffSecondsReal();
+              if(logOn){
+                 commandLog.insert(this,this->getHost(), 
+                                   this->getSecondoHome(),
+                                  cmd, runtime, serr.code );
+              }
               showCommand(si,host,port,cmd,false);
               FileSystem::DeleteFileOrFolder(filename);
               return serr.code==0;
@@ -804,22 +961,42 @@ local file.
              string cmd = "delete " + name;
              if(allowOverwrite){
                 showCommand(si,host,port,cmd,true);
+                StopWatch sw;
                 si->Secondo(cmd, resList, serr);
+                double runtime = sw.diffSecondsReal();
+                if(logOn){
+                   commandLog.insert(this,this->getHost(), 
+                                     this->getSecondoHome(),
+                                    cmd, runtime, serr.code );
+                }
                 showCommand(si,host,port,cmd,false);
              }
        
              cmd = "let " + name + " =  '" + rfilename +"' ffeed5 consume ";
 
              showCommand(si,host,port,cmd,true);
+             StopWatch sw;
              si->Secondo(cmd, resList, serr);
+             double runtime = sw.diffSecondsReal();
+             if(logOn){
+                commandLog.insert(this,this->getHost(), 
+                                  this->getSecondoHome(),
+                                  cmd, runtime, serr.code );
+             }
              showCommand(si,host,port,cmd,false);
 
              bool ok = serr.code == 0;
 
 
              cmd = "query removeFile('"+rfilename+"')";
-
+             sw.start();
              si->Secondo (cmd,resList,serr);
+             runtime = sw.diffSecondsReal();
+             if(logOn){
+                commandLog.insert(this,this->getHost(), 
+                                  this->getSecondoHome(),
+                                  cmd, runtime, serr.code );
+             }
 
 
              return ok;
@@ -854,7 +1031,14 @@ from a local file.
              string cmd = "delete " + name;
              if(allowOverwrite){
                 showCommand(si,host,port,cmd,true);
+                StopWatch sw;
                 si->Secondo(cmd, resList, serr);
+                double runtime = sw.diffSecondsReal();
+                if(logOn){
+                   commandLog.insert(this,this->getHost(), 
+                                  this->getSecondoHome(),
+                                  cmd, runtime, serr.code );
+                }
                 showCommand(si,host,port,cmd,false);
              }
        
@@ -862,7 +1046,14 @@ from a local file.
                           + rfilename + "') ";
 
              showCommand(si,host,port,cmd,true);
+             StopWatch sw;
              si->Secondo(cmd, resList, serr);
+             double runtime = sw.diffSecondsReal();
+             if(logOn){
+                commandLog.insert(this,this->getHost(), 
+                                  this->getSecondoHome(),
+                                  cmd, runtime, serr.code );
+             }
              showCommand(si,host,port,cmd,false);
 
              bool ok = serr.code == 0;
@@ -965,7 +1156,14 @@ Retrieves a remote object.
               ListExpr myResList;
               string cmd = "query " + objName;
               showCommand(si,host,port,cmd,true);
+              StopWatch sw;
               si->Secondo(cmd, myResList, serr);
+              double runtime = sw.diffSecondsReal();
+              if(logOn){
+                 commandLog.insert(this,this->getHost(), 
+                                this->getSecondoHome(),
+                                cmd, runtime, serr.code );
+              }
               showCommand(si,host,port,cmd,false);
               SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
               if(serr.code!=0){
@@ -1052,7 +1250,14 @@ Retrieves a relation which is on a remotely stored file.
              SecErrInfo  serr;
              ListExpr resList;
              showCommand(si,host,port,cmd,true);
+             StopWatch sw;
              si->Secondo(cmd,resList,serr);
+             double runtime = sw.diffSecondsReal();
+             if(logOn){
+                commandLog.insert(this,this->getHost(), 
+                                this->getSecondoHome(),
+                                cmd, runtime, serr.code );
+             }
              showCommand(si,host,port,cmd,false);
 
              if(serr.code!=0){
@@ -1083,7 +1288,14 @@ Retrieves a relation which is on a remotely stored file.
              FileSystem::DeleteFileOrFolder(base+".tmp");
              cmd = "query removeFile('"+rfpath + base +".tmp' )" ;
              showCommand(si,host,port,cmd, true);
+             sw.start();
              si->Secondo(cmd,resList,serr);
+             runtime = sw.diffSecondsReal();
+             if(logOn){
+                commandLog.insert(this,this->getHost(), 
+                                this->getSecondoHome(),
+                                cmd, runtime, serr.code );
+             }
              showCommand(si,host,port,cmd, false);
              if(serr.code != 0){
                 showError(si,cmd,serr.code,serr.msg);
@@ -1109,7 +1321,16 @@ retrieves a remote relation and stored it into a local file.
              string cmd =   "query createDirectory('"+si->getRequestFilePath()  
                    + "', TRUE) ";
              showCommand(si,host,port,cmd,true);
+             StopWatch sw;
              si->Secondo(cmd,resList,serr);
+             double runtime = sw.diffSecondsReal();
+             if(logOn){
+                commandLog.insert(this,this->getHost(), 
+                                this->getSecondoHome(),
+                                cmd, runtime, serr.code );
+             }
+           
+
              showCommand(si,host,port,cmd,false);
              if(serr.code!=0){
                  cerr << "Creating filetransfer directory failed" << endl;
@@ -1120,7 +1341,14 @@ retrieves a remote relation and stored it into a local file.
              cmd = "query " + objName + " feed fconsume5['"
                           +rfname+"'] count";
              showCommand(si,host,port,cmd,true);
+             sw.start();
              si->Secondo(cmd,resList,serr);
+             runtime = sw.diffSecondsReal();
+             if(logOn){
+                commandLog.insert(this,this->getHost(), 
+                                this->getSecondoHome(),
+                                cmd, runtime, serr.code );
+             }
              showCommand(si,host,port,cmd,false);
 
              if(serr.code!=0){
@@ -1134,7 +1362,14 @@ retrieves a remote relation and stored it into a local file.
              // delete remote file             
              cmd = "query removeFile('"+rfname+"')";
              showCommand(si,host,port,cmd,true);
+             sw.start();
              si->Secondo(cmd,resList,serr);
+             runtime = sw.diffSecondsReal();
+             if(logOn){
+                commandLog.insert(this,this->getHost(), 
+                                this->getSecondoHome(),
+                                cmd, runtime, serr.code );
+             }
              showCommand(si,host,port,cmd,false);
              return true;
           }
@@ -1286,7 +1521,7 @@ even if the file is located outside the requestFile directory.
        string errmsg;
        ListExpr result; 
        double rt;
-       simpleCommand(cmd,err,errmsg, result,false,rt);
+       simpleCommand(cmd,err,errmsg, result,false,rt, false);
        if(err!=0){
             cerr << "command " << cmd << " failed" << endl;
             cerr << err << " : " << errmsg << endl;
@@ -20272,6 +20507,140 @@ Operator P8TMOp(
 );
 
 
+/*
+5.100 Operator ~da2enableLog~
+
+*/
+ListExpr da2enableLogTM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("bool expected");
+   }
+   if(!CcBool::checkType(nl->First(args))){
+     return listutils::typeError("bool expected");
+   }
+   return listutils::basicSymbol<CcBool>();
+}
+
+
+int da2enableLogVM(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+  CcBool* a = (CcBool*) args[0].addr;
+  bool enable = a->IsDefined() && a->GetValue();
+  logOn = enable;
+  result = qp->ResultStorage(s);
+  ((CcBool*) result.addr)->Set(true,enable);
+  return 0;
+}
+
+OperatorSpec da2enableLogSpec(
+  "bool -> bool",
+  "da2enableLog(_)",
+  "Enables or disables loggin within the Distributed2Algebra",
+  "query da2enableLog(TRUE)"
+);
+
+Operator da2enableLogOp(
+  "da2enableLog",
+  da2enableLogSpec.getStr(),
+  da2enableLogVM, 
+  Operator::SimpleSelect,
+  da2enableLogTM
+);
+
+/*
+5.101 Operator da2clearLog
+
+*/
+ListExpr da2clearLogTM(ListExpr args){
+   if(!nl->IsEmpty(args)){
+     return listutils::typeError("no arguments expected");
+   }
+   return listutils::basicSymbol<CcBool>();
+} 
+
+int da2clearLogVM(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+  commandLog.clear();
+  result = qp->ResultStorage(s);
+  ((CcBool*) result.addr)->Set(true,true);
+  return 0;
+}
+
+
+OperatorSpec da2clearLogSpec(
+  " -> bool",
+  "da2clearLog()",
+  "Removes log entries from the Distribute2Algebra log table",
+  "query da2clearLog()"
+);
+
+Operator da2clearLogOp(
+  "da2clearLog",
+  da2clearLogSpec.getStr(),
+  da2clearLogVM, 
+  Operator::SimpleSelect,
+  da2clearLogTM
+);
+
+
+ListExpr da2LogTM(ListExpr args){
+  if(!nl->IsEmpty(args)){
+    return listutils::typeError("no arguments expected");
+  }
+  return nl->TwoElemList(
+            listutils::basicSymbol<Stream<Tuple> >(),
+            CommandLog::getTupleDescription());
+
+}
+
+
+int da2LogVM(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+   typedef CommandLog::Iterator loginfo;
+   loginfo* li = (loginfo*) local.addr;
+
+   switch(message){
+     case OPEN:
+           if(li){
+             delete li;
+           }
+           local.addr = new loginfo(commandLog);
+           return 0;
+     case REQUEST:
+            result.addr = li?li->nextTuple():0;
+            return result.addr?YIELD:CANCEL;
+     case CLOSE:
+            if(li){
+              delete li;
+              local.addr=0;
+            }
+            return 0;
+   }
+   return -1;
+
+}
+
+OperatorSpec da2LogSpec(
+   " -> stream(tuple) ",
+   "da2Log()",
+   "Returns a stream of tuples with informations "
+   "about remote secondo commands.",
+   "query da2Log() consume"
+);
+
+Operator da2LogOp(
+  "da2Log",
+   da2LogSpec.getStr(),
+   da2LogVM,
+   Operator::SimpleSelect,
+   da2LogTM
+);
+
+
+
+
 
 
 /*
@@ -20472,6 +20841,10 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&partitionF8Op);
    partitionF8Op.SetUsesArgsInTypeMapping();
    AddOperator(&P8TMOp);
+
+   AddOperator(&da2enableLogOp);
+   AddOperator(&da2clearLogOp);
+   AddOperator(&da2LogOp);
 
 
    pprogView = new PProgressView();

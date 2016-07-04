@@ -120,6 +120,9 @@ operator partition8Local alias PARTITION8LOCAL pattern _ op[ fun,fun, _,_,_,_,_]
 
 operator partitionF8 alias PARTITIONF8 pattern  _ op [ _, fun, fun, fun, _,_] implicit parameter elem type P8TM 
 
+operator da2enableLog alias DA2ENABLELOG pattern op(_)
+operator da2clearLog  alias DA2CLEARLOG pattern op()
+operator da2Log alias DA2LOG pattern op()
 
 
 
