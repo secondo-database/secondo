@@ -15,16 +15,18 @@ if [ "$1" == "--help" ]; then
   echo "update updates secondo on remote server via CVS"
   echo
   echo "each line within the config file has to be in format"
-  echo "<server> <config> [<home> [<port> [<user>]]]"
+  echo "<server> <config> [<bin> [<home> [<port> [<user>]]]]"
+  echo ""
   echo "<server> : the host name at that the monitor should run"
+  echo "<bin>    : the bin directory of the Secondo to be started"
   echo "<config> : configuration file to use, must be exist on server side"
-  echo "<home> : overwrite the database directory specified in the configuration file"
-  echo "         if not used, but later arguments should be set, use a dollar sign "
-  echo "         as place holder"
-  echo "<port> : overwrite the monitor port specified in the configuration file"
-  echo "         if not used, but later arguments should be set, use a dollar sign "
-  echo "         as place holder"
-  echo "<user> : user which performs the command on the remote machine"
+  echo "<home>   : overwrite the database directory specified in the configuration file"
+  echo "           if not used, but later arguments should be set, use a dollar sign "
+  echo "           as place holder"
+  echo "<port>   : overwrite the monitor port specified in the configuration file"
+  echo "           if not used, but later arguments should be set, use a dollar sign "
+  echo "           as place holder"
+  echo "<user>   : user which performs the command on the remote machine"
   exit
 fi
 
@@ -55,13 +57,13 @@ function createHomesLine {
     return
   fi
   server=$1
-  home=$3
+  home=$4
   if [ -z "$home" ]; then
      echo "no home specified for server $server"
      return
   fi
-  if [ -n "$5" ]; then
-    user="$5@"
+  if [ -n "$6" ]; then
+    user="$6@"
   fi
   ssh "$user$server mkdir -p $home"
 
@@ -82,9 +84,12 @@ function updateLine {
 
 
   server=$1
-  if [ -n "$5" ]; then
-    user="$5@"
+  if [ -n "$6" ]; then
+    user="$6@"
   fi
+
+  secBin=$3; 
+
 
 
   # check whether server was already updatet
@@ -96,7 +101,12 @@ function updateLine {
 
   usedServers="$usedServers $server"
 
-  remotedir=$(ssh "$user$server" 'source $HOME/.bashrc; echo $SECONDO_BUILD_DIR')
+
+  if [ -z "$3" ]; then   
+     remotedir=$(ssh "$user$server" 'source $HOME/.bashrc; echo $SECONDO_BUILD_DIR')
+  else 
+     remotedir=$3
+  fi
 
   echo "remote SECONDO_BUILD_DIR= $remotedir"
 
@@ -110,7 +120,7 @@ function updateLine {
 
   script=UpdateMonitortemp.sh
   echo 'source $HOME/.bashrc' >$script
-  echo 'cd $SECONDO_BUILD_DIR' >>$script
+  echo "cd $remotedir" >>$script
   echo 'cvs update -PdA' >>$script
   echo 'make' >> $script
   echo >>$script
@@ -135,25 +145,30 @@ function startLine {
   server=$1
   config=$2
 
-  if [ -n "$3" ]; then
-    if [ "$3" != "$" ]; then
-        home="-d $3"
+  if [ -n "$4" ]; then
+    if [ "$4" != "$" ]; then
+        home="-d $4"
     fi
   fi
  
-  if [ -n "$4" ]; then
-    if [ "$4" != "$" ]; then
-       port="-p $4"
+  if [ -n "$5" ]; then
+    if [ "$5" != "$" ]; then
+       port="-p $5"
     fi
   fi
 
-  if [ -n "$5" ]; then
-    user="$5@"
+  if [ -n "$6" ]; then
+    user="$6@"
   fi
 
   script=runMonitortemp.sh
 
-  echo 'cd $HOME/secondo/bin' >$script
+  
+  if [ -z "$3" ] then
+      echo 'cd $HOME/secondo/bin' >$script
+  else 
+      echo cd $3 >$script
+  fi
   echo 'source $HOME/.secondorc' >> $script
   echo export SECONDO_CONFIG=$config >>$script
   echo 'if [ ! -e $SECONDO_CONFIG ]; then' >>$script
@@ -164,7 +179,7 @@ function startLine {
   if [ -z "$port" ]; then
     echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script 
   else
-     echo "port=$4" >>$script
+     echo "port=$5" >>$script
   fi
 
 
@@ -204,24 +219,28 @@ function stopLine {
   server=$1
   config=$2
 
-  if [ -n "$3" ]; then
-    if [ "$3" != "$" ]; then
-        home="$-d $3"
+  if [ -n "$4" ]; then
+    if [ "$4" != "$" ]; then
+        home="$-d $4"
     fi
   fi
  
-  if [ -n "$4" ]; then
-    if [ "$4" != "$" ]; then
-       port="-p $4"
+  if [ -n "$5" ]; then
+    if [ "$5" != "$" ]; then
+       port="-p $5"
     fi
   fi
 
-  if [ -n "$5" ]; then
-    user="$5@"
+  if [ -n "$6" ]; then
+    user="$6@"
   fi
 
   script=stopMonitortemp.sh
-  echo 'cd $HOME/secondo/bin' >$script
+  if [ -z "$3" ]; then
+     echo 'cd $HOME/secondo/bin' >$script
+  else 
+     echo cd $3 >$script
+  fi
   echo export SECONDO_CONFIG=$config >>$script
   echo 'if [ ! -e $SECONDO_CONFIG ]; then' >>$script
   echo ' echo configuration file $SECONDO_CONFIG not found an server ' $server >>$script
@@ -231,7 +250,7 @@ function stopLine {
   if [ -z "$port" ]; then
     echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script 
   else
-     echo "port=$4" >>$script
+     echo "port=$5" >>$script
   fi
 
   echo 'if [ -z "$TMPDIR" ]; then' >>$script
@@ -267,23 +286,27 @@ function checkLine {
   server=$1
   config=$2
 
-  if [ -n "$3" ]; then
-    if [ "$3" != "$" ]; then
-        home="-d $3"
+  if [ -n "$4" ]; then
+    if [ "$4" != "$" ]; then
+        home="-d $4"
     fi
   fi
  
-  if [ -n "$4" ]; then
-    if [ "$4" != "$" ]; then
-       port="-p $4"
+  if [ -n "$5" ]; then
+    if [ "$5" != "$" ]; then
+       port="-p $5"
     fi
   fi
-  if [ -n "$5" ]; then
-    user="$5@"
+  if [ -n "$6" ]; then
+    user="$6@"
   fi
 
   script=checkMonitortemp.sh
-  echo 'cd $HOME/secondo/bin' >$script
+  if [ -z "$3" ]; then
+     echo 'cd $HOME/secondo/bin' >$script
+  else
+     echo cd $3 >$script
+  fi
   echo export SECONDO_CONFIG=$config >>$script
   echo 'if [ ! -e $SECONDO_CONFIG ]; then' >>$script
   echo ' echo configuration file $SECONDO_CONFIG not found on server ' $server >>$script
@@ -292,7 +315,7 @@ function checkLine {
   if [ -z "$port" ]; then
     echo 'port=$(grep ^SecondoPort ${SECONDO_CONFIG} | sed -e "s@SecondoPort=@@g" | sed -e "s@\s@@g")' >>$script 
   else
-     echo "port=$4" >>$script
+     echo "port=$5" >>$script
   fi
 
   echo 'if [ -z "$TMPDIR" ]; then' >>$script
