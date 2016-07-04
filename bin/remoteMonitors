@@ -164,7 +164,7 @@ function startLine {
   script=runMonitortemp.sh
 
   
-  if [ -z "$3" ] then
+  if [ -z "$3" ]; then
       echo 'cd $HOME/secondo/bin' >$script
   else 
       echo cd $3 >$script
