@@ -56,14 +56,14 @@ Create a distributed array with server numbers. Must be the numbers 0, ..., ~N~ 
 
 */
 
-let Workers = SEC2WORKERS
 
-let NWorkers = 14
 
-// No changes needed below.
+let Control36 = intstream(0, 36 - 1) transformstream 
+  ddistribute3["Control36", 36, TRUE, Workers36] 
+  dloop["", . feed extract[Elem]]
 
-let Control = intstream(0, NWorkers - 1) transformstream 
-  ddistribute3["Control", NWorkers, TRUE, Workers] 
+let Control50 = intstream(0, 50 - 1) transformstream 
+  ddistribute3["Control50", 50, TRUE, Workers50] 
   dloop["", . feed extract[Elem]]
 
 /* 
@@ -71,7 +71,7 @@ Use the following functions in order. Example:
 
 Remember the last command number executed on each server.
 
-----    update LastCommand := distCostReset()
+----    update LastCommand := distCostReset(Control50)
 ----
 
 Execute the query of interest
@@ -83,7 +83,7 @@ Execute the query of interest
 
 Remember the costs for each server that have occurrred after the last previous command.
 
-----    let Costs1 = distCostSave()
+----    let Costs1 = distCostSave(Control50)
 ----
 
 Visualize the costs for the query of interest.
@@ -98,20 +98,20 @@ Create a relation which has for every server the number of the last command exec
 
 */
 
-let distCostReset = fun() Control
+let distCostReset = fun(Control: darray(int)) Control
   dloop["", fun(server: int) SEC2COMMANDS feed extend[Server: server]  
   project[Server, CmdNr] tail[1] consume] dsummarize consume
 
-let LastCommand = distCostReset()
+let LastCommand = distCostReset(Control50)
 
 /*
 Store the commands executed on each server after the last command. Parameter is an array of integers with the number of the last command per server, as returned by ~distCostReset~.
 
-Note that this command, the query to be evaluated andd the cost save query need to be executed by the same Secondo client, whereas the visualization in ~distCostBoxes~ may be done in a separate GUI client.
+Note that this command, the query to be evaluated and the cost save query need to be executed by the same Secondo client, whereas the visualization in ~distCostBoxes~ may be done in a separate GUI client.
 
 */
 
-let distCostSave = fun()
+let distCostSave = fun(Control: darray(int))
   Control dloop["", fun(server: int) 
     SEC2COMMANDS feed extend[Server: server] consume
   ] dsummarize 
@@ -143,6 +143,7 @@ let distCostBoxes = fun(
       .Below, .Below + .ElapsedTime)]
     aconsume]
   remove[CostsA]
+  unnest[CostsB]
   consume
 
 /*
