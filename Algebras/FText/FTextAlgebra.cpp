@@ -11957,11 +11957,11 @@ int substrwVMT( Word* args, Word& result, int message,
          start--;
       }
    }
-   if(end>=value.length()){
+   if((size_t)end>=value.length()){
       end = value.length()-1;
    }
    if(!stringutils::isWordSpace(value[end])){
-       while( (end<value.length()-1) 
+       while( ((size_t)end<value.length()-1) 
           && !stringutils::isWordSpace(value[end+1]) ){
            end++;
       }          
