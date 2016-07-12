@@ -25,6 +25,7 @@ import java.awt.Component;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import  java.util.Timer;
@@ -157,13 +158,14 @@ public class MP3V extends SecondoViewer
     private int numberofattr;
     
     private PausablePlayer2 p;
+    private int playedFrames=0;
 // ----------------------------------------------------------------
     private class PausablePlayer2 {
 
-        private final static int NOTSTARTED = 0;
-        private final static int PLAYING = 1;
-        private final static int PAUSED = 2;
-        private final static int FINISHED = 3;
+        private final static byte NOTSTARTED = 0;
+        private final static byte PLAYING = 1;
+        private final static byte PAUSED = 2;
+        private final static byte FINISHED = 3;
 
         // the player actually doing all the work
         private final Player player;
@@ -186,6 +188,7 @@ public class MP3V extends SecondoViewer
          * Starts playback (resumes if paused)
          */
         public void play() throws JavaLayerException {
+        	playedFrames=0;
             synchronized (playerLock) {
                 switch (playerStatus) {
                     case NOTSTARTED:
@@ -200,6 +203,7 @@ public class MP3V extends SecondoViewer
                         playerStatus = PLAYING;
     System.out.println("Starte PlayerThread");
                         t.start();
+    System.out.println("Playerthread gestartet....");
                         break;
                     case PAUSED:
                         resume();
@@ -264,14 +268,18 @@ System.out.println("PP:close");
 		        }
 
 		private void playInternal() {
- System.out.println("PP:Play");
+ System.out.println("PP:Play Internal");
         	while (playerStatus != FINISHED) {
+            	updatePosition(++playedFrames);
                 try {
                     if (!player.play(1)) {
-                        break;
+System.out.println("playInternal---->after play(1....playedFrames: "+playedFrames);
+                        break;  // last frame played
                     }
                 } catch (final JavaLayerException e) {
-                    break;
+System.out.println("playInternal---->after first catch......playedFrames: "+playedFrames);
+
+                	break;
                 }
                 // check if paused or terminated
                 synchronized (playerLock) {
@@ -285,6 +293,8 @@ System.out.println("PP:close");
                     }
                 }
             }
+        	endReached();
+        	
             close();
         }
         
@@ -615,6 +625,7 @@ System.out.println("PP:close");
 
   public void endReached(){
     PlayPauseButton.setIcon(playIcon);
+    PlayPauseButton.setText("play");
   }
 
 
@@ -791,7 +802,9 @@ System.out.println("PP:close");
             } else {
              /* songbuffer is not empty. */
             if(p==null){
-               p = new PausablePlayer2(songbuffer.decodeText());
+              BufferedInputStream bis = new BufferedInputStream(songbuffer.decodeText(),1000*1024);
+               p= new PausablePlayer2(bis);
+        //          p = new PausablePlayer2(songbuffer.decodeText());
                p.play();
             } else {
                 p.resume();
@@ -800,7 +813,8 @@ System.out.println("PP:close");
             PlayPauseButton.setText("pause");
            }
         } else { // filepath variant
-            if (DsplGeneric.isUndefined(filepath)){
+ System.out.println("----->FILEPATH variant !!!");
+        	if (DsplGeneric.isUndefined(filepath)){
                 infoarea.setText ("FSong: UNDEFINED");
             } else {
               if(p==null){

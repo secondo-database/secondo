@@ -88,7 +88,7 @@ CLASSPATH := $(CLASSPATH):$(GUIPATH)/secondoInterface/SecondoInterface.jar:$(JAV
 
 
 JARS := $(JLEXCLASSESPATH):$(CUPCLASSESPATH)
-JARS := $(JARS):$(LIBPATH)/jl0.4.jar
+JARS := $(JARS):$(LIBPATH)/jl1.0.1.jar
 JARS := $(JARS):$(LIBPATH)/14_os_jpedal.jar
 JARS := $(JARS):$(LIBPATH)/batik.jar
 JARS := $(JARS):$(LIBPATH)/grappa1_2.jar
