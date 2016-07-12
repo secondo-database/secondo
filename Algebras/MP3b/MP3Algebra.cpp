@@ -488,12 +488,12 @@ ende alter code */
 
 
 //refactor
-    int sizeOfId3v1Tag     = 128;
-    size_t sizeOfId3v2Tag  = this->lengthID3v2Tag;
+    int sizeOfId3v1Tag  = 128;
+    int sizeOfId3v2Tag  = this->lengthID3v2Tag;
 
     // calculate size of new MP3
-    size_t sizeOfFrames = framelength*size;
-    size_t sizeOfNewMP3 = sizeOfFrames+ sizeOfId3v2Tag;
+    int sizeOfFrames = framelength*size;
+    int sizeOfNewMP3 = sizeOfFrames+ sizeOfId3v2Tag;
     if (ExistsID()) {
     	sizeOfNewMP3 += sizeOfId3v1Tag;
     }
@@ -511,12 +511,12 @@ ende alter code */
 	//2. create buffer for Frames, read and copy data into new Flob
     char* bufferFrames = new char[sizeOfFrames];
     // calculate cut-position
-    size_t beginCutPos = sizeOfId3v2Tag+beginFrame*framelength;
+    int beginCutPos = sizeOfId3v2Tag+beginFrame*framelength;
 	mp3Data.read(bufferFrames,sizeOfFrames,beginCutPos);
 	newmp3->mp3Data.write(bufferFrames,sizeOfFrames,sizeOfId3v2Tag);
     delete bufferFrames;
 
-	//3. create buffer for Id3v1 Tag, read and copy data into new Flob
+	//3. create buffer for Id3v1, read and copy data into new Flob
 	if (ExistsID()){
 		char* bufferId3v1Tag =new char[sizeOfId3v1Tag];
 		mp3Data.read(bufferId3v1Tag,sizeOfId3v1Tag,
@@ -541,7 +541,21 @@ ende alter code */
     newmp3->frequency = this->frequency;
     newmp3->SetDefined (true);
 
+    newmp3->lengthID3v2Tag = sizeOfId3v2Tag;
+    newmp3->framelength = this->framelength;
     return newmp3;
+
+/* .......aus Definition
+    Flob mp3Data;
+    int version;
+    int bitrate;
+    bool canDelete;
+    int length;
+    int framecount;
+    int framelength; //padding-bit included
+    int frequency;
+    int lengthID3v2Tag; //added
+ */
 }
 
 /*
@@ -2906,7 +2920,8 @@ const string SubMP3Spec  =
 "</text--->"
 "<text> _ _ _ submp3</text--->"
 "<text>Extracts frames from mp3 objects and"
-" saves them into a new mp3 object.</text--->"
+" saves them into a new mp3 object."
+" Parameters: beginframe and size of frames" "</text--->"
 "<text>query song 12 100 submp3</text--->"
 ") )";
 
