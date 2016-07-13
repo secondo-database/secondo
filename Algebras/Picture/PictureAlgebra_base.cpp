@@ -897,7 +897,7 @@ void getHistHsv(Picture* picture, hist_hsv<dim, lab>* hist){
 
     unsigned long hist_abs[dim];
 
-    for (int i = 0; i < dim; ++i){
+    for (unsigned int i = 0; i < dim; ++i){
         hist_abs[i] = 0;
     }
 

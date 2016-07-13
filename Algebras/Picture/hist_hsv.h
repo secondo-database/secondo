@@ -148,7 +148,7 @@ public:
        if(!nl->HasLength(LE, dim)){
           return false;
        }
-       for(int i=0;i<dim;i++){
+       for(unsigned int i=0;i<dim;i++){
           ListExpr first = nl->First(LE);
           LE = nl->Rest(LE);
           if(!listutils::isNumeric(first)){
@@ -178,7 +178,7 @@ public:
           res = 0;
       } else {
          double s = 0;
-         for(int i=0;i<dim;i++){
+         for(size_t i=0;i<dim;i++){
             domain  diff =   hist[i] - h.hist[i];
             s += diff*diff;
          }
