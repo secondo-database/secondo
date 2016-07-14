@@ -27,52 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-
-#include "semaphore.h"
-
-#include "fsrel.h"
-#include "DArray.h"
-#include "frel.h"
-#include "fobj.h"
-#include <iostream>
-#include <vector>
-#include <list>
-
-#include "SecondoInterface.h"
-#include "SecondoInterfaceCS.h"
-#include "FileSystem.h"
-#include "Algebra.h"
-#include "NestedList.h"
-#include "StandardTypes.h"
-#include "FTextAlgebra.h"
-#include "ListUtils.h"
-#include "StringUtils.h"
-#include "RelationAlgebra.h"
-#include "Stream.h"
-#include "NList.h"
-#include "ArrayAlgebra.h"
-#include "SocketIO.h"
-#include "StopWatch.h"
-
-#include "LongInt.h"
-
-#include "Bash.h"
-#include "DebugWriter.h"
-
-
-
-#include "FileRelations.h"
-#include "FileAttribute.h"
-
-
-
-  // use boost for thread handling
-
-#include <boost/thread.hpp>
-#include <boost/date_time.hpp>
-
-
-extern DebugWriter dwriter;
+#include "ConnectionInfo.h"
+#include "Dist2Helper.h"
+#include <boost/bind.hpp>
+#include <boost/ref.hpp>
 
 extern boost::mutex nlparsemtx;
 
@@ -91,1459 +49,11 @@ always if a nested list is parsed.
 
 */
 boost::mutex createRelMut;
-boost::mutex copylistmutex;
-
-
-
 
 bool showCommands;
-boost::mutex showCommandMtx;
-
-void showCommand(SecondoInterfaceCS* src, const string& host, const int port, 
-                 const string& cmd, bool start){
-
-   if(showCommands){
-      dwriter.write(showCommands,cout, src, src->getPid(), "= " + host + ":" 
-              + stringutils::int2str(port)+ ":" + (start?"start ":"finish ") 
-              + cmd);
-   }
-
-}
-
-class ConnectionInfo;
-void showError(const ConnectionInfo* ci, const string& command , 
-               const int errorCode, const string& errorMessage);
-
-void showError(const SecondoInterfaceCS* ci, const string& command , 
-               const int errorCode, const string& errorMessage);
-
-/*
-Some Helper functions.
-
-*/
-
-string getUDRelType(ListExpr r){
-
-  assert(Relation::checkType(r) || frel::checkType(r));
-  ListExpr attrList = nl->Second(nl->Second(r));
-  string rt = nl->SymbolValue(nl->First(r));
-  string res = rt+"(tuple([";
-  bool first = true;
-  while(!nl->IsEmpty(attrList)){
-    if(!first){
-      res += ", ";
-    } else {
-      first = false;
-    }
-    ListExpr attr = nl->First(attrList);
-    attrList = nl->Rest(attrList);
-    res += nl->SymbolValue(nl->First(attr));
-    res += " : " + nl->ToString(nl->Second(attr));
-  }
-  res +="]))";
-  return res;
-}
-
-
-
-
-/*
-1.0.1 ~rewriteQuery~
-
-This function replaces occurences of [$]<Ident> within the string orig
-by corresponding const expressions. If one Ident does not represent
-a valid object name, the result will be false and the string is
-unchanged.
-
-*/
-
-string rewriteRelType(ListExpr relType){
-  if(!Relation::checkType(relType)){
-     return nl->ToString(relType);
-  }
-
-  ListExpr attrList = nl->Second(nl->Second(relType));
-
-  stringstream ss;
-  ss << "rel(tuple([";
-  bool first = true;
-  while(!nl->IsEmpty(attrList)){
-     if(!first){
-       ss << ", ";
-     } else {
-        first = false;
-     }
-     ListExpr attr = nl->First(attrList);
-     attrList = nl->Rest(attrList);
-     ss << nl->SymbolValue(nl->First(attr));
-     ss << " : ";
-     ss << nl->ToString(nl->Second(attr));
-  }
-  ss << "]))";
-  return ss.str();
-}
-
-/*
-The next function returns a constant expression for an 
-database object. 
-
-*/
-
-bool getConstEx(const string& objName, string& result){
-
-   SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-   if(!ctlg->IsObjectName(objName)){
-       return false;
-   }
-   result = " [const " + rewriteRelType(ctlg->GetObjectTypeExpr(objName))
-          + " value " + nl->ToString(ctlg->GetObjectValue(objName)) + "] ";
-
-   return true;
-}
-
-
-template<class T>
-void print(vector<T>& v, ostream& out){
-  for(size_t i=0;i<v.size();i++){
-     out << v[i] << " ";
-  }
-}
-
-
-
-/*
-rewrites a query. Replaces dollar signs by numbers.
-
-*/
-bool rewriteQuery(const string& orig, string& result){
-
-  stringstream out;
-  size_t pos = 0;
-  size_t f = orig.find_first_of("$", pos);
-  map<string,string> used;
-  while(f!=string::npos){
-     size_t f2 = f +1;
-     if(f2 < orig.length()){
-        if(stringutils::isLetter(orig[f2])){
-           if(f>pos){
-              out << orig.substr(pos , f - pos);
-           }
-           stringstream ident;
-           ident << orig[f2];
-           f2++;
-           while(f2<orig.length() && (stringutils::isLetter(orig[f2]) || 
-                 stringutils::isDigit(orig[f2] || (orig[f2]=='_')))){
-              ident  << orig[f2];
-              f2++;
-           }
-           string constEx;
-           if(used.find(ident.str())!=used.end()){
-             constEx = used[ident.str()];
-           }  else {
-              if(!getConstEx(ident.str(),constEx)){
-                  result =  orig;
-                  return false;
-              }
-           }
-           out << constEx; 
-           pos = f2;
-        } else if(orig[f2]=='$'){ // masked dollar
-            out <<  orig.substr(pos,f2-pos);
-            pos = f2+1;
-        } else { // not a indent after $
-            out <<  orig.substr(pos,f2+1-pos);
-            pos = f2;
-           pos++;
-        } 
-     } else { // end of 
-       out << orig.substr(pos,string::npos);
-       pos = f2;
-     }
-     f = orig.find_first_of("$", pos);
-  }
-   out << orig.substr(pos,string::npos);
-   result = out.str();
-  return true;
-}
-
-class CommandLog{
-
-  private: 
-     struct LogEntry{
-
-        LogEntry(void* _id, 
-                 const string& _server,
-                 const string& _home,
-                 const string& _query,
-                 const double _runtime,
-                 const int _errorCode
-        ):
-             id(_id), server(_server), home(_home),
-             query(_query), runtime(_runtime),
-             errorCode(_errorCode){} 
-
-
-        void*  id; // used connectioninfo
-        string server;
-        string home;
-        string query;
-        double runtime;
-        int errorCode;
-     };
-
-  public:
-
-     CommandLog(){}
-  
-     void clear(){
-        entries.clear();
-      }
-
-      void insert( ConnectionInfo* ci,
-                   const string& server,
-                   const string& home,
-                   const string& query,
-                   const double& runtime,
-                   const int errorCode){
-        boost::lock_guard<boost::mutex> gurad(mtx);
-        entries.push_back(LogEntry((void*)ci,server,home,
-                                    query,runtime,
-                                    errorCode));
-     }
- 
-    static  ListExpr getTupleDescription(){
-       ListExpr attrList = 
-            nl->SixElemList(
-              nl->TwoElemList( nl->SymbolAtom("ConnectionId"),
-                               listutils::basicSymbol<LongInt>()),
-              nl->TwoElemList( nl->SymbolAtom("Server"),
-                               listutils::basicSymbol<FText>()),
-              nl->TwoElemList( nl->SymbolAtom("Home"),
-                               listutils::basicSymbol<FText>()),
-              nl->TwoElemList( nl->SymbolAtom("Command"),
-                               listutils::basicSymbol<FText>()),
-              nl->TwoElemList( nl->SymbolAtom("RunTime"),
-                               listutils::basicSymbol<CcReal>()),
-              nl->TwoElemList( nl->SymbolAtom("ErrorCode"),
-                               listutils::basicSymbol<CcInt>()));
-        return nl->TwoElemList(
-                 listutils::basicSymbol<Tuple>(),
-                 attrList);
-     } 
-
-
-     class Iterator{
-        public:
-          Iterator(const CommandLog& log): entries(log.entries), pos(0){
-            ListExpr numTuple =SecondoSystem::GetCatalog()->NumericType( 
-                                         CommandLog::getTupleDescription() );
-            tt = new TupleType(numTuple);
-          }
-
-          ~Iterator(){
-              tt->DeleteIfAllowed();
-           }
-
-          Tuple* nextTuple(){
-            if(pos>= entries.size()){
-              return 0;
-            }
-            Tuple* res = new Tuple(tt);
-            res->PutAttribute(0, new LongInt(true, (int64_t) entries[pos].id));
-            res->PutAttribute(1, new FText(true, entries[pos].server));
-            res->PutAttribute(2, new FText(true, entries[pos].home));
-            res->PutAttribute(3, new FText(true, entries[pos].query));
-            res->PutAttribute(4, new CcReal(true, entries[pos].runtime));
-            res->PutAttribute(5, new CcInt(true, entries[pos].errorCode));
-            pos++;
-            return res;
-          }
-
-         private: 
-           vector<LogEntry> entries;
-           size_t pos;
-           TupleType * tt;
-
-     };
-
-
-  private:
-     vector<LogEntry> entries;
-     boost::mutex mtx;
-
-};
-
 
 CommandLog commandLog;
 bool logOn = false;
-
-
-
-/*
-1 Class Connection
-
-This class represents a connection to a remote Secondo Server.
-
-*/
-
-class ConnectionInfo{
-
-   public:
-
-/*
-1.1 Constructor
-
-Creates a new connection instance. 
-
-*/
-     ConnectionInfo(const string& _host, const int _port,
-                    const string& _config, SecondoInterfaceCS* _si,
-                    NestedList* _mynl):
-      host(_host), port(_port), config(_config), si(_si){
-          mynl = _mynl;
-          serverPID = 0;
-          secondoHome = "";
-          requestFolder ="";
-          sendFolder="";
-          sendPath="";
-      }
-
-
-/*
-1.2 Destructor
-
-Terminates the connection and destoys the object.
-
-*/
-      ~ConnectionInfo(){
-          {
-             boost::lock_guard<boost::recursive_mutex> guard(simtx);
-             si->Terminate();
-          }
-          delete si;
-          si = 0;
-          delete mynl;
-       }
-
-/*
-1.3 ~getHost~
-
-returns the remote host.
-
-*/
-       string getHost() const{
-          return host;
-       }
-
-/*
-1.4 getPort
-
-*/
-       int getPort() const{
-          return port;
-       }
-
-/*
-1.5 getConfig
-
-Returns the configuration file used for the client. 
-Has nothing to do with the configuration file used by the
-remove monitor.
-
-*/
-       string getConfig() const{
-          return config;
-       }
-    
-/*
-1.6 check
-
-Checks whether the remote server is working by sending a simple command.
-
-*/
-       bool check() {
-          ListExpr res;
-          string cmd = "list databases";
-          SecErrInfo err;
-          {
-             boost::lock_guard<boost::recursive_mutex> guard(simtx);
-             showCommand(si,host,port,cmd, true);
-             StopWatch sw;
-             si->Secondo(cmd,res,err);
-             double rt = sw.diffSecondsReal();
-             if(logOn){
-               commandLog.insert(this,this->getHost(), 
-                                 this->getSecondoHome(),
-                                 cmd, rt, err.code);
-             }
-             showCommand(si,host,port,cmd, false);
-          }  
-          return err.code==0;
-       }
-
-/*
-1.7 setId
-
-Sets the id.
-
-*/
-        void setId(const int i){
-            if(si){
-               si->setId(i);;
-            }
-        }
-
-
-/*
-1.8 simpleCommand
-
-Performs a command on the remote server. The result is stored as a string.
-
-
-*/
-       void simpleCommand(string command1, int& err, string& result, 
-                          bool rewrite, double& runtime){
-          string command;
-          if(rewrite){
-            rewriteQuery(command1,command);
-          } else {
-            command = command1;
-          }
-          SecErrInfo serr;
-          ListExpr resList;
-          {
-             boost::lock_guard<boost::recursive_mutex> guard(simtx);
-             StopWatch sw;
-             showCommand(si,host,port,command, true);
-             si->Secondo(command, resList, serr);
-             showCommand(si,host,port,command, false);
-             runtime = sw.diffSecondsReal();
-             err = serr.code;
-             if(logOn){
-               commandLog.insert(this,this->getHost(), 
-                                 this->getSecondoHome(),
-                                 command, runtime, err );
-             }
-             if(err==0){
-                result = mynl->ToString(resList);
-             } else {
-                result = si->GetErrorMessage(err);
-             }
-          }
-       }
-
-
-/*
-1.9 getSecondoHome
-
-Returns the path of the secondo databases of the remote server.
-
-*/
-       string getSecondoHome(){
-         if(secondoHome.length()==0){
-            retrieveSecondoHome();
-         }
-         return secondoHome;
-       }
-
-/*
-1.10 cleanUp
-
-This command removes temporal objects on the remote server.
-Such objects having names starting with TMP[_]. Furthermore,
-files starting with TMP are removed within the dfarray directory
-of the remote server.
-
-*/
-
-      bool cleanUp() {
-          // first step : remove database objects
-          string command = "query getcatalog() "
-                           "filter[.ObjectName startsWith \"TMP_\"] "
-                           "extend[OK : deleteObject(.ObjectName)] "
-                           " count";
-          int err;
-          string res;
-          double rt;
-          simpleCommand(command, err, res, false, rt);
-          bool result = err==0;
-          string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-          string path = getSecondoHome() +"/dfarrays/" + dbname + "/";
-          command = "query getDirectory('" + path +"') "
-                    "filter[basename(.) startsWith \"TMP_\"] "
-                    "namedtransformstream[F] "
-                    "extend[ OK : removeDirectory(.F, TRUE)] count";
-          simpleCommand(command, err, res, false, rt);
-          result = result && (err==0);
-          return result;
-      }
-
-
-/*
-1.11 switchDatabase
-
-Switches the remote server to another database.
-
-*/
-       bool switchDatabase(const string& dbname, bool createifnotexists){
-          boost::lock_guard<boost::recursive_mutex> guard(simtx);;
-          // close database ignore errors
-          SecErrInfo serr;
-          ListExpr resList;
-          string cmd = "close database";
-          showCommand(si,host,port,cmd, true);
-          si->Secondo(cmd, resList, serr);
-          showCommand(si,host,port,cmd, false);
-          // create database ignore errors
-          if(createifnotexists){
-              cmd = "create database " + dbname;
-              showCommand(si,host,port,cmd, true);
-              si->Secondo(cmd, resList, serr);
-              showCommand(si,host,port,cmd, false);
-          }
-          // open database 
-          cmd = "open database "+ dbname;
-          showCommand(si,host,port,cmd, true);
-          si->Secondo(cmd, resList, serr);
-          showCommand(si,host,port,cmd, false);
-          bool res = serr.code==0;   
-          return res;
-       }
-
-
-/*
-1.12 simpleCommand
-
-This variant of ~simpleCommand~ returns the result as a list.
-
-
-*/
-       void simpleCommand(const string& command1, int& error, string& errMsg, 
-                          string& resList, const bool rewrite, double& runtime){
-
-          string command;
-          if(rewrite){
-            rewriteQuery(command1,command);
-          } else {
-            command = command1;
-          }
-          {
-             boost::lock_guard<boost::recursive_mutex> guard(simtx);;
-             SecErrInfo serr;
-             ListExpr myResList = mynl->TheEmptyList();
-             StopWatch sw;
-             showCommand(si,host,port,command,true);
-             si->Secondo(command, myResList, serr);
-             showCommand(si,host,port,command,false);
-             runtime = sw.diffSecondsReal();
-             if(logOn){
-                 commandLog.insert(this,this->getHost(), 
-                                   this->getSecondoHome(),
-                                   command, runtime, serr.code );
-             }
-             error = serr.code;
-             errMsg = serr.msg;
-
-             resList = mynl->ToString(myResList);
-             mynl->Destroy(myResList);
-          }
-       }
-       
-
-/*
-1.13 simpleCommandFromList
-
-Performs a command that is given in nested list format.
-
-*/
-       void simpleCommandFromList(const string& command1, int& error, 
-                                  string& errMsg, string& resList, 
-                                  const bool rewrite, double& runtime){
-
-          string command;
-          if(rewrite){
-            rewriteQuery(command1,command);
-          } else {
-            command = command1;
-          }
-          boost::lock_guard<boost::recursive_mutex> guard(simtx);
-          ListExpr cmd = mynl->TheEmptyList();
-          {
-              boost::lock_guard<boost::mutex> guard(nlparsemtx);
-              if(! mynl->ReadFromString(command,cmd)){
-                 error = 3;
-                 errMsg = "error in parsing list";
-                 return;
-              }
-          }
-          SecErrInfo serr;
-          ListExpr myResList = mynl->TheEmptyList();
-          StopWatch sw;
-          showCommand(si,host,port,command, true);
-          si->Secondo(cmd, myResList, serr);
-          showCommand(si,host,port,command, false);
-          runtime = sw.diffSecondsReal();
-          if(logOn){
-             commandLog.insert(this,this->getHost(), 
-                               this->getSecondoHome(),
-                               command, runtime, serr.code );
-          }
-          error = serr.code;
-          errMsg = serr.msg;
-
-          resList = mynl->ToString(myResList);
-          if(mynl->AtomType(cmd)!=NoAtom && !mynl->IsEmpty(cmd)){
-              mynl->Destroy(cmd);
-          }
-          if(mynl->AtomType(myResList)!=NoAtom && !mynl->IsEmpty(myResList)){
-              mynl->Destroy(myResList);
-          }
-          
-          
-       }
-
-
-/*
-1.13 simpleCommand
-
-This variant provides the result as a list.
-
-*/
-
-       void simpleCommand(const string& command1, int& error, string& errMsg, 
-                          ListExpr& resList, const bool rewrite,
-                          double& runtime, bool log = logOn){
-
-
-          string command;
-          if(rewrite){
-            rewriteQuery(command1,command);
-          } else {
-            command = command1;
-          }
-          boost::lock_guard<boost::recursive_mutex> guard(simtx);;
-          SecErrInfo serr;
-          ListExpr myResList = mynl->TheEmptyList();
-          StopWatch sw;
-          showCommand(si,host,port,command, true);
-          si->Secondo(command, myResList, serr);
-          showCommand(si,host,port,command, false);
-          runtime = sw.diffSecondsReal();
-          if(log){
-             commandLog.insert(this,this->getHost(), 
-                               this->getSecondoHome(),
-                               command, runtime, serr.code );
-          }
-          error = serr.code;
-          errMsg = serr.msg;
-          // copy resultlist from local nested list to global nested list
-          {
-              boost::lock_guard<boost::mutex> guard(copylistmutex);   
-              assert(mynl!=nl);
-              resList =  mynl->CopyList(myResList, nl);
-              mynl->Destroy(myResList);
-          }
-       }
-
-
-/*
-1.14 serverPid
-
-returns the process id of the remote server
-
-*/
-        int serverPid(){
-           boost::lock_guard<boost::recursive_mutex> guard(simtx);
-           if(serverPID==0){
-             serverPID = si->getPid(); 
-           }
-           return serverPID;
-        }
-
-
-/*
-1.15 sendFile
-
-transfers a locally stored file to the remote server. 
-It returns an error code.
-
-*/
-        int sendFile( const string& local, const string& remote, 
-                      const bool allowOverwrite){
-          boost::lock_guard<boost::recursive_mutex> guard(simtx);   
-          int res =  si->sendFile(local,remote, allowOverwrite);
-          return res;
-        }
-        
-
-/*
-1.16 requestFile
-
-Transfers a remotely stored file to the local file system.
-
-*/
-        int requestFile( const string& remote, const string& local,
-                         const bool allowOverwrite){
-          boost::lock_guard<boost::recursive_mutex> guard(simtx);   
-          int res =  si->requestFile(remote, local, allowOverwrite);
-          return res;
-        }
-
-/*
-1.17 getRequestFolder
-
-Returns the path on remote machine for requesting files.
-
-*/
-        string getRequestFolder(){
-          if(requestFolder.length()==0){
-             boost::lock_guard<boost::recursive_mutex> guard(simtx);   
-             requestFolder =  si->getRequestFileFolder();
-          }
-          return requestFolder;
-        }
-        
-
-/*
-1.18 getSendFolder
-
-returns the folder the remote machine where files are stored.
-This folder is a subdirectory of the request folder.
-
-*/
-        string getSendFolder(){
-          if(sendFolder.length()==0){
-             boost::lock_guard<boost::recursive_mutex> guard(simtx);   
-             sendFolder =  si->getSendFileFolder();
-          }
-          return sendFolder;
-        }
-
-/*
-1.19 getSendPath
-
-Returns the complete path where files are stored.
-
-*/
-        
-        string getSendPath(){
-          if(sendPath.length()==0){
-             boost::lock_guard<boost::recursive_mutex> guard(simtx);   
-             sendPath =  si->getSendFilePath();
-          }
-          return sendPath;
-        }
-
-
-/*
-1.20 Factory function
-
-*/
-        static ConnectionInfo* createConnection(const string& host, 
-                                   const int port, string& config){
-
-              NestedList* mynl = new NestedList();
-              SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl,true);
-              string user="";
-              string passwd = "";
-              string errMsg;
-              si->setMaxAttempts(4);
-              si->setTimeout(1);
-              if(! si->Initialize(user, passwd, host, 
-                       stringutils::int2str(port), config, 
-                       errMsg, true)){
-                  delete si;
-                  si = 0;
-                  delete mynl;
-                  return 0;
-             } else {
-                  return  new ConnectionInfo(host, port, config, si, mynl);
-             }
-         }
-
-/*
-1.21 createOrUpdateObject
-
-creates a new object or updates an existing one on remote server.
-
-*/
-         bool createOrUpdateObject(const string& name, 
-                                   ListExpr typelist, Word& value){
-              if(Relation::checkType(typelist)){
-                 return createOrUpdateRelation(name, typelist, value);
-              }
-
-              boost::lock_guard<boost::recursive_mutex> guard(simtx);
-              SecErrInfo serr;
-              ListExpr resList;
-              string cmd = "delete " + name;
-              showCommand(si,host,port,cmd,true);
-              StopWatch sw;
-              si->Secondo(cmd, resList, serr);
-              double runtime = sw.diffSecondsReal();
-              if(logOn){
-                 commandLog.insert(this,this->getHost(), 
-                                   this->getSecondoHome(),
-                                  cmd, runtime, serr.code );
-              }
-
-              showCommand(si,host,port,cmd,false);
-              // ignore error (object must not exist)
-              string filename = name + "_" + 
-                                stringutils::int2str(WinUnix::getpid())
-                                 + ".obj";
-              storeObjectToFile(name, value, typelist, filename);
-              cmd = "restore " + name + " from '" + filename + "'";
-              showCommand(si,host,port,cmd,true);
-              sw.start();
-              si->Secondo(cmd, resList, serr);
-              runtime = sw.diffSecondsReal();
-              if(logOn){
-                 commandLog.insert(this,this->getHost(), 
-                                   this->getSecondoHome(),
-                                  cmd, runtime, serr.code );
-              }
-              showCommand(si,host,port,cmd,false);
-              FileSystem::DeleteFileOrFolder(filename);
-              return serr.code==0;
-         }
-
-/*
-1.22 createOrUpdateRelation
-
-Accelerated version for relations.
-
-*/
-         bool createOrUpdateRelation(const string& name, ListExpr typeList,
-                                     Word& value){
-
-             // write relation to a file
-             string filename = name + "_" 
-                               + stringutils::int2str(WinUnix::getpid()) 
-                               + ".bin";
-             if(!saveRelationToFile(typeList, value, filename)){
-                return false;
-             }
-             // restore remote relation from local file
-             bool ok = createOrUpdateRelationFromBinFile(name,filename); 
-             // remove temporarly file
-             FileSystem::DeleteFileOrFolder(filename);
-             return ok;
-         }
-
-/*
-1.23 createOrUpdateRelationFromBinFile
-
-Creates a new relation or updates an existing one on remote server from
-local file.
-
-*/
-
-         bool createOrUpdateRelationFromBinFile(const string& name, 
-                                                const string& filename,
-                                                const bool allowOverwrite=true){
-             boost::lock_guard<boost::recursive_mutex> guard(simtx);
-
-             SecErrInfo serr;
-             ListExpr resList;
-             // transfer file to remote server
-             int error = si->sendFile(filename,filename,true);
-             if(error!=0){
-                return false;
-             } 
-
-             // retrieve folder from which the filename can be read
-             string sendFolder = si->getSendFilePath();
-             
-             string rfilename = sendFolder+"/"+filename;
-             // delete existing object
-
-             string cmd = "delete " + name;
-             if(allowOverwrite){
-                showCommand(si,host,port,cmd,true);
-                StopWatch sw;
-                si->Secondo(cmd, resList, serr);
-                double runtime = sw.diffSecondsReal();
-                if(logOn){
-                   commandLog.insert(this,this->getHost(), 
-                                     this->getSecondoHome(),
-                                    cmd, runtime, serr.code );
-                }
-                showCommand(si,host,port,cmd,false);
-             }
-       
-             cmd = "let " + name + " =  '" + rfilename +"' ffeed5 consume ";
-
-             showCommand(si,host,port,cmd,true);
-             StopWatch sw;
-             si->Secondo(cmd, resList, serr);
-             double runtime = sw.diffSecondsReal();
-             if(logOn){
-                commandLog.insert(this,this->getHost(), 
-                                  this->getSecondoHome(),
-                                  cmd, runtime, serr.code );
-             }
-             showCommand(si,host,port,cmd,false);
-
-             bool ok = serr.code == 0;
-
-
-             cmd = "query removeFile('"+rfilename+"')";
-             sw.start();
-             si->Secondo (cmd,resList,serr);
-             runtime = sw.diffSecondsReal();
-             if(logOn){
-                commandLog.insert(this,this->getHost(), 
-                                  this->getSecondoHome(),
-                                  cmd, runtime, serr.code );
-             }
-
-
-             return ok;
-         }
-         
-/*
-1.24 createOrUpdateAttributeFromBinFile
-
-Creates an new attribute object or updates an existing one on remote server 
-from a local file.
-
-*/
-         bool createOrUpdateAttributeFromBinFile(const string& name, 
-                                                const string& filename,
-                                                const bool allowOverwrite=true){
-             boost::lock_guard<boost::recursive_mutex> guard(simtx);
-
-             SecErrInfo serr;
-             ListExpr resList;
-             // transfer file to remote server
-             int error = si->sendFile(filename,filename,true);
-             if(error!=0){
-                return false;
-             } 
-
-             // retrieve folder from which the filename can be read
-             string sendFolder = si->getSendFilePath();
-             
-             string rfilename = sendFolder+"/"+filename;
-             // delete existing object
-
-             string cmd = "delete " + name;
-             if(allowOverwrite){
-                showCommand(si,host,port,cmd,true);
-                StopWatch sw;
-                si->Secondo(cmd, resList, serr);
-                double runtime = sw.diffSecondsReal();
-                if(logOn){
-                   commandLog.insert(this,this->getHost(), 
-                                  this->getSecondoHome(),
-                                  cmd, runtime, serr.code );
-                }
-                showCommand(si,host,port,cmd,false);
-             }
-       
-             cmd = "let " + name + " =  loadAttr('" 
-                          + rfilename + "') ";
-
-             showCommand(si,host,port,cmd,true);
-             StopWatch sw;
-             si->Secondo(cmd, resList, serr);
-             double runtime = sw.diffSecondsReal();
-             if(logOn){
-                commandLog.insert(this,this->getHost(), 
-                                  this->getSecondoHome(),
-                                  cmd, runtime, serr.code );
-             }
-             showCommand(si,host,port,cmd,false);
-
-             bool ok = serr.code == 0;
-
-             cmd = "query removeFile('"+rfilename+"')";
-
-             si->Secondo (cmd,resList,serr);
-
-             return ok;
-         }
-
-
-/*
-1.26 saveRelationToFile
-
-Stores a local relation info a binary local file.
-
-*/
-         bool saveRelationToFile(ListExpr relType, Word& value, 
-                                 const string& filename){
-            ofstream out(filename.c_str(),ios::out|ios::binary);
-            char* buffer = new char[FILE_BUFFER_SIZE];
-            out.rdbuf()->pubsetbuf(buffer, FILE_BUFFER_SIZE);
-            if(!out.good()){
-               delete[] buffer;
-               return false;
-            }
-            if(!BinRelWriter::writeHeader(out,relType)){
-               delete[] buffer;
-               return false;
-            }
-            Relation* rel = (Relation*) value.addr;
-            GenericRelationIterator* it = rel->MakeScan();
-            bool ok = true;
-            Tuple* tuple=0;
-            while(ok && ((tuple=it->GetNextTuple())!=0)){
-               ok = BinRelWriter::writeNextTuple(out,tuple);
-               tuple->DeleteIfAllowed();
-            }
-            delete it;
-            BinRelWriter::finish(out);
-            out.close();
-            delete[] buffer;
-            return ok;
-         }
-
-/*
-1.27 saveAttributeToFile
-
-saves an attribute to a local file.
-
-*/
-         bool saveAttributeToFile(ListExpr type, Word& value, 
-                                 const string& filename){
-            Attribute* attr = (Attribute*) value.addr;
-            return FileAttribute::saveAttribute(type, attr, filename);
-         }
-
-/*
-1.28 storeObjectToFile
-
-Stores any object to a file using its nested list represnetation.
-
-*/
-
-         bool storeObjectToFile( const string& objName, Word& value, 
-                                 ListExpr typeList, 
-                                  const string& fileName){
-               SecondoCatalog* ctl = SecondoSystem::GetCatalog();
-               ListExpr valueList = ctl->OutObject(typeList, value);
-               ListExpr objList = nl->FiveElemList(
-                                     nl->SymbolAtom("OBJECT"),
-                                     nl->SymbolAtom(objName),
-                                     nl->TheEmptyList(),
-                                     typeList,
-                                     valueList);
-              return nl->WriteToFile(fileName, objList);
-         }        
-
-
-/*
-1.29 retrieve
-
-Retrieves a remote object.
-
-*/
-
-          bool retrieve(const string& objName, ListExpr& resType, Word& result, 
-                        bool checkType){
-              boost::lock_guard<boost::recursive_mutex> guard(simtx);
-              if(Relation::checkType(resType)){
-                  if(retrieveRelation(objName, resType, result)){
-                     return true;
-                  } 
-                  cerr << "Could not use fast retrieval for a "
-                       << " relation, failback" << endl;
-              }
-
-              SecErrInfo serr;
-              ListExpr myResList;
-              string cmd = "query " + objName;
-              showCommand(si,host,port,cmd,true);
-              StopWatch sw;
-              si->Secondo(cmd, myResList, serr);
-              double runtime = sw.diffSecondsReal();
-              if(logOn){
-                 commandLog.insert(this,this->getHost(), 
-                                this->getSecondoHome(),
-                                cmd, runtime, serr.code );
-              }
-              showCommand(si,host,port,cmd,false);
-              SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-              if(serr.code!=0){
-                 return false;
-              }
-              if(!mynl->HasLength(myResList,2)){
-                return false;
-              }
-              // copy result list into global list memory
-              ListExpr resList;
-              {
-                 boost::lock_guard<boost::mutex> guard(copylistmutex);
-                 resList =  mynl->CopyList(myResList, nl);
-                 mynl->Destroy(myResList);
-              }
-              ListExpr resType2 = nl->First(resList);
-              if(checkType && !nl->Equal(resType,resType2)){
-                 // other type than expected
-                 return false;
-              }
-              ListExpr value = nl->Second(resList);
-
-              int errorPos=0;
-              ListExpr errorInfo = listutils::emptyErrorInfo();
-              bool correct;
-              {
-                 boost::lock_guard<boost::mutex> guard(createRelMut);
-                 result = ctlg->InObject(resType,value, errorPos, 
-                                      errorInfo, correct);
-              }
-              if(!correct){
-                 result.addr = 0;
-              }
-              return correct;
-          }
-/*
-1.30 retrieveRelation
-
-Special accelerated version for relations
-
-*/
-          bool retrieveRelation(const string& objName, 
-                                 ListExpr& resType, Word& result
-                                ){
-
-             string fname1 = objName+".bin";
-             if(!retrieveRelationFile(objName, fname1)){
-                return false;
-             }
-             result = createRelationFromFile(fname1, resType);
-             FileSystem::DeleteFileOrFolder(fname1);
-             return true;
-          }
-
-
-/*
-1.31 retrieveRelationInFile
-
-Retrieves a relation which is on a remotely stored file.
-
-*/
-          bool retrieveRelationInFile(const string& fileName,
-                                      ListExpr& resType, 
-                                      Word& result){
-             boost::lock_guard<boost::recursive_mutex> guard(simtx);
-             result.addr = 0;
-             // get the full path for requesting files 
-             string rfpath = si->getRequestFilePath()+"/";
-             string base = FileSystem::Basename(fileName);
-             if(stringutils::startsWith(fileName,rfpath)){
-                 // we can just get the file without copying it
-                 if(!si->requestFile(fileName.substr(rfpath.length()),
-                                     base+".tmp",true)){
-                    return false;
-                 }
-                 result = createRelationFromFile(base+".tmp",resType);
-                 FileSystem::DeleteFileOrFolder(base+".tmp");
-                 return true;
-             }
-             // remote file located in a not accessible folder, send command
-             // to copy it into a such folder
-             string cmd = "query copyFile('"+fileName+ "', '" + 
-                                           rfpath + base +".tmp')";
-             SecErrInfo  serr;
-             ListExpr resList;
-             showCommand(si,host,port,cmd,true);
-             StopWatch sw;
-             si->Secondo(cmd,resList,serr);
-             double runtime = sw.diffSecondsReal();
-             if(logOn){
-                commandLog.insert(this,this->getHost(), 
-                                this->getSecondoHome(),
-                                cmd, runtime, serr.code );
-             }
-             showCommand(si,host,port,cmd,false);
-
-             if(serr.code!=0){
-               showError(si, cmd,serr.code,serr.msg);
-               return false;
-             }
-             if(    !mynl->HasLength(resList,2) 
-                 || mynl->AtomType(mynl->Second(resList))!=BoolType){
-               cerr << "command " << cmd << " returns unexpected result" 
-                    << endl;
-               cerr << mynl->ToString(resList) << endl;
-               return false;
-             }
-             if(!mynl->BoolValue(mynl->Second(resList))){
-                 mynl->Destroy(resList);
-                 return false;
-             }
-
-             mynl->Destroy(resList);
-
-             // copy the file to local file system
-             if( si->requestFile(base +".tmp", base +".tmp", true)!=0){
-                cerr << "Requesting file " + base + ".tmp failed" << endl;
-                return false;
-             }
-             result = createRelationFromFile(base+".tmp",resType);
-
-             FileSystem::DeleteFileOrFolder(base+".tmp");
-             cmd = "query removeFile('"+rfpath + base +".tmp' )" ;
-             showCommand(si,host,port,cmd, true);
-             sw.start();
-             si->Secondo(cmd,resList,serr);
-             runtime = sw.diffSecondsReal();
-             if(logOn){
-                commandLog.insert(this,this->getHost(), 
-                                this->getSecondoHome(),
-                                cmd, runtime, serr.code );
-             }
-             showCommand(si,host,port,cmd, false);
-             if(serr.code != 0){
-                showError(si,cmd,serr.code,serr.msg);
-             }
-             return true; 
-          }
-
-/*
-1.32 retrieveRelationFile
-
-retrieves a remote relation and stored it into a local file.
-
-*/
-
-          bool retrieveRelationFile(const string& objName,
-                                    const string& fname1){
-             boost::lock_guard<boost::recursive_mutex> guard(simtx);
-
-             string rfname = si->getRequestFilePath() + "/"+fname1;
-             // save the remove relation into a binary file
-             SecErrInfo serr;
-             ListExpr resList;
-             string cmd =   "query createDirectory('"+si->getRequestFilePath()  
-                   + "', TRUE) ";
-             showCommand(si,host,port,cmd,true);
-             StopWatch sw;
-             si->Secondo(cmd,resList,serr);
-             double runtime = sw.diffSecondsReal();
-             if(logOn){
-                commandLog.insert(this,this->getHost(), 
-                                this->getSecondoHome(),
-                                cmd, runtime, serr.code );
-             }
-           
-
-             showCommand(si,host,port,cmd,false);
-             if(serr.code!=0){
-                 cerr << "Creating filetransfer directory failed" << endl;
-                 return false;
-             }
-
-
-             cmd = "query " + objName + " feed fconsume5['"
-                          +rfname+"'] count";
-             showCommand(si,host,port,cmd,true);
-             sw.start();
-             si->Secondo(cmd,resList,serr);
-             runtime = sw.diffSecondsReal();
-             if(logOn){
-                commandLog.insert(this,this->getHost(), 
-                                this->getSecondoHome(),
-                                cmd, runtime, serr.code );
-             }
-             showCommand(si,host,port,cmd,false);
-
-             if(serr.code!=0){
-                 return false;
-             }
-
-             if(si->requestFile(fname1, fname1 ,true)!=0){
-                 return false;
-             }
-
-             // delete remote file             
-             cmd = "query removeFile('"+rfname+"')";
-             showCommand(si,host,port,cmd,true);
-             sw.start();
-             si->Secondo(cmd,resList,serr);
-             runtime = sw.diffSecondsReal();
-             if(logOn){
-                commandLog.insert(this,this->getHost(), 
-                                this->getSecondoHome(),
-                                cmd, runtime, serr.code );
-             }
-             showCommand(si,host,port,cmd,false);
-             return true;
-          }
-
-
-/*
-1.34 retrieveAnyFile
-
-This function can be used to get any file from a remote server
-even if the file is located outside the requestFile directory.
-
-*/
-          bool retrieveAnyFile(const string& remoteName,
-                            const string& localName){
-              string rf = getRequestFolder();
-              bool copyRequired = !stringutils::startsWith(remoteName,rf);
-              string cn;
-              int err;
-              string errMsg;    
-              ListExpr result;
-              double rt;
-              if(!copyRequired){
-                cn = remoteName;
-              } else {
-                 // create request dir 
-                 string cmd = "query createDirectory('"+rf+"', TRUE)";
-                 simpleCommand(cmd,err,errMsg,result,false,rt);
-                 if(err){
-                   showError(this,cmd,err,errMsg);
-                   return false;
-                 }
-                 cn = "tmp_" + stringutils::int2str(serverPid()) + "_" 
-                      + FileSystem::Basename(remoteName);
-                 string cf =  getSecondoHome()+"/"+ rf + "/"+cn;
-                 cmd = "query copyFile('"+remoteName+"','"+cf+"')";
-                 simpleCommand(cmd,err,errMsg,result,false,rt);
-                 if(err){
-                    cerr << "command " << cmd << " failed" << endl;
-                    return false;
-                 }
-                 if(!nl->HasLength(result,2)){
-                   cerr << "unexpected result for command " << cmd << endl;
-                   cerr << "expected (type value), got " 
-                        << nl->ToString(result) << endl;
-                   return false;
-                 }
-                 if(nl->AtomType(nl->Second(result)) != BoolType){
-                   cerr << "unexpected result for command " << cmd << endl;
-                   cerr << "expected (bool boolatom), got " 
-                        << nl->ToString(result) << endl;
-                   return false;
-                 }
-                 if(!nl->BoolValue(nl->Second(result))){
-                   cerr << "copying file failed" << endl;
-                   return false;
-                 }
- 
-              }
-             
-              int errres  = requestFile(cn,localName,true);
-
-              if(copyRequired){
-                 // remove copy
-                 string cmd = "query removeFile('"+cn+"')";
-                 simpleCommand(cmd,err,errMsg,result,false,rt);
-                 if(err){
-                    cerr << "command " << cmd << " failed" << endl;
-                 }
-              }
-              return errres==0;
-          }
-
-
-
-/*
-1.35 creates a relation from its binary file representation.
-
-*/
-          Word createRelationFromFile(const string& fname, ListExpr& resType){
-            
-             boost::lock_guard<boost::recursive_mutex> guard(simtx);
-
-             Word result((void*) 0);
-             // create result relation
-
-            
-             ListExpr tType = nl->Second(resType);
-             tType = SecondoSystem::GetCatalog()->NumericType(resType);
-             TupleType* tt = new TupleType(nl->Second(tType));
-             ffeed5Info reader(fname,tt);
-
-             if(!reader.isOK()){
-               tt->DeleteIfAllowed();
-               return result;
-             }
-
-             ListExpr typeInFile = reader.getRelType();
-             if(!nl->Equal(resType, typeInFile)){
-                cerr << "Type conflict between expected type and tyoe in file"
-                     << endl;
-                cerr << "Expected : " << nl->ToString(resType) << endl;
-                cerr << "Type in  File " << nl->ToString(typeInFile) << endl;
-                tt->DeleteIfAllowed();
-                return result;
-             }
-             Relation* resultrel;
-             {
-                 boost::lock_guard<boost::mutex> guard2(createRelMut);
-                 resultrel = new Relation(tType); 
-             }
-
-             Tuple* tuple;
-             while((tuple=reader.next())){
-                 boost::lock_guard<boost::mutex> guard2(createRelMut);
-                 resultrel->AppendTuple(tuple);
-                 tuple->DeleteIfAllowed();
-             }
-             tt->DeleteIfAllowed();
-             result.addr = resultrel;
-             return result;
-          }
-
-
-       ostream& print(ostream& o) const{
-         o << host << ", " << port << ", " << config;
-         return o;
-       } 
-
-  private:
-    string host;
-    int port;
-    string config;
-    SecondoInterfaceCS* si;
-    NestedList* mynl;
-    int serverPID;
-    string secondoHome;
-    string requestFolder;
-    string sendFolder;
-    string sendPath;
-
-    boost::recursive_mutex simtx; 
-                // mutex for synchronizing access to the interface
-
-
-   // retrieves secondoHome from remote server
-    void retrieveSecondoHome(){
-       string cmd ="query secondoHome()";
-       int err;
-       string errmsg;
-       ListExpr result; 
-       double rt;
-       simpleCommand(cmd,err,errmsg, result,false,rt, false);
-       if(err!=0){
-            cerr << "command " << cmd << " failed" << endl;
-            cerr << err << " : " << errmsg << endl;
-            return;
-       }
-       if(    !nl->HasLength(result,2) 
-            || nl->AtomType(nl->Second(result))!=TextType){
-          cerr << "invalid result for secondoHome() query " << endl;
-          cerr << nl->ToString(result);
-          return;
-       }
-       secondoHome =  nl->Text2String(nl->Second(result));
-    }
-
-};
-
-
-ostream& operator<<(ostream& o, const ConnectionInfo& sc){
-    return sc.print(o);
-}
-
-
 
 /*
 2 CommandListener
@@ -1558,14 +68,6 @@ class CommandListener{
   virtual void jobDone(int id, string& command, size_t no, int error, 
                        string& errMsg, ResType& resList, double runtime)=0;
 };
-
-
-
-
-
-
-
-
 
 /*
 3 Class ProgressInfo
@@ -1826,7 +328,7 @@ class Distributed2Algebra: public Algebra{
 Closes all open connections and destroys them.
 
 */
-     ~Distributed2Algebra();
+     virtual ~Distributed2Algebra();
 
 
 /*
@@ -2200,7 +702,7 @@ Tests whether the connection at index ~con~ is alive.
          c = connections[con];
       }
       if(!c) return false;
-      return c->check();
+      return c->check(showCommands, logOn, commandLog);
     }
     
 /*
@@ -2232,8 +734,9 @@ Performs a command at connection with index ~con~.
          runtime = 0;
          return false;
       }
-      c->simpleCommand(cmd,error,errMsg,resList, rewrite, runtime);
-      return true;
+        c->simpleCommand(cmd, error, errMsg, resList, rewrite, runtime,
+                         showCommands, logOn, commandLog);
+        return true;
     }
     
 /*
@@ -2265,8 +768,9 @@ Performs a command returning the result as as string.
          runtime = 0;
          return false;
       }
-      c->simpleCommand(cmd,error,errMsg,resList, rewrite, runtime);
-      return true;
+        c->simpleCommand(cmd, error, errMsg, resList, rewrite, runtime,
+                         showCommands, logOn, commandLog);
+        return true;
     }
 
 
@@ -2292,7 +796,7 @@ connections coming from darray elements.
      }
      string wdbname = dbname;
      if(pr.first!=wdbname){
-         if(!pr.second->switchDatabase(wdbname,true)){
+         if(!pr.second->switchDatabase(wdbname,true, showCommands)){
             it->second.first="";
             return 0;
          } else {
@@ -2522,7 +1026,11 @@ connections.
      vector<boost::thread*> runners;
      for(size_t i=0;i<unique.size();i++){
         ConnectionInfo* ci = unique[i];
-        boost::thread* r = new boost::thread(&ConnectionInfo::cleanUp, ci);
+
+        //boost::thread* r = new boost::thread(&ConnectionInfo::cleanUp, ci);
+        boost::thread* r = new boost::thread(
+                boost::bind(&ConnectionInfo::cleanUp,ci,
+                            showCommands, logOn, boost::ref(commandLog)));
         runners.push_back(r);
      }
      for(size_t i=0;i<runners.size();i++){
@@ -2671,38 +1179,6 @@ class ConnectionTask{
      boost::thread worker;
      
 };
-
-
-
-/*
-0.16 ~showError~
-
-*/
-void showError(const ConnectionInfo* ci, const string& command , 
-               const int errorCode, const string& errorMessage){
-
-   static boost::mutex mtx;
-   boost::lock_guard<boost::mutex> lock(mtx);
-   if(errorCode){
-      cerr << "command " << command << endl 
-           << " failed on server " << (*ci) << endl
-           << "with code " << errorCode << " : " << errorMessage << endl;
-   }
-}
-
-void showError(const SecondoInterfaceCS* ci, const string& command , 
-               const int errorCode, const string& errorMessage){
-
-   static boost::mutex mtx;
-   boost::lock_guard<boost::mutex> lock(mtx);
-   if(errorCode){
-      cerr << "command " << command << endl 
-           << " failed on server " << (ci->getHost()) << endl
-           << "with code " << errorCode << " : " << errorMessage << endl;
-   }
-}
-
-
 
 /*
 1 Operators
@@ -6659,7 +5135,7 @@ int putVMA(Word* args, Word& result, int message,
   if(! ci->createOrUpdateObject(  array->getName() + "_" 
                                 + stringutils::int2str(i),
                                 nl->Second(qp->GetType(s)),
-                                args[2])){
+                                args[2], showCommands, logOn, commandLog)){
       res->makeUndefined();
       return 0;
   }
@@ -6715,14 +5191,16 @@ int putVMFA(Word* args, Word& result, int message,
   FileSystem::DeleteFileOrFolder(fname);
   // move File to target position
 
-  string targetDir = ci->getSecondoHome()+"/dfarrays/"+dbname
+  string targetDir = ci->getSecondoHome(showCommands,
+                                        commandLog)+"/dfarrays/"+dbname
                      + "/"+array->getName()+"/";
   string cmd = "query createDirectory('"+targetDir+"', TRUE)";
   int err;
   string errMsg;
   ListExpr resList;
-  double runtime;
-  ci->simpleCommand(cmd,err,errMsg,resList,false, runtime);
+    double runtime;
+    ci->simpleCommand(cmd,err,errMsg,resList,false, runtime,
+                      showCommands, logOn, commandLog);
   if(err){
     cerr << "creating targetdirectory " << targetDir << " failed" << endl;
     cerr << "cmd : " << cmd << endl;
@@ -6734,7 +5212,8 @@ int putVMFA(Word* args, Word& result, int message,
   string f2 = targetDir + fname;
   cmd = "query moveFile('"+f1+"', '"+ f2 +"')";
 
-  ci->simpleCommand(cmd,err,errMsg,resList,false, runtime);
+  ci->simpleCommand(cmd,err,errMsg,resList,false, runtime,
+                    showCommands, logOn, commandLog);
   if(err!=0){
      cerr << "error in command " << cmd << endl;
      cerr << " error code : " << err << endl;
@@ -6881,7 +5360,8 @@ int getVMDA(Word* args, Word& result, int message,
   ListExpr resType = qp->GetType(s);
   bool ok =  ci->retrieve(array->getName() + "_"
                                 + stringutils::int2str(i),
-                                resType, r, true);
+                                resType, r, true,
+                                showCommands, logOn, commandLog);
 
   if(!ok){ // in case of an error, res.addr point to 0A
      if(isData){
@@ -6938,11 +5418,13 @@ int getVMDFA(Word* args, Word& result, int message,
      return 0;
   }
   ListExpr resType = qp->GetType(s);;
-  string fileName = ci->getSecondoHome() + "/dfarrays/"+dbname+"/"
+  string fileName = ci->getSecondoHome(showCommands,
+                                       commandLog) + "/dfarrays/"+dbname+"/"
                     + array->getName() + "/"
                     + array->getName()+"_"+stringutils::int2str(pos)+".bin";  
   Word relResult;
-  ci->retrieveRelationInFile(fileName, resType, relResult);
+  ci->retrieveRelationInFile(fileName, resType, relResult,
+                             showCommands, logOn, commandLog);
   if(relResult.addr == 0){
      return 0;
   }
@@ -7794,7 +6276,7 @@ vector<vector< pair<DArrayElement, size_t> > > group(T& array){
      if(!ci){
        throw new SecondoException("worker cannot be reached");
      }
-     string home = ci->getSecondoHome();
+     string home = ci->getSecondoHome(showCommands, commandLog);
      pair<string,string> p(ci->getHost(), home);
      if(groups.find(p)==groups.end()){
        vector< pair<DArrayElement, size_t> > v;
@@ -7897,7 +6379,8 @@ int createDArrayVMT(Word* args, Word& result, int message,
        int err;
        string errMsg;
        double runtime; 
-       ci->simpleCommand(query, err, errMsg, reslist, false, runtime);
+       ci->simpleCommand(query, err, errMsg, reslist, false, runtime,
+                         showCommands, logOn, commandLog);
        if(err!=0){
           if(trace){
             sendMessage("createDArray: command " + query + " failed");
@@ -8104,7 +6587,8 @@ class SinglePutter{
            return;
       } 
       string objname = array->getName() + "_"+stringutils::int2str(arrayIndex); 
-      ci->createOrUpdateObject(objname, type, value);
+      ci->createOrUpdateObject(objname, type, value,
+                               showCommands, logOn, commandLog);
     }
 
 
@@ -8451,7 +6935,9 @@ class RelFileRestorer{
         for(size_t i=0;i<objNames.size();i++){
            string& objName = objNames[i];
            string& filename = filenames[i];
-           res = ci->createOrUpdateRelationFromBinFile(objName,filename);
+           res = ci->createOrUpdateRelationFromBinFile(objName,filename,
+                                                       showCommands,
+                                                       logOn, commandLog);
            if(!res){
              cerr << "createorUpdateObject failed" << endl;
            }
@@ -8551,7 +7037,7 @@ class FRelCopy{
           string errmsg;
           ListExpr result; 
           double runtime;
-          string home = ci->getSecondoHome();
+          string home = ci->getSecondoHome(showCommands, commandLog);
 
           string targetDir = home +"/dfarrays/"+dbname+ "/" + array->getName();
 
@@ -8561,7 +7047,8 @@ class FRelCopy{
           string src = home+'/'+sendDir + "/"+name;
           string target = targetDir+"/"+name;
           string cmd = "query moveFile('"+src+"','"+target+"', TRUE)";
-          ci->simpleCommand(cmd,err,errmsg, result,false, runtime);
+          ci->simpleCommand(cmd,err,errmsg, result,false, runtime,
+                            showCommands, logOn, commandLog);
           if(err!=0){
               cerr << "command " << cmd << " failed" << endl;
               cerr << err << " : " << errmsg << endl;
@@ -9666,7 +8153,7 @@ class showWorkersInfo{
       res->PutAttribute(3, new CcInt(true, elem.getNum()));
       res->PutAttribute(4, new CcString(true, dbname));
       res->PutAttribute(5, new CcInt(true, ci->serverPid()));
-      bool ok = ci?ci->check():false;
+      bool ok = ci?ci->check(showCommands, logOn, commandLog):false;
       res->PutAttribute(6, new CcBool(true,ok));
       return res;
     }
@@ -9890,16 +8377,18 @@ class dloopInfo{
        if(array->getType()==DARRAY){
          funarg = array->getObjectNameForSlot(index); 
        } else {
-          string home = ci->getSecondoHome();
+          string home = ci->getSecondoHome(showCommands, commandLog);
           ListExpr ft = nl->TwoElemList( listutils::basicSymbol<frel>(),
                                      nl->Second(nl->Second(sourceType)));
           string fn = array->getFilePath(home, dbname,  index);
           funarg ="(" + nl->ToString(ft) + " '"+fn+"')";
        }
-       ci->simpleCommand("delete "+ bn, err,strres, false, runtime);
+       ci->simpleCommand("delete "+ bn, err,strres, false, runtime,
+                         showCommands, logOn, commandLog);
        // create new object by applying the function
        string cmd =   "(let "+bn+" = ("+fun+" " +  funarg +"))";
-       ci->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime);
+       ci->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime,
+                                 showCommands, logOn, commandLog);
        if(err!=0){ 
            sendMessage(" Problem in command " + cmd + ":" + errMsg);
        }
@@ -10132,7 +8621,8 @@ class dsummarizeAttrInfoRunner{
             return;
          } 
          Word result;
-         bool ok = ci->retrieve(objName,resType, result,true);
+         bool ok = ci->retrieve(objName,resType, result,true,
+                                showCommands, logOn, commandLog);
          if(!ok){
            listener->jobDone(index,false);
          } else {
@@ -10259,7 +8749,8 @@ class RelationFileGetter{
      void retrieveFileFromObject( ConnectionInfo* ci){
        string objName = array->getName()+"_"+stringutils::int2str(index);
        string fname = objName+".bin";
-       if(!ci->retrieveRelationFile(objName,fname)){
+       if(!ci->retrieveRelationFile(objName,fname,
+                                    showCommands, logOn, commandLog)){
           listener->connectionFailed(index);
           return;
        }
@@ -10268,11 +8759,13 @@ class RelationFileGetter{
 
      void retrieveFileFromFile(ConnectionInfo* ci){
        string rname = array->getName()+"_"+stringutils::int2str(index)+".bin";
-       string path = ci->getSecondoHome() + "/dfarrays/" + dbname + "/"
+       string path =
+               ci->getSecondoHome(showCommands,
+                                  commandLog) + "/dfarrays/" + dbname + "/"
                      + array->getName() + "/" + rname;
 
        string lname = rname;
-       if(!ci->retrieveAnyFile(path,lname)){
+       if(!ci->retrieveAnyFile(path,lname, showCommands, logOn, commandLog)){
           listener->connectionFailed(index);
           return;
        }
@@ -10512,7 +9005,7 @@ class getValueGetter{
           return;
       }
       string name = array->getName()+"_"+stringutils::int2str(index);
-      ci->retrieve(name, resType, res,true);
+      ci->retrieve(name, resType, res,true, showCommands, logOn, commandLog);
       listener->jobDone(index,res); 
    }
 
@@ -10548,10 +9041,11 @@ class getValueFGetter{
           return;
       }
       string name = array->getName()+"_"+stringutils::int2str(index);
-      string home = ci->getSecondoHome();
+      string home = ci->getSecondoHome(showCommands, commandLog);
       string fname = home +"/dfarrays/"+dbname+"/"+array->getName()
                      + "/" + name + ".bin"; 
-      ci->retrieveRelationInFile(fname, resType, res);
+      ci->retrieveRelationInFile(fname, resType, res,
+                                 showCommands, logOn, commandLog);
       listener->jobDone(index,res); 
    }
 
@@ -10800,12 +9294,14 @@ class dloop2Runner{
       double runtime;
       string tname = rname + "_" + stringutils::int2str(index);
       // remove old stuff
-      ci->simpleCommand("delete " + tname , err,errMsg, strres, false, runtime);
+      ci->simpleCommand("delete " + tname , err,errMsg, strres, false, runtime,
+                        showCommands, logOn, commandLog);
       // create new one
       string a1o = a1->getName()+"_"+stringutils::int2str(index);
       string a2o = a2->getName()+"_"+stringutils::int2str(index);
       string cmd ="(let " + tname + " = ( " + fun + " " + a1o + " " + a2o +"))";
-      ci->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime);
+      ci->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime,
+                                showCommands, logOn, commandLog);
       if(err!=0){
          cerr << "error in creating result via " << cmd << endl;
          cerr << errMsg << endl;
@@ -11435,7 +9931,7 @@ class Object_Del{
         string resstr;
         double runtime;
         ci->simpleCommand("delete " + objName, err, errMsg, resstr, 
-                          false, runtime);
+                          false, runtime, showCommands, logOn, commandLog);
         if(err==0){
           del = 1;
         } 
@@ -11453,7 +9949,9 @@ class Object_Del{
            return;
         }
          
-        string fileName = ci->getSecondoHome()+ "/dfarrays/"+dbname+"/"
+        string fileName =
+                ci->getSecondoHome(showCommands,
+                                   commandLog)+ "/dfarrays/"+dbname+"/"
                   + farray->getName() + "/"
                   + farray->getName() +"_" + stringutils::int2str(index)
                   + ".bin";
@@ -11462,7 +9960,8 @@ class Object_Del{
         string resstr;
         double runtime;
         ci->simpleCommand("query removeFile('"+fileName+"')", err, 
-                          errMsg, resstr, false, runtime);
+                          errMsg, resstr, false, runtime,
+                          showCommands, logOn, commandLog);
         if(err==0){
           del = 1;
         } 
@@ -11548,13 +10047,16 @@ class MatrixKiller{
        boost::thread* runner;
 
        void run(){
-          string dir = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"+mname;
+          string dir =
+                  ci->getSecondoHome(showCommands,
+                                     commandLog)+"/dfarrays/"+dbname+"/"+mname;
           string cmd = "query removeDirectory('"+dir+"', TRUE)";
           int err;
           string errMsg;
           double runtime;
           string res;
-          ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+          ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
+                            showCommands, logOn, commandLog);
           if(err){
             cerr << "command failed: " << cmd << endl;
             cerr << errMsg << endl;
@@ -11700,7 +10202,8 @@ class cloneTask{
         string resstr;
         double runtime;
         ci->simpleCommand("let " + newName + " = " + objName , 
-                          err, errMsg, resstr, false, runtime);
+                          err, errMsg, resstr, false, runtime,
+                          showCommands, logOn, commandLog);
      }
 
      void runFArray(){
@@ -11718,16 +10221,19 @@ class cloneTask{
         string objName = farray->getName() +"_" + stringutils::int2str(index)
                          + ".bin";
         string newName = name + "_" + stringutils::int2str(index) + ".bin";
-        string spath = ci->getSecondoHome()+"/dfarrays/"+dbname+"/" 
+        string spath = ci->getSecondoHome(showCommands,
+                                          commandLog)+"/dfarrays/"+dbname+"/"
                        + farray->getName() + "/";
-        string tpath = ci->getSecondoHome()+"/dfarrays/"+dbname+"/" 
+        string tpath = ci->getSecondoHome(showCommands,
+                                          commandLog)+"/dfarrays/"+dbname+"/"
                        + name + "/";
         int err;
         string errMsg;
         string resstr;
         double runtime;
         string cmd = "query createDirectory('"+tpath+"', TRUE)";
-        ci->simpleCommand(cmd,  err, errMsg, resstr, false, runtime);
+        ci->simpleCommand(cmd,  err, errMsg, resstr, false, runtime,
+                          showCommands, logOn, commandLog);
         if(err){
            cerr << "error in creating directory " + tpath << endl;
            cerr << "by command " << cmd << endl;
@@ -11735,7 +10241,8 @@ class cloneTask{
         }
 
         cmd = "query copyFile('"+spath+objName+"', '"+tpath+newName+"')";
-        ci->simpleCommand(cmd,  err, errMsg, resstr, false, runtime);
+        ci->simpleCommand(cmd,  err, errMsg, resstr, false, runtime,
+                          showCommands, logOn, commandLog);
         if(err!=0){
            showError(ci,cmd,err,errMsg);
         }
@@ -11891,11 +10398,15 @@ class shareRunner{
     void operator()(){
       if(relation){
          bool r = ci->createOrUpdateRelationFromBinFile(objName, 
-                                                 fileName, allowOverwrite);
+                                                 fileName,
+                                                 showCommands, logOn,
+                                                 commandLog, allowOverwrite);
          listener->jobDone(id,r);
       } else if(attribute){
          bool r = ci->createOrUpdateAttributeFromBinFile(objName, 
-                                                 fileName, allowOverwrite);
+                                                 fileName, showCommands,
+                                                 logOn, commandLog,
+                                                 allowOverwrite);
          listener->jobDone(id,r);
       } else {
           int err;
@@ -11903,10 +10414,12 @@ class shareRunner{
           string cmd = "delete " + objName;
           double runtime;
           if(allowOverwrite){
-             ci->simpleCommand(cmd,err,res, false, runtime);
+             ci->simpleCommand(cmd,err,res, false, runtime,
+                               showCommands, logOn, commandLog);
           }
           cmd = "restore " +  objName + " from '" + fileName +"'";           
-          ci->simpleCommand(cmd,err,res,false, runtime);
+          ci->simpleCommand(cmd,err,res,false, runtime,
+                            showCommands, logOn, commandLog);
           listener->jobDone(id, err==0);
       }
     }
@@ -12020,7 +10533,7 @@ class shareInfo: public successListener{
        for(size_t i=0; i< algInstance->noConnections(); i++){
            ConnectionInfo* ci = algInstance->getConnection(i);
            if(ci){
-              ci->switchDatabase(dbname, true);
+              ci->switchDatabase(dbname, true, showCommands);
               share(ci); 
            }
        } 
@@ -12220,7 +10733,10 @@ int cleanUpVMT(Word* args, Word& result, int message,
          used.insert(p);
          ConnectionInfo* ci = algInstance->getWorkerConnection(e,dbname);
          if(ci){
-             boost::thread* r = new boost::thread(&ConnectionInfo::cleanUp,ci);
+           //boost::thread* r = new boost::thread(&ConnectionInfo::cleanUp,ci);
+             boost::thread* r = new boost::thread(
+                     boost::bind(&ConnectionInfo::cleanUp, ci,
+                                 showCommands, logOn, boost::ref(commandLog)));
              runners.push_back(r);
          }
       }
@@ -12940,7 +11456,8 @@ class Mapper{
            string cmd;
 
            if(mapper->array->getType()==DFARRAY){
-               string fname1 = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+               string fname1 = ci->getSecondoHome(
+                       showCommands, commandLog)+"/dfarrays/"+dbname+"/"
                    + mapper->array->getName() + "/"
                    + n + ".bin";
                ListExpr frelType = nl->TwoElemList(
@@ -12954,7 +11471,8 @@ class Mapper{
                cmd = " (" + fun+" " + n +" )";
            }
             
-           string targetDir = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"
+           string targetDir = ci->getSecondoHome(
+                   showCommands, commandLog)+"/dfarrays/"+dbname+"/"
                               + mapper->name + "/" ;
 
            string cd = "query createDirectory('"+targetDir+"', TRUE)";
@@ -12962,7 +11480,8 @@ class Mapper{
            string errMsg;
            string r;
            double runtime;
-           ci->simpleCommand(cd, err, errMsg,r, false, runtime);
+           ci->simpleCommand(cd, err, errMsg,r, false, runtime,
+                             showCommands, logOn, commandLog);
            if(err){
              cerr << "creating directory failed, cmd = " << cd << endl;
              cerr << errMsg << endl;
@@ -12982,11 +11501,13 @@ class Mapper{
              cmd = "(query (count (fconsume5 "+ cmd +" '"+ fname2+"' )))";
            }
 
-           ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime);
+           ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
+                                     showCommands, logOn, commandLog);
            if((err!=0) ){ 
               showError(ci,cmd,err,errMsg);
            }
-           ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime);
+           ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime,
+                             showCommands, logOn, commandLog);
 
         }
 
@@ -13017,7 +11538,9 @@ class Mapper{
           string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
 
           if(mapper->array->getType()==DFARRAY){  
-              string fname1 = mapper->array->getFilePath(ci->getSecondoHome(),
+              string fname1 = mapper->array->getFilePath(ci->getSecondoHome(
+                                                         showCommands,
+                                                         commandLog),
                                                          mapper->dbname,
                                                          nr);
                ListExpr frelType = nl->TwoElemList(
@@ -13032,7 +11555,8 @@ class Mapper{
           string name2 = mapper->name + "_" + stringutils::int2str(nr);
           string cmd = "(let "+ name2 +" = (" + fundef +" " + funarg + " ))";
 
-          ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime);
+          ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
+                                    showCommands, logOn, commandLog);
           if((err!=0)  ){ // ignore type map errors
                                     // because reason is a missing file
              showError(ci,cmd,err,errMsg);
@@ -13163,7 +11687,8 @@ class transferatorStarter{
         string errMsg; 
         string res;
         double runtime;
-        ci->simpleCommand(cmd, err,errMsg, res, false, runtime);
+        ci->simpleCommand(cmd, err,errMsg, res, false, runtime,
+                          showCommands, logOn, commandLog);
         if(err!=0){
            showError(ci,cmd,err,errMsg);
         }
@@ -13428,7 +11953,8 @@ a specified array type.
    if(!cs || !ct){
       return false;
    }
-   bool res =  cs->getSecondoHome() != ct->getSecondoHome();
+   bool res =  cs->getSecondoHome(showCommands, commandLog)
+           != ct->getSecondoHome(showCommands, commandLog);
    return res;
 }
 
@@ -13479,7 +12005,8 @@ funargs.
                                + stringutils::int2str(WinUnix::getpid()) +"_"
                                + stringutils::int2str(ci->serverPid()) + "_"
                                + ".bobj";
-                 string odir = ci->getSecondoHome() + "/dfarrays/" 
+                 string odir = ci->getSecondoHome(showCommands,
+                                                  commandLog) + "/dfarrays/"
                                + dbname+"/";
                  fileNameOnI = odir + fileNameOnI1;
                  string oname = ai->getObjectNameForSlot(slot);
@@ -13487,7 +12014,8 @@ funargs.
                  string cmd = "query " + oname + " saveObjectToFile['" 
                               + fileNameOnI+ "']";
               
-                 ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
+                 ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
+                                   showCommands, logOn, commandLog);
                  if(errorCode){
                     cerr << __FILE__ << "@"  << __LINE__ << endl;
                     showError(ci,cmd,errorCode,errMsg);
@@ -13495,7 +12023,8 @@ funargs.
                  } 
                  formerObject = true; 
              } else { // already a file object on ci, hust set file names 
-                fileNameOnI = ai->getFilePath(ci->getSecondoHome(), 
+                fileNameOnI = ai->getFilePath(ci->getSecondoHome(showCommands,
+                                                                 commandLog),
                                              dbname, slot);
                 fileNameOnI1 = ai->getFilePath("", 
                                              dbname, slot);
@@ -13503,8 +12032,8 @@ funargs.
              }
 
              // 1.2 transfer file from i to 0
-             string fileNameOn0 = source->getFilePath(c0->getSecondoHome(),
-                                                       dbname, slot); 
+        string fileNameOn0 = source->getFilePath(
+                c0->getSecondoHome(showCommands, commandLog), dbname, slot);
              string cmd;
              if(c0->getHost() != ci->getHost()){ // use TCP transfer or 
                                                  // disc utils
@@ -13519,7 +12048,8 @@ funargs.
                    cmd =   "query " + op + "('" + fileNameOnI + "','"
                          + fileNameOn0 + "', TRUE)";
               }
-              c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
+              c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
+                                showCommands, logOn, commandLog);
               if(errorCode){
                  cerr << __FILE__ << "@"  << __LINE__ << endl;
                  showError(c0, cmd, errorCode, errMsg);
@@ -13529,7 +12059,8 @@ funargs.
              // remove temp file from original server
              if(formerObject && !moved){
                  string cmd = "query removeFile('" + fileNameOnI+ "')";
-                 ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
+                 ci->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
+                                   showCommands, logOn, commandLog);
                  if(errorCode){
                     cerr << __FILE__ << "@"  << __LINE__ << endl;
                     showError(ci,cmd,errorCode, errMsg);
@@ -13543,14 +12074,16 @@ funargs.
                 string end = isRelation?"consume":"";
                 string cmd = "let " + oname + " =  '"+fileNameOn0
                               +"' getObjectFromFile " + end;
-                c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
+                c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
+                                  showCommands, logOn, commandLog);
                 if(errorCode){
                     cerr << __FILE__ << "@"  << __LINE__ << endl;
                     showError(c0,cmd,errorCode,errMsg);
                    // return false; //ignore, may be object already there
                  }
                  cmd = "query removeFile('" + fileNameOn0+ "')";
-                 c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt);
+                 c0->simpleCommand(cmd, errorCode, errMsg, resList, false, rt,
+                                   showCommands, logOn, commandLog);
                  if(errorCode){
                     cerr << __FILE__ << "@"  << __LINE__ << endl;
                     showError(c0,cmd,errorCode,errMsg);
@@ -13575,7 +12108,8 @@ funargs.
                 funargs.push_back(oname);
                 sourceNames.push_back(pair<bool,string>(false,oname));     
               } else {
-                string fname = ai->getFilePath(ci->getSecondoHome(), 
+                string fname = ai->getFilePath(ci->getSecondoHome(showCommands,
+                                                                  commandLog),
                                                dbname, slot);
                 string type ="(frel " + nl->ToString(nl->Second(
                               nl->Second(argType))) + ")";
@@ -13757,13 +12291,16 @@ the result for their slot.
                DArrayElement elem = res->getWorkerForSlot(i);
                ConnectionInfo* ci = algInstance->getWorkerConnection(elem,
                                                                      dbname);
-               string dirname = res->getPath(ci->getSecondoHome(), dbname);
+               string dirname = res->getPath(ci->getSecondoHome(showCommands,
+                                                                commandLog),
+                                                                 dbname);
                string q = "query createDirectory('"+dirname+"', TRUE)";
                int err;
                string errMsg;
                double rt;
                string result;
-               ci->simpleCommand(q, err, errMsg, result, false, rt);
+               ci->simpleCommand(q, err, errMsg, result, false, rt,
+                                 showCommands, logOn, commandLog);
                if(err){
                     cerr << __FILE__ << "@" << __LINE__ << endl;
                     showError(ci,q,err,errMsg);
@@ -13828,7 +12365,8 @@ Does what the name says.
          string errMsg;
          double rt;
          ListExpr result;
-         ci->simpleCommand(cmd, err, errMsg, result, false, rt);
+         ci->simpleCommand(cmd, err, errMsg, result, false, rt,
+                           showCommands, logOn, commandLog);
          if(err){
             cerr << __FILE__ << "@"  << __LINE__ << endl;
             showError(ci,cmd,err,errMsg);
@@ -13926,11 +12464,13 @@ the sources and the correspnding function arguments are created.
            // if the result is an object, delete existings objects before
            if(info->res->getType()==DARRAY){
                string n = info->res->getObjectNameForSlot(slot);
-               c0->simpleCommand("delete " + n,err,errMsg, result, false, rt);
+               c0->simpleCommand("delete " + n,err,errMsg, result, false, rt,
+                                 showCommands, logOn, commandLog);
                // ignore error, may be there is no such an object
            }
  
-           c0->simpleCommandFromList(cmd, err, errMsg, result, false, rt);
+           c0->simpleCommandFromList(cmd, err, errMsg, result, false, rt,
+                                     showCommands, logOn, commandLog);
            if(err){
               cerr << __FILE__ << "@"  << __LINE__ << endl;
               cerr << "could not compute result for slot " << slot << endl;
@@ -13973,7 +12513,8 @@ Creates the command for computing the result for this slot.
                 funCall = "( feed " + funCall + ")"; // ensure a stream
               }
               // get result file name
-              string resFileName = info->res->getFilePath(ci->getSecondoHome(),
+              string resFileName = info->res->getFilePath(
+                      ci->getSecondoHome(showCommands, commandLog),
                                            info->dbname, slot); 
               string res ="(query ( count ( fconsume5 "+ funCall+ 
                           "'"+resFileName+"'"+" )))";
@@ -14011,7 +12552,8 @@ from other than the result worker.
           string errMsg;
           double rt;
           string result;
-          ci->simpleCommand(cmd, err, errMsg, result, false, rt);
+          ci->simpleCommand(cmd, err, errMsg, result, false, rt,
+                            showCommands, logOn, commandLog);
           if(err){
             cerr << "could not remove temporal object of argument " << arg 
                  << " for slot " << slot << endl;
@@ -14352,7 +12894,8 @@ void performCommand(ConnectionInfo* ci, const string& cmd){
      string errorMsg;
      double rt;
      string res;
-     ci->simpleCommand(cmd, errorCode, errorMsg, res, false, rt);
+     ci->simpleCommand(cmd, errorCode, errorMsg, res, false, rt,
+                       showCommands, logOn, commandLog);
      if(errorCode){
            showError(ci,cmd, errorCode, errorMsg);
      }
@@ -14364,7 +12907,8 @@ void performListCommand(ConnectionInfo* ci, const string& cmd){
      string errorMsg;
      double rt;
      string res;
-     ci->simpleCommandFromList(cmd, errorCode, errorMsg, res, false, rt);
+     ci->simpleCommandFromList(cmd, errorCode, errorMsg, res, false, rt,
+                               showCommands, logOn, commandLog);
      if(errorCode){
            showError(ci,cmd, errorCode, errorMsg);
      }
@@ -14434,7 +12978,7 @@ class dproductInfo{
 
          void add(ConnectionInfo* info, DArrayBase* source, string& dbname){
             string ip = info->getHost();
-            string home = info->getSecondoHome();
+            string home = info->getSecondoHome(showCommands, commandLog);
             iter it = c.find(ip);
             if(it!=c.end()){
               // just insert into existing structure
@@ -14449,7 +12993,8 @@ class dproductInfo{
                    DArrayElement elem = source->getWorkerForSlot(i);
                    ConnectionInfo* sourceInfo = 
                               algInstance->getWorkerConnection(elem, dbname);
-                   string sourceHome = sourceInfo->getSecondoHome();
+                   string sourceHome = sourceInfo->getSecondoHome(
+                           showCommands, commandLog);
                    if(ip!=sourceInfo->getHost()){
                       pos.push_back(make_pair(true, home) );  
                    } else {
@@ -14625,7 +13170,8 @@ class dproductInfo{
                ConnectionInfo* source = 
                         algInstance->getWorkerConnection(elem, 
                                                        parent->pi->dbname);
-               string sourceName = a->getFilePath(source->getSecondoHome(),
+               string sourceName = a->getFilePath(source->getSecondoHome(
+                       showCommands, commandLog),
                                            parent->pi->dbname, slot);
                string targetName = a->getFilePath(parent->slots[slot].second, 
                                            parent->pi->dbname, slot);
@@ -14671,13 +13217,17 @@ class dproductInfo{
 
             void createFile(int slot){
                string oname = a->getObjectNameForSlot(slot);
-               string fname = a->getFilePath(ci->getSecondoHome(),dbname,slot);
+               string fname = a->getFilePath(ci->getSecondoHome(showCommands,
+                                                                commandLog),
+                                                                 dbname,
+                                                                 slot);
                string cmd = "query " + oname + " saveObjectToFile['"+fname+"']";
                int errCode;
                string errMsg;
                double rt;
                string res;
-               ci->simpleCommand(cmd, errCode, errMsg, res, false, rt);
+               ci->simpleCommand(cmd, errCode, errMsg, res, false, rt,
+                                 showCommands, logOn, commandLog);
                if(errCode){
                   showError(ci, cmd, errCode, errMsg);
                }
@@ -14793,7 +13343,7 @@ class dproductInfo{
            vector<ConnectionInfo*>& cis = it->second.first;
            for(size_t i=0;i<cis.size();i++){
               ConnectionInfo* ci = cis[i];
-              string home = ci->getSecondoHome();
+              string home = ci->getSecondoHome(showCommands, commandLog);
               if(usedHomes.find(home)==usedHomes.end()){
                   usedHomes.insert(home);
                   string s0 = arg1->getFilePath(home, dbname, 0);
@@ -14932,7 +13482,8 @@ class dproductInfo{
                                nl->TwoElemList(listutils::basicSymbol<frel>(),
                                nl->Second(nl->Second(pi->a0Type))))
                            + "'" 
-                           + pi->arg0->getFilePath(c0->getSecondoHome(), 
+                           + pi->arg0->getFilePath(c0->getSecondoHome(
+                                   showCommands, commandLog),
                                                    pi->dbname, slot) 
                            + "')";
                                         
@@ -14959,7 +13510,8 @@ class dproductInfo{
                        + " =  " + funcall + " )";
               }  else {
                  cmd =   "(query (count (fconsume5 " + funcall + "'" 
-                      + pi->result->getFilePath(c0->getSecondoHome(), 
+                      + pi->result->getFilePath(c0->getSecondoHome(
+                              showCommands, commandLog),
                                                 pi->dbname, slot) 
                       + "' )))";
               }
@@ -14967,7 +13519,8 @@ class dproductInfo{
               string errMsg;
               double rt;
               string resList;
-              c0->simpleCommandFromList(cmd, ec, errMsg, resList, false, rt);
+              c0->simpleCommandFromList(cmd, ec, errMsg, resList, false, rt,
+                                        showCommands, logOn, commandLog);
               if(ec){
                   cout << __FILE__ << "@" << __LINE__ << endl;
                   showError(c0,cmd,ec,errMsg);
@@ -15891,7 +14444,8 @@ class FileTransferServerStarter{
         string errMsg;
         string result;
         double runtime;
-        ci->simpleCommand(serverQuery,err,errMsg,result,false, runtime);
+        ci->simpleCommand(serverQuery,err,errMsg,result,false, runtime,
+                          showCommands, logOn, commandLog);
     }
 
     void cancel(){
@@ -15967,7 +14521,8 @@ int transferFileVMT(Word* args, Word& result, int message,
       string errMsg;
       ListExpr resList;
       double runtime;
-      ci1->simpleCommand(q,err,errMsg,resList,false, runtime);
+      ci1->simpleCommand(q,err,errMsg,resList,false, runtime, showCommands,
+                         logOn, commandLog);
       if(err!=0){
           cerr << __FILE__ << "@"  << __LINE__ << endl;
           showError(ci1,q,err,errMsg);
@@ -15996,7 +14551,8 @@ int transferFileVMT(Word* args, Word& result, int message,
   string errMsg;
   ListExpr resList;
   double runtime;
-  ci2->simpleCommand(clientQuery, err,errMsg, resList, false, runtime);  
+  ci2->simpleCommand(clientQuery, err,errMsg, resList, false, runtime,
+                     showCommands, logOn, commandLog);
   if(err!=0){
      cerr << __FILE__ << "@"  << __LINE__ << endl;
      showError(ci2,clientQuery, err, errMsg);
@@ -17148,7 +15704,8 @@ class partitionInfo{
            return;
         }
         // construct target directory for the matrix on ci
-        string targetDir = ci->getSecondoHome() + "/dfarrays/" + dbname 
+        string targetDir = ci->getSecondoHome(
+                showCommands, commandLog) + "/dfarrays/" + dbname
                            + "/" + tname + "/"
                            + stringutils::int2str(workerNumber) + "/";
         int err;
@@ -17157,7 +15714,8 @@ class partitionInfo{
         ListExpr resList;
         ci->simpleCommand("query createDirectory('"+targetDir+"', TRUE)", 
                           err, errMsg, 
-                          resList, false,runtime);
+                          resList, false,runtime, showCommands, logOn,
+                          commandLog);
         if(err!=0){
            cerr << __FILE__ << "@"  << __LINE__ << endl;
            showError(ci, "query createDirectory('"+targetDir+"', TRUE)",
@@ -17184,7 +15742,8 @@ class partitionInfo{
            return;
         }
         string res;
-        ci->simpleCommandFromList(cmd, err,errMsg, res, false, runtime);
+        ci->simpleCommandFromList(cmd, err,errMsg, res, false, runtime,
+                                  showCommands, logOn, commandLog);
         if(err!=0){
            cerr << __FILE__ << "@"  << __LINE__ << endl;
            showError(ci,cmd,err,errMsg);
@@ -17257,7 +15816,8 @@ class partitionInfo{
      string constructQueryDF(const string& dir){
         // construct query in nested list form,
 
-        string sourceDir = ci->getSecondoHome() + "/dfarrays/"
+        string sourceDir = ci->getSecondoHome(
+                showCommands, commandLog) + "/dfarrays/"
                            + dbname + "/" + sname + "/";
 
         // create a relation containing the filenames
@@ -17961,7 +16521,8 @@ class AReduceTask{
           string res;
           double runtime;
           string cmd="query createDirectory('"+dir+"', TRUE)";
-          ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+          ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
+                            showCommands, logOn, commandLog);
           if(err){
                cerr << "creating directory " << dir << " on worker " 
                     << worker << "failed" << endl;
@@ -17980,7 +16541,8 @@ class AReduceTask{
           for(size_t i=0;i<matrix1->numOfWorkers();i++){
              ConnectionInfo* wi = algInstance->getWorkerConnection(
                                                matrix1->getWorker(i), dbname);
-             string remote1 =   wi->getSecondoHome() + "/dfarrays/" + dbname 
+             string remote1 =   wi->getSecondoHome(
+                     showCommands, commandLog) + "/dfarrays/" + dbname
                              + "/" 
                              + matrix1->getName()+"/" + stringutils::int2str(i)
                              + "/" + matrix1->getName() + "_"  
@@ -17991,7 +16553,8 @@ class AReduceTask{
                    + "' 1 )";
              // also insert the files for matrix2 if necessary
              if(matrix2 && (matrix2->getName()!=matrix1->getName())){
-                string remote2 =   wi->getSecondoHome() + "/dfarrays/" + dbname 
+                string remote2 =   wi->getSecondoHome(
+                        showCommands, commandLog) + "/dfarrays/" + dbname
                                  + "/" 
                                  + matrix2->getName()+"/" 
                                  + stringutils::int2str(i)
@@ -18011,7 +16574,8 @@ class AReduceTask{
           string nlrel="(" + nlrt + " " + rv +")";
           cmd =   "query " + rel + " feed extend[ OK : getFileTCP( .R, .IP, " 
                 + stringutils::int2str(port) + ", TRUE, .L)] count";
-          ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+          ci->simpleCommand(cmd, err, errMsg, res, false, runtime, showCommands,
+                            logOn, commandLog);
           if(err){
                cerr << "command  " << cmd  << " on worker " 
                     << worker << "failed" << endl;
@@ -18060,7 +16624,7 @@ class AReduceTask{
               string objname =    result->getName() + "_" 
                                 + stringutils::int2str(currentSlot);
               ci->simpleCommand("delete " + objname, err, errMsg, res, false, 
-                                runtime);
+                                runtime, showCommands, logOn, commandLog);
               cmd =   "( let " + objname+"  =  (" + funtext + " "
                     + tuplestream1 +  tuplestream2 + "))";
           } else {
@@ -18068,12 +16632,15 @@ class AReduceTask{
               string feed1 =isStream?"":" feed (";
               string feed2 =isStream?"":" ) ";
 
-              string tdir =   ci->getSecondoHome() + "/dfarrays/" + dbname
+              string tdir =   ci->getSecondoHome(
+                      showCommands, commandLog) + "/dfarrays/" + dbname
                             + "/" + result->getName()+"/";
               string filename =  tdir + result->getName() + "_"
                                 + stringutils::int2str(currentSlot) + ".bin";
               cmd = "query createDirectory('"+tdir+"', TRUE)";
-              ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+              ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
+                                showCommands, logOn,
+                                commandLog);
               if(err){
                       cerr << "command  " << cmd  << " on worker " 
                            << worker << "failed" << endl;
@@ -18083,14 +16650,16 @@ class AReduceTask{
                     + " " + tuplestream1 + tuplestream2 + " )" + feed2 + "'" 
                     + filename + "')))";
           }
-          ci->simpleCommandFromList(cmd,err,errMsg, res, false, runtime);
+          ci->simpleCommandFromList(cmd,err,errMsg, res, false, runtime,
+                                    showCommands, logOn, commandLog);
           if(err){
               cerr << __FILE__ << "@"  << __LINE__ << endl;
               showError(ci,cmd,err,errMsg);
           } 
          
           cmd="query removeDirectory('"+dir+"', TRUE)";
-          ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+          ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
+                            showCommands, logOn, commandLog);
           if(err){
                cerr << "removing directory " << dir << " on worker " 
                     << worker << "failed" << endl;
@@ -18568,19 +17137,22 @@ class slotGetter{
        string dir = "tmp/"+tname+"/"+stringutils::int2str(myNumber)+"/";
        // final directory for dfarray
        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-       string tdir = ci->getSecondoHome()+"/dfarrays/"+dbname+"/"+tname+"/";
+       string tdir = ci->getSecondoHome(showCommands, commandLog)
+               +"/dfarrays/"+dbname+"/"+tname+"/";
        int err;
        string errMsg;
        double runtime;
        string res;
        string cmd = "query createDirectory('"+dir+"',TRUE)";
-       ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+       ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
+                         showCommands, logOn, commandLog);
        if(err!=0){
           cerr << "error during cmd " << cmd << endl;
           return;
        }
        cmd = "query createDirectory('"+tdir+"',TRUE)";
-       ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+       ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
+                         showCommands, logOn, commandLog);
        if(err!=0){
           cerr << "error during cmd " << cmd << endl;
           return;
@@ -18599,7 +17171,8 @@ class slotGetter{
        }
 
        cmd = "query  removeDirectory('"+dir+"', TRUE)";
-       ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+       ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
+                         showCommands, logOn, commandLog);
        if(err){
           cerr << "Error in command " << cmd << endl;
           cerr << errMsg;
@@ -18619,7 +17192,8 @@ class slotGetter{
          string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
          
          ConnectionInfo* w = workers[worker];
-         string sbasename = w->getSecondoHome() + "/dfarrays/" + dbname + "/"
+         string sbasename = w->getSecondoHome(
+                 showCommands, commandLog) + "/dfarrays/" + dbname + "/"
                             + sname + "/" + stringutils::int2str(worker) + "/"
                             + sname+"_";
          string frel = "[const rel(tuple([S : text, T:text])) value (";
@@ -18639,7 +17213,8 @@ class slotGetter{
                        + ", TRUE, .T )] count";
 
          
-         ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+         ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
+                           showCommands, logOn, commandLog);
          if(err){
             cerr << "Error in command " << cmd << endl;
             cerr << errMsg;
@@ -18659,7 +17234,8 @@ class slotGetter{
        string errMsg;
        double runtime;
        string res;
-       ci->simpleCommand(cmd, err, errMsg, res, false, runtime);
+       ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
+                         showCommands, logOn, commandLog);
        if(err!=0){
           cerr << __FILE__ << "@"  << __LINE__ << endl;
           showError(ci,cmd,err,errMsg);
@@ -20234,7 +18810,7 @@ class partitionF8Runner{
          const DArrayElement& elem = array->getWorker(workerNumber);
          ci = algInstance->getWorkerConnection(elem,dbname);
          if(ci){
-            home = ci->getSecondoHome();
+            home = ci->getSecondoHome(showCommands, commandLog);
             string query = createQuery();
             performListCommand(ci, query);
          } else {

@@ -74,6 +74,177 @@ bool writeVar<string>(
   return true;
 }
 
+
+DebugWriter dwriter;
+
+void showCommand(SecondoInterfaceCS* src,
+                 const std::string& host,
+                 const int port,
+                 const std::string& cmd,
+                 bool start,
+                 bool showCommands)
+{
+    // boost::mutex showCommandMtx; //TODO FIXME
+    if (showCommands)
+    {
+        dwriter.write(
+                showCommands,
+                std::cout,
+                src,
+                src->getPid(),
+                "= " + host + ":" + stringutils::int2str(port) + ":"
+                        + (start ? "start " : "finish ") + cmd);
+    }
+
+}
+
+/*
+Some Helper functions.
+
+*/
+
+std::string getUDRelType(ListExpr r){
+
+  assert(Relation::checkType(r) || frel::checkType(r));
+  ListExpr attrList = nl->Second(nl->Second(r));
+  std::string rt = nl->SymbolValue(nl->First(r));
+  std::string res = rt+"(tuple([";
+  bool first = true;
+  while(!nl->IsEmpty(attrList)){
+    if(!first){
+      res += ", ";
+    } else {
+      first = false;
+    }
+    ListExpr attr = nl->First(attrList);
+    attrList = nl->Rest(attrList);
+    res += nl->SymbolValue(nl->First(attr));
+    res += " : " + nl->ToString(nl->Second(attr));
+  }
+  res +="]))";
+  return res;
+}
+
+/*
+1.0.1 ~rewriteQuery~
+
+This function replaces occurences of [$]<Ident> within the string orig
+by corresponding const expressions. If one Ident does not represent
+a valid object name, the result will be false and the string is
+unchanged.
+
+*/
+
+std::string rewriteRelType(ListExpr relType){
+  if(!Relation::checkType(relType)){
+     return nl->ToString(relType);
+  }
+
+  ListExpr attrList = nl->Second(nl->Second(relType));
+
+  std::stringstream ss;
+  ss << "rel(tuple([";
+  bool first = true;
+  while(!nl->IsEmpty(attrList)){
+     if(!first){
+       ss << ", ";
+     } else {
+        first = false;
+     }
+     ListExpr attr = nl->First(attrList);
+     attrList = nl->Rest(attrList);
+     ss << nl->SymbolValue(nl->First(attr));
+     ss << " : ";
+     ss << nl->ToString(nl->Second(attr));
+  }
+  ss << "]))";
+  return ss.str();
+}
+
+/*
+The next function returns a constant expression for an
+database object.
+
+*/
+
+bool getConstEx(const std::string& objName, std::string& result){
+
+   SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+   if(!ctlg->IsObjectName(objName)){
+       return false;
+   }
+   result = " [const " + rewriteRelType(ctlg->GetObjectTypeExpr(objName))
+          + " value " + nl->ToString(ctlg->GetObjectValue(objName)) + "] ";
+
+   return true;
+}
+
+
+template<class T>
+void print(std::vector<T>& v, std::ostream& out){
+  for(size_t i=0;i<v.size();i++){
+     out << v[i] << " ";
+  }
+}
+
+
+
+/*
+rewrites a query. Replaces dollar signs by numbers.
+
+*/
+bool rewriteQuery(const std::string& orig, std::string& result){
+
+  std::stringstream out;
+  size_t pos = 0;
+  size_t f = orig.find_first_of("$", pos);
+  std::map<std::string,std::string> used;
+  while(f!=std::string::npos){
+     size_t f2 = f +1;
+     if(f2 < orig.length()){
+        if(stringutils::isLetter(orig[f2])){
+           if(f>pos){
+              out << orig.substr(pos , f - pos);
+           }
+           std::stringstream ident;
+           ident << orig[f2];
+           f2++;
+           while(f2<orig.length() && (stringutils::isLetter(orig[f2]) ||
+                 stringutils::isDigit(orig[f2] || (orig[f2]=='_')))){
+              ident  << orig[f2];
+              f2++;
+           }
+           std::string constEx;
+           if(used.find(ident.str())!=used.end()){
+             constEx = used[ident.str()];
+           }  else {
+              if(!getConstEx(ident.str(),constEx)){
+                  result =  orig;
+                  return false;
+              }
+           }
+           out << constEx;
+           pos = f2;
+        } else if(orig[f2]=='$'){ // masked dollar
+            out <<  orig.substr(pos,f2-pos);
+            pos = f2+1;
+        } else { // not a indent after $
+            out <<  orig.substr(pos,f2+1-pos);
+            pos = f2;
+           pos++;
+        }
+     } else { // end of
+       out << orig.substr(pos,std::string::npos);
+       pos = f2;
+     }
+     f = orig.find_first_of("$", pos);
+  }
+   out << orig.substr(pos,std::string::npos);
+   result = out.str();
+  return true;
+}
+
+
 }
 
 

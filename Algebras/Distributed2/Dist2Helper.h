@@ -31,6 +31,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include "SecondoSMI.h"
+#include "SecondoInterfaceCS.h"
+#include "frel.h"
+#include "StringUtils.h"
+#include "RelationAlgebra.h"
 
 namespace distributed2{
 
@@ -88,9 +92,53 @@ template<>
 bool writeVar<std::string>(
   const std::string& value, SmiRecord& record, size_t& offset);
 
+void showCommand(SecondoInterfaceCS* src,
+                 const std::string& host,
+                 const int port,
+                 const std::string& cmd,
+                 bool start,
+                 bool showCommands);
+
+/*
+Some Helper functions.
+
+*/
+
+std::string getUDRelType(ListExpr r);
+
+/*
+1.0.1 ~rewriteQuery~
+
+This function replaces occurences of [$]<Ident> within the string orig
+by corresponding const expressions. If one Ident does not represent
+a valid object name, the result will be false and the string is
+unchanged.
+
+*/
+
+std::string rewriteRelType(ListExpr relType);
+
+/*
+The next function returns a constant expression for an
+database object.
+
+*/
+
+bool getConstEx(const std::string& objName, std::string& result);
+
+
+template<class T>
+void print(std::vector<T>& v, std::ostream& out);
+
+
+
+/*
+rewrites a query. Replaces dollar signs by numbers.
+
+*/
+bool rewriteQuery(const std::string& orig, std::string& result);
 
 }
-
 
 #endif
 
