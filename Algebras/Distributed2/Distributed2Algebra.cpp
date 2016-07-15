@@ -5562,7 +5562,7 @@ ListExpr getWorkersTM(ListExpr args){
     return listutils::typeError(err);
   }
 
-  ListExpr attrList = nl->FourElemList(
+  ListExpr attrList = nl->FiveElemList(
         nl->TwoElemList(
            nl->SymbolAtom("Host"),
            listutils::basicSymbol<FText>()),
@@ -5574,7 +5574,10 @@ ListExpr getWorkersTM(ListExpr args){
            listutils::basicSymbol<FText>()),
         nl->TwoElemList(
            nl->SymbolAtom("No"),
-           listutils::basicSymbol<CcInt>())
+           listutils::basicSymbol<CcInt>() ),
+        nl->TwoElemList(
+           nl->SymbolAtom("Id"),
+           listutils::basicSymbol<LongInt>() )
       );
   return nl->TwoElemList(
       listutils::basicSymbol<Stream<Tuple> >(),
@@ -5589,6 +5592,7 @@ class getWorkersInfo{
      getWorkersInfo(A* _array, ListExpr _tt):
         array(_array), pos(0){
          tt = new TupleType(_tt);
+          dbname = SecondoSystem::GetInstance()->GetDatabaseName();
      }
 
      ~getWorkersInfo(){
@@ -5606,6 +5610,8 @@ class getWorkersInfo{
          tuple->PutAttribute(1, new CcInt(e.getPort()));
          tuple->PutAttribute(2, new FText(true,e.getConfig()));
          tuple->PutAttribute(3, new CcInt(e.getNum()));
+         ConnectionInfo* ci = algInstance->getWorkerConnection(e,dbname);
+         tuple->PutAttribute(4, new LongInt( (int64_t) ci));
          return tuple;
      }
 
@@ -5613,6 +5619,7 @@ class getWorkersInfo{
      A* array;
      size_t pos;
      TupleType* tt;
+     string dbname;
 
 };
 
