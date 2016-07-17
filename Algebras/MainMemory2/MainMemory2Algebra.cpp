@@ -58,6 +58,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "GraphAlgebra.h"
 
 #include <ctime>
+#include "LongInt.h"
+#include "DateTime.h"
+
+#include "ONetworkAdapter.h"
+#include "NetworkAlgebra.h"
+#include "TemporalNetAlgebra.h"
+#include "ONetwork.h"
+#include "ONetworkEdge.h"
+#include "MapMatchingMHT.h"
+#include "MapMatchingData.h"
+#include "GPXImporter.h"
+#include "NetworkAdapter.h"
+#include "JNetworkAdapter.h"
+#include "MapMatchingMHTMGPointCreator.h"
+#include "MapMatchingMHTPointsCreator.h"
+#include "MapMatchingMHTOEdgeTupleStreamCreator.h"
+#include "MapMatchingMHTMPointCreator.h"
+#include "MapMatchingMHTMJPointCreator.h"
 
 
 using namespace std;
@@ -67,7 +85,7 @@ extern SecondoSystem* instance;
 
 
 //std::ostream& operator<<(std::ostream& o, const mm2algebra::avlPair& t);
-ostream& operator<<(ostream& o, const mm2algebra::avlPair& t){
+ostream& operator<<(ostream& o, const mm2algebra::avlPair& t) {
   o << "(";
   t.first->Print(o);
   o << ", " << t.second   << ")";
@@ -295,18 +313,22 @@ MemoryRelObject* getMemRel(T* relN, ListExpr tupleType){
   if(!relN->IsDefined()){
      return 0;
   }
+  cout << "!rel 1" << endl;
   string reln = relN->GetValue();
+  cout << "reln: " << reln << endl;
   if(!catalog->isMMObject(reln) || !catalog->isAccessible(reln)){
     return 0;
   }
+  cout << "!rel 2" << endl;
   ListExpr relType = nl->Second(catalog->getMMObjectTypeExpr(reln));
     
   if(!Relation::checkType(relType)){
      return 0;
   }
-  if(!nl->Equal(nl->Second(relType), tupleType)){
-     return 0;
-  }
+  cout << "!rel 3" << endl;
+//   if(!nl->Equal(nl->Second(relType), tupleType)){
+//      return 0;
+//   } // TODO
   return (MemoryRelObject*) catalog->getMMObject(reln);
 }
 
@@ -360,16 +382,20 @@ MemoryAttributeObject* getMemAttribute(T* aN, ListExpr _type){
 template<class T, int dim>
 MemoryRtreeObject<dim>* getRtree(T* tN){
   if(!tN->IsDefined()){
+    cout << "!tN->IsDefined" << endl;
     return 0;
   }
   string tn = tN->GetValue();
+  cout << "tn: " << tn << endl;
   if(!catalog->isMMObject(tn)){ 
     // because we store only rectangle, we do'nt have to check
     // accessibility
+    cout << "!catalog->isMMObject(tn)" << endl;
     return 0;
   }
   ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(tn));
   if(!rtreehelper::checkType(type,dim)){
+    cout << "!rtreehelper::checkType(type,dim)" << endl;
      return 0;
   }
   return (MemoryRtreeObject<dim>*) catalog->getMMObject(tn);
@@ -527,7 +553,7 @@ int memload(Word* args, Word& result,
      }
 
     // object is a relation
-    if(Relation::checkType(objectTypeExpr)&&defined){
+    if(Relation::checkType(objectTypeExpr)&&defined) {
         GenericRelation* r= static_cast<Relation*>( object.addr );
         MemoryRelObject* mmRelObject = new MemoryRelObject();
         memloadSucceeded = mmRelObject->relToVector(
@@ -543,12 +569,19 @@ int memload(Word* args, Word& result,
         
     // object is an ordered relation
     } else if(listutils::isOrelDescription(objectTypeExpr)&&defined) {
-        GenericRelation* r= static_cast<OrderedRelation*>( object.addr );
+        GenericRelation* r= static_cast<OrderedRelation*>(object.addr);
         MemoryORelObject* mmORelObject = new MemoryORelObject();
         memloadSucceeded = mmORelObject->relToTree(
                                           r,
                                           objectTypeExpr,
                                           getDBname(), flob);
+//         MemoryGraphObject* graph = new MemoryGraphObject();
+//         graph->relToGraph(r,
+//                                           objectTypeExpr,
+//                                           getDBname(), flob);
+//         graph->getgraph()->print(cout);
+//         graph->getgraph()->sp(graph->getgraph()->getVertex(1),
+//                               graph->getgraph()->getVertex(40));
         if (memloadSucceeded) {
             catalog->insert(objectName,mmORelObject);
         } else {
@@ -937,7 +970,7 @@ int mfeedValMap (Word* args, Word& result,
           T* oN = (T*) args[0].addr;
           
           ListExpr type = catalog->getMMObjectTypeExpr(oN->GetValue());
-          string name = nl->ToString(nl->Second(type));
+//           string name = nl->ToString(nl->Second(type));
           
           // check for rel
           if(Relation::checkType(nl->Second(type))) {  
@@ -1707,6 +1740,8 @@ int memlet (Word* args, Word& result,
          else {
             delete mmA;
          }
+         
+    // TODO orel     
     } else if(Stream<Tuple>::checkType(le)){
         MemoryRelObject* mmRelObject = new MemoryRelObject();
             memletsucceed = mmRelObject->tupleStreamToRel(args[1],
@@ -5419,6 +5454,7 @@ Operator mdistScanOp(
 
 /*
 7.1 Operator ~mcreateTTree~
+
 The operator creates a TTree over a given main memory relation.
 
 7.1.1 Type Mapping Functions of operator ~mcreateTTree~
@@ -5433,38 +5469,35 @@ The operator creates a TTree over a given main memory relation.
 
 // TODO memory leak
 ListExpr mcreateTTreeTypeMap(ListExpr args){
-
-//     clock_t begin = clock();
   
     if(nl->ListLength(args)!=2){
      return listutils::typeError("two arguments expected");
     }
 
-    // Split argument in two parts
-    ListExpr a1 = nl->First(args);
-    ListExpr a2 = nl->Second(args);
-    ListExpr oTE_Rel;
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+    ListExpr rel;
 
     string errMsg;
-    if(!getMemType(nl->First(a1), nl->Second(a1), oTE_Rel, errMsg)){
+    if(!getMemType(nl->First(first), nl->Second(first), rel, errMsg)){
       return listutils::typeError("problem in 1st arg: " + errMsg);
     }
-    oTE_Rel = nl->Second(oTE_Rel);
+    rel = nl->Second(rel);
 
-    if(!Relation::checkType(oTE_Rel)){
+    if(!Relation::checkType(rel)){
        return listutils::typeError("memory object is not a relation");
     }
     
     
-    if(nl->AtomType(nl->First(a2))!=SymbolType){
+    if(nl->AtomType(nl->First(second))!=SymbolType){
        return listutils::typeError("second argument is not a valid "
                                    "attribute name");
     }
 
-    string attrName = nl->SymbolValue(nl->First(a2));
+    string attrName = nl->SymbolValue(nl->First(second));
     ListExpr attrType = 0;
     int attrPos = 0;
-    ListExpr attrList = nl->Second(nl->Second(oTE_Rel));
+    ListExpr attrList = nl->Second(nl->Second(rel));
     attrPos = listutils::findAttribute(attrList, attrName, attrType);
 
     if (attrPos == 0){
@@ -5478,10 +5511,6 @@ ListExpr mcreateTTreeTypeMap(ListExpr args){
                              nl->SymbolAtom(ttreehelper::BasicType()),
                              attrType
                        ));
-
-//     clock_t end = clock();
-//     double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-//     cout << "TM elapsed_secs: " << elapsed_secs << endl;
     
     return nl->ThreeElemList(
                 nl->SymbolAtom(Symbols::APPEND()),
@@ -5498,37 +5527,35 @@ ListExpr mcreateTTreeTypeMap(ListExpr args){
 template<class T>
 int mcreateTTreeValueMapT (Word* args, Word& result,
                 int message, Word& local, Supplier s) {
-
-//     clock_t begin = clock();
   
   result  = qp->ResultStorage(s);
   Mem* str = static_cast<Mem*>(result.addr);
 
   // the main memory relation
-  T* roN = (T*) args[0].addr;
-  if(!roN->IsDefined()){
+  T* rel = (T*) args[0].addr;
+  if(!rel->IsDefined()){
       str->SetDefined(false);
       return 0;
   }
-  string relObjectName = roN->GetValue();
+  string name = rel->GetValue();
 
   int attrPos = ((CcInt*) args[2].addr)->GetValue();
 
-  ListExpr memObjectType = catalog->getMMObjectTypeExpr(relObjectName);
-  memObjectType = nl->Second(memObjectType);
+  ListExpr type = catalog->getMMObjectTypeExpr(name);
+  type = nl->Second(type);
 
-  if(!Relation::checkType(memObjectType)){
-    cerr << "object " << relObjectName  << "is not a relation" << endl;
+  if(!Relation::checkType(type)){
+    cerr << "object " << name  << "is not a relation" << endl;
     str->SetDefined(false);
     return false;
   } 
 
   // extract attribute 
-  ListExpr attrList = nl->Second(nl->Second(memObjectType));
-  int ap = attrPos;
-  while(!nl->IsEmpty(attrList) && ap>0){
+  ListExpr attrList = nl->Second(nl->Second(type));
+  int pos = attrPos;
+  while(!nl->IsEmpty(attrList) && pos>0){
     attrList = nl->Rest(attrList);
-    ap--;
+    pos--;
   }
   if(nl->IsEmpty(attrList)){
     cerr << "not enough attributes in tuple";
@@ -5546,7 +5573,7 @@ int mcreateTTreeValueMapT (Word* args, Word& result,
 
   string attrName = ((CcString*)args[3].addr)->GetValue();
 
-  string resName = relObjectName + "_" + attrName;
+  string resName = name + "_" + attrName;
   if(catalog->isMMObject(resName)){
     cerr << "object " << resName << "already exists" << endl;
     str->SetDefined(false);
@@ -5554,26 +5581,22 @@ int mcreateTTreeValueMapT (Word* args, Word& result,
   }
 
   MemoryRelObject* mmrel =
-      (MemoryRelObject*)catalog->getMMObject(relObjectName);
-  bool flob = mmrel->hasflob();
-  vector<Tuple*>* relVec = mmrel->getmmrel();
-  vector<Tuple*>::iterator it;
-  it=relVec->begin();
+      (MemoryRelObject*)catalog->getMMObject(name);
+  
+  vector<Tuple*>* relation = mmrel->getmmrel();
+  vector<Tuple*>::iterator it = relation->begin();
   unsigned int i = 0;
 
   memttree* tree = new memttree(4,8);
-  Attribute* attr;
-  ttreePair tPair;
-
   size_t usedMainMemory = 0;
   unsigned long availableMemSize = catalog->getAvailableMemSize();
 
-  while(it!=relVec->end()) {
-    // get tuple from relation
+  while(it != relation->end()) {
+   
       Tuple* tup = *it;
-      attr = tup->GetAttribute(attrPos);
-      tPair = ttreePair(attr->Copy(),i);
-      // TODO überprüfen
+      Attribute* attr = tup->GetAttribute(attrPos);
+      ttreePair tPair = ttreePair(attr->Copy(),i);
+
       // size for a pair is 16 bytes, plus an additional pointer 8 bytes
       size_t entrySize = 24;
       if (entrySize<availableMemSize){
@@ -5582,9 +5605,10 @@ int mcreateTTreeValueMapT (Word* args, Word& result,
           availableMemSize -= (entrySize);
           it++;
           i++;
-      } else {
-        cout<<"there is not enough main memory available"
-        " to create an TTree"<<endl;
+      } 
+      else {
+        cout << "there is not enough main memory available"
+                " to create an TTree" << endl;
         delete tree;
         str->SetDefined(false);
         return 0;
@@ -5595,17 +5619,12 @@ int mcreateTTreeValueMapT (Word* args, Word& result,
         new MemoryTTreeObject(tree, 
                               usedMainMemory,
                               nl->ToString(qp->GetType(s)),
-                              flob, 
+                              mmrel->hasflob(), 
                               getDBname());
   catalog->insert(resName,ttreeObject);
 
   str->set(true, resName);
 //     tree->print(cout,true);
-  
-//     clock_t end = clock();
-//     double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-//     cout << "VM elapsed_secs: " << elapsed_secs << endl;
-  
   return 0;
 }
 
@@ -5658,6 +5677,8 @@ Operator mcreateTTreeOp (
     mcreateTTreeSelect,
     mcreateTTreeTypeMap
 );
+
+
 
 
 /*
@@ -5741,6 +5762,7 @@ class minsertInfo {
         isOrel = false;
      }
      
+     // TODO change to orel to tree, add attrPos as member
      minsertInfo(Word w, MemoryORelObject* _orel, TupleType* _type) 
         : stream(w),orel(_orel), flob(_orel->hasflob()), type(_type) {
         stream.open();
@@ -5749,6 +5771,7 @@ class minsertInfo {
 
     ~minsertInfo(){
        stream.close();
+//        type->DeleteIfAllowed;          // ?
      }
 
      Tuple* next(){
@@ -5844,6 +5867,7 @@ int minsertValMap (Word* args, Word& result,
       if(li) {
         delete li;
         local.addr = 0;
+        // tt.DeleteIfAllowed ???
       }
       return 0;
       
@@ -5875,7 +5899,7 @@ OperatorSpec minsertSpec(
     "minsert(_,_)",
     "inserts the tuple of a stream into an "
     "existing main memory relation",
-    "query minsert (ten feed head[5],'ten') count"
+    "query minsert (ten feed head[5],\"ten\") count"
 );
 
 /*
@@ -5894,11 +5918,310 @@ Operator minsertOp (
 );
 
 
+
+
+ListExpr minserttupleTypeMap(ListExpr args) {
+
+  
+  if(nl->ListLength(args) != 2) {
+        return listutils::typeError("two arguments expected");
+    }
+
+    ListExpr first = nl->First(args);
+//     ListExpr second = nl->First(nl->Second(args));
+    
+    if(!nl->HasLength(first,2)){
+        return listutils::typeError("internal error");
+    }
+    
+    string errMsg;
+
+    if(!getMemType(nl->First(first), nl->Second(first), first, errMsg)){
+      return listutils::typeError("string or mem(rel) expected : " + errMsg);
+    }
+
+    // check fot rel or orel
+    first = nl->Second(first); // remove mem
+    if(!(Relation::checkType(first)) && !(listutils::isOrelDescription(first))){
+      return listutils::typeError(
+        "first arg is not a memory relation or ordered relation");
+    }
+    
+    // check tuple
+    ListExpr second = nl->Second(args);
+    
+    if(nl->AtomType(second)!=NoAtom){
+      return listutils::typeError("list as second arg expected");
+    }
+    if(nl->ListLength(nl->Second(first))!=nl->ListLength(second)){
+      return listutils::typeError("different lengths in tuple and update");
+    }
+    
+    ListExpr rest = nl->Second(nl->Second(first));
+    cout << "rest: " << nl->ToString(rest) << endl;
+    ListExpr rest2 = nl->First(second);
+    cout << "rest2: " << nl->ToString(rest2) << endl;
+    while (!(nl->IsEmpty(rest))) {
+      if(!nl->Equal(nl->Second(nl->First(rest)),nl->First(rest2))){
+        return listutils::typeError("type mismatch in attribute "
+                                    "list and update list");
+      }
+      rest = nl->Rest(rest);
+      rest2 = nl->Rest(rest2);
+    }
+    
+    rest = nl->Second(nl->Second(first));
+    ListExpr listn = nl->OneElemList(nl->First(rest));
+    ListExpr lastlistn = listn;
+    rest = nl->Rest(rest);
+    while (!(nl->IsEmpty(rest))) {
+      lastlistn = nl->Append(lastlistn,nl->First(rest));
+      rest = nl->Rest(rest);
+    }
+    
+    lastlistn = nl->Append(lastlistn,
+                          nl->TwoElemList(
+                            nl->SymbolAtom("TID"),
+                            nl->SymbolAtom(TupleIdentifier::BasicType())));
+    
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                       nl->TwoElemList(
+                                         nl->SymbolAtom(Tuple::BasicType()),
+                                         listn));
+}
+
+
+/*
+
+5.4.3  The Value Mapping Functions of operator ~minserttuple~
+
+*/
+
+
+class minserttupleInfo{
+  public:
+    minserttupleInfo(vector<Tuple*>* _relation, bool _flob,
+                     ListExpr _listType, TupleType* _type, Word _tupleList)
+      : relation(_relation), flob(_flob), 
+        listType(_listType) ,type(_type), tupleList(_tupleList) {
+      
+      cout << "minserttupleInfo rel" << endl;
+      isOrel = false;
+      firstcall = true;
+    }
+    
+    minserttupleInfo(ttree::TTree<Tuple*,Comparator>* _orel, 
+                     std::vector<int>* _attrPos,
+                     bool _flob, ListExpr _listType, 
+                     TupleType* _type, Word _tupleList) 
+      : orel(_orel), attrPos(_attrPos), flob(_flob), listType(_listType), 
+        type(_type), tupleList(_tupleList) {
+      
+      cout << "minserttupleInfo orel" << endl;
+      isOrel = true;
+      firstcall = true;
+      
+//         orel->getmmorel()->print(cout);
+    }
+
+    ~minserttupleInfo() {
+      type->DeleteIfAllowed();
+    }
+    
+    
+    
+    Tuple* next() {
+      
+      if(!firstcall)
+        return 0;
+      else 
+        firstcall = false;
+      
+      cout << "---------------------------minserttuple next()" << endl;
+      
+      Tuple* res = new Tuple(type);
+      
+
+      ListExpr rest = nl->Second(nl->Second(listType));
+      ListExpr insertType = nl->OneElemList(nl->First(rest));
+      ListExpr last = insertType;
+      
+//       cout << "rest: " << nl->ToString(rest) << endl;
+//       cout << "insertType: " << nl->ToString(insertType) << endl;
+//       cout << "last: " << nl->ToString(last) << endl;
+      
+      rest = nl->Rest(rest);
+      while(nl->ListLength(rest)>1) {
+        last = nl->Append(last, nl->First(rest));
+        rest = nl->Rest(rest);
+//         cout << "-->last: " << nl->ToString(last) << endl;
+//         cout << "-->rest: " << nl->ToString(rest) << endl;
+      }
+      insertType = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                   insertType);
+
+      TupleType* insertTupleType = new TupleType(insertType);
+      Tuple* tup = new Tuple(insertTupleType);
+      Supplier supplier = tupleList.addr;
+      
+      Word attrValue;
+      Supplier s;
+      for(int i=0; i<res->GetNoAttributes()-1; i++) {
+//         cout << "i: " << i << endl;
+        s = qp->GetSupplier(supplier, i);
+        qp->Request(s,attrValue);
+        Attribute* attr = (Attribute*) attrValue.addr;
+//         attr->Print(cout);
+        res->PutAttribute(i,attr->Clone());
+        tup->CopyAttribute(i,res,i);
+      }
+
+      // flob
+      if(flob){
+        tup->bringToMemory();
+      }
+      tup->IncReference();
+      // add Tuple to rel or orel
+      if(!isOrel)
+        relation->push_back(tup);
+      else
+        orel->insert(tup,attrPos);    
+      
+      // add TID
+      const TupleId& tid = tup->GetTupleId();
+      Attribute* tidAttr = new TupleIdentifier(true,tid);
+      res->PutAttribute(res->GetNoAttributes()-1, tidAttr);
+
+      tup->DeleteIfAllowed();
+      /*insertTupleType->DeleteIfAllowed();*/    //--> stürzt ab
+      return res;
+    }
+
+private:
+    vector<Tuple*>* relation;
+    ttree::TTree<Tuple*,Comparator>* orel;
+    std::vector<int>* attrPos;
+    bool flob;
+    ListExpr listType;
+    TupleType* type;
+    Word tupleList;
+    bool isOrel;
+    bool firstcall;
+};
+
+
+template<class T>
+int minserttupleValMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+  minserttupleInfo* li = (minserttupleInfo*) local.addr;
+
+   switch (message)
+   {
+        case OPEN: {
+             if(li){
+             delete li;
+             local.addr=0;
+          }
+          T* oN = (T*) args[0].addr;
+          
+          ListExpr type = catalog->getMMObjectTypeExpr(oN->GetValue());
+          ListExpr tupleType = GetTupleResultType(s);
+          TupleType* tt = new TupleType(nl->Second(tupleType));
+          
+          // check for rel
+          if(Relation::checkType(nl->Second(type))) {  
+            MemoryRelObject* rel = getMemRel(oN, nl->Second(qp->GetType(s)));
+            if(!rel){
+              return 0;
+            }
+            local.addr = new minserttupleInfo(rel->getmmrel(),rel->hasflob(),
+                                              tupleType,tt,args[1]);
+            qp->SetModified(qp->GetSon(s, 0));  // ??
+            return 0;
+          }
+          // check for orel
+          else if(listutils::isOrelDescription(nl->Second(type))) { 
+            MemoryORelObject* orel = getMemORel(oN, nl->Second(qp->GetType(s)));
+            if(!orel) {
+              return 0;
+            }
+            local.addr = new minserttupleInfo(orel->getmmorel(),
+                                              orel->getAttrPos(),
+                                              orel->hasflob(),
+                                              tupleType,tt,args[1]);
+            qp->SetModified(qp->GetSon(s, 0));
+            return 0;
+           }
+           
+           return 0;
+        }
+
+        case REQUEST:
+            result.addr=li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+
+        case CLOSE:
+            if(li) {
+              delete li;
+              local.addr = 0;
+            }
+            return 0;
+   }
+
+   return 0;
+}
+
+
+ValueMapping minserttupleVM[] = {
+  minserttupleValMap<CcString>,
+  minserttupleValMap<Mem>
+};
+
+int minserttupleSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+
+/*
+
+5.4.4 Description of operator ~minserttuple~
+
+
+*/
+
+// TODO
+OperatorSpec minserttupleSpec(
+    "{string, mem(rel(tuple(x))} x tuple -> stream(Tuple)",
+    "_ mfeed",
+    "produces a stream from a main memory relation",
+    "query 'ten' mfeed"
+);
+
+/*
+
+5.4.5 Instance of operator ~minserttuple~
+
+*/
+
+Operator minserttupleOp (
+    "minserttuple",
+    minserttupleSpec.getStr(),
+    2,
+    minserttupleVM,
+    minserttupleSelect,
+    minserttupleTypeMap
+);
+
+
+
+
+
+
 /*
 7.2 Operator ~mdelete~
 
 */
-
 
 class mdeleteInfo {
   public:
@@ -5913,27 +6236,40 @@ class mdeleteInfo {
         : stream(w),orel(_orel), flob(_orel->hasflob()), type(_type) {
         stream.open();
         isOrel = true;
+        //orel->getmmorel()->print(cout);
      }
 
     ~mdeleteInfo(){
        stream.close();
      }
 
+     // TODO siehe mupdateInfo
      void remove(vector<Tuple*>* rel, Tuple* t) {
        vector<Tuple*>::iterator it = relation->begin();
        while(it != relation->end()) {
          Tuple* tup = *it;
-         // need vector attrPos ,it allen Attribut nummern
-//          if(Comparator::equal(tup,t)) {
-         tup->GetNoAttributes();
-           tup->Print(cout);
-//            break;
-//          }
-           it++;
+         int cmp = 0;
+         bool found = false;
+         for(int i=0; i<t->GetNoAttributes(); i++) {
+           cmp = ((Attribute*)tup->GetAttribute(i))->Compare(
+                    ((Attribute*)t->GetAttribute(i)));
+           if(cmp!=0) {
+             found = false;
+             break;
+           }
+           else found = true;
+         }
+         if(found) {
+           //tup->Print(cout);
+           relation->erase(it);
+           break;
+         }
+         it++;
        }
      }
      
-     Tuple* next(){
+     Tuple* next() {
+       //cout << "---------------------------mdelete next()" << endl;
        Tuple* res = stream.request();
        if(!res){
          return 0;
@@ -5941,7 +6277,8 @@ class mdeleteInfo {
        if(flob){
          res->bringToMemory();
        }
-       
+       //res->Print(cout);
+       //cout << endl << endl;
        //get tuple id and append it to tuple
        Tuple* newtup = new Tuple(type); 
        for(int i = 0; i < res->GetNoAttributes(); i++)
@@ -5949,9 +6286,10 @@ class mdeleteInfo {
        res->IncReference();
        if(!isOrel)
         // delete from relation
-        remove(relation,res);
+         remove(relation,res);
        else {
          orel->getmmorel()->remove(res,orel->getAttrPos());  
+         //orel->getmmorel()->print(cout);
        }
        const TupleId& tid = res->GetTupleId();
        Attribute* tidAttr = new TupleIdentifier(true,tid);
@@ -5986,18 +6324,22 @@ int mdeleteValMap (Word* args, Word& result,
   switch (message) {
     
     case OPEN : {
+      
       qp->Open(args[0].addr);
+      
+      T* oN = (T*) args[1].addr;
+      //cout << "oN->GetValue(): " << oN->GetValue() << endl;
+    
+      ListExpr type = catalog->getMMObjectTypeExpr(oN->GetValue());
+      //cout << "type" << nl->ToString(type) << endl;
+      
+     
+      ListExpr ttype = nl->Second(qp->GetType(qp->GetSon(s,0)));
+      //cout << "ttype: " << nl->ToString(ttype) << endl;
+      
       ListExpr tupleType = GetTupleResultType(s);
       TupleType* tt = new TupleType(nl->Second(tupleType));
-
-      T* oN;
-      oN = (T*) args[1].addr;
-      ListExpr ttype = nl->Second(qp->GetType(qp->GetSon(s,0)));
-      cout << "ttype: " << nl->ToString(ttype) << endl;
-      
-      ListExpr type = catalog->getMMObjectTypeExpr(oN->GetValue());
-//       string name = nl->ToString(nl->Second(type));
-//       cout << "name: " << name << endl;
+      //cout << "tt: " << nl->ToString(nl->Second(tupleType)) << endl;
       
       // check for rel
       if(Relation::checkType(nl->Second(type))) {  
@@ -6006,8 +6348,7 @@ int mdeleteValMap (Word* args, Word& result,
           return 0;
         }
         
-        // TODO: get No Attributes ->get list size of type
-        // push_back in vector
+        // TODO: Memory Leaks
         
         local.addr = new mdeleteInfo(args[0],rel->getmmrel(),
                                      rel->hasflob(),tt);
@@ -6061,9 +6402,9 @@ int mdeleteSelect(ListExpr args){
 OperatorSpec mdeleteSpec(
     "stream(Tuple) x {string, mem(rel)}  -> stream(Tuple)",
     "mdelete(_,_)",
-    "deletes the tuple of a stream into an "
+    "deletes the tuple of a stream from an "
     "existing main memory relation",
-    "query mdelete (ten feed head[5],'ten') count"
+    "query mdelete (ten feed head[5],\"ten\") count"
 );
 
 /*
@@ -6080,6 +6421,304 @@ Operator mdeleteOp (
     mdeleteSelect,
     minsertTypeMap
 );
+
+
+
+
+
+
+ListExpr mdeletebyidTypeMap(ListExpr args) {
+
+  
+  if(nl->ListLength(args) != 2) {
+        return listutils::typeError("two arguments expected");
+    }
+
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->First(nl->Second(args));
+    
+    if(!nl->HasLength(first,2)){
+        return listutils::typeError("internal error");
+    }
+    
+    string errMsg;
+
+    if(!getMemType(nl->First(first), nl->Second(first), first, errMsg)){
+      return listutils::typeError("string or mem(rel) expected : " + errMsg);
+    }
+
+    first = nl->Second(first); // remove mem
+    
+    if(!(Relation::checkType(first)) && !(listutils::isOrelDescription(first))){
+      return listutils::typeError(
+        "first arg is not a memory relation or ordered relation");
+    }
+//     cout << "second: " << nl->ToString(second) << endl;
+    if(!listutils::isSymbol(second,TupleIdentifier::BasicType())){
+      return listutils::typeError("second argument must be a tid");
+    }
+    
+    ListExpr rest = nl->Second(nl->Second(first));
+    ListExpr listn = nl->OneElemList(nl->First(rest));
+    ListExpr lastlistn = listn;
+    rest = nl->Rest(rest);
+    while (!(nl->IsEmpty(rest))) {
+      lastlistn = nl->Append(lastlistn,nl->First(rest));
+      rest = nl->Rest(rest);
+    }
+    
+    lastlistn = nl->Append(lastlistn,
+                          nl->TwoElemList(
+                            nl->SymbolAtom("TID"),
+                            nl->SymbolAtom(TupleIdentifier::BasicType())));
+    
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                       nl->TwoElemList(
+                                         nl->SymbolAtom(Tuple::BasicType()),
+                                         listn));
+}
+
+
+/*
+
+5.4.3  The Value Mapping Functions of operator ~mdeletebyid~
+
+*/
+
+
+class mdeletebyidInfo{
+  public:
+    mdeletebyidInfo(vector<Tuple*>* _relation, 
+                    TupleIdentifier* _tid, 
+                    TupleType* _type)
+      : relation(_relation), tid(_tid), type(_type) {
+      
+        cout << "mdeletebyidInfo" << endl;
+      isOrel = false;
+    }
+    
+    mdeletebyidInfo(MemoryORelObject* _orel, 
+                    TupleIdentifier* _tid, TupleType* _type) 
+      : orel(_orel), tid(_tid), type(_type) {
+      
+      cout << "mdeletebyidInfo" << endl;
+      isOrel = true;
+      
+//         orel->getmmorel()->print(cout);
+    }
+
+    ~mdeletebyidInfo() {}
+    
+    
+    Tuple* findInOrel(TupleIdentifier* tid) {
+      ttree::Iterator<Tuple*,Comparator> it = orel->getmmorel()->begin();
+      Tuple* tup = 0;
+      
+      while(it.hasNext()) {
+        tup = *it;
+//         tup->Print(cout);
+//         bool b;
+        if(tid->GetTid() == tup->GetTupleId()) {
+//           b = true; 
+          return tup;
+        }
+//         else b = false;
+        it++;
+      }
+      return 0;
+    }
+    
+    
+    Tuple* findInRel(TupleIdentifier* tid) {
+      cout << "findInRel" << endl;
+      vector<Tuple*>::iterator it = relation->begin();
+      Tuple* tup = 0;
+      
+      while(it != relation->end()) {
+        tup = *it;
+//         tup->Print(cout);
+//         bool b;
+        if(tid->GetTid() == tup->GetTupleId()) {
+//           b = true; 
+          return tup;
+        }
+//         else b = false;
+//         cout << "b: " << b << endl;
+        it++;
+      }
+      return 0;
+    }
+    
+    void remove(Tuple* t) {
+      cout << "remove" << endl;
+      vector<Tuple*>::iterator it = relation->begin();
+      while(it != relation->end()) {
+        Tuple* tup = *it;
+        int cmp = 0;
+        bool found = false;
+        for(int i=0; i<t->GetNoAttributes(); i++) {
+          cmp = ((Attribute*)tup->GetAttribute(i))->Compare(
+                  ((Attribute*)t->GetAttribute(i)));
+          if(cmp!=0) {
+            found = false;
+            break;
+          }
+          else found = true;
+        }
+        if(found) {
+//           tup->Print(cout);
+          relation->erase(it);
+          break;
+        }
+        it++;
+      }
+    }
+    
+    Tuple* next() {
+      
+//       cout << "---------------------------mdelete next()" << endl;
+      
+      Tuple* res;
+      // if orel
+      if(isOrel)
+        res = findInOrel(tid);
+      else
+        res = findInRel(tid);
+      
+      if(res) {
+        Tuple* newtup = new Tuple(type); 
+        for(int i=0; i<res->GetNoAttributes(); i++)
+          newtup->CopyAttribute(i,res,i);
+        res->IncReference();
+        
+        if(isOrel)  
+          orel->getmmorel()->remove(res,orel->getAttrPos());
+          
+        else
+          remove(res);
+        
+        const TupleId& tid = res->GetTupleId();
+        Attribute* tidAttr = new TupleIdentifier(true,tid);
+        newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
+        res->DeleteIfAllowed();
+        return newtup;
+      }
+      else 
+        return 0;
+    }
+
+private:
+    vector<Tuple*>* relation;
+    MemoryORelObject* orel;
+    TupleIdentifier* tid;
+    TupleType* type;
+    bool isOrel;
+};
+
+
+template<class T>
+int mdeletebyidValMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+  mdeletebyidInfo* li = (mdeletebyidInfo*) local.addr;
+
+   switch (message)
+   {
+        case OPEN: {
+             if(li){
+             delete li;
+             local.addr=0;
+          }
+          T* oN = (T*) args[0].addr;
+          string name = oN->GetValue();
+          cout << "name: " << name << endl;
+          
+          ListExpr type = catalog->getMMObjectTypeExpr(oN->GetValue());
+          cout << "type" << nl->ToString(type) << endl;
+          ListExpr tupleType = GetTupleResultType(s);
+          TupleType* tt = new TupleType(nl->Second(tupleType));
+          
+          TupleIdentifier* tid = (TupleIdentifier*)(args[1].addr);
+
+          // check for rel
+          if(Relation::checkType(nl->Second(type))) {  
+            MemoryRelObject* rel = getMemRel(oN, nl->Second(qp->GetType(s)));
+            if(!rel){
+              return 0;
+            }
+            local.addr = new mdeletebyidInfo(rel->getmmrel(),tid,tt);
+            return 0;
+          }
+          // check for orel
+          else if(listutils::isOrelDescription(nl->Second(type))) { 
+            MemoryORelObject* orel = getMemORel(oN, nl->Second(qp->GetType(s)));
+            if(!orel) {
+              return 0;
+            }
+            local.addr = new mdeletebyidInfo(orel,tid,tt);
+            return 0;
+           }
+           
+           return 0;
+        }
+
+        case REQUEST:
+            result.addr=li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+
+        case CLOSE:
+            if(li) {
+              delete li;
+              local.addr = 0;
+            }
+            return 0;
+   }
+
+   return 0;
+}
+
+
+ValueMapping mdeletebyidVM[] = {
+  mdeletebyidValMap<CcString>,
+  mdeletebyidValMap<Mem>
+};
+
+int mdeletebyidSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+
+/*
+
+5.4.4 Description of operator ~mdeletebyid~
+
+
+*/
+
+// TODO
+OperatorSpec mdeletebyidSpec(
+    "{string, mem(rel(tuple(x))}  -> stream(Tuple)",
+    "_ mfeed",
+    "produces a stream from a main memory relation",
+    "query 'ten' mfeed"
+);
+
+/*
+
+5.4.5 Instance of operator ~mdeletebyid~
+
+*/
+
+Operator mdeletebyidOp (
+    "mdeletebyid",
+    mdeletebyidSpec.getStr(),
+    2,
+    mdeletebyidVM,
+    mdeletebyidSelect,
+    mdeletebyidTypeMap
+);
+
+
 
 
 /*
@@ -6101,6 +6740,8 @@ ListExpr mupdateTypeMap(ListExpr args) {
       return listutils::typeError("first argument must be a tuple stream");
     }
     
+//     cout << "first: " << nl->ToString(stream) << endl;
+    
     // process second argument (mem(rel))
     string errMsg;
     ListExpr second = nl->Second(args);
@@ -6115,6 +6756,7 @@ ListExpr mupdateTypeMap(ListExpr args) {
       return listutils::typeError(
         "second arg is not a memory relation or ordered relation");
     }
+//     cout << "second: " << nl->ToString(second) << endl;
     
     if(!nl->Equal(nl->Second(stream), nl->Second(second))){
        return listutils::typeError("stream type and mem relation type differ");
@@ -6125,11 +6767,10 @@ ListExpr mupdateTypeMap(ListExpr args) {
       return listutils::typeError("third arg must be a list of maps");
     }
     
-    cout << "third: " << nl->ToString(third);
+//     cout << "third: " << nl->ToString(third) << endl;
     
     ListExpr rest = nl->First(third);
     int noAttrs = nl->ListLength(third);
-    cout << "rest: " << nl->ToString(rest) << " noAttrs: " << noAttrs << endl;
     // Go through all functions
     ListExpr firstr, first2, second2, attrType, numberList, lastNumberList;
     string argstr;
@@ -6140,6 +6781,11 @@ ListExpr mupdateTypeMap(ListExpr args) {
       rest = nl->Rest(rest);
       first2 = nl->First(firstr);
       second2 = nl->Second(firstr);
+      
+//       cout << "firstr: " << nl->ToString(firstr) << endl;
+//       cout << "rest: " << nl->ToString(rest) << endl;
+//       cout << "first2: " << nl->ToString(first2) << endl;
+//       cout << "second2: " << nl->ToString(second2) << endl;
       
       // Is it a function?
       if(!listutils::isMap<1>(second2)){
@@ -6167,24 +6813,27 @@ ListExpr mupdateTypeMap(ListExpr args) {
       }
       // Construct a list with all indices of the changed attributes
       // in the inputstream to be appended to the resultstream
-      if (firstcall)
-      {
+      if (firstcall) {
         numberList = nl->OneElemList(nl->IntAtom(attrIndex));
         lastNumberList = numberList;
         firstcall = false;
       }
-      else
-      {
+      else {
         lastNumberList =
           nl->Append(
             lastNumberList,
             nl->IntAtom(attrIndex));
       }
+      
+//       cout << "numberList: " << nl->ToString(numberList) << endl;
+//       cout << "lastNumberList: " << nl->ToString(lastNumberList) << endl;
     }
     
     
-    rest = nl->Second(nl->Second(first));
+    rest = nl->Second(nl->Second(stream));
+//     cout << "rest: " << nl->ToString(rest) << endl;
     ListExpr listn = nl->OneElemList(nl->First(rest));
+//     cout << "listn: " << nl->ToString(listn) << endl;
     ListExpr lastlistn = listn;
     rest = nl->Rest(rest);
     while (!(nl->IsEmpty(rest))) {
@@ -6194,7 +6843,7 @@ ListExpr mupdateTypeMap(ListExpr args) {
     
     // build second part of the resultstream
     rest = nl->Second(nl->Second(stream));
-    cout << "rest: " << nl->ToString(rest) << endl;
+//     cout << "rest: " << nl->ToString(rest) << endl;
     string oldName;
     ListExpr oldAttribute;
     while (!(nl->IsEmpty(rest))) {
@@ -6212,91 +6861,197 @@ ListExpr mupdateTypeMap(ListExpr args) {
                              nl->SymbolAtom("TID"),
                              nl->SymbolAtom(TupleIdentifier::BasicType())));
     
-    ListExpr outlist = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                                         nl->TwoElemList(
-                                           nl->IntAtom(noAttrs),
-                                           numberList),
-                                         nl->TwoElemList(
-                                           nl->SymbolAtom(Symbol::STREAM()),
-                                           nl->TwoElemList(
-                                             nl->SymbolAtom(Tuple::BasicType()),
-                                             listn)));
-    return outlist;
+    ListExpr resType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                nl->TwoElemList(
+                                  nl->SymbolAtom(Tuple::BasicType()),
+                                  listn));
     
+    
+    return nl->ThreeElemList(
+                nl->SymbolAtom(Symbols::APPEND()),
+                nl->TwoElemList(nl->IntAtom(noAttrs),
+                                numberList),
+                resType);
 }
 
 
-// class mupdateInfo {
-//   public:
-//      mupdateInfo(Word w, vector<Tuple*>* _relation, 
-//                  bool _flob, TupleType* _type)
-//         : stream(w),relation(_relation), flob(_flob), type(_type) {
-//         stream.open();
-//         isOrel = false;
-//      }
-//      
-//      mupdateInfo(Word w, MemoryORelObject* _orel, TupleType* _type) 
-//         : stream(w),orel(_orel), flob(_orel->hasflob()), type(_type) {
-//         stream.open();
-//         isOrel = true;
-//      }
-// 
-//     ~mupdateInfo(){
-//        stream.close();
-//      }
-// 
-//      void update(vector<Tuple*>* rel, Tuple* t) {
-//        vector<Tuple*>::iterator it = relation->begin();
-//        while(it != relation->end()) {
-//          Tuple* tup = *it;
-//          // need vector attrPos ,it allen Attribut nummern
-// //          if(Comparator::equal(tup,t)) {
-//          tup->GetNoAttributes();
-//            tup->Print(cout);
-// //            break;
-// //          }
-//            it++;
-//        }
-//      }
-//      
-//      Tuple* next(){
-//        Tuple* res = stream.request();
-//        if(!res){
-//          return 0;
-//        }
-//        if(flob){
-//          res->bringToMemory();
-//        }
-//        
-//        //get tuple id and append it to tuple
-//        Tuple* newtup = new Tuple(type); 
-//        for(int i = 0; i < res->GetNoAttributes(); i++)
-//           newtup->CopyAttribute(i,res,i);
-//        res->IncReference();
-//        if(!isOrel)
-//         // delete from relation
-//         update(relation,res);
-//        else {
-//          cout << "update orel" << endl;
-//          /*orel->getmmorel()->update(res,orel->getAttrPos()); */ 
-//        }
-//        const TupleId& tid = res->GetTupleId();
-//        Attribute* tidAttr = new TupleIdentifier(true,tid);
-//        newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
-//        
-//        res->DeleteIfAllowed();
-//        return newtup;
-//      }
-// 
-//   private:
-//      Stream<Tuple> stream;
-//      vector<Tuple*>* relation;
-//      MemoryORelObject* orel;
-//      bool flob;
-//      TupleType* type;
-//      bool isOrel;
-// 
-// };
+class mupdateInfo {
+  public:
+    mupdateInfo(Word w, vector<Tuple*>* _relation, 
+                bool _flob, Word _arg, int _noAttr, 
+                Word _arg2, TupleType* _type)
+      : stream(w),relation(_relation), flob(_flob), arg(_arg), 
+        noAttr(_noAttr), arg2(_arg2), type(_type) {
+      stream.open();
+      isOrel = false;
+    }
+    
+    mupdateInfo(Word w, MemoryORelObject* _orel, Word _arg, 
+                int _noAttr, Word _arg2, TupleType* _type) 
+      : stream(w),orel(_orel), flob(_orel->hasflob()), 
+        arg(_arg), noAttr(_noAttr), arg2(_arg2), type(_type) {
+      stream.open();
+      isOrel = true;
+    }
+
+    ~mupdateInfo(){
+      stream.close();
+    }
+    
+
+    void updateRel(Tuple* res, int changedIndex, Attribute* attr) {
+      
+      cout << "updateRel()" << endl;
+      
+      vector<int>* attrPos = new vector<int>();
+      attrPos->push_back(changedIndex+1);
+      
+      vector<Tuple*>::iterator it = relation->begin();
+      
+      while(it != relation->end()) {
+        Tuple* tup = *it;
+        if(Comparator::equal(res,tup,attrPos)) {
+          cout << "TUPLE TO UPDATE FOUND!!!!!!!!!!!!" << endl;
+          tup->Print(cout);
+          
+          relation->erase(it);
+          tup->DeleteIfAllowed();
+          
+          tup = new Tuple(type);
+          for(int i=0; i<res->GetNoAttributes(); i++) {
+            if(i!=changedIndex)
+              tup->PutAttribute(i,res->GetAttribute(i)->Clone());
+            else
+              tup->PutAttribute(i,attr->Clone());
+          }
+          relation->push_back(tup);
+          tup->IncReference();
+          break;
+        }
+          it++;
+      }
+      attrPos->clear();
+      delete attrPos;
+    }
+    
+    // TODO sorting, check new attribute
+    void updateORel(Tuple* res, int changedIndex, Attribute* attr) {
+      
+      cout << "updateORel()" << endl;
+      
+      ttree::Iterator<Tuple*,Comparator> it = orel->getmmorel()->begin();
+      
+      while(it.hasNext()) {
+        Tuple* tup = *it;
+        if(Comparator::equal(res,tup,orel->getAttrPos())) {
+
+          cout << "TUPLE TO UPDATE FOUND!!!!!!!!!!!!" << endl;
+          tup->Print(cout);
+          orel->getmmorel()->remove(tup,orel->getAttrPos());
+          tup->DeleteIfAllowed();
+          
+          tup = new Tuple(type);
+          for(int i=0; i<res->GetNoAttributes(); i++) {
+            if(i!=changedIndex)
+              tup->PutAttribute(i,res->GetAttribute(i)->Clone());
+            else
+              tup->PutAttribute(i,attr->Clone());
+          }
+          // TODO instead addTuple?
+          orel->getmmorel()->insert(tup,orel->getAttrPos());    
+          tup->IncReference();
+          break;
+        }
+          it++;
+      }
+    }
+    
+    
+    Tuple* next() {
+      cout << "------------------>>>NEXT() UPDATE" << endl;
+      Tuple* res = stream.request();
+      
+      if(!res) {
+        cout << "------------------>>>NEXT() END OF STREAM" << endl;
+        return 0;
+      }
+      
+      //get tuple id and append it to tuple
+      Tuple* tup = new Tuple(type);
+      
+      // Copy the attributes from the old tuple
+      assert(tup->GetNoAttributes() == 2 * res->GetNoAttributes() + 1);
+      for (int i=0; i<res->GetNoAttributes(); i++)
+        tup->PutAttribute(res->GetNoAttributes()+i,
+                          res->GetAttribute(i)->Clone());
+
+      // Supplier for the functions
+      Supplier supplier = arg.addr;
+
+
+      Word elem, value;  
+      Supplier son = qp->GetSupplier(arg2.addr, 0);
+      qp->Request(son, elem);
+      int changedIndex = ((CcInt*)elem.addr)->GetIntval()-1;
+
+      // Get next appended index
+      Supplier s1 = qp->GetSupplier(supplier, 0);
+      // Get the function
+      Supplier s2 = qp->GetSupplier(s1, 1);
+      ArgVectorPointer funargs = qp->Argument(s2);
+      ((*funargs)[0]).setAddr(res);
+      qp->Request(s2,value);
+      Attribute* newAttr = ((Attribute*)value.addr)->Clone();
+
+      cout << "newAttr: ";
+      newAttr->Print(cout);
+      cout << endl << endl;
+        
+      
+      // TODO needed?
+      if(flob){
+        res->bringToMemory();
+      }
+      
+      if(!isOrel) {
+        cout << "update rel" << endl;
+        updateRel(res,changedIndex,newAttr);
+      }
+      else {
+        cout << "update orel" << endl; 
+        updateORel(res,changedIndex,newAttr);
+      }
+
+    
+      for(int i = 0; i < res->GetNoAttributes(); i++) {
+        if(i!=changedIndex)
+          tup->CopyAttribute(i,res,i);
+        else
+          tup->PutAttribute(i,newAttr->Clone());
+      }
+      
+      const TupleId& tid = res->GetTupleId();
+      Attribute* tidAttr = new TupleIdentifier(true,tid);
+      tup->PutAttribute(tup->GetNoAttributes()-1,tidAttr);
+      // TODO entfernen
+      tup->Print(cout);
+      res->DeleteIfAllowed();
+
+      return tup;
+    }
+
+  private:
+     Stream<Tuple> stream;
+     vector<Tuple*>* relation;
+     MemoryORelObject* orel;
+     bool flob;
+     Word arg;
+     int noAttr;
+     Word arg2;
+     TupleType* type;
+     bool isOrel;
+
+};
 
 
 /*
@@ -6309,60 +7064,59 @@ template<class T>
 int mupdateValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
   
-//   mupdateInfo* li = (mupdateInfo*) local.addr;
-//   
-//   switch (message) {
-//     
-//     case OPEN : {
-//       qp->Open(args[0].addr);
-//       ListExpr tupleType = GetTupleResultType(s);
-//       TupleType* tt = new TupleType(nl->Second(tupleType));
-// 
-//       T* oN;
-//       oN = (T*) args[1].addr;
-//       ListExpr ttype = nl->Second(qp->GetType(qp->GetSon(s,0)));
-//       cout << "ttype: " << nl->ToString(ttype) << endl;
-//       
-//       ListExpr type = catalog->getMMObjectTypeExpr(oN->GetValue());
-//       string name = nl->ToString(nl->Second(type));
-//       cout << "name: " << name << endl;
-//       
-//       if(Relation::checkType(nl->Second(type))) {  // check for rel
-//         MemoryRelObject* rel = getMemRel(oN,ttype);;
-//         if(!rel){
-//           return 0;
-//         }
-//         
-//         // TODO: get No Attributes ->get list size of type
-//         // push_back in vector
-//         
-//         local.addr = 
-//   new mupdateInfo(args[0],rel->getmmrel(),rel->hasflob(),tt);
-//       }
-//       // check for orel
-//       else if(listutils::isOrelDescription(nl->Second(type))) { 
-//         MemoryORelObject* orel = getMemORel(oN,ttype);
-//         if(!orel) {
-//           return 0;
-//         }
-//         local.addr = new mupdateInfo(args[0],orel,tt);
-//       }
-//       return 0;
-//     }
-//     
-//     case REQUEST : {
-//       result.addr=li?li->next():0;
-//       return result.addr?YIELD:CANCEL;
-//     }
-//     
-//     case CLOSE :
-//       if(li) {
-//         delete li;
-//         local.addr = 0;
-//       }
-//       return 0;
-//       
-//   }
+  mupdateInfo* li = (mupdateInfo*) local.addr;
+  
+  switch (message) {
+    
+    case OPEN : {
+      qp->Open(args[0].addr);
+      ListExpr tupleType = GetTupleResultType(s);
+      TupleType* tt = new TupleType(nl->Second(tupleType));
+
+      ListExpr ttype = nl->Second(qp->GetType(qp->GetSon(s,0)));
+      
+      T* oN;
+      oN = (T*) args[1].addr;
+      ListExpr type = catalog->getMMObjectTypeExpr(oN->GetValue());
+      
+      
+      int noOfAttrs = ((CcInt*)args[3].addr)->GetIntval();
+      
+      if(Relation::checkType(nl->Second(type))) {  // check for rel
+        MemoryRelObject* rel = getMemRel(oN,ttype);;
+        if(!rel){
+          return 0;
+        }
+        
+        local.addr = new mupdateInfo(args[0],rel->getmmrel(),
+                                     rel->hasflob(),
+                                     args[2],noOfAttrs,args[4],tt);
+      }
+      // check for orel
+      else if(listutils::isOrelDescription(nl->Second(type))) { 
+        MemoryORelObject* orel = getMemORel(oN,ttype);
+        if(!orel) {
+          return 0;
+        }
+        local.addr = new mupdateInfo(args[0],orel,args[2],noOfAttrs,
+                                     args[4],tt);
+      }
+      return 0;
+    }
+    
+    case REQUEST : {
+      result.addr=li?li->next():0;
+      return result.addr?YIELD:CANCEL;
+    }
+    
+    case CLOSE :
+      if(li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+      
+  }
   return 0;
 
 }
@@ -6422,6 +7176,7 @@ Operator mupdateOp (
 
 */
 
+// TODO mehere ID's
 ListExpr moconsumeTypeMap(ListExpr args) {
   
     if(nl->ListLength(args)!=2){
@@ -6444,7 +7199,7 @@ ListExpr moconsumeTypeMap(ListExpr args) {
     
     ListExpr l1 = nl->Second(nl->First(args));
     ListExpr l2 = nl->SymbolAtom(MemoryORelObject::BasicType());
-    return nl->TwoElemList (l2,l1);;
+    return nl->TwoElemList (l2,l1);
 }
 
 
@@ -6519,6 +7274,153 @@ Operator moconsumeOp (
 );
 
 
+// TODO
+template<bool flob>
+int letmoconsumeValMap(Word* args, Word& result,
+                int message, Word& local, Supplier s) {
+
+  cout << "letmoconsumeValMap" << endl;
+    result  = qp->ResultStorage(s);
+    Mem* str = (Mem*)result.addr;
+
+    Supplier t = qp->GetSon( s, 0 );
+    ListExpr le = qp->GetType(t);
+    bool succeed;
+    CcString* oN = (CcString*) args[1].addr;
+    if(!oN->IsDefined()){
+        str->SetDefined(false);
+        return 0;
+    }
+    string res = oN->GetValue();
+    if(catalog->isMMObject(res)){
+        str->SetDefined(false);
+        return 0;
+    }
+    cout << "letmoconsumeValMap 1" << endl;
+    MemoryORelObject* mmORelObject = new MemoryORelObject();
+    succeed = mmORelObject->tupleStreamToRel(args[0],
+        le, getDBname(), flob);
+    cout << "letmoconsumeValMap 2" << endl;
+    if(succeed) {
+        catalog->insert(res,mmORelObject);
+        cout << "letmoconsumeValMap 3" << endl;
+    } 
+    else {
+        delete mmORelObject;
+    }
+    cout << "letmoconsumeValMap 4" << endl;
+    str->set(succeed,res);
+ 
+
+   return 0;
+}
+
+
+/*
+
+5.5 Operator ~letmoconsume~
+
+~letmoconsume~ produces a main memory ordered relation from a stream(tuples),
+similar to the ~consume~-operator. The name of the main memory ordered relation is given
+by the second parameter.
+
+*/
+
+/*
+
+5.5.1 Type Mapping Functions of operator ~letmoconsume~
+        (stream(Tuple) x string -> mem(orel(tuple(X))))
+
+*/
+ListExpr letmoconsumeTypeMap(ListExpr args) {
+    if(nl->ListLength(args)!=3){
+        return listutils::typeError("(wrong number of arguments)");
+    }
+
+    if (!Stream<Tuple>::checkType(nl->First(args))
+        || !CcString::checkType(nl->Second(args)) ) {
+        return listutils::typeError ("stream(Tuple) x string expected!");
+    }
+    
+    string attrName = nl->SymbolValue(nl->Third(args));
+    ListExpr attrType = 0;
+    int attrPos = 0;
+    ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+    attrPos = listutils::findAttribute(attrList, attrName, attrType);
+
+    if (attrPos == 0){
+        return listutils::typeError
+        ("there is no attribute having name " + attrName);
+    }
+    
+    ListExpr l1 = nl->Second(nl->First(args));
+    ListExpr l2 = nl->SymbolAtom(MemoryORelObject::BasicType());
+    cout << "TEST" << endl;
+    return nl->TwoElemList (l2,l1);;
+}
+
+
+/*
+
+5.5.4 Description of operator ~letmoconsume~
+
+*/
+
+OperatorSpec letmoconsumeSpec(
+    "stream(Tuple) x string -> mem(orel(tuple(X)))",
+    "_ letmoconsume [_,_]",
+    "produces a main memory ordered relation from a stream(Tuple)",
+    "query oten feed letmoconsume ['zehn',No]"
+);
+
+
+
+/*
+
+5.5.5 Instance of operator ~letmoconsume~
+
+*/
+
+Operator letmoconsumeOp (
+    "letmoconsume",
+    letmoconsumeSpec.getStr(),
+    letmoconsumeValMap<false>,
+    Operator::SimpleSelect,
+    letmoconsumeTypeMap
+);
+
+
+/*
+
+5.5.4 Description of operator ~letmoconsume~
+
+*/
+
+OperatorSpec letmoconsumeflobSpec(
+    "stream(Tuple) x string -> mem(orelType(tuple(X)))",
+    "_ letmoconsumeflob [_]",
+    "produces a main memory ordered relation from a stream(Tuple)"
+    "and load the associated flobs",
+    "query otrains feed letmoconsumeflob ['trains1',Id]"
+);
+
+
+
+/*
+
+5.5.5 Instance of operator ~letmoconsumeflob~
+
+*/
+
+Operator letmoconsumeflobOp (
+    "letmoconsumeflob",
+    letmoconsumeflobSpec.getStr(),
+    letmoconsumeValMap<true>,
+    Operator::SimpleSelect,
+    letmoconsumeTypeMap
+);
+
+
 
 /*
 7.3 Operator ~morange~, ~moleftrange~, ~morightrange~
@@ -6536,6 +7438,8 @@ Operator moconsumeOp (
 
 */
 
+
+// TODO absturz bei Eingabe von rel
 enum RangeKind {
   LeftRange,
   RightRange,
@@ -6619,34 +7523,31 @@ class morangeInfo{
     public:
       
       morangeInfo(ttree::TTree<Tuple*,Comparator>* _tree, 
-                Attribute* _attr1,
-                Attribute* _attr2, 
-                std::vector<int>* _attrPos)
-                :tree(_tree),attr1(_attr1),attr2(_attr2),attrPos(_attrPos) {
+                  Attribute* _attr1,
+                  Attribute* _attr2, 
+                  int _attrPos)
+          : tree(_tree),attr1(_attr1),attr2(_attr2),attrPos(_attrPos) {
         
-                  iter = tree->begin();
-                  bool found = false;
-                  
-                  if(rk==LeftRange) {
-                    cout << "rk==LeftRange" << endl;
-                    found = true;
-                  }
-                  
-                  while ((rk== Range || rk==RightRange) && 
-                          !found && !iter.end()) {
-                    Tuple* result = *iter;
-                    Attribute* attr;
-                    if(result)
-                      // TODO Schleife
-                      attr = result->GetAttribute(attrPos->at(0)-1);
-                    
-                    if(attr->Compare(attr1) < 0) {
-                      iter++;
-                    }
-                    else
-                      found = true;
-                  }
-                  res = found;
+        iter = tree->begin();
+        res = false;
+        
+        if(rk==LeftRange) {
+          cout << "rk==LeftRange" << endl;
+          res = true;
+        }
+        
+        while((rk== Range || rk==RightRange) && 
+                !res && !iter.end()) {
+          Tuple* result = *iter;
+          Attribute* attr;
+          if(result)
+            attr = result->GetAttribute(attrPos-1);
+          
+          if(attr->Compare(attr1) < 0) 
+            iter++;
+          else
+            res = true;
+        }
       }
       
       ~morangeInfo(){}
@@ -6661,8 +7562,7 @@ class morangeInfo{
         if(!result)
           return 0;
         
-        // TODO Schleife
-        Attribute* attr = result->GetAttribute(attrPos->at(0)-1);
+        Attribute* attr = result->GetAttribute(attrPos-1);
         
         if(rk==LeftRange && attr->Compare(attr1) > 0) {
           cout << "rk==LeftRange && attr->Compare(attr1) > 0" << endl;
@@ -6682,7 +7582,7 @@ class morangeInfo{
         ttree::TTree<Tuple*,Comparator>* tree;
         Attribute* attr1;
         Attribute* attr2;
-        std::vector<int>* attrPos;
+        int attrPos;
         ttree::Iterator<Tuple*,Comparator> iter;
         bool res;
 };
@@ -6717,7 +7617,7 @@ int morangeVMT (Word* args, Word& result,
             
             local.addr = new morangeInfo<rk>(orel->getmmorel(),
                                              key1,key2, 
-                                             orel->getAttrPos()); 
+                                             orel->getAttrPos()->at(0)); 
             return 0;
         }
 
@@ -6818,36 +7718,29 @@ Operator morangeOp (
 
 
 /*
-7.4 Operator ~oshortestpathd~
+7.4 Operator ~moshortestpath~
 
 
 */
 
 ListExpr moshortestpathTypeMap(ListExpr args) {
   
-  
-//   cout << "moshortestpathTypeMap" << endl;
-//   cout << nl->ToString(args) << endl << endl;
-  
   if(nl->ListLength(args) != 5) {
     return listutils::typeError("moshortestpath expects 5 arguments");
   }
   
-  ListExpr orelList = nl->First(nl->First(args));     //mem(orel)
-//   cout << nl->ToString(nl->First(args)) << endl;
-//   cout << nl->ToString(orelList) << endl << endl;
+  ListExpr orelList = nl->First(args);     //mem(orel)
   if (!Stream<Tuple>::checkType(orelList)) {
         return listutils::typeError ("stream(tuple) expected!");
   }
 
-  ListExpr startNodeList = nl->First(nl->Second(args));
-//   cout << "startNodeList: " << nl->ToString(startNodeList) << endl;
-  ListExpr endNodeList = nl->First(nl->Third(args));
-  ListExpr resultSelect = nl->First(nl->Fourth(args));
-  ListExpr functionMap = nl->First(nl->Fifth(args));
+  ListExpr startNodeList = nl->Second(args);
+  cout << "startNodeList: " << nl->ToString(startNodeList) << endl;
+  ListExpr endNodeList = nl->Third(args);
+  ListExpr resultSelect = nl->Fourth(args);
+  ListExpr functionMap = nl->Fifth(args);
 
   ListExpr orelTuple = nl->Second(orelList);    
-//   cout << nl->ToString(orelTuple) << endl;
 
   if(!listutils::isTupleDescription(orelTuple)) {
     return listutils::typeError("second value of orel is not of type tuple");
@@ -6930,14 +7823,13 @@ ListExpr moshortestpathTypeMap(ListExpr args) {
 }
 
 
-// template<class T>
 class moshortestpathInfo {
 public:
   
-  moshortestpathInfo(ttree::TTree<Tuple*,Comparator>* _tree, 
+  moshortestpathInfo(Word w, 
                      int _startNode, int _endNode, int _resultSelect,
                      Word _arg, TupleType* _tt) 
-      : tree(_tree),startNode(_startNode),
+      : stream(w),startNode(_startNode),
         endNode(_endNode),resultSelect(_resultSelect),
         arg(_arg),tt(_tt),seqNo(1) {
           
@@ -6945,32 +7837,61 @@ public:
           visitedNodes = new ttree::TTree<QueueEntry*,EntryComp>(4,8);
           sptree = new ttree::TTree<Tuple*,Comparator>(4,8);
           result = new ttree::TTree<Tuple*,Comparator>(4,8);
+          mmorel = new ttree::TTree<Tuple*,Comparator>(4,8);     
+
+          
+          std::vector<int>* pos = new std::vector<int>();
+          pos->push_back(1);
+          pos->push_back(2);
+          
+          stream.open();
+          Tuple* tup = 0;
+          while((tup = stream.request()) != 0) {
+            mmorel->insert(tup,pos);       
+          }
           
           bool found = shortestPath();
           if(found || resultSelect == 3) {
-//             cout << "Shortest Path found write result Relation" << endl;
+            //cout << "Shortest Path found write result Relation" << endl;
             resultSelection();
           }
           else { 
             cerr << "no path found" << endl;
           }
-          
+          pos->clear();
+          delete pos;
           iterator = result->begin();
         }
 
   // TODO mit valgrind testen      
   ~moshortestpathInfo() {
+    while(!queue->empty())
+      queue->pop();
     delete queue;
+    
+    ttree::Iterator<QueueEntry*,EntryComp> it = visitedNodes->begin();
+    while(it.hasNext()) {
+      QueueEntry* entry = *it;
+      if(entry) {
+        delete entry;
+        entry = 0;
+      }
+      it++;
+    }
+    
+    tt->DeleteIfAllowed();
+    tt = 0;
+    
+    delete mmorel;
     delete visitedNodes;
     delete result;
-
+    delete sptree;
   };
   
   Tuple* next() {
     if(iterator.end()) 
       return 0;
     Tuple* res = *iterator;
-//     res->Print(cout);
     if(res==NULL) {
       cerr << "moshortestpath next() res==NULL" << endl;
       return 0;
@@ -6986,14 +7907,7 @@ public:
     CcInt* startNodeInt = new CcInt(true,prev);
     CcInt* endNodeInt = new CcInt(true,nr);
     
-    // TODO entfernen
-//     cout << endl << "findTuple()" << current->nodeNumber << endl;
-//     cout << "current->nodeNumber: " << current->nodeNumber << endl;
-//     cout << "current->prev: " << current->prev << endl;
-//     cout << "startNodeInt: " << startNodeInt->GetIntval() << endl;
-//     cout << "endNodeInt: " << endNodeInt->GetIntval() << endl;
-
-    ttree::Iterator<Tuple*,Comparator> it = tree->begin();
+    ttree::Iterator<Tuple*,Comparator> it = mmorel->begin();
     
     while(it.hasNext()) {
       Tuple* tup = *it;
@@ -7026,6 +7940,7 @@ public:
     seqNoAttrIndex = i;
     newTuple->PutAttribute(i,noOfNodes);
     result->insert(newTuple,i+1);   // sort by SeqNo
+
     return true;
   }
   
@@ -7038,12 +7953,11 @@ public:
       QueueEntry* entry = *iter;
   
       if(entry->nodeNumber == current->prev) {
-//         cout << "findNextNode() entry->nodeNumber== current->prev: " 
-//              << entry->nodeNumber << endl;
         return entry;
       }
       iter++;
     }
+    return 0;
   }
 
   
@@ -7058,33 +7972,23 @@ public:
     
     QueueEntry* startEntry = new QueueEntry(startNode,-1,0.0,0.0);
     queue->push(startEntry);
-    visitedNodes->insert(startEntry,true);
+    visitedNodes->insert(startEntry);
     
     double dist = 0.0;
     
-  //SEARCH SHORTESTPATH
+  // SEARCH SHORTESTPATH
     while(!queue->empty()) {
         current = queue->top();
         queue->pop();
         
         if (resultSelect<3 && current->nodeNumber == endNode) {
-          // TODO entfernen
-//           cout << "----------------->currentNodeNumber: " 
-//                << current->nodeNumber << endl;
-//           cout << "----------------->FOUND" << endl;
-//         ttree::Iterator<QueueEntry*,EntryComp> iter = visitedNodes->begin();
-//           while(iter.hasNext()) {
-//             QueueEntry* entry = *iter;
-//             entry->print(cout);
-//             iter++;
-//           }
           return true;
         }
         else {
           CcInt* currentNodeNumber = new CcInt(true,current->nodeNumber);
           
           // get lower Range position for iterator
-          ttree::Iterator<Tuple*,Comparator> it = tree->begin();
+          ttree::Iterator<Tuple*,Comparator> it = mmorel->begin();
           while(it.hasNext()) {
             Tuple* tup = *it;
         
@@ -7095,31 +7999,15 @@ public:
             else break;
           }
           
-          Tuple* currentTuple = *it;
-          //////////////
-//           cout << endl << "!!!!!!!!!!!!!!!!!DURCHLAUFE KNOTEN: " 
-//                << currentNodeNumber->GetIntval() << endl;
-//           cout << "----------> currentTuple = *it" << endl;
-//           currentTuple->Print(cout);
-          //////////////
-        
-          
           while(it.hasNext()) {
-            currentTuple = *it;
+            Tuple* currentTuple = *it;
             
             if(currentTuple->GetAttribute(0)->Compare(currentNodeNumber) > 0) {
               break;
             }
             
             toNode = ((CcInt*)currentTuple->GetAttribute(1))->GetIntval();
-            //////////////
-//             cout << endl << "-->DURCHLAUFE KANTEN" << endl;
-//             cout << "currentTuple = orelIt->GetNextTuple();" << endl;
-//             currentTuple->Print(cout);
-//             cout << "current->nodeNumber: " << current->nodeNumber << endl;
-//             cout << "toNode: " << toNode << endl;
-            //////////////
-            
+
             if(current->nodeNumber != toNode) {
 
               ArgVectorPointer funArgs = qp->Argument(arg.addr);
@@ -7141,20 +8029,12 @@ public:
                 
                 // node number found before?
                 if(entry->nodeNumber == toNode) {
-//                   cout << endl << "already contained" << endl;
                   if(entry->dist > dist) {
                     Tuple* tup = findTuple(entry->nodeNumber,entry->prev);
-//                     tup->Print(cout);
-//                     currentTuple->Print(cout);
-                    sptree->update(tup,currentTuple);// TODO update überprüfen
-                    
-//                     entry->print(cout);
+                    sptree->update(tup,currentTuple);
                     entry->dist = dist;
                     entry->prev = current->nodeNumber;
                     entry->priority = dist;
-//                     entry->print(cout);
-                    
-                    // TODO queue update
                   }
                   contained = true;
                   break;
@@ -7163,49 +8043,42 @@ public:
               }
 
               if(!contained) {
-//                 cout << "!contained" << endl;
                 QueueEntry* to = 
                     new QueueEntry(toNode,current->nodeNumber,dist,dist);
                 visitedNodes->insert(to,true);
                 queue->push(to);
                 sptree->insert(currentTuple);
               }
-//               queue->print(cout);
             }
             it++;
           } 
+          currentNodeNumber->DeleteIfAllowed();
         }
       } // end while search shortestpath
       return false;
   }
   
   
-  
   void resultSelection() {
     switch(resultSelect) {
-      case 0: {  // shortest path  // funktioniert
+      case 0: {  // shortest path  
       
         Tuple* currentTuple = findTuple(current->nodeNumber,current->prev);
-//         currentTuple->Print(cout);
-            
         bool found = false;
-        
+    
         while (!found && currentTuple != 0) {
 
           appendTuple(currentTuple);
           
           if(current->prev != startNode) {
             current = findNextNode();
-//          cout << "-->current->nodeNumber: " << current->nodeNumber << endl;
-//          cout << "current->prev: " << current->prev << endl;
-            
+
             if (currentTuple != 0) {
               currentTuple->DeleteIfAllowed();
               currentTuple = 0;
             }
             
             currentTuple = findTuple(current->nodeNumber,current->prev);
-//             currentTuple->Print(cout);
           }
           else {
             found = true;
@@ -7222,10 +8095,7 @@ public:
         while(queue->size() > 0) {
           current = queue->top();
           queue->pop();
-          
           Tuple* currentTuple = findTuple(current->nodeNumber,current->prev);
-//           currentTuple->Print(cout);
-          
           appendTuple(currentTuple);
         }
         break;
@@ -7238,12 +8108,11 @@ public:
         break;
       }
   
-      case 3: { //shortest path tree      // funktioniert
+      case 3: { //shortest path tree     
       
         ttree::Iterator<Tuple*,Comparator> it = sptree->begin();
         while(it.hasNext()) {
           Tuple* currentTuple = *it;
-//           currentTuple->Print(cout);
           appendTuple(currentTuple);
           it++;
         }
@@ -7258,30 +8127,34 @@ public:
   }
 
 
-//protected:
+protected:
 
-  ttree::TTree<Tuple*,Comparator>* tree;
+  Stream<Tuple> stream;
   int startNode;
   int endNode;
   int resultSelect;
-  Word arg;   
-  int seqNoAttrIndex;
+  Word arg; 
+  TupleType* tt;
   int seqNo;
+  Queue* queue;
+  
   ttree::TTree<QueueEntry*,EntryComp>* visitedNodes;
   ttree::TTree<Tuple*,Comparator>* sptree;
   ttree::TTree<Tuple*,Comparator>* result;
+  ttree::TTree<Tuple*,Comparator>* mmorel;     
   ttree::Iterator<Tuple*,Comparator> iterator;
-  Queue* queue;
+  
   QueueEntry* current;
-  TupleType* tt;
+  int seqNoAttrIndex;
+  
 };
 
 
-template<class T>
-int moshortestpathVMT(Word* args, Word& result, int message,
+
+int moshortestpathVM(Word* args, Word& result, int message,
                           Word& local, Supplier s) {
 
-// cout << "moshortestpathVMT" << endl;
+  // cout << "moshortestpathVM" << endl;
 
   moshortestpathInfo* li = (moshortestpathInfo*) local.addr;
 
@@ -7306,31 +8179,16 @@ int moshortestpathVMT(Word* args, Word& result, int message,
           return 0;
         }
       }
-          
-      MemoryORelObject* mmorel = new MemoryORelObject();
-//       vector<int>* pos = new vector<int>();
-//       pos->push_back(1);
-//       pos->push_back(2);
-      mmorel->setAttrPos();   
-//       delete pos;
-      
-      Stream<Tuple> stream(args[0]);
-      stream.open();
-      Tuple* tup = 0;
-      while((tup = stream.request()) != 0) {
-        mmorel->addTuple(tup);       
-      }
-//       mmorel->print(cout);
-      
+         
       ListExpr tupleType = GetTupleResultType(s);
       TupleType* tt = new TupleType(nl->Second(tupleType));
       
       if(li) {
-          delete li;
-          local.addr=0;
+        delete li;
+        local.addr=0;
       }
 
-      local.addr = new moshortestpathInfo(mmorel->getmmorel(),
+      local.addr = new moshortestpathInfo(args[0],
                                           startNode, 
                                           endNode, 
                                           resultSelect, 
@@ -7352,16 +8210,6 @@ int moshortestpathVMT(Word* args, Word& result, int message,
   return 0;
 }
 
-// TODO needed?
-ValueMapping moshortestpathVM[] = {
-   moshortestpathVMT<CcString>,
-   moshortestpathVMT<Mem>
-};
-
-int moshortestpathSelect(ListExpr args){
-  return CcString::checkType(nl->Second(args))?0:1;
-}
-
 
 OperatorSpec moshortestpathSpec(
     "stream(mem(orel(tuple(X)))) x T x T x T -> stream(Tuple(X))",
@@ -7372,22 +8220,22 @@ OperatorSpec moshortestpathSpec(
 );
 
 Operator moshortestpathOp (
-                "moshortestpath",               // name
-                moshortestpathSpec.getStr(),    // specification
-                2,
-                moshortestpathVM,               // value mapping
-                moshortestpathSelect,           // trivial selection function
-                moshortestpathTypeMap           // type mapping
-                );
+    "moshortestpath",
+    moshortestpathSpec.getStr(),
+    moshortestpathVM,
+    Operator::SimpleSelect,
+    moshortestpathTypeMap
+);
+
 
 
 
 /*
-7.4 Operator ~moconnectedComponents~
+7.4 Operator ~moconnectedcomponents~
 
 */
 
-ListExpr moconnectedComponentsTypeMap(ListExpr args) {
+ListExpr moconnectedcomponentsTypeMap(ListExpr args) {
 
     if(nl->ListLength(args) != 1) {
         return listutils::typeError("one arguments expected");
@@ -7512,7 +8360,7 @@ class moconnectedComponentsInfo{
 
 
 template<class T>
-int moconnectedComponentsValMap (Word* args, Word& result,
+int moconnectedcomponentsValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
   moconnectedComponentsInfo* li = (moconnectedComponentsInfo*) local.addr;
@@ -7558,43 +8406,43 @@ int moconnectedComponentsValMap (Word* args, Word& result,
 }
 
 
-ValueMapping moconnectedComponentsVM[] = {
-  moconnectedComponentsValMap<CcString>,
-  moconnectedComponentsValMap<Mem>
+ValueMapping moconnectedcomponentsVM[] = {
+  moconnectedcomponentsValMap<CcString>,
+  moconnectedcomponentsValMap<Mem>
 };
 
-int moconnectedComponentsSelect(ListExpr args){
+int moconnectedcomponentsSelect(ListExpr args){
   return CcString::checkType(nl->First(args))?0:1;
 }
 
 
 /*
 
-5.4.4 Description of operator ~moconnectedComponents~
+5.4.4 Description of operator ~moconnectedcomponents~
 
 
 */
 
-OperatorSpec moconnectedComponentsSpec(
+OperatorSpec moconnectedcomponentsSpec(
     "{string, mem(orel(tuple(x))}  -> stream(Tuple)",
-    "_ moconnectedComponents",
+    "_ moconnectedcomponents",
     "",
-    "query \"otestrel\" moconnectedComponents"
+    "query \"otestrel\" moconnectedcomponents"
 );
 
 /*
 
-5.4.5 Instance of operator ~moconnectedComponents~
+5.4.5 Instance of operator ~moconnectedcomponents~
 
 */
 
-Operator moconnectedComponentsOp (
-    "moconnectedComponents",
-    moconnectedComponentsSpec.getStr(),
+Operator moconnectedcomponentsOp (
+    "moconnectedcomponents",
+    moconnectedcomponentsSpec.getStr(),
     2,
-    moconnectedComponentsVM,
-    moconnectedComponentsSelect,
-    moconnectedComponentsTypeMap
+    moconnectedcomponentsVM,
+    moconnectedcomponentsSelect,
+    moconnectedcomponentsTypeMap
 );
 
 
@@ -7809,6 +8657,1757 @@ Operator mquicksortOp (
     mquicksortTypeMap
 );
 
+///////////////////////////////////////////////////////////////
+
+/*
+7.4 Operator ~mgshortestpath~
+
+
+*/
+
+ListExpr mgshortestpathTypeMap(ListExpr args) {
+
+  if(nl->ListLength(args) != 4) {
+      return listutils::typeError("two arguments expected");
+  }
+
+  ListExpr first = nl->First(args);
+//     ListExpr second = nl->First(nl->Second(args));
+    
+  if(!nl->HasLength(first,2)){
+      return listutils::typeError("internal error");
+  }
+  
+  string errMsg;
+
+  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg)){
+    return listutils::typeError("string or mem(rel) expected : " + errMsg);
+  }
+
+  // check fot rel or orel
+  first = nl->Second(first); // remove mem
+  if(!(Relation::checkType(first)) && !(listutils::isOrelDescription(first))){
+    return listutils::typeError(
+      "first arg is not a memory relation or ordered relation");
+  }
+
+  ListExpr startNodeList = nl->First(nl->Second(args));
+  ListExpr endNodeList = nl->First(nl->Third(args));
+  ListExpr resultSelect = nl->First(nl->Fourth(args));
+
+  ListExpr relTuple = nl->Second(first);    
+
+  if(!listutils::isTupleDescription(relTuple)) {
+    return listutils::typeError("second value of rel is not of type tuple");
+  }
+
+  ListExpr relAttrList(nl->Second(relTuple));
+
+  if(!listutils::isAttrList(relAttrList)) {
+    return listutils::typeError("Error in rel attrlist.");
+  }
+
+  if(!nl->ListLength(relAttrList) >= 3) {
+    return listutils::typeError("rel has less than 3 attributes.");
+  }
+
+  //Check of second argument
+  if (!listutils::isSymbol(startNodeList,CcInt::BasicType())) {
+    return listutils::typeError("Second argument should be int");
+  }
+
+  //Check of third argument
+  if (!listutils::isSymbol(endNodeList,CcInt::BasicType())) {
+    return listutils::typeError("Third argument should be int");
+  }
+
+  //Check of fourth argument
+  if(!listutils::isSymbol(resultSelect,CcInt::BasicType())) {
+    return listutils::typeError("Fourth argument should be int");
+  }
+
+  // appends Attribute SeqNo to Attributes in orel
+  ListExpr rest = nl->Second(nl->Second(first));
+    ListExpr listn = nl->OneElemList(nl->First(rest));
+    ListExpr lastlistn = listn;
+    rest = nl->Rest(rest);
+    while (!(nl->IsEmpty(rest))) {
+      lastlistn = nl->Append(lastlistn,nl->First(rest));
+      rest = nl->Rest(rest);
+    }
+    
+    lastlistn = nl->Append(lastlistn,
+                          nl->TwoElemList(
+                            nl->SymbolAtom("SeqNo"),
+                            nl->SymbolAtom(TupleIdentifier::BasicType())));
+    
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                       nl->TwoElemList(
+                                         nl->SymbolAtom(Tuple::BasicType()),
+                                         listn));
+}
+
+
+// template<class T>
+class mgshortestpathInfo {
+public:
+  
+  mgshortestpathInfo(graph::Graph* _graph, 
+                     int _startNode, int _endNode, int _resultSelect,
+                     TupleType* _tt) 
+      : graph(_graph),startNode(_startNode),
+        endNode(_endNode),resultSelect(_resultSelect),
+        tt(_tt),seqNo(1) {
+          
+//           queue = new Queue();
+//           visitedNodes = new ttree::TTree<QueueEntry*,EntryComp>(4,8);
+//           sptree = new ttree::TTree<Tuple*,Comparator>(4,8);
+          result = new ttree::TTree<Tuple*,Comparator>(4,8); // change to rel
+//           
+          bool found = shortestPath();
+          if(found || resultSelect == 3) {
+            cout << "Shortest Path found write result Relation" << endl;
+            resultSelection();
+          }
+          else { 
+            cerr << "no path found" << endl;
+          }
+          
+//           
+          iterator = result->begin();
+
+        }
+
+  // TODO mit valgrind testen      
+  ~mgshortestpathInfo() {
+//     delete queue;
+//     delete visitedNodes;
+    delete result;
+
+  }
+  
+  Tuple* next() {
+    if(iterator.end()) 
+      return 0;
+    Tuple* res = *iterator;
+    if(res==NULL) {
+      cerr << "mgshortestpath next() res==NULL" << endl;
+      return 0;
+    }
+    iterator++;
+    res->IncReference();
+    return res;
+  }
+  
+  
+  
+  bool appendTuple(Tuple* tup) {
+    Tuple* newTuple = new Tuple(tt);
+    int i = 0;
+    for(; i<tup->GetNoAttributes(); i++) {
+      newTuple->CopyAttribute(i,tup,i);
+    }
+
+    CcInt* noOfNodes = new CcInt(true, seqNo);
+    seqNo++;
+    seqNoAttrIndex = i;
+    newTuple->PutAttribute(i,noOfNodes);
+    result->insert(newTuple,i+1);   // sort by SeqNo
+    return true;
+  }
+  
+  
+/*
+~shortestpath~
+ 
+*/
+  bool shortestPath() {
+    bool found = graph->shortestPath(graph->getVertex(startNode));
+    graph->getPath(graph->getVertex(endNode));
+    return found;        
+  }
+
+  
+/*
+~resultSelection~
+ 
+*/  
+  void resultSelection() { 
+  
+    switch(resultSelect) {
+      case 0: {  // shortest path  
+      
+        int source = startNode;
+        int dest = 0;
+        
+        for(size_t i=1; i<graph->getResult()->size(); i++) {
+          dest = graph->getResult()->at(i);
+          //       cout << "source: " << source << endl;
+          //       cout << "dest: " << dest << endl;
+          Tuple* tup = graph->getEdge(source,dest);
+          tup->Print(cout);
+          appendTuple(tup);
+          source = dest;
+        }
+        break;
+      }
+      case 1: { //Remaining elements in priority queue
+        
+//         while(queue->size() > 0) {
+//           current = queue->top();
+//           queue->pop();
+//           
+//           Tuple* currentTuple = findTuple(current->nodeNumber,current->prev);
+// //           currentTuple->Print(cout);
+//           
+//           appendTuple(currentTuple);
+//         }
+        break;
+      }
+      
+      case 2: { //visited sections
+      
+        // output alle besuchten Tuple
+
+        break;
+      }
+  
+      case 3: { //shortest path tree     
+      
+//         ttree::Iterator<Tuple*,Comparator> it = sptree->begin();
+//         while(it.hasNext()) {
+//           Tuple* currentTuple = *it;
+// //           currentTuple->Print(cout);
+//           appendTuple(currentTuple);
+//           it++;
+//         }
+        break;
+      }
+
+      default: { //should have never been reached
+        break;
+      }
+    }
+      
+  }
+
+
+protected:
+
+  graph::Graph* graph;
+  int startNode;
+  int endNode;
+  int resultSelect;
+  TupleType* tt;  
+  int seqNoAttrIndex;
+  int seqNo;
+//   ttree::TTree<QueueEntry*,EntryComp>* visitedNodes;
+//   ttree::TTree<Tuple*,Comparator>* sptree;
+  ttree::TTree<Tuple*,Comparator>* result;
+  ttree::Iterator<Tuple*,Comparator> iterator;
+//   Queue* queue;
+//   QueueEntry* current;
+  
+};
+
+
+
+template<class T>
+int mgshortestpathValMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+  mgshortestpathInfo* li = (mgshortestpathInfo*) local.addr;
+
+  switch (message) {
+    case OPEN: {
+      
+      if(li){
+        delete li;
+        local.addr=0;
+      }
+      
+      int resultSelect = ((CcInt*)args[3].addr)->GetIntval();
+      if(resultSelect<0 || resultSelect>3) {
+        cerr << "Selected result value does not exist. Enter 0 for shortest ";
+        cerr << "path, 1 for remaining priority queue elements, 2 for visited ";
+        cerr << "edges, 3 for shortest path tree." << endl;
+        return 0;
+      }
+
+      // Check for simplest Case
+      int startNode = ((CcInt*)args[1].addr)->GetIntval();
+      int endNode = ((CcInt*)args[2].addr)->GetIntval();
+      if(resultSelect<3) {
+        if(startNode == endNode) {
+          cerr << "source and target node are equal, no path";
+          return 0;
+        }
+      }
+      
+      T* oN = (T*) args[0].addr;
+      
+      MemoryRelObject* rel = getMemRel(oN, nl->Second(qp->GetType(s)));
+      if(!rel){
+        return 0;
+      }
+      
+      MemoryGraphObject* graph = new MemoryGraphObject();
+
+      graph->relToGraph(rel,getDBname(),rel->hasflob());
+      graph->getgraph()->print(cout);
+      
+      ListExpr tupleType = GetTupleResultType(s);
+      TupleType* tt = new TupleType(nl->Second(tupleType));
+
+      local.addr = new mgshortestpathInfo(graph->getgraph(),
+                                          startNode, 
+                                          endNode, 
+                                          resultSelect,tt);
+      
+      return 0;
+    }
+
+    case REQUEST:
+      result.addr=li?li->next():0;
+      return result.addr?YIELD:CANCEL;
+
+    case CLOSE:
+      if(li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+  }
+
+  return -1;
+}
+
+
+ValueMapping mgshortestpathVM[] = {
+  mgshortestpathValMap<CcString>,
+  mgshortestpathValMap<Mem>
+};
+
+int mgshortestpathSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+
+/*
+
+7.2.4 Description of operator ~mgshortestpathSpec~
+
+*/
+
+// TODO
+OperatorSpec mgshortestpathSpec(
+    "",
+    "",
+    "",
+    ""
+);
+
+
+
+/*
+
+7.2.5 Instance of operator ~mgshortestpathSpec~
+
+*/
+
+Operator mgshortestpathOp (
+    "mgshortestpath",
+    mgshortestpathSpec.getStr(),
+    2,
+    mgshortestpathVM,
+    mgshortestpathSelect,
+    mgshortestpathTypeMap
+);
+
+
+/*
+7.4 Operator ~moconnectedComponents~
+
+*/
+
+// ListExpr moconnectedComponentsTypeMap(ListExpr args) {
+// 
+//     if(nl->ListLength(args) != 1) {
+//         return listutils::typeError("one arguments expected");
+//     }
+// 
+//     ListExpr arg = nl->First(args);
+//     
+//     if(!nl->HasLength(arg,2)){
+//         return listutils::typeError("internal error");
+//     }
+//     
+//     string errMsg;
+//     
+// //     cout << "nl->First(arg): " << nl->ToString(nl->First(arg)) << endl;
+// //     cout << "nl->Second(arg): " << nl->ToString(nl->Second(arg)) << endl; 
+//     
+//     if(!getMemType(nl->First(arg), nl->Second(arg), arg, errMsg)){
+//       return listutils::typeError("string or mem(rel) expected : " + errMsg);
+//     }
+// 
+//     arg = nl->Second(arg); // remove mem
+//     if(!listutils::isOrelDescription(arg)){
+//       return listutils::typeError("memory object is not a relation");
+//     }
+//     
+//     // TODO check if second argument attribute of relation
+//     
+//     ListExpr rest = nl->Second(nl->Second(arg));
+//     ListExpr listn = nl->OneElemList(nl->First(rest));
+//     ListExpr lastlistn = listn;
+//     rest = nl->Rest(rest);
+//     while (!(nl->IsEmpty(rest))) {
+//       lastlistn = nl->Append(lastlistn,nl->First(rest));
+//       rest = nl->Rest(rest);
+//     }
+//     
+//     lastlistn = nl->Append(lastlistn,
+//                           nl->TwoElemList(
+//                             nl->SymbolAtom("ComponentNo"),
+//                             nl->SymbolAtom(TupleIdentifier::BasicType())));
+//     
+//     ListExpr outList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+//                                        nl->TwoElemList(
+//                                          nl->SymbolAtom(Tuple::BasicType()),
+//                                          listn));
+//     return outList;
+// }
+// 
+// 
+// /*
+// 
+// 5.4.3  The Value Mapping Functions of operator ~moconnectedComponents~
+// 
+// */
+// class moconnectedComponentsInfo{
+//   public:
+//     moconnectedComponentsInfo(ttree::TTree<Tuple*,Comparator>* _tree,
+//                               TupleType* _tt)
+//         : tree(_tree),tt(_tt) {
+//         
+// //       cout << "moconnectedComponentsInfo" << endl;
+// //       tree = quicksort(_relation,0,_relation->size()-1,pos);
+//       scctree = new ttree::TTree<Tuple*,Comparator>(4,8);
+//       scc(tree);
+//       iter = scctree->begin();
+//     }
+//     
+//     
+//     ~moconnectedComponentsInfo(){
+//       delete scctree;
+//     }
+//     
+//     
+//     Tuple* next() {
+//       if(!iter.hasNext()) 
+//         return 0;
+//       Tuple* res = *iter;
+// //       res->Print(cout);
+//       if(!res) {
+//         cerr << "moconnectedComponentsInfo next() res==NULL" << endl;
+//       return 0;
+//       }
+//       iter++;
+//       res->IncReference();
+//       return res;
+//     }
+//     
+//     
+//     bool appendTuple(Tuple* tup) {
+//       Tuple* newTuple = new Tuple(tt);
+//       int i = 0;
+//       for(; i<tup->GetNoAttributes(); i++) {
+//         newTuple->CopyAttribute(i,tup,i);
+//       }
+// 
+//       CcInt* noOfNodes = new CcInt(true, compNo);
+//       compNo++;
+//       newTuple->PutAttribute(i,noOfNodes);
+//       scctree->insert(newTuple,i+1);   // sort by CompNo
+//       return true;
+//     }
+//     
+//     // TODO implementieren
+//     void scc(ttree::TTree<Tuple*,Comparator>* tree) {
+//       compNo = 0;
+//       ttree::Iterator<Tuple*,Comparator> it = tree->begin();
+//       //ttree::Iterator<Tuple*,Comparator> iter = scctree->begin();
+//       while(it.hasNext()) {
+//         Tuple* t = *it;
+//         appendTuple(t);
+//         it++;
+//       }
+//     }
+// 
+//   private:
+//      ttree::TTree<Tuple*,Comparator>* tree;
+//      ttree::TTree<Tuple*,Comparator>* scctree;
+//      ttree::Iterator<Tuple*,Comparator> iter;
+//      TupleType* tt;
+//      int compNo;
+// };
+// 
+// 
+// template<class T>
+// int moconnectedComponentsValMap (Word* args, Word& result,
+//                     int message, Word& local, Supplier s) {
+// 
+//   moconnectedComponentsInfo* li = (moconnectedComponentsInfo*) local.addr;
+// 
+//   switch (message) {
+//     case OPEN: {
+//       
+//       if(li){
+//         delete li;
+//         local.addr=0;
+//       }
+//       T* oN = (T*) args[0].addr;
+//       
+//       ListExpr ttype = nl->Second(nl->Second(qp->GetType(s)));
+// //       cout << "ttype: " << nl->ToString(ttype) << endl;
+//       
+//       MemoryORelObject* orel = getMemORel(oN,ttype);
+//       if(!orel){
+//         return listutils::typeError
+//           ("could not find memory orel object");
+//       }
+//       
+//       ListExpr tupleType = GetTupleResultType(s);
+//       TupleType* tt = new TupleType(nl->Second(tupleType));
+//       
+//       local.addr= new moconnectedComponentsInfo(orel->getmmorel(),tt); 
+//       return 0;
+//     }
+// 
+//     case REQUEST:
+//       result.addr=li?li->next():0;
+//       return result.addr?YIELD:CANCEL;
+// 
+//     case CLOSE:
+//       if(li) {
+//         delete li;
+//         local.addr = 0;
+//       }
+//       return 0;
+//   }
+// 
+//   return -1;
+// }
+// 
+// 
+// ValueMapping moconnectedComponentsVM[] = {
+//   moconnectedComponentsValMap<CcString>,
+//   moconnectedComponentsValMap<Mem>
+// };
+// 
+// int moconnectedComponentsSelect(ListExpr args){
+//   return CcString::checkType(nl->First(args))?0:1;
+// }
+// 
+// 
+// /*
+// 
+// 5.4.4 Description of operator ~moconnectedComponents~
+// 
+// 
+// */
+// 
+// OperatorSpec moconnectedComponentsSpec(
+//     "{string, mem(orel(tuple(x))}  -> stream(Tuple)",
+//     "_ moconnectedComponents",
+//     "",
+//     "query \"otestrel\" moconnectedComponents"
+// );
+// 
+// /*
+// 
+// 5.4.5 Instance of operator ~moconnectedComponents~
+// 
+// */
+// 
+// Operator moconnectedComponentsOp (
+//     "moconnectedComponents",
+//     moconnectedComponentsSpec.getStr(),
+//     2,
+//     moconnectedComponentsVM,
+//     moconnectedComponentsSelect,
+//     moconnectedComponentsTypeMap
+// );
+// 
+// 
+
+
+ 
+
+
+/*
+4 omapmatchmht-operator
+
+4.1 Operator-Info
+    map matching with an ordered relation
+    Result: Tuples of matched edges with timestamps
+
+*/
+// struct OMapMatchMHTInfo : OperatorInfo
+// {
+// 
+// OMapMatchMHTInfo()
+// {
+//   name      = "omapmatchmht";
+//   signature = OrderedRelation::BasicType() + " x " +
+//               RTree2TID::BasicType() + " x " +
+//               Relation::BasicType() + " x " +
+//               temporalalgebra::MPoint::BasicType() + " -> " +
+//               "stream(tuple([<attributes of tuple of edge>,"
+//                             "StartTime:DateTime, EndTime:DateTime]))";
+// 
+//   appendSignature(OrderedRelation::BasicType() + " x " +
+//                   RTree2TID::BasicType() + " x " +
+//                   Relation::BasicType() + " x " +
+//                   FText::BasicType()  + " -> " +
+//                   "stream(tuple([<attributes of tuple of edge>,"
+//                                 "StartTime:DateTime, EndTime:DateTime]))");
+// 
+//   appendSignature(OrderedRelation::BasicType() + " x " +
+//                   RTree2TID::BasicType() + " x " +
+//                   Relation::BasicType() + " x " +
+//                   "(stream (tuple([Lat:real, Lon:real, Time:DateTime "
+//                                   "[,Fix:int] [,Sat:int] [,Hdop : real]"
+//                                   "[,Vdop:real] [,Pdop:real] "
+//                                   "[,Course:real] [,Speed(m/s):real]])))"
+//                   + " -> " +
+//                   "stream(tuple([<attributes of tuple of edge>,"
+//                                 "StartTime:DateTime, EndTime:DateTime]))");
+// 
+// 
+//   syntax    = "omapmatchmht ( _ , _ , _ , _ )";
+//   meaning   = "The operation maps the MPoint or "
+//               "the data of a gpx-file or "
+//               "the data of a tuple stream "
+//               "to the given network, which is based on an "
+//               "ordered relation."
+//               "Result is a stream of tuples with the matched edges "
+//               "of the network with timestamps.";
+//   example   = "omapmatchmht(Edges, EdgeIndex_Box_rtree, "
+//                             "EdgeIndex, 'Trk_Dortmund.gpx')";
+// }
+// };
+
+static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList);
+static ListExpr GetMMDataIndexesOfTupleStream(ListExpr TupleStream);
+
+/*
+4.2 Type-Mapping
+
+*/
+enum EOMapMatchingMHTResultType
+{
+    OMM_RESULT_EDGES,
+    OMM_RESULT_POSITIONS_ON_EDGES,
+    OMM_RESULT_MPOINT
+};
+
+
+static ListExpr AppendLists(ListExpr List1, ListExpr List2) {
+    
+  ListExpr ResultList = nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
+
+  ListExpr Lauf = List1;
+
+  while (!nl->IsEmpty(Lauf)) {
+    ListExpr attr = nl->First(Lauf);
+
+    if (nl->IsEmpty(ResultList)) {
+      ResultList = nl->OneElemList(attr);
+      last = ResultList;
+    }
+    else
+      last = nl->Append(last, attr);
+    
+    Lauf = nl->Rest(Lauf);
+  }
+
+  Lauf = List2;
+
+  while (!nl->IsEmpty(Lauf)) {
+    ListExpr attr = nl->First(Lauf);
+
+    if (nl->IsEmpty(ResultList)) {
+        ResultList = nl->OneElemList(attr);
+        last = ResultList;
+    }
+    else 
+      last = nl->Append(last, attr);
+
+    Lauf = nl->Rest(Lauf);
+  }
+
+  return ResultList;
+}
+
+
+template<class T>
+static typename ONetwork<T>::OEdgeAttrIndexes 
+       GetOEdgeAttrIndexes(Word* args, int nOffset) {
+    // s. GetORelNetworkAttrIndexes
+
+    typename ONetwork<T>::OEdgeAttrIndexes Indexes;
+
+    const CcInt* pIdxSource    = static_cast<CcInt*>(args[nOffset + 0].addr);
+    const CcInt* pIdxTarget    = static_cast<CcInt*>(args[nOffset + 1].addr);
+    const CcInt* pIdxSourcePos = static_cast<CcInt*>(args[nOffset + 2].addr);
+    const CcInt* pIdxTargetPos = static_cast<CcInt*>(args[nOffset + 3].addr);
+    const CcInt* pIdxCurve     = static_cast<CcInt*>(args[nOffset + 4].addr);
+    const CcInt* pIdxRoadName  = static_cast<CcInt*>(args[nOffset + 5].addr);
+    const CcInt* pIdxRoadType  = static_cast<CcInt*>(args[nOffset + 6].addr);
+    const CcInt* pIdxMaxSpeed  = static_cast<CcInt*>(args[nOffset + 7].addr);
+    const CcInt* pIdxWayId     = static_cast<CcInt*>(args[nOffset + 8].addr);
+
+
+    Indexes.m_IdxSource    = pIdxSource->GetValue();
+    Indexes.m_IdxTarget    = pIdxTarget->GetValue();
+    Indexes.m_IdxSourcePos = pIdxSourcePos->GetValue();
+    Indexes.m_IdxTargetPos = pIdxTargetPos->GetValue();
+    Indexes.m_IdxCurve     = pIdxCurve->GetValue();
+    Indexes.m_IdxRoadName  = pIdxRoadName->GetValue();
+    Indexes.m_IdxRoadType  = pIdxRoadType->GetValue();
+    Indexes.m_IdxMaxSpeed  = pIdxMaxSpeed->GetValue();
+    Indexes.m_IdxWayId     = pIdxWayId->GetValue();
+
+    if (Indexes.m_IdxSource < 0 || Indexes.m_IdxTarget < 0 ||
+        Indexes.m_IdxSourcePos < 0 || Indexes.m_IdxTargetPos < 0 ||
+        Indexes.m_IdxCurve < 0 || Indexes.m_IdxWayId < 0)
+    {
+        assert(false);
+    }
+
+    return Indexes;
+}
+
+
+
+ListExpr momapmatchTypeMap_Common(ListExpr args,
+                                  EOMapMatchingMHTResultType eResultType)
+{
+    
+    cout << "args: " << nl->ToString(args) << endl;
+    if(nl->ListLength(args) != 4) {
+      return listutils::typeError("two arguments expected");
+    }
+
+    // Check Network - OrderedRelation, RTree, Relation
+
+    // Orel
+    ListExpr arg1 = nl->First(args);
+    
+    if(!nl->HasLength(arg1,2)){
+        return listutils::typeError("internal error");
+    }
+    
+    string errMsg;
+
+    if(!getMemType(nl->First(arg1), nl->Second(arg1), arg1, errMsg)){
+      return listutils::typeError("string or mem(orel) expected : " + errMsg);
+    }
+
+    arg1 = nl->Second(arg1); // remove mem
+    if(!listutils::isOrelDescription(arg1)){
+      return listutils::typeError("memory object is not an ordered relation");
+    }
+    cout << "!!!!!!!!!!!!!!!!!TEST1" << endl;
+
+    ListExpr orelTuple = nl->Second(arg1);
+    if (!listutils::isTupleDescription(orelTuple))
+    {
+        return listutils::typeError("2nd value of orel is not of type tuple");
+    }
+
+    ListExpr orelAttrList = nl->Second(orelTuple);
+    if (!listutils::isAttrList(orelAttrList)) {
+        return listutils::typeError("Error in orel attrlist");
+    }
+
+    // Check attributes of ORel
+    ListExpr IndNetwAttr = GetORelNetworkAttrIndexes(orelAttrList);
+
+    if(nl->Equal(IndNetwAttr, nl->TypeError()))
+      return IndNetwAttr;
+// 
+//     // Rtree
+//     // TODO
+    ListExpr arg2 = nl->Second(args);
+//     ListExpr type;
+    cout << "rtree: " << nl->ToString(arg2) << endl;
+    if(!getMemType(nl->First(arg2), nl->Second(arg2), arg2, errMsg)){
+      return listutils::typeError("\n problem in second arg: " + errMsg);
+    } 
+    
+    ListExpr rtreetype = nl->Second(arg2); // remove leading mem
+    cout << "rtreetype: " << nl->ToString(rtreetype) << endl;
+    if(!rtreehelper::checkType(rtreetype)){
+      return listutils::typeError("second arg is not a mem rtree");
+    }
+   
+    int rtreedim = nl->IntValue(nl->Second(rtreetype));
+    cout << "rtreedim: " << rtreedim << endl;
+    
+    if (rtreedim != 2) {
+        return listutils::typeError("rtree with dim==2 expected");
+    }
+// 
+//     if (!ParamRTree.first().isSymbol(RTree2TID::BasicType()))
+//     {
+//         return listutils::typeError("2nd argument must be RTree2TID");
+//     }
+// 
+//     ListExpr rtreeKeyType = listutils::getRTreeType(ParamRTree.listExpr());
+// 
+//     if(!listutils::isSpatialType(rtreeKeyType) &&
+//        !listutils::isRectangle(rtreeKeyType))
+//     {
+//         return listutils::typeError("tree not over a spatial attribute");
+//     }
+// 
+    // Relation
+    // TODO
+    ListExpr arg3 = nl->Third(args);
+//     
+    if(!nl->HasLength(arg3,2)){
+        return listutils::typeError("internal error");
+    }
+    
+
+    if(!getMemType(nl->First(arg3), nl->Second(arg3), arg3, errMsg)){
+      return listutils::typeError("string or mem(rel) expected : " + errMsg);
+    }
+
+    arg3 = nl->Second(arg3); // remove mem
+    if(!Relation::checkType(arg3)){
+      return listutils::typeError("memory object is not a relation");
+    }
+    
+//     ListExpr paramRTree = arg2;
+//     ListExpr paramRel = arg3;
+//     cout << "paramRTree: " << nl->ToString(paramRTree) << endl;
+//     cout << "paramRel: " << nl->ToString(paramRel) << endl;
+// 
+//     if(ParamRTree.second() != ParamRel.second())
+//     {
+//         return listutils::typeError(
+//                   "type of rtree and relation are different");
+//     }
+// 
+    // GPS-Data (MPoint, FileName, TupleStream)
+    cout << "!!!!!!!!!!!!!!!!!TEST2" << endl;
+    ListExpr arg4 = nl->First(nl->Fourth(args));
+    cout << "fourth: " << nl->ToString(arg4) << endl;
+    if (!listutils::isSymbol(arg4,temporalalgebra::MPoint::BasicType()) &&
+        !listutils::isSymbol(arg4,FText::BasicType()) &&
+        !listutils::isTupleStream(arg4))
+    {
+        return listutils::typeError("4th argument must be " +
+                                    temporalalgebra::MPoint::BasicType() 
+                                    + " or " +
+                                    FText::BasicType() + " or " +
+                                    "tuple stream");
+    }
+    cout << "!!!!!!!!!!!!!!!!!TEST3" << endl;
+// 
+//     // Result
+// 
+    ListExpr ResultType = nl->TheEmptyList();
+
+    switch (eResultType) {
+      
+      case OMM_RESULT_EDGES: {
+        ListExpr addAttrs = nl->TwoElemList(
+                    nl->TwoElemList(nl->SymbolAtom("StartTime"),
+                                    nl->SymbolAtom(DateTime::BasicType())),
+                    nl->TwoElemList(nl->SymbolAtom("EndTime"),
+                                    nl->SymbolAtom(DateTime::BasicType())));
+
+        ListExpr ResAttr = AppendLists(orelAttrList, addAttrs);
+
+        ResultType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                      nl->TwoElemList(
+                                          nl->SymbolAtom(Tuple::BasicType()),
+                                          ResAttr));
+      }
+      break;
+
+//     case OMM_RESULT_POSITIONS_ON_EDGES:
+//     {
+//         ListExpr addAttrs = nl->SixElemList(
+//                     nl->TwoElemList(nl->SymbolAtom("StartTime"),
+//                                     nl->SymbolAtom(DateTime::BasicType())),
+//                     nl->TwoElemList(nl->SymbolAtom("EndTime"),
+//                                     nl->SymbolAtom(DateTime::BasicType())),
+//                     nl->TwoElemList(nl->SymbolAtom("StartPos"),
+//                                     nl->SymbolAtom(Point::BasicType())),
+//                     nl->TwoElemList(nl->SymbolAtom("EndPos"),
+//                                     nl->SymbolAtom(Point::BasicType())),
+//                     nl->TwoElemList(nl->SymbolAtom("StartLength"),
+//                                     nl->SymbolAtom(CcReal::BasicType())),
+//                     nl->TwoElemList(nl->SymbolAtom("EndLength"),
+//                                     nl->SymbolAtom(CcReal::BasicType())));
+// 
+//         ListExpr ResAttr = AppendLists(orelAttrList.listExpr(), addAttrs);
+// 
+//         ResultType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+//                                       nl->TwoElemList(
+//                                           nl->SymbolAtom(Tuple::BasicType()),
+//                                           ResAttr));
+//     }
+//     break;
+// 
+//     case OMM_RESULT_MPOINT:
+//     {
+//         ResultType = nl->SymbolAtom(temporalalgebra::MPoint::BasicType());
+//     }
+//     break;
+    }
+
+
+    if (listutils::isTupleStream(arg4)) {
+      ListExpr IndMMData = GetMMDataIndexesOfTupleStream(arg4);
+
+      if (nl->Equal(IndMMData, nl->TypeError()))
+          return IndMMData;
+      else {
+          return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                    AppendLists(IndNetwAttr, IndMMData),
+                                    ResultType);
+      }
+    }
+    else {
+      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                IndNetwAttr,
+                                ResultType);
+    }
+    // TODO entfernen
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                           nl->Third(args));
+}
+
+
+
+
+
+
+ListExpr momapmatchTypeMap(ListExpr in_xArgs) {
+    return momapmatchTypeMap_Common(in_xArgs, OMM_RESULT_EDGES);
+}
+
+
+
+
+
+
+static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList)
+{
+    ListExpr attrType;
+    int nAttrSourceIndex = listutils::findAttribute(
+                                              ORelAttrList, "Source", attrType);
+    if (nAttrSourceIndex == 0) {
+        return listutils::typeError("'Source' not found in attr list");
+    }
+    else {
+        if (!CcInt::checkType(attrType) &&
+            !LongInt::checkType(attrType)) {
+            return listutils::typeError(
+                                      "'Source' must be " + CcInt::BasicType()
+                                      + " or " + LongInt::BasicType());
+        }
+    }
+
+    int nAttrTargetIndex = listutils::findAttribute(
+                                              ORelAttrList, "Target", attrType);
+    if (nAttrTargetIndex == 0) {
+        return listutils::typeError("'Target' not found in attr list");
+    }
+    else {
+        if (!CcInt::checkType(attrType) &&
+            !LongInt::checkType(attrType)) {
+            return listutils::typeError(
+                                      "'Target' must be " + CcInt::BasicType()
+                                      + " or " + LongInt::BasicType()) ;
+        }
+    }
+
+    int nAttrSourcePosIndex = listutils::findAttribute(
+                                           ORelAttrList, "SourcePos", attrType);
+    if (nAttrSourcePosIndex == 0) {
+        return listutils::typeError("'SourcePos' not found in attr list");
+    }
+    else {
+        if (!listutils::isSymbol(attrType, Point::BasicType())) {
+            return listutils::typeError(
+                                   "'SourcePos' must be " + Point::BasicType());
+        }
+    }
+
+    int nAttrTargetPosIndex = listutils::findAttribute(
+                                           ORelAttrList, "TargetPos", attrType);
+    if (nAttrTargetPosIndex == 0) {
+        return listutils::typeError("'TargetPos' not found in attr list");
+    }
+    else {
+        if (!listutils::isSymbol(attrType, Point::BasicType())) {
+            return listutils::typeError(
+                                   "'TargetPos' must be " + Point::BasicType());
+        }
+    }
+
+    int nAttrCurveIndex = listutils::findAttribute(
+                                               ORelAttrList, "Curve", attrType);
+    if (nAttrCurveIndex == 0) {
+        return listutils::typeError("'Curve' not found in attr list");
+    }
+    else {
+        if (!listutils::isSymbol(attrType, SimpleLine::BasicType())) {
+            return listutils::typeError(
+                                  "'Curve' must be " + SimpleLine::BasicType());
+        }
+    }
+
+    int nAttrRoadNameIndex = listutils::findAttribute(
+                                            ORelAttrList, "RoadName", attrType);
+    if (nAttrRoadNameIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, FText::BasicType()))
+        {
+            return listutils::typeError(
+                                    "'RoadName' must be " + FText::BasicType());
+        }
+    }
+
+    int nAttrRoadTypeIndex = listutils::findAttribute(
+                                            ORelAttrList, "RoadType", attrType);
+    if (nAttrRoadTypeIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, FText::BasicType()))
+        {
+            return listutils::typeError(
+                                    "'RoadType' must be " + FText::BasicType());
+        }
+    }
+
+    int nAttrMaxSpeedTypeIndex = listutils::findAttribute(
+                                            ORelAttrList, "MaxSpeed", attrType);
+    if (nAttrMaxSpeedTypeIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, FText::BasicType()))
+        {
+            return listutils::typeError(
+                                    "'MaxSpeed' must be " + FText::BasicType());
+        }
+    }
+
+    int nAttrWayIdTypeIndex = listutils::findAttribute(
+                                               ORelAttrList, "WayId", attrType);
+    if (nAttrWayIdTypeIndex == 0)
+    {
+        return listutils::typeError("'WayId' not found in attr list");
+    }
+    else
+    {
+        if (!CcInt::checkType(attrType) &&
+            !LongInt::checkType(attrType))
+        {
+            return listutils::typeError( 
+                                       "'WayId' must be " + CcInt::BasicType()
+                                       + " or " + LongInt::BasicType());
+        }
+    }
+
+    --nAttrSourceIndex;
+    --nAttrTargetIndex;
+    --nAttrSourcePosIndex;
+    --nAttrTargetPosIndex;
+    --nAttrCurveIndex;
+    --nAttrRoadNameIndex;
+    --nAttrRoadTypeIndex;
+    --nAttrMaxSpeedTypeIndex;
+    --nAttrWayIdTypeIndex;
+
+    ListExpr Ind = nl->OneElemList(nl->IntAtom(nAttrSourceIndex));
+    ListExpr Last = Ind;
+    Last = nl->Append(Last, nl->IntAtom(nAttrTargetIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrSourcePosIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrTargetPosIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrCurveIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrRoadNameIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrRoadTypeIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrMaxSpeedTypeIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrWayIdTypeIndex));
+
+    return Ind;
+}
+
+static ListExpr GetMMDataIndexesOfTupleStream(ListExpr TupleStream)
+{
+    ListExpr attrType;
+    int nAttrLatIndex = listutils::findAttribute(
+                          nl->Second(nl->Second(TupleStream)), "Lat", attrType);
+    if(nAttrLatIndex==0)
+    {
+        return listutils::typeError("'Lat' not found in attr list");
+    }
+    else
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError("'Lat' must be " +
+                                        CcReal::BasicType());
+        }
+    }
+
+    int nAttrLonIndex = listutils::findAttribute(
+                          nl->Second(nl->Second(TupleStream)), "Lon", attrType);
+    if (nAttrLonIndex == 0)
+    {
+        return listutils::typeError("'Lon' not found in attr list");
+    }
+    else
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError("'Lon' must be " +
+                                        CcReal::BasicType());
+        }
+    }
+
+    int nAttrTimeIndex = listutils::findAttribute(
+                         nl->Second(nl->Second(TupleStream)), "Time", attrType);
+    if (nAttrTimeIndex == 0)
+    {
+        return listutils::typeError("'Time' not found in attr list");
+    }
+    else
+    {
+        if (!listutils::isSymbol(attrType, DateTime::BasicType()))
+        {
+            return listutils::typeError("'Time' must be " +
+                                        DateTime::BasicType());
+        }
+    }
+
+    int nAttrFixIndex = listutils::findAttribute(
+                          nl->Second(nl->Second(TupleStream)), "Fix", attrType);
+    if (nAttrFixIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcInt::BasicType()))
+        {
+            return listutils::typeError("'Fix' must be " +
+                                        CcInt::BasicType());
+        }
+    }
+
+    int nAttrSatIndex = listutils::findAttribute(
+                          nl->Second(nl->Second(TupleStream)), "Sat", attrType);
+    if (nAttrSatIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcInt::BasicType()))
+        {
+            return listutils::typeError("'Sat' must be " +
+                                        CcInt::BasicType());
+        }
+    }
+
+    int nAttrHdopIndex = listutils::findAttribute(
+                         nl->Second(nl->Second(TupleStream)), "Hdop", attrType);
+    if (nAttrHdopIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError("'Hdop' must be " +
+                                        CcReal::BasicType());
+        }
+    }
+
+    int nAttrVdopIndex = listutils::findAttribute(
+                         nl->Second(nl->Second(TupleStream)), "Vdop", attrType);
+    if (nAttrVdopIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError("'Vdop' must be " +
+                                        CcReal::BasicType());
+        }
+    }
+
+    int nAttrPdopIndex = listutils::findAttribute(
+                         nl->Second(nl->Second(TupleStream)), "Pdop", attrType);
+    if (nAttrPdopIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError("'Pdop' must be " +
+                                        CcReal::BasicType());
+        }
+    }
+
+    int nAttrCourseIndex = listutils::findAttribute(
+                       nl->Second(nl->Second(TupleStream)), "Course", attrType);
+    if (nAttrCourseIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError(
+                    "'Course' must be " + CcReal::BasicType());
+        }
+    }
+
+    int nAttrSpeedIndex = listutils::findAttribute(
+                        nl->Second(nl->Second(TupleStream)), "Speed", attrType);
+    if (nAttrSpeedIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError(
+                    "'Speed' must be " + CcReal::BasicType());
+        }
+    }
+
+    int nAttrEleIndex = listutils::findAttribute(
+                          nl->Second(nl->Second(TupleStream)), "Ele", attrType);
+    if (nAttrEleIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError(
+                    "'Ele' must be " + CcReal::BasicType());
+        }
+    }
+
+    --nAttrLatIndex;
+    --nAttrLonIndex;
+    --nAttrTimeIndex;
+    --nAttrFixIndex;
+    --nAttrSatIndex;
+    --nAttrHdopIndex;
+    --nAttrVdopIndex;
+    --nAttrPdopIndex;
+    --nAttrCourseIndex;
+    --nAttrSpeedIndex;
+    --nAttrEleIndex;
+
+    ListExpr Ind = nl->OneElemList(nl->IntAtom(nAttrLatIndex));
+    ListExpr Last = Ind;
+    Last = nl->Append(Last, nl->IntAtom(nAttrLonIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrTimeIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrFixIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrSatIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrHdopIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrVdopIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrPdopIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrCourseIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrSpeedIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrEleIndex));
+
+    return Ind;
+}
+
+
+/*
+4.3 Value-Mapping
+
+*/
+
+
+
+template<class T>
+int momapmatchMPointValueMap(
+                    Word* args,
+                    Word& result,
+                    int message,
+                    Word& local,
+                    Supplier in_xSupplier/*,
+                    typename OEdgeTupleStreamCreator<T>::EMode eMode*/)
+{
+    cout << "momapmatchMPointValueMap called" << endl;
+
+//     OEdgeTupleStreamCreator<T>* pCreator =
+//                         static_cast<OEdgeTupleStreamCreator<T>*>(local.addr);
+//     switch (message)
+//     {
+//       case OPEN:
+//       {
+//           if (pCreator != NULL)
+//           {
+//               delete pCreator;
+//               pCreator = NULL;
+//           }
+// 
+//           // get Arguments
+//       OrderedRelation* pORel = static_cast<OrderedRelation*>(args[0].addr);
+//           RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
+//           Relation* pRelation = static_cast<Relation*>(args[2].addr);
+// 
+//         typename ONetwork<T>::OEdgeAttrIndexes Indexes = 
+//                                             GetOEdgeAttrIndexes<T>(args, 4);
+// 
+//           ONetwork<T> Network(pORel, pRTree, pRelation, Indexes);
+// 
+//           temporalalgebra::MPoint* pMPoint = 
+//                       static_cast<temporalalgebra::MPoint*>(args[3].addr);
+// 
+//           // Do Map Matching
+// 
+//           ONetworkAdapter<T> NetworkAdapter(&Network);
+//           MapMatchingMHT MapMatching(&NetworkAdapter, pMPoint);
+// 
+//           OEdgeTupleStreamCreator<T>* pCreator =
+//                         new OEdgeTupleStreamCreator<T>(in_xSupplier,
+//                                                        NetworkAdapter,
+//                                                        eMode);
+// 
+//           if (!MapMatching.DoMatch(pCreator))
+//           {
+//               // Error
+//               delete pCreator;
+//               pCreator = NULL;
+//           }
+// 
+//           local.setAddr(pCreator);
+//           return 0;
+//       }
+//       case REQUEST:
+//       {
+//           if (pCreator == NULL)
+//           {
+//               return CANCEL;
+//           }
+//           else
+//           {
+//               result.addr = pCreator->GetNextTuple();
+//               return result.addr ? YIELD : CANCEL;
+//           }
+//       }
+//       case CLOSE:
+//       {
+//           if (pCreator)
+//           {
+//               delete pCreator;
+//               local.addr = NULL;
+//           }
+//           return 0;
+//       }
+//       default:
+//       {
+          return 0;
+//       }
+//     }
+}
+
+template<class T, class R, class Q>
+int momapmatchGPXValueMap(
+                          Word* args,
+                          Word& result,
+                          int message,
+                          Word& local,
+                          Supplier s/*,
+                          typename OEdgeTupleStreamCreator<T>::EMode eMode*/)
+{
+    cout << "momapmatchGPXValueMap called" << endl;
+
+    mapmatch::OEdgeTupleStreamCreator<T>* pCreator =
+               static_cast<mapmatch::OEdgeTupleStreamCreator<T>*>(local.addr);
+    switch (message)
+    {
+      case OPEN:
+      {
+          if (pCreator != NULL)
+          {
+              delete pCreator;
+              pCreator = NULL;
+          }
+
+          // get Arguments
+//       OrderedRelation* pORel = static_cast<OrderedRelation*>(args[0].addr);
+//       RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
+//       Relation* pRelation = static_cast<Relation*>(args[2].addr);
+
+          // orel
+          R* orelN = (R*) args[0].addr;
+          cout << "orelN->GetValue(): " << orelN->GetValue() << endl;
+          MemoryORelObject* orel = getMemORel(orelN,nl->Second(qp->GetType(s)));
+          if(!orel) {
+            return 0;
+          }
+          cout << "found orel" << endl;
+          
+          // TODO
+//           Q* treeN = (Q*) args[1].addr;
+//           MemoryRtreeObject<2>* tree = getRtree<Q,2>(treeN);
+//           if(!tree){
+//             return 0;
+//           }
+//           cout << "found tree" << endl;
+          
+          R* relN = (R*) args[2].addr;
+          cout << "relN->GetValue(): " << relN->GetValue() << endl;
+          MemoryRelObject* rel = getMemRel(relN, nl->Second(qp->GetType(s)));
+          if(!rel){
+            return 0;
+          } 
+          cout << "found rel" << endl;
+          
+          
+          typename ONetwork<T>::OEdgeAttrIndexes Indexes = 
+                                               GetOEdgeAttrIndexes<T>(args, 4);
+// 
+//           ONetwork<T> Network(pORel, pRTree, pRelation, Indexes);
+// 
+          FText* pFileName = static_cast<FText*>(args[3].addr);
+          std::string strFileName = pFileName->GetValue();
+// 
+//           // Do Map Matching
+// 
+//           ONetworkAdapter<T> NetworkAdapter(&Network);
+//           MapMatchingMHT MapMatching(&NetworkAdapter, strFileName);
+// 
+//           OEdgeTupleStreamCreator<T>* pCreator =
+//                     new OEdgeTupleStreamCreator<T>(s,NetworkAdapter,eMode);
+// 
+//           if (!MapMatching.DoMatch(pCreator))
+//           {
+//               // Error
+//               delete pCreator;
+//               pCreator = NULL;
+//           }
+// 
+//           local.setAddr(pCreator);
+          return 0;
+      }
+      case REQUEST:
+      {
+          if (pCreator == NULL)
+          {
+              return CANCEL;
+          }
+          else
+          {
+              result.addr = pCreator->GetNextTuple();
+              return result.addr ? YIELD : CANCEL;
+          }
+      }
+      case CLOSE:
+      {
+          if (pCreator)
+          {
+              delete pCreator;
+              local.addr = NULL;
+          }
+          return 0;
+      }
+      default:
+      {
+          return 0;
+      }
+    }
+}
+
+template<class T>
+int momapmatchStreamValueMap(
+                             Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier in_xSupplier/*,
+                             typename OEdgeTupleStreamCreator<T>::EMode eMode*/)
+{
+    cout << "momapmatchStreamValueMap called" << endl;
+
+// OEdgeTupleStreamCreator<T>* pCreator =
+//               static_cast<OEdgeTupleStreamCreator<T>*>(local.addr);
+// switch (message)
+// {
+//   case OPEN:
+//   {
+//       if (pCreator != NULL)
+//       {
+//           delete pCreator;
+//           pCreator = NULL;
+//       }
+// 
+//       // get Arguments
+//       OrderedRelation* pORel = static_cast<OrderedRelation*>(args[0].addr);
+//       RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
+//       Relation* pRelation = static_cast<Relation*>(args[2].addr);
+// 
+//       typename ONetwork<T>::OEdgeAttrIndexes Indexes = 
+//                                         GetOEdgeAttrIndexes<T>(args, 4);
+// 
+//       ONetwork<T> Network(pORel, pRTree, pRelation, Indexes);
+// 
+//       shared_ptr<MapMatchDataContainer> pContData = // 9 OEdge-Attr-Indexes
+//                         GetMMDataFromTupleStream(args[3].addr, args, 4 + 9);
+// 
+//       // Do Map Matching
+// 
+//       ONetworkAdapter<T> NetworkAdapter(&Network);
+//       MapMatchingMHT MapMatching(&NetworkAdapter, pContData);
+// 
+//       OEdgeTupleStreamCreator<T>* pCreator =
+//                           new OEdgeTupleStreamCreator<T>(in_xSupplier,
+//                                                       NetworkAdapter,
+//                                                       eMode);
+// 
+//       if (!MapMatching.DoMatch(pCreator))
+//       {
+//           // Error
+//           delete pCreator;
+//           pCreator = NULL;
+//       }
+// 
+//       local.setAddr(pCreator);
+//       return 0;
+//   }
+//   case REQUEST:
+//   {
+//       if (pCreator == NULL)
+//       {
+//           return CANCEL;
+//       }
+//       else
+//       {
+//           result.addr = pCreator->GetNextTuple();
+//           return result.addr ? YIELD : CANCEL;
+//       }
+//   }
+//   case CLOSE:
+//   {
+//       if (pCreator)
+//       {
+//           delete pCreator;
+//           local.addr = NULL;
+//       }
+//       return 0;
+//   }
+//   default:
+//   {
+      return 0;
+//   }
+// }
+}
+
+
+template<class T>
+int OpOMapMatchingMHTMPoint2EdgesValueMapping(Word* args,
+                                              Word& result,
+                                              int message,
+                                              Word& local,
+                                              Supplier in_xSupplier)
+{
+    return momapmatchMPointValueMap<T>(
+                           args,
+                           result,
+                           message,
+                           local,
+                           in_xSupplier/*,
+                           OEdgeTupleStreamCreator<T>::MODE_EDGES */);
+}
+
+template<class T, class R, class Q>
+int OpOMapMatchingMHTGPX2EdgesValueMapping(Word* args,
+                                           Word& result,
+                                           int message,
+                                           Word& local,
+                                           Supplier in_xSupplier) {
+    return momapmatchGPXValueMap<T,R,Q>(
+                             args,
+                             result,
+                             message,
+                             local,
+                             in_xSupplier/*,
+                             OEdgeTupleStreamCreator<T>::MODE_EDGES*/);
+}
+
+template<class T>
+int OpOMapMatchingMHTStream2EdgesValueMapping(Word* args,
+                                              Word& result,
+                                              int message,
+                                              Word& local,
+                                              Supplier in_xSupplier)
+{
+    return momapmatchStreamValueMap<T>(
+                              args,
+                              result,
+                              message,
+                              local,
+                              in_xSupplier/*,
+                              OEdgeTupleStreamCreator<T>::MODE_EDGES*/);
+}
+
+
+/*
+4.4 Selection Function
+
+*/
+int momapmatchSelect(ListExpr args)
+{
+    NList type(args);
+//     if (type.length() == 4 &&
+//         listutils::isOrelDescription(type.first().listExpr()) &&
+//         listutils::isRTreeDescription(type.second().listExpr()) &&
+//         listutils::isRelDescription(type.third().listExpr()))
+//     {
+//         ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+//         ListExpr attrType;
+//         listutils::findAttribute(attrList,"Source",attrType);
+//         int offset = CcInt::checkType(attrType)?0:3;
+// 
+//         if (type.fourth().isSymbol(temporalalgebra::MPoint::BasicType()))
+//         {
+//             return 0 + offset;
+//         }
+//         else if (type.fourth().isSymbol(FText::BasicType()))
+//         {
+            return 1 /*+ offset*/;
+//         }
+//         else if (listutils::isTupleStream(type.fourth().listExpr()))
+//         {
+//             return 2 + offset;
+//         }
+//         else
+//         {
+//             return -1;
+//         }
+//     }
+//     else
+//     {
+//         return -1;
+//     }
+
+    return 0;
+}
+
+// OMapMatchMHT
+    ValueMapping momapmatchVM[] =
+                  { OpOMapMatchingMHTMPoint2EdgesValueMapping<CcInt>,
+                    OpOMapMatchingMHTGPX2EdgesValueMapping<CcInt,CcString,Mem>,
+                    OpOMapMatchingMHTStream2EdgesValueMapping<CcInt>
+//                        OpOMapMatchingMHTMPoint2EdgesValueMapping<LongInt>,
+//                        OpOMapMatchingMHTGPX2EdgesValueMapping<LongInt>,
+//                        OpOMapMatchingMHTStream2EdgesValueMapping<LongInt>,
+                  };
+
+
+
+
+
+
+/*
+
+5.4.4 Description of operator ~momapmatch~
+
+
+*/
+
+OperatorSpec momapmatchSpec(
+    "string x string x strind x ID -> stream(Tuple)",
+    "momapmatch()",
+    "",
+    "query momapmatchmht(\"Edges\", \"EdgeIndex_Box_rtree\", 
+    "\"EdgeIndex\", 'Trk_MapMatchTest.gpx') count"
+);
+
+
+
+/*
+
+7.1.5 Instance of operator ~momapmatch~
+
+*/
+
+Operator momapmatchOp (
+    "momapmatchmht",
+    momapmatchSpec.getStr(),
+                       3,
+    momapmatchVM,
+    momapmatchSelect,
+    momapmatchTypeMap
+);
+
+
+
+// /*
+// 5.4 Operator ~momapmatch~
+// 
+// ~mquicksort~ sorts the elements in a given stream by a given attribute
+// and returns a stream of the sorted tuples and their original TID's
+// 
+// 5.4.1 Type Mapping Functions of operator ~mquicksort~ 
+//       (stream(tuple(x)) x ID -> stream(tuple(x@[TID:tid])))
+// 
+// */
+// 
+// ListExpr momapmatchTypeMap(ListExpr args) {
+// 
+//   cout << "/////////////////////////////////" << endl;
+// //     if(nl->ListLength(args) != 2) {
+// //         return listutils::typeError("two arguments expected");
+// //     }
+// // 
+//     ListExpr arg = nl->Third(args);
+// //     
+//     if(!nl->HasLength(arg,2)){
+//         return listutils::typeError("internal error");
+//     }
+//     
+//     string errMsg;
+// 
+//     if(!getMemType(nl->First(arg), nl->Second(arg), arg, errMsg)){
+//       return listutils::typeError("string or mem(rel) expected : " + errMsg);
+//     }
+// 
+//     arg = nl->Second(arg); // remove mem
+//     if(!Relation::checkType(arg)){
+//       return listutils::typeError("memory object is not a relation");
+//     }
+// //     
+// //     // TODO check if second argument attribute of relation
+//     
+//     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+//                            nl->Second(arg));
+// }
+// 
+// 
+// 
+// 
+// template<class T>
+// int momapmatchValMap (Word* args, Word& result,
+//                     int message, Word& local, Supplier s) {
+// 
+// 
+// 
+//   return 0;
+// }
+// 
+// 
+// ValueMapping momapmatchVM[] = {
+//   OpOMapMatchingMHTMPoint2EdgesValueMapping<CcInt>,
+//   OpOMapMatchingMHTGPX2EdgesValueMapping<CcInt>,
+//   OpOMapMatchingMHTStream2EdgesValueMapping<CcInt>
+// };
+// 
+// int momapmatchSelect(ListExpr args){
+//   return /*CcString::checkType(nl->First(args))?0:*/1;
+// }
+// 
+// 
+
+
+
+
 
 class MainMemory2Algebra : public Algebra
 {
@@ -7906,37 +10505,51 @@ class MainMemory2Algebra : public Algebra
         gettuplesOp.SetUsesArgsInTypeMapping();
         
         
-        AddOperator (&mcreateTTreeOp);
+        AddOperator(&mcreateTTreeOp);
         mcreateTTreeOp.SetUsesArgsInTypeMapping();
         
-        AddOperator (&minsertOp);
+        AddOperator(&minsertOp);
         minsertOp.SetUsesArgsInTypeMapping();
+        AddOperator(&minserttupleOp);
+        minserttupleOp.SetUsesArgsInTypeMapping();
         
-        AddOperator (&mdeleteOp);
+        AddOperator(&mdeleteOp);
         mdeleteOp.SetUsesArgsInTypeMapping();
+        AddOperator(&mdeletebyidOp);
+        mdeletebyidOp.SetUsesArgsInTypeMapping();
         
-        AddOperator (&mupdateOp);
+        AddOperator(&mupdateOp);
         mupdateOp.SetUsesArgsInTypeMapping();
         
-        AddOperator (&moconsumeOp);
+        AddOperator(&moconsumeOp);
         
-        AddOperator (&morangeOp);
+        AddOperator (&letmoconsumeOp);
+        AddOperator (&letmoconsumeflobOp);
+        
+        AddOperator(&morangeOp);
         morangeOp.SetUsesArgsInTypeMapping();
         
-        AddOperator (&moleftrangeOp);
+        AddOperator(&moleftrangeOp);
         moleftrangeOp.SetUsesArgsInTypeMapping();
         
-        AddOperator (&morightrangeOp);
+        AddOperator(&morightrangeOp);
         morightrangeOp.SetUsesArgsInTypeMapping();
         
-        AddOperator (&moshortestpathOp);
-        moshortestpathOp.SetUsesArgsInTypeMapping();
+        AddOperator(&moshortestpathOp);
+//         moshortestpathOp.SetUsesArgsInTypeMapping();
         
-        AddOperator (&moconnectedComponentsOp);
-        moconnectedComponentsOp.SetUsesArgsInTypeMapping();
+        AddOperator(&moconnectedcomponentsOp);
+        moconnectedcomponentsOp.SetUsesArgsInTypeMapping();
         
-        AddOperator (&mquicksortOp);
+        AddOperator(&mquicksortOp);
         mquicksortOp.SetUsesArgsInTypeMapping();
+        
+        AddOperator(&mgshortestpathOp);
+        mgshortestpathOp.SetUsesArgsInTypeMapping();
+        
+        
+        AddOperator(&momapmatchOp);
+        momapmatchOp.SetUsesArgsInTypeMapping();
         
         }
         
