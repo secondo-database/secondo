@@ -38,6 +38,11 @@ class MemoryAttributeObject;
 template<int dim> class MemoryRtreeObject;
 class KeyComparator;
 
+class MemoryTTreeObject;
+class MemoryORelObject;
+class MemoryGraphObject;
+class Comparator;
+template <class T> class AttComparator;
 
 
 class MemCatalog {
@@ -181,7 +186,7 @@ class MemoryRelObject : public MemoryObject {
 
 };
 
-// TODO überprüfen
+
 class Comparator {
   
   public:
@@ -334,6 +339,8 @@ struct QueueEntry {
   QueueEntry(int _nodeNumber, int _prev, double _dist, double _priority)
     : nodeNumber(_nodeNumber),prev(_prev),dist(_dist),priority(_priority) {}
     
+  ~QueueEntry() {}
+  
   
   void print(std::ostream& out) {
     out << std::endl << "QUEUEENTRY:" << std::endl;
@@ -351,40 +358,30 @@ struct QueueEntry {
   double priority;
 };
 
-// TODO Kommentare entfernen
+
 class EntryComp {
   public:
     
     bool operator() (const QueueEntry* lhs, const QueueEntry* rhs) const {
       if(lhs->priority > rhs->priority) {
-//         std::cout << "operator() RETURNS TRUE" << std::endl;
-//         std::cout << "this->nodeNumber: " << lhs->nodeNumber;
-//         std::cout << " rhs->nodeNumber: " << rhs->nodeNumber << std::endl;
-//         std::cout << "this->priority: " << lhs->priority;
-//         std::cout << " rhs->priority: " << rhs->priority << std::endl;
         return true;
       }
-//       std::cout << "operator() RETURNS FALSE" << std::endl;
-//       std::cout << "this->nodeNumber: " << lhs->nodeNumber;
-//       std::cout << " rhs->nodeNumber: " << rhs->nodeNumber << std::endl;
-//       std::cout << "this->priority: " << lhs->priority;
-//       std::cout << " rhs->priority: " << rhs->priority << std::endl;
       return false;
     }
     
-     static bool smaller(QueueEntry* a, QueueEntry* b) {
+     static bool smaller(QueueEntry* a, QueueEntry* b, std::vector<int>* pos) {
        if(a->nodeNumber < b->nodeNumber)
          return true;
        return false;
      }
      
-     static bool greater(QueueEntry* a, QueueEntry* b) {
+     static bool greater(QueueEntry* a, QueueEntry* b, std::vector<int>* pos) {
         if(a->nodeNumber > b->nodeNumber)
          return true;
        return false;
      }
      
-     static bool equal(QueueEntry* a, QueueEntry* b) {
+     static bool equal(QueueEntry* a, QueueEntry* b, std::vector<int>* pos) {
         if(a->nodeNumber == b->nodeNumber)
          return true;
        return false;
@@ -397,6 +394,11 @@ struct Queue {
   Queue() {
     queue = new std::vector<QueueEntry*>();    
     std::make_heap(queue->begin(),queue->end(),EntryComp());
+  }
+  
+  ~Queue() {
+    queue->clear();
+    delete queue;
   }
   
   bool empty() {
@@ -412,7 +414,6 @@ struct Queue {
   }
   
   void push(QueueEntry* entry) {
-//     std::cout << "push START------------------->>>" << std::endl;
     queue->push_back(entry);
     std::push_heap(queue->begin(),queue->end(),EntryComp());
   }
@@ -538,7 +539,6 @@ class MemoryMtreeObject : public MemoryObject {
 };
 
 
-// TODO use for Avl as well
 template <class T> 
 class AttComparator{
 
@@ -607,18 +607,16 @@ class MemoryTTreeObject : public MemoryObject {
           
         };
         
-        /*void pairdestroy(ttreePair& p){
-          p.first->DeleteIfAllowed();
-          p.first = 0;
-        }*/                  
          
         ~MemoryTTreeObject() {
-          std::cout << "~MemoryTTreeObject()" << std::endl;
-            if (ttree){
-                //ttree->destroy(pairdestroy); //TODO
-                delete ttree;
-            }
-        };
+          if(ttree) {
+            std::cout << "~MemoryTTreeObject()" << std::endl;
+            ttree->destroy();
+            delete ttree;
+          }
+        }
+        
+        
 
         memttree* getttree() {
           return ttree;
@@ -655,8 +653,7 @@ class MemoryGraphObject : public MemoryObject {
 
         graph::Graph* getgraph();
         
-        bool relToGraph(Graph* r,
-                        ListExpr le,
+        bool relToGraph(MemoryRelObject* r, 
                         std::string _database, 
                         bool _flob);
 
@@ -664,7 +661,6 @@ class MemoryGraphObject : public MemoryObject {
         void addTuple(Tuple* tup);
 
         
-
         bool tupleStreamToRel (Word arg, ListExpr le,
                         std::string _database, bool _flob);
 
@@ -706,13 +702,21 @@ class MemoryGraphObject : public MemoryObject {
           return nl->HasLength(type,2) 
                   && listutils::isSymbol(nl->First(type),BasicType());
         }
+        
+        int getPosSource() { return posSource; }
+        int getPosDest() { return posDest; }
+        int getPosP1() { return posP1; }
+        int getPosP2() { return posP2; }
 
     private:
          graph::Graph* graph;
+         int posSource;
+         int posDest;
+         int posP1;
+         int posP2;
 };
 
 
-// TODO change so AttComparator == KeyComparator
 typedef std::pair<Attribute*, size_t> avlPair;
 class KeyComparator{
 

@@ -135,9 +135,9 @@ ListExpr MemCatalog::getMMObjectTypeExpr(const string& oN){
     typeExprString = object->getObjectTypeExpr();
     if (nl->ReadFromString(typeExprString, typeExprList)){
         return typeExprList;
-    };
+    }
     return listutils::typeError();
-};
+}
 
 bool MemCatalog::isAccessible(const string& name) {
     MemoryObject* obj = getMMObject(name);
@@ -330,7 +330,7 @@ bool MemoryRelObject::tupleStreamToRel(Word arg, ListExpr le,
 }
 
 
-
+// TODO Kommentare entfernen
 ListExpr MemoryRelObject::toListExpr(){
 
     int vectorSize = mmrel->size();
@@ -338,11 +338,18 @@ ListExpr MemoryRelObject::toListExpr(){
     string typeString = objectTypeExpr;
     nl->ReadFromString(typeString, typeListExpr);
     ListExpr oTE = nl->OneElemList(typeListExpr);
+    //std::cout << "oTe: " << nl->ToString(oTE)  << std::endl;
     Tuple* t = mmrel->at(0);
-    ListExpr li=nl->OneElemList(t->Out(oTE));
+//     t->Print(std::cout);
+    
+//     ListExpr l = t->OutList(oTE);
+//     std::cout << "l: " << nl->ToString(l)  << std::endl;
+    ListExpr li = nl->OneElemList(t->Out(oTE));
+//     std::cout << "li: " << nl->ToString(li)  << std::endl;
+    
     ListExpr last = li;
-    for (int i=1; i<vectorSize; i++){
-        t=mmrel->at(i);
+    for(int i=1; i<vectorSize; i++) {
+        t = mmrel->at(i);
         last = nl->Append(last, t->Out(oTE));
     }
     return li;
@@ -608,17 +615,21 @@ MemoryORelObject::MemoryORelObject (string _objectTypeExpr){
 };
 
 
-MemoryORelObject::~MemoryORelObject(){
-    if (!mmorel==0) {
+MemoryORelObject::~MemoryORelObject() {
+  //std::cout << "~MemoryORelObject()" << std::endl;
+    if(mmorel!=0) {
       ttree::Iterator<Tuple*,Comparator> it = mmorel->begin();
       while (it.hasNext()) {
-          Tuple* tup = *it;
-          if(tup)
+        Tuple* tup = *it;
+        if(tup) {
           tup->DeleteIfAllowed();
-          it++;
+          tup = 0;
+        }
+        it++;
       } 
       delete mmorel;
     }
+    pos->clear();
     delete pos;
 }
 
@@ -700,7 +711,7 @@ bool MemoryORelObject::relToTree(
     Tuple* tup;
     int tupleSize=0;
     unsigned long availableMemSize = catalog->getAvailableMemSize();
-    unsigned long usedMainMemory=0;
+    unsigned long usedMainMemory = 0;
     
     mmorel->clear(true);  //TODO überprüfen
     this->flob = _flob;
@@ -728,28 +739,24 @@ bool MemoryORelObject::relToTree(
 //     for(int i = 0; i<pos->size(); i++)
 //       std::cout << "attrPos-> " << pos->at(i) << std::endl;
     
-    while ((tup = rit->GetNextTuple()) != 0){
+    while ((tup = rit->GetNextTuple()) != 0) {
         if (flob){
             tup->bringToMemory();
         }
         tupleSize = tup->GetMemSize();
         if ((size_t)tupleSize<availableMemSize) {
             tup->SetTupleId(mmorel->noEntries());
-            // TODO entfernen
-//             cout << "-------------->>>relToTree() Tuple to insert" << endl;
-//             tup->Print(cout);
             mmorel->insert(tup,pos);
-//             mmorel->print(cout);
             usedMainMemory += tupleSize;
             availableMemSize -= tupleSize;
         }
         else {
             if (mmorel->isEmpty()){
-                cout<<"no memory left"<<endl;
+                cout << "no memory left" << endl;
                 return false;
             }
-            cout<< "the available main memory is not enough, the object"
-                   " might be usable but not complete"<<endl;
+            cout << "the available main memory is not enough, the object"
+                    " might be usable but not complete" << endl;
             break;
             }
     }
@@ -818,11 +825,10 @@ ListExpr MemoryORelObject::toListExpr() {
     ListExpr typeListExpr = 0;
     string typeString = objectTypeExpr;
     nl->ReadFromString(typeString, typeListExpr);
-    ListExpr oTE = nl->OneElemList(typeListExpr);
-    
+    ListExpr oTE = nl->OneElemList(typeListExpr);      
     ttree::Iterator<Tuple*,Comparator> it = mmorel->begin();
     Tuple* t = *it;
-    ListExpr li = nl->OneElemList(t->Out(oTE));
+    ListExpr li = nl->OneElemList(t->Out(oTE)); 
     ListExpr last = li;
     it++;
     
@@ -877,6 +883,7 @@ Word MemoryORelObject::In( const ListExpr typeInfo, const ListExpr instance,
 
 ListExpr MemoryORelObject::Out(ListExpr typeInfo, Word value) {
     MemoryORelObject* memORel = static_cast<MemoryORelObject*>(value.addr);
+    std::cout << "typeInfo: " << nl->ToString(typeInfo) << std::endl;
     
     if(memORel->getmmorel()==0 || (memORel->getmmorel())->isEmpty()) {
       return 0;
@@ -999,9 +1006,8 @@ MemoryGraphObject::MemoryGraphObject(graph::Graph* _graph,
 
   
 MemoryGraphObject::~MemoryGraphObject() {
-    if (graph){
+    if(graph) 
         delete graph;
-    }
 }
 
 graph::Graph* MemoryGraphObject::getgraph() {
@@ -1010,57 +1016,144 @@ graph::Graph* MemoryGraphObject::getgraph() {
 
 
 bool MemoryGraphObject::relToGraph(
-                        Graph* g, 
-                        ListExpr le,
+                        MemoryRelObject* r, 
                         string _database, 
                         bool _flob) {
     
     std::cout << "graphToMemoryGraph" << std::endl;
     
+//     std::string s = r->getObjectTypeExpr();
+//     cout << s << endl;
+    
+    Tuple* tup;
+    int tupleSize = 0;
     unsigned long availableMemSize = catalog->getAvailableMemSize();
     unsigned long usedMainMemory=0;
      
-    this->graph->clear(false);  
-//     this->flob = _flob;
+    graph->clear(true);  // TODO implementieren
+    flob = _flob;
 
     std::cout << "graphToMemoryGraph TEST2" << std::endl;
     
-    vector<Edge>* edges = g->GetEdges();
-    size_t index = 0;
     
-    if(_flob){
-        g->bringToMemory();
-    }
-    usedMainMemory = g->GetMemSize();
-    if (usedMainMemory>availableMemSize){
-      cout <<"the available main memory size is not enough"<<endl;
-      return false;
-    }
+    ListExpr typeListExpr = 0;
+    string typeString = r->getObjectTypeExpr();
+    nl->ReadFromString(typeString, typeListExpr);
+    std::cout << "typeListExpr: " << nl->ToString(typeListExpr) << std::endl;
     
-    while(index < edges->size()) {
+
+    ListExpr attrList = nl->Second(nl->Second(nl->Second(typeListExpr)));
+
+    ListExpr rest = attrList;
+    int i = 0;
+    bool foundSource = false;
+    bool foundP1 = false;
+    
+    while(!nl->IsEmpty(rest)) {
+//       cout << "rest" << nl->ToString(rest) << endl;
+      ListExpr listn = nl->OneElemList(nl->Second(nl->First(rest)));  
+//       cout << "listn" << nl->ToString(listn) << endl;
+      if(listutils::isSymbol(nl->First(listn),CcInt::BasicType())) {    
+        
+        if(!foundSource) {
+          posSource = i;
+          foundSource = true;
+          cout << "TRUE int: " << posSource << endl;
+        }
+        else {
+          posDest = i;
+          cout << "TRUE int: " << posDest << endl;
+        }
+      }
+      if(listutils::isSymbol(nl->First(listn),Point::BasicType())) {    
+        if(!foundP1) {
+          posP1 = i;
+          foundP1 = true;
+          cout << "TRUE point: " << posP1 << endl;
+        }
+        else {
+          posP2 = i;
+          cout << "TRUE point: " << posP2 << endl;
+        }
+      }
+      rest = nl->Rest(rest);
+      cout << "rest" << nl->ToString(rest) << endl;
+      i++;
+    }
+    // TODO
+    vector<Tuple*>::iterator it = r->getmmrel()->begin();
+    while (it != r->getmmrel()->end()) {
+      tup = *it;
+      if(flob) 
+          tup->bringToMemory();
       
-      std::cout << "graphToMemoryGraph TEST4" << std::endl;
+      tupleSize = tup->GetMemSize();
+      
+      if((size_t)tupleSize < availableMemSize) {
+        tup->SetTupleId(graph->size());        // TODO
+        
+        
+        double x1 = ((Point*)tup->GetAttribute(posP1))->GetX();
+        double y1 = ((Point*)tup->GetAttribute(posP1))->GetY();
+        double x2 = ((Point*)tup->GetAttribute(posP2))->GetX();
+        double y2 = ((Point*)tup->GetAttribute(posP2))->GetY();
+        double dist = sqrt(((x2-x1) * (x2-x1)) + ((y2-y1) * (y2-y1)));     
 
-      int source = edges->at(index).GetSource();
-      int dest = edges->at(index).GetTarget();
-      double cost = edges->at(index).GetCost();
-      this->graph->addEdge(source,dest,cost);
-            
-      index++;
+//         graph->addEdge(source,dest,dist);
+        graph->addEdge(tup,posSource,posDest,dist);
+        usedMainMemory += tupleSize;
+        availableMemSize -= tupleSize;
+      }
+      else {
+        if(graph->isEmpty()) {
+            cout << "no memory left" << endl;
+            return false;
+        }
+        cout << "the available main memory is not enough, the object"
+                " might be usable but not complete" << endl;
+        break;
+      }
+      it++;
     }
-    this->graph->print(std::cout);
+    
 
-    //delete[] edges;  <-- TODO secondo crashes
-    //attributeObject = g->Copy();
     memSize = usedMainMemory;
-    objectTypeExpr = nl->ToString(nl->TwoElemList( 
-                               listutils::basicSymbol<Mem>(),le));
+    objectTypeExpr = r->getObjectTypeExpr();
     flob = _flob;
     database = _database;
-    std::cout << "end graphToMemoryGraph" << std::endl;
     return true;
 }
 
+void MemoryGraphObject::addTuple(Tuple* tup){
+    
+    if(graph==0) {
+        graph = new graph::Graph();
+    }
+
+    size_t tupleSize = 0;
+    tupleSize = tup->GetMemSize();
+    unsigned long availableMemSize = catalog->getAvailableMemSize();
+ 
+    if((size_t)tupleSize<availableMemSize) {
+        tup->SetTupleId(graph->size());        
+
+        // give MemoryGraphObject member posSource, etc
+        
+        /*int source = 
+         * ((CcInt*)tup->GetAttribute(graph.posSource))->GetIntval();
+        int dest = ((CcInt*)tup->GetAttribute(1))->GetIntval();
+        double dist = 0.0;*/      // TODO
+        cout << "tup: " << endl;
+        tup->Print(cout);
+//         graph->addEdge(source,dest,dist);
+        memSize += tupleSize;
+        catalog->addToUsedMemSize(tupleSize);
+    }
+    else {
+        cout << "the memSize is not enough, the object"
+                " might be usable but not complete" << endl;
+    }
+}
 
 
 }//end namespace mm2algebra
