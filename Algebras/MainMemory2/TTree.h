@@ -37,8 +37,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "MainMemoryExt.h"
 
+
+
 namespace ttree{
 
+  
+  
+  
 
 /*
 0. Forward declaration of the TTree class
@@ -119,14 +124,17 @@ Destroy the subtree rooted by this node
 */
      
       ~TTreeNode() {
+//         std::cout << "~TTreeNode()" << std::endl;
         
         for(size_t i=0; i<maxEntries; i++) {
           if(objects[i]) {
+//             std::cout << "if(objects[i]) " << std::endl;
             delete objects[i];
+//             std::cout << "delete objects[i]" << std::endl;
           }
         }
         delete[] objects;
-        
+//         std::cout << "delete[] objects;" << std::endl;
         if(left) delete left;
         if(right) delete right;
         
@@ -135,6 +143,8 @@ Destroy the subtree rooted by this node
       }
 
       
+      
+
       
 /*
 1.5 Methods
@@ -258,6 +268,7 @@ Returns the parent of this node or 0 if this node is the root of the tree.
 Quicksorts the elements in this node.
 
 */
+// TODO change to insertion sort
       void quickSort(TTreeNode<T,Comparator>* node, 
                      int left, int right, std::vector<int>* attrPos) {
         
@@ -414,6 +425,7 @@ Computes the balance of this node.
         return h1-h2;
       }
 
+
     protected:
 
 
@@ -421,16 +433,16 @@ Computes the balance of this node.
 1.6 Member variables
 
 */
+      int minEntries;
+      int maxEntries;
+      TTreeNode<T,Comparator>* left;
+      TTreeNode<T,Comparator>* right;
+      int count;
+      int height;
       T** objects;  
       T minValue;
       T maxValue;
-      int minEntries;
-      int maxEntries;
-      int count;
-      int height;
-      TTreeNode<T,Comparator>* parent;  // TODO überprüfen
-      TTreeNode<T,Comparator>* left;
-      TTreeNode<T,Comparator>* right;
+      
 };
 
 
@@ -536,7 +548,7 @@ iterator at position i.
 
 */
      T get(int i) const {
-        if(stack.empty()){
+        if(stack.empty()) {
           return 0;
         } 
         else {
@@ -620,7 +632,7 @@ any elements, i.e. whether Get or [*] would return NULL.
  This function supports the contructor having a mimimum argument.
 
 */
-    // TODO überprüfen
+    // TODO entfernen
     const TTreeNode<T,Comparator>* tail(
                         const TTreeNode<T,Comparator>* root, 
                         const T& min) {
@@ -649,7 +661,7 @@ any elements, i.e. whether Get or [*] would return NULL.
 
   private:
  
-     std::stack<TTreeNode<T,Comparator>*> stack;
+     std::stack<TTreeNode<T,Comparator>*> stack;         // TODO *
      size_t count;     
 };
 
@@ -680,6 +692,7 @@ Destroys this tree.
 
 */
     ~TTree(){
+      std::cout << "~TTree" << std::endl;
        if(root!=NULL) {
          delete root;
          root = NULL;
@@ -697,7 +710,7 @@ first element in the tree .
 
 */
 
-    Iterator<T,Comparator> begin () {
+    Iterator<T,Comparator> begin() {
       Iterator<T,Comparator> it(root);
       return it;
     }
@@ -711,6 +724,7 @@ first element within the tree which is equals to or greater than
 the given minimum.
 
 */
+    // TODO entfernen
     Iterator<T,Comparator> tail(T min) {
       Iterator<T,Comparator> it(root,min);
       return it;
@@ -788,9 +802,9 @@ This function returns the minimum value stored in the tree.
 If the tree is empty, NULL is returned.
 
 */
-    TTreeNode<T,Comparator>* getMin() {
-      return getMin(root);
-    }
+//     TTreeNode<T,Comparator>* getMin() {
+//       return getMin(root);
+//     }
 
     
     
@@ -801,9 +815,9 @@ This returns a pointer to the maximum value stored in the tree or NULL
 if the tree is empty.
 
 */
-    TTreeNode<T,Comparator>* getMax() {
-      return getMax(root);
-    }
+//     TTreeNode<T,Comparator>* getMax() {
+//       return getMax(root);
+//     }
 
 
 
@@ -815,15 +829,15 @@ The format is understood by the tree viewer of Secondo's Javagui.
 
 */
     // TODO merge
-//     void print(std::ostream& out) const {
-//       out << "( tree (" << std::endl;
-//       if(root) 
-//         print(root, out);
-//       else
-//         out << "empty";
-//       out << "))" << std::endl;
-//       
-//     } 
+    void print(std::ostream& out) const {
+      out << "( tree (" << std::endl;
+      if(root) 
+        print(root, out);
+      else
+        out << "empty";
+      out << "))" << std::endl;
+      
+    } 
     
     void print(std::ostream& out, bool& isTree) const {
       out << "( tree (" << std::endl;
@@ -835,7 +849,40 @@ The format is understood by the tree viewer of Secondo's Javagui.
       
     } 
     
-   
+    
+    void destroy() /*paidestroy*/ {
+      if(root) {
+        destroy(root);
+//         delete root;
+//         root = 0;
+      }
+    }
+    
+    void destroy(ttree::TTreeNode<T,Comparator>* root) {
+      
+      for(size_t i=0; i<root->maxEntries; i++) {
+        if(root->objects[i]) {
+          std::cout << "pairdestroy" << std::endl;
+          root->objects[i]->first->DeleteIfAllowed();
+          root->objects[i]->first = 0;
+//             delete root->objects[i];
+        }
+      }
+//       delete[] root->objects;
+      
+      if(root->left) {
+        destroy(root->left);
+//         delete root->left;
+      }
+      if(root->right){
+        destroy(root->right);
+//         delete root->right;
+      }
+//       root->left = 0;
+//       root->right = 0;
+    }
+
+    
     
 /*
 ~update~
@@ -871,28 +918,33 @@ Adds object ~o~ to this tree.
       return success;
     }
     
-    bool insert(T& value) {
-      std::vector<int>* attrPos = new std::vector<int>();
-      attrPos->push_back(1);
-      bool success = insert(value,attrPos);
-      delete attrPos;
-      return success;
-    }
-    
     bool insert(T& value, int i) {
       std::vector<int>* attrPos = new std::vector<int>();
       attrPos->push_back(i);
       bool success = insert(value,attrPos);
+      attrPos->clear();
       delete attrPos;
       return success;
     }
     
-    bool insert(T& value,bool noDuplicate) {
-      bool success;
-      root = insert(root,value,success,noDuplicate);
-      root->updateHeight();
+    bool insert(T& value) {
+      std::vector<int>* attrPos = new std::vector<int>();
+      attrPos->push_back(1);
+      bool success = insert(value,attrPos);
+      attrPos->clear();
+      delete attrPos;
       return success;
     }
+    
+    
+    
+    // used in EntryComp
+//     bool insert(T& value,bool noDuplicate) {
+//       bool success;
+//       root = insert(root,value,success,noDuplicate);
+//       root->updateHeight();
+//       return success;
+//     }
 
     
 /*
@@ -903,6 +955,9 @@ Removes object ~o~ ftom this tree.
 */
     bool remove(T& value, std::vector<int>* attrPos){
       bool success;
+      if(!root)
+        return false;
+
       root = remove(root,value,attrPos,success);
       if(root)
         root->updateHeight();
@@ -919,7 +974,7 @@ Removes object ~o~ ftom this tree.
     void clear(const bool deleteContent) {
       root->clear(deleteContent);
     }
-
+   
     
    private:
      int minEntries;
@@ -1082,113 +1137,41 @@ It returns the root of the new tree.
       return 0;  // should never be reached
     }
 
+    
+/*
+~remove~
 
-    TTreeNode<T,Comparator>* insert(TTreeNode<T,Comparator>* root, 
+*/
+    TTreeNode<T,Comparator>* remove(TTreeNode<T,Comparator>* root, 
                                     T& value,
-                                    bool& success, 
-                                    bool noDuplicate) {
+                                    std::vector<int>* attrPos,
+                                    bool& success) {
       
-      
-      // leaf reached
-      if(root == NULL){ 
-        root = new TTreeNode<T,Comparator>(minEntries,maxEntries);
-        root->objects[0] = new T(value);   // TODO memory leak
-        root->count = 1;
-        root->updateHeight();
-        root->updateNode();
-        success = true;
-        return root;
-      }
-      
-      // node bounds value and still has room
-      if(root->count < root->maxEntries) {
-        root->objects[root->count] = new T(value);  // TODO memory leak
-        root->count++;      
-        root->updateHeight();
-        root->updateNode(true);
-        success = true;
-        return root;
-      }
-      
-      // bounding node found, but it is full
-      else if(Comparator::greater(value,root->minValue) &&
-              Comparator::smaller(value,root->maxValue)) {
-
-        T* tmp = root->objects[0];     
-        root->objects[0] = new T(value); 
-        root->minValue = value;
-        root->left = insert(root->left,*tmp,success,true);
-        root->updateHeight();
-        root->updateNode(true);
-        // rotation or double rotation required
-        if(abs(root->balance()) > 1) { 
-          
-          // single rotation is sufficient
-          if(root->left->balance() > 0) { 
-            return rotateRight(root); 
-          }
-          // left-right rotation is required
-          if(root->left->balance() < 0) {
-//             std::cout << "rotateLeftRight required" << std::endl;  
-            return rotateLeftRight(root);
-          } 
-          assert(false); // should never be reached
-          return NULL; 
-        } 
-        // root remains balanced
-        else { 
+      if(root->count == 1 && root->isLeaf()) {
+        if(Comparator::equal(value,root->minValue,attrPos)) {
+          delete root;
+          root = 0;
+          success = true;
           return root;
+          
         }
       }
       
-
       // search in the left subtree
-      if(Comparator::smaller(value,root->minValue) ||
-         Comparator::equal(value,root->minValue)) { 
-        root->left = insert(root->left,value,success,true);
+      if(root->left && 
+            Comparator::smaller(value,root->minValue,attrPos)) { 
+        root->left = remove(root->left,value,attrPos,success);
         root->updateHeight();
-        root->updateNode();
+        root->updateNode(attrPos);
         
-        // rotation or double rotation required
-        if(abs(root->balance()) > 1) { 
-          
-          // single rotation is sufficient
-          if(root->left->balance() > 0) { 
-            return rotateRight(root); 
-          }
-          // left-right rotation is required
-          if(root->left->balance() < 0) {
-            /*std::cout << "rotateLeftRight required" << std::endl; */ 
-            return rotateLeftRight(root);
-          } 
-//           std::cout << "insert Z.1241" << std::endl;
-          assert(false); // should never be reached
-          return NULL; 
-        } 
-        // root remains balanced
-        else { 
-          return root;
-        }
-      }
-      
-      // search right subtree
-      else if(Comparator::greater(value,root->maxValue) ||
-              Comparator::equal(value,root->maxValue)) {
-
-        root->right = insert(root->right,value,success,true);
-        root->updateHeight();
-        root->updateNode();
-        
-        // rotation or double rotation required
         if(abs(root->balance())>1) {
           // single left rotation sufficient
           if(root->right->balance() < 0) { 
             return rotateLeft(root);
           }
           // right-left rotation required
-          if(root->right->balance() > 0){
-//             std::cout << "rotateRightLeft required" << std::endl; 
-            return rotateRightLeft(root);
+          if(root->right->balance() >= 0){
+            return rotateRightLeft(root,attrPos);
           }
           assert(false); // should never be reached
           return NULL;
@@ -1197,38 +1180,25 @@ It returns the root of the new tree.
         else { 
           return root;
         }
-      }
-      return 0;  // should never be reached
-    }
-    
-    
-    
-/*
-~remove~
-
-*/
-    // TODO überprüfen
-    TTreeNode<T,Comparator>* remove(TTreeNode<T,Comparator>* root, 
-                                    T& value,
-                                    std::vector<int>* attrPos,
-                                    bool& success) {
       
-      // search in the left subtree
-      if(Comparator::smaller(value,root->minValue,attrPos)) { 
-        root->left = remove(root->left,value,attrPos,success);
+        
+      }
+      
+      // search right subtree
+      else if(root->right && 
+            Comparator::greater(value,root->maxValue,attrPos)) {
+        root->right = remove(root->right,value,attrPos,success);
         root->updateHeight();
         root->updateNode(attrPos);
         
         // rotation or double rotation required
         if(abs(root->balance()) > 1) { 
-          
           // single rotation is sufficient
           if(root->left->balance() > 0) { 
             return rotateRight(root); 
           }
           // left-right rotation is required
-          if(root->left->balance() < 0) {
-            /*std::cout << "rotateLeftRight required" << std::endl; */ 
+          if(root->left->balance() <= 0) {
             return rotateLeftRight(root,attrPos);
           } 
           assert(false); // should never be reached
@@ -1240,72 +1210,8 @@ It returns the root of the new tree.
         }
       }
       
-      // search right subtree
-      else if(Comparator::greater(value,root->maxValue,attrPos)) {
-        root->right = remove(root->right,value,attrPos,success);
-        root->updateHeight();
-        root->updateNode(attrPos);
-        
-        // rotation or double rotation required
-        if(abs(root->balance())>1) {
-          // single left rotation sufficient
-          if(root->right->balance() < 0) { 
-            return rotateLeft(root);
-          }
-          // right-left rotation required
-          if(root->right->balance() > 0){
-//             std::cout << "rotateRightLeft required" << std::endl; 
-            return rotateRightLeft(root,attrPos);
-          }
-          assert(false); // should never be reached
-          return NULL;
-        } 
-        // no rotation required
-        else { 
-          return root;
-        }
-      }
-      
       // bounding node found, searching for value
       else {
-        // TODO fertigstellen
-        if(root->count == 1 && root->isLeaf()) {
-          //root->left->print(std::cout);
-          //root->print(std::cout);
-          
-          //root->parent->left = 0;
-          //root->parent->right = 0;
-          //TTreeNode<T,Comparator>* node = root;
-          //root->objects[root->count-1] = 0;
-          //delete[] root->objects;
-          root = root->parent;
-          root->left = 0;
-          root->updateNode(attrPos);
-          root->updateHeight();
-          
-          if(abs(root->balance())>1) {
-            if(root->right->balance() < 0) { 
-              std::cout << "rotateLeft required" << std::endl; 
-              //return rotateLeft(root);
-            }
-            else if(root->right->balance() > 0){
-//               std::cout << "rotateRightLeft required" << std::endl; 
-              root = rotateRightLeft(root,attrPos);
-            }
-          }
-          //root->right = 0;
-          //printNodeInfo(root);
-          //printNodeInfo(root->right);
-          //printNodeInfo(root->left);
-          //remove(root->left,0);
-          //root->left->objects[0] = 0;
-          //root->left = 0;
-          //root = node;
-          //root->updateHeight();
-          success = true;
-          return root;
-          
-        }
         
         if(root->count > root->minEntries || root->isLeaf()) {
           
@@ -1317,24 +1223,30 @@ It returns the root of the new tree.
               remove(root,root->count-1);
               root->updateNode(attrPos);
               success = true;
+              return root;
             }
           }
-          return root;
         }
         else { // count < minEntries
           for(int i=0; i<root->count; i++) {
             if(Comparator::equal(value,*root->objects[i],attrPos)) {
               
-              TTreeNode<T,Comparator>* node = getMax(root->left);
-              root->objects[i] = node->objects[node->count-1];    
-              root->left->parent = root;
-              // TODO: Pointer überprüfen
-              root->left = remove(root->left,*node->objects[node->count-1],
-                                  attrPos,success);
-              root->updateNode(attrPos);
-              node->updateNode(attrPos);
-              success = true;
-              return root;
+              if(root->left) {
+                swap(root,i,root->left,root->left->count-1);
+                root->left->updateNode();
+                root->left = remove(root->left,value,attrPos,success);
+                root->updateHeight();
+                root->updateNode(attrPos);
+                return root;
+              }
+              else {
+                swap(root,i,root->right,0);
+                root->right->updateNode();
+                root->right = remove(root->right,value,attrPos,success);
+                root->updateHeight();
+                root->updateNode(attrPos);
+                return root;
+              }
             }
           }
         }
@@ -1566,27 +1478,27 @@ It returns the root of the new tree.
 
 */   
     // TODO merge
-//   void print(const TTreeNode<T,Comparator>* root, std::ostream& out) const {
-//       if(!root){
-//         out << " 'empty' ";
-//         return;
-//       }
-//       
-//       out << " -->ROOT(";
-//       for(int i=0; i<root->count; i++) {
-//         out << i <<  ":" << " '" << **root->objects[i] <<"' ";
-//       }
-//       out << ") \n";
-//       
-//       out << " ----->LEFT(";
-//       print(root->left,out);
-//       out << ") \n";
-//       
-//       out << "         ------->RIGHT(";
-//       print(root->right,out);
-//       out << ") \n";
-//       
-//     }
+    void print(const TTreeNode<T,Comparator>* root, std::ostream& out) const {
+      if(!root){
+        out << " 'empty' ";
+        return;
+      }
+      
+      out << " -->ROOT(";
+      for(int i=0; i<root->count; i++) {
+        out << i <<  ":" << " '" << **root->objects[i] <<"' ";
+      }
+      out << ") \n";
+      
+      out << " ----->LEFT(";
+      print(root->left,out);
+      out << ") \n";
+      
+      out << "         ------->RIGHT(";
+      print(root->right,out);
+      out << ") \n";
+      
+    }
     
     
     void print(const TTreeNode<T,Comparator>* root, 

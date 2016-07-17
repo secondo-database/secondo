@@ -31,32 +31,39 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <queue>  
 
 
-namespace graph{
+#include "Algebra.h"
+#include "NestedList.h"
+#include "QueryProcessor.h"
+#include "RelationAlgebra.h"
 
-class Vertex;
+namespace graph {
+
+
 class Edge;
+class Vertex;
 class Graph;
-
-// TODO change vector to arrays, i.e. Vertex**
-
 
 
 /*
 class Edge
 
 */
+
 class Edge {
 
   friend class Vertex;
   friend class Graph;
   
 public:
-
-  Edge(Vertex* _dest, double _cost) :
-    dest(_dest), cost(_cost) {}
+  
+  Edge(Tuple* _edge, int _posSource, int _posDest, double _cost) 
+    : edge(_edge),posSource(_posSource), posDest(_posDest), cost(_cost) {}
   
 private:
-  Vertex* dest;
+
+  Tuple* edge;
+  int posSource;
+  int posDest;
   double cost;
 };
 
@@ -79,21 +86,36 @@ public:
     edges = new std::vector<Edge*>();
   }
   
-  
-  bool hasEdge(Vertex* v) {
-    return true;
+  int getNr() {
+    return nr;
   }
   
-  bool equals(Vertex* v) {
-    return true;
-  }
+//   bool hasEdge(Vertex* v) {
+//     return true;
+//   }
+  
+//   bool equals(Vertex* v) {
+//     return true;
+//   }
+  
+  
+  std::vector<int>* getPath(std::vector<int>* result) {
+    if(prev) 
+      prev->getPath(result);
+
+    result->push_back(nr);
+    return result;
+  } 
+
   
   void print(std::ostream& out) const {
     out << "vertex: " << nr << std::endl;
     out << "adjacency list: ";
     for(size_t i=0; i<edges->size(); i++) {
       Edge* e = edges->at(i);
-      out << "-> " << e->dest->nr << ", " << e->cost << " ";
+      out << "-> " 
+          << ((CcInt*)e->edge->GetAttribute(e->posDest))->GetIntval() 
+          << ", " << e->cost << " ";
     }     
     out << std::endl << "seen: " << seen << std::endl << std::endl;
   } 
@@ -106,12 +128,13 @@ public:
     std::cout << nr;
   }
   
+  
 private:
   int nr;
-  std::vector<Edge*>* edges;
-  double dist;
   bool seen;
+  double dist;
   Vertex* prev;
+  std::vector<Edge*>* edges;
 };
 
 
@@ -125,14 +148,18 @@ This class represents a graph as adjacency lists.
 */
 class Graph {
   
+  friend class Edge;
+  
 public:
-  Graph(){
+  Graph() {
     graph = new std::vector<Vertex*>();
+    result = new std::vector<int>();
   }
   
   // TODO
   ~Graph() {
-    
+    delete graph;
+    delete result;
   }
   
   bool isEmpty() {
@@ -145,55 +172,47 @@ public:
  
   
   Vertex* getVertex(int nr) {
-    //std::cout << "sgetVertex" << std::endl;
     for(size_t i=0; i<graph->size(); i++) {
       if(graph->at(i)->nr == nr) {
         return graph->at(i);
       }
     }
     // vertex not found in graph, add as new vertex
-    std::cout << "getVertex: add new vertex" << std::endl;
     Vertex* v = new Vertex(nr);
-    v->print(std::cout);
     graph->push_back(v);
     return v;
   }
   
-  
-  void addEdge(int source, int dest, double cost) {
-    std::cout << "addEdge" << std::endl;
-    Vertex* v = getVertex(source);
-    Vertex* w = getVertex(dest);
-    v->edges->push_back((new Edge(w,cost)));
+
+  void addEdge(Tuple* edge, int posSource, int posDest, double cost) {
+    Vertex* v = getVertex(((CcInt*)edge->GetAttribute(posSource))->GetIntval());
+    getVertex(((CcInt*)edge->GetAttribute(posDest))->GetIntval());
+    v->edges->push_back((new Edge(edge,posSource,posDest,cost)));
   }
   
+  
+  
+  // TODO
   void clear(const bool b) {
     std::cout << "TODO: clear()" << std::endl;
   }
   
   
-  void print(std::ostream& out) {
-    out << "------> GRAPH: " << std::endl;
-    for(size_t i=0; i<graph->size(); i++) {
-      graph->at(i)->print(out);
-    }     
+  
+  
+  void getPath(Vertex* dest) {
+    
+    if(dest->dist==std::numeric_limits<double>::max()) 
+      std::cout << "Error, " << dest->nr << " not reachable\n";
+    else 
+      dest->getPath(result);
   }
   
-  void printPath(Vertex* dest) {
-    if(dest->dist==std::numeric_limits<double>::max()) {
-      std::cout << "Error, " << dest->nr << " not reachable\n";
-    }
-    else {
-      std::cout << "The shortest path, with cost " << dest->dist << " is: ";
-      dest->printPath();
-      std::cout << std::endl << std::endl;
-    }
-  }
   
   //
   // calculates the shortest path from start vertex to all other vertices
   //
-  void shortestPath(Vertex* start) {
+  bool shortestPath(Vertex* start) {
     std::queue<Vertex*>* path = new std::queue<Vertex*>();
     
     for(size_t i=0; i<graph->size(); i++) {
@@ -216,33 +235,72 @@ public:
       
       // for every adjacent edge of v
       for(size_t i=0; i<v->edges->size(); i++) {
-        Vertex* w = v->edges->at(i)->dest;
+        Vertex* w = getVertex(((CcInt*)v->edges->at(i)->
+                    edge->GetAttribute(v->edges->at(i)->posDest))->GetIntval());
         double cost = v->edges->at(i)->cost;
-//         std::cout << "w: " << w->nr << " cost: " << cost << std::endl;
         
         if(cost<0) {
           std::cout << "Error: cost is negative" << std::endl;
-          continue;          
+          return false;          
         }
         
         // shortening of path possible
         if(w->dist > v->dist+cost) {
-//           std::cout << "w->dist > v->dist+cost: w dist: " << w->dist 
-//                     << " v dist: " << v->dist << std::endl;
           w->dist = v->dist+cost;
           w->prev = v;
           path->push(w);
-//           start = v;
-//           start->dist = w->dist;
-//           std::cout << "Distance: " << start->dist << std::endl;
         }
       }
     }
-//     printPath(start);
+    return true;
   }
+  
+  std::vector<int>* getResult() {
+    return result; 
+  }
+  
+  
+  Tuple* getEdge(int source, int dest) {
+    for(size_t i=0; i<graph->size(); i++) {
+      if(graph->at(i)->nr == source) {
+        std::cout << "nr: " << source << std::endl; 
+        Vertex* v = graph->at(i);
+        
+        for(size_t j=0; j<v->edges->size(); j++) {
+          Edge* e = v->edges->at(j);
+          if(((CcInt*)e->edge->GetAttribute(e->posDest))->GetIntval() == dest) {
+            std::cout << "dest: " << dest << std::endl; 
+            return e->edge;
+          }
+        }
+      }
+    }
+    return 0;
+  }
+  
+  
+  void print(std::ostream& out) {
+    out << "------> GRAPH: " << std::endl;
+    for(size_t i=0; i<graph->size(); i++) {
+      graph->at(i)->print(out);
+    }     
+  }
+  
+  void printPath(Vertex* dest) {
+    if(dest->dist==std::numeric_limits<double>::max()) {
+      std::cout << "Error, " << dest->nr << " not reachable\n";
+    }
+    else {
+      std::cout << "The shortest path, with cost " << dest->dist << " is: ";
+      dest->printPath();
+      std::cout << std::endl << std::endl;
+    }
+  }
+  
   
 private:
   std::vector<Vertex*>* graph;
+  std::vector<int>* result;
 };
 
 
