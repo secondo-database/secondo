@@ -108,6 +108,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "Stream.h"
 #include "LongInt.h"
 #include "PinyinTable.h"
+#include "DisplayTTY.h"
 
 #include "Profiles.h"
 
@@ -121,6 +122,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
+extern SecondoInterface* si;
 
 using namespace std;
 
@@ -12152,8 +12154,10 @@ ListExpr savetoTM(ListExpr args){
    if(!nl->HasLength(args,2)){
      return listutils::typeError(err);
    }
-   if(!CcString::checkType(nl->First(args)) 
-      && !FText::checkType(nl->First(args))){
+   if(   !CcString::checkType(nl->First(args)) 
+      && !FText::checkType(nl->First(args))
+      && !Stream<CcString>::checkType(nl->First(args))
+      && !Stream<FText>::checkType(nl->First(args))){
      return listutils::typeError(err);
    }
    if(!CcString::checkType(nl->Second(args)) 
@@ -12162,6 +12166,42 @@ ListExpr savetoTM(ListExpr args){
    }
    return listutils::basicSymbol<CcBool>();
 }
+
+
+template<class S, class F>
+int saveto_sVMT( Word* args, Word& result, int message, 
+                 Word& local, Supplier s ) {
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  F* filename = (F*) args[1].addr;
+  if(!filename->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+ string fn = filename->GetValue();
+  try{
+     ofstream out(fn.c_str(), ios::out| ios::trunc);
+     if(!out){
+        res->Set(false,false);
+     }
+     Stream<S> stream(args[0]);
+     stream.open();
+     S* elem;
+     while( (elem=stream.request())!=0){
+         if(elem->IsDefined()){
+            out << elem->GetValue() << endl;
+         }
+         elem ->DeleteIfAllowed();
+     }
+     stream.close(); 
+     out.close();
+     res->Set(true,true);
+  } catch(...){
+     res->Set(true,false);
+  }
+  return 0;
+}
+
 
 template<class S, class F>
 int savetoVMT( Word* args, Word& result, int message, 
@@ -12200,11 +12240,28 @@ ValueMapping savetoVM[] = {
    savetoVMT<CcString,CcString>,
    savetoVMT<CcString,FText>,
    savetoVMT<FText,CcString>,
-   savetoVMT<FText,FText>
+   savetoVMT<FText,FText>,
+   saveto_sVMT<CcString,CcString>,
+   saveto_sVMT<CcString,FText>,
+   saveto_sVMT<FText,CcString>,
+   saveto_sVMT<FText,FText>
 };
 
 int savetoSelect(ListExpr args){
-   int n1 = CcString::checkType(nl->First(args))?0:2;
+   int n1=0;
+   ListExpr a1 = nl->First(args);
+   if(CcString::checkType(a1)){
+     n1 = 0;
+   }
+   if(FText::checkType(a1)){
+     n1 = 2;
+   }
+   if(Stream<CcString>::checkType(a1)){
+     n1 = 4;
+   }
+   if(Stream<FText>::checkType(a1)){
+     n1 = 6;
+   }
    int n2 = CcString::checkType(nl->Second(args))?0:1;
    return n1+n2;
 }
@@ -12212,12 +12269,322 @@ int savetoSelect(ListExpr args){
 Operator savetoOp(
   "saveto",
   savetoSpec.getStr(),
-  4,
+  8,
   savetoVM,
   savetoSelect,
   savetoTM
 );
 
+
+/*
+Operator ~executeScript~
+
+*/
+
+ListExpr executeScriptTM(ListExpr args){
+  string err =" {string,text} x bool x bool expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err+" (wrong number of args)");
+  }
+  if(!CcString::checkType(nl->First(args))
+     && !FText::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(!CcBool::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  if(!CcBool::checkType(nl->Third(args))){
+    return listutils::typeError(err);
+  }
+
+  return listutils::basicSymbol<CcBool>();
+
+}
+
+class executeScriptInfo{
+  public:
+     executeScriptInfo(const string& _filename, bool _stopOnError, bool _isPD):
+       filename(_filename), stopOnError(_stopOnError), isPD(_isPD) {}
+
+
+
+
+     bool exec(){
+        return exec(filename, stopOnError,isPD);
+     }    
+
+
+
+  private:
+     string filename;
+     bool stopOnError;
+     bool isPD;
+     bool quit;
+
+
+     bool exec(const string& filename, const bool stopOnError, const bool isPD){
+        ifstream in(filename.c_str());
+        if(!in){
+          return false;
+        }
+        quit = false;
+        return execute(in, stopOnError, isPD);
+
+     }
+
+
+     bool execute(ifstream& in, bool stopOnError, bool isPD){
+        bool errorFound = false;
+        string cmd;
+        while (!in.eof() && !quit && ( !stopOnError || !errorFound )) {
+           if ( getCommand(in,isPD, cmd) ) {  
+              cout << "found command " << cmd << endl; 
+              try {
+                 if( !processCommand(cmd)){
+                   errorFound = true;
+                 }   
+              }   catch (SecondoException e) {
+                 cerr << "Exception caught: " << e.msg() << endl;
+              }   
+          } 
+        }
+        return !errorFound;
+     }
+
+     bool getCommand(ifstream& in, bool isPD, string& cmd){
+         bool complete = false;
+         bool first = true;
+         string line = "";
+         cmd = "";
+         bool inPD = false;
+         while (!complete && !in.eof() && !in.fail()) {
+            line = "";
+            getline( in, line );
+            if ( line.length() > 0  || inPD) {
+               cout << " " << line << endl;
+               bool comment = false;
+               if(!isPD){
+                 comment = line[0] == '#';
+               } else {
+                 if(!inPD){
+                   if(line.length()>0){
+                      comment = line[0] == '#';
+                   } 
+                   if(!comment) {
+                     if(line.length()>1){
+                        if((    line[0]=='/') 
+                            && (line[1]=='/')){ // single line comment
+                          comment = true;
+                        } else if((line[0]=='/') 
+                                   && (line[1]=='*')) { // big comment
+                          comment = true;
+                          inPD = true;
+                        }
+                    }
+                 }
+                } else {
+                   comment = true;
+                   if(line.length()>1){
+                     if( (line[0]=='*') && (line[1]=='/')){
+                        inPD = false;
+                        line = line.substr(2);
+                        stringutils::trim(line);
+                        comment = line.empty();
+                     }
+                  }
+                }
+              }
+
+              if ( !comment )    {
+                 if ( line[line.length()-1] == ';' ) {
+                   complete = true;
+                   line.erase( line.length()-1 );
+                 }
+                 if ( first ) {              // Check for single line command
+                    if ( !complete ) {
+                      complete = isInternalCommand( line );
+                    }
+                    cmd = line + " ";
+                    first = false;
+                } else {
+                    cmd = cmd + "\n" + line + " ";
+                }
+            }
+         } else {                           // Empty line ends command
+            complete = cmd.length() > 0;
+            first = true;
+         }
+       }
+
+       stringutils::trim(cmd);
+       return (complete);
+     }
+
+     void showPrompt(bool first){
+        if (first){
+            cout << "Secondo =>";
+        } else {
+            cout << "Secondo ->";
+        }
+     }
+
+     bool isInternalCommand(const string& cmd){
+        string cmd2 = cmd;
+        stringutils::toUpper(cmd2);
+        stringutils::trim(cmd2);
+        if(cmd2.empty()){
+          return false;
+        }
+        return ( cmd2 == "?"     || cmd2 == "HELP"        ||
+                 cmd2 == "Q"     || cmd2 == "QUIT"        ||
+                 cmd2 == "DEBUG" || cmd2 == "SHOW"        || 
+                 cmd2[0] == '@' );
+     }
+
+     bool processCommand( const string& cmd) {
+        // first step, handle internal commands
+        string cmd2 = cmd;
+        stringutils::toUpper(cmd2);
+        stringutils::trim(cmd2);      
+        if(cmd2.empty()){
+          return true;
+        }
+        if ( cmd2 == "?" || cmd2 == "HELP" ) {
+           cout << "NO help available";
+           return true;
+        } 
+        if ( stringutils::startsWith(cmd2, "DEBUG" )) {
+           cout << "*** Debugging  level change not supported in operator " 
+                << endl;
+           return true;
+        }
+       if ( cmd2 == "Q" || cmd2 == "QUIT" ) {
+           cout << "*** Thank you for using execScript operator!" 
+                << endl << endl;
+           quit = true;
+           return true;
+       }
+       if ( cmd[0] == '@' ) {
+           bool stopOnError = false;
+           int start=1;
+           bool pdfile=false;
+           if(cmd2.length()>1 && cmd2[1] == '@'){
+              start = 2;
+              stopOnError = true;
+           }
+           if(cmd2.length()>1 && cmd2[1] == '%'){
+              start = 2;
+              pdfile = true;       
+           }
+           if(cmd2.length()>1 && cmd2[1] == '&'){
+              start = 2;
+              pdfile = true;       
+              stopOnError = true;
+           }
+           return exec( cmd.substr( start, ( cmd.length() - start ) ),
+                           stopOnError, pdfile );
+       }
+       if ( stringutils::startsWith(cmd2, "REPEAT" ) ){
+           cout << "REPEAT not supported by execScript operator" << endl;
+           return true;
+       }
+       // check for supported commands
+       return callSecondo(cmd); // ususal secondo command
+ }
+
+
+  bool callSecondo(const string& cmd) {
+       int errorCode = 0;
+       int errorPos = 0;
+       ListExpr cmdList = nl->TheEmptyList();
+       ListExpr outList = nl->TheEmptyList();
+       string errorMessage = "";
+       string errorText = ""; 
+
+       return true; // ???
+
+
+       if ( cmd[cmd.find_first_not_of(" \n\r\t\v\b\a\f")] == '(' ) {
+          if ( nl->ReadFromString( cmd, cmdList ) ) {   
+             si->Secondo( cmd, cmdList, 0, false, false,
+                   outList, errorCode, errorPos, errorMessage );
+             NList::setNLRef(nl);
+          }   else {   
+             cmsg.error() << endl << "*** Error: list expression expected!"
+                          << endl;
+             cmsg.send();
+          }   
+       } else {
+          si->Secondo( cmd, cmdList, 1, false, false,
+                       outList, errorCode, errorPos, errorMessage );
+          NList::setNLRef(nl);
+       }
+
+       if ( errorCode != 0 ) {
+          si->WriteErrorList( outList );
+          nl->Destroy( outList );
+          outList = nl->TheEmptyList();
+          return false;
+       }
+       if ( cmdList != nl->TheEmptyList() ) {
+          nl->Destroy( cmdList );
+       }
+       if(nl->HasLength(outList,2)){
+          DisplayTTY::GetInstance().DisplayResult(nl->First(outList), 
+                                                  nl->Second(outList));
+       }  
+       nl->Destroy( outList );
+       return true;
+  }
+};
+
+
+
+template<class F>
+int executeScriptVMT( Word* args, Word& result, int message, 
+                 Word& local, Supplier s ) {
+
+  F* file = (F*) args[0].addr;
+  CcBool* haltOnError = (CcBool*) args[1].addr;
+  CcBool* isPD = (CcBool*) args[2].addr;
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  if(!file->IsDefined() || !haltOnError->IsDefined() || !isPD->IsDefined()){
+    res->SetDefined(false);
+    return  0;
+  }
+  executeScriptInfo info (file->GetValue(), haltOnError->GetValue(), 
+                          isPD->GetValue());
+  
+  res->Set(true, info.exec());
+  return 0;
+
+}
+
+ValueMapping executeScriptVM[] = {
+     executeScriptVMT<CcString>,
+     executeScriptVMT<FText>
+};
+
+int executeScriptSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec executeScriptSpec(
+   "{string,text} x bool x bool -> bool",
+   "executeScript(filename, haltOnErrors, isPD)",
+   "Executes a script.",
+   "query executeScript('TheScript',TRUE, FALSE)"
+);
+
+Operator executeScriptOP(
+   "executeScript",
+   executeScriptSpec.getStr(),
+   2,
+   executeScriptVM,
+   executeScriptSelect,
+   executeScriptTM
+);
 
 
 
@@ -12368,6 +12735,8 @@ Operator savetoOp(
       AddOperator(&getConfigOP);
       AddOperator(&getParamOP);
       AddOperator(&savetoOp);
+      
+  //    AddOperator(&executeScriptOP);
 
 
 
