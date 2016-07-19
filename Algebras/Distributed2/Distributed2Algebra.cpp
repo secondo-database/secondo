@@ -11888,11 +11888,8 @@ ListExpr dmapXTM(ListExpr args){
                          listutils::basicSymbol<Relation>(),
                          nl->Second(funres)));
  } else {
-    resType =   Relation::checkType(funres)
-              ? nl->TwoElemList( listutils::basicSymbol<DFArray>(),
-                                 funres)
-              : nl->TwoElemList( listutils::basicSymbol<DArray>(),
-                                 funres); 
+    resType = nl->TwoElemList( listutils::basicSymbol<DArray>(),
+                               funres);
  }
 
  ListExpr funQ = nl->Second(Fun); 
