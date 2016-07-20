@@ -692,6 +692,20 @@ Checks whether the ListExpr list contains at least n elements.
 
 */
 
+ std::string getAtomTypeString(NodeType t){
+      switch(t){
+         case NoAtom: return "list";
+         case IntType: return "int";
+         case RealType: return "real";
+         case BoolType: return "bool";
+         case StringType : return "string";
+         case SymbolType: return "symbol";
+         case TextType: return "text";
+      }
+      return "unknown";
+ }
+
+
 
 
   int ExprLength( ListExpr expr ) const;
