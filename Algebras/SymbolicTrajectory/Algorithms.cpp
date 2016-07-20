@@ -2302,7 +2302,7 @@ void TupleIndex::processTrie(Relation *rel, const int attr,
       t->DeleteIfAllowed();
     }
   }
-  else if (typeName == "mlabel") {
+  else if (typeName == "mlabels") {
     MLabels *mls = 0;
     std::set<std::string> labels;
     std::set<std::string>::iterator it;
@@ -2317,6 +2317,7 @@ void TupleIndex::processTrie(Relation *rel, const int attr,
         while (it != labels.end()) {
           NewPair<std::string, NewPair<TupleId, int> > value(*it, pos);
           values.push_back(value);
+          it++;
         }
       }
       t->DeleteIfAllowed();
