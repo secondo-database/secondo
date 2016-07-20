@@ -109,6 +109,8 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "LongInt.h"
 #include "PinyinTable.h"
 #include "DisplayTTY.h"
+#include "SecParser.h"
+
 
 #include "Profiles.h"
 
@@ -12301,6 +12303,535 @@ ListExpr executeScriptTM(ListExpr args){
 
 }
 
+
+class CommandExecuter{
+  public:
+     CommandExecuter(): qp(nl,am) {}
+
+
+     int execute( const string& cmd, ListExpr& outList, 
+                  string& errorMessage){
+
+          SecParser sp;
+          string listCommand;
+          if(sp.Text2List(cmd, listCommand)!=0){
+             cout << "parse not able to parse the command" << endl;
+             return ERR_SYNTAX_ERROR;
+          }
+          ListExpr cmdList;
+          if(!nl->ReadFromString(listCommand, cmdList)){
+              cerr << "SecondoParser produced an invalid nested list" << endl;
+              return ERR_SYNTAX_ERROR;
+          }
+          return execute(cmdList, outList, errorMessage);
+     }
+
+
+     int execute(const ListExpr cmd, ListExpr& outlist, 
+                 string& errorMessage){
+         
+         if(nl->IsEmpty(cmd)){
+            return 0;  // nop
+         }
+         if(nl->AtomType(nl->First(cmd))!=SymbolType){
+            // first element of a command has to be an symbol
+            return ERR_SYNTAX_ERROR;
+         }
+         string c = nl->SymbolValue(nl->First(cmd));
+         if(c=="type") return cmdType(cmd, outlist, errorMessage);
+         if(c=="delete") return deleteCmd(cmd, outlist, errorMessage);
+         if(c=="create") return createCmd(cmd, outlist, errorMessage); 
+         if(c=="update") return updateCmd(cmd, outlist, errorMessage);
+         if(c=="let") return letCmd(cmd, outlist, errorMessage);
+         if(c=="kill") return killCmd(cmd, outlist, errorMessage);
+         if(c=="query") return queryCmd(cmd, outlist, errorMessage);
+         if(c=="if") return ifCmd(cmd, outlist, errorMessage);
+         if(c=="while") return whileCmd(cmd, outlist, errorMessage);
+         if(c=="beginseq") return seqCmd(cmd,false, outlist, errorMessage);
+         if(c=="beginseq2") return seqCmd(cmd,true, outlist, errorMessage);
+         if(c=="list") return listCmd(cmd, outlist, errorMessage);
+         if(c=="open") return openCmd(cmd, outlist, errorMessage);
+         if(c=="close") return closeCmd(cmd, outlist, errorMessage);
+         if(c=="save") return saveCmd(cmd, outlist, errorMessage);
+         if(c=="restore") return restoreCmd(cmd, outlist, errorMessage);
+         if(nl->HasLength(cmd,2) 
+            && listutils::isSymbol(nl->Second(cmd),"transaction")){
+             return transactionCmd(cmd, outlist, errorMessage);
+         }  
+         
+         return ERR_CMD_NOT_RECOGNIZED; 
+     }
+
+
+     private:
+         QueryProcessor qp;
+       
+        int cmdType(ListExpr cmd, ListExpr& outList, string& errorMessage){
+            // creating types not supported yet
+            outList = nl->TheEmptyList();
+            errorMessage = "creation of type not supported";
+            return -1;
+        }
+ 
+        int deleteCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+           // delete <obj>
+           // delete database <db>
+           // delete type <typename>
+           // currently only delting of objects is supported
+           outList = nl->TheEmptyList();
+           if(!nl->HasLength(cmd,2)){
+              errorMessage="deleting supported for objects only";
+              return -1;
+           } 
+           if(nl->AtomType(nl->Second(cmd))!=SymbolType){
+              return ERR_SYNTAX_ERROR;
+           }
+           SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+           bool ok = ctlg->DeleteObject(nl->SymbolValue(nl->Second(cmd)));
+           ctlg->CleanUp(false,true);
+           return ok?0:ERR_IDENT_UNKNOWN_OBJ;
+        } 
+
+        int createCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+           // create <id> : <type expr>
+           // create database <dbname>
+           // creation of databases not supported
+           outList = nl->TheEmptyList();
+           if(!nl->HasLength(cmd,4)){
+                errorMessage="create supported for objects only";
+               return -1;
+           }
+           if(nl->AtomType(nl->Second(cmd))!=SymbolType){
+               errorMessage = "invalid object identifier";
+               return ERR_NO_OBJ_CREATED;
+           }
+           SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+           bool ok = ctlg->CreateObject(nl->SymbolValue(nl->Second(cmd)),
+                              "",
+                              nl->Fourth(cmd),
+                               0);           
+           if(!ok) errorMessage="object already exists";
+           return ok?0:ERR_OBJ_NAME_DOUBLY_DEFINED;
+        } 
+
+        int updateCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+          // update <id> := <expr>
+          outList = nl->TheEmptyList();
+          if(!nl->HasLength(cmd,4)){
+             return ERR_SYNTAX_ERROR;
+          }
+          if(  (nl->AtomType(nl->Second(cmd))!=SymbolType)
+            || (nl->AtomType(nl->Third(cmd))!=SymbolType)){
+             return ERR_SYNTAX_ERROR;
+          }
+          string objName = nl->SymbolValue(nl->Second(cmd));
+          SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+          if(!ctlg->IsObjectName(objName)){
+            return ERR_IDENT_UNKNOWN_OBJ;
+          } 
+          bool correct = false;
+          bool evaluable = false;
+          bool defined = false;
+          bool isFunction = false;
+          Word result = SetWord( Address(0) );
+          ListExpr resultType;
+          OpTree tree = 0; 
+          qp.Construct( nl->Fourth( cmd ), correct, evaluable, defined,
+                         isFunction, tree, resultType );
+          if(!evaluable){
+            return ERR_EXPR_NOT_EVALUABLE;
+          }
+          // check for equal typoe of db-object and expr type
+          ListExpr dbtype = ctlg->GetObjectTypeExpr(objName);
+          if(!nl->Equal(dbtype, resultType)){
+              return ERR_EXPR_TYPE_NEQ_OBJ_TYPE;
+          }  
+          qp.EvalS(tree, result,1);
+          qp.Destroy(tree,false);
+          // put result into catalog
+          ctlg->UpdateObject(objName, result);
+          ctlg->CleanUp(false,true);
+          return 0;
+        } 
+
+
+        int letCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+          outList = nl->TheEmptyList();
+          // let <id> := <expr>
+          if(!nl->HasLength(cmd,4)){
+             return ERR_SYNTAX_ERROR;
+          }
+          if( (nl->AtomType(nl->Second(cmd))!=SymbolType)
+            || (nl->AtomType(nl->Third(cmd))!=SymbolType)){
+             return ERR_SYNTAX_ERROR;
+          }
+          string objName = nl->SymbolValue(nl->Second(cmd));
+          SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+          if(ctlg->IsObjectName(objName)){
+            return ERR_NAME_DOUBLY_DEFINED;
+          } 
+          bool correct = false;
+          bool evaluable = false;
+          bool defined = false;
+          bool isFunction = false;
+          Word result = SetWord( Address(0) );
+          ListExpr resultType;
+          OpTree tree = 0; 
+          qp.Construct( nl->Fourth( cmd ), correct, evaluable, defined,
+                         isFunction, tree, resultType );
+          if(!evaluable ){
+            return ERR_EXPR_NOT_EVALUABLE;
+          }
+          bool ok;
+          if (!isFunction){
+            qp.EvalS( tree, result, 1 );
+            if( IsRootObject( tree ) && !IsConstantObject( tree ) ){
+                ok = ctlg->CloneObject( objName, result );
+                qp.Destroy( tree, true );
+            } else {
+              qp.Destroy( tree, false );
+              ok = ctlg->InsertObject( objName, "",resultType, result,true);
+            }
+            tree = 0;
+          } else  { // abstraction or function object
+            ctlg->CreateObject(objName, "", resultType, 0);
+            if ( nl->IsAtom( nl->Fourth(cmd) ) ) { // function object
+               ListExpr functionList = ctlg->GetObjectValue(
+                       nl->SymbolValue( nl->Fourth(cmd)) );
+               ok = ctlg->UpdateObject( objName, SetWord( functionList ) );
+            } else {
+               ok = ctlg->UpdateObject( objName, SetWord( nl->Fourth(cmd) ) );
+            }
+            if( tree ) {
+              qp.Destroy( tree, true );
+              tree = 0;
+            }
+          }
+          ctlg->CleanUp(false,false);
+          return ok?0:ERR_NO_OBJ_CREATED;
+        } 
+
+
+        int killCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+            outList = nl->TheEmptyList();
+            if(!nl->HasLength(cmd,2)){
+               return ERR_SYNTAX_ERROR;
+            }
+            if(nl->AtomType(nl->Second(cmd))!=SymbolType){
+                return ERR_SYNTAX_ERROR;
+            }
+            SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+            if(ctlg->KillObject(nl->SymbolValue(nl->Second(cmd)))){
+              ctlg->CleanUp(false,true);
+              return 0;
+            } else {
+              return ERR_IDENT_UNKNOWN_OBJ;
+            }
+        } 
+
+
+        int queryCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+           outList = nl->TheEmptyList();
+           if(!nl->HasLength(cmd,2)){
+             return  ERR_SYNTAX_ERROR;
+           }
+           bool correct = false;
+           bool evaluable = false;
+           bool defined = false;
+           bool isFunction = false;
+           Word result = SetWord( Address(0) );
+           ListExpr resultType;
+           OpTree tree = 0; 
+           qp.Construct( nl->Second( cmd ), correct, evaluable, defined,
+                         isFunction, tree, resultType );
+           if(!evaluable){
+              return ERR_EXPR_NOT_EVALUABLE;
+           }
+           qp.EvalS(tree, result,1);
+           SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+           outList = nl->TwoElemList( resultType,
+                               ctlg->OutObject(resultType, result));
+           qp.Destroy(tree,true);
+           if(nl->HasLength(outList,2)){
+             NestedList* oldnl =  DisplayFunction::nl;
+             DisplayTTY::Set_NL(nl);
+             DisplayTTY::GetInstance().DisplayResult(nl->First(outList), 
+                                                     nl->Second(outList));
+             DisplayTTY::Set_NL(oldnl);
+           }  
+           return 0; 
+        } 
+
+
+        int ifCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+           if(!nl->HasLength(cmd,5) && !nl->HasLength(cmd,7)){
+             return ERR_SYNTAX_ERROR;
+           }
+           ListExpr cond = nl->Second(cmd);
+           ListExpr cmd1 = nl->Fourth(cmd);
+           bool hasElse = false;
+           ListExpr cmd2 = nl->TheEmptyList();
+           if(nl->HasLength(cmd,7)){
+              hasElse = true;
+              cmd2 = nl->Sixth(cmd);
+           }
+           // evaluate condition
+            bool correct = false;
+            bool evaluable = false;
+            bool defined = false;
+            bool isFunction = false;
+            Word result = SetWord( Address(0) );
+            ListExpr resultType;
+            OpTree tree = 0;
+            qp.Construct( cond, correct, evaluable, defined,
+                          isFunction, tree, resultType );
+            if(!evaluable){
+              errorMessage="condition not evaluable";
+              return ERR_EXPR_NOT_EVALUABLE;
+            }
+            if(!CcBool::checkType(resultType)){
+              errorMessage =" condition is not a predicate";
+              return ERR_UNKNOWN_RETURN_CODE;
+            }
+            qp.EvalS(tree, result,1);
+            CcBool* r = (CcBool*) result.addr;
+            bool c = r->IsDefined() && r->GetValue();
+            qp.Destroy(tree,true);
+            if(c){
+               return execute(cmd1,outList, errorMessage);
+            } else if(hasElse){
+               return execute(cmd2,outList, errorMessage);
+            }
+            return 0;
+        } 
+
+
+        int whileCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+           if(!nl->HasLength(cmd,5)){
+             return ERR_SYNTAX_ERROR;            
+           }
+           ListExpr cond = nl->Second(cmd);
+           ListExpr wcmd = nl->Fourth(cmd);
+
+           bool cont = true;
+           int rc = 0;
+           while(cont){
+              // evaluate condition
+              bool correct = false;
+              bool evaluable = false;
+              bool defined = false;
+              bool isFunction = false;
+              Word result = SetWord( Address(0) );
+              ListExpr resultType;
+              OpTree tree = 0;
+              qp.Construct( cond, correct, evaluable, defined,
+                            isFunction, tree, resultType );
+              if(!evaluable){
+                errorMessage="condition not evaluable";
+                return ERR_EXPR_NOT_EVALUABLE;
+              }
+              if(!CcBool::checkType(resultType)){
+                errorMessage =" condition is not a predicate";
+                return ERR_UNKNOWN_RETURN_CODE;
+              }
+              qp.EvalS(tree, result,1);
+              CcBool* r = (CcBool*) result.addr;
+              bool c = r->IsDefined() && r->GetValue();
+              qp.Destroy(tree,true);
+              if(!c){
+                cont = c;
+              } else {
+                cont = (rc = execute(wcmd,outList, errorMessage)) != 0;
+              }
+            }
+            return rc;
+        } 
+
+        int seqCmd(ListExpr cmd, bool haltOnError, ListExpr& outList, 
+                   string& errorMessage ){
+          outList = nl->TheEmptyList();
+          if(!nl->HasLength(cmd,3)){
+             return ERR_SYNTAX_ERROR;            
+          }
+          ListExpr cmdList = nl->Second(cmd);
+          int rc = 0;
+          while(!nl->IsEmpty(cmdList)){
+            errorMessage="";
+            rc = execute(nl->First(cmdList), outList, errorMessage);
+            if(haltOnError && (rc!=0)){
+              return rc;
+            }
+            cmdList = nl->Rest(cmdList);
+          }
+          return rc;
+        } 
+
+
+        int listCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+          outList = nl->TheEmptyList();
+          if(!nl->HasMinLength(cmd,2) ){
+              return ERR_SYNTAX_ERROR;
+          }
+          if(nl->AtomType(nl->Second(cmd))!=SymbolType){
+              return ERR_SYNTAX_ERROR;
+          }
+          string se = nl->SymbolValue(nl->Second(cmd));
+          SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+          if(nl->HasLength(cmd,2)){
+            if(se=="operators"){
+               outList = nl->TwoElemList(
+                             nl->SymbolAtom("inquiry"),
+                             nl->TwoElemList(
+                                  nl->SymbolAtom("operators"),   
+                                  ctlg->ListOperators()));;
+               return 0; 
+            } 
+            if(se=="algebras"){
+             outList = nl->TwoElemList(
+                           nl->SymbolAtom("inquiry"),
+                           nl->TwoElemList(
+                                nl->SymbolAtom("algebras"),   
+                                am->ListAlgebras()));;
+               return 0; 
+            } 
+            if(se=="databases"){
+               outList = SecondoSystem::GetInstance()->ListDatabaseNames();
+               outList = nl->TwoElemList(
+                           nl->SymbolAtom("inquiry"),
+                           nl->TwoElemList(
+                                nl->SymbolAtom("databases"),   
+                                outList));;
+
+
+               return 0; 
+            } 
+            if(se=="types"){
+               outList = ctlg->ListTypes();
+               outList = nl->TwoElemList(
+                           nl->SymbolAtom("inquiry"),
+                           nl->TwoElemList(
+                                nl->SymbolAtom("types"),   
+                                outList));;
+               return 0; 
+            } 
+            if(se=="objects"){
+               outList = ctlg->ListObjects();
+               outList = nl->TwoElemList(
+                           nl->SymbolAtom("inquiry"),
+                           nl->TwoElemList(
+                                nl->SymbolAtom("objects"),   
+                                outList));;
+               return 0; 
+            } 
+            return ERR_SYNTAX_ERROR;
+          
+          } else if(nl->HasLength(cmd,3)){
+             if(nl->AtomType(nl->Third(cmd))!=SymbolType){
+                return ERR_SYNTAX_ERROR;
+             }
+             string th = nl->SymbolValue(nl->Third(cmd));
+
+             if(se=="type" && th=="constructors"){
+                outList = ctlg->ListTypeConstructors();
+                outList = nl->TwoElemList(
+                           nl->SymbolAtom("inquiry"),
+                           nl->TwoElemList(
+                                nl->SymbolAtom("constructors"),   
+                                outList));;
+                return 0;
+             }else if (se=="algebra"){
+                int algId = am->GetAlgebraId(th);
+                if(algId==0){
+                   errorMessage = "algebra " + th + " currently bot included"; 
+                   return ERR_ALGEBRA_UNKNOWN;
+                } 
+                ListExpr constOp =  nl->TwoElemList( 
+                                        ctlg->ListTypeConstructors( algId ),
+                                        ctlg->ListOperators( algId ));
+                outList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
+                             nl->TwoElemList( nl->SymbolAtom("algebra"),
+                                              nl->TwoElemList( nl->Third(cmd),
+                                                               constOp ))); 
+                return 0;
+             } else {
+                return ERR_SYNTAX_ERROR;
+             }
+          } else {
+              return ERR_SYNTAX_ERROR;
+          }
+        } 
+
+        int openCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+          errorMessage = "open database not supported";
+          return -1;
+        } 
+
+        int closeCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+          errorMessage = "close database not supported";
+          return -1;
+        } 
+
+        int saveCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+          if(!nl->HasLength(cmd,4)){
+             return ERR_SYNTAX_ERROR;
+          }
+          if(   (nl->AtomType(nl->Second(cmd))!=SymbolType)
+             || (!listutils::isSymbol(nl->Third(cmd),"to"))
+             || (    (nl->AtomType(nl->Fourth(cmd))!=SymbolType)
+                  && (nl->AtomType(nl->Fourth(cmd))!=TextType))){
+             return ERR_SYNTAX_ERROR;
+          }
+          string se = nl->SymbolValue(nl->Second(cmd));
+          if(se=="database"){
+             errorMessage = "saving databases not supported";
+             return -1;
+          }
+          SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+          bool ok = ctlg->IsValidIdentifier(se,true);
+          if(!ok){
+             errorMessage = "object " + se 
+                          + " already stored in databases or a "
+                            "reserved word is used";
+             return ERR_NAME_DOUBLY_DEFINED;
+          }
+          string fn = nl->AtomType(nl->Fourth(cmd))==SymbolType
+                    ? nl->SymbolValue(nl->Fourth(cmd))
+                    : nl->Text2String(nl->Fourth(cmd));
+          return SecondoSystem::GetInstance()->SaveObject(
+                                        se, fn );
+        } 
+
+        int restoreCmd(ListExpr cmd, ListExpr& outList, string& errorMessage){
+          if(   nl->HasLength(cmd,5) 
+             && listutils::isSymbol(nl->Second(cmd), "database")){
+              errorMessage = "restoring databases not supported";
+              return -1;
+          } 
+          if(    !nl->HasLength(cmd,4)
+              || (nl->AtomType(nl->Second(cmd))!=SymbolType)
+              || !listutils::isSymbol(nl->Third(cmd),"from")
+              || (   (nl->AtomType(nl->Fourth(cmd))!=SymbolType)
+                  && (nl->AtomType(nl->Fourth(cmd))!=TextType))){
+             return ERR_SYNTAX_ERROR;
+          }
+          string se = nl->SymbolValue(nl->Second(cmd));
+          string fn = nl->AtomType(nl->Fourth(cmd))==SymbolType
+                    ? nl->SymbolValue(nl->Fourth(cmd))
+                    : nl->Text2String(nl->Fourth(cmd));
+          ListExpr errorInfo = listutils::emptyErrorInfo();
+          return SecondoSystem::GetInstance()->RestoreObjectFromFile(
+                                     se, fn, errorInfo);
+        } 
+        int transactionCmd(ListExpr cmd, ListExpr& outList, 
+                           string& errorMessage){
+          errorMessage = "tracactions are not supported";
+          return -1;
+        } 
+
+};
+
+
+
 class executeScriptInfo{
   public:
      executeScriptInfo(const string& _filename, bool _stopOnError, bool _isPD):
@@ -12320,6 +12851,7 @@ class executeScriptInfo{
      bool stopOnError;
      bool isPD;
      bool quit;
+     CommandExecuter qe;
 
 
      bool exec(const string& filename, const bool stopOnError, const bool isPD){
@@ -12338,7 +12870,6 @@ class executeScriptInfo{
         string cmd;
         while (!in.eof() && !quit && ( !stopOnError || !errorFound )) {
            if ( getCommand(in,isPD, cmd) ) {  
-              cout << "found command " << cmd << endl; 
               try {
                  if( !processCommand(cmd)){
                    errorFound = true;
@@ -12361,7 +12892,6 @@ class executeScriptInfo{
             line = "";
             getline( in, line );
             if ( line.length() > 0  || inPD) {
-               cout << " " << line << endl;
                bool comment = false;
                if(!isPD){
                  comment = line[0] == '#';
@@ -12495,45 +13025,43 @@ class executeScriptInfo{
 
   bool callSecondo(const string& cmd) {
        int errorCode = 0;
-       int errorPos = 0;
        ListExpr cmdList = nl->TheEmptyList();
        ListExpr outList = nl->TheEmptyList();
        string errorMessage = "";
        string errorText = ""; 
 
-       return true; // ???
 
+       cout << "command " << cmd << endl;
 
        if ( cmd[cmd.find_first_not_of(" \n\r\t\v\b\a\f")] == '(' ) {
-          if ( nl->ReadFromString( cmd, cmdList ) ) {   
-             si->Secondo( cmd, cmdList, 0, false, false,
-                   outList, errorCode, errorPos, errorMessage );
-             NList::setNLRef(nl);
+          if ( nl->ReadFromString( cmd, cmdList ) ) {  
+             errorCode = qe.execute(cmdList, outList,errorMessage); 
           }   else {   
              cmsg.error() << endl << "*** Error: list expression expected!"
                           << endl;
              cmsg.send();
           }   
        } else {
-          si->Secondo( cmd, cmdList, 1, false, false,
-                       outList, errorCode, errorPos, errorMessage );
-          NList::setNLRef(nl);
+          errorCode = qe.execute(cmd, outList, errorMessage); 
        }
 
+       nl->Destroy( outList );
        if ( errorCode != 0 ) {
-          si->WriteErrorList( outList );
           nl->Destroy( outList );
-          outList = nl->TheEmptyList();
+          if(errorMessage.empty()){
+            errorMessage=SecondoInterface::GetErrorMessage(errorCode);
+          }
+          cout << "command failed with code " << errorCode << endl
+               << "'" << errorMessage << "'" << endl;
+          cout << endl << endl;
           return false;
+       } else {
+         cout << "success" << endl;
        }
        if ( cmdList != nl->TheEmptyList() ) {
           nl->Destroy( cmdList );
        }
-       if(nl->HasLength(outList,2)){
-          DisplayTTY::GetInstance().DisplayResult(nl->First(outList), 
-                                                  nl->Second(outList));
-       }  
-       nl->Destroy( outList );
+       cout << endl << endl;
        return true;
   }
 };
@@ -12736,7 +13264,7 @@ Operator executeScriptOP(
       AddOperator(&getParamOP);
       AddOperator(&savetoOp);
       
-  //    AddOperator(&executeScriptOP);
+    AddOperator(&executeScriptOP);
 
 
 

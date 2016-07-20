@@ -126,5 +126,5 @@ operator substrw alias SUBSTRW pattern _ op[_,_]
 operator getConfig alias GETCONFIG pattern op()
 operator getPARAM alias GETPARAM pattern op(_,_,_,_)
 
-
+operator executeScript alias EXECUTESCRIPT pattern op(_,_,_)
 

@@ -1320,4 +1320,10 @@ Signature : {string, text} x {string, text} -> bool
 Example   : query 'hello world' saveto 'hello.txt'
 Result    : TRUE
 
+Operator  : executeScript 
+Number    : 1
+Signature : {string, text} x bool x bool  -> bool
+Example   : query executeScript('a_non_exeistent_script.sec', TRUE, FALSE)
+Result    : FALSE
+
 
