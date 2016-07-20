@@ -12586,14 +12586,26 @@ int dmapXVM(Word* args, Word& result, int message,
     int x = qp->GetNoSons(s) - 5; // index until the name
 
 
-    // collect all d[f]arrays into a vector
+    
     vector<DArrayBase*> arrays;
     vector<bool> isRelation; 
+    DArrayBase* a0 = (DArrayBase*) args[0].addr;
     for(int i=0;i<x;i++){
-      arrays.push_back((DArrayBase*) args[i].addr);
+      DArrayBase* di = (DArrayBase*) args[i].addr;
+      arrays.push_back(di);
       isRelation.push_back(Relation::checkType(nl->Second(
                                         qp->GetType(qp->GetSon(s,i)))));
+      // if one darray is found with a worker mapping
+      // unequal to the first arg, then break processing
+      if(i>0 && (di->getType()==DARRAY)){
+         if(!a0->equalMapping(*di, false)){
+            ((DArrayBase*) result.addr)->makeUndefined();
+            return 0;
+         }
+      }
     }
+
+
 
     CcString* objName = (CcString*) args[x].addr;
     // args[3] is the original fun and is not used here
