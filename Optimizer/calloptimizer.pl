@@ -829,6 +829,7 @@ optDebugLevel(translation).      % Details on translation rule matching
 loadFiles(standard) :-
   ( not(loadedModule(standard)),
     [optimizerNewProperties],
+    [costs2014],
     [statistics],
     [database],
     [operators],
