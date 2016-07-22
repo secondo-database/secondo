@@ -87,6 +87,7 @@ endif
 clean:
 	make -C 10 clean
 	make -C 30 clean
+	make -C 70 clean
 	rm -f regSecondo.o
 	rm -f $(REG_SEC_DLL)
 	rm -f $(BASIC_REG_SEC_DLL)
