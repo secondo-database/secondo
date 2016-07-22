@@ -83,7 +83,7 @@ fi
 
 
 
-prefix="/home/spieker/cvs-snapshot"
+prefix="/home/behr/secondo"
 
 pdDir="$prefix/Tools/pd"
 scriptDir="$prefix/CM-Scripts"

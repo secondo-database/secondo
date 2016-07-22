@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # checksize -s [files]
 # check if the file for each given file is 
