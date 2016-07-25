@@ -21,14 +21,6 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-//import jpl.JPL;
-//import jpl.Atom;
-//import jpl.Query;
-//import jpl.Term;
-//import jpl.Variable;
-//import jpl.fli.*;
-//import jpl.Compound;
-//import jpl.Util;
 
 import org.jpl7.*;
 import java.nio.charset.Charset;
@@ -803,7 +795,7 @@ static {
        }
 
        try{
-         Class.forName("jpl.fli.Prolog"); // ensure to load the jpl library
+         Class.forName("org.jpl7.fli.Prolog"); // ensure to load the jpl library
         } catch(Exception e){
            System.err.println("loading prolog class failed");
            System.exit(1);
