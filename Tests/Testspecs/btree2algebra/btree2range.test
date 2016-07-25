@@ -97,7 +97,7 @@ query x3 Num exactmatch[111000] consume;
 
 #testcase exactmatchExample1
 #yields ((rel (tuple ((SName string)(Bev int)(PLZ int)(Vorwahl string)(Kennzeichen string))))(("Heilbronn" 111000 7100 "07131" "HN")("Koblenz" 111000 5400 "0261" "KO")))
-query x3 Staedte exactmatch[111000] consume;
+query x3 Staedte exactmatch[111000] sortby[SName] consume;
 
 #testcase exactmatchExample2
 #yields ((rel (tuple ((Num real)(Positiv bool))))((6435.26 TRUE)))
@@ -217,7 +217,7 @@ query x3 Num range[111000, 150000] consume;
 
 #testcase rangeExample1
 #yields ((rel (tuple ((SName string)(Bev int)(PLZ int)(Vorwahl string)(Kennzeichen string))))(("Heilbronn" 111000 7100 "07131" "HN")("Koblenz" 111000 5400 "0261" "KO")))
-query x3 Staedte range[110001, 112000] consume;
+query x3 Staedte range[110001, 112000] sortby[SName] consume;
 
 #testcase rangeExample2
 #yields ((rel (tuple ((Num real)(Positiv bool))))((6435.26 TRUE)))
