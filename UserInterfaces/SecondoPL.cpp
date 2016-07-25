@@ -1268,28 +1268,34 @@ static foreign_t pl_global_memory(term_t value) {
 // NVK ADDED MA END
 
 
+#if PLVERSION>60000
+#define  PL_FUNCTION_T pl_function_t
+#else
+#define PL_FUNCTION_T void*
+#endif
+
 
 PL_extension predicates[] =
 {
-  { "secondo", 2, (void*)pl_call_secondo, 0 },
-  { "secondo_error_info", 2, (void*)pl_get_error_info, 0 },
-  { "secondo_print_le", 1, (void*)pl_print_term_le, 0 },
-  { "check_syntax",2, (void*)pl_check_syntax,0},
-  { "set_sql_check_option",2,(void*)pl_set_sql_check_option,0},
-  { "getOpIndexes",6,(void*)getOperatorIndexes,0},
-  { "getCosts",5,(void*)getCosts5,0},
-  { "getCosts",6,(void*)getCosts6,0},
-  { "getLinearCostFun",6,(void*)getLinearParams6,0},
-  { "getLinearCostFun",7,(void*)getLinearParams7,0},
-  { "getCostFun",5,(void*)getFunction5,0},
-  { "getCostFun",6,(void*)getFunction6,0},
+  { "secondo", 2, (PL_FUNCTION_T)pl_call_secondo, 0 },
+  { "secondo_error_info", 2, (PL_FUNCTION_T)pl_get_error_info, 0 },
+  { "secondo_print_le", 1, (PL_FUNCTION_T)pl_print_term_le, 0 },
+  { "check_syntax",2, (PL_FUNCTION_T)pl_check_syntax,0},
+  { "set_sql_check_option",2,(PL_FUNCTION_T)pl_set_sql_check_option,0},
+  { "getOpIndexes",6,(PL_FUNCTION_T)getOperatorIndexes,0},
+  { "getCosts",5,(PL_FUNCTION_T)getCosts5,0},
+  { "getCosts",6,(PL_FUNCTION_T)getCosts6,0},
+  { "getLinearCostFun",6,(PL_FUNCTION_T)getLinearParams6,0},
+  { "getLinearCostFun",7,(PL_FUNCTION_T)getLinearParams7,0},
+  { "getCostFun",5,(PL_FUNCTION_T)getFunction5,0},
+  { "getCostFun",6,(PL_FUNCTION_T)getFunction6,0},
 #ifdef SECONDO_USE_ENTROPY
-  { "maximize_entropy", 3, (void*)pl_maximize_entropy, 0 },
+  { "maximize_entropy", 3, (PL_FUNCTION_T)pl_maximize_entropy, 0 },
 #endif
   // NVK ADDED MA
 #ifdef SECONDO_USE_MEMORY_ALLOCATION
-  { "secondo_global_memory", 1, (void*)pl_global_memory, 0 },
-  { "memoryOptimization", 6, (void*)pl_memoryOptimization, 0 },
+  { "secondo_global_memory", 1, (PL_FUNCTION_T)pl_global_memory, 0 },
+  { "memoryOptimization", 6, (PL_FUNCTION_T)pl_memoryOptimization, 0 },
 #endif
   // NVK ADDED MA END
   { 0, 0, 0, 0 } /* terminating line */
