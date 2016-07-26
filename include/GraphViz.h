@@ -87,7 +87,7 @@ class GraphViz {
     gvc = gvContext();	  
    
     FILE* tmp = string2FILE(dotSpec);
-    g = agread(tmp);
+    g = agread(tmp,0);
     fclose(tmp);
 
     rtype2str[plain] = "plain";
