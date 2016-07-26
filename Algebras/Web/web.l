@@ -149,7 +149,7 @@ nwhite [^ \t\n]
 							//cout << "_FINDELEMSTART  yytext: " << yytext << "  yyin->tellg(): " << (unsigned long)yyin->tellg() << " yyleng: " << yyleng << " pos: " << endl;
 							
 						}
-<_RELEM>[a-zA-Z\-\_\:\.]{name}	{pos= ((unsigned long)yyin->tellg())- yyleng ;
+<_RELEM>[a-zA-Z\-\_\:\.]{name}	{pos= ((unsigned long)yyin.tellg())- yyleng ;
 							//cout << "_RELEM1 yytext: " << yytext << "  yyin->tellg(): " << (unsigned long)yyin->tellg() << " yyleng: " << yyleng << " pos: " << endl;
 							//string tmp = yytext;
 							if (isEqual(yytext,"script"))
@@ -162,8 +162,8 @@ nwhite [^ \t\n]
 <_RELEM>{white}*={white}*	{BEGIN (_ATTVALUE);}
 <_RELEM>{white}*
 <_RELEM>\/	//eat up
-<_ATTVALUE>\"[^\"]*\"	{pos= ((unsigned long)yyin->tellg())- yyleng +1;BEGIN(_RELEM);return ATTVALUE;}
-<_ATTVALUE>[^\>\t\n \"]+	{pos= ((unsigned long)yyin->tellg())- yyleng +1;BEGIN(_RELEM);return ATTVALUE;}
+<_ATTVALUE>\"[^\"]*\"	{pos= ((unsigned long)yyin.tellg())- yyleng +1;BEGIN(_RELEM);return ATTVALUE;}
+<_ATTVALUE>[^\>\t\n \"]+	{pos= ((unsigned long)yyin.tellg())- yyleng +1;BEGIN(_RELEM);return ATTVALUE;}
 <_RELEM>">"	{if (script_element){
 				yy_push_state(_RSCRIPT);
 				script_element=0;
@@ -176,7 +176,7 @@ nwhite [^ \t\n]
 
 <_RELEM_WA,_RELEM>"<"("!"[^\>][^-\>]|"!"[^-\>][^\>]|[\/\?]|[A-Za-z\-\.\:\_]){name}*	{
 																	
-																	pos= ((unsigned long)yyin->tellg())- yyleng ;
+																	pos= ((unsigned long)yyin.tellg())- yyleng ;
 																	yy_push_state(YY_START);
 																	//cout << " _RELEM2 yytext: " << yytext << "  yyin->tellg(): " << yyin->tellg() << " yyleng: " << yyleng << " pos: " << endl;
 																	
@@ -187,7 +187,7 @@ nwhite [^ \t\n]
 																	} else {
 																	 
 																	 yytext=yytext+1;
-																	 pos= (((unsigned long)yyin->tellg()))- yyleng;
+																	 pos= (((unsigned long)yyin.tellg()))- yyleng;
 																	 //cout << "<_RELEM_WA,_RELEM>" << YYText() << endl;
 																	 return EIDENTIFIER;
 
@@ -203,7 +203,7 @@ nwhite [^ \t\n]
 <_RELEM_WA>[^\>\<]*\>				{
 											
 											//cout << "Lexer: " << YYText() << endl;
-											pos= ((unsigned long)yyin->tellg())- yyleng;
+											pos= ((unsigned long)yyin.tellg())- yyleng;
 											
 											
 											yytext[myleng]='\0';

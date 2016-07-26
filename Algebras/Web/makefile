@@ -37,7 +37,7 @@ MODNAME = WEBAlgebra
 
 # Use the mace CCFLAGS to add special compiler flags if needed.
 # In this case the defaults are sufficient
-CCFLAGS = $(DEFAULTCCFLAGS) -Werror
+CCFLAGS = $(DEFAULTCCFLAGS) 
 
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS)

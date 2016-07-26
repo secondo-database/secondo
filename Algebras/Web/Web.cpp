@@ -3370,11 +3370,11 @@ InHTML( const ListExpr typeInfo, const ListExpr instance,
    else
    {
   __TRACE__
-    if( !nl->ListLength( First ) == 2 )
+    if( nl->ListLength( First ) != 2 )
              ErrorReporter::ReportError("First not an list of length 2");
     else if( !nl->IsAtom(Second))
              ErrorReporter::ReportError("Second not an atom");
-    else if( !nl->ListLength( Third ) == 2)
+    else if( nl->ListLength( Third ) != 2)
              ErrorReporter::ReportError("Third not a list of length 2");
     else if (!(nl->IsEqual(nl->First(First), Instant::BasicType())))
         ErrorReporter::ReportError("First not an instant");
@@ -3972,7 +3972,7 @@ wgetTypeMap( ListExpr args)
    {
      ListExpr arg5 = nl->  Fifth(args);
     if (nl->IsAtom(arg5)
-        || !nl->ListLength(arg5) == 3
+        || nl->ListLength(arg5) != 3
         || !nl->IsEqual(nl->First(arg5), Symbol::MAP())
         || !nl->IsEqual(nl->Second(arg5), URL::BasicType())
         || !nl->IsEqual(nl->Third(arg5), CcBool::BasicType()) )
@@ -4031,7 +4031,7 @@ pagegetTypeMap( ListExpr args)
    {
      ListExpr arg5 = nl->Fifth(args);
     if (nl->IsAtom(arg5)
-        || !nl->ListLength(arg5) == 3
+        || nl->ListLength(arg5) != 3
         || !nl->IsEqual(nl->First(arg5), Symbol::MAP())
         || !nl->IsEqual(nl->Second(arg5), URL::BasicType())
         || !nl->IsEqual(nl->Third(arg5), CcBool::BasicType()) )
@@ -4086,7 +4086,7 @@ htmlgetTypeMap( ListExpr args)
    {
      ListExpr arg5 = nl->Fifth(args);
     if (nl->IsAtom(arg5)
-        || !nl->ListLength(arg5) == 3
+        || nl->ListLength(arg5) != 3
         || !nl->IsEqual(nl->First(arg5), Symbol::MAP())
         || !nl->IsEqual(nl->Second(arg5), URL::BasicType())
         || !nl->IsEqual(nl->Third(arg5), CcBool::BasicType()) )
