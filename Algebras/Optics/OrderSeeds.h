@@ -184,8 +184,8 @@ template<class S>
 void OrderSeeds< S>::sink(int index){
    double dist = getReachDist(index);
    int pos = index + 1;
-   int s1 = pos*2;
-   int s2 = pos*2 + 1;
+   size_t s1 = pos*2;
+   size_t s2 = pos*2 + 1;
    while( s1 <= heap.size()){ // at least 1 son present
      if(s2 > heap.size()){ // only one son
         double s1dist = getReachDist(s1-1);

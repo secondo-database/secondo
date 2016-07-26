@@ -181,7 +181,7 @@ otherwise.
 */
   double setCoreDistance(Tuple* tuple, TupleId id, 
                          std::list<TupleId>* neighbors){
-      if(neighbors->size() < minPts){
+      if(neighbors->size() <(size_t) minPts){
           setOfObjects->updateCoreDistance(id, UNDEFINED);
           return UNDEFINED;
       }
