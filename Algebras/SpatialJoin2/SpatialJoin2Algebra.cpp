@@ -3068,8 +3068,8 @@ class InfoGrepSpatialJoinInfo{
       if (hi<=0){
            HistogramXdim[0]=HistogramXdim[0]+1; 
         }
-      else if (hi>HistogramXdim.size()-2){
-           while(hi>HistogramXdim.size()-2){
+      else if (hi>(int)HistogramXdim.size()-2){
+           while(hi>(int)HistogramXdim.size()-2){
               HistogramXdim.resize(HistogramXdim.size()+1);
               HistogramXdim[HistogramXdim.size()-2]=
                       HistogramXdim[HistogramXdim.size()-2]+1;
@@ -3089,8 +3089,8 @@ class InfoGrepSpatialJoinInfo{
       if (hi<=0){
            HistogramYdim[0]=HistogramYdim[0]+1;
         }
-        else if (hi>HistogramYdim.size()-2){
-           while((hi>HistogramYdim.size()-2)){
+        else if (hi>(int)HistogramYdim.size()-2){
+           while((hi>(int)HistogramYdim.size()-2)){
               HistogramYdim.resize(HistogramYdim.size()+1);
               HistogramYdim[HistogramYdim.size()-2]=
                       HistogramYdim[HistogramYdim.size()-2]+1;
@@ -3110,8 +3110,8 @@ class InfoGrepSpatialJoinInfo{
       if (hi<=0){
            HistogramZdim[0]=HistogramZdim[0]+1; 
         }
-        else if (hi>HistogramZdim.size()-2){
-           while((hi>HistogramZdim.size()-2)){
+        else if (hi>(int)HistogramZdim.size()-2){
+           while((hi>(int)HistogramZdim.size()-2)){
               HistogramZdim.resize(HistogramZdim.size()+1);
               HistogramZdim[HistogramZdim.size()-2]=
                       HistogramZdim[HistogramZdim.size()-2]+1;

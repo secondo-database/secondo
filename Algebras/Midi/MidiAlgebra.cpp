@@ -1146,7 +1146,7 @@ bool InSysex(Event*& actualEvent, stringstream& byteStream,
 
      typebyte = (unsigned char)ch;
 
-     if(!typebyte == 0xF7)
+     if(typebyte != 0xF7)
      {
        multisysex &= true;
      }
