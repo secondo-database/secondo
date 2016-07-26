@@ -2147,6 +2147,7 @@ void
 SecondoCatalog::InitTypeConstructors()
 {
   LocalConstructorCatalog::iterator pos;
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
   for ( pos = constructors.begin(); pos != constructors.end(); pos++ )
   {
     TypeConstructor* tc = am->GetTC( pos->second.algebraId,
