@@ -1830,7 +1830,7 @@ int rqueryVMT( Word* args, Word& result, int message,
      return 0;
   }
   int serv = server->GetValue();
-  if(serv < 0 || serv >= algInstance->noConnections()){
+  if(serv < 0 || (unsigned int) serv >= algInstance->noConnections()){
     sendMessage(msg, "Invalid Server ID " );
     return 0;
   }
@@ -2353,7 +2353,7 @@ int sendFileVMT( Word* args, Word& result, int message,
       return 0;
    }
    int server = Server->GetValue();
-   if(server < 0 || server >= algInstance->noConnections()){
+   if(server < 0 || (unsigned int) server >= algInstance->noConnections()){
       res->Set(true,-3);
       return 0;
    }
@@ -2998,7 +2998,7 @@ This function processes the tuples of the input stream.
                   string localname = Local->GetValue();
                   string remotename = Remote->GetValue();
                   bool overwrite = Overwrite->GetValue();
-                  if(server < 0 || server >= algInstance->noConnections()){
+                  if(server < 0 || server >=(int)algInstance->noConnections()){
                      processInvalidTuple(inTuple, "invalid server number");
                   } else {
                     processValidTuple(inTuple, server, localname, 
@@ -3418,7 +3418,7 @@ int getFolderVM(Word* args, Word& result, int message,
      return 0;
   }
   int ser = server->GetValue();
-  if(ser<0 || ser >=algInstance->noConnections()){
+  if(ser<0 || (unsigned int) ser >=algInstance->noConnections()){
      res->SetDefined(false);
      return 0;
   }
@@ -6367,7 +6367,7 @@ int createDArrayVMT(Word* args, Word& result, int message,
      vector<vector<string> > groupobjects;
      string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
      vector<int> themap;
-     for(size_t i=0;i<si;i++){
+     for(int i=0;i<si;i++){
        themap.push_back(-1);
      }
      for(size_t i=0;i<groups.size();i++){
@@ -7166,7 +7166,7 @@ int ddistribute2VMT(Word* args, Word& result, int message,
    
    typename map<int, pair<string,pair<ofstream*, char*> > >::iterator it;
 
-   for(int i=0;i<res->getSize();i++){
+   for(size_t i=0;i<res->getSize();i++){
       it = files.find(i); 
       string objName = res->getName()+"_"+stringutils::int2str(i);
       string fn;
@@ -7199,7 +7199,7 @@ int ddistribute2VMT(Word* args, Word& result, int message,
    for(size_t i=0;i<restorers.size();i++){
      delete restorers[i];
    } 
-   for(int i=0;i<res->getSize();i++){
+   for(size_t i=0;i<res->getSize();i++){
       FileSystem::DeleteFileOrFolder(name + "_" 
                                 + stringutils::int2str(i)+".bin");
    }
@@ -7685,7 +7685,7 @@ int distribute4VMT(Word* args, Word& result, int message,
    
    typename map<int, pair<string, pair<ofstream*, char*> > >::iterator it;
 
-   for(int i=0;i<res->getSize();i++){
+   for(size_t i=0;i<res->getSize();i++){
       it = files.find(i); 
       string objName = res->getName()+"_"+stringutils::int2str(i);
       string fn;
@@ -16728,7 +16728,7 @@ class AReducer: public AReduceListener{
           }
        }
 
-       while(slot < all){ // not all slots are processed
+       while(slot < (int) all){ // not all slots are processed
            boost::unique_lock<boost::mutex> lock(mtx);
            while(freeWorkers.empty()){
               cond.wait(lock);
@@ -18296,9 +18296,9 @@ int ddistribute8VMT(Word* args, Word& result, int message,
  
   // collect vectors of object and file names (which are the same)
   vector<vector<string> > names;
-  for(size_t islots=0;islots<size2;islots++){
+  for(int islots=0;islots<size2;islots++){
      vector<string> snames;
-     for(size_t oslots=0;oslots<size1;oslots++){
+     for(int oslots=0;oslots<size1;oslots++){
          snames.push_back(name + "_" + stringutils::int2str(oslots)
                                + "_" + stringutils::int2str(islots));
      }
