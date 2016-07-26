@@ -98,7 +98,7 @@ Main Algorithm
         if(!setOfObjects.getProcessed(id)){
             setOfObjects.setProcessed(id, true);
             std::list<TupleId>* n = setOfObjects.getNeighbors(id);
-            if(n->size() < minPts){
+            if(n->size() < (size_t)minPts){
                 setOfObjects.setCluster(id,-2);
                 delete n;              
             } else {
@@ -138,7 +138,7 @@ This expands a cluster starting at id having neighbors n.
        if(!setOfObjects.getProcessed(id2)){
           std::list<TupleId>* n2 = setOfObjects.getNeighbors(id2);
           setOfObjects.setProcessed(id2,true);
-          if(n2->size()>= minPts){
+          if(n2->size()>= (size_t) minPts){
               std::list<TupleId>::iterator it;
               for(it=n2->begin(); it!=n2->end() ; it++){
                 if(!setOfObjects.isSeed(*it) ){
