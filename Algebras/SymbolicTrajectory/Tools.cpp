@@ -1146,10 +1146,16 @@ void Tools::queryBtree(BTree_t<LongInt> *btree, Interval<CcReal> &iv,
   CcInt *right = new CcInt(true, (int)(ceil(iv.end.GetValue())));
   BTreeIterator_t<LongInt> *it = btree->Range(left, right);
   while (it->Next()) {
-    int64_t value = it->GetId().GetValue();
-    int32_t id = (int32_t)(value>>32);
-    int32_t unit = (int32_t)value;
-    result[id].insert(unit);
+    if (it->GetId().IsDefined()) {
+      cout << "DEFINED" << endl;
+      int64_t value = it->GetId().GetValue();
+      int32_t id = (int32_t)(value>>32);
+      int32_t unit = (int32_t)value;
+      result[id].insert(unit);
+    }
+    else {
+      cout << "undef" << endl;
+    }
   }
   delete it;
   left->DeleteIfAllowed();

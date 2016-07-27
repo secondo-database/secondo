@@ -535,6 +535,72 @@ struct containsInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~intersects~}
+
+intersects: T x T -> bool,   where T in \{labels, places\}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr intersectsTM(ListExpr args) {
+  const string errMsg = "Expecting labels x labels or places x places.";
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError(errMsg);
+  }
+  if ((Labels::checkType(nl->First(args)) && 
+       Labels::checkType(nl->Second(args))) ||
+      (Places::checkType(nl->First(args)) &&
+       Places::checkType(nl->Second(args)))) {
+    return nl->SymbolAtom(CcBool::BasicType());
+  }
+  return listutils::typeError(errMsg);
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int intersectsSelect(ListExpr args) {
+  return Labels::checkType(nl->First(args)) ? 0 : 1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class T>
+int intersectsVM(Word* args, Word& result, int message, Word& local,
+                 Supplier s) {
+  T *first = static_cast<T*>(args[0].addr);
+  T *second = static_cast<T*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  if (first->IsDefined() && second->IsDefined()) {
+    res->Set(true, first->Intersects(*second));
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct intersectsInfo : OperatorInfo {
+  intersectsInfo() {
+    name      = "intersects";
+    signature = "labels x labels -> bool";
+    appendSignature("places x places -> bool");
+    syntax    = "_ intersects _;";
+    meaning   = "Checks whether two labels/places values have a non-empty "
+                "intersection";
+  }
+};
+
+
+/*
 \section{Operator ~toplace~}
 
 toplace: (string | text) x int -> place
@@ -3251,6 +3317,138 @@ Operator indextmatches("indextmatches", indextmatchesSpec, 2, indextmatchesVMs,
                        indextmatchesSelect, indextmatchesTM);
 
 /*
+\section{Operator ~indexrewrite~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr indexrewriteTM(ListExpr args) {
+  string err = "the expected syntax is: tupleindex x rel x attrname x "
+               "(text | pattern)";
+  if (!TupleIndex::checkType(nl->First(args))) {
+    return listutils::typeError(err + " (first argument is not a tuple index)");
+  }
+  if (!Relation::checkType(nl->Second(args))) {
+    return listutils::typeError(err + " (second argument is not a relation)");
+  }
+  if (!listutils::isSymbol(nl->Third(args)) ||
+          (!FText::checkType(nl->Fourth(args)) && 
+           !PatPersistent::checkType(nl->Fourth(args)))) {
+    return listutils::typeError(err + " (error in 3rd or 4th argument)");
+  }
+  ListExpr attrs = nl->Second(nl->Second(nl->Second(args)));
+  string name = nl->SymbolValue(nl->Third(args));
+  ListExpr type;
+  int index = listutils::findAttribute(attrs, name, type);
+  if (!index) {
+    return listutils::typeError("Attribute " + name + " not found in relation");
+  }
+  if (!MLabel::checkType(type) && !MLabels::checkType(type) &&
+      !MPlace::checkType(type) && !MPlaces::checkType(type)) {
+    return listutils::typeError("Attribute " + name + " is not a symbolic "
+                              "trajectory (MLabel, MLabels, MPlace, MPlaces)");
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                           nl->OneElemList(nl->IntAtom(index - 1)), 
+                       nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), type));
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int indexrewriteSelect(ListExpr args) {
+  ListExpr attrs = nl->Second(nl->Second(nl->Second(args)));
+  string name = nl->SymbolValue(nl->Third(args));
+  ListExpr type;
+  int index = listutils::findAttribute(attrs, name, type);
+  if (MLabel::checkType(type)) return 0;
+  if (MLabels::checkType(type)) return 1;
+  if (MPlace::checkType(type)) return 2;
+  if (MPlaces::checkType(type)) return 3;
+  return -1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class M>
+int indexrewriteVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
+  IndexRewriteLI<M> *li = (IndexRewriteLI<M>*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      Relation *rel = static_cast<Relation*>(args[1].addr);
+      CcInt *attrno = static_cast<CcInt*>(args[4].addr);
+      TupleIndex *ti = static_cast<TupleIndex*>(args[0].addr);
+      FText* pText = static_cast<FText*>(args[3].addr);
+      Pattern *p = 0;
+      if (pText->IsDefined() && attrno->IsDefined() && rel->GetNoTuples() > 0) {
+        Supplier s0 = qp->GetSon(s, 1);
+        ListExpr ttList = nl->Second(qp->GetType(s0));
+//         cout << "ttype is " << nl->ToString(ttList) << endl;
+        Tuple *firstTuple = rel->GetTuple(1, false);
+        p = Pattern::getPattern(pText->GetValue(), false, firstTuple, ttList);
+        if (p) {
+          vector<pair<int, string> > relevantAttrs;
+          int majorValueNo = -1;
+          TupleType *tt = firstTuple->GetTupleType();
+          if (p->isCompatible(tt, attrno->GetIntval(), relevantAttrs, 
+                              majorValueNo)) {
+            DataType mtype = Tools::getDataType(tt, attrno->GetIntval());
+            li = new IndexRewriteLI<M>(rel, ttList, ti, attrno->GetIntval(), p, 
+                                       majorValueNo, mtype);
+            if (!li->initialize(true)) {
+              delete li;
+              li = 0;
+              local.addr = 0;
+              cout << "initialization failed" << endl;
+            }
+          }
+        }
+        else {
+          cout << "invalid pattern" << endl;
+        }
+//         firstTuple->DeleteIfAllowed();
+      }
+      local.addr = li;
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextResult() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct indexrewriteInfo : OperatorInfo {
+  indexrewriteInfo() {
+    name      = "indexrewrite";
+    signature = "tupleindex x rel x attrname x (text | pattern) -> stream(T),"
+                " where T is the type of attrname";
+    syntax    = "_ _ indexrewrite[_, _]";
+    meaning   = "Rewrites all attribute values according to the pattern.";
+  }
+};
+
+/*
 \section{Operator ~createunitrtree~}
 
 \subsection{Type Mapping}
@@ -4801,6 +4999,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     containsMultiVM<Places, Places>, 0};
   AddOperator(containsInfo(), containsVMs, containsSelect, containsTM);
   
+  ValueMapping intersectsVMs[] = {intersectsVM<Labels>, intersectsVM<Places>,0};
+  AddOperator(intersectsInfo(), intersectsVMs, intersectsSelect, intersectsTM);
+  
   ValueMapping toplaceVMs[] = {toplaceVM<CcString>, toplaceVM<FText>, 0};
   AddOperator(toplaceInfo(), toplaceVMs, toplaceSelect, toplaceTM);
   
@@ -4972,6 +5173,11 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   AddOperator(&indextmatches);
   indextmatches.SetUsesArgsInTypeMapping();
+  
+  ValueMapping indexrewriteVMs[] = {indexrewriteVM<MLabel>, 
+    indexrewriteVM<MLabels>, indexrewriteVM<MPlace>, indexrewriteVM<MPlaces>,0};
+  AddOperator(indexrewriteInfo(), indexrewriteVMs, indexrewriteSelect, 
+              indexrewriteTM);
   
   ValueMapping createunitrtreeVMs[] = {createunitrtreeVM<MLabel>,
     createunitrtreeVM<MLabels>, createunitrtreeVM<MPlace>, 

@@ -187,6 +187,7 @@ class Labels : public Attribute {
   const bool IsEmpty() const {return GetNoValues() == 0;}
   void Clean() {values.clean(); pos.clean();}
   bool Contains(const std::string& text) const;
+  bool Intersects(const Labels &lbs) const;
   void Union(const std::set<std::string>& values1, 
              const std::set<std::string>& values2);
   void Intersection(const std::set<std::string>& values1, 
@@ -306,6 +307,7 @@ class Places : public Attribute {
   void GetValues(std::set<base>& values) const;
   bool IsEmpty() const {return (GetNoValues() == 0);}
   bool Contains(const base& val) const;
+  bool Intersects(const Places &pls) const;
   void Union(const std::set<base>& values1, const std::set<base>& values2);
   void Intersection(const std::set<base>& values1, 
                     const std::set<base>& values2);

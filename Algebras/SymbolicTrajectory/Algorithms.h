@@ -1271,6 +1271,7 @@ class IndexMatchSuper {
   std::vector<std::pair<int, std::string> > relevantAttrs;
   DataType mtype;
   std::vector<TupleId> matches;
+  std::vector<NewPair<TupleId, IndexMatchInfo> > matchesR; // rewrite
   DoubleUnitSet ***matchRecord; // state x tuple id
   DoubleBindingSet **condRecord; // tuple id
   bool *active;
@@ -1286,6 +1287,7 @@ class IndexMatchSuper {
 
 */
 class TMatchIndexLI : public IndexMatchSuper {
+  
  public:
   TMatchIndexLI(Relation *r, ListExpr tt, TupleIndex *t, int a, Pattern *pat,
                 int majorValueNo, DataType type);
@@ -1304,24 +1306,41 @@ class TMatchIndexLI : public IndexMatchSuper {
   void unitsToPeriods(Attribute *traj, const std::set<int> &units, 
                       temporalalgebra::Periods *per);
   void getResultForAtomPart(
-                std::pair<int, std::pair<IndexType, int> > indexInfo, 
-                          std::pair<Word, SetRel> values, 
-                          std::vector<temporalalgebra::Periods*> &prev,
-                          std::vector<temporalalgebra::Periods*> &result, 
-                          bool checkPrev = false);
+                           std::pair<int, std::pair<IndexType, int> > indexInfo,
+                           std::pair<Word, SetRel> values, 
+                           std::vector<temporalalgebra::Periods*> &prev,
+                           std::vector<temporalalgebra::Periods*> &result,
+                           bool checkPrev = false);
   bool getResultForAtomTime(const int atomNo, 
                             std::vector<temporalalgebra::Periods*> &result);
   void storeIndexResult(int atomNo, int &noResults);
   void initMatchInfo();
-  bool atomMatch(int state, std::pair<int, int> trans);
-  void applyNFA();
-  bool initialize();
+  bool atomMatch(int state, std::pair<int, int> trans,
+                 const bool rewrite = false);
+  void applyNFA(const bool rewrite = false);
+  bool initialize(const bool rewrite = false);
   Tuple* nextTuple();
   
  private:
   ListExpr ttList;
   TupleIndex *ti;
   int valueNo;
+};
+
+/*
+\section{Class ~IndexRewriteLI~}
+
+*/
+template<class M>
+class IndexRewriteLI : public TMatchIndexLI {
+ public:
+  IndexRewriteLI(Relation *r, ListExpr tt, TupleIndex *t, int a, Pattern *pat,
+                int majorValueNo, DataType type) : 
+    TMatchIndexLI(r, tt, t, a, pat, majorValueNo, type) {}
+ 
+  M* nextResult();
+ private:
+
 };
 
 /*
@@ -2342,6 +2361,9 @@ template<class B>
 int MBasic<B>::FirstPosFrom(const Instant& inst) const {
   assert(IsDefined());
   assert(inst.IsDefined());
+  if (IsEmpty()) {
+    return -1;
+  }
   typename B::unitelem unit;
   units.Get(0, unit);
   if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
@@ -2389,6 +2411,9 @@ template<class B>
 int MBasic<B>::LastPosUntil(const Instant& inst) const {
   assert(IsDefined());
   assert(inst.IsDefined());
+  if (IsEmpty()) {
+    return -1;
+  }
   typename B::unitelem unit;
   units.Get(0, unit);
   if (inst < ((temporalalgebra::Interval<Instant>)(unit.iv)).start) {
@@ -5775,6 +5800,27 @@ void TMatchIndexLI::unitsToPeriods(Attribute *traj, const std::set<int> &units,
     m->Get(*it, u);
     per->MergeAdd(u.timeInterval);
   }
+}
+
+/*
+\section{Functions for class ~IndexRewriteLI~} 
+ 
+\subsection{Function ~nextResult~}
+
+*/
+template<class M>
+M* IndexRewriteLI<M>::nextResult() {
+  if (matchesR[0].first == 0 || matchesR[0].first >= matchesR.size() ||
+      matchesR.size() <= 1) {
+    return 0;
+  }
+  NewPair<TupleId, IndexMatchInfo> match = matchesR[matchesR[0].first];
+  Tuple *srcTuple = rel->GetTuple(match.first, false);
+  M *src = (M*)(srcTuple->GetAttribute(attrNo));
+  RewriteLI<M> rew(src, p);
+  M *result = rew.rewrite(src, match.second, p->getAssigns());
+  matchesR[0].first++;
+  return result;
 }
 
 /*

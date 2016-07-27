@@ -55,6 +55,12 @@ Signature: places x place -> bool
 Example  : query [const places value (("Mkhitaryan" 10) ("Jojic" 14))] contains toplace("Reus", 11)
 Result   : FALSE
 
+Operator : intersects
+Number   : 1
+Signature: labels x labels -> bool
+Example  : query tolabels("Guerreiro", "Reus") intersects tolabels("Reus")
+Result   : TRUE
+
 Operator : toplace
 Number   : 1
 Signature: (string | text) x int -> place
@@ -438,25 +444,31 @@ Result   : 0
 Operator : createtupleindex
 Number   : 1
 Signature: stream(tuple(X)) x IDENT -> tupleindex
-Example  : query (Dotraj feed createtupleindex[Trajectory]) Dotraj indextmatches[Trajectory, '()'] count
+Example  : query (Dotraj feed createtupleindex[Trajectory]) Dotraj indextmatches[Trajectory, '(_ _)'] count
 Result   : 0
 
 Operator : bulkloadtupleindex
 Number   : 1
 Signature: rel(tuple(X)) x IDENT -> tupleindex
-Example  : query Dotraj bulkloadtupleindex[Trajectory] Dotraj indextmatches[Trajectory, '()'] count
+Example  : query Dotraj bulkloadtupleindex[Trajectory] Dotraj indextmatches[Trajectory, '(_ _)'] count
 Result   : 0
 
 Operator : indextmatches
 Number   : 1
 Signature: tupleindex x rel(tuple(X)) x IDENT x (text | pattern) -> stream(tuple(X))
-Example  : query Dotraj bulkloadtupleindex[Trajectory] Dotraj indextmatches[Trajectory, '()'] count
+Example  : query Dotraj bulkloadtupleindex[Trajectory] Dotraj indextmatches[Trajectory, '(_ _)'] count
 Result   : 0
+
+Operator : indexrewrite
+Number   : 1
+Signature: tupleindex x rel(tuple(X)) x IDENT x (text | pattern) -> stream(Y)
+Example  : query Dotraj bulkloadtupleindex[Trajectory] Dotraj indexrewrite[Trajectory, 'X (_ _) * => X'] count
+Result   : 10
 
 Operator : filtermatches
 Number   : 1
 Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
-Example  : query Dotraj feed filtermatches[Trajectory, '(_ "Innenstadt-Ost") X * () // X.labels contains tolabel("Brackel")'] count
+Example  : query Dotraj feed filtermatches[Trajectory, '(_ "Innenstadt-Ost") X * (_ _) // X.labels contains tolabel("Brackel")'] count
 Result   : 1
 
 Operator : createunitrtree

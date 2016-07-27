@@ -491,6 +491,19 @@ bool Labels::Contains(const string& text) const {
 }
 
 /*
+\subsection{Function ~Intersects~}
+
+*/
+bool Labels::Intersects(const Labels &lbs) const {
+  set<std::string> values1, values2;
+  GetValues(values1);
+  lbs.GetValues(values2);
+  Labels res(true);
+  res.Intersection(values1, values2);
+  return !res.IsEmpty();
+}
+
+/*
 \subsection{Function ~Union~}
 
 */
@@ -1001,6 +1014,19 @@ bool Places::Contains(const base& val) const {
     }
   }
   return false;
+}
+
+/*
+\subsection{Function ~Intersects~}
+
+*/
+bool Places::Intersects(const Places &lbs) const {
+  set<base> values1, values2;
+  GetValues(values1);
+  lbs.GetValues(values2);
+  Places res(true);
+  res.Intersection(values1, values2);
+  return !res.IsEmpty();
 }
 
 /*
