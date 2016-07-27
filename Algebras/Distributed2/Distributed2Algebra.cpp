@@ -129,20 +129,23 @@ class PProgressView: public MessageHandler{
 
      PProgressView(){
         infos = 0;
+        noServers = 0;
         enabled = true;
      }
 
      ~PProgressView(){
+        boost::lock_guard<boost::mutex> guard(mtx);
         killInfos();
      }
 
      bool handleMsg(NestedList* nl, ListExpr list, int source) {
+        boost::lock_guard<boost::mutex> guard(mtx);
         if(!enabled) return false;
         if(source <= 0) return false;
         if(source > noServers) return false;
+        if(!infos) return false; // not initialized yet
 
 
-        boost::lock_guard<boost::mutex> guard(mtx);
         if(!nl->HasMinLength(list,2)){
            return false;
         }
@@ -166,23 +169,10 @@ class PProgressView: public MessageHandler{
         return true;
      }
 
-     void killInfos(){
-        if(infos){
-          for(int i=0;i<noServers;i++){
-            if(infos[i]){
-              delete infos[i];
-            }
-          }
-          delete[] infos;
-        }
-
-     }
-
-
      void init(int _noServers){
+         boost::lock_guard<boost::mutex> guard(mtx);
          if(!enabled) return;
          noServers = _noServers; 
-         boost::lock_guard<boost::mutex> guard(mtx);
          killInfos();
          cout << endl << endl;
          infos = new PProgressInfo*[noServers];
@@ -200,6 +190,7 @@ class PProgressView: public MessageHandler{
      }
 
      void enable(bool on){
+        boost::lock_guard<boost::mutex> guard(mtx);
         enabled = on;
      }
 
@@ -209,6 +200,18 @@ class PProgressView: public MessageHandler{
       int noServers;
       PProgressInfo** infos;
       boost::mutex mtx;
+     
+     void killInfos(){
+        if(infos){
+          for(int i=0;i<noServers;i++){
+            if(infos[i]){
+              delete infos[i];
+            }
+          }
+          delete[] infos;
+          infos = 0;
+        }
+     }
 
       void write(int source, int actValue, int totalValue){
          if(!infos[source-1]){
