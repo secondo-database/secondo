@@ -66,3 +66,9 @@ Number   : 1
 Signature: text x string x int x string -> bool
 Example  : query divide_osm2('kirchditmold.osm', "kirch2sub", 10)
 Result   : TRUE
+
+Operator : divide_osm3
+Number   : 1
+Signature: text x int x int -> bool
+Example  : query divide_osm3('kirchditmold.osm', 10, 7)
+Result   : TRUE

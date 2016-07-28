@@ -58,6 +58,8 @@ class FullOsmImport {
   public:
      FullOsmImport(const std::string& fileName, const std::string& prefix,
                    const int suf = -1);
+     FullOsmImport(const std::string& fileName, const int noParts,
+                   const int part);
      FullOsmImport(const std::string& fileName, const std::string& _subFileName,
                    const int _size, const std::string& prefix, 
                    const bool createrels);
@@ -77,7 +79,8 @@ class FullOsmImport {
     void processTag(xmlTextReaderPtr reader, entityKind kind);
     void storeRelations(bool all);
     void storeRel(std::string name, ListExpr type, Relation *rel);
-    void divideOSMfile(const std::string& fileName, const bool deletetts);
+    void divideOSMfile(const std::string& fileName, const bool deletetts,
+                       const int part = 0);
     std::string getFileName(LongInt dest);
     std::string trim(const std::string &s);
     bool isWhitespace(const char c);
