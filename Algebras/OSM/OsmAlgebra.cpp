@@ -78,6 +78,7 @@ Including header-files
 #include "XmlFileReader.h"
 #include "XmlParserInterface.h"
 #include "Element.h"
+#include "WinUnix.h"
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xmlreader.h>
@@ -1534,19 +1535,17 @@ void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
   source.seekg(0, std::ios::end);
   int64_t fileSize = source.tellg();
   source.close();
-  source.open(fileName.c_str(), std::ios::in);
-  std::streambuf *sbuf = source.rdbuf();
-  std::streambuf *tbuf = test.rdbuf();
+  source.open(fileName.c_str(), std::ios::in | std::ios::binary);
+//   std::streambuf *sbuf = source.rdbuf();
+//   std::streambuf *tbuf = test.rdbuf();
   
   // copy header
-  header += sbuf->sbumpc();
-  header += sbuf->sbumpc();
+  header += (char)source.get();
+  header += (char)source.get();
   while (header.substr(header.length() - 2) != "/>") {
-    header += sbuf->sbumpc();
+    header += (char)source.get();
   }
-  dest.open(destFileName.c_str(), std::ios::trunc);
-  dest.close();
-  dest.open(destFileName.c_str(), std::ios::app);
+  dest.open(destFileName.c_str(), std::ios::trunc | std::ios::binary);
   dest << header;
   
     
@@ -1555,60 +1554,58 @@ void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
     int64_t start = fileSize / size * (part - 1);
     source.seekg(start);
     do {
-      ch = sbuf->sbumpc();
+      ch = (char)source.get();
     } while (ch != '>');
     bool valid = false;
     do {
-      std::stringstream firstLine;
+      std::string firstLine;
       do {
-        ch = sbuf->sbumpc();
-        firstLine << ch;
+        ch = (char)source.get();
+        firstLine += ch;
       } while (ch != '>');
-      if (isValid(firstLine.str())) {
-        if (trim(firstLine.str()).substr(0, 5) == "<node") {
-          dest << firstLine.str();
+      if (isValid(firstLine)) {
+        if (trim(firstLine).substr(0, 5) == "<node") {
+          dest.write(firstLine.c_str(), firstLine.size());
         }
         valid = true;
       }
     } while (!valid);
   }
+  
 
   // copy main body
   int64_t end = (part == size ? fileSize : fileSize / size * part);
-  char buffer[4097];
-  while ((int64_t)source.tellg() + 4096 <= end) {
-    sbuf->sgetn(buffer, 4096);
-    buffer[4097] = 0;
-    dest << buffer;
+  int pageSize = WinUnix::getPageSize();
+  char buffer[pageSize];
+  while ((int64_t)source.tellg() + pageSize <= end) {
+    source.read(buffer, pageSize);
+    dest.write(buffer, pageSize);
   }
-  int endBufferSize = end - source.tellg() + 1;
+  int endBufferSize = end - source.tellg();
   char endBuffer[endBufferSize];
-  sbuf->sgetn(endBuffer, endBufferSize - 1);
-  endBuffer[endBufferSize - 1] = 0;
-  dest << endBuffer;
-  
+  source.read(endBuffer, endBufferSize);
+  dest.write(endBuffer, endBufferSize);
   // copy end
   if (part < size) {
     do {
-      ch = sbuf->sbumpc();
-      dest << ch;
+      ch = (char)source.get();
+      dest.put(ch);
     } while (ch != '>');
     dest.close();
     
-    bool valid = true;
+    bool valid = false;
     do {
-      test.open(destFileName.c_str(), std::ios::in);
+      test.open(destFileName.c_str(), std::ios::in | std::ios::binary);
       test.seekg(0, std::ios::end);
       int64_t endpos = test.tellg();
-      int64_t pos = endpos;
+      int64_t pos = endpos - 1;
       do {
-        test.seekg(pos);    
-        ch = tbuf->sbumpc();
+        test.seekg(pos);
+        ch = (char)test.get();
         pos--;
       } while (ch != '<');
-      char lastLineBuffer[endpos - pos + 1];
-      tbuf->sgetn(lastLineBuffer, endpos - pos);
-      lastLineBuffer[endpos - pos] = 0;
+      char lastLineBuffer[endpos - pos];
+      test.read(lastLineBuffer, endpos - pos);
       std::string lastLine(lastLineBuffer);
       test.close();
       lastLine = (lastLine[0] == '<' ? lastLine : "<" + lastLine);
@@ -1616,12 +1613,10 @@ void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
         valid = true;
       }
       else {
-        cout << "INVALID END: |" << lastLine << endl;
-        valid = false;
-        dest.open(destFileName.c_str(), std::ios::app);
+        dest.open(destFileName.c_str(), std::ios::app | std::ios::binary);
         do {
-          ch = sbuf->sbumpc();
-          dest << ch;
+          ch = (char)source.get();
+          dest.put(ch);
         } while (ch != '>');
         dest.close();
       }
