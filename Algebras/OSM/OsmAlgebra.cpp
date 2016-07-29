@@ -1505,10 +1505,134 @@ bool FullOsmImport::isFileSwitchAllowed(const std::string& line) {
   return false;
 }
 
-void FullOsmImport::divideOSMfile(const std::string& fileName, 
-                               const bool deletetts, const int part /* = 0 */) {
+bool FullOsmImport::isValid(const std::string& line) {
+  std::string text = trim(line);
+  size_t endpos = text.find('>');
+  if (endpos == std::string::npos) {
+    return false;
+  }
+  return !(text.substr(1, 3) == "tag" || text.substr(1, 6) == "nd ref" ||
+           text.substr(1, 6) == "member" || 
+        ((text[endpos - 1] != '/') &&
+          (text.substr(1, 4) == "node" || text.substr(1, 3) == "way" || 
+            text.substr(1, 8) == "relation")));
+}
+
+void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
+  char ch;
   std::stringstream strstr;
+  std::string header;
   strstr << part;
+  std::string destFileName = fileName + "_" + strstr.str();
+  std::ifstream source, test;
+  std::ofstream dest;
+  source.open(fileName.c_str(), std::ios::in);
+  if (!source.good()) {
+    std::cerr << "Problem in opening file " << fileName << endl;
+    return;
+  }
+  source.seekg(0, std::ios::end);
+  int64_t fileSize = source.tellg();
+  source.close();
+  source.open(fileName.c_str(), std::ios::in);
+  std::streambuf *sbuf = source.rdbuf();
+  std::streambuf *tbuf = test.rdbuf();
+  
+  // copy header
+  header += sbuf->sbumpc();
+  header += sbuf->sbumpc();
+  while (header.substr(header.length() - 2) != "/>") {
+    header += sbuf->sbumpc();
+  }
+  dest.open(destFileName.c_str(), std::ios::trunc);
+  dest.close();
+  dest.open(destFileName.c_str(), std::ios::app);
+  dest << header;
+  
+    
+  // find start position
+  if (part > 1) {
+    int64_t start = fileSize / size * (part - 1);
+    source.seekg(start);
+    do {
+      ch = sbuf->sbumpc();
+    } while (ch != '>');
+    bool valid = false;
+    do {
+      std::stringstream firstLine;
+      do {
+        ch = sbuf->sbumpc();
+        firstLine << ch;
+      } while (ch != '>');
+      if (isValid(firstLine.str())) {
+        if (trim(firstLine.str()).substr(0, 5) == "<node") {
+          dest << firstLine.str();
+        }
+        valid = true;
+      }
+    } while (!valid);
+  }
+
+  // copy main body
+  int64_t end = (part == size ? fileSize : fileSize / size * part);
+  char buffer[4097];
+  while ((int64_t)source.tellg() + 4096 <= end) {
+    sbuf->sgetn(buffer, 4096);
+    buffer[4097] = 0;
+    dest << buffer;
+  }
+  int endBufferSize = end - source.tellg() + 1;
+  char endBuffer[endBufferSize];
+  sbuf->sgetn(endBuffer, endBufferSize - 1);
+  endBuffer[endBufferSize - 1] = 0;
+  dest << endBuffer;
+  
+  // copy end
+  if (part < size) {
+    do {
+      ch = sbuf->sbumpc();
+      dest << ch;
+    } while (ch != '>');
+    dest.close();
+    
+    bool valid = true;
+    do {
+      test.open(destFileName.c_str(), std::ios::in);
+      test.seekg(0, std::ios::end);
+      int64_t endpos = test.tellg();
+      int64_t pos = endpos;
+      do {
+        test.seekg(pos);    
+        ch = tbuf->sbumpc();
+        pos--;
+      } while (ch != '<');
+      char lastLineBuffer[endpos - pos + 1];
+      tbuf->sgetn(lastLineBuffer, endpos - pos);
+      lastLineBuffer[endpos - pos] = 0;
+      std::string lastLine(lastLineBuffer);
+      test.close();
+      lastLine = (lastLine[0] == '<' ? lastLine : "<" + lastLine);
+      if (isValid(lastLine)) {
+        valid = true;
+      }
+      else {
+        cout << "INVALID END: |" << lastLine << endl;
+        valid = false;
+        dest.open(destFileName.c_str(), std::ios::app);
+        do {
+          ch = sbuf->sbumpc();
+          dest << ch;
+        } while (ch != '>');
+        dest.close();
+      }
+    } while (!valid);
+  }
+  fileOk = true;
+}
+
+void FullOsmImport::divideOSMfile(const std::string& fileName, 
+                                  const bool deletetts) {
+  std::stringstream strstr;
   std::string destFileName = fileName + "_" + strstr.str();
   std::ifstream source;
   std::ofstream dest;
@@ -1525,98 +1649,48 @@ void FullOsmImport::divideOSMfile(const std::string& fileName,
   source.close();
   source.open(fileName.c_str(), std::ios::in);
   getline(source, line);
-  if (part == 0) {
-    for (LongInt i = 0; i < size; i++) { // clear destination files if existing
+  charCounter += line.length();
+  for (LongInt i = 0; i < size; i++) { // clear destination files if existing
       dest.open(getFileName(i).c_str(), std::ios::trunc);
       dest.close();
-    }
   }
-  else {
-    dest.open(destFileName.c_str(), std::ios::trunc);
-    dest.close();
-  }
-  line = trim(line);
   while (!source.eof() && source.good() &&
          (trim(line).substr(0, 5) != "<node")) { // copy head
-    if (part == 0) {
-      for (LongInt file = 0; file < size; file++) {
-        dest.open(getFileName(file).c_str(), std::ios::app);
-        dest << line << endl;
-        dest.close();
-      }
-    }
-    else {
-      dest.open(destFileName.c_str(), std::ios::app);
+    for (LongInt file = 0; file < size; file++) {
+      dest.open(getFileName(file).c_str(), std::ios::app);
       dest << line << endl;
       dest.close();
     }
     oldpos = source.tellg();
     getline(source, line);
-    line = trim(line);
+//     line = trim(line);
     charCounter += line.length();
+    oldpos = source.tellg();
   }
   if(!source.good()){
      std::cerr << "problem in reading file(2)" << fileName << endl;
      return;
   }
   charCounter -= line.length();
-  if (part > 0) { // extract only one part
-    LongInt start = (numOfChars - source.tellg() - 1) / size * (part - 1)
-                    + oldpos;
-    LongInt end = (part == size ? numOfChars : 
-                   (numOfChars - source.tellg() - 1) / size * part);
-    source.seekg(start.GetValue());
-    getline(source, line);
-    charCounter = start + line.length();
-    line = trim(line);
-    dest.open(destFileName.c_str(), std::ios::app);
-    while (!source.eof() && source.good() && !isFileSwitchAllowed(line)) {
-//       cout << "start NOT ALLOWED: " << trim(line) << endl;
-      getline(source, line);
-      charCounter += line.length();
-      line = trim(line);
-    }
-    if (part == 1) {
-      dest << trim(line) << endl;
-    }
-    getline(source, line);
-    dest << trim(line) << endl;
-    while (!source.eof() && source.good() && charCounter <= end) {
-      getline(source, line);
-      charCounter += line.length();
-      dest << trim(line) << endl;
-    }
-    line = trim(line);
-    while (!source.eof() && source.good() && !isFileSwitchAllowed(line)) {
-//       cout << "end NOT ALLOWED: " << trim(line) << endl;
-      getline(source, line);
-      charCounter += line.length();
-      line = trim(line);
-      dest << trim(line) << endl;
-    }
-    dest.close();
-  }
-  else { // divide file completely
-    nextLimit = charCounter;
-    dest.open(getFileName(0).c_str(), std::ios::app);
-    dest << line << endl;
-    dest.close();
-    LongInt partSize = (numOfChars - source.tellg() - 1) / size + 1;
-    while (!source.eof() && source.good()) {
-      if (charCounter >= nextLimit && isFileSwitchAllowed(line)) {
-        if (dest.is_open()) {
-          dest << "</osm>" << endl;
-          dest.close();
-        }
-        nextLimit += partSize;
-        destId++;
-        dest.open(getFileName(destId).c_str(), std::ios::app);
+  nextLimit = charCounter;
+  dest.open(getFileName(0).c_str(), std::ios::app);
+  dest << line << endl;
+  dest.close();
+  LongInt partSize = (numOfChars - source.tellg() - 1) / size + 1;
+  while (!source.eof() && source.good()) {
+    if (charCounter >= nextLimit && isFileSwitchAllowed(line)) {
+      if (dest.is_open()) {
+        dest << "</osm>" << endl;
+        dest.close();
       }
-      getline(source, line);
-      charCounter += line.length();
-      line = trim(line);
-      dest << line << endl;
+      nextLimit += partSize;
+      destId++;
+      dest.open(getFileName(destId).c_str(), std::ios::app);
     }
+    getline(source, line);
+    charCounter += line.length();
+    line = trim(line);
+    dest << line << endl;
   }
   source.close();
   dest.close();
@@ -1741,7 +1815,7 @@ FullOsmImport::FullOsmImport(const std::string& fileName, const int noParts,
   for (int i = 0; i < 6; i++) {
     tupleCount[i] = 0;
   }
-  divideOSMfile(fileName, false, part);
+  getOSMpart(fileName, part);
 }
 
 

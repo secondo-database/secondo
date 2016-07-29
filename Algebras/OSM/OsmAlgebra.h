@@ -79,12 +79,13 @@ class FullOsmImport {
     void processTag(xmlTextReaderPtr reader, entityKind kind);
     void storeRelations(bool all);
     void storeRel(std::string name, ListExpr type, Relation *rel);
-    void divideOSMfile(const std::string& fileName, const bool deletetts,
-                       const int part = 0);
+    void divideOSMfile(const std::string& fileName, const bool deletetts);
+    void getOSMpart(const std::string& fileName, const int part);
     std::string getFileName(LongInt dest);
     std::string trim(const std::string &s);
     bool isWhitespace(const char c);
     bool isFileSwitchAllowed(const std::string& line);
+    bool isValid(const std::string& line);
     void insertNodes(std::list<Point> &points, LongInt &wayId, Tuple *tuple,
                      Word *args);
     void insertWayTags(LongInt &wayId, Tuple *tuple, Word *args);
