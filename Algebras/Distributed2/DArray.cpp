@@ -490,7 +490,7 @@ R* DArrayBase::readFrom(ListExpr list){
       Workers = nl->Rest(Workers);
    }
    std::vector<uint32_t> m;
-   if(nl->AtomType(nl->Second(list)==IntType)){
+   if(nl->AtomType(nl->Second(list))==IntType){
       int size = nl->IntValue(nl->Second(list));
       if(size <=0){
          return 0;
@@ -910,7 +910,7 @@ DFMatrix* DFMatrix::readFrom(ListExpr list){
    }
    std::vector<uint32_t> m;
    size_t s;
-   if(nl->AtomType(nl->Second(list)==IntType)){
+   if(nl->AtomType(nl->Second(list))==IntType){
       int size = nl->IntValue(nl->Second(list));
       if(size <=0){
          return 0;
