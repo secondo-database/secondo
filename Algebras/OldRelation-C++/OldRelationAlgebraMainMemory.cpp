@@ -50,11 +50,14 @@ level remains. Models are also removed from type constructors.
 
 */
 
-using namespace std;
 
 #include "OldRelationAlgebra.h"
 #include "LogMsg.h"
 #include "Symbols.h"
+
+using namespace std;
+
+namespace oldrelation{
 
 int ccTuplesCreated = 0;
 int ccTuplesDeleted = 0;
@@ -1266,5 +1269,7 @@ SaveCcRel( SmiRecord& valueRecord,
   nl->Destroy( valueList );
   return (true);
 }
+
+} // end of namepsce oldrelation
 
 

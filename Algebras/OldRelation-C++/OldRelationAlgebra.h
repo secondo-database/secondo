@@ -64,6 +64,9 @@ vector instead of class CTable.
 #include <typeinfo>
 #include "OldRelationAlgebraInfo.h"
 
+
+namespace oldrelation{
+
 enum CcRelationType { mrel, mtuple, mstream, mmap, mbool, merror };
 
 const int MaxSizeOfAttr = 35;  //changed by DZM, original value: 20
@@ -231,5 +234,7 @@ bool OpenCcRel( SmiRecord&, size_t&,
 
 bool SaveCcRel( SmiRecord&, size_t&,
                 const ListExpr, Word& );
+
+} // end of namespace
 
 #endif /* OLD_RELATION_ALGEBRA_H */

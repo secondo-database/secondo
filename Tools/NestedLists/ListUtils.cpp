@@ -252,7 +252,9 @@ Checks for valid description of a tuple.
     if(nl->ListLength(tuple)!=2){
        return false;
     }
-    string tuplesym = ismtuple?CcTuple::BasicType():Tuple::BasicType();
+    string tuplesym = ismtuple
+                      ?oldrelation::CcTuple::BasicType()
+                      :Tuple::BasicType();
     if(!isSymbol(nl->First(tuple),tuplesym)){
        return false;
     }
@@ -471,7 +473,7 @@ Checks for a valid relation description.
     if(!isSymbol(nl->First(rel),relsymb)){
        return false;
     }
-    bool mtuple = relsymb==CcRel::BasicType();
+    bool mtuple = relsymb==oldrelation::CcRel::BasicType();
     return isTupleDescription(nl->Second(rel),mtuple);
   }
 

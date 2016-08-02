@@ -81,6 +81,8 @@ extern ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false);
 
 using namespace std;
 
+namespace oldrelation{
+
 static CcRelationType CcTypeOfRelAlgSymbol (ListExpr symbol)
 {
   string s;
@@ -5908,6 +5910,8 @@ class OldRelationAlgebra : public Algebra
   ~OldRelationAlgebra() {};
 };
 
+} // end of namespace oldrelation
+
 /*
 
 7 Initialization
@@ -5932,6 +5936,6 @@ InitializeOldRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (new OldRelationAlgebra());
+  return (new oldrelation::OldRelationAlgebra());
 }
 
