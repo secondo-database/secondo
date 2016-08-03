@@ -795,6 +795,8 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
       {
         opened = true;
         impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
+      } else {
+        cerr << "opening file '" << bdbName << "' failed" << endl;
       }
 
     }

@@ -264,6 +264,11 @@ The class ~SmiKey~ provides the following methods:
 #endif
 
 
+#ifdef SM_FILE_ID
+#include <boost/interprocess/shared_memory_object.hpp>
+#endif
+
+
 
 class IndexableAttribute;
 
@@ -1157,6 +1162,10 @@ Translate an SMI error code into a message!
 
   #ifdef THREAD_SAFE
   static boost::recursive_mutex env_mtx;
+  #endif
+
+  #ifdef SM_FILE_ID
+  static boost::interprocess::shared_memory_object* file_id_shm;
   #endif
 
   SmiEnvironment();

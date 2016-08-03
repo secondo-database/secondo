@@ -363,7 +363,7 @@ class SmiEnvironment::Implementation
  public:
   static DbEnv* GetTempEnvironment() { return instance.impl->tmpEnv; };
   static SmiFileId GetFileId( const bool isTemporary = false );
-  static bool CorrectFileId( );
+  static bool CorrectFileId(const bool lockrequired = true );
 /*
 Returns a unique file identifier.
 
@@ -450,7 +450,7 @@ A "catastrophic recovery" is not available in  this case.
   Implementation(const bool auto_remove_logs);
   ~Implementation();
  private:
-  static bool SetFileId( const SmiFileId id );
+  static bool SetFileId( const SmiFileId id, const bool lockRequired = true );
 
   static bool LookUpCatalog( Dbt& key,
                              SmiCatalogEntry& entry );

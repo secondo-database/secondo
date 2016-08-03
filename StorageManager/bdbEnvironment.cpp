@@ -92,6 +92,25 @@ now be more compatible.
 
 using namespace std;
 
+
+#ifdef SM_FILE_ID 
+  // realize file id handling by shared memory instead
+  // of synchronization via berkeley db
+#include <boost/interprocess/sync/named_mutex.hpp>
+#include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/interprocess/shared_memory_object.hpp>
+#include <boost/interprocess/mapped_region.hpp>
+
+
+boost::interprocess::named_mutex file_id_mutex(
+                                       boost::interprocess::open_or_create,
+                                       "secondo_file_id_mutex");
+#endif
+
+
+
+
+
 //static MessageCenter* smi_msg = MessageCenter::GetInstance();
 
 /* --- Prototypes of internal functions --- */
@@ -120,6 +139,11 @@ string         SmiEnvironment::registrar;
 boost::recursive_mutex SmiEnvironment::Implementation::env_impl_mtx;
 boost::recursive_mutex SmiEnvironment::env_mtx;
 #endif
+
+#ifdef SM_FILE_ID
+boost::interprocess::shared_memory_object* SmiEnvironment::file_id_shm=0;
+#endif
+
 
 
 bool traceDBHandles = RTFlag::isActive("SMI:traceHandles");
@@ -307,7 +331,7 @@ to the highest used number plus 1.
 
 
 */
-bool SmiEnvironment::Implementation::CorrectFileId(){
+bool SmiEnvironment::Implementation::CorrectFileId(const bool lockrequired){
   #ifdef THREAD_SAFE
      boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
   #endif
@@ -315,6 +339,12 @@ bool SmiEnvironment::Implementation::CorrectFileId(){
     SetError( E_SMI_DB_NOTOPEN );
     return false;
   }
+
+#ifdef SM_FILE_ID  
+  if(lockrequired){
+     file_id_mutex.lock();
+  }
+#endif
   string folder = instance.impl->bdbHome + PATH_SLASH + database;
 
   FilenameList files;
@@ -334,15 +364,18 @@ bool SmiEnvironment::Implementation::CorrectFileId(){
         } 
      }
    }
-   if(id>0){
-      id++;
-      return SetFileId(id);
-   } else {
-      return true;
+   id++;
+   cerr << "++++++++++++++++++++++ id got from file names " << id << endl;
+   bool res = SetFileId(id, false);
+   if(lockrequired){
+      file_id_mutex.unlock();
    }
+   return res;
 }
 
-bool SmiEnvironment::Implementation::SetFileId(SmiFileId id){
+bool SmiEnvironment::Implementation::SetFileId(SmiFileId id, 
+                                               bool lockrequired){
+
   #ifdef THREAD_SAFE
      boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
   #endif
@@ -350,6 +383,42 @@ bool SmiEnvironment::Implementation::SetFileId(SmiFileId id){
     SetError( E_SMI_DB_NOTOPEN );
     return false;
   }
+
+
+#ifdef SM_FILE_ID
+
+   try{
+     if(lockrequired){
+       file_id_mutex.lock();
+     }
+     if(file_id_shm==0){
+       string dbname = database;
+       string shmName = dbname + "_file_id";
+       file_id_shm = 
+           new boost::interprocess::shared_memory_object(
+                         boost::interprocess::open_or_create, 
+                         shmName.c_str(), 
+                         boost::interprocess::read_write);
+       file_id_shm->truncate(sizeof(SmiFileId));
+     } 
+     boost::interprocess::mapped_region region(*file_id_shm,
+                        boost::interprocess::read_write);
+
+
+     SmiFileId* fid = (SmiFileId*) region.get_address();      
+     *fid = id;
+     if(lockrequired){
+       file_id_mutex.unlock();
+     }
+     return true;
+  } catch(boost::interprocess::interprocess_exception e){
+    cerr << "Problem in setting file id" << endl;
+    cerr << e.what();
+    return false;
+  }
+
+#else
+
   //  SmiFileId newFileId = 0;
   int       rc = 0;
   DbEnv*    dbenv = instance.impl->bdbEnv;
@@ -409,6 +478,7 @@ bool SmiEnvironment::Implementation::SetFileId(SmiFileId id){
     return false;
   }
   return true;
+#endif
 }
 
 
@@ -452,6 +522,34 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
     return (newFileId);
   }
 
+
+#ifdef SM_FILE_ID
+  file_id_mutex.lock();
+  if(!file_id_shm){
+     string dbname = database;
+     string shmName = dbname + "_file_id";
+     try {
+        file_id_shm = 
+           new boost::interprocess::shared_memory_object(
+                         boost::interprocess::open_only, 
+                         shmName.c_str(), 
+                         boost::interprocess::read_write);
+     } catch(...){
+
+        CorrectFileId(false); // force to create a file id
+     }
+  } 
+  SmiFileId fidr = 0;
+  boost::interprocess::mapped_region 
+             region (*file_id_shm,
+                      boost::interprocess::read_write);
+  SmiFileId* fid = (SmiFileId*) region.get_address();
+  (*fid)++;
+  fidr = *fid;
+  file_id_mutex.unlock();
+  return fidr;
+
+#else
   int       rc = 0;
   DbEnv*    dbenv = instance.impl->bdbEnv;
   Db*       dbseq = instance.impl->bdbSeq;
@@ -531,6 +629,8 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
     cout << "SMI:LogFileCreation: GetFileId: " << newFileId << endl;;
   }
   return (newFileId);
+#endif
+
 }
 
 bool
@@ -1479,6 +1579,7 @@ SmiEnvironment::CreateDatabase( const string& dbname )
 
   if ( SetDatabaseName( dbname ) )
   {
+
     if ( !SmiEnvironment::Implementation::LookUpDatabase( database ) )
     {
       // --- Create directory for the new database
@@ -1523,6 +1624,7 @@ SmiEnvironment::CreateDatabase( const string& dbname )
 SI_Error
 SmiEnvironment::OpenDatabase( const string& dbname )
 {
+
   TRACE_ENTER
   SI_Error ok = ERR_NO_ERROR;
 
@@ -1554,7 +1656,6 @@ SmiEnvironment::OpenDatabase( const string& dbname )
     ok = E_SMI_DB_INVALIDNAME;
   }
 
-  SmiEnvironment::Implementation::CorrectFileId();
   TRACE_LEAVE
   return (ok);
 }
@@ -1569,6 +1670,7 @@ SmiEnvironment::CloseDatabase()
     return (false);
   }
 
+  string dbname = database;
   int    rc = 0;
   Db*    dbseq = instance.impl->bdbSeq;
   Db*    dbctl = instance.impl->bdbCatalog;
@@ -1619,6 +1721,23 @@ SmiEnvironment::CloseDatabase()
 
   UnregisterDatabase( database );
   dbOpened = false;
+
+#ifdef SM_FILE_ID
+  if(file_id_shm) {
+    file_id_mutex.lock();
+    string shmName = dbname + "_file_id";
+    if(!boost::interprocess::shared_memory_object::remove(shmName.c_str())){
+      cerr << "removing shared memory " << shmName << " failed " << endl;
+    } else {
+       cout << "removing shared memory" << shmName << " successful" << endl;
+    }
+    delete file_id_shm;
+    file_id_shm = 0;
+    file_id_mutex.unlock();
+  }
+#endif
+
+
 
   return (rc == 0);
 }
