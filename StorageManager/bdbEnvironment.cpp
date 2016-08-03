@@ -365,11 +365,12 @@ bool SmiEnvironment::Implementation::CorrectFileId(const bool lockrequired){
      }
    }
    id++;
-   cerr << "++++++++++++++++++++++ id got from file names " << id << endl;
    bool res = SetFileId(id, false);
+#ifdef SM_FILE_ID  
    if(lockrequired){
       file_id_mutex.unlock();
    }
+#endif
    return res;
 }
 
