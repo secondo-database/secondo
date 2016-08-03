@@ -4852,18 +4852,23 @@ RewriteLI<M>::RewriteLI(M *src, Pattern *pat) {
   if (pat->isValid(M::BasicType())) {
     match = new Match<M>(pat, src);
     if (match->matches()) {
-      match->initCondOpTrees();
-      match->initAssignOpTrees();
-      if (!src->GetNoComponents()) {
-        BindingStackElem dummy(0, 0);
-        bindingStack.push(dummy);
+      if (!match->initCondOpTrees() || !match->initAssignOpTrees()) {
+        match->deletePattern();
+        delete match;
+        match = 0;
       }
       else {
-        std::map<int, int> transitions = pat->getTransitions(0);
-        for (std::map<int, int>::iterator itm = transitions.begin();
-                                    itm != transitions.end(); itm++) {
-          BindingStackElem bE(0, itm->first); // init stack
-          bindingStack.push(bE);
+        if (!src->GetNoComponents()) {
+          BindingStackElem dummy(0, 0);
+          bindingStack.push(dummy);
+        }
+        else {
+          std::map<int, int> transitions = pat->getTransitions(0);
+          for (std::map<int, int>::iterator itm = transitions.begin();
+                                      itm != transitions.end(); itm++) {
+            BindingStackElem bE(0, itm->first); // init stack
+            bindingStack.push(bE);
+          }
         }
       }
     }
@@ -5168,7 +5173,10 @@ M* RewriteLI<M>::rewrite(M *src, IndexMatchInfo &imi,
       }
     }
   }
-  assert(result->IsValid());
+//   assert(result->IsValid());
+  if (!result->IsValid()) {
+    result->SetDefined(false);
+  }
   return result;
 }
 

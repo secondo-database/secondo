@@ -4938,7 +4938,11 @@ void IndexMatchSuper::extendBinding(IndexMatchInfo& imi, const int atom,
 //       cout << i << " set% to " << -1 << endl;
     }
     imi.set(lastElem, trajSize[id] - 1);
-//     cout << lastElem << " set§ to " << trajSize[id] - 1 << endl;
+    if (lastElem > 0) {
+      if (imi.binding[lastElem - 1] == trajSize[id] - 1) {
+        imi.set(lastElem, -1);
+      }
+    }
   }
   imi.prevElem = p->getElemFromAtom(atom);
 //   imi.print(true);
