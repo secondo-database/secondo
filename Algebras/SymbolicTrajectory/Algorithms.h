@@ -4258,7 +4258,7 @@ bool Condition::evaluate(const IndexMatchInfo& imi, M *traj,
                          Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
 //   cout << "EVAL \'" << text << "\'; " << getVarKeysSize() << endl;
   Word qResult;
-  unsigned int from, to;
+  int from, to;
   for (int i = 0; i < getVarKeysSize(); i++) {
     int elem = varToElem[getVar(i)];
     from = imi.getFrom(elem);
