@@ -1,0 +1,44 @@
+# Importing NRW Data
+
+# close database
+
+# create database nrw
+
+# open database nrw
+
+let DIR = '/home/ralf/Downloads/nordrhein-westfalen-latest.shp/'
+
+let Roads = dbimport2(DIR + 'roads.dbf') shpimport2(DIR + 'roads.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Waterways = dbimport2(DIR + 'waterways.dbf') shpimport2(DIR + 'waterways.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Railways = dbimport2(DIR + 'railways.dbf') shpimport2(DIR + 'railways.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Points = dbimport2(DIR + 'points.dbf') shpimport2(DIR + 'points.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Places = dbimport2(DIR + 'places.dbf') shpimport2(DIR + 'places.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Natural = dbimport2(DIR + 'natural.dbf') shpimport2(DIR + 'natural.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Buildings = dbimport2(DIR + 'buildings.dbf') shpimport2(DIR + 'buildings.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Landuse = dbimport2(DIR + 'landuse.dbf') shpimport2(DIR + 'landuse.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+
+select count(*) from [Buildings as b1, Buildings as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Roads as b1, Roads as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Waterways as b1, Waterways as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Places as b1, Places as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Railways as b1, Railways as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Natural as b1, Natural as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Points as b1, Points as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Landuse as b1, Landuse as b2] where b1:Osm_id = b2:Osm_id
+
+
