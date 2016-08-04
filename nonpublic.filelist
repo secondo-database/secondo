@@ -10,22 +10,16 @@
 
 # Research in progress
 FlockAlgebra Flock
-GPatternAlgebra GPattern
 IndoorAlgebra Indoor
 MAttiaTestsAlgebra MAttiaTests
 PartitionedStreamAlgebra PartitionedStream
 TrafficAlgebra Traffic
 RIndexAlgebra RIndex
 PreciseAlgebra Precise
-Distributed2Algebra Distributed2
+MTopRelAlgebra MTopRel
 
 
 # Plugins
-GeneralTreeAlgebra GeneralTree
-MONTreeAlgebra MONTree
-MTreeAlgebra MTree
-PeriodicAlgebra Periodic
-XTreeAlgebra XTree
 
 
 
@@ -46,8 +40,30 @@ UGridAlgebra UGrid
 UrelAlgebra Urel
 WebAlgebra Web
 MovingRegion2Algebra MovingRegion2
+MovingRegion3Algebra MovingRegion3
 NestedRelation2Algebra NestedRelation2
 SpatialJoin2Algebra SpatialJoin2
+Cluster2Algebra Cluster2
+ContinuousUpdateAlgebra ContinuousUpdate
+DBServiceAlgebra DBService
+DistributedAlgebra Distributed
+Distributed3Algebra Distributed3
+Distributed4Algebra Distributed4
+FixedMRegionAlgebra FixedMRegion
+KeyValueStoreAlgebra KeyValueStore
+MidiAlgebra Midi
+MP3bAlgebra MP3b
+MRegionOps2Algebra MRegionOps2
+Spatial3DAlgebra Spatial3D
+TimeSequenceAlgebra TimeSequence
+TINAlgebra TIN
+TransportationModeAlgebra TransportationMode
+TypeMapTestAlgebra TypeMapTest
+
+
+
+
+
 
 # Java algebras - not longer supported
 FuzzyAlgebra Fuzzy

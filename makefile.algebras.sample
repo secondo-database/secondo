@@ -178,8 +178,8 @@ ALGEBRAS     += TrajectorySimilarityAlgebra
 
 
 
-#ALGEBRA_DIRS += PlugJoin
-#ALGEBRAS     += PlugJoinAlgebra
+ALGEBRA_DIRS += PlugJoin
+ALGEBRAS     += PlugJoinAlgebra
 
 
 ALGEBRA_DIRS += UpdateRel
