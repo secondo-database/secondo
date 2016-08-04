@@ -47,9 +47,9 @@ ListExpr set_cache_limit_type::TypeMapping( ListExpr args){
   string name = nl->SymbolValue(arg2);
   int v = 0;
 
-  if (name == "fixed") {
+  if (name == "fixed_type") {
     v = 1;
-  } else if (name == "mem") {
+  } else if (name == "mem_type") {
     v = 2;
   }
 
@@ -90,7 +90,7 @@ struct setCacheTypeInfo : OperatorInfo {
   setCacheTypeInfo() : OperatorInfo()
   {
     name =      "set_cache_limit_type";
-    signature = "(btree2 Tk Td u) x {fixed | mem } -> bool";
+    signature = "(btree2 Tk Td u) x {fixed_type | mem_type } -> bool";
     syntax =    "set_cache_limit_type ( _ , _ )";
     meaning =   "Sets the limit type.";
     example =   "query set_cache_limit_type (Staedte_Bev_btree2, fixed)";
