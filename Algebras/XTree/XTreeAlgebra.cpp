@@ -755,6 +755,7 @@ int rangesearchHPoint_VM(
     {
       li = (Search_LI*)local.addr;
       delete li;
+      local.addr = 0;
       return 0;
     }
   }
@@ -850,6 +851,7 @@ int rangesearch_VM(
     {
       li = (Search_LI*)local.addr;
       delete li;
+      local.addr = 0;
       return 0;
     }
   }
@@ -921,6 +923,7 @@ int nnsearchHPoint_VM(
     {
       li = (Search_LI*)local.addr;
       delete li;
+      local.addr = 0;
       return 0;
     }
   }
@@ -1010,6 +1013,7 @@ int nnsearch_VM(
     {
       li = (Search_LI*)local.addr;
       delete li;
+      local.addr = 0;
       return 0;
     }
   }
@@ -1037,11 +1041,14 @@ int nnscanHPoint_VM(
         Word &local, Supplier s)
 {
   nnscan_LI *li;
+  li = static_cast<nnscan_LI*>(local.addr);
 
   switch (message)
   {
     case OPEN :
-    {
+    { if(li){
+        delete li;
+      }
       li = new nnscan_LI();
       li->xtree = static_cast<XTree*>(args[0].addr);
       li->relation = static_cast<Relation*>(args[1].addr);
@@ -1070,8 +1077,9 @@ int nnscanHPoint_VM(
     }
 
     case REQUEST :
-    {
-      li = static_cast<nnscan_LI*>(local.addr);
+    { if(!li){
+         return CANCEL;
+      }
       TupleId tid = li->xtree->nnscan_next();
       if(tid)
       {
@@ -1087,9 +1095,9 @@ int nnscanHPoint_VM(
 
     case CLOSE :
     {
-      li = static_cast<nnscan_LI*>(local.addr);
       li->xtree->nnscan_cleanup();
       delete li;
+      local.addr = 0;
       return 0;
     }
   }
@@ -1171,6 +1179,7 @@ int nnscan_VM(
       li = static_cast<nnscan_LI*>(local.addr);
       li->xtree->nnscan_cleanup();
       delete li;
+      local.addr = 0;
       return 0;
     }
   }
@@ -1244,6 +1253,7 @@ int windowintersects_VM(
     {
       li = (Search_LI*)local.addr;
       delete li;
+      local.addr = 0;
       return 0;
     }
   }
