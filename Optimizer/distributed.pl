@@ -459,13 +459,15 @@ distributedjoin(Arg1, Arg2, pr(X intersects Y, rel(_, Var1), rel(_, Var2)))
   isOfSecond(Attr2, X, Y),
   attrnameDCAtom(Attr1, DCAttr1),
   attrnameDCAtom(Attr2, DCAttr2),
+  unrenamedAttr(Attr1, Attr1u), 
+  unrenamedAttr(Attr2, Attr2u),
   % repartition each argument if necessary
   ( member(distribution(_, DCAttr1, _), P1) -> Arg1B = Arg1A
     ;
     Arg1B = collect2(
       partitionF(Arg1A, value_expr(string, ""), 
-        extendstream(feed(dot), field(CellAttr1, 
-          cellnumber(bbox(Attr1), grid))),
+        extendstream(feed(dot), field(attr(cell, 1, u), 
+          cellnumber(bbox(Attr1u), grid))),
         CellDistAttr1, 0),
       value_expr(string, ""), 1238)
   ),
@@ -473,15 +475,15 @@ distributedjoin(Arg1, Arg2, pr(X intersects Y, rel(_, Var1), rel(_, Var2)))
     ;
     Arg2B = collect2(
       partitionF(Arg2A, value_expr(string, ""), 
-        extendstream(feed(dot), field(CellAttr2, 
-          cellnumber(bbox(Attr2), grid))),
+        extendstream(feed(dot), field(attr(cell, 2, u), 
+          cellnumber(bbox(Attr2u), grid))),
         CellDistAttr2, 0),
       value_expr(string, ""), 1238)
   ),
   % rename the cell attribute if needed
-  renamedRelAttr2(Arg1, attr(cell, 1, u), Var1, CellAttr1),
-  renamedRelAttr2(Arg2, attr(cell, 2, u), Var2, CellAttr2),
-  renamedRelAttr2(Arg1, attr2(cell, 2, u), Var1, CellDistAttr1),
+  renamedRelAttr(attr(cell, 1, u), Var1, CellAttr1),
+  renamedRelAttr(attr(cell, 2, u), Var2, CellAttr2),
+  renamedRelAttr2(Arg1, attr2(cell, 1, u), Var1, CellDistAttr1),
   renamedRelAttr2(Arg2, attr2(cell, 2, u), Var2, CellDistAttr2),
   InnerPlan = 
     filter(
@@ -1125,6 +1127,14 @@ attrnameDCAtom(Attr, DCAttrName) :-
   Attr = attr(Name, _, _),
   atom_string(AName, Name),
   downcase_atom(AName, DCAttrName).
+
+
+unrenamedAttr(attr(_:Name, N, C), attr(Name, N, C)) :-
+  !.
+
+unrenamedAttr(attr(Name, N, C), attr(Name, N, C)).
+
+
 
 
 /*
