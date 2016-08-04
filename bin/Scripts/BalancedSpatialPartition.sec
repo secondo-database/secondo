@@ -37,8 +37,10 @@ let NRows = 6
 
 let NColumns = 8;
 
-# delete Sample;
-# let Sample = Buildings feedNth[100, FALSE] projectextend[; Box: bbox(.GeoData)] consume
+delete Sample;
+let Sample = Buildings feedNth[100, FALSE] projectextend[; Box: bbox(.GeoData)] consume
+
+
 
 delete Fraction;
 let Fraction = (2 * (Sample count)) div NRows;
@@ -96,31 +98,78 @@ delete Fields;
 let Fields = Stripes feed Sample feed itSpatialJoin[Stripe, Box] 
   sortby[Stripe]
   nest[Stripe; Boxes]
-  extend[Boundaries: fun(t: TUPLE)
+  extend[Bounds: fun(t: TUPLE)
     attr(t, Boxes) afeed projectextend[; X: minD(.Box, 1)]
     attr(t, Boxes) afeed projectextend[; X: maxD(.Box, 1)]
     concat sort 
     nth[Fraction2, TRUE] head[NColumns - 1]
     aconsume]
   remove[Boxes]
-  extend[LeftField: rectangle2(minD(.Stripe, 1), .Boundaries afeed extract[X], 
+  extend[LeftField: rectangle2(minD(.Stripe, 1), .Bounds afeed extract[X], 
     minD(.Stripe, 2), maxD(.Stripe, 2))]
-  extend[RightField: rectangle2(.Boundaries afeed tail[1] extract[X], maxD(.Stripe, 1),  
+  extend[RightField: rectangle2(.Bounds afeed tail[1] extract[X], maxD(.Stripe, 1),  
     minD(.Stripe, 2), maxD(.Stripe, 2))]
-  extend[Fields: fun(t2: TUPLE)
+  extend[FieldsX: fun(t2: TUPLE)
     attr(t2, LeftField) feed namedtransformstream[Field]
-    attr(t2, Boundaries) afeed 
+    attr(t2, Bounds) afeed 
       extend_last[Field: rectangle2(..X, .X, minD(attr(t2, Stripe), 2), maxD(attr(t2, Stripe), 2))::
         [const rect value undef]]
       filter[isdefined(.Field)] remove[X] concat
     attr(t2, RightField) feed namedtransformstream[Field] concat
     aconsume]
-  project[Fields]
-  unnest[Fields]
+  project[FieldsX]
+  unnest[FieldsX]
   addcounter[N, 0]
   consume
 
 # 5.27 seconds, 5.25, 5.24
+
+
+# Create a partition where the last 50 fields are small
+
+# divide the last stripe into 50 fields
+
+delete Fraction3;
+let Fraction3 = (2 * (Sample count)) div (NRows * 50)
+
+
+let Fields2 = Stripes feed tail[1] Sample feed itSpatialJoin[Stripe, Box] 
+  sortby[Stripe]
+  nest[Stripe; Boxes]
+  extend[Bounds: fun(t: TUPLE)
+    attr(t, Boxes) afeed projectextend[; X: minD(.Box, 1)]
+    attr(t, Boxes) afeed projectextend[; X: maxD(.Box, 1)]
+    concat sort 
+    nth[Fraction3, TRUE] head[49]
+    aconsume]
+  remove[Boxes]
+  extend[LeftField: rectangle2(minD(.Stripe, 1), .Bounds afeed extract[X], 
+    minD(.Stripe, 2), maxD(.Stripe, 2))]
+  extend[RightField: rectangle2(.Bounds afeed tail[1] extract[X], maxD(.Stripe, 1),  
+    minD(.Stripe, 2), maxD(.Stripe, 2))]
+  extend[FieldsX: fun(t2: TUPLE)
+    attr(t2, LeftField) feed namedtransformstream[Field]
+    attr(t2, Bounds) afeed 
+      extend_last[Field: rectangle2(..X, .X, minD(attr(t2, Stripe), 2), maxD(attr(t2, Stripe), 2))::
+        [const rect value undef]]
+      filter[isdefined(.Field)] remove[X] concat
+    attr(t2, RightField) feed namedtransformstream[Field] concat
+    aconsume]
+  project[FieldsX]
+  unnest[FieldsX]
+  addcounter[N, 0]
+  consume
+
+
+let Fields3 = Fields feed filter[.N < 40] Fields2 feed projectextend[Field; N: 40 + .N] concat consume
+
+
+
+
+
+
+
+
 
 # query Fields feed Buildings feed itSpatialJoin[Field, GeoData] count
 
