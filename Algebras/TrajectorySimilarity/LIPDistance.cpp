@@ -222,6 +222,8 @@ longer sequence.
 
 */
 
+#include <memory>
+
 #include "PointSeq.h"
 #include "Segment.h"
 #include "TrajectorySimilarity.h"
