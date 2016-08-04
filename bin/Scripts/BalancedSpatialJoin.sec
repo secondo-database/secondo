@@ -1,136 +1,4 @@
-# Script for Spatial Join
-#
-# Balanced Partition, Duplicate-free Computation
-
-
-# Define a bounding box for all objects to be processed
-
-let World = [const rect value (5.27 10.17 50.36 52.56)]
-
-let Left = minD(World, 1)
-
-let Right = maxD(World, 1)
-
-let Bottom = minD(World, 2)
-
-let Top = maxD(World, 2)
-
-
-# Set numbers of rows and columns for the partitioning
-
-let NRows = 6
-
-let NColumns = 8;
-
-let Sample = Buildings feedproject[GeoData] 
-  projectextend[; Box: bbox(.GeoData)] nth[100, FALSE] consume
-
-let Fraction = (2 * (Sample count)) div NRows;
-
-let VPartition = 
-  Sample feed projectextend[; Y: minD(.Box, 2)]
-  Sample feed projectextend[; Y: maxD(.Box, 2)]
-  concat sort
-  nth[Fraction, TRUE] head[NRows - 1]
-  consume;
-
-let Stripe1 = rectangle2(Left, Right, Bottom, VPartition feed extract[Y])
-
-let Stripes = VPartition feed 
-  extend_last[Stripe: rectangle2(Left, Right, ..Y, .Y)::Stripe1]
-  consume
-
-let LastY = VPartition feed tail[1] extract[Y]
-
-query Stripes inserttuple[LastY, rectangle2(Left, Right, LastY, Top)] consume
-
-query Stripes feed Buildings feed itSpatialJoin[Stripe, GeoData] count
-
-# 51.71 seconds, 44.67
-# result 6518935
-
-query Buildings count
-
-# result 6516159 
-
-query Stripes feed Buildings feed itSpatialJoin[Stripe, GeoData] 
-  groupby2[Stripe; Cnt: fun(t:TUPLE, i:int) i + 1::0]
-  consume
-
-Stripe : rect: ( (5.27,50.36) - (10.17,50.9654) )
-   Cnt : 1075359
-
-Stripe : rect: ( (5.27,50.9654) - (10.17,51.2061) )
-   Cnt : 1094955
-
-Stripe : rect: ( (5.27,51.2061) - (10.17,51.4372) )
-   Cnt : 1091435
-
-Stripe : rect: ( (5.27,51.4372) - (10.17,51.5984) )
-   Cnt : 1086471
-
-Stripe : rect: ( (5.27,51.5984) - (10.17,51.9018) )
-   Cnt : 1091686
-
-Stripe : rect: ( (5.27,51.9018) - (10.17,52.56) )
-   Cnt : 1079029
-
-# 152 seconds
-
-query Stripes feed Sample feed itSpatialJoin[Stripe, Box] 
-  groupby2[Stripe; Cnt: fun(t:TUPLE, i:int) i + 1::0]
-  consume
-
-Stripe : rect: ( (5.27,50.36) - (10.17,50.96535) )
-   Cnt : 10856
-
-Stripe : rect: ( (5.27,50.96535) - (10.17,51.20615) )
-   Cnt : 10865
-
-Stripe : rect: ( (5.27,51.20615) - (10.17,51.43722) )
-   Cnt : 10867
-
-Stripe : rect: ( (5.27,51.43722) - (10.17,51.59841) )
-   Cnt : 10869
-
-Stripe : rect: ( (5.27,51.59841) - (10.17,51.90177) )
-   Cnt : 10867
-
-Stripe : rect: ( (5.27,51.90177) - (10.17,52.56) )
-   Cnt : 10864
-
-# 0.51 seconds
-
-let Fraction2 = (2 * (Sample count)) div (NRows * NColumns)
-
-let Fields = Stripes feed Sample feed itSpatialJoin[Stripe, Box] 
-  sortby[Stripe]
-  nest[Stripe; Boxes]
-  extend[Boundaries: fun(t: TUPLE)
-    attr(t, Boxes) afeed projectextend[; X: minD(.Box, 1)]
-    attr(t, Boxes) afeed projectextend[; X: maxD(.Box, 1)]
-    concat sort 
-    nth[Fraction2, TRUE] head[NColumns - 1]
-    aconsume]
-  remove[Boxes]
-  extend[LeftField: rectangle2(minD(.Stripe, 1), .Boundaries afeed extract[X], 
-    minD(.Stripe, 2), maxD(.Stripe, 2))]
-  extend[RightField: rectangle2(.Boundaries afeed tail[1] extract[X], maxD(.Stripe, 1),  
-    minD(.Stripe, 2), maxD(.Stripe, 2))]
-  extend[Fields: fun(t2: TUPLE)
-    attr(t2, LeftField) feed namedtransformstream[Field]
-    attr(t2, Boundaries) afeed 
-      extend_last[Field: rectangle2(..X, .X, minD(attr(t2, Stripe), 2), maxD(attr(t2, Stripe), 2))::
-        [const rect value undef]]
-      filter[isdefined(.Field)] remove[X] concat
-    attr(t2, RightField) feed namedtransformstream[Field] concat
-    aconsume]
-  project[Fields]
-  unnest[Fields]
-  addcounter[N, 0]
-  consume
-
-# 5.27 seconds, 5.25, 5.24
+# Use BalancedSpatialPartition first.
 
 query Fields feed Buildings feed itSpatialJoin[Field, GeoData] count
 
@@ -223,6 +91,80 @@ Cnt : 77923
 Cnt : 38344
 
 
+query Roads feed {r} Buildings feed {b} itSpatialJoin[GeoData_r, GeoData_b] count
+
+
+let BuildingsB5 = 
+
+query Fields feed Buildings feed itSpatialJoin[Field, GeoData] count
+
+# 54.21 seconds, 56.91, 55.35
+# result 6525125
+
+
+query Fields feed Buildings feed itSpatialJoin[Field, GeoData] 
+  extend[TLClass: topleftmax(.Field, bbox(.GeoData))] count
+
+# 1:51 min, 2:03 min; 2:42 min, 1:29 min, 2:20min
+
+
+let BuildingsB5 = Fields feed Buildings feed itSpatialJoin[Field, GeoData] 
+  extend[TLClass: topleftmax(.Field, bbox(.GeoData))] 
+  remove[Field]
+  ddistribute2["BuildingsB5", N, 50, Workers14]
+
+let BuildingsB5rest = BuildingsB5 
+  dloop["BuildingsB5rest", . feed filter[.TLClass < 3] consume]
+
+
+
+let RoadsB5 = Fields feed Roads feed itSpatialJoin[Field, GeoData] 
+  extend[TLClass: topleftmax(.Field, bbox(.GeoData))] 
+  remove[Field]
+  ddistribute2["RoadsB5", N, 50, Workers14]
+
+# 4:16min
+
+let RoadsB5rest = RoadsB5 
+  dloop["RoadsB5rest", . feed filter[.TLClass < 3] consume]
+
+# 10.12 seconds
+  
+
+query Roads feed {r} Waterways feed {w} itSpatialJoin[GeoData_r, GeoData_w] count
+
+# 56.94 seconds
+# result 1479958
+
+
+let WaterwaysB5 = Fields feed Waterways feed itSpatialJoin[Field, GeoData] 
+  extend[TLClass: topleftmax(.Field, bbox(.GeoData))] 
+  remove[Field]
+  ddistribute2["WaterwaysB5", N, 50, Workers14]
+
+# 20.59 seconds
+
+let WaterwaysB5rest = WaterwaysB5 
+  dloop["WaterwaysB5rest", . feed filter[.TLClass < 3] consume]
+
+# 12.46 seconds
+
+
+query RoadsB5 WaterwaysB5 dmap2["", 
+  . feed filter[.TLClass < 3] consume
+  .. feed filter[.TLClass < 3] consume
+  within2[fun(roads012: ANY, waterways012: ANY2)
+    . feed {r} .. feed filter[.TLClass = 3] {w} 
+	itSpatialJoin[GeoData_r, GeoData_w]
+    . feed filter[.TLClass = 3] {r} waterways012 feed {w} 
+	itSpatialJoin[GeoData_r, GeoData_w] concat
+    roads012 feed filter[.TLClass = 1] {r} waterways012 feed filter[.TLClass = 2] {w}
+    	itSpatialJoin[GeoData_r, GeoData_w] concat
+    roads012 feed filter[.TLClass = 2] {r} waterways012 feed filter[.TLClass = 1] {w}
+    	itSpatialJoin[GeoData_r, GeoData_w] concat
+    count
+  ], 1238]
+  getValue tie[. + ..]
 
 
 
@@ -231,7 +173,75 @@ Cnt : 38344
 
 
 
+let WaterwaysB5 = Fields feed Waterways feed itSpatialJoin[Field, GeoData] 
+  extend[TLClass: topleftmax(.Field, bbox(.GeoData))] 
+  remove[Field]
+  ddistribute2["WaterwaysB5", N, 50, Workers14]
 
+# 23.4113sec
+
+let RoadsB5 = Fields feed Roads feed itSpatialJoin[Field, GeoData] 
+  extend[TLClass: topleftmax(.Field, bbox(.GeoData))] 
+  remove[Field]
+  ddistribute2["RoadsB5", N, 50, Workers14]
+
+# 3:04min
+
+
+query WaterwaysB5 RoadsB5 dmap2["", fun(waterways: DARRAYELEM, roads: DARRAYELEM2)
+  waterways feed filter[.TLClass < 3] {w} roads feed filter[.TLClass = 3] {r} itSpatialJoin[GeoData_w, GeoData_r]
+  waterways feed filter[.TLClass = 3] {w} roads feed                      {r} itSpatialJoin[GeoData_w, GeoData_r] concat
+  waterways feed filter[.TLClass = 1] {w} roads feed filter[.TLClass = 2] {r} itSpatialJoin[GeoData_w, GeoData_r] concat
+  waterways feed filter[.TLClass = 2] {w} roads feed filter[.TLClass = 1] {r} itSpatialJoin[GeoData_w, GeoData_r] concat
+  count, 1238]
+  getValue
+
+# 20.52 seconds
+
+query WaterwaysB5 RoadsB5 dmap2["", fun(waterways: DARRAYELEM, roads: DARRAYELEM2)
+  waterways feed filter[.TLClass < 3] {w} roads feed filter[.TLClass = 3] {r} itSpatialJoin[GeoData_w, GeoData_r]
+  waterways feed filter[.TLClass = 3] {w} roads feed                      {r} itSpatialJoin[GeoData_w, GeoData_r] concat
+  waterways feed filter[.TLClass = 1] {w} roads feed filter[.TLClass = 2] {r} itSpatialJoin[GeoData_w, GeoData_r] concat
+  waterways feed filter[.TLClass = 2] {w} roads feed filter[.TLClass = 1] {r} itSpatialJoin[GeoData_w, GeoData_r] concat
+  count, 1238]
+  getValue tie[. + ..]
+
+# 22.25 seconds
+# result 1479958
+
+query Waterways count
+
+# 80904
+
+
+query Roads count
+
+# 1505462
+
+
+query WaterwaysB5 dmap["", . count] getValue tie[. + ..]
+
+# 81979
+
+
+query RoadsB5 dmap["", . count] getValue tie[. + ..]
+
+# 1519837
+
+query Waterways feed {w} Roads feed {r} itSpatialJoin[GeoData_w, GeoData_r] count
+
+# 2:05min  
+# 1479958
+
+
+
+
+
+
+query "Roads" mfeed {r} "Buildings" mfeed {b} itSpatialJoin[GeoData_r, GeoData_b] count
+
+# 1713 seconds
+# result 14247534
 
 
 
