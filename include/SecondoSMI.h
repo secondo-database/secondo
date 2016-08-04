@@ -1166,6 +1166,7 @@ Translate an SMI error code into a message!
 
   #ifdef SM_FILE_ID
   static boost::interprocess::shared_memory_object* file_id_shm;
+  static boost::interprocess::named_mutex file_id_mutex;
   #endif
 
   SmiEnvironment();
