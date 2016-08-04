@@ -56,15 +56,11 @@ Create a distributed array with server numbers. Must be the numbers 0, ..., ~N~ 
 
 */
 
+# let Control14 = intstream(0, 14 - 1) transformstream  ddistribute3["Control14", 14, TRUE, Workers14]  dloop["", . feed extract[Elem]]
 
+# let Control36 = intstream(0, 36 - 1) transformstream  ddistribute3["Control36", 36, TRUE, Workers36] dloop["", . feed extract[Elem]]
 
-let Control36 = intstream(0, 36 - 1) transformstream 
-  ddistribute3["Control36", 36, TRUE, Workers36] 
-  dloop["", . feed extract[Elem]]
-
-let Control50 = intstream(0, 50 - 1) transformstream 
-  ddistribute3["Control50", 50, TRUE, Workers50] 
-  dloop["", . feed extract[Elem]]
+# let Control50 = intstream(0, 50 - 1) transformstream  ddistribute3["Control50", 50, TRUE, Workers50]  dloop["", . feed extract[Elem]]
 
 /* 
 Use the following functions in order. Example:
@@ -102,7 +98,7 @@ let distCostReset = fun(Control: darray(int)) Control
   dloop["", fun(server: int) SEC2COMMANDS feed extend[Server: server]  
   project[Server, CmdNr] tail[1] consume] dsummarize consume
 
-let LastCommand = distCostReset(Control50)
+let LastCommand = distCostReset(ControlWorkers)
 
 /*
 Store the commands executed on each server after the last command. Parameter is an array of integers with the number of the last command per server, as returned by ~distCostReset~.
@@ -160,21 +156,3 @@ let distCostUtil = fun(
     . feed sum[Elapsed] / 
     ((. feed max[Elapsed]) * (. count))
   ]
-    
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
