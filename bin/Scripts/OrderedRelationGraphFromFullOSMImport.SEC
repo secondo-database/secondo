@@ -15,7 +15,7 @@
 
 # Database arnsberg
 
-query fullosmimport('arnsberg-regbez-latest.osm', "City")
+query fullosmimport('/home/ralf/Daten/arnsberg-regbez-latest.osm', "City")
 
 # 155 secs
 
@@ -97,17 +97,17 @@ let Ways_WayTag = Ways feed addid project[TID, WayInfo] unnest[WayInfo] extend[W
 
 
 
-let Roads = Ways feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count > 0] consume
+let RoadsB = Ways feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count > 0] consume
 
 # 113 secs
 # 182 secs
 
-derive Roads_Curve_rtree = Roads feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
+derive RoadsB_Curve_rtree = RoadsB feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
 # 3.56 secs
 # 4.67 secs
 
-# compute Nodes as the union of start points, end points and intersections of roads
+# compute Nodes as the union of start points, end points and intersections of RoadsB
 
 let Nodes = 
   CityWays feed
@@ -116,15 +116,15 @@ let Nodes =
   filter[.WayId # .WayId_h2]
   CityNodesNew feed
   itHashJoin[NodeRef, NodeId]
-  Roads feed {r1} itHashJoin[WayId, WayId_r1]
-  Roads feed {r2} itHashJoin[WayId_h2, WayId_r2]
+  RoadsB feed {r1} itHashJoin[WayId, WayId_r1]
+  RoadsB feed {r2} itHashJoin[WayId_h2, WayId_r2]
   project[WayId, NodeCounter, NodeIdNew, Pos]
-Roads feed 
+RoadsB feed 
   projectextend[WayId; Node: .NodeList afeed filter[.NodeCounter = 0] aconsume]
   unnest[Node]
   project[WayId, NodeCounter, NodeIdNew, Pos]
   concat
-Roads feed 
+RoadsB feed 
   extend[HighNodeNo: (.NodeList afeed count) - 1]
   projectextend[WayId; Node:  fun(t: TUPLE) 
     attr(t, NodeList) afeed filter[.NodeCounter = attr(t, HighNodeNo)] aconsume]
@@ -152,7 +152,7 @@ let EdgesUp =
       project[Source, Target, SourcePos, TargetPos, 
         SourceNodeCounter, TargetNodeCounter]
       aconsume]
-  Roads feed {r}
+  RoadsB feed {r}
   itHashJoin[WayId, WayId_r]
   projectextend[WayId; Sections: fun(t:TUPLE)
     attr(t, Sections) afeed 
@@ -189,7 +189,7 @@ let EdgesDown =
       project[Source, Target, SourcePos, TargetPos, 
         SourceNodeCounter, TargetNodeCounter]
       aconsume]
-  Roads feed 
+  RoadsB feed 
     filter[.WayInfo afeed filter[.WayTagKey = "oneway"] 
       filter[(.WayTagValue = "yes")] count = 0] {r}
   itHashJoin[WayId, WayId_r]
