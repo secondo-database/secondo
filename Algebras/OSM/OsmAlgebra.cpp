@@ -1550,8 +1550,8 @@ void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
   
     
   // find start position
-  if (part > 1) {
-    int64_t start = fileSize / size * (part - 1);
+  if (part > 0) {
+    int64_t start = fileSize / size * (part);
     source.seekg(start);
     do {
       ch = (char)source.get();
@@ -1574,7 +1574,7 @@ void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
   
 
   // copy main body
-  int64_t end = (part == size ? fileSize : fileSize / size * part);
+  int64_t end = (part + 1 == size ? fileSize : fileSize / size * (part + 1));
   int pageSize = WinUnix::getPageSize();
   char buffer[pageSize];
   while ((int64_t)source.tellg() + pageSize <= end) {
@@ -1586,7 +1586,7 @@ void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
   source.read(endBuffer, endBufferSize);
   dest.write(endBuffer, endBufferSize);
   // copy end
-  if (part < size) {
+  if (part + 1 < size) {
     do {
       ch = (char)source.get();
       dest.put(ch);
@@ -1842,7 +1842,9 @@ const std::string divide_osm3Spec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "(<text> text x int x int -> bool</text--->"
     "<text>divide_osm3(_, _, _)</text--->"
-    "<text>Extracts the part i from n parts of an OSM file.</text--->"
+    "<text>Extracts the part i from n parts of an OSM file. The parameters "
+    "refer to the file name, the total number n of subfiles, and the number i "
+    "of the desired subfile, where 0 <= i < n must hold.</text--->"
     "<text>query divide_osm3('dortmund.osm', 1909, 19)</text--->))";
 
 /*
@@ -1862,7 +1864,7 @@ int divide_osm3VM(Word* args, Word& result, int message, Word& local,
   std::string fileName = ((FText*)args[0].addr)->GetValue();
   int noParts = ((CcInt*)args[1].addr)->GetValue();
   int part = ((CcInt*)args[2].addr)->GetValue();
-  if (noParts < 1 || part < 1 || part > noParts) {
+  if (noParts < 1 || part < 0 || part >= noParts) {
     cout << "Error: invalid arguments" << endl;
     res->SetDefined(false);
     return 0;
