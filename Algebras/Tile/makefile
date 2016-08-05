@@ -40,7 +40,6 @@ all: $(OBJECTS) $(LIBOBJ)
 	make -C operators
 	make -C Properties
 	make -C t
-	make -C Tests
 	make -C Types
 	make -C UniqueStringArray
 
@@ -64,7 +63,6 @@ clean:
 	make -C operators clean
 	make -C Properties clean
 	make -C t clean
-	make -C Tests clean
 	make -C Types clean
 	make -C UniqueStringArray clean
 	$(clean-algebra)
