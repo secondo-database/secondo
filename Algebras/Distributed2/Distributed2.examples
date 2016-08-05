@@ -667,4 +667,9 @@ Example   : query da2Log() count
 Result    : unpredictable
 Remark    : depends on former executed operations
 
-
+Operator  : deleteRemoteDatabases
+Number    : 1
+Signature : string x rel -> stream(tuple)
+Example   : query deleteRemoteDatabases("berlintest", workers)
+Result    : crashes
+Remark    : Not a good idea to test this dangerous operator

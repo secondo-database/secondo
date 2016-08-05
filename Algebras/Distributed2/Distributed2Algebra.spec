@@ -124,5 +124,6 @@ operator da2enableLog alias DA2ENABLELOG pattern op(_)
 operator da2clearLog  alias DA2CLEARLOG pattern op()
 operator da2Log alias DA2LOG pattern op()
 
+operator deleteRemoteDatabases alias DELETEREMOTEDATABASES pattern op(_,_)
 
 

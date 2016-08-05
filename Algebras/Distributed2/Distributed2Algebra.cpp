@@ -19234,7 +19234,219 @@ Operator da2LogOp(
 );
 
 
+/*
+Operator ~deleteRemoteDatabases~
 
+*/
+ListExpr deleteRemoteDatabasesTM(ListExpr args){
+   // required dbname and worker relation
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError("two arguments expected");
+   } 
+   if(!CcString::checkType(nl->First(args))){
+     return listutils::typeError("first arg must be a relation");
+   }
+   ListExpr positions, types;
+   string err;
+   if(!isWorkerRelDesc(nl->Second(args), positions, types, err)){
+      return listutils::typeError("Second arg is not a worker relation: "
+                                  + err);
+   }
+
+   ListExpr appendList = nl->TwoElemList(
+                           nl->TwoElemList( nl->SymbolAtom("Ok"),
+                                            listutils::basicSymbol<CcBool>()),
+                           nl->TwoElemList( nl->SymbolAtom("Msg"),
+                                            listutils::basicSymbol<FText>()));
+   ListExpr attrList = nl->Second(nl->Second(nl->Second(args)));
+   ListExpr resType = nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                          nl->TwoElemList( listutils::basicSymbol<Tuple>(),
+                                 listutils::concat(attrList, appendList)));
+
+   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                            positions,
+                            resType);
+
+}
+
+template<class H, class C>
+class deleteRemoteDatabasesInfo{
+  public:
+     deleteRemoteDatabasesInfo(const string& _name, 
+                              Relation* _rel, 
+                              int _hpos, int _ppos, int _cpos,
+                              ListExpr _resType) : name(_name), 
+                              hpos(_hpos), ppos(_ppos), cpos(_cpos) {
+                         it = _rel->MakeScan();
+                         tt = new TupleType(_resType);
+                       }
+     ~deleteRemoteDatabasesInfo(){
+          delete it;
+          tt->DeleteIfAllowed();
+      }
+
+      Tuple* next(){
+         Tuple* inTuple = it->GetNextTuple();
+         if(!inTuple){
+           return 0;
+         } 
+         Tuple* outTuple = new Tuple(tt);
+         // copy old tuples
+         int na = inTuple->GetNoAttributes();
+
+         for(int i=0;i<na; i++){
+            outTuple->CopyAttribute(i,inTuple,i);
+         }
+         string msg;
+         H* host = (H*) inTuple->GetAttribute(hpos);
+         CcInt* port = (CcInt*) inTuple->GetAttribute(ppos);
+         C* config = (C*) inTuple->GetAttribute(cpos);
+         inTuple->DeleteIfAllowed();
+         bool ok = false;
+         if(!host->IsDefined() || !port->IsDefined() || !config->IsDefined()){
+            ok = false;
+            msg = "undefined value in server description found";
+         } else {
+            string f = config->GetValue();
+            ok = deleteDatabase(host->GetValue(), port->GetValue(), 
+                                f, msg);   
+         }
+         outTuple->PutAttribute(na, new CcBool(true,ok));
+         outTuple->PutAttribute(na + 1 , new FText(true,msg));
+         return outTuple;
+      }
+
+  private:
+     string name;
+     int hpos;
+     int ppos;
+     int cpos;
+     GenericRelationIterator* it;
+     TupleType* tt;
+
+     bool deleteDatabase(const string& host, 
+                         const int port, 
+                         string& config, 
+                         string& msg){
+        NestedList* mynl = new NestedList();
+        SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
+        string user="";
+        string passwd = "";
+        si->setMaxAttempts(4);
+        si->setTimeout(1);
+        if(! si->Initialize(user, passwd, host,
+                            stringutils::int2str(port), 
+                            config,
+                            msg, true)){
+           
+           delete si;
+           delete mynl;
+           return false;
+        } 
+        string cmd = "delete database " + name;
+        ListExpr resList;
+        SecErrInfo err;
+        si->Secondo( cmd, resList,err);
+        si->Terminate();
+        delete si;
+        delete mynl;
+     
+        if(err.code!=0){
+            msg = err.msg;
+            return false;
+        } else {
+            msg = "";
+            return true;
+        }
+    }
+
+
+};
+
+
+template<class H, class C>
+int deleteRemoteDatabasesVMT(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+
+   deleteRemoteDatabasesInfo<H,C>* li;
+   li  = (deleteRemoteDatabasesInfo<H,C>*) local.addr;
+   switch(message){
+     case OPEN: {
+             if(li) {
+               delete li;
+               local.addr = 0;
+             }
+
+             CcString* dbname = (CcString*) args[0].addr;
+             if(!dbname->IsDefined()){
+                return 0;
+             } 
+             string n = dbname->GetValue();
+             if(!stringutils::isIdent(n)){
+                return 0;
+             }
+             Relation* r = (Relation*) args[1].addr;
+             ListExpr t = nl->Second(GetTupleResultType(s));
+             int hpos = ((CcInt*)args[2].addr)->GetValue();
+             int ppos = ((CcInt*)args[3].addr)->GetValue();
+             int cpos = ((CcInt*)args[4].addr)->GetValue();
+             local.addr = new deleteRemoteDatabasesInfo<H,C>(n,r,
+                                             hpos,ppos,cpos,t);
+             return 0;
+          }
+      case REQUEST:
+              result.addr = li?li->next():0;
+              return result.addr?YIELD:CANCEL;
+      case CLOSE:
+             if(li){
+               delete li;
+               local.addr = 0;
+             }
+             return 0;
+   }
+   return -1;
+}
+
+ValueMapping deleteRemoteDatabasesVM[] = {
+   deleteRemoteDatabasesVMT<CcString,CcString>,
+   deleteRemoteDatabasesVMT<CcString,FText>,
+   deleteRemoteDatabasesVMT<FText,CcString>,
+   deleteRemoteDatabasesVMT<FText,FText>
+};
+
+int deleteRemoteDatabasesSelect(ListExpr args){
+  
+   ListExpr pos, types;
+   string err;
+   if(!isWorkerRelDesc(nl->Second(args),pos,types,err)){
+     return -1;
+   }
+   ListExpr H = nl->First(types);
+   ListExpr C = nl->Third(types);
+   int n1 = CcString::checkType(H)?0:2;
+   int n2 = CcString::checkType(C)?0:1;
+   return n1+n2;
+}
+
+OperatorSpec deleteRemoteDatabasesSpec(
+  "string x rel -> stream(tuple)",
+  "deleteRemoteDatabases(_,_)",
+  "Delete a specific database from all remote servers "
+  "specified by the second argument. Returns a tuple "
+  "stream containing the tuple from the relation extended "
+  "by a success flag and an error message.",
+  "query deleteRemoteDatabases(\"berlintest\", workers) consume"
+);
+
+
+Operator deleteRemoteDatabasesOp(
+  "deleteRemoteDatabases",
+  deleteRemoteDatabasesSpec.getStr(),
+  4,
+  deleteRemoteDatabasesVM,
+  deleteRemoteDatabasesSelect,
+  deleteRemoteDatabasesTM
+);
 
 
 
@@ -19440,15 +19652,12 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&da2enableLogOp);
    AddOperator(&da2clearLogOp);
    AddOperator(&da2LogOp);
+   
+   AddOperator(&deleteRemoteDatabasesOp);
 
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);
-
-
-
-   
-
 
 }
 
