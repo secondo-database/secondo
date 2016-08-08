@@ -14,7 +14,7 @@ force="no"
 timeout=1800
 
 server=bassi.fernuni-hagen.de
-users=/cvsroot/CVSROOT/users
+users=/home/cvsroot/CVSROOT/users
 to=fabio.valdes@fernuni-hagen.de
 from=fabio.valdes@fernuni-hagen.de
 additional=""
@@ -144,7 +144,7 @@ local users=$3
 local lastsuccrun=$4
 
   firstrun="true"
-  lastrundate="1 day ago"
+  lastrundate="3 days ago"
   if [ -f "$lastrun" ]; then
      lastrundate=$(fileDate $lastrun)
      firstrun="false"
@@ -160,7 +160,7 @@ local lastsuccrun=$4
 
   # check for changes since last run
 
-  cvs history -xMAR -a -D "$lastrundate" -p secondo | grep -v 'No records selected'   >$logdir/Changes.txt
+  cvs history -xMAR -a -D "$lastsuccrundate" -p secondo | grep -v 'No records selected'   >$logdir/Changes.txt
   
   if [ "$firstrun" == "true" ]; then 
      echo "yes"
@@ -172,7 +172,7 @@ local lastsuccrun=$4
         # collect all changes since last successful run and get the names of the changers
         cvs history -xMAR -a -D "$lastsuccrundate" -p secondo | grep -v 'No records selected'   >$logdir/Changes.txt
         cat $logdir/Changes.txt | awk '{print $5}' | sort | uniq | sort >$logdir/changerNames.txt
-        cat /cvsroot/CVSROOT/users | sort -t: | join -t: -  $logdir/changerNames.txt | sed "s/.*://"  >$logdir/ChangerMails.txt
+        cat $users | sort -t: | join -t: -  $logdir/changerNames.txt | sed "s/.*://"  >$logdir/ChangerMails.txt
         echo "yes"
      fi
   fi
@@ -254,6 +254,7 @@ rm -f $checkout_log
 #step 2: compile secondo
 
 echo "set environment"
+echo "source $envfile $secondodir"
 
 source $envfile $secondodir
 cd $secondodir
@@ -304,13 +305,22 @@ touch $last_successful_run
 # tests were successful, set LAST_STABLE tag in Secondo
 
 cd $secondodir
-cvs -q tag -F LAST_STABLE
+
+cvs -q tag -R -F LAST_STABLE
+
+tagOK=$?
 
 if [ -z "$additionalcs" ]; then
 echo "Secondo tests successful" | mailx -s "Secondo tests successful" -r $from  -S smtp=smtp://$server $to
 else 
 echo "Secondo tests successful" | mailx -s "Secondo tests successful" -r $from -c "$additionalcs" -S smtp=smtp://$server $to
 fi
+
+if [ "$tagOk" != "0" ]; then
+  echo "Cannot tag to LAST_STABLE" | mailx -s "Problem during tagging secondo" -r $from  -S smtp=smtp://$server $to
+  exit 1
+fi
+
 
 
 
@@ -325,7 +335,8 @@ mkdir -p $last_stable_dir
 cd $last_stable_dir
 rm -rf secondo
 cvs -q export -r LAST_STABLE secondo 2>&1 >/dev/null
-tar -czf  secondo_LAST_STABLE.tgz secondo
+rm -f secondo_LAST_STABLE.tgz
+# tar -czf  secondo_LAST_STABLE.tgz secondo
 
 # create public version of secondo
 cd secondo
@@ -345,7 +356,7 @@ fi
    exit 1
 fi
 
-
+rm ../secondo_LAST_STABLE_PUBLIC.tgz
 mv secondo-LAST_STABLE-LAT1.tar.gz ../secondo_LAST_STABLE_PUBLIC.tgz
 cd ..
 rm -rf secondo
