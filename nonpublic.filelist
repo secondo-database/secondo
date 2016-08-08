@@ -90,6 +90,13 @@ Algebras/JNet/Scripts
 Algebras/Network/Scripts
 bin/Scripts
 bin/Scripts2
+Tools/ContinuousUpdate
+Tools/PostGIS
+Tools/SecondoPostGIS
+WebGui
+WebGui2
+android
+AndroidGui
 
 #Tools/RStarTree
 
