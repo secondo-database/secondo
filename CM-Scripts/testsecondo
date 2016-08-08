@@ -306,7 +306,15 @@ touch $last_successful_run
 
 cd $secondodir
 
-cvs -q tag -R -F LAST_STABLE
+# remove the LAST_STABLE tag from removed files
+cvs -q rtag -a LAST_STABLE secondo
+
+# tag all files present in the currect project 
+# to be part of the last stable version
+
+cvs -q tag  -F LAST_STABLE
+
+
 
 tagOK=$?
 
