@@ -99,6 +99,8 @@ The names of existing databases are stored in a list ~DBTable~.
 #include <string>
 #include <iostream>
 
+#include "SecondoCatalog.h"
+
 //#define TRACE_ON 1
 #undef TRACE_ON
 #include "LogMsg.h"
@@ -106,7 +108,6 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "SecondoSystem.h"
 #include "DerivedObj.h"
 #include "Operator.h"
-#include "SecondoCatalog.h"
 #include "NList.h"
 #include "SystemTables.h"
 #include "ExampleReader.h"
@@ -114,6 +115,12 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "TypeConstructor.h"
 #include "Environment.h"
 #include "ListUtils.h"
+#include "StringUtils.h"
+
+#ifdef SM_FILE_ID
+#include <boost/interprocess/sync/named_recursive_mutex.hpp>
+#endif
+
 
 using namespace std;
 
@@ -203,6 +210,9 @@ Precondition: dbState = dbOpen.
     return (nl->TheEmptyList());
   }
 
+  #ifdef SM_FILE_ID 
+  mutex->lock();
+  #endif
   typesList = nl->TheEmptyList();
   if ( typeCatalogFile.SelectAll( typeIterator ) )
   {
@@ -247,6 +257,9 @@ Precondition: dbState = dbOpen.
     }
     typeIterator.Finish();
   }
+  #ifdef SM_FILE_ID 
+  mutex->unlock();
+  #endif
 
   for ( tPos = types.begin(); tPos != types.end(); tPos++ )
   {
@@ -302,6 +315,9 @@ Precondition: dbState = dbOpen.
     return (false);
   }
   TypesCatalog::iterator tPos = types.find( typeName );
+  #ifdef SM_FILE_ID 
+  mutex->lock();
+  #endif
   if ( tPos != types.end() )
   {
     if ( tPos->second.state == EntryDelete )
@@ -322,6 +338,9 @@ Precondition: dbState = dbOpen.
     types.insert( make_pair( typeName, typeEntry ) );
     ok = true;
   }
+  #ifdef SM_FILE_ID 
+  mutex->unlock();
+  #endif
   return (ok);
 }
 
@@ -338,7 +357,9 @@ Precondition: dbState = dbOpen.
 */
   int rc = 0;
   SmiRecord tRec;
-
+  #ifdef SM_FILE_ID 
+  mutex->lock();
+  #endif
   if ( SmiEnvironment::IsDatabaseOpen() )
   {
     TypesCatalog::iterator tPos = types.find( typeName );
@@ -409,6 +430,9 @@ Precondition: dbState = dbOpen.
     cerr << " DeleteType: database is closed!" << endl;
     exit( 0 );
   }
+  #ifdef SM_FILE_ID 
+  mutex->unlock();
+  #endif
   return (rc);
 }
 
@@ -424,6 +448,9 @@ SecondoCatalog::TypeUsedByObject( const string& typeName )
   }
   if ( !used )
   {
+    #ifdef SM_FILE_ID 
+    mutex->lock();
+    #endif
     SmiKeyedFileIterator oIterator;
     SmiKey oKey;
     SmiRecord oRec;
@@ -445,6 +472,9 @@ SecondoCatalog::TypeUsedByObject( const string& typeName )
         }
       }
     }
+    #ifdef SM_FILE_ID 
+    mutex->unlock();
+    #endif
   }
   return (used);
 }
@@ -468,8 +498,14 @@ Precondition: dbState = dbOpen.
     }
     else
     {
+      #ifdef SM_FILE_ID 
+      mutex->lock();
+      #endif
       SmiRecord tRecord;
       found = typeCatalogFile.SelectRecord( SmiKey( typeName ), tRecord );
+      #ifdef SM_FILE_ID 
+      mutex->unlock();
+      #endif
     }
   }
   else if ( testMode )
@@ -521,12 +557,12 @@ Precondition: dbState = dbOpen.
       typeName = nl->SymbolValue( first );
       if ( typeName != "" && IsTypeName( typeName ) )
       {
-        ok = GetTypeId( typeName, algebraId, typeId );
+        ok = GetTypeId( typeName, algebraId, typeId, true );
       }
     }
   }
   if ( !ok ) {
-    ok = GetTypeId( typeExpr, algebraId, typeId, typeName );
+    ok = GetTypeId( typeExpr, algebraId, typeId, typeName, true);
   }
   return (ok);
 }
@@ -582,6 +618,9 @@ Precondition: dbState = dbOpen and ~MemberType(typeName)~ delivers TRUE.
   }
   else
   {
+    #ifdef SM_FILE_ID 
+    mutex->lock();
+    #endif
     SmiRecord tRec;
     if ( typeCatalogFile.SelectRecord( SmiKey( typeName ), tRec ) )
     {
@@ -601,6 +640,9 @@ Precondition: dbState = dbOpen and ~MemberType(typeName)~ delivers TRUE.
            << " is not a valid type name!" << endl;
       exit( 0 );
     }
+    #ifdef SM_FILE_ID 
+    mutex->unlock();
+    #endif
   }
   return (typeExpr);
 }
@@ -637,7 +679,7 @@ The resulting form of the type expression is useful for calling the type specifi
     if ( nl->AtomType( type ) == SymbolType ) {
       name = nl->SymbolValue( type );
       if ( (!SmiEnvironment::IsDatabaseOpen() || !MemberType( name )) ) {
-        GetTypeId( type, alId, typeId, name );
+        GetTypeId( type, alId, typeId, name, true);
         if(alId==0){
           return type;
         } else { 
@@ -797,6 +839,10 @@ Precondition: dbState = dbOpen.
     exit( 0 );
   }
 
+
+  #ifdef SM_FILE_ID 
+  mutex->lock();
+  #endif
   objectsList = nl->TheEmptyList();
   bool iterInit = objCatalogFile.SelectAll( oIterator );
 
@@ -839,7 +885,10 @@ Precondition: dbState = dbOpen.
                    objEntry(objectName, typeName, typeExpr) );
     }
     oIterator.Finish();
-  }
+  } 
+  #ifdef SM_FILE_ID 
+  mutex->unlock();
+  #endif
 
   for ( oPos = objects.begin(); oPos != objects.end(); oPos++ )
   {
@@ -908,6 +957,9 @@ Precondition: dbState = dbOpen.
   const string msgSaved = "saved.";
 
   objectsList = nl->TheEmptyList();
+  #ifdef SM_FILE_ID 
+  mutex->lock();
+  #endif
   if ( objCatalogFile.SelectAll( oIterator ) )
   {
     while (oIterator.Next( oKey, oRec ))
@@ -968,6 +1020,9 @@ Precondition: dbState = dbOpen.
     }
     oIterator.Finish();
   }
+  #ifdef SM_FILE_ID 
+  mutex->unlock();
+  #endif
   for ( oPos = objects.begin(); oPos != objects.end(); oPos++ )
   {
     if ( oPos->second.state == EntryInsert ||
@@ -1052,7 +1107,7 @@ Precondition: dbState = dbOpen.
   {
     if ( IsTypeName( typeName ) )
     {
-      GetTypeId( typeName, alId, typeId );
+      GetTypeId( typeName, alId, typeId,true );
     }
     else
     {
@@ -1109,18 +1164,26 @@ Precondition: dbState = dbOpen.
       ok = true;
     }
   }
-  else if ( !objCatalogFile.SelectRecord( SmiKey( objectName ), oRecord ) )
-  {
-    ObjectsCatalogEntry objEntry;
-    objEntry.state = EntryInsert;
-    objEntry.value = valueWord;
-    objEntry.valueDefined = defined;
-    objEntry.valueRecordId = 0;
-    objEntry.typeName = typeName;
-    LookUpTypeExpr( typeExpr, name, objEntry.algebraId, objEntry.typeId );
-    nl->WriteToString( objEntry.typeExpr, nl->OneElemList( typeExpr ) );
-    objects.insert( make_pair( objectName, objEntry ) );
-    ok = true;
+  else{
+    
+     #ifdef SM_FILE_ID 
+     mutex->lock();
+     #endif
+     if ( !objCatalogFile.SelectRecord( SmiKey( objectName ), oRecord ) ) {
+        ObjectsCatalogEntry objEntry;
+        objEntry.state = EntryInsert;
+        objEntry.value = valueWord;
+        objEntry.valueDefined = defined;
+        objEntry.valueRecordId = 0;
+        objEntry.typeName = typeName;
+        LookUpTypeExpr( typeExpr, name, objEntry.algebraId, objEntry.typeId );
+        nl->WriteToString( objEntry.typeExpr, nl->OneElemList( typeExpr ) );
+        objects.insert( make_pair( objectName, objEntry ) );
+        ok = true;
+      }
+     #ifdef SM_FILE_ID 
+     mutex->unlock();
+     #endif
   }
   return (ok);
 }
@@ -1213,6 +1276,9 @@ Precondition: dbState = dbOpen.
   }
   else if( IsObjectName( objectName ) )
   {
+    #ifdef SM_FILE_ID 
+    mutex->lock();
+    #endif
     SmiRecordId valueRecId;
     {
       SmiRecord oRec;
@@ -1229,6 +1295,10 @@ Precondition: dbState = dbOpen.
         ok = objValueFile.DeleteRecord( valueRecId );
       }
     }
+    #ifdef SM_FILE_ID 
+    mutex->unlock();
+    #endif
+
   }
 
   return ok;
@@ -1410,10 +1480,15 @@ Precondition: dbState = dbOpen.
   {
     found = (oPos->second.state != EntryDelete);
   }
-  else
-  {
+  else {
+    #ifdef SM_FILE_ID 
+    mutex->lock();
+    #endif
     SmiRecord oRecord;
     found = objCatalogFile.SelectRecord( SmiKey( objectName ), oRecord );
+    #ifdef SM_FILE_ID 
+    mutex->unlock();
+    #endif
   }
   return (found);
 }
@@ -1594,7 +1669,10 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
     }
   }
   else
-  {
+  { 
+    #ifdef SM_FILE_ID 
+    mutex->lock();
+    #endif
     SmiRecord oRec;
     if ( objCatalogFile.SelectRecord( SmiKey( objectName ), oRec ) )
     {
@@ -1637,6 +1715,9 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
       value.addr = 0;
       defined    = false;
     }
+    #ifdef SM_FILE_ID 
+    mutex->unlock();
+    #endif
   }
   return (defined);
 }
@@ -1706,6 +1787,9 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
   else
   {
     SmiRecord oRec;
+    #ifdef SM_FILE_ID 
+    mutex->lock();
+    #endif
     if ( objCatalogFile.SelectRecord( SmiKey( objectName ), oRec ) )
     {
       SmiRecordId valueRecId;
@@ -1755,6 +1839,9 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
       defined     = false;
       hasTypeName = false;
     }
+    #ifdef SM_FILE_ID 
+    mutex->unlock();
+    #endif
   }
   return (ok);
 }
@@ -1787,7 +1874,10 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
     }
   }
   else
-  {
+  { 
+    #ifdef SM_FILE_ID 
+    mutex->lock();
+    #endif
     SmiRecord oRec;
     if ( objCatalogFile.SelectRecord( SmiKey( objectName ), oRec ) )
     {
@@ -1802,6 +1892,9 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
     {
       typeName  = "";
     }
+    #ifdef SM_FILE_ID 
+    mutex->unlock();
+    #endif
   }
   return (typeName == "");
 }
@@ -1843,7 +1936,10 @@ Returns the type expression of an object with identifier ~objectName~.
     }
   }
   else
-  {
+  { 
+    #ifdef SM_FILE_ID 
+    mutex->lock();
+    #endif
     SmiRecord oRec;
     if ( objCatalogFile.SelectRecord( SmiKey( objectName ), oRec ) )
     {
@@ -1867,6 +1963,9 @@ Returns the type expression of an object with identifier ~objectName~.
     {
       typeExpr    = nl->TheEmptyList();
     }
+    #ifdef SM_FILE_ID 
+    mutex->unlock();
+    #endif
   }
   return typeExpr;
 }
@@ -1902,7 +2001,10 @@ new value ~value~. Returns error 1 if object does not exist.
     }
   }
   else
-  {
+  { 
+    #ifdef SM_FILE_ID 
+    mutex->lock();
+    #endif
     ObjectsCatalogEntry oEntry;
     SmiRecord oRec;
     found = objCatalogFile.SelectRecord( SmiKey( objectName ), oRec );
@@ -1950,6 +2052,9 @@ new value ~value~. Returns error 1 if object does not exist.
       oEntry.valueDefined = true;
       objects.insert( make_pair( objectName, oEntry ) );
     }
+    #ifdef SM_FILE_ID 
+    mutex->unlock();
+    #endif
   }
   return (found);
 }
@@ -1987,6 +2092,9 @@ object is only modified, so that no deletion function is necessary.
   }
   else
   {
+    #ifdef SM_FILE_ID 
+    mutex->lock();
+    #endif
     ObjectsCatalogEntry oEntry;
     SmiRecord oRec;
     found = objCatalogFile.SelectRecord( SmiKey( objectName ), oRec );
@@ -2013,6 +2121,9 @@ object is only modified, so that no deletion function is necessary.
       oEntry.valueDefined = true;
       objects.insert( make_pair( objectName, oEntry ) );
     }
+    #ifdef SM_FILE_ID 
+    mutex->unlock();
+    #endif
   }
   return (found);
 }
@@ -2051,7 +2162,10 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
     }
   }
   else
-  {
+  { 
+    #ifdef SM_FILE_ID 
+    mutex->lock();
+    #endif
     ObjectsCatalogEntry oEntry;
     SmiRecord oRec;
     found = objCatalogFile.SelectRecord( SmiKey( objectName ), oRec );
@@ -2100,6 +2214,9 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
       nl->Destroy( typeInfo );
       nl->Destroy( typeExpr );
     }
+    #ifdef SM_FILE_ID 
+    mutex->unlock();
+    #endif
   }
   return (found);
 }
@@ -2419,7 +2536,10 @@ or a database type.
 
 bool
 SecondoCatalog::GetTypeId( const ListExpr& typeExpr,
-                           int& algebraId, int& typeId, string& typeName )
+                           int& algebraId, int& typeId, string& typeName,
+                           const bool lockrequired
+
+                         )
 {
  algebraId = 0;
  typeId = 0;
@@ -2431,7 +2551,7 @@ SecondoCatalog::GetTypeId( const ListExpr& typeExpr,
  }
  if(nl->AtomType(typeExpr) == SymbolType){
    typeName = nl->SymbolValue(typeExpr);
-    if(GetTypeId(typeName,algebraId, typeId)){
+    if(GetTypeId(typeName,algebraId, typeId, lockrequired)){
         return true;
     } else {
        typeName = "";
@@ -2459,7 +2579,8 @@ SecondoCatalog::GetTypeId( const ListExpr& typeExpr,
 
 bool
 SecondoCatalog::GetTypeId( const string& typeName,
-                           int& algebraId, int& typeId )
+                           int& algebraId, int& typeId,
+                           const bool lockrequired )
 {
 /*
 Returns the algebra identifier ~algebraId~ and the type identifier
@@ -2495,7 +2616,12 @@ Precondition: ~IsTypeName(typeName)~ delivers TRUE.
       found     = true;
     }
     else
-    {
+    { 
+     #ifdef SM_FILE_ID 
+     if(lockrequired){
+         mutex->lock();
+      }
+      #endif
       SmiRecord tRec;
       found = typeCatalogFile.SelectRecord( SmiKey( typeName ), tRec );
       if ( found )
@@ -2504,6 +2630,11 @@ Precondition: ~IsTypeName(typeName)~ delivers TRUE.
         tRec.Read( &typeId, sizeof( int ), CE_TYPES_TYPE_ID );
         found = true;
       }
+     #ifdef SM_FILE_ID 
+      if(lockrequired){
+         mutex->unlock();
+      }
+     #endif
     }
   }
   if ( !found )
@@ -2802,6 +2933,17 @@ Defines a dictionary for algebra operators.
       }
     }
   }
+  // create a name mutex for interprocess synchronization
+  // when accessing the catalog files
+
+  #ifdef SM_FILE_ID 
+  string mtx_name = (stringutils::replaceAll(
+                       SmiEnvironment::GetSecondoHome(),"/","_")
+                  + "secondo_catalog_mutex");
+  mutex = new boost::interprocess::named_recursive_mutex(
+                    boost::interprocess::open_or_create,
+                    mtx_name.c_str());
+  #endif
 }
 
 SecondoCatalog::~SecondoCatalog()
@@ -2815,22 +2957,33 @@ SecondoCatalog::~SecondoCatalog()
   operators.clear();
 
   types.clear();
-  objects.clear();
+  objects.clear(); 
+  #ifdef SM_FILE_ID 
+  delete mutex;
+  #endif
 }
 
 bool
 SecondoCatalog::Open()
 {
+  #ifdef SM_FILE_ID 
+  mutex->lock();
+  #endif
+
   bool ok = true;
   ok = ok && typeCatalogFile.Open( "Types", "SecondoCatalog" );
   ok = ok && objCatalogFile.Open( "Objects", "SecondoCatalog" );
   ok = ok && objValueFile.Open( "ObjValues", "SecondoCatalog" );
   ok = ok && flobFile.Open( "largeObjects", "SecondoCatalog" );
+  #ifdef SM_FILE_ID 
+  mutex->unlock();
+  #endif
 
   if ( !ok )
   {
     Close();
   }
+
   return (ok);
 }
 
@@ -2838,6 +2991,9 @@ bool
 SecondoCatalog::Close()
 {
   bool ok = true;
+  #ifdef SM_FILE_ID 
+  mutex->lock();
+  #endif
   if ( typeCatalogFile.IsOpen() )
   {
     ok = ok && typeCatalogFile.Close();
@@ -2854,7 +3010,9 @@ SecondoCatalog::Close()
   {
     ok = ok && flobFile.Close();
   }
-
+  #ifdef SM_FILE_ID 
+  mutex->unlock();
+  #endif
   types.clear();
   objects.clear();
   return (ok);
@@ -2866,6 +3024,10 @@ SecondoCatalog::CleanUp( const bool revert, const bool closeObjects )
   TRACE_ENTER
 
   SHOW(revert)
+
+  #ifdef SM_FILE_ID 
+  mutex->lock();
+  #endif
 
   bool ok = true;
   if ( !revert )
@@ -3175,6 +3337,10 @@ preserved and the objects are created with undefined values.
 
   types.clear();
   objects.clear();
+
+  #ifdef SM_FILE_ID 
+  mutex->unlock();
+  #endif
 
   TRACE_LEAVE
   return (ok);

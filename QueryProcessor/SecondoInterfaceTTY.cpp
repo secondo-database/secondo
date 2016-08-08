@@ -2527,7 +2527,7 @@ SecondoInterfaceTTY::GetTypeId( const string& name,
                              int& algebraId, int& typeId )
 {
   bool ok = SecondoSystem::GetCatalog()->
-              GetTypeId( name, algebraId, typeId );
+              GetTypeId( name, algebraId, typeId, true );
   return (ok);
 }
 

@@ -117,6 +117,14 @@ The class ~SecondoCatalog~ provides the following methods:
 #include <vector>
 #include <set>
 #include <iostream>
+#ifdef SM_FILE_ID 
+namespace boost{
+  namespace interprocess{
+    class named_recursive_mutex;
+  }
+}
+#endif
+
 
 #include "AlgebraManager.h"
 #include "NestedList.h"
@@ -589,7 +597,8 @@ Returns the algebra identifier ~algebraId~ and the type identifier
 
 */
   bool GetTypeId( const std::string& typeName,
-                  int& algebraId, int& typeId );
+                  int& algebraId, int& typeId,
+                  const bool lockrequired =true);
 
 
 
@@ -602,7 +611,7 @@ set to an empty string.
 
 */
  bool GetTypeId( const ListExpr& typeExpr, int& algebraId, int& typeId, 
-                 std::string& typeName );
+                 std::string& typeName, const bool lockrequired = true);
 
 
 /*
@@ -806,6 +815,10 @@ an error it should always be reported to the client.
 
   // create a ~trel~ object representing a system table.
   Word CreateRelation(const std::string& name);
+
+  #ifdef SM_FILE_ID 
+  boost::interprocess::named_recursive_mutex* mutex;
+  #endif
 
   friend class SecondoSystem;
 };
