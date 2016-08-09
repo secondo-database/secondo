@@ -3942,11 +3942,12 @@ ListExpr importObjectTM(ListExpr args){
                              "file does not contain a list");
    }
    // an object file is formatted as
-   // (OBJECT <name> <typename> <type> <value> () )
+   //     (OBJECT <name> <typename> <type> <value> () )
+   // or  (OBJECT <name> <typename> <type> <value> )
    // the typename is mostly empty the last, empty list is for future extensions
    
    // check structure
-   if(   !nl->HasLength(objectList,6)
+   if(   (!nl->HasLength(objectList,5) && !nl->HasLength(objectList,6))
       || !listutils::isSymbol(nl->First(objectList),"OBJECT")){
      return listutils::typeError("file does not contain a "
                                  "valid object description");
@@ -3982,7 +3983,7 @@ int importObjectVM ( Word * args , Word & result , int message ,
    if(!nl->ReadFromFile(fn,objectList)){
      return 0;
    }
-   if(!nl->HasLength(objectList,6)){
+   if(!nl->HasLength(objectList,6) && !nl->HasLength(objectList,5)){
       return 0;
    }
    ListExpr typeList = nl->Fourth(objectList);
