@@ -43,7 +43,7 @@ if [ "$2" != "" ]; then
   failedFileInfoDir="$2"
 fi
 if [ ! -d $failedFileInfoDir ]; then
-  mkdir $failedFileInfoDir
+  mkdir -p $failedFileInfoDir
 fi
 failedTests=""
 
