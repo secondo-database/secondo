@@ -315,20 +315,11 @@ cvs -q rtag -a LAST_STABLE secondo
 cvs -q tag  -F LAST_STABLE
 
 
-
-tagOK=$?
-
 if [ -z "$additionalcs" ]; then
 echo "Secondo tests successful" | mailx -s "Secondo tests successful" -r $from  -S smtp=smtp://$server $to
 else 
 echo "Secondo tests successful" | mailx -s "Secondo tests successful" -r $from -c "$additionalcs" -S smtp=smtp://$server $to
 fi
-
-if [ "$tagOk" != "0" ]; then
-  echo "Cannot tag to LAST_STABLE" | mailx -s "Problem during tagging secondo" -r $from  -S smtp=smtp://$server $to
-  exit 1
-fi
-
 
 
 
@@ -411,7 +402,7 @@ if [ "$n" != "0" ]; then
  for f in $failed_tests; do
    find $secondodir -name $f.log -exec cp {} $failed_log_dir \;
  done
- sendMail "Automatic tests failed" $testStart 
+ sendMail "Automatic tests of the public version failed" $testStart 
  cd $last_stable_dir
  rm -rf secondo
  exit 1
