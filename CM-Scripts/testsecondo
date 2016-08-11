@@ -374,6 +374,7 @@ echo "Public version created"
 cd $last_stable_dir
 tar -xzf secondo_LAST_STABLE_PUBLIC.tgz
 cd secondo
+pubtestdir=$PWD
 source $envfile $PWD
 
 make >make.log 2>&1
@@ -400,7 +401,7 @@ if [ "$n" != "0" ]; then
  #automatic test failed, collect log files into $failed_log_dir
  failed_tests=$(find $logdir -maxdepth 1 -name "_failed_*" -printf "%f " | sed "s/_failed_//g")
  for f in $failed_tests; do
-   find $secondodir -name $f.log -exec cp {} $failed_log_dir \;
+   find $pubtestdir -name $f.log -exec cp {} $failed_log_dir \;
  done
  sendMail "Automatic tests of the public version failed" $testStart 
  cd $last_stable_dir
