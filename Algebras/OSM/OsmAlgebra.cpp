@@ -1553,9 +1553,11 @@ void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
   if (part > 0) {
     int64_t start = fileSize / size * (part);
     source.seekg(start);
-    do {
-      ch = (char)source.get();
-    } while (ch != '>');
+    if ((char)source.get() != '<') {
+      do {
+        ch = (char)source.get();
+      } while (ch != '>');
+    }
     bool valid = false;
     do {
       std::string firstLine;
@@ -1621,6 +1623,10 @@ void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
         dest.close();
       }
     } while (!valid);
+    dest.open(destFileName.c_str(), std::ios::app | std::ios::binary);
+    std::string osmEnd = "\n</osm>\n";
+    dest.write(osmEnd.c_str(), osmEnd.size());
+    dest.close();
   }
   fileOk = true;
 }
