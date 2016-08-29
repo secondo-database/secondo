@@ -1553,11 +1553,9 @@ void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
   if (part > 0) {
     int64_t start = fileSize / size * (part);
     source.seekg(start);
-    if ((char)source.get() != '<') {
-      do {
-        ch = (char)source.get();
-      } while (ch != '>');
-    }
+    do {
+      ch = (char)source.get();
+    } while (ch != '>');
     bool valid = false;
     do {
       std::string firstLine;
