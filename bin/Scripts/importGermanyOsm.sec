@@ -89,7 +89,7 @@ let Division = ControlSlots
   dloop["Division", divide_osm3(File, NSlots, .)] 
 
 query Results inserttuple["Division", NSlots, 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] count
+  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
 
 
 
@@ -678,11 +678,15 @@ query Results inserttuple["EdgesB1_WayId",
 */
 let hombruch = [const rect value (7.419 7.457 51.462 51.484)]
 
-query share("hombruch", TRUE, Workers)	
+query share("hombruch", TRUE, Workers)	 
 
 
-query EdgesB1_WayId dloop["", . feed 
+let hombruchEdges = EdgesB1_WayId dloop["", . feed 
   filter[bbox(.Curve) intersects hombruch] consume]
-  dsummarize consume count
+  dsummarize consume
 
 let Commands = SEC2COMMANDS feed consume
+
+let TotalTime = Commands feed sum[ElapsedTime]
+
+
