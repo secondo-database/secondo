@@ -669,7 +669,7 @@ query Results inserttuple["EdgesB1_WayId",
 
 
 # Runtime for Scripts/importGermanyOsm.sec: Times (elapsed / cpu): 
-  8:22min # (502.348sec) /0.42sec = 1196.07
+# 8:22min # (502.348sec) /0.42sec = 1196.07
 # File Scripts/importGermanyOsm.sec successful processed.
 
 /* 
@@ -687,6 +687,6 @@ let hombruchEdges = EdgesB1_WayId dloop["", . feed
 
 let Commands = SEC2COMMANDS feed consume
 
-let TotalTime = Commands feed sum[ElapsedTime]
+
 
 
