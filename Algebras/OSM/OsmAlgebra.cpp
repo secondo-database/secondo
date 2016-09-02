@@ -1557,21 +1557,24 @@ void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
       ch = (char)source.get();
     } while (ch != '>');
     bool valid = false;
+    std::stringstream firstLines;
     do {
-      std::string firstLine;
+      std::string line;
       do {
         ch = (char)source.get();
-        firstLine += ch;
+        line += ch;
       } while (ch != '>');
-      if (isValid(firstLine)) {
-        if (trim(firstLine).substr(0, 5) == "<node") {
-          dest.write(firstLine.c_str(), firstLine.size());
-        }
+      if (isValid(line)) {
         valid = true;
       }
+      firstLines << line;
     } while (!valid);
+    if (trim(firstLines.str()).substr(0, 5) == "<node" ||
+        trim(firstLines.str()).substr(0, 4) == "<way" ||
+        trim(firstLines.str()).substr(0, 9) == "<relation") {
+      dest.write(firstLines.str().c_str(), firstLines.str().size());
+    }
   }
-  
 
   // copy main body
   int64_t end = (part + 1 == size ? fileSize : fileSize / size * (part + 1));
