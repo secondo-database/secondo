@@ -203,12 +203,17 @@ public:
 
    std::string getHost() const;
 
+   std::string getConnectionInfo() const;
+
   private:
      int  maxAttempts; // maximum number of attemps when connecting
      int  timeout; // timeout in second per connection attemp 
      int  server_pid;
      bool debugSecondoMethod;
      bool verbose;
+     std::string secHost;
+     std::string secPort;
+     std::string secConfig;
 
 };
 

@@ -68,6 +68,9 @@ SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
     server_pid = -1;
     debugSecondoMethod = false;
     verbose = _verbose;
+    secHost = "";
+    secPort= "";
+    secConfig ="";
  }
 
 
@@ -77,6 +80,9 @@ SecondoInterfaceCS::~SecondoInterfaceCS()
   {
     Terminate();
   }
+  server_pid = -1;
+  secHost = "Not Connected";
+  secPort = "0";
 }
 
 
@@ -86,8 +92,9 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                               string& parmFile, string& errorMsg,
                               const bool multiUser)
 {
-  string secHost = host;
-  string secPort = port;
+  secHost = host;
+  secPort = port;
+  secConfig = parmFile;
   string line = "";
   server_pid = -1;  
   if ( !initialized )
@@ -223,6 +230,9 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
       cout << "Invalid or missing host (" << secHost << ") and/or port ("
            << secPort << ")." << endl;
     }
+  }
+  if(initialized){
+    getPid();
   }
   return (initialized);
 }
@@ -433,6 +443,9 @@ For an explanation of the error codes refer to SecondoInterface.h
           resultList=nl->TheEmptyList();
           dwriter.write(debugSecondoMethod, cout, this, pid, 
                         "dbfile written to disk");
+        } else if(errorCode == ERR_IN_SECONDO_PROTOCOL ){
+           dwriter.write(true, cout, this, pid,
+               "Remote server possible crashed " + getConnectionInfo());
         }
       }
       else
@@ -514,7 +527,11 @@ For an explanation of the error codes refer to SecondoInterface.h
           nl->WriteToFile( filename.c_str(), resultList );
           resultList=nl->TheEmptyList();
           dwriter.write(debugSecondoMethod, cout, this, pid, "file written");
+        } else if(errorCode == ERR_IN_SECONDO_PROTOCOL ){
+           dwriter.write(true, cout, this, pid,
+               "Remote server possible crashed " + getConnectionInfo());
         }
+
       }
       else
       {
@@ -587,6 +604,10 @@ For an explanation of the error codes refer to SecondoInterface.h
                                        debugSecondoMethod, this, pid );
         dwriter.write(debugSecondoMethod, cout, this, pid, 
                        "communication finished");
+        if(errorCode == ERR_IN_SECONDO_PROTOCOL ){
+           dwriter.write(true, cout, this, pid,
+               "Remote server possible crashed " + getConnectionInfo());
+        }
       }
       else
       {
@@ -662,6 +683,10 @@ For an explanation of the error codes refer to SecondoInterface.h
 
         dwriter.write(debugSecondoMethod, cout, this, pid, 
                       "communicatioon finished");
+        if(errorCode == ERR_IN_SECONDO_PROTOCOL ){
+           dwriter.write(true, cout, this, pid,
+               "Remote server possible crashed " + getConnectionInfo());
+        }
       }
       else
       {
@@ -695,9 +720,15 @@ For an explanation of the error codes refer to SecondoInterface.h
                                    errorCode, errorPos,
                                    errorMessage , id, 
                                    debugSecondoMethod, this, pid );
+       if(errorCode == ERR_IN_SECONDO_PROTOCOL ){
+          dwriter.write(true, cout, this, pid,
+              "Remote server possible crashed " + getConnectionInfo());
+       }
 
     } catch (ifstream::failure &ex) {
          errorCode = ERR_SYSTEM_DIED;
+         dwriter.write(true, cout, this, pid,
+          "Remote server possible crashed " + getConnectionInfo());
     }
     
     dwriter.write(debugSecondoMethod, cout, this, pid, 
@@ -892,6 +923,10 @@ int SecondoInterfaceCS::sendFile( const string& localfilename,
    errorCode = csp->ReadResponse( resultList,
                                   errorCode, errorPos,
                                   errorMessage , id        );
+   if(errorCode == ERR_IN_SECONDO_PROTOCOL ){
+       dwriter.write(true, cout, this, -1,
+          "Remote server possible crashed " + getConnectionInfo());
+   }
    return errorCode;
 }
 
@@ -1431,4 +1466,14 @@ void SecondoInterfaceCS::setTimeout(int t){
       timeout = t;
    }
 }
+
+std::string SecondoInterfaceCS::getConnectionInfo() const{
+  stringstream ss;
+  ss << "Host: " << secHost << ", Port: " << secPort 
+     << ", Servers PID:" << server_pid;
+  return ss.str();
+}
+
+
+
 
