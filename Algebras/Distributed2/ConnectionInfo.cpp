@@ -52,11 +52,18 @@ ConnectionInfo::ConnectionInfo(const string& _host,
         host(_host), port(_port), config(_config), si(_si)
 {
     mynl = _mynl;
-    serverPID = 0;
     secondoHome = "";
     requestFolder = "";
     sendFolder = "";
     sendPath = "";
+    serverPID=0;
+    if(si!=0){
+      try{
+        serverPID = si->getPid();
+      } catch(...){
+
+      }
+    }
 }
 
 /*
