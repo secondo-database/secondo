@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ConnectionInfo.h"
 #include "Dist2Helper.h"
+#include "FileSystem.h"
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 
@@ -54,6 +55,76 @@ bool showCommands;
 
 CommandLog commandLog;
 bool logOn = false;
+
+
+/*
+1 Class ~ErrorWriter~
+
+This class will help to write error log files for this algebra.
+
+*/
+class ErrorWriter{
+ public:
+    ErrorWriter(): dbname(""), pid(""), mtx(){
+       pid = stringutils::int2str(WinUnix::getpid());
+    }
+
+    ~ErrorWriter(){
+        if(dbname.size()>0){
+           out.close();
+        }
+     }
+
+    void writeLog( const string& host, const int port,
+              const int server_pid, const string& message){
+        boost::lock_guard<boost::mutex> guard(mtx);
+        try{
+           string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+           bool open = this->dbname.size()==0;
+           if(this->dbname.size()>0 && this->dbname!=dbname){
+              out.close();
+              this->dbname = dbname;   
+           }
+           if(this->dbname.size()==0){
+              return; // log only for  
+           }
+           string fn;
+
+           if(open){
+              FileSystem::CreateFolder("dist2Messages");
+              fn = "dist2Messages/Errors_" + dbname
+                 + "_"+pid+".txt";
+              out.open(fn.c_str(), ios::out|ios::app);
+            } 
+            if(!out.good()){
+               cerr << "Cannout write to file " << fn << endl;
+               return;
+            }
+            out << " ----- " << endl;
+            out << "Host " << host << "@" << port << endl;
+            out << "Server-PID " << server_pid << endl;
+            out << "message" << endl << message << endl << endl;
+        } catch(...){
+           cerr << "error in writing log file" << endl;
+        }
+    }
+
+
+ private:
+     string dbname;
+     string pid;
+     boost::mutex mtx;
+     ofstream out;
+
+};
+
+
+
+
+
+
+
+
 
 /*
 2 CommandListener
@@ -1042,6 +1113,7 @@ connections.
      }
   }
 
+    ErrorWriter errorWriter;
 
   private:
     // connections managed by the user
@@ -1086,8 +1158,36 @@ connections.
 };
 
 
+
+
   // Algebra instance
 Distributed2Algebra* algInstance;
+
+
+
+void writeLog(ConnectionInfo* ci, const string& msg){
+  if(!algInstance){
+    return;
+  }
+  if(ci){
+    algInstance->errorWriter.writeLog(ci->getHost(), 
+                                      ci->getPort(), 
+                                      ci->serverPid(),
+                                      msg);
+  }
+}
+
+
+void writeLog(ConnectionInfo* ci, const string& cmd, const string& msg){
+  if(!algInstance){
+    return;
+  }
+  if(ci){
+    string msg2 = "Error during executing command " + cmd
+               + "\n " + msg;
+    writeLog(ci,msg2);
+  }
+}
 
 /*
 2. Class ConnectionTask
@@ -1517,6 +1617,8 @@ int rcmdVMT( Word* args, Word& result, int message,
                                            errorCode, errMsg, result, true,
                                            runtime);
            if(!ok){
+             ConnectionInfo* ci = algInstance->getConnection(conv);
+             writeLog(ci, cmd->GetValue(), errMsg);
              return 0;
            }
            TupleType* tt = new TupleType( nl->Second(GetTupleResultType(s)));
@@ -1769,6 +1871,7 @@ ListExpr rqueryTM(ListExpr args){
    ok = algInstance->simpleCommand(sn, query, error, errMsg, reslist, true,
                                    runtime);
    if(!ok){
+     writeLog(algInstance->getConnection(sn), query, errMsg);
      return listutils::typeError("found no connection for specified "
                                  "connection number");
    }
@@ -1848,14 +1951,12 @@ int rqueryVMT( Word* args, Word& result, int message,
   double runtime;
   bool ok = algInstance->simpleCommand(serv, query->GetValue(), error,
                                        errMsg, resList, true, runtime);
-  if(!ok){
+  if(!ok || error){
      sendMessage(msg, "Error during remote command" );
+     ConnectionInfo* ci = algInstance->getConnection(serv);
+     writeLog(ci, query->GetValue(), errMsg);
      return 0;
   }
-  if(error){
-     sendMessage(msg, "Error during remote command" );
-     return 0;
-  } 
   // Create Object from resList
   if(!nl->HasLength(resList,2)){
      sendMessage(msg,"Invalid result list");
@@ -4008,6 +4109,7 @@ bool  getQueryType(const string& query1, int serverNo,
       return false;
    }
    if(error!=0){
+      writeLog(algInstance->getConnection(serverNo), query, errMsg);
       errMsg = " error in type detecting command (" + errMsg+")";
       return false;
    }
@@ -5208,6 +5310,7 @@ int putVMFA(Word* args, Word& result, int message,
     cerr << "creating targetdirectory " << targetDir << " failed" << endl;
     cerr << "cmd : " << cmd << endl;
     cerr << "error " << errMsg << endl;
+    writeLog(ci, cmd, errMsg);
     res->makeUndefined();
     return 0;
   }  
@@ -5221,6 +5324,7 @@ int putVMFA(Word* args, Word& result, int message,
      cerr << "error in command " << cmd << endl;
      cerr << " error code : " << err << endl;
      cerr << "error Messahe " << errMsg << endl;
+     writeLog(ci,cmd,errMsg);
      res->makeUndefined();
      return 0;
   }
@@ -6395,6 +6499,7 @@ int createDArrayVMT(Word* args, Word& result, int message,
           if(trace){
             sendMessage("createDArray: command " + query + " failed");
           }
+          writeLog(ci, query, errMsg);
           res->makeUndefined();
           return 0;
        } 
@@ -7062,6 +7167,7 @@ class FRelCopy{
           if(err!=0){
               cerr << "command " << cmd << " failed" << endl;
               cerr << err << " : " << errmsg << endl;
+              writeLog(ci, cmd, errmsg);
           }
           if(!nl->HasLength(result,2) || 
               nl->AtomType(nl->Second(result))!=BoolType){
@@ -8395,11 +8501,14 @@ class dloopInfo{
        }
        ci->simpleCommand("delete "+ bn, err,strres, false, runtime,
                          showCommands, logOn, commandLog);
+       // ignore failure, because normally the object does not exists
+
        // create new object by applying the function
        string cmd =   "(let "+bn+" = ("+fun+" " +  funarg +"))";
        ci->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime,
                                  showCommands, logOn, commandLog);
        if(err!=0){ 
+           writeLog(ci,cmd,errMsg);
            sendMessage(" Problem in command " + cmd + ":" + errMsg);
        }
     }
@@ -9303,7 +9412,7 @@ class dloop2Runner{
       string strres;
       double runtime;
       string tname = rname + "_" + stringutils::int2str(index);
-      // remove old stuff
+      // remove old stuff, ignore error it's normal
       ci->simpleCommand("delete " + tname , err,errMsg, strres, false, runtime,
                         showCommands, logOn, commandLog);
       // create new one
@@ -9315,6 +9424,7 @@ class dloop2Runner{
       if(err!=0){
          cerr << "error in creating result via " << cmd << endl;
          cerr << errMsg << endl;
+         writeLog(ci,cmd,errMsg);
          return;
       }
      }
@@ -9944,7 +10054,8 @@ class Object_Del{
                           false, runtime, showCommands, logOn, commandLog);
         if(err==0){
           del = 1;
-        } 
+        }
+        // ignore error about non existent object 
      }
 
     void deleteFArray(){
@@ -9974,7 +10085,8 @@ class Object_Del{
                           showCommands, logOn, commandLog);
         if(err==0){
           del = 1;
-        } 
+        }
+        // ignore error about non existent file 
     }
 
 };
@@ -10070,6 +10182,7 @@ class MatrixKiller{
           if(err){
             cerr << "command failed: " << cmd << endl;
             cerr << errMsg << endl;
+            writeLog(ci,cmd,errMsg);
           }
        }
 };
@@ -10211,9 +10324,13 @@ class cloneTask{
         string errMsg;
         string resstr;
         double runtime;
-        ci->simpleCommand("let " + newName + " = " + objName , 
+        string cmd = "let " + newName + " = " + objName;
+        ci->simpleCommand(cmd , 
                           err, errMsg, resstr, false, runtime,
                           showCommands, logOn, commandLog);
+        if(err!=0){
+           writeLog(ci,cmd,errMsg);
+        }
      }
 
      void runFArray(){
@@ -10248,6 +10365,7 @@ class cloneTask{
            cerr << "error in creating directory " + tpath << endl;
            cerr << "by command " << cmd << endl;
            cerr << errMsg << endl;
+           writeLog(ci,cmd,errMsg);
         }
 
         cmd = "query copyFile('"+spath+objName+"', '"+tpath+newName+"')";
@@ -10255,6 +10373,7 @@ class cloneTask{
                           showCommands, logOn, commandLog);
         if(err!=0){
            showError(ci,cmd,err,errMsg);
+           writeLog(ci,cmd,errMsg);
         }
 
      }
@@ -10427,9 +10546,13 @@ class shareRunner{
              ci->simpleCommand(cmd,err,res, false, runtime,
                                showCommands, logOn, commandLog);
           }
+          // ignore error because object normally does not exist
           cmd = "restore " +  objName + " from '" + fileName +"'";           
           ci->simpleCommand(cmd,err,res,false, runtime,
                             showCommands, logOn, commandLog);
+          if(err!=0){
+            writeLog(ci,cmd,res);
+          }
           listener->jobDone(id, err==0);
       }
     }
@@ -11457,8 +11580,8 @@ class Mapper{
 
 
            // create temporal function
-           string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
-                             + "_"+ stringutils::int2str(nr);
+           //string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
+           //                  + "_"+ stringutils::int2str(nr);
 
            string fun = mapper->funText->GetValue();
 
@@ -11495,6 +11618,7 @@ class Mapper{
            if(err){
              cerr << "creating directory failed, cmd = " << cd << endl;
              cerr << errMsg << endl;
+             writeLog(ci,cmd,errMsg);
            }
 
            string fname2 =   targetDir
@@ -11515,9 +11639,10 @@ class Mapper{
                                      showCommands, logOn, commandLog);
            if((err!=0) ){ 
               showError(ci,cmd,err,errMsg);
+              writeLog(ci,cmd,errMsg);
            }
-           ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime,
-                             showCommands, logOn, commandLog);
+         //  ci->simpleCommand("delete "+funName,err,errMsg,r,false, runtime,
+         //                    showCommands, logOn, commandLog);
 
         }
 
@@ -11570,6 +11695,7 @@ class Mapper{
           if((err!=0)  ){ // ignore type map errors
                                     // because reason is a missing file
              showError(ci,cmd,err,errMsg);
+             writeLog(ci,cmd,errMsg);
           }
         }
 
@@ -11701,6 +11827,7 @@ class transferatorStarter{
                           showCommands, logOn, commandLog);
         if(err!=0){
            showError(ci,cmd,err,errMsg);
+           writeLog(ci,cmd,errMsg);
         }
      }
 };
@@ -12026,6 +12153,7 @@ funargs.
                  if(errorCode){
                     cerr << __FILE__ << "@"  << __LINE__ << endl;
                     showError(ci,cmd,errorCode,errMsg);
+                    writeLog(ci,cmd,errMsg);
                     return false;
                  } 
                  formerObject = true; 
@@ -12060,6 +12188,7 @@ funargs.
               if(errorCode){
                  cerr << __FILE__ << "@"  << __LINE__ << endl;
                  showError(c0, cmd, errorCode, errMsg);
+                 writeLog(c0,cmd,errMsg);
                  return false;
              } 
 
@@ -12071,6 +12200,7 @@ funargs.
                  if(errorCode){
                     cerr << __FILE__ << "@"  << __LINE__ << endl;
                     showError(ci,cmd,errorCode, errMsg);
+                    writeLog(ci,cmd,errMsg);
                     return false;
                  } 
              }
@@ -12086,6 +12216,7 @@ funargs.
                 if(errorCode){
                     cerr << __FILE__ << "@"  << __LINE__ << endl;
                     showError(c0,cmd,errorCode,errMsg);
+                    writeLog(c0,cmd,errMsg);
                    // return false; //ignore, may be object already there
                  }
                  cmd = "query removeFile('" + fileNameOn0+ "')";
@@ -12094,6 +12225,7 @@ funargs.
                  if(errorCode){
                     cerr << __FILE__ << "@"  << __LINE__ << endl;
                     showError(c0,cmd,errorCode,errMsg);
+                    writeLog(c0,cmd,errMsg);
                     return false;
                  } 
                  sourceNames.push_back(pair<bool,string>(true,oname));
@@ -12311,6 +12443,7 @@ the result for their slot.
                if(err){
                     cerr << __FILE__ << "@" << __LINE__ << endl;
                     showError(ci,q,err,errMsg);
+                    writeLog(ci,q,errMsg);
                     res->makeUndefined();
                     return false;
                 }
@@ -12377,6 +12510,7 @@ Does what the name says.
          if(err){
             cerr << __FILE__ << "@"  << __LINE__ << endl;
             showError(ci,cmd,err,errMsg);
+            writeLog(ci,cmd,errMsg);
             return false;
          }
          if(!nl->HasLength(result,2)){
@@ -12481,6 +12615,7 @@ the sources and the correspnding function arguments are created.
            if(err){
               cerr << __FILE__ << "@"  << __LINE__ << endl;
               cerr << "could not compute result for slot " << slot << endl;
+              writeLog(c0,cmd,errMsg);
               showError(c0,cmd,err,errMsg);
            }
            // remove temporarly created objects.
@@ -12566,6 +12701,7 @@ from other than the result worker.
                  << " for slot " << slot << endl;
             cerr << "because the following command failed: " << cmd  
                  << "with code " << err << endl << errMsg << endl << endl;
+            writeLog(ci,cmd,errMsg);
           }
        }
   };
@@ -12916,7 +13052,8 @@ void performCommand(ConnectionInfo* ci, const string& cmd){
      ci->simpleCommand(cmd, errorCode, errorMsg, res, false, rt,
                        showCommands, logOn, commandLog);
      if(errorCode){
-           showError(ci,cmd, errorCode, errorMsg);
+       showError(ci,cmd, errorCode, errorMsg);
+       writeLog(ci,cmd,errorMsg);
      }
 }
 
@@ -12929,7 +13066,8 @@ void performListCommand(ConnectionInfo* ci, const string& cmd){
      ci->simpleCommandFromList(cmd, errorCode, errorMsg, res, false, rt,
                                showCommands, logOn, commandLog);
      if(errorCode){
-           showError(ci,cmd, errorCode, errorMsg);
+       showError(ci,cmd, errorCode, errorMsg);
+       writeLog(ci,cmd,errorMsg);
      }
 }
 
@@ -13249,6 +13387,7 @@ class dproductInfo{
                                  showCommands, logOn, commandLog);
                if(errCode){
                   showError(ci, cmd, errCode, errMsg);
+                  writeLog(ci,cmd,errMsg);
                }
             }
 
@@ -13543,6 +13682,7 @@ class dproductInfo{
               if(ec){
                   cout << __FILE__ << "@" << __LINE__ << endl;
                   showError(c0,cmd,ec,errMsg);
+                  writeLog(c0,cmd,errMsg);
               }
            }
 
@@ -14465,6 +14605,10 @@ class FileTransferServerStarter{
         double runtime;
         ci->simpleCommand(serverQuery,err,errMsg,result,false, runtime,
                           showCommands, logOn, commandLog);
+        if(err){
+          showError(ci,serverQuery,err,errMsg);
+          writeLog(ci,serverQuery, errMsg);
+        }
     }
 
     void cancel(){
@@ -14545,6 +14689,7 @@ int transferFileVMT(Word* args, Word& result, int message,
       if(err!=0){
           cerr << __FILE__ << "@"  << __LINE__ << endl;
           showError(ci1,q,err,errMsg);
+          writeLog(ci1,q,errMsg);
           res->Set(true,false);
           return 0;
       }
@@ -14575,6 +14720,7 @@ int transferFileVMT(Word* args, Word& result, int message,
   if(err!=0){
      cerr << __FILE__ << "@"  << __LINE__ << endl;
      showError(ci2,clientQuery, err, errMsg);
+      writeLog(ci2,clientQuery, errMsg);
      res->Set(true,false);
      return 0;
   } 
@@ -15731,14 +15877,15 @@ class partitionInfo{
         string errMsg;
         double runtime;
         ListExpr resList;
-        ci->simpleCommand("query createDirectory('"+targetDir+"', TRUE)", 
+        string cmd = "query createDirectory('"+targetDir+"', TRUE)";
+        ci->simpleCommand(cmd, 
                           err, errMsg, 
                           resList, false,runtime, showCommands, logOn,
                           commandLog);
         if(err!=0){
            cerr << __FILE__ << "@"  << __LINE__ << endl;
-           showError(ci, "query createDirectory('"+targetDir+"', TRUE)",
-                     err,errMsg);
+           showError(ci, cmd, err,errMsg);
+           writeLog(ci,cmd, errMsg); 
            return;
         }
         if(!nl->HasLength(resList,2)){
@@ -15754,7 +15901,7 @@ class partitionInfo{
             //cerr << "resList is " << nl->ToString(resList) << endl;
             // may be directory already exists, TODO: check if it is a directory
         }
-        string cmd = constructQuery(targetDir);
+        cmd = constructQuery(targetDir);
         if(cmd==""){
            cerr << "worker " << workerNumber 
                 << " does not contain any slot" << endl;
@@ -15766,6 +15913,7 @@ class partitionInfo{
         if(err!=0){
            cerr << __FILE__ << "@"  << __LINE__ << endl;
            showError(ci,cmd,err,errMsg);
+           writeLog(ci,cmd,errMsg);
         }
      }
 
@@ -16545,6 +16693,7 @@ class AReduceTask{
           if(err){
                cerr << "creating directory " << dir << " on worker " 
                     << worker << "failed" << endl;
+               writeLog(ci, cmd,errMsg);
                listener->ready(currentSlot,worker, runner);
                return;
           }
@@ -16599,6 +16748,7 @@ class AReduceTask{
                cerr << "command  " << cmd  << " on worker " 
                     << worker << "failed" << endl;
                cerr << errMsg << endl;
+               writeLog(ci,cmd,errMsg);
                listener->ready(currentSlot,worker, runner);
                return;
           }
@@ -16644,6 +16794,7 @@ class AReduceTask{
                                 + stringutils::int2str(currentSlot);
               ci->simpleCommand("delete " + objname, err, errMsg, res, false, 
                                 runtime, showCommands, logOn, commandLog);
+              // ignore error about non existent object
               cmd =   "( let " + objname+"  =  (" + funtext + " "
                     + tuplestream1 +  tuplestream2 + "))";
           } else {
@@ -16664,6 +16815,7 @@ class AReduceTask{
                       cerr << "command  " << cmd  << " on worker " 
                            << worker << "failed" << endl;
                       cerr << errMsg << endl;
+                      writeLog(ci,cmd,errMsg);
               }
               cmd =   "( query ( count ( fconsume5 (" + feed1 +  "" + funtext 
                     + " " + tuplestream1 + tuplestream2 + " )" + feed2 + "'" 
@@ -16674,6 +16826,7 @@ class AReduceTask{
           if(err){
               cerr << __FILE__ << "@"  << __LINE__ << endl;
               showError(ci,cmd,err,errMsg);
+              writeLog(ci,cmd,errMsg);
           } 
          
           cmd="query removeDirectory('"+dir+"', TRUE)";
@@ -16683,6 +16836,7 @@ class AReduceTask{
                cerr << "removing directory " << dir << " on worker " 
                     << worker << "failed" << endl;
                cerr << errMsg << endl;
+               writeLog(ci,cmd,errMsg);
           }
 
           listener->ready(currentSlot,worker, runner);
@@ -17167,6 +17321,7 @@ class slotGetter{
                          showCommands, logOn, commandLog);
        if(err!=0){
           cerr << "error during cmd " << cmd << endl;
+          writeLog(ci,cmd,errMsg);
           return;
        }
        cmd = "query createDirectory('"+tdir+"',TRUE)";
@@ -17174,6 +17329,7 @@ class slotGetter{
                          showCommands, logOn, commandLog);
        if(err!=0){
           cerr << "error during cmd " << cmd << endl;
+          writeLog(ci,cmd,errMsg);
           return;
        }
 
@@ -17194,6 +17350,7 @@ class slotGetter{
                          showCommands, logOn, commandLog);
        if(err){
           cerr << "Error in command " << cmd << endl;
+          writeLog(ci,cmd,errMsg);
           cerr << errMsg;
        }
 
@@ -17237,6 +17394,7 @@ class slotGetter{
          if(err){
             cerr << "Error in command " << cmd << endl;
             cerr << errMsg;
+            writeLog(ci,cmd,errMsg);
          }
      } 
 
@@ -17258,6 +17416,7 @@ class slotGetter{
        if(err!=0){
           cerr << __FILE__ << "@"  << __LINE__ << endl;
           showError(ci,cmd,err,errMsg);
+          writeLog(ci,cmd,errMsg);
        }
      
      }
