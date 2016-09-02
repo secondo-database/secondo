@@ -950,6 +950,8 @@ cout << "Delete_Orel" << endl;
   delete orel->tupleFile;
   orel->tupleFile = 0; //to prevent ~OrderedRelation from closing tupleFile
   if (orel->hasLobs) {
+    char mode = 0; // orels are never temporarly
+    Flob::dropFile(orel->lobFileId, mode);
     SmiRecordFile rf(false, 0, false);
     rf.Open(orel->lobFileId);
     rf.Close();
