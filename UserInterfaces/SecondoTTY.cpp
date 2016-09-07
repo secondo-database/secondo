@@ -763,12 +763,19 @@ SecondoTTY::Execute()
   #if !defined(SECONDO_CLIENT_SERVER) && !defined(REPLAY)
   si = new SecondoInterfaceTTY(false);
   #elif defined(SECONDO_CLIENT_SERVER)
-  si = new SecondoInterfaceCS(true);
+
+  //cout << "create a new SecondoInterfaceCS " << endl;
+
+  si = new SecondoInterfaceCS(true,0,true);
+
+  //cout << "finished Creattion of SecondoInterfaceCS" << endl;
+
+
   #elif defined(REPLAY)
   si = new SecondoInterfaceREPLAY(true);
   ((SecondoInterfaceREPLAY*)si)->setReplayFile(replayFile);
   #else
-  si = new SecondoInterfaceCS(true);
+  si = new SecondoInterfaceCS(true,0,true);
   #endif
 
   string errorMsg("");
