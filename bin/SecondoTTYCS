@@ -1,10 +1,24 @@
 #!/bin/bash
 #
+executable=$(which SecondoCS)
 
-if [ "$SECONDO_PLATFORM" = "win32" ]; then
-  echo "On certain windows platforms, SecondoTTYCS crashes on shutdown."
-  echo "This appears to be a bug in the mingw implementation. "
-  echo "It does not lead to problems using Secondo databases."
-fi
+VALGRIND_STD_OPTIONS=" --num-callers=25 --suppressions=vgs.txt --error-limit=no --smc-check=all --track-origins=yes"
 
-SecondoCS $*
+if [ "$1" == "--valgrind" ]; then
+  shift
+  runner="valgrind $VALGRIND_STD_OPTIONS $executable"
+else 
+   if [ "$1" == "--valgrindlc" ]; then
+      shift
+      runner="valgrind $VALGRIND_STD_OPTIONS --leak-check=full $executable"
+   else  
+      if [ "$1" == "--profile" ]; then
+         shift
+         runner="valgrind --tool=callgrind --dump-instr=yes --trace-jump=yes $executable"
+      else
+         runner=$executable
+      fi  
+   fi  
+fi 
+
+$runner $*
