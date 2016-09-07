@@ -47,11 +47,13 @@ provides functions useful for the client and for the server implementation.
 //#define TRACE_ON 1
 #undef TRACE_ON
 #include "LogMsg.h"
+#include "SecondoInterface.h"
 #include "SecondoInterfaceCS.h"
 #include "SocketIO.h"
 #include "Profiles.h"
 #include "CSProtocol.h"
 #include "StringUtils.h"
+
 
 using namespace std;
 
