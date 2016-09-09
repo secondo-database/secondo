@@ -570,13 +570,13 @@ string ConnectionInfo::getSendPath()
 */
 ConnectionInfo* ConnectionInfo::createConnection(const string& host,
                                                  const int port,
-                                                 string& config)
+                                                 string& config,
+                                                 const string& user /*=""*/,
+                                                 const string& passwd/*=""*/)
 {
 
     NestedList* mynl = new NestedList();
     SecondoInterfaceCS* si = new SecondoInterfaceCS(true, mynl, true);
-    string user = "";
-    string passwd = "";
     string errMsg;
     si->setMaxAttempts(4);
     si->setTimeout(1);

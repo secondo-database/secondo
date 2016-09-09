@@ -1115,6 +1115,16 @@ connections.
 
     ErrorWriter errorWriter;
 
+
+    const string& getUser(){ return user;}
+    const string& getPasswd(){ return passwd;}
+
+    void setAccount(const string&user, const string& passwd){
+       this->user=user;
+       this->passwd=passwd;
+    }
+
+
   private:
     // connections managed by the user
     vector<ConnectionInfo*> connections;
@@ -1132,6 +1142,11 @@ connections.
     boost::mutex namecounteraccess;
 
     PProgressView* pprogView;
+    // access information for connecting with workers
+    // assumed, all workes use the same user/password combination.
+    string user;
+    string passwd;
+
 
 
    // returns a unique number
@@ -1147,7 +1162,8 @@ connections.
       string host = worker.getHost();
       int port = worker.getPort();
       string config = worker.getConfig();
-      ConnectionInfo* ci = ConnectionInfo::createConnection(host, port, config);
+      ConnectionInfo* ci = ConnectionInfo::createConnection(host, port, config,
+                                                            user, passwd);
       res.first="";
       res.second = ci;
       return ci!=0;
@@ -1350,12 +1366,12 @@ int connectVMT( Word* args, Word& result, int message,
    }
    NestedList* mynl = new NestedList();
    SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
-   string user="";
-   string passwd = "";
    string errMsg;
    MessageCenter* msgcenter = MessageCenter::GetInstance();
    si->setMaxAttempts(4);
    si->setTimeout(1);
+   string user = algInstance->getUser();
+   string passwd = algInstance->getPasswd();
    if(! si->Initialize(user, passwd, host, 
                        stringutils::int2str(port), file, 
                        errMsg, true)){
@@ -3740,7 +3756,9 @@ class Connector{
         si->setMaxAttempts(4);
         si->setTimeout(1);
         string errMsg;
-        if(!si->Initialize( "", "", host, stringutils::int2str(port),
+        string user = algInstance->getUser();
+        string passwd = algInstance->getPasswd();
+        if(!si->Initialize( user, passwd, host, stringutils::int2str(port),
                            config,errMsg, true)){
            listener->connectionDone(inTuple, inTupleNo, 0);
            delete si;
@@ -19489,10 +19507,10 @@ class deleteRemoteDatabasesInfo{
                          string& msg){
         NestedList* mynl = new NestedList();
         SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
-        string user="";
-        string passwd = "";
         si->setMaxAttempts(4);
         si->setTimeout(1);
+        string user = algInstance->getUser();
+        string passwd = algInstance->getPasswd();
         if(! si->Initialize(user, passwd, host,
                             stringutils::int2str(port), 
                             config,
@@ -19608,6 +19626,80 @@ Operator deleteRemoteDatabasesOp(
 );
 
 
+/*
+68 Operator ~setAccount~
+
+*/
+ListExpr setAccountTM(ListExpr args){
+  string err = "{string,text} x {string, text} expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (invalid number of args)");
+  }
+  ListExpr a1 = nl->First(args);
+  if( !CcString::checkType(a1) && !FText::checkType(a1)){
+     return listutils::typeError(err + " (first arg is not a string nor text)");
+  }
+  ListExpr a2 = nl->Second(args);
+  if( !CcString::checkType(a2) && !FText::checkType(a2)){
+     return listutils::typeError(err + " (first arg is not a string nor text)");
+  }
+  return listutils::basicSymbol<CcBool>(); 
+}
+
+
+
+template<class U, class P>
+int setAccountVMT(Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+   U* user = (U*) args[0].addr;
+   P* pass = (P*) args[1].addr;
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   if(!user->IsDefined() || !pass->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   algInstance->setAccount(user->GetValue(), pass->GetValue());
+   res->Set(true,true);
+   return 0;
+}
+
+
+ValueMapping setAccountVM[] = {
+   setAccountVMT<CcString,CcString>,
+   setAccountVMT<CcString,FText>,
+   setAccountVMT<FText,CcString>,
+   setAccountVMT<FText,FText>
+};
+
+int setAccountSelect(ListExpr args){
+   ListExpr H = nl->First(args);
+   ListExpr C = nl->Third(args);
+   int n1 = CcString::checkType(H)?0:2;
+   int n2 = CcString::checkType(C)?0:1;
+   return n1+n2;
+}
+
+OperatorSpec setAccountSpec(
+  "{string,text} x {string, text} -> bool",
+  "setAccount(user,passwd)",
+  "Set the user / password combination for all "
+  "connections instatiated by the Distributed2Algebra.",
+  "query setAccount( \"user\",'topsecret');"
+);
+
+Operator setAccountOp(
+  "setAccount",
+  setAccountSpec.getStr(),
+  4,
+  setAccountVM,
+  setAccountSelect,
+  setAccountTM 
+);
+
+
+
+
 
 /*
 3 Implementation of the Algebra
@@ -19615,6 +19707,8 @@ Operator deleteRemoteDatabasesOp(
 */
 Distributed2Algebra::Distributed2Algebra(){
    namecounter = 0;
+   user ="";
+   passwd="";
 
    AddTypeConstructor(&DArrayTC);
    DArrayTC.AssociateKind(Kind::SIMPLE());
@@ -19813,6 +19907,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&da2LogOp);
    
    AddOperator(&deleteRemoteDatabasesOp);
+   AddOperator(&setAccountOp);
 
 
    pprogView = new PProgressView();

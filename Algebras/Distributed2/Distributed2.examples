@@ -673,3 +673,13 @@ Signature : string x rel -> stream(tuple)
 Example   : query deleteRemoteDatabases("berlintest", workers)
 Result    : crashes
 Remark    : Not a good idea to test this dangerous operator
+
+
+Operator  : setAccount
+Number    : 1
+Signature : {string,text} x {string, text} -> bool
+Example   : query setAccount("", "");
+Result    : TRUE
+
+
+

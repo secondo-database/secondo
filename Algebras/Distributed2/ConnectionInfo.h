@@ -160,7 +160,9 @@ public:
 
     static ConnectionInfo* createConnection(const std::string& host,
                                             const int port,
-                                            std::string& config);
+                                            std::string& config,
+                                            const std::string& user ="",
+                                            const std::string& passwd="");
 
     bool createOrUpdateObject(const std::string& name,
                               ListExpr typelist,
