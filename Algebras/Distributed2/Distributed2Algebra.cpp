@@ -19887,10 +19887,6 @@ Operator setAccountOp(
   setAccountTM 
 );
 
-/*
-89 Operators managing the collectionmode
-
-*/
 
 
 
