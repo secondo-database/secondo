@@ -81,6 +81,7 @@ public:
                    const std::string& _config,
                    SecondoInterfaceCS* _si,
                    NestedList* _mynl);
+
     virtual ~ConnectionInfo();
 
     std::string getHost() const;
@@ -108,6 +109,7 @@ public:
     bool cleanUp(bool showCommands,
                  bool logOn,
                  CommandLog& commandLog);
+
     bool switchDatabase(const std::string& dbname,
                         bool createifnotexists,
                         bool showCommands);
@@ -195,6 +197,7 @@ public:
     bool saveRelationToFile(ListExpr relType,
                             Word& value,
                             const std::string& filename);
+
     bool saveAttributeToFile(ListExpr type,
                              Word& value,
                              const std::string& filename);
@@ -237,11 +240,25 @@ public:
                          bool showCommands,
                          bool logOn,
                          CommandLog& commandLog);
+
     Word createRelationFromFile(const std::string& fname, ListExpr& resType);
 
     std::ostream& print(std::ostream& o) const;
 
+    inline void startCollectMode() {
+       collectMode = true;
+    }
 
+    inline void abortCollectMode(){
+      collectedCommands.clear();
+      collectMode = false;
+    } 
+
+    void finishCollectMode(std::vector<std::string> & commands,
+                           std::vector<int>& errors,
+                           std::vector<std::string>& errMsgs,
+                           std::vector<double>& runtimes);
+    
 private:
     void retrieveSecondoHome(bool showCommands,
                              CommandLog& commandLog);
@@ -256,6 +273,10 @@ private:
     std::string requestFolder;
     std::string sendFolder;
     std::string sendPath;
+    bool collectMode;
+    std::vector<std::pair<std::string, bool> > collectedCommands;
+    // command , isList
+
     boost::recursive_mutex simtx; // mutex for synchronizing 
                                   // access to the interface
 };
