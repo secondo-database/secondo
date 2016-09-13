@@ -376,7 +376,7 @@ class PProgressView: public MessageHandler{
 class ConnectionFinisher{
 
   public:
-			ConnectionFinisher(const vector<ConnectionInfo*> _cons,
+      ConnectionFinisher(const vector<ConnectionInfo*> _cons,
                          vector<ConnectionInfo*>* _connections,
                          vector<string>* _commands,
                          vector<int>* _errors,
