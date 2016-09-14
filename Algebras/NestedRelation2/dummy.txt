@@ -1,3 +1,2 @@
 Testdatei, um zu sehen, ob auf dem CVS was ankommt.
-
-
+!
