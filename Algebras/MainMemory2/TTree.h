@@ -182,9 +182,7 @@ Returns the amount of memory occupied by the subtree represented by this node.
           res += right->memSize();
         return res;  
       }
-
-      
-
+ 
 /*
 ~getObject~
 
