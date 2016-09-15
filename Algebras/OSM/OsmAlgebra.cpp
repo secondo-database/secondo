@@ -1609,7 +1609,7 @@ void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
       } while (ch != '<');
       char lastLineBuffer[endpos - pos];
       test.read(lastLineBuffer, endpos - pos);
-      std::string lastLine(lastLineBuffer);
+      std::string lastLine(lastLineBuffer, endpos - pos);
       test.close();
       lastLine = (lastLine[0] == '<' ? lastLine : "<" + lastLine);
       if (isValid(lastLine)) {
