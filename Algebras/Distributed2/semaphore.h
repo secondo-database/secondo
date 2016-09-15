@@ -64,5 +64,4 @@ public:
         }
         --count_;
     }
-
 };
