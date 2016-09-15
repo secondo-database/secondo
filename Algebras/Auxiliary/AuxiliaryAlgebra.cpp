@@ -351,14 +351,15 @@ public:
 
    void forwardTuple() {
       forwardedTuples++;
-    
       #pragma GCC diagnostic push
       #pragma GCC diagnostic ignored "-Wdiv-by-zero"
       #pragma GCC diagnostic ignored "-Wunused-variable"
-      if(rand() % crashAfter == 0) {
+      int randValue = rand();
+      if(randValue % crashAfter == 0) {
           if(crashType == CRASH) {
              // Execute division by zero to crash the software
-             int res = 10 / 0; 
+             int res = 10 / 0;
+             exit(-1); 
           } else {
              // Loop forever! 
              while(true) {
@@ -415,6 +416,7 @@ int InjectFault(Word* args, Word& result, int message, Word& local, Supplier s)
       if(li) {
          delete li;
          li = NULL;
+         local.setAddr( li );
       }
       qp->Close(args[0].addr);
       return 0;
