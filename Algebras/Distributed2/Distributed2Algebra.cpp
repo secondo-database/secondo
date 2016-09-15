@@ -1240,7 +1240,7 @@ connections.
     }
 
     void startCollectMode(){
-      if(collectionMode){
+      if(collectMode){
         return;
       }
 
