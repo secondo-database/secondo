@@ -72,6 +72,8 @@ for node in $nodes; do
    echo -n "Starting Cassandra on Node $node " 
    ssh $node "source .secondorc; $script start_local > /dev/null" 
    res=$?
+   
+   sleep 5
 
    if [ $counter -eq 0 ]; then
       echo -n "(first node) "
