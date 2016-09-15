@@ -373,113 +373,6 @@ class PProgressView: public MessageHandler{
 };
 
 
-class ConnectionFinisher{
-
-  public:
-      ConnectionFinisher(const vector<ConnectionInfo*> _cons,
-                         vector<ConnectionInfo*>* _connections,
-                         vector<string>* _commands,
-                         vector<int>* _errors,
-                         vector<string>* _errMsgs,
-                         vector<double>* _runtimes ): 
-          cons(_cons),
-          connections(_connections),
-          commands(_commands),
-          errors(_errors),
-          errorMsgs(_errMsgs),
-          runtimes(_runtimes){
-            connections->clear();
-            commands->clear();
-            errors->clear();
-            errorMsgs->clear();
-            runtimes->clear();
- 
-          }
-
-
-      ~ConnectionFinisher() {
-         for(size_t i=0;i<runners.size();i++){
-            threads[i]->join();
-            delete threads[i];
-            delete runners[i];
-         }
-
-      }
-
-      void finish(){
-
-         for(size_t i=0;i<cons.size();i++){
-            ConnectionInfo* ci = (*connections)[i];
-            Runner* r = new Runner(ci, this);
-            boost::thread* t = new boost::thread(&Runner::run,r);
-            runners.push_back(r);
-            threads.push_back(t);
-         }
-
-      }
-
-
-  private:
-      vector<ConnectionInfo*> cons;
-      vector<ConnectionInfo*>* connections;
-      vector<string>* commands;
-      vector<int>* errors;
-      vector<string>* errorMsgs;
-      vector<double>* runtimes;
-
-
-      class Runner{
-        public:
-           Runner(ConnectionInfo* _ci,
-                  ConnectionFinisher* _cf):
-                  ci(_ci), cf(_cf){}
- 
-       
-      
-
-
-      void run(){
-          vector<string> local_cmds;
-          vector<int> local_errors;
-          vector<string> local_msg;
-          vector<double> local_times;
-          ci->finishCollectMode(local_cmds,
-                                local_errors,
-                                local_msg,
-                                local_times);
-
-          // transfer data to global variables
-          {
-            boost::lock_guard<boost::mutex> guard(cf->mtx);
-            size_t m = local_cmds.size();
-            assert(local_errors.size()==m);
-            assert(local_msg.size()==m);
-            assert(local_times.size()==m);
-            for(size_t i=0;i<m;i++){
-               cf->connections->push_back(ci);
-               cf->commands->push_back(local_cmds[i]);
-               cf->errors->push_back(local_errors[i]);
-               cf->errorMsgs->push_back(local_msg[i]);
-               cf->runtimes->push_back(local_times[i]);
-            }
-          }
-      }
-  
-     private:
-        ConnectionInfo* ci;
-        ConnectionFinisher* cf;
-
-    };
-
-
-      boost::mutex mtx;
-      vector<Runner*> runners;
-      vector<boost::thread*> threads;
-
-
-};
-
-
 
 /*
 5 The Distributed2Algebra
@@ -523,10 +416,7 @@ Adds a new connection to the connection pool.
        int res = connections.size();
        connections.push_back(ci);
        if(ci){
-         ci->setId(connections.size());
-         if(collectMode){
-           ci->startCollectMode();
-         }  
+           ci->setId(connections.size());
        }
        return res; 
      }
@@ -1225,88 +1115,6 @@ connections.
 
     ErrorWriter errorWriter;
 
-
-    const string& getUser(){ return user;}
-    const string& getPasswd(){ return passwd;}
-
-    void setAccount(const string&user, const string& passwd){
-       this->user=user;
-       this->passwd=passwd;
-    }
-
-
-    bool isCollectMode() const{
-      return collectMode;
-    }
-
-    void startCollectMode(){
-      if(collectMode){
-        return;
-      }
-
-      collectMode = true;
-      for(size_t i=0;i<connections.size();i++){
-         if(connections[i]){
-            connections[i]->startCollectMode();
-         }
-      } 
-      // worker connections
-      typename map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
-      for(it = workerconnections.begin(); it!=workerconnections.end(); it++){
-         ConnectionInfo* ci = it->second.second;
-         if(ci){
-            ci->startCollectMode();
-         }
-      }
-    }
-
-    void abortCollectMode(){
-      collectMode = false;
-      // manual connections
-      for(size_t i=0;i<connections.size();i++){
-         if(connections[i]){
-            connections[i]->abortCollectMode();
-         }
-      } 
-      // worker connections
-      typename map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
-      for(it = workerconnections.begin(); it!=workerconnections.end(); it++){
-         ConnectionInfo* ci = it->second.second;
-         if(ci){
-            ci->abortCollectMode();
-         }
-      }
-      
-    }
-
-    void finishCollectMode(vector<ConnectionInfo*>& cis,
-                           vector<string>& commands,
-                           vector<int>& errorCodes,
-                           vector<string>& errorMsgs,
-                           vector<double>& runtimes){
-      // collect all existing connections
-      // into a single vector
-      vector<ConnectionInfo*> cons;
-      for(size_t i=0;i<connections.size();i++){
-         if(connections[i]){
-            cons.push_back(connections[i]);
-         }
-      } 
-      typename map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
-      for(it = workerconnections.begin(); it!=workerconnections.end(); it++){
-         ConnectionInfo* ci = it->second.second;
-         if(ci){
-            cons.push_back(ci);
-         }
-      }
-      ConnectionFinisher cf(cons,
-                            &cis, &commands,
-                            &errorCodes, &errorMsgs,
-                            &runtimes );
-      cf.finish();
-    }
-
-
   private:
     // connections managed by the user
     vector<ConnectionInfo*> connections;
@@ -1324,13 +1132,6 @@ connections.
     boost::mutex namecounteraccess;
 
     PProgressView* pprogView;
-    // access information for connecting with workers
-    // assumed, all workes use the same user/password combination.
-    string user;
-    string passwd;
-
-    bool collectMode;
-
 
 
    // returns a unique number
@@ -1346,13 +1147,7 @@ connections.
       string host = worker.getHost();
       int port = worker.getPort();
       string config = worker.getConfig();
-      ConnectionInfo* ci = ConnectionInfo::createConnection(host, port, config,
-                                                            user, passwd);
-      if(ci){
-        if(collectMode){
-          ci->startCollectMode();
-        }
-      }
+      ConnectionInfo* ci = ConnectionInfo::createConnection(host, port, config);
       res.first="";
       res.second = ci;
       return ci!=0;
@@ -1555,12 +1350,12 @@ int connectVMT( Word* args, Word& result, int message,
    }
    NestedList* mynl = new NestedList();
    SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
+   string user="";
+   string passwd = "";
    string errMsg;
    MessageCenter* msgcenter = MessageCenter::GetInstance();
    si->setMaxAttempts(4);
    si->setTimeout(1);
-   string user = algInstance->getUser();
-   string passwd = algInstance->getPasswd();
    if(! si->Initialize(user, passwd, host, 
                        stringutils::int2str(port), file, 
                        errMsg, true)){
@@ -3945,9 +3740,7 @@ class Connector{
         si->setMaxAttempts(4);
         si->setTimeout(1);
         string errMsg;
-        string user = algInstance->getUser();
-        string passwd = algInstance->getPasswd();
-        if(!si->Initialize( user, passwd, host, stringutils::int2str(port),
+        if(!si->Initialize( "", "", host, stringutils::int2str(port),
                            config,errMsg, true)){
            listener->connectionDone(inTuple, inTupleNo, 0);
            delete si;
@@ -3955,9 +3748,6 @@ class Connector{
            delete mynl;
         } else {
            ConnectionInfo* ci = new ConnectionInfo(host,port,config,si,mynl);
-           if(algInstance->isCollectMode()){
-             ci->startCollectMode();
-           }
            listener->connectionDone(inTuple, inTupleNo, ci);
         }
      }
@@ -19699,10 +19489,10 @@ class deleteRemoteDatabasesInfo{
                          string& msg){
         NestedList* mynl = new NestedList();
         SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
+        string user="";
+        string passwd = "";
         si->setMaxAttempts(4);
         si->setTimeout(1);
-        string user = algInstance->getUser();
-        string passwd = algInstance->getPasswd();
         if(! si->Initialize(user, passwd, host,
                             stringutils::int2str(port), 
                             config,
@@ -19728,6 +19518,8 @@ class deleteRemoteDatabasesInfo{
             return true;
         }
     }
+
+
 };
 
 
@@ -19816,81 +19608,6 @@ Operator deleteRemoteDatabasesOp(
 );
 
 
-/*
-68 Operator ~setAccount~
-
-*/
-ListExpr setAccountTM(ListExpr args){
-  string err = "{string,text} x {string, text} expected";
-  if(!nl->HasLength(args,2)){
-    return listutils::typeError(err + " (invalid number of args)");
-  }
-  ListExpr a1 = nl->First(args);
-  if( !CcString::checkType(a1) && !FText::checkType(a1)){
-     return listutils::typeError(err + " (first arg is not a string nor text)");
-  }
-  ListExpr a2 = nl->Second(args);
-  if( !CcString::checkType(a2) && !FText::checkType(a2)){
-     return listutils::typeError(err + " (first arg is not a string nor text)");
-  }
-  return listutils::basicSymbol<CcBool>(); 
-}
-
-
-
-template<class U, class P>
-int setAccountVMT(Word* args, Word& result, int message,
-                  Word& local, Supplier s ){
-   U* user = (U*) args[0].addr;
-   P* pass = (P*) args[1].addr;
-   result = qp->ResultStorage(s);
-   CcBool* res = (CcBool*) result.addr;
-   if(!user->IsDefined() || !pass->IsDefined()){
-     res->SetDefined(false);
-     return 0;
-   }
-   algInstance->setAccount(user->GetValue(), pass->GetValue());
-   res->Set(true,true);
-   return 0;
-}
-
-
-ValueMapping setAccountVM[] = {
-   setAccountVMT<CcString,CcString>,
-   setAccountVMT<CcString,FText>,
-   setAccountVMT<FText,CcString>,
-   setAccountVMT<FText,FText>
-};
-
-int setAccountSelect(ListExpr args){
-   ListExpr H = nl->First(args);
-   ListExpr C = nl->Third(args);
-   int n1 = CcString::checkType(H)?0:2;
-   int n2 = CcString::checkType(C)?0:1;
-   return n1+n2;
-}
-
-OperatorSpec setAccountSpec(
-  "{string,text} x {string, text} -> bool",
-  "setAccount(user,passwd)",
-  "Set the user / password combination for all "
-  "connections instatiated by the Distributed2Algebra.",
-  "query setAccount( \"user\",'topsecret');"
-);
-
-Operator setAccountOp(
-  "setAccount",
-  setAccountSpec.getStr(),
-  4,
-  setAccountVM,
-  setAccountSelect,
-  setAccountTM 
-);
-
-
-
-
-
 
 /*
 3 Implementation of the Algebra
@@ -19898,8 +19615,6 @@ Operator setAccountOp(
 */
 Distributed2Algebra::Distributed2Algebra(){
    namecounter = 0;
-   user ="";
-   passwd="";
 
    AddTypeConstructor(&DArrayTC);
    DArrayTC.AssociateKind(Kind::SIMPLE());
@@ -20098,12 +19813,10 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&da2LogOp);
    
    AddOperator(&deleteRemoteDatabasesOp);
-   AddOperator(&setAccountOp);
 
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);
-   collectMode = false;
 
 }
 
