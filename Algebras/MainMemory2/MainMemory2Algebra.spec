@@ -52,8 +52,6 @@ operator mcreateMtree alias MCREATEMTREE pattern _ op [_,_]
 operator mdistRange alias MDISTRANGE pattern _ _ op [_,_]
 operator mdistScan alias MDISTSCAN  pattern _ _ op [_]
 
-
-
 operator mexactmatchS alias MEXACTMATCHS pattern _ op [_]
 operator mrangeS alias MRANGES pattern _ op[_,_]
 operator matchbelowS alias MATCHBELOWS pattern _ op[_]
@@ -61,30 +59,56 @@ operator matchbelowS alias MATCHBELOWS pattern _ op[_]
 operator gettuples alias GETTUPLES pattern _ _ op
 
 
-operator mcreateTTree alias  MCREATETTREE pattern _ op [_]
 
+operator mwrap alias MWRAP pattern op(_)
+
+operator mcreatettree alias  MCREATETTREE pattern _ op [_]
+operator minsertttree alias MINSERTTTREE pattern _ op [_,_]
+operator mdeletettree alias MDELETETTREE pattern _ op [_,_]
+operator mupdatettree alias MUPDATETTREE pattern _ op [_,_]
+
+operator mcreateinsertrel alias MCREATEINSERTREL pattern op(_)
 operator minsert alias MINSERT pattern _ op [_]
+operator minsertsave alias MINSERTSAVE pattern _ op [_,_]
 operator minserttuple alias MINSERTTUPLE pattern _ op [list]
+operator minserttuplesave alias MINSERTTUPLESAVE pattern _ op [list;_]
+operator mcreatedeleterel alias MCREATEDELETEREL pattern op(_)
 operator mdelete alias MDELETE pattern _ op [_]
+operator mdeletesave alias MDELETESAVE pattern _ op [_,_]
 operator mdeletebyid alias MDELETEBYID pattern _ op [_]
-operator mupdate alias MUPDATE pattern _ op[_; funlist] implicit parameter tuple type TUPLE
+operator mcreateupdaterel alias MCREATEUPDATEREL pattern op(_)
+operator mupdate alias MUPDATE pattern _ op[_; funlist] 
+         implicit parameter tuple type TUPLE
+operator mupdatesave alias MUPDATESAVE pattern _ op[_,_; funlist] 
+         implicit parameter tuple type TUPLE
+operator mupdatebyid alias MUPDATEBYID pattern _ op[_; funlist] 
+         implicit parameter tuple type MTUPLE
 
-operator moconsume alias MOCONSUME pattern _ op[_]
-operator letmoconsume alias LETMOCONSUME pattern _ op [_,_]
-operator letmoconsumeflob alias LETMOCONSUMEFLOB pattern _ op [_,_]
+operator moinsert alias MOINSERT pattern _ op [_]
+operator modelete alias MODELETE pattern _ op [_]
+operator moconsume alias MOCONSUME pattern _ op[list]
+operator letmoconsume alias LETMOCONSUME pattern _ op [_;list]
+operator letmoconsumeflob alias LETMOCONSUMEFLOB pattern _ op [_;list]
 operator morange alias MORANGE pattern _ op [_,_]
 operator moleftrange alias MOLEFTRANGE pattern _ op [_]
 operator morightrange alias MORIGHTRANGE pattern _ op [_]
-operator moshortestpath alias MOSHORTESTPATH pattern _ op [_,_,_; fun] 
-         implicit parameter tuple type TUPLE
+operator moshortestpathd alias MOSHORTESTPATHD pattern _ op [_,_,_; fun] 
+         implicit parameter tuple type MTUPLE
+operator moshortestpatha alias MOSHORTESTPATHA pattern _ op [_,_,_; fun,fun] 
+         implicit parameter tuple type MTUPLE
 operator moconnectedcomponents alias MOCONNECTEDCOMPONENTS pattern _ op 
          
-operator mquicksort alias MQUICKSORT pattern _ op [_]
+operator mquicksort alias MQUICKSORT pattern _ op
+operator mquicksortby alias MQUICKSORTBY pattern _ op [list]
 
-operator mgshortestpath alias MGSHORTESTPATH pattern _ op [ _, _,_] 
+operator memglet alias MEMGLET pattern op(_,_)
+operator memgletflob alias MEMGLETFLOB pattern op(_,_)
+operator mgshortestpathd alias MGSHORTESTPATHD pattern _ op [_,_,_; fun] 
+         implicit parameter tuple type MTUPLE
+operator mgshortestpatha alias MGSHORTESTPATHA pattern _ op [_,_,_; fun, fun] 
+         implicit parameter tuple type MTUPLE
 operator mgconnectedcomponents alias MGCONNECTEDCOMPONENTS pattern _ op 
          
-operator mmapmatchmht alias MMAPMATCHMHT pattern op( _ , _ )
-operator momapmatchmht alias MOMAPMATCHMHT pattern op( _ , _ , _ , _ )
+operator momapmatchmht alias MOMAPMATCHMHT pattern op(_,_,_,_)
 
          
