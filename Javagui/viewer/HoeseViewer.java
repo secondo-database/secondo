@@ -2961,18 +2961,11 @@ public class HoeseViewer extends SecondoViewer {
 		TexturePath = "";
 		SoundPath = "";
 
-		String SecondoHome = configuration.getProperty("SECONDO_HOME");
-		if (SecondoHome == null) {
-			String T = (new File("")).getAbsolutePath();
-			T = T.substring(0, T.length() - 8) + FileSeparator;
-			if (!(new File(T)).exists())
-				SecondoHome = "";
-			else
-				SecondoHome = T;
-		}
+ 
+    String guiHome = (new File(".")).getAbsolutePath();
+    String dataHome = guiHome + FileSeparator + "data";
 
-		String HoeseHome = SecondoHome + "Data" + FileSeparator + "GuiData"
-				+ FileSeparator + "hoese" + FileSeparator;
+		String HoeseHome = dataHome +  FileSeparator + "hoese" + FileSeparator;
 		CatPath = HoeseHome + "categories";
 		SessionPath = HoeseHome + "sessions";
 		TexturePath = HoeseHome + "textures";
