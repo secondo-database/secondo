@@ -1,0 +1,351 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2004, University in Hagen, Department of Computer Science,
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# An example test spec for the Secondo TestRunner
+# run it with :
+#
+#  TestRunner -i example.test
+#
+# By default a temporary database directory will be created. If you
+# want to use existing databases run
+#
+#  TestRunner --no-tmp -i <file>
+#
+# If one of your tests (say number N ) reports an error you can run
+# it directly by
+#
+# TestRunner -i <file> -num N
+#
+# this is useful for debugging
+
+# A test specification consists of initial commands, a section of commands
+# setting up the test, a sequence of test cases, and a section of commands
+# cleaning up. The TestRunner uses directives to specify these sections.
+# directives are specified in comment lines, all comment lines beginning with a
+# directive are interpreted as commands to the TestRunner, non-comment lines are
+# passed to Secondo. The possible directives are SETUP, TESTCASE, YIELDS and
+# TEARDOWN (here i have written the directives in upper case to avoid confusion,
+# the real directives must be written in lower case). The meanings of those
+# directives are explained the following commented examples.
+
+
+# the SETUP directive may specify the name of the test and a
+# some algebra modules which are needed for it.
+# the SETUP directive must appear exactly once in a test spec
+
+#setup mainmemory2test StandardAlgebra RelationAlgebra MainMemory2Algebra
+
+
+open database berlintest
+
+#testcase MemoryORelObject
+#yields success
+let t1 = ten feed moconsume[No];
+
+#testcase MemoryORelObject
+#yields success
+query t1;
+
+#testcase MemoryORelObject
+#yields error
+let t2 = Staedte feed moconsume[No];
+
+#testcase MemoryORelObject
+#yields success
+delete t1;
+
+#testcase memload oten
+#yields (bool TRUE)
+query memload ("oten");
+
+#testcase memloadflob oTrains
+#yields (bool TRUE)
+query memloadflob ("oTrains");
+
+#testcase memload ten
+#yields (bool TRUE)
+query memload ("ten");
+
+#testcase mcreatettree
+#yields ((mem (ttree int)) "ten_No")
+query "ten" mcreatettree [No];
+
+#testcase mcreatettree error
+#yields error
+query "ten" mcreatettree [nr];
+
+#testcase minsertttree
+#yields (int 5)
+query ten feed head[5] modelete["oten"] minsertttree["ten_No", No] count;
+
+#testcase minsertttree error
+#yields error
+query ten feed head[5] modelete["oten"] minsertttree["Staedte_SName", SName] count;
+
+
+#testcase mdeletettree
+#yields (int 10)
+query ten feed addid mdeletettree["ten_No", No] count;
+
+#testcase mdeletettree error
+#yields error
+query Staedte feed addid mdeletettree["ten_No", No] count;
+
+#testcase memload Staedte
+#yields (bool TRUE)
+query memload ("Staedte");
+
+#testcase mcreateinsertrel
+#yields (bool TRUE)
+query memlet ("Stadt", mcreateinsertrel("Staedte"));
+
+#testcase mcreateinsertrel
+#yields error
+query memlet ("fuenf", mcreateinsertrel(8))
+
+#testcase mcreatedeleterel
+#yields success
+query memlet ("fuenf", mcreatedeleterel("ten"))
+
+#testcase memloadflob otestrel
+#yields (bool TRUE)
+query memload ("otestrel");
+
+#testcase moshortestpathd case 0
+#yields (int 6)
+query mwrap("otestrel") moshortestpathd [1,40,0; distance(.GeoData_s1,.GeoData_s2)] count;
+
+#testcase moshortestpathd case 1
+#yields (int 3)
+query mwrap("otestrel") moshortestpathd [1,40,1; distance(.GeoData_s1,.GeoData_s2)] count;
+
+#testcase moshortestpathd case 2
+#yields (int 63)
+query mwrap("otestrel") moshortestpathd [1,40,2; distance(.GeoData_s1,.GeoData_s2)] count;
+
+#testcase moshortestpathd case 3
+#yields (int 19)
+query mwrap("otestrel") moshortestpathd [1,40,3; distance(.GeoData_s1,.GeoData_s2)] count;
+
+#testcase moshortestpathd no path
+#yields (int 0)
+query mwrap("otestrel") moshortestpathd [1,41,0; distance(.GeoData_s1,.GeoData_s2)] count;
+
+
+#testcase moshortestpathd error
+#yields error
+query mwrap("otestrel") moshortestpathd [1,41,0; distance(.Source,.GeoData_s2)] count;
+
+#testcase moshortestpatha case 0
+#yields (int 8)
+query mwrap("otestrel") moshortestpatha [1,40,0; distance(.GeoData_s1,.GeoData_s2),distance(.GeoData_s1,.GeoData_s2) * 1.5] count;
+
+#testcase moshortestpatha case 1
+#yields (int 2)
+query mwrap("otestrel") moshortestpatha [1,40,1; distance(.GeoData_s1,.GeoData_s2),distance(.GeoData_s1,.GeoData_s2) * 1.5] count;
+
+#testcase moshortestpatha case 2
+#yields (int 64)
+query mwrap("otestrel") moshortestpatha [1,40,2; distance(.GeoData_s1,.GeoData_s2),distance(.GeoData_s1,.GeoData_s2) * 1.5] count;
+
+#testcase moshortestpatha case 3
+#yields (int 19)
+query mwrap("otestrel") moshortestpatha [1,40,3; distance(.GeoData_s1,.GeoData_s2),distance(.GeoData_s1,.GeoData_s2) * 1.5] count;
+
+#testcase moshortestpatha no path
+#yields (int 0)
+query mwrap("otestrel") moshortestpatha [1,41,0; distance(.GeoData_s1,.GeoData_s2),distance(.GeoData_s1,.GeoData_s2) * 1.5] count;
+
+#testcase memglet
+#yields (bool TRUE)
+query memglet ("graph", otestrel)
+
+#testcase memglet error
+#yields error
+query memglet ("graphrel", sightsgraphrel)
+
+#testcase memgletflob
+#yields (bool TRUE)
+query memgletflob ("graph2", otestrel)
+
+
+
+
+#testcase minsert
+#yields (int 5)
+query ten feed head[5] minsert["ten"] count;
+
+#testcase minsert error
+#yields error
+query Staedte feed head[5] minsert["ten"] count;
+
+#testcase minsertsave
+#yields (int 5)
+query Staedte feed head[5] minsertsave["Staedte","Stadt"] count;
+
+#testcase minserttuple
+#yields (int 1)
+query "Staedte" minserttuple["AA",34,5666,"899","ZZ"] count;
+
+#testcase mcreateinsertrel
+#yields (bool TRUE)
+query memlet ("One", mcreateinsertrel("ten"));
+
+#testcase minserttuplesave
+#yields (int 1)
+query "ten" minserttuplesave[11; "One"] count;
+
+
+#testcase memdelete
+#yields (bool TRUE)
+query memdelete ("Stadt");
+
+#testcase mdelete
+#yields (int 1)
+query ten feed filter [.No = 2] mdelete["ten"] count;
+
+#testcase mdelete error
+#yields error
+query ten feed filter [.No = 2] mdelete["Staedte"] count;
+
+#testcase mcreatedeleterel
+#yields success
+query memlet ("one", mcreatedeleterel("ten"))
+
+#testcase mdeletesave
+#yields (int 1)
+query ten feed filter [.No = 8] mdeletesave["ten","one"] count;
+
+#testcase mdeletesave error
+#yields error
+query ten feed filter [.No = 8] mdeletesave["ten","eight"] count;
+
+
+#testcase mdeletebyid
+#yields (int 1)
+query "Staedte" mdeletebyid[[const tid value 5]] count;
+
+#testcase mdeletebyid error
+#yields error
+query "Staedte" mdeletebyid[6] count;
+
+
+#testcase mupdate
+#yields (int 1)
+query Staedte feed filter[.SName = "Hannover"] mupdate["Staedte"; Bev: .Bev + 1000] count;
+
+#testcase mupdate error
+#yields error
+query Orte feed filter[.SName = "Hannover"] mupdate["Staedte"; Bev: .Bev + 1000] count;
+
+#testcase mcreateupdaterel
+#yields (bool TRUE)
+query memlet ("Stadt", mcreateupdaterel("Staedte"));
+
+#testcase mupdatesave
+#yields (int 1)
+query Staedte feed filter[.SName = "Hannover"] mupdatesave["Staedte","Stadt";Bev: .Bev + 1000] count;
+
+
+#testcase mupdatebyid
+#yields (int 1)
+query mwrap("ten") mupdatebyid[ [const tid value 5]; No: .No + 1000] count;
+
+#testcase mquicksort
+#yields (int 63)
+query "Staedte" mquicksort count;
+
+#testcase mquicksortby
+#yields (int 63)
+query "Staedte" mquicksortby[Bev] count;
+
+#testcase mquicksortby error
+#yields error
+query "Staedte" mquicksortby[BevT] count;
+
+#testcase moconsume
+#yields ((memoryORelObject(tuple((No int))))((1)(3)))
+query "ten" mfeed head[2] moconsume[No]
+
+
+#testcase letmoconsume
+#yields ((mem (orel (tuple ((No int) (TID tid))) (No))) "newten")
+query ten feed head[5] minsert["ten"] letmoconsume["newten"; No];
+
+#testcase morange
+#yields (int 1)
+query "oten" morange[9,9] count;
+
+#testcase morange error
+#yields error
+query "oten" morange["d","z"] count;
+
+#testcase moleftrange
+#yields (int 2)
+query "oten" moleftrange[7] count;
+
+#testcase morightrange
+#yields (int 5)
+query "oten" morightrange[5] count;
+
+
+
+#testcase moinsert
+#yields (int 5)
+query ten feed head[5] moinsert["oten"] count;
+
+#testcase moinsert error
+#yields error
+query Orte feed head[5] moinsert["ten"] count;
+
+#testcase modelete
+#yields (int 5)
+query ten feed head[5] modelete["oten"] count;
+
+#testcase modelete error
+#yields error
+query Staedte feed head[5] modelete["oten"] count;
+
+#testcase moconnectedcomponents
+#yields (int 5)
+#query "otestrel" moconnectedcomponents count;
+
+#testcase mgshortestpathd
+#yields (int 1)
+query mwrap("graph") mgshortestpathd [1,3,0; distance(.GeoData_s1,.GeoData_s2)] count;
+
+#testcase mgshortestpathd no path
+#yields (int 0)
+query mwrap("graph") mgshortestpathd [1,27,0; distance(.GeoData_s1,.GeoData_s2)] count;
+
+#testcase mgshortestpathd error
+#yields error
+query mwrap("graph") mgshortestpathd [1,3,0; distance(.Source,.GeoData_s2)] count;
+
+#testcase mgshortestpatha
+#yields (int 8)
+query mwrap("graph") mgshortestpatha [1,40,0; distance(.GeoData_s1,.GeoData_s2), distance(.GeoData_s1,.GeoData_s2) * 2.0] count;
+
+#testcase mgconnectedcomponents
+#yields (int 74)
+query "graph" mgconnectedcomponents count;
+
+
+ 
+close database;
