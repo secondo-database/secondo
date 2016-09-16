@@ -12,7 +12,7 @@
 #
 ###########################################################################
 
-query fullosmimport('/home/ralf/Daten/germany-latest.osm', "City")
+query fullosmimport('/home/ralf/Daten/arnsberg-regbez-latest.osm', "City")
 
 
 let CityNodesNew = CityNodes feed
@@ -45,8 +45,8 @@ let Nodes =
   filter[.WayId # .WayId_h2]
   CityNodesNew feed
   itHashJoin[NodeRef, NodeId]
-  Roads feed {r1} itHashJoin[WayId, WayId_r1]
-  Roads feed {r2} itHashJoin[WayId_h2, WayId_r2]
+  Roads feed project[WayId] {r1} itHashJoin[WayId, WayId_r1]
+  Roads feed project[WayId] {r2} itHashJoin[WayId_h2, WayId_r2]
   project[WayId, NodeCounter, NodeIdNew, Pos]
 Roads feed 
   projectextend[WayId; Node: .NodeList afeed filter[.NodeCounter = 0] aconsume]

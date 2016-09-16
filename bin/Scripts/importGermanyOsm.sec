@@ -61,7 +61,7 @@ let NSlots = 160
 
 query share("NSlots", TRUE, Workers)
 
-let File = '/home/ralf/Daten/arnsberg-regbez-latest.osm'
+let File = '/home/ralf/Daten/germany-latest.osm'
 
 query share("File", TRUE, Workers)
 
@@ -71,7 +71,10 @@ let Results = [const rel(tuple([
   ElapsedTime: real]))
 value () ]
 
+let WorkerInfo = showWorkers() consume
 
+query Results inserttuple["Start", NSlots, 
+  SEC2COMMANDS feed tail[9] sum[ElapsedTime]] consume
 
 /*
 1 Divide Osm-File
@@ -83,13 +86,11 @@ let ControlSlots = intstream(0, NSlots - 1) transformstream
   ddistribute3["ControlSlots", NSlots, TRUE, Workers]  
   dloop["", . feed extract[Elem]]
 
-
-
 let Division = ControlSlots 
   dloop["Division", divide_osm3(File, NSlots, .)] 
 
 query Results inserttuple["Division", NSlots, 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[2] sum[ElapsedTime]] consume
 
 
 
@@ -106,7 +107,7 @@ let Import = ControlSlots
   dloop["Import", fullosmimport(File + "_" + num2string(.), "City", .)]
 
 query Results inserttuple["Import", NSlots, 
- SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+ SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 # 691 seconds = 11:31 min
 
@@ -168,6 +169,11 @@ let CityRelationsB0 = Workers feed
 let CityRelationTagsB0 = Workers feed 
   createDArray["CityRelationTags", NSlots, CityRelationTags_type, TRUE]
 
+query Results inserttuple["Create DArrays", NSlots, 
+ SEC2COMMANDS feed tail[12] sum[ElapsedTime]] consume
+
+
+
 # about 3.2 seconds per array
 
 /*
@@ -178,6 +184,7 @@ let CityRelationTagsB0 = Workers feed
 let ControlWorkers = intstream(0, NWorkers - 1) transformstream  
   ddistribute3["ControlWorkers", NWorkers, TRUE, Workers]  
   dloop["", . feed extract[Elem]]
+
 
 @%Scripts/DistCost.sec
 
@@ -192,9 +199,10 @@ let CityNodesB1_NodeId = CityNodesB0 partitionF["", . feed,
   hashvalue(..NodeId, 999997), NSlots]
   collect2["CityNodesB1", 1238]
 
-query Results inserttuple["CityNodesB1_NodeId", 
-  CityNodesB1_NodeId dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+let NCityNodes = CityNodesB1_NodeId dloop["", . feed count] getValue tie[. + ..]
+
+query Results inserttuple["CityNodesB1_NodeId", NCityNodes, 
+  SEC2COMMANDS feed tail[2] sum[ElapsedTime]] consume
 
 let Cost1 = distCostSave(ControlWorkers);
 update LastCommand := distCostReset(ControlWorkers)
@@ -210,7 +218,7 @@ let CityWaysB1_NodeRef = CityWaysB0 partitionF["", . feed,
 
 query Results inserttuple["CityWaysB1_NodeRef", 
   CityWaysB1_NodeRef dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 let Cost2 = distCostSave(ControlWorkers);
 update LastCommand := distCostReset(ControlWorkers)
@@ -226,7 +234,7 @@ let CityWayTagsB1_WayIdInTag = CityWayTagsB0 partitionF["", . feed,
 
 query Results inserttuple["CityWayTagsB1_WayIdInTag", 
   CityWayTagsB1_WayIdInTag dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 let Cost3 = distCostSave(ControlWorkers);
 update LastCommand := distCostReset(ControlWorkers)
@@ -252,6 +260,9 @@ update LastCommand := distCostReset(ControlWorkers)
 Disjoint numbering of nodes.
 
 */
+let MaxNodesPerSlot = (NCityNodes div NSlots) * 3
+
+query share("MaxNodesPerSlot", TRUE, Workers)
 
 let CityNodesNewB1_NodeId = 
   CityNodesB1_NodeId ControlSlots dmap2["CityNodesNewB1", 
@@ -260,17 +271,16 @@ let CityNodesNewB1_NodeId =
   extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
   sortby[Box] 
   projectextend[NodeId;  Pos: makepoint(.Lon, .Lat)]
-  addcounter[NodeIdNew, (.. * 5000000) + 1] , 1238]
+  addcounter[NodeIdNew, (.. * MaxNodesPerSlot) + 1] , 1238]
 
 query Results inserttuple["CityNodesNewB1_NodeId", 
   CityNodesNewB1_NodeId dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[3] sum[ElapsedTime]] consume
 
 
 let Cost5 = distCostSave(ControlWorkers);
 update LastCommand := distCostReset(ControlWorkers)
 
-query SEC2COMMANDS feed tail[5] consume
 
 # germany newton: 241 sec = 4:01 min
 # germany newton 160: 225 seconds = 3:45 min
@@ -303,7 +313,7 @@ let WaysB1_WayId = CityNodesNewB1_NodeId CityWaysB1_NodeRef dmap2["",
 
 query Results inserttuple["WaysB1_WayId", 
   WaysB1_WayId dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 # arnsberg: 43.29 seconds
 # germany newton: 580 sec = 9:40 min, 590 sec = 9:50 min
@@ -331,7 +341,7 @@ let WaysB3_WayId = WaysB1_WayId CityWayTagsB1_WayIdInTag dmap2["",
 
 query Results inserttuple["WaysB3_WayId", 
   WaysB3_WayId dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 # arnsberg: 2016445
 
@@ -363,7 +373,7 @@ let RoadsB1_WayId = WaysB3_WayId
 
 query Results inserttuple["RoadsB1_WayId", 
   RoadsB1_WayId dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 
 
@@ -425,7 +435,7 @@ let NodesB1 =
 
 query Results inserttuple["NodesB1", 
   NodesB1 dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 
 
@@ -447,7 +457,7 @@ let NodesB2 =
 
 query Results inserttuple["NodesB2", 
   NodesB2 dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 
 
@@ -459,10 +469,7 @@ let NodesB3_WayId = NodesB1 NodesB2 dmap2["",
 
 query Results inserttuple["NodesB3_WayId", 
   NodesB3_WayId dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
-
-
-# crashes when these two commands are merged to one
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 # arnsberg: 1068839
 
@@ -523,7 +530,7 @@ let NodesB4_WayId = NodesB3_WayId dloop["",
 
 query Results inserttuple["NodesB4_WayId", 
   NodesB4_WayId dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 
 
@@ -549,7 +556,7 @@ let EdgesUpB1_WayId = NodesB4_WayId RoadsB1_WayId dloop2["",
 
 query Results inserttuple["EdgesUpB1_WayId", 
   EdgesUpB1_WayId dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 
 
@@ -610,7 +617,7 @@ let NodesB5_WayId = NodesB3_WayId dloop["",
 
 query Results inserttuple["NodesB5_WayId", 
   NodesB5_WayId dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 
 
@@ -637,7 +644,7 @@ let EdgesDownB1_WayId = NodesB5_WayId RoadsB1_WayId dloop2["",
 
 query Results inserttuple["EdgesDownB1_WayId", 
   EdgesDownB1_WayId dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 
 
@@ -663,7 +670,7 @@ let EdgesB1_WayId = EdgesUpB1_WayId EdgesDownB1_WayId dloop2["",
 
 query Results inserttuple["EdgesB1_WayId", 
   EdgesB1_WayId dloop["", . feed count] getValue tie[. + ..], 
-  SEC2COMMANDS feed tail[1] extract[ElapsedTime]] consume
+  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 
 
@@ -687,6 +694,6 @@ let hombruchEdges = EdgesB1_WayId dloop["", . feed
 
 let Commands = SEC2COMMANDS feed consume
 
-
+let TotalTime = Commands feed filter[not(.CmdStr contains "Results")] filter[not(.CmdStr contains "distCost")] sum[ElapsedTime]
 
 
