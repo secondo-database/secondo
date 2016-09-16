@@ -4715,7 +4715,13 @@ QueryProcessor::GetMemorySize( const Supplier s)
 
   // cout << node->u.op.memorySize << " assigned to operator " << 
   //   node->u.op.theOperator->GetName() << "." << endl;
-  return node->u.op.memorySize;
+  size_t mem = node->u.op.memorySize;
+  // make some security
+  mem = (size_t) (mem * 0.7);
+  if(mem<16){
+    mem = 16;
+  }
+  return mem;
 }
 
 
