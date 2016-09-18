@@ -26,12 +26,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AlgebraManager.h"
 #include "CORelation.h"
+#include <string>
 #include "TupleBlock.h"
 #include "QueryProcessor.h"
 
+using namespace listutils;
+
+using std::string;
+
 extern NestedList *nl;
-extern QueryProcessor *qp;
-extern AlgebraManager *am;
 
 extern "C" Algebra *InitializeCORelationAlgebra(NestedList *nlRef,
                                                 QueryProcessor *qpRef)
@@ -42,14 +45,14 @@ extern "C" Algebra *InitializeCORelationAlgebra(NestedList *nlRef,
 ListExpr CORelationAlgebra::CRelProp()
 {
   return nl->TwoElemList(
-    nl->FourElemList(nl->StringAtom("Signature"), 
-                      nl->StringAtom("Example Type List"), 
-                      nl->StringAtom("List Rep"), 
-                      nl->StringAtom("Example List")),
-    nl->FourElemList(nl->StringAtom(""), 
-                      nl->StringAtom(""), 
-                      nl->TextAtom(""), 
-                      nl->TextAtom("")));
+      nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+                       nl->StringAtom("List Rep"),
+                       nl->StringAtom("Example List")),
+      nl->FourElemList(nl->StringAtom(""),
+                       nl->StringAtom(""),
+                       nl->TextAtom(""),
+                       nl->TextAtom("")));
 }
 
 ListExpr CORelationAlgebra::CRelOut(ListExpr typeInfo, Word value)
@@ -120,88 +123,6 @@ Word CORelationAlgebra::CloneCRel(const ListExpr typeInfo, const Word &w)
   return Word((Address)NULL);
 }
 
-ListExpr CORelationAlgebra::TBlockProp()
-{
-  return nl->TwoElemList(
-    nl->FourElemList(nl->StringAtom("Signature"), 
-                      nl->StringAtom("Example Type List"), 
-                      nl->StringAtom("List Rep"), 
-                      nl->StringAtom("Example List")),
-    nl->FourElemList(nl->StringAtom(""), 
-                      nl->StringAtom(""), 
-                      nl->TextAtom(""), 
-                      nl->TextAtom("")));
-}
-
-ListExpr CORelationAlgebra::TBlockOut(ListExpr typeInfo, Word value)
-{
-  return nl->Empty();
-}
-
-ListExpr CORelationAlgebra::SaveTBlockToList(ListExpr typeInfo, Word value)
-{
-  return nl->Empty();
-}
-
-Word CORelationAlgebra::CreateTBlock(const ListExpr typeInfo)
-{
-  return Word((Address)NULL);
-}
-
-Word CORelationAlgebra::TBlockIn(ListExpr typeInfo, ListExpr value,
-                                 int errorPos, ListExpr &errorInfo, 
-                                 bool &correct)
-{
-  return Word((Address)NULL);
-}
-
-Word CORelationAlgebra::RestoreTBlockFromList(ListExpr typeInfo, ListExpr value,
-                                              int errorPos, ListExpr &errorInfo,
-                                              bool &correct)
-{
-  return Word((Address)NULL);
-}
-
-void CORelationAlgebra::DeleteTBlock(const ListExpr typeInfo, Word &w)
-{
-}
-
-bool CORelationAlgebra::CheckTBlock(ListExpr type, ListExpr &errorInfo)
-{
-  return false;
-}
-
-void *CORelationAlgebra::CastTBlock(void *addr)
-{
-  return NULL;
-}
-
-void CORelationAlgebra::CloseTBlock(const ListExpr typeInfo, Word &w)
-{
-}
-
-bool CORelationAlgebra::OpenTBlock(SmiRecord &valueRecord, size_t &offset,
-                                   const ListExpr typeInfo, Word &value)
-{
-  return false;
-}
-
-bool CORelationAlgebra::SaveTBlock(SmiRecord &valueRecord, size_t &offset,
-                                   const ListExpr typeInfo, Word &value)
-{
-  return false;
-}
-
-int CORelationAlgebra::SizeOfTBlock()
-{
-  return 0;
-}
-
-Word CORelationAlgebra::CloneTBlock(const ListExpr typeInfo, const Word &w)
-{
-  return Word((Address)NULL);
-}
-
 CORelationAlgebra::CORelationAlgebra() : Algebra()
 {
   AddTypeConstructor(new TypeConstructor(CORelation::GetBasicType(), CRelProp,
@@ -210,14 +131,8 @@ CORelationAlgebra::CORelationAlgebra() : Algebra()
                                          CreateCRel, DeleteCRel,
                                          OpenCRel, SaveCRel, CloseCRel,
                                          CloneCRel, CastCRel,
-                                         SizeOfCRel, CheckCRel), true);
+                                         SizeOfCRel, CheckCRel),
+                     true);
 
-  AddTypeConstructor(new TypeConstructor(TupleBlock::GetBasicType(), TBlockProp,
-                                         TBlockOut, TBlockIn,
-                                         SaveTBlockToList, 
-                                         RestoreTBlockFromList,
-                                         CreateTBlock, DeleteTBlock,
-                                         OpenTBlock, SaveTBlock, CloseTBlock,
-                                         CloneTBlock, CastTBlock,
-                                         SizeOfTBlock, CheckTBlock), true);
+  AddTypeConstructor(&TupleBlock::GetTypeConstructor());
 }

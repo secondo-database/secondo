@@ -25,14 +25,51 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TUPLEBLOCK
 #define TUPLEBLOCK
 
+#include "Algebra.h"
+#include "AlgebraTypes.h"
+#include "Attribute.h"
+#include "NestedList.h"
+#include "SecondoSMI.h"
 #include <string>
+#include "TupleBlockType.h"
 
 class TupleBlock
 {
 public:
+  static TypeConstructor& GetTypeConstructor();
+
   static std::string GetBasicType();
 
+  ~TupleBlock();
+
 private:
+  static TypeConstructor typeConstructor;
+
+  static ListExpr Prop();
+  static bool Check(ListExpr type, ListExpr &errorInfo);
+  static Word In(ListExpr typeInfo, ListExpr value, int errorPos,
+                       ListExpr &errorInfo, bool &correct);
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static ListExpr SaveToList(ListExpr typeInfo, Word value);
+  static Word RestoreFromList(ListExpr typeInfo, ListExpr value,
+                                    int errorPos, ListExpr &errorInfo,
+                                    bool &correct);
+  static Word Create(const ListExpr typeInfo);
+  static Word Clone(const ListExpr typeInfo, const Word &w);
+  static bool Save(SmiRecord &valueRecord, size_t &offset,
+                         const ListExpr typeInfo, Word &value);
+  static void Delete(const ListExpr typeInfo, Word &w);
+  static bool Open(SmiRecord &valueRecord, size_t &offset,
+                         const ListExpr typeInfo, Word &value);
+  static void Close(const ListExpr typeInfo, Word &w);
+  static void *Cast(void *addr);
+  static int SizeOf();
+
+  PTupleBlockType m_type;
+
+  Address** m_attributes;
+
+  TupleBlock();
 };
 
 #endif

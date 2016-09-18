@@ -68,39 +68,6 @@ private:
   static int SizeOfCRel();
 
   static Word CloneCRel(const ListExpr typeInfo, const Word &w);
-
-  static ListExpr TBlockProp();
-
-  static ListExpr TBlockOut(ListExpr typeInfo, Word value);
-
-  static ListExpr SaveTBlockToList(ListExpr typeInfo, Word value);
-
-  static Word CreateTBlock(const ListExpr typeInfo);
-
-  static Word TBlockIn(ListExpr typeInfo, ListExpr value, int errorPos,
-                       ListExpr &errorInfo, bool &correct);
-
-  static Word RestoreTBlockFromList(ListExpr typeInfo, ListExpr value,
-                                    int errorPos, ListExpr &errorInfo,
-                                    bool &correct);
-
-  static void DeleteTBlock(const ListExpr typeInfo, Word &w);
-
-  static bool CheckTBlock(ListExpr type, ListExpr &errorInfo);
-
-  static void *CastTBlock(void *addr);
-
-  static void CloseTBlock(const ListExpr typeInfo, Word &w);
-
-  static bool OpenTBlock(SmiRecord &valueRecord, size_t &offset,
-                         const ListExpr typeInfo, Word &value);
-
-  static bool SaveTBlock(SmiRecord &valueRecord, size_t &offset,
-                         const ListExpr typeInfo, Word &value);
-
-  static int SizeOfTBlock();
-
-  static Word CloneTBlock(const ListExpr typeInfo, const Word &w);
 };
 
 #endif
