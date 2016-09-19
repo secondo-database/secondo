@@ -99,7 +99,9 @@ class MemoryObject {
         std::string getObjectTypeExpr();
         void setObjectTypeExpr(std::string _oTE);
         std::string getDatabase();
-        bool hasflob();
+        bool hasflob(); // returns true if either no flob attribute
+                        // is contained or the flobs are in main 
+                        // memory
 
 
     protected:
@@ -206,14 +208,14 @@ class MemoryRtreeObject : public MemoryObject {
         MemoryRtreeObject(){};
         MemoryRtreeObject(mmrtree::RtreeT<dim, size_t>* _rtree,
                         size_t _memSize, 
-                        std::string _objectTypeExpr, bool _flob,
+                        std::string _objectTypeExpr, 
                         std::string _database){
 
 
                         rtree = _rtree;
                         memSize = _memSize;
                         objectTypeExpr =_objectTypeExpr;
-                        flob = _flob;
+                        flob = true;
                         database = _database;
 
                         };
