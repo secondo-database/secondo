@@ -573,35 +573,11 @@ Sets the debug level for the query processor. The following levels are defined:
 
 */
 
-  void SetMaxMemPerOperator(size_t value);
+  size_t FixedMemory() {
+    return 16 * 1024 * 1024;
+  }
 
-/*
-Sets the maximum memory available per operator.
 
-*/
-
-  size_t MemoryAvailableForOperator( const Supplier s );
-
-/*
-Returns the maximum memory available per operator.
-
-DEPRECATED method, not to be used any more. Just left here to 
-produce compile errors.
-
-Use the combination of <Operator>.SetUsesMemory() and 
-qp->GetMemorySize(s) instead.
-
-*/
-
-size_t FixedMemory();
-
-/*
-Replaces MemoryAvailableForOperator() for some operators that 
-are unable to register as using memory.
-
-Usable but not recommended, will be removed.
-
-*/
 
 
   void SetGlobalMemory(size_t value);

@@ -3361,7 +3361,7 @@ int indexrewriteSelect(ListExpr args) {
   ListExpr attrs = nl->Second(nl->Second(nl->Second(args)));
   string name = nl->SymbolValue(nl->Third(args));
   ListExpr type;
-  int index = listutils::findAttribute(attrs, name, type);
+  listutils::findAttribute(attrs, name, type);
   if (MLabel::checkType(type)) return 0;
   if (MLabels::checkType(type)) return 1;
   if (MPlace::checkType(type)) return 2;

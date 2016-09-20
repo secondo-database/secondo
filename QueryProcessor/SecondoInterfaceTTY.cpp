@@ -563,12 +563,12 @@ SecondoInterfaceTTY::Initialize( const string& user,
     QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
 
 
-    long keyVal =
-      SmiProfile::GetParameter("QueryProcessor", "MaxMemPerOperator",
-                               16 * 1024, cfgFile);   // in kB
-    qp.SetMaxMemPerOperator(keyVal*1024);   // in bytes
-    cmsg.info() << "Memory usage per operator limited by "
-                << keyVal << "kb" << endl;
+    //long keyVal =
+    //  SmiProfile::GetParameter("QueryProcessor", "MaxMemPerOperator",
+    //                           16 * 1024, cfgFile);   // in kB
+    //qp.SetMaxMemPerOperator(keyVal*1024);   // in bytes
+    //cmsg.info() << "Memory usage per operator limited by "
+    //            << keyVal << "kb" << endl;
 
 
     size_t globalMem =
@@ -578,7 +578,7 @@ SecondoInterfaceTTY::Initialize( const string& user,
     cmsg.info() << "Global memory limited by "
                 << globalMem << " MB" << endl;
 
-    keyVal =
+    long keyVal =
       SmiProfile::GetParameter("System", "FLOBCacheSize",
                                16*1024, cfgFile);
     //SecondoSystem::InitializeFLOBCache( keyVal*1024 );

@@ -3844,15 +3844,10 @@ setoption_vm( Word* args, Word& result, int message, Word& local, Supplier s )
   // args[1] : int
 
   result = qp->ResultStorage( s );
-  string key = StdTypes::GetString(args[0]);
-  int value = StdTypes::GetInt(args[1]);
+  //string key = StdTypes::GetString(args[0]);
+  //int value = StdTypes::GetInt(args[1]);
 
   bool found=false;
-  if ( key == "MaxMemPerOperator" ) {
-
-    found=true;
-    qp->SetMaxMemPerOperator(value);
-  }
 
   if( found )
   {

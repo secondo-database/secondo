@@ -336,7 +336,7 @@ Operator : setoption
 Number   : 1
 Signature: string x int -> bool
 Example  : query setoption("MaxMemPerOperator", 512*1024);
-Result   : TRUE
+Result   : (bool undefined)
 
 
 Operator : sqrt

@@ -1404,7 +1404,7 @@ VarValueMapping(Word* args, Word& result, int message,
 {
   TupleBuffer *tp = 0;
   GenericRelationIterator *relIter = 0;
-  long MaxMem = qp->FixedMemory();
+  long MaxMem = qp->GetMemorySize(s);
 
   T sum = 0;
   int number = 0;
@@ -1724,8 +1724,7 @@ template<class Tx, class Rx, class Ty, class Ry> int
 
   TupleBuffer *tp = 0;
   GenericRelationIterator *relIter = 0;
-  long MaxMem = qp->FixedMemory();
-
+  long MaxMem = qp->GetMemorySize(s); 
   bool *finished = 0;
   TupleType *resultTupleType = 0;
   Tuple *newTuple = 0;
@@ -14351,7 +14350,9 @@ class ExtRelationAlgebra : public Algebra
 
     AddOperator(printrefsInfo(), printrefs_vm, printrefs_tm);
 
-    AddOperator(varInfo(), varFuns, AvgSumSelect, AvgSumTypeMap<true>);
+    Operator* vfo = AddOperator(varInfo(), varFuns, 
+                                AvgSumSelect, AvgSumTypeMap<true>);
+    vfo->SetUsesMemory();
 
     ValueMapping statsFuns[] =
     {
@@ -14360,7 +14361,9 @@ class ExtRelationAlgebra : public Algebra
       StatsValueMapping<SEC_STD_REAL,CcReal,int,CcInt>,
       StatsValueMapping<SEC_STD_REAL,CcReal,SEC_STD_REAL,CcReal>, 0
     };
-    AddOperator(statsInfo(), statsFuns, StatsSelect, StatsTypeMap);
+    Operator* sio = AddOperator(statsInfo(), statsFuns, 
+                                StatsSelect, StatsTypeMap);
+    sio->SetUsesMemory();
 
     AddOperator(&extrelhead);
     AddOperator(&extrelsortby);

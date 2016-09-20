@@ -4643,41 +4643,6 @@ QueryProcessor::SetPredCost( const Supplier s, const double predCost)
 
 
 
-/*
-Sets the maximum memory available per operator.
-
-*/
-void QueryProcessor::SetMaxMemPerOperator(size_t value) 
-{ 
-  maxMemPerOperator = value; 
-}
-
-
-/*
-Returns the maximum memory available per operator.
-
-Deprecated, will abort the programm.
-
-*/
-size_t QueryProcessor::MemoryAvailableForOperator( 
-  const Supplier __attribute__((unused))  s ) 
-{ 
-  cout << "MemoryAvailableForOperator = " << maxMemPerOperator;
-  assert(false);
-
-  return maxMemPerOperator; 
-}
-
-
-size_t QueryProcessor::FixedMemory()
-{
-  return 16 * 1024 * 1024;
-}
-
-/*
-Replaces MemoryAvailableForOperator() for some (very rare) operators that are unable to register as using memory. Fixed amount of 16 MB.
-
-*/
 
 
 

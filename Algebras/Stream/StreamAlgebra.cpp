@@ -4300,13 +4300,14 @@ class TailLocalInfo
 {
   public:
     TailLocalInfo(const int mN,
-                  const bool mKeepOrder)
+                  const bool mKeepOrder,
+                  Supplier s)
       : n              ( mN ),
         keepOrder      ( mKeepOrder ),
         finished       ( true ),
         bufferSize     ( 0 ),
         returnedResults( 0 ),
-        buffer         ( qp->FixedMemory() )
+        buffer         ( qp->GetMemorySize(s) )
       {
         // member translationTable initialized automatically
       };
@@ -4406,7 +4407,8 @@ int StreamTailTupleTreamVM(Word* args, Word& result,
         return 0;
       } // else: consume the InputStream
       li = new TailLocalInfo( CcN->GetIntval(),
-                              CcKeepOrder->GetBoolval()
+                              CcKeepOrder->GetBoolval(),
+                              s
                             );
       local.setAddr(li);
 
@@ -4466,9 +4468,10 @@ class DataTailLocalInfo: public TailLocalInfo
 
     DataTailLocalInfo(const int mN,
                       const bool mKeepOrder,
-                      const ListExpr elemType)
+                      const ListExpr elemType,
+                      Supplier s)
 
-    : TailLocalInfo( mN, mKeepOrder )
+    : TailLocalInfo( mN, mKeepOrder, s )
     {
       ListExpr numericElemType =
           SecondoSystem::GetCatalog()->NumericType( elemType );
@@ -4538,7 +4541,7 @@ int StreamTailDataStreamVM(Word* args, Word& result,
       ListExpr elemTypeNL = nl->Second(qp->GetType( s ));
       li = new DataTailLocalInfo( CcN->GetIntval(),
                                   CcKeepOrder->GetBoolval(),
-                                  elemTypeNL
+                                  elemTypeNL, s
                                 );
       local.setAddr(li);
 
@@ -5154,6 +5157,7 @@ public:
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );
     AddOperator( &streamtail );
+    streamtail.SetUsesMemory();
     AddOperator( &kinds);
     AddOperator( &timeout);
     AddOperator( &isOrdered);
