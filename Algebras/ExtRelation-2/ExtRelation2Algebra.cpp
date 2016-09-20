@@ -2216,6 +2216,8 @@ int itHashJoinVM( Word* args, Word& result,
                   }
                   ListExpr ttype = nl->Second(GetTupleResultType(s));
                   size_t mem = qp->GetMemorySize(s)*1024*1024;
+                  // the itjoin underestimates its memory usage
+                  mem = (size_t)(mem*0.8);
                   if(mem<1024){
                      mem = 1024;
                   }

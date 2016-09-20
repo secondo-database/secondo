@@ -553,6 +553,8 @@ void SortAlgorithm::setMemory(size_t maxMemory, Supplier s)
   } else {
     MAX_MEMORY = maxMemory;
   }
+  // sort underestimates memory usage, add some security
+  MAX_MEMORY = (size_t)(MAX_MEMORY*0.7); 
   if(MAX_MEMORY < SORT_MINIMUM_MEMORY){
     MAX_MEMORY = SORT_MINIMUM_MEMORY;
   }
