@@ -335,11 +335,13 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
   // just defining a maximum per operator.
   maxMemPerOperator = 4 * 1024 * 1024;
   allowProgress=false;
-  useHeartbeat = false;
-  if(instances==0){
-    string filename = "secondo_heartbeat_"
-                      + stringutils::int2str(WinUnix::getpid());
-    heartbeat_file.open(filename.c_str(), ios::out);
+  useHeartbeat = RTFlag::isActive("QP:HEARTBEAT");
+  if(useHeartbeat){
+    if(instances==0){
+      string filename = "secondo_heartbeat_"
+                        + stringutils::int2str(WinUnix::getpid());
+      heartbeat_file.open(filename.c_str(), ios::out);
+    }
   }
     
   instances++;
@@ -360,10 +362,12 @@ QueryProcessor::~QueryProcessor()
   }
   instances--;
   if(instances==0){
-     heartbeat_file.close();
-     string filename = "secondo_heartbeat_"
-                        + stringutils::int2str(WinUnix::getpid());
-     FileSystem::DeleteFileOrFolder(filename);     
+     if(useHeartbeat){
+       heartbeat_file.close();
+       string filename = "secondo_heartbeat_"
+                          + stringutils::int2str(WinUnix::getpid());
+       FileSystem::DeleteFileOrFolder(filename);     
+     }
   }
 }
 
@@ -4716,8 +4720,6 @@ QueryProcessor::GetMemorySize( const Supplier s)
   // cout << node->u.op.memorySize << " assigned to operator " << 
   //   node->u.op.theOperator->GetName() << "." << endl;
   size_t mem = node->u.op.memorySize;
-  // make some security
-  mem = (size_t) (mem * 0.7);
   if(mem<16){
     mem = 16;
   }
