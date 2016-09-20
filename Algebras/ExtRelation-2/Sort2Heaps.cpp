@@ -524,6 +524,11 @@ int Sort2HeapsVM(Word* args, Word& result, int message,
         }
         size_t maxFiles = 200;  // maximum number of open files 
         size_t maxMem = qp->GetMemorySize(s)*1024*1024;
+        // security factor
+        maxMem = (size_t) (0.8*maxMem);
+        if(maxMem<1024){
+          maxMem = 1024;
+        }
         local.addr = new Sort2HeapsInfo(args[0], pos,
                       nl->Second(GetTupleResultType(s)),
                       maxFiles, maxMem);
