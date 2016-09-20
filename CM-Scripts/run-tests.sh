@@ -171,7 +171,7 @@ done
 
 if [ "$1" == "-tty" ]; then
   runTest ${buildDir}/bin "Selftest" "time Selftest" $timeOutMax
-  runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" $timeOutMax
+#  runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" $timeOutMax
 fi
 
 if [ "$failedTests" != "" ]; then
