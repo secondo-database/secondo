@@ -201,7 +201,7 @@ Assignment operator.
     {
         m_dim = rhs.dim();
         m_vectorlen = m_dim * sizeof(GTA_SPATIAL_DOM);
-        delete m_coords;
+        delete[] m_coords;
         m_coords = new GTA_SPATIAL_DOM[dim()];
         memcpy(m_coords, rhs.m_coords, vectorlen());
         return *this;

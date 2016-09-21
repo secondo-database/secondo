@@ -956,7 +956,7 @@ class gettuplesInfo{
            } else {
               TupleId id = tid->GetTid();
               tid->DeleteIfAllowed();
-              if(id>=0 && id<rel->size()){
+              if(id<rel->size()){ //id >= 0, because it is unsigned
                  Tuple* res = (*rel)[id];
                  res->IncReference();
                  res->SetTupleId(id);

@@ -622,7 +622,7 @@ Restore a group tuple to memory.
     hash1 = 0;
     for (k = 0; k < numberatt; k++) hash1 += t->HashValue(k);
     hash2 = hash1 % NUMBUCKETS;
-    if (hash2 < 0) hash2 = -1 * hash2;
+    //if (hash2 < 0) hash2 = -1 * hash2; // has2 is a size_t
 
     // create one element stacks for symmetric merge
     for (i=0; i < noOffun; i++) {
@@ -953,7 +953,8 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
           }
           myhash2 = myhash1 % NUMBUCKETS;
           // myhash2 can overflow and would be negative then
-          if (myhash2 < 0) myhash2 = -1 * myhash2;
+          // is'ts a size_t -> never smaller than zero
+          //if (myhash2 < 0) myhash2 = -1 * myhash2;
 
           // check the hash bucket if the group is created already
           DuplicateGroup = false;

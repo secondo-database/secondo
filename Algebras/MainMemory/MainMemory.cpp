@@ -199,7 +199,7 @@ MemoryRelObject::MemoryRelObject (string _objectTypeExpr){
 };
 
 MemoryRelObject::~MemoryRelObject(){
-    if (!mmrel==0){
+    if (mmrel!=0){
         vector<Tuple*>::iterator it = mmrel->begin();
         while (it!=mmrel->end()){
             Tuple* tup = *it;

@@ -328,7 +328,7 @@ class KeyComparator{
 
 
 typedef avltree::AVLTree<avlPair,KeyComparator> memAVLtree;
-typedef typename memAVLtree::iterator avlIterator;
+typedef memAVLtree::iterator avlIterator;
 
 class MemoryAVLObject : public MemoryObject {
 
