@@ -65,8 +65,12 @@ dimension. A rectangle in such a way can be represented by four, six or eight
 #define Rectangle SecondoRectangle
 #endif
 
+#ifndef MAX
 #define MAX( a, b ) ((a) > (b) ? (a) : (b))
+#endif
+#ifndef MIN
 #define MIN( a, b ) ((a) < (b) ? (a) : (b))
+#endif
 
 template <unsigned dim>
 class Rectangle;
