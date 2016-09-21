@@ -449,7 +449,7 @@ the pattern.
 
 */
 ExtBool Pattern::tmatches(Tuple *tuple, const int attrno, ListExpr ttype) {
-  ExtBool result = UNDEF;
+  ExtBool result = ST_UNDEF;
   vector<pair<int, string> > relevantAttrs;
   int majorValueNo = -1;
   if (isCompatible(tuple->GetTupleType(), attrno, relevantAttrs, majorValueNo)){
@@ -782,37 +782,37 @@ ExtBool TMatch::matches() {
   if (!p->hasConds() && !p->hasAssigns()) {
     for (int i = 0; i < noMainComponents; i++) {
       if (!performTransitions(i, states)) {
-        return FALSE;
+        return ST_FALSE;
       }
     }
     if (p->containsFinalState(states)) {
-      return TRUE;
+      return ST_TRUE;
     }
     else {
-      return FALSE;
+      return ST_FALSE;
     }
   }
   pathMatrix = Tools::createSetMatrix(noMainComponents, p->elemToVar.size());
   for (int i = 0; i < noMainComponents; i++) {
     if (!performTransitionsWithMatrix(i, states)) {
       Tools::deleteSetMatrix(pathMatrix, noMainComponents);
-      return FALSE;
+      return ST_FALSE;
     }
   }
   if (!p->containsFinalState(states)) {
     Tools::deleteSetMatrix(pathMatrix, noMainComponents);
-    return FALSE;
+    return ST_FALSE;
   }
   if (!p->initCondOpTrees(t, ttype)) {
     Tools::deleteSetMatrix(pathMatrix, noMainComponents);
-    return FALSE;
+    return ST_FALSE;
   }
   if (!p->hasAssigns()) {
     bool result = findMatchingBinding(0);
     Tools::deleteSetMatrix(pathMatrix, noMainComponents);
-    return (result ? TRUE : FALSE);
+    return (result ? ST_TRUE : ST_FALSE);
   }
-  return TRUE;
+  return ST_TRUE;
 }
 
 /*
@@ -2913,17 +2913,17 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans,
             Tuple *t = rel->GetTuple(id, false);
             TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
             bool match = false;
-            ExtBool matchRec = UNDEF;
+            ExtBool matchRec = ST_UNDEF;
             if (matchRecord[trans.first][id] != 0) {
               matchRec = matchRecord[trans.first][id]->getMatchRecord(*it);
-              if (matchRec == TRUE) {
+              if (matchRec == ST_TRUE) {
                 match = true;
               }
             }
             else {
               matchRecord[trans.first][id] = new DoubleUnitSet();
             }
-            if (matchRec == UNDEF) {
+            if (matchRec == ST_UNDEF) {
               getInterval(id, *it, iv);
               match = tmatch.valuesMatch(*it, trans.first) &&
                       Tools::timesMatch(iv, ivs) &&
@@ -2942,15 +2942,15 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans,
               if (p->hasConds() || rewrite) {
                 extendBinding(newIMI, trans.first, false, totalMatch ? id : 0);
                 if (totalMatch && p->hasConds()) {
-                  ExtBool condRec = UNDEF;
+                  ExtBool condRec = ST_UNDEF;
                   if (condRecord[id] != 0) {
                     condRec = condRecord[id]->getCondRecord(newIMI);
                   }
                   else {
                     condRecord[id] = new DoubleBindingSet();
                   }
-                  if (condRec != UNDEF) {
-                    totalMatch = (condRec == TRUE ? true : false);
+                  if (condRec != ST_UNDEF) {
+                    totalMatch = (condRec == ST_TRUE ? true : false);
                   }
                   else {
                     TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
@@ -3028,18 +3028,18 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans,
             TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
             if (imiPtr->range == false) { // exact matching required
               bool match = false;
-              ExtBool matchRec = UNDEF;
+              ExtBool matchRec = ST_UNDEF;
               if (matchRecord[trans.first][id] != 0) {
                 matchRec = matchRecord[trans.first][id]->
                                                    getMatchRecord(imiPtr->next);
-                if (matchRec == TRUE) {
+                if (matchRec == ST_TRUE) {
                   match = true;
                 }
               }
               else {
                 matchRecord[trans.first][id] = new DoubleUnitSet();
               }
-              if (matchRec == UNDEF) {
+              if (matchRec == ST_UNDEF) {
                 getInterval(id, imiPtr->next, iv);
                 match = tmatch.valuesMatch(imiPtr->next, trans.first) &&
                         Tools::timesMatch(iv, ivs) &&
@@ -3056,15 +3056,15 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans,
                 if (p->hasConds() || rewrite) {
                   extendBinding(newIMI, trans.first, false,totalMatch ? id : 0);
                   if (totalMatch && p->hasConds()) {
-                    ExtBool condRec = UNDEF;
+                    ExtBool condRec = ST_UNDEF;
                     if (condRecord[id] != 0) {
                       condRec = condRecord[id]->getCondRecord(newIMI);
                     }
                     else {
                       condRecord[id] = new DoubleBindingSet();
                     }
-                    if (condRec != UNDEF) {
-                      totalMatch = (condRec == TRUE ? true : false);
+                    if (condRec != ST_UNDEF) {
+                      totalMatch = (condRec == ST_TRUE ? true : false);
                     }
                     else {
                       TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, 
@@ -3105,18 +3105,18 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans,
               int k = imiPtr->next;
               while (k < trajSize[id]) {
                 bool match = false;
-                ExtBool matchRec = UNDEF;
+                ExtBool matchRec = ST_UNDEF;
                 if (matchRecord[trans.first][id] != 0) {
                   matchRec = matchRecord[trans.first][id]->
                                                    getMatchRecord(k);
-                  if (matchRec == TRUE) {
+                  if (matchRec == ST_TRUE) {
                     match = true;
                   }
                 }
                 else {
                   matchRecord[trans.first][id] = new DoubleUnitSet();
                 }
-                if (matchRec == UNDEF) {
+                if (matchRec == ST_UNDEF) {
                   getInterval(id, k, iv);
                   match = tmatch.valuesMatch(k, trans.first) &&
                           Tools::timesMatch(iv, ivs) &&
@@ -3132,15 +3132,15 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans,
                   if (p->hasConds() || rewrite) {
                     extendBinding(newIMI, trans.first, false, totalMatch?id:0);
                     if (totalMatch && p->hasConds()) {
-                      ExtBool condRec = UNDEF;
+                      ExtBool condRec = ST_UNDEF;
                       if (condRecord[id] != 0) {
                         condRec = condRecord[id]->getCondRecord(newIMI);
                       }
                       else {
                         condRecord[id] = new DoubleBindingSet();
                       }
-                      if (condRec != UNDEF) {
-                        totalMatch = (condRec == TRUE ? true : false);
+                      if (condRec != ST_UNDEF) {
+                        totalMatch = (condRec == ST_TRUE ? true : false);
                       }
                       else {
                         TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, 
@@ -3191,15 +3191,15 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans,
             if (p->hasConds() || rewrite) {
               extendBinding(newIMI, trans.first, true, totalMatch ? id : 0);
               if (totalMatch && p->hasConds()) {
-                ExtBool condRec = UNDEF;
+                ExtBool condRec = ST_UNDEF;
                 if (condRecord[id] != 0) {
                   condRec = condRecord[id]->getCondRecord(newIMI);
                 }
                 else {
                   condRecord[id] = new DoubleBindingSet();
                 }
-                if (condRec != UNDEF) {
-                  totalMatch = (condRec == TRUE ? true : false);
+                if (condRec != ST_UNDEF) {
+                  totalMatch = (condRec == ST_TRUE ? true : false);
                 }
                 else {
                   TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);

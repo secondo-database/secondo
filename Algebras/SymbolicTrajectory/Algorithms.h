@@ -82,7 +82,7 @@ struct IndexMatchInfo;
 Pattern* parseString(const char* input, bool classify, Tuple *t,ListExpr ttype);
 void patternFlushBuffer();
 
-enum ExtBool {FALSE, TRUE, UNDEF};
+enum ExtBool {ST_FALSE, ST_TRUE, ST_UNDEF};
 enum Wildcard {NO, STAR, PLUS};
 enum IndexType {TRIE, BTREE, RTREE1, RTREE2, NONE};
 
@@ -796,7 +796,7 @@ class PatPersistent : public Label {
       return result;
     }
     else {
-      return UNDEF;
+      return ST_UNDEF;
     }
   }
   
@@ -1173,12 +1173,12 @@ struct DoubleUnitSet {
   
   ExtBool getMatchRecord(int u) {
     if (match.find(u) != match.end()) {
-      return TRUE;
+      return ST_TRUE;
     }
     if (mismatch.find(u) != mismatch.end()) {
-      return FALSE;
+      return ST_FALSE;
     }
-    return UNDEF;
+    return ST_UNDEF;
   }
   
   void addMatchRecord(int u, bool m = true) {
@@ -1212,12 +1212,12 @@ struct DoubleBindingSet {
   
   ExtBool getCondRecord(IndexMatchInfo &imi) {
     if (match.find(imi.binding) != match.end()) {
-      return TRUE;
+      return ST_TRUE;
     }
     if (mismatch.find(imi.binding) != mismatch.end()) {
-      return FALSE;
+      return ST_FALSE;
     }
-    return UNDEF;
+    return ST_UNDEF;
   }
   
   void addCondRecord(IndexMatchInfo &imi, bool m = true) {
@@ -4305,7 +4305,7 @@ construction and the matching procedure.
 */
 template<class M>
 ExtBool Pattern::matches(M *m) {
-  ExtBool result = UNDEF;
+  ExtBool result = ST_UNDEF;
   if (!isValid(M::BasicType())) {
     cout << "pattern is not suitable for type " << M::BasicType() << endl;
     return result;
@@ -4348,11 +4348,11 @@ template<class M>
 ExtBool Match<M>::matches() {
   if (p->isNFAempty()) {
     cout << "empty nfa" << endl;
-    return UNDEF;
+    return ST_UNDEF;
   }
   if (!p->initEasyCondOpTrees()) {
     cout << "Error: EasyCondOpTrees not initialized" << endl;
-    return UNDEF;
+    return ST_UNDEF;
   }
   std::set<int> states;
   states.insert(0);
@@ -4361,12 +4361,12 @@ ExtBool Match<M>::matches() {
       if (!updateStates(i, p->nfa, p->elems, p->finalStates, states,
                         p->easyConds, p->easyCondPos, p->atomicToElem)) {
 //           cout << "mismatch at unit " << i << endl;
-        return FALSE;
+        return ST_FALSE;
       }
     }
     if (!p->containsFinalState(states)) {
 //         cout << "no final state is active" << endl;
-      return FALSE;
+      return ST_FALSE;
     }
   }
   else {
@@ -4376,27 +4376,27 @@ ExtBool Match<M>::matches() {
                         p->easyConds, p->easyCondPos, p->atomicToElem, true)){
 //           cout << "mismatch at unit " << i << endl;
         Tools::deleteSetMatrix(matching, m->GetNoComponents());
-        return FALSE;
+        return ST_FALSE;
       }
     }
     if (!p->containsFinalState(states)) {
 //         cout << "no final state is active" << endl;
       Tools::deleteSetMatrix(matching, m->GetNoComponents());
-      return FALSE;
+      return ST_FALSE;
     }
     if (!p->initCondOpTrees()) {
       Tools::deleteSetMatrix(matching, m->GetNoComponents());
-      return UNDEF;
+      return ST_UNDEF;
     }
     if (!p->hasAssigns()) {
       bool result = findMatchingBinding(p->nfa, 0, p->elems, p->conds, 
                                         p->atomicToElem, p->elemToVar);
       Tools::deleteSetMatrix(matching, m->GetNoComponents());
-      return (result ? TRUE : FALSE);
+      return (result ? ST_TRUE : ST_FALSE);
     }
-    return TRUE; // happens iff rewrite is called
+    return ST_TRUE; // happens iff rewrite is called
   }
-  return TRUE;
+  return ST_TRUE;
 }
 
 /*
@@ -4838,7 +4838,7 @@ Tuple* FilterMatchesLI<M>::getNextResult() {
   Tuple* cand = stream.request();
   while (cand) {
     match->setM((M*)cand->GetAttribute(attrIndex));
-    if (match->matches() == TRUE) {
+    if (match->matches() == ST_TRUE) {
       return cand;
     }
     cand->DeleteIfAllowed();
