@@ -1,0 +1,19 @@
+delete Size
+
+delete NSlots
+
+delete Fraction
+
+delete Boundaries
+
+query BuildingsB1 dmap["", memclear()]
+
+query memclear()
+
+query deleteRemoteObjects(BuildingsSortedOsm_idA)
+
+delete BuildingsSortedOsm_idA
+
+query deleteRemoteObjects(BuildingsSortedOsm_id)
+
+delete BuildingsSortedOsm_id
