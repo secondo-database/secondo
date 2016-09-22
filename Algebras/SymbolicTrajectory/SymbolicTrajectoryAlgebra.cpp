@@ -2807,11 +2807,11 @@ int matchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
       else {
         ExtBool res = p->matches(traj);
         switch (res) {
-          case FALSE: {
+          case ST_FALSE: {
             b->Set(true, false);
             break;
           }
-          case TRUE: {
+          case ST_TRUE: {
             b->Set(true, true);
             break;
           }
@@ -2840,11 +2840,11 @@ int matchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
       else {
         ExtBool res = p->matches(traj);
         switch (res) {
-          case FALSE: {
+          case ST_FALSE: {
             b->Set(true, false);
             break;
           }
-          case TRUE: {
+          case ST_TRUE: {
             b->Set(true, true);
             break;
           }
@@ -3148,10 +3148,10 @@ int tmatchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
     p = Pattern::getPattern(pat->toText(), false, tuple, ttype);
     if (p) {
       ExtBool result = p->tmatches(tuple, attrno->GetIntval(), ttype);
-      if (result == TRUE) {
+      if (result == ST_TRUE) {
         res->Set(true, true); 
       }
-      else if (result == FALSE) {
+      else if (result == ST_FALSE) {
         res->Set(true, false);  
       }
       delete p;
