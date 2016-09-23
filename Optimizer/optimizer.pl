@@ -7446,11 +7446,14 @@ lookupAttr(Name, attr(Name, 0, u)) :-
 % are marked up in double quotes, which Prolog handles as strings, that are
 % represented as charactercode lists...
 
-lookupAttr(Term, value_expr(string,Term)) :-
+lookupAttr(Term, value_expr(string, Term)) :-
   is_list(Term), % list represents a string (list of characters)
   catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
   retractall(onlyAttribute), !.
 
+lookupPred1(Term, value_expr(string, Term), RelsBefore, RelsBefore) :-
+  string(Term),
+  !.
 
 
 % string constant

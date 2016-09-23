@@ -1461,9 +1461,9 @@ plan_to_atom(tmatches(X, Y), Result) :-
 % special rule to handle special attribute ~rowid~
 plan_to_atom(rowid,' tupleid(.)' ) :- !.
 
-plan_to_atom(A,A) :-
-  string(A),
-  write_list(['\nINFO: ',plan_to_atom(A,A),' found a string!\n']),
+plan_to_atom(A, A) :-
+  string(A), 
+  write_list(['\nINFO: ', plan_to_atom(A, A),' found a string!\n']),
   !.
 
 plan_to_atom(dbobject(Name), ExtName) :-	% fapra 2015/16
@@ -8178,10 +8178,15 @@ lookupPred1(RealAtom, value_expr(real,RealAtom), RelsBefore, RelsBefore) :-
 % Primitive: string-atom (they regularly cause problems since they
 % are marked up in double quotes, which Prolog handles as strings, that are
 % represented as charactercode lists...)
-lookupPred1(Term, value_expr(string,Term), RelsBefore, RelsBefore) :-
+lookupPred1(Term, value_expr(string, Term), RelsBefore, RelsBefore) :-
   is_list(Term), % list represents a string (list of characters)
   catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
   !.
+
+lookupPred1(Term, value_expr(string, Term), RelsBefore, RelsBefore) :-
+  string(Term),
+  !.
+
 
 %% Primitive: generic atom (constant expression)
 %lookupPred1(Term, value_expr(text,Term), RelsBefore, RelsBefore) :-
