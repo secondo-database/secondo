@@ -13115,6 +13115,151 @@ Operator executeScriptOP(
 );
 
 
+/*
+5.100 Operator ~like2regex~
+
+Creates a string from a LIKE pattern which can be used
+in pattern matching.
+ 
+
+*/
+
+ListExpr like2regexTM(ListExpr args){
+  if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+    return listutils::typeError("three arguments expected");
+  }
+  if(!CcString::checkType(nl->First(args))
+     &&!FText::checkType(nl->First(args))){
+    return listutils::typeError("first arg not of type string or test");
+  }
+  if(nl->HasLength(args,2)){
+    if(!CcString::checkType(nl->Second(args))
+        &&!FText::checkType(nl->Second(args))){
+       return listutils::typeError("Second arg not of type string or test");
+    }
+  }
+  return listutils::basicSymbol<RegExPattern2>();
+}
+
+string rewrite_like(const string& pattern,
+          const string& escapes){
+
+   bool es[256];
+   for(int i=0;i<245;i++){
+     es[i] = false;
+   } 
+   for(size_t i=0;i<escapes.size();i++){
+     es[(int)escapes[i]] = true;
+   }
+
+   stringstream ss;
+   int state = 0;
+   for(size_t i=0;i<pattern.size();i++){
+      char c = pattern[i];
+      switch(state){
+         case 0 :   if(es[(int)c]){ // found escape
+                      state = 1;
+                    } else if(c=='['){
+                        ss << c;
+                        state=2;
+                    } else if(c=='_'){
+                        ss << ".";
+                    } else if(c=='('){
+                        ss << "\\(";
+                    } else if(c==')'){
+                        ss << "\\)";
+                    } else if(c=='%'){
+                        ss << ".*";
+                    } else if(c=='.'){
+                        ss << "\\.";
+                    } else if(c=='*'){
+                        ss << "\\*";
+                    } else if(c=='+'){
+                        ss << "\\+";
+                    } else if(c=='?'){
+                        ss << "\\?";
+                    } else {
+                        ss << c;
+                    }
+                    break;
+          case 1 : ss << c;  // escaped char
+                   state = 0;
+                   break;
+
+          case 2 :  ss << c; // within square brackets
+                    if(c==']'){
+                       state = 0;
+                     }
+      }
+   }
+    return ss.str();
+
+}
+
+
+
+template<class P, class E>
+int like2regexVMT( Word* args, Word& result, int message, 
+                   Word& local, Supplier s ) {
+
+   result = qp->ResultStorage(s);
+   RegExPattern2* res = (RegExPattern2*) result.addr;
+   P* pattern = (P*) args[0].addr;
+   if(!pattern->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   string esc = "";
+   if(qp->GetNoSons(s)==2){
+     E* Esc = (E*) args[1].addr;
+     if(!Esc->IsDefined()){
+        res->SetDefined(false);
+        return 0;
+     }
+     esc = Esc->GetValue();
+   }
+   string rep = rewrite_like(pattern->GetValue(), esc);
+   res->constructFrom(rep);
+   return 0;
+}
+
+
+
+ValueMapping like2regexVM[] = {
+   like2regexVMT<CcString, CcString>,
+   like2regexVMT<CcString, FText>,
+   like2regexVMT<FText, CcString>,
+   like2regexVMT<FText, FText>
+};
+
+int like2regexSelect(ListExpr args){
+  int n1 = CcString::checkType(nl->First(args))?0:2;
+  int n2 = 0;
+  if(nl->HasLength(args,2)){
+    n2 = CcString::checkType(nl->Second(args))?0:1;
+  }
+  return n1+n2;
+}
+
+
+OperatorSpec like2regexSpec(
+  "{string,text} [x {string, text}] -> regex2",
+  "like2regex(_,_)",
+  "Converts a SQL LIKE pattern into an regular expression."
+  "The first arguments is the pattern to converted, the second, optinal"
+  "argument represents the ESCAPE part",
+  "query like2regex('%erl') regexmatches 'Berlin'");
+
+Operator like2regexOp(
+  "like2regex",
+  like2regexSpec.getStr(),
+  4,
+  like2regexVM,
+  like2regexSelect,
+  like2regexTM
+);
+
+
 
 /*
 5 Creating the algebra
@@ -13264,7 +13409,8 @@ Operator executeScriptOP(
       AddOperator(&getParamOP);
       AddOperator(&savetoOp);
       
-    AddOperator(&executeScriptOP);
+      AddOperator(&executeScriptOP);
+      AddOperator(&like2regexOp);
 
 
 

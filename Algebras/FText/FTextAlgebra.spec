@@ -127,4 +127,5 @@ operator getConfig alias GETCONFIG pattern op()
 operator getPARAM alias GETPARAM pattern op(_,_,_,_)
 
 operator executeScript alias EXECUTESCRIPT pattern op(_,_,_)
+operator like2regex alias LIKE2REGEX pattern op(_,_)
 

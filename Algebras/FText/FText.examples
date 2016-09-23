@@ -1326,4 +1326,8 @@ Signature : {string, text} x bool x bool  -> bool
 Example   : query executeScript('a_non_exeistent_script.sec', TRUE, FALSE)
 Result    : FALSE
 
-
+Operator  : like2regex
+Number    : 1
+Signature : {string,tex} [x {string,text}] -> regex2
+Example   : query regexmatches("Berlin", like2regex("%lin") )
+Result    : TRUE
