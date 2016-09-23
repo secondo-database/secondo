@@ -395,5 +395,10 @@ Example   : query getDirectory("shp") filter[. endsWith ".shp"] shpCollect['All.
 Result    : unpredictable
 Remark    : result depends on the presence and the content of the shp folder
 
-
+Operator  : createShx
+Number    : 1
+Signature : {string,text} x {string,text} -> bool
+Example   : query createShx("Kinos.shp", "Kinos.shx");
+Result    : unpredictable
+Remark    : result depends on the presence of a file
 

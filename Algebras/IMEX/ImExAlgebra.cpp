@@ -7444,6 +7444,138 @@ Operator shpCollectOp(
 
 
 
+/*
+4.26 Operator ~db3Collect~
+
+*/
+
+
+/*
+4.27 Operator ~createShx~
+
+This operator scans a shape file and creates a idx file 
+from it.
+
+4.27.1 Type Mapping
+
+*/
+ListExpr createShxTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two erguments expected");
+  }
+  if(!CcString::checkType(nl->First(args))
+     &&!FText::checkType(nl->First(args))){
+    return listutils::typeError("first argument neihter a string nor a text");
+  }
+  if(!CcString::checkType(nl->Second(args))
+     &&!FText::checkType(nl->Second(args))){
+    return listutils::typeError("Second argument neihter a string nor a text");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+/*
+4.27.2 Value Mapping
+
+*/
+template<class S, class T>
+int createShxVMT(Word* args, Word& result,
+                  int message, Word& local, Supplier s){
+   
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   S* src = (S*) args[0].addr;
+   T* dest = (T*) args[1].addr;
+   if(!src->IsDefined() || !dest->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   ifstream in(src->GetValue().c_str(), ios::binary);
+   if(!in){ // problem in opening input file
+     res->Set(true,false);
+     return 0;
+   }
+   ofstream out(dest->GetValue().c_str(), ios::binary);
+   if(!out){ // problem in opening output file
+     res->Set(true,false);
+     return 0;
+   }
+   uint32_t code = readBigInt32(in);
+   if(!in.good() || code!=9994){ // read error or not a shpe file
+     res->Set(true,false);
+     return 0;
+   }   
+   //in.seekg(24);
+   //uint32_t length = readBigInt32(in);
+   in.seekg(0);
+   char header[100];
+   in.read(header,100);
+   if(!in){
+     res->Set(true,false);
+     return 0;
+   } 
+   // copy header into shx file
+   out.write(header,100);
+   uint32_t offset = 100;
+   while(in.good() && !in.eof() ){
+     uint32_t rn;  // record number
+     in.read((char*)&rn,4); // read over record number
+     uint32_t cl = readBigInt32(in); // content length
+     if(in.good()){
+        WinUnix::writeBigEndian(out,offset/2);
+        WinUnix::writeBigEndian(out,cl);
+     }
+     offset += 8 + 2*cl;
+     in.seekg(cl*2, ios_base::cur); // jump over content
+   } 
+   uint32_t shxLen = out.tellp() / 2; // in 16 bit words
+   out.seekp(24);
+   WinUnix::writeBigEndian(out,shxLen);
+   in.close();
+   out.close();
+   res->Set(true,true);
+   return 0;
+}
+
+ValueMapping createShxVM[] = {
+   createShxVMT<CcString, CcString>,
+   createShxVMT<CcString, FText>,
+   createShxVMT<FText, CcString>,
+   createShxVMT<FText, FText>
+};
+
+int createShxSelect(ListExpr args){
+   int n1 = CcString::checkType(nl->First(args))?0:2;
+   int n2 = CcString::checkType(nl->Second(args))?0:1;
+   return n1+n2;
+}
+
+OperatorSpec createShxSpec(
+   "{string,text} x {string,text} -> bool ",
+   "createShx(_,_)",
+   "Creates an shx file from a shape file.",
+   "query createShx('Kinos.shp', 'Kinos.shx')"
+);
+
+Operator createShxOp(
+  "createShx",
+  createShxSpec.getStr(),
+  4,
+  createShxVM,
+  createShxSelect,
+  createShxTM
+);
+
+
+
+
+
+
+/*
+4.28 Operator ~collectIdx~
+
+*/
 
  
 
@@ -7503,6 +7635,7 @@ public:
     #endif
     AddOperator(&shpBoxOp);
     AddOperator(&shpCollectOp);
+    AddOperator(&createShxOp);
 
   }
   ~ImExAlgebra() {};
