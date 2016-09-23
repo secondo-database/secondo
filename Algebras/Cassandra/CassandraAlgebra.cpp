@@ -1130,7 +1130,7 @@ public:
 
       // Build tuple and return
       Tuple* tuple = new Tuple(tupleType);
-      tuple->ReadFromBin(bytes);
+      tuple->ReadFromBin(0, bytes);
       delete fetchedTuple;
       free(bytes);
       
