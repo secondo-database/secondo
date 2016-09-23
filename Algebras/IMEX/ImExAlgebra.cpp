@@ -97,6 +97,34 @@ using namespace std;
 #define FILE_BUFFER_SIZE 1048576 
 
 
+   uint32_t readBigInt32(ifstream& file){
+      uint32_t res;
+      file.read(reinterpret_cast<char*>(&res),4);
+      if(WinUnix::isLittleEndian()){
+         res = WinUnix::convertEndian(res);
+      }
+      return res;
+   }
+
+   uint32_t readLittleInt32(ifstream& file){
+      uint32_t res;
+      file.read(reinterpret_cast<char*>(&res),4);
+      if(!WinUnix::isLittleEndian()){
+         res = WinUnix::convertEndian(res);
+      }
+      return res;
+   }
+
+   double readLittleDouble(ifstream& file){
+      uint64_t tmp;
+      file.read(reinterpret_cast<char*>(&tmp),8);
+      if(!WinUnix::isLittleEndian()){
+         tmp = WinUnix::convertEndian(tmp);
+      }
+      void* tmpv = (void*) &tmp;
+      double res = * (reinterpret_cast<double*>(tmpv));
+      return res;
+   }
 
 /*
 1 Operator ~csvexport~
@@ -7153,7 +7181,271 @@ Operator shpBoxOp(
    shpBoxTM
 );
 
-   
+  
+/*
+24.26 collectShpFiles
+
+This operator connects a set of shape file into a single one.
+The arguments are a stream of names and the file name for
+the result file. 
+
+The output is a tuple stream containing the original file names, 
+a boolean value reporting the success for this file and a text 
+representing an error message if the was no success.
+
+*/
+
+ListExpr shpCollectTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("invalid number of arguments");
+  }
+  if(!Stream<CcString>::checkType(nl->First(args))
+     && !Stream<FText>::checkType(nl->First(args))){
+    return listutils::typeError("the first argument has to be a stream "
+                                "of string or a stream of text");
+  }
+  if(!CcString::checkType(nl->Second(args))
+     &&!FText::checkType(nl->Second(args))){
+    return listutils::typeError("the second arg ist neihter "
+                                "a string nor a text");
+  }
+  return nl->TwoElemList(
+            listutils::basicSymbol<Stream<Tuple> >(),
+            nl->TwoElemList(
+                 listutils::basicSymbol<Tuple>(),
+                 nl->ThreeElemList(
+                    nl->TwoElemList(
+                         nl->SymbolAtom("File"),
+                         nl->Second(nl->First(args))),
+                    nl->TwoElemList(
+                         nl->SymbolAtom("Success"),
+                         listutils::basicSymbol<CcBool>()),
+                    nl->TwoElemList(
+                         nl->SymbolAtom("ErrMsg"),
+                         listutils::basicSymbol<FText>())))); 
+}
+
+
+
+template<class T>
+class shpConnectInfo{
+  public:
+    shpConnectInfo(Word& _stream, 
+                   const string& fn, 
+                   ListExpr _tt):
+     stream(_stream){
+     outshp = new ofstream(fn.c_str(), ios::binary| ios::out );
+     stream.open();
+     tt = new TupleType(_tt);
+     shpType = -1;
+    } 
+
+    ~shpConnectInfo(){
+       // write new bounding box into output file
+       uint32_t s = outshp->tellp();
+       if(s>100){ // header length of a shape file
+          outshp->seekp(24);
+          WinUnix::writeBigEndian(*outshp,s/2); // store file size
+          outshp->seekp(36); // position of XMin
+          WinUnix::writeLittle64(*outshp,minX);
+          WinUnix::writeLittle64(*outshp,minY);
+          WinUnix::writeLittle64(*outshp,maxX);
+          WinUnix::writeLittle64(*outshp,maxY);
+       }
+       outshp->close();
+       delete outshp; 
+       stream.close();
+       tt->DeleteIfAllowed();
+     }
+
+     Tuple* next(){
+       T* f = stream.request();
+       if(!f){
+         return 0;
+       }
+       Tuple* res = new Tuple(tt);
+       res->PutAttribute(0,f);
+       if(!f->IsDefined()){
+         return error(res,"undefined file name",0);
+       }
+       appendFile(res, f->GetValue());
+       return res;
+     }
+
+  private:
+    Stream<T> stream;
+    ofstream* outshp;
+    int32_t shpType;
+    double minX;
+    double minY;
+    double maxX;
+    double maxY;
+    TupleType* tt;
+
+    Tuple* error(Tuple* res, string message, ifstream* inshp=0){
+        res->PutAttribute(1, new CcBool(true,false));
+        res->PutAttribute(2, new FText(true, message));
+        if(inshp) delete inshp;
+        return res;
+    }
+
+    Tuple* appendFile(Tuple* res, const string& fileName){
+      string base = fileName;
+      stringutils::toLower(base);
+      if(stringutils::endsWith(base,"shp")){
+         base = fileName.substr(0,fileName.size()-4); 
+      } else {
+         base = fileName;
+      }
+      ifstream* inshp = 0;
+
+      inshp = new ifstream(fileName.c_str(), ios::binary);
+      if(!inshp->good()){
+         return error(res, "could not open shape file", inshp);
+      }
+      // the file can be opened, now check the type
+      int32_t code = readBigInt32(*inshp);
+      if(!inshp->good()){
+        return error(res,"problem in shape file", inshp);
+      }
+      if(code !=9994){
+        return error(res,"not a shape file", inshp);
+      }
+      // read shape type
+      inshp->seekg(32);
+      int32_t type =  readLittleInt32(*inshp);
+      double _minX = readLittleDouble(*inshp);
+      double _minY = readLittleDouble(*inshp);
+      double _maxX = readLittleDouble(*inshp);
+      double _maxY = readLittleDouble(*inshp);
+      if(!inshp->good()){
+        return error(res,"problem in shape file", inshp);
+      }
+      if(type!=1 && type!=3 && type!=5 && type!=8){
+        return error(res, "unsupported shape type", inshp);
+      }
+
+      if(outshp->tellp()==0){ // first file
+         shpType = type;
+         minX = _minX;
+         maxX = _maxX;
+         minY = _minY;
+         maxY = _maxY;
+         // copy header
+         char header[100];
+         inshp->seekg(0);
+         inshp->read(header, 100);
+         outshp->write(header,100);
+      } else {
+          if(shpType != type){
+            return error(res, "shape type differs", inshp);
+          }
+          if(_minX < minX) minX = _minX;
+          if(_maxX > maxX) maxX = _maxX;
+          if(_minY < minY) minY = _minY;
+          if(_maxY > maxY) maxY = _maxY;
+      }
+      // copy content of shape file
+      inshp->seekg (0, inshp->end);
+      size_t length = inshp->tellg(); 
+      inshp->seekg(100);
+      int buffersize = 16*1024;  
+      char buffer[buffersize];
+      bool done = false;
+      while(!inshp->eof() && !done && inshp->good()){
+        size_t bytes = length - inshp->tellg();
+        if(bytes>0){
+          if(bytes>buffersize){
+             bytes = buffersize;
+          }
+          inshp->read(buffer, bytes);
+          outshp->write(buffer,bytes); 
+        } else {
+          done = true;
+        }
+      }
+      inshp->close();
+      delete inshp;
+      res->PutAttribute(1, new CcBool(true,true));
+      res->PutAttribute(2, new FText(true,""));
+      return res;
+    }
+};
+
+
+template<class T, class F>
+int shpConnectVMT(Word* args, Word& result,
+                  int message, Word& local, Supplier s){
+
+  shpConnectInfo<T>* li = (shpConnectInfo<T>*) local.addr;
+  switch(message){
+    case OPEN : {
+                  if(li) {
+                    delete li;
+                    local.addr=0;
+                  }
+                  F* fn = (F*) args[1].addr;
+                  if(!fn->IsDefined()){
+                    return 0;
+                  }
+                  ListExpr tt = nl->Second(GetTupleResultType(s));
+                  local.addr = new shpConnectInfo<T>(args[0],
+                                               fn->GetValue(),tt);
+                  return 0;
+                }
+    case REQUEST : {
+                    result.addr = li?li->next():0;
+                    return result.addr?YIELD:CANCEL;
+                 }
+    case CLOSE : {
+                   if(li){
+                     delete li;
+                     local.addr = 0;
+                   }
+                   return 0;
+                 }
+  } 
+  return -1;
+
+}
+
+ValueMapping shpCollectVM[] = {
+   shpConnectVMT<CcString,CcString>,
+   shpConnectVMT<CcString,FText>,
+   shpConnectVMT<FText,CcString>,
+   shpConnectVMT<FText,FText>
+};
+
+int shpCollectSelect(ListExpr args){
+  int n1 = Stream<CcString>::checkType(nl->First(args))?0:2;
+  int n2 = CcString::checkType(nl->Second(args))?0:1;
+  return n1+n2;
+}
+
+OperatorSpec shpCollectSpec(
+  " stream({text,string}) x {text, string} -> stream(tuple) ",
+  " _ shpconnect[_]",
+  "Puts some shape files whose names comes from the stream "
+  "into a single shape file. The output is a tuple stream "
+  " reporting for each file whether the connect was successful"
+  " and in case of an error with an error message.",
+  " query getdirectory(\".\") filter[ . endsWith \".shp\"] "
+  "shpConnect['all.shp']"
+);
+
+Operator shpCollectOp(
+  "shpCollect",
+  shpCollectSpec.getStr(),
+  4,
+  shpCollectVM,
+  shpCollectSelect,
+  shpCollectTM
+);
+
+
+
+
+ 
 
 /*
 25 Creating the Algebra
@@ -7210,6 +7502,8 @@ public:
     AddOperator( &rtf2txtfile);
     #endif
     AddOperator(&shpBoxOp);
+    AddOperator(&shpCollectOp);
+
   }
   ~ImExAlgebra() {};
 };
