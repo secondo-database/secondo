@@ -26,39 +26,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceManager.hpp"
-#include "SecondoException.h"
+#ifndef ALGEBRAS_DBSERVICE_DBSERVICE_HPP_
+#define ALGEBRAS_DBSERVICE_DBSERVICE_HPP_
 
 namespace DBService
 {
 
-DBServiceManager::DBServiceManager()
+class DBService
 {
-    // TODO initialize vector with connection infos from config file
-    std::vector<distributed2::ConnectionInfo> workers;
-}
-
-DBServiceManager* DBServiceManager::getInstance()
-{
-    if (!_instance)
-    {
-        if (!isInitialized)
-        {
-            throw new SecondoException("DBServiceManager not initialized");
-        }
-        _instance = new DBServiceManager();
-    }
-    return _instance;
-}
-
-void DBServiceManager::initialize(
-        std::vector<distributed2::ConnectionInfo> connectionInfos)
-{
-    connections = connectionInfos;
-    isInitialized = true;
-}
-
-DBServiceManager* DBServiceManager::_instance = NULL;
-bool DBServiceManager::isInitialized = false;
+public:
+    DBService(const int argc, char* argv[]);
+    virtual ~DBService();
+};
 
 } /* namespace DBService */
+
+#endif /* ALGEBRAS_DBSERVICE_DBSERVICE_HPP_ */

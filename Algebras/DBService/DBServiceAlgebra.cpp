@@ -33,25 +33,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace DBService
 {
 
-DBServiceAlgebra::DBServiceAlgebra()
-: Algebra()
+DBServiceAlgebra::DBServiceAlgebra() :
+        Algebra()
 {
-    AddOperator(OperatorFeedPF(),
-	            OperatorFeedPF::mapValue(),
-	            OperatorFeedPF::selectFunction(),
-	            OperatorFeedPF::mapType());
-    AddOperator(OperatorLetDConsume(),
-	            OperatorLetDConsume::mapValue(),
-	            OperatorLetDConsume::selectFunction(),
-	            OperatorLetDConsume::mapType());
+    AddOperator(OperatorFeedPF(), OperatorFeedPF::mapValue(),
+                OperatorFeedPF::selectFunction(), OperatorFeedPF::mapType);
+    AddOperator(OperatorLetDConsume(), OperatorLetDConsume::mapValue(),
+                OperatorLetDConsume::selectFunction(),
+                OperatorLetDConsume::mapType());
 }
 
 DBServiceAlgebra::~DBServiceAlgebra()
 {
-	// TODO Auto-generated destructor stub
+    // TODO Auto-generated destructor stub
 }
 
-
-
 } /* namespace DBService */
-

@@ -26,39 +26,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceManager.hpp"
-#include "SecondoException.h"
+#include <iostream>
+#include "DBService.hpp"
+#include "Profiles.h"
 
 namespace DBService
 {
 
-DBServiceManager::DBServiceManager()
+DBService::DBService(const int argc, char* argv[])
 {
-    // TODO initialize vector with connection infos from config file
-    std::vector<distributed2::ConnectionInfo> workers;
+    std::cout << "DBService started" << std::endl;
 }
 
-DBServiceManager* DBServiceManager::getInstance()
+DBService::~DBService()
 {
-    if (!_instance)
-    {
-        if (!isInitialized)
-        {
-            throw new SecondoException("DBServiceManager not initialized");
-        }
-        _instance = new DBServiceManager();
-    }
-    return _instance;
+    std::cout << "DBService terminated" << std::endl;
 }
-
-void DBServiceManager::initialize(
-        std::vector<distributed2::ConnectionInfo> connectionInfos)
-{
-    connections = connectionInfos;
-    isInitialized = true;
-}
-
-DBServiceManager* DBServiceManager::_instance = NULL;
-bool DBServiceManager::isInitialized = false;
 
 } /* namespace DBService */
+
+/*int main(const int argc, char* argv[])
+{
+    //std::cout << "Number of args: " << argc << std::endl;
+    DBService::DBService dbService;
+}*/
+

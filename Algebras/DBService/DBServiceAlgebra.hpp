@@ -41,17 +41,16 @@ namespace DBService
 class DBServiceAlgebra: public Algebra
 {
 public:
-	DBServiceAlgebra();
-	virtual ~DBServiceAlgebra();
+    DBServiceAlgebra();
+    virtual ~DBServiceAlgebra();
 };
 
 } /* namespace DBService */
 
-extern "C"
-Algebra*
+extern "C" Algebra*
 InitializeDBServiceAlgebra(NestedList* nlRef, QueryProcessor* qpRef)
 {
-	return new DBService::DBServiceAlgebra;
+    return new DBService::DBServiceAlgebra;
 }
 
 #endif /* ALGEBRAS_DBSERVICE_DBSERVICEALGEBRA_HPP_ */

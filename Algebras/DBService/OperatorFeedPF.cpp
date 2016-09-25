@@ -27,9 +27,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "OperatorFeedPF.hpp"
+#include "Algebra.h"
+#include "NList.h"
+#include "Symbols.h"
+//#include "NestedList.h"
 
 namespace DBService
 {
+
+/*
+1 Operator ~feedpf~
+
+1.1 Constructor
+
+*/
 
 OperatorFeedPF::OperatorFeedPF()
 {
@@ -37,13 +48,71 @@ OperatorFeedPF::OperatorFeedPF()
 
 }
 
+/*
+1.2 Destructor
+
+*/
+
 OperatorFeedPF::~OperatorFeedPF()
 {
     // TODO Auto-generated destructor stub
 }
 
-TypeMapping OperatorFeedPF::mapType()
+/*
+5.8 Operator ~feedpf~
+
+Applies project and filter conditions to a relation in order
+to provide a tuple stream.
+Retrieves replica location from DBService if primary node storing
+the relation is not available, and reads them from the respective file.
+
+5.8.1 Type mapping function of operator ~feedpf~
+
+Result type of project filter operation.
+
+----    ((relation (tuple x)) (map (tuple x) bool)) (( <project> ))
+               -> (stream (tuple x))
+----
+
+*/
+
+ListExpr OperatorFeedPF::checkFirstArgumentIsRelation(ListExpr nestedList)
 {
+    if (listutils::isRelDescription(nestedList, true)
+            || listutils::isRelDescription(nestedList, false))
+    {
+        return nl->Cons(nl->SymbolAtom(Symbol::STREAM()), nl->Rest(nestedList));
+    }
+    if (listutils::isOrelDescription(nestedList))
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                               nl->Second(nestedList));
+    ErrorReporter::ReportError("rel(tuple(...)), trel(tuple(...)) or "
+                               "orel(tuple(...)) expected");
+    return nl->TypeError();
+}
+
+ListExpr OperatorFeedPF::mapType(ListExpr nestedList)
+{
+    if (!nl->HasLength(nestedList, 3))
+    {
+        return listutils::typeError(
+                "operator feedpf requires three arguments");
+    }
+
+    ListExpr first = nl->First(nestedList);
+
+    ListExpr rel = checkFirstArgumentIsRelation(first);
+    if(rel == nl->TypeError())
+    {
+        return rel;
+    }
+
+    //ListExpr second  = nl->Second(nestedList);
+    // TODO check that second argument contains the attributes for projection
+
+    //ListExpr third  = nl->Third(nestedList);
+    // TODO check that third argument contains the filter arguments
+
     return 0;
 }
 

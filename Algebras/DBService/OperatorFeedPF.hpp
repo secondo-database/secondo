@@ -50,9 +50,11 @@ class OperatorFeedPF : public OperatorInfo
 public:
     OperatorFeedPF();
     virtual ~OperatorFeedPF();
-    static TypeMapping mapType(); // TODO return value and signature
+    static ListExpr mapType(ListExpr nl);
     static SelectFunction selectFunction(); // TODO return value and signature
     static ValueMapping* mapValue(); // TODO return value and signature
+protected:
+    static ListExpr checkFirstArgumentIsRelation(ListExpr nestedList);
 };
 
 } /* namespace DBService */

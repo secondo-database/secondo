@@ -1,0 +1,16 @@
+Database : berlintest
+Restore  : No
+
+Operator  : letdconsume
+Number    : 1
+Signature : stream(tuple) x string -> rel(tuple)
+Example   : let Roads2 = Roads filter[ . startsWith "<TODO>"] letdconsume["Roads2"] #TODO workers array?!
+Result    : <TODO>
+Remark    : Requires a remote server
+
+Operator  : feedpf
+Number    : 1
+Signature : rel(tuple) x id x bool -> stream(tuple)
+Example   : query Roads2 feedpf[<TODO>; <TODO>]
+Result    : <TODO>
+Remark    : Requires a remote server

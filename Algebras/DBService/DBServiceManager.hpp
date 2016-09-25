@@ -29,14 +29,59 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_DBSERVICEMANAGER_HPP_
 #define ALGEBRAS_DBSERVICE_DBSERVICEMANAGER_HPP_
 
+#include "ConnectionInfo.h"
+
 namespace DBService
 {
 
 class DBServiceManager
 {
 public:
-	DBServiceManager();
-	virtual ~DBServiceManager();
+
+/*
+1.1 getInstance
+
+Returns the DBServiceManager instance (singleton).
+
+*/
+    static DBServiceManager* getInstance();
+/*
+1.1 getNodes
+
+Returns pointers to the selected alternative storage locations
+when provided with a node.
+
+*/
+    void getNodes();
+    static void initialize(
+            std::vector<distributed2::ConnectionInfo> connections);
+private:
+/*
+1.2 Constructor
+
+Creates a new DBServiceManager instance.
+
+*/
+    DBServiceManager();
+/*
+1.3 Copy Constructor
+
+Does not do anything.
+
+*/
+    DBServiceManager(const DBServiceManager&)
+    {}
+/*
+1.3 Destructor
+
+Deallocates and deletes existing DBServiceManager instance.
+
+*/
+    ~DBServiceManager();
+
+    static DBServiceManager* _instance;
+    static std::vector<distributed2::ConnectionInfo*> connections;
+    static bool isInitialized;
 };
 
 } /* namespace DBService */
