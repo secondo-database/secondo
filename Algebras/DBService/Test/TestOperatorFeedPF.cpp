@@ -27,7 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "Google/googletest/include/gtest/gtest.h"
-#include "DBService.hpp"
+//#include "ConnectionInfo.h"
+
+//using namespace distributed2;
 
 namespace DBService
 {
@@ -35,7 +37,7 @@ namespace DBService
 namespace Test
 {
 
-class TestDBService: public ::testing::Test
+class TestOperatorFeedPF: public ::testing::Test
 {
 public:
     void SetUp()
@@ -49,11 +51,11 @@ public:
     }
 };
 
-TEST_F(TestDBService, bla)
+TEST_F(TestOperatorFeedPF, assertTrueFalse)
 {
-    char* configs[] = { "myConfig", 0 };
-    DBService::DBService dbService(1, configs);
+    ASSERT_TRUE(false);
 }
 
 }
+
 }

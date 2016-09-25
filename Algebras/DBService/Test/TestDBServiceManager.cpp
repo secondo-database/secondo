@@ -27,7 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "Google/googletest/include/gtest/gtest.h"
-#include "DBService.hpp"
+//#include "ConnectionInfo.h"
+
+//using namespace distributed2;
 
 namespace DBService
 {
@@ -35,7 +37,7 @@ namespace DBService
 namespace Test
 {
 
-class TestDBService: public ::testing::Test
+class TestDBServiceManager: public ::testing::Test
 {
 public:
     void SetUp()
@@ -49,11 +51,17 @@ public:
     }
 };
 
-TEST_F(TestDBService, bla)
+TEST_F(TestDBServiceManager, assertTrueFalse)
 {
-    char* configs[] = { "myConfig", 0 };
-    DBService::DBService dbService(1, configs);
+   /* std::vector<distributed2::ConnectionInfo*> connections;
+    std::string host("localhost");
+    std::string config("config");
+    distributed2::ConnectionInfo conn1(host, 49094, config, NULL, NULL);
+    distributed2::ConnectionInfo conn2(host, 49095, config, NULL, NULL);
+    connections.push_back(&conn1);
+    connections.push_back(&conn2);*/
 }
 
 }
+
 }

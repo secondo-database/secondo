@@ -1,5 +1,3 @@
-.git/
-*.o
 *.a
-*.dep
+*.o
 SuiteDBService
