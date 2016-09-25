@@ -1,0 +1,24 @@
+# Importing NRW Data
+
+close database
+
+create database nrw
+
+open database nrw
+
+let Roads = dbimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/roads.dbf') addcounter[No, 1] shpimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/roads.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Waterways = dbimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/waterways.dbf') addcounter[No, 1] shpimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/waterways.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Railways = dbimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/railways.dbf') addcounter[No, 1] shpimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/railways.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Points = dbimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/points.dbf') addcounter[No, 1] shpimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/points.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Places = dbimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/places.dbf') addcounter[No, 1] shpimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/places.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Natural = dbimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/natural.dbf') addcounter[No, 1] shpimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/natural.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Buildings = dbimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/buildings.dbf') addcounter[No, 1] shpimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/buildings.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] filter[isdefined(bbox(.GeoData))] validateAttr consume
+
+let Landuse = dbimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/landuse.dbf') addcounter[No, 1] shpimport2('/mnt/diskb/psec2/jbemmann/databases/nrw/landuse.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] remove[No, No2] filter[isdefined(bbox(.GeoData))] validateAttr consume
+
