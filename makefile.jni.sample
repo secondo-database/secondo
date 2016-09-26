@@ -45,7 +45,9 @@ CC= g++
 SDK_ROOT=/usr/java/j2sdk1.4.2
 
 # directory where i can find the jni.h
+ifndef JNI_H_DIR 
 JNI_H_DIR =$(SDK_ROOT)/include
+endif
 
 # directory where i can find the libjava.so
 LIBJAVA_DIR =$(SDK_ROOT)/jre/lib/i386

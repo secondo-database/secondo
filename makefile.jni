@@ -34,7 +34,9 @@ space +=
 J2SDK_ROOT:=$(subst $(space),\$(space),$(J2SDK_ROOT))
 
 # directory where i can find the jni.h
+ifndef JNI_H_DIR 
 JNI_H_DIR := $(J2SDK_ROOT)/include
+endif
 
 # directory where i can find the libjava.dll
 LIBJAVA_DIR := "$(J2SDK_ROOT)/jre/bin"
@@ -53,7 +55,9 @@ endif
 platform2 := $(subst 64,,$(platform))
 ifeq ($(platform2),linux)
 
+ifndef JNI_H_DIR 
 JNI_H_DIR := $(J2SDK_ROOT)/include
+endif
 
 ifdef J2SDK_LIB
 LIBJAVA_DIR := $(J2SDK_ROOT)/$(J2SDK_LIB)
@@ -74,7 +78,9 @@ endif
 ifeq ($(platform),mac_osx)
 
 # directory where i can find the jni.h
+ifndef JNI_H_DIR 
 JNI_H_DIR := $(J2SDK_ROOT)/Headers
+endif
 
 #LIBJVM_DIR := $(J2SDK_ROOT)/Libraries
 #LIBJAVA_DIR := $(J2SDK_ROOT)/jre/lib/i386
