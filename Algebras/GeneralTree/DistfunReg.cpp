@@ -487,6 +487,8 @@ void DistfunReg::symTrajDistance1(const DistData *data1, const DistData *data2,
   M* traj1 = (M*)(M::deserialize((const char*)data1->value()));
   M* traj2 = (M*)(M::deserialize((const char*)data2->value()));
   result = traj1->Distance(*traj2);
+  traj1->DeleteIfAllowed();
+  traj2->DeleteIfAllowed();
 }
 
 /********************************************************************
