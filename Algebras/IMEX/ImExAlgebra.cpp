@@ -7228,9 +7228,9 @@ ListExpr shpCollectTM(ListExpr args){
 
 
 template<class T>
-class shpConnectInfo{
+class shpCollectInfo{
   public:
-    shpConnectInfo(Word& _stream, 
+    shpCollectInfo(Word& _stream, 
                    const string& fn, 
                    ListExpr _tt):
      stream(_stream){
@@ -7238,9 +7238,10 @@ class shpConnectInfo{
      stream.open();
      tt = new TupleType(_tt);
      shpType = -1;
+     noRecords = 0;
     } 
 
-    ~shpConnectInfo(){
+    ~shpCollectInfo(){
        // write new bounding box into output file
        uint32_t s = outshp->tellp();
        if(s>100){ // header length of a shape file
@@ -7281,6 +7282,7 @@ class shpConnectInfo{
     double maxX;
     double maxY;
     TupleType* tt;
+    uint32_t noRecords;
 
     Tuple* error(Tuple* res, string message, ifstream* inshp=0){
         res->PutAttribute(1, new CcBool(true,false));
@@ -7290,16 +7292,7 @@ class shpConnectInfo{
     }
 
     Tuple* appendFile(Tuple* res, const string& fileName){
-      string base = fileName;
-      stringutils::toLower(base);
-      if(stringutils::endsWith(base,"shp")){
-         base = fileName.substr(0,fileName.size()-4); 
-      } else {
-         base = fileName;
-      }
-      ifstream* inshp = 0;
-
-      inshp = new ifstream(fileName.c_str(), ios::binary);
+      ifstream* inshp = new ifstream(fileName.c_str(), ios::binary);
       if(!inshp->good()){
          return error(res, "could not open shape file", inshp);
       }
@@ -7313,7 +7306,7 @@ class shpConnectInfo{
       }
       // read shape type
       inshp->seekg(32);
-      int32_t type =  readLittleInt32(*inshp);
+      int32_t type = readLittleInt32(*inshp);
       double _minX = readLittleDouble(*inshp);
       double _minY = readLittleDouble(*inshp);
       double _maxX = readLittleDouble(*inshp);
@@ -7325,14 +7318,15 @@ class shpConnectInfo{
         return error(res, "unsupported shape type", inshp);
       }
 
-      if(outshp->tellp()==0){ // first file
+      if(noRecords==0){ // first file
          shpType = type;
          minX = _minX;
          maxX = _maxX;
          minY = _minY;
          maxY = _maxY;
-         // copy header
+         // copy header into the new file
          char header[100];
+         outshp->seekp(0); // if there was an empty shape file
          inshp->seekg(0);
          inshp->read(header, 100);
          outshp->write(header,100);
@@ -7344,26 +7338,37 @@ class shpConnectInfo{
           if(_maxX > maxX) maxX = _maxX;
           if(_minY < minY) minY = _minY;
           if(_maxY > maxY) maxY = _maxY;
+          inshp->seekg(100);  // overread header
       }
-      // copy content of shape file
-      inshp->seekg (0, inshp->end);
-      size_t length = inshp->tellg(); 
-      inshp->seekg(100);
       int buffersize = 16*1024;  
-      char buffer[buffersize];
+      char buffer[buffersize]; // maximum buffer size for a single value
       bool done = false;
       while(!inshp->eof() && !done && inshp->good()){
-        size_t bytes = length - inshp->tellg();
-        if(bytes>0){
-          if(bytes>buffersize){
-             bytes = buffersize;
+        // read record number from in
+        readBigInt32(*inshp);
+        if(!inshp->eof() && inshp->good()){
+          // read contents length
+          uint32_t length = readBigInt32(*inshp);
+          // write output recno and length to output
+          if(inshp->good()){
+             noRecords++;
+             WinUnix::writeBigEndian(*outshp, noRecords);
+             WinUnix::writeBigEndian(*outshp, length);
+             uint32_t chars = length*2;
+             // copy content
+             while(chars>0){
+               uint32_t toCopy = chars>buffersize?buffersize:chars;
+               inshp->read(buffer,toCopy);
+               outshp->write(buffer,toCopy);
+               chars -= toCopy;
+             }
           }
-          inshp->read(buffer, bytes);
-          outshp->write(buffer,bytes); 
         } else {
           done = true;
         }
       }
+
+
       inshp->close();
       delete inshp;
       res->PutAttribute(1, new CcBool(true,true));
@@ -7374,10 +7379,10 @@ class shpConnectInfo{
 
 
 template<class T, class F>
-int shpConnectVMT(Word* args, Word& result,
+int shpCollectVMT(Word* args, Word& result,
                   int message, Word& local, Supplier s){
 
-  shpConnectInfo<T>* li = (shpConnectInfo<T>*) local.addr;
+  shpCollectInfo<T>* li = (shpCollectInfo<T>*) local.addr;
   switch(message){
     case OPEN : {
                   if(li) {
@@ -7389,7 +7394,7 @@ int shpConnectVMT(Word* args, Word& result,
                     return 0;
                   }
                   ListExpr tt = nl->Second(GetTupleResultType(s));
-                  local.addr = new shpConnectInfo<T>(args[0],
+                  local.addr = new shpCollectInfo<T>(args[0],
                                                fn->GetValue(),tt);
                   return 0;
                 }
@@ -7410,10 +7415,10 @@ int shpConnectVMT(Word* args, Word& result,
 }
 
 ValueMapping shpCollectVM[] = {
-   shpConnectVMT<CcString,CcString>,
-   shpConnectVMT<CcString,FText>,
-   shpConnectVMT<FText,CcString>,
-   shpConnectVMT<FText,FText>
+   shpCollectVMT<CcString,CcString>,
+   shpCollectVMT<CcString,FText>,
+   shpCollectVMT<FText,CcString>,
+   shpCollectVMT<FText,FText>
 };
 
 int shpCollectSelect(ListExpr args){
@@ -7424,13 +7429,13 @@ int shpCollectSelect(ListExpr args){
 
 OperatorSpec shpCollectSpec(
   " stream({text,string}) x {text, string} -> stream(tuple) ",
-  " _ shpconnect[_]",
+  " _ shpcollect[_]",
   "Puts some shape files whose names comes from the stream "
   "into a single shape file. The output is a tuple stream "
   " reporting for each file whether the connect was successful"
   " and in case of an error with an error message.",
   " query getdirectory(\".\") filter[ . endsWith \".shp\"] "
-  "shpConnect['all.shp']"
+  "shpCollect['all.shp']"
 );
 
 Operator shpCollectOp(
