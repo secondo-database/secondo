@@ -425,14 +425,14 @@ void DistDataReg::initialize()
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
         stj::MLabels::BasicType(), getDataSymTraj<stj::MLabels>));
-
-    addInfo(DistDataInfo(
-        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-        stj::MPlace::BasicType(), getDataSymTraj<stj::MPlace>));
-
-    addInfo(DistDataInfo(
-        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-        stj::MPlaces::BasicType(), getDataSymTraj<stj::MPlaces>));
+// 
+//     addInfo(DistDataInfo(
+//         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+//         stj::MPlace::BasicType(), getDataSymTraj<stj::MPlace>));
+// 
+//     addInfo(DistDataInfo(
+//         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+//         stj::MPlaces::BasicType(), getDataSymTraj<stj::MPlaces>));
 
     PictureFuns::initDistData();
 

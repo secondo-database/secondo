@@ -484,10 +484,9 @@ void DistfunReg::symTrajDistance1(const DistData *data1, const DistData *data2,
   if (data1->size() == 0 || data2->size() == 0){
     result = numeric_limits<double>::max();
   }
-  M traj1, traj2;
-  traj1.deserialize((const char*)data1->value());
-  traj2.deserialize((const char*)data2->value());
-  result = traj1.Distance(traj2);
+  M* traj1 = (M*)(M::deserialize((const char*)data1->value()));
+  M* traj2 = (M*)(M::deserialize((const char*)data2->value()));
+  result = traj1->Distance(*traj2);
 }
 
 /********************************************************************
@@ -561,11 +560,11 @@ void DistfunReg::initialize()
         DistDataReg::getInfo(CcString::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
-//     addInfo(DistfunInfo(
-//         DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
-//         symTrajDistance1<stj::MLabel>,
-//         DistDataReg::getInfo(stj::MLabel::BasicType(), DDATA_NATIVE),
-//         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+    addInfo(DistfunInfo(
+        DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
+        symTrajDistance1<stj::MLabel>,
+        DistDataReg::getInfo(stj::MLabel::BasicType(), DDATA_NATIVE),
+        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
     addInfo(DistfunInfo(
         DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
