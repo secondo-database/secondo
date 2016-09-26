@@ -395,6 +395,14 @@ Example   : query getDirectory("shp") filter[. endsWith ".shp"] shpCollect['All.
 Result    : unpredictable
 Remark    : result depends on the presence and the content of the shp folder
 
+Operator  : db3Collect
+Number    : 1
+Signature : stream({string,text} ) x {string,text} -> stream(tuple)
+Example   : query getDirectory("dbf") filter[. endsWith ".dbf"] shpCollect['All.db3'] count
+Result    : unpredictable
+Remark    : result depends on the presence and the content of the dbf folder
+
+
 Operator  : createShx
 Number    : 1
 Signature : {string,text} x {string,text} -> bool

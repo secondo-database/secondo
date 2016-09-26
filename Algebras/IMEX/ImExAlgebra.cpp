@@ -114,6 +114,15 @@ using namespace std;
       }
       return res;
    }
+   
+   uint16_t readLittleInt16(ifstream& file){
+      uint16_t res;
+      file.read(reinterpret_cast<char*>(&res),2);
+      if(!WinUnix::isLittleEndian()){
+         res = WinUnix::convertEndian(res);
+      }
+      return res;
+   }
 
    double readLittleDouble(ifstream& file){
       uint64_t tmp;
@@ -7235,6 +7244,8 @@ class shpCollectInfo{
                    ListExpr _tt):
      stream(_stream){
      outshp = new ofstream(fn.c_str(), ios::binary| ios::out );
+     outbuf = new char[FILE_BUFFER_SIZE];
+     outshp->rdbuf()->pubsetbuf(outbuf,FILE_BUFFER_SIZE);
      stream.open();
      tt = new TupleType(_tt);
      shpType = -1;
@@ -7254,6 +7265,7 @@ class shpCollectInfo{
           WinUnix::writeLittle64(*outshp,maxY);
        }
        outshp->close();
+       delete[] outbuf;
        delete outshp; 
        stream.close();
        tt->DeleteIfAllowed();
@@ -7283,11 +7295,14 @@ class shpCollectInfo{
     double maxY;
     TupleType* tt;
     uint32_t noRecords;
+    char* outbuf;
 
-    Tuple* error(Tuple* res, string message, ifstream* inshp=0){
+    Tuple* error(Tuple* res, string message, ifstream* inshp=0, 
+                 char* inbuf = 0 ){
         res->PutAttribute(1, new CcBool(true,false));
         res->PutAttribute(2, new FText(true, message));
         if(inshp) delete inshp;
+        if(inbuf) delete[] inbuf;
         return res;
     }
 
@@ -7296,13 +7311,15 @@ class shpCollectInfo{
       if(!inshp->good()){
          return error(res, "could not open shape file", inshp);
       }
+      char* inbuf = new char[FILE_BUFFER_SIZE];
+      inshp->rdbuf()->pubsetbuf(inbuf,FILE_BUFFER_SIZE);
       // the file can be opened, now check the type
       int32_t code = readBigInt32(*inshp);
       if(!inshp->good()){
-        return error(res,"problem in shape file", inshp);
+        return error(res,"problem in shape file", inshp, inbuf);
       }
       if(code !=9994){
-        return error(res,"not a shape file", inshp);
+        return error(res,"not a shape file", inshp,inbuf);
       }
       // read shape type
       inshp->seekg(32);
@@ -7312,10 +7329,10 @@ class shpCollectInfo{
       double _maxX = readLittleDouble(*inshp);
       double _maxY = readLittleDouble(*inshp);
       if(!inshp->good()){
-        return error(res,"problem in shape file", inshp);
+        return error(res,"problem in shape file", inshp,inbuf);
       }
       if(type!=1 && type!=3 && type!=5 && type!=8){
-        return error(res, "unsupported shape type", inshp);
+        return error(res, "unsupported shape type", inshp,inbuf);
       }
 
       if(noRecords==0){ // first file
@@ -7332,7 +7349,7 @@ class shpCollectInfo{
          outshp->write(header,100);
       } else {
           if(shpType != type){
-            return error(res, "shape type differs", inshp);
+            return error(res, "shape type differs", inshp,inbuf);
           }
           if(_minX < minX) minX = _minX;
           if(_maxX > maxX) maxX = _maxX;
@@ -7371,6 +7388,7 @@ class shpCollectInfo{
 
       inshp->close();
       delete inshp;
+      delete[] inbuf;
       res->PutAttribute(1, new CcBool(true,true));
       res->PutAttribute(2, new FText(true,""));
       return res;
@@ -7452,7 +7470,342 @@ Operator shpCollectOp(
 /*
 4.26 Operator ~db3Collect~
 
+4.26.1 Type Mapping
+
 */
+ListExpr db3CollectTM(ListExpr args){
+
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("invalid number of arguments");
+  }
+  if(!Stream<CcString>::checkType(nl->First(args))
+     && !Stream<FText>::checkType(nl->First(args))){
+    return listutils::typeError("the first argument has to be a stream "
+                                "of string or a stream of text");
+  }
+  if(!CcString::checkType(nl->Second(args))
+     &&!FText::checkType(nl->Second(args))){
+    return listutils::typeError("the second arg ist neihter "
+                                "a string nor a text");
+  }
+  return nl->TwoElemList(
+            listutils::basicSymbol<Stream<Tuple> >(),
+            nl->TwoElemList(
+                 listutils::basicSymbol<Tuple>(),
+                 nl->ThreeElemList(
+                    nl->TwoElemList(
+                         nl->SymbolAtom("File"),
+                         nl->Second(nl->First(args))),
+                    nl->TwoElemList(
+                         nl->SymbolAtom("Success"),
+                         listutils::basicSymbol<CcBool>()),
+                    nl->TwoElemList(
+                         nl->SymbolAtom("ErrMsg"),
+                         listutils::basicSymbol<FText>())))); 
+}
+
+/*
+4.26.2 The LocalInfo Class
+
+*/
+
+class db3AttrType{
+  public:
+   db3AttrType(char* info): name(info,11u),type(info[11]),
+                                     length(info[16]),
+                                     noDecimals(info[17]){
+     name = string(name.c_str());
+   } 
+
+   bool operator==(const db3AttrType& rhs){
+     return    name==rhs.name 
+            && type==rhs.type
+            && length==rhs.length
+            && noDecimals==rhs.noDecimals;
+   }
+   bool operator!=(const db3AttrType& rhs){
+     return    name!=rhs.name 
+            || type!=rhs.type
+            || length!=rhs.length
+            || noDecimals!=rhs.noDecimals;
+   }
+
+   bool isValid(){
+     if( type!= 'C' && type!='N' && type!='L'
+         && type != 'D' && type!='M'){
+        print(cerr);
+        return false;
+     }
+     bool res = stringutils::isIdent(name);
+     if(!res){
+         cout << "not an ident '" << name << "'" <<  endl;
+         print(cerr); cerr << endl;
+     }
+     return  res;
+   }
+
+
+   void print(ostream& out){
+     out << name << ", T:" << type << ", L:" << length 
+         << ", D : " << noDecimals << endl;
+   }
+
+  
+  private:
+    string name;
+    unsigned char type;
+    unsigned char length;
+    unsigned char noDecimals;
+};
+
+
+template<class T>
+class db3CollectInfo{
+  public:
+    db3CollectInfo(Word _stream, const string& _fileName,
+                   ListExpr _tt): stream(_stream){
+       tt = new TupleType(_tt);
+       out = new ofstream(_fileName.c_str(),ios_base::binary);
+       outbuf = new char[FILE_BUFFER_SIZE];
+       out->rdbuf()->pubsetbuf(outbuf,FILE_BUFFER_SIZE);
+       noRecords = 0;
+       stream.open();
+    }
+ 
+    ~db3CollectInfo(){
+       if(out->good() && out->tellp()>8){
+          // TODO: change modification date (not important)
+          out->seekp(4);
+          WinUnix::writeLittleEndian(*out,noRecords);       
+       }
+       out->close();
+       delete out;
+       delete [] outbuf;
+       tt->DeleteIfAllowed();
+       stream.close();
+    }
+
+
+    Tuple* next() {
+       T* fn = stream.request();
+       if(!fn){
+          return 0;
+       }
+       Tuple* res = new Tuple(tt);
+       res->PutAttribute(0,fn);
+       if(!fn->IsDefined()){
+         return error(res,"Undefined file name");
+       }
+       return processFile(res, fn->GetValue());
+
+    }
+
+    
+
+
+  private:
+    Stream<T> stream;
+    TupleType* tt;  
+    ofstream* out;
+    char* outbuf;
+    uint32_t noRecords;
+    vector<db3AttrType> dbType;
+    bool hasMemo;
+
+    Tuple* error(Tuple* res, const string& msg, 
+                 ifstream* in1 = 0, ifstream* in2=0,
+                 char* in1buf=0, char* in2buf=0){
+        res->PutAttribute(1, new CcBool(true,false));
+        res->PutAttribute(2, new FText(true,msg));
+        if(in1){
+          in1->close();
+        }
+        if(in2){
+          in2->close();
+        }
+        if(in1buf) delete[] in1buf;
+        if(in2buf) delete[] in2buf;
+        return res;
+    }
+
+
+    Tuple* processFile(Tuple* res, const string& name){
+        ifstream in1(name.c_str(), ios_base::binary);
+        if(!in1.good()){
+           return error(res,"Cannot open file", &in1);
+        }
+        char* in1buf = new char[FILE_BUFFER_SIZE];
+        in1.rdbuf()->pubsetbuf(in1buf, FILE_BUFFER_SIZE);
+        // read first byte to detect used version
+        char version;
+        in1.read(&version,1);
+        if(!in1.good()){
+           return error(res,"problem in reading file", &in1,0,in1buf);
+        }
+        if(version!=0x02 && version!=0x03 && version!=0x83){
+           return error(res,"file does not contain a supported "
+                            "dbase version", &in1,0,in1buf);
+        }
+        bool hasMemoLocal = false;
+        if(version==0x83){
+           return error(res,"memo fields are not supported yet",&in1,0,in1buf);
+           hasMemoLocal = true;
+        }
+
+
+        // read global header information
+        in1.seekg(4);
+        uint32_t inNoRecords = readLittleInt32(in1);
+        uint16_t headerLength = readLittleInt16(in1);
+        uint16_t recordLength = readLittleInt16(in1);
+        in1.seekg(32); // jump over the 20 reserved bytes
+        // read the field
+        char field[32];
+        vector<db3AttrType> type;
+        while(in1.good() && (in1.tellg() < (headerLength - 1))){
+           in1.read(field,32);
+           db3AttrType t(field);
+           type.push_back(t);  
+           if(!t.isValid()){
+             return error(res,"found invalid field definition",&in1,0,in1buf);
+           }
+        }
+        // read end of header mark
+        char mark;
+        in1.read(&mark,1);
+        if(mark!=0x0d){
+           return error(res,"invalid structure found",&in1,0,in1buf);
+        }
+        // copy header information if this is the first file
+        if(out->tellp()==0){
+          in1.seekg(0);
+          char head[headerLength];
+          in1.read(head,headerLength);
+          out->write(head, headerLength);
+          dbType = type; // overtake type information
+          hasMemo = hasMemoLocal;
+        } else {
+          if(dbType.size()!=type.size()){
+            return error(res,"different types in files",&in1,0,in1buf);
+          }
+          for(size_t i=0;i<type.size();i++){
+            if(type[i]!=dbType[i]){
+               return error(res,"different types in files",&in1,0,in1buf);
+            } 
+          }
+        }
+        // copy content for non-Memo
+        if(!hasMemo){
+          char* buffer = new char[recordLength];
+          uint32_t writtenRecords=0;
+          while(writtenRecords<inNoRecords && in1.good()){
+            in1.read(buffer,recordLength);
+            if(in1.good()){
+              out->write(buffer,recordLength);
+              writtenRecords++;
+            }
+          } 
+          delete[] buffer;
+          if(writtenRecords != inNoRecords){
+             stringstream ss;
+             ss << "written " << writtenRecords 
+                << " but according to the header it should be " 
+                << inNoRecords;
+             return error(res,ss.str(),&in1,0,in1buf);
+          }
+          in1.close();
+          noRecords += writtenRecords; 
+          res->PutAttribute(1,new CcBool(true,true));
+          res->PutAttribute(2,new FText(true,""));
+          delete[] in1buf;
+          return res;
+        } else {
+             return error(res,"Memo fields are not implemented yet",
+                          &in1,0,in1buf);
+            
+        }
+    }
+
+
+
+};
+
+
+template<class T, class F>
+int db3CollectVMT(Word* args, Word& result,
+                  int message, Word& local, Supplier s){
+
+  db3CollectInfo<T>* li = (db3CollectInfo<T>*) local.addr;
+  switch(message){
+    case OPEN : {
+                  if(li) {
+                    delete li;
+                    local.addr=0;
+                  }
+                  F* fn = (F*) args[1].addr;
+                  if(!fn->IsDefined()){
+                    return 0;
+                  }
+                  ListExpr tt = nl->Second(GetTupleResultType(s));
+                  local.addr = new db3CollectInfo<T>(args[0],
+                                               fn->GetValue(),tt);
+                  return 0;
+                }
+    case REQUEST : {
+                    result.addr = li?li->next():0;
+                    return result.addr?YIELD:CANCEL;
+                 }
+    case CLOSE : {
+                   if(li){
+                     delete li;
+                     local.addr = 0;
+                   }
+                   return 0;
+                 }
+  } 
+  return -1;
+
+}
+
+
+
+ValueMapping db3CollectVM[] = {
+   db3CollectVMT<CcString,CcString>,
+   db3CollectVMT<CcString,FText>,
+   db3CollectVMT<FText,CcString>,
+   db3CollectVMT<FText,FText>
+};
+
+int db3CollectSelect(ListExpr args){
+  int n1 = Stream<CcString>::checkType(nl->First(args))?0:2;
+  int n2 = CcString::checkType(nl->Second(args))?0:1;
+  return n1+n2;
+}
+
+OperatorSpec db3CollectSpec(
+  " stream({text,string}) x {text, string} -> stream(tuple) ",
+  " _ db3collect[_]",
+  "Puts some shape files whose names comes from the stream "
+  "into a single dbase file. The output is a tuple stream "
+  " reporting for each file whether the connect was successful"
+  " and in case of an error with an error message.",
+  " query getdirectory(\".\") filter[ . endsWith \".dbf\"] "
+  "db3Collect['all.db3']"
+);
+
+Operator db3CollectOp(
+  "db3Collect",
+  db3CollectSpec.getStr(),
+  4,
+  db3CollectVM,
+  db3CollectSelect,
+  db3CollectTM
+);
+
+
+
+
+
 
 
 /*
@@ -7506,9 +7859,16 @@ int createShxVMT(Word* args, Word& result,
      res->Set(true,false);
      return 0;
    }
+   char* inbuf = new char[FILE_BUFFER_SIZE];
+   char* outbuf = new char[FILE_BUFFER_SIZE];
+   in.rdbuf()->pubsetbuf(inbuf,FILE_BUFFER_SIZE);
+   out.rdbuf()->pubsetbuf(outbuf,FILE_BUFFER_SIZE);
+
    uint32_t code = readBigInt32(in);
    if(!in.good() || code!=9994){ // read error or not a shpe file
      res->Set(true,false);
+     delete[] inbuf;
+     delete[] outbuf;
      return 0;
    }   
    //in.seekg(24);
@@ -7518,6 +7878,8 @@ int createShxVMT(Word* args, Word& result,
    in.read(header,100);
    if(!in){
      res->Set(true,false);
+     delete[] inbuf;
+     delete[] outbuf;
      return 0;
    } 
    // copy header into shx file
@@ -7540,6 +7902,8 @@ int createShxVMT(Word* args, Word& result,
    in.close();
    out.close();
    res->Set(true,true);
+   delete[] inbuf;
+   delete[] outbuf;
    return 0;
 }
 
@@ -7640,6 +8004,7 @@ public:
     #endif
     AddOperator(&shpBoxOp);
     AddOperator(&shpCollectOp);
+    AddOperator(&db3CollectOp);
     AddOperator(&createShxOp);
 
   }
