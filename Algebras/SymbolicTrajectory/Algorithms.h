@@ -238,8 +238,8 @@ class MBasic : public Attribute {
   bool readUnitFrom(ListExpr LE);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
 
-  void serialize(size_t &size, char *bytes) const;
-  void deserialize(const char *bytes);
+  void serialize(size_t &size, char *&bytes) const;
+  static MBasic<B>* deserialize(const char *bytes);
   int Position(const Instant& inst, const bool ignoreClosedness = false) const;
   int FirstPosFrom(const Instant& inst) const;
   int LastPosUntil(const Instant& inst) const;
@@ -316,8 +316,8 @@ class MBasics : public Attribute {
   bool readValues(ListExpr valuelist);
   bool readUnit(ListExpr unitlist);
   
-  void serialize(size_t &size, char *bytes) const;
-  void deserialize(const char *bytes);
+  void serialize(size_t &size, char *&bytes) const;
+  static MBasics<B>* deserialize(const char *bytes);
   int Position(const Instant& inst, const bool ignoreClosedness = false) const;
   int FirstPosFrom(const Instant& inst) const;
   int LastPosUntil(const Instant& inst) const;
@@ -2287,18 +2287,25 @@ bool MBasic<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 
 */
 template<class B>
-void MBasic<B>::serialize(size_t &size, char *bytes) const {
+void MBasic<B>::serialize(size_t &size, char *&bytes) const {
   size = 0;
   bytes = 0;
   if (!IsDefined()) {
     return;
   }
-  size = sizeof(size_t) + sizeof(*this) + values.getSize() + units.getSize();
+  size_t rootSize = Sizeof();
+  size = rootSize + sizeof(size_t) + values.getSize() + units.GetFlobSize();
   bytes = new char[size];
-  memcpy(bytes, (void*)&size, sizeof(size_t));
-  memcpy(bytes, (void*)this, sizeof(*this));
-  memcpy(bytes, (void*)&values, values.getSize());
-  memcpy(bytes, (void*)&units, units.getSize());
+  memcpy(bytes, (void*)&rootSize, sizeof(size_t));
+  memcpy(bytes + sizeof(size_t), (void*)this, rootSize);
+  size_t offset = sizeof(size_t) + rootSize;
+  char* data = values.getData();
+  memcpy(bytes + offset, data, values.getSize());
+  delete[] data;
+  offset += values.getSize();
+  data = units.getData();
+  memcpy(bytes + offset, data, units.GetFlobSize());
+  delete[] data;
 }
 
 /*
@@ -2306,14 +2313,33 @@ void MBasic<B>::serialize(size_t &size, char *bytes) const {
 
 */
 template<class B>
-void MBasic<B>::deserialize(const char *bytes) {
-  size_t size;
-  memcpy((void*)&size, bytes, sizeof(size_t));
-  memcpy((void*)this, bytes + sizeof(size_t), size);
-  memcpy((void*)&values, bytes + sizeof(size_t) + sizeof(this), 
-         values.getSize());
-  memcpy((void*)&units, bytes + sizeof(size_t) + sizeof(this) +values.getSize(),
-         units.getSize());
+MBasic<B>* MBasic<B>::deserialize(const char *bytes) {
+  ListExpr typeExpr = nl->SymbolAtom(BasicType());
+  int algebraId, typeId;
+  std::string typeName;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  sc->LookUpTypeExpr(typeExpr, typeName, algebraId, typeId);
+  size_t rootSize;
+  memcpy((void*)&rootSize, bytes, sizeof(size_t));
+  char* root = new char[rootSize];
+  memcpy(root, bytes + sizeof(size_t), rootSize);
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+  ListExpr nType = sc->NumericType(typeExpr);
+  Attribute* attr = (Attribute*)(am->CreateObj(algebraId, typeId)(nType)).addr;
+  attr = attr->Create(attr, root, rootSize, algebraId, typeId);
+  delete[] root;
+  size_t offset = rootSize + sizeof(size_t);
+  for (int i = 0; i < attr->NumOfFLOBs(); i++) {
+    Flob* flob = attr->GetFLOB(i);
+    size_t size = flob->getSize();
+    flob->kill();
+    char* fb = new char[size];
+    memcpy(fb, bytes + offset, size);
+    flob->createFromBlock(*flob, fb, size, false);
+    delete[] fb;
+    offset += size;
+  }
+  return (MBasic<B>*)attr;
 }
 
 /*
@@ -2997,8 +3023,8 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
     GetValue(i - 1, basic1);
     for (int j = 1; j < m; j++) {
       mb.GetValue(j - 1, basic2);
-      dp[i][j] = min(dp[i - 1][j] + 1,
-                 min(dp[i][j - 1] + 1, 
+      dp[i][j] = std::min(dp[i - 1][j] + 1,
+                 std::min(dp[i][j - 1] + 1, 
                      dp[i -1][j - 1] + Tools::distance(basic1, basic2, 
                                                        labelFun)));
     }
@@ -3255,20 +3281,30 @@ bool MBasics<B>::ReadFrom(ListExpr LE, ListExpr typeInfo) {
 
 */
 template<class B>
-void MBasics<B>::serialize(size_t &size, char *bytes) const {
+void MBasics<B>::serialize(size_t &size, char *&bytes) const {
   size = 0;
   bytes = 0;
   if (!IsDefined()) {
     return;
   }
-  size = sizeof(size_t) + sizeof(*this) + values.getSize() + units.getSize()
-         + pos.getSize();
+  size_t rootSize = Sizeof();
+  size = rootSize + sizeof(size_t) + values.getSize() + units.GetFlobSize()
+         + pos.GetFlobSize();
   bytes = new char[size];
-  memcpy(bytes, (void*)&size, sizeof(size_t));
-  memcpy(bytes, (void*)this, sizeof(*this));
-  memcpy(bytes, (void*)&values, values.getSize());
-  memcpy(bytes, (void*)&units, units.getSize());
-  memcpy(bytes, (void*)&pos, pos.getSize());
+  memcpy(bytes, (void*)&rootSize, sizeof(size_t));
+  memcpy(bytes + sizeof(size_t), (void*)this, rootSize);
+  size_t offset = sizeof(size_t) + rootSize;
+  char* data = values.getData();
+  memcpy(bytes + offset, data, values.getSize());
+  delete[] data;
+  offset += values.getSize();
+  data = units.getData();
+  memcpy(bytes + offset, data, units.GetFlobSize());
+  delete[] data;
+  offset += units.GetFlobSize();
+  data = pos.getData();
+  memcpy(bytes + offset, data, pos.GetFlobSize());
+  delete[] data;
 }
 
 /*
@@ -3276,16 +3312,33 @@ void MBasics<B>::serialize(size_t &size, char *bytes) const {
 
 */
 template<class B>
-void MBasics<B>::deserialize(const char *bytes) {
-  size_t size;
-  memcpy((void*)&size, bytes, sizeof(size_t));
-  memcpy((void*)this, bytes + sizeof(size_t), size);
-  memcpy((void*)&values, bytes + sizeof(size_t) + sizeof(this), 
-         values.getSize());
-  memcpy((void*)&units, bytes + sizeof(size_t) + sizeof(this) +values.getSize(),
-         units.getSize());
-  memcpy((void*)&pos, bytes + sizeof(size_t) + sizeof(this) + values.getSize() 
-         + units.getSize(), pos.getSize());
+MBasics<B>* MBasics<B>::deserialize(const char *bytes) {
+  ListExpr typeExpr = nl->SymbolAtom(BasicType());
+  int algebraId, typeId;
+  std::string typeName;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  sc->LookUpTypeExpr(typeExpr, typeName, algebraId, typeId);
+  size_t rootSize;
+  memcpy((void*)&rootSize, bytes, sizeof(size_t));
+  char* root = new char[rootSize];
+  memcpy(root, bytes + sizeof(size_t), rootSize);
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+  ListExpr nType = sc->NumericType(typeExpr);
+  Attribute* attr = (Attribute*)(am->CreateObj(algebraId, typeId)(nType)).addr;
+  attr = attr->Create(attr, root, rootSize, algebraId, typeId);
+  delete[] root;
+  size_t offset = rootSize + sizeof(size_t);
+  for (int i = 0; i < attr->NumOfFLOBs(); i++) {
+    Flob* flob = attr->GetFLOB(i);
+    size_t size = flob->getSize();
+    flob->kill();
+    char* fb = new char[size];
+    memcpy(fb, bytes + offset, size);
+    flob->createFromBlock(*flob, fb, size, false);
+    delete[] fb;
+    offset += size;
+  }
+  return (MBasics<B>*)attr;
 }
 
 /*
