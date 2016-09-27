@@ -390,8 +390,8 @@ Remark    : depends on the presence of a file, may be true or undefined
 
 Operator  : shpCollect
 Number    : 1
-Signature : stream({string,text} ) x {string,text} -> stream(tuple)
-Example   : query getDirectory("shp") filter[. endsWith ".shp"] shpCollect['All.shp'] count
+Signature : stream({string,text} ) x bool x {string,text} -> stream(tuple)
+Example   : query getDirectory("shp") filter[. endsWith ".shp"] shpCollect[TRUE, 'All.shp'] count
 Result    : unpredictable
 Remark    : result depends on the presence and the content of the shp folder
 

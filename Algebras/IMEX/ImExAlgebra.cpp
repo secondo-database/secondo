@@ -7205,7 +7205,7 @@ representing an error message if the was no success.
 */
 
 ListExpr shpCollectTM(ListExpr args){
-  if(!nl->HasLength(args,2)){
+  if(!nl->HasLength(args,3)){
     return listutils::typeError("invalid number of arguments");
   }
   if(!Stream<CcString>::checkType(nl->First(args))
@@ -7213,9 +7213,13 @@ ListExpr shpCollectTM(ListExpr args){
     return listutils::typeError("the first argument has to be a stream "
                                 "of string or a stream of text");
   }
-  if(!CcString::checkType(nl->Second(args))
-     &&!FText::checkType(nl->Second(args))){
-    return listutils::typeError("the second arg ist neihter "
+  if(!CcBool::checkType(nl->Second(args))){
+    return listutils::typeError("second argument has to be of type bool");
+  }
+
+  if(!CcString::checkType(nl->Third(args))
+     &&!FText::checkType(nl->Third(args))){
+    return listutils::typeError("the third arg ist neihter "
                                 "a string nor a text");
   }
   return nl->TwoElemList(
@@ -7241,11 +7245,31 @@ class shpCollectInfo{
   public:
     shpCollectInfo(Word& _stream, 
                    const string& fn, 
+                   bool createShx,
                    ListExpr _tt):
      stream(_stream){
      outshp = new ofstream(fn.c_str(), ios::binary| ios::out );
      outbuf = new char[FILE_BUFFER_SIZE];
      outshp->rdbuf()->pubsetbuf(outbuf,FILE_BUFFER_SIZE);
+
+     if(!createShx){
+       outshx = 0;
+       shxbuf = 0;
+     } else {
+        string name = fn;
+        stringutils::toLower(name);
+        if(stringutils::endsWith(name,".shp")){
+          name = fn.substr(0,fn.length()-4);
+        } else {
+          name = fn;
+        }
+        name += ".shx";
+        outshx = new ofstream(name.c_str(), ios::binary | ios::out);
+        shxbuf = new char[FILE_BUFFER_SIZE];
+        outshx->rdbuf()->pubsetbuf(shxbuf,FILE_BUFFER_SIZE); 
+     }
+
+
      stream.open();
      tt = new TupleType(_tt);
      shpType = -1;
@@ -7267,6 +7291,23 @@ class shpCollectInfo{
        outshp->close();
        delete[] outbuf;
        delete outshp; 
+       
+       if(outshx){ // write the same information into shx file if required
+         s = outshx->tellp();
+         if(s>100){
+          outshx->seekp(24);
+          WinUnix::writeBigEndian(*outshx,s/2); // store file size
+          outshx->seekp(36); // position of XMin
+          WinUnix::writeLittle64(*outshx,minX);
+          WinUnix::writeLittle64(*outshx,minY);
+          WinUnix::writeLittle64(*outshx,maxX);
+          WinUnix::writeLittle64(*outshx,maxY);
+         }
+         outshx->close();
+         delete[] shxbuf;
+         delete outshx;
+       }
+
        stream.close();
        tt->DeleteIfAllowed();
      }
@@ -7288,6 +7329,7 @@ class shpCollectInfo{
   private:
     Stream<T> stream;
     ofstream* outshp;
+    ofstream* outshx;
     int32_t shpType;
     double minX;
     double minY;
@@ -7296,6 +7338,7 @@ class shpCollectInfo{
     TupleType* tt;
     uint32_t noRecords;
     char* outbuf;
+    char* shxbuf;
 
     Tuple* error(Tuple* res, string message, ifstream* inshp=0, 
                  char* inbuf = 0 ){
@@ -7321,7 +7364,7 @@ class shpCollectInfo{
       if(code !=9994){
         return error(res,"not a shape file", inshp,inbuf);
       }
-      // read shape type
+      // read shape type and bounding box
       inshp->seekg(32);
       int32_t type = readLittleInt32(*inshp);
       double _minX = readLittleDouble(*inshp);
@@ -7347,6 +7390,10 @@ class shpCollectInfo{
          inshp->seekg(0);
          inshp->read(header, 100);
          outshp->write(header,100);
+         if(outshx){
+           outshx->seekp(0);
+           outshx->write(header,100);
+         }
       } else {
           if(shpType != type){
             return error(res, "shape type differs", inshp,inbuf);
@@ -7369,6 +7416,7 @@ class shpCollectInfo{
           // write output recno and length to output
           if(inshp->good()){
              noRecords++;
+             uint32_t offset = outshp->tellp();
              WinUnix::writeBigEndian(*outshp, noRecords);
              WinUnix::writeBigEndian(*outshp, length);
              uint32_t chars = length*2;
@@ -7378,6 +7426,11 @@ class shpCollectInfo{
                inshp->read(buffer,toCopy);
                outshp->write(buffer,toCopy);
                chars -= toCopy;
+             }
+             // write info to shx file
+             if(outshx){
+               WinUnix::writeBigEndian(*outshx,offset/2);
+               WinUnix::writeBigEndian(*outshx,length);
              }
           }
         } else {
@@ -7407,13 +7460,18 @@ int shpCollectVMT(Word* args, Word& result,
                     delete li;
                     local.addr=0;
                   }
-                  F* fn = (F*) args[1].addr;
+                  CcBool* x = (CcBool*) args[1].addr;
+                  bool createShx = x->IsDefined() && x->GetValue();
+
+                  F* fn = (F*) args[2].addr;
                   if(!fn->IsDefined()){
                     return 0;
                   }
                   ListExpr tt = nl->Second(GetTupleResultType(s));
-                  local.addr = new shpCollectInfo<T>(args[0],
-                                               fn->GetValue(),tt);
+                  local.addr = new shpCollectInfo<T>(args[0], 
+                                               fn->GetValue(),
+                                               createShx,
+                                               tt);
                   return 0;
                 }
     case REQUEST : {
@@ -7441,19 +7499,21 @@ ValueMapping shpCollectVM[] = {
 
 int shpCollectSelect(ListExpr args){
   int n1 = Stream<CcString>::checkType(nl->First(args))?0:2;
-  int n2 = CcString::checkType(nl->Second(args))?0:1;
+  int n2 = CcString::checkType(nl->Third(args))?0:1;
   return n1+n2;
 }
 
 OperatorSpec shpCollectSpec(
-  " stream({text,string}) x {text, string} -> stream(tuple) ",
-  " _ shpcollect[_]",
+  " stream({text,string}) x bool x {text, string} -> stream(tuple) ",
+  " _ shpcollect[_,_]",
   "Puts some shape files whose names comes from the stream "
-  "into a single shape file. The output is a tuple stream "
-  " reporting for each file whether the connect was successful"
-  " and in case of an error with an error message.",
+  "into a single shape file. If the boolean argument is true, "
+  "the corresponding shx file is created. "
+  "The output is a tuple stream "
+  "reporting for each file whether the connect was successful "
+  "and in case of an error with an error message.",
   " query getdirectory(\".\") filter[ . endsWith \".shp\"] "
-  "shpCollect['all.shp']"
+  "shpCollect[TRUE, 'all.shp']"
 );
 
 Operator shpCollectOp(

@@ -50,7 +50,7 @@ operator rtf2txtfile alias rtf2txtfile pattern op( _ )
 operator basename alias BASENAME pattern op(_)
 operator removeDirectory alias REMOVEDIRECTORY pattern op(_,_)
 operator shpBox alias SHPBOX pattern op(_)
-operator shpCollect alias SHPCOLLECT pattern _ op[_]
+operator shpCollect alias SHPCOLLECT pattern _ op[_,_]
 operator db3Collect alias DB3COLLECT pattern _ op[_]
 operator createShx alias CREATESHX pattern op(_,_)
 
