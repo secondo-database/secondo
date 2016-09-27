@@ -7999,15 +7999,6 @@ Operator createShxOp(
 
 
 
-
-
-/*
-4.28 Operator ~collectIdx~
-
-*/
-
- 
-
 /*
 25 Creating the Algebra
 
