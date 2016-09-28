@@ -21,7 +21,7 @@
 #include "MMMTree.h"
 #include "AvlTree.h"
 #include "Point.h"
-
+#include "../SymbolicTrajectory/Algorithms.h"
 
 
 namespace mmalgebra{
