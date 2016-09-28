@@ -8004,12 +8004,126 @@ Operator noShpRecordsOp(
 );
 
 
+/*
+24.10 Operator ~noDB3Records~
+
+This operator returns the number of records within a 
+d-base III file. If the second argument is given and
+TRUE, the file size is checked against the stored number.
+
+*/
+
+ListExpr noDB3RecordsTM(ListExpr args){
+   string err = "{string, text} [ x bool] expected";
+   if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+     return listutils::typeError(err+ " (wrong number of args)");
+   }
+   if(   !CcString::checkType(nl->First(args))
+      && !FText::checkType(nl->First(args))){
+      return listutils::typeError(err + " (first arg is neither a string "
+                                        "nor a text)");
+   }
+   if(nl->HasLength(args,1)){
+     return nl->ThreeElemList(
+                  nl->SymbolAtom(Symbols::APPEND()),
+                  nl->OneElemList(nl->BoolAtom(false)),
+                  listutils::basicSymbol<CcInt>());
+   }
+   if(!CcBool::checkType(nl->Second(args))){
+     return listutils::typeError(err + " (second arg ist not a bool)");
+   }
+   return listutils::basicSymbol<CcInt>();
+}
 
 
 
+template<class F>
+int noDB3RecordsVMT(Word* args, Word& result,
+                  int message, Word& local, Supplier s){
+   F* f = (F*) args[0].addr;
+   CcBool* c = (CcBool*) args[1].addr;
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
 
+   if(!f->IsDefined() || !c->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   string fn = f->GetValue();
+   ifstream in(fn.c_str(), ios::binary);
+   if(!in){
+     cerr << "could not open file " << f->GetValue() << endl;
+     res->Set(false,0);
+     return 0;
+   }
+   char version;
+   in.read(&version,1);
+   if(version!=0x02 && version!=0x03 && version!=0x83){
+     cerr << "file " << f->GetValue() << " seems not to be a dbase file"
+          << endl;
+     res->Set(false,0);
+     return 0;
+   }
+   in.seekg(4);
+   uint32_t noRecords = readLittleInt32(in);
+   if(!in.good()){
+     cerr << "problem in reading file" << endl;
+     return 0;
+   }
+   if(!c->GetValue()){
+     res->Set(true,noRecords);
+     return 0;
+   }
+   uint16_t headerLength = readLittleInt16(in);
+   uint16_t recordSize = readLittleInt16(in);
+   in.seekg(0,ios::end);
+   size_t fileLength = in.tellg();
+   if(fileLength != headerLength + noRecords * recordSize &&
+      fileLength != headerLength + 1 + noRecords * recordSize ){ 
+      // may be there is a 0x1A end marker or not
+      cerr << "real file length is " << fileLength << endl;
+      cerr << "expected file length is " 
+           << (headerLength + noRecords * recordSize) << endl;
 
+      cerr << "headerLength = " << headerLength << endl;
+      cerr << "recordSize = " << recordSize << endl;
+      cerr << "noRecords = " << noRecords << endl;
 
+      res->Set(true,-1 * (int)noRecords);
+   }  else {
+      res->Set(true,noRecords);
+   }
+   return 0;
+}
+
+ValueMapping noDB3RecordsVM[] = {
+   noDB3RecordsVMT<CcString>,
+   noDB3RecordsVMT<FText>
+};
+
+int noDB3RecordsSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec noDB3RecordsSpec(
+  "{string, text} [x bool] -> int",
+  "noDB3Records(filename, check)",
+  "Retrieves the number of records stored in a db3 file. "
+  "If the optional argument is given and true, the result "
+  "read from the file is compared with the expected file "
+  "size. If the computed file size and the real file size "
+  "differ, the result will be negated.",
+  "query noDB3Records('ten.dbf', TRUE) "
+);
+
+Operator noDB3RecordsOp(
+  "noDB3Records",
+  noDB3RecordsSpec.getStr(),
+  2,
+  noDB3RecordsVM,
+  noDB3RecordsSelect,
+  noDB3RecordsTM
+);
 
 
 
@@ -8568,7 +8682,8 @@ OperatorSpec extractShpPartSpec(
   "Extracts a part of a shape file and stores this part into another "
   "shape file. The first argument is the name of the source file "
   "including the .shp extension. The secnnd and the third argument "
-  "determine the range of records taht should be extracted." 
+  "determine the range of records taht should be extracted. Counting of "
+  "records starts with zero."  
   "The first boolean argument determines whether an index (shx) file should "
   "be created for the extracted part. "
   "In the normal case, this operator uses an index (shx) file "
@@ -8593,6 +8708,209 @@ Operator extractShpPartOp(
   extractShpPartSelect,
   extractShpPartTM
 );
+
+
+/*
+24.93 Operator ~extractDB3Part~
+
+This operator extracts a part of a db3 file into a new db3 file.
+
+24.93.1 Type Mapping
+
+Arguments are:
+    
+  * the source file name
+
+  * the start index
+
+  * the end index
+
+  * the target file name
+
+*/
+ListExpr extractDB3PartTM(ListExpr args){
+   string err="{string, text} x int x int x {string, text} expected";
+   if(!nl->HasLength(args,4)){
+      return listutils::typeError(err + " (wrong number of arguments");
+   }
+   if(   !CcString::checkType(nl->First(args))
+      && !FText::checkType(nl->First(args))){
+    return listutils::typeError(err + " (first arg is neither a string"
+                                      " nor a text)");
+   }
+   if(!CcInt::checkType(nl->Second(args))){
+     return listutils::typeError(err + " (second arg is not an int)");
+   }
+   if(!CcInt::checkType(nl->Third(args))){
+     return listutils::typeError(err + " (third arg is not an int)");
+   }
+   if(   !CcString::checkType(nl->Fourth(args))
+      && !FText::checkType(nl->Fourth(args))){
+    return listutils::typeError(err + " (fourth arg is neither a string"
+                                      " nor a text)");
+   }
+   return listutils::basicSymbol<CcInt>();
+}
+
+
+
+int extractDB3Part(string source, int first, int last, string target){
+
+   if(first>last){
+     swap(first,last);
+   }
+   if(first<0){
+     cerr << "invalid first tuple" << endl;
+     return 0;
+   }
+   ifstream in(source.c_str(),ios::binary);
+   if(!in.good()){
+     cerr << "could not open source file " << source << endl;
+     return 0;
+   }
+   char* inBuffer = new char[FILE_BUFFER_SIZE];
+   in.rdbuf()->pubsetbuf(inBuffer,FILE_BUFFER_SIZE);
+   char version;
+   in.read(&version,1);
+   if(!in.good() || (version !=0x02 && version!=0x03 && version!=0x83)){
+     cerr << "file " << source << " is not a supported d-base file" << endl;
+     delete[] inBuffer;
+     return 0;
+   }
+   if(version==0x83){
+     cerr << "memo field support not implemented yet" << endl;
+     delete[] inBuffer;
+     return 0;
+   }
+   
+
+   // determine number of records in file
+   in.seekg(4, ios::beg);
+   uint32_t noRecords = readLittleInt32(in);
+   if(!in.good() || (uint32_t)first>=noRecords){
+     cerr << "too less records in file " << endl;
+     delete[] inBuffer;
+     return 0;
+   }
+   // determine length of the header
+   uint16_t headerLength = readLittleInt16(in);
+   uint16_t recordLength = readLittleInt16(in);
+
+   if((uint64_t)last>=noRecords){
+     last = noRecords - 1;
+   }
+   // copy db3 header
+   char* header = new char[headerLength];
+   in.seekg(0,ios::beg);
+   in.read(header, headerLength);
+   // time to open the output file
+   ofstream out(target.c_str(), ios::binary);
+   if(!out){
+     cerr << "could not open output file";
+     delete[] inBuffer;
+     delete[] header;
+     return 0;
+   }
+   // write header to output file
+   char* outBuffer = new char[FILE_BUFFER_SIZE];
+   out.rdbuf()->pubsetbuf(outBuffer, FILE_BUFFER_SIZE);
+
+   out.write(header, headerLength);
+   
+   uint64_t bytes = ((last + 1) - first) * recordLength;
+   // navigate to start position in in file
+   in.seekg(first*recordLength, ios::cur);
+   size_t bs = 16*1024;
+   char buffer[bs]; // copy buffer by buffer
+   while(bytes>0 && in.good() && !in.eof()){
+      size_t read = bytes>bs?bs:bytes;
+      in.read(buffer,read);
+      out.write(buffer,read);
+      bytes -= read;  
+   }  
+    
+   if(bytes>0){
+     cerr << "error in copying data";
+     delete[] inBuffer;
+     delete[] outBuffer;
+     delete[] header;
+     return 0;
+   } 
+   // update record number in target file
+   out.seekp(4);
+   noRecords = (last+1) - first;
+   WinUnix::writeLittleEndian(out,noRecords);
+   in.close();
+   out.close();
+   delete[] inBuffer;
+   delete[] outBuffer;
+   delete[] header;
+   return noRecords; 
+}
+
+
+template<class T, class F>
+int extractDB3PartVMT(Word* args, Word& result,
+                      int message, Word& local, Supplier s){
+
+  T* fn = (T*) args[0].addr;
+  CcInt*  i1 = (CcInt*) args[1].addr;
+  CcInt*  i2 = (CcInt*) args[2].addr;
+  F* fnt = (F*) args[3].addr;
+
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+
+
+  if(   !fn->IsDefined() || !i1->IsDefined()
+     || !i2->IsDefined() || !fnt->IsDefined()){ 
+    res->SetDefined(false);
+    return 0;
+  }
+
+  res->Set(true, extractDB3Part( fn->GetValue(),
+                                 i1->GetValue(),
+                                 i2->GetValue(),
+                                 fnt->GetValue()));
+  return 0;
+}
+
+
+ValueMapping extractDB3PartVM[] = {
+   extractDB3PartVMT<CcString, CcString>,
+   extractDB3PartVMT<CcString, FText>,
+   extractDB3PartVMT<FText, CcString>,
+   extractDB3PartVMT<FText, FText>
+};
+
+int extractDB3PartSelect(ListExpr args){
+  int n1 = CcString::checkType(nl->First(args))?0:2;
+  int n2 = CcString::checkType(nl->Fourth(args))?0:1;
+  return n1+n2;
+}
+
+
+OperatorSpec extractDB3PartSpec(
+  "{string, text} x int x int x {string, text} -> int",
+  "extractDB3Part(source, first, last, target)",
+  "Extracts a portion given be first and last from a "
+  "d-Base III file and stores this part into a "
+  "new D-Base II file. As usual counting of records "
+  "starts with zero",
+  "query extractDB3Part('ten.dbf', 2,8, 'ten_2_8.dbf')"
+);
+
+
+Operator extractDB3PartOp(
+  "extractDB3Part",
+  extractDB3PartSpec.getStr(),
+  4,
+  extractDB3PartVM,
+  extractDB3PartSelect,
+  extractDB3PartTM
+);
+
+
 
 
 
@@ -8655,7 +8973,9 @@ public:
     AddOperator(&db3CollectOp);
     AddOperator(&createShxOp);
     AddOperator(&noShpRecordsOp);
+    AddOperator(&noDB3RecordsOp);
     AddOperator(&extractShpPartOp);
+    AddOperator(&extractDB3PartOp);
   }
   ~ImExAlgebra() {};
 };

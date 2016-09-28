@@ -416,9 +416,27 @@ Signature : {string, text] -> int
 Example   : query noShpRecords("kinos.shp")
 Result    : 83 
 
+Operator  : noDB3Records
+Number    : 1
+Signature : {string, text} [ x bool]  -> int
+Example   : query noDB3Records("ten.dbf", TRUE)
+Result    : 10
+
+
 Operator  : extractShpPart
 Number    : 1
 Signature : {string, text} x int x int x bool x bool x {string, text} -> int
 Example   : query extractShpPart('kinos.shp', 50, 55, TRUE, TRUE, 'kinos_50_55.shp')
 Result    : 6
+
+Operator  : extractDB3Part
+Number    : 1
+Signature : {string, text} x int x int x {string, text} -> int
+Example   : query extractDB3Part('ten.dbf', 4, 8, 'ten_4_8.shp')
+Result    : 5
+
+
+
+
+
 

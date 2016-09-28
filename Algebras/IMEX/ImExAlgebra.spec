@@ -55,6 +55,8 @@ operator db3Collect alias DB3COLLECT pattern _ op[_]
 operator createShx alias CREATESHX pattern op(_,_)
 
 operator noShpRecords alias NOSHPRECORDS pattern op(_)
+operator noDB3Records alias NODB3RECORDS pattern op(_,_)
 
 operator extractShpPart alias extractSHPPart pattern op(_,_,_,_,_,_)
+operator extractDB3Part alias extractSHPPart pattern op(_,_,_,_)
 
