@@ -4799,7 +4799,6 @@ int mcreateMtreeVMT (Word* args, Word& result, int message,
    string relName = RelName->GetValue();
    string name = Name->GetValue();
    MemoryObject* mmobj = catalog->getMMObject(relName);
-   cout << mmobj << endl;
    if(!mmobj){
       res->SetDefined(false);
       return 0;
