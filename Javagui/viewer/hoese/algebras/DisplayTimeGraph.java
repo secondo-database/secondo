@@ -62,6 +62,15 @@ public abstract class DisplayTimeGraph extends DisplayGraph
   public Interval getBoundingInterval () {
     return  TimeBounds;
   }
+  
+  /** A method of the Timed-Interface
+   *
+   * @param i the global time boundaries [min..max] this instance is defined at
+   * @see <a href="DisplayTimeGraphsrc.html#setTimebounds">Source</a>
+   */
+  public void setBoundingInterval (Interval i) {
+    TimeBounds = i;
+  }
 
 
   /**
@@ -83,14 +92,22 @@ public abstract class DisplayTimeGraph extends DisplayGraph
      }
     return  null;
   }
+  
   /** A method of the Timed-Interface
    * @return The Vector representation of the time intervals this instance is defined at
    * @see <a href="DisplayTimeGraphsrc.html#getIntervals">Source</a>
    */
-  public Vector getIntervals(){
+  public Vector getIntervals() {
     return Intervals;
-    }
+  }
 
+  /** A method of the Timed-Interface
+   * @param v The Vector representation of the time intervals this instance is defined at
+   * @see <a href="DisplayTimeGraphsrc.html#setIntervals">Source</a>
+   */
+  public void setIntervals(Vector v) {
+    Intervals = v;
+  }
 
 }
 
