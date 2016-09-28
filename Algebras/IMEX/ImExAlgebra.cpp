@@ -7278,10 +7278,11 @@ class shpCollectInfo{
 
     ~shpCollectInfo(){
        // write new bounding box into output file
-       uint32_t s = outshp->tellp();
+       uint64_t s = outshp->tellp();
+       uint32_t s2 = s/2;
        if(s>100){ // header length of a shape file
           outshp->seekp(24);
-          WinUnix::writeBigEndian(*outshp,s/2); // store file size
+          WinUnix::writeBigEndian(*outshp,s2); // store file size
           outshp->seekp(36); // position of XMin
           WinUnix::writeLittle64(*outshp,minX);
           WinUnix::writeLittle64(*outshp,minY);
@@ -7293,10 +7294,11 @@ class shpCollectInfo{
        delete outshp; 
        
        if(outshx){ // write the same information into shx file if required
-         s = outshx->tellp();
+         s  = outshx->tellp();
+         s2 = s/2;
          if(s>100){
           outshx->seekp(24);
-          WinUnix::writeBigEndian(*outshx,s/2); // store file size
+          WinUnix::writeBigEndian(*outshx,s2); // store file size
           outshx->seekp(36); // position of XMin
           WinUnix::writeLittle64(*outshx,minX);
           WinUnix::writeLittle64(*outshx,minY);
@@ -7598,7 +7600,6 @@ class db3AttrType{
      }
      bool res = stringutils::isIdent(name);
      if(!res){
-         cout << "not an ident '" << name << "'" <<  endl;
          print(cerr); cerr << endl;
      }
      return  res;
@@ -7785,9 +7786,6 @@ class db3CollectInfo{
             
         }
     }
-
-
-
 };
 
 
@@ -7861,6 +7859,153 @@ Operator db3CollectOp(
   db3CollectSelect,
   db3CollectTM
 );
+
+
+
+/*
+24,19 Operator ~noShpRecords~
+
+Retrieves the number of records from an shx file indexing 
+some shp file. If the shx file is not present, this operator 
+counts the number of records by scanning the main shape file.
+
+*/
+ListExpr noShpRecordsTM(ListExpr args){
+  const string err = "string or text expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err+ " (wrong number of args)");
+  }
+  if(   !CcString::checkType(nl->First(args))
+     && !FText::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+
+template<class F>
+int noShpRecordsVMT(Word* args, Word& result,
+                  int message, Word& local, Supplier s){
+
+   F* fn = (F*) args[0].addr;
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+   if(!fn->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   string name = fn->GetValue();
+   string n2 = name;
+   stringutils::toLower(n2);
+   string shpname;
+   string shxname;
+
+   if(stringutils::endsWith(n2,".shx")){
+     shxname = name;
+     shpname = name.substr(0,name.length()-4)+".shp";
+   } else if(stringutils::endsWith(n2,"shp")){
+      shxname = name.substr(0,name.length()-4)+".shx";
+      shpname = name;
+   } else {
+      shxname = name+".shx";
+      shpname = name+".shp";
+   }
+   // try to get the record number without scanning the shapefile
+   ifstream shxin(shxname.c_str(),ios::binary);
+   if(shxin.good()){
+      shxin.seekg(0,ios::end);
+      uint32_t len = shxin.tellg();
+      shxin.close();
+      if(len>=100){ // assumed to be a shx file
+         res->Set(true, (len-100)/8);
+         return 0;
+      }
+   }
+
+
+   cerr << "no shx file found, scan shp file" << endl;
+
+   // using shx file was not successful, scan shp file
+   ifstream shpin(shpname.c_str(),ios::binary);
+   if(!shpin.good()){ // cannot open file
+      res->SetDefined(false);
+      return 0; 
+   }
+   char* buffer = new char[FILE_BUFFER_SIZE];
+   shpin.rdbuf()->pubsetbuf(buffer, FILE_BUFFER_SIZE);
+   uint32_t code = readBigInt32(shpin);
+   if(!shpin.good() || (code!=9994)){ // not a shape file
+      shpin.close();
+      delete[] buffer;
+      res->SetDefined(false);
+      return 0;
+   }
+   shpin.seekg(24);
+   uint64_t len = readBigInt32(shpin);
+   if(!shpin.good()){
+      shpin.close();
+      delete[] buffer;
+      res->SetDefined(false);
+      return 0;
+   }   
+   len = len*2;  // length is given in 16 bit words
+   shpin.seekg(100); // jump over header
+   uint64_t pos = 100;
+   uint32_t count = 0;
+   while(pos < len && shpin.good()){
+     count++;
+     uint32_t recNo = readBigInt32(shpin);
+     uint32_t cl = readBigInt32(shpin);
+     if(recNo!=count){
+       cerr << "found wrong numbering in shape file" << endl
+            << " should be " << count << endl
+            << " but is actually " << recNo << endl;
+       cerr << "content length is " << cl << endl;
+     }
+     shpin.seekg(2*cl,ios::cur);
+     pos += 2*(4+cl);
+   }
+   shpin.close();
+   delete[] buffer;
+   res->Set(true,count);
+   return 0;
+}
+
+
+ValueMapping noShpRecordsVM[] = {
+  noShpRecordsVMT<CcString>,
+  noShpRecordsVMT<FText>
+};
+
+
+int noShpRecordsSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec noShpRecordsSpec(
+   " {string, text} -> int ",
+   "noShpRecords(_) ",
+   "Retrieves the number of records contained in a shape file. "
+   "If the corresponsing index file is present, it will be "
+   "used to determine the number of records in constant time. "
+   "If the index file is not present, the shape file itself "
+   "is scanned to get this number.",
+   "query noRecords('Kinos.shp')"
+
+);
+
+Operator noShpRecordsOp(
+  "noShpRecords",
+  noShpRecordsSpec.getStr(),
+  2,
+  noShpRecordsVM,
+  noShpRecordsSelect,
+  noShpRecordsTM
+);
+
+
+
+
 
 
 
@@ -7998,6 +8143,458 @@ Operator createShxOp(
 
 
 
+/*
+
+25.9 Operator ~extractShpPart~
+
+25.9.1 Type Mapping
+
+The operator expects 4 arguments. 
+
+  * the file name
+
+  * the index of the first record
+
+  * the index of the last record
+
+  * a boolean value determining whether an index file should be created too
+
+  * a boolean value for allowing a scan if necessary
+
+  * a string or text defining the deistination file
+
+Usually, this operator will use the shx file to determine the
+position of the first record to extract. The shape file is 
+scanned from this position until the end is reached or the 
+maximum number of records have been extracted.  
+If there is no shx file or the shape file size exceeds the 
+limit of 4GB (maximum adressable file position in the shx file),
+the last boolean argument determines whether  a scan of the 
+original shape file from the beginning is allowed.
+
+*/
+
+ListExpr extractShpPartTM(ListExpr args){
+  string err = "{string,text} x int x int x bool x bool  "
+               "x {string, text} expected";
+  if(!nl->HasLength(args,6)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(   !CcString::checkType(nl->First(args))
+     && !FText::checkType(nl->First(args))){
+    return listutils::typeError(err+ " (first arg is neither a string "
+                                 "nor a text");
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError(err+ " (second arg is not an int");
+  }
+  if(!CcInt::checkType(nl->Third(args))){
+    return listutils::typeError(err+ " (Third arg is not an int");
+  }
+  if(!CcBool::checkType(nl->Fourth(args))){
+    return listutils::typeError(err+ " (4th arg is not a bool");
+  }
+  if(!CcBool::checkType(nl->Fifth(args))){
+    return listutils::typeError(err+ " (5th arg is not a bool");
+  }
+  if(   !CcString::checkType(nl->Sixth(args))
+     && !FText::checkType(nl->Sixth(args))){
+    return listutils::typeError(err+ " (6th arg is neither a string "
+                                 "nor a text");
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+
+
+void updateBox(const uint32_t type, char* buffer, 
+               uint32_t contentLength,
+               double& minX, double& minY,
+               double& maxX, double& maxY,
+               bool& first){
+
+   if(contentLength==0){
+     return;
+   }
+   contentLength = contentLength*2; // in bytes
+
+   double lminX;
+   double lminY;
+   double lmaxX;
+   double lmaxY;
+   // determine values for lminX and so on from the block
+   bool le = WinUnix::isLittleEndian();
+   const uint32_t btype = *(reinterpret_cast<uint32_t*>(buffer));
+   if(btype==0){ // a null shape does not contibute to the bbox
+     return; 
+   }
+   if(btype!=type){ // should not happen
+     cerr << "the record shape type does not corresponds "
+             "to the file shape type" << endl;
+     return;
+   }
+   switch(type){
+     case 1: {
+               if(contentLength<20){
+                 cerr << "found invalid content length for a point" << endl;
+                 return;
+               }
+               uint64_t ix = * (reinterpret_cast<uint64_t*>(buffer+4));
+               uint64_t iy = * (reinterpret_cast<uint64_t*>(buffer+12));
+               if(!le){
+                 ix = WinUnix::convertEndian(ix);
+                 iy = WinUnix::convertEndian(iy);
+               }
+               lminX = *( reinterpret_cast<double*>(&ix));
+               lmaxX = lminX;
+               lminY = *(reinterpret_cast<double*>(&iy));
+               lmaxY = lminY;
+               break;
+             }
+     case 3:
+     case 5:
+     case 8: {
+                if(contentLength<36){
+                 cerr << "found invalid content length "
+                         "for a spatial object" << endl;
+                 return;
+               }
+               uint64_t ix1 = *(reinterpret_cast<uint64_t*>(buffer+4));
+               uint64_t iy1 = *(reinterpret_cast<uint64_t*>(buffer+12));
+               uint64_t ix2 = *(reinterpret_cast<uint64_t*>(buffer+20));
+               uint64_t iy2 = *(reinterpret_cast<uint64_t*>(buffer+28));
+               if(!le){
+                ix1 = WinUnix::convertEndian(ix1);
+                ix2 = WinUnix::convertEndian(ix2);
+                iy1 = WinUnix::convertEndian(iy1);
+                iy2 = WinUnix::convertEndian(iy2);
+               }
+               lminX = *( reinterpret_cast<double*>(&ix1));
+               lminY = *( reinterpret_cast<double*>(&iy1));
+               lmaxX = *( reinterpret_cast<double*>(&ix2));
+               lmaxY = *( reinterpret_cast<double*>(&iy2));
+               break; 
+             }
+     default: assert(false); // type not supported
+   }
+
+   if(first){
+      minX = lminX;
+      minY = lminY;
+      maxX = lmaxX;
+      maxY = lmaxY;
+      first = false;
+   } else {
+      minX = min(minX,lminX);
+      minY = min(minY,lminY);
+      maxX = max(maxX,lmaxX);
+      maxY = max(maxY,lmaxY);
+   }
+
+} 
+
+
+
+int extractShpPart( const string& shpFile,
+                    uint32_t i1, uint32_t i2,
+                    bool cx, bool as,
+                    const string& targetFile){
+
+  if(!stringutils::endsWith(shpFile,".shp" )){
+    cerr << "source file name does not end with .shp" << endl;
+    return 0;
+  }
+  if(!stringutils::endsWith(targetFile,".shp")){
+    cerr << "target file name does not end with .shp" << endl;
+    return 0;
+  }
+
+  if(i1>i2){
+    swap(i1,i2);
+  }
+  
+  i1++; // force counting at record 1 as in shp file
+  i2++;
+
+
+  // try to open the file and determine the file size
+  ifstream inshp(shpFile.c_str(), ios::binary);
+  if(!inshp){ // shape file could not be opened
+    cerr << "could not open source shape file" << endl;
+    return 0;
+  }
+
+  // check for shape file of supported type
+  uint32_t code = readBigInt32(inshp);
+  if(!inshp.good() || code != 9994){
+    cerr << "source file not recognized to be a shape file" << endl;
+    inshp.close();
+    return 0;
+  }
+  inshp.seekg(32);
+  uint32_t type = readLittleInt32(inshp);
+  if(!inshp.good()){
+    cerr << "could not extract type of the shape file" << endl;
+    inshp.close();
+    return 0;
+  }
+  if(type!=1 && type !=3 && type!=5 && type!=8){
+    cerr << "unsupported type " << type << endl; 
+    inshp.close();
+    return 0;
+  }
+  // determine size of the file
+
+  uint64_t maxsize = 2*((1ul << 32)-1); 
+
+
+  inshp.seekg(0,ios::end);
+  uint64_t filesize = inshp.tellg();
+
+
+  bool indexAvailable = filesize < maxsize;
+
+
+  uint64_t firstPos = 0;
+
+  if(indexAvailable){
+     ifstream inshx((shpFile.substr(0,shpFile.length()-4)+".shx").c_str(),
+                    ios::binary);
+     if(!inshx){
+        indexAvailable = false;
+     } else {
+       uint64_t i1pos = 100 + 8*(i1-1);
+       inshx.seekg(i1pos);
+       if(!inshx.good()){ // outside the index file
+         inshp.close();
+         inshx.close();
+         return 0;
+       } 
+       firstPos = readBigInt32(inshx);
+       if(!inshx.good()){ // after the last position
+          inshp.close();
+          inshx.close();
+          return 0;
+       }
+       inshx.close(); // index file is processed
+    }
+  }
+  if(indexAvailable){
+     firstPos = firstPos * 2; // convert 16Bit to byte
+  }
+
+  char* buffer = new char[FILE_BUFFER_SIZE];
+  inshp.rdbuf()->pubsetbuf(buffer,FILE_BUFFER_SIZE);
+
+
+  if(!indexAvailable){
+    if(!as){
+      // impossible to determine the start position
+      // without scanning the main file
+      cerr << "index not available and scan is not allowed" << endl;
+      inshp.close();
+      delete[] buffer;
+      return 0;
+    }
+    inshp.seekg(100);
+
+    // search record i1 by scanning the main file
+    uint32_t record = 1;
+    while(inshp.good() && !inshp.eof() && record < i1){
+      uint32_t rec = readBigInt32(inshp);
+      if(rec!=record){
+        cerr << "wrong record numbering in shape file found" << endl;
+      } 
+      uint32_t cl = readBigInt32(inshp); // content length
+      // jump over content
+      inshp.seekg(cl*2,ios::cur);
+      record++;
+    }
+    if(!inshp.good() || record!=i1){
+      // index outside file
+      cerr << "first index outside the file" << endl;
+      inshp.close();
+      delete[] buffer;
+      return 0;
+    }
+    firstPos = inshp.tellg();
+
+  }
+  // ok, the first index is in the file, at a first step, we 
+  // copy the header of the main file into the target file
+  // and return the the position of i1  
+  ofstream outshp(targetFile.c_str(),ios::binary);
+  ofstream outshx;
+  char* outBuffer2 = 0;
+  if(cx){
+    outshx.open((targetFile.substr(0,targetFile.length()-4)+".shx").c_str(),
+                  ios::binary);
+     
+  }
+  if(!outshp){
+    cerr << "could not open output file" << endl;
+    delete[] buffer;
+    return 0;
+  }
+  char* outBuffer1 = new char[FILE_BUFFER_SIZE]; 
+  outshp.rdbuf()->pubsetbuf(outBuffer1,FILE_BUFFER_SIZE);
+
+  if(cx && outshx.good()){
+    outBuffer2 = new char[FILE_BUFFER_SIZE];
+    outshx.rdbuf()->pubsetbuf(outBuffer2, FILE_BUFFER_SIZE);
+  }
+
+  // copy header
+  inshp.seekg(0);
+  char header[100];
+  inshp.read(header,100);
+  outshp.write(header,100);
+  if(outBuffer2){
+    outshx.write(header,100);
+  } 
+
+  inshp.seekg(firstPos);
+
+  double minX =0;
+  double maxX =0;
+  double minY =0;
+  double maxY = 0;
+  bool first = true;
+  uint32_t count = 0;
+
+  while(inshp.good() && !inshp.eof() && i1 <= i2){
+    // read next element from shape file
+    uint32_t rec = readBigInt32(inshp);
+    if(rec!=i1){
+      cerr << "found invalid numbering in shape file" << endl;
+    }
+    uint32_t cl = readBigInt32(inshp);
+    if(inshp.good()){
+      char* recbuf = new char[2*cl];
+      inshp.read(recbuf,cl*2);
+      if(inshp.good()){
+        uint32_t p = outshp.tellp() / 2;
+        if(outBuffer2){ // write shx file if required
+           WinUnix::writeBigEndian(outshx,p);
+           WinUnix::writeBigEndian(outshx,cl);    
+        }
+        count++;
+        WinUnix::writeBigEndian(outshp, count);
+        WinUnix::writeBigEndian(outshp, cl);
+        outshp.write(recbuf,2*cl); 
+        updateBox(type,recbuf,cl,minX,minY,maxX,maxY,first);
+        i1++;
+      }
+      delete[] recbuf;
+    }
+  }
+
+  // update header information
+  uint32_t fileLength = outshp.tellp()/2;
+  outshp.seekp(24);
+  WinUnix::writeBigEndian(outshp,fileLength);
+  outshp.seekp(36);
+  WinUnix::writeLittle64(outshp,minX);
+  WinUnix::writeLittle64(outshp,minY);
+  WinUnix::writeLittle64(outshp,maxX);
+  WinUnix::writeLittle64(outshp,maxY);
+  outshp.close();
+  delete[] outBuffer1;
+  if(outBuffer2){
+     fileLength = outshx.tellp()/2;
+     outshx.seekp(24);
+     WinUnix::writeBigEndian(outshx,fileLength);
+     outshx.seekp(36);
+     WinUnix::writeLittle64(outshx,minX);
+     WinUnix::writeLittle64(outshx,minY);
+     WinUnix::writeLittle64(outshx,maxX);
+     WinUnix::writeLittle64(outshx,maxY);
+     outshx.close();
+     delete[] outBuffer2;
+  } 
+  delete[] buffer;
+  return count; 
+}
+
+
+template<class T, class F>
+int extractShpPartVMT(Word* args, Word& result,
+                      int message, Word& local, Supplier s){
+
+  T* fn = (T*) args[0].addr;
+  CcInt*  i1 = (CcInt*) args[1].addr;
+  CcInt*  i2 = (CcInt*) args[2].addr;
+  CcBool* cx = (CcBool*) args[3].addr;
+  CcBool* as = (CcBool*) args[4].addr;
+  F* fnt = (F*) args[5].addr;
+
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+
+
+  if(   !fn->IsDefined() || !i1->IsDefined()
+     || !i2->IsDefined() || !cx->IsDefined()
+     || !as->IsDefined() || !fnt->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+
+  res->Set(true, extractShpPart( fn->GetValue(),
+                                 i1->GetValue(),
+                                 i2->GetValue(),
+                                 cx->GetValue(),
+                                 as->GetValue(),
+                                 fnt->GetValue()));
+  return 0;
+}
+
+
+ValueMapping extractShpPartVM[] = {
+   extractShpPartVMT<CcString, CcString>,
+   extractShpPartVMT<CcString, FText>,
+   extractShpPartVMT<FText, CcString>,
+   extractShpPartVMT<FText, FText>
+};
+
+int extractShpPartSelect(ListExpr args){
+  int n1 = CcString::checkType(nl->First(args))?0:2;
+  int n2 = CcString::checkType(nl->Sixth(args))?0:1;
+  return n1+n2;
+}
+
+OperatorSpec extractShpPartSpec(
+  "{string,text} x int x int x bool x  bool x {string,text} -> int",
+  "extractSphPart(source, minRecord, maxRecord, createShx, allowScan, target)",
+  "Extracts a part of a shape file and stores this part into another "
+  "shape file. The first argument is the name of the source file "
+  "including the .shp extension. The secnnd and the third argument "
+  "determine the range of records taht should be extracted." 
+  "The first boolean argument determines whether an index (shx) file should "
+  "be created for the extracted part. "
+  "In the normal case, this operator uses an index (shx) file "
+  "to determine the begin of the first record within  the shape file."
+  "This is impossible if the shape file has a size of more than 8GB or "
+  "of course if no index file is present. " 
+  "In such a case, a scan within the main file up to the first "
+  "record to extract is reqwired. Because this is expensive, the fifth "
+  "argument controls whether such a scan is allowed. "
+  "The last argument is the name of the target file including the shp "
+  "extension.",
+  "query extractShpPart('buildings.shp',1000, 1500, TRUE, "
+  "TRUE, 'buildings_1000_1500')"
+);
+
+
+Operator extractShpPartOp(
+  "extractShpPart",
+  extractShpPartSpec.getStr(),
+  4,
+  extractShpPartVM,
+  extractShpPartSelect,
+  extractShpPartTM
+);
+
+
 
 /*
 25 Creating the Algebra
@@ -8057,7 +8654,8 @@ public:
     AddOperator(&shpCollectOp);
     AddOperator(&db3CollectOp);
     AddOperator(&createShxOp);
-
+    AddOperator(&noShpRecordsOp);
+    AddOperator(&extractShpPartOp);
   }
   ~ImExAlgebra() {};
 };

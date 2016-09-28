@@ -410,3 +410,15 @@ Example   : query createShx("Kinos.shp", "Kinos.shx");
 Result    : unpredictable
 Remark    : result depends on the presence of a file
 
+Operator  : noShpRecords
+Number    : 1
+Signature : {string, text] -> int
+Example   : query noShpRecords("kinos.shp")
+Result    : 83 
+
+Operator  : extractShpPart
+Number    : 1
+Signature : {string, text} x int x int x bool x bool x {string, text} -> int
+Example   : query extractShpPart('kinos.shp', 50, 55, TRUE, TRUE, 'kinos_50_55.shp')
+Result    : 6
+
