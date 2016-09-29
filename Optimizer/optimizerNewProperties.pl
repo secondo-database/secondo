@@ -7911,6 +7911,10 @@ lookupAttr(Term, value_expr(string,Term)) :-
   catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
   retractall(onlyAttribute), !.
 
+lookupAttr(Term, value_expr(string, Term)) :-
+  string(Term),
+  !.
+
 
 
 % string constant

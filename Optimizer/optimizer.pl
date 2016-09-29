@@ -7451,7 +7451,7 @@ lookupAttr(Term, value_expr(string, Term)) :-
   catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
   retractall(onlyAttribute), !.
 
-lookupPred1(Term, value_expr(string, Term), RelsBefore, RelsBefore) :-
+lookupAttr(Term, value_expr(string, Term)) :-
   string(Term),
   !.
 
@@ -9601,8 +9601,9 @@ optimize(Query, QueryOut, CostOut) :-
   retractall(removefilter(_)),		% some cleanups before new query
   retractall(memoryOp(_, _)),
   retractall(memory(_)),
-  moSQL(Query, MOQuery),		% see file operatorSQL.pl
-  rewriteQuery(MOQuery, RQuery),		
+  % moSQL(Query, MOQuery),		% see file operatorSQL.pl
+  % rewriteQuery(MOQuery, RQuery),
+  rewriteQuery(Query, RQuery),			
   callLookup(RQuery, Query2), !,	% the three main steps
 %	nl, write('After Lookup: '), nl, write(Query2), nl, nl,
   queryToPlan(Query2, Plan, CostOut), !,

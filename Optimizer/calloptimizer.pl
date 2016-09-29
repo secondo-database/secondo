@@ -828,7 +828,8 @@ optDebugLevel(translation).      % Details on translation rule matching
 % loaded by default!
 loadFiles(standard) :-
   ( not(loadedModule(standard)),
-    [optimizerNewProperties],
+    [optimizer],
+%    [optimizerNewProperties],
     [costs2014],
     [statistics],
     [database],
@@ -837,8 +838,8 @@ loadFiles(standard) :-
     [searchtree],
     [relations],
     [testExamples],
-    [operatorSQL],	% operatorSQL
-    [distributed],
+%    [operatorSQL],	% operatorSQL
+%    [distributed],
 % Section:Start:loadFiles_1_i
 % Section:End:loadFiles_1_i
     retractall(loadedModule(_)),
