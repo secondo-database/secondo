@@ -8056,8 +8056,8 @@ int noDB3RecordsVMT(Word* args, Word& result,
      res->Set(false,0);
      return 0;
    }
-   char version;
-   in.read(&version,1);
+   unsigned char version;
+   in.read((char*)(&version),1);
    if(version!=0x02 && version!=0x03 && version!=0x83){
      cerr << "file " << f->GetValue() << " seems not to be a dbase file"
           << endl;
@@ -8770,8 +8770,8 @@ int extractDB3Part(string source, int first, int last, string target){
    }
    char* inBuffer = new char[FILE_BUFFER_SIZE];
    in.rdbuf()->pubsetbuf(inBuffer,FILE_BUFFER_SIZE);
-   char version;
-   in.read(&version,1);
+   unsigned char version;
+   in.read((char*)(&version),1);
    if(!in.good() || (version !=0x02 && version!=0x03 && version!=0x83)){
      cerr << "file " << source << " is not a supported d-base file" << endl;
      delete[] inBuffer;
