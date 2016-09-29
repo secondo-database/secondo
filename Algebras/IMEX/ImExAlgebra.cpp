@@ -9004,7 +9004,7 @@ int splitShpVMT(Word* args, Word& result,
 
    in.seekg(32);
    uint32_t type = readLittleInt32(in);
-   if(type!=1 && type!=3 && type!=6 && type!=8){
+   if(type!=1 && type!=3 && type!=5 && type!=8){
      cerr << "unsupported shape type " << type << endl;
      res->Set(true,0);
      return 0;
