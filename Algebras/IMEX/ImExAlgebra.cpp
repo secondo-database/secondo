@@ -8912,6 +8912,235 @@ Operator extractDB3PartOp(
 
 
 
+/*
+24.29 Operator ~splitShp~
+
+This operator splits a shape file into a series of shape files 
+having at most a certain number of elements stored.
+
+*/
+ListExpr splitShpTM(ListExpr args){
+  string err = "{string,text} x int [x bool] expected";
+  if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if(   !CcString::checkType(nl->First(args))
+     && !FText::checkType(nl->First(args))){
+   return listutils::typeError(err + " (first arg is neither a "
+                               "string nor a text)");
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError(err + " (second arg in not an int)");
+  }
+  if(nl->HasLength(args,2)){
+     return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                              nl->OneElemList(nl->BoolAtom(false)),
+                              listutils::basicSymbol<CcInt>());
+  }
+  if(!CcBool::checkType(nl->Third(args))){
+    return listutils::typeError(err + " ( third arg is not a bool)");
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+
+template<class T>
+int splitShpVMT(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+   T* fn = (T*) args[0].addr;
+   CcInt* norecs = (CcInt*) args[1].addr;
+   CcBool* cxs   = (CcBool*) args[2].addr;
+
+   if(!fn->IsDefined() || !norecs->IsDefined() || !cxs->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+
+   bool cx = cxs->GetValue();
+   int maxnorec = norecs->GetValue();
+   if(maxnorec < 1){
+     res->SetDefined(false);
+     return 0;
+   }
+   string f = fn->GetValue();
+   if(!stringutils::endsWith(f,".shp")){
+     cerr << "invalid file name, missing extension shp" << endl;
+     res->Set(true,0);
+     return 0;
+   }
+
+   ifstream in(f.c_str(), ios::binary);
+   if(!in){
+     cerr << "could not open file " << f << endl;
+     return 0;
+   }  
+   in.seekg(0,ios::end);
+   size_t fileSize = in.tellg();
+   if(fileSize < 100){
+     cerr << "invalid file (too short)" << endl;
+     res->Set(true,0);
+     return 0;
+   } 
+   in.seekg(0,ios::beg);
+   // read some header information
+   uint32_t code = readBigInt32(in);
+   if(code!=9994){
+     cerr << "file " << f << " is not a shape file" << endl;
+     res->Set(true,0);
+     return 0;
+   }
+
+   in.seekg(24);
+   size_t fs = readBigInt32(in);
+    
+   if(fs*2 != fileSize){
+     cerr << "invalid  file size stored, give up" << endl;
+     res->Set(true,0);
+     return 0;
+   }
+
+
+   in.seekg(32);
+   uint32_t type = readLittleInt32(in);
+   if(type!=1 && type!=3 && type!=6 && type!=8){
+     cerr << "unsupported shape type " << type << endl;
+     res->Set(true,0);
+     return 0;
+   }
+   // header information ok, get the whole header
+   char* inBuffer = new char[FILE_BUFFER_SIZE];
+   in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
+   char header[100];
+   in.seekg(0);
+   in.read(header,100);
+
+   uint32_t partition = 0;
+   ofstream* out = 0;
+   ofstream* outx = 0;
+
+   string base = f.substr(0,f.length()-4);   
+   char* outBuffer1 = new char[FILE_BUFFER_SIZE];
+   char* outBuffer2 = new char[FILE_BUFFER_SIZE];
+
+   uint32_t recno = 0;
+   bool firstRecord=true;
+
+   while(in.good() && in.tellg() < fileSize){
+      if(!out){ // start a new partition
+         out = new ofstream(  (base + "_" 
+                             +  stringutils::int2str(partition)
+                             + ".shp").c_str(),
+                            ios::binary);
+         out->rdbuf()->pubsetbuf(outBuffer1, FILE_BUFFER_SIZE);
+         out->write(header,100);
+         recno = 0;
+         if(cx){
+           outx = new ofstream(   (base +"_"
+                                 + stringutils::int2str(partition)
+                                 + ".shx").c_str(),
+                               ios::binary);
+           outx->rdbuf()->pubsetbuf(outBuffer2, FILE_BUFFER_SIZE);
+           outx->write(header,100);
+         }
+         partition++;
+         firstRecord = true;
+      }
+      // copy records until end of file or maximum number of records 
+      // for a single partition is reached
+      double minX=0;
+      double minY=0;
+      double maxX=0;
+      double maxY=0;
+      while( in.good() && (recno < maxnorec) && in.tellg()<fileSize){
+         in.seekg(4,ios::cur); // ignore original record number
+         uint32_t cl = readBigInt32(in);
+         char* record = new char[2*cl];
+         in.read(record, 2*cl);
+         if(in.good()){
+            updateBox(type, record, cl, minX,minY,maxX,maxY,firstRecord);
+            uint32_t offset = out->tellp()/2;
+            recno++;
+            WinUnix::writeBigEndian(*out, recno);
+            WinUnix::writeBigEndian(*out,cl);
+            out->write(record, 2*cl);
+            if(outx){
+               WinUnix::writeBigEndian(*outx, offset);
+               WinUnix::writeBigEndian(*outx, cl);
+            }
+         }
+         delete[] record;
+      }
+      uint32_t fs = out->tellp()/2;
+      if(fs>50) { // more than header size
+         // update file length and bounding box in header
+         out->seekp(24, ios::beg);
+         WinUnix::writeBigEndian(*out,fs);
+         out->seekp(36,ios::beg);
+         WinUnix::writeLittle64(*out,minX);
+         WinUnix::writeLittle64(*out,minY);
+         WinUnix::writeLittle64(*out,maxX);
+         WinUnix::writeLittle64(*out,maxY);
+         if(outx){
+            fs= outx->tellp()/2;
+            outx->seekp(24, ios::beg);
+            WinUnix::writeBigEndian(*outx,fs);
+            outx->seekp(36,ios::beg);
+            WinUnix::writeLittle64(*outx,minX);
+            WinUnix::writeLittle64(*outx,minY);
+            WinUnix::writeLittle64(*outx,maxX);
+            WinUnix::writeLittle64(*outx,maxY);
+         } 
+      }
+      out->close();
+      delete out;
+      out = 0;
+      if(outx){
+         outx->close();
+         delete outx;
+         outx=0;
+      }
+   }
+   delete[] inBuffer;
+   delete[] outBuffer1;
+   delete[] outBuffer2;
+   res->Set(true,partition);
+   return 0;
+}
+
+
+ValueMapping splitShpVM[] = {
+   splitShpVMT<CcString>,
+   splitShpVMT<FText>
+};
+
+int splitShpSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec splitShpSpec(
+  "{string, text} x int [ x bool] -> int ",
+  "spitShp(source, maxRecNo, createIndex) ",
+  "Split a single shape file into a serie of "
+  "shape files each having atmost maxRecNo entries. "
+  "Of course, the last partition may have less entries."
+  "The partition names come from the original name with appended "
+  "_<partition_numer>, where numbering starts with zero. "
+  "If the optional boolean argument is given and true, "
+  "for each created partition a corresponding shx file is created too.",
+  "query splitShp('buildings.shp', 600000, TRUE)"
+);
+
+Operator splitShpOp(
+  "splitShp",
+  splitShpSpec.getStr(),
+  2,
+  splitShpVM,
+  splitShpSelect,
+  splitShpTM
+);
+
 
 
 /*
@@ -8976,6 +9205,9 @@ public:
     AddOperator(&noDB3RecordsOp);
     AddOperator(&extractShpPartOp);
     AddOperator(&extractDB3PartOp);
+
+    AddOperator(&splitShpOp);
+
   }
   ~ImExAlgebra() {};
 };

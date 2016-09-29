@@ -436,7 +436,10 @@ Example   : query extractDB3Part('ten.dbf', 4, 8, 'ten_4_8.shp')
 Result    : 5
 
 
-
-
+Operator  : splitShp
+Number    : 1
+Signature : {string, text} x int [x bool] -> int
+Examples  : query splitShp('kinos.shp', 9, TRUE)
+Result    : 10
 
 

@@ -60,3 +60,4 @@ operator noDB3Records alias NODB3RECORDS pattern op(_,_)
 operator extractShpPart alias extractSHPPart pattern op(_,_,_,_,_,_)
 operator extractDB3Part alias extractSHPPart pattern op(_,_,_,_)
 
+operator splitShp alias SPLITSHP pattern op(_,_,_)
