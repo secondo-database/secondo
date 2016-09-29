@@ -32,7 +32,7 @@ SERVERPORT 1234
 
 
 # set the viewers to load automatical at start
-KNOWN_VIEWERS StandardViewer RelViewer FormattedViewer HoeseViewer
+KNOWN_VIEWERS StandardViewer RelViewer FormattedViewer HoeseViewer UpdateViewer UpdateViewer2 optics.OpticsViewer
 
 # set to true if you want to connect to secondo-server at start
 START_CONNECTION true
