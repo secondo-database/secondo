@@ -9142,6 +9142,167 @@ Operator splitShpOp(
 );
 
 
+/*
+24.29 Operator ~splitDB3~
+
+This operator splits a dbase-III file into a series of dbase-III 
+files having at most a certain number of elements stored.
+
+*/
+ListExpr splitDB3TM(ListExpr args){
+  string err = "{string,text} x int [x bool] expected";
+  if(!nl->HasLength(args,2) ){
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if(   !CcString::checkType(nl->First(args))
+     && !FText::checkType(nl->First(args))){
+   return listutils::typeError(err + " (first arg is neither a "
+                               "string nor a text)");
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError(err + " (second arg in not an int)");
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+
+template<class T>
+int splitDB3VMT(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+  T* fn  = (T*) args[0].addr;
+  CcInt* rn = (CcInt*) args[1].addr;
+  if(!fn->IsDefined() || !rn->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  string f = fn->GetValue();
+  int r = rn->GetValue();
+  if(r<1){
+    res->SetDefined(false);
+    return 0;
+  }
+  if(!stringutils::endsWith(f,".dbf")){
+    cerr << "file name does not end with .dbf" << endl;
+    res->SetDefined(false);
+    return 0;
+  }
+
+  ifstream in(f.c_str(), ios::binary);
+  if(!in.good()){
+    cerr << "could not open file " << f << endl;
+    res->SetDefined(false);
+    return 0;
+  }
+  unsigned char version;
+  in.read((char*)(&version),1);
+
+  if(!in.good() || ((version!=0x02) && (version!=0x03) && (version!=0x83))){
+    cerr << "file " << f << " is not a supported d-base file" << endl;
+    res->SetDefined(false);
+    return 0;
+  }
+  if(version==0x83){
+    cerr << "Db-III file with Memofields are not supported yet" << endl;
+    res->Set(true,0);
+    return 0;
+  } 
+  char* inBuffer = new char[FILE_BUFFER_SIZE];
+  in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
+  in.seekg(4);
+  uint32_t noRecords = readLittleInt32(in);
+  uint16_t headerLength = readLittleInt16(in);
+  uint16_t recordLength = readLittleInt16(in);
+  char* header = new char[headerLength];
+  in.seekg(0);
+  in.read(header, headerLength);
+  if(!in.good()){
+    cerr << "error in reading header from file " << f << endl;
+    res->Set(true,0);
+    delete[] inBuffer;
+    return 0;
+  }  
+  
+  char* outBuffer = new char[FILE_BUFFER_SIZE];
+
+  uint32_t partition = 0;
+  ofstream* out = 0;
+  string base = f.substr(0,f.length()-4);
+  size_t bytes2copy;
+
+  int bs = 16*1024;
+  char buf[bs];
+
+
+  while(in.good() && !in.eof() && noRecords>0){
+      out = new ofstream((  base + "_"
+                          + stringutils::int2str(partition)
+                          + ".dbf").c_str(),
+                          ios::binary);
+     out->rdbuf()->pubsetbuf(outBuffer, FILE_BUFFER_SIZE);
+     uint32_t records2Copy = r < noRecords?r: noRecords;
+     bytes2copy = records2Copy*recordLength;
+     noRecords -= records2Copy;
+     // change noRecords within header
+     if(!WinUnix::isLittleEndian()){
+       WinUnix::convertEndian(records2Copy);
+     }
+     memcpy(header+4,&records2Copy,4);
+     out->write(header, headerLength);
+     partition++;
+     while(bytes2copy>0){
+        size_t b = bs<bytes2copy?bs:bytes2copy;
+        in.read(buf,b);
+        out->write(buf,b);
+        bytes2copy -= b;
+     }
+     unsigned char dataEndMarker=0x1a;
+     out->write((char*)(&dataEndMarker),1);
+     out->close();
+     delete out; 
+  }
+  delete[] inBuffer;
+  delete[] outBuffer;
+  res->Set(true,partition);
+  return 0;
+}
+
+ValueMapping splitDB3VM[] = {
+  splitDB3VMT<CcString>,
+  splitDB3VMT<FText>
+};
+
+int splitDB3Select(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec splitDB3Spec(
+  "{string, text} x int -> int",
+  "splitDB3(fileName, noRecords) ",
+  "Splits a d-base III file into a serie of such files "
+  "echa containing at most noRecords entries (the last file "
+  "may have less entries. "
+  "The filenames are taken from the input file name, extended by "
+  "an underscore and the partition number. "
+  "The operator returns the number of created partitions.",
+  "query splitDB3('ten.dbf',2)"
+);
+
+Operator splitDB3Op(
+  "splitDB3",
+  splitDB3Spec.getStr(),
+  2,
+  splitDB3VM,
+  splitDB3Select,
+  splitDB3TM
+
+);
+
+
+
+
 
 /*
 25 Creating the Algebra
@@ -9207,6 +9368,7 @@ public:
     AddOperator(&extractDB3PartOp);
 
     AddOperator(&splitShpOp);
+    AddOperator(&splitDB3Op);
 
   }
   ~ImExAlgebra() {};

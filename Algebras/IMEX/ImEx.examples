@@ -439,7 +439,14 @@ Result    : 5
 Operator  : splitShp
 Number    : 1
 Signature : {string, text} x int [x bool] -> int
-Examples  : query splitShp('kinos.shp', 9, TRUE)
+Example   : query splitShp('kinos.shp', 9, TRUE)
 Result    : 10
+
+
+Operator  : splitDB3
+Number    : 1
+Signature : {string, text} x int  -> int
+Example   : query splitDB3('ten.dbf', 3)
+Result    : 4
 
 

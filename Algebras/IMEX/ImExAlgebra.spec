@@ -61,3 +61,4 @@ operator extractShpPart alias extractSHPPart pattern op(_,_,_,_,_,_)
 operator extractDB3Part alias extractSHPPart pattern op(_,_,_,_)
 
 operator splitShp alias SPLITSHP pattern op(_,_,_)
+operator splitDB3 alias SPLITDB3 pattern op(_,_)
