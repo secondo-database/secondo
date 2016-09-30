@@ -16,7 +16,6 @@ VIEWER_CLASSES +=   PictureViewer.class
 VIEWER_CLASSES +=   UpdateViewer.class
 VIEWER_CLASSES +=   UpdateViewer2.class
 VIEWER_CLASSES +=   QueryconstructionViewer.class
-VIEWER_CLASSES +=   UpdateViewer2.class
 VIEWER_CLASSES +=   MessageViewer.class
 #VIEWER_CLASSES +=   Spatial3DViewer.class
 #VIEWER_CLASSES +=   GrappaViewer.class
