@@ -7725,6 +7725,10 @@ lookupPred1(Term, value_expr(string,Term), RelsBefore, RelsBefore) :-
   catch((my_string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
   !.
 
+lookupPred1(Term, value_expr(string,Term), RelsBefore, RelsBefore) :-
+  string(Term), 
+  !.
+
 %% Primitive: generic atom (constant expression)
 %lookupPred1(Term, value_expr(text,Term), RelsBefore, RelsBefore) :-
 %  atom(Term), !.
