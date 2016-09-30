@@ -94,10 +94,6 @@ query Results inserttuple["Division", NSlots,
 
 
 
-# 89 seconds
-
-
-
 /*
 2 Import OSM Data on Workers
 
@@ -109,7 +105,7 @@ let Import = ControlSlots
 query Results inserttuple["Import", NSlots, 
  SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
-# 691 seconds = 11:31 min
+
 
 
 /*
@@ -173,9 +169,6 @@ query Results inserttuple["Create DArrays", NSlots,
  SEC2COMMANDS feed tail[12] sum[ElapsedTime]] consume
 
 
-
-# about 3.2 seconds per array
-
 /*
 7 Prepare Cost Measurements
 
@@ -207,9 +200,6 @@ query Results inserttuple["CityNodesB1_NodeId", NCityNodes,
 let Cost1 = distCostSave(ControlWorkers);
 update LastCommand := distCostReset(ControlWorkers)
 
-# 39:47 min = 2387 seconds
-# germany newton: 355 sec = 5:55 min
-# germany newton 160: 304 seconds = 5:04 min
 
 
 let CityWaysB1_NodeRef = CityWaysB0 partitionF["", . feed, 
@@ -223,9 +213,6 @@ query Results inserttuple["CityWaysB1_NodeRef",
 let Cost2 = distCostSave(ControlWorkers);
 update LastCommand := distCostReset(ControlWorkers)
 
-# 80:01 min
-# germany newton: 842 sec = 14:02 min
-# germany newton 160: 610 sec = 10:10 min
 
 
 let CityWayTagsB1_WayIdInTag = CityWayTagsB0 partitionF["", . feed, 
@@ -239,9 +226,6 @@ query Results inserttuple["CityWayTagsB1_WayIdInTag",
 let Cost3 = distCostSave(ControlWorkers);
 update LastCommand := distCostReset(ControlWorkers)
 
-# 2888 + 352.8 seconds = 48:08 min  + 5:53 min
-# germany newton: 597 sec = 9:57 min
-# germany newton 160: 383 sec = 6:23 min
 
 
 /*
@@ -282,8 +266,7 @@ let Cost5 = distCostSave(ControlWorkers);
 update LastCommand := distCostReset(ControlWorkers)
 
 
-# germany newton: 241 sec = 4:01 min
-# germany newton 160: 225 seconds = 3:45 min
+
 
 
 /*
@@ -315,13 +298,6 @@ query Results inserttuple["WaysB1_WayId",
   WaysB1_WayId dloop["", . feed count] getValue tie[. + ..], 
   SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
-# arnsberg: 43.29 seconds
-# germany newton: 580 sec = 9:40 min, 590 sec = 9:50 min
-# germany newton 160: 553 seconds = 9:13 min
-
-# arnsberg: 13.26 seconds
-# germany newton: 350 sec = 5:50 min, 328 sec = 5:28 min
-# germany newton 160: 382 seconds = 6:22 min
 
 
 # let Cost6 = distCostSave(ControlWorkers);
@@ -343,18 +319,9 @@ query Results inserttuple["WaysB3_WayId",
   WaysB3_WayId dloop["", . feed count] getValue tie[. + ..], 
   SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
-# arnsberg: 2016445
-
-
-
-
-
 
 let Cost7 = distCostSave(ControlWorkers);
 update LastCommand := distCostReset(ControlWorkers)
-
-# 1:21min (81.3981sec)
-# germany newton: 40:16 min = 2416 sec
 
 
 /*
@@ -471,7 +438,7 @@ query Results inserttuple["NodesB3_WayId",
   NodesB3_WayId dloop["", . feed count] getValue tie[. + ..], 
   SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
-# arnsberg: 1068839
+
 
 /*
 12 Construct Edges
@@ -673,12 +640,6 @@ query Results inserttuple["EdgesB1_WayId",
   SEC2COMMANDS feed tail[1] sum[ElapsedTime]] consume
 
 
-
-
-# Runtime for Scripts/importGermanyOsm.sec: Times (elapsed / cpu): 
-# 8:22min # (502.348sec) /0.42sec = 1196.07
-# File Scripts/importGermanyOsm.sec successful processed.
-
 /* 
 13 Test
 
@@ -694,6 +655,7 @@ let hombruchEdges = EdgesB1_WayId dloop["", . feed
 
 let Commands = SEC2COMMANDS feed consume
 
-let TotalTime = Commands feed filter[not(.CmdStr contains "Results")] filter[not(.CmdStr contains "distCost")] sum[ElapsedTime]
+let TotalTime = Commands feed filter[not(.CmdStr contains "Results")] 
+  filter[not(.CmdStr contains "distCost")] sum[ElapsedTime]
 
 
