@@ -2018,6 +2018,23 @@ public class HoeseViewer extends SecondoViewer {
 		}
 	}
 
+  public double getDisplayQuality(SecondoObject so) {
+    if (!this.canDisplay(so)) {
+      return 0;
+    }
+    String type = so.toListExpr().second().toString();
+    
+    if (type.contains("region") || type.contains("point") || type.contains("line")
+       || type.contains("mpoint") || type.contains("mregion")) {
+      // optimized for relation with spatial or spatial temporal attributes
+      return 0.9;
+    }
+    return 0.55;
+  }
+
+
+
+
 	/**
 	 * Adds a new QueryResult qr to the Textwindow
 	 * 
