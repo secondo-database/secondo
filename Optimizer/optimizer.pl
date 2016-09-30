@@ -4941,10 +4941,10 @@ edgeSelInfo(Source, Target, Sel, Pred) :-
 
 
 writeEdgeSels :-
- findall([Source-Target, Sel, Pred], edgeSelInfo(Source, Target, Sel, Pred), L),
-  Format = [ ['Edge', 'l'],
-             ['Selectivity', 'l'],
-             ['Predicate', 'l'] ],
+ findall([Source, Target, Sel], edgeSelInfo(Source, Target, Sel, _), L),
+  Format = [ ['Source', 'l'],
+	     ['Target', 'l'],
+             ['Selectivity', 'l']  ],
   showTuples(L, Format).
 
 
