@@ -17,12 +17,15 @@ The optimizer is started by loading this file.
   assert(highNode(0)),
   assert(boundarySize(0)),
   assert(boundaryMaxSize(0)),
-  [optimizerNewProperties],
+  [optimizer],
+  % [optimizerNewProperties],
   [database],
   [statistics],
   [operators],
   [boundary],
   [searchtree],
-  [auxiliary],
-  [distributed],
-  [testcasesDistributed].
+  [auxiliary].
+%  [distributed],	% can be used only with optimizerNewProperties]
+%  [testcasesDistributed].
+
+% to activate [distributed], also change the end of file opsyntax.pl

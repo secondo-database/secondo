@@ -136,8 +136,8 @@ secondoOp(tuplesize, postfix, 1).
 
 % fapra 2015/16 distributed queries
 
-secondoOp(Op, Syntax, NoArgs) :-
-  secondoOpD(Op, Syntax, NoArgs).
+% secondoOp(Op, Syntax, NoArgs) :-
+%   secondoOpD(Op, Syntax, NoArgs).
 
 % end fapra 2015/16
 
