@@ -4271,7 +4271,7 @@ ListExpr mcreateMtree2TM(ListExpr args){
      return listutils::typeError("attribute " + tidname 
                                  + " not of type tid");
   }
-  ListExpr resType;
+  ListExpr resType = nl->Empty();
   if (Point::checkType(type)) {
     resType = nl->TwoElemList(listutils::basicSymbol<Mem>(),
                  nl->TwoElemList(listutils::basicSymbol<MemoryMtreeObject<Point,
