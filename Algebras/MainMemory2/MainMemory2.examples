@@ -290,12 +290,6 @@ Signature : stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident -> stream(
 Example   : query ten feed head[5] modelete["oten"] mdeletettree["ten_No", No] count;
 Result    : 5
 
-Operator  : mupdatettree
-Number    : 48
-Signature : stream(tuple(x@[(a1_old x1) ... (an_old xn) (TID: tid)])) x {string, mem(ttree)} x ident -> stream(tuple(x@[(a1_old x1) ... (an_old xn) (TID: tid)]))
-Example   : query Staedte feed filter[.SName = "Aachen"] mupdate["Staedte"; SName: .SName + "a"] mupdatettree["Staedte_SName", SName] mconsume;
-Result    : 1
-
 Operator : mcreateinsertrel
 Number   : 49
 Signature: {string, mem(rel(...))} -> mem(rel(tuple(x@[TID:tid]))) 
@@ -358,13 +352,13 @@ Result    : TRUE
 
 Operator  : mupdate
 Number    : 59
-Signature : stream(tuple(x)) x {string, mem(rel(tuple(x)))} x [(a1, (tuple(x) -> d1)) ... (an,(tuple(x) -> dn))] -> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))
+Signature : stream(tuple(x)) x {string, mem(rel(tuple(x)))} x [(ai, (tuple(x) -> di))] -> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))
 Example   : query Staedte feed filter[.SName = "Hannover"] mupdate["Staedte"; Bev: .Bev + 1000] count;
 Result    : 1
 
 Operator  : mupdatesave
 Number    : 60
-Signature : stream(tuple(x)) x {string, mem(rel(tuple(x)))} x [(a1, (tuple(x) -> d1)) ... (an,(tuple(x) -> dn))] x {string, mem(rel((tuple(x@[TID:tid]))))} -> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))
+Signature : stream(tuple(x)) x {string, mem(rel(tuple(x)))} x [(ai, (tuple(x) -> di))] ... (an,(tuple(x) -> dn))] x {string, mem(rel((tuple(x@[TID:tid]))))} -> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))
 Example   : query Staedte feed filter[.SName = "Hannover"] mupdatesave["Staedte","Stadt";Bev: .Bev + 1000] count;
 Result    : 1
 
@@ -478,7 +472,7 @@ Result    : TRUE
 
 Operator  : mgshortestpathd
 Number    : 79
-Signature : {string, mem(graph(tuple(x)))} x int x int x int -> stream(tuple(a1:t1,...an+1:tn+1))
+Signature : {string, mem(graph(tuple(x)))} x int x int x int x (tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))
 Example   : query mwrap("graph") mgshortestpathd [1,3,0; distance(.GeoData_s1,.GeoData_s2)] count;
 Result    : 1
 
