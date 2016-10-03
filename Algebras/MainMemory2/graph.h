@@ -77,6 +77,10 @@ public:
       return edge;
     }
     
+    int getPosSource() {
+      return posSource;
+    }
+    
     int getPosDest() {
       return posDest;
     }
@@ -431,11 +435,22 @@ public:
 /*
 ~reset~
 
-Removes all entries from graph
-
 */
     void reset() {
        result->clear();
+    }
+    
+    void clearScc() {
+      set<Vertex*,Vertex::EqualVertex>::iterator it = graph->begin();
+      while(it!=graph->end()) {
+        Vertex* v = *it;
+        v->index = 0;
+        v->lowlink = 0;
+        v->compNo = 0;
+        v->inStack = false;
+        v->seen = false;
+        it++;
+      }
     }
 
 /*
@@ -537,7 +552,7 @@ Returns a pointer to the std::vector result.
 
 */    
     std::vector<int>* getResult() {
-        return result;
+      return result;
     }
 
     void tarjan() {
@@ -556,44 +571,47 @@ Returns a pointer to the std::vector result.
 /*
 ~tarjan~
 
-Calculates the scc for the given vertex.
+Calculates the scc for a given vertex.
 
-*/   
+*/
+    void tarjan(Vertex* v, int& index, 
+                std::stack<Vertex*>* stack, int& compNo) {
 
-     void tarjan(Vertex* v, int& index, 
-                 std::stack<Vertex*>* stack, int& compNo) {
-
+      if(v->wasSeen())
+        return;
+      
       v->index = index;                 
       v->lowlink = index;      
-      index++;                          
-      stack->push(v);                  
+      index++;                                           
       v->inStack = true;
-      v->seen = true;                 
+      v->seen = true;     
+      stack->push(v); 
       Vertex* w;
-      // visit all adjacent nodes
-      for(size_t i=0; i<v->edges->size(); i++) {     
+      // visit all adjacent nodes of v
+      for(size_t i=0; i<v->edges->size(); i++) {
         w = getVertex(((CcInt*)v->edges->at(i)->
             edge->GetAttribute(v->edges->at(i)->posDest))->GetIntval());
         if(!w->seen) {
           tarjan(w,index,stack,compNo);    // recursive call
           v->lowlink = std::min(v->lowlink,w->lowlink);
         }
-        else if (w->inStack)
+        else if(w->inStack) {
           v->lowlink = std::min(v->lowlink,w->index);
+        }
       }
-      // root of scc
+      // root of scc found
       if (v->lowlink == v->index) { 
         v->compNo = compNo;
         while(true) {
           w = stack->top();
           stack->pop();
+          w->inStack = false;
           if(v->nr == w->nr)
             break;
           w->compNo = compNo;
         }
         compNo++;
       }
-      
     }
     
 /*

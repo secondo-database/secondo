@@ -632,15 +632,15 @@ class MemoryGraphObject : public MemoryObject {
                           bool _flob,
                           const std::string& _database);
           
-        MemoryGraphObject(std::string _objectTypeExpr);
-
+	MemoryGraphObject(std::string _objectTypeExpr);
+	
         ~MemoryGraphObject();
 
         graph::Graph* getgraph();
         
         bool relToGraph(GenericRelation* r, 
                         ListExpr le,
-                        std::string _database, 
+			std::string _database, 
                         bool _flob);
        
         void addTuple(Tuple* tup, double cost, double dist);
@@ -658,8 +658,9 @@ class MemoryGraphObject : public MemoryObject {
          graph::Graph* memgraph;
          int source;
          int target;
-         int p1;
-         int p2;
+//          int p1;
+//          int p2;
+//          double cost;
 };
 
 

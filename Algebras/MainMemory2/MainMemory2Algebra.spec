@@ -65,7 +65,6 @@ operator mwrap alias MWRAP pattern op(_)
 operator mcreatettree alias  MCREATETTREE pattern _ op [_]
 operator minsertttree alias MINSERTTTREE pattern _ op [_,_]
 operator mdeletettree alias MDELETETTREE pattern _ op [_,_]
-operator mupdatettree alias MUPDATETTREE pattern _ op [_,_]
 
 operator mcreateinsertrel alias MCREATEINSERTREL pattern op(_)
 operator minsert alias MINSERT pattern _ op [_]

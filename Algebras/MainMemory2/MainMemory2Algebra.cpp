@@ -48,7 +48,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "MainMemoryExt.h"
 #include "ttree.h"
-#include "mapmatch.h"
+// #include "mapmatch.h"
 
 
 #include <ctime>
@@ -5800,7 +5800,7 @@ Operator mcreatettreeOp (
 
 /*
 
-7.3 Operator ~minsertttree~, ~mdeletettree~ and ~mupdatettree~
+7.3 Operator ~minsertttree~, ~mdeletettree~
 
 These operators insert, delete or update objects in a main memory ttree index.
 They receive a stream of tuples (including an attribute tid), whose attributes,
@@ -5808,13 +5808,12 @@ determined by the third argument, will be either inserted, deleted or updated
 in the tree.
 
 7.3.1 Type Mapping Functions of operator ~minsertttree~,
-      ~mdeletettree~ and ~mupdatettree~.
+      ~mdeletettree~.
 
 */
 enum ChangeTypeTree {
   MInsertTTree,
-  MDeleteTTree,
-  MUpdateTTree
+  MDeleteTTree
 };
 
 template<ChangeTypeTree ct>
@@ -6007,9 +6006,7 @@ ValueMapping minsertttreeVM[] = {
     minsertttreeValueMap<CcString,MInsertTTree>,
     minsertttreeValueMap<Mem,MInsertTTree>,
     minsertttreeValueMap<CcString,MDeleteTTree>,
-    minsertttreeValueMap<Mem,MDeleteTTree>,
-    minsertttreeValueMap<CcString,MUpdateTTree>,
-    minsertttreeValueMap<Mem,MUpdateTTree>
+    minsertttreeValueMap<Mem,MDeleteTTree>
 };
 
 template<ChangeTypeTree ct>
@@ -6018,8 +6015,6 @@ int minsertttreeSelect(ListExpr args){
     return CcString::checkType(nl->First(args))?0:1;
   else if(ct==MDeleteTTree) 
     return CcString::checkType(nl->First(args))?2:3;
-  else if(ct==MUpdateTTree)
-    return CcString::checkType(nl->First(args))?4:5;
 }
 
 /*
@@ -6075,37 +6070,6 @@ Operator mdeletettreeOp (
     minsertttreeSelect<MDeleteTTree>,
     minsertttreeTypeMap<MDeleteTTree>
 );
-
-/*
-7.5.4 Description of operator ~mupdatettree~
-
-*/
-
-OperatorSpec mupdatettreeSpec(
-    "stream(tuple(x@[(a1_old x1) ... (an_old xn) (TID: tid)])) "
-    "x {string, mem(ttree)} x ident "
-    "-> stream(tuple(x@[(a1_old x1) ... (an_old xn) (TID: tid)]))",
-    "_ op [_,_]",
-    "updates the attribute of a main memory ttree element identified by "
-    "tupleid",
-    "query Staedte feed filter[.SName = \"Aachen\"] "
-    "mupdate[\"Staedte\"; SName: .SName + \"a\"] "
-    "mupdatettree[\"Staedte_SName\", SName] count"
-);
-
-/*
-7.5.5 Instance of operator ~mupdatettree~
-
-*/
-Operator mupdatettreeOp (
-    "mupdatettree",
-    mupdatettreeSpec.getStr(),
-    6,
-    minsertttreeVM,
-    minsertttreeSelect<MUpdateTTree>,
-    minsertttreeTypeMap<MUpdateTTree>
-);
-
 
 
 /*
@@ -6429,7 +6393,7 @@ class minsertInfo {
 
     ~minsertInfo(){
        stream.close();
-//        type->DeleteIfAllowed;     TODO
+//        type->DeleteIfAllowed;        TODO
      }
 
      Tuple* next(){
@@ -7667,7 +7631,7 @@ The updated tuple, including a new attribute of type `tid`,
 are appended to an output stream.
 
 7.16.1 General Type Mapping Funktions for operator ~mupdate~ and
-       ~mupdate~.
+       ~mupdatesave~.
 
 */
     
@@ -7817,6 +7781,7 @@ ListExpr mupdateTypeMap(ListExpr args) {
                            resType);
 }
 
+// TODO support for more than one function
 class mupdateInfo {
   public:
     mupdateInfo(Word w, vector<Tuple*>* _relation, 
@@ -8166,10 +8131,10 @@ Operator mupdatesaveOp (
 The Operator ~mupdatebyid~ updates the tuple with the given tupleidentifier
 in a main memory relation, using functions to calculate the new attribute 
 values. The updated tuple is returned in an output stream with all attributes
-copied and appendend by the suffix 'old'. Also an attribute of type 'tid' is
+copied and extended by the suffix 'old'. Also an attribute of type 'tid' is
 added.
 
-7.18.1 Type Mapping Function of operator 
+7.18.1 Type Mapping Function of operator
 
 
 */
@@ -10274,8 +10239,8 @@ ListExpr moconnectedcomponentsTypeMap(ListExpr args) {
 
     lastlistn = nl->Append(lastlistn,
                           nl->TwoElemList(
-                            nl->SymbolAtom("ComponentNo"),
-                            nl->SymbolAtom(TupleIdentifier::BasicType())));
+                            nl->SymbolAtom("CompNo"),
+                            listutils::basicSymbol<CcInt>()));
 
     ListExpr outList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                        nl->TwoElemList(
@@ -10287,7 +10252,7 @@ ListExpr moconnectedcomponentsTypeMap(ListExpr args) {
 class Vertex {
 public:
   Vertex(int _nr)
-    : nr(_nr) {}
+    : nr(_nr), inStack(false) {}
   
   size_t operator()(const Vertex &v) const {
     return v.nr;
@@ -10301,7 +10266,6 @@ public:
     lowlink = _lowlink; 
   }
  
-
   int nr;
   int index;
   int lowlink;
@@ -10355,8 +10319,7 @@ class moconnectedComponentsInfo{
       return res;
     }
 
-    // appends all tuples including their component number to
-    // scctree
+    // appends all tuples including their component number to scctree
     bool appendTuples() {
       set<Vertex*,VertexComp>::iterator iter;
       ttree::Iterator<Tuple*,TupleComp> it = tree->begin();
@@ -10420,19 +10383,24 @@ class moconnectedComponentsInfo{
       set<Vertex*,VertexComp>::iterator iter;
       Vertex* v = new Vertex(((CcInt*)tuple->GetAttribute(0))->GetIntval());
       iter = nodes->find(v);
-        // v already seen
-        if(iter != nodes->end()) {
-          delete v;
-          return;
-        }
+      
+      // v already seen
+      if(iter != nodes->end()) {
+        delete v;
+        return;
+      }
+
+      // v not yet seen
       v->index = index;
       v->lowlink = index;
-      nodes->insert(v);
       index++;
       stack->push(v);
+      v->inStack = true;
+      nodes->insert(v);
       ttree::Iterator<Tuple*,TupleComp> it = tree->begin();
       Tuple* t = *it;
       Vertex* w;
+      
       // find node in orel
       while(t->GetAttribute(0)->Compare(tuple->GetAttribute(0)) < 0) {
         it++;
@@ -10447,7 +10415,6 @@ class moconnectedComponentsInfo{
         iter = nodes->find(w);
         // w not seen yet
         if(iter == nodes->end()) { 
-          t = *it;
           it = tree->begin();
           t = *it;
           while(((CcInt*)t->GetAttribute(0))->GetIntval() != w->nr) {
@@ -10466,10 +10433,12 @@ class moconnectedComponentsInfo{
               break;
             }
           }
-          // recusive call
+          // recursive call
           scc(t,index,stack,compNo);   
+          iter = nodes->find(w);
+          w = *iter;
           v->setLowlink(min(v->lowlink,w->lowlink));
-          // suche weitere Kanten für v
+          // find next adjacent edge for v
           it = tree->begin();
           t = *it;
           while(t->GetAttribute(0)->Compare(tuple->GetAttribute(0)) < 0) {
@@ -10479,31 +10448,33 @@ class moconnectedComponentsInfo{
             else return;
           }
         }
-        // w alreadey seen
+        // w already seen
         else {
           delete w;
           w = *iter;
-          v->setLowlink(min(v->lowlink,w->index));  
+          if(w->inStack) {
+            v->setLowlink(min(v->lowlink,w->index));  
+          }
         }
         it++;
         if(it.hasNext())
           t = *it;
         else break;
       }
-
+      
       // root of scc found
       if (v->lowlink == v->index) { 
         v->compNo = compNo;
         while(true) {
           w = stack->top();
           stack->pop();
-          w->compNo = compNo;
+          w->inStack = false;
           if(v->nr == w->nr)
             break;
+          w->compNo = compNo;
         }
         compNo++;
       }
-
     }
 
   private:
@@ -10617,9 +10588,9 @@ and their original tupleid's.
 
 7.31.1 Type Mapping Functions of operator ~mquicksort~ and ~mquicksortby~
 
-    {string, mem(rel(tuple(x)))} -> stream(tuple(x)) or 
+{string, mem(rel(tuple(x)))} -> stream(tuple(x)) or
     
-    {string, mem(rel(tuple(x)))} x (ident1 ... identn) -> stream(tuple(x))
+{string, mem(rel(tuple(x)))} x (ident1 ... identn) -> stream(tuple(x))
 
 */
 enum SORTTYPE{
@@ -10924,7 +10895,6 @@ bool dijkstra(graph::Graph* graph, Word arg,
       // process edges
       for(size_t i=0; i<v->getEdges()->size(); i++) {
         
-        
         vector<graph::Edge*>* edges = v->getEdges();
         
         graph::Vertex* w = graph->getVertex(((CcInt*)edges->at(i)->
@@ -10968,7 +10938,7 @@ bool dijkstra(graph::Graph* graph, Word arg,
 ~astar~
 
 Calculates the shortest path between the vertices __start__ and
-__dest__ in the __graph__ using the A*-algorithm.
+__dest__ in the __graph__ using the AStar-algorithm.
 
 */
 bool astar(graph::Graph* graph, Word arg, Word arg2,
@@ -11093,7 +11063,7 @@ For all cases an additional attribute 'seqNo' of type integer will be appended
 to the tuples of the output stream.
 
 The Operator ~mgshortestpathd~ uses Dijkstras Algorithm and the Operator 
-~mgshortestpatha~ uses the A*-Algorithm.
+~mgshortestpatha~ uses the AStar-Algorithm.
 
 
 7.33.1 General Type Mapping for Operators ~mgshortestpathd~ and 
@@ -11260,7 +11230,6 @@ public:
 
         }
 
-  // TODO mit valgrind testen      
   ~mgshortestpathdInfo() {
     graph->reset();
     delete result;
@@ -11703,6 +11672,7 @@ int memglet(Word* args, Word& result,
         memletsucceed = memgraph->relToGraph(rel,le,getDBname(),flob);
         if(memletsucceed) {
           catalog->insert(objectName,memgraph);
+//           memgraph->getgraph()->print(cout);
         }
         else 
           delete memgraph;
@@ -11729,11 +11699,12 @@ the main memory.
 
 7.35.1 Type Mapping Functions of operator ~memlet~ and ~memgletflob~
 
-    string x orel(tuple(x)) -> bool
+string x orel(tuple(x)) -> bool
 
 */
-ListExpr memgletTypeMap(ListExpr args)
-{
+ListExpr memgletTypeMap(ListExpr args) {
+  
+  cout << "memgletTypeMap" << endl;
     if(nl->ListLength(args)!=2){
         return listutils::typeError("wrong number of arguments");
     }
@@ -11748,14 +11719,51 @@ ListExpr memgletTypeMap(ListExpr args)
     }
     ListExpr arg2 = nl->Second(args);
     
-    if(listutils::isOrelDescription(nl->First(arg2))) {
-      return listutils::basicSymbol<CcBool>();
+    if(!listutils::isOrelDescription(nl->First(arg2))) {
+      return listutils::typeError("the second argument has to be "
+                                  "an ordered relation");
     }
     
-    // TODO teste ob alle benötigten Attribute vorhanden
+    // check if tuples contain at least to integer values
+    ListExpr orelTuple = nl->Second(nl->First(arg2));    
+
+    if(!listutils::isTupleDescription(orelTuple)) {
+      return listutils::typeError("second value of orel is not of type tuple");
+    }
+
+    ListExpr attrlist(nl->Second(orelTuple));
+
+    if(!listutils::isAttrList(attrlist)) {
+      return listutils::typeError("Error in orel attrlist.");
+    }
     
-    return listutils::typeError("the second argument has to "
-                                "an ordered relation");
+    ListExpr rest = attrlist;
+    bool foundSource = false;
+    bool foundTarget = false;
+    
+    if(nl->ListLength(attrlist) >= 2) {
+      
+      while(!nl->IsEmpty(rest)) {
+        ListExpr listn = nl->OneElemList(nl->Second(nl->First(rest)));  
+        if(listutils::isSymbol(nl->First(listn),CcInt::BasicType())) {    
+          if(!foundSource) 
+            foundSource = true;
+          else {
+            foundTarget = true;
+            break;
+          }
+        }
+        rest = nl->Rest(rest);
+      }
+      if(!foundSource || !foundTarget)
+        return listutils::typeError
+                      ("orel has less than two integer attributes.");
+    }
+    else {
+      return listutils::typeError("orel has less than 2 attributes.");
+    }
+    
+    return listutils::basicSymbol<CcBool>();
 }
 
 
@@ -11846,11 +11854,11 @@ with the appended component number are returned in an output stream.
 
 7.37.1 Type Mapping Functions of operator ~mgconnectedcomponents~
 
-    {string, mem(graph(tuple(x)))} -> stream(tuple(a1:t1,...an+1:tn+1))
+{string, mem(graph(tuple(x)))} -> stream(tuple(a1:t1,...an+1:tn+1))
     
 */
 ListExpr mgconnectedcomponentsTypeMap(ListExpr args) {
-
+  
     if(nl->ListLength(args) != 1) {
         return listutils::typeError("one argument expected");
     }
@@ -11890,7 +11898,7 @@ ListExpr mgconnectedcomponentsTypeMap(ListExpr args) {
     lastlistn = nl->Append(lastlistn,
                           nl->TwoElemList(
                             nl->SymbolAtom("CompNo"),
-                            nl->SymbolAtom(TupleIdentifier::BasicType())));
+                            listutils::basicSymbol<CcInt>()));
     
     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                         nl->TwoElemList(
@@ -11913,13 +11921,15 @@ class mgconnectedComponentsInfo{
     
     ~mgconnectedComponentsInfo(){
       tt->DeleteIfAllowed();
+      graph->clearScc();
     }
     
+    
     Tuple* next() {
-
-      if(it == graph->getGraph()->end())
+      if(it == graph->getGraph()->end()) {
+        graph->print(cout);
         return 0;
-       
+      }      
       // get next edge from graph
       graph::Vertex* v = *it;
       if(j>=v->getEdges()->size()) {
@@ -12058,1074 +12068,1077 @@ Operator mgconnectedcomponentsOp (
     Result: Tuples of matched edges with timestamps
 
 */
-struct MOMapMatchMHTInfo : OperatorInfo {
-MOMapMatchMHTInfo() {
-  name      = "momapmatchmht";
-  signature = MemoryORelObject::BasicType() + " x " +
-              rtreehelper::BasicType() + " x " +
-              MemoryRelObject::BasicType() + " x " +
-              temporalalgebra::MPoint::BasicType() + " -> " +
-              "stream(tuple([<attributes of tuple of edge>,"
-                            "StartTime:DateTime, EndTime:DateTime]))";
-
-  appendSignature(MemoryORelObject::BasicType() + " x " +
-                  rtreehelper::BasicType() + " x " +
-                  MemoryRelObject::BasicType() + " x " +
-                  FText::BasicType()  + " -> " +
-                  "stream(tuple([<attributes of tuple of edge>,"
-                                "StartTime:DateTime, EndTime:DateTime]))");
-
-  appendSignature(MemoryORelObject::BasicType() + " x " +
-                  rtreehelper::BasicType() + " x " +
-                  MemoryRelObject::BasicType() + " x " +
-                  "(stream (tuple([Lat:real, Lon:real, Time:DateTime "
-                                  "[,Fix:int] [,Sat:int] [,Hdop : real]"
-                                  "[,Vdop:real] [,Pdop:real] "
-                                  "[,Course:real] [,Speed(m/s):real]])))"
-                  + " -> " +
-                  "stream(tuple([<attributes of tuple of edge>,"
-                                "StartTime:DateTime, EndTime:DateTime]))");
-
-
-  syntax    = "momapmatchmht ( _ , _ , _ , _ )";
-  meaning   = "The operation maps the MPoint or "
-              "the data of a gpx-file or "
-              "the data of a tuple stream "
-              "to the given network, which is based on a "
-              "main memory ordered relation."
-              "Result is a stream of tuples with the matched edges "
-              "of the network with timestamps.";
-  example   = "momapmatchmht('Edges', 'EdgeIndex_Box_rtree', "
-                             "'EdgeIndex', 'Trk_Dortmund.gpx')";
-}
-};
-
-static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList);
-static ListExpr GetMMDataIndexesOfTupleStream(ListExpr TupleStream);
-
-enum MOMapMatchingMHTResultType {
-    OMM_RESULT_STREAM,
-    OMM_RESULT_GPX,
-    OMM_RESULT_MPOINT
-};
-
-
-static ListExpr AppendLists(ListExpr List1, ListExpr List2) {
-    
-  ListExpr ResultList = nl->TheEmptyList();
-  ListExpr last = nl->TheEmptyList();
-
-  ListExpr Lauf = List1;
-
-  while (!nl->IsEmpty(Lauf)) {
-    ListExpr attr = nl->First(Lauf);
-
-    if (nl->IsEmpty(ResultList)) {
-      ResultList = nl->OneElemList(attr);
-      last = ResultList;
-    }
-    else
-      last = nl->Append(last, attr);
-    
-    Lauf = nl->Rest(Lauf);
-  }
-
-  Lauf = List2;
-
-  while (!nl->IsEmpty(Lauf)) {
-    ListExpr attr = nl->First(Lauf);
-
-    if (nl->IsEmpty(ResultList)) {
-        ResultList = nl->OneElemList(attr);
-        last = ResultList;
-    }
-    else 
-      last = nl->Append(last, attr);
-
-    Lauf = nl->Rest(Lauf);
-  }
-
-  return ResultList;
-}
-
-
-template<class T>
-static typename mapmatching::MmORelNetwork<T>::OEdgeAttrIndexes 
-                        GetOEdgeAttrIndexes(Word* args, int nOffset) {
-    // s. GetORelNetworkAttrIndexes
-
-    typename mapmatching::MmORelNetwork<T>::OEdgeAttrIndexes Indexes;
-
-    const CcInt* pIdxSource    = static_cast<CcInt*>(args[nOffset + 0].addr);
-    const CcInt* pIdxTarget    = static_cast<CcInt*>(args[nOffset + 1].addr);
-    const CcInt* pIdxSourcePos = static_cast<CcInt*>(args[nOffset + 2].addr);
-    const CcInt* pIdxTargetPos = static_cast<CcInt*>(args[nOffset + 3].addr);
-    const CcInt* pIdxCurve     = static_cast<CcInt*>(args[nOffset + 4].addr);
-    const CcInt* pIdxRoadName  = static_cast<CcInt*>(args[nOffset + 5].addr);
-    const CcInt* pIdxRoadType  = static_cast<CcInt*>(args[nOffset + 6].addr);
-    const CcInt* pIdxMaxSpeed  = static_cast<CcInt*>(args[nOffset + 7].addr);
-    const CcInt* pIdxWayId     = static_cast<CcInt*>(args[nOffset + 8].addr);
-
-
-    Indexes.m_IdxSource    = pIdxSource->GetValue();
-    Indexes.m_IdxTarget    = pIdxTarget->GetValue();
-    Indexes.m_IdxSourcePos = pIdxSourcePos->GetValue();
-    Indexes.m_IdxTargetPos = pIdxTargetPos->GetValue();
-    Indexes.m_IdxCurve     = pIdxCurve->GetValue();
-    Indexes.m_IdxRoadName  = pIdxRoadName->GetValue();
-    Indexes.m_IdxRoadType  = pIdxRoadType->GetValue();
-    Indexes.m_IdxMaxSpeed  = pIdxMaxSpeed->GetValue();
-    Indexes.m_IdxWayId     = pIdxWayId->GetValue();
-
-    if (Indexes.m_IdxSource < 0 || Indexes.m_IdxTarget < 0 ||
-        Indexes.m_IdxSourcePos < 0 || Indexes.m_IdxTargetPos < 0 ||
-        Indexes.m_IdxCurve < 0 || Indexes.m_IdxWayId < 0)
-    {
-        assert(false);
-    }
-
-    return Indexes;
-}
-
-static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList) {
-    ListExpr attrType;
-    int nAttrSourceIndex = 
-                    listutils::findAttribute(ORelAttrList, "Source", attrType);
-    if (nAttrSourceIndex == 0) 
-        return listutils::typeError("'Source' not found in attr list");
-    else {
-        if (!CcInt::checkType(attrType) &&
-            !LongInt::checkType(attrType)) {
-            return listutils::typeError(
-                                    "'Source' must be " + CcInt::BasicType() +
-                                    " or " + LongInt::BasicType());
-        }
-    }
-
-    int nAttrTargetIndex = 
-                    listutils::findAttribute(ORelAttrList, "Target", attrType);
-    if (nAttrTargetIndex == 0) {
-      return listutils::typeError("'Target' not found in attr list");
-    }
-    else {
-        if (!CcInt::checkType(attrType) &&
-            !LongInt::checkType(attrType)) {
-            return listutils::typeError(
-                                      "'Target' must be " + CcInt::BasicType()
-                                      + " or " + LongInt::BasicType()) ;
-        }
-    }
-
-    int nAttrSourcePosIndex = listutils::findAttribute(
-                                         ORelAttrList, "SourcePos", attrType);
-    if (nAttrSourcePosIndex == 0) {
-        return listutils::typeError("'SourcePos' not found in attr list");
-    }
-    else {
-        if (!listutils::isSymbol(attrType, Point::BasicType())) {
-            return listutils::typeError(
-                                 "'SourcePos' must be " + Point::BasicType());
-        }
-    }
-
-    int nAttrTargetPosIndex = listutils::findAttribute(
-                                         ORelAttrList, "TargetPos", attrType);
-    if (nAttrTargetPosIndex == 0) {
-        return listutils::typeError("'TargetPos' not found in attr list");
-    }
-    else {
-        if (!listutils::isSymbol(attrType, Point::BasicType())) {
-            return listutils::typeError(
-                                   "'TargetPos' must be " + Point::BasicType());
-        }
-    }
-
-    int nAttrCurveIndex = listutils::findAttribute(
-                                             ORelAttrList, "Curve", attrType);
-    if (nAttrCurveIndex == 0) {
-        return listutils::typeError("'Curve' not found in attr list");
-    }
-    else {
-        if (!listutils::isSymbol(attrType, SimpleLine::BasicType())) {
-            return listutils::typeError(
-                                "'Curve' must be " + SimpleLine::BasicType());
-        }
-    }
-
-    int nAttrRoadNameIndex = listutils::findAttribute(
-                                          ORelAttrList, "RoadName", attrType);
-    if (nAttrRoadNameIndex != 0)
-    {
-        if (!listutils::isSymbol(attrType, FText::BasicType()))
-        {
-            return listutils::typeError(
-                                    "'RoadName' must be " + FText::BasicType());
-        }
-    }
-
-    int nAttrRoadTypeIndex = listutils::findAttribute(
-                                          ORelAttrList, "RoadType", attrType);
-    if (nAttrRoadTypeIndex != 0)
-    {
-        if (!listutils::isSymbol(attrType, FText::BasicType()))
-        {
-            return listutils::typeError(
-                                  "'RoadType' must be " + FText::BasicType());
-        }
-    }
-
-    int nAttrMaxSpeedTypeIndex = listutils::findAttribute(
-                                          ORelAttrList, "MaxSpeed", attrType);
-    if (nAttrMaxSpeedTypeIndex != 0)
-    {
-        if (!listutils::isSymbol(attrType, FText::BasicType()))
-        {
-            return listutils::typeError(
-                                  "'MaxSpeed' must be " + FText::BasicType());
-        }
-    }
-
-    int nAttrWayIdTypeIndex = listutils::findAttribute(
-                                            ORelAttrList, "WayId", attrType);
-    if (nAttrWayIdTypeIndex == 0)
-    {
-        return listutils::typeError("'WayId' not found in attr list");
-    }
-    else
-    {
-        if (!CcInt::checkType(attrType) &&
-            !LongInt::checkType(attrType))
-        {
-            return listutils::typeError( 
-                                       "'WayId' must be " + CcInt::BasicType()
-                                       + " or " + LongInt::BasicType());
-        }
-    }
-
-    --nAttrSourceIndex;
-    --nAttrTargetIndex;
-    --nAttrSourcePosIndex;
-    --nAttrTargetPosIndex;
-    --nAttrCurveIndex;
-    --nAttrRoadNameIndex;
-    --nAttrRoadTypeIndex;
-    --nAttrMaxSpeedTypeIndex;
-    --nAttrWayIdTypeIndex;
-
-    ListExpr Ind = nl->OneElemList(nl->IntAtom(nAttrSourceIndex));
-    ListExpr Last = Ind;
-    Last = nl->Append(Last, nl->IntAtom(nAttrTargetIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrSourcePosIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrTargetPosIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrCurveIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrRoadNameIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrRoadTypeIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrMaxSpeedTypeIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrWayIdTypeIndex));
-
-    return Ind;
-}
-
-
-static shared_ptr<mapmatch::MapMatchDataContainer> 
-                    GetMMDataFromTupleStream(Supplier Stream,
-                                             Word* args,
-                                             int nOffset) {
-    
-    shared_ptr<mapmatch::MapMatchDataContainer> 
-                            pContData(new mapmatch::MapMatchDataContainer);
-
-    const CcInt* pIdxLat    = static_cast<CcInt*>(args[nOffset + 0].addr);
-    const CcInt* pIdxLon    = static_cast<CcInt*>(args[nOffset + 1].addr);
-    const CcInt* pIdxTime   = static_cast<CcInt*>(args[nOffset + 2].addr);
-    const CcInt* pIdxFix    = static_cast<CcInt*>(args[nOffset + 3].addr);
-    const CcInt* pIdxSat    = static_cast<CcInt*>(args[nOffset + 4].addr);
-    const CcInt* pIdxHdop   = static_cast<CcInt*>(args[nOffset + 5].addr);
-    const CcInt* pIdxVdop   = static_cast<CcInt*>(args[nOffset + 6].addr);
-    const CcInt* pIdxPdop   = static_cast<CcInt*>(args[nOffset + 7].addr);
-    const CcInt* pIdxCourse = static_cast<CcInt*>(args[nOffset + 8].addr);
-    const CcInt* pIdxSpeed  = static_cast<CcInt*>(args[nOffset + 9].addr);
-    //const CcInt* pIdxEle    = static_cast<CcInt*>(args[nOffset + 10].addr);
-
-    const int nIdxLat    = pIdxLat->GetValue();
-    const int nIdxLon    = pIdxLon->GetValue();
-    const int nIdxTime   = pIdxTime->GetValue();
-    const int nIdxFix    = pIdxFix->GetValue();
-    const int nIdxSat    = pIdxSat->GetValue();
-    const int nIdxHdop   = pIdxHdop->GetValue();
-    const int nIdxVdop   = pIdxVdop->GetValue();
-    const int nIdxPdop   = pIdxPdop->GetValue();
-    const int nIdxCourse = pIdxCourse->GetValue();
-    const int nIdxSpeed  = pIdxSpeed->GetValue();
-    //const int nIdxEle    = pIdxEle->GetValue();
-
-    if (nIdxLat < 0 || nIdxLon < 0 || nIdxTime < 0) {
-        assert(false);
-        return pContData;
-    }
-
-    Word wTuple;
-    qp->Open(Stream);
-    qp->Request(Stream, wTuple);
-    while (qp->Received(Stream)) {
-      Tuple* pTpl = (Tuple*)wTuple.addr;
-
-      CcReal* pLat    = static_cast<CcReal*>(pTpl->GetAttribute(nIdxLat));
-      CcReal* pLon    = static_cast<CcReal*>(pTpl->GetAttribute(nIdxLon));
-      DateTime* pTime = static_cast<DateTime*>(pTpl->GetAttribute(nIdxTime));
-
-      CcInt* pFix     = NULL;
-      if (nIdxFix >= 0)
-          pFix = static_cast<CcInt*>(pTpl->GetAttribute(nIdxFix));
-
-      CcInt* pSat     = NULL;
-      if (nIdxSat >= 0)
-          pSat = static_cast<CcInt*>(pTpl->GetAttribute(nIdxSat));
-
-      CcReal* pHdop   = NULL;
-      if (nIdxHdop >= 0)
-          pHdop = static_cast<CcReal*>(pTpl->GetAttribute(nIdxHdop));
-
-      CcReal* pVdop   = NULL;
-      if (nIdxVdop >= 0)
-          pVdop = static_cast<CcReal*>(pTpl->GetAttribute(nIdxVdop));
-
-      CcReal* pPdop   = NULL;
-      if (nIdxPdop >= 0)
-          pPdop = static_cast<CcReal*>(pTpl->GetAttribute(nIdxPdop));
-
-      CcReal* pCourse = NULL;
-      if (nIdxCourse >= 0)
-          pCourse = static_cast<CcReal*>(pTpl->GetAttribute(nIdxCourse));
-
-      CcReal* pSpeed  = NULL;
-      if (nIdxSpeed >= 0)
-          pSpeed = static_cast<CcReal*>(pTpl->GetAttribute(nIdxSpeed));
-
-      if (pLat != NULL && pLon != NULL && pTime != NULL &&
-          pLat->IsDefined() && pLon->IsDefined() && pTime->IsDefined()) {
-        //cout << "found valid data point" << endl;
-          mapmatch::MapMatchData Data(pLat->GetValue(),
-                            pLon->GetValue(),
-                            pTime->millisecondsToNull());
-
-          if (pFix != NULL && pFix->IsDefined())
-              Data.m_nFix = pFix->GetValue();
-
-          if (pSat != NULL && pSat->IsDefined())
-              Data.m_nSat = pSat->GetValue();
-
-          if (pHdop != NULL && pHdop->IsDefined())
-              Data.m_dHdop = pHdop->GetValue();
-
-          if (pVdop != NULL && pVdop->IsDefined())
-              Data.m_dVdop = pVdop->GetValue();
-
-          if (pPdop != NULL && pPdop->IsDefined())
-              Data.m_dPdop = pPdop->GetValue();
-
-          if (pCourse != NULL && pCourse->IsDefined())
-              Data.m_dCourse = pCourse->GetValue();
-
-          if (pSpeed != NULL && pSpeed->IsDefined())
-              Data.m_dSpeed = pSpeed->GetValue();
-          
-          pContData->Append(Data);
-      }
-
-      pTpl->DeleteIfAllowed();
-      pTpl = NULL;
-
-      qp->Request(Stream, wTuple);
-  }
-  qp->Close(Stream);
-
-  return pContData;
-}
-
-
-static ListExpr GetMMDataIndexesOfTupleStream(ListExpr TupleStream)
-{
-    ListExpr attrType;
-    int nAttrLatIndex = listutils::findAttribute(
-                       nl->Second(nl->Second(TupleStream)), "Lat", attrType);
-    if(nAttrLatIndex==0)
-    {
-        return listutils::typeError("'Lat' not found in attr list");
-    }
-    else
-    {
-        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-        {
-            return listutils::typeError("'Lat' must be " +
-                                        CcReal::BasicType());
-        }
-    }
-
-    int nAttrLonIndex = listutils::findAttribute(
-                       nl->Second(nl->Second(TupleStream)), "Lon", attrType);
-    if (nAttrLonIndex == 0)
-    {
-        return listutils::typeError("'Lon' not found in attr list");
-    }
-    else
-    {
-        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-        {
-            return listutils::typeError("'Lon' must be " +
-                                        CcReal::BasicType());
-        }
-    }
-
-    int nAttrTimeIndex = listutils::findAttribute(
-                      nl->Second(nl->Second(TupleStream)), "Time", attrType);
-    if (nAttrTimeIndex == 0)
-    {
-        return listutils::typeError("'Time' not found in attr list");
-    }
-    else
-    {
-        if (!listutils::isSymbol(attrType, DateTime::BasicType()))
-        {
-            return listutils::typeError("'Time' must be " +
-                                        DateTime::BasicType());
-        }
-    }
-
-    int nAttrFixIndex = listutils::findAttribute(
-                        nl->Second(nl->Second(TupleStream)), "Fix", attrType);
-    if (nAttrFixIndex != 0)
-    {
-        if (!listutils::isSymbol(attrType, CcInt::BasicType()))
-        {
-            return listutils::typeError("'Fix' must be " +
-                                        CcInt::BasicType());
-        }
-    }
-
-    int nAttrSatIndex = listutils::findAttribute(
-                       nl->Second(nl->Second(TupleStream)), "Sat", attrType);
-    if (nAttrSatIndex != 0)
-    {
-        if (!listutils::isSymbol(attrType, CcInt::BasicType()))
-        {
-            return listutils::typeError("'Sat' must be " +
-                                        CcInt::BasicType());
-        }
-    }
-
-    int nAttrHdopIndex = listutils::findAttribute(
-                      nl->Second(nl->Second(TupleStream)), "Hdop", attrType);
-    if (nAttrHdopIndex != 0)
-    {
-        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-        {
-            return listutils::typeError("'Hdop' must be " +
-                                        CcReal::BasicType());
-        }
-    }
-
-    int nAttrVdopIndex = listutils::findAttribute(
-                      nl->Second(nl->Second(TupleStream)), "Vdop", attrType);
-    if (nAttrVdopIndex != 0)
-    {
-        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-        {
-            return listutils::typeError("'Vdop' must be " +
-                                        CcReal::BasicType());
-        }
-    }
-
-    int nAttrPdopIndex = listutils::findAttribute(
-                      nl->Second(nl->Second(TupleStream)), "Pdop", attrType);
-    if (nAttrPdopIndex != 0)
-    {
-        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-        {
-            return listutils::typeError("'Pdop' must be " +
-                                        CcReal::BasicType());
-        }
-    }
-
-    int nAttrCourseIndex = listutils::findAttribute(
-                    nl->Second(nl->Second(TupleStream)), "Course", attrType);
-    if (nAttrCourseIndex != 0)
-    {
-        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-        {
-            return listutils::typeError(
-                    "'Course' must be " + CcReal::BasicType());
-        }
-    }
-
-    int nAttrSpeedIndex = listutils::findAttribute(
-                     nl->Second(nl->Second(TupleStream)), "Speed", attrType);
-    if (nAttrSpeedIndex != 0)
-    {
-        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-        {
-            return listutils::typeError(
-                    "'Speed' must be " + CcReal::BasicType());
-        }
-    }
-
-    int nAttrEleIndex = listutils::findAttribute(
-                        nl->Second(nl->Second(TupleStream)), "Ele", attrType);
-    if (nAttrEleIndex != 0)
-    {
-        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-        {
-            return listutils::typeError(
-                    "'Ele' must be " + CcReal::BasicType());
-        }
-    }
-
-    --nAttrLatIndex;
-    --nAttrLonIndex;
-    --nAttrTimeIndex;
-    --nAttrFixIndex;
-    --nAttrSatIndex;
-    --nAttrHdopIndex;
-    --nAttrVdopIndex;
-    --nAttrPdopIndex;
-    --nAttrCourseIndex;
-    --nAttrSpeedIndex;
-    --nAttrEleIndex;
-
-    ListExpr Ind = nl->OneElemList(nl->IntAtom(nAttrLatIndex));
-    ListExpr Last = Ind;
-    Last = nl->Append(Last, nl->IntAtom(nAttrLonIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrTimeIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrFixIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrSatIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrHdopIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrVdopIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrPdopIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrCourseIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrSpeedIndex));
-    Last = nl->Append(Last, nl->IntAtom(nAttrEleIndex));
-
-    return Ind;
-}
+// struct MOMapMatchMHTInfo : OperatorInfo {
+// MOMapMatchMHTInfo() {
+//   name      = "momapmatchmht";
+//   signature = MemoryORelObject::BasicType() + " x " +
+//               rtreehelper::BasicType() + " x " +
+//               MemoryRelObject::BasicType() + " x " +
+//               temporalalgebra::MPoint::BasicType() + " -> " +
+//               "stream(tuple([<attributes of tuple of edge>,"
+//                             "StartTime:DateTime, EndTime:DateTime]))";
+// 
+//   appendSignature(MemoryORelObject::BasicType() + " x " +
+//                   rtreehelper::BasicType() + " x " +
+//                   MemoryRelObject::BasicType() + " x " +
+//                   FText::BasicType()  + " -> " +
+//                   "stream(tuple([<attributes of tuple of edge>,"
+//                                 "StartTime:DateTime, EndTime:DateTime]))");
+// 
+//   appendSignature(MemoryORelObject::BasicType() + " x " +
+//                   rtreehelper::BasicType() + " x " +
+//                   MemoryRelObject::BasicType() + " x " +
+//                   "(stream (tuple([Lat:real, Lon:real, Time:DateTime "
+//                                   "[,Fix:int] [,Sat:int] [,Hdop : real]"
+//                                   "[,Vdop:real] [,Pdop:real] "
+//                                   "[,Course:real] [,Speed(m/s):real]])))"
+//                   + " -> " +
+//                   "stream(tuple([<attributes of tuple of edge>,"
+//                                 "StartTime:DateTime, EndTime:DateTime]))");
+// 
+// 
+//   syntax    = "momapmatchmht ( _ , _ , _ , _ )";
+//   meaning   = "The operation maps the MPoint or "
+//               "the data of a gpx-file or "
+//               "the data of a tuple stream "
+//               "to the given network, which is based on a "
+//               "main memory ordered relation."
+//               "Result is a stream of tuples with the matched edges "
+//               "of the network with timestamps.";
+//   example   = "momapmatchmht('Edges', 'EdgeIndex_Box_rtree', "
+//                              "'EdgeIndex', 'Trk_Dortmund.gpx')";
+// }
+// };
+
+// static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList);
+// static ListExpr GetMMDataIndexesOfTupleStream(ListExpr TupleStream);
+
+// enum MOMapMatchingMHTResultType {
+//     OMM_RESULT_STREAM,
+//     OMM_RESULT_GPX,
+//     OMM_RESULT_MPOINT
+// };
+
+
+// static ListExpr AppendLists(ListExpr List1, ListExpr List2) {
+//     
+//   ListExpr ResultList = nl->TheEmptyList();
+//   ListExpr last = nl->TheEmptyList();
+// 
+//   ListExpr Lauf = List1;
+// 
+//   while (!nl->IsEmpty(Lauf)) {
+//     ListExpr attr = nl->First(Lauf);
+// 
+//     if (nl->IsEmpty(ResultList)) {
+//       ResultList = nl->OneElemList(attr);
+//       last = ResultList;
+//     }
+//     else
+//       last = nl->Append(last, attr);
+//     
+//     Lauf = nl->Rest(Lauf);
+//   }
+// 
+//   Lauf = List2;
+// 
+//   while (!nl->IsEmpty(Lauf)) {
+//     ListExpr attr = nl->First(Lauf);
+// 
+//     if (nl->IsEmpty(ResultList)) {
+//         ResultList = nl->OneElemList(attr);
+//         last = ResultList;
+//     }
+//     else 
+//       last = nl->Append(last, attr);
+// 
+//     Lauf = nl->Rest(Lauf);
+//   }
+// 
+//   return ResultList;
+// }
+
+
+// template<class T>
+// static typename mapmatching::MmORelNetwork<T>::OEdgeAttrIndexes 
+//                         GetOEdgeAttrIndexes(Word* args, int nOffset) {
+//     // s. GetORelNetworkAttrIndexes
+// 
+//     typename mapmatching::MmORelNetwork<T>::OEdgeAttrIndexes Indexes;
+// 
+//    const CcInt* pIdxSource    = static_cast<CcInt*>(args[nOffset + 0].addr);
+//    const CcInt* pIdxTarget    = static_cast<CcInt*>(args[nOffset + 1].addr);
+//    const CcInt* pIdxSourcePos = static_cast<CcInt*>(args[nOffset + 2].addr);
+//    const CcInt* pIdxTargetPos = static_cast<CcInt*>(args[nOffset + 3].addr);
+//    const CcInt* pIdxCurve     = static_cast<CcInt*>(args[nOffset + 4].addr);
+//    const CcInt* pIdxRoadName  = static_cast<CcInt*>(args[nOffset + 5].addr);
+//    const CcInt* pIdxRoadType  = static_cast<CcInt*>(args[nOffset + 6].addr);
+//    const CcInt* pIdxMaxSpeed  = static_cast<CcInt*>(args[nOffset + 7].addr);
+//    const CcInt* pIdxWayId     = static_cast<CcInt*>(args[nOffset + 8].addr);
+// 
+// 
+//     Indexes.m_IdxSource    = pIdxSource->GetValue();
+//     Indexes.m_IdxTarget    = pIdxTarget->GetValue();
+//     Indexes.m_IdxSourcePos = pIdxSourcePos->GetValue();
+//     Indexes.m_IdxTargetPos = pIdxTargetPos->GetValue();
+//     Indexes.m_IdxCurve     = pIdxCurve->GetValue();
+//     Indexes.m_IdxRoadName  = pIdxRoadName->GetValue();
+//     Indexes.m_IdxRoadType  = pIdxRoadType->GetValue();
+//     Indexes.m_IdxMaxSpeed  = pIdxMaxSpeed->GetValue();
+//     Indexes.m_IdxWayId     = pIdxWayId->GetValue();
+// 
+//     if (Indexes.m_IdxSource < 0 || Indexes.m_IdxTarget < 0 ||
+//         Indexes.m_IdxSourcePos < 0 || Indexes.m_IdxTargetPos < 0 ||
+//         Indexes.m_IdxCurve < 0 || Indexes.m_IdxWayId < 0)
+//     {
+//         assert(false);
+//     }
+// 
+//     return Indexes;
+// }
+
+// static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList) {
+//     ListExpr attrType;
+//     int nAttrSourceIndex = 
+//                listutils::findAttribute(ORelAttrList, "Source", attrType);
+//     if (nAttrSourceIndex == 0) 
+//         return listutils::typeError("'Source' not found in attr list");
+//     else {
+//         if (!CcInt::checkType(attrType) &&
+//             !LongInt::checkType(attrType)) {
+//             return listutils::typeError(
+//                               "'Source' must be " + CcInt::BasicType() +
+//                               " or " + LongInt::BasicType());
+//         }
+//     }
+// 
+//     int nAttrTargetIndex = 
+//                 listutils::findAttribute(ORelAttrList, "Target", attrType);
+//     if (nAttrTargetIndex == 0) {
+//       return listutils::typeError("'Target' not found in attr list");
+//     }
+//     else {
+//         if (!CcInt::checkType(attrType) &&
+//             !LongInt::checkType(attrType)) {
+//             return listutils::typeError(
+//                                   "'Target' must be " + CcInt::BasicType()
+//                                   + " or " + LongInt::BasicType()) ;
+//         }
+//     }
+// 
+//     int nAttrSourcePosIndex = listutils::findAttribute(
+//                                       ORelAttrList, "SourcePos", attrType);
+//     if (nAttrSourcePosIndex == 0) {
+//         return listutils::typeError("'SourcePos' not found in attr list");
+//     }
+//     else {
+//         if (!listutils::isSymbol(attrType, Point::BasicType())) {
+//             return listutils::typeError(
+//                              "'SourcePos' must be " + Point::BasicType());
+//         }
+//     }
+// 
+//     int nAttrTargetPosIndex = listutils::findAttribute(
+//                                       ORelAttrList, "TargetPos", attrType);
+//     if (nAttrTargetPosIndex == 0) {
+//         return listutils::typeError("'TargetPos' not found in attr list");
+//     }
+//     else {
+//         if (!listutils::isSymbol(attrType, Point::BasicType())) {
+//             return listutils::typeError(
+//                       "'TargetPos' must be " + Point::BasicType());
+//         }
+//     }
+// 
+//     int nAttrCurveIndex = listutils::findAttribute(
+//                                          ORelAttrList, "Curve", attrType);
+//     if (nAttrCurveIndex == 0) {
+//         return listutils::typeError("'Curve' not found in attr list");
+//     }
+//     else {
+//         if (!listutils::isSymbol(attrType, SimpleLine::BasicType())) {
+//             return listutils::typeError(
+//                               "'Curve' must be " + SimpleLine::BasicType());
+//         }
+//     }
+// 
+//     int nAttrRoadNameIndex = listutils::findAttribute(
+//                                       ORelAttrList, "RoadName", attrType);
+//     if (nAttrRoadNameIndex != 0)
+//     {
+//         if (!listutils::isSymbol(attrType, FText::BasicType()))
+//         {
+//             return listutils::typeError(
+//                                 "'RoadName' must be " + FText::BasicType());
+//         }
+//     }
+// 
+//     int nAttrRoadTypeIndex = listutils::findAttribute(
+//                                        ORelAttrList, "RoadType", attrType);
+//     if (nAttrRoadTypeIndex != 0)
+//     {
+//         if (!listutils::isSymbol(attrType, FText::BasicType()))
+//         {
+//             return listutils::typeError(
+//                                 "'RoadType' must be " + FText::BasicType());
+//         }
+//     }
+// 
+//     int nAttrMaxSpeedTypeIndex = listutils::findAttribute(
+//                                        ORelAttrList, "MaxSpeed", attrType);
+//     if (nAttrMaxSpeedTypeIndex != 0)
+//     {
+//         if (!listutils::isSymbol(attrType, FText::BasicType()))
+//         {
+//             return listutils::typeError(
+//                                 "'MaxSpeed' must be " + FText::BasicType());
+//         }
+//     }
+// 
+//     int nAttrWayIdTypeIndex = listutils::findAttribute(
+//                                           ORelAttrList, "WayId", attrType);
+//     if (nAttrWayIdTypeIndex == 0)
+//     {
+//         return listutils::typeError("'WayId' not found in attr list");
+//     }
+//     else
+//     {
+//         if (!CcInt::checkType(attrType) &&
+//             !LongInt::checkType(attrType))
+//         {
+//             return listutils::typeError( 
+//                                    "'WayId' must be " + CcInt::BasicType()
+//                                    + " or " + LongInt::BasicType());
+//         }
+//     }
+// 
+//     --nAttrSourceIndex;
+//     --nAttrTargetIndex;
+//     --nAttrSourcePosIndex;
+//     --nAttrTargetPosIndex;
+//     --nAttrCurveIndex;
+//     --nAttrRoadNameIndex;
+//     --nAttrRoadTypeIndex;
+//     --nAttrMaxSpeedTypeIndex;
+//     --nAttrWayIdTypeIndex;
+// 
+//     ListExpr Ind = nl->OneElemList(nl->IntAtom(nAttrSourceIndex));
+//     ListExpr Last = Ind;
+//     Last = nl->Append(Last, nl->IntAtom(nAttrTargetIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrSourcePosIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrTargetPosIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrCurveIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrRoadNameIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrRoadTypeIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrMaxSpeedTypeIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrWayIdTypeIndex));
+// 
+//     return Ind;
+// }
+
+
+// static shared_ptr<mapmatch::MapMatchDataContainer> 
+//                     GetMMDataFromTupleStream(Supplier Stream,
+//                                              Word* args,
+//                                              int nOffset) {
+//     
+//     shared_ptr<mapmatch::MapMatchDataContainer> 
+//                             pContData(new mapmatch::MapMatchDataContainer);
+// 
+//     const CcInt* pIdxLat    = static_cast<CcInt*>(args[nOffset + 0].addr);
+//     const CcInt* pIdxLon    = static_cast<CcInt*>(args[nOffset + 1].addr);
+//     const CcInt* pIdxTime   = static_cast<CcInt*>(args[nOffset + 2].addr);
+//     const CcInt* pIdxFix    = static_cast<CcInt*>(args[nOffset + 3].addr);
+//     const CcInt* pIdxSat    = static_cast<CcInt*>(args[nOffset + 4].addr);
+//     const CcInt* pIdxHdop   = static_cast<CcInt*>(args[nOffset + 5].addr);
+//     const CcInt* pIdxVdop   = static_cast<CcInt*>(args[nOffset + 6].addr);
+//     const CcInt* pIdxPdop   = static_cast<CcInt*>(args[nOffset + 7].addr);
+//     const CcInt* pIdxCourse = static_cast<CcInt*>(args[nOffset + 8].addr);
+//     const CcInt* pIdxSpeed  = static_cast<CcInt*>(args[nOffset + 9].addr);
+//   //const CcInt* pIdxEle    = static_cast<CcInt*>(args[nOffset + 10].addr);
+// 
+//     const int nIdxLat    = pIdxLat->GetValue();
+//     const int nIdxLon    = pIdxLon->GetValue();
+//     const int nIdxTime   = pIdxTime->GetValue();
+//     const int nIdxFix    = pIdxFix->GetValue();
+//     const int nIdxSat    = pIdxSat->GetValue();
+//     const int nIdxHdop   = pIdxHdop->GetValue();
+//     const int nIdxVdop   = pIdxVdop->GetValue();
+//     const int nIdxPdop   = pIdxPdop->GetValue();
+//     const int nIdxCourse = pIdxCourse->GetValue();
+//     const int nIdxSpeed  = pIdxSpeed->GetValue();
+//     //const int nIdxEle    = pIdxEle->GetValue();
+// 
+//     if (nIdxLat < 0 || nIdxLon < 0 || nIdxTime < 0) {
+//         assert(false);
+//         return pContData;
+//     }
+// 
+//     Word wTuple;
+//     qp->Open(Stream);
+//     qp->Request(Stream, wTuple);
+//     while (qp->Received(Stream)) {
+//       Tuple* pTpl = (Tuple*)wTuple.addr;
+// 
+//       CcReal* pLat    = static_cast<CcReal*>(pTpl->GetAttribute(nIdxLat));
+//       CcReal* pLon    = static_cast<CcReal*>(pTpl->GetAttribute(nIdxLon));
+//       DateTime* pTime = 
+//                      static_cast<DateTime*>(pTpl->GetAttribute(nIdxTime));
+// 
+//       CcInt* pFix     = NULL;
+//       if (nIdxFix >= 0)
+//           pFix = static_cast<CcInt*>(pTpl->GetAttribute(nIdxFix));
+// 
+//       CcInt* pSat     = NULL;
+//       if (nIdxSat >= 0)
+//           pSat = static_cast<CcInt*>(pTpl->GetAttribute(nIdxSat));
+// 
+//       CcReal* pHdop   = NULL;
+//       if (nIdxHdop >= 0)
+//           pHdop = static_cast<CcReal*>(pTpl->GetAttribute(nIdxHdop));
+// 
+//       CcReal* pVdop   = NULL;
+//       if (nIdxVdop >= 0)
+//           pVdop = static_cast<CcReal*>(pTpl->GetAttribute(nIdxVdop));
+// 
+//       CcReal* pPdop   = NULL;
+//       if (nIdxPdop >= 0)
+//           pPdop = static_cast<CcReal*>(pTpl->GetAttribute(nIdxPdop));
+// 
+//       CcReal* pCourse = NULL;
+//       if (nIdxCourse >= 0)
+//           pCourse = static_cast<CcReal*>(pTpl->GetAttribute(nIdxCourse));
+// 
+//       CcReal* pSpeed  = NULL;
+//       if (nIdxSpeed >= 0)
+//           pSpeed = static_cast<CcReal*>(pTpl->GetAttribute(nIdxSpeed));
+// 
+//       if (pLat != NULL && pLon != NULL && pTime != NULL &&
+//           pLat->IsDefined() && pLon->IsDefined() && pTime->IsDefined()) {
+//         //cout << "found valid data point" << endl;
+//           mapmatch::MapMatchData Data(pLat->GetValue(),
+//                             pLon->GetValue(),
+//                             pTime->millisecondsToNull());
+// 
+//           if (pFix != NULL && pFix->IsDefined())
+//               Data.m_nFix = pFix->GetValue();
+// 
+//           if (pSat != NULL && pSat->IsDefined())
+//               Data.m_nSat = pSat->GetValue();
+// 
+//           if (pHdop != NULL && pHdop->IsDefined())
+//               Data.m_dHdop = pHdop->GetValue();
+// 
+//           if (pVdop != NULL && pVdop->IsDefined())
+//               Data.m_dVdop = pVdop->GetValue();
+// 
+//           if (pPdop != NULL && pPdop->IsDefined())
+//               Data.m_dPdop = pPdop->GetValue();
+// 
+//           if (pCourse != NULL && pCourse->IsDefined())
+//               Data.m_dCourse = pCourse->GetValue();
+// 
+//           if (pSpeed != NULL && pSpeed->IsDefined())
+//               Data.m_dSpeed = pSpeed->GetValue();
+//           
+//           pContData->Append(Data);
+//       }
+// 
+//       pTpl->DeleteIfAllowed();
+//       pTpl = NULL;
+// 
+//       qp->Request(Stream, wTuple);
+//   }
+//   qp->Close(Stream);
+// 
+//   return pContData;
+// }
+
+
+// static ListExpr GetMMDataIndexesOfTupleStream(ListExpr TupleStream)
+// {
+//     ListExpr attrType;
+//     int nAttrLatIndex = listutils::findAttribute(
+//                      nl->Second(nl->Second(TupleStream)), "Lat", attrType);
+//     if(nAttrLatIndex==0)
+//     {
+//         return listutils::typeError("'Lat' not found in attr list");
+//     }
+//     else
+//     {
+//         if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+//         {
+//             return listutils::typeError("'Lat' must be " +
+//                                         CcReal::BasicType());
+//         }
+//     }
+// 
+//     int nAttrLonIndex = listutils::findAttribute(
+//                      nl->Second(nl->Second(TupleStream)), "Lon", attrType);
+//     if (nAttrLonIndex == 0)
+//     {
+//         return listutils::typeError("'Lon' not found in attr list");
+//     }
+//     else
+//     {
+//         if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+//         {
+//             return listutils::typeError("'Lon' must be " +
+//                                         CcReal::BasicType());
+//         }
+//     }
+// 
+//     int nAttrTimeIndex = listutils::findAttribute(
+//                     nl->Second(nl->Second(TupleStream)), "Time", attrType);
+//     if (nAttrTimeIndex == 0)
+//     {
+//         return listutils::typeError("'Time' not found in attr list");
+//     }
+//     else
+//     {
+//         if (!listutils::isSymbol(attrType, DateTime::BasicType()))
+//         {
+//             return listutils::typeError("'Time' must be " +
+//                                         DateTime::BasicType());
+//         }
+//     }
+// 
+//     int nAttrFixIndex = listutils::findAttribute(
+//                       nl->Second(nl->Second(TupleStream)), "Fix", attrType);
+//     if (nAttrFixIndex != 0)
+//     {
+//         if (!listutils::isSymbol(attrType, CcInt::BasicType()))
+//         {
+//             return listutils::typeError("'Fix' must be " +
+//                                         CcInt::BasicType());
+//         }
+//     }
+// 
+//     int nAttrSatIndex = listutils::findAttribute(
+//                      nl->Second(nl->Second(TupleStream)), "Sat", attrType);
+//     if (nAttrSatIndex != 0)
+//     {
+//         if (!listutils::isSymbol(attrType, CcInt::BasicType()))
+//         {
+//             return listutils::typeError("'Sat' must be " +
+//                                         CcInt::BasicType());
+//         }
+//     }
+// 
+//     int nAttrHdopIndex = listutils::findAttribute(
+//                     nl->Second(nl->Second(TupleStream)), "Hdop", attrType);
+//     if (nAttrHdopIndex != 0)
+//     {
+//         if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+//         {
+//             return listutils::typeError("'Hdop' must be " +
+//                                         CcReal::BasicType());
+//         }
+//     }
+// 
+//     int nAttrVdopIndex = listutils::findAttribute(
+//                     nl->Second(nl->Second(TupleStream)), "Vdop", attrType);
+//     if (nAttrVdopIndex != 0)
+//     {
+//         if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+//         {
+//             return listutils::typeError("'Vdop' must be " +
+//                                         CcReal::BasicType());
+//         }
+//     }
+// 
+//     int nAttrPdopIndex = listutils::findAttribute(
+//                     nl->Second(nl->Second(TupleStream)), "Pdop", attrType);
+//     if (nAttrPdopIndex != 0)
+//     {
+//         if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+//         {
+//             return listutils::typeError("'Pdop' must be " +
+//                                         CcReal::BasicType());
+//         }
+//     }
+// 
+//     int nAttrCourseIndex = listutils::findAttribute(
+//                   nl->Second(nl->Second(TupleStream)), "Course", attrType);
+//     if (nAttrCourseIndex != 0)
+//     {
+//         if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+//         {
+//             return listutils::typeError(
+//                     "'Course' must be " + CcReal::BasicType());
+//         }
+//     }
+// 
+//     int nAttrSpeedIndex = listutils::findAttribute(
+//                    nl->Second(nl->Second(TupleStream)), "Speed", attrType);
+//     if (nAttrSpeedIndex != 0)
+//     {
+//         if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+//         {
+//             return listutils::typeError(
+//                     "'Speed' must be " + CcReal::BasicType());
+//         }
+//     }
+// 
+//     int nAttrEleIndex = listutils::findAttribute(
+//                       nl->Second(nl->Second(TupleStream)), "Ele", attrType);
+//     if (nAttrEleIndex != 0)
+//     {
+//         if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+//         {
+//             return listutils::typeError(
+//                     "'Ele' must be " + CcReal::BasicType());
+//         }
+//     }
+// 
+//     --nAttrLatIndex;
+//     --nAttrLonIndex;
+//     --nAttrTimeIndex;
+//     --nAttrFixIndex;
+//     --nAttrSatIndex;
+//     --nAttrHdopIndex;
+//     --nAttrVdopIndex;
+//     --nAttrPdopIndex;
+//     --nAttrCourseIndex;
+//     --nAttrSpeedIndex;
+//     --nAttrEleIndex;
+// 
+//     ListExpr Ind = nl->OneElemList(nl->IntAtom(nAttrLatIndex));
+//     ListExpr Last = Ind;
+//     Last = nl->Append(Last, nl->IntAtom(nAttrLonIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrTimeIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrFixIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrSatIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrHdopIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrVdopIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrPdopIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrCourseIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrSpeedIndex));
+//     Last = nl->Append(Last, nl->IntAtom(nAttrEleIndex));
+// 
+//     return Ind;
+// }
 
 /*
 
 7.38.2 General Type Mapping for Operators ~momapmatchmht~
 
 */
-ListExpr momapmatchmhtTypeMap_Common(ListExpr args,
-                                     MOMapMatchingMHTResultType eResultType) {
-    
-    if(nl->ListLength(args) != 4) {
-      return listutils::typeError("four arguments expected");
-    }
+// ListExpr momapmatchmhtTypeMap_Common(ListExpr args,
+//                                  MOMapMatchingMHTResultType eResultType) {
+//     
+//     if(nl->ListLength(args) != 4) {
+//       return listutils::typeError("four arguments expected");
+//     }
+// 
+//     // Check Network - OrderedRelation, RTree, Relation
+// 
+//     // mem(orel)
+//     ListExpr arg1 = nl->First(args);
+//     
+//     if(!nl->HasLength(arg1,2)){
+//         return listutils::typeError("internal error");
+//     }
+//     
+//     string errMsg;
+// 
+//     if(!getMemType(nl->First(arg1), nl->Second(arg1), arg1, errMsg)){
+//     return listutils::typeError("string or mem(orel) expected : " + errMsg);
+//     }
+// 
+//     arg1 = nl->Second(arg1); // remove mem
+//     if(!listutils::isOrelDescription(arg1)){
+//     return listutils::typeError("memory object is not an ordered relation");
+//     }
+//     
+//     ListExpr orelTuple = nl->Second(arg1);
+//     if (!listutils::isTupleDescription(orelTuple))
+//     {
+//         return listutils::typeError
+//                     ("2nd value of mem orel is not of type tuple");
+//     }
+// 
+//     ListExpr orelAttrList = nl->Second(orelTuple);
+//     if (!listutils::isAttrList(orelAttrList)) {
+//         return listutils::typeError("Error in orel attrlist");
+//     }
+// 
+//     // Check attributes of orel
+//     ListExpr IndNetwAttr = GetORelNetworkAttrIndexes(orelAttrList);
+// 
+//     if(nl->Equal(IndNetwAttr, nl->TypeError()))
+//       return IndNetwAttr;
+// 
+//     // mem(rtree 2)
+//     ListExpr arg2 = nl->Second(args);
+//     if(!getMemType(nl->First(arg2), nl->Second(arg2), arg2, errMsg)){
+//       return listutils::typeError("\n problem in second arg: " + errMsg);
+//     } 
+//     
+//     ListExpr rtreetype = nl->Second(arg2); // remove leading mem
+//     if(!rtreehelper::checkType(rtreetype)){
+//       return listutils::typeError("second arg is not a mem rtree");
+//     }
+//    
+//     int rtreedim = nl->IntValue(nl->Second(rtreetype));
+//     
+//     if (rtreedim != 2) {
+//         return listutils::typeError("rtree with dim==2 expected");
+//     }
+// 
+//     // mem(rel)
+//     ListExpr arg3 = nl->Third(args);
+//     
+//     if(!nl->HasLength(arg3,2)){
+//         return listutils::typeError("internal error");
+//     }
+//     
+//     if(!getMemType(nl->First(arg3), nl->Second(arg3), arg3, errMsg)){
+//      return listutils::typeError("string or mem(rel) expected : " + errMsg);
+//     }
+// 
+//     arg3 = nl->Second(arg3); // remove mem
+//     if(!Relation::checkType(arg3)){
+//       return listutils::typeError("memory object is not a relation");
+//     }
+// 
+//     // GPS-Data (MPoint, FileName, TupleStream)
+//     ListExpr arg4 = nl->First(nl->Fourth(args));
+//     if (!listutils::isSymbol(arg4,temporalalgebra::MPoint::BasicType()) &&
+//         !listutils::isSymbol(arg4,FText::BasicType()) &&
+//         !listutils::isTupleStream(arg4)) {
+//       
+//         return listutils::typeError("4th argument must be " +
+//                                     temporalalgebra::MPoint::BasicType() 
+//                                     + " or " +
+//                                     FText::BasicType() + " or " +
+//                                     "tuple stream");
+//     }
+//    
+//     // Result
+//     ListExpr ResultType = nl->TheEmptyList();
+// 
+//     switch (eResultType) {
+//       case OMM_RESULT_STREAM: {
+//         ListExpr addAttrs = nl->TwoElemList(
+//                     nl->TwoElemList(nl->SymbolAtom("StartTime"),
+//                                     nl->SymbolAtom(DateTime::BasicType())),
+//                     nl->TwoElemList(nl->SymbolAtom("EndTime"),
+//                                     nl->SymbolAtom(DateTime::BasicType())));
+// 
+//         ListExpr ResAttr = AppendLists(orelAttrList, addAttrs);
+// 
+//         ResultType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+//                                       nl->TwoElemList(
+//                                         nl->SymbolAtom(Tuple::BasicType()),
+//                                         ResAttr));
+//       }
+//       break;
+// 
+//       case OMM_RESULT_GPX: {
+//         ListExpr addAttrs = nl->SixElemList(
+//                     nl->TwoElemList(nl->SymbolAtom("StartTime"),
+//                                     nl->SymbolAtom(DateTime::BasicType())),
+//                     nl->TwoElemList(nl->SymbolAtom("EndTime"),
+//                                     nl->SymbolAtom(DateTime::BasicType())),
+//                     nl->TwoElemList(nl->SymbolAtom("StartPos"),
+//                                     nl->SymbolAtom(Point::BasicType())),
+//                     nl->TwoElemList(nl->SymbolAtom("EndPos"),
+//                                     nl->SymbolAtom(Point::BasicType())),
+//                     nl->TwoElemList(nl->SymbolAtom("StartLength"),
+//                                     nl->SymbolAtom(CcReal::BasicType())),
+//                     nl->TwoElemList(nl->SymbolAtom("EndLength"),
+//                                     nl->SymbolAtom(CcReal::BasicType())));
+// 
+//         ListExpr ResAttr = AppendLists(orelAttrList, addAttrs);
+// 
+//         ResultType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+//                                      nl->TwoElemList(
+//                                         nl->SymbolAtom(Tuple::BasicType()),
+//                                         ResAttr));
+//       }
+//       break;
+// 
+//       case OMM_RESULT_MPOINT: {
+//           ResultType = nl->SymbolAtom(temporalalgebra::MPoint::BasicType());
+//       }
+//       break;
+//     }
+// 
+// 
+//     if (listutils::isTupleStream(arg4)) {
+//       ListExpr IndMMData = GetMMDataIndexesOfTupleStream(arg4);
+// 
+//       if (nl->Equal(IndMMData, nl->TypeError()))
+//           return IndMMData;
+//       else {
+//           return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+//                                     AppendLists(IndNetwAttr, IndMMData),
+//                                     ResultType);
+//       }
+//     }
+//     else {
+//       return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+//                                 IndNetwAttr,
+//                                 ResultType);
+//     }
+// }
 
-    // Check Network - OrderedRelation, RTree, Relation
 
-    // mem(orel)
-    ListExpr arg1 = nl->First(args);
-    
-    if(!nl->HasLength(arg1,2)){
-        return listutils::typeError("internal error");
-    }
-    
-    string errMsg;
-
-    if(!getMemType(nl->First(arg1), nl->Second(arg1), arg1, errMsg)){
-      return listutils::typeError("string or mem(orel) expected : " + errMsg);
-    }
-
-    arg1 = nl->Second(arg1); // remove mem
-    if(!listutils::isOrelDescription(arg1)){
-      return listutils::typeError("memory object is not an ordered relation");
-    }
-    
-    ListExpr orelTuple = nl->Second(arg1);
-    if (!listutils::isTupleDescription(orelTuple))
-    {
-        return listutils::typeError
-                    ("2nd value of mem orel is not of type tuple");
-    }
-
-    ListExpr orelAttrList = nl->Second(orelTuple);
-    if (!listutils::isAttrList(orelAttrList)) {
-        return listutils::typeError("Error in orel attrlist");
-    }
-
-    // Check attributes of orel
-    ListExpr IndNetwAttr = GetORelNetworkAttrIndexes(orelAttrList);
-
-    if(nl->Equal(IndNetwAttr, nl->TypeError()))
-      return IndNetwAttr;
-
-    // mem(rtree 2)
-    ListExpr arg2 = nl->Second(args);
-    if(!getMemType(nl->First(arg2), nl->Second(arg2), arg2, errMsg)){
-      return listutils::typeError("\n problem in second arg: " + errMsg);
-    } 
-    
-    ListExpr rtreetype = nl->Second(arg2); // remove leading mem
-    if(!rtreehelper::checkType(rtreetype)){
-      return listutils::typeError("second arg is not a mem rtree");
-    }
-   
-    int rtreedim = nl->IntValue(nl->Second(rtreetype));
-    
-    if (rtreedim != 2) {
-        return listutils::typeError("rtree with dim==2 expected");
-    }
-
-    // mem(rel)
-    ListExpr arg3 = nl->Third(args);
-    
-    if(!nl->HasLength(arg3,2)){
-        return listutils::typeError("internal error");
-    }
-    
-    if(!getMemType(nl->First(arg3), nl->Second(arg3), arg3, errMsg)){
-      return listutils::typeError("string or mem(rel) expected : " + errMsg);
-    }
-
-    arg3 = nl->Second(arg3); // remove mem
-    if(!Relation::checkType(arg3)){
-      return listutils::typeError("memory object is not a relation");
-    }
-
-    // GPS-Data (MPoint, FileName, TupleStream)
-    ListExpr arg4 = nl->First(nl->Fourth(args));
-    if (!listutils::isSymbol(arg4,temporalalgebra::MPoint::BasicType()) &&
-        !listutils::isSymbol(arg4,FText::BasicType()) &&
-        !listutils::isTupleStream(arg4)) {
-      
-        return listutils::typeError("4th argument must be " +
-                                    temporalalgebra::MPoint::BasicType() 
-                                    + " or " +
-                                    FText::BasicType() + " or " +
-                                    "tuple stream");
-    }
-   
-    // Result
-    ListExpr ResultType = nl->TheEmptyList();
-
-    switch (eResultType) {
-      case OMM_RESULT_STREAM: {
-        ListExpr addAttrs = nl->TwoElemList(
-                    nl->TwoElemList(nl->SymbolAtom("StartTime"),
-                                    nl->SymbolAtom(DateTime::BasicType())),
-                    nl->TwoElemList(nl->SymbolAtom("EndTime"),
-                                    nl->SymbolAtom(DateTime::BasicType())));
-
-        ListExpr ResAttr = AppendLists(orelAttrList, addAttrs);
-
-        ResultType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                      nl->TwoElemList(
-                                          nl->SymbolAtom(Tuple::BasicType()),
-                                          ResAttr));
-      }
-      break;
-
-      case OMM_RESULT_GPX: {
-        ListExpr addAttrs = nl->SixElemList(
-                    nl->TwoElemList(nl->SymbolAtom("StartTime"),
-                                    nl->SymbolAtom(DateTime::BasicType())),
-                    nl->TwoElemList(nl->SymbolAtom("EndTime"),
-                                    nl->SymbolAtom(DateTime::BasicType())),
-                    nl->TwoElemList(nl->SymbolAtom("StartPos"),
-                                    nl->SymbolAtom(Point::BasicType())),
-                    nl->TwoElemList(nl->SymbolAtom("EndPos"),
-                                    nl->SymbolAtom(Point::BasicType())),
-                    nl->TwoElemList(nl->SymbolAtom("StartLength"),
-                                    nl->SymbolAtom(CcReal::BasicType())),
-                    nl->TwoElemList(nl->SymbolAtom("EndLength"),
-                                    nl->SymbolAtom(CcReal::BasicType())));
-
-        ListExpr ResAttr = AppendLists(orelAttrList, addAttrs);
-
-        ResultType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                     nl->TwoElemList(
-                                          nl->SymbolAtom(Tuple::BasicType()),
-                                          ResAttr));
-      }
-      break;
-
-      case OMM_RESULT_MPOINT: {
-          ResultType = nl->SymbolAtom(temporalalgebra::MPoint::BasicType());
-      }
-      break;
-    }
-
-
-    if (listutils::isTupleStream(arg4)) {
-      ListExpr IndMMData = GetMMDataIndexesOfTupleStream(arg4);
-
-      if (nl->Equal(IndMMData, nl->TypeError()))
-          return IndMMData;
-      else {
-          return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                                    AppendLists(IndNetwAttr, IndMMData),
-                                    ResultType);
-      }
-    }
-    else {
-      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                                IndNetwAttr,
-                                ResultType);
-    }
-}
-
-
-ListExpr momapmatchmhtTypeMap(ListExpr in_xArgs) {
-    return momapmatchmhtTypeMap_Common(in_xArgs, OMM_RESULT_STREAM);
-}
+// ListExpr momapmatchmhtTypeMap(ListExpr in_xArgs) {
+//     return momapmatchmhtTypeMap_Common(in_xArgs, OMM_RESULT_STREAM);
+// }
 
 /*
 
 7.38.3 Value Mapping Function of operator ~momapmatchmht~
 
 */
-template<class T, class R, class Q>
-int momapmatchmhtMPointValueMap(Word* args,
-                                Word& result,
-                                int message,
-                                Word& local,
-                                Supplier s,
-          typename mapmatching::MmORelEdgeStreamCreator<T>::EMode eMode) {
-  
-//     cout << "momapmatchmhtMPointValueMap called" << endl;
+// template<class T, class R, class Q>
+// int momapmatchmhtMPointValueMap(Word* args,
+//                                 Word& result,
+//                                 int message,
+//                                 Word& local,
+//                                 Supplier s,
+//           typename mapmatching::MmORelEdgeStreamCreator<T>::EMode eMode) {
+//   
+// //     cout << "momapmatchmhtMPointValueMap called" << endl;
+// 
+//     mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
+//           static_cast<mapmatching::MmORelEdgeStreamCreator<T>*>(local.addr);
+//     switch (message) {
+//       
+//       case OPEN: {
+//         if(pCreator) {
+//             delete pCreator;
+//             pCreator = NULL;
+//         }
+// 
+//         // mem(orel)
+//         R* orelN = (R*) args[0].addr;
+//         MemoryORelObject* orel = 
+//                      getMemORel(orelN,nl->Second(qp->GetType(s)));
+//         if(!orel) 
+//           return 0;
+//         
+//         // mem(rtree)
+//         Q* treeN = (Q*) args[1].addr;
+//         string name = treeN->GetValue();
+//         // cut blank from the front of the string
+//         name = name.substr(1, name.size()-1);
+//         MemoryRtreeObject<2>* tree =
+//               (MemoryRtreeObject<2>*)catalog->getMMObject(name);
+//         if(!tree) 
+//           return 0;
+//            
+//         // mem(rel)
+//         R* relN = (R*) args[2].addr;
+//         MemoryRelObject* rel = getMemRel(relN);
+//         if(!rel)
+//           return 0;
+//        
+//         typename mapmatching::MmORelNetwork<T>::OEdgeAttrIndexes Indexes = 
+//                                            GetOEdgeAttrIndexes<T>(args, 4);
+// 
+//         mapmatching::MmORelNetwork<T> Network(orel, tree, rel, Indexes);
+// 
+//         temporalalgebra::MPoint* pMPoint = 
+//                     static_cast<temporalalgebra::MPoint*>(args[3].addr);
+// 
+//         // Do Map Matching
+//         mapmatching::MmORelNetworkAdapter<T> NetworkAdapter(&Network);
+//         mapmatch::MapMatchingMHT MapMatching(&NetworkAdapter, pMPoint);
+//                     
+//         mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
+//          new mapmatching::MmORelEdgeStreamCreator<T>(s,NetworkAdapter,eMode);
+//         if (!MapMatching.DoMatch(pCreator)) {
+//             // Error
+//             delete pCreator;
+//             pCreator = NULL;
+//         }
+// 
+//         local.setAddr(pCreator);
+//           return 0;
+//       }
+//       case REQUEST: {
+//         if (pCreator == NULL) {
+//           return CANCEL;
+//         }
+//         else {
+//           result.addr = pCreator->GetNextTuple();
+//           return result.addr ? YIELD : CANCEL;
+//         }
+//       }
+//       case CLOSE: {
+//         if (pCreator) {
+//           delete pCreator;
+//           local.addr = NULL;
+//         }
+//           return 0;
+//       }
+//       default: {
+//         return 0;
+//       }
+//     }
+// }
 
-    mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
-          static_cast<mapmatching::MmORelEdgeStreamCreator<T>*>(local.addr);
-    switch (message) {
-      
-      case OPEN: {
-        if(pCreator) {
-            delete pCreator;
-            pCreator = NULL;
-        }
+// template<class T, class R, class Q>
+// int momapmatchmhtTextValueMap(Word* args,
+//                               Word& result,
+//                               int message,
+//                               Word& local,
+//                               Supplier s,
+//          typename mapmatching::MmORelEdgeStreamCreator<T>::EMode eMode) {
+//   
+// //     cout << "momapmatchmhtTextValueMap called" << endl;
+// 
+//     mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
+//          static_cast<mapmatching::MmORelEdgeStreamCreator<T>*>(local.addr);
+//     
+//     switch (message) {
+//       case OPEN: {
+//         
+//         if(pCreator) {
+//             delete pCreator;
+//             pCreator = NULL;
+//         }
+// 
+//         // mem(orel)
+//         R* orelN = (R*) args[0].addr;
+//         MemoryORelObject* orel = 
+//                              getMemORel(orelN,nl->Second(qp->GetType(s)));
+//         if(!orel) 
+//           return 0;
+//         
+//         // mem(rtree)
+//         Q* treeN = (Q*) args[1].addr;
+//         string name = treeN->GetValue();
+//         // cut blank from the front of the string
+//         name = name.substr(1, name.size()-1);
+//         MemoryRtreeObject<2>* tree =
+//               (MemoryRtreeObject<2>*)catalog->getMMObject(name);
+//         if(!tree) 
+//           return 0;
+//            
+//         // mem(rel)
+//         R* relN = (R*) args[2].addr;
+//         MemoryRelObject* rel = getMemRel(relN);
+//         if(!rel)
+//           return 0;;
+//          
+//         typename mapmatching::MmORelNetwork<T>::OEdgeAttrIndexes Indexes = 
+//                                             GetOEdgeAttrIndexes<T>(args, 4);
+// 
+//         mapmatching::MmORelNetwork<T> Network(orel, tree, rel, Indexes);
+//         FText* pFileName = static_cast<FText*>(args[3].addr);
+//         std::string strFileName = pFileName->GetValue();
+// 
+//         // Do Map Matching
+//         mapmatching::MmORelNetworkAdapter<T> NetworkAdapter(&Network);
+//         mapmatch::MapMatchingMHT MapMatching(&NetworkAdapter, strFileName);
+//         mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
+//         new mapmatching::MmORelEdgeStreamCreator<T>(s,NetworkAdapter,eMode);
+//         
+//         if (!MapMatching.DoMatch(pCreator)) {
+//             //Error
+//             delete pCreator;
+//             pCreator = NULL;
+//         }
+// 
+//         local.setAddr(pCreator);
+//         return 0;
+//       }
+//       case REQUEST: {
+//         if(pCreator == NULL) {
+//           return CANCEL;
+//         }
+//         else {
+//           result.addr = pCreator->GetNextTuple();
+//           return result.addr ? YIELD : CANCEL;
+//         }
+//       }
+//       case CLOSE: {
+//         if (pCreator) {
+//           delete pCreator;
+//           local.addr = NULL;
+//         }
+//         return 0;
+//       }
+//       default: {
+//         return 0;
+//       }
+//     }
+// }
 
-        // mem(orel)
-        R* orelN = (R*) args[0].addr;
-        MemoryORelObject* orel = getMemORel(orelN,nl->Second(qp->GetType(s)));
-        if(!orel) 
-          return 0;
-        
-        // mem(rtree)
-        Q* treeN = (Q*) args[1].addr;
-        string name = treeN->GetValue();
-        // cut blank from the front of the string
-        name = name.substr(1, name.size()-1);
-        MemoryRtreeObject<2>* tree =
-              (MemoryRtreeObject<2>*)catalog->getMMObject(name);
-        if(!tree) 
-          return 0;
-           
-        // mem(rel)
-        R* relN = (R*) args[2].addr;
-        MemoryRelObject* rel = getMemRel(relN);
-        if(!rel)
-          return 0;
-       
-        typename mapmatching::MmORelNetwork<T>::OEdgeAttrIndexes Indexes = 
-                                              GetOEdgeAttrIndexes<T>(args, 4);
-
-        mapmatching::MmORelNetwork<T> Network(orel, tree, rel, Indexes);
-
-        temporalalgebra::MPoint* pMPoint = 
-                    static_cast<temporalalgebra::MPoint*>(args[3].addr);
-
-        // Do Map Matching
-        mapmatching::MmORelNetworkAdapter<T> NetworkAdapter(&Network);
-        mapmatch::MapMatchingMHT MapMatching(&NetworkAdapter, pMPoint);
-                    
-        mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
-           new mapmatching::MmORelEdgeStreamCreator<T>(s,NetworkAdapter,eMode);
-        if (!MapMatching.DoMatch(pCreator)) {
-            // Error
-            delete pCreator;
-            pCreator = NULL;
-        }
-
-        local.setAddr(pCreator);
-          return 0;
-      }
-      case REQUEST: {
-        if (pCreator == NULL) {
-          return CANCEL;
-        }
-        else {
-          result.addr = pCreator->GetNextTuple();
-          return result.addr ? YIELD : CANCEL;
-        }
-      }
-      case CLOSE: {
-        if (pCreator) {
-          delete pCreator;
-          local.addr = NULL;
-        }
-          return 0;
-      }
-      default: {
-        return 0;
-      }
-    }
-}
-
-template<class T, class R, class Q>
-int momapmatchmhtTextValueMap(Word* args,
-                              Word& result,
-                              int message,
-                              Word& local,
-                              Supplier s,
-         typename mapmatching::MmORelEdgeStreamCreator<T>::EMode eMode) {
-  
-//     cout << "momapmatchmhtTextValueMap called" << endl;
-
-    mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
-            static_cast<mapmatching::MmORelEdgeStreamCreator<T>*>(local.addr);
-    
-    switch (message) {
-      case OPEN: {
-        
-        if(pCreator) {
-            delete pCreator;
-            pCreator = NULL;
-        }
-
-        // mem(orel)
-        R* orelN = (R*) args[0].addr;
-        MemoryORelObject* orel = getMemORel(orelN,nl->Second(qp->GetType(s)));
-        if(!orel) 
-          return 0;
-        
-        // mem(rtree)
-        Q* treeN = (Q*) args[1].addr;
-        string name = treeN->GetValue();
-        // cut blank from the front of the string
-        name = name.substr(1, name.size()-1);
-        MemoryRtreeObject<2>* tree =
-              (MemoryRtreeObject<2>*)catalog->getMMObject(name);
-        if(!tree) 
-          return 0;
-           
-        // mem(rel)
-        R* relN = (R*) args[2].addr;
-        MemoryRelObject* rel = getMemRel(relN);
-        if(!rel)
-          return 0;;
-         
-        typename mapmatching::MmORelNetwork<T>::OEdgeAttrIndexes Indexes = 
-                                              GetOEdgeAttrIndexes<T>(args, 4);
-
-        mapmatching::MmORelNetwork<T> Network(orel, tree, rel, Indexes);
-        FText* pFileName = static_cast<FText*>(args[3].addr);
-        std::string strFileName = pFileName->GetValue();
-
-        // Do Map Matching
-        mapmatching::MmORelNetworkAdapter<T> NetworkAdapter(&Network);
-        mapmatch::MapMatchingMHT MapMatching(&NetworkAdapter, strFileName);
-        mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
-          new mapmatching::MmORelEdgeStreamCreator<T>(s,NetworkAdapter,eMode);
-        
-        if (!MapMatching.DoMatch(pCreator)) {
-            //Error
-            delete pCreator;
-            pCreator = NULL;
-        }
-
-        local.setAddr(pCreator);
-        return 0;
-      }
-      case REQUEST: {
-        if(pCreator == NULL) {
-          return CANCEL;
-        }
-        else {
-          result.addr = pCreator->GetNextTuple();
-          return result.addr ? YIELD : CANCEL;
-        }
-      }
-      case CLOSE: {
-        if (pCreator) {
-          delete pCreator;
-          local.addr = NULL;
-        }
-        return 0;
-      }
-      default: {
-        return 0;
-      }
-    }
-}
-
-template<class T, class R, class Q>
-int momapmatchmhtStreamValueMap(Word* args,
-                                Word& result,
-                                int message,
-                                Word& local,
-                                Supplier s,
-            typename mapmatching::MmORelEdgeStreamCreator<T>::EMode eMode) {
-  
-//     cout << "momapmatchmhtStreamValueMap called" << endl;
-
-    mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
-          static_cast<mapmatching::MmORelEdgeStreamCreator<T>*>(local.addr);
-    
-    switch (message) {
-    case OPEN: {
-      
-      if (pCreator != NULL) {
-          delete pCreator;
-          pCreator = NULL;
-      }
-
-      // mem(orel)
-      R* orelN = (R*) args[0].addr;
-      MemoryORelObject* orel = getMemORel(orelN,nl->Second(qp->GetType(s)));
-      if(!orel) 
-        return 0;
-      
-      // mem(rtree)
-      Q* treeN = (Q*) args[1].addr;
-      string name = treeN->GetValue();
-      // cut blank from the front of the string
-      name = name.substr(1, name.size()-1);
-      MemoryRtreeObject<2>* tree =
-            (MemoryRtreeObject<2>*)catalog->getMMObject(name);
-      if(!tree) 
-        return 0;
-          
-      // mem(rel)
-      R* relN = (R*) args[2].addr;
-      MemoryRelObject* rel = getMemRel(relN);
-      if(!rel)
-        return 0;
-
-      typename mapmatching::MmORelNetwork<T>::OEdgeAttrIndexes Indexes = 
-                                              GetOEdgeAttrIndexes<T>(args, 4);
-
-      mapmatching::MmORelNetwork<T> Network(orel, tree, rel, Indexes);
-
-      shared_ptr<mapmatch::MapMatchDataContainer> pContData = 
-                  GetMMDataFromTupleStream(args[3].addr, args, 4 + 9);
-                  // 9 OEdge-Attr-Indexes
-      // Do Map Matching
-      mapmatching::MmORelNetworkAdapter<T> NetworkAdapter(&Network);
-      mapmatch::MapMatchingMHT MapMatching(&NetworkAdapter, pContData); 
-      mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
-          new mapmatching::MmORelEdgeStreamCreator<T>(s,NetworkAdapter,eMode);
-
-      if (!MapMatching.DoMatch(pCreator)) {
-          //Error
-          delete pCreator;
-          pCreator = NULL;
-      }
-
-      local.setAddr(pCreator);
-      return 0;
-    }
-    case REQUEST: {
-      if (pCreator == NULL) {
-        return CANCEL;
-      }
-      else {
-        result.addr = pCreator->GetNextTuple();
-        return result.addr ? YIELD : CANCEL;
-      }
-    }
-    case CLOSE: {
-      if (pCreator) {
-        delete pCreator;
-        local.addr = NULL;
-      }
-      return 0;
-    }
-    default: {
-      return 0;
-    }
-  }
-}
+// template<class T, class R, class Q>
+// int momapmatchmhtStreamValueMap(Word* args,
+//                                 Word& result,
+//                                 int message,
+//                                 Word& local,
+//                                 Supplier s,
+//           typename mapmatching::MmORelEdgeStreamCreator<T>::EMode eMode) {
+//   
+// //     cout << "momapmatchmhtStreamValueMap called" << endl;
+// 
+//     mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
+//           static_cast<mapmatching::MmORelEdgeStreamCreator<T>*>(local.addr);
+//     
+//     switch (message) {
+//     case OPEN: {
+//       
+//       if (pCreator != NULL) {
+//           delete pCreator;
+//           pCreator = NULL;
+//       }
+// 
+//       // mem(orel)
+//       R* orelN = (R*) args[0].addr;
+//       MemoryORelObject* orel = getMemORel(orelN,nl->Second(qp->GetType(s)));
+//       if(!orel) 
+//         return 0;
+//       
+//       // mem(rtree)
+//       Q* treeN = (Q*) args[1].addr;
+//       string name = treeN->GetValue();
+//       // cut blank from the front of the string
+//       name = name.substr(1, name.size()-1);
+//       MemoryRtreeObject<2>* tree =
+//             (MemoryRtreeObject<2>*)catalog->getMMObject(name);
+//       if(!tree) 
+//         return 0;
+//           
+//       // mem(rel)
+//       R* relN = (R*) args[2].addr;
+//       MemoryRelObject* rel = getMemRel(relN);
+//       if(!rel)
+//         return 0;
+// 
+//       typename mapmatching::MmORelNetwork<T>::OEdgeAttrIndexes Indexes = 
+//                                             GetOEdgeAttrIndexes<T>(args, 4);
+// 
+//       mapmatching::MmORelNetwork<T> Network(orel, tree, rel, Indexes);
+// 
+//       shared_ptr<mapmatch::MapMatchDataContainer> pContData = 
+//                   GetMMDataFromTupleStream(args[3].addr, args, 4 + 9);
+//                   // 9 OEdge-Attr-Indexes
+//       // Do Map Matching
+//       mapmatching::MmORelNetworkAdapter<T> NetworkAdapter(&Network);
+//       mapmatch::MapMatchingMHT MapMatching(&NetworkAdapter, pContData); 
+//       mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
+//         new mapmatching::MmORelEdgeStreamCreator<T>(s,NetworkAdapter,eMode);
+// 
+//       if (!MapMatching.DoMatch(pCreator)) {
+//           //Error
+//           delete pCreator;
+//           pCreator = NULL;
+//       }
+// 
+//       local.setAddr(pCreator);
+//       return 0;
+//     }
+//     case REQUEST: {
+//       if (pCreator == NULL) {
+//         return CANCEL;
+//       }
+//       else {
+//         result.addr = pCreator->GetNextTuple();
+//         return result.addr ? YIELD : CANCEL;
+//       }
+//     }
+//     case CLOSE: {
+//       if (pCreator) {
+//         delete pCreator;
+//         local.addr = NULL;
+//       }
+//       return 0;
+//     }
+//     default: {
+//       return 0;
+//     }
+//   }
+// }
 
 
-template<class T, class R, class Q>
-int momapmatchmhtMPointVMT(Word* args,
-                           Word& result,
-                           int message,
-                           Word& local,
-                           Supplier in_xSupplier) {
-  
-    return momapmatchmhtMPointValueMap<T,R,Q>(
-                  args,
-                  result,
-                  message,
-                  local,
-                  in_xSupplier,
-                  mapmatching::MmORelEdgeStreamCreator<T>::MODE_EDGES);
-}
+// template<class T, class R, class Q>
+// int momapmatchmhtMPointVMT(Word* args,
+//                            Word& result,
+//                            int message,
+//                            Word& local,
+//                            Supplier in_xSupplier) {
+//   
+//     return momapmatchmhtMPointValueMap<T,R,Q>(
+//                   args,
+//                   result,
+//                   message,
+//                   local,
+//                   in_xSupplier,
+//                   mapmatching::MmORelEdgeStreamCreator<T>::MODE_EDGES);
+// }
 
-template<class T, class R, class Q>
-int momapmatchmhtTextVMT(Word* args,
-                        Word& result,
-                        int message,
-                        Word& local,
-                        Supplier in_xSupplier) {
-  
-    return momapmatchmhtTextValueMap<T,R,Q>(
-                    args,
-                    result,
-                    message,
-                    local,
-                    in_xSupplier,
-                    mapmatching::MmORelEdgeStreamCreator<T>::MODE_EDGES);
-}
+// template<class T, class R, class Q>
+// int momapmatchmhtTextVMT(Word* args,
+//                         Word& result,
+//                         int message,
+//                         Word& local,
+//                         Supplier in_xSupplier) {
+//   
+//     return momapmatchmhtTextValueMap<T,R,Q>(
+//                     args,
+//                     result,
+//                     message,
+//                     local,
+//                     in_xSupplier,
+//                     mapmatching::MmORelEdgeStreamCreator<T>::MODE_EDGES);
+// }
 
-template<class T, class R, class Q>
-int momapmatchmhtStreamVMT(Word* args,
-                           Word& result,
-                           int message,
-                           Word& local,
-                           Supplier in_xSupplier) {
-  
-    return momapmatchmhtStreamValueMap<T,R,Q>(
-                      args,
-                      result,
-                      message,
-                      local,
-                      in_xSupplier,
-                      mapmatching::MmORelEdgeStreamCreator<T>::MODE_EDGES);
-}
+// template<class T, class R, class Q>
+// int momapmatchmhtStreamVMT(Word* args,
+//                            Word& result,
+//                            int message,
+//                            Word& local,
+//                            Supplier in_xSupplier) {
+//   
+//     return momapmatchmhtStreamValueMap<T,R,Q>(
+//                       args,
+//                       result,
+//                       message,
+//                       local,
+//                       in_xSupplier,
+//                       mapmatching::MmORelEdgeStreamCreator<T>::MODE_EDGES);
+// }
 
 /*
 
 7.38.4 Selection Function ~momapmatchmht~
 
 */
-int momapmatchmhtSelect(ListExpr args) {
-  
-    NList type(args);
-    if (type.length() == 4) {
-      
-        if (type.fourth().isSymbol(temporalalgebra::MPoint::BasicType())) 
-            return 0/* + offset*/;
-        
-        else if (type.fourth().isSymbol(FText::BasicType())) 
-            return 1 /*+ offset*/;
-        
-        else if (listutils::isTupleStream(type.fourth().listExpr())) 
-            return 2/* + offset*/;
-        
-        else 
-            return -1;        
-    }
-    else 
-      return -1;
-}
+// int momapmatchmhtSelect(ListExpr args) {
+//   
+//     NList type(args);
+//     if (type.length() == 4) {
+//       
+//         if (type.fourth().isSymbol(temporalalgebra::MPoint::BasicType())) 
+//             return 0/* + offset*/;
+//         
+//         else if (type.fourth().isSymbol(FText::BasicType())) 
+//             return 1 /*+ offset*/;
+//         
+//         else if (listutils::isTupleStream(type.fourth().listExpr())) 
+//             return 2/* + offset*/;
+//         
+//         else 
+//             return -1;        
+//     }
+//     else 
+//       return -1;
+// }
 
 
-ValueMapping momapmatchmhtVM[] = {
-  momapmatchmhtMPointVMT<CcInt,CcString,Mem>,
-  momapmatchmhtTextVMT<CcInt,CcString,Mem>,
-  momapmatchmhtStreamVMT<CcInt,CcString,Mem>
-};
+// ValueMapping momapmatchmhtVM[] = {
+//   momapmatchmhtMPointVMT<CcInt,CcString,Mem>,
+//   momapmatchmhtTextVMT<CcInt,CcString,Mem>,
+//   momapmatchmhtStreamVMT<CcInt,CcString,Mem>
+// };
 
 
 /*
@@ -13133,28 +13146,28 @@ ValueMapping momapmatchmhtVM[] = {
 7.38.5 Description of operator ~momapmatchmht~
 
 */
-OperatorSpec momapmatchmhtSpec(
-    "mem(orel(tuple(x))) x mem(rtree) x mem(rel(tuple(x)) x var "
-    "-> stream(tuple(x))",
-    "momapmatchmht (_,_,_,_)",
-    "map matching with a main memory ordered relation "
-    "Result: Tuples of matched edges with timestamps",
-    "query momapmatchmht('Edges','EdgeIndex_Box_rtree', "
-    "'EdgeIndex','Trk_MapMatchTest.gpx') count"
-);
+// OperatorSpec momapmatchmhtSpec(
+//     "mem(orel(tuple(x))) x mem(rtree) x mem(rel(tuple(x)) x var "
+//     "-> stream(tuple(x))",
+//     "momapmatchmht (_,_,_,_)",
+//     "map matching with a main memory ordered relation "
+//     "Result: Tuples of matched edges with timestamps",
+//     "query momapmatchmht('Edges','EdgeIndex_Box_rtree', "
+//     "'EdgeIndex','Trk_MapMatchTest.gpx') count"
+// );
 
 /*
 7.38.5 Instance of operator ~momapmatchmht~
 
 */
-Operator momapmatchmhtOp (
-    "momapmatchmht",
-    momapmatchmhtSpec.getStr(),
-    3,
-    momapmatchmhtVM,
-    momapmatchmhtSelect,
-    momapmatchmhtTypeMap
-);
+// Operator momapmatchmhtOp (
+//     "momapmatchmht",
+//     momapmatchmhtSpec.getStr(),
+//     3,
+//     momapmatchmhtVM,
+//     momapmatchmhtSelect,
+//     momapmatchmhtTypeMap
+// );
 
 
 
@@ -13293,8 +13306,6 @@ class MainMemory2Algebra : public Algebra {
           minsertttreeOp.SetUsesArgsInTypeMapping();
           AddOperator(&mdeletettreeOp);
           mdeletettreeOp.SetUsesArgsInTypeMapping();
-          AddOperator(&mupdatettreeOp);
-          mupdatettreeOp.SetUsesArgsInTypeMapping();
           
           AddOperator(&mcreateinsertrelOp);
           mcreateinsertrelOp.SetUsesArgsInTypeMapping();
@@ -13364,8 +13375,8 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mgconnectedcomponentsOp);
           mgconnectedcomponentsOp.SetUsesArgsInTypeMapping();
         
-          AddOperator(&momapmatchmhtOp);
-          momapmatchmhtOp.SetUsesArgsInTypeMapping(); 
+//           AddOperator(&momapmatchmhtOp);
+//           momapmatchmhtOp.SetUsesArgsInTypeMapping(); 
         }
         
         ~MainMemory2Algebra() {};

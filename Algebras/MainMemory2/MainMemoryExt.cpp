@@ -1070,12 +1070,10 @@ graph::Graph* MemoryGraphObject::getgraph() {
 
 bool MemoryGraphObject::relToGraph(
                         GenericRelation* r, 
-                        ListExpr le,
+			ListExpr le,
                         string _database, 
                         bool _flob) {
     
-    
-  
     GenericRelationIterator* rit;
     rit = r->MakeScan();
     Tuple* tup;
@@ -1086,7 +1084,31 @@ bool MemoryGraphObject::relToGraph(
     memgraph->clear();  
     flob = _flob;
 
-    while ((tup = rit->GetNextTuple()) != 0) {
+    // find indexes of integer attributes
+    ListExpr attrList = nl->Second(nl->Second(le));
+    
+    ListExpr rest = attrList;
+    int i = 0;
+    bool foundSource = false;
+    
+    while(!nl->IsEmpty(rest)) {
+      ListExpr listn = nl->OneElemList(nl->Second(nl->First(rest)));  
+      if(listutils::isSymbol(nl->First(listn),CcInt::BasicType())) {    
+        
+        if(!foundSource) {
+          source = i;
+          foundSource = true;
+        }
+        else {
+          target = i;
+          break;
+        }
+      }
+      rest = nl->Rest(rest);
+      i++;
+    }
+    
+    while((tup = rit->GetNextTuple()) != 0) {
       if(flob) 
           tup->bringToMemory();
       
@@ -1095,8 +1117,8 @@ bool MemoryGraphObject::relToGraph(
       if((size_t)tupleSize < availableMemSize) {
         tup->SetTupleId(memgraph->size()+1);        
         
-        memgraph->addEdge(tup,0,1,0.0,0.0);
-        tup->IncReference();    // TODO ?
+        memgraph->addEdge(tup,source,target,0.0,0.0);
+//         tup->IncReference();
         usedMainMemory += tupleSize;
         availableMemSize -= tupleSize;
       }
@@ -1137,7 +1159,7 @@ void MemoryGraphObject::addTuple(Tuple* tup, double cost, double dist){
         tup->SetTupleId(memgraph->size()+1);        
 
         memgraph->addEdge(tup,source,target,cost,dist);
-        tup->IncReference();    // TODO ?
+//         tup->IncReference();
         memSize += tupleSize;
         catalog->addToUsedMemSize(tupleSize);
     }

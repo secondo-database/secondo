@@ -219,7 +219,7 @@ Returns the number of entries of this node.
 
 */
       inline int getCount() const{
-        return count;
+        return count;	
       }
 
 
@@ -391,7 +391,6 @@ class Iterator{
 
       
 /*
-
 2.1 Constructors
 
 Creates an iterator for the given tree. The position 
@@ -408,22 +407,21 @@ is set to the smallest entry in the tree.
     }
 
 
-
+    
 /*
-
 2.2 Copy Contructor
 
-*/
+*/    
     Iterator(const Iterator& it){
        this->stack = it.stack;
        this->count = it.count;         
     }
 
-
+    
 /*
 2.2 Assignment Operator
 
-*/
+*/ 
     Iterator& operator=(const Iterator& it){
        this->stack = it.stack;
        this->count = it.count;
@@ -1249,7 +1247,7 @@ Performs a left-right rotation in the subtree given by root.
 
 Prints the subtree given by root to the console.
 
-*/
+*/   
     void printttree(const TTreeNode<T,Comparator>* root, 
                     std::ostream& out) const {
       if(!root){
