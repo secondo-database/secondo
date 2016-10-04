@@ -4075,7 +4075,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg2S, Arg1S,
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg1S, Arg2S,
     attrname(Attr1), attrname(Attr2)) :-
-  % optimizerOption(memoryAllocation),		RHG costs2014
+  % optimizerOption(memoryAllocation),		RHG 
   %	maUseNewTranslationRules(true),
   %  \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
@@ -4083,7 +4083,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg1S, Arg2S,
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg2S, Arg1S,
     attrname(Attr2), attrname(Attr1)) :-
-  % optimizerOption(memoryAllocation),		RHG costs2014
+  % optimizerOption(memoryAllocation),		RHG 
   %	maUseNewTranslationRules(true),
   % \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
@@ -5806,17 +5806,17 @@ cost(sortRightThenMergejoin(X, Y, AX, AY), Sel, P, S, C) :-
 Simple cost estimation for ~symmjoin~
 
 */
-cost(symmjoin(X, Y, _), Sel, P, S, C) :-
-%	not(optimizerOption(costs2014)),	% replaced there
-  cost(X, 1, P, SizeX, CostX),
-  cost(Y, 1, P, SizeY, CostY),
-  getPET(P, _, ExpPET),                 % fetch stored predicate evaluation time
-  symmjoinTC(A, B),                     % fetch relative costs
-  S is SizeX * SizeY * Sel,             % calculate size of result
-  C is CostX + CostY +                  % cost to produce the arguments
-    (A + ExpPET) * (SizeX * SizeY) +    % cost to handle buffers, collisions
-                                        %         and evaluate the predicate
-    B * S.                              % cost to produce result tuples
+
+% cost(symmjoin(X, Y, _), Sel, P, S, C) :-	% replaced in costs2014
+%   cost(X, 1, P, SizeX, CostX),
+%   cost(Y, 1, P, SizeY, CostY),
+%   getPET(P, _, ExpPET),                 % fetch stored predicate eval time
+%   symmjoinTC(A, B),                     % fetch relative costs
+%   S is SizeX * SizeY * Sel,             % calculate size of result
+%   C is CostX + CostY +                  % cost to produce the arguments
+%     (A + ExpPET) * (SizeX * SizeY) +    % cost to handle buffers, collisions
+%                                         %         and evaluate the predicate
+%     B * S.                              % cost to produce result tuples
 
 /*
 Simple cost estimation for ~itSpatialJoin~
@@ -6108,7 +6108,6 @@ createCostEdge :- % use Nawra's cost functions
   fail.
 
 createCostEdge :- % use memory aware cost functions developed from 2014
-  optimizerOption(costs2014),
   planEdge(Source, Target, Term, Result),
   edge(Source, Target, EdgeTerm, _, _, _),
   (   EdgeTerm = select(_, Pred)
@@ -6151,7 +6150,6 @@ createCostEdge :-
 createCostEdge :- % use standard cost functions
   not(optimizerOption(nawracosts)),
   not(optimizerOption(improvedcosts)),
-  % not(optimizerOption(costs2014)),
 	% standard costs used together with costs2014 now.
   \+ optimizerOption(memoryAllocation), % NVK ADDED MA
   planEdge(Source, Target, Term, Result),

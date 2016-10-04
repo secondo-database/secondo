@@ -3890,7 +3890,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg2S, Arg1S,
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg1S, Arg2S,
     attrname(Attr1), attrname(Attr2)) :-
-  % optimizerOption(memoryAllocation),		RHG costs2014
+  % optimizerOption(memoryAllocation),		RHG 
   %	maUseNewTranslationRules(true),
   %  \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
@@ -3898,7 +3898,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg1S, Arg2S,
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg2S, Arg1S,
     attrname(Attr2), attrname(Attr1)) :-
-  % optimizerOption(memoryAllocation),		RHG costs2014
+  % optimizerOption(memoryAllocation),		RHG 
   %	maUseNewTranslationRules(true),
   % \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
@@ -5564,7 +5564,8 @@ cost(mergejoin(X, Y, _, _), Sel, P, S, C) :-
     B * (SizeX + SizeY). 		% parallel scan of sorted relations
 
 cost(sortmergejoin(X, Y, AX, AY), Sel, P, S, C) :-
-  cost(mergejoin(sortby(X, [AX]),sortby(Y, [AY]), AX, AY), Sel, P, S, C).
+  cost(mergejoin(sortby(X, [AX]),
+    sortby(Y, [AY]), AX, AY), Sel, P, S, C).
 
 
 % two rules used by the 'interesting orders extension':
@@ -5580,17 +5581,16 @@ cost(sortRightThenMergejoin(X, Y, AX, AY), Sel, P, S, C) :-
 Simple cost estimation for ~symmjoin~
 
 */
-cost(symmjoin(X, Y, _), Sel, P, S, C) :-
-	not(optimizerOption(costs2014)),	% replaced there
-  cost(X, 1, P, SizeX, CostX),
-  cost(Y, 1, P, SizeY, CostY),
-  getPET(P, _, ExpPET),                 % fetch stored predicate evaluation time
-  symmjoinTC(A, B),                     % fetch relative costs
-  S is SizeX * SizeY * Sel,             % calculate size of result
-  C is CostX + CostY +                  % cost to produce the arguments
-    (A + ExpPET) * (SizeX * SizeY) +    % cost to handle buffers, collisions
-                                        %         and evaluate the predicate
-    B * S.                              % cost to produce result tuples
+% cost(symmjoin(X, Y, _), Sel, P, S, C) :-	% replaced in costs2014
+%   cost(X, 1, P, SizeX, CostX),
+%   cost(Y, 1, P, SizeY, CostY),
+%   getPET(P, _, ExpPET),                 % fetch stored predicate eval time
+%   symmjoinTC(A, B),                     % fetch relative costs
+%   S is SizeX * SizeY * Sel,             % calculate size of result
+%   C is CostX + CostY +                  % cost to produce the arguments
+%     (A + ExpPET) * (SizeX * SizeY) +    % cost to handle buffers, collisions
+%                                         %         and evaluate the predicate
+%     B * S.                              % cost to produce result tuples
 
 cost(spatialjoin(X, Y, _, _), Sel, P, S, C) :-
   cost(X, 1, P, SizeX, CostX),
@@ -5826,7 +5826,6 @@ createCostEdge :- % use Nawra's cost functions
   fail.
 
 createCostEdge :- % use memory aware cost functions developed from 2014
-  optimizerOption(costs2014),
   planEdge(Source, Target, Term, Result),
   edge(Source, Target, EdgeTerm, _, _, _),
   (   EdgeTerm = select(_, Pred)
