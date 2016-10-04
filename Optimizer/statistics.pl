@@ -618,10 +618,11 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   getTime(
     ( secondo(QueryAtom, ResultList)
       -> (true)
-      ;  ( term_to_atom(Pred,PredA),
+      ;  ( term_to_atom(Pred, PredA),
            my_concat_atom(['Selectivity query failed: Please check ',
-                       'whether predicate \'', PredA, '\' is a boolean ',
-                       'function!'],'',ErrorMsg),
+		'whether predicate \'', PredA, '\' is a boolean ',
+		'function! Possibly a database object is missing.'
+		],'',ErrorMsg),
            write_list(['\nERROR:\t',ErrorMsg,' ']), nl,
            throw(error_SQL(statistics_selectivityQuerySelection(Pred, Rel,
                QueryTime, BBoxResCard, FilterResCard, InputCard)
