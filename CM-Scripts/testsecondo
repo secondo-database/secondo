@@ -394,10 +394,10 @@ fi
 fi
 
 if [ -z "$rev" ]; then
-rm ../secondo_LAST_STABLE_PUBLIC.tgz
+rm -f ../secondo_LAST_STABLE_PUBLIC.tgz
 mv secondo-LAST_STABLE-LAT1.tar.gz ../secondo_LAST_STABLE_PUBLIC.tgz
 else
-rm ../secondo_${rev}_PUBLIC.tgz
+rm -f ../secondo_${rev}_PUBLIC.tgz
 mv secondo-${rev}-LAT1.tar.gz ../secondo_${rev}_PUBLIC.tgz
 fi
 
