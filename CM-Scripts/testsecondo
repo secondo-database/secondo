@@ -14,7 +14,7 @@ force="no"
 timeout=1800
 
 server=bassi.fernuni-hagen.de
-users=/home/cvsroot/CVSROOT/users
+users=/cvs/CVSROOT/users
 to=fabio.valdes@fernuni-hagen.de
 from=fabio.valdes@fernuni-hagen.de
 additional=""
@@ -36,13 +36,13 @@ function help {
  echo "-c <CVSROOT>: sets CVSROOT variable"
  echo "-p: publish public version to dna server" 
  echo "-h: shows this help text"
- echo "-r <REV>: test a specific revision (standard is HEAD)" 
+ echo "-v <REV>: test a specific revision (standard is HEAD)" 
 }
 
 
 # overwrite standard parameters if options are available
 
-while getopts hfpd:e:t:m:u:s:r:a:c: opt
+while getopts hfpd:e:t:m:u:s:r:a:c:v: opt
 do
   case $opt in
     f) force="yes";;
@@ -57,12 +57,26 @@ do
     a) additional+=$OPTARG" "; echo "add additional $OPTARG" ;;
     c) cvs=$OPTARG ;;
     h) help; exit 0 ;;
-    r) rev=$OPTARG ;;
+    v) rev=$OPTARG ;;
   esac
 done
 
+echo "force      = $force" 
+echo "PUBLISH    = $PUBLISH"
+echo "basedir    = $basedir"
+echo "envfile    = $envfile"
+echo "timeout    = $timeout" 
+echo "server     = $server" 
+echo "users      = $users"
+echo "to         = $to" 
+echo "recipient  = $recipient"
+echo "additional = $additional"
+echo "cvs        = $cvs"
+echo "rev        = $rev"
+
 
 export CVSROOT=$cvs
+
 
 # create additional list with commata
 additionalcs=$(echo $additional | sed "s/  */,/g")
@@ -237,11 +251,13 @@ echo "Checkout secondo"
 
 firstCheckOutFailure=$(fileDate $checkout_log)
 revopt=""
-if [ -z "$rev" ]; then
-  revopt=-r $rev 
+if [ -n "$rev" ]; then
+  revopt="-r $rev" 
 fi
 
+
 cvs -q co $revopt -d $secondoname secondo  >/dev/null 2>&1
+
 
 n=$?
 
@@ -401,7 +417,7 @@ fi
 echo "Public version created"
 
 cd $last_stable_dir
-if [-z "$rev" ]; then
+if [ -z "$rev" ]; then
 tar -xzf secondo_LAST_STABLE_PUBLIC.tgz
 else
 tar -xzf secondo_${rev}_PUBLIC.tgz
