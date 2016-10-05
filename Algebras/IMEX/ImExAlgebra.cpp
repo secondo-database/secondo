@@ -7406,7 +7406,7 @@ class shpCollectInfo{
           if(_maxY > maxY) maxY = _maxY;
           inshp->seekg(100);  // overread header
       }
-      int buffersize = 16*1024;  
+      uint32_t buffersize = 16*1024;  
       char buffer[buffersize]; // maximum buffer size for a single value
       bool done = false;
       while(!inshp->eof() && !done && inshp->good()){
@@ -8458,8 +8458,8 @@ int extractShpPart( const string& shpFile,
     return 0;
   }
   // determine size of the file
-
-  uint64_t maxsize = 2*((1ul << 32)-1); 
+  uint64_t one = 1; 
+  uint64_t maxsize = 2*((one << 32)-1); 
 
 
   inshp.seekg(0,ios::end);
@@ -9053,7 +9053,8 @@ int splitShpVMT(Word* args, Word& result,
       double minY=0;
       double maxX=0;
       double maxY=0;
-      while( in.good() && (recno < maxnorec) && in.tellg()<fileSize){
+      while(   in.good() && (recno < (uint32_t) maxnorec) 
+            && in.tellg()<fileSize){
          in.seekg(4,ios::cur); // ignore original record number
          uint32_t cl = readBigInt32(in);
          char* record = new char[2*cl];
@@ -9232,7 +9233,7 @@ int splitDB3VMT(Word* args, Word& result,
   string base = f.substr(0,f.length()-4);
   size_t bytes2copy;
 
-  int bs = 16*1024;
+  uint32_t bs = 16*1024;
   char buf[bs];
 
 
@@ -9242,7 +9243,7 @@ int splitDB3VMT(Word* args, Word& result,
                           + ".dbf").c_str(),
                           ios::binary);
      out->rdbuf()->pubsetbuf(outBuffer, FILE_BUFFER_SIZE);
-     uint32_t records2Copy = r < noRecords?r: noRecords;
+     uint32_t records2Copy = (uint32_t)r < noRecords?r: noRecords;
      bytes2copy = records2Copy*recordLength;
      noRecords -= records2Copy;
      // change noRecords within header
