@@ -8977,7 +8977,7 @@ int splitShpVMT(Word* args, Word& result,
      return 0;
    }  
    in.seekg(0,ios::end);
-   size_t fileSize = in.tellg();
+   streampos fileSize = in.tellg();
    if(fileSize < 100){
      cerr << "invalid file (too short)" << endl;
      res->Set(true,0);
@@ -9027,7 +9027,7 @@ int splitShpVMT(Word* args, Word& result,
    uint32_t recno = 0;
    bool firstRecord=true;
 
-   while(in.good() && in.tellg() < fileSize){
+   while(in.good() && (in.tellg() < fileSize)){
       if(!out){ // start a new partition
          out = new ofstream(  (base + "_" 
                              +  stringutils::int2str(partition)
