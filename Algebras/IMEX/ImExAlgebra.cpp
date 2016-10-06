@@ -8993,7 +8993,7 @@ int splitShpVMT(Word* args, Word& result,
    }
 
    in.seekg(24);
-   size_t fs = readBigInt32(in);
+   streampos fs = readBigInt32(in);
     
    if(fs*2 != fileSize){
      cerr << "invalid  file size stored, give up" << endl;
