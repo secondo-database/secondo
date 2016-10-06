@@ -1,1 +1,0 @@
-This directory is initially empty, but used by the makefile to construct a shared library.

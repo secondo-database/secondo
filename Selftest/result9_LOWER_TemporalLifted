@@ -1,5 +1,0 @@
-
-( mbool 
-   (
-      (
-         ( "begin of time"  "end of time"  TRUE  TRUE ) FALSE )))

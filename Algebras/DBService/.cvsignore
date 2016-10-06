@@ -1,7 +1,0 @@
-.git
-.gitignore
-*.o
-*.a
-*.dep
-Test/SuiteDBService
-README.md

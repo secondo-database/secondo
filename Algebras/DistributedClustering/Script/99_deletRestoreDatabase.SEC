@@ -1,3 +1,0 @@
-delete database berlintest;
-
-restore database berlintest from berlintest;

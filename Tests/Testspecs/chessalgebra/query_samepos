@@ -1,4 +1,0 @@
-query wjc2 feed extend [Pos: .Match getposition[30]] 
- wjc2 feed extend [Pos: .Match getposition[30]] {A2}
- symmjoin[(.Pos  = ..Pos_A2) and (.No < ..No_A2)] 
- sortby[Pos] groupby[Pos; GrpSize: . count] count 

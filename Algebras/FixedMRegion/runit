@@ -1,9 +1,0 @@
-#!/bin/bash
-pushd .
-make && rm ../specs && cd ../.. && make && cd bin && (SecondoTTYBDB << EOF
-open database berlintest;
-query testoperatora(0);
-quit;
-EOF
-)
-popd

@@ -1,9 +1,0 @@
-Database : berlintest
-Restore  : NO
-
-
-Operator : rtf2txt
-Number   : 1
-Signature: text -> text
-Example  : query rtf2txt ('{\rtf1\ansi\deff3\adeflang1025 {\rtlch \ltrch\loch This is a converter.}}')
-Result   : 'This is a converter.'
