@@ -6,6 +6,7 @@ This class is a FixedMRegionIntepolator who creates a FixedMRegion of sights.
 using namespace std;
 
 
+
 namespace temporalalgebra{
 /*
 This is a constructor who expects a reference Region and the rotational center.
