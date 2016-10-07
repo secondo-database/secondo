@@ -25,12 +25,9 @@
 
 # inlcude global definitions
 include ../../makefile.env
-CURRENT_ALGEBRA := PSTAlgebra
-ALGEBRA_DEPENDENCIES := StandardAlgebra
-//ALGEBRA_DEPENDENCIES += XYZAlgebra
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
+CCFLAGS += -I../FMRegion/fmr $(ALG_INC_DIRS) -Werror
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
@@ -44,9 +41,11 @@ endif
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
-	$(create-lib)
+	make -C fmr -f makefile
+	$(create-lib) fmr/*.o
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	make -C fmr -f makefile clean

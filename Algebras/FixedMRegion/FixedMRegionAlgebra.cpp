@@ -1,1244 +1,1055 @@
 /*
-This is my FixedMRegionAlgebra. It is supported by other classes.
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+
+[1] Implementation of the Fixed Moving Region Algebra (FixedMRAlgebra)
+
+September, 2016. Florian Heinz <fh@sysv.de>
+
+[TOC]
+
+1 Overview
+
+This Algebra defines two new datatypes:
+
+1.1 FixedMRegion
+
+The ~fmregion~ represents a moving and rotating region of fixed shape.
+Operations are ~atinstant~, ~inside~ (of a moving point), ~interpolate~ (for
+creating an ~fmregion~ from two snapshots) and ~traversedarea~, which
+calculates the exact area, which is traversed during the time interval.
+
+1.2 CRegion
+
+A ~cregion~ is a generalized region with curved line segments. This is the
+resulttype of the ~traversedarea~ operation above, since the areas borders
+are not straight lines in general. The operations (point) ~inside~ and
+(region) ~intersects~ are defined on it.
 
 */
+
+#include "fmr/FMRegion.h"
+#include "fmr/MPoint.h"
+#include "fmr/RList.h"
+#include "fmr/MBool.h"
+
+#include "Algebra.h"
+#include "NestedList.h"
+#include "QueryProcessor.h"
+#include "SpatialAlgebra.h"
+#include "TemporalAlgebra.h"
+#include "MovingRegionAlgebra.h"
+#include "StandardTypes.h"
+#include "RelationAlgebra.h"
+#include "ListUtils.h"
 #include "FixedMRegionAlgebra.h"
-using namespace std;
-using namespace datetime;
-
-extern NestedList *nl;
-extern QueryProcessor *qp;
-
-namespace temporalalgebra{
 
 
-/*
-~Out~-function
+#include <math.h>
 
-*/
-ListExpr OutPoint3( ListExpr typeInfo, Word value ){
-  Point3* point = (Point3*)(value.addr);
-  if( point->IsDefined())
-    return nl->ThreeElemList(
-      nl->RealAtom( point->GetX()),
-      nl->RealAtom( point->GetY()),
-      nl->RealAtom( point->GetAlpha()));
-  else
-    return nl->SymbolAtom( Symbol::UNDEFINED());
-}
+using namespace temporalalgebra;
+using namespace fmregion;
+
+namespace fmregion {
 
 /*
-~In~-function
+2 FMRegion type definition
+
+An ~fmregion~ consists of a ~region~ and one or more transformation units
+each describing the movement over a time interval.
+
+2.1 List definition
+
+(<region>(<transformation><transformation>[*]))
+
+<region>: See SpatialAlgebra
+<transformation>: (<center><v0><v><a0><a><interval>)
+<center>: The center point of the rotation relative to the region
+<v0>: Initial displacement of the region
+<v>: Linear displacement during the time interval
+<a0>: Initial rotation of the region
+<a>: Rotation of the region during the time interval
+<interval>: The time interval consisting of a start and end instant
+
+Example:
+
+(
+   ( \_! region !\_
+      ( \_! face 1 !\_
+         ( \_! main cycle !\_
+           (190 -30) 
+           (110 -279) 
+           (342 -156) 
+           (162 -216) ) ) )
+        ( \_! transformation units !\_
+            ( \_! transformation unit 1 !\_
+                (185 -164)    \_! center !\_
+                (0 0)         \_! v0     !\_
+                (471 482)     \_! v      !\_
+                0             \_! a0     !\_
+                8             \_! a      !\_
+                \_! interval !\_
+                ("1970-01-01-01:00:00" "1970-01-01-01:08:20" TRUE FALSE ) ) 
+            ( \_! transformation unit 2 !\_
+                (112 -274)    \_! center !\_
+                (655 519)     \_! v0     !\_
+                (638 -517)    \_! v      !\_
+                8             \_! a0     !\_
+                5             \_! a      !\_
+                \_! interval !\_
+                ("1970-01-01-01:08:20" "1970-01-01-01:16:40" TRUE TRUE ) ) ) )
+
+2.2 ~FMRegionProperty~
+
+Describes the signature of the type constructor
 
 */
-Word InPoint3( const ListExpr typeInfo, const ListExpr instance,
-const int errorPos, ListExpr& errorInfo, bool& correct){
-  correct = true;
-  if( nl->ListLength( instance ) == 3 ) {
-    ListExpr first = nl->First(instance);
-    ListExpr second = nl->Second(instance);
-    ListExpr third = nl->Third(instance);
 
-    correct = listutils::isNumeric(first) && 
-              listutils::isNumeric(second) &&
-              listutils::isNumeric(third);
-    if(!correct){
-      return SetWord( Address(0) );
-    } else {
-      return SetWord(new Point3(true, listutils::getNumValue(first),
-                     listutils::getNumValue(second),
-                     listutils::getNumValue(third)));
+    ListExpr FMRegionProperty() {
+        return (
+                nl->TwoElemList(
+                nl->FiveElemList(
+                nl->StringAtom("Signature"),
+                nl->StringAtom("Example Type List"),
+                nl->StringAtom("List Rep"),
+                nl->StringAtom("Example List"),
+                nl->StringAtom("Remarks")
+                ),
+                nl->FiveElemList(
+                nl->StringAtom("-> Data"),
+                nl->StringAtom(FMRegion::BasicType()),
+                nl->StringAtom("((<region>)(<transform1><transform2>...)"),
+                nl->StringAtom("(((((0 0)(5 0)(5 5))))((3 3)(0 0)(5 5) 0 6"
+                "(\"2000-01-01-01:00\" \"2000-01-01-02:00\" "
+                "TRUE TRUE)))"),
+                nl->StringAtom("Type representing a moving & rotating polygon")
+                )
+                )
+                );
     }
-  } else if( listutils::isSymbolUndefined( instance ) ){
-    return SetWord(new Point3(false));
-  }
-  correct = false;
-  return SetWord( Address(0) );
-}
 
 /*
-~Create~-function
- 
-*/
-Word
-CreatePoint3( const ListExpr typeInfo ){
-  return SetWord( new Point3( false ));
-}
+2.3 ~OutFMRegion~
 
-/*
-~Delete~-function
+Converts the ~fmregion~ into a list representation.
+(See 2.1 for the definition of the list representation)
 
 */
-void DeletePoint3( const ListExpr typeInfo, Word& w){
-  ((Point3 *)w.addr)->DeleteIfAllowed();
-  w.addr = 0;
-}
 
-/*
-~Close~-function
+    ListExpr OutFMRegion(ListExpr typeInfo, Word value) {
+        FMRegion *fmr = (FMRegion *) value.addr;
 
-*/
-void ClosePoint3( const ListExpr typeInfo, Word& w){
-  ((Point3 *)w.addr)->DeleteIfAllowed();
-  w.addr = 0;
-}
+        if (fmr->fmr != NULL) {
+            // RList is the interal format of the libfmr
+            fmr::RList rl = fmr->fmr->toRList();
 
-/*
-~Clone~-function
-
-*/
-Word ClonePoint3( const ListExpr typeInfo, const Word& w ){
-  return SetWord( new Point3( *((Point3 *)w.addr) ) );
-}
-
-/*
-~SizeOf~-function
-
-*/
-int SizeOfPoint3(){
-  return sizeof(Point3);
-}
-
-/*
-Function describing the signature of the type constructor
-
-*/
-ListExpr Point3Property(){
-  return nl->TwoElemList(
-              nl->FourElemList(
-                  nl->StringAtom("Signature"),
-                  nl->StringAtom("Example Type List"),
-                  nl->StringAtom("List Rep"),
-                  nl->StringAtom("Example List")),
-              nl->FourElemList(
-                  nl->StringAtom("-> DATA"),
-                  nl->StringAtom(Point3::BasicType()),
-                  nl->StringAtom("(x y a)"),
-                  nl->StringAtom("(10 5 0)")));
-}
-
-/*
-Kind Checking Function
- 
-This function checks whether the type constructor is applied correctly. Since
-type constructor ~point3~ does not have arguments, this is trivial.
-
-*/
-bool CheckPoint3( ListExpr type, ListExpr& errorInfo){
-  return (listutils::isSymbol( type, Point3::BasicType() ));
-}
-
-/*
-~Cast~-function
-
-*/
-void* CastPoint3(void* addr){
-  return (new (addr) Point3());
-}
-
-/*
-Creation of the type constructor instance
-
-
-*/
-TypeConstructor point3(
-  Point3::BasicType(),  //name 
-  Point3Property,//property function describing signature  
-  OutPoint3,      InPoint3,     //Out and In functions 
-  0,   0,      //SaveToList and RestoreFromList functions
-  CreatePoint3,   DeletePoint3, //object creation and deletion
-  OpenAttribute<Point3>,
-  SaveAttribute<Point3>,  // object open and save 
-  ClosePoint3,    ClonePoint3,  //object close, and clone
-  CastPoint3,                  //cast function   
-  SizeOfPoint3,                //sizeof function
-  CheckPoint3);               //kind checking function
-
-/*
-function Describing the Signature of the Type Constructor
-
-*/
-ListExpr UMoveProperty(){
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> UNIT"),
-                             nl->StringAtom("("+UMove::BasicType()+") "),
-      nl->TextAtom(
-        "(timeInterval(real_x0 real_y0 real_a0 real_x1 real_y1 real_a1))"),
-      nl->StringAtom("((i1 i2 TRUE FALSE) (1.0 2.2 0.5 2.5 2.1 0.1))"))));
-}
-
-/*
-Kind Checking Function
-
-*/
-bool CheckUMove( ListExpr type, ListExpr& errorInfo){
-  return (nl->IsEqual( type, UMove::BasicType() ));
-}
-
-/*
-~Out~-function
-
-*/
-ListExpr OutUMove( ListExpr typeInfo, Word value){
-  UMove* umove = (UMove*)(value.addr);
-  if( !(((UMove*)value.addr)->IsDefined()) )
-    return (nl->SymbolAtom(Symbol::UNDEFINED()));
-  else{
-    ListExpr timeintervalList = nl->FourElemList(
-      OutDateTime( nl->TheEmptyList(),
-      SetWord(&umove->timeInterval.start) ),
-      OutDateTime( nl->TheEmptyList(), SetWord(&umove->timeInterval.end) ),
-      nl->BoolAtom( umove->timeInterval.lc ),
-      nl->BoolAtom( umove->timeInterval.rc));
-    ListExpr pointsList = nl->SixElemList(
-      nl->RealAtom( umove->p0.GetX() ),
-      nl->RealAtom( umove->p0.GetY() ),
-      nl->RealAtom( umove->p0.GetAlpha() ),
-      nl->RealAtom( umove->p1.GetX() ),
-      nl->RealAtom( umove->p1.GetY() ),
-      nl->RealAtom( umove->p1.GetAlpha() ));
-    return nl->TwoElemList( timeintervalList, pointsList );  
-  }
-}
-
-/*
-~In~-function
-
-*/
-Word InUMove( const ListExpr typeInfo, const ListExpr instance,
-const int errorPos, ListExpr& errorInfo, bool& correct ){
-  string errmsg;
-  if ( nl->ListLength( instance ) == 2 ){
-    ListExpr first = nl->First( instance );
-
-    if( nl->ListLength( first ) == 4 &&
-        nl->IsAtom( nl->Third( first ) ) &&
-        nl->AtomType( nl->Third( first ) ) == BoolType &&
-        nl->IsAtom( nl->Fourth( first ) ) &&
-        nl->AtomType( nl->Fourth( first ) ) == BoolType ){
-
-      correct = true;
-      Instant *start = (Instant *)InInstant( nl->TheEmptyList(),
-              nl->First( first ), errorPos, errorInfo, correct ).addr;
-
-      if( !correct || start == NULL || !start->IsDefined()){
-        errmsg = "InUMove(): first instant must be defined!.";
-        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-        delete start;
-        return SetWord( Address(0) );
-      }
-
-      Instant *end = (Instant *)InInstant( nl->TheEmptyList(),
-                      nl->Second( first ),
-                      errorPos, errorInfo, correct ).addr;
-
-      if( !correct  || end == NULL || !end->IsDefined() ){
-        errmsg = "InUMove(): second instant must be defined!.";
-        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-        delete start;
-        delete end;
-        return SetWord( Address(0) );
-      }
-
-      Interval<Instant> tinterval( *start, *end,
-                                   nl->BoolValue( nl->Third( first ) ),
-                                   nl->BoolValue( nl->Fourth( first ) ) );
-      delete start;
-      delete end;
-
-      correct = tinterval.IsValid();
-      if (!correct){
-          errmsg = "InUMove(): Non valid time interval.";
-          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-          return SetWord( Address(0) );
-      }
-
-      ListExpr second = nl->Second( instance );
-      if( nl->ListLength( second ) == 6 &&
-          nl->IsAtom( nl->First( second ) ) &&
-          nl->AtomType( nl->First( second ) ) == RealType &&
-          nl->IsAtom( nl->Second( second ) ) &&
-          nl->AtomType( nl->Second( second ) ) == RealType &&
-          nl->IsAtom( nl->Third( second ) ) &&
-          nl->AtomType( nl->Third( second ) ) == RealType &&
-          nl->IsAtom( nl->Fourth( second ) ) &&
-          nl->AtomType( nl->Fourth( second ) ) == RealType &&
-          nl->IsAtom( nl->Fifth( second ) ) &&
-          nl->AtomType( nl->Fifth( second ) ) == RealType &&
-          nl->IsAtom( nl->Sixth( second ) ) &&
-          nl->AtomType( nl->Sixth( second ) ) == RealType ){
-        UMove *umove = new UMove( tinterval,
-                                     nl->RealValue( nl->First( second ) ),
-                                     nl->RealValue( nl->Second( second ) ),
-                                     nl->RealValue( nl->Third( second ) ),
-                                     nl->RealValue( nl->Fourth( second ) ),
-                                     nl->RealValue( nl->Fifth( second ) ),
-                                     nl->RealValue( nl->Sixth( second ) ) );
-
-        correct = umove->IsValid();
-        if( correct )
-          return SetWord( umove );
-
-        errmsg = "InUMove(): Error in start/end point.";
-        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-        delete umove;
-      }
+            // RList2NL converts RList to a Secondo NestedList
+            return RList2NL(rl);
+        } else {
+            return nl->Empty();
+        }
     }
-  }
-  else if ( listutils::isSymbolUndefined(instance) ){
-      UMove *umove = new UMove(true);
-      umove->SetDefined(false);
-      umove->timeInterval=
-        Interval<DateTime>(DateTime(instanttype),
-                           DateTime(instanttype),true,true);
-      correct = umove->timeInterval.IsValid();
-      if ( correct )
-        return (SetWord( umove ));
+
+/*
+2.4 ~InFMRegion~
+
+Converts a list representation of an ~fmregion~ into a FMRegion object.
+(See 2.1 for the definition of the list representation)
+
+*/
+    Word InFMRegion(const ListExpr typeInfo, const ListExpr instance,
+            const int errorPos, ListExpr& errorInfo, bool& correct) {
+        FMRegion *fmr = new FMRegion();
+
+        // Convert a Secondo NestedList to the libfmr RList
+        fmr::RList rl = NL2RList(instance);
+        // Construct a native libfmr fmregion object from the RList
+        fmr->fmr = new fmr::FMRegion(rl);
+
+        correct = true;
+
+        return fmr;
     }
-  errmsg = "InUMove(): Error in representation.";
-  errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-  correct = false;
-  return SetWord( Address(0) );
+
+/*
+2.5 ~CreateFMRegion~
+
+Creates an empty FMRegion instance
+
+*/
+    Word CreateFMRegion(const ListExpr typeInfo) {
+        FMRegion* fmr = new FMRegion();
+
+        return SetWord(fmr);
+    }
+
+/*
+2.6 ~DeleteFMRegion~
+
+Deletes an FMRegion object
+
+*/
+    void DeleteFMRegion(const ListExpr typeInfo, Word& w) {
+        FMRegion* fmr = (FMRegion*) w.addr;
+
+        delete fmr;
+    }
+
+/*
+2.7 ~CloseFMRegion~
+
+Removes an FMRegion object from memory
+
+*/
+    void CloseFMRegion(const ListExpr typeInfo, Word& w) {
+        FMRegion* fmr = (FMRegion*) w.addr;
+        delete fmr;
+    }
+
+/*
+2.8 ~CloneFMRegion~
+
+Creates a deep copy of an FMRegion object
+
+*/
+    Word CloneFMRegion(const ListExpr typeInfo, const Word& w) {
+        return SetWord(((FMRegion*) w.addr)->Clone());
+    }
+
+/*
+2.9 ~SizeOfFMRegion~
+
+Returns the size of an FMRegion object
+
+*/
+    int SizeOfFMRegion() {
+        return sizeof (FMRegion);
+    }
+
+/*
+2.10 ~CastFMRegion~
+
+Casts a pointer to an FMRegion object
+
+*/
+    void* CastFMRegion(void* addr) {
+        return (new (addr) FMRegion);
+    }
+
+/*
+2.11 ~CheckFMRegion~
+
+Returns ~true~ iff a type list represents an fmregion object
+
+*/
+    bool CheckFMRegion(ListExpr type, ListExpr& errorInfo) {
+        return (nl->IsEqual(type, FMRegion::BasicType()));
+    }
+
+    TypeConstructor fmregion(
+            FMRegion::BasicType(),
+            FMRegionProperty,
+            OutFMRegion, InFMRegion,
+            0, 0,
+            CreateFMRegion, DeleteFMRegion,
+            0, 0, CloseFMRegion,
+            CloneFMRegion, CastFMRegion,
+            SizeOfFMRegion, CheckFMRegion
+            );
+
+/*
+2.12 ~Clone~
+
+Clone this FMRegion object, i.e. creates a deep copy
+
+*/
+    FMRegion* FMRegion::Clone() const {
+        FMRegion *fmr = new FMRegion();
+        if (this->fmr != NULL) {
+            fmr->fmr = new fmr::FMRegion();
+            *(fmr->fmr) = *(this->fmr);
+        }
+
+        return fmr;
+    }
+
+/*
+2.13 ~FMRegion~ constructor
+
+Creates an empty FMRegion object
+
+*/
+    FMRegion::FMRegion() {
+        this->fmr = NULL;
+    }
+
+/*
+2.14 ~FMRegion~ destructor
+
+Destruct an FMRegion object and the underlying libfmr object
+
+*/
+    FMRegion::~FMRegion() {
+        if (this->fmr)
+            delete this->fmr;
+    }
+
+/*
+3 CRegion
+
+A cregion is a new region type, which supports not only straight,
+but also curved line segments of different types. The design is
+held extensible to easily support other types of curves. Otherwise,
+it is similar to a ~region~, which means, it consists of several faces
+each optionally containing holes.
+
+3.1 List definition
+
+cregion: (<cface>[*])
+cface:   (<cycle><holecycle>[*])
+cycle:   (<rcurve><rcurve>[*])
+
+In contrast to a conventional ~region~ a cycle can consist of a single
+curved line segment here.
+
+rcurve: (<xoff> <yoff> <angle> <type> <param>[*])
+xoff:  x offset of the startpoint
+yoff:  y offset of the startpoint
+angle: a rotation angle
+type:  Type of curve
+param: one or more optional parameters, which are type specific
+
+Currently, three types of curves are defined. The parametric
+functions expect ~t~ in the range of [0;1]. The result is
+rotated by ~angle~ and then translated by (~xoff~,~yoff~).
+
+T : A trochoidal line segment
+Parameters: <a> <b> <toff> <rotation>
+Parametric functions:
+fx(t) = a[*]t[*]rot - b[*](sin(t[*]rot + toff) - sin(toff))
+fy(t) = b[*](cos(t[*]rot + toff) - cos(toff))
+
+R : A ravdoidal line segment
+Parameters: <hp> <cd> <toff> <rotation>
+Parametric functions:
+fx(t) = hp[*](2[*]t[*]rot - sin(2[*](t[*]rot + toff)) + sin(2[*]toff)) +
+        cd[*]              (cos     (t[*]rot + toff)  - cos(    toff))
+fy(t) = hp[*](cos(2[*](t[*]rot + toff)) - cos(2[*]toff)) +
+        cd[*](sin     (t[*]rot + toff)  - sin(    toff))
+
+S : A straight line segment
+Parameters: <xd> <yd>
+Parametric functions:
+fx(t) = xd [*] t
+fy(t) = yd [*] t
+
+T : A trochoidal line segment
+Parameters: <a> <b> <toff> <rotation>
+Parametric functions:
+fx(t) = a [*] t [*] rot - b [*] (sin(t [*] rot + toff) - sin(toff))
+fy(t) = b [*] (cos(t [*] rot + toff) - cos(toff))
+
+R : A ravdoidal line segment
+Parameters: <hp> <cd> <toff> <rotation>
+Parametric functions:
+fx(t) = hp[*](2[*]t[*]rot - sin(2[*](t[*]rot + toff)) + sin(2[*]toff)) +
+        cd[*]              (cos     (t[*]rot + toff)  - cos(    toff))
+fy(t) = hp[*](cos(2[*](t[*]rot + toff)) - cos(2[*]toff)) +
+        cd[*](sin     (t[*]rot + toff)  - sin(    toff))
+
+S : A straight line segment
+Parameters: <xd> <yd>
+Parametric functions:
+fx(t) = xd[*]t
+fy(t) = yd[*]t
+T : A trochoidal line segment
+Parameters: <a> <b> <toff> <rotation>
+Parametric functions:
+fx(t) = a[*]t[*]rot - b[*](sin(t[*]rot + toff) - sin(toff))
+fy(t) = b[*](cos(t[*]rot + toff) - cos(toff))
+
+R : A ravdoidal line segment
+Parameters: <hp> <cd> <toff> <rotation>
+Parametric functions:
+fx(t) = hp[*](2[*]t[*]rot - sin(2[*](t[*]rot + toff)) + sin(2[*]toff)) +
+        cd[*]              (cos     (t[*]rot + toff)  - cos(    toff))
+fy(t) = hp[*](cos(2[*](t[*]rot + toff)) - cos(2[*]toff)) +
+        cd[*](sin     (t[*]rot + toff)  - sin(    toff))
+
+S : A straight line segment
+Parameters: <xd> <yd>
+Parametric functions:
+fx(t) = xd[*]t
+fy(t) = yd[*]t
+
+A point on the curve at time ~t~ is then calculated as:
+Point(fx(t), fy(t)).rotate(<angle>) + Point(<xoff>, <yoff>)
+
+
+3.2 ~CRegionProperty~
+
+Describes the signature of the type constructor.
+
+*/
+
+    ListExpr CRegionProperty() {
+        return (
+                nl->TwoElemList(
+                nl->FiveElemList(
+                nl->StringAtom("Signature"),
+                nl->StringAtom("Example Type List"),
+                nl->StringAtom("List Rep"),
+                nl->StringAtom("Example List"),
+                nl->StringAtom("Remarks")
+                ),
+                nl->FiveElemList(
+                nl->StringAtom("-> Data"),
+                nl->StringAtom(CRegion::BasicType()),
+                nl->StringAtom("()"),
+                nl->StringAtom("()"),
+                nl->StringAtom("A region with curved edges")
+                )
+                )
+                );
+    }
+
+/*
+3.3 ~OutCRegion~
+
+Converts a ~cregion~ to its nested list representation.
+
+*/
+
+    ListExpr OutCRegion(ListExpr typeInfo, Word value) {
+        CRegion *creg = (CRegion *) value.addr;
+
+        // Convert the libfmr region object to RList
+        fmr::RList rl = creg->reg->toRList();
+
+        // and then the RList to Secondo nested list representation
+        return RList2NL(rl);
+    }
+
+/*
+3.4 ~InCRegion~
+
+Converts a ~cregion~ to its nested list representation.
+
+*/
+
+    Word InCRegion(const ListExpr typeInfo, const ListExpr instance,
+            const int errorPos, ListExpr& errorInfo, bool& correct) {
+        CRegion *creg = new CRegion();
+
+        // Convert the cregion nested list representation to a libfmr RList
+        fmr::RList rl = NL2RList(instance);
+        // and create an object for it.
+        creg->reg = new fmr::Region2(rl);
+
+        correct = true;
+
+        return creg;
+    }
+
+/*
+3.5 ~CreateCRegion~
+
+Creates an empty ~cregion~ instance.
+
+*/
+    Word CreateCRegion(const ListExpr typeInfo) {
+        CRegion* creg = new CRegion();
+
+        return SetWord(creg);
+    }
+
+/*
+3.6 ~DeleteCRegion~
+
+Removes a ~cregion~ instance.
+
+*/
+    void DeleteCRegion(const ListExpr typeInfo, Word& w) {
+        CRegion* reg = (CRegion*) w.addr;
+
+        delete reg;
+    }
+
+/*
+3.7 ~CloseCRegion~
+
+Removes a ~cregion~ instance from memory.
+
+*/
+    void CloseCRegion(const ListExpr typeInfo, Word& w) {
+        CRegion* creg = (CRegion*) w.addr;
+
+        delete creg;
+    }
+
+/*
+3.7 ~CloneCRegion~
+
+Creates a deep copy of a ~cregion~ object.
+
+*/
+    Word CloneCRegion(const ListExpr typeInfo, const Word& w) {
+        return SetWord(((CRegion*) w.addr)->Clone());
+    }
+
+/*
+3.8 ~SizeOfCRegion~
+
+Returns the size of a ~cregion~ object
+
+*/
+    int SizeOfCRegion() {
+        return sizeof (CRegion);
+    }
+
+/*
+3.9 ~CastCRegion~
+
+Casts a pointer to a ~cregion~ object
+
+*/
+    void* CastCRegion(void* addr) {
+        return (new (addr) CRegion);
+    }
+
+/*
+3.10 ~CheckCRegion~
+
+Checks if a type represents a ~cregion~ object
+
+*/
+    bool CheckCRegion(ListExpr type, ListExpr& errorInfo) {
+        return (nl->IsEqual(type, CRegion::BasicType()));
+    }
+
+    TypeConstructor cregion(
+            CRegion::BasicType(),
+            CRegionProperty,
+            OutCRegion, InCRegion,
+            0, 0,
+            CreateCRegion, DeleteCRegion,
+            0, 0, CloseCRegion,
+            CloneCRegion, CastCRegion,
+            SizeOfCRegion, CheckCRegion
+            );
+
+/*
+3.11 ~CRegion::Clone~
+
+Creates a clone (deep copy) of itself.
+
+*/
+    CRegion* CRegion::Clone() const {
+        CRegion *creg = new CRegion();
+        creg->reg = new fmr::Region2();
+        *(creg->reg) = *(this->reg);
+
+        return creg;
+    }
+
+/*
+3.12 ~CRegion()~
+
+The default constructor.
+
+*/
+    CRegion::CRegion() {
+        this->reg = NULL;
+    }
+
+/*
+3.13 ~CRegion destructor~
+
+The destructor. Also deletes the underlying libfmr object.
+
+*/
+    CRegion::~CRegion() {
+        if (this->reg)
+            delete this->reg;
+    }
+
+/*
+4 ~Operators~
+
+Some operators for handling ~fmregion~ and ~cregion~ objects.
+
+4.1 ~atinstant~
+
+Calculates the projection of an ~fmregion~ to an ~iregion~ for a given instant.
+
+Signature: fmregion x instant -> iregion
+Example: query fmregion1 atinstant [const instant value "2000-01-01-01:00"]
+
+4.1.1 ~Type mapping~
+
+Maps the source types to the result type. Only one variant is supported here.
+
+*/
+    ListExpr atinstanttypemap(ListExpr args) {
+        std::string err = "fmregion x instant expected";
+        int len = nl->ListLength(args);
+        if (len != 2) {
+            return listutils::typeError(err + " (wrong number of arguments)");
+        }
+        if (!FMRegion::checkType(nl->First(args))) {
+            return listutils::typeError(err + " (first arg wrong)");
+        }
+        if (!Instant::checkType(nl->Second(args))) {
+            return listutils::typeError(err + " (second arg wrong)");
+        }
+        return nl->SymbolAtom(temporalalgebra::IRegion::BasicType());
+    }
+
+/*
+4.1.2 ~Value mapping~
+
+Maps a result value to the given arguments.
+
+*/
+    int atinstantvalmap(Word *args, Word& result,
+            int message, Word& local, Supplier s) {
+        result = qp->ResultStorage(s);
+
+        FMRegion *fmr = static_cast<FMRegion*> (args[0].addr);
+        Instant *it = static_cast<Instant*> (args[1].addr);
+
+        // Calculate the projected region in libfmr
+        fmr::Region fmrreg = fmr->fmr->atinstant(it->GetAllMilliSeconds());
+        // and convert the result to a Secondo nested list
+        ListExpr regle = RList2NL(fmrreg.toRList());
+
+        // Create an IRegion from the result and return it
+        bool correct;
+        ListExpr errorInfo;
+        Word regp = InRegion(nl->Empty(), regle, 0, errorInfo, correct);
+        Region *reg = static_cast<Region*> (regp.addr);
+        result.setAddr(new temporalalgebra::IRegion(*it, *reg));
+
+        return 0;
+    }
+
+    static const std::string atinstantspec =
+            "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+            "  (<text>fmregion x instant -> iregion</text--->"
+            "<text>_ atinstant _</text--->"
+            "<text>Shows the fmregion at some instant</text--->"
+            "<text>fmregion atinstant instant1</text---> ) )";
+
+    Operator atinstant("atinstant",
+            atinstantspec,
+            atinstantvalmap,
+            Operator::SimpleSelect,
+            atinstanttypemap
+            );
+
+/*
+4.2 ~inside~
+
+Calculates the times, when a moving point is inside an ~fmregion~. The result
+is an ~mbool~ object, which is defined at all times, when both source objects
+are defined. The ~mbool~ is *true*, when the moving point is ~inside~ the
+fmregion and *false* at all other times.
+
+Signature: mpoint x fmregion -> mbool
+Example: query mpoint1 inside fmregion1
+
+4.2.1 ~Type mapping~
+
+Maps the source types to the result type. Only one variant is supported here.
+
+*/
+    ListExpr insidetypemap(ListExpr args) {
+        std::string err = "mpoint x fmregion expected";
+        int len = nl->ListLength(args);
+        if (len != 2) {
+            return listutils::typeError(err + " (wrong number of arguments)");
+        }
+        if (!temporalalgebra::MPoint::checkType(nl->First(args))) {
+            return listutils::typeError(err + " (wrong first arg)");
+        }
+        if (!FMRegion::checkType(nl->Second(args))) {
+            return listutils::typeError(err + " (wrong second arg)");
+        }
+        return nl->SymbolAtom(temporalalgebra::MBool::BasicType());
+    }
+
+/*
+4.2.2 ~Value mapping~
+
+Maps a result value to the given arguments.
+
+*/
+    int insidevalmap(Word *args, Word& result,
+            int message, Word& local, Supplier s) {
+        result = qp->ResultStorage(s);
+
+        FMRegion *fmr = static_cast<FMRegion*> (args[1].addr);
+
+        // Convert the Secondo nested list representation of the moving point
+        // to a libfmr MPoint object
+        fmr::RList mprl = NL2RList(OutMapping<MPoint, UPoint,
+                OutUPoint>(nl->Empty(), args[0]));
+        fmr::MPoint mp(mprl);
+
+        // Calculate the times, when the moving point is inside the fmregion
+        // and store the result in an mbool object
+        fmr::MBool mb = mp.inside(*fmr->fmr);
+
+        // Convert the libfmr mbool to a Secondo mbool and return it
+        ListExpr le = RList2NL(mb.toRList());
+        bool correct;
+        ListExpr errorInfo;
+        result = InMapping<MBool, UBool, InConstTemporalUnit<CcBool, InCcBool> >
+                                       (nl->Empty(), le, 0, errorInfo, correct);
+
+        return 0;
+    }
+
+    static const std::string insidespec =
+            "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+            "  (<text>mpoint x fmregion -> mbool</text--->"
+            "<text>_ inside _</text--->"
+            "<text>calculate times when mpoint is inside the fmregion</text--->"
+            "<text>mpoint1 inside fmregion1</text---> ) )";
+
+    Operator inside("inside",
+            insidespec,
+            insidevalmap,
+            Operator::SimpleSelect,
+            insidetypemap
+            );
+
+/*
+4.3 ~fmrinterpolate~
+
+Try to create a ~fmregion~ from two snapshots. The shape of the region must
+be identical, i.e. the second region must be a translated and rotated version
+of the first one.
+
+Signature: region x instant x region x instant -> fmregion
+Example: query fmrinterpolate(region1, instant1, region2, instant2)
+
+4.3.1 ~Type mapping~
+
+Maps the source types to the result type. Only one variant is supported here.
+
+*/
+    ListExpr fmrinterpolatetypemap(ListExpr args) {
+        std::string err = "region x instant x region x instant expected";
+        int len = nl->ListLength(args);
+        if (len != 4) {
+            return listutils::typeError(err + " (wrong number of arguments)");
+        }
+        if (!Region::checkType(nl->First(args))) {
+            return listutils::typeError(err + " (wrong first arg)");
+        }
+        if (!Instant::checkType(nl->Second(args))) {
+            return listutils::typeError(err + " (wrong second arg)");
+        }
+        if (!Region::checkType(nl->Third(args))) {
+            return listutils::typeError(err + " (wrong third arg)");
+        }
+        if (!Instant::checkType(nl->Fourth(args))) {
+            return listutils::typeError(err + " (wrong fourth arg)");
+        }
+        return nl->SymbolAtom(FMRegion::BasicType());
+    }
+
+/*
+4.3.2 ~Value mapping~
+
+Maps a result value to the given arguments.
+
+*/
+    int fmrinterpolatevalmap(Word *args, Word& result,
+            int message, Word& local, Supplier s) {
+        result = qp->ResultStorage(s);
+
+        // Convert the Secondo source regions to libfmr region objects
+        fmr::RList sregrl = NL2RList(OutRegion(nl->Empty(), args[0]));
+        fmr::Region sreg(sregrl);
+        fmr::RList dregrl = NL2RList(OutRegion(nl->Empty(), args[2]));
+        fmr::Region dreg(dregrl);
+
+        Instant* ti1 = static_cast<Instant*> (args[1].addr);
+        Instant* ti2 = static_cast<Instant*> (args[3].addr);
+
+        // Create the interpolation interval
+        fmr::Interval iv(ti1->GetAllMilliSeconds(), ti2->GetAllMilliSeconds(),
+                true, true);
+        // Calculate the interpolation
+        fmr::FMRegion fm = sreg.interpolate(dreg, iv);
+
+        // Convert the libfmr fmregion to a Secondo fmregion object and return
+        bool correct;
+        ListExpr errorInfo;
+        ListExpr fmle = RList2NL(fm.toRList());
+        result = InFMRegion(nl->Empty(), fmle, 0, errorInfo, correct);
+
+        return 0;
+    }
+
+    static const std::string fmrinterpolatespec =
+     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+     "  (<text>region x instant x region x instant -> fmregion</text--->"
+     "<text>fmrinterpolate( _ , _ , _ , _ )</text--->"
+     "<text>interpolates two regions to an fmregion</text--->"
+     "<text>fmrinterpolate(region1, instant1, region2, instant2)</text---> ) )";
+
+    Operator fmrinterpolate("fmrinterpolate",
+            fmrinterpolatespec,
+            fmrinterpolatevalmap,
+            Operator::SimpleSelect,
+            fmrinterpolatetypemap
+            );
+
+/*
+4.4 ~traversedarea~
+
+An ~fmregion~ traverses a certain area during its movement. This operator
+calculates this area and returns a corresponding ~cregion~ object.
+
+Signature: fmregion -> cregion
+Example: query traversedarea(fmregion1)
+
+4.4.1 ~Type mapping~
+
+Maps the source types to the result type. Only one variant is supported here.
+
+*/
+    ListExpr traversedareatypemap(ListExpr args) {
+        std::string err = "fmregion expected";
+        int len = nl->ListLength(args);
+        if (len != 1) {
+            return listutils::typeError(err + " (wrong number of arguments)");
+        }
+        if (!FMRegion::checkType(nl->First(args))) {
+            return listutils::typeError(err + " (wrong first arg)");
+        }
+        return nl->SymbolAtom(CRegion::BasicType());
+    }
+
+/*
+4.4.2 ~Value mapping~
+
+Maps a result value to the given arguments.
+
+*/
+    int traversedareavalmap(Word *args, Word& result,
+                                         int message, Word& local, Supplier s) {
+        result = qp->ResultStorage(s);
+
+        FMRegion *fmr = static_cast<FMRegion*> (args[0].addr);
+
+        // Calculate the traversed area and store it in a libfmr region2 object
+        fmr::Region2 reg2 = fmr->fmr->traversedArea();
+        bool correct;
+        ListExpr errorInfo;
+        // Convert the libfmr region2 to a Secondo cregion and return it
+        result = InCRegion(nl->Empty(), RList2NL(reg2.toRList()), 0,
+                errorInfo, correct);
+
+        return 0;
+    }
+
+    static const std::string traversedareaspec =
+            "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+            "  (<text>fmregion -> cregion</text--->"
+            "<text>traversedarea( _ )</text--->"
+            "<text>calculates the traversed area of an fmregion</text--->"
+            "<text>traversedarea(fmregion1)</text---> ) )";
+
+    Operator traversedarea("traversedarea",
+            traversedareaspec,
+            traversedareavalmap,
+            Operator::SimpleSelect,
+            traversedareatypemap
+            );
+
+/*
+4.5 ~inside~
+
+Test if a point is inside a ~cregion~
+
+Signature: point x cregion -> bool
+Example: query point([100, 100]) inside cregion1
+
+4.5.1 ~Type mapping~
+
+Maps the source types to the result type. Only one variant is supported here.
+
+*/
+    ListExpr insidecregiontypemap(ListExpr args) {
+        std::string err = "point x cregion expected";
+        int len = nl->ListLength(args);
+        if (len != 2) {
+            return listutils::typeError(err + " (wrong number of arguments)");
+        }
+        if (!Point::checkType(nl->First(args))) {
+            return listutils::typeError(err + " (wrong first arg)");
+        }
+        if (!CRegion::checkType(nl->Second(args))) {
+            return listutils::typeError(err + " (wrong second arg)");
+        }
+        return nl->SymbolAtom(CcBool::BasicType());
+    }
+
+/*
+4.5.2 ~Value mapping~
+
+Maps a result value to the given arguments.
+
+*/
+    int insidecregionvalmap(Word *args, Word& result, int message,
+            Word& local, Supplier s) {
+        result = qp->ResultStorage(s);
+
+        Point *p = static_cast<Point*> (args[0].addr);
+        CRegion *cr = static_cast<CRegion*> (args[1].addr);
+
+        result = new CcBool(true,
+                cr->reg->inside(fmr::Point(p->GetX(), p->GetY())));
+
+        return 0;
+    }
+
+
+    static const std::string insidecregionspec =
+            "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+            "  (<text>point x cregion -> bool</text--->"
+            "<text>_ inside _</text--->"
+            "<text>Test if point is inside a cregion</text--->"
+            "<text>point1 inside cregion1</text---> ) )";
+
+    Operator insidecregion("inside",
+            insidecregionspec,
+            insidecregionvalmap,
+            Operator::SimpleSelect,
+            insidecregiontypemap
+            );
+
+/*
+5 ~FixedMRegionAlgebra~
+
+Instantiation of the FixedMRegionAlgebra.
+Adds the types ~fmregion~ and ~cregion~
+Adds the operators ~atinstant~, ~inside~, ~fmrinterpolate~, ~traversedarea~
+
+*/
+    FixedMRegionAlgebra::FixedMRegionAlgebra() : Algebra() {
+        AddTypeConstructor(&fmregion);
+        AddTypeConstructor(&cregion);
+        AddOperator(&atinstant);
+        AddOperator(&inside);
+        AddOperator(&insidecregion);
+        AddOperator(&fmrinterpolate);
+        AddOperator(&traversedarea);
+    }
+
+    extern "C"
+    Algebra *
+    InitializeFixedMRegionAlgebra(NestedList *nlRef, QueryProcessor *qpRef) {
+        nl = nlRef;
+        qp = qpRef;
+        return new FixedMRegionAlgebra();
+    }
 }
-
 /*
-~Create~-function
+6 Conversion functions
+
+These functions convert between Secondo NestedLists and libfmr RLists.
+Supported types are: List, String, Double, Bool and Symbol, which are all
+existing RList types. NestedList Integers are converted to double.
+Unknown types are dropped.
+
+6.1 ~RList2NL~
+
+Convert a libfmr RList to a Secondo NestedList.
 
 */
-Word CreateUMove( const ListExpr typeInfo ){
-  return (SetWord( new UMove(false) ));
+ListExpr RList2NL(fmr::RList r) {
+    ListExpr ret = nl->Empty();
+    ListExpr cur = ret;
+
+    switch (r.getType()) {
+        case fmr::NL_LIST:
+            for (int i = 0; i < r.size(); i++) {
+                if (i == 0)
+                    ret = cur = nl->OneElemList(RList2NL(r[i]));
+                else
+                    cur = nl->Append(cur, RList2NL(r[i]));
+            }
+            break;
+        case fmr::NL_STRING:
+            ret = nl->StringAtom(r.getString());
+            break;
+        case fmr::NL_DOUBLE:
+            ret = nl->RealAtom(r.getNr());
+            break;
+        case fmr::NL_BOOL:
+            ret = nl->BoolAtom(r.getBool());
+            break;
+        case fmr::NL_SYM:
+            ret = nl->SymbolAtom(r.getSym());
+            break;
+    }
+
+    return ret;
 }
-
 /*
-~Delete~-function
+6.2 ~NL2RList~
+
+Convert a Secondo NestedList to a libfmr RList.
 
 */
-void DeleteUMove( const ListExpr typeInfo, Word& w ){
-  delete (UMove *)w.addr;
-  w.addr = 0;
+fmr::RList NL2RList(ListExpr l) {
+    fmr::RList ret;
+
+    while (l != nl->Empty()) {
+        ListExpr i = nl->First(l);
+        if (nl->IsNodeType(NoAtom, i)) {
+            ret.append(NL2RList(i));
+        } else if (nl->IsNodeType(IntType, i)) {
+            // Convert integer to double, since there is no separate
+            // RList type for it
+            ret.append((double) nl->IntValue(i));
+        } else if (nl->IsNodeType(RealType, i)) {
+            ret.append(nl->RealValue(i));
+        } else if (nl->IsNodeType(BoolType, i)) {
+            ret.append(nl->BoolValue(i));
+        } else if (nl->IsNodeType(StringType, i)) {
+            ret.append(nl->StringValue(i));
+        } else if (nl->IsNodeType(SymbolType, i)) {
+            ret.appendSym(nl->SymbolValue(i));
+        }
+        l = nl->Rest(l);
+    }
+
+    return ret;
 }
-
-/*
-~Close~-function
-
-*/
-void CloseUMove( const ListExpr typeInfo, Word& w ){
-  delete (UMove *)w.addr;
-  w.addr = 0;
-}
-
-/*
-~Clone~-function
-
-*/
-Word CloneUMove( const ListExpr typeInfo, const Word& w ){
-  UMove *umove = (UMove *)w.addr;
-  return SetWord( new UMove( *umove ) );
-}
-
-/*
-~Sizeof~-function
-
-*/
-int SizeOfUMove(){
-  return sizeof(UMove);
-}
-
-/*
-~Cast~-function
-
-*/
-void* CastUMove(void* addr){
-  return new (addr) UMove;
-}
-
-/*
-Creation of the type constructor ~upoint~
-
-*/
-TypeConstructor unitmove(
-        UMove::BasicType(),      //name
-        UMoveProperty,               //property function describing signature
-        OutUMove,     InUMove, //Out and In functions
-        0,             0,  //SaveToList and RestoreFromList functions
-        CreateUMove,
-        DeleteUMove, //object creation and deletion
-        OpenAttribute<UMove>,
-        SaveAttribute<UMove>,  // object open and save
-        CloseUMove,   CloneUMove, //object close and clone
-        CastUMove, //cast function
-        SizeOfUMove, //sizeof function
-        CheckUMove );                    //kind checking function
-
-/*
-function Describing the Signature of the Type Constructor
-
-*/
-ListExpr MMoveProperty(){
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> MAPPING"),
-                             nl->StringAtom("(mmove) "),
-                             nl->StringAtom("( u1 ... un ) "),
-        nl->StringAtom("(((i1 i2 TRUE FALSE) (1.0 2.2 2.5 2.1)) ...)"))));
-}
-
-/*
-Kind Checking Function
-
-*/
-bool CheckMMove( ListExpr type, ListExpr& errorInfo ){
-  return (nl->IsEqual( type, MMove::BasicType() ));
-}
-
-/*
-Creation of the type constructor ~mpoint~
-
-*/
-TypeConstructor movingmove(
-        MMove::BasicType(),   //name
-        MMoveProperty,        //property function describing signature
-        OutMapping<MMove, UMove, OutUMove>,
-        InMapping<MMove, UMove, InUMove>,//Out and In functions
-        0,
-        0,                 //SaveToList and RestoreFromList functions
-        CreateMapping<MMove>,
-        DeleteMapping<MMove>,     //object creation and deletion
-        OpenAttribute<MMove>,
-        SaveAttribute<MMove>,      // object open and save
-        CloseMapping<MMove>,
-        CloneMapping<MMove>, //object close and clone
-        CastMapping<MMove>,    //cast function
-        SizeOfMapping<MMove>, //sizeof function
-        CheckMMove );  //kind checking function
-
-/*
-function Describing the Signature of the Type Constructor
-
-*/
-ListExpr FixedMRegionProperty(){
-  return 
-    nl->TwoElemList(
-      nl->FourElemList(
-        nl->StringAtom("Signature"),
-        nl->StringAtom("Example Type List"),
-        nl->StringAtom("List Rep"),
-        nl->StringAtom("Example List")),
-      nl->FourElemList (
-        nl->StringAtom("-> MAPPING"),
-        nl->StringAtom("fixedmregion"),
-        nl->StringAtom("(fixedmregion real) = (x,y)"),
-        nl->StringAtom ("(fmr 2.0)")
-      )
-    );
-}
-
-ListExpr OutFixedMRegion(ListExpr typeInfo, Word value);
-
-/*
-This is the in function.
-
-*/
-Word InFixedMRegion(const ListExpr typeInfo, const ListExpr instance,
-  const int errorPos, ListExpr & errorInfo, bool & correct){
-  if(nl->ListLength(instance) != 4){
-    string strErrorMessage = "FMR in: List length must be 4";
-    errorInfo = nl->Append(errorInfo,nl->StringAtom(strErrorMessage));
-    correct = false;
-    return SetWord(Address(0));
-  }
-
-  correct=true;
-  bool corr;
-
-  Word reg_addr= InRegion(typeInfo,nl->First(instance),errorPos,
-    errorInfo,corr);
-  Region* cr = (Region*)reg_addr.addr; 
-
-  if ((!corr) || (!cr->IsDefined())) {
-    string err="FMR in: Invalid Region in argument 1";
-    errorInfo = nl->Append(errorInfo,nl->StringAtom(err));
-    correct=false;
-  }
-
-  Word mm_addr= InMapping<MMove, UMove, InUMove>(
-    typeInfo,nl->Second(instance),errorPos,errorInfo,corr);
-  MMove* mm = (MMove*)mm_addr.addr; 
-  if ((!corr) || (!mm->IsDefined())) {
-    string err="FMR in: Invalid MMove in argument 2";
-    errorInfo = nl->Append(errorInfo,nl->StringAtom(err));
-    correct=false;
-  }
-
-  Word p_addr= InPoint(typeInfo,nl->Third(instance),errorPos,
-    errorInfo,corr);
-  Point* p = (Point*)p_addr.addr; 
-  if ((!corr) || (!p->IsDefined())) {
-    string err="FMR in: Invalid Point in argument 3";
-    errorInfo = nl->Append(errorInfo,nl->StringAtom(err));
-    correct=false;
-  }
-
-  if (!(nl->AtomType(nl->Fourth(instance))==IntType) &&
-      !(nl->AtomType(nl->Fourth(instance))==RealType)) {
-    string err="FMR in: numeric value expected as argument 4";
-    errorInfo = nl->Append(errorInfo,nl->StringAtom(err));
-    correct=false;
-  }
-
-  if (!correct) {
-    cr->DeleteIfAllowed();
-    mm->DeleteIfAllowed();
-    p->DeleteIfAllowed();
-    return SetWord(Address(0));
-  }
-
-  double t = listutils::getNumValue(nl->Fourth(instance));
-  //Anfang testcode
-  FixedMRegion* fmr = new FixedMRegion(*cr, *mm, *p, t);
-  cr->DeleteIfAllowed();
-  mm->DeleteIfAllowed();
-  p->DeleteIfAllowed();
-  //Anfang testcode
-  //printf("%s\n", (fmr->IsDefined())?"true":"false");
-  //ListExpr regionNL = OutFixedMRegion(nl->TheEmptyList(), SetWord(fmr));
-  //cout <<nl->ToString(regionNL) << "\n";
-  //Ende Textcode
-  correct=true;
-  return SetWord(fmr);
-}
-
-/*
-This is the out function.
-
-*/
-ListExpr OutFixedMRegion(ListExpr typeInfo, Word value){
-  FixedMRegion* fmr = (FixedMRegion*)(value.addr);
-  if(!fmr->IsDefined()){
-    return nl->SymbolAtom("undef");
-  }
-
-  Region cr(0);
-  fmr->getRegion(cr) ;
-  ListExpr regionNL = OutRegion(nl->TheEmptyList(), SetWord(&cr));
-
-  MMove mm(fmr->getMove());
-  ListExpr mmoveNL = OutMapping<MMove, UMove, OutUMove>(
-    nl->TheEmptyList(), SetWord(&mm));
-
-  Point p=fmr->getRotCenter();
-  ListExpr pointNL = OutPoint(nl->TheEmptyList(), SetWord(&p));
-
-  double t=fmr->gett();
-
-  return nl->FourElemList(regionNL, mmoveNL, pointNL, nl->RealAtom(t));
-}
-
-/*
-This is the create function.
-
-*/
-Word CreateFixedMRegion(const ListExpr typeInfo){
-  Word w;
-  w.addr = (new FixedMRegion(0));
-  return w;
-}
-
-/*
-This is the delete function.
-
-*/
-void DeleteFixedMRegion(const ListExpr typeInfo, Word & w){
-  FixedMRegion *k = (FixedMRegion *) w.addr;
-  delete k;
-  w.addr = 0;
-}
-
-/*
-This is the save function.
-
-*/
-bool SaveFixedMRegion(SmiRecord & valueRecord, size_t & offset,
-  const ListExpr typeInfo, Word & value){
-  FixedMRegion* mr = static_cast<FixedMRegion*> (value.addr);
-  Attribute::Save(valueRecord, offset, typeInfo, mr);
-  return true;
-}
-
-/*
-This is the open function.
-
-*/
-bool OpenFixedMRegion(SmiRecord & valueRecord, size_t & offset, 
-  const ListExpr typeInfo, Word & value){
-  value = SetWord(Attribute::Open(valueRecord, offset, typeInfo));
-  return true;
-}
-
-/*
-This is the close function.
-
-*/
-void CloseFixedMRegion(const ListExpr typeInfo, Word & w){
-  delete (FixedMRegion*) w.addr;
-  w.addr = 0;
-}
-
-/*
-This is the clone function.
-
-*/
-Word CloneFixedMRegion(const ListExpr typeInfo, const Word & w){
-  return SetWord(((FixedMRegion*) w.addr)->Clone());
-}
-
-/*
-This is the cast function.
-
-*/
-void * CastFixedMRegion(void *addr){
-  return new (addr) FixedMRegion;
-}
-
-/*
-This is the sizeof function.
-
-*/
-int SizeOfFixedMRegion(){
-  int s = sizeof(FixedMRegion);
-  return s;
-}
-
-/*
-This is the type checking functin.
-
-*/
-bool FixedMRegionTypeCheck(ListExpr type, ListExpr & errorInfo){
-  return nl->IsEqual(type, MRegion::BasicType())
-        || nl->IsEqual(type, FixedMRegion::BasicType());
-}
-
-/*
-This is the constructor.
-
-*/
-TypeConstructor FixedMRegionTC (FixedMRegion::BasicType (), 
-                                     FixedMRegionProperty, 
-                                     OutFixedMRegion, 
-                                     InFixedMRegion, 0, 0,
-                                     CreateFixedMRegion,
-                                     DeleteFixedMRegion,
-                                     OpenFixedMRegion,
-                                     SaveFixedMRegion,
-                                     CloseFixedMRegion,
-                                     CloneFixedMRegion,
-                                     CastFixedMRegion,
-                                     SizeOfFixedMRegion,
-                                     FixedMRegionTypeCheck);
-
-/*
-This is the type mapping function.
-
-*/
-ListExpr testoperatoraTM (ListExpr args){
-  string err = "one int is expected";
-  if (!nl->HasLength (args, 1)){
-    return listutils::typeError (err + " (wrong number of arguments)");  
-  }
-  return listutils::basicSymbol < CcInt > ();
-}
-
-/*
-This is the value mapping function.
-
-*/
-int testoperatoraVM (Word * args, Word & result, int message,
-Word & local, Supplier s){
-  runTestMethod ();
-  runFixedMTestMethod ();
-  result = qp->ResultStorage (s);
-  CcInt *res __attribute__ ((unused)) = (CcInt *) result.addr;
-  res->Set (true, 2);
-  return 1;
-}
-
-/*
-This is the operator specification function.
-
-*/
-OperatorSpec testoperatoraSpec ("int -> int",
-            "testoperatora(_)",
-            "Computes nothing of an int and returns an int.",
-            "query testoperatora(0)");
-
-/*
-This is the operator function.
-
-*/
-Operator testoperatoraOp ("testoperatora",
-                          testoperatoraSpec.getStr (),
-                          testoperatoraVM,
-                          Operator::SimpleSelect, testoperatoraTM);
-
-/*
-This is the type mapping function.
-
-*/
-ListExpr tripstommoveTM (ListExpr args){
-  string err = "one mpoint is expected";
-  if (!nl->HasLength (args, 1)){
-    return listutils::typeError (err + " (wrong number of arguments)");  
-  }
-  if(!MPoint::checkType(nl->First(args))){
-    return listutils::typeError("MPoint expected");
-  }
-  return listutils::basicSymbol<MMove>();
-}
-
-/*
-This is the value mapping function.
-
-*/
-int tripstommoveVM (Word * args, Word & result, int message,
-Word & local, Supplier s){
-  result = qp->ResultStorage (s);
-  MMove *res = (MMove *) result.addr;
-  MPoint* mp = (MPoint*) args[0].addr;
-  res->SetDefined(mp->IsDefined());
-  if (!mp->IsDefined())
-    return 0;
-  res->StartBulkLoad();
-  int le = mp->GetNoComponents();
-  double angle1=(std::rand()%4096)*M_PI/1024-2*M_PI;
-  for(int i=0; i<le; i++){
-    UPoint utmp1(0);
-    mp->Get(i, utmp1);
-    double angle2=(std::rand()%4096)*M_PI/1024-2*M_PI;
-    Point3 p1 = Point3(true, utmp1.p0.GetX(),utmp1.p0.GetY(),angle1);
-    Point3 p2 = Point3(true, utmp1.p1.GetX(),utmp1.p1.GetY(),angle2);
-    UMove u01point = UMove(utmp1.getTimeInterval(), p1, p2);
-    res->MergeAdd(u01point);
-    angle1=angle2;
-  }
-  res->EndBulkLoad();
-  return 0;
-}
-
-/*
-This is the operator specification function.
-
-*/
-OperatorSpec tripstommoveSpec ("mpoint -> mmove",
-            "tripstommove(_)",
-            "Computes mmove from mpoint.",
-            "query tripstommove(mpoint)");
-
-/*
-This is the operator function.
-
-*/
-Operator tripstommoveOp ("tripstommove",
-                          tripstommoveSpec.getStr (),
-                          tripstommoveVM,
-                          Operator::SimpleSelect, tripstommoveTM);
-
-
-/*
-This is the type mapping function.
-
-*/
-ListExpr makefmrTM (ListExpr args){
-  string err = "one region and one mpoint are expected";
-  if (!nl->HasLength (args, 3)){
-    return listutils::typeError (err + " (wrong number of arguments)");  
-  }
-  if(!Region::checkType(nl->First(args))){
-    return listutils::typeError("Region expected");
-  }
-  if(!MMove::checkType(nl->Second(args))){
-    return listutils::typeError("MMove expected");
-  }
-  if(!Point::checkType(nl->Third(args))){
-    return listutils::typeError("Point expected");
-  }
-  return listutils::basicSymbol<FixedMRegion>();
-}
-
-/*
-This is the value mapping function.
-
-*/
-int makefmrVM (Word * args, Word & result, int message,
-Word & local, Supplier s){
-  result = qp->ResultStorage (s);
-  FixedMRegion *res = (FixedMRegion *) result.addr;
-  Region* r = (Region*) args[0].addr;
-  MMove* mm = (MMove*) args[1].addr;
-  Point* p = (Point*) args[2].addr;
-  if ((!r->IsDefined()) &&
-      (!mm->IsDefined()) &&
-      (!p->IsDefined()))
-    return 0;
-  
-  FixedMRegion tmp(*r, *mm, *p, 0);
-  *res=tmp;
-  return 0;
-}
-
-/*
-This is the operator specification function.
-
-*/
-OperatorSpec makefmrSpec ("region x mmove x point -> fixedmregion",
-            "makefmr(_,_,_)",
-            "Computes fixedmregion from region, mmove and point.",
-            "query makefmr(region,mmove,point)");
-
-/*
-This is the operator function.
-
-*/
-Operator makefmrOp ("makefmr",
-                          makefmrSpec.getStr (),
-                          makefmrVM,
-                          Operator::SimpleSelect, makefmrTM);
-
-/*
-This is the type mapping function.
-
-*/
-ListExpr makeiregionTM (ListExpr args){
-  string err = "one region and one instant are expected";
-  if (!nl->HasLength (args, 2)){
-    return listutils::typeError (err + " (wrong number of arguments)");  
-  }
-  if(!Region::checkType(nl->First(args))){
-    return listutils::typeError("Region expected");
-  }
-  if(!Instant::checkType(nl->Second(args))){
-    return listutils::typeError("instant expected");
-  }
-  return listutils::basicSymbol<IRegion>();
-}
-
-/*
-This is the value mapping function.
-
-*/
-int makeiregionVM (Word * args, Word & result, int message,
-Word & local, Supplier s){
-  result = qp->ResultStorage (s);
-  IRegion *res = (IRegion *) result.addr;
-  Region* r = (Region*) args[0].addr;
-  Instant* i = (Instant*) args[1].addr;
-  if ((!r->IsDefined()) &&
-      (!i->IsDefined()))
-    return 0;
-  res->value.CopyFrom(r);
-  res->instant.CopyFrom(i);
-  res->SetDefined(true);
-  return 0;
-}
-
-/*
-This is the operator specification function.
-
-*/
-OperatorSpec makeiregionSpec ("region x instant -> iregion",
-            "makeiregion(_,_)",
-            "Computes iregion from region and instant.",
-            "query makeiregion(region,instant)");
-
-/*
-This is the operator function.
-
-*/
-Operator makeiregionOp ("makeiregion",
-                          makeiregionSpec.getStr (),
-                          makeiregionVM,
-                          Operator::SimpleSelect, makeiregionTM);
-
-/*
-This is the type mapping function.
-
-*/
-ListExpr AtInstantTM(ListExpr args){
-  string err1= "fixedmregion expected as first argument";
-  string err2= "instant expected as second argument";
-  string err = "fixedmregion and time expected";
-  if(!nl->HasLength(args,2)){
-    return listutils::typeError(err + " (wrong number of arguments)");
-  }
-  if(!FixedMRegion::checkType(nl->First(args))){
-    return listutils::typeError(err1);
-  }
-  if(!Instant::checkType(nl->Second(args))){
-    return listutils::typeError(err2);
-  }
-  return listutils::basicSymbol<Region>();
-}
-
-/*
-This is the value mapping function.
-
-*/
-int AtInstantVM(Word* args, Word& result, int message,
-Word& local, Supplier s){
-  result=qp->ResultStorage(s);
-  FixedMRegion* fmr = (FixedMRegion*) args[0].addr;
-  Instant* d = (Instant*) args[1].addr;
-  Region *res=(Region*) result.addr;
-  
-  if (!fmr->IsDefined()) {
-    res->SetDefined(false);
-    return 0;
-  }
-
-  fmr->atinstant(d->ToDouble(), *res);
-  return 0;
-}
-
-/*
-This is the operator specification function.
-
-*/
-OperatorSpec AtInstantSpec(
-"fixedmregion x double -> region",
-"_ atinstant _",
-"Computes the fmr at a given time.",
-"query [mregion1] atinstant [instant1])"
-);
-
-/*
-This is the operator function.
-
-*/
-Operator AtInstantOp(
-"atinstant",
-AtInstantSpec.getStr(),
-AtInstantVM,
-Operator::SimpleSelect,
-AtInstantTM
-);
-
-/*
-This is the type mapping function.
-
-*/
-ListExpr TraversedTM(ListExpr args){
-  string err1 = "fixedmregion expected as first argument";
-  string err2 = "instant expected as second argument";
-  string err3 = "instant expected as third argument";
-  
-  string err = "region and start and end time are expected";
-  if(!nl->HasLength(args,3)){
-    return listutils::typeError(err + " (wrong number of arguments)");
-  }
-  if(!FixedMRegion::checkType(nl->First(args))){
-    return listutils::typeError(err1);
-  }
-  if(!Instant::checkType(nl->Second(args))){
-    return listutils::typeError(err2);
-  }
-  if(!Instant::checkType(nl->Third(args))){
-    return listutils::typeError(err3);
-  }
-  return listutils::basicSymbol<Region>();
-}
-
-/*
-This is the value mapping function.
-
-*/
-int TraversedVM(Word* args, Word& result, int message,
-Word& local, Supplier s){
-  FixedMRegion* fmr = (FixedMRegion*) args[0].addr;
-  Instant* si = (Instant*) args[1].addr;
-  Instant* ei = (Instant*) args[2].addr;
-  result = qp->ResultStorage(s);
-  Region* res  = (Region*) result.addr;
-  if(!fmr->IsDefined() || !si->IsDefined() || !si->IsDefined()){
-     res->SetDefined(false);
-     return 0;
-  }
-  fmr->traversedNew(*res, si->ToDouble(), ei->ToDouble());
-  return 0;  
-}
-
-/*
-This is the operator specification function.
-
-*/
-OperatorSpec TraversedSpec(
-"fixedmregion x double -> region",
-"fmr_traversed _ _ _",
-"Computes the fmr at a given time.",
-"query fmr_traversed ( [mregion1] , [instant1] , [instant2])"
-);
-
-/*
-This is the operator function.
-
-*/
-Operator TraversedOp(
-"fmr_traversed",
-TraversedSpec.getStr(),
-TraversedVM,
-Operator::SimpleSelect,
-TraversedTM
-);
-
-/*
-This is the type mapping function.
-
-*/
-ListExpr fmr_InsideTM(ListExpr args){
-  string err = "fixedmregion and mpoint are expected";
-  if(!nl->HasLength(args,2)){
-    return listutils::typeError(err + " (wrong number of arguments)");
-  }
-  if(!MPoint::checkType(nl->First(args))){
-    return listutils::typeError(err);
-  }
-  if(!FixedMRegion::checkType(nl->Second(args))){
-    return listutils::typeError(err);
-  }
-  return listutils::basicSymbol<MBool>();
-}
-
-/*
-This is the value mapping function.
-
-*/
-int fmr_InsideVM(Word* args, Word& result, int message,
-Word& local, Supplier s){
-  result=qp->ResultStorage(s);
-  FixedMRegion* fmr = (FixedMRegion*) args[1].addr;
-  MPoint* d = (MPoint*) args[0].addr;
-  MBool *res=(MBool*) result.addr;
-  
-  if ((!fmr->IsDefined()) ||
-      (!d->IsDefined())) {
-    res->SetDefined(false);
-    return 0;
-  }
-  MBool rx=fmr->inside(*d);
-  res->CopyFrom(&rx);
-  return 0;  
-}
-
-/*
-This is the operator specification function.
-
-*/
-OperatorSpec fmr_InsideSpec(
-"fixedmregion x mpoint -> mbool",
-"_ inside _",
-"Computes the times t which the mpoint is inside.",
-"query [mregion1] inside [mpoint]"
-);
-
-/*
-This is the operator function.
-
-*/
-Operator fmr_InsideOp(
-"inside",
-fmr_InsideSpec.getStr(),
-fmr_InsideVM,
-Operator::SimpleSelect,
-fmr_InsideTM
-);
-
-/*
-This is the type mapping function.
-
-*/
-ListExpr IntersectionTM(ListExpr args){
-  string err = "fixedmregion and mpoint are expected";
-  if(!nl->HasLength(args,2)){
-    return listutils::typeError(err + " (wrong number of arguments)");
-  }
-  if(!MPoint::checkType(nl->First(args))){
-    return listutils::typeError(err);
-  }
-  if(!FixedMRegion::checkType(nl->Second(args))){
-    return listutils::typeError(err);
-  }
-  return listutils::basicSymbol<MPoint>();
-}
-
-/*
-This is the value mapping function.
-
-*/
-int IntersectionVM(Word* args, Word& result, int message,
-Word& local, Supplier s){
-  result=qp->ResultStorage(s);
-  FixedMRegion* fmr = (FixedMRegion*) args[1].addr;
-  MPoint* d = (MPoint*) args[0].addr;
-  MPoint *res=(MPoint*) result.addr;
-  
-  if ((!fmr->IsDefined()) ||
-      (!d->IsDefined())) {
-    res->SetDefined(false);
-    return 0;
-  }
-
-  *res = fmr->intersection(*d);
-  return 0;  
-}
-
-/*
-This is the operator specification function.
-
-*/
-OperatorSpec IntersectionSpec(
-"fixedmregion x mpoint -> mbool",
-"_ fmr_intersection _",
-"Computes the movement where the mpoint is inside.",
-"query [mregion1] fmr_intersection [mpoint]"
-);
-
-/*
-This is the operator function.
-
-*/
-Operator IntersectionOp(
-"fmr_intersection",
-IntersectionSpec.getStr(),
-IntersectionVM,
-Operator::SimpleSelect,
-IntersectionTM
-);
-
-/*
-This is the type mapping function.
-
-*/
-ListExpr InterpolateTM(ListExpr args){
-  string err = "Stream(IRegion) erwartet";
-  if(!nl->HasLength(args,1)){
-    return listutils::typeError(err + " (wrong number of arguments)");
-  }
-  if(!Stream<IRegion>::checkType(nl->First(args))){
-    return listutils::typeError(err);
-  }
-  return listutils::basicSymbol<FixedMRegion>();
-}
-
-/*
-This is the value mapping function.
-
-*/
-int InterpolateVM(Word* args, Word& result, int message,
-Word& local, Supplier s){
-
-  qp->Open(args[0].addr);
-  Stream<IRegion> stream(args[0]);
-  stream.open();
-  
-  FMRInterpolator fmri;
-  fmri.start();
-  
-  IRegion *current=stream.request();
-  while (current!=0) {
-    fmri.addObservation(*current);
-    current->DeleteIfAllowed();
-    current=stream.request();
-  }
-  stream.close();
-  fmri.end();
-  result=qp->ResultStorage(s);
-  FixedMRegion *res=(FixedMRegion*)result.addr;
-  *res=fmri.getResult();
-  return 0;
-}
-
-/*
-This is the operator specification function.
-
-*/
-OperatorSpec InterpolateSpec(
-"stream(iregion) -> fixedmregion",
-"_ interpolate",
-"Computes the fixedmregion.",
-"query b interpolate"
-);
-
-/*
-This is the operator function.
-
-*/
-Operator InterpolateOp(
-"interpolate",
-InterpolateSpec.getStr(),
-InterpolateVM,
-Operator::SimpleSelect,
-InterpolateTM
-);
-
-/*
-This is the algebra.
-
-*/
-class FixedMRegionAlgebra:public Algebra{
-public:
-/*  
-This is the constructor.
-
-*/
-  FixedMRegionAlgebra ():Algebra (){
-    AddTypeConstructor(&point3);
-    AddTypeConstructor(&unitmove);
-    AddTypeConstructor(&movingmove);
-    AddTypeConstructor(&FixedMRegionTC);
-    unitmove.AssociateKind( Kind::TEMPORAL() );
-    unitmove.AssociateKind( Kind::DATA() );
-    unitmove.AssociateKind( "SPATIAL3D" ); 
-    movingmove.AssociateKind( Kind::TEMPORAL() );
-    movingmove.AssociateKind( Kind::DATA() );
-    point3.AssociateKind(Kind::DATA());
-    FixedMRegionTC.AssociateKind(Kind::TEMPORAL());
-    FixedMRegionTC.AssociateKind(Kind::DATA());
-
-    AddOperator(&testoperatoraOp);
-    AddOperator(&tripstommoveOp);
-    AddOperator(&makefmrOp);
-    AddOperator(&makeiregionOp);
-    AddOperator(&AtInstantOp);
-    AddOperator(&TraversedOp);
-    AddOperator(&fmr_InsideOp);
-    AddOperator(&IntersectionOp);
-    AddOperator(&InterpolateOp);
-  }
-/*  
-This is the destructor.
-
-*/
-   ~FixedMRegionAlgebra (){};
-};
-
-}
-
-
-/*  
-This is the initialization.
-
-*/
-extern "C"
-Algebra* InitializeFixedMRegionAlgebra(NestedList* nlRef,
-  QueryProcessor *qpRef) {
-  nl = nlRef;
-  qp = qpRef;
-  return new temporalalgebra::FixedMRegionAlgebra();
-}
-
-;

@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -17,9 +17,10 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-# Begin FixedMRegionAlgebra.spec
-operator testoperatora alias TESTOPERATORA pattern op (_)
-operator tripstommove alias TRIPSTOMMOVE pattern op (_)
-operator makefmr alias MAKEFMR pattern op (_,_,_)
-operator makeiregion alias MAKEIREGION pattern op (_,_)
-# End FixedMRegionAlgebra.spec
+operator atinstant alias ATINSTANT pattern _ infixop _
+operator inside alias INSIDE pattern _ infixop _
+operator fmrinterpolate alias FMRINTERPOLATE pattern op ( _ ,  _ , _ , _ )
+operator traversedarea alias TRAVERSEDAREA pattern op ( _ )
+
+
+
