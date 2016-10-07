@@ -49,8 +49,8 @@ class RCurve; // Forward declaration
     
 class Curve {
 public:
-    Curve();
-    virtual ~Curve();
+    Curve() {}
+    virtual ~Curve() {}
 
     void addIntersection(double t1, double t2, Curve *c);
     double fx(double t) { return project(t).x; }

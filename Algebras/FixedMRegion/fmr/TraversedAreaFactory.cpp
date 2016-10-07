@@ -38,7 +38,7 @@ a TransformationUnit in several steps.
 using namespace fmr;
 
 // Declarations
-Region2 traversedArea(FMRegion& fmregion);
+Region2 fmr::traversedArea(FMRegion& fmregion);
 static std::vector<Curve*> createCurves(Region& region, TransformationUnit&);
 static void findIntersections(std::vector<Curve*>&);
 static std::vector<std::vector<Curve *> > getPartitions(std::vector<Curve *>);
@@ -51,7 +51,7 @@ static std::pair<double,std::pair<double,Curve*> >getFirst(std::vector<Curve*>);
 Main function to calculate the traversed region of FMRegion ~fmregion~.
 
 */
-Region2 traversedArea(FMRegion& fmregion) {
+Region2 fmr::traversedArea(FMRegion& fmregion) {
     Region2 ret;
 
     // Iterate over all transformations

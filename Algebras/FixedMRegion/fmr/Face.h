@@ -43,7 +43,7 @@ class Face {
 public:
     Face();
     Face(RList& l);
-    virtual ~Face();
+    virtual ~Face() {}
     void addSeg (Seg s);
     void addPoint (Point p);
     void close();
