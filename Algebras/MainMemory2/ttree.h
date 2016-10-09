@@ -257,7 +257,7 @@ Sorts the elements of this node with insertionSort.
         for (int i = 0; i < this->count; i++){
           j = i;
                 
-          while (j > 0 && Comparator::smaller(*this->objects[j],
+          while (j>0 && Comparator::smaller(*this->objects[j],
                                     *this->objects[j-1],attrPos)) {
             temp = this->objects[j];
             this->objects[j] = this->objects[j-1];
@@ -276,17 +276,24 @@ it's elements.
 
 */
     void updateNode(std::vector<int>* attrPos) {
-      if(count > 1) 
-        insertionSort(attrPos);
-//         sort(this,0,count-1,attrPos);
+      if(this && this->count > 0) {
+        if(count > 1) 
+          insertionSort(attrPos);
 
-      minValue = *objects[0];
-      maxValue = *objects[count-1];
+        minValue = *objects[0];
+        maxValue = *objects[count-1];
+      }
+      else 
+        std::cout << "couldnt update node" << std::endl;
     }
     
     void updateNode() {
-      minValue = *objects[0];
-      maxValue = *objects[count-1];
+      if(this && this->count > 0) {
+        minValue = *objects[0];
+        maxValue = *objects[count-1];
+      }
+      else 
+        std::cout << "couldnt update node" << std::endl;
     }
 
 /*
@@ -352,6 +359,24 @@ Computes the balance of this node.
       }
 
 
+/*
+~print~
+
+write a textual representation for this node to ~out~.
+
+*/
+  
+      std::ostream& print(std::ostream& out) const{
+         out << "(";
+      for(int i=0; i<count; i++) {
+        
+        out << i <<  ":" << " '" << *objects[i] <<"' ";
+        
+      }
+      out << ")";
+         return out;
+      }
+      
     protected:
 
 
@@ -720,7 +745,7 @@ Adds object ~o~ to this tree.
 /*
 ~remove~
 
-Removes object ~o~ ftom this tree.
+Removes object ~o~ from this tree.
 
 */
     bool remove(T& value, std::vector<int>* attrPos){
@@ -736,7 +761,6 @@ Removes object ~o~ ftom this tree.
     }
     
     bool remove(T& value){
-      
       bool success;
       if(!root) {
         return false;
@@ -881,7 +905,6 @@ It returns the root of the new tree.
         // dont allow duplicates
 //         if(Comparator::equal(value,root->minValue,attrPos)) {
 //             success = false;
-// //             std::cout << "dont allow duplicates   LEFT" << std::endl;
 //             return root;
 //         }
       
@@ -917,7 +940,6 @@ It returns the root of the new tree.
         // dont allow duplicates
 //         if(Comparator::equal(value,root->maxValue,attrPos)) {
 //             success = false;
-// //             std::cout << "dont allow duplicates   RIGHT" << std::endl;
 //             return root;
 //         }
 
@@ -948,6 +970,21 @@ It returns the root of the new tree.
       return 0;  // should never be reached
     }
 
+    
+    void printNodeInfo(TTreeNode<T,Comparator>* node) {
+      std::cout << std::endl << "-->NODE INFO<---------------" << std::endl;
+      node->print(std::cout);
+      std::cout << std::endl;
+      std::cout << "minValue: " << node->minValue << std::endl;
+      std::cout << "maxValue: " << node->maxValue << std::endl;
+      std::cout << "count: " << node->count << std::endl;
+      if(node->isLeaf())
+        std::cout << "isLeaf: " << "yes" << std::endl;
+      else
+        std::cout << "isLeaf: " << "no" << std::endl;
+      std::cout << "------------------>NODE INFO<--" << std::endl << std::endl;
+    }
+    
     
 /*
 ~remove~
@@ -1153,6 +1190,7 @@ Performs a right-left rotation in the subtree given by root.
 */    
     TTreeNode<T,Comparator>* rotateRightLeft(TTreeNode<T,Comparator>* root, 
                                              std::vector<int>* attrPos) {
+      
       TTreeNode<T,Comparator>* x = root;
       TTreeNode<T,Comparator>* z = x->right;
       TTreeNode<T,Comparator>* y = z->left;
@@ -1162,7 +1200,7 @@ Performs a right-left rotation in the subtree given by root.
       //special case:
       //if y is leaf, move entries from z to y till y is full node
       if(y->isLeaf()) {
-        while(y->count < y->maxEntries) {
+        while(y->count < y->minEntries) {
           // TODO: reverseSort
           T* tmp = z->objects[z->count-1];
           y->objects[y->count] = tmp;
@@ -1170,6 +1208,7 @@ Performs a right-left rotation in the subtree given by root.
           z->count--;
           y->count++;
           y->updateNode(attrPos);
+          z->updateNode();
         }
       }
       
@@ -1209,26 +1248,31 @@ Performs a left-right rotation in the subtree given by root.
 */     
     TTreeNode<T,Comparator>* rotateLeftRight(TTreeNode<T,Comparator>* root, 
                                              std::vector<int>* attrPos) {
+      
       TTreeNode<T,Comparator>* x = root;
       TTreeNode<T,Comparator>* z = root->left;
       TTreeNode<T,Comparator>* y = z->right;
       TTreeNode<T,Comparator>* A = z->left;
       TTreeNode<T,Comparator>* B = y->left;
       TTreeNode<T,Comparator>* C = y->right;
-      
+     
       // special case:
       // if y is leaf, move entries from z to y till y is full node
       if(y->isLeaf()) {
-        while(y->count < y->maxEntries) {
+        while(y->count < y->minEntries) {
+          if(z->count == 0) {
+            break;
+          }
           T* tmp = z->objects[z->count-1];
           y->objects[y->count] = tmp;
           z->objects[z->count-1] = 0;
           z->count--;
           y->count++;
           y->updateNode(attrPos);
+          z->updateNode();
         }
-      }      
-   
+      }    
+      
       z->left=A;
       z->right=B;
       z->updateHeight();
@@ -1295,8 +1339,6 @@ Prints the subtree given by root to the console.
       
     }
  
-
-
 };
 
 

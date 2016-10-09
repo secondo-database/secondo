@@ -515,3 +515,20 @@ Signature : string -> mem(x)
 Example   : query mwrap("ten")
 Result    : ( (mem(rel(tuple(No int)))) "ten")
 
+Operator  : mexactmatch
+Number    : 86
+Signature : {string, mem(ttree T)}  x {string, rel(tuple(X))}  x T -> stream(tuple(X))
+Example   : query "Staedte_SName" "Staedte" mexactmatch ["Aachen"] count;
+Result    : 1
+
+Operator  : mrange
+Number    : 87
+Signature : {string, mem(ttree T) } x {string, mem(rel(tuple(X)))}  x T x T-> stream(tuple(X))
+Example   : query "Staedte_SName" "Staedte" mrange ["Aachen", "Dortmund"] count;
+Result    : 10
+
+Operator  : matchbelow
+Number    : 88
+Signature : {string, mem(ttree T)} x {string, mem(rel(tuple(X)))}  x T -> stream(tuple(X))
+Example   : query "ten_No" "ten" matchbelow [2] count;
+Result    : 1
