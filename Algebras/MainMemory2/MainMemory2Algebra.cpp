@@ -2190,6 +2190,7 @@ bool mcreateRtree(MemoryRelObject* mmrel,
                   ListExpr typeList){
 
 
+    bool flob = mmrel->hasflob();
     string database = mmrel->getDatabase();
     vector<Tuple*>* relVec = mmrel->getmmrel();
     vector<Tuple*>::iterator it;
@@ -2216,7 +2217,7 @@ bool mcreateRtree(MemoryRelObject* mmrel,
     usedMainMemory = rtree->usedMem();
     MemoryRtreeObject<dim>* mmRtreeObject =
         new MemoryRtreeObject<dim>(rtree, usedMainMemory,
-                        nl->ToString(typeList), database);
+                        nl->ToString(typeList), flob, database);
 
     if (usedMainMemory>availableMemSize){
         cout<<"there is not enough memory left to create the rtree";
@@ -2485,7 +2486,7 @@ int mcreateRtree2ValMapT (Word* args, Word& result,
 
     MemoryRtreeObject<dim>* mmRtreeObject =
         new MemoryRtreeObject<dim>(rtree, usedMainMemory,
-                        nl->ToString(le), "");
+                        nl->ToString(le), false, "");
 
     if (usedMainMemory>availableMemSize){
         cout<<"there is not enough memory left to create the rtree";
@@ -3676,8 +3677,8 @@ Operator mcreateAVLtree2Op (
 
 /*
 5.17 Operator ~mexactmatch~
-        Uses the given MemoryAVLObject (as first argument)to find all tuples
-        in the given MemoryRelObject (as second argument)
+        Uses the given MemoryAVLObject or MemoryTTreeObject (as first argument)
+        to find all tuples in the given MemoryRelObject (as second argument)
         with the same key value
 
 
@@ -3714,8 +3715,8 @@ ListExpr mexactmatchTypeMap(ListExpr args)
     a1t = nl->Second(a1t); // remove mem
     a2t = nl->Second(a2t);
 
-    if(!MemoryAVLObject::checkType(a1t)){
-      return listutils::typeError("first arg is not an avl tree");
+    if(!MemoryAVLObject::checkType(a1t) && !MemoryTTreeObject::checkType(a1t)){
+      return listutils::typeError("first arg is not an avl tree or a t tree");
     }
     if(!Relation::checkType(a2t)){
       return listutils::typeError("second arg is not a memory relation");
@@ -3740,10 +3741,40 @@ class avlOperLI{
            Attribute* _attr1,
            Attribute* _attr2, 
            string _keyType)
-           :relation(_relation), tree(_tree), attr1(_attr1), attr2(_attr2),
+           :relation(_relation), avltree(_tree), attr1(_attr1), attr2(_attr2),
            keyType(_keyType){
-           it = tree->tail(avlPair(attr1,0));    
+           isAvl = true;
+           avlit = avltree->tail(avlPair(attr1,0));    
            res = true; 
+           
+        }
+        
+        avlOperLI(
+          memttree* _tree,
+          vector<Tuple*>* _relation, 
+          Attribute* _attr1,
+          Attribute* _attr2, 
+          string _keyType)
+          :relation(_relation), ttree(_tree), attr1(_attr1), attr2(_attr2),
+          keyType(_keyType){
+          isAvl = false;
+          tit = ttree->begin(); 
+          ttreePair pair = *tit;
+          while(true) {
+            if(pair.first->Compare(attr1) >= 0) 
+              break;
+            else {
+              tit++;
+              if(tit.hasNext())
+                pair = *tit;
+              else {
+                thit = pair;
+                break;
+              }
+            }
+          }
+          res = true; 
+           
         }
 
 
@@ -3751,16 +3782,16 @@ class avlOperLI{
 
 
         Tuple* next(){
-            if(it.onEnd()){
-                 return 0;
-            }
-            hit = it.Get();
-
-            // special treatment for string type , really a good idea???
-            if (keyType=="string"){
+          // T-Tree
+          if(!isAvl) {
+            if(tit.end()) 
+              return 0;
+            else {
+              thit = *tit; 
+              if (keyType=="string"){
                 string attr1ToString = ((CcString*) attr1)->GetValue();
                 string attr2ToString = ((CcString*) attr2)->GetValue();
-                string hitString = ((CcString*)(hit->first))->GetValue();
+                string hitString = ((CcString*)(thit.first))->GetValue();
                 hitString=trim(hitString);
 
                 if (hitString > attr2ToString) {
@@ -3770,50 +3801,122 @@ class avlOperLI{
                     hitString < attr2ToString  ||
                     hitString == attr2ToString ){
 
-                    Tuple* result = relation->at(hit->second);
+                    Tuple* result = relation->at(thit.second-1);
                     result->IncReference();
-                    it.Next();
+                    tit++;
+                    return result;
+                }
+                return 0;
+              } //end keyType string
+              
+              if ((thit.first)->Compare(attr2) > 0){ // end reached
+                return 0;
+              }
+              Tuple* result = relation->at(thit.second-1);
+              result->IncReference();
+              tit++;
+              return result;
+            }
+          }
+          // AVL-Tree
+          else {
+            if(avlit.onEnd()){
+                 return 0;
+            }
+            avlhit = avlit.Get();
+
+            // special treatment for string type , really a good idea???
+            if (keyType=="string"){
+                string attr1ToString = ((CcString*) attr1)->GetValue();
+                string attr2ToString = ((CcString*) attr2)->GetValue();
+                string hitString = ((CcString*)(avlhit->first))->GetValue();
+                hitString=trim(hitString);
+
+                if (hitString > attr2ToString) {
+                    return 0;
+                }
+                if (hitString == attr1ToString ||
+                    hitString < attr2ToString  ||
+                    hitString == attr2ToString ){
+
+                    Tuple* result = relation->at(avlhit->second);
+                    result->IncReference();
+                    avlit.Next();
                     return result;
                 }
                 return 0;
             } //end keyType string
 
-            if ((hit->first)->Compare(attr2) > 0){ // end reached
+            if ((avlhit->first)->Compare(attr2) > 0){ // end reached
                 return 0;
             }
 
-            Tuple* result = relation->at(hit->second);
+            Tuple* result = relation->at(avlhit->second);
             result->IncReference();
-            it.Next();
+            avlit.Next();
             return result;
+          }
+          return 0;     // shouldn't be reached
         }
 
 
         Tuple* matchbelow(){
-            if (res){
-                size_t i = relation->size();
-                hit = tree->GetNearestSmallerOrEqual
-                            (avlPair(attr1,i));
-                if (hit==0){
-                    return 0;
+          if (res) {
+            // AVL-Tree
+            if(isAvl) {
+              size_t i = relation->size();
+              avlhit = avltree->GetNearestSmallerOrEqual
+                          (avlPair(attr1,i));
+              if (avlhit==0) {
+                  return 0;
+              }
+              Tuple* result = relation->at(avlhit->second);
+              result->IncReference();
+              res = false;
+              return result;
+            }
+            // T-Tree
+            else {
+              if(!tit.end()) {
+                thit = *tit;
+                while(tit.hasNext()) {
+                  ttreePair pair = *tit;
+                  if(pair.first->Compare(attr1) > 0) {
+                    break;
+                  }
+                  else if(pair.first->Compare(attr1) < 0) {
+                    thit = *tit;
+                    tit++;
+                  }
+                  else {
+                    thit = *tit;
+                    break;
+                  }
                 }
-                Tuple* result = relation->at(hit->second);
-                result->IncReference();
-                res = false;
-                return result;
+              }
+
+              Tuple* result = relation->at(thit.second-1);
+              result->IncReference();
+              res = false;
+              return result;
             }
-            return 0;
-            }
+          }
+          return 0;
+        }
 
     private:
         vector<Tuple*>* relation;
-        memAVLtree* tree;
+        memAVLtree* avltree;
+        memttree* ttree;
         Attribute* attr1;
         Attribute* attr2;
         string keyType;
-        avlIterator  it;
-        const avlPair* hit;
+        avlIterator avlit;
+        ttree::Iterator<ttreePair,AttrComp> tit;
+        const avlPair* avlhit;
+        ttreePair thit;
         bool res;
+        bool isAvl;
 };
 
 
@@ -3836,23 +3939,35 @@ int mexactmatchVMT (Word* args, Word& result,
                 delete li;
                 local.addr=0;
             }
-            T* treeN = (T*) args[0].addr;
-            ListExpr subtype = qp->GetType(qp->GetSon(s,2));
-            memAVLtree* tree = getAVLtree(treeN, subtype);
-            if(!tree){
-              return 0;
-            }
-
+            
             R* relN = (R*) args[1].addr;
             MemoryRelObject* mro = getMemRel(relN, nl->Second(qp->GetType(s)));
             if(!mro){
               return 0;
             }
             Attribute* key = (Attribute*) args[2].addr;
-            local.addr= new avlOperLI(tree,
+            
+            T* treeN = (T*) args[0].addr;
+            ListExpr subtype = qp->GetType(qp->GetSon(s,2));
+            memAVLtree* avltree = getAVLtree(treeN, subtype);
+            if(avltree) {
+              local.addr= new avlOperLI(avltree,
                                       mro->getmmrel(),
                                       key,key,
                                       nl->ToString(subtype));
+            }
+            else {
+              MemoryTTreeObject* ttree = getTtree(treeN);
+              if(ttree) {
+                local.addr= new avlOperLI(ttree->getttree(),
+                                      mro->getmmrel(),
+                                      key,key,
+                                      nl->ToString(subtype));
+              }
+              else {
+                return 0;
+              }
+            }
             return 0;
         }
 
@@ -3955,8 +4070,8 @@ Operator matchbelowOp (
 
 /*
 5.18 Operator ~mrange~
-        Uses the given MemoryAVLObject (as first argument)to find all tuples
-        in the given MemoryRelObject (as second argument)
+        Uses the given MemoryAVLObject or MemoryTTreeObject (as first argument)
+        to find all tuples in the given MemoryRelObject (as second argument)
         which are between the first and the second attribute value
         (as third and fourth argument)
 
@@ -3992,8 +4107,9 @@ ListExpr mrangeTypeMap(ListExpr args)
     a3 = nl->First(a3);  // extract type
     a4 = nl->First(a4);
 
-    if(!MemoryAVLObject::checkType(a1)){
-      return listutils::typeError(err + " (first arg is not an avl tree)");
+    if(!MemoryAVLObject::checkType(a1) && !MemoryTTreeObject::checkType(a1)){
+      return listutils::typeError(err 
+                    + " (first arg is not an avl tree or a ttree)");
     }
     if(!Relation::checkType(a2)){
       return listutils::typeError(err + " (second arg is not a relation)");
@@ -4028,15 +4144,7 @@ int mrangeVMT (Word* args, Word& result,
                 delete li;
                 local.addr=0;
             }
-            T* treeN = (T*) args[0].addr;
-
-            ListExpr keyT = qp->GetType(qp->GetSon(s,2));
-            memAVLtree* tree = getAVLtree(treeN, keyT); 
-            if(!tree){
-              return 0;
-            }
-
-
+            
             R* relN = (R*) args[1].addr;
             MemoryRelObject* mro = getMemRel(relN, nl->Second(qp->GetType(s)));
             if(!mro){
@@ -4044,10 +4152,28 @@ int mrangeVMT (Word* args, Word& result,
             }
             Attribute* key1 = (Attribute*) args[2].addr;
             Attribute* key2 = (Attribute*) args[3].addr;
-            local.addr= new avlOperLI(tree,
+            T* treeN = (T*) args[0].addr;
+
+            ListExpr subtype = qp->GetType(qp->GetSon(s,2));
+            memAVLtree* avltree = getAVLtree(treeN, subtype);
+            if(avltree) {
+              local.addr= new avlOperLI(avltree,
                                       mro->getmmrel(),
                                       key1,key2,
-                                      nl->ToString(keyT));
+                                      nl->ToString(subtype));
+            }
+            else {
+              MemoryTTreeObject* ttree = getTtree(treeN);
+              if(ttree) {
+                local.addr= new avlOperLI(ttree->getttree(),
+                                      mro->getmmrel(),
+                                      key1,key2,
+                                      nl->ToString(subtype));
+              }
+              else {
+                return 0;
+              }
+            }
             return 0;
         }
 
@@ -5703,7 +5829,7 @@ int mcreatettreeValueMap(Word* args, Word& result,
   vector<Tuple*>::iterator it = relation->begin();
   unsigned int i = 1;
 
-  memttree* tree = new memttree(12,14);
+  memttree* tree = new memttree(8,10);
   size_t usedMainMemory = 0;
   unsigned long availableMemSize = catalog->getAvailableMemSize();
 
@@ -6393,7 +6519,7 @@ class minsertInfo {
 
     ~minsertInfo(){
        stream.close();
-//        type->DeleteIfAllowed;        TODO
+//        type->DeleteIfAllowed;     TODO
      }
 
      Tuple* next(){
@@ -6575,7 +6701,7 @@ class minsertsaveInfo {
 7.10.2  Value Mapping Functions of operator ~minsertsave~
 
 */
-// TODO: Memory Leaks
+// TODO memory leaks
 template<class T>
 int minsertsaveValueMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
@@ -6849,7 +6975,7 @@ int minserttupleValMap (Word* args, Word& result,
       
       local.addr = new minserttupleInfo(rel->getmmrel(),rel->hasflob(),
                                         tupleType,tt,args[1]);
-      qp->SetModified(qp->GetSon(s, 0));  // TODO
+      qp->SetModified(qp->GetSon(s, 0));
       return 0;
     }
 
@@ -7157,7 +7283,7 @@ stream with an additional Attribut containing the tupleid.
 7.13.2 Value Mapping Function of operator ~mdelete~
 
 */
-// TODO: Memory Leaks
+// TODO memory leak
 template<class T>
 int mdeleteValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
@@ -7281,7 +7407,7 @@ class mdeletesaveInfo {
       auxrel->push_back(newtup);
       newtup->IncReference();
               
-      res->DeleteIfAllowed();  // TODO ?
+      res->DeleteIfAllowed(); 
       return newtup;
     }
 
@@ -7298,7 +7424,7 @@ class mdeletesaveInfo {
 7.14.2 Value Mapping Function of operator ~mdeletesave~
 
 */
-// TODO: Memory Leaks
+// TODO memory leaks
 template<class T>
 int mdeletesaveValueMap (Word* args, Word& result,
                          int message, Word& local, Supplier s) {
@@ -8314,8 +8440,7 @@ class mupdatebyidInfo {
       //get tuple id and append it to tuple
       Attribute* tidAttr = new TupleIdentifier(true,tid->GetTid());
       newtup->PutAttribute(newtup->GetNoAttributes()-1,tidAttr);
-  
-//       res->DeleteIfAllowed(); // TODO
+ 
       return newtup;
     }
 
@@ -8445,7 +8570,7 @@ class moinsertInfo {
 
   ~moinsertInfo() {
       stream.close();
-      type->DeleteIfAllowed();          // TODO
+      type->DeleteIfAllowed();
     }
 
     Tuple* next() {
@@ -9027,7 +9152,7 @@ class morangeInfo{
           return 0;
         }
           
-        result->IncReference(); // TODO ?
+        result->IncReference();
         iter++;
         return result;
       }
@@ -9461,7 +9586,6 @@ public:
     iterator = result->begin();
   }
 
-  // TODO mit valgrind testen      
   ~moshortestpathdInfo() {
     while(!queue->empty())
       queue->pop();
@@ -9833,7 +9957,6 @@ public:
           iterator = result->begin();
         }
 
-  // TODO mit valgrind testen      
   ~moshortestpathaInfo() {
     while(!queue->empty())
       queue->pop();
@@ -10588,8 +10711,7 @@ and their original tupleid's.
 
 7.31.1 Type Mapping Functions of operator ~mquicksort~ and ~mquicksortby~
 
-{string, mem(rel(tuple(x)))} -> stream(tuple(x)) or
-    
+{string, mem(rel(tuple(x)))} -> stream(tuple(x)) or 
 {string, mem(rel(tuple(x)))} x (ident1 ... identn) -> stream(tuple(x))
 
 */
@@ -11069,12 +11191,12 @@ The Operator ~mgshortestpathd~ uses Dijkstras Algorithm and the Operator
 7.33.1 General Type Mapping for Operators ~mgshortestpathd~ and 
        ~mgshortestpatha~
    
-   {string, mem(rel(tuple(X)))} x int x int x int -> 
-   stream(tuple(a1:t1,...an+1:tn+1))  and
-   
-   {string, mem(graph(tuple(X)))} x int x int x int x (tuple->real) 
-   x (tuple->real) -> 
-   stream(tuple(a1:t1,...an+1:tn+1))
+{string, mem(rel(tuple(X)))} x int x int x int -> 
+stream(tuple(a1:t1,...an+1:tn+1))  and
+
+{string, mem(graph(tuple(X)))} x int x int x int x (tuple->real) 
+x (tuple->real) -> 
+stream(tuple(a1:t1,...an+1:tn+1))
    
 */
 template<bool isAstar>
@@ -11449,8 +11571,7 @@ public:
           iterator = result->begin();
 
         }
-
-  // TODO mit valgrind testen      
+        
   ~mgshortestpathaInfo() {
     graph->reset();
     delete result;
@@ -11756,8 +11877,8 @@ ListExpr memgletTypeMap(ListExpr args) {
         rest = nl->Rest(rest);
       }
       if(!foundSource || !foundTarget)
-        return listutils::typeError
-                      ("orel has less than two integer attributes.");
+        return listutils::typeError("orel has less than "
+                                    "two integer attributes.");
     }
     else {
       return listutils::typeError("orel has less than 2 attributes.");
@@ -12110,8 +12231,12 @@ Operator mgconnectedcomponentsOp (
 // }
 // };
 
+
 // static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList);
+
+
 // static ListExpr GetMMDataIndexesOfTupleStream(ListExpr TupleStream);
+
 
 // enum MOMapMatchingMHTResultType {
 //     OMM_RESULT_STREAM,
@@ -12172,7 +12297,7 @@ Operator mgconnectedcomponentsOp (
 //    const CcInt* pIdxTargetPos = static_cast<CcInt*>(args[nOffset + 3].addr);
 //    const CcInt* pIdxCurve     = static_cast<CcInt*>(args[nOffset + 4].addr);
 //    const CcInt* pIdxRoadName  = static_cast<CcInt*>(args[nOffset + 5].addr);
-//    const CcInt* pIdxRoadType  = static_cast<CcInt*>(args[nOffset + 6].addr);
+//     const CcInt* pIdxRoadType  = static_cast<CcInt*>(args[nOffset + 6].addr);
 //    const CcInt* pIdxMaxSpeed  = static_cast<CcInt*>(args[nOffset + 7].addr);
 //    const CcInt* pIdxWayId     = static_cast<CcInt*>(args[nOffset + 8].addr);
 // 
@@ -12197,18 +12322,19 @@ Operator mgconnectedcomponentsOp (
 //     return Indexes;
 // }
 
+
 // static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList) {
 //     ListExpr attrType;
 //     int nAttrSourceIndex = 
-//                listutils::findAttribute(ORelAttrList, "Source", attrType);
+//                 listutils::findAttribute(ORelAttrList, "Source", attrType);
 //     if (nAttrSourceIndex == 0) 
 //         return listutils::typeError("'Source' not found in attr list");
 //     else {
 //         if (!CcInt::checkType(attrType) &&
 //             !LongInt::checkType(attrType)) {
 //             return listutils::typeError(
-//                               "'Source' must be " + CcInt::BasicType() +
-//                               " or " + LongInt::BasicType());
+//                                "'Source' must be " + CcInt::BasicType() +
+//                                " or " + LongInt::BasicType());
 //         }
 //     }
 // 
@@ -12221,8 +12347,8 @@ Operator mgconnectedcomponentsOp (
 //         if (!CcInt::checkType(attrType) &&
 //             !LongInt::checkType(attrType)) {
 //             return listutils::typeError(
-//                                   "'Target' must be " + CcInt::BasicType()
-//                                   + " or " + LongInt::BasicType()) ;
+//                                    "'Target' must be " + CcInt::BasicType()
+//                                    + " or " + LongInt::BasicType()) ;
 //         }
 //     }
 // 
@@ -12234,7 +12360,7 @@ Operator mgconnectedcomponentsOp (
 //     else {
 //         if (!listutils::isSymbol(attrType, Point::BasicType())) {
 //             return listutils::typeError(
-//                              "'SourcePos' must be " + Point::BasicType());
+//                               "'SourcePos' must be " + Point::BasicType());
 //         }
 //     }
 // 
@@ -12246,24 +12372,24 @@ Operator mgconnectedcomponentsOp (
 //     else {
 //         if (!listutils::isSymbol(attrType, Point::BasicType())) {
 //             return listutils::typeError(
-//                       "'TargetPos' must be " + Point::BasicType());
+//                                "'TargetPos' must be " + Point::BasicType());
 //         }
 //     }
 // 
 //     int nAttrCurveIndex = listutils::findAttribute(
-//                                          ORelAttrList, "Curve", attrType);
+//                                           ORelAttrList, "Curve", attrType);
 //     if (nAttrCurveIndex == 0) {
 //         return listutils::typeError("'Curve' not found in attr list");
 //     }
 //     else {
 //         if (!listutils::isSymbol(attrType, SimpleLine::BasicType())) {
 //             return listutils::typeError(
-//                               "'Curve' must be " + SimpleLine::BasicType());
+//                              "'Curve' must be " + SimpleLine::BasicType());
 //         }
 //     }
 // 
 //     int nAttrRoadNameIndex = listutils::findAttribute(
-//                                       ORelAttrList, "RoadName", attrType);
+//                                         ORelAttrList, "RoadName", attrType);
 //     if (nAttrRoadNameIndex != 0)
 //     {
 //         if (!listutils::isSymbol(attrType, FText::BasicType()))
@@ -12280,12 +12406,12 @@ Operator mgconnectedcomponentsOp (
 //         if (!listutils::isSymbol(attrType, FText::BasicType()))
 //         {
 //             return listutils::typeError(
-//                                 "'RoadType' must be " + FText::BasicType());
+//                                "'RoadType' must be " + FText::BasicType());
 //         }
 //     }
 // 
 //     int nAttrMaxSpeedTypeIndex = listutils::findAttribute(
-//                                        ORelAttrList, "MaxSpeed", attrType);
+//                                         ORelAttrList, "MaxSpeed", attrType);
 //     if (nAttrMaxSpeedTypeIndex != 0)
 //     {
 //         if (!listutils::isSymbol(attrType, FText::BasicType()))
@@ -12307,8 +12433,8 @@ Operator mgconnectedcomponentsOp (
 //             !LongInt::checkType(attrType))
 //         {
 //             return listutils::typeError( 
-//                                    "'WayId' must be " + CcInt::BasicType()
-//                                    + " or " + LongInt::BasicType());
+//                                     "'WayId' must be " + CcInt::BasicType()
+//                                     + " or " + LongInt::BasicType());
 //         }
 //     }
 // 
@@ -12455,11 +12581,10 @@ Operator mgconnectedcomponentsOp (
 // }
 
 
-// static ListExpr GetMMDataIndexesOfTupleStream(ListExpr TupleStream)
-// {
+// static ListExpr GetMMDataIndexesOfTupleStream(ListExpr TupleStream) {
 //     ListExpr attrType;
 //     int nAttrLatIndex = listutils::findAttribute(
-//                      nl->Second(nl->Second(TupleStream)), "Lat", attrType);
+//                     nl->Second(nl->Second(TupleStream)), "Lat", attrType);
 //     if(nAttrLatIndex==0)
 //     {
 //         return listutils::typeError("'Lat' not found in attr list");
@@ -12619,13 +12744,14 @@ Operator mgconnectedcomponentsOp (
 //     return Ind;
 // }
 
+
 /*
 
 7.38.2 General Type Mapping for Operators ~momapmatchmht~
 
 */
 // ListExpr momapmatchmhtTypeMap_Common(ListExpr args,
-//                                  MOMapMatchingMHTResultType eResultType) {
+//                                 MOMapMatchingMHTResultType eResultType) {
 //     
 //     if(nl->ListLength(args) != 4) {
 //       return listutils::typeError("four arguments expected");
@@ -12643,7 +12769,8 @@ Operator mgconnectedcomponentsOp (
 //     string errMsg;
 // 
 //     if(!getMemType(nl->First(arg1), nl->Second(arg1), arg1, errMsg)){
-//     return listutils::typeError("string or mem(orel) expected : " + errMsg);
+//              return listutils::typeError("string or mem(orel) expected : " 
+//                                           + errMsg);
 //     }
 // 
 //     arg1 = nl->Second(arg1); // remove mem
@@ -12694,7 +12821,7 @@ Operator mgconnectedcomponentsOp (
 //     }
 //     
 //     if(!getMemType(nl->First(arg3), nl->Second(arg3), arg3, errMsg)){
-//      return listutils::typeError("string or mem(rel) expected : " + errMsg);
+//     return listutils::typeError("string or mem(rel) expected : " + errMsg);
 //     }
 // 
 //     arg3 = nl->Second(arg3); // remove mem
@@ -12817,7 +12944,7 @@ Operator mgconnectedcomponentsOp (
 //         // mem(orel)
 //         R* orelN = (R*) args[0].addr;
 //         MemoryORelObject* orel = 
-//                      getMemORel(orelN,nl->Second(qp->GetType(s)));
+//                  getMemORel(orelN,nl->Second(qp->GetType(s)));
 //         if(!orel) 
 //           return 0;
 //         
@@ -12850,7 +12977,7 @@ Operator mgconnectedcomponentsOp (
 //         mapmatch::MapMatchingMHT MapMatching(&NetworkAdapter, pMPoint);
 //                     
 //         mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
-//          new mapmatching::MmORelEdgeStreamCreator<T>(s,NetworkAdapter,eMode);
+//         new mapmatching::MmORelEdgeStreamCreator<T>(s,NetworkAdapter,eMode);
 //         if (!MapMatching.DoMatch(pCreator)) {
 //             // Error
 //             delete pCreator;
@@ -12882,6 +13009,7 @@ Operator mgconnectedcomponentsOp (
 //     }
 // }
 
+
 // template<class T, class R, class Q>
 // int momapmatchmhtTextValueMap(Word* args,
 //                               Word& result,
@@ -12889,15 +13017,15 @@ Operator mgconnectedcomponentsOp (
 //                               Word& local,
 //                               Supplier s,
 //          typename mapmatching::MmORelEdgeStreamCreator<T>::EMode eMode) {
-//   
+// 
 // //     cout << "momapmatchmhtTextValueMap called" << endl;
 // 
 //     mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
 //          static_cast<mapmatching::MmORelEdgeStreamCreator<T>*>(local.addr);
-//     
+// 
 //     switch (message) {
 //       case OPEN: {
-//         
+// 
 //         if(pCreator) {
 //             delete pCreator;
 //             pCreator = NULL;
@@ -12909,8 +13037,8 @@ Operator mgconnectedcomponentsOp (
 //                              getMemORel(orelN,nl->Second(qp->GetType(s)));
 //         if(!orel) 
 //           return 0;
-//         
-//         // mem(rtree)
+// 
+//         //mem(rtree)
 //         Q* treeN = (Q*) args[1].addr;
 //         string name = treeN->GetValue();
 //         // cut blank from the front of the string
@@ -12919,7 +13047,7 @@ Operator mgconnectedcomponentsOp (
 //               (MemoryRtreeObject<2>*)catalog->getMMObject(name);
 //         if(!tree) 
 //           return 0;
-//            
+// 
 //         // mem(rel)
 //         R* relN = (R*) args[2].addr;
 //         MemoryRelObject* rel = getMemRel(relN);
@@ -12927,7 +13055,7 @@ Operator mgconnectedcomponentsOp (
 //           return 0;;
 //          
 //         typename mapmatching::MmORelNetwork<T>::OEdgeAttrIndexes Indexes = 
-//                                             GetOEdgeAttrIndexes<T>(args, 4);
+//                                           GetOEdgeAttrIndexes<T>(args, 4);
 // 
 //         mapmatching::MmORelNetwork<T> Network(orel, tree, rel, Indexes);
 //         FText* pFileName = static_cast<FText*>(args[3].addr);
@@ -12970,13 +13098,14 @@ Operator mgconnectedcomponentsOp (
 //     }
 // }
 
+
 // template<class T, class R, class Q>
 // int momapmatchmhtStreamValueMap(Word* args,
 //                                 Word& result,
 //                                 int message,
 //                                 Word& local,
 //                                 Supplier s,
-//           typename mapmatching::MmORelEdgeStreamCreator<T>::EMode eMode) {
+//             typename mapmatching::MmORelEdgeStreamCreator<T>::EMode eMode) {
 //   
 // //     cout << "momapmatchmhtStreamValueMap called" << endl;
 // 
@@ -13014,7 +13143,7 @@ Operator mgconnectedcomponentsOp (
 //         return 0;
 // 
 //       typename mapmatching::MmORelNetwork<T>::OEdgeAttrIndexes Indexes = 
-//                                             GetOEdgeAttrIndexes<T>(args, 4);
+//                                            GetOEdgeAttrIndexes<T>(args, 4);
 // 
 //       mapmatching::MmORelNetwork<T> Network(orel, tree, rel, Indexes);
 // 
@@ -13025,7 +13154,7 @@ Operator mgconnectedcomponentsOp (
 //       mapmatching::MmORelNetworkAdapter<T> NetworkAdapter(&Network);
 //       mapmatch::MapMatchingMHT MapMatching(&NetworkAdapter, pContData); 
 //       mapmatching::MmORelEdgeStreamCreator<T>* pCreator =
-//         new mapmatching::MmORelEdgeStreamCreator<T>(s,NetworkAdapter,eMode);
+//        new mapmatching::MmORelEdgeStreamCreator<T>(s,NetworkAdapter,eMode);
 // 
 //       if (!MapMatching.DoMatch(pCreator)) {
 //           //Error
@@ -13057,7 +13186,7 @@ Operator mgconnectedcomponentsOp (
 //     }
 //   }
 // }
-
+ 
 
 // template<class T, class R, class Q>
 // int momapmatchmhtMPointVMT(Word* args,
@@ -13074,7 +13203,8 @@ Operator mgconnectedcomponentsOp (
 //                   in_xSupplier,
 //                   mapmatching::MmORelEdgeStreamCreator<T>::MODE_EDGES);
 // }
-
+// 
+// 
 // template<class T, class R, class Q>
 // int momapmatchmhtTextVMT(Word* args,
 //                         Word& result,
@@ -13091,6 +13221,7 @@ Operator mgconnectedcomponentsOp (
 //                     mapmatching::MmORelEdgeStreamCreator<T>::MODE_EDGES);
 // }
 
+
 // template<class T, class R, class Q>
 // int momapmatchmhtStreamVMT(Word* args,
 //                            Word& result,
@@ -13106,6 +13237,7 @@ Operator mgconnectedcomponentsOp (
 //                       in_xSupplier,
 //                       mapmatching::MmORelEdgeStreamCreator<T>::MODE_EDGES);
 // }
+
 
 /*
 
@@ -13140,7 +13272,7 @@ Operator mgconnectedcomponentsOp (
 //   momapmatchmhtStreamVMT<CcInt,CcString,Mem>
 // };
 
-
+ 
 /*
 
 7.38.5 Description of operator ~momapmatchmht~
@@ -13155,6 +13287,7 @@ Operator mgconnectedcomponentsOp (
 //     "query momapmatchmht('Edges','EdgeIndex_Box_rtree', "
 //     "'EdgeIndex','Trk_MapMatchTest.gpx') count"
 // );
+
 
 /*
 7.38.5 Instance of operator ~momapmatchmht~

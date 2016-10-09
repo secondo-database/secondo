@@ -574,7 +574,7 @@ Returns a pointer to the std::vector result.
 Calculates the scc for a given vertex.
 
 */
-    void tarjan(Vertex* v, int& index, 
+    void tarjan(Vertex* v, int& index,
                 std::stack<Vertex*>* stack, int& compNo) {
 
       if(v->wasSeen())
