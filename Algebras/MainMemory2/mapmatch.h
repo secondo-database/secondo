@@ -183,7 +183,7 @@ class MmORelNetworkEdge {
         const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxSourcePos;
         if (nIdx >= 0) {
             Point* pPtSource = static_cast<Point*>(
-                                             m_pTupleEdge->GetAttribute(nIdx));
+                                            m_pTupleEdge->GetAttribute(nIdx));
             return pPtSource != NULL ? *pPtSource : Point(false);
         }
         else
@@ -327,7 +327,8 @@ class MmORelNetworkEdge {
 
     double GetCurveLength(const double dScale) const {
       if (m_dCurveLength < 0.) 
-        m_dCurveLength = mapmatch::MMUtil::CalcLengthCurve(GetCurve(), dScale);
+          m_dCurveLength = mapmatch::MMUtil::CalcLengthCurve(GetCurve(), 
+                                                             dScale);
       
       return m_dCurveLength;
     }
@@ -454,8 +455,9 @@ public:
         // find all tuple with startnode as first argument
         if((pTupleEdge->GetAttribute(m_EdgeAttrIndexes.m_IdxSource)
           ->Compare(pTuple->GetAttribute(m_EdgeAttrIndexes.m_IdxSource)) == 0) 
-          && (pTupleEdge->GetAttribute(m_EdgeAttrIndexes.m_IdxTarget)
-          ->Compare(pTuple->GetAttribute(m_EdgeAttrIndexes.m_IdxTarget)) == 0)){
+          &&
+         (pTupleEdge->GetAttribute(m_EdgeAttrIndexes.m_IdxTarget)
+         ->Compare(pTuple->GetAttribute(m_EdgeAttrIndexes.m_IdxTarget)) == 0)){
           
           cout << "GetEdges private push_back Tuple: " << endl;
         pTupleEdge->Print(cout);
@@ -476,7 +478,8 @@ public:
     
 //       cout << "MmORelNetworkEdge GetEdges()" << endl;
       rBBox.Print(cout);
-      if (!rBBox.IsDefined() || m_pRTreeEdges == NULL || 
+      if (!rBBox.IsDefined() || 
+          m_pRTreeEdges == NULL || 
           m_pIndexEdges == NULL) {
         assert(false);
         return false;
@@ -524,7 +527,9 @@ public:
      
       Rectangle<2> BBox = GetBoundingBox();
 
-      if (!BBox.IsDefined() || m_pRTreeEdges == NULL || m_pIndexEdges == NULL) {
+      if (!BBox.IsDefined() || 
+          m_pRTreeEdges == NULL || 
+          m_pIndexEdges == NULL) {
         return NULL;
       }
 
@@ -534,8 +539,8 @@ public:
       tree->findAll(BBox,res);
       
       if(!res.empty()) {
-        for(std::set<size_t>::iterator it=res.begin();
-            it!=res.end();it=res.end()) {
+        for(std::set<size_t>::iterator it=res.begin(); 
+            it!=res.end(); it=res.end()) {
           TupleId id = *it;
           Tuple* pTuple = m_pIndexEdges->getTuple(id);
           if (pTuple != NULL) {
@@ -604,7 +609,8 @@ class MmORelNetworkAdapter : public mapmatch::IMMNetwork {
 
     
     bool GetSections(const Rectangle<2>& rBBox,
-    std::vector<shared_ptr<mapmatch::IMMNetworkSection> >& rvecSections) const {
+      std::vector<shared_ptr<mapmatch::IMMNetworkSection> >& rvecSections) 
+      const {
         
       if (m_pNetwork == NULL)
           return false;
@@ -745,7 +751,8 @@ class MmORelNetworkSectionAdapter : public mapmatch::IMMNetworkSection {
     }
 
     bool GetAdjacentSections(const bool _bUpDown,
-    std::vector<shared_ptr<mapmatch::IMMNetworkSection> >& rvecSections) const {
+             std::vector<shared_ptr<mapmatch::IMMNetworkSection> >& 
+             rvecSections) const {
       if (m_pEdge == NULL || m_pONetwork == NULL)
           return false;
 
@@ -957,7 +964,7 @@ public:
 
 
     bool CreateResult(const std::vector<mapmatch::MHTRouteCandidate*>& 
-                                                   rvecRouteCandidates) {
+      rvecRouteCandidates) {
       Init();
 
       const size_t nCandidates = rvecRouteCandidates.size();
@@ -969,12 +976,12 @@ public:
 
         DateTime EndTimePrev((int64_t)0);
         mapmatch::MHTRouteCandidate::PointDataPtr pDataEnd =
-                                   mapmatch::MHTRouteCandidate::PointDataPtr();
+                                  mapmatch::MHTRouteCandidate::PointDataPtr();
 
         mapmatch::MHTRouteCandidate::RouteSegmentIterator it =
-                                                pCandidate->RouteSegmentBegin();
+                                              pCandidate->RouteSegmentBegin();
         mapmatch::MHTRouteCandidate::RouteSegmentIterator itEnd =
-                                                pCandidate->RouteSegmentEnd();
+                                              pCandidate->RouteSegmentEnd();
 
 
         for (/*empty*/; it != itEnd; ++it) {
@@ -1027,14 +1034,14 @@ public:
 
       while (itSegments != itSegmentsEnd) {
         const mapmatch::MHTRouteCandidate::RouteSegmentPtr& pSegment = 
-                                                                *itSegments;
+                                                                  *itSegments;
         if (pSegment == NULL) {
             ++itSegments;
             continue;
         }
 
-        const shared_ptr<mapmatch::IMMNetworkSection> pSect = 
-                                                pSegment->GetSection();
+        const shared_ptr<mapmatch::IMMNetworkSection> pSect =
+                                                    pSegment->GetSection();
         if (pSect != NULL && pSect->GetCurve() != NULL) {
           if (pSegment->GetPoints().size() == 0) {
               dDistance += pSect->GetCurveLength(m_dNetworkScale);
@@ -1072,11 +1079,11 @@ public:
   
    
     DateTime ProcessSegment(
-        const mapmatch::MHTRouteCandidate::RouteSegment& rSegment,
-        const DateTime& rEndTimePrevSegment,
-        const mapmatch::MHTRouteCandidate::PointDataPtr& pPrevPointData,
-        const mapmatch::MHTRouteCandidate::PointDataPtr& pFirstPointofNextSeg,
-        double dDistance) /* Distance to first point of next segment */ {
+      const mapmatch::MHTRouteCandidate::RouteSegment& rSegment,
+      const DateTime& rEndTimePrevSegment,
+      const mapmatch::MHTRouteCandidate::PointDataPtr& pPrevPointData,
+      const mapmatch::MHTRouteCandidate::PointDataPtr& pFirstPointofNextSeg,
+      double dDistance) /* Distance to first point of next segment */ {
         if (m_eMode == MODE_EDGES) {
             return ProcessSegment_Edges(rSegment,
                                         rEndTimePrevSegment,
@@ -1103,14 +1110,14 @@ public:
   
 
     DateTime ProcessSegment_Edges(
-        const mapmatch::MHTRouteCandidate::RouteSegment& rSegment,
-        const DateTime& rEndTimePrevSegment,
-        const mapmatch::MHTRouteCandidate::PointDataPtr& pPrevPointData,
-        const mapmatch::MHTRouteCandidate::PointDataPtr& pFirstPointofNextSeg,
-        double dDistance) /* Distance to first point of next segment */ {
+      const mapmatch::MHTRouteCandidate::RouteSegment& rSegment,
+      const DateTime& rEndTimePrevSegment,
+      const mapmatch::MHTRouteCandidate::PointDataPtr& pPrevPointData,
+      const mapmatch::MHTRouteCandidate::PointDataPtr& pFirstPointofNextSeg,
+      double dDistance) /* Distance to first point of next segment */ {
       
-      const shared_ptr<mapmatch::IMMNetworkSection> pSection =
-                                                    rSegment.GetSection();
+      const shared_ptr<mapmatch::IMMNetworkSection> pSection = 
+                                                        rSegment.GetSection();
       if (pSection == NULL)
           return DateTime((int64_t)0);
 
@@ -1131,7 +1138,8 @@ public:
       if (!TimeStart.IsDefined() || TimeStart.IsZero()) {
         // first segment -> Get first  projected point
         for (size_t i = 0; i < nPoints; ++i) {
-          const mapmatch::MHTRouteCandidate::PointDataPtr& pData = vecPoints[i];
+          const mapmatch::MHTRouteCandidate::PointDataPtr& pData = 
+                                                                 vecPoints[i];
           if (pData != NULL) {
             const Point* pPtProj = pData->GetPointProjection();
             if (pPtProj != NULL && pPtProj->IsDefined()) {
@@ -1222,7 +1230,7 @@ public:
         double dDistance) { // Distance to first point of next segment
     
       const shared_ptr<mapmatch::IMMNetworkSection> pSection = 
-                                                    rSegment.GetSection();
+                                                      rSegment.GetSection();
       const std::vector<mapmatch::MHTRouteCandidate::PointDataPtr>& vecPoints =
                                                       rSegment.GetPoints();
       const size_t nPoints = vecPoints.size();
@@ -1230,15 +1238,15 @@ public:
       DateTime TimeStart = rEndTimePrevSegment;
       Point PtStart(false);
 
-      const SimpleLine* pCurve = pSection != NULL ? pSection->GetCurve() : NULL;
-      bool bStartsSmaller = pSection != NULL ? 
-                      pSection->GetCurveStartsSmaller() : false;
+      const SimpleLine* pCurve = pSection != NULL?pSection->GetCurve():NULL;
+      bool bStartsSmaller = pSection != NULL?pSection->GetCurveStartsSmaller()
+                                            :false;
 
       if (!TimeStart.IsDefined() || TimeStart.IsZero()) {
           // first segment
         mapmatch::MHTRouteCandidate::PointDataPtr pData = (nPoints > 0) ?
-                                                           vecPoints.front() :
-                                    mapmatch::MHTRouteCandidate::PointDataPtr();
+                                                            vecPoints.front():
+                                  mapmatch::MHTRouteCandidate::PointDataPtr();
 
         if (pData != NULL) {
           TimeStart = pData->GetTime();
@@ -1259,7 +1267,7 @@ public:
           if (pPrevPointData == NULL) {
             mapmatch::MHTRouteCandidate::PointDataPtr pData = (nPoints > 0) ?
                                                       vecPoints.front() :
-                                    mapmatch::MHTRouteCandidate::PointDataPtr();
+                                   mapmatch::MHTRouteCandidate::PointDataPtr();
 
             if (pData != NULL) {
               const Point* pPtProj = pData->GetPointProjection();
@@ -1350,7 +1358,7 @@ public:
                     DateTime(datetime::durationtype,
                             (uint64_t)((Duration.millisecondsToNull()
                               / dDistLastPt2FirstPtOfNextSeg) *
-                                                              dDistLastPt2End));
+                                                           dDistLastPt2End));
 
         if (TimeStart != TimeEnd && !AlmostEqual(PtStart, PtEndSegment)) {
           if(mapmatch::MMUtil::CheckSpeed(dDistLastPt2End, TimeStart, TimeEnd,
@@ -1378,12 +1386,12 @@ public:
     }
 
      
-    void ProcessPoints(
-      const mapmatch::MHTRouteCandidate::RouteSegment& rSegment,
-      const DateTime& rTimeStart,
-      const DateTime& rTimeEnd,
-      const Point& rPtStart,
-      const Point& rPtEnd) {
+    void ProcessPoints(const mapmatch::MHTRouteCandidate::RouteSegment& 
+                                                                 rSegment,
+                       const DateTime& rTimeStart,
+                       const DateTime& rTimeEnd,
+                       const Point& rPtStart,
+                       const Point& rPtEnd) {
         
       if (m_eMode == MODE_EDGES) {
         CreateTuple(rSegment, rTimeStart, rTimeEnd);
@@ -1393,7 +1401,7 @@ public:
         double dPosEnd = -1.0;
 
         const shared_ptr<mapmatch::IMMNetworkSection>& pSection = 
-                                                   rSegment.GetSection();
+                                                      rSegment.GetSection();
         if (pSection != NULL && pSection->IsDefined()) {
           const SimpleLine* pCurve = pSection->GetCurve();
           if (pCurve != NULL && !pCurve->IsEmpty()) {
@@ -1446,10 +1454,10 @@ public:
   
     
     const Tuple* GetEdgeTuple(
-                    const mapmatch::MHTRouteCandidate::RouteSegment& rSegment) {
+                 const mapmatch::MHTRouteCandidate::RouteSegment& rSegment) {
         
       const shared_ptr<mapmatch::IMMNetworkSection> pSection = 
-                                                  rSegment.GetSection();
+                                                        rSegment.GetSection();
         if (pSection == NULL) {
             return m_pTupleUndefEdge;
         }
