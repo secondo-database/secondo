@@ -52,6 +52,7 @@ public:
     bool inside (Point p);
     bool intersects (Face& f);
     RList toRList();
+    Seg boundingBox();
     
     // Fields
     std::vector<RCurve> face;

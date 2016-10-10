@@ -48,19 +48,22 @@ The class definition of a Fixed Moving Region
 */
 class FMRegion {
 public:
+    // Constructors
     FMRegion() {}
     FMRegion(Region r, TransformationUnit tu);
     FMRegion(RList& l);
     virtual ~FMRegion() {}
     
+    // Methods
     Region atinstant (double time);
     Region2 traversedArea();
-    
-    Region region; // The shape of the moving region
-    std::vector<TransformationUnit> trafos; // Transformation units
-
+    Seg boundingBox();
     std::string ToString();
     RList toRList();
+    
+    // Fields
+    Region region; // The shape of the moving region
+    std::vector<TransformationUnit> trafos; // Transformation units
 
 private:
     TransformationUnit* findTransformationUnit(double time);

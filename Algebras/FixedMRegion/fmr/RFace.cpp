@@ -64,14 +64,14 @@ std::vector<Point> RFace::intersections(Seg s) {
     std::vector<Point> ret;
 
     for (int nrcycle = -1; nrcycle < (int) holes.size(); nrcycle++) {
-        RFace& rf = (nrcycle < 0) ? *this : holes[nrcycle];
+        RFace& rf = (nrcycle < 0) ? * this : holes[nrcycle];
         for (int nrrcurve = 0; nrrcurve < rf.face.size(); nrrcurve++) {
             RCurve& rc = rf.face[nrrcurve];
             std::vector<Point> is = rc.intersections(s);
             ret.insert(ret.end(), is.begin(), is.end());
         }
     }
-   
+
     return ret;
 }
 
@@ -85,7 +85,9 @@ the point is inside. This also works if the point is inside a hole of this face.
  
 */
 bool RFace::inside(Point p) {
-    std::vector<Point> is = intersections(Seg(p, Point(1000000, 1000000)));
+    // A point outside the bounding box is guaranteed to be outside the RFace
+    Point outside = boundingBox().i - Point(100, 100);
+    std::vector<Point> is = intersections(Seg(p, outside));
     return is.size()&1;
 }
 
@@ -93,7 +95,7 @@ bool RFace::inside(Point p) {
 6 ~intersects~
 
 Test, if a given Face ~f~ intersects or overlaps with this RFace.
- 
+
 */
 bool RFace::intersects(Face& f) {
     // Test each segment of the Face f for intersection with the main cycle or
@@ -103,24 +105,50 @@ bool RFace::intersects(Face& f) {
         if (is.size() > 0)
             return true; // We have an intersection
     }
-    
+
     // Is the Face f completely inside this RFace?
     Point p = f.segs[0].i;
     if (inside(p))
         return true; // Yes, since a point of the face is inside the RFace and
-                     // there are no intersections
-    
+    // there are no intersections
+
     // Is the RFace completely inside the Face f?
     Point p2 = face[0].off;
     if (f.inside(p2))
         return true; // Yes, since a point of the RFace is inside the Face and
-                     // there are no intersections.
-    
+    // there are no intersections.
+
     return false;
 }
 
 /*
-7 ~toRList~
+7 boundingBox
+
+Calculate the bounding box for this RFace. This is not necessarily a minimal
+bounding box.
+
+*/
+Seg RFace::boundingBox() {
+    Seg bb;
+    
+    for (unsigned int nrseg = 0; nrseg < face.size(); nrseg++) {
+        RCurve& rc = face[nrseg];
+        Seg b = rc.boundingBox();
+        if (!bb.valid() || bb.i.x > b.i.x)
+            bb.i.x = b.i.x;
+        if (!bb.valid() || bb.f.x < b.f.x)
+            bb.f.x = b.f.x;
+        if (!bb.valid() || bb.i.y > b.i.y)
+            bb.i.y = b.i.y;
+        if (!bb.valid() || bb.f.y < b.f.y)
+            bb.f.y = b.f.y;
+    }
+    
+    return bb;
+}
+
+/*
+8 ~toRList~
 
 Returns an RList representation of this RFace.
 

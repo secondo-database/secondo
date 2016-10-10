@@ -93,7 +93,33 @@ bool Region2::intersects(Region& region) {
 }
 
 /*
-6 ~toRList~
+6 ~boundingBox~
+
+Returns the bounding box for this Region2. This is not necessarily a minimal
+bounding box.
+
+*/
+Seg Region2::boundingBox() {
+    Seg bb;
+    
+    for (unsigned int nrface = 0; nrface < faces.size(); nrface++) {
+        RFace& f = faces[nrface];
+        Seg b = f.boundingBox();
+        if (!bb.valid() || bb.i.x > b.i.x)
+            bb.i.x = b.i.x;
+        if (!bb.valid() || bb.f.x < b.f.x)
+            bb.f.x = b.f.x;
+        if (!bb.valid() || bb.i.y > b.i.y)
+            bb.i.y = b.i.y;
+        if (!bb.valid() || bb.f.y < b.f.y)
+            bb.f.y = b.f.y;
+    }
+    
+    return bb;
+}
+
+/*
+7 ~toRList~
 
 Returns an ~RList~ representation of this Region2 object
 

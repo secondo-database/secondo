@@ -64,7 +64,6 @@ The roots of this function are the intersection times on ~o2~.
 */
 double ISTrochoids::f(double t2) {
     double ret;
-    double period = 2 * M_PI / o1.rot;
     double t1 = getT1(t2, first);
     if (o1 == o2) {
         ret = o1.a * (t1 - t2) * o1.rot +

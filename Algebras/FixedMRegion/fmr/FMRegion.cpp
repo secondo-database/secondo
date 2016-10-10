@@ -132,7 +132,6 @@ Calculates the projection of an ~fmregion~ to a ~region~ for the given
 instant ~time~.
 
 */
-
 Region FMRegion::atinstant (double time) {
     TransformationUnit* tu = findTransformationUnit(time);
     if (tu == NULL)
@@ -142,7 +141,58 @@ Region FMRegion::atinstant (double time) {
 }
 
 /*
-7 ~ToString~
+7 ~boundingBox~
+
+Calculates the bounding box of this FMRegion. This is not necessarily a minimal
+bounding box, but it is guaranteed that no part of the fmregion is outside at
+any instant.
+
+*/
+Seg FMRegion::boundingBox () {
+    Seg bb;
+    for (unsigned int nrtrafo = 0; nrtrafo < trafos.size(); nrtrafo++) {
+        // Iterate over all transformation units
+        TransformationUnit& tu = trafos[nrtrafo];
+        Point p;
+        double dist = NAN;
+        // Find the point with the greatest distance from the center point of
+        // the rotation
+        for (unsigned int nrface = 0; nrface < region.faces.size(); nrface++) {
+            Face& f = region.faces[nrface];
+            for (unsigned int nrseg = 0; nrseg < f.segs.size(); nrseg++) {
+                Point p2 = f.segs[nrseg].i;
+                if (isnan(dist) || tu.c.distance(p2) > dist) {
+                    dist = tu.c.distance(p2);
+                    p = p2;
+                }
+            }
+        }
+        // Take the bounding box of the translation vector and add the distance
+        // of the point determined above from the center point to each
+        // direction.
+        Point start = tu.c + tu.v0;
+        Point end = start + tu.v;
+        double x1 = std::min(start.x, end.x) - dist;
+        double y1 = std::min(start.y, end.y) - dist;
+        double x2 = std::max(start.x, end.x) + dist;
+        double y2 = std::max(start.y, end.y) + dist;
+        
+        // Enlarge the previous bounding box accordingly
+        if (!bb.valid() || bb.i.x > x1)
+            bb.i.x = x1;
+        if (!bb.valid() || bb.i.y > y1)
+            bb.i.y = y1;
+        if (!bb.valid() || bb.f.x < x2)
+            bb.f.x = x2;
+        if (!bb.valid() || bb.f.y < y2)
+            bb.f.y = y2;
+    }
+    
+    return bb;
+}
+
+/*
+8 ~ToString~
 
 Returns a string representation of this object
 
@@ -159,7 +209,7 @@ std::string FMRegion::ToString() {
 }
 
 /*
-8 ~toRList~
+9 ~toRList~
 
 Returns an ~RList~ representation of this object
 

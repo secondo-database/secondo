@@ -48,14 +48,19 @@ class TransformationUnit; // Forward declaration
 */
 class Point {
 public:
+    // Constructors
     Point();
     Point(RList& l);
     Point(double x, double y);
     virtual ~Point() {}
+    
+    // Operators
     Point operator+(Point p);
     Point operator-(Point p);
     Point operator*(double nr);
     bool operator==(Point p) { return p.x==x&&p.y==y; }
+    
+    // Methods
     bool near(Point p) { return std::abs(p.x-x) < PRECISION &&
                                 std::abs(p.y-y) < PRECISION; }
     Point transform(TransformationUnit& tu, double frac);
@@ -64,10 +69,12 @@ public:
     double angle();
     double length();
     bool valid() { return !isnan(x) && !isnan(y); }
+    double distance(Point& p2) { return (*this-p2).length(); }
     
     std::string ToString();
     RList toRList();
 
+    // Fields
     double x, y;
 };
 
