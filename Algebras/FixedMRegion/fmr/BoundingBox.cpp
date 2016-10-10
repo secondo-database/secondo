@@ -79,3 +79,15 @@ void BoundingBox::rotate (Point center, double angle) {
     update(p3);
     update(p4);
 }
+
+/*
+5 ~inside~
+
+Tests, if a given Point ~p~ is inside the bounding box.
+ 
+*/
+bool BoundingBox::inside (Point p) {
+    return valid() &&
+             lowerLeft.x <= p.x &&  lowerLeft.y <= p.y &&
+            upperRight.x >= p.x && upperRight.y >= p.y;
+}

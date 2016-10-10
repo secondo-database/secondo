@@ -39,6 +39,7 @@ public:
     void update (BoundingBox bb);
     void rotate (Point center, double angle);
     bool valid () { return lowerLeft.valid() && upperRight.valid(); }
+    bool inside (Point p);
 
     // Fields
     Point lowerLeft, upperRight;
