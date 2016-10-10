@@ -189,7 +189,6 @@ public class FMRegion {
      */
     public static FMRegion deserialize(NL nl) {
         Region r = (Region) new Region().deserialize(nl.get(0));
-        System.out.println(r.serialize().toString());
         FMRegion ret = new FMRegion(r);
         NL trafos = nl.get(1);
         for (int i = 0; i < trafos.size(); i++) {

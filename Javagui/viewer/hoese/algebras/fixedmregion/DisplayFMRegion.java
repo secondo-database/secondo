@@ -71,7 +71,6 @@ public class DisplayFMRegion extends DisplayTimeGraph {
                       ListExpr value, QueryResult qr) {
         super.init(name, nameWidth, indent, type, value, qr);
         NL nl = new NL(value);
-        System.out.println(nl.toString());
         fmregion = FMRegion.deserialize(nl);
         
         qr.addEntry(this);
