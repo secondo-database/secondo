@@ -99,20 +99,12 @@ Returns the bounding box for this Region2. This is not necessarily a minimal
 bounding box.
 
 */
-Seg Region2::boundingBox() {
-    Seg bb;
+BoundingBox Region2::boundingBox() {
+    BoundingBox bb;
     
     for (unsigned int nrface = 0; nrface < faces.size(); nrface++) {
         RFace& f = faces[nrface];
-        Seg b = f.boundingBox();
-        if (!bb.valid() || bb.i.x > b.i.x)
-            bb.i.x = b.i.x;
-        if (!bb.valid() || bb.f.x < b.f.x)
-            bb.f.x = b.f.x;
-        if (!bb.valid() || bb.i.y > b.i.y)
-            bb.i.y = b.i.y;
-        if (!bb.valid() || bb.f.y < b.f.y)
-            bb.f.y = b.f.y;
+        bb.update(f.boundingBox());
     }
     
     return bb;

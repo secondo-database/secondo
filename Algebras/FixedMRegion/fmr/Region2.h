@@ -32,6 +32,7 @@ Header file with the class definition for the class ~RFace~
 #include "Region.h"
 #include "RFace.h"
 #include "RList.h"
+#include "BoundingBox.h"
 
 namespace fmr {
 
@@ -50,7 +51,7 @@ public:
     bool inside (Point p);
     std::vector<Point> intersections(Seg s);
     bool intersects (Region& region);
-    Seg boundingBox();
+    BoundingBox boundingBox();
     RList toRList();
     
     // Fields

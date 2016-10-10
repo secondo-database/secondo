@@ -151,8 +151,10 @@ Calculate the bounding box of this line segment. This is not necessarily a
 minimal bounding box.
 
 */
-Seg RCurve::boundingBox() {
-    Seg bb;
+BoundingBox RCurve::boundingBox() {
+    // Check, if we have the boundingBox already cached
+    if (bb.valid())
+        return bb;
     
     if (type == "T") {
         // Curve type is Trochoid, expand parameters
@@ -169,10 +171,8 @@ Seg RCurve::boundingBox() {
         double y1 = yoff - a - b;
         double y2 = yoff - a + b;
         // and create the resulting bounding box
-        bb.i.x = std::min(x1, x2);
-        bb.i.y = std::min(y1, y2);
-        bb.f.x = std::max(x1, x2);
-        bb.f.y = std::max(y1, y2);
+        bb.update(Point(x1, y1));
+        bb.update(Point(x2, y2));
     } else if (type == "R") {
         // Curve type is Ravdoid, expand parameters
         double hp = params[0];
@@ -188,31 +188,20 @@ Seg RCurve::boundingBox() {
         double y1 = yoff - hp - cd;
         double y2 = yoff + hp + cd;
         // and create the resulting bounding box
-        bb.i.x = std::min(x1, x2);
-        bb.i.y = std::min(y1, y2);
-        bb.f.x = std::max(x1, x2);
-        bb.f.y = std::max(y1, y2);
+        bb.update(Point(x1, y1));
+        bb.update(Point(x2, y2));
     } else if (type == "S") {
         // Curve type is Straight segment, calculate start and end point
         Point start(off.x, off.y);
         Point end(off.x+params[0], off.y+params[1]);
         // and create the resulting bounding box
-        bb.i.x = std::min(start.x, end.x);
-        bb.i.y = std::min(start.y, end.y);
-        bb.f.x = std::max(start.x, end.x);
-        bb.f.y = std::max(start.y, end.y);
+        bb.update(start);
+        bb.update(end);
     }
     
     // The segment is possibly rotated, rotate the corners of the bounding box
-    Point p1 = Point(bb.i.x, bb.i.y).rotate(off, angle);
-    Point p2 = Point(bb.f.x, bb.i.y).rotate(off, angle);
-    Point p3 = Point(bb.i.x, bb.f.y).rotate(off, angle);
-    Point p4 = Point(bb.f.x, bb.f.y).rotate(off, angle);
     // and calculate the bounding box of that rotated box.
-    bb.i.x = MIN(p1.x, p2.x, p3.x, p4.x);
-    bb.f.x = MAX(p1.x, p2.x, p3.x, p4.x);
-    bb.i.y = MIN(p1.y, p2.y, p3.y, p4.y);
-    bb.f.y = MAX(p1.y, p2.y, p3.y, p4.y);
+    bb.rotate(off, angle);
     
     return bb;
 }

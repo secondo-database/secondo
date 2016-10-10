@@ -33,6 +33,7 @@ Header file with the class definition for the class ~RCurve~
 #include "Seg.h"
 #include "RList.h"
 #include "Curve.h"
+#include "BoundingBox.h"
 
 namespace fmr {
 
@@ -52,7 +53,7 @@ public:
     // Methods
     Curve* getCurve();
     std::vector<Point> intersections (Seg s);
-    Seg boundingBox();
+    BoundingBox boundingBox();
     RList toRList();
 
     // Fields
@@ -60,8 +61,9 @@ public:
     Point off;
     double angle;
     std::vector<double> params;
+    
 private:
-
+    BoundingBox bb;
 };
 
 }

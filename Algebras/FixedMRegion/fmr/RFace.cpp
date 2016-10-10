@@ -86,7 +86,7 @@ the point is inside. This also works if the point is inside a hole of this face.
 */
 bool RFace::inside(Point p) {
     // A point outside the bounding box is guaranteed to be outside the RFace
-    Point outside = boundingBox().i - Point(100, 100);
+    Point outside = boundingBox().lowerLeft - Point(100, 100);
     std::vector<Point> is = intersections(Seg(p, outside));
     return is.size()&1;
 }
@@ -128,20 +128,12 @@ Calculate the bounding box for this RFace. This is not necessarily a minimal
 bounding box.
 
 */
-Seg RFace::boundingBox() {
-    Seg bb;
+BoundingBox RFace::boundingBox() {
+    BoundingBox bb;
     
     for (unsigned int nrseg = 0; nrseg < face.size(); nrseg++) {
         RCurve& rc = face[nrseg];
-        Seg b = rc.boundingBox();
-        if (!bb.valid() || bb.i.x > b.i.x)
-            bb.i.x = b.i.x;
-        if (!bb.valid() || bb.f.x < b.f.x)
-            bb.f.x = b.f.x;
-        if (!bb.valid() || bb.i.y > b.i.y)
-            bb.i.y = b.i.y;
-        if (!bb.valid() || bb.f.y < b.f.y)
-            bb.f.y = b.f.y;
+        bb.update(rc.boundingBox());
     }
     
     return bb;

@@ -148,8 +148,8 @@ bounding box, but it is guaranteed that no part of the fmregion is outside at
 any instant.
 
 */
-Seg FMRegion::boundingBox () {
-    Seg bb;
+BoundingBox FMRegion::boundingBox () {
+    BoundingBox bb;
     for (unsigned int nrtrafo = 0; nrtrafo < trafos.size(); nrtrafo++) {
         // Iterate over all transformation units
         TransformationUnit& tu = trafos[nrtrafo];
@@ -178,14 +178,8 @@ Seg FMRegion::boundingBox () {
         double y2 = std::max(start.y, end.y) + dist;
         
         // Enlarge the previous bounding box accordingly
-        if (!bb.valid() || bb.i.x > x1)
-            bb.i.x = x1;
-        if (!bb.valid() || bb.i.y > y1)
-            bb.i.y = y1;
-        if (!bb.valid() || bb.f.x < x2)
-            bb.f.x = x2;
-        if (!bb.valid() || bb.f.y < y2)
-            bb.f.y = y2;
+        bb.update(Point(x1, y1));
+        bb.update(Point(x2, y2));
     }
     
     return bb;

@@ -33,6 +33,7 @@ Header file with the class definition for the class ~RFace~
 #include "RFace.h"
 #include "RCurve.h"
 #include "RList.h"
+#include "BoundingBox.h"
 
 namespace fmr {
 
@@ -52,7 +53,7 @@ public:
     bool inside (Point p);
     bool intersects (Face& f);
     RList toRList();
-    Seg boundingBox();
+    BoundingBox boundingBox();
     
     // Fields
     std::vector<RCurve> face;

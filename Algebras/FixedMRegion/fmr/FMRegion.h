@@ -34,6 +34,7 @@ Header file with the class definition for the class ~FMRegion~.
 #include "Region.h"
 #include "Region2.h"
 #include "TransformationUnit.h"
+#include "BoundingBox.h"
 
 namespace fmr {
 
@@ -57,7 +58,7 @@ public:
     // Methods
     Region atinstant (double time);
     Region2 traversedArea();
-    Seg boundingBox();
+    BoundingBox boundingBox();
     std::string ToString();
     RList toRList();
     
