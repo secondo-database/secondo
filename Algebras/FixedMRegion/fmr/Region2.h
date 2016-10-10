@@ -28,6 +28,7 @@ Header file with the class definition for the class ~RFace~
 
 #include <vector>
 
+#include "Region.h"
 #include "RFace.h"
 #include "RList.h"
 
@@ -47,6 +48,7 @@ public:
     // Methods
     bool inside (Point p);
     std::vector<Point> intersections(Seg s);
+    bool intersects (Region& region);
     RList toRList();
     
     // Fields

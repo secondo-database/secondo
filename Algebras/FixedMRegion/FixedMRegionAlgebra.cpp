@@ -140,9 +140,7 @@ Describes the signature of the type constructor
                 nl->StringAtom("-> Data"),
                 nl->StringAtom(FMRegion::BasicType()),
                 nl->StringAtom("((<region>)(<transform1><transform2>...)"),
-                nl->StringAtom("(((((0 0)(5 0)(5 5))))((3 3)(0 0)(5 5) 0 6"
-                "(\"2000-01-01-01:00\" \"2000-01-01-02:00\" "
-                "TRUE TRUE)))"),
+                nl->StringAtom("<example too long>"),
                 nl->StringAtom("Type representing a moving & rotating polygon")
                 )
                 )
@@ -955,6 +953,69 @@ Maps a result value to the given arguments.
             );
 
 /*
+4.5 ~intersects~
+
+Test if a ~cregion~ intersects or overlaps with a ~region~
+
+Signature: point x cregion -> bool
+Example: query point([100, 100]) inside cregion1
+
+4.5.1 ~Type mapping~
+
+Maps the source types to the result type. Only one variant is supported here.
+
+*/
+    ListExpr intersectstypemap(ListExpr args) {
+        std::string err = "cregion x region expected";
+        int len = nl->ListLength(args);
+        if (len != 2) {
+            return listutils::typeError(err + " (wrong number of arguments)");
+        }
+        if (!CRegion::checkType(nl->First(args))) {
+            return listutils::typeError(err + " (wrong first arg)");
+        }
+        if (!Region::checkType(nl->Second(args))) {
+            return listutils::typeError(err + " (wrong second arg)");
+        }
+        return nl->SymbolAtom(CcBool::BasicType());
+    }
+
+/*
+4.5.2 ~Value mapping~
+
+Maps a result value to the given arguments.
+
+*/
+    int intersectsvalmap(Word *args, Word& result, int message,
+            Word& local, Supplier s) {
+        result = qp->ResultStorage(s);
+
+        CRegion *creg = static_cast<CRegion*> (args[0].addr);
+        fmr::RList regrl = NL2RList(OutRegion(nl->Empty(), args[1]));
+        fmr::Region reg(regrl);
+
+        result = new CcBool(true, creg->reg->intersects(reg));
+
+        return 0;
+    }
+
+
+    static const std::string intersectsspec =
+            "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+            "  (<text>cregion x region -> bool</text--->"
+            "<text>_ intersects _</text--->"
+            "<text>Test if a region intersects a cregion</text--->"
+            "<text>cregion1 intersects region1</text---> ) )";
+
+    Operator intersects("intersects",
+            intersectsspec,
+            intersectsvalmap,
+            Operator::SimpleSelect,
+            intersectstypemap
+            );
+
+
+/*
 5 ~FixedMRegionAlgebra~
 
 Instantiation of the FixedMRegionAlgebra.
@@ -970,6 +1031,7 @@ Adds the operators ~atinstant~, ~inside~, ~fmrinterpolate~, ~traversedarea~
         AddOperator(&insidecregion);
         AddOperator(&fmrinterpolate);
         AddOperator(&traversedarea);
+        AddOperator(&intersects);
     }
 
     extern "C"

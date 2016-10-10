@@ -29,6 +29,7 @@ Header file with the class definition for the class ~RFace~
 #include <vector>
 
 #include "Seg.h"
+#include "Face.h"
 #include "RFace.h"
 #include "RCurve.h"
 #include "RList.h"
@@ -48,6 +49,8 @@ public:
 
     // Methods
     std::vector<Point> intersections(Seg s);
+    bool inside (Point p);
+    bool intersects (Face& f);
     RList toRList();
     
     // Fields

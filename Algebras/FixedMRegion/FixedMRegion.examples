@@ -13,6 +13,18 @@ Signature : mpoint x fmregion -> mbool
 Example   : query plane inside cloud
 Result    : file
 
+Operator  : inside
+Number:   : 2
+Signature : point x cregion -> bool
+Example   : query point1 inside cregion1
+Result    : file
+
+Operator  : intersects
+Number:   : 1
+Signature : cregion x region -> mbool
+Example   : query cregion1 intersects region1
+Result    : file
+
 Operator  : fmrinterpolate
 Number:   : 1
 Signature : region x instant x region x instant -> fmregion
