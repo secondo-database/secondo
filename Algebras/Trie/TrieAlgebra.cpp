@@ -408,23 +408,26 @@ int createInvFileVM(Word* args, Word& result, int message,
 */
 
 const string createInvFileSpec = 
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" \"Comment\" ) "
-    "(<text> stream(tuple(...) x a_i x a_j "
-    "[ignoreCase, minWordLength, stopWords]-> invfile </text--->"
-    "<text> _ createInvFile[_, _, _, _ , _] </text--->"
-    "<text>creates an inverted file from a stream. "
-    " a_i must be of type text, a_j must be of type tid."
-    " The last three arguments are optionally."
-    " If ignoreCase is set to true, upper and lower case is ignored."
-    " minWordLength is of type int and descibes the minimum word length"
-    " for indexing (default 1)."
-    "Stopwords is a text containing words which not should be indexed."
-    "</text--->"
-    "<text>query SEC2OPERATORINFO feed addid "
-    "createInvFile[Signature, TID] </text--->"
-    "<text></text--->"
-    ") )";
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+   "\"Example\" \"Comment\" ) "
+   "(<text> stream(tuple(...) x a_i x a_j "
+   "[[ ignoreCase, minWordLength, stopWords], separators]-> invfile </text--->"
+   "<text> _ createInvFile[_, _, _, _ , _,_] </text--->"
+   "<text>creates an inverted file from a stream. "
+   " a_i must be of type text, a_j must be of type tid."
+   " The last three arguments are optionally."
+   " If ignoreCase is set to true, upper and lower case is ignored."
+   " minWordLength is of type int and describes the minimum word length"
+   " for indexing (default 1)."
+   "Stopwords is a text containing words which not should be indexed."
+   "The separators argument specifies all characters which are to use as "
+   "word separators. For the default, use the defaultInvFileSeparators "
+   "operator."
+   "</text--->"
+   "<text>query SEC2OPERATORINFO feed addid "
+   "createInvFile[Signature, TID] </text--->"
+   "<text></text--->"
+   ") )";
 
 
 Operator createInvFile (
@@ -549,7 +552,7 @@ const string insertInvFileSpec =
     "\"Example\" \"Comment\" ) "
     "(<text> stream(tuple(...)) x invfile x a_i x a_j -> stream(tuple(...))"
     "</text--->"
-    "<text> _ createInvFile[ _, _ , _] </text--->"
+    "<text> _ _ insertInvFile[ _, _ ] </text--->"
     "<text>inserts an attribute of a tuple stream into an inverted file."
     " a_i must be of type text, a_j must be of type tid."
     "</text--->"
