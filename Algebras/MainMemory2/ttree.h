@@ -1151,14 +1151,17 @@ at position j in __node__.
 Removes the element at position i in the node __root__.
 
 */    
-    void remove(TTreeNode<T,Comparator>* root, int i) {
+    void remove(TTreeNode<T,Comparator>*& root, int i) {
       
-      root->objects[i] = 0;
       delete root->objects[i];
+      root->objects[i] = 0;
       root->count--;
       
-      if(root->count < 1) 
+      if(root->count < 1) {
         delete root;
+        root=0;
+      }
+    
       
     }
    
