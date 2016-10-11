@@ -3760,10 +3760,13 @@ class avlOperLI{
           isAvl = false;
           tit = ttree->begin(); 
           ttreePair pair = *tit;
+          thit = pair;
           while(true) {
-            if(pair.first->Compare(attr1) >= 0) 
+            if(pair.first->Compare(attr1) >= 0) {
               break;
+            }
             else {
+              thit = pair;
               tit++;
               if(tit.hasNext())
                 pair = *tit;
@@ -3878,7 +3881,7 @@ class avlOperLI{
             // T-Tree
             else {
               if(!tit.end()) {
-                thit = *tit;
+                thit.first->Print(cout);
                 while(tit.hasNext()) {
                   ttreePair pair = *tit;
                   if(pair.first->Compare(attr1) > 0) {
@@ -3890,7 +3893,14 @@ class avlOperLI{
                   }
                   else {
                     thit = *tit;
-                    break;
+                    // there are more than one entries with the same value
+                    if(thit.first->Compare(attr1) == 0) {
+                      tit++;
+                    }
+                    else {
+                      thit = *tit;
+                      break;
+                    }
                   }
                 }
               }
