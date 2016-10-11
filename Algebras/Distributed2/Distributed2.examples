@@ -620,7 +620,7 @@ Remark    : under construction
 Operator  : ddistribute8
 Number    : 1
 Signature : stream(tuple) x string x (tuple -> int) x (tuple->int) x int x int x rel -> array(darray(rel(tuple)))
-Example   : query plz feed ddistribute["ddplz", .PLZ , hashvalue(.Ort,2000), 5, 4, workers]
+Example   : query plz feed ddistribute8["ddplz", .PLZ , hashvalue(.Ort,2000), 5, 4, workers]
 Result    : bug
 Remark    : under construction
 
