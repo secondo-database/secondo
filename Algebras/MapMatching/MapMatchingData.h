@@ -43,7 +43,8 @@ and the class ~MapMatchDataContainer~
 #ifndef __MAPMATCHINGDATA_H_
 #define __MAPMATCHINGDATA_H_
 
-#include <Point.h>
+#include <stdint.h>
+#include <../Spatial/Point.h>
 #include <vector>
 //#include "../Tools/Flob/DbArray.h"
 

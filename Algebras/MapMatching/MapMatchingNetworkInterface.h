@@ -44,7 +44,7 @@ This header file contains interfaces to access networks from map matching:
 
 
 #include "RectangleAlgebra.h"
-#include "Point.h"
+#include "../Spatial/Point.h"
 #include <vector>
 #include <string>
 #ifdef SECONDO_WIN32
