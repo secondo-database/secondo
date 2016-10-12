@@ -70,7 +70,8 @@ public:
 
     virtual bool GetSections(
                const Rectangle<2>& rBBox,
-               std::vector<shared_ptr<IMMNetworkSection> >& rvecSections) const;
+               std::vector<std::tr1::shared_ptr<IMMNetworkSection> >& 
+                                                     rvecSections) const;
 
     virtual Rectangle<2> GetBoundingBox(void) const;
 
@@ -120,7 +121,8 @@ public:
 
     virtual bool GetAdjacentSections(
                 const bool _bUpDown,
-                std::vector<shared_ptr<IMMNetworkSection> >& vecSections) const;
+                std::vector<std::tr1::shared_ptr<IMMNetworkSection> >& 
+                                                       vecSections) const;
 
     virtual std::string GetRoadName(void) const;
 
@@ -176,7 +178,8 @@ ONetworkAdapter<T>::~ONetworkAdapter()
 template<class T>
 bool ONetworkAdapter<T>::GetSections(
                 const Rectangle<2>& rBBox,
-                std::vector<shared_ptr<IMMNetworkSection> >& rvecSections) const
+                std::vector<std::tr1::shared_ptr<IMMNetworkSection> >& 
+                                                         rvecSections) const
 {
     if (m_pNetwork == NULL)
         return false;
@@ -189,7 +192,7 @@ bool ONetworkAdapter<T>::GetSections(
     for (size_t i = 0; i < nEdges; ++i)
     {
         const ONetworkEdge<T>& rEdge = vecEdges[i];
-        shared_ptr<IMMNetworkSection> pSection(
+        std::tr1::shared_ptr<IMMNetworkSection> pSection(
                        new ONetworkSectionAdapter<T>(rEdge, m_pNetwork));
         rvecSections.push_back(pSection);
     }
@@ -344,7 +347,8 @@ bool ONetworkSectionAdapter<T>::IsDefined(void) const
 template<class T>
 bool ONetworkSectionAdapter<T>::GetAdjacentSections(
                 const bool _bUpDown,
-                std::vector<shared_ptr<IMMNetworkSection> >& rvecSections) const
+                std::vector<std::tr1::shared_ptr<IMMNetworkSection> >& 
+                                                       rvecSections) const
 {
     if (m_pEdge == NULL || m_pONetwork == NULL)
         return false;
@@ -368,7 +372,7 @@ bool ONetworkSectionAdapter<T>::GetAdjacentSections(
             continue;
         }
 
-        shared_ptr<IMMNetworkSection> pAdjSection(
+        std::tr1::shared_ptr<IMMNetworkSection> pAdjSection(
                    new ONetworkSectionAdapter<T>(rEdge, m_pONetwork));
         rvecSections.push_back(pAdjSection);
     }
