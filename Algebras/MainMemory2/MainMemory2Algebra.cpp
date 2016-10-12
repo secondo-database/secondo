@@ -3758,26 +3758,9 @@ class avlOperLI{
           :relation(_relation), ttree(_tree), attr1(_attr1), attr2(_attr2),
           keyType(_keyType){
           isAvl = false;
-          tit = ttree->begin(); 
-          ttreePair pair = *tit;
-          thit = pair;
-          while(true) {
-            if(pair.first->Compare(attr1) >= 0) {
-              break;
-            }
-            else {
-              thit = pair;
-              tit++;
-              if(tit.hasNext())
-                pair = *tit;
-              else {
-                thit = pair;
-                break;
-              }
-            }
-          }
+          AttrComp cmp;
+          tit = ttree->tail(ttreePair(attr1,0), cmp); 
           res = true; 
-           
         }
 
 

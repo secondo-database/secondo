@@ -376,6 +376,9 @@ write a textual representation for this node to ~out~.
       out << ")";
          return out;
       }
+
+      const T& getMinValue(){ return minValue; }
+      const T& getMaxValue(){ return maxValue;}
       
     protected:
 
@@ -430,6 +433,40 @@ is set to the smallest entry in the tree.
       }
       count = 0;
     }
+
+/*
+
+2.2 Tail constructor
+
+Creates a constructor for a tree using a 
+minimum value.
+
+*/
+    Iterator(TTreeNode<T,Comparator>* root,
+             const T& minV, Comparator& cmp){
+       TTreeNode<T,Comparator>* son = root;
+       while(son){
+         if(cmp.smaller(minV,son->getMinValue(),0)){
+            // value smaller than all entries
+            stack.push(son);
+            son = son->getLeftSon();
+         } else if(cmp.greater(minV,son->getMaxValue(),0)){
+           // value greater than all entries
+           son = son->getRightSon();
+         } else {
+           // value is inside the node
+           stack.push(son);
+           this->count = 0; 
+           while(this->count<son->getCount()){
+             if(!cmp.smaller(*(son->getObject(this->count)),minV,0)){
+                return;
+             }    
+             this->count++;
+           }    
+           // should never be reached
+         }    
+       }    
+   }
 
 
     
@@ -615,7 +652,12 @@ first element in the tree .
       Iterator<T,Comparator> it(root);
       return it;
     }
-    
+   
+    Iterator<T, Comparator> tail(const T& minV, Comparator& cmp){
+      Iterator<T,Comparator> it(root,minV, cmp);
+      return it;
+    }
+ 
     
 
 /*
