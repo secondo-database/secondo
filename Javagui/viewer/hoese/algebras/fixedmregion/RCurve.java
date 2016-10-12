@@ -16,13 +16,37 @@ import java.util.List;
  * 
  * @author Florian Heinz <fh@sysv.de>
  */
+enum SegmentType {
+   Trochoid, Ravdoid, Straight, Unknown;
+
+   @Override
+   public String toString(){
+      switch (this){
+        case Trochoid: return "T";
+        case Ravdoid : return "R";
+        case Straight: return "S";
+        default: return null;
+      }
+   }
+
+   static SegmentType  fromString(String s){
+      if(s.equals("T")) return Trochoid; 
+      if(s.equals("R")) return Ravdoid; 
+      if(s.equals("S")) return Straight; 
+      return Unknown;
+   }
+
+};
+
+
+
 public class RCurve {
     /** Start point of this RCurve */
     private Point start;
     /** Rotation angle (center is always the start point) */
     private double angle;
     /** Type of curve */
-    private String type;
+    private SegmentType type;
     /** curve-specific parameters */
     private double[] params;
 
@@ -34,7 +58,7 @@ public class RCurve {
      * @param type   type of curve (T,R,S)
      * @param params curve specific parameters 
      */
-    public RCurve(Point start, double angle, String type, double[] params) {
+    public RCurve(Point start, double angle, SegmentType type, double[] params) {
         this.start = start;
         this.type = type;
         this.params = params;
@@ -51,7 +75,7 @@ public class RCurve {
      * @param center rotation center
      * @param angle  rotation angle
      */
-    public RCurve(Point start, String type, double[] params, Point center, double angle) {
+    public RCurve(Point start, SegmentType type, double[] params, Point center, double angle) {
         this.start = start;
         this.type = type;
         this.params = params;
@@ -136,15 +160,15 @@ public class RCurve {
      * @return Point on curve
      */
     public Point f(double t) {
-        Point ret = null;
+        Point ret = null; 
         switch (type) {
-            case "S":
+            case Straight:
                 ret = straight(t);
                 break;
-            case "T":
+            case Trochoid:
                 ret = trochoid(t);
                 break;
-            case "R":
+            case Ravdoid:
                 ret = ravdoid(t);
                 break;
         }
@@ -202,7 +226,7 @@ public class RCurve {
         double sx = nl.get(0).getNr();
         double sy = nl.get(1).getNr();
         double angle = nl.get(2).getNr();
-        String type = nl.get(3).getSym();
+        SegmentType type = SegmentType.fromString(nl.get(3).getSym());
         double[] params = null;
         if (nl.size() > 4) {
             params = new double[nl.size() - 4];
@@ -224,7 +248,7 @@ public class RCurve {
         nl.addNr(start.x);
         nl.addNr(start.y);
         nl.addNr(angle);
-        nl.addSym(type);
+        nl.addSym(type.toString());
         for (double d : params) {
             nl.addNr(d);
         }
