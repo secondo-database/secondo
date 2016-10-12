@@ -73,13 +73,13 @@ This constructor initializes all members
 
 */
       // creates a new T-Tree node 
-      TTreeNode(const int _minEntries, const int _maxEntries): 
+      TTreeNode(const size_t _minEntries, const size_t _maxEntries): 
          
         minEntries(_minEntries), maxEntries(_maxEntries), 
         left(0), right(0), count(0), height(0) {
           
           objects = new T*[TTreeNode<T,Comparator>::maxEntries];
-          for(int i=0;i<TTreeNode<T,Comparator>::maxEntries;i++){
+          for(size_t i=0;i<TTreeNode<T,Comparator>::maxEntries;i++){
             objects[i] = 0;
           }
         }
@@ -196,7 +196,7 @@ Returns the content of this node at position i.
 Return the minimum number of entries of this node.
 
 */
-      inline int getMinEntries() const{
+      inline size_t getMinEntries() const{
         return minEntries;
       }
    
@@ -218,7 +218,7 @@ Returns the capacity of this node.
 Returns the number of entries of this node.
 
 */
-      inline int getCount() const{
+      inline size_t getCount() const{
         return count;	
       }
 
@@ -254,7 +254,7 @@ Sorts the elements of this node with insertionSort.
         int j;
         T* temp;
                       
-        for (int i = 0; i < this->count; i++){
+        for (size_t i = 0; i < this->count; i++){
           j = i;
                 
           while (j>0 && Comparator::smaller(*this->objects[j],
@@ -307,7 +307,7 @@ true, the sons of this node are destroyed.
       void clear(const bool deleteContent) {
         if(this==0)
           return;
-        for(int i=0;i<TTreeNode<T,Comparator>::count;i++) {
+        for(size_t i=0;i<TTreeNode<T,Comparator>::count;i++) {
           if(deleteContent)
             delete objects[i];
           objects[i] = 0;
@@ -384,12 +384,12 @@ write a textual representation for this node to ~out~.
 1.6 Member variables
 
 */
-      int minEntries;
-      int maxEntries;
+      size_t minEntries;
+      size_t maxEntries;
       TTreeNode<T,Comparator>* left;
       TTreeNode<T,Comparator>* right;
-      int count;
-      int height;
+      size_t count;
+      size_t height;
       T** objects;  
       T minValue;
       T maxValue;
@@ -1069,7 +1069,7 @@ This function removes __value__ from the subtree given by root.
       // bounding node found, searching for value
       else {
         if(root->count > root->minEntries || root->isLeaf()) {
-          for(int i=0; i<root->count; i++) {
+          for(size_t i=0; i<root->count; i++) {
             if(Comparator::equal(value,*root->objects[i],attrPos)) {
               // swap value to be deleted with last element
               swap(root,i,root,root->count-1);
@@ -1084,7 +1084,7 @@ This function removes __value__ from the subtree given by root.
           return root;
         }
         else { // count < minEntries
-          for(int i=0; i<root->count; i++) {
+          for(size_t i=0; i<root->count; i++) {
             if(Comparator::equal(value,*root->objects[i],attrPos)) {
               
               if(root->left) {

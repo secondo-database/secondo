@@ -11257,7 +11257,7 @@ ListExpr mgshortestpathdTypeMap(ListExpr args) {
     return listutils::typeError("Error in rel attrlist.");
   }
 
-  if(!nl->ListLength(relAttrList) >= 3) {
+  if(!(nl->ListLength(relAttrList) >= 3)) {
     return listutils::typeError("rel has less than 3 attributes.");
   }
 
