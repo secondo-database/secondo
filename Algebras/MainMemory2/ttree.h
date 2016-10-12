@@ -115,7 +115,6 @@ Creates a depth copy of this node.
      return *this;
   }
       
-      
 /*
 1.4 Destructor
 
@@ -279,22 +278,11 @@ it's elements.
       if(this && this->count > 0) {
         if(count > 1) 
           insertionSort(attrPos);
-
-        minValue = *objects[0];
-        maxValue = *objects[count-1];
       }
       else 
         std::cout << "couldnt update node" << std::endl;
     }
     
-    void updateNode() {
-      if(this && this->count > 0) {
-        minValue = *objects[0];
-        maxValue = *objects[count-1];
-      }
-      else 
-        std::cout << "couldnt update node" << std::endl;
-    }
 
 /*
 ~clear~
@@ -303,26 +291,23 @@ Removes the entries from this node. If deleteContent is set to be
 true, the sons of this node are destroyed.
 
 */
-      
       void clear(const bool deleteContent) {
-        if(this==0)
-          return;
-        for(size_t i=0;i<TTreeNode<T,Comparator>::count;i++) {
-          if(deleteContent)
+        for(size_t i=0;i<count;i++) {
+          if(deleteContent){
             delete objects[i];
+          }
           objects[i] = 0;
-         }
-         if(deleteContent) {
-           if(left)
-             delete left;
-           if(right)
-             delete right;
-         }
-         left = 0;
-         right = 0;
-         TTreeNode<T,Comparator>::count = 0;
+        }
+        if(deleteContent) {
+          if(left)
+            delete left;
+          if(right)
+            delete right;
+        }
+        left = 0;
+        right = 0;
+        count = 0;
       }
-      
 
 /*
 ~updateHeight~
@@ -377,11 +362,17 @@ write a textual representation for this node to ~out~.
          return out;
       }
 
-      const T& getMinValue(){ return minValue; }
-      const T& getMaxValue(){ return maxValue;}
+      const T& getMinValue(){ 
+         assert(count>0);
+         return *(objects[0]);
+      }
+
+      const T& getMaxValue(){ 
+        assert(count>0);
+        return *(objects[count-1]);
+      }
       
     protected:
-
 
 /*
 1.6 Member variables
@@ -394,9 +385,6 @@ write a textual representation for this node to ~out~.
       size_t count;
       size_t height;
       T** objects;  
-      T minValue;
-      T maxValue;
-      
 };
 
 
@@ -879,7 +867,6 @@ It returns the root of the new tree.
         root->objects[0] = new T(value);   
         root->count = 1;
         root->updateHeight();
-        root->updateNode();
         success = true;
         return root;
       }
@@ -902,8 +889,8 @@ It returns the root of the new tree.
       }
       
       // bounding node found, but it is full
-      else if(Comparator::greater(value,root->minValue,attrPos) &&
-              Comparator::smaller(value,root->maxValue,attrPos)) {
+      else if(Comparator::greater(value,root->getMinValue(),attrPos) &&
+              Comparator::smaller(value,root->getMaxValue(),attrPos)) {
 
         // dont allow duplicates
 //         for(int i=0; i<root->count; i++) {
@@ -915,7 +902,6 @@ It returns the root of the new tree.
         
         T* tmp = root->objects[0];     
         root->objects[0] = new T(value); 
-        root->minValue = value;
         root->left = insert(root->left,*tmp,attrPos,success);
         root->updateHeight();
         root->updateNode(attrPos);
@@ -941,8 +927,8 @@ It returns the root of the new tree.
       
 
       // search in the left subtree
-      if(Comparator::smaller(value,root->minValue,attrPos) ||
-         Comparator::equal(value,root->minValue,attrPos)) { 
+      if(Comparator::smaller(value,root->getMinValue(),attrPos) ||
+         Comparator::equal(value,root->getMinValue(),attrPos)) { 
         
         // dont allow duplicates
 //         if(Comparator::equal(value,root->minValue,attrPos)) {
@@ -952,7 +938,6 @@ It returns the root of the new tree.
       
         root->left = insert(root->left,value,attrPos,success);
         root->updateHeight();
-        root->updateNode();
         
         // rotation or double rotation required
         if(abs(root->balance()) > 1) { 
@@ -976,8 +961,8 @@ It returns the root of the new tree.
       }
       
       // search right subtree
-      else if(Comparator::greater(value,root->maxValue,attrPos) ||
-              Comparator::equal(value,root->maxValue,attrPos)) {
+      else if(Comparator::greater(value,root->getMaxValue(),attrPos) ||
+              Comparator::equal(value,root->getMaxValue(),attrPos)) {
         
         // dont allow duplicates
 //         if(Comparator::equal(value,root->maxValue,attrPos)) {
@@ -987,7 +972,6 @@ It returns the root of the new tree.
 
         root->right = insert(root->right,value,attrPos,success);
         root->updateHeight();
-        root->updateNode();
         
         // rotation or double rotation required
         if(abs(root->balance())>1) {
@@ -1040,7 +1024,7 @@ This function removes __value__ from the subtree given by root.
                                     bool& success) {
       
       if(root->count == 1 && root->isLeaf()) {
-        if(Comparator::equal(value,root->minValue,attrPos)) {
+        if(Comparator::equal(value,root->getMinValue(),attrPos)) {
           delete root;
           root = 0;
           success = true;
@@ -1051,7 +1035,7 @@ This function removes __value__ from the subtree given by root.
       
       // search in the left subtree
       if(root->left && 
-            Comparator::smaller(value,root->minValue,attrPos)) { 
+            Comparator::smaller(value,root->getMinValue(),attrPos)) { 
         root->left = remove(root->left,value,attrPos,success);
         root->updateHeight();
         root->updateNode(attrPos);
@@ -1081,7 +1065,7 @@ This function removes __value__ from the subtree given by root.
       
       // search right subtree
       else if(root->right && 
-            Comparator::greater(value,root->maxValue,attrPos)) {
+            Comparator::greater(value,root->getMaxValue(),attrPos)) {
         root->right = remove(root->right,value,attrPos,success);
         root->updateHeight();
         root->updateNode(attrPos);
@@ -1131,18 +1115,14 @@ This function removes __value__ from the subtree given by root.
               
               if(root->left) {
                 swap(root,i,root->left,root->left->count-1);
-                root->left->updateNode();
                 root->left = remove(root->left,value,attrPos,success);
                 root->updateHeight();
-                root->updateNode();  
                 return root;
               }
               else {
                 swap(root,i,root->right,0);
-                root->right->updateNode();
                 root->right = remove(root->right,value,attrPos,success);
                 root->updateHeight();
-                root->updateNode();
                 return root;
               }
             }
@@ -1253,7 +1233,6 @@ Performs a right-left rotation in the subtree given by root.
           z->count--;
           y->count++;
           y->updateNode(attrPos);
-          z->updateNode();
         }
       }
       
@@ -1314,7 +1293,6 @@ Performs a left-right rotation in the subtree given by root.
           z->count--;
           y->count++;
           y->updateNode(attrPos);
-          z->updateNode();
         }
       }    
       
