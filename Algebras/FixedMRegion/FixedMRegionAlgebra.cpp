@@ -45,7 +45,8 @@ calculates the exact area, which is traversed during the time interval.
 A ~cregion~ is a generalized region with curved line segments. This is the
 resulttype of the ~traversedarea~ operation above, since the areas borders
 are not straight lines in general. The operations (point) ~inside~ and
-(region) ~intersects~ are defined on it.
+(region) ~intersects~ are defined on it. Additionally, the operation
+~cregiontoregion~ creates an approximated classic Region from the cregion.
 
 */
 
@@ -953,14 +954,14 @@ Maps a result value to the given arguments.
             );
 
 /*
-4.5 ~intersects~
+4.6 ~intersects~
 
 Test if a ~cregion~ intersects or overlaps with a ~region~
 
-Signature: point x cregion -> bool
-Example: query point([100, 100]) inside cregion1
+Signature: cregion x region -> bool
+Example: query cregion1 intersects region1
 
-4.5.1 ~Type mapping~
+4.6.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -981,7 +982,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.5.2 ~Value mapping~
+4.6.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -999,7 +1000,6 @@ Maps a result value to the given arguments.
         return 0;
     }
 
-
     static const std::string intersectsspec =
             "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
             "  (<text>cregion x region -> bool</text--->"
@@ -1012,6 +1012,97 @@ Maps a result value to the given arguments.
             intersectsvalmap,
             Operator::SimpleSelect,
             intersectstypemap
+            );
+
+    
+/*
+4.7 ~cregiontoregion~
+
+Converts a ~cregion~ into a ~region~ by approximating the curved border with
+a specified amount of straight line segments.
+
+Signature: cregion x int -> region
+Example: query cregiontoregion(cregion1, 100);
+
+4.7.1 ~Type mapping~
+
+Maps the source types to the result type. Only one variant is supported here.
+
+*/
+    ListExpr cregiontoregiontypemap(ListExpr args) {
+        std::string err = "cregion x int expected";
+        int len = nl->ListLength(args);
+        if (len != 2) {
+            return listutils::typeError(err + " (wrong number of arguments)");
+        }
+        if (!CRegion::checkType(nl->First(args))) {
+            return listutils::typeError(err + " (wrong first arg)");
+        }
+        if (!CcInt::checkType(nl->Second(args))) {
+            return listutils::typeError(err + " (wrong second arg)");
+        }
+        return nl->SymbolAtom(Region::BasicType());
+    }
+
+/*
+4.7.2 ~Value mapping~
+
+Maps a result value to the given arguments.
+
+*/
+    int cregiontoregionvalmap(Word *args, Word& result, int message,
+            Word& local, Supplier s) {
+        result = qp->ResultStorage(s);
+
+        // First, convert the arguments
+        CRegion *creg = static_cast<CRegion*> (args[0].addr);
+        CcInt *nrsegs = static_cast<CcInt*> (args[1].addr);
+        // And create the approximated region...
+        fmr::Region fmrreg = creg->reg->toRegion(nrsegs->GetIntval());
+        
+        // Now, union all faces of this region, since the faces may have
+        // overlapped in the cregion (and therefore also in the approximated
+        // region). This is necessary, since there is no union operation
+        // implemented on a cregion yet.
+        Region *res = NULL;
+        for (unsigned int i = 0; i < fmrreg.faces.size(); i++) {
+            fmr::Region tmp;
+            tmp.faces.push_back(fmrreg.faces[i]);
+            
+            ListExpr regle = RList2NL(tmp.toRList());
+            bool correct;
+            ListExpr errorInfo;
+            Word regp = InRegion(nl->Empty(), regle, 0, errorInfo, correct);
+            if (!correct) {
+                continue;
+            }
+            Region *reg = static_cast<Region*> (regp.addr);
+            if (!res) {
+                res = reg;
+            } else {
+                res->Union(*reg, *res, NULL);
+                delete reg;
+            }
+        }
+        
+        result.setAddr(res);
+
+        return 0;
+    }
+
+
+    static const std::string cregiontoregionspec =
+            "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+            "  (<text>cregion x int -> region</text--->"
+            "<text>cregiontoregion(_, _)</text--->"
+            "<text>Convert a cregion to an approximated region</text--->"
+            "<text>cregiontoregion(cregion1, 100)</text---> ) )";
+
+    Operator cregiontoregion("cregiontoregion",
+             cregiontoregionspec,
+             cregiontoregionvalmap,
+             Operator::SimpleSelect,
+             cregiontoregiontypemap
             );
 
 
@@ -1032,6 +1123,7 @@ Adds the operators ~atinstant~, ~inside~, ~fmrinterpolate~, ~traversedarea~
         AddOperator(&fmrinterpolate);
         AddOperator(&traversedarea);
         AddOperator(&intersects);
+        AddOperator(&cregiontoregion);
     }
 
     extern "C"

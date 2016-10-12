@@ -111,7 +111,24 @@ BoundingBox Region2::boundingBox() {
 }
 
 /*
-7 ~toRList~
+7 ~toRegion~
+
+Converts this CRegion to a Region by approximating the border of each face in
+~nrsegs~ straight segments.
+
+*/
+Region Region2::toRegion(int nrsegs) {
+    Region ret;
+    
+    for (int i = 0; i < faces.size(); i++) {
+        ret.faces.push_back(faces[i].toFace(nrsegs));
+    }
+    
+    return ret;
+}
+
+/*
+8 ~toRList~
 
 Returns an ~RList~ representation of this Region2 object
 
@@ -125,4 +142,3 @@ RList Region2::toRList() {
     
     return ret;
 }
-

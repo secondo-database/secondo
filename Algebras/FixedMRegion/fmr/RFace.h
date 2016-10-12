@@ -52,8 +52,9 @@ public:
     std::vector<Point> intersections(Seg s);
     bool inside (Point p);
     bool intersects (Face& f);
-    RList toRList();
     BoundingBox boundingBox();
+    Face toFace(int nrsamples);
+    RList toRList();
     
     // Fields
     std::vector<RCurve> face;

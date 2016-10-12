@@ -140,7 +140,31 @@ BoundingBox RFace::boundingBox() {
 }
 
 /*
-8 ~toRList~
+8 ~toFace~
+
+Converts this RFace to a standard Region Face by approximating the border with
+~nrsegs~ straight segments. Also converts its holes.
+
+*/
+Face RFace::toFace(int nrsegs) {
+    Face ret;
+    
+    int facesegs = face.size();
+    for (int i = 0; i < facesegs; i++) {
+        std::vector<Seg> segs = face[i].toSegs(nrsegs/facesegs+1);
+        ret.segs.insert(ret.segs.end(), segs.begin(), segs.end());
+    }
+    
+    // Now convert the holes
+    for (int nrhole = 0; nrhole < holes.size(); nrhole++) {
+        ret.holes.push_back(holes[nrhole].toFace(nrsegs));
+    }
+
+    return ret;
+}
+
+/*
+9 ~toRList~
 
 Returns an RList representation of this RFace.
 
@@ -161,4 +185,3 @@ RList RFace::toRList() {
 
     return ret;
 }
-

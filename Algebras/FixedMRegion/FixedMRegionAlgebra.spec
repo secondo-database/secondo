@@ -21,6 +21,7 @@ operator atinstant alias ATINSTANT pattern _ infixop _
 operator inside alias INSIDE pattern _ infixop _
 operator fmrinterpolate alias FMRINTERPOLATE pattern op ( _ ,  _ , _ , _ )
 operator traversedarea alias TRAVERSEDAREA pattern op ( _ )
+operator cregiontoregion alias CREGIONTOREGION pattern op ( _ , _ )
 
 
 

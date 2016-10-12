@@ -54,6 +54,7 @@ public:
     Curve* getCurve();
     std::vector<Point> intersections (Seg s);
     BoundingBox boundingBox();
+    std::vector<Seg> toSegs(int nrsegs);
     RList toRList();
 
     // Fields

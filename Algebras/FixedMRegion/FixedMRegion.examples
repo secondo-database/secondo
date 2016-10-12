@@ -37,3 +37,9 @@ Signature : fmregion -> cregion
 Example   : query traversedarea(cloud)
 Result    : file
 
+Operator  : cregiontoregion
+Number    : 1
+Signature : cregion x int -> region
+Example   : query cregiontoregion(cregion1, 100)
+Result    : file
+

@@ -52,6 +52,7 @@ public:
     std::vector<Point> intersections(Seg s);
     bool intersects (Region& region);
     BoundingBox boundingBox();
+    Region toRegion(int nrsegs);
     RList toRList();
     
     // Fields

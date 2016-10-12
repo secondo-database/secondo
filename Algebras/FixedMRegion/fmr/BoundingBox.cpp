@@ -43,7 +43,7 @@ void BoundingBox::update (Point p) {
     } else {
         if (upperRight.x < p.x)
             upperRight.x = p.x;
-        if (upperRight.y > p.y)
+        if (upperRight.y < p.y)
             upperRight.y = p.y;
     }
 }
@@ -72,8 +72,8 @@ void BoundingBox::rotate (Point center, double angle) {
     Point p3 = Point(upperRight.x, lowerLeft.y).rotate(center, angle);
     Point p4 = upperRight.rotate(center, angle);
     
-    lowerLeft = Point();
-    upperRight = Point();
+    invalidate();
+    
     update(p1);
     update(p2);
     update(p3);
@@ -90,4 +90,18 @@ bool BoundingBox::inside (Point p) {
     return valid() &&
              lowerLeft.x <= p.x &&  lowerLeft.y <= p.y &&
             upperRight.x >= p.x && upperRight.y >= p.y;
+}
+
+/*
+6 ~toString~ 
+
+Returns a string representation of this bounding box.
+ 
+*/
+std::string BoundingBox::ToString() {
+    std::stringstream ss;
+    
+    ss << "BB (" << lowerLeft.ToString() << " " << upperRight.ToString() << ")";
+    
+    return ss.str();
 }

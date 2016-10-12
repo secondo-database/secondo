@@ -40,6 +40,8 @@ public:
     void rotate (Point center, double angle);
     bool valid () { return lowerLeft.valid() && upperRight.valid(); }
     bool inside (Point p);
+    void invalidate () { lowerLeft = Point(); upperRight = Point(); }
+    std::string ToString();
 
     // Fields
     Point lowerLeft, upperRight;

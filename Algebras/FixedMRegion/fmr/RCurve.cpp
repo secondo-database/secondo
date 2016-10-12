@@ -153,8 +153,10 @@ minimal bounding box.
 */
 BoundingBox RCurve::boundingBox() {
     // Check, if we have the boundingBox already cached
-    if (bb.valid())
+    if (bb.valid()) {
+        std::cerr << "RCurve C " << bb.ToString() << "\n";
         return bb;
+    }
     
     if (type == "T") {
         // Curve type is Trochoid, expand parameters
@@ -207,7 +209,38 @@ BoundingBox RCurve::boundingBox() {
 }
 
 /*
-6 ~toRList~
+6 ~toSegs~
+
+Approximate this RCurve by ~nrsegs~ straight line segments.
+
+*/
+std::vector<Seg> RCurve::toSegs(int nrsegs) {
+    std::vector<Seg> ret;
+    
+    if (type == "S") {
+        // Special case: We already have a straight segment, just use that.
+        ret.push_back(Seg(Point(off.x, off.y), 
+                          Point(off.x+params[0], off.y+params[1])));
+    } else {
+        // for Trochoids and Ravdoids sample nrsegs+1 points and construct
+        // segments from those.
+        Curve *c = getCurve();
+        Point prev;
+        for (int i = 0; i < nrsegs+1; i++) {
+            Point p = c->project(((double)i)/((double)(nrsegs+1)));
+            if (prev.valid()) {
+                ret.push_back(Seg(prev, p).rotate(c->t_center, c->t_angle));
+            }
+            prev = p;
+        }
+        delete c;
+    }
+    
+    return ret;
+}
+
+/*
+7 ~toRList~
 
 Return the RList representation for this RCurve.
 
