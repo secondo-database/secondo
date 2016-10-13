@@ -20,7 +20,7 @@ end point.
 
 */
 
-#include "Seg.h"
+#include "fmr_Seg.h"
 
 using namespace fmr;
 

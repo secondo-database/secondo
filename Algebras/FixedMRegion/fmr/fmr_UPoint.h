@@ -26,10 +26,10 @@ Header file with the class definition for the class ~UPoint~
 #ifndef FMR_UPOINT_H
 #define FMR_UPOINT_H
 
-#include "Interval.h"
-#include "Point.h"
-#include "TransformationUnit.h"
-#include "Curve.h"
+#include "fmr_Interval.h"
+#include "fmr_Point.h"
+#include "fmr_TransformationUnit.h"
+#include "fmr_Curve.h"
 
 namespace fmr {
 

@@ -28,9 +28,9 @@ Header file with the class definition for the class ~Face~.
 
 #include <vector>
 #include <string>
-#include "TransformationUnit.h"
-#include "RList.h"
-#include "Seg.h"
+#include "fmr_TransformationUnit.h"
+#include "fmr_RList.h"
+#include "fmr_Seg.h"
 
 namespace fmr {
 

@@ -31,7 +31,7 @@ Header file with the class definition for the class ~Point~
 #include <sstream>
 #include <iostream>
 
-#include "RList.h"
+#include "fmr_RList.h"
 
 #ifndef PRECISION
 #define PRECISION 0.0000001
@@ -68,7 +68,7 @@ public:
     Point rotate(Point center, double angle);
     double angle();
     double length();
-    bool valid() { return !std::isnan(x) && !std::isnan(y); }
+    bool valid() { return !isnan(x) && !isnan(y); }
     double distance(Point& p2) { return (*this-p2).length(); }
     
     std::string ToString();

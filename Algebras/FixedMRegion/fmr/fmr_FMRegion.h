@@ -30,11 +30,13 @@ Header file with the class definition for the class ~FMRegion~.
 #include <string>
 #include <sstream>
 
-#include "RList.h"
-#include "Region.h"
-#include "Region2.h"
-#include "TransformationUnit.h"
-#include "BoundingBox.h"
+#include "fmr_MPoint.h"
+#include "fmr_RList.h"
+#include "fmr_MBool.h"
+#include "fmr_Region.h"
+#include "fmr_CRegion.h"
+#include "fmr_TransformationUnit.h"
+#include "fmr_BoundingBox.h"
 
 namespace fmr {
 
@@ -57,7 +59,12 @@ public:
     
     // Methods
     Region atinstant (double time);
-    Region2 traversedArea();
+    CRegion traversedArea();
+    MBool inside (MPoint& mp) { return mp.inside(*this); }
+    FMRegion interpolate (Region& r1, Region& r2, Interval& iv) {
+        return r1.interpolate(r2, iv);
+    }
+    
     BoundingBox boundingBox();
     std::string ToString();
     RList toRList();

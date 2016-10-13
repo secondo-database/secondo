@@ -21,8 +21,8 @@ implemented, i.e. addition, scalar-multiplication, rotation and
 
 */
 
-#include "Point.h"
-#include "TransformationUnit.h"
+#include "fmr_Point.h"
+#include "fmr_TransformationUnit.h"
 
 using namespace fmr;
 

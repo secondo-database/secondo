@@ -20,8 +20,8 @@ with optionally one or more holes (see also Face.cpp)
 
 */
 
-#include "Region.h"
-#include "FMRegion.h"
+#include "fmr_Region.h"
+#include "fmr_FMRegion.h"
 #include <iostream>
 
 using namespace fmr;

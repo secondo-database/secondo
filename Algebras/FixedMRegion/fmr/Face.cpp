@@ -22,7 +22,7 @@ holes. Several faces make up a ~Region~
 
 */
 
-#include "Face.h"
+#include "fmr_Face.h"
 #include <iostream>
 
 using namespace fmr;

@@ -26,16 +26,16 @@ Header file with the function declaration of ~traversedArea~
 #ifndef FMR_TRAVERSEDAREAFACTORY_H
 #define FMR_TRAVERSEDAREAFACTORY_H
 
-#include "FMRegion.h"
-#include "Curve.h"
-#include "Trochoid.h"
-#include "Ravdoid.h"
-#include "SegT.h"
-#include "ISSegCurve.h"
-#include "ISTrochoids.h"
-#include "ISRavdoids.h"
-#include "ISTrocRavd.h"
-#include "Region2.h"
+#include "fmr_FMRegion.h"
+#include "fmr_Curve.h"
+#include "fmr_Trochoid.h"
+#include "fmr_Ravdoid.h"
+#include "fmr_SegT.h"
+#include "fmr_ISSegCurve.h"
+#include "fmr_ISTrochoids.h"
+#include "fmr_ISRavdoids.h"
+#include "fmr_ISTrocRavd.h"
+#include "fmr_CRegion.h"
 
 #include <vector>
 #include <algorithm>
@@ -49,7 +49,7 @@ Main function to calculate the traversed area of
 the FMRegion ~fmregion~
 
 */
-Region2 traversedArea(FMRegion& fmregion);
+CRegion traversedArea(FMRegion& fmregion);
 
 }
 

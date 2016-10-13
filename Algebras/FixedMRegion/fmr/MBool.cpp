@@ -20,7 +20,7 @@ intervals. Such a pair (value,interval) is called a *unit* (see class ~UBool~)
 
 */
 
-#include "MBool.h"
+#include "fmr_MBool.h"
 
 using namespace fmr;
 

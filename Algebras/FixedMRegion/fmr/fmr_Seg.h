@@ -26,8 +26,8 @@ Header file with the class definition for the class ~Seg~
 #ifndef FMR_SEG_H
 #define FMR_SEG_H
 
-#include "Point.h"
-#include "TransformationUnit.h"
+#include "fmr_Point.h"
+#include "fmr_TransformationUnit.h"
 #include <string>
 #include <iostream>
 

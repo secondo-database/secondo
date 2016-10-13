@@ -22,7 +22,7 @@ See also: http://en.wikipedia.org/wiki/Trochoid
 
 */
 
-#include "Trochoid.h"
+#include "fmr_Trochoid.h"
 
 using namespace fmr;
 
@@ -95,7 +95,7 @@ Trochoid Trochoid::create (Point p, TransformationUnit& tu) {
 
 Create an ~RCurve~ to describe a part of the Trochoid (between
 the instants ~t1~ and ~t2~), which is then used
-as part of the border of a ~Region2~ (see also Region2.cpp)
+as part of the border of a ~CRegion~ (see also CRegion.cpp)
 
 */
 RCurve Trochoid::rcurve (double t1, double t2) {

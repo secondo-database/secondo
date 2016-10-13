@@ -15,14 +15,14 @@
 
 1 Overview
 
-The class ~RFace~ represents a face of a Region2. It is constructed from
+The class ~RFace~ represents a face of a CRegion. It is constructed from
 ~RCurve~-Segments (see RCurve.cpp) and can contain one or more holes,
 which are also RFaces.
 
 */
 
-#include "RFace.h"
-#include "RCurve.h"
+#include "fmr_RFace.h"
+#include "fmr_RCurve.h"
 
 using namespace fmr;
 

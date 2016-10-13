@@ -31,9 +31,9 @@ Header file with the class definition for the abstract class ~Curve~.
 #include <sstream>
 #include <map>
 
-#include "RCurve.h"
-#include "Point.h"
-#include "Seg.h"
+#include "fmr_RCurve.h"
+#include "fmr_Point.h"
+#include "fmr_Seg.h"
 
 #define PRECISION 0.0000001
 

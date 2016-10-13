@@ -19,7 +19,7 @@ This class calculates the intersection points between two Trochoids.
 
 */
 
-#include "ISTrochoids.h"
+#include "fmr_ISTrochoids.h"
 
 using namespace fmr;
 

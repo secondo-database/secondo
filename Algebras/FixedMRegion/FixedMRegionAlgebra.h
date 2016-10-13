@@ -53,8 +53,8 @@ This header file contains the definition of the classes ~FMRegion~ and
 #include "ListUtils.h"
 #include "Algebra.h"
 
-#include "fmr/RList.h"
-#include "fmr/Region2.h"
+#include "fmr/fmr_RList.h"
+#include "fmr/fmr_CRegion.h"
 
 #include <stdio.h>
 
@@ -120,7 +120,7 @@ public:
         return listutils::isSymbol(list, BasicType());
     } 
     
-    fmr::Region2 *reg; // The native libfmr Region2 object
+    fmr::CRegion *reg; // The native libfmr Region2 object
 private:
 };
 

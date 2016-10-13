@@ -33,9 +33,11 @@ extern "C" {
 #ifdef  __cplusplus
 }
 #endif
-    
+
 #include <string>
+#include <iostream>
 #include <vector>
+#include <cassert>
 
 namespace fmr {
 
@@ -95,6 +97,7 @@ public:
     std::string ToString();
     RList SecondoObject(std::string name, std::string type);
     RList& operator[](int index) {
+        assert(index < size());
         return items[index];
     }
     operator double() {
@@ -103,7 +106,7 @@ public:
     int size() {
         return items.size();
     }
-    static RList parseFile (const char *filename);
+    static RList parseFile (std::string filename);
 
 protected:
     int type;

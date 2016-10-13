@@ -23,7 +23,7 @@ from/to foreign objects.
 
 */
 
-#include "RList.h"
+#include "fmr_RList.h"
 #include <sstream>
 #include <iostream>
 
@@ -298,12 +298,12 @@ static int getToken(FILE *f) {
 
 // Parse the textual nested list and create a 
 // RList-object from it (a simple parser).
-static void parse(FILE *f, RList& nl) {
+static void parse(FILE *f, RList& nl, int depth) {
     do {
         int token = getToken(f);
         switch (token) {
             case '(':
-                parse(f, nl.nest());
+                parse(f, nl.nest(), depth+1);
                 break;
             case NUM:
                 nl.append(num);
@@ -319,6 +319,8 @@ static void parse(FILE *f, RList& nl) {
                 break;
             case ')':
                 return;
+            default:
+                return;
 
         }
     } while (1);
@@ -331,17 +333,19 @@ Parse the given file with the textual representation of a list
 and return a corresponding RList object.
 
 */
-RList RList::parseFile(const char *filename) {
+RList RList::parseFile(std::string filename) {
     FILE *f;
 
     RList ret;
 
-    f = fopen(filename, "r");
+    f = fopen(filename.c_str(), "r");
+    if (!f)
+        return ret;
     if (getToken(f) != '(') {
         printf("Parse error! (Beginning)\n");
         return ret;
     } else {
-        parse(f, ret);
+        parse(f, ret, 0);
         if (getToken(f) != 0) {
             printf("Parse error! (End)\n");
             return ret;

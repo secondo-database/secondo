@@ -30,15 +30,15 @@ Header file with the class definition for the class ~MPoint~
 #include <iostream>
 #include <algorithm>
 
-#include "FMRegion.h"
-#include "ISSegCurve.h"
-#include "UPoint.h"
-#include "MBool.h"
+#include "fmr_ISSegCurve.h"
+#include "fmr_UPoint.h"
+#include "fmr_MBool.h"
 
 namespace fmr {
 
+class FMRegion;
+    
 /*
-
 3 Declaration for the class ~MPoint~
 
 */

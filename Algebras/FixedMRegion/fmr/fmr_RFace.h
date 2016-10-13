@@ -28,12 +28,12 @@ Header file with the class definition for the class ~RFace~
 
 #include <vector>
 
-#include "Seg.h"
-#include "Face.h"
-#include "RFace.h"
-#include "RCurve.h"
-#include "RList.h"
-#include "BoundingBox.h"
+#include "fmr_Seg.h"
+#include "fmr_Face.h"
+#include "fmr_RFace.h"
+#include "fmr_RCurve.h"
+#include "fmr_RList.h"
+#include "fmr_BoundingBox.h"
 
 namespace fmr {
 

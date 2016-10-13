@@ -32,7 +32,7 @@ Header file with the class definition for the class ~Interval~
 #include <cstdlib>
 #include <cmath>
 
-#include "RList.h"
+#include "fmr_RList.h"
 
 namespace fmr {
 
@@ -56,9 +56,9 @@ public:
     double getFrac(double currentTime);
     double project (double t);
     static std::string timestr(double currentTime);
+    static double parsetime (std::string str);
     std::string startstr(); // start in YYYY-mm-dd-HH:MM:ss.SSS
     std::string endstr();   // end   in YYYY-mm-dd-HH:MM:ss.SSS
-    
     std::string ToString();
     RList toRList();
 };

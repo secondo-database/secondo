@@ -28,8 +28,8 @@ Header file with the class definition for the class ~ISTrochoids~
 
 #include <math.h>
 
-#include "RootDetect.h"
-#include "Trochoid.h"
+#include "fmr_RootDetect.h"
+#include "fmr_Trochoid.h"
 
 namespace fmr {
 

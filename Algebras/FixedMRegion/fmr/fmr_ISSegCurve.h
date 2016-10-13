@@ -26,11 +26,11 @@ This file contains the declaration of the class ~ISSegCurve~
 #ifndef FMR_ISSEGCURVE_H
 #define FMR_ISSEGCURVE_H
 
-#include "RootDetect.h"
-#include "Seg.h"
-#include "SegT.h"
-#include "Curve.h"
-#include "UPoint.h"
+#include "fmr_RootDetect.h"
+#include "fmr_Seg.h"
+#include "fmr_SegT.h"
+#include "fmr_Curve.h"
+#include "fmr_UPoint.h"
 
 namespace fmr {
 

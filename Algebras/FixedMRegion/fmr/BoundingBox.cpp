@@ -19,7 +19,7 @@ intersects) are implemented.
 
 */
 
-#include "BoundingBox.h"
+#include "fmr_BoundingBox.h"
 
 using namespace fmr;
 

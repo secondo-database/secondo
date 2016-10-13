@@ -25,12 +25,12 @@ Test the library.
 #include <iostream>
 #include <memory>
 
-#include "RList.h"
-#include "FMRegion.h"
-#include "Region.h"
-#include "MPoint.h"
-#include "Trochoid.h"
-#include "TraversedAreaFactory.h"
+#include "fmr_RList.h"
+#include "fmr_FMRegion.h"
+#include "fmr_Region.h"
+#include "fmr_MPoint.h"
+#include "fmr_Trochoid.h"
+#include "fmr_TraversedAreaFactory.h"
 
 using namespace std;
 using namespace fmr;
@@ -43,7 +43,7 @@ using namespace fmr;
 int main(int argc, char** argv) {
     RList l = RList::parseFile(argv[1]);
     FMRegion fmr(l[4]);
-    Region2 r2 = fmr.traversedArea();
+    CRegion r2 = fmr.traversedArea();
     
     cerr << r2.ToString();
     

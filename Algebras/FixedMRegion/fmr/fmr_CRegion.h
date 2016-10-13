@@ -2,7 +2,7 @@
 ----
  * This file is part of libfmr
  * 
- * File:   Region2.h
+ * File:   CRegion.h
  * Author: Florian Heinz <fh@sysv.de>
  *
  * Created on September 20, 2016, 10:50 PM
@@ -23,36 +23,37 @@ Header file with the class definition for the class ~RFace~
 
 */
 
-#ifndef FMR_REGION2_H
-#define FMR_REGION2_H
+#ifndef FMR_CREGION_H
+#define FMR_CREGION_H
 
 #include <vector>
 
-#include "Seg.h"
-#include "Region.h"
-#include "RFace.h"
-#include "RList.h"
-#include "BoundingBox.h"
+#include "fmr_Seg.h"
+#include "fmr_Region.h"
+#include "fmr_RFace.h"
+#include "fmr_RList.h"
+#include "fmr_BoundingBox.h"
 
 namespace fmr {
 
 /*
-3 Definition of class ~Region2~
+3 Definition of class ~CRegion~
 
 */
-class Region2 {
+class CRegion {
 public:
     // Constructors
-    Region2() {}
-    Region2(RList& r);
-    virtual ~Region2() {}
+    CRegion() {}
+    CRegion(RList& r);
+    virtual ~CRegion() {}
 
     // Methods
     bool inside (Point p);
-    std::vector<Point> intersections(Seg s);
     bool intersects (Region& region);
-    BoundingBox boundingBox();
     Region toRegion(int nrsegs);
+    
+    std::vector<Point> intersections(Seg s);
+    BoundingBox boundingBox();
     RList toRList();
     
     // Fields
@@ -61,4 +62,4 @@ public:
 
 }
 
-#endif  /* REGION2_H */
+#endif  /* CREGION_H */

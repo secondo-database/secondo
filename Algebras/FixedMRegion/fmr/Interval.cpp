@@ -21,7 +21,7 @@ rightclosed
 
 */
 
-#include "Interval.h"
+#include "fmr_Interval.h"
 
 using namespace fmr;
 
@@ -70,7 +70,7 @@ Converts a string of the form YYYY-mm-dd HH:MM:ss.SSS into
 a unix timestamp (ms since 1970-01-01 00:00:00)
  
 */
-static double parsetime (std::string str) {
+double Interval::parsetime (std::string str) {
    struct tm tm;
    unsigned int msec;
    char sep; // Separator, space or -
@@ -78,11 +78,13 @@ static double parsetime (std::string str) {
    tm.tm_year = tm.tm_mon = tm.tm_mday = 0;
    tm.tm_sec = tm.tm_min = tm.tm_hour = tm.tm_isdst = msec = 0;
    
-   sscanf(str.c_str(), "%u-%u-%u%c%u:%u:%u.%u",
-                 &tm.tm_year, &tm.tm_mon, &tm.tm_mday, &sep,
-                 &tm.tm_hour, &tm.tm_min, &tm.tm_sec,
-                 &msec);
-   
+   int st = sscanf(str.c_str(), "%u-%u-%u%c%u:%u:%u.%u",
+                   &tm.tm_year, &tm.tm_mon, &tm.tm_mday, &sep,
+                   &tm.tm_hour, &tm.tm_min, &tm.tm_sec,
+                   &msec);
+   if (st < 3)
+       return NAN;
+    
    tm.tm_year -= 1900; // struct tm expects years since 1900
    tm.tm_mon--; // struct tm expects months to be numbered from 0 - 11
    

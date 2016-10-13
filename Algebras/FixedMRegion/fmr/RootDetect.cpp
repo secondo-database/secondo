@@ -25,7 +25,7 @@ If STEP is chosen too big, some roots might not be detected.
 
 */
 
-#include "RootDetect.h"
+#include "fmr_RootDetect.h"
 
 #define STEP 0.0001
 

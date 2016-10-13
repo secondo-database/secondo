@@ -29,9 +29,9 @@ This file contains the declaration of the class ~ISTrocRavd~
 #include <vector>
 #include <math.h>
 
-#include "RootDetect.h"
-#include "Trochoid.h"
-#include "Ravdoid.h"
+#include "fmr_RootDetect.h"
+#include "fmr_Trochoid.h"
+#include "fmr_Ravdoid.h"
 
 namespace fmr {
 

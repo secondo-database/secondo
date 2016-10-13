@@ -27,9 +27,9 @@ Header file with the class definition for the class ~SegT~
 #define FMR_SEGT_H
 
 
-#include "Curve.h"
-#include "Seg.h"
-#include "TransformationUnit.h"
+#include "fmr_Curve.h"
+#include "fmr_Seg.h"
+#include "fmr_TransformationUnit.h"
 
 namespace fmr {
 

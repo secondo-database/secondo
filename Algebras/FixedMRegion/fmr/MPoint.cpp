@@ -28,7 +28,8 @@ Example: mpoint1 inside fmregion1
 */
 
 
-#include "MPoint.h"
+#include "fmr_MPoint.h"
+#include "fmr_FMRegion.h"
 
 using namespace fmr;
 

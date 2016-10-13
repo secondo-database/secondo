@@ -29,11 +29,11 @@ Header file with the class definition for the class ~RCurve~
 #include <vector>
 
 
-#include "Point.h"
-#include "Seg.h"
-#include "RList.h"
-#include "Curve.h"
-#include "BoundingBox.h"
+#include "fmr_Point.h"
+#include "fmr_Seg.h"
+#include "fmr_RList.h"
+#include "fmr_Curve.h"
+#include "fmr_BoundingBox.h"
 
 namespace fmr {
 

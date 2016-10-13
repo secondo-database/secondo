@@ -48,7 +48,7 @@ fy(t) = c.y + (s.x-c.x+v.x[*]t)[*]sin(a[*]t) + (s.y-c.y+v.y[*]t)[*]cos(a[*]t)
 
 */
 
-#include "UPoint.h"
+#include "fmr_UPoint.h"
 
 using namespace fmr;
 

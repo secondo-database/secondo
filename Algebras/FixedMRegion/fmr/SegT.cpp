@@ -21,8 +21,8 @@ up the border of the traversed area of an FMRegion.
 
 */
 
-#include "SegT.h"
-#include "Curve.h"
+#include "fmr_SegT.h"
+#include "fmr_Curve.h"
 
 using namespace fmr;
 
@@ -61,16 +61,26 @@ SegT SegT::create (Seg seg, TransformationUnit& tu, bool start) {
     seg = seg.rotate(tu.c, tu.a0) + tu.v0;
     // Transformed center point
     Point c = tu.c + tu.v0;
+    Point v = tu.v;
+    double rot = tu.a;
+    
+    // normalize the rotation
+    if (rot < 0) {
+        seg = seg.rotate(c, rot) + v;
+        c = c + v;
+        v = v * -1;
+        rot = -rot;
+    }
     
     if (!start) {
         // End segment requested, rotate by tu.a and translate by tu.v
-        seg = seg.rotate(c, tu.a) + tu.v;
+        seg = seg.rotate(c, rot) + v;
     }
 
     // Transform the segment to match the (normalized) orientation
     // of all other segments (the y parameter of tu.v is 0),
     // otherwise the intersections cannot be calculated.
-    double vangle = tu.v.angle();
+    double vangle = v.angle();
     seg = seg.rotate(c, -vangle);
     SegT segt(seg); // Create the new object here
 

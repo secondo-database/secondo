@@ -26,8 +26,8 @@ Header file with the class definition for the class ~MBool~
 #ifndef FMR_MBOOL_H
 #define FMR_MBOOL_H
 
-#include "UBool.h"
-#include "RList.h"
+#include "fmr_UBool.h"
+#include "fmr_RList.h"
 
 #include <vector>
 #include <sstream>

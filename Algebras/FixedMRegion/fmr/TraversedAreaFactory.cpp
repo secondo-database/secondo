@@ -28,17 +28,17 @@ a TransformationUnit in several steps.
   non-contiguous.
 - After that, the border cycles of these partitions are determined and
   converted to RCurve segments.
-- Finally, a Region2 made up from RFaces is returned, which represents
+- Finally, a CRegion made up from RFaces is returned, which represents
   the traversed area.
 
 */
 
-#include "TraversedAreaFactory.h"
+#include "fmr_TraversedAreaFactory.h"
 
 using namespace fmr;
 
 // Declarations
-Region2 fmr::traversedArea(FMRegion& fmregion);
+CRegion fmr::traversedArea(FMRegion& fmregion);
 static std::vector<Curve*> createCurves(Region& region, TransformationUnit&);
 static void findIntersections(std::vector<Curve*>&);
 static std::vector<std::vector<Curve *> > getPartitions(std::vector<Curve *>);
@@ -51,8 +51,8 @@ static std::pair<double,std::pair<double,Curve*> >getFirst(std::vector<Curve*>);
 Main function to calculate the traversed region of FMRegion ~fmregion~.
 
 */
-Region2 fmr::traversedArea(FMRegion& fmregion) {
-    Region2 ret;
+CRegion fmr::traversedArea(FMRegion& fmregion) {
+    CRegion ret;
 
     // Iterate over all transformations
     for (int i = 0; i < fmregion.trafos.size(); i++) {
@@ -68,7 +68,7 @@ Region2 fmr::traversedArea(FMRegion& fmregion) {
             std::vector<RCurve> ta = getCycle(partitions[i]);
             RFace rf;
             rf.face = ta;
-            // Store this RFace into this Region2
+            // Store this RFace into this CRegion
             ret.faces.push_back(rf);
         }
         
@@ -140,6 +140,7 @@ points together with the peer curve in the curve.
 */
 static void findIntersections(std::vector<Curve*>& curves) {
     std::vector<Curve *>::iterator c1 = curves.begin(), c2;
+    
     while (c1 != curves.end()) {
         c2 = std::vector<Curve *>::iterator(c1);
         while (c2 != curves.end()) {
@@ -249,11 +250,9 @@ static std::vector<RCurve> getCycle(std::vector<Curve*> cs) {
     std::pair<double, std::pair<double, Curve*> > p = getFirst(cs);
 
     std::vector<RCurve> ta;
-    Point cur, start;
+    Point start;
     int i = 1000; // 1000 iterations are maximum
     do {
-        if (!start.valid())
-            start = cur;
         // The current curve
         Curve *cc = p.second.second;
         // The start instant of the curve segment
@@ -262,13 +261,16 @@ static std::vector<RCurve> getCycle(std::vector<Curve*> cs) {
         double t2 = p.first;
         Point p1 = cc->project(t1);
         Point p2 = cc->project(t2);
+        if (!start.valid())
+            start = p2;
+        else if (p2.near(start))
+            break; // The cycle is closed now!
         // Create an RCurve segment of the current curve from
         // instant t1 to t2 and add it to the cycle
         ta.push_back(cc->rcurve(t1, t2));
-        cur = p2;
         // Determine the next curve segment of the border cycle
         p = cc->getNext(t1, t2);
-    } while (i-- > 0 && !cur.near(start));
+    } while (i-- > 0);
 
     return ta;
 }
@@ -292,9 +294,7 @@ static std::pair<double, std::pair<double, Curve*> > getFirst(
     // Find trochoid c with the biggest b-value
     for (int i = 0; i < cs.size(); i++) {
         Trochoid* o = dynamic_cast<Trochoid*> (cs[i]);
-        if (o == NULL)
-            continue;
-        if (c == NULL || c->b < o->b)
+        if (o && (!c || c->b < o->b))
             c = o;
     }
 

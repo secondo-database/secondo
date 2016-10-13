@@ -28,8 +28,8 @@ Header file with the class definition for the class ~ISRavdoids~
 
 #include <math.h>
 
-#include "RootDetect.h"
-#include "Ravdoid.h"
+#include "fmr_RootDetect.h"
+#include "fmr_Ravdoid.h"
 
 namespace fmr {
 

@@ -26,9 +26,9 @@ Header file with the class definition for the class ~TransformationUnit~
 #ifndef FMR_TRANSFORMATIONUNIT_H
 #define FMR_TRANSFORMATIONUNIT_H
 
-#include "Point.h"
-#include "Interval.h"
-#include "RList.h"
+#include "fmr_Point.h"
+#include "fmr_Interval.h"
+#include "fmr_RList.h"
 
 namespace fmr {
 

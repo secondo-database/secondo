@@ -17,7 +17,7 @@
 
 */
 
-#include "UBool.h"
+#include "fmr_UBool.h"
 
 using namespace fmr;
 

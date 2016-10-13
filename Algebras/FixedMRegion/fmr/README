@@ -1,0 +1,50 @@
+libfmr: Library for manipulating Fixed Moving Regions
+===========================================================
+
+Authors: Florian Heinz <fh@sysv.de>, Prof. Dr. Ralf Hartmut G[ue]ting <rhg@fernuni-hagen.de>
+Version: 1.0 (2016-10-12)
+Copyright: GNU Lesser General Public License Version 3 (a copy can be found in LGPL-3.0)
+
+libfmr is a c++-library for manipulating Fixed Moving Regions
+
+Prerequisites:
+Standard c++ build environment
+
+An example for the library usage is provided in example/fmr.cpp:
+
+example/fmr.cpp   - Source file of example binary
+example/fmregion1 - Example fixed moving region
+example/mpoint1   - Example moving point
+example/region1   - Example region
+example/region2   - region1 translated and rotated for interpolation test
+example/traversedarea1 - precalculated traversed area of fmregion1
+
+Usage examples:
+
+Calculate the projection of fmregion1 at instant "2016-01-01-03:31":
+./fmr atinstant fmregion1 "2016-01-01-03:31"
+
+Calculate the times, when the moving point mpoint1 is inside fmregion1:
+./fmr inside fmregion1 mpoint1
+
+Calculate the traversed area of fmregion1:
+./fmr traversedarea fmregion1
+
+Test, if the point 1300/50 is inside traversedarea1:
+./fmr inside2 traversedarea1 1300/50
+
+Test, if the traversedarea1 intersects with region1:
+./fmr intersects traversedarea1 region1
+
+Interpolate the two regions to a fixed moving region:
+./fmr interpolate region1 region2
+
+The object file format is compatible with Secondo, so the objects can be imported
+there for testing, too.
+
+
+Reference:
+
+The library was mainly developed for and is used by the database system Secondo:
+http://dna.fernuni-hagen.de/secondo
+

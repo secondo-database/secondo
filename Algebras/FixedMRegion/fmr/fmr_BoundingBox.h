@@ -24,7 +24,7 @@ Header file with the class definition for the class ~RCurve~
 #ifndef BOUNDINGBOX_H
 #define BOUNDINGBOX_H
 
-#include "Point.h"
+#include "fmr_Point.h"
 
 namespace fmr {
 

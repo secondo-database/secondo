@@ -21,7 +21,7 @@ line segment.
 */
 
 
-#include "ISSegCurve.h"
+#include "fmr_ISSegCurve.h"
 
 using namespace fmr;
 

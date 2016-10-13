@@ -28,9 +28,9 @@ Header file with the class definition for the class ~Trochoid~
 
 #include <math.h>
 
-#include "Curve.h"
-#include "Point.h"
-#include "TransformationUnit.h"
+#include "fmr_Curve.h"
+#include "fmr_Point.h"
+#include "fmr_TransformationUnit.h"
 
 namespace fmr {
 

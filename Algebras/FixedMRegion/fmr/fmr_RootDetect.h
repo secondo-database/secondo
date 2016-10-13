@@ -26,7 +26,7 @@ Header file with the class definition for the class ~RootDetect~
 #ifndef FMR_ROOTDETECT_H
 #define FMR_ROOTDETECT_H
 
-#include "Curve.h"
+#include "fmr_Curve.h"
 
 #include <cassert>
 #include <iostream>

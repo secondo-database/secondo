@@ -25,7 +25,7 @@ Implemented curves:
 
 */
 
-#include "Curve.h"
+#include "fmr_Curve.h"
 
 using namespace fmr;
 

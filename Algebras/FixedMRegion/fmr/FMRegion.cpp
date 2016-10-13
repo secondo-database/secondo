@@ -21,8 +21,8 @@ time interval.
 
 */
 
-#include "FMRegion.h"
-#include "TraversedAreaFactory.h"
+#include "fmr_FMRegion.h"
+#include "fmr_TraversedAreaFactory.h"
 
 using namespace fmr;
 
@@ -116,12 +116,12 @@ TransformationUnit* FMRegion::findTransformationUnit (double time) {
 5 ~traversedArea~
 
 Calculate the traversed area of this ~fmregion~
-The result is of type ~Region2~, since the line segments are curved
+The result is of type ~CRegion~, since the line segments are curved
 in general.
 The actual calculations are performed in TraversedAreaFactory.cpp
 
 */
-Region2 FMRegion::traversedArea() {
+CRegion FMRegion::traversedArea() {
     return fmr::traversedArea(*this);
 }
 

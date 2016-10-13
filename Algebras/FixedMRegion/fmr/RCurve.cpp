@@ -16,7 +16,7 @@
 1 Overview
 
 The class ~RCurve~ describes curved line segments from which a ~RFace~ of
-a ~Region2~ is constructed.
+a ~CRegion~ is constructed.
 The RCurve is defined by:
 
 Curve type: ~type~
@@ -54,11 +54,11 @@ Point(fx(t), fy(t)).rotate(~angle~) + ~off~
 
 */
 
-#include "RCurve.h"
-#include "Trochoid.h"
-#include "Ravdoid.h"
-#include "SegT.h"
-#include "ISSegCurve.h"
+#include "fmr_RCurve.h"
+#include "fmr_Trochoid.h"
+#include "fmr_Ravdoid.h"
+#include "fmr_SegT.h"
+#include "fmr_ISSegCurve.h"
 
 #define MIN(a,b,c,d) std::min(std::min(std::min(a,b),c),d)
 #define MAX(a,b,c,d) std::max(std::max(std::max(a,b),c),d)
@@ -154,7 +154,6 @@ minimal bounding box.
 BoundingBox RCurve::boundingBox() {
     // Check, if we have the boundingBox already cached
     if (bb.valid()) {
-        std::cerr << "RCurve C " << bb.ToString() << "\n";
         return bb;
     }
     

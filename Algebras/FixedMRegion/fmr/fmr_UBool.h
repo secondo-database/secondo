@@ -29,8 +29,8 @@ Header file with the class definition for the class ~UBool~
 #include <sstream>
 #include <string>
 
-#include "Interval.h"
-#include "RList.h"
+#include "fmr_Interval.h"
+#include "fmr_RList.h"
 
 namespace fmr {
 

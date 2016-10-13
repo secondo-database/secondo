@@ -50,10 +50,10 @@ are not straight lines in general. The operations (point) ~inside~ and
 
 */
 
-#include "fmr/FMRegion.h"
-#include "fmr/MPoint.h"
-#include "fmr/RList.h"
-#include "fmr/MBool.h"
+#include "fmr/fmr_FMRegion.h"
+#include "fmr/fmr_MPoint.h"
+#include "fmr/fmr_RList.h"
+#include "fmr/fmr_MBool.h"
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -464,7 +464,7 @@ Converts a ~cregion~ to its nested list representation.
         // Convert the cregion nested list representation to a libfmr RList
         fmr::RList rl = NL2RList(instance);
         // and create an object for it.
-        creg->reg = new fmr::Region2(rl);
+        creg->reg = new fmr::CRegion(rl);
 
         correct = true;
 
@@ -566,7 +566,7 @@ Creates a clone (deep copy) of itself.
 */
     CRegion* CRegion::Clone() const {
         CRegion *creg = new CRegion();
-        creg->reg = new fmr::Region2();
+        creg->reg = new fmr::CRegion();
         *(creg->reg) = *(this->reg);
 
         return creg;
@@ -867,11 +867,11 @@ Maps a result value to the given arguments.
         FMRegion *fmr = static_cast<FMRegion*> (args[0].addr);
 
         // Calculate the traversed area and store it in a libfmr region2 object
-        fmr::Region2 reg2 = fmr->fmr->traversedArea();
+        fmr::CRegion creg = fmr->fmr->traversedArea();
         bool correct;
         ListExpr errorInfo;
         // Convert the libfmr region2 to a Secondo cregion and return it
-        result = InCRegion(nl->Empty(), RList2NL(reg2.toRList()), 0,
+        result = InCRegion(nl->Empty(), RList2NL(creg.toRList()), 0,
                 errorInfo, correct);
 
         return 0;
