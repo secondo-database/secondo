@@ -397,7 +397,26 @@ namespace clusteropticsalg
                         const std::pair<Rectangle<dim>*, TupleId>& p2){
          return operator()(p1.first, p2.first);
       }
- }; 
+ };
+ 
+ class MLabelDist: public DistCount {
+  public:
+   double operator()(const stj::MLabel* m1, const stj::MLabel* m2) {
+     DistCount::cnt++;
+     return m1->Distance(*m2);
+   }
+   
+   double operator()(const std::pair<stj::MLabel*, TupleId>& p1,
+                     const std::pair<stj::MLabel*, TupleId>& p2) {
+     return operator()(p1.first, p2.first);
+   }
+   
+   std::ostream& print(const std::pair<stj::MLabel*, TupleId>& p, 
+                       std::ostream& o) {
+     o << *(p.first);
+     return o;
+   }
+ };
 }
 
 #endif

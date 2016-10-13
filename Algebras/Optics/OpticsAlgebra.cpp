@@ -44,6 +44,7 @@ This file contains the implementation of the OpticsAlgebra.
 #include "Stream.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
+#include "../SymbolicTrajectory/Algorithms.h"
 #include "DistFunction.h"
 
 #include "OpticsGen.h"
@@ -368,14 +369,16 @@ namespace clusteropticsalg
    && !CcReal::checkType(attrType)
    && !Point::checkType(attrType)
    && !CcString::checkType(attrType)
-   && !Picture::checkType(attrType) )
+   && !Picture::checkType(attrType) 
+   && !stj::MLabel::checkType(attrType))
   {
    return listutils::typeError("Attribute " + attrName + " not of type " 
     + CcInt::BasicType() + ", " 
     + CcReal::BasicType() + ", " 
     + Point::BasicType() + " , " 
     + CcString::BasicType() + " or " 
-    + Picture::BasicType() );
+    + Picture::BasicType() + " or "
+    + stj::MLabel::BasicType());
   }
   
   //Copy attrlist to newattrlist
@@ -523,7 +526,9 @@ namespace clusteropticsalg
   {
    return 4;
   }
-  
+  else if (stj::MLabel::checkType(attrType)) {
+    return 5;
+  }
   return -1; 
  };
 
@@ -539,6 +544,7 @@ namespace clusteropticsalg
  ,opticsMVM1<Point, PointDist>
  ,opticsMVM1<CcString, StringDist>
  ,opticsMVM1<Picture, PictureDist>
+ ,opticsMVM1<stj::MLabel, MLabelDist>
  };
 
 
