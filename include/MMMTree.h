@@ -1087,6 +1087,10 @@ increasing order to the reference object.
    const DistComp& getDistComp(){
       return di;
    }
+   
+   MTreeNode<T, DistComp>* getRoot() {
+     return root;
+   }
 
 
    private:
