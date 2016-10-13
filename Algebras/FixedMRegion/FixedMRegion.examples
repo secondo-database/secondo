@@ -2,31 +2,31 @@ Database: berlintest
 Restore : No
 
 Operator  : atinstant
-Number:   : 1
+Number    : 1
 Signature : fmregion x instant -> iregion
 Example   : query cloud atinstant [const instant value "2016-09-23-16:35"]
 Result    : file
 
 Operator  : inside
-Number:   : 1
+Number    : 1
 Signature : mpoint x fmregion -> mbool
 Example   : query plane inside cloud
 Result    : file
 
 Operator  : inside
-Number:   : 2
+Number    : 2
 Signature : point x cregion -> bool
 Example   : query point1 inside cregion1
 Result    : file
 
 Operator  : intersects
-Number:   : 1
+Number    : 1
 Signature : cregion x region -> mbool
 Example   : query cregion1 intersects region1
 Result    : file
 
 Operator  : fmrinterpolate
-Number:   : 1
+Number    : 1
 Signature : region x instant x region x instant -> fmregion
 Example   : query interpolate2 (region1, instant1, region2, instant2)
 Result    : file
