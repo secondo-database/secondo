@@ -388,6 +388,7 @@ The function checks whether the node can include a further entry.
 Inserts a new entry into a node having enough space.
 
 */
+  /*
     void insert(T& value, std::vector<int>* attrPos){
       assert(hasSpace());
       // search insertion position
@@ -402,11 +403,21 @@ Inserts a new entry into a node having enough space.
       objects[pos] = new T(value);
       count++;
     }    
-
-
-
-
-
+ */
+    void insert(T* value, std::vector<int>* attrPos){
+      assert(hasSpace());
+      // search insertion position
+      size_t pos = 0; 
+      while(     (pos < count) 
+            &&!Comparator::greater( *objects[pos],*value,attrPos)){
+          pos++;
+      }    
+      for(size_t i = count ; i > pos; i--){
+        objects[count] = objects[count-1];
+      }    
+      objects[pos] = value;
+      count++;
+    }    
 
       
     protected:
@@ -906,70 +917,57 @@ Duplicates are allowed
 It returns the root of the new tree.
 
 */
+
     TTreeNode<T,Comparator>* insert(TTreeNode<T,Comparator>* root, 
                                     T& value,
+                                    std::vector<int>* attrPos,
+                                    bool& success) {
+       T* v = new T(value);
+       TTreeNode<T,Comparator>* res = insert(root,v,attrPos,success);
+       if(!success){
+          delete v;
+       }
+       return res;
+
+    }
+    
+
+    TTreeNode<T,Comparator>* insert(TTreeNode<T,Comparator>* root, 
+                                    T* value,
                                     std::vector<int>* attrPos,
                                     bool& success) {
       // leaf reached
       if(root == NULL){ 
         root = new TTreeNode<T,Comparator>(minEntries,maxEntries);
-      }
-      
-      // node bounds value and still has room
-      if(root->hasSpace()) {
         root->insert(value, attrPos);
         success = true;
         return root;
       }
-      
-      // bounding node found, but it is full
-      else if(Comparator::greater(value,root->getMinValue(),attrPos) &&
-              Comparator::smaller(value,root->getMaxValue(),attrPos)) {
+     
 
-        // dont allow duplicates
-//         for(int i=0; i<root->count; i++) {
-//           if(Comparator::equal(value,*root->objects[i],attrPos)) {
-//             success = false;
-//             return root;
-//           }
-//         }
-        
-        T* tmp = root->objects[0];     
-        root->objects[0] = new T(value); 
-        root->left = insert(root->left,*tmp,attrPos,success);
-        root->updateHeight();
-        root->updateNode(attrPos);
-        // rotation or double rotation required
-        if(abs(root->balance()) > 1) { 
-          
-          // single rotation is sufficient
-          if(root->left->balance() > 0) { 
-            return rotateRight(root); 
-          }
-          // left-right rotation is required
-          if(root->left->balance() < 0) {
-            return rotateLeftRight(root,attrPos);
-          } 
-          assert(false); // should never be reached
-          return NULL; 
-        } 
-        // root remains balanced
-        else { 
-          return root;
+
+ 
+      if(   !Comparator::smaller(*value,root->getMinValue(),attrPos)
+         && !Comparator::greater(*value,root->getMaxValue(), attrPos)){
+         // bounding node
+         if( root->hasSpace()){
+           // we have space, insert here
+           root->insert(value,attrPos);
+           success = true;   
+           return root;
+         } else {
+         // there is no space, replace value with the 
+         // leftmost value in the node
+         T* tmp = root->objects[0];     
+         root->objects[0] = value;
+         value = tmp;
         }
       }
       
+      
 
       // search in the left subtree
-      if(Comparator::smaller(value,root->getMinValue(),attrPos) ||
-         Comparator::equal(value,root->getMinValue(),attrPos)) { 
-        
-        // dont allow duplicates
-//         if(Comparator::equal(value,root->minValue,attrPos)) {
-//             success = false;
-//             return root;
-//         }
-      
+      if(!Comparator::greater(*value, root->getMinValue(), attrPos)){
         root->left = insert(root->left,value,attrPos,success);
         root->updateHeight();
         
@@ -995,15 +993,7 @@ It returns the root of the new tree.
       }
       
       // search right subtree
-      else if(Comparator::greater(value,root->getMaxValue(),attrPos) ||
-              Comparator::equal(value,root->getMaxValue(),attrPos)) {
-        
-        // dont allow duplicates
-//         if(Comparator::equal(value,root->maxValue,attrPos)) {
-//             success = false;
-//             return root;
-//         }
-
+      if(!Comparator::smaller(*value,root->getMaxValue(),attrPos)) {
         root->right = insert(root->right,value,attrPos,success);
         root->updateHeight();
         
@@ -1027,6 +1017,7 @@ It returns the root of the new tree.
           return root;
         }
       }
+      assert(false);
       return 0;  // should never be reached
     }
 
