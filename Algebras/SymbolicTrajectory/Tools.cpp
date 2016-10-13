@@ -1478,6 +1478,9 @@ void Tools::createNFAfromPersistent(DbArray<NFAtransition> &trans,
 }
 
 double Tools::distance(const string& str1, const string& str2, const int fun) {
+  if (fun == 3) {
+    return (str1 == str2 ? 0 : 1);
+  }
   if (!str1.length() && !str2.length()) {
     return 0;
   }

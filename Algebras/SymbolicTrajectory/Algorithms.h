@@ -3008,28 +3008,74 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
   if (IsEmpty() || mb.IsEmpty()) {
     return 1;
   }
-  int n = GetNoComponents() + 1;
-  int m = mb.GetNoComponents() + 1;
-  double dp[n][m];
-  for (int i = 0; i < n; i++) {
-    dp[i][0] = i;
-  }
-  for (int j = 0; j < m; j++) {
-    dp[0][j] = j;
-  }
-  int labelFun = 0; // TODO: change
-  typename B::base basic1, basic2;
-  for (int i = 1; i < n; i++) {
-    GetValue(i - 1, basic1);
-    for (int j = 1; j < m; j++) {
-      mb.GetValue(j - 1, basic2);
-      dp[i][j] = std::min(dp[i - 1][j] + 1,
-                 std::min(dp[i][j - 1] + 1, 
-                     dp[i -1][j - 1] + Tools::distance(basic1, basic2, 
-                                                       labelFun)));
+//   int n = GetNoComponents() + 1;
+//   int m = mb.GetNoComponents() + 1;
+//   double dp[n][m];
+//   for (int i = 0; i < n; i++) {
+//     dp[i][0] = i;
+//   }
+//   for (int j = 0; j < m; j++) {
+//     dp[0][j] = j;
+//   }
+//   int labelFun = 3; // TODO: change
+  typename B::base basicStart1, basicStart2, basicEnd1, basicEnd2;
+  int n = GetNoComponents();
+  int m = mb.GetNoComponents();
+//   cout << "n=" << n << ", m=" << m << endl;
+  GetValue(0, basicStart1);
+//   cout << "ok, basicStart1=" << basicStart1 << endl;
+  mb.GetValue(0, basicStart2);
+//   cout << "ok, basicStart2=" << basicStart2 << endl;
+  double result = 0.0;
+  if (n == 1) {
+    if (m == 1) {
+      result = (basicStart1 == basicStart2 ? 0 : 1);
+    }
+    else {
+      mb.GetValue(m - 1, basicEnd2);
+      result = ((basicStart1 == basicStart2 ? 0 : 1) + 
+                (basicStart1 == basicEnd2 ? 0 : 1)) / 2;
     }
   }
-  return dp[n - 1][m - 1] / std::max(n, m);
+  else {
+    GetValue(n - 1, basicEnd1);
+    if (m == 1) {
+      result = ((basicStart1 == basicStart2 ? 0 : 1) + 
+                (basicEnd1 == basicStart2 ? 0 : 1)) / 2;
+    }
+    else {
+      mb.GetValue(m - 1, basicEnd2);
+      result = ((basicStart1 == basicStart2 ? 0 : 1) + 
+                (basicEnd1 == basicEnd2 ? 0 : 1)) / 2;
+    }
+  }
+//   cout << "result for ";
+//   if (n == 1) {
+//     cout << *this;
+//   }
+//   else {
+//     cout << "long";
+//   }
+//   cout << " and ";
+//   if (m == 1) {
+//     cout << mb;
+//   }
+//   else {
+//     cout << "long";
+//   }
+//   cout << " is " << result << endl;
+  return result;
+//   for (int i = 1; i < n; i++) {
+//     GetValue(i - 1, basic1);
+//     for (int j = 1; j < m; j++) {
+//       mb.GetValue(j - 1, basic2);
+//       dp[i][j] = std::min(dp[i - 1][j] + 1,
+//                  std::min(dp[i][j - 1] + 1, 
+//                      dp[i -1][j - 1] + Tools::distance(basic1, basic2, 
+//                                                        labelFun)));
+//     }
+//   }
+//   return dp[n - 1][m - 1] / std::max(n, m);
 }
 
 /*
