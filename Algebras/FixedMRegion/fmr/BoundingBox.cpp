@@ -93,7 +93,53 @@ bool BoundingBox::inside (Point p) {
 }
 
 /*
-6 ~toString~ 
+6 ~intersects~
+
+Tests, if a line segment ~seg~ intersects with this bounding box.
+
+*/
+bool BoundingBox::intersects (Seg& seg) {
+    bool intersects = false;
+    
+    if (seg.f.x == seg.i.x) { // Line is parallel to y-axis
+        double x = seg.i.x;
+        double y1 = std::min(seg.i.y, seg.f.y);
+        double y2 = std::max(seg.i.y, seg.f.y);
+        intersects =  ((lowerLeft.x <= x && x <= upperRight.x) &&
+                       ((lowerLeft.y <= y1 && y1 <= upperRight.y) ||
+                        (lowerLeft.y <= y2 && y2 <= upperRight.y) ||
+                        (y1 < lowerLeft.y && y2 > upperRight.y)));
+    } else {
+        // Initialize values m and c, so that the segment is
+        // on the line y = m*x + c
+        double m = (seg.f.y - seg.i.y) / (seg.f.x - seg.i.x);
+        double c = seg.i.y - m * seg.i.x;
+        
+        double y1, y2;
+        if (m > 0) { // Ensure that y1 < y2
+            y1 = m*lowerLeft.x + c;
+            y2 = m*upperRight.x + c;
+        } else {
+            y1 = m*upperRight.x + c;
+            y2 = m*lowerLeft.x + c;
+        }
+        intersects = ((lowerLeft.y <= y1 && y1 <= upperRight.y)  ||
+                      (lowerLeft.y <= y2 && y2 <= upperRight.y)  ||
+                      (y1  < lowerLeft.y && upperRight.y  < y2));
+    }
+    
+    if (!intersects) {
+        // Test, if the segment is completely inside the bounding box
+        if (lowerLeft.x <= seg.i.x && seg.i.x <= upperRight.x &&
+            lowerLeft.y <= seg.i.y && seg.i.y <= upperRight.y)
+            intersects = true;
+    }
+    
+    return intersects;
+}
+
+/*
+7 ~toString~ 
 
 Returns a string representation of this bounding box.
  

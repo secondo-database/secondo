@@ -143,7 +143,17 @@ std::pair<bool, TransformationUnit> Seg::calculateTransformation(Seg& seg,
 }
 
 /*
-10 ~ToString~
+10 ~intersects~
+
+Test, if this segment intersects with a given Segment ~seg~
+ 
+*/
+bool Seg::intersects(Seg& seg) {
+    return false;
+}
+
+/*
+11 ~ToString~
 
 Returns a string representation for this segment
 

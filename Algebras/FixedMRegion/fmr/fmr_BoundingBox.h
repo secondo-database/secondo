@@ -25,6 +25,7 @@ Header file with the class definition for the class ~RCurve~
 #define BOUNDINGBOX_H
 
 #include "fmr_Point.h"
+#include "fmr_Seg.h"
 
 namespace fmr {
 
@@ -40,6 +41,7 @@ public:
     void rotate (Point center, double angle);
     bool valid () { return lowerLeft.valid() && upperRight.valid(); }
     bool inside (Point p);
+    bool intersects (Seg& seg);
     void invalidate () { lowerLeft = Point(); upperRight = Point(); }
     std::string ToString();
 

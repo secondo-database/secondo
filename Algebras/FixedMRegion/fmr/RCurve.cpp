@@ -126,22 +126,31 @@ Calculate all intersections of a line segment with this ~RCurve~ segment.
 
 */
 std::vector<Point> RCurve::intersections (Seg s) {
+    static int fast = 0, slow = 0;
+    std::vector<Point> ps;
+    if (!boundingBox().intersects(s)) {
+        // Fast path: If the segment doesn't intersect the bounding box, then
+        // it doesn't intersect the RCurve, too.
+        fast++;
+        return ps;
+    }
+    slow++;
+    std::cerr << "Fast " << fast << "; Slow " << slow << "\n";
     Curve *c = getCurve(); // First, construct the corresponding Curve
     if (!c) { // Can fail if the type is invalid/unsupported by getCurve()
-        std::vector<Point> none;
-        return none;
+        return ps;
     }
     
     SegT segt(s.rotate(off, -angle)); // Correct the orientation of the segment
     ISSegCurve is(segt, *c);
     
-    std::vector<Point> ret = is.findIntersection(); // Get intersections
+    ps = is.findIntersection(); // Get intersections
     // Undo the transformation above
-    for (int nrpoint = 0; nrpoint < ret.size(); nrpoint++) {
-        ret[nrpoint] = ret[nrpoint].rotate(off, angle);
+    for (int nrpoint = 0; nrpoint < ps.size(); nrpoint++) {
+        ps[nrpoint] = ps[nrpoint].rotate(off, angle);
     }
     
-    return ret;
+    return ps;
 }
 
 /*

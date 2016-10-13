@@ -19,6 +19,8 @@ example/region1   - Example region
 example/region2   - region1 translated and rotated for interpolation test
 example/traversedarea1 - precalculated traversed area of fmregion1
 
+Compile with: make example
+
 Usage examples:
 
 Calculate the projection of fmregion1 at instant "2016-01-01-03:31":

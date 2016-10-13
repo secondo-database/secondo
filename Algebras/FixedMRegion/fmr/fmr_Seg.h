@@ -55,6 +55,7 @@ public:
     double length () { return (i - f).length(); };
     std::pair<bool, TransformationUnit> calculateTransformation(Seg& seg,
                                                 Point center, double tolerance);
+    bool intersects (Seg& seg);
     bool valid() { return i.valid() && f.valid(); }
     std::string ToString();
     
