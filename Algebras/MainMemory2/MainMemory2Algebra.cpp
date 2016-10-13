@@ -3758,8 +3758,7 @@ class avlOperLI{
           :relation(_relation), ttree(_tree), attr1(_attr1), attr2(_attr2),
           keyType(_keyType){
           isAvl = false;
-          AttrComp cmp;
-          tit = ttree->tail(ttreePair(attr1,0), cmp); 
+          tit = ttree->tail(ttreePair(attr1,0)); 
           res = true; 
         }
 
@@ -6476,7 +6475,7 @@ ListExpr minsertTypeMap(ListExpr args) {
     third = nl->Second(third);
     if(!Relation::checkType(third)){
       return listutils::typeError(
-	"third arg is not a memory relation");
+       "third arg is not a memory relation");
     }
   }
   
@@ -6644,7 +6643,7 @@ main memory realtion.
 class minsertsaveInfo {
   public:
      minsertsaveInfo(Word w, vector<Tuple*>* _relation, 
-		     vector<Tuple*>* _auxrel, 
+         vector<Tuple*>* _auxrel, 
                  bool _flob, TupleType* _type)
         : stream(w),relation(_relation), auxrel(_auxrel), 
           flob(_flob), type(_type) {

@@ -371,6 +371,43 @@ write a textual representation for this node to ~out~.
         assert(count>0);
         return *(objects[count-1]);
       }
+
+/*
+~hasSpace~
+
+The function checks whether the node can include a further entry.
+
+*/
+    inline bool hasSpace() const{
+      return count < maxEntries-1;
+    }    
+  
+/*
+~insert~
+
+Inserts a new entry into a node having enough space.
+
+*/
+    void insert(T& value, std::vector<int>* attrPos){
+      assert(hasSpace());
+      // search insertion position
+      size_t pos = 0; 
+      while(     (pos < count) 
+            &&!Comparator::greater( *objects[pos],value,attrPos)){
+          pos++;
+      }    
+      for(size_t i = count ; i > pos; i--){
+        objects[count] = objects[count-1];
+      }    
+      objects[pos] = new T(value);
+      count++;
+    }    
+
+
+
+
+
+
       
     protected:
 
@@ -403,7 +440,7 @@ class Iterator{
   public:
  
 
-    Iterator():stack(),count(0){}
+    Iterator():stack(),pos(0){}
 
       
 /*
@@ -419,7 +456,7 @@ is set to the smallest entry in the tree.
         stack.push(son);
         son = son->getLeftSon();   
       }
-      count = 0;
+      pos = 0;
     }
 
 /*
@@ -431,25 +468,28 @@ minimum value.
 
 */
     Iterator(TTreeNode<T,Comparator>* root,
-             const T& minV, Comparator& cmp){
+             const T& minV){
        TTreeNode<T,Comparator>* son = root;
+       pos = 0; 
        while(son){
-         if(cmp.smaller(minV,son->getMinValue(),0)){
+         if(Comparator::smaller(minV,son->getMinValue(),0)){
             // value smaller than all entries
             stack.push(son);
             son = son->getLeftSon();
-         } else if(cmp.greater(minV,son->getMaxValue(),0)){
+         } else if(Comparator::greater(minV,son->getMaxValue(),0)){
            // value greater than all entries
            son = son->getRightSon();
          } else {
            // value is inside the node
            stack.push(son);
-           this->count = 0; 
-           while(this->count<son->getCount()){
-             if(!cmp.smaller(*(son->getObject(this->count)),minV,0)){
+           while(pos<son->getCount()){
+             if(!Comparator::smaller(*(son->getObject(pos)),minV,0)){
+                cout << "stacksize : " << stack.size() << endl;
+                cout << "count = " << pos << endl;
+
                 return;
              }    
-             this->count++;
+             pos++;
            }    
            // should never be reached
          }    
@@ -464,7 +504,7 @@ minimum value.
 */    
     Iterator(const Iterator& it){
        this->stack = it.stack;
-       this->count = it.count;         
+       this->pos = it.pos;         
     }
 
     
@@ -474,7 +514,7 @@ minimum value.
 */ 
     Iterator& operator=(const Iterator& it){
        this->stack = it.stack;
-       this->count = it.count;
+       this->pos = it.pos;
        return *this; 
     }
 
@@ -499,7 +539,11 @@ is returned.
 
 */  
     T operator*() {
-      return get(count);
+       assert(!stack.empty());
+       const TTreeNode<T,Comparator>* elem = stack.top();
+       assert(elem);
+       assert(pos < elem->getCount());
+       return *(elem->getObject(pos));
     } 
     
     
@@ -512,10 +556,12 @@ The ~get~ function returns the value currently under this
 iterator at position i.
 
 */
+  /*
     T get(int i) const {
       const TTreeNode<T,Comparator>* elem = stack.top();
       return *elem->getObject(i);
     }
+  */
      
      
 /*
@@ -532,23 +578,22 @@ otherwise __true__.
      }
      // there are elemnts in the node left
      TTreeNode<T,Comparator>* elem = stack.top();
-     if(count < elem->getCount()-1) {
-       count++;
+     if(pos < elem->getCount()-1) {
+       pos++;
        return true;
      }
+
+     stack.pop(); // the current node is processed
+     pos = 0;     // try to find an unprocessed node
      // go to first element in next node
      TTreeNode<T,Comparator>* son;
      if((son = elem->getRightSon())) {
-        stack.pop(); // the current node is processed
         stack.push(son);
         while((son = son->getLeftSon())){
           stack.push(son);
         }
-        count = 0;
         return true;
      } else { // there is no right son
-        stack.pop();
-        count = 0;
         return !stack.empty();
      }
    }
@@ -567,10 +612,14 @@ further elements exist.
       if(size==0){ // no elements
         return false;
       } 
-      if(size>=1){ 
+      if(size>1){ 
         return true;
       }
-      return (stack.top()->getRightSon()!=0);
+      TTreeNode<T,Comparator>* elem = stack.top();
+      if(pos < elem->getCount()-1){ // node has more elements
+        return true;
+      } 
+      return (elem->getRightSon()!=0);
     }
 
     
@@ -589,7 +638,7 @@ any elements, i.e. whether Get or [*] would return NULL.
   private:
  
      std::stack<TTreeNode<T,Comparator>*> stack;       
-     size_t count;     
+     size_t pos;     
 };
 
 
@@ -641,8 +690,8 @@ first element in the tree .
       return it;
     }
    
-    Iterator<T, Comparator> tail(const T& minV, Comparator& cmp){
-      Iterator<T,Comparator> it(root,minV, cmp);
+    Iterator<T, Comparator> tail(const T& minV){
+      Iterator<T,Comparator> it(root,minV);
       return it;
     }
  
@@ -864,26 +913,11 @@ It returns the root of the new tree.
       // leaf reached
       if(root == NULL){ 
         root = new TTreeNode<T,Comparator>(minEntries,maxEntries);
-        root->objects[0] = new T(value);   
-        root->count = 1;
-        root->updateHeight();
-        success = true;
-        return root;
       }
       
       // node bounds value and still has room
-      if(root->count < root->maxEntries) {
-        // dont allow duplicates
-//         for(int i=0; i<root->count; i++) {
-//           if(Comparator::equal(value,*root->objects[i],attrPos)) {
-//             success = false;
-//             return root;
-//           }
-//         }
-        root->objects[root->count] = new T(value);  
-        root->count++;      
-        root->updateHeight();
-        root->updateNode(attrPos);
+      if(root->hasSpace()) {
+        root->insert(value, attrPos);
         success = true;
         return root;
       }
