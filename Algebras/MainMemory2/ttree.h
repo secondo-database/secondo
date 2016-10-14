@@ -386,24 +386,10 @@ The function checks whether the node can include a further entry.
 ~insert~
 
 Inserts a new entry into a node having enough space.
+The new entry should be created exclusively for the tree,
+this method does not create a copy from it.
 
 */
-  /*
-    void insert(T& value, std::vector<int>* attrPos){
-      assert(hasSpace());
-      // search insertion position
-      size_t pos = 0; 
-      while(     (pos < count) 
-            &&!Comparator::greater( *objects[pos],value,attrPos)){
-          pos++;
-      }    
-      for(size_t i = count ; i > pos; i--){
-        objects[count] = objects[count-1];
-      }    
-      objects[pos] = new T(value);
-      count++;
-    }    
- */
     void insert(T* value, std::vector<int>* attrPos){
       assert(hasSpace());
       // search insertion position
@@ -417,7 +403,32 @@ Inserts a new entry into a node having enough space.
       }    
       objects[pos] = value;
       count++;
-    }    
+    }   
+
+
+/*
+~replaceGreatest~
+
+Replaces the last element of this node with a new value. The old
+last element is returned. If the node is empty, null is returned.
+
+*/
+  T* replaceGreatest(T* newValue, std::vector<int>* attrPos){
+    T* res;
+    if(count==0){
+        res = 0;
+    } else {
+      res = objects[count-1];
+      objects[count-1] = 0;
+      count--;
+    }
+    insert(newValue,attrPos);
+    return res;
+  }
+   
+
+
+ 
 
       
     protected:
@@ -957,10 +968,8 @@ It returns the root of the new tree.
            return root;
          } else {
          // there is no space, replace value with the 
-         // leftmost value in the node
-         T* tmp = root->objects[0];     
-         root->objects[0] = value;
-         value = tmp;
+         // rightmost value in the node
+           value=root->replaceGreatest(value,attrPos);
         }
       }
       
