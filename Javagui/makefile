@@ -58,10 +58,10 @@ demo:
 	@mv Javagui.jar Demo
 	@cp gui.cfg Demo || cp gui.cfg.example Demo/gui.cfg 
 	@cp GBS.cfg Demo || cp GBS.cfg.sample Demo/GBS.cfg
-	@echo 'java -Xmx80M -jar Javagui.jar $$*' > Demo/sgui
+	@echo 'java -Xmx512M -jar Javagui.jar $$*' > Demo/sgui
 	@chmod +x Demo/sgui
 	@cp -r data Demo
-	@echo 'java -Xmx80M -jar Javagui.jar %*' > Demo/sgui.bat
+	@echo 'java -Xmx512M -jar Javagui.jar %*' > Demo/sgui.bat
 	@java tools/CheckViewer >Demo/ViewerList.txt
 	@echo "Building Demo has finished successfully, you can find it in the Demo directory"
 
