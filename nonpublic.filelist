@@ -145,6 +145,7 @@ bin/Scripts/BerlinMOD_DataGenerator.SEC
 bin/Scripts/BerlinMOD_SaveQueryResults.SEC
 bin/Scripts/Network_SaveQueryResults.SEC
 bin/Scripts/JNetwork_DeleteCreatedBMODObjects.SEC
+bin/Scripts/JNetwork_DeleteQueryResults.SEC
 bin/Scripts/OrderedRelationGraphFromFullOSMImportWithAreaSelection.SEC
 bin/Scripts/OrderedRelationGraphFromFullOSMImportParallel.SEC
 bin/Scripts/BerlinMOD_OBA-Queries.SEC
