@@ -88,7 +88,6 @@ Data/Objects/KreisLaender
 Algebras/RegionInterpolation/Tex
 Algebras/JNet/Scripts
 Algebras/Network/Scripts
-bin/Scripts
 bin/Scripts2
 Tools/ContinuousUpdate
 Tools/PostGIS
@@ -141,6 +140,46 @@ Javagui/tools/PeriodicPointBuilder.java
 StorageManager/bdbUpdateFile.cpp
 
 
+bin/Scripts/replayNrwImportShape.SEC
+bin/Scripts/BerlinMOD_DataGenerator.SEC
+bin/Scripts/BerlinMOD_SaveQueryResults.SEC
+bin/Scripts/Network_SaveQueryResults.SEC
+bin/Scripts/JNetwork_DeleteCreatedBMODObjects.SEC
+bin/Scripts/OrderedRelationGraphFromFullOSMImportWithAreaSelection.SEC
+bin/Scripts/OrderedRelationGraphFromFullOSMImportParallel.SEC
+bin/Scripts/BerlinMOD_OBA-Queries.SEC
+bin/Scripts/JNetwork_CreateBMODObjects.SEC
+bin/Scripts/DACinSecondo.sec
+bin/Scripts/JNetwork_TBA-Queries.SEC
+bin/Scripts/DistributedSimilarityClustering.sec
+bin/Scripts/BerlinMOD_CreateObjects.SEC
+bin/Scripts/.cvsignore
+bin/Scripts/CVS/Root
+bin/Scripts/CVS/Repository
+bin/Scripts/CVS/Entries
+bin/Scripts/CompareDataRepresentationsByBerlinMOD.SEC
+bin/Scripts/JNetwork_OBA-Queries.SEC
+bin/Scripts/BalancedSpatialJoin.sec
+bin/Scripts/OrderedRelationGraphFromFullOSMImport.Railways.SEC
+bin/Scripts/Network_CreateObjects.SEC
+bin/Scripts/bin/Scripts/JNetwork_DeleteQueryResults.SEC
+bin/Scripts/nrwCorrectShape.SEC
+bin/Scripts/Network_TBA-Queries.SEC
+bin/Scripts/BalancedSpatialPartition.sec
+bin/Scripts/SimilarityPartitioning.sec
+bin/Scripts/Network_DeleteQueryResults.SEC
+bin/Scripts/JNetworkFromFullOSMImport.SEC
+bin/Scripts/BerlinMOD_TBA-Queries.SEC
+bin/Scripts/GermanPolygonImportParallelOnly.SEC
+bin/Scripts/NetworkFromFullOSMImport.SEC
+bin/Scripts/Network_OBA-Queries.SEC
+bin/Scripts/BerlinMOD_DeleteQueryResults.SEC
+bin/Scripts/JNetwork_SaveQueryResults.SEC
+bin/Scripts/DistributedSimilarityClusteringImpl.sec
+bin/Scripts/OrderedRelationGraphFromFullOSMImportParallelOnly.SEC
+
+
+
 # Viewers of the practical course developed
 # in the winter term 2006/2007
 
@@ -157,6 +196,12 @@ bin/chesstest
 bin/sochi84.pgn
 
 Tests/Testspecs/partstream.test
+
+
+
+
+
+
 
 
 ###                    ###
