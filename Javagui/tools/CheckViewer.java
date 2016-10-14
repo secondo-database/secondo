@@ -79,7 +79,15 @@ public class CheckViewer{
         SV = Class.forName("viewer.SecondoViewer");
      } catch(Exception e){
         System.err.println("class SecondoViewer not found");
+        System.exit(1);
      }
+     System.out.println("This file contains all viewers which can be actived within ");
+     System.out.println("the graphical user interface of Secondo.");
+     System.out.println("For activating a viewer type in ");
+     System.out.println("gui addViewer <name of the viewer>");
+     System.out.println("known viewers are the following:");
+     System.out.println();
+
      //tools.Environment.DEAD_SILENCE=true;
      File f = new File("viewer/");
      Queue<File> files = new LinkedList<File>();;
