@@ -165,7 +165,7 @@ Returns the amount of memory occupied by the subtree represented by this node.
         size_t res = sizeof(*this) + 
                      sizeof(void*) * TTreeNode<T,Comparator>::maxEntries;
         
-        for(int i=0;i<TTreeNode<T,Comparator>::count;i++){
+        for(int i=0;i<count;i++){
           res += sizeof(* objects[i]);
         }
         
@@ -253,7 +253,7 @@ Sorts the elements of this node with insertionSort.
         int j;
         T* temp;
                       
-        for (size_t i = 0; i < this->count; i++){
+        for (size_t i = 0; i < count; i++){
           j = i;
                 
           while (j>0 && Comparator::smaller(*this->objects[j],
@@ -275,12 +275,9 @@ it's elements.
 
 */
     void updateNode(std::vector<int>* attrPos) {
-      if(this && this->count > 0) {
-        if(count > 1) 
-          insertionSort(attrPos);
+      if(count > 1) {
+        insertionSort(attrPos);
       }
-      else 
-        std::cout << "couldnt update node" << std::endl;
     }
     
 
@@ -361,6 +358,36 @@ write a textual representation for this node to ~out~.
       out << ")";
          return out;
       }
+    
+      void printtree(std::ostream& out){
+          printtree(this,out);
+      }
+
+
+      static void printtree(const TTreeNode<T,Comparator>* root, 
+                            std::ostream& out, bool isRoot = true){
+        if(isRoot){
+          out << "( tree ";
+        }
+        if(!root){
+           out << "' '" << endl;
+        } else {
+          out << "(";
+          out << "'";
+          for(size_t i=0;i<root->getCount();i++){
+             if(i>0) out << ", ";
+             out << *(root->getObject(i));
+          }
+          out << "'  ";
+          printtree(root->left,out,false);
+          printtree(root->right,out, false);
+          out << " )";
+        }
+        if(isRoot){
+          out << ")";
+          out << endl;
+        }
+    }
 
       const T& getMinValue(){ 
          assert(count>0);
@@ -399,7 +426,7 @@ this method does not create a copy from it.
           pos++;
       }    
       for(size_t i = count ; i > pos; i--){
-        objects[count] = objects[count-1];
+        objects[i] = objects[i-1];
       }    
       objects[pos] = value;
       count++;
@@ -418,6 +445,7 @@ last element is returned. If the node is empty, null is returned.
     if(count==0){
         res = 0;
     } else {
+      // remove the greatest object
       res = objects[count-1];
       objects[count-1] = 0;
       count--;
@@ -425,7 +453,61 @@ last element is returned. If the node is empty, null is returned.
     insert(newValue,attrPos);
     return res;
   }
-   
+
+
+
+   // this method checks for the subtree represented by this
+   // node whether the count condition of a ttree is fullfilled   
+   bool checkCount(){
+       if(count ==0){
+           cout << "found node without elements" << endl;
+           return false;
+       }
+       if(count > maxEntries){
+          cout << "found node having more entries than allowed" << endl;
+       }
+       if(left || right){ // inner node
+          if(count < minEntries){
+             cout << "found inner node having too less entries" << endl;
+             return false;
+          }
+       }
+
+       bool ok = true;
+       if(left){
+         ok = ok && left->checkCount();
+       }
+       if(right){
+         ok = ok && right->checkCount();
+       }
+       return ok;
+   }
+
+   bool checkOrder(const T* min, const T* max, std::vector<int>* attrPos){
+       // check internal order
+       for(size_t i=0;i<count-1; i++){
+          if(Comparator::greater(*objects[i], *objects[i+1],attrPos)){
+             cout << "found invalid order within a single node" << endl;
+             return false;
+          }
+       }
+       if(min && Comparator::smaller(getMinValue(),*min, attrPos) ){
+          cout << "found value of a node smaller than allowed" << endl;
+          return false; 
+       }
+       if(max && Comparator::greater(getMaxValue(), *max, attrPos)){
+          cout << "found value of a node greater than allowed" << endl;
+          return false; 
+       }
+       bool ok = true;
+       if(left){
+          ok = ok && left->checkOrder(min, objects[0], attrPos);
+       }
+       if(right){
+          ok = ok && right->checkOrder(objects[count-1], max, attrPos);
+       }
+       return ok;
+   }
 
 
  
@@ -506,9 +588,6 @@ minimum value.
            stack.push(son);
            while(pos<son->getCount()){
              if(!Comparator::smaller(*(son->getObject(pos)),minV,0)){
-                cout << "stacksize : " << stack.size() << endl;
-                cout << "count = " << pos << endl;
-
                 return;
              }    
              pos++;
@@ -634,11 +713,11 @@ further elements exist.
       if(size==0){ // no elements
         return false;
       } 
-      if(size>1){ 
+      if(size>1){ // at least one nn processed node 
         return true;
       }
       TTreeNode<T,Comparator>* elem = stack.top();
-      if(pos < elem->getCount()-1){ // node has more elements
+      if(pos < elem->getCount()-1){ // node has unprocessed  elements
         return true;
       } 
       return (elem->getRightSon()!=0);
@@ -934,10 +1013,12 @@ It returns the root of the new tree.
                                     std::vector<int>* attrPos,
                                     bool& success) {
        T* v = new T(value);
+
        TTreeNode<T,Comparator>* res = insert(root,v,attrPos,success);
        if(!success){
           delete v;
        }
+
        return res;
 
     }
@@ -955,7 +1036,11 @@ It returns the root of the new tree.
         return root;
       }
      
-
+      if(root->isLeaf() && root->hasSpace()){
+         root->insert(value,attrPos);
+         success = true;   
+         return root;
+      }
 
  
       if(   !Comparator::smaller(*value,root->getMinValue(),attrPos)
@@ -979,12 +1064,10 @@ It returns the root of the new tree.
       if(!Comparator::greater(*value, root->getMinValue(), attrPos)){
         root->left = insert(root->left,value,attrPos,success);
         root->updateHeight();
-        
         // rotation or double rotation required
         if(abs(root->balance()) > 1) { 
-          
           // single rotation is sufficient
-          if(root->left->balance() > 0) { 
+          if(root->left->balance() > 0) {
             return rotateRight(root); 
           }
           // left-right rotation is required
@@ -999,19 +1082,20 @@ It returns the root of the new tree.
           success = true;
           return root;
         }
+        assert(false);
       }
       
       // search right subtree
       if(!Comparator::smaller(*value,root->getMaxValue(),attrPos)) {
         root->right = insert(root->right,value,attrPos,success);
         root->updateHeight();
-        
         // rotation or double rotation required
         if(abs(root->balance())>1) {
           // single left rotation sufficient
           if(root->right->balance() < 0) { 
             return rotateLeft(root);
           }
+
           // right-left rotation required
           if(root->right->balance() > 0){
             return rotateRightLeft(root,attrPos);
@@ -1257,19 +1341,33 @@ Performs a right-left rotation in the subtree given by root.
       TTreeNode<T,Comparator>* B2 = y->right;
       
       //special case:
-      //if y is leaf, move entries from z to y till y is full node
-      if(y->isLeaf()) {
-        while(y->count < y->minEntries) {
-          // TODO: reverseSort
-          T* tmp = z->objects[z->count-1];
-          y->objects[y->count] = tmp;
-          z->objects[z->count-1] = 0;
-          z->count--;
-          y->count++;
-          y->updateNode(attrPos);
-        }
+      //if y is leaf, move entries from z to y till y has the 
+      // minimum number of entries
+      // y contains smaller values than z, so we have to
+      // move from the beginning of z to the end of y
+     
+
+      if(y->isLeaf() && (y->getCount() < y->getMinEntries())){
+         size_t entriesToTransfer = y->getMinEntries() - y->getCount();
+         assert(z->getCount() > entriesToTransfer);
+
+         // transfer the entries
+         for(size_t i=0; i< entriesToTransfer; i++){
+            y->objects[y->getCount()+i] = z->objects[i];
+         }
+         // move entries in z to left
+         for(size_t i=0; i< z->getCount() - entriesToTransfer; i++){
+            z->objects[i] = z->objects[i+entriesToTransfer];
+         } // fill z up with 0
+         for(size_t i = z->getCount() - entriesToTransfer ; 
+            i< z->getCount(); i++){
+            z->objects[i] = 0;
+         }
+         y->count += entriesToTransfer;
+         z->count -= entriesToTransfer;
       }
-      
+
+
       x->right=B1;
       x->updateHeight();
       z->left = B2;
@@ -1316,18 +1414,20 @@ Performs a left-right rotation in the subtree given by root.
      
       // special case:
       // if y is leaf, move entries from z to y till y is full node
-      if(y->isLeaf()) {
-        while(y->count < y->minEntries) {
-          if(z->count == 0) {
-            break;
-          }
-          T* tmp = z->objects[z->count-1];
-          y->objects[y->count] = tmp;
-          z->objects[z->count-1] = 0;
-          z->count--;
-          y->count++;
-          y->updateNode(attrPos);
+      if(y->isLeaf() && (y->getCount() < y->getMinEntries())) {
+        size_t entriesToMove = y->getMinEntries() - y->getCount();
+        // create place in the beginning of y
+        for(size_t i = y->getCount() ; i>0; i--){
+           y->objects[i+entriesToMove -1] = y->objects[i -1];
         }
+        // move entries from z to y
+        for(size_t i=0;i<entriesToMove; i++){
+           size_t z_i = z->getCount()  - entriesToMove + i;
+           y->objects[i] = z->objects[z_i];
+           z->objects[z_i] = 0;
+        }
+        y->count += entriesToMove;
+        z->count -= entriesToMove;
       }    
       
       z->left=A;
@@ -1340,9 +1440,7 @@ Performs a left-right rotation in the subtree given by root.
       y->updateHeight();
       return y;
     }
-    
-    
-    
+	
 /*
 ~print~
 
@@ -1395,6 +1493,8 @@ Prints the subtree given by root to the console.
       out << ") \n";
       
     }
+
+
  
 };
 
