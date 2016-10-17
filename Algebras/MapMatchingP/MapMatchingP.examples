@@ -1,0 +1,59 @@
+Database: berlintest
+Restore: No
+
+Operator : nodeRelToRegion 
+Number   : 1
+Signature: (tuple x) -> Region (deactivated)
+Example  : query WaysHochdahl_Curve_rtree windowintersectsS[HochdahlerMarkt] NodesHochdahl gettuples head[1] consume nodeRelToRegion count
+Result   : 1
+
+Operator : sLineRelToRegion
+Number   : 1
+Signature: rel(SimpleLine) -> Region (deactivated)
+Example  : query EdgesHochdahl feed head[1] project[Curve] consume sLineRelToRegion [8.0]
+Result   : ((((6.950822 51.2076135)(6.950924080264284 51.20758054304913)(6.950968580264284 51.20763464304913)(6.9508665 51.2076676))))
+
+Operator : pointToRegion
+Number   : 1
+Signature: Point -> Region
+Example  : query NodesHochdahl feed head[1] extend[Reg: .Pos pointToRegion [5.7]] count
+Result   : 1
+
+Operator : nodesToRegionNodes
+Number   : 1
+Signature: rel x int x string -> (stream Tuple(int int int Region))
+Example  : query NodesHochdahl feed head[10] consume nodesToRegionNodes[10000, "WaysHochdahl"] count
+Result   : 10
+
+Operator : edgesToRegionNodes
+Number   : 1
+Signature: (rel x) -> (stream Tuple(int int int Region))
+Example  : query EdgesHochdahl feed head[10] consume edgesToRegionNodes[1] count
+Result   : 10
+
+Operator : sLineToRegion
+Number   : 1
+Signature: SimpleLine -> Region
+Example  : query EdgesHochdahl feed head[1] extend[Reg: .Curve sLineToRegion [5.7]] count
+Result   : 1
+
+Operator : createEdgesForRegionNodes
+Number   : 1
+Signature: rel x int x string x string x string -> (stream Tuple(int int int int))
+Example  : query regsSmallAmount createEdgesForRegionNodes[1, "regsSmallAmount", "regsSmallAmountSrcId_BTree", "regsSmallAmountTargetId_BTree"] count
+Result   : 6
+
+Operator : mapMatchWalks
+Number   : 1
+Signature: rel x rel x rel x rtree x btree -> stream(tuple(...))
+Example  : query mapMatchWalks( Raw20160911 , "hRegsAllGraphEdges", "hRegsAllNoOverlap", "hRegsAllNoOverlap_RTree", "hRegsAllNoOverlap_RegId_BTree" ) count
+Result   : 77
+
+Operator : removeOverlapping
+Number   : 1
+Signature: rel x int -> stream(tuple(...))
+Example  : query removeOverlapping( regsSmallAmount, "regsSmallAmount_RTree", "regsSmallAmount",  11000 ) count
+Result   : 10
+
+
+
