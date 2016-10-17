@@ -1,0 +1,109 @@
+Hallo Herr Prof. Güting,
+
+ich habe 15.10.2016 den aktuellen Stand meiner Entwicklung in die Sourcecodeverwaltung 
+zurückgeschrieben.
+Nachfolgend werden die entsprechenden Anpassungen beschrieben.
+Wie gefordert sind Änderung an einer Zeile durch %B.Huber am Ende der Zeile markiert.
+Wurde eine Bereich ergänzt bzw. eine neue Prolog-Funktion mitaufgenommen, dann wurde 
+der Anfang durch %B.Huber und das Ende durch %B.Huber end gekennzeichnet.
+
+calloptimizer.pl:
+In der calloptimizer.pl wurden die geringsten Änderungen vorgenommen. 
+Es wurde nur eine zusätzliche Zeile zum Einbinden der Datei testcases.pl
+ergänzt.
+
+testcases.pl:
+Die testcases.pl wurde von OptimierBasic/Distributed/testcases.pl kopiert. 
+Leider habe ich erst später bemerkt, dass Sie die Datei im Verzeichnis
+OptimizerBasic testcasesDistributed.pl genannt haben. 
+Da ich aber im meiner Abschlussarbeit auf den Namen testcases.pl verwiesen habe, 
+konnte ich die Datei nicht mehr umbenennen.
+Die Datei enthält alle Testanfragen der Fachpraktikumsgruppe, angepasst auf den 
+Optimizer für eine Konfiguration mit 36 Workern und 50 Slots.
+In der Datei habe ich die zusätzlichen Regeln 32 bis 37 mitaufgenommen, für den 
+Test der Aggregatfunktionen in Verbindung mit Groupby.
+
+costs2014.pl:
+In der Datei costs2014.pl wurden zwei zusätzliche einfache Regeln für dot und dotdot
+mitaufgenommen, um aus den costs2014-Regeln für die Distributed2Algebra die 
+entsprechenden Parameter Size, NAttrs und TSize auszulesen.
+Zusätzlich habe ich Kapitel 2 in der Datei ergänzt, dieses enthält alle relevanten
+Prolog-Regeln für den Aufruf der bestehenden Kostenfunktionen, wenn für einen 
+Secondo-Befehl keine entsprechende costs2014-Regel existiert.
+Darüber hinaus gibt es zwei Regeln um die Parameter Result, Memory, NAttrs und TSize 
+kurzzeitig zu speichern und wie auszulesen.
+
+optimizerNewProperties.pl:
+Vor den bestehenden Kostenfunktionen wurde eine zusätzliche cost-Funktion ergänzt.
+Diese prüft wenn der Parameter isCosts2014Active gesetzt ist, ob in der Variablen
+Term eine Befehl hinterlegt ist, für den es eine entsprechende costs2014-Funktion
+gibt. Ist das der Fall werden die costs2014-Kostenfunktionen aufgerufen.
+Außerdem wurde zwei Kostenfunktionen für dot und dotdot ergänzt.
+Damit der Aufruf der costs2014-Funktionen für Befehle der Distributed2Algebra 
+möglich ist, existiert eine zusätzliche determineCost-Regel.
+In der translate-Regel: "translate(Select from Rel, ObjName2, Select2, Update, 0)"
+der Fachpraktikumsgruppe, habe ich eine Erweiterung vorgenommen, dass bei SQL-Anweisungen
+ohne Where-Bedingung eine Übersetzung in den dmap-Befehl stattfindet.
+
+distributed.pl:
+Die Datei distributed.pl enthält die meisten Erweiterungen, welche aber auch in der 
+Abschlussarbeit beschrieben wurden.
+Insbesondere sind zwei neue plan_to_atomD-Regeln für die Übersetzung 
+der sum-Anweisung von Aggregatfunktionen enthalten.
+Die bestehenden Regeln moveCost für dproduct, partitionCost für partitionF und 
+collectCost für partitionF und areduce2 wurden so angepasst, dass Sie für 
+bestehende Kostenfunktionen und costs2014-Kostenfunktionen, verwendet werden 
+können. Damit eine Umrechnung in Micro- und Millisekunden für die unter-
+schiedlichen Kostenfunktionen möglich ist, wurde der Parameter Factor 
+ergänzt. Bei costs2014-Funktionen ist dieser 1 bei bestehenden 1000.
+Für die Kostenfunktionen des areduce2-Befehls wurde außerdem die Regel
+areduce2DMapCost ergänzt um benötigte Rundenzeit zu ermitteln.
+Somit verwendet ein Teil der normalen Kostenfunktionen costs2014-Konstanten.
+Dies machte aber Sinn, denn in den Funktionen war ein vermuteter Wert 
+für die benötigte Zeit hinterlegt.
+Zur Ermittlung der Anzahl der Worker aus der Tabelle SEC2WORKERS wurde die 
+Prolog-Regel nWorkers, um den dynamischen Parameter countDWorkers ergänzt.
+Dadurch kann die Anzahl der Worker zur Laufzeit ermittelt werden, vorher 
+war hier der Wert 14 fest hinterlegt.
+Um den Arbeitsspeicher eines Workers zu ermitteln, wurde die Funktion 
+getMemoryOneDistributedWorker mitaufgenommen. Allerdings habe ich diese
+Funktion so geschrieben, dass sie für meine Testfälle passt. Die 
+Methode geht davon aus, dass für die Worker insgesamt der 6-fache Arbeitsspeicher
+des Masters zur Verfügung steht. Momentan gibt es keine Möglichkeit für
+alle Worker den durchschnittlichen Arbeitsspeicher zu ermitteln.
+Die bestehenden Kostenfunktionen wurden angepasst damit die Aufrufe der Regeln
+moveCost, partitionCost und collectCost funktionieren.
+Im Kaptiel 8 befinden sich die transform2DPlan-Regel für die Aufteilung der 
+Befehle der Distributed2Algebra in Sequentiellen- und Distributed-Teil.
+Darin habe ich eine Regel für die Übersetzung der Anweisung predinfo, falls der 
+Parameter noprogress im Optimierer nicht gesetzt ist mitaufgenommen.
+Zusätzlich habe ich transform2DPlanGroupBy-Regeln für die Übersetzung 
+der Aggregatfunktionen ergänzt. Diese wurde entsprechend 
+in der Abschlussarbeit beschrieben.
+Bei der splitRelationGetVar-Regel bin ich mir nicht sicher ob diese Regel wirklich 
+notwendig war, diese teilt die Angabe der Relation:rel(Rel,Var) in Relationenname 
+und Verweis auf. Ich habe aber irgendwie keine passende Regel gefunden.
+Das Kapitel 7 enthält die costs2014-Funktionen für die Befehle der Distributed2Algebra.
+Es wurden entsprechend der Abschlussarbeit für nachfolgende Befehle 
+Kostenfunktionen erstellt dmap, dmap2, dproduct, partitionF, collect2 und areduce2. 
+Die Parameter der Funktionen werden in meiner Abschlussarbeit beschrieben.
+In Kapitel 14 befinden sich die Kostenkonstanten für die costs2014-Funktionen.
+
+Verzeichnis Scripts:
+Dieses Verzeichnis habe ich von OptimizerBasic/Distributed/ übernommen und enthält
+die Scripte der Fachpraktikumsgruppe zum anlegen von Testdaten und zur Pflege 
+der Systemrelationen SEC2DISTINDEXES und SEC2DISTRIBUTED. 
+Das Script CreateDistributedTestObjects.sec wurde von mir um die Relationen für 
+Kostenschätzung ergänzt.
+Zur Pflege der Tabelle SEC2DISTINDEXES wurde von der Fachpraktikumsgruppe das 
+Script CreateSEC2DISTINDEXES.sec erstellt. Dieses wurde von mir 
+unverändert übernommen.
+Das Script CreateSEC2DISTRIBUTED.sec zur Pflege der Tabelle SEC2DISTRIBUTED wurde 
+um die Angabe der Slots Attribut Slots ergänzt.
+
+Was fehlt noch:
+Leider ist die Implementierung der SQL-ähnlichen Sprache für die Verteilung 
+von Daten zu den Workern über die Befehle der Distributed2Algebra noch nicht 
+fertig. Deshalb ist die Implementierung im aktuellen Sourcecodestand noch nicht
+enthalten.
+
