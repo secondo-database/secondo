@@ -124,10 +124,8 @@ Destroy the subtree rooted by this node
      
       ~TTreeNode() {
 
-        for(size_t i=0; i<maxEntries; i++) {
-          if(objects[i]) {
-            delete objects[i];
-          }
+        for(size_t i=0; i<count; i++) {
+          delete objects[i];
         }
         delete[] objects;
         if(left) delete left;
@@ -509,8 +507,85 @@ last element is returned. If the node is empty, null is returned.
        return ok;
    }
 
+   bool isHalfLeaf() const{
+     return ((left==0) && (right!=0)) || ((left!=0) && (right==0));
+   }
 
- 
+
+
+   bool hasSpaceFor(TTreeNode<T,Comparator>* rhs) const{
+     assert(rhs);
+     assert(this);
+     return count + rhs->count <= maxEntries;
+   }
+
+
+   static TTreeNode<T,Comparator>* merge(TTreeNode<T,Comparator>* left, 
+                                         TTreeNode<T,Comparator>* right,
+                                         std::vector<int>* attrPos){
+       assert(left);
+       assert(right);
+       assert(left!=right);
+
+       if(left == right->left){
+         assert(!right->right); 
+         assert(left->isLeaf());
+         right->decouple();; // disconnect nodes
+       } else if(right == left->right){
+         assert(!left->left);
+         assert(right->isLeaf());   
+         left->decouple();
+       } else {
+         assert(false);
+       } 
+
+       assert(left);
+       assert(right);
+
+
+       assert(left->hasSpaceFor(right));
+
+       for(size_t i=0;i<right->count; i++){
+          left->objects[left->count] = right->objects[i];
+          left->count++;
+          right->objects[i] = 0;
+       }
+       TTreeNode<T,Comparator>* res = left;
+       left = 0;
+       right->count = 0;
+       delete right;
+       right = 0;
+       return res;
+   }
+
+
+   bool remove(T& value, std::vector<int>* attrPos){
+      int index = find(value,attrPos);
+      if(!Comparator::equal(value, *objects[index],attrPos)){
+         return false;
+      }
+      delete objects[index];
+      count--;
+      for(size_t i=index; i<count; i++){
+        objects[i] = objects[i+1];
+      }      
+      objects[count] = 0;
+      return true;
+   } 
+
+
+   T* deleteMin(){
+     assert(count>0);
+     T* res = objects[0];
+     count--;
+     for(size_t i=0;i<count; i++){
+       objects[i] = objects[i+1];
+     } 
+     objects[count] = 0;
+     return res;
+   }
+
+
 
       
     protected:
@@ -526,6 +601,40 @@ last element is returned. If the node is empty, null is returned.
       size_t count;
       size_t height;
       T** objects;  
+
+
+/*
+~find~
+
+Searches for a specified element within this node using a binary search. 
+Returns the index where the element is or should be.
+
+*/
+      int find(T& value, std::vector<int>* attrPos){
+         int min = 0;
+         int max = count-1;
+         while(min < max){
+            int mid = (min + max) / 2;
+            if(Comparator::equal(value,*objects[mid],attrPos)){
+               return mid;
+            }
+            if(Comparator::smaller(value,*objects[mid], attrPos)){
+              max = mid - 1;
+            } else {
+              min = mid + 1;
+            }
+         }
+         return min;
+      }
+
+      void decouple(){
+         left=0;
+         right=0;
+         height=0;
+      }
+
+
+
 };
 
 
@@ -751,6 +860,10 @@ This is the main class of this file. It implements a mainmemory-based TTree.
 */
 template<class T, class Comparator>
 class TTree {
+
+  typedef TTreeNode<T, Comparator> Node;
+
+
   public:
 
 /*
@@ -969,7 +1082,7 @@ Removes object ~o~ from this tree.
    private:
      int minEntries;
      int maxEntries;
-     TTreeNode<T,Comparator>* root;  
+     Node* root;  
 
      
      
@@ -982,7 +1095,7 @@ sons are changed. Note that only the direct descendants
 are used to compute the new height.
 
 */
-    int noEntries(TTreeNode<T,Comparator>* root, int &count) {
+    int noEntries(Node* root, int &count) {
       if(root == 0)
         return 0;
       
@@ -1008,13 +1121,13 @@ It returns the root of the new tree.
 
 */
 
-    TTreeNode<T,Comparator>* insert(TTreeNode<T,Comparator>* root, 
+    Node* insert(Node* root, 
                                     T& value,
                                     std::vector<int>* attrPos,
                                     bool& success) {
        T* v = new T(value);
 
-       TTreeNode<T,Comparator>* res = insert(root,v,attrPos,success);
+       Node* res = insert(root,v,attrPos,success);
        if(!success){
           delete v;
        }
@@ -1024,13 +1137,13 @@ It returns the root of the new tree.
     }
     
 
-    TTreeNode<T,Comparator>* insert(TTreeNode<T,Comparator>* root, 
+    Node* insert(Node* root, 
                                     T* value,
                                     std::vector<int>* attrPos,
                                     bool& success) {
       // leaf reached
       if(root == NULL){ 
-        root = new TTreeNode<T,Comparator>(minEntries,maxEntries);
+        root = new Node(minEntries,maxEntries);
         root->insert(value, attrPos);
         success = true;
         return root;
@@ -1115,7 +1228,7 @@ It returns the root of the new tree.
     }
 
     
-    void printNodeInfo(TTreeNode<T,Comparator>* node) {
+    void printNodeInfo(Node* node) {
       std::cout << std::endl << "-->NODE INFO<---------------" << std::endl;
       node->print(std::cout);
       std::cout << std::endl;
@@ -1136,119 +1249,207 @@ It returns the root of the new tree.
 This function removes __value__ from the subtree given by root.
 
 */
-    TTreeNode<T,Comparator>* remove(TTreeNode<T,Comparator>* root, 
-                                    T& value,
-                                    std::vector<int>* attrPos,
-                                    bool& success) {
-      
-      if(root->count == 1 && root->isLeaf()) {
-        if(Comparator::equal(value,root->getMinValue(),attrPos)) {
-          delete root;
-          root = 0;
-          success = true;
-          return root;
-          
-        }
-      }
-      
-      // search in the left subtree
-      if(root->left && 
-            Comparator::smaller(value,root->getMinValue(),attrPos)) { 
-        root->left = remove(root->left,value,attrPos,success);
-        root->updateHeight();
-        root->updateNode(attrPos);
-        if(root->right==NULL){ // because we have deleted  
-                               // in the left part, we cannot 
-                               // get any unbalanced subtree when right is null
-         return root; 
-      }
-        
-        if(abs(root->balance())>1) {
-          // single left rotation sufficient
-          if(root->right->balance() <= 0) { 
-            return rotateLeft(root);
-          }
-          // right-left rotation required
-          if(root->right->balance() > 0){
-            return rotateRightLeft(root,attrPos);
-          }
-          assert(false); // should never be reached
-          return NULL;
-        } 
-        // no rotation required
-        else { 
+    Node* remove(Node* root, 
+                 T& value,
+                 std::vector<int>* attrPos,
+                 bool& success) {
+     
+
+
+      if(Comparator::smaller(value,root->getMinValue(),attrPos)){
+         // delete value within the left son of root
+         if(!root->left){ // value cannot be found
+            success = false;
+            return root;  
+         }  
+         root->left = remove(root->left,value,attrPos,success);
+         if(!success){ // value not found, structure soes not change
+            return root;
+         }
+         root->updateHeight();
+         if(root->left && !root->right && 
+            root->hasSpaceFor(root->left)){ 
+            // a half leaf having left son
+            return Node::merge(root->left, root, attrPos); 
+         }
+         if(abs(root->balance())>1) {
+            // single left rotation sufficient
+            if(root->right->balance() <= 0) { 
+               return rotateLeft(root);
+            }
+            // right-left rotation required
+            if(root->right->balance() > 0){
+              return rotateRightLeft(root,attrPos);
+            }
+            assert(false); // should never be reached
+            return 0;
+         } else {  // balance is ok
           return root;
         }       
+        assert(false);
       }
-      
-      // search right subtree
-      else if(root->right && 
-            Comparator::greater(value,root->getMaxValue(),attrPos)) {
-        root->right = remove(root->right,value,attrPos,success);
-        root->updateHeight();
-        root->updateNode(attrPos);
-        if(root->left==NULL){
+
+      if(Comparator::greater(value,root->getMaxValue(),attrPos)){
+         // delete value in the right son of root
+         if(!root->getRightSon()){
+            success = false;
+            return root;
+         }
+         root->right = remove(root->right,value,attrPos,success);
+         if(!success){
+            return root;
+         }
+         root->updateHeight();
+         if(root->right && !root->left
+           && root->hasSpaceFor(root->right)){
+           return Node::merge(root,root->right, attrPos);
+         }
+         // rotation or double rotation required
+         if(abs(root->balance()) > 1) { 
+            // single rotation is sufficient
+            if(root->left->balance() >= 0) { 
+              return rotateRight(root); 
+            }
+            // left-right rotation is required
+            if(root->left->balance() < 0) {
+              return rotateLeftRight(root,attrPos);
+            } 
+            assert(false); // should never be reached
+            return NULL; 
+          } else { 
+            return root;
+          }
+          assert(false);
+      } 
+
+      // found bounding node
+      success = root->remove(value, attrPos);
+      if(!success){ // value not found, no structure change
          return root;
-       }
-        
-        // rotation or double rotation required
-        if(abs(root->balance()) > 1) { 
-          // single rotation is sufficient
-          if(root->left->balance() >= 0) { 
-            return rotateRight(root); 
-          }
-          // left-right rotation is required
-          if(root->left->balance() < 0) {
-            return rotateLeftRight(root,attrPos);
-          } 
-          assert(false); // should never be reached
-          return NULL; 
-        } 
-        // root remains balanced
-        else { 
-          return root;
-        }
       }
       
-      // bounding node found, searching for value
-      else {
-        if(root->count > root->minEntries || root->isLeaf()) {
-          for(size_t i=0; i<root->count; i++) {
-            if(Comparator::equal(value,*root->objects[i],attrPos)) {
-              // swap value to be deleted with last element
-              swap(root,i,root,root->count-1);
-              // delete last element
-              remove(root,root->count-1);
-              root->updateNode(attrPos);
-              success = true;
-              return root;
-            }
-          }
-          success = false;
-          return root;
-        }
-        else { // count < minEntries
-          for(size_t i=0; i<root->count; i++) {
-            if(Comparator::equal(value,*root->objects[i],attrPos)) {
-              
-              if(root->left) {
-                swap(root,i,root->left,root->left->count-1);
-                root->left = remove(root->left,value,attrPos,success);
-                root->updateHeight();
-                return root;
-              }
-              else {
-                swap(root,i,root->right,0);
-                root->right = remove(root->right,value,attrPos,success);
-                root->updateHeight();
-                return root;
-              }
-            }
-          }
-        }
+
+      // handle leaf node
+      if(root->isLeaf()){
+         if(root->count==0){
+            delete root;
+            return 0;
+         } else {
+            return root; 
+         }
       }
-      return 0;  // should never be reached
+
+      // handle half leaf
+      if(root->isHalfLeaf()){
+         if(root->left){
+           if(root->hasSpaceFor(root->left) ){
+              return Node::merge(root->left, root, attrPos); 
+           }
+         } else if(root->hasSpaceFor(root->right) ){
+              return Node::merge(root, root->right, attrPos); 
+         }
+         return root;
+      }
+  
+      // root is an inner node
+      if(root->count >= root->minEntries){ // structure is ok
+        return root;
+      }
+
+      // remove the minimum value from the right subtree 
+      T* v = deleteMin(root->right, attrPos);
+      // insert this value into root
+      root->insert(v, attrPos);
+      root->updateHeight();
+
+      // handle possible structure changes in right subtree
+      if(abs(root->balance()) > 1) { 
+         // single rotation is sufficient
+         if(root->left->balance() >= 0) { 
+            return rotateRight(root); 
+         }
+         // left-right rotation is required
+         if(root->left->balance() < 0) {
+           return rotateLeftRight(root,attrPos);
+         } 
+         assert(false); // should never be reached
+         return 0; 
+      } else { 
+        // balance of root is ok
+        return root;
+      }
+
+      assert(false);
+      return 0;
     }
+
+
+/*
+~deleteMin~
+
+Removes the smallest value of the subtree rooted by root and returns this
+value. root is changed too if necessary.
+
+*/
+
+    T* deleteMin(Node*& root, std::vector<int>* attrPos){
+
+       if(root->left){ // there is a left subtree, minimum value is there
+         T* res =  deleteMin(root->left, attrPos);
+         root->updateHeight();
+         if(root->isLeaf()){
+           // left subtree is 0 now
+           return res;
+         }         
+
+         if(root->isHalfLeaf()){
+           if(root->left && root->hasSpaceFor(root->left)){
+             root = Node::merge(root->left, root,attrPos);
+             return res;
+           } 
+           if(root->right && root->hasSpaceFor(root->right)){
+             root=Node::merge(root,root->right, attrPos);
+             return res;
+           }
+         }
+         // a inner node, may be a balance is required
+         if(abs(root->balance())>1) {
+            // single left rotation sufficient
+            if(root->right->balance() <= 0) { 
+               root =  rotateLeft(root);
+               return res;
+            }
+            // right-left rotation required
+            if(root->right->balance() > 0){
+              root =  rotateRightLeft(root,attrPos);
+              return res;
+            }
+            assert(false); // should never be reached
+            return 0;
+         } else {  // balance ok
+          return res;
+         }       
+         assert(false);
+         return 0;
+       }
+
+
+       // now root is either a leaf or a half leaf having a 
+       // right son
+       T* res = root->deleteMin();
+       if(root->right && root->hasSpaceFor(root->right) ){
+           root = Node::merge(root, root->right, attrPos);
+           return res;
+       }
+       if(root->count==0){ // removed the last entry from a leaf
+          delete root;
+          root = 0;
+       }
+       return res;
+    }
+
+
+
     
     
 /*
@@ -1257,11 +1458,11 @@ This function removes __value__ from the subtree given by root.
 This function updates __value__ in the subtree given by root.
 
 */
-    TTreeNode<T,Comparator>* update(TTreeNode<T,Comparator>* root, 
-                                    T& value,
-                                    T& newValue,
-                                    std::vector<int>* attrPos,
-                                    bool& success) {
+    Node* update(Node* root, 
+                 T& value,
+                 T& newValue,
+                 std::vector<int>* attrPos,
+                 bool& success) {
       
       root = remove(root,value,attrPos,success);
       root = insert(root,newValue,attrPos,success);
@@ -1277,8 +1478,8 @@ Swaps the element at position i in node __root__ with the element
 at position j in __node__.
 
 */      
-    void swap(TTreeNode<T,Comparator>* root, int i, 
-              TTreeNode<T,Comparator>* node, int j) {
+    void swap(Node* root, int i, 
+              Node* node, int j) {
       T* tmp = root->objects[i];     
       root->objects[i] = node->objects[j];     
       node->objects[j] = tmp;
@@ -1291,7 +1492,7 @@ at position j in __node__.
 Removes the element at position i in the node __root__.
 
 */    
-    void remove(TTreeNode<T,Comparator>*& root, int i) {
+    void remove(Node*& root, int i) {
       
       delete root->objects[i];
       root->objects[i] = 0;
@@ -1312,10 +1513,10 @@ Removes the element at position i in the node __root__.
 Performs a right rotation in the subtree given by root.
 
 */    
-    TTreeNode<T,Comparator>* rotateRight(TTreeNode<T,Comparator>* root) {
-      TTreeNode<T,Comparator>* y = root->left;
-      TTreeNode<T,Comparator>* B = y->right;
-      TTreeNode<T,Comparator>* C = root->right;
+    Node* rotateRight(Node* root) {
+      Node* y = root->left;
+      Node* B = y->right;
+      Node* C = root->right;
       root->left=B;
       root->right=C;
       root->updateHeight();
@@ -1331,14 +1532,14 @@ Performs a right rotation in the subtree given by root.
 Performs a right-left rotation in the subtree given by root.
 
 */    
-    TTreeNode<T,Comparator>* rotateRightLeft(TTreeNode<T,Comparator>* root, 
-                                             std::vector<int>* attrPos) {
+    Node* rotateRightLeft(Node* root, 
+                          std::vector<int>* attrPos) {
       
-      TTreeNode<T,Comparator>* x = root;
-      TTreeNode<T,Comparator>* z = x->right;
-      TTreeNode<T,Comparator>* y = z->left;
-      TTreeNode<T,Comparator>* B1 = y->left;
-      TTreeNode<T,Comparator>* B2 = y->right;
+      Node* x = root;
+      Node* z = x->right;
+      Node* y = z->left;
+      Node* B1 = y->left;
+      Node* B2 = y->right;
       
       //special case:
       //if y is leaf, move entries from z to y till y has the 
@@ -1385,9 +1586,9 @@ Performs a right-left rotation in the subtree given by root.
 Performs a left rotation in the subtree given by root.
 
 */    
-    TTreeNode<T,Comparator>* rotateLeft(TTreeNode<T,Comparator>* root) {
-      TTreeNode<T,Comparator>* y = root->right;
-      TTreeNode<T,Comparator>* B = y->left;
+    Node* rotateLeft(Node* root) {
+      Node* y = root->right;
+      Node* B = y->left;
       root->right = B;
       root->updateHeight();
       y->left=root;
@@ -1402,15 +1603,15 @@ Performs a left rotation in the subtree given by root.
 Performs a left-right rotation in the subtree given by root.
 
 */     
-    TTreeNode<T,Comparator>* rotateLeftRight(TTreeNode<T,Comparator>* root, 
+    Node* rotateLeftRight(Node* root, 
                                              std::vector<int>* attrPos) {
       
-      TTreeNode<T,Comparator>* x = root;
-      TTreeNode<T,Comparator>* z = root->left;
-      TTreeNode<T,Comparator>* y = z->right;
-      TTreeNode<T,Comparator>* A = z->left;
-      TTreeNode<T,Comparator>* B = y->left;
-      TTreeNode<T,Comparator>* C = y->right;
+      Node* x = root;
+      Node* z = root->left;
+      Node* y = z->right;
+      Node* A = z->left;
+      Node* B = y->left;
+      Node* C = y->right;
      
       // special case:
       // if y is leaf, move entries from z to y till y is full node
@@ -1447,7 +1648,7 @@ Performs a left-right rotation in the subtree given by root.
 Prints the subtree given by root to the console.
 
 */   
-    void printttree(const TTreeNode<T,Comparator>* root, 
+    void printttree(const Node* root, 
                     std::ostream& out) const {
       if(!root){
         out << " 'empty' ";
@@ -1471,7 +1672,7 @@ Prints the subtree given by root to the console.
     }
     
     
-    void printorel(const TTreeNode<T,Comparator>* root, 
+    void printorel(const Node* root, 
                    std::ostream& out) const {
       if(!root){
         out << " 'empty' ";

@@ -6031,7 +6031,7 @@ class minsertttreeInfo {
         Attribute* attr = res->GetAttribute(attrPos-1);
         ttreePair tPair = ttreePair(attr->Copy(),oldTid);
         ttree->remove(tPair);
-//         tPair.first->DeleteIfAllowed();
+        tPair.first->DeleteIfAllowed();
       }
       return res;
     }
