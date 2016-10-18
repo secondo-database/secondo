@@ -269,23 +269,28 @@ Signature : -> bool
 Example   : query memclear()
 Result    : TRUE
 
-
+Operator  : memload
+Number    : 45
+Signature : string -> bool
+Example   : query memload("Staedte")
+Result    : TRUE
 
 
 Operator  : mcreatettree
-Number    : 45
+Number    : 46
 Signature : {string, mem(rel(...))} x Ident -> mem(ttree string)
 Example   : query "Staedte" mcreatettree[SName]
 Result    : ((mem (ttree string)) "Staedte_SName")
 
+
 Operator  : minsertttree
-Number    : 46
+Number    : 47
 Signature : stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident -> stream(tuple(x@[TID:tid]))
 Example   : query ten feed head[5] modelete["oten"] minsertttree["ten_No", No] count;
 Result    : 5
 
 Operator  : mdeletettree
-Number    : 47
+Number    : 48
 Signature : stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident -> stream(tuple(x@[TID:tid]))
 Example   : query ten feed head[5] modelete["oten"] mdeletettree["ten_No", No] count;
 Result    : 5
@@ -392,11 +397,6 @@ Signature : {string, mem(orel(tuple(x)))} -> stream(tuple(x))
 Example   : query "oten" mfeed count
 Result    : 10
 
-Operator  : moconsume
-Number    : 66
-Signature : stream(tuple(x)) x (ident1 ... identn) -> mem(orel(tuple(tuple(x))))
-Example   : query "ten" mfeed head[2] moconsume[No]
-Result    : ((memoryORelObject(tuple((No int))))((1)(2)))
 
 Operator  : letmoconsume
 Number    : 67

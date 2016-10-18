@@ -42,9 +42,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace ttree{
 
   
-  
-  
-
 /*
 0. Forward declaration of the TTree class
 
@@ -92,7 +89,6 @@ Creates a depth copy of this node.
 */
     TTreeNode(const TTreeNode<T,Comparator>& source):
       objects(source.objects), left(0), right(0), height(source.height){
-      
       this->left = 
         source.left==NULL?NULL:new TTreeNode<T,Comparator>(*source.left);
       this->right = 
@@ -146,7 +142,7 @@ This function returns true if this node represents a leaf.
 
 */
   
-      bool isLeaf() const {
+      inline bool isLeaf() const {
         if(left || right)
           return false;
         return true;
@@ -241,43 +237,6 @@ Returns the parent of this node or 0 if this node is the root of the tree.
         return right;
       }
       
-/*
-~insertionSort~
-
-Sorts the elements of this node with insertionSort.
-
-*/
-      void insertionSort (std::vector<int>* attrPos){
-        int j;
-        T* temp;
-                      
-        for (size_t i = 0; i < count; i++){
-          j = i;
-                
-          while (j>0 && Comparator::smaller(*this->objects[j],
-                                    *this->objects[j-1],attrPos)) {
-            temp = this->objects[j];
-            this->objects[j] = this->objects[j-1];
-            this->objects[j-1] = temp;
-            j--;
-          }
-        }
-      }
-
-
-/*
-~updateNode~
-
-Updates the minimum and maximum values in this node after sorting
-it's elements.
-
-*/
-    void updateNode(std::vector<int>* attrPos) {
-      if(count > 1) {
-        insertionSort(attrPos);
-      }
-    }
-    
 
 /*
 ~clear~
@@ -301,6 +260,7 @@ true, the sons of this node are destroyed.
         }
         left = 0;
         right = 0;
+        height=0;
         count = 0;
       }
 
@@ -356,43 +316,41 @@ write a textual representation for this node to ~out~.
       out << ")";
          return out;
       }
+
+
+/*
+
+~printtree~
+
+Print the tree rooted by this in tree format.
+
+
+*/
     
       void printtree(std::ostream& out){
           printtree(this,out);
       }
 
 
-      static void printtree(const TTreeNode<T,Comparator>* root, 
-                            std::ostream& out, bool isRoot = true){
-        if(isRoot){
-          out << "( tree ";
-        }
-        if(!root){
-           out << "' '" << endl;
-        } else {
-          out << "(";
-          out << "'";
-          for(size_t i=0;i<root->getCount();i++){
-             if(i>0) out << ", ";
-             out << *(root->getObject(i));
-          }
-          out << "'  ";
-          printtree(root->left,out,false);
-          printtree(root->right,out, false);
-          out << " )";
-        }
-        if(isRoot){
-          out << ")";
-          out << endl;
-        }
-    }
+/*
+~getMinValue~
 
-      const T& getMinValue(){ 
+Returns the minimum value of a non-empty node.
+
+*/
+      inline const T& getMinValue(){ 
          assert(count>0);
          return *(objects[0]);
       }
 
-      const T& getMaxValue(){ 
+/*
+~getMaxValue~
+
+Returns the maximum value of a non-empty node.
+
+*/
+
+      inline const T& getMaxValue(){ 
         assert(count>0);
         return *(objects[count-1]);
       }
@@ -453,18 +411,22 @@ last element is returned. If the node is empty, null is returned.
   }
 
 
+/*
+~checkCount~
 
-   // this method checks for the subtree represented by this
-   // node whether the count condition of a ttree is fullfilled   
+This is a pure debugging function checking whether each node in the
+tree rooted by this contains a valid number of entries.
+
+*/
    bool checkCount(){
-       if(count ==0){
+       if(count==0){
            cout << "found node without elements" << endl;
            return false;
        }
        if(count > maxEntries){
           cout << "found node having more entries than allowed" << endl;
        }
-       if(left || right){ // inner node
+       if(left && right){ // inner node
           if(count < minEntries){
              cout << "found inner node having too less entries" << endl;
              return false;
@@ -481,45 +443,52 @@ last element is returned. If the node is empty, null is returned.
        return ok;
    }
 
-   bool checkOrder(const T* min, const T* max, std::vector<int>* attrPos){
-       // check internal order
-       for(size_t i=0;i<count-1; i++){
-          if(Comparator::greater(*objects[i], *objects[i+1],attrPos)){
-             cout << "found invalid order within a single node" << endl;
-             return false;
-          }
-       }
-       if(min && Comparator::smaller(getMinValue(),*min, attrPos) ){
-          cout << "found value of a node smaller than allowed" << endl;
-          return false; 
-       }
-       if(max && Comparator::greater(getMaxValue(), *max, attrPos)){
-          cout << "found value of a node greater than allowed" << endl;
-          return false; 
-       }
-       bool ok = true;
-       if(left){
-          ok = ok && left->checkOrder(min, objects[0], attrPos);
-       }
-       if(right){
-          ok = ok && right->checkOrder(objects[count-1], max, attrPos);
-       }
-       return ok;
-   }
+/*
+~checkOrder~
 
-   bool isHalfLeaf() const{
+checks whether the tree rooted by this has a valid ordering.
+
+*/
+
+  bool checkOrder(std::vector<int>* attrPos){
+    return checkOrder(0,0,attrPos);
+  }
+
+
+/*
+~checkHalfLeaf~
+
+Checks whether this has exactly one son.
+
+*/
+   inline bool isHalfLeaf() const{
      return ((left==0) && (right!=0)) || ((left!=0) && (right==0));
    }
 
 
+/*
+~hasSpaceFor~
 
-   bool hasSpaceFor(TTreeNode<T,Comparator>* rhs) const{
+Checks whether this has enough space for including the
+entries of rhs.
+
+*/
+   inline bool hasSpaceFor(TTreeNode<T,Comparator>* rhs) const{
      assert(rhs);
      assert(this);
      return count + rhs->count <= maxEntries;
    }
 
 
+
+/*
+~merge~
+
+Moves the entries from right to left. The pointers of the parameters
+will be destroyed by this function. This is only possible, if 
+one of the arguments is a leaf and the only son of the other parameter.
+
+*/
    static TTreeNode<T,Comparator>* merge(TTreeNode<T,Comparator>* left, 
                                          TTreeNode<T,Comparator>* right,
                                          std::vector<int>* attrPos){
@@ -538,11 +507,6 @@ last element is returned. If the node is empty, null is returned.
        } else {
          assert(false);
        } 
-
-       assert(left);
-       assert(right);
-
-
        assert(left->hasSpaceFor(right));
 
        for(size_t i=0;i<right->count; i++){
@@ -558,7 +522,13 @@ last element is returned. If the node is empty, null is returned.
        return res;
    }
 
+/*
+~remove~
 
+Removes an entry from this node. If the entry is not present,
+false is returned.
+
+*/
    bool remove(T& value, std::vector<int>* attrPos){
       int index = find(value,attrPos);
       if(!Comparator::equal(value, *objects[index],attrPos)){
@@ -573,6 +543,13 @@ last element is returned. If the node is empty, null is returned.
       return true;
    } 
 
+
+/*
+~deleteMin~
+
+Removes the minimum element of a node. The element is returned, not destroyed.
+
+*/
 
    T* deleteMin(){
      assert(count>0);
@@ -627,12 +604,84 @@ Returns the index where the element is or should be.
          return min;
       }
 
+
+/*
+~decouple~
+
+Decouples any child from this node.
+
+*/
       void decouple(){
          left=0;
          right=0;
          height=0;
       }
 
+/*
+~printtree~
+
+Support function.
+
+*/
+
+      static void printtree(const TTreeNode<T,Comparator>* root, 
+                            std::ostream& out, bool isRoot = true){
+        if(isRoot){
+          out << "( tree ";
+        }
+        if(!root){
+           out << "' '" << endl;
+        } else {
+          out << "(";
+          out << "'";
+          for(size_t i=0;i<root->getCount();i++){
+             if(i>0) out << ", ";
+             out << *(root->getObject(i));
+          }
+          out << "'  ";
+          printtree(root->left,out,false);
+          printtree(root->right,out, false);
+          out << " )";
+        }
+        if(isRoot){
+          out << ")";
+          out << endl;
+        }
+    }
+   
+
+
+/*
+~checkOrder~
+
+Support function.
+
+*/
+   bool checkOrder(const T* min, const T* max, std::vector<int>* attrPos){
+       // check internal order
+       for(size_t i=0;i<count-1; i++){
+          if(Comparator::greater(*objects[i], *objects[i+1],attrPos)){
+             cout << "found invalid order within a single node" << endl;
+             return false;
+          }
+       }
+       if(min && Comparator::smaller(getMinValue(),*min, attrPos) ){
+          cout << "found value of a node smaller than allowed" << endl;
+          return false; 
+       }
+       if(max && Comparator::greater(getMaxValue(), *max, attrPos)){
+          cout << "found value of a node greater than allowed" << endl;
+          return false; 
+       }
+       bool ok = true;
+       if(left){
+          ok = ok && left->checkOrder(min, objects[0], attrPos);
+       }
+       if(right){
+          ok = ok && right->checkOrder(objects[count-1], max, attrPos);
+       }
+       return ok;
+   }
 
 
 };
@@ -756,23 +805,6 @@ is returned.
        return *(elem->getObject(pos));
     } 
     
-    
-/*
-2.5 Methods
-
-~get~
-
-The ~get~ function returns the value currently under this 
-iterator at position i.
-
-*/
-  /*
-    T get(int i) const {
-      const TTreeNode<T,Comparator>* elem = stack.top();
-      return *elem->getObject(i);
-    }
-  */
-     
      
 /*
 ~next~
@@ -903,7 +935,16 @@ first element in the tree .
       Iterator<T,Comparator> it(root);
       return it;
     }
-   
+  
+
+/*
+~tail~
+
+This operator returns an iterator starting at a specified element
+instead of the begin.
+
+
+*/ 
     Iterator<T, Comparator> tail(const T& minV){
       Iterator<T,Comparator> it(root,minV);
       return it;
@@ -914,7 +955,7 @@ first element in the tree .
 /*
 ~noEntries~
 
-Returns the height of this tree.
+Returns the number od entries of this tree.
 
 */
     int noEntries() {
@@ -968,7 +1009,7 @@ The format is understood by the tree viewer of Secondo's Javagui.
       out << "))" << std::endl;
       
     } 
-    
+
     void printorel(std::ostream& out) const {
       out << "( tree (" << std::endl;
       if(root) 
@@ -1227,7 +1268,14 @@ It returns the root of the new tree.
       return 0;  // should never be reached
     }
 
-    
+   
+
+/*
+~printNodeInfo~
+
+Prints information about a single node.
+
+*/ 
     void printNodeInfo(Node* node) {
       std::cout << std::endl << "-->NODE INFO<---------------" << std::endl;
       node->print(std::cout);
@@ -1247,6 +1295,8 @@ It returns the root of the new tree.
 ~remove~
 
 This function removes __value__ from the subtree given by root.
+Returns the new root of the tree.
+
 
 */
     Node* remove(Node* root, 
@@ -1470,42 +1520,6 @@ This function updates __value__ in the subtree given by root.
       return root;  
     }
     
-    
-/*
-~swap~
-
-Swaps the element at position i in node __root__ with the element
-at position j in __node__.
-
-*/      
-    void swap(Node* root, int i, 
-              Node* node, int j) {
-      T* tmp = root->objects[i];     
-      root->objects[i] = node->objects[j];     
-      node->objects[j] = tmp;
-    }
-    
-    
-/*
-~remove~
-
-Removes the element at position i in the node __root__.
-
-*/    
-    void remove(Node*& root, int i) {
-      
-      delete root->objects[i];
-      root->objects[i] = 0;
-      root->count--;
-      
-      if(root->count < 1) {
-        delete root;
-        root=0;
-      }
-    
-      
-    }
-   
    
 /*
 ~rotateRight~
@@ -1694,9 +1708,6 @@ Prints the subtree given by root to the console.
       out << ") \n";
       
     }
-
-
- 
 };
 
 
