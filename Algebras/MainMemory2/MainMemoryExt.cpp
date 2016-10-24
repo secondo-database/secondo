@@ -199,15 +199,16 @@ MemoryRelObject::MemoryRelObject (string _objectTypeExpr){
 };
 
 MemoryRelObject::~MemoryRelObject(){
-    if (!mmrel==0){
+    if (mmrel!=0){
         vector<Tuple*>::iterator it = mmrel->begin();
         while (it!=mmrel->end()){
             Tuple* tup = *it;
-            tup->DeleteIfAllowed();
-            tup = 0;
+            if(tup){
+               tup->DeleteIfAllowed();
+            }
             it++;
         }
-    delete mmrel;
+        delete mmrel;
     }
 }
 
@@ -262,6 +263,13 @@ bool MemoryRelObject::relToVector(
     int tupleSize=0;
     unsigned long availableMemSize = catalog->getAvailableMemSize();
     unsigned long usedMainMemory=0;
+    // remove old content
+    vector<Tuple*>::iterator it;
+    for(it = mmrel->begin(); it!=mmrel->end(); it++){
+      if(*it){
+         (*it)->DeleteIfAllowed();
+      }
+    }
     mmrel->clear();
     this->flob = _flob;
 
@@ -275,16 +283,16 @@ bool MemoryRelObject::relToVector(
             mmrel->push_back(tup);
             usedMainMemory += tupleSize;
             availableMemSize -= tupleSize;
-        }
-        else{
+        }else{
             if (mmrel->size()==0){
                 cout<<"no memory left"<<endl;
                 return false;
             }
              cout<< "the available main memory is not enough, the object"
             " might be usable but not complete"<<endl;
+            tup->DeleteIfAllowed();
             break;
-            }
+        }
     }
     delete rit;
     memSize = usedMainMemory;
@@ -618,9 +626,9 @@ MemoryAVLObject::MemoryAVLObject( memAVLtree* _tree,
             };
 
 
-void pairdestroy(avlPair& p){
-  p.first->DeleteIfAllowed();
-  p.first = 0;
+void pairdestroy(AttrIdPair& p){
+  //p.first->DeleteIfAllowed();
+  //p.first = 0;
 }
 
 MemoryAVLObject::~MemoryAVLObject(){
@@ -638,11 +646,11 @@ memAVLtree* MemoryAVLObject::getAVLtree(){
 
 // MEMORYORELOBJECT ///////////////////////////////////////////////
 MemoryORelObject::MemoryORelObject(){
-    mmorel = new ttree::TTree<Tuple*,TupleComp>(16,18);
+    mmorel = new ttree::TTree<TupleWrap,TupleComp>(16,18);
     pos = new std::vector<int>();
 };
 
-MemoryORelObject::MemoryORelObject(ttree::TTree<Tuple*,TupleComp>* _mmorel,
+MemoryORelObject::MemoryORelObject(ttree::TTree<TupleWrap,TupleComp>* _mmorel,
                                    std::vector<int>* _pos, 
                                    unsigned long _memSize, 
                                    std::string _objectTypeExpr, bool _flob,
@@ -665,81 +673,82 @@ MemoryORelObject::MemoryORelObject (string _objectTypeExpr){
 
 MemoryORelObject::~MemoryORelObject() {
     if(mmorel!=0) {
-      ttree::Iterator<Tuple*,TupleComp> it = mmorel->begin();
-      while (it.hasNext()) {
-        Tuple* tup = *it;
-        if(tup) {
-          tup->DeleteIfAllowed();
-          tup = 0;
-        }
-        it++;
-      } 
-      delete mmorel;
-    }
-    pos->clear();
-    delete pos;
+      ttree::Iterator<TupleWrap,TupleComp> it = mmorel->begin();
+      while (!it.end()) {
+      Tuple* tup = (*it).getPointer();
+      if(tup) {
+        tup->DeleteIfAllowed();
+        tup = 0;
+      }
+      it++;
+    } 
+    delete mmorel;
+  }
+  pos->clear();
+  delete pos;
 }
 
-ttree::TTree<Tuple*,TupleComp>* MemoryORelObject::getmmorel(){
-    return mmorel;
+ttree::TTree<TupleWrap,TupleComp>* MemoryORelObject::getmmorel(){
+  return mmorel;
 }
 
 
 std::vector<int>* MemoryORelObject::getAttrPos() {
-  return pos;
+return pos;
 }
 
 
 void MemoryORelObject::setAttrPos(int attrPos, bool keep) {
-  if(!pos)
-    pos = new std::vector<int>();
-  if(pos && !keep)
-    pos->clear();
-  
-  pos->push_back(attrPos);
+if(!pos)
+  pos = new std::vector<int>();
+if(pos && !keep)
+  pos->clear();
+
+pos->push_back(attrPos);
 }
 
 
 void MemoryORelObject::setAttrPos() {
-  if(pos)
-    pos->clear();
-  else 
-    pos = new std::vector<int>();
-  pos->push_back(1);
-  pos->push_back(2);
+if(pos)
+  pos->clear();
+else 
+  pos = new std::vector<int>();
+pos->push_back(1);
+pos->push_back(2);
 }
 
 
 void MemoryORelObject::addTuple(Tuple* tup){
-    
-    if(mmorel==0) {
-        mmorel = new ttree::TTree<Tuple*,TupleComp>(4,8);
-    }
+  
+  if(mmorel==0) {
+      mmorel = new ttree::TTree<TupleWrap,TupleComp>(4,8);
+  }
 
-    size_t tupleSize = 0;
-    tupleSize = tup->GetMemSize();
-    unsigned long availableMemSize = catalog->getAvailableMemSize();
- 
-    if((size_t)tupleSize<availableMemSize) {
-        tup->SetTupleId(mmorel->noEntries());
-        mmorel->insert(tup,pos);
-        memSize += tupleSize;
-        catalog->addToUsedMemSize(tupleSize);
-    }
-    else {
-        cout << "the memSize is not enough, the object"
-                " might be usable but not complete" << endl;
-    }
+  size_t tupleSize = 0;
+  tupleSize = tup->GetMemSize();
+  unsigned long availableMemSize = catalog->getAvailableMemSize();
+
+  if((size_t)tupleSize<availableMemSize) {
+      tup->SetTupleId(mmorel->noEntries());
+      TupleWrap tw(tup);
+      mmorel->insert(tw,pos);
+      memSize += tupleSize;
+      catalog->addToUsedMemSize(tupleSize);
+  }
+  else {
+      cout << "the memSize is not enough, the object"
+              " might be usable but not complete" << endl;
+  }
 }
 
 
 std::ostream& MemoryORelObject::print(std::ostream& out) const {
-  out << endl << "MMOREL: " << endl;
-  
-  ttree::Iterator<Tuple*,TupleComp> it = mmorel->begin();
-  
-  while(it.hasNext()) {
-    Tuple* tup = *it;
+out << endl << "MMOREL: " << endl;
+
+ttree::Iterator<TupleWrap,TupleComp> it = mmorel->begin();
+
+while(it.hasNext()) {
+  Tuple* tup = (*it).getPointer();
     tup->Print(out); 
     it++;
   }
@@ -789,7 +798,8 @@ bool MemoryORelObject::relToTree(
       tupleSize = tup->GetMemSize();
       if ((size_t)tupleSize<availableMemSize) {
         tup->SetTupleId(mmorel->noEntries()+1);
-        mmorel->insert(tup,pos);
+        TupleWrap tw(tup);
+        mmorel->insert(tw,pos);
         usedMainMemory += tupleSize;
         availableMemSize -= tupleSize;
       }
@@ -833,18 +843,20 @@ bool MemoryORelObject::tupleStreamToORel(Word arg, ListExpr le, ListExpr type,
       }
       tupleSize = tup->GetMemSize();
       if((size_t)tupleSize<availableMemSize) {
-        tup->SetTupleId(mmorel->noEntries()+1);   
-        mmorel->insert(tup,pos);
+        tup->SetTupleId(mmorel->noEntries()+1);  
+        TupleWrap tw(tup);
+        mmorel->insert(tw,pos);
         usedMainMemory += tupleSize;
         availableMemSize -= tupleSize;
-      }
-      else {
+        tup->DeleteIfAllowed();
+      } else {
         if(mmorel->isEmpty()) {
             cout << "no memory left" << endl;
             return false;
         }
         cout << "the memSize is not enough, the object"
                 " might be usable but not complete" <<endl;
+        tup->DeleteIfAllowed();
         break;
       }
     }
@@ -917,12 +929,10 @@ ListExpr MemoryORelObject::Out(ListExpr typeInfo, Word value) {
       nl->Second(typeInfo),
       nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
 
-    ttree::Iterator<Tuple*,TupleComp> it = mmorel->getmmorel()->begin();
+    ttree::Iterator<TupleWrap,TupleComp> it = mmorel->getmmorel()->begin();
     while (it.hasNext()){
-      t = *it;
+      t = (*it).getPointer();
       tupleList = t->Out(tupleTypeInfo);
-      t->DeleteIfAllowed();
-
       if (result == nl->TheEmptyList()) {
         result = nl->Cons(tupleList, nl->TheEmptyList());
         last = result;
@@ -1069,10 +1079,10 @@ graph::Graph* MemoryGraphObject::getgraph() {
 
 
 bool MemoryGraphObject::relToGraph(
-                        GenericRelation* r, 
-			ListExpr le,
-                        string _database, 
-                        bool _flob) {
+      GenericRelation* r, 
+      ListExpr le,
+      string _database, 
+      bool _flob) {
     
     GenericRelationIterator* rit;
     rit = r->MakeScan();

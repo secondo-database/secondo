@@ -68,10 +68,10 @@ extern QueryProcessor *qp;
 extern SecondoSystem* instance;
 
 
-ostream& operator<<(ostream& o, const mm2algebra::avlPair& t) {
+ostream& operator<<(ostream& o, const mm2algebra::AttrIdPair& t) {
   o << "(";
-  t.first->Print(o);
-  o << ", " << t.second   << ")";
+  t.getAttr()->Print(o);
+  o << ", " << t.getTid()   << ")";
   return o;
 }
 
@@ -82,6 +82,18 @@ MemCatalog* catalog;
 
 #define MEMORYMTREEOBJECT "memoryMTreeObject"
 
+
+
+bool checkUsesArgs(ListExpr args){
+  ListExpr tmp = args;
+  while(!nl->IsEmpty(tmp)){
+     if(!nl->HasLength(args,2)){
+        return false;
+     }
+     tmp = nl->Rest(tmp);
+  }
+  return true;
+}
 
 /*
 
@@ -907,7 +919,7 @@ class mfeedInfo{
         it = rel->begin();
     }
     
-    mfeedInfo(ttree::TTree<Tuple*,TupleComp>* _orel) : orel(_orel) {
+    mfeedInfo(ttree::TTree<TupleWrap,TupleComp>* _orel) : orel(_orel) {
       iter = orel->begin();
       isOrel = true;
     }
@@ -918,27 +930,35 @@ class mfeedInfo{
       
       Tuple* res;
       if(!isOrel) {
-        if(it==rel->end()) return 0;
-        res = *it;
-        it++;
-      }
-      else {
-        if(!iter.hasNext()) return 0;
-        res = *iter;
-        iter++;
-      }
-       if(res==NULL) {
+        while(it!=rel->end()){
+          res = *it;
+          it++;
+          if(res){ // overread null values in relation
+            res->IncReference();
+            return res;
+          }
+        }
         return 0;
-       }
-       res->IncReference();
-       return res;
+      } else {
+        while(!iter.end()) {
+          res = (*iter).getPointer();
+          iter++;
+          if(res){
+            res->IncReference();
+            return res;
+          }
+        }
+        return 0;
+      }
+      assert(false);
+      return 0;
      }
 
   private:
      vector<Tuple*>* rel;
      vector<Tuple*>::iterator it;
-     ttree::TTree<Tuple*,TupleComp>* orel;
-     ttree::Iterator<Tuple*,TupleComp> iter;
+     ttree::TTree<TupleWrap,TupleComp>* orel;
+     ttree::Iterator<TupleWrap,TupleComp> iter;
      bool isOrel;
 };
 
@@ -1086,16 +1106,19 @@ class gettuplesInfo{
         TupleIdentifier* tid;
         while((tid=stream.request())){
            if(!tid->IsDefined()){
-             cout << "ignore undefined tuple id" << endl;
              tid->DeleteIfAllowed();
            } else {
               TupleId id = tid->GetTid();
               tid->DeleteIfAllowed();
               if(id>=0 && id<rel->size()){
                  Tuple* res = (*rel)[id];
-                 res->IncReference();
-                 res->SetTupleId(id);
-                 return res;
+                 if(res){
+                    res->IncReference();
+                    res->SetTupleId(id);
+                    return res;
+                 } else {
+                    cout << "ignore deleted tuple" << endl;
+                 }
               } else {
                  cout << "ignore id " << id << endl;
               }
@@ -2195,7 +2218,7 @@ bool mcreateRtree(MemoryRelObject* mmrel,
     vector<Tuple*>* relVec = mmrel->getmmrel();
     vector<Tuple*>::iterator it;
     it=relVec->begin();
-    unsigned int i=0;
+    unsigned int i=1;
     mmrtree::RtreeT<dim, size_t>* rtree =
                     new mmrtree::RtreeT<dim, size_t>(4,8);
 
@@ -2204,14 +2227,17 @@ bool mcreateRtree(MemoryRelObject* mmrel,
     unsigned long availableMemSize = catalog->getAvailableMemSize();
     while( it!=relVec->end()){
         Tuple* tup = *it;
-        attr=(StandardSpatialAttribute<dim>*)tup->GetAttribute(attrPos);
-        if (attr==0 || !attr->IsDefined()){
-            return 0;
-        }
-        Rectangle<dim> box = attr->BoundingBox();
-        rtree->insert(box, i);
-        it++;
-        i++;
+        if(tup){
+          attr=(StandardSpatialAttribute<dim>*)tup->GetAttribute(attrPos);
+          if(attr->IsDefined()){
+             Rectangle<dim> box = attr->BoundingBox();
+             if(box.IsDefined()){
+               rtree->insert(box, i);
+             }
+          }
+          it++;
+         }
+         i++;
     } // end while
 
     usedMainMemory = rtree->usedMem();
@@ -2464,13 +2490,17 @@ int mcreateRtree2ValMapT (Word* args, Word& result,
     Tuple* t;
 
     while( (t=stream.request())!=0){
-        int tid = ((TupleIdentifier*)t->GetAttribute(TIDIndex))->GetTid();
-        StandardSpatialAttribute<dim>* attr
-            =(StandardSpatialAttribute<dim>*) t->GetAttribute(MBRIndex);
-
-        Rectangle<dim> rect = attr->BoundingBox();
-        // insert rect,id -pair into the tree
-        rtree->insert(rect, tid);
+        TupleIdentifier* tid = (TupleIdentifier*) t->GetAttribute(TIDIndex);
+        if(tid->IsDefined()){
+            StandardSpatialAttribute<dim>* attr
+               =(StandardSpatialAttribute<dim>*) t->GetAttribute(MBRIndex);
+            if(attr->IsDefined()){
+              Rectangle<dim> rect = attr->BoundingBox();
+              if(rect.IsDefined()){ 
+                rtree->insert(rect, tid->GetTid());
+              }
+            }
+        }
         t->DeleteIfAllowed();
     }
 
@@ -2956,7 +2986,9 @@ class mwiInfo{
           }
           if(*indexp < rel->size()){ // ignores index outside vector
              res = (*rel)[*indexp];
-             res->IncReference();
+             if(res){ // may be deleted
+                res->IncReference();
+             }
           }
         }
         return res;
@@ -3447,34 +3479,36 @@ int mcreateAVLtreeValMapT (Word* args, Word& result,
    vector<Tuple*>* relVec = mmrel->getmmrel();
    vector<Tuple*>::iterator it;
    it=relVec->begin();
-   unsigned int i=0;
+   unsigned int i=1; // start tuple counting with 1
 
    memAVLtree* tree = new memAVLtree();
    Attribute* attr;
-   avlPair aPair;
+   AttrIdPair aPair;
 
    size_t usedMainMemory = 0;
    unsigned long availableMemSize = catalog->getAvailableMemSize();
 
    while ( it!=relVec->end()){
        Tuple* tup = *it;
-       attr=tup->GetAttribute(attrPos);
-       aPair = avlPair(attr->Copy(),i);
-       // size for a pair is 16 bytes, plus an additional pointer 8 bytes
-       size_t entrySize = 24;
-       if (entrySize<availableMemSize){
-           tree->insert(aPair);
-           usedMainMemory += (entrySize);
-           availableMemSize -= (entrySize);
-           it++;
-           i++;
-       } else {
-          cout<<"there is not enough main memory available"
-          " to create an AVLTree"<<endl;
-          delete tree;
-          str->SetDefined(false);
-          return 0;
-        }
+       if(tup){
+         attr=tup->GetAttribute(attrPos);
+         aPair = AttrIdPair(attr,i);
+         // size for a pair is 16 bytes, plus an additional pointer 8 bytes
+         size_t entrySize = 24;
+         if (entrySize<availableMemSize){
+             tree->insert(aPair);
+             usedMainMemory += (entrySize);
+             availableMemSize -= (entrySize);
+             i++;
+         } else {
+            cout<<"there is not enough main memory available"
+            " to create an AVLTree"<<endl;
+            delete tree;
+            str->SetDefined(false);
+            return 0;
+         }
+       }
+       it++;
     }
     MemoryAVLObject* avlObject =
         new MemoryAVLObject(tree, usedMainMemory,
@@ -3630,8 +3664,7 @@ int mcreateAVLtree2VM (Word* args, Word& result,
           count++;
           Attribute* key = tuple->GetAttribute(keyIndex);
           key->bringToMemory();
-          key = key->Copy();
-          avlPair p(key, tid->GetTid());
+          AttrIdPair p(key, tid->GetTid());
           usedMem += key->GetMemSize() + sizeof(size_t);
           tree->insert(p); 
       }
@@ -3744,9 +3777,8 @@ class avlOperLI{
            :relation(_relation), avltree(_tree), attr1(_attr1), attr2(_attr2),
            keyType(_keyType){
            isAvl = true;
-           avlit = avltree->tail(avlPair(attr1,0));    
+           avlit = avltree->tail(AttrIdPair(attr1,0));    
            res = true; 
-           
         }
         
         avlOperLI(
@@ -3758,7 +3790,7 @@ class avlOperLI{
           :relation(_relation), ttree(_tree), attr1(_attr1), attr2(_attr2),
           keyType(_keyType){
           isAvl = false;
-          tit = ttree->tail(ttreePair(attr1,0)); 
+          tit = ttree->tail(AttrIdPair(attr1,0)); 
           res = true; 
         }
 
@@ -3769,14 +3801,12 @@ class avlOperLI{
         Tuple* next(){
           // T-Tree
           if(!isAvl) {
-            if(tit.end()) 
-              return 0;
-            else {
+            while(!tit.end()) {
               thit = *tit; 
               if (keyType=="string"){
                 string attr1ToString = ((CcString*) attr1)->GetValue();
                 string attr2ToString = ((CcString*) attr2)->GetValue();
-                string hitString = ((CcString*)(thit.first))->GetValue();
+                string hitString = ((CcString*)(thit.getAttr()))->GetValue();
                 hitString=trim(hitString);
 
                 if (hitString > attr2ToString) {
@@ -3785,63 +3815,78 @@ class avlOperLI{
                 if (hitString == attr1ToString ||
                     hitString < attr2ToString  ||
                     hitString == attr2ToString ){
-
-                    Tuple* result = relation->at(thit.second-1);
-                    result->IncReference();
-                    tit++;
-                    return result;
+                    Tuple* result = relation->at(thit.getTid()-1);
+                    if(result){
+                       result->IncReference();
+                       tit++;
+                       return result;
+                    } else {
+                       tit++;
+                    }
+                } else { // end of range reached
+                   return 0;
                 }
-                return 0;
-              } //end keyType string
+              } else { //end keyType string
               
-              if ((thit.first)->Compare(attr2) > 0){ // end reached
-                return 0;
+                 if ((thit.getAttr())->Compare(attr2) > 0){ // end reached
+                   return 0;
+                 }
+                 Tuple* result = relation->at(thit.getTid()-1);
+                 if(result){
+                   result->IncReference();
+                   tit++;
+                   return result;
+                 } else {
+                   tit++;
+                 }
+               }
+             } // end of iterator reached
+             return 0;
+          }  else { // avl tree
+            while(!avlit.onEnd()){
+              avlhit = avlit.Get();
+              // special treatment for string type , really a good idea???
+              if (keyType=="string"){
+                  string attr1ToString = ((CcString*) attr1)->GetValue();
+                  string attr2ToString = ((CcString*) attr2)->GetValue();
+                  string hitString = ((CcString*)(avlhit->getAttr()))
+                                     ->GetValue();
+                  hitString=trim(hitString);
+
+                  if (hitString > attr2ToString) {
+                      return 0;
+                  }
+                  if (hitString == attr1ToString ||
+                      hitString < attr2ToString  ||
+                      hitString == attr2ToString ){
+
+                      Tuple* result = relation->at(avlhit->getTid()-1);
+                      if(result){
+                        result->IncReference();
+                        avlit.Next();
+                        return result;
+                      } else {
+                        avlit.Next();
+                      }
+                  } else { // end of range reached
+                     return 0;
+                  }
+              } else { //end keyType string
+                if ((avlhit->getAttr())->Compare(attr2) > 0){ // end reached
+                   return 0;
+                 }
+
+                 Tuple* result = relation->at(avlhit->getTid()-1);
+                 if(result){
+                   result->IncReference();
+                   avlit.Next();
+                   return result;
+                 }
               }
-              Tuple* result = relation->at(thit.second-1);
-              result->IncReference();
-              tit++;
-              return result;
             }
+            return 0;     // end of iterator reached
           }
-          // AVL-Tree
-          else {
-            if(avlit.onEnd()){
-                 return 0;
-            }
-            avlhit = avlit.Get();
-
-            // special treatment for string type , really a good idea???
-            if (keyType=="string"){
-                string attr1ToString = ((CcString*) attr1)->GetValue();
-                string attr2ToString = ((CcString*) attr2)->GetValue();
-                string hitString = ((CcString*)(avlhit->first))->GetValue();
-                hitString=trim(hitString);
-
-                if (hitString > attr2ToString) {
-                    return 0;
-                }
-                if (hitString == attr1ToString ||
-                    hitString < attr2ToString  ||
-                    hitString == attr2ToString ){
-
-                    Tuple* result = relation->at(avlhit->second);
-                    result->IncReference();
-                    avlit.Next();
-                    return result;
-                }
-                return 0;
-            } //end keyType string
-
-            if ((avlhit->first)->Compare(attr2) > 0){ // end reached
-                return 0;
-            }
-
-            Tuple* result = relation->at(avlhit->second);
-            result->IncReference();
-            avlit.Next();
-            return result;
-          }
-          return 0;     // shouldn't be reached
+          return 0; // should never be reached
         }
 
 
@@ -3851,32 +3896,33 @@ class avlOperLI{
             if(isAvl) {
               size_t i = relation->size();
               avlhit = avltree->GetNearestSmallerOrEqual
-                          (avlPair(attr1,i));
+                          (AttrIdPair(attr1,i));
               if (avlhit==0) {
                   return 0;
               }
-              Tuple* result = relation->at(avlhit->second);
-              result->IncReference();
+              Tuple* result = relation->at(avlhit->getTid()-1);
+              if(result){ // present in index, but deleted in rel
+                result->IncReference();
+              }
               res = false;
               return result;
             }
             // T-Tree
             else {
               if(!tit.end()) {
-                thit.first->Print(cout);
                 while(tit.hasNext()) {
-                  ttreePair pair = *tit;
-                  if(pair.first->Compare(attr1) > 0) {
+                  AttrIdPair pair = *tit;
+                  if(pair.getAttr()->Compare(attr1) > 0) {
                     break;
                   }
-                  else if(pair.first->Compare(attr1) < 0) {
+                  else if(pair.getAttr()->Compare(attr1) < 0) {
                     thit = *tit;
                     tit++;
                   }
                   else {
                     thit = *tit;
                     // there are more than one entries with the same value
-                    if(thit.first->Compare(attr1) == 0) {
+                    if(thit.getAttr()->Compare(attr1) == 0) {
                       tit++;
                     }
                     else {
@@ -3887,8 +3933,10 @@ class avlOperLI{
                 }
               }
 
-              Tuple* result = relation->at(thit.second-1);
-              result->IncReference();
+              Tuple* result = relation->at(thit.getTid()-1);
+              if(result){
+                 result->IncReference();
+              }
               res = false;
               return result;
             }
@@ -3904,9 +3952,9 @@ class avlOperLI{
         Attribute* attr2;
         string keyType;
         avlIterator avlit;
-        ttree::Iterator<ttreePair,AttrComp> tit;
-        const avlPair* avlhit;
-        ttreePair thit;
+        ttree::Iterator<AttrIdPair,AttrComp> tit;
+        const AttrIdPair* avlhit;
+        AttrIdPair thit;
         bool res;
         bool isAvl;
 };
@@ -3951,7 +3999,7 @@ int mexactmatchVMT (Word* args, Word& result,
             else {
               MemoryTTreeObject* ttree = getTtree(treeN);
               if(ttree) {
-                local.addr= new avlOperLI(ttree->getttree(),
+                local.addr= new avlOperLI(ttree->gettree(),
                                       mro->getmmrel(),
                                       key,key,
                                       nl->ToString(subtype));
@@ -4157,7 +4205,7 @@ int mrangeVMT (Word* args, Word& result,
             else {
               MemoryTTreeObject* ttree = getTtree(treeN);
               if(ttree) {
-                local.addr= new avlOperLI(ttree->getttree(),
+                local.addr= new avlOperLI(ttree->gettree(),
                                       mro->getmmrel(),
                                       key1,key2,
                                       nl->ToString(subtype));
@@ -4290,20 +4338,20 @@ class AVLOpS{
      AVLOpS(memAVLtree* _tree, 
             Attribute* _beg, Attribute* _end): 
         tree(_tree), end(_end){
-        it = tree->tail(avlPair(_beg,0));
+        it = tree->tail(AttrIdPair(_beg,0));
      }
 
      TupleIdentifier* next(){
          if(it.onEnd()){
            return 0;
          } 
-         const avlPair* p = *it;
+         const AttrIdPair* p = *it;
          it++;
-         int cmp = p->first->Compare(end);
+         int cmp = p->getAttr()->Compare(end);
          if(cmp>0){
            return 0;
          }
-         return new TupleIdentifier(true,p->second);
+         return new TupleIdentifier(true,p->getTid());
      }
 
 
@@ -4437,10 +4485,10 @@ int matchbelowSVMT (Word* args, Word& result,
              return 0;
            }
            Attribute* attr = (Attribute*) args[1].addr;
-           avlPair searchP(attr, numeric_limits<size_t>::max()); 
-           const avlPair* p = tree->GetNearestSmallerOrEqual(searchP);
+           AttrIdPair searchP(attr, numeric_limits<size_t>::max()); 
+           const AttrIdPair* p = tree->GetNearestSmallerOrEqual(searchP);
            if(p){
-              local.addr = new TupleIdentifier(true,p->second);
+              local.addr = new TupleIdentifier(true,p->getTid());
            } 
            return 0;
       }
@@ -5110,7 +5158,7 @@ int mcreateMtreeVMT (Word* args, Word& result, int message,
 
    for(size_t i=0;i<rel->size();i++){
        T* attr = (T*) (*rel)[i]->GetAttribute(index);
-       pair<T,TupleId> p(*attr,i);
+       pair<T,TupleId> p(*attr,i+1);
        tree->insert(p); 
    }
    size_t usedMem = tree->memSize();
@@ -5236,9 +5284,11 @@ class distRangeInfo{
             const pair<T,TupleId>* p = it->next();
             if(!p){ return 0;}
             if(p->second < rel->size()){
-               Tuple* res = (*rel)[p->second];
-               res->IncReference();
-               return res;
+               Tuple* res = (*rel)[p->second-1];
+               if(res){ // ignored deleted tuples
+                 res->IncReference();
+                 return res;
+               }
             }
         }
         return 0;
@@ -5430,9 +5480,11 @@ class distScanInfo{
             const pair<T,TupleId>* p = it->next();
             if(!p){ return 0;}
             if(p->second < rel->size()){
-               Tuple* res = (*rel)[p->second];
-               res->IncReference();
-               return res;
+               Tuple* res = (*rel)[p->second-1];
+               if(res){
+                 res->IncReference();
+                 return res;
+               }
             }
         }
         return 0;
@@ -5828,26 +5880,26 @@ int mcreatettreeValueMap(Word* args, Word& result,
   // insert (Attribute, TupleId)-pairs into ttree
   while(it != relation->end()) {
       Tuple* tup = *it;
-      Attribute* attr = tup->GetAttribute(attrPos);
-      ttreePair tPair = ttreePair(attr->Copy(),i);
+      if(tup){
+         Attribute* attr = tup->GetAttribute(attrPos);
+         AttrIdPair tPair = AttrIdPair(attr->Copy(),i);
 
-      // size for a pair is 16 bytes, plus an additional pointer 8 bytes
-      size_t entrySize = 24;
-      if (entrySize<availableMemSize){
-          tree->insert(tPair);
-//           tPair.first->DeleteIfAllowed();
-          usedMainMemory += (entrySize);
-          availableMemSize -= (entrySize);
-          it++;
-          i++;
-      } 
-      else {
-        cout << "there is not enough main memory available"
-                " to create an TTree" << endl;
-        delete tree;
-        str->SetDefined(false);
-        return 0;
-      }
+         // size for a pair is 16 bytes, plus an additional pointer 8 bytes
+         size_t entrySize = 24;
+         if (entrySize<availableMemSize){
+            tree->insert(tPair);
+            usedMainMemory += (entrySize);
+            availableMemSize -= (entrySize);
+            it++;
+         } else {
+           cout << "there is not enough main memory available"
+                   " to create an TTree" << endl;
+           delete tree;
+           str->SetDefined(false);
+           return 0;
+         }
+         i++;
+       }
   }
   
   MemoryTTreeObject* ttreeObject = 
@@ -5930,15 +5982,23 @@ in the tree.
 
 */
 enum ChangeTypeTree {
-  MInsertTTree,
-  MDeleteTTree
+  MInsertTree,
+  MDeleteTree
 };
 
-template<ChangeTypeTree ct>
-ListExpr minsertttreeTypeMap(ListExpr args){
+template<class TreeType>
+ListExpr minsertdeletetreeTypeMap(ListExpr args){
   
-  if(nl->ListLength(args)!=3)
+  if(nl->ListLength(args)!=3) {
     return listutils::typeError("three arguments expected");
+  }
+  ListExpr tmp = args;
+  while(!nl->IsEmpty(tmp)){
+    if(!nl->HasLength(nl->First(tmp),2)){
+      return listutils::typeError("internal error");
+    }
+    tmp = nl->Rest(tmp);
+  }
   
   // process stream
   ListExpr first = nl->First(args); //stream + query
@@ -5955,27 +6015,29 @@ ListExpr minsertttreeTypeMap(ListExpr args){
     next = nl->First(rest);
     rest = nl->Rest(rest);
   }
-  if(!listutils::isSymbol(nl->Second(next),TupleIdentifier::BasicType()))
+  if(!TupleIdentifier::checkType(nl->Second(next))) {
     return listutils::typeError("last attribute in the tuple must be a tid");
+  }
   
-  // process ttree
+  // allow ttree or avl ttree as second argument
   ListExpr second = nl->Second(args);
   string errMsg;
 
-  if(!getMemType(nl->First(second), nl->Second(second), second, errMsg))
+  if(!getMemType(nl->First(second), nl->Second(second), second, errMsg)){
     return listutils::typeError("\n problem in second arg: " + errMsg);
+  }
   
-  ListExpr ttree = nl->Second(second); // remove leading mem
-  if(!ttreehelper::checkType(ttree))
+  ListExpr tree = nl->Second(second); // remove leading mem
+  if(!TreeType::checkType(tree)) {
     return listutils::typeError("second arg is not a mem ttree");
+  }
 
-  
-  
   // check attribute
   ListExpr third = nl->Third(args);
-  if(nl->AtomType(nl->First(third))!=SymbolType)
+  if(nl->AtomType(nl->First(third))!=SymbolType) {
       return listutils::typeError("third argument is not a valid "
                                   "attribute name");
+  }
 
   string attrName = nl->SymbolValue(nl->First(third));
   ListExpr attrType = 0;
@@ -5998,47 +6060,42 @@ ListExpr minsertttreeTypeMap(ListExpr args){
 }
 
 
-template<ChangeTypeTree ct>
-class minsertttreeInfo {
+template<ChangeTypeTree ct, class TreeType, class TreeElem>
+class minsertdeleteInfo {
   public:
-    minsertttreeInfo(Word w, memttree* _ttree, int _attrPos)
-      : stream(w), ttree(_ttree), attrPos(_attrPos) {
+
+    typedef TreeType treetype;
+
+    minsertdeleteInfo(Word w, TreeType* _tree, int _attrPos)
+      : stream(w), tree(_tree), attrPos(_attrPos) {
       stream.open();
     }
 
-    ~minsertttreeInfo(){
+    ~minsertdeleteInfo(){
       stream.close();
     }
 
     
     Tuple* next(){
       Tuple* res = stream.request();
-      if(!res) { 
+      if(!res) {
         return 0; 
       }
       
       Attribute* tidAttr = res->GetAttribute(res->GetNoAttributes() - 1);
       TupleId oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
-      
-      if(ct==MInsertTTree) {
-        Attribute* attr = res->GetAttribute(attrPos-1);
-        ttreePair tPair = ttreePair(attr->Copy(),oldTid);
-        ttree->insert(tPair);
-//         tPair.first->DeleteIfAllowed();
-      }
-      
-      if(ct==MDeleteTTree) {
-        Attribute* attr = res->GetAttribute(attrPos-1);
-        ttreePair tPair = ttreePair(attr->Copy(),oldTid);
-        ttree->remove(tPair);
-        tPair.first->DeleteIfAllowed();
+      Attribute* attr = res->GetAttribute(attrPos-1);
+      TreeElem  elem = TreeElem(attr,oldTid);
+      switch(ct){
+        case MInsertTree : tree->insert(elem); break;
+        case MDeleteTree : tree->remove(elem); break;
+        default: assert(false);
       }
       return res;
     }
-
   private:
      Stream<Tuple> stream;
-     memttree* ttree;
+     TreeType* tree;
      int attrPos;
 };
 
@@ -6049,16 +6106,15 @@ class minsertttreeInfo {
        and ~mdeletettree~
 
 */
-template<class T, ChangeTypeTree ct>
-int minsertttreeValueMap (Word* args, Word& result,
+template<class T, class LocalInfo, class MemTree>
+int minserttreeValueMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
   
-minsertttreeInfo<ct>* li = (minsertttreeInfo<ct>*) local.addr;
+  LocalInfo* li = (LocalInfo*) local.addr;
   
   switch(message) {
     
     case OPEN : {
-      
       if(li) {
         delete li;
         local.addr = 0;
@@ -6073,9 +6129,8 @@ minsertttreeInfo<ct>* li = (minsertttreeInfo<ct>*) local.addr;
       // cut blank from the front
       name = name.substr(1, name.size()-1);
       
-      MemoryTTreeObject* mmttree =
-      (MemoryTTreeObject*)catalog->getMMObject(name);
-      if(!mmttree) {
+      MemTree* mmtree =(MemTree*) catalog->getMMObject(name);
+      if(!mmtree) {
         return 0;
       }
       
@@ -6092,9 +6147,9 @@ minsertttreeInfo<ct>* li = (minsertttreeInfo<ct>*) local.addr;
           ("there is no attribute having name " + nl->ToString(attrToSort));
       }
         
-      local.addr = new minsertttreeInfo<ct>(args[0],
-                                            mmttree->getttree(),
-                                            attrPos);
+      local.addr = new LocalInfo(args[0],
+                                 mmtree->gettree(),
+                                 attrPos);
       return 0;
     }
 
@@ -6121,17 +6176,21 @@ minsertttreeInfo<ct>* li = (minsertttreeInfo<ct>*) local.addr;
 
 */
 ValueMapping minsertttreeVM[] = {
-    minsertttreeValueMap<CcString,MInsertTTree>,
-    minsertttreeValueMap<Mem,MInsertTTree>,
-    minsertttreeValueMap<CcString,MDeleteTTree>,
-    minsertttreeValueMap<Mem,MDeleteTTree>
+    minserttreeValueMap<CcString,minsertdeleteInfo<MInsertTree, 
+                                 memttree, AttrIdPair>,MemoryTTreeObject >,
+    minserttreeValueMap<Mem,minsertdeleteInfo<MInsertTree, 
+                                 memttree, AttrIdPair>, MemoryTTreeObject >,
+    minserttreeValueMap<CcString,minsertdeleteInfo<MDeleteTree, 
+                                 memttree, AttrIdPair>,MemoryTTreeObject >,
+    minserttreeValueMap<Mem,minsertdeleteInfo<MDeleteTree, 
+                                 memttree, AttrIdPair>, MemoryTTreeObject >
 };
 
 template<ChangeTypeTree ct>
 int minsertttreeSelect(ListExpr args){
-  if(ct==MInsertTTree) 
+  if(ct==MInsertTree) 
     return CcString::checkType(nl->First(args))?0:1;
-  else if(ct==MDeleteTTree) 
+  else if(ct==MDeleteTree) 
     return CcString::checkType(nl->First(args))?2:3;
 }
 
@@ -6158,8 +6217,8 @@ Operator minsertttreeOp (
     minsertttreeSpec.getStr(),
     6,
     minsertttreeVM,
-    minsertttreeSelect<MInsertTTree>,
-    minsertttreeTypeMap<MInsertTTree>
+    minsertttreeSelect<MInsertTree>,
+    minsertdeletetreeTypeMap<MemoryTTreeObject>
 );
 
 /*
@@ -6185,8 +6244,76 @@ Operator mdeletettreeOp (
     mdeletettreeSpec.getStr(),
     6,
     minsertttreeVM,
-    minsertttreeSelect<MDeleteTTree>,
-    minsertttreeTypeMap<MDeleteTTree>
+    minsertttreeSelect<MDeleteTree>,
+    minsertdeletetreeTypeMap<MemoryTTreeObject>
+);
+
+/*
+7.5 ~insert~ and ~delete~ for AVL trees
+
+*/
+
+OperatorSpec minsertavltreeSpec(
+    "stream(tuple(x@[TID:tid])) x {string, mem(avltree)} x ident "
+    "-> stream(tuple(x@[TID:tid]))",
+    "_ op [_,_]",
+    "inserts an object into a main memory avltree",
+    "query ten feed head[5] minsert[\"ten\"] "
+    "minsertavltree[\"ten_No\", No] count"
+);
+
+
+ValueMapping minsertAVLtreeVM[] = {
+    minserttreeValueMap<CcString,minsertdeleteInfo<MInsertTree, 
+                                 memAVLtree, AttrIdPair>,MemoryAVLObject >,
+    minserttreeValueMap<Mem,minsertdeleteInfo<MInsertTree, 
+                                 memAVLtree, AttrIdPair>, MemoryAVLObject >,
+};
+
+int minsertavltreeSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+
+Operator minsertavltreeOp (
+    "minsertavltree",
+    minsertavltreeSpec.getStr(),
+    2,
+    minsertAVLtreeVM,
+    minsertavltreeSelect,
+    minsertdeletetreeTypeMap<MemoryAVLObject>
+);
+
+
+OperatorSpec mdeleteavltreeSpec(
+    "stream(tuple(x@[TID:tid])) x {string, mem(avltree)} x ident "
+    "-> stream(tuple(x@[TID:tid]))",
+    "_ op [_,_]",
+    "Removes ojjects from  a main memory avltree",
+    "query ten feed head[5] modelete[\"ten\"] "
+    "mdeleteavltree[\"ten_No\", No] count"
+);
+
+
+ValueMapping mdeleteAVLtreeVM[] = {
+    minserttreeValueMap<CcString,minsertdeleteInfo<MDeleteTree, 
+                                    memAVLtree, AttrIdPair>,MemoryAVLObject >,
+    minserttreeValueMap<Mem,minsertdeleteInfo<MDeleteTree, 
+                                    memAVLtree, AttrIdPair>, MemoryAVLObject >
+};
+
+int mdeleteavltreeSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+
+Operator mdeleteavltreeOp (
+    "mdeleteavltree",
+    mdeleteavltreeSpec.getStr(),
+    2,
+    mdeleteAVLtreeVM,
+    mdeleteavltreeSelect,
+    minsertdeletetreeTypeMap<MemoryAVLObject>
 );
 
 
@@ -6463,7 +6590,10 @@ ListExpr minsertTypeMap(ListExpr args) {
       "second arg is not a memory relation");
   }
   if(!nl->Equal(nl->Second(stream), nl->Second(second))){
-      return listutils::typeError("stream type and mem relation type differ");
+      
+      return listutils::typeError("stream type and mem relation type differ\n"
+                               "stream: " + nl->ToString(stream) + "\n"
+                               + "rel   : " + nl->ToString(second));
   }
   
   // process third argument (minsertsave only)
@@ -6504,14 +6634,15 @@ ListExpr minsertTypeMap(ListExpr args) {
 class minsertInfo {
   public:
      minsertInfo(Word w, vector<Tuple*>* _relation, 
-                 bool _flob, TupleType* _type)
-        : stream(w),relation(_relation), flob(_flob), type(_type) {
+                 bool _flob, ListExpr _type)
+        : stream(w),relation(_relation), flob(_flob) {
+        type = new TupleType(_type);
         stream.open();
      }
 
     ~minsertInfo(){
        stream.close();
-//        type->DeleteIfAllowed;     TODO
+       type->DeleteIfAllowed();     
      }
 
      Tuple* next(){
@@ -6569,9 +6700,9 @@ int minsertValMap (Word* args, Word& result,
       MemoryRelObject* rel = getMemRel(oN);
       if(!rel) return 0;
       
-      TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
       
-      local.addr = new minsertInfo(args[0],rel->getmmrel(),rel->hasflob(),tt);
+      local.addr = new minsertInfo(args[0],rel->getmmrel(),rel->hasflob(),
+                                     nl->Second(GetTupleResultType(s)));
       return 0;
     }
     
@@ -6916,14 +7047,12 @@ class minserttupleInfo{
       const TupleId& tid = tup->GetTupleId();
       Attribute* tidAttr = new TupleIdentifier(true,tid);
       res->PutAttribute(res->GetNoAttributes()-1, tidAttr);
-      res->IncReference();
       
       if(flob)
         tup->bringToMemory();
       
       // add Tuple to memory relation
       relation->push_back(tup);
-      tup->IncReference();
       return res;
     }
 
@@ -7216,6 +7345,7 @@ void remove(vector<Tuple*>* relation, Tuple* res) {
         if(cmp!=0) 
           break;
         else {
+          tup->DeleteIfAllowed();
           relation->erase(relation->begin()+i);
           return;
         }
@@ -7227,35 +7357,36 @@ void remove(vector<Tuple*>* relation, Tuple* res) {
 class mdeleteInfo {
 public:
 mdeleteInfo(Word w, vector<Tuple*>* _relation, 
-            bool _flob, TupleType* _type)
-  : stream(w),relation(_relation), flob(_flob), type(_type) {
-  stream.open();
-}
+            bool _flob, ListExpr _type)
+  : stream(w),relation(_relation), flob(_flob) {
+    type = new TupleType(_type);
+    stream.open();
+  }
 
-    ~mdeleteInfo(){
-       stream.close();
-     }
+  ~mdeleteInfo(){
+     stream.close();
+     type->DeleteIfAllowed();
+   }
      
-     Tuple* next() {
-       Tuple* res = stream.request();
-       if(!res) return 0;
+   Tuple* next() {
+     Tuple* res = stream.request();
+     if(!res) return 0;
        
-       Tuple* newtup = new Tuple(type); 
-       for(int i = 0; i < res->GetNoAttributes(); i++)
-         newtup->CopyAttribute(i,res,i);
+     Tuple* newtup = new Tuple(type); 
+     for(int i = 0; i < res->GetNoAttributes(); i++)
+        newtup->CopyAttribute(i,res,i);
        
-       //get tuple id and append it to tuple
-       const TupleId& tid = res->GetTupleId();
-       Attribute* tidAttr = new TupleIdentifier(true,tid);
-       newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
-       newtup->IncReference();  // ?
+     //get tuple id and append it to tuple
+     const TupleId& tid = res->GetTupleId();
+     Attribute* tidAttr = new TupleIdentifier(true,tid);
+     newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
        
-       // delete from relation
-       remove(relation,res);     
-       res->DeleteIfAllowed();  
+     // delete from relation
+     remove(relation,res);     
+     res->DeleteIfAllowed();  
        
-       return newtup;
-     }
+     return newtup;
+  }
 
   private:
      Stream<Tuple> stream;
@@ -7296,7 +7427,7 @@ int mdeleteValMap (Word* args, Word& result,
       MemoryRelObject* rel = getMemRel(oN);;
       if(!rel) { return 0; }
       
-      TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      ListExpr  tt = nl->Second(GetTupleResultType(s));
       
       local.addr = new mdeleteInfo(args[0],rel->getmmrel(),
                                    rel->hasflob(),tt);
@@ -7366,13 +7497,15 @@ class mdeletesaveInfo {
   public:
     mdeletesaveInfo(Word w, vector<Tuple*>* _relation, 
                     vector<Tuple*>* _auxrel, 
-                bool _flob, TupleType* _type)
+                bool _flob, ListExpr  _type)
       : stream(w),relation(_relation), auxrel(_auxrel), 
-        flob(_flob), type(_type) {
+        flob(_flob){
+      type = new TupleType(_type);
       stream.open();
     }
     
   ~mdeletesaveInfo(){
+      type->DeleteIfAllowed();
       stream.close();
     }
 
@@ -7381,16 +7514,18 @@ class mdeletesaveInfo {
     Tuple* next() {
       Tuple* res = stream.request();
       if(!res) { return 0; }
-      if(flob)
+      if(flob) {
         res->bringToMemory();
+      }
       
       Tuple* newtup = new Tuple(type); 
-      for(int i = 0; i < res->GetNoAttributes(); i++)
+      for(int i = 0; i < res->GetNoAttributes(); i++){
         newtup->CopyAttribute(i,res,i);
+      }
       const TupleId& tid = res->GetTupleId();
       Attribute* tidAttr = new TupleIdentifier(true,tid);
       newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
-      res->IncReference();
+      //res->IncReference();
       
       // delete from relation
       remove(relation,res);
@@ -7432,7 +7567,6 @@ int mdeletesaveValueMap (Word* args, Word& result,
         local.addr=0;
       }
       
-      qp->Open(args[0].addr);
       T* oN = (T*) args[1].addr;
       T* aux = (T*) args[2].addr;
       
@@ -7441,7 +7575,7 @@ int mdeletesaveValueMap (Word* args, Word& result,
       MemoryRelObject* auxrel = getMemRel(aux);
       if(!auxrel) { return 0; }
       
-      TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      ListExpr tt = nl->Second(GetTupleResultType(s));
       
       local.addr = new mdeletesaveInfo(args[0],rel->getmmrel(),
                                         auxrel->getmmrel(),
@@ -7507,8 +7641,10 @@ Tuple* find(vector<Tuple*>* relation, TupleIdentifier* tid) {
   
   while(it != relation->end()) {
     tup = *it;
-    if(tid->GetTid() == tup->GetTupleId()) {
-      return tup;
+    if(tup){
+      if(tid->GetTid() == tup->GetTupleId()) {
+        return tup;
+      }
     }
     it++;
   }
@@ -7578,12 +7714,15 @@ class mdeletebyidInfo{
   public:
     mdeletebyidInfo(vector<Tuple*>* _relation, 
                     TupleIdentifier* _tid, 
-                    TupleType* _type)
-      : relation(_relation), tid(_tid), type(_type) {
+                    ListExpr _type)
+      : relation(_relation), tid(_tid) {
+        type = new TupleType(_type);
         firstcall = true;
       }
       
-    ~mdeletebyidInfo() {}
+    ~mdeletebyidInfo() {
+         type->DeleteIfAllowed();
+     }
      
     Tuple* next() {
       
@@ -7640,9 +7779,9 @@ int mdeletebyidValMap (Word* args, Word& result,
         if(!rel) { return 0; }
         
         TupleIdentifier* tid = (TupleIdentifier*)(args[1].addr);
-        TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
         
-        local.addr = new mdeletebyidInfo(rel->getmmrel(),tid,tt);
+        local.addr = new mdeletebyidInfo(rel->getmmrel(),tid,
+                                         nl->Second(GetTupleResultType(s)));
         return 0;
       }
 
@@ -7708,26 +7847,22 @@ template<UpdateOp uo>
 void update(vector<Tuple*>* relation, Tuple* res, 
             int changedIndex, Attribute* attr) {
       
-  vector<int>* attrPos = new vector<int>();
-  attrPos->push_back(changedIndex+1);
+  vector<int> attrPos;
+  
+  attrPos.push_back(changedIndex+1);
   
   vector<Tuple*>::iterator it = relation->begin();
   
   while(it != relation->end()) {
     Tuple* tup = *it;
-    if(TupleComp::equal(res,tup,attrPos)) {
-
-      for(int i=0; i<res->GetNoAttributes(); i++) {
-        if(i==changedIndex) {
-          tup->PutAttribute(i,attr->Clone());
-          return;
-        }
+    if(tup){
+      if(TupleComp::equal(res,tup,&attrPos)) {
+        tup->PutAttribute(changedIndex, attr->Clone());
+        return;
       }
     }
     it++;
   }
-  attrPos->clear();
-  delete attrPos;
 }
 
 Tuple* copyAttributes(Tuple* res, TupleType* type) {
@@ -7904,14 +8039,16 @@ class mupdateInfo {
   public:
     mupdateInfo(Word w, vector<Tuple*>* _relation, 
                 bool _flob, Word _arg, 
-                Word _arg2, TupleType* _type)
+                Word _arg2, ListExpr _type)
       : stream(w),relation(_relation), flob(_flob), arg(_arg), 
-        arg2(_arg2), type(_type) {
+        arg2(_arg2)  {
+      type = new TupleType(_type);
       stream.open();
     }
 
     ~mupdateInfo(){
       stream.close();
+      type->DeleteIfAllowed();
     }
     
     Tuple* next() {
@@ -7939,15 +8076,14 @@ class mupdateInfo {
       if(flob)
         res->bringToMemory();
       
-      Tuple* tup = copyAttributes(res,type);
-      res->IncReference();
+      Tuple* tup = new Tuple(type);
       
       
       for(int i = 0; i < res->GetNoAttributes(); i++) {
         if(i!=changedIndex)
           tup->CopyAttribute(i,res,i);
         else
-          tup->PutAttribute(i,newAttr->Clone());
+          tup->PutAttribute(i,newAttr);
       }
       
       //get tuple id and append it to tuple
@@ -7956,7 +8092,9 @@ class mupdateInfo {
       tup->PutAttribute(tup->GetNoAttributes()-1,tidAttr);
       
       update<MUpdate>(relation,res,changedIndex,newAttr);
-      
+
+      res->DeleteIfAllowed();
+
       return tup;
     }
 
@@ -7997,7 +8135,7 @@ int mupdateValMap (Word* args, Word& result,
       MemoryRelObject* rel = getMemRel(oN,ttype);
       if(!rel) { return 0; }
         
-      TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      ListExpr tt = nl->Second(GetTupleResultType(s));
       
       local.addr = new mupdateInfo(args[0],rel->getmmrel(),
                                    rel->hasflob(),
@@ -8073,14 +8211,16 @@ class mupdatesaveInfo {
     mupdatesaveInfo(Word w, vector<Tuple*>* _relation, 
                     vector<Tuple*>* _auxrel, 
                     bool _flob, Word _arg, 
-                    Word _arg2, TupleType* _type)
+                    Word _arg2, ListExpr _type)
       : stream(w),relation(_relation), auxrel(_auxrel),
         flob(_flob), arg(_arg), 
-        arg2(_arg2), type(_type) {
+        arg2(_arg2) {
+      type = new TupleType(_type);
       stream.open();
     }
     
     ~mupdatesaveInfo(){
+      type->DeleteIfAllowed();
       stream.close();
     }
 
@@ -8111,7 +8251,6 @@ class mupdatesaveInfo {
       if(flob){
         res->bringToMemory();
       }
-      res->IncReference();
       
       for(int i = 0; i < res->GetNoAttributes(); i++) {
         if(i!=changedIndex)
@@ -8130,6 +8269,10 @@ class mupdatesaveInfo {
 //       tup->IncReference();
       
       update<MUpdateSave>(relation,res,changedIndex,newAttr);
+      // in all places, newAttr was cloned, thus we can delete it here
+      delete newAttr;
+
+      res->DeleteIfAllowed();  
       
 //       res->DeleteIfAllowed();
       return tup;
@@ -8175,7 +8318,7 @@ int mupdatesaveValueMap (Word* args, Word& result,
       MemoryRelObject* auxrel = getMemRel(aux);
       if(!auxrel) { return 0; }
       
-      TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      ListExpr tt = nl->Second(GetTupleResultType(s));
       
       local.addr = new mupdatesaveInfo(args[0],rel->getmmrel(),
                                        auxrel->getmmrel(),
@@ -8426,13 +8569,13 @@ class mupdatebyidInfo {
         if(i!=changedIndex)
           newtup->CopyAttribute(i,res,i);
         else
-          newtup->PutAttribute(i,newAttr->Clone());
+          newtup->PutAttribute(i,newAttr);
       }
       
       //get tuple id and append it to tuple
       Attribute* tidAttr = new TupleIdentifier(true,tid->GetTid());
       newtup->PutAttribute(newtup->GetNoAttributes()-1,tidAttr);
- 
+        
       return newtup;
     }
 
@@ -8554,7 +8697,7 @@ template<ChangeType ct>
 class moinsertInfo {
   public:
          
-    moinsertInfo(Word w, ttree::TTree<Tuple*,TupleComp>* _orel, 
+    moinsertInfo(Word w, ttree::TTree<TupleWrap,TupleComp>* _orel, 
                  bool _flob, TupleType* _type,vector<int>* _attrPos) 
       : stream(w),orel(_orel),flob(_flob),type(_type),attrPos(_attrPos) {
       stream.open();
@@ -8569,32 +8712,43 @@ class moinsertInfo {
       Tuple* res = stream.request();
       if(!res) { return 0; }
       
-      if((ct==MOInsert) && flob)
+      if((ct==MOInsert) && flob) {
         res->bringToMemory();
+      }
       
       // copy attributes of tuple from input stream
       Tuple* newtup = new Tuple(type); 
-      for(int i = 0; i < res->GetNoAttributes(); i++)
+      for(int i = 0; i < res->GetNoAttributes(); i++){
         newtup->CopyAttribute(i,res,i);
+      }
       
-      if(ct == MOInsert)
-        orel->insert(res,attrPos);  
-      if(ct == MODelete)
-        orel->remove(res,attrPos);  
-      res->IncReference();
+      TupleId tid = res->GetTupleId();
+      switch(ct){
+        case MOInsert : {
+                          TupleWrap tw(res);
+                          orel->insert(tw,attrPos); 
+                        }
+                        break;
+        case MODelete : {
+                          TupleWrap tw(res);
+                          orel->remove(tw, attrPos); 
+                        }
+                        break;
+        default : assert(false);
+      }
+      res->DeleteIfAllowed(); // remove old tuple
       
-      //get tuple id and append it to tuple
-      const TupleId& tid = res->GetTupleId();
+      //get tuple id and append it to the stored tuple
       Attribute* tidAttr = new TupleIdentifier(true,tid);
-      newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
-      
-      res->DeleteIfAllowed();
+      newtup->PutAttribute(newtup->GetNoAttributes()-1, tidAttr);
+     
+       
       return newtup;
     }
 
   private:
      Stream<Tuple> stream;
-     ttree::TTree<Tuple*,TupleComp>* orel;
+     ttree::TTree<TupleWrap,TupleComp>* orel;
      bool flob;
      TupleType* type;
      vector<int>* attrPos;
@@ -9097,7 +9251,7 @@ template<RangeKind rk>
 class morangeInfo{
     public:
       
-      morangeInfo(ttree::TTree<Tuple*,TupleComp>* _tree, 
+      morangeInfo(ttree::TTree<TupleWrap,TupleComp>* _tree, 
                   Attribute* _attr1,
                   Attribute* _attr2, 
                   int _attrPos)
@@ -9111,7 +9265,7 @@ class morangeInfo{
         
         while((rk== Range || rk==RightRange) && 
                !res && !iter.end()) {
-          Tuple* result = *iter;
+          Tuple* result = (*iter).getPointer();
           Attribute* attr;
           if(result)
             attr = result->GetAttribute(attrPos-1);
@@ -9131,7 +9285,7 @@ class morangeInfo{
         if(iter.end() || !res)
           return 0;
         
-        Tuple* result = *iter;
+        Tuple* result = (*iter).getPointer();
         if(!result)
           return 0;
         
@@ -9151,11 +9305,11 @@ class morangeInfo{
 
 
     private:
-        ttree::TTree<Tuple*,TupleComp>* tree;
+        ttree::TTree<TupleWrap,TupleComp>* tree;
         Attribute* attr1;
         Attribute* attr2;
         int attrPos;
-        ttree::Iterator<Tuple*,TupleComp> iter;
+        ttree::Iterator<TupleWrap,TupleComp> iter;
         bool res;
 };
 
@@ -9319,17 +9473,17 @@ enum SPType{
   ASTAR
 };
 
-Tuple* findTuple(ttree::TTree<Tuple*,TupleComp>* mmorel, 
+Tuple* findTuple(ttree::TTree<TupleWrap,TupleComp>* mmorel, 
                  int nr, int prev) {
     
   CcInt* startNodeInt = new CcInt(true,prev);
   CcInt* endNodeInt = new CcInt(true,nr);
 
-  ttree::Iterator<Tuple*,TupleComp> it = mmorel->begin();
+  ttree::Iterator<TupleWrap,TupleComp> it = mmorel->begin();
   
   Tuple* tup;
-  while(it.hasNext()) {
-    tup = *it;
+  while(!it.end()) {
+    tup = (*it).getPointer();
     if(!tup)
       return 0;
     // find all tuples with startnode as first argument
@@ -9349,7 +9503,7 @@ Tuple* findTuple(ttree::TTree<Tuple*,TupleComp>* mmorel,
 
 bool appendTuple(Tuple* tup,TupleType* tt, 
                  int seqNo,
-                 ttree::TTree<Tuple*,TupleComp>* result) {
+                 ttree::TTree<TupleWrap,TupleComp>* result) {
   Tuple* newTuple = new Tuple(tt);
   int i = 0;
   for(; i<tup->GetNoAttributes(); i++) {
@@ -9358,19 +9512,21 @@ bool appendTuple(Tuple* tup,TupleType* tt,
   int s = seqNo;
   CcInt* noOfNodes = new CcInt(true, s);
   newTuple->PutAttribute(i,noOfNodes);
-  result->insert(newTuple,i+1);   // sort by SeqNo
-  newTuple->IncReference();
+  TupleWrap tw(newTuple);
+  result->insert(tw,i+1);   // sort by SeqNo
+  newTuple->DeleteIfAllowed();
   return true;
 }
 
-QueueEntry* findNextNode(ttree::TTree<QueueEntry*,EntryComp>* visitedNodes,
-                         QueueEntry* current) {
+QueueEntryWrap findNextNode(
+           ttree::TTree<QueueEntryWrap,EntryComp>* visitedNodes,
+           QueueEntryWrap& current) {
     
-  ttree::Iterator<QueueEntry*,EntryComp> iter = visitedNodes->begin();
+  ttree::Iterator<QueueEntryWrap,EntryComp> iter = visitedNodes->begin();
   while(iter.hasNext()) {
-    QueueEntry* entry = *iter;
+    QueueEntryWrap entry = *iter;
 
-    if(entry->nodeNumber == current->prev) {
+    if(entry.getPointer()->nodeNumber == current()->prev) {
       return entry;
     }
     iter++;
@@ -9425,12 +9581,17 @@ ListExpr moshortestpathTypeMap(ListExpr args) {
   if(sptype == ASTAR && nl->ListLength(args) != 6) {
     return listutils::typeError("moshortestpath expects 6 arguments");
   }
-  
+ 
+  ListExpr tmp = args;
+  while(!nl->IsEmpty(tmp)){
+    if(!nl->HasLength(nl->First(tmp),2)){
+      return listutils::typeError("internal error");
+    }
+    tmp = nl->Rest(tmp);
+  }
+
   // process first arg
   ListExpr a1 = nl->First(args);
-  if(!nl->HasLength(a1,2)){
-      return listutils::typeError("internal error");
-  }
   string errMsg;
   if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
     return listutils::typeError("string or mem(orel) expected : " + errMsg);
@@ -9447,51 +9608,41 @@ ListExpr moshortestpathTypeMap(ListExpr args) {
   ListExpr resultSelect = nl->First(nl->Fourth(args));
   ListExpr functionWeightMap = nl->First(nl->Fifth(args));
   ListExpr functionDistMap;
-  if(sptype == ASTAR)
+  if(sptype == ASTAR){
     functionDistMap = nl->First(nl->Sixth(args));
+  }
 
   ListExpr orelTuple = nl->Second(a1);    
 
-  if(!listutils::isTupleDescription(orelTuple)) {
-    return listutils::typeError("second value of orel is not of type tuple");
-  }
-
   ListExpr orelAttrList(nl->Second(orelTuple));
 
-  if(!listutils::isAttrList(orelAttrList)) {
-    return listutils::typeError("Error in orel attrlist.");
+  if(!nl->HasMinLength(orelAttrList, 3)){
+    return listutils::typeError("Ordered relation must have at "
+                                "least 3 attributes");
   }
 
-  if(nl->ListLength(orelAttrList) >= 3) {
-    ListExpr firstAttr = nl->First(orelAttrList);
 
-    if(nl->ListLength(firstAttr) != 2 ||
-       nl->SymbolValue(nl->Second(firstAttr)) != CcInt::BasicType()) {
-      return listutils::typeError("First attribute of orel should be int");
-    }
-
-    ListExpr secondAttr = nl->Second(orelAttrList);
-    if (nl->ListLength(secondAttr) != 2 ||
-        nl->SymbolValue(nl->Second(secondAttr)) != CcInt::BasicType()) {
-      return listutils::typeError("Second attribute of orel should be int");
-    }
+  ListExpr firstAttr = nl->First(orelAttrList);
+  if(!CcInt::checkType(nl->Second(firstAttr))){
+    return listutils::typeError("first attribute must be of type int");
   }
-  else {
-    return listutils::typeError("orel has less than 3 attributes.");
+  ListExpr secondAttr = nl->Second(orelAttrList);
+  if(!CcInt::checkType(nl->Second(secondAttr))){
+    return listutils::typeError("second attribute must be of type int");
   }
 
   //Check of second argument
-  if (!listutils::isSymbol(startNodeList,CcInt::BasicType())) {
-    return listutils::typeError("Second argument should be int");
+  if (!CcInt::checkType(startNodeList)) {
+    return listutils::typeError("Second argument must be int");
   }
 
   //Check of third argument
-  if (!listutils::isSymbol(endNodeList,CcInt::BasicType())) {
+  if (!CcInt::checkType(endNodeList)) {
     return listutils::typeError("Third argument should be int");
   }
 
   //Check of fourth argument
-  if(!listutils::isSymbol(resultSelect,CcInt::BasicType())) {
+  if(!CcInt::checkType(resultSelect) ) {
     return listutils::typeError("Fourth argument should be int");
   }
 
@@ -9508,7 +9659,7 @@ ListExpr moshortestpathTypeMap(ListExpr args) {
 
   ListExpr mapres = nl->Third(functionWeightMap);
 
-  if(!listutils::isSymbol(mapres,CcReal::BasicType())) {
+  if(!CcReal::checkType(mapres)) {
     return listutils::typeError(
                 "Wrong mapping result type for oshortestpathd");
   }
@@ -9517,7 +9668,7 @@ ListExpr moshortestpathTypeMap(ListExpr args) {
   if(sptype == ASTAR) {
     if (!listutils::isMap<1>(functionDistMap)) {
       return listutils::typeError(
-                      "Sixth argument should be a map");
+                      "Sixth argument must be a map");
     }
     ListExpr mapTuple2 = nl->Second(functionDistMap);
 
@@ -9527,7 +9678,7 @@ ListExpr moshortestpathTypeMap(ListExpr args) {
     }
     ListExpr mapres2 = nl->Third(functionDistMap);
 
-    if(!listutils::isSymbol(mapres2,CcReal::BasicType())) {
+    if(!CcReal::checkType(mapres2)) {
       return listutils::typeError(
                             "Wrong mapping result type for oshortestpath");
     }
@@ -9539,7 +9690,7 @@ ListExpr moshortestpathTypeMap(ListExpr args) {
   NList extOrelAttrList(nl->TheEmptyList());
 
 
-  for (int i = 0; i < nl->ListLength(orelAttrList); i++) {
+  for(int i = 0; i < nl->ListLength(orelAttrList); i++) {
     NList attr(nl->Nth(i+1,orelAttrList));
     extOrelAttrList.append(attr);
   }
@@ -9557,7 +9708,7 @@ ListExpr moshortestpathTypeMap(ListExpr args) {
 class moshortestpathdInfo {
 public:
   
-  moshortestpathdInfo(ttree::TTree<Tuple*,TupleComp>* _tree,  
+  moshortestpathdInfo(ttree::TTree<TupleWrap,TupleComp>* _tree,  
                      int _startNode, int _endNode, int _resultSelect,
                      Word _arg, TupleType* _tt) 
       : mmorel(_tree),startNode(_startNode),
@@ -9565,16 +9716,19 @@ public:
         arg(_arg),tt(_tt),seqNo(1) {
           
     queue = new Queue();
-    visitedNodes = new ttree::TTree<QueueEntry*,EntryComp>(16,18);
-    sptree = new ttree::TTree<Tuple*,TupleComp>(16,18);
-    result = new ttree::TTree<Tuple*,TupleComp>(16,18);
+    visitedNodes = new ttree::TTree<QueueEntryWrap,EntryComp>(16,18);
+    sptree = new ttree::TTree<TupleWrap,TupleComp>(16,18);
+    result = new ttree::TTree<TupleWrap,TupleComp>(16,18);
     
     bool found = shortestPath();
+    if(resultSelect<0 || resultSelect>3){ // bring to allowed values
+       resultSelect = 0;
+    }
     if(found || resultSelect == 3) {
       resultSelection();
-    }
-    else  
+    } else  {
       cerr << "no path found" << endl;
+    }
     iterator = result->begin();
   }
 
@@ -9582,16 +9736,6 @@ public:
     while(!queue->empty())
       queue->pop();
     delete queue;
-    
-    ttree::Iterator<QueueEntry*,EntryComp> it = visitedNodes->begin();
-    while(it.hasNext()) {
-      QueueEntry* entry = *it;
-      if(entry) {
-        delete entry;
-        entry = 0;
-      }
-      it++;
-    }
     
     tt->DeleteIfAllowed();
     tt = 0;
@@ -9604,7 +9748,7 @@ public:
   Tuple* next() {
     if(iterator.end()) 
       return 0;
-    Tuple* res = *iterator;
+    Tuple* res = (*iterator).getPointer();
     if(res==NULL) {
       return 0;
     }
@@ -9624,28 +9768,30 @@ public:
     int toNode = startNode;
     
     QueueEntry* startEntry = new QueueEntry(startNode,-1,0.0,0.0);
-    queue->push(startEntry);
-    visitedNodes->insert(startEntry);
+    QueueEntryWrap qw(startEntry);
+    startEntry->DeleteIfAllowed();
+    queue->push(qw);
+    visitedNodes->insert(qw);
     
     double dist = 0.0;
     
   // SEARCH SHORTESTPATH
     while(!queue->empty()) {
       current = queue->top();
-      current->visited = true;
+      current()->visited = true;
       queue->pop();
       
       // goal node found
-      if (resultSelect<3 && current->nodeNumber == endNode) {
+      if (resultSelect<3 && current()->nodeNumber == endNode) {
         return true;
       }
       // process next node
       else {
-        CcInt* currentNodeNumber = new CcInt(true,current->nodeNumber);
+        CcInt* currentNodeNumber = new CcInt(true,current()->nodeNumber);
         // get tuple with currentNodeNumber as startnode
-        ttree::Iterator<Tuple*,TupleComp> it = mmorel->begin();
+        ttree::Iterator<TupleWrap,TupleComp> it = mmorel->begin();
         while(it.hasNext()) {
-          Tuple* tup = *it;
+          Tuple* tup = (*it).getPointer();
           if(tup->GetAttribute(0)->Compare(currentNodeNumber) < 0) {
             it++;
           }
@@ -9655,17 +9801,18 @@ public:
         // process edges
         while(it.hasNext()) {
           
-          Tuple* currentTuple = *it;
+          Tuple* currentTuple = (*it).getPointer();
           // all edges processed
           if(currentTuple->GetAttribute(0)->Compare(currentNodeNumber) > 0) {
             break;
           }
           if(resultSelect!=3) {
-            sptree->insert(currentTuple);   
+            TupleWrap tw(currentTuple);
+            sptree->insert(tw);   
           }
           toNode = ((CcInt*)currentTuple->GetAttribute(1))->GetIntval();
           
-          if(current->nodeNumber != toNode) {
+          if(current()->nodeNumber != toNode) {
             ArgVectorPointer funArgs = qp->Argument(arg.addr);
             Word funResult;
             ((*funArgs)[0]).setAddr(currentTuple);
@@ -9675,26 +9822,29 @@ public:
               cerr << "Found negativ edge cost computation aborted." << endl;
               return 0;
             }
-            dist = current->dist + edgeCost;
+            dist = current()->dist + edgeCost;
             bool contained = false;
-            ttree::Iterator<QueueEntry*,EntryComp> it = 
+            ttree::Iterator<QueueEntryWrap,EntryComp> it = 
                                             visitedNodes->begin();
             
             // check if shortening of path possible
             while(it.hasNext()) {
-              QueueEntry* entry = *it;
-              if(entry->nodeNumber == toNode) {
-                if(entry->dist > dist) {
-                  QueueEntry* prevEntry = new QueueEntry(entry->nodeNumber,
-                                                          entry->prev,
-                                                          entry->dist,
-                                                          entry->priority);
-                  prevEntry->visited = entry->visited;
-                  entry->dist = dist;
-                  entry->prev = current->nodeNumber;
-                  entry->priority = dist;
-                  if(entry->visited)
-                    visitedNodes->update(entry,prevEntry);
+              QueueEntryWrap entry = *it;
+              if(entry.getPointer()->nodeNumber == toNode) {
+                if(entry.getPointer()->dist > dist) {
+                  QueueEntry* prevEntry = new QueueEntry(entry()->nodeNumber,
+                                                          entry()->prev,
+                                                          entry()->dist,
+                                                          entry()->priority);
+                  prevEntry->visited = entry()->visited;
+                  entry()->dist = dist;
+                  entry()->prev = current()->nodeNumber;
+                  entry()->priority = dist;
+                  if(entry()->visited){
+                    QueueEntryWrap  qw(prevEntry);
+                    visitedNodes->update(entry,qw);
+                  }
+                  prevEntry->DeleteIfAllowed();
                 }
                 contained = true;
                 break;
@@ -9704,11 +9854,15 @@ public:
 
             if(!contained) {
               QueueEntry* to = 
-                  new QueueEntry(toNode,current->nodeNumber,dist,dist);
-              visitedNodes->insert(to,true);
-              queue->push(to);
-              if(resultSelect==3)
-                sptree->insert(currentTuple);
+                  new QueueEntry(toNode,current()->nodeNumber,dist,dist);
+              QueueEntryWrap qw(to);
+              to->DeleteIfAllowed();
+              visitedNodes->insert(qw,true);
+              queue->push(qw);
+              if(resultSelect==3){
+                TupleWrap tw(currentTuple);
+                sptree->insert(tw);
+              }
               currentTuple->IncReference();
             }
           }
@@ -9726,7 +9880,7 @@ public:
       case 0: {  // shortest path  
       
         Tuple* currentTuple = 
-                   findTuple(mmorel,current->nodeNumber,current->prev);
+                   findTuple(mmorel,current()->nodeNumber,current()->prev);
         bool found = false;
     
         while (!found && currentTuple != 0) {
@@ -9734,11 +9888,11 @@ public:
           appendTuple(currentTuple,tt,seqNo,result);
           seqNo++;
           
-          if(current->prev != startNode) {
+          if(current()->prev != startNode) {
             current = findNextNode(visitedNodes,current);
 
             currentTuple = 
-                    findTuple(mmorel,current->nodeNumber,current->prev);
+                    findTuple(mmorel,current()->nodeNumber,current()->prev);
           }
           else {
             found = true;
@@ -9755,17 +9909,17 @@ public:
           current = queue->top();
           queue->pop();
           Tuple* currentTuple = findTuple(mmorel,
-                                          current->nodeNumber,
-                                          current->prev);
+                                          current()->nodeNumber,
+                                          current()->prev);
           appendTuple(currentTuple,tt,seqNo,result);
           seqNo++;
         }
         break;
       }
       case 2: { //visited sections
-        ttree::Iterator<Tuple*,TupleComp> iter = sptree->begin();
+        ttree::Iterator<TupleWrap,TupleComp> iter = sptree->begin();
          while(iter.hasNext()) {
-           Tuple* currentTuple = *iter;
+           Tuple* currentTuple = (*iter).getPointer();
            appendTuple(currentTuple,tt,seqNo,result);
            iter++;
            seqNo++;
@@ -9773,9 +9927,9 @@ public:
          break;
       }
       case 3: { //shortest path tree     
-        ttree::Iterator<Tuple*,TupleComp> iter = sptree->begin();
+        ttree::Iterator<TupleWrap,TupleComp> iter = sptree->begin();
         while(iter.hasNext()) {
-          Tuple* currentTuple = *iter;
+          Tuple* currentTuple = (*iter).getPointer();
           appendTuple(currentTuple,tt,seqNo,result);
           iter++;
           seqNo++;
@@ -9793,8 +9947,8 @@ public:
 
 protected:
 
-  ttree::TTree<Tuple*,TupleComp>* mmorel;     
-  ttree::Iterator<Tuple*,TupleComp> iterator;
+  ttree::TTree<TupleWrap,TupleComp>* mmorel;     
+  ttree::Iterator<TupleWrap,TupleComp> iterator;
   int startNode;
   int endNode;
   int resultSelect;
@@ -9803,12 +9957,12 @@ protected:
   int seqNo;
   Queue* queue;
   
-  ttree::TTree<QueueEntry*,EntryComp>* visitedNodes;
-  ttree::TTree<Tuple*,TupleComp>* sptree;
-  ttree::TTree<Tuple*,TupleComp>* result;
+  ttree::TTree<QueueEntryWrap,EntryComp>* visitedNodes;
+  ttree::TTree<TupleWrap,TupleComp>* sptree;
+  ttree::TTree<TupleWrap,TupleComp>* result;
   
   
-  QueueEntry* current;
+  QueueEntryWrap current;
   int seqNoAttrIndex;
   
 };
@@ -9903,9 +10057,14 @@ int moshortestpathSelect(ListExpr args){
 OperatorSpec moshortestpathdSpec(
     "{string, mem(orel(tuple(x)))} x int x int x int x "
     "(tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))",
-    "_ moshortestpathd [_,_,_; fun] implicit parameter tuple type MTUPLE",
-    "claculates the shortest path for a given start and goal node in a main "
-    "memory ordered relation using dijkstras algorithm",
+    "morel moshortestpathd [startNode,endNode,resultSelect; fun] ",
+    "Caculates the shortest path from startNode to endNode in a graph "
+    "representent in a ordered memory relation using dijkstras algorithm."
+    "The ordered relation must have SourceNodes as the first attribute and "
+    "target nodes as second attribute. " 
+    "Using the argument resultselect, the output of this operator is "
+    "controlled. 0 : shortest path, 1 : remaining elements in queue, "
+    " 2 : visited sections, 3 : shortest path tree ",
     "query mwrap('otestrel') moshortestpathd"
     "[1,3,0; distance(.GeoData_s1,.GeoData_s2)] count"
 );
@@ -9927,7 +10086,7 @@ Operator moshortestpathdOp (
 class moshortestpathaInfo {
 public:
   
-  moshortestpathaInfo(ttree::TTree<Tuple*,TupleComp>* _tree,  
+  moshortestpathaInfo(ttree::TTree<TupleWrap,TupleComp>* _tree,  
                      int _startNode, int _endNode, int _resultSelect,
                      Word _arg, Word _arg2, TupleType* _tt) 
       : mmorel(_tree),startNode(_startNode),
@@ -9935,9 +10094,9 @@ public:
         arg(_arg),arg2(_arg2),tt(_tt),seqNo(1) {
           
           queue = new Queue();
-          visitedNodes = new ttree::TTree<QueueEntry*,EntryComp>(16,18);
-          sptree = new ttree::TTree<Tuple*,TupleComp>(16,18);
-          result = new ttree::TTree<Tuple*,TupleComp>(16,18);
+          visitedNodes = new ttree::TTree<QueueEntryWrap,EntryComp>(16,18);
+          sptree = new ttree::TTree<TupleWrap,TupleComp>(16,18);
+          result = new ttree::TTree<TupleWrap,TupleComp>(16,18);
           
           bool found = shortestPath();
           if(found || resultSelect == 3) {
@@ -9954,16 +10113,6 @@ public:
       queue->pop();
     delete queue;
     
-    ttree::Iterator<QueueEntry*,EntryComp> it = visitedNodes->begin();
-    while(it.hasNext()) {
-      QueueEntry* entry = *it;
-      if(entry) {
-        delete entry;
-        entry = 0;
-      }
-      it++;
-    }
-    
     tt->DeleteIfAllowed();
     tt = 0;
     
@@ -9975,7 +10124,7 @@ public:
   Tuple* next() {
     if(iterator.end()) 
       return 0;
-    Tuple* res = *iterator;
+    Tuple* res = (*iterator).getPointer();
     if(res==NULL) {
       return 0;
     }
@@ -9995,26 +10144,28 @@ public:
     int toNode = startNode;
     
     QueueEntry* startEntry = new QueueEntry(startNode,-1,0.0,0.0);
-    queue->push(startEntry);
-    visitedNodes->insert(startEntry);
+    QueueEntryWrap qw(startEntry);
+    queue->push(qw);
+    visitedNodes->insert(qw);
+    startEntry->DeleteIfAllowed();
     
     double dist = 0.0;
     
   // SEARCH SHORTESTPATH
     while(!queue->empty()) {
       current = queue->top();
-      current->visited = true;
+      current()->visited = true;
       queue->pop();
       
-      if (resultSelect<3 && current->nodeNumber == endNode) {
+      if (resultSelect<3 && current()->nodeNumber == endNode) {
         return true;
       }
       else {
-        CcInt* currentNodeNumber = new CcInt(true,current->nodeNumber);
+        CcInt* currentNodeNumber = new CcInt(true,current()->nodeNumber);
         
-        ttree::Iterator<Tuple*,TupleComp> it = mmorel->begin();
+        ttree::Iterator<TupleWrap,TupleComp> it = mmorel->begin();
         while(it.hasNext()) {
-          Tuple* tup = *it;
+          Tuple* tup = (*it).getPointer();
           // get tuple with currentNodeNumber as startnode
           if(tup->GetAttribute(0)->Compare(currentNodeNumber) < 0) {
             it++;
@@ -10023,15 +10174,16 @@ public:
         }
         
         while(it.hasNext()) {
-          Tuple* currentTuple = *it;            
+          Tuple* currentTuple = (*it).getPointer();            
           if(currentTuple->GetAttribute(0)->Compare(currentNodeNumber) > 0) {
             break;
           }
           toNode = ((CcInt*)currentTuple->GetAttribute(1))->GetIntval();
           if(resultSelect!=3) {
-            sptree->insert(currentTuple);      
+            TupleWrap tw(currentTuple); 
+            sptree->insert(tw);      
           }
-          if(current->nodeNumber != toNode) {
+          if(current()->nodeNumber != toNode) {
             ArgVectorPointer funArgs = qp->Argument(arg.addr);
             Word funResult;
             ((*funArgs)[0]).setAddr(currentTuple);
@@ -10041,7 +10193,7 @@ public:
               cerr << "Found negativ edge cost computation aborted." << endl;
               return 0;
             }
-            dist = current->dist + edgeCost;
+            dist = current()->dist + edgeCost;
             
             ArgVectorPointer funArgs2 = qp->Argument(arg2.addr);
             Word funResult2;
@@ -10052,23 +10204,26 @@ public:
             double prio = dist + restCost;
             
             bool contained = false;
-            ttree::Iterator<QueueEntry*,EntryComp> it = 
+            ttree::Iterator<QueueEntryWrap,EntryComp> it = 
                                                       visitedNodes->begin();
             while(it.hasNext()) {
-              QueueEntry* entry = *it;
+              QueueEntryWrap entry = *it;
               // found node before
-              if(entry->nodeNumber == toNode) {
-                if(entry->priority > prio) {
-                  QueueEntry* prevEntry = new QueueEntry(entry->nodeNumber,
-                                                          entry->prev,
-                                                          entry->dist,
-                                                          entry->priority);
-                  prevEntry->visited = entry->visited;
-                  entry->prev = current->nodeNumber;
-                  entry->priority = prio;
-                  entry->dist = dist;
-                  if(entry->visited)
-                    visitedNodes->update(entry,prevEntry);
+              if(entry()->nodeNumber == toNode) {
+                if(entry()->priority > prio) {
+                  QueueEntry* prevEntry = new QueueEntry(entry()->nodeNumber,
+                                                          entry()->prev,
+                                                          entry()->dist,
+                                                          entry()->priority);
+                  prevEntry->visited = entry()->visited;
+                  entry()->prev = current()->nodeNumber;
+                  entry()->priority = prio;
+                  entry()->dist = dist;
+                  if(entry()->visited){
+                    QueueEntryWrap qw(prevEntry);
+                    visitedNodes->update(entry,qw);
+                  }
+                  prevEntry->DeleteIfAllowed();
                 }
                 contained = true;
                 break;
@@ -10078,11 +10233,15 @@ public:
 
             if(!contained) {
               QueueEntry* to = 
-                  new QueueEntry(toNode,current->nodeNumber,dist,prio);
-              visitedNodes->insert(to,true);
-              queue->push(to);
-              if(resultSelect==3)
-                sptree->insert(currentTuple);
+                  new QueueEntry(toNode,current()->nodeNumber,dist,prio);
+              QueueEntryWrap qw(to);
+              visitedNodes->insert(qw,true);
+              to->DeleteIfAllowed();
+              queue->push(qw);
+              if(resultSelect==3) {
+                TupleWrap tw(currentTuple);
+                sptree->insert(tw);
+              }
               currentTuple->IncReference();
             }
           }
@@ -10099,8 +10258,8 @@ public:
     switch(resultSelect) {
       case 0: {  // shortest path  
         Tuple* currentTuple = findTuple(mmorel,
-                                        current->nodeNumber,
-                                        current->prev);
+                                        current()->nodeNumber,
+                                        current()->prev);
         bool found = false;
     
         int i=0;
@@ -10110,11 +10269,11 @@ public:
           appendTuple(currentTuple,tt,seqNo,result);
           seqNo++;
           
-          if(current->prev != startNode) {
+          if(current()->prev != startNode) {
             current = findNextNode(visitedNodes,current);
             currentTuple = findTuple(mmorel,
-                                     current->nodeNumber,
-                                     current->prev);
+                                     current()->nodeNumber,
+                                     current()->prev);
           }
           else {
             found = true;
@@ -10131,17 +10290,17 @@ public:
           current = queue->top();
           queue->pop();
           Tuple* currentTuple = findTuple(mmorel,
-                                          current->nodeNumber,
-                                          current->prev);
+                                          current()->nodeNumber,
+                                          current()->prev);
           appendTuple(currentTuple,tt,seqNo,result);
           seqNo++;
         }
         break;
       }
       case 2: { //visited sections
-        ttree::Iterator<Tuple*,TupleComp> it = sptree->begin();
+        ttree::Iterator<TupleWrap,TupleComp> it = sptree->begin();
         while(it.hasNext()) {
-          Tuple* currentTuple = *it;
+          Tuple* currentTuple = (*it).getPointer();;
           appendTuple(currentTuple,tt,seqNo,result);
           seqNo++;
           it++;
@@ -10149,9 +10308,9 @@ public:
         break;
       }
       case 3: { //shortest path tree     
-        ttree::Iterator<Tuple*,TupleComp> iter = sptree->begin();
+        ttree::Iterator<TupleWrap,TupleComp> iter = sptree->begin();
         while(iter.hasNext()) {
-          Tuple* currentTuple = *iter;
+          Tuple* currentTuple = (*iter).getPointer();
           appendTuple(currentTuple,tt,seqNo,result);
           iter++;
           seqNo++;
@@ -10169,8 +10328,8 @@ public:
 
 protected:
 
-  ttree::TTree<Tuple*,TupleComp>* mmorel;     
-  ttree::Iterator<Tuple*,TupleComp> iterator;
+  ttree::TTree<TupleWrap,TupleComp>* mmorel;     
+  ttree::Iterator<TupleWrap,TupleComp> iterator;
   int startNode;
   int endNode;
   int resultSelect;
@@ -10180,12 +10339,12 @@ protected:
   int seqNo;
   Queue* queue;
   
-  ttree::TTree<QueueEntry*,EntryComp>* visitedNodes;
-  ttree::TTree<Tuple*,TupleComp>* sptree;
-  ttree::TTree<Tuple*,TupleComp>* result;
+  ttree::TTree<QueueEntryWrap,EntryComp>* visitedNodes;
+  ttree::TTree<TupleWrap,TupleComp>* sptree;
+  ttree::TTree<TupleWrap,TupleComp>* result;
 
 
-  QueueEntry* current;
+  QueueEntryWrap current;
   int seqNoAttrIndex;
   
 };
@@ -10390,20 +10549,21 @@ public:
 
 class VertexComp {
 public:
-  bool operator()(const Vertex* v1, const Vertex* v2) const {
-    return v1->nr < v2->nr;
+  bool operator()(const Vertex& v1, const Vertex& v2) const {
+    return v1.nr < v2.nr;
   }
 };
 
 // geaendert 9.9.2016
 class moconnectedComponentsInfo{
   public:
-    moconnectedComponentsInfo(ttree::TTree<Tuple*,TupleComp>* _tree,
-                              TupleType* _tt)
-        : tree(_tree),tt(_tt) {
+    moconnectedComponentsInfo(ttree::TTree<TupleWrap,TupleComp>* _tree,
+                              ListExpr _tt)
+        : tree(_tree) {
+      tt = new TupleType(_tt);
 
-      scctree = new ttree::TTree<Tuple*,TupleComp>(16,18);
-      nodes = new set<Vertex*,VertexComp>();
+      scctree = new ttree::TTree<TupleWrap,TupleComp>(16,18);
+      nodes = new set<Vertex,VertexComp>();
       scc(tree);
       appendTuples();
       iter = scctree->begin();
@@ -10412,20 +10572,16 @@ class moconnectedComponentsInfo{
 
     ~moconnectedComponentsInfo(){
       delete scctree;
-      set<Vertex*,VertexComp>::iterator it = nodes->begin();
-      while(it!=nodes->end()) {
-        Vertex* v = *it;
-        delete v;
-        it++;
-      }
+      set<Vertex,VertexComp>::iterator it = nodes->begin();
       delete nodes;
+      tt->DeleteIfAllowed();
     }
 
 
     Tuple* next() {
-      if(!iter.hasNext()) 
+      if(iter.end()) 
         return 0;
-      Tuple* res = *iter;
+      Tuple* res = (*iter).getPointer();
       if(!res) {
         return 0;
       }
@@ -10436,23 +10592,23 @@ class moconnectedComponentsInfo{
 
     // appends all tuples including their component number to scctree
     bool appendTuples() {
-      set<Vertex*,VertexComp>::iterator iter;
-      ttree::Iterator<Tuple*,TupleComp> it = tree->begin();
-      while(it.hasNext()) {
-        Tuple* t = *it;
-        Vertex* v = new Vertex(((CcInt*)t->GetAttribute(1))->GetIntval());
+      set<Vertex,VertexComp>::iterator iter;
+      ttree::Iterator<TupleWrap,TupleComp> it = tree->begin();
+      while(!it.end()) {
+        Tuple* t = (*it).getPointer();
+        Vertex v(((CcInt*)t->GetAttribute(1))->GetIntval());
         iter = nodes->find(v);
         if(iter != nodes->end()) {
-          delete v;
           v = *iter;
           Tuple* newTuple = new Tuple(tt);
-          int i = 0;
-          for(; i<t->GetNoAttributes(); i++) {
+          for(int i=0; i<t->GetNoAttributes(); i++) {
             newTuple->CopyAttribute(i,t,i);
           }
-          CcInt* noOfNodes = new CcInt(true, v->compNo);
-          newTuple->PutAttribute(i,noOfNodes);
-          scctree->insert(newTuple,i+1);   // sort by CompNo
+          CcInt* noOfNodes = new CcInt(true, v.compNo);
+          newTuple->PutAttribute(t->GetNoAttributes(),noOfNodes);
+          TupleWrap tw(newTuple);
+          scctree->insert(tw,t->GetNoAttributes());   // sort by CompNo
+          newTuple->DeleteIfAllowed();
         }
         else return false; 
         it++;
@@ -10461,23 +10617,23 @@ class moconnectedComponentsInfo{
     }
 
 
-    void scc(ttree::TTree<Tuple*,TupleComp>* tree) {
+    void scc(ttree::TTree<TupleWrap,TupleComp>* tree) {
       int compNo = 1;
       int index = 0;
-      ttree::Iterator<Tuple*,TupleComp> it = tree->begin();
-      std::stack<Vertex*>* stack = new std::stack<Vertex*>(); 
+      ttree::Iterator<TupleWrap,TupleComp> it = tree->begin();
+      std::stack<Vertex>* stack = new std::stack<Vertex>(); 
       // process first node
-      Tuple* tuple = *it;
+      Tuple* tuple = (*it).getPointer();
       scc(tuple,index,stack,compNo);  
 
       // process nodes
       while(it.hasNext()) {
         // find next node
-        Tuple* t = *it;
+        Tuple* t = (*it).getPointer();
         while(t->GetAttribute(0)->Compare(tuple->GetAttribute(0)) == 0) {
           it++;
           if(it.hasNext()) {
-            tuple = *it;
+            tuple = (*it).getPointer();
           }
           // all nodes processed
           else {
@@ -10493,55 +10649,53 @@ class moconnectedComponentsInfo{
 
     // caculates the scc for each node
     void scc(Tuple* tuple, int& index, 
-             std::stack<Vertex*>* stack, int& compNo) {
+             std::stack<Vertex>* stack, int& compNo) {
 
-      set<Vertex*,VertexComp>::iterator iter;
-      Vertex* v = new Vertex(((CcInt*)tuple->GetAttribute(0))->GetIntval());
+      set<Vertex,VertexComp>::iterator iter;
+      Vertex v(((CcInt*)tuple->GetAttribute(0))->GetIntval());
       iter = nodes->find(v);
       
       // v already seen
       if(iter != nodes->end()) {
-        delete v;
         return;
       }
 
       // v not yet seen
-      v->index = index;
-      v->lowlink = index;
+      v.index = index;
+      v.lowlink = index;
       index++;
       stack->push(v);
-      v->inStack = true;
+      v.inStack = true;
       nodes->insert(v);
-      ttree::Iterator<Tuple*,TupleComp> it = tree->begin();
-      Tuple* t = *it;
-      Vertex* w;
+      ttree::Iterator<TupleWrap,TupleComp> it = tree->begin();
+      Tuple* t = (*it).getPointer();
       
       // find node in orel
       while(t->GetAttribute(0)->Compare(tuple->GetAttribute(0)) < 0) {
         it++;
         if(it.hasNext())
-          t = *it; 
+          t = (*it).getPointer(); 
         else return;
       }
 
       // while node has adjacent nodes
-      while(((CcInt*)t->GetAttribute(0))->GetIntval() == v->nr) {
-        w = new Vertex(((CcInt*)t->GetAttribute(1))->GetIntval());
+      while(((CcInt*)t->GetAttribute(0))->GetIntval() == v.nr) {
+        Vertex w(((CcInt*)t->GetAttribute(1))->GetIntval());
         iter = nodes->find(w);
         // w not seen yet
         if(iter == nodes->end()) { 
           it = tree->begin();
-          t = *it;
-          while(((CcInt*)t->GetAttribute(0))->GetIntval() != w->nr) {
+          t = (*it).getPointer();
+          while(((CcInt*)t->GetAttribute(0))->GetIntval() != w.nr) {
             it++;
             if(it.hasNext())
-              t = *it;     
+              t = (*it).getPointer();     
             // no adjacent nodes for this node
             else {
               t = tuple;
-              w->index = index;
-              w->lowlink = index;
-              w->compNo = compNo;
+              w.index = index;
+              w.lowlink = index;
+              w.compNo = compNo;
               compNo++;
               index++;
               nodes->insert(w);
@@ -10552,51 +10706,50 @@ class moconnectedComponentsInfo{
           scc(t,index,stack,compNo);   
           iter = nodes->find(w);
           w = *iter;
-          v->setLowlink(min(v->lowlink,w->lowlink));
+          v.setLowlink(min(v.lowlink,w.lowlink));
           // find next adjacent edge for v
           it = tree->begin();
-          t = *it;
+          t = (*it).getPointer();
           while(t->GetAttribute(0)->Compare(tuple->GetAttribute(0)) < 0) {
             it++;
             if(it.hasNext())
-              t = *it; 
+              t = (*it).getPointer(); 
             else return;
           }
         }
         // w already seen
         else {
-          delete w;
           w = *iter;
-          if(w->inStack) {
-            v->setLowlink(min(v->lowlink,w->index));  
+          if(w.inStack) {
+            v.setLowlink(min(v.lowlink,w.index));  
           }
         }
         it++;
         if(it.hasNext())
-          t = *it;
+          t = (*it).getPointer();
         else break;
       }
       
       // root of scc found
-      if (v->lowlink == v->index) { 
-        v->compNo = compNo;
+      if (v.lowlink == v.index) { 
+        v.compNo = compNo;
         while(true) {
-          w = stack->top();
+          Vertex w = stack->top();
           stack->pop();
-          w->inStack = false;
-          if(v->nr == w->nr)
+          w.inStack = false;
+          if(v.nr == w.nr)
             break;
-          w->compNo = compNo;
+          w.compNo = compNo;
         }
         compNo++;
       }
     }
 
   private:
-     ttree::TTree<Tuple*,TupleComp>* tree;
-     ttree::TTree<Tuple*,TupleComp>* scctree;
-     set<Vertex*,VertexComp>* nodes;
-     ttree::Iterator<Tuple*,TupleComp> iter;
+     ttree::TTree<TupleWrap,TupleComp>* tree;
+     ttree::TTree<TupleWrap,TupleComp>* scctree;
+     set<Vertex,VertexComp>* nodes;
+     ttree::Iterator<TupleWrap,TupleComp> iter;
      TupleType* tt;
      int compNr;
 };
@@ -10631,7 +10784,7 @@ int moconnectedcomponentsValMap (Word* args, Word& result,
       }
 
       ListExpr tupleType = GetTupleResultType(s);
-      TupleType* tt = new TupleType(nl->Second(tupleType));
+      ListExpr tt = nl->Second(tupleType);
 
       local.addr= new moconnectedComponentsInfo(orel->getmmorel(),tt);
       return 0;
@@ -10765,7 +10918,7 @@ ListExpr mquicksortTypeMap(ListExpr args) {
 */
 class mquicksortInfo{
   public:
-    mquicksortInfo(vector<Tuple*>* _relation, vector<int>* _pos) 
+    mquicksortInfo(vector<Tuple*>* _relation, vector<int> _pos) 
     : relation(_relation), pos(_pos) {
         
       quicksort(0,relation->size()-1,pos);
@@ -10774,7 +10927,7 @@ class mquicksortInfo{
     
     ~mquicksortInfo(){}
     
-    void quicksort(int left, int right, vector<int>* pos) {
+    void quicksort(int left, int right, vector<int> pos) {
       
       int i = left, j = right;
       Tuple* tmp;
@@ -10783,9 +10936,9 @@ class mquicksortInfo{
       /* partition */
       while (i <= j) {
         
-        while(TupleComp::smaller(relation->at(i),pivot,pos))
+        while(TupleComp::smaller(relation->at(i),pivot,&pos))
           i++;
-        while (TupleComp::greater(relation->at(j),pivot,pos))
+        while (TupleComp::greater(relation->at(j),pivot,&pos))
           j--;
         
         if (i <= j) {
@@ -10819,7 +10972,7 @@ class mquicksortInfo{
 
   private:
      vector<Tuple*>* relation;
-     vector<int>* pos;
+     vector<int> pos;
      vector<Tuple*>::iterator it;
 };
 
@@ -10833,7 +10986,6 @@ int mquicksortValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
   mquicksortInfo* li = (mquicksortInfo*) local.addr;
-  vector<int>* pos = new vector<int>();
 
   switch (message) {
     case OPEN: {
@@ -10842,6 +10994,7 @@ int mquicksortValMap (Word* args, Word& result,
         delete li;
         local.addr=0;
       }
+      vector<int> pos; 
       T* oN = (T*) args[0].addr;
       
       MemoryRelObject* rel = getMemRel(oN, nl->Second(qp->GetType(s)));
@@ -10871,13 +11024,13 @@ int mquicksortValMap (Word* args, Word& result,
             return listutils::typeError
               ("there is no attribute having name " + nl->ToString(attr));
           }
-          pos->push_back(attrPos);
+          pos.push_back(attrPos);
         }
       }
       else if(st == Sort) {
         ListExpr listrel = nl->Second(nl->Second(qp->GetType(s)));
         for(int i=0; i<nl->ListLength(listrel); i++)
-          pos->push_back(i+1);
+          pos.push_back(i+1);
       }
       
       local.addr= new mquicksortInfo(rel->getmmrel(),pos); 
@@ -10890,7 +11043,6 @@ int mquicksortValMap (Word* args, Word& result,
 
     case CLOSE:
       if(li) {
-        delete pos;
         delete li;
         local.addr = 0;
       }
@@ -10981,7 +11133,7 @@ __dest__ in the __graph__ using dijkstra's algorithm.
 bool dijkstra(graph::Graph* graph, Word arg, 
               graph::Vertex* start, graph::Vertex* dest) {
   
-  graph::Queue* queue = new graph::Queue();
+  graph::Queue queue;
 
   set<graph::Vertex*,graph::Vertex::EqualVertex>::iterator it = 
                                                 graph->getGraph()->begin();
@@ -10997,34 +11149,31 @@ bool dijkstra(graph::Graph* graph, Word arg,
 
   // cost to start node
   start->setCost(0);
-  queue->push(start);
+  queue.push(start);
   
   // as long as queue has entries
-  while(!queue->empty()) {
-      graph::Vertex* v = queue->top();
-      queue->pop();
+  while(!queue.empty()) {
+      graph::Vertex* v = queue.top();
+      queue.pop();
       if(v->wasSeen()) continue;
       v->isSeen(true);
 
       // process edges
       for(size_t i=0; i<v->getEdges()->size(); i++) {
         
-        vector<graph::Edge*>* edges = v->getEdges();
+        vector<graph::EdgeWrap>* edges = v->getEdges();
         
-        graph::Vertex* w = graph->getVertex(((CcInt*)edges->at(i)->
-                    getEdge()->GetAttribute(edges->at(i)->
-                    getPosDest()))->GetIntval());
+        graph::Vertex* w = graph->getVertex(edges
+                                      ->at(i).getPointer()->getDest());
         
         ArgVectorPointer funArgs = qp->Argument(arg.addr);
         Word funResult;
-        ((*funArgs)[0]).setAddr(v->getEdges()->at(i)->getEdge());
+        ((*funArgs)[0]).setAddr(v->getEdges()->at(i).getPointer()->getTuple());
         qp->Request(arg.addr,funResult);
         double cost = ((CcReal*)funResult.addr)->GetRealval(); 
 
         if(cost<0) {
             std::cout << "Error: cost is negative" << std::endl;
-            queue->clear();
-            delete queue;
             return false;
         }
 
@@ -11033,7 +11182,7 @@ bool dijkstra(graph::Graph* graph, Word arg,
             w->setCost(v->getCost()+cost);
             w->setDist(w->getCost());
             w->setPrev(v);
-            queue->push(w);
+            queue.push(w);
         }
           
       }
@@ -11041,9 +11190,6 @@ bool dijkstra(graph::Graph* graph, Word arg,
         return true;
       }
   }
-  
-  queue->clear();
-  delete queue;
   return false;
 }
 
@@ -11058,7 +11204,7 @@ __dest__ in the __graph__ using the AStar-algorithm.
 bool astar(graph::Graph* graph, Word arg, Word arg2,
            graph::Vertex* start, graph::Vertex* dest) {
   
-  graph::Queue* openlist = new graph::Queue();
+  graph::Queue openlist;
 
   set<graph::Vertex*,graph::Vertex::EqualVertex>::iterator it = 
                                                 graph->getGraph()->begin();
@@ -11073,13 +11219,13 @@ bool astar(graph::Graph* graph, Word arg, Word arg2,
 
   // cost to start node
   start->setCost(0.0);
-  openlist->push(start);
+  openlist.push(start);
 
 
   // as long as queue has entries
-  while(!openlist->empty()) {
-    graph::Vertex* v = openlist->top();
-    openlist->pop();
+  while(!openlist.empty()) {
+    graph::Vertex* v = openlist.top();
+    openlist.pop();
     if(v->wasSeen()) continue;
     v->isSeen(true);
     
@@ -11089,24 +11235,21 @@ bool astar(graph::Graph* graph, Word arg, Word arg2,
     
     // for every adjacent edge of v
     for(size_t i=0; i<v->getEdges()->size(); i++) {
-      graph::Vertex* w = graph->getVertex(((CcInt*)v->getEdges()->at(i)->
-                  getEdge()->GetAttribute(v->getEdges()->at(i)->getPosDest()))
-                  ->GetIntval());
+      graph::Vertex* w = graph->getVertex(v->getEdges()
+                                 ->at(i).getPointer()->getDest());
       ArgVectorPointer funArgs = qp->Argument(arg.addr);
       Word funResult;
-      ((*funArgs)[0]).setAddr(v->getEdges()->at(i)->getEdge());
+      ((*funArgs)[0]).setAddr(v->getEdges()->at(i).getPointer()->getTuple());
       qp->Request(arg.addr,funResult);
       double edgecost = ((CcReal*)funResult.addr)->GetRealval();      
       
       if(edgecost<0.0) {
-        openlist->clear();
-        delete openlist;
         return false;
       }
       
       ArgVectorPointer funArgs2 = qp->Argument(arg2.addr);
       Word funResult2;
-      ((*funArgs2)[0]).setAddr(v->getEdges()->at(i)->getEdge());
+      ((*funArgs2)[0]).setAddr(v->getEdges()->at(i).getPointer()->getTuple());
       qp->Request(arg2.addr,funResult2);
       double prio = ((CcReal*)funResult2.addr)->GetRealval();    
 
@@ -11121,13 +11264,11 @@ bool astar(graph::Graph* graph, Word arg, Word arg2,
           
           if(!w->wasSeen())
             w->setPrev(v);
-          openlist->push(w);
+          openlist.push(w);
       }
      }
       
   }
-  openlist->clear();
-  delete openlist;
   return false;
 }
 
@@ -11331,7 +11472,7 @@ public:
         endNode(_endNode), resultSelect(_resultSelect),
         arg(_arg), tt(_tt),seqNo(1) {
           
-          result = new ttree::TTree<Tuple*,TupleComp>(16,18); 
+          result = new ttree::TTree<TupleWrap,TupleComp>(16,18); 
           bool found = shortestPath(graph,startNode,endNode,arg,arg,false);
           
           if(found || resultSelect == 3) {
@@ -11353,7 +11494,7 @@ public:
   Tuple* next() {
     if(iterator.end()) 
       return 0;
-    Tuple* res = *iterator;
+    Tuple* res = (*iterator).getPointer();
     if(res==NULL) {
       return 0;
     }
@@ -11423,8 +11564,8 @@ protected:
   TupleType* tt;  
   int seqNoAttrIndex;
   int seqNo;
-  ttree::TTree<Tuple*,TupleComp>* result;
-  ttree::Iterator<Tuple*,TupleComp> iterator;  
+  ttree::TTree<TupleWrap,TupleComp>* result;
+  ttree::Iterator<TupleWrap,TupleComp> iterator;  
 };
 
 
@@ -11551,7 +11692,7 @@ public:
         endNode(_endNode),resultSelect(_resultSelect),
         arg(_arg),arg2(_arg2), tt(_tt),seqNo(1) {
 
-          result = new ttree::TTree<Tuple*,TupleComp>(16,18); 
+          result = new ttree::TTree<TupleWrap,TupleComp>(16,18); 
         
           bool found = shortestPath(graph,startNode,endNode,arg,arg2,true);
           if(found || resultSelect == 3) {
@@ -11574,11 +11715,12 @@ public:
   Tuple* next() {
     if(iterator.end()) 
       return 0;
-    Tuple* res = *iterator;
+    Tuple* res = (*iterator).getPointer();
     if(res==NULL) {
       return 0;
     }
     iterator++;
+    res->IncReference();
     return res;
   }
   
@@ -11643,8 +11785,8 @@ protected:
   TupleType* tt;  
   int seqNoAttrIndex;
   int seqNo;
-  ttree::TTree<Tuple*,TupleComp>* result;
-  ttree::Iterator<Tuple*,TupleComp> iterator;
+  ttree::TTree<TupleWrap,TupleComp>* result;
+  ttree::Iterator<TupleWrap,TupleComp> iterator;
 };
 
 
@@ -11817,66 +11959,67 @@ string x orel(tuple(x)) -> bool
 */
 ListExpr memgletTypeMap(ListExpr args) {
   
-  cout << "memgletTypeMap" << endl;
-    if(nl->ListLength(args)!=2){
-        return listutils::typeError("wrong number of arguments");
-    }
-    ListExpr arg1 = nl->First(args);
-    if (!CcString::checkType(nl->First(arg1))) {
-        return listutils::typeError("string expected");
-    }
-    ListExpr str = nl->Second(arg1);
-    string objectName = nl->StringValue(str);
-    if (catalog->isMMObject(objectName)){
-        return listutils::typeError("identifier already in use");
-    }
-    ListExpr arg2 = nl->Second(args);
-    
-    if(!listutils::isOrelDescription(nl->First(arg2))) {
-      return listutils::typeError("the second argument has to be "
-                                  "an ordered relation");
-    }
-    
-    // check if tuples contain at least to integer values
-    ListExpr orelTuple = nl->Second(nl->First(arg2));    
+ if(nl->ListLength(args)!=2){
+    return listutils::typeError("wrong number of arguments");
+ }
+ if(!checkUsesArgs(args)){
+   return listutils::typeError("internal error");
+ }
 
-    if(!listutils::isTupleDescription(orelTuple)) {
-      return listutils::typeError("second value of orel is not of type tuple");
-    }
 
-    ListExpr attrlist(nl->Second(orelTuple));
+ ListExpr arg1 = nl->First(args);
+ if (!CcString::checkType(nl->First(arg1))) {
+    return listutils::typeError("string expected");
+ }
+ ListExpr str = nl->Second(arg1);
+ if(nl->AtomType(str) != StringType){
+   return listutils::typeError("The first arg must be a constant string");
+ }
+ string objectName = nl->StringValue(str);
+ if (catalog->isMMObject(objectName)){
+    return listutils::typeError("identifier already in use");
+ }
+ ListExpr arg2 = nl->Second(args);
+    
+ if(!listutils::isOrelDescription(nl->First(arg2))) {
+   return listutils::typeError("the second argument has to be "
+                               "an ordered relation");
+ }
+    
+ // check if tuples contain at least to integer values
+ ListExpr orelTuple = nl->Second(nl->First(arg2));    
+ ListExpr attrlist(nl->Second(orelTuple));
 
-    if(!listutils::isAttrList(attrlist)) {
-      return listutils::typeError("Error in orel attrlist.");
-    }
     
-    ListExpr rest = attrlist;
-    bool foundSource = false;
-    bool foundTarget = false;
+ ListExpr rest = attrlist;
+ bool foundSource = false;
+ bool foundTarget = false;
+
+ if(!nl->HasMinLength(attrlist,2)){
+   return listutils::typeError("orel has less than "
+                               "two integer attributes.");
+
+ }
+
     
-    if(nl->ListLength(attrlist) >= 2) {
-      
-      while(!nl->IsEmpty(rest)) {
-        ListExpr listn = nl->OneElemList(nl->Second(nl->First(rest)));  
-        if(listutils::isSymbol(nl->First(listn),CcInt::BasicType())) {    
-          if(!foundSource) 
-            foundSource = true;
-          else {
-            foundTarget = true;
-            break;
-          }
-        }
-        rest = nl->Rest(rest);
+ while(!nl->IsEmpty(rest)) {
+    ListExpr listn = nl->OneElemList(nl->Second(nl->First(rest)));  
+    if(listutils::isSymbol(nl->First(listn),CcInt::BasicType())) {    
+      if(!foundSource) 
+         foundSource = true;
+      else {
+         foundTarget = true;
+         break;
       }
-      if(!foundSource || !foundTarget)
-        return listutils::typeError("orel has less than "
-                                    "two integer attributes.");
     }
-    else {
-      return listutils::typeError("orel has less than 2 attributes.");
-    }
+    rest = nl->Rest(rest);
+  }
+
+  if(!foundSource || !foundTarget) {
+      return listutils::typeError("orel has less than 2 int attributes.");
+  }
     
-    return listutils::basicSymbol<CcBool>();
+  return listutils::basicSymbol<CcBool>();
 }
 
 
@@ -12062,10 +12205,9 @@ class mgconnectedComponentsInfo{
       }
 
       // get the tuple
-      graph::Edge* e = v->getEdges()->at(j);
-      Tuple* tup = e->getEdge();
-      graph::Vertex* u = graph->getVertex(((CcInt*)tup->
-                  GetAttribute(e->getPosDest()))->GetIntval()); 
+      graph::Edge* e = v->getEdges()->at(j).getPointer();
+      Tuple* tup = e->getTuple();
+      graph::Vertex* u = graph->getVertex(e->getDest());
       int compNo = u->getCompNo();
       j++;
 
@@ -13431,6 +13573,10 @@ class MainMemory2Algebra : public Algebra {
           minsertttreeOp.SetUsesArgsInTypeMapping();
           AddOperator(&mdeletettreeOp);
           mdeletettreeOp.SetUsesArgsInTypeMapping();
+          AddOperator(&minsertavltreeOp);
+          minsertavltreeOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mdeleteavltreeOp);
+          mdeleteavltreeOp.SetUsesArgsInTypeMapping();
           
           AddOperator(&mcreateinsertrelOp);
           mcreateinsertrelOp.SetUsesArgsInTypeMapping();

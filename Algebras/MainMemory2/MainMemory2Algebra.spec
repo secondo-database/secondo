@@ -66,6 +66,9 @@ operator mcreatettree alias  MCREATETTREE pattern _ op [_]
 operator minsertttree alias MINSERTTTREE pattern _ op [_,_]
 operator mdeletettree alias MDELETETTREE pattern _ op [_,_]
 
+operator minsertavltree alias MINSERTAVLTREE pattern _ op [_,_]
+operator mdeleteavltree alias MDELETEAVLTREE pattern _ op [_,_]
+
 operator mcreateinsertrel alias MCREATEINSERTREL pattern op(_)
 operator minsert alias MINSERT pattern _ op [_]
 operator minsertsave alias MINSERTSAVE pattern _ op [_,_]

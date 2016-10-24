@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "RelationAlgebra.h"
+#include "PointerWrapper.h"
 
 
 
@@ -58,32 +59,72 @@ This class represents an edge in a graph.
 
 class Edge {
 
-    friend class Vertex;
-    friend class Graph;
-
 public:
 
-    Edge(Tuple* _edge, int _posSource, int _posDest,
+    Edge(Tuple* _tuple, int _posSource, int _posDest,
          double _cost, double _dist)
-        : edge(_edge),posSource(_posSource), posDest(_posDest),
-          cost(_cost), dist(_dist) {}
+        : tuple(_tuple),posSource(_posSource), posDest(_posDest),
+          cost(_cost), dist(_dist), noRefs(1) {
+        tuple->IncReference();
+     }
+
+     Edge(const Edge& e): tuple(e.tuple), posSource(e.posSource),
+                          posDest(e.posDest), cost(e.cost), 
+                          dist(e.dist), noRefs(1){
+       tuple->IncReference();
+     }  
+
+     Edge& operator=(const Edge& e){
+        this->tuple->DeleteIfAllowed();
+        this->tuple = e.tuple;
+        this->tuple->IncReference();
+        this->posSource = e.posSource;
+        this->posDest = e.posDest;
+        this->cost = e.cost;
+        this->dist = e.dist; 
+        // noRefs remains unchanged 
+        return *this;
+     }
+
           
     ~Edge() {
-      edge->DeleteIfAllowed();
-      edge = 0;
+      assert(noRefs == 0);
+      tuple->DeleteIfAllowed();
+      tuple = 0;
     }
 
-    Tuple* getEdge() {
-      return edge;
+    Tuple* getTuple() {
+      return tuple;
     }
     
-    int getPosSource() {
-      return posSource;
+    void IncReference(){
+      noRefs++;
+    }
+
+    void DeleteIfAllowed(){
+       assert(noRefs>0);
+       noRefs--;
+       if(noRefs==0){
+          delete this;
+       }   
     }
     
-    int getPosDest() {
-      return posDest;
+    int getSource(){
+      return ((CcInt*) tuple->GetAttribute(posSource))->GetValue();
     }
+    
+    int getDest(){
+      return ((CcInt*) tuple->GetAttribute(posDest))->GetValue();
+    }
+
+    inline double getCost() const{
+      return cost;
+    }
+
+    inline double getDist() const{
+      return dist;
+    }
+
     
 /* 
 ~memSize~
@@ -98,12 +139,18 @@ Returns the memory size of this edge.
     
 private:
 
-    Tuple* edge;
+    Tuple* tuple;
     int posSource;
     int posDest;
     double cost;
     double dist;
+    size_t noRefs;
 };
+
+
+
+
+typedef PointerWrap<Edge> EdgeWrap;
 
 
 
@@ -147,13 +194,10 @@ This stuct is used to compare to vertices.
         dist(std::numeric_limits<double>::max()), prev(0), 
         index(0), lowlink(0), inStack(false), compNo(0) {
       
-      edges = new std::vector<Edge*>();
+      edges = new std::vector<EdgeWrap>();
     }
     
     ~Vertex() {
-      for(size_t i=0; i<edges->size(); i++) {
-        delete edges->at(i);
-      }
       delete edges; 
     }
     
@@ -197,7 +241,7 @@ This stuct is used to compare to vertices.
       return seen; 
     }
 
-    std::vector<Edge*>* getEdges() {
+    std::vector<EdgeWrap>* getEdges() {
       return edges;
     }
 
@@ -231,11 +275,11 @@ Prints this node including its adjacent nodes to the console.
         out << "vertex: " << nr << std::endl;
         out << "adjacency list: ";
         for(size_t i=0; i<edges->size(); i++) {
-            Edge* e = edges->at(i);
+            Edge* e = edges->at(i).getPointer();
             out << "-> "
-                << ((CcInt*)e->edge->GetAttribute(e->posDest))->GetIntval()
-                << ", " << e->cost << " "
-                << ", " << e->dist << " ";
+                << e->getDest() 
+                << ", " << e->getCost() << " "
+                << ", " << e->getDist() << " ";
         }
         if(prev != 0)
           out << std::endl << "prev: " << prev->nr;
@@ -272,7 +316,7 @@ private:
     int lowlink;
     bool inStack;
     int compNo;
-    std::vector<Edge*>* edges;
+    std::vector<EdgeWrap>* edges;
 };
 
 
@@ -322,11 +366,7 @@ Deletes all elements in the queue.
 
 */   
   void clear() {
-    while(queue->size() > 0){
-      Vertex* v = queue->front();
-      delete v;
-      queue->pop_back();  
-    }
+    queue->clear();
   }
 
 /*
@@ -513,7 +553,10 @@ Adds a new edge to the graph.
                               GetAttribute(posSource))->GetIntval());
       
       getVertex(((CcInt*)edge->GetAttribute(posDest))->GetIntval());
-      v->edges->push_back((new Edge(edge,posSource,posDest,cost,dist)));
+      Edge* e = new Edge(edge,posSource,posDest,cost,dist);
+      EdgeWrap ew(e);
+      v->edges->push_back(ew);
+      e->DeleteIfAllowed();
     }
 
 /*
@@ -589,8 +632,7 @@ Calculates the scc for a given vertex.
       Vertex* w;
       // visit all adjacent nodes of v
       for(size_t i=0; i<v->edges->size(); i++) {
-        w = getVertex(((CcInt*)v->edges->at(i)->
-            edge->GetAttribute(v->edges->at(i)->posDest))->GetIntval());
+        w = getVertex(v->edges->at(i).getPointer()->getDest());
         if(!w->seen) {
           tarjan(w,index,stack,compNo);    // recursive call
           v->lowlink = std::min(v->lowlink,w->lowlink);
@@ -630,10 +672,9 @@ Returns the tuple with start node ~source~ and end node ~dest~.
       delete w;
       
       for(size_t j=0; j<v->edges->size(); j++) {
-        Edge* e = v->edges->at(j);
-        if(((CcInt*)e->edge->GetAttribute(e->posDest))->GetIntval() 
-                                                              == dest) {
-            return e->edge;
+        Edge* e = v->edges->at(j).getPointer();
+        if(e->getDest() == dest) {
+            return e->getTuple();
         }
       }
       return 0;

@@ -446,7 +446,7 @@ public:
           return false;
 
       
-      ttree::Iterator<Tuple*,mm2algebra::TupleComp> it 
+      ttree::Iterator<TupleWrap,mm2algebra::TupleComp> it 
                                 = m_pOrderedRelation->getmmorel()->begin();
       // TODO check
       while(it.hasNext()) {

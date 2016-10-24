@@ -26,6 +26,7 @@
 #include "GraphAlgebra.h"
 #include "ttree.h"
 #include "graph.h"
+#include "PointerWrapper.h"
 
 
 
@@ -45,6 +46,52 @@ class MemoryORelObject;
 class MemoryGraphObject;
 class TupleComp;
 class AttrComp;
+
+
+class AttrIdPair{
+ public:
+  AttrIdPair(Attribute* _attr, size_t _tid): attr(_attr->Copy()),
+                                          tid(_tid) {}
+
+  AttrIdPair(): attr(0),tid(0){}
+
+  AttrIdPair(const AttrIdPair& rhs){
+    tid = rhs.tid;
+    attr = rhs.attr?rhs.attr->Copy():0; 
+  }
+
+  ~AttrIdPair(){
+    if(attr){
+      attr->DeleteIfAllowed();
+    }
+  }
+
+  AttrIdPair& operator=(const AttrIdPair& rhs){
+    if(attr){
+      attr->DeleteIfAllowed();
+    }
+    tid = rhs.tid;
+    attr = rhs.attr?rhs.attr->Copy():0; 
+    return *this;
+  }
+
+  inline const Attribute* getAttr() const{
+    return attr;
+  }
+
+  inline const size_t getTid() const{
+    return tid;
+  }
+
+  private:
+    Attribute* attr;
+    size_t tid;
+};
+
+
+
+typedef PointerWrap<Tuple> TupleWrap;
+
 
 
 class MemCatalog {
@@ -197,9 +244,13 @@ class MemoryRelObject : public MemoryObject {
 class TupleComp {
   
   public:
-     static bool smaller(Tuple* a, Tuple* b, std::vector<int>* attrPos) {
+     static bool smaller(const TupleWrap& aw, 
+                         const TupleWrap& bw, 
+                         std::vector<int>* attrPos) {
         
        bool smaller;
+       Tuple* a = aw.getPointer();
+       Tuple* b = bw.getPointer();
        for(size_t i=0; i<attrPos->size(); i++) {
           int cmp = ((Attribute*)a->GetAttribute(attrPos->at(i)-1))->Compare(
                     ((Attribute*)b->GetAttribute(attrPos->at(i)-1)));
@@ -213,8 +264,12 @@ class TupleComp {
         return smaller;
      }
      
-     static bool equal(Tuple* a, const Tuple* b, std::vector<int>* attrPos) {
+     static bool equal(const TupleWrap& aw, 
+                       const TupleWrap& bw, 
+                       std::vector<int>* attrPos) {
        bool equal = false;
+       Tuple* a = aw.getPointer();
+       Tuple* b = bw.getPointer();
        for(size_t i=0; i<attrPos->size(); i++) {
           int cmp = ((Attribute*)a->GetAttribute(attrPos->at(i)-1))->Compare(
                     ((Attribute*)b->GetAttribute(attrPos->at(i)-1)));
@@ -226,8 +281,12 @@ class TupleComp {
         return equal;
      }
      
-     static bool greater(Tuple* a, const Tuple* b, std::vector<int>* attrPos) {
+     static bool greater(const TupleWrap& aw, 
+                         const TupleWrap& bw, 
+                         std::vector<int>* attrPos) {
        bool greater;
+       Tuple* a = aw.getPointer();
+       Tuple* b = bw.getPointer();
        for(size_t i=0; i<attrPos->size(); i++) {
           int cmp = ((Attribute*)a->GetAttribute(attrPos->at(i)-1))->Compare(
                     ((Attribute*)b->GetAttribute(attrPos->at(i)-1)));
@@ -249,7 +308,7 @@ class MemoryORelObject : public MemoryObject {
 
         MemoryORelObject();
 
-        MemoryORelObject(ttree::TTree<Tuple*,TupleComp>* _mmorel,
+        MemoryORelObject(ttree::TTree<TupleWrap,TupleComp>* _mmorel,
                          std::vector<int>* _pos,
                          unsigned long _memSize, std::string _objectTypeExpr, 
                          bool _flob, std::string _database);
@@ -258,7 +317,7 @@ class MemoryORelObject : public MemoryObject {
 
         ~MemoryORelObject();
 
-        ttree::TTree<Tuple*,TupleComp>* getmmorel();
+        ttree::TTree<TupleWrap,TupleComp>* getmmorel();
         
         std::vector<int>* getAttrPos();
         
@@ -312,22 +371,39 @@ class MemoryORelObject : public MemoryObject {
         
         
     private:
-        ttree::TTree<Tuple*,TupleComp>* mmorel;
+        ttree::TTree<TupleWrap,TupleComp>* mmorel;
         std::vector<int>* pos;  
 };
 
-struct QueueEntry {
+class QueueEntry {
   
-  QueueEntry() {}
+
+  public:
   
   QueueEntry(int _nodeNumber, int _prev, double _dist, 
              double _priority)
     : nodeNumber(_nodeNumber),prev(_prev),dist(_dist),
-      priority(_priority), visited(false) {}
+      priority(_priority), visited(false), norefs(1) {
     
-  ~QueueEntry() {}
+  }
+    
+  ~QueueEntry() {
+    assert(norefs==0);
+  }
   
-  
+ 
+  void DeleteIfAllowed(){
+    assert(norefs>0);
+    norefs--;
+    if(norefs==0){
+      delete this;
+    }
+  }
+
+  void IncReference(){
+    norefs++;
+  }
+ 
   void print(std::ostream& out) {
     out << std::endl << "QUEUEENTRY:" << std::endl;
     
@@ -338,39 +414,52 @@ struct QueueEntry {
     out << " visited: " << this->visited << std::endl;
     
   }
-  
+ 
   int nodeNumber;
   int prev;
   double dist;
   double priority;
   bool visited;
+  size_t norefs;
 };
+
+
+typedef PointerWrap<QueueEntry> QueueEntryWrap;
+
+
 
 
 class EntryComp {
   public:
     
-    bool operator() (const QueueEntry* lhs, const QueueEntry* rhs) const {
-      if(lhs->priority > rhs->priority) {
+    bool operator() (const QueueEntryWrap& lhs, 
+                     const QueueEntryWrap& rhs) const {
+      if(lhs.getPointer()->priority > rhs.getPointer()->priority) {
         return true;
       }
       return false;
     }
     
-     static bool smaller(QueueEntry* a, QueueEntry* b, std::vector<int>* pos) {
-       if(a->nodeNumber < b->nodeNumber)
+     static bool smaller(const QueueEntryWrap& a, 
+                         const QueueEntryWrap& b, 
+                         std::vector<int>* pos) {
+       if(a.getPointer()->nodeNumber < b.getPointer()->nodeNumber)
          return true;
        return false;
      }
      
-     static bool greater(QueueEntry* a, QueueEntry* b, std::vector<int>* pos) {
-        if(a->nodeNumber > b->nodeNumber)
+     static bool greater(const QueueEntryWrap& a, 
+                         const QueueEntryWrap& b, 
+                         std::vector<int>* pos) {
+        if(a.getPointer()->nodeNumber > b.getPointer()->nodeNumber)
          return true;
        return false;
      }
      
-     static bool equal(QueueEntry* a, QueueEntry* b, std::vector<int>* pos) {
-        if(a->nodeNumber == b->nodeNumber)
+     static bool equal(const QueueEntryWrap& a, 
+                       const QueueEntryWrap& b, 
+                       std::vector<int>* pos) {
+        if(a.getPointer()->nodeNumber == b.getPointer()->nodeNumber)
          return true;
        return false;
      }
@@ -379,7 +468,7 @@ class EntryComp {
 struct Queue {
   
   Queue() {
-    queue = new std::vector<QueueEntry*>();    
+    queue = new std::vector<QueueEntryWrap>();    
     std::make_heap(queue->begin(),queue->end(),EntryComp());
   }
   
@@ -396,11 +485,11 @@ struct Queue {
     return queue->size();
   }
   
-  QueueEntry* top() {
+  QueueEntryWrap& top() {
     return queue->front();
   }
   
-  void push(QueueEntry* entry) {
+  void push(QueueEntryWrap& entry) {
     queue->push_back(entry);
     std::push_heap(queue->begin(),queue->end(),EntryComp());
   }
@@ -413,16 +502,16 @@ struct Queue {
   void print(std::ostream& out) {
     out << std::endl << "QUEUE:" << std::endl;
     for(size_t i=0; i<queue->size(); i++) {
-      out << "NodeNumber: " << queue->at(i)->nodeNumber;
-      out << " previous: " << queue->at(i)->prev;
-      out << " Distance: " << queue->at(i)->dist;
-      out << " Priority: " << queue->at(i)->priority << std::endl;
+      out << "NodeNumber: " << queue->at(i).getPointer()->nodeNumber;
+      out << " previous: " << queue->at(i).getPointer()->prev;
+      out << " Distance: " << queue->at(i).getPointer()->dist;
+      out << " Priority: " << queue->at(i).getPointer()->priority << std::endl;
     }
   }
   
 private:
-  std::vector<QueueEntry*>* queue;
-  std::greater<QueueEntry*> comp;
+  std::vector<QueueEntryWrap>* queue;
+  std::greater<QueueEntry> comp;
 };
 
 
@@ -525,49 +614,51 @@ class MemoryMtreeObject : public MemoryObject {
          MMMTree< std::pair<T, TupleId>, DistComp>* mtree;
 };
 
-typedef std::pair<Attribute*, size_t> ttreePair;
 class AttrComp{
 
     public:
-        static bool smaller(ttreePair p1, ttreePair p2, 
+        static bool smaller(const AttrIdPair& p1, 
+                            const AttrIdPair& p2, 
                             std::vector<int>* pos) {
 
-            int res  = p1.first->Compare(p2.first);
+            int res  = p1.getAttr()->Compare(p2.getAttr());
             if(res < 0) {
               return true;
             }
             if(res > 0) {
               return false;
             }
-            return p1.second < p2.second;
+            return p1.getTid() < p2.getTid();
         }
 
 
-        static bool equal(ttreePair p1, ttreePair p2, 
-                            std::vector<int>* pos) {
+        static bool equal(const AttrIdPair& p1, 
+                          const AttrIdPair& p2, 
+                          std::vector<int>* pos) {
           
-          int res = p1.first->Compare(p2.first);
-          return (res == 0) && (p1.second == p2.second);
+          int res = p1.getAttr()->Compare(p2.getAttr());
+          return (res == 0) && (p1.getTid() == p2.getTid());
         }
 
 
-        static bool greater(ttreePair p1, ttreePair p2, 
+        static bool greater(const AttrIdPair& p1, 
+                            const AttrIdPair& p2, 
                             std::vector<int>* pos) {
           
-         int res = p1.first->Compare(p2.first);
+         int res = p1.getAttr()->Compare(p2.getAttr());
          if(res > 0) {
            return true;
          }
          if(res < 0) {
             return false;
          }
-         return p1.second > p2.second;
+         return p1.getTid() > p2.getTid();
      }
 
 };
 
 
-typedef ttree::TTree<ttreePair,AttrComp> memttree;
+typedef ttree::TTree<AttrIdPair,AttrComp> memttree;
 class MemoryTTreeObject : public MemoryObject {
 
     public:
@@ -589,19 +680,11 @@ class MemoryTTreeObject : public MemoryObject {
          
         ~MemoryTTreeObject() {
           if(ttree) {
-            ttree::Iterator<ttreePair,AttrComp> it
-                     = ttree->begin();
-            while (it.hasNext()) {
-              ttreePair pair = *it;
-              pair.first->DeleteIfAllowed();
-              pair.first = 0;
-              it++;
-            } 
             delete ttree;
           }
         }
            
-        memttree* getttree() {
+        memttree* gettree() {
           return ttree;
         }
 
@@ -632,15 +715,15 @@ class MemoryGraphObject : public MemoryObject {
                           bool _flob,
                           const std::string& _database);
           
-	MemoryGraphObject(std::string _objectTypeExpr);
-	
+  MemoryGraphObject(std::string _objectTypeExpr);
+  
         ~MemoryGraphObject();
 
         graph::Graph* getgraph();
         
         bool relToGraph(GenericRelation* r, 
                         ListExpr le,
-			std::string _database, 
+      std::string _database, 
                         bool _flob);
        
         void addTuple(Tuple* tup, double cost, double dist);
@@ -664,16 +747,22 @@ class MemoryGraphObject : public MemoryObject {
 };
 
 
-typedef std::pair<Attribute*, size_t> avlPair;
+
+
+}
+
+std::ostream& operator<<(std::ostream& o, const mm2algebra::AttrIdPair& p);
+
+namespace mm2algebra{
+
 class KeyComparator{
 
     public:
-        static bool smaller(const avlPair& o1,
-                            const avlPair& o2){
 
-
-            Attribute* thisAttr = o1.first;
-            Attribute* rhs = o2.first;
+        static bool smaller(const AttrIdPair& o1,
+                            const AttrIdPair& o2){
+            const Attribute* thisAttr = o1.getAttr();
+            const Attribute* rhs = o2.getAttr();
             int res  = thisAttr->Compare(rhs);
             if (res < 0 ) {
                 return true;
@@ -681,23 +770,28 @@ class KeyComparator{
             if( res > 0){
               return false;
             }
-            return o1.second < o2.second;
+            bool r =  o1.getTid() < o2.getTid();
+            return r;
         }
 
 
-        static bool equal(const avlPair& o1,
-                          const avlPair& o2){
-          Attribute* thisAttr = o1.first;
-          Attribute* rhs = o2.first;
+        static bool equal(const AttrIdPair& o1,
+                          const AttrIdPair& o2){
+
+          const Attribute* thisAttr = o1.getAttr();
+          const Attribute* rhs = o2.getAttr();
           int res = thisAttr->Compare(rhs);
-          return (res == 0) && (o1.second == o2.second);
+          bool r =  (res == 0) && (o1.getTid() == o2.getTid());
+          return r;   
+
         }
 
 
-        static bool greater(const avlPair& o1,
-                            const avlPair& o2){
-         Attribute* thisAttr = o1.first;
-         Attribute* rhs = o2.first;
+        static bool greater(const AttrIdPair& o1,
+                            const AttrIdPair& o2){
+
+         const Attribute* thisAttr = o1.getAttr();
+         const Attribute* rhs = o2.getAttr();
          int res = thisAttr->Compare(rhs);
          if(res > 0){
            return true;
@@ -705,13 +799,13 @@ class KeyComparator{
          if(res < 0){
             return false;
          }
-         return o1.second > o2.second;
+         bool r = o1.getTid() > o2.getTid();
+         return r;
      }
-
 };
 
 
-typedef avltree::AVLTree<avlPair,KeyComparator> memAVLtree;
+typedef avltree::AVLTree<AttrIdPair,KeyComparator> memAVLtree;
 typedef typename memAVLtree::iterator avlIterator;
 
 class MemoryAVLObject : public MemoryObject {
@@ -726,6 +820,10 @@ class MemoryAVLObject : public MemoryObject {
          ~MemoryAVLObject();
 
         memAVLtree* getAVLtree();
+        
+        inline memAVLtree* gettree(){
+           return tree;
+        }
 
         static std::string BasicType(){ return "avltree"; }
 

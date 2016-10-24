@@ -212,7 +212,7 @@ Returns the number of entries of this node.
 
 */
       inline size_t getCount() const{
-        return count;	
+        return count;  
       }
 
 
@@ -418,27 +418,27 @@ This is a pure debugging function checking whether each node in the
 tree rooted by this contains a valid number of entries.
 
 */
-   bool checkCount(){
+   bool checkCount(std::ostream& out){
        if(count==0){
-           cout << "found node without elements" << endl;
+           out << "found node without elements" << endl;
            return false;
        }
        if(count > maxEntries){
-          cout << "found node having more entries than allowed" << endl;
+          out << "found node having more entries than allowed" << endl;
        }
        if(left && right){ // inner node
           if(count < minEntries){
-             cout << "found inner node having too less entries" << endl;
+             out << "found inner node having too less entries" << endl;
              return false;
           }
        }
 
        bool ok = true;
        if(left){
-         ok = ok && left->checkCount();
+         ok = ok && left->checkCount(out);
        }
        if(right){
-         ok = ok && right->checkCount();
+         ok = ok && right->checkCount(out);
        }
        return ok;
    }
@@ -450,8 +450,8 @@ checks whether the tree rooted by this has a valid ordering.
 
 */
 
-  bool checkOrder(std::vector<int>* attrPos){
-    return checkOrder(0,0,attrPos);
+  bool checkOrder(std::vector<int>* attrPos, std::ostream& out){
+    return checkOrder(0,0,attrPos, out);
   }
 
 
@@ -526,7 +526,8 @@ one of the arguments is a leaf and the only son of the other parameter.
 ~remove~
 
 Removes an entry from this node. If the entry is not present,
-false is returned.
+false is returned. The removed object will be returned in
+parameter object.
 
 */
    bool remove(T& value, std::vector<int>* attrPos){
@@ -657,28 +658,29 @@ Support function.
 Support function.
 
 */
-   bool checkOrder(const T* min, const T* max, std::vector<int>* attrPos){
+   bool checkOrder(const T* min, const T* max, std::vector<int>* attrPos,
+                   std::ostream& out){
        // check internal order
        for(size_t i=0;i<count-1; i++){
           if(Comparator::greater(*objects[i], *objects[i+1],attrPos)){
-             cout << "found invalid order within a single node" << endl;
+             out << "found invalid order within a single node" << endl;
              return false;
           }
        }
        if(min && Comparator::smaller(getMinValue(),*min, attrPos) ){
-          cout << "found value of a node smaller than allowed" << endl;
+          out << "found value of a node smaller than allowed" << endl;
           return false; 
        }
        if(max && Comparator::greater(getMaxValue(), *max, attrPos)){
-          cout << "found value of a node greater than allowed" << endl;
+          out << "found value of a node greater than allowed" << endl;
           return false; 
        }
        bool ok = true;
        if(left){
-          ok = ok && left->checkOrder(min, objects[0], attrPos);
+          ok = ok && left->checkOrder(min, objects[0], attrPos,out);
        }
        if(right){
-          ok = ok && right->checkOrder(objects[count-1], max, attrPos);
+          ok = ok && right->checkOrder(objects[count-1], max, attrPos,out);
        }
        return ok;
    }
@@ -1000,7 +1002,7 @@ The format is understood by the tree viewer of Secondo's Javagui.
 
 */
 
-    void printttree(std::ostream& out) const {
+    void Print(std::ostream& out) const {
       out << "( tree (" << std::endl;
       if(root) 
         printttree(root, out);
@@ -1116,9 +1118,29 @@ Removes object ~o~ from this tree.
 
 */
     void clear(const bool deleteContent) {
-      root->clear(deleteContent);
+      if(root){
+         root->clear(deleteContent);
+      }
     }
-   
+
+
+/*
+~check~
+
+Checks the structure of the tree
+
+*/  
+
+    bool Check(std::ostream& out){
+       if(!root) return true;
+       return root->checkCount(out) && root->checkOrder(0,out);
+    }
+
+  
+    size_t Size(){
+      return Size(root);
+    }
+ 
     
    private:
      int minEntries;
@@ -1126,6 +1148,12 @@ Removes object ~o~ from this tree.
      Node* root;  
 
      
+
+     size_t Size(Node* node){
+        if(!node) return 0;
+        return Size(node->left) + Size(node->right) + 1;
+     }
+
      
 /*
 ~noEntries~
@@ -1163,9 +1191,9 @@ It returns the root of the new tree.
 */
 
     Node* insert(Node* root, 
-                                    T& value,
-                                    std::vector<int>* attrPos,
-                                    bool& success) {
+                 T& value,
+                 std::vector<int>* attrPos,
+                 bool& success) {
        T* v = new T(value);
 
        Node* res = insert(root,v,attrPos,success);
@@ -1516,7 +1544,6 @@ This function updates __value__ in the subtree given by root.
       
       root = remove(root,value,attrPos,success);
       root = insert(root,newValue,attrPos,success);
-      
       return root;  
     }
     
@@ -1655,7 +1682,7 @@ Performs a left-right rotation in the subtree given by root.
       y->updateHeight();
       return y;
     }
-	
+  
 /*
 ~print~
 
