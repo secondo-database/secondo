@@ -109,4 +109,6 @@ operator gettuples alias GETTUPLES pattern _ _ op
 operator isOrdered alias ISORDERED pattern _ op
 operator isOrderedBy alias ISORDEREDBY pattern _ op[list]
 
+operator tids alias TIDS pattern _ op
+
 

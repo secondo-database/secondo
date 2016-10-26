@@ -479,4 +479,9 @@ Example   : query Kinos feed sortby[Name asc, GeoData]  isOrderedBy[Name asc, Ge
 Result    : TRUE
 
 
+Operator  : tids 
+Number    : 1
+Signature : stream(tuple) -> stream(tid) 
+Example   : query ten feed tids count
+Result    : 10
 

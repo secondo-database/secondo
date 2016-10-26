@@ -14303,6 +14303,95 @@ Operator isOrderedByOP(
 );
 
 
+/*
+2.36 Operator ~tids~
+
+Converts a tuple stream into a stream of tids.
+
+2.26.1 Type Mapping
+
+*/
+
+ListExpr tidsTM(ListExpr args){
+  string err = "stream(tuple) expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err+ " ( wrong number of args)");
+  } 
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return nl->TwoElemList( listutils::basicSymbol<Stream<TupleIdentifier> >(),
+                          listutils::basicSymbol<TupleIdentifier>());
+                          
+}
+
+/*
+2.36.2 Value Mapping
+
+*/
+int tidsVM(Word* args, Word& result, int message,
+                     Word& local, Supplier s) {
+  Stream<Tuple>* li = (Stream<Tuple>*) local.addr;
+  switch(message){
+    case OPEN:
+            if(li){
+              li->close();
+              delete li;
+              local.addr = 0;
+            }
+            li = new Stream<Tuple>(args[0]);
+            li->open();
+            local.addr = li;
+            return 0;
+   case REQUEST:{
+           if(!li) return CANCEL;
+           Tuple* t = li->request();
+           if(t){
+              result.addr = new TupleIdentifier(true, t->GetTupleId());
+              t->DeleteIfAllowed();
+           } else {
+              result.addr = 0;
+           }
+           return result.addr?YIELD:CANCEL;
+        }
+   case CLOSE: 
+          if(li){
+            li->close();
+            delete li;
+            local.addr = 0;
+          }
+          return 0;
+  }
+  return -1;
+}
+
+/*
+2.36.3 Specification
+
+*/
+
+OperatorSpec tidsSpec(
+  "stream(tuple) -> stream(tid) ",
+  " _ tids ",
+  "Replaces tuples in a stream by their tids.",
+  "query ten feed tids count"
+);
+
+/*
+2.36.3 Operator
+
+*/
+
+Operator tidsOp(
+  "tids",
+  tidsSpec.getStr(),
+  tidsVM,
+  Operator::SimpleSelect,
+  tidsTM
+);
+
+
+
 
 
 /*
@@ -14427,6 +14516,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&gettuplesOP);
     AddOperator(&isOrderedOP);
     AddOperator(&isOrderedByOP);
+    AddOperator(&tidsOp);
 
 
 #ifdef USE_PROGRESS
