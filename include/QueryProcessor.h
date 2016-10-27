@@ -753,7 +753,8 @@ one of these symbols, then the value ~error~ is returned.
                      NameIndex& varnames,
                      VarEntryTable& vartable,
                      bool& defined,
-                     const ListExpr fatherargtypes );
+                     const ListExpr fatherargtypes,
+                     const ListExpr typeArgList );
 /*
 Annotates a query expression ~expr~. Use tables ~varnames~ and ~vartable~ 
 to store variables occurring in abstractions (function definitions) and to
@@ -774,7 +775,8 @@ types of the operator to which this function is a parameter.
                              const int paramno,
                              const ListExpr typeList,
                              const ListExpr lastElem,
-                             const ListExpr fatherargtypes );
+                             const ListExpr fatherargtypes,
+                             const ListExpr typeArgList );
 /*
 Annotate an abstraction ~expr~ which has the form:
 

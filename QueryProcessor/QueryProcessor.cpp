@@ -1350,6 +1350,7 @@ all objects mentioned in the expression have defined values.
   valueno = 0;
   functionno = 0;
   list = Annotate( expr, varnames, vartable, defined,
+                   nl->TheEmptyList(),
                    nl->TheEmptyList() );
 
   if ( debugMode )
@@ -1369,7 +1370,8 @@ QueryProcessor::Annotate( const ListExpr expr,
                           NameIndex& varnames,
                           VarEntryTable& vartable,
                           bool& defined,
-                          const ListExpr fatherargtypes )
+                          const ListExpr fatherargtypes, // only types
+                          const ListExpr mytypeArgList ) // types and arguments
 {
 /*
 Annotates a query expression ~expr~. Use tables ~varnames~ and ~vartable~
@@ -1794,8 +1796,6 @@ function index.
   ListExpr resultType, last, pair, lastType, signature;
   resultType = last = pair = lastType = signature = nl->TheEmptyList();
   
-  ListExpr typeArgList, lastTypeArg;
-  typeArgList = lastTypeArg = nl->TheEmptyList();
 
   ListExpr firstSig, firstType, result, functionList;
   firstSig = firstType = result = functionList = nl->TheEmptyList();
@@ -1993,6 +1993,7 @@ function index.
               values[valueno-1].isList = true;
               return Annotate( functionList, newvarnames,
                                newvartable, defined,
+                               nl->TheEmptyList(),
                                nl->TheEmptyList() );
             }
             else
@@ -2126,7 +2127,8 @@ function index.
       // case (iv-a): annotate the function definition (abstraction)
       return AnnotateFunction( expr, varnames, vartable, defined,
                                0, nl->TheEmptyList(),
-                               nl->TheEmptyList(), fatherargtypes );
+                               nl->TheEmptyList(), fatherargtypes, 
+                               mytypeArgList );
     }
     else if ( IsCorrectTypeExpr( nl->First( expr ) ) )
     {
@@ -2218,7 +2220,8 @@ function index.
       rest = nl->Rest( expr );
 
       pair = Annotate( first, varnames, vartable,
-                       defined, fatherargtypes );
+                       defined, fatherargtypes,
+                       mytypeArgList );
 
       if(listutils::isSymbol(pair,"exprerror")){
         return pair;
@@ -2244,21 +2247,20 @@ function index.
               //that have registered
               //UsesArgsInTypeMapping will get this list
               //instead of the typelist
-      typeArgList = nl->OneElemList( 
-    nl->TwoElemList( nl-> Second(pair), first) );
-    lastTypeArg = typeArgList;
+      ListExpr ntypeArgList = nl->OneElemList(
+                                    nl->TwoElemList( nl-> Second(pair),
+                                                     first));
+      ListExpr lastTypeArg = ntypeArgList;
 
       while (!nl->IsEmpty( rest ))
       {
         if ( newOperator )
         { /* current list of arg types to be used */
           pair = Annotate( nl->First( rest ), varnames, vartable,
-                           defined, typeList );
-        }
-        else
-        { /* just pass down the inherited list of args */
+                           defined, typeList, ntypeArgList );
+        } else { /* just pass down the inherited list of args */
           pair = Annotate( nl->First( rest ), varnames, vartable,
-                           defined, fatherargtypes );
+                           defined, fatherargtypes, mytypeArgList );
         }
         if( !nl->IsEmpty( pair ) &&
             nl->IsAtom( pair ) &&
@@ -2269,8 +2271,9 @@ function index.
 
         lastElem = nl->Append( lastElem, pair );
         lastType = nl->Append( lastType, nl->Second( pair ) );
-    lastTypeArg = nl->Append( lastTypeArg, 
-      nl->TwoElemList( nl->Second( pair) , nl->First( rest )) );
+        lastTypeArg = nl->Append( lastTypeArg, 
+                            nl->TwoElemList( nl->Second( pair) , 
+                                             nl->First( rest )) );
         rest = nl->Rest( rest );
       }
       last = lastElem;   /* remember the last element to be able to
@@ -2326,16 +2329,16 @@ will be processed.
                    throw qp_error( err.str() );
               }
 
-     //for all three lists, remove the first argument 
-                 //representing the operator
+              // for all three lists, remove the first argument 
+              // representing the operator
               rest = nl->Rest( list );
               typeList = nl->Rest( typeList );
-              typeArgList = nl->Rest( typeArgList );
+              ntypeArgList = nl->Rest( ntypeArgList );
         
 
               resultType =
                 TestOverloadedOperators( operatorStr, opList,
-                                         typeList, typeArgList, alId, opId,
+                                         typeList, ntypeArgList, alId, opId,
                                          opFunId, true, traceMode );
 
               /* check whether the type mapping has requested to
@@ -2352,7 +2355,7 @@ will be processed.
                     nl->Append( lastElem,
                                 Annotate(nl->First(rest), varnames,
                                          vartable, defined,
-                                         fatherargtypes) );
+                                         fatherargtypes, mytypeArgList) );
                   rest = nl->Rest( rest );
                 }
                 resultType = nl->Third( resultType );
@@ -2786,7 +2789,8 @@ QueryProcessor::AnnotateFunction( const ListExpr expr,
                                   const int paramno,
                                   const ListExpr typeList,
                                   const ListExpr lastElem,
-                                  const ListExpr fatherargtypes )
+                                  const ListExpr fatherargtypes,
+                                  const ListExpr typeArgList )
 {
 /*
 Annotate an abstraction ~expr~ which has the form:
@@ -2839,7 +2843,7 @@ arguments preceding this function argument in an operator application.
   else if ( nl->ListLength(expr) == 1 ) /* e reached */
   {
     annexpr = Annotate( nl->First( expr ), varnames, vartable,
-                        defined, fatherargtypes );
+                        defined, fatherargtypes, typeArgList );
     /* "e" reached */
   }
   else if ( nl->IsAtom( nl->First( expr ) ) )
@@ -2850,12 +2854,12 @@ arguments preceding this function argument in an operator application.
       list = nl->OneElemList( nl->SymbolAtom( "map" ) );
       return AnnotateFunction( nl->Rest( expr ), varnames, vartable,
                                defined, 1, list, list,
-                               fatherargtypes );
+                               fatherargtypes, typeArgList );
     }
     else
     {
       annexpr = Annotate( nl->First( expr ), varnames, vartable,
-                          defined, fatherargtypes );
+                          defined, fatherargtypes,typeArgList );
     }
   }
   else if ( nl->ListLength( nl->First( expr )) == 2 )
@@ -2879,10 +2883,12 @@ arguments preceding this function argument in an operator application.
           int alId = 0;
           int opId = 0;
           int opFunId = 0;
+          ListExpr al = !nl->IsEmpty(typeArgList)
+                        ?nl->Rest(typeArgList)
+                        :typeArgList;
           paramtype =
             TestOverloadedOperators( name2, opList, typeList,
-        nl->TheEmptyList(), //type operators not eligible
-                                  //to see argument exprs
+              al,
               alId, opId, opFunId,
               false, traceMode );
         }
@@ -2917,7 +2923,8 @@ arguments preceding this function argument in an operator application.
         list = nl->Append( lastElem, paramtype );
         return AnnotateFunction( nl->Rest( expr ), varnames,
                                  vartable, defined, paramno+1,
-                                 typeList, list, fatherargtypes );
+                                 typeList, list, fatherargtypes,
+                                 typeArgList );
       }
       else
       {
