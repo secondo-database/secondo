@@ -604,6 +604,12 @@ value like int, float, etc.
     inline int NoRefs() const{
         return del.refs;
     }
+    inline int  GetNumOfRefs()const{
+        return del.refs;
+    }
+
+ 
+
 /*
 Returns the number of references for this attribute.
 
