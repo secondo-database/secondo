@@ -6127,7 +6127,6 @@ determineCost(Term, Sel, Pred, Result, Size, Cost) :-
 %B.Huber end
 
 determineCost(Term, Sel, Pred, Result, Size, Cost) :-
-  wasfuereinefunction,
   isDistributedQuery, !,
   costD(Term, Sel, Pred, Size, NSlots, Cost1),
   assertOnce(nslots(Result, NSlots)),
