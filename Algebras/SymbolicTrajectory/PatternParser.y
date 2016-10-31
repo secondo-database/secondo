@@ -926,7 +926,6 @@ void Pattern::addVarPos(string var, int pos) {
 void Pattern::addAtomicPos() {
   int atomNo = atomicToElem.size();
   atomicToElem[atomNo] = numOfElems;
-  cout << "add pos: atomicToElem[" << atomNo << "] = " << numOfElems << endl;
 }
 
 void Pattern::collectAssVars() {
