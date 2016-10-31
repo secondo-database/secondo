@@ -481,7 +481,7 @@ Operator : rewrite
 Number   : 0
 Signature: mlabel x text -> stream(mlabel)
 Example  : query rewrite(mlabel1, 'X * Y [(_ "Scharnhorst") | (_ "Brackel")]+ Z * => Y') count
-Result   : 3
+Result   : 1
  
 Operator : classify
 Number   : 1
@@ -512,12 +512,6 @@ Number   : 1
 Signature: mlabel -> mlabel
 Example  : query compress([const mlabel value ((("2013-01-01" "2013-01-02" TRUE FALSE) "at_home") (("2013-01-02" "2013-01-03" TRUE FALSE) "at_home"))])
 Result   : (mlabel ((("2013-01-01" "2013-01-03" TRUE FALSE) 'at_home')))
-
-Operator : compress
-Number   : 3
-Signature: stream(mlabel) -> stream(mlabel)
-Example  : query compress(Dotraj feed projecttransformstream[Trajectory]) = (Dotraj feed projecttransformstream[Trajectory])
-Result   : FALSE
 
 Operator : fillgaps
 Number   : 1

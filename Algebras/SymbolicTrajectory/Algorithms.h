@@ -1444,8 +1444,9 @@ class RewriteLI {
   RewriteLI(M *src, Pattern *pat);
   RewriteLI(int i) : match(0) {}
 
-  ~RewriteLI() {}
+  ~RewriteLI() {clearMatch(true);}
 
+  void clearMatch(const bool deletePattern);
   M* getNextResult();
   M* rewrite(M *src, IndexMatchInfo &imi, std::vector<Assign> &assigns);
   void resetBinding(int limit);
@@ -4490,16 +4491,19 @@ ExtBool Match<M>::matches() {
     if (!p->containsFinalState(states)) {
 //         cout << "no final state is active" << endl;
       Tools::deleteSetMatrix(matching, m->GetNoComponents());
+      matching = 0;
       return ST_FALSE;
     }
     if (!p->initCondOpTrees()) {
       Tools::deleteSetMatrix(matching, m->GetNoComponents());
+      matching = 0;
       return ST_UNDEF;
     }
     if (!p->hasAssigns()) {
       bool result = findMatchingBinding(p->nfa, 0, p->elems, p->conds, 
                                         p->atomicToElem, p->elemToVar);
       Tools::deleteSetMatrix(matching, m->GetNoComponents());
+      matching = 0;
       return (result ? ST_TRUE : ST_FALSE);
     }
     return ST_TRUE; // happens iff rewrite is called
@@ -4960,12 +4964,7 @@ RewriteLI<M>::RewriteLI(M *src, Pattern *pat) {
   if (pat->isValid(M::BasicType())) {
     match = new Match<M>(pat, src);
     if (match->matches()) {
-      if (!match->initCondOpTrees() || !match->initAssignOpTrees()) {
-        match->deletePattern();
-        delete match;
-        match = 0;
-      }
-      else {
+      if (match->initCondOpTrees() && match->initAssignOpTrees()) {
         if (!src->GetNoComponents()) {
           BindingStackElem dummy(0, 0);
           bindingStack.push(dummy);
@@ -4980,14 +4979,21 @@ RewriteLI<M>::RewriteLI(M *src, Pattern *pat) {
         }
       }
     }
-    else {
-      match->deletePattern();
-      delete match;
-      match = 0;
-    }
   }
   else {
     cout << "pattern is not suitable for type " << MLabel::BasicType() << endl;
+    match = 0;
+  }
+}
+
+template<class M>
+void RewriteLI<M>::clearMatch(const bool removePattern) {
+  if (match) {
+    if (removePattern) {
+      match->deletePattern();
+    }
+    match->deleteSetMatrix();
+    delete match;
     match = 0;
   }
 }
@@ -5293,17 +5299,17 @@ M* RewriteLI<M>::getNextResult() {
   if (!match) {
     return 0;
   }
+  if (bindingStack.empty()) {
+    return 0;
+  }
+  M* result = 0;
   if (!match->m->GetNoComponents()) { // empty mlabel
-    if (bindingStack.empty()) {
-      return 0;
-    }
     bindingStack.pop();
     std::vector<Condition> *conds = match->p->getConds();
     if (match->conditionsMatch(*conds, imi)) {
       M *source = match->m;
-      return rewrite(source, imi, match->p->getAssigns());
+      result = rewrite(source, imi, match->p->getAssigns());
     }
-    return 0;
   }
   else { // non-empty mlabel
     BindingStackElem bE(0, 0);
@@ -5317,16 +5323,13 @@ M* RewriteLI<M>::getNextResult() {
 //           imi.print(true);
           rewBindings.insert(imi);
           M *source = match->m;
-          return rewrite(source, imi, match->p->getAssigns());
+          result = rewrite(source, imi, match->p->getAssigns());
         }
       }
     }
-  //   cout << "stack is empty" << endl;
-    match->deletePattern();
-    match->deleteSetMatrix();
-    delete match;
-    return 0;
   }
+  match->deleteSetMatrix();
+  return result;
 }
 
 template<class M>
@@ -5617,6 +5620,8 @@ M* MultiRewriteLI<M>::nextResult() {
       }
     }
     initStack(startStates);
+    tuple->DeleteIfAllowed();
+    tuple = 0;
     while (!this->bindingStack.empty()) {
       BindingStackElem bE(0, 0);
       bE = this->bindingStack.top();
@@ -5631,8 +5636,6 @@ M* MultiRewriteLI<M>::nextResult() {
                                      pats[patNo.first]->getAssigns());
       }
     }
-    tuple->DeleteIfAllowed();
-    tuple = 0;
   }
   cout << "SHOULD NOT OCCUR" << endl;
   return 0;
@@ -5936,6 +5939,8 @@ M* IndexRewriteLI<M>::nextResult() {
   RewriteLI<M> rew(src, p);
   M *result = rew.rewrite(src, match.second, p->getAssigns());
   matchesR[0].first++;
+  rew.clearMatch(false);
+  srcTuple->DeleteIfAllowed();
   return result;
 }
 

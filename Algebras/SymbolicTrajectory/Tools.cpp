@@ -314,6 +314,7 @@ void Tools::deleteSetMatrix(set<unsigned int>** &victim, unsigned int dim1) {
       }
     }
     delete[] victim;
+    victim = 0;
   }
 }
 

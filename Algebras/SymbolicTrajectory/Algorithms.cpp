@@ -2400,7 +2400,7 @@ TMatchIndexLI::TMatchIndexLI(Relation *r, ListExpr tt, TupleIndex *t, int a,
   IndexMatchSuper(r, pat, a, type), ttList(tt), ti(t), valueNo(majorValueNo) {
     TupleType *tupletype = rel->GetTupleType();
     relevantAttrs = Tools::getRelevantAttrs(tupletype, a, majorValueNo);
-    tupletype->DeleteIfAllowed();
+//     tupletype->DeleteIfAllowed();
   } 
 
 /*
@@ -4953,9 +4953,11 @@ void IndexMatchSuper::extendBinding(IndexMatchInfo& imi, const int atom,
 
 */
 void IndexMatchSuper::deletePattern() {
-  p->deleteAtomValues(relevantAttrs);
-  delete p;
-  p = 0;
+  if (p) {
+    p->deleteAtomValues(relevantAttrs);
+    delete p;
+    p = 0;
+  }
 }
 
 /*

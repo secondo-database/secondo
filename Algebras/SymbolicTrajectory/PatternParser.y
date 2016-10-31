@@ -132,6 +132,8 @@ assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                  errMsg = Tools::convert("variable " + var + " not found in results");
                  yyerror(errMsg);
                  free($1);
+                 delete errMsg;
+                 errMsg = 0;
                  YYERROR;
                }
                int posP = wholepat->getPatternPos(var);
@@ -216,6 +218,8 @@ result : ZZVARIABLE {
            if (resultVars.count(var)) {
              errMsg = Tools::convert("result variables must be unique");
              yyerror(errMsg);
+             delete errMsg;
+             errMsg = 0;
              YYERROR;
            }
            else {
@@ -468,6 +472,8 @@ element : patternelement {
               errMsg = Tools::convert("invalid information in pattern atom " + wholepat->getSize());
               free($1);
               yyerror(errMsg);
+              delete errMsg;
+              errMsg = 0;
               YYERROR;
             }
             string wildcard = (pElem.getW() == STAR ? "*" : (pElem.getW() == PLUS ? "+" : ""));
@@ -920,6 +926,7 @@ void Pattern::addVarPos(string var, int pos) {
 void Pattern::addAtomicPos() {
   int atomNo = atomicToElem.size();
   atomicToElem[atomNo] = numOfElems;
+  cout << "add pos: atomicToElem[" << atomNo << "] = " << numOfElems << endl;
 }
 
 void Pattern::collectAssVars() {

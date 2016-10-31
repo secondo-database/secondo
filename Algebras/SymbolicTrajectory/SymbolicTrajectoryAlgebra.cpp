@@ -3255,11 +3255,11 @@ int indextmatchesVM(Word* args, Word& result, int message, Word& local,
         ListExpr ttList = nl->Second(qp->GetType(s0));
 //         cout << "ttype is " << nl->ToString(ttList) << endl;
         Tuple *firstTuple = rel->GetTuple(1, false);
+        TupleType *tt = firstTuple->GetTupleType();
         p = Pattern::getPattern(pText->GetValue(), false, firstTuple, ttList);
         if (p) {
           vector<pair<int, string> > relevantAttrs;
           int majorValueNo = -1;
-          TupleType *tt = firstTuple->GetTupleType();
           if (p->isCompatible(tt, attrno->GetIntval(), relevantAttrs, 
                               majorValueNo)) {
             DataType mtype = Tools::getDataType(tt, attrno->GetIntval());
@@ -3276,7 +3276,7 @@ int indextmatchesVM(Word* args, Word& result, int message, Word& local,
         else {
           cout << "invalid pattern" << endl;
         }
-//         firstTuple->DeleteIfAllowed();
+        firstTuple->DeleteIfAllowed();
       }
       local.addr = li;
       return 0;
@@ -3393,11 +3393,11 @@ int indexrewriteVM(Word* args, Word& result, int message, Word& local,
         ListExpr ttList = nl->Second(qp->GetType(s0));
 //         cout << "ttype is " << nl->ToString(ttList) << endl;
         Tuple *firstTuple = rel->GetTuple(1, false);
+        TupleType *tt = firstTuple->GetTupleType();
         p = Pattern::getPattern(pText->GetValue(), false, firstTuple, ttList);
         if (p) {
           vector<pair<int, string> > relevantAttrs;
           int majorValueNo = -1;
-          TupleType *tt = firstTuple->GetTupleType();
           if (p->isCompatible(tt, attrno->GetIntval(), relevantAttrs, 
                               majorValueNo)) {
             DataType mtype = Tools::getDataType(tt, attrno->GetIntval());
@@ -3414,7 +3414,7 @@ int indexrewriteVM(Word* args, Word& result, int message, Word& local,
         else {
           cout << "invalid pattern" << endl;
         }
-//         firstTuple->DeleteIfAllowed();
+        firstTuple->DeleteIfAllowed();
       }
       local.addr = li;
       return 0;
@@ -4308,15 +4308,13 @@ struct concatInfo : OperatorInfo {
 
 */
 ListExpr compressTM(ListExpr args) {
-  const string errMsg = "Expecting mlabel or stream(mlabel).";
+  const string errMsg = "Expecting mT, T in {label, labels, place, places}";
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError(errMsg);
   }
   ListExpr arg = nl->First(args);
-  if (MLabel::checkType(arg) || Stream<MLabel>::checkType(arg) ||
-     MLabels::checkType(arg) || Stream<MLabels>::checkType(arg) ||
-     MPlace::checkType(arg) || Stream<MPlace>::checkType(arg) ||
-     MPlaces::checkType(arg) || Stream<MPlaces>::checkType(arg)) {
+  if (MLabel::checkType(arg) || MLabels::checkType(arg) || 
+      MPlace::checkType(arg) || MPlaces::checkType(arg)) {
     return arg;
   }
   return listutils::typeError(errMsg);
@@ -4332,10 +4330,6 @@ int compressSelect(ListExpr args) {
   if (MLabels::checkType(arg)) return 1;
   if (MPlace::checkType(arg)) return 2;
   if (MPlaces::checkType(arg)) return 3;
-  if (Stream<MLabel>::checkType(arg)) return 4;
-  if (Stream<MLabels>::checkType(arg)) return 5;
-  if (Stream<MPlace>::checkType(arg)) return 6;
-  if (Stream<MPlaces>::checkType(arg)) return 7;
   return -1;
 }
 
@@ -4344,47 +4338,12 @@ int compressSelect(ListExpr args) {
 
 */
 template<class T>
-int compressVM_1(Word* args, Word& result, int message, Word& local,
-                  Supplier s){
+int compressVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   T* source = static_cast<T*>(args[0].addr);
   result = qp->ResultStorage(s);
   T* res = (T*)result.addr;
   source->Compress(*res);
   return  0;
-}
-
-/*
-\subsection{Value Mapping (for a stream of MLabels)}
-
-*/
-template<class T>
-int compressVM_Str(Word* args, Word& result, int message, Word& local,
-                  Supplier s){
-  switch (message) {
-    case OPEN: {
-      qp->Open(args[0].addr);
-      return 0;
-    }  
-    case REQUEST: {
-      Word arg;
-      qp->Request(args[0].addr,arg);
-      if (qp->Received(args[0].addr)) {
-        T* source =(T*) arg.addr;
-        T* res = new T(true);
-        source->Compress(*res);
-        result.addr = res;
-        return YIELD;
-      }
-      else {
-        return CANCEL;
-      }
-    }
-    case CLOSE:{
-      qp->Close(args[0].addr); 
-      return 0;
-    }
-  }
-  return 0;
 }
 
 /*
@@ -4395,8 +4354,6 @@ struct compressInfo : OperatorInfo {
   compressInfo() {
     name      = "compress";
     signature = "mT -> mT,   where T in {label(s), place(s)}";
-    appendSignature("stream(mT) -> stream(mT),   where T in {label(s), "
-                    "place(s)}");
     syntax    = "compress(_)";
     meaning   = "Unites temporally subsequent units with the same values.";
   }
@@ -5229,9 +5186,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     concatVM<MPlace>, concatVM<MPlaces>, 0};
   AddOperator(concatInfo(), concatVMs, symbolicSimpleSelect, concatTM);
 
-  ValueMapping compressVMs[] = {compressVM_1<MLabel>, compressVM_1<MLabels>,
-    compressVM_1<MPlace>, compressVM_1<MPlaces>, compressVM_Str<MLabel>,
-    compressVM_Str<MLabels>, compressVM_Str<MPlace>, compressVM_Str<MPlaces>,0};
+  ValueMapping compressVMs[] = {compressVM<MLabel>, compressVM<MLabels>,
+    compressVM<MPlace>, compressVM<MPlaces>, 0};
   AddOperator(compressInfo(), compressVMs, compressSelect, compressTM);
 
   ValueMapping fillgapsVMs[] = {fillgapsVM_1<MLabel>, fillgapsVM_1<MLabels>,
