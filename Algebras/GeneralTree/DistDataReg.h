@@ -673,7 +673,7 @@ Getdata function for the "points"[4] type constructor.
     static DistData *getDataPoints(const void *attr);
 
 /*
-GetData function for the ~points~ type 
+GetData function for the ~points~ type
 
 */
 static DistData *getDataPoint(const void *attr);
@@ -698,7 +698,13 @@ Getdata function for the symbolic trajectory type constructors.
 */
     template<class M>
     static DistData *getDataSymTraj(const void *attr);
-    
+//--------------------cru----------------------
+ /*
+ Getdata function for the ~fvector~ type constructor
+
+ */
+    static DistData *getDataFVector(const void* attr);
+ //--------------------cru------------------------
 }; // class DistDataReg
 
 } //namespace gta

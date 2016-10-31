@@ -39,6 +39,10 @@ January-May 2008, Mirko Dibbert
 #include "Algorithms.h"
 #include "PictureFuns.h"
 
+//---------cru--------
+#include "FVector.h"
+//--------------------
+
 using namespace gta;
 using namespace std;
 
@@ -294,10 +298,10 @@ DistData* DistDataReg::getDataPoints(const void* attr)
      offset += sizeof(Coord);
      memcpy(buffer + offset, &y, sizeof(Coord));
      offset += sizeof(Coord);
-  } 
+  }
   DistData* res = new DistData(s,buffer);
   delete[] buffer;
-  return res; 
+  return res;
 
 }
 
@@ -365,6 +369,34 @@ DistData* DistDataReg::getDataSymTraj(const void *attr) {
   delete[] bytes;
   return result;
 }
+//----------------cru----------------
+/*
+Method ~DistDataReg::getDataFvector~:
+
+*/
+DistData* DistDataReg::getDataFVector(const void* attr){
+  //cast to the correct type
+  const FVector* fv = static_cast<const FVector*>(attr);
+
+  //special treatment for undefined values
+  if(!fv->IsDefined()){
+    return new DistData(0,0);
+  }
+
+  //serialize the vector
+
+  int dim = fv->getDim();
+
+  char buffer[dim*sizeof(double)];
+
+  for(int i=0; i<dim; i++){
+    double elem = fv->getElem(i);
+    memcpy(buffer+(i*sizeof(double)), &elem, sizeof(double));
+  }
+  return new DistData(dim*sizeof(double), buffer);
+}
+
+//-----------------------------------
 
 /********************************************************************
 Method ~DistDataReg::initialize~:
@@ -394,7 +426,11 @@ void DistDataReg::initialize()
     // the default DistDataInfo objects are automatically assigned,
     // depending on the default distance functions in the
     // DistfunReg class
-
+//--------------------cru-------------------
+    addInfo(DistDataInfo(
+        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+                         FVector::BasicType(), getDataFVector));
+//------------------------------------------
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
                          CcInt::BasicType(), getDataInt));
@@ -425,14 +461,14 @@ void DistDataReg::initialize()
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
         stj::MLabels::BasicType(), getDataSymTraj<stj::MLabels>));
-// 
-//     addInfo(DistDataInfo(
-//         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-//         stj::MPlace::BasicType(), getDataSymTraj<stj::MPlace>));
-// 
-//     addInfo(DistDataInfo(
-//         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-//         stj::MPlaces::BasicType(), getDataSymTraj<stj::MPlaces>));
+
+    addInfo(DistDataInfo(
+        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+        stj::MPlace::BasicType(), getDataSymTraj<stj::MPlace>));
+
+    addInfo(DistDataInfo(
+        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+        stj::MPlaces::BasicType(), getDataSymTraj<stj::MPlaces>));
 
     PictureFuns::initDistData();
 

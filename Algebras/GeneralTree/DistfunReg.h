@@ -381,6 +381,16 @@ Distance function between symbolic trajectories; normalized to [0,1].
     static void symTrajDistance1(
             const DistData *data1, const DistData *data2, double &result);
 
+//-------------------cru-----------------------------------
+/*
+Euclidean distance function for the ~fvector~ type constructor.
+
+*/
+    static void euclidFVector(
+             const DistData *data1, const DistData *data2,
+             double &result);
+//--------------------------------------------------------
+
 }; // class DistfunReg
 
 } //namespace gta

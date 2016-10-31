@@ -39,7 +39,9 @@ January-May 2008, Mirko Dibbert
 #include "SpatialAlgebra.h"
 #include "Algorithms.h"
 #include "PictureFuns.h"
-
+//---------------cru----------------
+#include "FVector.h"
+//----------------------------------
 using namespace gta;
 using namespace std;
 
@@ -311,7 +313,7 @@ void DistfunReg::euclidPoint(
      Coord y2;
      memcpy(&x2, data2->value(), sizeof(Coord));
      memcpy(&y2, (char*) data2->value() + sizeof(Coord), sizeof(Coord));
-     result = std::sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)); 
+     result = std::sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
  }
 
 
@@ -333,7 +335,7 @@ void DistfunReg::specialPoints(
   size_t o1 = 0; // offset in value1
   size_t o2 = 0;
 
-  result = 0; 
+  result = 0;
 
   while(o1<n1 && o2<n2){
      Coord x1;
@@ -371,7 +373,7 @@ void DistfunReg::specialPoints(
         memcpy(&y1,(char*)data1->value() + o1, sizeof(Coord));
         result += abs(y1);
         o1 += sizeof(Coord);
-  } 
+  }
   while(o2<n2){
         o2 += sizeof(Coord);
         Coord y2;
@@ -484,12 +486,42 @@ void DistfunReg::symTrajDistance1(const DistData *data1, const DistData *data2,
   if (data1->size() == 0 || data2->size() == 0){
     result = numeric_limits<double>::max();
   }
-  M* traj1 = (M*)(M::deserialize((const char*)data1->value()));
-  M* traj2 = (M*)(M::deserialize((const char*)data2->value()));
-  result = traj1->Distance(*traj2);
-  traj1->DeleteIfAllowed();
-  traj2->DeleteIfAllowed();
+  M traj1, traj2;
+  traj1.deserialize((const char*)data1->value());
+  traj2.deserialize((const char*)data2->value());
+  result = traj1.Distance(traj2);
 }
+
+//------------cru--------------------------
+/*
+Method ~DistfunReg::euclidFVector~:
+
+*/
+void DistfunReg::euclidFVector(
+    const DistData *data1, const DistData *data2,
+    double &result) {
+  // handle undefined values
+  if (data1->size()==0 && data2->size()==0){
+    result = 0;
+    return;
+  }
+  if (data1->size()==0 || data2->size()==0) {
+    result = numeric_limits<double>::max();
+    return;
+  }
+  // calculate distance
+  size_t dim = data1->size()/sizeof(double);
+
+  int x,y;
+    result=0;
+  for (unsigned int i=0; i<dim; i++){
+    memcpy(&x, (char*)data1->value()+i*sizeof(double), sizeof(double));
+    memcpy(&y, (char*)data2->value()+i*sizeof(double), sizeof(double));
+    result+=(x-y)*(x-y);
+  }
+  result= sqrt(result);
+}
+//------------------------------------------
 
 /********************************************************************
 Method ~DistfunReg::initialize~:
@@ -562,30 +594,37 @@ void DistfunReg::initialize()
         DistDataReg::getInfo(CcString::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
-    addInfo(DistfunInfo(
-        DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
-        symTrajDistance1<stj::MLabel>,
-        DistDataReg::getInfo(stj::MLabel::BasicType(), DDATA_NATIVE),
-        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+//     addInfo(DistfunInfo(
+//         DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR,
+//         symTrajDistance1<stj::MLabel>,
+//         DistDataReg::getInfo(stj::MLabel::BasicType(), DDATA_NATIVE),
+//         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
     addInfo(DistfunInfo(
-        DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
+        DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR,
         symTrajDistance1<stj::MLabels>,
         DistDataReg::getInfo(stj::MLabels::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
 //     addInfo(DistfunInfo(
-//         DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
+//         DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR,
 //         symTrajDistance1<stj::MPlace>,
 //         DistDataReg::getInfo(stj::MPlace::BasicType(), DDATA_NATIVE),
 //         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
-// 
+//
 //     addInfo(DistfunInfo(
-//         DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR, 
+//         DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR,
 //         symTrajDistance1<stj::MPlaces>,
 //         DistDataReg::getInfo(stj::MPlaces::BasicType(), DDATA_NATIVE),
 //         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
+//----------------------cru--------------------------
+    addInfo(DistfunInfo(
+        DFUN_EUCLID, DFUN_EUCLID_DESCR,
+      euclidFVector,
+      DistDataReg::getInfo(FVector::BasicType(), DDATA_NATIVE),
+        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+//---------------------------------------------------
     PictureFuns::initDistfuns();
 
     initialized = true;
