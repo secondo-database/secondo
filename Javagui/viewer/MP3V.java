@@ -87,7 +87,7 @@ public class MP3V extends SecondoViewer
     private ImageIcon playIcon = new ImageIcon(ClassLoader.getSystemResource("res/play2.png"));
     private ImageIcon pauseIcon = new ImageIcon(ClassLoader.getSystemResource("res/pause2.png"));
     private ImageIcon stopIcon = new ImageIcon(ClassLoader.getSystemResource("res/stop2.png"));
-    
+
     /* In this text field general information about an MP3, ID3
        or lyrics object is shown.
 
@@ -123,7 +123,7 @@ public class MP3V extends SecondoViewer
     private static final int INTTYPE = 6;
     private static final int LYRICSTYPE = 7;
     private static final int FILEPATHTYPE = 8;
-    
+
 
     /* typeselect indicates supported types for this viewer. */
     private int typeselect;
@@ -156,7 +156,7 @@ public class MP3V extends SecondoViewer
     private int selectedattribute;
     private int numberoftuple;
     private int numberofattr;
-    
+
     private PausablePlayer2 p;
     private int playedFrames=0;
 // ----------------------------------------------------------------
@@ -198,7 +198,7 @@ public class MP3V extends SecondoViewer
                             }
                         };
                         final Thread t = new Thread(r);
-                      //  t.setDaemon(true);           
+                      //  t.setDaemon(true);
                         t.setPriority(Thread.MAX_PRIORITY);
                         playerStatus = PLAYING;
     System.out.println("Starte PlayerThread");
@@ -218,7 +218,7 @@ public class MP3V extends SecondoViewer
          * Pauses playback. Returns true if new state is PAUSED.
          */
         public boolean pause() {
- System.out.println("Pause"); 
+ System.out.println("Pause");
         	synchronized (playerLock) {
                 if (playerStatus == PLAYING) {
                     playerStatus = PAUSED;
@@ -256,7 +256,7 @@ System.out.println("PP:Stop");
 		         * Closes the player, regardless of current state.
 		         */
 		        public void close() {
-System.out.println("PP:close"); 
+System.out.println("PP:close");
 		        	synchronized (playerLock) {
 		                playerStatus = FINISHED;
 		            }
@@ -294,10 +294,10 @@ System.out.println("playInternal---->after first catch......playedFrames: "+play
                 }
             }
         	endReached();
-        	
+
             close();
         }
-        
+
         public boolean isRunning() {
         	if (playerStatus == PLAYING){
         		return true;
@@ -309,9 +309,9 @@ System.out.println("playInternal---->after first catch......playedFrames: "+play
         }
 
     }
-    
+
   // ------------------------------------------------------
-    
+
     /** implemented method of interface ActionListener
     This method is called if a user presses the
     start or stop button. */
@@ -614,12 +614,17 @@ System.out.println("playInternal---->after first catch......playedFrames: "+play
     return result;
     }
 
-
   public void updatePosition(int frame){
-     if(frame<0){
+  int gms = frame*26;
+  int gsec = gms/1000; int ms=gms%1000;
+  int gmin = gsec/60; int sec=gsec%60;
+  int gstd = gmin/60; int min=gmin%60;
+	  if(frame<0){
         positionLabel.setText("");
      } else {
-        positionLabel.setText("frame : " + frame);
+        positionLabel.setText(
+        		String.format("Frame: %5d ",frame) + "   Zeit: " +
+        		String.format("%02d:%02d:%02d", gstd, min, sec));
      }
   }
 
@@ -772,26 +777,26 @@ System.out.println("playInternal---->after first catch......playedFrames: "+play
 
     /* starts the MP3 player. */
     private void StartPlay() {
- 
+
    	System.out.println("MP3-StartPlay: Methode Play:");
    	if (p==null) {
    		System.out.println("-> Player Status = NULL");}
-   	
+
    	else {
   		System.out.println("-> Player Status = "+p.getPlayerStatus());
    		}
-   	
-    	
+
+
     	try {
-      
-         if(p!=null){ 
-             if(p.isRunning()){ 
+
+         if(p!=null){
+             if(p.isRunning()){
                 p.pause();
-                PlayPauseButton.setIcon(playIcon); 
+                PlayPauseButton.setIcon(playIcon);
                 PlayPauseButton.setText("resume");
                 return;
-             } 
-         } 
+             }
+         }
          if(songbuffer==null && filepath==null){
             // no data available
             return;
@@ -818,7 +823,7 @@ System.out.println("playInternal---->after first catch......playedFrames: "+play
                 infoarea.setText ("FSong: UNDEFINED");
             } else {
               if(p==null){
-                 FileInputStream fis = new FileInputStream(filepath.textValue()); 
+                 FileInputStream fis = new FileInputStream(filepath.textValue());
 
                  p = new PausablePlayer2(fis);
                  p.play();
@@ -839,7 +844,7 @@ System.out.println("playInternal---->after first catch......playedFrames: "+play
 
     /* stops the MP3 player. */
     private void StopPlay () {
-    if (p!=null){    	
+    if (p!=null){
         p.stop();
         p=null;
         PlayPauseButton.setIcon(playIcon);
@@ -1213,8 +1218,8 @@ System.out.println("playInternal---->after first catch......playedFrames: "+play
 
     /* This class is used to start a seperate thread witch plays
        MP3 songs. */
-   
-    
+
+
  /*   private class PlayerThread extends PlaybackListener implements Runnable {
 
 
@@ -1227,7 +1232,7 @@ System.out.println("playInternal---->after first catch......playedFrames: "+play
         running = false;
         in = null;
     }
-    
+
     PlayerThread(String filename, PositionUpdater listener){
         this.listener = listener;
         lastFrame = 0;
@@ -1253,7 +1258,7 @@ System.out.println("playInternal---->after first catch......playedFrames: "+play
              e.printStackTrace();
              Reporter.debug(e);
          }
-       } 
+       }
     }
 
     public void start(){
