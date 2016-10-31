@@ -1,0 +1,69 @@
+
+Installation hints for the ESSENTIA Library:
+
+Homepage: http://essentia.upf.edu
+Installation: http://essentia.upf/documentation/installing.html 
+
+Current version, which is recommended to install is Essentia 2.1 beta3.
+
+There is a really good online documentation of the library, including evrything
+to install Essentia properly on differente operating systems.
+You should read the steps (link documentation then scroll down to "Building an Installing Essentia").
+
+Currently there is no deb package for Ubuntu, so you need to compile Essentia
+from the source.
+
+Summary for Ubuntu 14.10 or greater:
+
+1. Installing dependencies
+sudo apt-get install build-essential libyaml-dev libfftw3-dev libavcodec-dev libavformat-dev libavutil-dev libavresample-dev libsamplerate0-dev libtag1-dev
+2. Go to the directory you want to install Essentia
+3. mkdir essentia
+4. cd essentia
+5. git clone https://github.com/MTG/essentia
+6. cd essentia
+7. ./waf configure --mode=release --with-cpptests --with-examples
+8. ./waf
+9. ./waf install					       # (as root)
+10. echo "/usr/local/lib" > /etc/ld.so.conf.d/essentia.conf    # (as root)  
+11. ldconfig -> dadurch wird Library systemweit bekannt        # (as root)
+
+
+
+Summary for Ubuntu 14.04:
+
+
+Ubuntu 14.04 shipps with an old and incompatible version of libav. You need to upgrade them first:
+
+sudo add-apt-repository ppa:heyarje/libav-11
+sudo apt-get update
+sudo apt-get install libavresample-dev libavutil-dev libavcodec-dev libav-tools
+
+Now you can follow the installation steps above....
+
+
+NOTE: Most included libraries are optional. For test purpose they are included here.
+
+
+In the end you just have to add in includes and dependencies in the makefile.algebra file:
+
+ALGEBRA_DIRS += MP3b
+ALGEBRAS     += MP3Algebra
+ALGEBRA_DEPS += essentia fftw3 yaml avcodec avformat avutil samplerate tag fftw3f
+ALGEBRA_INCLUDE_DIRS += /usr/local/include/essentia
+ALGEBRA_INCLUDE_DIRS += /usr/local/include/essentia/scheduler
+ALGEBRA_INCLUDE_DIRS += /usr/local/include/essentia/streaming
+ALGEBRA_DEP_DIRS += /usr/local/lib
+
+Last hint: the MP3-Algebra depends on the MTree Algebra which depends on GeneralTreeAlgebra, XTreeAlgebra and SymbolicTrajectoryAlgebra. So these algebras have to be included.
+ALGEBRA_DIRS  += GeneralTree
+ALGEBRAS      += GeneralTreeAlgebra
+
+ALGEBRA_DIRS  += XTree
+ALGEBRAS      += XTreeAlgebra
+
+ALGEBRA_DIRS  += SymbolicTrajectory
+ALGEBRAS      += SymbolicTrajectoryAlgebra
+
+
+------------------------------------------

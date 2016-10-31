@@ -113,12 +113,262 @@ xxii) ~removelyrics~ - remove a lyrics into an MP3.
 #include "Symbols.h"
 #include "ListUtils.h"
 
+
+#include "GenericTC.h"
+#include "Stream.h"
+#include "NList.h"
+#include "FVector.h"
+
+
+#include <essentia/algorithmfactory.h>
+#include <essentia/essentiamath.h>
+#include <essentia/pool.h>
+using namespace essentia;
+using namespace essentia::standard;
+
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
 using namespace std;
 
 namespace mp3{
+
+/*
+   Type Constructor ~fvector~
+
+   A.1 class ~fvector~
+
+*/
+
+// create a TypeConstructor instance
+GenTC<FVector> FVectorTC;
+
+
+
+// A.2 Operator ~getfvectors~
+// calculates feature vectors from an MP3-file
+
+
+
+
+//  A.2.1 Type mapping function of operator ~getfvectors~
+
+// Operator ~getfvector~ accepts a filename of a MP3  and a int
+// to select which feature should be extracted and returns a
+// stream of fvectors
+// ----    (filename text)  x (select int)             ->  stream(fvector)
+
+
+ListExpr getfvectorsTM(ListExpr args){
+  // check for correct number of arguments
+  if (! nl-> HasLength (args ,2)){
+    return listutils :: typeError ( " wrong number of arguments ");
+  }
+
+  // first argument must be a string
+  // second argument must be a single integer
+  if (!FText::checkType ( nl-> First( args ))
+    || !CcInt::checkType ( nl-> Second( args )) ){
+    return listutils :: typeError ( " text x int expected " );
+  }
+  // create the result type stream (fvector)
+  return nl->TwoElemList( nl->SymbolAtom(Stream<FVector>::BasicType()),
+              nl->SymbolAtom(FVector::BasicType()) );
+
+}
+
+//   A.2.2 Value mapping function of operator ~getfvectors~
+
+
+//   LocalInfo class to save the state of the operator.
+//   The class also encapsulates the calculations of the
+//   DSP-library essentia.
+
+
+class getFVectorsLI{
+public:
+  // constructor: initializes the class from the string argument
+  // and do the computation with the extern library
+  // resuls are stored in the private members
+  getFVectorsLI (FText* arg) : filename(""), index(0){
+    if(arg->IsDefined()){
+      filename = arg->GetValue();
+
+    // Essentia Part -> TODO select auswerten!!!
+
+    string audioFilename = filename;
+      essentia::init();
+
+      Pool pool;
+
+      /////// PARAMS //////////////
+      int sampleRate = 44100;
+      int frameSize = 2048;
+      int hopSize = 1024;
+
+      // audioloader -> framecutter -> windowing -> FFT -> MFCC
+      AlgorithmFactory& factory = standard::AlgorithmFactory::instance();
+
+      Algorithm* audio = factory.create("MonoLoader",
+                                        "filename", audioFilename,
+                                        "sampleRate", sampleRate);
+
+      Algorithm* fc    = factory.create("FrameCutter",
+                                        "frameSize", frameSize,
+                                        "hopSize", hopSize);
+
+      Algorithm* w     = factory.create("Windowing",
+                                        "type", "blackmanharris62");
+
+      Algorithm* spec  = factory.create("Spectrum");
+
+      Algorithm* mfcc  = factory.create("MFCC",
+                        "highFrequencyBound",20000);
+
+      /////////// CONNECTING THE ALGORITHMS ////////////////
+
+      // Audio -> FrameCutter
+       vector<Real> audioBuffer;
+
+       audio->output("audio").set(audioBuffer);
+       fc->input("signal").set(audioBuffer);
+
+       // FrameCutter -> Windowing -> Spectrum
+       vector<Real> frame, windowedFrame;
+
+       fc->output("frame").set(frame);
+       w->input("frame").set(frame);
+
+       w->output("frame").set(windowedFrame);
+       spec->input("frame").set(windowedFrame);
+
+       // Spectrum -> MFCC
+       vector<Real> spectrum, mfccCoeffs, mfccBands;
+
+       spec->output("spectrum").set(spectrum);
+       mfcc->input("spectrum").set(spectrum);
+
+       mfcc->output("bands").set(mfccBands);
+       mfcc->output("mfcc").set(mfccCoeffs);
+
+      /////////// STARTING THE ALGORITHMS //////////////////
+      audio->compute();
+
+      while (true) {
+
+         // compute a frame
+         fc->compute();
+         // if it was the last one (ie: it was empty), then we're done.
+         if (!frame.size()) {
+           break;
+         }
+
+         // if the frame is silent, just drop it and go on processing
+         if (isSilent(frame)) continue;
+
+         w->compute();
+         spec->compute();
+         mfcc->compute();
+
+         pool.add("lowlevel.mfcc", mfccCoeffs);
+      } //while
+
+
+      // Ergebnisse in Map speichern und Essentia beenden.
+      m=pool.getVectorRealPool();
+      it=m.begin();
+
+
+
+      delete audio;
+      delete fc;
+      delete w;
+      delete spec;
+      delete mfcc;
+
+      essentia::shutdown();
+      //end Essentia part
+
+    } //if
+  }
+  // destructor
+  ~getFVectorsLI(){}
+
+  // this function returns the next result or null if the input is
+  // exhausted
+  FVector* getNext(){
+    if(index>= it->second.size()) {
+      return 0;
+    }
+    // read next fvector
+    vector<Real> fv = it->second[index];
+    //read dimension of fvector
+    int dim = it->second[index].size();
+
+    //create Secondo FVector and copy result
+    FVector* res = new FVector(1.0);
+    for (int i=0;i<dim; i++){
+      res->append(fv[i]);
+    }
+
+    // increment index
+    index ++;
+    // return result fvector
+    return res;
+  }
+
+private:
+  string filename;   //input filename
+  size_t index;      //current fv
+  //map to store the result of the calculation
+  std::map<std::string, std::vector< std::vector<Real> > > m;
+  //iterator for the map
+  std::map<std::string, std::vector< std::vector<Real> > >::iterator it;
+
+};
+
+int getfvectorsVM ( Word *args , Word &result , int message,
+          Word &local , Supplier s ){
+  getFVectorsLI* li = ( getFVectorsLI*) local.addr ;
+  switch ( message ){
+     case OPEN : if (li) {
+            delete li;
+            }
+           local.addr = new getFVectorsLI ( ( FText*) args[0].addr );
+           return 0;
+
+    case REQUEST : result.addr = li ? li->getNext():0;
+            return result.addr ? YIELD : CANCEL ;
+    case CLOSE : if (li){
+              delete li;
+              local.addr = 0;
+            }
+            return 0;
+  }
+  return 0;
+}
+
+
+//    A2.3 Specification of operator ~getfvectors~
+
+OperatorSpec getfvectorsSpec(
+    " text int -> stream(fvector",
+    " _ getfvectors[_]",
+    " calculates the fvectors of a mp3-file",
+    " query filename getfvectors[1]"
+);
+
+
+//   A2.4 Create instance of operator ~getfvectors~
+
+Operator getfvectorsOP (
+    "getfvectors",
+    getfvectorsSpec.getStr(),
+    getfvectorsVM,
+    Operator::SimpleSelect,
+    getfvectorsTM
+);
 
 /*
 2 Type Constructor ~mp3~
@@ -135,6 +385,7 @@ class MP3 : public Attribute {
     ~MP3();
     /* This object can be deleted by the Secondo system. */
     void Destroy();
+
     /* Returns the object's hash value. */
     size_t HashValue() const;
     /* Copy the data of another MP3 object into this object. */
@@ -227,39 +478,42 @@ class MP3 : public Attribute {
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
-
+    //Returns the begin of a frame
+    int getFrameAdr(int index) const;
   private:
 
     Flob mp3Data;
+    DbArray<int> framesAdr;
+
     int version;
     int bitrate;
     bool canDelete;
     int length;
     int framecount;
-    int framelength; //padding-bit included
     int frequency;
-    int lengthID3v2Tag; //added
+    int lengthID3v2Tag;
 };
 
 /*
 2.1.1 Constructor.
 
-Initalizes the DBArray mp3Data.
+Initalizes the FLop and the DbArray.
 
 */
-MP3::MP3(const int size) : mp3Data(size), canDelete(false) {
+MP3::MP3(const int size) : mp3Data(size), framesAdr(0), canDelete(false) {
     // empty.
 }
 
 /*
 2.1.2 Destructor.
 
-Destroys the DBArray.
+Destroys the Flop and DBArray.
 
 */
 MP3::~MP3() {
     if( canDelete ) {
         mp3Data.destroy();
+        framesAdr.destroy();
     }
 }
 
@@ -298,6 +552,9 @@ void MP3::CopyFrom(const Attribute* right) {
 
     if (r->mp3Data.getSize() > 0){
       mp3Data.copyFrom(r->mp3Data);
+    }
+    if (r->framesAdr.getSize()> 0){
+      framesAdr.copyFrom(r->framesAdr);
     }
     version = r->version;
     bitrate = r->bitrate;
@@ -357,7 +614,7 @@ returns the number of FLOBs. Always 1.
 
 */
 int MP3::NumOfFLOBs() const {
-    return 1;
+    return 2;
 }
 
 /*
@@ -368,7 +625,12 @@ Get the FLOB (DBArray)
 */
 Flob* MP3::GetFLOB(const int i) {
     assert( i >= 0 && i < NumOfFLOBs() );
-    return &mp3Data;
+    if (i==0) {
+      return &mp3Data;
+    }
+    else {
+      return &framesAdr;
+    }
 }
 
 /*
@@ -388,6 +650,17 @@ Returns a new MP3 object which contains the frames with indices
 between begin and begin + size.
 
 */
+int MP3::getFrameAdr(int index) const{
+  assert (index<framesAdr.Size());
+  int elem;
+  if (framesAdr.Get(index,&elem)) {
+    return elem;
+  }
+  else { //should not happen
+    return 1;
+  }
+}
+
 MP3* MP3::SubMP3(int beginFrame, int size) const {
     MP3 *newmp3;
 
@@ -425,77 +698,34 @@ MP3* MP3::SubMP3(int beginFrame, int size) const {
         return newmp3;
     }
 
+    //create new MP3
     newmp3 = new MP3(0);
 
-
-/* alter code
-    int sizeofoldflob = mp3Data.getSize();
-    char*  bin = new char[sizeofoldflob];
-
-    mp3Data.read(bin, sizeof(char), 0);
-
-    int beginheaderpos = FindFirstHeader(bin,sizeofoldflob);
-    int sizeofid3v2 = beginheaderpos;
-    int counter=0;
-
-
-
-    // We have to determine the first cut position.
-    while ((beginheaderpos >= 0)
-            && (beginheaderpos < (sizeofoldflob-4))
-            && (counter < beginFrame ) ) {
-        // 4 = size of the header
-        beginheaderpos = FindNextHeader(beginheaderpos,bin,sizeofoldflob);
-        counter++;
-    }
-
-    counter=0;
-    int endheaderpos=beginheaderpos;
-    // We have to determine the second cut position
-    while ((endheaderpos < (sizeofoldflob - 4)) && (counter < size)) {
-        // 4 = size of the header
-        endheaderpos=FindNextHeader (endheaderpos,bin,sizeofoldflob);
-        counter++;
-    }
-
-    int newsize= endheaderpos - beginheaderpos
-        + sizeofid3v2 + FrameLength (endheaderpos,bin);
-    if (ExistsID()) {
-        newsize= newsize + 128;
-    }
-
-    newmp3->mp3Data.resize(newsize);
-
-    // copy the bytes of ID3 V2-Tag
-    newmp3->mp3Data.write(bin,sizeofid3v2,0);
-
-    // copy the mp3-frames
-    newmp3->mp3Data.write( bin+beginheaderpos,
-                           endheaderpos - beginheaderpos
-                                + FrameLength(endheaderpos,bin),
-                           sizeofid3v2
-                         );
-
-    // copy the ID3 V1-Tag
-    if (ExistsID()) {
-        newmp3->mp3Data.write( bin + sizeofoldflob -128,
-                               128,
-                               newsize - 128
-                             );
-    }
-ende alter code */
-
-
-
-//refactor
     int sizeOfId3v1Tag  = 128;
     int sizeOfId3v2Tag  = this->lengthID3v2Tag;
 
-    // calculate size of new MP3
-    int sizeOfFrames = framelength*size;
-    int sizeOfNewMP3 = sizeOfFrames+ sizeOfId3v2Tag;
+    //calculate cut-positions;
+    int cutPos1,cutPos2;
+
+    //first frame begins after Id3v2Tag
+    if (beginFrame==0) {
+      cutPos1=sizeOfId3v2Tag;
+    }//first frame begins within the mp3
+    else {
+      cutPos1=getFrameAdr(beginFrame);
+    }//last frame is endframe
+    if (beginFrame+size==GetFrameCount()){
+      cutPos2=mp3Data.getSize()-sizeOfId3v1Tag-1;
+    }//last frame is within mp3
+    else {
+      cutPos2=getFrameAdr(beginFrame+size)-1;
+    }
+    int sizeOfFrames=(cutPos2-cutPos1)+1;
+
+  // calculate size of new MP3
+    int sizeOfNewMP3 = sizeOfFrames+sizeOfId3v2Tag;
     if (ExistsID()) {
-    	sizeOfNewMP3 += sizeOfId3v1Tag;
+      sizeOfNewMP3 += sizeOfId3v1Tag;
     }
     // resize FLOB
     newmp3->mp3Data.resize(sizeOfNewMP3);
@@ -508,31 +738,25 @@ ende alter code */
     newmp3->mp3Data.write(bufferId3v2Tag,sizeOfId3v2Tag,0);
     delete bufferId3v2Tag;
 
-	//2. create buffer for Frames, read and copy data into new Flob
+  //2. create buffer for Frames, read and copy data into new Flob
     char* bufferFrames = new char[sizeOfFrames];
     // calculate cut-position
-    int beginCutPos = sizeOfId3v2Tag+beginFrame*framelength;
-	mp3Data.read(bufferFrames,sizeOfFrames,beginCutPos);
-	newmp3->mp3Data.write(bufferFrames,sizeOfFrames,sizeOfId3v2Tag);
+  mp3Data.read(bufferFrames,sizeOfFrames,cutPos1);
+  newmp3->mp3Data.write(bufferFrames,sizeOfFrames,sizeOfId3v2Tag);
     delete bufferFrames;
 
-	//3. create buffer for Id3v1, read and copy data into new Flob
-	if (ExistsID()){
-		char* bufferId3v1Tag =new char[sizeOfId3v1Tag];
-		mp3Data.read(bufferId3v1Tag,sizeOfId3v1Tag,
-				     this->mp3Data.getSize()-128 );
-		newmp3->mp3Data.write(bufferId3v1Tag,sizeOfId3v1Tag,
-				     sizeOfNewMP3-sizeOfId3v1Tag);
-	    delete bufferId3v1Tag;
+  //3. create buffer for Id3v1, read and copy data into new Flob
+  if (ExistsID()){
+    char* bufferId3v1Tag =new char[sizeOfId3v1Tag];
+    mp3Data.read(bufferId3v1Tag,sizeOfId3v1Tag,
+             this->mp3Data.getSize()-128 );
+    newmp3->mp3Data.write(bufferId3v1Tag,sizeOfId3v1Tag,
+             sizeOfNewMP3-sizeOfId3v1Tag);
+      delete bufferId3v1Tag;
 
-	}
+  }
 
-
-//end refactor
-
-
-
-    // recalculate the attributes of our new mp3.
+   // recalculate the attributes of our new mp3.
     newmp3->version = this->version;
     newmp3->bitrate = this->bitrate;
     newmp3->canDelete = this->canDelete;
@@ -540,22 +764,15 @@ ende alter code */
     newmp3->framecount = size;
     newmp3->frequency = this->frequency;
     newmp3->SetDefined (true);
-
     newmp3->lengthID3v2Tag = sizeOfId3v2Tag;
-    newmp3->framelength = this->framelength;
+
+    //adjust the begin adress of the frames an copy
+    int adjust=cutPos1-sizeOfId3v2Tag;
+    for (int i=beginFrame; i<beginFrame+size;i++){
+      newmp3->framesAdr.Append(getFrameAdr(i)-adjust);
+    }
     return newmp3;
 
-/* .......aus Definition
-    Flob mp3Data;
-    int version;
-    int bitrate;
-    bool canDelete;
-    int length;
-    int framecount;
-    int framelength; //padding-bit included
-    int frequency;
-    int lengthID3v2Tag; //added
- */
 }
 
 /*
@@ -600,44 +817,49 @@ MP3* MP3::Concat (const MP3* other) const {
        we have to find the first frame header. */
     int beginotherheaderpos = FindFirstHeader(otherbin,sizeofotherflob);
 
-    int iterator = sizeofid3v2;
-    int endofthisflob;
-    /* After this while loop has terminated endofthisflob contains the
-       address of the last header in the first MP3. */
-    while ((iterator >= 0) && (iterator < (sizeofthisflob-4) ) ) {
-        endofthisflob = iterator;
-        iterator = FindNextHeader(iterator, thisbin, sizeofthisflob);
-    }
-
+    int endofthisflob=this->getFrameAdr(this->framecount -1);
     int newsize
         = endofthisflob
         // All frames except of the last one plus header
-        + FrameLength(endofthisflob, thisbin)
+       + FrameLength(endofthisflob, thisbin)
         // The length of the last frame
         + sizeofotherflob
         // Just the size of the whole MP3 song
         - beginotherheaderpos;
-    // except the size of the second header.
+    // except the size of the second Id3v2Tag
 
     newmp3->mp3Data.resize(newsize);
     /* Copy the first MP3 into the result MP3. */
     newmp3->mp3Data.write( thisbin,
-                           endofthisflob + FrameLength(endofthisflob, thisbin),
-                           0);
+                       endofthisflob+ FrameLength(endofthisflob, thisbin),0);
     /* Copy the second MP3 into the result MP3. */
-    newmp3->mp3Data.write( (otherbin + beginotherheaderpos),
-                         (sizeofotherflob - beginotherheaderpos),
-                         (endofthisflob + FrameLength(endofthisflob, thisbin)));
+    newmp3->mp3Data.write( otherbin + beginotherheaderpos,
+                         sizeofotherflob - beginotherheaderpos,
+                         endofthisflob+ FrameLength(endofthisflob, thisbin));
 
     /* recalculate the attributes of our new mp3. */
+    // pay attention MP3 might have different bitrates
     newmp3->version = this->version;
     newmp3->bitrate = this->bitrate;
     newmp3->canDelete = this->canDelete;
     newmp3->length = this->length + other->length;
     newmp3->framecount = this->framecount + other->framecount;
     newmp3->frequency = this->frequency;
-
+    newmp3->lengthID3v2Tag = sizeofid3v2;
     newmp3->SetDefined (true);
+
+    //copy both frame address Arrays
+    for (int i=0; i < this->framecount; i++){
+      newmp3->framesAdr.Append(this->getFrameAdr(i));
+    }
+
+    //second indices must be adjusted
+    int adjust = endofthisflob+FrameLength(endofthisflob, thisbin)-
+      beginotherheaderpos;
+    for (int i=0; i < other->framecount; i++){
+      newmp3->framesAdr.Append( other->getFrameAdr(i)+adjust);
+    }
+
 
     delete[] thisbin;
     delete[] otherbin;
@@ -680,7 +902,7 @@ of the MP3 song will be recalculated.
 */
 void MP3::Decode( const string& textBytes ) {
     Base64 b;
-    int previousheaderpos;
+//    int previousheaderpos;
     int sizeDecoded = b.sizeDecoded( textBytes.size() );
     char *bytes = (char *)malloc( sizeDecoded );
 
@@ -1000,7 +1222,7 @@ bool MP3::LoadMP3FromFile( const string fileName ) {
   // read the file
   char* bytes = new char[ filesize ];
   file.seekg(0,ios::end);
-  streampos fileend = file.tellg();
+ // streampos fileend = file.tellg();
   file.seekg(0,ios::beg);
   file.read(bytes,filesize);
   file.close();
@@ -1008,7 +1230,8 @@ bool MP3::LoadMP3FromFile( const string fileName ) {
   int headerpos = FindFirstHeader (bytes,filesize);
 
   lengthID3v2Tag = headerpos;
-  framelength=FrameLength(headerpos,bytes);
+//  framelength=FrameLength(headerpos,bytes);
+  framesAdr.Append(headerpos);
 
   bitrate = CalcBitrate(headerpos, bytes);
   frequency = CalcFrequency(headerpos, bytes);
@@ -1018,12 +1241,11 @@ bool MP3::LoadMP3FromFile( const string fileName ) {
     /* We have to scan through the MP3 file in order to
   calculate some general value like length, number
   of frames, etc. */
-  int previousheaderpos = 0;
   while ((headerpos >= 0) && (headerpos < (filesize - 4))) {
-    previousheaderpos = headerpos;
     headerpos=FindNextHeader(headerpos, bytes, filesize);
     if (headerpos >= 0) {
-    	framecount++;
+      framecount++;
+      framesAdr.Append(headerpos);
     }
   }
   length = (int)(framecount * 1152.0 / ((float) frequency));
@@ -1203,7 +1425,7 @@ Returns the number of frames of this MP3.
 
 */
 int MP3::GetFrameCount() const{
-    return framecount;
+  return framecount;
 }
 
 /*
@@ -1628,13 +1850,13 @@ void ID3::MakeID3Dump (char *iddump) {
     strncpy (iddump + 93, year_, 4);
 
 
-    bool found = false;
+//    bool found = false;
     byte genrenumber = 127;
     for (int i=0; i<= 127; i++)
     {
         if  (strncmp (genre, GetGenreName (i),21) == 0 )
         {
-            found = true;
+//            found = true;
             genrenumber = i;
         }
     }
@@ -4668,6 +4890,10 @@ public:
         AddTypeConstructor( &id3 );
         AddTypeConstructor( &lyrics);
 
+//----------
+        AddTypeConstructor( &FVectorTC);
+        FVectorTC.AssociateKind( Kind::DATA() );
+//----------
         mp3.AssociateKind(Kind::DATA());
         mp3.AssociateKind(Kind::FILE());
         id3.AssociateKind(Kind::DATA());
@@ -4675,6 +4901,9 @@ public:
         lyrics.AssociateKind(Kind::DATA());
         lyrics.AssociateKind(Kind::FILE());
 
+ //--------------
+        AddOperator(&getfvectorsOP);
+ //--------------
         AddOperator(&savemp3to);
         AddOperator(&loadmp3from);
         AddOperator(&version);

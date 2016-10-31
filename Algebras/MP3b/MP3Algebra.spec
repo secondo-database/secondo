@@ -40,4 +40,4 @@ operator concatmp3 alias CONCATMP3 pattern _ _ op
 operator songyear alias SONGYEAR pattern _ op
 operator submp3 alias SUBMP3 pattern _ _ _ op
 operator loadmp3from alias LOADMP3 pattern op ( _ )
-
+operator getfvectors alias GETFV pattern _op [_]
