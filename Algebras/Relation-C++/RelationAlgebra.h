@@ -357,6 +357,8 @@ Returns the attribute type at ~index~ position.
     inline void PutAttributeType( int index,
                                   const AttributeType& attrType )
     {
+      assert(index>=0);
+      assert(index < noAttributes);
       attrTypeArray[index] = attrType;
     }
 /*

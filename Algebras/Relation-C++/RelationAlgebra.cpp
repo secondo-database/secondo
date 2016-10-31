@@ -84,6 +84,11 @@ RelationAlgebra.h header file.
 #include "../CostEstimation/RelationAlgebraCostEstimation.h"
 #endif
 
+#include "OperatorConsume.h"
+#include "OperatorFeed.h"
+#include "OperatorFilter.h"
+#include "OperatorProject.h"
+
 extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager *am;
@@ -872,151 +877,7 @@ Operator relalgTUPLE2 (
          TUPLE2TypeMap         // type mapping
 );
 
-/*
-
-5.5 Operator ~feed~
-
-Produces a stream from a relation by scanning the relation tuple by
-tuple.
-
-5.5.1 Type mapping function of operator ~feed~
-
-A type mapping function takes a nested list as argument. Its
-contents are type descriptions of an operator's input parameters.
-A nested list describing the output type of the operator is returned.
-
-Result type of feed operation.
-
-----    ((rel x))  -> (stream x)
-----
-
-*/
-ListExpr FeedTypeMap(ListExpr args)
-{
-  if(nl->ListLength(args)!=1){
-    ErrorReporter::ReportError("one argument expected");
-    return nl->TypeError();
-  }
-  ListExpr first = nl->First(args);
-  if(listutils::isRelDescription(first,true)||
-     listutils::isRelDescription(first,false)){
-    return nl->Cons(nl->SymbolAtom(Symbol::STREAM()), nl->Rest(first));
-  }
-  if(listutils::isOrelDescription(first))
-    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), nl->Second(first));
-  ErrorReporter::ReportError("rel(tuple(...)), trel(tuple(...)) or "
-                              "orel(tuple(...)) expected");
-  return nl->TypeError();
-}
-/*
-
-5.5.2 Value mapping function of operator ~feed~
-
-*/
-
-
-#ifndef USE_PROGRESS
-
-// standard version of code
-
-int
-Feed(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  GenericRelation* r;
-  GenericRelationIterator* rit;
-
-  switch (message)
-  {
-    case OPEN :
-      r = (GenericRelation*)args[0].addr;
-      rit = r->MakeScan();
-
-      local.addr = rit;
-      return 0;
-
-    case REQUEST :
-      rit = (GenericRelationIterator*)local.addr;
-      Tuple *t;
-      if ((t = rit->GetNextTuple()) != 0)
-      {
-        result.setAddr(t);
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-
-    case CLOSE :
-      if(local.addr)
-      {
-         rit = (GenericRelationIterator*)local.addr;
-         delete rit;
-         local.addr = 0;
-      }
-      return 0;
-  }
-  return 0;
-}
-
-
-#else
-
-// version with support for progress queries
-CostEstimation* FeedCostEstimationFunc() {
-  return new FeedCostEstimation();
-}
-
-int
-Feed(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  GenericRelation* r=0;
-  FeedLocalInfo* fli=0;
-
-  switch (message)
-  {
-    case OPEN :{
-      r = (GenericRelation*)args[0].addr;
-    
-      fli = (FeedLocalInfo*) local.addr;
-      if ( fli ) delete fli;
-
-      fli = new FeedLocalInfo();
-      fli->returned = 0;
-      fli->total = r->GetNoTuples();
-      fli->rit = r->MakeScan();
-      local.setAddr(fli);
-      return 0;
-    }
-    case REQUEST :{
-      fli = (FeedLocalInfo*) local.addr;
-      Tuple *t;
-      if ((t = fli->rit->GetNextTuple()) != 0)
-      {
-        fli->returned++;
-        result.setAddr(t);
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-    }
-    case CLOSE :{
-        // Note: object deletion is handled in OPEN and CLOSEPROGRESS
-        // keep the local info structure since it may still be
-        // needed for handling progress messages.
-      fli = static_cast<FeedLocalInfo*>(local.addr);
-      if(fli){
-        delete fli;
-        local.addr = NULL;
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-
+#ifdef USE_PROGRESS
 
 struct FeedProjectInfo : OperatorInfo {
  
@@ -1190,12 +1051,12 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 #endif
 
-
 /*
 
 5.5.3 Specification of operator ~feed~
 
 */
+
 const string FeedSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
@@ -1218,204 +1079,22 @@ arguments.
 
 #ifdef USE_PROGRESS
 Operator relalgfeed (
-          "feed",                 // name
-          FeedSpec,               // specification
-          Feed,                   // value mapping
-          Operator::SimpleSelect, // trivial selection function
-          FeedTypeMap,            // type mapping
-          FeedCostEstimationFunc  // CostEstimation 
+          "feed",                               // name
+          FeedSpec,                             // specification
+          OperatorFeed::Feed,                   // value mapping
+          Operator::SimpleSelect,               // trivial selection function
+          OperatorFeed::FeedTypeMap,            // type mapping
+          OperatorFeed::FeedCostEstimationFunc  // CostEstimation
 );
 #else
 Operator relalgfeed (
-          "feed",                 // name
-          FeedSpec,               // specification
-          Feed,                   // value mapping
-          Operator::SimpleSelect, // trivial selection function
-          FeedTypeMap            // type mapping
+          "feed",                               // name
+          FeedSpec,                             // specification
+          OperatorFeed::Feed,                   // value mapping
+          Operator::SimpleSelect,               // trivial selection function
+          OperatorFeed::FeedTypeMap             // type mapping
 );
 #endif
-
-/*
-5.6 Operator ~consume~
-
-Collects objects from a stream into a relation.
-
-5.6.1 Type mapping function of operator ~consume~
-
-Operator ~consume~ accepts a stream of tuples and returns a relation.
-
-
-----    (stream  x)                 -> ( rel x)
-----
-
-*/
-
-template<bool isOrel> 
-ListExpr ConsumeTypeMap(ListExpr args)
-{
-  string expected = isOrel?"(stream(tuple(...)) (sortby_Ids)) expected":
-                            "stream(tuple(...)) expected";
-  if(nl->ListLength(args) != (isOrel?2:1)){
-    ErrorReporter::ReportError(expected);
-    return nl->TypeError();
-  }
-
-  ListExpr first = nl->First(args);
-
-  if(!Stream<Tuple>::checkType(first)){
-    return listutils::typeError(expected);
-  }
-
-  ListExpr attrlist = nl->Second(nl->Second(first));
-
-  if(!listutils::checkAttrListForNamingConventions(attrlist)){
-    return listutils::typeError("Some of the attributes does "
-                      "not fit to Secondo's naming conventions");
-  }
-
-  if(!isOrel){
-    // do not allow an arel  attribute for standard consume
-    while(!nl->IsEmpty(attrlist)){
-      ListExpr attr = nl->First(attrlist);
-      attrlist = nl->Rest(attrlist);
-      ListExpr type = nl->Second(attr);
-      if( (nl->ListLength(type)==2) &&
-          (nl->IsAtom(nl->First(type))) &&
-          ( (nl->SymbolValue(nl->First(type))) == "arel")){
-        ErrorReporter::ReportError("arel attributes cannot be processed"
-                                    " with standard consume");
-        return nl->TypeError();
-      }
-    }
-  }
-
-  if(!isOrel) {
-    return nl->Cons(nl->SymbolAtom(Relation::BasicType()), nl->Rest(first));
-  } else {
-    if(!listutils::isKeyDescription(nl->Second(first),nl->Second(args))) {
-      ErrorReporter::ReportError("all identifiers of second argument must "
-                                  "appear in the first argument");
-      return nl->TypeError();
-    }
-    ListExpr result = nl->ThreeElemList(nl->SymbolAtom(OREL),
-                                        nl->Second(first),
-                                        nl->Second(args));
-    return result;
-  }
-}
-
-
-ListExpr tconsume_tm(ListExpr args)
-{
-
-  if(nl->ListLength(args)!=1){
-    return listutils::typeError("one argument expected");
-  }
-  if(!Stream<Tuple>::checkType(nl->First(args))){
-    ErrorReporter::ReportError("stream(tuple(...)) expecetd");
-    return nl->TypeError();
-  }
-
-  return nl->Cons(nl->SymbolAtom(TempRelation::BasicType()),
-                  nl->Rest(nl->First(args)));
-}
-
-
-
-
-
-
-
-
-/*
-5.6.2 Value mapping function of operator ~consume~
-
-*/
-
-#ifndef USE_PROGRESS
-
-// standard version
-
-int
-Consume(Word* args, Word& result, int message,
-        Word& local, Supplier s)
-{
-  Word actual;
-
-  GenericRelation* rel = (GenericRelation*)((qp->ResultStorage(s)).addr);
-  if(rel->GetNoTuples() > 0)
-  {
-    rel->Clear();
-  }
-
-  Stream<Tuple> stream(args[0]);
-
-  stream.open;
-
-  Tuple* tup;
-  while( (tup = stream.request()) != 0){
-      rel->AppendTuple(tup);
-      tup->DeleteIfAllowed();
-  }
-  stream.close();
-
-  result.setAddr(rel);
-
-  return 0;
-}
-
-#else
-// Version with support for progress queries
-
-CostEstimation* ConsumeCostEstimationFunc() {
-  return new ConsumeCostEstimation();
-}
-
-int
-Consume(Word* args, Word& result, int message,
-       Word& local, Supplier s)
-{
-  Word actual;
-  consumeLocalInfo* cli;
-
-  if ( message <= CLOSE )     //normal evaluation
-  {
-
-    cli = (consumeLocalInfo*) local.addr;
-    if ( cli ) delete cli;    //needed if consume used in a loop
-
-    cli = new consumeLocalInfo(args[0]);
-
-    local.setAddr(cli);
-
-    GenericRelation* rel = (GenericRelation*)((qp->ResultStorage(s)).addr);
-    if(rel->GetNoTuples() > 0)
-    {
-      rel->Clear();
-    }
-
-    cli->stream.open();
-    Tuple* tuple;
-    while( (tuple = cli->stream.request())!=0){
-      rel->AppendTuple(tuple);
-      tuple->DeleteIfAllowed();
-      cli->current++;
-    }
-    result.setAddr(rel);
-
-    cli->stream.close();
-    cli->state = 1;
-       
-    delete cli;
-    local.setAddr(0);
-    return 0;
-  }
-
-  return 0;
-}
-
-#endif
-
 
 /*
 5.6.3 Specification of operator ~consume~
@@ -1454,7 +1133,6 @@ const string TConsumeSpec =
   "<text>query cities feed tconsume</text--->"
   ") )";
 
-
 /*
 
 5.6.4 Definition of operator ~consume~
@@ -1462,56 +1140,55 @@ const string TConsumeSpec =
 */
 #ifdef USE_PROGRESS
 Operator relalgconsume (
-   "consume",                  // name
-   ConsumeSpec,                // specification
-   Consume,                    // value mapping
-   Operator::SimpleSelect,     // trivial selection function
-   ConsumeTypeMap<false>,      // type mapping
-   ConsumeCostEstimationFunc   // const estimation
+   "consume",                                   // name
+   ConsumeSpec,                                 // specification
+   OperatorConsume::Consume,                    // value mapping
+   Operator::SimpleSelect,                      // trivial selection function
+   OperatorConsume::ConsumeTypeMap<false>,      // type mapping
+   OperatorConsume::ConsumeCostEstimationFunc   // cost estimation
 );
 
 Operator relalgoconsume (
-   "oconsume",                 // name
-   OConsumeSpec,               // specification
-   Consume,                    // value mapping
-   Operator::SimpleSelect,     // trivial selection function
-   ConsumeTypeMap<true>,       // type mapping
-   ConsumeCostEstimationFunc   // Const estimation
+   "oconsume",                                  // name
+   OConsumeSpec,                                // specification
+   OperatorConsume::Consume,                    // value mapping
+   Operator::SimpleSelect,                      // trivial selection function
+   OperatorConsume::ConsumeTypeMap<true>,       // type mapping
+   OperatorConsume::ConsumeCostEstimationFunc   // Const estimation
 );
 
-
 Operator relalgtconsume (
-   "tconsume",               // name
-   TConsumeSpec,             // specification
-   Consume,                  // value mapping
-   Operator::SimpleSelect,   // trivial selection function
-   tconsume_tm,              // type mapping
-   ConsumeCostEstimationFunc // Cost estimation
+   "tconsume",                                // name
+   TConsumeSpec,                              // specification
+   OperatorConsume::Consume,                  // value mapping
+   Operator::SimpleSelect,                    // trivial selection function
+   OperatorConsume::tconsume_tm,              // type mapping
+   OperatorConsume::ConsumeCostEstimationFunc // Cost estimation
 );
 #else
 Operator relalgconsume (
-   "consume",              // name
-   ConsumeSpec,            // specification
-   Consume,                // value mapping
-   Operator::SimpleSelect, // trivial selection function
-   ConsumeTypeMap<false>  // type mapping
+   "consume",                               // name
+   ConsumeSpec,                             // specification
+   OperatorConsume::Consume,                // value mapping
+   Operator::SimpleSelect,                  // trivial selection function
+   OperatorConsume::ConsumeTypeMap<false>   // type mapping
 );
 
 Operator relalgoconsume (
-   "oconsume",             // name
-   OConsumeSpec,           // specification
-   Consume,                // value mapping
-   Operator::SimpleSelect, // trivial selection function
-   ConsumeTypeMap<true>   // type mapping
+   "oconsume",                              // name
+   OConsumeSpec,                            // specification
+   OperatorConsume::Consume,                // value mapping
+   Operator::SimpleSelect,                  // trivial selection function
+   OperatorConsume::ConsumeTypeMap<true>    // type mapping
 );
 
 
 Operator relalgtconsume (
-   "tconsume",              // name
-   TConsumeSpec,            // specification
-   Consume,                // value mapping
-   Operator::SimpleSelect, // trivial selection function
-   tconsume_tm            // type mapping
+   "tconsume",                               // name
+   TConsumeSpec,                             // specification
+   OperatorConsume::Consume,                 // value mapping
+   Operator::SimpleSelect,                   // trivial selection function
+   OperatorConsume::tconsume_tm              // type mapping
 );
 #endif
 
@@ -1627,205 +1304,6 @@ Operator relalgattr (
 );
 
 /*
-5.8 Operator ~filter~
-
-Only tuples, fulfilling a certain condition are passed on to the
-output stream.
-
-5.8.1 Type mapping function of operator ~filter~
-
-Result type of filter operation.
-
-----    ((stream (tuple x)) (map (tuple x) bool))
-               -> (stream (tuple x))
-----
-
-Type mapping function modified to show the possibility of getting
-not only types but also arguments in the type mapping. This happens
-when an operator
-registers "UsesArgsinTypeMapping". Type list now has the form
-
-----  ( (type1 arg1) (type2 arg2) )
-----
-
-that is
-
-----  (
-      ( (stream (tuple x))  arg1 )
-      ( (map (tuple x) bool)  arg2 )
-    )
-----
-
-*/
-ListExpr FilterTypeMap(ListExpr args)
-{
-
-  if(!nl->HasLength(args,2)){
-    return listutils::typeError("two arguments expected");
-  }
-
-  if(!nl->HasLength(nl->First(args),2)){
-    ErrorReporter::ReportError("the first argument "
-                               " should be a (type, expression) pair");
-    return nl->TypeError();
-  }
-
-  if(!listutils::isTupleStream(nl->First(nl->First(args)))){
-    ErrorReporter::ReportError("first argument must be a stream of tuples");
-    return nl->TypeError();
-  }
-
-  if(!nl->HasLength(nl->Second(args),2)){
-    ErrorReporter::ReportError("the second argument "
-                               " should be a (type, expression) pair");
-    return nl->TypeError();
-  }
-
-  
-  ListExpr map = nl->First(nl->Second(args));
-  if(!listutils::isMap<1>(map)){ // checking for a single arg
-     ErrorReporter::ReportError("map: tuple -> bool expected as the"
-                                " second argument");
-     return nl->TypeError();
-  }
-
-  ListExpr mapres = nl->Third(map);
-  if(!CcBool::checkType(mapres)){
-    ErrorReporter::ReportError("map is not a predicate");
-    return nl->TypeError();
-  } 
-
-  if(!nl->Equal(nl->Second(nl->First(nl->First(args))), nl->Second(map))){
-    ErrorReporter::ReportError("map and tuple type are not consistent");
-    return nl->TypeError();
-  }
-
-  //just for demonstrating "UsesArgsInTypeMapping"
-
-  bool showArguments = false;
-  if ( showArguments ) {
-        cout << "arguments to the filter operator:" << endl;
-      cout << "first argument: ";
-    nl->WriteListExpr( nl->Second(nl->First(args)), cout, 2 );
-    cout << endl;
-      cout << "second argument: ";
-    nl->WriteListExpr( nl->Second(nl->Second(args)), cout, 2 );
-        cout << endl;
-    cout << endl;
-  }
-
-
-
-  return nl->First(nl->First(args));
-}
-
-/*
-5.8.2 Value mapping function of operator ~filter~
-
-*/
-
-
-#ifndef USE_PROGRESS
-
-// standard version
-
-int
-Filter(Word* args, Word& result, int message,
-       Word& local, Supplier s)
-{
-  bool found = false;
-  Word elem, funresult;
-  ArgVectorPointer funargs;
-  Tuple* tuple = 0;
-
-  switch ( message )
-  {
-
-    case OPEN:
-
-      qp->Open (args[0].addr);
-      return 0;
-
-    case REQUEST:
-
-      funargs = qp->Argument(args[1].addr);
-      qp->Request(args[0].addr, elem);
-      found = false;
-      while (qp->Received(args[0].addr) && !found)
-      {
-        tuple = (Tuple*)elem.addr;
-        (*funargs)[0] = elem;
-        qp->Request(args[1].addr, funresult);
-        if (((Attribute*)funresult.addr)->IsDefined())
-        {
-          found = ((CcBool*)funresult.addr)->GetBoolval();
-        }
-        if (!found)
-        {
-          tuple->DeleteIfAllowed();
-          qp->Request(args[0].addr, elem);
-        }
-      }
-      if (found)
-      {
-        result.setAddr(tuple);
-        return YIELD;
-      }
-      else
-        return CANCEL;
-
-    case CLOSE:
-
-      qp->Close(args[0].addr);
-      return 0;
-  }
-  return 0;
-}
-
-#else
-CostEstimation* FilterCostEstimationFunc(){
-   return new FilterCostEstimation();
-}
-
-int
-Filter(Word* args, Word& result, int message,
-       Word& local, Supplier s)
-{
-  FilterLocalInfo* li = (FilterLocalInfo*) local.addr;
-  switch ( message )
-  {
-    case OPEN:{
-      if(li){
-        delete li;
-      }
-      local.addr = new FilterLocalInfo(args[0], args[1],
-                             (FilterCostEstimation*) qp->getCostEstimation(s));
-      return 0;
-    }
-
-    case REQUEST:{
-      if(!li){
-        result.addr = 0;
-      } else {
-        result.addr = li->next();
-      }
-      return result.addr?YIELD:CANCEL;
-    }
-    case CLOSE:{
-      if(li){
-        delete li;
-        local.addr = 0;
-      };
-      return 0;
-    }
-  }
-  return -1;
-}
-
-#endif
-
-
-/*
 5.8.3 Specification of operator ~filter~
 
 */
@@ -1848,12 +1326,12 @@ const string FilterSpec  =
 
 */
 Operator relalgfilter (
-         "filter",                // name
-         FilterSpec,              // specification
-         Filter,                  // value mapping
-         Operator::SimpleSelect,  // trivial selection function
-         FilterTypeMap,           // type mapping
-         FilterCostEstimationFunc // cost estimation
+         "filter",                                // name
+         FilterSpec,                              // specification
+         OperatorFilter::Filter,                  // value mapping
+         Operator::SimpleSelect,                  // trivial selection function
+         OperatorFilter::FilterTypeMap,           // type mapping
+         OperatorFilter::FilterCostEstimationFunc // cost estimation
 );
 
 
@@ -2040,279 +1518,6 @@ reduce_vm( Word* args, Word& result, int message,
   return 0;
 }
 
-
-
-
-/*
-5.9 Operator ~project~
-
-5.9.1 Type mapping function of operator ~project~
-
-Result type of project operation.
-
-----  ((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik))  ->
-        (APPEND
-          (k (i1 ... ik))
-          (stream (tuple ((ai1 Ti1) ... (aik Tik))))
-        )
-----
-
-The type mapping computes the number of attributes and the list of
-attribute numbers for the given projection attributes and asks the
-query processor to append it to the given arguments.
-
-*/
-ListExpr ProjectTypeMap(ListExpr args)
-{
-  bool firstcall = true;
-  int noAttrs=0, j=0;
-
-  // initialize local ListExpr variables
-  ListExpr first=nl->TheEmptyList();
-  ListExpr second=first, first2=first,
-           attrtype=first, newAttrList=first;
-  ListExpr lastNewAttrList=first, lastNumberList=first,
-           numberList=first, outlist=first;
-  string attrname="", argstr="";
-
-  if(nl->ListLength(args)!=2){
-    ErrorReporter::ReportError("tuplestream x arglist expected");
-    return nl->TypeError();
-  }
-  first = nl->First(args);
-
-  if(!listutils::isTupleStream(first)){
-    ErrorReporter::ReportError("first argument has to be a tuple stream");
-    return nl->TypeError();
-  }
-
-  second = nl->Second(args);
-
-  if(nl->ListLength(second)<=0){
-    ErrorReporter::ReportError("non empty attribute name list"
-                               " expected as second argument");
-    return nl->TypeError();
-  }
-
-  noAttrs = nl->ListLength(second);
-  set<string> attrNames;
-  while (!(nl->IsEmpty(second)))
-  {
-    first2 = nl->First(second);
-    second = nl->Rest(second);
-    if (nl->AtomType(first2) == SymbolType)
-    {
-      attrname = nl->SymbolValue(first2);
-    }
-    else
-    {
-      ErrorReporter::ReportError(
-        "Attributename in the list is not of symbol type.");
-      return nl->SymbolAtom(Symbol::TYPEERROR());
-    }
-    if(attrNames.find(attrname)!=attrNames.end()){
-       ErrorReporter::ReportError("names within the projection "
-                                  "list are not unique");
-       return nl->TypeError();
-    } else {
-       attrNames.insert(attrname);
-    }
-
-    j = listutils::findAttribute(nl->Second(nl->Second(first)),
-                      attrname, attrtype);
-    if (j)
-    {
-      if (firstcall)
-      {
-        firstcall = false;
-        newAttrList =
-          nl->OneElemList(nl->TwoElemList(first2, attrtype));
-        lastNewAttrList = newAttrList;
-        numberList = nl->OneElemList(nl->IntAtom(j));
-        lastNumberList = numberList;
-      }
-      else
-      {
-        lastNewAttrList =
-          nl->Append(lastNewAttrList,
-                     nl->TwoElemList(first2, attrtype));
-        lastNumberList =
-          nl->Append(lastNumberList, nl->IntAtom(j));
-      }
-    }
-    else
-    {
-      ErrorReporter::ReportError(
-        "Operator project: Attributename '" + attrname +
-        "' is not a known attributename in the tuple stream.");
-          return nl->SymbolAtom(Symbol::TYPEERROR());
-    }
-  }
-  outlist =
-    nl->ThreeElemList(
-      nl->SymbolAtom(Symbol::APPEND()),
-      nl->TwoElemList(
-        nl->IntAtom(noAttrs),
-        numberList),
-      nl->TwoElemList(
-        nl->SymbolAtom(Symbol::STREAM()),
-        nl->TwoElemList(
-          nl->SymbolAtom(Tuple::BasicType()),
-          newAttrList)));
-  return outlist;
-}
-
-/*
-5.9.2 Value mapping function of operator ~project~
-
-*/
-
-#ifndef USE_PROGRESS
-
-// standard version
-
-
-int
-Project(Word* args, Word& result, int message,
-        Word& local, Supplier s)
-{
-  switch (message)
-  {
-    case OPEN :
-    {
-      ListExpr resultType = GetTupleResultType( s );
-      TupleType *tupleType = new TupleType(nl->Second(resultType));
-      local.addr = tupleType;
-
-      qp->Open(args[0].addr);
-      return 0;
-    }
-    case REQUEST :
-    {
-      Word elem1, elem2;
-      int noOfAttrs, index;
-      Supplier son;
-
-      qp->Request(args[0].addr, elem1);
-      if (qp->Received(args[0].addr))
-      {
-        TupleType *tupleType = (TupleType *)local.addr;
-        Tuple *t = new Tuple( tupleType );
-
-        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
-        assert( t->GetNoAttributes() == noOfAttrs );
-
-        for( int i = 0; i < noOfAttrs; i++)
-        {
-          son = qp->GetSupplier(args[3].addr, i);
-          qp->Request(son, elem2);
-          index = ((CcInt*)elem2.addr)->GetIntval();
-          t->CopyAttribute(index-1, (Tuple*)elem1.addr, i);
-        }
-        ((Tuple*)elem1.addr)->DeleteIfAllowed();
-        result.setAddr(t);
-        return YIELD;
-      }
-      else return CANCEL;
-    }
-    case CLOSE :
-    {
-      qp->Close(args[0].addr);
-      if(local.addr)
-      {
-        ((TupleType *)local.addr)->DeleteIfAllowed();
-        local.setAddr(0);
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-
-# else
-
-// progress version
-
-CostEstimation* ProjectCostEstimationFunc()
-{
-  return new ProjectCostEstimation();
-}
-
-int
-Project(Word* args, Word& result, int message,
-        Word& local, Supplier s)
-{
-  ProjectLocalInfo *pli=0;
-  Word elem1(Address(0));
-  Word elem2(Address(0));
-  int noOfAttrs= 0;
-  int index= 0;
-  Supplier son;
-
-  switch (message)
-  {
-    case OPEN:{
-
-      pli = (ProjectLocalInfo*) local.addr;
-      if ( pli ) delete pli;
-
-      pli = new ProjectLocalInfo();
-      pli->tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
-      local.setAddr(pli);
-
-      qp->Open(args[0].addr);
-      return 0;
-    }
-    case REQUEST:{
-
-      pli = (ProjectLocalInfo*) local.addr;
-
-      qp->Request(args[0].addr, elem1);
-      if (qp->Received(args[0].addr))
-      {
-        pli->read++;
-        Tuple *t = new Tuple( pli->tupleType );
-
-        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
-        assert( t->GetNoAttributes() == noOfAttrs );
-
-        for( int i = 0; i < noOfAttrs; i++)
-        {
-          son = qp->GetSupplier(args[3].addr, i);
-          qp->Request(son, elem2);
-          index = ((CcInt*)elem2.addr)->GetIntval();
-          t->CopyAttribute(index-1, (Tuple*)elem1.addr, i);
-        }
-        ((Tuple*)elem1.addr)->DeleteIfAllowed();
-        result.setAddr(t);
-        return YIELD;
-      }
-      else return CANCEL;
-    }
-    case CLOSE: {
-      
-      pli = (ProjectLocalInfo*) local.addr;
-      if ( pli ){
-         delete pli;
-         local.setAddr(0);
-      }
-
-      qp->Close(args[0].addr);
-      return 0;
-
-    }
-
-    default : 
-              return 0;
-
-  }
-  return 0;
-}
-
-#endif
-
-
-
 /*
 5.9.3 Specification of operator ~project~
 
@@ -2336,20 +1541,20 @@ const string ProjectSpec  =
 */
 #ifndef USE_PROGRESS
 Operator relalgproject (
-         "project",              // name
-         ProjectSpec,            // specification
-         Project,                // value mapping
-         Operator::SimpleSelect, // trivial selection function
-         ProjectTypeMap          // type mapping
+         "project",                               // name
+         ProjectSpec,                             // specification
+         OperatorProject::Project,                // value mapping
+         Operator::SimpleSelect,                  // trivial selection function
+         OperatorProject::ProjectTypeMap          // type mapping
 );
 #else
 Operator relalgproject (
-         "project",                  // name
-         ProjectSpec,                // specification
-         Project,                    // value mapping
-         Operator::SimpleSelect,     // trivial selection function
-         ProjectTypeMap,             // type mapping
-         ProjectCostEstimationFunc   // cost estimation
+         "project",                                                     // name
+         ProjectSpec,                                          // specification
+         OperatorProject::Project,                             // value mapping
+         Operator::SimpleSelect,                  // trivial selection function
+         OperatorProject::ProjectTypeMap,                       // type mapping
+         OperatorProject::ProjectCostEstimationFunc          // cost estimation
 );
 #endif
 
@@ -2526,18 +1731,18 @@ const string RemoveSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator relalgremove (
          "remove",                // name
          RemoveSpec,              // specification
-         Project,                  // value mapping
+         OperatorProject::Project,// value mapping
          Operator::SimpleSelect,  // trivial selection function
          RemoveTypeMap            // type mapping
 );
 #else
 Operator relalgremove (
-         "remove",                  // name
-         RemoveSpec,                // specification
-         Project,                   // value mapping
-         Operator::SimpleSelect,    // trivial selection function
-         RemoveTypeMap,             // type mapping
-         ProjectCostEstimationFunc  // cost estimation
+         "remove",                                                      // name
+         RemoveSpec,                                           // specification
+         OperatorProject::Project,                             // value mapping
+         Operator::SimpleSelect,                  // trivial selection function
+         RemoveTypeMap,                                         // type mapping
+         OperatorProject::ProjectCostEstimationFunc          // cost estimation
 );
 #endif
 

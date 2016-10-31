@@ -155,11 +155,11 @@ Default save function.
 
       Attribute*
         elem = static_cast<Attribute*>(
-	          (algMgr->CreateObj(algId, typeId))( typeInfo ).addr );
+              (algMgr->CreateObj(algId, typeId))( typeInfo ).addr );
       // Read the element
       valueRecord.Read( elem, size, offset );
       elem = static_cast<Attribute*>(
-	       (algMgr->Cast(algId, typeId))( elem ) );
+           (algMgr->Cast(algId, typeId))( elem ) );
       elem->del.refs = 1;
       elem->del.SetDelete();
       offset += size;
