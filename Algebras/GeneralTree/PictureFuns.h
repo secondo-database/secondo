@@ -489,7 +489,6 @@ PictureFuns::getData_hsv256 (const void* attr)
     unsigned long size;
     const char* imgdata = static_cast<const Picture*> (attr)->
                             GetJPEGData (size);
-
     JPEGPicture rgb ((unsigned char *) imgdata, size);
 
     unsigned long int rgbSize;
