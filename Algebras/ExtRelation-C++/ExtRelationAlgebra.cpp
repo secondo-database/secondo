@@ -4786,8 +4786,8 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           funargs = qp->Argument(supplier3);
           ((*funargs)[0]).setAddr(tup);
           qp->Request(supplier3,value);
-          newTuple->PutAttribute( tup->GetNoAttributes()+i,
-                                  ((Attribute*)value.addr)->Clone() );
+          Attribute* newAttr = ((Attribute*)value.addr)->Clone();
+          newTuple->PutAttribute( tup->GetNoAttributes()+i,newAttr);
 
           if (eli->read <= eli->stableValue)
           {
@@ -14391,6 +14391,66 @@ Operator tidsOp(
 );
 
 
+/*
+2.37 Operator ~noRefs~
+
+Retrieves the number of references of a tuple.
+
+*/
+ListExpr noRefsTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  ListExpr a = nl->First(args);
+  if(!Tuple::checkType(a) && !Attribute::checkType(a)){
+    return listutils::typeError("tuple expected");
+  }
+  return listutils::basicSymbol<CcInt>();  
+}
+
+template<class T>
+int noRefsVMT(Word* args, Word& result, int message,
+                     Word& local, Supplier s) {
+
+  T* a = (T*) args[0].addr;
+  int refs = a->GetNumOfRefs();
+  result=qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+  res->Set(true,refs);
+  return 0;
+}
+
+
+ValueMapping noRefsVM[] = {
+   noRefsVMT<Attribute>,
+   noRefsVMT<Tuple>
+};
+
+int noRefsSelect(ListExpr args){
+  return Attribute::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec noRefsSpec(
+  "{tuple, DATA} -> int",
+  "noRefs(_)",
+  "Retrieves the number of refeences for the attribute. "
+  "This operator is useful for debugging purposes.",
+  "query ten feed extend[RefT : noRefs(.), RefNo : noRefs(.No)] consume"
+);
+
+Operator noRefsOp(
+  "noRefs",
+  noRefsSpec.getStr(),
+  2,
+  noRefsVM,
+  noRefsSelect,
+  noRefsTM
+
+);
+
+
+
+
 
 
 
@@ -14517,6 +14577,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&isOrderedOP);
     AddOperator(&isOrderedByOP);
     AddOperator(&tidsOp);
+    AddOperator(&noRefsOp);
 
 
 #ifdef USE_PROGRESS

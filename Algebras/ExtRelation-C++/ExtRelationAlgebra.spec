@@ -111,4 +111,6 @@ operator isOrderedBy alias ISORDEREDBY pattern _ op[list]
 
 operator tids alias TIDS pattern _ op
 
+operator noRefs alias NOREFS pattern op(_)
+
 

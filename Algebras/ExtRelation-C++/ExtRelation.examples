@@ -485,3 +485,20 @@ Signature : stream(tuple) -> stream(tid)
 Example   : query ten feed tids count
 Result    : 10
 
+
+
+Operator  : noRefs 
+Number    : 1
+Signature : tuple -> int 
+Example   : query ten feed extend[R : noRefs(.)] sum[R]
+Result    : 10
+
+
+Operator  : noRefs 
+Number    : 2
+Signature : DATA -> int 
+Example   : query ten feed extend[R : noRefs(.No)] sum[R]
+Result    : 20
+
+
+
