@@ -6,9 +6,9 @@ Installation: http://essentia.upf/documentation/installing.html
 
 Current version, which is recommended to install is Essentia 2.1 beta3.
 
-There is a really good online documentation of the library, including evrything
-to install Essentia properly on differente operating systems.
-You should read the steps (link documentation then scroll down to "Building an Installing Essentia").
+There is a really good online documentation of the library, including everything
+to install Essentia properly on different operating systems.
+You should read the steps (link documentation then scroll down to "Building and Installing Essentia").
 
 Currently there is no deb package for Ubuntu, so you need to compile Essentia
 from the source.
@@ -26,26 +26,26 @@ sudo apt-get install build-essential libyaml-dev libfftw3-dev libavcodec-dev lib
 8. ./waf
 9. ./waf install					       # (as root)
 10. echo "/usr/local/lib" > /etc/ld.so.conf.d/essentia.conf    # (as root)  
-11. ldconfig -> dadurch wird Library systemweit bekannt        # (as root)
+11. ldconfig # (-> dadurch wird Library systemweit bekannt )   # (as root)
 
 
 
 Summary for Ubuntu 14.04:
 
 
-Ubuntu 14.04 shipps with an old and incompatible version of libav. You need to upgrade them first:
+Ubuntu 14.04 ships with an old and incompatible version of libav. You need to upgrade them first:
 
 sudo add-apt-repository ppa:heyarje/libav-11
 sudo apt-get update
 sudo apt-get install libavresample-dev libavutil-dev libavcodec-dev libav-tools
 
-Now you can follow the installation steps above....
+Now you can follow the installation steps above ...
 
 
 NOTE: Most included libraries are optional. For test purpose they are included here.
 
 
-In the end you just have to add in includes and dependencies in the makefile.algebra file:
+In the end you just have to add includes and dependencies in the makefile.algebra file:
 
 ALGEBRA_DIRS += MP3b
 ALGEBRAS     += MP3Algebra
