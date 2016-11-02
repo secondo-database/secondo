@@ -211,8 +211,10 @@ ALGEBRAS     += PartitionedStreamAlgebra
 ALGEBRA_DIRS += Array
 ALGEBRAS     += ArrayAlgebra
 
-#ALGEBRA_DIRS += MP3
+#ALGEBRA_DIRS += MP3b
 #ALGEBRAS     += MP3Algebra
+CCFLAGS += -DNO_MP3
+
 
 ALGEBRA_DIRS += Picture
 ALGEBRAS     += PictureAlgebra
