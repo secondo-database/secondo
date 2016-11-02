@@ -698,6 +698,9 @@ Getdata function for the symbolic trajectory type constructors.
 */
     template<class M>
     static DistData *getDataSymTraj(const void *attr);
+
+
+#ifndef NO_MP3
 //--------------------cru----------------------
  /*
  Getdata function for the ~fvector~ type constructor
@@ -705,6 +708,10 @@ Getdata function for the symbolic trajectory type constructors.
  */
     static DistData *getDataFVector(const void* attr);
  //--------------------cru------------------------
+#endif
+
+
+
 }; // class DistDataReg
 
 } //namespace gta

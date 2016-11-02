@@ -39,9 +39,11 @@ January-May 2008, Mirko Dibbert
 #include "Algorithms.h"
 #include "PictureFuns.h"
 
+#ifndef NO_MP3
 //---------cru--------
 #include "FVector.h"
 //--------------------
+#endif
 
 using namespace gta;
 using namespace std;
@@ -369,6 +371,10 @@ DistData* DistDataReg::getDataSymTraj(const void *attr) {
   delete[] bytes;
   return result;
 }
+
+
+
+#ifndef NO_MP3
 //----------------cru----------------
 /*
 Method ~DistDataReg::getDataFvector~:
@@ -398,6 +404,8 @@ DistData* DistDataReg::getDataFVector(const void* attr){
 
 //-----------------------------------
 
+#endif
+
 /********************************************************************
 Method ~DistDataReg::initialize~:
 
@@ -426,11 +434,13 @@ void DistDataReg::initialize()
     // the default DistDataInfo objects are automatically assigned,
     // depending on the default distance functions in the
     // DistfunReg class
+#ifndef NO_MP3
 //--------------------cru-------------------
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
                          FVector::BasicType(), getDataFVector));
 //------------------------------------------
+#endif
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
                          CcInt::BasicType(), getDataInt));

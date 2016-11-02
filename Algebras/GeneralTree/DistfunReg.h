@@ -381,6 +381,8 @@ Distance function between symbolic trajectories; normalized to [0,1].
     static void symTrajDistance1(
             const DistData *data1, const DistData *data2, double &result);
 
+
+#ifndef NO_MP3
 //-------------------cru-----------------------------------
 /*
 Euclidean distance function for the ~fvector~ type constructor.
@@ -390,6 +392,8 @@ Euclidean distance function for the ~fvector~ type constructor.
              const DistData *data1, const DistData *data2,
              double &result);
 //--------------------------------------------------------
+#endif
+
 
 }; // class DistfunReg
 
