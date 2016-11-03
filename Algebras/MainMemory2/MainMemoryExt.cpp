@@ -672,16 +672,7 @@ MemoryORelObject::MemoryORelObject (string _objectTypeExpr){
 
 
 MemoryORelObject::~MemoryORelObject() {
-    if(mmorel!=0) {
-      ttree::Iterator<TupleWrap,TupleComp> it = mmorel->begin();
-      while (!it.end()) {
-      Tuple* tup = (*it).getPointer();
-      if(tup) {
-        tup->DeleteIfAllowed();
-        tup = 0;
-      }
-      it++;
-    } 
+  if(mmorel!=0) {
     delete mmorel;
   }
   pos->clear();
@@ -802,14 +793,16 @@ bool MemoryORelObject::relToTree(
         mmorel->insert(tw,pos);
         usedMainMemory += tupleSize;
         availableMemSize -= tupleSize;
-      }
-      else {
+        tup->DeleteIfAllowed();
+      } else {
         if(mmorel->isEmpty()){
           cout << "no memory left" << endl;
+          tup->DeleteIfAllowed();
           return false;
         }
         cout << "the available main memory is not enough, the object"
                 " might be usable but not complete" << endl;
+        tup->DeleteIfAllowed();
         break;
       }
     }
@@ -1128,17 +1121,19 @@ bool MemoryGraphObject::relToGraph(
         tup->SetTupleId(memgraph->size()+1);        
         
         memgraph->addEdge(tup,source,target,0.0,0.0);
-//         tup->IncReference();
+        tup->DeleteIfAllowed();
         usedMainMemory += tupleSize;
         availableMemSize -= tupleSize;
       }
       else {
         if(memgraph->isEmpty()) {
             cout << "no memory left" << endl;
+            tup->DeleteIfAllowed();
             return false;
         }
         cout << "the available main memory is not enough, the object"
                 " might be usable but not complete" << endl;
+        tup->DeleteIfAllowed();
         break;
       }
     }

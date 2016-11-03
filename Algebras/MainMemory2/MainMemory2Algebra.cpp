@@ -78,7 +78,7 @@ ostream& operator<<(ostream& o, const mm2algebra::AttrIdPair& t) {
 
 namespace mm2algebra {
 
-MemCatalog* catalog;
+MemCatalog* catalog =0;
 
 #define MEMORYMTREEOBJECT "memoryMTreeObject"
 
@@ -87,7 +87,7 @@ MemCatalog* catalog;
 bool checkUsesArgs(ListExpr args){
   ListExpr tmp = args;
   while(!nl->IsEmpty(tmp)){
-     if(!nl->HasLength(args,2)){
+     if(!nl->HasLength(nl->First(args),2)){
         return false;
      }
      tmp = nl->Rest(tmp);
@@ -328,24 +328,38 @@ MemoryRelObject* getMemRel(T* relN){
 
 
 template<class T>
-MemoryRelObject* getMemRel(T* relN, ListExpr tupleType) {
-  if(!relN->IsDefined()) { return 0; }
+MemoryRelObject* getMemRel(T* relN, ListExpr tupleType, string& error) {
+  if(!relN->IsDefined()) { 
+     error = "Relation name not defined";
+     return 0;
+  }
   
   string reln = relN->GetValue();
   if(!catalog->isMMObject(reln) || !catalog->isAccessible(reln)){
+    error ="relation '"+reln+"' not known or not accessible";
     return 0;
   }
   ListExpr relType = nl->Second(catalog->getMMObjectTypeExpr(reln));
     
   if(!Relation::checkType(relType)){
+     error = "main memory object '"+reln+"' is not a relation";
      return 0;
   }
   if(!nl->Equal(nl->Second(relType), tupleType)){
+     error = string("memory relation has an unexpected tuple type \n")
+             + "expected: " + nl->ToString(tupleType) +"\n"
+             + "found   : " + nl->ToString(nl->Second(relType));
      return 0;
   }
+  error="";
   return (MemoryRelObject*) catalog->getMMObject(reln);
 }
 
+template<class T>
+MemoryRelObject* getMemRel(T* relN, ListExpr tupleType) {
+  string dummy;
+  return getMemRel(relN, tupleType, dummy); 
+}
 
 template<class T>
 MemoryORelObject* getMemORel(T* relN, ListExpr tupleType){
@@ -914,30 +928,27 @@ ListExpr mfeedTypeMap(ListExpr args) {
 
 class mfeedInfo{
   public:
-    mfeedInfo(vector<Tuple*>* _rel) : rel(_rel) {
-        isOrel = false;
-        it = rel->begin();
-    }
+    mfeedInfo(vector<Tuple*>* _rel) : rel(_rel), orel(0), pos(0) { }
     
-    mfeedInfo(ttree::TTree<TupleWrap,TupleComp>* _orel) : orel(_orel) {
+    mfeedInfo(ttree::TTree<TupleWrap,TupleComp>* _orel) : 
+         rel(0),orel(_orel),pos(0) {
       iter = orel->begin();
-      isOrel = true;
     }
     
     ~mfeedInfo() {}
 
     Tuple* next() {
-      
       Tuple* res;
-      if(!isOrel) {
-        while(it!=rel->end()){
-          res = *it;
-          it++;
-          if(res){ // overread null values in relation
+      if(rel){
+        while(pos < rel->size()){
+          res = (*rel)[pos];
+          pos++;
+          if(res){
+            res->SetTupleId(pos);
             res->IncReference();
             return res;
           }
-        }
+        }  
         return 0;
       } else {
         while(!iter.end()) {
@@ -950,16 +961,13 @@ class mfeedInfo{
         }
         return 0;
       }
-      assert(false);
-      return 0;
-     }
+   }
 
   private:
      vector<Tuple*>* rel;
-     vector<Tuple*>::iterator it;
      ttree::TTree<TupleWrap,TupleComp>* orel;
+     size_t pos;
      ttree::Iterator<TupleWrap,TupleComp> iter;
-     bool isOrel;
 };
 
 
@@ -990,9 +998,7 @@ int mfeedValMap (Word* args, Word& result,
         }
         local.addr= new mfeedInfo(rel->getmmrel());
         return 0;
-      }
-      // check for orel
-      else if(listutils::isOrelDescription(nl->Second(type))) { 
+      } else if(listutils::isOrelDescription(nl->Second(type))) { 
         MemoryORelObject* orel = getMemORel(oN, nl->Second(qp->GetType(s)));
         if(!orel) {
           return 0;
@@ -1112,7 +1118,7 @@ class gettuplesInfo{
               tid->DeleteIfAllowed();
               if(id>=0 && id<rel->size()){
                  Tuple* res = (*rel)[id];
-                 if(res){
+                 if(res){ // ignore deleted tuples
                     res->IncReference();
                     res->SetTupleId(id);
                     return res;
@@ -2699,8 +2705,6 @@ int memclearValMap (Word* args, Word& result,
     result  = qp->ResultStorage(s);
     CcBool* b = static_cast<CcBool*>(result.addr);
     b->Set(true, res);
-
-
     return 0;
 }
 
@@ -2749,8 +2753,11 @@ ListExpr meminsertTypeMap(ListExpr args)
         return listutils::typeError("two arguments expected");
     }
 
-    ListExpr argFir = nl->First(args); //stream + query
-    ListExpr stream = nl->First(argFir);
+    if(!checkUsesArgs(args)){
+      return listutils::typeError("internal error");
+    } 
+
+    ListExpr stream = nl->First(nl->First(args));
 
     if (!Stream<Tuple>::checkType(stream)) {
         return listutils::typeError
@@ -2798,6 +2805,7 @@ class meminsertInfo{
        }
        res->IncReference();
        relation->push_back(res);
+       res->SetTupleId(relation->size());
        return res;
      }
 
@@ -2907,11 +2915,15 @@ Operator meminsertOp (
 
 ListExpr mwindowintersectsTypeMap(ListExpr args)
 {
-    if(nl->ListLength(args)!=3){
-     return listutils::typeError("three arguments expected");
-    }
+  if(nl->ListLength(args)!=3){
+    return listutils::typeError("three arguments expected");
+  }
 
-      /* Split argument in three parts */
+  if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+  }
+
+  /* Split argument in three parts */
   ListExpr a1 = nl->First(args);
   ListExpr a2 = nl->Second(args);
   ListExpr a3 = nl->Third(args);
@@ -2932,6 +2944,7 @@ ListExpr mwindowintersectsTypeMap(ListExpr args)
   }
 
   int rtreedim = nl->IntValue(nl->Second(rtreetype));
+
   ListExpr a2t;
   if(!getMemType(nl->First(a2), nl->Second(a2), a2t, errMsg)){
     return listutils::typeError(err + "\n problem in arg 2: " + errMsg);
@@ -2967,7 +2980,6 @@ class mwiInfo{
      mwiInfo( MemoryRtreeObject<dim>* _tree,
               MemoryRelObject* _rel,
               Rectangle<dim>& _box) {
-        
         mmrtree::RtreeT<dim, size_t>* t = _tree->getrtree();
         rel = _rel->getmmrel();
         it = t->find(_box);
@@ -3204,10 +3216,13 @@ int mwindowintersectsSVMT (Word* args, Word& result,
              return 0;
       }
       case REQUEST : {
+               if(!li){
+                  return CANCEL;
+               }
                const size_t* index = li->next();
                if(index){
                   result.addr = new TupleIdentifier(true,*index);
-               } else {
+               } else { // iterator exhausted
                   result.addr=0;
                }
                return result.addr?YIELD:CANCEL;
@@ -3421,8 +3436,8 @@ template<class T>
 int mcreateAVLtreeValMapT (Word* args, Word& result,
                 int message, Word& local, Supplier s) {
 
-    result  = qp->ResultStorage(s);
-    Mem* str = static_cast<Mem*>(result.addr);
+   result  = qp->ResultStorage(s);
+   Mem* str = static_cast<Mem*>(result.addr);
 
    // the main memory relation
    T* roN = (T*) args[0].addr;
@@ -3656,12 +3671,10 @@ int mcreateAVLtree2VM (Word* args, Word& result,
     stream.open();
     size_t availableMem = catalog->getAvailableMemSize();
     size_t usedMem = 0;
-    size_t count = 0;
 
     while((tuple=stream.request()) && (usedMem < availableMem)){
       TupleIdentifier* tid = (TupleIdentifier*) tuple->GetAttribute(tidIndex);
       if(tid->IsDefined()){
-          count++;
           Attribute* key = tuple->GetAttribute(keyIndex);
           key->bringToMemory();
           AttrIdPair p(key, tid->GetTid());
@@ -3720,10 +3733,7 @@ Operator mcreateAVLtree2Op (
 
 
 */
-
-
-ListExpr mexactmatchTypeMap(ListExpr args)
-{
+ListExpr mexactmatchTypeMap(ListExpr args) {
     string err ="{string, mem(avltree(T)) } x {string, mem(rel)} x T expected";
     if(nl->ListLength(args)!=3){
         return listutils::typeError("three arguments expected");
@@ -3877,10 +3887,12 @@ class avlOperLI{
                  }
 
                  Tuple* result = relation->at(avlhit->getTid()-1);
-                 if(result){
+                 if(result){ // tuple exist
                    result->IncReference();
                    avlit.Next();
                    return result;
+                 } else { // tuple deleted
+                   avlit.Next();
                  }
               }
             }
@@ -3906,34 +3918,14 @@ class avlOperLI{
               }
               res = false;
               return result;
-            }
-            // T-Tree
-            else {
-              if(!tit.end()) {
-                while(tit.hasNext()) {
-                  AttrIdPair pair = *tit;
-                  if(pair.getAttr()->Compare(attr1) > 0) {
-                    break;
-                  }
-                  else if(pair.getAttr()->Compare(attr1) < 0) {
-                    thit = *tit;
-                    tit++;
-                  }
-                  else {
-                    thit = *tit;
-                    // there are more than one entries with the same value
-                    if(thit.getAttr()->Compare(attr1) == 0) {
-                      tit++;
-                    }
-                    else {
-                      thit = *tit;
-                      break;
-                    }
-                  }
-                }
+            } else { // ttree
+              size_t i = relation->size();
+              AttrIdPair s(attr1,i);
+              const AttrIdPair* t = ttree->GetNearestSmallerOrEqual(s, 0);
+              if(!t){
+                return 0;
               }
-
-              Tuple* result = relation->at(thit.getTid()-1);
+              Tuple* result = relation->at(t->getTid()-1);
               if(result){
                  result->IncReference();
               }
@@ -4427,9 +4419,11 @@ OperatorSpec mrangeSSpec(
   "query \"strassen_Name\" mrangeS[\"A\",\"B\"] count"
 );
 
+
+
 Operator mexactmatchSOp(
   "mexactmatchS",
-  mexactmatchSpec.getStr(),
+  mexactmatchSSpec.getStr(),
   2,
   mrangeSVM,
   mrangeSSelect,
@@ -5157,9 +5151,12 @@ int mcreateMtreeVMT (Word* args, Word& result, int message,
    // insert attributes
 
    for(size_t i=0;i<rel->size();i++){
-       T* attr = (T*) (*rel)[i]->GetAttribute(index);
-       pair<T,TupleId> p(*attr,i+1);
-       tree->insert(p); 
+       Tuple* t = (*rel)[i];
+       if(t){ // tuple not deleted
+         T* attr = (T*) t->GetAttribute(index);
+         pair<T,TupleId> p(*attr,i+1);
+         tree->insert(p); 
+       }
    }
    size_t usedMem = tree->memSize();
    MemoryMtreeObject<T,StdDistComp<T> >* mtree = 
@@ -5285,7 +5282,7 @@ class distRangeInfo{
             if(!p){ return 0;}
             if(p->second < rel->size()){
                Tuple* res = (*rel)[p->second-1];
-               if(res){ // ignored deleted tuples
+               if(res){ // ignore deleted tuples
                  res->IncReference();
                  return res;
                }
@@ -5481,7 +5478,7 @@ class distScanInfo{
             if(!p){ return 0;}
             if(p->second < rel->size()){
                Tuple* res = (*rel)[p->second-1];
-               if(res){
+               if(res){ // ignore deleted tuples
                  res->IncReference();
                  return res;
                }
@@ -5698,33 +5695,47 @@ Operator mwrapOp(
 
 
 
-
+template<int pos>
 ListExpr MTUPLETM(ListExpr args){
-   if(!nl->HasMinLength(args,1)){
-      return listutils::typeError("too less arguments");
+
+   if(!nl->HasMinLength(args,pos)){
+      return listutils::typeError("too less arguments, expected "
+               + stringutils::int2str(pos) + " but got " 
+               + stringutils::int2str(nl->ListLength(args)));
    }
-   ListExpr first = nl->First(args);
-   if(!Mem::checkType(first)){
+   // remove elements before pos
+   for(int i=1; i<pos;i++){
+     args = nl->Rest(args);
+   }
+   ListExpr mem = nl->First(args);
+   if(!nl->HasLength(mem,2)){
+     return  listutils::typeError("internal error");
+   }
+   string errMsg;
+   if(!getMemType(nl->First(mem), nl->Second(mem), mem, errMsg)){
+    return listutils::typeError("problem in arg: " + errMsg);
+   }
+   if(!Mem::checkType(mem)){
      return listutils::typeError("not a mem object");
    }
-   ListExpr res = nl->Second(first);
-   if(Relation::checkType(res)){
-     return nl->Second(res);
+   ListExpr subtype = nl->Second(mem);
+   ListExpr res;
+   if(nl->HasMinLength(subtype,2)){
+     res = nl->Second(subtype); // enclosed tuple: stream, rel, orel ...
+   } else {
+     return listutils::typeError("unsupported subtype");
    }
-   if(listutils::isOrelDescription(res)){
-     return nl->Second(res);
+   if(!Tuple::checkType(res)){
+     return listutils::typeError("no tuple found");
    }
-   if(MemoryGraphObject::checkType(res)){
-     return nl->Second(res);
-   }
-   return listutils::typeError(
-        "Memory object is not a relation or ordered relation");
+   return res;
 }
 
 OperatorSpec MTUPLESpec(
-   "mem(rel(X)) -> X or string -> tuple",
-   "MTUPLE(_)",
-   "Retrieves the tuple type of a memory relation.",
+   "... mem(rel(X))  x ... -> X or string -> tuple",
+   "MTUPLE<X>(_)",
+   "Retrieves the tuple type of a memory relation at position "
+   "<X> in the argument list",
    "query \"ten\" mupdatebyid[[const tid value 5]; No: .No + 10000] count"
 );
 
@@ -5733,9 +5744,16 @@ Operator MTUPLEOp(
     MTUPLESpec.getStr(),
     0,
     Operator::SimpleSelect,
-    MTUPLETM
+    MTUPLETM<1>
 );
 
+Operator MTUPLE2Op(
+    "MTUPLE2",
+    MTUPLESpec.getStr(),
+    0,
+    Operator::SimpleSelect,
+    MTUPLETM<2>
+);
 
 
 
@@ -5752,8 +5770,6 @@ The operator creates a TTree over a given main memory relation.
         the second parameter identifies the attribute
 
 */
-
-// TODO memory leak
 ListExpr mcreatettreeTypeMap(ListExpr args){
   
     if(nl->ListLength(args)!=2){
@@ -5878,11 +5894,14 @@ int mcreatettreeValueMap(Word* args, Word& result,
   unsigned long availableMemSize = catalog->getAvailableMemSize();
 
   // insert (Attribute, TupleId)-pairs into ttree
+
+  cout << "insert elements from the relation" << endl;
+
   while(it != relation->end()) {
       Tuple* tup = *it;
       if(tup){
          Attribute* attr = tup->GetAttribute(attrPos);
-         AttrIdPair tPair = AttrIdPair(attr->Copy(),i);
+         AttrIdPair tPair(attr, i);
 
          // size for a pair is 16 bytes, plus an additional pointer 8 bytes
          size_t entrySize = 24;
@@ -5890,7 +5909,6 @@ int mcreatettreeValueMap(Word* args, Word& result,
             tree->insert(tPair);
             usedMainMemory += (entrySize);
             availableMemSize -= (entrySize);
-            it++;
          } else {
            cout << "there is not enough main memory available"
                    " to create an TTree" << endl;
@@ -5898,10 +5916,14 @@ int mcreatettreeValueMap(Word* args, Word& result,
            str->SetDefined(false);
            return 0;
          }
-         i++;
-       }
+      }
+      i++;
+      it++;
   }
-  
+
+  cout << "insertion done" << endl;  
+
+
   MemoryTTreeObject* ttreeObject = 
         new MemoryTTreeObject(tree, 
                               usedMainMemory,
@@ -6378,7 +6400,6 @@ ListExpr mcreateAuxiliaryRelTypeMap(const ListExpr& args,
     // extendend by 'old'
   
     rest = nl->Second(nl->Second(first));
-    
     string oldName;
     ListExpr oldAttribute;
     while (!(nl->IsEmpty(rest))) {
@@ -6440,24 +6461,10 @@ ListExpr mcreateupdaterelTypeMap(ListExpr args) {
        ~mcreatedeleterel~ and ~mcreateupdaterel~
 
 */
-template<class T>
 int mcreateinsertrelValueMap(Word* args, Word& result, int message,
                              Word& local, Supplier s) {
   result = qp->ResultStorage(s);
   return 0;
-}
-
-/*
-7.6.3 Value Mapping Array and Selection
-
-*/
-ValueMapping mcreateinsertrelVM[] = {
-  mcreateinsertrelValueMap<CcString>,
-  mcreateinsertrelValueMap<Mem>
-};
-
-int mcreateinsertrelSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
 }
 
 
@@ -6480,9 +6487,8 @@ OperatorSpec mcreateinsertrelSpec(
 Operator mcreateinsertrelOp (
   "mcreateinsertrel",             // name
   mcreateinsertrelSpec.getStr(),  // specification
-  2,
-  mcreateinsertrelVM,             // value mapping
-  mcreateinsertrelSelect,         // trivial selection function
+  mcreateinsertrelValueMap,       // value mapping
+  Operator::SimpleSelect,         // trivial selection function
   mcreateinsertrelTypeMap         // type mapping
 );
 
@@ -6505,9 +6511,8 @@ OperatorSpec mcreatedeleterelSpec(
 Operator mcreatedeleterelOp(
   "mcreatedeleterel",             // name
   mcreatedeleterelSpec.getStr(),  // specification
-  2,
-  mcreateinsertrelVM,             // value mapping
-  mcreateinsertrelSelect,         // trivial selection function
+  mcreateinsertrelValueMap,             // value mapping
+  Operator::SimpleSelect,         // trivial selection function
   mcreatedeleterelTypeMap         // type mapping
 );
 
@@ -6533,9 +6538,8 @@ OperatorSpec mcreateupdaterelSpec(
 Operator mcreateupdaterelOp (
   "mcreateupdaterel",             // name
   mcreateupdaterelSpec.getStr(),  // specification
-  2,
-  mcreateinsertrelVM,             // value mapping
-  mcreateinsertrelSelect,         // selection function
+  mcreateinsertrelValueMap,             // value mapping
+  Operator::SimpleSelect,         // selection function
   mcreateupdaterelTypeMap         // type mapping
 );
 
@@ -6561,18 +6565,22 @@ tupleidentifier of the inserted tuple in the extended relation.
    
  
 */
-
+template<int noargs>
 ListExpr minsertTypeMap(ListExpr args) {
   
-  if((nl->ListLength(args)!=2) && (nl->ListLength(args)!=3)) {
+  if(!nl->HasLength(args,noargs)) {
     return listutils::typeError("wrong number of arguments");
+  }
+
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
   }
   
   ListExpr first = nl->First(args); //stream + query
   ListExpr stream = nl->First(first);
 
   // process stream
-  if(!listutils::isTupleStream(stream)){
+  if(!Stream<Tuple>::checkType(stream)){
     return listutils::typeError("first argument must be a tuple stream");
   }
   
@@ -6590,11 +6598,31 @@ ListExpr minsertTypeMap(ListExpr args) {
       "second arg is not a memory relation");
   }
   if(!nl->Equal(nl->Second(stream), nl->Second(second))){
-      
       return listutils::typeError("stream type and mem relation type differ\n"
                                "stream: " + nl->ToString(stream) + "\n"
                                + "rel   : " + nl->ToString(second));
   }
+  
+  
+  // append tupleidentifier
+  ListExpr rest = nl->Second(nl->Second(second));
+  ListExpr at;
+  if(listutils::findAttribute(rest,"TID",at)>0){
+    return listutils::typeError("There is already an TID attribute");
+  }
+  ListExpr listn = nl->OneElemList(nl->First(rest));
+  ListExpr lastlistn = listn;
+  rest = nl->Rest(rest);
+  while (!(nl->IsEmpty(rest))) {
+    lastlistn = nl->Append(lastlistn,nl->First(rest));
+    rest = nl->Rest(rest);
+  }
+  
+
+  lastlistn = nl->Append(lastlistn,
+                         nl->TwoElemList(
+                           nl->SymbolAtom("TID"),
+                           nl->SymbolAtom(TupleIdentifier::BasicType())));
   
   // process third argument (minsertsave only)
   if(nl->ListLength(args)==3) {
@@ -6607,23 +6635,12 @@ ListExpr minsertTypeMap(ListExpr args) {
       return listutils::typeError(
        "third arg is not a memory relation");
     }
+    // the scheme of this relation must be equal to the output tuple scheme
+    if(!nl->Equal(listn, nl->Second(nl->Second(third)))){
+       return listutils::typeError("Scheme of the auxiliary relation is not "
+                  "equal to the main relation + TID");
+    }
   }
-  
-  // append tupleidentifier
-  ListExpr rest = nl->Second(nl->Second(second));
-  ListExpr listn = nl->OneElemList(nl->First(rest));
-  ListExpr lastlistn = listn;
-  rest = nl->Rest(rest);
-  while (!(nl->IsEmpty(rest))) {
-    lastlistn = nl->Append(lastlistn,nl->First(rest));
-    rest = nl->Rest(rest);
-  }
-  
-  lastlistn = nl->Append(lastlistn,
-                         nl->TwoElemList(
-                           nl->SymbolAtom("TID"),
-                           nl->SymbolAtom(TupleIdentifier::BasicType())));
-  
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->TwoElemList(
                            nl->SymbolAtom(Tuple::BasicType()),
@@ -6648,21 +6665,22 @@ class minsertInfo {
      Tuple* next(){
        Tuple* res = stream.request();
        if(!res) { return 0; }
-       if(flob)
+       if(flob) {
          res->bringToMemory();
+       }
        
        Tuple* newtup = new Tuple(type); 
-       for(int i = 0; i < res->GetNoAttributes(); i++)
+       for(int i = 0; i < res->GetNoAttributes(); i++) {
          newtup->CopyAttribute(i,res,i);
-       res->IncReference();
+       }
+      
        
-       //get tuple id and append it to tuple
-       const TupleId& tid = res->GetTupleId();
-       Attribute* tidAttr = new TupleIdentifier(true,tid);
+       // add the main memory tuple id to the output tuple
+       Attribute* tidAttr = new TupleIdentifier(true,
+                                       relation->size()+1);
        newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
        relation->push_back(res);
-      
-       res->DeleteIfAllowed();
+    
        return newtup;
      }
 
@@ -6756,7 +6774,7 @@ Operator minsertOp (
     2,
     minsertVM,
     minsertSelect,
-    minsertTypeMap
+    minsertTypeMap<2>
 );
 
 
@@ -6775,39 +6793,42 @@ class minsertsaveInfo {
   public:
      minsertsaveInfo(Word w, vector<Tuple*>* _relation, 
          vector<Tuple*>* _auxrel, 
-                 bool _flob, TupleType* _type)
+                 bool _flob, ListExpr _type)
         : stream(w),relation(_relation), auxrel(_auxrel), 
-          flob(_flob), type(_type) {
+          flob(_flob) {
         stream.open();
+        type = new TupleType(_type);
      }
      
     ~minsertsaveInfo(){
        stream.close();
+       type->DeleteIfAllowed();
      }
 
     Tuple* next(){
       Tuple* res = stream.request();
-      if(!res) return 0;
+      if(!res){
+         return 0;
+      }
       
-      if(flob)
+      if(flob){ 
         res->bringToMemory();
+      }
       
       //get tuple id and append it to tuple
       Tuple* newtup = new Tuple(type); 
-      for(int i = 0; i < res->GetNoAttributes(); i++)
+      for(int i = 0; i < res->GetNoAttributes(); i++){
         newtup->CopyAttribute(i,res,i);
-      const TupleId& tid = res->GetTupleId();
-      Attribute* tidAttr = new TupleIdentifier(true,tid);
+      }
+      Attribute* tidAttr = new TupleIdentifier(true,relation->size()+1);
       newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
       
       // insert tuple in memory relation 
       relation->push_back(res);
-      res->IncReference();
       // insert tuple in auxrel
       auxrel->push_back(newtup);
       newtup->IncReference();
        
-      res->DeleteIfAllowed();
       return newtup;
     }
 
@@ -6824,7 +6845,6 @@ class minsertsaveInfo {
 7.10.2  Value Mapping Functions of operator ~minsertsave~
 
 */
-// TODO memory leaks
 template<class T>
 int minsertsaveValueMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
@@ -6850,7 +6870,7 @@ int minsertsaveValueMap (Word* args, Word& result,
       MemoryRelObject* auxrel = getMemRel(aux);;
       if(!auxrel) { return 0; }
       
-      TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      ListExpr tt = nl->Second(GetTupleResultType(s));
       
       local.addr = new minsertsaveInfo(args[0],rel->getmmrel(),
                                        auxrel->getmmrel(),
@@ -6905,7 +6925,7 @@ Operator minsertsaveOp (
     2,
     minsertsaveVM,
     minsertsaveSelect,
-    minsertTypeMap
+    minsertTypeMap<3>
 );
 
 
@@ -6919,18 +6939,23 @@ a main memory relation.
       and ~minserttuplesave~.
       
 */
+template<int noArgs>
 ListExpr minserttupleTypeMap(ListExpr args) {
 
   
-  if((nl->ListLength(args)!=2) && (nl->ListLength(args)!=3)) {
-    return listutils::typeError("two arguments expected");
+  if((nl->ListLength(args)!=noArgs)) {
+    return listutils::typeError(stringutils::int2str(noArgs) 
+                                + " arguments expected");
   }
+
+
 
   // process first argument (mem(rel))
   ListExpr first = nl->First(args);
   if(!nl->HasLength(first,2)){
     return listutils::typeError("internal error");
   }
+
   string errMsg;
   if(!getMemType(nl->First(first), nl->Second(first), first, errMsg)){
     return listutils::typeError("string or mem(rel) expected : " + errMsg);
@@ -6949,19 +6974,7 @@ ListExpr minserttupleTypeMap(ListExpr args) {
     return listutils::typeError("different lengths in tuple and update");
   }
   
-  // process third argument (minserttuplesave only)
-  if(nl->ListLength(args)==3) {
-    ListExpr third  = nl->Third(args);
-    if(!getMemType(nl->First(third), nl->Second(third), third, errMsg)) {
-      return listutils::typeError("(problem in third arg: " + errMsg + ")");
-    }
-    third = nl->Second(third);
-    if(!Relation::checkType(third)){
-      return listutils::typeError(
-        "third arg is not a memory relation");
-    }
-  }
-    
+  // check whether types of relation matches types of attributes  
   ListExpr restrel = nl->Second(nl->Second(first));
   ListExpr resttuple = nl->First(second);
 
@@ -6976,6 +6989,13 @@ ListExpr minserttupleTypeMap(ListExpr args) {
   
   // append tupleid
   restrel = nl->Second(nl->Second(first));
+
+  ListExpr at;
+  if(listutils::findAttribute(restrel,"TID",at)>0){
+    return listutils::typeError("TID attribute already present in "
+                                "argument relation.");
+  }
+
   ListExpr listn = nl->OneElemList(nl->First(restrel));
   ListExpr lastlistn = listn;
   restrel = nl->Rest(restrel);
@@ -6988,7 +7008,31 @@ ListExpr minserttupleTypeMap(ListExpr args) {
                           nl->TwoElemList(
                             nl->SymbolAtom("TID"),
                             nl->SymbolAtom(TupleIdentifier::BasicType())));
-  
+
+  // process third argument (minserttuplesave only)
+  if(noArgs==3) {
+    ListExpr third  = nl->Third(args);
+    if(!nl->HasLength(third,2)){
+      return listutils::typeError("internal error");
+    }
+    if(!getMemType(nl->First(third), nl->Second(third), third, errMsg)) {
+      return listutils::typeError("(problem in third arg: " + errMsg + ")");
+    }
+    third = nl->Second(third); // remove mem
+    if(!Relation::checkType(third)){
+      return listutils::typeError(
+        "third arg is not a memory relation");
+    }
+    // check whether this relations corresponds to the output tuples
+    ListExpr attrList = nl->Second(nl->Second(third));
+    if(!nl->Equal(attrList, listn)){
+      return listutils::typeError("auxiliary relation type differs to " 
+                                  "main relationtype + TID");
+    }
+
+  }
+
+ 
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                           nl->TwoElemList(
                             nl->SymbolAtom(Tuple::BasicType()),
@@ -7012,8 +7056,11 @@ class minserttupleInfo{
     
     Tuple* next() {
       
-      if(!firstcall) return 0;
-      else firstcall = false;
+      if(!firstcall) {
+         return 0;
+      } else {
+         firstcall = false;
+      }
       
       Tuple* res = new Tuple(type);
       
@@ -7031,6 +7078,7 @@ class minserttupleInfo{
 
       TupleType* insertTupleType = new TupleType(insertType);  
       Tuple* tup = new Tuple(insertTupleType);
+      insertTupleType->DeleteIfAllowed();
       Supplier supplier = tupleList.addr;
       
       Word attrValue;
@@ -7042,15 +7090,15 @@ class minserttupleInfo{
         res->PutAttribute(i,attr->Clone());
         tup->CopyAttribute(i,res,i);
       }
-      tup->SetTupleId(relation->size()+1);
+      const TupleId& tid = relation->size()+1;
+      tup->SetTupleId(tid);
       // add TID
-      const TupleId& tid = tup->GetTupleId();
       Attribute* tidAttr = new TupleIdentifier(true,tid);
       res->PutAttribute(res->GetNoAttributes()-1, tidAttr);
       
-      if(flob)
+      if(flob){
         tup->bringToMemory();
-      
+      }
       // add Tuple to memory relation
       relation->push_back(tup);
       return res;
@@ -7146,7 +7194,7 @@ Operator minserttupleOp (
     2,
     minserttupleVM,
     minserttupleSelect,
-    minserttupleTypeMap
+    minserttupleTypeMap<2>
 );
 
 
@@ -7177,8 +7225,11 @@ class minserttuplesaveInfo{
     
     Tuple* next() {
       
-      if(!firstcall) return 0;
-      else firstcall = false;
+      if(!firstcall){
+          return 0;
+      } else {
+          firstcall = false;
+      }
       
       Tuple* res = new Tuple(type);
       
@@ -7194,8 +7245,10 @@ class minserttuplesaveInfo{
       insertType = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                    insertType);
 
+
       TupleType* insertTupleType = new TupleType(insertType);
       Tuple* tup = new Tuple(insertTupleType);
+      insertTupleType->DeleteIfAllowed();
       Supplier supplier = tupleList.addr;
       
       Word attrValue;
@@ -7207,22 +7260,23 @@ class minserttuplesaveInfo{
         res->PutAttribute(i,attr->Clone());
         tup->CopyAttribute(i,res,i);
       }
-      tup->SetTupleId(relation->size()+1);
+      const TupleId tid = relation->size()+1;
+      tup->SetTupleId(tid);
       
       // add TID
-      const TupleId& tid = tup->GetTupleId();
       Attribute* tidAttr = new TupleIdentifier(true,tid);
       res->PutAttribute(res->GetNoAttributes()-1, tidAttr);
-      res->IncReference();
       
       // flob
-      if(flob)
+      if(flob) {
         tup->bringToMemory();
+      }
       
       // add Tuple to memory relation
       relation->push_back(tup);
-      tup->IncReference();
+
       // add tuple to auxrel
+      res->IncReference();
       auxrel->push_back(res);
       return res;
     }
@@ -7323,7 +7377,7 @@ Operator minserttuplesaveOp (
     2,
     minserttuplesaveVM,
     minserttuplesaveSelect,
-    minserttupleTypeMap
+    minserttupleTypeMap<3>
 );
 
 
@@ -7331,7 +7385,13 @@ Operator minserttuplesaveOp (
 /*
 7.13 Operator ~mdelete~
 
-  stream(tuple(x)) x {string, mem(rel(...))} -> stream(tuple(x@[TID:tid]))
+
+7.13.1 Auxiliary function ~remove~
+
+This function removes the first tuple in a relation having the
+same attribute values as the given tuple. The tuple id of
+res is set to the former tuple id of the removed tuple.
+If the tuple is not found, its tuple id is set to null.
 
 */
 void remove(vector<Tuple*>* relation, Tuple* res) {
@@ -7339,26 +7399,34 @@ void remove(vector<Tuple*>* relation, Tuple* res) {
   for (size_t i = 0; i < relation->size(); i++) {
     Tuple* tup = relation->at(i);
     if(tup){
-      for(int j=0; j<tup->GetNoAttributes(); j++) {
+      bool equal = true;
+      for(int j=0; j<tup->GetNoAttributes() && equal; j++) {
         int cmp = ((Attribute*)tup->GetAttribute(j))->Compare(
                   ((Attribute*)res->GetAttribute(j)));
-        if(cmp!=0) 
-          break;
-        else {
-          tup->DeleteIfAllowed();
-          relation->erase(relation->begin()+i);
-          return;
+        if(cmp!=0){
+          equal = false;
         }
+      }
+      if(equal){ // hit
+        tup->DeleteIfAllowed();  
+        (*relation)[i] = 0;
+        res->SetTupleId(i+1);
+        return;
       }
     }
   }
+  res->SetTupleId(0);
 }
 
 class mdeleteInfo {
 public:
-mdeleteInfo(Word w, vector<Tuple*>* _relation, 
-            bool _flob, ListExpr _type)
-  : stream(w),relation(_relation), flob(_flob) {
+mdeleteInfo(Word w, 
+            vector<Tuple*>* _mainRelation, 
+            vector<Tuple*>* _auxRelation,
+            ListExpr _type)
+  : stream(w),
+    mainRelation(_mainRelation),
+    auxRelation(_auxRelation) {
     type = new TupleType(_type);
     stream.open();
   }
@@ -7368,31 +7436,59 @@ mdeleteInfo(Word w, vector<Tuple*>* _relation,
      type->DeleteIfAllowed();
    }
      
-   Tuple* next() {
-     Tuple* res = stream.request();
-     if(!res) return 0;
-       
-     Tuple* newtup = new Tuple(type); 
-     for(int i = 0; i < res->GetNoAttributes(); i++)
-        newtup->CopyAttribute(i,res,i);
-       
-     //get tuple id and append it to tuple
-     const TupleId& tid = res->GetTupleId();
-     Attribute* tidAttr = new TupleIdentifier(true,tid);
-     newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
-       
-     // delete from relation
-     remove(relation,res);     
-     res->DeleteIfAllowed();  
-       
-     return newtup;
+  Tuple* next() {
+     TupleIdentifier* tid;
+     cout << "called next" << endl;
+     while((tid=stream.request())){
+       cout << "received tid" << endl;
+       tid->Print(cout) << endl; 
+
+       if(!tid->IsDefined()){
+         tid->DeleteIfAllowed();
+       } else {
+         TupleId id = tid->GetTid();
+         if(id<1 || id >= mainRelation->size()){
+           tid->DeleteIfAllowed();
+         } else {
+           Tuple* tuple = mainRelation->at(id-1);
+           if(!tuple){
+             tid->DeleteIfAllowed();
+           } else {
+             (*mainRelation)[id-1]=0;
+             return createResultTuple(tuple,tid);
+           }
+         }
+       }
+
+     }
+     return 0;
   }
 
   private:
-     Stream<Tuple> stream;
-     vector<Tuple*>* relation;
-     bool flob;
+     Stream<TupleIdentifier> stream;
+     vector<Tuple*>* mainRelation;
+     vector<Tuple*>* auxRelation;
      TupleType* type;
+
+
+     Tuple* createResultTuple(Tuple* orig, TupleIdentifier* tid){
+       Tuple* res = new Tuple(type);
+       assert(res->GetNoAttributes()==orig->GetNoAttributes()+1);
+
+
+       for(int i=0;i<orig->GetNoAttributes(); i++){
+          res->CopyAttribute(i,orig,i);
+       }
+       res->PutAttribute(orig->GetNoAttributes(), tid);
+       orig->DeleteIfAllowed();
+       res->SetTupleId(tid->GetTid());
+       // save tuple if required
+       if(auxRelation){
+         res->IncReference();
+         auxRelation->push_back(res);
+       }
+       return res;
+     }
 };
 
 /*
@@ -7406,8 +7502,56 @@ stream with an additional Attribut containing the tupleid.
 7.13.2 Value Mapping Function of operator ~mdelete~
 
 */
-// TODO memory leak
-template<class T>
+template<bool save>
+ListExpr mdeleteTM(ListExpr args){
+  int noargs =  save?3:2;
+  if(!nl->HasLength(args,noargs)){
+    return listutils::typeError("wrong number of arguments");
+  }
+  if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+  }
+  if(!Stream<TupleIdentifier>::checkType(nl->First(nl->First(args)))){
+    return listutils::typeError("first argument mut be a stream of tids");
+  }
+  string errMsg;
+  ListExpr mainRel = nl->Second(args);
+  if(!getMemType(nl->First(mainRel), nl->Second(mainRel), mainRel, errMsg)){
+    return listutils::typeError("second arg is not an mrel" + errMsg);
+  }
+  mainRel = nl->Second(mainRel); // remove mem
+  if(!Relation::checkType(mainRel)){
+    return listutils::typeError("second arg is not a memory relation");
+  }
+  ListExpr mat = nl->Second(nl->Second(mainRel));
+  // append TID to mtt
+  ListExpr at = listutils::concat(mat, nl->OneElemList(
+                               nl->TwoElemList(nl->SymbolAtom("TID"),
+                                  listutils::basicSymbol<TupleIdentifier>())));
+  ListExpr tt = nl->TwoElemList( listutils::basicSymbol<Tuple>(), at);
+  ListExpr res = nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                           tt);
+  if(!save){
+     return res;
+  }
+  // check the aux relation
+  ListExpr auxRel = nl->Third(args);
+  if(!getMemType(nl->First(auxRel), nl->Second(auxRel), auxRel, errMsg)){
+    return listutils::typeError("third arg is not an mrel" + errMsg);
+  }
+  auxRel = nl->Second(auxRel); // remove mem
+  if(!Relation::checkType(auxRel)){
+    return listutils::typeError("third arg is not a memory relation");
+  }
+  if(!nl->Equal(nl->Second(auxRel),tt)){
+    return listutils::typeError("auxiliary relation is not main "
+                                "relation + tid");
+  } 
+  return res;
+}
+
+
+template<class T, class S, bool save>
 int mdeleteValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
   
@@ -7421,16 +7565,28 @@ int mdeleteValMap (Word* args, Word& result,
         local.addr=0;
       }
       
-      qp->Open(args[0].addr);
-      
       T* oN = (T*) args[1].addr;
-      MemoryRelObject* rel = getMemRel(oN);;
-      if(!rel) { return 0; }
+      MemoryRelObject* rel = getMemRel(oN);
+      if(!rel) { 
+        return 0;
+      }
       
       ListExpr  tt = nl->Second(GetTupleResultType(s));
-      
-      local.addr = new mdeleteInfo(args[0],rel->getmmrel(),
-                                   rel->hasflob(),tt);
+
+      vector<Tuple*>* aux = 0;
+      if(save){
+         S* an = (S*) args[2].addr;
+         MemoryRelObject* arel = getMemRel(an);
+         if(!arel){
+           return 0;
+         }
+         aux = arel->getmmrel();
+      }
+
+      local.addr = new mdeleteInfo(args[0],
+                                   rel->getmmrel(),
+                                   aux, 
+                                   tt);
       return 0;
     }
     
@@ -7450,8 +7606,8 @@ int mdeleteValMap (Word* args, Word& result,
 }
 
 ValueMapping mdeleteVM[] = {
-   mdeleteValMap<CcString>,
-   mdeleteValMap<Mem>
+   mdeleteValMap<CcString, CcString, false>,
+   mdeleteValMap<Mem, CcString, false>
 };
 
 int mdeleteSelect(ListExpr args){
@@ -7463,11 +7619,11 @@ int mdeleteSelect(ListExpr args){
 
 */
 OperatorSpec mdeleteSpec(
-    "stream(tuple(x)) x {string, mem(rel(...))} -> stream(tuple(x@[TID:tid]))",
+    "stream(tid) x {string, mem(rel(...))} -> stream(tuple(x@[TID:tid]))",
     "_ mdelete [_]",
     "deletes the tuple of a stream from an "
     "existing main memory relation",
-    "query ten feed filter [.No = 2] mdelete['ten'] count"
+    "query ten feed filter [.No = 2] tids mdelete['ten'] count"
 );
 
 /*
@@ -7480,7 +7636,7 @@ Operator mdeleteOp (
     2,
     mdeleteVM,
     mdeleteSelect,
-    minsertTypeMap
+    mdeleteTM<false>
 );
 
 
@@ -7493,130 +7649,39 @@ additional attribut of type 'tid' and adds the tuples to an auxiliary
 main memory relation.
 
 */
-class mdeletesaveInfo {
-  public:
-    mdeletesaveInfo(Word w, vector<Tuple*>* _relation, 
-                    vector<Tuple*>* _auxrel, 
-                bool _flob, ListExpr  _type)
-      : stream(w),relation(_relation), auxrel(_auxrel), 
-        flob(_flob){
-      type = new TupleType(_type);
-      stream.open();
-    }
-    
-  ~mdeletesaveInfo(){
-      type->DeleteIfAllowed();
-      stream.close();
-    }
-
-    
-     
-    Tuple* next() {
-      Tuple* res = stream.request();
-      if(!res) { return 0; }
-      if(flob) {
-        res->bringToMemory();
-      }
-      
-      Tuple* newtup = new Tuple(type); 
-      for(int i = 0; i < res->GetNoAttributes(); i++){
-        newtup->CopyAttribute(i,res,i);
-      }
-      const TupleId& tid = res->GetTupleId();
-      Attribute* tidAttr = new TupleIdentifier(true,tid);
-      newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
-      //res->IncReference();
-      
-      // delete from relation
-      remove(relation,res);
-      
-      // add to auxrel
-      auxrel->push_back(newtup);
-      newtup->IncReference();
-              
-      res->DeleteIfAllowed(); 
-      return newtup;
-    }
-
-  private:
-     Stream<Tuple> stream;
-     vector<Tuple*>* relation;
-     vector<Tuple*>* auxrel;
-     bool flob;
-     TupleType* type;
-};
-
 
 /*
-7.14.2 Value Mapping Function of operator ~mdeletesave~
+7.14.2 Value Mapping of operator ~mdeletesave~
 
 */
-// TODO memory leaks
-template<class T>
-int mdeletesaveValueMap (Word* args, Word& result,
-                         int message, Word& local, Supplier s) {
-  
-  mdeletesaveInfo* li = (mdeletesaveInfo*) local.addr;
-  
-  switch (message) {
-    
-    case OPEN : {
-      
-      if(li) {
-        delete li;
-        local.addr=0;
-      }
-      
-      T* oN = (T*) args[1].addr;
-      T* aux = (T*) args[2].addr;
-      
-      MemoryRelObject* rel = getMemRel(oN);
-      if(!rel) { return 0; }
-      MemoryRelObject* auxrel = getMemRel(aux);
-      if(!auxrel) { return 0; }
-      
-      ListExpr tt = nl->Second(GetTupleResultType(s));
-      
-      local.addr = new mdeletesaveInfo(args[0],rel->getmmrel(),
-                                        auxrel->getmmrel(),
-                                        rel->hasflob(),tt);
-      return 0;
-    }
-    
-    case REQUEST : {
-      result.addr=li?li->next():0;
-      return result.addr?YIELD:CANCEL;
-    }
-    
-    case CLOSE :
-      if(li) {
-        delete li;
-        local.addr = 0;
-      }
-      return 0;   
-  }
-  return 0;
-}
-
 ValueMapping mdeletesaveVM[] = {
-   mdeletesaveValueMap<CcString>,
-   mdeletesaveValueMap<Mem>
+  mdeleteValMap<CcString, CcString, true>,
+  mdeleteValMap<CcString, Mem, true>,
+  mdeleteValMap<Mem, CcString, true>,
+  mdeleteValMap<Mem, Mem, true>,
+  
 };
 
 int mdeletesaveSelect(ListExpr args){
-   return CcString::checkType(nl->Second(args))?0:1;
+  int n1 = CcString::checkType(nl->Second(args))?0:2;
+  int n2 = CcString::checkType(nl->Third(args))?0:1;
+  return n1+n2;
 }
+
+
 
 /*
 7.14.4 Description of operator ~mdeletesave~
 
 */
+
 OperatorSpec mdeletesaveSpec(
-    "stream(Tuple) x {string, mem(rel)}  -> stream(Tuple)",
-    "mdelete(_,_)",
-    "deletes the tuple of a stream from an "
-    "existing main memory relation",
-    "query mdelete (ten feed head[5],\"ten\") count"
+    "stream(tid) x {string, mem(rel)} x {string, mem(rel)} -> stream(Tuple)",
+    "_ mdelete[_,_]",
+    "Deletes tuples with given ids from a relation and stores "
+    "deleted tuple into a auxiliary relation. ",
+    "query \"ten\" mfeed filter[.No > 6] tids "
+    "mdelete[\"ten\", \"tenDel\"]  count"
 );
 
 /*
@@ -7626,10 +7691,10 @@ OperatorSpec mdeletesaveSpec(
 Operator mdeletesaveOp (
     "mdeletesave",
     mdeletesaveSpec.getStr(),
-    2,
+    4,
     mdeletesaveVM,
     mdeletesaveSelect,
-    minsertTypeMap
+    mdeleteTM<true>
 );
 
 
@@ -7670,10 +7735,10 @@ ListExpr mdeletebyidTypeMap(ListExpr args) {
   }
 
   // process first arg
-  ListExpr first = nl->First(args);
-  if(!nl->HasLength(first,2)){
-      return listutils::typeError("internal error");
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
   }
+  ListExpr first = nl->First(args);
   string errMsg;
   if(!getMemType(nl->First(first), nl->Second(first), first, errMsg)){
     return listutils::typeError("string or mem(rel) expected : " + errMsg);
@@ -7685,11 +7750,15 @@ ListExpr mdeletebyidTypeMap(ListExpr args) {
 
   // process second arg (tid)
   ListExpr second = nl->First(nl->Second(args));
-  if(!listutils::isSymbol(second,TupleIdentifier::BasicType())){
+  if(!TupleIdentifier::checkType(second)){
     return listutils::typeError("second argument must be a tid");
   }
   
   ListExpr rest = nl->Second(nl->Second(first));
+  ListExpr at;
+  if(listutils::findAttribute(rest,"TID",at)){
+    return listutils::typeError("Relation has a TID attribute");
+  }
   ListExpr attrlist = nl->OneElemList(nl->First(rest));
   ListExpr currentattr = attrlist;
   rest = nl->Rest(rest);
@@ -7725,24 +7794,29 @@ class mdeletebyidInfo{
      }
      
     Tuple* next() {
-      
       if(firstcall) {
         firstcall = false;
-      Tuple* res = find(relation,tid);
-      if(!res) return 0;
-      
-      Tuple* newtup = new Tuple(type); 
-      for(int i=0; i<res->GetNoAttributes(); i++)
-        newtup->CopyAttribute(i,res,i);
-      res->IncReference();
-      const TupleId& tid = res->GetTupleId();
-      Attribute* tidAttr = new TupleIdentifier(true,tid);
-      newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
-      
-      remove(relation,res);
-      
-      res->DeleteIfAllowed();
-      return newtup;
+        if(!tid->IsDefined()){
+          return 0;
+        }
+        size_t index = tid->GetTid();
+        if(index==0 || index>relation->size()){
+          return 0;
+        }
+        Tuple* res = relation->at(index-1);
+        if(!res ) {
+          return 0;
+        }
+        (*relation)[index-1] = 0;
+        // overtake the attributes from the removed tuple
+        Tuple* newtup = new Tuple(type); 
+        for(int i=0; i<res->GetNoAttributes(); i++) {
+           newtup->CopyAttribute(i,res,i);
+        }
+        Attribute* tidAttr = new TupleIdentifier(true,index);
+        newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
+        res->DeleteIfAllowed();
+        return newtup;
       }
       return 0;
     }
@@ -7780,7 +7854,8 @@ int mdeletebyidValMap (Word* args, Word& result,
         
         TupleIdentifier* tid = (TupleIdentifier*)(args[1].addr);
         
-        local.addr = new mdeletebyidInfo(rel->getmmrel(),tid,
+        local.addr = new mdeletebyidInfo(rel->getmmrel(),
+                                         tid,
                                          nl->Second(GetTupleResultType(s)));
         return 0;
       }
@@ -7837,13 +7912,287 @@ Operator mdeletebyidOp (
 );
 
 
+
+
+ListExpr mupdateTM(ListExpr args){
+  string err = "stream(tid) x {string, mem(rel) } x funlist expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr stream = nl->First(nl->First(args));
+  if(!Stream<TupleIdentifier>::checkType(stream)){
+    return listutils::typeError(err+ " (first arg is not a tid stream)");
+  }
+  ListExpr mem = nl->Second(args);
+  if(!getMemType(nl->First(mem), nl->Second(mem), mem, err)) {
+      return listutils::typeError("(problem in second arg : " 
+                                  + err + ")");
+  }
+  if(!Relation::checkType(nl->Second(mem))){
+     return listutils::typeError("Second arg is not a memory relation");
+  }
+  ListExpr funList  = nl->First(nl->Third(args));
+  ListExpr tupleList = nl->Second(nl->Second(mem));
+  ListExpr attrList = nl->Second(tupleList);
+
+  ListExpr at;
+  if(listutils::findAttribute(attrList,"TID", at)){
+      return listutils::typeError("attribute TID already present");
+  }
+
+
+  // each element of funlist must be a list consisting
+  // of an attribute name in attrList and a function mapping
+  // tupleList into the attribute's type
+  set<string> used; // used attribute names
+  ListExpr appendList = nl->TheEmptyList();
+  ListExpr last;
+  bool first = true;
+
+  while(!nl->IsEmpty(funList)){
+    ListExpr fun = nl->First(funList);
+    funList = nl->Rest(funList);
+    if(!nl->HasLength(fun,2)){ //(name map)
+       return listutils::typeError("found element in typelist having "
+                                   "invalid length");
+    }
+    ListExpr name = nl->First(fun);
+    if(nl->AtomType(name)!=SymbolType){
+       return listutils::typeError("invalid attribute name");
+    } 
+    string attr = nl->SymbolValue(nl->First(fun));
+    if(used.find(attr)!=used.end()){
+      return listutils::typeError("used attribute name " + attr + " twice");
+    }
+    used.insert(attr);
+    ListExpr map = nl->Second(fun);
+    ListExpr attrType;
+    int attrIndex = listutils::findAttribute(attrList, attr, attrType);
+    if(!attrIndex){
+      return listutils::typeError("Attribute " + attr 
+                                  + " not part of the relation");
+    }
+    if(first){
+      appendList = nl->OneElemList( nl->IntAtom(attrIndex-1));     
+      last = appendList;
+    } else {
+      last = nl->Append(last, nl->IntAtom(attrIndex-1));
+    }
+    if(!listutils::isMap<1>(map)){
+      return listutils::typeError("invalid map definition");
+    }
+    if(!nl->Equal(nl->Second(map), tupleList)){
+      return listutils::typeError("function argument for " + attr +
+                              + " does not corresponds to the relation type");
+    }
+    if(!nl->Equal(nl->Third(map), attrType)){
+      return listutils::typeError("function result for " + attr
+                             + " does not corresponds to the attr type");
+    }
+  }
+  if(nl->IsEmpty(appendList)){
+    return listutils::typeError("function list is empty");     
+  }
+  
+  // create result tuple list
+  // step 1: overtake attributes
+  ListExpr tmp = attrList;
+  ListExpr resAttrList = nl->OneElemList(nl->First(tmp));
+  last = resAttrList;
+  tmp = nl->Rest(tmp); 
+  while(!nl->IsEmpty(tmp)){
+     last = nl->Append(last, nl->First(tmp));
+     tmp = nl->Rest(tmp);
+  }
+  // append _old attributes
+  tmp = attrList;
+  while(!nl->IsEmpty(tmp)){
+    ListExpr attr = nl->First(tmp);
+    tmp = nl->Rest(tmp);
+    string newName = nl->SymbolValue(nl->First(attr))+"_old";
+    if(listutils::findAttribute(attrList,newName,at)){
+      return listutils::typeError("Attribute " + newName 
+                                  + "already known in tuple");
+    }
+    ListExpr na = nl->TwoElemList(nl->SymbolAtom(newName),
+                                  nl->Second(attr));
+    last = nl->Append(last, na);
+  }
+  // append TID
+  last = nl->Append(last, nl->TwoElemList( nl->SymbolAtom("TID"),
+                                 listutils::basicSymbol<TupleIdentifier>()));
+
+  tupleList = nl->TwoElemList(listutils::basicSymbol<Tuple>(),
+                              resAttrList);
+  return nl->ThreeElemList(
+                 nl->SymbolAtom(Symbols::APPEND()),
+                 appendList,
+                 nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                                  tupleList));
+}
+
+
+class mupdateInfoN{
+
+ public:
+   mupdateInfoN(Word _stream, vector<Tuple*>* _rel,
+               vector<int> _attrs,Supplier _funs,
+               ListExpr tt ) :stream(_stream),
+                   rel(_rel), attrs(_attrs){
+       stream.open();
+       assert(qp->GetNoSons(_funs) == (int) attrs.size());
+       for(int i=0;i<qp->GetNoSons(_funs); i++){
+         Supplier s = qp->GetSupplier(qp->GetSupplier(_funs,i),1);
+         funs.push_back(s);
+         funargs.push_back(qp->Argument(s));
+       }
+       resType = new TupleType(tt);
+   }
+   ~mupdateInfoN(){
+     stream.close();
+     resType->DeleteIfAllowed();
+   }
+
+   Tuple* next(){
+    TupleIdentifier* tid;
+     while( (tid=stream.request()) ){
+       if(tid->IsDefined()){
+         TupleId id = tid->GetTid();
+         if(id>0 && id <= rel->size()){
+            Tuple* res = rel->at(id-1);
+            if(res){
+               res->SetTupleId(id);
+               tid->DeleteIfAllowed();
+               return updateTuple(res);
+            }
+         }
+       }
+       tid->DeleteIfAllowed();
+     } // stream exhausted
+     return 0;
+   }
+
+
+
+ private:
+    Stream<TupleIdentifier> stream;
+    vector<Tuple*>* rel;
+    vector<int> attrs;
+    vector<Supplier> funs;
+    vector<ArgVectorPointer> funargs;
+    TupleType* resType;
+
+    Tuple* updateTuple(Tuple* orig){
+       Tuple* res = new Tuple(resType);
+       // copy all attributes twice
+       for(int i=0;i<orig->GetNoAttributes();i++){
+         res->CopyAttribute(i,orig,i);
+         res->CopyAttribute(i,orig, i + orig->GetNoAttributes());
+       }
+       res->PutAttribute(res->GetNoAttributes()-1, 
+                         new TupleIdentifier(true, orig->GetTupleId()));
+
+       // update according to the functions
+       for(size_t i=0;i<funs.size(); i++){
+          Supplier s = funs[i];
+          ArgVectorPointer a = funargs[i];
+          (*a)[0].setAddr(orig);
+          Word funres;
+          qp->Request(s,funres);
+          Attribute* resAttr = ((Attribute*)funres.addr)->Clone();
+          orig->PutAttribute(attrs[i], resAttr);
+          res->PutAttribute(attrs[i], resAttr->Copy());
+       }
+       return res;
+
+    }
+};
+
+
+
+template<class T>
+int mupdateVMT(Word* args, Word& result,
+               int message, Word& local, Supplier s) {
+
+   mupdateInfoN* li = (mupdateInfoN*) local.addr;
+   switch(message){
+     case OPEN : {
+                   if(li){
+                     delete li;
+                     local.addr = 0;
+                   }
+                   T* mrel = (T*) args[1].addr;
+                   MemoryRelObject* rel = getMemRel(mrel);
+                   if(!rel) { 
+                      return 0;
+                   }
+                   vector<int> attrs;
+                   for(int i=3; i<qp->GetNoSons(s); i++){
+                     attrs.push_back(((CcInt*)args[i].addr)->GetValue());
+                   }
+                   ListExpr tt = nl->Second(GetTupleResultType(s));
+                   local.addr = new mupdateInfoN(args[0],
+                                                rel->getmmrel(),
+                                                attrs,
+                                                qp->GetSon(s,2), tt);
+                   return 0;
+                 }
+      case REQUEST: result.addr = li?li->next():0;
+                    return result.addr?YIELD:CANCEL;
+      case CLOSE : if(li){
+                      delete li;
+                      local.addr=0;
+                   }
+                   return 0; 
+   }
+   return -1;
+}
+
+ValueMapping mupdateVMN[] = {
+   mupdateVMT<CcString>,
+   mupdateVMT<Mem>
+};
+
+int mupdateSelectN(ListExpr args){
+  return CcString::checkType(nl->Second(args))?0:1;
+}
+
+OperatorSpec mupdateSpecN(
+  "stream(tid) x {string, mem(rel)} x funlist -> stream(tuple)",
+  "<stream> mupdate[ <memrel> ; funs]",
+  "Applies functions to the tuples in <memrel> specified by "
+  "their id's in the incomming stream and updates the tuples "
+  "in the relation. ",
+  "query \"ten\" mfeed  filter[.No = 6] mupdate[\"ten\", No : .No + 23] count"
+);
+
+
+Operator mupdateNOp(
+  "mupdate",
+  mupdateSpecN.getStr(),
+  2,
+  mupdateVMN,
+  mupdateSelectN,
+  mupdateTM
+);
+
+
+
+
+
+
+
+
+
 enum UpdateOp {
   MUpdate,
   MUpdateSave,
   MUpdateByID
 };
 
-template<UpdateOp uo>
 void update(vector<Tuple*>* relation, Tuple* res, 
             int changedIndex, Attribute* attr) {
       
@@ -7886,19 +8235,26 @@ are appended to an output stream.
 7.16.1 General Type Mapping Funktions for operator ~mupdate~ and
        ~mupdatesave~.
 
+  stream(tid) x mrel x funlist
+
+  stream(tid) x mrel x mrel x funlist 
+
 */
-    
+template<bool save>    
 ListExpr mupdateTypeMap(ListExpr args) {
-  
-  if((nl->ListLength(args)!=3) && (nl->ListLength(args)!=4)) {
-    return listutils::typeError("wrong number of arguments");
+
+  int noargs = save?4:3;
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
   }
-  
+  if(!nl->HasLength(args,noargs)){
+    return listutils::typeError("wrong number of arguments");
+  }  
+
   // process stream
-  ListExpr first = nl->First(args); //stream + query
-  ListExpr stream = nl->First(first);
-  if(!listutils::isTupleStream(stream)){
-    return listutils::typeError("first argument must be a tuple stream");
+  ListExpr stream = nl->First(nl->First(args));
+  if(!Stream<TupleIdentifier>::checkType(stream)){
+    return listutils::typeError("first argument must be a tuple id's");
   }
   
   // process second argument (mem(rel))
@@ -7912,139 +8268,146 @@ ListExpr mupdateTypeMap(ListExpr args) {
   if(!Relation::checkType(second)) {
     return listutils::typeError("second arg is not a memory relation");
   }
-  if(!nl->Equal(nl->Second(stream), nl->Second(second))){
-      return listutils::typeError("stream type and mem relation type differ");
+  ListExpr at;
+  if(listutils::findAttribute(nl->Second(nl->Second(second)),"TID",at)){
+    return listutils::typeError("Relation already contains a TID attribute");
   }
-  
-  // process third argument (only for mupdatesave)
-  if(nl->ListLength(args)==4) {
-    ListExpr third = nl->Third(args);
-    if(!getMemType(nl->First(third), nl->Second(third), third, errMsg)){
-       return listutils::typeError( "(problem in third arg : " 
-                                    + errMsg + ")");
-    }
-    
-    third = nl->Second(third);
-    if(!Relation::checkType(third)) {
-      return listutils::typeError("third arg is not a memory relation");
-    }
-  }
- 
-  // process update function
-  ListExpr map;
-  // mupdate
-  if(nl->ListLength(args)==3) 
-    map = nl->Third(args);
-  // mupdatesave
-  else
-    map = nl->Fourth(args);
-  // argument is not a map
-  if(nl->ListLength(map<1)) {
-    return listutils::typeError("arg must be a list of maps");
-  }
-  ListExpr maprest = nl->First(map);
-  int noAttrs = nl->ListLength(map);
-  
-  // Go through all functions
-  ListExpr mapfirst, mapsecond;
-  ListExpr attrType;
-  ListExpr indices, indicescurrent;
-  
-  while (!(nl->IsEmpty(maprest))) {
-    map = nl->First(maprest);
-    maprest = nl->Rest(maprest);
-    mapfirst = nl->First(map);
-    mapsecond = nl->Second(map);
-    
-    // check if argument map is a function
-    if(!listutils::isMap<1>(mapsecond)){
-      return listutils::typeError("not a map found");
-    }
-    if(!nl->Equal(nl->Second(stream),nl->Second(mapsecond))) {
-      return listutils::typeError("argument of map is wrong");
-    }
 
-    // check for valid attribute name in function
-    if(!listutils::isSymbol(mapfirst)){
-      return listutils::typeError("not a valid attribute name:" +
-                                  nl->ToString(mapfirst));
-    }
-    string argstr;
-    int attrIndex;
-    nl->WriteToString(argstr, mapfirst);
-    attrIndex = listutils::findAttribute(nl->Second(nl->Second(stream)),
-                              argstr, attrType);
-    if(attrIndex==0){
-      return listutils::typeError("attribute " + argstr + " not known");
-    }
-    if(!nl->Equal(attrType, nl->Third(mapsecond))){
-      return listutils::typeError("result of the map and attribute"
-                                  " type differ");
-    }
-    
-    // construct list with all indices of the changed attributes
-    // in the inputstream to be appended to the resultstream
-    bool firstcall = true;
-    if(firstcall) {
-      indices = nl->OneElemList(nl->IntAtom(attrIndex));
-      indicescurrent = indices;
-      firstcall = false;
-    }
-    else 
-      indicescurrent = nl->Append(indicescurrent,
-                                  nl->IntAtom(attrIndex));
+  ListExpr maps = save?nl->Fourth(args):nl->Third(args);
+  maps = nl->First(maps);
+
+  if(   (nl->AtomType(maps)!=NoAtom)
+     || nl->IsEmpty(maps)){
+    return listutils::typeError("last arg must be a non-empty list of maps");
+  } 
+
+  // check maps
+  ListExpr tuple = nl->Second(second);
+  ListExpr attrList = nl->Second(tuple);
+
+  ListExpr indexList = nl->TheEmptyList();
+  ListExpr lastIndex = indexList;
+
+  // create the result list as a copy from attrlist
+  ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
+  ListExpr last = newAttrList;
+  ListExpr tmp = nl->Rest(attrList);
+  while(!nl->IsEmpty(tmp)){
+     last = nl->Append(last,nl->First(tmp));
+     tmp = nl->Rest(tmp);
   }
-  
-  maprest = nl->Second(nl->Second(stream));
-  
-  ListExpr attrlist = nl->OneElemList(nl->First(maprest));
-  ListExpr currentattr = attrlist;
-  maprest = nl->Rest(maprest);
-  
-  while (!(nl->IsEmpty(maprest))) {
-    currentattr = nl->Append(currentattr,nl->First(maprest));
-    maprest = nl->Rest(maprest);
-  }
-  
-  // build second part of the resultstream
-  maprest = nl->Second(nl->Second(stream));
-  string oldName;
-  ListExpr oldattr;
-  while (!(nl->IsEmpty(maprest))) {
-    nl->WriteToString(oldName, nl->First(nl->First(maprest)));
-    oldName += "_old";
-    oldattr = nl->TwoElemList(nl->SymbolAtom(oldName),
-                              nl->Second(nl->First(maprest)));
-    currentattr = nl->Append(currentattr,oldattr);
-    maprest = nl->Rest(maprest);
-  }
-  currentattr = nl->Append(currentattr,
-                           nl->TwoElemList(
+  // append the same attributes with additional _old
+  tmp = attrList;
+  while(!nl->IsEmpty(tmp)){
+     ListExpr a = nl->First(tmp);
+     tmp = nl->Rest(tmp);
+     last = nl->Append(last, nl->TwoElemList( 
+                                nl->SymbolAtom(
+                                   nl->SymbolValue(nl->First(a))+"_old"),
+                                nl->Second(a)));
+  } 
+  last = nl->Append(last,nl->TwoElemList(
                              nl->SymbolAtom("TID"),
-                             nl->SymbolAtom(TupleIdentifier::BasicType())));
-  
-  ListExpr resType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                     nl->TwoElemList(
-                                       nl->SymbolAtom(Tuple::BasicType()),
-                                       attrlist));
-  
-  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
-                           nl->TwoElemList(nl->IntAtom(noAttrs),
-                                           indices),
-                           resType);
+                             listutils::basicSymbol<TupleIdentifier>())); 
+  if(!listutils::isAttrList(newAttrList)){
+    return listutils::typeError("Found name conflict in result type");
+  }
+
+  set<string> used;
+  while(!nl->IsEmpty(maps)){
+    ListExpr map = nl->First(maps);
+    maps = nl->Rest(maps);
+    if(!nl->HasLength(map,2)){  // (name map)
+       return listutils::typeError("funlist contains not a named function");
+    }
+    if(  !listutils::isSymbol(nl->First(map))
+       ||!listutils::isMap<1>(nl->Second(map))){
+       return listutils::typeError("funlist contains not a named function");
+    }
+    string attrName = nl->SymbolValue(nl->First(map));
+    if(used.find(attrName)!=used.end()){
+      return listutils::typeError("used " + attrName + " twice");
+    }
+    used.insert(attrName);
+    if(listutils::findAttribute(attrList, attrName+"_old", at)){
+      return listutils::typeError(attrName
+                   + "_old already part of the relation");
+    }
+    int index = listutils::findAttribute(attrList, attrName, at);
+    if(index==0){
+      return listutils::typeError(  "Attribute " + attrName 
+                                  + " not part of the relation");
+    }
+    ListExpr fun = nl->Second(map);
+    if(!nl->Equal(nl->Second(fun), tuple)){
+      return listutils::typeError("function argument for " + attrName 
+                    + " differs from the tuple type");
+    } 
+    if(!nl->Equal(nl->Third(fun), at)){
+      return listutils::typeError("function result for " + attrName 
+                    + " differs from the attribute type");
+    } 
+    // checks successful, extend lists
+    if(nl->IsEmpty(indexList)){
+       indexList = nl->OneElemList(nl->IntAtom(index-1));
+       lastIndex = indexList;
+    } else {
+       lastIndex = nl->Append(lastIndex,nl->IntAtom(index-1));
+    }
+  }
+  ListExpr newTuple = nl->TwoElemList(
+                         listutils::basicSymbol<Tuple>(),
+                         newAttrList);
+
+
+  if(save){ // check third argument
+     ListExpr auxRel = nl->Third(args);
+     if(!getMemType(nl->First(auxRel), nl->Second(auxRel), auxRel, errMsg)) {
+        return listutils::typeError("(problem in third arg : " 
+                                  + errMsg + ")");
+     }
+     auxRel = nl->Second(auxRel);
+     if(!Relation::checkType(auxRel)){
+        return listutils::typeError("third arg is not a memory relation");
+     }
+     if(!nl->Equal(nl->Second(auxRel), newTuple)){
+        return listutils::typeError("auxiliarary relation has another type "
+                         "than the result");
+     }
+  }
+
+  return nl->ThreeElemList(
+                nl->SymbolAtom(Symbols::APPEND()),
+                indexList,
+                nl->TwoElemList(
+                      listutils::basicSymbol<Stream<Tuple> >(),
+                      newTuple));
 }
 
-// TODO support for more than one function
 class mupdateInfo {
   public:
-    mupdateInfo(Word w, vector<Tuple*>* _relation, 
-                bool _flob, Word _arg, 
-                Word _arg2, ListExpr _type)
-      : stream(w),relation(_relation), flob(_flob), arg(_arg), 
-        arg2(_arg2)  {
-      type = new TupleType(_type);
-      stream.open();
+    mupdateInfo(Word _stream, 
+                vector<Tuple*>* _mainRelation, 
+                bool _flob, 
+                Supplier _funs, 
+                vector<Tuple*>* _auxRelation,
+                vector<int>& _indexes, 
+                ListExpr _type) :
+       stream(_stream), mainRelation(_mainRelation),
+       flob(_flob),  auxRelation(_auxRelation),
+       indexes(_indexes) {
+         type = new TupleType(_type);
+         stream.open();
+         for(int i=0;i<qp->GetNoSons(_funs); i++){
+            Supplier s = qp->GetSupplier(qp->GetSupplier(_funs,i),1);
+            ArgVectorPointer p = qp->Argument(s);
+            funs.push_back(s);
+            funargs.push_back(p); 
+         } 
+         assert(indexes.size()==funs.size());
+
     }
+
 
     ~mupdateInfo(){
       stream.close();
@@ -8052,59 +8415,61 @@ class mupdateInfo {
     }
     
     Tuple* next() {
-      Tuple* res = stream.request();
-      if(!res) { return 0; }
-      
-      // Supplier for the functions
-      Supplier supplier = arg.addr;
-
-      Word elem;  
-      Supplier son = qp->GetSupplier(arg2.addr, 0);
-      qp->Request(son, elem);
-      int changedIndex = ((CcInt*)elem.addr)->GetIntval()-1;
-
-      // Get next appended index
-      Supplier s1 = qp->GetSupplier(supplier, 0);
-      // Get the function
-      Supplier s2 = qp->GetSupplier(s1, 1);
-      ArgVectorPointer funargs = qp->Argument(s2);
-      ((*funargs)[0]).setAddr(res);
-      Word value;
-      qp->Request(s2,value);
-      Attribute* newAttr = ((Attribute*)value.addr)->Clone();
-      
-      if(flob)
-        res->bringToMemory();
-      
-      Tuple* tup = new Tuple(type);
-      
-      
-      for(int i = 0; i < res->GetNoAttributes(); i++) {
-        if(i!=changedIndex)
-          tup->CopyAttribute(i,res,i);
-        else
-          tup->PutAttribute(i,newAttr);
-      }
-      
-      //get tuple id and append it to tuple
-      const TupleId& tid = res->GetTupleId();
-      Attribute* tidAttr = new TupleIdentifier(true,tid);
-      tup->PutAttribute(tup->GetNoAttributes()-1,tidAttr);
-      
-      update<MUpdate>(relation,res,changedIndex,newAttr);
-
-      res->DeleteIfAllowed();
-
-      return tup;
+       TupleIdentifier* t;
+       while( (t=stream.request())){
+          if(!t->IsDefined()){
+            t->DeleteIfAllowed();
+          } else {
+            TupleId id = t->GetTid();
+            t->DeleteIfAllowed();
+            if(id>0 && id <=mainRelation->size()){
+               Tuple* tuple = mainRelation->at(id-1);
+               if(tuple){
+                  return createResultTuple(id, tuple);
+               }
+            }
+          }
+       }
+       return 0;
     }
 
   private:
-     Stream<Tuple> stream;
-     vector<Tuple*>* relation; 
+     Stream<TupleIdentifier> stream;
+     vector<Tuple*>* mainRelation; 
      bool flob;
-     Word arg;
-     Word arg2;
+     vector<Tuple*>* auxRelation;
+     vector<int> indexes;
+     vector<Supplier> funs;
+     vector<ArgVectorPointer> funargs;
      TupleType* type;
+
+     Tuple* createResultTuple(TupleId id, Tuple* tuple){
+         Tuple* res = new Tuple(type);
+         // copy all attributes twice into the new tuple
+         for(int i=0;i<tuple->GetNoAttributes(); i++){
+           res->CopyAttribute(i,tuple,i);
+           res->CopyAttribute(i,tuple, i + tuple->GetNoAttributes());
+         }
+         // put tid into tuple
+         res->PutAttribute(res->GetNoAttributes()-1, 
+                           new TupleIdentifier(true,id));
+         res->SetTupleId(id);
+         // update attributes
+         for(size_t i=0;i<funs.size();i++){
+            (*(funargs[i]))[0] = tuple;
+            Word v;
+            qp->Request(funs[i],v);
+            Attribute* newAttr = ((Attribute*)v.addr)->Clone();
+            res->PutAttribute(indexes[i], newAttr); // put to res
+            tuple->PutAttribute(indexes[i], newAttr->Copy()); // update relation
+         }
+         // save if necessary
+         if(auxRelation){
+           res->IncReference();
+           auxRelation->push_back(res); 
+         }
+         return res;
+     }
 };
 
 
@@ -8113,12 +8478,12 @@ class mupdateInfo {
 7.16.3  Value Mapping Function of operator ~mupdate~
 
 */
-template<class T>
+template<class T, class S, bool save>
 int mupdateValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
   
   mupdateInfo* li = (mupdateInfo*) local.addr;
-  
+
   switch (message) {
     
     case OPEN : {
@@ -8127,19 +8492,29 @@ int mupdateValMap (Word* args, Word& result,
         delete li;
         local.addr=0;
       }
-      
-      qp->Open(args[0].addr);
-      
-      T* oN = (T*) args[1].addr;
-      ListExpr ttype = nl->Second(qp->GetType(qp->GetSon(s,0)));
-      MemoryRelObject* rel = getMemRel(oN,ttype);
-      if(!rel) { return 0; }
-        
+      T* oN = (T*) args[1].addr; 
+      MemoryRelObject* rel = getMemRel(oN);
       ListExpr tt = nl->Second(GetTupleResultType(s));
-      
-      local.addr = new mupdateInfo(args[0],rel->getmmrel(),
-                                   rel->hasflob(),
-                                   args[2],args[4],tt);
+      int funindex = 2;
+      vector<Tuple*>* auxRel = 0;
+      if(save){
+         funindex = 3;
+         S* aRel = (S*) args[2].addr;
+         MemoryRelObject* arel = getMemRel(aRel);
+         auxRel = arel->getmmrel();
+      }      
+
+      vector<int> indexes;
+      for(int i=funindex+1;i<qp->GetNoSons(s);i++){
+        indexes.push_back(((CcInt*)args[i].addr)->GetValue());
+      }
+      local.addr = new mupdateInfo(args[0], // stream
+                                   rel->getmmrel(), // main relation
+                                   rel->hasflob(), // flob?
+                                   qp->GetSon(s,funindex), // funlist
+                                   auxRel, // auxiliary relation
+                                   indexes,  // attribute indexes
+                                   tt); // result tuple type
       return 0;
     }
     
@@ -8159,8 +8534,8 @@ int mupdateValMap (Word* args, Word& result,
 }
 
 ValueMapping mupdateVM[] = {
-   mupdateValMap<CcString>,
-   mupdateValMap<Mem>
+   mupdateValMap<CcString, CcString, false>,
+   mupdateValMap<Mem, CcString, false>
 };
 
 int mupdateSelect(ListExpr args){
@@ -8194,163 +8569,21 @@ Operator mupdateOp (
     2,
     mupdateVM,
     mupdateSelect,
-    mupdateTypeMap
+    mupdateTypeMap<false>
 );
 
 
-/*
-7.17 Operator ~mupdatesave~
-
-The Operator ~mupdatesave~ has the same functionality as ~mupdate~, but
-saves the tuples of the output stream in an additional auxiliary
-main memory relation.
-
-*/
-class mupdatesaveInfo {
-  public:
-    mupdatesaveInfo(Word w, vector<Tuple*>* _relation, 
-                    vector<Tuple*>* _auxrel, 
-                    bool _flob, Word _arg, 
-                    Word _arg2, ListExpr _type)
-      : stream(w),relation(_relation), auxrel(_auxrel),
-        flob(_flob), arg(_arg), 
-        arg2(_arg2) {
-      type = new TupleType(_type);
-      stream.open();
-    }
-    
-    ~mupdatesaveInfo(){
-      type->DeleteIfAllowed();
-      stream.close();
-    }
-
-    Tuple* next() {
-      
-      Tuple* res = stream.request();
-      if(!res) { return 0; }
-      
-      // Copy the attributes from the old tuple
-      Tuple* tup = copyAttributes(res,type);
-
-      // Supplier for the functions
-      Supplier supplier = arg.addr;
-      Word elem, value;  
-      Supplier son = qp->GetSupplier(arg2.addr, 0);
-      qp->Request(son, elem);
-      int changedIndex = ((CcInt*)elem.addr)->GetIntval()-1;
-
-      // Get next appended index
-      Supplier s1 = qp->GetSupplier(supplier, 0);
-      // Get the function
-      Supplier s2 = qp->GetSupplier(s1, 1);
-      ArgVectorPointer funargs = qp->Argument(s2);
-      ((*funargs)[0]).setAddr(res);
-      qp->Request(s2,value);
-      Attribute* newAttr = ((Attribute*)value.addr)->Clone();
-
-      if(flob){
-        res->bringToMemory();
-      }
-      
-      for(int i = 0; i < res->GetNoAttributes(); i++) {
-        if(i!=changedIndex)
-          tup->CopyAttribute(i,res,i);
-        else
-          tup->PutAttribute(i,newAttr->Clone());
-      }
-      
-      //get tuple id and append it to tuple
-      const TupleId& tid = res->GetTupleId();
-      Attribute* tidAttr = new TupleIdentifier(true,tid);
-      tup->PutAttribute(tup->GetNoAttributes()-1,tidAttr);
-      
-      // append tuple to auxrel
-      auxrel->push_back(tup);
-//       tup->IncReference();
-      
-      update<MUpdateSave>(relation,res,changedIndex,newAttr);
-      // in all places, newAttr was cloned, thus we can delete it here
-      delete newAttr;
-
-      res->DeleteIfAllowed();  
-      
-//       res->DeleteIfAllowed();
-      return tup;
-    }
-
-  private:
-     Stream<Tuple> stream;
-     vector<Tuple*>* relation;
-     vector<Tuple*>* auxrel;
-     bool flob;
-     Word arg;
-     Word arg2;
-     TupleType* type;
-};
-
-
-/*
-7.17.2 Value Mapping Function of operator ~mupdatesave~
-
-*/
-template<class T>
-int mupdatesaveValueMap (Word* args, Word& result,
-                    int message, Word& local, Supplier s) {
-  
-  mupdatesaveInfo* li = (mupdatesaveInfo*) local.addr;
-  
-  switch (message) {
-    
-    case OPEN : {
-      
-      if(li) {
-        delete li;
-        local.addr=0;
-      }
-      
-      qp->Open(args[0].addr);
-      
-      T* oN = (T*) args[1].addr;
-      T* aux = (T*) args[2].addr;
-      
-      MemoryRelObject* rel = getMemRel(oN);
-      if(!rel) { return 0; }
-      MemoryRelObject* auxrel = getMemRel(aux);
-      if(!auxrel) { return 0; }
-      
-      ListExpr tt = nl->Second(GetTupleResultType(s));
-      
-      local.addr = new mupdatesaveInfo(args[0],rel->getmmrel(),
-                                       auxrel->getmmrel(),
-                                       rel->hasflob(),
-                                       args[3],args[5],tt);
-      return 0;
-    }
-    
-    case REQUEST : {
-      result.addr=li?li->next():0;
-      return result.addr?YIELD:CANCEL;
-    }
-    
-    case CLOSE :
-      if(li) {
-        delete li;
-        local.addr = 0;
-      }
-      return 0;
-      
-  }
-  return 0;
-
-}
-
 ValueMapping mupdatesaveVM[] = {
-   mupdatesaveValueMap<CcString>,
-   mupdatesaveValueMap<Mem>
+   mupdateValMap<CcString, CcString, true>,
+   mupdateValMap<CcString, Mem, true>,
+   mupdateValMap<Mem, CcString, true>,
+   mupdateValMap<Mem, Mem, true>
 };
 
 int mupdatesaveSelect(ListExpr args){
-   return CcString::checkType(nl->Second(args))?0:1;
+   int n1 = CcString::checkType(nl->Second(args))?0:2;
+   int n2 = CcString::checkType(nl->Third(args))?0:1;
+   return n1+n2;
 }
 
 
@@ -8379,10 +8612,10 @@ OperatorSpec mupdatesaveSpec(
 Operator mupdatesaveOp (
     "mupdatesave",
     mupdatesaveSpec.getStr(),
-    2,
+    4,
     mupdatesaveVM,
     mupdatesaveSelect,
-    mupdateTypeMap
+    mupdateTypeMap<true>
 );
 
 
@@ -8563,7 +8796,7 @@ class mupdatebyidInfo {
       qp->Request(s2,value);
       Attribute* newAttr = ((Attribute*)value.addr)->Clone();
       
-      update<MUpdateByID>(relation,res,changedIndex,newAttr); 
+      update(relation,res,changedIndex,newAttr); 
       res->SetTupleId(tid->GetTid());
       for(int i = 0; i < res->GetNoAttributes(); i++) {
         if(i!=changedIndex)
@@ -8571,7 +8804,6 @@ class mupdatebyidInfo {
         else
           newtup->PutAttribute(i,newAttr);
       }
-      
       //get tuple id and append it to tuple
       Attribute* tidAttr = new TupleIdentifier(true,tid->GetTid());
       newtup->PutAttribute(newtup->GetNoAttributes()-1,tidAttr);
@@ -8849,7 +9081,7 @@ Operator moinsertOp (
     4,
     moinsertVM,
     moinsertSelect<MOInsert>,
-    minsertTypeMap
+    minsertTypeMap<2>
 );
 
 
@@ -8882,7 +9114,7 @@ Operator modeleteOp (
     4,
     moinsertVM,
     moinsertSelect<MODelete>,
-    minsertTypeMap
+    minsertTypeMap<2>
 );
 
 
@@ -10500,7 +10732,6 @@ ListExpr moconnectedcomponentsTypeMap(ListExpr args) {
       return listutils::typeError("memory object is not a relation");
     }
 
-    // TODO check if second argument attribute of relation
 
     ListExpr rest = nl->Second(nl->Second(arg));
     ListExpr listn = nl->OneElemList(nl->First(rest));
@@ -10959,15 +11190,15 @@ class mquicksortInfo{
 
     
     Tuple* next() {
-      if(it == relation->end()) 
-        return 0;
-      Tuple* res = *it;
-      if(!res) {
-        return 0;
+      while(it != relation->end()){ 
+         Tuple* res = *it;
+         it++;
+         if(res) {
+           res->IncReference();
+           return res;
+         }
       }
-      it++;
-      res->IncReference();
-      return res;
+      return 0;
     }
 
   private:
@@ -13473,7 +13704,9 @@ class MainMemory2Algebra : public Algebra {
 
     public:
         MainMemory2Algebra() : Algebra() {
-          catalog = new MemCatalog();
+          if(!catalog){
+             catalog = new MemCatalog();
+          }
 
 /*
 
@@ -13566,6 +13799,9 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mwrapOp);
           mwrapOp.SetUsesArgsInTypeMapping();
           AddOperator(&MTUPLEOp);
+          MTUPLEOp.SetUsesArgsInTypeMapping();
+          AddOperator(&MTUPLE2Op);
+          MTUPLE2Op.SetUsesArgsInTypeMapping(); 
           
           AddOperator(&mcreatettreeOp);
           mcreatettreeOp.SetUsesArgsInTypeMapping();
@@ -13600,8 +13836,8 @@ class MainMemory2Algebra : public Algebra {
 
           AddOperator(&mcreateupdaterelOp);
           mcreateupdaterelOp.SetUsesArgsInTypeMapping();
-          AddOperator(&mupdateOp);
-          mupdateOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mupdateNOp);
+          mupdateNOp.SetUsesArgsInTypeMapping();
           AddOperator(&mupdatesaveOp);
           mupdatesaveOp.SetUsesArgsInTypeMapping();
           AddOperator(&mupdatebyidOp);
@@ -13650,7 +13886,12 @@ class MainMemory2Algebra : public Algebra {
 //           momapmatchmhtOp.SetUsesArgsInTypeMapping(); 
         }
         
-        ~MainMemory2Algebra() {};
+        ~MainMemory2Algebra() {
+            if(catalog){
+              delete catalog; 
+              catalog = 0;
+            }
+        };
 };
 
 } // end of namespace mmalgebra

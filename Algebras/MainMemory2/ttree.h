@@ -588,7 +588,7 @@ Searches for a specified element within this node using a binary search.
 Returns the index where the element is or should be.
 
 */
-      int find(T& value, std::vector<int>* attrPos){
+      int find(const T& value, const std::vector<int>* attrPos)const{
          int min = 0;
          int max = count-1;
          while(min < max){
@@ -952,7 +952,14 @@ instead of the begin.
       return it;
     }
  
-    
+   
+
+    const T* GetNearestSmallerOrEqual(const T& v, 
+                                      const std::vector<int>* attrPos)const{
+        return getNearestSmallerOrEqual(root,v, attrPos);
+    }
+
+ 
 
 /*
 ~noEntries~
@@ -1735,6 +1742,32 @@ Prints the subtree given by root to the console.
       out << ") \n";
       
     }
+
+
+    T const * getNearestSmallerOrEqual(Node* root, const T& v, 
+                                const std::vector<int>* attrPos)const{
+
+       T const * cand = 0;
+       while(root){
+          if(Comparator::smaller(v, root->getMinValue(),attrPos)){
+             root = root->getLeftSon();
+          } else if(Comparator::greater(v,root->getMaxValue(),attrPos)){
+             cand = &root->getMaxValue();
+             root = root->getRightSon();
+          } else {
+             int index = root->find(v, attrPos);
+             if(!Comparator::greater(*root->objects[index],v, attrPos)){
+               return root->objects[index];
+             } else {
+               assert(index>0);
+               return root->objects[index-1];
+             }
+          }
+       }
+       return cand;      
+    }
+
+
 };
 
 

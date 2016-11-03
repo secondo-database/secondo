@@ -246,11 +246,18 @@ class TupleComp {
   public:
      static bool smaller(const TupleWrap& aw, 
                          const TupleWrap& bw, 
-                         std::vector<int>* attrPos) {
+                         const std::vector<int>* attrPos) {
         
        bool smaller;
        Tuple* a = aw.getPointer();
        Tuple* b = bw.getPointer();
+       if( (a==0) && (b == 0)){
+         return false;
+       }
+       if( (a==0) || (b==0)){
+         return a==0;
+       }
+
        for(size_t i=0; i<attrPos->size(); i++) {
           int cmp = ((Attribute*)a->GetAttribute(attrPos->at(i)-1))->Compare(
                     ((Attribute*)b->GetAttribute(attrPos->at(i)-1)));
@@ -266,10 +273,16 @@ class TupleComp {
      
      static bool equal(const TupleWrap& aw, 
                        const TupleWrap& bw, 
-                       std::vector<int>* attrPos) {
+                       const std::vector<int>* attrPos) {
        bool equal = false;
        Tuple* a = aw.getPointer();
        Tuple* b = bw.getPointer();
+       if( (a==0) && (b == 0)){
+         return true;
+       }
+       if( (a==0) || (b==0)){
+         return false;
+       }
        for(size_t i=0; i<attrPos->size(); i++) {
           int cmp = ((Attribute*)a->GetAttribute(attrPos->at(i)-1))->Compare(
                     ((Attribute*)b->GetAttribute(attrPos->at(i)-1)));
@@ -283,10 +296,86 @@ class TupleComp {
      
      static bool greater(const TupleWrap& aw, 
                          const TupleWrap& bw, 
-                         std::vector<int>* attrPos) {
+                         const std::vector<int>* attrPos) {
        bool greater;
        Tuple* a = aw.getPointer();
        Tuple* b = bw.getPointer();
+       if( (a==0) && (b == 0)){
+         return false;
+       }
+       if( (a==0) || (b==0)){
+         return b==0;
+       }
+       for(size_t i=0; i<attrPos->size(); i++) {
+          int cmp = ((Attribute*)a->GetAttribute(attrPos->at(i)-1))->Compare(
+                    ((Attribute*)b->GetAttribute(attrPos->at(i)-1)));
+          if(cmp>0)
+            return true;
+          else if(cmp<0)
+            return false;
+          else
+            greater = false;
+        }
+        return greater;
+     }
+     
+
+     static bool smaller(const Tuple* a, 
+                         const Tuple* b, 
+                         std::vector<int>* attrPos) {
+        
+       bool smaller;
+       if( (a==0) && (b == 0)){
+         return false;
+       }
+       if( (a==0) || (b==0)){
+         return a==0;
+       }
+
+       for(size_t i=0; i<attrPos->size(); i++) {
+          int cmp = ((Attribute*)a->GetAttribute(attrPos->at(i)-1))->Compare(
+                    ((Attribute*)b->GetAttribute(attrPos->at(i)-1)));
+          if(cmp<0)
+            return true;
+          else if(cmp>0)
+            return false;
+          else
+            smaller = false;
+        }        
+        return smaller;
+     }
+     
+     static bool equal(const Tuple* a, 
+                       const Tuple* b, 
+                       std::vector<int>* attrPos) {
+       bool equal = false;
+       if( (a==0) && (b == 0)){
+         return true;
+       }
+       if( (a==0) || (b==0)){
+         return false;
+       }
+       for(size_t i=0; i<attrPos->size(); i++) {
+          int cmp = ((Attribute*)a->GetAttribute(attrPos->at(i)-1))->Compare(
+                    ((Attribute*)b->GetAttribute(attrPos->at(i)-1)));
+          if(cmp==0)
+            equal = true;
+          else 
+            return false;
+        }
+        return equal;
+     }
+     
+     static bool greater(const Tuple* a, 
+                         const Tuple* b, 
+                         std::vector<int>* attrPos) {
+       bool greater;
+       if( (a==0) && (b == 0)){
+         return false;
+       }
+       if( (a==0) || (b==0)){
+         return b==0;
+       }
        for(size_t i=0; i<attrPos->size(); i++) {
           int cmp = ((Attribute*)a->GetAttribute(attrPos->at(i)-1))->Compare(
                     ((Attribute*)b->GetAttribute(attrPos->at(i)-1)));
@@ -442,7 +531,7 @@ class EntryComp {
     
      static bool smaller(const QueueEntryWrap& a, 
                          const QueueEntryWrap& b, 
-                         std::vector<int>* pos) {
+                         const std::vector<int>* pos) {
        if(a.getPointer()->nodeNumber < b.getPointer()->nodeNumber)
          return true;
        return false;
@@ -450,7 +539,7 @@ class EntryComp {
      
      static bool greater(const QueueEntryWrap& a, 
                          const QueueEntryWrap& b, 
-                         std::vector<int>* pos) {
+                         const std::vector<int>* pos) {
         if(a.getPointer()->nodeNumber > b.getPointer()->nodeNumber)
          return true;
        return false;
@@ -458,7 +547,7 @@ class EntryComp {
      
      static bool equal(const QueueEntryWrap& a, 
                        const QueueEntryWrap& b, 
-                       std::vector<int>* pos) {
+                       const std::vector<int>* pos) {
         if(a.getPointer()->nodeNumber == b.getPointer()->nodeNumber)
          return true;
        return false;
@@ -619,7 +708,7 @@ class AttrComp{
     public:
         static bool smaller(const AttrIdPair& p1, 
                             const AttrIdPair& p2, 
-                            std::vector<int>* pos) {
+                            const std::vector<int>* pos) {
 
             int res  = p1.getAttr()->Compare(p2.getAttr());
             if(res < 0) {
@@ -634,7 +723,7 @@ class AttrComp{
 
         static bool equal(const AttrIdPair& p1, 
                           const AttrIdPair& p2, 
-                          std::vector<int>* pos) {
+                          const std::vector<int>* pos) {
           
           int res = p1.getAttr()->Compare(p2.getAttr());
           return (res == 0) && (p1.getTid() == p2.getTid());
@@ -643,7 +732,7 @@ class AttrComp{
 
         static bool greater(const AttrIdPair& p1, 
                             const AttrIdPair& p2, 
-                            std::vector<int>* pos) {
+                            const std::vector<int>* pos) {
           
          int res = p1.getAttr()->Compare(p2.getAttr());
          if(res > 0) {
