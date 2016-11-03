@@ -515,7 +515,7 @@ void DistfunReg::euclidFVector(
   // calculate distance
   size_t dim = data1->size()/sizeof(double);
 
-  int x,y;
+  double x,y;
     result=0;
   for (unsigned int i=0; i<dim; i++){
     memcpy(&x, (char*)data1->value()+i*sizeof(double), sizeof(double));
