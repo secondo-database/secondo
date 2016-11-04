@@ -2869,16 +2869,17 @@ the name of the file, and returns a boolean meaning success or not.
 
 */
 ListExpr SaveMP3ToTypeMap( ListExpr args ) {
-    ListExpr arg1, arg2;
-    if ( nl->ListLength(args) == 2 ) {
-        arg1 = nl->First(args);
-        arg2 = nl->Second(args);
-        if (nl->IsEqual(arg1, MP3::BasicType()) &&
-            nl->IsEqual(arg2, CcString::BasicType())) {
-            return nl->SymbolAtom(CcBool::BasicType());
-        }
+    if(!nl->HasLength(args,2)){
+      return listutils::typeError("two args expected");
     }
-    return nl->SymbolAtom(Symbol::TYPEERROR());
+    if(!MP3::checkType(nl->First(args))){
+      return listutils::typeError("first arg must be an mp3");
+    }
+    if(!CcString::checkType(nl->Second(args))
+       &&!FText::checkType(nl->Second(args))){
+      return listutils::typeError("second arg must be a string or a text");
+    }
+    return listutils::basicSymbol<CcBool>();
 }
 
 /*
@@ -2886,17 +2887,18 @@ ListExpr SaveMP3ToTypeMap( ListExpr args ) {
 5.1.2 Value mapping functions of operator ~savemp3to~
 
 */
+template<class T>
 int SaveMP3ToFun(Word* args, Word& result, int message,
                  Word& local, Supplier s) {
     result = qp->ResultStorage( s );
+    CcBool* res = (CcBool*) result.addr;
     MP3 *mp3 = (MP3*)args[0].addr;
-    CcString *fileName = (CcString*)args[1].addr;
-
-    if( mp3->SaveMP3ToFile( *(fileName->GetStringval()) ) )
-        ((CcBool *)result.addr)->Set( true, true );
-    else
-        ((CcBool *)result.addr)->Set( true, false );
-
+    T* fileName = (T*) args[1].addr;
+    if(!mp3->IsDefined() || !fileName->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+    }
+    res->Set(true, mp3->SaveMP3ToFile(fileName->GetValue().c_str()));
     return 0;
 }
 
@@ -2908,7 +2910,7 @@ int SaveMP3ToFun(Word* args, Word& result, int message,
 const string SaveMP3ToSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
-"( <text>(mp3 string) -> bool"
+"( <text>(mp3 {string,text}) -> bool"
 "</text--->"
 "<text>_ savemp3to _</text--->"
 "<text>Saves the contents of the mp3 object into a "
@@ -2916,21 +2918,27 @@ const string SaveMP3ToSpec  =
 "<text>query song savemp3to \"song.mp3\"</text--->"
 ") )";
 
+
+int savemp3toSelect(ListExpr args){
+  return CcString::checkType(nl->Second(args))?0:1;
+}
+
+ValueMapping savemp3toVM[]= {
+    SaveMP3ToFun<CcString>,
+    SaveMP3ToFun<FText>
+ };
+
 /*
 
 5.1.4 Definition of operator ~savemp3to~
 
 */
 Operator savemp3to (
-    // name
     "savemp3to",
-    // specification
     SaveMP3ToSpec,
-    // value mapping
-    SaveMP3ToFun,
-    // trivial selection function
-    Operator::SimpleSelect,
-    // type mapping
+    2,
+    savemp3toVM,
+    savemp3toSelect,
     SaveMP3ToTypeMap
 );
 
