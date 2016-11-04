@@ -712,6 +712,7 @@ pos->push_back(2);
 void MemoryORelObject::addTuple(Tuple* tup){
   
   if(mmorel==0) {
+      cout << "crete new tree" << endl;
       mmorel = new ttree::TTree<TupleWrap,TupleComp>(4,8);
   }
 
@@ -720,13 +721,13 @@ void MemoryORelObject::addTuple(Tuple* tup){
   unsigned long availableMemSize = catalog->getAvailableMemSize();
 
   if((size_t)tupleSize<availableMemSize) {
-      tup->SetTupleId(mmorel->noEntries());
+      size_t tid = mmorel->noEntries()+1;
+      tup->SetTupleId(tid);
       TupleWrap tw(tup);
       mmorel->insert(tw,pos);
       memSize += tupleSize;
       catalog->addToUsedMemSize(tupleSize);
-  }
-  else {
+  } else {
       cout << "the memSize is not enough, the object"
               " might be usable but not complete" << endl;
   }
@@ -923,7 +924,7 @@ ListExpr MemoryORelObject::Out(ListExpr typeInfo, Word value) {
       nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
 
     ttree::Iterator<TupleWrap,TupleComp> it = mmorel->getmmorel()->begin();
-    while (it.hasNext()){
+    while (!it.end()){
       t = (*it).getPointer();
       tupleList = t->Out(tupleTypeInfo);
       if (result == nl->TheEmptyList()) {

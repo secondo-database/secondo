@@ -33,8 +33,6 @@ class PointerWrap{
 
   PointerWrap(): pointer(0){}
 
-  
-
   PointerWrap(T* t):pointer(t){
      if(t){
         t->IncReference();

@@ -9139,12 +9139,6 @@ ListExpr moconsumeTypeMap(ListExpr args) {
     if(!Stream<Tuple>::checkType(nl->First(args))) {
         return listutils::typeError ("stream(tuple) expected!");
     }
-    
-    ListExpr attrlist = nl->Second(nl->Second(nl->First(args)));
-    if(!listutils::checkAttrListForNamingConventions(attrlist)){
-      return listutils::typeError("Some of the attributes do "
-                   "not fit into Secondo's naming conventions");
-    }
     if(!listutils::isKeyDescription(nl->Second(nl->First(args)),
                                     nl->Second(args))) {
       return listutils::typeError("all identifiers of second argument must "
@@ -9197,6 +9191,7 @@ int moconsumeValueMap (Word* args, Word& result,
     Tuple* tup = 0;
     while((tup = stream.request()) != 0) {
       morel->addTuple(tup);
+      tup->DeleteIfAllowed();
     }
     
     morel->setObjectTypeExpr(nl->ToString(nl->TwoElemList(nl->Second(rel),
@@ -9755,7 +9750,7 @@ QueueEntryWrap findNextNode(
            QueueEntryWrap& current) {
     
   ttree::Iterator<QueueEntryWrap,EntryComp> iter = visitedNodes->begin();
-  while(iter.hasNext()) {
+  while(!iter.end()) {
     QueueEntryWrap entry = *iter;
 
     if(entry.getPointer()->nodeNumber == current()->prev) {
@@ -10022,7 +10017,7 @@ public:
         CcInt* currentNodeNumber = new CcInt(true,current()->nodeNumber);
         // get tuple with currentNodeNumber as startnode
         ttree::Iterator<TupleWrap,TupleComp> it = mmorel->begin();
-        while(it.hasNext()) {
+        while(!it.end()) {
           Tuple* tup = (*it).getPointer();
           if(tup->GetAttribute(0)->Compare(currentNodeNumber) < 0) {
             it++;
@@ -10031,7 +10026,7 @@ public:
           else break;
         }
         // process edges
-        while(it.hasNext()) {
+        while(!it.end()) {
           
           Tuple* currentTuple = (*it).getPointer();
           // all edges processed
@@ -10060,7 +10055,7 @@ public:
                                             visitedNodes->begin();
             
             // check if shortening of path possible
-            while(it.hasNext()) {
+            while(!it.end()) {
               QueueEntryWrap entry = *it;
               if(entry.getPointer()->nodeNumber == toNode) {
                 if(entry.getPointer()->dist > dist) {
@@ -10150,7 +10145,7 @@ public:
       }
       case 2: { //visited sections
         ttree::Iterator<TupleWrap,TupleComp> iter = sptree->begin();
-         while(iter.hasNext()) {
+         while(!iter.end()) {
            Tuple* currentTuple = (*iter).getPointer();
            appendTuple(currentTuple,tt,seqNo,result);
            iter++;
@@ -10160,7 +10155,7 @@ public:
       }
       case 3: { //shortest path tree     
         ttree::Iterator<TupleWrap,TupleComp> iter = sptree->begin();
-        while(iter.hasNext()) {
+        while(!iter.end()) {
           Tuple* currentTuple = (*iter).getPointer();
           appendTuple(currentTuple,tt,seqNo,result);
           iter++;
@@ -10396,7 +10391,7 @@ public:
         CcInt* currentNodeNumber = new CcInt(true,current()->nodeNumber);
         
         ttree::Iterator<TupleWrap,TupleComp> it = mmorel->begin();
-        while(it.hasNext()) {
+        while(!it.end()) {
           Tuple* tup = (*it).getPointer();
           // get tuple with currentNodeNumber as startnode
           if(tup->GetAttribute(0)->Compare(currentNodeNumber) < 0) {
@@ -10405,7 +10400,7 @@ public:
           else break;
         }
         
-        while(it.hasNext()) {
+        while(!it.end()) {
           Tuple* currentTuple = (*it).getPointer();            
           if(currentTuple->GetAttribute(0)->Compare(currentNodeNumber) > 0) {
             break;
@@ -10438,7 +10433,7 @@ public:
             bool contained = false;
             ttree::Iterator<QueueEntryWrap,EntryComp> it = 
                                                       visitedNodes->begin();
-            while(it.hasNext()) {
+            while(!it.end()) {
               QueueEntryWrap entry = *it;
               // found node before
               if(entry()->nodeNumber == toNode) {
@@ -10531,7 +10526,7 @@ public:
       }
       case 2: { //visited sections
         ttree::Iterator<TupleWrap,TupleComp> it = sptree->begin();
-        while(it.hasNext()) {
+        while(!it.end()) {
           Tuple* currentTuple = (*it).getPointer();;
           appendTuple(currentTuple,tt,seqNo,result);
           seqNo++;
@@ -10541,7 +10536,7 @@ public:
       }
       case 3: { //shortest path tree     
         ttree::Iterator<TupleWrap,TupleComp> iter = sptree->begin();
-        while(iter.hasNext()) {
+        while(!iter.end()) {
           Tuple* currentTuple = (*iter).getPointer();
           appendTuple(currentTuple,tt,seqNo,result);
           iter++;
@@ -10858,12 +10853,12 @@ class moconnectedComponentsInfo{
       scc(tuple,index,stack,compNo);  
 
       // process nodes
-      while(it.hasNext()) {
+      while(!it.end()) {
         // find next node
         Tuple* t = (*it).getPointer();
         while(t->GetAttribute(0)->Compare(tuple->GetAttribute(0)) == 0) {
           it++;
-          if(it.hasNext()) {
+          if(!it.end()) {
             tuple = (*it).getPointer();
           }
           // all nodes processed
@@ -10904,7 +10899,7 @@ class moconnectedComponentsInfo{
       // find node in orel
       while(t->GetAttribute(0)->Compare(tuple->GetAttribute(0)) < 0) {
         it++;
-        if(it.hasNext())
+        if(!it.end())
           t = (*it).getPointer(); 
         else return;
       }
@@ -10919,7 +10914,7 @@ class moconnectedComponentsInfo{
           t = (*it).getPointer();
           while(((CcInt*)t->GetAttribute(0))->GetIntval() != w.nr) {
             it++;
-            if(it.hasNext())
+            if(!it.end())
               t = (*it).getPointer();     
             // no adjacent nodes for this node
             else {
@@ -10943,7 +10938,7 @@ class moconnectedComponentsInfo{
           t = (*it).getPointer();
           while(t->GetAttribute(0)->Compare(tuple->GetAttribute(0)) < 0) {
             it++;
-            if(it.hasNext())
+            if(!it.end())
               t = (*it).getPointer(); 
             else return;
           }
@@ -10956,7 +10951,7 @@ class moconnectedComponentsInfo{
           }
         }
         it++;
-        if(it.hasNext())
+        if(!it.end())
           t = (*it).getPointer();
         else break;
       }

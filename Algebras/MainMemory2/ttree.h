@@ -327,7 +327,7 @@ Print the tree rooted by this in tree format.
 
 */
     
-      void printtree(std::ostream& out){
+      void printtree(std::ostream& out) const{
           printtree(this,out);
       }
 
@@ -338,7 +338,7 @@ Print the tree rooted by this in tree format.
 Returns the minimum value of a non-empty node.
 
 */
-      inline const T& getMinValue(){ 
+      inline const T& getMinValue()const{ 
          assert(count>0);
          return *(objects[0]);
       }
@@ -350,7 +350,7 @@ Returns the maximum value of a non-empty node.
 
 */
 
-      inline const T& getMaxValue(){ 
+      inline const T& getMaxValue()const{ 
         assert(count>0);
         return *(objects[count-1]);
       }
@@ -418,7 +418,7 @@ This is a pure debugging function checking whether each node in the
 tree rooted by this contains a valid number of entries.
 
 */
-   bool checkCount(std::ostream& out){
+   bool checkCount(std::ostream& out) const{
        if(count==0){
            out << "found node without elements" << endl;
            return false;
@@ -450,7 +450,7 @@ checks whether the tree rooted by this has a valid ordering.
 
 */
 
-  bool checkOrder(std::vector<int>* attrPos, std::ostream& out){
+  bool checkOrder(std::vector<int>* attrPos, std::ostream& out)const{
     return checkOrder(0,0,attrPos, out);
   }
 
@@ -659,7 +659,7 @@ Support function.
 
 */
    bool checkOrder(const T* min, const T* max, std::vector<int>* attrPos,
-                   std::ostream& out){
+                   std::ostream& out) const{
        // check internal order
        for(size_t i=0;i<count-1; i++){
           if(Comparator::greater(*objects[i], *objects[i+1],attrPos)){
@@ -851,7 +851,7 @@ further elements exist.
 
 */
     
-    bool hasNext(){
+    bool hasNext() const{
       int size = stack.size();
       if(size==0){ // no elements
         return false;
@@ -874,7 +874,7 @@ The ~end~ function checks whether the iterator does not have
 any elements, i.e. whether Get or [*] would return NULL. 
 
 */
-    bool end(){
+    bool end() const{
       return stack.empty();
     }
 
@@ -907,7 +907,8 @@ Creates an empty tree.
 
 */
     TTree(int _minEntries, int _maxEntries): 
-         minEntries(_minEntries), maxEntries(_maxEntries), root(0) {}
+         minEntries(_minEntries), maxEntries(_maxEntries), 
+         root(0), entryCount(0) {}
 
 /*
 3.2 Destructor
@@ -919,6 +920,7 @@ Destroys this tree.
        if(root!=NULL) {
          delete root;
          root = NULL;
+         entryCount = 0;
        }
      }
 
@@ -967,10 +969,13 @@ instead of the begin.
 Returns the number od entries of this tree.
 
 */
-    int noEntries() {
-      int count;
-      noEntries(root,count);
-      return count;
+   size_t noEntries() const{
+     return entryCount;
+   } 
+
+
+    size_t countEntries() const {
+      return countEntries(root);
     }
 
     
@@ -1127,6 +1132,7 @@ Removes object ~o~ from this tree.
     void clear(const bool deleteContent) {
       if(root){
          root->clear(deleteContent);
+         entryCount = 0;
       }
     }
 
@@ -1152,7 +1158,8 @@ Checks the structure of the tree
    private:
      int minEntries;
      int maxEntries;
-     Node* root;  
+     Node* root; 
+     size_t entryCount; 
 
      
 
@@ -1171,18 +1178,13 @@ sons are changed. Note that only the direct descendants
 are used to compute the new height.
 
 */
-    int noEntries(Node* root, int &count) {
+    size_t countEntries(Node* root) {
       if(root == 0)
         return 0;
       
-      if(root->left) {
-        noEntries(root->left,count);
-      }
-      if(root->right) {
-        noEntries(root->right,count);
-      }
-      count += root->count;
-      return count;
+      return   countEntries(root->left)
+             + countEntries(root->right)
+             + root->count;
     }
 
        
@@ -1214,20 +1216,22 @@ It returns the root of the new tree.
     
 
     Node* insert(Node* root, 
-                                    T* value,
-                                    std::vector<int>* attrPos,
-                                    bool& success) {
+                 T* value,
+                 std::vector<int>* attrPos,
+                 bool& success) {
       // leaf reached
       if(root == NULL){ 
         root = new Node(minEntries,maxEntries);
         root->insert(value, attrPos);
+        entryCount++;
         success = true;
         return root;
       }
      
       if(root->isLeaf() && root->hasSpace()){
          root->insert(value,attrPos);
-         success = true;   
+         success = true;  
+         entryCount++; 
          return root;
       }
 
@@ -1238,6 +1242,7 @@ It returns the root of the new tree.
          if( root->hasSpace()){
            // we have space, insert here
            root->insert(value,attrPos);
+           entryCount++;
            success = true;   
            return root;
          } else {
@@ -1265,10 +1270,7 @@ It returns the root of the new tree.
           } 
           assert(false); // should never be reached
           return NULL; 
-        } 
-        // root remains balanced
-        else { 
-          success = true;
+        } else { // root remains balanced 
           return root;
         }
         assert(false);
@@ -1292,10 +1294,7 @@ It returns the root of the new tree.
           assert(false); // should never be reached
           success = false;
           return NULL;
-        } 
-        // no rotation required
-        else { 
-          success = true;
+        } else { 
           return root;
         }
       }
@@ -1411,6 +1410,8 @@ Returns the new root of the tree.
       success = root->remove(value, attrPos);
       if(!success){ // value not found, no structure change
          return root;
+      } else {
+         entryCount--;
       }
       
 
@@ -1443,8 +1444,10 @@ Returns the new root of the tree.
 
       // remove the minimum value from the right subtree 
       T* v = deleteMin(root->right, attrPos);
-      // insert this value into root
       root->insert(v, attrPos);
+      // because the removed value is inserted again, 
+      // the entryCount is not changed
+
       root->updateHeight();
 
       // handle possible structure changes in right subtree
