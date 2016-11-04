@@ -1,6 +1,0 @@
-#/bin/bash
-
-if [ -z "$1" ]; then
-  echo "Missing Server Configuration File"
-  exit 1
-fi

@@ -27,9 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "Google/googletest/include/gtest/gtest.h"
-//#include "ConnectionInfo.h"
 
-//using namespace distributed2;
+#include "OperatorFeedPF.hpp"
 
 namespace DBService
 {
@@ -37,7 +36,7 @@ namespace DBService
 namespace Test
 {
 
-class TestOperatorFeedPF: public ::testing::Test
+class OperatorFeedPFTest: public ::testing::Test
 {
 public:
     void SetUp()
@@ -51,7 +50,7 @@ public:
     }
 };
 
-TEST_F(TestOperatorFeedPF, assertTrueFalse)
+TEST_F(OperatorFeedPFTest, assertTrueFalse)
 {
     ASSERT_TRUE(false);
 }

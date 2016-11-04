@@ -53,11 +53,7 @@ GMOCK_HEADERS = $(GMOCK_DIR)/include/gmock/*.h \
                 $(GMOCK_DIR)/include/gmock/internal/*.h \
                 $(GTEST_HEADERS)
 
-# required algebra libraries
-LIBDBSERVICE = $(LIBDIR)/libDBServiceAlgebra.$(LIBEXT)
-LIBDISTRIBUTED2 = $(LIBDIR)/libDistributed2Algebra.$(LIBEXT)
-LIBUTILS = $(LIBDIR)/libsdbutils.$(LIBEXT)
-
+#required include directories
 ALGEBRA_DIR = $(BUILDDIR)/Algebras
 DBSERVICE_DIR = $(ALGEBRA_DIR)/DBService
 DISTRIBUTED2_DIR = $(ALGEBRA_DIR)/Distributed2
@@ -66,6 +62,11 @@ FTEXT_DIR = $(ALGEBRA_DIR)/FText
 STREAM_DIR = $(ALGEBRA_DIR)/Stream
 ARRAY_DIR = $(ALGEBRA_DIR)/Array
 STANDARDC_DIR = $(ALGEBRA_DIR)/Standard-C++
+
+# required (algebra) libraries
+LIBDBSERVICE = $(LIBDIR)/libDBServiceAlgebra.$(LIBEXT)
+LIBDISTRIBUTED2 = $(LIBDIR)/libDistributed2Algebra.$(LIBEXT)
+LIBUTILS = $(LIBDIR)/libsdbutils.$(LIBEXT)
 
 # House-keeping build targets.
 all : $(TESTS)
@@ -109,25 +110,35 @@ gmock_main.a : gmock-all.o gtest-all.o gmock_main.o
 
 # Builds a sample test.
 
-TestDBService.o : $(USER_DIR)/TestDBService.cpp $(GMOCK_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) \
+DBSERVICE_INCLUDE_DIRS := -I $(DBSERVICE_DIR) -I $(DISTRIBUTED2_DIR)
+DBSERVICE_INCLUDE_DIRS += -I $(RELATION_DIR) -I $(FTEXT_DIR) -I $(STREAM_DIR)
+DBSERVICE_INCLUDE_DIRS += -I $(ARRAY_DIR) -I $(STANDARDC_DIR) $(DEFAULTCCFLAGS)
+
+DBServiceTest.o : $(USER_DIR)/DBServiceTest.cpp $(GMOCK_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) \
+    $(DBSERVICE_INCLUDE_DIRS) \
     -c $< -o $@
 
 #ALG_INC_DIRS?
-TestDBServiceManager.o : $(USER_DIR)/TestDBServiceManager.cpp $(GMOCK_HEADERS)
+DBServiceManagerTest.o : $(USER_DIR)/DBServiceManagerTest.cpp $(GMOCK_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -I $(DISTRIBUTED2_DIR) \
     -I $(INCLUDEDIR) -I $(RELATION_DIR) -I $(FTEXT_DIR) -I $(STREAM_DIR) \
-    -I $(ARRAY_DIR) -I $(STANDARDC_DIR) \
+    -I $(ARRAY_DIR) -I $(STANDARDC_DIR) $(DEFAULTCCFLAGS) \
     -c $< -o $@
 
-TestOperatorFeedPF.o : $(USER_DIR)/TestOperatorFeedPF.cpp $(GMOCK_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) \
+OperatorFeedPFTest.o : $(USER_DIR)/OperatorFeedPFTest.cpp $(GMOCK_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) $(DEFAULTCCFLAGS) \
     -c $< -o $@
 
-#TestDBServiceManager.o : $(USER_DIR)/TestDBServiceManager.cpp $(GMOCK_HEADERS)
+OperatorLetDConsumeTest.o : $(USER_DIR)/OperatorLetDConsumeTest.cpp $(GMOCK_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) $(DEFAULTCCFLAGS) \
+    -c $< -o $@
+
+#DBServiceManagerTest.o : $(USER_DIR)/DBServiceManagerTest.cpp $(GMOCK_HEADERS)
 #	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-SuiteDBService : TestDBService.o TestDBServiceManager.o TestOperatorFeedPF.o \
+SuiteDBService : DBServiceTest.o DBServiceManagerTest.o OperatorFeedPFTest.o \
+    OperatorLetDConsumeTest.o \
     gmock_main.a \
     $(LIBDBSERVICE) $(LIBDISTRIBUTED2)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ -lpthread
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ -lpthread $(COMMON_LD_FLAGS)

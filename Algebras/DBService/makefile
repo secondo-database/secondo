@@ -40,19 +40,32 @@ CCFLAGS += $(ALG_INC_DIRS) -Werror
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 
 .PHONY: all
-all: check_dependencies $(OBJECTS) $(LIBOBJ)
+all: check_dependencies $(OBJECTS) $(LIBOBJ) DBService
+	$(MAKE) -C Test
+
+#.PHONY: test
+#test: check_dependencies $(OBJECTS) $(LIBOBJ) DBService
+#	$(MAKE) -C Test
 
 check_dependencies:
 	$(check-algebra-dependencies)
 
+LIBDBSERVICE = $(LIBDIR)/libDBServiceAlgebra.$(LIBEXT)
+
+.PHONY: DBService
+DBService: DBServiceMain.o \
+    $(LIBDBSERVICE)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ -lpthread $(COMMON_LD_FLAGS)
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+DBSERVICE_OBJECTS = $(filter-out DBServiceMain.o, $(OBJECTS))
+
 # generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
+$(LIBOBJ): $(DBSERVICE_OBJECTS)
 	$(create-lib)
 
 # generic rule for cleaning all generated files

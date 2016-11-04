@@ -27,15 +27,34 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include <iostream>
+
 #include "DBService.hpp"
+#include "DBServiceManager.hpp"
+
+#include "SecondoException.h"
 #include "Profiles.h"
+
+using namespace std;
 
 namespace DBService
 {
 
 DBService::DBService(const int argc, char* argv[])
 {
-    std::cout << "DBService started" << std::endl;
+    cout << "DBService started" << endl;
+    cout << argc << endl;
+    for (size_t i = 0; i < argc; ++i)
+    {
+        std::string input(argv[i], strlen(argv[i]));
+        cout << input << endl;
+        string host;
+        string config;
+        string port;
+        getWorkerDetails(input, host, config, port);
+        //DBServiceManager::addNode(host, port, config);
+        //TODO DBServiceManager::addNode()
+        DBServiceManager::initialize();
+    }
 }
 
 DBService::~DBService()
@@ -43,11 +62,30 @@ DBService::~DBService()
     std::cout << "DBService terminated" << std::endl;
 }
 
-} /* namespace DBService */
-
-/*int main(const int argc, char* argv[])
+void DBService::getWorkerDetails(string& input,
+                                 string& host,
+                                 string& config,
+                                 string& port)
 {
-    //std::cout << "Number of args: " << argc << std::endl;
-    DBService::DBService dbService;
-}*/
+    if (input.length() == 0)
+    {
+        throw SecondoException("Empty string");
+    }
+    size_t firstColon = input.find(":");
+    if ((firstColon == string::npos) || (input.length() == firstColon + 1))
+    {
+        throw SecondoException("No config file specified");
+    }
+    size_t secondColon = input.find(":", firstColon + 1);
+
+    host = input.substr(0, firstColon);
+    config = input.substr(firstColon + 1, secondColon - firstColon - 1);
+
+    if (input.length() > secondColon)
+    {
+        port = input.substr(secondColon + 1);
+    }
+}
+
+} /* namespace DBService */
 

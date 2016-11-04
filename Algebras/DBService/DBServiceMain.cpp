@@ -26,35 +26,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DBSERVICE_HPP_
-#define ALGEBRAS_DBSERVICE_DBSERVICE_HPP_
+#include "DBService.hpp"
 
-#include <string>
-
-namespace DBService
+int main(const int argc, char* argv[])
 {
-
-class DBService
-{
-public:
-    DBService(const int argc, char* argv[]);
-    virtual ~DBService();
-
-protected:
-/*
-1.3 getWorkerDetails
-
-Splits up the command line arguments in order to retrieve at least
-host and config.
-Port is an optional argument and might therefore be left empty.
-
-*/
-    void getWorkerDetails(std::string& input,
-                          std::string& host,
-                          std::string& config,
-                          std::string& port);
-};
-
-} /* namespace DBService */
-
-#endif /* ALGEBRAS_DBSERVICE_DBSERVICE_HPP_ */
+    DBService::DBService dbService(argc, argv);
+}

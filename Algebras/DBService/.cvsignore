@@ -4,4 +4,5 @@
 *.a
 *.dep
 Test/SuiteDBService
+DBService
 README.md

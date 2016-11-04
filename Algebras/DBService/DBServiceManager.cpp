@@ -29,13 +29,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DBServiceManager.hpp"
 #include "SecondoException.h"
 
+using namespace std;
+
 namespace DBService
 {
 
 DBServiceManager::DBServiceManager()
 {
     // TODO initialize vector with connection infos from config file
-    std::vector<distributed2::ConnectionInfo> workers;
+    std::vector<distributed2::ConnectionInfo*> workers;
 }
 
 DBServiceManager* DBServiceManager::getInstance()
@@ -44,17 +46,22 @@ DBServiceManager* DBServiceManager::getInstance()
     {
         if (!isInitialized)
         {
-            throw new SecondoException("DBServiceManager not initialized");
+            throw SecondoException("DBServiceManager not initialized");
         }
         _instance = new DBServiceManager();
     }
     return _instance;
 }
 
-void DBServiceManager::initialize(
-        std::vector<distributed2::ConnectionInfo> connectionInfos)
+void DBServiceManager::addNode(const string& host,
+                               const int port,
+                               string& config)
 {
-    connections = connectionInfos;
+
+}
+
+void DBServiceManager::initialize()
+{
     isInitialized = true;
 }
 

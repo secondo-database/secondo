@@ -45,6 +45,7 @@ Returns the DBServiceManager instance (singleton).
 
 */
     static DBServiceManager* getInstance();
+
 /*
 1.1 getNodes
 
@@ -53,9 +54,27 @@ when provided with a node.
 
 */
     void getNodes();
-    static void initialize(
-            std::vector<distributed2::ConnectionInfo> connections);
-private:
+
+/*
+1.2 addNode
+
+Adds a node to the connection manager's pool that can be used for
+storing relation replicas.
+
+*/
+    static void addNode(const std::string& host,
+                        const int port,
+                        std::string& config);
+
+/*
+1.2 initialize
+
+//TODO
+
+*/
+    static void initialize();
+
+protected:
 /*
 1.2 Constructor
 
@@ -71,14 +90,16 @@ Does not do anything.
 */
     DBServiceManager(const DBServiceManager&)
     {}
+
 /*
 1.3 Destructor
 
-Deallocates and deletes existing DBServiceManager instance.
+Deletes existing DBServiceManager instance.
 
 */
     ~DBServiceManager();
 
+private:
     static DBServiceManager* _instance;
     static std::vector<distributed2::ConnectionInfo*> connections;
     static bool isInitialized;
