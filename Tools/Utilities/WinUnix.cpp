@@ -354,19 +354,19 @@ bool CFile::exists()
 bool CFile::open() 
 {
   object.open(fileName.c_str(), ios::in);
-  return object;
+  return object.good();
 } 
    
 bool CFile::overwrite() 
 {
   object.open(fileName.c_str(), ios::out|ios::trunc);
-  return object;
+  return object.good();
 } 
 
 bool CFile::append() 
 {
   object.open(fileName.c_str(), ios::out|ios::app);
-  return object;
+  return object.good();
 } 
 
 
