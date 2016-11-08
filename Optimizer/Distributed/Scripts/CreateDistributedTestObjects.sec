@@ -1,0 +1,95 @@
+open database nrw_node1;
+
+let grid = [const cellgrid2d value (7.29 51.37 0.025 0.025 20)];
+
+#query share ("grid", TRUE);
+
+#for Hagen- db only: let grid = [const cellgrid2d value (7.34 51.12 0.016 0.016 20)]
+
+### added
+
+query share("grid", TRUE, SEC2WORKERS);
+
+let eichlinghofen = [const region value ( 
+    ( 
+        ( 
+            (7.394967670776298 51.47332155746125)
+            (7.419515247680575 51.47332155746125)
+            (7.419515247680575 51.48716614802665)
+            (7.394967670776298 51.48716614802665))))];
+            
+let EichlinghofenUpper = eichlinghofen;
+
+### added
+
+query share("eichlinghofen", TRUE, SEC2WORKERS)
+
+### added
+
+query share("EichlinghofenUpper", TRUE, SEC2WORKERS)
+
+#random distribution of the Roads relation
+let RoadsDfRandom = Roads feed dfdistribute3["RoadsDfRandom", 50, TRUE, SEC2WORKERS];
+
+#B.Huber
+#The following datatypes are only to get cost constants, without any entry in 
+#the systemtables SEC2DISTRIBUTED or SEC2DISTINDEXES.
+
+let BuildingsDfRandom = Buildings feed dfdistribute3["", 50, TRUE, SEC2WORKERS];
+
+let BuildingsOsmIdLT3 = Buildings feed filter[substr(.Osm_id,1,1) < '3'] consume;
+let BuildingsOsmIdGE3 = Buildings feed filter[substr(.Osm_id,1,1) >= '3'] consume;
+
+let BuildingsDfLT3 = BuildingsOsmIdLT3 feed dfdistribute3["", 50, TRUE, SEC2WORKERS];
+let BuildingsDfGE3 = BuildingsOsmIdGE3 feed dfdistribute3["", 50, TRUE, SEC2WORKERS];
+
+let BuildingsDfLT3Matrix = BuildingsDfLT3 partitionF["", .  feed, hashvalue(..Osm_id, 999997), 0];
+let BuildingsDfGE3Matrix = BuildingsDfGE3 partitionF["", .  feed, hashvalue(..Osm_id, 999997), 0];
+
+let BuildingsDfGE3Reduce = BuildingsDfGE3Matrix areduce["",. feed ,1236];
+
+let BuildingsDfLT3Collect = BuildingsDfLT3Matrix collect2["",1236];
+let BuildingsDfGE3Collect = BuildingsDfGE3Matrix collect2["",1236];
+
+let BuildingsDfLT3_10000 = BuildingsOsmIdLT3 feed head[10000] dfdistribute3["", 50, TRUE, SEC2WORKERS];
+let BuildingsDfLT3_200000 = BuildingsOsmIdLT3 feed head[200000] dfdistribute3["", 50, TRUE, SEC2WORKERS];
+
+let BuildingsDfGE3_10000 = BuildingsOsmIdLT3 feed head[10000] dfdistribute3["", 50, TRUE, SEC2WORKERS];
+let BuildingsDfGE3_200000 = BuildingsOsmIdGE3 feed head[200000] dfdistribute3["", 50, TRUE, SEC2WORKERS];
+
+
+#B.Huber end
+
+
+
+# 1:59 min
+
+#Roads distribution with spatial attribute 
+let RoadsDfSpatial = RoadsDfRandom partitionF["", . feed extend[EnlargedBox: enlargeRect(bbox(.GeoData), 0.01, 0.01)] extendstream[Cell: cellnumber(.EnlargedBox, grid)] extend[Original: .Cell = cellnumber(.EnlargedBox, grid) transformstream extract[Elem]], ..Cell, 0] collect2["RoadsDfSpatial", 54321];
+
+let 
+
+# 2:53 min
+
+#distribute places  
+let PlacesDfModuloPop = Places feed dfdistribute2["PlacesDfModuloPop", Population,50, SEC2WORKERS];
+
+# 2.3 sec
+
+#create BuildingsDSpatialIndex as darray distributed over geometry- attribute via grid
+let BuildingsDSpatialIndex = Buildings feed extend[EnlargedBox: enlargeRect(bbox(.GeoData), 0.01, 0.01)] extendstream[Cell: cellnumber(.EnlargedBox, grid)] extend[Original: .Cell = cellnumber(.EnlargedBox, grid) transformstream extract[Elem]] ddistribute2["BuildingsDSpatialIndex", Cell, 50, SEC2WORKERS];
+
+#spatial index for buildings
+let BuildingsDSpatialIndex_GeoData = BuildingsDSpatialIndex dloop["", . feed addid extend[Box: scalerect(.EnlargedBox, 1000000.0, 1000000.0)] sortby[Box] remove[Box] bulkloadrtree[EnlargedBox]];
+
+#distribute Waterways 
+let WaterwaysDFunction = Waterways feed ddistribute4["WaterwaysDFunction", hashvalue(.Type, 999997),50, SEC2WORKERS];
+
+#replicate railways
+query share ("Railways", TRUE, SEC2WORKERS);
+
+#distribute Natural and create index
+let NaturalDFunctionIndex = Natural feed ddistribute4["NaturalDFunctionIndex", hashvalue(.Type, 999997),50, SEC2WORKERS];
+let NaturalDFunctionIndex_Type = NaturalDFunctionIndex dloop["NaturalDFunctionIndex_Type", . createbtree[Type]];
+
+close database;
