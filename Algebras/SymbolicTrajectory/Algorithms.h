@@ -248,6 +248,7 @@ class MBasic : public Attribute {
   void Get(const int i, UBasic<B>& result) const;
   void GetInterval(const int i, temporalalgebra::SecInterval& result) const;
   void GetInterval(temporalalgebra::SecInterval& result) const;
+  void GetDuration(datetime::DateTime& result) const;
   void GetBasic(const int i, B& result) const;
   void GetValue(const int i, typename B::base& result) const;
   bool IsEmpty() const {return units.Size() == 0;}
@@ -271,7 +272,15 @@ class MBasic : public Attribute {
   void Fill(MBasic<B>& result, datetime::DateTime& duration) const;
   void Concat(const MBasic<B>& src1, const MBasic<B>& src2);
   void Compress(MBasic<B>& result) const;
-  std::ostream& Print(std::ostream& os) const;
+  std::ostream& Print(std::ostream& os) const;  
+  double Distance_FIRST(const MBasic<B>& mb) const;
+  double Distance_LAST(const MBasic<B>& mb) const;
+  double Distance_FIRST_LAST(const MBasic<B>& mb) const;
+  double Distance_ALL(const MBasic<B>& mb, const LabelFunction lf) const;
+  double Distance_ALL_DURATION(const MBasic<B>& mb, const LabelFunction lf)
+         const;
+  double Distance_ALL_INTERVALS(const MBasic<B>& mb, const LabelFunction lf)
+         const;
   double Distance(const MBasic<B>& mb) const;
   
  protected:
@@ -2499,6 +2508,19 @@ void MBasic<B>::Get(const int i, UBasic<B>& result) const {
 }
 
 /*
+\subsection{Function ~GetDuration~}
+
+*/
+template<class B>
+void MBasic<B>::GetDuration(datetime::DateTime& result) const {
+  temporalalgebra::SecInterval iv(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetInterval(i, iv);
+    result += (iv.end - iv.start);
+  }
+}
+
+/*
 \subsection{Function ~GetInterval~}
 
 */
@@ -2994,6 +3016,108 @@ std::ostream& MBasic<B>::Print(std::ostream& os) const {
 }
 
 /*
+\subsection{Collection of Distance Functions}
+
+*/
+template<class B>
+double MBasic<B>::Distance_FIRST(const MBasic<B>& mb) const {
+  typename B::base b1, b2;
+  GetValue(0, b1);
+  mb.GetValue(0, b2);
+  return (b1 == b2 ? 0.0 : 1.0);
+}
+
+template<class B>
+double MBasic<B>::Distance_LAST(const MBasic<B>& mb) const {
+  typename B::base b1, b2;
+  GetValue(GetNoComponents() - 1, b1);
+  mb.GetValue(mb.GetNoComponents() - 1, b2);
+  return (b1 == b2 ? 0.0 : 1.0);
+}
+
+template<class B>
+double MBasic<B>::Distance_FIRST_LAST(const MBasic<B>& mb) const {
+  double result = 0.0;
+  int n = GetNoComponents();
+  int m = mb.GetNoComponents();
+  typename B::base bs1, bs2, be1, be2;
+  GetValue(0, bs1);
+  mb.GetValue(0, bs2);
+  GetValue(n - 1, be1);
+  mb.GetValue(m - 1, be2);
+  if (n == 1) {
+    if (m == 1) {
+      result = (bs1 == bs2 ? 0 : 1);
+    }
+    else {
+      mb.GetValue(m - 1, be2);
+      result = ((bs1 == bs2 ? 0 : 1) + 
+                (bs1 == be2 ? 0 : 1)) / 2;
+    }
+  }
+  else {
+    GetValue(n - 1, be1);
+    if (m == 1) {
+      result = ((bs1 == bs2 ? 0 : 1) + 
+                (be1 == bs2 ? 0 : 1)) / 2;
+    }
+    else {
+      mb.GetValue(m - 1, be2);
+      result = ((bs1 == bs2 ? 0 : 1) + 
+                (be1 == be2 ? 0 : 1)) / 2;
+    }
+  }
+  return result;
+}
+
+template<class B>
+double MBasic<B>::Distance_ALL(const MBasic<B>& mb, const LabelFunction lf) 
+                  const {
+  int n = GetNoComponents();
+  int m = mb.GetNoComponents();
+  typename B::base b1, b2;
+  double dp[n][m];
+  for (int i = 0; i < n; i++) {
+    dp[i][0] = i;
+  }
+  for (int j = 0; j < m; j++) {
+    dp[0][j] = j;
+  }
+  for (int i = 1; i < n; i++) {
+    GetValue(i - 1, b1);
+    for (int j = 1; j < m; j++) {
+      mb.GetValue(j - 1, b2);
+      dp[i][j] = std::min(dp[i - 1][j] + 1,
+                std::min(dp[i][j - 1] + 1, 
+                    dp[i -1][j - 1] + Tools::distance(b1, b2, lf)));
+    }
+  }
+  return dp[n - 1][m - 1] / std::max(n, m);
+}
+
+template<class B>
+double MBasic<B>::Distance_ALL_DURATION(const MBasic<B>& mb, 
+                                        const LabelFunction lf) const {
+  double result = this->Distance_ALL(mb, lf);
+  datetime::DateTime dur1(datetime::durationtype);
+  datetime::DateTime dur2(datetime::durationtype);
+  GetDuration(dur1);
+  mb.GetDuration(dur2);
+  double quotient = dur1 / dur2;
+  if (quotient > 1) {
+    quotient = dur2 / dur1;
+  } // quotient is in (0, 1]
+  return 0.5 * result + 0.5 * (1 - quotient);
+}
+
+template<class B>
+double MBasic<B>::Distance_ALL_INTERVALS(const MBasic<B>& mb,
+                                         const LabelFunction lf) const {
+  return 0.0;  
+}
+
+
+/*
 \subsection{Function ~Distance~}
 
 */
@@ -3011,76 +3135,27 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
   if (IsEmpty() || mb.IsEmpty()) {
     return 1.0;
   }
-  DistanceFunction df = ALL; // change this
-  int n = GetNoComponents();
-  int m = mb.GetNoComponents();
-  double result = 0.0;
-  int labelFun = 3; // TODO: change
+  DistanceFunction df = ALL; // TODO: change
+  LabelFunction lf = TRIVIAL;
   typename B::base b1, b2, bs1, bs2, be1, be2;
   switch (df) {
     case FIRST: {
-      GetValue(0, bs1);
-      mb.GetValue(0, bs2);
-      return (bs1 == bs2 ? 0.0 : 1.0);
+      return this->Distance_FIRST(mb);
     }
     case LAST: {
-      GetValue(n - 1, be1);
-      mb.GetValue(m - 1, be2);
-      return (be1 == be2 ? 0.0 : 1.0);
+      return this->Distance_LAST(mb);
     }
     case FIRST_LAST: {
-      GetValue(0, bs1);
-      mb.GetValue(0, bs2);
-      GetValue(n - 1, be1);
-      mb.GetValue(m - 1, be2);
-      if (n == 1) {
-        if (m == 1) {
-          result = (bs1 == bs2 ? 0 : 1);
-        }
-        else {
-          mb.GetValue(m - 1, be2);
-          result = ((bs1 == bs2 ? 0 : 1) + 
-                    (bs1 == be2 ? 0 : 1)) / 2;
-        }
-      }
-      else {
-        GetValue(n - 1, be1);
-        if (m == 1) {
-          result = ((bs1 == bs2 ? 0 : 1) + 
-                    (be1 == bs2 ? 0 : 1)) / 2;
-        }
-        else {
-          mb.GetValue(m - 1, be2);
-          result = ((bs1 == bs2 ? 0 : 1) + 
-                    (be1 == be2 ? 0 : 1)) / 2;
-        }
-      }
-      return result;
+      return this->Distance_FIRST_LAST(mb);
     }
     case ALL: {
-      double dp[n][m];
-      for (int i = 0; i < n; i++) {
-        dp[i][0] = i;
-      }
-      for (int j = 0; j < m; j++) {
-        dp[0][j] = j;
-      }
-      for (int i = 1; i < n; i++) {
-        GetValue(i - 1, b1);
-        for (int j = 1; j < m; j++) {
-          mb.GetValue(j - 1, b2);
-          dp[i][j] = std::min(dp[i - 1][j] + 1,
-                    std::min(dp[i][j - 1] + 1, 
-                        dp[i -1][j - 1] + Tools::distance(b1, b2, labelFun)));
-        }
-      }
-      return dp[n - 1][m - 1] / std::max(n, m);
+      return this->Distance_ALL(mb, lf);
     }
     case ALL_DURATION: {
-      return 0.0;
+      return this->Distance_ALL_DURATION(mb, lf);
     }
     case ALL_INTERVALS: {
-      return 0.0;
+      return this->Distance_ALL_INTERVALS(mb, lf);
     }
     default: {
       return -1.0;
@@ -4137,14 +4212,14 @@ double MBasics<B>::Distance(const MBasics<B>& mbs) const {
   }
   std::set<typename B::base> basics1, basics2;
   int fun = 0; // TODO: change
-  int labelFun = 0; // TODO: change
+  LabelFunction lf = TRIVIAL;
   for (int i = 1; i < n; i++) {
     GetValues(i - 1, basics1);
     for (int j = 1; j < m; j++) {
       mbs.GetValues(j - 1, basics2);
       dp[i][j] = std::min(dp[i - 1][j] + 1,
                  std::min(dp[i][j - 1] + 1, 
-           dp[i -1][j - 1] + Tools::distance(basics1, basics2, fun, labelFun)));
+           dp[i -1][j - 1] + Tools::distance(basics1, basics2, fun, lf)));
     }
   }
   return dp[n - 1][m - 1] / std::max(n, m);

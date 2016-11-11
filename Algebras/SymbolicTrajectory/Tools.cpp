@@ -1478,32 +1478,33 @@ void Tools::createNFAfromPersistent(DbArray<NFAtransition> &trans,
   }
 }
 
-double Tools::distance(const string& str1, const string& str2, const int fun) {
-  if (fun == 3) {
+double Tools::distance(const string& str1, const string& str2, 
+                       const LabelFunction lf) {
+  if (lf == TRIVIAL) {
     return (str1 == str2 ? 0 : 1);
   }
   if (!str1.length() && !str2.length()) {
     return 0;
   }
   double ld;
-  if (fun > 1) {
+  if (lf == EDIT) {
     string newstr1, newstr2;
     transform(str1.begin(), str1.end(), newstr1.begin(), ::tolower);
     transform(str2.begin(), str2.end(), newstr2.begin(), ::tolower);
     ld = stringutils::ld(newstr1, newstr2);
   }
   ld = stringutils::ld(str1, str2);
-  return (fun % 2 == 0) ? ld / max(str1.length(), str2.length()) : ld;
+  return (lf % 2 == 0) ? ld / max(str1.length(), str2.length()) : ld;
 }
 
 double Tools::distance(const pair<string, unsigned int>& val1, 
-    const pair<string, unsigned int>& val2, const int labelFun) {
-  double ld = Tools::distance(val1.first, val2.first, labelFun);
-  return (labelFun > 4 && val1.second == val2.second) ? ld / 2 : ld;
+    const pair<string, unsigned int>& val2, const LabelFunction lf) {
+  double ld = Tools::distance(val1.first, val2.first, lf);
+  return (lf > 4 && val1.second == val2.second) ? ld / 2 : ld;
 }
 
 double Tools::distance(const set<string>& values1, const set<string>& values2,
-                       const int fun, const int labelFun) {
+                       const int fun, const LabelFunction lf) {
   if (values1.empty() && values2.empty()) {
     return 0;
   }
@@ -1511,18 +1512,18 @@ double Tools::distance(const set<string>& values1, const set<string>& values2,
   multiset<double> dist;
   if (values2.empty()) {
     for (i1 = values1.begin(); i1 != values1.end(); i1++) {
-      dist.insert(labelFun % 2 == 0 ? 1 : i1->length());
+      dist.insert(lf % 2 == 0 ? 1 : i1->length());
     }
   }
   else if (values1.empty()) {
     for (i2 = values2.begin(); i2 != values2.end(); i2++) {
-      dist.insert(labelFun % 2 == 0 ? 1 : i2->length());
+      dist.insert(lf % 2 == 0 ? 1 : i2->length());
     }
   }
   else {
     for (i1 = values1.begin(); i1 != values1.end(); i1++) {
       for (i2 = values2.begin(); i2 != values2.end(); i2++) {
-        dist.insert(Tools::distance(*i1, *i2, labelFun));
+        dist.insert(Tools::distance(*i1, *i2, lf));
       }
     }
   }
@@ -1540,7 +1541,8 @@ double Tools::distance(const set<string>& values1, const set<string>& values2,
 }
 
 double Tools::distance(set<pair<string, unsigned int> >& values1, 
- set<pair<string, unsigned int> >& values2, const int fun, const int labelFun) {
+ set<pair<string, unsigned int> >& values2, const int fun, 
+ const LabelFunction lf) {
   if (values1.empty() && values2.empty()) {
     return 0;
   }

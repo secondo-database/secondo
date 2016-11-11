@@ -36,12 +36,14 @@ Started July 2014, Fabio Vald\'{e}s
 #include "TemporalExtAlgebra.h"
 #include "NestedList.h"
 #include "ListUtils.h"
-#include "Tools.h"
+// #include "Tools.h"
 #include <string>
 #include <algorithm>
 #include <cctype>
 
 namespace stj {
+  
+enum LabelFunction {TRIVIAL, EDIT};
   
 template<class F, class S>
 class NewPair {
@@ -121,7 +123,7 @@ class Label : public Attribute {
   Label& operator=(const Label& lb) {CopyFrom(&lb); return *this;}
   bool operator==(const Label& lb) const;
   bool operator==(const std::string& text) const;
-  double Distance(const Label& lb, const int fun) const;
+  double Distance(const Label& lb, const LabelFunction lf) const;
 
   static bool readValueFrom(ListExpr LE, std::string& text, unitelem& unit);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
@@ -195,7 +197,8 @@ class Labels : public Attribute {
   void Minus(const std::set<std::string>& values1, 
              const std::set<std::string>& values2);
   friend std::ostream& operator<<(std::ostream& os, const Labels& lbs);
-  double Distance(const Labels& lbs, const int fun, const int labelFun) const;
+  double Distance(const Labels& lbs, const int fun, const LabelFunction lf)
+         const;
   
   int NumOfFLOBs() const {return 2;}
   Flob *GetFLOB(const int i);
@@ -254,7 +257,7 @@ class Place : public Label {
   Place& operator=(const Place& p);
   bool operator==(const Place& p) const;
   bool operator==(const std::pair<std::string, unsigned int>& value) const;
-  double Distance(const Place& p, const int fun) const;
+  double Distance(const Place& p, const LabelFunction lf) const;
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Place);}

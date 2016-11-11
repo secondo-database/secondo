@@ -27,6 +27,7 @@ Started July 2014, Fabio Vald\'{e}s
 
 */
 #include "BasicTypes.h"
+#include "Tools.h"
 
 using namespace std;
 
@@ -134,20 +135,20 @@ bool Label::operator==(const string& text) const {
 \subsection{Function ~Distance~}
 
 */
-double Label::Distance(const Label& lb, const int fun) const {
+double Label::Distance(const Label& lb, const LabelFunction lf) const {
   if (!IsDefined() && !lb.IsDefined()) {
     return 0;
   }
   string str1, str2;
   if (!IsDefined() || !lb.IsDefined()) {
-    if (fun % 2 == 0) {
+    if (lf % 2 == 0) {
       return 1;
     }
     return IsDefined() ? Sizeof() : lb.Sizeof();
   }
   GetValue(str1);
   lb.GetValue(str2);
-  return Tools::distance(str1, str2, fun);
+  return Tools::distance(str1, str2, lf);
 }
 
 /*
@@ -561,8 +562,8 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
 \subsection{Function ~Contains~}
 
 */
-double Labels::Distance(const Labels& lbs, const int fun, const int labelFun) 
-                        const {
+double Labels::Distance(const Labels& lbs, const int fun, 
+                        const LabelFunction lf) const {
   if (!IsDefined() && !lbs.IsDefined()) {
     return 0;
   }
@@ -573,7 +574,7 @@ double Labels::Distance(const Labels& lbs, const int fun, const int labelFun)
   if (lbs.IsDefined()) {
     lbs.GetValues(values1);
   }
-  return Tools::distance(values1, values2, fun, labelFun);
+  return Tools::distance(values1, values2, fun, lf);
 }
 
 /*
@@ -790,17 +791,17 @@ bool Place::operator==(const pair<string, unsigned int>& value) const {
 \subsection{Function ~Distance~}
 
 */
-double Place::Distance(const Place& p, const int fun) const {
+double Place::Distance(const Place& p, const LabelFunction lf) const {
   if (!IsDefined() && !p.IsDefined()) {
     return 0;
   }
   if (!IsDefined() || !p.IsDefined()) {
-    return Label::Distance(p, fun);
+    return Label::Distance(p, lf);
   }
   pair<string, unsigned int> val1, val2;
   GetValue(val1);
   p.GetValue(val2);
-  return Tools::distance(val1, val2, fun);
+  return Tools::distance(val1, val2, lf);
 }
 
 /*
