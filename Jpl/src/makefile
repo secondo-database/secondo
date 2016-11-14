@@ -50,7 +50,7 @@ compile: $(OBJECTS)
 build: $(JPLDLL)
 
 
-ifeq ($(JAVAVER),1.6)
+ifneq (, $(filter 1.6 1.7 1.8,$(JAVAVER)))
    INITDEF := -DJDK1_1InitArgs=JavaVMInitArgs
 endif
 
