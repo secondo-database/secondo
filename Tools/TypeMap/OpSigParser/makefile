@@ -8,7 +8,7 @@ all: OpSig
 
 
 OpSig: scan.o parse.o
-	g++ -o OpSig scan.o parse.o -lfl
+	g++ -o OpSig scan.o parse.o
 
 
 scan.o: lex.opsig.c 
