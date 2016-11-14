@@ -10641,14 +10641,14 @@ void AddPointToEdgeArray( const Point &p,
     if (p.GetY() == window.MaxD(1))
     {
       v.Set(window.MinD(0), window.MaxD(1));
-    //In this case we don't know which point is outside the window,
-    //so it is need to test
-    if (hs.GetLeftPoint().GetY()>window.MaxD(1))
-      dp = EdgePoint::GetEdgePoint(p,hs.GetLeftPoint(),
-                                   attr.insideAbove,v,false);
-    else
-      dp = EdgePoint::GetEdgePoint(p,hs.GetRightPoint(),
-                                   attr.insideAbove,v,false);
+      //In this case we don't know which point is outside the window,
+      //so it is need to test
+      if (hs.GetLeftPoint().GetY()>window.MaxD(1))
+        dp = EdgePoint::GetEdgePoint(p,hs.GetLeftPoint(),
+                                     attr.insideAbove,v,false);
+      else
+        dp = EdgePoint::GetEdgePoint(p,hs.GetRightPoint(),
+                                     attr.insideAbove,v,false);
       pointsOnEdge[WTOP].push_back(*dp);
     }
 }

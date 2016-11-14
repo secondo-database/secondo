@@ -4451,78 +4451,78 @@ bool MGPoint::Intersects(const MGPoint *mgp) const
                     if (AlmostEqual(interPosition, pCurr1.p0.GetPosition()))
                       ok = true;
                     else ok = false;
-                    if(pCurr2.p0.GetPosition() != pCurr2.p1.GetPosition())
-                    {
-                      if (AlmostEqual(interPosition, pCurr2.p0.GetPosition()))
-                        ok = ok && pCurr2.timeInterval.lc;
-                      if (AlmostEqual(interPosition, pCurr2.p1.GetPosition()))
-                        ok = ok && pCurr2.timeInterval.rc;
-                    }
-                    else
-                      if (AlmostEqual(interPosition,pCurr2.p0.GetPosition()))
-                        ok = true;
-                      else ok = false;
-                    if (ok)
-                    {
-                      NetworkManager::CloseNetwork(pNetwork);
-                      resA->DeleteIfAllowed();
-                      resB->DeleteIfAllowed();
-                      return true;
-                    }
+                  if(pCurr2.p0.GetPosition() != pCurr2.p1.GetPosition())
+                  {
+                    if (AlmostEqual(interPosition, pCurr2.p0.GetPosition()))
+                      ok = ok && pCurr2.timeInterval.lc;
+                    if (AlmostEqual(interPosition, pCurr2.p1.GetPosition()))
+                      ok = ok && pCurr2.timeInterval.rc;
+                  }
+                  else
+                    if (AlmostEqual(interPosition,pCurr2.p0.GetPosition()))
+                      ok = true;
+                    else ok = false;
+                  if (ok)
+                  {
+                    NetworkManager::CloseNetwork(pNetwork);
+                    resA->DeleteIfAllowed();
+                    resB->DeleteIfAllowed();
+                    return true;
                   }
                 }
               }
-              else
+            }
+            else
+            {
+              CcInt *pRid1 = new CcInt(true,pCurr1.p0.GetRouteId());
+              CcInt *pRid2 = new CcInt(true,pCurr2.p0.GetRouteId());
+              double r1meas = numeric_limits<double>::max();
+              double r2meas = numeric_limits<double>::max();
+              pNetwork->GetJunctionMeasForRoutes(pRid1,pRid2,r1meas,r2meas);
+              if ((r1meas != numeric_limits<double>::max() &&
+                 r2meas != numeric_limits<double>::max())&&
+                  (((pCurr1.p0.GetPosition() <= r1meas &&
+                  r1meas <= pCurr1.p1.GetPosition()) ||
+                    (pCurr1.p0.GetPosition() >= r1meas &&
+                     r1meas >= pCurr1.p1.GetPosition())) &&
+                      ((pCurr2.p0.GetPosition() <= r2meas &&
+                      r2meas <= pCurr2.p1.GetPosition()) ||
+                      (pCurr2.p0.GetPosition() >= r2meas &&
+                      r2meas >= pCurr2.p1.GetPosition()))))
               {
-                CcInt *pRid1 = new CcInt(true,pCurr1.p0.GetRouteId());
-                CcInt *pRid2 = new CcInt(true,pCurr2.p0.GetRouteId());
-                double r1meas = numeric_limits<double>::max();
-                double r2meas = numeric_limits<double>::max();
-                pNetwork->GetJunctionMeasForRoutes(pRid1,pRid2,r1meas,r2meas);
-                if ((r1meas != numeric_limits<double>::max() &&
-                   r2meas != numeric_limits<double>::max())&&
-                    (((pCurr1.p0.GetPosition() <= r1meas &&
-                    r1meas <= pCurr1.p1.GetPosition()) ||
-                      (pCurr1.p0.GetPosition() >= r1meas &&
-                       r1meas >= pCurr1.p1.GetPosition())) &&
-                        ((pCurr2.p0.GetPosition() <= r2meas &&
-                        r2meas <= pCurr2.p1.GetPosition()) ||
-                        (pCurr2.p0.GetPosition() >= r2meas &&
-                        r2meas >= pCurr2.p1.GetPosition()))))
+                UGPoint pCurr = pCurr1;
+                tinter = pCurr.TimeAtPos(r1meas);
+                pCurr = pCurr2;
+                tinter2 = pCurr.TimeAtPos(r2meas);
+                if (tinter == tinter2)
                 {
-                  UGPoint pCurr = pCurr1;
-                  tinter = pCurr.TimeAtPos(r1meas);
-                  pCurr = pCurr2;
-                  tinter2 = pCurr.TimeAtPos(r2meas);
-                  if (tinter == tinter2)
+                  bool ok = true;
+                  if (AlmostEqual(r1meas, pCurr1.p0.GetPosition()))
+                    ok = ok && pCurr1.timeInterval.lc;
+                  if (AlmostEqual(r1meas, pCurr1.p1.GetPosition()))
+                    ok = ok && pCurr1.timeInterval.rc;
+                  if (AlmostEqual(r2meas, pCurr2.p0.GetPosition()))
+                    ok = ok && pCurr2.timeInterval.lc;
+                  if (AlmostEqual(r2meas, pCurr2.p1.GetPosition()))
+                    ok = ok && pCurr2.timeInterval.rc;
+                  if (ok)
                   {
-                    bool ok = true;
-                    if (AlmostEqual(r1meas, pCurr1.p0.GetPosition()))
-                      ok = ok && pCurr1.timeInterval.lc;
-                    if (AlmostEqual(r1meas, pCurr1.p1.GetPosition()))
-                      ok = ok && pCurr1.timeInterval.rc;
-                    if (AlmostEqual(r2meas, pCurr2.p0.GetPosition()))
-                      ok = ok && pCurr2.timeInterval.lc;
-                    if (AlmostEqual(r2meas, pCurr2.p1.GetPosition()))
-                      ok = ok && pCurr2.timeInterval.rc;
-                    if (ok)
-                    {
-                      NetworkManager::CloseNetwork(pNetwork);
-                      resA->DeleteIfAllowed();
-                      resB->DeleteIfAllowed();
-                      return true;
-                    }
+                    NetworkManager::CloseNetwork(pNetwork);
+                    resA->DeleteIfAllowed();
+                    resB->DeleteIfAllowed();
+                    return true;
                   }
                 }
-              }// end if else same route
-            }// end for
-          }
+              }
+            }// end if else same route
+          }// end for
         }
-        resA->DeleteIfAllowed();
-        resB->DeleteIfAllowed();
       }
-      NetworkManager::CloseNetwork(pNetwork);
+      resA->DeleteIfAllowed();
+      resB->DeleteIfAllowed();
     }
+    NetworkManager::CloseNetwork(pNetwork);
+  }
   return false;
 }
 
@@ -5936,7 +5936,7 @@ Word InMGPoint(const ListExpr typeInfo, const ListExpr instance,
         tree = new RITree(unit->p0.GetRouteId(), test1, test2);
       } else
         tree->Insert(unit->p0.GetRouteId(), test1, test2);
-        unit->DeleteIfAllowed();
+      unit->DeleteIfAllowed();
     }
     m->EndBulkLoad(true); // if this succeeds, all is OK
     tree->TreeToDbArray(&(m->m_trajectory));

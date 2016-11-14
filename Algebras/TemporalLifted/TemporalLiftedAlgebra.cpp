@@ -1485,8 +1485,8 @@ static void MPointInsideLine(const MPoint& mp, const Line& ln, Periods& pResult)
         if(TLA_DEBUG)
           cout<<"both elements are vertical!"<<endl;
         if( !(AlmostEqual(up.p1.GetX(), l.GetLeftPoint().GetX())) ){
-        if(TLA_DEBUG)
-          cout<<"elements are vertical but not at same line"<<endl;
+          if(TLA_DEBUG)
+            cout<<"elements are vertical but not at same line"<<endl;
           continue;
         }
         else {
@@ -3463,13 +3463,13 @@ static void MovingBoolMSOperators(  const MBool& op1, const CcBool& op2,
     else
       uBool.constValue.Set(uBool.constValue.IsDefined(),
       (uBool.constValue.GetBoolval() or op2.GetBoolval()));
-      if(TLA_DEBUG){
-        cout<<"wert "<<uBool.constValue.GetBoolval()
-        <<" [ "<<uBool.timeInterval.start.ToString()
-        <<" "<<uBool.timeInterval.end.ToString()<<" "
-        <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<"]"<<endl;}
+    if(TLA_DEBUG){
+      cout<<"wert "<<uBool.constValue.GetBoolval()
+      <<" [ "<<uBool.timeInterval.start.ToString()
+      <<" "<<uBool.timeInterval.end.ToString()<<" "
+      <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<"]"<<endl;}
 
-      result.MergeAdd(uBool);
+    result.MergeAdd(uBool);
   }
   result.EndBulkLoad(false);
 }
