@@ -23,7 +23,7 @@ opprios.pl: SyntaxParser ../../Algebras/specs
 
 
 SyntaxParser: scan.o parse.o
-	g++ -o SyntaxParser scan.o parse.o -lfl
+	g++ -o SyntaxParser scan.o parse.o
 
 
 scan.o: lex.yy.c 
