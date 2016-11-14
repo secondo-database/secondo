@@ -76,25 +76,6 @@ Check for rect, rect3, rect4, rect8
 
 
 /*
-Check for map
-
-*/
-  template<int noArgs>
-  bool isMap(ListExpr map){
-
-    int a = noArgs+2;
-
-
-    return nl->ListLength(map)==a &&
-           nl->AtomType(nl->First(map))==SymbolType &&
-           nl->SymbolValue(nl->First(map)) == "map";
-
-  }
-
-
-   bool isMapX(int x, ListExpr map);
-
-/*
 Returns the symbol typeerror.
 
 */
@@ -166,6 +147,28 @@ Checks for a numeric value
  bool isSymbol(const ListExpr list, const std::string& v);
 
  bool isASymbolIn(const ListExpr list, const std::set<std::string>& s);
+
+/*
+Check for map
+
+*/
+  template<int noArgs>
+  bool isMap(ListExpr map){
+
+    int a = noArgs+2;
+
+
+    return nl->ListLength(map)==a &&
+           nl->AtomType(nl->First(map))==SymbolType &&
+           nl->SymbolValue(nl->First(map)) == "map";
+
+  }
+
+  bool isAnyMap(ListExpr map);
+
+
+
+   bool isMapX(int x, ListExpr map);
 
 
 /*

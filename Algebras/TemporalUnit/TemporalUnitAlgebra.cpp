@@ -474,10 +474,8 @@ UnitCombinedUnitStreamSelect( ListExpr args )
         return 5;
     }
 
-  if(   !( nl->IsAtom( arg1 ) )
-      && ( nl->ListLength(arg1) == 2 )
-      && ( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
-    { if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
+  if(  Stream<ANY>::checkType(arg1)){
+     if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
         return 6;
       if( nl->IsEqual( nl->Second(arg1), UInt::BasicType() ) )
         return 7;
@@ -489,7 +487,7 @@ UnitCombinedUnitStreamSelect( ListExpr args )
         return 10;
       if( nl->IsEqual( nl->Second(arg1), URegion::BasicType() ) )
         return 11;
-    }
+   }
 
   return -1; // This point should never be reached
 }
@@ -1897,51 +1895,41 @@ UnitPeriodsTypeMap( ListExpr args )
       return nl->SymbolAtom( Symbol::TYPEERROR() );
     }
 
-  if( !( nl->IsAtom( arg1 ) ) && ( nl->ListLength( arg1 ) == 2) )
-    {
-      nl->WriteToString(argstr, arg1);
-      if ( !( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
-        {
-          ErrorReporter::ReportError("Operator atperiods expects as first "
-                                     "argument a list with structure 'T' or "
-                                     "'stream(T)', T in {ubool, uint, ureal, "
-                                     "upoint, ustring, ureagion} but gets a "
-                                     "list with structure '" + argstr + "'.");
-          return nl->SymbolAtom( Symbol::TYPEERROR() );
-        }
 
-      if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                               nl->SymbolAtom(UBool::BasicType()));
-      if( nl->IsEqual( nl->Second(arg1), UInt::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                               nl->SymbolAtom(UInt::BasicType()));
-      if( nl->IsEqual( nl->Second(arg1), UReal::BasicType() ) )
-         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                nl->SymbolAtom(UReal::BasicType()));
-      if( nl->IsEqual( nl->Second(arg1), UPoint::BasicType() ) )
-         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                 nl->SymbolAtom(UPoint::BasicType()));
-      if( nl->IsEqual( nl->Second(arg1), UString::BasicType() ) )
-         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                 nl->SymbolAtom(UString::BasicType()));
-      if( nl->IsEqual( nl->Second(arg1), URegion::BasicType() ) )
-         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                 nl->SymbolAtom(URegion::BasicType()));
+   if(!Stream<ANY>::checkType(arg1)){
+     return listutils::typeError("Operator atperiods expects as first "
+                                 "argument a list with structure 'T' or "
+                                 "'stream(T)', T in {ubool, uint, ureal, "
+                                 "upoint, ustring, ureagion} but gets a "
+                                 "list with structure '" + argstr + "'.");
+   }
 
-      nl->WriteToString(argstr, nl->Second(arg1));
-      ErrorReporter::ReportError("Operator atperiods expects a type "
-                              "(stream T); T in {ubool, uint, ureal, upoint, "
-                              "ustring, uregion} but gets '(stream "
-                              + argstr + ")'.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    };
 
-  nl->WriteToString( argstr, args );
-  ErrorReporter::ReportError("Operator atperiods encountered an "
-                             "unmatched typerror for arguments '"
-                             + argstr + "'.");
-  return nl->SymbolAtom( Symbol::TYPEERROR() );
+   if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
+     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                            nl->SymbolAtom(UBool::BasicType()));
+   if( nl->IsEqual( nl->Second(arg1), UInt::BasicType() ) )
+     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                            nl->SymbolAtom(UInt::BasicType()));
+   if( nl->IsEqual( nl->Second(arg1), UReal::BasicType() ) )
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                             nl->SymbolAtom(UReal::BasicType()));
+   if( nl->IsEqual( nl->Second(arg1), UPoint::BasicType() ) )
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                              nl->SymbolAtom(UPoint::BasicType()));
+   if( nl->IsEqual( nl->Second(arg1), UString::BasicType() ) )
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                              nl->SymbolAtom(UString::BasicType()));
+   if( nl->IsEqual( nl->Second(arg1), URegion::BasicType() ) )
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                              nl->SymbolAtom(URegion::BasicType()));
+
+   nl->WriteToString(argstr, nl->Second(arg1));
+   ErrorReporter::ReportError("Operator atperiods expects a type "
+                           "(stream T); T in {ubool, uint, ureal, upoint, "
+                           "ustring, uregion} but gets '(stream "
+                           + argstr + ")'.");
+   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -7973,18 +7961,7 @@ int
 TemporalUnitBoolAggrSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
-
-  if (nl->IsAtom( arg1 ) )
-    if( nl->SymbolValue( arg1 ) == UBool::BasicType() )
-      return 0;
-  if(   !( nl->IsAtom( arg1 ) )
-      && ( nl->ListLength(arg1) == 2 )
-      && ( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
-    { if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
-        return 1;
-    }
-  cerr << "Problem in TemporalUnitBoolAggrSelect!";
-  return -1; // This point should never be reached
+  return UBool::checkType(arg1)?0:1;
 }
 
 ValueMapping TemporalUnitSometimesMap[] = {
@@ -10261,48 +10238,37 @@ UnitWhenTypeMap( ListExpr args )
       return nl->SymbolAtom( Symbol::TYPEERROR() );
     }
 
-  if( !( nl->IsAtom( arg1 ) ) && ( nl->ListLength( arg1 ) == 2) )
-    {
-      nl->WriteToString(argstr, arg1);
-      if ( !( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
-        {
-          ErrorReporter::ReportError("Operator when expects as first "
-                                     "argument a list with structure 'T' or "
-                                     "'stream(T)', T in {ubool, uint, ureal, "
-                                     "upoint, ustring, ureagion} but gets a "
-                                     "list with structure '" + argstr + "'.");
-          return nl->SymbolAtom( Symbol::TYPEERROR() );
-        }
+    if(!Stream<ANY>::checkType(arg1)){
+      return listutils::typeError("Operator when expects as first "
+                                  "argument a list with structure 'T' or "
+                                  "'stream(T)', T in {ubool, uint, ureal, "
+                                  "upoint, ustring, ureagion} but gets a "
+                                  "list with structure '" + argstr + "'.");
 
-      if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                               nl->SymbolAtom(UBool::BasicType()));
-      if( nl->IsEqual( nl->Second(arg1), UInt::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                               nl->SymbolAtom(UInt::BasicType()));
-      if( nl->IsEqual( nl->Second(arg1), UReal::BasicType() ) )
-         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                nl->SymbolAtom(UReal::BasicType()));
-      if( nl->IsEqual( nl->Second(arg1), UPoint::BasicType() ) )
-         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                 nl->SymbolAtom(UPoint::BasicType()));
-      if( nl->IsEqual( nl->Second(arg1), UString::BasicType() ) )
-         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                 nl->SymbolAtom(UString::BasicType()));
+    }
 
-      nl->WriteToString(argstr, nl->Second(arg1));
-      ErrorReporter::ReportError("Operator when expects a type "
-                              "(stream T); T in {ubool, uint, ureal, upoint, "
-                              "ustring, uregion} but gets '(stream "
-                              + argstr + ")'.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    };
+   if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
+     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                            nl->SymbolAtom(UBool::BasicType()));
+   if( nl->IsEqual( nl->Second(arg1), UInt::BasicType() ) )
+     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                            nl->SymbolAtom(UInt::BasicType()));
+   if( nl->IsEqual( nl->Second(arg1), UReal::BasicType() ) )
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                             nl->SymbolAtom(UReal::BasicType()));
+   if( nl->IsEqual( nl->Second(arg1), UPoint::BasicType() ) )
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                              nl->SymbolAtom(UPoint::BasicType()));
+   if( nl->IsEqual( nl->Second(arg1), UString::BasicType() ) )
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                              nl->SymbolAtom(UString::BasicType()));
 
-  nl->WriteToString( argstr, args );
-  ErrorReporter::ReportError("Operator when encountered an "
-                             "unmatched typerror for arguments '"
-                             + argstr + "'.");
-  return nl->SymbolAtom( Symbol::TYPEERROR() );
+   nl->WriteToString(argstr, nl->Second(arg1));
+   ErrorReporter::ReportError("Operator when expects a type "
+                           "(stream T); T in {ubool, uint, ureal, upoint, "
+                           "ustring, uregion} but gets '(stream "
+                           + argstr + ")'.");
+   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -10661,10 +10627,8 @@ WhenSelect( ListExpr args )
         return 4;
     }
 
-  if(   !( nl->IsAtom( arg1 ) )
-      && ( nl->ListLength(arg1) == 2 )
-      && ( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
-    { if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
+  if( Stream<ANY>:: checkType(arg1)){
+     if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
         return 5;
       if( nl->IsEqual( nl->Second(arg1), UInt::BasicType() ) )
         return 6;
@@ -10674,7 +10638,7 @@ WhenSelect( ListExpr args )
         return 8;
       if( nl->IsEqual( nl->Second(arg1), UString::BasicType() ) )
         return 9;
-    }
+   }
 
   return -1; // This point should never be reached
 }

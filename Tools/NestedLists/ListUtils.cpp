@@ -899,6 +899,10 @@ Checks whether the list represents a stream.
   }
 
 
+  bool isAnyMap(ListExpr map){
+    return nl->HasMinLength(map,2) 
+           && isSymbol(nl->First(map), "map");
+  }
 
 
 } // end of namespace listutils

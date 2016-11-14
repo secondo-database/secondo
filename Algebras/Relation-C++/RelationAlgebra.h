@@ -2982,8 +2982,8 @@ type ~RelationType~. ~Symbol~ is allowed to be any list. If it is
 not one of these symbols, then the value ~error~ is returned.
 
 */
-enum RelationType { rel, trel, tuple, stream, ccmap, ccbool, error };
-RelationType TypeOfRelAlgSymbol (ListExpr symbol);
+//enum RelationType { rel, trel, tuple, stream, ccmap, ccbool, error };
+//RelationType TypeOfRelAlgSymbol (ListExpr symbol);
 
 /*
 3.2 Function ~FindAttribute~

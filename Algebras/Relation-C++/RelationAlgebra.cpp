@@ -835,14 +835,13 @@ second argument.
 ListExpr TUPLE2TypeMap(ListExpr args)
 {
   ListExpr second;
-  if(nl->ListLength(args) >= 2)
-  {
+  if(nl->ListLength(args) >= 2) {
     second = nl->Second(args);
-    if(nl->ListLength(second) == 2  )
-    {
-      if ((TypeOfRelAlgSymbol(nl->First(second)) == stream)  ||
-          (TypeOfRelAlgSymbol(nl->First(second)) == rel))
+    if(nl->ListLength(second) == 2  ) {
+      if(Stream<ANY>::checkType(second)
+         || Relation::checkType(second)){
         return nl->Second(second);
+      }
     }
   }
   return nl->SymbolAtom(Symbol::TYPEERROR());
@@ -2400,16 +2399,8 @@ const string TCountSpec  =
 
 */
 int
-TCountSelect( ListExpr args )
-{
-  ListExpr first = nl->First(args);
-  if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-    return 0;
-  else if( TypeOfRelAlgSymbol(nl->First(first)) == rel
-           || TypeOfRelAlgSymbol(nl->First(first)) == trel
-           || listutils::isOrelDescription(first))
-    return 1;
-  return -1;
+TCountSelect( ListExpr args ) {
+ return Stream<ANY>::checkType(nl->First(args))?0:1;
 }
 
 /*

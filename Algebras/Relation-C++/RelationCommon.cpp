@@ -587,31 +587,6 @@ Tuple *TupleBuffer::GetTuple( const TupleId& id,
 /*
 6 Auxilary Functions
 
-6.1 Function ~TypeOfRelAlgSymbol~
-
-Transforms a list expression ~symbol~ into one of the values of
-type ~RelationType~. ~Symbol~ is allowed to be any list. If it is
-not one of these symbols, then the value ~error~ is returned.
-
-*/
-RelationType TypeOfRelAlgSymbol (ListExpr symbol)
-{
-  string s;
-
-  if (nl->AtomType(symbol) == SymbolType)
-  {
-    s = nl->SymbolValue(symbol);
-    if (s == Relation::BasicType()   ) return rel;
-    if (s == TempRelation::BasicType()  ) return trel;
-    if (s == Tuple::BasicType() ) return tuple;
-    if (s == Symbol::STREAM()) return stream;
-    if (s == Symbol::MAP()   ) return ccmap;
-    if (s == CcBool::BasicType()  ) return ccbool;
-  }
-  return error;
-}
-
-/*
 6.2 Function ~FindAttribute~
 
 Here ~list~ should be a list of pairs of the form
@@ -993,20 +968,11 @@ ListExpr GetTupleResultType( Supplier s )
   ListExpr result = qp->GetType( s ),
            first = nl->First( result );
 
-  switch( TypeOfRelAlgSymbol( first ) )
-  {
-    case ccmap:
-    {
-      result = nl->Third( result );
-      break;
-    }
-    case stream:
-    {
-      // the result already corresponds to the stream.
-      break;
-    }
-    default:
-      assert( false );
+
+  if(listutils::isSymbol(first,Symbols::MAP())){
+    result = nl->Third(result);
+  } else if( !listutils::isSymbol(first,Symbols::STREAM())){
+    assert(false);
   }
 
   first = nl->First( result );

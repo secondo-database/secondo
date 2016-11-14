@@ -7851,12 +7851,7 @@ ListExpr SlidingWindowTypeMap(ListExpr args)
 
 
   // check for tuple stream
-  listOk = listOk &&
-           (nl->ListLength(first) == 2) &&
-           (TypeOfRelAlgSymbol(nl->First(first) == stream)) &&
-           (nl->ListLength(nl->Second(first)) == 2 ) &&
-           (nl->IsEqual(nl->First(nl->Second(first)),tupleSymbolStr)) &&
-           (IsTupleDescription(nl->Second(nl->Second(first))));
+  listOk = listOk && Stream<Tuple>::checkType(first);
 
   if ( !listOk ) {
 
@@ -7902,7 +7897,7 @@ ListExpr SlidingWindowTypeMap(ListExpr args)
     listOk = listOk && ( nl->IsAtom(newAttr) );
     listOk = listOk && ( nl->ListLength(mapDef) == 3 );
     listOk = listOk && ( nl->AtomType(newAttr) == SymbolType );
-    listOk = listOk && ( TypeOfRelAlgSymbol(nl->First(mapDef)) == ccmap );
+    listOk = listOk && ( listutils::isAnyMap(mapDef)); 
 //    listOk = listOk && ( nl->Equal(groupType, nl->Second(mapDef)) );
 
     if( !listOk )

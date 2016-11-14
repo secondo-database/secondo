@@ -1702,7 +1702,7 @@ ListExpr csvimport2TM(ListExpr args){
    }
    string err;
    if(!SecondoSystem::GetCatalog()->IsValidIdentifier(token,
-                                                      error)){
+                                                      true)){
       stringstream ss;
       ss << token << count;
       token = ss.str();
