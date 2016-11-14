@@ -8,7 +8,7 @@ all: OpSpec
 
 
 OpSpec: scan.o parse.o
-	g++ -o OpSpec scan.o parse.o -lfl
+	g++ -o OpSpec scan.o parse.o
 
 
 scan.o: lex.opspec.c 

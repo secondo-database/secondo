@@ -40,6 +40,9 @@ Includes
 #include <string>
 #include <fstream>
 
+#ifdef YYDEBUG
+#undef YYDEBUG
+#endif
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
 
@@ -88,7 +91,7 @@ string collectArg       = "";
 
 */
 
-%name-prefix="opspec"
+%name-prefix "opspec"
 
 %token   ZZOPERATOR ZZPATTERN ZZFUN ZZOP ZZINFIXOP  ZZLIST
          ZZIMPLICIT ZZPARAMETER ZZPARAMETERS ZZTYPE ZZTYPES ZZFUNLIST 
