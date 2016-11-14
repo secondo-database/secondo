@@ -447,7 +447,6 @@ ListExpr
 TypeMapUse2( ListExpr args )
 {
   string   outstr1, outstr2;               // output strings
-  ListExpr errorInfo;
   ListExpr sarg1, sarg2, map;              // arguments to use
   ListExpr marg1, marg2, mres;             // argument to mapping
   ListExpr sarg1Type, sarg2Type, sresType; // 'flat' arg type
@@ -458,7 +457,6 @@ TypeMapUse2( ListExpr args )
     resisstream   = false;
   int argConfCode = 0;
 
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
   // 0. Check number of arguments
   if ( (nl->ListLength( args ) != 3) )
@@ -493,132 +491,33 @@ TypeMapUse2( ListExpr args )
 
   // 2. First argument
   // check sarg1 for being a stream
-  if( nl->IsAtom( sarg1 )
-      || !(TypeOfRelAlgSymbol(nl->First(sarg1) == stream )) )
-    { // non-stream datatype
+  if( Attribute::checkType(sarg1)) {  // attribute
       sarg1Type = sarg1;
       sarg1isstream = false;
-    }
-  else if ( !nl->IsAtom( sarg1 )
-            && ( nl->ListLength( sarg1 ) == 2)
-            && (TypeOfRelAlgSymbol(nl->First(sarg1) == stream )) )
-    { // (stream datatype)
+  } else { // stream
       sarg1Type = nl->Second(sarg1);
       sarg1isstream = true;
-    }
-  else // wrong type for sarg1
-    {
-      ErrorReporter::ReportError(
-                                 "Operator use2 expects its first Argument to "
-        "be of type 'T' or '(stream T).");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-
-  // check sarg1 to be a (stream T) for T in kind DATA
-  // or T of type tuple(X)
-  if(    !nl->IsAtom( sarg1Type )
-      && !am->CheckKind(Kind::DATA(), nl->Second( sarg1Type ), errorInfo) )
-    { // T is not of kind DATA
-      nl->WriteToString(outstr1, sarg1Type);
-      ErrorReporter::ReportError("Operator use2 expects its 1st argument "
-                                 "to be '(stream T)', T of kind DATA, but"
-                                 "receives '" + outstr1 + "' as T.");
-
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-  else if ( !nl->IsAtom( sarg1Type ) &&
-            ( (nl->ListLength( sarg1Type ) != 2) ||
-              !nl->IsEqual( nl->First(sarg1Type), Tuple::BasicType()) ||
-              !IsTupleDescription(nl->Second(sarg1Type))
-              )
-            )
-    { // neither T is tuple(X)
-      nl->WriteToString(outstr1, sarg1Type);
-      ErrorReporter::ReportError("Operator use2 expects its 1st argument "
-                                 "to be 'T' or '(stream T), T of kind DATA "
-                                 "or of type 'tuple(X))', but"
-                                 "receives '" + outstr1 + "' for T.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
+  }
 
   // 3. Second Argument
   // check sarg2 for being a stream
-  if( nl->IsAtom( sarg2 )
-      || !(TypeOfRelAlgSymbol(nl->First(sarg2) == stream )) )
-    { // non-stream datatype
+  if( Attribute::checkType(sarg2)) {  // attribute
       sarg2Type = sarg2;
       sarg2isstream = false;
-    }
-  else if ( !nl->IsAtom( sarg2 )
-            && ( nl->ListLength( sarg2 ) == 2)
-            && (TypeOfRelAlgSymbol(nl->First(sarg2) == stream )) )
-    { // (stream datatype)
+  } else { // stream
       sarg2Type = nl->Second(sarg2);
       sarg2isstream = true;
-    }
-  else // wrong type for sarg2
-    {
-      ErrorReporter::ReportError(
-        "Operator use2 expects its second Argument to "
-        "be of type 'T' or '(stream T), for T in kind DATA)'.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-
-  // check sarg2 to be a (stream T) for T in kind DATA
-  // or T of type tuple(X)
-  if(    !nl->IsAtom( sarg2Type )
-         && !am->CheckKind(Kind::DATA(), nl->Second( sarg2Type ), errorInfo) )
-    { // T is not of kind DATA
-      nl->WriteToString(outstr2, sarg2Type);
-      ErrorReporter::ReportError("Operator use2 expects its 2nd argument "
-                                 "to be '(stream T)', T of kind DATA, but"
-                                 "receives '" + outstr1 + "' as T.");
-
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-  else if ( !nl->IsAtom( sarg2Type ) &&
-            ( (nl->ListLength( sarg2Type ) != 2) ||
-              !nl->IsEqual( nl->First(sarg2Type), Tuple::BasicType()) ||
-              !IsTupleDescription(nl->Second(sarg2Type))
-              )
-            )
-    { // neither T is tuple(X)
-      nl->WriteToString(outstr1, sarg2Type);
-      ErrorReporter::ReportError("Operator use2 expects its 2nd argument "
-                                 "to be 'T' or '(stream T), T of kind DATA "
-                                 "or of type 'tuple(X))', but"
-                                 "receives '" + outstr1 + "' for T.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
+  }
 
   // 4. First and Second argument
   // check whether at least one stream argument is present
-  if ( !sarg1isstream && !sarg2isstream )
-    {
-      ErrorReporter::ReportError(
-        "Operator use2 expects at least one of its both first "
-        "argument to be of type '(stream T), for T in kind DATA)'.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
+  if ( !sarg1isstream && !sarg2isstream ) {
+      return listutils::typeError("at leat one of the first two args "
+                                  " must be a stream(T), with T in"
+                                  " {DATA, tuple}");
+  }
 
   // 5. Third argument
-  // check third for being a map
-  if (  nl->IsAtom( map ) || !( nl->IsEqual(nl->First(map), Symbol::MAP()) ) )
-    {
-      nl->WriteToString(outstr1, map);
-      ErrorReporter::ReportError("Operator use2 expects a map as "
-                                 "3rd argument, but gets '" + outstr1 +
-                                 "' instead.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-
-  if ( nl->ListLength(map) != 4 )
-    {
-      ErrorReporter::ReportError("Number of map arguments must be 2 "
-                                 "for operator use2.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-
   // get map arguments
   marg1 = nl->Second(map);
   marg2 = nl->Third(map);
@@ -655,60 +554,29 @@ TypeMapUse2( ListExpr args )
 
   // 6. Determine result type
   // get map result type 'sresType'
-  if( !nl->IsAtom( mres )  && ( nl->ListLength( mres ) == 2) )
-    {
-      if (  TypeOfRelAlgSymbol(nl->First(mres) == stream ) )
-        {
-          if ( !am->CheckKind(Kind::DATA(), nl->Second(mres), errorInfo) &&
-               !( !nl->IsAtom(nl->Second(mres)) &&
-                  nl->ListLength(nl->Second(mres)) == 2 &&
-                  TypeOfRelAlgSymbol(nl->First(nl->Second(mres)) == tuple) &&
-                  IsTupleDescription(nl->Second(nl->Second(mres)))
-                  )
-               )
-            {
-              ErrorReporter::ReportError(
-                "Operator use2 expects its 3rd Argument to "
-                "return a '(stream T)', T of kind DATA or T = 'tuple(X)'.");
-              return nl->SymbolAtom( Symbol::TYPEERROR() );
-            }
-          resisstream = true;
-          sresType = mres; // map result type is already a stream
-        }
-    }
-  else // map result type is not a stream, so encapsulate it
-    {
-      if ( !( nl->IsAtom(mres) && am->CheckKind(Kind::DATA(), mres, errorInfo))
-              && !( !nl->IsAtom(mres) &&
-                    nl->ListLength(mres) == 2 &&
-                    !nl->IsAtom(nl->Second(mres)) &&
-                    TypeOfRelAlgSymbol(nl->First(mres)  == tuple) &&
-                    IsTupleDescription(nl->Second(mres))
-                    )
-              )
-        {
-          ErrorReporter::ReportError(
-            "Operator use2 expects its 3rd Argument to "
-            "return a type T of kind DATA or T = 'tuple(X)'.");
-          return nl->SymbolAtom( Symbol::TYPEERROR() );
-        }
-      resisstream = false;
-      sresType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), mres);
-    }
+  // may be a stream of T, T in {DATA,TUPLE} 
+  if(   Stream<Attribute>::checkType(mres)
+     || Stream<Tuple>::checkType(mres)){
+     resisstream = true;
+     sresType = mres; // map result type is already a stream
+
+  } else if(   Attribute::checkType(mres)
+            || Tuple::checkType(mres)){
+     resisstream = false;
+     sresType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), mres);
+
+  } else {
+     return listutils::typeError("result of the map must be T or "
+                                 "stream(T), with T in {DATA,TUPLE}");
+  }
+ 
 
   // 7. This check can be removed when operators working on tuplestreams have
   //    been implemented:
-  if (   (!nl->IsAtom(sarg1Type) &&
-          TypeOfRelAlgSymbol(nl->First(sarg1Type)) == tuple )
-         || (!nl->IsAtom(sarg1Type) &&
-             TypeOfRelAlgSymbol(nl->First(sarg1Type)) == tuple ) )
-    {
-      ErrorReporter::ReportError("Operator use2 still not implemented for "
-                                 "arguments of type 'tuple(X)' or "
-                                 "'(stream tuple(X))'.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-
+  if ( Tuple::checkType(sarg1Type)
+       || Stream<Tuple>::checkType(sarg1Type)){
+    return listutils::typeError("use2: support for tuple not implemented");
+  }
 
   // 8. Append flags describing argument configuration for value mapping:
   //     0: no stream
@@ -1810,52 +1678,43 @@ streamUse2Select( ListExpr args )
 
   // examine first arg
   // check type of sarg1
-  if( !nl->IsAtom(X) &&
-      TypeOfRelAlgSymbol(nl->First(X)) == tuple )
-    { xIsTuple = true; xIsStream = false; }
-  else if( !nl->IsAtom(X) &&
-      TypeOfRelAlgSymbol(nl->First(X)) == stream )
-    {
+  if( Tuple::checkType(X) ) { 
+      xIsTuple = true; 
+      xIsStream = false;
+  } else if( Stream<ANY>::checkType(X)) {
       xIsStream = true;
-      if(!nl->IsAtom(nl->Second(X)) &&
-         (nl->ListLength(nl->Second(X)) == 2) &&
-         TypeOfRelAlgSymbol(nl->First(X)) == tuple )
+      if(Tuple::checkType(nl->Second(X))){
         xIsTuple = true;
-      else
+      } else {
         xIsTuple = false;
-    }
-  else
-    { xIsTuple = false; xIsStream = false;}
-
-  // examine second argument
-  if( !nl->IsAtom(Y) &&
-      TypeOfRelAlgSymbol(nl->First(Y)) == tuple )
-    { yIsTuple = true; yIsStream = false; }
-  else if( !nl->IsAtom(Y) &&
-      TypeOfRelAlgSymbol(nl->First(Y)) == stream )
-    {
+      }
+  } else { 
+      xIsTuple = false; 
+      xIsStream = false;
+  }
+  if( Tuple::checkType(Y) ) { 
+      yIsTuple = true; 
+      yIsStream = false;
+  } else if( Stream<ANY>::checkType(Y)) {
       yIsStream = true;
-      if(!nl->IsAtom(nl->Second(Y)) &&
-         (nl->ListLength(nl->Second(Y)) == 2) &&
-         TypeOfRelAlgSymbol(nl->First(Y)) == tuple )
+      if(Tuple::checkType(nl->Second(Y))){
         yIsTuple = true;
-      else
+      } else {
         yIsTuple = false;
-    }
-  else
-    { yIsTuple = false; yIsStream = false;}
+      }
+  } else { 
+      yIsTuple = false; 
+      yIsStream = false;
+  }
 
   // examine mapping result type
-  if( !nl->IsAtom(nl->Fourth(M)) &&
-      TypeOfRelAlgSymbol(nl->First(nl->Fourth(M))) == tuple )
-    {  resIsStream = false; }
-  else if( !nl->IsAtom(nl->Fourth(M)) &&
-      TypeOfRelAlgSymbol(nl->First(nl->Fourth(M))) == stream )
-    {
-      resIsStream = true;
-    }
-  else
-    { resIsStream = false;}
+  ListExpr mres = nl->Fourth(M);
+  if(Stream<ANY>::checkType(mres)){
+     resIsStream = true;
+  } else {
+    resIsStream = false;
+  }
+
 
   // calculate appropriate index value
 

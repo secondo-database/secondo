@@ -172,5 +172,15 @@ Close Progress
 
 };
 
+
+class ANY{
+ public:
+    static bool checkType(const ListExpr dummy){
+       return true;
+    }
+};
+
+
+
 #endif
 
