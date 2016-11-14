@@ -940,7 +940,7 @@ public:
     if(init)
      originEsriHDR.filesize =
          FileSystem::GetFileSize(RasterFile.c_str());
-     currentEsriHDR.filesize =
+    currentEsriHDR.filesize =
          FileSystem::GetFileSize(RasterFile.c_str());
 
     //default, will be overwritten if differs

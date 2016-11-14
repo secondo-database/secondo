@@ -483,8 +483,8 @@ bool Histogram::Equals(Histogram* h, int n, int p, bool& valid, double& diff) {
         double maxdiff = p * Tolerance_Unit;
         if ( dist > maxdiff )
         {
-        if (PA_DEBUG)
-                cerr << i<< ". [" << m1-maxdiff << ", " << m1+maxdiff 
+                if (PA_DEBUG)
+                        cerr << i<< ". [" << m1-maxdiff << ", " << m1+maxdiff
                                 << "] , m2 = " << m2 << endl;
                 isEqual = false;
                 diff += dist; 
