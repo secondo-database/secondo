@@ -7808,25 +7808,25 @@ string pinyin_utf8(string inbuf) {
       resStr += inbuf[i];
       continue;
     } else if ((inbuf[i] & 0xF0) == 0xE0) { //Chinese
-    if (i + 2 >= inbuf_len) {
-      break;
-    }
-    uni = (((int) (inbuf[i] & 0x0F)) << 12)
-      | (((int) (inbuf[i + 1] & 0x3F)) << 6)
-      | (inbuf[i + 2] & 0x3F);
-    if (uni > 19967 && uni < 40870) {
-      string ch(pytable[uni - 19968]);
-      int n = ch.find('|');
-      if (n != -1)
-        ch = ch.substr(0, n);
-      for(size_t i =0; i < ch.length(); i++)
-        if ( ch[i] >= 'a' && ch[i] <= 'z')
-          ch[i] = ch[i] - 32 ;
-          resStr += ch;
-          resStr += " ";
-        }
+      if (i + 2 >= inbuf_len) {
+        break;
+      }
+      uni = (((int) (inbuf[i] & 0x0F)) << 12)
+        | (((int) (inbuf[i + 1] & 0x3F)) << 6)
+        | (inbuf[i + 2] & 0x3F);
+      if (uni > 19967 && uni < 40870) {
+        string ch(pytable[uni - 19968]);
+        int n = ch.find('|');
+        if (n != -1)
+          ch = ch.substr(0, n);
+        for(size_t i =0; i < ch.length(); i++)
+          if ( ch[i] >= 'a' && ch[i] <= 'z')
+            ch[i] = ch[i] - 32 ;
+        resStr += ch;
+        resStr += " ";
       }
     }
+  }
   return resStr;
 }
 

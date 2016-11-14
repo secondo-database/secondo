@@ -484,7 +484,7 @@ Add a transition to this automaton.
 
  RegEx* computeRegEx(const bool  usePrio){
 
-    if(successors.size()==0u || finals.size()==0u || start<0u 
+    if(successors.size()==0u || finals.size()==0u || start<0 
        || (uint32_t)start >= successors.size()
       || successors[start]==0u){
        return 0;
