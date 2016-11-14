@@ -147,36 +147,51 @@ inline int STVector::Str2Simple(string s)
 {
   if(s=="aabb") return  1 ;
   if(s=="bbaa") return  2 ;
-  if(s=="aa.bb")return  4; if(s=="ab.ab")  return  4;
-  if(s=="bb.aa")return  8; if(s=="ba.ba")  return  8;
+  if(s=="aa.bb")return  4;
+  if(s=="ab.ab")return  4;
+  if(s=="bb.aa")return  8;
+  if(s=="ba.ba")return  8;
   if(s=="abab") return  16;
   if(s=="baba") return  32;
   if(s=="baab") return  64;
   if(s=="abba") return  128;
-  if(s=="a.bab")return  256; if(s=="b.aab")  return  256  ;
-  if(s=="a.bba")return  512; if(s=="b.aba")  return  512  ;
-  if(s=="baa.b")return  1024;if(s=="bab.a")  return  1024;
-  if(s=="aba.b")return  2048;if(s=="abb.a")  return  2048;
-  if(s=="a.ba.b")  return  4096  ; if(s=="a.bb.a")  return  4096;
-  if(s=="b.aa.b")  return  4096  ;  if(s=="b.ab.a")  return  4096;
+  if(s=="a.bab")return  256;
+  if(s=="b.aab")return  256;
+  if(s=="a.bba")return  512;
+  if(s=="b.aba")return  512;
+  if(s=="baa.b")return  1024;
+  if(s=="bab.a")return  1024;
+  if(s=="aba.b")return  2048;
+  if(s=="abb.a")return  2048;
+  if(s=="a.ba.b")  return  4096;
+  if(s=="a.bb.a")  return  4096;
+  if(s=="b.aa.b")  return  4096;
+  if(s=="b.ab.a")  return  4096;
   if(s=="a.abb")  return  8192  ;
-  if(s=="a.a.bb")  return  16384  ;  if(s=="a.b.ab")  return  16384;
+  if(s=="a.a.bb")  return  16384;
+  if(s=="a.b.ab")  return  16384;
   if(s=="b.a.ab")  return  16384  ;
   if(s=="ba.ab")  return  32768  ;
-  if(s=="bb.a.a")  return  65536  ;  if(s=="ba.b.a")  return  65536;
+  if(s=="bb.a.a")  return  65536;
+  if(s=="ba.b.a")  return  65536;
   if(s=="ba.a.b")  return  65536  ;
   if(s=="bba.a")  return  131072  ;
   if(s=="b.baa")  return  262144  ;
-  if(s=="b.b.aa")  return  524288  ;  if(s=="b.a.ba")  return  524288;
+  if(s=="b.b.aa")  return  524288;
+  if(s=="b.a.ba")  return  524288;
   if(s=="a.b.ba")  return  524288  ;
   if(s=="ab.ba")  return  1048576  ;    
-  if(s=="aa.b.b")  return  2097152  ;  if(s=="ab.a.b")  return  2097152;
+  if(s=="aa.b.b")  return  2097152;
+  if(s=="ab.a.b")  return  2097152;
   if(s=="ab.b.a")  return  2097152  ;
   if(s=="aab.b")  return  4194304  ;
   if(s=="a.ab.b")  return  8388608  ;
-  if(s=="a.a.b.b")return  16777216; if(s=="a.b.a.b")return  16777216;
-  if(s=="a.b.b.a")return  16777216;  if(s=="b.b.a.a")return  16777216;
-  if(s=="b.a.b.a")return  16777216;  if(s=="b.a.a.b")return  16777216;
+  if(s=="a.a.b.b")return  16777216;
+  if(s=="a.b.a.b")return  16777216;
+  if(s=="a.b.b.a")return  16777216;
+  if(s=="b.b.a.a")return  16777216;
+  if(s=="b.a.b.a")return  16777216;
+  if(s=="b.a.a.b")return  16777216;
   if(s=="b.ba.a")  return  33554432;
   return -1;
 }
@@ -1515,8 +1530,8 @@ ListExpr ComputeClosure(ListExpr ConstraintList, vector<string> IntervalVars)
     alias= nl->StringValue(nl->Third(STConstraint));
     j= alias2IAIndex[alias];
 
-    if((! relatedPairs.insert(make_pair<int,int>(i,j)).second) ||
-       (! relatedPairs.insert(make_pair<int,int>(j,i)).second))
+    if((! relatedPairs.insert(make_pair(i,j)).second) ||
+       (! relatedPairs.insert(make_pair(j,i)).second))
       return nl->TwoElemList(nl->IntAtom(0), nl->IntAtom(notPA));
 
     IAVector.Clear();

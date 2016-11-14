@@ -84,7 +84,7 @@ void PointAlgebraReasoner::Add(int i, int j, PARelation Rij)
   if(newRij != oldRij)
   {
     Table[i][j]= newRij;
-    Queue.push(make_pair<int, int>(i, j));
+    Queue.push(make_pair(i, j));
   }
   Intervals.insert(i);
   Intervals.insert(j);
@@ -118,7 +118,7 @@ bool PointAlgebraReasoner::Propagate(int i, int j)
       return false; // signal contradiction
     if(Rik != Rik_plus_Rij_mul_Rjk)
     {
-      Queue.push(make_pair<int, int>(i, k));
+      Queue.push(make_pair(i, k));
       Table[i][k] = Rik_plus_Rij_mul_Rjk;
     }
 
@@ -130,7 +130,7 @@ bool PointAlgebraReasoner::Propagate(int i, int j)
       return false; // signal contradiction
     if(Rkj != Rkj_plus_Rki_mul_Rij)
     {
-      Queue.push(make_pair<int, int>(k, j));
+      Queue.push(make_pair(k, j));
       Table[k][j]= Rkj_plus_Rki_mul_Rij;
     }
   }
