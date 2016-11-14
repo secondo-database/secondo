@@ -26,7 +26,7 @@
 
 # The first line is used when compiling with FLEX (2.5.4a) and BISON (1.35)
 # The second line when compiling with LEX and YACC
-LINKLIBS = -L$(SECONDO_SDK)/lib  -lfl 
+LINKLIBS =  -lfl 
 
 # The first line is used when compiling with FLEX and BISON
 # The second line when compiling with LEX and YACC
@@ -98,6 +98,12 @@ makehtml: PDMakeHTML.c PDParserHTML.y PDLex.c PDParserDS.c $(OBJECTS)
 makeascii: PDMakeASCII.c PDParserASCII.y PDLex.c PDParserDS.c $(OBJECTS)
 	$(YACC) PDParserASCII.y
 	$(CC) $(OPTIONS) -o $@ $< y.tab.c $(OBJECTS) $(LINKLIBS)
+
+pdtabs: pdtabs.c
+	$(CC) -o $@ $< 
+
+linebreaks: linebreaks.c
+	$(CC) -o $@ $< 
 
 
 # some dependencies
