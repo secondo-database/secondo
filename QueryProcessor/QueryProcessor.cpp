@@ -2579,13 +2579,13 @@ will be processed.
               if (traceMode)
                 cout << "Case 6: A memory definition." << endl;
 
-                return nl->TwoElemList(
-                         nl->FourElemList(
-                           nl->SymbolAtom("none"),
-                           nl->SymbolAtom("memorydef"),
-                           nl->First(nl->First(nl->Second(list))),
-                           nl->Third(list)),
-                         nl->Second(nl->Third(list)));
+              return nl->TwoElemList(
+                       nl->FourElemList(
+                         nl->SymbolAtom("none"),
+                         nl->SymbolAtom("memorydef"),
+                         nl->First(nl->First(nl->Second(list))),
+                         nl->Third(list)),
+                       nl->Second(nl->Third(list)));
             }
 
             default:
@@ -2679,22 +2679,22 @@ QueryProcessor::TestOverloadedOperators( const string&
     opId = nl->IntValue( nl->Second( nl->First( opList ) ) );
 
     /* apply the operator's type mapping: */
-  // (i) standard case: pass the list of types
-  // (ii) special case: pass the list of pairs (type, argument)
-  // This is for operators who need to see argument expressions 
-        // within the type
-  // mapping, for example, a filename passed as a string, to get some type
-  // information from the file.
-  // This case applies if the operator has registered  
-        // "UsesArgumentsInTypeMapping"
-        // It is demonstrated with the filter operator in the relation
-        // algebra.
+    // (i) standard case: pass the list of types
+    // (ii) special case: pass the list of pairs (type, argument)
+    // This is for operators who need to see argument expressions 
+    // within the type
+    // mapping, for example, a filename passed as a string, to get some type
+    // information from the file.
+    // This case applies if the operator has registered  
+    // "UsesArgumentsInTypeMapping"
+    // It is demonstrated with the filter operator in the relation
+    // algebra.
   
-  if ( !algebraManager->
-             getOperator( alId, opId )->UsesArgsInTypeMapping() )
-    resultType = algebraManager->TransformType( alId, opId, typeList );
-  else
-    resultType = algebraManager->TransformType( alId, opId, typeArgList );
+    if ( !algebraManager->
+               getOperator( alId, opId )->UsesArgsInTypeMapping() )
+      resultType = algebraManager->TransformType( alId, opId, typeList );
+    else
+      resultType = algebraManager->TransformType( alId, opId, typeArgList );
     
     string algName = algebraManager->GetAlgebraName(alId);
 
@@ -3458,8 +3458,8 @@ QueryProcessor::Subtree( const ListExpr expr,
       if ( node->nodetype == Operator )
         node->u.op.selectivity =
           nl->RealValue(nl->Third(nl->First(expr)));
-        node->u.op.predCost =
-          nl->RealValue(nl->Fourth(nl->First(expr)));
+      node->u.op.predCost =
+        nl->RealValue(nl->Fourth(nl->First(expr)));
 
       if (traceNodes)
       {
