@@ -1431,6 +1431,7 @@ by this function.
            }
        }
        assert(false); // should never be reached
+       return 0;
     }
 
 
