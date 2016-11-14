@@ -3679,7 +3679,7 @@ void MInt::Hat(MInt& mint)
         Get(GetNoComponents() - 2,upi2);
        else
         Get(GetNoComponents() - 1,upi2);
-        int lastvalue = upi2.constValue.GetValue();
+       int lastvalue = upi2.constValue.GetValue();
        if(firstvalue != lastvalue){
           begin = upi1;
           mint.Add(begin);
@@ -7186,13 +7186,13 @@ it to the result.
   delayValueAtUnitStartTime = val; \
   delayUnitStartTime = t; \
   atUnitStart = false; \
-  if(debugme) cout<<"\n\t\tStartUnit ("<<val<<" @ "<< t.Print(cout)<<" )";
+  if(debugme) cout<<"\n\t\tStartUnit ("<<val<<" @ "; t.Print(cout); cout<<" )";
 
 #define _endunit(val, t) \
   delayValueAtUnitEndTime=val; \
   delayUnitEndTime=t; \
   atUnitStart = true; \
-  if(debugme) cout<<"\n\t\tEndUnit ("<<val<<" @ "<< t.Print(cout)<<" )";
+  if(debugme) cout<<"\n\t\tEndUnit ("<<val<<" @ "; t.Print(cout); cout<<" )";
 
 #define _createunitpar(val1, t1, val2, t2) \
   intr.start=t1; intr.end=t2; \
@@ -7206,8 +7206,8 @@ it to the result.
   runit= new UReal(intr, delayValueAtUnitStartTime * 86400, \
       delayValueAtUnitEndTime * 86400); \
   delayRes->Add(*runit); \
-  if(debugme) cout<<"\n\t\tCreateIntermediateUnit (" \
-      << runit->Print(cout)<<" )"; \
+  if(debugme) cout<<"\n\t\tCreateIntermediateUnit ("; \
+      runit->Print(cout); cout<<" )"; \
   delete runit;
 
 MReal* MPoint::DelayOperator(const MPoint* actual, const Geoid* geoid)
