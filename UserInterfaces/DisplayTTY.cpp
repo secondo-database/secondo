@@ -3420,6 +3420,80 @@ virtual void Display(ListExpr type,  ListExpr value)
              << endl;
     }
 };
+
+/*
+Display Label
+
+*/
+struct DisplayLabel : DisplayFunction {
+  
+virtual void Display(ListExpr type, ListExpr value) {
+  if (nl->IsAtom(value) && nl->AtomType(value) == SymbolType &&
+      nl->SymbolValue(value) == "undef") {
+    cout << "UNDEFINED";
+  }
+  else {
+    cout << nl->ToString(value);
+  }
+}
+  
+};
+
+/*
+Display Labels
+
+*/
+struct DisplayLabels : DisplayFunction {
+  
+virtual void Display(ListExpr type, ListExpr value) {
+  if (nl->IsAtom(value) && nl->AtomType(value) == SymbolType &&
+      nl->SymbolValue(value) == "undef") {
+    cout << "UNDEFINED";
+  }
+  else {
+    cout << nl->ToString(value);
+  }
+}
+  
+};
+
+/*
+Display Place
+
+*/
+struct DisplayPlace : DisplayFunction {
+  
+virtual void Display(ListExpr type, ListExpr value) {
+  if (nl->IsAtom(value) && nl->AtomType(value) == SymbolType &&
+      nl->SymbolValue(value) == "undef") {
+    cout << "UNDEFINED";
+  }
+  else {
+    cout << nl->ToString(value);
+  }
+}
+  
+};
+
+/*
+Display Places
+
+*/
+struct DisplayPlaces : DisplayFunction {
+  
+virtual void Display(ListExpr type, ListExpr value) {
+  if (nl->IsAtom(value) && nl->AtomType(value) == SymbolType &&
+      nl->SymbolValue(value) == "undef") {
+    cout << "UNDEFINED";
+  }
+  else {
+    cout << nl->ToString(value);
+  }
+}
+  
+};
+
+
 /*
 4 Initialization
 
@@ -3552,6 +3626,11 @@ DisplayTTY::Initialize()
   d.Insert("lstring", new DisplayLType);
   d.Insert("lreal", new DisplayLType);
 
+  // SymbolicTrajectoryAlgebra
+  d.Insert("label", new DisplayLabel);
+  d.Insert("labels", new DisplayLabels);
+  d.Insert("place", new DisplayPlace);
+  d.Insert("places", new DisplayPlaces);
 }
 
 /*
