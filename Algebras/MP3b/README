@@ -45,6 +45,17 @@ Now you can follow the installation steps above ...
 NOTE: Most included libraries are optional. For test purpose they are included here.
 
 
+Summary for openSUSE 42.1:
+
+1. Install the packages libyaml-devel fftw3-devel libavcodec-devel libavutil-devel libavformat-devel libavresample-devel libsamplerate-devel libtag-devel python-numpy-devel
+2. Go to the directory you want to install Essentia
+3. wget https://github.com/MTG/essentia/archive/v2.1_beta3.tar.gz
+4. tar -xzf v2.1_beta3.tar.gz
+5. cd essentia-2.1_beta3
+6. ./waf configure --mode=release
+7. execute steps 8., 9., 10, 11. from above
+
+
 In the end you just have to add includes and dependencies in the makefile.algebra file:
 
 ALGEBRA_DIRS += MP3b
