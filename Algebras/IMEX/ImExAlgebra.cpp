@@ -9053,8 +9053,8 @@ int splitShpVMT(Word* args, Word& result,
       double minY=0;
       double maxX=0;
       double maxY=0;
-      while(   in.good() && (recno < (uint32_t) maxnorec) 
-            && (size_t)in.tellg()<fileSize){
+      while(    in.good() && (recno < (uint32_t) maxnorec) 
+            && (in.tellg()<fileSize)){
          in.seekg(4,ios::cur); // ignore original record number
          uint32_t cl = readBigInt32(in);
          char* record = new char[2*cl];
