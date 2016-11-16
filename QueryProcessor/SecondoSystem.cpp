@@ -821,7 +821,7 @@ SecondoSystem::~SecondoSystem()
   instance = 0;
 
   if (!shutdownOk)
-    throw SecondoException("Failure during destruction of SecondoSystem");
+    cerr << "shutdown of SecondoSystem failed" << endl;
 }
 
 bool
