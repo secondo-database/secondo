@@ -6,7 +6,7 @@
 
 # open database nrw
 
-let DIR = '/home/ralf/Downloads/nordrhein-westfalen-latest.shp/'
+let DIR = '/home/ralf/Daten/brandenburg-latest.shp/'
 
 let Roads = dbimport2(DIR + 'roads.dbf') shpimport2(DIR + 'roads.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
 
