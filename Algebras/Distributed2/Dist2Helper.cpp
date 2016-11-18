@@ -1,4 +1,3 @@
-
 /*
 ----
 This file is part of SECONDO.
@@ -30,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include "Dist2Helper.h"
 #include "SecondoSMI.h"
+#include "FTextAlgebra.h"
 
 using namespace std;
 
@@ -241,6 +241,59 @@ bool rewriteQuery(const std::string& orig, std::string& result){
   }
    out << orig.substr(pos,std::string::npos);
    result = out.str();
+  return true;
+}
+
+bool isWorkerRelDesc(ListExpr rel, ListExpr& positions, ListExpr& types,
+                     std::string& errMsg){
+
+  if(!Relation::checkType(rel)){
+     errMsg = " not a relation";
+     return false;
+  }
+  ListExpr attrList = nl->Second(nl->Second(rel));
+
+  ListExpr htype;
+
+  int hostPos = listutils::findAttribute(attrList,"Host",htype);
+  if(!hostPos){
+     errMsg = "Attribute Host not present in relation";
+     return false;
+  }
+  if(!CcString::checkType(htype) && !FText::checkType(htype)){
+     errMsg = "Attribute Host not of type text or string";
+     return false;
+  }
+  hostPos--;
+
+  ListExpr ptype;
+  int portPos = listutils::findAttribute(attrList,"Port",ptype);
+  if(!portPos){
+    errMsg = "Attribute Port not present in relation";
+    return false;
+  }
+  if(!CcInt::checkType(ptype)){
+     errMsg = "Attribute Port not of type int";
+     return false;
+  }
+  portPos--;
+  ListExpr ctype;
+  int configPos = listutils::findAttribute(attrList, "Config", ctype);
+  if(!configPos){
+    errMsg = "Attrribute Config not present in relation";
+    return false;
+  }
+  if(!CcString::checkType(ctype) && !FText::checkType(ctype)){
+     errMsg = "Attribute Config not of type text or string";
+     return false;
+  }
+  configPos--;
+  positions = nl->ThreeElemList(
+               nl->IntAtom(hostPos),
+               nl->IntAtom(portPos),
+               nl->IntAtom(configPos));
+  types = nl->ThreeElemList(htype, ptype,ctype);
+
   return true;
 }
 

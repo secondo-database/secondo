@@ -138,6 +138,21 @@ rewrites a query. Replaces dollar signs by numbers.
 */
 bool rewriteQuery(const std::string& orig, std::string& result);
 
+/*
+Function ~isWorkerRelDesc~
+
+This function checks wether a relation is a valid description of
+a set of workers. It returns true if it is so , false otherwise.
+If the list is correct, the result parameter will be a list
+with three arguments containing the postions of the attributes
+~Host~, ~Port~, and ~Config~. In the false case, the errMsg
+parameter will contain an error message.
+
+*/
+
+bool isWorkerRelDesc(ListExpr rel, ListExpr& positions, ListExpr& types,
+                     std::string& errMsg);
+
 }
 
 #endif
