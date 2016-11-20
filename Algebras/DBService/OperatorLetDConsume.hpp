@@ -45,14 +45,15 @@ struct LetDConsumeInfo: OperatorInfo
     }
 };
 
-class OperatorLetDConsume : public OperatorInfo
+class OperatorLetDConsume
 {
 public:
-    OperatorLetDConsume() ;
-    virtual ~OperatorLetDConsume();
-    static TypeMapping mapType(); // TODO return value and signature
-    static SelectFunction selectFunction(); // TODO return value and signature
-    static ValueMapping* mapValue(); // TODO return value and signature
+    static ListExpr mapType(ListExpr nestedList);
+    static int mapValue(Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s);
 };
 
 } /* namespace DBService */

@@ -26,35 +26,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DBSERVICE_HPP_
-#define ALGEBRAS_DBSERVICE_DBSERVICE_HPP_
+#ifndef ALGEBRAS_DBSERVICE_OPERATORSETNODES_HPP_
+#define ALGEBRAS_DBSERVICE_OPERATORSETNODES_HPP_
 
-#include <string>
+#include "Operator.h"
 
 namespace DBService
 {
 
-class DBService
+struct SetNodesInfo: OperatorInfo
+{
+    SetNodesInfo()
+    {
+        name = "setnodes";
+        signature = ""; // TODO
+        syntax = ""; // TODO
+        meaning = "use nodes of specified worker relation for DBService";
+    }
+};
+
+class OperatorSetNodes
 {
 public:
-    DBService(const int argc, char* argv[]);
-    virtual ~DBService();
-
-protected:
-/*
-1.3 getWorkerDetails
-
-Splits up the command line arguments in order to retrieve at least
-host and config.
-Port is an optional argument and might therefore be left empty.
-
-*/
-    void getWorkerDetails(std::string& input,
-                          std::string& host,
-                          std::string& config,
-                          std::string& port);
+    static ListExpr mapType(ListExpr nestedList);
+    static int mapValue(Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s);
 };
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_DBSERVICE_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_OPERATORSETNODES_HPP_ */

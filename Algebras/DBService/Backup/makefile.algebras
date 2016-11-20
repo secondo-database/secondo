@@ -270,11 +270,11 @@ ALGEBRAS      += AuxiliaryAlgebra
 ##ALGEBRA_LINK_FLAGS += -framework CoreServices
 
 
-ALGEBRA_DIRS += Distributed2
-ALGEBRAS += Distributed2Algebra
-DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
-CCFLAGS += -pthread -DTHREAD_SAFE
-COMMON_LD_FLAGS += -lboost_thread -lboost_system
+#ALGEBRA_DIRS += Distributed2
+#ALGEBRAS += Distributed2Algebra
+#DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
+#CCFLAGS += -pthread -DTHREAD_SAFE
+#COMMON_LD_FLAGS += -lboost_thread -lboost_system
 
 # note if you want to enable thread save compilation the first time
 # on your system, goto into Secondo's home directory and enter:
@@ -284,13 +284,14 @@ COMMON_LD_FLAGS += -lboost_thread -lboost_system
 # Note on some system, all boost things from above must be
 # extended by -mt, meaning, the following lines are required there:
 
-#ALGEBRA_DIRS += Distributed2
-#ALGEBRAS += Distributed2Algebra
-#DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
-#CCFLAGS += -pthread -DTHREAD_SAFE
-#COMMON_LD_FLAGS += -lboost_thread-mt -lboost_system-mt
+ALGEBRA_DIRS += Distributed2
+ALGEBRAS += Distributed2Algebra
+DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
+CCFLAGS += -pthread -DTHREAD_SAFE
+COMMON_LD_FLAGS += -lboost_thread-mt -lboost_system-mt
 
-
+ALGEBRA_DIRS += DBService
+ALGEBRAS += DBServiceAlgebra
 
 #ALGEBRA_DIRS += TIN
 #ALGEBRAS     += TinAlgebra

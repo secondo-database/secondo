@@ -10,7 +10,14 @@ Remark    : Requires a remote server
 
 Operator  : feedpf
 Number    : 1
-Signature : rel(tuple) x id x bool -> stream(tuple)
+Signature : ((rel (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik) (map x bool)) -> (stream (tuple ((ai1 Ti1) ... (aik Tik))))
 Example   : query Roads2 feedpf[<TODO>; <TODO>]
 Result    : <TODO>
+Remark    : Requires a remote server
+
+Operator  : setnodes
+Number    : 1
+Signature : rel -> int
+Example   : query setnodes(Workers14)
+Result    : 0
 Remark    : Requires a remote server

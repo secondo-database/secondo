@@ -28,35 +28,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "OperatorFeedPF.hpp"
 #include "Algebra.h"
-#include "NList.h"
 #include "Symbols.h"
-//#include "NestedList.h"
+#include "NestedList.h"
+
+#include "OperatorFeed.h"
+#include "OperatorFilter.h"
+#include "OperatorProject.h"
+
+#include "DBServiceManager.hpp"
 
 namespace DBService
 {
-
-/*
-1 Operator ~feedpf~
-
-1.1 Constructor
-
-*/
-
-OperatorFeedPF::OperatorFeedPF()
-{
-    // TODO Auto-generated constructor stub
-
-}
-
-/*
-1.2 Destructor
-
-*/
-
-OperatorFeedPF::~OperatorFeedPF()
-{
-    // TODO Auto-generated destructor stub
-}
 
 /*
 5.8 Operator ~feedpf~
@@ -76,53 +58,88 @@ Result type of project filter operation.
 
 */
 
-ListExpr OperatorFeedPF::checkFirstArgumentIsRelation(ListExpr nestedList)
-{
-    if (listutils::isRelDescription(nestedList, true)
-            || listutils::isRelDescription(nestedList, false))
-    {
-        return nl->Cons(nl->SymbolAtom(Symbol::STREAM()), nl->Rest(nestedList));
-    }
-    if (listutils::isOrelDescription(nestedList))
-        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                               nl->Second(nestedList));
-    ErrorReporter::ReportError("rel(tuple(...)), trel(tuple(...)) or "
-                               "orel(tuple(...)) expected");
-    return nl->TypeError();
-}
-
 ListExpr OperatorFeedPF::mapType(ListExpr nestedList)
 {
+    cout << listutils::stringValue(nestedList) << endl;
+
     if (!nl->HasLength(nestedList, 3))
     {
-        return listutils::typeError(
-                "operator feedpf requires three arguments");
+        ErrorReporter::ReportError(
+                "expected signature: <TODO> x <TODO> x <TODO>");
+                return nl->TypeError();
     }
 
-    ListExpr first = nl->First(nestedList);
+    ListExpr feedInput = nl->First(nestedList);
+    ListExpr filterConditions = nl->Third(nestedList);
+    ListExpr projectAttributes = nl->Second(nestedList);
 
-    ListExpr rel = checkFirstArgumentIsRelation(first);
-    if(rel == nl->TypeError())
+    DBServiceManager::getInstance();
+
+    ListExpr feedResult = OperatorFeed::FeedTypeMap(feedInput);
+    if (feedResult == nl->TypeError())
     {
-        return rel;
+        // TODO -> contact DBServiceManager and retrieve stream from there
+    }
+    ListExpr filterInput = nl->TwoElemList(
+            feedResult,
+            filterConditions);
+    ListExpr filterResult = OperatorFilter::FilterTypeMap(filterInput);
+    if(filterResult == nl->TypeError())
+    {
+        // TODO
+    }
+    ListExpr projectInput = nl->TwoElemList(filterResult, projectAttributes);
+    ListExpr projectResult = OperatorProject::ProjectTypeMap(projectInput);
+    if(projectResult == nl->TypeError())
+    {
+        // TODO
+    }
+    //TODO expand nested list with some argument for finding the replica
+    //TODO clarify whether this is necessary also in case of success
+    return projectResult;
+}
+
+int OperatorFeedPF::mapValue(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier s)
+{
+    // TODO check input (type mapping result) -> contact DBService if necessary
+
+    Word feedArgs; // TODO
+    Word feedResult;
+    int rc = OperatorFeed::Feed(&feedArgs, feedResult, message, local, s);
+    if(rc != 0)
+    {
+        // TODO or check DBService?
+        return rc;
     }
 
-    //ListExpr second  = nl->Second(nestedList);
-    // TODO check that second argument contains the attributes for projection
+    Word filterArgs;// TODO some combination of args & feedResult
+    Word filterResult;
+    rc = OperatorFilter::Filter(&filterArgs,
+                                filterResult,
+                                message,
+                                local,
+                                s);
+    if(rc != 0)
+    {
+        return rc;
+    }
 
-    //ListExpr third  = nl->Third(nestedList);
-    // TODO check that third argument contains the filter arguments
-
-    return 0;
-}
-
-SelectFunction OperatorFeedPF::selectFunction()
-{
-    return 0;
-}
-
-ValueMapping* OperatorFeedPF::mapValue()
-{
+    Word projectArgs;// TODO some combination of args & filterResult
+    Word projectResult;
+    rc = OperatorProject::Project(&projectArgs,
+                                  projectResult,
+                                  message,
+                                  local,
+                                  s);
+    if(rc != 0)
+    {
+        return rc;
+    }
+    result = projectResult;// TODO assign result variable correctly
     return 0;
 }
 

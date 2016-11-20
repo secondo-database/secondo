@@ -28,32 +28,54 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "OperatorLetDConsume.hpp"
 
+#include "OperatorConsume.h"
+
+#include "DBServiceManager.hpp"
+
+using namespace std;
+
 namespace DBService
 {
 
-OperatorLetDConsume::OperatorLetDConsume()
+ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
 {
-    // TODO Auto-generated constructor stub
+    cout << listutils::stringValue(nestedList) << endl;
+
+    if (nl->ListLength(nestedList) != 2)
+    {
+        ErrorReporter::ReportError(
+                "expected signature: stream(tuple(...)) x string");
+        return nl->TypeError();
+    }
+
+    if (!Stream<Tuple>::checkType(nl->First(nestedList)))
+    {
+        ErrorReporter::ReportError(
+                "first argument must be: stream(tuple(...))");
+        return nl->TypeError();
+    }
+
+    if(!CcString::checkType(nl->Second(nestedList)))
+    {
+        ErrorReporter::ReportError(
+                "second argument must be: string");
+        return nl->TypeError();
+    }
+
+    DBServiceManager::getInstance();
+
+    // TODO append string (relation name) to resulting NestedList
+    return OperatorConsume::ConsumeTypeMap<false>(nl->First(nestedList));
 }
 
-OperatorLetDConsume::~OperatorLetDConsume()
+int OperatorLetDConsume::mapValue(Word* args,
+                                  Word& result,
+                                  int message,
+                                  Word& local,
+                                  Supplier s)
 {
-    // TODO Auto-generated destructor stub
-}
-
-TypeMapping OperatorLetDConsume::mapType()
-{
-    return 0;
-}
-
-SelectFunction OperatorLetDConsume::selectFunction()
-{
-    return 0;
-}
-
-ValueMapping* OperatorLetDConsume::mapValue()
-{
-    return 0;
+    // TODO create files
+    return OperatorConsume::Consume(args, result, message, local, s);
 }
 
 } /* namespace DBService */

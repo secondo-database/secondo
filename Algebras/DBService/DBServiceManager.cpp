@@ -29,14 +29,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DBServiceManager.hpp"
 #include "SecondoException.h"
 
+#include <iostream>
+
 using namespace std;
+using namespace distributed2;
 
 namespace DBService
 {
 
 DBServiceManager::DBServiceManager()
 {
-    // TODO initialize vector with connection infos from config file
     std::vector<distributed2::ConnectionInfo*> workers;
 }
 
@@ -57,7 +59,11 @@ void DBServiceManager::addNode(const string& host,
                                const int port,
                                string& config)
 {
-
+    cout << "Adding connection: "
+         << host << ":" << port << " -> " << config << endl;
+    ConnectionInfo* connectionInfo =
+            ConnectionInfo::createConnection(host, port, config);
+    connections.push_back(connectionInfo);
 }
 
 void DBServiceManager::initialize()

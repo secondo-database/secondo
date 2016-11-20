@@ -114,11 +114,6 @@ DBSERVICE_INCLUDE_DIRS := -I $(DBSERVICE_DIR) -I $(DISTRIBUTED2_DIR)
 DBSERVICE_INCLUDE_DIRS += -I $(RELATION_DIR) -I $(FTEXT_DIR) -I $(STREAM_DIR)
 DBSERVICE_INCLUDE_DIRS += -I $(ARRAY_DIR) -I $(STANDARDC_DIR) $(DEFAULTCCFLAGS)
 
-DBServiceTest.o : $(USER_DIR)/DBServiceTest.cpp $(GMOCK_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) \
-    $(DBSERVICE_INCLUDE_DIRS) \
-    -c $< -o $@
-
 #ALG_INC_DIRS?
 DBServiceManagerTest.o : $(USER_DIR)/DBServiceManagerTest.cpp $(GMOCK_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -I $(DISTRIBUTED2_DIR) \
@@ -137,8 +132,8 @@ OperatorLetDConsumeTest.o : $(USER_DIR)/OperatorLetDConsumeTest.cpp $(GMOCK_HEAD
 #DBServiceManagerTest.o : $(USER_DIR)/DBServiceManagerTest.cpp $(GMOCK_HEADERS)
 #	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-SuiteDBService : DBServiceTest.o DBServiceManagerTest.o OperatorFeedPFTest.o \
+SuiteDBService : DBServiceManagerTest.o OperatorFeedPFTest.o \
     OperatorLetDConsumeTest.o \
     gmock_main.a \
-    $(LIBDBSERVICE) $(LIBDISTRIBUTED2)
+    $(LIBDBSERVICE) $(LIBDISTRIBUTED2) $(LIBUTILS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ -lpthread $(COMMON_LD_FLAGS)

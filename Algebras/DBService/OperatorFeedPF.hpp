@@ -45,16 +45,15 @@ struct FeedPFInfo: OperatorInfo
     }
 };
 
-class OperatorFeedPF : public OperatorInfo
+class OperatorFeedPF
 {
 public:
-    OperatorFeedPF();
-    virtual ~OperatorFeedPF();
-    static ListExpr mapType(ListExpr nl);
-    static SelectFunction selectFunction(); // TODO return value and signature
-    static ValueMapping* mapValue(); // TODO return value and signature
-protected:
-    static ListExpr checkFirstArgumentIsRelation(ListExpr nestedList);
+    static ListExpr mapType(ListExpr nestedList);
+    static int mapValue(Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s);
 };
 
 } /* namespace DBService */
