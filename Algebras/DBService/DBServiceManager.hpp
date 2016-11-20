@@ -101,7 +101,7 @@ Deletes existing DBServiceManager instance.
 
 private:
     static DBServiceManager* _instance;
-    static std::vector<distributed2::ConnectionInfo*> connections;
+    //static std::vector<distributed2::ConnectionInfo*> connections;
     static bool isInitialized;
 };
 

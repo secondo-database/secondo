@@ -42,7 +42,6 @@ class DBServiceAlgebra: public Algebra
 {
 public:
     DBServiceAlgebra();
-    virtual ~DBServiceAlgebra();
 };
 
 } /* namespace DBService */

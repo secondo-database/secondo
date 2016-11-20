@@ -61,9 +61,9 @@ void DBServiceManager::addNode(const string& host,
 {
     cout << "Adding connection: "
          << host << ":" << port << " -> " << config << endl;
-    ConnectionInfo* connectionInfo =
-            ConnectionInfo::createConnection(host, port, config);
-    connections.push_back(connectionInfo);
+    //ConnectionInfo* connectionInfo =
+    //        ConnectionInfo::createConnection(host, port, config);
+    //connections.push_back(connectionInfo);
 }
 
 void DBServiceManager::initialize()
