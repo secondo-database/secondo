@@ -1168,6 +1168,14 @@ void OrderedRelation::AppendTuple(Tuple* t) {
 #ifdef DEBUG_OREL
 cout << "AppendTuple_Orel" << endl;
 #endif
+  // ignore tuple if one of the KeyElements is undefined
+  for(size_t i=0;i<keyElement.size();i++){
+     if(!(t->GetAttribute(keyElement[i])->IsDefined())){
+       return;
+     }
+  } 
+  
+
   SmiRecord record;
   TupleId extension = maxId++;
   bool rc = tupleFile->InsertRecord(GetKey(t, true, extension).GetSmiKey(),
