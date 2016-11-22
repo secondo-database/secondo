@@ -263,7 +263,7 @@ void FText::WriteTo( char *dest ) const
   string str = GetValue().substr(0, SMI_MAX_KEYLEN-2);
   string::size_type length = str.length();
   str.copy(dest,string::npos);
-  dest[length+1] = 0;
+  dest[length] = 0;
 }
 
 // This function reads the object value from a string ~src~.
