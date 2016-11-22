@@ -276,7 +276,7 @@ DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
   if(nl->AtomType(type)==SymbolType){
      CallDisplayFunction(nl->SymbolValue(type), type, value);
   } else {
-     if(!nl->HasLength(type,2)){
+     if(!nl->HasMinLength(type,2)){
         return false;
      } 
      ListExpr mt = nl->First(type);
