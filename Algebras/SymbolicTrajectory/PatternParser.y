@@ -596,8 +596,6 @@ storage.
 */
 void PatElem::stringToSet(const string& input, bool isTime) {
   string element, contents(input);
-  pair<string, unsigned int> place;
-  bool isPlace = false;
   int limitpos;
   contents.erase(0, input.find_first_not_of(" "));
   if (contents == "_") {
@@ -624,40 +622,21 @@ void PatElem::stringToSet(const string& input, bool isTime) {
   }
   while (!contents.empty()) {
     contents.erase(0, contents.find_first_not_of(", "));
-    if ((contents[0] == '\"') || (contents[0] == '\'')) { //label/time inside qm
+    if (contents[0] == '\"') { //label/time inside qm
       limitpos = contents.find('\"', 1);
       element = contents.substr(1, limitpos - 1);
       contents.erase(0, limitpos + 1);
-      isPlace = false;
-    }
-    else if (contents[0] == '(') { // place
-      limitpos = contents.find(')');
-      element = contents.substr(1, limitpos - 1);
-      contents.erase(0, limitpos + 1);
-      element.erase(0, element.find_first_not_of(" "));
-      place.first = element.substr(1, element.find_first_of("\"\'", 1) - 1);
-      element.erase(0, element.find_first_of("\"\'", 1) + 1);
-      element.erase(0, element.find_first_not_of(" "));
-      place.second = Tools::str2Int(element);
-      pls.insert(place);
-      isPlace = true;
     }
     else { // label/time without qm
       limitpos = contents.find_first_of(",");
       element = contents.substr(0, limitpos);
       contents.erase(0, limitpos);
-      isPlace = false;
     }
     if (isTime) {
       ivs.insert(element);
     }
     else {
-      if (!isPlace) {
-        lbs.insert(element);
-      }
-      if (!lbs.empty() && !pls.empty()) {
-        ok = false;
-      }
+      lbs.insert(element);
     }
   }
 }
@@ -811,7 +790,7 @@ Constructor for class ~PatElem~
 
 */
 PatElem::PatElem(const char *contents, Tuple *tuple) : 
-    var(""), ivs(), lbs(), pls(), values(), wc(NO), setRel(STANDARD), ok(true) {
+    var(""), ivs(), lbs(), values(), wc(NO), setRel(STANDARD), ok(true) {
   string input(contents);
   if (tuple) {
     ok = extractValues(input, tuple);

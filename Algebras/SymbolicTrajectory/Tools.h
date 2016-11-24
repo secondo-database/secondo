@@ -184,10 +184,9 @@ class Tools {
                          unsigned int> >& values2,
                          const int fun, const LabelFunction lf);
   
-  template<class T>
-  static bool relationHolds(const std::set<T>& s1, const std::set<T>& s2,
-                            const SetRel rel) {
-    std::set<T> temp;
+  static bool relationHolds(const std::set<std::string>& s1, 
+                            const std::set<std::string>& s2, const SetRel rel) {
+    std::set<std::string> temp;
     switch (rel) {
       case STANDARD: {
         set_difference(s1.begin(), s1.end(), s2.begin(), s2.end(), 
@@ -215,6 +214,11 @@ class Tools {
       default: // cannot occur
         return false;
     }
+  }
+  
+ static bool relationHolds(const std::set<std::pair<std::string,unsigned int> >,
+                            const std::set<std::string>, const SetRel rel) {
+    return true; // TODO: a lot
   }
   
   template<class T>

@@ -52,6 +52,7 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #include "IntNfa.h"
 #include "TemporalUnitAlgebra.h"
 #include "GenericTC.h"
+#include "OrderedRelationAlgebra.h"
 #include "Tools.h"
 #include <string>
 #include <set>
@@ -489,19 +490,17 @@ class PatElem {
   std::string var;
   std::set<std::string> ivs;
   std::set<std::string> lbs;
-  std::set<std::pair<std::string, unsigned int> > pls;
   std::vector<std::pair<Word, SetRel> > values;
   Wildcard wc;
   SetRel setRel;
   bool ok;
 
  public:
-  PatElem() : var(""), ivs(), lbs(), pls(), values(), wc(NO), setRel(STANDARD),
+  PatElem() : var(""), ivs(), lbs(), values(), wc(NO), setRel(STANDARD),
               ok(true) {}
   PatElem(const char* contents, Tuple *tuple);
   PatElem(const PatElem& elem) : var(elem.var), ivs(elem.ivs), lbs(elem.lbs),
-                pls(elem.pls), values(elem.values), wc(elem.wc),
-                setRel(elem.setRel), ok(elem.ok) {}
+           values(elem.values), wc(elem.wc), setRel(elem.setRel), ok(elem.ok) {}
   ~PatElem() {}
 
   void stringToSet(const std::string& input, const bool isTime);
@@ -510,7 +509,6 @@ class PatElem {
     var = elem.var;
     ivs = elem.ivs;
     lbs = elem.lbs; 
-    pls = elem.pls;
     values = elem.values;
     wc = elem.wc; 
     setRel = elem.setRel;
@@ -520,27 +518,21 @@ class PatElem {
 
   void     getV(std::string& result) const                     {result = var;}
   void     getL(std::set<std::string>& result) const           {result = lbs;}
-  void     getP(std::set<std::pair<std::string, unsigned int> >& result) const
-   {result = pls;}
   SetRel   getSetRel() const                              {return setRel;}
   void     getI(std::set<std::string>& result) const 
    {result = ivs;}
   Wildcard getW() const                                   {return wc;}
   bool     isOk() const                                   {return ok;}
   void     clearL()                                       {lbs.clear();}
-  void     clearP()                                       {pls.clear();}
-  void     insertL(const std::string& lb)                      {lbs.insert(lb);}
-  void     insertP(const std::pair<std::string, unsigned int>& pl) 
-   {pls.insert(pl);}
+  void     insertL(const std::string& lb)                 {lbs.insert(lb);}
   void     clearI()                                       {ivs.clear();}
   void     insertI(std::string& iv)                            {ivs.insert(iv);}
   void     clearW()                                       {wc = NO;}
   bool     hasLabel() const                             {return lbs.size() > 0;}
-  bool     hasPlace() const                             {return pls.size() > 0;}
   bool     hasInterval() const                          {return ivs.size() > 0;}
   bool     hasRealInterval() const;
-  bool     hasIndexableContents() const {return (hasLabel() || hasPlace() ||
-                                                 hasRealInterval());}
+  bool     hasIndexableContents() const            {return (hasLabel() ||
+                                                            hasRealInterval());}
   int      getNoValues() const                           {return values.size();}
   bool     hasValuesWithContent() const;
   bool     isRelevantForTupleIndex() const;
@@ -952,9 +944,9 @@ class TupleIndex {
   TupleIndex() {}
   TupleIndex(std::vector<InvertedFile*> t, std::vector<BTree_t<LongInt>*> b,
              std::vector<RTree1TLLI*> r1, 
-     std::vector<RTree2TLLI*> r2, RTree1TLLI *tI, 
-     std::map<int, std::pair<IndexType, int> > aI,
-    std::map<std::pair<IndexType, int>, int> iA, int mA);
+             std::vector<RTree2TLLI*> r2, RTree1TLLI *tI, 
+             std::map<int, std::pair<IndexType, int> > aI,
+             std::map<std::pair<IndexType, int>, int> iA, int mA);
   TupleIndex(bool dummy) {}
   TupleIndex(TupleIndex &src);
   ~TupleIndex() {deleteIndexes();}
@@ -992,12 +984,13 @@ class TupleIndex {
   
   void processTimeIntervals(Relation *rel, const int attr, 
                             const std::string &typeName);
-  void processRTree2(Relation *rel, const int attr,const std::string &typeName);
+  void processRTree2(Relation *rel, const int attrNo,
+                     const std::string &typeName);
   void processRTree1(Relation *rel, const int attr);
   void processBTree(Relation *rel, const int attr);
   void processTrie(Relation *rel, const int attr, const std::string &typeName,
                    const size_t memSize);
-  void collectSortInsert(Relation *rel, const int attr, 
+  void collectSortInsert(Relation *rel, const int attrPos, 
                          const std::string &typeName, const size_t memSize);
 
  private:
@@ -4650,15 +4643,10 @@ std::string Match<M>::matchings2Str(unsigned int dim1, unsigned int dim2) {
 */
 template<class M>
 bool Match<M>::valuesMatch(int i, const PatElem& elem) {
-  std::set<std::pair<std::string, unsigned int> > ppls, mpls;
-  std::set<std::string> plbs, mlbs;
-  if (type < 2) { // label or labels
-    elem.getL(plbs);
-  }
-  else { // place or places
-    elem.getP(ppls);
-  }
-  if (plbs.empty() && ppls.empty() && (elem.getSetRel() < SUPERSET)) {
+  std::set<std::pair<std::string, unsigned int> > mpls;
+  std::set<std::string> lbs, mlbs;
+  elem.getL(lbs);
+  if (lbs.empty() && (elem.getSetRel() < SUPERSET)) {
     return true; // easiest case
   }
   switch (type) {
@@ -4666,29 +4654,24 @@ bool Match<M>::valuesMatch(int i, const PatElem& elem) {
       std::string mlb;
       ((MLabel*)m)->GetValue(i, mlb);
       if (elem.getSetRel() == STANDARD) {
-        return plbs.find(mlb) != plbs.end();
+        return lbs.find(mlb) != lbs.end();
       }
       mlbs.insert(mlb);
-      return Tools::relationHolds<std::string>(mlbs, plbs, elem.getSetRel());
+      return Tools::relationHolds(mlbs, lbs, elem.getSetRel());
     }
     case MLABELS: {
       ((MLabels*)m)->GetValues(i, mlbs);
-      return Tools::relationHolds<std::string>(mlbs, plbs, elem.getSetRel());
+      return Tools::relationHolds(mlbs, lbs, elem.getSetRel());
     }
     case MPLACE: {
       std::pair<std::string, unsigned int> mpl;
       ((MPlace*)m)->GetValue(i, mpl);
-      if (elem.getSetRel() == STANDARD) {
-        return ppls.find(mpl) != ppls.end();
-      }
       mpls.insert(mpl);
-      return Tools::relationHolds<std::pair<std::string, unsigned int> >(
-                     mpls, ppls, elem.getSetRel());
+      return Tools::relationHolds(mpls, lbs, elem.getSetRel());
     }  
     case MPLACES: {
       ((MPlaces*)m)->GetValues(i, mpls);
-      return Tools::relationHolds<std::pair<std::string, unsigned int> >(
-          mpls, ppls, elem.getSetRel());
+      return Tools::relationHolds(mpls, lbs, elem.getSetRel());
     }
     default: { // cannot occur
       return false;

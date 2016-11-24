@@ -662,8 +662,13 @@ bool Labels::ReadFrom(ListExpr LE, ListExpr typeInfo) {
     return true;
   }
   SetDefined(true);
-  ListExpr rest = LE;
   string text;
+  if (nl->IsAtom(LE)) {
+    text = nl->ToString(LE);
+    Append(text.substr(1, text.length() - 2));
+    return true;
+  }
+  ListExpr rest = LE;
   while (!nl->IsEmpty(rest)) {
     if (!nl->IsAtom(nl->First(rest))) {
       SetDefined(false);

@@ -117,7 +117,9 @@ class Label : public Attribute {
       return nl->TextAtom(text);
   }
   void Set(const bool def, const std::string &text) {
-     SetDefined(def);SetValue(text);
+     std::string newText = text;
+     std::replace(newText.begin(), newText.end(), '\'', '`');
+     SetDefined(def); SetValue(newText);
   }
   void SetValue(const std::string &text);
   Label& operator=(const Label& lb) {CopyFrom(&lb); return *this;}

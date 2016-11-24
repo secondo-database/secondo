@@ -204,10 +204,6 @@ bool Pattern::isValid(const string& type) const {
     if (type.length() < 6) {
       return false;
     }
-    if ((elems[i].hasLabel() && (type.substr(1, 5) == Place::BasicType())) ||
-        (elems[i].hasPlace() && (type.substr(1, 5) == Label::BasicType()))) {
-      return false;
-    }
   }
   for (unsigned int i = 0; i < conds.size(); i++) {
     for (int j = 0; j < conds[i].getVarKeysSize(); j++) {
@@ -876,7 +872,7 @@ bool TMatch::labelsMatch(const set<string>& tlabels, const int atom,
     return true;
   }
   ((Labels*)values.first.addr)->GetValues(plabels);
-  return Tools::relationHolds<string>(tlabels, plabels, values.second);
+  return Tools::relationHolds(tlabels, plabels, values.second);
 }
 
 /*
@@ -885,14 +881,13 @@ bool TMatch::labelsMatch(const set<string>& tlabels, const int atom,
 */
 bool TMatch::placesMatch(const set<pair<string, unsigned int> >& tplaces, 
                          const int atom, const int pos) {
-  set<pair<string, unsigned int> > pplaces, pplacesTemp;
+  set<string> pplaces;
   pair<Word, SetRel> values = p->elems[atom].values[pos];
   if (values.first.addr == 0) {
     return true;
   }
-  ((Places*)values.first.addr)->GetValues(pplaces);
-  return Tools::relationHolds<pair<string, unsigned int> >(tplaces, pplaces, 
-                                                           values.second);
+  ((Labels*)values.first.addr)->GetValues(pplaces);
+  return Tools::relationHolds(tplaces, pplaces, values.second);
 }
 
 /*
@@ -981,7 +976,7 @@ bool TMatch::otherValuesMatch(const int pos, const SecInterval& iv,
       tlabels.insert(label);
     }
     ((Labels*)values.first.addr)->GetValues(plabels);
-    return Tools::relationHolds<string>(tlabels, plabels, values.second);
+    return Tools::relationHolds(tlabels, plabels, values.second);
   }
   else if (attrInfo.second == "mlabels") {
     MLabels *mlabels = (MLabels*)t->GetAttribute(attrInfo.first);
@@ -997,7 +992,7 @@ bool TMatch::otherValuesMatch(const int pos, const SecInterval& iv,
       tlabels.insert(labels.begin(), labels.end());
     }
     ((Labels*)values.first.addr)->GetValues(plabels);
-    return Tools::relationHolds<string>(tlabels, plabels, values.second);
+    return Tools::relationHolds(tlabels, plabels, values.second);
   }
   else if (attrInfo.second == "mplace") {
     // TODO.
@@ -1729,6 +1724,7 @@ TypeConstructor tupleindexTC(
 
 */
 void TupleIndex::initialize(TupleType *ttype, int _mainAttr) {
+  std::vector<int> placeAttrs;
   mainAttr = _mainAttr;
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   ListExpr typeInfo = nl->FourElemList(nl->Empty(), nl->Empty(), 
@@ -1750,6 +1746,9 @@ void TupleIndex::initialize(TupleType *ttype, int _mainAttr) {
       inv->setParams(false, 1, "");
       tries.push_back(inv);
       cout << "Trie for attr " << i << " created and appended" << endl;
+      if (name == "mplace" || name == "mplaces") {
+        placeAttrs.push_back(i);
+      }
     }
     else if (name == "mint") {
       attrToIndex[i] = make_pair(BTREE, (int)btrees.size());
@@ -1783,6 +1782,16 @@ void TupleIndex::initialize(TupleType *ttype, int _mainAttr) {
     else {
       attrToIndex[i] = make_pair(NONE, -1);
     }
+  }
+  // now insert rtree2 for mplace(s) attributes
+  for (unsigned int j = 0; j < placeAttrs.size(); j++) {
+    indexToAttr[make_pair(RTREE2, (int)rtrees2.size())] = placeAttrs[j];
+    typeInfo = nl->FourElemList(nl->Empty(), nl->Empty(), nl->Empty(), 
+                                nl->BoolAtom(false));
+    RTree2TLLI *rtree2 = (RTree2TLLI*)((CreateRTree<2>(typeInfo)).addr);
+    rtrees2.push_back(rtree2);
+    cout << "RTree2 # " << rtrees2.size() << " for attr " << placeAttrs[j] 
+         << " created and appended" << endl;
   }
 }
 
@@ -2131,7 +2140,7 @@ void TupleIndex::processTimeIntervals(Relation *rel, const int attr,
 \subsection{Function ~processRTree2~}
 
 */
-void TupleIndex::processRTree2(Relation *rel, const int attr,
+void TupleIndex::processRTree2(Relation *rel, const int attrNo,
                                const std::string &typeName) {
   vector<NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
                  NewPair<TupleId, int> > > values;
@@ -2141,7 +2150,7 @@ void TupleIndex::processRTree2(Relation *rel, const int attr,
     UPoint up(true);
     for (TupleId i = 1; i <= noTuples; i++) {
       Tuple *t = rel->GetTuple(i, false);
-      mp = (MPoint*)t->GetAttribute(attr);
+      mp = (MPoint*)t->GetAttribute(attrNo);
       int noComponents = mp->GetNoComponents();
       for (int j = 0; j < noComponents; j++) {
         mp->Get(j, up);
@@ -2161,7 +2170,7 @@ void TupleIndex::processRTree2(Relation *rel, const int attr,
     URegionEmb ur(true);
     for (TupleId i = 1; i <= noTuples; i++) {
       Tuple *t = rel->GetTuple(i, false);
-      mr = (MRegion*)t->GetAttribute(attr);
+      mr = (MRegion*)t->GetAttribute(attrNo);
       int noComponents = mr->GetNoComponents();
       for (int j = 0; j < noComponents; j++) {
         mr->Get(j, ur);
@@ -2176,10 +2185,110 @@ void TupleIndex::processRTree2(Relation *rel, const int attr,
       t->DeleteIfAllowed();
     }
   }
+  else if (typeName == "mplace") {
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    bool defined = false;
+    Word orelPtr;
+    if (!sc->GetObject("Places", orelPtr, defined)) {
+      cout << "Error: cannot find relation 'Places'" << endl;
+      return;
+    }
+    if (!defined) {
+      cout << "Error: relation 'Places' is undefined" << endl;
+      return;
+    }
+    OrderedRelation *orel = static_cast<OrderedRelation*>(orelPtr.addr);
+    MPlace *mp = 0;
+    UPlace up(true);
+    vector<void*> attributes(1);
+    vector<SmiKey::KeyDataType> attrTypes(1);
+    attrTypes[0] = SmiKey::Integer;
+    for (TupleId i = 1; i <= noTuples; i++) {
+      Tuple *t = rel->GetTuple(i, false);
+      mp = (MPlace*)t->GetAttribute(attrNo);
+      int noComponents = mp->GetNoComponents();
+      for (int j = 0; j < noComponents; j++) {
+        mp->Get(j, up);
+        attributes[0] = new CcInt(true, up.constValue.GetRef());;
+        CompositeKey fromKey(attributes, attrTypes, false);
+        CompositeKey toKey(attributes, attrTypes, true);
+        OrderedRelationIterator *rit = (OrderedRelationIterator*)orel->
+                                                  MakeRangeScan(fromKey, toKey);
+        Tuple *pt = rit->GetNextTuple();
+        Rectangle<2> bbox = (Rectangle<2>*)pt->GetAttribute(5);
+        NewPair<NewPair<double, double>, NewPair<double, double> > bboxValues(
+          NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
+          NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
+        NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
+         NewPair<TupleId, int> > value(bboxValues, NewPair<TupleId, int>(i, j));
+        values.push_back(value);
+        ((CcInt*)attributes[0])->DeleteIfAllowed();
+        pt->DeleteIfAllowed();
+      }
+      t->DeleteIfAllowed();
+    }
+  }
+  else if (typeName == "mplaces") {
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    bool defined = false;
+    Word orelPtr;
+    if (!sc->GetObject("Places", orelPtr, defined)) {
+      cout << "Error: cannot find relation 'Places'" << endl;
+      return;
+    }
+    if (!defined) {
+      cout << "Error: relation 'Places' is undefined" << endl;
+      return;
+    }
+    OrderedRelation *orel = static_cast<OrderedRelation*>(orelPtr.addr);
+    MPlaces *mp = 0;
+    std::set<std::pair<std::string, unsigned int> > pls;
+    std::set<std::pair<std::string, unsigned int> >::iterator it;
+    vector<void*> attributes(1);
+    vector<SmiKey::KeyDataType> attrTypes(1);
+    attrTypes[0] = SmiKey::Integer;
+    for (TupleId i = 1; i <= noTuples; i++) {
+      Tuple *t = rel->GetTuple(i, false);
+      mp = (MPlaces*)t->GetAttribute(attrNo);
+      int noComponents = mp->GetNoComponents();
+      for (int j = 0; j < noComponents; j++) {
+        mp->GetValues(j, pls);
+        for (it = pls.begin(); it != pls.end(); it++) {
+          attributes[0] = new CcInt(true, it->second);;
+          CompositeKey fromKey(attributes, attrTypes, false);
+          CompositeKey toKey(attributes, attrTypes, true);
+          OrderedRelationIterator *rit = (OrderedRelationIterator*)orel->
+                                                  MakeRangeScan(fromKey, toKey);
+          Tuple *pt = rit->GetNextTuple();
+          Rectangle<2> bbox = (Rectangle<2>*)pt->GetAttribute(5);
+          NewPair<NewPair<double, double>, NewPair<double, double> > bboxValues(
+            NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
+            NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
+          NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
+          NewPair<TupleId, int> > value(bboxValues, NewPair<TupleId, int>(i,j));
+          values.push_back(value);
+          ((CcInt*)attributes[0])->DeleteIfAllowed();
+          pt->DeleteIfAllowed();
+        }
+      }
+      t->DeleteIfAllowed();
+    }
+  }
   cout << values.size() << " 2D boxes in vector" << endl;
   std::sort(values.begin(), values.end());
   cout << " ............ sorted" << endl;
-  RTree2TLLI *rtree = rtrees2[attrToIndex[attr].second];
+  RTree2TLLI *rtree = 0;
+  int rtreePos = 0;
+  TupleType *tt = rel->GetTupleType();
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  for (int i = 0; i < attrNo; i++) {
+    AttributeType atype = tt->GetAttributeType(i);
+    std::string tn = sc->GetTypeName(atype.algId, atype.typeId);
+    if (tn == "mpoint"|| tn == "mregion"|| tn == "mplace"|| tn == "mplaces") {
+      rtreePos++;
+    }
+  }
+  rtree = rtrees2[rtreePos];
   double min[2], max[2];
   bool bulkLoadInitialized = rtree->InitializeBulkLoad();
   assert(bulkLoadInitialized);
@@ -2360,27 +2469,30 @@ void TupleIndex::processTrie(Relation *rel, const int attr,
 \subsection{Function ~collectSortInsert~}
 
 */
-void TupleIndex::collectSortInsert(Relation *rel, const int attr, 
+void TupleIndex::collectSortInsert(Relation *rel, const int attrPos, 
                             const std::string &typeName, const size_t memSize) {
-  if (attr == mainAttr) {
-    processTimeIntervals(rel, attr, typeName);
+  if (attrPos == mainAttr) {
+    processTimeIntervals(rel, attrPos, typeName);
   }
-  IndexType indexType = attrToIndex[attr].first;
+  IndexType indexType = attrToIndex[attrPos].first;
   switch (indexType) {
     case TRIE: {
-      processTrie(rel, attr, typeName, memSize);
+      processTrie(rel, attrPos, typeName, memSize);
+      if (typeName == "mplace" || typeName == "mplaces") {
+        processRTree2(rel, attrPos, typeName);
+      }
       break;
     }
     case BTREE: {
-      processBTree(rel, attr);
+      processBTree(rel, attrPos);
       break;
     }
     case RTREE1: {
-      processRTree1(rel, attr);
+      processRTree1(rel, attrPos);
       break;
     }
     case RTREE2: {
-      processRTree2(rel, attr, typeName);
+      processRTree2(rel, attrPos, typeName);
       break;
     }
     case NONE: { // nothing to do
@@ -4314,8 +4426,7 @@ void IndexMatchesLI::storeIndexResult(const int e) {
   if (!elem.hasIndexableContents()) {
     return;
   }
-  set<string> ivs, lbs;
-  set<pair<string, unsigned int> > pls;
+  set<string> ivs, lbs, pls;
   vector<set<int> > part, part2;
 //   vector<bool> time, time2;
 //   time.resize(mRel->GetNoTuples() + 1, true);
@@ -4336,24 +4447,21 @@ void IndexMatchesLI::storeIndexResult(const int e) {
       }
     }
     else { // PLACE or PLACES
-      elem.getP(pls);
-      set<pair<string, unsigned int> >::iterator ip = pls.begin();
+      elem.getL(pls);
+      set<string>::iterator ip = pls.begin();
       if (!pls.empty()) {
         part.resize(rel->GetNoTuples() + 1);
         part2.resize(rel->GetNoTuples() + 1);
-        retrieveValue(part, part2, elem.getSetRel(), true, 
-                      ip->first, ip->second);
+        retrieveValue(part, part2, elem.getSetRel(), true, *ip);
         ip++;
       }
       while (ip != pls.end()) {
-        retrieveValue(part, part2, elem.getSetRel(), false,
-                      ip->first, ip->second);
+        retrieveValue(part, part2, elem.getSetRel(), false, *ip);
         ip++;
       }
     }  
-  }
-  if (!part.empty() || (elem.getSetRel() == DISJOINT) ||
-      (!elem.hasLabel() && !elem.hasPlace())) { // continue with time intervals
+  } // continue with time intervals
+  if (!part.empty() || (elem.getSetRel() == DISJOINT) || !elem.hasLabel()) {
     elem.getI(ivs);
     set<string>::iterator is = ivs.begin();
     while (is != ivs.end()) {
