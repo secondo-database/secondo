@@ -1,0 +1,82 @@
+# 7 Querying
+#
+# 7.1 Selection
+#
+# 7.1.1 By Scanning
+
+delete eichlinghofen
+
+
+# 7.1.2 Creating a Standard Index
+
+query deleteRemoteObjects(RoadsB2_Name);
+delete RoadsB2_Name
+
+# 7.1.3 Using a Standard Index
+
+# 7.1.4 Creating a Spatial Index
+
+query deleteRemoteObjects(BuildingsB4_GeoData);
+delete BuildingsB4_GeoData
+
+# 7.2 Join
+#
+# 7.2.1 Equijoin
+#
+# (1) Distributed by Join Attribute
+
+query deleteRemoteObjects(NaturalB2);
+delete NaturalB2
+
+# (2) Arbitrary Distribution
+
+query deleteRemoteObjects(NaturalB1);
+delete NaturalB1
+
+# 7.2.2 Spatial Join
+#
+# (1) Both arguments are distributed by spatial attributes
+
+query deleteRemoteObjects(WaterwaysB4);
+delete WaterwaysB4
+
+# (2) Not distributed by spatial attributes
+
+query deleteRemoteObjects(WaterwaysB1);
+delete WaterwaysB1
+
+
+# Expressions in the Select-Clause
+
+# 7.2.3 General Join
+
+# 7.2.4 Index-Based Equijoin
+
+query deleteRemoteObjects(RoadsB3_Name);
+delete RoadsB3_Name
+
+
+# 7.2.5 Index-Based Spatial Join
+
+# 7.3 Aggregation
+#
+# 7.3.1 Counting
+
+# 7.3.2 Sum, Average
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

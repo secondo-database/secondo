@@ -1,0 +1,45 @@
+delete WORKERS
+
+delete NSlots
+
+# 6.1 Random Partitioning
+
+query deleteRemoteObjects(RoadsB1);
+delete RoadsB1
+
+# 6.2 Hash Partitioning
+
+query deleteRemoteObjects(RoadsB2);
+delete RoadsB2
+
+# 6.3 Range Partitioning
+
+delete S
+
+delete Boundaries
+
+query deleteRemoteObjects(RoadsB3);
+delete RoadsB3
+
+query deleteRemoteObjects(RoadsB3S);
+delete RoadsB3S
+
+
+# 6.4 Spatial Partitioning
+
+delete grid
+
+query deleteRemoteObjects(RoadsB4);
+delete RoadsB4
+
+query deleteRemoteObjects(BuildingsB4);
+delete BuildingsB4
+
+query deleteRemoteObjects(BuildingsB1);
+delete BuildingsB1
+
+query deleteRemoteObjects(BuildingsB4a);
+delete BuildingsB4a
+
+query deleteRemoteObjects(RoadsB4);
+delete RoadsB4

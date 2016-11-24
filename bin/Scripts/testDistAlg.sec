@@ -1,0 +1,24 @@
+# Script to execute the commands used in the document 
+#
+# 	"Distributed Query Processing in Secondo"
+#
+# The database on the master must contain data from 
+#
+# 	nordrhein-westfalen-latest-free.shp
+#
+# imported using the script nrwImportShapeNew.psec
+#
+# The database must be open and the variables WORKERS and NSlots must 
+# have been set in the script testDistAlgA.sec
+
+
+
+# Comment in the following lines for repeated use.
+
+# @Scripts/testDistAlgAUndo.sec
+
+# @Scripts/testDistAlgBUndo.sec
+
+@@Scripts/testDistAlgA.sec
+
+@@Scripts/testDistAlgB.sec

@@ -1,0 +1,255 @@
+# Test file for Distributed Algebra 2
+
+# Database has been prepared by executing testDistAlgA.
+
+##################################################################
+# 7 Querying
+#
+# 7.1 Selection
+#
+# 7.1.1 By Scanning
+
+let eichlinghofen = [const region value (
+    (
+        (
+            (7.419515247680575 51.47332155746125) 
+            (7.394967670776298 51.47332155746125) 
+            (7.394967670776298 51.48716614802665) 
+            (7.419515247680575 51.48716614802665)))) ]
+
+query BuildingsB1 dmap["", . feed filter[.Type = "school"] count]
+	getValue tie[. + ..]
+
+query share("eichlinghofen", TRUE, WORKERS)
+
+query RoadsB1 dmap["", . feed filter[.GeoData intersects eichlinghofen]]
+	dsummarize consume count
+
+
+##################################################################
+# 7.1.2 Creating a Standard Index
+
+let RoadsB2_Name = RoadsB2 dloop["RoadsB2_Name", . createbtree[Name] ]
+
+
+##################################################################
+# 7.1.3 Using a Standard Index
+
+query RoadsB2_Name RoadsB2 
+	dloop2["", . .. exactmatch['Universitätsstraße'] count]  
+  getValue tie[. + ..]
+
+
+##################################################################
+# 7.1.4 Creating a Spatial Index
+
+let BuildingsB4_GeoData = BuildingsB4 dloop["", 
+	. feed addid extend[Box: scalerect(.EnlargedBox, 1000000.0, 1000000.0)]
+	sortby[Box] remove[Box] bulkloadrtree[EnlargedBox] ]
+
+##################################################################
+# 7.1.5 Using a Spatial Index
+
+query BuildingsB4_GeoData BuildingsB4
+  dmap2["", . .. windowintersects[eichlinghofen]
+    filter[.Original]
+    filter[.GeoData intersects eichlinghofen], 1238
+  ]
+  dsummarize consume count 
+
+
+##################################################################
+# 7.2 Join
+#
+# 7.2.1 Equijoin
+#
+# (1) Distributed by Join Attribute
+
+let NaturalB2 = Natural feed filter[isdefined(.Name)] 
+  ddistribute4["NaturalB2", hashvalue(.Name, 999997), NSlots, WORKERS]
+
+query NaturalB2 dmap["",
+  . feed {n1} . feed {n2} itHashJoin[Name_n1, Name_n2]
+  filter[.Osm_id_n1 < .Osm_id_n2]]
+  dsummarize consume count 
+
+##################################################################
+# (2) Arbitrary Distribution
+
+let NaturalB1 = Natural feed
+  dfdistribute3["NaturalB1", NSlots, TRUE, WORKERS]
+
+query NaturalB1 partitionF["",  . feed filter[isdefined(.Name)],
+  hashvalue(..Name, 999997), 0]
+  collect2["", 1238]
+  dmap["", 
+  . feed {n1} . feed {n2} itHashJoin[Name_n1, Name_n2]   
+  filter[.Osm_id_n1 < .Osm_id_n2]]
+  dsummarize consume count
+
+
+##################################################################
+# 7.2.2 Spatial Join
+#
+# (1) Both arguments are distributed by spatial attributes
+
+let WaterwaysB4 = Waterways feed
+  extendstream[Cell: cellnumber(bbox(.GeoData), grid)]
+  dfdistribute2["WaterwaysB4", Cell, NSlots, WORKERS]
+
+query RoadsB4 WaterwaysB4 dmap2["",
+  . feed {r} .. feed {w} itSpatialJoin[GeoData_r, GeoData_w]
+  filter[.Cell_r = .Cell_w]
+  filter[gridintersects(grid, bbox(.GeoData_r),
+    bbox(.GeoData_w), .Cell_r)]
+  filter[.GeoData_r intersects .GeoData_w] count, 1238 ]
+  getValue tie[. + ..]
+
+##################################################################
+# (2) Not distributed by spatial attributes
+
+let WaterwaysB1 = Waterways feed dfdistribute3["WaterwaysB1", NSlots, TRUE, 
+	WORKERS]
+
+query
+  RoadsB1 partitionF["",
+    . feed extendstream[Cell: cellnumber(bbox(.GeoData), grid)], 
+		..Cell, 0]
+  WaterwaysB1 partitionF["",
+    . feed extendstream[Cell: cellnumber(bbox(.GeoData), grid)], 
+		..Cell, 0]
+  areduce2["",
+    . feed {r} .. feed {w} itSpatialJoin[GeoData_r, GeoData_w]
+    filter[.Cell_r = .Cell_w]
+    filter[gridintersects(grid, bbox(.GeoData_r),
+      bbox(.GeoData_w), .Cell_r)]
+    filter[.GeoData_r intersects .GeoData_w] count, 1238 ]
+  getValue tie[. + ..]
+
+
+
+##################################################################
+# Expressions in the Select-Clause
+
+query RoadsB4 WaterwaysB4 dmap2["",
+  . feed {r} .. feed {w} itSpatialJoin[GeoData_r, GeoData_w]
+  filter[.Cell_r = .Cell_w]
+  filter[gridintersects(grid, bbox(.GeoData_r),
+    bbox(.GeoData_w), .Cell_r)]
+  filter[.GeoData_r intersects .GeoData_w], 1238 ]
+  dsummarize
+  projectextend[Osm_id_r, Name_r, GeoData_r, Osm_id_w, Name_w, GeoData_w; 
+    BridgePosition: crossings(.GeoData_r, .GeoData_w)]
+  consume count
+
+query RoadsB4 WaterwaysB4 dmap2["",
+  . feed {r} .. feed {w} itSpatialJoin[GeoData_r, GeoData_w]
+  filter[.Cell_r = .Cell_w]
+  filter[gridintersects(grid, bbox(.GeoData_r),
+    bbox(.GeoData_w), .Cell_r)]
+  filter[.GeoData_r intersects .GeoData_w]
+  projectextend[Osm_id_r, Name_r, Osm_id_w, Name_w; BridgePosition:
+    crossings(.GeoData_r, .GeoData_w)], 1238
+  ]
+  dsummarize
+  consume count
+
+
+##################################################################
+# 7.2.3 General Join
+
+query share("Waterways", TRUE, WORKERS)
+
+query RoadsB1 dmap["", . feed filter[isdefined(.Name)]  
+  filter[.Fclass = "pedestrian"] {r}
+  Waterways feed filter[.Fclass = "river"] {w}
+	symmjoin[.Name_r contains ..Name_w] ]
+	dsummarize
+	consume count
+
+query RoadsB1 WaterwaysB1 dproduct["", . feed 
+	filter[isdefined(.Name)] filter[.Fclass = "pedestrian"] {r}
+  .. feed filter[.Fclass = "river"] {w}
+	symmjoin[.Name_r contains ..Name_w], 1238]
+	dsummarize
+	consume count
+
+
+##################################################################
+# 7.2.4 Index-Based Equijoin
+
+let RoadsB3_Name = RoadsB3 dloop["RoadsB3_Name", . createbtree[Name]]
+
+query RoadsB3 RoadsB3_Name RoadsB3 dmap3["", $1 feed 
+	filter[.Fclass = "pedestrian"] {r1} 
+	loopjoin[$2 $3 exactmatch[.Name_r1] filter[.Fclass = "pedestrian"]] 
+	filter[.Osm_id_r1 < .Osm_id], 1238] 
+	dsummarize 
+  consume count
+
+##################################################################
+# 7.2.5 Index-Based Spatial Join
+
+query RoadsB4 BuildingsB4_GeoData BuildingsB4 dmap3["",
+  $1 feed filter[.Fclass = "bridleway"] {r} 
+    loopjoin[$2 $3 windowintersects[.GeoData_r] {b}]
+		filter[.Cell_r = .Cell_b]
+		filter[gridintersects(grid, bbox(.GeoData_r), .EnlargedBox_b, 
+			.Cell_r)]
+  		filter[distance(gk(.GeoData_r), gk(.GeoData_b)) < 500] count, 1238]
+		getValue tie[. + ..]
+
+query RoadsB4 BuildingsB4_GeoData BuildingsB4 dmap3["", 
+  $1 feed filter[.Fclass = "bridleway"] {r}  
+    loopjoin[$2 $3 windowintersects[.GeoData_r] {b}] 
+		filter[.Cell_r = .Cell_b] 
+		filter[gridintersects(grid, bbox(.GeoData_r), .EnlargedBox_b,  
+			.Cell_r)] count, 1238] 
+		getValue tie[. + ..]
+
+
+##################################################################
+# 7.3 Aggregation
+#
+# 7.3.1 Counting
+
+query RoadsB1 dmap["", . feed sortby[Fclass] 
+  groupby[Fclass; Cnt: group count] ]
+  dsummarize sortby[Fclass] groupby[Fclass; Cnt: group feed sum[Cnt]]
+  consume
+
+##################################################################
+# 7.3 Aggregation
+#
+# 7.3.2 Sum, Average
+
+query WaterwaysB1 dmap["", . feed filter[.Width between[0, 10000]] 
+  sortby[Fclass]
+    groupby[Fclass; Cnt: group count, SWidth: group feed sum[Width]] 
+  ]
+  dsummarize sortby[Fclass]
+  groupby[Fclass; SumWidth: group feed sum[SWidth], 
+    SumCnt: group feed sum[Cnt]]
+  extend[AvgWidth: .SumWidth / .SumCnt]
+  project[Fclass, AvgWidth]
+  consume 
+
+
+query WaterwaysB1 dmap["", . feed filter[.Width between[0, 10000]]
+  groupby2[Fclass; Cnt: fun(t: TUPLE, agg:int) agg + 1::0,
+    SWidth: fun(t2: TUPLE, agg2:int) agg2 + attr(t2, Width)::0]
+  ]
+  dsummarize sortby[Fclass]
+  groupby[Fclass; AWidth: group feed sum[SWidth] / group feed sum[Cnt]]
+  consume
+
+
+
+
+
+
+
+
+
+
+
