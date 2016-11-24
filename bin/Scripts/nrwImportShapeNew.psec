@@ -46,7 +46,7 @@ let Transport = dbimport2(DIR + 'gis.osm_transport_free_1.dbf') shpimport2(DIR +
 
 
 
-
+# Selectivity queries for all relations to enforce creation of samples
 
 select count(*) from [Buildings as b1, Buildings as b2] where b1:Osm_id = b2:Osm_id
 
@@ -83,3 +83,19 @@ select count(*) from [Traffic as b1, Traffic as b2] where b1:Osm_id = b2:Osm_id
 select count(*) from [TransportA as b1, TransportA as b2] where b1:Osm_id = b2:Osm_id
 
 select count(*) from [Transport as b1, Transport as b2] where b1:Osm_id = b2:Osm_id
+
+
+
+# Creating indexes
+
+derive Roads_Name_btree = Roads createbtree[Name]
+
+derive Buildings_GeoData_rtree = Buildings feed addid 
+  extend[Box: scalerect(bbox(.GeoData), 1000000.0, 1000000.0)] 
+  sortby[Box] 
+  remove[Box] 
+  bulkloadrtree[GeoData]
+
+
+
+
