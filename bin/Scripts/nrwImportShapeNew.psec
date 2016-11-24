@@ -1,0 +1,85 @@
+# Importing NRW Data
+
+# close database
+
+# create database nrw
+
+# open database nrw
+
+let DIR = '/home/ralf/Daten/nordrhein-westfalen-latest-free.shp/'
+
+let Roads = dbimport2(DIR + 'gis.osm_roads_free_1.dbf') shpimport2(DIR + 'gis.osm_roads_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Waterways = dbimport2(DIR + 'gis.osm_waterways_free_1.dbf') shpimport2(DIR + 'gis.osm_waterways_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Railways = dbimport2(DIR + 'gis.osm_railways_free_1.dbf') shpimport2(DIR + 'gis.osm_railways_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let PointsA = dbimport2(DIR + 'gis.osm_pois_a_free_1.dbf') shpimport2(DIR + 'gis.osm_pois_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Points = dbimport2(DIR + 'gis.osm_pois_free_1.dbf') shpimport2(DIR + 'gis.osm_pois_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let PlacesA = dbimport2(DIR + 'gis.osm_places_a_free_1.dbf') shpimport2(DIR + 'gis.osm_places_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Places = dbimport2(DIR + 'gis.osm_places_free_1.dbf') shpimport2(DIR + 'gis.osm_places_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let NaturalA = dbimport2(DIR + 'gis.osm_natural_a_free_1.dbf') shpimport2(DIR + 'gis.osm_natural_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Natural = dbimport2(DIR + 'gis.osm_natural_free_1.dbf') shpimport2(DIR + 'gis.osm_natural_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Buildings = dbimport2(DIR + 'gis.osm_buildings_a_free_1.dbf') shpimport2(DIR + 'gis.osm_buildings_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Landuse = dbimport2(DIR + 'gis.osm_landuse_a_free_1.dbf') shpimport2(DIR + 'gis.osm_landuse_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let PofwA = dbimport2(DIR + 'gis.osm_pofw_a_free_1.dbf') shpimport2(DIR + 'gis.osm_pofw_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Pofw = dbimport2(DIR + 'gis.osm_pofw_free_1.dbf') shpimport2(DIR + 'gis.osm_pofw_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Water = dbimport2(DIR + 'gis.osm_water_a_free_1.dbf') shpimport2(DIR + 'gis.osm_water_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let TrafficA = dbimport2(DIR + 'gis.osm_traffic_a_free_1.dbf') shpimport2(DIR + 'gis.osm_traffic_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Traffic = dbimport2(DIR + 'gis.osm_traffic_free_1.dbf') shpimport2(DIR + 'gis.osm_traffic_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let TransportA = dbimport2(DIR + 'gis.osm_transport_a_free_1.dbf') shpimport2(DIR + 'gis.osm_transport_a_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+let Transport = dbimport2(DIR + 'gis.osm_transport_free_1.dbf') shpimport2(DIR + 'gis.osm_transport_free_1.shp') namedtransformstream[GeoData] obojoin filter[isdefined(bbox(.GeoData))] validateAttr trimAllUndef consume
+
+
+
+
+
+select count(*) from [Buildings as b1, Buildings as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Roads as b1, Roads as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Waterways as b1, Waterways as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Places as b1, Places as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [PlacesA as b1, PlacesA as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Railways as b1, Railways as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Natural as b1, Natural as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [NaturalA as b1, NaturalA as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Points as b1, Points as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [PointsA as b1, PointsA as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Landuse as b1, Landuse as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Pofw as b1, Pofw as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [PofwA as b1, PofwA as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Water as b1, Water as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [TrafficA as b1, TrafficA as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Traffic as b1, Traffic as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [TransportA as b1, TransportA as b2] where b1:Osm_id = b2:Osm_id
+
+select count(*) from [Transport as b1, Transport as b2] where b1:Osm_id = b2:Osm_id
