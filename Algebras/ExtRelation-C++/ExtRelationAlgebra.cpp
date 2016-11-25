@@ -13428,209 +13428,144 @@ if(!CcBool::checkType(arg3))
 
 */
 
+class nthInfo{
+
+public:
+ nthInfo(int iv, bool bv):
+    intvalue(iv), boolvalue(bv)  {}  
+
+ int intvalue;
+ bool boolvalue; 
+};
+
+
 int nthValueMapping(Word* args, Word& result, int message,
-                     Word& local, Supplier s)
-{
-  Word tuple(Address(0));
-  Tuple* current = 0;
+                     Word& local, Supplier s) {
+
+  nthInfo* li = (nthInfo*) local.addr;
+
+
+ switch(message) {
+   
+    case OPEN: {     
+     int intvalue = 0;
+     bool boolvalue = false;
+     CcInt* currentval = static_cast<CcInt*>(args[1].addr);
+     CcBool* currentbool = static_cast<CcBool*>(args[2].addr);
   
-  
-  int intvalue = 0;
-  int randvalue;       
-  bool boolvalue;
-  CcInt* currentval = static_cast<CcInt*>(args[1].addr);
-  CcBool* currentbool = static_cast<CcBool*>(args[2].addr);
-  
-  if (currentval->IsDefined() )
-        {
-          intvalue = currentval->GetIntval(); 
-        }
+     if(currentval->IsDefined() ) {
+       intvalue = currentval->GetIntval(); 
+     }
         
-  if (intvalue <= 0) 
-   {
-     intvalue = 1;
+     if (intvalue <= 0) {
+        intvalue = 1;
+     }
+  
+  
+     if(currentbool->IsDefined() ) {
+        boolvalue = currentbool->GetBoolval(); 
+     }
+    
+     srand(time(0)); 
+     qp->Open(args[0].addr);
+     if(li){
+       delete li;
+     }
+     local.addr = new nthInfo(intvalue,boolvalue);
+     return 0;
    }
-  
-  
-  if (currentbool->IsDefined() )
-        {
-          boolvalue = currentbool->GetBoolval(); 
-        }
-    
- 
- 
-         
-         
-
- switch(message)
- {
-   
- case OPEN: 
-   
-    {     
-      srand(time(0)); 
-      qp->Open(args[0].addr);
-      local.addr = 0;
-      return 0;
-    }
     
     
-    
-    
-    
-
- case REQUEST:  
-   
-   randvalue = rand()%intvalue + 1;
-   
- 
-  { if (boolvalue)
-   {
-    
-    
-    
-    for (int i=1; i< intvalue; i++)                      //normal case
-    {
-      qp->Request(args[0].addr, tuple);
-      
-      if(!qp->Received(args[0].addr))
-      {
-        result.addr = 0;
-        return CANCEL;
-      }  
-        else {
-              current = static_cast<Tuple*>(tuple.addr);
-              current -> DeleteIfAllowed();                
-              
-          
-             }
-        
-    }   
-        
-   qp->Request(args[0].addr, tuple);
-   
-   if (qp->Received(args[0].addr))
-     
-     {
-       result= tuple;
-       return YIELD;
-     
-     }   
-      
-    else 
-     {
-       result.addr = 0;
-       return CANCEL;
-      
-     } 
-    
-   } //end first if 
-   
-   
-  else {                                            // random case     
-         
-         
-         for (int i=1; i< randvalue; i++)
-        {
+   case REQUEST:  {
+      if(!li) { 
+         return CANCEL;
+      }
+      Word tuple(Address(0));
+      Tuple* current = 0;
+      int randvalue;       
+      randvalue = rand()%li->intvalue + 1;
+      if(li->boolvalue) { // exact case
+        for (int i=1; i< li->intvalue; i++){ 
           qp->Request(args[0].addr, tuple);
-      
-          if(!qp->Received(args[0].addr))
-           {
+          if(!qp->Received(args[0].addr)) {
             result.addr = 0;
             return CANCEL;
-            }  
-              else {
-                   current = static_cast<Tuple*>(tuple.addr);
-                   current -> DeleteIfAllowed();                
-              
-          
-                   }
-        
-            }   
-            
-           
-            
-           qp->Request(args[0].addr, tuple);
-   
-           if (qp->Received(args[0].addr))
-             
-            { result= tuple;
-             
-             
-                for (int i=randvalue; i< intvalue; i++)
-                  {
-                    qp->Request(args[0].addr, tuple);
-      
-                   if(!qp->Received(args[0].addr))
-                    { current = static_cast<Tuple*>(result.addr);
-                      current -> DeleteIfAllowed();      
-                      result.addr = 0;
-                      return CANCEL;
-                    } 
-            
-                   else {
-                         current = static_cast<Tuple*>(tuple.addr);
-                         current -> DeleteIfAllowed();                
-              
-          
-                        }
-        
-                  }    
-             
-           
+          }  else {
+            current = static_cast<Tuple*>(tuple.addr);
+            current -> DeleteIfAllowed();                
+          }
+        }   
+        qp->Request(args[0].addr, tuple);
+        if(qp->Received(args[0].addr)) {
+           result= tuple;
            return YIELD;
-     
-            }   
-      
-            else 
-               {
-                 result.addr = 0;
-                 return CANCEL;
-      
-               } 
-    
-    
-    
-    
-    } //end else part
-  }  // end request case 
+        } else {
+          result.addr = 0;
+          return CANCEL;
+        } 
+      }  else { // random case     
+        for (int i=1; i< randvalue; i++) {
+          qp->Request(args[0].addr, tuple);
+          if(!qp->Received(args[0].addr)) {
+            result.addr = 0;
+            return CANCEL;
+          }  else {
+            current = static_cast<Tuple*>(tuple.addr);
+            current -> DeleteIfAllowed();                
+          }
+        }   
+        qp->Request(args[0].addr, tuple);
+        if(qp->Received(args[0].addr)) { 
+           result= tuple;
+           for (int i=randvalue; i<li->intvalue; i++) {
+             qp->Request(args[0].addr, tuple);
+             if(!qp->Received(args[0].addr)) { 
+               current = static_cast<Tuple*>(result.addr);
+               current -> DeleteIfAllowed();      
+               result.addr = 0;
+               return CANCEL;
+             } else {
+               current = static_cast<Tuple*>(tuple.addr);
+               current -> DeleteIfAllowed();                
+             }
+           }    
+           return YIELD;
+        } else {
+           result.addr = 0;
+           return CANCEL;
+        } 
+      } //random case
+    // end request case 
+   } 
   
-  
-  case CLOSE: 
-    {
+  case CLOSE: {
       qp->Close(args[0].addr);
       return 0;
-    }
-  
-  
+  }
   
   case CLOSEPROGRESS:
+    if(li){
+      delete li;
+      local.addr = 0;
+    }
     return 0;
   
   
-  case REQUESTPROGRESS:
+  case REQUESTPROGRESS: {
     ProgressInfo p1;
     ProgressInfo* pRes;
-    {
       
-     pRes = (ProgressInfo*) result.addr;
-     if (qp-> RequestProgress(args[0].addr, &p1) )
-     {  
-       
-       
+    pRes = (ProgressInfo*) result.addr;
+    if (qp-> RequestProgress(args[0].addr, &p1) ) {  
        pRes->Copy(p1);       
-       pRes->Card = p1.Card/intvalue;
-       
-       
+       pRes->Card = p1.Card/li->intvalue;
        return YIELD;
-     
-      
-     }
-      else return CANCEL;
-  
+    } else {
+       return CANCEL;
     }
-     
   }
+ } // end of switch
+
   return 0;
  
  }
