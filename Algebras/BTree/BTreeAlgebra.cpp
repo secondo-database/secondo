@@ -496,7 +496,7 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
             nl->SymbolAtom(Tuple::BasicType()),
             newAttrList),
           attrType));
-    cout << "out = " << nl->ToString(res) << endl;
+    // cout << "out = " << nl->ToString(res) << endl;
     return res;
   }
 }
