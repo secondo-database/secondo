@@ -263,6 +263,15 @@ Signature:  -> instant
 Example  :  query (today() + [const duration value (1 0)]) > today()
 Result   : TRUE
 
+Operator : transformDateTime
+Number   : 1
+Signature: string -> string
+Example  : query transformDateTime("[11/Oct/2016:16:22:31")
+Result   : "2016-10-11-16:22:31" 
+
+
+
+
 
 Operator : weekday_of
 Number   : 1

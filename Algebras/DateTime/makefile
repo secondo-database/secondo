@@ -27,12 +27,14 @@
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) -Werror
+CCFLAGS += $(ALG_INC_DIRS) 
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
+
+OBJECTS += dateconvscan.o dateconvparser.o
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+all:  $(OBJECTS) $(LIBOBJ)
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -47,6 +49,22 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean: cleanpdf
 	$(clean-algebra)
+	rm -f 	dateconvertparser.c  dateconvertparser.h dateconvertscan.c
+
+
+
+dateconvscan.o: dateconvertscan.c
+	$(CC) -c -o $@ $<
+
+dateconvparser.o: dateconvertparser.c
+	$(CC) -c -o $@ $<
+
+dateconvertparser.c: dateconvert.y
+	$(YACC) -d -o $@ $<
+
+dateconvertscan.c:  dateconvert.l dateconvertparser.c
+	$(LEX) -o $@ $<
+
 
 .PHONY:pdf
 pdf: DateTimeAlgebra.pdf

@@ -112,6 +112,9 @@ today               & [->] instant
 #include "StringUtils.h"
 #include "Symbols.h"
 #include <limits>
+extern "C" {
+#include "dateconvert.h"
+}
 
 #define POS "DateTimeAlgebra.cpp:" << __LINE__
 
@@ -2286,6 +2289,32 @@ ListExpr str2instantTM(ListExpr args){
 
 
 
+
+
+ListExpr transformDateTimeTM(ListExpr args){
+  if(!nl->HasLength(args,1) ){
+    return listutils::typeError("wrong number of "
+                                "arguments-one string expected");
+    
+  }  
+  
+  if(!listutils::isSymbol(nl->First(args),CcString::BasicType())) {   
+    return listutils::typeError("string expected");
+  }
+  
+  return nl->SymbolAtom(CcString::BasicType());
+
+}
+
+
+
+
+
+
+
+
+
+
 /*
 4.2 Value Mappings
 
@@ -2813,6 +2842,39 @@ int str2instantVM(Word* args, Word& result, int message,
 
 
 
+
+
+int transformDateTimeVM(Word* args, Word& result, int message,
+                                Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcString*  chain  = (CcString*) args[0].addr;
+  CcString *res = (CcString*) result.addr;
+  
+  if(!chain->IsDefined()){
+       res->SetDefined(false);
+  } else {
+    std::string val =  chain->GetValue();
+    char* r  = convertDate(val.c_str());
+    if(r){
+      res->Set(true,r);
+      free(r);
+    } else {
+      res->SetDefined(false);
+    }
+  }
+  return 0;
+  
+}
+
+
+
+
+
+
+
+
+
 /*
 4.3 Specifications
 
@@ -3040,6 +3102,19 @@ const string str2instantSpec =
    "\"query str2instant(tostring(now))  \" ))";
 
 
+   const string transformDateTimeSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+  " ( \"string  -> string \""
+  "\" transformDateTime(_)\" "
+   "'transform a given string format like [11/Oct/2016:16:22:31 for example"
+   " in the string format: 2016-10-11-16:22:31  ' "
+   "'query transformDateTime(tostring([11/Oct/2016:16:22:31))' ))";
+
+
+   
+   
+   
+   
 
 /*
 4.3 ValueMappings of overloaded Operators
@@ -3108,6 +3183,10 @@ static int str2instantSelect(ListExpr args){
   }
 
 }
+
+
+
+
 
 
 
@@ -3335,6 +3414,22 @@ Operator str2instant(
         str2instantTM
     );
 
+
+Operator transformDateTime(
+       "transformDateTime",
+        transformDateTimeSpec,        
+        transformDateTimeVM,
+        Operator::SimpleSelect,
+        transformDateTimeTM
+    );
+
+
+
+
+
+
+
+
 /*
 5 Creating the Algebra
 
@@ -3386,6 +3481,7 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_instant2real);
     AddOperator(&dt_tostring);
     AddOperator(&str2instant);
+    AddOperator(&transformDateTime);
   }
   ~DateTimeAlgebra() {};
 };
