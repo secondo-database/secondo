@@ -6245,6 +6245,7 @@ void Line::Transform( Region& result ) const
   halfsegments->Sort(HalfSegmentCompare);
   RegionCreator::setPartnerNo(halfsegments);
   RegionCreator::createRegion(halfsegments,&result);
+  halfsegments->destroyIfNonPersistent();
   delete halfsegments;
   delete[] usage;
   delete[] critical;

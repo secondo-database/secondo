@@ -798,7 +798,9 @@ persistent array of half segments. It marks the persistent array for destroying.
 destructor will perform the real destroying.
 
 */
-    inline ~Line() {}
+    inline ~Line() {
+      line.destroyIfNonPersistent();
+    }
 /*
 The destructor.
 
@@ -2221,7 +2223,9 @@ persistent array of half segments. It marks the persistent array for destroying.
 destructor will perform the real destroying.
 
 */
-    inline ~Region() {}
+    inline ~Region() {
+      region.destroyIfNonPersistent();
+    }
 /*
 The destructor.
 
