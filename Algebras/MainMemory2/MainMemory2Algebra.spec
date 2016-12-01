@@ -112,3 +112,6 @@ operator mgconnectedcomponents alias MGCONNECTEDCOMPONENTS pattern _ op
 operator momapmatchmht alias MOMAPMATCHMHT pattern op(_,_,_,_)
 
          
+operator collect_mvector alias COLLECT_MVECTOR pattern _ op[_,_]
+
+operator pwrap alias PWRAP pattern op(_)

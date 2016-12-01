@@ -1,8 +1,11 @@
 /*
+
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2016, 
+University in Hagen, 
+Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -21,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+
 
 #ifndef GRAPH_H
 #define GRAPH_H
