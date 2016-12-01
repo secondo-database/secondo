@@ -4085,7 +4085,6 @@ int mexactmatchVMT (Word* args, Word& result,
 
             if(avl) {
               memAVLtree* avltree = getAVLtree(treeN, subtype);
-              cout << "pointer to tree is " << avltree << endl;
               local.addr= new avlOperLI(avltree,
                                       mro->getmmrel(),
                                       key,key,
