@@ -3871,10 +3871,9 @@ class avlOperLI{
            vector<Tuple*>* _relation, 
            Attribute* _attr1,
            Attribute* _attr2, 
-           string _keyType,
            bool _below)
            :relation(_relation), avltree(_tree), attr1(_attr1), attr2(_attr2),
-           keyType(_keyType),below(_below){
+           below(_below){
            isAvl = true;
            if(!below){
               avlit = avltree->tail(AttrIdPair(attr1,0));    
@@ -3887,10 +3886,9 @@ class avlOperLI{
           vector<Tuple*>* _relation, 
           Attribute* _attr1,
           Attribute* _attr2, 
-          string _keyType, 
           bool _below)
           :relation(_relation), ttree(_tree), attr1(_attr1), attr2(_attr2),
-          keyType(_keyType),below(_below){
+          below(_below){
           isAvl = false;
           if(!_below){
             tit = ttree->tail(AttrIdPair(attr1,0)); 
@@ -3908,88 +3906,34 @@ class avlOperLI{
           if(!isAvl) {
             while(!tit.end()) {
               thit = *tit; 
-              if (keyType=="string"){
-                string attr1ToString = ((CcString*) attr1)->GetValue();
-                string attr2ToString = ((CcString*) attr2)->GetValue();
-                string hitString = ((CcString*)(thit.getAttr()))->GetValue();
-                hitString=trim(hitString);
-
-                if (hitString > attr2ToString) {
-                    return 0;
-                }
-                if (hitString == attr1ToString ||
-                    hitString < attr2ToString  ||
-                    hitString == attr2ToString ){
-                    Tuple* result = relation->at(thit.getTid()-1);
-                    if(result){
-                       result->IncReference();
-                       tit++;
-                       return result;
-                    } else {
-                       tit++;
-                    }
-                } else { // end of range reached
-                   return 0;
-                }
-              } else { //end keyType string
-              
-                 if ((thit.getAttr())->Compare(attr2) > 0){ // end reached
-                   return 0;
-                 }
-                 Tuple* result = relation->at(thit.getTid()-1);
-                 if(result){
-                   result->IncReference();
-                   tit++;
-                   return result;
-                 } else {
-                   tit++;
-                 }
-               }
-             } // end of iterator reached
+              if ((thit.getAttr())->Compare(attr2) > 0){ // end reached
+                  return 0;
+              }
+              Tuple* result = relation->at(thit.getTid()-1);
+              if(result){
+                 result->IncReference();
+                 tit++;
+                 return result;
+              } else {
+                 tit++;
+              }
+            } // end of iterator reached
              return 0;
           }  else { // avl tree
             while(!avlit.onEnd()){
               avlhit = avlit.Get();
-              // special treatment for string type , really a good idea???
-              if (keyType=="string"){
-                  string attr1ToString = ((CcString*) attr1)->GetValue();
-                  string attr2ToString = ((CcString*) attr2)->GetValue();
-                  string hitString = ((CcString*)(avlhit->getAttr()))
-                                     ->GetValue();
-                  hitString=trim(hitString);
+              if ((avlhit->getAttr())->Compare(attr2) > 0){ // end reached
+                 return 0;
+               }
 
-                  if (hitString > attr2ToString) {
-                      return 0;
-                  }
-                  if (hitString == attr1ToString ||
-                      hitString < attr2ToString  ||
-                      hitString == attr2ToString ){
-
-                      Tuple* result = relation->at(avlhit->getTid()-1);
-                      if(result){
-                        result->IncReference();
-                        avlit.Next();
-                        return result;
-                      } else {
-                        avlit.Next();
-                      }
-                  } else { // end of range reached
-                     return 0;
-                  }
-              } else { //end keyType string
-                if ((avlhit->getAttr())->Compare(attr2) > 0){ // end reached
-                   return 0;
-                 }
-
-                 Tuple* result = relation->at(avlhit->getTid()-1);
-                 if(result){ // tuple exist
-                   result->IncReference();
-                   avlit.Next();
-                   return result;
-                 } else { // tuple deleted
-                   avlit.Next();
-                 }
-              }
+               Tuple* result = relation->at(avlhit->getTid()-1);
+               if(result){ // tuple exist
+                 result->IncReference();
+                 avlit.Next();
+                 return result;
+               } else { // tuple deleted
+                 avlit.Next();
+               }
             }
             return 0;     // end of iterator reached
           }
@@ -4081,14 +4025,12 @@ int mexactmatchVMT (Word* args, Word& result,
             T* treeN = (T*) args[0].addr;
             ListExpr subtype = qp->GetType(qp->GetSon(s,2));
 
-            //cout << "avltree is " << avltree << endl; 
 
             if(avl) {
               memAVLtree* avltree = getAVLtree(treeN, subtype);
               local.addr= new avlOperLI(avltree,
                                       mro->getmmrel(),
                                       key,key,
-                                      nl->ToString(subtype),
                                       below);
             } else {
               MemoryTTreeObject* ttree = getTtree(treeN);
@@ -4096,7 +4038,6 @@ int mexactmatchVMT (Word* args, Word& result,
                 local.addr= new avlOperLI(ttree->gettree(),
                                       mro->getmmrel(),
                                       key,key,
-                                      nl->ToString(subtype),
                                       below);
               } else {
                 return 0;
@@ -4315,15 +4256,14 @@ int mrangeVMT (Word* args, Word& result,
               local.addr= new avlOperLI(avltree,
                                       mro->getmmrel(),
                                       key1,key2,
-                                      nl->ToString(subtype), false);
-            }
-            else {
+                                      false);
+            } else {
               MemoryTTreeObject* ttree = getTtree(treeN);
               if(ttree) {
                 local.addr= new avlOperLI(ttree->gettree(),
                                       mro->getmmrel(),
                                       key1,key2,
-                                      nl->ToString(subtype),false);
+                                      false);
               }
               else {
                 return 0;
