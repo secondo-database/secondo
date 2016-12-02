@@ -790,7 +790,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
       if (trace) {
         cerr << "opening by id =" << fileid << ", "<< *this << endl;
       }
-      SmiEnvironment::SetBDBError( rc );
+      SmiEnvironment::SetBDBErrorD( rc, "could not open file " + bdbName );
       if ( rc == 0 )
       {
         opened = true;

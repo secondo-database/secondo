@@ -1124,14 +1124,18 @@ Optionally the accompanying error message is returned.
 
 */
   static void SetSmiError( const SmiError smiErr,
-                           const std::string& file, int pos );
+                           const std::string& file, int pos,
+                           const std::string& descr);
   static void SetSmiError( const SmiError smiErr,
-                           const int sysErr, const std::string& file, int pos );
+                           const int sysErr, const std::string& file, int pos,
+                           const std::string& desc );
   static void ResetSmiErrors();
 
-#define SetError(code) SetSmiError(code, __FILE__, __LINE__)
-#define SetError2(code, msg) SetSmiError(code, msg, __FILE__, __LINE__)
-#define SetBDBError(code) SetSmiError(E_SMI_BDB, code, __FILE__, __LINE__)
+#define SetError(code) SetSmiError(code, __FILE__, __LINE__,"")
+#define SetError2(code, msg) SetSmiError(code, msg, __FILE__, __LINE__, "")
+#define SetBDBError(code) SetSmiError(E_SMI_BDB, code, __FILE__, __LINE__, "")
+#define SetBDBErrorD(code, desc) SetSmiError(E_SMI_BDB, code, __FILE__,\
+                                              __LINE__,desc)
 
 /*
 Allows to set an SmiError code and a system error code or an error message.
@@ -1237,7 +1241,8 @@ or if the application runs in single user mode.
 
 */
   static void SetSmiError( const SmiError smiErr,
-      const std::string& errMsg, const std::string& file, int pos );
+      const std::string& errMsg, const std::string& file, int pos,
+      const std::string& desc );
 
   static bool CallRegistrar( const std::string& dbname, 
       const std::string& cmd, std::string& answer );

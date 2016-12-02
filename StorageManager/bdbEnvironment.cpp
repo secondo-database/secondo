@@ -1165,7 +1165,8 @@ bool SmiEnvironment::correctFileId(){
 
 void
 SmiEnvironment::SetSmiError( const SmiError smiErr,
-		             const int sysErr, const string& file, int pos )
+		             const int sysErr, const string& file, int pos,
+                 const string& desc )
 {
   if ( sysErr != 0 )
   {
@@ -1174,7 +1175,7 @@ SmiEnvironment::SetSmiError( const SmiError smiErr,
       instance.impl->txnMustAbort = true;
     }
     string msg =  Err2Msg(E_SMI_BDB) + DbEnv::strerror( sysErr );
-    SetSmiError(smiErr, msg, file, pos);
+    SetSmiError(smiErr, msg, file, pos, desc);
   }
 }
 

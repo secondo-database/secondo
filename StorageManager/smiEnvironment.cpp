@@ -133,15 +133,17 @@ SmiEnvironment::GetLastErrorCode( string& errorMessage )
 
 void 
 SmiEnvironment::SetSmiError( const SmiError smiErr, 
-		             const string& file, int pos )
+		             const string& file, int pos,
+                const string& desc )
 { 
   if (smiErr != E_SMI_OK)
-    SetSmiError(smiErr, Err2Msg(smiErr), file, pos);
+    SetSmiError(smiErr, Err2Msg(smiErr), file, pos, desc);
 }
                         
 void 
 SmiEnvironment::SetSmiError( const SmiError smiErr, 
-		             const string& errMsg, const string& file, int pos )
+		             const string& errMsg, const string& file, int pos,
+                 const string& desc )
 { 
   static bool abortOnError = RTFlag::isActive("SMI:abortOnError");
   lastError = smiErr;
@@ -150,7 +152,7 @@ SmiEnvironment::SetSmiError( const SmiError smiErr,
     if ( numOfErrors > 0 )
       lastMessage += "\n";
     stringstream msg;
-    msg << errMsg << " -> [" << file << ":" << pos << "]";   
+    msg << errMsg << " -> [" << file << ":" << pos << "]" << desc;   
     lastMessage += msg.str();
     numOfErrors++;	
 
