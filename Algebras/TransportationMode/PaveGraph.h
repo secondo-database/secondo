@@ -163,9 +163,6 @@ struct MySegDist;
 struct MyHalfSegment; 
 struct SpacePartition; 
 
-bool CheckAngle(float a1, float a2);
-bool CheckAngle2(float in, float a1, float a2);
-
 struct CompTriangle{
   Region* reg;
   std::vector<Region> triangles;
@@ -238,20 +235,10 @@ struct CompTriangle{
                                    Point& query_p, Point& hp, Point& p,
                                    SpacePartition* sp, Point* q1,
                                    Point* q2, int id);
-  bool InitializeQueue2(std::priority_queue<RPoint>& allps,
-                                   Point& query_p, Point& hp, Point& p,
-                                   SpacePartition* sp, Point* q1,
-                                   Point* q2, int id,
-                       float a1, float a2);
-                   
   void PrintAVLTree(std::multiset<MySegDist>& sss, std::ofstream&);
-  
-  void GetVPoints2(Relation* r1, Relation* r2, Rectangle<2>* bbox,
-                  Relation* r3, int attr_pos, float a1, float a2);
-          
   std::vector<Line> connection;
   std::vector<int> reg_id;
-//  vector<float> angles;
+//  std::vector<float> angles;
 };
 
 struct ListEntry{
@@ -327,7 +314,6 @@ public:
     static void CloseDualGraph(const ListExpr typeInfo, Word& w);
 
     static void DeleteDualGraph(const ListExpr typeInfo, Word& w);
-    void RemoveDualGraph();
     static bool CheckDualGraph(ListExpr type, ListExpr& errorInfo);
 
     static bool SaveDualGraph(SmiRecord& valueRecord, size_t& offset,
@@ -346,7 +332,7 @@ public:
     void DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                           Point& loc, std::vector<int>& tri_oid_list);
     void DFTraverse3(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
-                          Point& loc, std::vector<int>& tri_oid_list,
+                          Point& loc, std::vector<int>& tri_oid_list, 
                           double dist);
     //////////////////////////////////////////////////////////////////////
     //////////calculate a path, for cells in metro route//////////////////
@@ -365,11 +351,9 @@ public:
   static std::string NodeTypeInfo;
   static std::string EdgeTypeInfo;
   static std::string QueryTypeInfo;
-
   enum VGNodeTypeInfo{OID = 0, LOC};
   enum VGEdgeTypeInfo{OIDFIRST = 0,OIDSECOND, CONNECTION};
   enum VGQueryTypeInfo{QOID = 0, QLOC1, QLOC2}; //relative, absolute position
-
   //////////////////////////////////////////////////////////////
   ~VisualGraph();
   VisualGraph();
@@ -379,7 +363,6 @@ public:
   VisualGraph(SmiRecord&, size_t&, const ListExpr);
   //////////////////////////////////////////////////////////////
   void Load(int, Relation*, Relation*);
-  void Load2(int, Relation*, Relation*);//different meaning of adjlist
   static ListExpr OutVisualGraph(ListExpr typeInfo, Word value);
   ListExpr Out(ListExpr typeInfo);
   static bool CheckVisualGraph(ListExpr type, ListExpr& errorInfo);
@@ -399,7 +382,6 @@ public:
   bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
               const ListExpr in_xTypeInfo);
 };
-
 
 struct Walk_SP{
   DualGraph* dg;
@@ -435,9 +417,6 @@ struct Walk_SP{
   void WalkShortestPath(Line* res);
   void WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
                                 Line* res);
-  void WalkShortestPath_Debug();
-  void WalkShortestPath3(int oid1, int oid2, Point loc1, Point loc2);
-  
   bool EuclideanConnect(Point loc1, Point loc2);
   void DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Line* line, 
                   double& l);
@@ -505,91 +484,6 @@ struct Clamp{
 
 struct Triangle;
 
-struct Obs_Obj{
-  int tid;
-  float d;
-  Obs_Obj();
-  Obs_Obj(int id, float v):tid(id), d(v){}
-  Obs_Obj(const Obs_Obj& o):tid(o.tid), d(o.d){}
-  Obs_Obj& operator=(const Obs_Obj& o)
-  {
-    tid = o.tid;
-    d = o.d;
-    return *this;
-  }
-  bool operator<(const Obs_Obj& o) const
-  {
-    return d > o.d;
-  }
-  void Print()
-  {
-  cout<<"tid "<<tid<<" d "<<d<<endl;
-  }
-
-};
-
-/*
-obstacle vertex and the angle
-
-*/
-struct ObsVertex{
-  Point loc;
-  double angle;
-  int regid;
-  bool b;//clockwise(true) or counterclockwise(false)
-  ObsVertex();
-  ObsVertex(Point p, double d, int id, bool v):loc(p), angle(d), 
-           regid(id), b(v){}
-  ObsVertex(const ObsVertex& o):loc(o.loc), angle(o.angle), 
-           regid(o.regid), b(o.b){}
-  ObsVertex& operator=(const ObsVertex& o)
-  {
-  loc = o.loc;
-  angle = o.angle;
-  regid = o.regid;
-  b = o.b;
-  return *this;
-  }
-  bool operator<(const ObsVertex& o)const
-  {
-  return angle < o.angle;
-  }
-  void Print()
-  {
-  cout<<"loc: "<<loc<<" angle "<<angle
-      <<" regid "<<regid<<endl;
-    if(b) cout<<"clockwise"<<endl;
-  else cout<<"counterclockwise"<<endl;
-  }
-  
-};
-
-/*
-block angle
-
-*/
-struct BlockAngle{
-  temporalalgebra::Interval<CcReal> angle;
-  float dist;
-  BlockAngle();
-  BlockAngle(temporalalgebra::Interval<CcReal> a, float d):angle(a), dist(d){}
-  BlockAngle& operator=(const BlockAngle& o)
-  {
-  angle = o.angle;
-  dist = o.dist;
-  return *this;
-  }
-   bool operator<(const BlockAngle& o)const
-  {
-  return angle < o.angle;
-  }
-  void Print()
-  {
-  cout<<angle.start<<" "<<angle.end<<" "<<" dist: "<<dist<<endl;
-  }
-  
-};
-
 struct VGraph{
   DualGraph* dg;
   Relation* rel1;//query relation
@@ -604,34 +498,15 @@ struct VGraph{
   std::vector<int> oids2;
   std::vector<int> oids3;
   std::vector<Point> p_list;
-  std::vector<Point> p_list2;
   std::vector<Line> line;
   std::vector<Region> regs;
   VisualGraph* vg;
-  
-  std::vector<Point> p_neighbor1;
-  std::vector<Point> p_neighbor2;
-  
-  int tri_access;
-  std::vector<float> angle_list;
-  std::vector<bool> clockwise_list;
-  
-  static std::string RelHoles;
-  /////////////within a spatial range///////////////
-  bool spatial_l; //mark the state
-  std::set<int> cand_id;
-  //////////////////////////////////////////////////
-  
-  enum VPHoleInfo{VP_HOLE_OID = 0, VP_HOLE, VP_HOLE_BOX}; 
-     
+
   VGraph();
   ~VGraph();
   VGraph(DualGraph* g, Relation* r1, Relation* r2, Relation* r3);
   VGraph(VisualGraph* g);
   void GetVNode();
-  void GetVNode2(float l);
-//  bool CheckAngle(float a1, float a2);
-  void GetVNode3(float a1, float a2);
   void GetAdjNodeDG(int oid);
   void GetAdjNodeVG(int oid);
   void GetVisibleNode1(int tri_id, Point* query_p);
@@ -648,21 +523,9 @@ struct VGraph{
   void GetVNodeOnVertex(int vid, Point* query_p);
   void GetVGEdge();
   bool MyCross(const HalfSegment& hs1, const HalfSegment& hs2);
-  /* for walk shortest algorithm */ 
+  ////////////////////for walk shortest algorithm/////////////////////////
   void GetVisibilityNode(int tri_id, Point query_p);
-  /////////////////////////////////////////////////////////////////////////
-  void GetVPRange(Relation* rel1, R_Tree<2,TupleId>* rtree,
-          Relation* rel2, float l);
-  void GetObstacles(Relation* rel1, R_Tree<2,TupleId>* rtree, Point* q, 
-        float l, std::priority_queue<Obs_Obj>& myqueue);
-  bool MergeBlockAngle(std::vector<BlockAngle>& a_list, BlockAngle above_angle,
-             int oid);
-  void AddResult(bool iscovered, Point lp, Point rp);       
-  void MergeAngleList(std::vector<BlockAngle>& a_list);
-  void FindTriWithin_L(float l, int query_oid, Point* q);
 };
-
-
 
 /*
 structure used for creating the triangles of a polygon in such a way that two
@@ -774,40 +637,17 @@ Calculate the Z-order value for the input point
 */
 inline long ZValue(Point& p)
 {
-  /////////////// not large enough for CA data, x is large, 1059025
-/*  bitset<20> b;
+  std::bitset<20> b;
   double base = 2,exp = 20;
   int x = (int)p.GetX();
   int y = (int)p.GetY();
-  if(x > pow(base, exp)) cout<<"x: "<<x<<endl;
-  if(y > pow(base, exp)) cout<<"y: "<<y<<endl;
   assert (x < pow(base,exp));
   assert (y < pow(base,exp));
-  bitset<10> b1(x);
-  bitset<10> b2(y);
+  std::bitset<10> b1(x);
+  std::bitset<10> b2(y);
   bool val;
   b.reset();
   for(int j = 0; j < 10;j++){
-      val = b1[j];
-      b.set(2*j,val);
-      val = b2[j];
-      b.set(2*j+1,val);
-  }
-  return b.to_ulong();*/
-
-  std::bitset<30> b;
-  double base = 2,exp = 30;
-  int x = (int)p.GetX();
-  int y = (int)p.GetY();
-  if(x > pow(base, exp)) cout<<"x: "<<x<<endl;
-  if(y > pow(base, exp)) cout<<"y: "<<y<<endl;
-  assert (x < pow(base,exp));
-  assert (y < pow(base,exp));
-  std::bitset<15> b1(x);
-  std::bitset<15> b2(y);
-  bool val;
-  b.reset();
-  for(int j = 0; j < 15;j++){
       val = b1[j];
       b.set(2*j,val);
       val = b2[j];
@@ -847,10 +687,6 @@ struct Hole{
   std::vector<Region> regs1;
   std::vector<Region> regs2;
   std::vector<Region> regs;
-  
-  std::vector<Line> line_list;
-  std::vector<int> cycle_id_list;
-  
   void GetContour();
   void GetContour(unsigned int no_reg);
   void GetPolygon(int no_ps);//create a polygon
@@ -862,9 +698,6 @@ struct Hole{
   void DiscoverContour(Points* ps, Region* r);
   bool NoSelfIntersects(Region* r);
   void GetHole(Region* r);
-  void GetComponents(Region* r);
-  
-  void GetSegments(Region* r);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1157,7 +990,7 @@ struct MaxRect{
 
     void SetHospital(std::vector<Build_Rect>& build_rect_list, unsigned int no);
     bool NoNeighborHospital(std::vector<Build_Rect>& list1, Build_Rect br);
-    bool NoNearbyShopMallAndCinema(std::vector<Build_Rect>& list,
+    bool NoNearbyShopMallAndCinema(std::vector<Build_Rect>& list, 
                                    Build_Rect br);
 
     void SetLibrary(std::vector<Build_Rect>& build_rect_list, unsigned int no);
@@ -1214,7 +1047,6 @@ public:
                      const ListExpr typeInfo);
 
   static void* Cast(void* addr);
-  void RemovePavement();
   
   private:
     bool def; 
@@ -1248,61 +1080,4 @@ if it is smaller than d, return true; otherwise false
 
 */
 bool SmallerD(Line* l1, Line* l2, float d);
-
-
-/*
-OSM Pavmenet Graph
-Rid value: line id for point on the line -- type 1, 
-           region id for point inside a region -- type 2
-type1: same spatial location; type2: adjacent points on the same road
-type3: line and region; type4: inside the same region
-
-*/
-
-class OSMPaveGraph:public BaseGraph{
-
-public:
-   static std::string OSMGraphPaveNode;
-   static std::string OSMGraphPaveEdge;
-   static std::string NodeBTreeTypeInfo;
-     
-  enum OSMPaveNodeInfo{OSM_JUN_ID = 0, OSM_JUN_GP, OSM_LOC, OSM_RID, OSM_TYPE};
-  enum OSMPaveEdgeInfo{OSM_JUNID1 = 0, OSM_JUNID2, OSM_Path1, 
-                       OSM_Path2, OSM_Edge_TYPE};
-
-//   //////////////////////////////////////////////////////////////
-    ~OSMPaveGraph();
-     OSMPaveGraph();
-     OSMPaveGraph(ListExpr in_xValue,int in_iErrorPos,
-                  ListExpr& inout_xErrorInfo,
-                  bool& inout_bCorrect);
-     OSMPaveGraph(SmiRecord&, size_t&, const ListExpr);
-//   //////////////////////////////////////////////////////////////
-   void Load(int, Relation*, Relation*);
-   void RemoveIndex();
-   static ListExpr OutOSMPaveGraph(ListExpr typeInfo, Word value);
-   ListExpr Out(ListExpr typeInfo);
-   static bool CheckOSMPaveGraph(ListExpr type, ListExpr& errorInfo);
-   static void CloseOSMPaveGraph(const ListExpr typeInfo, Word& w);
-   static void DeleteOSMPaveGraph(const ListExpr typeInfo, Word& w);
-   static Word CreateOSMPaveGraph(const ListExpr typeInfo);
-   static Word InOSMPaveGraph(ListExpr in_xTypeInfo,
-                             ListExpr in_xValue,
-                             int in_iErrorPos, ListExpr& inout_xErrorInfo,
-                             bool& inout_bCorrect);
-   static bool OpenOSMPaveGraph(SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value);
-   static OSMPaveGraph* Open(SmiRecord& valueRecord,size_t& offset,
-                           const ListExpr typeInfo);
-   static bool SaveOSMPaveGraph(SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value);
-   bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
-               const ListExpr in_xTypeInfo);
-  
-   void GetNodesOnRid(int rid, std::vector<int>& tid_list);
-
-   BTree* btree_node;
-};
-
-
 #endif

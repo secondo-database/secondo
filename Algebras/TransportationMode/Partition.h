@@ -612,53 +612,6 @@ inline void Modify_Point3(Point& p, double f)
 
 }
 
-inline void Modify_Point4(Point& p)
-{
-    double x,y;
-
-    x = p.GetX();
-    y = p.GetY();
-
-    char buffer1[64];
-    sprintf(buffer1, "%f", x);
-
-    int i = 0;
-    int length = 0; 
-//    while(buffer1[i] != '\0'){
-    while(buffer1[i] != '.'){
-//      cout<<buffer1[i]<<endl;
-      i++;
-    }
-//    length = i + 3 + 1;
-    length = i + 2 + 1;
-//    cout<<buffer1<<endl;
-    char buffer1_new[64];
-    strncpy(buffer1_new, buffer1, length);
-    buffer1_new[length] = '\0';
-    double xx;
-    sscanf(buffer1_new, "%lf", &xx);
-//    cout<<buffer1_new<<" "<<xx<<endl;
-
-
-    char buffer2[64];
-    sprintf(buffer2, "%f", y);
-    i = 0; length = 0;
-    while(buffer2[i] != '.'){
-      i++;
-    }
-//    length = i + 3 + 1;
-    length = i + 2 + 1;
-
-    char buffer2_new[64];
-    strncpy(buffer2_new, buffer2, length);
-    buffer2_new[length] = '\0';
-    double yy;
-    sscanf(buffer2_new, "%lf", &yy);
-
-    p.Set(xx, yy);
-
-}
-
 void MySetOp(const Region& reg1, const Region& reg2,Region& result,
            myavlseg::SetOperation op);
 void MySetOp(const Line& line, const Region& region, Line& result,
@@ -710,7 +663,6 @@ struct MyHalfSegment{
       from = to;
       to = temp;
   }
-  double Length(){if(def) return from.Distance(to);else return -1.0;}
   bool def;
   Point from,to;
 };
@@ -776,25 +728,25 @@ struct MyPoint{
 };
 
 struct MyPoint_Ext:public MyPoint{
-  Point loc2; 
-  double dist2;
-  MyPoint_Ext(){}
-  MyPoint_Ext(const Point& p1, const Point& p2, double d1, double d2):
-  MyPoint(p1,d1),loc2(p2),dist2(d2){}
-  MyPoint_Ext(const MyPoint_Ext& mpe):
-  MyPoint(mpe),loc2(mpe.loc2), dist2(mpe.dist2){}
-  MyPoint_Ext& operator=(const MyPoint_Ext& mpe)
-  {
-    MyPoint::operator=(mpe);
-    loc2 = mpe.loc2; 
-    dist2 = mpe.dist2;
-    return *this; 
-  }
-   void Print()
+    Point loc2; 
+    double dist2;
+    MyPoint_Ext(){}
+    MyPoint_Ext(const Point& p1, const Point& p2, double d1, double d2):
+    MyPoint(p1,d1),loc2(p2),dist2(d2){}
+    MyPoint_Ext(const MyPoint_Ext& mpe):
+    MyPoint(mpe),loc2(mpe.loc2), dist2(mpe.dist2){}
+    MyPoint_Ext& operator=(const MyPoint_Ext& mpe)
     {
-      cout<<" loc1 " <<loc<<"loc2 "<<loc2
-      <<" dist1 "<<dist<<" dist2 "<<dist2<<endl; 
+        MyPoint::operator=(mpe);
+        loc2 = mpe.loc2; 
+        dist2 = mpe.dist2;
+        return *this; 
     }
+     void Print()
+      {
+        cout<<" loc1 " <<loc<<"loc2 "<<loc2
+            <<" dist1 "<<dist<<" dist2 "<<dist2<<endl; 
+      }
 };
 
 
@@ -950,7 +902,7 @@ struct SpacePartition{
                      bool clock_wise, std::vector<Point>& outer);
 
   // order the segments so that the end point of last one connects to the start
-  // point of the next one, the result is stored as vector<MyHalfSegment>
+  // point of the next one, the result is stored as std::vector<MyHalfSegment>
 
   void ReorderLine(SimpleLine*, std::vector<MyHalfSegment>&);
   //create a region from the given set of ordered points
@@ -1062,30 +1014,29 @@ struct SpacePartition{
   //parameters called by function FillPave()
 
   void NewFillPavement3(Relation* routes, int id1, int id2,
-               Point* junp, std::vector<Region>& paves1,
-               std::vector<Region>& paves2, std::vector<int> rids,
-               std::vector<Region>& newpaves1, std::vector<Region>& newpaves2);
+                      Point* junp, std::vector<Region>& paves1,
+                      std::vector<Region>& paves2, std::vector<int> rids,
+                      std::vector<Region>& newpaves1, 
+                      std::vector<Region>& newpaves2);
 
   //the same function as NewFillPavement2, but with different input parameters
   //called by function FillPave()
 
   void NewFillPavement4(Relation* routes, int id1, int id2,
-           Point* junp, std::vector<Region>& paves1,
-           std::vector<Region>& paves2, std::vector<int> rids,
-           std::vector<Region>& newpaves1, std::vector<Region>& newpaves2);
+                      Point* junp, std::vector<Region>& paves1,
+                      std::vector<Region>& paves2, std::vector<int> rids,
+                      std::vector<Region>& newpaves1, 
+                      std::vector<Region>& newpaves2);
   void NewFillPavement5(Relation* routes, int id1, int id2,
-           Point* junp, std::vector<Region>& paves1,
-           std::vector<Region>& paves2, std::vector<int> rids,
-           std::vector<Region>& newpaves1, std::vector<Region>& newpaves2);
+                      Point* junp, std::vector<Region>& paves1,
+                      std::vector<Region>& paves2, std::vector<int> rids,
+                      std::vector<Region>& newpaves1, 
+                      std::vector<Region>& newpaves2);
 
   //for operator fillgap
   void FillHoleOfPave(network::Network* n, Relation* rel,  int attr_pos1,
                       int attr_pos2, int width);
 
-  //given a set of polygons, perform the union on those intersect objects////
-  void UnionPoly(Relation* rel1, int attr_pos1, Relation* rel2, 
-         int attr_pos2, int attr_pos3);
-  void NewBoundary(Region* reg, Line* l);         
 };
 
 
@@ -1095,67 +1046,31 @@ can locate
 
 */
 struct StrRS{
-  network::Network* n;
-  Relation* r1;
-  Relation* r2;
-  unsigned int count;
-  TupleType* resulttype;
+    network::Network* n;
+    Relation* r1;
+    Relation* r2;
+    unsigned int count;
+    TupleType* resulttype;
     std::vector<int> rids; 
-  std::vector<Line> lines;
+    std::vector<Line> lines;
     std::vector<Point> interestps;
     std::vector<Point> ps; 
     std::vector<bool> ps_type; 
-  StrRS();
-  ~StrRS();
-  StrRS(network::Network* net, Relation* rel1, Relation* rel2);
-  void GetSections(int attr_pos1, int attr_pos2, int attr_pos3);
+    StrRS();
+    ~StrRS();
+    StrRS(network::Network* net, Relation* rel1, Relation* rel2);
+    void GetSections(int attr_pos1, int attr_pos2, int attr_pos3);
     void GenPoints1(int attr_pos1, int attr_pos2, int attr_pos3, 
                    int attr_pos4, int no_ps);
     void GenPoints2(R_Tree<2,TupleId>*, int attr_pos1, int attr_pos2, 
                     unsigned int);
     void DFTraverse(R_Tree<2,TupleId>*, SmiRecordId, Point*, int);
     void GetInterestingPoints(HalfSegment hs, Point ip, 
-                     std::vector<MyPoint>& intersect_ps, Region*, Region*);
+                              std::vector<MyPoint>& intersect_ps, Region*,
+                               Region*);
 };
 
 #define TM_MYPI 3.1415927
-
-struct Loc_Id{
-  Points ps;
-  int oid;
-  Loc_Id():ps(0){}
-  Loc_Id(Points& b, int a):ps(b), oid(a){}
-  Loc_Id(const Loc_Id& lid):ps(lid.ps), oid(lid.oid){}
-
-  void Print()
-  {
-    cout<<"oid: "<<oid<<" no: "<<ps.Size()<<endl;
-  }
-
-};
-
-
-struct Adj_Data{
-  int adj_id;
-  bool from_to; //false -- from; true -- to
-  bool adj_from_to;//false -- from; true -- to
-  Adj_Data(){}
-  Adj_Data(int ID, bool b1, bool b2):adj_id(ID), from_to(b1), adj_from_to(b2){}
-  Adj_Data(const Adj_Data& d):adj_id(d.adj_id), from_to(d.from_to),
-  adj_from_to(d.adj_from_to){}
-  Adj_Data& operator=(const Adj_Data& d)
-  {
-    adj_id = d.adj_id;
-    from_to = d.from_to;
-    adj_from_to = d.adj_from_to;
-    return *this;
-  }
-  void Print()
-  {
-    cout<<"adj id: "<<adj_id<<" from "<<from_to
-        <<" neighbor "<<adj_from_to<<endl;
-  }
-};
 
 /*
 data clean process 
@@ -1169,251 +1084,15 @@ struct DataClean{
   ~DataClean(){if(resulttype != NULL) delete resulttype;}
 
   std::vector<SimpleLine> sl_list;
-  std::vector<Line> l_list;
-  std::vector<Region> reg_list;
-  std::vector<int> type_list;
-  std::vector<int> oid_list;
 
-  std::vector<Point> bs_loc_list;
-
-  static std::string RoadLSegs;
-  static std::string RoadLAdj;
-  static std::string PedesLine;
-  static std::string PedesRegion;
-
-  std::string type;// line,  region
-
-  enum RoadLInfor{L_OID = 0, L_SEG}; 
-  enum RoadLAdjInfo{L_ADJ_OID1, L_ADJ_SEG1, L_ADJ_OID2, L_ADJ_SEG2};
-  enum PedesLine{RID_L1 = 0, RID_L2, RID_GEO};
-  enum PedesRegion{PAVE_ID1 = 0, PAVE_ID2, PAVE_REGION};
-  
 
   void ModifyLine(SimpleLine* in, SimpleLine* out);
-  void ModifyRegion(Region* in, Region* out);
-  void RefineData(SimpleLine* in, SimpleLine* out);
   void CheckRoads(Relation* r, R_Tree<2,TupleId>* rtree);
   void DFTraverse(Relation* rel,R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                           Line* sl, std::vector<int>& id_list, unsigned int id);
   void DFTraverse2(Relation* rel,R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                           Line* sl, std::vector<int>& id_list, unsigned int id);
-
-  void RefineBR(Relation*, int attr1, int attr2);
-  void FindBusRoute(int rel_id, std::vector<SimpleLine> seg_list, 
-                    double min_len);
-  void FindThePath(std::vector<MyHalfSegment> mhs_list, int i, int j, 
-                   std::vector<std::vector<Adj_Data> > adj_list, 
-                   std::vector<SimpleLine>& path_list);
-
-  void ExtendLine(SimpleLine& sl);
-  void SetStopLoc(Line* l);
-  //////////////////////////////////////////////////////////////////////
-  /////////from a sline to  a region/////////////////////////////////
-  void SLine2Region(SimpleLine* sl, Region* reg);
-  ////////////////////////////////////////////////////////////////
-  void FilterDisjoint(Relation*, BTree*);
-  void FindConnectedComponent(std::queue<int> group_list, Relation* rel, 
-                              BTree* btree, 
-                              std::vector<bool>& flag_list,int max_rid);
-  void OutPutLine(Relation* rel, BTree* btree, std::queue<int> res_list, 
-                  int max_rid);
-  void OutPutRegion(Relation* rel, BTree* btree, std::queue<int> res_list, 
-                  int max_rid);
-  ////////////////////////////////////////////////////////////////////
-  
 };
-
-class OSMPaveGraph;
-class OSMPavement;
-
-struct OSM_P_Elem{
-
-  int prev_index;//previous in expansion list
-  int cur_index; //current entry  in expansion list
-  int tri_index; //object id
-  double weight;
-  double real_w;
-  SimpleLine path;
-  Point loc;
-
-  int edge_tid;//tuple tid for this edge in bus graph 
-  int adj_type;
-  OSM_P_Elem():path(0){}
-  OSM_P_Elem(int p, int c, int t, double w1, double w2, 
-             SimpleLine& sl, Point& q):prev_index(p), cur_index(c),
-              tri_index(t), 
-              weight(w1), real_w(w2), path(sl), loc(q), edge_tid(-1)
-              {
-                adj_type = 0;
-              }
-  OSM_P_Elem(const OSM_P_Elem& wp):prev_index(wp.prev_index), 
-            cur_index(wp.cur_index), tri_index(wp.tri_index),
-            weight(wp.weight),real_w(wp.real_w),
-            path(wp.path), loc(wp.loc), edge_tid(wp.edge_tid), 
-            adj_type(wp.adj_type){}
-
-  OSM_P_Elem& operator=(const OSM_P_Elem& wp)
-  {
-    prev_index = wp.prev_index;
-    cur_index = wp.cur_index;
-    tri_index = wp.tri_index;
-    weight = wp.weight;
-    real_w = wp.real_w;
-    path = wp.path;
-    edge_tid = wp.edge_tid;
-    loc = wp.loc;
-    adj_type = wp.adj_type;
-    return *this;
-  }
-
-  bool operator<(const OSM_P_Elem& ip) const
-  {
-    return weight > ip.weight;
-  }
-
-  void Print()
-  {
-    cout<<"prev_index "<<prev_index<<" cur_index "<<cur_index
-        <<" tri_index " <<tri_index
-        <<" realweight "<<real_w
-        <<" weight "<<weight<<endl;
-  }
-};
-struct GP_Point;
-
-/*
-OSM map 
-
-*/
-struct OSM_Data{
-  
-  unsigned int count;
-  TupleType* resulttype; 
-  
-  OSM_Data(){ count = 0; resulttype = NULL;} 
-  ~OSM_Data(){if(resulttype != NULL) delete resulttype;}
-
-  std::vector<int> jun_id_list1;
-  std::vector<int> jun_id_list2;
-  std::vector<network::GLine> gl_path_list;
-  std::vector<SimpleLine> sline_path_list;
-  std::vector<int> type_list;
-
-  std::vector<GenLoc> genloc_list;
-  std::vector<Point> loc_list;
-  std::vector<Point> pos_list;
-  std::vector<int> oid_list;
-  
-  static std::string OSMNodeTmp;
-  static std::string OSMPOILine;
-  static std::string OSMPOIRegion;
-  static std::string OSMPaveQueryLoc;
-  
-  enum OSMNodeTmpInfo{OSM_TMP_JUNID = 0, OSM_REGID, OSM_CROSS};
-  enum OSMPOILineInfo{OSMPOI_L_ID = 0, OSMPOI_GEO, OSMPOI_POS_L, 
-                      OSMPOI_NODEID_L};
-  enum OSMPOIRegionInfo{OSMPOI_REG_ID = 0, OSMPOI_ELEM, OSMPOI_POS_R,
-                      OSMPOI_NODEID_R};
-  enum OSMPaveQueryInfo{OSM_Q_LOC1 = 0, OSM_Q_LOC2, OSM_Q_TYPE, OSM_OLDLOC};
-
-  void GetPaveEdge3(Relation* r, Relation* rel1, BTree* btree, Relation* rel2);
-  void GetPaveEdge4(Relation* rel1, Relation* rel2);
-  void ShortestPath_InRegion_Pairs(Region* reg, std::vector<MyPoint> mp_list);
-  void GetAdjNodeOSMG(OSMPaveGraph*, int);
-  /////////////////////////////////////////////////////////////////////
-  ////////////// map osm data to lines and regions/////////////////////
-  /////////////////////////////////////////////////////////////////////
-  void OSMLocMap(Relation* rel1, Relation* rel2);
-  ///////////////////////////////////////////////////////////////////
-  //////////////shortest path for OSM data /////////////////////////
-  ////////////////////////////////////////////////////////////////
-  void OSMShortestPath(OSMPavement*, Relation*, Relation*, Line* res);
-  void OSMPath_L(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
-                 GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
-                 Line* res);
-  void OSMPath_R1(OSMPavement* osm_pave, GenLoc* gloc1, Point* qloc1, 
-                  GenLoc* gloc2, Point* qloc2, Line* res);
-  void OSMPath_LR(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
-                 GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
-                 Line* res);
-  void ConnectToDest(Region* reg, std::vector<GP_Point> gp_p_list2, 
-                     Point qloc2, std::vector<SimpleLine>& path_list);
-  void BuildResPath(OSMPaveGraph* osm_g, std::vector<OSM_P_Elem>expand_queue,
-                    Line* res, OSM_P_Elem dest);
-  void OSMPath_RL(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
-                 GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
-                 Line* res);
-  void OSMPath_RR(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
-                 GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
-                 Line* res);
-
-};
-
-/*
-for the infrastructure Region Based Outdoor from OSM data
-
-*/
-
-class OSMPavement{
-public:
-  OSMPavement();
-  OSMPavement(bool d, unsigned int i);
-  OSMPavement(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
-  
-  static std::string OSMPaveLine;
-  static std::string OSMPaveRegion;
-  enum OSMPavementLInfo{OSMP_L_ID = 0, OSMP_L_GEO, OSMP_L_CURVE};
-  enum OSMPavementRInfo{OSM_REG_ID = 0, OSM_ELEM, OSM_BORDER};
-
-  ~OSMPavement();
-
-  bool IsDefined() const { return def;}
-  unsigned int GetId() const {return osm_p_id;}
-  void Load(unsigned int i, Relation* r1, Relation* r2);
-  bool IsOSMGInit(){return osmg_init;}
-
-  unsigned int GetOSMGId(){return osmg_id;}
-
-  Relation* GetPaveRel_L();
-  Relation* GetPaveRel_R();
-  
-  void SetOSMGraphId(int id);
-
-  OSMPaveGraph* GetOSMGraph();
-  void CloseOSMGraph(OSMPaveGraph* og);
-
-  bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
-  static OSMPavement* Open(SmiRecord& valueRecord, size_t& offset, 
-                     const ListExpr typeInfo);
-
-  static void* Cast(void* addr);
-  void RemoveOSMPavement();
-  
-  private:
-    bool def; 
-    unsigned int osm_p_id;
-    bool osmg_init; 
-    unsigned int osmg_id; 
-
-    Relation* osm_pave_l;
-    Relation* osm_pave_r;
-
-};
-ListExpr OSMPavementProperty();
-ListExpr OutOSMPavement( ListExpr typeInfo, Word value ); 
-Word InOSMPavement( const ListExpr typeInfo, const ListExpr instance,
-        const int errorPos, ListExpr& errorInfo, bool& correct );
-bool OpenOSMPavement(SmiRecord& valueRecord, size_t& offset, 
-                const ListExpr typeInfo, Word& value); 
-bool SaveOSMPavement(SmiRecord& valueRecord, size_t& offset, 
-                const ListExpr typeInfo, Word& value);
-Word CreateOSMPavement(const ListExpr typeInfo);
-void DeleteOSMPavement(const ListExpr typeInfo, Word& w);
-void CloseOSMPavement( const ListExpr typeInfo, Word& w );
-Word CloneOSMPavement( const ListExpr typeInfo, const Word& w ); 
-int SizeOfOSMPavement(); 
-bool CheckOSMPavement( ListExpr type, ListExpr& errorInfo );
-
 
 
 #endif

@@ -44,7 +44,6 @@ The original implementation is from Atul Narkhede and Dinesh Manocha
 */
 
 #include "Triangulate.h"
-
 using namespace std;
 
 
@@ -1966,8 +1965,6 @@ vector<double> vertices_y, int (*triangles)[3])
   memset((void *)seg, 0, sizeof(seg));
   ccount = 0;
   i = 1;
-//  cout<<"vertices no "<<vertices_x.size()<<endl;
-  
   assert(vertices_x.size() < SEGSIZE);
 
   while (ccount < ncontours)

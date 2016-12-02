@@ -145,10 +145,6 @@ public:
     {
       return reg.BoundingBox().Distance(r);
     }
-    bool Intersects(const Rectangle<2>& r, const Geoid* geoid=0)const
-    {
-      return reg.BoundingBox().Intersects(r);
-    }
     Floor3D* Clone() const {return new Floor3D(*this);}
     size_t HashValue() const
     {
@@ -171,6 +167,13 @@ public:
     {
       cout<<"height "<<floor_height<<"reg "<<reg<<endl; 
     }
+
+    bool Intersects(const Rectangle<2>& rect,
+                            const Geoid* geoid=0 ) const{
+      assert(false);
+      return false;
+    }
+ 
 
 private:
     float floor_height;
@@ -269,10 +272,6 @@ class Door3D:public StandardSpatialAttribute<2>{
   {
       return door_pos1.BoundingBox().Distance(r);
   }
-  bool Intersects(const Rectangle<2>& r, const Geoid* geoid=0)const
-  {
-      return door_pos1.BoundingBox().Intersects(r);
-  }
   
   bool Save(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo); 
@@ -314,6 +313,14 @@ class Door3D:public StandardSpatialAttribute<2>{
       return tpstate.GetFLOB(i - j);
     }  
   }
+
+  virtual bool Intersects(const Rectangle<2>& rect,
+                          const Geoid* geoid=0 ) const{
+    assert(false);
+    return false;
+  }
+
+
   
   int oid1;
   int oid2;
@@ -571,10 +578,6 @@ class GRoom:public StandardSpatialAttribute<2>{
     {
       return BoundingBox().Distance(r);
     }
-    bool Intersects(const Rectangle<2>& r, const Geoid* geoid=0)const
-    {
-      return BoundingBox().Intersects(r);
-    }
 
    const Rectangle<3> BoundingBox3D() const;
 
@@ -596,6 +599,15 @@ class GRoom:public StandardSpatialAttribute<2>{
   }
   
   void Print(); 
+
+   bool Intersects(const Rectangle<2>& rect,
+                   const Geoid* geoid=0 ) const {
+      assert(false);
+      return false;
+   }
+
+
+
   private:
     DbArray<FloorElem> elem_list;//one cycle one element, reg id starts from 0
     DbArray<HalfSegment> seg_list; 
@@ -778,8 +790,8 @@ struct IndoorNav{
   
   void CreateDoorBox();
   void CreateBox3D(int, int, Line*, float);
-  float NextFloorHeight(float h, 
-                        std::vector<float>& floor_height, bool& flag_h);
+  float NextFloorHeight(float h, std::vector<float>& floor_height, 
+                        bool& flag_h);
   ////////////////create a relation storing door////////////////////////
   bool IsGRoom(int tid, Relation* rel);
   void CreateDoor1(R_Tree<3, TupleId>*, int, int ,int);
@@ -861,14 +873,14 @@ struct IndoorNav{
    void GenerateMO3_End(IndoorGraph* ig, BTree* btree, 
                         R_Tree<3,TupleId>* rtree,
                         Instant& start_time, int build_id, int entrance_index,
-                        MPoint3D* mp3d, GenMO* genmo, 
+                        MPoint3D* mp3d, GenMO* genmo,  
                         temporalalgebra::Periods* peri);
    void GenerateMO3_EndExt(IndoorGraph* ig, BTree* btree, 
                            R_Tree<3,TupleId>* rtree,
                            Instant& start_time, int build_id, 
                            int entrance_index, MPoint3D* mp3d, 
-                           GenMO* genmo, 
-                           temporalalgebra::Periods* peri, GenLoc);
+                           GenMO* genmo, temporalalgebra::Periods* peri, 
+                           GenLoc);
    void GenerateMO3_Start(IndoorGraph* ig, BTree* btree, 
                         R_Tree<3,TupleId>* rtree,
                         Instant& start_time, int build_id, int entrance_index,
@@ -895,11 +907,11 @@ struct IndoorNav{
 
    void GenerateMO2_New_Start(IndoorGraph* ig, BTree* btree,
                           R_Tree<3,TupleId>* rtree,
-                  int num, temporalalgebra::Periods* peri, bool convert,
+                  int num, temporalalgebra::Periods* peri, bool convert, 
                   unsigned int num_elev);
    void GenerateMO2_New_End(IndoorGraph* ig, BTree* btree, 
                         R_Tree<3,TupleId>* rtree,
-                  int num, temporalalgebra::Periods* peri, bool convert,
+                  int num, temporalalgebra::Periods* peri, bool convert, 
                   unsigned int num_elev);
 
    void GenerateMO3_New_End(IndoorGraph* ig, BTree* btree, 
@@ -932,12 +944,12 @@ struct IndoorNav{
     void AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
                     Instant& start_time, double speed, int index,
                     Line3D* l_room, int build_id, GenMO* genmo);
-    void CreateIUnits1(Point3D& p1, Point3D& p2, 
-                       std::string type,Rectangle<2> bbox,
+    void CreateIUnits1(Point3D& p1, Point3D& p2, std::string type,
+                       Rectangle<2> bbox,
                        double speed, Instant& start_time, 
                        MPoint3D* mp3d, GenMO* genmo, int new_groom_oid);
-    void CreateIUnits2(Point3D& p1, Point3D& p2, 
-                       std::string type,Rectangle<2> bbox,
+    void CreateIUnits2(Point3D& p1, Point3D& p2, std::string type,
+                       Rectangle<2> bbox,
                        double speed, Instant& start_time, 
                        MPoint3D* mp3d, GenMO* genmo, int new_groom_oid);
 
@@ -997,7 +1009,7 @@ struct IndoorNav{
   ////////connection end locaton to all doors in staircase///////////////
    void ConnectEndLocST(Tuple* groom_tuple, GenLoc* gloc,  
                          std::vector<int> tid_list, 
-                        std::vector<Line3D>& candidate_path);
+                         std::vector<Line3D>& candidate_path);
 
    bool ConnectEndLoc(GenLoc* gloc,  std::vector<int> tid_list, Relation* rel,
                          BTree* btree, std::vector<Line3D>&, float&, float&);
@@ -1021,8 +1033,8 @@ struct IndoorNav{
    void GetHeightOfGRoom(int groom_oid1, BTree* groom_btree, Relation* rel, 
                          float& start_h1, float& start_h2);
    void IndoorShortestPath_Room(int id1, int id2,
-                        std::vector< std::vector<TupleId> >& candidate_path,
-                        int s_tid, int e_tid, float min_h, float max_h);
+                           std::vector< std::vector<TupleId> >& candidate_path,
+                                int s_tid, int e_tid, float min_h, float max_h);
    /////////////////////////////////////////////////////////////////////
    ///////////////////////minimum travelling time///////////////////////
    /////////////////////////////////////////////////////////////////////
@@ -1168,7 +1180,7 @@ create dual graph and visual graph in secondo
 */
 void ShortestPath_InRegionNew(Region* reg, Point* s, Point* d, Line* pResult);
 bool EuclideanConnection(Region* reg, Point*s, Point* d, Line* pResult);
-bool CheckCommand(std::string& str1, std::string& str2,
+bool CheckCommand(std::string& str1, std::string& str2, 
                   ListExpr& parsedCommand);
 bool RunCommand(SecondoCatalog* ctlg, ListExpr parsedCommand, std::string str);
 void GetSecondoObj(Region* reg, std::vector<std::string>& obj_name);
@@ -1225,7 +1237,8 @@ public:
   BTree* GetBTree(){return btree_node;}
   void GetEntranceDoor(std::vector<Point>& door_loc);
   void GetEntranceDoor2(std::vector<Point>& door_loc, 
-           std::vector<int>& groom_list, std::vector<int>& door_tid_list);
+                        std::vector<int>& groom_list, 
+                        std::vector<int>& door_tid_list);
   void GetDoorsInGRoom(int groom_oid, std::vector<int>& tid_list);
   
   private:
@@ -1444,14 +1457,12 @@ class IndoorInfra{
   R_Tree<2,TupleId>* BuildingRTree() {return rtree_building;}
   void GetPathIDFromTypeID(int reg_id, std::vector<int>& path_id_list);
   void GetTypeFromRegId(int reg_id, int& type, int& build_id, Rectangle<2>&);
-  unsigned int Get_Digit_Build_ID(){return digit_build_id;}
+  int Get_Digit_Build_ID(){return digit_build_id;}
 
   private:
     bool def;
     int indoor_id;
-  ///the first six or seven number is for building id
-    unsigned int digit_build_id; 
-  
+    int digit_build_id; ///the first six or seven number is for building id
     Relation* building_path;//path for building to the pavement 
     BTree* btree_reg_id1;  //btree on reg id. relation for paths 
     Relation* building_type; // the type of a building 

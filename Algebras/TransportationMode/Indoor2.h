@@ -97,6 +97,19 @@ public :
     }
     inline bool Adjacent(const Attribute* arg)const{return false;}
     Point3D* Clone() const {return new Point3D(*this);}
+
+
+    bool Intersects(const Rectangle<3>& rect,
+                            const Geoid* geoid=0 ) const {
+       assert(!geoid);
+       return    (rect.MinD(0)<= x)
+              && (x <= rect.MaxD(0))
+              && (rect.MinD(1) <= y)
+              && (y <= rect.MaxD(1)) 
+              && (rect.MinD(2) <= z)
+              && (z <= rect.MaxD(2));
+    }
+
     size_t HashValue() const
     {
         if(!IsDefined()) return 0;
@@ -161,12 +174,6 @@ public :
       double c = fabs(z - p3d.GetZ());
       return sqrt(pow(a, 2) + pow(b, 2) + pow(c, 2));
     }
-
-    bool Intersects(const Rectangle<3>& re, const Geoid* g=0) const{
-      return BoundingBox().Intersects(re);
-    }
-
-
     bool Save(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo);
     inline bool IsEmpty() const{return !IsDefined();}
@@ -291,11 +298,6 @@ class Line3D: public StandardSpatialAttribute<3>
       return new Line3D( *this );
     }
     double Distance( const Rectangle<3>& r,const Geoid* geoid=0 ) const;
-    bool Intersects( const Rectangle<3>& r, const Geoid* geoid=0) const{
-      // TODO:: implement in a correct way
-      return BoundingBox().Intersects(r);
-    }
-
     void Print();
     static void* Cast(void* addr){return (new(addr)Line3D());}
     double Length();
@@ -303,6 +305,13 @@ class Line3D: public StandardSpatialAttribute<3>
     static const std::string BasicType(){
        return "line3d";
     }
+
+    bool Intersects(const Rectangle<3>& rect,
+                            const Geoid* geoid=0 ) const{
+
+      assert(false); // not implemented yet
+    }
+
     
   private:
 
@@ -337,11 +346,10 @@ class UPoint3D: public temporalalgebra::SpatialTemporalUnit<Point3D, 4>
 {
   public:
   UPoint3D(){}; 
-  UPoint3D(bool def):
-        temporalalgebra::SpatialTemporalUnit<Point3D, 4>(def){}
+  UPoint3D(bool def):SpatialTemporalUnit<Point3D, 4>(def){}
   UPoint3D(const temporalalgebra::Interval<Instant>& interval, 
            const Point3D& loc1, 
-           const Point3D& loc2):
+          const Point3D& loc2):
   SpatialTemporalUnit<Point3D, 4>(interval),p0(loc1), p1(loc2)
   {
     SetDefined(p0.IsDefined() && p1.IsDefined()); 
@@ -380,14 +388,18 @@ class UPoint3D: public temporalalgebra::SpatialTemporalUnit<Point3D, 4>
   {
     return BoundingBox().Distance(rect); 
   }
-  bool Intersects(const Rectangle<4>& rect, const Geoid* geoid=0) const
-  {
-    return BoundingBox().Intersects(rect); 
-  }
   inline bool IsEmpty() const
   {
     return !IsDefined(); 
   }
+
+  bool Intersects(const Rectangle<4>& rect,
+                  const Geoid* geoid=0 ) const{
+    assert(false);
+  }
+
+  
+
   Point3D p0;
   Point3D p1; 
 };
@@ -415,7 +427,7 @@ class MPoint3D:public temporalalgebra::Mapping<UPoint3D,Point3D>
 {
   public:
     MPoint3D(){}
-    MPoint3D(const int n):temporalalgebra::Mapping<UPoint3D, Point3D>(n)
+    MPoint3D(const int n):Mapping<UPoint3D, Point3D>(n)
     {
       del.refs = 1;
       del.SetDelete();

@@ -47,13 +47,13 @@ May, 2010 Jianqiu xu
 #include <string.h>
 #include <stdio.h>
 
-#include <vector>
 #include <list>
 #include <map>
 #include <stack>
 
 #include <stdlib.h>
 #include <stdarg.h>
+
 
 #define TRUE  1
 #define FALSE 0
@@ -64,9 +64,7 @@ May, 2010 Jianqiu xu
 
 //#define SEGSIZE 500000
 
-#define SEGSIZE 240000     /* max# of segments. Determines how */
-
-//#define SEGSIZE 200000     /* max# of segments. Determines how */
+#define SEGSIZE 200000     /* max# of segments. Determines how */
                 /* many points can be specified as */
                 /* input. If your datasets have large */
                 /* number of points, increase this */
@@ -164,7 +162,7 @@ typedef struct {
 
 typedef struct {
   int vnum;
-  int next;         /* Circularly linked list  */
+  int next;         /* Circularly linked std::list  */
   int prev;         /* describing the monotone */
   int marked;           /* polygon */
 } monchain_t;
@@ -335,7 +333,7 @@ Vect<ELEM_TYPE,DIM> operator -( const Vect<ELEM_TYPE,DIM>&,
 template <class ELEM_TYPE, Dimension DIM> 
 Vect<ELEM_TYPE,DIM> operator %( const Vect<ELEM_TYPE,DIM>&, 
                                 const Vect<ELEM_TYPE,DIM>&);   
-                                // vector product
+                                // std::vector product
 
 
 
@@ -841,7 +839,7 @@ inline Vect4D operator-( const Vect4D& vec1, const Vect4D& vec2)
 }
 
 /*
-operator function for template class vector
+operator function for template class std::vector
 
 */
 
@@ -1738,8 +1736,8 @@ public:
     
 protected:
 // protected attributes
-    CollGPnt        mcolPnt;    // list of boundary grid points
-    CollGCell       mcolCell;   // list of cells    
+    CollGPnt        mcolPnt;    // std::list of boundary grid points
+    CollGCell       mcolCell;   // std::list of cells    
     CollFro         mcolFro;
 
 // auxiliary attributes

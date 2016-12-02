@@ -59,9 +59,8 @@ Jan, 2011 Jianqiu xu
 #include "GSLAlgebra.h"
 #include "Indoor2.h"
 #include "ArrayAlgebra.h"
-#include <bitset>
-#include <iostream>
-#include <fstream>
+
+
 
 /*
 technique macro definition 
@@ -78,43 +77,15 @@ ListExpr OutHalfSegment(ListExpr typeInfo, Word value);
 /*
 for data type transportation mode. to make it more readable, I use string 
 instead of int, real, or enum 
-0: Bus
-1: Walk
-2: Indoor
-3: Car
-4: Metro
-5: Train
-6: Bike
-7: Taxi
-8: Free
 
 */
+
 
 enum tm_value{TM_BUS = 0, TM_WALK, TM_INDOOR, TM_CAR, TM_METRO,
- TM_TRAIN, TM_BIKE, TM_TAXI, TM_FREE};
+TM_TRAIN, TM_BIKE, TM_TAXI, TM_FREE};
 
 const std::string str_tm[] = {"Bus", "Walk", "Indoor", "Car", "Metro", 
-                          "Train", "Bike", "Taxi", "Free"};
-
-/*
-a pair of modes, basically combine walk and another
-
-*/
-
-enum tm_value_ext{TM_BUSWALK = 0, TM_WALKWALK1, TM_INDOORWALK, TM_CARWALK,
-TM_METROWALK, TM_TRAINWALK, TM_BIKEWALK, TM_TAXIWALK, TM_FREEWALK,
-TM_WALKBUS, TM_WALKWALK2, TM_WALKINDOOR, TM_WALKCAR, 
-TM_WALKMETRO, TM_WALKTRAIN, TM_WALKBIKE, TM_WALKTAXI, TM_WALKFREE};
-
-const std::string str_tm_ext[] = {"Bus;Walk", "Walk;Walk", "Indoor;Walk", 
-"Car;Walk",
-"Metro;Walk", "Train;Walk", "Bike;Walk", "Taxi;Walk", "Free;Walk",
-"Walk;Bus", "Walk;Walk", "Walk;Indoor", "Walk;Car",
-"Walk;Metro", "Walk;Train", "Walk;Bike", "Walk;Taxi", "Walk;Free"};
-
-#define TM_SUM_NO ARR_SIZE(str_tm) + ARR_SIZE(str_tm_ext)
-
-
+                         "Train", "Bike", "Taxi", "Free"};
 inline int GetTM(std::string s)
 {
 //  int tm_size = sizeof(str_tm)/sizeof(str_tm[0]);
@@ -125,7 +96,6 @@ inline int GetTM(std::string s)
   }
   return -1;
 }
-
 inline std::string GetTMStr(int tm)
 {
 //  int tm_size = sizeof(str_tm)/sizeof(str_tm[0]);
@@ -133,66 +103,6 @@ inline std::string GetTMStr(int tm)
   assert(0 <= tm && tm < tm_size);
   return str_tm[tm];
 }
-
-inline std::string GetTMStrExt(int tm)
-{
-//  int tm_size = sizeof(str_tm)/sizeof(str_tm[0]);
-  int tm_size1 = ARR_SIZE(str_tm); 
-  int tm_size2 = ARR_SIZE(str_tm_ext); 
-  
-  if(0 <= tm && tm < tm_size1){
-     return str_tm[tm];
-  }else if(tm >= tm_size1 && 
-           tm < tm_size1 + tm_size2){
-     return str_tm_ext[tm - tm_size1];
-  }else assert(false);
-
-}
-
-
-inline std::string GetModeString(long tm)
-{
-  std::bitset<ARR_SIZE(str_tm)> mode(tm);
-  std::string str;
-  for(unsigned int i = 0;i < ARR_SIZE(str_tm);i++){
-    if(mode.test(ARR_SIZE(str_tm) - 1 - i)){
-      if(str.size() == 0) str = str_tm[i];
-      else{
-        str +=",";
-        str += str_tm[i];
-      }
-    }
-  
-  }
-  return str;
-}
-
-inline std::string GetModeStringExt(long tm)
-{
-  std::bitset<TM_SUM_NO> mode(tm);
-  
-  std::string str;
-  for(unsigned int i = 0;i < TM_SUM_NO;i++){
-    if(mode.test(i)){
-      if(str.size() == 0) {
-        if(i < ARR_SIZE(str_tm))
-            str = str_tm[i];
-        else
-            str = str_tm_ext[i - ARR_SIZE(str_tm)];
-      }
-      else{
-        str +=",";
-        if(i < ARR_SIZE(str_tm))
-          str += str_tm[i];
-        else
-          str += str_tm_ext[i - ARR_SIZE(str_tm)];
-      }
-    }
-
-  }
-  return str;
-}
-
 ///////////////////////////////////////////////////////////////////////////
 ///////////////////// symbol reference data type  //////////////////////////
 ///////////////////////////////////////////////////////////////////////////
@@ -448,10 +358,6 @@ public:
   {
       return BoundingBox().Distance(r);
   }
-  bool Intersects(const Rectangle<2>& r,const Geoid* geoid=0)const
-  {
-      return BoundingBox().Intersects(r);
-  }
   static void* Cast(void* addr){return new (addr)GenLoc();}
   unsigned int GetOid() const {return oid;}
   Loc GetLoc() const {return loc;}
@@ -464,6 +370,13 @@ public:
     else
       return true;
   }
+  bool Intersects(const Rectangle<2>& rect,
+                  const Geoid* geoid=0 ) const {
+    assert(false); 
+    return false;
+  }
+
+
   private:
     unsigned int oid;
     Loc loc; 
@@ -670,10 +583,6 @@ public:
   {
       return BoundingBox().Distance(r);
   }
-  bool Intersects(const Rectangle<2>& r,const Geoid* geoid=0)const
-  {
-      return BoundingBox().Intersects(r);
-  }
   double Length(); 
   static void* Cast(void* addr){return new (addr)GenRange();}
   /////////////very important two functions////////////////////
@@ -689,6 +598,15 @@ public:
       return &seglist;
   }
   /////////////////////////////////////////////////////////////////
+  bool Intersects(const Rectangle<2>& rect,
+             const Geoid* geoid=0 ) const {
+    assert(false);
+    return false;
+  }
+
+
+
+
   private:
     DbArray<GenRangeElem> elemlist; 
     DbArray<HalfSegment> seglist; 
@@ -718,7 +636,7 @@ class UGenLoc: public temporalalgebra::SpatialTemporalUnit<GenLoc,3>
 {
   public:
   UGenLoc(){}; 
-  UGenLoc(bool def):temporalalgebra::SpatialTemporalUnit<GenLoc,3>(def){}
+  UGenLoc(bool def):SpatialTemporalUnit<GenLoc,3>(def){}
   UGenLoc(const temporalalgebra::Interval<Instant>& interval, 
           const GenLoc& loc1, 
           const GenLoc& loc2, int m):
@@ -820,7 +738,7 @@ class GenMO:public temporalalgebra::Mapping<UGenLoc,GenLoc>
 {
   public:
     GenMO(){}
-    GenMO(const int n):temporalalgebra::Mapping<UGenLoc,GenLoc>(n)
+    GenMO(const int n):Mapping<UGenLoc,GenLoc>(n)
     {
       del.refs = 1;
       del.SetDelete();
@@ -845,8 +763,9 @@ class GenMO:public temporalalgebra::Mapping<UGenLoc,GenLoc>
     void GenMOAt(Relation* rel, GenMO* sub);
     void GenMOAt(GenLoc* genloc, temporalalgebra::MReal*, 
                  std::string type, GenMO* sub);
-    void SetRoads(
-     std::vector< std::vector<temporalalgebra::Interval<CcReal> > >& roads, 
+    void SetRoads(std::vector< 
+                      std::vector<
+                            temporalalgebra::Interval<CcReal> > >& roads, 
                   Relation* rel, int&, int&);
 
     void AtInstant(Instant& t, temporalalgebra::Intime<GenLoc>& result);
@@ -861,7 +780,6 @@ class GenMO:public temporalalgebra::Mapping<UGenLoc,GenLoc>
     int ModeVal();
     static int ModeVal(temporalalgebra::MReal* mr);
     void IndexOnUnits(temporalalgebra::MReal* res);
-    void IndexOnUnits2(temporalalgebra::MReal* res);
     bool BContains(int);
     bool BContains(temporalalgebra::MReal* UIndex, int);
 
@@ -916,8 +834,8 @@ struct Road_Seg{
   temporalalgebra::Interval<CcReal> r_loc;
   int count;
   Road_Seg(){}
-  Road_Seg(int s, temporalalgebra::Interval<CcReal> i, 
-           int c):sid(s), r_loc(i), count(c){}
+  Road_Seg(int s, temporalalgebra::Interval<CcReal> i, int c):
+           sid(s), r_loc(i), count(c){}
   Road_Seg(const Road_Seg& rs):sid(rs.sid), r_loc(rs.r_loc), count(rs.count){}
   Road_Seg& operator=(const Road_Seg& rs)
   {
@@ -966,22 +884,18 @@ struct GenMObject{
   enum BenchModeNNBuildingInfo{BM_NNB_ID = 0, BM_NNB_GEODATA};
 
 
-  static std::string RoadSegment;
-  enum ROADSEGMENT{RS_RID = 0, RS_MEAS1, RS_MEAS2, RS_CURVE, RS_SID};
   
-  static std::string RoadSegment2;
-  enum ROADSEGMENT2{B_RID = 0, B_MEAS1, B_MEAS2, B_CURVE};
+  enum ROADSEGMENT{RS_RID = 0, RS_MEAS1, RS_MEAS2, RS_CURVE, RS_SID};
   
   static std::string GenMOTrip;
   enum GENMOTRIP{GENMO_OID= 0, GENMO_TRIP1, GENMO_TRIP2, GENMO_DEF, 
                  GENMO_TM, GENMO_INDEX};
+  
+  static std::string RoadSegment;
+  
                  
-  static std::string BusTrip_Info;
-  enum BusTrip_Data{BT_OID = 0, BT_RID, BT_TRIP2, BT_DEF};
-           
   std::vector<GenMO> trip1_list;
   std::vector<temporalalgebra::MPoint> trip2_list;
-//  vector<temporalnet::MGPoint> trip3_list;
   std::vector<temporalnet::MGPoint> trip3_list;
 
   std::vector<MPoint3D> indoor_mo_list1;//from a room to an entrance 
@@ -1013,10 +927,10 @@ struct GenMObject{
   std::vector<int> cell_id_list2;
   std::vector<network::GLine> gline_list;
 
-  std::vector< std::map<int, Line3D> > indoor_paths_list;
-                                              //read indoor paths from disk
-  std::vector< std::map<int, Line3D> > rooms_id_list; 
-                                             //groom oid for each point3D
+  std::vector< std::map<int, 
+                    Line3D> > indoor_paths_list;//read indoor paths from disk
+  std::vector< std::map<int, 
+                    Line3D> > rooms_id_list; //groom oid for each point3D
 
   std::vector<UGenLoc> units_list;
   
@@ -1029,7 +943,6 @@ struct GenMObject{
   void GetIdList(Door3D* d);
   void GetRef(GenMO* mo);
   void GetUnits(GenMO*);
-  void GetAtGloc(GenMO* genmo, GenLoc* genloc);
   ///////////////////create generic moving objects///////////////////////
   void GenerateGenMO(Space* sp, temporalalgebra::Periods* peri, 
                      int mo_no, int type);
@@ -1046,14 +959,12 @@ struct GenMObject{
   void GenerateCarMO(network::Network*, int i, temporalalgebra::Periods* peri,
                      network::GLine* newgl,
                      Relation* rel, Point);
-  void CreateCarMPMGP1(temporalalgebra::MPoint* mo, 
-                       temporalnet::MGPoint* mgp,
+  void CreateCarMPMGP1(temporalalgebra::MPoint* mo, temporalnet::MGPoint* mgp,
                        std::vector<MyHalfSegment> seq_halfseg,
                       Instant& start_time, double speed,
                       int networkId, int routeId, network::Side s, 
                        double pos_len, bool increase);
-  void CreateCarMPMGP2(temporalalgebra::MPoint* mo,
-                       temporalnet::MGPoint* mgp,
+  void CreateCarMPMGP2(temporalalgebra::MPoint* mo, temporalnet::MGPoint* mgp,
                        std::vector<MyHalfSegment> seq_halfseg,
                       Instant& start_time, double speed,
                       int networkId, int routeId, network::Side s, 
@@ -1066,8 +977,8 @@ struct GenMObject{
   void GenerateGPoint(network::Network* rn, int mo_no, 
                       std::vector<network::GPoint>& gp_list);
   void GenerateGPoint2(network::Network* rn, int mo_no, 
-                std::vector<network::GPoint>& gp_list, 
-                std::vector<Point>& gp_loc_list);
+                       std::vector<network::GPoint>& gp_list, 
+                       std::vector<Point>& gp_loc_list);
   
   void CreateCarTrip1(temporalalgebra::MPoint* mo, 
                       std::vector<MyHalfSegment> seq_halfseg, 
@@ -1081,7 +992,8 @@ struct GenMObject{
   ///////////////////////////////////////////////////////////////////////
 
   void GenerateLocPave(Pavement* pm, int mo_no, 
-         std::vector<GenLoc>& genloc_list, std::vector<Point>& p_loc_list);
+                       std::vector<GenLoc>& genloc_list, 
+                       std::vector<Point>& p_loc_list);
   
   void GenerateWalkMovement(DualGraph* dg, Line* l, Point start_loc, 
                             GenMO* genmo, temporalalgebra::MPoint* mo, 
@@ -1091,7 +1003,8 @@ struct GenMObject{
   //////////////////////////////////////////////////////////////////////////
   void GenerateGenMO_CTBWalk(Space* sp, temporalalgebra::Periods* peri, 
                              int mo_no, 
-                     Relation* rel, BTree* btree, Relation*, std::string);
+                             Relation* rel, BTree* btree, Relation*, 
+                             std::string);
   void PaveLoc2GPoint(GenLoc loc1, GenLoc loc2, Space* sp, Relation* rel, 
                       BTree* btree, std::vector<network::GPoint>& gp_list, 
                       std::vector<Point>& p_list, bool& correct, 
@@ -1111,7 +1024,7 @@ struct GenMObject{
   //////////////////////////////////////////////////////////////////////////
   void GenerateGenMO3(Space* sp, temporalalgebra::Periods* peri, int mo_no, 
                       int type, Relation*, Relation*, R_Tree<2,TupleId>*);
-  void GenerateGenMO_BusWalk(Space* sp, temporalalgebra::Periods* peri, 
+  void GenerateGenMO_BusWalk(Space* sp, temporalalgebra::Periods* peri,
                              int mo_no, 
                              Relation* rel1, Relation* rel2, 
                              R_Tree<2,TupleId>* rtree, std::string mode);
@@ -1142,19 +1055,19 @@ struct GenMObject{
   void ShortMovement(GenMO* genmo, temporalalgebra::MPoint* mo, 
                      Instant& start_time, 
                      Point* p1, Point* p2);
-  void FindPosInMP(temporalalgebra::MPoint* mo_bus, 
-                   Point* start_loc, Point* end_loc, 
+  void FindPosInMP(temporalalgebra::MPoint* mo_bus, Point* start_loc,
+                    Point* end_loc, 
                    int& pos1, int& pos2, int index);
 
-  void SetMO_GenMO(temporalalgebra::MPoint* mo_bus, int pos1, 
-                   int pos2, Instant& start_time, 
-                   temporalalgebra::MPoint* mo, GenMO* genmo, 
-                   int mobus_oid, std::string str_tm);
+  void SetMO_GenMO(temporalalgebra::MPoint* mo_bus, int pos1, int pos2, 
+                   Instant& start_time, 
+                   temporalalgebra::MPoint* mo, GenMO* genmo, int mobus_oid,
+                   std::string str_tm);
   /////////////////////////////////////////////////////////////////////////
   //////////////////////Indoor Walk////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////
-  void GenerateGenMO4(Space* sp, temporalalgebra::Periods* peri,
-                      int mo_no,int type, Relation*);
+  void GenerateGenMO4(Space* sp, temporalalgebra::Periods* peri, int mo_no,
+                      int type, Relation*);
 
   
   void CreateBuildingPair(IndoorInfra* i_infra, 
@@ -1166,7 +1079,7 @@ struct GenMObject{
                             GenMO* genmo, temporalalgebra::MPoint* mo, 
                             Instant& start_time);
   void GenerateFreeMovement2(Point start_loc, Point end_loc,
-                            GenMO* genmo, temporalalgebra::MPoint* mo,
+                            GenMO* genmo, temporalalgebra::MPoint* mo, 
                             Instant& start_time);
   void GenerateIndoorMovementToExit(IndoorInfra* i_infra, 
                                     GenMO* genmo, temporalalgebra::MPoint* mo, 
@@ -1179,8 +1092,7 @@ struct GenMObject{
                                     Instant& start_time, Point loc,
                                     int entrance_index, int reg_id,
                                     MaxRect* maxrect, 
-                                    temporalalgebra::Periods* peri,
-                                    GenLoc);
+                                    temporalalgebra::Periods* peri, GenLoc);
 
   void GenerateIndoorMovementFromExit(IndoorInfra* i_infra, GenMO* genmo,
                                      temporalalgebra::MPoint* mo, 
@@ -1195,13 +1107,14 @@ struct GenMObject{
   void GenerateGenMO5(Space* sp, temporalalgebra::Periods* peri, 
                       int mo_no, int type);
   void GenerateGenMO_IndoorWalkCTB(Space* sp, temporalalgebra::Periods* peri,
-                                   int mo_no, 
+                                    int mo_no, 
                                    std::string, int);
   void GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
                            IndoorInfra* i_infra,
                            Pavement* pm, network::Network* rn,
-                           RoadGraph* rg, temporalalgebra::Periods* peri, 
-                           int mo_no, std::string,
+                           RoadGraph* rg, temporalalgebra::Periods* peri,
+                           int mo_no,
+                           std::string,
                            std::vector<RefBuild> build_id1_list,
                            std::vector<RefBuild> build_id2_list, int);
 
@@ -1223,9 +1136,9 @@ struct GenMObject{
                                     int entrance_index, int reg_id,
                                     MaxRect* maxrect, 
                                     temporalalgebra::Periods* peri,
-                                    MPoint3D*);
-  void GenerateGenMO6(Space* sp, temporalalgebra::Periods* peri, 
-                      int mo_no, int type, int para);
+                                     MPoint3D*);
+  void GenerateGenMO6(Space* sp, temporalalgebra::Periods* peri, int mo_no, 
+                      int type, int para);
   void GenerateGenIBW(Space* sp, MaxRect* maxrect, IndoorInfra* i_infra,
                                 Pavement* pm, DualGraph* dg,
                                 VisualGraph* vg, BusNetwork* bn,
@@ -1250,22 +1163,23 @@ struct GenMObject{
                              Point query_loc, std::vector<int>& tid_list);
 
   void ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep, GenMO* genmo,
-                            temporalalgebra::MPoint* mo, Instant& start_time,
-                            DualGraph* dg);
+                          temporalalgebra::MPoint* mo, Instant& start_time, 
+                          DualGraph* dg);
 //                          DualGraph* dg, Line* res_path);
 
   //////////////////////////////////////////////////////////////////////
   ////////////////Indoor Metro Walk/////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
-  void GenerateGenMO8(Space* sp, temporalalgebra::Periods* peri, 
-                      int mo_no, int type, int para);
+  void GenerateGenMO8(Space* sp, temporalalgebra::Periods* peri, int mo_no, 
+                      int type, int para);
   void GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
                                   MaxRect* maxrect, Pavement* pm, 
                                   DualGraph* dg, VisualGraph* vg, 
                                   MetroNetwork* mn, 
                                   temporalalgebra::Periods* peri, int mo_no, 
                                   std::vector<RefBuild> build_id1_list,
-                            std::vector<RefBuild> build_id2_list, int para);
+                                  std::vector<RefBuild> build_id2_list, 
+                                  int para);
 
    ////////////////////////////////////////////////////////////////////
    ////////////////////Benchmark Function ///////////////////////////
@@ -1275,7 +1189,8 @@ struct GenMObject{
                             Relation* distri, Relation* home, Relation* work);
    void GetSelectedBuilding(IndoorInfra* i_infra,
                           std::vector<RefBuild>& build_tid1_list,
-                   std::vector<RefBuild>& build_tid2_list, MaxRect* maxrect, 
+                          std::vector<RefBuild>& build_tid2_list, 
+                          MaxRect* maxrect, 
                           Relation* rel1, Relation* rel2);
 
    void CreateBuildingPair5(
@@ -1288,24 +1203,24 @@ struct GenMObject{
    /////// buildings should also not be very far away from bus stops /////////
    void GetSelectedBuilding2(IndoorInfra* i_infra,
                           std::vector<RefBuild>& build_tid1_list,
-                  std::vector<RefBuild>& build_tid2_list, MaxRect* maxrect, 
+                          std::vector<RefBuild>& build_tid2_list, 
+                          MaxRect* maxrect, 
                           Relation* rel1, Relation* rel2, Relation* rel3);
   
-   void GenerateGenMOBench2(Space* sp, temporalalgebra::Periods* peri,
+   void GenerateGenMOBench2(Space* sp, temporalalgebra::Periods* peri, 
                             int mo_no,
                             Relation* id_rel, std::string type);
-   void GenMOBenchRBO(Space* sp, temporalalgebra::Periods* peri, 
-                      int mo_no, Relation* id_rel);
-   void GenMOBenchIndoor(Space* sp, temporalalgebra::Periods* peri, 
-                         int mo_no, Relation* id_rel);
-   void WriteDataToFile(int id, unsigned int, GenMO* mo);
+   void GenMOBenchRBO(Space* sp, temporalalgebra::Periods* peri, int mo_no, 
+                      Relation* id_rel);
+   void GenMOBenchIndoor(Space* sp, temporalalgebra::Periods* peri, int mo_no, 
+                         Relation* id_rel);
    void GetSelectedBuilding3(IndoorInfra* i_infra,
                           std::vector<RefBuild>& build_tid1_list,
                           MaxRect* maxrect, Relation* rel);
    //////////////////based on NN Searching////////////////////////////
-   void GenerateGenMOBench3(Space* sp, temporalalgebra::Periods* peri,
+   void GenerateGenMOBench3(Space* sp, temporalalgebra::Periods* peri, 
                             int mo_no,
-                            Relation* rel, R_Tree<2,TupleId>* rtree);
+                          Relation* rel, R_Tree<2,TupleId>* rtree);
    void FindNNBuilding(std::vector<Point> p_loc_list, Relation* build_rel,
                      R_Tree<2,TupleId>* rtree, Relation* rel,
                        std::vector<RefBuild>& nn_build_list);
@@ -1314,7 +1229,7 @@ struct GenMObject{
                     double& min_dist, bool& dist_init);
 
 
-   void GenerateGenMOBench4(Space* sp, temporalalgebra::Periods* peri,
+   void GenerateGenMOBench4(Space* sp, temporalalgebra::Periods* peri, 
                             int mo_no, 
                             Relation* para_rel,
                             Relation* build_rel, R_Tree<2,TupleId>* rtree);
@@ -1338,7 +1253,7 @@ struct GenMObject{
                                      IndoorInfra* i_infra,
                                      Pavement* pm, network::Network* rn,
                                      RoadGraph* rg, 
-                                    temporalalgebra::Periods* peri, 
+                                     temporalalgebra::Periods* peri, 
                                      int mo_no, 
                                      std::vector<RefBuild> build_id1_list,
                                      std::vector<RefBuild> build_id2_list, 
@@ -1353,19 +1268,19 @@ struct GenMObject{
                    Pavement* pm, network::Network* rn, RoadGraph* rg,
                    temporalalgebra::Periods* peri,
                    std::vector<RefBuild> build_id1_list, 
-                            std::vector<RefBuild> build_id2_list, int count,
-                            temporalalgebra::MPoint* mo, GenMO* genmo,
-                            Instant& start_time);
+                   std::vector<RefBuild> build_id2_list, int count,
+                   temporalalgebra::MPoint* mo, GenMO* genmo, 
+                   Instant& start_time);
    int GROOM_Oid(int id1, int id2);
    bool SubTrip_C2(Space*, IndoorInfra* i_infra, MaxRect* maxrect,
                    Pavement* pm, network::Network* rn, RoadGraph* rg,
                    temporalalgebra::Periods* peri,
                    std::vector<RefBuild> build_id1_list, 
                    std::vector<RefBuild> build_id2_list, int count,
-                   temporalalgebra::MPoint* mo, GenMO* genmo,
+                   temporalalgebra::MPoint* mo, GenMO* genmo, 
                    Instant& start_time, GenLoc gloc);
    ////////////map mpoint3d to mpoint /////////////////////////////////
-   void MapMP3DToMP(temporalalgebra::MPoint* mo, MPoint3D* mp3d,
+   void MapMP3DToMP(temporalalgebra::MPoint* mo, MPoint3D* mp3d, 
                     Rectangle<2> build_rect, 
                     Rectangle<2> build_box2);
    Point MapMP3D(Rectangle<2>, Rectangle<2>, Point);
@@ -1411,8 +1326,10 @@ struct Navigation{
                    Instant* start_time, Relation* rel3, Relation* rel4, 
                    R_Tree<2,TupleId>* rtree);
   bool NearestBusStop1(Point loc, Relation* rel, R_Tree<2,TupleId>* rtree, 
-               std::vector<Bus_Stop>& bs_list1, std::vector<Point>& ps_list1, 
-               std::vector<Point>& ps_list2, std::vector<GenLoc>& gloc_list1);
+                       std::vector<Bus_Stop>& bs_list1,
+                       std::vector<Point>& ps_list1, 
+                       std::vector<Point>& ps_list2, 
+                       std::vector<GenLoc>& gloc_list1);
   void DFTraverse1(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                              Relation* rel,
                              Point query_loc, std::vector<int>& tid_list);
@@ -1690,7 +1607,6 @@ ListExpr OutSpace( ListExpr typeInfo, Word value );
 #define obj_scale_min 1.2 
 #define UNDEFVAL -1.0 
 #define EPSDIST 0.01 //a small distance deviation 
-#define ONEDAY_MSEC 86400000.0
 
 /////// the distance from pavements or buildings to bus and metro stops ////
 #define NEARBUSSTOP 500.0  //make it larger 800.0 

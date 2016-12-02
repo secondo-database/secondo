@@ -1,4 +1,4 @@
-Database: testtmdb
+Database: testgenmo
 Restore : yes
 
 Operator : checksline
@@ -18,28 +18,22 @@ Result   : 1
 Operator : segment2region
 Number   : 2
 Signature: relation x attr x int-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query segment2region(r, Curve, roadwidth) count;
-Result   : 9
+Example  : query segment2region(r,curve,4) count;
+Result   : 630
 
 
 Operator : paveregion
 Number   : 2
 Signature: network x rel1 x attr x rel2 x attr1 x attr2 x int -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query paveregion(rn, allregions_in, Inborder, allregions_pave, Pave1, Pave2, roadwidth) count;
-Result   : 9
+Example  : query paveregion(rn,allregions_in,inborder,allregions_pave,pave1,pave2,roadwidth) count;
+Result   : 630
 
 
 Operator : junregion
 Number   : 2
 Signature: network x rel1 x attr1 x attr2 x int x rel2 x attr-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query junregion(rn, pave_regions1, Pavement1, Pavement2, roadwidth, allregions_in, Inborder) count;
-Result   : 9
-
-Operator : unionpoly
-Number   : 2
-Signature: rel1 x attr x rel2 x attr1 x attr2-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query unionpoly(CAExtNew, NewHole, res2, Oid_C1, Oid_C2) count;
-Result   : 9
+Example  : query junregion(rn,pave_regions1,pavement1,pavement2,roadwidth,allregions_in,inborder) count;
+Result   : 630
 
 Operator : decomposeregion
 Number   : 2
@@ -50,14 +44,14 @@ Result   : 1
 Operator : getpavenode1
 Number   : 2
 Signature: network x rel x attr1 x attr2 x attr3-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query getpavenode1(rn, pave_regions1,Rid, Pavement1, Pavement2) count;
-Result   : 43
+Example  : query getpavenode1(rn,pave_regions1,rid,pavement1,pavement2) count;
+Result   : 2526
 
 Operator : getpavenode2
 Number   : 2
 Signature: int x rel x attr1 x attr2 -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query getpavenode2(subpaves1 count, pave_regions2, Rid, Crossreg) count;
-Result   : 34
+Example  : query getpavenode2(subpaves1 count, pave_regions2, rid, crossreg) count;
+Result   : 2343
 
 Operator : triangulation
 Number   : 2
@@ -88,32 +82,27 @@ Result   : 1
 Operator : createdualgraph
 Number   : 2
 Signature: int x rel x rel -> dualgraph
-Example  : query getadjnode(createdualgraph(1, dg_node, dg_edge), 6) count;
-Result   : 0
+Example  : query getadjnode(createdualgraph(1, dg_node, dg_edge), 631) count;
+Result   : 1
 
 
 Operator : walk_sp_old
 Number   : 2
 Signature: dualgraph x visualgraph x rel1 x rel2 x rel3  -> line
-Example  : query no_components(walk_sp_old(dg, vg, query_loc1 feed addcounter[Id,1] filter[.Id = 200] remove[Id] consume, query_loc1 feed addcounter[Id,1] filter[.Id = 111] remove[Id] consume, tri_reg_new));
+Example  : query no_components(walk_sp_old(dg, vg, query_loc1 feed addcounter[id,1] filter[.id = 200] remove[id] consume,query_loc1 feed addcounter[id,1] filter[.id = 111] remove[id] consume, tri_reg_new));
 Result   : 1
 
 Operator : walk_sp
 Number   : 2
 Signature: pavement x rel1 x rel2 x rel3  -> line
-Example  : query no_components(walk_sp(pn, query_loc1 feed addcounter[Id,1] filter[.Id = 32] remove[Id] consume, query_loc1 feed addcounter[Id,1] filter[.Id = 26] remove[Id] consume, tri_reg_new));
+Example  : query no_components(walk_sp(pn, query_loc1 feed addcounter[id,1] filter[.id = 32] remove[id] consume,query_loc1 feed addcounter[id,1] filter[.id = 26] remove[id] consume, tri_reg_new));
 Result   : 1
 
-Operator : walk_sp_debug
-Number   : 2
-Signature: pavement x rel1 x rel2 x rel3 -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query walk_sp_type(pn, query_loc1 feed addcounter[Id,1] filter[.Id = 32] remove[Id] consume, query_loc1 feed addcounter[Id,1] filter[.Id = 26] remove[Id] consume, tri_reg_new);
-Result   : 1
 
 Operator : test_walk_sp
 Number   : 2
 Signature: dualgraph x visualgraph x rel1 x rel2 x rel3 -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query test_walk_sp(dg, vg, query_loc1 feed head[1] consume, query_loc1 feed head[2] consume, tri_reg_new) count;
+Example  : query test_walk_sp(dg, vg, query_loc1 feed head[1] consume, query_loc1 feed head[2] consume, tri_reg_new);
 Result   : 1
 
 Operator: setpave_rid
@@ -133,19 +122,19 @@ Result   : 200
 Operator : generate_wp1
 Number   : 2
 Signature: rel x int  -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query generate_wp1(dg_node, 5) count;
+Example  : query generate_wp1(graph_node, 5) count;
 Result   : 5
 
 Operator : generate_wp2
 Number   : 2
 Signature: rel x int  -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query generate_wp2(dg_node, 5) count;
+Example  : query generate_wp2(graph_node, 5) count;
 Result   : 5
 
 Operator : generate_wp3
 Number   : 2
 Signature: rel x int  -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query generate_wp3(dg_node, 5) count;
+Example  : query generate_wp3(graph_node, 5) count;
 Result   : 5
 
 Operator : zval
@@ -196,33 +185,14 @@ Operator : get_dg_edge
 Number   : 2
 Signature: rel1 x rel2 -> (stream(((x1 t1) ... (xn tn)))
 Example  : query get_dg_edge(tri_reg_new_sort, regnodes) count;
-Result   : 502
+Result   : 31513
 
 
 Operator : getvnode
 Number   : 2
 Signature: dualgraph x rel1 x rel2 x rel3 x btree-> (stream(((x1 t1) ... (xn tn)))
 Example  : query getvnode(dg, query_loc1, tri_reg_new, vgnodes, vertex_tri, btr_vid) count;
-Result   : 8
-
-Operator : getvnode2
-Number   : 2
-Signature: dualgraph x rel1 x rel2 x rel3 x btree x real-> (stream(((x1 t1) ... (xn tn)))
-Example  : query getvnode2(dg, query_loc1, tri_reg_new, vgnodes, vertex_tri, btr_vid, 500.0) count;
-Result   : 8
-
-
-Operator : getvnode3
-Number   : 2
-Signature: dualgraph x rel1 x rel2 x rel3 x btree x real1 x real2-> (stream(((x1 t1) ... (xn tn)))
-Example  : query getvnode3(dg, query_loc1, tri_reg_new, vgnodes, vertex_tri, btr_vid, 20.0, 30.0) count;
-Result   : 8
-
-Operator : vprange
-Number   : 2
-Signature: rel1 x rtree x rel2 x real-> (stream(((x1 t1) ... (xn tn)))
-Example  : query vprange(holes, obs_rtree, query_loc1, l) count;
-Result   : 0
+Result   : 15
 
 Operator : getvgedge
 Number   : 2
@@ -241,19 +211,20 @@ Operator : at_point
 Number   : 2
 Signature: sline x point x bool -> real
 Example  : query at_point([const sline value ((2 2 3 3))], [const point value (2 2)], TRUE);
-Result   : 0
+Result   : 0.0
 
 Operator : decomposetri
 Number   : 2
 Signature: rel -> (stream(((x1 t1) ... (xn tn)))
 Example  : query decomposetri(tri_reg_new_sort) count;
-Result   : 1437
+Result   : 88416
 
 Operator : createvgraph
 Number   : 2
 Signature: int x rel x rel -> visibilitygraph
 Example  : query getadjnode(createvgraph(1, vgnodes, vgedges), 1) count;
-Result   : 3
+Result   : 7
+
 
 Operator : getcontour
 Number   : 2
@@ -265,7 +236,7 @@ Result   : 2
 Operator : getpolygon
 Number   : 2
 Signature: rel x attr -> region
-Example  : query no_components(getpolygon(getcontour(2) consume, Hole));
+Example  : query no_components(getpolygon(allcontours, hole));
 Result   : 1
 
 
@@ -278,14 +249,8 @@ Result   : 3
 Operator : rotationsweep
 Number   : 2
 Signature: rel x rel x rect x rel x attr -> (stream(((x1 t1) ... (xn tn))))
-Example  : query rotationsweep(query_loc1 feed addcounter[Id,1] filter[.Id = 1] remove[Id] consume, allpoints, bbox(temp_reg), allholes, Hole) count;
-Result   : 491
-
-Operator : rotationsweep2
-Number   : 2
-Signature: rel x rel x rect x rel x attr x real x real -> (stream(((x1 t1) ... (xn tn))))
-Example  : query rotationsweep2(query_loc1 feed addcounter[Id,1] filter[.Id = 1] remove[Id] consume, allpoints, bbox(temp_reg), allholes, Hole, 20.0, 30.0) count;
-Result   : 491
+Example  : query rotationsweep(query_loc2 feed addcounter[id,1] filter[.id = 1] remove[id] consume, allpoints, bbox(temp_reg), allholes, hole) count;
+Result   : 498
 
 Operator : gethole
 Number   : 2
@@ -294,11 +259,24 @@ Example  : query gethole([const region value ((((0 0)(0 5)(2 5))))]) count;
 Result   : 1
 
 
+Operator : geninterestp1
+Number   : 2
+Signature: rel x rel x attr x attr x attr x attr x int -> (stream(((x1 t1) ... (xn tn))))
+Example  : query geninterestp1(subsections, pave_regions1, rid, sec, pavement1, pavement2,2) count;
+Result   : 2
+
 Operator : smcdgte
 Number   : 2
 Signature: rel x rtree -> (stream(((x1 t1) ... (xn tn)))
 Example  : query smcdgte(dg_node, rtree_dg) count;
-Result   : 502
+Result   : 1
+
+
+Operator : geninterestp2
+Number   : 2
+Signature: rel x rel x rtree x attr x attr x int -> (stream(((x1 t1) ... (xn tn))))
+Example  : query geninterestp2(interestp, dg_node, rtree_dg, loc2, pavement, 2) count;
+Result   : 2
 
 
 Operator : cellbox
@@ -310,84 +288,84 @@ Result   : 100
 Operator : create_bus_route1
 Number   : 2
 Signature: network x rel x attr_1 x attr_2 x attr_3 x btree x rel-> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_route1(rn,cell_join,Cellid,Cnt,Cover_area,section_cell_index, bus_para) count;
-Result   : 0 
+Example  : query create_bus_route1(n,street_sections_cell,cellid_w_a_c,Cnt_a_c,cover_area_b_c, section_cell_index, bus_para) count; 
+Result   : 75 
 
 
 Operator : create_bus_route2
 Number   : 2
 Signature: network x rel1 x attr x btree x rel2 x attr1 x attr2 x attr3 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_route2(space_1,cell_join,Secid,section_cell_index,rough_pair, Start_cell_id, End_cell_id, Route_type) count; 
-Result   : 0
+Example  : query create_bus_route2(n,street_sections_cell,cellid_w_a_c,section_cell_index,rough_pair, start_cell_id,end_cell_id,route_type) count; 
+Result   : 10
 
 
 Operator : refine_bus_route
 Number   : 2
 Signature: network x rel x attr1 x attr2 x attr3 x attr4 x attr5 x attr6 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query refine_bus_route(rn, busroutes_tmp, Br_id, Bus_route1, Bus_route2, Start_loc, End_loc, Route_type) count;
-Result   : 0
+Example  : query refine_bus_route(n,busroutes_tmp,br_id,bus_route1,bus_route2,start_loc,end_loc,route_type) count; 
+Result   : 10
 
 
 Operator : create_bus_route3
 Number   : 2
 Signature: rel x attr1 x attr2 x real  -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_route3(busroutes, Br_id, Bus_route2, Route_type,roadwidth/2) count;
-Result   : 0
+Example  : query create_bus_route3(busroutes,br_id,bus_route2,route_type,roadwidth/2) count; 
+Result   : 10
 
 
 Operator : create_bus_route4
 Number   : 2
 Signature: rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_route4(newbusroutes, Br_id, Bus_route2, Route_type, Br_uid,bus_stops3, Br_id, StartSmaller) count; 
+Example  : query create_bus_route4(busroutes,br_id,bus_route1,route_type,br_uid,bus_stops3, br_id,startSmaller) count; 
 Result   : 10
 
 
 Operator : create_bus_stop1
 Number   : 2
 Signature: network x rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x btree x string-> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_stop1(rn, busroutes, Br_id, Bus_route1, Bus_route2, Route_type, subpaves2, btree_pave2, stop_para) count;
-Result   : 0
+Example  : query create_bus_stop1(n,busroutes,br_id,bus_route1,bus_route2,route_type,subpaves2, btree_pave2, stop_para) count; 
+Result   : 10
 
 
 Operator : create_bus_stop2
 Number   : 2
 Signature: network x rel x attr1 x attr2 x attr3 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_stop2(rn, bus_stops1, Br_id, Bus_stop_id, Bus_stop1) sortby[Br_id, Bus_stop_id] count;
-Result   : 0
+Example  : query create_bus_stop2(n,bus_stops1,br_id,bus_stop_id,bus_stop1) count; 
+Result   : 10
 
 
 Operator : create_bus_stop3
 Number   : 2
 Signature: network x rel1 x attr x rel2 x attr1 x attr2 x attr3 x btree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_stop3(rn, busroutes, Bus_route1, bus_stops2, Br_id, Bus_stop_id, Bus_stop1, btree_sec_id) count;
-Result   : 0
+Example  : query create_bus_stop3(n,busroutes, bus_route1, bus_stops2,br_id, bus_stop_id,bus_stop1,btree_sec_id) count; 
+Result   : 10
 
 
 Operator : create_bus_stop4
 Number   : 2
 Signature: rel1 x attra x attrb x rel2 x attr1 x attr2 x attr3 x attr4 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_stop4(newbusroutes, Bus_route1, Bus_route2, bus_stops3, Br_id, Bus_stop_id, Bus_stop2, StartSmaller) count; 
-Result   : 0
+Example  : query create_bus_stop4(newbusroutes,bus_route1, bus_route2, bus_stops4, br_id, bus_stop_id, bus_stop,startSmaller) count; 
+Result   : 10
 
 
 Operator : create_bus_stop5
 Number   : 2
 Signature: rel1 x attr x rel2 x attr1 x attr2 x attr3 x attr4 x attr5 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_stop5(final_busroutes, Bus_direction, bus_stops4, Br_id, Br_uid, Bus_stop_id, Bus_stop2, Bus_pos) count; 
-Result   : 0
+Example  : query create_bus_stop5(final_busroutes,bus_direction,bus_stops4, br_id, br_uid, bus_stop_id, bus_stop2, bus_pos) count; 
+Result   : 10
 
 Operator : getbusstops
 Number   : 2
 Signature: rel1 x btree x rel2 -> (stream(((x1 t1) ... (xn tn))))
 Example  : query getbusstops(final_busstops, btree_bs, final_busroutes) count;
-Result   : 0
+Result   : 10
 
 
 Operator : getbusroutes
 Number   : 2
 Signature: rel1 x btree x rel2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query getbusroutes(final_busstops, btree_bs, final_busroutes) count;
-Result   : 0
+Example  : query getbusstops(final_busstops, btree_bs, final_busroutes) count;
+Result   : 10
 
 Operator : brgeodata
 Number   : 2
@@ -411,8 +389,8 @@ Result   : TRUE
 Operator : thebusnetwork
 Number   : 2
 Signature: int x rel x rel x rel-> busnetwork
-Example  : query ref_id(bn);
-Result   : 2
+Example  : query ref_id(thebusnetwork(1, stops_rel, routes_rel, bus_rel));
+Result   : 1
 
 Operator : thepavement 
 Number   : 2
@@ -424,73 +402,72 @@ Result   : 1
 Operator : bn_busstops
 Number   : 2
 Signature: busnetwork -> rel
-Example  : query bn_busstops(bn) count;
-Result   : 0
+Example  : query bn_busstops(bn1) count;
+Result   : 20
 
 
 Operator : bn_busroutes
 Number   : 2
 Signature: busnetwork -> rel
-Example  : query bn_busroutes(bn) count;
-Result   : 0
+Example  : query bn_busroutes(bn1) count;
+Result   : 20
 
 
 Operator : brsegments
 Number   : 2
 Signature: line x line -> (stream(((x1 t1) ... (xn tn))))
 Example  : query brsegments([const line value ((2 2 3 3))], [const line value ((3 3 4 4))]) count;
-Result   : 0
+Result   : 2
 
 
 Operator : mapbstopave
 Number   : 2
 Signature: busnetwork x rtree x rel x int x real -> (stream(((x1 t1) ... (xn tn))))
-Example  : query mapbstopave(bn, rtree_dg2, dg_node_sort, roadwidth, map_para) count;
-Result   : 0
+Example  : query mapbstopave(bn1, rtree_dg, dg_node, roadwidth, 2.0) count;
+Result   : 20
 
 
 Operator : bs_neighbors1
 Number   : 2
 Signature: dualgraph x visibility graph x rel1 x rel2 x rtree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query bs_neighbors1(dg, vg, tri_reg_new, bs_pave_sort, rtree_bs_pave)  count;
-Result   : 0
+Example  : query bs_neighbors1(dg, vg, tri_reg_new, bs_pave_sort, rtree_bs_pave) count;
+Result   : 20
 
 Operator : bs_neighbors2
 Number   : 2
 Signature: busnetwork -> (stream(((x1 t1) ... (xn tn))))
-Example  : query bs_neighbors2(bn) count;
-Result   : 0
+Example  : query bs_neighbors2(bn1) count;
+Result   : 20
 
 Operator : bs_neighbors3
 Number   : 2
 Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query bs_neighbors3(bus_time_table_compact, all_bus_rel, btree_mo) count;
-Result   : 0
+Result   : 20
 
 
 Operator : createbgraph
 Number   : 2
 Signature: int x rel1 x rel2 x rel3 x rel4 -> busgraph
-Example  : query getadjnode(bg,1) count;
-Result   : 0
-
+Example  : query createbgraph(1, node_rel, edge_rel1, edge_rel2, edge_rel3);
+Result   : file_platform
 
 Operator : getadjnode
 Number   : 2
 Signature: busgraph x int  -> (stream(((x1 t1) ... (xn tn))))
-Example  : query getadjnode(bg, 2) count;
+Example  : query getadjnode(bg1, 2) count;
 Result   : 0
 
 Operator : bnnavigation
 Number   : 2
 Signature: busstop x busstop x busnetwork x instant x int-> (stream(((x1 t1) ... (xn tn))))
-Example  : query bnnavigation(bus_stops feed addcounter[Id,1] filter[.Id = 450] extract[Bus_stop], bus_stops feed addcounter[Id,1] filter[.Id = 540] extract[Bus_stop], bn, theInstant(2011,11,6,16,0,0,0),0) count;
-Result   : 0
+Example  : query bnnavigation(bs1, bs2, bn1,theInstant(2010,12,5,0,0,0,0) ,0) count;
+Result   : 1
 
 Operator : test_bnnavigation
 Number   : 2
 Signature: rel x rel x busnetwork x instant x int-> (stream(((x1 t1) ... (xn tn))))
-Example  : query test_bnnavigation(bus_stops, bus_stops, bn,theInstant(2010,12,5,0,0,0,0) ,0);
+Example  : query test_bnnavigation(bus_stops, bus_stops, bn1,theInstant(2010,12,5,0,0,0,0) ,0);
 Result   : TRUE
 
 Operator : getstopid
@@ -503,127 +480,127 @@ Result   : 2
 Operator : get_route_density1
 Number   : 2
 Signature: network x rel1 x attr1 x attr2 x btree x attr2 x attr1 x attr2 x periods1 x periods2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query get_route_density1(rn,traffic_rel1, Secid, Flow, btree_traffic, busroutes, Br_id, Bus_route1, Monday,Sunday) count;
-Result   : 0
+Example  : query get_route_density1(n,q7,secid,flow,btree_traffic,busroutes,br_id,bus_route1,night1,night2) count;
+Result   : 10.0
 
 
 Operator : set_ts_nightbus
 Number   : 2
 Signature: rel x attr1 x attr2 x attr3 x periods1 x periods2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query set_ts_nightbus(night_bus, Br_id, Duration1, Duration2, night1,night2) count;
-Result   : 0
+Example  : query set_ts_nightbus(night_bus,br_id,duration1,duration2,night1,night2) count;
+Result   : 10.0
 
 
 Operator : set_ts_daybus
 Number   : 2
 Signature: rel x attr1 x attr2 x attr3 x periods1 x periods2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query set_ts_daybus(day_bus, Br_id, Duration1, Duration2,Monday,Sunday) count;
-Result   : 0
+Example  : query set_ts_daybus(day_bus,br_id,duration1,duration2,Monday,Sunday) count;
+Result   : 10.0
 
 
 Operator : set_br_speed
 Number   : 2
 Signature: network x rel1 x attr1 x attr2 x rel2 x attr x rel3 x attr -> (stream(((x1 t1) ... (xn tn))))
-Example  : query set_br_speed(rn, busroutes, Br_id, Bus_route1, streets, Vmax, final_busroutes, StartSmaller) count;
-Result   : 0
+Example  : query set_br_speed(n,busroutes,br_id,bus_route1,streets,Vmax,final_busroutes,startSmaller) count;
+Result   : 10.0
 
 
 Operator : create_bus_segment_speed
 Number   : 2
 Signature: rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x attr1 x attr2 x btree1 x rel3 x btree2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_segment_speed(final_busroutes, Br_id, Bus_route, Bus_direction, StartSmaller, final_busstops, Bus_pos, Stop_direction, btree_bs, br_speed, btree_br_speed) count;
-Result   : 0
+Example  : query create_bus_segment_speed(final_busroutes,br_id, bus_route, bus_direction, startSmaller,final_busstops, bus_pos, stop_direction, btree_bs,br_speed,btree_br_speed) count;
+Result   : 10.0
 
 Operator : create_night_bus_mo
 Number   : 2
 Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query create_night_bus_mo(ts_nightbus,bus_segment_speed,btree_seg_speed) count;
-Result   : 0
+Result   : 10.0
 
 Operator : create_daytime_bus_mo
 Number   : 2
 Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query create_daytime_bus_mo(ts_daybus,bus_segment_speed,btree_seg_speed) count;
-Result   : 0
+Result   : 10.0
 
 
 Operator : create_time_table1
 Number   : 2
 Signature: rel1 x rel2 x btree x periods1 x periods2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_time_table1(final_busstops, all_bus_rel, btree_mo, night1, night2) count;
-Result   : 0
+Example  : query create_time_table1(final_busstops,all_bus_rel,btree_mo,night1,night2) count;
+Result   : 10.0
 
 
 Operator : create_time_table2
 Number   : 2
 Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_time_table2(mstops_2, genmo_metro_2, btree_metro2) count;
-Result   : 0
+Example  : query create_time_table2(train_stops,ubtrains,btree_train) count;
+Result   : 10.0
 
 
 Operator : refmo2genmo 
 Number   : 2
 Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query refmo2genmo(all_bus_rel, bus_routes, btree_br) count;
-Result   : 0
+Example  : query refmo2genmo(Trains, ubahn_line, btree_ub_line) count;
+Result   : 562 
 
 
 Operator : themetronetwork
 Number   : 2
 Signature: int x rel x rel x rel-> metronetwork
-Example  : query ref_id(mn);
-Result   : 1
+Example  : query ref_id(themetronetwork(2, stops_rel, routes_rel, metros_rel));
+Result   : 2
 
 
 Operator : ms_neighbors1
 Number   : 2
 Signature: rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query ms_neighbors1(mstops) count;
-Result   : 0
+Example  : query ms_neighbors1(metro_stops) count;
+Result   : 534
 
 
 Operator : ms_neighbors2
 Number   : 2
 Signature: metronetwork x rel x btree x rel x btree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query ms_neighbors2(mn, metro_time_table, btree_time_table,genmo_metro_1,btree_metro1) count;
-Result   : 0
+Example  : query ms_neighbors2(mn, train_time_table_compact, btree_time_table, genmo_metros, btree_metro) count;
+Result   : 364
 
 Operator : createmgraph
 Number   : 2
 Signature: int x rel1 x rel2 x rel3 -> metrograph
-Example  : query getadjnode(createmgraph(1, mstops, msneighbors1, msneighbors2),1) count;
-Result   : 0
+Example  : query createmgraph(1, node_rel, edge_rel1, edge_rel2);
+Result   : file_platform
 
 Operator : createmetroroute
 Number   : 2
 Signature: dualgraph x rel -> (stream(((x1 t1) ... (xn tn))))
 Example  : query createmetroroute(dg_cell, metro_para) count;
-Result   : 0
+Result   : 10
 
 Operator : createmetrostop
 Number   : 2
 Signature: rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query createmetrostop(mroutes) count;
-Result   : 0
+Example  : query createmetroroute(mroutes) count;
+Result   : 522
 
 Operator : createmetromo
 Number   : 2
 Signature: rel x duration -> (stream(((x1 t1) ... (xn tn))))
 Example  : query createmetromo(mroutes, theRange(theInstant(2010,12,6,6,0,0,0), theInstant(2010,12,6,0,0,0), TRUE, TRUE)) count;
-Result   : 0
+Result   : 1899
 
 
 Operator : mapmstopave
 Number   : 2
 Signature: rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query mapmstopave(mstops, dg_node_sort,rtree_dg) count;
-Result   : 0
+Result   : 522
 
 Operator : mnnavigation
 Number   : 2
 Signature: busstop x busstop x metronetwork x instant -> (stream(((x1 t1) ... (xn tn))))
-Example  : query mnnavigation(mstops feed addcounter[Id,1] filter[.Id = 33] extract[Ms_stop], mstops feed addcounter[Id,1] filter[.Id = 34] extract[Ms_stop], mn, theInstant(2011,11,6,16,0,0,0)) count
-Result   : 0
+Example  : query mnnavigation(ms1, ms2, mn1,theInstant(2010,12,5,0,0,0,0)) count;
+Result   : 1
 
 
 Operator : thefloor
@@ -711,54 +688,54 @@ Result   : ( (0,0,0) - (1,1,1) )
 Operator : thebuilding
 Number   : 1
 Signature: int x string x rel x rel -> building
-Example  : query ref_id(thebuilding(3, "CINEMA", cinema, cinema_extend));
-Result   : 4
+Example  : query ref_id(thebuilding(1, "UNIVERSITY", fernuni, fernuni_extend));
+Result   : 1
 
 Operator : theindoor 
 Number   : 1
 Signature: int x rel x rel -> indoorinfra
-Example  : query ref_id(theindoor(1, building_paths, buildingplustype));
-Result   : 2
+Example  : query ref_id(1, paths1, buildingplustype);
+Result   : 1
 
 
 Operator : createdoor3d
 Number   : 1
 Signature: rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query createdoor3d(cinema) count;
-Result   : 63
+Example  : query createdoor3d(university) count;
+Result   : 200 
 
 
 Operator : createdoorbox
 Number   : 1
 Signature: rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query createdoorbox(cinema) count;
-Result   : 63
+Example  : query createdoorbox(university) count;
+Result   : 300
 
 
 Operator : createdoor1
 Number   : 1
 Signature: rel1 x rel2 x rtree x attr1 x attr2 x attr3 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query createdoor1(cinema, box3d_rel, rtree_box3d, Groom_oid, Groom_tid, Box3d) count;
-Result   : 47
+Example  : query createdoor1(university,box3d_rel,rtree_box3d,groom_oid,groom_tid,Box3d) count;
+Result   : 300
 
 Operator : createdoor2
 Number   : 1
 Signature: rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query createdoor2(cinema) count;
-Result   : 14
+Example  : query createdoor2(university) count;
+Result   : 300
 
 Operator : createadjdoor1
 Number   : 1
 Signature: rel1 x rel2 x btree x attr1 x attr2 x attr3 x attr4 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query createadjdoor1(cinema, node_rel_cinema, btree_gid_cinema, Door, Door_loc, Groom_oid1, Doorheight) count;
-Result   : 84
+Example  : query createadjdoor1(building_uni,node_rel,btree,Door,door_loc,groom_oid1,doorheight) count;
+Result   : 300
 
 
 Operator : createadjdoor2
 Number   : 1
 Signature: rel x rtree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query createadjdoor2(node_rel_cinema, rtree_node_cinema) count;
-Result   : 46
+Example  : query createadjdoor2(node_rel,rtree_node) count;
+Result   : 300
 
 Operator : path_in_region 
 Number   : 1
@@ -769,22 +746,22 @@ Result   : 1
 Operator : createigraph
 Number   : 2
 Signature: int x rel x rel x string -> indoorgraph
-Example  : query getadjnode(createigraph(3, node_rel_cinema, edge_rel_cinema, "CINEMA"),1) count;
-Result   : 1
+Example  : query createigraph(1, node_rel, edge_rel, "UNIVERSITY");
+Result   : file_platform
 
 
 Operator : generate_ip1
 Number   : 2
 Signature: rel x int x bool -> (stream(((x1 t1) ... (xn tn)))
-Example  : query generate_ip1(cinema, 50, TRUE) count;
-Result   : 50
+Example  : query generate_ip1(fernuni, 10, TRUE) count;
+Result   : 10
 
 
 Operator : generate_mo1
 Number   : 2
 Signature: indoorgraph x rel x btree x rtree x int x periods-> (stream(((x1 t1) ... (xn tn))))
-Example  : query generate_mo1(ig_cinema, cinema, btree_groom_cinema, rtree_groom_cinema, 1.0, Monday_cinema) count;
-Result   : 1
+Example  : query generate_mo1(ig1, fernuni, btree_groom, rtree_groom,10, Monday) count;
+Result   : 10
 
 Operator : getindoorpath
 Number   : 2
@@ -796,7 +773,7 @@ Result   : TRUE
 Operator : indoornavigation
 Number   : 2
 Signature: rel x genloc x genloc x rel x btree x int-> (stream(((x1 t1) ... (xn tn))))
-Example  : query indoornavigation(ig_cinema, ip_cinema feed addcounter[Id,1] filter[.Id = 1] extract[Loc1],ip_cinema feed addcounter[Id,1] filter[.Id = 5] extract[Loc1], cinema, btree_groom_cinema, 0) count;
+Example  : query indoornavigation(ig1, genloc1, genloc2, building_uni, btree_groom,1) count;
 Result   : 1
 
 
@@ -810,31 +787,39 @@ Result   : 4
 Operator : getrect1 
 Number   : 1
 Signature: rel x attr1 x attr2 x rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query getrect1(new_region_elems, Id, Covarea, building_para) count;
-Result   : 9 
+Example  : query getrect1(new_region_elems, id, covarea, building_para) count;
+Result   : 20 
 
 
 Operator : path_to_building 
 Number   : 1
 Signature: rel1 x rel2 x btree x space-> (stream(((x1 t1) ... (xn tn))))
-Example  : query path_to_building(buildingplustype, new_region_elems, btree_building, space_1) count;
-Result   : 1
+Example  : query path_to_building(building_rect, new_region_elems, btree_region_elem, space_1) count;
+Result   : 20 
 
 
 Operator : set_building_type 
 Number   : 1
 Signature: rel x rtree x space-> (stream(((x1 t1) ... (xn tn))))
-Example  : query set_building_type(building_sort, rtree_build, space_1) count;
-Result   : 6
+Example  : query set_building_type(building_region_type, rtree_build, space_1) count;
+Result   : 20 
 
 
 Operator : remove_dirty 
 Number   : 1
 Signature: rel x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query remove_dirty(region_elems, Id, Covarea) count;
-Result   : 4
+Example  : query remove_dirty(region_elems, id, covarea) count;
+Result   : 20 
 
 
+Operator : instant2day 
+Number   : 1
+Signature: instant -> int
+Example  : query instant2day(theInstant(2007,6,3,9,0,0,0));
+Result   : 3989
+
+
+ 
 Operator : ref_id
 Number   : 1
 Signature: genloc -> int
@@ -856,14 +841,8 @@ Result   : 1
 Operator : tm_at3
 Number   : 1
 Signature: genmo x mreal x genloc x string -> genmo
-Example  : query no_components(tm_at3([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], genmoindex([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]),tm_genloc(2, -1.0, -1.0), "Indoor"));
+Example  : query no_components(tm_at3([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], genmoindex([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]),tm_genloc(2.0, -1.0, -1.0), "Indoor"));
 Result   : 0
-
-Operator : tm_atgloc
-Number   : 1
-Signature: genmo x gloc -> genmo
-Example  : query no_components(tm_atgloc([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))],tm_genloc(1, -1.0, -1.0)));
-Result   : 1
 
 
 Operator : val
@@ -914,7 +893,7 @@ Result   : (("2010-12-7-8:04:10") (1 (3.0 3.0)))
 Operator : tm_build_id
 Number   : 1
 Signature: int x space -> int
-Example  : query tm_build_id(0, [const space value ( 1 )]);
+Example  : query tm_build_id(0, space_1);
 Result   : -1
 
 Operator : bcontains
@@ -932,7 +911,7 @@ Result   : TRUE
 Operator : tm_room_id
 Number   : 1
 Signature: int x space -> int
-Example  : query tm_room_id(0, [const space value ( 1 )]);
+Example  : query tm_room_id(0, space_1);
 Result   : -1
 
 
@@ -974,11 +953,6 @@ Signature: genmo -> mreal
 Example  : query no_components(genmoindex([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (0 (2.0 3.0)) (0 (3.0 3.0)) "Free"))]));
 Result   : 1
 
-Operator : tm_mr2ms
-Number   : 1
-Signature: mreal -> mstring
-Example  : query deftime(tm_mr2ms([const mreal value ((("2011-11-10-09:02" "2011-11-10-09:03:01.142" TRUE FALSE)  (2.0 0.0 20.0 TRUE)))]))
-Result   : ("2011-11-10-09:02" "2011-11-10-09:03:01.142" TRUE FALSE)
 
 Operator : setref_id
 Number   : 1
@@ -991,19 +965,6 @@ Operator : deftime
 Number   : 1
 Signature: genmo -> periods
 Example  : query deftime([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]);
-Result   : (periods (("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE)))
-
-Operator : tm_translate
-Number   : 1
-Signature: genmo x duration -> genmo
-Example  : query deftime([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE)(1 (2.0 3.0))(1 (3.0 3.0)) "Indoor"))] tm_translate [const duration value (1 0)])
-Result   : (periods (("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE)))
-
-
-Operator : tm_translate2
-Number   : 1
-Signature: periods x duration -> periods
-Example  : query theRange(theInstant(2011,11,6,8,0,0,0), theInstant(2011,11,7,22,0,0,0), TRUE, FALSE) tm_translate2 [const duration value (1 0)]
 Result   : (periods (("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE)))
 
 
@@ -1026,17 +987,17 @@ Signature: mpoint3d -> line3d
 Example  : query size(trajectory([const mpoint3d value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 2.0 3.0) (1 3.0 3.0)))]));
 Result   : 1
 
-
 Operator : gentrajectory
 Number   : 1
-Signature: genmo x space -> genrange
-Example  : query size(trajectory([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (0 (2.0 -1.0)) (0 (3.0 -1.0)) "Car"))], [const space value (1)]));
+Signature: genmo -> genrange
+Example  : query size(gentrajectory([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))], space_1));
 Result   : 1
+
 
 Operator : genrangevisible
 Number   : 1
 Signature: genrange -> (stream(((x1 t1) ... (xn tn))))
-Example  : query genrangevisible(trajectory([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (0 (2.0 -1.0)) (0 (3.0 -1.0)) "Free"))], [const space value (1)]),[const space value (1)]) count;
+Example  : query genrangevisible((gentrajectory([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))], space_1))) count;
 Result   : 1
 
 
@@ -1070,8 +1031,8 @@ Result   : 1
 Operator : mapgenmo 
 Number   : 1
 Signature: genmo x mpoint -> mpoint
-Example  : query no_components(mapgenmo([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (10 (-1.0 -1.0)) (10 (-1.0 -1.0)) "Bus"))], [const mpoint value ((("2007-02-27-16:05:54.922" "2007-02-27-16:05:55.922" TRUE FALSE) (7.495008333333334 51.37592333333333 7.495061666666667 51.37594166666667)))]));
-Result   : 0
+Example  : query no_components(mapgenmo([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (10 (-1.0 -1.0)) (10 (-1.0 -1.0)) "Bus"))], [const mpoint value ((("2007-02-27-16:05:54.922" "2007-02-27-16:05:55.922" TRUE FALSE) (7.495008333333334 51.37592333333333 7.495061666666667 51.37594166666667)))])) count;
+Result   : 1
 
 
 
@@ -1097,7 +1058,7 @@ Result   : 10
 Operator : thespace 
 Number   : 1
 Signature: int -> space
-Example  : query ref_id(thespace(1));
+Example  : query thespace(1);
 Result   : 1 
 
 Operator : putinfra
@@ -1109,21 +1070,21 @@ Result   : 1
 Operator : putrel
 Number   : 1
 Signature: space x rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query putrel(space_1, streets_speed) count;
+Example  : query putrel(space_1, street_speed) count;
 Result   : 1 
 
 
 Operator : getinfra
 Number   : 1
 Signature: space x string -> rel
-Example  : query getinfra([const space value (1)], "FREESPACE") count;
-Result   : 0
+Example  : query getinfra(space_1, "LINE") feed head[1] consume count;
+Result   : 1
 
 
 Operator : addinfragraph 
 Number   : 1
 Signature: busnetwork x busgraph -> (stream(((x1 t1) ... (xn tn))))
-Example  : query addinfragraph(bn,bg) count;
+Example  : query addinfragraph(bn1,bg1) count;
 Result   : 1
 
 
@@ -1131,7 +1092,7 @@ Operator : genmo_tm_list
 Number   : 1
 Signature: bool -> (stream(((x1 t1) ... (xn tn))))
 Example  : query genmo_tm_list(TRUE) count;
-Result   : 18
+Result   : 17
 
 Operator : generate_genmo
 Number   : 1
@@ -1175,7 +1136,7 @@ Result   : 5
 Operator : generate_car
 Number   : 1
 Signature: network x periods x real x rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query generate_car(space_1, TwoDays, 10.0, streets_speed) project[Trip2] count;
+Example  : query generate_car(rn, TwoDays, 10.0, streets_speed) count;
 Result   : 10
 
 Operator : navigation1
@@ -1193,57 +1154,21 @@ Result   : 10
 
 Operator : get_rg_edges1
 Number   : 1
-Signature: rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query get_rg_edges1(rg_nodes) count;
-Result   : 24
+Signature: rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query get_rg_edges1(rel, rtree) head[10] count;
+Result   : 10
 
 Operator : get_rg_edges2
 Number   : 1
 Signature: network x rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query get_rg_edges2(rn, rg_nodes) count;
-Result   : 24
-
-Operator : get_p_edges3
-Number   : 1
-Signature: rel x rel x btree x rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query get_p_edges3(P_L, P_nodes1, btree_PN1, P_Nodes2) count;
-Result   : 24
-
-Operator : get_p_edges4
-Number   : 1
-Signature: rel x rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query get_p_edges4(P_Nodes2_tmp, DOPedesRegions) count;
-Result   : 24
-
-Operator : theosmpave
-Number   : 2
-Signature: int x rel x rel -> osmpavenetwork
-Example  : query ref_id(theosmpave(1, Pave_line, Pave_region));
-Result   : 1
-
-Operator : createosmgraph
-Number   : 2
-Signature: int x rel1 x rel2 -> osmpavegraph
-Example  : query getadjnode(createosmgraph(1, PNodes, P_ADJ), 1) count;
-Result   : 2
-
-Operator : osmlocmap
-Number   : 2
-Signature: rel1 x rel2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query osmlocmap(POI_L, POI_R) count;
-Result   : 2
-
-Operator : osm_path
-Number   : 2
-Signature: rel1 x rel2 x osmpavenetwork -> sline
-Example  : query size(osm_path(q_loc1, q_loc2, DO_pave));
-Result   : 3.5
+Example  : query get_rg_edges2(rn, rel) head[10] count;
+Result   : 10
 
 Operator : creatergraph
 Number   : 2
 Signature: int x rel1 x rel2 x rel3 -> roadgraph
-Example  : query getadjnode(creatergraph(1, rg_nodes, rg_edges1, rg_edges2), 1) count;
-Result   : 2
+Example  : query creatergraph(1, node_rel, edge_rel1, edge_rel2);
+Result   : file_platform
 
 Operator : shortestpath_tm
 Number   : 2
@@ -1254,198 +1179,29 @@ Result   : 1
 
 Operator : modifyline
 Number   : 1
-Signature: sline -> sline
-Example  : query size(modifyline([const sline value((2.0 1.0 3.0 1.0))]));
-Result   : 1
+Signature: line -> line
+Example  : query modifyline([const line value((2.33 3.33 4.444 5.555))]);
+Result   : (line value ((2.33 3.33 4.44 5.56)))
 
-Operator : modifyregion
+
+Operator : checkroads
 Number   : 1
-Signature: region -> region
-Example  : query size(modifyregion([const region value ((((1 1)(5 1)(5 5)(1 5))))]))
-Result   : 1
-
-Operator : refinedata
-Number   : 1
-Signature: sline -> sline
-Example  : query size(refinedata([const sline value((2.0 1.0 3.0 1.0))]));
-Result   : 1
+Signature: relation x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query checkroads(r, rtree_road) count;
+Result   : 3250
 
 
-Operator : filterdisjoint
-Number   : 1
-Signature: rel x btree x string -> (stream(((x1 t1) ... (xn tn))))
-Example  : query filterdisjoint(DOPedes_L_Join, btree_l, "LINE") count;
-Result   : 1
-
-
-Operator : refinebr
-Number   : 1
-Signature: rel x attr x attr -> (stream(((x1 t1) ... (xn tn))))
-Example  : query refinebr(DOBusRoutes, RelId, BRoute) count;
-Result   : 1
-
-
-Operator : bs_stops
-Number   : 1
-Signature: rel x rel x btree  -> (stream(((x1 t1) ... (xn tn))))
-Example  : query bs_stops(BusSegs, DOBusStops, btree_bs) count;
-Result   : 0
-
-
-Operator : set_bs_speed
-Number   : 1
-Signature: rel x rel x rel x attr -> (stream(((x1 t1) ... (xn tn))))
-Example  : query set_bs_speed(BusSegs, BusRoadSegs, streets_speed, Vmax) count;
-Result   : 0
-
-
-Operator : set_stop_loc
-Number   : 1
-Signature: line -> (stream(((x1 t1) ... (xn tn))))
-Example  : query set_stop_loc([const line value ()]) count;
-Result   : 0
-
-Operator : getmetrodata
-Number   : 1
-Signature: rel x rel x string -> (stream(((x1 t1) ... (xn tn))))
-Example  : query getmetrodata(MetroSegs, MetroRoadSegs, "STOP") count;
-Result   : 0
-
-
-Operator : sl2reg
-Number   : 1
-Signature: sline -> region
-Example  : query size(sl2reg([const sline value ((2.0 2.0 2.0 3.0)(2.0 3.0 3.0 3.0)(3.0 3.0 2.0 2.0))]));
-Result   : 5.5
-
-
-Operator : tm_segs
-Number   : 1
-Signature: region -> (stream(((x1 t1) ... (xn tn))))
-Example  : query tm_segs([const region value ((((1 1)(5 1)(5 5)(1 5))))]) count;
-Result   : 4
 
 
 Operator : tm_join1
 Number   : 1
 Signature: relation x relation x rtree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query tm_join1(street_sections, cellbox_list, rtree_box) count;
-Result   : 4
+Example  : query tm_join1(r, cell_box, rtree_cell) count;
+Result   : 10
 
 
 Operator : nearstops_building
 Number   : 1
 Signature: space x string -> (stream(((x1 t1) ... (xn tn))))
-Example  : query nearstops_building(space_1, "Bus") count;
-Result   : 0
-
-
-Operator : decomposegenmo
-Number   : 1
-Signature: rel x real x bool -> (stream(((x1 t1) ... (xn tn))))
-Example  : query decomposegenmo(all_genmo, 200.0, TRUE) count;
-Result   : 1
-
-Operator : decomposegenmo2
-Number   : 1
-Signature: rel x real x space -> (stream(((x1 t1) ... (xn tn))))
-Example  : query decomposegenmo2(all_genmo, 200.0, space_1) count;
-Result   : 1
-
-
-Operator : bulkloadtmrtree
-Number   : 1
-Signature: stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj) x attr1 x attr2 x attr3 x int-> (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false)
-Example  : query genmo_units feed addid bulkloadtmrtree[Time, Box3d, Mode, 1]
-Result   : file_platform
-
-Operator : tmrtreemode
-Number   : 1
-Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x attr -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query tmrtreemode(TM_RTree, genmo_units, Mode) count
-Result   : 0
-
-Operator : tm_nodes
-Number   : 1
-Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query nodes(TM_RTree) filter[.Level = 0] count
-Result   : 1
-
-
-Operator : range_tmrtree
-Number   : 1
-Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel  x rel x int -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query range_tmrtree(TM_RTree, genmo_units, query_rel, 1)  count
-Result   : 0
-
-
-Operator : mode2str
-Number   : 1
-Signature: int -> string
-Example  : query mode2str(0, FALSE);
-Result   : "Bus"
-
-
-Operator : range_query
-Number   : 1
-Signature: rel x rel -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query range_query(genmo_union, query_rel) count;
-Result   : 0
-
-Operator : mode2bit
-Number   : 1
-Signature: int -> int
-Example  : query mode2bit(2);
-Result   : 1
-
-
-Operator : loadmodertree
-Number   : 1
-Signature: stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj) x attr1 x attr2 x attr3 x attr4 -> modertree
-Example  : query genmo_units feed addid loadmodertree[Tid, Box3d, Mode, RefId];
-Result   : file_platform
-
-Operator : modertreeref
-Number   : 1
-Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x attr x space ->  stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query modertreeref(Mode_RTree, genmo_units, RefId,space_1) count
-Result   : 1
-
-
-Operator : bench_modertree
-Number   : 1
-Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x rel x space x rel x btree ->  stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query bench_modertree(Mode_RTree, genmo_units, bench_query, space_1, all_genmo, btreegenmo) count
-Result   : 1
-
-Operator : printmodertree
-Number   : 1
-Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false)  x string x space ->  stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query printmodertree(Mode_RTree, "Bus", space_1) count
-Result   : 1
-
-Operator : bench_modertree9
-Number   : 1
-Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x rel x space x rel x btree x rel ->  stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query bench_modertree9(Mode_RTree, genmo_units, bench_query, space_1, all_genmo, btreegenmo, uni_pah) count
-Result   : 1
-
-Operator : bench_modertree12
-Number   : 1
-Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x rel x space x rel x btree x rel x rel x rel ->  stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query bench_modertree12(Mode_RTree, genmo_units, bench_query, space_1, all_genmo, btreegenmo, floor_h, busstops1, busstops2) count
-Result   : 1
-
-
-Operator : bench_modertree13
-Number   : 1
-Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x rel x space x rel x btree x rel x rel ->  stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query bench_modertree13(Mode_RTree, genmo_units, bench_query, space_1, all_genmo, btreegenmo, road_seg, mo_bus) count
-Result   : 1
-
-
-Operator : range_query4d
-Number   : 1
-Signature: rtree x rel x rel -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query range_query4d(rtree, genmo_union, query_rel) count
-Result   : 0
+Example  : query nearstops_building(space, "Bus") count;
+Result   : 10

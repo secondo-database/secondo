@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 
-[1] Header File for Creating Bus Network 
+[1] Header File for Creating Bus network::Network 
 
 Oct, 2010 Jianqiu xu
 
@@ -201,13 +201,12 @@ struct GP_Point{
   Point loc1;
   Point loc2;
   int oid;
-  int type;
   GP_Point(){}
   GP_Point(int r, double p1,double p2, Point q1, Point q2):
   rid(r),pos1(p1),pos2(p2),loc1(q1),loc2(q2), oid(0){}
   GP_Point(const GP_Point& gp_p):
   rid(gp_p.rid),pos1(gp_p.pos1),pos2(gp_p.pos2),
-  loc1(gp_p.loc1),loc2(gp_p.loc2), oid(gp_p.oid), type(gp_p.type){}
+  loc1(gp_p.loc1),loc2(gp_p.loc2), oid(gp_p.oid){}
   GP_Point& operator=(const GP_Point& gp_p)
   {
     rid = gp_p.rid;
@@ -216,7 +215,6 @@ struct GP_Point{
     loc1 = gp_p.loc1;
     loc2 = gp_p.loc2; 
     oid = gp_p.oid;
-    type = gp_p.type;
     return *this;
   }
   void Print()
@@ -270,14 +268,13 @@ struct BusRoute{
   std::vector<int> sec_id_list; 
   std::vector<double> bus_stop_loc_3; 
   std::vector<bool> startSmaller; //used for simpleline
-  std::vector<int> stop_loc_id_list; 
-                   //different spatial locations for bus stops 
+  std::vector<int> stop_loc_id_list; //different spatial 
+                                     // locations for bus stops 
   /////////////////////////////////////
   std::vector<Bus_Stop> bus_stop_list; 
   std::vector<Point> bus_stop_geodata; 
   
   std::vector<Bus_Route> bus_route_list; 
-  std::vector<double> pos_list;
   ////////////////////////////////////////////////////////////////
   BusRoute(network::Network* net,Relation* r1,BTree* b):
   n(net),rel1(r1),btree(b)
@@ -297,15 +294,6 @@ struct BusRoute{
   static std::string FinalBusRoutesTypeInfo;
   static std::string BusStopTemp1TypeInfo;
   static std::string BusNetworkParaInfo;
-  
-  
-  static std::string BusSegs;
-  static std::string BusRoadSegs;
-  static std::string BusStopsRel;
-
-  enum BusSegInfo{BS_OID = 0, BS_REL_ID, BS_GEO};
-  enum BusRoadSegInfo{BRS_OID = 0, BRS_ORDERID, BRS_ID, BRS_SP2, BRS_EP2};
-  enum BusStopInfo{BS_RELID = 0, BS_POS};
 
   ////////////rough description of bus routes/////////////////////////////
   void CreateRoute1(int attr2,int attr3,int attr4, Relation* bus_para); 
@@ -349,7 +337,7 @@ struct BusRoute{
   void CreateBusStop2(int attr1,int attr2,int attr3); 
   void MergeBusStop1(std::vector<BusStop>& temp_list); 
   void CreateBusStop3(int attr,int attr1,int attr2,int attr3); 
-  void GetSectionList(network::GLine* gl,std::vector<network::SectTreeEntry>&, 
+  void GetSectionList(network::GLine* gl,std::vector<network::SectTreeEntry>&,
                       std::vector<bool>&);
   void FindDownSection(double,std::vector<network::SectTreeEntry>,int sec_index,
                        const double dist_val,
@@ -394,14 +382,6 @@ struct BusRoute{
 
   void GetPosOnSL(SimpleLine* sl, Point loc, double& pos, 
                   std::vector<MyHalfSegment>&);
-  //////////////////////////////////////////////////////////////////////
-  /////////////// discover bus stop locations -- OSM////////////////////
-  //////////////////////////////////////////////////////////////////////
-  void BSStops(Relation* rel1, Relation* rel2, BTree* btree);
-  ////////////////set bus route speed //////////////////////////////////
-  void SetBSSpeed(Relation* rel1, Relation* rel2, Relation* rel3, int);
-  void SetSpeedForBRoute(Relation* rel1, int oid, Relation* rel3, 
-                         int attr, std::vector<MySegDist> seg_list);
 
 };
 
@@ -448,8 +428,8 @@ struct RoadDenstiy{
   std::vector<temporalalgebra::Periods> duration1;
   std::vector<temporalalgebra::Periods> duration2; 
   std::vector<double> time_interval; //minute 
-  std::vector<double> time_interval2; 
-                        //minute for daytime bus (Monday and Sunday)
+  std::vector<double> time_interval2; //minute for daytime bus
+                                     // (Monday and Sunday)
   
   
   std::vector<double> br_pos;
@@ -528,8 +508,8 @@ struct RoadDenstiy{
   RoadDenstiy(network::Network* net,Relation* r1,Relation* r2,BTree* bt):
   n(net),rel1(r1),rel2(r2),btree(bt)
   {count=0;resulttype = NULL;}
-  RoadDenstiy(network::Network* net,Relation* r1,
-              Relation* r2,Relation* r3,BTree* bt):
+  RoadDenstiy(network::Network* net,Relation* r1,Relation* r2,
+              Relation* r3,BTree* bt):
   n(net),rel1(r1),rel2(r2),rel3(r3),btree(bt)
   {count=0;resulttype = NULL;}
   RoadDenstiy(Relation* r1,Relation* r2, Relation* r3,BTree* b1,BTree* b2):
@@ -539,22 +519,21 @@ struct RoadDenstiy{
   ~RoadDenstiy(){if(resulttype != NULL) delete resulttype;}
 
   void GetNightRoutes(int attr1, int attr2, int attr_a, int attr_b,
-                      temporalalgebra::Periods*,
+                      temporalalgebra::Periods*, 
                       temporalalgebra::Periods*);
-  void SetTSNightBus(int attr1,int attr2, int attr3,
-                     temporalalgebra::Periods*,
+  void SetTSNightBus(int attr1,int attr2, int attr3, temporalalgebra::Periods*,
                      temporalalgebra::Periods*);
-  void SetTSDayTimeBus(int attr1,int attr2, int attr3,
+  void SetTSDayTimeBus(int attr1,int attr2, int attr3, 
                        temporalalgebra::Periods*,
                        temporalalgebra::Periods*);
-  double CalculateTimeSpan1(temporalalgebra::Periods* t,
+  double CalculateTimeSpan1(temporalalgebra::Periods* t, 
                             temporalalgebra::Periods* p1,
                             temporalalgebra::Interval<Instant>& span,
                             int index);
   void CalculateTimeSpan2(temporalalgebra::Periods* p1,
                           temporalalgebra::Interval<Instant>& span,
                           double m);
-  void CalculateTimeSpan3(temporalalgebra::Periods* t,
+  void CalculateTimeSpan3(temporalalgebra::Periods* t, 
                           temporalalgebra::Periods* p1,
                           temporalalgebra::Interval<Instant>& span,
                           int index, double interval);
@@ -574,15 +553,15 @@ struct RoadDenstiy{
   void CreateDown(int br_id,temporalalgebra::Periods* peri,
                   double time_interval, bool daytime);
   //traverse halfsegmet to create moving points, from index small to big
-  void CreateBusTrip1(temporalalgebra::MPoint*,
-                      std::vector<MyHalfSegment>, Instant&, 
+  void CreateBusTrip1(temporalalgebra::MPoint*,std::vector<MyHalfSegment>,
+                      Instant&, 
                       double, temporalalgebra::UPoint&);
   //traverse halfsegmet to create moving points, from index big to small 
-  void CreateBusTrip2(temporalalgebra::MPoint*,
-                      std::vector<MyHalfSegment>, Instant&, 
+  void CreateBusTrip2(temporalalgebra::MPoint*,std::vector<MyHalfSegment>,
+                      Instant&, 
                       double, temporalalgebra::UPoint&);
   void CopyBusTrip(int br_id,bool direction, temporalalgebra::MPoint* mo, 
-                   temporalalgebra::Periods*, double, bool daytime,
+                   temporalalgebra::Periods*, double, bool daytime, 
                    int scheduleid);
   void CreateDayTimeBus(); 
   //////add night or daytime, and Sunday or Monday/////////////////
@@ -596,22 +575,23 @@ struct RoadDenstiy{
                               temporalalgebra::Periods*);
   bool SameDay(temporalalgebra::UPoint& up, temporalalgebra::Periods* peri1);
   void CreatTableAtStopNight(std::vector<temporalalgebra::MPoint>& mo_list,
-                             Point& loc, 
-                             int br_id, int stop_id, bool dir,
-                             temporalalgebra::Periods* night1,
+                             Point& loc, int br_id, int stop_id, bool dir,
+                             temporalalgebra::Periods* night1, 
                              temporalalgebra::Periods* night2,
                              int count_id);
-  void CreatTableAtStop(std::vector<temporalalgebra::MPoint> mo_list, 
-                         Point& loc,
-                                   int br_id, int stop_id, bool dir,
-                                   int count_id); 
-  void GetTimeInstantStop(temporalalgebra::MPoint& mo, Point loc,
+  void CreatTableAtStop(std::vector<temporalalgebra::MPoint> mo_list,
+                        Point& loc, int br_id, int stop_id, bool dir,
+                        int count_id); 
+  void GetTimeInstantStop(temporalalgebra::MPoint& mo, Point loc, 
                           Instant& arrove_t); 
   ////////////////////////////////////////////////////////////////////////
   ////////////////construct road graph///////////////////////////////////
   ////////////////////////////////////////////////////////////////////////
   void GetRGNodes();
-  void GetRGEdges1(Relation* rel);
+  void GetRGEdges1(Relation* rel, R_Tree<2,TupleId>* rtree);
+  void DFTraverse(Relation*, R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                          Point& loc, std::vector<int>& _oid_list);
+
   void GetRGEdges2(Relation* rel);
 
 };
@@ -720,7 +700,7 @@ class Bus_Route:public StandardSpatialAttribute<2>{
     Bus_Route& operator=(const Bus_Route& br); 
 
     ~Bus_Route(){}
-
+   
 
     inline size_t Sizeof() const{return sizeof(*this);}
     int Compare(const Attribute* arg) const{return 0;}
@@ -745,15 +725,18 @@ class Bus_Route:public StandardSpatialAttribute<2>{
     void GetSeg(int i, HalfSegment& hs);
     int SegSize(){return seg_list.Size();}
 
+    bool Intersects(const Rectangle<2>& rect,
+                    const Geoid* geoid=0 ) const{
+       assert(false);
+       return false;
+    }
+
+
     double Length();
     const Rectangle<2> BoundingBox(const Geoid* geoid=0) const;
     double Distance(const Rectangle<2>& r, const Geoid* geoid=0)const
     {
         return BoundingBox().Distance(r);
-    }
-    bool Intersects(const Rectangle<2>& r, const Geoid* geoid=0)const
-    {
-        return BoundingBox().Intersects(r);
     }
     void StartBulkLoad();
     void EndBulkLoad();
@@ -799,7 +782,7 @@ Word InBusRoute( const ListExpr typeInfo, const ListExpr instance,
 
 class BusGraph; 
 /*
-Bus Network 
+Bus network::Network 
 
 */
 class BusNetwork{
@@ -858,7 +841,6 @@ class BusNetwork{
   int GetMOBus_MP(Bus_Stop* bs, Point*, Instant t, temporalalgebra::MPoint& mp);
   void GetMOBUS(int oid, temporalalgebra::MPoint& mp, int& br_uoid);
   void GetBusRouteGeoData(int br_uoid, SimpleLine& sl);
-  unsigned int GetMinRouteId(){return min_br_oid;}
 
   private:
     bool def; 
@@ -977,8 +959,8 @@ struct BN{
   void BsNeighbors1(DualGraph* dg, VisualGraph* vg, Relation* rel1,
                    Relation* rel2, R_Tree<2,TupleId>* rtree);
   void DFTraverse2(R_Tree<2,TupleId>* rtree, Relation* rel, 
-                 SmiRecordId adr, Point* l, 
-                 std::vector<int>& neighbor_list, double);
+                 SmiRecordId adr, Point* l, std::vector<int>& neighbor_list,
+                 double);
   bool FindNeighbor(int tid1, int tid2, DualGraph* dg, VisualGraph* vg,
                    Relation* rel1, Relation* rel2, double dist, Line* res);
 
@@ -995,7 +977,6 @@ struct BN{
   void BsNeighbors3(Relation*, Relation*, BTree*);
   void ConnectionOneRoute(Relation* table_rel, std::vector<int> tid_list, 
                             Relation* mo_rel, BTree* btree_mo); 
-  void TrajectoryToSline(temporalalgebra::MPoint* mo, SimpleLine& sl);
   ///////////////////decompuse a bus route///////////////////////////////
   void DecomposeBR(Line* l1, Line* l2);
  
@@ -1297,8 +1278,7 @@ struct BNNav{
   ///////////////////////moving buses (mpoint) to genmo////////////////////
   void BusToGenMO(Relation* r1, Relation* r2, BTree* btree);
   void MPToGenMO(temporalalgebra::MPoint* mp, unsigned int br_id, bool dir,
-                 Relation* br_rel,
-                 BTree* btree);
+                 Relation* br_rel, BTree* btree);
 
 
 };
@@ -1315,8 +1295,8 @@ struct UBTrainTrip{
   bool direction;
   temporalalgebra::MPoint train_trip;
   UBTrainTrip(){}
-  UBTrainTrip(int id,bool d,temporalalgebra::MPoint tr):
-        line_id(id),direction(d),train_trip(tr){}
+  UBTrainTrip(int id,bool d,temporalalgebra::MPoint tr):line_id(id),
+              direction(d),train_trip(tr){}
   UBTrainTrip(const UBTrainTrip& train_tr):
   line_id(train_tr.line_id),direction(train_tr.direction),
   train_trip(train_tr.train_trip){}
@@ -1425,8 +1405,8 @@ struct UBTrain{
   std::vector<Instant> schedule_time;
   std::vector<int> loc_id_list; 
 
-  std::vector<temporalalgebra::Periods> duration; 
-                              //the whole life time for one day 
+  std::vector<temporalalgebra::Periods> duration; //the whole life 
+                                                  //time for one day 
   std::vector<double> schedule_interval; //time interval for each bus trip 
   
   std::vector<SimpleLine> geodata; 
@@ -1510,13 +1490,6 @@ struct MetroStruct{
   enum MetroTripInfoCom{M_GENMO_COM,M_MP_COM,M_R_ID_COM,M_DIR_COM,M_R_OID_COM,
                         M_OID_COM};
 
-  static std::string MetroSegs;
-  static std::string MetroRoadSeg;
-  
-  enum MetroSegInfo{MS_RELID = 0, MS_GEO, MS_OID};
-  enum MetroRoadSetInfo{MRS_OID = 0, MRS_ORDERID, MRS_LOC, MRS_TYPE};
-  int type;
-  
   std::vector<int> id_list;
   std::vector<bool> dir_list;
   std::vector<int> mr_oid_list;
@@ -1560,8 +1533,8 @@ struct MetroStruct{
                     temporalalgebra::Periods* peri,int mr_id, 
                     int mr_oid, bool d);
  void CreateMetroDown(std::vector<MyHalfSegment>& seg_list, 
-                      temporalalgebra::Periods* peri,int mr_id,
-                       int mr_oid, bool d);
+                      temporalalgebra::Periods* peri,int mr_id, 
+                      int mr_oid, bool d);
 
  void CopyMetroTrip(GenMO* genmo, temporalalgebra::MPoint* mo, 
                     temporalalgebra::Periods* peri, 
@@ -1576,7 +1549,6 @@ struct MetroStruct{
  void ConnectionOneRoute(UBahn_Stop* ms_stop, Relation* timetable, 
                          BTree* btree1, Relation* metrotrip, 
                          BTree* btree2, int Neighbor_tid, Point* Neighbor_loc);
-
  //////////////////////////////////////////////////////////////////////////
  ////////////map metro stops to pavement areas/////////////////////////////
  /////////////////////////////////////////////////////////////////////////
@@ -1584,10 +1556,6 @@ struct MetroStruct{
  void DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel,
                              SmiRecordId adr, Point* loc, 
                              std::vector<int>& tri_tid_list, double& min_dist);
- ///////////////////////////////////////////////////////////////////////////
- void GetStops(Relation* rel1, Relation* rel2);
- void GetRoutes(Relation* rel1, Relation* rel2);
- void MStops(Relation* rel, int oid, std::vector<MyPoint_Ext> mp_list);
 };
 
 
@@ -1628,12 +1596,11 @@ class MetroNetwork{
 
     bool IsGraphInit(){return graph_init;}
     unsigned int GraphId(){return graph_id;}
-    unsigned int GetMinRouteId(){return min_mr_oid;}
     MetroGraph* GetMetroGraph();
     void CloseMetroGraph(MetroGraph* mg);
     void GetMetroStopGeoData(Bus_Stop* ms, Point* p);
     int GetMOMetro_Oid(Bus_Stop* ms, Point*, Instant& t);
-    int GetMOMetro_MP(Bus_Stop* bs, Point*, Instant t,
+    int GetMOMetro_MP(Bus_Stop* bs, Point*, Instant t, 
                       temporalalgebra::MPoint& mp);
     double GetStartTime(){return start_time;}
     double GetEndTime(){return end_time;}

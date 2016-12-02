@@ -22,7 +22,6 @@ operator modifyboundary alias MODIFYBOUNDARY pattern op(_,_)
 operator segment2region alias SEGMENT2REGION pattern op(_,_)
 operator paveregion alias PAVEREGION pattern op(_,_,_,_,_,_,_)
 operator junregion alias JUNREGION pattern op(_,_,_,_,_,_,_)
-operator unionpoly alias UNIONPOLY pattern op(_,_,_,_,_)
 operator decomposeregion alias DECOMPOSEREGION pattern op(_)
 operator getpavenode1 alias GETPAVENODE1 pattern op(_,_,_,_,_)
 
@@ -36,11 +35,9 @@ operator createdualgraph alias CREATEDUALGRAPH pattern op(_,_,_)
 
 operator walk_sp_old alias WALK_SP_OLD pattern op(_,_,_,_,_)
 operator walk_sp alias WALK_SP pattern op(_,_,_,_)
-operator walk_sp_debug alias WALK_SP_DEBUG pattern op(_,_,_,_)
 operator test_walk_sp alias TEST_WALK_SP pattern op(_,_,_,_,_)
 operator setpave_rid alias SETPAVE_RID pattern op(_,_,_)
 operator pave_loc_togp alias PAVE_LOC_TOGP pattern op(_,_,_,_)
-
 operator generate_wp1 alias GENERATE_WP1 pattern op(_,_)
 operator generate_wp2 alias GENERATE_WP2 pattern op(_,_)
 operator generate_wp3 alias GENERATE_WP3 pattern op(_,_)
@@ -56,25 +53,21 @@ operator smcdgte alias SMCDGTE pattern op(_,_)
 operator get_dg_edge alias GET_DG_EDGE pattern op(_,_)
 
 operator getvnode alias GETVNODE pattern op(_,_,_,_,_,_)
-operator getvnode2 alias GETVNODE2 pattern op(_,_,_,_,_,_,_)
-operator getvnode3 alias GETVNODE3 pattern op(_,_,_,_,_,_,_,_)
-operator vprange alias VPRANGE pattern op(_,_,_,_)
 operator getvgedge alias GETVGEDGE pattern op(_,_,_,_,_)
 operator myinside alias MYINSIDE pattern _ infixop _
 operator at_point alias AT_POINT pattern op(_,_,_)
 
 operator decomposetri alias DECOMPOSETRI pattern op(_)
 operator createvgraph alias CREATEVGRAPH pattern op(_,_,_)
-
 operator getcontour alias GETCONTOUR pattern op(_)
 operator getpolygon alias GETPOLYGON pattern op(_,_)
 
 operator getallpoints alias GETALLPOINTS pattern op(_)
 operator rotationsweep alias ROTATIONSWEEP pattern op(_,_,_,_,_)
-operator rotationsweep2 alias ROTATIONSWEEP2 pattern op(_,_,_,_,_,_,_)
 operator gethole alias GETHOLE pattern op(_)
 
-
+operator geninterestp1 alias GENINTERESTP1 pattern op(_,_,_,_,_,_,_)
+operator geninterestp2 alias GENINTERESTP2 pattern op(_,_,_,_,_,_)
 operator thepavement alias THEPAVEMENT pattern op(_,_)
 operator cellbox alias CELLBOX pattern op(_,_)
 operator create_bus_route1 alias CREATE_BUS_ROUTE1 pattern op(_,_,_,_,_,_,_)
@@ -157,7 +150,7 @@ operator generate_ip1 alias GENERATE_IP1 pattern op(_,_,_)
 operator generate_mo1 alias GENERATE_MO1 pattern op(_,_,_,_,_,_)
 operator getindoorpath alias GETINDOORPATH pattern op(_,_)
 operator indoornavigation alias INDOORNAVIGATION pattern op(_,_,_,_,_,_)
-
+operator instant2day alias INSTANT2DAY pattern op(_)
 
 operator maxrect alias MAXRECT pattern op(_)
 operator remove_dirty alias REMOVE_DIRTY pattern op(_,_,_)
@@ -168,7 +161,6 @@ operator ref_id alias REF_ID pattern op(_)
 operator tm_at alias TM_AT pattern op(_,_)
 operator tm_at2 alias TM_AT2 pattern op(_,_,_)
 operator tm_at3 alias TM_AT3 pattern op(_,_,_,_)
-operator tm_atgloc alias TM_ATGLOC pattern op(_,_)
 operator val alias VAL pattern op(_)
 operator inst alias INST pattern op(_)
 operator contains alias CONTAINS pattern _ infixop _ 
@@ -187,12 +179,10 @@ operator tm_distance alias TM_DISTANCE pattern op(_,_,_)
 operator tm_genloc alias TM_GENLOC pattern op(_,_,_)
 operator modeval alias MODEVAL pattern op(_)
 operator genmoindex alias GENMOINDEX pattern op(_)
-operator tm_mr2ms alias TM_MR2MS pattern op(_)
+
 
 operator setref_id alias SETREF_ID pattern op(_)
 operator deftime alias DEFTIME pattern op(_)
-operator tm_translate alias TM_TRANSLATE pattern  _ infixop _
-operator tm_translate2 alias TM_TRNASLATE2 pattern _ infixop _
 operator no_components alias NO_COMPONENTS pattern op (_)
 operator lowres alias LOWRES pattern op(_)
 operator trajectory alias TRAJECTORY pattern op(_)
@@ -225,14 +215,8 @@ operator generate_bench_5 alias GENERATE_BENCH_5 pattern op(_,_,_,_,_)
 operator generate_car alias GENERATE_CAR pattern op(_,_,_,_)
 
 operator get_rg_nodes alias GET_RG_NODES pattern op(_)
-operator get_rg_edges1 alias GET_RG_EDGES1 pattern op(_)
+operator get_rg_edges1 alias GET_RG_EDGES1 pattern op(_,_)
 operator get_rg_edges2 alias GET_RG_EDGES2 pattern op(_,_)
-operator get_p_edges3 alias GET_P_EDGE3 pattern op(_,_,_,_)
-operator get_p_edges4 alias GET_P_EDGE4 pattern op(_,_)
-operator theosmpave alias THEOSMPAVE pattern op(_,_,_)
-operator createosmgraph alias CREATEOSMGRAPTH pattern op(_,_,_)
-operator osmlocmap alias OSMLOCMAP pattern op(_,_)
-operator osm_path alias OSM_PATH pattern op(_,_,_)
 operator creatergraph alias CREATERGRAPH pattern op(_,_,_,_)
 operator shortestpath_tm alias SHORTESTPATH_TM pattern op(_,_,_,_)
 
@@ -240,36 +224,9 @@ operator shortestpath_tm alias SHORTESTPATH_TM pattern op(_,_,_,_)
 operator navigation1 alias NAVIGATION1 pattern op(_,_,_,_,_,_,_)
 
 operator modifyline alias MODIFYLINE pattern op(_)
-operator modifyregion alias MODIFYREGION pattern op(_)
-operator refinedata alias REFINEDATA pattern op(_)
-operator filterdisjoint alias FILTERDISJOINT pattern op(_,_,_)
-operator refinebr alias REFINEBR pattern op(_,_,_)
-operator bs_stops alias BS_STOPS pattern op(_,_,_)
-operator set_bs_speed alias SET_BS_SPEED pattern op(_,_,_,_)
-operator set_stop_loc alias SET_STOP_LOC pattern op(_)
-operator getmetrodata alias GETMETRODATA pattern op(_,_,_)
-operator sl2reg alias SL2REG pattern op(_)
-operator tm_segs alias TM_SEGS pattern op(_)
-
+operator checkroads alias CHECKROADS pattern op(_,_)
 operator tm_join1 alias TM_JOIN1 pattern op(_,_,_)
 
+
+
 operator nearstops_building alias NEARSTOPS_PAVE pattern op(_,_)
-
-operator decomposegenmo alias DECOMPOSEGENMO pattern op(_,_,_)
-operator bulkloadtmrtree alias BULKLOADTMRTREE pattern _ op [_,_,_,_]
-operator tmrtreemode alias TMRTREEMODE pattern op(_,_,_)
-operator tm_nodes alias TM_NODES pattern op(_)
-operator range_tmrtree alias RANGE_TMRTREE pattern op(_,_,_,_)
-operator mode2str alias MODE2STR pattern op(_,_)
-operator range_query alias RANGE_QUERY pattern op(_,_)
-operator range_query4d alias RANGE_QUERY4D pattern op(_,_,_)
-operator mode2bit alias MODE2BIT pattern op(_)
-
-operator decomposegenmo2 alias DECOMPOSEGENMO2 pattern op(_,_,_)
-operator loadmodertree alias LOADMODERTREE pattern _ op [_,_,_,_]
-operator modertreeref alias MODERTREEREF pattern op(_,_,_,_)
-operator printmodertree alias PRINTMODERTREE pattern op(_,_,_)
-operator bench_modertree alias BENCH_MODERTREE pattern op(_,_,_,_,_,_)
-operator bench_modertree9 alias BENCH_MODERTREE9 pattern op(_,_,_,_,_,_,_)
-operator bench_modertree12 alias BENCH_MODERTREE12 pattern op(_,_,_,_,_,_,_,_,_)
-operator bench_modertree13 alias BENCH_MODERTREE13 pattern op(_,_,_,_,_,_,_,_)

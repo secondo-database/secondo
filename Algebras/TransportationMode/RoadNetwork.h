@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 
-[1] Header File for Creating Bus Network 
+[1] Header File for Creating Bus network::Network 
 
 July, 2011 Jianqiu xu
 
@@ -72,7 +72,7 @@ July, 2011 Jianqiu xu
 struct GP_Point;
 
 /////////////////////////////////////////////////////////////////////////
-///////////////////road network graph////////////////////////////////////
+///////////////////road network::Network graph///////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
 /*
@@ -82,8 +82,9 @@ two junctions are connected by
 (2) route segments of one route (the two junctions belong to one route)
 
 at this movement (2011.7.26) we assume each road has both up and down directions
-so that for a gpoint it can go either direction along the route. 
-but it is no problem to extend that if gpoint has up or down value, then only
+so that for a network::GPoint it can go either direction along the route. 
+but it is no problem to extend that if network::GPoint has up or down value, 
+then only
 one direction is available
 
 */
@@ -97,7 +98,7 @@ class RoadGraph{
     RoadGraph(SmiRecord&, size_t&, const ListExpr);
 
     ~RoadGraph();
-    void RemoveRoadGraph();
+
     static std::string RGNodeTypeInfo;
     static std::string RGBTreeNodeTypeInfo;
     static std::string RGEdgeTypeInfo1;
@@ -266,7 +267,7 @@ struct RoadNav{
   void GenerateRoadLoc(network::Network* rn, int no, 
                        std::vector<network::GPoint>& gp_list, 
                        std::vector<Point>& gp_loc_list);
-  void ShortestPath(network::GPoint*, network::GPoint*, RoadGraph*,
+  void ShortestPath(network::GPoint*, network::GPoint*, RoadGraph*, 
                     network::Network*, network::GLine* res);
 
   void ShortestPathSub(network::GPoint*, network::GPoint*, RoadGraph*, 
