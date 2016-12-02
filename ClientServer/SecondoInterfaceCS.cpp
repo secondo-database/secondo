@@ -274,6 +274,13 @@ std::string SecondoInterfaceCS::getHost() const{
   return server?server->GetSocketAddress():"unknown";
 }
 
+bool SecondoInterfaceCS::connectionOK() const{
+  if(!server) return false;
+  if(!server->IsOk()) return false;
+  iostream& iosock = server->GetSocketStream();
+  return iosock.good();
+}
+
 
 
 /**************************************************************************

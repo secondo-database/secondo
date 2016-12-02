@@ -205,6 +205,9 @@ public:
 
    std::string getConnectionInfo() const;
 
+   bool connectionOK() const;
+
+
   private:
      int  maxAttempts; // maximum number of attemps when connecting
      int  timeout; // timeout in second per connection attemp 
