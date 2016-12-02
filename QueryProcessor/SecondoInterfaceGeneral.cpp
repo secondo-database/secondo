@@ -61,7 +61,6 @@ SecondoInterface::SecondoInterface(bool isServer, NestedList* _nl)
     al = nl;
     externalNL = true;
   }
-  csp = 0;
   id = -1;
 }
 
@@ -73,11 +72,9 @@ SecondoInterface::Init() {
 
   initialized = false;
   activeTransaction = false;
-  server = 0;
   serverInstance = false;
   nl = 0;
   al = 0;
-  csp = 0;
   derivedObjPtr = 0;
   printQueryAnalysis = false;
 

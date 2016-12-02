@@ -673,7 +673,6 @@ SecondoInterfaceTTY::Terminate()
     }
     nl = 0;
     al = 0;
-    server = 0;
   }
   else
   {

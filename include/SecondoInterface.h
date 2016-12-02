@@ -1097,9 +1097,6 @@ virtual bool cancelQuery(int pid) = 0;
 
   bool externalNL;
 
-  Socket*     server;     // used in C/S version only
-  CSProtocol* csp;
-
   bool ServerInstance();  // check if the current instance
   bool serverInstance;    // was create by the server
 

@@ -64,6 +64,8 @@ SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
                                        NestedList* _nl, /*=0 */
                                        bool _verbose /*=true*/ ):
  SecondoInterface(isServer,_nl) {
+    server = 0;
+    csp=0;
     externalNL = _nl!=0;
     maxAttempts = DEFAULT_CONNECT_MAX_ATTEMPTS;
     timeout = DEFAULT_RECONNECT_TIMEOUT;

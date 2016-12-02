@@ -207,6 +207,9 @@ public:
 
    bool connectionOK() const;
 
+ protected:
+     Socket*     server;     // used in C/S version only
+     CSProtocol* csp;
 
   private:
      int  maxAttempts; // maximum number of attemps when connecting
