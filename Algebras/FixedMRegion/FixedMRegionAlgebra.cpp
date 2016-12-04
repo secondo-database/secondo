@@ -1080,10 +1080,10 @@ Maps a result value to the given arguments.
             if (!res) {
                 res = reg;
             } else {
-		Region res2(0);
+                Region res2(0);
                 res->Union(*reg, res2, NULL);
                 delete reg;
-		*res = res2;
+                *res = res2;
             }
         }
         
