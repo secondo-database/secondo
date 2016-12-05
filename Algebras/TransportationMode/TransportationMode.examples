@@ -1051,7 +1051,7 @@ Result   : (2.0, -1.0)
 Operator : tm_traffic
 Number   : 1
 Signature: relation x periods x relation x bool -> (stream(((x1 t1) ... (xn tn))))
-Example  : query tm_traffic(all_genmo, Q21_qt2, roadsegs, true) count;
+Example  : query tm_traffic(all_genmo, Q21_qt2, roadsegs, TRUE) count;
 Result   : 10
 
 
