@@ -1,0 +1,21 @@
+delete Size
+
+# delete NSlots
+
+delete Fraction
+
+delete Boundaries
+
+query CityNodesB0 dmap["", memclear()]
+
+query memclear()
+
+query deleteRemoteObjects(CityNodesSortedNodeIdA)
+
+delete CityNodesSortedNodeIdA
+
+query deleteRemoteObjects(CityNodesSortedNodeId)
+
+delete CityNodesSortedNodeId
+
+
