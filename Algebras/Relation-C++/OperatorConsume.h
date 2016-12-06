@@ -77,19 +77,17 @@ Operator ~consume~ accepts a stream of tuples and returns a relation.
                           "not fit to Secondo's naming conventions");
       }
 
-      if(!isOrel){
-        // do not allow an arel  attribute for standard consume
-        while(!nl->IsEmpty(attrlist)){
-          ListExpr attr = nl->First(attrlist);
-          attrlist = nl->Rest(attrlist);
-          ListExpr type = nl->Second(attr);
-          if( (nl->ListLength(type)==2) &&
-              (nl->IsAtom(nl->First(type))) &&
-              ( (nl->SymbolValue(nl->First(type))) == "arel")){
-            ErrorReporter::ReportError("arel attributes cannot be processed"
-                                        " with standard consume");
-            return nl->TypeError();
-          }
+      // do not allow an arel  attribute for standard consume
+      while(!nl->IsEmpty(attrlist)){
+        ListExpr attr = nl->First(attrlist);
+        attrlist = nl->Rest(attrlist);
+        ListExpr type = nl->Second(attr);
+        if( (nl->ListLength(type)==2) &&
+            (nl->IsAtom(nl->First(type))) &&
+            ( (nl->SymbolValue(nl->First(type))) == "arel")){
+          ErrorReporter::ReportError("arel attributes cannot be processed"
+                                      " with standard consume");
+          return nl->TypeError();
         }
       }
 
