@@ -3107,7 +3107,7 @@ const string str2instantSpec =
   " ( \"string  -> string \""
   "\" transformDateTime(_)\" "
    "'transform a given string format like [11/Oct/2016:16:22:31 for example"
-   " in the string format: 2016-10-11-16:22:31  ' "
+   " into the string format: 2016-10-11-16:22:31  ' "
    "'query transformDateTime(tostring([11/Oct/2016:16:22:31))' ))";
 
 
