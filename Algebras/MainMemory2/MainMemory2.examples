@@ -574,5 +574,24 @@ Signature : {string, mem} -> mpointer
 Example   : query pwrap("ten") getTypeNL contains "mpointer"
 Result    : TRUE
 
+Operator  : memload
+Number    : 97
+Signature : string -> bool
+Example   : query memload("plz")
+Result    : TRUE
+
+
+
+Operator  : mcreateAVLtree
+Number    : 98
+Signature : memrel x attrname -> memavltree
+Example   : query "plz" mcreateAVLtree[PLZ]
+Result    : ((mem (avltree int )) "plz_PLZ")
+
+Operator  : matchbelow2
+Number    : 99
+Signature : memavltree x memrel x T x Ident x V -> V
+Example   : query "plz_PLZ" "plz" matchbelow2[5000, Ort, "anywhere"]
+Result    : "Wiederau"
 
 

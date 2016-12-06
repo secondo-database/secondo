@@ -42,6 +42,7 @@ operator mcreateAVLtree alias  MCREATEAVLTREE pattern _ op [_]
 operator mexactmatch alias MEXACTMATCH pattern _ _ op [_]
 operator mrange alias MRANGE pattern _ _ op [_, _]
 operator matchbelow alias MATCHBELOW pattern _ _ op [_]
+operator matchbelow2 alias MATCHBELOW2 pattern _ _ op [_,_,_]
 operator mcreateRtree2 alias MCREATERTREE2 pattern _ op [_,_]
 
 operator mcreateMtree2 alias MCREATEMTREE2 pattern _ op [_,_,_]

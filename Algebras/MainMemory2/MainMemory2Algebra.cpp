@@ -323,11 +323,35 @@ memAVLtree* getAVLtree(T* treeN, ListExpr subtype){
    return mao->getAVLtree();
 }
 
+template<class T>
+memAVLtree* getAVLtree(T* treeN){
+   if(!treeN->IsDefined()){
+      return 0;
+   }
+   string treen = treeN->GetValue();
+   if(!catalog->isMMObject(treen) || !catalog->isAccessible(treen)){
+      return 0;
+   }
+   ListExpr treet = nl->Second(catalog->getMMObjectTypeExpr(treen));
+   if(!MemoryAVLObject::checkType(treet)){
+       return 0;
+   }
+   MemoryAVLObject* mao = (MemoryAVLObject*)catalog->getMMObject(treen);
+   return mao->getAVLtree();
+}
+
 template<>
 memAVLtree* getAVLtree(MPointer* tree, ListExpr subtype){
   MemoryObject* ptr = (*tree)();
   return ((MemoryAVLObject*)ptr)->getAVLtree();
 }
+
+template<>
+memAVLtree* getAVLtree(MPointer* tree){
+  MemoryObject* ptr = (*tree)();
+  return ((MemoryAVLObject*)ptr)->getAVLtree();
+}
+
 
 template<class T>
 MemoryRelObject* getMemRel(T* relN){
@@ -13932,7 +13956,185 @@ Operator pwrapOp(
   pwrapTM
 );
 
+/*
+11 Variant of matchbelow
 
+*/
+
+ListExpr matchbelow2TM(ListExpr args){
+
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError("wrong number of arguments, expected 5");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr tree = nl->First(args); 
+  string err;
+  if(!getMemType(nl->First(tree), nl->Second(tree), tree, err, true)){
+    return listutils::typeError(err);
+  }
+  // remove mem from tree description
+  tree = nl->Second(tree);
+  if(   !MemoryAVLObject::checkType(tree)
+     && !MemoryTTreeObject::checkType(tree)){
+     return listutils::typeError("first arg must be a main memory "
+                                 "avl-tree or t-tree.");
+  }
+  bool isAVL = MemoryAVLObject::checkType(tree);
+  ListExpr treeType = nl->Second(tree);
+
+  ListExpr rel = nl->Second(args);
+  if(!getMemType(nl->First(rel), nl->Second(rel), rel,err, true)){
+     return listutils::typeError(err);
+  }
+  rel = nl->Second(rel);
+  if(MemoryRelObject::checkType(rel)){
+     return listutils::typeError("Second arg is not a memory relation");
+  }
+
+  ListExpr searchType = nl->First(nl->Third(args));
+
+  if(!nl->Equal(searchType,treeType)){
+     return listutils::typeError("search key type differs from tree type");
+  }  
+
+  ListExpr attrName = nl->First(nl->Fourth(args));
+
+  if(nl->AtomType(attrName)!=SymbolType){
+    return listutils::typeError("fourth arg must be an attribute name");
+  }
+  string aname = nl->SymbolValue(attrName);
+  ListExpr attrType;
+  ListExpr attrList = nl->Second(nl->Second(rel));
+  int index = listutils::findAttribute(attrList,aname,attrType);
+  if(!index){
+    return listutils::typeError("attribute " + aname 
+                                + " not found in relation");
+  }
+  ListExpr defaultType = nl->First(nl->Fifth(args));
+  if(!nl->Equal(attrType,defaultType)){
+    return listutils::typeError("default value type differs "
+                                "from attribute type");
+  }
+  return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               nl->TwoElemList(nl->BoolAtom(isAVL),
+                               nl->IntAtom(index-1)),
+               defaultType
+             );
+}
+
+
+template<class T, class R>
+int matchbelow2VMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   Attribute* res = (Attribute*) result.addr;
+
+   R* relN = (R*) args[1].addr;
+   MemoryRelObject* mro = getMemRel(relN);
+   if(!mro){
+     res->SetDefined(false);
+     return 0;      
+   }
+
+   vector<Tuple*>* rel = mro->getmmrel();
+   size_t size = rel->size();
+   T* treeN = (T*) args[0].addr;
+   bool isAVL = ((CcBool*) args[5].addr)->GetValue();
+   
+   Attribute* searchValue = (Attribute*) args[2].addr;
+   Attribute* defaultValue = (Attribute*) args[4].addr;
+   int attrIndex = ((CcInt*)args[6].addr)->GetValue();
+   AttrIdPair const* hit=0; 
+
+   AttrIdPair p(searchValue,size);
+   if(isAVL){
+      memAVLtree* tree = getAVLtree(treeN);    
+      if(!tree){
+        res->SetDefined(0);
+        return 0;
+      }
+      hit = tree->GetNearestSmallerOrEqual(p);
+   } else {
+      MemoryTTreeObject*  tree = getTtree(treeN);
+      if(!tree){
+        res->SetDefined(0);
+        return 0;
+      } 
+      hit = tree->gettree()->GetNearestSmallerOrEqual(p,0);
+   }
+   if(!hit){ // tree empty or searchvalue smaller than all entries
+      res->CopyFrom(defaultValue);
+      return 0;
+   }
+   TupleId tid = hit->getTid();
+   if(tid>size || tid<1){
+     res->SetDefined(false);
+     return 0;
+   } 
+   Tuple* rt = rel->at(tid-1);
+   if(!rt){ // deleted tuple
+     res->SetDefined(false);
+     return 0;
+   }
+   res->CopyFrom(rt->GetAttribute(attrIndex));
+
+   return 0;
+}
+
+ValueMapping matchbelow2VM[] = {
+  matchbelow2VMT<CcString,CcString>,
+  matchbelow2VMT<CcString,Mem>,
+  matchbelow2VMT<CcString,MPointer>,
+  matchbelow2VMT<Mem,CcString>,
+  matchbelow2VMT<Mem,Mem>,
+  matchbelow2VMT<Mem,MPointer>,
+  matchbelow2VMT<MPointer,CcString>,
+  matchbelow2VMT<MPointer,Mem>,
+  matchbelow2VMT<MPointer,MPointer>
+};
+
+int matchbelow2Select(ListExpr args){
+   ListExpr tree = nl->First(args);
+   int n1 =   CcString::checkType(tree)
+            ? 0
+            : Mem::checkType(tree)
+              ?3
+              :6;
+   ListExpr rel = nl->Second(args);
+   int n2 =   CcString::checkType(rel)
+            ? 0
+            : Mem::checkType(rel)
+              ?1
+              :2;
+   return n1+n2;
+}
+
+OperatorSpec matchbelow2Spec(
+   "{avltree, ttree} x mrel x T x Ident x V -> V ",
+   "tree rel matchbelow2[searchV, attrName, defaultV]",
+   "Retrieves from an avl tree the entry which is "
+   "less or equal to searchV. From the returned tuple id, "
+   "the tuple in the relation is retrieved and the "
+   "attribute with given name is extracted. " 
+   "If the avl tree does not returns a hit, the defaultV is "
+   "used as the result. If the tuple id is not present in the "
+   "relation, the result is undefined. ",
+   "query avl rel matchbelow2[ 23, Name, \"Unknown\"] "
+);
+
+
+Operator matchbelow2Op(
+  "matchbelow2",
+  matchbelow2Spec.getStr(),
+  9,
+  matchbelow2VM,
+  matchbelow2Select,
+  matchbelow2TM
+);
 
 
 
@@ -14010,6 +14212,12 @@ class MainMemory2Algebra : public Algebra {
           mrangeOp.SetUsesArgsInTypeMapping();
           AddOperator (&matchbelowOp);
           matchbelowOp.SetUsesArgsInTypeMapping();
+
+          AddOperator (&matchbelow2Op);
+          matchbelow2Op.SetUsesArgsInTypeMapping();
+
+
+
           AddOperator(&mcreateMtree2Op);
           AddOperator(&mdistRange2Op);
           mdistRange2Op.SetUsesArgsInTypeMapping();
