@@ -214,6 +214,19 @@ class OrderedRelation : public GenericRelation {
        return tupleFile->GetFileId();
      }
 
+
+     inline const SmiKey::KeyDataType& getKeyElemType(const int i) const{
+       return keyElemType[i];
+     }
+
+     inline const int& getKeyElemPos(const int i) const{
+       return keyElement[i];
+     }
+
+     inline const std::vector<SmiKey::KeyDataType>& getKeyElemTypes() const{
+        return keyElemType;
+     }
+
   private:
     OrderedRelation();
     SmiBtreeFile* tupleFile;

@@ -31,3 +31,16 @@ Signature: (orel (tuple (a1:t1,a2:t2,...,an:tn)) (ai1)) x int x int x int x (tup
 Example  : query otestrel oshortestpatha [1,3, 0; distance(.GeoData_s1,.GeoData_s2),distance(.GeoData_s1,.GeoData_s2) * 0.0] consume;
 Result   : file
 
+Operator : getotuples
+Number   : 1
+Signature : stream(tuple) x orel(X) -> stream(X)
+Example   : query otestrel feed krduph[Id_s1,Id_s2] otestrel getotuples count = otestrel count 
+Result    : TRUE
+
+Operator  : getotuples2
+Number    : 1
+Signature : stream(tid) x real(A) x orel(B) -> stream(B), with A subset keyset(B)
+Example   : query otestrel_aux_rtree windowintersectsS[bbox(thecenter)]  transformstream otestrel_aux  otestrel getotuples2 count
+Result    : 44 
+
+

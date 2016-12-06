@@ -25,3 +25,8 @@ operator oshortestpathd alias OSHORTESTPATHD pattern _ op [ _, _,_; fun]
 operator oshortestpatha alias OSHORTESTPATHA pattern _ op [ _, _,_; fun, fun]
          implicit parameter tuple type TUPLE
 
+operator getotuples alias GETOTUPLES pattern _ _ op
+
+operator getotuples2 alias GETOTUPLES2 pattern _ _ _ op
+
+
