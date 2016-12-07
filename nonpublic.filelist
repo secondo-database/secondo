@@ -57,8 +57,8 @@ MRegionOps2Algebra MRegionOps2
 Spatial3DAlgebra Spatial3D
 TimeSequenceAlgebra TimeSequence
 TINAlgebra TIN
-TransportationModeAlgebra TransportationMode
 TypeMapTestAlgebra TypeMapTest
+MainMemoryAlgebra MainMemory
 
 
 
