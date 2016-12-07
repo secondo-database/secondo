@@ -120,7 +120,7 @@ The first constructor. First one can set if the rectangle is defined,
  and if it is, the coordinates can be set.
 
 */
-    inline Rectangle( const bool defined, ... );
+    inline explicit Rectangle( const bool defined, ... );
 
 /*
 The second constructor. First one can set if the rectangle is defined,

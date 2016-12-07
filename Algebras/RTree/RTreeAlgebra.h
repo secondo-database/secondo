@@ -4706,7 +4706,7 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
         currLevel    = 0;
         currEntry    = -1;
         reportLevel  = -1;
-        searchBox    = false;
+        searchBox.SetDefined(false);
         searchType   = NoSearch;
 
         // Set new root to topmost node from bulkloading

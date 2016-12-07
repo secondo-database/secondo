@@ -4484,7 +4484,7 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
   delete neighbor_end;
   delete vg2;
   /////////////construct path///////////////////////////////////////////
-  double len = 0.0;
+  //double len = 0.0;
   if(find){
     res->StartBulkLoad();
     while(dest.prev_index != -1){
@@ -4501,7 +4501,7 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
       /////////////////////////////////////////////////////
     }
     res->EndBulkLoad(); 
-    len = res->Length(); 
+    //len = res->Length(); 
   }
 }
 
@@ -6632,8 +6632,8 @@ void RegVertex::CreateVertex()
       unsigned int no_cyc = ct->NoOfCycles();
       assert(no_cyc > 0);
 
-      const int ncontours = no_cyc;
-      int no_p_contour[ncontours];
+      //const int ncontours = no_cyc;
+      //int no_p_contour[ncontours];
 
       vector<double> ps_contour_x;
       vector<double> ps_contour_y;
@@ -6678,7 +6678,7 @@ void RegVertex::CreateVertex()
         }else{// points clockwise
           clock = true;
         }
-        no_p_contour[i] = ps.size();
+        //no_p_contour[i] = ps.size();
         if(i == 0){//outer contour, counter_clockwise
           if(clock == false){
               for(unsigned int index = 0;index < ps.size();index++){
@@ -9565,7 +9565,7 @@ void MaxRect::GetRectangle1(int attr1, int attr2, Relation* building_para)
                     Rectangle<2>* res_box = new Rectangle<2>(true, mini, maxi);
 
                     if(RegContainRect(poly, rect_box))
-                        rect_box_list.push_back(res_box); 
+                        rect_box_list.push_back(*res_box); 
 
                     delete res_box; 
                }
