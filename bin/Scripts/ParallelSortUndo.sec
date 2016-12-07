@@ -1,6 +1,6 @@
 delete Size
 
-delete NSlots
+# delete NSlots
 
 delete Fraction
 

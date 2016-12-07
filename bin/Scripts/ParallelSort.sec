@@ -1,13 +1,12 @@
+# Parallel sorting for dfarrays
+
 let Size = BuildingsB1 dmap["", . feed count] getValue tie[. + ..];
-let NSlots = size(BuildingsB1);
+# let NSlots = size(BuildingsB1);
 let Fraction = (Size div NSlots) div 500;
 query share("Fraction", TRUE, Workers14);
 
 let Boundaries = BuildingsB1 dmap["", . feed nth[Fraction, FALSE] 
   project[Osm_id]] dsummarize sort nth[500, TRUE] addcounter[D, 1]
-    [const rel(tuple([Osm_id: string, D: int])) value ( ("" 0) )] feed
-  concat
-  sortby[D]
   consume
 
 query share("Boundaries", TRUE, Workers14)
@@ -19,8 +18,8 @@ query Boundaries feed letmconsume["Boundaries"]
   mcreateAVLtree[Osm_id] 
 
 let BuildingsSortedOsm_idA = BuildingsB1
-  partition["", "Boundaries_Osm_id" "Boundaries" matchbelow[.Osm_id] 
-  extract[D],  0] 
+  partition["", pwrap("Boundaries_Osm_id") pwrap("Boundaries") 
+    matchbelow2[.Osm_id, D, 0],  0] 
 
 let BuildingsSortedOsm_id = BuildingsSortedOsm_idA
-  areduce["", . feed sortby[Osm_id], 1238]
+  areduce["", . feed sortby[Osm_id], 1238] 
