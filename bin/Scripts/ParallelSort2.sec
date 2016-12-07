@@ -1,47 +1,32 @@
-let Size = CityNodesB0 dmap["", . count] getValue tie[. + ..];
+# Parallel sorting for darrays
+#
+# Adapt name of darray: CityNodesB0
+# Adapt attribute: 	NodeId
 
-# 0.24 seconds
+let Size = CityNodesB0 dmap["", . count] getValue tie[. + ..];
 
 # let NSlots = size(CityNodesB0);
 let Fraction = (Size div NSlots) div 500;
 
-# 0.000558 sec
-
 query share("Fraction", TRUE, Workers);
-
-# 0.10 seconds
 
 let Boundaries = CityNodesB0 dmap["", . feedNth[Fraction, FALSE] 
   project[NodeId]] dsummarize sort nth[500, TRUE] addcounter[D, 1]
   consume
 
-# 1.72 sec
-
 query share("Boundaries", TRUE, Workers)
-
-# 0.17 sec, 0.18
 
 query CityNodesB0 dmap["", Boundaries feed letmconsume["Boundaries"] 
   mcreateAVLtree[NodeId] ]
 
-# 0.17 sec
-
 query Boundaries feed letmconsume["Boundaries"] 
   mcreateAVLtree[NodeId] 
-
-# 0.002 sec
 
 let CityNodesSortedNodeIdA = CityNodesB0
   partition["", pwrap("Boundaries_NodeId") pwrap("Boundaries") 
     matchbelow2[.NodeId, D, 0],  0] 
 
-# 1:21 min (81.26 seconds), 86.95 sec
-
 let CityNodesSortedNodeId = CityNodesSortedNodeIdA
   areduce["", . feed sortby[NodeId], 1238] 
 
-# 1:34 min (93.90 sec), 98.88
 
-query 23.56 + 0.10 + 14.72 + 0.17 + 81.26 + 93.90
-
-# result time 213.71 seconds
