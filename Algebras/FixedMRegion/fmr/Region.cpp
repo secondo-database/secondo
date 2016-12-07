@@ -221,11 +221,28 @@ Point Region::centroid() {
          ys += p.second;
     }
     
-    return Point(xs/(6*A), ys/(6*A));
+    return Point(xs/(A*6.0), ys/(A*6.0));
 }
 
 /*
-11 ~ToString~
+11 ~BoundingBox~
+
+Return the bounding box of this region.
+ 
+*/
+BoundingBox Region::boundingBox() {
+    BoundingBox bb;
+    
+    for (unsigned int nrface = 0; nrface < faces.size(); nrface++) {
+        Face& f = faces[nrface];
+        bb.update(f.boundingBox());
+    }
+    
+    return bb;    
+}
+
+/*
+12 ~ToString~
 
 Return a string representation of this region.
 
@@ -240,7 +257,7 @@ std::string Region::ToString() {
 }
 
 /*
-12 ~toRList~
+13 ~toRList~
 
 Return an RList representation of this region.
 

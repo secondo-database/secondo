@@ -33,6 +33,7 @@ Header file with the class definition for the class ~MPoint~
 #include "fmr_ISSegCurve.h"
 #include "fmr_UPoint.h"
 #include "fmr_MBool.h"
+#include "fmr_Interval.h"
 
 namespace fmr {
 
@@ -47,7 +48,9 @@ public:
     MPoint() {}
     virtual ~MPoint() {}
     MPoint(RList& l);
+    MPoint intersection (FMRegion& fmr);
     MBool inside (FMRegion& fmr);
+    RList toRList();
     
     std::vector<UPoint> units;
 private:

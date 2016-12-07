@@ -28,6 +28,7 @@ Header file with the class definition for the class ~Face~.
 
 #include <vector>
 #include <string>
+#include "fmr_BoundingBox.h"
 #include "fmr_TransformationUnit.h"
 #include "fmr_RList.h"
 #include "fmr_Seg.h"
@@ -53,6 +54,7 @@ public:
     double area();
     std::pair<double, double> centroidParams();
     bool inside (Point p);
+    BoundingBox boundingBox();
     
     std::vector<Seg> segs;
     std::vector<Face> holes;

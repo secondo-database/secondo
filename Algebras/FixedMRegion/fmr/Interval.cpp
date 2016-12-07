@@ -141,13 +141,13 @@ Interval::Interval(RList& l) {
 }
 
 /*
-8 ~intersect~
+8 ~intersection~
 
 Calculates the intersection of two time intervals. Also handles
 the closedness correctly
 
 */
-Interval Interval::intersect(Interval& iv) {
+Interval Interval::intersection(Interval& iv) {
     Interval ret;
     
     ret.start = (iv.start > start) ? iv.start : start;
@@ -167,7 +167,26 @@ Interval Interval::intersect(Interval& iv) {
 }
 
 /*
-9 ~getFrac~
+9 ~intersects~
+
+Determines if two time intervals intersects. Also handles
+the closedness correctly
+
+*/
+bool Interval::intersects(Interval& iv) {
+    if ( (iv.start > end) ||
+        ((iv.start == end) && (!iv.lc || !rc)))
+        return false;
+    
+    if ( (start > iv.end) ||
+        ((start == iv.end) && (!lc || !iv.rc)))
+        return false;
+    
+    return true;
+}
+
+/*
+10 ~getFrac~
 
 Project an instant in the interval into the range [0;1]
 
@@ -177,7 +196,18 @@ double Interval::getFrac(double currentTime) {
 }
 
 /*
-10 ~project~
+11 ~valid~
+
+Tests, if an interval is valid. This is the case, when start < end or
+start == end and lc == true and rc == true
+
+*/
+bool Interval::valid() {
+    return (start < end) || (start == end && lc && rc);
+}
+
+/*
+12 ~project~
 
 Reverse operation ~getFrac~ (9), get an instant from a
 fraction (i.e. project(0.5) yields the middle of the time interval)
@@ -188,7 +218,7 @@ double Interval::project(double t) {
 }
 
 /*
-11 ~ToString~
+13 ~ToString~
 
 Return a string representation of the interval
 
@@ -199,7 +229,7 @@ std::string Interval::ToString() {
 }
 
 /*
-12 ~toRList~
+13 ~toRList~
 
 Return an RList representation of the interval
 

@@ -639,7 +639,7 @@ Maps a result value to the given arguments.
         Instant *it = static_cast<Instant*> (args[1].addr);
 
         // Convert secondo instant to ms since unix epoch
-	double instant = (it->ToDouble()+10959)*86400000;
+        double instant = (it->ToDouble()+10959)*86400000;
 
         // Calculate the projected region in libfmr
         fmr::Region fmrreg = fmr->fmr->atinstant(instant);
@@ -671,7 +671,83 @@ Maps a result value to the given arguments.
             );
 
 /*
-4.2 ~inside~
+4.2 ~intersection~
+
+Restrict a moving point to times, when it is inside an ~fmregion~. The result
+is an ~mpoint~ object, which is defined at all times, when both source objects
+are defined and the ~mpoint~ is inside the ~fmregion~.
+
+Signature: mpoint x fmregion -> mpoint
+Example: query mpoint1 intersects fmregion1
+
+4.2.1 ~Type mapping~
+
+Maps the source types to the result type. Only one variant is supported here.
+
+*/
+    ListExpr intersectiontypemap(ListExpr args) {
+        std::string err = "mpoint x fmregion expected";
+        int len = nl->ListLength(args);
+        if (len != 2) {
+            return listutils::typeError(err + " (wrong number of arguments)");
+        }
+        if (!temporalalgebra::MPoint::checkType(nl->First(args))) {
+            return listutils::typeError(err + " (wrong first arg)");
+        }
+        if (!FMRegion::checkType(nl->Second(args))) {
+            return listutils::typeError(err + " (wrong second arg)");
+        }
+        return nl->SymbolAtom(temporalalgebra::MPoint::BasicType());
+    }
+
+/*
+4.2.2 ~Value mapping~
+
+Maps a result value to the given arguments.
+
+*/
+    int intersectionvalmap(Word *args, Word& result,
+            int message, Word& local, Supplier s) {
+        result = qp->ResultStorage(s);
+
+        FMRegion *fmr = static_cast<FMRegion*> (args[1].addr);
+
+        // Convert the Secondo nested list representation of the moving point
+        // to a libfmr MPoint object
+        fmr::RList mprl = NL2RList(OutMapping<MPoint, UPoint,
+                OutUPoint>(nl->Empty(), args[0]));
+        fmr::MPoint mp(mprl);
+
+        // Calculate the times, when the moving point is inside the fmregion
+        // and store the result in an mbool object
+        fmr::MPoint mp2 = mp.intersection(*fmr->fmr);
+
+        // Convert the libfmr mbool to a Secondo mbool and return it
+        ListExpr le = RList2NL(mp2.toRList());
+        bool correct;
+        ListExpr errorInfo;
+        result = InMapping<MPoint, UPoint, InUPoint>
+                                       (nl->Empty(), le, 0, errorInfo, correct);
+
+        return 0;
+    }
+
+    static const std::string intersectionspec =
+            "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+            "  (<text>mpoint x fmregion -> mpoint</text--->"
+            "<text>_ intersection _</text--->"
+            "<text>restrict mpoint to times it is inside the fmregion</text--->"
+            "<text>mpoint1 intersection fmregion1</text---> ) )";
+
+    Operator intersection("intersection",
+            intersectionspec,
+            intersectionvalmap,
+            Operator::SimpleSelect,
+            intersectiontypemap
+            );
+
+/*
+4.3 ~inside~
 
 Calculates the times, when a moving point is inside an ~fmregion~. The result
 is an ~mbool~ object, which is defined at all times, when both source objects
@@ -681,7 +757,7 @@ fmregion and *false* at all other times.
 Signature: mpoint x fmregion -> mbool
 Example: query mpoint1 inside fmregion1
 
-4.2.1 ~Type mapping~
+4.3.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -702,7 +778,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.2.2 ~Value mapping~
+4.3.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -748,7 +824,7 @@ Maps a result value to the given arguments.
             );
 
 /*
-4.3 ~fmrinterpolate~
+4.4 ~fmrinterpolate~
 
 Try to create a ~fmregion~ from two snapshots. The shape of the region must
 be identical, i.e. the second region must be a translated and rotated version
@@ -757,7 +833,7 @@ of the first one.
 Signature: region x instant x region x instant -> fmregion
 Example: query fmrinterpolate(region1, instant1, region2, instant2)
 
-4.3.1 ~Type mapping~
+4.4.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -784,7 +860,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.3.2 ~Value mapping~
+4.4.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -832,7 +908,7 @@ Maps a result value to the given arguments.
             );
 
 /*
-4.4 ~traversedarea~
+4.5 ~traversedarea~
 
 An ~fmregion~ traverses a certain area during its movement. This operator
 calculates this area and returns a corresponding ~cregion~ object.
@@ -840,7 +916,7 @@ calculates this area and returns a corresponding ~cregion~ object.
 Signature: fmregion -> cregion
 Example: query traversedarea(fmregion1)
 
-4.4.1 ~Type mapping~
+4.5.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -858,7 +934,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.4.2 ~Value mapping~
+4.5.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -895,14 +971,14 @@ Maps a result value to the given arguments.
             );
 
 /*
-4.5 ~inside~
+4.6 ~inside~
 
 Test if a point is inside a ~cregion~
 
 Signature: point x cregion -> bool
 Example: query point([100, 100]) inside cregion1
 
-4.5.1 ~Type mapping~
+4.6.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -923,7 +999,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.5.2 ~Value mapping~
+4.6.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -957,14 +1033,14 @@ Maps a result value to the given arguments.
             );
 
 /*
-4.6 ~intersects~
+4.7 ~intersects~
 
 Test if a ~cregion~ intersects or overlaps with a ~region~
 
 Signature: cregion x region -> bool
 Example: query cregion1 intersects region1
 
-4.6.1 ~Type mapping~
+4.7.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -985,7 +1061,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.6.2 ~Value mapping~
+4.7.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -1019,7 +1095,7 @@ Maps a result value to the given arguments.
 
     
 /*
-4.7 ~cregiontoregion~
+4.8 ~cregiontoregion~
 
 Converts a ~cregion~ into a ~region~ by approximating the curved border with
 a specified amount of straight line segments.
@@ -1027,7 +1103,7 @@ a specified amount of straight line segments.
 Signature: cregion x int -> region
 Example: query cregiontoregion(cregion1, 100);
 
-4.7.1 ~Type mapping~
+4.8.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -1048,7 +1124,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.7.2 ~Value mapping~
+4.8.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -1124,10 +1200,11 @@ Adds the operators ~atinstant~, ~inside~, ~fmrinterpolate~, ~traversedarea~
         AddTypeConstructor(&cregion);
         AddOperator(&atinstant);
         AddOperator(&inside);
-        AddOperator(&insidecregion);
+        AddOperator(&intersection);
         AddOperator(&fmrinterpolate);
         AddOperator(&traversedarea);
         AddOperator(&intersects);
+        AddOperator(&insidecregion);
         AddOperator(&cregiontoregion);
     }
 

@@ -118,3 +118,47 @@ MBool MPoint::inside(FMRegion &fmr) {
     
     return mb;
 }
+
+/*
+4 ~intersection~
+
+Calculates an ~MPoint~ restricted to the times when this ~MPoint~ is inside the
+FMRegion ~fmr~ and returns a corresponding ~MPoint~ object.
+
+*/
+MPoint MPoint::intersection(FMRegion &fmr) {
+    MPoint ret;
+    MBool mb = this->inside(fmr);
+    
+    for (unsigned int i = 0; i < mb.units.size(); i++) {
+        UBool& ub = mb.units[i];
+        if (!ub.val)
+            continue;
+        for (unsigned int j = 0; j < units.size(); j++) {
+            UPoint& up = units[j];
+            Interval niv = ub.iv.intersection(up.iv);
+            if (niv.valid()) {
+                UPoint up2 = up.restrict(niv);
+                if (up2.valid)
+                    ret.units.push_back(up2);
+            }
+        }
+    }
+    
+    return ret;
+}
+
+/*
+5 ~toRList~
+
+Returns an RList representation of this MPoint.
+
+*/
+RList MPoint::toRList() {
+    RList ret;
+    for (int i = 0; i < units.size(); i++) {
+        ret.append(units[i].toRList());
+    }
+    
+    return ret;
+}

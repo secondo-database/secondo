@@ -192,7 +192,7 @@ double Face::area() {
         ret += (s.i.x*s.f.y - s.f.x*s.i.y);
     }
     
-    return ret;
+    return ret/2.0;
 }
 
 /*
@@ -214,7 +214,25 @@ std::pair<double, double> Face::centroidParams() {
 }
 
 /*
-13 ~ToString~
+13 ~boundingBox~
+
+Returns the bounding box of this face.
+
+*/
+BoundingBox Face::boundingBox() {
+    BoundingBox bb;
+    
+    for (unsigned int nrseg = 0; nrseg < segs.size(); nrseg++) {
+        Seg& seg = segs[nrseg];
+        bb.update(seg.i);
+        bb.update(seg.f);
+    }
+    
+    return bb;
+}
+
+/*
+14 ~ToString~
 
 Returns a string representation of this face.
 
@@ -232,7 +250,7 @@ std::string Face::ToString() {
 }
 
 /*
-14 ~toRList~
+15 ~toRList~
 
 Returns an ~RList~ representation of this face.
 

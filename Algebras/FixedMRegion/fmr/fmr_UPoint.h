@@ -53,6 +53,7 @@ public:
     RCurve rcurve (double t1, double t2) { return RCurve(); }
     double fx(double t);
     double fy(double t);
+    RList toRList();
     
     // Fields
     Interval iv;

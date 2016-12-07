@@ -28,6 +28,7 @@ Header file with the class definition for the class ~Region~
 
 #include <vector>
 #include <string>
+#include "fmr_BoundingBox.h"
 #include "fmr_RList.h"
 #include "fmr_Face.h"
 #include "fmr_TransformationUnit.h"
@@ -54,6 +55,7 @@ public:
     Region transform(TransformationUnit& tu, double frac);
     FMRegion interpolate(Region& r, Interval iv);
     FMRegion interpolate(Region& r, Point center, Interval iv);
+    BoundingBox boundingBox();
     std::string ToString();
     RList toRList();
     

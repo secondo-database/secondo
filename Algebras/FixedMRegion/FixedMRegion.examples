@@ -25,6 +25,12 @@ Signature : cregion x region -> mbool
 Example   : query cregion1 intersects region1
 Result    : file
 
+Operator  : intersection
+Number    : 1
+Signature : mpoint x fmregion -> mpoint
+Example   : query mpoint1 intersection fmregion1
+Result    : file
+
 Operator  : fmrinterpolate
 Number    : 1
 Signature : region x instant x region x instant -> fmregion

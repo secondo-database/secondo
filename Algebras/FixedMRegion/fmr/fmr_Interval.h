@@ -51,8 +51,10 @@ public:
              start(start), end(end), lc(lc), rc(rc) {};
     Interval(std::string start, std::string end, bool lc, bool rc);
     Interval(RList& l);
-    Interval() : start(0), end(0), lc(true), rc(true) {};
-    Interval intersect (Interval& iv);
+    Interval() : start(0), end(0), lc(false), rc(false) {};
+    Interval intersection (Interval& iv);
+    bool intersects (Interval& iv);
+    bool valid ();
     double getFrac(double currentTime);
     double project (double t);
     static std::string timestr(double currentTime);

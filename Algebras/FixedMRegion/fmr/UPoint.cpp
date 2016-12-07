@@ -100,7 +100,7 @@ UPoint UPoint::transform(TransformationUnit& _tu) {
     // First, calculate the intersection of the time intervals.
     // The resulting UPoint will only cover the overlapping
     // part of the time intervals
-    Interval niv = _tu.iv.intersect(iv);
+    Interval niv = _tu.iv.intersection(iv);
     
     if ((niv.start == niv.end) && (!niv.lc || !niv.rc))
         return UPoint();
@@ -135,7 +135,7 @@ UPoint UPoint::restrict (Interval niv) {
     double st = iv.getFrac(niv.start);
     double et = iv.getFrac(niv.end);
     
-    return UPoint(s + v*st, s + v*(et-st), niv);
+    return UPoint(s + v*st, s + v*et, niv);
 }
 
 /*
@@ -161,3 +161,22 @@ Point UPoint::atinstant(double time) {
     return project(t);
 }
 
+/*
+9 ~toRList~
+
+Returns an RList representation of this UPoint.
+
+*/
+RList UPoint::toRList() {
+    RList ret;
+    
+    ret.append(iv.toRList());
+    RList p;
+    p.append(s.x);
+    p.append(s.y);
+    p.append(s.x+v.x);
+    p.append(s.y+v.y);
+    ret.append(p);
+
+    return ret;
+}

@@ -46,13 +46,12 @@ public:
     MBool() {}
     virtual ~MBool() {}
     
-    std::string ToString();
-    RList toRList();
     void addUnit (Interval iv, bool val);
     
-private:
+    std::string ToString();
+    RList toRList();
+    
     std::vector<UBool> units;
-
 };
 
 }

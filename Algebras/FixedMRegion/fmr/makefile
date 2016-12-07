@@ -15,5 +15,8 @@ libfmr.a: $(OBJ)
 example: libfmr.a example/fmr.o
 	$(CC) -o example/fmr example/fmr.o libfmr.a
 
+cadexample: example
+	example/fmr mkcad example/$(O) 450
+
 clean:
 	rm  -f *.o *~ libfmr.so libfmr.a example/fmr.o example/fmr

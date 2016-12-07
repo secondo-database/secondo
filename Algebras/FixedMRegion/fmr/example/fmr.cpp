@@ -32,7 +32,7 @@ static RList readObjectFile (string filename, string objecttype);
 static void atinstant (string fmregion, string inst) {
     RList fmrrl = readObjectFile(fmregion, "fmregion"); FMRegion fmr(fmrrl);
     cout << fmr.atinstant(instant(inst))
-               .toRList().SecondoObject("fmregion", "fmregion")
+               .toRList().SecondoObject("region", "region")
                .ToString() << "\n";
 }
 
@@ -42,6 +42,15 @@ static void inside (string fmregion, string mpoint) {
     
     cout << fmr.inside(mp)
                .toRList().SecondoObject("mbool", "mbool")
+               .ToString() << "\n";
+}
+
+static void intersection (string fmregion, string mpoint) {
+    RList fmrrl = readObjectFile(fmregion, "fmregion"); FMRegion fmr(fmrrl);
+    RList mprl = readObjectFile(mpoint, "mpoint"); MPoint mp(mprl);
+    
+    cout << mp.intersection(fmr)
+               .toRList().SecondoObject("mpoint", "mpoint")
                .ToString() << "\n";
 }
 
@@ -93,6 +102,59 @@ static void toregion (string cregion, string nrsamples) {
                 .ToString() << "\n";
 }
 
+static void mkcad (string region, string rotations) {
+    double rots = ((double)atoi(rotations.c_str()))/360.0;
+    RList srcregrl = readObjectFile(region, "region"); Region srcreg(srcregrl);
+    Point c = srcreg.centroid();
+    BoundingBox srcbb = srcreg.boundingBox();
+    Point p = srcbb.upperRight - srcbb.lowerLeft;
+    double dist = (p.x > p.y) ? p.x : p.y;
+    FMRegion fmr(srcreg, 
+            TransformationUnit(c, Point(dist*M_PI*rots, 0), -2*M_PI*rots));
+    Region reg = fmr.traversedArea().toRegion(200);
+    RList ta = reg.toRList();
+    RList face = ta[0][0];
+    std::stringstream ss;
+    BoundingBox bb = reg.boundingBox();
+    Point d = bb.upperRight - bb.lowerLeft;
+    double sc = 180/d.x;
+    double sc2 = 180/d.y;
+    if (sc2 < sc)
+        sc = sc2;
+    Point o = bb.lowerLeft - c;
+    ss << "linear_extrude(5) {\n"
+       << "  difference() {\n"
+       << "    translate([" << (o.x*sc - 5.0) << "," << (o.y*sc - 5.0) << "])\n"
+       << "      square([" << d.x*sc+10.0 << "," << d.y*sc+10.0 << "]);\n"
+       << "    polygon([";
+    for (unsigned int i = 0; i < face.size(); i++) {
+        RList pt = face[i];
+        ss << "["<<(pt[0].getNr()-c.x)*sc<<"," << (pt[1].getNr()-c.y)*sc << "]";
+        if (i < face.size()-1)
+            ss << ",";
+    }
+    double doff = -d.y*sc-5;
+    ss << "]);\n"
+       << "  }\n"
+       << "  translate([0, " << doff << ", 0])\n"
+       << "    polygon([";
+    sc = sc/1.02;
+    face = srcregrl[0][0];
+    for (unsigned int i = 0; i < face.size(); i++) {
+        RList pt = face[i];
+        ss << "["<<(pt[0].getNr()-c.x)*sc<<"," << (pt[1].getNr()-c.y)*sc << "]";
+        if (i < face.size()-1)
+            ss << ",";
+    }
+    ss << "]);\n"
+       << "}\n"
+       << "$fn=20;\n"
+       << "  translate([0, " << doff << ",0])\n"
+       << "cylinder(d=2, h=20);\n";
+    
+    cout << ss.str();
+}
+
 
 int main (int argc, char **argv) {
     if (argc < 2)
@@ -106,6 +168,9 @@ int main (int argc, char **argv) {
     } else if (cmd == string("inside")) {
         if (argc != 4) usage();
         inside(argv[2], argv[3]);
+    } else if (cmd == string("intersection")) {
+        if (argc != 4) usage();
+        intersection(argv[2], argv[3]);
     } else if (cmd == string("traversedarea")) {
         if (argc != 3) usage();
         traversedarea(argv[2]);
@@ -121,6 +186,9 @@ int main (int argc, char **argv) {
     } else if (cmd == string("toregion")) {
         if (argc != 4) usage();
         toregion(argv[2], argv[3]);
+    } else if (cmd == string("mkcad")) {
+        if (argc != 4) usage();
+        mkcad(argv[2], argv[3]);
     } else {
         usage();
     }
@@ -134,11 +202,13 @@ static void usage () {
            "  where command is:\n"
            "     atinstant     <fmregion> #<instant>\n"
            "     inside        <fmregion> <mpoint>\n"
+           "     intersection  <fmregion> <mpoint>\n"
            "     traversedarea <fmregion>\n"
            "     inside2       <cregion> #<point>\n"
            "     intersects    <cregion> <region>\n"
            "     interpolate   <region> <region>\n"
            "     toregion      <cregion> <nrsamples>\n"
+           "     mkcad         <region> <rotations>\n"
            "# denotes a literal argument, others are files with nested lists.\n"
            "Format instant: YYYY-MM-DD[-HH[:MM[:SS[.sss]]]], e.g. 2016-10-01\n"
            "Format point: <x>/<y>, e.g. 10.45/20.77\n";
