@@ -392,8 +392,8 @@ ALGEBRAS     += GroupbyAlgebra
 ALGEBRA_DIRS  += MMRTree 
 ALGEBRAS     += MMRTreeAlgebra
 
-ALGEBRA_DIRS  += MainMemory 
-ALGEBRAS     += MainMemoryAlgebra
+ALGEBRA_DIRS  += MainMemory2 
+ALGEBRAS     += MainMemory2Algebra
 
 #ALGEBRA_DIRS += RobustGeometry
 #ALGEBRAS   += RobustGeometryAlgebra
