@@ -638,8 +638,11 @@ Maps a result value to the given arguments.
         FMRegion *fmr = static_cast<FMRegion*> (args[0].addr);
         Instant *it = static_cast<Instant*> (args[1].addr);
 
+        // Convert secondo instant to ms since unix epoch
+	double instant = (it->ToDouble()+10959)*86400000;
+
         // Calculate the projected region in libfmr
-        fmr::Region fmrreg = fmr->fmr->atinstant(it->GetAllMilliSeconds());
+        fmr::Region fmrreg = fmr->fmr->atinstant(instant);
         // and convert the result to a Secondo nested list
         ListExpr regle = RList2NL(fmrreg.toRList());
 
