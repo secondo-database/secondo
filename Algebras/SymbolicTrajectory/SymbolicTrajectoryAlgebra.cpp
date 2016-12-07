@@ -3154,6 +3154,9 @@ int tmatchesVM(Word* args, Word& result, int message, Word& local, Supplier s) {
       else if (result == ST_FALSE) {
         res->Set(true, false);  
       }
+      else {
+        res->SetDefined(false);
+      }
       delete p;
     }
     else {
@@ -3719,11 +3722,12 @@ int indexmatchesVM(Word* args, Word& result, int message, Word& local,
 struct indexmatchesInfo : OperatorInfo {
   indexmatchesInfo() {
     name      = "indexmatches";
-    signature = "rel(tuple(X)) x IDENT x invfile x text -> stream(tuple(X))";
-    syntax    = "_ indexmatches [ _ , _ , _ ]";
+    signature = "rel(tuple(X)) x IDENT x invfile x rtree x text -> "
+                "stream(tuple(X))";
+    syntax    = "_ indexmatches [ _ , _ , _ , _ ]";
     meaning   = "Filters a relation containing a mlabel attribute, applying a "
-                "trajectory relation index and passing only those trajectories "
-                "matching the pattern on to the output stream.";
+                "twofold index (trie and 1-dim rtree) and passing only those "
+                "trajectories matching the pattern on to the output stream.";
   }
 };
 
@@ -5142,14 +5146,14 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(createunitrtreeInfo(), createunitrtreeVMs, createunitrtreeSelect,
               createunitrtreeTM);
   
-//   ValueMapping indexmatchesVMs[] = {indexmatchesVM<MLabel, FText>, 
-//     indexmatchesVM<MLabels, FText>, indexmatchesVM<MPlace, FText>, 
-//     indexmatchesVM<MPlaces, FText>, indexmatchesVM<MLabel, PatPersistent>,
-//     indexmatchesVM<MLabels, PatPersistent>, 
-//     indexmatchesVM<MPlace, PatPersistent>,
-//     indexmatchesVM<MPlaces, PatPersistent>, 0};
-//   AddOperator(indexmatchesInfo(), indexmatchesVMs, indexmatchesSelect,
-//               indexmatchesTM);
+  ValueMapping indexmatchesVMs[] = {indexmatchesVM<MLabel, FText>, 
+    indexmatchesVM<MLabels, FText>, indexmatchesVM<MPlace, FText>, 
+    indexmatchesVM<MPlaces, FText>, indexmatchesVM<MLabel, PatPersistent>,
+    indexmatchesVM<MLabels, PatPersistent>, 
+    indexmatchesVM<MPlace, PatPersistent>,
+    indexmatchesVM<MPlaces, PatPersistent>, 0};
+  AddOperator(indexmatchesInfo(), indexmatchesVMs, indexmatchesSelect,
+              indexmatchesTM);
 
   ValueMapping filtermatchesVMs[] = {filtermatchesVM<MLabel, FText>,
     filtermatchesVM<MLabels, FText>, filtermatchesVM<MPlace, FText>,

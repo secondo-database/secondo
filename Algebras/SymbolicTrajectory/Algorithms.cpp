@@ -2111,10 +2111,36 @@ void TupleIndex::processTimeIntervals(Relation *rel, const int attr,
     }
   }
   else if (typeName == "mplace") {
-    // TODO
+    MPlace *mp = 0;
+    for (TupleId i = 1; i <= noTuples; i++) {
+      Tuple *t = rel->GetTuple(i, false);
+      mp = (MPlace*)t->GetAttribute(attr);
+      int noComponents = mp->GetNoComponents();
+      for (int j = 0; j < noComponents; j++) {
+        mp->GetInterval(j, iv);
+        NewPair<double,double> ivDouble(iv.start.ToDouble(), iv.end.ToDouble());
+        NewPair<NewPair<double, double>, NewPair<TupleId, int> > value
+                                        (ivDouble, NewPair<TupleId, int>(i, j));
+        values.push_back(value);
+      }
+      t->DeleteIfAllowed();
+    }
   }
   else if (typeName == "mplaces") {
-    // TODO
+    MPlaces *mps = 0;
+    for (TupleId i = 1; i <= noTuples; i++) {
+      Tuple *t = rel->GetTuple(i, false);
+      mps = (MPlaces*)t->GetAttribute(attr);
+      int noComponents = mps->GetNoComponents();
+      for (int j = 0; j < noComponents; j++) {
+        mps->GetInterval(j, iv);
+        NewPair<double,double> ivDouble(iv.start.ToDouble(), iv.end.ToDouble());
+        NewPair<NewPair<double, double>, NewPair<TupleId, int> > value
+                                        (ivDouble, NewPair<TupleId, int>(i, j));
+        values.push_back(value);
+      }
+      t->DeleteIfAllowed();
+    }
   }
   cout << values.size() << " time intervals in vector" << endl;
   std::sort(values.begin(), values.end());
@@ -2215,10 +2241,10 @@ void TupleIndex::processRTree2(Relation *rel, const int attrNo,
         OrderedRelationIterator *rit = (OrderedRelationIterator*)orel->
                                                   MakeRangeScan(fromKey, toKey);
         Tuple *pt = rit->GetNextTuple();
-        Rectangle<2> bbox = (Rectangle<2>*)pt->GetAttribute(5);
+        Rectangle<2> *bbox = (Rectangle<2>*)(pt->GetAttribute(5));
         NewPair<NewPair<double, double>, NewPair<double, double> > bboxValues(
-          NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
-          NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
+          NewPair<double, double>(bbox->MinD(0), bbox->MinD(1)),
+          NewPair<double, double>(bbox->MaxD(0), bbox->MaxD(1)));
         NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
          NewPair<TupleId, int> > value(bboxValues, NewPair<TupleId, int>(i, j));
         values.push_back(value);
@@ -2260,10 +2286,10 @@ void TupleIndex::processRTree2(Relation *rel, const int attrNo,
           OrderedRelationIterator *rit = (OrderedRelationIterator*)orel->
                                                   MakeRangeScan(fromKey, toKey);
           Tuple *pt = rit->GetNextTuple();
-          Rectangle<2> bbox = (Rectangle<2>*)pt->GetAttribute(5);
+          Rectangle<2> *bbox = (Rectangle<2>*)pt->GetAttribute(5);
           NewPair<NewPair<double, double>, NewPair<double, double> > bboxValues(
-            NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
-            NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
+            NewPair<double, double>(bbox->MinD(0), bbox->MinD(1)),
+            NewPair<double, double>(bbox->MaxD(0), bbox->MaxD(1)));
           NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
           NewPair<TupleId, int> > value(bboxValues, NewPair<TupleId, int>(i,j));
           values.push_back(value);
@@ -2433,10 +2459,41 @@ void TupleIndex::processTrie(Relation *rel, const int attr,
     }
   }
   else if (typeName == "mplace") {
-    // TODO
+    MPlace *mp = 0;
+    std::pair<std::string, unsigned int> place;
+    for (TupleId i = 1; i <= noTuples; i++) {
+      Tuple *t = rel->GetTuple(i, false);
+      mp = (MPlace*)t->GetAttribute(attr);
+      int noComponents = mp->GetNoComponents();
+      for (int j = 0; j < noComponents; j++) {
+        mp->GetValue(j, place);
+        NewPair<std::string, NewPair<TupleId, int> > value
+                                     (place.first, NewPair<TupleId, int>(i, j));
+        values.push_back(value);
+      }
+      t->DeleteIfAllowed();
+    }
   }
   else if (typeName == "mplaces") {
-    // TODO
+    MPlaces *mps = 0;
+    std::set<std::pair<std::string, unsigned int> > places;
+    std::set<std::pair<std::string, unsigned int> >::iterator it;
+    for (TupleId i = 1; i <= noTuples; i++) {
+      Tuple *t = rel->GetTuple(i, false);
+      mps = (MPlaces*)t->GetAttribute(attr);
+      int noComponents = mps->GetNoComponents();
+      for (int j = 0; j < noComponents; j++) {
+        mps->GetValues(j, places);
+        NewPair<TupleId, int> pos(i, j);
+        it = places.begin();
+        while (it != places.end()) {
+          NewPair<std::string, NewPair<TupleId, int> > value(it->first, pos);
+          values.push_back(value);
+          it++;
+        }
+      }
+      t->DeleteIfAllowed();
+    }
   }
   cout << values.size() << " labels in vector" << endl;
   std::sort(values.begin(), values.end());
@@ -2590,7 +2647,15 @@ bool TMatchIndexLI::getSingleIndexResult(pair<int, pair<IndexType, int> >
       if (values.first.addr == 0) {
         return false; // no content
       }
-      if (type.substr(0, 6) == "mlabel") { // mlabel or mlabels
+      if (type.substr(0, 6) == "mlabel" || type.substr(0, 6) == "mplace") {
+        SecondoCatalog* sc = SecondoSystem::GetCatalog();
+        if (type.substr(0, 6) == "mplace" && sc->IsObjectName("Places") &&
+            ((Region*)values.first.addr)->IsDefined()) {
+          Rectangle<2> rect = ((Region*)(values.first.addr))->BoundingBox();
+          Tools::queryRtree2(ti->rtrees2[indexInfo.second.second],
+                             rect, result);
+          return false;
+        }
         set<string> lbs;
         ((Labels*)(values.first.addr))->GetValues(lbs);
         if (valueNo == 0 && lbs.empty()) {
@@ -2602,23 +2667,6 @@ bool TMatchIndexLI::getSingleIndexResult(pair<int, pair<IndexType, int> >
         }
         Tools::queryTrie(ti->tries[indexInfo.second.second], *it, result);
         return (int)(lbs.size()) > valueNo + 1; // TRUE iff there is a successor
-      }
-      else if (type.substr(0, 6) == "mplace") {
-        set<pair<string, unsigned int> > pls;
-        ((Places*)(values.first.addr))->GetValues(pls);
-        if (valueNo == 0 && pls.empty()) {
-          return false; // first access unsuccessful
-        }
-        set<pair<string, unsigned int> >::iterator it = pls.begin();
-        for (int i = 0; i < valueNo; i++) {
-          it++;
-        }
-        Tools::queryTrie(ti->tries[indexInfo.second.second], *it, result);
-//         for (unsigned int i = 0; i < result.size(); i++) {
-//           cout << "|" << i << ": " << result[i].size() << " ";
-//         }
-//         cout << endl;
-        return (int)(pls.size()) > valueNo + 1; // TRUE iff there is a successor
       }
       break;
     }
@@ -3372,8 +3420,8 @@ void TMatchIndexLI::applyNFA(const bool rewrite /* = false */) {
   set<int>::reverse_iterator is;
   map<int, int>::reverse_iterator im;
   while ((activeTuples > 0) && !states.empty()) {
-//     cout << "WHILE loop: activeTuples=" << activeTuples << "; " 
-//          << matches.size() - 1 << " matches" << endl;
+    cout << "WHILE loop: activeTuples=" << activeTuples << "; " 
+         << matches.size() - 1 << " matches" << endl;
     for (is = states.rbegin(); is != states.rend(); is++) {
       map<int, int> trans = p->getTransitions(*is);
       for (im = trans.rbegin(); im != trans.rend() && activeTuples > 0; im++) {
