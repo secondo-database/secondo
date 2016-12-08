@@ -186,7 +186,20 @@ BoundingBox FMRegion::boundingBox () {
 }
 
 /*
-8 ~ToString~
+8 ~setCenter~
+
+  Change the center of the movement. Start and end position of the movement
+  remains unchanged, but the path during the movement will differ.
+
+*/
+void FMRegion::setCenter(Point& nc) {
+    for (unsigned int i = 0; i < trafos.size(); i++) {
+        trafos[i].setCenter(nc);
+    }
+}
+
+/*
+9 ~ToString~
 
 Returns a string representation of this object
 
@@ -203,7 +216,7 @@ std::string FMRegion::ToString() {
 }
 
 /*
-9 ~toRList~
+10 ~toRList~
 
 Returns an ~RList~ representation of this object
 

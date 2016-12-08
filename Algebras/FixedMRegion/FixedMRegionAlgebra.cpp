@@ -671,6 +671,76 @@ Maps a result value to the given arguments.
             );
 
 /*
+4.2 ~setcenter~
+
+Set the center of the rotation of this fmregion to the given point. The start
+and end position of the region at the borders of the time interval will remain
+unchanged, but the path will differ.
+
+Signature: fmregion x point -> fmregion
+Example: query setcenter(fmregion1, point1)
+
+4.2.1 ~Type mapping~
+
+Maps the source types to the result type. Only one variant is supported here.
+
+*/
+    ListExpr setcentertypemap(ListExpr args) {
+        std::string err = "fmregion x point expected";
+        int len = nl->ListLength(args);
+        if (len != 2) {
+            return listutils::typeError(err + " (wrong number of arguments)");
+        }
+        if (!FMRegion::checkType(nl->First(args))) {
+            return listutils::typeError(err + " (wrong first arg)");
+        }
+        if (!Point::checkType(nl->Second(args))) {
+            return listutils::typeError(err + " (wrong second arg)");
+        }
+        return nl->SymbolAtom(FMRegion::BasicType());
+    }
+
+/*
+4.2.2 ~Value mapping~
+
+Maps a result value to the given arguments.
+
+*/
+    int setcentervalmap(Word *args, Word& result,
+            int message, Word& local, Supplier s) {
+        result = qp->ResultStorage(s);
+
+        FMRegion *fmr = static_cast<FMRegion*> (args[0].addr);
+        Point *p = static_cast<Point*> (args[1].addr);
+
+        fmr::Point center(p->GetX(), p->GetY());
+        fmr::FMRegion res = *fmr->fmr;
+        res.setCenter(center);
+
+        // Convert the libfmr fmregion to a Secondo fmregion object and return
+        bool correct;
+        ListExpr errorInfo;
+        ListExpr fmle = RList2NL(res.toRList());
+        result = InFMRegion(nl->Empty(), fmle, 0, errorInfo, correct);
+        
+        return 0;
+    }
+
+    static const std::string setcenterspec =
+            "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+            "  (<text>fmregion x point -> fmregion</text--->"
+            "<text>setcenter(_,_)</text--->"
+            "<text>Set rotation center of fmregion</text--->"
+            "<text>setcenter(fmregion1, point1)</text---> ) )";
+
+    Operator setcenter("setcenter",
+            setcenterspec,
+            setcentervalmap,
+            Operator::SimpleSelect,
+            setcentertypemap
+            );
+
+/*
 4.2 ~intersection~
 
 Restrict a moving point to times, when it is inside an ~fmregion~. The result
@@ -1199,6 +1269,7 @@ Adds the operators ~atinstant~, ~inside~, ~fmrinterpolate~, ~traversedarea~
         AddTypeConstructor(&fmregion);
         AddTypeConstructor(&cregion);
         AddOperator(&atinstant);
+        AddOperator(&setcenter);
         AddOperator(&inside);
         AddOperator(&intersection);
         AddOperator(&fmrinterpolate);

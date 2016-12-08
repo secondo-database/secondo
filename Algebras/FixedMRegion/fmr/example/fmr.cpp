@@ -54,6 +54,16 @@ static void intersection (string fmregion, string mpoint) {
                .ToString() << "\n";
 }
 
+static void setcenter (string fmregion, string _x, string _y) {
+    double x = atof(_x.c_str());
+    double y = atof(_y.c_str());
+    RList fmrrl = readObjectFile(fmregion, "fmregion"); FMRegion fmr(fmrrl);
+    Point c(x, y);
+    fmr.setCenter(c);
+    cout << fmr.toRList().SecondoObject("fmregion", "fmregion")
+               .ToString() << "\n";
+}
+
 static void traversedarea (string fmregion) {
     RList fmrrl = readObjectFile(fmregion, "fmregion"); FMRegion fmr(fmrrl);
     cout << fmr.traversedArea()
@@ -171,6 +181,9 @@ int main (int argc, char **argv) {
     } else if (cmd == string("intersection")) {
         if (argc != 4) usage();
         intersection(argv[2], argv[3]);
+    } else if (cmd == string("setcenter")) {
+        if (argc != 5) usage();
+        setcenter(argv[2], argv[3], argv[4]);
     } else if (cmd == string("traversedarea")) {
         if (argc != 3) usage();
         traversedarea(argv[2]);
@@ -203,6 +216,7 @@ static void usage () {
            "     atinstant     <fmregion> #<instant>\n"
            "     inside        <fmregion> <mpoint>\n"
            "     intersection  <fmregion> <mpoint>\n"
+           "     setcenter     <fmregion> <x> <y>\n"
            "     traversedarea <fmregion>\n"
            "     inside2       <cregion> #<point>\n"
            "     intersects    <cregion> <region>\n"

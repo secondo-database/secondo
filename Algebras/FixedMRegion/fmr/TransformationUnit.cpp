@@ -21,7 +21,7 @@ rotation. An initial translation and rotation can be specified.
 
 Parameters:
 
-c : center point of rotation (relative to object)
+c : center point of rotation (relative to the region)
 
 v0: initial translation
 a0: initial rotation
@@ -112,7 +112,22 @@ TransformationUnit TransformationUnit::restrict (Interval niv) {
 }
 
 /*
-7 ~ToString~
+7 ~setCenter~
+
+Set a new center point for this transformation unit. Start and end position
+of the transformed object remains constant, but the path will change.
+ 
+*/
+void TransformationUnit::setCenter(Point& nc) {
+    Point delta = nc.rotate(c, a0) - nc;
+    
+    v0 = v0 + delta;
+    v  = v  + nc.rotate(c, a) - nc.rotate(c, a0) + delta.rotate(a);
+    c  = nc;
+}
+
+/*
+8 ~ToString~
 
 Return a string representation of this TransformationUnit.
 
@@ -126,7 +141,7 @@ std::string TransformationUnit::ToString() {
 }
 
 /*
-8 ~toRList~
+9 ~toRList~
 
 Return an RList representation of this TransformationUnit.
 

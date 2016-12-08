@@ -44,6 +44,7 @@ public:
 
     // Methods
     TransformationUnit restrict(Interval _iv);
+    void setCenter(Point& nc);
     std::string ToString();
     RList toRList();
     

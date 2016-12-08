@@ -65,7 +65,7 @@ public:
     FMRegion interpolate (Region& r1, Region& r2, Interval& iv) {
         return r1.interpolate(r2, iv);
     }
-    
+    void setCenter (Point& p);
     BoundingBox boundingBox();
     std::string ToString();
     RList toRList();

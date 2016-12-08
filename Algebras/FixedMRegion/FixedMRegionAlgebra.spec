@@ -18,6 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator atinstant alias ATINSTANT pattern _ infixop _
+operator setcenter alias SETCENTER pattern op ( _, _ )
 operator inside alias INSIDE pattern _ infixop _
 operator intersection alias INTERSECTION pattern op ( _, _ )
 operator fmrinterpolate alias FMRINTERPOLATE pattern op ( _ ,  _ , _ , _ )
