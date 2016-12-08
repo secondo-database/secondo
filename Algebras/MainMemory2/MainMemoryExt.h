@@ -646,7 +646,6 @@ struct Queue {
   
 private:
   std::vector<QueueEntryWrap>* queue;
-  std::greater<QueueEntry> comp;
 };
 
 
@@ -941,7 +940,7 @@ class KeyComparator{
 
 
 typedef avltree::AVLTree<AttrIdPair,KeyComparator> memAVLtree;
-typedef typename memAVLtree::iterator avlIterator;
+typedef memAVLtree::iterator avlIterator;
 
 class MemoryAVLObject : public MemoryObject {
 

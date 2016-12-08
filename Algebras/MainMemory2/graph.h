@@ -351,8 +351,8 @@ The class implements a priority queue in which the Vertex v with
 the smallest ~dist~ value is at the front of the queue.
 
 */
-struct Queue {
- 
+class Queue {
+public: 
   Queue() {
     queue = new std::vector<Vertex*>();    
     std::make_heap(queue->begin(),queue->end(),Comp());
@@ -442,7 +442,6 @@ Prints all elements of the queue to the console.
   
 private:
   std::vector<Vertex*>* queue;
-  std::greater<Vertex*> comp;
 };
 
 

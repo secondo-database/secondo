@@ -1217,8 +1217,8 @@ class gettuplesInfo{
            } else {
               TupleId id = tid->GetTid();
               tid->DeleteIfAllowed();
-              if(id>=0 && id<rel->size()){
-                 Tuple* res = (*rel)[id];
+              if(id>0 && id<=rel->size()){
+                 Tuple* res = (*rel)[id-1];
                  if(res){ // ignore deleted tuples
                     res->IncReference();
                     res->SetTupleId(id);
@@ -8547,6 +8547,9 @@ class mupdateInfo {
             Word v;
             qp->Request(funs[i],v);
             Attribute* newAttr = ((Attribute*)v.addr)->Clone();
+            if(flob){
+             newAttr->bringToMemory();
+            }
             res->PutAttribute(indexes[i], newAttr); // put to res
             tuple->PutAttribute(indexes[i], newAttr->Copy()); // update relation
          }
@@ -9581,13 +9584,16 @@ class morangeInfo{
                !res && !iter.end()) {
           Tuple* result = (*iter).getPointer();
           Attribute* attr;
-          if(result)
+          if(result) {
             attr = result->GetAttribute(attrPos-1);
-          
-          if(attr->Compare(attr1) < 0) 
+            if(attr->Compare(attr1) < 0) 
+               iter++;
+            else
+              res = true;
+          } else {
             iter++;
-          else
-            res = true;
+         }
+
         }
       }
       
@@ -10885,7 +10891,7 @@ class moconnectedComponentsInfo{
 
     ~moconnectedComponentsInfo(){
       delete scctree;
-      set<Vertex,VertexComp>::iterator it = nodes->begin();
+      //set<Vertex,VertexComp>::iterator it = nodes->begin();
       delete nodes;
       tt->DeleteIfAllowed();
     }
@@ -11064,7 +11070,6 @@ class moconnectedComponentsInfo{
      set<Vertex,VertexComp>* nodes;
      ttree::Iterator<TupleWrap,TupleComp> iter;
      TupleType* tt;
-     int compNr;
 };
 
 
