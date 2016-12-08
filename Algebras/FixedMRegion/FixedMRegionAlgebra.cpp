@@ -741,7 +741,7 @@ Maps a result value to the given arguments.
             );
 
 /*
-4.2 ~intersection~
+4.3 ~intersection~
 
 Restrict a moving point to times, when it is inside an ~fmregion~. The result
 is an ~mpoint~ object, which is defined at all times, when both source objects
@@ -750,7 +750,7 @@ are defined and the ~mpoint~ is inside the ~fmregion~.
 Signature: mpoint x fmregion -> mpoint
 Example: query mpoint1 intersects fmregion1
 
-4.2.1 ~Type mapping~
+4.3.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -771,7 +771,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.2.2 ~Value mapping~
+4.3.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -817,7 +817,7 @@ Maps a result value to the given arguments.
             );
 
 /*
-4.3 ~inside~
+4.4 ~inside~
 
 Calculates the times, when a moving point is inside an ~fmregion~. The result
 is an ~mbool~ object, which is defined at all times, when both source objects
@@ -827,7 +827,7 @@ fmregion and *false* at all other times.
 Signature: mpoint x fmregion -> mbool
 Example: query mpoint1 inside fmregion1
 
-4.3.1 ~Type mapping~
+4.4.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -848,7 +848,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.3.2 ~Value mapping~
+4.4.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -894,7 +894,7 @@ Maps a result value to the given arguments.
             );
 
 /*
-4.4 ~fmrinterpolate~
+4.5 ~fmrinterpolate~
 
 Try to create a ~fmregion~ from two snapshots. The shape of the region must
 be identical, i.e. the second region must be a translated and rotated version
@@ -903,7 +903,7 @@ of the first one.
 Signature: region x instant x region x instant -> fmregion
 Example: query fmrinterpolate(region1, instant1, region2, instant2)
 
-4.4.1 ~Type mapping~
+4.5.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -930,7 +930,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.4.2 ~Value mapping~
+4.5.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -978,7 +978,7 @@ Maps a result value to the given arguments.
             );
 
 /*
-4.5 ~traversedarea~
+4.6 ~traversedarea~
 
 An ~fmregion~ traverses a certain area during its movement. This operator
 calculates this area and returns a corresponding ~cregion~ object.
@@ -986,7 +986,7 @@ calculates this area and returns a corresponding ~cregion~ object.
 Signature: fmregion -> cregion
 Example: query traversedarea(fmregion1)
 
-4.5.1 ~Type mapping~
+4.6.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -1004,7 +1004,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.5.2 ~Value mapping~
+4.6.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -1041,14 +1041,14 @@ Maps a result value to the given arguments.
             );
 
 /*
-4.6 ~inside~
+4.7 ~inside~
 
 Test if a point is inside a ~cregion~
 
 Signature: point x cregion -> bool
 Example: query point([100, 100]) inside cregion1
 
-4.6.1 ~Type mapping~
+4.7.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -1069,7 +1069,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.6.2 ~Value mapping~
+4.7.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -1103,14 +1103,14 @@ Maps a result value to the given arguments.
             );
 
 /*
-4.7 ~intersects~
+4.8 ~intersects~
 
 Test if a ~cregion~ intersects or overlaps with a ~region~
 
 Signature: cregion x region -> bool
 Example: query cregion1 intersects region1
 
-4.7.1 ~Type mapping~
+4.8.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -1131,7 +1131,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.7.2 ~Value mapping~
+4.8.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -1165,7 +1165,7 @@ Maps a result value to the given arguments.
 
     
 /*
-4.8 ~cregiontoregion~
+4.9 ~cregiontoregion~
 
 Converts a ~cregion~ into a ~region~ by approximating the curved border with
 a specified amount of straight line segments.
@@ -1173,7 +1173,7 @@ a specified amount of straight line segments.
 Signature: cregion x int -> region
 Example: query cregiontoregion(cregion1, 100);
 
-4.8.1 ~Type mapping~
+4.9.1 ~Type mapping~
 
 Maps the source types to the result type. Only one variant is supported here.
 
@@ -1194,7 +1194,7 @@ Maps the source types to the result type. Only one variant is supported here.
     }
 
 /*
-4.8.2 ~Value mapping~
+4.9.2 ~Value mapping~
 
 Maps a result value to the given arguments.
 
@@ -1287,6 +1287,7 @@ Adds the operators ~atinstant~, ~inside~, ~fmrinterpolate~, ~traversedarea~
         return new FixedMRegionAlgebra();
     }
 }
+
 /*
 6 Conversion functions
 
