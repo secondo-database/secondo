@@ -3792,6 +3792,90 @@ Operator perimeterOp(
   perimeterTM
 );
 
+/*
+Operator ~scale~
+
+*/
+ListExpr scaleTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError("expected 2 arguments");
+  }
+  bool ok = false;
+  ListExpr a1 = nl->First(args);
+  ok = ok || Rectangle<1>::checkType(a1);
+  ok = ok || Rectangle<2>::checkType(a1);
+  ok = ok || Rectangle<3>::checkType(a1);
+  ok = ok || Rectangle<4>::checkType(a1);
+  ok = ok || Rectangle<8>::checkType(a1);
+  if(!ok){
+    return listutils::typeError("first arg is not a rectangle "
+                                "with supported dimension");
+  }
+  if(!CcInt::checkType(nl->Second(args))
+     && !CcReal::checkType(nl->Second(args))){
+    return listutils::typeError("second arg must be of real or int");
+  }
+  return nl->First(args);
+}
+
+template<unsigned dim, class F>
+int scaleVMT(Word* args, Word& result,
+                 int message, Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   Rectangle<dim>* res = (Rectangle<dim>*) result.addr;
+   Rectangle<dim>* arg1 = (Rectangle<dim>*) args[0].addr;
+   F* sf = (F*) args[1].addr;
+   if(!sf->IsDefined() || !arg1->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   res->CopyFrom(arg1);
+   res->scale(sf->GetValue());
+   return 0;
+}
+
+ValueMapping scaleVM[] = {
+   scaleVMT<1,CcInt>,
+   scaleVMT<1,CcReal>,
+   scaleVMT<2,CcInt>,
+   scaleVMT<2,CcReal>,
+   scaleVMT<3,CcInt>,
+   scaleVMT<3,CcReal>,
+   scaleVMT<4,CcInt>,
+   scaleVMT<4,CcReal>,
+   scaleVMT<8,CcInt>,
+   scaleVMT<8,CcReal>
+};
+
+int scaleSelect(ListExpr args){
+  int n1 = -100;
+  int n2 = CcInt::checkType(nl->Second(args))?0:1;
+  ListExpr a1 = nl->First(args); 
+  if( Rectangle<1>::checkType(a1)) n1 = 0;
+  else if(Rectangle<2>::checkType(a1)) n1 = 2;
+  else if(Rectangle<3>::checkType(a1)) n1 = 4;
+  else if(Rectangle<4>::checkType(a1)) n1 = 6;
+  else if(Rectangle<8>::checkType(a1)) n1 = 8;
+  return n1+n2;
+}
+
+
+OperatorSpec scaleSpec(
+  " rect? x {int,real} -> rect?",
+  " _ scale[_] ",
+  "Scales a rectangle uniformely into all dimensions.",
+  " query bbox(thecenter) scale[2] = bbox(thecenter scale[2.0])"
+);
+
+Operator scaleOp(
+  "scale",
+  scaleSpec.getStr(),
+  10,
+  scaleVM,
+  scaleSelect,
+  scaleTM
+);
 
 
 
@@ -3858,6 +3942,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &partitionRect);
     AddOperator( &extendGeoOp);
     AddOperator( &perimeterOp);
+    AddOperator( &scaleOp);
   }
   ~RectangleAlgebra() {};
 };

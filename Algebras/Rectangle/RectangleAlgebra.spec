@@ -45,3 +45,4 @@ operator topleftclass alias TOPLEFTCLASS pattern op ( _ , _ )
 
 operator extendGeo alias EXTENDGEO pattern _ op [_]
 operator perimeter alias PERIMETER pattern op(_)
+operator scale alias SCALE pattern _ op [_,_]

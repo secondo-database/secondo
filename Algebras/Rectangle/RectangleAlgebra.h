@@ -256,6 +256,14 @@ Returns the square of the minmaxdistance between this and ~r~.
     double QMinMaxDistance(const Rectangle<dim>& r) const;
    
 
+/*
+Scales a rectangle uniformely in all dimensions.
+If sf is zero, the result will be undefined.
+
+*/
+
+    void scale(const double sf);
+
 
 
 /*
@@ -672,6 +680,7 @@ inline bool Rectangle<dim>::AlmostEqual( const Rectangle<dim>& r ) const
   for( unsigned i = 0; i < dim; i++ ){
     if( !::AlmostEqual(min[i] , r.min[i]) ||
         !::AlmostEqual(max[i] , r.max[i]) ){
+       return false;
     }
   }
   return true;
@@ -1004,6 +1013,24 @@ double Rectangle<dim>::QMinMaxDistance(const Rectangle<dim>& r) const{
         }
       }
       return res;
+}
+
+template<unsigned dim>
+void Rectangle<dim>::scale(const double sf){
+  if(!this->IsDefined()){
+     return;
+  }
+  if(sf==0){
+    this->SetDefined(false);
+    return;
+  }
+  for(unsigned int i=0;i<dim;i++){
+     min[i] *= sf;
+     max[i] *= sf;
+     if(sf<0){
+       std::swap(min[i],max[i]);
+     }
+  }
 }
 
 
