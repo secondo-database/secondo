@@ -1174,13 +1174,9 @@ tuples from the ids out of the relation.
 
 */
 ListExpr gettuplesTM(ListExpr args){
-  string err ="stream(tid) x {string, mem(rel(tuple))} expected";
+  string err ="stream(X) x {string, mem(rel(tuple))} expected";
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err + " (wrong number of args)");
-  }
-  ListExpr a1 = nl->First(nl->First(args));
-  if(!Stream<TupleIdentifier>::checkType(a1)){
-    return listutils::typeError(err + " (1st arg is not a tid stream)");
   }
   ListExpr a2 = nl->Second(args);
   string errMsg;
@@ -1192,9 +1188,62 @@ ListExpr gettuplesTM(ListExpr args){
     return listutils::typeError(err + " (second arg is not a "
                                 "memory relation.)");
   }
-  return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
-                          nl->Second(a2));
+  ListExpr a1 = nl->First(nl->First(args));
+  if(Stream<TupleIdentifier>::checkType(a1)){
+     return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                             nl->Second(a2));
+  }
+  // second variant accepts a stream of tuples containing a tupleID
+  if(!Stream<Tuple>::checkType(a1)){
+    return listutils::typeError("1st arg is neither a stream of "
+                                "tids nor a stream of tuples");
+  }
+  ListExpr attrList = nl->Second(nl->Second(a1));
+  int index = 0;
+  int tidIndex = 0;
+  ListExpr iattr = nl->TheEmptyList();
+  ListExpr last;
+  set<string> usednames;
+  bool first = true;
   
+
+  while(!nl->IsEmpty(attrList)){
+    ListExpr attr = nl->First(attrList); 
+    attrList = nl->Rest(attrList);
+    index++;
+    if(TupleIdentifier::checkType(nl->Second(attr))){
+       if(tidIndex!=0){
+          return listutils::typeError("incoming tuple stream contains "
+                                      "more than one tid attribute");
+       }
+       tidIndex = index; 
+    } else {
+      if(first){
+         iattr = nl->OneElemList(attr);
+         last = iattr;
+         first = false;
+      } else {
+         last = nl->Append(last, iattr); 
+      }
+    }
+  }  
+  if(!tidIndex){
+     return listutils::typeError("incoming tuple stream does not "
+                                 "contains an attribute of type tid");
+  }
+  ListExpr relAttrList = nl->Second(nl->Second(a2));
+  ListExpr resAttrList = listutils::concat(iattr, relAttrList);
+  if(!listutils::isAttrList(resAttrList)){
+     return listutils::typeError("found name conflicts");
+  }
+
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                           nl->OneElemList(nl->IntAtom(tidIndex-1)),
+                           nl->TwoElemList(
+                               listutils::basicSymbol<Stream<Tuple> >(),
+                               nl->TwoElemList(
+                                   listutils::basicSymbol<Tuple>(),
+                                   resAttrList)));
 }
 
 
@@ -1273,27 +1322,141 @@ int gettuplesVMT (Word* args, Word& result,
     return -1;
 }
 
+
+class gettuplesInfoUnwrap{
+  public:
+    gettuplesInfoUnwrap(Word _stream, MemoryRelObject* _rel, int _tidpos,
+                        ListExpr resTupleType): 
+        stream(_stream), rel(_rel->getmmrel()), tidpos(_tidpos){
+      stream.open();
+      tt = new TupleType(resTupleType);
+    }
+
+    ~gettuplesInfoUnwrap(){
+        stream.close();
+        tt->DeleteIfAllowed();
+     }
+
+     Tuple* next(){
+        Tuple* inTuple;
+        while((inTuple=stream.request())){
+           TupleIdentifier* tid = (TupleIdentifier*) 
+                                  inTuple->GetAttribute(tidpos);
+           if(!tid->IsDefined()){
+              inTuple->DeleteIfAllowed();
+           } else {
+              TupleId id = tid->GetTid();
+              if(id<1 || id >= rel->size()){
+                inTuple->DeleteIfAllowed();
+              } else {
+                Tuple* relTuple = rel->at(id-1);
+                if(!relTuple){
+                   inTuple->DeleteIfAllowed();
+                } else {
+                  Tuple* resTuple = createResTuple(inTuple,relTuple);
+                  inTuple->DeleteIfAllowed();
+                  return resTuple;
+                }
+              }
+           }
+        }
+        return 0;
+     }
+
+  private:
+     Stream<Tuple> stream;
+     vector<Tuple*>* rel;
+     int tidpos;
+     TupleType* tt;
+
+     Tuple* createResTuple(Tuple* inTuple, Tuple* relTuple){
+        Tuple* resTuple = new Tuple(tt);
+        // copy attributes before tid from intuple to restuple
+        for(int i=0; i < tidpos; i++){
+           resTuple->CopyAttribute(i,inTuple,i);
+        }
+        // copy attributes after tidpos from intuple to restuple
+        for(int i=tidpos+1;i<inTuple->GetNoAttributes(); i++){
+           resTuple->CopyAttribute(i,inTuple,i-1);
+        }
+        // copy attributes from relTuple to resTuple
+        for(int i=0;i<relTuple->GetNoAttributes(); i++){
+           resTuple->CopyAttribute(i, relTuple, 
+                                   i + inTuple->GetNoAttributes()-1);
+        }
+        return resTuple;
+     }
+};
+
+
+template<class T>
+int gettuplesUnwrapVMT (Word* args, Word& result,
+                        int message, Word& local, Supplier s) {
+
+    gettuplesInfoUnwrap* li = (gettuplesInfoUnwrap*) local.addr;
+    switch(message){
+         case OPEN :{
+             if(li){
+                delete li;
+                local.addr = 0;
+             }
+             T* n = (T*) args[1].addr;
+             MemoryRelObject* rel = getMemRel(n,nl->Second(qp->GetType(s)));
+             if(!rel){
+               return 0;
+             }
+             int tidpos = ((CcInt*)args[2].addr)->GetValue();
+             ListExpr tt = nl->Second(GetTupleResultType(s));
+             local.addr = new gettuplesInfoUnwrap(args[0], rel,tidpos,tt);
+             return 0; 
+
+         }
+         case REQUEST: 
+                result.addr = li?li->next():0;
+                return result.addr?YIELD:CANCEL;
+         case CLOSE: {
+               if(li){
+                 delete li;
+                 local.addr = 0;
+               }
+               return 0;
+         }
+    }    
+    return -1;
+}
+
+
+
 ValueMapping gettuplesVM[] =  {
    gettuplesVMT<CcString>,
-   gettuplesVMT<Mem>
+   gettuplesVMT<Mem>,
+   gettuplesUnwrapVMT<CcString>,
+   gettuplesUnwrapVMT<Mem>
+
 };
 
 int gettuplesSelect(ListExpr args){
-  return CcString::checkType(nl->Second(args))?0:1;
+  int n2 = CcString::checkType(nl->Second(args))?0:1;
+  int n1 = Stream<TupleIdentifier>::checkType(nl->First(args))?0:2;
+  return n1+n2;
 }
 
 OperatorSpec gettuplesSpec(
-  "stream(tid) x {string, mem(rel(tuple(X)))} -> stream(tuple(X))",
+  "stream({tid,tuple}) x {string, mem(rel(tuple(X)))} -> stream(tuple(X))",
   "_ _ gettuples",
   "Retrieves tuples from a main memory relation whose ids are "
-  "specified in the incoming stream.",
+  "specified in the incoming stream. If the incoming stream is a tuple stream,"
+  "exactly one attribute must be of type tid. Thius attribute is used to "
+  "extract the tuples from the main memory relation. The tid-attribute is "
+  "removed from the incoming stream and the tuple from the relation is "
+  "appended to the remaining tuples",
   "query \"strassen_Name\" mdistScan2[\"str\"] \"strassen\" gettuples consume"
 );
 
 Operator gettuplesOp(
   "gettuples",
   gettuplesSpec.getStr(),
-  2,
+  4,
   gettuplesVM,
   gettuplesSelect,
   gettuplesTM
@@ -3252,7 +3415,7 @@ Operator mwindowintersectsOp (
 5.16 Operator mwindowintersectsS 
 
 */
-
+template<bool wrap>
 ListExpr mwindowintersectsSTM(ListExpr args){
 
   string err = " {string, memory(rtree <dim> )} x SPATIAL<dim>D expected";
@@ -3280,22 +3443,43 @@ ListExpr mwindowintersectsSTM(ListExpr args){
      return listutils::typeError(err + "tree and query object have "
                                        "different dimensions");
   }
-  return nl->TwoElemList(
+  if(!wrap){
+     return nl->TwoElemList(
                     listutils::basicSymbol<Stream<TupleIdentifier> >(),
                     listutils::basicSymbol<TupleIdentifier> ());
+  } else {
+    ListExpr attrList = nl->OneElemList(
+                            nl->TwoElemList( 
+                              nl->SymbolAtom("TID"),
+                              listutils::basicSymbol<TupleIdentifier>()));
+
+    return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                            nl->TwoElemList( listutils::basicSymbol<Tuple>(),
+                            attrList));
+  }
 }
 
+template<int dim>
+struct mwindowintersectsSInfo{
+    typename mmrtree::RtreeT<dim,size_t>::iterator* it;
+    TupleType* tt;
+};
 
-template <int dim, class T>
+
+template <int dim, class T, bool wrap>
 int mwindowintersectsSVMT (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
-   typedef typename mmrtree::RtreeT<dim,size_t>::iterator it;
-   it* li = (it*) local.addr;
+
+   mwindowintersectsSInfo<dim>* li = (mwindowintersectsSInfo<dim>*)local.addr;
 
    switch(message){
       case OPEN:{
              if(li){
+               delete li->it;
+               if(li->tt){
+                  li->tt->DeleteIfAllowed();
+               }
                delete li;
                local.addr = 0;
              }
@@ -3313,23 +3497,41 @@ int mwindowintersectsSVMT (Word* args, Word& result,
              if(!box.IsDefined()){ // empty spatial object
                return 0;
              }
-             local.addr = tree->getrtree()->find(box);
+             li = new mwindowintersectsSInfo<dim>();
+             li->it = tree->getrtree()->find(box);
+             if(wrap){
+               li->tt = new TupleType( nl->Second(GetTupleResultType(s)));
+             } else {
+               li->tt = 0;
+             }
+             local.addr = li;
              return 0;
       }
       case REQUEST : {
                if(!li){
                   return CANCEL;
                }
-               const size_t* index = li->next();
-               if(index){
-                  result.addr = new TupleIdentifier(true,*index);
+               const size_t* index = li->it->next();
+               if(!index){
+                 result.addr=0;
                } else { // iterator exhausted
-                  result.addr=0;
+                 TupleIdentifier* tid = new TupleIdentifier(true,*index);
+                 if(!wrap){
+                    result.addr = tid;
+                 } else {
+                   Tuple* tuple = new Tuple(li->tt);
+                   tuple->PutAttribute(0,tid);
+                   result.addr = tuple;
+                 }
                }
                return result.addr?YIELD:CANCEL;
         }
        case CLOSE:
                  if(li){
+                    delete li->it;
+                    if(li->tt){
+                       li->tt->DeleteIfAllowed();
+                    }
                     delete li;
                     local.addr = 0;
                  }
@@ -3339,14 +3541,14 @@ int mwindowintersectsSVMT (Word* args, Word& result,
 }
 
 ValueMapping mwindowintersectsSVM[] = {
-   mwindowintersectsSVMT<2, CcString>,
-   mwindowintersectsSVMT<3, CcString>,
-   mwindowintersectsSVMT<4, CcString>,
-   mwindowintersectsSVMT<8, CcString>,
-   mwindowintersectsSVMT<2, Mem>,
-   mwindowintersectsSVMT<3, Mem>,
-   mwindowintersectsSVMT<4, Mem>,
-   mwindowintersectsSVMT<8, Mem>
+   mwindowintersectsSVMT<2, CcString, true>,
+   mwindowintersectsSVMT<3, CcString, true>,
+   mwindowintersectsSVMT<4, CcString, true>,
+   mwindowintersectsSVMT<8, CcString, true>,
+   mwindowintersectsSVMT<2, Mem, true>,
+   mwindowintersectsSVMT<3, Mem, true>,
+   mwindowintersectsSVMT<4, Mem, true>,
+   mwindowintersectsSVMT<8, Mem, true>
 };
 
 int mwindowintersectsSSelect(ListExpr args){
@@ -3365,10 +3567,10 @@ int mwindowintersectsSSelect(ListExpr args){
 
 
 OperatorSpec mwindowintersectsSSpec(
-  "{string, memory(rtree <dim>)} x SPATIAL<dim>D -> stream(tid)",
+  "{string, memory(rtree <dim>)} x SPATIAL<dim>D -> stream(tuple((TID tid)))",
   " _ mwindowintersectsS[_]",
   "Returns the tuple ids belonging to rectangles intersecting the "
-  "bounding box of the second argument. ",
+  "bounding box of the second argument wraped in a tuple. ",
   "query \"strassen_GeoData\" mwindowintersectsS[ thecenter ] count" 
 );
 
@@ -3378,7 +3580,7 @@ Operator mwindowintersectsSOp(
    8,
    mwindowintersectsSVM,
    mwindowintersectsSSelect,
-   mwindowintersectsSTM
+   mwindowintersectsSTM<true>
 );
 
 
@@ -4364,6 +4566,7 @@ mrangeS
 matchbelowS
 
 */
+template<bool wrap>
 ListExpr mexactmatchSTM(ListExpr args){
   string err =" (mem (avl T)) x T  expected";
   if(!nl->HasLength(args,2)){
@@ -4381,10 +4584,25 @@ ListExpr mexactmatchSTM(ListExpr args){
   if(!nl->Equal(nl->Second(a1), nl->First(nl->Second(args)))){
      return listutils::typeError("avl type and search type differ");
   }
-  return nl->TwoElemList( listutils::basicSymbol<Stream<TupleIdentifier> >(),
-                          listutils::basicSymbol<TupleIdentifier>());
+  if(!wrap){
+      return nl->TwoElemList( 
+                   listutils::basicSymbol<Stream<TupleIdentifier> >(),
+                   listutils::basicSymbol<TupleIdentifier>());
+  } else {
+      ListExpr attrList = nl->OneElemList(
+                            nl->TwoElemList(
+                                nl->SymbolAtom("TID"),
+                                listutils::basicSymbol<TupleIdentifier>()));
+      return nl->TwoElemList(
+                     listutils::basicSymbol<Stream<Tuple> >(),
+                     nl->TwoElemList(
+                         listutils::basicSymbol<Tuple>(),
+                         attrList));
+  }
 }
 
+
+template<bool wrap>
 ListExpr mrangeSTM(ListExpr args){
   string err =" (mem (avl T)) x T x T  expected";
   if(!nl->HasLength(args,3)){
@@ -4405,22 +4623,49 @@ ListExpr mrangeSTM(ListExpr args){
   if(!nl->Equal(nl->Second(a1), nl->First(nl->Third(args)))){
      return listutils::typeError("avl type and search type 2 differ");
   }
-  
-  return nl->TwoElemList( listutils::basicSymbol<Stream<TupleIdentifier> >(),
-                          listutils::basicSymbol<TupleIdentifier>());
+  if(!wrap){
+      return nl->TwoElemList( 
+                   listutils::basicSymbol<Stream<TupleIdentifier> >(),
+                   listutils::basicSymbol<TupleIdentifier>());
+  } else {
+      ListExpr attrList = nl->OneElemList(
+                            nl->TwoElemList(
+                                nl->SymbolAtom("TID"),
+                                listutils::basicSymbol<TupleIdentifier>()));
+      return nl->TwoElemList(
+                     listutils::basicSymbol<Stream<Tuple> >(),
+                     nl->TwoElemList(
+                         listutils::basicSymbol<Tuple>(),
+                         attrList));
+  }
 }
 
-
 class AVLOpS{
-
   public:
      AVLOpS(memAVLtree* _tree, 
             Attribute* _beg, Attribute* _end): 
         tree(_tree), end(_end){
         it = tree->tail(AttrIdPair(_beg,0));
+        tt = 0;
      }
 
-     TupleIdentifier* next(){
+     AVLOpS(memAVLtree* _tree, 
+            Attribute* _beg, 
+            Attribute* _end,
+            ListExpr tupleType): 
+        tree(_tree), end(_end){
+        it = tree->tail(AttrIdPair(_beg,0));
+        tt = new TupleType(tupleType);
+     }
+  
+     ~AVLOpS(){
+       if(tt){
+         tt->DeleteIfAllowed();
+       }
+     }
+     
+
+     TupleIdentifier* nextTID(){
          if(it.onEnd()){
            return 0;
          } 
@@ -4433,15 +4678,28 @@ class AVLOpS{
          return new TupleIdentifier(true,p->getTid());
      }
 
+     Tuple* nextTuple(){
+        assert(tt);
+        TupleIdentifier* tid = nextTID();
+        if(!tid){
+          return 0;
+        }
+        Tuple* res = new Tuple(tt);
+        res->PutAttribute(0,tid);
+        return res; 
+     }
+
+
 
    private:
        memAVLtree* tree;
        Attribute* end;
        avlIterator it;
+       TupleType* tt;
 };
 
 
-template<class T>
+template<class T, bool wrap>
 int mrangeSVMT (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
@@ -4460,11 +4718,24 @@ int mrangeSVMT (Word* args, Word& result,
         }
         Attribute* beg = (Attribute*) args[1].addr;
         Attribute* end = (Attribute*) args[qp->GetNoSons(s)-1].addr;
-        local.addr = new AVLOpS(tree,beg,end);
+        if(!wrap){
+           local.addr = new AVLOpS(tree,beg,end);
+        } else {
+           local.addr = new AVLOpS(tree,beg,end,
+                                   nl->Second(GetTupleResultType(s)));
+        }
         return 0;
      }
      case REQUEST: {
-        result.addr = li?li->next():0;
+        if(!li){
+           result.addr = 0;
+        } else {
+           if(wrap){
+              result.addr = li->nextTuple();
+           } else {
+              result.addr = li->nextTID();
+           }
+        }
         return result.addr?YIELD:CANCEL;
      }
           
@@ -4481,8 +4752,8 @@ int mrangeSVMT (Word* args, Word& result,
 
 
 ValueMapping mrangeSVM[] = {
-   mrangeSVMT<CcString>,
-   mrangeSVMT<Mem>
+   mrangeSVMT<CcString,true>,
+   mrangeSVMT<Mem, true>
 };
 
 int mrangeSSelect(ListExpr args){
@@ -4491,7 +4762,7 @@ int mrangeSSelect(ListExpr args){
 
 
 OperatorSpec mexactmatchSSpec(
-  "{string, mem(avltree T) x T -> stream(tid) ",
+  "{string, mem(avltree T) x T -> stream(tuple((TID tid))) ",
   "_ memexactmatchS[_]",
   "Retrieves the tuple ids from an avl-tree whose "
   "keys have the value given by the second arg.",
@@ -4499,7 +4770,7 @@ OperatorSpec mexactmatchSSpec(
 );
 
 OperatorSpec mrangeSSpec(
-  "{string, mem(avltree T) x T x T -> stream(tid)",
+  "{string, mem(avltree T) x T x T -> stream(tuple((TID tid)))",
   "_ mrangeS[_,_] ",
   "Retrieves the tuple ids from an avl-tree whose key "
   "is within the range defined by the last two arguments.",
@@ -4514,7 +4785,7 @@ Operator mexactmatchSOp(
   2,
   mrangeSVM,
   mrangeSSelect,
-  mexactmatchSTM
+  mexactmatchSTM<true>
 );
 
 Operator mrangeSOp(
@@ -4523,10 +4794,10 @@ Operator mrangeSOp(
   2,
   mrangeSVM,
   mrangeSSelect,
-  mrangeSTM
+  mrangeSTM<true>
 );
 
-
+template<bool wrap>
 ListExpr matchbelowSTM(ListExpr args){
   string err =" (mem (avl T)) x T  expected";
   if(!nl->HasLength(args,2)){
@@ -4544,20 +4815,36 @@ ListExpr matchbelowSTM(ListExpr args){
   if(!nl->Equal(nl->Second(a1), nl->First(nl->Second(args)))){
      return listutils::typeError("avl type and search type differ");
   }
-  return nl->TwoElemList( listutils::basicSymbol<Stream<TupleIdentifier> >(),
-                          listutils::basicSymbol<TupleIdentifier>());
+  if(!wrap){
+      return nl->TwoElemList( 
+                   listutils::basicSymbol<Stream<TupleIdentifier> >(),
+                   listutils::basicSymbol<TupleIdentifier>());
+  } else {
+      ListExpr attrList = nl->OneElemList(
+                            nl->TwoElemList(
+                                nl->SymbolAtom("TID"),
+                                listutils::basicSymbol<TupleIdentifier>()));
+      return nl->TwoElemList(
+                     listutils::basicSymbol<Stream<Tuple> >(),
+                     nl->TwoElemList(
+                         listutils::basicSymbol<Tuple>(),
+                         attrList));
+  }
 }
 
 
-template<class T>
+template<class T, bool wrap>
 int matchbelowSVMT (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
-   TupleIdentifier* tid = (TupleIdentifier*) local.addr;
    switch (message){
       case OPEN: {
-           if(tid){
-             delete tid;
+           if(local.addr){
+             if(wrap){
+                ((Tuple*)local.addr)->DeleteIfAllowed();
+             } else {
+                ((TupleIdentifier*)local.addr)->DeleteIfAllowed();
+             }
              local.addr=0;
            }
            T* treeN = (T*) args[0].addr;
@@ -4569,20 +4856,34 @@ int matchbelowSVMT (Word* args, Word& result,
            AttrIdPair searchP(attr, numeric_limits<size_t>::max()); 
            const AttrIdPair* p = tree->GetNearestSmallerOrEqual(searchP);
            if(p){
-              local.addr = new TupleIdentifier(true,p->getTid());
+              TupleIdentifier* tid =  new TupleIdentifier(true,p->getTid());
+              if(wrap){
+                 TupleType* tt = new TupleType(nl->Second(
+                                               GetTupleResultType(s)));
+                 Tuple* res = new Tuple(tt);
+                 res->PutAttribute(0,tid);
+                 local.addr = res; 
+                 tt->DeleteIfAllowed();
+              } else {
+                 local.addr = tid;
+              }
            } 
            return 0;
       }
       case REQUEST : {
-             result.addr = tid;
+             result.addr = local.addr;
              local.addr = 0;
              return result.addr?YIELD:CANCEL;
       }
       case CLOSE :{
-             if(tid){
-                delete tid;
-                local.addr = 0;
+           if(local.addr){
+             if(wrap){
+                ((Tuple*)local.addr)->DeleteIfAllowed();
+             } else {
+                ((TupleIdentifier*)local.addr)->DeleteIfAllowed();
              }
+             local.addr=0;
+           }
              return 0;
       }
 
@@ -4591,8 +4892,8 @@ int matchbelowSVMT (Word* args, Word& result,
 }
 
 ValueMapping matchbelowSVM[] = {
-   matchbelowSVMT<CcString>,
-   matchbelowSVMT<Mem>
+   matchbelowSVMT<CcString, true>,
+   matchbelowSVMT<Mem, true>
 };
 
 int matchbelowSSelect(ListExpr args){
@@ -4600,7 +4901,7 @@ int matchbelowSSelect(ListExpr args){
 }
 
 OperatorSpec matchbelowSSpec(
-  "{string, mem(avltree T) x T -> stream(TID) ",
+  "{string, mem(avltree T) x T -> stream(tuple((TID tid))) ",
   "_ matchbelowS[_]",
   "Returns the tid of the entry in the avl tree whose key "
   "is smaller or equal to the key attribute. If the given "
@@ -4615,7 +4916,7 @@ Operator matchbelowSOp(
   2,
   matchbelowSVM,
   matchbelowSSelect,
-  matchbelowSTM
+  matchbelowSTM<true>
 );
 
 
@@ -4819,6 +5120,7 @@ given distance to a reference object. The used index is a
 main memory based mtree.
 
 */
+template<bool wrap>
 ListExpr mdistRange2TM(ListExpr args){
 
   string err = "{string, mem(mtree T)}  x T x real expected";
@@ -4844,25 +5146,45 @@ ListExpr mdistRange2TM(ListExpr args){
   if(!CcReal::checkType(nl->First(nl->Third(args)))){
      return listutils::typeError(err + " (third arg is not a real)");
   }
-
-  return nl->TwoElemList(
-                listutils::basicSymbol<Stream<TupleIdentifier> >(),
-                listutils::basicSymbol<TupleIdentifier> ());
+  if(!wrap){
+      return nl->TwoElemList( 
+                   listutils::basicSymbol<Stream<TupleIdentifier> >(),
+                   listutils::basicSymbol<TupleIdentifier>());
+  } else {
+      ListExpr attrList = nl->OneElemList(
+                            nl->TwoElemList(
+                                nl->SymbolAtom("TID"),
+                                listutils::basicSymbol<TupleIdentifier>()));
+      return nl->TwoElemList(
+                     listutils::basicSymbol<Stream<Tuple> >(),
+                     nl->TwoElemList(
+                         listutils::basicSymbol<Tuple>(),
+                         attrList));
+  }
 }
 
+template<class T>
+struct mdistrange2Info{
+   RangeIterator<pair<T,TupleId>, StdDistComp<T>  >* it;
+   TupleType* tt;
+};
 
-template <class T, class N>
+
+template <class T, class N, bool wrap>
 int mdistRange2VMT (Word* args, Word& result, int message,
                     Word& local, Supplier s) {
 
-  RangeIterator<pair<T,TupleId>, StdDistComp<T>  >* li 
-              = (RangeIterator<pair<T,TupleId>, StdDistComp<T> >*) local.addr;
+  mdistrange2Info<T>* li = (mdistrange2Info<T>*) local.addr;
   switch(message){
     case OPEN: {
             if(li) {
-              delete li;
+              delete li->it;
+              if(li->tt){
+                li->tt->DeleteIfAllowed();
+              }
               local.addr = 0;
             }
+
             T* attr = (T*) args[1].addr;
             CcReal* dist = (CcReal*) args[2].addr;
             if(!dist->IsDefined()){
@@ -4882,7 +5204,14 @@ int mdistRange2VMT (Word* args, Word& result, int message,
             mtt* mtree = mtreeo->getmtree();
             if(mtree){
                 T a = *attr;
-                local.addr = mtree->rangeSearch(pair<T,TupleId>(a,0), d);
+                mdistrange2Info<T>* info = new mdistrange2Info<T>();
+                info->it = mtree->rangeSearch(pair<T,TupleId>(a,0), d);
+                if(!wrap){
+                   info->tt = 0;
+                } else {
+                   info->tt = new TupleType(nl->Second(GetTupleResultType(s)));
+                }
+                local.addr = info;
             }
             return 0;
           }
@@ -4891,14 +5220,29 @@ int mdistRange2VMT (Word* args, Word& result, int message,
                  result.addr=0;
                  return CANCEL;
                }
-               const pair<T,TupleId>* n = li->next();
-               result.addr = n? new TupleIdentifier(true,n->second) : 0;
+               const pair<T,TupleId>* n = li->it->next();
+               TupleIdentifier* res = n? new TupleIdentifier(true,n->second):0;
+               if(!res){
+                 result.addr=0;
+                 return CANCEL;
+               }
+               if(!wrap){
+                 result.addr = res;
+               } else {
+                  Tuple* tuple = new Tuple(li->tt);
+                  tuple->PutAttribute(0,res);
+                  result.addr = tuple;
+               }
                return result.addr?YIELD:CANCEL;
             }
      case CLOSE:
                if(li){
-                 delete li;
-                 local.addr = 0;
+                   delete li->it;
+                   if(li->tt){
+                      li->tt->DeleteIfAllowed();
+                   }
+                   delete li;
+                   local.addr = 0;
                }
                return 0;
      }
@@ -4928,29 +5272,29 @@ int mdistRange2Select(ListExpr args){
  // note: if adding attributes with flobs, the value mapping must be changed
 
 ValueMapping mdistRange2VM[] = {
-  mdistRange2VMT<mtreehelper::t1, CcString>,
-  mdistRange2VMT<mtreehelper::t2, CcString>,
-  mdistRange2VMT<mtreehelper::t3, CcString>,
-  mdistRange2VMT<mtreehelper::t4, CcString>,
-  mdistRange2VMT<mtreehelper::t5, CcString>,
-  mdistRange2VMT<mtreehelper::t6, CcString>,
-  mdistRange2VMT<mtreehelper::t7, CcString>,
-  mdistRange2VMT<mtreehelper::t8, CcString>,
-  mdistRange2VMT<mtreehelper::t9, CcString>,
+  mdistRange2VMT<mtreehelper::t1, CcString, true>,
+  mdistRange2VMT<mtreehelper::t2, CcString, true>,
+  mdistRange2VMT<mtreehelper::t3, CcString, true>,
+  mdistRange2VMT<mtreehelper::t4, CcString, true>,
+  mdistRange2VMT<mtreehelper::t5, CcString, true>,
+  mdistRange2VMT<mtreehelper::t6, CcString, true>,
+  mdistRange2VMT<mtreehelper::t7, CcString, true>,
+  mdistRange2VMT<mtreehelper::t8, CcString, true>,
+  mdistRange2VMT<mtreehelper::t9, CcString, true>,
 
-  mdistRange2VMT<mtreehelper::t1, Mem>,
-  mdistRange2VMT<mtreehelper::t2, Mem>,
-  mdistRange2VMT<mtreehelper::t3, Mem>,
-  mdistRange2VMT<mtreehelper::t4, Mem>,
-  mdistRange2VMT<mtreehelper::t5, Mem>,
-  mdistRange2VMT<mtreehelper::t6, Mem>,
-  mdistRange2VMT<mtreehelper::t7, Mem>,
-  mdistRange2VMT<mtreehelper::t8, Mem>,
-  mdistRange2VMT<mtreehelper::t9, Mem>
+  mdistRange2VMT<mtreehelper::t1, Mem, true>,
+  mdistRange2VMT<mtreehelper::t2, Mem, true>,
+  mdistRange2VMT<mtreehelper::t3, Mem, true>,
+  mdistRange2VMT<mtreehelper::t4, Mem, true>,
+  mdistRange2VMT<mtreehelper::t5, Mem, true>,
+  mdistRange2VMT<mtreehelper::t6, Mem, true>,
+  mdistRange2VMT<mtreehelper::t7, Mem, true>,
+  mdistRange2VMT<mtreehelper::t8, Mem, true>,
+  mdistRange2VMT<mtreehelper::t9, Mem, true>
 };
 
 OperatorSpec mdistRange2Spec(
-  "string x DATA x real -> stream(tid) ",
+  "string x DATA x real -> stream(tuple((TID tid))) ",
   "mem_mtree mdistRange2[keyAttr, maxDist] ",
   "Retrieves those tuple ids from an mtree those key value has "
   "a maximum distaance of the given dist",
@@ -4963,7 +5307,7 @@ Operator mdistRange2Op(
    18,
    mdistRange2VM,
    mdistRange2Select,
-   mdistRange2TM
+   mdistRange2TM<true>
 );
 
 
@@ -4975,6 +5319,7 @@ whose associated objects are in increasing order
 to the reference object.
 
 */
+template<bool wrap>
 ListExpr mdistScan2TM(ListExpr args){
   string err = "{string, mem(mtree (T))}  x T  expected";
   if(!nl->HasLength(args,2)){
@@ -4992,22 +5337,41 @@ ListExpr mdistScan2TM(ListExpr args){
      return listutils::typeError(err+ "( first arg is not an "
                                       "mtree over key type)");
   }
-  return nl->TwoElemList( listutils::basicSymbol<Stream<TupleIdentifier> >(),
-                          listutils::basicSymbol<TupleIdentifier>());
-
-
+  if(!wrap){
+      return nl->TwoElemList( 
+                   listutils::basicSymbol<Stream<TupleIdentifier> >(),
+                   listutils::basicSymbol<TupleIdentifier>());
+  } else {
+      ListExpr attrList = nl->OneElemList(
+                            nl->TwoElemList(
+                                nl->SymbolAtom("TID"),
+                                listutils::basicSymbol<TupleIdentifier>()));
+      return nl->TwoElemList(
+                     listutils::basicSymbol<Stream<Tuple> >(),
+                     nl->TwoElemList(
+                         listutils::basicSymbol<Tuple>(),
+                         attrList));
+  }
 }
 
+template<class T>
+struct mdistScan2Info{
+   NNIterator<pair<T,TupleId>, StdDistComp<T>  >* it;
+   TupleType* tt;
+};
 
-template <class T, class N>
+
+template <class T, class N, bool wrap>
 int mdistScan2VMT (Word* args, Word& result, int message,
                     Word& local, Supplier s) {
-
-  NNIterator<pair<T,TupleId>, StdDistComp<T>  >* li 
-                = (NNIterator<pair<T,TupleId>, StdDistComp<T> >*) local.addr;
+  mdistScan2Info<T>* li = (mdistScan2Info<T>*) local.addr;  
   switch(message){
     case OPEN: {
             if(li) {
+              delete li->it;
+              if(li->tt){
+                li->tt->DeleteIfAllowed();
+              }
               delete li;
               local.addr = 0;
             }
@@ -5022,7 +5386,14 @@ int mdistScan2VMT (Word* args, Word& result, int message,
                     tree->getmtree();
             if(mtree){
               pair<T,TupleId> p(*attr,0);
-              local.addr = mtree->nnSearch(p);
+              li = new mdistScan2Info<T>();
+              li->it =  mtree->nnSearch(p);
+              if(!wrap){
+                li->tt=0;
+              } else {
+                li->tt = new TupleType(nl->Second(GetTupleResultType(s)));
+              }
+              local.addr = li;
             }
             return 0;
           }
@@ -5031,12 +5402,28 @@ int mdistScan2VMT (Word* args, Word& result, int message,
                  result.addr=0;
                  return CANCEL;
                }
-               const pair<T,TupleId>* n = li->next();
-               result.addr = n? new TupleIdentifier(true,n->second) : 0;
+               const pair<T,TupleId>* n = li->it->next();
+               TupleIdentifier* tid = n? new TupleIdentifier(true,n->second):0;
+               if(!tid){
+                 result.addr=0;
+                 return CANCEL;
+               } 
+               if(!wrap){
+                  result.addr = tid;
+               } else {
+                  Tuple* tuple = new Tuple(li->tt);
+                  tuple->PutAttribute(0,tid);
+                  result.addr = tuple;
+               }
+                
                return result.addr?YIELD:CANCEL;
             }
      case CLOSE:
                if(li){
+                 delete li->it;
+                 if(li->tt){
+                    li->tt->DeleteIfAllowed();
+                 }
                  delete li;
                  local.addr = 0;
                }
@@ -5065,29 +5452,29 @@ int mdistScan2Select(ListExpr args){
  // note: if adding attributes with flobs, the value mapping must be changed
 
 ValueMapping mdistScan2VM[] = {
-  mdistScan2VMT<mtreehelper::t1, CcString>,
-  mdistScan2VMT<mtreehelper::t2, CcString>,
-  mdistScan2VMT<mtreehelper::t3, CcString>,
-  mdistScan2VMT<mtreehelper::t4, CcString>,
-  mdistScan2VMT<mtreehelper::t5, CcString>,
-  mdistScan2VMT<mtreehelper::t6, CcString>,
-  mdistScan2VMT<mtreehelper::t7, CcString>,
-  mdistScan2VMT<mtreehelper::t8, CcString>,
-  mdistScan2VMT<mtreehelper::t9, CcString>,
+  mdistScan2VMT<mtreehelper::t1, CcString, true>,
+  mdistScan2VMT<mtreehelper::t2, CcString, true>,
+  mdistScan2VMT<mtreehelper::t3, CcString, true>,
+  mdistScan2VMT<mtreehelper::t4, CcString, true>,
+  mdistScan2VMT<mtreehelper::t5, CcString, true>,
+  mdistScan2VMT<mtreehelper::t6, CcString, true>,
+  mdistScan2VMT<mtreehelper::t7, CcString, true>,
+  mdistScan2VMT<mtreehelper::t8, CcString, true>,
+  mdistScan2VMT<mtreehelper::t9, CcString, true>,
   
-  mdistScan2VMT<mtreehelper::t1, Mem>,
-  mdistScan2VMT<mtreehelper::t2, Mem>,
-  mdistScan2VMT<mtreehelper::t3, Mem>,
-  mdistScan2VMT<mtreehelper::t4, Mem>,
-  mdistScan2VMT<mtreehelper::t5, Mem>,
-  mdistScan2VMT<mtreehelper::t6, Mem>,
-  mdistScan2VMT<mtreehelper::t7, Mem>,
-  mdistScan2VMT<mtreehelper::t8, Mem>,
-  mdistScan2VMT<mtreehelper::t9, Mem>
+  mdistScan2VMT<mtreehelper::t1, Mem, true>,
+  mdistScan2VMT<mtreehelper::t2, Mem, true>,
+  mdistScan2VMT<mtreehelper::t3, Mem, true>,
+  mdistScan2VMT<mtreehelper::t4, Mem, true>,
+  mdistScan2VMT<mtreehelper::t5, Mem, true>,
+  mdistScan2VMT<mtreehelper::t6, Mem, true>,
+  mdistScan2VMT<mtreehelper::t7, Mem, true>,
+  mdistScan2VMT<mtreehelper::t8, Mem, true>,
+  mdistScan2VMT<mtreehelper::t9, Mem, true>
 };
 
 OperatorSpec mdistScan2Spec(
-  "{string, (mem (mtree DATA))}  x DATA -> stream(tid) ",
+  "{string, (mem (mtree DATA))}  x DATA -> stream(tuple((TID tid))) ",
   "mem_mtree mdistScan2[keyAttr] ",
   "Scans the tuple ids within an m-tree in increasing "
   "distance of the reference object to the associated "
@@ -5101,7 +5488,7 @@ Operator mdistScan2Op(
    18,
    mdistScan2VM,
    mdistScan2Select,
-   mdistScan2TM
+   mdistScan2TM<true>
 );
 
 
