@@ -9569,7 +9569,7 @@ class mupdatebyidInfo {
           return 0;
       } 
       TupleId id = tid->GetTid();
-      if(id<0 || id>relation->size()){
+      if(id<1 || id>relation->size()){
           return 0;
       } 
       Tuple* res = relation->at(id-1);
