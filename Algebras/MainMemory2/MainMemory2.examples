@@ -600,3 +600,23 @@ Example   : query "plz_PLZ" "plz" matchbelow2[5000, Ort, "anywhere"]
 Result    : "Wiederau"
 
 
+Operator  : mdeletedirect
+Number    : 100
+Signature : stream(tuple(X)) x mem(rel(tuple(X))) -> stream(tuple(X@TID tid))
+Example   : query "plz" mfeed head[10] "plz" mdeletedirect count
+Result    : 10
+
+
+Operator  : memlet
+Number    : 101
+Signature : string x mem(...) -> bool
+Example  : query memlet("PLZ_DEL", mcreatedeleterel("plz"))
+Result    : TRUE
+
+Operator  : mdeletedirectsave
+Number    : 102
+Signature : stream(tuple(X)) x mem(rel(tuple(X))) x mem(rel(tuple(X@TID)) -> stream(tuple(X@TID tid))
+Example   : query "plz" mfeed head[10] "plz" "PLZ_DEL"  mdeletedirectsave count
+Result    : 10
+
+

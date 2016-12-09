@@ -79,6 +79,10 @@ operator mcreatedeleterel alias MCREATEDELETEREL pattern op(_)
 operator mdelete alias MDELETE pattern _ op [_]
 operator mdeletesave alias MDELETESAVE pattern _ op [_,_]
 operator mdeletebyid alias MDELETEBYID pattern _ op [_]
+
+operator mdeletedirect     alias MDELETEDIRECT pattern _ _ op
+operator mdeletedirectsave alias MDELETEDIRECTSAVE pattern _ _ _ op
+
 operator mcreateupdaterel alias MCREATEUPDATEREL pattern op(_)
 operator mupdate alias MUPDATE pattern _ op[_; funlist] implicit parameter tuple type MTUPLE2
 operator mupdatesave alias MUPDATESAVE pattern _ op[_,_; funlist] implicit parameter tuple type MTUPLE2

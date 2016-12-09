@@ -7912,11 +7912,8 @@ mdeleteInfo(Word w,
      
   Tuple* next() {
      TupleIdentifier* tid;
-     cout << "called next" << endl;
      while((tid=stream.request())){
-       cout << "received tid" << endl;
        tid->Print(cout) << endl; 
-
        if(!tid->IsDefined()){
          tid->DeleteIfAllowed();
        } else {
@@ -8151,11 +8148,11 @@ int mdeletesaveSelect(ListExpr args){
 
 OperatorSpec mdeletesaveSpec(
     "stream(tid) x {string, mem(rel)} x {string, mem(rel)} -> stream(Tuple)",
-    "_ mdelete[_,_]",
+    "_ mdeletesave[_,_]",
     "Deletes tuples with given ids from a relation and stores "
     "deleted tuple into a auxiliary relation. ",
     "query \"ten\" mfeed filter[.No > 6] tids "
-    "mdelete[\"ten\", \"tenDel\"]  count"
+    "mdeletesave[\"ten\", \"tenDel\"]  count"
 );
 
 /*
@@ -8172,24 +8169,7 @@ Operator mdeletesaveOp (
 );
 
 
-
-// find tuple in memory relation 
-Tuple* find(vector<Tuple*>* relation, TupleIdentifier* tid) {
-  vector<Tuple*>::iterator it = relation->begin();
-  Tuple* tup;
   
-  while(it != relation->end()) {
-    tup = *it;
-    if(tup){
-      if(tid->GetTid() == tup->GetTupleId()) {
-        return tup;
-      }
-    }
-    it++;
-  }
-  return 0;
-}
-    
 /*
 7.2 Operator ~mdeletebyid~
 
@@ -8355,7 +8335,7 @@ ValueMapping mdeletebyidVM[] = {
   mdeletebyidValMap<Mem>
 };
 
-int mdeletebyidSelect(ListExpr args){
+int mdeleteelect(ListExpr args){
   return CcString::checkType(nl->First(args))?0:1;
 }
 
@@ -8364,7 +8344,7 @@ int mdeletebyidSelect(ListExpr args){
 7.15.4 Description of operator ~mdeletebyid~
 
 */
-OperatorSpec mdeletebyidSpec(
+OperatorSpec mdeletepec(
     "{string, mem(rel(tuple(x)))} x (tid) -> stream(tuple(x@[TID:tid]))] ",
     "_ mdeletebyid [_]",
     "deletes the tuples possessing a given tupleid from the main memory "
@@ -8378,14 +8358,348 @@ OperatorSpec mdeletebyidSpec(
 */
 Operator mdeletebyidOp (
     "mdeletebyid",
-    mdeletebyidSpec.getStr(),
+    mdeletepec.getStr(),
     2,
     mdeletebyidVM,
-    mdeletebyidSelect,
+    mdeleteelect,
     mdeletebyidTypeMap
 );
 
 
+/*
+7.16 Operator ~mdeletedirect~
+
+*/
+ListExpr mdeletedirectTM(ListExpr args){
+   string err = "stream(tuple(X)) x (mem(rel(tuple(X)))) expected";
+   if(!nl->HasLength(args,2)){
+      return listutils::typeError("two arguments expected");
+   }
+   if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+   }
+   ListExpr stream = nl->First(nl->First(args));
+   if(!Stream<Tuple>::checkType(stream)){
+     return listutils::typeError("first arg is not a tuple stream");
+   }
+   ListExpr mrel = nl->Second(args);
+   string error;
+   if(!getMemType(nl->First(mrel), nl->Second(mrel), mrel, error, true)){
+      return listutils::typeError(error);
+   } 
+   mrel = nl->Second(mrel);
+   ListExpr streamAttrList = nl->Second(nl->Second(stream));
+   ListExpr relAttrList = nl->Second(nl->Second(mrel));
+   if(!nl->Equal(streamAttrList, relAttrList)){
+     return listutils::typeError("attributes of stream and relation differ");
+   }  
+   ListExpr append = nl->OneElemList(nl->TwoElemList(
+                            nl->SymbolAtom("TID"),
+                            listutils::basicSymbol<TupleIdentifier>()));
+
+   ListExpr resAttrList = listutils::concat( streamAttrList, append);
+   if(!listutils::isAttrList(resAttrList)){
+     return listutils::typeError("attribute TID already present. ");
+   }
+   return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                          nl->TwoElemList(
+                              listutils::basicSymbol<Tuple>(),
+                              resAttrList));
+
+}
+
+
+class mdeletedirectInfo{
+
+  public:
+    mdeletedirectInfo(Word _stream, vector<Tuple*>* _rel,
+                      vector<Tuple*>* _saverel,
+                      ListExpr resultTupleType):
+     stream(_stream), rel(_rel), saverel(_saverel) {
+       tt = new TupleType(resultTupleType);
+       stream.open();
+   }
+  
+   ~mdeletedirectInfo(){
+       stream.close();
+       tt->DeleteIfAllowed();
+    }
+
+    Tuple* next(){
+       Tuple* inTuple = stream.request();
+       if(!inTuple){
+          return 0;
+       }
+       TupleId tid = inTuple->GetTupleId();
+       if(tid>0 && tid <= rel->size()){
+          Tuple* victim = rel->at(tid-1);
+          if(victim){
+             rel->at(tid-1) = 0;
+             victim->DeleteIfAllowed();
+          }
+       }
+       Tuple* resTuple = createResTuple(inTuple);
+       inTuple->DeleteIfAllowed();
+       if(saverel){
+         resTuple->IncReference();
+         saverel->push_back(resTuple);
+       }
+       return resTuple;
+    }
+  
+  private:
+     Stream<Tuple> stream;
+     vector<Tuple*>* rel;
+     vector<Tuple*>* saverel;
+     TupleType* tt;
+
+     Tuple* createResTuple(Tuple* inTuple){
+        Tuple* res = new Tuple(tt);
+        for(int i=0;i<inTuple->GetNoAttributes(); i++){
+           res->CopyAttribute(i,inTuple,i);
+        }
+        res->PutAttribute(inTuple->GetNoAttributes(),
+                          new TupleIdentifier(true,inTuple->GetTupleId()));
+        return res;
+     }
+
+};
+
+
+template<class T>
+int mdeletedirectVMT(Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+  mdeletedirectInfo* li = (mdeletedirectInfo*) local.addr;
+
+    switch (message) {
+      case OPEN: {
+        if(li){
+          delete li;
+          local.addr=0;
+        }
+        
+        T* oN = (T*) args[1].addr;
+      
+        MemoryRelObject* rel = getMemRel(oN);
+        if(!rel) { return 0; }
+       
+        local.addr = new  mdeletedirectInfo(
+                            args[0],
+                            rel->getmmrel(),
+                            0,
+                            nl->Second(GetTupleResultType(s)));
+        return 0;
+      }
+
+     case REQUEST:
+            result.addr = li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+
+     case CLOSE :
+             if(li){
+                delete li;
+                local.addr = 0;
+             }
+             return 0;
+   }
+   return -1;
+}
+
+ValueMapping mdeletedirectVM[] = {
+  mdeletedirectVMT<CcString>,
+  mdeletedirectVMT<Mem>,
+  mdeletedirectVMT<MPointer>
+};
+
+int mdeletedirectSelect(ListExpr args){
+  ListExpr s = nl->Second(args);
+  if(CcString::checkType(s)) return 0;
+  if(Mem::checkType(s)) return 1;
+  if(MPointer::checkType(s)) return 2;
+  return -1;
+}
+
+OperatorSpec mdeletedirectSpec(
+  "stream(tuple(X)) x mrel(tuple(X)) -> stream(tuple(X@(TID tid)))",
+  "_ _ mdeletedirect",
+  "This function extracts the tuple ids from the incoming stream "
+  "and removes the tuples having this id from the main memory relation "
+  "which can be given as a string, a mem(rel) or an mpointer(mem(rel)). "
+  "The output are the incoming tuples extended by this id. Note that "
+  "the values of the result tuples have nothing to do with the values "
+  "stored in the relation. ",
+  "query ten feed \"ten\" mdeletedirect consume"
+);
+
+Operator mdeletedirectOp(
+  "mdeletedirect",
+  mdeletedirectSpec.getStr(),
+  3,
+  mdeletedirectVM,
+  mdeletedirectSelect,
+  mdeletedirectTM
+);
+
+/*
+7.17 Operator ~mdeletedirectsave~
+
+*/
+ListExpr mdeletedirectsaveTM(ListExpr args){
+   string err = "stream(tuple(X)) x (mem(rel(tuple(X)))) x "
+                "mem(rel(tuple(X@TID))) expected";
+   if(!nl->HasLength(args,3)){
+      return listutils::typeError("three arguments expected");
+   }
+   if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+   }
+   ListExpr stream = nl->First(nl->First(args));
+   if(!Stream<Tuple>::checkType(stream)){
+     return listutils::typeError("first arg is not a tuple stream");
+   }
+   ListExpr mrel = nl->Second(args);
+   string error;
+   if(!getMemType(nl->First(mrel), nl->Second(mrel), mrel, error, true)){
+      return listutils::typeError(error);
+   } 
+   mrel = nl->Second(mrel);
+   ListExpr streamAttrList = nl->Second(nl->Second(stream));
+   ListExpr relAttrList = nl->Second(nl->Second(mrel));
+   if(!nl->Equal(streamAttrList, relAttrList)){
+     return listutils::typeError("attributes of stream and relation differ");
+   }  
+   ListExpr append = nl->OneElemList(nl->TwoElemList(
+                            nl->SymbolAtom("TID"),
+                            listutils::basicSymbol<TupleIdentifier>()));
+
+   ListExpr resAttrList = listutils::concat( streamAttrList, append);
+   if(!listutils::isAttrList(resAttrList)){
+     return listutils::typeError("attribute TID already present. ");
+   }
+   // check the saverel
+   ListExpr saverel = nl->Third(args);
+   if(!getMemType(nl->First(saverel), nl->Second(saverel), saverel, 
+                  error, true)){
+      return listutils::typeError(error);
+   } 
+   saverel = nl->Second(saverel);
+   ListExpr saveAttrList = nl->Second(nl->Second(saverel));
+   if(!nl->Equal(saveAttrList, resAttrList)){
+      return listutils::typeError("save relation scheme does not fit "
+                                  "the result scheme");
+   } 
+
+   return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                          nl->TwoElemList(
+                              listutils::basicSymbol<Tuple>(),
+                              resAttrList));
+
+}
+
+template<class T, class S>
+int mdeletedirectsaveVMT(Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+  mdeletedirectInfo* li = (mdeletedirectInfo*) local.addr;
+
+    switch (message) {
+      case OPEN: {
+        if(li){
+          delete li;
+          local.addr=0;
+        }
+        
+        T* oN = (T*) args[1].addr;
+      
+        MemoryRelObject* rel = getMemRel(oN);
+        if(!rel) { return 0; }
+        
+        S* sN = (S*) args[2].addr;
+      
+        MemoryRelObject* srel = getMemRel(sN);
+        if(!srel) { return 0; }
+       
+        local.addr = new  mdeletedirectInfo(
+                            args[0],
+                            rel->getmmrel(),
+                            srel->getmmrel(),
+                            nl->Second(GetTupleResultType(s)));
+        return 0;
+      }
+
+     case REQUEST:
+            result.addr = li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+
+     case CLOSE :
+             if(li){
+                delete li;
+                local.addr = 0;
+             }
+             return 0;
+   }
+   return -1;
+}
+
+ValueMapping mdeletedirectsaveVM[] = {
+  mdeletedirectsaveVMT<CcString, CcString>,
+  mdeletedirectsaveVMT<CcString, Mem>,
+  mdeletedirectsaveVMT<CcString, MPointer>,
+  mdeletedirectsaveVMT<Mem, CcString>,
+  mdeletedirectsaveVMT<Mem, Mem>,
+  mdeletedirectsaveVMT<Mem, MPointer>,
+  mdeletedirectsaveVMT<MPointer, CcString>,
+  mdeletedirectsaveVMT<MPointer, Mem>,
+  mdeletedirectsaveVMT<MPointer, MPointer>
+};
+
+int mdeletedirectsaveSelect(ListExpr args){
+  ListExpr s = nl->Second(args);
+  int n1 = 0;
+  if(CcString::checkType(s)) n1 = 0;
+  else if(Mem::checkType(s)) n1 = 3;
+  else if(MPointer::checkType(s)) n1 = 6;
+
+  s = nl->Third(args);
+  int n2 = 0;
+  if(CcString::checkType(s)) n2 = 0;
+  else if(Mem::checkType(s)) n2 = 1;
+  else if(MPointer::checkType(s)) n2 = 2;
+
+  return n1+n2;
+}
+
+OperatorSpec mdeletedirectsaveSpec(
+  "stream(tuple(X)) x mrel(tuple(X)) x mem(rel(tuple(X@TID))"
+  " -> stream(tuple(X@(TID tid)))",
+  "_ _ _ mdeletedirectsave",
+  "This function extracts the tuple ids from the incoming stream "
+  "and removes the tuples having this id from the main memory relation "
+  "which can be given as a string, a mem(rel) or an mpointer(mem(rel)). "
+  "The output tuples are the incoming tuples extended by this id. "
+  "Beside giving the result tuples into the output stream, these "
+  "tuples are saved into an auxiliary relation given as the third argument. "
+  "Note that "
+  "the values of the result tuples have nothing to do with the values "
+  "stored in the relation. ",
+  "query ten feed \"ten\" \"ten_aux\" mdeletedirectsave consume"
+);
+
+Operator mdeletedirectsaveOp(
+  "mdeletedirectsave",
+  mdeletedirectsaveSpec.getStr(),
+  3,
+  mdeletedirectsaveVM,
+  mdeletedirectsaveSelect,
+  mdeletedirectsaveTM
+);
+
+
+/*
+7.19 Operator ~mupdate~
+
+*/
 
 
 ListExpr mupdateTM(ListExpr args){
@@ -9251,7 +9565,14 @@ class mupdatebyidInfo {
     Tuple* next() {
       if(!firstcall) return 0;
       firstcall = false;
-      Tuple* res = find(relation,tid);
+      if(!tid->IsDefined()){
+          return 0;
+      } 
+      TupleId id = tid->GetTid();
+      if(id<0 || id>relation->size()){
+          return 0;
+      } 
+      Tuple* res = relation->at(id-1);
       if(!res) return 0;
       
       Tuple* newtup = copyAttributes(res,type);
@@ -14719,6 +15040,12 @@ class MainMemory2Algebra : public Algebra {
           mdeletesaveOp.SetUsesArgsInTypeMapping();
           AddOperator(&mdeletebyidOp);
           mdeletebyidOp.SetUsesArgsInTypeMapping();
+
+          AddOperator(&mdeletedirectOp);
+          mdeletedirectOp.SetUsesArgsInTypeMapping();
+
+          AddOperator(&mdeletedirectsaveOp);
+          mdeletedirectsaveOp.SetUsesArgsInTypeMapping();
 
           AddOperator(&mcreateupdaterelOp);
           mcreateupdaterelOp.SetUsesArgsInTypeMapping();
