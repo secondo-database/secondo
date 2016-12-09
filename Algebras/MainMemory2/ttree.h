@@ -734,23 +734,24 @@ Creates a constructor for a tree using a
 minimum value.
 
 */
-    Iterator(TTreeNode<T,Comparator>* root,
-             const T& minV){
+   Iterator(TTreeNode<T,Comparator>* root,
+             const T& minV,
+             const std::vector<int>* vec = 0){
        TTreeNode<T,Comparator>* son = root;
        pos = 0; 
        while(son){
-         if(Comparator::smaller(minV,son->getMinValue(),0)){
+         if(Comparator::smaller(minV,son->getMinValue(),vec)){
             // value smaller than all entries
             stack.push(son);
             son = son->getLeftSon();
-         } else if(Comparator::greater(minV,son->getMaxValue(),0)){
+         } else if(Comparator::greater(minV,son->getMaxValue(),vec)){
            // value greater than all entries
            son = son->getRightSon();
          } else {
            // value is inside the node
            stack.push(son);
            while(pos<son->getCount()){
-             if(!Comparator::smaller(*(son->getObject(pos)),minV,0)){
+             if(!Comparator::smaller(*(son->getObject(pos)),minV,vec)){
                 return;
              }    
              pos++;
@@ -952,8 +953,9 @@ instead of the begin.
 
 
 */ 
-    Iterator<T, Comparator> tail(const T& minV){
-      Iterator<T,Comparator> it(root,minV);
+    Iterator<T, Comparator> tail(const T& minV, 
+                                 const std::vector<int>* attrPos =0){
+      Iterator<T,Comparator> it(root,minV,attrPos);
       return it;
     }
  

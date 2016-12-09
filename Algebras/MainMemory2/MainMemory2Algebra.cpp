@@ -9511,16 +9511,17 @@ ListExpr morangeTypeMap(ListExpr args) {
     ListExpr a1 = nl->First(args);      //mem(orel)
     ListExpr a2 = nl->Second(args);
     // if morange
-    ListExpr a3;        
-    if(rk==Range)
+    ListExpr a3 = nl->TheEmptyList();        
+    if(rk==Range) {
       a3 = nl->Third(args);
+    }
 
     string err;
-    if(rk==Range)
+    if(rk==Range) {
       err = "{string, mem(orel)} x T x T expected";
-    //if moleftrange or morightrange
-    else 
+    } else {
       err = "{string, mem(orel)} x T expected"; 
+    }
   
     string errMsg;
     if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
@@ -9536,64 +9537,74 @@ ListExpr morangeTypeMap(ListExpr args) {
     // extract type of key1
     a2 = nl->First(a2);  
     // extract type of key2 if morange
-    if(rk==Range)
-      a3 = nl->First(a3);  
-      
-    ListExpr key = nl->First(nl->Third(a1));
-    
-    string attrName = nl->SymbolValue(key);
-    ListExpr attrType = 0;
-    int attrPos = 0;
-    ListExpr attrList = nl->Second(nl->Second(a1));
-    attrPos = listutils::findAttribute(attrList, attrName, attrType);
-
-    if(attrPos == 0){
-        return listutils::typeError
-        ("there is no attribute having name " + attrName);
-    }
-
-    if(!nl->Equal(attrType, a2)){
-      return listutils::typeError("oreltype and type of arg 2 differ");
-    }
     if(rk==Range) {
-      if(!nl->Equal(attrType, a3)){
-        return listutils::typeError("oreltype and type of arg 3 differ");
-      }
+      a3 = nl->First(a3);  
+    } else {
+      a3 = a2;
     }
-    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                           nl->Second(a1)); 
+  
+    ListExpr attrList = nl->Second(nl->Second(a1));
+    ListExpr attrNames = nl->Third(a1);
+    ListExpr typeList;
+    ListExpr lastType;
+    ListExpr indexList;
+    ListExpr lastIndex;
+    bool first = true;
+
+    // extract the types from the key attributes and collect their positions
+    while(!nl->IsEmpty(attrNames)){
+       ListExpr attrName = nl->First(attrNames);
+       attrNames = nl->Rest(attrNames);
+       if(nl->AtomType(attrName)!=SymbolType){
+         return listutils::typeError("error in orel description");
+       }
+       string name = nl->SymbolValue(attrName);
+       ListExpr type;
+       int index = listutils::findAttribute(attrList, name, type);
+       if(!index){
+          return listutils::typeError("invalid orel description");
+       }
+       if(first){
+         typeList = nl->OneElemList(type);
+         lastType = typeList;
+         indexList = nl->OneElemList( nl->IntAtom(index-1));
+         lastIndex = indexList;
+         first = false;
+       } else {
+         lastType = nl->Append(lastType, type);
+         lastIndex = nl->Append(lastIndex, nl->IntAtom(index-1));
+       }
+    }
+
+    if(!nl->Equal(typeList, a2)){
+       return listutils::typeError("key attribute type of orel does not fit "
+                                   "the boundary attributes");
+    }
+    if(!nl->Equal(typeList, a2)){
+       return listutils::typeError("key attribute type of orel does not fit "
+                                   "the max boundary attributes (1)");
+    }
+
+    ListExpr resType =  nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                        nl->Second(a1)); 
+    return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                             indexList,
+                             resType);
 }
 
-template<RangeKind rk>
 class morangeInfo{
     public:
       
       morangeInfo(ttree::TTree<TupleWrap,TupleComp>* _tree, 
-                  Attribute* _attr1,
-                  Attribute* _attr2, 
-                  int _attrPos)
-          : tree(_tree),attr1(_attr1),attr2(_attr2),attrPos(_attrPos) {
+                  TupleWrap _min,
+                  TupleWrap _max, 
+                  vector<int> _attrPos)
+          : tree(_tree),max(_max),attrPos(_attrPos) {
         
-        iter = tree->begin();
-        res = false;
-        
-        if(rk==LeftRange) 
-          res = true;
-        
-        while((rk== Range || rk==RightRange) && 
-               !res && !iter.end()) {
-          Tuple* result = (*iter).getPointer();
-          Attribute* attr;
-          if(result) {
-            attr = result->GetAttribute(attrPos-1);
-            if(attr->Compare(attr1) < 0) 
-               iter++;
-            else
-              res = true;
-          } else {
-            iter++;
-         }
-
+        if(_min()==0){ // no left boundary, start from beginning
+           iter = tree->begin();
+        } else {
+           iter = tree->tail(_min, &attrPos);
         }
       }
       
@@ -9601,36 +9612,32 @@ class morangeInfo{
 
 
       Tuple* next() {
-
-        if(iter.end() || !res)
-          return 0;
-        
-        Tuple* result = (*iter).getPointer();
-        if(!result)
-          return 0;
-        
-        Attribute* attr = result->GetAttribute(attrPos-1);
-        
-        if(rk==LeftRange && attr->Compare(attr1) > 0) {
-          return 0;
-        }
-        if(rk==Range && attr->Compare(attr2) > 0) {
-          return 0;
-        }
-          
-        result->IncReference();
-        iter++;
-        return result;
+         if(iter.end()){ // scan finished
+            return 0;
+         }
+         Tuple* result = (*iter).getPointer();
+         if(!result){
+           return 0;             
+         }
+         if(max()==0){ // no right boundary 
+            result->IncReference();
+            iter++;
+            return result;
+         }
+         // check right boundary
+         if(TupleComp::smaller(max(), result, &attrPos)){
+           return 0;
+         } 
+         result->IncReference();
+         iter++;
+         return result;
       }
-
-
-    private:
+    
+     private:
         ttree::TTree<TupleWrap,TupleComp>* tree;
-        Attribute* attr1;
-        Attribute* attr2;
-        int attrPos;
+        TupleWrap max;
+        vector<int> attrPos;
         ttree::Iterator<TupleWrap,TupleComp> iter;
-        bool res;
 };
 
 /*
@@ -9643,7 +9650,7 @@ int morangeVMT (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
    
-    morangeInfo<rk>* li = (morangeInfo<rk>*) local.addr;
+    morangeInfo* li = (morangeInfo*) local.addr;
       
     switch (message) {
        
@@ -9660,16 +9667,56 @@ int morangeVMT (Word* args, Word& result,
             if(!orel){
               return 0; 
             }
-            
-            Attribute* key1 = (Attribute*) args[1].addr;
-            // if morange
-            Attribute* key2 = 0;        
-            if(rk==Range)
-              key2 = (Attribute*) args[2].addr;
-            
-            local.addr = new morangeInfo<rk>(orel->getmmorel(),
-                                             key1,key2, 
-                                             orel->getAttrPos()->at(0)); 
+            Tuple* minTuple = 0;
+            Tuple* maxTuple = 0;           
+            vector<int> positions; 
+            // collect minTuple, maxTuple and 
+            // positions            
+            TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
+            int keyPos = rk==Range?3:2;
+            for(int i=keyPos;i<qp->GetNoSons(s); i++){
+               positions.push_back(((CcInt*)args[i].addr)->GetValue());
+            }
+            // collect minTuple
+            int maxpos = 1;
+            if(rk!=LeftRange){ // minValue is required for rightrange and range
+               maxpos = 2;
+               minTuple = new Tuple(tt);
+               Word aw;
+               for(size_t i=0;i<positions.size();i++){ 
+                  Supplier son = qp->GetSupplier(args[1].addr,i);
+                  qp->Request(son,aw);
+                  Attribute* attr = (Attribute*) aw.addr;
+                  minTuple->PutAttribute(positions[i], attr->Copy());
+               }
+            }
+
+            // collect maxTuple
+            if(rk!=RightRange){ // maxValue is required for leftrange and range
+               maxTuple = new Tuple(tt);
+               Word aw;
+               for(size_t i=0;i<positions.size();i++){ 
+                  Supplier son = qp->GetSupplier(args[maxpos].addr,i);
+                  qp->Request(son,aw);
+                  Attribute* attr = (Attribute*) aw.addr;
+                  maxTuple->PutAttribute(positions[i], attr->Copy());
+               }
+            }
+            // the tuple comparator vector starts counting with 1
+            for(size_t i=0;i<positions.size();i++){ 
+               positions[i]++;
+            }  
+
+            local.addr = new morangeInfo(orel->getmmorel(),
+                                         minTuple,maxTuple, 
+                                         positions); 
+            if(minTuple){
+               minTuple->DeleteIfAllowed();
+            }
+            if(maxTuple){
+               maxTuple->DeleteIfAllowed();
+            }
+            tt->DeleteIfAllowed();
             return 0;
         }
 
