@@ -3393,7 +3393,7 @@ the output stream.
 
 
 */
-ListExpr getotuples2TM(ListExpr args){
+ListExpr getotuples3TM(ListExpr args){
   string err = "stream(tid) x rel x orel expected";
   if(!nl->HasLength(args,3)){
     return listutils::typeError(err + " (wrong number of args)");
@@ -3456,17 +3456,17 @@ ListExpr getotuples2TM(ListExpr args){
 }
 
 
-class getotuples2Info{
+class getotuples3Info{
   public:
     
-    getotuples2Info(Word _stream, Relation* _auxRel,
+    getotuples3Info(Word _stream, Relation* _auxRel,
                    OrderedRelation* _oRel, vector<int>& _keyIndexes):
        stream(_stream), auxRel(_auxRel), oRel(_oRel), keyIndexes(_keyIndexes),
        currentIter(0), keyTypes(_oRel->getKeyElemTypes()){
       stream.open();
    }
 
-   ~getotuples2Info(){
+   ~getotuples3Info(){
       stream.close();
       if(currentIter){
         delete currentIter;
@@ -3537,10 +3537,10 @@ class getotuples2Info{
 };
 
 
-int getotuples2VM(Word* args, Word& result, int message,
+int getotuples3VM(Word* args, Word& result, int message,
                           Word& local, Supplier s) {
 
-    getotuples2Info* li = (getotuples2Info*) local.addr;
+    getotuples3Info* li = (getotuples3Info*) local.addr;
     switch(message){
        case OPEN: {
               if(li){
@@ -3551,7 +3551,7 @@ int getotuples2VM(Word* args, Word& result, int message,
               for(int i=3;i<qp->GetNoSons(s);i++){
                 v.push_back(((CcInt*)args[i].addr)->GetValue());
               }
-              local.addr = new getotuples2Info(args[0],
+              local.addr = new getotuples3Info(args[0],
                                            (Relation*) args[1].addr,
                                            (OrderedRelation*) args[2].addr,
                                            v);
@@ -3574,9 +3574,9 @@ int getotuples2VM(Word* args, Word& result, int message,
 
 
 
-OperatorSpec getotuples2Spec(
+OperatorSpec getotuples3Spec(
    "stream(tid) x rel(A) x orel(B) -> stream(B)",
-   "_ _ _ getotuples2",
+   "_ _ _ getotuples3",
    "Retrieves tuples from an ordered relation with "
    "help of an auxiliary relation. "
    "The tuple ids from the stream are used to extract "
@@ -3585,6 +3585,477 @@ OperatorSpec getotuples2Spec(
    "These key attributes are used again to extract tuples "
    "from the ordered relation. ",
    "query stree windowsintersectsS[box] transformstream "
+   "auxs ords getotuples3 consume"
+);
+
+Operator getotuples3Op(
+  "getotuples3",
+  getotuples3Spec.getStr(),
+  getotuples3VM,
+  Operator::SimpleSelect,
+  getotuples3TM
+);
+
+/*
+13 Operator getotuples2
+
+This operator works similat to getotuples3 but accepts 
+stream of tuples as the first argument. All attributes
+of the incoming tuple stream, of the auximilary relation
+and the ordered relation are put together. From the incoming 
+tuples, the tid attribute and from the auxiliary relation, 
+the key attributes are ommitted of course.
+
+*/
+ListExpr getotuples2TM(ListExpr args){
+   if(!nl->HasLength(args,3)){
+      return listutils::typeError("three arguments expected");
+   }
+   if(!Stream<Tuple>::checkType(nl->First(args))){
+      return listutils::typeError("first argument has to be a tuple stream");
+   }
+   if(!Relation::checkType(nl->Second(args))){
+      return listutils::typeError("the second argument must be a relation");
+   }
+   if(!OrderedRelation::checkType(nl->Third(args))){
+      return listutils::typeError("the third argument has to be an "
+                                  "ordered relation");
+   }
+   // check for TID attribute in the tuple stream and 
+   // store the remaining attributes
+   ListExpr outAttr = nl->TheEmptyList();
+   ListExpr outAttrLast;
+   bool first = true;
+   int tidIndex = 0;
+   int index = 0;
+   ListExpr inAttrList = nl->Second(nl->Second(nl->First(args)));
+   while(!nl->IsEmpty(inAttrList)){
+      ListExpr attr = nl->First(inAttrList);
+      inAttrList = nl->Rest(inAttrList);
+      index++;
+      if(TupleIdentifier::checkType(nl->Second(attr))){
+         if(tidIndex){
+            return listutils::typeError("incoming tuple stream contains "
+                                        "more than one tid attribute");
+         }
+         tidIndex = index;
+      } else {
+        if(first){
+          outAttr = nl->OneElemList(attr);
+          outAttrLast = outAttr;
+          first = false;
+        } else {
+          outAttrLast = nl->Append(outAttrLast, attr);
+        }
+      }
+   }
+
+   map<string, ListExpr>  keyAttributes; // key -> Type
+   
+   ListExpr orelAttrList = nl->Second(nl->Second(nl->Third(args)));
+   ListExpr keys = nl->Third(nl->Third(args));
+
+   vector<int> keyIndexes1; // where to find indexes in orel
+
+   while(!nl->IsEmpty(keys)){
+      string keyName = nl->SymbolValue(nl->First(keys));
+      keys = nl->Rest(keys);
+      ListExpr type;
+      index = listutils::findAttribute(orelAttrList, keyName, type);
+      keyAttributes[keyName] = type;
+      keyIndexes1.push_back(index);
+   }
+
+   index = 0;
+   vector<int> keyIndexes2; // where to find key attributes in aux relation
+   ListExpr auxRelAttrList = nl->Second(nl->Second(nl->Second(args)));
+   while(!nl->IsEmpty(auxRelAttrList)){
+     index++;
+     ListExpr attr = nl->First(auxRelAttrList);
+     auxRelAttrList = nl->Rest(auxRelAttrList);
+     string name = nl->SymbolValue(nl->First(attr));
+     if(keyAttributes.find(name) != keyAttributes.end()){
+         // found a key attribute
+         if(!nl->Equal(keyAttributes[name], nl->Second(attr))){
+           return listutils::typeError("key attribute types of auxiliary  "
+                                 "relation and   ordered relation differ");
+         }
+         keyIndexes2.push_back(index);
+     } else { // found additionally attribute
+        if(first){
+          outAttr = nl->OneElemList(attr);
+          outAttrLast = outAttr;
+          first = false; 
+        } else {
+          outAttrLast = nl->Append(outAttrLast, attr); 
+        }
+     } 
+   }
+
+   if(keyIndexes2.size() != keyIndexes1.size()){
+     return listutils::typeError("auxiliary relation does not contain all "
+                                 "key attributes of the ordered relation. ");
+   }
+
+   while(!nl->IsEmpty(orelAttrList)){
+     ListExpr attr = nl->First(orelAttrList);
+     orelAttrList = nl->Rest(orelAttrList);
+     if(first){
+        outAttr = nl->OneElemList(attr);
+        outAttrLast = outAttr;
+        first = false; 
+     } else {
+        outAttrLast = nl->Append(outAttrLast, attr); 
+     }
+   } 
+
+   // the append list consists of the postion of the tid attribute,
+   // the positions of the key attributes in the auxiliary relation
+   // and the positions of the key attributes in the ordered relation
+
+   ListExpr appendList = nl->OneElemList(nl->IntAtom(tidIndex-1));
+   ListExpr appendLast = appendList;
+   for(size_t i=0;i<keyIndexes2.size(); i++){
+     appendLast = nl->Append(appendLast, nl->IntAtom(keyIndexes2[i]-1));
+   }
+   for(size_t i=0;i<keyIndexes1.size(); i++){
+     appendLast = nl->Append(appendLast, nl->IntAtom(keyIndexes1[i]-1));
+   }
+   return nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               appendList,
+               nl->TwoElemList(
+                  listutils::basicSymbol<Stream<Tuple> >(),
+                  nl->TwoElemList(
+                     listutils::basicSymbol<Tuple>(),
+                     outAttr)));
+}
+
+
+/*
+Class ~getotuples2Info~
+
+*/
+
+class getotuples2Info{
+  public:
+     getotuples2Info( Word _stream,
+                  Relation* _rel,
+                  OrderedRelation* _orel,
+                  int _tidPos, // position of tid attribute in input
+                  vector<int>& _keyAttributesAux,
+                  vector<int>& _keyAttributesOrdered,
+                  ListExpr resultType):
+        stream(_stream), rel(_rel), orel(_orel), tidPos(_tidPos),
+        keyAttributesAux(_keyAttributesAux),
+        keyAttributesOrdered(_keyAttributesOrdered),
+        keyTypes(_orel->getKeyElemTypes()) {
+        tt = new TupleType(resultType);
+        stream.open();
+        it = 0;
+        currentInTuple = 0;
+        currentAuxTuple = 0;
+        useRel = 0;
+        useStream = 0;
+     }
+
+     ~getotuples2Info(){
+        tt->DeleteIfAllowed();
+        stream.close(); 
+        if(currentInTuple){
+           currentInTuple->DeleteIfAllowed();
+        }
+        if(currentAuxTuple){
+          currentAuxTuple->DeleteIfAllowed();
+        }
+        if(it){
+          delete it;
+        }
+        if(useStream){
+           delete useStream;
+        }
+        if(useRel){
+           delete useRel;
+        }
+     }
+
+     Tuple* next(){
+       while(true){
+          if(it){
+            Tuple* oTuple = it->GetNextTuple();
+            if(oTuple){
+               Tuple* res = createResTuple(oTuple);
+               oTuple->DeleteIfAllowed();
+               return res; 
+            } else {
+               deleteIter();
+            }
+          }
+          getNextIter();
+          if(!it){
+            return 0;
+          }
+       }
+     }
+   
+
+  private:
+     Stream<Tuple> stream;
+     Relation* rel;
+     OrderedRelation *orel;
+     int tidPos;
+     vector<int> keyAttributesAux;
+     vector<int> keyAttributesOrdered;
+     vector<SmiKey::KeyDataType> keyTypes;
+     TupleType* tt;
+     vector<bool>* useStream;
+     vector<bool>* useRel;
+
+     Tuple* currentInTuple;
+     Tuple* currentAuxTuple; 
+  
+     GenericRelationIterator* it;
+
+
+
+/*
+~deleteIter~
+
+Deletes currentInTuple, currentAuxTuple, and it.
+
+*/
+     void deleteIter(){
+       assert(it);
+       assert(currentInTuple);
+       assert(currentAuxTuple);
+       currentInTuple->DeleteIfAllowed();
+       currentInTuple = 0;
+       currentAuxTuple->DeleteIfAllowed();
+       currentAuxTuple = 0;
+       delete it;
+       it = 0;
+     }
+
+/*
+~createResTuple~
+
+Creates the result tuple from currentInTuple, currentAuxTuple,
+and oTuple.
+
+*/
+     Tuple* createResTuple(Tuple* oTuple){
+        createUseStream();
+        createUseRel();
+        Tuple* result = new Tuple(tt);
+        int targetPos = 0;
+        // copy non tid attributes of in tuple
+        for(int i=0;i<currentInTuple->GetNoAttributes();i++){
+          if(useStream->at(i)){
+             result->CopyAttribute(i, currentInTuple, targetPos);
+             targetPos++;
+          }
+        }
+        // copy non key attributes of aux relation
+        for(int i=0;i<currentAuxTuple->GetNoAttributes();i++){
+          if(useRel->at(i)){
+             result->CopyAttribute(i, currentAuxTuple, targetPos);
+             targetPos++;
+          }
+        }
+        // finally copy all attributes from ordered tuple into target
+        for(int i=0;i<oTuple->GetNoAttributes(); i++){
+             result->CopyAttribute(i, oTuple, targetPos);
+             targetPos++;
+        }
+        return result; 
+     }
+
+
+/*
+~createUseStream~
+
+Creates a bit vector stating whether an attribute of 
+the incoming stream should be part of the result.
+
+*/
+     void createUseStream(){
+       if(useStream) {
+         return;
+       }
+       assert(currentInTuple);
+       useStream = new vector<bool>();
+
+       for(int i=0;i<currentInTuple->GetNoAttributes(); i++){
+         useStream->push_back(true);
+       }
+       useStream->at(tidPos) = false;
+     }
+
+/*
+~createUseRel~
+
+Creates a bit vector stating whether an attribute of
+the auxiliary relation should be part of the result.
+
+*/
+     void createUseRel(){
+        if(useRel){
+           return;
+        }
+        assert(currentAuxTuple);
+        useRel = new vector<bool>();
+        for(int i=0;i<currentAuxTuple->GetNoAttributes();i++){
+          useRel->push_back(true);
+        }
+        for(size_t i=0;i<keyAttributesAux.size();i++){
+          useRel->at(keyAttributesAux[i]) = false;
+        }
+     }
+
+
+/*
+Creates currentInTuple, currentAuxTuple and it.
+
+*/
+     void getNextIter(){
+       while(true){
+         getNextStreamTuple();
+         if(!currentInTuple){ // stream exhausted
+           return;
+         }
+         getNextAuxTuple();
+         if(currentAuxTuple){
+           createIter();
+           return;
+         }
+       }        
+     }
+
+
+/*
+~getNextStreamTuple~
+
+scans the incoming stream until a tuple containing a
+defined tid is found. This tuple is stored as 
+currentInTuple.
+
+*/
+     void getNextStreamTuple(){
+        if(currentInTuple){
+           currentInTuple->DeleteIfAllowed();
+           currentInTuple = 0;
+        }
+        Tuple* t;
+        while((t=stream.request())){
+           Attribute* tid = t->GetAttribute(tidPos);
+           if(tid->IsDefined()){
+              currentInTuple = t;
+              return;
+           } else {
+              t->DeleteIfAllowed();
+              t = 0;
+           }
+        }
+     }
+
+/*
+~getNextAuxTuple~
+
+Retrieves a tuple from the auxiliary relation
+using the tuple id from currentInTuple.
+
+*/
+     void getNextAuxTuple(){
+       assert(currentInTuple);
+       TupleIdentifier* tid = (TupleIdentifier*) 
+                               currentInTuple->GetAttribute(tidPos);
+       TupleId id = tid->GetTid();
+       currentAuxTuple = rel->GetTuple(id, true);
+     } 
+
+
+/*
+~createIter~
+
+Creates an iterator over the ordered relation using the 
+keyy attributes from currentAuxTuple. 
+
+*/
+     void  createIter(){
+       if(it){
+         delete it;
+         it = 0;
+       }
+       vector<void*> attributes;
+       bool ok = true;
+       for(size_t i=0;i<keyAttributesAux.size();i++){
+          Attribute* attr = currentAuxTuple->GetAttribute(keyAttributesAux[i]);
+          attributes.push_back(attr);
+          ok = ok && attr->IsDefined();
+       }
+       if(ok){ // forbid undefined values as keys
+          CompositeKey ckey(attributes, keyTypes);
+          CompositeKey ckey2(attributes, keyTypes,true);
+          it = orel->MakeRangeScan(ckey,ckey2);
+       }
+     }
+
+
+};
+
+
+
+
+int getotuples2VM(Word* args, Word& result, int message,
+                          Word& local, Supplier s) {
+
+   getotuples2Info* li = (getotuples2Info*) local.addr;
+   switch(message){
+      case OPEN:{
+         if(li){
+           delete li;
+           local.addr = 0;
+         }
+         Relation* rel = (Relation*) args[1].addr;
+         OrderedRelation* orel = (OrderedRelation*) args[2].addr;
+         int tidPos = ((CcInt*) args[3].addr)->GetValue();
+         vector<int> auxKeyPos;
+         vector<int> oKeyPos;
+         int keys = (qp->GetNoSons(s) - 4) / 2;
+         for(int i=4; i<4+keys;i++){
+            auxKeyPos.push_back(((CcInt*) args[i].addr)->GetValue());
+         }   
+         for(int i=4+keys; i<qp->GetNoSons(s);i++){
+            oKeyPos.push_back(((CcInt*) args[i].addr)->GetValue());
+         }   
+         assert(auxKeyPos.size() == oKeyPos.size());
+         ListExpr tt = nl->Second(GetTupleResultType(s));
+         local.addr = new getotuples2Info( args[0], rel, orel, tidPos,
+                                           auxKeyPos, oKeyPos,tt); 
+         return 0;
+      }
+      case REQUEST:
+         result.addr = li?li->next():0;
+         return result.addr?YIELD:CANCEL;
+      case CLOSE:
+           if(li){
+             delete li;
+             local.addr = 0;
+           }
+           return 0;
+   }
+   return -321;
+}
+
+
+OperatorSpec getotuples2Spec(
+  " stream(tuple(X)) x rel(tuple(Y)) x orel(tuple(Z),K) "
+  " -> stream(tuple(X \\ {TID} @ Y \\ K @ Z)) ",
+  "_ _ _ getotuples2 ",
+  "Extract tuples from an ordered relation with help of an "
+  "auxiliary relation. All attributes of the tuples "
+  "are put together in the output tuple. ",
+  "query stree windowsintersectsS[box] extend[Bla : 123]  "
    "auxs ords getotuples2 consume"
 );
 
@@ -3593,8 +4064,9 @@ Operator getotuples2Op(
   getotuples2Spec.getStr(),
   getotuples2VM,
   Operator::SimpleSelect,
-  getotuples2TM
+  getotuples2TM 
 );
+
 
 
 /*
