@@ -235,7 +235,7 @@ struct MatchedPoint{
 static void CopyCandidateEntries( vector<MatchedPoint*>* 
             orgMatchedPointsVectorPtr, 
             vector<MatchedPoint*>* copyMatchedPointsVectorPtr);
-static double CalcDistance(MatchedPoint* matchPtA, MatchedPoint* matchPtB);
+ //static double CalcDistance(MatchedPoint* matchPtA, MatchedPoint* matchPtB);
 
 //vector<MatchedPoint*>* actTripVectorPtr
 // Represents a trip candidate.
@@ -352,7 +352,7 @@ struct MatchCandidate{
 
 
 
-    double UpdateScore(int startIndex){
+    void UpdateScore(int startIndex){
         //cout << "     +++++ UpdateScore called. \n";
 
         UpdateInternalValues(startIndex);
@@ -1155,7 +1155,8 @@ class GetNextRawTupleLI{
 
   private:
       int tupleNr;      // current tuple number from relation
-      int matchPointNr; // for looping through best candidate result of MHT 
+      unsigned int matchPointNr; // for looping through best 
+                                 // candidate result of MHT 
       
 };
 
@@ -1371,7 +1372,7 @@ class RegionMgmt
 
         // Variables that will be set in GetObject function.
         Word objWord;
-        bool objDefined;
+        bool objDefined = false;
 
         // Get object with region id from db. NiceFact
         //ListExpr objectValue = SecondoSystem::GetCatalog()->
@@ -2480,6 +2481,7 @@ static bool pointPresentInPointVector(const vector<Point>* orgPoints,
 /*
   Help function updates a point in vector with other the given point.
 */
+ /*
 static void pointUpdateInPointVector(vector<Point>*& orgPoints, 
                 Point*& presentPointPtr, const Point* newPointPtr){
     int vecIdx = *new int(0);
@@ -2495,7 +2497,7 @@ static void pointUpdateInPointVector(vector<Point>*& orgPoints,
     }
 
 }
-
+ */
 
 
 /*
@@ -2712,7 +2714,7 @@ static void calcWayRegion(const SimpleLine* sectionSLinePtr,
 //        cout << "#### ################## ####" << "\n";
 
         // Pointer for the region that will be constructed.
-        Region* actualRegionPtr = new Region(0);
+        //Region* actualRegionPtr = new Region(0);
 
         // This vector will contain the copies of the Points that build the 
         // simple line (given parameter: sectionSLinePtr).
@@ -2787,7 +2789,7 @@ static void calcWayRegion(const SimpleLine* sectionSLinePtr,
         }
 
 
-        int numP = (int) orgPoints->size();
+        //int numP = (int) orgPoints->size();
         //cout << "Points in vector " << numP << "\n";
         //for(int h=0; h< numP; h++){
             //cout << "Point " << h << ": " << (*orgPoints)[h] << "\n";
@@ -2806,7 +2808,7 @@ static void calcWayRegion(const SimpleLine* sectionSLinePtr,
         }
 
     // Earth radius (approx.)
-    double r = double(6371000.785);
+    //double r = double(6371000.785);
 
         // Pointers will keep track of previously calculated and 
         // original points. 
@@ -3068,12 +3070,13 @@ static void calcWayRegion(const SimpleLine* sectionSLinePtr,
                             Point* extendedPointPtr = new Point(true, 
                                             extendedX , extendedY);
                                 
-                            HalfSegment* extendedHs = 0;
+                            //HalfSegment* extendedHs = 0;
 
                             if( !AlmostEqual(*rightPointCalcPtr, 
                                              *extendedPointPtr) )
-                                extendedHs = new HalfSegment(true, 
-                                    *rightPointCalcPtr, *extendedPointPtr);
+                                //extendedHs = new HalfSegment(true, 
+                                //    *rightPointCalcPtr, *extendedPointPtr);
+                                ;
                             else{
                                 //cout << "Right curve,extendedHs skipped \n";
                             }
@@ -3207,8 +3210,8 @@ static void calcWayRegion(const SimpleLine* sectionSLinePtr,
                                     // Crossing point determination prep
                                     Point* crossPointPrevDownActPtr = 
                                                 new Point(true, 0 , 0);
-                                    bool intersectionPrevDownActFound = 
-                                                false;
+                                   // bool intersectionPrevDownActFound = 
+                                   //             false;
 
                                     // Does the previous lower side of rect 
                                     // cross the actual org point line (
@@ -3221,7 +3224,7 @@ static void calcWayRegion(const SimpleLine* sectionSLinePtr,
                                         prevDownHs->Intersection(
                                             *actualOrgHs, 
                                             *crossPointPrevDownActPtr, 0);
-                                        intersectionPrevDownActFound = true;
+                                        //intersectionPrevDownActFound = true;
                                         //cout << "-Crossing point (act left
                                         // with prev down): " << 
                                         //*crossPointPrevDownActPtr << "\n";
@@ -3407,13 +3410,13 @@ static void calcWayRegion(const SimpleLine* sectionSLinePtr,
                     // Crossing point determination preparation 
                     Point* crossPointFirstDownActCalcPtr = 
                             new Point(true, 0 , 0);
-                    bool intersectionFirstDownActCalcFound = false;
+                    //bool intersectionFirstDownActCalcFound = false;
 
                     // Does the 1st lower side of rect cross the actual 
                     // calc point line (act right rect side)?
                     if( firstDownHs != 0 && nowCalcHs != 0 && 
                         nowCalcHs->Intersects(*firstDownHs, 0) ){
-                        intersectionFirstDownActCalcFound = true;
+                        //intersectionFirstDownActCalcFound = true;
                         nowCalcHs->Intersection(*firstDownHs, 
                                 *crossPointFirstDownActCalcPtr, 0);
                         
@@ -3455,13 +3458,13 @@ static void calcWayRegion(const SimpleLine* sectionSLinePtr,
                         // Crossing point determination preparation 
                         Point* crossPointFirstCalcNowUpPtr = 
                                             new Point(true, 0 , 0);
-                        bool intersectionFirstCalcNowUpFound = false;
+                        //bool intersectionFirstCalcNowUpFound = false;
 
                         // Does the right side of 1st rect cross the 
                         // actual rect's up side?
                         if( firstCalcHs != 0 && nowUpHs != 0 && 
                             nowUpHs->Intersects(*firstCalcHs, 0) ){
-                            intersectionFirstCalcNowUpFound = true;
+                            //intersectionFirstCalcNowUpFound = true;
                             nowUpHs->Intersection(*firstCalcHs, 
                                     *crossPointFirstCalcNowUpPtr, 0);
                             //cout << "X-ing (1st calc, now up): " << 
@@ -3754,7 +3757,8 @@ static void CopyCandidateEntries(
 /*
 Help function, calculates distance between two points.
 */
-static double CalcDistance(MatchedPoint* matchPtA, MatchedPoint* matchPtB){
+  /*
+double CalcDistance(MatchedPoint* matchPtA, MatchedPoint* matchPtB){
     double xA = matchPtA->lonOrg;
     double yA = matchPtA->latOrg;
 
@@ -3768,6 +3772,7 @@ static double CalcDistance(MatchedPoint* matchPtA, MatchedPoint* matchPtB){
     return dist;
 
 }
+  */
 
 
 // ******************************************************************
@@ -3797,7 +3802,7 @@ MatchedPoint attributes
     int NumEdgesToPrev;
     double distToPrev;
 */
-static void CandidateClipping(GetNextRawTupleLI* li, int maxNum){
+static void CandidateClipping(GetNextRawTupleLI* li, unsigned int maxNum){
     //cout << "      **#### CandidateClipping called. \n";
 
     // Sort first (the less likely ones are at the end then)    
@@ -3805,14 +3810,14 @@ static void CandidateClipping(GetNextRawTupleLI* li, int maxNum){
 
 
     vector<MatchCandidate > sortedVector;
-    for(int idx = 0; idx < li->candidates.size(); idx++){
+    for(size_t idx = 0; idx < li->candidates.size(); idx++){
         MatchCandidate tmpMCand = *((li->candidates)[idx]);
         sortedVector.push_back(tmpMCand);
     }
     std::sort(sortedVector.begin(), sortedVector.end());
 
     li->candidates.clear();
-    for(int idx = 0; idx < sortedVector.size(); idx++){
+    for(size_t idx = 0; idx < sortedVector.size(); idx++){
         MatchCandidate* tmpMCandPtr = new MatchCandidate(sortedVector[idx]);
         li->candidates.push_back(tmpMCandPtr);
     }
@@ -3848,6 +3853,7 @@ static void CandidateClipping(GetNextRawTupleLI* li, int maxNum){
 /*
 Help function, test clipping of candidates for MHT.
 */
+  /*
 static void TestClipping(){
 
           vector<MatchCandidate> candidates;
@@ -3863,7 +3869,7 @@ static void TestClipping(){
                         "11:11:01", 6.95327, 51.2087, (10 + i + j), 8.5);
                   actMatchedPoint->regId = 1001;
                   actMatchedPoint->matchedReg = new Region(
-                    new Rectangle<2> (true, 6.953271, 6.953273, 
+                     Rectangle<2> (true, 6.953271, 6.953273, 
                                             51.20873, 51.20876) );
                   actMatchedPoint->RegionName = "Eins";
                   actMatchedPoint->RegionType = "track";
@@ -3909,6 +3915,7 @@ static void TestClipping(){
 
 
 }
+  */
 
 
 
@@ -4230,7 +4237,7 @@ static void MatchMHT(GetNextRawTupleLI* li, Relation* resultRelation,
                     actOldCandidate->TripCandidateVectorPtr;
 
 
-        for(int aIdx = 0; aIdx < actMatchPoints.size(); aIdx++){
+        for(size_t aIdx = 0; aIdx < actMatchPoints.size(); aIdx++){
             //cout << "1";
 
             // Candidate for actual point from GPS coordinates
@@ -4243,7 +4250,7 @@ static void MatchMHT(GetNextRawTupleLI* li, Relation* resultRelation,
             //cout << "2";
             CopyCandidateEntries( actOldCandVectorPtr, actTripVectorPtr);
             //cout << "3";
-            int numOfPointsBeforeAdd = actTripVectorPtr->size();
+            //int numOfPointsBeforeAdd = actTripVectorPtr->size();
 
             // Previous point & mapped region.
             MatchedPoint*  prevMatchedPoint = actTripVectorPtr->back();
@@ -4261,7 +4268,7 @@ static void MatchMHT(GetNextRawTupleLI* li, Relation* resultRelation,
                                         new vector<RegNode* >;
                                         
             vector<vector<RegNode* >* > trialPathsVector;
-            bool shortestPathFound = false;
+            //bool shortestPathFound = false;
             //cout << "4";
 
             if(prevRegId != actMPCandidate->regId){
@@ -4269,7 +4276,8 @@ static void MatchMHT(GetNextRawTupleLI* li, Relation* resultRelation,
                 // << prevRegId << " , " << innerRegId <<" \n";
 
                 //cout << "5";
-                shortestPathFound = li->regionGraphPtr->FindShortestPath(
+                //shortestPathFound = 
+                li->regionGraphPtr->FindShortestPath(
                         prevRegId, actMPCandidate->regId, 5, 
                         shortestPathNodesVectorPtr, trialPathsVector);
                 //cout << "6";
@@ -4352,7 +4360,7 @@ static void FillGapsBetweenMatchedRegions(GetNextRawTupleLI* li){
     completedBestCandidate->TripCandidateVectorPtr->clear();
 
     //vector<MatchedPoint*>* TripCandidateVectorPtr
-    for(int idx = 0; idx < (CopyTripCandidateVector.size() - 1); idx++){
+    for(size_t idx = 0; idx < (CopyTripCandidateVector.size() - 1); idx++){
         MatchedPoint* actMatchPointPtr = CopyTripCandidateVector[idx];
         MatchedPoint* nextMatchPointPtr = CopyTripCandidateVector[idx+1];
         int regIdA = actMatchPointPtr->regId;
@@ -4387,7 +4395,7 @@ static void FillGapsBetweenMatchedRegions(GetNextRawTupleLI* li){
                     trialPathsVector);
         }
 
-        for(int interIdx = 1; 
+        for(size_t interIdx = 1; 
             interIdx < (shortestPathNodesVectorPtr->size() - 1); 
             interIdx++){
             MatchedPoint* interPoint = new MatchedPoint(actMatchPointPtr);
@@ -4603,8 +4611,8 @@ edgeTuple->GetAttribute(2));
 edgeTuple->GetAttribute(3));
 
                   // Distance approximation (degrees in meters)
-                  double distInMeterApprx = 
-DistancePtr->GetValue() * 111194.94034539;
+            //      double distInMeterApprx = 
+   //DistancePtr->GetValue() * 111194.94034539;
                   //cout << "distInMeterApprx: " << distInMeterApprx << endl;
 
                   aRegionGraphPtr->addEdge(EdgeIdPtr->GetIntval(), 
@@ -4692,7 +4700,7 @@ int nodeRelToRegionVM (Word* args, Word& result, int message,
     string* waysRelNamePtr = 
                 new string (((CcString*) args[1].addr)->toText());
 
-    int numOfTuples = nodeRelPtr->GetNoTuples();
+    //int numOfTuples = nodeRelPtr->GetNoTuples();
     //cout << "Number of tuples: " << numOfTuples << "\n";
     Tuple* nodeTuplePtr = nodeRelPtr->GetTuple(1,true);
     //cout << "Given node tuple: " << *nodeTuplePtr << "\n";
@@ -5126,7 +5134,7 @@ int nodesToRegionNodesVM (Word* args, Word& result, int message,
 
               // Try to get type of most significant way.
               try{
-                  if(indexMostSignificant < wayTypes.size())
+                  if((size_t)indexMostSignificant < wayTypes.size())
                       mostSignificantWayType = wayTypes[indexMostSignificant];
                   else{
                       // Should not happen, but avoids a crash 
@@ -5191,8 +5199,8 @@ int nodesToRegionNodesVM (Word* args, Word& result, int message,
           // Attributes: WayId(int) NodeCounter(int) NodeIdNew(int) 
 //Surrounding(region). First three taken from original.
           CcInt* wayIdPointer = static_cast<CcInt*>(tuple->GetAttribute(0));
-          CcInt* nodeCounterPointer = static_cast<CcInt*>(
-            tuple->GetAttribute(1));
+          //CcInt* nodeCounterPointer = static_cast<CcInt*>(
+          //  tuple->GetAttribute(1));
 
 //          cout << "wayId      : " << *wayIdPointer << "\n";
 //          cout << "nodeCounter: " << *nodeCounterPointer << "\n";
@@ -5794,7 +5802,7 @@ int sLineRelToRegionVM (Word* args, Word& result, int message,
     CcReal* inWidthPtr = (CcReal*) args[1].addr;
 
     Tuple* tuple = inSLineRelPtr->GetTuple(1,true);
-    int numOfAttributes = tuple->GetNoAttributes();
+    //int numOfAttributes = tuple->GetNoAttributes();
     //cout << "    Number of attributes in current tuple:"<< 
     //numOfAttributes << "\n";
 
@@ -6886,10 +6894,10 @@ int removeOverlappingVM (Word* args, Word& result, int message,
 
               // Pointers for result regions of minus / union operation.
               Region* resultAfterMinusReg = 0;
-              Region* resultAfterUnionReg = 0;
+              //Region* resultAfterUnionReg = 0;
 
               for(int i = 1; i <= numOfTuples; i++){
-                  resultAfterUnionReg = new Region(*actRegionPtr, false);
+                  //resultAfterUnionReg = new Region(*actRegionPtr, false);
                   Tuple* tupleInner = resultRelation->GetTuple(i,true);
 
                   int numOfAttributes = tupleInner->GetNoAttributes();
@@ -6902,8 +6910,8 @@ int removeOverlappingVM (Word* args, Word& result, int message,
                       break;
                   }
 
-                  CcInt* wayIdPtr = static_cast<CcInt*>(
-                    tupleInner->GetAttribute(0));
+                  //CcInt* wayIdPtr = static_cast<CcInt*>(
+                  //  tupleInner->GetAttribute(0));
                   CcInt* regionIdPtr = static_cast<CcInt*>(
                     tupleInner->GetAttribute(4));
 
@@ -6913,10 +6921,10 @@ int removeOverlappingVM (Word* args, Word& result, int message,
                     static_cast<Region*>(tupleInner->GetAttribute(5));
                   int innerRegId = regionIdPtr->GetIntval();
 
-                  CcString* namePtr = 
-                    static_cast<CcString*>(tupleInner->GetAttribute(6));
-                  CcString* typePtr = 
-                    static_cast<CcString*>(tupleInner->GetAttribute(7));
+                  //CcString* namePtr = 
+                  //  static_cast<CcString*>(tupleInner->GetAttribute(6));
+                  //CcString* typePtr = 
+                  //  static_cast<CcString*>(tupleInner->GetAttribute(7));
 
                   //cout << "actRegionPtr: " << actRegionPtr << "\n";
                   //cout << "regionPtr: " << regionPtr << "\n";
