@@ -22,7 +22,6 @@
 # Initialization:
 
 # delete SS
-# delete SS_Center
 delete Core;
 delete Core_Box;
 delete SmallCore;
@@ -33,7 +32,6 @@ let SS = Buildings feedNth[(Buildings count) div 10000, FALSE]
   extend[Center: center(bbox(.GeoData))]
   consume
 
-let SS_Center = SS creatertree[Center]
 
 let Core = SS feed extend[N: 0, Radius: 0.0, Box: bbox(.Center), C: [const region value ()]] head[0] consume;
 
@@ -45,17 +43,20 @@ let CoreDel = Core;
 
 let NInserted = 0;
 
+query memclear()
+
+query SS feed letmconsume["SS"] mcreateMtree[Center, "SS_Center"]
+
 query SS feed addcounter[N, 1] 
-  extend[Radius: 
-    distance(SS_Center SS distancescan[.Center, 50] tail[1] extract[Center],
-      .Center)]
+  extend[Radius: fun(t: TUPLE)
+    distance(attr(t, Center), "SS_Center" mdistScan2[attr(t, Center)] 
+      head[100] tail[1] "SS" gettuples extract[Center]) ]
   extend[Box: enlargeRect(bbox(.Center), .Radius, .Radius)] 
   extend[C: circle(.Center, .Radius, 20)]
-  filter[fun(t: TUPLE) 
-    (Core_Box Core windowintersects[attr(t, Box)] count) = 0] 
   Core insert
   Core_Box insertrtree[Box]
   count
+
 
 while (Core count) > 0 do
 { update NInserted := Core feed filter[fun(t: TUPLE) 
