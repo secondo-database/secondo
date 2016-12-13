@@ -1237,13 +1237,14 @@ ListExpr gettuplesTM(ListExpr args){
      return listutils::typeError("found name conflicts");
   }
 
-  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+  ListExpr ret = nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
                            nl->OneElemList(nl->IntAtom(tidIndex-1)),
                            nl->TwoElemList(
                                listutils::basicSymbol<Stream<Tuple> >(),
                                nl->TwoElemList(
                                    listutils::basicSymbol<Tuple>(),
                                    resAttrList)));
+  return  ret;
 }
 
 
@@ -1401,7 +1402,7 @@ int gettuplesUnwrapVMT (Word* args, Word& result,
                 local.addr = 0;
              }
              T* n = (T*) args[1].addr;
-             MemoryRelObject* rel = getMemRel(n,nl->Second(qp->GetType(s)));
+             MemoryRelObject* rel = getMemRel(n);
              if(!rel){
                return 0;
              }
