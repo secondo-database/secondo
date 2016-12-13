@@ -1,0 +1,149 @@
+###########################################################################
+#
+# Construction of HubLabelingLabels into the NestedRelation
+#  'hlAllLabelsNRel' and creates a bTree on this NestedRelation
+#  'hlAllLabelsNRel_SourceNodeId and and modified version of the Relation
+#  'Edges' from OSM Import which is named 'hlEdgesOrelSource'.
+#
+# All these three Types are needed for doing a hlQuery like the following:
+#  query hlQuery(hlAllLabelsNRel, hlAllLabelsNRel_SourceNodeId,
+#   hlEdgesOrelSource, SourceNodeId, TargetNodeId) feed consume;
+#
+# Requires the existence of an full OSM Import with the Relations
+#  'Nodes' and 'Edges'.
+# Does not change these Relations.
+# 
+#
+# Uses NestedRelationAlgebra, OrderedRelationAlgebra,
+#  RelationAlgebra, BTreeAlgebra.
+#
+# Cope this script into 'secondo/bin/Scripts' to execute.
+#
+# running times and result sizes refer to arnsberg-regbez.osm, using
+# GlobalMemory = 2 GB
+#
+###########################################################################
+
+
+#################################
+#
+# 1 - Vorbereitungen
+#
+#################################
+
+##
+# 1.1 doppelte Knoten aus Edges entfernen
+##
+let hlNodesDuplicatesRemoved = Nodes feed sortby[NodeIdNew] krdup[NodeIdNew] consume;
+
+##
+# 1.2 Kosten ermitteln
+##
+let hlEdgesCostsOrelSource = Edges feed extend[Costs : size(gk(.Curve))] oconsume[Source];
+
+##
+# 1.3 Parent-Feld hinzufügen
+##
+let hlEdgesCostsParentOrelSource = hlEdgesCostsOrelSource feed extend[HlShortcutViaParent : -1] oconsume[Source];
+
+delete hlEdgesCostsOrelSource;
+
+
+##
+# 1.4 Ordered Relations erstellen Edges
+##
+let hlEdgesOrelSource = hlEdgesCostsParentOrelSource;
+
+let hlEdgesOrelTarget = hlEdgesCostsParentOrelSource feed oconsume[Target];
+
+delete hlEdgesCostsParentOrelSource;
+
+
+##
+# 1.5 Rank erstellen
+##
+let hlNodesRankedOrelId = hlNodesDuplicatesRemoved feed extend [RankTmp: hlCalcRank(hlEdgesOrelSource, hlEdgesOrelTarget, .NodeIdNew)] sortby[RankTmp, NodeIdNew] addcounter[Rank, 1] remove[RankTmp] oconsume[Rank];
+
+delete hlNodesDuplicatesRemoved;
+
+##
+# 1.6 BTree über nodesRanked erstellen
+##
+let hlNodesRankedOrelId_NodeIdNew = hlNodesRankedOrelId feed extend[TmpTid: tupleid(.)] createbtree[NodeIdNew];
+
+
+#################################
+#
+# 4 - Full Graph Contraction
+#
+#################################
+
+query hlIterateOverAllNodesByRankAscAndDoContraction(hlNodesRankedOrelId, hlEdgesOrelSource, hlEdgesOrelTarget, 10);
+
+
+
+#################################
+#
+# 5 - Aufwärts- und Abwärtsgraphen erzeugen
+#
+#################################
+
+##
+# 5.1 Upwardsgraph Ordered by Source
+##
+let hlUpwardEdgesOrelSource =
+hlEdgesOrelSource feed {alias1}
+hlNodesRankedOrelId feed project[NodeIdNew, Rank] {alias2}
+itHashJoin[Source_alias1, NodeIdNew_alias2]
+hlNodesRankedOrelId feed project[NodeIdNew, Rank] {alias3}
+itHashJoin[Target_alias1, NodeIdNew_alias3]
+filter[.Rank_alias2 < .Rank_alias3]
+remove[NodeIdNew_alias2, Rank_alias2, NodeIdNew_alias3, Rank_alias3]
+renameattr[Source : Source_alias1, Target : Target_alias1, SourcePos : SourcePos_alias1, TargetPos : TargetPos_alias1, SourceNodeCounter : SourceNodeCounter_alias1, TargetNodeCounter : TargetNodeCounter_alias1, Curve : Curve_alias1, RoadName : RoadName_alias1, RoadType : RoadType_alias1, WayId : WayId_alias1, Costs : Costs_alias1, HlShortcutViaParent : HlShortcutViaParent_alias1]
+oconsume[Source];
+
+
+##
+# 5.2 Downwardsgraph Ordered by Target
+##
+let hlDownwardEdgesOrelTarget =
+hlEdgesOrelTarget feed {alias1}
+hlNodesRankedOrelId feed project[NodeIdNew, Rank] {alias2}
+itHashJoin[Source_alias1, NodeIdNew_alias2]
+hlNodesRankedOrelId feed project[NodeIdNew, Rank] {alias3}
+itHashJoin[Target_alias1, NodeIdNew_alias3]
+filter[.Rank_alias2 > .Rank_alias3]
+remove[NodeIdNew_alias2, Rank_alias2, NodeIdNew_alias3, Rank_alias3]
+renameattr[Source : Source_alias1, Target : Target_alias1, SourcePos : SourcePos_alias1, TargetPos : TargetPos_alias1, SourceNodeCounter : SourceNodeCounter_alias1, TargetNodeCounter : TargetNodeCounter_alias1, Curve : Curve_alias1, RoadName : RoadName_alias1, RoadType : RoadType_alias1, WayId : WayId_alias1, Costs : Costs_alias1, HlShortcutViaParent : HlShortcutViaParent_alias1]
+oconsume[Target];
+
+# we still need hlEdgesOrelSource for doing Queries
+delete hlEdgesOrelTarget;
+
+
+
+#################################
+#
+# 7 - Labels erzeugen
+#
+#################################
+
+##
+# 7.1 NestedRelation erzeugen
+##
+let hlAllLabelsNRel = hlCreateLabels(hlNodesRankedOrelId_NodeIdNew, hlNodesRankedOrelId, hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 10) feed consume;
+
+delete hlNodesRankedOrelId;
+delete hlNodesRankedOrelId_NodeIdNew;
+delete hlUpwardEdgesOrelSource;
+delete hlDownwardEdgesOrelTarget;
+
+##
+# 7.2 BTree über NestedRelation erzeugen
+##
+let hlAllLabelsNRel_SourceNodeId = hlAllLabelsNRel feed extend[TmpTid: tupleid(.)] createbtree[SourceNodeId];
+
+
+
+
+

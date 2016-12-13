@@ -1,0 +1,251 @@
+Database: berlintest
+Restore: No
+
+
+
+Operator : hlCalcRank
+Number   : 2
+Signature   : orel x orel x ccint -> real
+Example  : query hlCalcRank(EdgesOrelSource feed head[10] oconsume[Source], EdgesOreltarget feed head[10] oconsume[Target], 12345678)
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlOneHopReverseSearch
+Number   : 3
+Signature   : orel x orel x ccint -> orel
+Example  : query hlOneHopReverseSearch(EdgesTestOrelSource, EdgesTestOrelTarget, 7264168) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlHHopForwardSearch
+Number   : 4
+Signature   : orel x orel x orel x ccint x ccint -> real
+Example  : query hlHHopForwardSearch(orelEdgesSource, orelEdgesTarget, hlOneHopReverseSearchXTOrelX3, 1505, -1) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlForwardSearchGetDist
+Number   : 5
+Signature   : orel x ccint x ccint -> real
+Example  : query hlForwardSearchGetDist(OneHopReverseSearchToBeDeleted2, 7264168, 7264033)
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlRemoveTFromCurrentWitnessList
+Number   : 6
+Signature   : orel x ccint -> orel
+Example  : query hlRemoveTFromCurrentWitnessList(OneHopReverseSearchToBeDeleted, 7264033) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlForwardSearchCheckForWitnessPath
+Number   : 7
+Signature   : orel x ccint x ccint x ccreal x ccreal -> orel
+Example  : query hlForwardSearchCheckForWitnessPath(OneHopReverseSearchToBeDeleted2, 1505, 1495, 6.16, 42,453) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlInsertOrUpdateTupleInNotYetVisitedList
+Number   : 9
+Signature   : orel x ccint x ccint x ccint -> rel
+Example  : query hlInsertOrUpdateTupleInNotYetVisitedList(EdgesTestRelSourceTmp, 1492, 1424, 1) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlForwardSearchIterativeStepsScanNewVertices
+Number   : 10
+Signature   : orel x orel x orel x orel x rel x ccint x ccreal -> ccint
+Example  : query hlForwardSearchIterativeStepsScanNewVertices(EdgesTestOrelSource, currMinNotYetVisitedNodesSingleTupleOrelFwdW, hlNotYetVisitedNodesTest, stillVisitedNodesOrel,  OneHopReverseSearchToBeDeleted2, 1424, 30.00)
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlForwardSearchProcessIncomingEdgeIterativeSteps
+Number   : 11
+Signature   : orel x orel x orel x orel x ccint x ccint x ccreal -> ccint
+Example  : query hlForwardSearchProcessIncomingEdgeIterativeSteps(EdgesTestOrelSource, hlNotYetVisitedNodesTest, stillVisitedNodesOrel,  999, 1424, 30.00)
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlForwardSearchProcessIncomingEdgeInitialSteps
+Number   : 12
+Signature   : orel x orel x orel x ccint x ccint x ccreal -> ccint
+Example  : query hlForwardSearchProcessIncomingEdgeInitialSteps(hlEdgesOrelSource, hlNotYetVisitedNodesCopyOrelDist, hlOneHopReverseSearchXTOrelX3, 1492, 1505, 6.16)
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlForwardSearchCreateAndAppendShortcuts
+Number   : 13
+Signature   : orel x ccint x ccint x ccreal -> orel
+Example  : query hlForwardSearchCreateAndAppendShortcuts(copyOrelReverseSearchXT, 1492, 1505, 1000.0) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlForwardSearchProcessIncomingEdge
+Number   : 14
+Signature   : orel x orel x orel x orel x ccint x ccint x ccint x ccreal -> orel
+Example  : query hlForwardSearchProcessIncomingEdge(hlEdgesOrelSource, stillVisitedNodesOrel, copyOrelReverseSearchXT, hlShortcutstoBeAdded, 1492, 1505, 2, 1000.00) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlAddShortcutsToEdgesRealtions
+Number   : 15
+Signature   : orel x orel x orel -> orel
+Example  : query hlAddShortcutsToEdgesRealtions(hlEdgesOrelSource, hlEdgesOrelTarget, hlShortcutsToBeCreatedOrelToBeDeleted) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlRemoveContractedEdgesFromEdgesRelations
+Number   : 16
+Signature   : orel x orel x ccint -> orel
+Example  : query hlRemoveContractedEdgesFromEdgesRelations(hlEdgesOrelSourceCopy, hlEdgesOrelTargetCopy, 1505) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlRemoveParallelEdgesFromEdgesRelations
+Number   : 17
+Signature   : orel x orel x orel -> orel
+Example  : query hlRemoveParallelEdgesFromEdgesRelations(hlEdgesOrelSourceCopy, hlEdgesOrelTargetCopy, hlShortcutsToBeCreatedOrelToBeDeleted) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlDoContraction
+Number   : 18
+Signature   : orel x orel x ccint x ccint x ccint -> ccint
+Example  : query hlDoContraction(edgesWithViaOrelSource, edgesWithViaOrelTarget, 1505, 2, 1) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlIterateOverAllNodesByRankAscAndDoContraction
+Number   : 19
+Signature   : orel x orel x orel x ccint x ccint -> ccint
+Example  : query hlIterateOverAllNodesByRankAscAndDoContraction(nodesWithRankeOrelRank, edgesWithViaOrelSource, edgesWithViaOrelTarget, 2, 1)
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlCreateLabelCheckForWitnessScanNewVertices
+Number   : 20
+Signature   : orel x orel x ccint x ccint x ccreal x ccbool -> orel
+Example  : query hlCreateLabelCheckForWitnessScanNewVertices(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 1496, 1, 1000.0, 1) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+Operator : hlCreateLabelCheckForWitness
+Number   : 21
+Signature   : orel x orel x rel x ccint x ccint x ccreal x ccint (ccbool) -> ccint (ccbool)
+Example  : query hlCreateLabelCheckForWitness(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 273, 10, 0.0, 1)
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlCreateLabelScanNewVertices
+Number   : 22
+Signature   : orel x orel x rel x ccint x ccreal x ccint (ccbool) -> orel
+Example  : query hlCreateLabelScanNewVertices(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 273, 0.0, 1) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlGetRankById
+Number   : 24
+Signature   : btree x orel x ccint -> orel
+Example  : query hlGetRankById(hlNodesWithRankOrelRank_NodeIdNew, hlNodesWithRankeOrelRank, 700) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlCreateLabelByDijkstraWithStalling
+Number   : 25
+Signature   : btree x orel x orel x orel x ccint x ccint x ccint (ccbool) -> orel
+Example  : query hlCreateLabelByDijkstraWithStalling(hlNodesWithRankOrelRank_NodeIdNew, hlNodesWithRankeOrelRank, hlEdgesWithViaOrelSource, hlEdgesWithViaOrelTarget,  700, 10, 1) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+Operator : hlFillForwardOrReverseLabel
+Number   : 26
+Signature   : rel -> nrel
+Example  : query hlFillForwardOrReverseLabel(fwdOrRvsLabelRel) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+Operator : hlGetPathViaPoints
+Number   : 27
+Signature   : nrel x btree x orel x ccint x ccint x ccint (ccbool) -> rel
+Example  : query getPathViaPoints(allLabelsNRel, allLabelsBTree, hlEdgesOrelSourceParentVia, 630, 62, 1) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+Operator : hlQuery
+Number   : 28
+Signature   : nrel x btree x orel x ccint x ccint -> rel
+Example  : query hlQuery(allLabelsNRel, allLabelsBTree, hlEdgesOrelSourceParentVia, 62, 630) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+Operator : hlPruneLabelByBootstrapping
+Number   : 29
+Signature   : orel x orel x ccint x ccint x ccreal x ccbool -> orel
+Example  : query hlPruneLabelByBootstrapping(hlUpwardEdgesOrelSourceParentVia, hlDownwardEdgesOrelTargetParentVia, 1505, 1, 1000.0, 1) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+Operator : hlReorderLabels
+Number   : 30
+Signature   : orel x orel x ccint x ccint x ccreal x ccbool -> orel
+Example  : query hlReorderLabels(hlUpwardEdgesOrelSourceParentVia, hlDownwardEdgesOrelTargetParentVia, 1505, 1, 1000.0, 1) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+Operator : hlCreateLabels
+Number   : 31
+Signature   : btree x orel x orel x orel x ccint -> nrel
+Example  : query hlCreateLabels(hlNodesWithRankOrelRank_NodeIdNew, nodesWithRankeOrelRank, hlUpwardEdgesOrelSourceParentVia, hlDownwardEdgesOrelTargetParentVia, 10) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
