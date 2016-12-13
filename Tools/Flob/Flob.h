@@ -272,6 +272,13 @@ stores the flob's data into the dataPointer.
         dataPointer = tmp;
     }
 
+    void bringToDisk(){
+       if(dataPointer){
+          FlobManager::getInstance().makeControllable(*this);
+       }
+    }
+
+
 
 
 /*

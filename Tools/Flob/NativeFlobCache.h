@@ -117,17 +117,10 @@ with given slot size.
 
     assert(_flob.size>0);
     size_t offset = _slotNo * _slotSize;
-
- //    if(offset > _flob.getSize()){
- //      cout << "Inavlid offset" << endl;
- //      cout << "offset = " << offset << endl;
- //      cout << " flob.size = " << _flob.getSize() << endl;
- //     cout << "slotno = " << _slotNo << endl;
- //   }
-
+    
+    size = std::min(_slotSize, (_flob.getSize() - offset));
     assert(offset <=  _flob.getSize());
 
-    size = std::min(_slotSize, (_flob.getSize() - offset));
     mem = (char*) malloc(size);
   }
 
@@ -332,6 +325,8 @@ bool getData(
       return true;
     }
 
+    assert(offset+size <= flob.size);
+
     //assert(check());
 
     size_t slotNo = offset / slotSize;
@@ -347,6 +342,14 @@ bool getData(
       }
       slotNo++;
       slotOffset = 0;  // slotoffset only neeeded for the first slot
+      // TODO : remove the following debugging output
+      if(bufferOffset < size){
+         std::cout << "Required second slot for Flob" << std::endl;
+         std::cout << "bufferoffset: " << bufferOffset  << std::endl;
+         std::cout << "required size: " << size  << std::endl;
+         std::cout << "flob. size " << flob.size << std::endl;
+         std::cout << "initial offset : " << offset << std::endl;
+      }
     }
     //assert(check());
     return true;
