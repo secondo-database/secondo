@@ -2576,7 +2576,7 @@ Do not forget the include:
           if(content.Size() < i->content.Size()){
              return -1;
           }
-          if(content.Size() < i->content.Size()){
+          if(content.Size() > i->content.Size()){
              return 1;
           }
           for(int k=0;k<content.Size();k++){
