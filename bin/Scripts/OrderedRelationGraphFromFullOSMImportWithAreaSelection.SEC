@@ -151,7 +151,7 @@ let Ways =
   CityWays feed itHashJoin[NodeId, NodeRef] sortby[WayId, NodeCounter] nest[WayId; NodeList] 
     extend[Curve  : .NodeList afeed projecttransformstream[Pos] collect_line[TRUE]] 
   CityWayTags feed nest[WayIdInTag; WayInfo] itHashJoin[WayId, WayIdInTag]
-  extend[Box: bbox(.Curve scale[1000000.0])]
+  extend[Box: bbox(.Curve) scale[1000000.0]]
   sortby[Box]
   remove[Box]
   consume
@@ -319,7 +319,7 @@ let Edges = EdgesUp feed EdgesDown feed concat
 
 let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: bbox(.Curve)] 
   filter[isdefined(.Box)] 
-  extend[Box2: bbox(.SourcePos scale[1000000.0])]
+  extend[Box2: bbox(.SourcePos) scale[1000000.0]]
   sortby[Box2]
   project[Source, Target, Curve, Box]
   consume

@@ -280,7 +280,7 @@ let Ways =
     extend[Curve  : .NodeList afeed projecttransformstream[Pos] 
       collect_line[TRUE]] 
   CityWayTags feed nest[WayIdInTag; WayInfo] itHashJoin[WayId, WayIdInTag]
-  extend[Box: bbox(.Curve scale[1000000.0])]
+  extend[Box: bbox(.Curve) scale[1000000.0]]
   sortby[Box]
   remove[Box]
   consume
@@ -310,7 +310,7 @@ let WaysB3_WayId = WaysB1_WayId CityWayTagsB1_WayIdInTag dmap2["",
       collect_line[TRUE]]
   .. feed sortby[WayIdInTag] nest[WayIdInTag; WayInfo] 
   itHashJoin[WayId, WayIdInTag]
-  extend[Box: bbox(.Curve scale[1000000.0])]
+  extend[Box: bbox(.Curve) scale[1000000.0]]
   sortby[Box]
   remove[Box]
   consume, 1238]

@@ -138,7 +138,7 @@ let Ways_WayId_dlo = CityNodesNew_NodeId_dlo
     extend[Curve: .NodeList afeed projecttransformstream[Pos] collect_line[TRUE]] 
     .. nest[WayIdInTag; WayInfo] 
     itHashJoin[WayId, WayIdInTag]
-    extend[Box: bbox(.Curve scale[1000000.0])]
+    extend[Box: bbox(.Curve) scale[1000000.0]]
     sortby[Box]
     remove[Box]
     consume ]
@@ -385,7 +385,7 @@ let Edges = Edges_WayId_dlo hadoopMap[DLF; . feed] collect[]
 
 # let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: bbox(.Curve)] 
 #   filter[isdefined(.Box)] 
-#   extend[Box2: bbox(.SourcePos scale[1000000.0])]
+#   extend[Box2: bbox(.SourcePos) scale[1000000.0]]
 #   sortby[Box2]
 #   project[Source, Target, Curve, Box]
 #   consume
