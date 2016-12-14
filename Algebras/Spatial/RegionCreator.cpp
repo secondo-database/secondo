@@ -53,6 +53,7 @@ RegionCreator::RegionCreator(const DbArray<HalfSegment>* hss, Region* result){
      // split intersecting halfsegments and remove overlappings
      pairs->Sort(HalfSegmentCompare);
      DbArray<HalfSegment>* realm = Realminize(*pairs);
+     pairs->Destroy();
      delete pairs;
      // sort realminized halfsegments
      realm->Sort(HalfSegmentCompare); 

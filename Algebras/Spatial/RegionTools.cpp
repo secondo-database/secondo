@@ -433,6 +433,7 @@ void addRegion2(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
       }
     }// new path found
   } // for
+  segments->Destroy();
   delete segments;
 
   // build the region from the corrected cycles
@@ -470,9 +471,9 @@ void addRegion2(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
       result = reg;
     } else {
       Region* tmp = SetOp(*result,*reg,avlseg::union_op);
-      delete result;
+      result->DeleteIfAllowed();
       result = tmp;
-      delete reg;
+      reg->DeleteIfAllowed();
     }
   }
   if(result){
@@ -518,7 +519,7 @@ Builds a region from a set of cycles.
            if(face->BoundingBox().Intersects(hole->BoundingBox())){
               if(!topops::wcontains(hole,face)){ // may be an island
                  Region* tmp = SetOp(*face,*hole,avlseg::difference_op);
-                 delete face;
+                 face->DeleteIfAllowed();
                  face = tmp;
               }
            }
@@ -526,13 +527,13 @@ Builds a region from a set of cycles.
         if((face->Size())!=0){
            faces2.push_back(face);
         } else { // face was removed completely
-           delete face;
+           face->DeleteIfAllowed();
         }
      }
 
      // the hole regions are not longer needed, delete them
      for(unsigned int i=0;i<holes.size();i++){
-      delete holes[i];
+      holes[i]->DeleteIfAllowed();
      }
 
      if(faces2.size()<1){
@@ -544,8 +545,8 @@ Builds a region from a set of cycles.
      for(unsigned int i=1;i<faces2.size();i++){
        Region* face2 = faces2[i];
        Region* tmp = SetOp(*reg, *face2, avlseg::union_op);
-       delete reg;
-       delete face2;
+       reg->DeleteIfAllowed();
+       face2->DeleteIfAllowed();
        reg = tmp;
      }
      return reg;

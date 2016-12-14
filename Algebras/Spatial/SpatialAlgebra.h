@@ -799,7 +799,6 @@ destructor will perform the real destroying.
 
 */
     inline ~Line() {
-      line.destroyIfNonPersistent();
     }
 /*
 The destructor.
@@ -2224,7 +2223,6 @@ destructor will perform the real destroying.
 
 */
     inline ~Region() {
-      region.destroyIfNonPersistent();
     }
 /*
 The destructor.
