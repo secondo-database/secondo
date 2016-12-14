@@ -219,7 +219,7 @@ Result   : 91
 Operator : tail
 Number   : 6
 Signature: stream(T) [x bool] -> stream(T), T in DATA
-Example  : query realstream(1.0,1050000.0,1.0) tail[666] count
+Example  : query realstream(1.0,2000.0,1.0) tail[666] count
 Result   : 666
 
 
@@ -293,6 +293,19 @@ Number   : 1
 Signature : stream(T) x int -> T, T in DATA
 Example  : query intstream(1,10) xth[5]
 Result   : 5
+
+Operator : minattr
+Number   : 1
+Signature : stream(T) -> T, T in DATA
+Example  : query intstream(1,10) minattr
+Result   : 1
+
+Operator : maxattr
+Number   : 1
+Signature : stream(T) -> T, T in DATA
+Example  : query intstream(1,10) maxattr
+Result   : 10
+
 
 
 

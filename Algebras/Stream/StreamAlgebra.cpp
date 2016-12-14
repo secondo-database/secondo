@@ -5415,6 +5415,84 @@ Operator xthOp(
 );
 
 
+ListExpr minmaxTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError("one arg expected");
+  }
+  if(!Stream<Attribute>::checkType(nl->First(args))){
+    return listutils::typeError("stream(DATA) expected");
+  }
+  return nl->Second(nl->First(args));
+}
+
+
+template<bool isMin>
+int minmaxVM(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   Attribute* res = (Attribute*) result.addr;
+   Attribute* value = 0;
+
+   Stream<Attribute> stream(args[0]);
+   stream.open();
+   Attribute* v;
+   while( (v=stream.request())){
+      if(!value){
+         value = v;
+      } else {
+        int cmp = value->Compare(v);
+        if(!isMin){
+           cmp = -cmp;
+        } 
+        if(cmp>0){
+          value->DeleteIfAllowed();
+          value = v;
+        } else {
+          v->DeleteIfAllowed();
+        }
+      }
+   }
+   if(value){
+      res->CopyFrom(value);
+      value->DeleteIfAllowed();
+   } else {
+      res->SetDefined(false);
+   }
+   return 0;
+}
+
+OperatorSpec minattrSpec(
+   "stream(T) -> T, T in DATA",
+   " _ minattr",
+   "Retrieves the minimum value within a stream of attributes",
+   "query intstream(1,10) minattr"
+);
+
+OperatorSpec maxattrSpec(
+   "stream(T) -> T, T in DATA",
+   " _ maxattr",
+   "Retrieves the maximum value within a stream of attributes",
+   "query intstream(1,10) maxattr"
+);
+
+Operator minattrOp(
+  "minattr",
+  minattrSpec.getStr(),
+  minmaxVM<true>,
+  Operator::SimpleSelect,
+  minmaxTM 
+);
+
+Operator maxattrOp(
+  "maxattr",
+  maxattrSpec.getStr(),
+  minmaxVM<false>,
+  Operator::SimpleSelect,
+  minmaxTM 
+);
+
+
 /*
 7 Creating the Algebra
 
@@ -5456,6 +5534,8 @@ public:
     AddOperator(&mergeOp);
     AddOperator(&rdupOp);
     AddOperator(&xthOp);
+    AddOperator(&minattrOp);
+    AddOperator(&maxattrOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();

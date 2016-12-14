@@ -47,6 +47,9 @@ operator mergeunion alias MERGEUNION pattern _ _ op
 operator mergeattrstreams alias MERGEATTRSTREAMS pattern _ _ op
 operator rdup alias RDUP pattern _ op
 operator xth alias XTH pattern _ op[_]
+operator minattr alias MINATTR pattern _ op
+operator maxattr alias MAXATTR pattern _ op
+
 
 
 
