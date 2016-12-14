@@ -254,3 +254,43 @@ Number   : 1
 Signature: int x int -> stream<int>
 Example  : query intstream2(1,10)  count
 Result   : 10
+
+Operator  : mergediff
+Number    : 1 
+Signature : stream(T) x stream(T) -> stream(T), T in DATA
+Example   : query intstream(1,10) intstream(4,16) mergediff count
+Result    : 3
+
+
+Operator  : mergesec
+Number    : 1 
+Signature : stream(T) x stream(T) -> stream(T), T in DATA
+Example   : query intstream(1,10) intstream(4,16) mergesec count
+Result    : 7
+
+Operator  : mergeunion
+Number    : 1 
+Signature : stream(T) x stream(T) -> stream(T), T in DATA
+Example   : query intstream(1,10) intstream(4,16) mergeunion count
+Result    : 16
+
+Operator : mergeattrstreams
+Number   : 1
+Signature : stream(T) x stream(T) -> stream(T), T in DATA
+Example   : query intstream(1,10) intstream(4,16) mergeattrstreams count
+Result    : 23
+
+
+Operator : rdup
+Number   : 1
+Signature : stream(T) -> stream(T), T in DATA
+Example  : query intstream(1,10) intstream(1,10) mergeattrstreams rdup count
+Result   : 10
+
+
+
+
+
+
+
+

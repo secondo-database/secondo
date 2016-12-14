@@ -4986,7 +4986,361 @@ Operator sbufferOp(
 );
 
 
+/*
+16 Operators for merging two sorted attribute streams
 
+*/
+
+ListExpr mergeOpTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("expected two args");
+  }
+  if(!Stream<Attribute>::checkType(nl->First(args))
+    ||!Stream<Attribute>::checkType(nl->Second(args))){
+    return listutils::typeError("two sorted DATA streams expected");
+  }
+  if(!nl->Equal(nl->First(args),nl->Second(args))){
+    return listutils::typeError("found different stream types");
+  }
+  return nl->First(args);
+}
+
+
+enum mergeOP{SEC,DIFF,UNION,MERGE};
+
+template<mergeOP op>
+class mergeOpInfo{
+  public:
+     mergeOpInfo(Word _stream1, Word _stream2):
+        stream1(_stream1), stream2(_stream2){
+        stream1.open();
+        stream2.open();
+        a1 = 0;
+        a2 = 0;
+        first = true;
+     }
+
+     ~mergeOpInfo(){
+        stream1.close();
+        stream2.close();
+        if(a1){
+          a1->DeleteIfAllowed();
+        }
+        if(a2){
+          a2->DeleteIfAllowed();
+        }
+     }
+
+     Attribute* next(){
+        if(first){
+          first = false;
+          a1 = stream1.request();
+          a2 = stream2.request();
+        }
+        switch(op){
+           case SEC: return getNextSec(); 
+           case DIFF: return getNextDiff();
+           case UNION: return getNextUnion();
+           case MERGE: return getNextMerge();
+           default: return 0;
+        }
+     }
+
+  private:
+     Stream<Attribute> stream1;
+     Stream<Attribute> stream2;
+     bool first;
+     Attribute* a1, *a2;
+
+  Attribute* getNextSec(){
+    while(a1 && a2){
+      int cmp = a1->Compare(a2);
+      if(cmp<0){
+        a1->DeleteIfAllowed();
+        a1 = stream1.request();
+      } else if(cmp>0){
+        a2->DeleteIfAllowed();
+        a2 = stream2.request();
+      } else { // equal found
+         Attribute* res = a1;
+         a1 = stream1.request();
+         a2->DeleteIfAllowed();
+         a2 = stream2.request();
+         return res;
+      }
+
+    }
+    return 0;
+
+  }
+
+  Attribute* getNextDiff(){
+     while(a1){
+       if(!a2){
+         Attribute* res = a1;
+         a1 = stream1.request();
+         return res;
+       }
+       int cmp = a1->Compare(a2);
+       if(cmp<0){
+         Attribute* res = a1;
+         a1 = stream1.request();
+         return res;
+       } else if(cmp>0){
+          a2->DeleteIfAllowed();
+          a2=stream2.request();
+       } else {
+          a1->DeleteIfAllowed();
+          a1 = stream1.request();
+       }
+     }
+     return 0;
+  }
+
+  Attribute* getNextMerge(){
+     while(a1 || a2){
+       if(!a1){
+          Attribute* res = a2;
+          a2 = stream2.request();
+          return  res;
+       }
+       if(!a2){
+          Attribute* res = a1;
+          a1 = stream1.request();
+          return res;
+       }
+       int cmp = a1->Compare(a2);
+       if(cmp<=0){
+          Attribute* res = a1;
+          a1 = stream1.request();
+          return res;
+       } else {
+          Attribute* res = a2;
+          a2 = stream2.request();
+          return  res;
+       }
+     }
+     return 0;
+  }
+
+  Attribute* getNextUnion(){
+     while(a1 || a2){
+       if(!a1){
+          Attribute* res = a2;
+          a2 = stream2.request();
+          return  res;
+       }
+       if(!a2){
+          Attribute* res = a1;
+          a1 = stream1.request();
+          return res;
+       }
+       int cmp = a1->Compare(a2);
+       if(cmp<0){
+          Attribute* res = a1;
+          a1 = stream1.request();
+          return res;
+       } else if(cmp>0) {
+          Attribute* res = a2;
+          a2 = stream2.request();
+          return  res;
+       } else {
+          Attribute* res = a1;
+          a1 = stream1.request();
+          a2->DeleteIfAllowed();
+          a2 = stream2.request();
+          return res;
+       }
+     }
+     return 0;
+  }
+};
+
+
+template<mergeOP op>
+int mergeOpVMT(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+   mergeOpInfo<op>* li = (mergeOpInfo<op>*) local.addr;
+   switch(message){
+      case OPEN:
+           if(li){
+              delete li;
+           }
+           local.addr = new mergeOpInfo<op>(args[0],args[1]);
+           return 0;
+      case REQUEST:
+             result.addr = li?li->next():0;
+             return result.addr?YIELD:CANCEL;
+      case CLOSE:
+              if(li){
+                delete li;
+                local.addr = 0;
+              }
+              return 0;
+   }
+   return -1;
+}
+
+OperatorSpec mergeDiffSpec(
+   " stream(D) x stream(D) -> stream(D), w in DATA",
+   "_ _ mergediff",
+   "Compuetes the difference between two DATA streams",
+   "query intstream(1,10) intstream(3,7) mergediff count"
+);
+
+OperatorSpec mergeSecSpec(
+   " stream(D) x stream(D) -> stream(D), w in DATA",
+   "_ _ mergesec",
+   "Compuetes the intersection between two DATA streams",
+   "query intstream(1,10) intstream(3,7) mergesec count"
+);
+
+OperatorSpec mergeUnionSpec(
+   " stream(D) x stream(D) -> stream(D), w in DATA",
+   "_ _ mergeunion",
+   "Computes the union between two DATA streams",
+   "query intstream(1,10) intstream(3,7) mergeunion count"
+);
+
+
+OperatorSpec mergeSpec(
+   " stream(D) x stream(D) -> stream(D), w in DATA",
+   "_ _ merge",
+   "merges two sorted DATA streams into a single ine",
+   "query intstream(1,10) intstream(3,7) merge count"
+);
+
+Operator mergediffOp(
+   "mergediff",
+   mergeDiffSpec.getStr(),
+   mergeOpVMT<DIFF>,
+   Operator::SimpleSelect,
+   mergeOpTM
+);
+
+
+Operator mergesecOp(
+   "mergesec",
+   mergeSecSpec.getStr(),
+   mergeOpVMT<SEC>,
+   Operator::SimpleSelect,
+   mergeOpTM
+);
+
+Operator mergeunionOp(
+   "mergeunion",
+   mergeUnionSpec.getStr(),
+   mergeOpVMT<UNION>,
+   Operator::SimpleSelect,
+   mergeOpTM
+);
+
+Operator mergeOp(
+   "mergeattrstreams",
+   mergeSpec.getStr(),
+   mergeOpVMT<MERGE>,
+   Operator::SimpleSelect,
+   mergeOpTM
+);
+
+
+/*
+6.15 Operator rdup
+
+*/
+ListExpr rdupTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError("expected one arg");
+  }
+  if(!Stream<Attribute>::checkType(nl->First(args))){
+     return listutils::typeError("expected stream(DATA)");
+  }
+  return nl->First(args);
+}
+
+
+class rdupInfo{
+
+public:
+  rdupInfo(Word _stream): stream(_stream),last(0),first(true){
+     stream.open();
+  }
+
+  ~rdupInfo(){
+     if(last){
+        last->DeleteIfAllowed();
+     }
+     stream.close();
+   }
+
+   Attribute* next(){
+     if(first){
+       first = false;
+       last = stream.request();
+       if(!last) return 0;
+       return last->Copy();
+     }
+     if(!last){
+       return 0;
+     }
+     Attribute* current;
+     while( (current=stream.request())){
+        int cmp = last->Compare(current);
+        if(cmp==0){
+          current->DeleteIfAllowed();
+        } else {
+          last->DeleteIfAllowed();
+          last = current;
+          return last->Copy();
+        }
+     }
+     last->DeleteIfAllowed();
+     last = 0;
+     return 0;  
+   }
+
+private:
+   Stream<Attribute> stream;
+   Attribute* last;
+   bool first;
+
+};
+
+
+int rdupVM(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+
+  rdupInfo* li = (rdupInfo*) local.addr;
+  switch(message){
+    case OPEN: if(li) delete li;
+               local.addr = new rdupInfo(args[0]);
+               return 0;
+    case REQUEST:
+              result.addr = li?li->next():0;
+              return result.addr?YIELD:CANCEL;
+    case CLOSE:
+           if(li){
+             delete li;
+             local.addr = 0;
+           }
+  }
+  return -1;
+}
+
+OperatorSpec rdupSpec(
+   "stream(D) -> stream(D) , D in DATA",
+   "_ rdup",
+   "removes duplicates from a sorted attribute stream",
+   "query intstream(1,10) intstream(1,10) merge rdup count"
+);
+
+Operator rdupOp(
+  "rdup",
+  rdupSpec.getStr(),
+  rdupVM,
+  Operator::SimpleSelect,
+  rdupTM
+);
 
 
 /*
@@ -5023,6 +5377,12 @@ public:
     AddOperator( &sbufferOp);
 
     AddOperator(&intstream2);
+
+    AddOperator(&mergediffOp);
+    AddOperator(&mergesecOp);
+    AddOperator(&mergeunionOp);
+    AddOperator(&mergeOp);
+    AddOperator(&rdupOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();

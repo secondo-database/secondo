@@ -39,3 +39,14 @@ operator use2 alias USE2 pattern _ _ op [ _ ] implicit parameters streamelem1, s
 operator sbuffer alias SBUFFER pattern _ op [_]
 
 operator isOrdered alias ISORDERED pattern _ op
+
+
+operator mergesec alias MERGESEC pattern _ _ op
+operator mergediff alias MERGEDIFF pattern _ _ op
+operator mergeunion alias MERGEUNION pattern _ _ op
+operator mergeattrstreams alias MERGEATTRSTREAMS pattern _ _ op
+operator rdup alias RDUP pattern _ op
+
+
+
+
