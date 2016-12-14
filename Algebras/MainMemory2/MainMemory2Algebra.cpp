@@ -1347,7 +1347,7 @@ class gettuplesInfoUnwrap{
               inTuple->DeleteIfAllowed();
            } else {
               TupleId id = tid->GetTid();
-              if(id<1 || id >= rel->size()){
+              if(id<1 || id > rel->size()){
                 inTuple->DeleteIfAllowed();
               } else {
                 Tuple* relTuple = rel->at(id-1);
