@@ -97,7 +97,6 @@ class mmheap{
   }
 
 
-
 private:
   std::vector<T> content;
   C cmp;
