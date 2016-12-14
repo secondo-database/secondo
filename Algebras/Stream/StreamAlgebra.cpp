@@ -5494,6 +5494,125 @@ Operator maxattrOp(
 
 
 /*
+6.19 Operator ~nth~
+
+*/
+
+ListExpr nthTM(ListExpr args){
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("three args expected");
+  }
+  if(!Stream<Attribute>::checkType(nl->First(args))){
+    return listutils::typeError("first arg must be stream of DATA");
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("second arg must be an int");
+  }
+  if(!CcBool::checkType(nl->Third(args))){
+    return listutils::typeError("third arg must be a bool");
+  }
+  return nl->First(args);
+}
+
+class nthInfo{
+  public:
+     nthInfo(Word _stream, int _n, bool _fixed) : 
+       stream(_stream), n(_n), fixed(_fixed) {
+       stream.open();
+       srand(time(0));
+     }
+     ~nthInfo(){
+        stream.close();
+     }
+
+     Attribute* next(){
+        int v = n-1;
+        if(!fixed){
+          v = rand()%n;
+        }
+        Attribute* res = 0;
+        for( int i=0;i<n; i++){
+           Attribute* cand = stream.request();
+           if(!cand){
+               if(res){
+                 res->DeleteIfAllowed();
+               }
+               return 0;
+           } 
+           if( i  == v ){
+              res = cand;
+           } else {
+              cand->DeleteIfAllowed();
+           }
+        } 
+        return res;
+     }
+
+  private:
+    Stream<Attribute> stream;
+    int n;
+    bool fixed;
+};
+
+
+int nthVM(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+   nthInfo* li = (nthInfo*) local.addr;
+   switch(message){
+      case OPEN: {
+         if(li){
+           delete li;
+           local.addr = 0;
+         }
+         CcInt* n = (CcInt*) args[1].addr;
+         CcBool* fixed = (CcBool*) args[2].addr;
+         if(!n->IsDefined() || !fixed->IsDefined()){
+            return 0;
+         }
+         int v = n->GetValue(); 
+         if(v<1){
+           return 0;
+         }
+         local.addr = new nthInfo(args[0],v, fixed->GetValue());
+         return 0;
+      }
+
+      case REQUEST: {
+         result.addr = li?li->next():0;
+         return result.addr?YIELD:CANCEL;
+      }
+      case CLOSE : {
+          if(li){
+            delete li;
+            local.addr = 0;
+          }
+          return 0;
+      }
+
+    }
+    return -1;
+}
+
+
+OperatorSpec nthSpec(
+  "stream(D) x int x bool -> stream(D), D in DATA",
+  "_ nth[_,_]",
+  "Extracts each nth element from a attribute stream if "
+  "the boolean value is TRUE. In the false case from a "
+  "block of n attributes, randomly one is chosen.",
+  "query intstream(1,10) nth[2,TRUE] count"
+);
+
+Operator nthOp(
+  "nth",
+  nthSpec.getStr(),
+  nthVM,
+  Operator::SimpleSelect,
+  nthTM
+);
+
+
+/*
 7 Creating the Algebra
 
 */
@@ -5536,6 +5655,7 @@ public:
     AddOperator(&xthOp);
     AddOperator(&minattrOp);
     AddOperator(&maxattrOp);
+    AddOperator(&nthOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();

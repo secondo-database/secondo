@@ -50,6 +50,7 @@ operator xth alias XTH pattern _ op[_]
 operator minattr alias MINATTR pattern _ op
 operator maxattr alias MAXATTR pattern _ op
 
+operator nth alias NTH pattern _ op[_,_]
 
 
 

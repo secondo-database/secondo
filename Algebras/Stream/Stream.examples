@@ -306,6 +306,12 @@ Signature : stream(T) -> T, T in DATA
 Example  : query intstream(1,10) maxattr
 Result   : 10
 
+Operator : nth
+Number   : 1
+Signature: stream(T) x int x bool -> stream(T), T in DATA
+Example  : query intstream(1,20) nth[2,TRUE] count
+Result   : 10
+
 
 
 
