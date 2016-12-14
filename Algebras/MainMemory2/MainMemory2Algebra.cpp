@@ -537,7 +537,7 @@ MemoryMtreeObject<K, StdDistComp<K> >* getMtree(T* name){
 }
 
 
-template<class K>
+template<class T, class K>
 MemoryMtreeObject<K, StdDistComp<K> >* getMtree(MPointer* t){
    return (MemoryMtreeObject<K, StdDistComp<K> >*) ((*t)());
 }
@@ -5329,7 +5329,7 @@ ListExpr mdistScan2TM(ListExpr args){
   ListExpr a1 = nl->First(args);
   ListExpr a2 = nl->Second(args);
   string errMsg;
-  if(!getMemType(nl->First(a1), nl->Second(a1), a1,  errMsg)){
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1,  errMsg, true)){
     return listutils::typeError(err + "\n problem in 1st arg: " + errMsg);
   }
   a1 = nl->Second(a1); // remove mem
@@ -5443,8 +5443,10 @@ int mdistScan2Select(ListExpr args){
    int m = 9;
    if(CcString::checkType(nl->First(args))){
      n = 0;
-   } else {
+   } else if(Mem::checkType(nl->First(args))){
      n = m;
+   } else {  // mpointer
+     n = 2*m;
    }
 
    return mtreehelper::getTypeNo(type,m) + n;
@@ -5471,7 +5473,18 @@ ValueMapping mdistScan2VM[] = {
   mdistScan2VMT<mtreehelper::t6, Mem, true>,
   mdistScan2VMT<mtreehelper::t7, Mem, true>,
   mdistScan2VMT<mtreehelper::t8, Mem, true>,
-  mdistScan2VMT<mtreehelper::t9, Mem, true>
+  mdistScan2VMT<mtreehelper::t9, Mem, true>,
+
+  mdistScan2VMT<mtreehelper::t1, MPointer, true>,
+  mdistScan2VMT<mtreehelper::t2, MPointer, true>,
+  mdistScan2VMT<mtreehelper::t3, MPointer, true>,
+  mdistScan2VMT<mtreehelper::t4, MPointer, true>,
+  mdistScan2VMT<mtreehelper::t5, MPointer, true>,
+  mdistScan2VMT<mtreehelper::t6, MPointer, true>,
+  mdistScan2VMT<mtreehelper::t7, MPointer, true>,
+  mdistScan2VMT<mtreehelper::t8, MPointer, true>,
+  mdistScan2VMT<mtreehelper::t9, MPointer, true>
+
 };
 
 OperatorSpec mdistScan2Spec(
@@ -5486,7 +5499,7 @@ OperatorSpec mdistScan2Spec(
 Operator mdistScan2Op(
    "mdistScan2",
    mdistScan2Spec.getStr(),
-   18,
+   27,
    mdistScan2VM,
    mdistScan2Select,
    mdistScan2TM<true>
