@@ -99,4 +99,9 @@ Signature : stream(tuple) x (attrname [x {asc,desc}]) + -> stream(tuple)
 Example : query plz feed sortby[Ort] project[Ort] = plz feed sortbyh[Ort] project[Ort]
 Result   : TRUE
 
+Operator : sortattr
+Number   : 1
+Signature : stream(DATA) x bool -> stream(DATA)
+Example : query intstream(1,10) sortattr[FALSE] count
+Result   : 10
 

@@ -41,7 +41,10 @@ ListExpr SortBy2HeapsTM(ListExpr args);
 int Sort2HeapsVM(Word* args, Word& result, int message,
           Word& local, Supplier s);
 
+ListExpr sortattrTM(ListExpr args);
 
+int sortattrVM(Word* args, Word& result, int message,
+          Word& local, Supplier s);
 
 #endif
 

@@ -2349,7 +2349,22 @@ Operator sortbyhOP(
 );
 
 
+OperatorSpec sortattrSpec(
+  "stream(DATA) x bool -> stream(DATA)",
+  " _ sortattr[_] ",
+  "Sorts a stream of attributes ascending if "
+  "the boolean argument is true, descending otherwise",
+  " query intstream(1,10) sortattr[FALSE] count" 
+);
 
+
+Operator sortattrOP(
+  "sortattr",
+  sortattrSpec.getStr(),
+  sortattrVM,
+  Operator::SimpleSelect,
+  sortattrTM
+);
 
 
 
@@ -2413,6 +2428,9 @@ class ExtRelation2Algebra : public Algebra
 
     AddOperator(&extrel2::sortbyhOP);
     extrel2::sortbyhOP.SetUsesMemory();
+
+    AddOperator(&extrel2::sortattrOP);
+    extrel2::sortattrOP.SetUsesMemory();
 
 #ifdef USE_PROGRESS
 // support for progress queries

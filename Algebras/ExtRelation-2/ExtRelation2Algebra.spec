@@ -43,4 +43,6 @@ operator itHashJoin alias ITHASHJOIN pattern _ _ op [_,_]
 
 operator sorth alias SORTH pattern _ op
 operator sortbyh alias SORTBYH pattern _ op [list]
+operator sortattr alias SORTATTR pattern _ op [_]
+
 

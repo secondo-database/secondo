@@ -35,8 +35,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "Symbols.h"
 #include "mmheap.h"
+#include "FileSystem.h"
 
 #include "Sort2Heaps.h"
+#include "AttributeFile.h"
 
 #include <vector>
 
@@ -532,6 +534,413 @@ int Sort2HeapsVM(Word* args, Word& result, int message,
         local.addr = new Sort2HeapsInfo(args[0], pos,
                       nl->Second(GetTupleResultType(s)),
                       maxFiles, maxMem);
+        return 0;
+    }
+    case REQUEST: result.addr = li?li->next():0;
+                  return result.addr?YIELD:CANCEL;
+    case CLOSE: 
+         if(li){
+            delete li;
+            local.addr =0;
+         }
+         return 0;
+  }
+  return -1;
+}
+
+/*
+2. Attribute version
+
+
+
+*/
+
+ListExpr  sortattrTM (ListExpr args){
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError("two args expected");
+  }
+  if(!Stream<Attribute>::checkType(nl->First(args))){
+     return listutils::typeError("first arg has to be a "
+                                 "stream of attributes");
+  }
+  if(!CcBool::checkType(nl->Second(args))){
+    return listutils::typeError("second arg must be a bool");
+  }
+  return nl->First(args);
+}
+
+class AttrSmaller{
+public:
+   AttrSmaller(bool _asc):asc(_asc){ }
+
+   bool operator()(Attribute* a1, Attribute* a2) const{
+       int cmp = a1->Compare(a2);
+       return asc?cmp<0:cmp>0;
+   }
+   private:
+     bool asc;
+};
+
+class ac{
+       public:
+         ac(AttrSmaller _comp):comp(_comp){}
+         bool operator()(const std::pair<Attribute*,AttributeIterator*>& a, 
+                    const std::pair<Attribute*, AttributeIterator*>& b){
+           return comp(a.first,b.first);
+       }
+       private:
+         AttrSmaller comp;
+};
+
+class OutAttrHeap{
+  public:
+
+   OutAttrHeap(
+          int _algId, int _typeId, ListExpr _ntype,
+          std::vector<AttributeFile*> _files, 
+          mmheap::mmheap<Attribute*, AttrSmaller>* h,
+          AttrSmaller _comp):
+       algId(_algId), typeId(_typeId), ntype(_ntype),
+       files(_files), h2(0), heap(h), comp(_comp), 
+       lastFromFile(0), 
+       lastFromHeap(0),nextRes(0){
+      init();
+   }
+
+   ~OutAttrHeap(){
+       // merge heaps into a single one
+       if(h2){
+         while(!h2->empty()){
+           std::pair<Attribute*, AttributeIterator*>m  = *h2->min();
+           h2->deleteMin();
+           m.first->DeleteIfAllowed();
+           delete m.second;
+         }
+         delete h2;
+       }
+       if(lastFromFile){
+           lastFromFile->DeleteIfAllowed();
+       }
+       if(lastFromHeap){
+          lastFromHeap->DeleteIfAllowed();
+       }
+       if(nextRes){
+          nextRes->DeleteIfAllowed();
+       }
+   }
+
+
+   inline Attribute* next(){
+     Attribute* res = nextRes;
+     retrieveNext();
+     return res;
+   }
+
+
+   private:
+       int algId;
+       int typeId;
+       ListExpr ntype;
+       std::vector<AttributeFile*> files;
+       mmheap::mmheap< std::pair<Attribute*, AttributeIterator*>, ac >* h2;
+       mmheap::mmheap<Attribute*, AttrSmaller>* heap;
+       AttrSmaller comp;
+       Attribute* lastFromFile;
+       Attribute* lastFromHeap;
+       Attribute* nextRes;
+
+       void init(){
+          if(files.size()>0){
+             h2 = new mmheap::mmheap<
+                      std::pair<Attribute*,AttributeIterator*>, ac>(comp);
+             for(size_t i=0;i<files.size(); i++){
+                AttributeIterator* it = files[i]->makeScan();
+                Attribute* first = it->next();
+                if(first){
+                   h2->insert(std::make_pair(first,it));
+                } else {
+                  delete it;
+                }
+             }
+          } else {
+            h2 = 0;
+          }
+          retrieveNextFromHeap();
+          if(!h2){
+                lastFromFile = 0;
+          } else {
+            retrieveNextFromFile();
+          }
+          retrieveNext();
+       }
+
+       void retrieveNext() {
+           if(!lastFromFile){
+              nextRes = lastFromHeap;
+              retrieveNextFromHeap();
+           } else if(!lastFromHeap){
+               nextRes = lastFromFile;
+               retrieveNextFromFile();
+           }  else {
+              if( comp(lastFromHeap, lastFromFile)){
+                nextRes = lastFromHeap;
+                retrieveNextFromHeap();
+              } else {
+               nextRes = lastFromFile;
+               retrieveNextFromFile();
+              }
+           }
+       }
+
+       void retrieveNextFromFile(){
+          if(h2->empty()){
+            lastFromFile=0;
+          } else {
+             std::pair<Attribute*,AttributeIterator*> m = *h2->min();
+             lastFromFile = m.first;
+             h2->deleteMin();
+             Attribute* n = m.second->next();
+             if(n){
+                 h2->insert(std::make_pair(n,m.second));
+             } else {
+                delete m.second;
+             }
+          }
+       }
+
+       void retrieveNextFromHeap(){
+          if(heap && !heap->empty()){
+            lastFromHeap = *heap->min();
+            heap->deleteMin();
+          } else {
+            lastFromHeap=0;
+          }
+       }
+};
+
+
+
+
+
+
+class SortAttr2HeapsInfo{
+
+  public:
+     SortAttr2HeapsInfo(Word _stream, bool _asc,
+                        ListExpr _resType, size_t _maxFiles,
+                        size_t _maxMem) : stream(_stream),
+                        comp(_asc), resType(_resType), maxMem(_maxMem),
+                        maxFiles(_maxFiles) 
+                        {
+         SecondoCatalog* ctlg = SecondoSystem::GetInstance()->GetCatalog();
+         std::string name;
+         ctlg->GetTypeId(resType, algId, typeId, name);
+         h1=0;
+         h2=0;
+         stage = 0;
+         outHeap = 0;
+         basicName = FileSystem::GetCurrentFolder();
+         FileSystem::AppendItem(basicName, "tmp");
+         FileSystem::AppendItem(basicName, "AF");
+         
+
+
+         //cout << "basicName = " << basicName << endl;
+         //cout << "maxGiles = " << maxFiles << endl;
+         //cout << "maxMem = " << maxMem << endl;
+         
+         sort();
+      }
+                        
+      Attribute* next(){
+        return outHeap->next();
+      }
+
+
+      ~SortAttr2HeapsInfo(){
+         if(h1){
+            delete h1;
+         }
+         if(h2){
+            delete h2;
+         }
+         if(outHeap){
+           delete outHeap;
+         }
+         for(size_t i=0; i<files.size();i++){
+            delete files[i];
+            files[i] = 0;
+         }
+      }
+
+  private:
+      Stream<Attribute> stream;
+      AttrSmaller comp;
+      ListExpr resType;
+      size_t maxMem;
+      size_t maxFiles;
+      std::vector<AttributeFile*> files;
+      int algId;
+      int typeId;
+      mmheap::mmheap<Attribute*, AttrSmaller>* h1;
+      mmheap::mmheap<Attribute*, AttrSmaller>* h2;
+      int stage;
+      OutAttrHeap*  outHeap;
+      std::string basicName;
+
+
+     void sort(){
+         partition();
+         //cout << "partition has created " << files.size() << " files" << endl;
+         //cout << "maxFiles = " << maxFiles << endl;
+
+         while( files.size() > maxFiles){
+             mergeFiles();
+         }
+
+         if(h2){
+             while(!h2->empty()){
+                Attribute* t = *h2->min();
+                h1->insert(t);
+                h2->deleteMin();
+             }
+            delete h2;
+            h2 = 0;
+         }  
+         outHeap = new  OutAttrHeap(algId, typeId, resType,files,h1,comp);
+     }
+
+
+     void partition(){
+        // distributes the incoming stream into a set of files
+        h1 = new mmheap::mmheap<Attribute*, AttrSmaller>(comp);    
+        h2 = new mmheap::mmheap<Attribute*, AttrSmaller>(comp);    
+    
+        size_t h1Mem = 0; // currentlic used memory in h1
+        Attribute* nextAttr;
+        stage = 1; // 1 means, all incoming attributes are inserted to h1
+                   // stage 2 -> filter writing
+
+        AttributeFile* currentFile = 0;
+        Attribute* lastWritten = 0;
+        size_t count = 0;
+        stream.open();
+        h1->startBulkload();
+
+        
+
+        while( (nextAttr = stream.request()) ){
+           count++;
+           if(stage == 1){
+               size_t tm = nextAttr->GetMemSize() + sizeof(void*);
+               if( h1Mem + tm <= maxMem ){
+                  h1->insert(nextAttr);
+                  h1Mem += tm;
+               } else {
+                  h1->insert(nextAttr);
+                  h1->endBulkload();
+                  nextAttr = *(h1->min());
+                  h1->deleteMin();
+                  if(currentFile){
+                     currentFile->close();
+                  }
+                  currentFile = getNewFile();
+
+                  files.push_back(currentFile);
+                  currentFile->append(nextAttr, true);
+                  if(lastWritten){
+                      lastWritten->DeleteIfAllowed();
+                  }
+                  lastWritten = nextAttr; 
+                  std::swap(h1,h2); 
+                  h1->startBulkload();        
+                  stage = 2;
+               }
+           } else {
+              if(comp(nextAttr, lastWritten)){
+                // next tuple is smaller, store for next stage
+                h1->insert(nextAttr);
+              } else {
+                // just filter trough heap
+                h2->insert(nextAttr);
+              }
+              if(h2->empty()){
+                 h1->endBulkload();
+                 std::swap(h1,h2);
+                 h1->startBulkload();
+                 if(currentFile){
+                    currentFile->close();
+                 }
+                 currentFile = getNewFile();
+                 files.push_back(currentFile);
+              } 
+              Attribute* min = *(h2->min());
+              h2->deleteMin();
+              currentFile->append(min, true);
+              if(lastWritten){
+                 lastWritten->DeleteIfAllowed();
+              }
+              lastWritten = min;
+           }
+        }
+        h1->endBulkload();
+        if(lastWritten){
+            lastWritten->DeleteIfAllowed();
+        }
+        stream.close();
+     }
+
+
+     AttributeFile* getNewFile(){
+         std::string pathName = FileSystem::MakeTemp(basicName);
+         return new AttributeFile(pathName,algId,typeId,resType, true);
+     }
+
+     void mergeFiles(){
+       std::vector<AttributeFile*> current;
+       size_t reqFiles = (files.size() - maxFiles) + 1;
+       size_t numFiles = std::min(maxFiles,reqFiles);
+       for(size_t i=0;i<numFiles;i++){
+          current.push_back(files[0]);
+          files.erase(files.begin());
+       }
+       AttributeFile* out = getNewFile();
+       files.push_back(out);
+       ac cmp(comp); 
+       OutAttrHeap oh(algId, typeId, resType, current,0,comp);
+       Attribute* nt = 0;
+       while( (nt = oh.next()) ){
+          out->append( nt, true);
+          nt->DeleteIfAllowed();
+       }
+       for(size_t i = 0; i< current.size();i++){
+          delete current[i];
+       }
+       out->close();
+     }
+
+};
+
+int sortattrVM(Word* args, Word& result, int message,
+          Word& local, Supplier s){
+
+  SortAttr2HeapsInfo* li = (SortAttr2HeapsInfo*) local.addr;
+
+  switch(message){
+    case OPEN : {
+        if(li){ delete li;};
+        size_t maxFiles = 200;  // maximum number of open files 
+        size_t maxMem = qp->GetMemorySize(s)*1024*1024;
+        CcBool* Ccasc = (CcBool*) args[1].addr;
+        bool asc = Ccasc->IsDefined()?Ccasc->GetValue():true;
+        // security factor
+        maxMem = (size_t) (0.8*maxMem);
+        if(maxMem<1024){
+          maxMem = 1024;
+        }
+        local.addr = new SortAttr2HeapsInfo(args[0], asc,
+                            nl->Second(qp->GetType(s)),
+                            maxFiles, maxMem);
         return 0;
     }
     case REQUEST: result.addr = li?li->next():0;
