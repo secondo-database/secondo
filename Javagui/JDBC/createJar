@@ -24,19 +24,19 @@ mv jdbc.jar secondoInterface/jdbc.jar
 
 cd JDBC
 cd LocalTest
-rm *.class
+rm -f *.class
 cd ../Utilities
-rm *.class
+rm -f *.class
 cd ../SecExceptions
-rm *.class
+rm -f *.class
 cd ../DriverSet
-rm *.class
+rm -f *.class
 cd ../communication
-rm *.class
+rm -f *.class
 cd ../SQL2Secondo
-rm *.class
+rm -f *.class
 rm ParsCommand.java
 rm ParsCommandSym.java
 rm ScanCommand.java
 cd ../Ext_Tools
-rm *.class
+rm -f *.class
