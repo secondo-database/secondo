@@ -288,6 +288,12 @@ Example  : query intstream(1,10) intstream(1,10) mergeattrstreams rdup count
 Result   : 10
 
 
+Operator : xth
+Number   : 1
+Signature : stream(T) x int -> T, T in DATA
+Example  : query intstream(1,10) xth[5]
+Result   : 5
+
 
 
 

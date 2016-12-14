@@ -5344,6 +5344,78 @@ Operator rdupOp(
 
 
 /*
+Operator xth
+
+*/
+
+ListExpr xthTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two args expected");
+  }
+  if(!Stream<Attribute>::checkType(nl->First(args))){
+    return listutils::typeError("first arg mut be astream of DATA");
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("second arg must be an int");
+  }
+  return nl->Second(nl->First(args));
+}
+
+
+int xthVM(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  Attribute* res = (Attribute*) result.addr;
+  CcInt* x = (CcInt*) args[1].addr;
+  if(!x->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  int a = x->GetValue();
+  if(a<1){
+    res->SetDefined(false);
+    return 0;
+  }
+  Stream<Attribute> stream(args[0]);
+  stream.open();
+  int i=1;
+  Attribute* r;
+  while( (r=stream.request())){
+     if(i==a){
+        res->CopyFrom(r);
+        r->DeleteIfAllowed();
+        stream.close();
+        return 0;
+     }
+     r->DeleteIfAllowed();
+     i++;
+  }
+  stream.close();
+  res->SetDefined(false);
+  return 0;
+}
+
+
+OperatorSpec xthSpec(
+   "stream(D) x int -> D, D in DATA",
+   " _ xth[_] ",
+   "Extract the x-th attribute form a stream. "
+   "If this attribute does not exist, the result is undefined",
+   " query intstream(1,10) xth[6] "
+);
+
+Operator xthOp(
+   "xth",
+   xthSpec.getStr(),
+   xthVM,
+   Operator::SimpleSelect,
+   xthTM
+
+);
+
+
+/*
 7 Creating the Algebra
 
 */
@@ -5383,6 +5455,7 @@ public:
     AddOperator(&mergeunionOp);
     AddOperator(&mergeOp);
     AddOperator(&rdupOp);
+    AddOperator(&xthOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();

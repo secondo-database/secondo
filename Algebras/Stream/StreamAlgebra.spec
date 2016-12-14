@@ -46,7 +46,7 @@ operator mergediff alias MERGEDIFF pattern _ _ op
 operator mergeunion alias MERGEUNION pattern _ _ op
 operator mergeattrstreams alias MERGEATTRSTREAMS pattern _ _ op
 operator rdup alias RDUP pattern _ op
-
+operator xth alias XTH pattern _ op[_]
 
 
 
