@@ -5551,6 +5551,10 @@ class nthInfo{
         return res;
      }
 
+     int getN() const{
+        return n;
+     }
+
   private:
     Stream<Attribute> stream;
     int n;
@@ -5585,12 +5589,31 @@ int nthVM(Word* args, Word& result,
          return result.addr?YIELD:CANCEL;
       }
       case CLOSE : {
-          if(li){
-            delete li;
-            local.addr = 0;
-          }
           return 0;
       }
+
+
+      case REQUESTPROGRESS: {
+        ProgressInfo p1;
+        ProgressInfo* pRes; 
+            
+        pRes = (ProgressInfo*) result.addr;
+        if (qp-> RequestProgress(args[0].addr, &p1) ) {   
+          pRes->Copy(p1);     
+          int n = li?li->getN():1; 
+          pRes->Card = p1.Card/n;
+          return YIELD;
+        } else {
+          return CANCEL;
+        }
+     }
+
+     case CLOSEPROGRESS:
+      if(li){
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
 
     }
     return -1;
@@ -5798,6 +5821,7 @@ public:
     streamfeed.EnableProgress();
     streamfilter.EnableProgress();
     timeout.EnableProgress();
+    nthOp.EnableProgress();
 #endif
   }
 
