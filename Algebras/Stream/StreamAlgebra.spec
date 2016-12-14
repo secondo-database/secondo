@@ -54,4 +54,4 @@ operator nth alias NTH pattern _ op[_,_]
 
 operator sumattr alias SUMATTR pattern _ op
 operator avgattr alias AVGATTR pattern _ op
-
+operator consume alias CONSUME pattern _ op

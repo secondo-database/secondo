@@ -325,7 +325,11 @@ Signature : stream(T) -> real, T in {int, real, longint}
 Example   : query intstream(1,10) avgattr
 Result    : 5.5
 
-
+Operator  : consume
+Number    : 1
+Signature : stream(T) -> rel(tuple((Elem T))), T in DATA \ {arel}
+Example   : query intstream(1,10) consume count
+Result    : 10
 
 
 

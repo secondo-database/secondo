@@ -5763,6 +5763,78 @@ Operator sumattrOp(
    sumTM
 );
 
+/*
+7.21 ~consume~ for  attribute streams
+
+*/
+
+ListExpr consumeTM(ListExpr args){
+
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one arg expected");
+  }
+  ListExpr a = nl->First(args);
+  if(!Stream<Attribute>::checkType(a)){
+    return listutils::typeError("expected attribute stream");
+  }
+  ListExpr at = nl->Second(a);
+  if(listutils::isSymbol(at,"arel")){
+   return listutils::typeError("attribute relations are not supported");
+  }
+  ListExpr attrList = nl->OneElemList(
+                           nl->TwoElemList( nl->SymbolAtom("Elem"), at));
+  ListExpr res = nl->TwoElemList(
+               listutils::basicSymbol<Relation>(),
+               nl->TwoElemList(
+                    listutils::basicSymbol<Tuple>(),
+                    attrList));
+  cout << "result is" << endl;
+  if(Relation::checkType(res)){
+     cout << "Correct" << endl;
+  } else {
+     cout << "incorrect" << endl;
+  }
+  return res;
+}
+
+
+int consumeVM(Word* args, Word& result,
+              int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  GenericRelation* res = (GenericRelation*) result.addr;
+  Stream<Attribute> stream(args[0]);
+  ListExpr tupleType = nl->Second(SecondoSystem::GetCatalog()->NumericType( 
+                          qp->GetType(s)));
+  TupleType* tt = new TupleType(tupleType);
+  Attribute* a;
+  stream.open();
+  while((a=stream.request())){
+     Tuple* tuple = new Tuple(tt);
+     tuple->PutAttribute(0,a);
+     res->AppendTuple(tuple);
+     tuple->DeleteIfAllowed();
+  }
+  stream.close();
+  tt->DeleteIfAllowed();
+  return 0;
+}
+
+OperatorSpec consumeSpec(
+  "stream(D) -> rel(tuple((Elem D))), D in DATA",
+  " _ consume",
+  "Collects an attribute stream into a relation.",
+  "query intstream(1,10) consume"
+);
+
+Operator consumeOp(
+  "consume",
+  consumeSpec.getStr(),
+  consumeVM,
+  Operator::SimpleSelect,
+  consumeTM
+);
+
 
 
 
@@ -5813,6 +5885,7 @@ public:
     AddOperator(&nthOp);
     AddOperator(&avgattrOp);
     AddOperator(&sumattrOp);
+    AddOperator(&consumeOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();
