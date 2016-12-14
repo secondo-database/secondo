@@ -52,5 +52,6 @@ operator maxattr alias MAXATTR pattern _ op
 
 operator nth alias NTH pattern _ op[_,_]
 
-
+operator sumattr alias SUMATTR pattern _ op
+operator avgattr alias AVGATTR pattern _ op
 

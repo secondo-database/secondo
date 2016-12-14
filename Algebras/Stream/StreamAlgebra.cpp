@@ -121,6 +121,8 @@ This file contains the implementation of the stream operators.
 #include <vector>
 #include <fstream>
 #include <time.h>
+#include <errno.h>
+
 
 
 #include "CostEstimation.h"
@@ -137,6 +139,7 @@ This file contains the implementation of the stream operators.
 #include "Progress.h"
 #include "AlmostEqual.h"
 #include "Stream.h"
+#include "LongInt.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -5613,6 +5616,135 @@ Operator nthOp(
 
 
 /*
+
+8.12 Operators sum and avg
+
+*/
+ListExpr sumTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("1 arg expected");
+  }
+  ListExpr a = nl->First(args);
+  if(   !Stream<CcInt>::checkType(a)
+     && !Stream<LongInt>::checkType(a)
+     && !Stream<CcReal>::checkType(a)){
+    return listutils::typeError("stream(T) expected, T in {int,longint,real}");
+  }
+  return nl->Second(a);
+}
+
+ListExpr avgTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("1 arg expected");
+  }
+  ListExpr a = nl->First(args);
+  if(   !Stream<CcInt>::checkType(a)
+     && !Stream<LongInt>::checkType(a)
+     && !Stream<CcReal>::checkType(a)){
+    return listutils::typeError("stream(T) expected, T in {int,longint,real}");
+  }
+  return listutils::basicSymbol<CcReal>();
+}
+
+
+template<class C, bool avg>
+int sumavgVMT(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+ 
+   typename C::ctype sum = 0;
+   Stream<C> stream(args[0]);
+   C* v;
+   stream.open();
+   errno=0;
+   int count=0;
+   while( (v=stream.request())){
+     if(v->IsDefined()){
+        typename C::ctype val = v->GetValue();
+        sum = sum + val;
+        if(errno!=0){ // overflow detected
+           ((Attribute*) result.addr)->SetDefined(false);
+           stream.close();
+           return 0;
+        }
+        count++;
+     } // ignore undefined values ??
+     v->DeleteIfAllowed();
+   }
+   stream.close();
+   if(avg){
+     if(count>0){
+        ((CcReal*)result.addr)->Set(true, (double)sum/count);
+     }else {
+        ((CcReal*)result.addr)->Set(false,0);
+     }
+   } else {
+      ((C*)result.addr)->Set(true,sum);
+   }
+   return 0;
+}
+
+
+ValueMapping avgVM[] = {
+  sumavgVMT<CcInt,true>,
+  sumavgVMT<CcReal,true>,
+  sumavgVMT<LongInt,true>
+};
+
+ValueMapping sumVM[] = {
+  sumavgVMT<CcInt,false>,
+  sumavgVMT<CcReal,false>,
+  sumavgVMT<LongInt,false>
+};
+
+OperatorSpec avgSpec(
+  "stream(T) -> T, T in {int,real,longing}",
+  " _ avgattr",
+  "computes the average of a numeric attribute stream "
+  "ignoring undefined values.",
+  "query intstream(1,10) avgattr"
+);
+
+OperatorSpec sumSpec(
+  "stream(T) -> T, T in {int,real,longing}",
+  " _ sumattr",
+  "computes the sum of a numeric attribute stream "
+  "ignoring undefined values.",
+  "query intstream(1,10) sumattr"
+);
+
+int avgsumSelect(ListExpr args){
+  ListExpr a = nl->Second(nl->First(args));
+  if(CcInt::checkType(a)) return 0;
+  if(CcReal::checkType(a)) return 1;
+  if(LongInt::checkType(a)) return 2;
+  return -1;
+}
+
+Operator avgattrOp(
+  "avgattr",
+   avgSpec.getStr(),
+   3,
+   avgVM,
+   avgsumSelect,
+   avgTM
+);
+
+Operator sumattrOp(
+  "sumattr",
+   sumSpec.getStr(),
+   3,
+   sumVM,
+   avgsumSelect,
+   sumTM
+);
+
+
+
+
+
+/*
 7 Creating the Algebra
 
 */
@@ -5656,6 +5788,8 @@ public:
     AddOperator(&minattrOp);
     AddOperator(&maxattrOp);
     AddOperator(&nthOp);
+    AddOperator(&avgattrOp);
+    AddOperator(&sumattrOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();

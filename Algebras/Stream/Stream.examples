@@ -312,7 +312,18 @@ Signature: stream(T) x int x bool -> stream(T), T in DATA
 Example  : query intstream(1,20) nth[2,TRUE] count
 Result   : 10
 
+Operator  : sumattr
+Number    : 1
+Signature :  stream(T) -> T, T in {int, real, longint}
+Example   : query intstream(1,10) sumattr
+Result    : 55
 
+
+Operator  : avgattr
+Number    : 1
+Signature : stream(T) -> real, T in {int, real, longint}
+Example   : query intstream(1,10) avgattr
+Result    : 5.5
 
 
 
