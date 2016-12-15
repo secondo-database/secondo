@@ -1347,12 +1347,14 @@ Melt lists of Cluster at one side Cluster. So all  list
 which are stored in the meltingSideArray Index where melted.
 
 */
-   void meltClusterLists(Cluster *meltingCluster,
-                   std::vector<std::pair<unsigned int,Kind> > *meltingSideArray,
-                   std::vector<unsigned int> minToMaxIndexes,
-                   std::vector<std::pair<unsigned int,Kind> > * indexArray,
-                   std::vector<std::pair<unsigned int,Kind> >& newIndices, 
-                   unsigned int bothDist)
+   void meltClusterLists(
+        Cluster *meltingCluster,
+        std::vector<std::vector<std::pair<unsigned int,Kind> > >&
+         meltingSideArray,
+        std::vector<unsigned int> minToMaxIndexes,
+        std::vector<std::vector<std::pair<unsigned int,Kind> > >& indexArray,
+        std::vector<std::pair<unsigned int,Kind> >& newIndices, 
+        unsigned int bothDist)
    {
      //if kind is both then meltClusterCandListWithClusterList[bothDist + i]
      std::vector<unsigned int>::iterator leftIt = minToMaxIndexes.end();
@@ -1387,14 +1389,15 @@ which are stored in the meltingSideArray Index where melted.
 Melt given cluster list and they respective indexes.
 
 */
-   void meltListsAndIndexOfCluster(Cluster* meltingCluster,
-                                   std::vector<std::pair<unsigned int,Kind> >*
-                                   indexArray,
-                                   std::pair<unsigned int,Kind>& destIndex,
-                                   std::pair<unsigned int,Kind>& srcIndex,
-                                   std::vector<std::pair<unsigned int,Kind> >& 
-                                   newIndices,
-                                   unsigned int& bothDist) 
+   void meltListsAndIndexOfCluster(
+           Cluster* meltingCluster,
+           std::vector<std::vector<std::pair<unsigned int,Kind> > >&
+           indexArray,
+           std::pair<unsigned int,Kind>& destIndex,
+           std::pair<unsigned int,Kind>& srcIndex,
+           std::vector<std::pair<unsigned int,Kind> >& 
+           newIndices,
+           unsigned int& bothDist) 
    {
      //find out correct index
      int destInd, srcInd;
@@ -1572,19 +1575,20 @@ melt the lists
 melt foundet reachabel clusterCands with cluster lists
 
 */
-   void meltClsuterCandWithClusterList(Cluster* rightCluster,
-                            std::vector< clusterCandMelt>* clusterCandIndex,
-                            unsigned int indexSize,
-                            std::vector<std::pair<unsigned int,Kind> > *
-                            clusterToMeltOnRightForLeftSide,
-                            std::vector<std::pair<unsigned int,Kind> >&
-                            newLeftIndices,
-                            int bothDistLeft,
-                            std::vector<std::pair<unsigned int,Kind> > *
-                            clusterToMeltOnLeftForRightSide,
-                            std::vector<std::pair<unsigned int,Kind> >&
-                            newRightIndices,
-                            int bothDistRight)
+   void meltClsuterCandWithClusterList(
+           Cluster* rightCluster,
+           std::vector<std::vector< clusterCandMelt> >& clusterCandIndex,
+           unsigned int indexSize,
+           std::vector<std::vector<std::pair<unsigned int,Kind> > >&
+           clusterToMeltOnRightForLeftSide,
+           std::vector<std::pair<unsigned int,Kind> >&
+           newLeftIndices,
+           int bothDistLeft,
+           std::vector<std::vector<std::pair<unsigned int,Kind> > >&
+           clusterToMeltOnLeftForRightSide,
+           std::vector<std::pair<unsigned int,Kind> >&
+           newRightIndices,
+           int bothDistRight)
    {
      
      for(unsigned int i = 0; i< indexSize; i++){
@@ -1734,11 +1738,11 @@ Melt all cluster list which are not melted yet.
 */
    void updateMeltedCluster(Cluster * rightCluster,
                   std::vector<clusterCandMelt>& clCaMeltInd,
-                  std::vector<std::pair<unsigned int,Kind> >*
+                  std::vector<std::vector<std::pair<unsigned int,Kind> > >&
                   clusterToMeltOnRightForLeftSide,
                   int bothDistLeft,
                   std::vector<std::pair<unsigned int,Kind> >& newLeftIndices,
-                  std::vector<std::pair<unsigned int,Kind> >*
+                  std::vector<std::vector<std::pair<unsigned int,Kind> > >&
                   clusterToMeltOnLeftForRightSide,
                   int bothDistRight,
                   std::vector<std::pair<unsigned int,Kind> >& newRightIndices)
@@ -1759,9 +1763,9 @@ Melt all cluster list which are not melted yet.
          membIt++;
        }
 
-     typename std::vector< clusterCandMelt>::iterator
-     rightIt = rightMembers.begin(),
-     leftIt = leftMembers.begin();
+     //typename std::vector< clusterCandMelt>::iterator
+     //rightIt = rightMembers.begin();
+     //leftIt = leftMembers.begin();
      if(rightMembers.size()>0)
        {
          meltClusterCandClusterWithList(rightCluster,
@@ -1789,12 +1793,13 @@ Compare a clusterCand member list if the indexes have the same
 last index. If the result is true then the lists are melted
 
 */
-   bool meltClusterCandClusterWithList(Cluster* meltingCluster,
-                       std::vector<clusterCandMelt>& members,
-                       std::vector<std::pair<unsigned int,Kind> >& srcIndices,
-                       std::vector<std::pair<unsigned int,Kind> > * indexArray,
-                       std::vector<std::pair<unsigned int,Kind> >& meltIndices,
-                       unsigned int bothDist
+   bool meltClusterCandClusterWithList(
+          Cluster* meltingCluster,
+          std::vector<clusterCandMelt>& members,
+          std::vector<std::pair<unsigned int,Kind> >& srcIndices,
+          std::vector<std::vector<std::pair<unsigned int,Kind> > >& indexArray,
+          std::vector<std::pair<unsigned int,Kind> >& meltIndices,
+          unsigned int bothDist
    )
    {
 
@@ -1942,7 +1947,7 @@ indexes if the lists could be melt.
                                std::list<MEMB_TYP_CLASS*>& compList,
                                Kind compKind, int compIndex,
                                int bothIndOffset,
-                               std::vector< clusterCandMelt>* 
+                               std::vector<std::vector< clusterCandMelt> >&
                                clCandMelt)
    {
      typename std::list<MEMB_TYP_CLASS*>::iterator
@@ -1972,9 +1977,10 @@ indexes if the lists could be melt.
 similar to insertIndexToClusterToMelt
 
 */
-   void insertIndexToClusterCandToMelt (int minIndex,
-                          clusterCandMelt& newItem,
-                          std::vector< clusterCandMelt>* clCandMelt)
+   void insertIndexToClusterCandToMelt (
+        int minIndex,
+        clusterCandMelt& newItem,
+        std::vector<std::vector< clusterCandMelt> >& clCandMelt)
    {
      bool found = false;
 
@@ -2886,12 +2892,13 @@ If cluster to melt found, this mehthod insert the correct index
 to clusterCandToMelt indexes.
  
 */
-   void insertIndexToClusterToMelt(int minIndex,
-                                   int insertInd,
-                                   Kind kind,
-                                   std::vector<std::pair<unsigned int,Kind> >* 
-                                   clusterCandToMelt,
-                                   std::vector<unsigned int >& minToMaxIndexes)
+   void insertIndexToClusterToMelt(
+       int minIndex,
+       int insertInd,
+       Kind kind,
+       std::vector<std::vector<std::pair<unsigned int,Kind> > >& 
+       clusterCandToMelt,
+       std::vector<unsigned int >& minToMaxIndexes)
    {
      std::pair<unsigned int,Kind> newItem= std::make_pair(insertInd,kind);
 
@@ -3050,9 +3057,9 @@ checks if a member is in y borders of other lsit
      if(val >= border.first && val <= border.second)
        return true;
      // 2. point is above border
-     if( abs(val - border.second) <= eps ||
+     if( fabs(val - border.second) <= eps ||
          // 3. point is under borders
-         abs(border.first - val) <= eps)
+         fabs(border.first - val) <= eps)
        return true;
      return false;
    }
@@ -3377,8 +3384,8 @@ meltClusters(Cluster * rightCluster,
   getVectorSize(BOTH);
   unsigned int bothDistLeft = getVectorSize(RIGHT);
   //right side who should melted together.
-  std::vector<std::pair<unsigned int,Kind> >
-  clusterToMeltOnRightForLeftSide[leftIndexSize];
+  std::vector<std::vector<std::pair<unsigned int,Kind> > >
+  clusterToMeltOnRightForLeftSide(leftIndexSize);
   //save order of indexes from min to max
   std::vector<unsigned int > minToMaxIndexesLeft;
   //save new indices
@@ -3392,8 +3399,8 @@ meltClusters(Cluster * rightCluster,
   rightCluster->getVectorSize(BOTH);
   unsigned int bothDistRight = rightCluster->getVectorSize(LEFT);
   //left side who should melted toghether
-  std::vector<std::pair<unsigned int,Kind> >
-  clusterToMeltOnLeftForRightSide[rightIndexSize];
+  std::vector<std::vector<std::pair<unsigned int,Kind> > >
+  clusterToMeltOnLeftForRightSide(rightIndexSize);
   //save order of indexes from min to max
   std::vector<unsigned int > minToMaxIndexesRight;
   //save new indices
@@ -3403,16 +3410,16 @@ meltClusters(Cluster * rightCluster,
   
   // ***CLUSTERCAND indices **********************************************
   // save indexes for clusterCand
-  std::vector< clusterCandMelt>
-  clusterCandClustersToMeltWithClNo[clusterCandClusters.size()];
+  std::vector<std::vector< clusterCandMelt> >
+  clusterCandClustersToMeltWithClNo(clusterCandClusters.size());
   //lists for single cluster cands -> index is ClusterNo 
   //  -> save Member Pointer and ClusterKind
   unsigned int leftClCSize = getListLength(0,CLUSTERCAND);
-  std::vector< clusterCandMelt>
-  leftClusterCandMemberToMeltWithRClNo[leftClCSize];
+  std::vector<std::vector< clusterCandMelt> >
+  leftClusterCandMemberToMeltWithRClNo(leftClCSize);
   unsigned int rightClCSize = rightCluster->getListLength(0,CLUSTERCAND);
-  std::vector< clusterCandMelt>
-  rightClusterCandMemberToMeltWithLClNo[rightClCSize];
+  std::vector<std::vector< clusterCandMelt> >
+  rightClusterCandMemberToMeltWithLClNo(rightClCSize);
   
   //**********************************************************************
   
@@ -4249,7 +4256,7 @@ meltListsOfCluster(std::pair<unsigned int,Kind>& destinationList,
   getNewMinMaxForClusterList(getMinMaxFromCluster(srcKind,sourceInd),
                              getMinMaxFromCluster(destKind,destInd));
   
-  std::pair <double,double> initMM(MAX_DOUBLE,MIN_DOUBLE);
+  //std::pair <double,double> initMM(MAX_DOUBLE,MIN_DOUBLE);
   typename std::vector<std::list<MEMB_TYP_CLASS*> >::iterator
   clusterIt =getClusterVector(destKind).begin()+(destInd);
   typename std::vector<std::pair<double,double> >::iterator
