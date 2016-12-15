@@ -56,6 +56,7 @@ This file contains the implementation of the distributedClustering Algebra
 #include "FTextAlgebra.h"
 #include "DistSampleSort.h"
 #include "BinRelWriteRead.h"
+#include "Member.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

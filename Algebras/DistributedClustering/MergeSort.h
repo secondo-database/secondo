@@ -53,7 +53,7 @@ This is a implentation for merge sort.
     
     */
    template <class TYPE,class MEMB_TYP_CLASS>
-   void mergeSort(vector<MEMB_TYP_CLASS*>& array,int left, int right){
+   void mergeSort(std::vector<MEMB_TYP_CLASS*>& array,int left, int right){
      
      if(right == left+1)
        return ; //mergeSort finisch

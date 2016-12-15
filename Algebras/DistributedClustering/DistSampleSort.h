@@ -59,6 +59,7 @@ data into groups.
 #include "FTextAlgebra.h"
 #include "Member.h"
 #include <limits>
+#include <limits.h>
 #include "MergeSort.h"
 
 #ifndef SISTRIBUTEDSORT_H
@@ -167,8 +168,8 @@ Requires the call of initOutput before.
     TupleBuffer* buffer, *sampBuff;
     GenericRelationIterator* resIt;  // iterator 
     TupleType* tt;   // the result tuple type
-    vector <MEMB_TYP_CLASS*> sampleArray;
-    vector <double> border;
+    std::vector <MEMB_TYP_CLASS*> sampleArray;
+    std::vector <double> border;
     //for Picture
     TYPE *xRefPic, *yRefPic;
     double maxDist;
@@ -252,7 +253,7 @@ a vector.
       if(findPictureCoordRefs)
       {
         //search maxDist
-        for (int i = 1; i < sampleArray.size()-1;i++)
+        for (size_t i = 1; i < sampleArray.size()-1;i++)
         {
           if( sampleArray.at(i)->calcDistanz(yRefPic) > maxDist)
           {
@@ -261,7 +262,7 @@ a vector.
           }
         }
         //set coordinates to each member
-        for (int i = 0; i < sampleArray.size();i++)
+        for (size_t i = 0; i < sampleArray.size();i++)
         {
           sampleArray.at(i)->setCoordinates(xRefPic,yRefPic);
         }
@@ -308,11 +309,11 @@ Starts the begin of returning tuples.
       
       //make bordervektor
       border.clear();
-      border.push_back(numeric_limits<double>::max());
+      border.push_back(std::numeric_limits<double>::max());
       for(int i = 1; i < cntWorkers; i++){
         border.push_back(sampleArray.at(b(i))->getXVal());
       }
-      border.push_back(-1 * numeric_limits<double>::max());
+      border.push_back(-1 * std::numeric_limits<double>::max());
     }
 
 /*

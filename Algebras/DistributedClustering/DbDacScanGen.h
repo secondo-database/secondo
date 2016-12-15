@@ -46,7 +46,8 @@ Member Class and TYPE, the Secondo Type.
  #include "RelationAlgebra.h"
  #include "StandardTypes.h"
  #include "Stream.h"
- #include "Cluster.cpp"
+ #include "Cluster.h"
+ #include "Member.h"
  #include <utility>
  #include "SecondoCatalog.h"
  #include "LongInt.h"
@@ -59,8 +60,8 @@ Member Class and TYPE, the Secondo Type.
  
  namespace distributedClustering{
    
-   const static string NEIGH_REL_MEMBER_ID = "MemberId";
-   const static string NEIGH_REL_NEIGHBOR_ID = "NeighborId";
+   const static std::string NEIGH_REL_MEMBER_ID = "MemberId";
+   const static std::string NEIGH_REL_NEIGHBOR_ID = "NeighborId";
    
    template <class MEMB_TYP_CLASS, class TYPE>
    class DbDacScanGen{
@@ -71,14 +72,14 @@ Member Class and TYPE, the Secondo Type.
 */
      int minPts, geoPos, clIdPos,clTypePos,xPicRefPos;
      double eps;
-     string outRelFileName, outNFileName;
+     std::string outRelFileName, outNFileName;
      bool meltTwoClusters,relNameFound, clusterProcessed,appendPictureRefs;
      TupleBuffer* buffer;
      GenericRelationIterator* resIt;  // iterator 
      TupleType* tt ,*neighborType;   // the result tuple type 
-     ofstream outRel, outNRel;
-     vector <MEMB_TYP_CLASS*> membArrayUntouched,membArrayUntouchedSec;
-     vector <MEMB_TYP_CLASS*> membArrayPtr, membArrayPtrSec;
+     std::ofstream outRel, outNRel;
+     std::vector <MEMB_TYP_CLASS*> membArrayUntouched,membArrayUntouchedSec;
+     std::vector <MEMB_TYP_CLASS*> membArrayPtr, membArrayPtrSec;
      Cluster<MEMB_TYP_CLASS, TYPE>* leftCluster,*rightCluster;
      
      SecondoCatalog* sc;
@@ -98,7 +99,7 @@ This constructor is for execute the DBDACSCAN algorithm.
 
 */ 
      DbDacScanGen(Word &_inStream,  ListExpr &_tupleResultType, 
-                  string& _relName, double _eps, 
+                  std::string& _relName, double _eps, 
                   int _minPts, int _attrPos,
                   int _xPicRefPos, bool _appendPictureRefs, size_t _maxMem): 
                   minPts(_minPts), geoPos(_attrPos),
@@ -138,13 +139,13 @@ This constructor is for execute the DBDACSCAN algorithm.
 This constructor is for execute the Melt CLUSTERS algorithm.
 
 */
-      DbDacScanGen(const string&  _leftFN, const string& _leftNFN,
-                  const string&  _rightFN, const string&  _rightNFN,
+      DbDacScanGen(const std::string&  _leftFN, const std::string& _leftNFN,
+                  const std::string&  _rightFN, const std::string&  _rightNFN,
                   const int _geoPos, const int _clIdPos, const int _clTypePos,
                    int _xPicRefPos,
                   const size_t _maxMem, ListExpr &_tupleResultType, 
-                  ListExpr& _relFt, const string& _outRelName , 
-                  string& _outNName, double _eps,int _minPts):
+                  ListExpr& _relFt, const std::string& _outRelName , 
+                  std::string& _outNName, double _eps,int _minPts):
                   minPts(_minPts),geoPos(_geoPos),clIdPos(_clIdPos),
                   clTypePos(_clTypePos) ,xPicRefPos(_xPicRefPos), eps(_eps)
                   ,outRelFileName(_outRelName),outNFileName(_outNName)
@@ -158,7 +159,7 @@ This constructor is for execute the Melt CLUSTERS algorithm.
       bool readFileCorrect = true;
       bool readSecFileCorrect = true;
       buffer = new TupleBuffer(_maxMem);
-      string errMsg;
+      std::string errMsg;
       
       //read left rel and nrel file
       if(!readFile<TYPE,MEMB_TYP_CLASS>( _leftFN, _tupleResultType
@@ -377,7 +378,7 @@ Auxiliary function to put attribute into result Tuple.
 
 */
      void putAttribute(Tuple* resTuple,int noAttr, TupleId& id,
-                       vector <MEMB_TYP_CLASS*>& array)
+                       std::vector <MEMB_TYP_CLASS*>& array)
      {
        if(appendPictureRefs){
          resTuple->PutAttribute(noAttr, 
@@ -422,7 +423,7 @@ write tuples to file
       if(meltTwoClusters){
       //write RelFile
       if(!writeNextTuple(outRel,resTuple)){
-        cerr << "Problem in writing tuple" << std::endl;
+        std::cerr << "Problem in writing tuple" << std::endl;
       }
       }
       //write NRelFile
@@ -442,14 +443,14 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
     { 
    
       
-      typename list<MEMB_TYP_CLASS*>::iterator nIt = 
+      typename std::list<MEMB_TYP_CLASS*>::iterator nIt = 
       member->getEpsNeighborhood(true);
       while(nIt !=  member->getEpsNeighborhood(false))
       {
         neighborTuple->PutAttribute(0, new LongInt(true,member->getTupleId())); 
         neighborTuple->PutAttribute(1, new LongInt(true,(*nIt)->getTupleId())); 
         if(!writeNextTuple(outNRel,neighborTuple)){
-          cerr << "Problem in writing tuple" << std::endl;
+          std::cerr << "Problem in writing tuple" << std::endl;
         }
         
         nIt++;
@@ -464,8 +465,8 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
  
 */
     void init(Word& _stream, 
-              vector <MEMB_TYP_CLASS*>& membArray, 
-              vector <MEMB_TYP_CLASS*>& membArrayUnt
+              std::vector <MEMB_TYP_CLASS*>& membArray, 
+              std::vector <MEMB_TYP_CLASS*>& membArrayUnt
     )
     {
       Tuple* tuple;
@@ -532,7 +533,7 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
       if(findPictureCoordRefs)
       {
         //search maxDist
-        for (int i = 1; i < membArray.size()-1;i++)
+        for (size_t i = 1; i < membArray.size()-1;i++)
         {
           if( membArray.at(i)->calcDistanz(yRefPic) > maxDist)
           {
@@ -541,7 +542,7 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
           }
         }
         //set coordinates to each member
-        for (int i = 0; i < membArray.size();i++)
+        for (size_t i = 0; i < membArray.size();i++)
         {
           membArray.at(i)->setCoordinates(xRefPic,yRefPic);
         }
@@ -558,7 +559,7 @@ void writeNeighborFileTuples(MEMB_TYP_CLASS* member)
 */
 bool createOutputFiles(ListExpr& _relFt, bool both=true)
     {
-      string errMsg;
+      std::string errMsg;
       if(both){
         relTupleTypeInfo = _relFt;
         relTypeInfo = nl->TwoElemList( listutils::basicSymbol<Relation>(),
@@ -566,7 +567,7 @@ bool createOutputFiles(ListExpr& _relFt, bool both=true)
         //create output relation file
         if(!writeHeader(outRel,outRelFileName,relTypeInfo,errMsg))
         {
-          cerr << errMsg << std::endl;
+          std::cerr << errMsg << std::endl;
           return false;
         }
       }
@@ -579,7 +580,7 @@ bool createOutputFiles(ListExpr& _relFt, bool both=true)
      //create output neighbor relation file
      if(!writeHeader(outNRel, outNFileName,neighborTypeInfo,errMsg))
      {
-       cerr << "writeHeader not Successfully: " << errMsg << std::endl;
+       std::cerr << "writeHeader not Successfully: " << errMsg << std::endl;
        return false;
      }
      return true;
@@ -609,7 +610,7 @@ Execute the DBDACSCAN algorithm.
  
 */
 Cluster<MEMB_TYP_CLASS, TYPE>* 
-dbDacScan(vector<MEMB_TYP_CLASS*>& _membArray, int left , int right , 
+dbDacScan(std::vector<MEMB_TYP_CLASS*>& _membArray, int left , int right , 
           double eps, int minPts)
 {
   if(right==left){//Array contains only one element

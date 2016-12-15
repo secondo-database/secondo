@@ -55,6 +55,9 @@ and write files.
 #include "Algebra.h"
 #include "FTextAlgebra.h"
 #include "FileSystem.h"
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_guard.hpp>
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -78,7 +81,7 @@ boost::mutex copylistmutex;
 
 #define FILE_BUFFER_SIZE 1048576
   
-  bool checkFile(ListExpr& argwt,  ListExpr& relType, string& errMsg)
+  bool checkFile(ListExpr& argwt,  ListExpr& relType, std::string& errMsg)
   {
     ListExpr arg = nl->First(argwt);
     if(!FText::checkType(arg))
@@ -89,8 +92,8 @@ boost::mutex copylistmutex;
     
     ListExpr query = nl->Second(argwt);
     Word queryResult;
-    string typeString = "";
-    string errorString = "";
+    std::string typeString = "";
+    std::string errorString = "";
     bool correct;
     bool evaluable;
     bool defined;
@@ -103,7 +106,7 @@ boost::mutex copylistmutex;
       errorString + ")";
       return false;
     }
-    string filename;
+    std::string filename;
       FText* res = (FText*) queryResult.addr;
       if(!res->IsDefined()){
         res->DeleteIfAllowed();
@@ -115,7 +118,7 @@ boost::mutex copylistmutex;
       }
     
     // access file for extracting the type 
-    ifstream in(filename.c_str(), ios::in | ios::binary);
+    std::ifstream in(filename.c_str(), std::ios::in | std::ios::binary);
     if(!in.good()){
       errMsg = "could not open file " + filename;
       return false;
@@ -128,7 +131,7 @@ boost::mutex copylistmutex;
       + filename;
       return false;
     }
-    string m(marker,4);
+    std::string m(marker,4);
     
     if(m!="srel"){
       in.close();
@@ -145,7 +148,7 @@ boost::mutex copylistmutex;
       return false;
     }  
     
-    string typeS(buffer, typeLength);
+    std::string typeS(buffer, typeLength);
     delete [] buffer;
     
     {
@@ -177,10 +180,10 @@ The Method is written for all Operators of distributedClustering Algebra
 enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
 
   template <class TYPE,class MEMB_TYP_CLASS>
-  bool readFile(const string& filename, const ListExpr& _tt
-  , string& errMsg 
-  ,vector <MEMB_TYP_CLASS*>& membArray
-  ,vector <MEMB_TYP_CLASS*>& membArrayUnt
+  bool readFile(const std::string& filename, const ListExpr& _tt
+  , std::string& errMsg 
+  ,std::vector <MEMB_TYP_CLASS*>& membArray
+  ,std::vector <MEMB_TYP_CLASS*>& membArrayUnt
   ,TupleBuffer* tupleBuffer, int geoPos, int xPicRefPos
   ,OpType optype
   ,int clIdPos = 0, int clTypePos = 0
@@ -195,13 +198,13 @@ enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
     
     TupleType* tt = new TupleType(_tt);
     char* inBuffer = new char[FILE_BUFFER_SIZE];
-    ifstream in(filename.c_str(), ios::in | ios::binary);
+    std::ifstream in(filename.c_str(), std::ios::in | std::ios::binary);
     bool ok = in.good();
     if(ok){//read Header -> TupleType of File
       in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
       char marker[4];
       in.read(marker,4);
-      string ms(marker,4);
+      std::string ms(marker,4);
       if(ms!="srel"){
         ok = false;
         errMsg = "Type is not srel" ;
@@ -211,7 +214,7 @@ enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
       in.read((char*) &length,sizeof(uint32_t));
       char* headerBuffer = new char[length];
       in.read(headerBuffer,length);
-      string list(headerBuffer,length);
+      std::string list(headerBuffer,length);
       delete[] headerBuffer;
       {
         boost::lock_guard<boost::mutex> guard(nlparsemtx);
@@ -332,10 +335,10 @@ enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
 1.4  ~writeHeader~
  
 */
-  bool writeHeader(ofstream& out, string& filename, 
-                   ListExpr type, string& errMsg)
+  bool writeHeader(std::ofstream& out, std::string& filename, 
+                   ListExpr type, std::string& errMsg)
   {
-    out.open(filename.c_str(),ios::out|ios::binary);
+    out.open(filename.c_str(),std::ios::out|std::ios::binary);
     bool ok = out.good();
     char*  buffer = new char[FILE_BUFFER_SIZE];
     out.rdbuf()->pubsetbuf(buffer, FILE_BUFFER_SIZE);
@@ -346,9 +349,9 @@ enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
         return false;
       }
       
-      string relTypeS = nl->ToString(type);
+      std::string relTypeS = nl->ToString(type);
       uint32_t length = relTypeS.length();
-      string magic = "srel";
+      std::string magic = "srel";
       out.write(magic.c_str(),4);
       out.write((char*) &length, sizeof(uint32_t));
       out.write(relTypeS.c_str(), length);
@@ -363,7 +366,7 @@ enum OpType {DBSCAN, NEIGHBOR , DISTMERGE, DISTSORT, DISTSORTSAMP};
 Write a given tuple in a file.
 
 */
-  bool writeNextTuple(ostream& out,Tuple* tuple)
+  bool writeNextTuple(std::ostream& out,Tuple* tuple)
   {
     // retrieve sizes
     size_t coreSize;
@@ -389,7 +392,7 @@ Write a given tuple in a file.
 Finish file for storing.
 
 */
-  bool finish(ostream& out)
+  bool finish(std::ostream& out)
   {
     uint32_t marker = 0;
     out.write((char*) &marker, sizeof(uint32_t));
