@@ -47,6 +47,7 @@ class LongInt: public IndexableAttribute{
 public:
 
   typedef int64_t inttype;
+  typedef int64_t ctype;
 
   static SmiKey::KeyDataType getSMIKeyType(){
        return SmiKey::Longint;
