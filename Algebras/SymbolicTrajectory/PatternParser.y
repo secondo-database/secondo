@@ -672,6 +672,7 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
     return true;
   }
   vector<string> parts;
+  string type;
   Tools::splitPattern(input, parts);
   stringToSet(parts[0], true);
   Interval<Instant> testiv(true);
@@ -693,12 +694,14 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
       case '_': {
         pos = input.find_first_not_of(' ', pos + 1);
         value.addr = 0;
+        type = "";
         break;
       }
       case '<': {
         if (!Tools::parseInterval(input, isEmpty, pos, endpos, value)) {
           return false;
         }
+        type = Range<CcReal>::BasicType();
         break;
       }
       case '"': {
@@ -708,6 +711,7 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
         }
         ((Labels*)value.addr)->Append(input.substr(pos + 1, endpos - pos - 1));
         pos = input.find_first_not_of(", ", endpos + 1);
+        type = Labels::BasicType();
         break;
       }
       case '\'': {
@@ -717,6 +721,7 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
         }
         ((Labels*)value.addr)->Append(input.substr(pos, pos - endpos + 1));
         pos = input.find_first_not_of(", ", endpos + 1);
+        type = Labels::BasicType();
         break;
       }
       case '{': {
@@ -732,6 +737,7 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
               ((Labels*)value.addr)->Append(input.substr(pos + 1, 
                                                          endpos - pos - 1));
               pos = input.find_first_not_of(", ", endpos + 1);
+              type = Labels::BasicType();
               break;
             }
             case '\'': {
@@ -743,6 +749,7 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
               ((Labels*)value.addr)->Append(input.substr(pos + 1, 
                                                          endpos - pos - 1));
               pos = input.find_first_not_of(", ", endpos + 1);
+              type = Labels::BasicType();
               break;
             }
             case '<': {
@@ -750,10 +757,12 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
                 return false;
               }
               pos = input.find_first_not_of(", ", endpos + 1);
+              type = Range<CcReal>::BasicType();
               break;
             }
             default: {
-              if (!Tools::parseBoolorObj(input, isEmpty, pos, endpos, value)) {
+              if (!Tools::parseBoolorObj(input, isEmpty, pos, endpos, value, 
+                                                                        type)) {
                 return false;
               }
               pos = input.find_first_not_of(", ", endpos + 1);
@@ -767,7 +776,7 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
       default: {
         isSetRel = Tools::isSetRel(input, pos, endpos, setrel);
         if (!isSetRel) {
-          if (!Tools::parseBoolorObj(input, isEmpty, pos, endpos, value)) {
+          if (!Tools::parseBoolorObj(input, isEmpty, pos, endpos, value, type)){
             return false;
           }
         }
@@ -776,6 +785,7 @@ bool PatElem::extractValues(string &input, Tuple *tuple) {
     }
     if (!isSetRel) {
       values.push_back(make_pair(value, setrel));
+      types.push_back(type);
       setrel = STANDARD;
       value.addr = 0;
     }

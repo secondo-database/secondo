@@ -874,7 +874,7 @@ bool Tools::isSetRel(const string& input, int &pos, int &endpos,
 
 */
 bool Tools::parseBoolorObj(const string& input, bool &isEmpty, int &pos,
-                           int &endpos, Word &value) {
+                           int &endpos, Word &value, std::string& type) {
   if (!stringutils::isLetter(input[pos])) {
     return false;
   }
@@ -886,11 +886,13 @@ bool Tools::parseBoolorObj(const string& input, bool &isEmpty, int &pos,
     else {
       ((CcBool*)value.addr)->Set(true, true);
     }
+    type = CcBool::BasicType();
   }
   else if (input.substr(pos, 5) == "FALSE") {
     if (isEmpty) {
       value.addr = new CcBool(true, false);
     } // no else required; false remains false; true remains true
+    type = CcBool::BasicType();
   }
   else {
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
@@ -899,7 +901,6 @@ bool Tools::parseBoolorObj(const string& input, bool &isEmpty, int &pos,
       cout << name << " is not an object name" << endl;
       return false;
     }
-    string type;
     Word valuePart;
     bool defined;
     if (!sc->GetObject(name, valuePart, defined)) {
@@ -908,6 +909,7 @@ bool Tools::parseBoolorObj(const string& input, bool &isEmpty, int &pos,
     }
     type = nl->ToString(sc->GetObjectTypeExpr(name));
     if (type == "rect") {
+      type = "region";
       if (isEmpty) {
         value.addr = new Region(*((Rectangle<2>*)valuePart.addr));
         ((Rectangle<2>*)valuePart.addr)->DeleteIfAllowed();
@@ -1567,6 +1569,67 @@ double Tools::distance(set<pair<string, unsigned int> >& values1,
   }
   return (sum / limit + abs((int64_t)values1.size() - (int64_t)values2.size())/ 
                         max(values1.size(), values2.size())) / 2;
+}
+
+bool Tools::getGeoFromORel(const std::string& relName, const unsigned int ref,
+                           const bool bbox, Word& geo, std::string& type) {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  Word orelPtr;
+  bool defined;
+  if (!sc->GetObject(relName, orelPtr, defined)) {
+    cout << "Error: cannot find relation 'Places'" << endl;
+    return false;
+  }
+  if (!defined) {
+    cout << "Error: relation 'Places' is undefined" << endl;
+    return false;
+  }
+  OrderedRelation *orel = static_cast<OrderedRelation*>(orelPtr.addr);
+  vector<void*> attributes(1);
+  vector<SmiKey::KeyDataType> attrTypes(1);
+  attrTypes[0] = SmiKey::Integer;
+  attributes[0] = new CcInt(true, ref);
+  CompositeKey fromKey(attributes, attrTypes, false);
+  CompositeKey toKey(attributes, attrTypes, true);
+  OrderedRelationIterator *rit = 
+                  (OrderedRelationIterator*)orel->MakeRangeScan(fromKey, toKey);
+  Tuple *pt = rit->GetNextTuple();
+  if (bbox) {
+    geo.addr = pt->GetAttribute(5);
+  }
+  else {
+    if (pt->GetAttribute(1)->IsDefined()) {
+      geo.addr = pt->GetAttribute(1)->Copy(); // point
+      ((Point*)geo.addr)->Print(cout);
+      type = Point::BasicType();
+    }
+    else if (pt->GetAttribute(2)->IsDefined()) {
+      geo.addr = pt->GetAttribute(2)->Copy(); // line
+      type = Line::BasicType();
+    }
+    else if (pt->GetAttribute(3)->IsDefined()) {
+      geo.addr = pt->GetAttribute(3)->Copy(); // region
+      type = Region::BasicType();
+    }
+    else {
+      geo.addr = 0;
+      cout << "Error: no defined geometry for reference " << ref << endl;
+    }
+  }
+  ((CcInt*)attributes[0])->DeleteIfAllowed();
+  pt->DeleteIfAllowed();
+  return (geo.addr != 0);
+}
+
+bool Tools::getRectFromOrel(const std::string& relName, const unsigned int ref,
+                            Rectangle<2>& box) {
+  Word geo;
+  std::string type;
+  if (!getGeoFromORel(relName, ref, true, geo, type)) {
+    return false;
+  }
+  box.CopyFrom((Rectangle<2>*)(geo.addr));
+  return true;
 }
 
 }

@@ -886,8 +886,29 @@ bool TMatch::placesMatch(const set<pair<string, unsigned int> >& tplaces,
   if (values.first.addr == 0) {
     return true;
   }
-  ((Labels*)values.first.addr)->GetValues(pplaces);
-  return Tools::relationHolds(tplaces, pplaces, values.second);
+  string type = p->elems[atom].types[pos];
+  if (type == Labels::BasicType()) {
+    if (((Labels*)values.first.addr)->IsDefined()) {
+      ((Labels*)values.first.addr)->GetValues(pplaces);
+      return Tools::relationHolds(tplaces, pplaces, values.second);
+    }
+    else {
+      cout << "ERROR: type/value mismatch" << endl;
+      return false;
+    }
+  }
+  else if (type == Rectangle<2>::BasicType()) {
+    return true; // no further test required
+  }
+  else if (type == Region::BasicType()) {
+    Region reg(*((Region*)(values.first.addr)));
+    cout << "CHECK region ";
+    return Tools::relationHolds(tplaces, reg, values.second);
+  }
+  else {
+    cout << "ERROR: invalid type " << type << endl;
+    return false;
+  }
 }
 
 /*
@@ -2212,67 +2233,49 @@ void TupleIndex::processRTree2(Relation *rel, const int attrNo,
     }
   }
   else if (typeName == "mplace") {
-    SecondoCatalog* sc = SecondoSystem::GetCatalog();
-    bool defined = false;
-    Word orelPtr;
-    if (!sc->GetObject("Places", orelPtr, defined)) {
-      cout << "Error: cannot find relation 'Places'" << endl;
-      return;
-    }
-    if (!defined) {
-      cout << "Error: relation 'Places' is undefined" << endl;
-      return;
-    }
-    OrderedRelation *orel = static_cast<OrderedRelation*>(orelPtr.addr);
+    Rectangle<2> bbox(true);
+    
+//     SecondoCatalog* sc = SecondoSystem::GetCatalog();
+//     bool defined = false;
+//     Word orelPtr, geo;
+//     if (!sc->GetObject("Places", orelPtr, defined)) {
+//       cout << "Error: cannot find relation 'Places'" << endl;
+//       return;
+//     }
+//     if (!defined) {
+//       cout << "Error: relation 'Places' is undefined" << endl;
+//       return;
+//     }
+//     OrderedRelation *orel = static_cast<OrderedRelation*>(orelPtr.addr);
     MPlace *mp = 0;
     UPlace up(true);
-    vector<void*> attributes(1);
-    vector<SmiKey::KeyDataType> attrTypes(1);
-    attrTypes[0] = SmiKey::Integer;
+//     vector<void*> attributes(1);
+//     vector<SmiKey::KeyDataType> attrTypes(1);
+//     attrTypes[0] = SmiKey::Integer;
     for (TupleId i = 1; i <= noTuples; i++) {
       Tuple *t = rel->GetTuple(i, false);
       mp = (MPlace*)t->GetAttribute(attrNo);
       int noComponents = mp->GetNoComponents();
       for (int j = 0; j < noComponents; j++) {
         mp->Get(j, up);
-        attributes[0] = new CcInt(true, up.constValue.GetRef());;
-        CompositeKey fromKey(attributes, attrTypes, false);
-        CompositeKey toKey(attributes, attrTypes, true);
-        OrderedRelationIterator *rit = (OrderedRelationIterator*)orel->
-                                                  MakeRangeScan(fromKey, toKey);
-        Tuple *pt = rit->GetNextTuple();
-        Rectangle<2> *bbox = (Rectangle<2>*)(pt->GetAttribute(5));
+        if (!Tools::getRectFromOrel("Places", up.constValue.GetRef(), bbox)) {
+          return;
+        }
         NewPair<NewPair<double, double>, NewPair<double, double> > bboxValues(
-          NewPair<double, double>(bbox->MinD(0), bbox->MinD(1)),
-          NewPair<double, double>(bbox->MaxD(0), bbox->MaxD(1)));
+          NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
+          NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
         NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
          NewPair<TupleId, int> > value(bboxValues, NewPair<TupleId, int>(i, j));
         values.push_back(value);
-        ((CcInt*)attributes[0])->DeleteIfAllowed();
-        pt->DeleteIfAllowed();
       }
       t->DeleteIfAllowed();
     }
   }
   else if (typeName == "mplaces") {
-    SecondoCatalog* sc = SecondoSystem::GetCatalog();
-    bool defined = false;
-    Word orelPtr;
-    if (!sc->GetObject("Places", orelPtr, defined)) {
-      cout << "Error: cannot find relation 'Places'" << endl;
-      return;
-    }
-    if (!defined) {
-      cout << "Error: relation 'Places' is undefined" << endl;
-      return;
-    }
-    OrderedRelation *orel = static_cast<OrderedRelation*>(orelPtr.addr);
+    Rectangle<2> bbox(true);
     MPlaces *mp = 0;
     std::set<std::pair<std::string, unsigned int> > pls;
     std::set<std::pair<std::string, unsigned int> >::iterator it;
-    vector<void*> attributes(1);
-    vector<SmiKey::KeyDataType> attrTypes(1);
-    attrTypes[0] = SmiKey::Integer;
     for (TupleId i = 1; i <= noTuples; i++) {
       Tuple *t = rel->GetTuple(i, false);
       mp = (MPlaces*)t->GetAttribute(attrNo);
@@ -2280,21 +2283,15 @@ void TupleIndex::processRTree2(Relation *rel, const int attrNo,
       for (int j = 0; j < noComponents; j++) {
         mp->GetValues(j, pls);
         for (it = pls.begin(); it != pls.end(); it++) {
-          attributes[0] = new CcInt(true, it->second);;
-          CompositeKey fromKey(attributes, attrTypes, false);
-          CompositeKey toKey(attributes, attrTypes, true);
-          OrderedRelationIterator *rit = (OrderedRelationIterator*)orel->
-                                                  MakeRangeScan(fromKey, toKey);
-          Tuple *pt = rit->GetNextTuple();
-          Rectangle<2> *bbox = (Rectangle<2>*)pt->GetAttribute(5);
+          if (!Tools::getRectFromOrel("Places", it->second, bbox)) {
+            return;
+          }
           NewPair<NewPair<double, double>, NewPair<double, double> > bboxValues(
-            NewPair<double, double>(bbox->MinD(0), bbox->MinD(1)),
-            NewPair<double, double>(bbox->MaxD(0), bbox->MaxD(1)));
+            NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
+            NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
           NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
           NewPair<TupleId, int> > value(bboxValues, NewPair<TupleId, int>(i,j));
           values.push_back(value);
-          ((CcInt*)attributes[0])->DeleteIfAllowed();
-          pt->DeleteIfAllowed();
         }
       }
       t->DeleteIfAllowed();
@@ -2639,21 +2636,34 @@ bool TMatchIndexLI::tiCompatibleToRel() {
 
 */
 bool TMatchIndexLI::getSingleIndexResult(pair<int, pair<IndexType, int> > 
- indexInfo, pair<Word, SetRel> values, int valueNo, vector<set<int> > &result) {
-  string type = nl->ToString(nl->Second(nl->Nth(indexInfo.first + 1, 
-                                                nl->Second(ttList))));
+                indexInfo, pair<Word, SetRel> values, string type, int valueNo, 
+                                         vector<set<int> > &result) {
+  string attrType = nl->ToString(nl->Second(nl->Nth(indexInfo.first + 1, 
+                                                    nl->Second(ttList))));
+  cout << " ...... started" << endl;
   switch (indexInfo.second.first) {
     case TRIE: {
       if (values.first.addr == 0) {
         return false; // no content
       }
-      if (type.substr(0, 6) == "mlabel" || type.substr(0, 6) == "mplace") {
+      if (attrType.substr(0,6) == "mlabel" || attrType.substr(0,6) == "mplace"){
         SecondoCatalog* sc = SecondoSystem::GetCatalog();
-        if (type.substr(0, 6) == "mplace" && sc->IsObjectName("Places") &&
-            ((Region*)values.first.addr)->IsDefined()) {
-          Rectangle<2> rect = ((Region*)(values.first.addr))->BoundingBox();
-          Tools::queryRtree2(ti->rtrees2[indexInfo.second.second],
-                             rect, result);
+        if (attrType.substr(0, 6) == "mplace" && sc->IsObjectName("Places") &&
+            (type != Labels::BasicType())) {
+          Rectangle<2> rect(true);
+          if (type == Rectangle<2>::BasicType()) {
+            rect.CopyFrom((Rectangle<2>*)(values.first.addr));
+            cout << "rect retrieved: ";
+            ((Rectangle<2>*)(values.first.addr))->Print(cout);
+            rect.Print(cout);
+          }
+          else {
+            rect = ((Region*)(values.first.addr))->BoundingBox();
+            cout << "bbox of region retrieved: ";
+          }
+          rect.Print(cout);
+          Tools::queryRtree2(ti->rtrees2[indexInfo.second.second], rect,result);
+          cout << "rtree queried" << endl;
           return false;
         }
         set<string> lbs;
@@ -2750,19 +2760,22 @@ int TMatchIndexLI::getNoComponents(const TupleId tId, const int attrNo) {
 
 */
 void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
-              indexInfo, pair<Word, SetRel> values, vector<Periods*> &prev,
-              vector<Periods*> &result, bool checkPrev /* = false */) {
+              indexInfo, pair<Word, SetRel> values, string type,
+              vector<Periods*> &prev, vector<Periods*> &result, 
+              bool checkPrev /* = false */) {
+  cout << "start gRFAP" << endl;
   vector<set<int> > temp1, temp2;
   temp1.resize(rel->GetNoTuples() + 1);
   temp2.resize(rel->GetNoTuples() + 1);
   result.resize(rel->GetNoTuples() + 1);
   int valueNo = 0;
 //   vector<set<int> > *ptr(&temp), *ptr2(0);
-  bool proceed = getSingleIndexResult(indexInfo, values, valueNo, temp1);
+  cout << "call gSIR" << endl;
+  bool proceed = getSingleIndexResult(indexInfo, values, type, valueNo, temp1);
   set<int> tmp;
   while (proceed) {
     valueNo++;
-    proceed = getSingleIndexResult(indexInfo, values, valueNo, temp2);
+    proceed = getSingleIndexResult(indexInfo, values, type, valueNo, temp2);
 //     for (unsigned int i = 0; i < temp.size(); i++) {
 //       cout << temp[i].size() << " ";
 //     }
@@ -2905,8 +2918,10 @@ void TMatchIndexLI::storeIndexResult(int atomNo, int &noResults) {
   for (it = ti->attrToIndex.begin(); it != ti->attrToIndex.end(); it++) {
     if (!intersect && it->second.second != -1 && 
         atom.values[pos].first.addr != 0) {
-//       cout << "call gRFAP for attr " << it->first << endl;
-      getResultForAtomPart(*it, atom.values[pos], temp, periods);
+//       cout << "call gRFAP for attr " << it->first << "; " 
+//            << atom.types.size() << endl;
+      getResultForAtomPart(*it, atom.values[pos], atom.types[pos], temp, 
+                           periods);
       intersect = true;
 //       cout << atom.values.size() << "values, after " << it->first << ", pos "
 //            << pos << ": ";
@@ -2918,7 +2933,8 @@ void TMatchIndexLI::storeIndexResult(int atomNo, int &noResults) {
     else {
       if (it->second.second != -1 && atom.values[pos].first.addr != 0) {
 //         cout << "call xgRFAP for attr " << it->first << endl;
-        getResultForAtomPart(*it, atom.values[pos], periods, temp, true);
+        getResultForAtomPart(*it, atom.values[pos], atom.types[pos], periods,
+                             temp, true);
         for (int i = 1; i <= rel->GetNoTuples(); i++) {
           if (periods[i] && temp[i]) {
             periods[i]->Intersection(*temp[i], tmp);
@@ -3452,6 +3468,9 @@ bool TMatchIndexLI::initialize(const bool rewrite /* = false */) {
     cout << "Error: Tuple index is not compatible with relation" << endl;
     return false;
   }
+  PatElem elem;
+  p->getElem(1, elem);
+  
   vector<map<int, int> > simpleNFA;
   p->simplifyNFA(simpleNFA);
   set<pair<set<int>, int> > paths;

@@ -491,16 +491,18 @@ class PatElem {
   std::set<std::string> ivs;
   std::set<std::string> lbs;
   std::vector<std::pair<Word, SetRel> > values;
+  std::vector<std::string> types;
   Wildcard wc;
   SetRel setRel;
   bool ok;
 
  public:
-  PatElem() : var(""), ivs(), lbs(), values(), wc(NO), setRel(STANDARD),
-              ok(true) {}
+  PatElem() : var(""), ivs(), lbs(), values(), types(), wc(NO), 
+              setRel(STANDARD), ok(true) {}
   PatElem(const char* contents, Tuple *tuple);
   PatElem(const PatElem& elem) : var(elem.var), ivs(elem.ivs), lbs(elem.lbs),
-           values(elem.values), wc(elem.wc), setRel(elem.setRel), ok(elem.ok) {}
+           values(elem.values), types(elem.types), wc(elem.wc), 
+           setRel(elem.setRel), ok(elem.ok) {}
   ~PatElem() {}
 
   void stringToSet(const std::string& input, const bool isTime);
@@ -510,6 +512,7 @@ class PatElem {
     ivs = elem.ivs;
     lbs = elem.lbs; 
     values = elem.values;
+    types = elem.types;
     wc = elem.wc; 
     setRel = elem.setRel;
     ok = elem.ok;
@@ -518,16 +521,15 @@ class PatElem {
 
   void     getV(std::string& result) const                     {result = var;}
   void     getL(std::set<std::string>& result) const           {result = lbs;}
-  SetRel   getSetRel() const                              {return setRel;}
-  void     getI(std::set<std::string>& result) const 
-   {result = ivs;}
-  Wildcard getW() const                                   {return wc;}
-  bool     isOk() const                                   {return ok;}
-  void     clearL()                                       {lbs.clear();}
-  void     insertL(const std::string& lb)                 {lbs.insert(lb);}
-  void     clearI()                                       {ivs.clear();}
+  SetRel   getSetRel() const                                   {return setRel;}
+  void     getI(std::set<std::string>& result) const           {result = ivs;}
+  Wildcard getW() const                                        {return wc;}
+  bool     isOk() const                                        {return ok;}
+  void     clearL()                                            {lbs.clear();}
+  void     insertL(const std::string& lb)                      {lbs.insert(lb);}
+  void     clearI()                                            {ivs.clear();}
   void     insertI(std::string& iv)                            {ivs.insert(iv);}
-  void     clearW()                                       {wc = NO;}
+  void     clearW()                                            {wc = NO;}
   bool     hasLabel() const                             {return lbs.size() > 0;}
   bool     hasInterval() const                          {return ivs.size() > 0;}
   bool     hasRealInterval() const;
@@ -537,9 +539,8 @@ class PatElem {
   bool     hasValuesWithContent() const;
   bool     isRelevantForTupleIndex() const;
   bool     extractValues(std::string &input, Tuple *tuple);
-  std::vector<std::pair<Word, SetRel> > getValues() const  
-         {return values;}
-  void  deleteValues(std::vector<std::pair<int, std::string> > &relevantAttrs);
+  std::vector<std::pair<Word, SetRel> > getValues() const      {return values;}
+  void   deleteValues(std::vector<std::pair<int, std::string> > &relevantAttrs);
 };
 
 /*
@@ -1301,7 +1302,7 @@ class TMatchIndexLI : public IndexMatchSuper {
   bool tiCompatibleToRel();
   bool getSingleIndexResult(
              std::pair<int, std::pair<IndexType, int> > indexInfo, 
-             std::pair<Word, SetRel> values, 
+             std::pair<Word, SetRel> values, std::string type,
              int valueNo, std::vector<std::set<int> > &result);
   int getNoComponents(const TupleId tId, const int attrNo);
   void unitsToPeriods(const std::set<int> &units, const TupleId tId, 
@@ -1311,7 +1312,7 @@ class TMatchIndexLI : public IndexMatchSuper {
                       temporalalgebra::Periods *per);
   void getResultForAtomPart(
                            std::pair<int, std::pair<IndexType, int> > indexInfo,
-                           std::pair<Word, SetRel> values, 
+                           std::pair<Word, SetRel> values, std::string type,
                            std::vector<temporalalgebra::Periods*> &prev,
                            std::vector<temporalalgebra::Periods*> &result,
                            bool checkPrev = false);

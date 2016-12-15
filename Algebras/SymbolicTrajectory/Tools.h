@@ -42,6 +42,7 @@ Started July 2014, Fabio Vald\'{e}s
 #include "InvertedFile.h"
 #include "LongInt.h"
 #include "Geoid.h"
+#include "OrderedRelationAlgebra.h"
  
  
  namespace stj {
@@ -127,7 +128,7 @@ class Tools {
   static bool isSetRel(const std::string& input, int &pos, int &endpos, 
                        SetRel &setrel);
   static bool parseBoolorObj(const std::string& input, bool &isEmpty, int &pos, 
-                             int &endpos, Word &value);
+                             int &endpos, Word &value, std::string& type);
   static bool checkAttrType(const std::string& typeName, const Word &value);
   static bool isRelevantAttr(const std::string& name);
   static bool isMovingAttr(const ListExpr ttype, const int attrno);
@@ -183,6 +184,10 @@ class Tools {
                          std::set<std::pair<std::string, 
                          unsigned int> >& values2,
                          const int fun, const LabelFunction lf);
+  static bool getGeoFromORel(const std::string& relName, const unsigned int ref,
+                             const bool bbox, Word& geo, std::string& type);
+  static bool getRectFromOrel(const std::string& relName,const unsigned int ref,
+                              Rectangle<2>& box);
   
   static bool relationHolds(const std::set<std::string>& s1, 
                             const std::set<std::string>& s2, const SetRel rel) {
@@ -216,9 +221,115 @@ class Tools {
     }
   }
   
- static bool relationHolds(const std::set<std::pair<std::string,unsigned int> >,
-                            const std::set<std::string>, const SetRel rel) {
-    return true; // TODO: a lot
+  static bool relationHolds(const std::set<std::pair<std::string,
+   unsigned int> > places, const std::set<std::string> spec, const SetRel rel) {
+    std::set<std::string> labels;
+    for (std::set<std::pair<std::string, unsigned int> >::iterator it = 
+         places.begin(); it != places.end(); it++) {
+      labels.insert(it->first);
+    }
+    return relationHolds(labels, spec, rel);
+  }
+  
+  static bool relationHolds(const std::set<std::pair<std::string,
+                 unsigned int> > places, const Region& spec, const SetRel rel) {
+    std::vector<Word> points, lines, regions;
+    Geoid wgs(Geoid::WGS1984);
+    for (std::set<std::pair<std::string, unsigned int> >::iterator it =
+         places.begin(); it != places.end(); it++) {
+      Word geo;
+      std::string type;
+      if (!getGeoFromORel("Places", it->second, false, geo, type)) {
+        return false;
+      }
+      if (type == Point::BasicType()) {
+        ((Point*)geo.addr)->Print(cout);
+        points.push_back(geo);
+      }
+      else if (type == Line::BasicType()) {
+        lines.push_back(geo);
+      }
+      else if (type == Region::BasicType()) {
+        regions.push_back(geo);
+      }
+      cout << "pushed back " << points.size() << " points, " << lines.size() 
+           << " lines, " << regions.size() << " regions" << endl;
+    }
+    Region regUnion(1);
+    switch (rel) {
+      case STANDARD: {
+        for (unsigned int i = 0; i < points.size(); i++) {
+          if (!((Point*)(points[i].addr))->Inside(spec, &wgs)) {
+            return false;
+          }
+        }
+        for (unsigned int i = 0; i < lines.size(); i++) {
+          if (!((Line*)(lines[i].addr))->Inside(spec, &wgs)) {
+            return false;
+          }
+        }
+        for (unsigned int i = 0; i < regions.size(); i++) {
+          if (!((Region*)(regions[i].addr))->Inside(spec, &wgs)) {
+            return false;
+          }
+        }
+        return true;
+      }
+      case SUPERSET: {
+        if (points.size() > 0 || lines.size() > 0) {
+          return false;
+        }
+        for (unsigned int i = 0; i < regions.size(); i++) {
+          if (!spec.Inside(*((Region*)(regions[i].addr)), &wgs)) {
+            return false;
+          }
+        }
+        return true;
+      }
+      case EQUAL: {
+        if (points.size() > 0 || lines.size() > 0) {
+          return false;
+        }
+        if (regions.size() == 0) {
+          return false;
+        }
+        Region regUnion(*((Region*)(regions[0].addr)));
+        Region regTemp(regUnion);
+        for (unsigned int i = 1; i < regions.size(); i++) {
+          regUnion.Union(*((Region*)(regions[i].addr)), regTemp);
+          regUnion = regTemp;
+        }
+        return spec == regUnion;
+      }
+      case INTERSECT:
+      case DISJOINT : {
+        Points pts(true);
+        for (unsigned int i = 0; i < points.size(); i++) {
+          spec.Intersection(*((Point*)(points[i].addr)), pts, &wgs);
+          if (!pts.IsEmpty()) {
+            return (rel == INTERSECT ? true : false);
+          }
+        }
+        Line ln(true);
+        for (unsigned int i = 0; i < lines.size(); i++) {
+          spec.Intersection(*((Line*)(lines[i].addr)), ln, &wgs);
+          if (!ln.IsEmpty()) {
+            return (rel == INTERSECT ? true : false);
+          }
+        }
+        Region rg(true);
+        for (unsigned int i = 0; i < points.size(); i++) {
+          spec.Intersection(*((Region*)(regions[i].addr)), rg, &wgs);
+          if (!ln.IsEmpty()) {
+            return (rel == INTERSECT ? true : false);
+          }
+        }
+        return (rel == DISJOINT); // no intersection found
+      }
+      default: {
+        return false;
+      }
+    }
   }
   
   template<class T>
