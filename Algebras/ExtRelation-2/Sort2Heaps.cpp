@@ -600,7 +600,7 @@ class OutAttrHeap{
           std::vector<AttributeFile*> _files, 
           mmheap::mmheap<Attribute*, AttrSmaller>* h,
           AttrSmaller _comp):
-       algId(_algId), typeId(_typeId), ntype(_ntype),
+       //algId(_algId), typeId(_typeId), ntype(_ntype),
        files(_files), h2(0), heap(h), comp(_comp), 
        lastFromFile(0), 
        lastFromHeap(0),nextRes(0){
@@ -638,9 +638,9 @@ class OutAttrHeap{
 
 
    private:
-       int algId;
-       int typeId;
-       ListExpr ntype;
+       //int algId;
+       //int typeId;
+       //ListExpr ntype;
        std::vector<AttributeFile*> files;
        mmheap::mmheap< std::pair<Attribute*, AttributeIterator*>, ac >* h2;
        mmheap::mmheap<Attribute*, AttrSmaller>* heap;
