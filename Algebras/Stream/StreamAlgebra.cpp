@@ -4066,11 +4066,19 @@ template<class T>
 int ensure_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word elem(Address(0) );
-  int num = StdTypes::GetInt(args[1]);
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>( result.addr );
+  CcInt* CcNum = (CcInt*)args[1].addr;
+  if(!CcNum->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+
+  int num = CcNum->GetValue();
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
-  while (num && qp->Received(args[0].addr))
+  while ((num>0) && qp->Received(args[0].addr))
   {
     static_cast<T*>( elem.addr )->DeleteIfAllowed();
     qp->Request(args[0].addr, elem);
@@ -4079,8 +4087,6 @@ int ensure_vm(Word* args, Word& result, int message, Word& local, Supplier s)
   qp->Close(args[0].addr);
 
   bool ensure = (num == 0);
-  result = qp->ResultStorage(s);
-  CcBool* res = static_cast<CcBool*>( result.addr );
   res->Set( true, ensure );
   return 0;
 }
@@ -5788,12 +5794,6 @@ ListExpr consumeTM(ListExpr args){
                nl->TwoElemList(
                     listutils::basicSymbol<Tuple>(),
                     attrList));
-  cout << "result is" << endl;
-  if(Relation::checkType(res)){
-     cout << "Correct" << endl;
-  } else {
-     cout << "incorrect" << endl;
-  }
   return res;
 }
 
@@ -5833,6 +5833,262 @@ Operator consumeOp(
   consumeVM,
   Operator::SimpleSelect,
   consumeTM
+);
+
+/*
+9.17 operator ~ts~
+
+*/
+ListExpr tsTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+   return listutils::typeError("expected a stream and a list of funs");
+  }
+  if(!Stream<Attribute>::checkType(nl->First(args))){
+    return listutils::typeError("first arg is not an attribute stream");
+  }
+  ListExpr a = nl->Second(nl->First(args)); // type within stream
+  ListExpr funlist = nl->Second(args);
+  if(nl->AtomType(funlist)!=NoAtom){
+    return listutils::typeError("second arg is not a list");
+  }
+  ListExpr attrList= nl->TheEmptyList();
+  ListExpr last;
+  bool first = true;
+
+  while(!nl->IsEmpty(funlist)){
+     ListExpr fun = nl->First(funlist);
+     funlist = nl->Rest(funlist);
+     if(!nl->HasLength(fun,2)){
+       return listutils::typeError("2nd arg contains an element which "
+                                   "is not a named function");
+     }
+     if(nl->AtomType(nl->First(fun))!=SymbolType){
+       return listutils::typeError("found invalid attribute name");
+     }
+     ListExpr an = nl->First(fun);
+     string n = nl->SymbolValue(an);
+     ListExpr map = nl->Second(fun);
+     if(!listutils::isMap<1>(map)){
+       return listutils::typeError("invalid function definition for "+n);
+     }
+     if(!nl->Equal(a, nl->Second(map))){
+        return listutils::typeError("function argument for " + n 
+                   + " differs to the stream element");
+     }   
+     ListExpr funRes = nl->Third(map);
+     if(!Attribute::checkType(funRes)){
+        return listutils::typeError("function result of " + n 
+                                    + " not in kind DATA");
+     }
+     ListExpr attr = nl->TwoElemList(an, funRes);
+     if(first){
+        attrList = nl->OneElemList(attr);
+        last = attrList;
+        first = false;
+     } else {
+        last = nl->Append(last, attr);
+     }
+  }
+  if(!listutils::isAttrList(attrList)){
+    return listutils::typeError("name conflicts or invalid names "
+                                "in attributes");
+  }
+  return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                          nl->TwoElemList(
+                              listutils::basicSymbol<Tuple>(),
+                              attrList));
+}
+
+
+class tsInfo{
+ public:
+  tsInfo(Word* args, ListExpr resTuple):
+    stream(args[0]){
+    stream.open();
+    tt = new TupleType(resTuple);
+    supplier = args[1].addr;
+    nofuns = qp->GetNoSons(supplier);
+    for(int i=0; i < nofuns;i++){
+       Supplier supplier2 = qp->GetSupplier(supplier, i);
+       Supplier supplier3 = qp->GetSupplier(supplier2, 1);
+       ArgVectorPointer funargs1 = qp->Argument(supplier3);
+       funs.push_back(supplier3);
+       funargs.push_back(funargs1);
+    }
+  }
+
+  ~tsInfo(){
+     stream.close();
+     tt->DeleteIfAllowed();
+  }
+
+  Tuple* next(){
+    Attribute* arg = stream.request();
+    if(!arg){
+      return 0;
+    }
+    Tuple* tuple = new Tuple(tt);
+    Word value;
+    for(size_t i=0;i<funs.size();i++){
+      (*(funargs[i]))[0].setAddr(arg);
+      qp->Request(funs[i],value);
+      tuple->PutAttribute(i,((Attribute*)value.addr)->Clone());
+    }
+    arg->DeleteIfAllowed();
+    return tuple;
+
+ }
+
+ private:
+   Stream<Attribute> stream;
+   TupleType* tt;
+   Supplier supplier;
+   int nofuns;
+   vector<Supplier> funs;
+   vector<ArgVectorPointer> funargs;
+};
+
+
+int tsVM(Word* args, Word& result,
+              int message, Word& local, Supplier s){
+
+  tsInfo* li = (tsInfo*) local.addr;
+  switch(message){
+     case OPEN :
+            if(li) delete li;
+            local.addr = new tsInfo(args, nl->Second(GetTupleResultType(s)));
+            return 0;
+     case REQUEST:
+             result.addr = li?li->next():0;
+             return result.addr?YIELD:CANCEL;
+     case CLOSE:
+            if(li){
+              delete li;
+              local.addr = 0;
+            }
+            return 0;
+  }
+  return -1; 
+
+}
+
+OperatorSpec tsSpec(
+  "stream(T) x funlist(T->U_i) -> stream(tuple(Ui)) ",
+  "_ ts[_,_] ",
+  "Creates a tuple stream from a stream of attributes "
+  " using a list of named functions",
+  "query intstream(1,10) ts[N1 : . + 1, N2 : . - 1] consume"
+);
+
+Operator tsOp(
+  "ts",
+  tsSpec.getStr(),
+  tsVM,
+  Operator::SimpleSelect,
+  tsTM
+);
+
+
+/*
+7.19 Operator ~as~
+
+*/
+
+ListExpr asTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("stream(tuple) x fun(tuple -> attr) expected");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError("first arg is not a tuple stream");
+  }
+  ListExpr fun = nl->Second(args);
+  if(!listutils::isMap<1>(fun)){
+    return listutils::typeError("second arg is not an unary function");
+  }
+  ListExpr tt  = nl->Second(nl->First(args));
+  if(!nl->Equal(tt, nl->Second(fun))){
+    return listutils::typeError("function argument and tuple in stream "
+                                "differ");
+  }
+  ListExpr funres = nl->Third(fun);
+  if(!Attribute::checkType(funres)){
+    return listutils::typeError("funres not in kind DATA");
+  }
+  return nl->TwoElemList(
+                 listutils::basicSymbol<Stream<Attribute> >(),
+                 funres);
+}
+
+
+
+class asInfo{
+ public:
+  asInfo(Word _stream, Word _fun):
+    stream(_stream){
+    stream.open();
+    fun = _fun.addr;
+    funargs = qp->Argument(fun);
+  }
+
+  ~asInfo(){
+     stream.close();
+  }
+
+  Attribute* next(){
+    Tuple* tuple = stream.request();
+    if(!tuple){
+      return 0;
+    }
+    Word value;
+    (*funargs)[0].setAddr(tuple);
+    qp->Request(fun,value);
+    Attribute* res =  ((Attribute*)value.addr)->Clone();
+    tuple->DeleteIfAllowed();
+    return res;
+ }
+
+ private:
+   Stream<Tuple> stream;
+   Supplier fun;
+   ArgVectorPointer funargs;
+};
+
+int asVM(Word* args, Word& result,
+              int message, Word& local, Supplier s){
+
+  asInfo* li = (asInfo*) local.addr;
+  switch(message){
+     case OPEN :
+            if(li) delete li;
+            local.addr = new asInfo(args[0], args[1]);
+            return 0;
+     case REQUEST:
+             result.addr = li?li->next():0;
+             return result.addr?YIELD:CANCEL;
+     case CLOSE:
+            if(li){
+              delete li;
+              local.addr = 0;
+            }
+            return 0;
+  }
+  return -1; 
+}
+
+OperatorSpec asSpec(
+  "stream(tuple) x fun(tuple->attr) -> stream(attr)",
+  "_ as [_] ",
+  "Converts a tuple stream into an attribute stream "
+  "using a function.",
+  "query ten feed as[. + 3] count"
+);
+
+Operator asOp(
+  "as",
+  asSpec.getStr(),
+  asVM,
+  Operator::SimpleSelect,
+  asTM
 );
 
 
@@ -5886,6 +6142,8 @@ public:
     AddOperator(&avgattrOp);
     AddOperator(&sumattrOp);
     AddOperator(&consumeOp);
+    AddOperator(&tsOp);
+    AddOperator(&asOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();

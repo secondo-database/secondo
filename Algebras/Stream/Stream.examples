@@ -331,6 +331,17 @@ Signature : stream(T) -> rel(tuple((Elem T))), T in DATA \ {arel}
 Example   : query intstream(1,10) consume count
 Result    : 10
 
+Operator  : ts
+Number    : 1
+Signature : stream(T) x funlist -> stream(tuple(funresults))
+Example   : query intstream(1,10) ts[N1 : . - 1, N2 : . + 1] max[N2]
+Result    : 11 
+
+Operator  : as
+Number    : 1
+Signature : stream(tuple) x fun(tuple->attr=  -> stream(attr)
+Example   : query plz feed as[ .PLZ ] maxattr = plz feed max[PLZ]
+Result    : TRUE
 
 
 
