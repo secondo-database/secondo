@@ -120,3 +120,12 @@ operator momapmatchmht alias MOMAPMATCHMHT pattern op(_,_,_,_)
 operator collect_mvector alias COLLECT_MVECTOR pattern _ op[_,_]
 
 operator pwrap alias PWRAP pattern op(_)
+
+operator sizemv alias SIZEMV pattern op(_)
+operator getmv alias GETMV pattern _ op[_]
+operator putmv alias putMV pattern _ op[_,_]
+operator isSortedmv alias ISSORTEDMV pattern op(_)
+operator sortmv alias SORTMV pattern op(_)
+operator feedmv alias FEEDMV pattern  _ op
+operator findmv alias FINDMV pattern  op(_,_)
+operator matchbelowmv alias MATCHBELOWMV pattern  _ op [_] 

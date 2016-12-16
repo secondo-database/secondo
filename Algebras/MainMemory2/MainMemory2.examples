@@ -568,12 +568,6 @@ Example   : query Staedte feed head[2] moconsume[SName]
 Result    : ( (memoryORelObject (tuple ( (SName string) (Bev int) (PLZ int) (Vorwahl string) (Kennzeichen string)))) ( ("Aachen" 239000 5100 "0241" "AC") ("Berlin" 1859000 1000 "030" "B"))) 
 
 
-Operator  : collect_mvector
-Number    : 95
-Signature : stream(DATA) x string x bool -> bool
-Example   : query plz feed projecttransformstream[PLZ] collect_mvector["V_PLZ", TRUE]
-Result    : TRUE
-
 
 Operator  : pwrap
 Number    : 96
@@ -619,4 +613,67 @@ Signature : stream(tuple(X)) x mem(rel(tuple(X))) x mem(rel(tuple(X@TID)) -> str
 Example   : query "plz" mfeed head[10] "plz" "PLZ_DEL"  mdeletedirectsave count
 Result    : 10
 
+
+Operator  : collect_mvector
+Number    : 103
+Signature : stream(DATA) x string x bool -> bool
+Example   : query plz feed projecttransformstream[PLZ] collect_mvector["V_PLZ", TRUE]
+Result    : TRUE
+
+Operator  : sizemv 
+Number    : 104
+Signature : mvector -> int, mvector represented as string, mem, or mpointer
+Example   : query sizemv("V_PLZ") = plz count
+Result    : TRUE
+
+Operator  : getmv 
+Number    : 105
+Signature : mvector x int -> DATA, mvector represented as string, mem, or mpointer
+Example   : query "V_PLZ" getmv[22] = plz feed nth[23,TRUE] extract[PLZ] 
+Result    : TRUE
+Remark    : Counting starts with 0
+
+
+Operator  : putmv 
+Number    : 106
+Signature : mvector x int x DATA -> DATA, mvector represented as string, mem, or mpointer
+Example   : query "V_PLZ" putmv[22, 333] = plz feed nth[23,TRUE] extract[PLZ] 
+Result    : TRUE
+
+Operator  : getmv 
+Number    : 107
+Signature : mvector x int -> DATA, mvector represented as string, mem, or mpointer
+Example   : query "V_PLZ" getmv[22] = 333  
+Result    : TRUE
+
+Operator  : isSortedmv
+Number    : 108
+Signature : mvector -> bool, mvector represented as string, mem, or mpointer
+Example   : query isSortedmv("V_PLZ")
+Result    : FALSE
+
+
+Operator  : sortmv
+Number    : 109
+Signature : mvector -> mpointer(mvector) , mvector represented as string, mem, or mpointer
+Example   : query isSortedmv(sortmv("V_PLZ"))
+Result    : TRUE
+
+Operator  : feedmv
+Number    : 110
+Signature : mvector -> stream(DATA) , mvector represented as string, mem, or mpointer
+Example   : query "V_PLZ" feedmv count = plz count
+Result    : TRUE
+
+Operator  : findmv
+Number    : 111
+Signature : mvector -> stream(DATA) , mvector represented as string, mem, or mpointer
+Example   : query findmv("V_PLZ" ,3) 
+Result    : 0
+
+Operator  : matchbelowmv 
+Number    : 112
+Signature : mvector x DATA -> DATA , mvector represented as string, mem, or mpointer
+Example   : query "V_PLZ" matchbelowmv[8666]
+Result    : 8648
 

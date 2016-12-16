@@ -55,7 +55,7 @@ class MemoryVectorObject : public MemoryObject {
           }
         }
 
-        void add(Attribute* a) {
+        void add(Attribute* a, bool checkSort) {
             if(!v) {
               v = new std::vector<Attribute*>();
             }
@@ -64,17 +64,78 @@ class MemoryVectorObject : public MemoryObject {
             }
             v->push_back(a->Copy());
             memSize += a->GetMemSize() + sizeof(void*); 
-            sorted = false;
+            if(!checkSort){
+              sorted= false;
+              return;
+            }
+
+            if(v->size()==1){
+              sorted= true;
+              return;
+            }
+            if(!sorted || v->size()==1){
+              return;
+            } 
+            int cmp = v->at(v->size()-2)->Compare(v->at(v->size()-1));
+            if(cmp>0){
+              sorted = false;
+            }
         }
+
+
         
-        Attribute* get(const int i) {
+        Attribute* get(const int i) const {
+          if(!v){
+            return 0;
+          }
           if((i<0) || i>=(int)v->size()){
              return 0;
           }
           return v->at(i);
         }
+
+        Attribute* put(const int i, Attribute* nv, bool checkSorted){
+          if(!v) return 0;
+          if((i<0) || i>=(int)v->size()){
+             return 0;
+          }
+          Attribute* res = v->at(i);
+          if(flob){
+             nv->bringToMemory();
+          }
+          v->at(i) = nv->Copy();
+          if(!checkSorted){
+             sorted = false;
+             return res;
+          } 
+          if(!sorted || v->size()<2){
+             return res;
+          }
+          if(i>0){
+            int cmp = v->at(i-1)->Compare(v->at(i));
+            if(cmp>0){
+              sorted = false;
+              return res;
+            } 
+          }
+          if((size_t)i<(v->size()-1)){
+            int cmp = v->at(i)->Compare(v->at(i+1));
+            if(cmp>0){
+              sorted = false;
+              return res;
+            } 
+          }
+
+          return res;
+        }
+
         
         static const std::string BasicType() { return "mvector"; }
+
+        static bool checkType(ListExpr t){
+          return nl->HasLength(t,2) 
+                 && listutils::isSymbol(nl->First(t),BasicType());
+        }
 
         void sort();
 
@@ -88,6 +149,22 @@ class MemoryVectorObject : public MemoryObject {
 
         size_t size() const{
           return v->size();
+        }
+
+        Attribute* matchBelow(Attribute* attr) const{
+          if(!sorted) return 0;
+          if(v->size()<1){
+            return 0;
+          }
+          int pos = binSearch(attr);
+          if((size_t)pos==v->size()){ // after last pos
+            return v->at(pos-1);
+          }
+          int cmp = attr->Compare(v->at(pos));
+          if(cmp==0){
+            return v->at(pos);
+          }
+          return pos==0?0:v->at(pos-1);
         }
 
 

@@ -564,6 +564,27 @@ MemoryTTreeObject* getTtree(MPointer* tree){
 }
 
 
+template<class T>
+MemoryVectorObject* getMVector(T* vecN){
+
+  if(!vecN->IsDefined()) { return 0; }
+  string vecn = vecN->GetValue();
+  if(!catalog->isMMObject(vecn) || !catalog->isAccessible(vecn)) {
+    return 0;
+  }
+  ListExpr vecType = nl->Second(catalog->getMMObjectTypeExpr(vecn));
+    
+  if(!MemoryVectorObject::checkType(vecType)) { return 0; }
+  
+  return (MemoryVectorObject*) catalog->getMMObject(vecn);
+}
+
+template<>
+MemoryVectorObject* getMVector( MPointer* vec){
+   return (MemoryVectorObject*) ((*vec)());
+}
+
+
 /*
 Function returning the current database name.
 
@@ -14615,13 +14636,13 @@ int collect_mvectorVM(Word* args, Word& result, int message,
     st = nl->TwoElemList(listutils::basicSymbol<Mem>(),
             nl->TwoElemList(listutils::basicSymbol<MemoryVectorObject>(),
                             nl->Second(st)));
-    string type = nl->ToString(nl->Second(st));
+    string type = nl->ToString(st);
     MemoryVectorObject* v = new MemoryVectorObject(flob->GetValue(),db,type);
     Stream<Attribute> stream(args[0]);
     stream.open();
     Attribute* a;
     while((a = stream.request())){
-        v->add(a);
+        v->add(a,true);
         a->DeleteIfAllowed();
     }
     stream.close();
@@ -14648,6 +14669,741 @@ Operator collect_mvectorOp(
   collect_mvectorTM
 );
 
+
+/*
+9.2 sizemv
+
+Returns the size of an mvector.
+
+*/
+
+
+ListExpr sizemvTM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("one arg expected");
+   }
+   if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+   }
+   ListExpr a = nl->First(args);
+   string err;
+   if(!getMemType(nl->First(a), nl->Second(a),a, err,true)){
+     return listutils::typeError(err);
+   }
+   a = nl->Second(a);
+   if(!MemoryVectorObject::checkType(a)){
+     return listutils::typeError("argument is not an mvector");
+   }
+   return  listutils::basicSymbol<CcInt>();
+}
+
+
+template<class T>
+int sizemvVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   T* arg = (T*) args[0].addr;
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+   MemoryVectorObject* mv = getMVector(arg);
+   if(!mv){
+     res->SetDefined(false);
+   } else {
+     res->Set(true, mv->size());
+   }
+   return 0;
+}
+
+ValueMapping sizemvVM[] = {
+   sizemvVMT<CcString>,
+   sizemvVMT<Mem>,
+   sizemvVMT<MPointer>
+};
+
+
+int sizemvSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
+OperatorSpec sizemvSpec(
+  "{mem,string,mpointer} -> int ",
+  "sizemv(_)",
+  "Returns the size of a memory vector.",
+  "query sizemv(\"v1\")"
+
+);
+
+Operator sizemvOp(
+  "sizemv",
+  sizemvSpec.getStr(),
+  3,
+  sizemvVM,
+  sizemvSelect,
+  sizemvTM
+
+);
+
+
+
+/*
+9.3 getmv
+
+Returns an element of an mvector.
+
+*/
+
+
+ListExpr getmvTM(ListExpr args){
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError("one arg expected");
+   }
+   if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+   }
+   if(!CcInt::checkType(nl->First(nl->Second(args)))){
+     return listutils::typeError("Second arg has to be an int");
+   }
+   ListExpr a = nl->First(args);
+   string err;
+   if(!getMemType(nl->First(a), nl->Second(a),a, err,true)){
+     return listutils::typeError(err);
+   }
+   a = nl->Second(a);
+   if(!MemoryVectorObject::checkType(a)){
+     return listutils::typeError("argument is not an mvector");
+   }
+   return  listutils::basicSymbol<CcInt>();
+}
+
+
+template<class T>
+int getmvVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   Attribute* res = (Attribute*) result.addr;
+   CcInt* spos = (CcInt*) args[1].addr;
+   if(!spos->IsDefined() ){
+     res->SetDefined(false);
+     return 0;
+   }
+   int pos = spos->GetValue();
+
+   T* arg = (T*) args[0].addr;
+
+   MemoryVectorObject* mv = getMVector(arg);
+   if(!mv){
+     res->SetDefined(false);
+   } else {
+     if(pos<0 || pos>=mv->size()){
+        res->SetDefined(0);
+     } else {
+        res->CopyFrom(mv->get(pos));
+     }
+   }
+   return 0;
+}
+
+ValueMapping getmvVM[] = {
+   getmvVMT<CcString>,
+   getmvVMT<Mem>,
+   getmvVMT<MPointer>
+};
+
+
+int getmvSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
+OperatorSpec getmvSpec(
+  "{mem,string,mpointer} x int -> DATA ",
+  "_ getmv[_ ]",
+  "Returns an specified element of an mvector",
+  "query \"v1\" getmv[42]"
+);
+
+Operator getmvOp(
+  "getmv",
+  getmvSpec.getStr(),
+  3,
+  getmvVM,
+  getmvSelect,
+  getmvTM
+);
+
+
+/*
+9.3 putmv
+
+Changes a element of an mvector. Returns the old element. 
+
+*/
+
+
+ListExpr putmvTM(ListExpr args){
+   if(!nl->HasLength(args,3)){
+     return listutils::typeError("one arg expected");
+   }
+   if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+   }
+   if(!CcInt::checkType(nl->First(nl->Second(args)))){
+     return listutils::typeError("Second arg has to be an int");
+   }
+   ListExpr newValue = nl->First(nl->Third(args));
+   if(!Attribute::checkType(newValue)){
+     return listutils::typeError("thir arg not in kind DATA");
+   }
+
+   ListExpr a = nl->First(args);
+   string err;
+   if(!getMemType(nl->First(a), nl->Second(a),a, err,true)){
+     return listutils::typeError(err);
+   }
+   a = nl->Second(a);
+   if(!MemoryVectorObject::checkType(a)){
+     return listutils::typeError("argument is not an mvector");
+   }
+   if(!nl->Equal(nl->Second(a),newValue)){
+     return listutils::typeError("new value has another type than the vector");
+   }
+   return  listutils::basicSymbol<CcInt>();
+}
+
+
+template<class T>
+int putmvVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   Attribute* res = (Attribute*) result.addr;
+   CcInt* spos = (CcInt*) args[1].addr;
+   if(!spos->IsDefined() ){
+     res->SetDefined(false);
+     return 0;
+   }
+   int pos = spos->GetValue();
+
+   Attribute* attr = (Attribute*) args[2].addr;
+
+   T* arg = (T*) args[0].addr;
+
+   MemoryVectorObject* mv = getMVector(arg);
+   if(!mv){
+     res->SetDefined(false);
+   } else {
+     if(pos<0 || pos>=mv->size()){
+        res->SetDefined(0);
+     } else {
+        Attribute* old = mv->get(pos);
+        mv->put(pos, attr, true);
+        res->CopyFrom(old);
+        old->DeleteIfAllowed();
+     }
+   }
+   return 0;
+}
+
+ValueMapping putmvVM[] = {
+   putmvVMT<CcString>,
+   putmvVMT<Mem>,
+   putmvVMT<MPointer>
+};
+
+
+int putmvSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
+OperatorSpec putmvSpec(
+  "{mem,string,mpointer} x int x DATA -> DATA ",
+  "_ getmv[_ ]",
+  "Replaces an specified element in an mvector, returns the old element.",
+  "query \"v1\"  putmv[17, 'newValue'] "
+);
+
+Operator putmvOp(
+  "putmv",
+  putmvSpec.getStr(),
+  3,
+  putmvVM,
+  putmvSelect,
+  putmvTM
+);
+
+/*
+9.5 sizemv
+
+Check whether an mvector is sorted.
+
+*/
+
+
+ListExpr isSortedmvTM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("one arg expected");
+   }
+   if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+   }
+   ListExpr a = nl->First(args);
+   string err;
+   if(!getMemType(nl->First(a), nl->Second(a),a, err,true)){
+     return listutils::typeError(err);
+   }
+   a = nl->Second(a);
+   if(!MemoryVectorObject::checkType(a)){
+     return listutils::typeError("argument is not an mvector");
+   }
+   return  listutils::basicSymbol<CcBool>();
+}
+
+
+template<class T>
+int isSortedmvVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   T* arg = (T*) args[0].addr;
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   MemoryVectorObject* mv = getMVector(arg);
+   if(!mv){
+     res->SetDefined(false);
+   } else {
+     res->Set(true, mv->isSorted());
+   }
+   return 0;
+}
+
+ValueMapping isSortedmvVM[] = {
+   isSortedmvVMT<CcString>,
+   isSortedmvVMT<Mem>,
+   isSortedmvVMT<MPointer>
+};
+
+
+int isSortedmvSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
+OperatorSpec isSortedmvSpec(
+  "{mem,string,mpointer} -> bool ",
+  "issortedmv(_)",
+  "Checks whether an mvector is known as sorted",
+  "query isSortedmv(\"v1\")"
+
+);
+
+Operator isSortedmvOp(
+  "isSortedmv",
+  isSortedmvSpec.getStr(),
+  3,
+  isSortedmvVM,
+  isSortedmvSelect,
+  isSortedmvTM
+);
+
+
+
+/*
+9.5 sortmv
+
+Check whether an mvector is sorted.
+
+*/
+
+
+ListExpr sortmvTM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("one arg expected");
+   }
+   if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+   }
+   ListExpr a = nl->First(args);
+   string err;
+   if(!getMemType(nl->First(a), nl->Second(a),a, err,true)){
+     return listutils::typeError(err);
+   }
+   ListExpr a2 = nl->Second(a);
+   if(!MemoryVectorObject::checkType(a2)){
+     return listutils::typeError("argument is not an mvector");
+   }
+   return nl->TwoElemList( listutils::basicSymbol<MPointer>(), a); 
+
+}
+
+
+template<class T>
+int sortmvVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   T* arg = (T*) args[0].addr;
+   result = qp->ResultStorage(s);
+   MPointer* res = (MPointer*) result.addr;
+   MemoryVectorObject* mv = getMVector(arg);
+   if(mv){
+     mv->sort();
+   }
+   res->setPointer(mv);
+   return 0;
+}
+
+ValueMapping sortmvVM[] = {
+   sortmvVMT<CcString>,
+   sortmvVMT<Mem>,
+   sortmvVMT<MPointer>
+};
+
+
+int sortmvSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
+OperatorSpec sortmvSpec(
+  "{mem,string,mpointer} -> mpointer ",
+  "sort(_)",
+  "Sorts an mvector.",
+  "query sort(\"v1\")"
+
+);
+
+Operator sortmvOp(
+  "sortmv",
+  sortmvSpec.getStr(),
+  3,
+  sortmvVM,
+  sortmvSelect,
+  sortmvTM
+);
+
+/*
+9.8 feedmv
+
+Feeds the elements of an mvector into a stream.
+
+*/
+
+
+ListExpr feedmvTM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("one arg expected");
+   }
+   if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+   }
+   ListExpr a = nl->First(args);
+   string err;
+   if(!getMemType(nl->First(a), nl->Second(a),a, err,true)){
+     return listutils::typeError(err);
+   }
+   ListExpr a2 = nl->Second(a);
+   if(!MemoryVectorObject::checkType(a2)){
+     return listutils::typeError("argument is not an mvector");
+   }
+   return nl->TwoElemList( listutils::basicSymbol<Stream<Attribute> >(),
+                           nl->Second(a2)); 
+
+}
+
+class feedmvInfo{
+  public:
+    feedmvInfo(MemoryVectorObject* _v): v(_v), pos(0), max(_v->size()){}
+
+    ~feedmvInfo(){}
+
+    Attribute* next(){
+      if(pos>=max){
+        return 0;
+      }
+      return v->get(pos++)->Copy();
+    }
+
+  private:
+    MemoryVectorObject* v;
+    size_t pos;
+    size_t max;
+
+};
+
+
+template<class T>
+int feedmvVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   feedmvInfo* li = (feedmvInfo*) local.addr;
+   switch(message){
+      case OPEN: {
+           if(li){
+             delete li;
+             local.addr = 0;
+           }
+           T* arg = (T*) args[0].addr;
+           MemoryVectorObject* mv = getMVector(arg);
+           if(mv){
+             local.addr = new feedmvInfo(mv);
+           }
+           return 0;
+        }
+      case REQUEST:
+           result.addr = li?li->next():0;
+           return result.addr?YIELD:CANCEL;
+      case CLOSE:
+           if(li){
+             delete li;
+             local.addr = 0;
+           }  
+    }
+    return -1;
+}
+
+ValueMapping feedmvVM[] = {
+   feedmvVMT<CcString>,
+   feedmvVMT<Mem>,
+   feedmvVMT<MPointer>
+};
+
+
+int feedmvSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
+OperatorSpec feedmvSpec(
+  "{mem,string,mpointer} -> stream(DATA) ",
+  "_ feedmv",
+  "feeds an mvector.",
+  "query \"v1\" feedmv"
+);
+
+Operator feedmvOp(
+  "feedmv",
+  feedmvSpec.getStr(),
+  3,
+  feedmvVM,
+  feedmvSelect,
+  feedmvTM
+);
+
+/*
+9.8 findmv
+
+Returns the position within an sorted mvector where
+an element is located or would be inserted (moving 
+elements to right).
+
+*/
+
+
+ListExpr findmvTM(ListExpr args){
+ if(!nl->HasLength(args,2)){
+   return listutils::typeError("two arg expected");
+ }
+ if(!checkUsesArgs(args)){
+   return listutils::typeError("internal error");
+ }
+ ListExpr v = nl->First(nl->Second(args));
+ if(!Attribute::checkType(v)){
+   return listutils::typeError("second arg is not in kind DATA");
+ }
+
+ ListExpr a = nl->First(args);
+ string err;
+ if(!getMemType(nl->First(a), nl->Second(a),a, err,true)){
+   return listutils::typeError(err);
+ }
+ a = nl->Second(a);
+ if(!MemoryVectorObject::checkType(a)){
+   return listutils::typeError("argument is not an mvector");
+ }
+ 
+ ListExpr sa = nl->Second(a);
+ if(!nl->Equal(sa,v)){
+   return listutils::typeError("subtype of vector and search type differ");
+ }
+
+ return  listutils::basicSymbol<CcInt>();
+}
+
+
+template<class T>
+int findmvVMT(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+
+ T* arg = (T*) args[0].addr;
+ result = qp->ResultStorage(s);
+ CcInt* res = (CcInt*) result.addr;
+ MemoryVectorObject* mv = getMVector(arg);
+ if(!mv){
+   res->SetDefined(false);
+   return 0;
+ }
+ if(!mv->isSorted()){
+   res->SetDefined(false);
+   return 0;
+ }
+ if(mv->size()<1){
+   res->Set(true,0);
+   return 0;
+ }
+ Attribute* attr = (Attribute*) args[1].addr;
+ res->Set(true,mv->binSearch(attr));
+ return 0;
+}
+
+ValueMapping findmvVM[] = {
+ findmvVMT<CcString>,
+ findmvVMT<Mem>,
+ findmvVMT<MPointer>
+};
+
+
+int findmvSelect(ListExpr args){
+ListExpr a = nl->First(args);
+if(CcString::checkType(a)) return 0;
+if(Mem::checkType(a)) return 1;
+if(MPointer::checkType(a)) return 2;
+return -1;
+}
+
+OperatorSpec findmvSpec(
+"{mem,string,mpointer} x  DATA -> int ",
+"findmv(_)",
+"Returns the position (or a potential insertion position) "
+"of a value within an ordered  memory vector.",
+"query findmv(\"v1\", 'Value' )"
+
+);
+
+Operator findmvOp(
+"findmv",
+findmvSpec.getStr(),
+3,
+findmvVM,
+findmvSelect,
+findmvTM
+
+);
+
+
+/*
+9.8 matchbelow
+
+Returns the element of an mvector that is smaller or equal than
+a given object.
+
+
+*/
+
+
+ListExpr matchbelowmvTM(ListExpr args){
+ if(!nl->HasLength(args,2)){
+   return listutils::typeError("two arg expected");
+ }
+ if(!checkUsesArgs(args)){
+   return listutils::typeError("internal error");
+ }
+ ListExpr v = nl->First(nl->Second(args));
+ if(!Attribute::checkType(v)){
+   return listutils::typeError("second arg is not in kind DATA");
+ }
+
+ ListExpr a = nl->First(args);
+ string err;
+ if(!getMemType(nl->First(a), nl->Second(a),a, err,true)){
+   return listutils::typeError(err);
+ }
+ a = nl->Second(a);
+ if(!MemoryVectorObject::checkType(a)){
+   return listutils::typeError("argument is not an mvector");
+ }
+ 
+ ListExpr sa = nl->Second(a);
+ if(!nl->Equal(sa,v)){
+   return listutils::typeError("subtype of vector and search type differ");
+ }
+
+ return  sa;
+}
+
+
+template<class T>
+int matchbelowmvVMT(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+
+ T* arg = (T*) args[0].addr;
+ result = qp->ResultStorage(s);
+ Attribute* res = (Attribute*) result.addr;
+ MemoryVectorObject* mv = getMVector(arg);
+ if(!mv){
+   res->SetDefined(false);
+   return 0;
+ }
+ Attribute* attr = (Attribute*) args[1].addr;
+ Attribute* resv = mv->matchBelow(attr);
+ if(!resv){
+     res->SetDefined(false);
+     return 0;
+ }
+ res->CopyFrom(resv);
+ return 0;
+}
+
+ValueMapping matchbelowmvVM[] = {
+ matchbelowmvVMT<CcString>,
+ matchbelowmvVMT<Mem>,
+ matchbelowmvVMT<MPointer>
+};
+
+
+int matchbelowmvSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
+OperatorSpec matchbelowmvSpec(
+"{mem,string,mpointer} x  DATA -> DATA ",
+" _ matchbelowmv[_]",
+"Returns the element of an mvector that is  "
+"smaller or equal to agiven object.",
+"query \"v1\" matchbelowmv( 'Value' )"
+
+);
+
+Operator matchbelowmvOp(
+  "matchbelowmv",
+  matchbelowmvSpec.getStr(),
+  3,
+  matchbelowmvVM,
+  matchbelowmvSelect,
+  matchbelowmvTM
+);
 
 
 
@@ -15113,10 +15869,30 @@ class MainMemory2Algebra : public Algebra {
 //           momapmatchmhtOp.SetUsesArgsInTypeMapping(); 
 
 
-          AddOperator(&collect_mvectorOp);
 
           AddOperator(&pwrapOp);
           pwrapOp.SetUsesArgsInTypeMapping();
+          
+
+     // operations on mvector
+          AddOperator(&collect_mvectorOp);
+          AddOperator(&sizemvOp);
+          sizemvOp.SetUsesArgsInTypeMapping();
+          AddOperator(&getmvOp);
+          getmvOp.SetUsesArgsInTypeMapping();
+          AddOperator(&putmvOp);
+          putmvOp.SetUsesArgsInTypeMapping();
+          AddOperator(&isSortedmvOp);
+          isSortedmvOp.SetUsesArgsInTypeMapping();
+          AddOperator(&sortmvOp);
+          sortmvOp.SetUsesArgsInTypeMapping();
+          AddOperator(&feedmvOp);
+          feedmvOp.SetUsesArgsInTypeMapping();
+          
+          AddOperator(&findmvOp);
+          findmvOp.SetUsesArgsInTypeMapping();
+          AddOperator(&matchbelowmvOp);
+          matchbelowmvOp.SetUsesArgsInTypeMapping();
 
         }
         
