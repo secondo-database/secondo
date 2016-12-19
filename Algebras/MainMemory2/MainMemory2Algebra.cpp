@@ -14799,7 +14799,7 @@ int getmvVMT(Word* args, Word& result, int message,
    if(!mv){
      res->SetDefined(false);
    } else {
-     if(pos<0 || pos>=mv->size()){
+     if(pos<0 || (size_t)pos>=mv->size()){
         res->SetDefined(0);
      } else {
         res->CopyFrom(mv->get(pos));
@@ -14900,7 +14900,7 @@ int putmvVMT(Word* args, Word& result, int message,
    if(!mv){
      res->SetDefined(false);
    } else {
-     if(pos<0 || pos>=mv->size()){
+     if(pos<0 || (size_t)pos>=mv->size()){
         res->SetDefined(0);
      } else {
         Attribute* old = mv->get(pos);
