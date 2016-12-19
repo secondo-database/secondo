@@ -38,6 +38,10 @@ This argument specifies the user accessing the remote host.
 If this part is omitted, the current user name is used.
 
 
+The file has to end with an empty line. Otherwise, the last 
+line will be ignored.
+
+
 
 The second argument of the script defines the action to do.
 It can be one of {start, stop, check}.
