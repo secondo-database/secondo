@@ -469,7 +469,8 @@ patternsequence : patternsequence variable element {
 element : patternelement {
             PatElem pElem($1, tup);
             if (!pElem.isOk()) {
-              errMsg = Tools::convert("invalid information in pattern atom " + wholepat->getSize());
+              errMsg = Tools::convert("invalid information in pattern atom " + 
+                        stringutils::int2str(wholepat->getSize()));
               free($1);
               yyerror(errMsg);
               delete errMsg;
