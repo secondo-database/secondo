@@ -15406,6 +15406,233 @@ Operator matchbelowmvOp(
 );
 
 
+/*
+9.9 Operator insertmv
+
+*/
+ListExpr insertmvTM(ListExpr args){
+  if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
+    return listutils::typeError("two or three args expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr stream = nl->First(nl->First(args));
+  ListExpr attrType = nl->TheEmptyList();
+  ListExpr vector = nl->TheEmptyList();
+  int index = 0;
+  if(nl->HasLength(args,2)){
+    if(!Stream<Attribute>::checkType(stream)){
+       return listutils::typeError("If two arguments are given, the first one "
+                                   "must be a stream of attributes");
+    }
+    attrType = nl->Second(stream);
+    vector = nl->Second(args);
+  } else { // three arguments
+    if(!Stream<Tuple>::checkType(stream)){
+       return listutils::typeError("If 3 arguments are given, the first one "
+                                   "must be a stream of tuples");
+    }
+    ListExpr attrNameList = nl->First(nl->Second(args));
+    if(!listutils::isSymbol(attrNameList)){
+      return listutils::typeError("invalid attribute name as 2nd arg");
+    }
+    string attrName = nl->SymbolValue(attrNameList);
+    ListExpr attrList = nl->Second(nl->Second(stream));
+    index = listutils::findAttribute(attrList,attrName,attrType);
+    if(!index){
+      return listutils::typeError("Attribute " + attrName 
+                                 + " not part of the tuple in stream");
+    }
+    vector = nl->Third(args);
+  }
+  string err;
+  if(!getMemType(nl->First(vector), nl->Second(vector), vector, err,true)){
+    return listutils::typeError(err);
+  }
+  vector = nl->Second(vector);
+  if(!MemoryVectorObject::checkType(vector)){
+    return listutils::typeError("last element is not a memory vector");
+  }  
+  if(!nl->Equal(attrType, nl->Second(vector))){
+    return listutils::typeError("stream type and vector type differ");
+  }
+  if(nl->HasLength(args,2)){
+    return stream;
+  } else {
+    return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                             nl->OneElemList( nl->IntAtom(index-1)),
+                             stream);
+  }
+}
+
+
+class insertmvAttrInfo{
+  public:
+    insertmvAttrInfo(Word _stream, MemoryVectorObject* _v): 
+      stream(_stream), v(_v){
+       stream.open();
+    }
+    ~insertmvAttrInfo(){
+      stream.close();
+    }
+
+    Attribute* next(){
+      Attribute* a = stream.request();
+      if(a){
+        v->add(a,true);
+      }
+      return a;
+    }
+
+  private:
+     Stream<Attribute> stream;
+     MemoryVectorObject* v; 
+};
+
+
+template<class T>
+int insertmvAttrVMT(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+
+   insertmvAttrInfo* li = (insertmvAttrInfo*) local.addr;
+   switch(message){
+     case OPEN: {
+            if(li){
+              delete li;
+              local.addr = 0;
+            }
+            T* vn = (T*) args[1].addr;
+            MemoryVectorObject* v = getMVector(vn);
+            if(v==0){
+             return 0;
+            }
+            local.addr = new insertmvAttrInfo(args[0],v);
+            return 0;
+          }
+     case REQUEST:
+           result.addr = li?li->next():0;
+           return result.addr?YIELD:CANCEL;
+
+     case CLOSE:
+          if(li){
+            delete li;
+            local.addr = 0;
+          }
+          return 0;
+   }
+   return -1;
+}
+
+class insertmvTupleInfo{
+  public: 
+      insertmvTupleInfo(Word _stream, MemoryVectorObject* _v, int _index):
+         stream(_stream), v(_v), index(_index){
+         stream.open();
+      }
+      ~insertmvTupleInfo(){
+        stream.close();
+      }
+
+      Tuple* next(){
+         Tuple* t = stream.request();
+         if(t){
+           v->add(t->GetAttribute(index), true);
+         }
+         return t;
+      }
+
+  private:
+      Stream<Tuple> stream;
+      MemoryVectorObject* v; 
+      int index;
+};
+
+
+template<class T>
+int insertmvTupleVMT(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+
+   insertmvTupleInfo* li = (insertmvTupleInfo*) local.addr;
+   switch(message){
+     case OPEN: {
+            if(li){
+              delete li;
+              local.addr = 0;
+            }
+            T* vn = (T*) args[2].addr;
+            MemoryVectorObject* v = getMVector(vn);
+            if(v==0){
+             return 0;
+            }
+            int index = ((CcInt*) args[3].addr)->GetValue();
+            local.addr = new insertmvTupleInfo(args[0],v,index);
+            return 0;
+          }
+     case REQUEST:
+           result.addr = li?li->next():0;
+           return result.addr?YIELD:CANCEL;
+
+     case CLOSE:
+          if(li){
+            delete li;
+            local.addr = 0;
+          }
+          return 0;
+   }
+   return -1;
+}
+
+ValueMapping insertmvVM[] = {
+   insertmvAttrVMT<CcString>,
+   insertmvAttrVMT<Mem>,
+   insertmvAttrVMT<MPointer>,
+   insertmvTupleVMT<CcString>,
+   insertmvTupleVMT<Mem>,
+   insertmvTupleVMT<MPointer>
+};
+
+int insertmvSelect(ListExpr args){
+
+  int n1 = -23;
+  ListExpr vt;
+  if(nl->HasLength(args,2)){
+    n1 = 0;
+    vt = nl->Second(args);
+  } else {
+    n1 = 3;
+    vt = nl->Third(args);
+  }
+  if(CcString::checkType(vt)){
+    return n1;
+  }
+  if(Mem::checkType(vt)){
+    return n1+1;
+  }
+  if(MPointer::checkType(vt)){
+    return n1+2;
+  }
+  return -1;
+}
+
+OperatorSpec insertmvSpec(
+  "stream(A) x mvector -> stream(A) | "
+  "stream(tuple(...)) x ID x mvector -> stream(tuple)",
+  " _ insertmv[_,_] ",
+  "Appends elements from a stream to a main memory vector.",
+  " query ten feed insertmv[No, \"tv\"] count"
+);
+
+
+Operator insertmvOp(
+  "insertmv",
+   insertmvSpec.getStr(),
+   6,
+   insertmvVM,
+   insertmvSelect,
+   insertmvTM
+);
+
 
 /*
 10 MPointer Creation
@@ -15893,6 +16120,8 @@ class MainMemory2Algebra : public Algebra {
           findmvOp.SetUsesArgsInTypeMapping();
           AddOperator(&matchbelowmvOp);
           matchbelowmvOp.SetUsesArgsInTypeMapping();
+          AddOperator(&insertmvOp);
+          insertmvOp.SetUsesArgsInTypeMapping();
 
         }
         

@@ -677,3 +677,16 @@ Signature : mvector x DATA -> DATA , mvector represented as string, mem, or mpoi
 Example   : query "V_PLZ" matchbelowmv[8666]
 Result    : 8648
 
+Operator  : insertmv
+Number    : 113
+Signature : stream(A) x mvector(A) -> stream(A), A in DATA, mvector represneted as string, mem or mpointer
+Example   : query intstream(1,10) insertmv["V_PLZ"] count
+Result    : 10
+
+Operator  : insertmv
+Number    : 114
+Signature : stream(tuple) x ID x mvector(A) - stream(tuple)
+Example   : query ten feed insertmv[No, "V_PLZ"] count
+Result    : 10
+
+

@@ -129,3 +129,8 @@ operator sortmv alias SORTMV pattern op(_)
 operator feedmv alias FEEDMV pattern  _ op
 operator findmv alias FINDMV pattern  op(_,_)
 operator matchbelowmv alias MATCHBELOWMV pattern  _ op [_] 
+
+operator insertmv alias INSERTMV pattern _ op [_,_]
+
+
+
