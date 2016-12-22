@@ -4112,6 +4112,7 @@ int HCMPoint::Position( int layer, const Instant& t )
 
     default:
       // This point should never be reached.
+      size=-1;
       break;
   }
 
@@ -4262,6 +4263,7 @@ int HCMPoint::Generalize(const int layer, const bool checkBreakPoints,
 
     default:
       // should never been reached!
+      size = -1;
       break;
   }
 
@@ -6170,6 +6172,8 @@ int HMPoint::Generalize(const int layer, const bool checkBreakPoints,
 
     default:
       // should never been reached!
+      size = -1;
+      assert(false);
       break;
   }
 

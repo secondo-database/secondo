@@ -96,7 +96,7 @@ template<class BottomR_TreeLeafInfo>
 void MON_Tree<BottomR_TreeLeafInfo>::Insert( const int routeId,
                        const SmiRecordId bottomId )
 {
-  routeHash->Append( SmiKey((long)routeId), bottomId );
+  routeHash->Append( SmiKey((int64_t)routeId), bottomId );
 }
 
 template<class BottomR_TreeLeafInfo>

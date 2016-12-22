@@ -314,15 +314,14 @@ The destructor.
   virtual void AtInterval( const temporalalgebra::Interval<Instant>& i,
                            TemporalUnit<Point>& result ) const;
 
-  void Distance( const Point& p, temporalalgebra::UReal& result ) const {}
-
-
   void USpeed( temporalalgebra::UReal& result ) const {}
   void UVelocity( temporalalgebra::UPoint& result ) const {}
   void Intersection(const temporalalgebra::UPoint &other, 
                     temporalalgebra::UPoint &result) const {}
 
-  virtual bool EqualValue( const CUPoint& i )
+
+
+  virtual bool EqualValue( const UPoint& i ) const
   {
     return ( AlmostEqual( p0, i.p0 ) && AlmostEqual( p1, i.p1 ) );
   }
@@ -421,8 +420,15 @@ the CUPoint, which possibly lies on or inside the given spatal object.
     return UnitIsValid() && Uncertain::IsValid();
   }
 
-virtual const Rectangle<3> BoundingBox() const
+  virtual const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const
   {
+    if(geoid){
+      if(!geoid->IsDefined() || !IsDefined()){
+        return Rectangle<3>(false,0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+      }
+      assert(false);
+      return Rectangle<3>(false,0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    }
     return Rectangle<3>( true, MIN( p0.GetX(), p1.GetX() )-epsilon,
                                MAX( p0.GetX(), p1.GetX() )+epsilon,
                                MIN( p0.GetY(), p1.GetY() )-epsilon,
@@ -814,7 +820,7 @@ A constructor which sets all attributes (usually unsed by the in-function).
 
   inline bool IsLeaf() const
   {
-    if( index > -1 && originstart = originend )
+    if( index > -1 && originstart == originend )
       return true;
     return false;
   }
