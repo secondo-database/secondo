@@ -34,7 +34,6 @@ snap rounding and finally a operation specific check.
 
 */
 
-using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -75,6 +74,8 @@ using namespace std;
 #ifndef M_PI
 const double M_PI = acos( -1.0 );
 #endif
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

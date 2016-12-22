@@ -477,7 +477,7 @@ int WriteTrafficRelation(GenericRelation *rel,
           if (!endInstants.empty())
             GetTopValues(endInstants, actTEnd, speed, weight);
           else
-            actTEnd == actTStart;
+            actTEnd = actTStart;
           if (actTStart != actTEnd)
             WriteUnits(flow, avgSpeed, actTStart, actTEnd, true, false,
                        actFlow, actSpeed);

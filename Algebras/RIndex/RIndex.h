@@ -6,7 +6,7 @@
 
 
 */
-#include "RectangleAlgebra.h"
+#include "../Rectangle/RectangleAlgebra.h"
 
 
 
@@ -69,7 +69,7 @@ result of this function is false, true otherwise.
 */
       bool erase(const Rectangle<dim>& r, const T& t){
          if(!r.IsDefined()){
-            return;
+            return false;
          }
          if(!root){
             return false;
