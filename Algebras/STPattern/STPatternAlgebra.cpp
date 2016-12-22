@@ -221,7 +221,7 @@ inline ListExpr STVector::Vector2List()
     simple*=2;
     i++;
   }
-  for(i=i; i<26; i++)
+  for(i=0; i<26; i++)
   {
     if(v & simple)
       last= nl->Append(last, nl->SymbolAtom(StrSimpleConnectors[i]));
@@ -448,9 +448,11 @@ bool STVector::Open( SmiRecord& valueRecord, size_t& offset,
   size_t size = sizeof(int);
   int vec;
 
-  bool ok = true;
-  ok = ok && valueRecord.Read( &vec, size, offset );
+  bool ok = valueRecord.Read( &vec, size, offset );
   offset += size;
+  if(!ok){
+    return false;
+  }
   value.addr = new STVector(vec);
   return ok;
 }
