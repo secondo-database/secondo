@@ -213,6 +213,9 @@ bool UploadUnit::Open( SmiRecord& valueRecord, size_t& offset,
   ok = ok && valueRecord.Read(&t,sizeof(Instant),offset);
   offset += sizeof(Instant);
   ok = ok && valueRecord.Read(&pos,sizeof(UnitPos),offset);
+  if(!ok){
+    return false;
+  }
   value.addr = new UploadUnit(id,t,pos);
   return ok;
 }

@@ -528,6 +528,9 @@ bool SETI::Open( SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(SmiFileId);
   ok = ok && valueRecord.Read( &headerPageNo, sizeof(db_pgno_t), offset );
   offset += sizeof(db_pgno_t);
+  if(!ok){
+    return false;
+  }
   // Create new SETI object with existing file
   SETI* setiPtr = new SETI(fileID);
   setiPtr->header->fileID = fileID;

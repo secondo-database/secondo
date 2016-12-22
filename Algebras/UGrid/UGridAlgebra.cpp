@@ -651,6 +651,9 @@ bool UGrid::Open( SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(SmiFileId);
   ok = ok && valueRecord.Read( &headerPageNo, sizeof(db_pgno_t), offset );
   offset += sizeof(db_pgno_t);
+  if(!ok){
+    return false;
+  }
 
   // Create new UGrid object with existing file
   UGrid* ugridPtr = new UGrid(fileID);
