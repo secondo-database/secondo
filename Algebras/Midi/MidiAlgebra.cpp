@@ -456,7 +456,7 @@ size_t Midi::HashValue() const
   }
   else
   {
-    double long h;
+    double long h=0;
     int val = eventData.Size() / 10;
     unsigned char ch;
 
@@ -1494,7 +1494,7 @@ bool InEvents(Track* actualTrack, int nob, char* bytes, int tracknr )
       }
       else
       {
-        delete evsOfTrack;
+        delete[] evsOfTrack;
         actualMidi->Append(actualTrack);
         delete actualTrack;
       }
@@ -1533,7 +1533,7 @@ bool InEvents(Track* actualTrack, int nob, char* bytes, int tracknr )
   char *bytes = new char[ sizeDecoded ];
   int bytelength =  b.decode(b64s, bytes);
   byteStream.write( bytes, bytelength);
-  delete bytes;
+  delete[] bytes;
   byteStream.read(longw,4);
   longw[4] = '\0';
 
