@@ -109,11 +109,11 @@ namespace fialgebra{
     else{
       //Append overflow?
       if (index == m_maxValueCount){
-        memcpy(m_overflowValue, &value, m_typeSize);
+        memcpy(m_overflowValue, (char*)&value, m_typeSize);
       }
       //Append element?
       else if (index == *m_valueCount){
-        memcpy(m_values + (index * m_typeSize), &value, m_typeSize);
+        memcpy(m_values + (index * m_typeSize), (char*)&value, m_typeSize);
       }
       else{
         char* begin,
@@ -139,7 +139,7 @@ namespace fialgebra{
         }
 
         //Insert value
-        memcpy(begin - m_typeSize + 1, &value, m_typeSize);
+        memcpy(begin - m_typeSize + 1, (char*)&value, m_typeSize);
       }
     }
 
@@ -182,16 +182,16 @@ namespace fialgebra{
     //Copy all except the last value
     char* target = m_values + (index * m_typeSize);
     for (size_t i = 0; i < count - 1; i++){
-      memcpy(target, values[i], m_typeSize);
+      memcpy(target, (char*)values[i], m_typeSize);
       target += m_typeSize;
     }
 
     //Copy the last value
     if (index + count > m_maxValueCount){
-      memcpy(m_overflowValue, values[count - 1], m_typeSize);
+      memcpy(m_overflowValue, (char*)values[count - 1], m_typeSize);
     }
     else{
-      memcpy(target, values[count - 1], m_typeSize);
+      memcpy(target, (char*)values[count - 1], m_typeSize);
     }
 
     (*m_valueCount) += count;

@@ -109,7 +109,7 @@ namespace fialgebra{
       m_overflow.push_back(new Overflow(value, id));
     }
     else{
-      memcpy(m_values + ((*m_numberOfEntries) * typeSize), &value,
+      memcpy(m_values + ((*m_numberOfEntries) * typeSize), (char*)&value,
              typeSize);
 
       m_ids[*m_numberOfEntries] = id;
@@ -174,7 +174,7 @@ namespace fialgebra{
           m_overflow.erase(m_overflow.begin());
 
           memcpy(m_values + ((m_max - 1) * typeSize),
-                 &overflow->rectangle, typeSize);
+                 (char*)&overflow->rectangle, typeSize);
           m_ids[m_max - 1] = overflow->id;
 
           delete(overflow);
