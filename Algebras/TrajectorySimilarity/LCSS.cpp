@@ -265,6 +265,11 @@ The following implementation first determines the Edit Distance and then derives
 the length of the Longest Common Subsequence.
 
 */
+
+unsigned int dist(const unsigned int i1, const unsigned int i2){
+  return i1>i2?i1-i2:i2-i1;
+}
+
 template<class SEQ>
 unsigned int lcss(
     const SEQ& seq1, const SEQ& seq2,
@@ -292,7 +297,7 @@ If $delta \ne -1$, check for maximum distance of items in original
 sequences.
 
 */
-        if (delta != -1 && abs(i1 - i2) > delta)
+        if (delta != -1 && dist(i1,i2) > delta)
           return false;
 
 /*
