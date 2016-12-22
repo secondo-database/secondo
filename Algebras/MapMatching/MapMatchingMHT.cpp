@@ -247,7 +247,7 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
 //cout << "Step 2 - calculate missing attributes (heading, speed)" << endl;
         CompleteData(pContMMData.get());
 
-        size_t nIdxFirstComponent = 0;
+        int64_t nIdxFirstComponent = 0;
 
         while(nIdxFirstComponent >= 0 &&
               nIdxFirstComponent < pContMMData->Size())
