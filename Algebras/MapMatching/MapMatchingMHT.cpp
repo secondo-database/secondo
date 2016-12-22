@@ -250,7 +250,7 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
         int64_t nIdxFirstComponent = 0;
 
         while(nIdxFirstComponent >= 0 &&
-              nIdxFirstComponent < pContMMData->Size())
+              nIdxFirstComponent < (int64_t)pContMMData->Size())
         {
  //cout << "Step 3 - Determination of initial route/segment candidates" << endl;
             std::vector<MHTRouteCandidate*> vecRouteCandidates;
@@ -275,7 +275,7 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
             {
                 vecRouteSegments.push_back(pBestCandidate);
 
-                if (nIdxFirstComponent < pContMMData->Size())
+                if (nIdxFirstComponent < (int64_t)pContMMData->Size())
                 {
                     // Not all components processed
                     // -> matching failed (bad network)
