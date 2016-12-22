@@ -83,18 +83,6 @@ by the ~StandardAlgebra~:
 #include "StringUtils.h"
 
 
-/*
-~Auxiliary Functions~
-
-~trim~
-
-This function removes whitespaces from the start and the end of ~value~.
-
-*/
- void trimstring(std::string& str);
-
-
-
 
 
 /*
@@ -560,7 +548,7 @@ CcInt operator--(int){
 
 
   virtual void ReadFromString(std::string value){
-      trimstring(value);
+      stringutils::trim(value);
       if(value.size()==0){
          SetDefined(false);
       } else {
@@ -900,7 +888,7 @@ class CcReal : public Attribute
 
 
   virtual void ReadFromString(std::string value){
-      trimstring(value);
+      stringutils::trim(value);
       if(value.size()==0){
          SetDefined(false);
       } else {
@@ -1087,7 +1075,7 @@ class CcBool : public Attribute
   }
 
   virtual void ReadFromString(std::string value){
-     trimstring(value);
+     stringutils::trim(value);
      std::string::size_type p = value.find_first_not_of(" \t");
      if(p==std::string::npos){
        SetDefined(false);
