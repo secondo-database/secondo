@@ -1,6 +1,8 @@
 #include <string.h>
 #include <triangulate.h>
 #include <math.h>
+#include <assert.h>
+#include <stdbool.h>
 
 
 node_t qs[QSIZE];		/* Query structure */
@@ -345,6 +347,8 @@ int locate_endpoint(v, vo, r)
 
     default:
       fprintf(stderr, "Haggu !!!!!\n");
+      assert(false);
+      return -1;
       break;
     }
 }
@@ -394,27 +398,32 @@ static int merge_trapezoids(segnum, tfirst, tlast, side)
 	      
 	      /* Change the upper neighbours of the lower trapezoids */
 	      
-	      if ((tr[t].d0 = tr[tnext].d0) > 0)
-		if (tr[tr[t].d0].u0 == tnext)
+	      if ((tr[t].d0 = tr[tnext].d0) > 0){
+		if (tr[tr[t].d0].u0 == tnext){
 		  tr[tr[t].d0].u0 = t;
-		else if (tr[tr[t].d0].u1 == tnext)
+		} else if (tr[tr[t].d0].u1 == tnext){ 
 		  tr[tr[t].d0].u1 = t;
-	      
-	      if ((tr[t].d1 = tr[tnext].d1) > 0)
-		if (tr[tr[t].d1].u0 == tnext)
+                }
+	      }
+	      if ((tr[t].d1 = tr[tnext].d1) > 0){
+		if (tr[tr[t].d1].u0 == tnext){
 		  tr[tr[t].d1].u0 = t;
-		else if (tr[tr[t].d1].u1 == tnext)
+		}else if (tr[tr[t].d1].u1 == tnext){
 		  tr[tr[t].d1].u1 = t;
+                }
+              }
 	      
 	      tr[t].lo = tr[tnext].lo;
 	      tr[tnext].state = ST_INVALID; /* invalidate the lower */
 				            /* trapezium */
 	    }
-	  else		    /* not good neighbours */
+	  else {		    /* not good neighbours */
 	    t = tnext;
+          }
 	}
-      else		    /* do not satisfy the outer if */
+      else {		    /* do not satisfy the outer if */
 	t = tnext;
+      }
       
     } /* end-while */
        

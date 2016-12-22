@@ -63,8 +63,8 @@ The header of the triangulation library contains two important things:
 namespace Constraint {
 
 // constants:
-const string OP_EQ = "eq";
-const string OP_LEQ = "leq";
+const std::string OP_EQ = "eq";
+const std::string OP_LEQ = "leq";
 const Rectangle<2> WORLD(true, -10000.0, 10000.0, -10000.0, 10000.0);
 // Word-Coordinates (arbitionary big)
 const int X = 0;
@@ -394,7 +394,7 @@ with the polygon that describes the rectangle ~mbbox~.
 
 */
 void ToConstraint(const Rectangle<2>& mbbox,
-                  vector<LinearConstraint>& vLinConstraints);
+                  std::vector<LinearConstraint>& vLinConstraints);
 
 /*
 3.5 Function ~ToConstraint~ for a poylgon.
@@ -404,8 +404,8 @@ to a list of linear constraints which describes the convex polygon in the same o
 Degenerated cases are possible: segment, point; not possible is the empty set as input.
 
 */
-void ToConstraint(const vector<Point2D>& vConvexPolygon,
-        vector<LinearConstraint>& vLinConstraints);
+void ToConstraint(const std::vector<Point2D>& vConvexPolygon,
+        std::vector<LinearConstraint>& vLinConstraints);
 
 /*
 3.6 Function ~ComputeXOrderedSequenceOfSlabs~
@@ -414,9 +414,9 @@ Compute an $x$-ordered sequence of slabs for the vertices of ~vP~'s upper and lo
 This function is used for the CPI-algorithm (convex polygon intersection).
 
 */
-void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>& vP,
-            vector<Point2D>& vUpperBoundary,
-            vector<Point2D>& vLowerBoundary);
+void ComputeXOrderedSequenceOfSlabs(const std::vector<Point2D>& vP,
+            std::vector<Point2D>& vUpperBoundary,
+            std::vector<Point2D>& vLowerBoundary);
 
 /*
 3.7 Function ~MinimumBoundingBox~
@@ -424,7 +424,7 @@ void ComputeXOrderedSequenceOfSlabs(const vector<Point2D>& vP,
 Computes and returns the minimum bounding box of the polygon ~vConvexPolygon~.
 
 */
-Rectangle<2> MinimumBoundingBox(const vector<Point2D>& vConvexPolygon);
+Rectangle<2> MinimumBoundingBox(const std::vector<Point2D>& vConvexPolygon);
 
 /*
 3.8 Function ~ConvexPolygonIntersection~
@@ -434,9 +434,9 @@ each given as a sequence of vertices in clockwise order.
 ~vConvexPolygon~ is again in clockwise order.
 
 */
-void ConvexPolygonIntersection(const vector<Point2D>& vP,
-        const vector<Point2D>& vQ,
-        vector<Point2D>& vPQIntersection);
+void ConvexPolygonIntersection(const std::vector<Point2D>& vP,
+        const std::vector<Point2D>& vQ,
+        std::vector<Point2D>& vPQIntersection);
 
 /*
 3.9 Function ~HalfPlaneIntersection~
@@ -447,8 +447,8 @@ Returns a (possibly degenared) polygon.
 
 */
 void HalfPlaneIntersection(
-        const vector<LinearConstraint>& vLinConstraints,
-        vector<Point2D>& vConvexPolygon);
+        const std::vector<LinearConstraint>& vLinConstraints,
+        std::vector<Point2D>& vConvexPolygon);
 
 /*
 3.10 Function ~TriangulateRegion~
@@ -458,8 +458,8 @@ Returns a (not ordered) set of triangles indexing to a set of vertices.
 
 */
 void TriangulateRegion(const Region* reg,
-  vector<vector<double> >& vVertices,
-  vector<vector<int> >& vTriangles);
+  std::vector<std::vector<double> >& vVertices,
+  std::vector<std::vector<int> >& vTriangles);
 
 /*
 3.11 Function ~GetTheta~
@@ -493,9 +493,9 @@ It's an implementation of the well-known Hertel-Melhorn algorithm.
 
 */
 void MergeTriangles2ConvexPolygons(
-  const vector<vector<double> >& vVertices,
-  const vector<vector<int> >& vTriangles,
-  vector<vector<Point2D> >& vCWPoints);
+  const std::vector<std::vector<double> >& vVertices,
+  const std::vector<std::vector<int> >& vTriangles,
+  std::vector<std::vector<Point2D> >& vCWPoints);
 
 /*
 3.14 Function ~GetIntersectionPoint~
@@ -549,7 +549,7 @@ The empty constructor.
       double a1,
       double a2,
       double b,
-      string strOp);
+      std::string strOp);
 /*
 This constructor can be used for the definition of a linear constraint by its coefficients and the comparison operator ('eq' for $=$ and 'leq' for $\leq$).
 
@@ -579,11 +579,11 @@ Getter and Setter:
     double Get_a1() const;
     double Get_a2() const;
     double Get_b() const;
-    string Get_Op() const;
+    std::string Get_Op() const;
     void Set_a1(double a1);
     void Set_a2(double a2);
     void Set_b(double b);
-    void Set_Op(string strOp);
+    void Set_Op(std::string strOp);
     void PrintOut() const;
 /*
 Debug and Test-function
@@ -668,7 +668,7 @@ Returns the size of the set of symbolic tuples.
 Retrieves the linear constraint at a position ~i~ in the set of linear constraints.
 
 */
-    void AddSymbolicTuple(const vector<LinearConstraint> vLinConstraints);
+    void AddSymbolicTuple(const std::vector<LinearConstraint> vLinConstraints);
 /*
 Adds a symbolic tupel to the symbolic relation.
 This new tupel is described with the set of linear constraints in ~vLinConstraints~.
@@ -744,7 +744,7 @@ Returns the minimum bounding box of the point set descibed by the symbolic relat
     double Distance(const Rectangle<2>& rect, const Geoid* = 0) const;
     bool IsEmpty() const;
 
-    static const string BasicType() { return "constraint"; }
+    static const std::string BasicType() { return "constraint"; }
 
     static const bool checkType(const ListExpr list){
       return listutils::isSymbol(list, BasicType());

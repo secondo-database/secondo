@@ -37,7 +37,6 @@ This implementation file essentially contains the definitions and implementation
 2 Defines and includes
 
 */
-using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -48,6 +47,7 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+using namespace std;
 
 namespace Constraint {
 
