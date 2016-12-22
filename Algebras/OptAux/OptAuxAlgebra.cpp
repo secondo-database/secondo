@@ -337,9 +337,8 @@ ListExpr predcounts_tm(ListExpr args)
       mapping = nl->Second(predicateDeclaration);
       mappingInputType = nl->Second(mapping);
       nl->WriteToString(argstr, mapping);
-      if( (nl->ListLength(mapping) != 3) ||
-         (TypeOfRelAlgSymbol(nl->First(mapping)) != ccmap) ||
-         (TypeOfRelAlgSymbol(nl->Third(mapping)) != ccbool) ){
+      if( !listutils::isMap<1>(mapping)
+         || !CcBool::checkType(nl->Third(mapping))) { 
         return listutils::typeError(
          "Operator predcounts expects a mapping "
          "function with list structure"
