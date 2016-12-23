@@ -5,13 +5,12 @@
 #include <boost/lexical_cast.hpp>
 #include "RelationAlgebra.h"
 #include "ListStream.hpp"
-using boost::lexical_cast;
 
-struct even_op : unary_function< CcInt, bool > {
+struct even_op : std::unary_function< CcInt, bool > {
     bool operator () ( const CcInt& n ) { return n.GetValue() % 2 == 0; }
 };
 
-struct odd_op : unary_function< CcInt, bool > {
+struct odd_op : std::unary_function< CcInt, bool > {
     bool operator () ( const CcInt& n ) { return n.GetValue() % 2 != 0; }
 };
 
@@ -19,11 +18,11 @@ struct odd_op : unary_function< CcInt, bool > {
 #include "StreamIterator.hpp"
 
 template< int N >
-struct Ntuples_op : unary_function< StreamIterator<Tuple>, pair<bool, Tuple*> >
+struct Ntuples_op : std::unary_function< StreamIterator<Tuple>, std::pair<bool, Tuple*> >
 {
     Ntuples_op( const StreamIterator<Tuple>&, ListExpr type ) : type_(type){}
 
-    pair<bool, Tuple*> operator()( const StreamIterator<Tuple>& stream )
+    std::pair<bool, Tuple*> operator()( const StreamIterator<Tuple>& stream )
     {
         StreamIterator<Tuple> s( stream );
         TupleType type( type_ );
@@ -63,27 +62,28 @@ struct Ntuples_op : unary_function< StreamIterator<Tuple>, pair<bool, Tuple*> >
             }
             first->DeleteIfAllowed();
         }
-        return make_pair( result_valid, result );
+        return std::make_pair( result_valid, result );
     }
 
     static list_ostream type( ListExpr stream_le )
     {
         ListExpr e = nl->Second( nl->Second( nl->First( stream_le ) ) );
 
-        vector< pair< string, string > > attrs;
+        std::vector< std::pair< std::string, std::string > > attrs;
         for(size_t i = 0, i_end = nl->ListLength(e); i < i_end; ++i)
         {
             ListExpr attr_def = nl->Nth( i + 1, e );
-            string name = from_atom<string>( nl->First(attr_def) );
-            string type = from_atom<string>( nl->Second(attr_def) );
-            attrs.push_back( make_pair( name, type ) );
+            std::string name = from_atom<std::string>( nl->First(attr_def) );
+            std::string type = from_atom<std::string>( nl->Second(attr_def) );
+            attrs.push_back( std::make_pair( name, type ) );
         }
 
         list_ostream new_def;
         for( int j = 0; j < N; ++j )
             for( size_t k = 0; k < attrs.size(); ++k )
                 new_def << ( list_ostream()
-                    << ChessBSymbol( attrs[k].first + lexical_cast<string>( j + 1 ) )
+                    << ChessBSymbol( attrs[k].first +
+                        boost::lexical_cast<std::string>( j + 1 ) )
                     << ChessBSymbol( attrs[k].second ) );
 
         return new_def;
@@ -92,7 +92,7 @@ private:
     ListExpr type_;
 };
 
-struct exists_op : unary_function< CcBool, bool >
+struct exists_op : std::unary_function< CcBool, bool >
 {
     exists_op() : result_(false){}
     void operator()( const CcBool& arg ){ result_ |= arg.GetValue(); }
@@ -102,7 +102,7 @@ private:
     bool result_;
 };
 
-struct forall_op : unary_function< CcBool, bool >
+struct forall_op : std::unary_function< CcBool, bool >
 {
     forall_op() : result_(true){}
     void operator()( const CcBool& arg ){ result_ &= arg.GetValue(); }
@@ -112,7 +112,7 @@ private:
     bool result_;
 };
 
-struct stddev_op : unary_function< CcReal, double >
+struct stddev_op : std::unary_function< CcReal, double >
 {
     stddev_op() : sum_(0.0), square_(0.0), N_(0){}
 

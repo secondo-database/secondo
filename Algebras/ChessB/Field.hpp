@@ -58,50 +58,50 @@ struct Field : public Attribute
 {
     static const std::string& name()
     {
-        static const string name( "field" );
+        static const std::string name( "field" );
         return name;
     }
 
     int file, row;
 
     Field(){}
-    Field( int f, int r ) : file(f), row(r)
+    Field( int f, int r ) : Attribute(true),file(f), row(r)
     {
         /*
         if ( file < 0 || file > 7 )
-            throw runtime_error( "File must be in range 'a'-'h'." );
+            throw std::runtime_error( "File must be in range 'a'-'h'." );
         if ( row < 0 || row > 7 )
-            throw runtime_error( "Row must be in range '1'-'8'." );
+            throw std::runtime_error( "Row must be in range '1'-'8'." );
         */
        del.refs=1;
        del.SetDelete();
        SetDefined(true);
     }
-    Field( undef_t undef ) : file(0), row(0)  {
+    Field( undef_t undef ) : Attribute(true),file(0), row(0)  {
        del.refs=1;
        del.SetDelete();
        SetDefined(false);
         
     }
-    Field( const string& s ) 
+    Field( const std::string& s ) : Attribute(true) 
     {
         if ( s.length() != 2 )
-            throw runtime_error( "Expecting string with length 2!" );
+            throw std::runtime_error( "Expecting string with length 2!" );
         file = s[0] - 'a';
         row = s[1] - '1';
         if ( file < 0 || file > 7 )
-            throw runtime_error( "File must be in range 'a'-'h'." );
+            throw std::runtime_error( "File must be in range 'a'-'h'." );
         if ( row < 0 || row > 7 )
-            throw runtime_error( "Row must be in range '1'-'8'." );
+            throw std::runtime_error( "Row must be in range '1'-'8'." );
 
         del.refs=1;
         del.SetDelete();
         SetDefined(true);
     }
 
-    string to_string() const
+    std::string to_string() const
     {
-        string s( "a1" );
+        std::string s( "a1" );
         s[0] += static_cast<char>( file );
         s[1] += static_cast<char>( row );
         return s;
@@ -123,7 +123,7 @@ struct Field : public Attribute
         return index() - f.index();
     }
 
-    virtual ostream& Print( ostream& os ) const
+    virtual std::ostream& Print( std::ostream& os ) const
     {
         return os
             << static_cast<char>( file + 'a' )
@@ -141,7 +141,7 @@ struct Field : public Attribute
 
     static Field In( ListExpr instance )
     {
-        return Field( from_atom< string >( instance ) );
+        return Field( from_atom< std::string >( instance ) );
     }
 
     static ListExpr Out( const Field& field )
@@ -174,12 +174,12 @@ struct Field : public Attribute
         return lhs.index() > rhs.index();
     }
 
-    friend ostream& operator << ( ostream& os, const Field& field )
+    friend std::ostream& operator << ( std::ostream& os, const Field& field )
     {
         return field.Print( os );
     }
 
-    friend istream& operator >> ( istream& is, Field& field )
+    friend std::istream& operator >> ( std::istream& is, Field& field )
     {
         char file, row;
         is >> file >> row;

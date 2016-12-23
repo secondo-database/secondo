@@ -12,7 +12,7 @@
 #include "Ply.hpp"
 #include "Position.hpp"
 
-struct apply_ply_op : binary_function< Position, Ply, Position* >
+struct apply_ply_op : std::binary_function< Position, Ply, Position* >
 {
     Position* operator () ( Position& pos, const Ply& ply )
     {
@@ -82,7 +82,7 @@ struct apply_ply_op : binary_function< Position, Ply, Position* >
     }
 };
 
-struct revert_ply_op : binary_function< Position, Ply, Position* >
+struct revert_ply_op : std::binary_function< Position, Ply, Position* >
 {
     Position* operator () ( Position& pos, const Ply& ply )
     {

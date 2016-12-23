@@ -17,7 +17,7 @@ Template Functions hiding the Secondo Interface for Value Mappings
 //-----------------------------------------------------------------------------
 // Result value conversion to secondo type
 Attribute* result_value( bool b ){ return new CcBool( true, b ); }
-Attribute* result_value( string s ){ return new CcString( true, s ); }
+Attribute* result_value( std::string s ){ return new CcString( true, s ); }
 Attribute* result_value( int i ){ return new CcInt( true, i ); }
 Attribute* result_value( double d ){ return new CcReal( true, d ); }
 Tuple* result_value( Tuple* t ) { return t; }
@@ -29,7 +29,7 @@ template< typename T > Attribute* result_value( T attr )
 void setResultValue(void* resAddr, const bool b){
   (static_cast<CcBool*>(resAddr))->Set(true, b); 
 } 
-void setResultValue(void* resAddr, const string& s){
+void setResultValue(void* resAddr, const std::string& s){
   (static_cast<CcString*>(resAddr))->Set(true,s);
 }
 void setResultValue(void* resAddr, const int i){
@@ -53,7 +53,7 @@ template<typename T> void setResultValue(void* resAddr, T attr){
 
 
 void delPointer(int i) { }
-void delPointer(string s){}
+void delPointer(std::string s){}
 void delPointer(double d){ }
 void delPointer(bool b){ }
 
@@ -168,8 +168,8 @@ int unary_value_map( Word* args, Word& result, int msg, Word&, Supplier s )
             delPointer(res);
             return 0;
         }
-        catch( const exception& e ) {
-            cerr << e.what() << endl;
+        catch( const std::exception& e ) {
+            std::cerr << e.what() << endl;
         }
 //    }
     on_close_arg( args[0].addr, (A*)0 );
@@ -202,8 +202,8 @@ int binary_value_map( Word* args, Word& result, int, Word&, Supplier s )
 //                  on_request_arg( args[1].addr, (A2*)0 ) ) );
             return 0;
         }
-        catch( const exception& e ) {
-            cerr << e.what() << endl;
+        catch( const std::exception& e ) {
+            std::cerr << e.what() << endl;
         }
 //    }
     on_close_arg( args[0].addr, (A1*)0 );
@@ -238,8 +238,8 @@ int ternary_value_map( Word* args, Word& result, int, Word&, Supplier s )
             delPointer(res);
             return 0;
         }
-        catch( const exception& e ) {
-            cerr << e.what() << endl;
+        catch( const std::exception& e ) {
+            std::cerr << e.what() << endl;
         }
 //    }
     on_close_arg( args[0].addr, (A1*)0 );
@@ -264,8 +264,8 @@ int unary_stream_value_map( Word* args, Word& result,
             local.addr = new O( on_open_arg( args[0].addr, (A*)0 ),
                                 nl->Second( GetTupleResultType(s) ) );
         }
-        catch( exception const& e ) {
-            cerr << e.what() << endl;
+        catch( std::exception const& e ) {
+            std::cerr << e.what() << endl;
             local.addr = 0;
         }
     }
@@ -295,8 +295,8 @@ int unary_stream_value_map( Word* args, Word& result,
                   delPointer(r.second);
                 }
             }
-            catch( const exception& e ){
-                cerr << e.what() << endl;
+            catch( const std::exception& e ){
+                std::cerr << e.what() << endl;
             }
         }
         return CANCEL;
@@ -320,8 +320,8 @@ int binary_stream_value_map( Word* args, Word& result,
                                 on_open_arg( args[1].addr, (A2*)0 ),
                                 nl->Second( GetTupleResultType(s) ) );
         }
-        catch( exception const& e ) {
-            cerr << e.what() << endl;
+        catch( std::exception const& e ) {
+            std::cerr << e.what() << endl;
             local.addr = 0;
         }
     }
@@ -352,8 +352,8 @@ int binary_stream_value_map( Word* args, Word& result,
                     return YIELD;
                 }
             }
-            catch( const exception& e ){
-                cerr << e.what() << endl;
+            catch( const std::exception& e ){
+                std::cerr << e.what() << endl;
             }
         }
         return CANCEL;
@@ -365,7 +365,7 @@ int binary_stream_value_map( Word* args, Word& result,
 // Stream consuming aggregate value mapping functions
 template< typename A, typename OP >
 struct unary_aggregate
-    : unary_function< StreamIterator< A >, typename OP::result_type >
+    : std::unary_function< StreamIterator< A >, typename OP::result_type >
 {
     typedef typename OP::result_type R;
 
@@ -379,7 +379,7 @@ struct unary_aggregate
 };
 
 template< typename A, typename OP >
-struct binary_aggregate : binary_function< StreamIterator< A >,
+struct binary_aggregate : std::binary_function< StreamIterator< A >,
                                  Function< A*, typename OP::result_type >,
                                  typename OP::result_type >
 {

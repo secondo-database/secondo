@@ -13,7 +13,7 @@ namespace bs = boost::spirit::classic;
 
 struct ply_data
 {
-    string check, castling, capture, file,
+    std::string check, castling, capture, file,
         afile, rank, arank, piece, promoted, ply;
 };
 

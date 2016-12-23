@@ -34,8 +34,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define SECONDO_ALGEBRAS_CHESS_MATERIAL_HPP
 
 #include <tr1/array>
-using std::tr1::array;
-
 #include "Attribute.h"
 #include "ListStream.hpp"
 #include "Type.hpp"
@@ -51,16 +49,17 @@ struct Material : Attribute
 {
     static const std::string& name()
     {
-        static const string name( "material" );
+        static const std::string name( "material" );
         return name;
     }
 
-    array< int, 12 > pieces;
+    std::tr1::array< int, 12 > pieces;
 
     Material(){}
-    Material( undef_t def ) : defined_(def == DEFINED)
+    Material( undef_t def ) : Attribute(def==DEFINED),
+                              defined_(def == DEFINED)
     {
-        array< int, 12 > tmp = {{ 0 }};
+        std::tr1::array< int, 12 > tmp = {{ 0 }};
         pieces = tmp;
     }
 
@@ -80,11 +79,11 @@ struct Material : Attribute
         return 0;
     }
 
-    virtual ostream& Print( ostream& os ) const
+    virtual std::ostream& Print( std::ostream& os ) const
     {
         os << "Material: [ ";
         copy( pieces.begin(), pieces.end() - 1,
-            ostream_iterator< int >( os, ", " ) );
+            std::ostream_iterator< int >( os, ", " ) );
         os << pieces[11] << " ]\n";
         return os;
     }
@@ -154,7 +153,7 @@ struct Material : Attribute
         return value_sum() > other.value_sum();
     }
 
-    friend ostream& operator << ( ostream& os, const Material& m )
+    friend std::ostream& operator << ( std::ostream& os, const Material& m )
     {
         return m.Print( os );
     }

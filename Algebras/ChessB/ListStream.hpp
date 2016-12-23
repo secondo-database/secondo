@@ -40,15 +40,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/cstdint.hpp>
 
 
-using namespace std;
-using boost::uint8_t;
 
 template< typename T > T from_atom( ListExpr instance );
 template<> int from_atom<int>( ListExpr instance );
 template<> double from_atom<double>( ListExpr instance );
 template<> bool from_atom<bool>( ListExpr instance );
-template<> string from_atom<string>( ListExpr instance );
-template<> uint8_t from_atom<uint8_t>( ListExpr instance );
+template<> std::string from_atom<std::string>( ListExpr instance );
+template<> boost::uint8_t from_atom<boost::uint8_t>( ListExpr instance );
 
 /*
 
@@ -100,19 +98,19 @@ public:
         return *this;
     }
 
-    list_istream& operator >> ( string& t )
+    list_istream& operator >> ( std::string& t )
     {
-        t = from_atom<string>( nl->Nth( position_++, list_ ) );
+        t = from_atom<std::string>( nl->Nth( position_++, list_ ) );
         return *this;
     }
 };
 
 class ChessBSymbol
 {
-    string s_;
+    std::string s_;
 public:
-    ChessBSymbol( const string& s ) : s_(s){}
-    const string& get() const { return s_; }
+    ChessBSymbol( const std::string& s ) : s_(s){}
+    const std::string& get() const { return s_; }
 };
 
 class list_ostream
@@ -144,7 +142,7 @@ public:
 
     list_ostream& operator << ( const char* s )
     {
-        return *this << string(s);
+        return *this << std::string(s);
     }
 
     list_ostream& operator << ( const std::string& s )
@@ -187,7 +185,7 @@ public:
         return *this;
     }
 
-    friend ostream& operator << ( ostream& os, const list_ostream& le )
+    friend std::ostream& operator << ( std::ostream& os, const list_ostream& le )
     {
         return os << nl->ToString( le );
     }

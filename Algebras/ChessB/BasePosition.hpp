@@ -35,8 +35,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define SECONDO_ALGEBRAS_CHESS_BASE_POSITION_HPP
 
 #include <boost/cstdint.hpp>
-using boost::uint8_t;
-
 #include "Ply.hpp"
 #include "Board_16x12.hpp"
 
@@ -72,7 +70,7 @@ public:
     // position construction. Set turn to WHITE or BLACK. Set state to 15 for
     // initial position and to 0 for an empty position.
     basic_position( const typename BoardT::board_t& board,
-                    COLOR turn, uint8_t state, uint8_t m )
+                    COLOR turn, boost::uint8_t state, boost::uint8_t m )
         : board_(board), turn_(turn), state_(state), move_number_(m) {}
 
     // Provides sequentially access to underlying board representation.
@@ -113,7 +111,7 @@ public:
         return enpassant_file_();
     }
 
-    void enable_enpassant( uint8_t col )
+    void enable_enpassant( boost::uint8_t col )
     {
         state_ = ( state_ & 0x0F ) | ( col << 5 ) | 0x10;
     }
@@ -131,8 +129,8 @@ public:
         state_ &= 0xFF ^ castling_bit_( is_long, color );
     }
 
-    uint8_t state() const { return state_; }
-    void state( uint8_t value )
+    boost::uint8_t state() const { return state_; }
+    void state( boost::uint8_t value )
     {
         state_ = value;
     }
@@ -155,16 +153,16 @@ public:
 protected:
     BoardT  board_;
     COLOR   turn_;
-    uint8_t state_;
-    uint8_t move_number_;
+    boost::uint8_t state_;
+    boost::uint8_t move_number_;
 
-    uint8_t enpassant_() const { return state_ >>  4 & 1; }
-    uint8_t enpassant_file_() const { return state_ >>  5 & 7; }
-    uint8_t castling_( bool is_long, COLOR color ) const
+    boost::uint8_t enpassant_() const { return state_ >>  4 & 1; }
+    boost::uint8_t enpassant_file_() const { return state_ >>  5 & 7; }
+    boost::uint8_t castling_( bool is_long, COLOR color ) const
     {
         return state_ & castling_bit_( is_long, color );
     }
-    uint8_t castling_bit_( bool is_long, COLOR color ) const
+    boost::uint8_t castling_bit_( bool is_long, COLOR color ) const
     {
         return 1 << ( color + 2 * ( is_long ? 1 : 0 ) );
     }

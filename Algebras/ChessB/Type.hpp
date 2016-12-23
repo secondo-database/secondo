@@ -43,7 +43,7 @@ struct MyFunctions : ConstructorFunctions< T >
             correct = true;
             return SetWord( new T( t ) );
         }
-        catch( const exception& e )
+        catch( const std::exception& e )
         {
             cmsg.inFunError( e.what() );
             correct = false;

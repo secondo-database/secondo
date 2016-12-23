@@ -21,7 +21,7 @@ class Position : public position_t, public Attribute
 public:
     static const std::string& name()
     {
-        static const string name( "position" );
+        static const std::string name( "position" );
         return name;
     }
 
@@ -42,7 +42,7 @@ public:
         return hash + move_number_ + state_ + turn_;
     }
 
-    virtual ostream& Print( ostream& os ) const
+    virtual std::ostream& Print( std::ostream& os ) const
     {
         os << "\nMove number: " << move_number() << ", ";
         os << "Turn: " << ( turn() == WHITE ? "white" : "black" ) << ", ";
@@ -74,7 +74,7 @@ public:
         return os;
     }
 
-    friend ostream& operator<<( ostream& os, const Position& pos )
+    friend std::ostream& operator<<( std::ostream& os, const Position& pos )
     {
         return pos.Print(os);
     }
@@ -111,7 +111,7 @@ public:
             fields >> row;
             for( int x = 0; x < 8; ++x )
             {
-                string agent;
+                std::string agent;
                 row >> agent;
                 pos[ Field( x, y ) ] = Piece::from_agent( agent );
             }
@@ -160,7 +160,7 @@ public:
     double value_sum() const
     {
         double sum = .0;
-        for_each( begin(), end(), sum += bl::bind( Piece::value, bl::_1 ) );
+        std::for_each( begin(), end(), sum += bl::bind( Piece::value, bl::_1 ) );
         return sum;
     }
 

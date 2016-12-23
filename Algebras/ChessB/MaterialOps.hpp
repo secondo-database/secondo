@@ -47,7 +47,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-struct piececount_material_op : binary_function< Material, Piece, int >
+struct piececount_material_op : std::binary_function< Material, Piece, int >
 {
     int operator () ( const Material& m, const Piece& p ) const
     {
@@ -55,7 +55,7 @@ struct piececount_material_op : binary_function< Material, Piece, int >
     }
 };
 
-struct piececount_smat_op : binary_function< Material, CcString, int >
+struct piececount_smat_op : std::binary_function< Material, CcString, int >
 {
     int operator () ( const Material& m, const CcString& piece ) const
     {
@@ -63,28 +63,28 @@ struct piececount_smat_op : binary_function< Material, CcString, int >
         try {
             pt = Piece::from_agent_type( piece.GetValue() );
         }
-        catch( const exception& )
+        catch( const std::exception& )
         {
             PIECE p = UNDEFINED;
             try {
                 p = Piece::from_agent( piece.GetValue() );
             }
-            catch( const exception& ){
-                throw runtime_error( "Unknown Piece" );
+            catch( const std::exception& ){
+                throw std::runtime_error( "Unknown Piece" );
             }
             if ( p < BLACK_KNIGHT || p > WHITE_KING )
-                throw runtime_error( "Unknown Piece" );
+                throw std::runtime_error( "Unknown Piece" );
             return m.pieces[ p - 2 ];
         }
         if ( pt < PT_PAWN || pt > PT_KING )
-            throw runtime_error( "Unknown Piece" );
+            throw std::runtime_error( "Unknown Piece" );
         PIECE p1 = Piece( pt, WHITE ).get();
         PIECE p2 = Piece( pt, BLACK ).get();
         return m.pieces[ p1 - 2 ] + m.pieces[ p2 - 2 ];
     }
 };
 
-struct approx_material_op : binary_function< Material, Material, bool >
+struct approx_material_op : std::binary_function< Material, Material, bool >
 {
     bool operator () ( const Material& m1, const Material& m2 ) const
     {

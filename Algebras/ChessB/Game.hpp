@@ -35,7 +35,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <sstream>
 #include <utility>
-using std::pair;
 
 #include "Attribute.h"
 #include "StandardTypes.h"
@@ -57,19 +56,19 @@ struct Game : public Attribute
     static TypeConstructor tc;
     static const std::string& name()
     {
-        static const string name( "chessgame" );
+        static const std::string name( "chessgame" );
         return name;
     }
 
-    typedef pair< CcString, CcString > tag_t;
+    typedef std::pair< CcString, CcString > tag_t;
     typedef DbArray< tag_t > tags_t;
     typedef DbArray< Ply > moves_t;
 
     Game() {}
     Game( size_t tag_count, size_t move_count )
-        : tags(tag_count), moves(move_count), defined_(true) {}
+        :Attribute(true),  tags(tag_count), moves(move_count),defined_(true) {}
     Game( undef_t def )
-        : tags(0), moves(0), defined_( def == DEFINED ) {}
+        : Attribute(true),tags(0), moves(0), defined_( def == DEFINED ) {}
 
     tags_t tags;
     const tag_t get_tag( int index ) const
@@ -78,9 +77,9 @@ struct Game : public Attribute
         tags.Get( index, s );
         return s;
     }
-    void add_tag( const string& key, const string& value )
+    void add_tag( const std::string& key, const std::string& value )
     {
-        tags.Append( make_pair( CcString(true, key), CcString(true, value) ) );
+        tags.Append( std::make_pair( CcString(true, key), CcString(true, value) ) );
     }
 
     moves_t moves;
@@ -145,7 +144,7 @@ struct Game : public Attribute
         return hash;
     }
 
-    virtual ostream& Print( ostream& os ) const
+    virtual std::ostream& Print( std::ostream& os ) const
     {
         for( int i = 0; i < tags.Size(); ++i )
         {
@@ -176,9 +175,9 @@ struct Game : public Attribute
             {
                 list_istream entry_l;
                 info_l >> entry_l;
-                string key, value;
+                std::string key, value;
                 entry_l >> key >> value;
-                g->tags.Append( make_pair( CcString( true, key ),
+                g->tags.Append( std::make_pair( CcString( true, key ),
                                           CcString( true,value  ) ) );
             }
 
@@ -193,7 +192,7 @@ struct Game : public Attribute
             correct = true;
             return SetWord( g );
         }
-        catch( const exception& e ) {
+        catch( const std::exception& e ) {
             cmsg.inFunError( e.what() );
             delete g;
         }
@@ -233,7 +232,7 @@ struct Game : public Attribute
         { return sizeof( Game ); }
     static void* cast( void* addr )
         { return new (addr) Game; }
-    friend ostream& operator<< ( ostream& os, const Game& g )
+    friend std::ostream& operator<< ( std::ostream& os, const Game& g )
         { return g.Print( os ); }
 
     static ListExpr Property()

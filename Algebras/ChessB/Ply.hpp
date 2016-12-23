@@ -15,7 +15,7 @@ class Ply : public PlyT, public Attribute
 public:
     static const std::string& name()
     {
-        static const string name( "chessmove" );
+        static const std::string name( "chessmove" );
         return name;
     }
 
@@ -32,7 +32,7 @@ public:
         return value_ - p.value_;
     }
 
-    virtual ostream& Print( ostream& os ) const
+    virtual std::ostream& Print( std::ostream& os ) const
     {
         if ( is_castling() )
             os << ( to().file == 6 ? "0-0" : "0-0-0" );
@@ -49,7 +49,7 @@ public:
         return os;
     }
 
-    friend ostream& operator << ( ostream& os, const Ply& p )
+    friend std::ostream& operator << ( std::ostream& os, const Ply& p )
     {
         return p.Print(os);
     }
@@ -73,7 +73,7 @@ public:
     {
         Ply p;
         int from_row, to_row, state, type, old_state;
-        string agent, captured, from_file, to_file, pgn;
+        std::string agent, captured, from_file, to_file, pgn;
         bool check;
 
         list_istream is( instance );
@@ -98,14 +98,14 @@ public:
 
     static ListExpr Out( const Ply& p )
     {
-        stringstream buf;
+        std::stringstream buf;
         p.Print(buf);
         list_ostream los;
         return los << p.agent().agent()
                << p.captured().agent()
-               << string( 1, static_cast<char>( p.from().file + 'a' ) )
+               << std::string( 1, static_cast<char>( p.from().file + 'a' ) )
                << p.from().row + 1
-               << string( 1, static_cast<char>( p.to().file + 'a' ) )
+               << std::string( 1, static_cast<char>( p.to().file + 'a' ) )
                << p.to().row + 1
                << p.is_check()
                << buf.str()
@@ -116,15 +116,15 @@ public:
 
     friend list_ostream& operator << ( list_ostream& os, const Ply& p )
     {
-        stringstream buf;
+        std::stringstream buf;
         p.Print(buf);
 
         list_ostream ply_l;
         ply_l  << p.agent().agent()
                << p.captured().agent()
-               << string( 1, static_cast<char>( p.from().file + 'a' ) )
+               << std::string( 1, static_cast<char>( p.from().file + 'a' ) )
                << p.from().row + 1
-               << string( 1, static_cast<char>( p.to().file + 'a' ) )
+               << std::string( 1, static_cast<char>( p.to().file + 'a' ) )
                << p.to().row + 1
                << p.is_check()
                << buf.str()
@@ -137,7 +137,7 @@ public:
     friend list_istream& operator >> ( list_istream& is, Ply& p )
     {
         int from_row, to_row, state, type, old_state;
-        string agent, captured, from_file, to_file, pgn;
+        std::string agent, captured, from_file, to_file, pgn;
         bool check;
         is >> agent >> captured >> from_file >> from_row
             >> to_file >> to_row >> check >> pgn;

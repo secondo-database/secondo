@@ -13,9 +13,8 @@
 #include "Piece.hpp"
 #include "MoveOps.hpp"
 
-using boost::lambda::_1;
 
-struct attackcount_op : binary_function< Position, Field, int >
+struct attackcount_op : std::binary_function< Position, Field, int >
 {
     int operator () ( const Position& pos, const Field& f ) const
     {
@@ -50,7 +49,7 @@ struct attackcount_op : binary_function< Position, Field, int >
     }
 };
 
-struct protectcount_op : binary_function< Position, Field, int >
+struct protectcount_op : std::binary_function< Position, Field, int >
 {
     int operator () ( const Position& pos, const Field& f ) const
     {
@@ -88,7 +87,7 @@ struct protectcount_op : binary_function< Position, Field, int >
 
 struct move_generator
 {
-    typedef vector< PlyT > moves_t;
+    typedef std::vector< PlyT > moves_t;
     typedef moves_t::const_iterator iterator;
 
     move_generator( const Position& pos ) : pos_(pos)
@@ -118,7 +117,7 @@ struct move_generator
         for( int i = 0; i < 64; ++i )
             if ( pos_[ Field(i%8, i/8) ] == king )
                 return Field(i%8, i/8);
-        throw runtime_error( "King not found" );
+        throw std::runtime_error( "King not found" );
     }
 
     iterator begin() const { return moves_.begin(); }
@@ -227,7 +226,7 @@ private:
     }
 };
 
-struct pieces_op : unary_function< Position, Material* >
+struct pieces_op : std::unary_function< Position, Material* >
 {
     Material* operator () ( const Position& pos ) const
     {
@@ -243,12 +242,12 @@ struct pieces_op : unary_function< Position, Material* >
     }
 };
 
-struct moveNo_op : unary_function< Position, int >
+struct moveNo_op : std::unary_function< Position, int >
 {
     int operator () ( const Position& p ) const { return p.move_number(); }
 };
 
-struct checkmate_op : unary_function< Position, bool >
+struct checkmate_op : std::unary_function< Position, bool >
 {
     bool operator () ( const Position& pos ) const
     {
@@ -258,7 +257,7 @@ struct checkmate_op : unary_function< Position, bool >
     }
 };
 
-struct stalemate_op : unary_function< Position, bool >
+struct stalemate_op : std::unary_function< Position, bool >
 {
     bool operator () ( const Position& pos ) const
     {
@@ -268,7 +267,7 @@ struct stalemate_op : unary_function< Position, bool >
     }
 };
 
-struct includes_op : binary_function< Position, Position, bool >
+struct includes_op : std::binary_function< Position, Position, bool >
 {
     bool operator () ( const Position& p1, const Position& p2 ) const
     {
@@ -283,16 +282,16 @@ struct includes_op : binary_function< Position, Position, bool >
     }
 };
 
-struct piececount_position_op : binary_function< Position, Piece, int >
+struct piececount_position_op : std::binary_function< Position, Piece, int >
 {
     int operator() ( const Position& pos, const Piece& piece ) const
     {
         PIECE p = piece.get();
-        return count_if( pos.begin(), pos.end(), p == boost::lambda::_1 );
+        return std::count_if( pos.begin(), pos.end(), p == boost::lambda::_1 );
     }
 };
 
-struct piececount_spos_op : binary_function< Position, CcString, int >
+struct piececount_spos_op : std::binary_function< Position, CcString, int >
 {
     int operator() ( const Position& pos, const CcString& piece ) const
     {
@@ -300,21 +299,21 @@ struct piececount_spos_op : binary_function< Position, CcString, int >
         try {
             pt = Piece::from_agent_type( piece.GetValue() );
         }
-        catch( const exception& )
+        catch( const std::exception& )
         {
             PIECE p = UNDEFINED;
             try {
                 p = Piece::from_agent( piece.GetValue() );
             }
-            catch( const exception& ){
-                throw runtime_error( "Unknown Piece 1" );
+            catch( const std::exception& ){
+                throw std::runtime_error( "Unknown Piece 1" );
             }
             if ( p < NONE || p > WHITE_KING )
-                throw runtime_error( "Unknown Piece 2" );
-            return count_if( pos.begin(), pos.end(), p == boost::lambda::_1 );
+                throw std::runtime_error( "Unknown Piece 2" );
+            return std::count_if( pos.begin(), pos.end(), p == boost::lambda::_1 );
         }
         if ( pt < PT_NONE || pt > PT_KING )
-            throw runtime_error( "Unknown Piece 3" );
+            throw std::runtime_error( "Unknown Piece 3" );
         int sum = 0;
         for( int i = 0; i < 64; ++i )
             if ( Piece( pos[Field(i%8, i/8)] ).type() == pt )
@@ -323,7 +322,7 @@ struct piececount_spos_op : binary_function< Position, CcString, int >
     }
 };
 
-struct approx_position_op : binary_function< Position, Position, bool >
+struct approx_position_op : std::binary_function< Position, Position, bool >
 {
     bool operator() ( const Position& p1, const Position& p2 ) const
     {
@@ -564,11 +563,11 @@ struct apply_move_op : ternary_function< Position, Field, Field, Position* >
     }
 };
 
-struct pos_fields_op : unary_function< Position, pair<bool, Tuple*> >
+struct pos_fields_op : std::unary_function< Position, std::pair<bool, Tuple*> >
 {
     pos_fields_op( const Position&, ListExpr type ) : index_(-1), type_(type){}
 
-    pair<bool, Tuple*> operator()( const Position& pos )
+    std::pair<bool, Tuple*> operator()( const Position& pos )
     {
         TupleType type( type_ );
         if ( ++index_ < 64 )
@@ -577,9 +576,9 @@ struct pos_fields_op : unary_function< Position, pair<bool, Tuple*> >
             Field* field = new Field( index_ % 8, index_ / 8 );
             result->PutAttribute( 0, field );
             result->PutAttribute( 1, new Piece( pos[*field] ) );
-            return make_pair( true, result );
+            return std::make_pair( true, result );
         }
-        return make_pair( false, new Tuple( new TupleType(type_) ) );
+        return std::make_pair( false, new Tuple( new TupleType(type_) ) );
     }
 
     static list_ostream type( ListExpr )
@@ -604,12 +603,12 @@ struct tuple_t
     Field sf, bf, ef;
 };
 
-struct pos_moves_op : unary_function< Position, pair<bool, Tuple*> >
+struct pos_moves_op : std::unary_function< Position, std::pair<bool, Tuple*> >
 {
     pos_moves_op( const Position& pos, ListExpr type )
         : type_(type), gen_(pos), current_(-1){}
 
-    pair<bool, Tuple*> operator()( const Position& )
+    std::pair<bool, Tuple*> operator()( const Position& )
     {
         TupleType type( type_ );
         if ( ++current_ < gen_.size() )
@@ -620,9 +619,9 @@ struct pos_moves_op : unary_function< Position, pair<bool, Tuple*> >
             result->PutAttribute( 1, new Field( ply.from() ) );
             result->PutAttribute( 2, new Piece( ply.captured() ) );
             result->PutAttribute( 3, new Field( ply.to() ) );
-            return make_pair( true, result );
+            return std::make_pair( true, result );
         }
-        return make_pair( false, new Tuple( new TupleType(type_) ) );
+        return std::make_pair( false, new Tuple( new TupleType(type_) ) );
     }
 
     static list_ostream type( ListExpr )
@@ -645,7 +644,7 @@ private:
 
 class p_moves_blocked_op;
 
-struct pos_moves_blocked_op : unary_function< Position, pair<bool, Tuple*> >
+struct pos_moves_blocked_op : std::unary_function< Position, std::pair<bool, Tuple*> >
 {
     pos_moves_blocked_op( const Position& pos, ListExpr t )
         : type_(t), current_(0)
@@ -716,7 +715,7 @@ struct pos_moves_blocked_op : unary_function< Position, pair<bool, Tuple*> >
         }
     }
 
-    pair<bool, Tuple*> operator()( const Position& )
+    std::pair<bool, Tuple*> operator()( const Position& )
     {
         TupleType type( type_ );
         if ( current_ < tuples.size() )
@@ -729,9 +728,9 @@ struct pos_moves_blocked_op : unary_function< Position, pair<bool, Tuple*> >
             result->PutAttribute( 3, new Field(t.bf) );
             result->PutAttribute( 4, new Piece(t.ep) );
             result->PutAttribute( 5, new Field(t.ef) );
-            return make_pair( true, result );
+            return std::make_pair( true, result );
         }
-        return make_pair( false, new Tuple( new TupleType(type_) ) );
+        return std::make_pair( false, new Tuple( new TupleType(type_) ) );
     }
 
     static list_ostream type( ListExpr )
@@ -753,17 +752,17 @@ struct pos_moves_blocked_op : unary_function< Position, pair<bool, Tuple*> >
 
 private:
     ListExpr type_;
-    vector< tuple_t > tuples;
-    vector< tuple_t >::size_type current_;
+    std::vector< tuple_t > tuples;
+    std::vector< tuple_t >::size_type current_;
     friend class p_moves_blocked_op;
 };
 
-struct piece_moves_op : binary_function< Position, Piece, pair<bool, Tuple*> >
+struct piece_moves_op : std::binary_function< Position, Piece, std::pair<bool, Tuple*> >
 {
     piece_moves_op( const Position& pos, const Piece& agent, ListExpr type )
         : type_(type), gen_(pos), current_(-1){}
 
-    pair<bool, Tuple*> operator()( const Position&, const Piece& agent )
+    std::pair<bool, Tuple*> operator()( const Position&, const Piece& agent )
     {
         TupleType type( type_ );
         while( ++current_ < gen_.size() )
@@ -777,9 +776,9 @@ struct piece_moves_op : binary_function< Position, Piece, pair<bool, Tuple*> >
             result->PutAttribute( 1, new Field( ply.from() ) );
             result->PutAttribute( 2, new Piece( ply.captured() ) );
             result->PutAttribute( 3, new Field( ply.to() ) );
-            return make_pair( true, result );
+            return std::make_pair( true, result );
         }
-        return make_pair( false, new Tuple( new TupleType(type_) ) );
+        return std::make_pair( false, new Tuple( new TupleType(type_) ) );
     }
 
     static list_ostream type( ListExpr )
@@ -800,12 +799,12 @@ private:
     int current_;
 };
 
-struct p_moves_blocked_op : binary_function< Position, Piece, pair<bool, Tuple*> >
+struct p_moves_blocked_op : std::binary_function< Position, Piece, std::pair<bool, Tuple*> >
 {
     p_moves_blocked_op( const Position& pos, const Piece& p, ListExpr t )
         : type_(t), op_(pos, t){}
 
-    pair<bool, Tuple*> operator()( const Position& pos, const Piece& piece )
+    std::pair<bool, Tuple*> operator()( const Position& pos, const Piece& piece )
     {
         // TODO piece is undefined for some reason in
         // query wjc feed head[1] extract[elem] getposition[0]
@@ -825,9 +824,9 @@ struct p_moves_blocked_op : binary_function< Position, Piece, pair<bool, Tuple*>
             result->PutAttribute( 3, new Field(t.bf) );
             result->PutAttribute( 4, new Piece(t.ep) );
             result->PutAttribute( 5, new Field(t.ef) );
-            return make_pair( true, result );
+            return std::make_pair( true, result );
         }
-        return make_pair( false, new Tuple( new TupleType(type_) ) );
+        return std::make_pair( false, new Tuple( new TupleType(type_) ) );
     }
 
     static list_ostream type( ListExpr e )

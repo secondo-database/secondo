@@ -20,7 +20,7 @@ Type map utilities
 template< typename T > ListExpr map_result_type( T* )
     { return nl->SymbolAtom( boost::remove_pointer<T>::type::name() ); }
 ListExpr map_result_type( bool* ){ return nl->SymbolAtom( "bool" ); }
-ListExpr map_result_type( string* ){ return nl->SymbolAtom( "string" ); }
+ListExpr map_result_type( std::string* ){ return nl->SymbolAtom( "string" ); }
 ListExpr map_result_type( int* ){ return nl->SymbolAtom( "int" ); }
 ListExpr map_result_type( double* ){ return nl->SymbolAtom( "real" ); }
 ListExpr map_result_type( CcBool* ){ return nl->SymbolAtom( "bool" ); }
@@ -49,47 +49,47 @@ ListExpr map_stream_result_type( ListExpr args, T* t, OP* )
 void check_argument( ListExpr arg, ListExpr /*root*/, CcInt* )
 {
     if ( ! NList( arg ).isSymbol( "int" ) )
-        throw runtime_error( "Expecting symbol \"int\"." );
+        throw std::runtime_error( "Expecting symbol \"int\"." );
 }
 void check_argument( ListExpr arg, ListExpr /*root*/, int* )
 {
     if ( ! NList( arg ).isSymbol( "int" ) )
-        throw runtime_error( "Expecting symbol \"int\"." );
+        throw std::runtime_error( "Expecting symbol \"int\"." );
 }
 void check_argument( ListExpr arg, ListExpr /*root*/, CcString* )
 {
     if ( ! NList( arg ).isSymbol( "string" ) )
-        throw runtime_error( "Expecting symbol \"string\"." );
+        throw std::runtime_error( "Expecting symbol \"string\"." );
 }
-void check_argument( ListExpr arg, ListExpr /*root*/, string* )
+void check_argument( ListExpr arg, ListExpr /*root*/, std::string* )
 {
     if ( ! NList( arg ).isSymbol( "string" ) )
-        throw runtime_error( "Expecting symbol \"string\"." );
+        throw std::runtime_error( "Expecting symbol \"string\"." );
 }
 void check_argument( ListExpr arg, ListExpr /*root*/, CcReal* )
 {
     if ( ! NList( arg ).isSymbol( "real" ) )
-        throw runtime_error( "Expecting symbol \"real\"." );
+        throw std::runtime_error( "Expecting symbol \"real\"." );
 }
 void check_argument( ListExpr arg, ListExpr /*root*/, double* )
 {
     if ( ! NList( arg ).isSymbol( "real" ) )
-        throw runtime_error( "Expecting symbol \"real\"." );
+        throw std::runtime_error( "Expecting symbol \"real\"." );
 }
 void check_argument( ListExpr arg, ListExpr /*root*/, CcBool* )
 {
     if ( ! NList( arg ).isSymbol( "bool" ) )
-        throw runtime_error( "Expecting symbol \"bool\"." );
+        throw std::runtime_error( "Expecting symbol \"bool\"." );
 }
 void check_argument( ListExpr arg, ListExpr /*root*/, FText* )
 {
     if ( ! NList( arg ).isSymbol( "text" ) )
-        throw runtime_error( "Expecting symbol \"text\"." );
+        throw std::runtime_error( "Expecting symbol \"text\"." );
 }
 void check_argument( ListExpr arg, ListExpr /*root*/, bool* )
 {
     if ( ! NList( arg ).isSymbol( "bool" ) )
-        throw runtime_error( "Expecting symbol \"bool\"." );
+        throw std::runtime_error( "Expecting symbol \"bool\"." );
 }
 
 // Default argument check funktion. Works with all Attribute-derived types.
@@ -97,7 +97,7 @@ template< typename ARG > void check_argument( ListExpr arg, ListExpr, ARG* )
 {
     ListExpr error_info;
     if ( ! ARG::KindCheck( arg, error_info ) )
-        throw runtime_error( "Kind check error" );
+        throw std::runtime_error( "Kind check error" );
 }
 
 // For an unknown type there is obviously nothing to check
@@ -108,13 +108,13 @@ void check_argument( ListExpr, ListExpr, void** ) {}
 void check_argument( ListExpr arg, ListExpr /*root*/, Tuple* )
 {
     if ( nl->IsAtom( arg ) || 2 != nl->ListLength( arg ) )
-        throw runtime_error( "Expect tuple definition");
+        throw std::runtime_error( "Expect tuple definition");
     if ( ! NList( nl->First( arg ) ).isSymbol( "tuple" ) )
-        throw runtime_error( "Expect tuple symbol" );
+        throw std::runtime_error( "Expect tuple symbol" );
 
     ListExpr tuple_def_le = nl->Second( arg );
     if ( nl->IsAtom( tuple_def_le ) || 0 >= nl->ListLength( tuple_def_le ) )
-        throw runtime_error( "Expect attribute list");
+        throw std::runtime_error( "Expect attribute list");
 }
 
 // type check for streams.
@@ -122,9 +122,9 @@ template< typename T >
 void check_argument( ListExpr stream_le, ListExpr root, StreamIterator<T>* )
 {
     if ( nl->IsAtom( stream_le ) || 2 != nl->ListLength( stream_le ) )
-        throw runtime_error( "Expect list of length 2 as 1. argument");
+        throw std::runtime_error( "Expect list of length 2 as 1. argument");
     if ( ! NList( nl->First( stream_le ) ).isSymbol( "stream" ) )
-        throw runtime_error( "Expect symbol stream as first argument" );
+        throw std::runtime_error( "Expect symbol stream as first argument" );
 
     check_argument( nl->Second( stream_le ), root, (T*) 0 );
 }
@@ -140,11 +140,11 @@ void check_argument( ListExpr stream_le, ListExpr root, Function<A, R>* )
 
     // they must be equal
     if ( ! nl->Equal( nl->Second( nl->First(args) ), funarg_le ) )
-      throw runtime_error("Function und operator arguments must be equal");
+      throw std::runtime_error("Function und operator arguments must be equal");
 
     // and function argument must be preceded by 'map'
     if ( ! NList(nl->First( nl->Second(args) )).isSymbol( "map" ) )
-        throw runtime_error("Expect symbol map in function definition" );
+        throw std::runtime_error("Expect symbol map in function definition" );
 }
 */
 
@@ -164,7 +164,7 @@ ListExpr unary_type_map( ListExpr args )
         check_argument( nl->First( args ), args, (A*)0 );
         return map_result_type( (R*)0 );
     }
-    catch( const exception& e ) {
+    catch( const std::exception& e ) {
         return NList::typeError( e.what() );
     }
 }
@@ -185,7 +185,7 @@ ListExpr binary_type_map( ListExpr args )
         check_argument( nl->Second( args ), args, (A2*)0 );
         return map_result_type( (R*)0 );
     }
-    catch( const exception& e ) {
+    catch( const std::exception& e ) {
         return NList::typeError( e.what() );
     }
 }
@@ -208,7 +208,7 @@ ListExpr ternary_type_map( ListExpr args )
         check_argument( nl->Third( args ), args, (A3*)0 );
         return map_result_type( (R*)0 );
     }
-    catch( const exception& e ) {
+    catch( const std::exception& e ) {
         return NList::typeError( e.what() );
     }
 }
@@ -231,7 +231,7 @@ ListExpr unary_stream_type_map( ListExpr args )
         return nl->TwoElemList( nl->SymbolAtom("stream"),
             map_stream_result_type( args, (T*)0, (O*)0 ) );
     }
-    catch( const exception& e ) {
+    catch( const std::exception& e ) {
         return NList::typeError( e.what() );
     }
 }
@@ -255,7 +255,7 @@ ListExpr binary_stream_type_map( ListExpr args )
         return nl->TwoElemList( nl->SymbolAtom("stream"),
             map_stream_result_type( args, (T*)0, (O*)0 ) );
     }
-    catch( const exception& e ) {
+    catch( const std::exception& e ) {
         return NList::typeError( e.what() );
     }
 }
@@ -278,15 +278,15 @@ ListExpr binary_aggregate_type_map( ListExpr args )
 
         // they must be equal
         if ( ! nl->Equal( nl->Second( nl->First(args) ), funarg_le ) )
-          throw runtime_error("Function und operator arguments must be equal");
+          throw std::runtime_error("Function und operator arguments must be equal");
 
         // and function argument must be preceded by 'map'
         if ( ! NList(nl->First( nl->Second(args) )).isSymbol( "map" ) )
-            throw runtime_error("Expect symbol map in function definition" );
+            throw std::runtime_error("Expect symbol map in function definition" );
 
         return map_result_type( (R*)0 );
     }
-    catch( const exception& e ) {
+    catch( const std::exception& e ) {
         return NList::typeError( e.what() );
     }
 }

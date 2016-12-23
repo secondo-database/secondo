@@ -46,7 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 template<> int from_atom<int>( ListExpr instance )
 {
     if ( ! nl->IsAtom( instance ) || nl->AtomType( instance ) != IntType )
-        throw runtime_error( "Atom with type INT expected!" );
+        throw std::runtime_error( "Atom with type INT expected!" );
 
     return nl->IntValue( instance );
 }
@@ -59,7 +59,7 @@ template<> uint8_t from_atom<uint8_t>( ListExpr instance )
 template<> double from_atom<double>( ListExpr instance )
 {
     if ( ! nl->IsAtom( instance ) || nl->AtomType( instance ) != RealType )
-        throw runtime_error( "Atom with type REAL expected!" );
+        throw std::runtime_error( "Atom with type REAL expected!" );
 
     return nl->RealValue( instance );
 }
@@ -67,12 +67,12 @@ template<> double from_atom<double>( ListExpr instance )
 template<> bool from_atom<bool>( ListExpr instance )
 {
     if ( ! nl->IsAtom( instance ) || nl->AtomType( instance ) != BoolType )
-        throw runtime_error( "Atom with type BOOL expected!" );
+        throw std::runtime_error( "Atom with type BOOL expected!" );
 
     return nl->BoolValue( instance );
 }
 
-template<> string from_atom<string>( ListExpr instance )
+template<> std::string from_atom<std::string>( ListExpr instance )
 {
     if ( nl->IsAtom( instance ) )
     {
@@ -83,12 +83,12 @@ template<> string from_atom<string>( ListExpr instance )
             return nl->SymbolValue( instance );
         else if ( TextType == type )
         {
-            string tmp;
+            std::string tmp;
             TextScan ts = nl->CreateTextScan( instance );
             nl->GetText( ts, nl->TextLength( instance ), tmp );
             nl->DestroyTextScan( ts );
             return tmp;
         }
     }
-    throw runtime_error( "Atom convertable to string expected!" );
+    throw std::runtime_error( "Atom convertable to string expected!" );
 }

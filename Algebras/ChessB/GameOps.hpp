@@ -54,28 +54,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
-struct getkey_op : binary_function< Game, CcString, string >
+struct getkey_op : std::binary_function< Game, CcString, std::string >
 {
-    string operator()( const Game& g, const CcString& s ) const
+    std::string operator()( const Game& g, const CcString& s ) const
     {
-        const string& key = s.GetValue();
+        const std::string& key = s.GetValue();
         for( int i = 0; i < g.tags.Size(); ++i )
         {
-            string tmp = g.get_tag( i ).first.GetValue();
+            std::string tmp = g.get_tag( i ).first.GetValue();
             if ( key == tmp )
                 return g.get_tag( i ).second.GetValue();
         }
-        throw runtime_error( "Key not found" );
+        throw std::runtime_error( "Key not found" );
     }
 };
 
-struct getposition_op : binary_function< Game, CcInt, Position* >
+struct getposition_op : std::binary_function< Game, CcInt, Position* >
 {
     Position* operator() ( const Game& g, const CcInt& ccn ) const
     {
         int n = ccn.GetValue();
         if ( g.moves.Size() < n || n < 0 )
-            throw runtime_error( "Move number out of bounds" );
+            throw std::runtime_error( "Move number out of bounds" );
         Position* pos = new Position( INITIAL_POSITION );
         for( int i = 0; i < n; ++i )
         {
@@ -86,18 +86,18 @@ struct getposition_op : binary_function< Game, CcInt, Position* >
     }
 };
 
-struct getmove_op : binary_function< Game, CcInt, Ply* >
+struct getmove_op : std::binary_function< Game, CcInt, Ply* >
 {
     Ply* operator() ( const Game& g, const CcInt& ccn ) const
     {
         int n = ccn.GetValue() - 1;
         if ( g.moves.Size() <= n || n < 0 )
-            throw runtime_error( "Move number out of bounds" );
+            throw std::runtime_error( "Move number out of bounds" );
         return new Ply( g.get_move(n) );
     }
 };
 
-struct lastmove_op : unary_function< Game, int >
+struct lastmove_op : std::unary_function< Game, int >
 {
     int operator() ( const Game& g ) const
     {
@@ -105,34 +105,34 @@ struct lastmove_op : unary_function< Game, int >
     }
 };
 
-struct moves_op : unary_function< Game, pair<bool, Ply*> >
+struct moves_op : std::unary_function< Game, std::pair<bool, Ply*> >
 {
     moves_op( const Game&, ListExpr type ) : current_(0) {}
 
-    pair<bool, Ply*> operator()( const Game& g )
+    std::pair<bool, Ply*> operator()( const Game& g )
     {
         if ( current_ < g.moves.Size() )
-            return make_pair( true, new Ply( g.get_move( current_++ ) ) );
-        return make_pair( false, new Ply(UNDEF) );
+            return std::make_pair( true, new Ply( g.get_move( current_++ ) ) );
+        return std::make_pair( false, new Ply(UNDEF) );
     }
 
 private:
     int current_;
 };
 
-struct positions_op : unary_function< Game, pair<bool, Position*> >
+struct positions_op : std::unary_function< Game, std::pair<bool, Position*> >
 {
     positions_op( const Game&, ListExpr type )
         : current_(-1), pos_(INITIAL_POSITION) {}
 
-    pair<bool, Position*> operator()( const Game& g )
+    std::pair<bool, Position*> operator()( const Game& g )
     {
         if ( ++current_ < g.moves.Size() )
         {
             delete apply_ply_op()( pos_, g.get_move( current_ ) );
-            return make_pair( true, new Position( pos_ ) );
+            return std::make_pair( true, new Position( pos_ ) );
         }
-        return make_pair( false, new Position(UNDEF) );
+        return std::make_pair( false, new Position(UNDEF) );
     }
 
 private:
@@ -140,12 +140,12 @@ private:
     Position pos_;
 };
 
-struct history_op : unary_function< Game, pair<bool, Tuple*> >
+struct history_op : std::unary_function< Game, std::pair<bool, Tuple*> >
 {
     history_op( const Game&, ListExpr type )
         : type_(type), current_(0), pos_(INITIAL_POSITION){}
 
-    pair<bool, Tuple*> operator()( const Game& g )
+    std::pair<bool, Tuple*> operator()( const Game& g )
     {
         TupleType type( type_ );
         if ( current_ < g.moves.Size() )
@@ -159,10 +159,10 @@ struct history_op : unary_function< Game, pair<bool, Tuple*> >
             result->PutAttribute( 0, new CcInt(true, current_) );
             result->PutAttribute( 1, new Position(pos_) );
             result->PutAttribute( 2, new Ply(ply) );
-            return make_pair( true, result );
+            return std::make_pair( true, result );
         }
         TupleType* tt = new TupleType(type_);
-        pair<bool,Tuple*> res = make_pair( false, new Tuple( tt ) );
+        std::pair<bool,Tuple*> res = std::make_pair( false, new Tuple( tt ) );
         tt->DeleteIfAllowed(); // free the local reference
         return res;
     }

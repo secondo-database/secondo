@@ -15,7 +15,7 @@
 #include "MoveOps.hpp"
 
 class validate_move
-    : public binary_function< position_t, ply_data, pair<bool, PlyT> >
+    : public std::binary_function< position_t, ply_data, std::pair<bool, PlyT> >
 {
     Field to_;
     Field from_;
@@ -27,12 +27,12 @@ class validate_move
     void validate_state( position_t& pos, const ply_data& p )
     {
         if ( p.file.empty() && p.castling.empty() )
-            throw runtime_error( "Destination file not defined" );
+            throw std::runtime_error( "Destination file not defined" );
         if ( p.castling.empty() )
             to_.file = p.file[0] - 'a';
 
         if ( p.rank.empty() && p.castling.empty() )
-            throw runtime_error( "Destination row not defined" );
+            throw std::runtime_error( "Destination row not defined" );
         if ( p.castling.empty() )
             to_.row = p.rank[0] - '1';
 
@@ -67,7 +67,7 @@ class validate_move
         PIECE piece = pos.turn() == WHITE ? WHITE_KING : BLACK_KING;
 
         if ( ! pos.is_castling_possible( l_castling, pos.turn() ) )
-            throw runtime_error( "Castling isn't possible" );
+            throw std::runtime_error( "Castling isn't possible" );
         return PlyT( Field(4, row), Field(to_file, row), piece, pos.state(),
             PLY_CASTLING, PT_NONE, state_ );
     }
@@ -77,11 +77,11 @@ class validate_move
         if ( is_capture_ )
         {
             if ( from_.file == -1 )
-                throw runtime_error( "File not defined in pawn capture" );
+                throw std::runtime_error( "File not defined in pawn capture" );
             from_.row = to_.row + ( pos.turn() == WHITE ? -1 : 1 );
 
             if ( pos[ from_ ] != agent_.get() )
-                throw runtime_error( "Wrong move - piece isn't pawn" );
+                throw std::runtime_error( "Wrong move - piece isn't pawn" );
 
             if ( pos[to_] == NONE )
             {
@@ -89,20 +89,20 @@ class validate_move
                 if ( enp_piece != Piece( PT_PAWN, !pos.turn() ).get()
                     || ! pos.is_enpassant_possible()
                     || pos.enpassant_file() != to_.file )
-                    throw runtime_error( "Enpassant capture not possible" );
+                    throw std::runtime_error( "Enpassant capture not possible" );
                 return PlyT( from_, to_, agent_.get(), pos.state(),
                     PLY_ENPASSANT, PT_PAWN, state_ );
             }
 
             if ( Piece( pos[to_] ).color() == pos.turn() )
-                throw runtime_error( "Captured piece is of same color" );
+                throw std::runtime_error( "Captured piece is of same color" );
             if ( Piece( pos[to_] ).type() == PT_KING )
-                throw runtime_error( "Captured piece is a king" );
+                throw std::runtime_error( "Captured piece is a king" );
 
             if ( promoted_.get() != NONE )
             {
                 if ( to_.row != ( pos.turn() == WHITE ? 7 : 0 ) )
-                    throw runtime_error( "Wrong promotion dest. field" );
+                    throw std::runtime_error( "Wrong promotion dest. field" );
                 return PlyT( from_, to_, promoted_.get(), pos.state(),
                     PLY_PROMOTION, Piece( pos[to_] ).type(), state_ );
             }
@@ -111,7 +111,7 @@ class validate_move
         } // capture
 
         if ( pos[to_] != NONE )
-            throw runtime_error( "Dest. field isn't empty" );
+            throw std::runtime_error( "Dest. field isn't empty" );
         from_.row = to_.row + ( pos.turn() == WHITE ? -1 : 1 );
         from_.file = to_.file;
         if ( pos[from_] == agent_.get() )
@@ -119,7 +119,7 @@ class validate_move
             if ( promoted_.get() != NONE )
             {
                 if ( to_.row != ( pos.turn() == WHITE ? 7 : 0 ) )
-                    throw runtime_error( "Wrong promotion dest. field" );
+                    throw std::runtime_error( "Wrong promotion dest. field" );
                 return PlyT( from_, to_, promoted_.get(), pos.state(),
                     PLY_PROMOTION, PT_NONE, state_ );
             }
@@ -134,7 +134,7 @@ class validate_move
                 return PlyT( from_, to_, agent_.get(), pos.state(),
                     PLY_ORDINARY, PT_NONE, state_ );
         }
-        throw runtime_error( "Invalid pawn move" );
+        throw std::runtime_error( "Invalid pawn move" );
     }
 
     PlyT validate_piece_move( const position_t& pos, const ply_data& )
@@ -144,7 +144,7 @@ class validate_move
         Piece dest = Piece( pos[ to_ ] );
         if ( is_capture_ && ( dest.get() == NONE
             || dest.color() == pos.turn() || dest.type() == PT_KING ) )
-            throw runtime_error( "Capture isn't possible" );
+            throw std::runtime_error( "Capture isn't possible" );
 
         position_t::const_iterator it1 = pos.iter( to_ );
         for( int d = 0; d < dirs.count; ++d )
@@ -167,7 +167,7 @@ class validate_move
                     break;
             }
         }
-        throw runtime_error( "Invalid move" );
+        throw std::runtime_error( "Invalid move" );
     }
 public:
     PlyT operator()( position_t& pos, const ply_data& p )
@@ -181,15 +181,15 @@ public:
     }
 };
 
-class readpgn_op : public unary_function< FText, pair<bool, Game*> >
+class readpgn_op : public std::unary_function< FText, std::pair<bool, Game*> >
 {
 public:
     readpgn_op( const FText& filename, ListExpr type )
         : number_(0), content_(""), next_(content_.end()), end_(content_.end())
     {
-        ifstream pgn( filename.GetValue().c_str(), ios::binary | ios::in );
+        std::ifstream pgn( filename.GetValue().c_str(), std::ios::binary | std::ios::in );
         if ( !pgn )
-            throw runtime_error( "PGN-File not found!" );
+            throw std::runtime_error( "PGN-File not found!" );
 
         std::ostringstream s;
         s << pgn.rdbuf();
@@ -198,30 +198,30 @@ public:
         end_  = content_.end();
     }
 
-    pair<bool, Game*> operator()( const FText& )
+    std::pair<bool, Game*> operator()( const FText& )
     {
         if ( content_.empty() )
-            return make_pair( false, new Game(UNDEF) );
+            return std::make_pair( false, new Game(UNDEF) );
 
         while( next_ < end_ )
         {
             game_data data;
-            bs::parse_info< string::const_iterator > info
+            bs::parse_info< std::string::const_iterator > info
                 = bs::parse( next_, end_, game_parser(data), bs::space_p );
             next_ = info.stop;
 
             if ( data.result.empty() && next_ < end_ )
             {
-                string sample = string( info.stop - 30, info.stop + 30 );
-                for( string::size_type p = sample.find_first_of("\n\r");
-                     p != string::npos; p = sample.find_first_of("\n\r", p) )
+                std::string sample = std::string( info.stop - 30, info.stop + 30 );
+                for( std::string::size_type p = sample.find_first_of("\n\r");
+                     p != std::string::npos; p = sample.find_first_of("\n\r", p) )
                      sample[p] = ' ';
-                cerr << "PARSING ERROR" << "\n"
-                     << sample << "\n" << string( 30, ' ' ) << "^\n\n";
-                string::size_type continuation =
+                std::cerr << "PARSING ERROR" << "\n"
+                     << sample << "\n" << std::string( 30, ' ' ) << "^\n\n";
+                std::string::size_type continuation =
                     content_.find_first_of("[", info.stop - content_.begin() );
-                if ( string::npos == continuation )
-                    return make_pair( false, new Game(UNDEF) );
+                if ( std::string::npos == continuation )
+                    return std::make_pair( false, new Game(UNDEF) );
                 next_ = content_.begin() + continuation;
             }
             else
@@ -234,13 +234,13 @@ public:
                     g->add_tag( it->first, it->second );
                 }
                 if ( validate_moves( *g, data.moves ) )
-                    return make_pair( true, g );
-                cerr << "Skip game Nr." << number_
+                    return std::make_pair( true, g );
+                std::cerr << "Skip game Nr." << number_
                      << " due to invalid move.\n";
                 delete g;
             }
         }
-        return make_pair( false, new Game(UNDEF) );
+        return std::make_pair( false, new Game(UNDEF) );
     }
 
     bool validate_moves( Game& g, const game_data::moves_t& moves )
@@ -254,9 +254,9 @@ public:
                 delete apply_ply_op()( pos, result );
                 g.moves.Append( result );
             }
-            catch ( const exception& e )
+            catch ( const std::exception& e )
             {
-                cerr << e.what() << " '" << moves[ply_number].ply << "' Nr."
+                std::cerr << e.what() << " '" << moves[ply_number].ply << "' Nr."
                      << ply_number/2 + 1 << " in game Nr." << number_ << endl;
                 return false;
             }
@@ -266,8 +266,8 @@ public:
 
 private:
     int number_;
-    string content_;
-    string::const_iterator next_, end_;
+    std::string content_;
+    std::string::const_iterator next_, end_;
 };
 
 #endif // SECONDO_ALGEBRAS_CHESS_READPGN_OP_HPP

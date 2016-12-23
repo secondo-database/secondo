@@ -6,7 +6,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <tr1/array>
-using std::tr1::array;
 
 #include "Attribute.h"
 #include "ListStream.hpp"
@@ -16,8 +15,8 @@ template< typename T, typename P, int N >
 class piece_mapper
 {
 public:
-    typedef map< T, P > MAPPER_T;
-    typedef array< T, N > AGENTS_ST;
+    typedef std::map< T, P > MAPPER_T;
+    typedef std::tr1::array< T, N > AGENTS_ST;
     typedef typename AGENTS_ST::const_iterator iterator;
 
     piece_mapper( const AGENTS_ST& agents )
@@ -32,7 +31,7 @@ public:
     {
         typename MAPPER_T::const_iterator i = mapper_.find( t );
         if ( mapper_.end() == i )
-            throw runtime_error( "PIECE_MAPPING_ERROR" );
+            throw std::runtime_error( "PIECE_MAPPING_ERROR" );
         return i->second;
     }
 
@@ -59,15 +58,16 @@ class Piece : public Attribute
 public:
     static const std::string& name()
     {
-        static const string name( "piece" );
+        static const std::string name( "piece" );
         return name;
     }
 
     Piece() {}
-    explicit Piece( PIECE piece ) : value_( piece ), defined_(true) {}
-    Piece( undef_t undef ) : value_(NONE), defined_(false) {}
+    explicit Piece( PIECE piece ) 
+        : Attribute(true),value_( piece ), defined_(true) {}
+    Piece( undef_t undef ) : Attribute(false),value_(NONE), defined_(false) {}
     Piece( PIECE_TYPE type, COLOR color )
-        : value_( type == PT_NONE || type == PT_UNDEFINED ?
+        : Attribute(true),value_( type == PT_NONE || type == PT_UNDEFINED ?
           PIECE(2 * type) : PIECE( 2 * type + color ) ), defined_(true) {}
 
     PIECE_TYPE type() const { return static_cast<PIECE_TYPE>( value_ >> 1 ); }
@@ -91,50 +91,50 @@ public:
         return values[piece];
     }
 
-    static const array<string, 16>& AGENTS()
+    static const std::tr1::array<std::string, 16>& AGENTS()
     {
-        static const array<string, 16> values = { {
+        static const std::tr1::array<std::string, 16> values = { {
             "none", "none", "pawn", "Pawn", "knight", "Knight", "bishop",
             "Bishop", "rook", "Rook", "queen", "Queen", "king", "King",
             "undefined", "undefined" } };
         return values;
     }
 
-    static const array<string, 8>& AGENT_TYPES()
+    static const std::tr1::array<std::string, 8>& AGENT_TYPES()
     {
-        static const array< string, 8 > values = { {
+        static const std::tr1::array< std::string, 8 > values = { {
             "NONE", "PAWN", "KNIGHT", "BISHOP",
             "ROOK", "QUEEN", "KING", "UNDEFINED" } };
         return values;
     }
 
-    static const array<char, 16>& AGENTS_S()
+    static const std::tr1::array<char, 16>& AGENTS_S()
     {
-        static const array<char, 16> values = { {
+        static const std::tr1::array<char, 16> values = { {
             ' ', ' ', 'p', 'P', 'n', 'N', 'b', 'B',
             'r', 'R', 'q', 'Q', 'k', 'K', 'u', 'u' } };
         return values;
     }
 
-    static const array<char, 8>& AGENT_TYPES_S()
+    static const std::tr1::array<char, 8>& AGENT_TYPES_S()
     {
-        static const array<char, 8> values =
+        static const std::tr1::array<char, 8> values =
             { { ' ', 'P', 'N', 'B', 'R', 'Q', 'K', 'U' } };
         return values;
     }
 
-    string agent() const { return AGENTS()[ value_ ]; }
-    string agent_type() const { return AGENT_TYPES()[ type() ]; }
+    std::string agent() const { return AGENTS()[ value_ ]; }
+    std::string agent_type() const { return AGENT_TYPES()[ type() ]; }
 
-    static PIECE from_agent( const string& agent )
+    static PIECE from_agent( const std::string& agent )
     {
-        static piece_mapper<string, PIECE, 16> mapper( AGENTS() );
+        static piece_mapper<std::string, PIECE, 16> mapper( AGENTS() );
         return mapper( agent );
     }
 
-    static PIECE_TYPE from_agent_type( const string& agent )
+    static PIECE_TYPE from_agent_type( const std::string& agent )
     {
-        static piece_mapper<string, PIECE_TYPE, 8> mapper( AGENT_TYPES() );
+        static piece_mapper<std::string, PIECE_TYPE, 8> mapper( AGENT_TYPES() );
         return mapper( agent );
     }
 
@@ -166,7 +166,7 @@ public:
         return value_ - p.value_;
     }
 
-    virtual ostream& Print( ostream& os ) const
+    virtual std::ostream& Print( std::ostream& os ) const
     {
         return os << agent();
     }
@@ -184,7 +184,7 @@ public:
 
     static Piece In( ListExpr i )
     {
-        return Piece( Piece::from_agent( from_atom<string>(i) ) );
+        return Piece( Piece::from_agent( from_atom<std::string>(i) ) );
     }
 
     static ListExpr Out( const Piece& p )
@@ -197,27 +197,27 @@ public:
         return nl->IsEqual( type, "piece" );
     }
 
-    friend ostream& operator << ( ostream& os, const Piece& piece )
+    friend std::ostream& operator << ( std::ostream& os, const Piece& piece )
     {
         return os << piece.agent();
     }
 
-    friend istream& operator >> ( istream& is, Piece& piece )
+    friend std::istream& operator >> ( std::istream& is, Piece& piece )
     {
-        string agent;
+        std::string agent;
         is >> agent;
         piece = Piece( Piece::from_agent( agent ) );
         return is;
     }
 
-    friend ostream& operator << ( ostream& os, const PIECE_TYPE& pt )
+    friend std::ostream& operator << ( std::ostream& os, const PIECE_TYPE& pt )
     {
         return os << Piece::AGENT_TYPES()[ pt ];
     }
 
-    friend istream& operator >> ( istream& is, PIECE_TYPE& pt )
+    friend std::istream& operator >> ( std::istream& is, PIECE_TYPE& pt )
     {
-        string agent_type;
+        std::string agent_type;
         is >> agent_type;
         pt = Piece::from_agent_type( agent_type );
         return is;
@@ -235,10 +235,10 @@ protected:
 
 COLOR operator ! ( COLOR color );
 
-ostream& operator << ( ostream& os, const Piece& piece );
-istream& operator >> ( istream& is, Piece& piece );
+std::ostream& operator << ( std::ostream& os, const Piece& piece );
+std::istream& operator >> ( std::istream& is, Piece& piece );
 
-ostream& operator << ( ostream& os, const PIECE_TYPE& pt );
-istream& operator >> ( istream& is, PIECE_TYPE& pt );
+std::ostream& operator << ( std::ostream& os, const PIECE_TYPE& pt );
+std::istream& operator >> ( std::istream& is, PIECE_TYPE& pt );
 
 #endif // SECONDO_ALGEBRAS_CHESS_TYPES_PIECE_HPP

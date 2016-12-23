@@ -96,9 +96,9 @@ struct ChessAlgebra : Algebra
 
         AddUnaryOperator< field_ctor_op >( field_ctor_info );
         AddUnaryOperator< iswhite_field_op >( iswhite_field_info );
-        AddBinaryOperator< equal_to<Field> >( equals_field_info );
-        AddBinaryOperator< less<Field> >( less_field_info );
-        AddBinaryOperator< greater<Field> >( greater_field_info );
+        AddBinaryOperator< std::equal_to<Field> >( equals_field_info );
+        AddBinaryOperator< std::less<Field> >( less_field_info );
+        AddBinaryOperator< std::greater<Field> >( greater_field_info );
         AddUnaryOperator< file_op >( file_info );
         //DisplayTTY& d = DisplayTTY::GetInstance();
 
@@ -122,12 +122,12 @@ struct ChessAlgebra : Algebra
         AddUnaryOperator< piece_ctor_op >( piece_ctor_info );
         AddUnaryOperator< iswhite_piece_op >( iswhite_piece_info );
         AddBinaryOperator< is_op >( is_info );
-        AddBinaryOperator< equal_to< Piece > >( equals_piece_info );
+        AddBinaryOperator< std::equal_to< Piece > >( equals_piece_info );
         AddBinaryOperator< samecolor_op >( samecolor_info );
         AddUnaryOperator< piecevalue_op >( piecevalue_info );
 
         AddTypeConstructor( &t3 );
-        AddBinaryOperator< equal_to<Ply> >( equals_ply_info );
+        AddBinaryOperator< std::equal_to<Ply> >( equals_ply_info );
         AddUnaryOperator< startfield_op >( startfield_info );
         AddUnaryOperator< endfield_op >( endfield_info );
         AddUnaryOperator< agent_op >( agent_info );
@@ -142,9 +142,9 @@ struct ChessAlgebra : Algebra
 
         AddTypeConstructor( &t4 );
         AddBinaryOperator< piececount_material_op >(piececount_material_info);
-        AddBinaryOperator< equal_to<Material> >( equals_material_info );
-        AddBinaryOperator< less<Material> >( less_material_info );
-        AddBinaryOperator< greater<Material> >( greater_material_info );
+        AddBinaryOperator< std::equal_to<Material> >( equals_material_info );
+        AddBinaryOperator< std::less<Material> >( less_material_info );
+        AddBinaryOperator< std::greater<Material> >( greater_material_info );
         AddBinaryOperator< approx_material_op >( approx_material_info );
 
         AddTypeConstructor( &t5 );
@@ -158,9 +158,9 @@ struct ChessAlgebra : Algebra
         AddBinaryOperator< includes_op >( includes_info );
         AddBinaryOperator< piececount_position_op >( piececount_position_info);
         AddBinaryOperator< piececount_spos_op >( piececount_spos_info );
-        AddBinaryOperator< equal_to<Position> >( equals_position_info );
-        AddBinaryOperator< less<Position> >( less_position_info );
-        AddBinaryOperator< greater<Position> >( greater_position_info );
+        AddBinaryOperator< std::equal_to<Position> >( equals_position_info );
+        AddBinaryOperator< std::less<Position> >( less_position_info );
+        AddBinaryOperator< std::greater<Position> >( greater_position_info );
         AddBinaryOperator< approx_position_op >( approx_position_info );
         AddBinaryOperator< attackcount_op >( attackcount_info );
         AddBinaryOperator< protectcount_op >( protectcount_info );

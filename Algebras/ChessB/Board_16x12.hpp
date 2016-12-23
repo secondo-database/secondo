@@ -29,8 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define SECONDO_ALGEBRAS_CHESS_BOARD_16X12_HPP
 
 #include <tr1/array>
-using std::tr1::array;
-
 #include "PlyT.hpp"
 #include "Piece.hpp"
 
@@ -50,7 +48,7 @@ using std::tr1::array;
 class Board_16x12
 {
 public:
-    typedef array< PIECE, 192 > board_t;
+    typedef std::tr1::array< PIECE, 192 > board_t;
     typedef board_t::difference_type dir_t;
 
     Board_16x12(){}

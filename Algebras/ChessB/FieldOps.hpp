@@ -49,31 +49,31 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-struct field_ctor_op : unary_function< CcString, Field* >
+struct field_ctor_op : std::unary_function< CcString, Field* >
 {
     Field* operator () ( const CcString& f )
     {
-        string s = f.GetValue();
+        std::string s = f.GetValue();
         if ( 2 == s.length() )
             return new Field(s[0] - 'a', s[1] - '1');
         return new Field(UNDEF);
     }
 };
 
-struct iswhite_field_op : unary_function< Field, bool >
+struct iswhite_field_op : std::unary_function< Field, bool >
 {
     bool operator () ( const Field& field ) const { return field.is_white(); }
 };
 
-struct file_op : unary_function< Field, string >
+struct file_op : std::unary_function< Field, std::string >
 {
-    string operator () ( const Field& field )
+    std::string operator () ( const Field& field )
     {
-        return string( 1, static_cast< char >( field.file + 'a' ) );
+        return std::string( 1, static_cast< char >( field.file + 'a' ) );
     }
 };
 
-struct row_op : unary_function< Field, int >
+struct row_op : std::unary_function< Field, int >
 {
     int operator () ( const Field& field )
     {
@@ -81,7 +81,7 @@ struct row_op : unary_function< Field, int >
     }
 };
 
-struct north_op : unary_function< Field, Field* >
+struct north_op : std::unary_function< Field, Field* >
 {
     Field* operator () ( const Field& field )
     {
@@ -91,7 +91,7 @@ struct north_op : unary_function< Field, Field* >
     }
 };
 
-struct east_op : unary_function< Field, Field* >
+struct east_op : std::unary_function< Field, Field* >
 {
     Field* operator () ( const Field& field )
     {
@@ -101,7 +101,7 @@ struct east_op : unary_function< Field, Field* >
     }
 };
 
-struct south_op : unary_function< Field, Field* >
+struct south_op : std::unary_function< Field, Field* >
 {
     Field* operator () ( const Field& field )
     {
@@ -111,7 +111,7 @@ struct south_op : unary_function< Field, Field* >
     }
 };
 
-struct west_op : unary_function< Field, Field* >
+struct west_op : std::unary_function< Field, Field* >
 {
     Field* operator () ( const Field& field )
     {
@@ -121,7 +121,7 @@ struct west_op : unary_function< Field, Field* >
     }
 };
 
-struct northwest_op : unary_function< Field, Field* >
+struct northwest_op : std::unary_function< Field, Field* >
 {
     Field* operator () ( const Field& field )
     {
@@ -131,7 +131,7 @@ struct northwest_op : unary_function< Field, Field* >
     }
 };
 
-struct northeast_op : unary_function< Field, Field* >
+struct northeast_op : std::unary_function< Field, Field* >
 {
     Field* operator () ( const Field& field )
     {
@@ -141,7 +141,7 @@ struct northeast_op : unary_function< Field, Field* >
     }
 };
 
-struct southwest_op : unary_function< Field, Field* >
+struct southwest_op : std::unary_function< Field, Field* >
 {
     Field* operator () ( const Field& field )
     {
@@ -151,7 +151,7 @@ struct southwest_op : unary_function< Field, Field* >
     }
 };
 
-struct southeast_op : unary_function< Field, Field* >
+struct southeast_op : std::unary_function< Field, Field* >
 {
     Field* operator () ( const Field& field )
     {
@@ -161,7 +161,7 @@ struct southeast_op : unary_function< Field, Field* >
     }
 };
 
-struct is_neighbor_op : binary_function< Field, Field, bool >
+struct is_neighbor_op : std::binary_function< Field, Field, bool >
 {
     bool operator () ( const Field& f1, const Field& f2 )
     {
@@ -171,7 +171,7 @@ struct is_neighbor_op : binary_function< Field, Field, bool >
     }
 };
 
-struct left_op : binary_function< Field, Field, bool >
+struct left_op : std::binary_function< Field, Field, bool >
 {
     bool operator () ( const Field& f1, const Field& f2 )
     {
@@ -179,7 +179,7 @@ struct left_op : binary_function< Field, Field, bool >
     }
 };
 
-struct right_op : binary_function< Field, Field, bool >
+struct right_op : std::binary_function< Field, Field, bool >
 {
     bool operator () ( const Field& f1, const Field& f2 )
     {
@@ -187,7 +187,7 @@ struct right_op : binary_function< Field, Field, bool >
     }
 };
 
-struct above_op : binary_function< Field, Field, bool >
+struct above_op : std::binary_function< Field, Field, bool >
 {
     bool operator () ( const Field& f1, const Field& f2 )
     {
@@ -195,7 +195,7 @@ struct above_op : binary_function< Field, Field, bool >
     }
 };
 
-struct below_op : binary_function< Field, Field, bool >
+struct below_op : std::binary_function< Field, Field, bool >
 {
     bool operator () ( const Field& f1, const Field& f2 )
     {
@@ -203,7 +203,7 @@ struct below_op : binary_function< Field, Field, bool >
     }
 };
 
-class neighbors_op : public unary_function< Field, pair<bool, Field*> >
+class neighbors_op : public std::unary_function< Field, std::pair<bool, Field*> >
 {
     Field self_;
     int dir_;
@@ -211,13 +211,13 @@ class neighbors_op : public unary_function< Field, pair<bool, Field*> >
 public:
     neighbors_op( const Field& f, ListExpr ) : self_(f), dir_(0){}
 
-    pair<bool, Field*> operator()( const Field& )
+    std::pair<bool, Field*> operator()( const Field& )
     {
         static const int dirs[8][2] =
             { {0,1}, {1,1}, {1,0}, {1,-1}, {0,-1}, {-1,-1}, {-1,0}, {-1,1} };
 
         if ( dir_ >= 8 )
-            return make_pair( false, new Field(UNDEF) );
+            return std::make_pair( false, new Field(UNDEF) );
 
         for( ; dir_ < 8; ++dir_ )
         {
@@ -226,9 +226,9 @@ public:
             if ( file < 0 || file > 7 || row < 0 || row > 7 )
                 continue;
             ++dir_;
-            return make_pair( true, new Field(file, row) );
+            return std::make_pair( true, new Field(file, row) );
         }
-        return make_pair( false, new Field(UNDEF) );
+        return std::make_pair( false, new Field(UNDEF) );
     }
 };
 

@@ -8,8 +8,6 @@
 #include "Field.hpp"
 #include "Piece.hpp"
 
-using boost::uint32_t;
-using boost::uint8_t;
 
 enum PLY_TYPE { PLY_ORDINARY, PLY_PROMOTION, PLY_ENPASSANT, PLY_CASTLING };
 enum PLY_STATE { PLY_NONE, PLY_CHECK, PLY_MATE, PLY_STALEMATE };
@@ -18,11 +16,11 @@ class PlyT
 {
 public:
     PlyT() {}
-    explicit PlyT( uint32_t value ) : value_(value) {}
+    explicit PlyT( boost::uint32_t value ) : value_(value) {}
     PlyT( Field from,
           Field to,
           PIECE agent,
-          uint8_t old_state,
+          boost::uint8_t old_state,
           PLY_TYPE type = PLY_ORDINARY,
           PIECE_TYPE captured_type = PT_NONE,
           PLY_STATE state = PLY_NONE ) : value_(0)
@@ -38,12 +36,12 @@ public:
         value_ |= old_state     << 23;
     }
 
-    uint32_t value() const { return value_; }
+    boost::uint32_t value() const { return value_; }
     PLY_TYPE type() const { return PLY_TYPE( type_() ); }
 
-    uint8_t old_state() const { return uint8_t( old_state_() ); }
+    boost::uint8_t old_state() const { return boost::uint8_t( old_state_() ); }
     void old_state( PLY_STATE state )
-        { value_ = value_ & 0xFF9FFFFF | state << 21; }
+        { value_ = (value_ & 0xFF9FFFFF) | state << 21; }
 
     Field from() const { return Field( from_file_(), from_row_() ); }
     Field to() const  { return Field( to_file_(), to_row_() ); }
@@ -88,19 +86,19 @@ public:
     bool is_stalemate() const { return PLY_STALEMATE == state_(); }
 
 protected:
-    uint32_t value_;
+    boost::uint32_t value_;
 
-    uint32_t from_file_() const     { return value_       &  7; } //  0 -  2
-    uint32_t from_row_() const      { return value_ >>  3 &  7; } //  3 -  5
-    uint32_t to_file_() const       { return value_ >>  6 &  7; } //  6 -  8
-    uint32_t to_row_() const        { return value_ >>  9 &  7; } //  9 - 11
-    uint32_t agent_() const         { return value_ >> 12 & 15; } // 12 - 15
-    uint32_t captured_type_() const { return value_ >> 16 &  7; } // 16 - 18
-    uint32_t type_() const          { return value_ >> 19 &  3; } // 19 - 20
-    uint32_t state_() const         { return value_ >> 21 &  3; } // 21 - 22
-    uint32_t old_state_() const     { return value_ >> 23 & 63; } // 23 - 31
+    boost::uint32_t from_file_() const     { return value_       &  7; } //  0 -  2
+    boost::uint32_t from_row_() const      { return value_ >>  3 &  7; } //  3 -  5
+    boost::uint32_t to_file_() const       { return value_ >>  6 &  7; } //  6 -  8
+    boost::uint32_t to_row_() const        { return value_ >>  9 &  7; } //  9 - 11
+    boost::uint32_t agent_() const         { return value_ >> 12 & 15; } // 12 - 15
+    boost::uint32_t captured_type_() const { return value_ >> 16 &  7; } // 16 - 18
+    boost::uint32_t type_() const          { return value_ >> 19 &  3; } // 19 - 20
+    boost::uint32_t state_() const         { return value_ >> 21 &  3; } // 21 - 22
+    boost::uint32_t old_state_() const     { return value_ >> 23 & 63; } // 23 - 31
 
-    uint32_t color_() const         { return value_ >> 12 &  1; }
+    boost::uint32_t color_() const         { return value_ >> 12 &  1; }
 };
 
 #endif // SECONDO_ALGEBRAS_CHESS_PLYT_HPP
