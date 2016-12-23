@@ -221,7 +221,7 @@ inline ListExpr STVector::Vector2List()
     simple*=2;
     i++;
   }
-  for(i=0; i<26; i++)
+  for(; i<26; i++)
   {
     if(v & simple)
       last= nl->Append(last, nl->SymbolAtom(StrSimpleConnectors[i]));
