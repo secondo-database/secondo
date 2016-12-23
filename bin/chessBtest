@@ -31,13 +31,13 @@
             (rel 
                 (tuple 
                     (
-                        (name string) 
-                        (value text) 
-                        (usedObjs text)))) 
+                        (Name string) 
+                        (Value text) 
+                        (UsedObjs text)))) 
             (
                 ("wjc" 
-                    <text>(consume (extend (transformstream (readpgn 'wjc.pgn')) ((No (fun (tuple1 TUPLE) (seqnext))))))</text---> 
-                    <text>()</text--->))) 
+                    '(consume (addcounter (transformstream (readpgn \'wjc.pgn\')) No 0))' 
+                    '()'))) 
         (OBJECT a1 
             () 
             field 
