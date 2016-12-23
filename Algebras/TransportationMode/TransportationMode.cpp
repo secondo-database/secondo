@@ -57,6 +57,7 @@ queries moving objects with transportation modes.
 #include "QueryTM.h"
 #include "RoadNetwork.h"
 #include <sys/timeb.h>
+#include "ListUtils.h"
 
 
 using namespace temporalalgebra;
@@ -11595,8 +11596,8 @@ ListExpr OpTMUpDownTypeMap ( ListExpr args )
   }
 
   ListExpr param1 = nl->First ( args );
-  if(!(nl->SymbolValue(param1) == "busstop" ||
-       nl->SymbolValue(param1) == "busroute")){
+  if(!(listutils::isSymbol(param1,"busstop") ||
+       listutils::isSymbol(param1,"busroute"))){
       return nl->SymbolAtom ( "typeerror: param should be busstop" );
   }
   return nl->SymbolAtom ( "bool" );
