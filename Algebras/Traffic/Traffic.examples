@@ -4,29 +4,29 @@ Restore : no
 Operator : trafficflow
 Number   : 1
 Signature: rel(tuple(mgpsecunit)) -> rel(tuple(int,int,int,mint))
-Example  : query trains mgp2mgpsecunits[trip,B_NETWORK,2000.0] transformstream project[elem] sortby [elem asc] trafficflow;
+Example  : query Trains mgp2mgpsecunits[Trip,B_NETWORK,2000.0] transformstream project[Elem] sortby [Elem asc] trafficflow;
 Result   : file
 
 Operator : trafficflow2
 Number   : 1
 Signature: stream(mgpsecunit)->rel(tuple(int,int,int,mint))
-Example  : query trains mgp2mgpsecunits[trip,B_NETWORK,2000.0] trafficflow2;
+Example  : query Trains mgp2mgpsecunits[Trip,B_NETWORK,2000.0] trafficflow2;
 Result   : file
 
 Operator : traffic
 Number   : 1
 Signature: stream(mgpsecunit)->rel(tuple(int,int,int,mreal,mint))
-Example  : query trains mgp2mgpsecunits[trip,B_NETWORK,2000.0] traffic;
+Example  : query Trains mgp2mgpsecunits[Trip,B_NETWORK,2000.0] traffic;
 Result   : file
 
 Operator : traffic2
 Number   : 1
 Signature: stream(mgpoint)->rel(tuple(int,int,int,mreal,mint))
-Example  : query trains feed projecttransformstream[trip] traffic2 [2000.0];
+Example  : query Trains feed projecttransformstream[Trip] traffic2 [2000.0];
 Result   : file
 
 Operator : heavytraffic
 Number   : 1
 Signature: rel(tuple(int,int,int,mreal,mint))xrealxint->rel(tuple(int,int,int,mreal,mint))
-Example  : query trains feed projecttransformstream[trip] traffic2 [2000.0] heavytraffic[20.0,2];
+Example  : query Trains feed projecttransformstream[Trip] traffic2 [2000.0] heavytraffic[20.0,2];
 Result   : file
