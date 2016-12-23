@@ -1096,6 +1096,8 @@ void TriangulateRegion(const Region* reg,
         bln2Convert = false;
       }
     }
+    regionOriginal->DeleteIfAllowed();
+    region2convert->DeleteIfAllowed();
   }
 }
 
@@ -4345,6 +4347,7 @@ int unionValueMap( Word* args, Word& result, int message,
   symRelResult = symRelFirst->Clone();
   symRelResult->AppendSymbolicRelation(*symRelSecond);
   *((SymbolicRelation *)result.addr) = *symRelResult;
+  symRelResult->DeleteIfAllowed();
   return (0);
 }
 
@@ -4365,6 +4368,7 @@ int intersectionValueMap( Word* args, Word& result, int message,
   symRelResult->JoinSymbolicRelation(*symRelSecond);
   symRelResult->Normalize();
   *((SymbolicRelation *)result.addr) = *symRelResult;
+  symRelResult->DeleteIfAllowed();
   return (0);
 }
 
@@ -4394,6 +4398,7 @@ int projectionValueMap( Word* args, Word& result, int message,
   symRelResult->ProjectToAxis(blnXAxis, blnYAxis);
   symRelResult->Normalize();
   *((SymbolicRelation *)result.addr) = *symRelResult;
+  symRelResult->DeleteIfAllowed();
   return (0);
 }
 
@@ -4510,9 +4515,12 @@ struct TriangulateLocalInfo
 int triangulateValueMap( Word* args, Word& result, int message,
            Word& local, Supplier s )
 {
-  TriangulateLocalInfo *localInfo;
+  TriangulateLocalInfo *localInfo = (TriangulateLocalInfo*) local.addr;
   if(message==OPEN)
   {
+    if(localInfo){
+       delete localInfo;
+    }
     localInfo = new TriangulateLocalInfo();
     local = SetWord( localInfo );
     qp->Open(args[0].addr);
@@ -4520,6 +4528,9 @@ int triangulateValueMap( Word* args, Word& result, int message,
   }
   else if(message==REQUEST)
   {
+    if(!localInfo){
+      return CANCEL;
+    }
     Word elem;
     Region* reg;
     localInfo = (TriangulateLocalInfo*)local.addr;
@@ -4546,6 +4557,10 @@ int triangulateValueMap( Word* args, Word& result, int message,
               "Increase SEGSIZE in TRIANGULATION-Lib "
               "in order to process.");
           }
+          if(blnInputRegionIsEmpty){
+            reg->DeleteIfAllowed();
+            reg=0;
+          }
         }
         else
         {
@@ -4555,6 +4570,8 @@ int triangulateValueMap( Word* args, Word& result, int message,
       vector<vector<double> > vVertices;
       vector<vector<int> > vTriangles;
       TriangulateRegion(reg, vVertices, vTriangles);
+      reg->DeleteIfAllowed();
+      reg = 0;
       for (int j = 0; j < (int)vTriangles.size(); j++)
       {
         ListExpr resultNL =
@@ -4585,8 +4602,10 @@ int triangulateValueMap( Word* args, Word& result, int message,
   if(message==CLOSE)
   {
     qp->Close(args[0].addr);
-    localInfo = (TriangulateLocalInfo*)local.addr;
-    delete localInfo;
+    if(localInfo){
+      delete localInfo;
+      local.addr=0;
+    }
     return 0;
   }
   return 0;
@@ -4626,6 +4645,7 @@ int point2constraintValueMap( Word* args, Word& result, int message,
   }
   symRelResult->Normalize();
   *((SymbolicRelation *)result.addr) = *symRelResult;
+  symRelResult->DeleteIfAllowed();
   return (0);
 }
 
@@ -4678,6 +4698,7 @@ int points2constraintValueMap( Word* args, Word& result, int message,
       " valid: not possible to convert.");  }
   symRelResult->Normalize();
   *((SymbolicRelation *)result.addr) = *symRelResult;
+  symRelResult->DeleteIfAllowed();
   return (0);
 }
 
@@ -4741,6 +4762,7 @@ int line2constraintValueMap( Word* args, Word& result, int message,
   }
   symRelResult->Normalize();
   *((SymbolicRelation *)result.addr) = *symRelResult;
+  symRelResult->DeleteIfAllowed();
   return (0);
 }
 
@@ -4844,6 +4866,7 @@ int region2constraintValueMap( Word* args, Word& result, int message,
         "faces which are (partially) outside the WORLD: "
         " clipped with the WORLD during convert process.");
     }
+    region2convert->DeleteIfAllowed();
   }
   else
   {
@@ -4855,6 +4878,7 @@ int region2constraintValueMap( Word* args, Word& result, int message,
   }
   symRelResult->Normalize();
   *((SymbolicRelation *)result.addr) = *symRelResult;
+  symRelResult->DeleteIfAllowed();
   return (0);
 }
 
@@ -5028,10 +5052,13 @@ struct constraint2regionLocalInfo
 int constraint2regionValueMap( Word* args, Word& result, int message,
            Word& local, Supplier s )
 {
-  constraint2regionLocalInfo *localInfo;
+  constraint2regionLocalInfo *localInfo = 
+               (constraint2regionLocalInfo*) local.addr;
 
   if(message==OPEN)
-  {
+  {   if(localInfo){
+        delete localInfo;
+      }
       localInfo = new constraint2regionLocalInfo();
 
       local = SetWord( localInfo );
@@ -5040,6 +5067,9 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
   }
   else if(message==REQUEST)
   {
+    if(!localInfo){
+      return CANCEL;
+    }
     Word elem;
     SymbolicRelation* sr;
     localInfo = (constraint2regionLocalInfo*)local.addr;
@@ -5060,6 +5090,9 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
           sr = (SymbolicRelation*)elem.addr;
           blnInputConstraintStreamIsEmpty =
              (sr->SymbolicTuplesSize()==0);
+          if(blnInputConstraintStreamIsEmpty){
+             sr->DeleteIfAllowed();
+          }
         }
         else
         {
@@ -5148,6 +5181,7 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
           }
         }
       }
+      sr->DeleteIfAllowed();
       localInfo->iter = localInfo->convexPolygons.begin();
     }
     result = SetWord( *localInfo->iter++ );
@@ -5156,8 +5190,10 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
   else if(message==CLOSE)
   {
       qp->Close(args[0].addr);
-      localInfo = (constraint2regionLocalInfo*)local.addr;
-      delete localInfo;
+      if(localInfo){
+          delete localInfo;
+          local.addr = 0;
+      }
       return 0;
   }
   return 0;
