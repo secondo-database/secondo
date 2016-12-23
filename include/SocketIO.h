@@ -756,7 +756,11 @@ Checks whether the stream buffer is ready for operation.
 Closes the stream buffer.
 
 */
-  std::streampos seekoff( std::streamoff, std::ios::seekdir, unsigned int )
+
+  virtual pos_type 
+  seekoff(off_type, std::ios_base::seekdir,
+          std::ios_base::openmode /*__mode*/ = 
+             std::ios_base::in | std::ios_base::out)
     { return EOF; }
 /*
 Disallows seeking in the stream buffer since a TCP stream is strictly
