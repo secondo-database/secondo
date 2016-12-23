@@ -206,7 +206,10 @@
                     '( UTOrdered_rtree )') 
                 ("numbers_btree" 
                     '(createbtree numbers NodeId)' 
-                    '( numbers )'))) 
+                    '( numbers )') 
+                ("Kinos_GeoData_rtree" 
+                    '(creatertree Kinos GeoData)' 
+                    '( Kinos )'))) 
         (OBJECT box1000 
             () 
             rect3 
