@@ -1500,9 +1500,9 @@ double Tools::distance(const string& str1, const string& str2,
 }
 
 double Tools::distance(const pair<string, unsigned int>& val1, 
-    const pair<string, unsigned int>& val2, const LabelFunction lf) {
+               const pair<string, unsigned int>& val2, const LabelFunction lf) {
   double ld = Tools::distance(val1.first, val2.first, lf);
-  return (lf > 4 && val1.second == val2.second) ? ld / 2 : ld;
+  return (val1.second == val2.second ? ld / 2 : ld);
 }
 
 double Tools::distance(const set<string>& values1, const set<string>& values2,
@@ -1600,7 +1600,6 @@ bool Tools::getGeoFromORel(const std::string& relName, const unsigned int ref,
   else {
     if (pt->GetAttribute(1)->IsDefined()) {
       geo.addr = pt->GetAttribute(1)->Copy(); // point
-      ((Point*)geo.addr)->Print(cout);
       type = Point::BasicType();
     }
     else if (pt->GetAttribute(2)->IsDefined()) {

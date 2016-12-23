@@ -473,8 +473,6 @@ element : patternelement {
                         stringutils::int2str(wholepat->getSize()));
               free($1);
               yyerror(errMsg);
-              delete errMsg;
-              errMsg = 0;
               YYERROR;
             }
             string wildcard = (pElem.getW() == STAR ? "*" : (pElem.getW() == PLUS ? "+" : ""));
