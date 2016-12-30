@@ -37,12 +37,21 @@ April 2015 Rene Steinbrueck
 */
 
 #include "LineFunctionAlgebra.h"
+#include <iostream>
+#include "Geoid.h"
 
 
 /*
 4 Operators
 
 */
+
+Operator distanceWithGradient
+(
+    distanceWithGradientInfo(),
+    distanceWithGradientFun,
+    distanceWithGradientTypeMap
+);
 
 Operator lcompose
 (
@@ -109,9 +118,70 @@ class LineFunctionAlgebra : public Algebra
     AddOperator( &heightatposition );
     AddOperator( &lfdistance );
     AddOperator( &lfdistanceparam);
+    AddOperator( &distanceWithGradient);
   }
   ~LineFunctionAlgebra() {};
 };
+
+double DistanceWithHeight(const Point& pointSource, const Point& pointTarget,
+ CcReal& weight, LReal& heightfunction, const Geoid* geoid )
+{
+  assert( pointSource.IsDefined() );
+  assert( pointTarget.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+  assert( weight.IsDefined() );
+
+  const Geoid* mygeoid = new Geoid(Geoid::WGS1984);
+
+    bool ok = false;
+    double bearInitial = 0, bearFinal = 0;
+//    std::cout << "LineFunctionA.cpp mygeoid: \t Address: " << mygeoid ;
+//      std::cout << "\t Content: " << *mygeoid << "\n";
+    double distance = pointSource.DistanceOrthodromePrecise(pointTarget,
+        *mygeoid,ok,bearInitial,bearFinal);
+    /*hier muesste das Gewicht pro Steigung uebergeben werden und die 
+    HeightDifference Methode angepasst werden, wenn es diese Tabellenfunktion
+     geben soll*/
+    double height= HeightDifference(heightfunction);
+    //distance und height sind hier in koordinateneinheiten, nicht in metern
+    double distanceWithHeigt= distance + (height * weight.GetValue());
+    return distanceWithHeigt;
+}
+
+
+double HeightDifference(LReal heightfunction)
+{
+    double heightDiff=0;
+
+    if(!heightfunction.IsDefined()){
+        return heightDiff;
+    }
+    heightfunction.Print(cout);
+//    cout << heightfunction.GetNoComponents() << "\n";
+    for (int i = 0; i < heightfunction.GetNoComponents(); i++) {
+        LUReal* unit = new LUReal();
+//        cout << "LFA.cpp Line " << __LINE__ << ", i: " << i << "\n";
+        heightfunction.Get(i,*unit);
+        //Steigung des Intervals
+        double steigung=unit->m;
+
+        double intervStart=unit->getLengthInterval().start.GetRealval();
+        double intervEnd=unit->getLengthInterval().end.GetRealval();
+
+        //Laenge des Intervals
+        double intervalLength= intervEnd-intervStart;
+
+        if(steigung>0){
+            heightDiff=heightDiff + steigung*intervalLength;
+        }
+        //cout<< "m:" << steigung <<"\t istart:"<<intervStart
+//        cout<<"\t iende:"<<intervEnd<<"\t heightDiff:"<<heightDiff;
+    }
+    //cout<<"\n------------------\n";
+
+return heightDiff;
+}
+
 
 /*
 6 Initialization

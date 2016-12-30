@@ -40,7 +40,6 @@ the distance traveled.
 #ifndef LINEFUNCTION_ALGEBRA_H
 #define LINEFUNCTION_ALGEBRA_H
 
-
 #include "LMapping.h"
 # include "ConstLengthUnit.h"
 #include "LUReal.h"
@@ -54,6 +53,13 @@ the distance traveled.
 #include "./../Spatial/HalfSegment.h"
 #include "./../Spatial/SpatialAlgebra.h"
 #include "./../FText/FTextAlgebra.h"
+
+using namespace std;
+
+double DistanceWithHeight(const Point&,const Point&, CcReal&, LReal&,
+ const Geoid*);
+double HeightDifference(LReal) ;
+
 
 /*
 0 Functions for Operators
@@ -1407,4 +1413,102 @@ ListExpr lfdistanceparamTypeMap(ListExpr args)
         }
     return (listutils::basicSymbol<CcReal>());
 }
+
+/*
+1.5 Operator ~distanceWithGradient~
+
+*/
+
+struct distanceWithGradientInfo : OperatorInfo
+    {
+    distanceWithGradientInfo()
+    {//Point,Point,CcReal, LReal>
+        name      = "distanceWithGradient";
+        signature = "distanceWithGradient ("
+          + Point::BasicType()
+          + " , "
+          + Point::BasicType()
+          + " , "
+          + CcReal::BasicType()
+          + " , "
+          + LReal::BasicType()
+          + "-> Real";
+        appendSignature("distanceWithGradient ("
+              + Point::BasicType()
+              + " , "
+              + Point::BasicType()
+                + " , "
+              + CcReal::BasicType()
+              + " , "
+                + LReal::BasicType()
+                + "-> Real");
+
+        syntax    =   "distanceWithGradient ( _ , _ , _ , _ )";
+        meaning   =   "This function computes the distance "
+      "between two points including their height. "
+      "The First two parameters are "
+      "the two points, between the distance "
+      "should be calculated. "
+      "The third parameter gives the weight for the gradient."
+      "The fourth parameter is a lreal with linear functions "
+      "from which the height could be get. "
+      ;
+      }
+    };
+
+
+int distanceWithGradientFun( Word* args, Word& result, int message,
+                     Word& local, Supplier s ){
+
+   result = qp->ResultStorage( s );
+   CcReal* res = static_cast<CcReal*>(result.addr);
+  // const Geoid* geoid =0;
+     const Geoid* geoid = new Geoid(Geoid::WGS1984);
+   //Argumente auseinander nehmen und casten
+     Point* pointSource = static_cast<Point*>(args[0].addr);
+     Point* pointTarget = static_cast<Point*>(args[1].addr);
+     CcReal* weight = static_cast<CcReal*>(args[2].addr);
+     LReal* heightfunction = static_cast<LReal*>(args[3].addr);
+     double distance=DistanceWithHeight(*pointSource,*pointTarget,*weight,
+        *heightfunction,geoid);
+     res->Set(true,distance);
+   return 0;
+}
+
+ListExpr distanceWithGradientTypeMap(ListExpr args)
+{
+  if(!nl->HasLength(args,4)){
+    return (listutils::typeError("4 arguments expected"));
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+  std::string err = "Point x Point x CcReal x LReal expected";
+  if(!Point::checkType(arg1))
+  {
+    return (listutils::typeError(err
+            + " (first arg is not a point)"));
+  }
+  if(!Point::checkType(arg2))
+  {
+    return (listutils::typeError(err
+            + " (second arg is not a point)"));
+  }
+  if(!CcReal::checkType(arg3)){
+    return (listutils::typeError(err
+            + " (third arg is not a ccreal)"));
+  }
+  if(!LReal::checkType(arg4))
+  {
+    return (listutils::typeError(err
+            + " (fourth arg is not a LReal)"));
+  }
+  //return listutils::typeError();
+  return (listutils::basicSymbol<CcReal>());
+}
+
+
+
 #endif // LINEFUNCTION_ALGEBRA_H

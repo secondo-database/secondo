@@ -21,3 +21,4 @@ operator heightatposition alias HEIGHTATPOSITION pattern _ infixop _
 operator lcompose  alias LCOMPOSE pattern _ op [_,_]
 operator lfdistance alias LFDISTANCE pattern op ( _ , _ , _ , _ )
 operator lfdistanceparam alias LFDISTANCEPARAM pattern op ( _ , _ , _ , _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ )
+operator distanceWithHeight alias DISTANCEWITHHEIGHT pattern  op ( _, _, _, _ )
