@@ -43,3 +43,6 @@ operator insertrtree alias INSERTRTREE pattern _ _ op [ _ ]
 operator deletertree alias DELETERTREE pattern _ _ op [ _ ]
 operator updatertree alias UPDATERTREE pattern _ _ op [ _ ]
 
+operator deletebyid2 alias DELETEBYID2 pattern _ _ op  [ _ ]
+operator deletebyid3 alias DELETEBYID3 pattern _ _ op  
+

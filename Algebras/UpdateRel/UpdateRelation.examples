@@ -156,3 +156,17 @@ Example  : query Staedte feed filter[.SName = "Hannover"] Staedte8 StaedteU upda
 Result   :  file
 
 
+Operator  : deletebyid2
+Number    : 1
+Signature : stream(tuple(X)) x stream(tuple(Y)) x IDENT -> stream(tuple(X@Y))
+Example   : query ten feed head[3] addid project[TID] ten deletebyid2[TID] count
+Result    : 3
+
+Operator  : deletebyid3
+Number    : 1
+Signature : stream(tid) x stream(tuple(X)) -> stream(tuple(X))
+Example   : query ten feed head[3] tids  ten deletebyid3 count
+Result    : 3
+
+
+
