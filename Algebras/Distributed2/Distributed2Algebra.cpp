@@ -19437,9 +19437,38 @@ class deleteRemoteDatabasesInfo{
            delete mynl;
            return false;
         } 
-        string cmd = "delete database " + name;
+        // firstly try to remove dfarrays
+        // to do this, the some database must be open, use the 
+        // database to delete because here no other db is known
+
+        stringutils::toUpper(name);
+
+        string cmd = "open database " + name;
         ListExpr resList;
         SecErrInfo err;
+        si->Secondo( cmd, resList,err);
+        if(err.code==0){
+            cmd = "query secondoHome()";
+            si->Secondo(cmd,resList,err);
+            if(err.code==0){
+               if(mynl->HasLength(resList,2) &&
+                 // remove dfarray folder for this database
+                  mynl->AtomType(mynl->Second(resList))==TextType ){
+                  string home = mynl->Text2String(mynl->Second(resList));
+                  string dir = home + "/dfarrays/"+name;
+                  cmd = "query removeDirectory('"+dir+"', TRUE)";
+                  si->Secondo(cmd,resList,err);
+                  // remove temporarly file transfer folders
+                  dir = si->getRequestFilePath();
+                  cmd = "query removeDirectory('"+dir+"', TRUE)";
+                  si->Secondo(cmd,resList,err);
+               }
+            }
+        }
+        cmd = "close database " + name;
+        si->Secondo( cmd, resList,err);
+
+        cmd = "delete database " + name;
         si->Secondo( cmd, resList,err);
         si->Terminate();
         delete si;
