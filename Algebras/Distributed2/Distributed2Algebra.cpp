@@ -19465,7 +19465,7 @@ class deleteRemoteDatabasesInfo{
                }
             }
         }
-        cmd = "close database " + name;
+        cmd = "close database";
         si->Secondo( cmd, resList,err);
 
         cmd = "delete database " + name;
