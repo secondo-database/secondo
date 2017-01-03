@@ -58,6 +58,7 @@ for my master's thesis
 #include "AlgebraManager.h"
 #include "CPUTimeMeasurer.h"
 #include "StandardTypes.h"
+#include "LongInt.h"
 #include "SecondoInterface.h"
 #include "Counter.h"
 #include "TupleIdentifier.h"
@@ -69,6 +70,8 @@ for my master's thesis
 #include "Stream.h"
 
 #include "Sort2Heaps.h"
+
+#include "Dijkstra.h"
 
 #include "../CostEstimation/ExtRelation2AlgebraCostEstimation.h"
 
@@ -2367,6 +2370,86 @@ Operator sortattrOP(
 );
 
 
+/*
+Type ap Operator GD
+
+*/
+OperatorSpec GDSpec(
+  "fun( X -> stream(tuple(Y))) ... -> tuple(Y)",
+  " GD(_)",
+  "A Type Map Operator",
+  "query gdisjkstra(...)"
+);
+
+Operator GDOp(
+  "GD",
+  GDSpec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  general_dijkstra::GDTM
+);
+
+
+/*
+Operator ~gdijkstra~
+
+
+*/
+
+
+ValueMapping gdijkstraVM[] = {
+  general_dijkstra::gdijkstraVMT<CcInt>,
+  general_dijkstra::gdijkstraVMT<LongInt>
+};
+
+int gdijkstraSelect(ListExpr args){
+  return CcInt::checkType(nl->Third(args))?0:1;
+}
+
+OperatorSpec gdijkstraSpec(
+  " fun( A -> stream(tuple(X)) x AttrName x Source x Target "
+  "x fun(tuple(X) -> double), int, int -> stream(tuple(X@(EgdeNoGD:int)))",
+  " _ gdijstra[_,_,_,_] ",
+  "Computes the shortest path between two nodes of a graph."
+  "The representation of the graph is not fixed, but the graph is "
+  "defined implicitely by the first function returning the successors "
+  "of a node. The node identifier can be of type int or longint. "
+  " The return value of the successor function  must contain the "
+  "target node. The name of this target node attribute is specified in "
+  "the second argument. The third argument gives the source node and "
+  "the fourth argument the destination node for the shortest path search."
+  "The fifth argument is a function again computing the costs from an "
+  "edge tuple returned by the first function." 
+  "The  sixth argument specifies the search mode. Currently, the following "
+  "modes are implemented: \n"
+  "0: returns the shortest path between the source and the destination node.\n"
+  "1: returns the shortest path tree from the source to all other reachable "
+  "node of the graph. The destination node argument is ignored in this "
+  "mode.\n\n"
+  "The last argument limits the search to a certain path length. This feature "
+  "is not implemented yet."
+  "The result are the edges of the shortest path (tree) extended by the "
+  "distance of the target node of this edge to the source node argument of "
+  "the operator. Furthermore, the level in the tree of the target node is "
+  "appended to the edge.",
+  " query fun(s : int) otestrel orange[s;s]  gdijkstra[Id_s2, 1 , 40, "
+  "distance(.GeoData_s1, .GeoData_s2), 0,0] consume " 
+);
+
+Operator gdijkstraOp(
+  "gdijkstra",
+  gdijkstraSpec.getStr(),
+  2,
+  gdijkstraVM,
+  gdijkstraSelect,
+  general_dijkstra::gdijkstraTM
+);
+
+
+
+
+
+
 
 } // end of namespace extrel2
 
@@ -2431,6 +2514,10 @@ class ExtRelation2Algebra : public Algebra
 
     AddOperator(&extrel2::sortattrOP);
     extrel2::sortattrOP.SetUsesMemory();
+
+    AddOperator(&extrel2::gdijkstraOp);
+    AddOperator(&extrel2::GDOp);
+
 
 #ifdef USE_PROGRESS
 // support for progress queries

@@ -105,3 +105,10 @@ Signature : stream(DATA) x bool -> stream(DATA)
 Example : query intstream(1,10) sortattr[FALSE] count
 Result   : 10
 
+Operator  : gdijkstra
+Number    : 1
+Signature : fun(A -> stream(tuple(B))) x AttrName x A x A x fun(tuple(B) -> real) x int x int -> stream(tuple)
+Example   : query (fun(a : int) otestrel orange[a;a])  gdijkstra[Id_s2, 1 , 40, distance(.GeoData_s1, .GeoData_s2), 0,0] extend[L : create_sline(.GeoData_s1, .GeoData_s2)] count
+Result    : 6
+
+

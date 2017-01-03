@@ -45,4 +45,5 @@ operator sorth alias SORTH pattern _ op
 operator sortbyh alias SORTBYH pattern _ op [list]
 operator sortattr alias SORTATTR pattern _ op [_]
 
+operator gdijkstra alias GDIJKSTRA pattern _ op [_,_,_,fun,_,_] implicit parameter tuple type GD
 
