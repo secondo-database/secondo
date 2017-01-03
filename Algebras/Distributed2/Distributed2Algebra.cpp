@@ -19456,18 +19456,30 @@ class deleteRemoteDatabasesInfo{
             si->Secondo(cmd,resList,err);
             if(err.code==0){
                if(mynl->HasLength(resList,2) &&
-                 // remove dfarray folder for this database
                   mynl->AtomType(mynl->Second(resList))==TextType ){
                   string home = mynl->Text2String(mynl->Second(resList));
                   string dir = home + "/dfarrays/"+name;
                   cmd = "query removeDirectory('"+dir+"', TRUE)";
+
+                  cout << "remove directory " << dir << " at " 
+                       << si->getConnectionInfo() << endl;
                   si->Secondo(cmd,resList,err);
                   // remove temporarly file transfer folders
                   dir = si->getRequestFilePath();
                   cmd = "query removeDirectory('"+dir+"', TRUE)";
+                  cout << "remove directory " << dir << " at " 
+                       << si->getConnectionInfo() << endl;
                   si->Secondo(cmd,resList,err);
+               } else {
+                 cerr << "query secondoHome() returns unexpected result" 
+                      << endl; 
                }
+            } else {
+              cerr << "problem in retrieving secondoHome at " 
+                   << si->getConnectionInfo() << endl;
             }
+        } else {
+          cerr << "Opening database " <<  name <<  " failed";
         }
         cmd = "close database";
         si->Secondo( cmd, resList,err);
