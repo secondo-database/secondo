@@ -133,4 +133,5 @@ operator matchbelowmv alias MATCHBELOWMV pattern  _ op [_]
 operator insertmv alias INSERTMV pattern _ op [_,_]
 
 
+operator count alias COUNT pattern _ op
 

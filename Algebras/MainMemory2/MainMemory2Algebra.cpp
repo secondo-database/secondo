@@ -15894,6 +15894,86 @@ Operator matchbelow2Op(
 );
 
 
+/*
+12 Operator count
+
+*/
+ListExpr countTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one arg expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr a1 = nl->First(args);
+  string err;
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1,err, false)){
+    return listutils::typeError(err);
+  }
+  a1 = nl->Second(a1); // remove leading mem
+  if(   !Relation::checkType(a1) 
+     && !OrderedRelation::checkType(a1)){
+     return listutils::typeError("not a memory (o)rel");
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+
+template<class T>
+int countVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   T* arg = (T*)args[0].addr;
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+   if(!arg->IsDefined()){
+     res->SetDefined(0);
+     return 0;
+   }
+   string name = arg->GetValue();
+   if(!catalog->isMMObject(name) ) {
+     res->SetDefined(false);
+     return 0;
+   }
+   ListExpr relType = nl->Second(catalog->getMMObjectTypeExpr(name));
+   
+   if(Relation::checkType(relType)){
+     res->Set(true, ((MemoryRelObject*)catalog->getMMObject(name))->getSize());
+   } else if(OrderedRelation::checkType(relType)){
+     res->Set(true,((MemoryORelObject*)catalog->getMMObject(name))->getSize());
+   } else {
+     res->SetDefined(false);
+   }
+   return 0;
+}
+   
+ValueMapping countVM[] = {
+  countVMT<CcString>,
+  countVMT<Mem>
+}; 
+
+int countSelect(ListExpr args){
+   return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec countSpec(
+  " {mrel, morel} -> int",
+  "_ count",
+  "returns the size of an (ordered) memory relation",
+  " query \"ten\" count"
+);
+
+Operator countOp(
+  "count",
+  countSpec.getStr(),
+  2,
+  countVM,
+  countSelect,
+  countTM
+);
+
+
+
 
 class MainMemory2Algebra : public Algebra {
 
@@ -16122,6 +16202,9 @@ class MainMemory2Algebra : public Algebra {
           matchbelowmvOp.SetUsesArgsInTypeMapping();
           AddOperator(&insertmvOp);
           insertmvOp.SetUsesArgsInTypeMapping();
+
+          AddOperator(&countOp);
+          countOp.SetUsesArgsInTypeMapping();
 
         }
         

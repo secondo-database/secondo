@@ -280,6 +280,10 @@ class MemoryRelObject : public MemoryObject {
 
         static const bool checkType(const ListExpr type);
 
+        inline size_t getSize()const{
+           return mmrel?mmrel->size():0;
+        }
+
     private:
         std::vector<Tuple*>* mmrel;
 
@@ -503,6 +507,10 @@ class MemoryORelObject : public MemoryObject {
         static const bool checkType(const ListExpr type);
         
         std::ostream& print(std::ostream& out) const;
+
+        size_t getSize()const{
+          return mmorel?mmorel->noEntries():0;
+        }
         
         
     private:

@@ -690,3 +690,9 @@ Example   : query ten feed insertmv[No, "V_PLZ"] count
 Result    : 10
 
 
+
+Operator  : count
+Number    : 115
+Signature : memory(o)rel -> int
+Example   : query ten feed letmconsume["tencp"] count
+Result    : 10
