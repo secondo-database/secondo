@@ -19443,10 +19443,14 @@ class deleteRemoteDatabasesInfo{
 
         stringutils::toUpper(name);
 
-        string cmd = "open database " + name;
+        string cmd = "create database " + name;
         ListExpr resList;
         SecErrInfo err;
         si->Secondo( cmd, resList,err);
+        // ignore errors, in the normal case, the database which is 
+        // to delete should be present
+
+        cmd = "open database " + name;
         if(err.code==0){
             cmd = "query secondoHome()";
             si->Secondo(cmd,resList,err);
