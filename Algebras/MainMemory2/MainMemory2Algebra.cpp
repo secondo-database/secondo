@@ -4362,7 +4362,7 @@ int mexactmatchSelect(ListExpr args){
 */
 
 OperatorSpec mexactmatchSpec(
-    "{string, mem(avltree T) x {string, mem(rel(tuple(X)))} "
+    "{string, mem(avltree T), mem(ttree T) x {string, mem(rel(tuple(X)))} "
     " x T -> stream(Tuple(X))",
     "_ _ mexactmatch[_]",
     "Uses the given MemoryAVLObject (as first argument) to find all tuples "
@@ -4555,7 +4555,7 @@ int mrangeSelect(ListExpr args){
 */
 
 OperatorSpec mrangeSpec(
-    "{string,mem(avltree T) } x {string, mem(rel(tuple(X)))} "
+    "{string,mem(avltree T), mem(ttree T) } x {string, mem(rel(tuple(X)))} "
     "x T x T -> stream(Tuple(X)) ",
     "_ _ mrange[_,_]",
     "Uses the given avl-tree to find all tuples"
@@ -4812,7 +4812,7 @@ Operator mexactmatchSOp(
 
 Operator mrangeSOp(
   "mrangeS",
-  mrangeSpec.getStr(),
+  mrangeSSpec.getStr(),
   2,
   mrangeSVM,
   mrangeSSelect,

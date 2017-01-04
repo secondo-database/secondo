@@ -149,7 +149,7 @@ Result    : 1
 
 Operator  : mrange
 Number    : 25
-Signature : {string, mem(avltree T) } x {string, mem(rel(tuple(X)))}  x T x T-> stream(tuple(X))
+Signature : {string, mem(avltree T), mem(ttree T) } x {string, mem(rel(tuple(X)))}  x T x T-> stream(tuple(X))
 Example   : query "Staedte_SName" "Staedte" mrange ["Aachen", "Dortmund"] count;
 Result    : 10
 
