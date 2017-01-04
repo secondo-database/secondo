@@ -1570,9 +1570,17 @@ It is for the  operator ~round~.
 ListExpr
 CcRoundTypeMap( ListExpr args )
 {
-  const string map[] =
-              { CcReal::BasicType(), CcInt::BasicType(), CcReal::BasicType() };
-  return SimpleMap(map, 3, args);
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("2 args expected");
+  }
+  if(   !CcInt::checkType(nl->First(args))
+     && !CcReal::checkType(nl->First(args))){
+     return listutils::typeError("first arg must be of int or real");
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("second arg must be of type int");
+  }
+  return listutils::basicSymbol<CcReal>();
 }
 
 /*
@@ -3898,12 +3906,12 @@ abs_vm( Word* args, Word& result, int message, Word& local, Supplier s )
 4.17 Operator ~round~ rounds a real with a given precision
 
 */
-
+template<class T>
 int
-CcRoundValueMap( Word* args, Word& result, int message,
+CcRoundValueMapT( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
-    CcReal* Svalue = (CcReal*) args[0].addr;
+    T* Svalue = (T*) args[0].addr;
     CcInt*  Sprecision = (CcInt*) args[1].addr;
     result = qp->ResultStorage( s );
     CcReal* res = (CcReal*) result.addr;
@@ -3914,7 +3922,7 @@ CcRoundValueMap( Word* args, Word& result, int message,
     }
     else
     {
-      double value = Svalue->GetRealval();
+      double value = Svalue->GetValue();
       int precision = Sprecision->GetIntval();
       static const double base = 10.0;
       double complete5, complete5i;
@@ -3930,6 +3938,16 @@ CcRoundValueMap( Word* args, Word& result, int message,
     }
     return 0;
 }
+
+ValueMapping roundVM[] = {
+   CcRoundValueMapT<CcInt>,
+   CcRoundValueMapT<CcReal>
+};
+
+int roundSelect(ListExpr args){
+  return CcInt::checkType(nl->First(args))?0:1;
+}
+
 
 /*
 4.18 Operator ~int2real~
@@ -4653,7 +4671,6 @@ ValueMapping ccbetweenmap[] = { CcBetween<CcInt>, CcBetween<CcReal>,
 //ValueMapping cchashvaluemap[] = { CcHashValue<CcInt>, CcHashValue<CcReal>,
                                 //CcHashValue<CcString>, CcHashValue<CcBool> };
 ValueMapping cchashvaluemap[] = { CcHashValue };
-ValueMapping ccroundvaluemap[] = { CcRoundValueMap };
 ValueMapping ccint2realvaluemap[] = { CcInt2realValueMap };
 ValueMapping ccreal2intvaluemap[] = { CcReal2intValueMap };
 ValueMapping ccint2boolvaluemap[] = { CcInt2boolValueMap };
@@ -5121,7 +5138,7 @@ const string CCHashValueSpec  =
 
 const string CCRoundSpec =
              "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-             "( <text>(real x int) -> real</text--->"
+             "( <text>({real,int} x int) -> real</text--->"
              "<text>round(_, _)</text--->"
              "<text>Rounds a real value with a precision of n decimals."
              "</text--->"
@@ -5552,8 +5569,8 @@ Operator ccldistance( "ldistance", CCLDistSpec, DistanceStrStrFun,
 Operator cchashvalue( "hashvalue", CCHashValueSpec, 1, cchashvaluemap,
                  Operator::SimpleSelect, CcHashValueTypeMap);
 
-Operator ccround( "round", CCRoundSpec, 1, ccroundvaluemap,
-                 Operator::SimpleSelect, CcRoundTypeMap);
+Operator ccround( "round", CCRoundSpec, 2, roundVM,
+                 roundSelect, CcRoundTypeMap);
 
 Operator ccint2real( "int2real", CCint2realSpec, 1, ccint2realvaluemap,
                  Operator::SimpleSelect, IntReal);
