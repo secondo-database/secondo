@@ -2378,7 +2378,7 @@ OperatorSpec GDSpec(
   "fun( X -> stream(tuple(Y))) ... -> tuple(Y)",
   " GD(_)",
   "A Type Map Operator",
-  "query gdisjkstra(...)"
+  "query gdijkstra(...)"
 );
 
 Operator GDOp(
@@ -2423,11 +2423,14 @@ OperatorSpec gdijkstraSpec(
   "The  sixth argument specifies the search mode. Currently, the following "
   "modes are implemented: \n"
   "0: returns the shortest path between the source and the destination node.\n"
-  "1: returns the shortest path tree from the source to all other reachable "
+  "2: returns all edges which are unique determined to be in in shortest apath"
+  " tree or not.  Edges not belonging to the shortest path "
+  "tree will have a negative sequence number. Egdes czrrently in the front are "
+  "not determined and thus not part of the result.\n"
+  "3: returns the shortest path tree from the source to all other reachable "
   "node of the graph. The destination node argument is ignored in this "
   "mode.\n\n"
-  "The last argument limits the search to a certain path length. This feature "
-  "is not implemented yet."
+  "The last argument limits the search to a certain path length.  "
   "The result are the edges of the shortest path (tree) extended by the "
   "distance of the target node of this edge to the source node argument of "
   "the operator. Furthermore, the level in the tree of the target node is "
