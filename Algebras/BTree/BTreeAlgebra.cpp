@@ -885,6 +885,11 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 
       //local info kept over many calls of OPEN!
       //useful for loopjoin
+      key = (Attribute*)args[2].addr;
+      if(!key->IsDefined()){
+         local.addr = 0;
+         return 0;
+      }
 
       if ( !ili ) //first time
       {
@@ -900,7 +905,6 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       btree = (BTree*)args[0].addr;
-      key = (Attribute*)args[2].addr;
       if(operatorId == RANGE)
       {
         secondKey = (Attribute*)args[3].addr;
@@ -963,8 +967,10 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
 
     case REQUEST :
-
-      assert(ili != 0);
+ 
+      if(!ili){
+         return CANCEL;
+      }     
 
       if(ili->iter->Next())
       {
