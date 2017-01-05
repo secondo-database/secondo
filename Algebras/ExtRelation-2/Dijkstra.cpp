@@ -330,8 +330,6 @@ class gdijkstraInfo{
 					found = initialNode==targetNode;
           queueEntry<T> qe(_initialNode, 0,0);
           front.push(qe);
-          insertDepth(0);
-          stop = false;
           if(mode==0 || mode==1){
               dijkstra();
           }
@@ -392,13 +390,6 @@ class gdijkstraInfo{
       std::priority_queue<queueEntry<T> > front;
       std::set<ct> processedNodes;
 
-      std::set<ct> mode1processedNodes;
-
-      
-      std::map<uint32_t,uint32_t> depthsInFront;  // cancel criterion
-      bool stop;
-
-
 
  
       inline Tuple* createResultTuple( treeEntry<ct>& entry){
@@ -432,33 +423,6 @@ All successor of this node will be processed.
 */
 
       void processNode(T* node,ct nvalue, double costs, uint32_t depth){
-         if(maxDepth>0){
-            if(!depthsInFront.empty()){
-               uint32_t curMinDeptg = depthsInFront.begin()->first;
-               if(curMinDeptg > maxDepth){
-                   stop = true;
-                   return;
-               }
-               typename std::map<uint32_t,uint32_t>::iterator it 
-                  = depthsInFront.find(depth); 
-               assert(it!=depthsInFront.end());
-               uint32_t count = it->second;
-               assert(count>0);
-               count--;
-               if(count==0){
-                   depthsInFront.erase(it);
-               } else {
-                   it->second = count;
-               }
-            }
-            /*
-            // bad idea to not follow the path because a wrong shortest way
-            //  may be found
-            if(depth>=maxDepth){ // do not follow the path using this node
-               return;
-            }
-            */
-         }
          if(processedNodes.find(nvalue)!=processedNodes.end()){
             // node already processed. this case may occur because 
             // updates values are not remove from the priority 
@@ -468,15 +432,8 @@ All successor of this node will be processed.
          processedNodes.insert(node->GetValue());
          if((mode!=3) && // in mode 3, the target node is ignored
             (node->GetValue() == targetNode)){
-             if(maxDepth>0 && depth>maxDepth){
-               stop = true;
-             } else {
-                found = true;
-             }
-            return;
+             found = true;
          }
-
-         
 
          (*succFunArg)[0] = node;
          qp->Open(succFun);
@@ -533,7 +490,6 @@ this edge is ignored completely, except in mode 2.
               // t found the first time
               tree[t] = treeEntry<ct>(node->GetValue(), wc, depth+1, edge);
               front.push( queueEntry<T>(target,wc,depth+1));
-              insertDepth(depth+1);
            } else {
               // check for shorter path to t
               treeEntry<typename T::ctype> te = tree[t];
@@ -547,7 +503,6 @@ this edge is ignored completely, except in mode 2.
                                                  te.costs,node->GetValue()));
                  }
                  front.push( queueEntry<T>(target,wc,depth+1));
-                 insertDepth(depth+1);
               }  else {
                  if(mode!=2){
                    edge->DeleteIfAllowed();
@@ -580,7 +535,7 @@ this edge is ignored completely, except in mode 2.
       }
 
       void dijkstra(){
-          while(!found && !stop && !front.empty()){
+          while(!found && !front.empty()){
               queueEntry<T> n = front.top();
               front.pop();
               processNode(n.node,n.nodeValue, n.costs,n.depth);
@@ -603,7 +558,7 @@ this edge is ignored completely, except in mode 2.
 
 
     Tuple* next3(){ // tree version
-        while(!front.empty() && !stop){
+        while(!front.empty() ){
             queueEntry<T> n = front.top();
             front.pop();
             if(processedNodes.find(n.nodeValue)==processedNodes.end()){
@@ -625,7 +580,7 @@ this edge is ignored completely, except in mode 2.
           yellowEdges.pop_back();
           return res;
       }
-      if(found || stop) return 0;
+      if(found) return 0;
       return next3();
     }
 
@@ -633,8 +588,10 @@ this edge is ignored completely, except in mode 2.
        while(!front.empty()){
          queueEntry<T> n = front.top();
          front.pop();
-         if(  mode1processedNodes.find(n.nodeValue)
-            ==mode1processedNodes.end()){
+         if(processedNodes.find(n.nodeValue)
+            ==processedNodes.end()
+          ){
+             processedNodes.insert(n.nodeValue);   
              treeEntry<ct> entry = tree[n.nodeValue];
              tree.erase(n.nodeValue);
              return createResultTuple(entry);
@@ -643,18 +600,6 @@ this edge is ignored completely, except in mode 2.
           
        }
        return 0;
-    }
-
-    void insertDepth(int d){
-       if(maxDepth>0){
-          typename std::map<uint32_t,uint32_t>::iterator it 
-                    = depthsInFront.find(d);
-          if(it==depthsInFront.end()){
-             depthsInFront[d] = 1;
-          } else {
-             it->second++;
-          }
-       }
     }
 
 };
