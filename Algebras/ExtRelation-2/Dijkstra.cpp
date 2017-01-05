@@ -433,6 +433,12 @@ All successor of this node will be processed.
          if((mode!=3) && // in mode 3, the target node is ignored
             (node->GetValue() == targetNode)){
              found = true;
+            return;
+         }
+
+         if(maxDepth>0 && depth>=maxDepth){
+            // early stop because of path length restriction
+            return;
          }
 
          (*succFunArg)[0] = node;
