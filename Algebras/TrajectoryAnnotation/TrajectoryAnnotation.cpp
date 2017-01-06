@@ -139,13 +139,13 @@ const string& postcode,const string& ci, Point& result) {
   
   //constant values of url	
   string pre="GET /maps/api/geocode/xml?address=";	
-  string post="+CA&sensor=false HTTP/1.1\r\n;";
-  post +="Host: maps.googleapis.com\r\nConnection: close\r\n\r\n";	
-  //create url			
+  //string post="+CA&sensor=false HTTP/1.1\r\n;";
+  //post +="Host: maps.googleapis.com\r\nConnection: close\r\n\r\n";
+  //create url
   string request("");
   request += pre+ newSt7+  "+";
   request += no1+ "+"   +postcode;
-  request +=  "+"   +newc7+ post;
+  request +=  "+"   +newc7+"\n";
 
 
   usleep(120000);  //wait because only 10 request per sec allowed
