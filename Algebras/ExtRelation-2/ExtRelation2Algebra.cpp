@@ -2454,7 +2454,65 @@ Operator gdijkstraOp(
 
 
 
+/*
+Operators minPathCost1 and minPathCost2 
 
+*/
+
+OperatorSpec minPathCost1Spec(
+  " fun(T -> stream(tuple(X))) x AttrName, T, T, AttrName, int -> real",
+  " successors minPathCost1[targetName,source,target,costName,maxHops] ",
+  "Computes the minimum costs of a path from source to target in a "
+  "graph given by succfun. The target attribute name is given by targetName "
+  "the edge costs are part of the tuple has has the attribute name costName."
+  "the graph is restricted to a level of maxHops if the last argument is "
+  "greater than tero.",
+  "query succfun getCosts1[Target, 2, 16, Costs, 3]"
+);
+
+OperatorSpec minPathCost2Spec(
+  " fun(T -> stream(tuple(X))) x AttrName, T, T, fun(X-double) , int -> real",
+  " successors minPathCost1[targetName,source,target,costName,maxHops] ",
+  "Computes the minimum costs of a path from source to target in a "
+  "graph given by succfun. The target attribute name is given by targetName "
+  "the edge costs are computed be the second function."
+  "the graph is restricted to a level of maxHops if the last argument is "
+  "greater than tero.",
+  "query succfun getCosts1[Target, 2, 16, Costs, 3]"
+);
+ValueMapping minPathCost1VM[] = {
+    general_dijkstra::minPathCost1VMT<CcInt>,
+    general_dijkstra::minPathCost1VMT<LongInt>
+};
+
+ValueMapping minPathCost2VM[] = {
+    general_dijkstra::minPathCost2VMT<CcInt>,
+    general_dijkstra::minPathCost2VMT<LongInt>
+};
+
+int minPathCostsSelect(ListExpr args){
+  return CcInt::checkType(nl->Third(args))?0:1;
+}
+
+
+Operator minPathCost1Op(
+  "minPathCost1",
+  minPathCost1Spec.getStr(),
+  2,
+  minPathCost1VM,
+  minPathCostsSelect,
+  general_dijkstra::minPathCostsTM<false> 
+);
+
+
+Operator minPathCost2Op(
+  "minPathCost2",
+  minPathCost2Spec.getStr(),
+  2,
+  minPathCost2VM,
+  minPathCostsSelect,
+  general_dijkstra::minPathCostsTM<true> 
+);
 
 
 
@@ -2525,6 +2583,8 @@ class ExtRelation2Algebra : public Algebra
     AddOperator(&extrel2::gdijkstraOp);
     AddOperator(&extrel2::GDOp);
 
+    AddOperator(&extrel2::minPathCost1Op);
+    AddOperator(&extrel2::minPathCost2Op);
 
 #ifdef USE_PROGRESS
 // support for progress queries

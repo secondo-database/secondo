@@ -43,11 +43,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <map>
 #include <vector>
 #include <assert.h>
+#include <limits>
 
 
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+
+
 
 /*
 1 General Dijkstra
@@ -115,10 +118,9 @@ The disjktra produces a stream of tuples describing the
 edges extended by a number.
 
 */
-
 ListExpr gdijkstraTM(ListExpr args){
 
-  if(!nl->HasLength(args,6) && !nl->HasLength(args,7)){
+  if(!nl->HasLength(args,7)){
     return listutils::typeError("5 or 6 arguments expected");
   } 
   ListExpr fun = nl->First(args);
@@ -200,21 +202,11 @@ ListExpr gdijkstraTM(ListExpr args){
                                 "EdgeNoSP attribute");
   }
 
-  ListExpr resType = nl->TwoElemList(
-                       listutils::basicSymbol<Stream<Tuple> >(),
-                       nl->TwoElemList(
+  ListExpr resType =  nl->TwoElemList(
+                         listutils::basicSymbol<Stream<Tuple> >(),
+                         nl->TwoElemList(
                            listutils::basicSymbol<Tuple>(),
                            resAttrList)); 
-
-  if(nl->HasLength(args,6)){
-     return nl->ThreeElemList( 
-                      nl->SymbolAtom(Symbols::APPEND()),
-                      nl->TwoElemList(
-                           nl->IntAtom(-1), // no max depth
-                           nl->IntAtom(index -1)),
-                      resType);
-        
-  }
 
   if(!CcInt::checkType(nl->Sixth(nl->Rest(args)))){
      return listutils::typeError("7th arg (maxDepth) must be of type int");
@@ -327,7 +319,7 @@ class gdijkstraInfo{
           tt = new TupleType(_tt);
           succFunArg = qp->Argument(succFun);
           costFunArg = qp->Argument(costFun);
-					found = initialNode==targetNode;
+          found = initialNode==targetNode;
           queueEntry<T> qe(_initialNode, 0,0);
           front.push(qe);
           if(mode==0 || mode==1){
@@ -360,6 +352,25 @@ class gdijkstraInfo{
       }
       return 0; // not implemented mode
     }
+
+
+    double getCosts(){
+       assert(mode==4);
+       Tuple* tup;
+       while(!found && ((tup=next3())!=0)){
+          tup->DeleteIfAllowed();
+       }
+       if(tup){
+         tup->DeleteIfAllowed();
+       }
+       if(!found) {
+           return std::numeric_limits<double>::max();
+       }
+       treeEntry<ct> entry = tree[targetNode];
+       return entry.costs();
+    }
+
+
 
  
                   
@@ -476,9 +487,19 @@ this edge is ignored completely, except in mode 2.
             return;
          }
 
-         double costs = getCosts(edge);
+         bool ok;
+         double costs = getCosts(edge, ok);
+         if(!ok){
+            if(mode!=2){
+               edge->DeleteIfAllowed();
+            } else {
+               yellowEdges.push_back(createResultTuple(edge,-1*(depth+1),
+                                                       -1,node->GetValue()));
+            }
+            return;
+         }
+
          if(costs<0){
-            std::cerr << "found invalid costs of " << costs << std::endl;
             if(mode!=2){
                edge->DeleteIfAllowed();
             } else {
@@ -529,12 +550,13 @@ this edge is ignored completely, except in mode 2.
       }
  
 
-      double getCosts(Tuple* t){
+      double getCosts(Tuple* t, bool& correct){
         (*costFunArg)[0] = t;
         Word value;
         qp->Request(costFun, value);
         CcReal* g = (CcReal*) value.addr;
-        if(!g->IsDefined()){
+        correct = g->IsDefined();
+        if(!correct){
           return -1;
         } 
         return g->GetValue();
@@ -564,7 +586,7 @@ this edge is ignored completely, except in mode 2.
 
 
     Tuple* next3(){ // tree version
-        while(!front.empty() ){
+        while(!front.empty() && !found){
             queueEntry<T> n = front.top();
             front.pop();
             if(processedNodes.find(n.nodeValue)==processedNodes.end()){
@@ -662,11 +684,395 @@ int gdijkstraVMT(Word* args, Word& result, int message,
   return-1;
 }
 
+
+
+
+
+
 template int gdijkstraVMT<CcInt>(Word* args, Word& result, int message,
                                  Word& local, Supplier s);
 
 template int gdijkstraVMT<LongInt>(Word* args, Word& result, int message,
                                  Word& local, Supplier s);
+
+
+
+/*
+
+2 minPathCosts1 Operator.
+
+Computes the costs of a path from one node to another one using the
+same graph representation (as a successor function) as the general
+dijkstra. In version 1, the costs are already stored as a attribute 
+in each edge tuple, in version 2, a function is used.
+
+2.1 Type Mapping
+
+Arg 1: successor function
+
+Arg 2: attribute name of the target attribute
+
+Arg 3: the initial node
+
+Arg 4: the target node
+
+Arg 5: attribute containing or function computing the costs of an edge
+
+Arg 6: maximim depth 
+
+If no path is found, the returned costs correspond to the maximum double 
+value. 
+
+*/
+
+template<bool useFun>
+ListExpr minPathCostsTM(ListExpr args){
+  if(!nl->HasLength(args,6)){
+    return listutils::typeError("6 args expected");
+  }
+  // arg 1 must be a function from int, longint -> stream(tuple)
+  ListExpr fun = nl->First(args);
+  if(!listutils::isMap<1>(fun)){
+    return listutils::typeError("first arg must be an unary function");
+  }
+  // check function argument 
+  ListExpr nodeType = nl->Second(fun);
+  if(!CcInt::checkType(nodeType) 
+     && !LongInt::checkType(nodeType)){
+    return listutils::typeError("argument of the first function must "
+                                "be of type int or longint");
+  } 
+  // check function result
+  ListExpr succStream = nl->Third(fun);
+  if(!Stream<Tuple>::checkType(succStream)){
+    return listutils::typeError("result of the first function must be "
+                                "a tuple stream");
+  }
+  ListExpr edgeType = nl->Second(succStream);
+
+  // second argument must be an attribute name in the function result stream  
+  if(!listutils::isSymbol(nl->Second(args))){
+    return listutils::typeError("Second arg is not an valid attribute name");
+  }
+
+  ListExpr attrList = nl->Second(edgeType);
+  ListExpr attrType;
+  std::string attrName = nl->SymbolValue(nl->Second(args));
+  int index = listutils::findAttribute(attrList, attrName, attrType);
+  if(!index){
+    return listutils::typeError("Attribute " + attrName 
+                                + " not found in tuple");
+  }
+  if(!nl->Equal(nodeType, attrType)){
+    return listutils::typeError("function argument and type of target "
+                                "node in tuple differ");
+  }
+
+  // the third and fourth argument must have the same type as the 
+  // function argument
+
+  if(!nl->Equal(nodeType, nl->Third(args))){
+    return listutils::typeError("function argument and typr of start "
+                                "node differ");
+  }
+  if(!nl->Equal(nodeType, nl->Fourth(args))){
+    return listutils::typeError("function argument and type of target "
+                                "node differ");
+  }
+
+  // the fifth arguments depends on the template argument
+  int index2 = -1;
+
+  if(useFun){
+      ListExpr costFun = nl->Fifth(args);
+      if(!listutils::isMap<1>(costFun)){
+          return listutils::typeError("5th argument (cost function) is not "
+                                "a unary function");
+      }
+      // check arg
+      if(!nl->Equal(nl->Second(costFun), edgeType)){
+         return listutils::typeError("cost function argument differs to "
+                                "edge type defined by the successor fucntion");
+      }
+      // check result
+      if(!CcReal::checkType(nl->Third(costFun))){
+        return listutils::typeError("cost function does not returns a double");
+      }
+   } else {
+      // in this case the 5th arg must be an edge attribute name of type double
+      if(!listutils::isSymbol(nl->Fifth(args))){
+         return listutils::typeError("5th arg is not a valid attribute name");
+      } 
+      std::string costAttr = nl->SymbolValue(nl->Fifth(args));
+      index2 = listutils::findAttribute(attrList, costAttr, attrType);
+      if(!index2){
+        return listutils::typeError("cost attribute " + costAttr 
+                                    + " not part of the edge tuple");
+      }
+      if(!CcReal::checkType(attrType)){
+        return listutils::typeError("cost attribute " + costAttr 
+                                    + " not of type real");
+
+      }
+   }
+
+
+   if(!CcInt::checkType(nl->Sixth(args))){
+       return listutils::typeError("6th argument (mode) is not an int");
+   }
+
+   return nl->ThreeElemList( 
+                 nl->SymbolAtom(Symbols::APPEND()),
+                 nl->TwoElemList( nl->IntAtom(index -1), nl->IntAtom(index2-1)),
+                 listutils::basicSymbol<CcReal>());
+
+}
+
+
+template ListExpr minPathCostsTM<true>(ListExpr args);
+template ListExpr minPathCostsTM<false>(ListExpr args);
+
+
+template<class T>
+class minPathCostsInfo{
+  public:
+     minPathCostsInfo(Word _succFun,
+                      T* _sourceNode,
+                      T* _targetNode,
+                      int _maxHops,
+                      int _targetPos,
+                      int _costPos):
+       succFun(_succFun.addr),
+       sourceNode(_sourceNode),
+       targetNode(_targetNode->GetValue()),
+       maxHops(_maxHops),
+       targetPos(_targetPos),
+       costPos(_costPos)
+     {
+       queueEntry<T> qe(_sourceNode, 0,0);
+       front.push(qe);
+       found =sourceNode->GetValue() == targetNode;
+       targetCosts = std::numeric_limits<double>::max();
+       succFunArg = qp->Argument(succFun);
+     }
+     
+
+     minPathCostsInfo(Word _succFun,
+                      T* _sourceNode,
+                      T* _targetNode,
+                      int _maxHops,
+                      int _targetPos,
+                      Word _costFun):
+       succFun(_succFun.addr),
+       sourceNode(_sourceNode),
+       targetNode(_targetNode->GetValue()),
+       maxHops(_maxHops),
+       targetPos(_targetPos),
+       costPos(-1),
+       costFun(_costFun.addr) 
+     {
+       queueEntry<T> qe(_sourceNode, 0,0);
+       front.push(qe);
+       found =sourceNode->GetValue() == targetNode;
+       targetCosts = std::numeric_limits<double>::max();
+       succFunArg = qp->Argument(succFun);
+       costFunArg = qp->Argument(costFun);
+     }
+
+
+     double getCosts(){
+       while(!found && !front.empty()){
+         queueEntry<T> e = front.top();
+         front.pop();
+         processNode(e);
+       }
+
+       return targetCosts;
+     }
+
+  private:
+     typedef typename T::ctype ct;
+     Supplier succFun;
+     T* sourceNode;
+     ct targetNode;
+     int maxHops;
+     int targetPos;
+     int costPos;
+
+     Supplier costFun;
+     ArgVectorPointer costFunArg;
+
+
+     std::priority_queue<queueEntry<T> > front;
+     std::set<ct> processedNodes;
+     bool found;
+     double targetCosts;
+     ArgVectorPointer succFunArg;
+     std::map<ct,double> frontCosts;
+
+
+     void processNode(queueEntry<T>& e){
+
+        if(processedNodes.find(e.nodeValue)!=processedNodes.end()){
+           return;
+        }
+        if(e.nodeValue==targetNode){
+          found = true;
+          targetCosts = e.costs;
+          return;
+        }
+        processedNodes.insert(e.nodeValue);
+        frontCosts.erase(e.nodeValue);
+
+        if(maxHops>0 && e.depth==maxHops){
+            return;
+        }
+        // cancel computation not possible, process successors
+        (*succFunArg)[0] = e.node;
+         qp->Open(succFun);
+         Word value;
+         qp->Request(succFun,value);
+         while(qp->Received(succFun)){
+             processEdge(e, (Tuple*) value.addr);
+             qp->Request(succFun,value);
+         } 
+         qp->Close(succFun);
+     }
+
+
+     void processEdge(queueEntry<T>& e, Tuple* tup){
+         double costs = getCosts(tup);
+         if(costs<0){
+            tup->DeleteIfAllowed();
+            return;
+         }
+         T* target = (T*) tup->GetAttribute(targetPos);
+         if(!target->IsDefined()){
+            tup->DeleteIfAllowed();
+            return;
+         }
+         ct targetVal = target->GetValue();
+         if(processedNodes.find(targetVal)!=processedNodes.end()){
+             tup->DeleteIfAllowed();
+             return;
+         } 
+         target = (T*) target->Copy();
+         tup->DeleteIfAllowed();
+         double nc = e.costs + costs;
+         typename std::map<ct,double>::iterator it 
+               = frontCosts.find(targetVal);
+
+         if(it==frontCosts.end()){ // node found the first time 
+                                   // otherwise the node is either processed 
+                                   // or in front
+            frontCosts[targetVal] = nc;  
+            front.push(queueEntry<T>(target, nc, e.depth+1));
+         } else {
+            if(it->second<= nc){
+               target->DeleteIfAllowed();
+            } else {
+               it->second = nc; // update costs  
+               front.push(queueEntry<T>(target, nc, e.depth+1));
+            }
+         }
+ 
+     }
+
+
+      double getCosts(Tuple* tup){
+         if(costPos >=0){
+            CcReal* c = (CcReal*) tup->GetAttribute(costPos);
+            if(!c->IsDefined()){
+               return -1;
+             }
+              return c->GetValue();
+         } else {
+            (*costFunArg)[0] = tup;
+            Word value;
+            qp->Request(costFun, value);
+            CcReal* g = (CcReal*) value.addr;
+            if(!g->IsDefined()){
+               return -1;
+            } else {
+               return g->GetValue();
+            }
+         }
+      }
+};
+
+
+
+
+template<class T>
+int minPathCost1VMT(Word* args, Word& result, int message, 
+                    Word& local, Supplier s) {
+
+  result = qp->ResultStorage(s);
+  CcReal* res = (CcReal*) result.addr;
+  T* source = (T*) args[2].addr;
+  T* target = (T*) args[3].addr;
+  CcInt* mH = (CcInt*) args[5].addr;
+
+  if(!source->IsDefined() || !target->IsDefined() || !mH->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  } 
+
+  int targetPos = ((CcInt*)args[6].addr)->GetValue();
+  int costPos = ((CcInt*)args[7].addr)->GetValue();
+ 
+
+
+  minPathCostsInfo<T> info(args[0],source,target,mH->GetValue(), 
+                           targetPos,costPos);
+  res->Set(true,info.getCosts());                      
+  return 0;
+}
+
+
+
+template<class T>
+int minPathCost2VMT(Word* args, Word& result, int message, 
+                    Word& local, Supplier s) {
+
+  result = qp->ResultStorage(s);
+  CcReal* res = (CcReal*) result.addr;
+  T* source = (T*) args[2].addr;
+  T* target = (T*) args[3].addr;
+  CcInt* mH = (CcInt*) args[5].addr;
+
+  if(!source->IsDefined() || !target->IsDefined() || !mH->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  } 
+
+  int targetPos = ((CcInt*)args[6].addr)->GetValue();
+ 
+
+
+  minPathCostsInfo<T> info(args[0],source,target,mH->GetValue(),
+                           targetPos,args[4]);
+  res->Set(true,info.getCosts());                      
+  return 0;
+}
+
+
+
+
+template int minPathCost2VMT<CcInt>(Word* args, Word& result, int message,
+                     Word& local, Supplier s);
+
+template int minPathCost2VMT<LongInt>(Word* args, Word& result, int message,
+                     Word& local, Supplier s);
+
+
+
+template int minPathCost1VMT<CcInt>(Word* args, Word& result, int message,
+                     Word& local, Supplier s);
+
+template int minPathCost1VMT<LongInt>(Word* args, Word& result, int message,
+                     Word& local, Supplier s);
+
 
 
 } // end of namespace general_dijkstra

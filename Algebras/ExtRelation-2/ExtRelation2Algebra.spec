@@ -47,3 +47,8 @@ operator sortattr alias SORTATTR pattern _ op [_]
 
 operator gdijkstra alias GDIJKSTRA pattern _ op [_,_,_,fun,_,_] implicit parameter tuple type GD
 
+operator minPathCost1 alias MINPATHCOST1 pattern _ op [_,_,_,_,_] 
+
+operator minPathCost2 alias MINPATHCOST2 pattern _ op [_,_,_,fun,_] implicit parameter tuple type GD
+
+

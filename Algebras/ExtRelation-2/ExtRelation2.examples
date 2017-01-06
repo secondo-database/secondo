@@ -108,7 +108,18 @@ Result   : 10
 Operator  : gdijkstra
 Number    : 1
 Signature : fun(A -> stream(tuple(B))) x AttrName x A x A x fun(tuple(B) -> real) x int x int -> stream(tuple)
-Example   : query (fun(a : int) otestrel orange[a;a])  gdijkstra[Id_s2, 1 , 40, distance(.GeoData_s1, .GeoData_s2), 0,0] extend[L : create_sline(.GeoData_s1, .GeoData_s2)] count
+Example   : query (fun(a : int) otestrel orange[a;a])  gdijkstra[Id_s2, 1 , 40, distance(.GeoData_s1, .GeoData_s2), 0,0] count
 Result    : 6
 
 
+Operator  : minPathCost1 
+Number    : 1
+Signature : fun(A -> stream(tuple(B))) x AttrName x A x A x AttrName x int -> double 
+Example   : query (fun(a : int) otestrel orange[a;a] extend[C: distance(.GeoData_s1, .GeoData_s2))  minPathCost1[Id_s2, 1 , 40, distance(.GeC, 0] >0
+Result    : TRUE
+
+Operator  : minPathCost2 
+Number    : 1
+Signature : fun(A -> stream(tuple(B))) x AttrName x A x A x fun(B->real) x int -> double 
+Example   : query (fun(a : int) otestrel orange[a;a] extend[C: distance(.GeoData_s1, .GeoData_s2))  minPathCost2[Id_s2, 1 , 40, distance(.Ge.C, 0] > 0
+Result    : TRUE

@@ -39,5 +39,18 @@ namespace general_dijkstra{
                  Word& local, Supplier s);
 
 
+
+   template<bool useFun>
+   ListExpr minPathCostsTM(ListExpr args);
+
+
+   template<class T>
+   int minPathCost1VMT(Word* args, Word& result, int message, 
+                    Word& local, Supplier s);
+
+
+   template<class T>
+   int minPathCost2VMT(Word* args, Word& result, int message, 
+                    Word& local, Supplier s);
 }
 
