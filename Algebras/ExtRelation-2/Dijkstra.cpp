@@ -436,7 +436,7 @@ All successor of this node will be processed.
             return;
          }
 
-         if(maxDepth>0 && depth>=maxDepth){
+         if((maxDepth>0) && (depth>=(uint32_t)maxDepth)){
             // early stop because of path length restriction
             return;
          }
