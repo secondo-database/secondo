@@ -924,7 +924,7 @@ class minPathCostsInfo{
         processedNodes.insert(e.nodeValue);
         frontCosts.erase(e.nodeValue);
 
-        if(maxHops>0 && e.depth==maxHops){
+        if(maxHops>0 && e.depth==(uint32_t)maxHops){
             return;
         }
         // cancel computation not possible, process successors
