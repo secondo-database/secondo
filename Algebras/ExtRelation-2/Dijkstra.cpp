@@ -849,7 +849,7 @@ class minPathCostsInfo{
        targetPos(_targetPos),
        costPos(_costPos)
      {
-       queueEntry<T> qe(_sourceNode, 0,0);
+       queueEntry<T> qe((T*) _sourceNode->Copy(), 0,0);
        front.push(qe);
        found =sourceNode->GetValue() == targetNode;
        targetCosts = std::numeric_limits<double>::max();
@@ -871,7 +871,7 @@ class minPathCostsInfo{
        costPos(-1),
        costFun(_costFun.addr) 
      {
-       queueEntry<T> qe(_sourceNode, 0,0);
+       queueEntry<T> qe((T*)_sourceNode->Copy(), 0,0);
        front.push(qe);
        found =sourceNode->GetValue() == targetNode;
        targetCosts = std::numeric_limits<double>::max();
@@ -880,11 +880,21 @@ class minPathCostsInfo{
      }
 
 
+     ~minPathCostsInfo(){
+         while(!front.empty()){
+            queueEntry<T> t = front.top();
+            front.pop();
+            t.node->DeleteIfAllowed();
+         }
+     }
+
+
      double getCosts(){
        while(!found && !front.empty()){
          queueEntry<T> e = front.top();
          front.pop();
          processNode(e);
+         e.node->DeleteIfAllowed();
        }
 
        return targetCosts;
@@ -975,7 +985,6 @@ class minPathCostsInfo{
                front.push(queueEntry<T>(target, nc, e.depth+1));
             }
          }
- 
      }
 
 

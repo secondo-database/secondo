@@ -114,12 +114,12 @@ Result    : 6
 
 Operator  : minPathCost1 
 Number    : 1
-Signature : fun(A -> stream(tuple(B))) x AttrName x A x A x AttrName x int -> double 
+Signature : fun(A -> stream(tuple(B))) x AttrName x A x A x AttrName x int ->  real
 Example   : query (fun(a : int) otestrel orange[a;a] extend[C: distance(.GeoData_s1, .GeoData_s2)])  minPathCost1[Id_s2, 1 , 40, C, 0 ] > 0 
 Result    : TRUE
 
 Operator  : minPathCost2 
 Number    : 1
-Signature : fun(A -> stream(tuple(B))) x AttrName x A x A x fun(B->real) x int -> double 
+Signature : fun(A -> stream(tuple(B))) x AttrName x A x A x fun(B->real) x int -> real
 Example   : query (fun(a : int) otestrel orange[a;a] extend[C: distance(.GeoData_s1, .GeoData_s2)])  minPathCost2[Id_s2, 1 , 40, .C, 0] > 0
 Result    : TRUE
