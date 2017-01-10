@@ -26,6 +26,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
+#ifndef MEMORYVECTOROBJECT_H
+#define MEMORYVECTOROBJECT_H
+
 #include "MainMemoryExt.h"
 #include <vector>
 #include "Attribute.h"
@@ -176,4 +179,6 @@ class MemoryVectorObject : public MemoryObject {
 
 
 }
+#endif
+
 

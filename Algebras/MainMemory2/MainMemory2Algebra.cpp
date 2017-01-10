@@ -71,6 +71,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include "MemoryVectorObject.h"
+#include "MemoryPQueue.h"
 
 using namespace std;
 
@@ -583,6 +584,31 @@ template<>
 MemoryVectorObject* getMVector( MPointer* vec){
    return (MemoryVectorObject*) ((*vec)());
 }
+
+
+
+template<class T>
+MemoryPQueueObject* getMemoryPQueue(T* qN){
+   if(!qN->IsDefined()){
+      return 0;
+   }
+   string qn = qN->GetValue();
+   if(!catalog->isMMObject(qn) || !catalog->isAccessible(qn)){
+      return 0;
+   }
+   ListExpr qt = nl->Second(catalog->getMMObjectTypeExpr(qn));
+   if(!MemoryPQueueObject::checkType(qt)){
+       return 0;
+   }
+   return (MemoryPQueueObject*)catalog->getMMObject(qn);
+}
+
+template<>
+MemoryPQueueObject* getMemoryPQueue(MPointer* q){
+   return (MemoryPQueueObject*) ((*q)());
+}
+
+
 
 
 /*
@@ -15974,6 +16000,469 @@ Operator countOp(
 
 
 
+/*
+8 Operators on priority queues
+
+8.1 mcreatepqueue
+
+Creates a new priority queue in main  memory.
+
+stream(tuple) x AttrName x string -> stream(tuple)
+
+*/
+
+ListExpr mcreatepqueueTM(ListExpr args){
+
+   if(!nl->HasLength(args,3)){
+     return listutils::typeError("3 arguments expected");
+   }
+   if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+   }
+   ListExpr stream = nl->First(nl->First(args));
+   if(!Stream<Tuple>::checkType(stream)){
+      return listutils::typeError("first arg must be a tuple stream");
+   }
+   ListExpr attrNameL = nl->First(nl->Second(args));
+   if(!listutils::isSymbol(attrNameL)){
+     return listutils::typeError("second arg is not a valid attribute name");
+   }
+   string attrName = nl->SymbolValue(attrNameL);
+   ListExpr attrList = nl->Second(nl->Second(stream));
+   ListExpr attrType;
+   int index = listutils::findAttribute(attrList, attrName, attrType);
+   if(!index){
+     return listutils::typeError("attribute " + attrName + 
+                                 " not part of the tuple");
+   }
+   if(!CcReal::checkType(attrType)){
+      return listutils::typeError("attribute " + attrName +
+                                  "not of type real");
+   }
+   ListExpr nameType = nl->First(nl->Third(args));
+   if(!CcString::checkType(nameType)){
+     return listutils::typeError("last arg not of type string");
+   }
+   ListExpr nameValue = nl->Second(nl->Third(args));
+   if(nl->AtomType(nameValue)!=StringType){
+     return listutils::typeError("memory object queue's name must "
+                                 "be a constant");
+   }
+   string moname = nl->StringValue(nameValue);
+   if(catalog->isMMObject(moname)){
+     return listutils::typeError("There is already a main memoray "
+                                 "object named " + moname);
+   }
+   return nl->ThreeElemList(
+                nl->SymbolAtom(Symbols::APPEND()),
+                nl->OneElemList(nl->IntAtom(index-1)),
+                stream);
+}
+
+
+
+class mcreatepqueueInfo{
+  public:
+     mcreatepqueueInfo(Word _stream, int _prioIndex, 
+                       const string& memName, bool flob,
+                       const string type): stream(_stream),
+                       prioIndex(_prioIndex){
+       string dbname = getDBname(); 
+       q = new MemoryPQueueObject(flob, dbname,type);
+       catalog->insert(memName, q);
+       stream.open();
+     }
+
+     ~mcreatepqueueInfo(){
+         stream.close();
+     }
+
+     Tuple* next(){
+        Tuple* tuple = stream.request();
+        if(tuple){
+           CcReal* p  = (CcReal*) tuple->GetAttribute(prioIndex);
+           if(p->IsDefined()){
+              q->push(tuple,p->GetValue());
+           }
+        }
+        return tuple;
+     }
+
+
+     private:
+        Stream<Tuple> stream;
+        int prioIndex;
+        MemoryPQueueObject* q;
+};
+
+
+
+
+
+int mcreatepqueueVM(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   mcreatepqueueInfo* li = (mcreatepqueueInfo*) local.addr;
+   switch(message){
+      case OPEN: { 
+                if(li){
+                  delete li;
+                  local.addr = 0;
+                }
+                string objName = ((CcString*)args[2].addr)->GetValue();
+                int prioIndex = ((CcInt*) args[3].addr)->GetValue();
+                ListExpr tt = nl->Second(qp->GetType(s));
+                ListExpr type = nl->TwoElemList(
+                                 listutils::basicSymbol<Mem>(),
+                                 nl->TwoElemList(
+                                   listutils::basicSymbol<MemoryPQueueObject>(),
+                                   tt));
+                local.addr = new mcreatepqueueInfo(args[0], prioIndex, 
+                                                   objName,false,
+                                                   nl->ToString(type));
+                return 0;  
+      }
+      case REQUEST:
+                result.addr = li?li->next():0;
+                return result.addr?YIELD:CANCEL;
+      case CLOSE:
+             if(li){
+               delete li;
+               local.addr = 0;
+             }
+             return 0;
+
+   }
+   return -1;
+}
+
+
+OperatorSpec mcreatepqueueSpec(
+   "stream(tuple) x IDENT x string -> stream(tuple) ",
+   "_ mcreatepqueue[_,_]",
+   "Creates a priority in memory with the given name storing "
+   "the tuples of the stream. The priority comes from the "
+   "attribute that's name is given in the second argument. "
+   "This attribute has to be of type real. " 
+   "If this attribute is undefined, the values are not inserted "
+   "into the queue but nevertheless part of the output stream.",
+   "query strassen extend[L : size(.GeoData)] mcreatepqueue[L,\"S_L\"] count"
+
+);
+
+Operator mcreatepqueueOp(
+  "mcreatepqueue",
+  mcreatepqueueSpec.getStr(),
+  mcreatepqueueVM,
+  Operator::SimpleSelect,
+  mcreatepqueueTM
+);
+
+
+
+ListExpr sizeTM( ListExpr args){
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("one argument expected");
+   }
+   if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+   }
+   string err;
+   ListExpr a1 = nl->First(args);
+   if(!getMemType(nl->First(a1),nl->Second(a1),a1, err,true)){
+       return listutils::typeError(err);
+   }
+   a1 = nl->Second(a1);
+   if(!MemoryPQueueObject::checkType(a1)){
+     return listutils::typeError("argument is not a memory priority queue");
+   }
+   return listutils::basicSymbol<CcInt>();
+}
+
+
+template<class T>
+int sizeVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+  MemoryPQueueObject* q = getMemoryPQueue((T*) args[0].addr);
+  if(!q){
+    res->SetDefined(false);
+  } else {
+    res->Set(true, q->size());
+  }
+  return 0;
+}
+
+ValueMapping sizeVM[] = {
+   sizeVMT<CcString>,
+   sizeVMT<Mem>,
+   sizeVMT<MPointer>
+};
+
+int sizeSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
+
+OperatorSpec sizeSpec(
+  "mpqueue -> int",
+  "size(_)",
+  "Returns the number of entries in an mpqueue.",
+  "query size(strassen_L"
+);
+
+Operator sizeOp(
+  "size",
+  sizeSpec.getStr(),
+  3,
+  sizeVM,
+  sizeSelect,
+  sizeTM
+);
+
+
+/*
+Operator mfeedpq
+
+*/
+ListExpr mfeedpqTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  string err;
+  ListExpr a1 = nl->First(args);
+  if(!getMemType(nl->First(a1), nl->Second(a1),a1, err, true)){
+    return listutils::typeError("expected mpqueue");
+  }
+  a1 = nl->Second(a1);
+  if(!MemoryPQueueObject::checkType(a1)){
+    return listutils::typeError("expected mpqueue");
+  }
+  return nl->TwoElemList(
+                listutils::basicSymbol<Stream<Tuple> >(),
+                nl->Second(a1));  
+
+}
+
+class mfeedpqInfo{
+   public:
+      mfeedpqInfo(MemoryPQueueObject* _obj): obj(_obj){}
+
+      ~mfeedpqInfo(){}
+
+      Tuple* next(){
+          if(obj->empty()){
+             return 0;
+          }
+          pqueueentry e = obj->pop();
+          return e();
+      }
+
+   private:
+      MemoryPQueueObject* obj;
+};
+
+
+template<class T>
+int mfeedpqVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   mfeedpqInfo* li = (mfeedpqInfo*) local.addr;
+   switch(message){
+     case OPEN:{
+            if(li){
+                delete li;
+                local.addr = 0;
+            }
+            MemoryPQueueObject* q = getMemoryPQueue((T*) args[0].addr);
+            if(q){
+              local.addr = new mfeedpqInfo(q);
+            }
+            return 0;
+     }
+     case REQUEST:
+             result.addr = li?li->next():0;
+             return result.addr?YIELD:CANCEL;
+     case CLOSE:
+             if(li){
+               delete li;
+               local.addr = 0;
+             }
+             return 0;
+     
+ 
+   }
+
+  return -1;
+}
+
+ValueMapping mfeedpqVM[] = {
+   mfeedpqVMT<CcString>,
+   mfeedpqVMT<Mem>,
+   mfeedpqVMT<MPointer>
+};
+
+int mfeedpqSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
+
+OperatorSpec mfeedpqSpec(
+  "mpqueue -> stream(tuple)",   
+  " _ mfeedpq ",
+  "Feeds the constent of a priority queue into a tuple stream. "
+  "In contrast to a 'normal' feed, the queue is eat up.",
+  "query strassen_L mfeedpq count"
+);
+
+
+Operator mfeedpqOp(
+  "mfeedpq",
+  mfeedpqSpec.getStr(),
+  3,
+  mfeedpqVM,
+  mfeedpqSelect,
+  mfeedpqTM
+);
+
+
+/*
+Operator ~minsertTuplepq~
+
+*/
+
+ListExpr minsertTuplepq(ListExpr args){
+   if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
+     return listutils::typeError("3 or 4 arguments expected");
+   }
+   if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+   }
+   ListExpr a1 = nl->First(args);
+   string err;
+   if(!getMemType(nl->First(a1), nl->Second(a1), a1, err,true)){
+     return listutils::typeError(err);
+   }
+
+   a1 = nl->Second(a1);
+   if(!MemoryPQueueObject::checkType(a1)){
+     return listutils::typeError("first arg is not a mpqueue");
+   }
+
+
+   ListExpr tuple = nl->First(nl->Second(args));
+   if(!Tuple::checkType(tuple)){
+     return listutils::typeError("second arg is not a tuple");
+   }
+   if(!nl->Equal(nl->Second(a1), tuple)){
+     return listutils::typeError("tuple type does not fit the tuple "
+                                 "stored in queue");
+   }
+
+   if(!CcReal::checkType(nl->First(nl->Third(args)))){
+     return listutils::typeError("third arg is not a real");
+   }
+   if(nl->HasLength(args,3)){
+     return listutils::basicSymbol<CcBool>();
+   }
+   ListExpr attrName = nl->First(nl->Fourth(args));
+   if(!listutils::isSymbol(attrName)){
+     return listutils::typeError("4th arg is not a valid attribute name");
+   }
+
+   string an = nl->SymbolValue(attrName);
+   ListExpr attrType;
+   ListExpr attrList = nl->Second(tuple);
+   int index = listutils::findAttribute(attrList,an,attrType);
+   if(!index){
+      return listutils::typeError("attribute " + an + "not part of the tuple");
+   }
+   if(!CcReal::checkType(attrType)){
+      return listutils::typeError("attribute " + an + "not part of type real");
+   }
+   return nl->ThreeElemList(
+                 nl->SymbolAtom(Symbols::APPEND()),
+                 nl->OneElemList(nl->IntAtom(index-1)),
+                 listutils::basicSymbol<CcBool>());
+}
+
+template<class T>
+int minserttuplepqVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr; 
+
+   MemoryPQueueObject* q = getMemoryPQueue((T*) args[0].addr);
+   if(!q){
+      res->SetDefined(false);
+      return 0;
+   }
+   Tuple* tuple = (Tuple*) args[1].addr;
+   CcReal* prioS = (CcReal*) args[2].addr;
+   if(!prioS->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   double prio = prioS->GetValue();
+   if(qp->GetNoSons(s)>4){ // update tuple entry if desired
+      int prioIndex = ((CcInt*) args[4].addr)->GetValue();
+      ((CcReal*) tuple->GetAttribute(prioIndex))->Set(true,prio);
+   }
+   q->push(tuple,prio);
+   res->Set(true,true);
+   return 0;
+}
+
+
+ValueMapping minsertTuplepqVM[] = {
+   minserttuplepqVMT<CcString>,
+   minserttuplepqVMT<Mem>,
+   minserttuplepqVMT<MPointer>
+};
+
+int minsertTuplepqSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
+OperatorSpec minsertTupleSpec(
+  "mpqueue x tuple x real [x INDENT] -> bool",
+  "minserttuplepq(_,_,_,_)",
+  "Inserts a tuple into a memory priority queue with a "
+  "given priority. If the optional attribute name is given, "
+  "the specified attribute of the tuple is changed to the "
+  "priority value before insertion. Of course the attribute "
+  "has to be of type real.",
+  "query strassen feed extend[ L : size(.GeoData)] "
+  "extend[Ok : \"strassen_L\", . , 1.0, L] count"
+);
+
+Operator minsertTuplepqOp(
+   "minserttuplepq",
+   minsertTupleSpec.getStr(),
+   3,
+   minsertTuplepqVM,
+   minsertTuplepqSelect,
+   minsertTuplepq
+);
+
 
 class MainMemory2Algebra : public Algebra {
 
@@ -16205,6 +16694,18 @@ class MainMemory2Algebra : public Algebra {
 
           AddOperator(&countOp);
           countOp.SetUsesArgsInTypeMapping();
+
+
+          // operators on priority queues
+          AddOperator(&mcreatepqueueOp);
+          mcreatepqueueOp.SetUsesArgsInTypeMapping();
+          AddOperator(&sizeOp);
+          sizeOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mfeedpqOp);
+          mfeedpqOp.SetUsesArgsInTypeMapping();
+          AddOperator(&minsertTuplepqOp);
+          minsertTuplepqOp.SetUsesArgsInTypeMapping();
+
 
         }
         
