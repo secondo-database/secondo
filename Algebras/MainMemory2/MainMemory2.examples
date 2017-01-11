@@ -712,13 +712,13 @@ Example   : query size("strassen_PQ_L")
 Result    : 3212
 
 Operator  : mfeedpq
-Number    : 121
+Number    : 122
 Signature : mpqueue -> stream(tuple)
 Example   : query "strassen_PQ_L" mfeedpq head[1000] count
 Result    : 1000
 
 Operator  : minserttuplepq
-Number    : 122
+Number    : 123
 Signature : mpqueue x tuple x real [x IDENT] -> bool
 Example   : query strassen feed extend[L : size(.GeoData)] extend[ Ok : minserttuplepq("strassen_PQ_L", . , .L * 2.0, L)] head[10] count
 Result    : 10
