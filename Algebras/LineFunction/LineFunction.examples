@@ -29,5 +29,11 @@ Result   : ( real 124.24579047333566 )
 Operator : distanceWithGradient
 Number   : 1
 Signature: (point x point x real x lreal) -> real
-Example  : query distanceWithHeight(.SourcePos,.TargetPos, 1.5, .Heightfunction)
-Result   : 3455.45366
+Example  : query distanceWithGradient([const point value ( 1.0 1.5 ) ],[const point value ( 2.0 2.5 ) ], 1.5, [const lreal value (((0.0 5.2 TRUE FALSE) (1.0 2.2)))])
+Result   : 156599.4561050341
+
+Operator : lfResult
+Number   : 1
+Signature: (real x lreal) -> real
+Example  : query lfResult(1, [const lreal value (((0.0 5.2 TRUE FALSE) (1.0 2.2)))])
+Result   : 1.5

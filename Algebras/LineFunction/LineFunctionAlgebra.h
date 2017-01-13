@@ -1509,6 +1509,88 @@ ListExpr distanceWithGradientTypeMap(ListExpr args)
   return (listutils::basicSymbol<CcReal>());
 }
 
+/*
+1.5 Operator ~lfResult~
+
+*/
+
+struct lfResultInfo : OperatorInfo
+    {
+    lfResultInfo()
+    {
+      name      = "lfResult";
+      signature = "lfResult (Real,LReal)->Real";
+      appendSignature("lfResult (Real,LReal)->Real");
+      syntax    =   "lfResult ( _ , _ )";
+      meaning   =   "A LReal is a datatype which consists of "
+        "multiple linear functions for given intervals"
+        "This function computes the result at a given position of a LReal. "
+        "The first parameter is the value for x in a linear function "
+        "like (y=m*x +n). "
+        "The second parameter is the LReal which includes all linear functions"
+        "with interval."
+        "The result is the y of the linear function "
+      ;
+      }
+    };
+
+
+int lfResultFun( Word* args, Word& result, int message,
+                     Word& local, Supplier s ){
+
+   result = qp->ResultStorage( s );
+   CcReal* res = static_cast<CcReal*>(result.addr);
+
+   //Argumente auseinander nehmen und casten
+     CcReal* xValue = static_cast<CcReal*>(args[0].addr);
+     LReal* heightfunction = static_cast<LReal*>(args[1].addr);
+
+     double x = xValue->GetRealval();
+     double y;
+     res->Set(false);
+     for (int i = 0; i < heightfunction->GetNoComponents(); i++) {
+         LUReal* unit = new LUReal();
+         heightfunction->Get(i,*unit);
+
+         double intervStart=unit->getLengthInterval().start.GetRealval();
+         double intervEnd=unit->getLengthInterval().end.GetRealval();
+
+         if ((intervStart <= x) && (x <= intervEnd)){
+             //Steigung und Anfangshoehe der Funktion
+             double m=unit->m;
+             double n=unit->n;
+             //Lineare Funktion ausrechnen
+             y= (m * x) + n;
+             res->Set(true,y);
+             break;
+         }
+     }
+   return 0;
+}
+
+ListExpr lfResultTypeMap(ListExpr args)
+{
+  if(!nl->HasLength(args,2)){
+    return (listutils::typeError("2 arguments expected"));
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  std::string err = "CcReal x LReal expected";
+
+  if(!CcReal::checkType(arg1)){
+    return (listutils::typeError(err
+            + " (first arg is not a ccreal)"));
+  }
+  if(!LReal::checkType(arg2))
+  {
+    return (listutils::typeError(err
+            + " (second arg is not a LReal)"));
+  }
+  //return listutils::typeError();
+  return (listutils::basicSymbol<CcReal>());
+}
+
 
 
 #endif // LINEFUNCTION_ALGEBRA_H

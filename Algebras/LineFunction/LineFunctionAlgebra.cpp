@@ -37,7 +37,7 @@ April 2015 Rene Steinbrueck
 */
 
 #include "LineFunctionAlgebra.h"
-#include <iostream>
+//#include <iostream>
 #include "Geoid.h"
 
 
@@ -51,6 +51,13 @@ Operator distanceWithGradient
     distanceWithGradientInfo(),
     distanceWithGradientFun,
     distanceWithGradientTypeMap
+);
+
+Operator lfResult
+(
+    lfResultInfo(),
+    lfResultFun,
+    lfResultTypeMap
 );
 
 Operator lcompose
@@ -119,6 +126,7 @@ class LineFunctionAlgebra : public Algebra
     AddOperator( &lfdistance );
     AddOperator( &lfdistanceparam);
     AddOperator( &distanceWithGradient);
+    AddOperator( &lfResult);
   }
   ~LineFunctionAlgebra() {};
 };
