@@ -26,30 +26,32 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceAlgebra.hpp"
-#include "OperatorFeedPF.hpp"
-#include "OperatorLetDConsume.hpp"
-#include "OperatorStartDBService.hpp"
-#include "OperatorAddNode.hpp"
+#ifndef ALGEBRAS_DBSERVICE_RELATIONINFO_HPP_
+#define ALGEBRAS_DBSERVICE_RELATIONINFO_HPP_
+
+#include <string>
+#include <vector>
 
 namespace DBService
 {
 
-DBServiceAlgebra::DBServiceAlgebra() :
-        Algebra()
+typedef size_t ConnectionID;
+
+class RelationInfo
 {
-    AddOperator(FeedPFInfo(),
-                OperatorFeedPF::mapValue,
-                OperatorFeedPF::mapType);
-    AddOperator(LetDConsumeInfo(),
-                OperatorLetDConsume::mapValue,
-                OperatorLetDConsume::mapType);
-    AddOperator(StartDBServiceInfo(),
-                OperatorStartDBService::mapValue,
-                OperatorStartDBService::mapType);
-    AddOperator(AddNodeInfo(),
-                OperatorAddNode::mapValue,
-                OperatorAddNode::mapType);
-}
+public:
+    RelationInfo(const std::string& name);
+    const std::string& getRelationName() const;
+    void addNode(ConnectionID id);
+    const std::vector<ConnectionID>::const_iterator nodesBegin() const;
+    const std::vector<ConnectionID>::const_iterator nodesEnd() const;
+
+private:
+    std::string relationName;
+    std::vector<ConnectionID> nodes;
+
+};
 
 } /* namespace DBService */
+
+#endif /* ALGEBRAS_DBSERVICE_RELATIONINFO_HPP_ */

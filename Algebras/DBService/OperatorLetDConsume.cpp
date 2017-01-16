@@ -29,8 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "OperatorLetDConsume.hpp"
 
 #include "OperatorConsume.h"
-
 #include "DBServiceManager.hpp"
+#include "DebugOutput.hpp"
+
+#include <sstream>
 
 using namespace std;
 
@@ -39,7 +41,7 @@ namespace DBService
 
 ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
 {
-    cout << listutils::stringValue(nestedList) << endl;
+    print(nestedList);
 
     if (nl->ListLength(nestedList) != 2)
     {
@@ -48,14 +50,14 @@ ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
-    if (!Stream<Tuple>::checkType(nl->First(nestedList)))
+    if (!Stream<Tuple>::checkType(nl->First(nl->First(nestedList))))
     {
         ErrorReporter::ReportError(
                 "first argument must be: stream(tuple(...))");
         return nl->TypeError();
     }
 
-    if(!CcString::checkType(nl->Second(nestedList)))
+    if(!CcString::checkType(nl->First(nl->Second(nestedList))))
     {
         ErrorReporter::ReportError(
                 "second argument must be: string");
@@ -64,8 +66,19 @@ ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
 
     DBServiceManager::getInstance();
 
-    // TODO append string (relation name) to resulting NestedList
-    return OperatorConsume::ConsumeTypeMap<false>(nl->First(nestedList));
+    ListExpr consumeTypeMapResult = OperatorConsume::ConsumeTypeMap<false>(
+            nl->First(nestedList));
+    if (consumeTypeMapResult == nl->TypeError())
+    {
+        return consumeTypeMapResult;
+    }
+
+    ListExpr appendList = nl->OneElemList(nl->Second(nl->Second(nestedList)));
+
+    ListExpr typeMapResult = nl->ThreeElemList(
+            nl->SymbolAtom(Symbols::APPEND()), appendList,
+            consumeTypeMapResult);
+    return typeMapResult;
 }
 
 int OperatorLetDConsume::mapValue(Word* args,
@@ -74,8 +87,12 @@ int OperatorLetDConsume::mapValue(Word* args,
                                   Word& local,
                                   Supplier s)
 {
-    // TODO create files
-    return OperatorConsume::Consume(args, result, message, local, s);
+    int consumeValueMappingResult = OperatorConsume::Consume(args, result,
+                                                             message, local, s);
+    // checking return code of value mapping is noOp?!
+    DBServiceManager::replicateRelation(
+            static_cast<CcString*>(args[0].addr)->GetValue());
+    return consumeValueMappingResult;
 }
 
 } /* namespace DBService */

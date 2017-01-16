@@ -26,36 +26,34 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_OPERATORSETNODES_HPP_
-#define ALGEBRAS_DBSERVICE_OPERATORSETNODES_HPP_
+#include "RelationInfo.hpp"
 
-#include "Operator.h"
+using namespace std;
 
 namespace DBService
 {
 
-struct SetNodesInfo: OperatorInfo
-{
-    SetNodesInfo()
-    {
-        name = "setnodes";
-        signature = ""; // TODO
-        syntax = ""; // TODO
-        meaning = "use nodes of specified worker relation for DBService";
-    }
-};
+RelationInfo::RelationInfo(const std::string& name) :
+        relationName(name)
+{}
 
-class OperatorSetNodes
+const std::string& RelationInfo::getRelationName() const
 {
-public:
-    static ListExpr mapType(ListExpr nestedList);
-    static int mapValue(Word* args,
-                        Word& result,
-                        int message,
-                        Word& local,
-                        Supplier s);
-};
+    return relationName;
+}
+void RelationInfo::addNode(ConnectionID id)
+{
+    nodes.push_back(id);
+}
+
+const vector<ConnectionID>::const_iterator RelationInfo::nodesBegin() const
+{
+    return nodes.begin();
+}
+
+const vector<ConnectionID>::const_iterator RelationInfo::nodesEnd() const
+{
+    return nodes.end();
+}
 
 } /* namespace DBService */
-
-#endif /* ALGEBRAS_DBSERVICE_OPERATORSETNODES_HPP_ */

@@ -26,30 +26,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceAlgebra.hpp"
-#include "OperatorFeedPF.hpp"
-#include "OperatorLetDConsume.hpp"
-#include "OperatorStartDBService.hpp"
-#include "OperatorAddNode.hpp"
+#ifndef ALGEBRAS_DBSERVICE_OPERATORSTARTDBSERVICE_HPP_
+#define ALGEBRAS_DBSERVICE_OPERATORSTARTDBSERVICE_HPP_
+
+#include "Operator.h"
 
 namespace DBService
 {
 
-DBServiceAlgebra::DBServiceAlgebra() :
-        Algebra()
+struct StartDBServiceInfo : OperatorInfo
 {
-    AddOperator(FeedPFInfo(),
-                OperatorFeedPF::mapValue,
-                OperatorFeedPF::mapType);
-    AddOperator(LetDConsumeInfo(),
-                OperatorLetDConsume::mapValue,
-                OperatorLetDConsume::mapType);
-    AddOperator(StartDBServiceInfo(),
-                OperatorStartDBService::mapValue,
-                OperatorStartDBService::mapType);
-    AddOperator(AddNodeInfo(),
-                OperatorAddNode::mapValue,
-                OperatorAddNode::mapType);
-}
+    StartDBServiceInfo()
+    {
+        name = "startdbservice";
+        signature = ""; // TODO
+        syntax = ""; // TODO
+        meaning = "start DBService using nodes of specified worker relation";
+        usesArgsInTypeMapping = false;
+    }
+};
+
+class OperatorStartDBService
+{
+public:
+    static ListExpr mapType(ListExpr nestedList);
+    static int mapValue(Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s);
+};
 
 } /* namespace DBService */
+
+#endif /* ALGEBRAS_DBSERVICE_OPERATORSTARTDBSERVICE_HPP_ */

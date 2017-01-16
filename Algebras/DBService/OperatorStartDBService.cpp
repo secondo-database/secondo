@@ -26,19 +26,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "OperatorSetNodes.hpp"
+#include "OperatorStartDBService.hpp"
 
 #include "Dist2Helper.h"
 #include "DBServiceManager.hpp"
+
+#include "DebugOutput.hpp"
 
 using namespace std;
 
 namespace DBService
 {
 
-ListExpr OperatorSetNodes::mapType(ListExpr nestedList)
+ListExpr OperatorStartDBService::mapType(ListExpr nestedList)
 {
-    cout << listutils::stringValue(nestedList) << endl;
+    throw SecondoException("not implemented");
+    //TODO usesargsintypemapping
+
+    print(nestedList);
     if (nl->ListLength(nestedList) != 1)
     {
         ErrorReporter::ReportError(
@@ -54,7 +59,8 @@ ListExpr OperatorSetNodes::mapType(ListExpr nestedList)
     ListExpr positions;
     ListExpr types;
     string errorMessage;
-    if(!distributed2::isWorkerRelDesc(nestedList,
+    print("checking worker relation");
+    if(!distributed2::isWorkerRelDesc(nl->First(nestedList),
                                       positions,
                                       types,
                                       errorMessage))
@@ -63,51 +69,88 @@ ListExpr OperatorSetNodes::mapType(ListExpr nestedList)
                                     + errorMessage);
         return nl->TypeError();
     }
+    print("creating result list");
+    print(nl->First(positions));
+    print(nl->Second(positions));
+    print(nl->Third(positions));
 
-    ListExpr result = nl->FourElemList(nestedList,
-                                       nl->First(positions),
-                                       nl->Second(positions),
-                                       nl->Third(positions));
-    cout << listutils::stringValue(result) << endl;
-    return result;
+    /*ListExpr workerPos = nl->ThreeElemList(
+            nl->First(positions),
+            nl->Second(positions),
+            nl->Third(positions));*/
+
+    //ListExpr result =  nl->TwoElemList(nl->First(nestedList), workerPos);
+    //print(result);
+    //return result;
+
+/*    ListExpr appendList = listutils::concat(positions,
+                                     nl->OneElemList(nl->IntAtom(1)));
+
+    ListExpr res = nl->TwoElemList(
+            nl->IntAtom(1),
+                          nl->First(nestedList));*/
+
+    ListExpr appendList = nl->FourElemList(nl->First(positions),
+                                           nl->Second(positions),
+                                           nl->Third(positions),
+                                           nl->Rest(nestedList));
+
+    ListExpr result = listutils::basicSymbol<CcBool>();
+
+    ListExpr tmResult = nl->ThreeElemList(
+                    nl->SymbolAtom(Symbols::APPEND()),
+                    appendList,
+                    result);
+
+    print(tmResult);
+    return tmResult;
 }
 
-int OperatorSetNodes::mapValue(Word* args,
+int OperatorStartDBService::mapValue(Word* args,
                                Word& result,
                                int message,
                                Word& local,
                                Supplier s)
 {
-    Relation* relation = reinterpret_cast<Relation*>(&args[0]);
-    int hostPos = reinterpret_cast<CcInt*>(&args[1])->GetValue();
-    int portPos = reinterpret_cast<CcInt*>(&args[2])->GetValue();
-    int confPos = reinterpret_cast<CcInt*>(&args[3])->GetValue();
+    print("ValueMapping");
+    print(message);
+    Relation* relation = reinterpret_cast<Relation*>(args[0].addr);
+    int hostPos = reinterpret_cast<CcInt*>(args[1].addr)->GetValue();
+    int portPos = reinterpret_cast<CcInt*>(args[2].addr)->GetValue();
+    int confPos = reinterpret_cast<CcInt*>(args[3].addr)->GetValue();
 
+    print("Before Scan");
     GenericRelationIterator* it = relation->MakeScan();
     Tuple* tuple;
+
+    print("Before While");
     while((tuple = it->GetNextTuple())){
         CcString* hostAttr =
                 static_cast<CcString*>(tuple->GetAttribute(hostPos));
        if(!hostAttr->IsDefined())
        {
            //TODO
+           print("host not defined");
        }
        CcInt* portAttr = static_cast<CcInt*>(tuple->GetAttribute(portPos));
        if(!portAttr->IsDefined())
        {
            //TODO
+           print("port not defined");
        }
         CcString* configAttr =
                 static_cast<CcString*>(tuple->GetAttribute(confPos));
        if(!configAttr->IsDefined())
        {
            //TODO
+           print("config not defined");
        }
        string host = hostAttr->GetValue();
        int port = portAttr->GetValue();
        string config = configAttr->GetValue();
        tuple->DeleteIfAllowed();
 
+       print("add node");
        DBServiceManager::addNode(host, port, config);
 
     }

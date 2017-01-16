@@ -4,20 +4,27 @@ Restore  : No
 Operator  : letdconsume
 Number    : 1
 Signature : stream(tuple) x string -> rel(tuple)
-Example   : let Roads2 = Roads filter[ . startsWith "<TODO>"] letdconsume["Roads2"] #TODO workers array?!
-Result    : <TODO>
+Example   : let Roads2 = Roads filter[ . startsWith "A"] letdconsume["Roads2"]
+Result    : bug
 Remark    : Requires a remote server
 
 Operator  : feedpf
 Number    : 1
 Signature : ((rel (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik) (map x bool)) -> (stream (tuple ((ai1 Ti1) ... (aik Tik))))
-Example   : query Roads2 feedpf[<TODO>; <TODO>]
-Result    : <TODO>
+Example   : query Roads2 feedpf[.Name, .Name startsWith "A"]
+Result    : bug
 Remark    : Requires a remote server
 
-Operator  : setnodes
+Operator  : startdbservice
 Number    : 1
-Signature : rel -> int
-Example   : query setnodes(Workers14)
-Result    : 0
+Signature : rel -> bool
+Example   : query startdbservice(Workers14)
+Result    : TRUE
+Remark    : Requires a remote server
+
+Operator  : addnode
+Number    : 1
+Signature : string x int x string -> bool
+Example   : query addnode("host", 1234, "config")
+Result    : TRUE
 Remark    : Requires a remote server

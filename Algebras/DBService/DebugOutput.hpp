@@ -26,30 +26,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceAlgebra.hpp"
-#include "OperatorFeedPF.hpp"
-#include "OperatorLetDConsume.hpp"
-#include "OperatorStartDBService.hpp"
-#include "OperatorAddNode.hpp"
+#ifndef ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
+#define ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
+
+#include "Algebra.h"
 
 namespace DBService
 {
 
-DBServiceAlgebra::DBServiceAlgebra() :
-        Algebra()
-{
-    AddOperator(FeedPFInfo(),
-                OperatorFeedPF::mapValue,
-                OperatorFeedPF::mapType);
-    AddOperator(LetDConsumeInfo(),
-                OperatorLetDConsume::mapValue,
-                OperatorLetDConsume::mapType);
-    AddOperator(StartDBServiceInfo(),
-                OperatorStartDBService::mapValue,
-                OperatorStartDBService::mapType);
-    AddOperator(AddNodeInfo(),
-                OperatorAddNode::mapValue,
-                OperatorAddNode::mapType);
+void print(std::string& text);
+void print(const char* text);
+void print(ListExpr nestedList);
+void print(int number);
+
 }
 
-} /* namespace DBService */
+
+
+#endif /* ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_ */

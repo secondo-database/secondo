@@ -42,6 +42,7 @@ struct LetDConsumeInfo: OperatorInfo
         signature = ""; // TODO
         syntax = ""; // TODO
         meaning = "distributed let-consume";
+        usesArgsInTypeMapping = true;
     }
 };
 

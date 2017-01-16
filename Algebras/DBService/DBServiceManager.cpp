@@ -26,10 +26,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
+#include <iostream>
+#include <cstdlib>
+
 #include "DBServiceManager.hpp"
+#include "RelationInfo.hpp"
+#include "Replicator.hpp"
+
 #include "SecondoException.h"
 
-#include <iostream>
 
 using namespace std;
 using namespace distributed2;
@@ -46,7 +51,7 @@ DBServiceManager* DBServiceManager::getInstance()
 {
     if (!_instance)
     {
-        if (!isInitialized)
+        if (!initialized)
         {
             throw SecondoException("DBServiceManager not initialized");
         }
@@ -55,23 +60,81 @@ DBServiceManager* DBServiceManager::getInstance()
     return _instance;
 }
 
-void DBServiceManager::addNode(const string& host,
+ConnectionID DBServiceManager::getNextConnectionID()
+{
+    return connections.size() + 1;
+}
+
+void DBServiceManager::addNode(const string host,
                                const int port,
-                               string& config)
+                               string config)
 {
     cout << "Adding connection: "
          << host << ":" << port << " -> " << config << endl;
-    //ConnectionInfo* connectionInfo =
-    //        ConnectionInfo::createConnection(host, port, config);
-    //connections.push_back(connectionInfo);
+    ConnectionInfo* connectionInfo =
+    ConnectionInfo::createConnection(host, port, config);
+    connections.insert(
+            pair<size_t, ConnectionInfo*>(
+                    getNextConnectionID(), connectionInfo));
 }
 
 void DBServiceManager::initialize()
 {
-    isInitialized = true;
+    initialized = true;
+}
+
+bool DBServiceManager::replicateRelation(const std::string& relationName)
+{
+    shared_ptr<RelationInfo> replicaInfo(new RelationInfo(relationName));
+    vector<ConnectionID> nodes;
+    getWorkerNodesForReplication(nodes);
+    replicaLocations.push_back(replicaInfo);
+    Replicator replicator(".txt");
+    replicator.replicateRelation(*replicaInfo);
+    return false;
+}
+
+bool DBServiceManager::isInitialized()
+{
+    return initialized;
+}
+
+void DBServiceManager::getWorkerNodesForReplication(vector<ConnectionID>& nodes)
+{
+    size_t numberOfReplicas = 3;
+
+    if(getNextConnectionID() <= numberOfReplicas)
+    {
+        for(ConnectionID id = 1; id <= getNextConnectionID(); ++id)
+        {
+            nodes.push_back(id);
+        }
+        if(nodes.size() < numberOfReplicas)
+        {
+            //TODO warning
+        }
+        return;
+    }
+
+    while(nodes.size() < numberOfReplicas)
+    {
+        ConnectionID id = rand() % getNextConnectionID() + 1;
+
+        if(find(nodes.begin(), nodes.end(), id) == nodes.end()) {
+            nodes.push_back(id);
+        }
+    }
+}
+
+ConnectionInfo* DBServiceManager::getConnection(ConnectionID id)
+{
+    return connections.at(id);
 }
 
 DBServiceManager* DBServiceManager::_instance = NULL;
-bool DBServiceManager::isInitialized = false;
+bool DBServiceManager::initialized = false;
+map<ConnectionID, ConnectionInfo*> DBServiceManager::connections;
+vector<shared_ptr<RelationInfo> > DBServiceManager::replicaLocations;
+
 
 } /* namespace DBService */

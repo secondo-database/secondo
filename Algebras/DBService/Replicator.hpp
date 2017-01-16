@@ -26,30 +26,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceAlgebra.hpp"
-#include "OperatorFeedPF.hpp"
-#include "OperatorLetDConsume.hpp"
-#include "OperatorStartDBService.hpp"
-#include "OperatorAddNode.hpp"
+#ifndef ALGEBRAS_DBSERVICE_REPLICATOR_HPP_
+#define ALGEBRAS_DBSERVICE_REPLICATOR_HPP_
+
+#include "RelationInfo.hpp"
 
 namespace DBService
 {
 
-DBServiceAlgebra::DBServiceAlgebra() :
-        Algebra()
+class Replicator
 {
-    AddOperator(FeedPFInfo(),
-                OperatorFeedPF::mapValue,
-                OperatorFeedPF::mapType);
-    AddOperator(LetDConsumeInfo(),
-                OperatorLetDConsume::mapValue,
-                OperatorLetDConsume::mapType);
-    AddOperator(StartDBServiceInfo(),
-                OperatorStartDBService::mapValue,
-                OperatorStartDBService::mapType);
-    AddOperator(AddNodeInfo(),
-                OperatorAddNode::mapValue,
-                OperatorAddNode::mapType);
-}
+public:
+    explicit Replicator(std::string ext);
+    virtual ~Replicator();
+
+    void replicateRelation(const RelationInfo& relationInfo) const;
+    void createFileOnCurrentNode(const std::string& relationName) const;
+    std::string& getFileExtension();
+    void runReplication(const RelationInfo& relationInfo) const;
+
+private:
+    std::string fileExtension;
+};
 
 } /* namespace DBService */
+
+#endif /* ALGEBRAS_DBSERVICE_REPLICATOR_HPP_ */
