@@ -1051,6 +1051,11 @@ ListExpr mfeedTypeMap(ListExpr args) {
     if(!nl->HasLength(arg,2)){
         return listutils::typeError("internal error");
     }
+    if(MemoryRelObject::checkType(nl->First(arg))){
+      return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                             nl->Second(nl->First(arg)));
+    }
+
     string errMsg;
 
     if(!getMemType(nl->First(arg), nl->Second(arg), arg, errMsg)){
@@ -1172,13 +1177,49 @@ int mfeedValMap (Word* args, Word& result,
 }
 
 
+
+int mfeedMemRelValMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+  mfeedInfo* li = (mfeedInfo*) local.addr;
+  switch(message){
+    case OPEN:{
+           if(li){
+             delete li;
+           }
+           MemoryRelObject* a = (MemoryRelObject*) args[0].addr;
+           local.addr= new mfeedInfo(a->getmmrel());
+           return 0;
+         }
+    case REQUEST:
+            result.addr = li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+    case CLOSE:{
+             if(li){
+               delete li;
+               local.addr=0;
+             }
+             return 0;
+          }
+  
+  }
+  return -1;
+}
+
+
 ValueMapping mfeedVM[] = {
   mfeedValMap<CcString>,
-  mfeedValMap<Mem>
+  mfeedValMap<Mem>,
+  mfeedMemRelValMap
 };
 
 int mfeedSelect(ListExpr args) {
-  return CcString::checkType(nl->First(args))?0:1;
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MemoryRelObject::checkType(nl->First(args))) return 2;
+  return -1;
+   
 }
 
 
@@ -1205,7 +1246,7 @@ OperatorSpec mfeedSpec(
 Operator mfeedOp (
     "mfeed",
     mfeedSpec.getStr(),
-    2,
+    3,
     mfeedVM,
     mfeedSelect,
     mfeedTypeMap
