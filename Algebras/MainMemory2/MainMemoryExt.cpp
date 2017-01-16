@@ -475,6 +475,9 @@ bool MemoryRelObject::KindCheck( ListExpr type, ListExpr& errorInfo )
 }
 
 const bool MemoryRelObject::checkType(const ListExpr type){
+    if(!nl->HasLength(type,2)){
+      return false;
+    }
     ListExpr first = nl->First(type);
     ListExpr second = nl->Second(type);
     return (listutils::isTupleDescription(second) &&
