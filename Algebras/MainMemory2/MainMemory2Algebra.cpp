@@ -1362,10 +1362,12 @@ class gettuplesInfo{
                     res->SetTupleId(id);
                     return res;
                  } else {
-                    cout << "ignore deleted tuple" << endl;
+                    // cout << "ignore deleted tuple" << endl;
+                    ;
                  }
               } else {
-                 cout << "ignore id " << id << endl;
+                  // cout << "ignore id " << id << endl;
+                  ;
               }
            }
         }
@@ -6471,7 +6473,7 @@ int mcreatettreeValueMap(Word* args, Word& result,
 
   // insert (Attribute, TupleId)-pairs into ttree
 
-  cout << "insert elements from the relation" << endl;
+  //cout << "insert elements from the relation" << endl;
 
   while(it != relation->end()) {
       Tuple* tup = *it;
@@ -6497,7 +6499,7 @@ int mcreatettreeValueMap(Word* args, Word& result,
       it++;
   }
 
-  cout << "insertion done" << endl;  
+  //cout << "insertion done" << endl;  
 
 
   MemoryTTreeObject* ttreeObject = 
@@ -6720,7 +6722,7 @@ int minserttreeValueMap (Word* args, Word& result,
 
       T* tree = (T*) args[1].addr;
       if(!tree->IsDefined()){
-          cout << "undefined" << endl;
+          //cout << "undefined" << endl;
           return 0;
       }
       string name = tree->GetValue();
@@ -8015,7 +8017,7 @@ mdeleteInfo(Word w,
   Tuple* next() {
      TupleIdentifier* tid;
      while((tid=stream.request())){
-       tid->Print(cout) << endl; 
+       //tid->Print(cout) << endl; 
        if(!tid->IsDefined()){
          tid->DeleteIfAllowed();
        } else {
@@ -13358,7 +13360,7 @@ class mgconnectedComponentsInfo{
     
     Tuple* next() {
       if(it == graph->getGraph()->end()) {
-        graph->print(cout);
+        //graph->print(cout);
         return 0;
       }      
       // get next edge from graph
