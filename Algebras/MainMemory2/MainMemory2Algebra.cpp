@@ -3123,7 +3123,7 @@ ListExpr meminsertTypeMap(ListExpr args)
 
     string errMsg;
     ListExpr a2t;
-    if(!getMemType(nl->First(argSec), nl->Second(argSec), a2t, errMsg)){
+    if(!getMemType(nl->First(argSec), nl->Second(argSec), a2t, errMsg,true)){
       return listutils::typeError("problem in 2nd arg: " + errMsg);
     }
 
@@ -3218,11 +3218,16 @@ int meminsertValMap (Word* args, Word& result,
 
 ValueMapping meminsertVM[] = {
    meminsertValMap<CcString>,
-   meminsertValMap<Mem>
+   meminsertValMap<Mem>,
+   meminsertValMap<MPointer>
 };
 
 int meminsertSelect(ListExpr args){
-   return CcString::checkType(nl->Second(args))?0:1;
+   ListExpr a = nl->Second(args);
+   if(CcString::checkType(a)) return 0;
+   if(Mem::checkType(a)) return 1;
+   if(MPointer::checkType(a)) return 2;
+   return -1;
 }
 
 
@@ -3234,7 +3239,7 @@ int meminsertSelect(ListExpr args){
 */
 
 OperatorSpec meminsertSpec(
-    "stream(Tuple) x {string, mem(rel)}  -> stream(Tuple)",
+    "stream(Tuple) x {string, mem(rel), mpointer(rel)}  -> stream(Tuple)",
     "meminsert(_,_)",
     "inserts the tuple of a stream into an "
     "existing main memory relation",
@@ -3250,7 +3255,7 @@ OperatorSpec meminsertSpec(
 Operator meminsertOp (
     "meminsert",
     meminsertSpec.getStr(),
-    2,
+    3,
     meminsertVM,
     meminsertSelect,
     meminsertTypeMap
@@ -4229,6 +4234,7 @@ class avlOperLI{
               Tuple* result = relation->at(thit.getTid()-1);
               if(result){
                  result->IncReference();
+                 result->SetTupleId(thit.getTid());
                  tit++;
                  return result;
               } else {
@@ -4247,6 +4253,7 @@ class avlOperLI{
                if(result){ // tuple exist
                  result->IncReference();
                  avlit.Next();
+                 result->SetTupleId(avlhit->getTid());
                  return result;
                } else { // tuple deleted
                  avlit.Next();
@@ -4272,6 +4279,7 @@ class avlOperLI{
               Tuple* result = relation->at(avlhit->getTid()-1);
               if(result){ // present in index, but deleted in rel
                 result->IncReference();
+                result->SetTupleId(avlhit->getTid());
               }
               res = false;
               return result;
@@ -4285,6 +4293,7 @@ class avlOperLI{
               Tuple* result = relation->at(t->getTid()-1);
               if(result){
                  result->IncReference();
+                 result->SetTupleId(t->getTid());
               }
               res = false;
               return result;
@@ -7258,6 +7267,7 @@ class minsertInfo {
                                        relation->size()+1);
        newtup->PutAttribute(res->GetNoAttributes(), tidAttr);
        relation->push_back(res);
+       newtup->SetTupleId(relation->size());
     
        return newtup;
      }
@@ -8091,7 +8101,8 @@ ListExpr mdeleteTM(ListExpr args){
   }
   string errMsg;
   ListExpr mainRel = nl->Second(args);
-  if(!getMemType(nl->First(mainRel), nl->Second(mainRel), mainRel, errMsg)){
+  if(!getMemType(nl->First(mainRel), nl->Second(mainRel), 
+                           mainRel, errMsg, true)){
     return listutils::typeError("second arg is not an mrel" + errMsg);
   }
   mainRel = nl->Second(mainRel); // remove mem
@@ -8111,7 +8122,7 @@ ListExpr mdeleteTM(ListExpr args){
   }
   // check the aux relation
   ListExpr auxRel = nl->Third(args);
-  if(!getMemType(nl->First(auxRel), nl->Second(auxRel), auxRel, errMsg)){
+  if(!getMemType(nl->First(auxRel), nl->Second(auxRel), auxRel, errMsg,true)){
     return listutils::typeError("third arg is not an mrel" + errMsg);
   }
   auxRel = nl->Second(auxRel); // remove mem
@@ -8182,11 +8193,16 @@ int mdeleteValMap (Word* args, Word& result,
 
 ValueMapping mdeleteVM[] = {
    mdeleteValMap<CcString, CcString, false>,
-   mdeleteValMap<Mem, CcString, false>
+   mdeleteValMap<Mem, CcString, false>,
+   mdeleteValMap<MPointer, CcString, false>
 };
 
 int mdeleteSelect(ListExpr args){
-   return CcString::checkType(nl->Second(args))?0:1;
+   ListExpr s = nl->Second(args);
+   if(CcString::checkType(s)) return 0;
+   if(Mem::checkType(s)) return 1;
+   if(MPointer::checkType(s)) return 2;
+   return -1;
 }
 
 /*
@@ -8208,7 +8224,7 @@ OperatorSpec mdeleteSpec(
 Operator mdeleteOp (
     "mdelete",
     mdeleteSpec.getStr(),
-    2,
+    3,
     mdeleteVM,
     mdeleteSelect,
     mdeleteTM<false>
@@ -8232,14 +8248,30 @@ main memory relation.
 ValueMapping mdeletesaveVM[] = {
   mdeleteValMap<CcString, CcString, true>,
   mdeleteValMap<CcString, Mem, true>,
+  mdeleteValMap<CcString, MPointer,true>,
   mdeleteValMap<Mem, CcString, true>,
   mdeleteValMap<Mem, Mem, true>,
+  mdeleteValMap<Mem, MPointer,true>,
+  mdeleteValMap<MPointer, CcString, true>,
+  mdeleteValMap<MPointer, Mem, true>,
+  mdeleteValMap<MPointer, MPointer,true>,
   
 };
 
 int mdeletesaveSelect(ListExpr args){
-  int n1 = CcString::checkType(nl->Second(args))?0:2;
-  int n2 = CcString::checkType(nl->Third(args))?0:1;
+  ListExpr a2 = nl->Second(args);
+  int n1 = -1;
+  if(CcString::checkType(a2)) n1 = 0;
+  if(Mem::checkType(a2)) n1 = 3;
+  if(MPointer::checkType(a2)) n1 = 6;
+  
+  ListExpr a3 = nl->Third(args);
+  int n2 = -1;
+  if(CcString::checkType(a3)) n2 = 0;
+  if(Mem::checkType(a3)) n2 = 1;
+  if(MPointer::checkType(a3)) n2 = 2;
+
+  if(n1<0 || n2<0) return  -1; 
   return n1+n2;
 }
 
@@ -8251,7 +8283,8 @@ int mdeletesaveSelect(ListExpr args){
 */
 
 OperatorSpec mdeletesaveSpec(
-    "stream(tid) x {string, mem(rel)} x {string, mem(rel)} -> stream(Tuple)",
+    "stream(tid) x {string, mem(rel),mpointr} "
+    "x {string, mem(rel),mpointer} -> stream(Tuple)",
     "_ mdeletesave[_,_]",
     "Deletes tuples with given ids from a relation and stores "
     "deleted tuple into a auxiliary relation. ",
@@ -8266,7 +8299,7 @@ OperatorSpec mdeletesaveSpec(
 Operator mdeletesaveOp (
     "mdeletesave",
     mdeletesaveSpec.getStr(),
-    4,
+    9,
     mdeletesaveVM,
     mdeletesaveSelect,
     mdeleteTM<true>
@@ -8298,7 +8331,7 @@ ListExpr mdeletebyidTypeMap(ListExpr args) {
   }
   ListExpr first = nl->First(args);
   string errMsg;
-  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg)){
+  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg,true)){
     return listutils::typeError("string or mem(rel) expected : " + errMsg);
   }
   first = nl->Second(first); // remove mem
@@ -8436,11 +8469,17 @@ int mdeletebyidValMap (Word* args, Word& result,
 
 ValueMapping mdeletebyidVM[] = {
   mdeletebyidValMap<CcString>,
-  mdeletebyidValMap<Mem>
+  mdeletebyidValMap<Mem>,
+  mdeletebyidValMap<MPointer>
+  
 };
 
 int mdeleteelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+   ListExpr a = nl->First(args);
+   if(CcString::checkType(a)) return 0;
+   if(Mem::checkType(a)) return 1;
+   if(MPointer::checkType(a)) return 2;
+   return -1;
 }
 
 
@@ -8449,7 +8488,8 @@ int mdeleteelect(ListExpr args){
 
 */
 OperatorSpec mdeletepec(
-    "{string, mem(rel(tuple(x)))} x (tid) -> stream(tuple(x@[TID:tid]))] ",
+    "{string, mem(rel(tuple(x))), mpointer} x (tid) "
+    "-> stream(tuple(x@[TID:tid]))] ",
     "_ mdeletebyid [_]",
     "deletes the tuples possessing a given tupleid from the main memory "
     "relation",
