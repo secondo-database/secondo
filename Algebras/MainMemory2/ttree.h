@@ -365,7 +365,7 @@ The function checks whether the node can include a further entry.
 
 */
     inline bool hasSpace() const{
-      return count < maxEntries-1;
+      return count < maxEntries; //-1;
     }    
   
 /*
