@@ -8032,7 +8032,7 @@ mdeleteInfo(Word w,
          tid->DeleteIfAllowed();
        } else {
          TupleId id = tid->GetTid();
-         if(id<1 || id >= mainRelation->size()){
+         if(id<1 || id > mainRelation->size()){
            tid->DeleteIfAllowed();
          } else {
            Tuple* tuple = mainRelation->at(id-1);
