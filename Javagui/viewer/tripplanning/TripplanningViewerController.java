@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package viewer.tripplanning;
 
 import gui.MainWindow;
+import gui.ViewerControl;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -44,12 +45,11 @@ import viewer.TripplanningViewer;
  */
 public class TripplanningViewerController implements ActionListener,
         MouseListener {
-    private UpdateInterface updateInterface = null;
     private TripplanningViewer viewer;
     private ListExpr resultList = new ListExpr();
     private IntByReference errorCode = new IntByReference(0);
-    private IntByReference errorPos = new IntByReference(0);
     private StringBuffer errorMessage = new StringBuffer();
+    private ViewerControl vc;
 
     public final static String SEARCH = "Search";
 
@@ -76,60 +76,49 @@ public class TripplanningViewerController implements ActionListener,
 
     private void processSearchAction() {
         System.out.println("Da sind wa");
-        System.out.println("City:" + viewer.getTfCity().getText());
+        System.out.println("City:"
+                + viewer.getQueryPanel().getTfCity().getText());
 
-        // hier geocode in der TrajectoryAnnotationAlgebra aufrufen. das ist die
-        // google funktion
-        // oder gleich ein Skript was alles macht
-        searchAddressInGoogle();
-    }
+        String sourceStreet = viewer.getQueryPanel().getTfStreet().getText();
+        String sourceNo = viewer.getQueryPanel().getTfNo().getText();
+        String sourcePostcode = viewer.getQueryPanel().getTfPlz().getText();
+        String sourceCity = viewer.getQueryPanel().getTfCity().getText();
+        String targetStreet = viewer.getQueryPanel().getTfStreetDest()
+                .getText();
+        String targetNo = viewer.getQueryPanel().getTfNoDest().getText();
+        String targetPostcode = viewer.getQueryPanel().getTfPlzDest().getText();
+        String targetCity = viewer.getQueryPanel().getTfCityDest().getText();
+        String gradientWeight = viewer.getQueryPanel().getTfGradient().getText();
+        double gradientWeightDoub =  Double.parseDouble(gradientWeight);
 
-    private boolean searchAddressInGoogle() {
-        List<String> commands = new ArrayList<String>();
-
-        // TODO: Hier das Statement eingeben, mit dem man google abfragen kann
-        StringBuffer sb = new StringBuffer("let ");
-        sb.append("keks");
-        sb.append(" = [const rel (tuple (");
-        sb.append(" [ProfileName: string, FormatType: string, FormatAliases: text, ");
-        sb.append(" FormatQuery: text, FormatScript: text, OutputDir: text, ");
-        sb.append(" FormatTemplateHead: text, FormatTemplateBody: text, FormatTemplateTail: text]");
-        sb.append(" )) value ()]");
-        commands.add(sb.toString());
-
-        ListExpr result = this.executeSecondoCommand(commands);
-        if (!result.isEmpty()) {
-            parseSecondoResponse(result);
-        } else {
-            return false;
-        }
-        return true;
-    }
-
-    private void parseSecondoResponse(ListExpr result) {
-        // TODO Auto-generated method stub
-        //ListExpr auseinander nehmen
+        TripplanningSecondoCommand tsc = new TripplanningSecondoCommand(
+                sourceStreet, sourceNo, sourcePostcode, sourceCity,
+                targetStreet, targetNo, targetPostcode, targetCity, gradientWeightDoub);
+        this.executeSecondoCommand(tsc.getCommands());
+        vc.execUserCommand("query EdgesHeight oshortestpatha[-1,0,0;distanceWithGradient(.SourcePos,.TargetPos,[const real value "+gradientWeight+" ],.Heightfunction), distance(.TargetPos, targetPos)] feed extend[Gradient: (lfResult(size(.Curve), .Heightfunction) -  lfResult(0.0, .Heightfunction)) / size(gk(.Curve))] consume;");
+        
     }
 
     /**
      * Executes given commands.
      */
     private ListExpr executeSecondoCommand(List<String> pCommands) {
-        String errorMsg;
-
-        updateInterface = MainWindow.getUpdateInterface();
 
         for (String command : pCommands) {
             // Executes the remote command.
-            if (updateInterface.isInitialized()) {
-                updateInterface.secondo(command, // Command to execute.
-                        resultList, errorCode, errorPos, errorMessage);
+            vc.execCommand(command, errorCode, resultList, errorMessage);
+             System.out.println("Command: " + command);
 
-            } else {
-                errorMsg = "Connection to SECONDO lost!";
-                Reporter.showError("TripplanningViewerController.executeSecondoCommand: Error on executing command "
-                        + command + ": " + errorMsg);
-            }
+                if (errorCode.value != 0) {
+                    //errorCode=12 on a delete statement means that the object didn't exist
+                    if (!(errorCode.value == 12 && command.contains("delete"))) {
+                        System.out.print("\tErrorCode:" + errorCode.value);
+                        System.out.println("\tErrorMessage:" + errorMessage);
+                        System.out
+                                .println("### Command execution is aborted. Please see error above. ###");
+                        break;
+                    }
+                }
         }
 
         return resultList;
@@ -158,6 +147,11 @@ public class TripplanningViewerController implements ActionListener,
     public void mouseReleased(MouseEvent arg0) {
         // TODO Auto-generated method stub
 
+    }
+
+    public void setViewerControl(ViewerControl vc) {
+        this.vc=vc;
+        
     }
 
 }
