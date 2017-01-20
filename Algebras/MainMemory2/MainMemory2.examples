@@ -724,3 +724,10 @@ Example   : query strassen feed extend[L : size(.GeoData)] extend[ Ok : minsertt
 Result    : 10
 
 
+Operator : mblock
+Number   : 124
+Signature : stream(X) -> stream(X) , X in {tuple,DATA}
+Example   : query ten feed mblock head[5] count
+Result    : 5 
+
+

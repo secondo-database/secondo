@@ -142,5 +142,9 @@ operator mfeedpq alias MFEEDPQ pattern _ op
 operator minserttuplepq alias MINSERTTUPLEPQ pattern op(_,_,_,_)
 
 
+operator mblock alias MBLOCK pattern _ op 
+
+
+
 
 

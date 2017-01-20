@@ -511,6 +511,12 @@ MemoryRtreeObject<dim>* getRtree(T* tN){
   return (MemoryRtreeObject<dim>*) catalog->getMMObject(tn);
 }
 
+
+template<class T, int dim>
+MemoryRtreeObject<dim>* getRtree(MPointer* p){
+   return (MemoryRtreeObject<dim>*) ((*p)());
+}
+
 template<int dim>
 MemoryRtreeObject<dim>* getRtree(MPointer* t){
   return (MemoryRtreeObject<dim>*) ((*t)());
@@ -1051,6 +1057,7 @@ ListExpr mfeedTypeMap(ListExpr args) {
     if(!nl->HasLength(arg,2)){
         return listutils::typeError("internal error");
     }
+    // special case of memrelobject
     if(MemoryRelObject::checkType(nl->First(arg))){
       return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
                              nl->Second(nl->First(arg)));
@@ -1058,7 +1065,7 @@ ListExpr mfeedTypeMap(ListExpr args) {
 
     string errMsg;
 
-    if(!getMemType(nl->First(arg), nl->Second(arg), arg, errMsg)){
+    if(!getMemType(nl->First(arg), nl->Second(arg), arg, errMsg,true)){
       return listutils::typeError("string or mem(rel) expected : " + errMsg);
     }
 
@@ -1177,7 +1184,6 @@ int mfeedValMap (Word* args, Word& result,
 }
 
 
-
 int mfeedMemRelValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
@@ -1186,6 +1192,7 @@ int mfeedMemRelValMap (Word* args, Word& result,
     case OPEN:{
            if(li){
              delete li;
+             local.addr = 0;
            }
            MemoryRelObject* a = (MemoryRelObject*) args[0].addr;
            local.addr= new mfeedInfo(a->getmmrel());
@@ -1206,10 +1213,55 @@ int mfeedMemRelValMap (Word* args, Word& result,
   return -1;
 }
 
+template<bool ordered>
+int mfeedMPointerValMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+  mfeedInfo* li = (mfeedInfo*) local.addr;
+  switch(message){
+    case OPEN:{
+           if(li){
+             delete li;
+           }
+           MPointer* p = (MPointer*) args[0].addr;
+              
+           if(ordered){
+              MemoryORelObject* orel = (MemoryORelObject*) (*p)() ;
+              if(!orel) {
+               return 0;
+              }
+              local.addr= new mfeedInfo(orel->getmmorel());
+           } else {
+              MemoryRelObject* a =(MemoryRelObject*) (*p)(); 
+              if(!a){
+                 return 0;
+              }
+              local.addr= new mfeedInfo(a->getmmrel());
+           }
+           return 0;
+         }
+           
+    case REQUEST:
+            result.addr = li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+    case CLOSE:{
+             if(li){
+               delete li;
+               local.addr=0;
+             }
+             return 0;
+          }
+  
+  }
+  return -1;
+}
+
 
 ValueMapping mfeedVM[] = {
   mfeedValMap<CcString>,
   mfeedValMap<Mem>,
+  mfeedMPointerValMap<false>,
+  mfeedMPointerValMap<true>,
   mfeedMemRelValMap
 };
 
@@ -1217,7 +1269,14 @@ int mfeedSelect(ListExpr args) {
   ListExpr a = nl->First(args);
   if(CcString::checkType(a)) return 0;
   if(Mem::checkType(a)) return 1;
-  if(MemoryRelObject::checkType(nl->First(args))) return 2;
+  if(MPointer::checkType(a)) {
+    if(Relation::checkType(nl->Second(nl->Second(a)))){
+       return 2;
+    } else {
+       return 3;
+    }
+  }
+  if(MemoryRelObject::checkType(nl->First(args))) return 4;
   return -1;
    
 }
@@ -1246,7 +1305,7 @@ OperatorSpec mfeedSpec(
 Operator mfeedOp (
     "mfeed",
     mfeedSpec.getStr(),
-    3,
+    5,
     mfeedVM,
     mfeedSelect,
     mfeedTypeMap
@@ -1268,7 +1327,7 @@ ListExpr gettuplesTM(ListExpr args){
   }
   ListExpr a2 = nl->Second(args);
   string errMsg;
-  if(!getMemType(nl->First(a2), nl->Second(a2), a2, errMsg)){
+  if(!getMemType(nl->First(a2), nl->Second(a2), a2, errMsg,true)){
      return listutils::typeError(err + "\nproblem in 2nd arg: " + errMsg);
   }
   a2 = nl->Second(a2);
@@ -1521,14 +1580,22 @@ int gettuplesUnwrapVMT (Word* args, Word& result,
 ValueMapping gettuplesVM[] =  {
    gettuplesVMT<CcString>,
    gettuplesVMT<Mem>,
+   gettuplesVMT<MPointer>,
    gettuplesUnwrapVMT<CcString>,
-   gettuplesUnwrapVMT<Mem>
+   gettuplesUnwrapVMT<Mem>,
+   gettuplesUnwrapVMT<MPointer>
 
 };
 
 int gettuplesSelect(ListExpr args){
-  int n2 = CcString::checkType(nl->Second(args))?0:1;
-  int n1 = Stream<TupleIdentifier>::checkType(nl->First(args))?0:2;
+  int n2 = -1; 
+  ListExpr a2 = nl->Second(args);
+  if(CcString::checkType(a2)) n2 = 0;
+  if(Mem::checkType(a2)) n2 = 1;
+  if(MPointer::checkType(a2)) n2 = 2;
+  if(n2<0) return -1;
+   
+  int n1 = Stream<TupleIdentifier>::checkType(nl->First(args))?0:3;
   return n1+n2;
 }
 
@@ -1547,7 +1614,7 @@ OperatorSpec gettuplesSpec(
 Operator gettuplesOp(
   "gettuples",
   gettuplesSpec.getStr(),
-  4,
+  6,
   gettuplesVM,
   gettuplesSelect,
   gettuplesTM
@@ -1804,7 +1871,7 @@ ListExpr memobjectTypeMap(ListExpr args) {
     string err = "string or mem(X) expected";
      
     string errMsg;
-    if(!getMemType(nl->First(arg1), nl->Second(arg1), arg1, errMsg)){
+    if(!getMemType(nl->First(arg1), nl->Second(arg1), arg1, errMsg,true)){
       return listutils::typeError(err + "(" + errMsg +")");
     }
     ListExpr subtype = nl->Second(arg1);
@@ -1878,11 +1945,16 @@ OperatorSpec memobjectSpec(
 */
 ValueMapping memobjectVM[] = {
    memobjectValMap<CcString>,
-   memobjectValMap<Mem>
+   memobjectValMap<Mem>,
+   memobjectValMap<MPointer>
 };
 
 int memobjectSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+   ListExpr a = nl->First(args);
+   if(CcString::checkType(a)) return 0;
+   if(Mem::checkType(a)) return 1;
+   if(MPointer::checkType(a)) return 2;
+   return -1;
 }
 
 /*
@@ -1894,7 +1966,7 @@ int memobjectSelect(ListExpr args){
 Operator memobjectOp (
     "memobject",
     memobjectSpec.getStr(),
-    2,
+    3,
     memobjectVM,
     memobjectSelect,
     memobjectTypeMap
@@ -3293,7 +3365,7 @@ ListExpr mwindowintersectsTypeMap(ListExpr args)
   ListExpr a1t;
   string errMsg;
 
-  if(!getMemType(nl->First(a1), nl->Second(a1), a1t, errMsg)){
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1t, errMsg,true)){
     return listutils::typeError(err + "\n problem in arg 1: " + errMsg);
   } 
   
@@ -3306,7 +3378,7 @@ ListExpr mwindowintersectsTypeMap(ListExpr args)
   int rtreedim = nl->IntValue(nl->Second(rtreetype));
 
   ListExpr a2t;
-  if(!getMemType(nl->First(a2), nl->Second(a2), a2t, errMsg)){
+  if(!getMemType(nl->First(a2), nl->Second(a2), a2t, errMsg,true)){
     return listutils::typeError(err + "\n problem in arg 2: " + errMsg);
   }
   ListExpr relType = nl->Second(a2t);
@@ -3376,11 +3448,15 @@ class mwiInfo{
 5.14.3  The Value Mapping Functions of operator ~mwindowintersects~
 
 */
-template <int dim, class T, class R>
+template <class T, class R, int dim>
 int mwindowintersectsValMapT (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
    mwiInfo<dim>* li = (mwiInfo<dim>*) local.addr;
+
+
+   
+
 
    switch (message)
    {
@@ -3432,25 +3508,50 @@ int mwindowintersectsValMapT (Word* args, Word& result,
 
 ValueMapping mwindowintersectsValMap[] =
 {
-    mwindowintersectsValMapT<2,CcString, CcString>,
-    mwindowintersectsValMapT<3,CcString, CcString>,
-    mwindowintersectsValMapT<4,CcString, CcString>,
-    mwindowintersectsValMapT<8,CcString, CcString>,
+    mwindowintersectsValMapT<CcString, CcString,2>,
+    mwindowintersectsValMapT<CcString, CcString,3>,
+    mwindowintersectsValMapT<CcString, CcString,4>,
+    mwindowintersectsValMapT<CcString, CcString,8>,
 
-    mwindowintersectsValMapT<2,CcString, Mem>,
-    mwindowintersectsValMapT<3,CcString, Mem>,
-    mwindowintersectsValMapT<4,CcString, Mem>,
-    mwindowintersectsValMapT<8,CcString, Mem>,
+    mwindowintersectsValMapT<CcString, Mem,2>,
+    mwindowintersectsValMapT<CcString, Mem,3>,
+    mwindowintersectsValMapT<CcString, Mem,4>,
+    mwindowintersectsValMapT<CcString, Mem,8>,
     
-    mwindowintersectsValMapT<2,Mem, CcString>,
-    mwindowintersectsValMapT<3,Mem, CcString>,
-    mwindowintersectsValMapT<4,Mem, CcString>,
-    mwindowintersectsValMapT<8,Mem, CcString>,
+    mwindowintersectsValMapT<CcString, MPointer,2>,
+    mwindowintersectsValMapT<CcString, MPointer,3>,
+    mwindowintersectsValMapT<CcString, MPointer,4>,
+    mwindowintersectsValMapT<CcString, MPointer,8>,
+    
+    mwindowintersectsValMapT<Mem, CcString,2>,
+    mwindowintersectsValMapT<Mem, CcString,3>,
+    mwindowintersectsValMapT<Mem, CcString,4>,
+    mwindowintersectsValMapT<Mem, CcString,8>,
 
-    mwindowintersectsValMapT<2,Mem, Mem>,
-    mwindowintersectsValMapT<3,Mem, Mem>,
-    mwindowintersectsValMapT<4,Mem, Mem>,
-    mwindowintersectsValMapT<8,Mem, Mem>,
+    mwindowintersectsValMapT<Mem, Mem,2>,
+    mwindowintersectsValMapT<Mem, Mem,3>,
+    mwindowintersectsValMapT<Mem, Mem,4>,
+    mwindowintersectsValMapT<Mem, Mem,8>,
+    
+    mwindowintersectsValMapT<Mem, MPointer,2>,
+    mwindowintersectsValMapT<Mem, MPointer,3>,
+    mwindowintersectsValMapT<Mem, MPointer,4>,
+    mwindowintersectsValMapT<Mem, MPointer,8>,
+    
+    mwindowintersectsValMapT<MPointer, CcString,2>,
+    mwindowintersectsValMapT<MPointer, CcString,3>,
+    mwindowintersectsValMapT<MPointer, CcString,4>,
+    mwindowintersectsValMapT<MPointer, CcString,8>,
+
+    mwindowintersectsValMapT<MPointer, Mem,2>,
+    mwindowintersectsValMapT<MPointer, Mem,3>,
+    mwindowintersectsValMapT<MPointer, Mem,4>,
+    mwindowintersectsValMapT<MPointer, Mem,8>,
+    
+    mwindowintersectsValMapT<MPointer, MPointer,2>,
+    mwindowintersectsValMapT<MPointer, MPointer,3>,
+    mwindowintersectsValMapT<MPointer, MPointer,4>,
+    mwindowintersectsValMapT<MPointer, MPointer,8>,
 };
 
 /*
@@ -3459,8 +3560,6 @@ ValueMapping mwindowintersectsValMap[] =
 */
  int mwindowintersectsSelect(ListExpr args)
  {
-   int n1 = CcString::checkType(nl->First(args))?0:1;
-   int n2 = CcString::checkType(nl->Second(args))?0:1;
    int dim = rtreehelper::getDimension(nl->Third(args));
    int n3 = -1;
    switch (dim){
@@ -3469,9 +3568,22 @@ ValueMapping mwindowintersectsValMap[] =
      case 4 : n3 = 2;break;
      case 8 : n3 = 3;break;
    }
-   return 8*n1 + 4*n2 + n3;
 
-  return -1;
+   int n1 = -1;
+   ListExpr a1 = nl->First(args);
+   if(CcString::checkType(a1)) n1 = 0;
+   if(Mem::checkType(a1)) n1 = 1;
+   if(MPointer::checkType(a1)) n1 = 2;
+
+   int n2 = -1;
+   ListExpr a2 = nl->Second(args);
+   if(CcString::checkType(a2)) n2 = 0;
+   if(Mem::checkType(a2)) n2 = 1;
+   if(MPointer::checkType(a2)) n2 = 2;
+
+   int res =  12*n1 + 4*n2 + n3;
+
+   return res;
  }
 
 
@@ -3500,7 +3612,7 @@ OperatorSpec mwindowintersectsSpec(
 Operator mwindowintersectsOp (
     "mwindowintersects",
     mwindowintersectsSpec.getStr(),
-    16,
+    36,
     mwindowintersectsValMap,
     mwindowintersectsSelect,
     mwindowintersectsTypeMap
@@ -3527,7 +3639,7 @@ ListExpr mwindowintersectsSTM(ListExpr args){
   ListExpr a1 = nl->First(args);
   ListExpr a1t;
   string errMsg;
-  if(!getMemType(nl->First(a1), nl->Second(a1), a1t, errMsg)){
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1t, errMsg,true)){
      return listutils::typeError(err +"\n error in 1st arg: " + errMsg);
   }
   ListExpr tree = nl->Second(a1t);
@@ -3644,11 +3756,21 @@ ValueMapping mwindowintersectsSVM[] = {
    mwindowintersectsSVMT<2, Mem, true>,
    mwindowintersectsSVMT<3, Mem, true>,
    mwindowintersectsSVMT<4, Mem, true>,
-   mwindowintersectsSVMT<8, Mem, true>
+   mwindowintersectsSVMT<8, Mem, true>,
+   mwindowintersectsSVMT<2, MPointer, true>,
+   mwindowintersectsSVMT<3, MPointer, true>,
+   mwindowintersectsSVMT<4, MPointer, true>,
+   mwindowintersectsSVMT<8, MPointer, true>
 };
 
 int mwindowintersectsSSelect(ListExpr args){
-   int n1 = CcString::checkType(nl->First(args))?0:1;
+   int n1 = -1;
+   ListExpr a1 = nl->First(args);
+   if(CcString::checkType(a1)) n1=0;
+   if(Mem::checkType(a1)) n1=1;
+   if(MPointer::checkType(a1)) n1=2;
+
+
    int dim = rtreehelper::getDimension(nl->Second(args));
    int n2;
    switch(dim){
@@ -3673,7 +3795,7 @@ OperatorSpec mwindowintersectsSSpec(
 Operator mwindowintersectsSOp(
    "mwindowintersectsS",
    mwindowintersectsSSpec.getStr(),
-   8,
+   12,
    mwindowintersectsSVM,
    mwindowintersectsSSelect,
    mwindowintersectsSTM<true>
@@ -4196,6 +4318,7 @@ class avlOperLI{
            bool _below)
            :relation(_relation), avltree(_tree), attr1(_attr1), attr2(_attr2),
            below(_below){
+
            isAvl = true;
            if(!below){
               avlit = avltree->tail(AttrIdPair(attr1,0));    
@@ -4516,11 +4639,11 @@ ListExpr mrangeTypeMap(ListExpr args)
                  "{string, mem(rel)} x T x T expected";
 
     string errMsg;
-    if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
+    if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg,true)){
       return listutils::typeError(err + "\n problem in first arg:" + errMsg);
     }
 
-    if(!getMemType(nl->First(a2), nl->Second(a2), a2, errMsg)){
+    if(!getMemType(nl->First(a2), nl->Second(a2), a2, errMsg,true)){
       return listutils::typeError(err + "\n problem in first arg:" + errMsg);
     }
 
@@ -4613,17 +4736,113 @@ int mrangeVMT (Word* args, Word& result,
    return -1;
 }
 
+
+template<class R, bool isAVL>
+int mrangeMPointerVMT (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+
+    avlOperLI* li = (avlOperLI*) local.addr;
+
+
+    switch (message)
+    {
+        case OPEN: {
+            if(li){
+                delete li;
+                local.addr=0;
+            }
+            
+            R* relN = (R*) args[1].addr;
+            MemoryRelObject* mro = getMemRel(relN, nl->Second(qp->GetType(s)));
+            if(!mro){
+              return 0;
+            }
+            Attribute* key1 = (Attribute*) args[2].addr;
+            Attribute* key2 = (Attribute*) args[3].addr;
+          
+
+            MPointer* p = (MPointer*) args[0].addr;
+
+            if(isAVL) {
+              memAVLtree* avltree = ((MemoryAVLObject*) ((*p)()))->gettree();
+              assert(avltree);
+              local.addr= new avlOperLI(avltree,
+                                      mro->getmmrel(),
+                                      key1,key2,
+                                      false);
+            } else {
+              MemoryTTreeObject* ttree = (MemoryTTreeObject*) ((*p)());
+              if(ttree) {
+                local.addr= new avlOperLI(ttree->gettree(),
+                                      mro->getmmrel(),
+                                      key1,key2,
+                                      false);
+              }
+            }
+            return 0;
+        }
+
+        case REQUEST:
+            result.addr=li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+
+        case CLOSE:
+            if(li) {
+              delete li;
+              local.addr = 0;
+            }
+            return 0;
+   }
+
+   return -1;
+}
+
+
 ValueMapping mrangeVM[] = {
     mrangeVMT<CcString, CcString>,
     mrangeVMT<CcString, Mem>,
+    mrangeVMT<CcString, MPointer>,
     mrangeVMT<Mem, CcString>,
-    mrangeVMT<Mem, Mem>
+    mrangeVMT<Mem, Mem>,
+    mrangeVMT<Mem, MPointer>,
+
+
+    mrangeMPointerVMT<CcString,true>,
+    mrangeMPointerVMT<CcString,false>,
+    mrangeMPointerVMT<Mem, true>,
+    mrangeMPointerVMT<Mem, false>,
+    mrangeMPointerVMT<MPointer,true>,
+    mrangeMPointerVMT<MPointer,false>
 };
 
 int mrangeSelect(ListExpr args){
-   int n1 = CcString::checkType(nl->First(args))?0:2;
-   int n2 = CcString::checkType(nl->Second(args))?0:1;
-   return n1+n2;
+    int nt = -1;
+    ListExpr tt = nl->First(args);
+    if(CcString::checkType(tt)) nt = 0;
+    if(Mem::checkType(tt)) nt = 3;
+    if(MPointer::checkType(tt)) nt = 6;
+    if(nt<0) return -1;
+
+    int nr = -1;
+    ListExpr tr = nl->Second(args);
+    if(CcString::checkType(tr)) nr = 0;
+    if(Mem::checkType(tr)) nr = 1;
+    if(MPointer::checkType(tr)) nr = 2;
+    if(nr<0) return -1;
+
+    int nf = 1;
+    int s = 0;
+    if(MPointer::checkType(tt)){
+       nf = 2;
+       ListExpr t = nl->Second(nl->Second(tt));
+       if(MemoryTTreeObject::checkType(t)){
+        s = 1;
+       }
+    }
+ 
+   int res = nt + nf*nr + s;
+   return res;
+
 }
 
 /*
@@ -4650,7 +4869,7 @@ OperatorSpec mrangeSpec(
 Operator mrangeOp (
     "mrange",
     mrangeSpec.getStr(),
-    4,
+    12,
     mrangeVM,
     mrangeSelect,
     mrangeTypeMap
@@ -4674,7 +4893,7 @@ ListExpr mexactmatchSTM(ListExpr args){
   }
   string errMsg;
   ListExpr a1 = nl->First(args);
-  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg,true)){
     return listutils::typeError(err + "\n problem in 1st arg: " + errMsg);
   }
   a1 = nl->Second(a1);
@@ -4710,7 +4929,7 @@ ListExpr mrangeSTM(ListExpr args){
   }
   string errMsg;
   ListExpr a1 = nl->First(args);
-  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg,true)){
     return listutils::typeError(err + "\n problem in 1st arg: " + errMsg);
   }
   a1 = nl->Second(a1);
@@ -4853,11 +5072,16 @@ int mrangeSVMT (Word* args, Word& result,
 
 ValueMapping mrangeSVM[] = {
    mrangeSVMT<CcString,true>,
-   mrangeSVMT<Mem, true>
+   mrangeSVMT<Mem, true>,
+   mrangeSVMT<MPointer, true>
 };
 
 int mrangeSSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+  ListExpr a1 = nl->First(args);
+  if(CcString::checkType(a1)) return 0;
+  if(Mem::checkType(a1)) return 1;
+  if(MPointer::checkType(a1)) return 2;
+  return -1;
 }
 
 
@@ -4882,7 +5106,7 @@ OperatorSpec mrangeSSpec(
 Operator mexactmatchSOp(
   "mexactmatchS",
   mexactmatchSSpec.getStr(),
-  2,
+  3,
   mrangeSVM,
   mrangeSSelect,
   mexactmatchSTM<true>
@@ -4891,7 +5115,7 @@ Operator mexactmatchSOp(
 Operator mrangeSOp(
   "mrangeS",
   mrangeSSpec.getStr(),
-  2,
+  3,
   mrangeSVM,
   mrangeSSelect,
   mrangeSTM<true>
@@ -4905,7 +5129,7 @@ ListExpr matchbelowSTM(ListExpr args){
   }
   string errMsg;
   ListExpr a1 = nl->First(args);
-  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg,true)){
     return listutils::typeError(err + "\n problem in 1st arg: " + errMsg);
   }
   a1 = nl->Second(a1);
@@ -4993,11 +5217,16 @@ int matchbelowSVMT (Word* args, Word& result,
 
 ValueMapping matchbelowSVM[] = {
    matchbelowSVMT<CcString, true>,
-   matchbelowSVMT<Mem, true>
+   matchbelowSVMT<Mem, true>,
+   matchbelowSVMT<MPointer, true>
 };
 
 int matchbelowSSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+  ListExpr a1 = nl->First(args);
+  if(CcString::checkType(a1)) return 0;
+  if(Mem::checkType(a1)) return 1;
+  if(MPointer::checkType(a1)) return 2;
+  return -1;
 }
 
 OperatorSpec matchbelowSSpec(
@@ -5013,7 +5242,7 @@ OperatorSpec matchbelowSSpec(
 Operator matchbelowSOp(
   "matchbelowS",
   matchbelowSSpec.getStr(),
-  2,
+  3,
   matchbelowSVM,
   matchbelowSSelect,
   matchbelowSTM<true>
@@ -5230,7 +5459,7 @@ ListExpr mdistRange2TM(ListExpr args){
 
   string errMsg;
   ListExpr a1 = nl->First(args);
-  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg,true)){
     return listutils::typeError(err + "\n error in first arg: " + errMsg);
   }
   a1 = nl->Second(a1);
@@ -5359,8 +5588,10 @@ int mdistRange2Select(ListExpr args){
    int n;
    if(CcString::checkType(nl->First(args))){
       n = 0;
-   } else {
+   } else if(Mem::checkType(nl->First(args))){
       n = m;
+   } else { // MPointer variant
+      n = 2*m;  
    }
 
    int res =  mtreehelper::getTypeNo(type,m) + n;
@@ -5390,7 +5621,17 @@ ValueMapping mdistRange2VM[] = {
   mdistRange2VMT<mtreehelper::t6, Mem, true>,
   mdistRange2VMT<mtreehelper::t7, Mem, true>,
   mdistRange2VMT<mtreehelper::t8, Mem, true>,
-  mdistRange2VMT<mtreehelper::t9, Mem, true>
+  mdistRange2VMT<mtreehelper::t9, Mem, true>,
+  
+  mdistRange2VMT<mtreehelper::t1, MPointer, true>,
+  mdistRange2VMT<mtreehelper::t2, MPointer, true>,
+  mdistRange2VMT<mtreehelper::t3, MPointer, true>,
+  mdistRange2VMT<mtreehelper::t4, MPointer, true>,
+  mdistRange2VMT<mtreehelper::t5, MPointer, true>,
+  mdistRange2VMT<mtreehelper::t6, MPointer, true>,
+  mdistRange2VMT<mtreehelper::t7, MPointer, true>,
+  mdistRange2VMT<mtreehelper::t8, MPointer, true>,
+  mdistRange2VMT<mtreehelper::t9, MPointer, true>
 };
 
 OperatorSpec mdistRange2Spec(
@@ -5404,7 +5645,7 @@ OperatorSpec mdistRange2Spec(
 Operator mdistRange2Op(
    "mdistRange2",
    mdistRange2Spec.getStr(),
-   18,
+   27,
    mdistRange2VM,
    mdistRange2Select,
    mdistRange2TM<true>
@@ -5816,10 +6057,10 @@ ListExpr mdistRangeTM(ListExpr args){
    ListExpr a1 = nl->First(args);
    ListExpr a2 = nl->Second(args);
    string errMsg;
-   if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
+   if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg,true)){
      return listutils::typeError(err + "\n problen in 1st arg: " + errMsg);
    }
-   if(!getMemType(nl->First(a2), nl->Second(a2), a2, errMsg)){
+   if(!getMemType(nl->First(a2), nl->Second(a2), a2, errMsg,true)){
      return listutils::typeError(err + "\n problen in 2nd arg: " + errMsg);
    }
 
@@ -5935,9 +6176,25 @@ int mdistRangeVMT (Word* args, Word& result, int message,
 int mdistRangeSelect(ListExpr args){
    ListExpr typeL = nl->Third(args);
    int type =  mtreehelper::getTypeNo(typeL,9);
-   int o1 = CcString::checkType(nl->First(args))?0:18;
-   int o2 = CcString::checkType(nl->Second(args))?0:9;
-   return type + o1 + o2;
+ 
+   
+    int o1 = -1;
+    ListExpr a1 = nl->First(args);
+    if(CcString::checkType(a1)) o1=0;
+    if(Mem::checkType(a1)) o1=27;
+    if(MPointer::checkType(a1)) o1=54;
+    if(o1<0) return -1; 
+
+    int o2 = -1;
+    ListExpr a2 = nl->Second(args);
+    if(CcString::checkType(a2)) o2=0;
+    if(Mem::checkType(a2)) o2=9;
+    if(MPointer::checkType(a2)) o2=18;
+    if(o2<0) return -1; 
+   
+    int res =  type + o1 + o2;
+    cout << "index for " <<  nl->ToString(args)  << " is " << res << endl;
+    return res;
 }
 
  // note: if adding attributes with flobs, the value mapping must be changed
@@ -5963,6 +6220,17 @@ ValueMapping mdistRangeVM[] = {
   mdistRangeVMT<mtreehelper::t8,CcString,Mem>,
   mdistRangeVMT<mtreehelper::t9,CcString,Mem>,
   
+  mdistRangeVMT<mtreehelper::t1,CcString,MPointer>,
+  mdistRangeVMT<mtreehelper::t2,CcString,MPointer>,
+  mdistRangeVMT<mtreehelper::t3,CcString,MPointer>,
+  mdistRangeVMT<mtreehelper::t4,CcString,MPointer>,
+  mdistRangeVMT<mtreehelper::t5,CcString,MPointer>,
+  mdistRangeVMT<mtreehelper::t6,CcString,MPointer>,
+  mdistRangeVMT<mtreehelper::t7,CcString,MPointer>,
+  mdistRangeVMT<mtreehelper::t8,CcString,MPointer>,
+  mdistRangeVMT<mtreehelper::t9,CcString,MPointer>,
+  
+  
   mdistRangeVMT<mtreehelper::t1,Mem,CcString>,
   mdistRangeVMT<mtreehelper::t2,Mem,CcString>,
   mdistRangeVMT<mtreehelper::t3,Mem,CcString>,
@@ -5982,6 +6250,47 @@ ValueMapping mdistRangeVM[] = {
   mdistRangeVMT<mtreehelper::t7,Mem,Mem>,
   mdistRangeVMT<mtreehelper::t8,Mem,Mem>,
   mdistRangeVMT<mtreehelper::t9,Mem,Mem>,
+  
+  mdistRangeVMT<mtreehelper::t1,Mem,MPointer>,
+  mdistRangeVMT<mtreehelper::t2,Mem,MPointer>,
+  mdistRangeVMT<mtreehelper::t3,Mem,MPointer>,
+  mdistRangeVMT<mtreehelper::t4,Mem,MPointer>,
+  mdistRangeVMT<mtreehelper::t5,Mem,MPointer>,
+  mdistRangeVMT<mtreehelper::t6,Mem,MPointer>,
+  mdistRangeVMT<mtreehelper::t7,Mem,MPointer>,
+  mdistRangeVMT<mtreehelper::t8,Mem,MPointer>,
+  mdistRangeVMT<mtreehelper::t9,Mem,MPointer>,
+  
+
+  mdistRangeVMT<mtreehelper::t1,MPointer,CcString>,
+  mdistRangeVMT<mtreehelper::t2,MPointer,CcString>,
+  mdistRangeVMT<mtreehelper::t3,MPointer,CcString>,
+  mdistRangeVMT<mtreehelper::t4,MPointer,CcString>,
+  mdistRangeVMT<mtreehelper::t5,MPointer,CcString>,
+  mdistRangeVMT<mtreehelper::t6,MPointer,CcString>,
+  mdistRangeVMT<mtreehelper::t7,MPointer,CcString>,
+  mdistRangeVMT<mtreehelper::t8,MPointer,CcString>,
+  mdistRangeVMT<mtreehelper::t9,MPointer,CcString>,
+
+  mdistRangeVMT<mtreehelper::t1,MPointer,Mem>,
+  mdistRangeVMT<mtreehelper::t2,MPointer,Mem>,
+  mdistRangeVMT<mtreehelper::t3,MPointer,Mem>,
+  mdistRangeVMT<mtreehelper::t4,MPointer,Mem>,
+  mdistRangeVMT<mtreehelper::t5,MPointer,Mem>,
+  mdistRangeVMT<mtreehelper::t6,MPointer,Mem>,
+  mdistRangeVMT<mtreehelper::t7,MPointer,Mem>,
+  mdistRangeVMT<mtreehelper::t8,MPointer,Mem>,
+  mdistRangeVMT<mtreehelper::t9,MPointer,Mem>,
+  
+  mdistRangeVMT<mtreehelper::t1,MPointer,MPointer>,
+  mdistRangeVMT<mtreehelper::t2,MPointer,MPointer>,
+  mdistRangeVMT<mtreehelper::t3,MPointer,MPointer>,
+  mdistRangeVMT<mtreehelper::t4,MPointer,MPointer>,
+  mdistRangeVMT<mtreehelper::t5,MPointer,MPointer>,
+  mdistRangeVMT<mtreehelper::t6,MPointer,MPointer>,
+  mdistRangeVMT<mtreehelper::t7,MPointer,MPointer>,
+  mdistRangeVMT<mtreehelper::t8,MPointer,MPointer>,
+  mdistRangeVMT<mtreehelper::t9,MPointer,MPointer>,
 
 
 };
@@ -6000,7 +6309,7 @@ OperatorSpec mdistRangeSpec(
 Operator mdistRangeOp(
    "mdistRange",
    mdistRangeSpec.getStr(),
-   36,
+   81,
    mdistRangeVM,
    mdistRangeSelect,
    mdistRangeTM
@@ -6018,11 +6327,11 @@ ListExpr mdistScanTM(ListExpr args){
    }
    ListExpr a1 = nl->First(args);
    string errMsg;
-   if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
+   if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg,true)){
      return listutils::typeError(err + "\n problem in first arg: " + errMsg);
    }
    ListExpr a2 = nl->Second(args);
-   if(!getMemType(nl->First(a2), nl->Second(a2), a2, errMsg)){
+   if(!getMemType(nl->First(a2), nl->Second(a2), a2, errMsg,true)){
      return listutils::typeError(err + "\n problem in second arg: " + errMsg);
    }
    a1 = nl->Second(a1);
@@ -6120,14 +6429,26 @@ int mdistScanVMT (Word* args, Word& result, int message,
 }
 
 int mdistScanSelect(ListExpr args){
-   ListExpr type = nl->Third(args);
-   int m = 9;
-   int keyTypeNo = mtreehelper::getTypeNo(type,m);
-   int n1 = CcString::checkType(nl->First(args))?0:2*m;
-   int n2 = CcString::checkType(nl->Second(args))?0:m;
+   ListExpr typeL = nl->Third(args);
+   int type =  mtreehelper::getTypeNo(typeL,9);
+ 
+   
+    int o1 = -1;
+    ListExpr a1 = nl->First(args);
+    if(CcString::checkType(a1)) o1=0;
+    if(Mem::checkType(a1)) o1=27;
+    if(MPointer::checkType(a1)) o1=54;
+    if(o1<0) return -1; 
 
-   return keyTypeNo + n1 + n2;
-
+    int o2 = -1;
+    ListExpr a2 = nl->Second(args);
+    if(CcString::checkType(a2)) o2=0;
+    if(Mem::checkType(a2)) o2=9;
+    if(MPointer::checkType(a2)) o2=18;
+    if(o2<0) return -1; 
+   
+    int res =  type + o1 + o2;
+    return res;
 }
 
  // note: if adding attributes with flobs, the value mapping must be changed
@@ -6152,6 +6473,16 @@ ValueMapping mdistScanVM[] = {
   mdistScanVMT<mtreehelper::t7, CcString, Mem>,
   mdistScanVMT<mtreehelper::t8, CcString, Mem>,
   mdistScanVMT<mtreehelper::t9, CcString, Mem>,
+  
+  mdistScanVMT<mtreehelper::t1, CcString, MPointer>,
+  mdistScanVMT<mtreehelper::t2, CcString, MPointer>,
+  mdistScanVMT<mtreehelper::t3, CcString, MPointer>,
+  mdistScanVMT<mtreehelper::t4, CcString, MPointer>,
+  mdistScanVMT<mtreehelper::t5, CcString, MPointer>,
+  mdistScanVMT<mtreehelper::t6, CcString, MPointer>,
+  mdistScanVMT<mtreehelper::t7, CcString, MPointer>,
+  mdistScanVMT<mtreehelper::t8, CcString, MPointer>,
+  mdistScanVMT<mtreehelper::t9, CcString, MPointer>,
 
   mdistScanVMT<mtreehelper::t1, Mem, CcString>,
   mdistScanVMT<mtreehelper::t2, Mem, CcString>,
@@ -6171,7 +6502,47 @@ ValueMapping mdistScanVM[] = {
   mdistScanVMT<mtreehelper::t6, Mem, Mem>,
   mdistScanVMT<mtreehelper::t7, Mem, Mem>,
   mdistScanVMT<mtreehelper::t8, Mem, Mem>,
-  mdistScanVMT<mtreehelper::t9, Mem, Mem>
+  mdistScanVMT<mtreehelper::t9, Mem, Mem>,
+  
+  mdistScanVMT<mtreehelper::t1, Mem, MPointer>,
+  mdistScanVMT<mtreehelper::t2, Mem, MPointer>,
+  mdistScanVMT<mtreehelper::t3, Mem, MPointer>,
+  mdistScanVMT<mtreehelper::t4, Mem, MPointer>,
+  mdistScanVMT<mtreehelper::t5, Mem, MPointer>,
+  mdistScanVMT<mtreehelper::t6, Mem, MPointer>,
+  mdistScanVMT<mtreehelper::t7, Mem, MPointer>,
+  mdistScanVMT<mtreehelper::t8, Mem, MPointer>,
+  mdistScanVMT<mtreehelper::t9, Mem, MPointer>,
+
+  mdistScanVMT<mtreehelper::t1, MPointer, CcString>,
+  mdistScanVMT<mtreehelper::t2, MPointer, CcString>,
+  mdistScanVMT<mtreehelper::t3, MPointer, CcString>,
+  mdistScanVMT<mtreehelper::t4, MPointer, CcString>,
+  mdistScanVMT<mtreehelper::t5, MPointer, CcString>,
+  mdistScanVMT<mtreehelper::t6, MPointer, CcString>,
+  mdistScanVMT<mtreehelper::t7, MPointer, CcString>,
+  mdistScanVMT<mtreehelper::t8, MPointer, CcString>,
+  mdistScanVMT<mtreehelper::t9, MPointer, CcString>,
+
+  mdistScanVMT<mtreehelper::t1, MPointer, Mem>,
+  mdistScanVMT<mtreehelper::t2, MPointer, Mem>,
+  mdistScanVMT<mtreehelper::t3, MPointer, Mem>,
+  mdistScanVMT<mtreehelper::t4, MPointer, Mem>,
+  mdistScanVMT<mtreehelper::t5, MPointer, Mem>,
+  mdistScanVMT<mtreehelper::t6, MPointer, Mem>,
+  mdistScanVMT<mtreehelper::t7, MPointer, Mem>,
+  mdistScanVMT<mtreehelper::t8, MPointer, Mem>,
+  mdistScanVMT<mtreehelper::t9, MPointer, Mem>,
+  
+  mdistScanVMT<mtreehelper::t1, MPointer, MPointer>,
+  mdistScanVMT<mtreehelper::t2, MPointer, MPointer>,
+  mdistScanVMT<mtreehelper::t3, MPointer, MPointer>,
+  mdistScanVMT<mtreehelper::t4, MPointer, MPointer>,
+  mdistScanVMT<mtreehelper::t5, MPointer, MPointer>,
+  mdistScanVMT<mtreehelper::t6, MPointer, MPointer>,
+  mdistScanVMT<mtreehelper::t7, MPointer, MPointer>,
+  mdistScanVMT<mtreehelper::t8, MPointer, MPointer>,
+  mdistScanVMT<mtreehelper::t9, MPointer, MPointer>,
 
 };
 
@@ -6187,7 +6558,7 @@ OperatorSpec mdistScanSpec(
 Operator mdistScanOp(
    "mdistScan",
    mdistScanSpec.getStr(),
-   36,
+   81,
    mdistScanVM,
    mdistScanSelect,
    mdistScanTM
@@ -6632,7 +7003,7 @@ ListExpr minsertdeletetreeTypeMap(ListExpr args){
   ListExpr second = nl->Second(args);
   string errMsg;
 
-  if(!getMemType(nl->First(second), nl->Second(second), second, errMsg)){
+  if(!getMemType(nl->First(second), nl->Second(second), second, errMsg, true)){
     return listutils::typeError("\n problem in second arg: " + errMsg);
   }
   
@@ -6720,7 +7091,8 @@ int minserttreeValueMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
   
   LocalInfo* li = (LocalInfo*) local.addr;
-  
+
+
   switch(message) {
     
     case OPEN : {
@@ -6731,12 +7103,14 @@ int minserttreeValueMap (Word* args, Word& result,
 
       T* tree = (T*) args[1].addr;
       if(!tree->IsDefined()){
-          //cout << "undefined" << endl;
+         // cout << "undefined" << endl;
           return 0;
       }
       string name = tree->GetValue();
       // cut blank from the front
-      name = name.substr(1, name.size()-1);
+      stringutils::trim(name);
+
+
       
       MemTree* mmtree =(MemTree*) catalog->getMMObject(name);
       if(!mmtree) {
@@ -6779,28 +7153,98 @@ int minserttreeValueMap (Word* args, Word& result,
 
 }
 
+template<class LocalInfo, class MemTree>
+int minserttreeMPointerValueMap (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+  
+  LocalInfo* li = (LocalInfo*) local.addr;
+  
+  switch(message) {
+    
+    case OPEN : {
+      if(li) {
+        delete li;
+        local.addr = 0;
+      }
+
+      MPointer* tree = (MPointer*) args[1].addr;
+      MemTree* mmtree =(MemTree*) (*tree)();
+      if(!mmtree) {
+        return 0;
+      }
+      
+      ListExpr attrlist = nl->Second(nl->Second(qp->GetType(s)));  // stream
+      ListExpr attrToSort = qp->GetType(qp->GetSon(s,2));
+      ListExpr attrType = 0;
+      int attrPos = 0;
+      
+      attrPos = listutils::findAttribute(attrlist, 
+                                         nl->ToString(attrToSort), 
+                                         attrType);
+      if(attrPos == 0) {
+        return listutils::typeError
+          ("there is no attribute having name " + nl->ToString(attrToSort));
+      }
+        
+      local.addr = new LocalInfo(args[0],
+                                 mmtree->gettree(),
+                                 attrPos);
+      return 0;
+    }
+
+    case REQUEST : {
+      result.addr=li?li->next():0;
+      return result.addr?YIELD:CANCEL;
+    }
+    
+    case CLOSE :
+      if(li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+      
+  }    
+  return 0;
+
+}
 
 /*
 7.3.3 Value Mapping Array and Selection
 
 */
 ValueMapping minsertttreeVM[] = {
+
+    // insert
     minserttreeValueMap<CcString,minsertdeleteInfo<MInsertTree, 
                                  memttree, AttrIdPair>,MemoryTTreeObject >,
     minserttreeValueMap<Mem,minsertdeleteInfo<MInsertTree, 
                                  memttree, AttrIdPair>, MemoryTTreeObject >,
+    minserttreeMPointerValueMap<minsertdeleteInfo<MInsertTree, 
+                                 memttree, AttrIdPair>, MemoryTTreeObject >,
+
+    // delete
     minserttreeValueMap<CcString,minsertdeleteInfo<MDeleteTree, 
                                  memttree, AttrIdPair>,MemoryTTreeObject >,
     minserttreeValueMap<Mem,minsertdeleteInfo<MDeleteTree, 
+                                 memttree, AttrIdPair>, MemoryTTreeObject >,
+    minserttreeMPointerValueMap<minsertdeleteInfo<MDeleteTree, 
                                  memttree, AttrIdPair>, MemoryTTreeObject >
 };
 
 template<ChangeTypeTree ct>
 int minsertttreeSelect(ListExpr args){
+  ListExpr a1 = nl->Second(args);
+  int n1 = -1;
+  if(CcString::checkType(a1)) n1= 0;
+  if(Mem::checkType(a1)) n1 = 1;
+  if(MPointer::checkType(a1)) n1 = 2;
+  if(n1<0) return  -1;
+
   if(ct==MInsertTree) 
-    return CcString::checkType(nl->First(args))?0:1;
+    return n1;
   else if(ct==MDeleteTree) 
-    return CcString::checkType(nl->First(args))?2:3;
+    return n1+3;
 }
 
 /*
@@ -6877,17 +7321,23 @@ ValueMapping minsertAVLtreeVM[] = {
                                  memAVLtree, AttrIdPair>,MemoryAVLObject >,
     minserttreeValueMap<Mem,minsertdeleteInfo<MInsertTree, 
                                  memAVLtree, AttrIdPair>, MemoryAVLObject >,
+    minserttreeMPointerValueMap<minsertdeleteInfo<MInsertTree, 
+                                 memAVLtree, AttrIdPair>, MemoryAVLObject >,
 };
 
 int minsertavltreeSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+  ListExpr a1 = nl->Second(args);
+  if(CcString::checkType(a1)) return 0;
+  if(Mem::checkType(a1)) return 1;
+  if(MPointer::checkType(a1)) return 2;
+  return -1;
 }
 
 
 Operator minsertavltreeOp (
     "minsertavltree",
     minsertavltreeSpec.getStr(),
-    2,
+    3,
     minsertAVLtreeVM,
     minsertavltreeSelect,
     minsertdeletetreeTypeMap<MemoryAVLObject>
@@ -6908,18 +7358,24 @@ ValueMapping mdeleteAVLtreeVM[] = {
     minserttreeValueMap<CcString,minsertdeleteInfo<MDeleteTree, 
                                     memAVLtree, AttrIdPair>,MemoryAVLObject >,
     minserttreeValueMap<Mem,minsertdeleteInfo<MDeleteTree, 
+                                    memAVLtree, AttrIdPair>, MemoryAVLObject >,
+    minserttreeMPointerValueMap<minsertdeleteInfo<MDeleteTree, 
                                     memAVLtree, AttrIdPair>, MemoryAVLObject >
 };
 
 int mdeleteavltreeSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+  ListExpr a1 = nl->Second(args);
+  if(CcString::checkType(a1)) return 0;
+  if(Mem::checkType(a1)) return 1;
+  if(MPointer::checkType(a1)) return 2;
+  return -1;
 }
 
 
 Operator mdeleteavltreeOp (
     "mdeleteavltree",
     mdeleteavltreeSpec.getStr(),
-    2,
+    3,
     mdeleteAVLtreeVM,
     mdeleteavltreeSelect,
     minsertdeletetreeTypeMap<MemoryAVLObject>
@@ -8503,7 +8959,7 @@ OperatorSpec mdeletepec(
 Operator mdeletebyidOp (
     "mdeletebyid",
     mdeletepec.getStr(),
-    2,
+    3,
     mdeletebyidVM,
     mdeleteelect,
     mdeletebyidTypeMap
@@ -8833,7 +9289,7 @@ OperatorSpec mdeletedirectsaveSpec(
 Operator mdeletedirectsaveOp(
   "mdeletedirectsave",
   mdeletedirectsaveSpec.getStr(),
-  3,
+  9,
   mdeletedirectsaveVM,
   mdeletedirectsaveSelect,
   mdeletedirectsaveTM
@@ -16547,6 +17003,120 @@ Operator minsertTuplepqOp(
 );
 
 
+/*
+Operator ~mblock~
+
+*/
+
+ListExpr mblockTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  ListExpr a = nl->First(args);
+  if(!Stream<Tuple>::checkType(a)
+     &&!Stream<Attribute>::checkType(a)){
+   return listutils::typeError("strean(tuple) or stream(DATA) expected");
+  }
+  return a;
+}
+
+template<class E>
+class mblockInfo{
+   public:
+      mblockInfo(Word _stream): stream(_stream){
+         collect();
+      }
+
+      ~mblockInfo(){
+          for(size_t i=pos;i<v.size();i++){
+              v[i]->DeleteIfAllowed();
+          }
+       }
+
+       E* next(){
+          if(pos>=v.size()){
+             return 0;
+          }
+          E* res = v[pos];
+          v[pos] = 0;
+          pos++;
+          return res;
+       }
+
+    private:
+        Stream<E> stream;
+        vector<E*> v;
+        size_t pos;
+
+      void collect(){
+         stream.open();
+         E* elem;
+         while((elem=stream.request())){
+            v.push_back(elem);
+         }
+         stream.close();
+         pos = 0;
+      }
+};
+
+
+
+template<class T>
+int mblockVMT(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+    mblockInfo<T>* li = (mblockInfo<T>*) local.addr;
+    switch(message){
+       case OPEN:
+              if(li) delete li;
+              local.addr = new mblockInfo<T>(args[0]);
+              return 0;
+       case REQUEST:
+              result.addr = li?li->next():0;
+              return result.addr?YIELD:CANCEL;
+       case CLOSE:
+               if(li){
+                 delete li;
+                 local.addr = 0;
+               }
+    }
+    return -1;
+}
+
+ValueMapping mblockVM[] = {
+   mblockVMT<Tuple>,
+   mblockVMT<Attribute>
+};
+
+int mblockSelect(ListExpr args){
+  return Stream<Attribute>::checkType(nl->First(args))?1:0;
+}
+
+OperatorSpec mblockSpec(
+  "stream(X) -> stream(X), X in tuple, DATA",
+  "_ mblock",
+  "Collects the complete stream within a single "
+  "step before feeding the output stream. ",
+  "query ten feed mblock head[3] count"
+);
+
+Operator mblockOp(
+  "mblock",
+  mblockSpec.getStr(),
+  2,
+  mblockVM,
+  mblockSelect,
+  mblockTM
+);
+
+
+
+
+
+
+
+
+
+
 class MainMemory2Algebra : public Algebra {
 
     public:
@@ -16788,6 +17358,9 @@ class MainMemory2Algebra : public Algebra {
           mfeedpqOp.SetUsesArgsInTypeMapping();
           AddOperator(&minsertTuplepqOp);
           minsertTuplepqOp.SetUsesArgsInTypeMapping();
+
+
+          AddOperator(&mblockOp);
 
 
         }
