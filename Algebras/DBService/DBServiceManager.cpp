@@ -51,10 +51,6 @@ DBServiceManager* DBServiceManager::getInstance()
 {
     if (!_instance)
     {
-        if (!initialized)
-        {
-            throw SecondoException("DBServiceManager not initialized");
-        }
         _instance = new DBServiceManager();
     }
     return _instance;
@@ -78,25 +74,16 @@ void DBServiceManager::addNode(const string host,
                     getNextConnectionID(), connectionInfo));
 }
 
-void DBServiceManager::initialize()
-{
-    initialized = true;
-}
-
 bool DBServiceManager::replicateRelation(const std::string& relationName)
 {
     shared_ptr<RelationInfo> replicaInfo(new RelationInfo(relationName));
     vector<ConnectionID> nodes;
     getWorkerNodesForReplication(nodes);
+    replicaInfo->addNodes(nodes);
     replicaLocations.push_back(replicaInfo);
     Replicator replicator(".txt");
     replicator.replicateRelation(*replicaInfo);
     return false;
-}
-
-bool DBServiceManager::isInitialized()
-{
-    return initialized;
 }
 
 void DBServiceManager::getWorkerNodesForReplication(vector<ConnectionID>& nodes)
@@ -132,9 +119,6 @@ ConnectionInfo* DBServiceManager::getConnection(ConnectionID id)
 }
 
 DBServiceManager* DBServiceManager::_instance = NULL;
-bool DBServiceManager::initialized = false;
 map<ConnectionID, ConnectionInfo*> DBServiceManager::connections;
-vector<shared_ptr<RelationInfo> > DBServiceManager::replicaLocations;
-
 
 } /* namespace DBService */

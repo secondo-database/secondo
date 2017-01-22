@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_DBSERVICEMANAGER_HPP_
 #define ALGEBRAS_DBSERVICE_DBSERVICEMANAGER_HPP_
 
+#include <memory>
+
 #include "ConnectionInfo.h"
 #include "RelationInfo.hpp"
 
@@ -63,21 +65,26 @@ Adds a node to the connection manager's pool that can be used for
 storing relation replicas.
 
 */
-    static void addNode(const std::string host,
-                        const int port,
-                        std::string config);
+    void addNode(const std::string host,
+                 const int port,
+                 std::string config);
 
 /*
-1.2 initialize
+1.2 replicateRelation
 
 //TODO
 
 */
-    static void initialize();
-    static bool isInitialized();
 
-    static bool replicateRelation(const std::string& relationName);
-    static distributed2::ConnectionInfo* getConnection(ConnectionID id);
+    bool replicateRelation(const std::string& relationName);
+
+/*
+1.2 replicateRelation
+
+//TODO
+
+*/
+    distributed2::ConnectionInfo* getConnection(ConnectionID id);
 
 protected:
 /*
@@ -105,14 +112,13 @@ Deletes existing DBServiceManager instance.
     ~DBServiceManager();
 
 private:
-    static ConnectionID getNextConnectionID();
-    static void getWorkerNodesForReplication(std::vector<
-                                             ConnectionID>& nodes);
+    ConnectionID getNextConnectionID();
+    void getWorkerNodesForReplication(std::vector<
+                                      ConnectionID>& nodes);
 
     static DBServiceManager* _instance;
-    static bool initialized;
     static std::map<ConnectionID, distributed2::ConnectionInfo*> connections;
-    static std::vector<std::shared_ptr<RelationInfo> > replicaLocations;
+    std::vector<std::shared_ptr<RelationInfo> > replicaLocations;
 
 };
 

@@ -38,6 +38,8 @@ void print(std::string& text);
 void print(const char* text);
 void print(ListExpr nestedList);
 void print(int number);
+void print(const char* text, int number);
+void print(const char* text, ListExpr nestedList);
 
 }
 

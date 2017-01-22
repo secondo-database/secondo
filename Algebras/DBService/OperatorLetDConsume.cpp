@@ -41,7 +41,7 @@ namespace DBService
 
 ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
 {
-    print(nestedList);
+    print("nestedList", nestedList);
 
     if (nl->ListLength(nestedList) != 2)
     {
@@ -64,20 +64,29 @@ ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
-    DBServiceManager::getInstance();
+    ListExpr consumeTypeMapInput = nl->First(nestedList);
+    print(consumeTypeMapInput);
+
+    ListExpr test = nl->First(nl->First(nl->First(nestedList)));
+    print(test);
 
     ListExpr consumeTypeMapResult = OperatorConsume::ConsumeTypeMap<false>(
-            nl->First(nestedList));
+            consumeTypeMapInput);
     if (consumeTypeMapResult == nl->TypeError())
     {
         return consumeTypeMapResult;
     }
+
+    print("consumeTypeMapResult", consumeTypeMapResult);
 
     ListExpr appendList = nl->OneElemList(nl->Second(nl->Second(nestedList)));
 
     ListExpr typeMapResult = nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()), appendList,
             consumeTypeMapResult);
+
+    print("typeMapResult", typeMapResult);
+
     return typeMapResult;
 }
 
@@ -90,7 +99,7 @@ int OperatorLetDConsume::mapValue(Word* args,
     int consumeValueMappingResult = OperatorConsume::Consume(args, result,
                                                              message, local, s);
     // checking return code of value mapping is noOp?!
-    DBServiceManager::replicateRelation(
+    DBServiceManager::getInstance()->replicateRelation(
             static_cast<CcString*>(args[0].addr)->GetValue());
     return consumeValueMappingResult;
 }

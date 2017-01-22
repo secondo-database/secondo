@@ -110,14 +110,9 @@ int OperatorAddNode::mapValue(Word* args,
     CcInt* port = static_cast<CcInt*>(args[1].addr);
     CcString* config = static_cast<CcString*>(args[2].addr);
 
-    DBServiceManager::addNode(host->GetValue(),
-                              port->GetValue(),
-                              config->getCsvStr());
-
-    if(!DBServiceManager::isInitialized())
-    {
-        DBServiceManager::initialize();
-    }
+    DBServiceManager::getInstance()->addNode(host->GetValue(),
+                                             port->GetValue(),
+                                             config->getCsvStr());
 
     result = qp->ResultStorage(s);
     static_cast<CcBool*>(result.addr)->Set(true,true);

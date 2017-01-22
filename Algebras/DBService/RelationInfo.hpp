@@ -43,6 +43,7 @@ public:
     RelationInfo(const std::string& name);
     const std::string& getRelationName() const;
     void addNode(ConnectionID id);
+    void addNodes(std::vector<ConnectionID>& nodes);
     const std::vector<ConnectionID>::const_iterator nodesBegin() const;
     const std::vector<ConnectionID>::const_iterator nodesEnd() const;
 

@@ -60,4 +60,21 @@ void print(int number)
         std::cout << "********************************" << std::endl;
 }
 
+void print(const char* text, int number)
+{
+        std::cout << "********************************" << std::endl;
+        std::cout << text << std::endl;
+        std::cout << number << std::endl;
+        std::cout << "********************************" << std::endl;
+}
+
+void print(const char* text, ListExpr nestedList)
+{
+        std::cout << "********************************" << std::endl;
+        std::cout << text << std::endl;
+        std::cout << "length: " << nl->ListLength(nestedList) << std::endl;
+        std::cout << nl->ToString(nestedList) << std::endl;
+        std::cout << "********************************" << std::endl;
+}
+
 }

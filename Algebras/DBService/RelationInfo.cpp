@@ -46,6 +46,15 @@ void RelationInfo::addNode(ConnectionID id)
     nodes.push_back(id);
 }
 
+void RelationInfo::addNodes(std::vector<ConnectionID>& nodes)
+{
+    for (std::vector<ConnectionID>::const_iterator i = nodes.begin();
+            i != nodes.end(); ++i)
+    {
+        nodes.push_back(*i);
+    }
+}
+
 const vector<ConnectionID>::const_iterator RelationInfo::nodesBegin() const
 {
     return nodes.begin();

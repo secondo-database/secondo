@@ -93,7 +93,8 @@ void Replicator::runReplication(const RelationInfo& relationInfo) const
             i != relationInfo.nodesEnd(); ++i)
     {
         stringstream createObjectFromFileCommand;
-        ConnectionInfo* connection = DBServiceManager::getConnection(*i);
+        ConnectionInfo* connection =
+                DBServiceManager::getInstance()->getConnection(*i);
         createObjectFromFileCommand << "let " << relationInfo.getRelationName()
                 << " =  '" << connection->getSendFolder() << fileName
                 << "' getObjectFromFile consume";
