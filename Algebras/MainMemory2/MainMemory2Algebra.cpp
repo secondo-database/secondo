@@ -294,6 +294,14 @@ namespace ttreehelper{
 } // end namespace ttreehelper
 
 
+
+int getRepNum(ListExpr a){
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
 /*
 
 Some functions for getting a certain memory object by name.
@@ -1290,7 +1298,8 @@ int mfeedSelect(ListExpr args) {
 */
 
 OperatorSpec mfeedSpec(
-    "{string, mem(rel(tuple(x))}  -> stream(Tuple)",
+    "{memrel}  -> stream(Tuple), memrel represented as string, "
+    "mem, or mpointer",
     "_ mfeed",
     "produces a stream from a main memory (ordered) relation",
     "query 'ten' mfeed"
@@ -1600,7 +1609,8 @@ int gettuplesSelect(ListExpr args){
 }
 
 OperatorSpec gettuplesSpec(
-  "stream({tid,tuple}) x {string, mem(rel(tuple(X)))} -> stream(tuple(X))",
+  "stream({tid,tuple}) x MREL -> stream(tuple(X)), "
+  "MREL represented as string, mem or mpointer",
   "_ _ gettuples",
   "Retrieves tuples from a main memory relation whose ids are "
   "specified in the incoming stream. If the incoming stream is a tuple stream,"
@@ -1933,7 +1943,7 @@ int memobjectValMap (Word* args, Word& result,
 
 */
 OperatorSpec memobjectSpec(
-    "string | mem(X)  -> m:MEMLOADABLE , X in {DATA, rel}",
+    "string | mem(X) | mpointer(X)  -> m:MEMLOADABLE , X in {DATA, rel}",
     "memobject (_)",
     "returns a persistent object created from a main memory object",
     "query memobject (\"Trains100\")"
@@ -2541,7 +2551,7 @@ int memupdateSelect(ListExpr args){
 */
 
 OperatorSpec memupdateSpec(
-    "{string, mem} x m:MEMLOADABLE -> bool",
+    "{string, mem, mpointer} x m:MEMLOADABLE -> bool",
     "memupdate (_,_)",
     "updates a main memory object with a given MEMLOADABLE",
     "query memupdate ('fuenf', ten feed head[7])"
@@ -3594,8 +3604,8 @@ ValueMapping mwindowintersectsValMap[] =
 */
 
 OperatorSpec mwindowintersectsSpec(
-   "{string, mem(rtree <dim>) x {string, mem(rel(X)) x T -> stream(tuple(X)) "
-   "where T in SPATIAL<dim>D",
+   "MRTREE x MREL x rectX -> stream(tuple(X)) , where MRTREE, MREL"
+   " are represented as string, mem, or mpointer",
    "_ _ mwindowintersects[_]",
    "Uses the given rtree to find all tuples"
    " in the given relation which intersects the "
@@ -3785,7 +3795,8 @@ int mwindowintersectsSSelect(ListExpr args){
 
 
 OperatorSpec mwindowintersectsSSpec(
-  "{string, memory(rtree <dim>)} x SPATIAL<dim>D -> stream(tuple((TID tid)))",
+  "MRTREE x SPATIAL<dim>D -> stream(tuple((TID tid))), MRTREE "
+  "represented as string, mem, or mpointer",
   " _ mwindowintersectsS[_]",
   "Returns the tuple ids belonging to rectangles intersecting the "
   "bounding box of the second argument wraped in a tuple. ",
@@ -4563,8 +4574,8 @@ int mexactmatchSelect(ListExpr args){
 */
 
 OperatorSpec mexactmatchSpec(
-    "{string, mem(avltree T), mem(ttree T) x {string, mem(rel(tuple(X)))} "
-    " x T -> stream(Tuple(X))",
+    "MTREE x MREL x T -> stream(Tuple), MTREE is an avltree or ttree, "
+    "MTREE, MRel represented as string, mem, or mpointer",
     "_ _ mexactmatch[_]",
     "Uses the given MemoryAVLObject (as first argument) to find all tuples "
     "in the given MemoryRelObject (as second argument) "
@@ -4594,8 +4605,8 @@ Operator mexactmatchOp (
 */
 
 OperatorSpec matchbelowSpec(
-    "{string, mem(avltree T)}  x {string, mem(rel(tuple(X)))}  "
-    "x T -> stream(tuple(X)) ",
+    " MTREE x MREL x T -> stream(tuple(X)), MTREE  is an avl-tree or an ttree, "
+    "MTree, MRel represented as string, mem, or mpointer",
     "_ _ matchbelow[_]",
     "returns for a key  (third argument) the tuple which "
     " contains the biggest attribute value in the AVLtree (first argument) "
@@ -4852,8 +4863,8 @@ int mrangeSelect(ListExpr args){
 */
 
 OperatorSpec mrangeSpec(
-    "{string,mem(avltree T), mem(ttree T) } x {string, mem(rel(tuple(X)))} "
-    "x T x T -> stream(Tuple(X)) ",
+    "MTREE x MREL x T x T -> stream(Tuple(X)), MTREE is an avl-tree "
+    "or a t-tree, MTREE, MREL represented as string, mem, or mpointer ",
     "_ _ mrange[_,_]",
     "Uses the given avl-tree to find all tuples"
     " in the given relation which are between "
@@ -5086,7 +5097,8 @@ int mrangeSSelect(ListExpr args){
 
 
 OperatorSpec mexactmatchSSpec(
-  "{string, mem(avltree T) x T -> stream(tuple((TID tid))) ",
+  "MTREE x MREL  x T -> stream(tuple((TID tid))), MTREE is an avl-tree "
+  "or a t-tree, MTREE, MREL represented as string, mem, or mpointer ",
   "_ memexactmatchS[_]",
   "Retrieves the tuple ids from an avl-tree whose "
   "keys have the value given by the second arg.",
@@ -5094,7 +5106,8 @@ OperatorSpec mexactmatchSSpec(
 );
 
 OperatorSpec mrangeSSpec(
-  "{string, mem(avltree T) x T x T -> stream(tuple((TID tid)))",
+  "MTREE x T x T -> stream(tuple((TID tid))), MTREE is an avl-tree "
+  "or a t-tree and is represented as string, mem, or mpointer",
   "_ mrangeS[_,_] ",
   "Retrieves the tuple ids from an avl-tree whose key "
   "is within the range defined by the last two arguments.",
@@ -5230,7 +5243,8 @@ int matchbelowSSelect(ListExpr args){
 }
 
 OperatorSpec matchbelowSSpec(
-  "{string, mem(avltree T) x T -> stream(tuple((TID tid))) ",
+  "MTREE x T -> stream(tuple((TID tid))) , where MTREE in an avl-tree "
+  "or an t-tree and is represented as a string, mem, or mpointer ",
   "_ matchbelowS[_]",
   "Returns the tid of the entry in the avl tree whose key "
   "is smaller or equal to the key attribute. If the given "
@@ -5635,7 +5649,8 @@ ValueMapping mdistRange2VM[] = {
 };
 
 OperatorSpec mdistRange2Spec(
-  "string x DATA x real -> stream(tuple((TID tid))) ",
+  "MTREE x DATA x real -> stream(tuple((TID tid))), "
+  "MTREE represented as a string, mem, or mpointer ",
   "mem_mtree mdistRange2[keyAttr, maxDist] ",
   "Retrieves those tuple ids from an mtree those key value has "
   "a maximum distaance of the given dist",
@@ -5828,7 +5843,8 @@ ValueMapping mdistScan2VM[] = {
 };
 
 OperatorSpec mdistScan2Spec(
-  "{string, (mem (mtree DATA))}  x DATA -> stream(tuple((TID tid))) ",
+  "MTREE  x DATA -> stream(tuple((TID tid))), "
+  "MTREE represented as string, me, or mpointer ",
   "mem_mtree mdistScan2[keyAttr] ",
   "Scans the tuple ids within an m-tree in increasing "
   "distance of the reference object to the associated "
@@ -6296,8 +6312,8 @@ ValueMapping mdistRangeVM[] = {
 };
 
 OperatorSpec mdistRangeSpec(
-  "{string, mem(mtree T)} x {string, mem(rel(tuple))}  x T  "
-  "x real -> stream(tuple) ",
+  "MTREE x MREL  x T  x real -> stream(tuple) , MTREE, "
+  "MREL represented as string, mem, or mpointer",
   "mem_mtree mem_rel mdistRange[keyAttr, maxDist] ",
   "Retrieves those tuples from a memory relation "
   "having a distance smaller or equals to a given dist "
@@ -6547,7 +6563,8 @@ ValueMapping mdistScanVM[] = {
 };
 
 OperatorSpec mdistScanSpec(
-  "{string, mem(mtree T)} x {string, mem(rel(tuple))}  x T -> stream(tuple) ",
+  "MTREE x MREL x T -> stream(tuple) , "
+  "MTREE, MREL represented as string, mem, or mpointer",
   "mem_mtree mem_rel mdistScan[keyAttr] ",
   "Retrieves tuples from an memory relation in increasing "
   "distance to a reference object aided by a memory based "
@@ -6670,7 +6687,7 @@ ListExpr MTUPLETM(ListExpr args){
      return  listutils::typeError("internal error");
    }
    string errMsg;
-   if(!getMemType(nl->First(mem), nl->Second(mem), mem, errMsg)){
+   if(!getMemType(nl->First(mem), nl->Second(mem), mem, errMsg,true)){
     return listutils::typeError("problem in arg: " + errMsg);
    }
    if(!Mem::checkType(mem)){
@@ -6690,7 +6707,7 @@ ListExpr MTUPLETM(ListExpr args){
 }
 
 OperatorSpec MTUPLESpec(
-   "... mem(rel(X))  x ... -> X or string -> tuple",
+   "... MREL  x ... -> X or string -> tuple, MREL in {tring,mem,mpointer} ",
    "MTUPLE<X>(_)",
    "Retrieves the tuple type of a memory relation at position "
    "<X> in the argument list",
@@ -6924,7 +6941,7 @@ int mcreatettreeSelect(ListExpr args){
 
 */
 OperatorSpec mcreatettreeSpec(
-    "string x string -> string || mem(rel(tuple(X))) x string -> string",
+    "string x IDENT -> string || mem(rel(tuple(X))) x IDENT -> string",
     "_ mcreatettree [_]",
     "creates an T-Tree over a main memory relation given by the"
     "first argument string || mem(rel(tuple)) and an attribute "
@@ -7253,8 +7270,8 @@ int minsertttreeSelect(ListExpr args){
 */
 
 OperatorSpec minsertttreeSpec(
-    "stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident "
-    "-> stream(tuple(x@[TID:tid]))",
+    "stream(tuple(x@[TID:tid])) x MTTREE x IDENT "
+    "-> stream(tuple(x@[TID:tid])) , MTTREE in {string, mem, mpointer}",
     "_ op [_,_]",
     "inserts an object into a main memory ttree",
     "query ten feed head[5] minsert[\"ten\"] "
@@ -7280,8 +7297,8 @@ Operator minsertttreeOp (
 */
 
 OperatorSpec mdeletettreeSpec(
-    "stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident "
-    "-> stream(tuple(x@[TID:tid]))",
+    "stream(tuple(x@[TID:tid])) x MTTREExIDENT "
+    "-> stream(tuple(x@[TID:tid])) , MTTREE in {string, mem, mpointer}",
     "_ op [_,_]",
     "deletes an object identified by tupleid from a main memory ttree",
     "query ten feed head[5] mdelete[\"ten\"] " 
@@ -7307,8 +7324,8 @@ Operator mdeletettreeOp (
 */
 
 OperatorSpec minsertavltreeSpec(
-    "stream(tuple(x@[TID:tid])) x {string, mem(avltree)} x ident "
-    "-> stream(tuple(x@[TID:tid]))",
+    "stream(tuple(x@[TID:tid])) x AVLTREE x IDENT "
+    "-> stream(tuple(x@[TID:tid])), AVLTREE iun {string, mem, mpointer}",
     "_ op [_,_]",
     "inserts an object into a main memory avltree",
     "query ten feed head[5] minsert[\"ten\"] "
@@ -7345,8 +7362,8 @@ Operator minsertavltreeOp (
 
 
 OperatorSpec mdeleteavltreeSpec(
-    "stream(tuple(x@[TID:tid])) x {string, mem(avltree)} x ident "
-    "-> stream(tuple(x@[TID:tid]))",
+    "stream(tuple(x@[TID:tid])) x AVLTREE x ident "
+    "-> stream(tuple(x@[TID:tid])), AVLTREE in {string, mem, mpointer}",
     "_ op [_,_]",
     "Removes ojjects from  a main memory avltree",
     "query ten feed head[5] modelete[\"ten\"] "
@@ -7408,7 +7425,7 @@ ListExpr mcreateAuxiliaryRelTypeMap(const ListExpr& args,
   
   string errMsg;
 
-  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg)){
+  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg,true)){
     return listutils::typeError(
       "string or mem(rel) or mem(orel) expected : " + errMsg);
   }
@@ -7516,7 +7533,7 @@ int mcreateinsertrelValueMap(Word* args, Word& result, int message,
 
 */
 OperatorSpec mcreateinsertrelSpec(
-    "{string, mem(rel(...))} -> mem(rel(tuple(x@[TID:tid]))) ",
+    "MREL -> mem(rel(tuple(x@[TID:tid]))) , MREL in {string, mem, mpointer}",
     "mcreateinsertrel(_)",
     "creates an auxiliary relation",
     "query memlet (\"fuenf\", mcreateinsertrel(\"ten\"))"
@@ -7541,8 +7558,8 @@ Operator mcreateinsertrelOp (
 
 */
 OperatorSpec mcreatedeleterelSpec(
-    "{string, mem(rel(...))} -> mem(rel(tuple(x@[TID:tid]))) ",
-    "mcreatedeleterel(_)",
+    "MREL -> mem(rel(tuple(x@[TID:tid]))) ",
+    "mcreatedeleterel(_) , MREL in {string, mem, mpointer}",
     "creates an auxiliary relation",
     "query memlet (\"fuenf\", mcreatedeleterel(\"ten\"))"
 );
@@ -7566,8 +7583,8 @@ Operator mcreatedeleterelOp(
 */
 
 OperatorSpec mcreateupdaterelSpec(
-    "{string, mem(rel(...))} -> "
-    "mem(rel(tuple(x@[(a1_old x1)...(an_old xn)(TID:tid)]))) ",
+    " MREL(tuple(X)) -> mem(rel(tuple(x@[(a1_old x1)..."
+    "(an_old xn)(TID:tid)]))), MREL in {string, mem, mpointer}",
     "mcreateupdaterel(_)",
     "creates an auxiliary relation",
     "query memlet (\"fuenf\", mcreateupdaterel(\"ten\"))"
@@ -7631,7 +7648,7 @@ ListExpr minsertTypeMap(ListExpr args) {
   
   // process second argument (mem(rel))
   ListExpr second  = nl->Second(args);
-  if(!getMemType(nl->First(second), nl->Second(second), second, errMsg)) {
+  if(!getMemType(nl->First(second), nl->Second(second), second, errMsg,true)) {
       return listutils::typeError("(problem in second arg: " + errMsg + ")");
   }
   second = nl->Second(second);
@@ -7670,7 +7687,7 @@ ListExpr minsertTypeMap(ListExpr args) {
   // process third argument (minsertsave only)
   if(nl->ListLength(args)==3) {
     ListExpr third  = nl->Third(args);
-    if(!getMemType(nl->First(third), nl->Second(third), third, errMsg)) {
+    if(!getMemType(nl->First(third), nl->Second(third), third, errMsg,true)) {
       return listutils::typeError("(problem in third arg: " + errMsg + ")");
     }
     third = nl->Second(third);
@@ -7787,11 +7804,17 @@ int minsertValMap (Word* args, Word& result,
 
 ValueMapping minsertVM[] = {
    minsertValMap<CcString>,
-   minsertValMap<Mem>
+   minsertValMap<Mem>,
+   minsertValMap<MPointer>,
+
 };
 
 int minsertSelect(ListExpr args){
-   return CcString::checkType(nl->Second(args))?0:1;
+  ListExpr t = nl->Second(args);
+  if(CcString::checkType(t)) return 0;
+  if(Mem::checkType(t)) return 1;
+  if(MPointer::checkType(t)) return 2;
+  return -1;
 }
 
 /*
@@ -7800,7 +7823,8 @@ int minsertSelect(ListExpr args){
 */
 
 OperatorSpec minsertSpec(
-    "stream(tuple(x)) x {string, mem(rel(...))} -> stream(tuple(x@[TID:tid]))",
+    "stream(tuple(x)) x MREAL -> stream(tuple(x@[TID:tid])), "
+    "MREL in {string, mem, mpointer}",
     "_ minsert [_]",
     "inserts the tuples of a stream into an "
     "existing main memory relation. All tuples get an additional "
@@ -7815,7 +7839,7 @@ OperatorSpec minsertSpec(
 Operator minsertOp (
     "minsert",
     minsertSpec.getStr(),
-    2,
+    3,
     minsertVM,
     minsertSelect,
     minsertTypeMap<2>
@@ -7889,7 +7913,7 @@ class minsertsaveInfo {
 7.10.2  Value Mapping Functions of operator ~minsertsave~
 
 */
-template<class T>
+template<class R,class A>
 int minsertsaveValueMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
   
@@ -7906,8 +7930,8 @@ int minsertsaveValueMap (Word* args, Word& result,
       
       qp->Open(args[0].addr);
       
-      T* oN = (T*) args[1].addr;
-      T* aux = (T*) args[2].addr;
+      R* oN = (R*) args[1].addr;
+      A* aux = (A*) args[2].addr;
       
       MemoryRelObject* rel = getMemRel(oN);;
       if(!rel) { return 0; }
@@ -7939,12 +7963,36 @@ int minsertsaveValueMap (Word* args, Word& result,
 }
 
 ValueMapping minsertsaveVM[] = {
-   minsertsaveValueMap<CcString>,
-   minsertsaveValueMap<Mem>
+   minsertsaveValueMap<CcString,CcString>,
+   minsertsaveValueMap<CcString,Mem>,
+   minsertsaveValueMap<CcString,MPointer>,
+   minsertsaveValueMap<Mem,CcString>,
+   minsertsaveValueMap<Mem,Mem>,
+   minsertsaveValueMap<Mem,MPointer>,
+   minsertsaveValueMap<MPointer,CcString>,
+   minsertsaveValueMap<MPointer,Mem>,
+   minsertsaveValueMap<MPointer,MPointer>
 };
 
 int minsertsaveSelect(ListExpr args){
-   return CcString::checkType(nl->Second(args))?0:1;
+   ListExpr t = nl->Second(args);
+   ListExpr a = nl->Third(args);
+   
+   int nt = -1;
+   if(CcString::checkType(t)) nt = 0;
+   if(Mem::checkType(t)) nt = 3;
+   if(MPointer::checkType(t)) nt = 6;
+   if(nt<0) return -1;
+       
+   int na = -1;
+   if(CcString::checkType(a)) na = 0;
+   if(Mem::checkType(a)) na = 1;
+   if(MPointer::checkType(a)) na = 2;
+   if(na<0) return -1;
+   
+   return nt + na;
+    
+   
 }
 
 /*
@@ -7952,7 +8000,7 @@ int minsertsaveSelect(ListExpr args){
 
 */
 OperatorSpec minsertsaveSpec(
-    "stream(tuple(x)) x {string, mem(rel(...))} x {string, mem(rel(...))} "
+    "stream(tuple(x)) x MREL1 x MREL2, MREL1,MREL2 in {string, mem, mpointer} "
     "-> stream(tuple(x@[TID:tid]))",
     "_ minsertsave [_,_]",
     "insert all tuple of an input stream into two main memory relations",
@@ -7966,7 +8014,7 @@ OperatorSpec minsertsaveSpec(
 Operator minsertsaveOp (
     "minsertsave",
     minsertsaveSpec.getStr(),
-    2,
+    9,
     minsertsaveVM,
     minsertsaveSelect,
     minsertTypeMap<3>
@@ -8001,7 +8049,7 @@ ListExpr minserttupleTypeMap(ListExpr args) {
   }
 
   string errMsg;
-  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg)){
+  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg,true)){
     return listutils::typeError("string or mem(rel) expected : " + errMsg);
   }
   first = nl->Second(first); // remove mem
@@ -8059,7 +8107,7 @@ ListExpr minserttupleTypeMap(ListExpr args) {
     if(!nl->HasLength(third,2)){
       return listutils::typeError("internal error");
     }
-    if(!getMemType(nl->First(third), nl->Second(third), third, errMsg)) {
+    if(!getMemType(nl->First(third), nl->Second(third), third, errMsg,true)) {
       return listutils::typeError("(problem in third arg: " + errMsg + ")");
     }
     third = nl->Second(third); // remove mem
@@ -8209,11 +8257,16 @@ int minserttupleValMap (Word* args, Word& result,
 
 ValueMapping minserttupleVM[] = {
   minserttupleValMap<CcString>,
-  minserttupleValMap<Mem>
+  minserttupleValMap<Mem>,
+  minserttupleValMap<MPointer>
 };
 
 int minserttupleSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+  ListExpr t = nl->First(args);
+  if(CcString::checkType(t)) return 0;
+  if(Mem::checkType(t)) return 1;
+  if(MPointer::checkType(t)) return 2;
+  return -1;
 }
 
 
@@ -8222,7 +8275,8 @@ int minserttupleSelect(ListExpr args){
 
 */
 OperatorSpec minserttupleSpec(
-    "{string, mem(rel(...))} x [t1 ... tn] -> stream(tuple(x@[TID:tid]))",
+    "MREL x [t1 ... tn] -> stream(tuple(x@[TID:tid])) , "
+    "MREL in {string, mem, mpointer}",
     "_ minserttuple [list]",
     "inserts a tuple into a main memory relation",
     "query 'Staedte' minserttuple['AA',34,5666,'899','ZZ'] count"
@@ -8235,7 +8289,7 @@ OperatorSpec minserttupleSpec(
 Operator minserttupleOp (
     "minserttuple",
     minserttupleSpec.getStr(),
-    2,
+    3,
     minserttupleVM,
     minserttupleSelect,
     minserttupleTypeMap<2>
@@ -8339,7 +8393,7 @@ class minserttuplesaveInfo{
 7.12.2  Value Mapping Function of operator ~minserttuplesave~
 
 */
-template<class T>
+template<class R, class A>
 int minserttuplesaveValueMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
@@ -8353,12 +8407,12 @@ int minserttuplesaveValueMap (Word* args, Word& result,
         local.addr=0;
       }
       
-      T* oN = (T*) args[0].addr;
+      R* oN = (R*) args[0].addr;
 
       ListExpr tupleType = GetTupleResultType(s);
       TupleType* tt = new TupleType(nl->Second(tupleType));
       
-      T* aux = (T*) args[2].addr;
+      A* aux = (A*) args[2].addr;
       
       MemoryRelObject* rel = getMemRel(oN);
       if(!rel) { return 0; }
@@ -8388,12 +8442,35 @@ int minserttuplesaveValueMap (Word* args, Word& result,
 
 
 ValueMapping minserttuplesaveVM[] = {
-  minserttuplesaveValueMap<CcString>,
-  minserttuplesaveValueMap<Mem>
+  minserttuplesaveValueMap<CcString,CcString>,
+  minserttuplesaveValueMap<CcString,Mem>,
+  minserttuplesaveValueMap<CcString,MPointer>,
+  minserttuplesaveValueMap<Mem,CcString>,
+  minserttuplesaveValueMap<Mem,Mem>,
+  minserttuplesaveValueMap<Mem,MPointer>,
+  minserttuplesaveValueMap<MPointer,CcString>,
+  minserttuplesaveValueMap<MPointer,Mem>,
+  minserttuplesaveValueMap<MPointer,MPointer>,
 };
 
 int minserttuplesaveSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+   ListExpr t = nl->First(args);
+   ListExpr a = nl->Third(args);
+   
+   int nt = -1;
+   if(CcString::checkType(t)) nt = 0;
+   if(Mem::checkType(t)) nt = 3;
+   if(MPointer::checkType(t)) nt = 6;
+   if(nt<0) return -1;
+       
+   int na = -1;
+   if(CcString::checkType(a)) na = 0;
+   if(Mem::checkType(a)) na = 1;
+   if(MPointer::checkType(a)) na = 2;
+   if(na<0) return -1;
+   
+   return nt + na;
+    
 }
 
 
@@ -8402,8 +8479,9 @@ int minserttuplesaveSelect(ListExpr args){
 
 */
 OperatorSpec minserttuplesaveSpec(
-    "{string, mem(rel(tuple(x)))} x [t1 ... tn] x "
-    "{string, mem(rel(tuple(x@[TID:tid])))} -> stream(tuple(x@[TID:tid]))",
+    "MREL1 x [t1 ... tn] x "
+    "MREL2 -> stream(tuple(x@[TID:tid])), MREL1, MREL2 "
+    "in {string, mem, mpointer}",
     "_ minserttuplesave [list; _]",
     "inserts a tuple into a main memory relation and an auxiliary main "
     "memory relation",
@@ -8418,7 +8496,7 @@ OperatorSpec minserttuplesaveSpec(
 Operator minserttuplesaveOp (
     "minserttuplesave",
     minserttupleSpec.getStr(),
-    2,
+    9,
     minserttuplesaveVM,
     minserttuplesaveSelect,
     minserttupleTypeMap<3>
@@ -8648,6 +8726,7 @@ int mdeleteValMap (Word* args, Word& result,
 }
 
 ValueMapping mdeleteVM[] = {
+   // the second template argument is ignored in this case
    mdeleteValMap<CcString, CcString, false>,
    mdeleteValMap<Mem, CcString, false>,
    mdeleteValMap<MPointer, CcString, false>
@@ -8666,7 +8745,8 @@ int mdeleteSelect(ListExpr args){
 
 */
 OperatorSpec mdeleteSpec(
-    "stream(tid) x {string, mem(rel(...))} -> stream(tuple(x@[TID:tid]))",
+    "stream(tid) x MREL -> stream(tuple(x@[TID:tid])), "
+    "MREL in{string, mem, mpointer}",
     "_ mdelete [_]",
     "deletes the tuple of a stream from an "
     "existing main memory relation",
@@ -8739,7 +8819,7 @@ int mdeletesaveSelect(ListExpr args){
 */
 
 OperatorSpec mdeletesaveSpec(
-    "stream(tid) x {string, mem(rel),mpointr} "
+    "stream(tid) x {string, mem(rel),mpointer} "
     "x {string, mem(rel),mpointer} -> stream(Tuple)",
     "_ mdeletesave[_,_]",
     "Deletes tuples with given ids from a relation and stores "
@@ -9121,7 +9201,8 @@ int mdeletedirectSelect(ListExpr args){
 }
 
 OperatorSpec mdeletedirectSpec(
-  "stream(tuple(X)) x mrel(tuple(X)) -> stream(tuple(X@(TID tid)))",
+  "stream(tuple(X)) x MREL(tuple(X)) -> stream(tuple(X@(TID tid))),"
+  " MREL in {string, mem, mpointer} ",
   "_ _ mdeletedirect",
   "This function extracts the tuple ids from the incoming stream "
   "and removes the tuples having this id from the main memory relation "
@@ -9271,8 +9352,8 @@ int mdeletedirectsaveSelect(ListExpr args){
 }
 
 OperatorSpec mdeletedirectsaveSpec(
-  "stream(tuple(X)) x mrel(tuple(X)) x mem(rel(tuple(X@TID))"
-  " -> stream(tuple(X@(TID tid)))",
+  "stream(tuple(X)) x MREL1(tuple(X)) x MREL2(rel(tuple(X@TID))"
+  " -> stream(tuple(X@(TID tid))), MREL1, MREL2 in {string, mem, mpointer}",
   "_ _ _ mdeletedirectsave",
   "This function extracts the tuple ids from the incoming stream "
   "and removes the tuples having this id from the main memory relation "
@@ -9315,7 +9396,7 @@ ListExpr mupdateTM(ListExpr args){
     return listutils::typeError(err+ " (first arg is not a tid stream)");
   }
   ListExpr mem = nl->Second(args);
-  if(!getMemType(nl->First(mem), nl->Second(mem), mem, err)) {
+  if(!getMemType(nl->First(mem), nl->Second(mem), mem, err,true)) {
       return listutils::typeError("(problem in second arg : " 
                                   + err + ")");
   }
@@ -9541,15 +9622,17 @@ int mupdateVMT(Word* args, Word& result,
 
 ValueMapping mupdateVMN[] = {
    mupdateVMT<CcString>,
-   mupdateVMT<Mem>
+   mupdateVMT<Mem>,
+   mupdateVMT<MPointer>
 };
 
 int mupdateSelectN(ListExpr args){
-  return CcString::checkType(nl->Second(args))?0:1;
+  return getRepNum(nl->Second(args));
 }
 
 OperatorSpec mupdateSpecN(
-  "stream(tid) x {string, mem(rel)} x funlist -> stream(tuple)",
+  "stream(tid) x MREL x funlist -> stream(tuple), "
+  "MREL in {string, mem, mpointer}",
   "<stream> mupdate[ <memrel> ; funs]",
   "Applies functions to the tuples in <memrel> specified by "
   "their id's in the incomming stream and updates the tuples "
@@ -9561,7 +9644,7 @@ OperatorSpec mupdateSpecN(
 Operator mupdateNOp(
   "mupdate",
   mupdateSpecN.getStr(),
-  2,
+  3,
   mupdateVMN,
   mupdateSelectN,
   mupdateTM
@@ -9648,7 +9731,7 @@ ListExpr mupdateTypeMap(ListExpr args) {
   // process second argument (mem(rel))
   string errMsg;
   ListExpr second = nl->Second(args);
-  if(!getMemType(nl->First(second), nl->Second(second), second, errMsg)) {
+  if(!getMemType(nl->First(second), nl->Second(second), second, errMsg,true)) {
       return listutils::typeError("(problem in second arg : " 
                                   + errMsg + ")");
   }
@@ -9750,7 +9833,8 @@ ListExpr mupdateTypeMap(ListExpr args) {
 
   if(save){ // check third argument
      ListExpr auxRel = nl->Third(args);
-     if(!getMemType(nl->First(auxRel), nl->Second(auxRel), auxRel, errMsg)) {
+     if(!getMemType(nl->First(auxRel), nl->Second(auxRel), 
+                    auxRel, errMsg,true)) {
         return listutils::typeError("(problem in third arg : " 
                                   + errMsg + ")");
      }
@@ -9926,11 +10010,16 @@ int mupdateValMap (Word* args, Word& result,
 
 ValueMapping mupdateVM[] = {
    mupdateValMap<CcString, CcString, false>,
-   mupdateValMap<Mem, CcString, false>
+   mupdateValMap<Mem, CcString, false>,
+   mupdateValMap<MPointer, CcString, false>
 };
 
 int mupdateSelect(ListExpr args){
-   return CcString::checkType(nl->Second(args))?0:1;
+   ListExpr t = nl->Second(args);
+   if(CcString::checkType(t)) return 0;
+   if(Mem::checkType(t)) return 1;
+   if(MPointer::checkType(t)) return 2;
+   return -1;
 }
 
 
@@ -9940,9 +10029,10 @@ int mupdateSelect(ListExpr args){
 
 */
 OperatorSpec mupdateSpec(
-    "stream(tuple(x)) x string x [(a1, (tuple(x) -> d1)) "
+    "stream(tuple(x)) x MREL x [(a1, (tuple(x) -> d1)) "
     "... (an, (tuple(x) -> dn))] -> "
-    "stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))",
+    "stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid]))),"
+    " MREL in{string, mem, mpointer}",
     "_ mupdate[_; funlist] implicit parameter tuple type TUPLE",
     "updates the tuple of a stream in an "
     "existing main memory relation",
@@ -9957,7 +10047,7 @@ OperatorSpec mupdateSpec(
 Operator mupdateOp (
     "mupdate",
     mupdateSpec.getStr(),
-    2,
+    3,
     mupdateVM,
     mupdateSelect,
     mupdateTypeMap<false>
@@ -9967,13 +10057,24 @@ Operator mupdateOp (
 ValueMapping mupdatesaveVM[] = {
    mupdateValMap<CcString, CcString, true>,
    mupdateValMap<CcString, Mem, true>,
+   mupdateValMap<CcString, MPointer, true>,
    mupdateValMap<Mem, CcString, true>,
-   mupdateValMap<Mem, Mem, true>
+   mupdateValMap<Mem, Mem, true>,
+   mupdateValMap<Mem, MPointer, true>,
+   mupdateValMap<MPointer, CcString, true>,
+   mupdateValMap<MPointer, Mem, true>,
+   mupdateValMap<MPointer, MPointer, true>
 };
 
+
+
+
+
+
 int mupdatesaveSelect(ListExpr args){
-   int n1 = CcString::checkType(nl->Second(args))?0:2;
-   int n2 = CcString::checkType(nl->Third(args))?0:1;
+   int n1 = getRepNum(nl->Second(args))*3;
+   int n2 = getRepNum(nl->Third(args));
+   if(n1<0 || n2<0) return -1;
    return n1+n2;
 }
 
@@ -9984,10 +10085,11 @@ int mupdatesaveSelect(ListExpr args){
 
 */
 OperatorSpec mupdatesaveSpec(
-    "stream(tuple(x)) x {string, mem(rel(tuple(x)))} "
+    "stream(tuple(x)) x MREL1 "
     "x [(a1, (tuple(x) -> d1)) ... (an,(tuple(x) -> dn))] "
-    "x {string, mem(rel((tuple(x@[TID:tid]))))} -> "
-    "stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))",
+    "x MREL2 -> "
+    "stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid]))),"
+    "MREL1, MREL2 in {string,mem,mpointer}",
     "_ mupdatesave[_,_; funlist] implicit parameter tuple type TUPLE",
     "updates the tuple of a stream in an "
     "existing main memory relation and saves the tuples of the output "
@@ -10003,7 +10105,7 @@ OperatorSpec mupdatesaveSpec(
 Operator mupdatesaveOp (
     "mupdatesave",
     mupdatesaveSpec.getStr(),
-    4,
+    9,
     mupdatesaveVM,
     mupdatesaveSelect,
     mupdateTypeMap<true>
@@ -10035,7 +10137,7 @@ ListExpr mupdatebyidTypeMap(ListExpr args) {
       return listutils::typeError("internal error");
   }
   string errMsg;
-  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg)){
+  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg,true)){
     return listutils::typeError("string or mem(rel) expected : " + errMsg);
   }
   first = nl->Second(first); // remove mem
@@ -10229,6 +10331,8 @@ int mupdatebyidValueMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
   
   mupdatebyidInfo* li = (mupdatebyidInfo*) local.addr;
+
+  cout << "called " << __PRETTY_FUNCTION__ << endl;
   
   switch (message) {
     
@@ -10269,11 +10373,12 @@ int mupdatebyidValueMap (Word* args, Word& result,
 
 ValueMapping mupdatebyidVM[] = {
    mupdatebyidValueMap<CcString>,
-   mupdatebyidValueMap<Mem>
+   mupdatebyidValueMap<Mem>,
+   mupdatebyidValueMap<MPointer>
 };
 
 int mupdatebyidSelect(ListExpr args){
-   return CcString::checkType(nl->Second(args))?0:1;
+   return getRepNum(nl->First(args));
 }
 
 /*
@@ -10281,9 +10386,10 @@ int mupdatebyidSelect(ListExpr args){
 
 */
 OperatorSpec mupdatebyidSpec(
-    "{string, mem(rel(tuple))} x (tid) x "
+    "MREL x (tid) x "
     "[(a1, (tuple(x) -> d1)) ... (an,(tuple(x) -> dn))] "
-    "-> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))",
+    "-> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid]))),"
+    " MREL in{string, mem, mpointer}",
     "_ mupdatebyid[_; funlist] implicit parameter tuple type MTUPLE",
     "updates the tuple with the given tupleidentifier from "
     "a main memory relation",
@@ -10299,7 +10405,7 @@ OperatorSpec mupdatebyidSpec(
 Operator mupdatebyidOp (
     "mupdatebyid",
     mupdatebyidSpec.getStr(),
-    2,
+    3,
     mupdatebyidVM,
     mupdatebyidSelect,
     mupdatebyidTypeMap
@@ -10441,17 +10547,28 @@ int moinsertValueMap (Word* args, Word& result,
 ValueMapping moinsertVM[] = {
    moinsertValueMap<CcString,MOInsert>,
    moinsertValueMap<Mem,MOInsert>,
+   moinsertValueMap<MPointer,MOInsert>,
    moinsertValueMap<CcString,MODelete>,
-   moinsertValueMap<Mem,MODelete>
+   moinsertValueMap<Mem,MODelete>,
+   moinsertValueMap<MPointer,MODelete>
 };
 
 
 template<ChangeType ct>
 int moinsertSelect(ListExpr args){
+  ListExpr t = nl->Second(args);
+  int n = -1;
+  if(CcString::checkType(t)) n = 0;
+  if(Mem::checkType(t)) n = 1;
+  if(MPointer::checkType(t)) n = 2;
+
+  if(n<0) return -1;
+
   if(ct == MOInsert) 
-    return CcString::checkType(nl->Second(args))?0:1;
+    return n;
   if(ct == MODelete)
-    return CcString::checkType(nl->Second(args))?2:3;
+    return n+3;
+  return -1;
 }
 
 
@@ -10461,8 +10578,8 @@ int moinsertSelect(ListExpr args){
 
 */
 OperatorSpec moinsertSpec(
-    "stream(tuple(x)) x {string, mem(orel(tuple(x)))} -> "
-    "stream(tuple(x@[TID:tid]))",
+    "stream(tuple(x)) x iMREL -> "
+    "stream(tuple(x@[TID:tid])), MREL in {string, mem, mpointer}",
     "_ moinsert [_]",
     "inserts the tuple of a stream into an "
     "existing main memory ordered relation",
@@ -10476,7 +10593,7 @@ OperatorSpec moinsertSpec(
 Operator moinsertOp (
     "moinsert",
     moinsertSpec.getStr(),
-    4,
+    6,
     moinsertVM,
     moinsertSelect<MOInsert>,
     minsertTypeMap<2>
@@ -10494,8 +10611,8 @@ attribute of type 'tid' are appended to the output stream.
 
 */
 OperatorSpec modeleteSpec(
-    "stream(tuple(x)) x {string, mem(orel(tuple(x)))} "
-    "-> stream(tuple(x@[TID:tid]))",
+    "stream(tuple(x)) x MREL "
+    "-> stream(tuple(x@[TID:tid])), MREL in {string, mem, mpointer}",
     "_ modelete [_]",
     "all tuples of an input stream will be deleted from an "
     "main memory ordered relation",
@@ -10509,7 +10626,7 @@ OperatorSpec modeleteSpec(
 Operator modeleteOp (
     "modelete",
     modeleteSpec.getStr(),
-    4,
+    6,
     moinsertVM,
     moinsertSelect<MODelete>,
     minsertTypeMap<2>
@@ -10832,7 +10949,7 @@ ListExpr morangeTypeMap(ListExpr args) {
     }
   
     string errMsg;
-    if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
+    if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg,true)){
       return listutils::typeError(err + "\n problem in first arg:" + errMsg);
     }
     // remove mem from mem(orel) 
@@ -11046,22 +11163,28 @@ int morangeVMT (Word* args, Word& result,
 ValueMapping morangeVM[] = {
     morangeVMT<CcString,Range>,
     morangeVMT<Mem,Range>,
+    morangeVMT<MPointer,Range>,
+
     morangeVMT<CcString,LeftRange>,
     morangeVMT<Mem,LeftRange>,
+    morangeVMT<MPointer,LeftRange>,
+
     morangeVMT<CcString,RightRange>,
-    morangeVMT<Mem,RightRange>
+    morangeVMT<Mem,RightRange>,
+    morangeVMT<MPointer,RightRange>
 };
 
 template<RangeKind rk>
 int morangeSelect(ListExpr args){
-  if(rk==Range) {
-    return CcString::checkType(nl->First(args))?0:1;
+  int n = getRepNum(nl->First(args));
+  if(n<0) return -1;
+  switch(rk){
+    case Range : return n;
+    case LeftRange : return n + 3;
+    case RightRange : return n + 6;
   }
-  else if(rk==LeftRange) {
-    return CcString::checkType(nl->First(args))?2:3;
-  }
-  else if(rk==RightRange)
-    return CcString::checkType(nl->First(args))?4:5;
+
+
 }
 
 /*
@@ -11069,7 +11192,7 @@ int morangeSelect(ListExpr args){
 
 */
 OperatorSpec morangeSpec(
-    "{string, mem(orel(tuple(x)))}  x T x T -> stream(tuple(x))",
+    "MOREL  x T x T -> stream(tuple(x)), MOREL in{string, mem, mpointer}",
     "_ morange [_,_]",
     "returns all tuples in a main memory ordered relation whose attributes "
     "are lying between the two given values",
@@ -11082,7 +11205,7 @@ OperatorSpec morangeSpec(
 
 */
 OperatorSpec moleftrangeSpec(
-    "{string, mem(orel(tuple(x)))}  x T -> stream(tuple(x))",
+    "MOREL x T -> stream(tuple(x)), MOREL in {string, mem, mpointer}",
     "_ moleftrange [_]",
     "returns all tuples in a main memory ordered relation whose attributes "
     "are smaller than the given value",
@@ -11094,7 +11217,7 @@ OperatorSpec moleftrangeSpec(
 
 */
 OperatorSpec morightrangeSpec(
-    "{string, mem(orel(tuple(x)))}  x T -> stream(tuple(x))",
+    "MOREL  x T -> stream(tuple(x)), MOREL in {string, mem, mpointer}",
     "_ morightrange [_]",
     "returns all tuples in a main memory ordered relation whose attributes "
     "are larger than the given value",
@@ -11110,7 +11233,7 @@ OperatorSpec morightrangeSpec(
 Operator morangeOp (
     "morange",
     morangeSpec.getStr(),
-    6,
+    9,
     morangeVM,
     morangeSelect<Range>,
     morangeTypeMap<Range>
@@ -11123,7 +11246,7 @@ Operator morangeOp (
 Operator moleftrangeOp (
     "moleftrange",
     moleftrangeSpec.getStr(),
-    6,
+    9,
     morangeVM,
     morangeSelect<LeftRange>,
     morangeTypeMap<LeftRange>
@@ -11136,7 +11259,7 @@ Operator moleftrangeOp (
 Operator morightrangeOp (
     "morightrange",
     morightrangeSpec.getStr(),
-    6,
+    9,
     morangeVM,
     morangeSelect<RightRange>,
     morangeTypeMap<RightRange>
@@ -11268,7 +11391,7 @@ ListExpr moshortestpathTypeMap(ListExpr args) {
   // process first arg
   ListExpr a1 = nl->First(args);
   string errMsg;
-  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg)){
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1, errMsg, true)){
     return listutils::typeError("string or mem(orel) expected : " + errMsg);
   }
   
@@ -11716,12 +11839,13 @@ int moshortestpathdValueMap(Word* args, Word& result, int message,
 
 ValueMapping moshortestpathdVM[] = {
     moshortestpathdValueMap<CcString>,
-    moshortestpathdValueMap<Mem>
+    moshortestpathdValueMap<Mem>,
+    moshortestpathdValueMap<MPointer>
 };
 
 
 int moshortestpathSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+  return getRepNum(nl->First(args));
 }
 
 
@@ -11730,8 +11854,9 @@ int moshortestpathSelect(ListExpr args){
 
 */
 OperatorSpec moshortestpathdSpec(
-    "{string, mem(orel(tuple(x)))} x int x int x int x "
-    "(tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))",
+    "MOREL x int x int x int x "
+    "(tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1)), "
+    "MOREL in {string, mem, mpointer}",
     "morel moshortestpathd [startNode,endNode,resultSelect; fun] ",
     "Caculates the shortest path from startNode to endNode in a graph "
     "representent in a ordered memory relation using dijkstras algorithm."
@@ -11751,7 +11876,7 @@ OperatorSpec moshortestpathdSpec(
 Operator moshortestpathdOp (
     "moshortestpathd",
     moshortestpathdSpec.getStr(),
-    2,
+    3,
     moshortestpathdVM,
     moshortestpathSelect,
     moshortestpathTypeMap<DIJKSTRA>
@@ -12098,7 +12223,9 @@ int moshortestpathaValueMap(Word* args, Word& result, int message,
 
 ValueMapping moshortestpathaVM[] = {
     moshortestpathaValueMap<CcString>,
-    moshortestpathaValueMap<Mem>
+    moshortestpathaValueMap<Mem>,
+    moshortestpathaValueMap<MPointer>,
+    
 };
 
 /*
@@ -12107,8 +12234,9 @@ ValueMapping moshortestpathaVM[] = {
 
 */
 OperatorSpec moshortestpathaSpec(
-    "{string, mem(orel(tuple(x)))} x int x int x int x "
-    "(tuple->real) x (tuple->real)-> stream(tuple(a1:t1,...an+1:tn+1))",
+    "MOREL x int x int x int x "
+    "(tuple->real) x (tuple->real)-> stream(tuple(a1:t1,...an+1:tn+1)), "
+    "MOREL in {string, mem, mpointer}",
     "_ moshortestpatha [_,_,_; fun,fun] implicit parameter tuple type MTUPLE",
     "calculates the shortest path for a given start and goal node in a main "
     "memory ordered relation using the astar algorithm",
@@ -12125,7 +12253,7 @@ OperatorSpec moshortestpathaSpec(
 Operator moshortestpathaOp (
     "moshortestpatha",
     moshortestpathaSpec.getStr(),
-    2,
+    3,
     moshortestpathaVM,
     moshortestpathSelect,
     moshortestpathTypeMap<ASTAR>
@@ -12166,7 +12294,7 @@ ListExpr moconnectedcomponentsTypeMap(ListExpr args) {
 
     string errMsg;
 
-    if(!getMemType(nl->First(arg), nl->Second(arg), arg, errMsg)){
+    if(!getMemType(nl->First(arg), nl->Second(arg), arg, errMsg,true)){
       return listutils::typeError("string or mem(rel) expected : " + errMsg);
     }
 
@@ -12481,11 +12609,13 @@ int moconnectedcomponentsValMap (Word* args, Word& result,
 
 ValueMapping moconnectedcomponentsVM[] = {
   moconnectedcomponentsValMap<CcString>,
-  moconnectedcomponentsValMap<Mem>
+  moconnectedcomponentsValMap<Mem>,
+  moconnectedcomponentsValMap<MPointer>
+
 };
 
 int moconnectedcomponentsSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+  return getRepNum(nl->First(args));
 }
 
 
@@ -12495,7 +12625,7 @@ int moconnectedcomponentsSelect(ListExpr args){
 
 */
 OperatorSpec moconnectedcomponentsSpec(
-    "{string, mem(orel(tuple(x))}  -> stream(Tuple)",
+    "MOREL  -> stream(Tuple)",
     "_ moconnectedcomponents",
     "",
     "query \"otestrel\" moconnectedcomponents"
@@ -12509,7 +12639,7 @@ OperatorSpec moconnectedcomponentsSpec(
 Operator moconnectedcomponentsOp (
     "moconnectedcomponents",
     moconnectedcomponentsSpec.getStr(),
-    2,
+    3,
     moconnectedcomponentsVM,
     moconnectedcomponentsSelect,
     moconnectedcomponentsTypeMap
@@ -12556,7 +12686,7 @@ ListExpr mquicksortTypeMap(ListExpr args) {
       return listutils::typeError("internal error");
   }
   string errMsg;
-  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg)){
+  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg,true)){
     return listutils::typeError("string or mem(rel) expected : " + errMsg);
   }
   first = nl->Second(first); // remove mem
@@ -12729,16 +12859,17 @@ int mquicksortValMap (Word* args, Word& result,
 ValueMapping mquicksortVM[] = {
   mquicksortValMap<CcString,Sort>,
   mquicksortValMap<Mem,Sort>,
+  mquicksortValMap<MPointer,Sort>,
   mquicksortValMap<CcString,SortBy>,
   mquicksortValMap<Mem,SortBy>,
+  mquicksortValMap<MPointer,SortBy>,
 };
 
 template<SORTTYPE st>
 int mquicksortSelect(ListExpr args){
-  if(st == Sort)
-    return CcString::checkType(nl->First(args))?0:1;
-  else 
-    return CcString::checkType(nl->First(args))?2:3;
+  int num = getRepNum(nl->First(args));
+  if(num<0) return -1;
+  return st==Sort?num:num+3;
 }
 
 
@@ -12747,7 +12878,7 @@ int mquicksortSelect(ListExpr args){
 
 */
 OperatorSpec mquicksortSpec(
-    "{string, mem(rel(tuple(x))} -> stream(Tuple)",
+    "MREL -> stream(Tuple), MREL in {string,mem, mpointer}",
     "_ mquicksort",
     "sorts all elements of a main memory relation over all attributes",
     "query 'Staedte' mquicksort count"
@@ -12760,7 +12891,7 @@ OperatorSpec mquicksortSpec(
 Operator mquicksortOp (
     "mquicksort",
     mquicksortSpec.getStr(),
-    4,
+    6,
     mquicksortVM,
     mquicksortSelect<Sort>,
     mquicksortTypeMap<Sort>
@@ -12772,7 +12903,7 @@ Operator mquicksortOp (
 
 */
 OperatorSpec mquicksortbySpec(
-    "{string, mem(rel(tuple(x))} x ID -> stream(Tuple)",
+    "MREL x  ID -> stream(Tuple), MREL on {string, mem, mpointer}",
     "_ mquicksortby[]",
     "sorts the main memory over the given attributes",
     "query 'Staedte' mquicksortby[Bev,SName] count"
@@ -12786,7 +12917,7 @@ OperatorSpec mquicksortbySpec(
 Operator mquicksortbyOp (
     "mquicksortby",
     mquicksortbySpec.getStr(),
-    4,
+    6,
     mquicksortVM,
     mquicksortSelect<SortBy>,
     mquicksortTypeMap<SortBy>
@@ -13024,7 +13155,7 @@ ListExpr mgshortestpathdTypeMap(ListExpr args) {
   
   string errMsg;
 
-  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg))
+  if(!getMemType(nl->First(first), nl->Second(first), first, errMsg,true))
     return listutils::typeError("\n problem in first arg: " + errMsg);
   
   ListExpr graph = nl->Second(first); // remove leading mem
@@ -13315,11 +13446,13 @@ int mgshortestpathdValMap (Word* args, Word& result,
 
 ValueMapping mgshortestpathdVM[] = {
   mgshortestpathdValMap<CcString>,
-  mgshortestpathdValMap<Mem>
+  mgshortestpathdValMap<Mem>,
+  mgshortestpathdValMap<MPointer>,
+
 };
 
 int mgshortestpathdSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+  return getRepNum(nl->First(args));
 }
 
 
@@ -13329,7 +13462,7 @@ int mgshortestpathdSelect(ListExpr args){
 
 */
 OperatorSpec mgshortestpathdSpec(
-    "{string, mem(graph(tuple(x)))} x int x int x int -> "
+    "MGRAPH x int x int x int -> "
     "stream(tuple(a1:t1,...an+1:tn+1))",
     "_ mgshortestpathd [_,_,_; fun] implicit parameter tuple type MTUPLE",
     "finds the shortest path between to given nodes in a main memory "
@@ -13347,7 +13480,7 @@ OperatorSpec mgshortestpathdSpec(
 Operator mgshortestpathdOp (
     "mgshortestpathd",
     mgshortestpathdSpec.getStr(),
-    2,
+    3,
     mgshortestpathdVM,
     mgshortestpathdSelect,
     mgshortestpathdTypeMap<false>
@@ -13536,11 +13669,13 @@ int mgshortestpathaValMap (Word* args, Word& result,
 
 ValueMapping mgshortestpathaVM[] = {
   mgshortestpathaValMap<CcString>,
-  mgshortestpathaValMap<Mem>
+  mgshortestpathaValMap<Mem>,
+  mgshortestpathaValMap<MPointer>,
+  
 };
 
 int mgshortestpathaSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+  return getRepNum(nl->First(args));
 }
 
 
@@ -13550,7 +13685,7 @@ int mgshortestpathaSelect(ListExpr args){
 
 */
 OperatorSpec mgshortestpathaSpec(
-    "{string, mem(graph(tuple(x)))} x int x int x int x (tuple->real) x "
+    "MGRAPH x int x int x int x (tuple->real) x "
     "(tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))",
     "_ mgshortestpatha [_,_,_; fun, fun] implicit parameter tuple type MTUPLE",
     "finds the shortest path between to given nodes in a main memory "
@@ -13569,7 +13704,7 @@ OperatorSpec mgshortestpathaSpec(
 Operator mgshortestpathaOp (
     "mgshortestpatha",
     mgshortestpathaSpec.getStr(),
-    2,
+    3,
     mgshortestpathaVM,
     mgshortestpathaSelect,
     mgshortestpathdTypeMap<true>
@@ -13800,7 +13935,7 @@ ListExpr mgconnectedcomponentsTypeMap(ListExpr args) {
     
     string errMsg;
 
-    if(!getMemType(nl->First(first), nl->Second(first), first, errMsg))
+    if(!getMemType(nl->First(first), nl->Second(first), first, errMsg,true))
       return listutils::typeError("\n problem in first arg: " + errMsg);
     
     ListExpr graph = nl->Second(first); // remove leading mem
@@ -13953,11 +14088,12 @@ int mgconnectedcomponentsValMap (Word* args, Word& result,
 
 ValueMapping mgconnectedcomponentsVM[] = {
   mgconnectedcomponentsValMap<CcString>,
-  mgconnectedcomponentsValMap<Mem>
+  mgconnectedcomponentsValMap<Mem>,
+  mgconnectedcomponentsValMap<MPointer>,
 };
 
 int mgconnectedcomponentsSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+  return getRepNum(nl->First(args));
 }
 
 
@@ -13967,7 +14103,7 @@ int mgconnectedcomponentsSelect(ListExpr args){
 
 */
 OperatorSpec mgconnectedcomponentsSpec(
-    "(mem(graph)) -> stream(Tuple)",
+    "MGRAPH -> stream(Tuple)",
     "_ mgconnectedcomponents",
     "computes the scc's for a given main memory graph",
     "query 'graph' mgconnectedcomponents"
@@ -13981,7 +14117,7 @@ OperatorSpec mgconnectedcomponentsSpec(
 Operator mgconnectedcomponentsOp (
     "mgconnectedcomponents",
     mgconnectedcomponentsSpec.getStr(),
-    2,
+    3,
     mgconnectedcomponentsVM,
     mgconnectedcomponentsSelect,
     mgconnectedcomponentsTypeMap
@@ -16436,7 +16572,8 @@ int matchbelow2Select(ListExpr args){
 }
 
 OperatorSpec matchbelow2Spec(
-   "{avltree, ttree} x mrel x T x Ident x V -> V ",
+   "{AVLTREE, TTREE} x MREL x T x Ident x V -> V , "
+   "AVLTREE, TTREE, MREL in {string, mem, mpointer}",
    "tree rel matchbelow2[searchV, attrName, defaultV]",
    "Retrieves from an avl tree the entry which is "
    "less or equal to searchV. From the returned tuple id, "
@@ -16860,7 +16997,7 @@ int mfeedpqSelect(ListExpr args){
 
 
 OperatorSpec mfeedpqSpec(
-  "mpqueue -> stream(tuple)",   
+  "MPQUEUE -> stream(tuple)",   
   " _ mfeedpq ",
   "Feeds the constent of a priority queue into a tuple stream. "
   "In contrast to a 'normal' feed, the queue is eat up.",
@@ -16982,7 +17119,7 @@ int minsertTuplepqSelect(ListExpr args){
 }
 
 OperatorSpec minsertTupleSpec(
-  "mpqueue x tuple x real [x INDENT] -> bool",
+  "MPQUEUE x tuple x real [x INDENT] -> bool",
   "minserttuplepq(_,_,_,_)",
   "Inserts a tuple into a memory priority queue with a "
   "given priority. If the optional attribute name is given, "

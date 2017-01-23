@@ -20,549 +20,891 @@ Signature : string -> stream(tuple) | mem(rel(tuple)) -> stream(tuple)
 Example   : query "ten" mfeed count
 Result    : 10
 
-Operator  : letmconsume
+
+Operator  : mfeed
 Number    : 4
+Signature : string -> stream(tuple) | mem(rel(tuple)) -> stream(tuple)
+Example   : query pwrap("ten") mfeed count
+Result    : 10
+
+
+
+Operator  : letmconsume
+Number    : 5
 Signature : stream(tuple(...)) x string -> mem(rel(tuple(...))) 
 Example   : query "ten" mfeed letmconsume ["mten"]
 Result    : ((mem(rel(tuple((No int))))) "mten")
 
 
 Operator  : memobject
-Number    : 5
+Number    : 6
 Signature : string -> MEMLOADABLE | mem(MEMLOADABLE) -> MEMLOADABLE
 Example   : query memobject ("ten") count
 Result    : 10
 
+Operator  : memobject
+Number    : 7
+Signature : string -> MEMLOADABLE | mem(MEMLOADABLE) -> MEMLOADABLE
+Example   : query memobject (pwrap("ten")) count
+Result    : 10
+
+
 Operator  : memlet
-Number    : 6
+Number    : 8
 Signature : string x MEMLOADABLE -> bool
 Example   : query memlet ("fuenf", ten feed head[5])
 Result    : TRUE
 
 Operator  : memdelete
-Number    : 7
+Number    : 9
 Signature : string -> bool
 Example   : query memdelete ("ten")
 Result    : TRUE
 
 Operator  : memupdate
-Number    : 8
+Number    : 10
 Signature : string x MEMLOADABLE -> bool | mem(MEMLOADABLE) x MEMLOADABLE -> bool
 Example   : query memupdate ("fuenf", ten feed head[7])
 Result    : TRUE
 
+Operator  : memupdate
+Number    : 11
+Signature : string x MEMLOADABLE -> bool | mem(MEMLOADABLE) x MEMLOADABLE -> bool
+Example   : query memupdate ("fuenf", ten feed head[7])
+Result    : TRUE
+
+
 Operator  : memload
-Number    : 9
+Number    : 12
 Signature : string -> bool
 Example   : query memload ("strassen")
 Result    : TRUE
 
 Operator  : memgetcatalog
-Number    : 10
+Number    : 13
 Signature : -> stream(tuple(...))
 Example   : query memgetcatalog () count
 Result    : 3
 
 Operator  : memlet
-Number    : 11
+Number    : 14
 Signature : string x m:MEMLOADABLE -> bool
 Example   : query memlet ("fuenf2", ten feed head[5])
 Result    : TRUE
 
 Operator  : mcreateRtree
-Number    : 12
+Number    : 15
 Signature : string x Ident -> mem(rtree dim) | mem(rel(...)) x Ident -> mem(rtree dim)
 Example   : query "strassen" mcreateRtree [GeoData]
 Result    : ( (mem(rtree 2 )) "strassen_GeoData")
 
+
 Operator  : memsize
-Number    : 13
+Number    : 16
 Signature : -> int
 Example   : query memsize ()
 Result    : 256
 
 Operator  : memload
-Number    : 14
+Number    : 17
 Signature : string -> bool
 Example   : query memload ("ten")
 Result    : TRUE
 
 Operator  : meminsert
-Number    : 15
+Number    : 18
 Signature : stream(tuple) x string -> stream(tuple) | stream(tuple) x mem(tuple) -> stream(tuple)
 Example   : query ten feed head[5] meminsert["ten"] count
 Result    : 5
 
 Operator  : mwindowintersects
-Number    : 16
+Number    : 19
 Signature : {string, mem(rtree dim) }  x {string, mem(rel(tuple(X)))}  x T -> stream(tuple(X)) , T in SPATIALdimD
 Example   : query "strassen_GeoData" "strassen" mwindowintersects[thecenter] count
 Result    : 1266
 
+
+Operator  : mwindowintersects
+Number    : 20
+Signature : {string, mem(rtree dim) }  x {string, mem(rel(tuple(X)))}  x T -> stream(tuple(X)) , T in SPATIALdimD
+Example   : query pwrap("strassen_GeoData") pwrap("strassen") mwindowintersects[thecenter] count
+Result    : 1266
+
 Operator  : mwindowintersectsS
-Number    : 17
+Number    : 21
 Signature : {string, mem(rtree)} x  T -> stream(tuple(TID tid)) 
 Example   : query "strassen_GeoData" mwindowintersectsS[thecenter] count
 Result    : 1266
 
+Operator  : mwindowintersectsS
+Number    : 22
+Signature : {string, mem(rtree)} x  T -> stream(tuple(TID tid)) 
+Example   : query pwrap("strassen_GeoData") mwindowintersectsS[thecenter] count
+Result    : 1266
+
 Operator  : mconsume
-Number    : 18
+Number    : 23
 Signature : stream(tuple) -> memoryRelObject
 Example   : query "ten" mfeed head[2] mconsume
 Result    : ((memoryRelObject(tuple((No int))))((1)(2)))
 
 Operator  : memclear
-Number    : 19
+Number    : 24
 Signature : -> bool
 Example   : query memclear ()
 Result    : TRUE
 
 Operator  : memload
-Number    : 20
+Number    : 25
 Signature : string -> bool
 Example   : query memload ("Staedte")
 Result    : TRUE
 
 Operator  : mcreateAVLtree
-Number    : 21
+Number    : 26
 Signature : {string, mem(rel(...)) }  x Ident -> mem(rel(...))
 Example   : query "Staedte" mcreateAVLtree [SName]
 Result    : ( (mem (avltree string)) "Staedte_SName")
 
 Operator  : mdeleteavltree
-Number    : 22
+Number    : 27
 Signature : stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident -> stream(tuple(x@[TID:tid]))
 Example   : query "Staedte" mfeed addid head[5] mdeleteavltree["Staedte_SName", SName] count
 Result    : 5
 
+Operator  : mdeleteavltree
+Number    : 28
+Signature : stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident -> stream(tuple(x@[TID:tid]))
+Example   : query "Staedte" mfeed addid head[5] mdeleteavltree[pwrap("Staedte_SName"), SName] count
+Result    : 5
+
 Operator  : minsertavltree
-Number    : 23
+Number    : 29
 Signature : stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident -> stream(tuple(x@[TID:tid]))
 Example   : query "Staedte" mfeed addid head[5] minsertavltree["Staedte_SName", SName] count;
 Result    : 5
 
+Operator  : minsertavltree
+Number    : 30
+Signature : stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident -> stream(tuple(x@[TID:tid]))
+Example   : query "Staedte" mfeed addid head[5] minsertavltree[pwrap("Staedte_SName"), SName] count;
+Result    : 5
+
 Operator  : mexactmatch
-Number    : 24
+Number    : 31
 Signature : {string, mem(avltree T)}  x {string, rel(tuple(X))}  x T -> stream(tuple(X))
 Example   : query "Staedte_SName" "Staedte" mexactmatch ["Aachen"] count;
 Result    : 1
 
+Operator  : mexactmatch
+Number    : 32
+Signature : {string, mem(avltree T)}  x {string, rel(tuple(X))}  x T -> stream(tuple(X))
+Example   : query pwrap("Staedte_SName") pwrap("Staedte") mexactmatch ["Aachen"] count;
+Result    : 1
+
+
 Operator  : mrange
-Number    : 25
+Number    : 33
 Signature : {string, mem(avltree T), mem(ttree T) } x {string, mem(rel(tuple(X)))}  x T x T-> stream(tuple(X))
 Example   : query "Staedte_SName" "Staedte" mrange ["Aachen", "Dortmund"] count;
 Result    : 10
 
+
+Operator  : mrange
+Number    : 34
+Signature : {string, mem(avltree T), mem(ttree T) } x {string, mem(rel(tuple(X)))}  x T x T-> stream(tuple(X))
+Example   : query pwrap("Staedte_SName") pwrap("Staedte") mrange ["Aachen", "Dortmund"] count;
+Result    : 10
+
+
 Operator  : memload
-Number    : 26
+Number    : 35
 Signature : string -> bool
 Example   : query memload ("ten")
 Result    : TRUE
 
 Operator  : mcreateAVLtree
-Number    : 27
+Number    : 36
 Signature : {string, mem(rel(...))}  x Ident -> mem(avltree X)
 Example   : query "ten" mcreateAVLtree[No]
 Result    : ((mem (avltree int )) "ten_No")
 
+
 Operator  : matchbelow
-Number    : 28
+Number    : 37
 Signature : {string, mem(avltree T)} x {string, mem(rel(tuple(X)))}  x T -> stream(tuple(X))
 Example   : query "ten_No" "ten" matchbelow [2] count;
 Result    : 1
 
+Operator  : matchbelow
+Number    : 38
+Signature : {string, mem(avltree T)} x {string, mem(rel(tuple(X)))}  x T -> stream(tuple(X))
+Example   : query pwrap("ten_No") pwrap("ten") matchbelow [2] count;
+Result    : 1
+
+
 Operator  : memloadflob
-Number    : 29
+Number    : 39
 Signature : string -> bool
 Example   : query memloadflob ("Trains")
 Result    : TRUE
 
 Operator  : letmconsumeflob
-Number    : 30
+Number    : 40
 Signature : stream(tuple(...)) x string -> mem(rel(tuple(...)))
 Example   : query Trains feed letmconsumeflob ["trainsFlob"]
 Result    : ((mem(rel(tuple((Id int)(Line int)(Up bool)(Trip mpoint))))) "trainsFlob")
 
 Operator  : memletflob
-Number    : 31
+Number    : 41
 Signature : string x MEMLOADABLE -> bool
 Example   : query memletflob ("trains5", Trains feed head[5])
 Result    : TRUE
 
 Operator  : memload
-Number    : 32
+Number    : 42
 Signature : string -> bool
 Example   : query memload ("strassen")
 Result    : TRUE
 
 Operator  : mcreateRtree2
-Number    : 33
+Number    : 43
 Signature : stream(Tuple) x Ident x string -> mem(rtree...)
 Example   : query "strassen" mfeed projectextend [Name,Typ, GeoData; TID: tupleid(.)] mcreateRtree2 [GeoData, "strassen_GeoData"]
 Result    : ((mem(rtree 2 )) "strassen_GeoData")
 
+
 Operator  : mcreateMtree2
-Number    : 34
+Number    : 44
 Signature : stream(Tuple) x T x T x string -> mem(mtree ...) 
 Example   : query Kinos feed addid mcreateMtree2 [GeoData, TID, "kinos_GeoData_mtree"]
 Result    : ((mem (mtree point))"kinos_GeoData_mtree")
 
 Operator  : mdistRange2 
-Number    : 35
+Number    : 45
 Signature : {string, mem(mtree T)} x T x real -> stream(tuple((TID tid)))
 Example   :  query "kinos_GeoData_mtree" mdistRange2[alexanderplatz, 2000.0] transformstream Kinos gettuples sort = Kinos feed filter[ distance(.GeoData, alexanderplatz) < 2000.0] sort 
 Result    : TRUE
 
+
+Operator  : mdistRange2 
+Number    : 46
+Signature : {string, mem(mtree T)} x T x real -> stream(tuple((TID tid)))
+Example   :  query pwrap("kinos_GeoData_mtree") mdistRange2[alexanderplatz, 2000.0] transformstream Kinos gettuples sort = Kinos feed filter[ distance(.GeoData, alexanderplatz) < 2000.0] sort 
+Result    : TRUE
+
+
 Operator  : mdistScan2
-Number    : 36
+Number    : 47
 Signature : {string, mem(mtree T)} x T -> stream(tuple((TID tid)))
 Example   : query "kinos_GeoData_mtree" mdistScan2[alexanderplatz] transformstream Kinos gettuples projectextend[; D : distance(.GeoData, alexanderplatz)] transformstream isOrdered
 Result    : TRUE
 
-
-Operator  : memload
-Number    : 37
-Signature : string -> bool
-Example   : query memload ("Kinos")
-Result    : TRUE
-
-Operator  : mcreateMtree
-Number    : 38
-Signature : {string, mem(rel(X))}  x Ident x string -> mem(mtree Y)
-Example   : query "Kinos" mcreateMtree[GeoData, "Kinos_GeoData_mtree2"]
-Result    : ((mem (mtree point)) "Kinos_GeoData_mtree2")
-
-Operator  : mdistRange
-Number    : 39
-Signature : {string, mem(mtree T)}  x {string, rel(X)}  x T x real -> stream(X)
-Example   : query "Kinos_GeoData_mtree2" "Kinos" mdistRange[alexanderplatz, 2000.0] count
-Result    : 17
-
-Operator  : mdistScan
-Number    : 40
-Signature : {string, mem(mtree T)}  x {string, mem(rel X)}  x T -> stream(X)
-Example   : query "Kinos_GeoData_mtree2" "Kinos" mdistScan[alexanderplatz] head[17] extend[D : distance(.GeoData, alexanderplatz)] max[D]  <= 2000.0
-Result    : TRUE
-
-
-Operator  : mcreateAVLtree2
-Number    : 41
-Signature : stream(tuple) x ident x ident x string -> mem(rel(tuple))
-Example   : query strassen feed addid mcreateAVLtree2[Name, TID, "strassen_Name7"]
-Result    : ( (mem (avltree string)) "strassen_Name7")
-
-Operator  : mexactmatchS
-Number    : 42
-Signature : {string, mem(avltree T) } x T -> stream(tuple((TID tid)))
-Example   : query "strassen_Name7" mexactmatchS["Hirzerweg"] count
-Result    : 5
-
-Operator  : mrangeS
-Number    : 43  
-Signature : {string, mem(avltree T} x T x T -> stream(tuple((TID tid)))
-Example   : query "strassen_Name7" mrangeS["A", "B"] count
-Result    : 247
-
-Operator  : matchbelowS
-Number    : 44  
-Signature : {string, mem(avltree T} x T -> stream(tuple((TID tid)))
-Example   : query "strassen_Name7" matchbelowS["B"] count
-Result    : 1
-
-Operator  : gettuples
-Number    : 45
-Signature : stream(tuple((A1 ( .. tid) A2))  x {string, mem(rel(tuple(X)))} -> stream(tuple(A1A2X))
-Example   : query "ten_No" mrangeS[4, 5] "ten" gettuples consume count 
-Result    : 2
-
-Operator  : gettuples
-Number    : 46
-Signature : stream(tid)  x {string, mem(rel(tuple(X)))} -> stream(tuple(X))
-Example   : query "ten_No" mrangeS[4, 5] transformstream  "ten" gettuples consume count 
-Result    : 2
-
-
-Operator  : memclear
-Number    : 47
-Signature : -> bool
-Example   : query memclear()
-Result    : TRUE
-
-Operator  : memload
+Operator  : mdistScan2
 Number    : 48
-Signature : string -> bool
-Example   : query memload("Staedte")
+Signature : {string, mem(mtree T)} x T -> stream(tuple((TID tid)))
+Example   : query pwrap("kinos_GeoData_mtree") mdistScan2[alexanderplatz] transformstream Kinos gettuples projectextend[; D : distance(.GeoData, alexanderplatz)] transformstream isOrdered
 Result    : TRUE
 
 
 Operator  : memload
 Number    : 49
 Signature : string -> bool
+Example   : query memload ("Kinos")
+Result    : TRUE
+
+Operator  : mcreateMtree
+Number    : 50
+Signature : {string, mem(rel(X))}  x Ident x string -> mem(mtree Y)
+Example   : query "Kinos" mcreateMtree[GeoData, "Kinos_GeoData_mtree2"]
+Result    : ((mem (mtree point)) "Kinos_GeoData_mtree2")
+
+
+Operator  : mdistRange
+Number    : 52
+Signature : {string, mem(mtree T)}  x {string, rel(X)}  x T x real -> stream(X)
+Example   : query "Kinos_GeoData_mtree2" "Kinos" mdistRange[alexanderplatz, 2000.0] count
+Result    : 17
+
+Operator  : mdistRange
+Number    : 53
+Signature : {string, mem(mtree T)}  x {string, rel(X)}  x T x real -> stream(X)
+Example   : query pwrap("Kinos_GeoData_mtree2") pwrap("Kinos") mdistRange[alexanderplatz, 2000.0] count
+Result    : 17
+
+
+
+Operator  : mdistScan
+Number    : 54
+Signature : {string, mem(mtree T)}  x {string, mem(rel X)}  x T -> stream(X)
+Example   : query "Kinos_GeoData_mtree2" "Kinos" mdistScan[alexanderplatz] head[17] extend[D : distance(.GeoData, alexanderplatz)] max[D]  <= 2000.0
+Result    : TRUE
+
+Operator  : mdistScan
+Number    : 55
+Signature : {string, mem(mtree T)}  x {string, mem(rel X)}  x T -> stream(X)
+Example   : query pwrap("Kinos_GeoData_mtree2") pwrap("Kinos") mdistScan[alexanderplatz] head[17] extend[D : distance(.GeoData, alexanderplatz)] max[D]  <= 2000.0
+Result    : TRUE
+
+
+Operator  : mcreateAVLtree2
+Number    : 56
+Signature : stream(tuple) x ident x ident x string -> mem(rel(tuple))
+Example   : query strassen feed addid mcreateAVLtree2[Name, TID, "strassen_Name7"]
+Result    : ( (mem (avltree string)) "strassen_Name7")
+
+Operator  : mexactmatchS
+Number    : 57
+Signature : {string, mem(avltree T) } x T -> stream(tuple((TID tid)))
+Example   : query "strassen_Name7" mexactmatchS["Hirzerweg"] count
+Result    : 5
+
+Operator  : mexactmatchS
+Number    : 58
+Signature : {string, mem(avltree T) } x T -> stream(tuple((TID tid)))
+Example   : query pwrap("strassen_Name7") mexactmatchS["Hirzerweg"] count
+Result    : 5
+
+Operator  : mrangeS
+Number    : 59  
+Signature : {string, mem(avltree T} x T x T -> stream(tuple((TID tid)))
+Example   : query "strassen_Name7" mrangeS["A", "B"] count
+Result    : 247
+
+Operator  : mrangeS
+Number    : 60  
+Signature : {string, mem(avltree T} x T x T -> stream(tuple((TID tid)))
+Example   : query pwrap("strassen_Name7") mrangeS["A", "B"] count
+Result    : 247
+
+Operator  : matchbelowS
+Number    : 61  
+Signature : {string, mem(avltree T} x T -> stream(tuple((TID tid)))
+Example   : query "strassen_Name7" matchbelowS["B"] count
+Result    : 1
+
+Operator  : matchbelowS
+Number    : 62  
+Signature : {string, mem(avltree T} x T -> stream(tuple((TID tid)))
+Example   : query pwrap("strassen_Name7") matchbelowS["B"] count
+Result    : 1
+
+Operator  : gettuples
+Number    : 63
+Signature : stream(tuple((A1 ( .. tid) A2))  x {string, mem(rel(tuple(X)))} -> stream(tuple(A1A2X))
+Example   : query "ten_No" mrangeS[4, 5] "ten" gettuples consume count 
+Result    : 2
+
+Operator  : gettuples
+Number    : 64
+Signature : stream(tuple((A1 ( .. tid) A2))  x {string, mem(rel(tuple(X)))} -> stream(tuple(A1A2X))
+Example   : query pwrap("ten_No") mrangeS[4, 5] pwrap("ten") gettuples consume count 
+Result    : 2
+
+
+Operator  : gettuples
+Number    : 65
+Signature : stream(tid)  x {string, mem(rel(tuple(X)))} -> stream(tuple(X))
+Example   : query "ten_No" mrangeS[4, 5] transformstream  "ten" gettuples consume count 
+Result    : 2
+
+Operator  : gettuples
+Number    : 66
+Signature : stream(tid)  x {string, mem(rel(tuple(X)))} -> stream(tuple(X))
+Example   : query pwrap("ten_No") mrangeS[4, 5] transformstream  pwrap("ten") gettuples consume count 
+Result    : 2
+
+
+Operator  : memclear
+Number    : 67
+Signature : -> bool
+Example   : query memclear()
+Result    : TRUE
+
+Operator  : memload
+Number    : 68
+Signature : string -> bool
+Example   : query memload("Staedte")
+Result    : TRUE
+
+
+Operator  : memload
+Number    : 69
+Signature : string -> bool
 Example   : query memload("ten")
 Result    : TRUE
 
 
 Operator  : mcreatettree
-Number    : 50
+Number    : 70
 Signature : {string, mem(rel(...))} x Ident -> mem(ttree string)
 Example   : query "Staedte" mcreatettree[SName]
 Result    : ((mem (ttree string)) "Staedte_SName")
 
 
 Operator  : mdeletettree
-Number    : 51
+Number    : 71
 Signature : stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident -> stream(tuple(x@[TID:tid]))
 Example   : query Staedte feed head[5] addid mdeletettree["Staedte_SName",SName] count;
 Result    : 5
 
+Operator  : mdeletettree
+Number    : 72
+Signature : stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident -> stream(tuple(x@[TID:tid]))
+Example   : query Staedte feed head[5] addid mdeletettree[pwrap("Staedte_SName"),SName] count;
+Result    : 5
+
+
 
 Operator  : minsertttree
-Number    : 52
+Number    : 73
 Signature : stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident -> stream(tuple(x@[TID:tid]))
 Example   : query Staedte feed head[5] addid minsertttree["Staedte_SName",SName] count;
 Result    : 5
 
+Operator  : minsertttree
+Number    : 74
+Signature : stream(tuple(x@[TID:tid])) x {string, mem(ttree)} x ident -> stream(tuple(x@[TID:tid]))
+Example   : query Staedte feed head[5] addid minsertttree[pwrap("Staedte_SName"),SName] count;
+Result    : 5
+
 
 Operator : mcreateinsertrel
-Number   : 53
+Number   : 75
 Signature: {string, mem(rel(...))} -> mem(rel(tuple(x@[TID:tid]))) 
 Example  : query memlet ("ten_wtid", mcreateinsertrel("ten"));
 Result   : TRUE
 
+Operator : mcreateinsertrel
+Number   : 76
+Signature: {string, mem(rel(...))} -> mem(rel(tuple(x@[TID:tid]))) 
+Example  : query memlet ("ten_wtid2", mcreateinsertrel(pwrap("ten")));
+Result   : TRUE
+
+
 Operator  : minsert
-Number    : 54
+Number    : 77
 Signature : stream(tuple(x)) x {string, mem(rel(...))} -> stream(tuple(x@[TID:tid]))
 Example   : query ten feed head[5] minsert["ten"] count;
 Result    : 5
 
+Operator  : minsert
+Number    : 78
+Signature : stream(tuple(x)) x {string, mem(rel(...))} -> stream(tuple(x@[TID:tid]))
+Example   : query ten feed head[5] minsert[pwrap("ten")] count;
+Result    : 5
+
+
 Operator  : minsertsave
-Number    : 55
+Number    : 79
 Signature : stream(tuple(x)) x {string, mem(rel((tuple(x))))} x {string, mem(rel((tuple(x@[TID:tid]))))} -> stream(tuple(x@[TID:tid]))
 Example   : query ten feed head[5] minsertsave["ten","ten_wtid"] count;
 Result    : 5
 
+Operator  : minsertsave
+Number    : 80
+Signature : stream(tuple(x)) x {string, mem(rel((tuple(x))))} x {string, mem(rel((tuple(x@[TID:tid]))))} -> stream(tuple(x@[TID:tid]))
+Example   : query ten feed head[5] minsertsave[pwrap("ten"),pwrap("ten_wtid")] count;
+Result    : 5
+
+
+
 Operator  : minserttuple
-Number    : 56
+Number    : 81
 Signature : {string, mem(rel((tuple(x))))} x [t1 ... tn] -> stream(tuple(x@[TID:tid]))
 Example   : query "Staedte" minserttuple["AA",34,5666,"899","ZZ"] count;
 Result    : 1
 
+Operator  : minserttuple
+Number    : 82
+Signature : {string, mem(rel((tuple(x))))} x [t1 ... tn] -> stream(tuple(x@[TID:tid]))
+Example   : query pwrap("Staedte") minserttuple["AA",34,5666,"899","ZZ"] count;
+Result    : 1
+
 
 Operator  : memlet
-Number    : 57
+Number    : 83
 Signature : stream(tuple) x string -> mem(rel(tuple))
 Example   : query memlet("Stadt",  mcreateinsertrel("Staedte")) 
 Result    : TRUE
 
 
 Operator  : minserttuplesave
-Number    : 58
+Number    : 84
 Signature : {string, mem(rel(tuple(x)))} x [t1 ... tn] x {string, mem(rel(tuple(x@[TID:tid])))} -> stream(tuple(x@[TID:tid]))
 Example   : query "Staedte" minserttuplesave["AusgedachtDorf",34,5666,"899","ZZ"; "Stadt"] count;
 Result    : 1
 
+Operator  : minserttuplesave
+Number    : 85
+Signature : {string, mem(rel(tuple(x)))} x [t1 ... tn] x {string, mem(rel(tuple(x@[TID:tid])))} -> stream(tuple(x@[TID:tid]))
+Example   : query pwrap("Staedte") minserttuplesave["AusgedachtDorf",34,5666,"899","ZZ"; pwrap("Stadt")] count;
+Result    : 1
+
+
 Operator  : mcreatedeleterel
-Number    : 59
+Number    : 86
 Signature : {string, mem(rel((tuple(x))))} -> mem(rel(tuple(x@[TID:tid]))) 
 Example   : query memlet ("Doerfer", mcreatedeleterel("Staedte"))
 Result    : TRUE
 
+Operator  : mcreatedeleterel
+Number    : 87
+Signature : {string, mem(rel((tuple(x))))} -> mem(rel(tuple(x@[TID:tid]))) 
+Example   : query memlet ("Doerfer2", mcreatedeleterel(pwrap("Staedte")))
+Result    : TRUE
+
 Operator  : mdelete
-Number    : 60
+Number    : 88
 Signature : stream(tuple(x)) x {string, mem(rel(tuple(x)))} -> stream(tuple(x@[TID:tid]))
 Example   : query "ten" mfeed filter [.No = 8] tids mdelete["ten"] count
 Result    : 1
 
+Operator  : mdelete
+Number    : 89
+Signature : stream(tuple(x)) x {string, mem(rel(tuple(x)))} -> stream(tuple(x@[TID:tid]))
+Example   : query pwrap("ten") mfeed filter [.No = 8] tids mdelete[pwrap("ten")] count
+Result    : 0
+Remark    : 8 already deleted
+
+
 
 Operator  : mdeletesave
-Number    : 61
+Number    : 90
 Signature : stream(tuple(x)) x {string, mem(rel(tuple(x)))} x {string, mem(rel(tuple(x)))} -> stream(tuple(x@[TID:tid]))
 Example   : query "Staedte" mfeed filter[.PLZ = 4000]  tids mdeletesave["Staedte","Doerfer"] count;
 Result    : 1
 
+Operator  : mdeletesave
+Number    : 91
+Signature : stream(tuple(x)) x {string, mem(rel(tuple(x)))} x {string, mem(rel(tuple(x)))} -> stream(tuple(x@[TID:tid]))
+Example   : query pwrap("Staedte") mfeed filter[.PLZ = 4000]  tids mdeletesave[pwrap("Staedte"),pwrap("Doerfer")] count;
+Result    : 0
+Remark    : plz 4000 already removed
+
 Operator  : mdeletebyid
-Number    : 62
+Number    : 92
 Signature : {string, mem(rel(tuple(x)))} x (tid)  -> stream(tuple(x@[TID:tid]))] 
 Example   : query "Staedte" mdeletebyid[[const tid value 5]] count;
 Result    : 1
 
+
+Operator  : mdeletebyid
+Number    : 93
+Signature : {string, mem(rel(tuple(x)))} x (tid)  -> stream(tuple(x@[TID:tid]))] 
+Example   : query pwrap("Staedte") mdeletebyid[[const tid value 5]] count;
+Result    : 0
+
+
 Operator  : mcreateupdaterel
-Number    : 63
+Number    : 94
 Signature : {string, mem(rel(tuple(x)))} -> mem(rel(tuple(x@[(a1_old x1)...(an_old xn)(TID:tid)]))) 
 Example   : query memlet ("StaedteUp", mcreateupdaterel("Staedte"));
 Result    : TRUE
 
+
+Operator  : mcreateupdaterel
+Number    : 95
+Signature : {string, mem(rel(tuple(x)))} -> mem(rel(tuple(x@[(a1_old x1)...(an_old xn)(TID:tid)]))) 
+Example   : query memlet ("StaedteUp2", mcreateupdaterel(pwrap("Staedte")));
+Result    : TRUE
+
+
 Operator  : mupdate
-Number    : 64
+Number    : 96
 Signature : stream(tuple(x)) x {string, mem(rel(tuple(x)))} x [(ai, (tuple(x) -> di))] -> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))
 Example   : query "Staedte" mfeed filter[.SName = "Hannover"] tids mupdate["Staedte"; Bev: .Bev + 1000] count;
 Result    : 1
 
+Operator  : mupdate
+Number    : 97
+Signature : stream(tuple(x)) x {string, mem(rel(tuple(x)))} x [(ai, (tuple(x) -> di))] -> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))
+Example   : query pwrap("Staedte") mfeed filter[.SName = "Hannover"] tids mupdate[pwrap("Staedte"); Bev: .Bev + 1000] count;
+Result    : 1
+
+
+
+
 Operator  : mupdatesave
-Number    : 65
+Number    : 98
 Signature : stream(tuple(x)) x {string, mem(rel(tuple(x)))} x [(ai, (tuple(x) -> di))] ... (an,(tuple(x) -> dn))] x {string, mem(rel((tuple(x@[TID:tid]))))} -> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))
 Example   : query "Staedte" mfeed filter[.SName = "Hannover"] tids mupdatesave["Staedte","StaedteUp";Bev: .Bev + 1000] count
 Result    : 1
 
+
+Operator  : mupdatesave
+Number    : 99
+Signature : stream(tuple(x)) x {string, mem(rel(tuple(x)))} x [(ai, (tuple(x) -> di))] ... (an,(tuple(x) -> dn))] x {string, mem(rel((tuple(x@[TID:tid]))))} -> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))
+Example   : query pwrap("Staedte") mfeed filter[.SName = "Hannover"] tids mupdatesave[pwrap("Staedte"),pwrap("StaedteUp");Bev: .Bev + 1000] count
+Result    : 1
+
+
 Operator  : mupdatebyid
-Number    : 66
+Number    : 100
 Signature : {string, mem(rel(tuple))} x (tid) x [(a1, (tuple(x) -> d1)) ... (an,(tuple(x) -> dn))] -> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))
 Example   : query mwrap("ten") mupdatebyid[ [const tid value 5]; No: .No + 1000] count;
 Result    : 1
 
+Operator  : mupdatebyid
+Number    : 101
+Signature : {string, mem(rel(tuple))} x (tid) x [(a1, (tuple(x) -> d1)) ... (an,(tuple(x) -> dn))] -> stream(tuple(x @ [x1_old t1] @...[xn_old tn] @ [TID tid])))
+Example   : query pwrap("ten") mupdatebyid[ [const tid value 5]; No: .No + 1000] count;
+Result    : 1
+
 Operator  : mquicksort
-Number    : 67
+Number    : 102
 Signature : {string, mem(rel(tuple(x)))} -> stream(tuple(x))
-Example   : query "Staedte" mquicksort isOrdered 
+Example   : query pwrap("Staedte") mquicksort isOrdered 
 Result    : TRUE
 
+
 Operator  : mquicksortby
-Number    : 68
+Number    : 103
 Signature : {string, mem(rel(tuple(x)))} x (ident1 ... identn) -> stream(tuple(x))
 Example   : query "Staedte" mquicksortby[SName] isOrderedBy[SName]
 Result    : TRUE
 
+Operator  : mquicksortby
+Number    : 104
+Signature : {string, mem(rel(tuple(x)))} x (ident1 ... identn) -> stream(tuple(x))
+Example   : query pwrap("Staedte") mquicksortby[SName] isOrderedBy[SName]
+Result    : TRUE
+
 Operator  : letmoconsume 
-Number    : 69
+Number    : 105
 Signature : stream(tuple) x string x attlist -> stream(tuple) 
 Example   : query ten feed letmoconsume["oten"; No] mfeed count
 Result    : 10
 
 Operator  : mfeed
-Number    : 70
+Number    : 106
 Signature : {string, mem(orel(tuple(x)))} -> stream(tuple(x))
 Example   : query "oten" mfeed count
 Result    : 10
 
+Operator  : mfeed
+Number    : 107
+Signature : {string, mem(orel(tuple(x)))} -> stream(tuple(x))
+Example   : query pwrap("oten") mfeed count
+Result    : 10
+
 
 Operator  : letmoconsume
-Number    : 71
+Number    : 108
 Signature : stream(tuple(x)) x string x (ident1 ... identn) -> mem(orel(tuple(x)) (ident1 ... identn)) 
 Example   : query ten feed head[5] minsert["ten"] letmoconsume["fuenf"; No];
 Result    : ((mem (orel (tuple ((No int) (TID tid))) (No))) "fuenf")
 
 Operator  : letmoconsumeflob
-Number    : 72
+Number    : 109
 Signature : stream(tuple(x)) x string x (ident1 ... identn) -> mem(orel(tuple(x)) (ident1 ... identn))
 Example   : query Trains feed letmoconsumeflob ["moTrains"; Id]
 Result    : ((mem (orel (tuple ( (Id int) (Line int) (Up bool) (Trip mpoint))) (Id))) "moTrains")
 
 Operator  : morange
-Number    : 73
+Number    : 110
 Signature : {string, mem(orel(tuple(x)))}  x T x T -> stream(tuple(x))
 Example   : query "oten" morange[2;2] count;
 Result    : 1
 
+Operator  : morange
+Number    : 111
+Signature : {string, mem(orel(tuple(x)))}  x T x T -> stream(tuple(x))
+Example   : query pwrap("oten") morange[2;2] count;
+Result    : 1
+
 Operator  : moleftrange
-Number    : 74
+Number    : 112
 Signature : {string, mem(orel(tuple(X)))}  x T -> stream(tuple(X))
 Example   : query "oten" moleftrange[2] count;
 Result    : 2
 
+Operator  : moleftrange
+Number    : 113
+Signature : {string, mem(orel(tuple(X)))}  x T -> stream(tuple(X))
+Example   : query pwrap("oten") moleftrange[2] count;
+Result    : 2
+
 Operator  : morightrange
-Number    : 75
+Number    : 114
 Signature : {string, mem(orel(tuple(X)))}  x T -> stream(tuple(X))
 Example   : query "oten" morightrange[5] count;
 Result    : 6
 
+Operator  : morightrange
+Number    : 115
+Signature : {string, mem(orel(tuple(X)))}  x T -> stream(tuple(X))
+Example   : query pwrap("oten") morightrange[5] count;
+Result    : 6
+
+
 Operator  : moinsert
-Number    : 76
+Number    : 116
 Signature : stream(tuple(x)) x {string, mem(orel(tuple(x)))} -> stream(tuple(x@[TID:tid]))
 Example   : query ten feed head[5] moinsert["oten"] count;
 Result    : 5
 
+Operator  : moinsert
+Number    : 117
+Signature : stream(tuple(x)) x {string, mem(orel(tuple(x)))} -> stream(tuple(x@[TID:tid]))
+Example   : query ten feed head[5] moinsert[pwrap("oten")] count;
+Result    : 5
+
 Operator  : modelete
-Number    : 77
+Number    : 118 
 Signature : stream(tuple(x)) x {string, mem(orel(tuple(x)))} -> stream(tuple(x@[TID:tid]))
 Example   : query ten feed head[5] modelete["oten"] count;
 Result    : 5
 
+Operator  : modelete
+Number    : 119 
+Signature : stream(tuple(x)) x {string, mem(orel(tuple(x)))} -> stream(tuple(x@[TID:tid]))
+Example   : query ten feed head[5] modelete[pwrap("oten")] count;
+Result    : 5
+
 Operator  : memload
-Number    : 78
+Number    : 120
 Signature : string -> bool
 Example   : query memload("otestrel")
 Result    : TRUE
 
 Operator  : moshortestpathd
-Number    : 79
+Number    : 200
 Signature : {string, mem(orel(tuple(x)))} x int x int x int x (tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))
 Example   : query mwrap("otestrel") moshortestpathd [1,3,0; distance(.GeoData_s1,.GeoData_s2)] count;
 Result    : 1
 
+Operator  : moshortestpathd
+Number    : 201
+Signature : {string, mem(orel(tuple(x)))} x int x int x int x (tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))
+Example   : query pwrap("otestrel") moshortestpathd [1,3,0; distance(.GeoData_s1,.GeoData_s2)] count;
+Result    : 1
+
+
 Operator  : moshortestpatha
-Number    : 80
+Number    : 202
 Signature : {string, mem(orel(tuple(x)))} x int x int x int x (tuple->real) x (tuple->real)-> stream(tuple(a1:t1,...an+1:tn+1))
 Example   : query mwrap("otestrel") moshortestpatha [1,3,0; distance(.GeoData_s1,.GeoData_s2),distance(.GeoData_s1,.GeoData_s2) * 0.0] count;
 Result    : 1
 
+Operator  : moshortestpatha
+Number    : 203
+Signature : {string, mem(orel(tuple(x)))} x int x int x int x (tuple->real) x (tuple->real)-> stream(tuple(a1:t1,...an+1:tn+1))
+Example   : query pwrap("otestrel") moshortestpatha [1,3,0; distance(.GeoData_s1,.GeoData_s2),distance(.GeoData_s1,.GeoData_s2) * 0.0] count;
+Result    : 1
+
+
 Operator  : moconnectedcomponents
-Number    : 81
+Number    : 204
 Signature : {string, mem(orel(tuple(X)))} -> stream(tuple(x@[compNo:int]))
 Example   : query "otestrel" moconnectedcomponents count;
 Result    : 74
 
+Operator  : moconnectedcomponents
+Number    : 205
+Signature : {string, mem(orel(tuple(X)))} -> stream(tuple(x@[compNo:int]))
+Example   : query pwrap("otestrel") moconnectedcomponents count;
+Result    : 74
+
 Operator  : memglet
-Number    : 82
+Number    : 206
 Signature : string x orel(tuple(x)) -> bool
 Example   : query memglet ("graph", otestrel)
 Result    : TRUE
 
 Operator  : memgletflob
-Number    : 83
+Number    : 207
 Signature : string x orel(tuple(x)) -> bool
 Example   : query memgletflob ("graph1", otestrel)
 Result    : TRUE
 
 Operator  : mgshortestpathd
-Number    : 84
+Number    : 208
 Signature : {string, mem(graph(tuple(x)))} x int x int x int x (tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))
 Example   : query mwrap("graph") mgshortestpathd [1,3,0; distance(.GeoData_s1,.GeoData_s2)] count;
 Result    : 1
 
+Operator  : mgshortestpathd
+Number    : 209
+Signature : {string, mem(graph(tuple(x)))} x int x int x int x (tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))
+Example   : query pwrap("graph") mgshortestpathd [1,3,0; distance(.GeoData_s1,.GeoData_s2)] count;
+Result    : 1
+
 Operator  : mgshortestpatha
-Number    : 85
+Number    : 210
 Signature : {string, mem(graph(tuple(x)))} x int x int x int x (tuple->real) x (tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))
 Example   : query mwrap("graph") mgshortestpatha [1,40,0; distance(.GeoData_s1,.GeoData_s2), distance(.GeoData_s1,.GeoData_s2) * 2.0] count;
 Result    : 8
 
+Operator  : mgshortestpatha
+Number    : 211
+Signature : {string, mem(graph(tuple(x)))} x int x int x int x (tuple->real) x (tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))
+Example   : query pwrap("graph") mgshortestpatha [1,40,0; distance(.GeoData_s1,.GeoData_s2), distance(.GeoData_s1,.GeoData_s2) * 2.0] count;
+Result    : 8
+
+
 Operator  : mgconnectedcomponents
-Number    : 86
+Number    : 212
 Signature : {string, mem(graph(tuple(x)))} -> stream(tuple(a1:t1,...an+1:tn+1))
 Example   : query "graph" mgconnectedcomponents count;
 Result    : 74
 
+Operator  : mgconnectedcomponents
+Number    : 213
+Signature : {string, mem(graph(tuple(x)))} -> stream(tuple(a1:t1,...an+1:tn+1))
+Example   : query pwrap("graph") mgconnectedcomponents count;
+Result    : 74
+
 Operator  : mwrap
-Number    : 89
+Number    : 300
 Signature : string -> mem(x)
 Example   : query mwrap("ten")
 Result    : ( (mem(rel(tuple((No int))))) "ten")
 
 Operator  : mexactmatch
-Number    : 90
+Number    : 301
 Signature : {string, mem(ttree T)}  x {string, rel(tuple(X))}  x T -> stream(tuple(X))
 Example   : query "Staedte_SName" "Staedte" mexactmatch ["Wolfsburg"] count;
 Result    : 1
 
+Operator  : mexactmatch
+Number    : 302
+Signature : {string, mem(ttree T)}  x {string, rel(tuple(X))}  x T -> stream(tuple(X))
+Example   : query pwrap("Staedte_SName") pwrap("Staedte") mexactmatch ["Wolfsburg"] count;
+Result    : 1
+
 Operator  : mrange
-Number    : 91
+Number    : 303
 Signature : {string, mem(ttree T) } x {string, mem(rel(tuple(X)))}  x T x T-> stream(tuple(X))
 Example   : query "Staedte_SName" "Staedte" mrange ["Wiesbaden", "Wuppertal"] count;
 Result    : 4
 
+Operator  : mrange
+Number    : 304
+Signature : {string, mem(ttree T) } x {string, mem(rel(tuple(X)))}  x T x T-> stream(tuple(X))
+Example   : query pwrap("Staedte_SName") pwrap("Staedte") mrange ["Wiesbaden", "Wuppertal"] count;
+Result    : 4
+
 Operator  : mcreatettree
-Number    : 92
+Number    : 305
 Signature : {string, mem(rel(...))} x Ident -> mem(ttree string)
 Example   : query "ten" mcreatettree[No]
 Result    : ((mem (ttree int)) "ten_No")
 
 Operator  : matchbelow
-Number    : 93
+Number    : 306
 Signature : {string, mem(ttree T)} x {string, mem(rel(tuple(X)))}  x T -> stream(tuple(X))
 Example   : query "ten_No" "ten" matchbelow [2] count;
 Result    : 1
 
+Operator  : matchbelow
+Number    : 307
+Signature : {string, mem(ttree T)} x {string, mem(rel(tuple(X)))}  x T -> stream(tuple(X))
+Example   : query pwrap("ten_No") pwrap("ten") matchbelow [2] count;
+Result    : 1
+
 Operator  : moconsume
-Number    : 94
+Number    : 308
 Signature : stream(tuple) x attr^n -> mem(orel(tuple))
 Example   : query Staedte feed head[2] moconsume[SName]  
 Result    : ( (memoryORelObject (tuple ( (SName string) (Bev int) (PLZ int) (Vorwahl string) (Kennzeichen string)))) ( ("Aachen" 239000 5100 "0241" "AC") ("Berlin" 1859000 1000 "030" "B"))) 
@@ -570,164 +912,275 @@ Result    : ( (memoryORelObject (tuple ( (SName string) (Bev int) (PLZ int) (Vor
 
 
 Operator  : pwrap
-Number    : 96
+Number    : 309
 Signature : {string, mem} -> mpointer
 Example   : query pwrap("ten") getTypeNL contains "mpointer"
 Result    : TRUE
 
 Operator  : memload
-Number    : 97
+Number    : 310
 Signature : string -> bool
 Example   : query memload("plz")
 Result    : TRUE
 
 Operator  : mcreateAVLtree
-Number    : 98
+Number    : 311
 Signature : memrel x attrname -> memavltree
 Example   : query "plz" mcreateAVLtree[PLZ]
 Result    : ((mem (avltree int )) "plz_PLZ")
 
 Operator  : matchbelow2
-Number    : 99
+Number    : 312
 Signature : memavltree x memrel x T x Ident x V -> V
 Example   : query "plz_PLZ" "plz" matchbelow2[5000, Ort, "anywhere"]
 Result    : "Wiederau"
 
+Operator  : matchbelow2
+Number    : 313
+Signature : memavltree x memrel x T x Ident x V -> V
+Example   : query pwrap("plz_PLZ") pwrap("plz") matchbelow2[5000, Ort, "anywhere"]
+Result    : "Wiederau"
+
 
 Operator  : mdeletedirect
-Number    : 100
+Number    : 314
 Signature : stream(tuple(X)) x mem(rel(tuple(X))) -> stream(tuple(X@TID tid))
 Example   : query "plz" mfeed head[10] "plz" mdeletedirect count
 Result    : 10
 
+Operator  : mdeletedirect
+Number    : 315
+Signature : stream(tuple(X)) x mem(rel(tuple(X))) -> stream(tuple(X@TID tid))
+Example   : query pwrap("plz") mfeed head[10] pwrap("plz") mdeletedirect count
+Result    : 10
+
 
 Operator  : memlet
-Number    : 101
+Number    : 316
 Signature : string x mem(...) -> bool
 Example  : query memlet("PLZ_DEL", mcreatedeleterel("plz"))
 Result    : TRUE
 
 Operator  : mdeletedirectsave
-Number    : 102
+Number    : 317
 Signature : stream(tuple(X)) x mem(rel(tuple(X))) x mem(rel(tuple(X@TID)) -> stream(tuple(X@TID tid))
 Example   : query "plz" mfeed head[10] "plz" "PLZ_DEL"  mdeletedirectsave count
 Result    : 10
 
+Operator  : mdeletedirectsave
+Number    : 318
+Signature : stream(tuple(X)) x mem(rel(tuple(X))) x mem(rel(tuple(X@TID)) -> stream(tuple(X@TID tid))
+Example   : query pwrap("plz") mfeed head[10] pwrap("plz") pwrap("PLZ_DEL")  mdeletedirectsave count
+Result    : 10
+
 
 Operator  : collect_mvector
-Number    : 103
+Number    : 400
 Signature : stream(DATA) x string x bool -> bool
 Example   : query plz feed projecttransformstream[PLZ] collect_mvector["V_PLZ", TRUE]
 Result    : TRUE
 
 Operator  : sizemv 
-Number    : 104
+Number    : 401
 Signature : mvector -> int, mvector represented as string, mem, or mpointer
 Example   : query sizemv("V_PLZ") = plz count
 Result    : TRUE
 
+Operator  : sizemv 
+Number    : 402
+Signature : mvector -> int, mvector represented as string, mem, or mpointer
+Example   : query sizemv(pwrap("V_PLZ")) = plz count
+Result    : TRUE
+
+
 Operator  : getmv 
-Number    : 105
+Number    : 403
 Signature : mvector x int -> DATA, mvector represented as string, mem, or mpointer
 Example   : query "V_PLZ" getmv[22] = plz feed nth[23,TRUE] extract[PLZ] 
 Result    : TRUE
 Remark    : Counting starts with 0
 
+Operator  : getmv 
+Number    : 404
+Signature : mvector x int -> DATA, mvector represented as string, mem, or mpointer
+Example   : query pwrap("V_PLZ") getmv[22] = plz feed nth[23,TRUE] extract[PLZ] 
+Result    : TRUE
+Remark    : Counting starts with 0
 
 Operator  : putmv 
-Number    : 106
+Number    : 405
 Signature : mvector x int x DATA -> DATA, mvector represented as string, mem, or mpointer
 Example   : query "V_PLZ" putmv[22, 333] = plz feed nth[23,TRUE] extract[PLZ] 
 Result    : TRUE
 
+Operator  : putmv 
+Number    : 406
+Signature : mvector x int x DATA -> DATA, mvector represented as string, mem, or mpointer
+Example   : query pwrap("V_PLZ") putmv[66, 333] = plz feed nth[67,TRUE] extract[PLZ] 
+Result    : TRUE
+
 Operator  : getmv 
-Number    : 107
+Number    : 407
 Signature : mvector x int -> DATA, mvector represented as string, mem, or mpointer
 Example   : query "V_PLZ" getmv[22] = 333  
 Result    : TRUE
 
+Operator  : getmv 
+Number    : 408
+Signature : mvector x int -> DATA, mvector represented as string, mem, or mpointer
+Example   : query pwrap("V_PLZ") getmv[22] = 333  
+Result    : TRUE
+
 Operator  : isSortedmv
-Number    : 108
+Number    : 409
 Signature : mvector -> bool, mvector represented as string, mem, or mpointer
 Example   : query isSortedmv("V_PLZ")
 Result    : FALSE
 
+Operator  : isSortedmv
+Number    : 410
+Signature : mvector -> bool, mvector represented as string, mem, or mpointer
+Example   : query isSortedmv(pwrap("V_PLZ"))
+Result    : FALSE
+
 
 Operator  : sortmv
-Number    : 109
+Number    : 411
 Signature : mvector -> mpointer(mvector) , mvector represented as string, mem, or mpointer
 Example   : query isSortedmv(sortmv("V_PLZ"))
 Result    : TRUE
 
+Operator  : sortmv
+Number    : 412
+Signature : mvector -> mpointer(mvector) , mvector represented as string, mem, or mpointer
+Example   : query isSortedmv(sortmv(pwrap("V_PLZ")))
+Result    : TRUE
+
 Operator  : feedmv
-Number    : 110
+Number    : 413
 Signature : mvector -> stream(DATA) , mvector represented as string, mem, or mpointer
 Example   : query "V_PLZ" feedmv count = plz count
 Result    : TRUE
 
+Operator  : feedmv
+Number    : 414
+Signature : mvector -> stream(DATA) , mvector represented as string, mem, or mpointer
+Example   : query pwrap("V_PLZ") feedmv count = plz count
+Result    : TRUE
+
 Operator  : findmv
-Number    : 111
+Number    : 415
 Signature : mvector -> stream(DATA) , mvector represented as string, mem, or mpointer
 Example   : query findmv("V_PLZ" ,3) 
 Result    : 0
 
+
+Operator  : findmv
+Number    : 416
+Signature : mvector -> stream(DATA) , mvector represented as string, mem, or mpointer
+Example   : query findmv(pwrap("V_PLZ") ,3) 
+Result    : 0
+
+
 Operator  : matchbelowmv 
-Number    : 112
+Number    : 417
 Signature : mvector x DATA -> DATA , mvector represented as string, mem, or mpointer
 Example   : query "V_PLZ" matchbelowmv[8666]
 Result    : 8648
 
+Operator  : matchbelowmv 
+Number    : 418
+Signature : mvector x DATA -> DATA , mvector represented as string, mem, or mpointer
+Example   : query pwrap("V_PLZ") matchbelowmv[8666]
+Result    : 8648
+
 Operator  : insertmv
-Number    : 113
+Number    : 419
 Signature : stream(A) x mvector(A) -> stream(A), A in DATA, mvector represneted as string, mem or mpointer
 Example   : query intstream(1,10) insertmv["V_PLZ"] count
 Result    : 10
 
 Operator  : insertmv
-Number    : 114
+Number    : 420
+Signature : stream(A) x mvector(A) -> stream(A), A in DATA, mvector represneted as string, mem or mpointer
+Example   : query intstream(1,10) insertmv[pwrap("V_PLZ")] count
+Result    : 10
+
+Operator  : insertmv
+Number    : 421
 Signature : stream(tuple) x ID x mvector(A) - stream(tuple)
 Example   : query ten feed insertmv[No, "V_PLZ"] count
 Result    : 10
 
+Operator  : insertmv
+Number    : 422
+Signature : stream(tuple) x ID x mvector(A) - stream(tuple)
+Example   : query ten feed insertmv[No, pwrap("V_PLZ")] count
+Result    : 10
 
 
 Operator  : count
-Number    : 115
+Number    : 500
 Signature : memory(o)rel -> int
 Example   : query ten feed letmconsume["tencp"] count
 Result    : 10
 
 
 Operator  : mcreatepqueue
-Number    : 120
+Number    : 600
 Signature : stream(tuple) x IDENT x string -> stream(tuple)
 Example   : query strassen feed extend[L : size(.GeoData)] mcreatepqueue[L, "strassen_PQ_L"] count
 Result    : 3212
 
 
 Operator  : size
-Number    : 121
+Number    : 601
 Signature : mpqueue -> int
 Example   : query size("strassen_PQ_L")
 Result    : 3212
 
+Operator  : size
+Number    : 602
+Signature : mpqueue -> int
+Example   : query size(pwrap("strassen_PQ_L"))
+Result    : 3212
+
+
+
 Operator  : mfeedpq
-Number    : 122
+Number    : 603
 Signature : mpqueue -> stream(tuple)
 Example   : query "strassen_PQ_L" mfeedpq head[1000] count
 Result    : 1000
 
+Operator  : mfeedpq
+Number    : 604
+Signature : mpqueue -> stream(tuple)
+Example   : query pwrap("strassen_PQ_L") mfeedpq head[1000] count
+Result    : 1000
+
+
+
+
 Operator  : minserttuplepq
-Number    : 123
+Number    : 605
 Signature : mpqueue x tuple x real [x IDENT] -> bool
 Example   : query strassen feed extend[L : size(.GeoData)] extend[ Ok : minserttuplepq("strassen_PQ_L", . , .L * 2.0, L)] head[10] count
 Result    : 10
 
+Operator  : minserttuplepq
+Number    : 606
+Signature : mpqueue x tuple x real [x IDENT] -> bool
+Example   : query strassen feed extend[L : size(.GeoData)] extend[ Ok : minserttuplepq(pwrap("strassen_PQ_L"), . , .L * 2.0, L)] head[10] count
+Result    : 10
+
 
 Operator : mblock
-Number   : 124
+Number   : 700
 Signature : stream(X) -> stream(X) , X in {tuple,DATA}
 Example   : query ten feed mblock head[5] count
 Result    : 5 
+
+
 
 
