@@ -67,11 +67,11 @@ class pqueueentry{
     }
 
     bool operator<(const pqueueentry& rhs)const{
-        return priority < rhs.priority;
+        return priority > rhs.priority;
     }
 
     bool operator>(const pqueueentry& rhs)const{
-        return priority > rhs.priority;
+        return priority < rhs.priority;
     }
 
     Tuple* operator()(){
