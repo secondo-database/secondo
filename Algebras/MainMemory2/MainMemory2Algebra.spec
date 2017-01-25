@@ -145,6 +145,9 @@ operator minserttuplepq alias MINSERTTUPLEPQ pattern op(_,_,_,_)
 operator mblock alias MBLOCK pattern _ op 
 
 
+operator minserttuplepqprojectU alias MINSERTTUPLEPQPROJECTU pattern _ op[_,_,_;list]
+operator minserttuplepqproject alias MINSERTTUPLEPQPROJECT pattern _ op[_,_;list]
+
 
 
 

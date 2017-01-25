@@ -79,6 +79,10 @@ class pqueueentry{
        return tuple;
     }
 
+    inline TupleType* getTupleType(){
+      return tuple->GetTupleType();
+    }
+
  private:
   Tuple* tuple;
   double priority;
@@ -95,12 +99,22 @@ class MemoryPQueueObject : public MemoryObject {
                            const std::string& _type ):
          MemoryObject(_flob, db, _type) {
            flob = _flob;
+           ListExpr tl;
+           if(!nl->ReadFromString(_type,tl)){
+             assert(false);
+           }
+           ListExpr tln = SecondoSystem::GetCatalog()->NumericType(
+                                             nl->Second( nl->Second(tl)));
+           tt = new TupleType(tln);
         }
 
 
         ~MemoryPQueueObject() {
            while(!queue.empty()){
              queue.pop();
+           }
+           if(tt){
+              tt->DeleteIfAllowed();
            }
         }
 
@@ -136,10 +150,14 @@ class MemoryPQueueObject : public MemoryObject {
            return queue.empty();
         }
 
+        TupleType* getTupleType(){
+            return tt;
+        }
+
 
     private:
         std::priority_queue<pqueueentry> queue;
-
+        TupleType* tt;
 };
 
 

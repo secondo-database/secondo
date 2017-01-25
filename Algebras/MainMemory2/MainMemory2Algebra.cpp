@@ -17140,6 +17140,271 @@ Operator minsertTuplepqOp(
 );
 
 
+
+/*
+Operator ~minsertTuplepqProject~
+
+This operator works similar to minsertTuplepq but allowes to
+project the incoming tuple to a set of attributes before insertion.
+
+Type Mapping
+
+  queue tuple real [IDENT] <list of IDENT>
+
+*/
+
+ListExpr minserttuplepqprojectTM(ListExpr args){
+
+   if(!nl->HasLength(args,4) && !nl->HasLength(args,5)){
+      return listutils::typeError("4 or 5 arguments required");
+   }
+
+   if(!checkUsesArgs(args)){
+      return listutils::typeError("internal error");
+   }
+
+   ListExpr a1 = nl->First(args);
+   string err;
+   if(!getMemType(nl->First(a1), nl->Second(a1), a1, err,true)){
+     return listutils::typeError(err);
+   }
+
+   a1 = nl->Second(a1);
+   if(!MemoryPQueueObject::checkType(a1)){
+     return listutils::typeError("first arg is not a mpqueue");
+   }
+
+   ListExpr tuple = nl->First(nl->Second(args));
+   if(!Tuple::checkType(tuple)){
+     return listutils::typeError("second arg is not a tuple");
+   }
+
+
+   ListExpr prio = nl->First(nl->Third(args));
+   if(!CcReal::checkType(prio)){
+     return listutils::typeError("third arg is not a real");
+   }
+
+
+   ListExpr projectList;
+   string updateAttr = "";
+   ListExpr attrList = nl->Second(tuple);
+   int updateIndex = -1;
+
+   if(nl->HasLength(args,4)){
+     projectList = nl->First(nl->Fourth(args));
+   } else {
+     projectList = nl->First(nl->Fifth(args));
+     ListExpr update = nl->First(nl->Fourth(args));
+     if(!listutils::isSymbol(update)){
+       return listutils::typeError("fourth arg is not a valid attribute name");
+     }
+
+     updateAttr = nl->SymbolValue(update);
+     ListExpr attrType;
+     updateIndex = listutils::findAttribute(attrList,updateAttr,attrType);
+     if(!updateIndex){
+        return listutils::typeError("Attribute name " + updateAttr 
+                                    + " not part of the tuple");
+     }
+     if(!CcReal::checkType(attrType)){
+        return listutils::typeError("attribute " + updateAttr 
+                                    + " not of type real");
+     }
+   }
+
+   if(nl->AtomType(projectList)!=NoAtom){
+     return listutils::typeError("last argument must be a list "
+                                 "of attribute names");
+   }
+
+
+   set<string> project;
+   int updatePos = -1;
+   ListExpr resAttrList;
+   ListExpr lastAttrList;
+   ListExpr projectPos;
+   ListExpr lastProjectPos;
+   bool first = true;
+   int pos = 0;
+
+   while(!nl->IsEmpty(projectList)){
+     ListExpr attr = nl->First(projectList);
+     projectList = nl->Rest(projectList);
+
+     if(!listutils::isSymbol(attr)){
+       return listutils::typeError("projection list contains invalid "
+                                   "attribute name");
+     }
+     string attrName = nl->SymbolValue(attr);
+     if(attrName == updateAttr){
+       updatePos = pos;
+     }
+     pos++;
+     if(project.find(attrName)!=project.end()){
+       return listutils::typeError(  "attribute name " + attrName 
+                                   + " found twice in projection list");
+     }
+
+     project.insert(attrName);
+
+
+     ListExpr attrType;
+     int index =  listutils::findAttribute(attrList, attrName, attrType);
+     if(!index){
+       return listutils::typeError(  "attribute " + attrName 
+                                   + " not part of the tuple");
+     }
+
+     // attrname is ok
+     if(first){
+        first = false;
+        resAttrList = nl->OneElemList(nl->TwoElemList(attr, attrType));
+        lastAttrList = resAttrList;
+        projectPos = nl->OneElemList( nl->IntAtom(index-1));
+        lastProjectPos = projectPos;
+     } else {
+        lastAttrList = nl->Append(lastAttrList, 
+                                  nl->TwoElemList(attr, attrType));
+        lastProjectPos = nl->Append(lastProjectPos, nl->IntAtom(index-1));
+     } 
+
+   }
+
+
+   if( (updateAttr!="") && (updatePos<0)){
+     return listutils::typeError("update attribute not part of "
+                                 "projection list");
+   }
+
+   if(updatePos>=0){
+     lastProjectPos = nl->Append(lastProjectPos, nl->IntAtom(updatePos));
+   }
+
+   ListExpr queueAttrList = nl->Second(nl->Second(a1));
+   if(!nl->Equal(resAttrList,queueAttrList)){
+     return listutils::typeError("projected tuples does not fit the "
+                                 "queue tuple type");
+   }
+
+
+   return nl->ThreeElemList(
+                 nl->SymbolAtom(Symbols::APPEND()),
+                 projectList,
+                 listutils::basicSymbol<CcBool>());
+
+}
+
+
+template<class T, bool update>
+int minserttuplepqprojectVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr; 
+
+   MemoryPQueueObject* q = getMemoryPQueue((T*) args[0].addr);
+   if(!q){
+      res->SetDefined(false);
+      return 0;
+   }
+   Tuple* tuple = (Tuple*) args[1].addr;
+   CcReal* prioS = (CcReal*) args[2].addr;
+   if(!prioS->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   double prio = prioS->GetValue();
+   TupleType* tt = q->getTupleType();
+   assert(tt);
+
+   Tuple* insertTuple = new Tuple(tt);
+   int min, max, updatePos;
+   if(update){
+     min = 5;
+     max = qp->GetNoSons(s) -1;
+     updatePos = ((CcInt*) args[max].addr)->GetValue();
+   } else {
+     min = 4;
+     max = qp->GetNoSons(s);
+     updatePos = -1;
+   }
+
+   for(int i=min;i<max;i++){
+      int p = ((CcInt*) args[i].addr)->GetValue();
+      if(p!=updatePos){
+         insertTuple->CopyAttribute(p,tuple,i-min);
+      } else {
+         insertTuple->PutAttribute(p, new CcReal(true,prio));
+      }      
+   }
+   q->push(insertTuple,prio);
+   insertTuple->DeleteIfAllowed();
+   return 0;
+}
+
+
+ValueMapping minserttuplepqprojectVM[] = {
+   minserttuplepqprojectVMT<CcString,false>,
+   minserttuplepqprojectVMT<Mem,false>,
+   minserttuplepqprojectVMT<MPointer,false>,
+
+   minserttuplepqprojectVMT<CcString,true>,
+   minserttuplepqprojectVMT<Mem,true>,
+   minserttuplepqprojectVMT<MPointer,true>
+};
+
+int minserttuplepqprojectSelect(ListExpr args){
+  int n = getRepNum(nl->First(args));
+  return nl->HasLength(args,4)?n: n + 3;
+}
+
+OperatorSpec minserttuplepqprojectUSpec(
+   "mpqueue x tuple x real  x IDENT x <IDENTLIST>, "
+   "mpqueue in {string, mem, mpointer",
+   "minserttuplepqproject(_,_,_,_;list)",
+   "projects a tuple to the attributes enumerated in the identifier list "
+   "with a specified priority into a main memory priority queue. "
+   "The attribute in the tuple specified by the 4th argument, "
+   "is updated before inserting"
+   " the projected tuple",
+   "query strassen feed extend[L : size(.GeoData), K : L * 1.5] "
+   "extend[ Ok : minserttuplepq(pwrap(\"strassen_PQ_L\"), . , "
+   ".L * 2.0, L;Name, Type, GeoData, L )] count"
+);
+
+Operator minserttuplepqprojectUOp(
+  "minserttuplepqprojectU",
+  minserttuplepqprojectUSpec.getStr(),
+  6,
+  minserttuplepqprojectVM,
+  minserttuplepqprojectSelect,
+  minserttuplepqprojectTM
+);
+
+
+OperatorSpec minserttuplepqprojectSpec(
+   "mpqueue x tuple x real  x <IDENTLIST>, "
+   "mpqueue in {string, mem, mpointer",
+   "minserttuplepqproject(_,_,_,_;list)",
+   "projects a tuple to the attributes enumerated in the identifier list "
+   "with a specified priority into a main memory priority queue. ",
+   "query strassen feed extend[L : size(.GeoData), K : L * 1.5] "
+   "extend[ Ok : minserttuplepq(pwrap(\"strassen_PQ_L\"), . , "
+   ".L * 2.0, L;Name, Type, GeoData, L )] count"
+);
+
+Operator minserttuplepqprojectOp(
+  "minserttuplepqproject",
+  minserttuplepqprojectSpec.getStr(),
+  6,
+  minserttuplepqprojectVM,
+  minserttuplepqprojectSelect,
+  minserttuplepqprojectTM
+);
+
+
+
 /*
 Operator ~mblock~
 
@@ -17495,7 +17760,11 @@ class MainMemory2Algebra : public Algebra {
           mfeedpqOp.SetUsesArgsInTypeMapping();
           AddOperator(&minsertTuplepqOp);
           minsertTuplepqOp.SetUsesArgsInTypeMapping();
+          AddOperator(&minserttuplepqprojectOp);
+          minserttuplepqprojectOp.SetUsesArgsInTypeMapping();
 
+          AddOperator(&minserttuplepqprojectUOp);
+          minserttuplepqprojectUOp.SetUsesArgsInTypeMapping();
 
           AddOperator(&mblockOp);
 

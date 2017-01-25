@@ -1175,6 +1175,35 @@ Example   : query strassen feed extend[L : size(.GeoData)] extend[ Ok : minsertt
 Result    : 10
 
 
+
+Operator  : minserttuplepqprojectU
+Number    : 607
+Signature : mpqueue x tuple x real [x IDENT] -> bool
+Example   : query strassen feed extend[L : size(.GeoData), K : 1.0] extend[ Ok : "strassen_PQ_L" minserttuplepqprojectU[ . , .L * 2.0, L;Name,Typ,GeoData,L]] head[10] count
+Result    : 10
+
+Operator  : minserttuplepqprojectU
+Number    : 608
+Signature : mpqueue x tuple x real [x IDENT] -> bool
+Example   : query strassen feed extend[L : size(.GeoData), K : 1] extend[ Ok : pwrap("strassen_PQ_L") minserttuplepqprojectU[ . , .L * 2.0, L; Name, Typ, GeoData,L]] head[10] count
+Result    : 10
+
+
+Operator  : minserttuplepqproject
+Number    : 609
+Signature : mpqueue x tuple x real [x IDENT] -> bool
+Example   : query strassen feed extend[L : size(.GeoData), K : 1.0] extend[ Ok : "strassen_PQ_L" minserttuplepqproject[ . , .L * 2.0;Name,Typ,GeoData,L]] head[10] count
+Result    : 10
+
+Operator  : minserttuplepqproject
+Number    : 610
+Signature : mpqueue x tuple x real [x IDENT] -> bool
+Example   : query strassen feed extend[L : size(.GeoData), K : 1] extend[ Ok : pwrap("strassen_PQ_L")  minserttuplepqproject[ . , .L * 2.0; Name, Typ, GeoData,L]] head[10] count
+Result    : 10
+
+
+
+
 Operator : mblock
 Number   : 700
 Signature : stream(X) -> stream(X) , X in {tuple,DATA}
