@@ -88,6 +88,7 @@ RelationAlgebra.h header file.
 #include "OperatorFeed.h"
 #include "OperatorFilter.h"
 #include "OperatorProject.h"
+#include "OperatorFeedProject.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -875,180 +876,6 @@ Operator relalgTUPLE2 (
          TypeOperatorSelect,   // trivial selection function
          TUPLE2TypeMap         // type mapping
 );
-
-#ifdef USE_PROGRESS
-
-struct FeedProjectInfo : OperatorInfo {
- 
-   FeedProjectInfo() : OperatorInfo()
-   {
-     name =      "feedproject";
- 
-     signature = "rel(tuple(a_1 ... a_n)) x (a_i1 ... a_ik)\n"
-                 "-> stream(tuple(a_i1 ... a_ik))";
-     syntax =    "_ feedproject[ _ ]";
-     meaning =   "Creates a stream of tuples from a given relation "
-                 " and project them to the given list of attributes.";
-     example =   "plz feedproject[PLZ] count";
- 
-     supportsProgress = true;
-   }
-
-};
-
-
-ListExpr feedproject_tm(ListExpr args)
-{
-
-  if(!nl->HasLength(args,2)){
-    return listutils::typeError("rel(tuple(X)) x attrlist expected");
-  }
-
-  ListExpr rel = nl->First(args);
-  ListExpr attrList = nl->Second(args);
-
-  if(!Relation::checkType(rel)){
-    return listutils::typeError("first argument is not a relation");
-  }
-  if((nl->AtomType(attrList)!=NoAtom)  || nl->IsEmpty(attrList)){
-    return listutils::typeError("invalid list of attribute names");
-  }
-
-
-  NList l(args);
-
-  const string opName = "feedproject";
-  const string arg1 = "rel(tuple(...)";
-  const string arg2 = "list of unique symbols (a_1 ... a_k)";
-
-  string err1("");
-  if ( !l.checkLength(2, err1) )
-    return l.typeError( err1 );
-
-  NList attrs;
-  if ( !l.first().checkRel( attrs ) )
-    return l.typeError(1, arg1);
-
-  //cerr << "a1 " << attrs << endl;
-
-  NList atoms = l.second();
-  if ( !l.checkSymbolList( atoms ) )
-    return l.typeError(2, arg2);
-
-  if ( !l.checkUniqueMembers( atoms ) )
-    return l.typeError(2, arg2);
-
-
-  NList indices;
-  NList oldAttrs(attrs);
-  NList newAttrs;
-  int noAtoms = atoms.length();
-  while ( !atoms.isEmpty() )
-  {
-    string attrname = atoms.first().str();
-    ListExpr attrtype = nl->Empty();
-    //cerr << "a2 " << attrs << endl;
-    int newIndex = FindAttribute( oldAttrs.listExpr(), attrname, attrtype );
-
-    if (newIndex > 0)
-    {
-      indices.append( NList(newIndex) );
-      newAttrs.append( oldAttrs.elem(newIndex) );
-    }
-    else
-    {
-      ErrorReporter::ReportError(
-        "Attributename '" + attrname +
-        "' is not a known attributename in the tuple stream.");
-          return nl->SymbolAtom(Symbol::TYPEERROR());
-    }
-    atoms.rest();
-  }
-
-  NList outlist = NList( NList(Symbol::APPEND()),
-                         NList( NList( noAtoms ), indices ),
-       NList().tupleStreamOf( newAttrs ) );
-
-  return outlist.listExpr();
-}
-
-CostEstimation* FeedProjectCostEstimationFunc() {
-  return new FeedProjectCostEstimation();
-}
-
-int
-feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  GenericRelation* r=0;
-  FeedProjLocalInfo* fli=0;
-  Word elem(Address(0));
-  int noOfAttrs= 0;
-  int index= 0;
-  Supplier son;
-
-  switch (message)
-  {
-    case OPEN :{
-      r = (GenericRelation*)args[0].addr;
-
-      fli = (FeedProjLocalInfo*) local.addr;
-      if ( fli ) delete fli;
-
-      TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
-
-      fli = new FeedProjLocalInfo(tt);
-      fli->total = r->GetNoTuples();
-      fli->rit = r->MakeScan(tt);
-      local.setAddr(fli);
-      return 0;
-    }
-    case REQUEST :{
-      fli = (FeedProjLocalInfo*) local.addr;
-      Tuple *t;
-
-        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
-        list<int> usedAttrs;
-
-        for( int i = 0; i < noOfAttrs; i++)
-        {
-          son = qp->GetSupplier(args[3].addr, i);
-          qp->Request(son, elem);
-          index = ((CcInt*)elem.addr)->GetIntval();
-    //cerr << "ind = " << index << endl;
-          usedAttrs.push_back(index-1);
-        }
-
-      if ((t = fli->rit->GetNextTuple(usedAttrs)) != 0)
-      {
-        fli->returned++;
-        result.setAddr(t);
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-    }
-    case CLOSE :{
-      fli = static_cast<FeedProjLocalInfo*>(local.addr);
-      
-      if(fli){
-        
-        if(fli->rit){
-          delete fli->rit;
-          fli->rit=0;
-        }
-        
-        delete fli;
-        fli = 0;
-        local.setAddr(0);
-      }
-      return 0;
-    } // end case
-  } // end switch
-  return 0;
-}
-#endif
 
 /*
 
@@ -4634,9 +4461,9 @@ Operator relalggetfileinfo (
 */
 Operator relalgfeedproject (  
         FeedProjectInfo(),             // info 
-        feedproject_vm,                // value mapping
-        feedproject_tm,                // type mapping
-        FeedProjectCostEstimationFunc  // cost estimation
+        OperatorFeedProject::feedproject_vm,                // value mapping
+        OperatorFeedProject::feedproject_tm,                // type mapping
+        OperatorFeedProject::FeedProjectCostEstimationFunc  // cost estimation
 );
 
 
