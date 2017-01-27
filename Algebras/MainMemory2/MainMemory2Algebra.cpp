@@ -17360,14 +17360,14 @@ int minserttuplepqprojectSelect(ListExpr args){
 }
 
 OperatorSpec minserttuplepqprojectUSpec(
-   "mpqueue x tuple x real  x IDENT x <IDENTLIST>, "
+   "mpqueue x tuple x real  x IDENT x <IDENTLIST> -> bool, "
    "mpqueue in {string, mem, mpointer",
    "minserttuplepqproject(_,_,_,_;list)",
    "projects a tuple to the attributes enumerated in the identifier list "
    "with a specified priority into a main memory priority queue. "
    "The attribute in the tuple specified by the 4th argument, "
-   "is updated before inserting"
-   " the projected tuple",
+   "is updated to the value of the priority before inserting"
+   " the projected tuple into the queue.",
    "query strassen feed extend[L : size(.GeoData), K : L * 1.5] "
    "extend[ Ok : minserttuplepq(pwrap(\"strassen_PQ_L\"), . , "
    ".L * 2.0, L;Name, Type, GeoData, L )] count"
@@ -17384,7 +17384,7 @@ Operator minserttuplepqprojectUOp(
 
 
 OperatorSpec minserttuplepqprojectSpec(
-   "mpqueue x tuple x real  x <IDENTLIST>, "
+   "mpqueue x tuple x real  x <IDENTLIST> -> bool "
    "mpqueue in {string, mem, mpointer",
    "minserttuplepqproject(_,_,_,_;list)",
    "projects a tuple to the attributes enumerated in the identifier list "
