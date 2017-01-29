@@ -1,0 +1,23 @@
+Database : berlintest
+Restore  : NO
+
+
+Operator : filter
+Number   : 1
+Signature: ((stream x) (map x bool)) -> (stream x)
+Example  : query Orte feed filter[.BevT > 200] count
+Result   : 39
+
+
+Operator : extend
+Number   : 1
+Signature: (stream(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x@[a1:d1, ... , an:dn])))
+Example  : query ten feed extend [Mult5: .No * 5, Mod2 : .No mod 2] sum[Mult5]
+Result   : 275
+
+Operator : executeQuery
+Number   : 1
+Signature: ()
+Example  : query 5 * 3
+Result   : 15
+
