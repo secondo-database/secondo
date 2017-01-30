@@ -100,6 +100,7 @@ class AttributeFile{
                    const uint32_t _algId,
                    const uint32_t _typeId,
                    const ListExpr _typeList,
+                   const ListExpr _numTypeList,
                    const bool temp);
 
      ~AttributeFile();

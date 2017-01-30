@@ -105,8 +105,7 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
 
   sliB = new SortAlgorithm(streamB, specB, liB, s, UINT_MAX, memForSort);
 
-  ListExpr resultType =
-              SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
+  ListExpr resultType = qp->GetNumType(s);
   resultTupleType = new TupleType( nl->Second( resultType ) );
 
   memForSort -= sliB->getUsedMemory();

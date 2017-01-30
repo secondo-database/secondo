@@ -494,6 +494,11 @@ memory allocated for the old result storage.
 Returns the type expression of the node ~s~ of the operator tree.
 
 */
+  ListExpr GetNumType( const Supplier s );
+/*
+Returns the numeric type expression of the node ~s~ of the operator tree.
+
+*/
   void SetModified( const Supplier s );
 /*
 Sets a node ~s~ of the operator tree as modified. The node must be
@@ -559,6 +564,9 @@ Translates a message ito its name.
 */
  ListExpr
  GetSupplierTypeExpr( const Supplier s );
+  
+ ListExpr
+ GetSupplierNumTypeExpr( const Supplier s );
   
   void SetDebugLevel( const int level );
 /*

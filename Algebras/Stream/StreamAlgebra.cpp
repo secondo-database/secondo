@@ -4336,13 +4336,12 @@ class DataTailLocalInfo: public TailLocalInfo
 
     DataTailLocalInfo(const int mN,
                       const bool mKeepOrder,
-                      const ListExpr elemType,
+                      const ListExpr elemNumType,
                       Supplier s)
 
     : TailLocalInfo( mN, mKeepOrder, s )
     {
-      ListExpr numericElemType =
-          SecondoSystem::GetCatalog()->NumericType( elemType );
+      ListExpr numericElemType = elemNumType;
       ListExpr attrExpr =
           nl->TwoElemList(nl->SymbolAtom("elem"),numericElemType);
       ListExpr tupleExpr =
@@ -4406,7 +4405,7 @@ int StreamTailDataStreamVM(Word* args, Word& result,
         DEBUGMESSAGE("End OPEN 1");
         return 0;
       } // else: consume the InputStream
-      ListExpr elemTypeNL = nl->Second(qp->GetType( s ));
+      ListExpr elemTypeNL = nl->Second(qp->GetNumType( s ));
       li = new DataTailLocalInfo( CcN->GetIntval(),
                                   CcKeepOrder->GetBoolval(),
                                   elemTypeNL, s
@@ -5804,8 +5803,7 @@ int consumeVM(Word* args, Word& result,
   result = qp->ResultStorage(s);
   GenericRelation* res = (GenericRelation*) result.addr;
   Stream<Attribute> stream(args[0]);
-  ListExpr tupleType = nl->Second(SecondoSystem::GetCatalog()->NumericType( 
-                          qp->GetType(s)));
+  ListExpr tupleType = nl->Second(qp->GetNumType(s));
   TupleType* tt = new TupleType(tupleType);
   Attribute* a;
   stream.open();

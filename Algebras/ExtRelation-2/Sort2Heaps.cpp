@@ -727,9 +727,12 @@ class SortAttr2HeapsInfo{
 
   public:
      SortAttr2HeapsInfo(Word _stream, bool _asc,
-                        ListExpr _resType, size_t _maxFiles,
+                        ListExpr _resType, ListExpr _numResType,
+                        size_t _maxFiles,
                         size_t _maxMem) : stream(_stream),
-                        comp(_asc), resType(_resType), maxMem(_maxMem),
+                        comp(_asc), 
+                        resType(_resType), numResType(_numResType),
+                        maxMem(_maxMem),
                         maxFiles(_maxFiles) 
                         {
          SecondoCatalog* ctlg = SecondoSystem::GetInstance()->GetCatalog();
@@ -777,6 +780,7 @@ class SortAttr2HeapsInfo{
       Stream<Attribute> stream;
       AttrSmaller comp;
       ListExpr resType;
+      ListExpr numResType;
       size_t maxMem;
       size_t maxFiles;
       std::vector<AttributeFile*> files;
@@ -893,7 +897,8 @@ class SortAttr2HeapsInfo{
 
      AttributeFile* getNewFile(){
          std::string pathName = FileSystem::MakeTemp(basicName);
-         return new AttributeFile(pathName,algId,typeId,resType, true);
+         return new AttributeFile(pathName,algId,typeId,resType, 
+                                  numResType, true);
      }
 
      void mergeFiles(){
@@ -940,6 +945,7 @@ int sortattrVM(Word* args, Word& result, int message,
         }
         local.addr = new SortAttr2HeapsInfo(args[0], asc,
                             nl->Second(qp->GetType(s)),
+                            nl->Second(qp->GetNumType(s)),
                             maxFiles, maxMem);
         return 0;
     }

@@ -556,8 +556,7 @@ public:
 
     }
 
-    ListExpr resultType =
-                SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
+    ListExpr resultType = qp->GetNumType(s);
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
     // read in the first tuple of both input streams
@@ -947,8 +946,7 @@ public:
 
     }
 
-    ListExpr resultType =
-                SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
+    ListExpr resultType = qp->GetNumType(s);
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
     // read in the first tuple of both input streams
@@ -1362,8 +1360,7 @@ public:
     this->streamA = streamA;
     this->streamB = streamB;
 
-    ListExpr resultType =
-      SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
+    ListExpr resultType = qp->GetNumType(s);
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
     attrIndexA = StdTypes::GetInt( attrIndexAWord ) - 1;
@@ -1700,8 +1697,7 @@ public:
     this->streamA = streamA;
     this->streamB = streamB;
 
-    ListExpr resultType =
-      SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
+    ListExpr resultType = qp->GetNumType(s);
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
     attrIndexA = StdTypes::GetInt( attrIndexAWord ) - 1;

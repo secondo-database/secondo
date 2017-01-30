@@ -179,6 +179,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
                                const uint32_t _algId,
                                const uint32_t _typeId,
                                const ListExpr _typeList,
+                               const ListExpr _numTypeList,
                                const bool _temp):
      filename(_filename), algId(_algId), typeId(_typeId),
      typeList(_typeList), temp(_temp){
@@ -202,7 +203,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
      uint32_t l = tl.length();
      out->write((char*) &l, sizeof(uint32_t));
      out->write(tl.c_str(), l);
-     nType = SecondoSystem::GetInstance()->GetCatalog()->NumericType(typeList);
+     nType = _numTypeList;
   }
 
   AttributeFile::~AttributeFile(){

@@ -965,6 +965,8 @@ given the Supplier ~s~.
 */
 ListExpr GetTupleResultType( Supplier s )
 {
+
+ /*
   ListExpr result = qp->GetType( s ),
            first = nl->First( result );
 
@@ -977,6 +979,9 @@ ListExpr GetTupleResultType( Supplier s )
 
   first = nl->First( result );
   return SecondoSystem::GetCatalog()->NumericType( result );
+  */
+  return qp->GetNumType(s);
+
 }
 
 /*

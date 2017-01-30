@@ -318,8 +318,7 @@ public:
 
     }
 
-    ListExpr resultType =
-                SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
+    ListExpr resultType = qp->GetNumType(s);
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
     // read in the first tuple of both input streams
@@ -848,8 +847,7 @@ public:
 
     }
 
-    ListExpr resultType =
-      SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
+    ListExpr resultType = qp->GetNumType(s);
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
     // read in the first tuple of both input streams
@@ -857,12 +855,8 @@ public:
     ptB.setTuple( NextTupleB() );
 
 
-    ListExpr typeA =
-      SecondoSystem::GetCatalog()->NumericType(
-        qp->GetType( streamA.addr ) );
-    ListExpr typeB =
-      SecondoSystem::GetCatalog()->NumericType(
-        qp->GetType( streamB.addr ) );
+    ListExpr typeA = qp->GetNumType(streamA.addr);
+    ListExpr typeB = qp->GetNumType(streamB.addr);
     tupleTypeA = new TupleType( nl->Second( typeA ) );
     tupleTypeB = new TupleType( nl->Second( typeB ) );
 
@@ -1314,13 +1308,9 @@ struct SymmOuterJoinLocalInfo
       streamRight = _streamRight;
       streamLeft  = _streamLeft;
       
-      ListExpr typeRight =
-        SecondoSystem::GetCatalog()->NumericType(
-          qp->GetType( streamRight.addr ) );
+      ListExpr typeRight = qp->GetNumType(streamRight.addr);
       tupleTypeRight = new TupleType( nl->Second( typeRight ) );
-      ListExpr typeLeft =
-        SecondoSystem::GetCatalog()->NumericType(
-          qp->GetType( streamLeft.addr ) );
+      ListExpr typeLeft = qp->GetNumType(streamLeft.addr);
       tupleTypeLeft = new TupleType( nl->Second( typeLeft ) );
 
       undefRight = 0;
@@ -1807,13 +1797,9 @@ public:
       streamRight = _streamRight;
       streamLeft  = _streamLeft;
       
-      ListExpr typeRight =
-        SecondoSystem::GetCatalog()->NumericType(
-          qp->GetType( streamRight.addr ) );
+      ListExpr typeRight = qp->GetNumType(streamRight.addr);
       tupleTypeRight = new TupleType( nl->Second( typeRight ) );
-      ListExpr typeLeft =
-        SecondoSystem::GetCatalog()->NumericType(
-          qp->GetType( streamLeft.addr ) );
+      ListExpr typeLeft = qp->GetNumType(streamLeft.addr);
       tupleTypeLeft = new TupleType( nl->Second( typeLeft ) );
 
       undefRight = 0;

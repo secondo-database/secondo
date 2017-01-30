@@ -603,8 +603,7 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
                                 this->attrIndexB);
 
   // create result type
-  ListExpr resultType =
-    SecondoSystem::GetCatalog()->NumericType( qp->GetType(s) );
+  ListExpr resultType = qp->GetNumType(s);
   resultTupleType =  new TupleType( nl->Second( resultType ) );
 
   // create hash table

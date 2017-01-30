@@ -558,6 +558,7 @@ struct OpNode
 {
   bool         evaluable;
   ListExpr     typeExpr;
+  ListExpr     numTypeExpr;
   OpNodeType   nodetype;
   int          id;
   bool         isRoot;
@@ -631,6 +632,7 @@ Constructor for a proper initialization of an ~OpNode~
 OpNode(OpNodeType type) :
   evaluable(false),
   typeExpr(0),
+  numTypeExpr(0),
   nodetype(type),
   id(OpNodeIdCtr++),
   isRoot(false)
@@ -775,7 +777,8 @@ ostream& operator<<(ostream& os, const OpNode& node) {
       << " - [Adress = " << (void*)(&node) << "]" << endl
       << "  Evaluable = " << node.evaluable
       << "  isRoot = " << node.isRoot << endl
-      << "  TypeExpr = " << nl->ToString(node.typeExpr) << endl;
+      << "  TypeExpr = " << nl->ToString(node.typeExpr) << endl
+      << "  numTypeExpr =" << nl->ToString(node.numTypeExpr) << endl;
 
 
    switch ( node.nodetype )
@@ -1790,8 +1793,9 @@ function index.
 
   int alId=0, opId=0, position=0, funindex=0, opFunId=0, errorPos=0;
 
-  ListExpr first, rest, list, lastElem, typeExpr, typeList;
-  first = rest = list = lastElem = typeExpr = typeList = nl->TheEmptyList();
+  ListExpr first, rest, list, lastElem, typeExpr, numTypeExpr, typeList;
+  first = rest = list = lastElem = typeExpr = numTypeExpr 
+        = typeList = nl->TheEmptyList();
 
   ListExpr resultType, last, pair, lastType, signature;
   resultType = last = pair = lastType = signature = nl->TheEmptyList();
@@ -3125,6 +3129,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node = new OpNode(Pointer);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
+      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
       node->isRoot = oldfirst;
       node->u.dobj.isConstant = true;
       node->u.dobj.valNo = nl->IntValue(nl->Third(nl->First(expr)));
@@ -3141,6 +3146,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node = new OpNode(Object);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
+      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
       node->isRoot = oldfirst;
       node->u.dobj.isConstant = true;
       node->u.dobj.valNo = nl->IntValue(nl->Third(nl->First(expr)));
@@ -3157,6 +3163,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node = new OpNode(Object);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
+      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
       node->isRoot = oldfirst;
       node->u.symbol = symbolForOperatorOrObject;
       node->u.dobj.valNo = nl->IntValue(nl->Third(nl->First(expr)));
@@ -3173,6 +3180,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node = new OpNode(Operator);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
+      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
       node->isRoot = oldfirst;
       node->u.symbol = symbolForOperatorOrObject;
 
@@ -3222,6 +3230,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node = new OpNode(IndirectObject);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
+      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
       node->isRoot = oldfirst;
       node->u.iobj.funNumber =
         nl->IntValue(nl->Fourth(nl->First(expr )));
@@ -3258,6 +3267,7 @@ QueryProcessor::Subtree( const ListExpr expr,
                       first, node );
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
+      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
       node->isRoot = oldfirst;
       // set the number of the function which was determined
       // by testing overloaded operators.
@@ -3343,6 +3353,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node = Subtree( nl->Third( nl->First( expr ) ), first, node );
       node->evaluable = false;
       node->typeExpr = nl->Second( expr );
+      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
       node->isRoot = oldfirst;
       node->u.op.isFun = true;
       node->u.op.funNo = nl->IntValue(nl->Fourth(nl->First(expr)));
@@ -3359,6 +3370,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node = new OpNode(Object);
       node->evaluable = false;
       node->typeExpr = nl->Second( expr );
+      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
       node->isRoot = oldfirst;
       if (traceNodes)
       {
@@ -3371,6 +3383,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     {
       node = new OpNode(Operator);
       node->typeExpr = nl->Second( expr );
+      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
       node->isRoot = oldfirst;
       /* special operator [0, 1] means arglist */
       node->u.op.algebraId = 0;
@@ -3410,6 +3423,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node = new OpNode(Operator);
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
+      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
       node->isRoot = oldfirst;
        /* special operator [0, 0] means
           application of an abstraction */
@@ -5048,6 +5062,33 @@ QueryProcessor::GetType( const Supplier s )
   }
 }
 
+ListExpr
+QueryProcessor::GetNumType( const Supplier s )
+{
+  OpTree tree = (OpTree) s;
+  if ( (tree->nodetype == Operator) && tree->u.op.isFun )
+  {
+    // the list structure will be (map ... R) but in case of a
+    // function application only the result type
+    // R is needed. Example:
+    //
+    //    plz  staedte loopz[f1: . feed .. feed hashjoin,
+    //      f2: . feed .. feed sortmergejoin] count
+    //
+    // Since the join implementations define the result tuple type by
+    // calling this method and
+    // the join is the root of the function's operator tree the
+    // list (map ... R) will be returned
+    // but in this case returning R is correct.
+    int n = nl->ListLength(tree->numTypeExpr);
+    return nl->Nth(n, tree->numTypeExpr);
+  }
+  else
+  {
+    return (tree->numTypeExpr);
+  }
+}
+
 /*
 ~GetType~ returns the type expression of the node ~s~ of the operator tree.
 
@@ -5057,6 +5098,13 @@ QueryProcessor::GetSupplierTypeExpr( const Supplier s )
 {
   OpTree tree = (OpTree) s;
   return tree->typeExpr;
+}
+
+ListExpr
+QueryProcessor::GetSupplierNumTypeExpr( const Supplier s )
+{
+  OpTree tree = (OpTree) s;
+  return tree->numTypeExpr;
 }
 
 
