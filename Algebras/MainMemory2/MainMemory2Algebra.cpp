@@ -16940,7 +16940,8 @@ class mfeedpqInfo{
              return 0;
           }
           pqueueentry e = obj->pop();
-          return e();
+          Tuple* t =  e();
+          return t;
       }
 
    private:
@@ -17287,11 +17288,12 @@ ListExpr minserttuplepqprojectTM(ListExpr args){
                                  "queue tuple type");
    }
 
-
-   return nl->ThreeElemList(
+   ListExpr res =  nl->ThreeElemList(
                  nl->SymbolAtom(Symbols::APPEND()),
-                 projectList,
+                 projectPos,
                  listutils::basicSymbol<CcBool>());
+
+   return res; 
 
 }
 
@@ -17318,7 +17320,9 @@ int minserttuplepqprojectVMT(Word* args, Word& result, int message,
    TupleType* tt = q->getTupleType();
    assert(tt);
 
-   Tuple* insertTuple = new Tuple(tt);
+
+
+
    int min, max, updatePos;
    if(update){
      min = 5;
@@ -17330,14 +17334,18 @@ int minserttuplepqprojectVMT(Word* args, Word& result, int message,
      updatePos = -1;
    }
 
+   Tuple* insertTuple = new Tuple(tt);
    for(int i=min;i<max;i++){
       int p = ((CcInt*) args[i].addr)->GetValue();
       if(p!=updatePos){
          insertTuple->CopyAttribute(p,tuple,i-min);
       } else {
-         insertTuple->PutAttribute(p, new CcReal(true,prio));
+         insertTuple->PutAttribute(i-min, new CcReal(true,prio));
       }      
    }
+
+
+
    q->push(insertTuple,prio);
    insertTuple->DeleteIfAllowed();
    return 0;
