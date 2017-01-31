@@ -79,6 +79,9 @@ OperatorInfo::OperatorInfo( const string& opName, const string& specStr)
   example = list.elem(4).str();
   if (list.length() >= 5)
   remark = list.elem(5).str();
+
+  usesMemory = false;
+  supportsInitFinish = false;
 }
 
 
@@ -143,6 +146,7 @@ Operator::Operator( const string& nm,
   requestsArgs   = false;
   usesArgsInTypeMapping = false;
   usesMemory     = false;
+  supportsInitFinish = false;
 
 
   for ( int i = 0; i < numOfFunctions; i++ ){
@@ -196,6 +200,7 @@ Operator::Operator( const string& nm,
   requestsArgs   = false;
   usesArgsInTypeMapping = false;
   usesMemory     = false;
+  supportsInitFinish = false;
 }
 
 Operator::Operator( const OperatorInfo& oi,
@@ -239,6 +244,7 @@ Operator::Operator( const OperatorInfo& oi,
   requestsArgs   = oi.requestsArgs ? true : false;
   usesArgsInTypeMapping = oi.usesArgsInTypeMapping ? true : false;
   usesMemory     = oi.usesMemory;
+  supportsInitFinish = oi.supportsInitFinish;
 
 }
 
@@ -267,6 +273,7 @@ Operator::Operator( const OperatorInfo& oi,
   requestsArgs   = oi.requestsArgs ? true : false;
   usesArgsInTypeMapping = oi.usesArgsInTypeMapping ? true : false;
   usesMemory     = oi.usesMemory;
+  supportsInitFinish = oi.supportsInitFinish;
 
   for ( int i = 0; i < max; i++ ) {
     //cout << "Adding " << i << endl;
