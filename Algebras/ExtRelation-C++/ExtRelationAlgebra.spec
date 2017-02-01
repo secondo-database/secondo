@@ -55,6 +55,8 @@ operator loopsel alias LOOPSEL pattern _ op [ fun ] implicit parameter tuple typ
 
 operator extract alias EXTRACT pattern _ op [ _ ]
 
+operator extractDef alias EXTRACTDEF pattern _ op [ _,_ ]
+
 operator printrefs alias PRINTREFS pattern _ op
 
 operator sample alias SAMPLEFEED pattern _ op [_, _]

@@ -500,5 +500,16 @@ Signature : DATA -> int
 Example   : query ten feed extend[R : noRefs(.No)] sum[R]
 Result    : 20
 
+Operator : extractDef
+Number   : 1
+Signature : stream(tuple) x IDENT x DATA -> DATA
+Example   : query ten feed extractDef[No,-3]
+Result    : 1
 
+
+Operator : extractDef
+Number   : 2
+Signature : stream(tuple) x IDENT x DATA -> DATA
+Example   : query ten feed head[0] extractDef[No,-3]
+Result    : -3
 

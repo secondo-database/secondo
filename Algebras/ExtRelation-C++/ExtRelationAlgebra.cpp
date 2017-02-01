@@ -816,6 +816,79 @@ Operator extrelextract (
          ExtractTypeMap          // type mapping
 );
 
+
+/*
+2.7 Operator extractDef
+
+This operator works similar to the extract operator but uses
+a default value if the stream is empty instead of setting the
+result to be undefined.
+
+*/
+ListExpr extractDefTM(ListExpr args){
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("three args expected");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError("first arg is not a tuple stream");
+  }
+  if(nl->AtomType(nl->Second(args))!=SymbolType){
+    return listutils::typeError("Second arg is not a valid attribute name");
+  }
+  string attrName = nl->SymbolValue(nl->Second(args));
+  ListExpr attrType;
+  int index = listutils::findAttribute(nl->Second(nl->Second(nl->First(args))),
+                                       attrName, attrType);
+  if(!index){
+    return listutils::typeError("Attribute name " + attrName 
+                                + " not part of the tuple");
+  }
+  if(!nl->Equal(nl->Third(args), attrType)){
+    return listutils::typeError("type of attribute and default value differ");
+  }
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                            nl->OneElemList(nl->IntAtom(index-1)),
+                            attrType);
+}
+
+
+int extractDefVM(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+   Stream<Tuple> stream(args[0]);
+   stream.open();
+   Tuple* t = stream.request();
+   stream.close();
+   result = qp->ResultStorage(s);
+   Attribute* res = (Attribute*) result.addr;
+
+   if(t){
+     int index = ((CcInt*) args[3].addr)->GetValue();
+     res->CopyFrom(t->GetAttribute(index));
+     t->DeleteIfAllowed();
+   } else {
+     res->CopyFrom((Attribute*) args[2].addr);
+   }
+   return 0;
+}
+
+OperatorSpec extractDefSpec(
+   "stream(tuple) x attrName x DATA -> DATA",
+   " _ extractDel[_,_ ] ",
+   "Extract the attribute with the specified name "
+   "from the first tuple of the incoming stream. "
+   "if the stream is empty, a default value (the third "
+   "argument is used as the result.",
+   " query ten feed extactDel[No,-1]"
+);
+
+Operator extractDefOp(
+ "extractDef",
+ extractDefSpec.getStr(),
+ extractDefVM,
+ Operator::SimpleSelect,
+ extractDefTM
+);
+
 /*
 2.8 Operator ~head~
 
@@ -14508,6 +14581,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&isOrderedByOP);
     AddOperator(&tidsOp);
     AddOperator(&noRefsOp);
+    AddOperator(&extractDefOp);
 
 
 #ifdef USE_PROGRESS
