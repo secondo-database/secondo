@@ -17319,10 +17319,7 @@ int minserttuplepqprojectVMT(Word* args, Word& result, int message,
    double prio = prioS->GetValue();
    TupleType* tt = q->getTupleType();
    assert(tt);
-
-
-
-
+   
    int min, max, updatePos;
    if(update){
      min = 5;
@@ -17344,10 +17341,9 @@ int minserttuplepqprojectVMT(Word* args, Word& result, int message,
       }      
    }
 
-
-
    q->push(insertTuple,prio);
    insertTuple->DeleteIfAllowed();
+   res->Set(true,true);  
    return 0;
 }
 
