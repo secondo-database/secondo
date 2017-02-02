@@ -3151,6 +3151,9 @@ Constructs a localinfo tor given k and the attribute indexes by ~attrnumbers~.
                 if(elems.size()< k){
                   initializeHeap();
                 }
+                if(elems.size()==0){
+                   return 0;
+                }
                 for(unsigned int i=elems.size()-1; i>0; i--){
                   Tuple* top = elems[0];
                   Tuple* last = elems[i];
