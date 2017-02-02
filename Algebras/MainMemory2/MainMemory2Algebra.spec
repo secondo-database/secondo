@@ -139,6 +139,7 @@ operator count alias COUNT pattern _ op
 operator mcreatepqueue alias mcreatepqueue pattern _ op[_,_]
 operator size alias SIZE pattern op(_)
 operator mfeedpq alias MFEEDPQ pattern _ op
+operator mfeedpqAbort alias MFEEDPQABORT pattern _ op [_ ]
 operator minserttuplepq alias MINSERTTUPLEPQ pattern op(_,_,_,_)
 
 

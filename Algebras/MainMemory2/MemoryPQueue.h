@@ -83,6 +83,10 @@ class pqueueentry{
       return tuple->GetTupleType();
     }
 
+    inline double getPrio() const{
+       return priority;
+    }
+
  private:
   Tuple* tuple;
   double priority;
@@ -132,7 +136,7 @@ class MemoryPQueueObject : public MemoryObject {
           return queue.size();
         }
 
-        pqueueentry top(){
+        const pqueueentry& top(){
            return queue.top(); 
         }
 

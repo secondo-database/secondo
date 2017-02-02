@@ -1201,6 +1201,17 @@ Signature : mpqueue x tuple x real [x IDENT] -> bool
 Example   : query strassen feed extend[L : size(.GeoData), K : 1] extend[ Ok : pwrap("strassen_PQ_L")  minserttuplepqproject[ . , .L * 2.0; Name, Typ, GeoData,L]] head[10] count
 Result    : 10
 
+Operator  : mfeedpqAbort
+Number    : 611
+Signature : mpqueue x {int,real} -> stream(tuple)
+Example   : query ("strassen_PQ_L" mfeedpqAbort[700] count) > 0
+Result    : TRUE
+
+Operator  : mfeedpqAbort
+Number    : 612
+Signature : mpqueue x {int,real} -> stream(tuple)
+Example   : query pwrap("strassen_PQ_L") mfeedpqAbort[700.0] count
+Result    : 0
 
 
 

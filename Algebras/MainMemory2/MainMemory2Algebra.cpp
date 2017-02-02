@@ -17015,6 +17015,132 @@ Operator mfeedpqOp(
   mfeedpqTM
 );
 
+/*
+Operator mfeedpqAbort
+
+*/
+ListExpr mfeedpqAbortTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  string err;
+  ListExpr a1 = nl->First(args);
+  if(!getMemType(nl->First(a1), nl->Second(a1),a1, err, true)){
+    return listutils::typeError("expected mpqueue");
+  }
+  a1 = nl->Second(a1);
+  if(!MemoryPQueueObject::checkType(a1)){
+    return listutils::typeError("expected mpqueue");
+  }
+  ListExpr max = nl->First(nl->Second(args));
+  if(   !CcReal::checkType(max) 
+     && !CcInt::checkType(max)){
+    return listutils::typeError("The second argument must be of "
+                                "type int or real");
+  }
+  return nl->TwoElemList(
+                listutils::basicSymbol<Stream<Tuple> >(),
+                nl->Second(a1));  
+
+}
+
+class mfeedpqAbortInfo{
+   public:
+      mfeedpqAbortInfo(MemoryPQueueObject* _obj, double _m): obj(_obj), m(_m){}
+
+      ~mfeedpqAbortInfo(){}
+
+      Tuple* next(){
+          if(obj->empty()){
+             return 0;
+          }
+          if(obj->top().getPrio()>=m){ // maximum prio reached
+            return 0;
+          }
+          pqueueentry e = obj->pop();
+          Tuple* t =  e();
+          return t;
+      }
+
+   private:
+      MemoryPQueueObject* obj;
+      double m;
+};
+
+
+template<class T, class M>
+int mfeedpqAbortVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   mfeedpqAbortInfo* li = (mfeedpqAbortInfo*) local.addr;
+   switch(message){
+     case OPEN:{
+            if(li){
+                delete li;
+                local.addr = 0;
+            }
+            MemoryPQueueObject* q = getMemoryPQueue((T*) args[0].addr);
+            M* max = (M*) args[1].addr;
+            if(!max->IsDefined()){
+              return 0;
+            }
+            if(q){
+              local.addr = new mfeedpqAbortInfo(q, max->GetValue());
+            }
+            return 0;
+     }
+     case REQUEST:
+             result.addr = li?li->next():0;
+             return result.addr?YIELD:CANCEL;
+     case CLOSE:
+             if(li){
+               delete li;
+               local.addr = 0;
+             }
+             return 0;
+   }
+  return -1;
+}
+
+ValueMapping mfeedpqAbortVM[] = {
+   mfeedpqAbortVMT<CcString,CcInt>,
+   mfeedpqAbortVMT<Mem,CcInt>,
+   mfeedpqAbortVMT<MPointer,CcInt>,
+   mfeedpqAbortVMT<CcString,CcReal>,
+   mfeedpqAbortVMT<Mem,CcReal>,
+   mfeedpqAbortVMT<MPointer,CcReal>,
+};
+
+int mfeedpqAbortSelect(ListExpr args){
+  int n1 = getRepNum(nl->First(args));
+  if(n1<0) return -1;
+  int n2 = CcInt::checkType(nl->Second(args))?0:3;
+  return n1 + n2;
+}
+
+
+OperatorSpec mfeedpqAbortSpec(
+  "MPQUEUE x {int,real} -> stream(tuple)",   
+  " _ mfeedpqAbort[_] ",
+  "Feeds the constent of a priority queue into a tuple stream. "
+  "In contrast to a 'normal' feed, the queue is eat up. If "
+  "the maximum priority (2nd arg) ist reached, feeding is stopped",
+  "query strassen_L mfeedpqAbort[230.0] count"
+);
+
+
+Operator mfeedpqAbortOp(
+  "mfeedpqAbort",
+  mfeedpqAbortSpec.getStr(),
+  6,
+  mfeedpqAbortVM,
+  mfeedpqAbortSelect,
+  mfeedpqAbortTM
+);
+
 
 /*
 Operator ~minsertTuplepq~
@@ -17762,6 +17888,8 @@ class MainMemory2Algebra : public Algebra {
           sizeOp.SetUsesArgsInTypeMapping();
           AddOperator(&mfeedpqOp);
           mfeedpqOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mfeedpqAbortOp);
+          mfeedpqAbortOp.SetUsesArgsInTypeMapping();
           AddOperator(&minsertTuplepqOp);
           minsertTuplepqOp.SetUsesArgsInTypeMapping();
           AddOperator(&minserttuplepqprojectOp);
