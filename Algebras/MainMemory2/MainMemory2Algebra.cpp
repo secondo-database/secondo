@@ -6388,7 +6388,7 @@ class distScanInfo{
         while(true){
             const pair<T,TupleId>* p = it->next();
             if(!p){ return 0;}
-            if(p->second < rel->size()){
+            if((p->second <= rel->size()) && (p->second>0)){
                Tuple* res = (*rel)[p->second-1];
                if(res){ // ignore deleted tuples
                  res->IncReference();
