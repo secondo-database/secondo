@@ -134,7 +134,10 @@ SecondoPLMode(TTYParameter& tp)
 // readline support is only needed on unix systems.
 #ifndef SECONDO_WIN32
   string histfile=".secondopl_history";
+
+#if PLVERSION<70334  
   PL_install_readline();
+#endif
   
   // term_t ah = PL_new_term_refs(1);
   // static predicate_t prh = PL_predicate("rl_read_history",1,"");
