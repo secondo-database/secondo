@@ -30,6 +30,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ConnectionInfo.h"
 #include "Dist2Helper.h"
 #include "FileSystem.h"
+#include "FileTransferServer.h"
+#include "FileTransferClient.h"
+#include "FileTransferKeywords.h"
+#include "SocketIO.h"
+
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 
@@ -373,6 +378,113 @@ class PProgressView: public MessageHandler{
 };
 
 
+class ConnectionFinisher{
+
+  public:
+      ConnectionFinisher(const vector<ConnectionInfo*> _cons,
+                         vector<ConnectionInfo*>* _connections,
+                         vector<string>* _commands,
+                         vector<int>* _errors,
+                         vector<string>* _errMsgs,
+                         vector<double>* _runtimes ): 
+          cons(_cons),
+          connections(_connections),
+          commands(_commands),
+          errors(_errors),
+          errorMsgs(_errMsgs),
+          runtimes(_runtimes){
+            connections->clear();
+            commands->clear();
+            errors->clear();
+            errorMsgs->clear();
+            runtimes->clear();
+ 
+          }
+
+
+      ~ConnectionFinisher() {
+         for(size_t i=0;i<runners.size();i++){
+            threads[i]->join();
+            delete threads[i];
+            delete runners[i];
+         }
+
+      }
+
+      void finish(){
+
+         for(size_t i=0;i<cons.size();i++){
+            ConnectionInfo* ci = (*connections)[i];
+            Runner* r = new Runner(ci, this);
+            boost::thread* t = new boost::thread(&Runner::run,r);
+            runners.push_back(r);
+            threads.push_back(t);
+         }
+
+      }
+
+
+  private:
+      vector<ConnectionInfo*> cons;
+      vector<ConnectionInfo*>* connections;
+      vector<string>* commands;
+      vector<int>* errors;
+      vector<string>* errorMsgs;
+      vector<double>* runtimes;
+
+
+      class Runner{
+        public:
+           Runner(ConnectionInfo* _ci,
+                  ConnectionFinisher* _cf):
+                  ci(_ci), cf(_cf){}
+ 
+       
+      
+
+
+      void run(){
+          vector<string> local_cmds;
+          vector<int> local_errors;
+          vector<string> local_msg;
+          vector<double> local_times;
+          ci->finishCollectMode(local_cmds,
+                                local_errors,
+                                local_msg,
+                                local_times);
+
+          // transfer data to global variables
+          {
+            boost::lock_guard<boost::mutex> guard(cf->mtx);
+            size_t m = local_cmds.size();
+            assert(local_errors.size()==m);
+            assert(local_msg.size()==m);
+            assert(local_times.size()==m);
+            for(size_t i=0;i<m;i++){
+               cf->connections->push_back(ci);
+               cf->commands->push_back(local_cmds[i]);
+               cf->errors->push_back(local_errors[i]);
+               cf->errorMsgs->push_back(local_msg[i]);
+               cf->runtimes->push_back(local_times[i]);
+            }
+          }
+      }
+  
+     private:
+        ConnectionInfo* ci;
+        ConnectionFinisher* cf;
+
+    };
+
+
+      boost::mutex mtx;
+      vector<Runner*> runners;
+      vector<boost::thread*> threads;
+
+
+};
+
+
 
 /*
 5 The Distributed2Algebra
@@ -416,7 +528,10 @@ Adds a new connection to the connection pool.
        int res = connections.size();
        connections.push_back(ci);
        if(ci){
-           ci->setId(connections.size());
+         ci->setId(connections.size());
+         if(collectMode){
+           ci->startCollectMode();
+         }  
        }
        return res; 
      }
@@ -1115,6 +1230,88 @@ connections.
 
     ErrorWriter errorWriter;
 
+
+    const string& getUser(){ return user;}
+    const string& getPasswd(){ return passwd;}
+
+    void setAccount(const string&user, const string& passwd){
+       this->user=user;
+       this->passwd=passwd;
+    }
+
+
+    bool isCollectMode() const{
+      return collectMode;
+    }
+
+    void startCollectMode(){
+      if(collectMode){
+        return;
+      }
+
+      collectMode = true;
+      for(size_t i=0;i<connections.size();i++){
+         if(connections[i]){
+            connections[i]->startCollectMode();
+         }
+      } 
+      // worker connections
+      typename map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
+      for(it = workerconnections.begin(); it!=workerconnections.end(); it++){
+         ConnectionInfo* ci = it->second.second;
+         if(ci){
+            ci->startCollectMode();
+         }
+      }
+    }
+
+    void abortCollectMode(){
+      collectMode = false;
+      // manual connections
+      for(size_t i=0;i<connections.size();i++){
+         if(connections[i]){
+            connections[i]->abortCollectMode();
+         }
+      } 
+      // worker connections
+      typename map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
+      for(it = workerconnections.begin(); it!=workerconnections.end(); it++){
+         ConnectionInfo* ci = it->second.second;
+         if(ci){
+            ci->abortCollectMode();
+         }
+      }
+      
+    }
+
+    void finishCollectMode(vector<ConnectionInfo*>& cis,
+                           vector<string>& commands,
+                           vector<int>& errorCodes,
+                           vector<string>& errorMsgs,
+                           vector<double>& runtimes){
+      // collect all existing connections
+      // into a single vector
+      vector<ConnectionInfo*> cons;
+      for(size_t i=0;i<connections.size();i++){
+         if(connections[i]){
+            cons.push_back(connections[i]);
+         }
+      } 
+      typename map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
+      for(it = workerconnections.begin(); it!=workerconnections.end(); it++){
+         ConnectionInfo* ci = it->second.second;
+         if(ci){
+            cons.push_back(ci);
+         }
+      }
+      ConnectionFinisher cf(cons,
+                            &cis, &commands,
+                            &errorCodes, &errorMsgs,
+                            &runtimes );
+      cf.finish();
+    }
+
+
   private:
     // connections managed by the user
     vector<ConnectionInfo*> connections;
@@ -1132,6 +1329,13 @@ connections.
     boost::mutex namecounteraccess;
 
     PProgressView* pprogView;
+    // access information for connecting with workers
+    // assumed, all workes use the same user/password combination.
+    string user;
+    string passwd;
+
+    bool collectMode;
+
 
 
    // returns a unique number
@@ -1147,7 +1351,13 @@ connections.
       string host = worker.getHost();
       int port = worker.getPort();
       string config = worker.getConfig();
-      ConnectionInfo* ci = ConnectionInfo::createConnection(host, port, config);
+      ConnectionInfo* ci = ConnectionInfo::createConnection(host, port, config,
+                                                            user, passwd);
+      if(ci){
+        if(collectMode){
+          ci->startCollectMode();
+        }
+      }
       res.first="";
       res.second = ci;
       return ci!=0;
@@ -1350,12 +1560,12 @@ int connectVMT( Word* args, Word& result, int message,
    }
    NestedList* mynl = new NestedList();
    SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
-   string user="";
-   string passwd = "";
    string errMsg;
    MessageCenter* msgcenter = MessageCenter::GetInstance();
    si->setMaxAttempts(4);
    si->setTimeout(1);
+   string user = algInstance->getUser();
+   string passwd = algInstance->getPasswd();
    if(! si->Initialize(user, passwd, host, 
                        stringutils::int2str(port), file, 
                        errMsg, true)){
@@ -3740,7 +3950,9 @@ class Connector{
         si->setMaxAttempts(4);
         si->setTimeout(1);
         string errMsg;
-        if(!si->Initialize( "", "", host, stringutils::int2str(port),
+        string user = algInstance->getUser();
+        string passwd = algInstance->getPasswd();
+        if(!si->Initialize( user, passwd, host, stringutils::int2str(port),
                            config,errMsg, true)){
            listener->connectionDone(inTuple, inTupleNo, 0);
            delete si;
@@ -3748,6 +3960,9 @@ class Connector{
            delete mynl;
         } else {
            ConnectionInfo* ci = new ConnectionInfo(host,port,config,si,mynl);
+           if(algInstance->isCollectMode()){
+             ci->startCollectMode();
+           }
            listener->connectionDone(inTuple, inTupleNo, ci);
         }
      }
@@ -6240,12 +6455,6 @@ OperatorSpec ffeed5Spec(
   " query 'ten.bin' ffeed5 count "
  );
 
-OperatorSpec feedSpec(
-   " {string, text} -> stream(TUPLE)  | f[s]rel(tuple(X)) -> stream(tuple(X))",
-   " _ feed",
-   " Restores  a tuple stream from a binary file. ",
-   " query 'ten.bin' feed count "
-);
 
 /*
 1.4.6 Instance
@@ -6260,14 +6469,6 @@ Operator ffeed5Op(
    ffeed5TM
 );
 
-Operator feedOp(
-   "feed",
-   feedSpec.getStr(),
-   4,
-   ffeed5VM,
-   ffeed5Select,
-   ffeed5TM
-);
 
 /*
 1.5 Operator create darray
@@ -11397,16 +11598,16 @@ class Mapper{
     }
 
  private:
-    A* array;
-    ListExpr aType;
-    CcString* ccname;
-    FText* funText;
-    bool isRel;
-    bool isStream;
-    DFArray* dfarray;
-    DArray* darray;
-    string name;
-    string dbname;
+    A* array;         // input array
+    ListExpr aType;   // input type
+    CcString* ccname; // name of result given by user
+    FText* funText;   // function to apply as text
+    bool isRel;       // result is a relation
+    bool isStream;    // result is a stream
+    DFArray* dfarray; // result dfarray
+    DArray* darray;   // result darray
+    string name;      // actual name of the result 
+    string dbname;    // name of the database
 
 
     void startDArray(){
@@ -11417,7 +11618,6 @@ class Mapper{
        if(array->numOfWorkers()<1){
          darray->makeUndefined();
        }
-       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
        if(!ccname->IsDefined() || ccname->GetValue().length()==0){
           algInstance->getWorkerConnection(array->getWorker(0),dbname);
           name = algInstance->getTempName();            
@@ -14083,240 +14283,6 @@ Operator DFARRAYTUPLEOP(
    Operator::SimpleSelect,
    DFARRAYTUPLETM
 );
-
-/*
-4. File Transfer between workers
-
-The following code implements the filetransfer between different workers 
-without using the master. For that purpose, an operator is provided which
-creates a server and waits for the request of a client. If a client is 
-connected, the client may either send a file to this server or request a
-file from the server. The client itselfs is also created by an operator.
-
-In the first implementation, the server allowes only a single client to 
-connect. After transferring a single file, the connection is terminated.
-
-If the overhead for creating a server is big, this will be canged in the
-future.
-
-*/
-
-class FileTransferKeywords{
- public:
- static string FileTransferServer(){ return "<FILETRANSFERSERVER>";}
- static string FileTransferClient(){ return "<FILETRANSFERCLIENT>";}
- static string SendFile(){ return "<SENDFILE>";}
- static string ReceiveFile(){ return "<RECEIVEFILE>";}
- static string Data(){ return "<DATA>";}
- static string EndData(){ return "</DATA>";}
- static string FileNotFound(){ return "<FILENOTFOUND>";}
- static string Cancel(){ return "<CANCEL>";}
- static string OK(){ return "<OK>";}
-
- static bool isBool(string s){
-     stringutils::toLower(s);
-     return (s=="true") || (s=="false");
- }
-
- static bool getBool(string s){
-     stringutils::toLower(s);
-     return s=="true";
- }
-
-};
-
-
-class FileTransferServer{
-
-  public:
-    FileTransferServer(int _port): port(_port), listener(0), server(0){}
-
-    ~FileTransferServer(){
-       if(server){
-         server->ShutDown();
-         delete server;
-       }
-       if(listener){
-         listener->ShutDown();
-         delete listener;
-       }
-     }
-
-    int start(){
-       listener = Socket::CreateGlobal("localhost", stringutils::int2str(port));
-       if(!listener->IsOk()){
-            return 1;
-       }
-       server = listener->Accept();
-       if(!server->IsOk()){
-          return 2;
-       }
-       return communicate();
-    }
-
-  private:
-     int port;
-     Socket* listener;
-     Socket* server;
-
-     int communicate(){
-       try{
-          iostream& io = server->GetSocketStream(); 
-          io << FileTransferKeywords::FileTransferServer() << endl;
-          io.flush();
-          string line;
-          getline(io,line);
-          if(line==FileTransferKeywords::Cancel()){
-             return true;
-          }
-          if(line!=FileTransferKeywords::FileTransferClient()){ 
-            cerr << "Protocol error" << endl;
-            return 3;
-          }
-          getline(io, line);
-          if(line==FileTransferKeywords::SendFile()){
-            return sendFile(io);
-          } else if(line==FileTransferKeywords::ReceiveFile()){
-            return receiveFile(io);
-          } else {
-             cerr << "protocol error" << endl;
-             return 4;
-          }
-       }catch(...){
-          cerr << "Exception in server occured during communination" << endl;
-          return 5;
-       }
-     }
-
-     int sendFile(iostream& io) {
-        // client ask for a file
-        string filename;
-        getline(io,filename);
-        ifstream in(filename.c_str(), ios::binary);
-        if(!in){
-           io << FileTransferKeywords::FileNotFound() << endl;
-           io.flush();
-           return 6;
-        }
-        in.seekg(0,in.end);
-        size_t length = in.tellg();
-        in.seekg(0,in.beg);
-        io << FileTransferKeywords::Data() << endl;
-        io << stringutils::any2str(length) << endl;
-        io.flush();
-        size_t bufsize = 1048576;
-        char buffer[bufsize];
-        while(!in.eof() && in.good()){
-            in.read(buffer, bufsize);
-            size_t r = in.gcount();
-            io.write(buffer, r);
-        }
-        in.close();
-        io << FileTransferKeywords::EndData() << endl;
-        io.flush();
-        return 0;
-     }
-
-     bool receiveFile(iostream& io){
-        // not implemented yet
-        return 7;
-     }
-
-};
-
-
-class FileTransferClient{
-
-  public:
-
-     FileTransferClient(string& _server, int _port, bool _receive, 
-                        string& _localName, string& _remoteName):
-        server(_server), port(_port), receive(_receive), localName(_localName),
-        remoteName(_remoteName){
-     }
-
-     ~FileTransferClient(){
-         if(socket){
-           socket->ShutDown();
-           delete socket;
-         }
-      }
-     int start(){
-        socket = Socket::Connect(server, stringutils::int2str(port), 
-                                 Socket::SockGlobalDomain, 3, 1);
-        if(!socket){
-           return 8;
-        }
-        if(!socket->IsOk()){
-          return 9;
-        }
-        if(receive){
-           return receiveFile();
-        } else {
-           return sendFile();
-        }
-     }
-
-    private:
-      string server;
-      int port;
-      bool receive;
-      string localName;
-      string remoteName;
-      Socket* socket;
-    
-
-      int sendFile(){
-          return 10; // not implemented yet
-      }
-
-      int receiveFile(){
-         iostream& io = socket->GetSocketStream();
-         string line;
-         getline(io,line);
-         if(line!=FileTransferKeywords::FileTransferServer()){
-            return 11;
-         }
-         io << FileTransferKeywords::FileTransferClient() << endl;
-         io << FileTransferKeywords::SendFile() << endl;
-         io << remoteName << endl;
-         io.flush();
-         getline(io,line);
-         if(line==FileTransferKeywords::FileNotFound()){
-            return 12;
-         }
-         if(line!=FileTransferKeywords::Data()){
-            return 13;
-         }
-         getline(io,line);
-         bool ok;
-         size_t t = stringutils::str2int<size_t>(line,ok);
-   
-         if(!ok || t<1){
-           return 14;
-         }
-
-         size_t bufsize = 4096;
-         char buffer[bufsize]; 
-
-         // read in data
-         ofstream out(localName.c_str(),ios::binary|ios::trunc);
-         while(t>0){
-             size_t s = min(t,bufsize);
-             if(!io.read(buffer, s)){
-                return 15;
-             }
-             t -= s;
-             out.write(buffer,s);
-         }
-         out.close();
-         getline(io,line);
-         if(line!=FileTransferKeywords::EndData()){
-             return 16;
-         } 
-         return 0;
-      }
-};
 
 /*
 4.1 Operator ~fileTransferServer~
@@ -19424,10 +19390,10 @@ class deleteRemoteDatabasesInfo{
                          string& msg){
         NestedList* mynl = new NestedList();
         SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
-        string user="";
-        string passwd = "";
         si->setMaxAttempts(4);
         si->setTimeout(1);
+        string user = algInstance->getUser();
+        string passwd = algInstance->getPasswd();
         if(! si->Initialize(user, passwd, host,
                             stringutils::int2str(port), 
                             config,
@@ -19498,8 +19464,6 @@ class deleteRemoteDatabasesInfo{
             return true;
         }
     }
-
-
 };
 
 
@@ -19588,6 +19552,81 @@ Operator deleteRemoteDatabasesOp(
 );
 
 
+/*
+68 Operator ~setAccount~
+
+*/
+ListExpr setAccountTM(ListExpr args){
+  string err = "{string,text} x {string, text} expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (invalid number of args)");
+  }
+  ListExpr a1 = nl->First(args);
+  if( !CcString::checkType(a1) && !FText::checkType(a1)){
+     return listutils::typeError(err + " (first arg is not a string nor text)");
+  }
+  ListExpr a2 = nl->Second(args);
+  if( !CcString::checkType(a2) && !FText::checkType(a2)){
+     return listutils::typeError(err + " (first arg is not a string nor text)");
+  }
+  return listutils::basicSymbol<CcBool>(); 
+}
+
+
+
+template<class U, class P>
+int setAccountVMT(Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+   U* user = (U*) args[0].addr;
+   P* pass = (P*) args[1].addr;
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   if(!user->IsDefined() || !pass->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   algInstance->setAccount(user->GetValue(), pass->GetValue());
+   res->Set(true,true);
+   return 0;
+}
+
+
+ValueMapping setAccountVM[] = {
+   setAccountVMT<CcString,CcString>,
+   setAccountVMT<CcString,FText>,
+   setAccountVMT<FText,CcString>,
+   setAccountVMT<FText,FText>
+};
+
+int setAccountSelect(ListExpr args){
+   ListExpr H = nl->First(args);
+   ListExpr C = nl->Second(args);
+   int n1 = CcString::checkType(H)?0:2;
+   int n2 = CcString::checkType(C)?0:1;
+   return n1+n2;
+}
+
+OperatorSpec setAccountSpec(
+  "{string,text} x {string, text} -> bool",
+  "setAccount(user,passwd)",
+  "Set the user / password combination for all "
+  "connections instatiated by the Distributed2Algebra.",
+  "query setAccount( \"user\",'topsecret');"
+);
+
+Operator setAccountOp(
+  "setAccount",
+  setAccountSpec.getStr(),
+  4,
+  setAccountVM,
+  setAccountSelect,
+  setAccountTM 
+);
+
+
+
+
+
 
 /*
 3 Implementation of the Algebra
@@ -19595,6 +19634,8 @@ Operator deleteRemoteDatabasesOp(
 */
 Distributed2Algebra::Distributed2Algebra(){
    namecounter = 0;
+   user ="";
+   passwd="";
 
    AddTypeConstructor(&DArrayTC);
    DArrayTC.AssociateKind(Kind::SIMPLE());
@@ -19638,8 +19679,6 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&fconsume5Op);
    AddOperator(&ffeed5Op);
    ffeed5Op.SetUsesArgsInTypeMapping();
-   AddOperator(&feedOp);
-   feedOp.SetUsesArgsInTypeMapping();
 
    AddOperator(&createDArrayOp);
 
@@ -19793,10 +19832,12 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&da2LogOp);
    
    AddOperator(&deleteRemoteDatabasesOp);
+   AddOperator(&setAccountOp);
 
 
    pprogView = new PProgressView();
    MessageCenter::GetInstance()->AddHandler(pprogView);
+   collectMode = false;
 
 }
 
