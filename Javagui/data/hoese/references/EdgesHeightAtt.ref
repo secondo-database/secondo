@@ -1,0 +1,15 @@
+
+( AttrCatPool 
+   (
+      ( AttrCatLink 
+         ( "Gradients" 
+            (
+               ( string  "lower-20"  "CurveDarkGreen" )
+               ( string  "lower-10"  "CurveGreen" )
+               ( string  "lower-6"  "CurveLightGreen" )
+               ( string  "lower-2"  "CurveYellowGreen" )
+               ( string  "lower2"  "CurveYellow" )
+               ( string  "lower6"  "CurveOrange" )
+               ( string  "lower10"  "CurveDarkOrange" )
+               ( string  "lower20"  "CurveRed" )
+               ( string  "bigger20"  "CurveDarkRed" ))))))

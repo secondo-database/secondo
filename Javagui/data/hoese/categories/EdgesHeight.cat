@@ -1,0 +1,83 @@
+
+( Categories 
+   (
+      ( "Default" 
+         ( 0  0  0 ) 0  0.0  FALSE  3.0  100.0  nofill 
+         ( 0  0  0 )
+         ( 0  0  0 ) ""  1  1 
+         ( 0.0  0.0 
+            ( 0  255  0 )
+            ( 255  0  0 ) 0 )
+         ( audio  FALSE ))
+      ( "CurveDarkRed" 
+         ( 153  0  0 ) 0  3.0  FALSE  3.0  100.0  nofill 
+         ( 0  0  0 )
+         ( 0  0  0 ) ""  0  0 
+         ( 0.0  0.0 
+            ( 0  255  0 )
+            ( 255  0  0 ) 0 )
+         ( audio  FALSE ))
+      ( "CurveRed" 
+         ( 255  0  0 ) 0  3.0  FALSE  3.0  100.0  nofill 
+         ( 0  0  0 )
+         ( 0  0  0 ) ""  0  0 
+         ( 0.0  0.0 
+            ( 0  255  0 )
+            ( 255  0  0 ) 0 )
+         ( audio  FALSE ))
+      ( "CurveDarkOrange" 
+         ( 155  53  0 ) 0  3.0  FALSE  3.0  100.0  nofill 
+         ( 0  0  0 )
+         ( 0  0  0 ) ""  0  0 
+         ( 0.0  0.0 
+            ( 0  255  0 )
+            ( 255  0  0 ) 0 )
+         ( audio  FALSE ))
+      ( "CurveOrange" 
+         ( 255  153  0 ) 0  3.0  FALSE  3.0  100.0  nofill 
+         ( 0  0  0 )
+         ( 0  0  0 ) ""  0  0 
+         ( 0.0  0.0 
+            ( 0  255  0 )
+            ( 255  0  0 ) 0 )
+         ( audio  FALSE ))
+      ( "CurveYellow" 
+         ( 205  205  0 ) 0  3.0  FALSE  3.0  100.0  nofill 
+         ( 0  0  0 )
+         ( 0  0  0 ) ""  0  0 
+         ( 0.0  0.0 
+            ( 0  255  0 )
+            ( 255  0  0 ) 0 )
+         ( audio  FALSE ))
+      ( "CurveYellowGreen" 
+         ( 104  155  0 ) 0  3.0  FALSE  3.0  100.0  nofill 
+         ( 0  0  0 )
+         ( 0  0  0 ) ""  0  0 
+         ( 0.0  0.0 
+            ( 0  255  0 )
+            ( 255  0  0 ) 0 )
+         ( audio  FALSE ))
+      ( "CurveLightGreen" 
+         ( 103  205  103 ) 0  3.0  FALSE  3.0  100.0  nofill 
+         ( 0  0  0 )
+         ( 0  0  0 ) ""  0  0 
+         ( 0.0  0.0 
+            ( 0  255  0 )
+            ( 255  0  0 ) 0 )
+         ( audio  FALSE ))
+     ( "CurveGreen" 
+         ( 0  175  0 ) 0  3.0  FALSE  3.0  100.0  nofill 
+         ( 0  0  0 )
+         ( 0  0  0 ) ""  0  0 
+         ( 0.0  0.0 
+            ( 0  255  0 )
+            ( 255  0  0 ) 0 )
+         ( audio  FALSE ))
+      ( "CurveDarkGreen" 
+         ( 0  100  0 ) 0  3.0  FALSE  3.0  100.0  nofill 
+         ( 0  0  0 )
+         ( 0  0  0 ) ""  0  0 
+         ( 0.0  0.0 
+            ( 0  255  0 )
+            ( 255  0  0 ) 0 )
+         ( audio  FALSE ))))
