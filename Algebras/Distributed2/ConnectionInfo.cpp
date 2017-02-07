@@ -57,7 +57,6 @@ ConnectionInfo::ConnectionInfo(const string& _host,
     sendFolder = "";
     sendPath = "";
     serverPID=0;
-    collectMode=false;
     if(si!=0){
       try{
         serverPID = si->getPid();
@@ -185,33 +184,29 @@ void ConnectionInfo::simpleCommand(string command1,
     {
         command = command1;
     }
-    if(collectMode){
-      collectedCommands.push_back(make_pair(command,false));
-    } else {
-      SecErrInfo serr;
-      ListExpr resList;
-      {
-          boost::lock_guard < boost::recursive_mutex > guard(simtx);
-          StopWatch sw;
-          showCommand(si, host, port, command, true, showCommands);
-          si->Secondo(command, resList, serr);
-          showCommand(si, host, port, command, false, showCommands);
-          runtime = sw.diffSecondsReal();
-          err = serr.code;
-          if (logOn)
-          {
-              commandLog.insert(this, this->getHost(), 
-                                this->getSecondoHome(showCommands, commandLog),
-                                command, runtime, err);
-          }
-          if (err == 0)
-          {
-              result = mynl->ToString(resList);
-          } else
-          {
-              result = si->GetErrorMessage(err);
-          }
-      }
+    SecErrInfo serr;
+    ListExpr resList;
+    {
+        boost::lock_guard < boost::recursive_mutex > guard(simtx);
+        StopWatch sw;
+        showCommand(si, host, port, command, true, showCommands);
+        si->Secondo(command, resList, serr);
+        showCommand(si, host, port, command, false, showCommands);
+        runtime = sw.diffSecondsReal();
+        err = serr.code;
+        if (logOn)
+        {
+            commandLog.insert(this, this->getHost(), 
+                              this->getSecondoHome(showCommands, commandLog),
+                              command, runtime, err);
+        }
+        if (err == 0)
+        {
+            result = mynl->ToString(resList);
+        } else
+        {
+            result = si->GetErrorMessage(err);
+        }
     }
 }
 
@@ -332,9 +327,7 @@ void ConnectionInfo::simpleCommand(const string& command1,
     {
         command = command1;
     }
-    if(collectMode){
-       collectedCommands.push_back(make_pair(command,false));
-    } else {
+    {
         boost::lock_guard < boost::recursive_mutex > guard(simtx);
         ;
         SecErrInfo serr;
@@ -383,46 +376,43 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
     {
         command = command1;
     }
-    if(collectMode){
-      collectedCommands.push_back(make_pair(command, true));
-    } else {
-      boost::lock_guard < boost::recursive_mutex > guard(simtx);
-      ListExpr cmd = mynl->TheEmptyList();
-      {
-          boost::lock_guard < boost::mutex > guard(nlparsemtx);
-          if (!mynl->ReadFromString(command, cmd))
-          {
-              error = 3;
-              errMsg = "error in parsing list";
-              return;
-          }
-      }
-      SecErrInfo serr;
-      ListExpr myResList = mynl->TheEmptyList();
-      StopWatch sw;
-      showCommand(si, host, port, command, true, showCommands);
-      si->Secondo(cmd, myResList, serr);
-      showCommand(si, host, port, command, false, showCommands);
-      runtime = sw.diffSecondsReal();
-      if (logOn)
-      {
-          commandLog.insert(this, this->getHost(), 
-                            this->getSecondoHome(showCommands, commandLog),
-                            command, runtime, serr.code);
-      }
-      error = serr.code;
-      errMsg = serr.msg;
-  
-      resList = mynl->ToString(myResList);
-      if (mynl->AtomType(cmd) != NoAtom && !mynl->IsEmpty(cmd))
-      {
-          mynl->Destroy(cmd);
-      }
-      if (mynl->AtomType(myResList) != NoAtom && !mynl->IsEmpty(myResList))
-      {
-          mynl->Destroy(myResList);
-      }
-   } 
+    boost::lock_guard < boost::recursive_mutex > guard(simtx);
+    ListExpr cmd = mynl->TheEmptyList();
+    {
+        boost::lock_guard < boost::mutex > guard(nlparsemtx);
+        if (!mynl->ReadFromString(command, cmd))
+        {
+            error = 3;
+            errMsg = "error in parsing list";
+            return;
+        }
+    }
+    SecErrInfo serr;
+    ListExpr myResList = mynl->TheEmptyList();
+    StopWatch sw;
+    showCommand(si, host, port, command, true, showCommands);
+    si->Secondo(cmd, myResList, serr);
+    showCommand(si, host, port, command, false, showCommands);
+    runtime = sw.diffSecondsReal();
+    if (logOn)
+    {
+        commandLog.insert(this, this->getHost(), 
+                          this->getSecondoHome(showCommands, commandLog),
+                          command, runtime, serr.code);
+    }
+    error = serr.code;
+    errMsg = serr.msg;
+
+    resList = mynl->ToString(myResList);
+    if (mynl->AtomType(cmd) != NoAtom && !mynl->IsEmpty(cmd))
+    {
+        mynl->Destroy(cmd);
+    }
+    if (mynl->AtomType(myResList) != NoAtom && !mynl->IsEmpty(myResList))
+    {
+        mynl->Destroy(myResList);
+    }
+
 }
 
 /*
@@ -451,34 +441,30 @@ void ConnectionInfo::simpleCommand(const string& command1,
     {
         command = command1;
     }
-    if(collectMode){
-      collectedCommands.push_back(make_pair(command, false));
-    } else {
-      boost::lock_guard < boost::recursive_mutex > guard(simtx);
-      ;
-      SecErrInfo serr;
-      ListExpr myResList = mynl->TheEmptyList();
-      StopWatch sw;
-      showCommand(si, host, port, command, true, showCommands);
-      si->Secondo(command, myResList, serr);
-      showCommand(si, host, port, command, false, showCommands);
-      runtime = sw.diffSecondsReal();
-      if (logOn)
-      {
-          commandLog.insert(this, this->getHost(), 
-                            this->getSecondoHome(showCommands, commandLog),
-                            command, runtime, serr.code);
-      }
-      error = serr.code;
-      errMsg = serr.msg;
-      // copy resultlist from local nested list to global nested list
-      {
-          boost::lock_guard < boost::mutex > guard(copylistmutex);
-          assert(mynl != nl);
-          resList = mynl->CopyList(myResList, nl);
-          mynl->Destroy(myResList);
-      }
-   }
+    boost::lock_guard < boost::recursive_mutex > guard(simtx);
+    ;
+    SecErrInfo serr;
+    ListExpr myResList = mynl->TheEmptyList();
+    StopWatch sw;
+    showCommand(si, host, port, command, true, showCommands);
+    si->Secondo(command, myResList, serr);
+    showCommand(si, host, port, command, false, showCommands);
+    runtime = sw.diffSecondsReal();
+    if (logOn)
+    {
+        commandLog.insert(this, this->getHost(), 
+                          this->getSecondoHome(showCommands, commandLog),
+                          command, runtime, serr.code);
+    }
+    error = serr.code;
+    errMsg = serr.msg;
+    // copy resultlist from local nested list to global nested list
+    {
+        boost::lock_guard < boost::mutex > guard(copylistmutex);
+        assert(mynl != nl);
+        resList = mynl->CopyList(myResList, nl);
+        mynl->Destroy(myResList);
+    }
 }
 
 /*
@@ -584,13 +570,13 @@ string ConnectionInfo::getSendPath()
 */
 ConnectionInfo* ConnectionInfo::createConnection(const string& host,
                                                  const int port,
-                                                 string& config,
-                                                 const string& user /*=""*/,
-                                                 const string& passwd/*=""*/)
+                                                 string& config)
 {
 
     NestedList* mynl = new NestedList();
     SecondoInterfaceCS* si = new SecondoInterfaceCS(true, mynl, true);
+    string user = "";
+    string passwd = "";
     string errMsg;
     si->setMaxAttempts(4);
     si->setTimeout(1);
@@ -1357,66 +1343,6 @@ void ConnectionInfo::retrieveSecondoHome(bool showCommands,
     secondoHome = nl->Text2String(nl->Second(result));
 }
 
-
-void ConnectionInfo::finishCollectMode(std::vector<std::string> & commands,
-                            std::vector<int>& errors,
-                            std::vector<std::string>& errMsgs,
-                            std::vector<double>& runtimes
-                         ) {
-    commands.clear();
-    errors.clear();
-    errMsgs.clear();
-    runtimes.clear();
-    if(!collectMode){
-       return;
-    }
-    for(size_t i=0;i<collectedCommands.size(); i++){
-      pair<string,bool>& cmd  = collectedCommands[i];
-      string& command = cmd.first;
-      commands.push_back(command);
-      if(!cmd.second){ // text command
-        SecErrInfo serr;
-        ListExpr resList;
-        double runtime;
-        {
-          boost::lock_guard < boost::recursive_mutex > guard(simtx);
-          StopWatch sw;
-          si->Secondo(command, resList, serr);
-          runtime = sw.diffSecondsReal();
-          errors.push_back(serr.code);
-          errMsgs.push_back(serr.msg);
-          runtimes.push_back(runtime);
-        }
-      } else { // command given as list
-        boost::lock_guard < boost::recursive_mutex > guard(simtx);
-        ListExpr cmd = mynl->TheEmptyList();
-        {
-            boost::lock_guard < boost::mutex > guard(nlparsemtx);
-            if (!mynl->ReadFromString(command, cmd))
-            {
-                errors.push_back(3);
-                errMsgs.push_back("error in parsing list");
-                runtimes.push_back(0);
-                return;
-            }
-        }
-        SecErrInfo serr;
-        ListExpr myResList = mynl->TheEmptyList();
-        StopWatch sw;
-        si->Secondo(cmd, myResList, serr);
-        double runtime = sw.diffSecondsReal();
-        errors.push_back(serr.code);
-        errMsgs.push_back(serr.msg);
-        runtimes.push_back(runtime);
-        mynl->Destroy(cmd);
-    }
-  }
-}
-
-
-
-
-
 std::ostream& operator<<(std::ostream& o, const ConnectionInfo& sc)
 {
     return sc.print(o);
@@ -1445,10 +1371,5 @@ void showError(const SecondoInterfaceCS* ci, const std::string& command ,
            << "with code " << errorCode << " : " << errorMessage << endl;
    }
 }
-
-
-
-
-
 
 }/* namespace distributed2 */

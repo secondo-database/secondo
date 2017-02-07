@@ -1,4 +1,3 @@
-Sequential: Yes
 Database : berlintest
 Restore  : No 
 
@@ -10,46 +9,46 @@ Result   : FALSE
 
 
 Operator : checkConnections 
-Number   : 2  
+Number   : 1  
 Signature: -> strean(tuple)
 Example  : query checkConnections() count
 Result   : 0
 
 Operator : rcmd 
-Number   : 3  
+Number   : 1  
 Signature: int x {string,text} -> stream(tuple)
 Example  : query rcmd(0,'list databases') count
 Result   : 0
 
 Operator : disconnect
-Number   : 4  
+Number   : 1  
 Signature: int -> int , -> int
 Example  : query disconnect(0)
 Result   : 0
 
 Operator  : rquery
-Number    : 5
+Number    : 1
 Signature : int x {string,text} -> ANY
 Example   : query rquery(0,'query ten count')
 Result    : bug
 Remark    : requires a remote server
 
 Operator  : prcmd
-Number    : 6
+Number    : 1
 Signature : stream(tuple) x attrName x attrName -> stream(tuple + E)
 Example   : query intstream(0,5) namedtransformstream[Server] extend[ W : 'open database berlintest'] prcmd[Server,W] consume
 Result    : bug 
 Remark    : requires a remote server
 
 Operator  : sendFile
-Number    : 7
+Number    : 1
 Signature : int x {string, text} x {string, text} -> bool
 Example   : query sendFile(0, 'local.txt', "remote.txt")
 Result    : bug
 Remark    : Requires a remote server
 
 Operator  : requestFile
-Number    : 8
+Number    : 1
 Signature : int x {string, text} x {string, text} -> bool
 Example   : query requestFile(0, 'remote.txt', "local.txt")
 Result    : bug
@@ -57,7 +56,7 @@ Remark    : Requires a remote server
 
 
 Operator  : psendFile
-Number    : 9
+Number    : 1
 Signature : stream(tuple) x ID x ID x ID -> stream(extend(tuple))
 Example   : query filetable feed psendFile[ServerNo, LocalFileName, RemoteFileName] consume
 Result    : bug
@@ -65,26 +64,26 @@ Remark    : Requires a remote server
 
 
 Operator  : prequestFile
-Number    : 10
+Number    : 1
 Signature : stream(tuple) x ID x ID x ID -> stream(extend(tuple))
 Example   : query filetable feed prequestFile[ServerNo, RemoteFileName, LocalFileName] consume
 Result    : bug
 Remark    : Requires a remote server
 
 Operator  : getRequestFolder 
-Number    : 11
+Number    : 1
 Signature : int -> text
 Example   : query getRequestFolder(0)
 Result    : (text undefined)
 
 Operator  : getSendFolder 
-Number    : 12
+Number    : 1
 Signature : int -> text
 Example   : query getSendFolder(0)
 Result    : (text undefined)
 
 Operator : pconnect
-Number   : 13
+Number   : 1
 Signature: stream(tuple(X)) x id x id x id -> stream(tuple(X + CNo))
 Example  : query connectTable feed pconnect[Host, Port, Config] consume
 Result   : bug
@@ -92,14 +91,14 @@ Remark   : Requires a remote server
 
 
 Operator : prquery
-Number   : 14
+Number   : 1
 Signature: stream(int) x {string.text} x int -> stream(Tuple(ServerNo : int, Result : text))
 Example  : query intstream(0,3) prquery['query ten count', 0] consume
 Result   : bug
 Remark   : Requires a remote server
 
 Operator : prquery2
-Number   : 15
+Number   : 1
 Signature: stream(tuple) x {string.text} x AttrName x AttrName x int x int  -> stream(tuple)
 Example  : query partserver prquery2['query ten_PART_SERVER count', Server, Part, 0, 4] consume
 Result   : bug
@@ -107,55 +106,60 @@ Remark   : Requires a remote server
 
 
 Operator : put
-Number   : 16
+Number   : 1
 Signature: d[f]array(T) x int x T -> d[f]array(T)
 Example  : query put([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))],3,27)
 Result   : bug
 Remark   : Requires a remote server
 
 Operator : get
-Number   : 17
+Number   : 1
 Signature: d[f]array(T) x int -> T
 Example  : query get([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))],3)
 Result   : bug
 Remark   : Requires a remote server
 
 Operator : size
-Number   : 18
+Number   : 1
 Signature: d[f]array(T) -> int 
 Example  : query size([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))])
 Result   : 4
 
 Operator : getWorkers 
-Number   : 19
+Number   : 1
 Signature: d[f]array(T) -> stream(tuple)
 Example  : query getWorkers([const darray(int) value (da1 4 (("onehost" 1234 "SecondoConfig.ini") ("otherhost" 1234 "SecondoConfig.ini")))]) count
 Result   : 2
 
 
 Operator  : fconsume5
-Number    : 20
+Number    : 1
 Signature : stream(TUPLE) x {string, text} -> stream(TUPLE)
 Example   : query ten feed fconsume5['ten.bin'] count
 Result    : 10
 
 
 Operator  : ffeed5
-Number    : 21
+Number    : 1
 Signature : {string, text} -> stream(TUPLE) | frel(tuple(X)) -> stream(tuple(X))
 Example   : query 'ten.bin' ffeed5  count
 Result    : 10
 
+Operator  : feed
+Number    : 1
+Signature : {string, text} -> stream(TUPLE) | frel(tuple(X)) -> stream(tuple(X))
+Example   : query 'ten.bin' feed  count
+Result    : 10
 
 Operator  : createDArray
-Number    : 23 
+Number    : 1 
 Signature : stream(TUPLE) x string x int x ANY [ x bool]   -> darray
 Example   : query workers feed createDArray["DA1", 10, strassen, TRUE]
 Result    : bug
 Remark    : in development
 
 Operator: pput
-Number  : 24
+Number  : 1
 Signature : d[f]array(T) x (int x t)+ -> d[f]array(T)
 Example   : query da3 feed pput[0,ten,1,ten]
 Result    : bug
@@ -163,40 +167,40 @@ Remark    : remote server required
 
 
 Operator: ddistribute2
-Number  : 25
+Number  : 1
 Signature : stream(tuple(X)) x ident x int x rel x string -> darray(X) 
 Example   : query strassen feed addcounter[No,0] ddistribute2["dstrassen", No, 5, workers] 
 Result    : bug
 Remark    : remote server required
 
 Operator: ddistribute3
-Number  : 26
+Number  : 1
 Signature : stream(tuple(X)) x int x bool  x rel x string -> darray(rel(tuple(X))) 
 Example   : query strassen feed  ddistribute3["dstrassen3", 10, TRUE, workers] 
 Result    : bug
 Remark    : remote server required
 
 Operator: ddistribute4
-Number  : 27
+Number  : 1
 Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray(X) 
 Example   : query strassen feed  ddistribute4["dstrassen4", hashvalue(.Name, 2000), 5 , workers] 
 Result    : bug
 Remark    : remote server required
 
 Operator: closeWorkers
-Number  : 28
+Number  : 1
 Signature : -> int , d[f]array -> int
 Example   : query closeWorkers() 
 Result    : 0
 
 Operator: showWorkers
-Number  : 29
+Number  : 1
 Signature : -> stream(tuple) , d[f]array -> stream(tuple)
 Example   : query showWorkers() count
 Result    : 0
 
 Operator  : DARRAYELEM
-Number    : 30
+Number    : 1
 Signature : d[f]array(X) -> X
 Example   : query da dloop["da3", fun( x : DARRAYELEM) x count ]
 Result    : bug
@@ -204,7 +208,7 @@ Remark    : remote server required, Type Mapping Operator
 
 
 Operator  : dloop 
-Number    : 31
+Number    : 1
 Signature : darray(X) x string x (X -> Y) -> darray(Y)
 Example   : query da dloop["da3", fun( x : DARRAYELEM) x count ]
 Result    : bug
@@ -212,7 +216,7 @@ Remark    : remote server required
 
 
 Operator  : dmap
-Number    : 32
+Number    : 1
 Signature : dfarray x string x fun -> d[f]array
 Example   : query da8 dmap["", . feed head[25] ]
 Result    : bug
@@ -220,7 +224,7 @@ Remark    : in development
 
 
 Operator  : dloop2 
-Number    : 33
+Number    : 1
 Signature : darray(X) x darray(Y) x string x (X x Y -> Z) -> darray(Z)
 Example   : query da1 da2  dloop2["da3", . + .. ]
 Result    : bug
@@ -228,40 +232,40 @@ Remark    : remote server required
 
 
 Operator  : ARRAYFUNARG1 
-Number    : 34
+Number    : 1
 Signature : darray(X) x ... -> X | dfarray(rel(Y)) x ... -> frel(Y) 
 Example   : query dfa1 dfa2  dmap2["da3", . feed  .. feed  product, 1238 ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : ARRAYFUNARG2
-Number    : 35
+Number    : 1
 Signature : ANY x darray(X) x ... -> X | ANY x dfarray(rel(Y)) x ... -> frel(Y) 
 Example   : query dfa1 dfa2  dmap2["da3", . feed  .. feed product,1238 ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : DARRAYELEM2 
-Number    : 36
+Number    : 1
 Signature : d[f]array(X) x d[f]array(Y) x ... -> X
 Example   : query da1 da2  dloop2["da3", . + .. ]
 Result    : bug
 Remark    : remote server required
 
 Operator  : fdistribute5 
-Number    : 37
+Number    : 1
 Signature : stream(tuple) x {string,text} x int x attrname -> stream(tuple)
 Example   : query (strassen feed addcounter[No,0] fdistribute5["strassen",5,No] count) = (strassen count)
 Result    : TRUE
 
 Operator  : fdistribute6 
-Number    : 38
+Number    : 1
 Signature : stream(tuple) x {string,text} x int -> stream(tuple)
 Example   : query (strassen feed  fdistribute6['strassen6',1000] count) = (strassen count)
 Result    : TRUE
 
 Operator : dsummarize
-Number   : 39
+Number   : 1
 Signature : d[f]array(DATA) -> stream(DATA) , d[f]array(rel(X)) -> stream(X)
 Example   : query da2 dsummarize count
 Result    : bug
@@ -269,14 +273,14 @@ Remark    : remote server required
 
 
 Operator : getValue
-Number   : 40
+Number   : 1
 Signature : d[f]array(X) -> array(X)
 Example   : query da2 getValue
 Result    : bug
 Remark    : remote server required
 
 Operator  : deleteRemoteObjects
-Number    : 41
+Number    : 1
 Signature : d[f]array(X) [x int] -> int
 Example   : query deleteRemoteObjects(da2)
 Result    : bug
@@ -284,35 +288,35 @@ Remark    : remote server required
 
 
 Operator  : clone 
-Number    : 42
+Number    : 1
 Signature : d[f]array(X) x string -> d[f]array(X)
 Example   : query da8 clone["da9"]
 Result    : bug
 Remark    : remote server required
 
 Operator  : share 
-Number    : 43
+Number    : 1
 Signature : string x bool [ x d[f]array] -> text
 Example   : query share("ten", FALSE)
 Result    : bug
 Remark    : remote server required
 
 Operator  : cleanUp 
-Number    : 44
+Number    : 1
 Signature : -> bool , d[f]array -> bool
 Example   : query cleanUp(da8)
 Result    : bug
 Remark    : remote server required
 
 Operator  : dfdistribute2
-Number    : 45
+Number    : 1
 Signature : stream(tuple(X)) x ident x int x rel x string -> dfarray(X) 
 Example   : query strassen feed addcounter[No,0] dfdistribute2["dstrassen", No, 5, workers] 
 Result    : crashes
 Remark    : remote server required
 
 Operator  : dfdistribute3
-Number    : 46
+Number    : 1
 Signature : stream(tuple(X)) x int x bool x rel x string -> dfarray(rel(tuple(X))) 
 Example   : query strassen feed dfdistribute3["fstrassen", 10, TRUE, workers] 
 Result    : bug
@@ -320,7 +324,7 @@ Remark    : remote server required
 
 
 Operator  : dfdistribute4
-Number    : 47
+Number    : 1
 Signature : stream(tuple(X)) x (fun : tuple ->int) x int x rel x string -> darray(X) 
 Example   : query strassen feed  dfdistribute4["dfstrassen4", hashvalue(.Name, 2000), 5, workers] 
 Result    : bug 
@@ -328,161 +332,161 @@ Remark    : remote server required
 
 
 Operator  : convertdarray
-Number    : 48
+Number    : 1
 Signature : darray -> dfarray , dfarray -> darray
 Example   : query convertdarray(da8)
 Result    : bug
 Remark    : in development
 
 Operator  : DFARRAYSTREAM 
-Number    : 49
+Number    : 1
 Signature : dfarray(rel(X)) x ... -> stream(X)
 Example   : query da8 dmap["", . feed head[25] ]
 Result    : bug
 Remark    : in development
 
 Operator  : gettuples
-Number    : 50
+Number    : 1
 Signature : stream(tuple) x {string,text} -> stream(tuple)
 Example   : query strassenfile_btree exactmatchS["Hohe Strasse"] 'strassen.bin' gettuples consume
 Result    : bug
 Remark    : in development
 
 Operator  : fileTransferServer
-Number    : 51
+Number    : 1
 Signature : int -> bool
 Example   : query fileTransferServer(1238)
 Result    : crashes
 Remark    : Comes never back if no client connect to this server
 
 Operator  : receiveFileClient
-Number    : 52
+Number    : 1 
 Signature : {string, text} x int x {string,text} x {string,text} -> bool
 Example   : query receiveFileClient('server', 1238, 'remote.txt', 'local.txt')
 Result    : FALSE
 
 Operator  : transferFile
-Number    : 53
+Number    : 1
 Signature : int x int x int x {string,text} x {string,text}
 Example   : query transferFile(0,1,1238,'Staedte.txt', "Staedte3.txt")
 Result    : FALSE
 
 Operator  : traceCommands
-Number    : 54
+Number    : 1
 Signature : bool -> bool
 Example   : query traceCommands(FALSE);
 Result    : TRUE
 
 Operator  : showProgress 
-Number    : 55
+Number    : 1
 Signature : bool -> bool
 Example   : query showProgress(TRUE)
 Result    : TRUE
 
 Operator  : staticFileTransferator
-Number    : 56
+Number    : 1
 Signature : int x int -> bool
 Example   : query staticFileTransferator(1238,10)
 Result    : TRUE
 
 Operator  : killStaticFileTransferator
-Number    : 57
+Number    : 1
 Signature : int -> bool
 Example   : query killStaticFileTransferator(1238)
 Result    : bug
 Remark    : depends on success of operation staticFileTransferator
 
 Operator  : putFileTCP
-Number    : 58
+Number    : 1
 Signature : {string,text} x {string,text} x int x bool x {string,text} -> bool
 Example   : query putFileTCP('berlintest', "localhost", 1238, FALSE, 'berlintest_copy')
 Result    : FALSE
 
 Operator  : getFileTCP
-Number    : 59
+Number    : 1
 Signature : {string,text} x {string,text} x int x bool x {string,text} -> bool
 Example   : query getFileTCP('berlintest_copy', "localhost", 1238, FALSE, 'berlintest_copy3')
 Result    : FALSE
 
 Operator  : fsfeed5
-Number    : 60
+Number    : 1
 Signature : stream({text,string}) x {rel, text, string} -> stream(tuple)
 Example   : query getDirectory('.') filter [ . startsWith "strassen_" ] fsfeed5[strassen] count
 Result    : bug
 Remark    : depends on existence of appropriate files
 
 Operator  : fdistribute7
-Number    : 61
+Number    : 1
 Signature : stream(tuple) x (tuple->int) x int x {string,text} x bool -> stream(tuple)
 Example   : query strassen feed fdistribute7["strassen7", hashvalue(.Name,997), 12, TRUE] count
 Result    : 3212
 
 
 Operator  : partition
-Number    : 62
+Number    : 1
 Signature : d[f]array x string x fun -> dmatrix
 Example   : query size(s7 partition["m7", hashvalue(.Attr,23) , 0 ] )
 Result    : bug
 Remark    : remote server required
 
 Operator  : SUBSUBTYPE1
-Number    : 63
+Number    : 1
 Signature : (x(b(c))) x ... -> c
 Example   : query size(s7 partition[ "m7", hashvalue(.Attr,23) , 0 ] )
 Result    : bug
 Remark    : remote server required
 
 Operator  : DFARRAYTUPLE
-Number    : 64
+Number    : 1
 Signature : dfarray(rel(X)) -> X 
 Example   : query size(s7 partition["m7", hashvalue(.Attr,23) , 0] )
 Result    : bug
 Remark    : requires a remote server
 
 Operator  : collect2
-Number    : 65
+Number    : 1
 Signature : dfmatrix x string x int -> dfarray
 Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collect2["mys7", 1238] )
 Result    : bug
 Remark    : requires a remote server
 
 Operator  : areduce
-Number    : 66
+Number    : 1
 Signature : dfmatrix(rel(x))  x string x (fsrel(x)-Y) x int -> d[f]array
 Example   : query m8 areduce["a9", . feed count, 1236] getValue
 Result    : bug
 Remark    : under develeopment
 
 Operator  : areduce2
-Number    : 67
+Number    : 1
 Signature : dfmatrix(rel(x))  dfmatrix(rel(x)) x string x (fsrel(x) x fsrel(y) ->Z) x int -> d[f]array(Z)
 Example   : query m8a m8b  areduce2["a9", . feed  ..  feed product count, 1236] getValue
 Result    : bug
 Remark    : under develeopment
 
 Operator  : AREDUCEARG1 
-Number    : 68
+Number    : 1
 Signature : dfmatrix(rel(x))  x  ... -> stream(x)
 Example   : query m8 areduce["a9", . feed count, 1236] getValue
 Result    : bug
 Remark    : Type mapping operator
 
 Operator  : AREDUCEARG2
-Number    : 69
+Number    : 1
 Signature : ANY  x  dfmatrix(rel(x)) x ... -> stream(x)
 Example   : query m8a m8b  areduce2["a9", . feed .. feed   product count, 1236] getValue
 Result    : bug
 Remark    : type mapping operator, remote server required
 
 Operator  : SUBTYPE1
-Number    : 70
+Number    : 1
 Signature : a(b) x ... -> b
 Example   : query a1 partitionF["a2",  . feed head[23], hashvalue(..AttrName, 13), 0]
 Result    : bug
 Remark    : under development
 
 Operator  : FFR
-Number    : 71
+Number    : 1
 Signature : d[f]array(rel(X)) x X -> stream(X) , A x B x ( C [x D] -> stream(tuple(Z)) ) -> tuple(Z)
 Example   : query a1 partitionF["", . feed head[23], hashvalue(..AttrName, 13), 0]
 Result    : bug
@@ -490,7 +494,7 @@ Remark    : under development
 
 
 Operator  : partitionF
-Number    : 72
+Number    : 1
 Signature : d[f]array(A) x string x ( A -> B ) , (B -> int) x int -> dfmatrix
 Example   : query a1 partitionF["a2", . feed head[23], hashvalue(..AttrName, 13), 0]
 Result    : bug
@@ -498,20 +502,20 @@ Remark    : under development
 
 
 Operator  : saveAttr
-Number    : 73
+Number    : 1 
 Signature : DATA x {string, text} -> bool
 Example   : query 6 saveAttr["six.bin"]
 Result    : TRUE
 
 Operator  : loadAttr
-Number    : 74 
+Number    : 1 
 Signature : {string, text} -> DATA
 Example   : query  loadAttr("six.bin")
 Result    : 6
 
 
 Operator  : createFrel
-Number    : 75
+Number    : 1
 Signature : {string,text} -> frel
 Example   : query createFrel("ten.bin")
 Result    : unpredictable
@@ -519,20 +523,20 @@ Remark    : depends on the existence and content of file ten.bin
 
 
 Operator  : createFrel
-Number    : 76
+Number    : 2
 Signature : {string, text} x rel(tuple(X)) -> frel(tuple(X))
-Example   : query createFrel("ten.bin", ten)
-Result    : ((frel(tuple((No int)))) 'ten.bin')
+Example   : query createFrel("ten,bin", ten)
+Result    : ((frel(tuple((No int))) 'ten.bin')
 
 Operator  : createFrel
-Number    : 77
+Number    : 3
 Signature : {string, text} x rel(tuple(X)) x bool -> frel(tuple(X))
 Example   : query createFrel("ten,bin", ten, FALSE)
 Result    : unpredictable
 Remark    : depends on the existence and content of file ten.bin
 
 Operator  : createFSrel
-Number    : 80
+Number    : 1
 Signature : stream({text,string}) x rel(x) -> fsrel(x)
 Example   : query getDirectory(".") filter[ basename(.) startsWith "strassen"] createFSrel[strassen]
 Result    : unpredictable
@@ -540,21 +544,20 @@ Remark    : result depends of existence of certain files
 
 
 Operator  : saveObjectToFile
-Number    : 81
+Number    : 1
 Signature : D x {string, text} -> fobj(D)
 Example   : query ten saveObjectToFile["ten.file"]
-Result    : ((fobj (rel(tuple( (No int))))) 'ten.file')
-
+Result    : (fobj (rel(tuple( (No int)))) 'ten.file')
 
 
 Operator  : getObjectFromFile
-Number    : 82
+Number    : 1
 Signature : {string, text, fobj(X)} -> X
-Example   : query "ten.file" getObjectFromFile count
-Result    : 10
+Example   : query "strassen.bin" getObjectFromFile count
+Result    : 3212
 
 Operator  : dmap2
-Number    : 83
+Number    : 1
 Signature : d[f]array^X x string x fun( K_i .. k_X -> r) -> df[f]array(r)
 Example   : query dfa1 dfa2  dmap2["da3", . feed  .. feed  product, 1238 ]
 Result    : bug
@@ -562,7 +565,7 @@ Remark    : under construction
 
 
 Operator  : dmap3
-Number    : 84
+Number    : 1
 Signature : d[f]array^3 x string x fun( K_i .. k_3 -> r) -> df[f]array(r)
 Example   : query dfa1 dfa2  dfa3 dmap3["dfa59", . feed  .. feed  product $3 concat , 1238 ]
 Result    : bug
@@ -570,21 +573,21 @@ Remark    : under construction
 
 
 Operator  : dmap4
-Number    : 85
+Number    : 1
 Signature : d[f]array^4 x string x fun( K_i .. k_4 -> r) -> df[f]array(r)
 Example   : query dfa1 dfa2  dfa3 dfa4 dmap4["dfa59", . feed  .. feed  product $3 feed concat $4 feed concat , 1238 ]
 Result    : bug
 Remark    : under construction
 
 Operator  : dmap5
-Number    : 86
+Number    : 1
 Signature : d[f]array^5 x string x fun( K_i .. k_5 -> r) -> d[f]array(r)
 Example   : query dfa1 dfa2  dfa3 dfa4 idfa5 dmap5["dfa59", $1 + $2 + $3 + $4 +$5 , 1238 ]
 Result    : bug
 Remark    : under construction
 
 Operator  : dmap6
-Number    : 87
+Number    : 1
 Signature : d[f]array^6 x string x fun( K_i .. k_6 -> r) -> d[f]array(r)
 Example   : query dfa1 dfa2  dfa3 dfa4 dfa5 dfa6 dmap6["dfa59", $1 + $2 + $3 + $4 + $5 + $6 , 1238 ]
 Result    : bug
@@ -592,14 +595,14 @@ Remark    : under construction
 
 
 Operator  : dmap7
-Number    : 88
+Number    : 1
 Signature : d[f]array^7 x string x fun( K_i .. k_7 -> r) -> d[f]array(r)
 Example   : query dfa1 dfa2  dfa3 dfa4 dfa5 dfa6 dfa7 dmap7["dfa59", $1 + $2 + $3 + $4 + $5 + $6 + $7, 1238 ]
 Result    : bug
 Remark    : under construction
 
 Operator  : dmap8
-Number    : 89
+Number    : 1
 Signature : d[f]array^8 x string x fun( K_i .. k_8 -> r) -> d[f]array(r)
 Example   : query dfa1 dfa2  dfa3 dfa4 dfa5 dfa6 dfa7 dfs8 dmap8["dfa59", $1 + $2 + $3 + $4 + $5 + $6 + $7 - $8, 1238 ]
 Result    : bug
@@ -608,14 +611,14 @@ Remark    : under construction
 
 
 Operator  : dproduct
-Number    : 90
+Number    : 1
 Signature : d[f]array(rel T1) x d[f]array(rel T2)  x string x fun( stream(T1) x stream(T2) -> r) -> df[f]array(r)
 Example   : query dfa1 dfa2  dproduct["da3", .   ..   product, 1238 ]
 Result    : bug
 Remark    : under construction
 
 Operator  : ddistribute8
-Number    : 91
+Number    : 1
 Signature : stream(tuple) x string x (tuple -> int) x (tuple->int) x int x int x rel -> array(darray(rel(tuple)))
 Example   : query plz feed ddistribute8["ddplz", .PLZ , hashvalue(.Ort,2000), 5, 4, workers]
 Result    : bug
@@ -623,7 +626,7 @@ Remark    : under construction
 
 
 Operator  : dfdistribute8
-Number    : 92
+Number    : 1
 Signature : stream(tuple) x string x (tuple -> int) x (tuple->int) x int x int x rel -> array(dfarray(rel(tuple)))
 Example   : query plz feed dfdistribute8["dfdplz", .PLZ , hashvalue(.Ort,2000), 5, 4, workers]
 Result    : bug
@@ -631,14 +634,14 @@ Remark    : under construction
 
 
 Operator  : partition8Local
-Number    : 93
+Number    : 1
 Signature : stream(tuple) x (tuple-int) x (tuple->int) x text x string x int x int x int -> stream(tuple)
 Example   : query plz feed partition8Local[ .PLZ, hashvalue(.Ort,23698), 'temp', "plz_p8l", 4, 12, 1] count = plz count
 Result    : TRUE
 
 
 Operator  : partitionF8
-Number    : 94
+Number    : 1
 Signature : d[f]array(rel(tuple(X))) x string x (rel(tuple(X)) -> stream(Tuple(Y))) x (tuple(Y) -> int) x (tuple(Y)->int) x int x int -> array(dfmatrix(rel(tuple(Y))))
 Example   : query da1 partitionF8["newName", . feed addcounter[C,1] , .PLZ , .C , 4, 12]
 Result    : bug
@@ -646,26 +649,26 @@ Remark    : remote server required
 
 
 Operator  : da2enableLog
-Number    : 95
+Number    : 1
 Signature : bool -> bool
 Example   : query da2enableLog(TRUE)
 Result    : TRUE
 
 Operator  : da2clearLog
-Number    : 96
+Number    : 1
 Signature : -> bool
 Example   : query da2clearLog()
 Result    : TRUE
 
 Operator  : da2Log
-Number    : 97
+Number    : 1
 Signature : -> stream(tuple(...))
 Example   : query da2Log() count
 Result    : unpredictable
 Remark    : depends on former executed operations
 
 Operator  : deleteRemoteDatabases
-Number    : 98
+Number    : 1
 Signature : string x rel -> stream(tuple)
 Example   : query deleteRemoteDatabases("berlintest", workers)
 Result    : crashes
@@ -673,7 +676,7 @@ Remark    : Not a good idea to test this dangerous operator
 
 
 Operator  : setAccount
-Number    : 99
+Number    : 1
 Signature : {string,text} x {string, text} -> bool
 Example   : query setAccount("", "");
 Result    : TRUE
