@@ -294,6 +294,12 @@ class queueEntry{
 
 };
 
+template<class T>
+std::ostream& operator<<(std::ostream& o, const queueEntry<T>& e){
+   return e.print(o);
+}
+
+
 
 
 template<class T>
@@ -1081,6 +1087,526 @@ template int minPathCost1VMT<CcInt>(Word* args, Word& result, int message,
 
 template int minPathCost1VMT<LongInt>(Word* args, Word& result, int message,
                      Word& local, Supplier s);
+
+
+/*
+3 Implementation of a bidirectional dijkstra.
+
+This operator searches a shortest path between a source and a target node.
+In contrast to a normal implementation of dijktra, this operator searches
+bidirectional, i.e. from the source and the target at the same time.
+
+3.1 Type Mapping
+
+ Function returning the successor of a node (tuple edge)
+
+ Function returning predecessor of a node   (tuple edge)
+
+ Attribute name of the successor
+
+ attribute name of the predecessor
+
+ source node
+
+ target node
+
+ cost function: (edge tuple -> real)
+
+*/
+
+ListExpr bigdijkstraTM(ListExpr args){
+   if(!nl->HasLength(args,7)){
+     return listutils::typeError("7 arguments required");
+   }
+  
+   ListExpr fun1 = nl->First(args);
+   if(!listutils::isMap<1>(fun1)){
+     return listutils::typeError("first arg is not a unary function");
+   }
+   ListExpr fun2 = nl->Second(args);
+   if(!listutils::isMap<1>(fun2)){
+     return listutils::typeError("second arg is not a unary function");
+   }
+   if(!nl->Equal(fun1,fun2)){
+     return listutils::typeError("function types must be equal");
+   }
+
+   // we allow int, string and longint as node type
+   ListExpr source = nl->Fifth(args);
+   if(   !CcInt::checkType(source)
+      && !LongInt::checkType(source)){
+    return listutils::typeError("allowed node types are int, longint");
+   }
+   if(!nl->Equal(source,nl->Sixth(args))){
+      return listutils::typeError("source node and target node "
+                                  "have different types");
+   } 
+   // check function argument
+   ListExpr funarg = nl->Second(fun1);
+   if(!nl->Equal(funarg,source)){
+     return listutils::typeError("successor function's argument and "
+                                 "source node type differ");
+   }
+   // result of the function must be a tuple stream
+   ListExpr funres = nl->Third(fun1);
+   if(!Stream<Tuple>::checkType(funres)){
+      return listutils::typeError("successors function's return type "
+                                  "is not a tuple stream");
+   }
+   ListExpr attrList = nl->Second(nl->Second(funres));
+
+   // the third argument must be an attribute in the edge tuple
+   ListExpr succNameL = nl->Third(args);
+   if(nl->AtomType(succNameL) != SymbolType){
+     return listutils::typeError("third argument is not a valid "
+                                 "attribute name");
+   }
+   std::string succName = nl->SymbolValue(succNameL);
+   ListExpr attrType;
+   int index1 = listutils::findAttribute(attrList, succName, attrType);
+   if(!index1){
+      return listutils::typeError("Attribute " + succName 
+                                  + " is not part of the edge tuple");
+   } 
+   if(!nl->Equal(attrType,source)){
+     return listutils::typeError("Type of attribute " + succName
+                         +" and type of source node differ");
+   }
+   // the same must be checked for the name of the predecessor
+   ListExpr predNameL = nl->Fourth(args);
+   if(nl->AtomType(predNameL) != SymbolType){
+     return listutils::typeError("fourth attribute is not a valid "
+                                 "attribute name");
+   }  
+   std::string predName = nl->SymbolValue(predNameL);
+   int index2 = listutils::findAttribute(attrList, predName, attrType);
+   if(!index2){
+     return listutils::typeError("attribute " + predName 
+                                 + " not part of the edge tuple");
+   }
+   if(!nl->Equal(attrType,source)){
+     return listutils::typeError("attribute " + predName 
+                        +" has another type than the nodes ");
+   }
+
+   // check whether the 7th argument is a function from an 
+   // edge tuple to real
+   ListExpr costFun = nl->Sixth(nl->Rest(args));
+   if(!listutils::isMap<1>(costFun)){
+     return listutils::typeError("cost fun is not a unary function");
+   }
+   ListExpr edgeTuple = nl->Second(funres);
+   if(!nl->Equal(nl->Second(costFun),edgeTuple)){
+     return listutils::typeError("edge tuple and cost fun argument differ");
+   }
+   if(!CcReal::checkType(nl->Third(costFun))){
+      return listutils::typeError("result of the cost function is not a real");
+   }
+
+   if(listutils::findAttribute(attrList,"IsForward",attrType)){
+     return listutils::typeError("edge tuple contains a IsForward attribute");
+   }
+   ListExpr add = nl->OneElemList(nl->TwoElemList(
+                                   nl->SymbolAtom("IsForward"),
+                                   listutils::basicSymbol<CcBool>()));
+   ListExpr resAttrList = listutils::concat(attrList,add);
+
+   if(!listutils::isAttrList(resAttrList)){
+     return listutils::typeError("Unknown error, may be a stupid programmer");
+   }   
+
+   return nl->ThreeElemList(
+             nl->SymbolAtom(Symbols::APPEND()),
+             nl->TwoElemList(
+                    nl->IntAtom(index1 - 1),
+                    nl->IntAtom(index2 - 1)),
+             nl->TwoElemList(
+                  listutils::basicSymbol<Stream<Tuple> >(),
+                  nl->TwoElemList(
+                      listutils::basicSymbol<Tuple>(),
+                      resAttrList)));
+}
+
+
+template<class T>
+class bigdijkstraInfo{
+
+  public:
+     bigdijkstraInfo(
+         Supplier _succFun,
+         Supplier _predFun,
+         int _succPos,
+         int _predPos,
+         Supplier _costFun,
+         T* _source,
+         T* _target,
+         TupleType* _tt):
+        succFun(_succFun), predFun(_predFun),
+        succPos(_succPos), predPos(_predPos),
+        costFun(_costFun),
+        source(_source), target(_target),
+        tt(_tt){
+
+           tt->IncReference();
+           succArg = qp->Argument(succFun);
+           predArg = qp->Argument(predFun);
+           costArg = qp->Argument(costFun);
+           commonNode = 0;
+           Ffront.push(queueEntry<T>(source,0,0));
+           Bfront.push(queueEntry<T>(target,0,0));
+           maxBfront=0;
+           maxFfront=0;
+           maxFtree=0;
+           maxBtree=0;
+           misBfront=0;
+           misFfront=0;
+
+           dijkstra(); 
+
+         //  printStatistics();
+
+           dir = true;
+           if(commonNode){
+             currentNode = commonNode->GetValue();
+           }
+     }
+
+     ~bigdijkstraInfo(){
+        tt->DeleteIfAllowed();
+        removeEdges(Ftree);
+        removeEdges(Btree);
+     }
+
+     Tuple* next(){
+         if(!commonNode){
+           return 0;
+         }
+         typename std::map<ct,treeEntry<ct> >::iterator it;
+         if(dir){  // direction to start
+            it = Ftree.find(currentNode);
+            if(it==Ftree.end()){
+               assert(currentNode == source->GetValue());
+               dir = false;
+               currentNode = commonNode->GetValue();
+            } else {
+               Tuple* res = createResultTuple(it->second,true);
+               currentNode = it->second.pred;
+               return res;
+            }
+         }
+
+         // direction to target
+         it = Btree.find(currentNode);         
+         if(it==Btree.end()){
+           assert(currentNode == target->GetValue());
+           commonNode = 0;
+           return 0;
+         }
+         Tuple* res = createResultTuple(it->second,false);
+         currentNode = it->second.pred;
+         return res; 
+     }
+
+
+  private:
+
+     typedef typename T::ctype ct;
+
+     Supplier succFun;
+     Supplier predFun;
+     int succPos;
+     int predPos;
+     Supplier costFun;
+     T* source;
+     T* target;
+     TupleType* tt;
+     ArgVectorPointer succArg;
+     ArgVectorPointer predArg;
+     ArgVectorPointer costArg;
+     T* commonNode;
+
+     std::priority_queue<queueEntry<T> > Ffront;
+     std::priority_queue<queueEntry<T> > Bfront;
+     std::set<ct> Ffinished;
+     std::set<ct> Bfinished;
+     std::map<ct,treeEntry<ct> > Ftree;
+     std::map<ct,treeEntry<ct> > Btree;
+
+     bool dir;
+     ct currentNode;
+
+     // some statistical data
+     int maxBfront;
+     int maxFfront;
+     int maxFtree;
+     int maxBtree;
+     int misBfront;
+     int misFfront;
+
+
+     void printStatistics(){
+        cout << "maxFfront : " << maxFfront << endl;
+        cout << "maxBfront : " << maxBfront << endl;
+        cout << "maxFtree  : " << maxFtree << endl;
+        cout << "maxBtree  : " << maxBtree << endl;
+        cout << "misBfront : " << misBfront << endl;
+        cout << "misFfront : " << misFfront << endl; 
+     }
+
+
+     void removeEdges(std::map<ct,treeEntry<ct> >& tree){
+       typename std::map<ct,treeEntry<ct> >::iterator it;
+       for(it = tree.begin();it!=tree.end();it++){
+         it->second.edge->DeleteIfAllowed();
+       }
+     }
+
+     
+     void dijkstra(){
+
+        while(!commonNode){
+          if(Ffront.size()>maxFfront){
+             maxFfront=Ffront.size();
+          }
+          if(Bfront.size()>maxBfront){
+             maxBfront=Bfront.size();
+          }
+          if(Ftree.size()>maxFtree){
+             maxFtree=Ftree.size();
+          }
+          if(Btree.size()>maxBtree){
+             maxBtree=Btree.size();
+          }
+             
+
+          if(Ffront.empty()){
+             if(Bfront.empty()){
+               return;
+             } else {
+                
+                queueEntry<T> e = Bfront.top();
+                Bfront.pop();
+                processNode(e,false);
+             }
+          } else {
+            if(Bfront.empty()){
+               queueEntry<T> e = Ffront.top();
+               Ffront.pop();
+               processNode(e,true);  
+            } else {
+               // both fronts have elements
+               if(Ffront.top().costs<=Bfront.top().costs){
+                  queueEntry<T> e = Ffront.top();
+                  Ffront.pop();
+                  processNode(e,true);  
+               } else {
+                 queueEntry<T> e = Bfront.top();
+                 Bfront.pop();
+                 processNode(e,false);
+               }
+            }
+          }
+        }
+     }
+ 
+
+     void processNode(queueEntry<T>& e, bool isForward){
+
+         // check stop criterion
+         ct v = e.nodeValue;
+         Supplier fun;
+         ArgVectorPointer arg;
+         int pos;
+         if(isForward){
+            if(Ffinished.find(v)!=Ffinished.end()){
+               // missing updates on front
+               misFfront++;
+               return;
+            }
+            Ffinished.insert(v);
+            if(Bfinished.find(v)!=Bfinished.end()){ // be happy
+               commonNode = e.node;
+               return; 
+            }
+            fun = succFun;
+            arg = succArg;
+            pos = succPos;
+         } else {
+            if(Bfinished.find(v)!=Bfinished.end()){
+               // missing updates on front
+               misBfront++;
+               return;
+            }
+           Bfinished.insert(v);
+           if(Ffinished.find(v)!=Ffinished.end()){
+              commonNode = e.node;
+              return; 
+           }
+           fun = predFun;
+           arg = predArg;
+           pos = predPos;
+         }
+
+
+         (*arg)[0] = e.node;
+         Word f(fun);
+         Stream<Tuple> stream(f);
+         Tuple* edge;
+         stream.open();
+         while( (edge = stream.request()) ){
+            processEdge(e.nodeValue, e.costs, edge, isForward, pos, e.depth);  
+         }
+         stream.close();
+     }
+
+     void processEdge(ct pred, double costs, 
+                      Tuple* edge, bool isForward, int pos,
+                      int depth){
+
+
+        T* target = (T*) edge->GetAttribute(pos);
+        if(!target->IsDefined()){ // ignore nonsense tuples
+           edge->DeleteIfAllowed();
+           return;
+        }
+        ct v = target->GetValue();
+        std::set<ct>* finished = isForward?&Ffinished:&Bfinished;
+        std::map<ct,treeEntry<ct> >* tree = isForward?&Ftree:&Btree;
+        std::priority_queue<queueEntry<T> >* front = isForward?&Ffront:&Bfront; 
+
+        if(finished->find(v)!=finished->end()){
+           // node already processed completely
+           edge->DeleteIfAllowed();
+           return;
+        }
+
+        double edgeCosts = getCosts(edge);
+        if(edgeCosts < 0){ // invalid costs
+           edge->DeleteIfAllowed();
+           return;
+        }
+
+
+        typename std::map<ct,treeEntry<ct> >::iterator it = tree->find(v);
+
+        double newCosts = costs + edgeCosts;
+
+        if(it==tree->end()){  // node reached the first time
+           treeEntry<ct> e(pred,newCosts,depth + 1, edge);
+           (*tree)[v] = e;
+           queueEntry<T> qe(target, newCosts,depth+1);
+           front->push(qe);
+           return;
+        }
+
+        if(it->second.costs<=newCosts){
+           // new path is not shorter than an old one
+           edge->DeleteIfAllowed();
+           return;
+        }
+
+        // update case
+        it->second.edge->DeleteIfAllowed();
+        it->second.pred = pred;
+        it->second.costs = newCosts;
+        it->second.depth = depth+1;
+        it->second.edge = edge;
+        queueEntry<T> qe(target, newCosts,depth+1);
+        front->push(qe);
+     }
+
+
+     double getCosts(Tuple* edge) const{
+        (*costArg)[0] = edge;
+        Word value;
+        qp->Request(costFun, value);
+        CcReal* g = (CcReal*) value.addr;
+        if(!g->IsDefined()){
+          return -1;
+        } 
+        return g->GetValue();
+     }
+
+     Tuple* createResultTuple(treeEntry<ct>& e, bool forward){
+        Tuple* res = new Tuple(tt);
+        Tuple* src = e.edge;
+        for(int i=0;i<src->GetNoAttributes();i++){
+          res->CopyAttribute(i,src,i);
+        } 
+        res->PutAttribute(src->GetNoAttributes(),new CcBool(true,forward));
+        return res;
+     }
+
+
+
+};
+
+
+
+template<class T>
+int bigdijkstraVMT(Word* args, Word& result, int message, 
+                    Word& local, Supplier s) {
+
+   bigdijkstraInfo<T>* li = (bigdijkstraInfo<T>*) local.addr;
+   TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
+   switch(message){
+     case INIT : {
+        tt = new TupleType(nl->Second(GetTupleResultType(s)));
+        qp->GetLocal2(s).addr = tt;
+        return 0;
+     }
+     case FINISH: {
+        if(tt){
+           tt->DeleteIfAllowed();
+           qp->GetLocal2(s).addr=0; 
+        }
+        return 0;
+     }
+     case OPEN:{
+        if(li){
+          delete li;
+          local.addr = 0;
+        }
+        int succPos = ((CcInt*) args[7].addr)->GetValue();
+        int predPos = ((CcInt*) args[8].addr)->GetValue();
+        T* source = (T*) args[4].addr;
+        T* target = (T*) args[5].addr; 
+        if(!source->IsDefined() || !target->IsDefined()){
+           return 0;
+        }
+        if(source->Compare(target)==0){
+          return 0;
+        }
+        local.addr = new bigdijkstraInfo<T>(args[0].addr, args[1].addr,succPos, 
+                                         predPos, args[6].addr, source, 
+                                         target, tt);
+        return 0;
+     }
+
+     case REQUEST: {
+        result.addr = li?li->next():0;
+        return result.addr?YIELD:CANCEL;
+     }
+     case CLOSE: {
+        if(li){
+           delete li;
+           local.addr = 0;
+        }
+        return 0;
+     }
+
+   }
+   return -1;
+}
+
+
+template int bigdijkstraVMT<CcInt>(Word* args, Word& result, int message, 
+                    Word& local, Supplier s);
+
+
+template int bigdijkstraVMT<LongInt>(Word* args, Word& result, int message, 
+                    Word& local, Supplier s);
 
 
 

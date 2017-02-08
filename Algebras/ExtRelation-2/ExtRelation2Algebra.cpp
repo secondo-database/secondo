@@ -2515,6 +2515,42 @@ Operator minPathCost2Op(
 );
 
 
+OperatorSpec bigdijkstraSpec(
+  "succfun x predfun x succName x predName x source x target x costFun",
+  "_ _ bigdijkstra [_,_,_,_._] ",
+  "Computes a shortest path from source to target using a "
+  "bidirectional dijkstra algorithm. "
+  "The first function computes the successors of a node as a tuple edge."
+  "The actual successor is specified in the tuple by the succName "
+  "argument. The second function returns the predecessors of a node "
+  "as a stream of edge tuples. The actual predecessor is specified by "
+  "the predName argument. The cost of both edges are computed using the "
+  "costfun. " ,
+  "query fun(i : int) forwardG exactmatch[i] fun(int i) backwardG "
+  "exactmatch[i] bigdijkstra[Source, Target, 37, 48, .Costs] consume"
+);
+
+ValueMapping bigdijkstraVM[] = {
+   general_dijkstra::bigdijkstraVMT<CcInt>,
+   general_dijkstra::bigdijkstraVMT<LongInt>
+};
+
+int bigdijkstraSelect(ListExpr args){
+  return CcInt::checkType(nl->Fifth(args))?0:1;
+}
+
+
+Operator bigdijkstraOp(
+  "bigdijkstra",
+  bigdijkstraSpec.getStr(),
+  2,
+  bigdijkstraVM,
+  bigdijkstraSelect,
+  general_dijkstra::bigdijkstraTM
+);
+
+
+
 
 } // end of namespace extrel2
 
@@ -2585,6 +2621,9 @@ class ExtRelation2Algebra : public Algebra
 
     AddOperator(&extrel2::minPathCost1Op);
     AddOperator(&extrel2::minPathCost2Op);
+
+    AddOperator(&extrel2::bigdijkstraOp);
+    extrel2::bigdijkstraOp.enableInitFinishSupport();
 
 #ifdef USE_PROGRESS
 // support for progress queries

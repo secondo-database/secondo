@@ -123,3 +123,14 @@ Number    : 1
 Signature : fun(A -> stream(tuple(B))) x AttrName x A x A x fun(B->real) x int -> real
 Example   : query (fun(a : int) otestrel orange[a;a] extend[C: distance(.GeoData_s1, .GeoData_s2)])  minPathCost2[Id_s2, 1 , 40, .C, 0] > 0
 Result    : TRUE
+
+
+
+Operator  : bigdijkstra 
+Number    : 1
+Signature : fun(A -> stream(tuple(B))) x AttrName x A x A x fun(B->real) x int -> real
+Example   : query ( (fun(i1 : int) otestrel orange[i1;i1]) (fun(i2 : int) otestrelBack orange[i2;i2] )  bigdijkstra[Id_s2, Id_s1, 1, 40, distance(.GeoData_s1, .GeoData_s2)] count)  =  (fun(i3 : int) otestrel orange[i3;i3]) gdijkstra[Id_s2,1,40, distance(.GeoData_s1,.GeoData_s2),0,0] count
+Result    : TRUE
+
+
+
