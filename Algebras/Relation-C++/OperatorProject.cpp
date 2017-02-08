@@ -172,12 +172,28 @@ int
 OperatorProject::Project(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
   switch (message)
   {
+    case INIT : {
+       tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       qp->GetLocal2(s).addr= tt;
+       return 0;
+    }
+
+    case FINISH : {
+       if(tt){
+           tt->DeleteIfAllowed();
+           qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
     case OPEN :
     {
-      ListExpr resultType = GetTupleResultType( s );
-      TupleType *tupleType = new TupleType(nl->Second(resultType));
+      tt->IncReference();
+      TupleType *tupleType = tt;
       local.addr = tupleType;
 
       qp->Open(args[0].addr);
@@ -245,15 +261,32 @@ OperatorProject::Project(Word* args, Word& result, int message,
   int index= 0;
   Supplier son;
 
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
   switch (message)
   {
+    case INIT : {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr = tt;
+      return 0;
+    }
+    case FINISH : {
+      if(tt){
+        tt->DeleteIfAllowed();
+        qp->GetLocal2(s).addr=0;
+      }
+      return 0;
+    }
+
+
     case OPEN:{
 
       pli = (ProjectLocalInfo*) local.addr;
       if ( pli ) delete pli;
 
       pli = new ProjectLocalInfo();
-      pli->tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      tt->IncReference();
+      pli->tupleType = tt;
       local.setAddr(pli);
 
       qp->Open(args[0].addr);

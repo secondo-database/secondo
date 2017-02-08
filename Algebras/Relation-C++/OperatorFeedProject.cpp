@@ -135,17 +135,30 @@ OperatorFeedProject::feedproject_vm(Word* args,
   int noOfAttrs= 0;
   int index= 0;
   Supplier son;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
 
   switch (message)
   {
+    case INIT : {
+       tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       qp->GetLocal2(s).addr = tt;
+       return 0;
+    }
+    case FINISH : {
+       if(tt){
+         tt->DeleteIfAllowed();
+         qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
     case OPEN :{
       r = (GenericRelation*)args[0].addr;
 
       fli = (FeedProjLocalInfo*) local.addr;
       if ( fli ) delete fli;
 
-      TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
-
+      tt->IncReference();
       fli = new FeedProjLocalInfo(tt);
       fli->total = r->GetNoTuples();
       fli->rit = r->MakeScan(tt);

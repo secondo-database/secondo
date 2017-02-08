@@ -688,6 +688,14 @@ tree is built, the ~Destroy~ function should be called.
 
   bool IsCorrectTypeExpr( const ListExpr expr );
 
+
+  Word& GetLocal2(const Supplier s);
+/*
+Returns an local storage element of an operator node. 
+Can only be calles if s is an operator.
+
+*/
+
  private:
 
   void saveModified(OpTree t);
@@ -850,6 +858,16 @@ each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
 progress. No effect when called for an operator not supporting progress.
 
 */
+
+
+  void InitTree(const Supplier s);
+
+/*
+Calls the value mapping function of init-finish supporting operators
+with message init. 
+
+*/
+
 
 
 

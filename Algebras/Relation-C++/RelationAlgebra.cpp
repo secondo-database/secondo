@@ -1643,9 +1643,24 @@ Product(Word* args, Word& result, int message,
 {
   Word r, u;
   ProductLocalInfo* pli;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
 
   switch (message)
   {
+    case INIT : {
+       tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       qp->GetLocal2(s).addr = tt;
+       return 0;
+    }
+    case FINISH : {
+       if(tt){
+         tt->DeleteIfAllowed();
+         qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
+
     case OPEN :
     {
 
@@ -1691,8 +1706,8 @@ Product(Word* args, Word& result, int message,
         pli->iter = 0;
       }
 
-      ListExpr resultType = GetTupleResultType( s );
-      pli->resultTupleType = new TupleType(nl->Second(resultType));
+      tt->IncReference();
+      pli->resultTupleType = tt; 
 
       local.setAddr(pli);
       return 0;
@@ -1793,9 +1808,24 @@ Product(Word* args, Word& result, int message,
   ProductLocalInfo* pli;
 
   pli = (ProductLocalInfo*)local.addr;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
 
   switch (message)
   {
+    case INIT: {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr = tt;
+      return 0;
+    }
+
+    case FINISH: {
+       if(tt){
+          tt->DeleteIfAllowed();
+          qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
     case OPEN:
     {
       long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024); // in bytes
@@ -1846,9 +1876,8 @@ Product(Word* args, Word& result, int message,
       {
         pli->iter = 0;
       }
-
-      ListExpr resultType = GetTupleResultType( s );
-      pli->resultTupleType = new TupleType(nl->Second(resultType));
+      tt->IncReference();
+      pli->resultTupleType = tt;
 
       return 0;
     }
@@ -4601,8 +4630,12 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgattr);
     AddOperator(&relalgfilter); relalgfilter.SetUsesArgsInTypeMapping();
     AddOperator(&relalgproject);
+    relalgproject.enableInitFinishSupport();
     AddOperator(&relalgremove);
-    AddOperator(&relalgproduct); relalgproduct.SetUsesMemory();
+    relalgremove.enableInitFinishSupport();
+    AddOperator(&relalgproduct); 
+    relalgproduct.SetUsesMemory();
+    relalgproduct.enableInitFinishSupport();
     AddOperator(&relalgcount);
     AddOperator(&relalgcount2);
     AddOperator(&relalgroottuplesize);
@@ -4630,6 +4663,7 @@ class RelationAlgebra : public Algebra
     AddOperator( CountBothInfo(), countboth_vm, countboth_tm );
     
     AddOperator(&relalgfeedproject);
+    relalgfeedproject.enableInitFinishSupport();
     AddOperator(&feedNthOP);
 
     cpptuple.AssociateKind( Kind::TUPLE() );

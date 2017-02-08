@@ -110,7 +110,7 @@ Are several inline initialization functions for ~Word~ instances.
 */
 
 const int MAXARG = 100;
-const int FUNMSG = 10;
+const int FUNMSG = 20;
 
 /*
 Is the maximal number of arguments for one operator
@@ -128,6 +128,10 @@ const int REQUESTPROGRESS = 8;
 const int CLOSEPROGRESS   = 9;
 
 const int FAILURE = 10;
+
+const int INIT = 11;
+const int FINISH = 12;
+
 
 
 /*

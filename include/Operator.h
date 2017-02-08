@@ -87,6 +87,7 @@ struct OperatorInfo {
   bool requestsArgs;
   bool usesArgsInTypeMapping;
   bool usesMemory;
+  bool supportsInitFinish;
 
   OperatorInfo() :
     name(""),
@@ -98,7 +99,8 @@ struct OperatorInfo {
     supportsProgress(false),
     requestsArgs(false),
     usesArgsInTypeMapping(false),
-    usesMemory(false)
+    usesMemory(false),
+    supportsInitFinish(false)
   {}
 
   OperatorInfo(const OperatorInfo& o) :
@@ -111,7 +113,8 @@ struct OperatorInfo {
     supportsProgress(o.supportsProgress),
     requestsArgs(o.requestsArgs),
     usesArgsInTypeMapping(o.usesArgsInTypeMapping),
-    usesMemory(o.usesMemory)
+    usesMemory(o.usesMemory),
+    supportsInitFinish(o.supportsInitFinish)
   {}
 
   OperatorInfo( const std::string& _name,
@@ -130,6 +133,7 @@ struct OperatorInfo {
    requestsArgs = false;
    usesArgsInTypeMapping = false;
    usesMemory = false;
+   supportsInitFinish = false;
  }
 
  OperatorInfo( const std::string& opName, const std::string& specStr);
@@ -160,7 +164,8 @@ struct OperatorInfo {
      << "supportsProgress = " << supportsProgress << ", "
      << "requestsArgs = " <<  requestsArgs << ", "
      << "usesArgsInTypeMapping = " <<  usesArgsInTypeMapping << ", "
-     << "usesMemory = " <<  usesMemory << "]";
+     << "usesMemory = " <<  usesMemory << ","
+     << "supportsInitFinisg = " << supportsInitFinish << "]";
    return o;
  }
 
@@ -455,6 +460,16 @@ Sets the ~ usesMemory ~ field.
 
 */
 
+  void enableInitFinishSupport(){
+     supportsInitFinish = true;
+  }
+
+/*
+Marks this operator to support INIT and FINISH messages.
+
+*/
+
+
 
   bool UsesMemory() { return usesMemory; }
 /*
@@ -462,6 +477,14 @@ Checks the ~ usesMemory ~ field.
 
 */
 
+ bool getSupportsInitFinish() const{
+   return supportsInitFinish;
+ }
+
+/*
+Checks whether this operator supports INIT and FINISH messages.
+
+*/
 
 
   inline int GetNumOfFun(){
@@ -534,6 +557,8 @@ Adds a value mapping function to the list of overloaded operator functions.
                                   // function
     bool           usesMemory;     // Operator uses a large memory buffer
                                    // like a tuple buffer
+    bool           supportsInitFinish; // Operator understands INIT and 
+                                       // FINISH messages.
     bool           excluded;
 
     CreateCostEstimation* createCostEstimation; // array to creation

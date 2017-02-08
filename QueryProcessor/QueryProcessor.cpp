@@ -605,6 +605,7 @@ arguments. In this case the operator must
       int funNo; // needed for testing only
       bool isStream;
       Word local;
+      Word local2; // can be used for init/finish messages
       int resultAlgId;
       int resultTypeId;
       Word resultWord;
@@ -672,6 +673,7 @@ OpNode(OpNodeType type) :
       u.op.funNo  = 0;
       u.op.isStream = false;
       u.op.local = SetWord(Address(0));
+      u.op.local2 = SetWord(Address(0));
       u.received = false;
       u.op.resultAlgId = 0;
       u.op.resultTypeId = 0;
@@ -876,6 +878,8 @@ ostream& operator<<(ostream& os, const OpNode& node) {
              << node.u.op.isStream
              << t2 << "local = "
              << (void*)node.u.op.local.addr
+             << t2 << "local2 = "
+             << (void*)node.u.op.local2.addr
              << t2 << "received = "
              << node.u.received << endl
              << tab(f) << "resultAlgId = "
@@ -989,6 +993,10 @@ ostream& operator<<(ostream& os, const OpNode& node) {
 
     * ~local~: used to keep the ~local~ parameter of a stream operator
   between calls,
+
+    * ~local2~: used to keep the ~local~ parameter of an operator
+       even if the stream operator chain (open request* close) is used 
+       several times
 
     * ~received~: true iff the last call of this stream operator returned YIELD.
 
@@ -3782,6 +3790,9 @@ the function in a database object.
     throw ERR_EXPR_NOT_EVALUABLE;
   }
 
+  if(tree){
+     InitTree(tree);
+  }
 }
 
 void
@@ -3822,6 +3833,13 @@ Deletes an operator tree object.
                                     tree->u.op.local, tree );
 
         }
+        if(   ((tree->u.op.valueMap)) // the is a value mapping
+           && tree->u.op.theOperator->getSupportsInitFinish()){
+               Word resultDummy; // dummy result
+               (*(tree->u.op.valueMap))( tree->u.op.sons, resultDummy,FINISH,
+                                  tree->u.op.local, tree );
+        }
+
         for ( int i = 0; i < tree->u.op.noSons; i++ )
         {
           if( tree->u.op.resultAlgId == 0 )
@@ -3848,6 +3866,13 @@ Deletes an operator tree object.
           cerr << "LocalInfo for operator "
               << tree->u.op.theOperator->GetName()
               << " was not destroyed. local=" << tree->u.op.local.addr
+              << endl;
+        }
+        if( (tree->u.op.local2.addr != 0) && debugLocal)
+        {
+          cerr << "LocalInfo2 for operator "
+              << tree->u.op.theOperator->GetName()
+              << " was not during finish message " << tree->u.op.local2.addr
               << endl;
         }
         if(tree->u.op.costEstimation){
@@ -3960,7 +3985,7 @@ QueryProcessor::EvalP( void* node,
   allowProgress = true;
   try
   {
-    Eval( node, result, 1 );
+    Eval( node, result, OPEN );
   }
   catch (runtime_error r)
   {
@@ -3985,7 +4010,7 @@ QueryProcessor::EvalS( void* node,
 
   try
   {
-    Eval( node, result, 1 );
+    Eval( node, result, OPEN );
   }
   catch (runtime_error r)
   {
@@ -3995,7 +4020,23 @@ QueryProcessor::EvalS( void* node,
 }
 
 
+void QueryProcessor::InitTree(void* s){
 
+  OpNode* tree = (OpNode*) s;
+  if(tree->nodetype != Operator){
+    return;
+  }
+  for(int i=0; i< tree->u.op.noSons; i++){
+    InitTree((tree->u.op.sons[i]).addr);
+  }
+  if(tree->u.op.theOperator){
+    if(tree->u.op.theOperator->getSupportsInitFinish()){
+      static Word w;
+      (*(tree->u.op.valueMap))( 0, w, INIT,
+                              tree->u.op.local, tree );
+    }
+  }
+}
 
 
 void
@@ -4099,6 +4140,7 @@ request the next element.
                         cerr << fn <<
                         "Parameter function's caller node = "
                         << caller->id << endl;
+
 
           status = algebraManager->Execute( caller->u.op.algebraId,
                                             caller->u.op.opFunId,
@@ -5061,6 +5103,14 @@ QueryProcessor::GetType( const Supplier s )
     return (tree->typeExpr);
   }
 }
+
+Word& QueryProcessor::GetLocal2(const Supplier s){
+   OpTree tree = (OpTree) s;
+   assert(tree->nodetype ==Operator);
+   return tree->u.op.local2;
+}
+
+
 
 ListExpr
 QueryProcessor::GetNumType( const Supplier s )
