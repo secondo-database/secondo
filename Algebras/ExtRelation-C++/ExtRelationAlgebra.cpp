@@ -2461,9 +2461,10 @@ class KrdupHInfo{
       KrdupHInfo(Word& _s, const int _buckNum, 
                  vector<int>& _positions, 
                  const size_t _maxMem,
-                 const ListExpr tt) : 
+                 TupleType* _tt) : 
                  stream(_s), buckNum(_buckNum), 
-                 positions(_positions), maxMem(_maxMem), usedMem(0) {
+                 positions(_positions), maxMem(_maxMem), usedMem(0),
+                 tupleType(_tt) {
 
           stream.open();
           if(buckNum<97){
@@ -2481,7 +2482,7 @@ class KrdupHInfo{
           buffer1  = 0;
           buffer2 = 0;
           it = 0;
-          tupleType = new TupleType(tt);
+          tupleType->IncReference(); // reserved for local usage
           stored=0;
           scans = 1; // at least the stream must be scanned
 
@@ -2693,7 +2694,16 @@ int krduphVM(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
   KrdupHInfo* li = (KrdupHInfo*) local.addr;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
   switch(message){
+
+     case INIT : {
+        assert(!tt);
+        qp->GetLocal2(s).addr = new TupleType(nl->Second(
+                                GetTupleResultType(s)));
+        return 0;
+     }
+
      case OPEN :{  if(li){
                      delete li;
                    }
@@ -2712,8 +2722,7 @@ int krduphVM(Word* args, Word& result, int message,
                    }
                    
                    size_t mem = qp->GetMemorySize(s)*1024*1024; // in bytes
-                   local.addr = new KrdupHInfo(args[0],bm, positions, mem,
-                                     nl->Second(GetTupleResultType(s)));
+                   local.addr = new KrdupHInfo(args[0],bm, positions, mem,tt);
                 }
     case REQUEST: { if(!li){
                       return CANCEL;
@@ -2727,6 +2736,14 @@ int krduphVM(Word* args, Word& result, int message,
                        local.addr = 0;
                      }
                  }
+
+    case FINISH : {
+         if(tt){
+            tt->DeleteIfAllowed();
+            qp->GetLocal2(s).addr = 0;
+         }
+         return 0;
+    }
                
   };
   return 0;
@@ -4707,22 +4724,30 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
   Supplier supplier, supplier2, supplier3;
   int nooffun;
   ArgVectorPointer funargs;
-  TupleType *resultTupleType;
-  ListExpr resultType;
+  TupleType *resultTupleType = (TupleType*) qp->GetLocal2(s).addr;
+   
 
   switch (message)
   {
-    case OPEN :
+    case INIT : {
+       assert(!resultTupleType);
+       ListExpr resultType = GetTupleResultType( s );
+       resultTupleType = new TupleType( nl->Second( resultType ) );
+       qp->GetLocal2(s).addr =  resultTupleType();
+       return 0;
+    }
 
+    case FINISH : {
+       resultTupleType->DeleteIfAllowed();
+       qp->GetLocal2(s).addr = 0;
+    }
+
+    case OPEN :
       qp->Open(args[0].addr);
-      resultType = GetTupleResultType( s );
-      resultTupleType = new TupleType( nl->Second( resultType ) );
-      local.setAddr( resultTupleType );
       return 0;
 
     case REQUEST :
 
-      resultTupleType = (TupleType *)local.addr;
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
@@ -4752,11 +4777,6 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
         return CANCEL;
 
     case CLOSE :
-      if(local.addr)
-      {
-         ((TupleType *)local.addr)->DeleteIfAllowed();
-         local.setAddr(0);
-      }
       qp->Close(args[0].addr);
       return 0;
   }
@@ -4809,10 +4829,20 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
   ExtendLocalInfo *eli;
 
   eli = (ExtendLocalInfo*) local.addr;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
 
 
   switch (message)
   {
+    case INIT : {
+      assert(!tt); 
+      qp->GetLocal2(s).addr = new TupleType(nl->Second(
+                                     GetTupleResultType(s))
+                                  );
+      return 0;
+    }
+
+
     case OPEN :
 
       if ( eli ) {
@@ -4820,7 +4850,9 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       eli = new ExtendLocalInfo;
-      eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      assert(tt);
+      tt->IncReference();
+      eli->resultTupleType = tt;
       eli->read = 0;
       eli->stableValue = 50;
       eli->sizesFinal = false;
@@ -4883,6 +4915,15 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE :
       qp->Close(args[0].addr);
       return 0;
+
+
+    case FINISH:{
+       if(tt){
+         tt->DeleteIfAllowed();
+         qp->GetLocal2(s).addr=0;
+       } 
+       return 0;
+    }
 
     case CLOSEPROGRESS:
       if ( eli ){
@@ -5114,6 +5155,8 @@ struct LoopjoinLocalInfo
   TupleType *resultTupleType;
 };
 
+
+
 int Loopjoin(Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
@@ -5130,8 +5173,24 @@ int Loopjoin(Word* args, Word& result, int message,
 
   LoopjoinLocalInfo *localinfo = 0;
 
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
   switch ( message )
   {
+    case INIT: {
+       assert(!tt);
+       ListExpr resultType = GetTupleResultType( s );
+       qp->GetLocal2(s).addr = new TupleType(nl->Second(resultType));
+       return 0;
+    }
+
+    case FINISH: {
+        tt->DeleteIfAllowed();
+        qp->GetLocal2(s).addr=0;
+        return 0;
+    }
+
+
     case OPEN:
       qp->Open (args[0].addr);
       qp->Request(args[0].addr, tuplex);
@@ -5143,9 +5202,8 @@ int Loopjoin(Word* args, Word& result, int message,
         qp->Open (streamy.addr);
 
         localinfo = new LoopjoinLocalInfo;
-        ListExpr resultType = GetTupleResultType( s );
-        localinfo->resultTupleType =
-          new TupleType( nl->Second( resultType ) );
+        tt->IncReference();
+        localinfo->resultTupleType = tt;
         localinfo->tuplex = tuplex;
         localinfo->streamy = streamy;
         local.setAddr(localinfo);
@@ -5271,14 +5329,30 @@ int Loopjoin(Word* args, Word& result, int message,
   Tuple* ctupley = 0;
   Tuple* ctuplexy = 0;
 
-  ListExpr resultType;
 
   LoopjoinLocalInfo* lli;
 
   lli = (LoopjoinLocalInfo *) local.addr;
 
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
+
   switch ( message )
   {
+    case INIT : {
+       ListExpr resultType = GetTupleResultType(s);
+       qp->GetLocal2(s).addr = new TupleType(nl->Second(resultType));
+       return 0; 
+    }
+
+    case FINISH: {
+       if(tt){
+           tt->DeleteIfAllowed();
+       }
+       qp->GetLocal2(s).addr = 0;
+       return 0;
+    }
+
     case OPEN:
 
       if ( lli ) {
@@ -5286,9 +5360,8 @@ int Loopjoin(Word* args, Word& result, int message,
       }
 
       lli = new LoopjoinLocalInfo();
-      resultType = GetTupleResultType( s );
-      lli->resultTupleType =
-           new TupleType( nl->Second( resultType ) );
+      tt->IncReference();
+      lli->resultTupleType = tt;
 
       local.setAddr(lli);
 
@@ -5531,8 +5604,25 @@ Loopselect(Word* args, Word& result, int message,
   Tuple* ctupley;
   LoopselectLocalInfo *localinfo;
 
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
   switch ( message )
   {
+    case INIT : {
+       ListExpr resultType = GetTupleResultType( s );
+       tt = new TupleType (nl->Second(resultType));
+       qp->GetLocal2(s).addr = tt;
+       return 0;
+    }
+
+    case FINISH : {
+        if(tt){
+           tt->DeleteIfAllowed();
+           qp->GetLocal2(s).addr = 0;
+        }
+        return 0;
+    }
+
     case OPEN:
       // open the stream and initiate the variables
       qp->Open (args[0].addr);
@@ -5547,9 +5637,8 @@ Loopselect(Word* args, Word& result, int message,
 
         // put the information of tuplex and rely into local
         localinfo = new LoopselectLocalInfo;
-        ListExpr resultType = GetTupleResultType( s );
-        localinfo->resultTupleType =
-          new TupleType( nl->Second( resultType ) );
+        tt->IncReference();
+        localinfo->resultTupleType = tt;
         localinfo->tuplex=tuplex;
         localinfo->streamy=streamy;
         local.setAddr(localinfo);
@@ -5662,12 +5751,28 @@ int Loopselect(Word* args, Word& result, int message,
 {
   ArgVectorPointer funargs;
   Word tuplex, tupley, streamy;
-  //Tuple* ctuplex;
-  //Tuple* ctupley;
   LoopselectLocalInfo *localinfo;
+
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
 
   switch ( message )
   {
+     case INIT : {
+        ListExpr resultType = GetTupleResultType( s );
+        tt = new TupleType(nl->Second(resultType));
+        qp->GetLocal2(s).addr = tt;
+        return 0;
+     }
+
+     case FINISH : {
+         if(tt){
+            tt->DeleteIfAllowed();
+            qp->GetLocal2(s).addr=0;
+         }
+         return 0;
+     }
+
+
     case OPEN:
       // open the stream and initiate the variables
       qp->Open (args[0].addr);
@@ -5687,9 +5792,8 @@ int Loopselect(Word* args, Word& result, int message,
 
         // put the information of tuplex and rely into local
         localinfo = new LoopselectLocalInfo;
-        ListExpr resultType = GetTupleResultType( s );
-        localinfo->resultTupleType =
-            new TupleType( nl->Second( resultType ) );
+        tt->IncReference();
+        localinfo->resultTupleType = tt;
         localinfo->tuplex=tuplex;
         localinfo->streamy=streamy;
         localinfo->readFirst=1;   // first tuple read
@@ -5965,12 +6069,29 @@ int ExtendStream(Word* args, Word& result, int message,
   ExtendStreamLocalInfo *localinfo;
 
   TupleType *resultTupleType;
-  ListExpr resultType;
 
   Supplier supplier, supplier2, supplier3;
 
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
   switch( message )
   {
+    case INIT: {
+        ListExpr resultType = GetTupleResultType( s );
+        tt = new TupleType(nl->Second(resulType);
+        qp->GetLocal2(s).addr = tt;
+        return 0;
+    }
+
+    case FINISH: {
+        if(tt){
+           tt->DeleteIfAllowed();
+           qp->GetLocal2(s).addr = 0;
+        }
+        return 0;
+    }
+
+
     case OPEN:
     {
       //1. open the input stream and initiate the arguments
@@ -5991,9 +6112,8 @@ int ExtendStream(Word* args, Word& result, int message,
 
         //3. save the local information
         localinfo = new ExtendStreamLocalInfo;
-        resultType = GetTupleResultType( s );
-        localinfo->resultTupleType =
-          new TupleType( nl->Second( resultType ) );
+        tt->IncReference();
+        localinfo->resultTupleType = tt;
         localinfo->tupleX = (Tuple*)wTupleX.addr;
         localinfo->streamY.setAddr( supplier3 );
         local.setAddr(localinfo);
@@ -6128,9 +6248,26 @@ int ExtendStream(Word* args, Word& result, int message,
   eli = (ExtendStreamLocalInfo*) local.addr;
 
   Supplier supplier, supplier2, supplier3;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
 
   switch( message )
   {
+
+    case INIT : {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr = tt;
+      return 0;  
+    }
+
+    case FINISH : {
+       if(tt){
+          tt->DeleteIfAllowed();
+           qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
     case OPEN:
     {
       if ( eli ) {
@@ -6138,7 +6275,8 @@ int ExtendStream(Word* args, Word& result, int message,
       }
 
       eli = new ExtendStreamLocalInfo;
-      eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      tt->IncReference();
+      eli->resultTupleType = tt;
       eli->newAttrSize = 0.0;
       eli->newAttrSizeExt = 0.0;
       eli->stableValue = 50;
@@ -6599,12 +6737,29 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
   //  cout << "ExtProjectExtendValueMap() called." << endl;
+
+  TupleType* tt = (TupleType*)  qp->GetLocal2(s).addr;
+
   switch (message)
   {
+    case INIT: {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr = tt;
+      return 0;
+    }
+
+    case FINISH: {
+       if(tt){
+         tt->DeleteIfAllowed();
+         qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
     case OPEN :
     {
-      ListExpr resultType = GetTupleResultType( s );
-      TupleType *tupleType = new TupleType(nl->Second(resultType));
+      tt->IncReference();
+      TupleType *tupleType = tt;
       local.addr = tupleType;
       qp->Open(args[0].addr);
       return 0;
@@ -6719,8 +6874,25 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
   ProjectExtendLocalInfo *eli;
   eli = (ProjectExtendLocalInfo*) local.addr;
 
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
   switch (message)
   {
+
+    case INIT: {
+       tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       qp->GetLocal2(s).addr = tt;
+       return 0;
+    }
+
+    case FINISH: {
+       if(tt){
+         tt->DeleteIfAllowed();
+         qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
     case OPEN :
     {
       if ( eli ) {
@@ -6728,7 +6900,8 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
       }
 
       eli = new ProjectExtendLocalInfo;
-      eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      tt->IncReference();
+      eli->resultTupleType = tt;
       eli->read = 0;
       eli->stableValue = 50;
       eli->sizesFinal = false;
@@ -7118,12 +7291,28 @@ int ProjectExtendStream(Word* args, Word& result, int message,
   ProjectExtendStreamLocalInfo *localinfo;
 
   TupleType *resultTupleType;
-  ListExpr resultType;
 
   Supplier supplier, supplier2, supplier3;
 
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
   switch( message )
   {
+
+    case INIT: {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr = tt;
+      return 0;
+    }
+    case FINISH: {
+       if(tt){
+         tt->DeleteIfAllowed();
+         qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
+
     case OPEN:
     {
       //1. open the input stream and initiate the arguments
@@ -7142,9 +7331,8 @@ int ProjectExtendStream(Word* args, Word& result, int message,
 
         //3. save the local information
         localinfo = new ProjectExtendStreamLocalInfo;
-        resultType = GetTupleResultType( s );
-        localinfo->resultTupleType =
-          new TupleType( nl->Second( resultType ) );
+        tt->IncReference();
+        localinfo->resultTupleType = tt;
         localinfo->tupleX = (Tuple*)wTupleX.addr;
         localinfo->streamY.setAddr( supplier3 );
 
@@ -7296,8 +7484,24 @@ int ProjectExtendStream(Word* args, Word& result, int message,
 
   Supplier son, supplier, supplier2, supplier3;
 
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
   switch( message )
   {
+    case INIT: {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr = tt;
+      return 0;
+    }
+
+    case FINISH: {
+      if(tt){
+        tt->DeleteIfAllowed();
+        qp->GetLocal2(s).addr=0;
+      }
+      return 0;
+    }
+
     case OPEN:
     {
       if ( eli ) {
@@ -7305,7 +7509,8 @@ int ProjectExtendStream(Word* args, Word& result, int message,
       }
 
       eli = new ProjectExtendStreamLocalInfo;
-      eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      tt->IncReference();
+      eli->resultTupleType = tt;
       eli->newAttrSize = 0.0;
       eli->newAttrSizeExt = 0.0;
       eli->stableValue = 50;
@@ -8075,6 +8280,9 @@ int GroupByValueMapping
   int attribIdx = 0;
   GroupByLocalInfo *gbli = 0;
 
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
+
   // The argument vector contains the following values:
   // args[0] = stream of tuples
   // args[1] = list of identifiers
@@ -8084,6 +8292,21 @@ int GroupByValueMapping
 
   switch(message)
   {
+    case INIT : {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr=tt;
+      return 0;
+    }
+
+    case FINISH: {
+       if(tt){
+         tt->DeleteIfAllowed();
+         qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
+
     case OPEN:
     {
       // Get the first tuple pointer and store it in the
@@ -8095,8 +8318,8 @@ int GroupByValueMapping
         gbli = new GroupByLocalInfo();
         gbli->t = (Tuple*)sWord.addr;
         gbli->t->IncReference();
-        ListExpr resultType = GetTupleResultType( supplier );
-        gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
+        tt->IncReference();
+        gbli->resultTupleType = tt;
         gbli->MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
         local.setAddr(gbli);
 
@@ -8305,6 +8528,7 @@ int GroupByValueMapping
   const int startIndexOfExtraArguments = indexOfCountArgument +1;
   int attribIdx = 0;
   GroupByLocalInfo *gbli = (GroupByLocalInfo *)local.addr;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
 
 
   // The argument vector contains the following values:
@@ -8316,6 +8540,21 @@ int GroupByValueMapping
 
   switch(message)
   {
+
+    case INIT: {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr = tt;
+      return 0;
+    }
+    case FINISH: {
+       if(tt){
+         tt->DeleteIfAllowed();
+         qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
+
     case OPEN:
     {
 
@@ -8353,8 +8592,8 @@ int GroupByValueMapping
         gbli->read++;
         gbli->t = (Tuple*)sWord.addr;
         //gbli->t->IncReference();
-        ListExpr resultType = GetTupleResultType( s );
-        gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
+        tt->IncReference();
+        gbli->resultTupleType = tt;
         gbli->MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
 
 
@@ -8610,6 +8849,8 @@ int SlidingWindowValueMapping
   ArgVectorPointer vector;
   SlidingWindowLocalInfo *gbli = 0;
 
+  TupleType* tt = (TupleType*) qp->GetLocal2(supplier).addr;
+
   // The argument vector contains the following values:
   // args[0] = stream of tuples
   // args[1] = list of identifiers
@@ -8619,13 +8860,28 @@ int SlidingWindowValueMapping
 
   switch(message)
   {
+    case INIT : {
+      tt = new TupleType(nl->Second(GetTupleResultType(supplier)));
+      qp->GetLocal2(supplier).addr = tt;
+      return 0;
+    }
+
+    case FINISH : {
+       if(tt){
+          tt->DeleteIfAllowed();
+          qp->GetLocal2(supplier).addr=0;
+       }
+       return 0;
+    }
+
+
     case OPEN:
     {
       // Get the first tuple pointer and store it in the
       // GroupBylocalInfo structure
       gbli = new SlidingWindowLocalInfo();
-      ListExpr resultType = GetTupleResultType( supplier );
-      gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
+      tt->IncReference();
+      gbli->resultTupleType = tt;
       gbli->firstWindow= true;
       local.setAddr(gbli);
       qp->Open (args[0].addr);
@@ -9406,8 +9662,25 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   Word r, l;
   SymmJoinLocalInfo* pli;
 
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
   switch (message)
   {
+    case INIT: {
+       tt = new TupleType(nl->Second(GetResultTupleType(s)));
+       qp->GetLocal2(s).addr=tt;
+       return 0;
+    }
+
+    case FINISH: {
+       if(tt){
+         tt->DeleteIfAllowed();
+         qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
+
     case OPEN :
     {
       long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
@@ -9424,8 +9697,8 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       pli->rightFinished = false;
       pli->leftFinished = false;
 
-      ListExpr resultType = GetTupleResultType( s );
-      pli->resultTupleType = new TupleType( nl->Second( resultType ) );
+      tt->IncReference();
+      pli->resultTupleType = tt;
 
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
@@ -9702,9 +9975,23 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   SymmJoinLocalInfo* pli;
 
   pli = (SymmJoinLocalInfo*) local.addr;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
 
   switch (message)
   {
+    case INIT: {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr=tt;
+      return 0;
+    }
+    case FINISH: {
+      if(tt){
+        tt->DeleteIfAllowed();
+        qp->GetLocal2(s).addr=0;
+      }
+      return 0;
+    }
+
     case OPEN :
     {
 
@@ -9730,9 +10017,8 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       pli -> costEstimation =
          (SymmjoinCostEstimation*) qp->getCostEstimation(s);
       pli -> costEstimation -> init(NULL, NULL);
-
-      ListExpr resultType = GetTupleResultType( s );
-      pli->resultTupleType = new TupleType( nl->Second( resultType ) );
+      tt->IncReference();
+      pli->resultTupleType =tt;
       pli->readFirst = 0;
       pli->readSecond = 0;
       pli->returned = 0;
@@ -10179,8 +10465,25 @@ SymmProductExtend(Word* args, Word& result,
   ArgVectorPointer extFunArgs;
   Tuple *resultTuple;
 
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
   switch (message)
   {
+
+    case INIT: {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr=tt;
+      return 0;
+    }
+    case FINISH : {
+      if(tt){
+        tt->DeleteIfAllowed();
+        qp->GetLocal2(s).addr=0;
+      }
+      return 0;
+    }
+
+
     case OPEN :
     {
       long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
@@ -10197,8 +10500,8 @@ SymmProductExtend(Word* args, Word& result,
       pli->rightFinished = false;
       pli->leftFinished = false;
 
-      ListExpr resultType = GetTupleResultType( s );
-      pli->resultTupleType = new TupleType( nl->Second( resultType ) );
+      tt->IncReference();
+      pli->resultTupleType = tt;
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
 
@@ -10546,9 +10849,23 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word r, l;
   SymmProductLocalInfo* pli;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
 
   switch (message)
   {
+    case INIT: {
+       tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       qp->GetLocal2(s).addr=tt;
+       return 0;
+    }
+    case FINISH: {
+       if(tt){
+         tt->DeleteIfAllowed();
+         qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
     case OPEN :
     {
       long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
@@ -10565,8 +10882,8 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
       pli->rightFinished = false;
       pli->leftFinished = false;
 
-      ListExpr resultType = GetTupleResultType( s );
-      pli->resultTupleType = new TupleType( nl->Second( resultType ) );
+      tt->IncReference();
+      pli->resultTupleType = tt;
 
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
@@ -10890,10 +11207,11 @@ if(nl->IsEmpty(last)){ // stream without attributes
 template< class T>
 class AddCounterLocalInfo{
 public:
-  AddCounterLocalInfo(T* init, Supplier s){
+  AddCounterLocalInfo(T* init, TupleType*  tt){
      defined = init->IsDefined();
      value = *init;
-     tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+     tt->IncReference();
+     tupleType = tt;
   }
   ~AddCounterLocalInfo(){
      tupleType->DeleteIfAllowed();
@@ -10925,11 +11243,27 @@ int AddCounterValueMap(Word* args, Word& result, int message,
                Word& local, Supplier s){
 
    Word orig;
+   TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
    switch(message){
+    case INIT: {
+       tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       qp->GetLocal2(s).addr = tt;
+       return 0;
+    }
+
+    case FINISH : {
+       if(tt){
+          tt->DeleteIfAllowed();
+          qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
     case OPEN: {
        T* Init = ((T*)args[2].addr);
        qp->Open(args[0].addr);
-       local.addr = new AddCounterLocalInfo<T>(Init,s);
+       local.addr = new AddCounterLocalInfo<T>(Init,tt);
        break;
     }
     case REQUEST: {
@@ -11212,10 +11546,11 @@ class ExtendAggrInfo{
 
 public: 
      ExtendAggrInfo(Word& _stream, Supplier _fun, int _attrPos, 
-                  int _resetPos, ListExpr type):
+                  int _resetPos, TupleType* type):
      stream(_stream),first(true), fun(_fun), attrPos(_attrPos),
      resetPos(_resetPos), value(0) {
-         tupleType = new TupleType(type);
+         tupleType = type;
+         tupleType->IncReference();
          stream.open();
      }
     
@@ -11283,7 +11618,22 @@ extend_aggrVM(Word* args, Word& result, int message,
                  Word& local, Supplier s1){
 
    ExtendAggrInfo* li = (ExtendAggrInfo*) local.addr;
+   TupleType* tt = (TupleType*) qp->GetLocal2(s1).addr;
+    
    switch(message){
+    case INIT : {
+      tt = new TupleType(nl->Second(GetTupleResultType(s1)));
+      qp->GetLocal2(s1).addr=tt;
+      return 0;
+    }
+    case FINISH: {
+      if(tt){
+        tt->DeleteIfAllowed();
+        qp->GetLocal2(s1).addr=0;
+      }
+      return 0;
+    }
+ 
     case OPEN : {
                   if(li){
                      delete li;
@@ -11295,7 +11645,7 @@ extend_aggrVM(Word* args, Word& result, int message,
                   Supplier s3 = qp->GetSupplier(s2,1);
                   local.addr = new ExtendAggrInfo(args[0], s3, attrPos,
                                       resetPos, 
-                                      nl->Second(GetTupleResultType(s1)));
+                                      tt);
                   return 0;
                   }
     case REQUEST: {
@@ -11445,9 +11795,10 @@ ListExpr extend_lastTM(ListExpr args){
 class ExtendLastInfo{
   public:
     ExtendLastInfo(Word& _stream, Supplier _s1, 
-                   ListExpr resType):
+                   TupleType* resType):
      stream(_stream), s1(_s1), first(true), lastTuple(0){
-      tupleType = new TupleType(resType);
+      tupleType = resType;
+      tupleType->IncReference();
       stream.open();
     }
     ~ExtendLastInfo(){
@@ -11518,13 +11869,27 @@ int extend_lastVMT(Word* args, Word& result, int message,
                  Word& local, Supplier s1){
 
    T* li = (T*) local.addr;
+   TupleType* tt = (TupleType*) qp->GetLocal2(s1).addr;
+
    switch(message){
+    case INIT: {
+        tt = new TupleType(nl->Second(GetTupleResultType(s1)));
+        qp->GetLocal2(s1).addr = tt;
+        return 0;
+    }
+    case FINISH: {
+       if(tt){
+          tt->DeleteIfAllowed();
+          qp->GetLocal2(s1).addr=0;
+       }
+       return 0;
+   }
+
     case OPEN : {
                   if(li){
                      delete li;
                   }
-                  local.addr = new T(args[0], args[1].addr, 
-                                          nl->Second(GetTupleResultType(s1)));
+                  local.addr = new T(args[0], args[1].addr, tt);
                   return 0;
                   }
     case REQUEST: {
@@ -11594,9 +11959,10 @@ The Type mapping is the same as for the extend[_]last operator.
 class ExtendNextInfo{
   public:
     ExtendNextInfo(Word& _stream, Supplier _s1, 
-                   ListExpr resType):
+                   TupleType* resType):
       stream(_stream), s1(_s1), lastTuple(0){
-      tupleType = new TupleType(resType);
+      tupleType = resType;
+      tupleType->IncReference();
       stream.open();
     }
     ~ExtendNextInfo(){
@@ -11794,7 +12160,7 @@ ListExpr toFieldsType( ListExpr args ) {
 class ToFieldsInfo {
   public:
     ToFieldsInfo( Word& is, vector<string> &fields1, vector<string> &types1,
-          int position, ListExpr tl );
+          int position, TupleType* _tt );
     ~ToFieldsInfo();
     Tuple* nextTuple();
   private:
@@ -11812,12 +12178,14 @@ class ToFieldsInfo {
 };
 
 ToFieldsInfo::ToFieldsInfo( Word& is, vector<string> &fields1,
-                            vector<string> &types1, int position, ListExpr tl): 
+                            vector<string> &types1, int position, 
+                            TupleType* _tt): 
     stream( is ), tuple( 0 ), pos(0), keypos( position ), fields( fields1 ),
     types(types1) {
   stream.open();
   tuple = stream.request();
-  tt = new TupleType( tl );
+  tt = _tt;
+  tt->IncReference();
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
   for ( int i = 0; i < tuple->GetNoAttributes(); i++ ) {
@@ -11890,10 +12258,25 @@ Tuple* ToFieldsInfo::nextTuple() {
 int toFieldsFun ( Word* args, Word& result, int message,
           Word& local, Supplier s ) {
   ToFieldsInfo* tfi = (ToFieldsInfo*) local.addr;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
   switch( message ) {
+    case INIT : {
+       tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       qp->GetLocal2(s).addr=tt;
+       return 0;
+    }
+    case FINISH: {
+       if(tt){
+         tt->DeleteIfAllowed();
+         qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
     case OPEN: {
       if ( tfi ) {
-    delete tfi;
+         delete tfi;
       }
       int pos = ( (CcInt*)args[ 2 ].addr )->GetIntval();
       vector<string> fields, types;
@@ -11904,8 +12287,7 @@ int toFieldsFun ( Word* args, Word& result, int message,
     fields.push_back( ( (CcString*)args[ i + 3 ].addr )->GetValue() );
     types.push_back( ( (FText*)args[ i + noattrs + 3 ].addr )->GetValue() );
       }      
-      local.addr = new ToFieldsInfo( args[ 0 ], fields, types, pos,
-                   nl->Second( GetTupleResultType( s ) ) );
+      local.addr = new ToFieldsInfo( args[ 0 ], fields, types, pos, tt);
       return 0;
     }
     case REQUEST: {
@@ -12043,13 +12425,16 @@ class FromFieldsInfo {
     }
     
   public:
-    FromFieldsInfo( Word& is, ListExpr tl , int pF, int pK, int pV ): 
+    FromFieldsInfo( Word& is, TupleType* _tt , int pF, int pK, int pV,
+                    Supplier s ): 
               stream( is ), tuple( 0 ), posF( pF ), posK( pK ), posV( pV ) {
       inTuple = 0;                      
       key = 0;                        
       stream.open();
-      tt = new TupleType ( tl ); 
+      tt = _tt; 
+      tt->IncReference();
       AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+      ListExpr tl = nl->Second(GetTupleResultType(s));
       ListExpr attrList = nl->Second( tl );
       int pos = -1;
       while( !nl->IsEmpty( attrList ) ) {
@@ -12227,7 +12612,22 @@ class FromFieldsInfo {
 int fromFieldsFun( Word* args, Word& result, int message,
            Word& local, Supplier s ) {
   FromFieldsInfo* ffi = (FromFieldsInfo*) local.addr;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+
   switch( message ) {
+    case INIT: {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr=tt;
+      return 0;
+    }
+    case FINISH: {
+       if(tt){
+          tt->DeleteIfAllowed();
+          qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
     case OPEN: {
       if ( ffi ) {
            delete ffi;
@@ -12235,9 +12635,7 @@ int fromFieldsFun( Word* args, Word& result, int message,
       int posF = ( ( CcInt* )args[ 2 ].addr )->GetValue();
       int posK = ( ( CcInt* )args[ 3 ].addr )->GetValue();
       int posV = ( ( CcInt* )args[ 4 ].addr )->GetValue();
-      local.addr = new FromFieldsInfo( args[ 0 ],
-                                       nl->Second( GetTupleResultType( s ) ),
-                                       posF, posK, posV );
+      local.addr = new FromFieldsInfo( args[ 0 ], tt, posF, posK, posV,s );
       return 0;
     }
     case REQUEST: {
@@ -12358,10 +12756,11 @@ class applyToAllLocalInfo{
 
  public:
    
-   applyToAllLocalInfo(Word& s, Word& f, vector<int>& pos, ListExpr resType):
+   applyToAllLocalInfo(Word& s, Word& f, vector<int>& pos, TupleType* _tt):
        stream(s), fun(f), positions(pos) {
        stream.open();
-       tt = new TupleType(resType);
+       tt = _tt;
+       tt->IncReference();
        positions.push_back(-1);
    }
    ~applyToAllLocalInfo(){
@@ -12417,8 +12816,23 @@ int applyToAllVM( Word* args, Word& result, int message,
 
 
   applyToAllLocalInfo* li = (applyToAllLocalInfo*) local.addr;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
  
   switch(message){
+    case INIT : {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr=tt;
+      return 0;
+    }
+
+    case FINISH: {
+      if(tt){
+        tt->DeleteIfAllowed();
+        qp->GetLocal2(s).addr=0;
+      }
+      return 0;
+    }
+
     case OPEN: {
                   if(li){
                     delete li;
@@ -12428,8 +12842,7 @@ int applyToAllVM( Word* args, Word& result, int message,
                      attrPos.push_back(((CcInt*)args[i].addr)->GetValue());
                   }  
                   local.addr = new applyToAllLocalInfo(args[0], args[1], 
-                                                      attrPos, 
-                                        nl->Second(GetTupleResultType(s)));
+                                                      attrPos, tt);
                   return 0;
                }
      case REQUEST: {
@@ -12736,10 +13149,11 @@ class replaceAttrLocalInfo{
     replaceAttrLocalInfo(Word _stream,
                          Supplier _funs,
                          map<int,int> _mapping,
-                         ListExpr _tupleType): 
+                         TupleType* _tupleType): 
                 stream(_stream), funs(_funs),mapping(_mapping){
        stream.open();
-       tt = new TupleType(_tupleType);
+       tt = _tupleType;
+       tt->IncReference();
     }
 
    ~replaceAttrLocalInfo(){
@@ -12792,7 +13206,21 @@ int replaceAttrVM( Word* args, Word& result, int message,
            Word& local, Supplier s ) {
 
   replaceAttrLocalInfo* li = (replaceAttrLocalInfo*) local.addr;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
   switch(message){
+    case INIT: {
+      tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr=tt;
+      return 0;
+    }
+    case FINISH: {
+       if(tt){
+         tt->DeleteIfAllowed();
+         qp->GetLocal2(s).addr=0;
+       }
+       return 0;
+    }
+
     case OPEN: {
           if(li){
             delete li;
@@ -12804,7 +13232,7 @@ int replaceAttrVM( Word* args, Word& result, int message,
              pos[index] = i-2;
           }
           local.addr = new replaceAttrLocalInfo(args[0], qp->GetSon(s,1), pos,
-                            nl->Second(GetTupleResultType(s)));
+                            tt);
           return 0;
     }
     case REQUEST : {
@@ -13065,10 +13493,13 @@ ListExpr extendXTM(ListExpr args){
 class extendXLocal{
    public:
 
-      extendXLocal(Word _istream, Supplier _fun, int _no,
-                      Attribute* _defaultValue, ListExpr _tupleType):
+      extendXLocal(Word _istream, 
+                   Supplier _fun, int _no,
+                   Attribute* _defaultValue, 
+                   TupleType* _tupleType):
       istream(_istream), fun(_fun), no(_no), defaultValue(_defaultValue){
-      tt = new TupleType(_tupleType);
+      tt = _tupleType;
+      tt->IncReference();
       istream.open();
    }
 
@@ -13128,15 +13559,29 @@ int extendXVM( Word* args, Word& result, int message,
            Word& local, Supplier s ) {
 
  extendXLocal* li = (extendXLocal*)local.addr;
+ TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
 
   switch(message){
+    case INIT : {
+       tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       qp->GetLocal2(s).addr = tt;
+       return 0;
+    } 
+
+    case FINISH: {
+       if(tt){
+          tt->DeleteIfAllowed();
+          qp->GetLocal2(s).addr = 0;
+       }
+       return 0;
+    }
+
     case OPEN : {
                   if(li) delete li;
                   // stream attrlist fun default
                   //   0      1       2     3
                   int ns = qp->GetNoSons(qp->GetSon(s,1));
                   Attribute* dv = (Attribute*) args[3].addr;
-                  ListExpr tt = nl->Second(GetTupleResultType(s));
                   local.addr = new extendXLocal( args[0], args[2].addr,
                                                  ns, dv, tt);
                 }
@@ -13729,10 +14174,11 @@ template<class E1, class E2>
 class obojoinInfo{
 
   public:
-    obojoinInfo(Word& s1, Word& s2, ListExpr _tt): stream1(s1), stream2(s2){
+    obojoinInfo(Word& s1, Word& s2, TupleType* _tt): stream1(s1), stream2(s2){
       stream1.open();
       stream2.open();
-      tt = new TupleType(_tt);
+      tt = _tt;
+      tt->IncReference();
     }
     ~obojoinInfo(){
         stream1.close();
@@ -13803,13 +14249,25 @@ int obojoinVM(Word* args, Word& result, int message,
                      Word& local, Supplier s) {
 
   obojoinInfo<e1,e2>* li = (obojoinInfo<e1,e2>*) local.addr;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
   switch(message){
+     case INIT : {
+        tt = new TupleType(nl->Second(GetTupleResultType(s)));
+        qp->GetLocal2(s).addr=tt;
+        return 0;
+     }
+     case FINISH: {
+        if(tt){
+           tt->DeleteIfAllowed();
+           qp->GetLocal2(s).addr=0;
+        }
+        return 0;
+     }
      case OPEN: {
             if(li){
                delete li;
             }
-            local.addr = new obojoinInfo<e1,e2>(args[0],args[1], 
-                             nl->Second(GetTupleResultType(s)));
+            local.addr = new obojoinInfo<e1,e2>(args[0],args[1],tt);
             return 0;
       }
       case REQUEST :{
@@ -14481,10 +14939,11 @@ class ExtRelationAlgebra : public Algebra
   ExtRelationAlgebra() : Algebra()
   {
     AddOperator(&extrelsample);
-    AddOperator(&extrelgroup);
+    AddOperator(&extrelgroup); // type map operator
     AddOperator(&extrelcancel);
     AddOperator(&extrelextract);
     AddOperator(&extrelextend);
+    extrelextend.enableInitFinishSupport();
     AddOperator(&extrelconcat);
     AddOperator(&extrelmin);
     AddOperator(&extrelmax);
@@ -14525,6 +14984,7 @@ class ExtRelationAlgebra : public Algebra
       extrelsortby.SetUsesMemory();
     AddOperator(&extrelsort);
       extrelsort.SetUsesMemory();
+
     AddOperator(&extrelrdup);
     AddOperator(&extrelmergesec);
     AddOperator(&extrelmergediff);
@@ -14539,46 +14999,69 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelhashjoin);
       extrelhashjoin.SetUsesMemory();
     AddOperator(&extrelloopjoin);
+    extrelloopjoin.enableInitFinishSupport();
     AddOperator(&extrelextendstream);
+    extrelextendstream.enableInitFinishSupport();
     AddOperator(&extrelprojectextendstream);
+    extrelprojectextendstream.enableInitFinishSupport();
     AddOperator(&extrelloopsel);
+    extrelloopsel.enableInitFinishSupport();
     AddOperator(&extrelgroupby);
       extrelgroupby.SetUsesMemory();
+    extrelgroupby.enableInitFinishSupport();
     AddOperator(&extrelaggregate);
     AddOperator(&extrelaggregateB);
     AddOperator(&extrelsymmjoin);
      extrelsymmjoin.SetUsesMemory();
+     extrelsymmjoin.enableInitFinishSupport();
     AddOperator(&extrelsymmouterjoin);
       extrelsymmouterjoin.SetUsesMemory();
     AddOperator(&extrelsymmproductextend);
       extrelsymmproductextend.SetUsesMemory();
+      extrelsymmproductextend.enableInitFinishSupport();
     AddOperator(&extrelsymmproduct);
+    extrelsymmproduct.enableInitFinishSupport();
       extrelsymmproduct.SetUsesMemory();
     AddOperator(&extrelprojectextend);
+    extrelprojectextend.enableInitFinishSupport(); 
     AddOperator(&krdup);
     AddOperator(&krduph);
+    krduph.enableInitFinishSupport();
     krduph.SetUsesMemory();
     AddOperator(&extreladdcounter);
+    extreladdcounter.enableInitFinishSupport();
     AddOperator(&ksmallest);
     AddOperator(&kbiggest);
     AddOperator(&extrelslidingwindow);
+    extrelslidingwindow.enableInitFinishSupport();
     AddOperator(&extend_aggr);
+    extend_aggr.enableInitFinishSupport();
     AddOperator(&extend_last);
+    extend_last.enableInitFinishSupport();
     AddOperator(&extend_next);
+    extend_next.enableInitFinishSupport();
     AddOperator(&aggregateC);
-    AddOperator(toFieldsInfo(), toFieldsFun, toFieldsType );
-    AddOperator(fromFieldsInfo(), fromFieldsFun, fromFieldsType );
+    Operator* tfo = AddOperator(toFieldsInfo(), toFieldsFun, toFieldsType );
+    tfo->enableInitFinishSupport();
+    Operator* ffo = AddOperator(fromFieldsInfo(), fromFieldsFun, 
+                            fromFieldsType );
+    ffo->enableInitFinishSupport();
     AddOperator(&applyToAll);
+    applyToAll.enableInitFinishSupport();
     AddOperator(&equalStreams);
     AddOperator(&replaceAttr);
+    replaceAttr.enableInitFinishSupport();
     AddOperator(&pfilter);
     AddOperator(&extendXOP);
+    extendXOP.enableInitFinishSupport();
     AddOperator(&countMtOP);
     AddOperator(&bringToMemoryOP);
     AddOperator(&feedSOp);
     AddOperator(&extrelnth);
     AddOperator(&obojoinOP);
+    obojoinOP.enableInitFinishSupport();
     AddOperator(&obojoinDOP);
+    obojoinDOP.enableInitFinishSupport();
     AddOperator(&gettuplesOP);
     AddOperator(&isOrderedOP);
     AddOperator(&isOrderedByOP);

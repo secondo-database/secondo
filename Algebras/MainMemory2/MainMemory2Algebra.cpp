@@ -4465,19 +4465,32 @@ int mexactmatchVMT (Word* args, Word& result,
 
     avlOperLI* li = (avlOperLI*) local.addr;
 
+
     switch (message)
     {
+        case INIT: { // arguments required, create once in open
+            return 0;
+        }
+        case FINISH : {
+            qp->GetLocal2(s).addr = 0; // do not delete here
+            return 0;
+        }
+
         case OPEN: {
             if(li){
                 delete li;
                 local.addr=0;
             }
-            
-            R* relN = (R*) args[1].addr;
-            MemoryRelObject* mro = getMemRel(relN, nl->Second(qp->GetType(s)));
-            if(!mro){
-              return 0;
+            MemoryRelObject* mro = (MemoryRelObject*) qp->GetLocal2(s).addr;
+            if(!mro){  // retrieve relation only once          
+               R* relN = (R*) args[1].addr;
+               mro = getMemRel(relN, nl->Second(qp->GetType(s)));
+               qp->GetLocal2(s).addr = mro;
             }
+            if(!mro){
+                return 0;
+            }
+
             Attribute* key = (Attribute*) args[2].addr;
 
             bool avl = ((CcBool*) args[3].addr)->GetValue();
@@ -7711,9 +7724,10 @@ ListExpr minsertTypeMap(ListExpr args) {
 class minsertInfo {
   public:
      minsertInfo(Word w, vector<Tuple*>* _relation, 
-                 bool _flob, ListExpr _type)
+                 bool _flob, TupleType* _type)
         : stream(w),relation(_relation), flob(_flob) {
-        type = new TupleType(_type);
+        type = _type;
+        type->IncReference();
         stream.open();
      }
 
@@ -7761,10 +7775,31 @@ class minsertInfo {
 template<class T>
 int minsertValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
-  
+
+  typedef pair<MemoryRelObject*,TupleType*> globalInfo;
   minsertInfo* li = (minsertInfo*) local.addr;
+  globalInfo* gi = (globalInfo*) qp->GetLocal2(s).addr;
   
   switch (message) {
+
+    case INIT: {
+       cout << "called INIT" << endl;
+       TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       gi = new globalInfo(0,tt);
+       qp->GetLocal2(s).addr=gi;
+       return 0;
+    }
+
+    case FINISH: {
+       if(gi){
+       cout << "called FINISH" << endl;
+         gi->first=0;
+         gi->second->DeleteIfAllowed();
+         delete gi;
+         qp->GetLocal2(s).addr = 0;
+       }
+       return 0;
+    }
     
     case OPEN : {
       
@@ -7774,14 +7809,19 @@ int minsertValMap (Word* args, Word& result,
       }
       
       qp->Open(args[0].addr);
+
+      assert(gi);
+
+      if(!gi->first){      
+        T* oN = (T*) args[1].addr;   
+        MemoryRelObject* rel = getMemRel(oN);
+        if(!rel) return 0;
+        gi->first = rel;
+      }
+      MemoryRelObject*  mmr=gi->first;
+      TupleType* tt = gi->second; 
       
-      T* oN = (T*) args[1].addr;   
-      MemoryRelObject* rel = getMemRel(oN);
-      if(!rel) return 0;
-      
-      
-      local.addr = new minsertInfo(args[0],rel->getmmrel(),rel->hasflob(),
-                                     nl->Second(GetTupleResultType(s)));
+      local.addr = new minsertInfo(args[0],mmr->getmmrel(),mmr->hasflob(),tt);
       return 0;
     }
     
@@ -16376,7 +16416,7 @@ int pwrapVMT(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   MPointer* mp = (MPointer*) result.addr;
 
-  if((*mp)()){ // avaluate only once
+  if((*mp)()){ // evaluate only once
     return 0;
   }
    
@@ -17718,6 +17758,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator (&mcreateAVLtree2Op);
           AddOperator (&mexactmatchOp);
           mexactmatchOp.SetUsesArgsInTypeMapping();
+          mexactmatchOp.enableInitFinishSupport();
 
           AddOperator (&mrangeOp);
           mrangeOp.SetUsesArgsInTypeMapping();
@@ -17776,6 +17817,7 @@ class MainMemory2Algebra : public Algebra {
           mcreateinsertrelOp.SetUsesArgsInTypeMapping();
           AddOperator(&minsertOp);
           minsertOp.SetUsesArgsInTypeMapping();
+          minsertOp.enableInitFinishSupport();
           AddOperator(&minsertsaveOp);
           minsertsaveOp.SetUsesArgsInTypeMapping();
           AddOperator(&minserttupleOp);
