@@ -1336,12 +1336,12 @@ class bigdijkstraInfo{
      ct currentNode;
 
      // some statistical data
-     int maxBfront;
-     int maxFfront;
-     int maxFtree;
-     int maxBtree;
-     int misBfront;
-     int misFfront;
+     size_t maxBfront;
+     size_t maxFfront;
+     size_t maxFtree;
+     size_t maxBtree;
+     size_t misBfront;
+     size_t misFfront;
 
 
      void printStatistics(){
