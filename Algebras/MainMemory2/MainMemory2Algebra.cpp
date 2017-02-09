@@ -6222,7 +6222,7 @@ int mdistRangeSelect(ListExpr args){
     if(o2<0) return -1; 
    
     int res =  type + o1 + o2;
-    cout << "index for " <<  nl->ToString(args)  << " is " << res << endl;
+    //cout << "index for " <<  nl->ToString(args)  << " is " << res << endl;
     return res;
 }
 
@@ -7783,7 +7783,6 @@ int minsertValMap (Word* args, Word& result,
   switch (message) {
 
     case INIT: {
-       cout << "called INIT" << endl;
        TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
        gi = new globalInfo(0,tt);
        qp->GetLocal2(s).addr=gi;
@@ -7792,7 +7791,6 @@ int minsertValMap (Word* args, Word& result,
 
     case FINISH: {
        if(gi){
-       cout << "called FINISH" << endl;
          gi->first=0;
          gi->second->DeleteIfAllowed();
          delete gi;
@@ -10372,8 +10370,6 @@ int mupdatebyidValueMap (Word* args, Word& result,
   
   mupdatebyidInfo* li = (mupdatebyidInfo*) local.addr;
 
-  cout << "called " << __PRETTY_FUNCTION__ << endl;
-  
   switch (message) {
     
     case OPEN : {
