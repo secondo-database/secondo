@@ -1,0 +1,132 @@
+/*
+//paragraph [10] title: [{\Large \bf ]  [}]
+//[Contents] [\tableofcontents]
+//[ue] [\"{u}]
+
+
+
+[10] Distributed Sorting of a DFArray 2
+
+
+[Contents] 
+
+1 Overview
+
+This script is for distributed sorting of a dfarray. It's a modified version of the script ~DistrbibutedSortingDfarray.sec~. 
+
+It is a commented script suitable for viewing with ~pdview~. To be run with 
+
+----    @%Scripts/DistributedSortingDfarray2.sec or
+	@&Scripts/DistributedSortingDfarray2.sec
+----
+
+The modification can be discribed as follows: 
+
+  * suppose that the relation isn't distributed to the workers yet, the sample is taken by the master itselfs
+
+  * furthermore the AVL-tree is created by the master 
+
+  * the relation is distributed while assiging its partition during traversing the avl-tree
+
+  * every worker sorts its partition locally
+
+
+2 Preparations
+
+Preparations: 
+
+  * include the Distributed2Algebra in makefile.algebras and recompile secondo
+
+  * get the desired shape-file from download.geofabrik.de
+
+  * create and open a database
+
+  * import desired relation using the adapted script ~importGermanyOsm.psec~
+
+  * restore Workers in relation ~Worker~ with for example 8 worker
+
+  * start the remoteMonitors for the workers
+
+*/
+
+#restore Worker from Workerfile
+
+/*
+Determine size of worker and size of slots.
+
+*/
+
+let SizeWorker = Worker count
+
+let SizeSlots = SizeWorker * 2
+
+/*
+Create a DArray ~ControlWorkers~
+
+*/
+
+let ControlWorkers = intstream(0, SizeWorker - 1) transformstream 
+  ddistribute3["ControlWorkers", SizeWorker, TRUE, Worker] 
+  dloop["", . feed extract[Elem]]
+
+/*
+Run script DistCost.sec for cost measurements
+
+*/
+
+@&Scripts/DistCost.sec
+
+
+/*
+3 Take a sample and determine boundaries
+
+Take a sample of relation ~Buildings~ and determine the boundaries for sorting.
+
+*/
+
+let SizeSample = 500
+
+let Sample = Buildings feedNth[(Buildings count) div SizeSample, TRUE] consume
+
+let Boundaries = Sample feed sort nth[SizeSample div SizeSlots, TRUE] project[Osm_id] addcounter[D,1] head[SizeSlots] consume
+
+/*
+4 Create AVL-Trees
+
+Create a main memory relation ~Boundaries~ and an AVL-Tree index on its attribute OsmId on the master.
+
+*/
+
+query Boundaries feed letmconsume["Boundaries"] 
+  mcreateAVLtree[Osm_id] 
+
+/*
+5 Distribute with using the AVL-Tree
+
+Assign each element to its corresponding partition while traversing the avl-tree. Find for each tuple (1) the tuple (2) 
+indexed in the Boundaries-AVL-Tree whose OsmID is the greatest one that is smaller than the OsmID of the tuple (1). 
+
+*/
+
+let BuildingsB1 = Buildings feed
+  ddistribute4["", pwrap("Boundaries_Osm_id") pwrap("Boundaries")
+    matchbelow2[.Osm_id, D, 0], SizeSlots, Worker] 
+
+/*
+9 Sort on each worker
+
+*/
+
+update LastCommand := distCostReset(ControlWorkers)
+
+let BuildingsB2SortedOsm_id = BuildingsB1
+  dmap["", . feed sortby[Osm_id]] 
+
+let CostsSorting = distCostSave(ControlWorkers)
+
+/*
+10 Show costs in javagui
+
+*/
+
+#query distCostBoxes(CostsSorting, 0.0, 5.0)
