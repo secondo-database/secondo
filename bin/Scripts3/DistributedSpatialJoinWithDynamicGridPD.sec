@@ -1,0 +1,110 @@
+/*
+//paragraph [10] title: [{\Large \bf ]  [}]
+//[Contents] [\tableofcontents]
+//[ue] [\"{u}]
+
+
+
+[10] Distributed Spatial Join with Dynamic Grid Partitioning
+
+[Contents] 
+
+1 Overview
+
+This script is for a distributed spatial join with dynamic grid partitioning.
+
+It is a commented script suitable for viewing with ~pdview~. To be run with 
+
+----    @%Scripts/DistributedSpatialJoinWithDynamicGridPD.sec or
+	@&Scripts/DistributedSpatialJoinWithDynamicGridPD.sec
+----
+
+2 Preparations
+
+Preparations: 
+
+  * include the Distributed2Algebra in makefile.algebras and recompile secondo
+
+  * get the desired shape-file from download.geofabrik.de
+
+  * create and open a database
+
+  * import relations ~Buildings~, ~Railways~ and ~Waterways~ using the script ~importGermanyOsm.psec~
+
+  * restore Workers in relation ~Worker~
+
+  * start the remoteMonitors for the workers
+
+*/
+
+#restore Worker from Workerfile
+
+let SizeWorker = Worker count
+
+/*
+Create a darray ~ControlWorkers~
+
+*/
+
+let ControlWorkers = intstream(0, SizeWorker - 1) transformstream 
+  ddistribute3["WorkerControl", SizeWorker, TRUE, Worker] 
+  dloop["", . feed extract[Elem]]
+
+/*
+Run script ~DistCost.sec~ for cost measurements
+
+*/
+
+@&Scripts/DistCost.sec
+
+/*
+Distribute relations by using the script DynamicGridPartioningPD.sec
+
+*/
+
+@&Scripts/DynamicGridPartitioningPD.sec
+
+/*
+3 Determine topleftclass-values for the elements
+
+*/
+
+let BuildingsB12 = BuildingsB1 dmap["", . feed 
+extend[TLClass: topleftclass(.Field, .Box)]]
+
+let RailwaysB12 = RailwaysB1 dmap["", . feed 
+extend[TLClass: topleftclass(.Field, .Box)]]
+
+let WaterwaysB12 = WaterwaysB1 dmap["", . feed 
+extend[TLClass: topleftclass(.Field, .Box)]]
+
+/*
+4 Execute Spatial Join with topleftclass-values
+
+*/
+
+update LastCommand := distCostReset(ControlWorkers)
+
+let Crossover = RailwaysB12 WaterwaysB12 dmap2["",
+. feed {r} .. feed {w} itSpatialJoin[Box_r, Box_w]
+filter[.N_r = .N_w]
+filter[(.TLClass_r + .TLClass_w) > 2]
+filter[ifthenelse(((.TLClass_r = 2) and (.TLClass_w = 2)), FALSE, TRUE)]
+filter[.GeoData_r intersects .GeoData_w] count, 1238]
+getValue tie[. + ..]
+
+let CostsSpatialJoin = distCostSave(ControlWorkers)
+
+query Crossover
+
+
+/*
+5 Show costs in javagui
+
+Execute this query in the GUI. There will be a box for each worker representing the time for the spatial join.
+
+*/
+
+#query distCostBoxes(CostsSpatialJoin, 0.0, 5.0)
+#query distCostUtil(CostsSpatialJoin)
+
