@@ -1,0 +1,170 @@
+/*
+//paragraph [10] title: [{\Large \bf ]  [}]
+//[Contents] [\tableofcontents]
+//[ue] [\"{u}]
+
+
+
+[10] Determining SmallCores
+
+
+[Contents] 
+
+1 Overview
+
+This script is for determining core points to partition a relation ~Pois~ by theese core points.
+
+It is a commented script suitable for viewing with ~pdview~. To be run with 
+
+----    @%Scripts/DeterminingSmallCoresPD.sec or
+	@&Scripts/DeterminingSmallCoresPD.sec
+----
+
+The algorithm is the following:
+
+1) Take a sample from relation ~Pois~.
+
+2) For each sample point, determine the distance to its kth nearest neighbor and add this distance as the radius.
+
+3) For each sample point p, compute the set of other sample points intersecting p. Store p if it has the smallest number among all intersecting tuples.
+
+
+2 Preparations
+
+Preparations: 
+
+  * include the MainMemory2Algebra in makefile.algebras and recompile secondo
+
+  * get the desired shape-file from download.geofabrik.de
+
+  * create and open a database
+
+  * import relation ~Pois~ using the script "importGermanyOsm.psec"
+
+Determine SizeSample
+
+*/
+
+let SizeSample = 1000;
+
+let k = 50;
+
+/*
+3 Take a Sample
+
+Take a sample from the relation ~Pois~ and rename attribute GeoData
+
+*/
+
+let SamplePoints = Pois 
+  feedNth[(Pois count) div SizeSample, FALSE] 
+  renameattr[Center: GeoData]
+  consume;
+
+/*
+4 Further Arrangements
+
+If necessary delete prior objects.
+
+*/
+
+#delete SamplePoints;
+#delete Core;
+#delete Core_Box;
+#delete SmallCore;
+#delete CoreDel;
+
+/*
+Create an empty relation ~Core~ with equal structure of ~SamplePoints~
+
+*/
+
+let Core = SamplePoints feed 
+  extend[N: 0, Radius: 0.0, Box: bbox(.Center),
+  C: [const region value ()]]
+  head[0] consume;
+
+/*
+Create an empty rtree
+
+*/
+
+let Core_Box = Core creatertree[Box];
+
+/*
+Create an empty relation ~SmallCore~ with equal structure of ~Core~
+
+*/
+
+let SmallCore = Core;
+
+/*
+Create an empty relation ~CoreDel~ with equal structure of ~Core~
+
+*/
+let CoreDel = Core;
+
+/*
+Delete all main memory objects
+
+*/
+
+query memclear();
+
+/*
+Create a MainMemoryTree based on relation ~SamplePoints~
+
+*/
+
+query SamplePoints feed letmconsume["SamplePoints"]
+  mcreateMtree[Center, "SamplePoints_Center"];
+
+
+/*
+5 Determine the distance to the kth nearest neighbor
+
+Extend each tuple of ~SamplePoints~ with the distance to its kth nearest neighbor (Radius) and number them by attribut N. 
+Furthermore extend each tuple with a shape approximating a cirle (C) with the computed radius and a MBR (Box) enclosing this circle.
+Store these tuples in relation ~Core~ and in a rtree ~CoreBox~ based on attribute Box.
+
+*/
+
+query SamplePoints feed addcounter[N, 1] 
+  extend[Radius: fun(t: TUPLE)
+    distance(attr(t, Center), "SamplePoints_Center" mdistScan2[attr(t, Center)] 
+      head[k] tail[1] "SamplePoints" gettuples extract[Center]) ]
+  extend[Box: enlargeRect(bbox(.Center), .Radius, .Radius)] 
+  extend[C: circle(.Center, .Radius, 20)]
+  Core insert
+  Core_Box insertrtree[Box]
+  count;
+
+#Typing "query Core" in the GUI will show all SamplePoints 
+#with their approximated circles and MBR's.
+
+/*
+6 Compute intersecting circles
+
+For each point p in Core, compute the set of other sample points P from Core whose associated circle intersects its circle. If p has the smallest number N among all elements it intersects, then insert it into a set ~SmallCore~. (Rows 1 - 5) 
+Remove from ~Core~ all elements whose circles intersect circles from ~SmallCore~. (Rows 7 - 9) This is done as follows: In ~CoreDel~ store alle tuples of the relation ~Core~ intersecting tuples of ~SmallCore~. Computing the difference between ~Core~ and ~CoreDel~, means to remove all tuples of ~CoreDel~ from ~Core~.  
+The loop terminates if ~Core~ is empty.
+
+*/
+
+while (Core count) > 0 do
+{ query Core feed filter[fun(t: TUPLE) 
+    Core_Box Core windowintersects[attr(t, Box)] min[N] = attr(t, N)]
+  SmallCore insert
+  count
+|
+  update CoreDel := SmallCore feed loopsel
+    [Core_Box Core windowintersects[.Box]] consume
+|
+  update Core := Core feed sort CoreDel feed sort mergediff consume
+|
+  update Core_Box := Core creatertree[Box]
+}
+endwhile;
+
+#Typing "query SmallCore" in the GUI (Hoese-Viewer) will show all tuples, 
+#which could have been placed, with their approximated circles and MBR's.
