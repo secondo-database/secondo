@@ -1,0 +1,171 @@
+/*
+//paragraph [10] title: [{\Large \bf ]  [}]
+//[Contents] [\tableofcontents]
+//[ue] [\"{u}]
+
+
+
+[10] Fixed Grid Partitioning
+
+[Contents] 
+
+1 Overview
+
+This script is for partitioning spatial data with a fixed grid.
+
+It is a commented script suitable for viewing with ~pdview~. To be run with 
+
+----    @%Scripts/FixedGridPartitioningPD.sec or
+	@&Scripts/FixedGridPartitioningPD.sec
+----
+
+2 Preparations
+
+Preparations: 
+
+  * include the Distributed2Algebra in makefile.algebras and recompile secondo
+
+  * get the desired shape-file from download.geofabrik.de
+
+  * create and open a database
+
+  * import relations ~Buildings~, ~Railways~ and ~Waterways~ using the script ~importGermanyOsm.psec~
+
+  * restore Workers in relation ~Worker~
+
+  * start the remoteMonitors for the workers
+
+*/
+
+#restore Worker from Workerfile
+
+/*
+Determine number of slots
+
+*/
+
+let SizeSlots = 64
+
+/*
+Determine number of cells in a row
+
+*/
+
+let SizeCells = 10
+
+
+/*
+3 Create a Box/Rectangle for all objects
+
+Create a bounding box for all objects to be processed. 
+
+HINT: In this example only relations ~Buildings~, ~Railways~ and ~Waterways~ are considered.
+
+*/
+
+let World = 
+Buildings feed projectextend[; Box: bbox(.GeoData)]
+Railways feed projectextend[; Box: bbox(.GeoData)] concat
+Waterways feed projectextend[; Box: bbox(.GeoData)] concat
+transformstream collect_box[TRUE]
+
+/*
+Extract the edges
+
+*/
+
+let Left = minD(World, 1)
+
+let Right = maxD(World, 1)
+
+#let Bottom = minD(World, 2)
+
+#let Top = maxD(World, 2)
+
+/*
+4 Create grid
+
+To determine the height and width of cells, just divide the difference of the left and right edges 
+of the constructed rectangle by the desired number of cells in a row.
+
+*/
+
+let Dimension = (Right - Left) / SizeCells
+
+/*
+Create grid with the left bottom corner of the computed rectangle, the height and width of the cells, 
+and the number of cells in a row.
+
+*/
+
+let grid = createCellGrid2D(Left, Right, Dimension, Dimension, SizeCells)
+
+/*
+5 Compute cells for the relations
+
+*/
+
+let BuildingsB4 = Buildings feed
+extendstream[Cell: cellnumber(bbox(.GeoData), grid)] consume
+
+let RailwaysB4 = Railways feed
+extendstream[Cell: cellnumber(bbox(.GeoData), grid)] consume
+
+let WaterwaysB4 = Waterways feed
+extendstream[Cell: cellnumber(bbox(.GeoData), grid)] consume
+
+/*
+6 Distribute relations over workers
+
+*/
+
+let BuildingsB41 = BuildingsB4 feed 
+dfdistribute2["BuildingsB41", Cell, SizeSlots, Worker]
+
+let RailwaysB41 = RailwaysB4 feed 
+dfdistribute2["RailwaysB41", Cell, SizeSlots, Worker]
+
+let WaterwaysB41 = WaterwaysB4 feed 
+dfdistribute2["WaterwaysB41", Cell, SizeSlots, Worker]
+
+/*
+7 Evaluation and histogram
+
+This section is for evaluation of the grid.
+
+*/
+
+#let Eval = BuildingsB4 feed sortby[Cell] 
+#groupby[Cell; Cnt:group count] addcounter[N,1] consume
+
+#number of used cells
+#query Eval feed max[N]
+
+#number of duplicates
+#let duplicates = BuildingsB4 count - Buildings count
+#query duplicates
+
+#smallest number of elements assigned to a cell
+#query BuildingsB4 feed sortby[Cell] groupby[Cell; Cnt:group count] min[Cnt]
+#query Eval feed min[Cnt]
+
+#highest number of elements assigned to a cell
+#query BuildingsB4 feed sortby[Cell] groupby[Cell; Cnt:group count] max[Cnt]
+#query Eval feed max[Cnt]
+
+#average number of elements assigned to a cell
+#query BuildingsB4 feed sortby[Cell] groupby[Cell; Cnt:group count] avg[Cnt]
+#query Eval feed avg[Cnt]
+
+/*
+Create a histogram over groupsizes
+
+*/
+
+#let myDia = realstream(0.0, 0.0 + Eval count, 1.0)
+#set_histogram1d
+
+#query Eval feed 
+#projectextendstream[; P : fun( t : TUPLE) intstream(0,attr(t,Cnt)) 
+#replaceElem[attr(t,N)  + 0.0] ] create_histogram1d[P, myDia]
+
