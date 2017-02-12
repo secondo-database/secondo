@@ -1,0 +1,268 @@
+/*
+//paragraph [10] title: [{\Large \bf ]  [}]
+//[Contents] [\tableofcontents]
+//[ue] [\"{u}]
+
+
+
+[10] Dynamic Grid Partitioning
+
+
+[Contents] 
+
+1 Overview
+
+This script is for partitioning spatial data with a dynamic grid.
+
+It is a commented script suitable for viewing with ~pdview~. To be run with 
+
+----    @%Scripts/DynamicGridPartitioningPD.sec or
+	@&Scripts/DynamicGridPartitioningPD.sec
+----
+
+2 Preparations
+
+Preparations: 
+
+  * include the Distributed2Algebra in makefile.algebras and recompile secondo
+
+  * get the desired shape-file from download.geofabrik.de
+
+  * create and open a database
+
+  * import relations ~Buildings~, ~Railways~ and ~Waterways~ using the script ~importGermanyOsm.psec~
+
+  * restore Workers in relation ~Worker~
+
+  * start the remoteMonitors for the workers
+
+*/
+
+#restore Worker from Workerfile
+
+/*
+3 Create a Box/Rectangle for all objects
+
+Create a bounding box for all objects to be processed. 
+
+HINT: In this example only relations ~Buildings~, ~Railways~ and ~Waterways~ are considered.
+
+*/
+
+let World = 
+Buildings feed projectextend[; Box: bbox(.GeoData)]
+Railways feed projectextend[; Box: bbox(.GeoData)] concat
+Waterways feed projectextend[; Box: bbox(.GeoData)] concat
+transformstream collect_box[TRUE]
+
+/*
+Create Borders
+
+*/
+
+let Left = minD(World, 1)
+
+let Right = maxD(World, 1)
+
+let Bottom = minD(World, 2)
+
+let Top = maxD(World, 2)
+
+
+/*
+4 Determine rows and colums
+
+For the partitioning rows and columns have to be determined. In case of 6 rows and 8 columns, there will be 48 cells.
+
+*/
+
+let NRows = 5
+
+let NColumns = 10
+
+/*
+5 Determine Sample
+
+Determine sample of one relation with approximately 5000 tuple. For relation ~Sample~ only the attribute Box is needed.
+
+*/
+
+let Sample = Buildings feedNth[(Buildings count) div 5000, FALSE] 
+projectextend[; Box: bbox(.GeoData)] consume
+
+/*
+6 Create Fraction
+
+*/
+
+let Fraction = (2 * (Sample count)) div NRows
+
+/*
+7 Create VPartition
+
+Create partition of y-axis. Determine for each sample the bottom and top border of its boxes, sort them an take every kth (fraction) element. Let them be the borders of the y-axis.
+
+*/
+
+let VPartition = 
+  Sample feed projectextend[; Y: minD(.Box, 2)]
+  Sample feed projectextend[; Y: maxD(.Box, 2)]
+  concat sort
+  nth[Fraction, TRUE] head[NRows - 1]
+  consume;
+
+/*
+8 Create Stripes
+
+Create the first (lower) stripe. The bottom of the first stripe is the bottom of the computed rectangle in section 3, top-value is the first value of ~VPartition~.
+
+*/
+
+let Stripe1 = rectangle2(Left, Right, Bottom, VPartition feed extract[Y])
+
+/*
+Create the remaining stripes.
+Operator extendlast: Computes new attributes from the current tuple and the previous one in the stream. 
+
+*/
+
+let Stripes = VPartition feed 
+  extend_last[Stripe: rectangle2(Left, Right, ..Y, .Y)::Stripe1]
+  consume
+
+/*
+Create last stripe and insert into relation ~Stripes~.
+
+*/
+
+let LastY = VPartition feed tail[1] extract[Y]
+
+query Stripes inserttuple[LastY, rectangle2(Left, Right, LastY, Top)] consume
+
+/*
+9 Create Fraction2
+
+*/
+
+let Fraction2 = (2 * (Sample count)) div (NRows * NColumns)
+
+/*
+10 Create Fields
+
+Each sample is assigned to its corresponding stripe. After that, with Fraction2 the vertical borders are computed.
+
+*/
+
+let Fields = Stripes feed Sample feed itSpatialJoin[Stripe, Box] 
+  sortby[Stripe]
+  nest[Stripe; Boxes]
+  extend[Bounds: fun(t: TUPLE)
+    attr(t, Boxes) afeed projectextend[; X: minD(.Box, 1)] 
+    attr(t, Boxes) afeed projectextend[; X: maxD(.Box, 1)]
+    concat sort 
+    nth[Fraction2, TRUE] head[NColumns - 1]
+    aconsume]
+  remove[Boxes]
+  extend[LeftField: rectangle2(minD(.Stripe, 1), .Bounds afeed extract[X], 
+    minD(.Stripe, 2), maxD(.Stripe, 2))]
+  extend[RightField: rectangle2(.Bounds afeed tail[1] extract[X], 
+    maxD(.Stripe, 1), minD(.Stripe, 2), maxD(.Stripe, 2))]
+  extend[FieldsX: fun(t2: TUPLE)
+    attr(t2, LeftField) feed namedtransformstream[Field]
+    attr(t2, Bounds) afeed 
+      extend_last[Field: rectangle2(..X, .X, minD(attr(t2, Stripe), 2), 
+        maxD(attr(t2, Stripe), 2))::
+        [const rect value undef]]
+      filter[isdefined(.Field)] remove[X] concat
+    attr(t2, RightField) feed namedtransformstream[Field] concat
+    aconsume]
+  project[FieldsX]
+  unnest[FieldsX]
+  addcounter[N, 0]
+  consume
+
+/*
+Extend elements withs their MBR
+
+*/
+
+let BuildingsEx = Buildings feed extend[Box: bbox(.GeoData)] consume
+
+let RailwaysEx = Railways feed extend[Box: bbox(.GeoData)] consume
+
+let WaterwaysEx = Waterways feed extend[Box: bbox(.GeoData)] consume
+
+/*
+11 Assign elements to corresponding fields
+
+*/
+
+let BuildingsField = BuildingsEx feed Fields feed 
+itSpatialJoin[Box, Field] 
+consume
+
+let RailwaysField = RailwaysEx feed Fields feed  
+itSpatialJoin[Box, Field] 
+consume
+
+let WaterwaysField = WaterwaysEx feed Fields feed
+itSpatialJoin[Box, Field] 
+consume
+
+/*
+12 Distribute relations 
+Create one slot for each field.
+
+*/
+
+let SizeSlots = Fields feed max[N]
+
+let BuildingsB1 = BuildingsField feed 
+dfdistribute2["BuildingsB1", N, SizeSlots, Worker]
+
+let RailwaysB1 = RailwaysField feed 
+dfdistribute2["RailwaysB1", N, SizeSlots, Worker]
+
+let WaterwaysB1 = WaterwaysField feed 
+dfdistribute2["WaterwaysB1", N, SizeSlots, Worker]
+
+/*
+12 Evaluation and histogram
+
+This section is for evaluation of the grid.
+
+*/
+
+#let Eval = BuildingsField feed sortby[N] groupby[N; Cnt:group count] consume
+
+#number of used cells
+#query BuildingsField feed sortby[N] max[N]
+#query Eval feed max[N]
+
+#number of duplicates
+#let duplicates = BuildingsField count - Buildings count
+#query duplicates
+
+#smallest number of elements assigned to a cell
+#query BuildingsField feed sortby[N] groupby[N; Cnt:group count] min[Cnt]
+#query Eval feed min[Cnt]
+
+#highest number of elements assigned to a cell
+#query BuildingsField feed sortby[N] groupby[N; Cnt:group count] max[Cnt]
+#query Eval feed max[Cnt]
+
+#average number of elements assigned to a cell
+#query BuildingsField feed sortby[N] groupby[N; Cnt:group count] avg[Cnt]
+#query Eval feed avg[Cnt]
+
+/*
+Create a histogram over groupsizes
+
+*/
+
+#let Dia = realstream(0.0, 0.0 + Eval count, 1.0)
+#set_histogram1d
+
+#query Eval feed projectextendstream[; P : fun( t : TUPLE) 
+#intstream(0,attr(t,Cnt)) replaceElem[attr(t,N)  + 0.0] ] 
+#create_histogram1d[P, Dia]
