@@ -1,0 +1,111 @@
+/*
+//paragraph [10] title: [{\Large \bf ]  [}]
+//[Contents] [\tableofcontents]
+//[ue] [\"{u}]
+
+
+
+[10] Distributed Spatial Join with Fixed Grid Partitioning
+
+[Contents] 
+
+1 Overview
+
+This script is for a distributed spatial join with fixed grid partitioning.
+
+It is a commented script suitable for viewing with ~pdview~. To be run with 
+
+----    @%Scripts/DistributedSpatialJoinWithFixedGridPD.sec or
+	@&Scripts/DistributedSpatialJoinWithFixedGridPD.sec
+----
+
+2 Preparations
+
+Preparations: 
+
+  * include the Distributed2Algebra in makefile.algebras and recompile secondo
+
+  * get the desired shape-file from download.geofabrik.de
+
+  * create and open a database
+
+  * import relations ~Buildings~, ~Railways~ and ~Waterways~ using the script ~importGermanyOsm.psec~
+
+  * restore Workers in relation ~Worker~
+
+  * start the remoteMonitors for the workers
+
+*/
+
+#restore Worker from Workerfile
+
+let SizeWorker = Worker count
+
+/*
+Create a darray ~ControlWorkers~
+
+*/
+
+let ControlWorkers = intstream(0, SizeWorker - 1) transformstream 
+  ddistribute3["WorkerControl", SizeWorker, TRUE, Worker] 
+  dloop["", . feed extract[Elem]]
+
+/*
+Run script ~DistCost.sec~ for cost measurements
+
+*/
+
+@&Scripts/DistCost.sec
+
+/*
+Distribute relations by using the script FixedGridPartioningPD.sec
+
+*/
+
+@&Scripts/FixedGridPartitioningPD.sec
+
+/*
+3 Share grid with all worker
+
+*/
+
+query share("grid", TRUE, Worker)
+
+/*
+Extend elements with their MRB
+
+*/
+
+let BuildingsB42 = BuildingsB41 dmap["", . feed extend[Box: bbox(.GeoData)]]
+
+let RailwaysB42 = RailwaysB41 dmap["", . feed extend[Box: bbox(.GeoData)]]
+
+let WaterwaysB42 = WaterwaysB41 dmap["", . feed extend[Box: bbox(.GeoData)]]
+
+/*
+4 Execute Spatial Join
+
+*/
+
+update LastCommand := distCostReset(ControlWorkers)
+
+let Crossover = RailwaysB42 WaterwaysB42 dmap2["",
+. feed {r} .. feed {w} itSpatialJoin[Box_r, Box_w]
+filter[.Cell_r = .Cell_w]
+filter[gridintersects(grid, .Box_r, .Box_w, .Cell_r)]
+filter[.GeoData_r intersects .GeoData_w] count, 1238]
+getValue tie[. + ..]
+
+let CostsSpatialJoin = distCostSave(ControlWorkers)
+
+query Crossover
+
+/*
+5 Show costs in javagui
+
+Execute this query in the GUI. There will be a box for each worker representing the time for the spatial join.
+
+*/
+
+#query distCostBoxes(CostsSpatialJoin, 0.0, 5.0)
+#query distCostUtil(CostsSpatialJoin)
