@@ -51,7 +51,8 @@ Constructor
 
 */
      Stream(Word& s):source(s.addr),
-                        opened(false),returned(0){ }
+                     opened(false),returned(0),
+                     res(){ }
 
      Stream(void* s):source(s), opened(false){ }
 
@@ -108,7 +109,7 @@ the result is 0.
 
 */
     T* request() {
-      Word res;
+      res.addr = 0;
       qp->Request(source, res);
       if(!qp->Received(source)){
         return 0;
@@ -169,6 +170,7 @@ Close Progress
     void* source;
     bool opened;
     size_t returned;
+    Word res;
 
 };
 
