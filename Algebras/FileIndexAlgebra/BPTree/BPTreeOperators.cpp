@@ -1272,8 +1272,8 @@ int BPTreeOperators::RebuildfbtreeVM (Word* args, Word& result, int message,
   FText* pre1 = (FText*) args[2].addr;  // get the argument and cast it
   FText* pre2 = (FText*) args[3].addr;  // get the argument and cast it
   // Cast file names to string (and later to char* for ctor)
-  string dat1 = (pre1->GetValue()).c_str();
-  string dat2 = (pre2->GetValue()).c_str();
+  string dat1 = (pre1->GetValue());
+  string dat2 = (pre2->GetValue());
   std::cout << "dat1: " << dat1.c_str() << endl;
   std::cout << "dat2: " << dat2.c_str() << endl;
   // Create source tree from first file
