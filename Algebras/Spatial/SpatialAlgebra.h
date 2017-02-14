@@ -2034,6 +2034,11 @@ The following functions are needed to act as an attribute type.
     segments.Get(i,&hs);
   }
 
+
+  inline int lrsSize()const{
+    return lrsArray.Size();
+  }
+
   bool Get(LRS &lrs, int &i){
     return Find(lrs, i);
   }

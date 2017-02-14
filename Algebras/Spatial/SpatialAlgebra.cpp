@@ -8718,7 +8718,13 @@ Word
    if(nl->AtomType(nl->Second(instance))==BoolType){
      startSmaller = nl->BoolValue(nl->Second(instance));
      instance = nl->First(instance);
+   } else {
+     correct = false;
+     return SetWord(Address(0));
    }
+ } else {
+   correct = false;
+   return SetWord(Address(0));
  }
  HalfSegment* hs;
  SimpleLine* line= new SimpleLine(10);
@@ -8763,6 +8769,13 @@ Word
 }
 
 
+ ostream& operator<<(ostream& out, const LRS& lrs){
+   out << "lrsPos "<< lrs.lrsPos << ", hsPos " << lrs.hsPos;
+   return out;
+ }
+
+
+
  ListExpr OutSimpleLine( ListExpr typeInfo, Word value ) {
    ListExpr result, last;
    HalfSegment hs;
@@ -8781,6 +8794,10 @@ Word
    result = nl->TheEmptyList();
    last = result;
    bool first = true;
+
+   
+   /*
+   // version using halfsegment order
 
    for( int i = 0; i < l->Size(); i++ ) {
       l->Get( i, hs );
@@ -8801,6 +8818,39 @@ Word
         }
       }
    }
+   */
+
+   // version using lrs order
+
+   LRS lrs;
+   // for some curious reason, some halfsegments occur twice
+   // in the lrs array
+   set<int> used;
+
+
+   for(int i=0;i<l->lrsSize(); i++){
+      l->Get(i,lrs);
+      if(used.find(lrs.hsPos)==used.end()){
+        used.insert(lrs.hsPos);
+        //cout << "LRS " << lrs << endl;
+        l->Get(lrs.hsPos,hs);
+        halfseg = OutHalfSegment( nl->TheEmptyList(), SetWord( (void*)&hs ) );
+        halfpoints = nl->Second( halfseg );
+        flatseg = nl->FourElemList(
+                   nl->First( nl->First( halfpoints ) ),
+                   nl->Second( nl->First( halfpoints ) ),
+                   nl->First( nl->Second( halfpoints ) ),
+                   nl->Second( nl->Second( halfpoints ) ) );
+        if( first == true ) {
+          result = nl->OneElemList( flatseg );
+          last = result;
+          first = false;
+        } else {
+          last = nl->Append( last, flatseg );
+        }
+      }
+   }
+      
    return nl->TwoElemList( result,
                            nl->BoolAtom( l->GetStartSmaller() ) );
 }
@@ -18009,6 +18059,13 @@ int SpatialGet(Word* args, Word& result, int message,
 10.4.34 Value Mapping for the ~makeline~ and ~makesline~ operators
 
 */
+void SetStartSmaller(Line* l, bool s){}
+void SetStartSmaller(SimpleLine* l, bool s){
+  l->SetStartSmaller(s);
+}
+
+
+
 template<class LineType>
 int SpatialMakeLine(Word* args, Word& result, int message,
                     Word& local, Supplier s){
@@ -18023,6 +18080,7 @@ int SpatialMakeLine(Word* args, Word& result, int message,
        return 0;
   }
   if(AlmostEqual(*p1,*p2)){
+     res->SetDefined(false);
      return 0;
   }
   res->StartBulkLoad();
@@ -18032,6 +18090,9 @@ int SpatialMakeLine(Word* args, Word& result, int message,
   h.SetLeftDomPoint(false);
   (*res) += h;
   res->EndBulkLoad();
+  if(p1->Compare(p2) > 0){
+    SetStartSmaller(res,false);
+  }
   return 0;
 }
 /*
@@ -20258,7 +20319,7 @@ Operator spatialget (
   GetTypeMap );
 
 Operator makeline (
-    "makeline",
+  "makeline",
   SpatialSpecMakeLine,
   SpatialMakeLine<Line>,
   Operator::SimpleSelect,
