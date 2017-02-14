@@ -813,7 +813,8 @@ bool call_function(
   args[0].setAddr(&seq1);
   args[1].setAddr(&seq2);
 
-  Word w = qp->Request(function);
+  Word w;
+  qp->Request(function,w);
   const CcReal& cc_real = *static_cast<CcReal*>(w.addr);
 
   const bool defined = cc_real.IsDefined();
