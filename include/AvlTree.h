@@ -684,9 +684,8 @@ class iterator{
 
     iterator():thestack(){}
 
-    iterator(const iterator& it){
+    iterator(const iterator& it):thestack(it.thestack){
        __AVL_TRACE__
-       this->thestack = it.thestack;
     }
 
     iterator& operator=(const iterator& it){
