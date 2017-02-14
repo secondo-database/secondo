@@ -472,30 +472,17 @@ Value-mapping-function of operator binor
 */
 int binorValueMap(Word* args, Word& result, int message,
         Word& local, Supplier s){
-   assert (args != NULL);
    result = qp->ResultStorage (s);
    CcInt *res = static_cast<CcInt*>(result.addr);;
-   CcInt *arg1 = NULL;
-   CcInt *arg2 = NULL;
-   int a = 0;
-   int b = 0;
-   bool foundUndefined = false;
-   arg1 = static_cast<CcInt *>(args[0].addr);
-   if (!arg1->IsDefined()) {
-      foundUndefined = true;
-   }
-   a = arg1->GetValue ();
-   arg2 = static_cast<CcInt *>(args[1].addr);
-   if (!arg2->IsDefined()) {
-      foundUndefined = true;
-   }
-   b = arg2->GetValue ();
-    
-   if (foundUndefined)  {
+   CcInt* arg1 = static_cast<CcInt *>(args[0].addr);
+   CcInt* arg2 = static_cast<CcInt *>(args[1].addr);
+   if(!arg1->IsDefined() || !arg2->IsDefined()){
       res->SetDefined(false);
-   } else  {
-      res->Set (true,(a|b));
+      return 0;
    }
+   int a = arg1->GetValue ();
+   int b = arg2->GetValue ();
+   res->Set(true, (a | b));
    return 0;
 }
 
@@ -506,17 +493,8 @@ ListExpr binorTypeMap(ListExpr args){
    }
    ListExpr a = nl->First (args);
    ListExpr b = nl->Second (args);
-   if (nl->ListLength (a) != 2){
-      return listutils::typeError("argument has to consists of 2 parts");
-   }
-   if (nl->ListLength (b) != 2){
-      return listutils::typeError("argument has to consists of 2 parts");
-   }
-   if (!listutils::isSymbol (nl->First(a), CcInt::BasicType ())) {
-      return listutils::typeError("int expected");
-   }
-   if (!listutils::isSymbol (nl->First(b), CcInt::BasicType ())) {
-      return listutils::typeError("int expected");
+   if(!CcInt::checkType(a) || !CcInt::checkType(b)){
+     return listutils::typeError("intx int expected");
    }
    return nl->SymbolAtom(CcInt::BasicType());
 }
@@ -1901,7 +1879,6 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
     AddOperator(&getconnectivitycode);
     getconnectivitycode.SetUsesArgsInTypeMapping();;
     AddOperator(&binor);
-    binor.SetUsesArgsInTypeMapping();;
     AddOperator(&getscalefactorx);
     getscalefactorx.SetUsesArgsInTypeMapping();;
     AddOperator(&getscalefactory);
