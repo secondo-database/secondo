@@ -3828,14 +3828,14 @@ Deletes an operator tree object.
           CloseProgress(tree);
         }
         if(tree->u.op.local.addr){
-          Word result; // dummy result
+          static Word result; // dummy result
           (*(tree->u.op.valueMap))( tree->u.op.sons, result,CLOSE,
                                     tree->u.op.local, tree );
 
         }
         if(   ((tree->u.op.valueMap)) // the is a value mapping
            && tree->u.op.theOperator->getSupportsInitFinish()){
-               Word resultDummy; // dummy result
+               static Word resultDummy; // dummy result
                (*(tree->u.op.valueMap))( tree->u.op.sons, resultDummy,FINISH,
                                   tree->u.op.local, tree );
         }
@@ -4478,7 +4478,7 @@ QueryProcessor::SetupStreamArg( const Supplier funNode,
    }
 
    ArgVectorPointer funargs = Argument(funNode);
-   (*funargs)[MAXARG-num] = SetWord(opNode);
+   (*funargs)[MAXARG-num].addr = opNode;
 }
 
 
@@ -4542,7 +4542,8 @@ QueryProcessor::Received( const Supplier s )
 void
 QueryProcessor::Open( const Supplier s )
 {
-  Word result = SetWord( Address(0) );
+  static Word result;
+  result.addr = 0;
   OpTree tree = (OpTree) s;
   Eval( tree, result, OPEN );
 }
@@ -4562,7 +4563,8 @@ stream is closed already.
 void
 QueryProcessor::Close( const Supplier s )
 {
-  Word result;
+  static Word result;
+  result.addr = 0;
   Eval( (OpTree) s, result, CLOSE );
 }
 
@@ -4576,7 +4578,8 @@ QueryProcessor::Close( const Supplier s )
 void
 QueryProcessor::CloseProgress( const Supplier s )
 {
-  Word result;
+  static Word result;
+  result.addr = 0;
   OpTree tree = (OpTree) s;
   bool trace = false;
 
@@ -4601,7 +4604,7 @@ QueryProcessor::CloseProgress( const Supplier s )
 bool
 QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
 {
-  Word result;
+  static Word result;
   OpTree tree = (OpTree) s;
   bool trace = false;  //set to true for tracing
 
@@ -4629,7 +4632,7 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
     if ( !tree->u.op.supportsProgress )
       return false;
 
-  result = SetWord(p);
+  result.addr = p; 
   Eval(tree, result, REQUESTPROGRESS);
   if(tree->u.received){
     if(traceProgress  || (debugProgress && !p->checkRanges())){
@@ -4904,7 +4907,7 @@ passed to the evaluation function in parameter ~opTreeNode~.
 
 */
 
-Word
+Word&
 QueryProcessor::ResultStorage( const Supplier s )
 {
   OpTree tree = (OpTree) s;
@@ -4938,7 +4941,7 @@ needs to be assigned by calling ~SetDeleteFunction~
 
 */
 void
-QueryProcessor::ChangeResultStorage( const Supplier s, const Word w )
+QueryProcessor::ChangeResultStorage( const Supplier s, const Word& w )
 {
   OpTree tree = (OpTree) s;
   if (tree->nodetype != Operator) {
@@ -5313,7 +5316,7 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
 //     ErrorReporter::GetErrorMessage(errorMessage);
 //     errorString = "Object query refers to undefined value: " + errorMessage;
     errorString += "Object query refers to undefined value. ";
-    queryResult = SetWord( Address(0) );
+    queryResult.addr = 0; 
   }
   else if ( correct )
   {
@@ -5329,7 +5332,7 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
 //       ErrorReporter::GetErrorMessage(errorMessage);
 //       errorString = "Operator query not evaluable: " + errorMessage;
       errorString += "Operator query not evaluable. ";
-      queryResult = SetWord( Address(0) );
+      queryResult.addr = 0;
     }
   }
   else
@@ -5337,7 +5340,7 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
 //     ErrorReporter::GetErrorMessage(errorMessage);
 //     errorString = "Error in operator query: " + errorMessage;
     errorString += "Error in operator query. ";
-    queryResult = SetWord( Address(0) );
+    queryResult.addr = 0; 
   }
   delete qpp;
   return ( defined && correct && evaluable );

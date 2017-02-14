@@ -301,6 +301,7 @@ can be set by writing into the fields of this argument vector.
 */
 
   void Request( const Supplier s, Word& word );
+
   inline Word Request( const Supplier supp )
   {
     Word result;
@@ -430,7 +431,7 @@ evaluation can then be obtained from the returned supplier by the usual
 calls to ~request~ etc.
 
 */
-  Word ResultStorage( const Supplier s );
+  Word& ResultStorage( const Supplier s );
   
 
 
@@ -463,7 +464,7 @@ is returned.
 
 */
   
-  void ChangeResultStorage( const Supplier s, const Word w );
+  void ChangeResultStorage( const Supplier s, const Word& w );
   void SetDeleteFunction( const Supplier s, const ObjectDeletion f );
   
 /*

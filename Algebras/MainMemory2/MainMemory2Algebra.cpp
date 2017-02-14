@@ -1406,7 +1406,7 @@ ListExpr gettuplesTM(ListExpr args){
 
 class gettuplesInfo{
   public:
-    gettuplesInfo(Word _stream, MemoryRelObject* _rel): 
+    gettuplesInfo(Word& _stream, MemoryRelObject* _rel): 
         stream(_stream), rel(_rel->getmmrel()){
       stream.open();
     }
@@ -1484,7 +1484,7 @@ int gettuplesVMT (Word* args, Word& result,
 
 class gettuplesInfoUnwrap{
   public:
-    gettuplesInfoUnwrap(Word _stream, MemoryRelObject* _rel, int _tidpos,
+    gettuplesInfoUnwrap(Word& _stream, MemoryRelObject* _rel, int _tidpos,
                         ListExpr resTupleType): 
         stream(_stream), rel(_rel->getmmrel()), tidpos(_tidpos){
       stream.open();
@@ -3223,7 +3223,7 @@ ListExpr meminsertTypeMap(ListExpr args)
 
 class meminsertInfo{
   public:
-     meminsertInfo( Word w, vector<Tuple*>* _relation, bool _flob):
+     meminsertInfo( Word& w, vector<Tuple*>* _relation, bool _flob):
           stream(w),relation(_relation), flob(_flob){
         stream.open();
      }
@@ -7002,12 +7002,8 @@ ListExpr minsertdeletetreeTypeMap(ListExpr args){
   if(nl->ListLength(args)!=3) {
     return listutils::typeError("three arguments expected");
   }
-  ListExpr tmp = args;
-  while(!nl->IsEmpty(tmp)){
-    if(!nl->HasLength(nl->First(tmp),2)){
-      return listutils::typeError("internal error");
-    }
-    tmp = nl->Rest(tmp);
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
   }
   
   // process stream
@@ -7064,9 +7060,9 @@ ListExpr minsertdeletetreeTypeMap(ListExpr args){
   ListExpr append = nl->OneElemList(nl->IntAtom(attrPos));
   
   return nl->ThreeElemList(
-            nl->SymbolAtom(Symbol::APPEND()),
-            nl->OneElemList(append),
-            stream);
+                nl->SymbolAtom(Symbol::APPEND()),
+                append,
+                stream);
 }
 
 
@@ -7076,7 +7072,7 @@ class minsertdeleteInfo {
 
     typedef TreeType treetype;
 
-    minsertdeleteInfo(Word w, TreeType* _tree, int _attrPos)
+    minsertdeleteInfo(Word& w, TreeType* _tree, int _attrPos)
       : stream(w), tree(_tree), attrPos(_attrPos) {
       stream.open();
     }
@@ -7124,6 +7120,7 @@ int minserttreeValueMap (Word* args, Word& result,
 
 
   switch(message) {
+
     
     case OPEN : {
       if(li) {
@@ -7146,19 +7143,14 @@ int minserttreeValueMap (Word* args, Word& result,
       if(!mmtree) {
         return 0;
       }
-      
-      ListExpr attrlist = nl->Second(nl->Second(qp->GetType(s)));  // stream
-      ListExpr attrToSort = qp->GetType(qp->GetSon(s,2));
-      ListExpr attrType = 0;
-      int attrPos = 0;
-      
-      attrPos = listutils::findAttribute(attrlist, 
-                                         nl->ToString(attrToSort), 
-                                         attrType);
-      if(attrPos == 0) {
-        return listutils::typeError
-          ("there is no attribute having name " + nl->ToString(attrToSort));
-      }
+     
+      int attrPos = ((CcInt*) args[3].addr)->GetValue(); 
+
+
+      cout << "*********************************" << endl;
+      cout << "AttrPos = " << attrPos << endl;
+      cout << "*********************************" << endl;
+
         
       local.addr = new LocalInfo(args[0],
                                  mmtree->gettree(),
@@ -7202,20 +7194,7 @@ int minserttreeMPointerValueMap (Word* args, Word& result,
       if(!mmtree) {
         return 0;
       }
-      
-      ListExpr attrlist = nl->Second(nl->Second(qp->GetType(s)));  // stream
-      ListExpr attrToSort = qp->GetType(qp->GetSon(s,2));
-      ListExpr attrType = 0;
-      int attrPos = 0;
-      
-      attrPos = listutils::findAttribute(attrlist, 
-                                         nl->ToString(attrToSort), 
-                                         attrType);
-      if(attrPos == 0) {
-        return listutils::typeError
-          ("there is no attribute having name " + nl->ToString(attrToSort));
-      }
-        
+      int attrPos = ((CcInt*) args[3].addr)->GetValue(); 
       local.addr = new LocalInfo(args[0],
                                  mmtree->gettree(),
                                  attrPos);
@@ -7723,7 +7702,7 @@ ListExpr minsertTypeMap(ListExpr args) {
 
 class minsertInfo {
   public:
-     minsertInfo(Word w, vector<Tuple*>* _relation, 
+     minsertInfo(Word& w, vector<Tuple*>* _relation, 
                  bool _flob, TupleType* _type)
         : stream(w),relation(_relation), flob(_flob) {
         type = _type;
@@ -7897,7 +7876,7 @@ main memory realtion.
 */
 class minsertsaveInfo {
   public:
-     minsertsaveInfo(Word w, vector<Tuple*>* _relation, 
+     minsertsaveInfo(Word& w, vector<Tuple*>* _relation, 
          vector<Tuple*>* _auxrel, 
                  bool _flob, ListExpr _type)
         : stream(w),relation(_relation), auxrel(_auxrel), 
@@ -8173,7 +8152,7 @@ ListExpr minserttupleTypeMap(ListExpr args) {
 class minserttupleInfo{
   public:
     minserttupleInfo(vector<Tuple*>* _relation, bool _flob,
-                     ListExpr _listType, TupleType* _type, Word _tupleList)
+                     ListExpr _listType, TupleType* _type, Word& _tupleList)
       : relation(_relation), flob(_flob), 
         listType(_listType) ,type(_type), tupleList(_tupleList) {
       
@@ -8211,8 +8190,8 @@ class minserttupleInfo{
       insertTupleType->DeleteIfAllowed();
       Supplier supplier = tupleList.addr;
       
-      Word attrValue;
       Supplier s;
+      attrValue.addr = 0;
       for(int i=0; i<res->GetNoAttributes()-1; i++) {
         s = qp->GetSupplier(supplier, i);
         qp->Request(s,attrValue);
@@ -8241,6 +8220,7 @@ private:
     TupleType* type;
     Word tupleList;
     bool firstcall;
+    Word attrValue;
 };
 
 
@@ -8348,7 +8328,7 @@ class minserttuplesaveInfo{
   public:
     minserttuplesaveInfo(vector<Tuple*>* _relation, vector<Tuple*>* _auxrel, 
                          bool _flob, ListExpr _listType, TupleType* _type, 
-                         Word _tupleList)
+                         Word& _tupleList)
       : relation(_relation), auxrel(_auxrel), flob(_flob), 
         listType(_listType) ,type(_type), tupleList(_tupleList) {
       
@@ -8386,8 +8366,7 @@ class minserttuplesaveInfo{
       Tuple* tup = new Tuple(insertTupleType);
       insertTupleType->DeleteIfAllowed();
       Supplier supplier = tupleList.addr;
-      
-      Word attrValue;
+      attrValue.addr = 0;      
       Supplier s;
       for(int i=0; i<res->GetNoAttributes()-1; i++) {
         s = qp->GetSupplier(supplier, i);
@@ -8425,6 +8404,7 @@ class minserttuplesaveInfo{
     TupleType* type;
     Word tupleList;
     bool firstcall;
+    Word attrValue;
 };
 
 /*
@@ -8580,7 +8560,7 @@ void remove(vector<Tuple*>* relation, Tuple* res) {
 
 class mdeleteInfo {
 public:
-mdeleteInfo(Word w, 
+mdeleteInfo(Word& w, 
             vector<Tuple*>* _mainRelation, 
             vector<Tuple*>* _auxRelation,
             ListExpr _type)
@@ -9130,7 +9110,7 @@ ListExpr mdeletedirectTM(ListExpr args){
 class mdeletedirectInfo{
 
   public:
-    mdeletedirectInfo(Word _stream, vector<Tuple*>* _rel,
+    mdeletedirectInfo(Word& _stream, vector<Tuple*>* _rel,
                       vector<Tuple*>* _saverel,
                       ListExpr resultTupleType):
      stream(_stream), rel(_rel), saverel(_saverel) {
@@ -9545,7 +9525,7 @@ ListExpr mupdateTM(ListExpr args){
 class mupdateInfoN{
 
  public:
-   mupdateInfoN(Word _stream, vector<Tuple*>* _rel,
+   mupdateInfoN(Word& _stream, vector<Tuple*>* _rel,
                vector<int> _attrs,Supplier _funs,
                ListExpr tt ) :stream(_stream),
                    rel(_rel), attrs(_attrs){
@@ -9591,6 +9571,7 @@ class mupdateInfoN{
     vector<Supplier> funs;
     vector<ArgVectorPointer> funargs;
     TupleType* resType;
+    Word funres;
 
     Tuple* updateTuple(Tuple* orig){
        Tuple* res = new Tuple(resType);
@@ -9607,7 +9588,7 @@ class mupdateInfoN{
           Supplier s = funs[i];
           ArgVectorPointer a = funargs[i];
           (*a)[0].setAddr(orig);
-          Word funres;
+          funres.addr = 0;
           qp->Request(s,funres);
           Attribute* resAttr = ((Attribute*)funres.addr)->Clone();
           orig->PutAttribute(attrs[i], resAttr);
@@ -9896,7 +9877,7 @@ ListExpr mupdateTypeMap(ListExpr args) {
 
 class mupdateInfo {
   public:
-    mupdateInfo(Word _stream, 
+    mupdateInfo(Word& _stream, 
                 vector<Tuple*>* _mainRelation, 
                 bool _flob, 
                 Supplier _funs, 
@@ -9952,6 +9933,7 @@ class mupdateInfo {
      vector<Supplier> funs;
      vector<ArgVectorPointer> funargs;
      TupleType* type;
+     Word v;
 
      Tuple* createResultTuple(TupleId id, Tuple* tuple){
          Tuple* res = new Tuple(type);
@@ -9967,7 +9949,7 @@ class mupdateInfo {
          // update attributes
          for(size_t i=0;i<funs.size();i++){
             (*(funargs[i]))[0] = tuple;
-            Word v;
+            v.addr = 0;
             qp->Request(funs[i],v);
             Attribute* newAttr = ((Attribute*)v.addr)->Clone();
             if(flob){
@@ -10291,8 +10273,8 @@ ListExpr mupdatebyidTypeMap(ListExpr args) {
 class mupdatebyidInfo {
   public:
     mupdatebyidInfo(vector<Tuple*>* _relation,
-                    TupleIdentifier* _tid, Word _arg,
-                    Word _arg2, TupleType* _type)
+                    TupleIdentifier* _tid, Word& _arg,
+                    Word& _arg2, TupleType* _type)
       : relation(_relation), tid(_tid), arg(_arg), 
         arg2(_arg2), type(_type) {
         firstcall = true;
@@ -10320,7 +10302,9 @@ class mupdatebyidInfo {
       // Supplier for the functions
       Supplier supplier = arg.addr;
 
-      Word elem, value;  
+      elem.addr = 0;
+      value.addr = 0;
+ 
       Supplier son = qp->GetSupplier(arg2.addr, 0);
       qp->Request(son, elem);
       int changedIndex = ((CcInt*)elem.addr)->GetIntval()-1;
@@ -10356,6 +10340,7 @@ class mupdatebyidInfo {
      Word arg2;
      TupleType* type;
      bool firstcall;
+     Word elem, value; 
 };
 
 
@@ -10469,7 +10454,7 @@ template<ChangeType ct>
 class moinsertInfo {
   public:
          
-    moinsertInfo(Word w, ttree::TTree<TupleWrap,TupleComp>* _orel, 
+    moinsertInfo(Word& w, ttree::TTree<TupleWrap,TupleComp>* _orel, 
                  bool _flob, TupleType* _type,vector<int>* _attrPos) 
       : stream(w),orel(_orel),flob(_flob),type(_type),attrPos(_attrPos) {
       stream.open();
@@ -11544,7 +11529,7 @@ public:
   
   moshortestpathdInfo(ttree::TTree<TupleWrap,TupleComp>* _tree,  
                      int _startNode, int _endNode, int _resultSelect,
-                     Word _arg, TupleType* _tt) 
+                     Word& _arg, TupleType* _tt) 
       : mmorel(_tree),startNode(_startNode),
         endNode(_endNode),resultSelect(_resultSelect),
         arg(_arg),tt(_tt),seqNo(1) {
@@ -11590,6 +11575,9 @@ public:
     res->IncReference();
     return res;
   }
+
+  private:
+    Word funResult;
   
   
 /*
@@ -11648,7 +11636,7 @@ public:
           
           if(current()->nodeNumber != toNode) {
             ArgVectorPointer funArgs = qp->Argument(arg.addr);
-            Word funResult;
+            funResult.addr = 0;
             ((*funArgs)[0]).setAddr(currentTuple);
             qp->Request(arg.addr,funResult);
             double edgeCost = ((CcReal*)funResult.addr)->GetRealval();
@@ -11924,7 +11912,7 @@ public:
   
   moshortestpathaInfo(ttree::TTree<TupleWrap,TupleComp>* _tree,  
                      int _startNode, int _endNode, int _resultSelect,
-                     Word _arg, Word _arg2, TupleType* _tt) 
+                     Word& _arg, Word& _arg2, TupleType* _tt) 
       : mmorel(_tree),startNode(_startNode),
         endNode(_endNode),resultSelect(_resultSelect),
         arg(_arg),arg2(_arg2),tt(_tt),seqNo(1) {
@@ -12021,7 +12009,7 @@ public:
           }
           if(current()->nodeNumber != toNode) {
             ArgVectorPointer funArgs = qp->Argument(arg.addr);
-            Word funResult;
+            funResult.addr =0;
             ((*funArgs)[0]).setAddr(currentTuple);
             qp->Request(arg.addr,funResult);
             double edgeCost = ((CcReal*)funResult.addr)->GetRealval();
@@ -12032,7 +12020,7 @@ public:
             dist = current()->dist + edgeCost;
             
             ArgVectorPointer funArgs2 = qp->Argument(arg2.addr);
-            Word funResult2;
+            funResult2.addr = 0;
             ((*funArgs2)[0]).setAddr(currentTuple);
             qp->Request(arg2.addr,funResult2);
             double restCost = ((CcReal*)funResult2.addr)->GetRealval();
@@ -12182,6 +12170,10 @@ protected:
 
   QueueEntryWrap current;
   int seqNoAttrIndex;
+
+private:
+  Word funResult;
+  Word funResult2;
   
 };
 
@@ -12970,7 +12962,7 @@ Calculates the shortest path between the vertices __start__ and
 __dest__ in the __graph__ using dijkstra's algorithm.
 
 */
-bool dijkstra(graph::Graph* graph, Word arg, 
+bool dijkstra(graph::Graph* graph, Word& arg, 
               graph::Vertex* start, graph::Vertex* dest) {
   
   graph::Queue queue;
@@ -12990,6 +12982,8 @@ bool dijkstra(graph::Graph* graph, Word arg,
   // cost to start node
   start->setCost(0);
   queue.push(start);
+
+  Word funResult;
   
   // as long as queue has entries
   while(!queue.empty()) {
@@ -13007,7 +13001,7 @@ bool dijkstra(graph::Graph* graph, Word arg,
                                       ->at(i).getPointer()->getDest());
         
         ArgVectorPointer funArgs = qp->Argument(arg.addr);
-        Word funResult;
+        funResult.addr = 0;
         ((*funArgs)[0]).setAddr(v->getEdges()->at(i).getPointer()->getTuple());
         qp->Request(arg.addr,funResult);
         double cost = ((CcReal*)funResult.addr)->GetRealval(); 
@@ -13041,7 +13035,7 @@ Calculates the shortest path between the vertices __start__ and
 __dest__ in the __graph__ using the AStar-algorithm.
 
 */
-bool astar(graph::Graph* graph, Word arg, Word arg2,
+bool astar(graph::Graph* graph, Word& arg, Word& arg2,
            graph::Vertex* start, graph::Vertex* dest) {
   
   graph::Queue openlist;
@@ -13061,6 +13055,9 @@ bool astar(graph::Graph* graph, Word arg, Word arg2,
   start->setCost(0.0);
   openlist.push(start);
 
+  Word funResult;
+  Word funResult2;
+
 
   // as long as queue has entries
   while(!openlist.empty()) {
@@ -13078,7 +13075,7 @@ bool astar(graph::Graph* graph, Word arg, Word arg2,
       graph::Vertex* w = graph->getVertex(v->getEdges()
                                  ->at(i).getPointer()->getDest());
       ArgVectorPointer funArgs = qp->Argument(arg.addr);
-      Word funResult;
+      funResult.addr = 0;
       ((*funArgs)[0]).setAddr(v->getEdges()->at(i).getPointer()->getTuple());
       qp->Request(arg.addr,funResult);
       double edgecost = ((CcReal*)funResult.addr)->GetRealval();      
@@ -13088,7 +13085,7 @@ bool astar(graph::Graph* graph, Word arg, Word arg2,
       }
       
       ArgVectorPointer funArgs2 = qp->Argument(arg2.addr);
-      Word funResult2;
+      funResult2.addr = 0;
       ((*funArgs2)[0]).setAddr(v->getEdges()->at(i).getPointer()->getTuple());
       qp->Request(arg2.addr,funResult2);
       double prio = ((CcReal*)funResult2.addr)->GetRealval();    
@@ -13113,7 +13110,7 @@ bool astar(graph::Graph* graph, Word arg, Word arg2,
 }
 
 bool shortestPath(graph::Graph* graph, int startNode, 
-                  int endNode, Word arg, Word arg2, 
+                  int endNode, Word& arg, Word& arg2, 
                   bool isAstar) {
   bool found = false;
   if(!isAstar) {
@@ -13306,7 +13303,7 @@ public:
   
   mgshortestpathdInfo(graph::Graph* _graph, 
                       int _startNode, int _endNode, 
-                      int _resultSelect, Word _arg,
+                      int _resultSelect, Word& _arg,
                       TupleType* _tt) 
       : graph(_graph),startNode(_startNode),
         endNode(_endNode), resultSelect(_resultSelect),
@@ -13529,7 +13526,7 @@ public:
   
   mgshortestpathaInfo(graph::Graph* _graph, 
                      int _startNode, int _endNode, int _resultSelect,
-                     Word _arg, Word _arg2, TupleType* _tt) 
+                     Word& _arg, Word& _arg2, TupleType* _tt) 
       : graph(_graph),startNode(_startNode),
         endNode(_endNode),resultSelect(_resultSelect),
         arg(_arg),arg2(_arg2), tt(_tt),seqNo(1) {
@@ -16206,7 +16203,7 @@ ListExpr insertmvTM(ListExpr args){
 
 class insertmvAttrInfo{
   public:
-    insertmvAttrInfo(Word _stream, MemoryVectorObject* _v): 
+    insertmvAttrInfo(Word& _stream, MemoryVectorObject* _v): 
       stream(_stream), v(_v){
        stream.open();
     }
@@ -16263,7 +16260,7 @@ int insertmvAttrVMT(Word* args, Word& result, int message,
 
 class insertmvTupleInfo{
   public: 
-      insertmvTupleInfo(Word _stream, MemoryVectorObject* _v, int _index):
+      insertmvTupleInfo(Word& _stream, MemoryVectorObject* _v, int _index):
          stream(_stream), v(_v), index(_index){
          stream.open();
       }
@@ -16775,7 +16772,7 @@ ListExpr mcreatepqueueTM(ListExpr args){
 
 class mcreatepqueueInfo{
   public:
-     mcreatepqueueInfo(Word _stream, int _prioIndex, 
+     mcreatepqueueInfo(Word& _stream, int _prioIndex, 
                        const string& memName, bool flob,
                        const string type): stream(_stream),
                        prioIndex(_prioIndex){
@@ -17591,7 +17588,7 @@ ListExpr mblockTM(ListExpr args){
 template<class E>
 class mblockInfo{
    public:
-      mblockInfo(Word _stream): stream(_stream){
+      mblockInfo(Word& _stream): stream(_stream){
          collect();
       }
 
