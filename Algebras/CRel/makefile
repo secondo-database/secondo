@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -19,7 +19,7 @@
 
 ########################################################################
 #
-# generic makefile for an algebra module 
+# generic makefile for an algebra module
 #
 ########################################################################
 
@@ -27,12 +27,21 @@
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
+CCFLAGS += $(ALG_INC_DIRS)
+#CCFLAGS += -O
+#CCFLAGS += -O3 -finline-functions
+CCFLAGS += -std=c++0x
+
+TYPECONSTRUCTORSDEP = $(patsubst %.cpp, %.dep, $(wildcard TypeConstructors/*.cpp))
+TYPECONSTRUCTORSOBJECTS = $(patsubst %.dep, %.$(OBJEXT), $(TYPECONSTRUCTORSDEP))
+
+OPERATORSDEP = $(patsubst %.cpp, %.dep, $(wildcard Operators/*.cpp))
+OPERATORSOBJECTS = $(patsubst %.dep, %.$(OBJEXT), $(OPERATORSDEP))
 
 # create objects and algebra library. The values for the variables
-# OBJECTS and LIBOBJ are computed automatically by makefile.env 
+# OBJECTS and LIBOBJ are computed automatically by makefile.env
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+all: $(TYPECONSTRUCTORSOBJECTS) $(OPERATORSOBJECTS) $(OBJECTS) $(LIBOBJ)
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -40,10 +49,12 @@ include $(DEP_FILES)
 endif
 
 # generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
+$(LIBOBJ): $(OBJECTS) $(TYPECONSTRUCTORSOBJECTS) $(OPERATORSOBJECTS)
 	$(create-lib)
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
+	$(RM) $(TYPECONSTRUCTORSOBJECTS) $(TYPECONSTRUCTORSDEP)
+	$(RM) $(OPERATORSOBJECTS) $(OPERATORSDEP)
 	$(clean-algebra)

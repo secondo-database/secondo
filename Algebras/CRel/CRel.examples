@@ -1,0 +1,98 @@
+Database : berlintest
+Restore  : No
+
+Operator : ap
+Number   : 1
+Signature: tblock(m, (A)) x Ai -> attrblock(m, Ai)
+Example  : query attr([const tblock([1, [No: int]]) value ((0))], No)
+Result   : (0)
+
+Operator : attr
+Number   : 2
+Signature: tblock(m, (A)) x Ai -> attrblock(m, Ai)
+Example  : query attr([const tblock([1, [No: int]]) value ((0))], No)
+Result   : (0)
+
+Operator : feed
+Number   : 3
+Signature: crel(c, m, (A)) -> stream(tblock(m, (A)))
+Example  : query [const crel([1, 1, [No: int]]) value ((0))] feed 1 cconsume
+Result   : ((0))
+
+Operator : feedproject
+Number   : 4
+Signature: crel(c, m, (A)) -> stream(tblock(m, (A)))
+Example  : query [const crel([1, 1, [No: int]]) value ((0))] feed 1 cconsume
+Result   : ((0))
+
+Operator : cconsume
+Number   : 5
+Signature: stream(tblock(m, (A))) -> crel(1, m, (A))
+Example  : query [const crel([1, 1, [No: int]]) value ((0))] feed 1 cconsume
+Result   : ((0))
+
+Operator : filter
+Number   : 6
+Signature: crel(c, m, (A)) -> stream(tblock(m, (A)))
+Example  : query [const crel([1, 1, [No: int]]) value ((0))] feed 1 cconsume
+Result   : ((0))
+
+Operator : rename
+Number   : 7
+Signature: crel(c, m, (A)) -> stream(tblock(m, (A)))
+Example  : query [const crel([1, 1, [No: int]]) value ((0))] feed 1 cconsume
+Result   : ((0))
+
+Operator : itHashJoin
+Number   : 8
+Signature: crel(c, m, (A)) -> stream(tblock(m, (A)))
+Example  : query [const crel([1, 1, [No: int]]) value ((0))] feed 1 cconsume
+Result   : ((0))
+
+Operator : repeat
+Number   : 9
+Signature: DATA -> stream(DATA)
+Example  : query repeat("Test", 2) transformstream consume
+Result   : (("Test")("Test"))
+
+Operator : test
+Number   : 9
+Signature: DATA -> stream(DATA)
+Example  : query repeat("Test", 2) transformstream consume
+Result   : (("Test")("Test"))
+
+Operator : count
+Number   : 10
+Signature: DATA -> stream(DATA)
+Example  : query repeat("Test", 2) transformstream consume
+Result   : (("Test")("Test"))
+
+Operator : blockCount
+Number   : 10
+Signature: DATA -> stream(DATA)
+Example  : query repeat("Test", 2) transformstream consume
+Result   : (("Test")("Test"))
+
+Operator : itSpatialJoin
+Number   : 10
+Signature: DATA -> stream(DATA)
+Example  : query repeat("Test", 2) transformstream consume
+Result   : (("Test")("Test"))
+
+Operator : and
+Number   : 10
+Signature: DATA -> stream(DATA)
+Example  : query repeat("Test", 2) transformstream consume
+Result   : (("Test")("Test"))
+
+Operator : or
+Number   : 10
+Signature: DATA -> stream(DATA)
+Example  : query repeat("Test", 2) transformstream consume
+Result   : (("Test")("Test"))
+
+Operator : not
+Number   : 10
+Signature: DATA -> stream(DATA)
+Example  : query repeat("Test", 2) transformstream consume
+Result   : (("Test")("Test"))
