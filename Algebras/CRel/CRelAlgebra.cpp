@@ -41,7 +41,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/Project.h"
 #include "Operators/Rename.h"
 #include "Operators/Repeat.h"
-#include "Operators/Test.h"
+//#include "Operators/Test.h"
 #include "QueryProcessor.h"
 #include "TypeConstructors/AttrArrayTC.h"
 #include "TypeConstructors/TBlockTC.h"
@@ -105,7 +105,7 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
 
       AddOperator(new Repeat(), true);
 
-      AddOperator(new Test(), true);
+      //AddOperator(new Test(), true);
     }
   };
 
