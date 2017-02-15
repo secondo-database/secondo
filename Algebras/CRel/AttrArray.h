@@ -62,7 +62,7 @@ public:
   //Anzahl der Elemente im Block
   virtual size_t GetCount() const = 0;
 
-  //Byte-Größe des Blocks
+  //Byte-Groesse des Blocks
   virtual size_t GetSize() const = 0;
 
 
