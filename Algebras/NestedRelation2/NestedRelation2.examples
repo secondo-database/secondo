@@ -1,0 +1,75 @@
+Database : nrel
+Restore  : YES
+
+Operator : unnest
+Number   : 1
+Signature: stream -> stream
+Example  : query families feed unnest[Children] count
+Result   : 5
+
+Operator : nest2
+Number   : 1
+Signature: stream -> stream
+Example  : query families feed unnest[Children] nest2[Father,Mother;Parents] count
+Result   : 3
+
+Operator : count
+Number   : 2
+Signature: nrel2 -> int
+Example  : query children count
+Result   : 3
+
+Operator : feed
+Number   : 1
+Signature: nrel2 -> stream
+Example  : query children feed count
+Result   : 3
+
+Operator : consume2
+Number   : 1
+Signature: stream -> nrel2
+Example  : query children feed consume2 count
+Result   : 3
+
+Operator : aconsume2
+Number   : 1
+Signature: stream -> arel2
+Example  : query children feed aconsume2 count
+Result   : 3
+
+Operator : extract
+Number   : 1
+Signature: stream -> nrel2
+Example  : query children feed extract[Kinder] count
+Result   : 1
+
+Operator : rename
+Number   : 1
+Signature: stream -> stream
+Example  : query children feed rename[cloned] consume count
+Result   : 3
+
+Operator : gettuples
+Number   : 1
+Signature: stream -> stream
+Example  : query index feed children gettuples count
+Result   : 3
+
+Operator : dblpimport
+Number   : 1
+Signature: text -> nrel2
+Example  : query "/home/user/dblp/dblp.xml" dblpimport["/home/user/dblp/stopwords.txt"] count > 0
+Result   : TRUE
+
+Operator : genRel
+Number   : 1
+Signature: string, string, int, int, string, int, int, arel2/arel/vector -> nrel2/arel2/nrel/arel/vector
+Example  : query genRel("nrel2", "Attr", 10, 100, "int", 0, 0, genRel("arel2", "Attr", 10, 100, "int", 0, 0, undefined)) consume
+Result   : TRUE
+
+
+Operator : typeof
+Number   : 1
+Signature: X -> X
+Example  : query genRel("nrel2", "Attr", 10, 100, "int", 0, 0, undefined) typeof consume
+Result   : typeerror
