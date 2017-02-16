@@ -1,0 +1,79 @@
+let arel2_tupleCount_1 = 
+  genRel( "arel2", tstPrefixLevel1, tstAttrCount, "idx1" relcount, tstAttrType, 0, tstSelectivity, 
+  genRel( "arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, 
+  genRel( "arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, undefined)));
+
+let arel2_tupleCount_2 = 
+  genRel("arel2", tstPrefixLevel1, tstAttrCount, "idx2" relcount, tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, undefined)));
+
+let arel2_tupleCount_3 = 
+  genRel("arel2", tstPrefixLevel1, tstAttrCount, "idx3" relcount, tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, undefined)));
+
+let arel2_tupleSize_1 = 
+  genRel("arel2", tstPrefixLevel1, tstAttrCount, tstTupleCountTop,  tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, (tstTupleCountSub * 1), tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, undefined)));
+
+let arel2_tupleSize_2 = 
+  genRel("arel2", tstPrefixLevel1, tstAttrCount, tstTupleCountTop,  tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, (tstTupleCountSub * 2), tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, undefined)));
+
+let arel2_tupleSize_3 = 
+  genRel("arel2", tstPrefixLevel1, tstAttrCount, tstTupleCountTop,  tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, (tstTupleCountSub * 4), tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, undefined)));
+
+let arel2_attrCount_1 = 
+  genRel("arel2", tstPrefixLevel1, (tstAttrCount * 1), tstTupleCountTop,  tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, undefined)));
+
+let arel2_attrCount_2 = 
+  genRel("arel2", tstPrefixLevel1, (tstAttrCount * 2), tstTupleCountTop,  tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, undefined)));
+
+let arel2_attrCount_3 = 
+  genRel("arel2", tstPrefixLevel1, (tstAttrCount * 4), tstTupleCountTop,  tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, undefined)));
+
+let arel2_attrTypes_1 = 
+  genRel("arel2", tstPrefixLevel1, tstAttrCount, tstTupleCountTop,  "bool", 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, "bool", 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, "bool", 0, tstSelectivity, undefined)));
+
+let arel2_attrTypes_2 = 
+  genRel("arel2", tstPrefixLevel1, tstAttrCount, tstTupleCountTop,  "int", 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, "int", 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, "int", 0, tstSelectivity, undefined)));
+
+let arel2_attrTypes_3 = 
+  genRel("arel2", tstPrefixLevel1, tstAttrCount, tstTupleCountTop,  tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, tstAttrType, 0, tstSelectivity, undefined)));
+
+let arel2_attrTypes_4 = 
+  genRel("arel2", tstPrefixLevel1, tstAttrCount, tstTupleCountTop,  "string", 8, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, "string",   8, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, "string",   8, tstSelectivity, undefined)));
+
+let arel2_attrTypes_5 = 
+  genRel("arel2", tstPrefixLevel1, tstAttrCount, tstTupleCountTop,  "string", 40, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, "string",    40, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, "string",    40, tstSelectivity, undefined)));
+
+let arel2_attrTypes_6 = 
+  genRel("arel2", tstPrefixLevel1, tstAttrCount, tstTupleCountTop,  "text", 40, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, "text",  40, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, "text",  40, tstSelectivity, undefined)));
+
+let arel2_attrTypes_7 = 
+  genRel("arel2", tstPrefixLevel1, tstAttrCount, tstTupleCountTop,  "text", 181, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel2, tstAttrCount, tstTupleCountSub, "text",   181, tstSelectivity, 
+  genRel("arel2", tstPrefixLevel3, tstAttrCount, tstTupleCountSub, "text",   181, tstSelectivity, undefined)));

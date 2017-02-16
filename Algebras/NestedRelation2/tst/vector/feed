@@ -1,0 +1,16 @@
+let feed_vector_tupleCount_1 = components(vector_tupleCount_1) collect_vector;
+let feed_vector_tupleCount_2 = components(vector_tupleCount_2) collect_vector;
+let feed_vector_tupleCount_3 = components(vector_tupleCount_3) collect_vector;
+let feed_vector_tupleSize_1 = components(vector_tupleSize_1) collect_vector;
+let feed_vector_tupleSize_2 = components(vector_tupleSize_2) collect_vector;
+let feed_vector_tupleSize_3 = components(vector_tupleSize_3) collect_vector;
+let feed_vector_attrCount_1 = components(vector_attrCount_1) collect_vector;
+let feed_vector_attrCount_2 = components(vector_attrCount_2) collect_vector;
+let feed_vector_attrCount_3 = components(vector_attrCount_3) collect_vector;
+let feed_vector_attrTypes_1 = components(vector_attrTypes_1) collect_vector;
+let feed_vector_attrTypes_2 = components(vector_attrTypes_2) collect_vector;
+let feed_vector_attrTypes_3 = components(vector_attrTypes_3) collect_vector;
+let feed_vector_attrTypes_4 = components(vector_attrTypes_4) collect_vector;
+let feed_vector_attrTypes_5 = components(vector_attrTypes_5) collect_vector;
+let feed_vector_attrTypes_6 = components(vector_attrTypes_6) collect_vector;
+let feed_vector_attrTypes_7 = components(vector_attrTypes_7) collect_vector;

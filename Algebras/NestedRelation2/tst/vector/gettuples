@@ -1,0 +1,16 @@
+let gettuples_vector_tupleCount_1 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_tupleCount_1, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_tupleCount_2 = idx2 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_tupleCount_2, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_tupleCount_3 = idx3 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_tupleCount_3, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_tupleSize_1 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_tupleSize_1, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_tupleSize_2 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_tupleSize_2, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_tupleSize_3 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_tupleSize_3, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_attrCount_1 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_attrCount_1, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_attrCount_2 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_attrCount_2, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_attrCount_3 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_attrCount_3, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_attrTypes_1 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_attrTypes_1, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_attrTypes_2 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_attrTypes_2, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_attrTypes_3 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_attrTypes_3, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_attrTypes_4 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_attrTypes_4, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_attrTypes_5 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_attrTypes_5, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_attrTypes_6 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_attrTypes_6, attr(t, TupleId)) ] collect_vector;
+let gettuples_vector_attrTypes_7 = idx1 feed use[ fun(t:tuple([TupleId:int, Tid:tid])) get(vector_attrTypes_7, attr(t, TupleId)) ] collect_vector;

@@ -1,0 +1,5 @@
+let idx1 = intstream(0,((tstTupleCountTop * 1) - 1)) use[ fun(i:int) ((i mod 2) * i) + (((tstTupleCountTop * 1) - i ) * ((i + 1) mod 2)) ] namedtransformstream[TupleId] extend[Tid: int2tid( .TupleId )] consume;
+
+let idx2 = intstream(0,((tstTupleCountTop * 2) - 1)) use[ fun(i:int) ((i mod 2) * i) + (((tstTupleCountTop * 2) - i ) * ((i + 1) mod 2)) ] namedtransformstream[TupleId] extend[Tid: int2tid( .TupleId )] consume;
+
+let idx3 = intstream(0,((tstTupleCountTop * 4) - 1)) use[ fun(i:int) ((i mod 2) * i) + (((tstTupleCountTop * 4) - i ) * ((i + 1) mod 2)) ] namedtransformstream[TupleId] extend[Tid: int2tid( .TupleId )] consume;

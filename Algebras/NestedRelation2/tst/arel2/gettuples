@@ -1,0 +1,16 @@
+let gettuples_arel2_tupleCount_1 = idx1 feed arel2_tupleCount_1 gettuples consume2;
+let gettuples_arel2_tupleCount_2 = idx2 feed arel2_tupleCount_2 gettuples consume2;
+let gettuples_arel2_tupleCount_3 = idx3 feed arel2_tupleCount_3 gettuples consume2;
+let gettuples_arel2_tupleSize_1 = idx1 feed arel2_tupleSize_1 gettuples consume2;
+let gettuples_arel2_tupleSize_2 = idx1 feed arel2_tupleSize_2 gettuples consume2;
+let gettuples_arel2_tupleSize_3 = idx1 feed arel2_tupleSize_3 gettuples consume2;
+let gettuples_arel2_attrCount_1 = idx1 feed arel2_attrCount_1 gettuples consume2;
+let gettuples_arel2_attrCount_2 = idx1 feed arel2_attrCount_2 gettuples consume2;
+let gettuples_arel2_attrCount_3 = idx1 feed arel2_attrCount_3 gettuples consume2;
+let gettuples_arel2_attrTypes_1 = idx1 feed arel2_attrTypes_1 gettuples consume2;
+let gettuples_arel2_attrTypes_2 = idx1 feed arel2_attrTypes_2 gettuples consume2;
+let gettuples_arel2_attrTypes_3 = idx1 feed arel2_attrTypes_3 gettuples consume2;
+let gettuples_arel2_attrTypes_4 = idx1 feed arel2_attrTypes_4 gettuples consume2;
+let gettuples_arel2_attrTypes_5 = idx1 feed arel2_attrTypes_5 gettuples consume2;
+let gettuples_arel2_attrTypes_6 = idx1 feed arel2_attrTypes_6 gettuples consume2;
+let gettuples_arel2_attrTypes_7 = idx1 feed arel2_attrTypes_7 gettuples consume2;

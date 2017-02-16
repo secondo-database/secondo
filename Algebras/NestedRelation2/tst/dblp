@@ -1,0 +1,15 @@
+let nrel2_dblp_1 = tstDblpXml dblpimport[tstDblpStopwords];
+
+let arel2_dblp_1 = nrel2_dblp_1 feed aconsume2;
+
+let nrel_dblp_1 = nrel2_dblp_1 feed replaceAttr[Authors: .Authors feed aconsume] replaceAttr[Keywords: .Keywords feed aconsume] consume;
+
+let vector_dblp_1 = nrel2_dblp_1 feed replaceAttr[Authors: .Authors feed transformT2Rstream collect_vector] replaceAttr[Keywords: .Keywords feed transformT2Rstream collect_vector] transformT2Rstream collect_vector;
+
+let dblp_nrel2_byAuthor = nrel2_dblp_1 feed unnest[Authors] sortby[Name, Lclastname] nest2[Name, Lclastname; Work] consume2;
+
+let dblp_arel2_byAuthor = arel2_dblp_1 feed unnest[Authors] sortby[Name, Lclastname] nest2[Name, Lclastname; Work] aconsume2;
+
+let dblp_nrel_byAuthor = nrel_dblp_1 feed unnest[Authors] sortby[Name, Lclastname] nest[Name, Lclastname; Work] consume;
+
+let dblp_vector_byAuthor = components(vector_dblp_1) transformR2Tstream replaceAttr[Authors: components(.Authors) transformR2Tstream aconsume2] replaceAttr[Keywords: components(.Keywords) transformR2Tstream aconsume2] unnest[Authors] sortby[Name, Lclastname] nest2[Name, Lclastname; Work] replaceAttr[Work: .Work feed replaceAttr[Keywords: .Keywords feed transformT2Rstream collect_vector] transformT2Rstream collect_vector] transformT2Rstream collect_vector;

@@ -1,0 +1,16 @@
+let unnest_vector_tupleCount_1 = components(vector_tupleCount_1) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_tupleCount_2 = components(vector_tupleCount_2) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_tupleCount_3 = components(vector_tupleCount_3) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_tupleSize_1 = components(vector_tupleSize_1) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_tupleSize_2 = components(vector_tupleSize_2) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_tupleSize_3 = components(vector_tupleSize_3) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_attrCount_1 = components(vector_attrCount_1) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_attrCount_2 = components(vector_attrCount_2) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_attrCount_3 = components(vector_attrCount_3) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_attrTypes_1 = components(vector_attrTypes_1) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_attrTypes_2 = components(vector_attrTypes_2) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_attrTypes_3 = components(vector_attrTypes_3) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_attrTypes_4 = components(vector_attrTypes_4) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_attrTypes_5 = components(vector_attrTypes_5) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_attrTypes_6 = components(vector_attrTypes_6) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;
+let unnest_vector_attrTypes_7 = components(vector_attrTypes_7) transformR2Tstream replaceAttr[SubRel: components(.SubRel) transformR2Tstream aconsume2] unnest[SubRel] transformT2Rstream collect_vector;

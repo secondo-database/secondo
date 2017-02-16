@@ -1,0 +1,3 @@
+close database;
+delete database tst;
+create database tst;

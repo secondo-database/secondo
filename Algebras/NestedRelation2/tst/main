@@ -1,0 +1,11 @@
+delete database tst;
+create database tst;
+open database tst;
+
+@tst/defs
+@tst/indexes
+
+@tst/nrel2/main
+@tst/arel2/main
+@tst/nrel/main
+@tst/vector/main

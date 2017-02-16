@@ -1,0 +1,9 @@
+@tst/vector/data
+@tst/vector/count
+@tst/vector/extract
+@tst/vector/feed
+@tst/vector/gettuples
+@tst/vector/nest
+@tst/vector/unnest
+@tst/vector/rename
+#@tst/vector/dblp

@@ -1,0 +1,9 @@
+@tst/arel2/data
+@tst/arel2/count
+@tst/arel2/extract
+@tst/arel2/feed
+@tst/arel2/gettuples
+@tst/arel2/nest
+@tst/arel2/unnest
+@tst/arel2/rename
+#@tst/arel2/dblp

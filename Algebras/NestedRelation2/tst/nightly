@@ -1,0 +1,22 @@
+open database tst;
+@tst/resetAll
+@tst/main
+@tst/resetAll
+@tst/main
+@tst/resetAll
+@tst/main
+@tst/resetAll
+@tst/main
+@tst/resetAll
+@tst/main
+@tst/resetAll
+@tst/main
+@tst/resetAll
+@tst/main
+@tst/resetAll
+@tst/main
+@tst/resetAll
+@tst/main
+@tst/resetAll
+@tst/main
+close database;

@@ -1,0 +1,12 @@
+let tstAttrCount = 4;
+let tstAttrType = "real";
+let tstPrefixLevel1 = "L1a";
+let tstPrefixLevel2 = "L2a";
+let tstPrefixLevel3 = "L3a";
+let tstPrefixLevel4 = "L4a";
+let tstSelectivity = 10;
+let tstTupleCountTop = 1000;
+let tstTupleCountSub = 5;
+
+let tstDblpXml = '/home/nero/dblp/dblp.xml';
+let tstDblpStopwords = '/home/nero/dblp/stopwords.txt';

@@ -1,0 +1,16 @@
+let nest_nrel2_tupleCount_1 = nrel2_tupleCount_1 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_tupleCount_2 = nrel2_tupleCount_2 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_tupleCount_3 = nrel2_tupleCount_3 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_tupleSize_1 = nrel2_tupleSize_1 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_tupleSize_2 = nrel2_tupleSize_2 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_tupleSize_3 = nrel2_tupleSize_3 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_attrCount_1 = nrel2_attrCount_1 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_attrCount_2 = nrel2_attrCount_2 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_attrCount_3 = nrel2_attrCount_3 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_attrTypes_1 = nrel2_attrTypes_1 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_attrTypes_2 = nrel2_attrTypes_2 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_attrTypes_3 = nrel2_attrTypes_3 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_attrTypes_4 = nrel2_attrTypes_4 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_attrTypes_5 = nrel2_attrTypes_5 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_attrTypes_6 = nrel2_attrTypes_6 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;
+let nest_nrel2_attrTypes_7 = nrel2_attrTypes_7 feed sortby[L1a1] nest2[L1a1; NewSubRel] consume2;

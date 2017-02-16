@@ -1,0 +1,16 @@
+let gettuples_nrel_tupleCount_1 = idx1 feed nrel_tupleCount_1 gettuples consume2;
+let gettuples_nrel_tupleCount_2 = idx2 feed nrel_tupleCount_2 gettuples consume2;
+let gettuples_nrel_tupleCount_3 = idx3 feed nrel_tupleCount_3 gettuples consume2;
+let gettuples_nrel_tupleSize_1 = idx1 feed nrel_tupleSize_1 gettuples consume2;
+let gettuples_nrel_tupleSize_2 = idx1 feed nrel_tupleSize_2 gettuples consume2;
+let gettuples_nrel_tupleSize_3 = idx1 feed nrel_tupleSize_3 gettuples consume2;
+let gettuples_nrel_attrCount_1 = idx1 feed nrel_attrCount_1 gettuples consume2;
+let gettuples_nrel_attrCount_2 = idx1 feed nrel_attrCount_2 gettuples consume2;
+let gettuples_nrel_attrCount_3 = idx1 feed nrel_attrCount_3 gettuples consume2;
+let gettuples_nrel_attrTypes_1 = idx1 feed nrel_attrTypes_1 gettuples consume2;
+let gettuples_nrel_attrTypes_2 = idx1 feed nrel_attrTypes_2 gettuples consume2;
+let gettuples_nrel_attrTypes_3 = idx1 feed nrel_attrTypes_3 gettuples consume2;
+let gettuples_nrel_attrTypes_4 = idx1 feed nrel_attrTypes_4 gettuples consume2;
+let gettuples_nrel_attrTypes_5 = idx1 feed nrel_attrTypes_5 gettuples consume2;
+let gettuples_nrel_attrTypes_6 = idx1 feed nrel_attrTypes_6 gettuples consume2;
+let gettuples_nrel_attrTypes_7 = idx1 feed nrel_attrTypes_7 gettuples consume2;

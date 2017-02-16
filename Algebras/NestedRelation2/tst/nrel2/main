@@ -1,0 +1,9 @@
+@tst/nrel2/data
+@tst/nrel2/count
+@tst/nrel2/extract
+@tst/nrel2/feed
+@tst/nrel2/gettuples
+@tst/nrel2/nest
+@tst/nrel2/unnest
+@tst/nrel2/rename
+#@tst/nrel2/dblp

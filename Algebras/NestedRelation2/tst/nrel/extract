@@ -1,0 +1,16 @@
+let extract_nrel_tupleCount_1 = nrel_tupleCount_1 feed extract[SubRel];
+let extract_nrel_tupleCount_2 = nrel_tupleCount_2 feed extract[SubRel];
+let extract_nrel_tupleCount_3 = nrel_tupleCount_3 feed extract[SubRel];
+let extract_nrel_tupleSize_1 = nrel_tupleSize_1 feed extract[SubRel];
+let extract_nrel_tupleSize_2 = nrel_tupleSize_2 feed extract[SubRel];
+let extract_nrel_tupleSize_3 = nrel_tupleSize_3 feed extract[SubRel];
+let extract_nrel_attrCount_1 = nrel_attrCount_1 feed extract[SubRel];
+let extract_nrel_attrCount_2 = nrel_attrCount_2 feed extract[SubRel];
+let extract_nrel_attrCount_3 = nrel_attrCount_3 feed extract[SubRel];
+let extract_nrel_attrTypes_1 = nrel_attrTypes_1 feed extract[SubRel];
+let extract_nrel_attrTypes_2 = nrel_attrTypes_2 feed extract[SubRel];
+let extract_nrel_attrTypes_3 = nrel_attrTypes_3 feed extract[SubRel];
+let extract_nrel_attrTypes_4 = nrel_attrTypes_4 feed extract[SubRel];
+let extract_nrel_attrTypes_5 = nrel_attrTypes_5 feed extract[SubRel];
+let extract_nrel_attrTypes_6 = nrel_attrTypes_6 feed extract[SubRel];
+let extract_nrel_attrTypes_7 = nrel_attrTypes_7 feed extract[SubRel];

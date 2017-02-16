@@ -1,0 +1,16 @@
+let feed_arel2_tupleCount_1 = arel2_tupleCount_1 feed consume2;
+let feed_arel2_tupleCount_2 = arel2_tupleCount_2 feed consume2;
+let feed_arel2_tupleCount_3 = arel2_tupleCount_3 feed consume2;
+let feed_arel2_tupleSize_1 = arel2_tupleSize_1 feed consume2;
+let feed_arel2_tupleSize_2 = arel2_tupleSize_2 feed consume2;
+let feed_arel2_tupleSize_3 = arel2_tupleSize_3 feed consume2;
+let feed_arel2_attrCount_1 = arel2_attrCount_1 feed consume2;
+let feed_arel2_attrCount_2 = arel2_attrCount_2 feed consume2;
+let feed_arel2_attrCount_3 = arel2_attrCount_3 feed consume2;
+let feed_arel2_attrTypes_1 = arel2_attrTypes_1 feed consume2;
+let feed_arel2_attrTypes_2 = arel2_attrTypes_2 feed consume2;
+let feed_arel2_attrTypes_3 = arel2_attrTypes_3 feed consume2;
+let feed_arel2_attrTypes_4 = arel2_attrTypes_4 feed consume2;
+let feed_arel2_attrTypes_5 = arel2_attrTypes_5 feed consume2;
+let feed_arel2_attrTypes_6 = arel2_attrTypes_6 feed consume2;
+let feed_arel2_attrTypes_7 = arel2_attrTypes_7 feed consume2;
