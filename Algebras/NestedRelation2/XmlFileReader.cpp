@@ -128,10 +128,11 @@ int XmlFileReader::readXmlFile()
   int ret = 1;
 
   reader = xmlReaderForFile(fileName, NULL,
+      XML_PARSE_RECOVER | //Relax about errors (e.g. missing mandatory fields)
       XML_PARSE_HUGE | // Very big input is no reason to complain
       XML_PARSE_NONET | // Do not attempt to download schema etc.
       XML_PARSE_DTDLOAD | // Load the DTD
-      XML_PARSE_DTDVALID | // Validate XML against the DTD
+      //XML_PARSE_DTDVALID | // Validate XML against the DTD
       XML_PARSE_NOENT | // Map entities as specified in DTD
       XML_PARSE_NOERROR | // Do not output errors to cout
       XML_PARSE_NOWARNING); // Do not output warnings to cout
@@ -154,7 +155,19 @@ int XmlFileReader::readXmlFile()
     xmlErrorPtr errorPtr = xmlGetLastError();
     if (errorPtr != NULL)
     {
-      throw nr2a::Nr2aParserException(errorPtr->message, errorPtr->line);
+      string msg("Message: ");
+      msg += errorPtr->message;
+      msg.append("\nString1: ");
+      msg += errorPtr->str1;
+      msg.append("\nString2: ");
+      msg += errorPtr->str2;
+      msg.append("\nString3: ");
+      msg += errorPtr->str3;
+      msg.append("\nInt1: ");
+      msg += errorPtr->int1;
+      msg.append("\nInt2: ");
+      msg += errorPtr->int2;
+      throw nr2a::Nr2aParserException(msg, errorPtr->line);
     }
     xmlFreeTextReader(reader);
   }

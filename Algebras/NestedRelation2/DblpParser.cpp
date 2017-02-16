@@ -104,13 +104,6 @@ to process them according to their content.
     }
     m_currentText = "";
   }
-  else
-  {
-    string msg = "Unknown XML element '";
-    msg.append(element.getName());
-    msg.append("'");
-    throw Nr2aParserException(msg, element.getLine());
-  }
 }
 
 /*
@@ -160,7 +153,7 @@ void DblpParser::poppedDocument(const Element &element)
   {
     if (m_attributeSet[index] == false)
     {
-      if ((index < 2) || (index > 12)) // Range of atomic values
+      if ((index < 1) || (index > 12)) // Range of atomic values
       {
         //This parser's destructor is called while unwindig the stack
         throw Nr2aException("Non-optional attribute unset in document "
@@ -460,6 +453,7 @@ Function used to create the needed mappings during initialising.
     std::map<std::string, int> &mapAttr =
         *(new std::map<std::string, int>());
 
+    mapAttr["title"] = 1;
     mapAttr["booktitle"] = 2;
     mapAttr["pages"] = 3;
     mapAttr["year"] = 4;
@@ -473,7 +467,7 @@ Function used to create the needed mappings during initialising.
     mapAttr["isbn"] = 12;
 
     creationMapping[0] = NULL;
-    creationMapping[1] = NULL;
+    creationMapping[1] = createText;
     creationMapping[2] = createText;
     creationMapping[3] = createString;
     creationMapping[4] = createString;
