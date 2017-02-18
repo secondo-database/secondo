@@ -23,19 +23,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package viewer.tripplanning;
 
-import gui.MainWindow;
 import gui.ViewerControl;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.util.ArrayList;
 import java.util.List;
 
-import sj.lang.IntByReference;
-import sj.lang.ListExpr;
-import sj.lang.UpdateInterface;
 import tools.Reporter;
 import viewer.TripplanningViewer;
 
@@ -46,10 +41,9 @@ import viewer.TripplanningViewer;
 public class TripplanningViewerController implements ActionListener,
         MouseListener {
     private TripplanningViewer viewer;
-    private ListExpr resultList = new ListExpr();
-    private IntByReference errorCode = new IntByReference(0);
-    private StringBuffer errorMessage = new StringBuffer();
     private ViewerControl vc;
+    private long start=0;
+    private long end=0;
 
     public final static String SEARCH = "Search";
 
@@ -75,10 +69,8 @@ public class TripplanningViewerController implements ActionListener,
     }
 
     private void processSearchAction() {
-        System.out.println("Da sind wa");
         System.out.println("City:"
                 + viewer.getQueryPanel().getTfCity().getText());
-
         String sourceStreet = viewer.getQueryPanel().getTfStreet().getText();
         String sourceNo = viewer.getQueryPanel().getTfNo().getText();
         String sourcePostcode = viewer.getQueryPanel().getTfPlz().getText();
@@ -95,58 +87,58 @@ public class TripplanningViewerController implements ActionListener,
                 sourceStreet, sourceNo, sourcePostcode, sourceCity,
                 targetStreet, targetNo, targetPostcode, targetCity, gradientWeightDoub);
         this.executeSecondoCommand(tsc.getCommands());
-        vc.execUserCommand("query EdgesHeight oshortestpatha[-1,0,0;distanceWithGradient(.SourcePos,.TargetPos,[const real value "+gradientWeight+" ],.Heightfunction), distance(.TargetPos, targetPos)] feed extend[Gradient: (lfResult(size(.Curve), .Heightfunction) -  lfResult(0.0, .Heightfunction)) / size(gk(.Curve))] consume;");
-        
+        String mainQuery="query EdgesHeight oshortestpatha[-1,0,0;distanceWithGradient(.SourcePos,.TargetPos,[const real value "+gradientWeight+" ],.Heightfunction), distance(.TargetPos, targetPos)] feed extend[Gradient: (lfResult(size(.Curve), .Heightfunction) -  lfResult(0.0, .Heightfunction)) * 100 / size(gk(.Curve))] feed extend[GradientCategory:(ifthenelse(.Gradient<-20,\"lower-20\",ifthenelse(.Gradient<-10,\"lower-10\",ifthenelse(.Gradient<-6,\"lower-6\",ifthenelse(.Gradient<-2,\"lower-2\",ifthenelse(.Gradient<2,\"lower2\",ifthenelse(.Gradient<6,\"lower6\",ifthenelse(.Gradient<10,\"lower10\",ifthenelse(.Gradient<20,\"lower20\",\"bigger20\")))))))))]  consume;";
+        logStart(mainQuery);
+        vc.execUserCommand(mainQuery);
+        logEnd();
     }
 
     /**
      * Executes given commands.
      */
-    private ListExpr executeSecondoCommand(List<String> pCommands) {
-
+    private void executeSecondoCommand(List<String> pCommands) {
         for (String command : pCommands) {
             // Executes the remote command.
-            vc.execCommand(command, errorCode, resultList, errorMessage);
-             System.out.println("Command: " + command);
+            logStart(command);
+            int errorCode=vc.execCommand(command);
+            logEnd();
 
-                if (errorCode.value != 0) {
+                if (errorCode != 0) {
                     //errorCode=12 on a delete statement means that the object didn't exist
-                    if (!(errorCode.value == 12 && command.contains("delete"))) {
-                        System.out.print("\tErrorCode:" + errorCode.value);
-                        System.out.println("\tErrorMessage:" + errorMessage);
+                    if (!(errorCode == 12 && command.contains("delete"))) {
+                        System.out.print("\tErrorCode:" + errorCode);
                         System.out
-                                .println("### Command execution is aborted. Please see error above. ###");
+                                .println("### Command execution is aborted. Please see error code above. ###");
                         break;
                     }
                 }
         }
+    }
 
-        return resultList;
+    private void logStart(String command) {
+        System.out.print("Command: " + command);
+        start=System.currentTimeMillis();
+    }
+
+    private void logEnd() {
+        end=System.currentTimeMillis();
+        System.out.println("\tduration: " + (end - start)+" ms");
     }
 
     public void mouseClicked(MouseEvent arg0) {
-        // TODO Auto-generated method stub
 
     }
 
     public void mouseEntered(MouseEvent arg0) {
-        // TODO Auto-generated method stub
-
     }
 
     public void mouseExited(MouseEvent arg0) {
-        // TODO Auto-generated method stub
-
     }
 
     public void mousePressed(MouseEvent arg0) {
-        // TODO Auto-generated method stub
-
     }
 
     public void mouseReleased(MouseEvent arg0) {
-        // TODO Auto-generated method stub
-
     }
 
     public void setViewerControl(ViewerControl vc) {
@@ -155,3 +147,4 @@ public class TripplanningViewerController implements ActionListener,
     }
 
 }
+

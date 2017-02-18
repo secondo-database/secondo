@@ -24,18 +24,13 @@ import gui.ViewerControl;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
-import java.util.List;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTabbedPane;
 import javax.swing.ScrollPaneConstants;
 
-import sj.lang.ListExpr;
 import viewer.tripplanning.TripQueryPanel;
 import viewer.tripplanning.TripplanningViewerController;
-import viewer.update2.States;
-import viewer.update2.gui.RelationPanel;
 
 /**
  * This viewer allows editing of multiple relations. It can be used to update,
@@ -54,7 +49,7 @@ public class TripplanningViewer extends SecondoViewer {
     // the controller decides which action shall be taken next and listens to
     // all buttons for user-input
     private TripplanningViewerController controller;
-    
+
     /*
      * Constructor.
      */
@@ -63,19 +58,10 @@ public class TripplanningViewer extends SecondoViewer {
 
         this.setLayout(new BorderLayout());
 
-        // actionpanel
-        this.actionPanel = new JPanel();
-        this.actionPanel.setLayout(new GridLayout(1, 9));
         queryPanel = new TripQueryPanel("query");
         queryPanel.getSearchButton().addActionListener(controller);
-        
-        JScrollPane queryScroll = new JScrollPane(queryPanel,
-                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-        actionPanel.add(queryScroll);
-
-        this.add(actionPanel, BorderLayout.NORTH);
+        this.add(queryPanel);
 
     }
 
@@ -105,8 +91,8 @@ public class TripplanningViewer extends SecondoViewer {
      */
     @Override
     public boolean addObject(SecondoObject so) {
-     return false;
- 
+        return false;
+
     }
 
     /**
@@ -131,7 +117,7 @@ public class TripplanningViewer extends SecondoViewer {
      * relation.
      */
     public boolean canDisplay(SecondoObject so) {
-   
+
         return false;
     }
 
@@ -141,7 +127,7 @@ public class TripplanningViewer extends SecondoViewer {
      */
     @Override
     public boolean isDisplayed(SecondoObject so) {
-   
+
         return false;
     }
 
@@ -157,17 +143,16 @@ public class TripplanningViewer extends SecondoViewer {
     public JPanel getActionPanel() {
         return actionPanel;
     }
-    
+
     public TripQueryPanel getQueryPanel() {
         return queryPanel;
     }
-    
+
     @Override
     /** set the Control for this viewer **/
-    public void setViewerControl(ViewerControl VC){
-         this.VC = VC;
-         this.controller.setViewerControl(VC);
+    public void setViewerControl(ViewerControl VC) {
+        this.VC = VC;
+        this.controller.setViewerControl(VC);
     }
-
 
 }

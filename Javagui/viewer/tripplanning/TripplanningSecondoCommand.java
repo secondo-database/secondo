@@ -22,41 +22,27 @@ public class TripplanningSecondoCommand {
 
     String setSourcePos = "let sourcePos=geocode (\"Katzbachstr\", 16, "
             + "10965, \"Berlin\");";
-    String setEdgesSourcesDist = "let EdgesSourceDistances=Edges feed "
-            + "extend [Dist:fun(t:TUPLE) distance(attr(t,SourcePos), "
-            + "sourcePos)] consume;";
-    String setMinSourceDist = "let minSourceDist = EdgesSourceDistances "
-            + "feed min[Dist];";
-    String setNearestPointSource = "let nearestPointSource ="
-            + "EdgesSourceDistances feed filter[.Dist=minSourceDist] consume;";
-    String setNearestPointSourcePos = "let nearestPointSourcePos ="
-            + "nearestPointSource feed extract [SourcePos];";
+
+    String setNearestPointSource = "let nearestPointSource= EdgeIndex_Box_rtree EdgeIndex distancescan [sourcePos, 1] consume;";
+    String setNearestPointSourcePos = "let nearestPointSourcePos= EdgesHeight feed filter [.Source=(nearestPointSource feed extract [Source])] extract [SourcePos];";
 
     String insertWayToSource = "query EdgesHeight inserttuple[-1, "
             + "(nearestPointSource feed extract [Source]), sourcePos, "
-            + "(nearestPointSourcePos),1,2, (makesline(sourcePos, "
-            + "nearestPointSourcePos)),[const text value ''],[const text "
+            + "(nearestPointSourcePos),1,2, (makesline(nearestPointSourcePos,sourcePos)),"
+            + "[const text value ''],[const text "
             + "value ''],([const longint value 0]),[const lreal value "
             + "(((0.0 100.0 TRUE TRUE) (0.0 0.0)))]  ] consume;";
 
     String setTargetPos = "let targetPos =geocode (\"Methfesselstr\", 23,"
             + " 10965, \"Berlin\");";
-    String setEdgesTargetDistances = "let EdgesTargetDistances =Edges feed"
-            + " extend [Dist:fun(t:TUPLE) distance(attr(t,TargetPos), "
-            + "targetPos)] consume;";
-    String setMinTargetDist = "let minTargetDist = EdgesTargetDistances"
-            + " feed min[Dist];";
     String setNearestPointTarget = "let nearestPointTarget= "
-            + "EdgesTargetDistances feed filter[.Dist= minTargetDist ] "
-            + "consume;";
+            + "EdgeIndex_Box_rtree EdgeIndex distancescan [targetPos, 1] consume;";
     String setNearestPointTargetPos = "let nearestPointTargetPos ="
-            + "nearestPointTarget feed extract [TargetPos];";
+            + "EdgesHeight feed filter [.Target=(nearestPointTarget feed extract [Target])] extract [TargetPos];";
 
     String insertWayToTarget = "query EdgesHeight inserttuple[( nearestPointTarget feed extract [Target]),0,  (nearestPointTargetPos),targetPos ,1,2, (makesline(nearestPointTargetPos,targetPos)),[const text value ''],[const text value ''],([const longint value -1]),[const lreal value (((0.0 100.0 TRUE TRUE) (0.0 0.0)))]  ] consume;";
 
-  //  String queryTrip = "query EdgesHeight oshortestpatha[-1,0,0;distanceWithGradient(.SourcePos,.TargetPos,150.5,.Heightfunction), distance(.TargetPos, targetPos)] feed extend[Gradient: (lfResult(size(.Curve), .Heightfunction) -  lfResult(0.0, .Heightfunction)) / size(gk(.Curve))] consume;";
-
-    public TripplanningSecondoCommand() {
+   public TripplanningSecondoCommand() {
         super();
     }
     
@@ -68,9 +54,7 @@ public class TripplanningSecondoCommand {
           sourceNo+"\","+sourcePostcode+",\""+sourceCity+"\");";
         this.setTargetPos = "let targetPos=geocode (\""+targetStreet+"\", \""+
                 targetNo+"\","+targetPostcode+",\""+targetCity+"\");";
-        
-      //  this.queryTrip = "query EdgesHeight oshortestpatha[-1,0,0;distanceWithGradient(.SourcePos,.TargetPos,"+gradientWeight+",.Heightfunction), distance(.TargetPos, targetPos)] feed extend[Gradient: (lfResult(size(.Curve), .Heightfunction) -  lfResult(0.0, .Heightfunction)) / size(gk(.Curve))] consume;";
-             
+           
     }
     
     public List<String> getCommands() {
@@ -82,20 +66,15 @@ public class TripplanningSecondoCommand {
         commands.add(deleteTargetPos);
         deleteTempObjectsOnDatabase(commands);
         commands.add(setSourcePos);
-        commands.add(setEdgesSourcesDist);
-        commands.add(setMinSourceDist);
         commands.add(setNearestPointSource);
         commands.add(setNearestPointSourcePos);
         commands.add(insertWayToSource);
 
         commands.add(setTargetPos);
-        commands.add(setEdgesTargetDistances);
-        commands.add(setMinTargetDist);
         commands.add(setNearestPointTarget);
         commands.add(setNearestPointTargetPos);
 
         commands.add(insertWayToTarget);
-     //   commands.add(queryTrip);
         deleteTempObjectsOnDatabase(commands);
 
         return commands;

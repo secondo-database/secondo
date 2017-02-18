@@ -1,8 +1,12 @@
 package viewer.tripplanning;
 
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.text.NumberFormat;
 import java.util.List;
 
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFormattedTextField;
@@ -36,56 +40,71 @@ public class TripQueryPanel extends JPanel{
     public TripQueryPanel(String viewerName) {
         super();
         this.viewerName = viewerName;
-        this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-
+        this.setLayout(new FlowLayout());
+        
+        JPanel source = new JPanel();
+        source.setBorder(BorderFactory.createLineBorder(Color.black));
+        source.setLayout(new BoxLayout(source, BoxLayout.Y_AXIS));
+        this.add(source);
+        JPanel target = new JPanel();
+        target.setBorder(BorderFactory.createLineBorder(Color.black));
+        target.setLayout(new BoxLayout(target, BoxLayout.Y_AXIS));
+        this.add(target);
+        JPanel searchPanel = new JPanel();
+        searchPanel.setLayout(new FlowLayout());
+        this.add(searchPanel);
+        
         JLabel label = new JLabel("START");
-        this.add(label);
+        source.add(label);
 
-        JLabel streetLabel = new JLabel("Street");
-        this.add(streetLabel);
-        tfStreet = new JTextField(50);
-        this.add(tfStreet);
-        JLabel noLabel = new JLabel("No.");
-        this.add(noLabel);
+        JLabel streetLabel = new JLabel("street");
+        source.add(streetLabel);
+        tfStreet = new JTextField(30);
+        source.add(tfStreet);
+        JLabel noLabel = new JLabel("no.");
+        source.add(noLabel);
         tfNo = new JTextField(10);
-        this.add(tfNo);
+        source.add(tfNo);
         JLabel plzLabel = new JLabel("postcode");
-        this.add(plzLabel);
+        source.add(plzLabel);
         tfPlz = new JTextField(10);
-        this.add(tfPlz);
+        source.add(tfPlz);
         JLabel cityLabel = new JLabel("town/city");
-        this.add(cityLabel);
-        tfCity = new JTextField(50);
-        this.add(tfCity);
+        source.add(cityLabel);
+        tfCity = new JTextField(30);
+        source.add(tfCity);
 
         JLabel labelDest = new JLabel("DESTINATION");
-        this.add(labelDest);
+        target.add(labelDest);
 
-        JLabel streetLabelDest = new JLabel("Street");
-        this.add(streetLabelDest);
-        tfStreetDest = new JTextField(50);
-        this.add(tfStreetDest);
-        JLabel noLabelDest = new JLabel("No. ");
-        this.add(noLabelDest);
+        JLabel streetLabelDest = new JLabel("street");
+        target.add(streetLabelDest);
+        tfStreetDest = new JTextField(30);
+        target.add(tfStreetDest);
+        JLabel noLabelDest = new JLabel("no. ");
+        target.add(noLabelDest);
         tfNoDest = new JTextField(10);
-        this.add(tfNoDest);
+        target.add(tfNoDest);
         JLabel plzLabelDest = new JLabel("postcode");
-        this.add(plzLabelDest);
+        target.add(plzLabelDest);
         tfPlzDest = new JTextField(10);
-        this.add(tfPlzDest);
+        target.add(tfPlzDest);
         JLabel cityLabelDest = new JLabel("town/city");
-        this.add(cityLabelDest);
-        tfCityDest = new JTextField(50);
-        this.add(tfCityDest);
+        target.add(cityLabelDest);
+        tfCityDest = new JTextField(30);
+        target.add(tfCityDest);
         
-        JLabel gradientLabel = new JLabel("gradient weight (>=0)");
-        this.add(gradientLabel);
+        JLabel gradientLabel = new JLabel("slope panelty (>=0)");
+        searchPanel.add(gradientLabel);
         tfGradient = new JFormattedTextField(NumberFormat.getNumberInstance());
-        this.add(tfGradient);
+        //tfGradient.setSize(500, 1000);
+        tfGradient.setPreferredSize(new Dimension(40, 20));
+        tfGradient.setToolTipText("example: 0 means that the slope will not be considered. 100 means 'I would rather go 99m straight then having a difference in height of 1m.'");
+        searchPanel.add(tfGradient);
 
         searchButton = new JButton(TripplanningViewerController.SEARCH);
         //searchButton.addActionListener(tvController);
-        this.add(searchButton);
+        searchPanel.add(searchButton);
     }
 
     public String getViewerName() {
