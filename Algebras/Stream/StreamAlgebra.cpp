@@ -190,6 +190,18 @@ TypeMapStreamfeed( ListExpr args )
   if(!listutils::isDATA(arg1)){
     return listutils::typeError(err);
   }
+  if(nl->ListLength(arg1) == 2){
+    ListExpr outerType = nl->First(arg1);
+    if (nl->IsAtom(outerType) && (nl->AtomType(outerType)==SymbolType))
+    {
+      if ((nl->SymbolValue(outerType)=="arel2") 
+           || (nl->SymbolValue(outerType)=="nrel2"))
+      {
+        return listutils::typeError("arel2 and nrel2 are processed "
+                                    "by NestedRelation2Algebra");
+      }
+    }
+  }
   return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()), arg1);
 }
 
