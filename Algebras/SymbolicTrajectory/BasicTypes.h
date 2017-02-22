@@ -72,7 +72,7 @@ class NewPair {
 struct SymbolicUnit {
  public: 
   SymbolicUnit() {}
-  SymbolicUnit(unsigned int p) : iv(true), pos(p) {}
+  SymbolicUnit(unsigned int p, unsigned int r) : iv(true), pos(p) {}
   
   temporalalgebra::SecInterval iv;
   unsigned int pos;
@@ -80,7 +80,7 @@ struct SymbolicUnit {
 
 struct ExtSymbolicUnit : public SymbolicUnit {
   ExtSymbolicUnit() {}
-  ExtSymbolicUnit(unsigned int p) : SymbolicUnit(p), ref(0) {}
+  ExtSymbolicUnit(unsigned int p, unsigned int r) : SymbolicUnit(p,r), ref(r) {}
   
   unsigned int ref;
 };
@@ -109,7 +109,9 @@ class Label : public Attribute {
   void Clean() {value.clean();}
   void Destroy() {value.destroy();}
   void GetValue(std::string &text) const;
+  std::string GetLabel() const {return GetValue();}
   std::string GetValue() const;
+  unsigned int GetRef() const {return 0;}
   void GetValues(std::set<std::string>& values) const;
   static void buildValue(const std::string& text, 
                          const unitelem& unit,base& result);
@@ -251,6 +253,7 @@ class Place : public Label {
   void SetValue(const std::pair<std::string, unsigned int>& value);
   void SetRef(const unsigned int value) {ref = value;}
   void GetValue(std::pair<std::string, unsigned int>& value) const;
+  std::string GetLabel() const {return Label::GetLabel();}
   void GetValues(std::set<std::pair<std::string, unsigned int> >& values) const;
   static void buildValue(const std::string& text, 
               const unitelem& unit,base& result);

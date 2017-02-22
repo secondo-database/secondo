@@ -810,6 +810,17 @@ double Place::Distance(const Place& p, const LabelFunction lf) const {
 }
 
 /*
+\subsection{Operator ~<<~}
+
+*/
+ostream& operator<<(ostream& os, const Place& pl) {
+  std::pair<std::string, unsigned int> p;
+  pl.GetValue(p);
+  os << "(\'" << p.first << "\'," << p.second << ")";
+  return os;
+}
+
+/*
 \subsection{Function ~Property~}
 
 */

@@ -292,8 +292,8 @@ Result   : (uplaces (("2000-01-03" "2000-01-04" TRUE FALSE) (('Mkhitaryan' 10) (
 Operator : makemvalue
 Number   : 9
 Signature: stream (tuple ((x1 t1)...(xi ulabels)...(xn tn))) xi -> mlabels
-Example  : query the_unit([const labels value ("Mkhitaryan" "Reus")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem]
-Result   : (mlabels ((("2000-01-03" "2000-01-04" TRUE FALSE) ('Mkhitaryan' 'Reus'))))
+Example  : query the_unit([const labels value ("Guerreiro" "Reus")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem]
+Result   : (mlabels ((("2000-01-03" "2000-01-04" TRUE FALSE) ('Guerreiro' 'Reus'))))
 
 Operator : makemvalue
 Number   : 10
@@ -437,9 +437,8 @@ Result   : TRUE
 Operator : tmatches
 Number   : 1
 Signature: tuple(X) x IDENT x (text | pattern) -> bool
-Example  : query Dotraj feed filter[. tmatches [Trajectory, '()']] count
-Result   : 0
-
+Example  : query Dotraj feed filter[. tmatches [Trajectory, '(_ "Innenstadt-Ost") *']] count
+Result   : 1
 
 Operator : createtupleindex
 Number   : 1

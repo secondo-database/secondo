@@ -358,6 +358,25 @@ void Pattern::simplifyNFA(vector<map<int, int> >& result) {
       }
     }
   }
+  // TODO: do it more elegantly!
+  set<int> foundFinalStates;
+  int maxState = 0;
+  for (unsigned int i = 0; i < result.size(); i++) {
+    for (im = result[i].begin(); im != result[i].end(); im++) {
+      if (finalStates.find(im->second) != finalStates.end()) {
+        foundFinalStates.insert(im->second);
+      }
+      if (im->second > maxState) {
+        maxState = im->second;
+      }
+    }
+  }
+  if (finalStates != foundFinalStates) {
+    finalStates.clear();
+    finalStates.insert(maxState);
+//     cout << "final state is now " << maxState << endl;
+  }
+//   Tools::printNfa(result, finalStates);
 }
 
 /*
@@ -586,9 +605,16 @@ pair<string, Attribute*> Pattern::getPointer(int key, Tuple *tuple /* = 0 */) {
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
     AttributeType attrType = tuple->GetTupleType()->GetAttributeType(key - 100);
     string type = sc->GetTypeName(attrType.algId, attrType.typeId);
-    result.second = tuple->GetAttribute(key - 100)->Clone();
-    result.first = "[const " + type + " pointer "
-                 + nl->ToString(listutils::getPtrList(result.second)) + "]";
+    if (type == "mplace" || type == "mplaces") {
+      result.second = new Region(1);
+      result.first = "[const region pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+    }
+    else {
+      result.second = tuple->GetAttribute(key - 100)->Clone();
+      result.first = "[const " + type + " pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+    }
   }
   else {
     switch (key) {
@@ -2261,12 +2287,15 @@ void TupleIndex::processRTree2(Relation *rel, const int attrNo,
         if (!Tools::getRectFromOrel("Places", up.constValue.GetRef(), bbox)) {
           return;
         }
-        NewPair<NewPair<double, double>, NewPair<double, double> > bboxValues(
-          NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
-          NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
-        NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
-         NewPair<TupleId, int> > value(bboxValues, NewPair<TupleId, int>(i, j));
-        values.push_back(value);
+        if (bbox.IsDefined()) {
+          NewPair<NewPair<double, double>, NewPair<double, double> > bboxValues(
+            NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
+            NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
+          NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
+                  NewPair<TupleId, int> > 
+                                 value(bboxValues, NewPair<TupleId, int>(i, j));
+          values.push_back(value);
+        }
       }
       t->DeleteIfAllowed();
     }
@@ -2640,7 +2669,6 @@ bool TMatchIndexLI::getSingleIndexResult(pair<int, pair<IndexType, int> >
                                          vector<set<int> > &result) {
   string attrType = nl->ToString(nl->Second(nl->Nth(indexInfo.first + 1, 
                                                     nl->Second(ttList))));
-  cout << " ...... started" << endl;
   switch (indexInfo.second.first) {
     case TRIE: {
       if (values.first.addr == 0) {
@@ -2763,14 +2791,12 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
               indexInfo, pair<Word, SetRel> values, string type,
               vector<Periods*> &prev, vector<Periods*> &result, 
               bool checkPrev /* = false */) {
-  cout << "start gRFAP" << endl;
   vector<set<int> > temp1, temp2;
   temp1.resize(rel->GetNoTuples() + 1);
   temp2.resize(rel->GetNoTuples() + 1);
   result.resize(rel->GetNoTuples() + 1);
   int valueNo = 0;
 //   vector<set<int> > *ptr(&temp), *ptr2(0);
-  cout << "call gSIR" << endl;
   bool proceed = getSingleIndexResult(indexInfo, values, type, valueNo, temp1);
   set<int> tmp;
   while (proceed) {
@@ -3470,7 +3496,6 @@ bool TMatchIndexLI::initialize(const bool rewrite /* = false */) {
   }
   PatElem elem;
   p->getElem(1, elem);
-  
   vector<map<int, int> > simpleNFA;
   p->simplifyNFA(simpleNFA);
   set<pair<set<int>, int> > paths;

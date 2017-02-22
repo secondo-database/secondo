@@ -216,7 +216,8 @@ class MBasic : public Attribute {
   typedef B base;
    
   MBasic() {}
-  explicit MBasic(unsigned int n) : Attribute(n>0), values(8), units(n) {}
+  explicit MBasic(unsigned int n) : Attribute(n>0), values(1024), units(n),
+                                    noChars(0) {}
   explicit MBasic(const MBasic& mb);
   
   ~MBasic() {}
@@ -241,6 +242,7 @@ class MBasic : public Attribute {
   bool readUnitFrom(ListExpr LE);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
 
+  int GetNoChars() const {return noChars;}
   void serialize(size_t &size, char *&bytes) const;
   static MBasic<B>* deserialize(const char *bytes);
   int Position(const Instant& inst, const bool ignoreClosedness = false) const;
@@ -287,6 +289,7 @@ class MBasic : public Attribute {
  protected:
   Flob values;
   DbArray<typename B::unitelem> units;
+  int noChars;
 };
 
 /*
@@ -299,7 +302,8 @@ class MBasics : public Attribute {
   typedef B base;
    
   MBasics() {}
-  explicit MBasics(int n) : Attribute(n > 0), values(8), units(n), pos(1) {}
+  explicit MBasics(int n) : Attribute(n > 0), values(8), units(n), pos(1),
+                            noChars(0) {}
   explicit MBasics(const MBasics& mbs);
   
   ~MBasics() {}
@@ -328,6 +332,7 @@ class MBasics : public Attribute {
   bool readValues(ListExpr valuelist);
   bool readUnit(ListExpr unitlist);
   
+  int GetNoChars() const {return noChars;}
   void serialize(size_t &size, char *&bytes) const;
   static MBasics<B>* deserialize(const char *bytes);
   int Position(const Instant& inst, const bool ignoreClosedness = false) const;
@@ -368,6 +373,7 @@ class MBasics : public Attribute {
   Flob values;
   DbArray<SymbolicUnit> units;
   DbArray<typename B::arrayelem> pos;
+  int noChars;
 };
 
 
@@ -2087,7 +2093,8 @@ void UBasics<B>::GetInterval(temporalalgebra::SecInterval& result) const {
 */
 template<class B>
 MBasic<B>::MBasic(const MBasic &mb) : Attribute(mb.IsDefined()),
-                      values(mb.values.getSize()), units(mb.GetNoComponents()) {
+                       values(mb.values.getSize()), units(mb.GetNoComponents()),
+                                                noChars(mb.GetNoChars()) {
   if (IsDefined()) {
     values.copyFrom(mb.values);
     units.copyFrom(mb.units);
@@ -2185,6 +2192,7 @@ void MBasic<B>::CopyFrom(const Attribute *arg) {
   SetDefined(true);
   values.copyFrom(((MBasic<B>*)arg)->values);
   units.copyFrom(((MBasic<B>*)arg)->units);
+  noChars = ((MBasic<B>*)arg)->noChars;
 }
 
 /*
@@ -2196,6 +2204,7 @@ MBasic<B>& MBasic<B>::operator=(const MBasic<B>& src) {
   Attribute::operator=(src);
   units.copyFrom(src.units);
   values.copyFrom(src.values);
+  noChars = src.noChars;
   return *this;
 }
 
@@ -2213,7 +2222,7 @@ ListExpr MBasic<B>::unitToListExpr(const int i) {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   return nl->TwoElemList(unit.iv.ToListExpr(sc->GetTypeExpr(
                         temporalalgebra::SecInterval::BasicType())),
-                         B::getList(value));
+                        B::getList(value));
 }
 
 /*
@@ -2251,7 +2260,7 @@ bool MBasic<B>::readUnitFrom(ListExpr LE) {
       sc->GetTypeExpr(temporalalgebra::SecInterval::BasicType()))) {
     return false;
   }
-  typename B::unitelem unit(values.getSize());
+  typename B::unitelem unit(GetNoChars(), 0);
   unit.iv = iv;
   std::string text;
   if (!B::readValueFrom(nl->Second(LE), text, unit)) {
@@ -2261,7 +2270,14 @@ bool MBasic<B>::readUnitFrom(ListExpr LE) {
   text = text.substr(1, text.length() - 2);
   if (text.length() > 0) {
     const char *bytes = text.c_str();
-    values.write(bytes, text.length(), values.getSize());
+    if (values.getSize() == 0) {
+      values.resize(1024);
+    }
+    if (noChars + text.length() >= values.getSize()) {
+      values.resize(2 * values.getSize());
+    }
+    values.write(bytes, text.length(), noChars);
+    noChars += text.length();
   }
   return true;
 }
@@ -2567,17 +2583,17 @@ void MBasic<B>::GetValue(const int i, typename B::base& result) const {
   units.Get(i, cur);
   unsigned int size;
   if (cur.pos != UINT_MAX) {
-    int j = i + 1;
-    bool finished = false;
-    while (!finished && (j < units.Size())) {
-      units.Get(j, next);
+    if (i + 1 < GetNoComponents()) {
+      units.Get(i + 1, next);
       if (next.pos != UINT_MAX) {
-        finished = true;
         size = next.pos - cur.pos;
       }
+      else {
+        size = GetNoChars() - cur.pos;
+      }
     }
-    if (!finished) {
-      size = values.getSize() - cur.pos;
+    else {
+      size = GetNoChars() - cur.pos;
     }
     char* bytes = new char[size];
     values.read(bytes, size, cur.pos);
@@ -2633,6 +2649,8 @@ void MBasic<B>::EndBulkLoad(const bool sort, const bool checkvalid) {
     units.clean();
   }
   units.TrimToSize();
+  values.resize(GetNoChars());
+  assert(IsValid());
 }
 
 /*
@@ -2644,10 +2662,25 @@ void MBasic<B>::Add(const UBasic<B>& ub) {
   assert(ub.IsDefined());
   assert(ub.IsValid());
   UBasic<B> ub2(ub);
-  if (IsDefined()) {
-    readUnitFrom(ub2.ToListExpr(nl->Empty()));
+  if (!IsDefined()) {
+    return;
   }
-  assert(IsValid());
+  temporalalgebra::SecInterval iv;
+  typename B::unitelem unit(GetNoChars(), ub.constValue.GetRef());
+  unit.iv = ub.timeInterval;
+  units.Append(unit);
+  std::string text = ub.constValue.GetLabel();
+  if (text.length() > 0) {
+    const char *bytes = text.c_str();
+    if (values.getSize() == 0) {
+      values.resize(1024);
+    }
+    if (noChars + text.length() >= values.getSize()) {
+      values.resize(2 * values.getSize());
+    }
+    values.write(bytes, text.length(), noChars);
+    noChars += text.length();
+  }
 }
 
 template<class B>
@@ -2680,9 +2713,9 @@ void MBasic<B>::MergeAdd(const UBasic<B>& ub) {
     units.Get(GetNoComponents() - 1, lastUnit);
     if ((lastUnit.iv.end == ub.timeInterval.start) &&
         (lastUnit.iv.rc || ub.timeInterval.lc)) { // adjacent intervals
-      typename B::base value1, value2;
-      GetValue(GetNoComponents() - 1, value1);
-      ub.constValue.GetValue(value2);
+      B value1(true), value2(true);
+      GetBasic(GetNoComponents() - 1, value1);
+      value2 = ub.constValue;
       if (value1 == value2) {
         lastUnit.iv.end = ub.timeInterval.end; // extend last interval
         lastUnit.iv.rc = ub.timeInterval.rc;
@@ -2697,7 +2730,6 @@ void MBasic<B>::MergeAdd(const UBasic<B>& ub) {
   else { // first unit
     Add(ub);
   }
-  assert(IsValid());
 }
 
 /*
@@ -3165,7 +3197,8 @@ double MBasic<B>::Distance(const MBasic<B>& mb) const {
 */
 template<class B>
 MBasics<B>::MBasics(const MBasics &mbs) : Attribute(mbs.IsDefined()), 
-  values(mbs.GetNoValues()), units(mbs.GetNoComponents()), pos(mbs.pos.Size()) {
+  values(mbs.GetNoValues()), units(mbs.GetNoComponents()), pos(mbs.pos.Size()),
+                                               noChars(mbs.GetNoChars()) {
   values.copyFrom(mbs.values);
   units.copyFrom(mbs.units);
   pos.copyFrom(mbs.pos);
@@ -3262,6 +3295,7 @@ MBasics<B>& MBasics<B>::operator=(const MBasics<B>& src) {
   units.copyFrom(src.units);
   values.copyFrom(src.values);
   pos.copyFrom(src.pos);
+  noChars = src.noChars;
   return *this;
 }
 
@@ -3335,12 +3369,19 @@ bool MBasics<B>::readValues(ListExpr valuelist) {
     }
     B::getString(nl->First(rest), text);
     text = text.substr(1, text.length() - 2);
-    unsigned int newPos = (text.length() > 0 ? values.getSize() : UINT_MAX);
+    unsigned int newPos = (text.length() > 0 ? GetNoChars() : UINT_MAX);
     B::getElemFromList(nl->First(rest), newPos, elem);
     pos.Append(elem);
     if (text.length() > 0) {
       const char *bytes = text.c_str();
-      values.write(bytes, text.length(), values.getSize());
+      if (values.getSize() == 0) {
+        values.resize(1024);
+      }
+      if (noChars + text.length() >= values.getSize()) {
+        values.resize(2 * values.getSize());
+      }
+      values.write(bytes, text.length(), noChars);
+      noChars += text.length();
     }
     rest = nl->Rest(rest);
   }
@@ -3356,7 +3397,7 @@ bool MBasics<B>::readUnit(ListExpr unitlist) {
   if (!nl->HasLength(unitlist, 2)) {
     return false;
   }
-  SymbolicUnit unit(GetNoValues());
+  SymbolicUnit unit(GetNoValues(), 0);
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   if (!unit.iv.ReadFrom(nl->First(unitlist), 
            sc->GetTypeExpr(temporalalgebra::SecInterval::BasicType()))) {
@@ -3675,7 +3716,7 @@ void MBasics<B>::GetValues(const int i,
         k++;
       }
       if (!finished) { // end of array
-        flobPos = std::make_pair(start, values.getSize() - start);
+        flobPos = std::make_pair(start, GetNoChars() - start);
       }
     }
     if (flobPos.second > 0) {
@@ -3745,6 +3786,8 @@ void MBasics<B>::EndBulkLoad(const bool sort /*= true*/,
   }
   units.TrimToSize();
   pos.TrimToSize();
+  values.resize(GetNoChars());
+  assert(IsValid());
 }
 
 /*
@@ -3841,7 +3884,6 @@ void MBasics<B>::MergeAdd(const temporalalgebra::SecInterval& iv,
   else { // first unit
     Add(iv, values);
   }
-  assert(IsValid());
 }
 
 template<class B>
@@ -4254,8 +4296,30 @@ void Condition::restrictPtr(const int pos, M *traj, const int from,
                                   *((MLabels*)pointers[pos]));
   }
   else if (attrtype == "mplace") {
-    ((MPlace*)tuple->GetAttribute(key - 1))->AtPeriods(per,
-                                   *((MPlace*)pointers[pos]));
+    MPlace mp(true);
+    Place::base value;
+    Region tmp(true);
+    std::string type;
+    Word geo;
+    ((MPlace*)tuple->GetAttribute(key - 1))->AtPeriods(per, mp);
+    for (int i = 0; i < mp.GetNoComponents(); i++) {
+      mp.GetValue(i, value);
+      if (value.second > 0) {
+        Tools::getGeoFromORel("Places", value.second, false, geo, type);
+        if (type == "point") {
+          tmp.Union(*((Point*)geo.addr), (*((Region*)pointers[pos])));
+        }
+        else if (type == "line") {
+          tmp.Union(*((Line*)geo.addr), (*((Region*)pointers[pos])));
+        }
+        else if (type == "region") {
+          tmp.Union(*((Region*)geo.addr), (*((Region*)pointers[pos])));
+        }
+        else {
+          cout << "ERROR: type is " << type << endl; // cannot occur
+        }
+      }
+    }
   }
   else if (attrtype == "mplaces") {
     ((MPlaces*)tuple->GetAttribute(key - 1))->AtPeriods(per, 

@@ -1473,6 +1473,7 @@ template<class Unit, class Mapping>
 int makemvalueSymbolicVM(Word* args, Word& result, int message,
                          Word& local, Supplier s) {
   Mapping* m;
+  Unit* unit;
   Word curTupleWord;
   assert(args[2].addr != 0);
   assert(args[3].addr != 0);
@@ -1483,7 +1484,7 @@ int makemvalueSymbolicVM(Word* args, Word& result, int message,
   m = (Mapping*)result.addr;
   m->Clear();
   m->SetDefined(true);
-  m->StartBulkLoad();
+//   m->StartBulkLoad();
   while (qp->Received(args[0].addr)) { // get all tuples
     Tuple* curTuple = (Tuple*)curTupleWord.addr;
     Attribute* curAttr = (Attribute*)curTuple->GetAttribute(attrIndex);
@@ -1493,8 +1494,9 @@ int makemvalueSymbolicVM(Word* args, Word& result, int message,
       assert(false);
     }
     else if (curAttr->IsDefined()) {
-      Unit unit(*((Unit*)curAttr));
-      m->MergeAdd(unit); // in contrast to makemvalue2
+      unit = static_cast<Unit*>(curAttr);
+//       Unit unit(*((Unit*)curAttr));
+      m->MergeAdd(*unit); // in contrast to makemvalue2
     }
     else {
       cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. " << endl;
@@ -1502,8 +1504,8 @@ int makemvalueSymbolicVM(Word* args, Word& result, int message,
     curTuple->DeleteIfAllowed();
     qp->Request(args[0].addr, curTupleWord);
   }
-  m->EndBulkLoad(true, true); // force Mapping to sort the units
-  qp->Close(args[0].addr);    // and mark invalid Mapping as undefined
+  m->EndBulkLoad(true, true);
+  qp->Close(args[0].addr);
   return 0;
 }
 

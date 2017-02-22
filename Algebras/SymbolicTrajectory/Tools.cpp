@@ -1573,6 +1573,11 @@ double Tools::distance(set<pair<string, unsigned int> >& values1,
 
 bool Tools::getGeoFromORel(const std::string& relName, const unsigned int ref,
                            const bool bbox, Word& geo, std::string& type) {
+  if (ref == 0) {
+    geo.addr = new Rectangle<2>(true);
+    ((Rectangle<2>*)(geo.addr))->SetDefined(false);
+    return true;
+  }
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   Word orelPtr;
   bool defined;
@@ -1596,6 +1601,7 @@ bool Tools::getGeoFromORel(const std::string& relName, const unsigned int ref,
   Tuple *pt = rit->GetNextTuple();
   if (bbox) {
     geo.addr = pt->GetAttribute(5);
+    type = Rectangle<2>::BasicType();
   }
   else {
     if (pt->GetAttribute(1)->IsDefined()) {
@@ -1616,7 +1622,7 @@ bool Tools::getGeoFromORel(const std::string& relName, const unsigned int ref,
     }
   }
   ((CcInt*)attributes[0])->DeleteIfAllowed();
-  pt->DeleteIfAllowed();
+//   pt->DeleteIfAllowed();
   return (geo.addr != 0);
 }
 

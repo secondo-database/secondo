@@ -369,7 +369,7 @@ expressionlistenclosed : expression {
                          }
                        ;
 
-expressionlistcomma : ',' expression {
+expressionlistcomma : ZZCOMMA expression {
                         expr.assign($2);
                         expr.insert(0, ",");
 /*                         cout << "one elem comma list = " << expr << endl; */
@@ -377,7 +377,7 @@ expressionlistcomma : ',' expression {
                         free($2);
                         $$ = &exprList;
                       }
-                    | expressionlistcomma ',' expression {
+                    | expressionlistcomma ZZCOMMA expression {
                         expr.assign($3);
                         int exprSize = exprList.exprs.size();
                         if (exprSize > 0) {
