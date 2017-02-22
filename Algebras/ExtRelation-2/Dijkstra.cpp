@@ -557,7 +557,7 @@ this edge is ignored completely, except in mode 2.
  
 
       double getCosts(Tuple* t, bool& correct){
-        (*costFunArg)[0] = t;
+        (*costFunArg)[0].addr = t;
         Word value;
         qp->Request(costFun, value);
         CcReal* g = (CcReal*) value.addr;
@@ -1002,7 +1002,7 @@ class minPathCostsInfo{
              }
               return c->GetValue();
          } else {
-            (*costFunArg)[0] = tup;
+            (*costFunArg)[0].addr = tup;
             Word value;
             qp->Request(costFun, value);
             CcReal* g = (CcReal*) value.addr;
@@ -1257,20 +1257,16 @@ class mtMinPathCostsInfo{
                       int _maxHops,
                       TupleType* _tt):
      succFun(_succFun),succIndex(_succIndex),
-     source(_source),targetIndex(_targetIndex),
+     targetIndex(_targetIndex),
      costsIndex(_costsIndex), maxHops(_maxHops),
      tt(_tt){
-
        succArg = qp->Argument(succFun);
        tt->IncReference();
        costFun = 0;
        collectTargets(_targetStream);
-       queueEntry<T> qe((T*)source->Copy(), 0,0);
+       queueEntry<T> qe((T*)_source->Copy(), 0,0);
        front.push(qe);
        compute();
-
-
-
        resPos = 0;
      }
    
@@ -1284,7 +1280,7 @@ class mtMinPathCostsInfo{
                       int _maxHops,
                       TupleType* _tt):
      succFun(_succFun),succIndex(_succIndex),
-     source(_source),targetIndex(_targetIndex),
+     targetIndex(_targetIndex),
      costsIndex(-1), maxHops(_maxHops),
      tt(_tt){
 
@@ -1294,7 +1290,7 @@ class mtMinPathCostsInfo{
        costFunArg = qp->Argument(costFun);
        
        collectTargets(_targetStream);
-       queueEntry<T> qe((T*)source->Copy(), 0,0);
+       queueEntry<T> qe((T*)_source->Copy(), 0,0);
        front.push(qe);
        compute();
        resPos = 0;
@@ -1319,20 +1315,23 @@ class mtMinPathCostsInfo{
            }
         }
         tt->DeleteIfAllowed();
+        resPos = 0;
      }
 
      Tuple* next(){
          if(resPos>=results.size()){
             return 0;
          }
-         return results[resPos++];
+         Tuple* res = results[resPos];
+         results[resPos]=0;
+         resPos++;
+         return res;
      }
 
 
    private:
       Supplier succFun;
       int succIndex;
-      T*  source;
       int targetIndex;
       int costsIndex;
       int maxHops;
@@ -1356,41 +1355,62 @@ class mtMinPathCostsInfo{
       size_t resPos;
       
 
+
+/*
+~collect targets~
+
+Reads all tuples from the stream of targets and inserts them
+into the targets map.
+
+
+*/
       void collectTargets(Word& s){
           Stream<Tuple> stream(s);
           stream.open();
           Tuple* tuple;
           while( (tuple=stream.request())!=0){
-             ct node = ((T*) tuple->GetAttribute(targetIndex))->GetValue();
-             if(targets.find(node)==targets.end()){
-               targets[node] = tuple;
-             } else {
-               std::cerr << "target node " << node 
-                         << "found twice" << std::endl;
+             T* target = ((T*) tuple->GetAttribute(targetIndex));
+             if(!target->IsDefined()){
+               std::cerr << "found undefined target" << std::endl;
                tuple->DeleteIfAllowed();
-             }
+             } else {
+               ct node = target->GetValue();
+               if(targets.find(node)==targets.end()){
+                  targets[node] = tuple;
+               } else {
+                  std::cerr << "target node " << node 
+                            << "found twice" << std::endl;
+                  tuple->DeleteIfAllowed();
+               }
+            }
           } 
           stream.close();
       }
 
+/*
+~compute~
 
+This function computes the result set. The result set is
+available in the results vector.
+
+*/
       void compute(){
-         
-
          dijkstra();
 
-         // may be there are nodes that are not found
+         // may be there are nodes that are not found.
+         // such nodes are inserted into the result set
+         // with maximum costs
          typename std::map<ct,Tuple*>::iterator it;
+         double c = std::numeric_limits<double>::max();
          for(it=targets.begin();it!=targets.end();it++){
             Tuple* t = it->second;
-            double c = std::numeric_limits<double>::max();
             results.push_back(createResultTuple(t,c));
             t->DeleteIfAllowed();
             it->second=0;
          }
       }
 
-      Tuple* createResultTuple(Tuple* t, double c){
+      Tuple* createResultTuple(const Tuple* t, double c){
          Tuple* res = new Tuple(tt);
          for(int i=0;i<t->GetNoAttributes();i++){
            res->CopyAttribute(i,t,i);
@@ -1411,7 +1431,6 @@ class mtMinPathCostsInfo{
 
       void processNode(queueEntry<T>& e){
          if(processedNodes.find(e.nodeValue)!=processedNodes.end()){
-           e.node->DeleteIfAllowed();
            return;
          }
          processedNodes.insert(e.nodeValue);
@@ -1494,16 +1513,18 @@ class mtMinPathCostsInfo{
       } 
 
       double getCostsFun(Tuple* t){
-        (*costFunArg)[0] = t;
+        (*costFunArg)[0].addr = t;
         Word value;
         qp->Request(costFun, value);
         CcReal* g = (CcReal*) value.addr;
         bool correct = g->IsDefined();
+        (*costFunArg)[0].addr = 0;
         if(!correct){
           return -1;
         } 
         return g->GetValue();
      }
+
      double getCostsAttr(Tuple* t){
         CcReal* g = (CcReal*) t->GetAttribute(costsIndex);
         bool correct = g->IsDefined();
@@ -1512,9 +1533,6 @@ class mtMinPathCostsInfo{
         } 
         return g->GetValue();
      }
-
-
-
 };
 
 
