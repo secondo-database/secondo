@@ -4496,11 +4496,11 @@ int mexactmatchVMT (Word* args, Word& result,
             bool avl = ((CcBool*) args[3].addr)->GetValue();
             
             T* treeN = (T*) args[0].addr;
-            ListExpr subtype = qp->GetType(qp->GetSon(s,2));
+            //ListExpr subtype = qp->GetType(qp->GetSon(s,2));
 
 
             if(avl) {
-              memAVLtree* avltree = getAVLtree(treeN, subtype);
+              memAVLtree* avltree = getAVLtree(treeN);
               local.addr= new avlOperLI(avltree,
                                       mro->getmmrel(),
                                       key,key,
@@ -7724,6 +7724,7 @@ class minsertInfo {
 
      Tuple* next(){
        Tuple* res = stream.request();
+
        if(!res) { return 0; }
        if(flob) {
          res->bringToMemory();
