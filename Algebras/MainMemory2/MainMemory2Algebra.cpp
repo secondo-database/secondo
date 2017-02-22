@@ -7617,7 +7617,7 @@ tupleidentifier of the inserted tuple in the extended relation.
    
  
 */
-template<int noargs>
+template<int noargs, bool ordered>
 ListExpr minsertTypeMap(ListExpr args) {
   
   if(!nl->HasLength(args,noargs)) {
@@ -7644,11 +7644,18 @@ ListExpr minsertTypeMap(ListExpr args) {
       return listutils::typeError("(problem in second arg: " + errMsg + ")");
   }
   second = nl->Second(second);
-  if((!Relation::checkType(second)) && 
-     (!listutils::isOrelDescription(second))){
-    return listutils::typeError(
-      "second arg is not a memory relation");
+  if(ordered){
+    if(!listutils::isOrelDescription(second)){
+      return listutils::typeError(
+         "second arg is not an ordered memory relation");
+    }
+  } else {
+    if((!Relation::checkType(second))){
+      return listutils::typeError(
+         "second arg is not a memory relation");
+    }
   }
+
   if(!nl->Equal(nl->Second(stream), nl->Second(second))){
       return listutils::typeError("stream type and mem relation type differ\n"
                                "stream: " + nl->ToString(stream) + "\n"
@@ -7859,7 +7866,7 @@ Operator minsertOp (
     3,
     minsertVM,
     minsertSelect,
-    minsertTypeMap<2>
+    minsertTypeMap<2,false>
 );
 
 
@@ -8034,7 +8041,7 @@ Operator minsertsaveOp (
     9,
     minsertsaveVM,
     minsertsaveSelect,
-    minsertTypeMap<3>
+    minsertTypeMap<3,false>
 );
 
 
@@ -10617,7 +10624,7 @@ Operator moinsertOp (
     6,
     moinsertVM,
     moinsertSelect<MOInsert>,
-    minsertTypeMap<2>
+    minsertTypeMap<2,true>
 );
 
 
@@ -10650,7 +10657,7 @@ Operator modeleteOp (
     6,
     moinsertVM,
     moinsertSelect<MODelete>,
-    minsertTypeMap<2>
+    minsertTypeMap<2,true>
 );
 
 
