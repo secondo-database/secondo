@@ -1314,8 +1314,9 @@ class mtMinPathCostsInfo{
              it->second=0;
            }
         }
+        targets.clear();
+        results.clear();
         tt->DeleteIfAllowed();
-        resPos = 0;
      }
 
      Tuple* next(){
@@ -1365,6 +1366,8 @@ into the targets map.
 
 */
       void collectTargets(Word& s){
+
+          size_t failed = 0;
           Stream<Tuple> stream(s);
           stream.open();
           Tuple* tuple;
@@ -1378,13 +1381,18 @@ into the targets map.
                if(targets.find(node)==targets.end()){
                   targets[node] = tuple;
                } else {
-                  std::cerr << "target node " << node 
-                            << "found twice" << std::endl;
+                  failed++;
                   tuple->DeleteIfAllowed();
                }
             }
           } 
           stream.close();
+          if(failed>0){
+             cout << "found some targets more than one time " << endl;
+             cout << "found " << targets.size() << " unique targets" << endl;
+             cout << "ignored " << failed 
+                  << " targets which was given more than once" << endl;
+          }
       }
 
 /*
