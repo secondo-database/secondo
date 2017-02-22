@@ -2515,9 +2515,9 @@ Operator minPathCost2Op(
 );
 
 
-OperatorSpec bigdijkstraSpec(
+OperatorSpec gbidijkstraSpec(
   "succfun x predfun x succName x predName x source x target x costFun",
-  "_ _ bigdijkstra [_,_,_,_._] ",
+  "_ _ gbidijkstra [_,_,_,_._] ",
   "Computes a shortest path from source to target using a "
   "bidirectional dijkstra algorithm. "
   "The first function computes the successors of a node as a tuple edge."
@@ -2527,27 +2527,113 @@ OperatorSpec bigdijkstraSpec(
   "the predName argument. The cost of both edges are computed using the "
   "costfun. " ,
   "query fun(i : int) forwardG exactmatch[i] fun(int i) backwardG "
-  "exactmatch[i] bigdijkstra[Source, Target, 37, 48, .Costs] consume"
+  "exactmatch[i] gbidijkstra[Source, Target, 37, 48, .Costs] consume"
 );
 
-ValueMapping bigdijkstraVM[] = {
-   general_dijkstra::bigdijkstraVMT<CcInt>,
-   general_dijkstra::bigdijkstraVMT<LongInt>
+ValueMapping gbidijkstraVM[] = {
+   general_dijkstra::gbidijkstraVMT<CcInt>,
+   general_dijkstra::gbidijkstraVMT<LongInt>
 };
 
-int bigdijkstraSelect(ListExpr args){
+int gbidijkstraSelect(ListExpr args){
   return CcInt::checkType(nl->Fifth(args))?0:1;
 }
 
 
-Operator bigdijkstraOp(
-  "bigdijkstra",
-  bigdijkstraSpec.getStr(),
+Operator gbidijkstraOp(
+  "gbidijkstra",
+  gbidijkstraSpec.getStr(),
   2,
-  bigdijkstraVM,
-  bigdijkstraSelect,
-  general_dijkstra::bigdijkstraTM
+  gbidijkstraVM,
+  gbidijkstraSelect,
+  general_dijkstra::gbidijkstraTM
 );
+
+
+/*
+Operators mtMinPathCosts?
+
+*/
+OperatorSpec mtMinPathCosts1Spec(
+  " fun x stream(tuple) x IDENT x IntType x IDENT x "
+  "IDENT x int -> stream(tuple)",
+  "succFun targetstream mtMinPathCosts1Spec[succName, source, "
+  "targetName, costsName, maxHops]",
+  "Computes the minimum path costs from a source node to a set "
+  "of target nodes within a graph represented by a successor function.\n"
+  "succFun : description of the graph, i.e. fun : node -> stream(tuple)\n"
+  "targetstream : represents the set of target nodes. If some target node "
+  " occurs twice, only the first tuple is used.\n"
+  "succName : attribute name in the tuples of successor function describing "
+  "the position of the successor in the tuple\n"
+  "Source : the source node\n"
+  "targetName : attribute name of the target node in the targetstream\n"
+  "costsName : name of attribute describing the edge costs within the "
+  " successor function result. Must be of type real\n"
+  "maxHops : maximum search depth",
+  "query fun(i : int) otestrel orange[i;i] otestrel feed "
+  "mtMinPathCosts1Spec[Target, 1, Target, Costs, 3] count"
+);
+
+ValueMapping mtMinPathCosts1VM[] = {
+  general_dijkstra::mtMinPathCost1VMT<CcInt>,
+  general_dijkstra::mtMinPathCost1VMT<LongInt>
+};
+
+int mtMinPathCosts1Select(ListExpr args){
+   return CcInt::checkType(nl->Fourth(args))?0:1;
+}
+
+Operator mtMinPathCosts1Op(
+  "mtMinPathCosts1",
+  mtMinPathCosts1Spec.getStr(),
+  2,
+  mtMinPathCosts1VM,
+  mtMinPathCosts1Select,
+  general_dijkstra::mtMinPathCostsTM<false>
+);
+
+
+
+OperatorSpec mtMinPathCosts2Spec(
+  " fun x stream(tuple) x IDENT x IntType x IDENT x "
+  "IDENT x int -> stream(tuple)",
+  "succFun targetstream mtMinPathCosts1Spec[succName, source, "
+  "targetName, costsFun, maxHops]",
+  "Computes the minimum path costs from a source node to a set "
+  "of target nodes within a graph represented by a successor function.\n"
+  "succFun : description of the graph, i.e. fun : node -> stream(tuple)\n"
+  "targetstream : represents the set of target nodes. If some target node "
+  " occurs twice, only the first tuple is used.\n"
+  "succName : attribute name in the tuples of successor function describing "
+  "the position of the successor in the tuple\n"
+  "Source : the source node\n"
+  "targetName : attribute name of the target node in the targetstream\n"
+  "costsFun : function computing the costs of a successor edge\n"
+  "maxHops : maximum search depth",
+  "query fun(i : int) otestrel orange[i;i] otestrel feed "
+  "mtMinPathCosts1Spec[Target, 1, Target, Costs, 3] count"
+);
+
+ValueMapping mtMinPathCosts2VM[] = {
+  general_dijkstra::mtMinPathCost2VMT<CcInt>,
+  general_dijkstra::mtMinPathCost2VMT<LongInt>
+};
+
+int mtMinPathCosts2Select(ListExpr args){
+   return CcInt::checkType(nl->Fourth(args))?0:1;
+}
+
+Operator mtMinPathCosts2Op(
+  "mtMinPathCosts2",
+  mtMinPathCosts2Spec.getStr(),
+  2,
+  mtMinPathCosts2VM,
+  mtMinPathCosts2Select,
+  general_dijkstra::mtMinPathCostsTM<true>
+);
+
+
 
 
 
@@ -2622,8 +2708,15 @@ class ExtRelation2Algebra : public Algebra
     AddOperator(&extrel2::minPathCost1Op);
     AddOperator(&extrel2::minPathCost2Op);
 
-    AddOperator(&extrel2::bigdijkstraOp);
-    extrel2::bigdijkstraOp.enableInitFinishSupport();
+    AddOperator(&extrel2::gbidijkstraOp);
+    extrel2::gbidijkstraOp.enableInitFinishSupport();
+
+    AddOperator(&extrel2::mtMinPathCosts1Op);
+    extrel2::mtMinPathCosts1Op.enableInitFinishSupport();
+
+    AddOperator(&extrel2::mtMinPathCosts2Op);
+    extrel2::mtMinPathCosts2Op.enableInitFinishSupport();
+
 
 #ifdef USE_PROGRESS
 // support for progress queries

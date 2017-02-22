@@ -54,11 +54,23 @@ namespace general_dijkstra{
                     Word& local, Supplier s);
 
 
-   ListExpr bigdijkstraTM(ListExpr args);
+   ListExpr gbidijkstraTM(ListExpr args);
    
    template<class T>
-     int bigdijkstraVMT(Word* args, Word& result, int message, 
+     int gbidijkstraVMT(Word* args, Word& result, int message, 
                     Word& local, Supplier s);
+
+
+
+   template<bool costsAsFun> ListExpr mtMinPathCostsTM(ListExpr args);
+
+   template<class T>
+   int mtMinPathCost1VMT(Word* args, Word& result, int message, 
+                         Word& local, Supplier s);
+
+   template<class T>
+   int mtMinPathCost2VMT(Word* args, Word& result, int message, 
+                         Word& local, Supplier s);
 
 }
 

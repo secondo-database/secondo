@@ -1090,6 +1090,567 @@ template int minPathCost1VMT<LongInt>(Word* args, Word& result, int message,
 
 
 /*
+3 mtMinPathCosts
+
+This operator works similar to the minPathcosts but computes the
+minimum path costs for a set of targets.
+
+*/
+template<bool costsAsFun>
+ListExpr mtMinPathCostsTM(ListExpr args){
+  if(!nl->HasLength(args,7)){
+    return listutils::typeError("7 arguments expected");
+  }
+  /*
+    1 : successor function
+    2 : stream of targets (tuples)
+    3 : name of the target in successor function
+    4 : source of the search
+    5 : name of the target in the target stream
+    6 : name of the cost attribute or cost function (depends on template)
+    7 : maximum number of hops
+  */
+   // allowed node types: int, longint
+   ListExpr source = nl->Fourth(args);
+   if(!CcInt::checkType(source) && !LongInt::checkType(source)){
+     return listutils::typeError("invalid node type, supported are "
+                                 "int and longint");
+   }
+   ListExpr succFun = nl->First(args);
+   if(!listutils::isMap<1>(succFun)){
+     return listutils::typeError("first arg is not a map");
+   }
+   if(!nl->Equal(nl->Second(succFun), source)){
+     return listutils::typeError("type of source node and type of the "
+                                 "argument of the successor function differ");
+        
+   }
+   ListExpr succstream = nl->Third(succFun);
+   if(!Stream<Tuple>::checkType(succstream)){
+     return listutils::typeError("successor function does not produce a "
+                                 "tuple stream");
+   }
+   ListExpr hops = nl->Sixth(nl->Rest(args));
+   if(!CcInt::checkType(hops)){
+     return listutils::typeError("last argument not of type int");
+   }
+   ListExpr succTargetName = nl->Third(args);
+   if(nl->AtomType(succTargetName)!=SymbolType){
+     return listutils::typeError("3rd argument is not a valid attribute name");
+   }
+   std::string succTarget = nl->SymbolValue(succTargetName);
+   ListExpr attrType;
+   ListExpr succAttrList = nl->Second(nl->Second(succstream));
+   int succIndex = listutils::findAttribute(succAttrList,succTarget,attrType);
+   if(!succIndex){
+     return listutils::typeError("attribute " + succTarget + " not found in "
+                                 "successor function result");
+   }
+   if(!nl->Equal(attrType,source)){
+      return listutils::typeError("type of source node and attribute " + 
+                                  succTarget + " in successor function result"
+                                  " differ");
+   }
+   ListExpr targetSetName = nl->Fifth(args);
+   if(nl->AtomType(targetSetName)!=SymbolType){
+     return listutils::typeError("5th arg is not a valid attribute name");
+   }
+   std::string targetSet = nl->SymbolValue(targetSetName);
+   ListExpr targets = nl->Second(args);
+   if(!Stream<Tuple>::checkType(targets)){
+     return listutils::typeError("second arg must be a tuple stream");
+   }
+   ListExpr targetAttrList = nl->Second(nl->Second(targets));
+   int targetIndex = listutils::findAttribute(targetAttrList, targetSet,
+                                              attrType);
+   if(!targetIndex){
+     return listutils::typeError("attribute " + targetSet + " not found "
+                                 "in target stream");
+   }
+   if(!nl->Equal(attrType, source)){
+     return listutils::typeError("type of " + targetSet + " in target stream"
+                                 " differs to the type of the source node");
+   }
+   
+   if(listutils::findAttribute(targetAttrList,"MinPC",attrType)){
+     return listutils::typeError("Attribute name MinPC already present in "
+                                 "target tuple");
+   }
+
+   ListExpr appAttr = nl->OneElemList( nl->TwoElemList(
+                            nl->SymbolAtom("MinPC"),
+                            listutils::basicSymbol<CcReal>()));
+   
+
+   ListExpr resAttrList = listutils::concat(targetAttrList,appAttr);
+
+   ListExpr res = nl->TwoElemList(
+                       listutils::basicSymbol<Stream<Tuple> >(),
+                       nl->TwoElemList(
+                           listutils::basicSymbol<Tuple>(),
+                           resAttrList));
+   
+
+
+   ListExpr costsArg = nl->Sixth(args);
+   if(!costsAsFun){
+      if(nl->AtomType(costsArg) != SymbolType){
+        return listutils::typeError("6th arg is not a valid attribute name");
+      }
+      std::string costName = nl->SymbolValue(costsArg);
+      int succCostsIndex = listutils::findAttribute(succAttrList,costName,
+                                                    attrType);
+      if(!succCostsIndex){
+        return listutils::typeError("Attribute " + costName + " not found in " 
+                                    "successor tuple");
+      }
+      if(!CcReal::checkType(attrType)){
+          return listutils::typeError("Attribute " + costName + " not of type "
+                                      "real in successor tuple");
+      }
+      ListExpr appendList = nl->ThreeElemList(
+                                nl->IntAtom(succIndex -1),
+                                nl->IntAtom(targetIndex -1),
+                                nl->IntAtom(succCostsIndex-1));
+     return nl->ThreeElemList(
+                  nl->SymbolAtom(Symbols::APPEND()),
+                  appendList,
+                  res);
+   } 
+
+   // costs are given by a function
+   if(!listutils::isMap<1>(costsArg)){
+      return listutils::typeError("sixth arg is not an unary function");
+   }
+   if(!CcReal::checkType(nl->Third(costsArg))){
+     return listutils::typeError("result of cost function not of type real");
+   }
+   ListExpr succTuple = nl->Second(succstream);
+   if(!nl->Equal(succTuple, nl->Second(costsArg))){
+      return listutils::typeError("successor tuple and argument of the cost "
+                                 "function differ");
+   }
+   ListExpr appendList = nl->TwoElemList(
+                               nl->IntAtom(succIndex -1),
+                               nl->IntAtom(targetIndex -1));
+ 
+   return nl->ThreeElemList(
+              nl->SymbolAtom(Symbols::APPEND()),
+              appendList,
+              res);
+}
+
+
+template  ListExpr mtMinPathCostsTM<true>(ListExpr args);
+template  ListExpr mtMinPathCostsTM<false>(ListExpr args);
+
+
+template <class T>
+class mtMinPathCostsInfo{
+  public:
+   mtMinPathCostsInfo(Supplier _succFun,
+                      Word& _targetStream,
+                      int _succIndex,
+                      T*  _source,
+                      int _targetIndex,
+                      int _costsIndex,
+                      int _maxHops,
+                      TupleType* _tt):
+     succFun(_succFun),succIndex(_succIndex),
+     source(_source),targetIndex(_targetIndex),
+     costsIndex(_costsIndex), maxHops(_maxHops),
+     tt(_tt){
+
+       succArg = qp->Argument(succFun);
+       tt->IncReference();
+       costFun = 0;
+       collectTargets(_targetStream);
+       queueEntry<T> qe((T*)source->Copy(), 0,0);
+       front.push(qe);
+       compute();
+
+
+
+       resPos = 0;
+     }
+   
+
+     mtMinPathCostsInfo(Supplier _succFun,
+                      Word& _targetStream,
+                      int _succIndex,
+                      T*  _source,
+                      int _targetIndex,
+                      Supplier _costsFun,
+                      int _maxHops,
+                      TupleType* _tt):
+     succFun(_succFun),succIndex(_succIndex),
+     source(_source),targetIndex(_targetIndex),
+     costsIndex(-1), maxHops(_maxHops),
+     tt(_tt){
+
+       costFun = _costsFun;
+       succArg = qp->Argument(succFun);
+       tt->IncReference();
+       costFunArg = qp->Argument(costFun);
+       
+       collectTargets(_targetStream);
+       queueEntry<T> qe((T*)source->Copy(), 0,0);
+       front.push(qe);
+       compute();
+       resPos = 0;
+     }
+
+     ~mtMinPathCostsInfo(){
+        // delete remaining tuples in front
+        while(!front.empty()){
+           front.top().node->DeleteIfAllowed();
+           front.pop();
+        }
+        // delete remaining tuples from results
+        while(resPos < results.size()){
+           results[resPos++]->DeleteIfAllowed();
+        }
+        // delete non-found nodes from targets
+        typename std::map<ct,Tuple*>::iterator it;
+        for(it=targets.begin();it!=targets.end();it++){
+           if(it->second){
+             it->second->DeleteIfAllowed();
+             it->second=0;
+           }
+        }
+        tt->DeleteIfAllowed();
+     }
+
+     Tuple* next(){
+         if(resPos>=results.size()){
+            return 0;
+         }
+         return results[resPos++];
+     }
+
+
+   private:
+      Supplier succFun;
+      int succIndex;
+      T*  source;
+      int targetIndex;
+      int costsIndex;
+      int maxHops;
+      TupleType* tt;
+
+      Supplier costFun;
+      ArgVectorPointer costFunArg;
+
+
+      typedef typename T::ctype ct;
+      ArgVectorPointer succArg;
+      std::map<ct,Tuple*> targets;
+      std::vector<Tuple*> results;
+      
+
+      std::priority_queue<queueEntry<T> > front;
+      std::set<ct> processedNodes;
+      double targetCosts;
+      std::map<ct,double> frontCosts;
+      
+      size_t resPos;
+      
+
+      void collectTargets(Word& s){
+          Stream<Tuple> stream(s);
+          stream.open();
+          Tuple* tuple;
+          while( (tuple=stream.request())!=0){
+             ct node = ((T*) tuple->GetAttribute(targetIndex))->GetValue();
+             if(targets.find(node)==targets.end()){
+               targets[node] = tuple;
+             } else {
+               std::cerr << "target node " << node 
+                         << "found twice" << std::endl;
+               tuple->DeleteIfAllowed();
+             }
+          } 
+          stream.close();
+      }
+
+
+      void compute(){
+         
+
+         dijkstra();
+
+         // may be there are nodes that are not found
+         typename std::map<ct,Tuple*>::iterator it;
+         for(it=targets.begin();it!=targets.end();it++){
+            Tuple* t = it->second;
+            double c = std::numeric_limits<double>::max();
+            results.push_back(createResultTuple(t,c));
+            t->DeleteIfAllowed();
+            it->second=0;
+         }
+      }
+
+      Tuple* createResultTuple(Tuple* t, double c){
+         Tuple* res = new Tuple(tt);
+         for(int i=0;i<t->GetNoAttributes();i++){
+           res->CopyAttribute(i,t,i);
+         }
+         res->PutAttribute(t->GetNoAttributes(), new CcReal(true,c));
+         return res;
+      }
+
+
+      void dijkstra(){
+         while(!front.empty() && !targets.empty()){
+            queueEntry<T> e = front.top();
+            front.pop();
+            processNode(e);
+            e.node->DeleteIfAllowed();      
+         }
+      }
+
+      void processNode(queueEntry<T>& e){
+         if(processedNodes.find(e.nodeValue)!=processedNodes.end()){
+           e.node->DeleteIfAllowed();
+           return;
+         }
+         processedNodes.insert(e.nodeValue);
+
+         typename std::map<ct,Tuple*>::iterator it;
+         it=targets.find(e.nodeValue);
+
+         if(it!=targets.end()){
+           // found a target node
+           results.push_back(createResultTuple(it->second,e.costs));
+           it->second->DeleteIfAllowed();
+           targets.erase(it);
+           if(targets.empty()){ // all targets reached
+              return; 
+           }
+         }
+
+         if(maxHops>0 && e.depth>=maxHops){
+            return;
+         }
+         // use successors of e node
+         (*succArg)[0] = e.node;
+         qp->Open(succFun);
+         Word value;
+         qp->Request(succFun,value);
+         while(qp->Received(succFun)){
+             processEdge(e, (Tuple*) value.addr);
+             qp->Request(succFun,value);
+         } 
+         qp->Close(succFun);
+      } 
+
+
+      void processEdge(queueEntry<T>& e, Tuple* tup){
+         double costs = getCosts(tup);
+         // special case: invalid costs
+         if(costs<0){
+            std::cerr << "found negative or undefined costs" << std::endl;
+            tup->DeleteIfAllowed();
+            return;
+         }
+         T* target = (T*) tup->GetAttribute(targetIndex);
+         // special case undefined value
+         if(!target->IsDefined()){
+            std::cerr << " found undefined costs" << endl;
+            tup->DeleteIfAllowed();
+            return;
+         }
+         ct targetVal = target->GetValue();
+         // target already finished
+         if(processedNodes.find(targetVal)!=processedNodes.end()){
+             tup->DeleteIfAllowed();
+             return;
+         } 
+         target = (T*) target->Copy();
+         tup->DeleteIfAllowed();
+         double nc = e.costs + costs;
+         typename std::map<ct,double>::iterator it 
+               = frontCosts.find(targetVal);
+
+         if(it==frontCosts.end()){ // node found the first time 
+            frontCosts[targetVal] = nc;  
+            front.push(queueEntry<T>(target, nc, e.depth+1));
+         } else {
+            if(it->second<= nc){ // old path is shorter
+               target->DeleteIfAllowed();
+            } else {
+               it->second = nc; // update costs  
+               front.push(queueEntry<T>(target, nc, e.depth+1));
+            }
+         }
+      }
+
+      double getCosts(Tuple* t){
+         if(costFun){
+            return getCostsFun(t);
+         } else {
+            return getCostsAttr(t);
+         }
+      } 
+
+      double getCostsFun(Tuple* t){
+        (*costFunArg)[0] = t;
+        Word value;
+        qp->Request(costFun, value);
+        CcReal* g = (CcReal*) value.addr;
+        bool correct = g->IsDefined();
+        if(!correct){
+          return -1;
+        } 
+        return g->GetValue();
+     }
+     double getCostsAttr(Tuple* t){
+        CcReal* g = (CcReal*) t->GetAttribute(costsIndex);
+        bool correct = g->IsDefined();
+        if(!correct){
+          return -1;
+        } 
+        return g->GetValue();
+     }
+
+
+
+};
+
+
+
+template<class T>
+int mtMinPathCost1VMT(Word* args, Word& result, int message, 
+                      Word& local, Supplier s) {
+
+  mtMinPathCostsInfo<T>* li = (mtMinPathCostsInfo<T>*) local.addr;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+  switch(message){
+     case INIT : {
+        tt = new TupleType(nl->Second(GetTupleResultType(s)));
+        qp->GetLocal2(s).addr = tt;
+        return 0;
+     }
+     case FINISH: {
+        if(tt){
+           tt->DeleteIfAllowed();
+           qp->GetLocal2(s).addr=0; 
+        }
+        return 0;
+     }
+     case OPEN: {
+        if(li){
+           delete li;
+           local.addr = 0;
+        }  
+        T* source = (T*) args[3].addr;
+        if(!source->IsDefined()){
+           return 0;
+        }
+        int hops = 0;
+        CcInt* Hops = (CcInt*) args[6].addr;
+        if(Hops->IsDefined()){
+           hops = Hops->GetValue();  
+        }
+        int succIndex = ((CcInt*) args[7].addr)->GetValue();
+        int targetIndex = ((CcInt*) args[8].addr)->GetValue();
+        int costsIndex = ((CcInt*) args[9].addr)->GetValue();
+        li = new mtMinPathCostsInfo<T>(args[0].addr, args[1],
+                                       succIndex, source, targetIndex,
+                                       costsIndex, hops,tt);
+        local.addr = li;
+        return 0;
+     }
+   case REQUEST: {
+      result.addr = li?li->next():0;
+      return result.addr?YIELD:CANCEL;
+   }
+   case CLOSE: {
+       if(li){
+         delete li;
+         local.addr = 0;
+       }
+       return 0;
+   }
+
+  }
+  return -1;
+}
+
+
+template<class T>
+int mtMinPathCost2VMT(Word* args, Word& result, int message, 
+                      Word& local, Supplier s) {
+
+  mtMinPathCostsInfo<T>* li = (mtMinPathCostsInfo<T>*) local.addr;
+  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+  switch(message){
+     case INIT : {
+        tt = new TupleType(nl->Second(GetTupleResultType(s)));
+        qp->GetLocal2(s).addr = tt;
+        return 0;
+     }
+     case FINISH: {
+        if(tt){
+           tt->DeleteIfAllowed();
+           qp->GetLocal2(s).addr=0; 
+        }
+        return 0;
+     }
+     case OPEN: {
+        if(li){
+           delete li;
+           local.addr = 0;
+        }  
+        T* source = (T*) args[3].addr;
+        if(!source->IsDefined()){
+           return 0;
+        }
+        int hops = 0;
+        CcInt* Hops = (CcInt*) args[6].addr;
+        if(Hops->IsDefined()){
+           hops = Hops->GetValue();  
+        }
+        int succIndex = ((CcInt*) args[7].addr)->GetValue();
+        int targetIndex = ((CcInt*) args[8].addr)->GetValue();
+        Supplier costsFun = args[5].addr;
+        li = new mtMinPathCostsInfo<T>(args[0].addr, args[1],
+                                       succIndex, source, targetIndex,
+                                       costsFun, hops,tt);
+        local.addr = li;
+        return 0;
+     }
+   case REQUEST: {
+      result.addr = li?li->next():0;
+      return result.addr?YIELD:CANCEL;
+   }
+   case CLOSE: {
+       if(li){
+         delete li;
+         local.addr = 0;
+       }
+       return 0;
+   }
+
+  }
+  return -1;
+}
+
+
+template int mtMinPathCost1VMT<CcInt>(Word* args, Word& result, int message,
+                      Word& local, Supplier s);
+
+template int mtMinPathCost1VMT<LongInt>(Word* args, Word& result, int message,
+                      Word& local, Supplier s);
+
+
+template int mtMinPathCost2VMT<CcInt>(Word* args, Word& result, int message,
+                      Word& local, Supplier s);
+
+template int mtMinPathCost2VMT<LongInt>(Word* args, Word& result, int message,
+                      Word& local, Supplier s);
+
+/*
 3 Implementation of a bidirectional dijkstra.
 
 This operator searches a shortest path between a source and a target node.
@@ -1114,7 +1675,7 @@ bidirectional, i.e. from the source and the target at the same time.
 
 */
 
-ListExpr bigdijkstraTM(ListExpr args){
+ListExpr gbidijkstraTM(ListExpr args){
    if(!nl->HasLength(args,7)){
      return listutils::typeError("7 arguments required");
    }
@@ -1229,10 +1790,10 @@ ListExpr bigdijkstraTM(ListExpr args){
 
 
 template<class T>
-class bigdijkstraInfo{
+class gbidijkstraInfo{
 
   public:
-     bigdijkstraInfo(
+     gbidijkstraInfo(
          Supplier _succFun,
          Supplier _predFun,
          int _succPos,
@@ -1271,7 +1832,7 @@ class bigdijkstraInfo{
            }
      }
 
-     ~bigdijkstraInfo(){
+     ~gbidijkstraInfo(){
         tt->DeleteIfAllowed();
         removeEdges(Ftree);
         removeEdges(Btree);
@@ -1544,10 +2105,10 @@ class bigdijkstraInfo{
 
 
 template<class T>
-int bigdijkstraVMT(Word* args, Word& result, int message, 
+int gbidijkstraVMT(Word* args, Word& result, int message, 
                     Word& local, Supplier s) {
 
-   bigdijkstraInfo<T>* li = (bigdijkstraInfo<T>*) local.addr;
+   gbidijkstraInfo<T>* li = (gbidijkstraInfo<T>*) local.addr;
    TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
 
    switch(message){
@@ -1578,7 +2139,7 @@ int bigdijkstraVMT(Word* args, Word& result, int message,
         if(source->Compare(target)==0){
           return 0;
         }
-        local.addr = new bigdijkstraInfo<T>(args[0].addr, args[1].addr,succPos, 
+        local.addr = new gbidijkstraInfo<T>(args[0].addr, args[1].addr,succPos, 
                                          predPos, args[6].addr, source, 
                                          target, tt);
         return 0;
@@ -1601,11 +2162,11 @@ int bigdijkstraVMT(Word* args, Word& result, int message,
 }
 
 
-template int bigdijkstraVMT<CcInt>(Word* args, Word& result, int message, 
+template int gbidijkstraVMT<CcInt>(Word* args, Word& result, int message, 
                     Word& local, Supplier s);
 
 
-template int bigdijkstraVMT<LongInt>(Word* args, Word& result, int message, 
+template int gbidijkstraVMT<LongInt>(Word* args, Word& result, int message, 
                     Word& local, Supplier s);
 
 

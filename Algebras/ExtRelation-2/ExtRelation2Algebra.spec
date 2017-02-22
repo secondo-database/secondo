@@ -51,6 +51,12 @@ operator minPathCost1 alias MINPATHCOST1 pattern _ op [_,_,_,_,_]
 
 operator minPathCost2 alias MINPATHCOST2 pattern _ op [_,_,_,fun,_] implicit parameter tuple type GD
 
-operator bigdijkstra alias BIGDIJKSTRA pattern _ _ op[_,_,_,_,fun] implicit parameter tuple type GD
+operator gbidijkstra alias GBIDIJKSTRA pattern _ _ op[_,_,_,_,fun] implicit parameter tuple type GD
+
+operator mtMinPathCosts1 alias MTMINPATHCOSTS1 pattern _ _ op[_,_,_,_,_]
+
+operator mtMinPathCosts2 alias MTMINPATHCOSTS2 pattern _ _ op[_,_,_,fun,_] implicit parameter tuple type GD
+
+
 
 

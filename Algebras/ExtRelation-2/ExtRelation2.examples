@@ -126,11 +126,24 @@ Result    : TRUE
 
 
 
-Operator  : bigdijkstra 
+Operator  : gbidijkstra 
 Number    : 1
 Signature : fun(A -> stream(tuple(B))) x AttrName x A x A x fun(B->real) x int -> real
-Example   : query ( (fun(i1 : int) otestrel orange[i1;i1]) (fun(i2 : int) otestrelBack orange[i2;i2] )  bigdijkstra[Id_s2, Id_s1, 1, 40, distance(.GeoData_s1, .GeoData_s2)] count)  =  (fun(i3 : int) otestrel orange[i3;i3]) gdijkstra[Id_s2,1,40, distance(.GeoData_s1,.GeoData_s2),0,0] count
+Example   : query ( (fun(i1 : int) otestrel orange[i1;i1]) (fun(i2 : int) otestrelBack orange[i2;i2] )  gbidijkstra[Id_s2, Id_s1, 1, 40, distance(.GeoData_s1, .GeoData_s2)] count)  =  (fun(i3 : int) otestrel orange[i3;i3]) gdijkstra[Id_s2,1,40, distance(.GeoData_s1,.GeoData_s2),0,0] count
 Result    : TRUE
+
+
+Operator: mtMinPathCosts1
+Number  : 1
+Signature: fun(A -> stream(tuple(B))) x stream(Tuple(C)) x IDENT x A x IDENT x IDENT x int -> stream(tuple(C@(M : real)))
+Example : query (fun(i1 : int) otestrel orange[i1;i1] extend[C : distance(.GeoData_s1,.GeoData_s2)]) (otestrel feed sortby[Id_s2] krdup[Id_s2] ) mtMinPathCosts1[Id_s2,1,Id_s2,C,4] count
+Result : 20 
+
+Operator: mtMinPathCosts2
+Number  : 1
+Signature: fun(A -> stream(tuple(B))) x stream(Tuple(C)) x IDENT x A x IDENT x fun(A -> real) x int -> stream(tuple(C@(M : real)))
+Example : query (fun(i1 : int) otestrel orange[i1;i1] extend[C : distance(.GeoData_s1,.GeoData_s2)]) (otestrel feed sortby[Id_s2] krdup[Id_s2] ) mtMinPathCosts2[Id_s2,1,Id_s2,.C,4] count
+Result : 20 
 
 
 
