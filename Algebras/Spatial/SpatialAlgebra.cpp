@@ -18092,6 +18092,8 @@ int SpatialMakeLine(Word* args, Word& result, int message,
   res->EndBulkLoad();
   if(p1->Compare(p2) > 0){
     SetStartSmaller(res,false);
+  } else {
+    SetStartSmaller(res,true);
   }
   return 0;
 }
