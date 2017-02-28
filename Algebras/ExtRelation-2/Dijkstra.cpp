@@ -1254,7 +1254,7 @@ class mtMinPathCostsInfo{
                       T*  _source,
                       int _targetIndex,
                       int _costsIndex,
-                      int _maxHops,
+                      size_t _maxHops,
                       TupleType* _tt):
      succFun(_succFun),succIndex(_succIndex),
      targetIndex(_targetIndex),
@@ -1335,7 +1335,7 @@ class mtMinPathCostsInfo{
       int succIndex;
       int targetIndex;
       int costsIndex;
-      int maxHops;
+      size_t maxHops;
       TupleType* tt;
 
       Supplier costFun;
@@ -1577,6 +1577,9 @@ int mtMinPathCost1VMT(Word* args, Word& result, int message,
         CcInt* Hops = (CcInt*) args[6].addr;
         if(Hops->IsDefined()){
            hops = Hops->GetValue();  
+           if(hops<0){
+              hops = 0;
+           }
         }
         int succIndex = ((CcInt*) args[7].addr)->GetValue();
         int targetIndex = ((CcInt*) args[8].addr)->GetValue();
@@ -1636,6 +1639,9 @@ int mtMinPathCost2VMT(Word* args, Word& result, int message,
         CcInt* Hops = (CcInt*) args[6].addr;
         if(Hops->IsDefined()){
            hops = Hops->GetValue();  
+           if(hops<0){
+              hops=0;
+           }
         }
         int succIndex = ((CcInt*) args[7].addr)->GetValue();
         int targetIndex = ((CcInt*) args[8].addr)->GetValue();
