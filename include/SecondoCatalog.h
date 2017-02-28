@@ -367,7 +367,7 @@ is an empty string.
   bool InsertObject( const std::string& objectName,
                      const std::string& typeName,
                      const ListExpr typeExpr,
-                     const Word valueWord,
+                     const Word& valueWord,
                      const bool defined );
 
 /*
@@ -416,7 +416,7 @@ representation.
 
 */
 ListExpr OutObject( const ListExpr type,
-                      const Word object );
+                      const Word& object );
 /*
 Closes a given ~object~ of type ~type~.
 
@@ -530,7 +530,7 @@ new value cloned from ~word~. Returns "false"[4] if object does not exist.
 
 */
   bool CloneObject( const std::string& objectName,
-                    const Word word );
+                    const Word& word );
 
 /*
 Overwrites the value of the object with identifier ~objectName~ with a
@@ -541,7 +541,7 @@ object is only modified, so that no deletion function is necessary.
 
 */
 
-  bool ModifyObject( const std::string& objectName, const Word word );
+  bool ModifyObject( const std::string& objectName, const Word& word );
 /*
 3.2.4 Algebra Type Constructors
 
