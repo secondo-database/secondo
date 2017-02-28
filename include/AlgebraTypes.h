@@ -70,21 +70,23 @@ apply an appropriate type cast.
 
 */
 
-
 union Word{
   Word():addr(0){}
   Word(Address a):addr(a){}
-  Word(ListExpr l):list(l) {}
 
-  void setAddr(Address a){
+  Word(ListExpr l):list(l){}
+
+  inline void setAddr(Address a){
      addr = a;
   }
+
   void setList(ListExpr l){
      list = l;
   }
 
   Address addr;
   ListExpr list;
+
 };
 
 
@@ -100,8 +102,10 @@ constructor must be added to the list of constructors.
 static inline Word SetWord( Address  newaddr )
                      { Word w; w.addr = newaddr; return w; };
 
+
 static inline Word SetWord( ListExpr newlist )
                      { Word w; w.list = newlist; return w; };
+
 
 
 /*
