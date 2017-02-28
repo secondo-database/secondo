@@ -250,29 +250,35 @@ CostEstimation* OperatorProject::ProjectCostEstimationFunc()
   return new ProjectCostEstimation();
 }
 
+struct projectLI2{
+   TupleType* tt;
+   Word elem1;
+   Word elem2;
+};
+
 int
 OperatorProject::Project(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
   ProjectLocalInfo *pli=0;
-  Word elem1(Address(0));
-  Word elem2(Address(0));
   int noOfAttrs= 0;
   int index= 0;
   Supplier son;
 
-  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+  projectLI2* li2 = (projectLI2*) qp->GetLocal2(s).addr;
 
   switch (message)
   {
     case INIT : {
-      tt = new TupleType(nl->Second(GetTupleResultType(s)));
-      qp->GetLocal2(s).addr = tt;
+      li2 = new projectLI2();
+      li2->tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      qp->GetLocal2(s).addr = li2;
       return 0;
     }
     case FINISH : {
-      if(tt){
-        tt->DeleteIfAllowed();
+      if(li2){
+        li2->tt->DeleteIfAllowed();
+        delete li2;
         qp->GetLocal2(s).addr=0;
       }
       return 0;
@@ -285,8 +291,8 @@ OperatorProject::Project(Word* args, Word& result, int message,
       if ( pli ) delete pli;
 
       pli = new ProjectLocalInfo();
-      tt->IncReference();
-      pli->tupleType = tt;
+      li2->tt->IncReference();
+      pli->tupleType = li2->tt;
       local.setAddr(pli);
 
       qp->Open(args[0].addr);
@@ -296,7 +302,7 @@ OperatorProject::Project(Word* args, Word& result, int message,
 
       pli = (ProjectLocalInfo*) local.addr;
 
-      qp->Request(args[0].addr, elem1);
+      qp->Request(args[0].addr, li2->elem1);
       if (qp->Received(args[0].addr))
       {
         pli->read++;
@@ -308,11 +314,11 @@ OperatorProject::Project(Word* args, Word& result, int message,
         for( int i = 0; i < noOfAttrs; i++)
         {
           son = qp->GetSupplier(args[3].addr, i);
-          qp->Request(son, elem2);
-          index = ((CcInt*)elem2.addr)->GetIntval();
-          t->CopyAttribute(index-1, (Tuple*)elem1.addr, i);
+          qp->Request(son, li2->elem2);
+          index = ((CcInt*)li2->elem2.addr)->GetIntval();
+          t->CopyAttribute(index-1, (Tuple*)li2->elem1.addr, i);
         }
-        ((Tuple*)elem1.addr)->DeleteIfAllowed();
+        ((Tuple*)li2->elem1.addr)->DeleteIfAllowed();
         result.setAddr(t);
         return YIELD;
       }

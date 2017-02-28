@@ -322,7 +322,7 @@ LocalInfo
 class Sort2HeapsInfo{
 
   public:
-     Sort2HeapsInfo(Word _stream, 
+     Sort2HeapsInfo(Word& _stream, 
                std::vector< std::pair<int, bool> >& positions, 
                ListExpr _tt, size_t _maxFiles, size_t _maxMem): 
                stream(_stream), Comp(positions), maxFiles(_maxFiles), 
@@ -508,22 +508,40 @@ int Sort2HeapsVM(Word* args, Word& result, int message,
           Word& local, Supplier s){
 
   Sort2HeapsInfo* li = (Sort2HeapsInfo*) local.addr;
+  typedef std::vector<std::pair<int, bool> > posvec;
+  posvec* li2 = (posvec*) qp->GetLocal2(s).addr;
 
   switch(message){
+    case INIT :{
+      return 0;
+    }
+    case FINISH: {
+       if(li2){
+         delete li2;
+         qp->GetLocal2(s).addr = 0;
+       }
+       return 0;
+    }
+
     case OPEN : {
         if(li){ delete li;};
-        std::vector<std::pair<int, bool> > pos;
-        Supplier sp = qp->GetSon(s,qp->GetNoSons(s)-2); // positions
-        Supplier sd = qp->GetSon(s,qp->GetNoSons(s)-1); // directions
-        assert( qp->GetNoSons(sp) == qp->GetNoSons(sd)); // ensured by tm
-        for(int i=0; i<qp->GetNoSons(sd); i++){
-           Word w;
-           qp->Request(qp->GetSon(sp,i),w);
-           int p = ( (CcInt*) w.addr)->GetValue();
-           qp->Request(qp->GetSon(sd,i),w);
-           int d = ( (CcBool*) w.addr)->GetValue();
-           pos.push_back( std::make_pair(p,d));
-        }
+
+        if(!li2){
+          posvec* pos= new posvec();
+          Supplier sp = qp->GetSon(s,qp->GetNoSons(s)-2); // positions
+          Supplier sd = qp->GetSon(s,qp->GetNoSons(s)-1); // directions
+          assert( qp->GetNoSons(sp) == qp->GetNoSons(sd)); // ensured by tm
+          Word w;
+          for(int i=0; i<qp->GetNoSons(sd); i++){
+             qp->Request(qp->GetSon(sp,i),w);
+             int p = ( (CcInt*) w.addr)->GetValue();
+             qp->Request(qp->GetSon(sd,i),w);
+             int d = ( (CcBool*) w.addr)->GetValue();
+             pos->push_back( std::make_pair(p,d));
+          }
+          qp->GetLocal2(s).addr = pos;         
+          li2 = pos; 
+        } 
         size_t maxFiles = 200;  // maximum number of open files 
         size_t maxMem = qp->GetMemorySize(s)*1024*1024;
         // security factor
@@ -531,7 +549,7 @@ int Sort2HeapsVM(Word* args, Word& result, int message,
         if(maxMem<1024){
           maxMem = 1024;
         }
-        local.addr = new Sort2HeapsInfo(args[0], pos,
+        local.addr = new Sort2HeapsInfo(args[0], *li2,
                       nl->Second(GetTupleResultType(s)),
                       maxFiles, maxMem);
         return 0;
@@ -545,6 +563,7 @@ int Sort2HeapsVM(Word* args, Word& result, int message,
          }
          return 0;
   }
+  assert(false);
   return -1;
 }
 
@@ -726,7 +745,7 @@ class OutAttrHeap{
 class SortAttr2HeapsInfo{
 
   public:
-     SortAttr2HeapsInfo(Word _stream, bool _asc,
+     SortAttr2HeapsInfo(Word& _stream, bool _asc,
                         ListExpr _resType, ListExpr _numResType,
                         size_t _maxFiles,
                         size_t _maxMem) : stream(_stream),

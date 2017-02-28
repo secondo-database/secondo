@@ -2695,9 +2695,11 @@ class ExtRelation2Algebra : public Algebra
 
     AddOperator(&extrel2::sorthOP);
     extrel2::sorthOP.SetUsesMemory();
+    extrel2::sorthOP.enableInitFinishSupport();
 
     AddOperator(&extrel2::sortbyhOP);
     extrel2::sortbyhOP.SetUsesMemory();
+    extrel2::sortbyhOP.enableInitFinishSupport();
 
     AddOperator(&extrel2::sortattrOP);
     extrel2::sortattrOP.SetUsesMemory();

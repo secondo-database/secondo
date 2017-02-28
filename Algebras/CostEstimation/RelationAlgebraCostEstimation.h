@@ -410,9 +410,9 @@ class FilterCostEstimation: public CostEstimation{
 class FilterLocalInfo{
 
   public:
-     FilterLocalInfo(Word s, Word _fun, FilterCostEstimation* _fce):
-         stream(s), fun(_fun), fce(_fce) {
-        funargs = qp->Argument(fun.addr);
+     FilterLocalInfo(Word& s, Word& _fun, FilterCostEstimation* _fce):
+         stream(s), fun(_fun.addr), fce(_fce) {
+        funargs = qp->Argument(fun);
         stream.open();
         fce->init(0,0);
      }
@@ -423,11 +423,10 @@ class FilterLocalInfo{
 
      Tuple* next(){
        Tuple* tuple;
-       Word funres;
        while( (tuple = stream.request() ) != 0){
           fce->incInput();
           (*funargs)[0].addr = tuple;
-          qp->Request(fun.addr,funres);
+          qp->Request(fun,funres);
           CcBool* res = (CcBool*) funres.addr;
           if(res->IsDefined() && res->GetBoolval()){
             return tuple;
@@ -440,7 +439,8 @@ class FilterLocalInfo{
 
   private:
     Stream<Tuple> stream;
-    Word fun;
+    void* fun;
+    Word funres;
     ArgVectorPointer funargs;
     FilterCostEstimation* fce;
 };

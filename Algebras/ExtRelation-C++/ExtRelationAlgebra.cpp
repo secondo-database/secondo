@@ -2197,17 +2197,24 @@ containing the information about the indexes which should be used
 for the comparison.
 
 */
-  KrdupLocalInfo(Supplier s):indexes(){
-       lastTuple=0;
+  KrdupLocalInfo(vector<int>* _indexes, Word& _stream):
+    stream(_stream),indexes(*_indexes),lastTuple(0){
+    stream.open();
+   }
+
+   static vector<int>* getIndexes(Supplier s){
+       vector<int>* indexes = new vector<int>();
        int count = qp->GetNoSons(s);
        Word elem;
        for(int i=0;i<count; i++){
           Supplier son = qp->GetSon(s,i);
           qp->Request(son,elem);
           int index = ((CcInt*)elem.addr)->GetIntval();
-          indexes.push_back(index);
+          indexes->push_back(index);
        }
+       return indexes;
    }
+
 
 /*
 ~Destructor~
@@ -2221,7 +2228,44 @@ Destroy this instance.
           lastTuple->DeleteIfAllowed();
        }
        lastTuple = 0;
+       stream.close();
    }
+
+
+   Tuple* next(){
+      Tuple* tuple;
+      while((tuple=stream.request())){
+         if(!ReplaceIfNonEqual(tuple)){
+            tuple->DeleteIfAllowed();
+         } else {
+            return tuple;
+         }
+      }
+      return 0;
+   }
+
+
+private:
+/*
+~equals~
+
+Checks the equality of the last tuple with the argument where only the
+attributes stored in the vector are of interest.
+
+*/
+inline bool Equals(Tuple* tuple){
+ int size = indexes.size();
+ for(int i=0;i<size;i++){
+   int pos = indexes[i];
+   int cmp = ( ((Attribute*)lastTuple->GetAttribute(pos))->CompareAlmost(
+               ((Attribute*)tuple->GetAttribute(pos))));
+   if(cmp!=0){
+       return false;
+   }
+ }
+ return true;
+}
+
 
 /*
 ~ReplaceIfNonEqual~
@@ -2249,61 +2293,45 @@ inline bool  ReplaceIfNonEqual(Tuple* newTuple){
    }
 }
 
-private:
-/*
-~equals~
-
-Checks the equality of the last tuple with the argument where only the
-attributes stored in the vector are of interest.
-
-*/
-inline bool Equals(Tuple* tuple){
- int size = indexes.size();
- for(int i=0;i<size;i++){
-   int pos = indexes[i];
-   int cmp = ( ((Attribute*)lastTuple->GetAttribute(pos))->CompareAlmost(
-               ((Attribute*)tuple->GetAttribute(pos))));
-   if(cmp!=0){
-       return false;
-   }
- }
- return true;
-}
-
-
-   Tuple* lastTuple;
+   Stream<Tuple> stream;
    vector<int> indexes;
+   Tuple* lastTuple;
 };
 
 
 int KrdupVM(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
-  Word tuple;
+ 
 
   switch(message)
   {
-    case OPEN:
-      qp->Open(args[0].addr);
-      local.setAddr(new KrdupLocalInfo(qp->GetSon(s,2)));
+    case INIT : {
       return 0;
-    case REQUEST:
-      qp->Request(args[0].addr,tuple);
-      if(qp->Received(args[0].addr)){
-         KrdupLocalInfo* localinfo = (KrdupLocalInfo*) local.addr;
-         while(!localinfo->ReplaceIfNonEqual((Tuple*)tuple.addr)){
-            ((Tuple*)tuple.addr)->DeleteIfAllowed();
-            qp->Request(args[0].addr,tuple);
-            if(!qp->Received(args[0].addr)){
-                return CANCEL;
-            }
-         }
-         result.addr = tuple.addr;
-         return YIELD;
+    }
+    case FINISH : {
+       vector<int>* indexes = (vector<int>*) qp->GetLocal2(s).addr; 
+       if(indexes){
+         delete indexes;
+         qp->GetLocal2(s).addr = 0;
+       }
+       return 0;
+    }
 
-      } else {
-        return CANCEL;
-      }
+    case OPEN:{
+      vector<int>* indexes = (vector<int>*) qp->GetLocal2(s).addr;
+      if(!indexes){
+         indexes = KrdupLocalInfo::getIndexes(qp->GetSon(s,2));
+         qp->GetLocal2(s).addr = indexes;
+      } 
+      local.setAddr(new KrdupLocalInfo(indexes,args[0]));
+      return 0;
+    }
+    case REQUEST: {
+      KrdupLocalInfo* localinfo = (KrdupLocalInfo*) local.addr;
+      result.addr = localinfo?localinfo->next():0;
+      return result.addr?YIELD:CANCEL;  
+    }
     case CLOSE:
       if(local.addr) {
         KrdupLocalInfo* localinfo = (KrdupLocalInfo*) local.addr;
@@ -4819,9 +4847,15 @@ public:
 };
 
 
+struct extendLI2{
+    TupleType* tt;
+    Word t;
+    Word value;
+};
+
+
 int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word t, value;
   Tuple* tup;
   Supplier supplier, supplier2, supplier3;
   int nooffun;
@@ -4829,19 +4863,20 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
   ExtendLocalInfo *eli;
 
   eli = (ExtendLocalInfo*) local.addr;
-  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+  extendLI2* li2 = (extendLI2*) qp->GetLocal2(s).addr;
 
 
   switch (message)
   {
     case INIT : {
-      assert(!tt); 
-      qp->GetLocal2(s).addr = new TupleType(nl->Second(
+      assert(!li2); 
+      li2 = new extendLI2;
+      li2->tt =  new TupleType(nl->Second(
                                      GetTupleResultType(s))
                                   );
+      qp->GetLocal2(s).addr = li2; 
       return 0;
-    }
-
+  }
 
     case OPEN :
 
@@ -4850,9 +4885,9 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       eli = new ExtendLocalInfo;
-      assert(tt);
-      tt->IncReference();
-      eli->resultTupleType = tt;
+      assert(li2->tt);
+      li2->tt->IncReference();
+      eli->resultTupleType = li2->tt;
       eli->read = 0;
       eli->stableValue = 50;
       eli->sizesFinal = false;
@@ -4875,10 +4910,10 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       if(!eli){
         return CANCEL;
       }
-      qp->Request(args[0].addr,t);
+      qp->Request(args[0].addr,li2->t);
       if (qp->Received(args[0].addr))
       {
-        tup = (Tuple*)t.addr;
+        tup = (Tuple*)li2->t.addr;
         Tuple *newTuple = new Tuple( eli->resultTupleType );
         eli->read++;
         for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
@@ -4893,8 +4928,8 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           supplier3 = qp->GetSupplier(supplier2, 1);
           funargs = qp->Argument(supplier3);
           ((*funargs)[0]).setAddr(tup);
-          qp->Request(supplier3,value);
-          Attribute* newAttr = ((Attribute*)value.addr)->Clone();
+          qp->Request(supplier3,li2->value);
+          Attribute* newAttr = ((Attribute*)li2->value.addr)->Clone();
           newTuple->PutAttribute( tup->GetNoAttributes()+i,newAttr);
 
           if (eli->read <= eli->stableValue)
@@ -4918,8 +4953,9 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
     case FINISH:{
-       if(tt){
-         tt->DeleteIfAllowed();
+       if(li2){
+         li2->tt->DeleteIfAllowed();
+         delete li2;
          qp->GetLocal2(s).addr=0;
        } 
        return 0;
@@ -5315,16 +5351,20 @@ CostEstimation* LoopJoinCostEstimationFunc() {
 }
 
 
+
+struct loopJoinLI2{
+  TupleType* tt;
+  Word tuplex;
+  Word tupley;
+  Word tuplexy;
+  Word streamy;
+};
+
+
 int Loopjoin(Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   ArgVectorPointer funargs = 0;
-
-  Word tuplex(Address(0));
-  Word tupley(Address(0));
-  Word tuplexy(Address(0));
-  Word streamy(Address(0));
-
   Tuple* ctuplex = 0;
   Tuple* ctupley = 0;
   Tuple* ctuplexy = 0;
@@ -5334,20 +5374,23 @@ int Loopjoin(Word* args, Word& result, int message,
 
   lli = (LoopjoinLocalInfo *) local.addr;
 
-  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+  loopJoinLI2* li2 = (loopJoinLI2*) qp->GetLocal2(s).addr;
 
 
   switch ( message )
   {
     case INIT : {
        ListExpr resultType = GetTupleResultType(s);
-       qp->GetLocal2(s).addr = new TupleType(nl->Second(resultType));
+       li2 = new loopJoinLI2();
+       qp->GetLocal2(s).addr = li2;
+       li2->tt = new TupleType(nl->Second(resultType));
        return 0; 
     }
 
     case FINISH: {
-       if(tt){
-           tt->DeleteIfAllowed();
+       if(li2){
+           li2->tt->DeleteIfAllowed();
+           delete li2;
        }
        qp->GetLocal2(s).addr = 0;
        return 0;
@@ -5360,8 +5403,8 @@ int Loopjoin(Word* args, Word& result, int message,
       }
 
       lli = new LoopjoinLocalInfo();
-      tt->IncReference();
-      lli->resultTupleType = tt;
+      li2->tt->IncReference();
+      lli->resultTupleType = li2->tt;
 
       local.setAddr(lli);
 
@@ -5371,19 +5414,19 @@ int Loopjoin(Word* args, Word& result, int message,
       lli->costEstimation->init(NULL, NULL);
 
       qp->Open (args[0].addr);
-      qp->Request(args[0].addr, tuplex);
+      qp->Request(args[0].addr, li2->tuplex);
       if (qp->Received(args[0].addr))
       {
         lli->readFirst++;
         lli->costEstimation->processedTupleInStream1();
 
         funargs = qp->Argument(args[1].addr);
-        (*funargs)[0] = tuplex;
-        streamy=args[1];
-        qp->Open (streamy.addr);
+        (*funargs)[0] = li2->tuplex;
+        li2->streamy=args[1];
+        qp->Open (li2->streamy.addr);
 
-        lli->tuplex = tuplex;
-        lli->streamy = streamy;
+        lli->tuplex = li2->tuplex;
+        lli->streamy = li2->streamy;
 
       }
       else
@@ -5401,31 +5444,31 @@ int Loopjoin(Word* args, Word& result, int message,
          return CANCEL;
       }
 
-      tuplex=lli->tuplex;
-      ctuplex=(Tuple*)tuplex.addr;
-      streamy=lli->streamy;
-      tupley.setAddr(0);
-      while (tupley.addr==0)
+      li2->tuplex=lli->tuplex;
+      ctuplex=(Tuple*)li2->tuplex.addr;
+      li2->streamy=lli->streamy;
+      li2->tupley.setAddr(0);
+      while (li2->tupley.addr==0)
       {
-        qp->Request(streamy.addr, tupley);
-        if (!(qp->Received(streamy.addr)))
+        qp->Request(li2->streamy.addr, li2->tupley);
+        if (!(qp->Received(li2->streamy.addr)))
         {
-          qp->Close(streamy.addr);
-          ((Tuple*)tuplex.addr)->DeleteIfAllowed();
-          qp->Request(args[0].addr, tuplex);
+          qp->Close(li2->streamy.addr);
+          ((Tuple*)li2->tuplex.addr)->DeleteIfAllowed();
+          qp->Request(args[0].addr, li2->tuplex);
           if (qp->Received(args[0].addr))
           {
             lli->readFirst++;
             lli->costEstimation->processedTupleInStream1();
             funargs = qp->Argument(args[1].addr);
-            ctuplex=(Tuple*)tuplex.addr;
-            (*funargs)[0] = tuplex;
-            streamy=args[1];
-            qp->Open (streamy.addr);
-            tupley.setAddr(0);
+            ctuplex=(Tuple*)li2->tuplex.addr;
+            (*funargs)[0] = li2->tuplex;
+            li2->streamy=args[1];
+            qp->Open (li2->streamy.addr);
+            li2->tupley.setAddr(0);
 
-            lli->tuplex=tuplex;
-            lli->streamy=streamy;
+            lli->tuplex=li2->tuplex;
+            lli->streamy=li2->streamy;
           }
           else
           {
@@ -5437,16 +5480,16 @@ int Loopjoin(Word* args, Word& result, int message,
         }
         else
         {
-          ctupley=(Tuple*)tupley.addr;
+          ctupley=(Tuple*)li2->tupley.addr;
         }
       }
       ctuplexy = new Tuple( lli->resultTupleType );
-      tuplexy.setAddr(ctuplexy);
+      li2->tuplexy.setAddr(ctuplexy);
       Concat(ctuplex, ctupley, ctuplexy);
       ctupley->DeleteIfAllowed();
 
       lli->returned++;
-      result = tuplexy;
+      result = li2->tuplexy;
       return YIELD;
 
     case CLOSE:
@@ -6861,12 +6904,20 @@ public:
   double *attrSizeExtTmp;
 };
 
+
+struct projectextendLI2{
+  TupleType* tt;
+  Word elem1;
+  Word elem2;
+  Word value;
+};
+
+
 int
 ExtProjectExtendValueMap(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
   //  cout << "ExtProjectExtendValueMap() called." << endl;
-  Word elem1, elem2, value;
   int index=0;
   Supplier son, supplier, supplier2, supplier3;
   ArgVectorPointer extFunArgs;
@@ -6874,20 +6925,22 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
   ProjectExtendLocalInfo *eli;
   eli = (ProjectExtendLocalInfo*) local.addr;
 
-  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+  projectextendLI2* li2 = (projectextendLI2*) qp->GetLocal2(s).addr;
 
   switch (message)
   {
 
     case INIT: {
-       tt = new TupleType(nl->Second(GetTupleResultType(s)));
-       qp->GetLocal2(s).addr = tt;
+       li2 = new projectextendLI2();
+       li2->tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       qp->GetLocal2(s).addr = li2;
        return 0;
     }
 
     case FINISH: {
-       if(tt){
-         tt->DeleteIfAllowed();
+       if(li2){
+         li2->tt->DeleteIfAllowed();
+         delete li2;
          qp->GetLocal2(s).addr=0;
        }
        return 0;
@@ -6900,8 +6953,8 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
       }
 
       eli = new ProjectExtendLocalInfo;
-      tt->IncReference();
-      eli->resultTupleType = tt;
+      li2->tt->IncReference();
+      eli->resultTupleType = li2->tt;
       eli->read = 0;
       eli->stableValue = 50;
       eli->sizesFinal = false;
@@ -6926,12 +6979,12 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
       if(!eli){
         return CANCEL;
       }
-      qp->Request(args[0].addr, elem1);
+      qp->Request(args[0].addr, li2->elem1);
       if (qp->Received(args[0].addr))
       {
         eli->read++;
 
-        Tuple *currTuple     = (Tuple*) elem1.addr;
+        Tuple *currTuple     = (Tuple*) li2->elem1.addr;
         Tuple *resultTuple   = new Tuple( eli->resultTupleType );
 
         // copy attrs from projection list
@@ -6939,8 +6992,8 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
         for(int i = 0; i < eli->noOldAttrs; i++)
         {
           son = qp->GetSupplier(args[4].addr, i);
-          qp->Request(son, elem2);
-          index = ((CcInt*)elem2.addr)->GetIntval();
+          qp->Request(son, li2->elem2);
+          index = ((CcInt*)li2->elem2.addr)->GetIntval();
           resultTuple->CopyAttribute(index-1, currTuple, i);
         }
 
@@ -6952,10 +7005,10 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
           supplier3 = qp->GetSupplier(supplier2, 1);
           extFunArgs = qp->Argument(supplier3);
           ((*extFunArgs)[0]).setAddr(currTuple);     // pass argument
-          qp->Request(supplier3,value);              // call extattr mapping
+          qp->Request(supplier3,li2->value);         // call extattr mapping
 
           resultTuple->PutAttribute( eli->noOldAttrs + i,
-                ((Attribute*)value.addr)->Clone() );
+                ((Attribute*)li2->value.addr)->Clone() );
 
           if (eli->read <= eli->stableValue)
           {
@@ -7021,8 +7074,8 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
           for( int i = 0; i < eli->noOldAttrs; i++)    //old attrs
           {
             son = qp->GetSupplier(args[4].addr, i);
-            qp->Request(son, elem2);
-            index = ((CcInt*)elem2.addr)->GetIntval();
+            qp->Request(son, li2->elem2);
+            index = ((CcInt*)li2->elem2.addr)->GetIntval();
             eli->attrSize[i] = p1.attrSize[index-1];
             eli->attrSizeExt[i] = p1.attrSizeExt[index-1];
             eli->Size += eli->attrSize[i];
@@ -13146,7 +13199,7 @@ ListExpr replaceAttrTM(ListExpr args){
 class replaceAttrLocalInfo{
 
  public:
-    replaceAttrLocalInfo(Word _stream,
+    replaceAttrLocalInfo(Word& _stream,
                          Supplier _funs,
                          map<int,int> _mapping,
                          TupleType* _tupleType): 
@@ -13176,7 +13229,6 @@ class replaceAttrLocalInfo{
              Supplier sf = qp->GetSon(funs,mapping[i]);
              Supplier sfm = qp->GetSon(sf,1); // access mapping
              ((*qp->Argument(sfm))[0]).setAddr(orig);
-             Word value;
              qp->Request(sfm,value);
              Attribute* a = (Attribute*) value.addr;
              res->PutAttribute(i,a->Clone());
@@ -13192,7 +13244,7 @@ class replaceAttrLocalInfo{
     Supplier funs;
     map<int,int> mapping;
     TupleType* tt;
-
+    Word value; // class member to avoid constructor calls of word
 };
 
 
@@ -15025,6 +15077,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelprojectextend);
     extrelprojectextend.enableInitFinishSupport(); 
     AddOperator(&krdup);
+    krdup.enableInitFinishSupport();
     AddOperator(&krduph);
     krduph.enableInitFinishSupport();
     krduph.SetUsesMemory();
