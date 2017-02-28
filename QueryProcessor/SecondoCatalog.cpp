@@ -1123,7 +1123,7 @@ Precondition: dbState = dbOpen.
 
 bool
 SecondoCatalog::InsertObject( const string& objectName, const string& typeName,
-                              const ListExpr typeExpr, const Word valueWord,
+                              const ListExpr typeExpr, const Word& valueWord,
                               const bool defined )
 {
 /*
@@ -1395,7 +1395,7 @@ Precondition: dbState = dbOpen.
 }
 
 ListExpr
-SecondoCatalog::OutObject( const ListExpr type, const Word object )
+SecondoCatalog::OutObject( const ListExpr type, const Word& object )
 {
 /*
 Returns for a given ~object~ of type ~type~ its value in nested list representation.
@@ -1971,7 +1971,7 @@ Returns the type expression of an object with identifier ~objectName~.
 }
 
 bool
-SecondoCatalog::UpdateObject( const string& objectName, const Word value )
+SecondoCatalog::UpdateObject( const string& objectName, Word value )
 {
 /*
 Overwrites the value of the object with identifier ~objectName~ with a
@@ -2060,7 +2060,7 @@ new value ~value~. Returns error 1 if object does not exist.
 }
 
 bool
-SecondoCatalog::ModifyObject( const string& objectName, const Word value )
+SecondoCatalog::ModifyObject( const string& objectName, const Word& value )
 {
 /*
 Overwrites the value of the object with identifier ~objectName~ with a
@@ -2130,7 +2130,7 @@ object is only modified, so that no deletion function is necessary.
 
 
 bool
-SecondoCatalog::CloneObject( const string& objectName, const Word value )
+SecondoCatalog::CloneObject( const string& objectName, const Word& value )
 {
 /*
 Overwrites the value of the object with identifier ~objectName~ with a

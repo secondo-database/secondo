@@ -255,7 +255,6 @@ ErrorStr(const string& msg, const string& file, const int& line)
 }
 
 
-
 /**************************************************************************
 1.2 Constants, Types, Global Data Structures
 
@@ -562,6 +561,7 @@ struct OpNode
   OpNodeType   nodetype;
   int          id;
   bool         isRoot;
+  ArgVector    tmpArg;
   struct OpNodeStruct
   {
   /*
@@ -4066,7 +4066,6 @@ Code just needed for tracing and error eporting is shown indented.
 
   int i = 0;
   int status = 0;
-  ArgVector arg;
   //result.addr = 0;
 
   if ( tree == 0 )
@@ -4076,6 +4075,7 @@ Code just needed for tracing and error eporting is shown indented.
   }
   else
   {
+     ArgVector& arg = tree->tmpArg;
                         if ( traceNodes )
                         cerr << fn << "*** Eval( Node " << tree->id
                         << ", result = " << (void*)result.addr
