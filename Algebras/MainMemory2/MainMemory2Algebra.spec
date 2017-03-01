@@ -112,6 +112,7 @@ operator mgshortestpathd alias MGSHORTESTPATHD pattern _ op [_,_,_; fun]
          implicit parameter tuple type MTUPLE
 operator mgshortestpatha alias MGSHORTESTPATHA pattern _ op [_,_,_; fun, fun] 
          implicit parameter tuple type MTUPLE
+operator mgconnectedcomponents_old alias MGCONNECTEDCOMPONENTS_OLD pattern _ op 
 operator mgconnectedcomponents alias MGCONNECTEDCOMPONENTS pattern _ op 
          
 operator momapmatchmht alias MOMAPMATCHMHT pattern op(_,_,_,_)

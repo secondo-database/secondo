@@ -658,6 +658,94 @@ Calculates the scc for a given vertex.
         compNo++;
       }
     }
+
+/*
+Iterative variant of tarjan.
+
+*/
+    void tarjan2() {
+
+      //int index = 0;                            
+      int compNo = 1;                
+      std::stack<Vertex*> stack;  // stack of tarjan
+      std::set<Vertex*,Vertex::EqualVertex>::iterator it;
+      
+      for(it = graph->begin(); it!=graph->end();it++){
+          Vertex* v = *it;
+          if(!v->seen){
+             tarjan2(v,stack,compNo); 
+          }
+      }
+    }
+
+
+    void tarjan2(Vertex* v,
+                 std::stack<Vertex*>& stack, int& compNo){
+
+
+       //cout << "called tarjan2:" << v->nr << endl;
+       int index = 0;
+
+       typedef std::pair<Vertex*, size_t> stackentry;
+       std::stack<stackentry> rstack; // simulating recursion
+
+
+       rstack.push(stackentry(v,v->edges->size()));
+       for(size_t i=0;i<v->edges->size();i++){
+         stackentry e(v,v->edges->size()-(i+1));
+         rstack.push(e);
+       }
+
+
+       while(!rstack.empty()){
+          stackentry e = rstack.top();
+          rstack.pop();
+          v = e.first;
+          size_t pos = e.second;
+          if(pos==0){
+            v->index = index;
+            v->lowlink = index;
+            index++;
+            v->inStack = true;
+            v->seen = true;
+            stack.push(v);
+          }
+          if(pos<v->edges->size()){
+            Vertex* w = getVertex(v->edges->at(pos).getPointer()->getDest());
+            if(!w->seen){
+              rstack.push(stackentry(w,w->edges->size()));
+              for(size_t i=0;i<w->edges->size();i++){
+                 stackentry e(w,w->edges->size()-(i+1));
+                 rstack.push(e);
+              }
+            } else if(w->inStack){
+               v->lowlink = std::min(v->lowlink, w->index);
+            }
+          } else {
+             for(size_t i=0;i<v->edges->size();i++){
+                Vertex* w = getVertex(v->edges->at(i).getPointer()->getDest());
+                assert(w->seen);
+                assert(w->lowlink >=0);
+                v->lowlink = std::min(v->lowlink,w->lowlink); 
+             }
+             if(v->lowlink == v->index){
+               v->compNo = compNo;
+               while(true){
+                   Vertex* w = stack.top();
+                   stack.pop();
+                   w->inStack=false;
+                   if(v->nr == w->nr)
+                      break;
+                   w->compNo = compNo;
+               }
+               compNo++;
+             }
+          }
+       } // while recursion stack not empty 
+    }
+
+
+
     
 /*
 ~getEdge~
@@ -711,6 +799,18 @@ Returns the memory size of this graph.
       return res;  
     }
 
+
+    void resetComp(){
+       std::set<Vertex*, Vertex::EqualVertex>::iterator it;
+       for(it=graph->begin();it!=graph->end();it++){
+          Vertex* v = *it;
+          v->seen=false;
+          v->index=-1;
+          v->lowlink=-1;
+          v->inStack=false;
+          v->compNo = -1;
+       }
+    }
 
 private:
     std::set<Vertex*, Vertex::EqualVertex>* graph;

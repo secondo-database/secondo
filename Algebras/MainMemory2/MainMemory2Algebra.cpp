@@ -14011,7 +14011,7 @@ ListExpr mgconnectedcomponentsTypeMap(ListExpr args) {
                                           listn));
 }
 
-
+template<bool iter>
 class mgconnectedComponentsInfo{
   public:
     mgconnectedComponentsInfo(graph::Graph* _graph,
@@ -14019,7 +14019,13 @@ class mgconnectedComponentsInfo{
         : graph(_graph),tt(_tt) {
       
       // compute the strongly connected components
-      graph->tarjan();
+
+      graph->resetComp();
+      if(iter){
+         graph->tarjan2();
+      } else {
+         graph->tarjan();
+      }
       it = graph->getGraph()->begin();
       j = 0;
     }
@@ -14083,11 +14089,12 @@ class mgconnectedComponentsInfo{
 7.37.2 Value Mapping Function of operator ~mgconnectedcomponents~
 
 */
-template<class T>
+template<class T,bool iter>
 int mgconnectedcomponentsValMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
 
-  mgconnectedComponentsInfo* li = (mgconnectedComponentsInfo*) local.addr;
+  mgconnectedComponentsInfo<iter>* li =
+        (mgconnectedComponentsInfo<iter>*) local.addr;
 
   switch (message) {
     case OPEN: {
@@ -14107,7 +14114,7 @@ int mgconnectedcomponentsValMap (Word* args, Word& result,
       ListExpr tupleType = GetTupleResultType(s);
       TupleType* tt = new TupleType(nl->Second(tupleType));
       
-      local.addr= new mgconnectedComponentsInfo(memgraph->getgraph(),tt); 
+      local.addr= new mgconnectedComponentsInfo<iter>(memgraph->getgraph(),tt); 
       return 0;
     }
 
@@ -14128,10 +14135,19 @@ int mgconnectedcomponentsValMap (Word* args, Word& result,
 
 
 ValueMapping mgconnectedcomponentsVM[] = {
-  mgconnectedcomponentsValMap<CcString>,
-  mgconnectedcomponentsValMap<Mem>,
-  mgconnectedcomponentsValMap<MPointer>,
+  mgconnectedcomponentsValMap<CcString,false>,
+  mgconnectedcomponentsValMap<Mem,false>,
+  mgconnectedcomponentsValMap<MPointer,false>,
 };
+
+
+ValueMapping mgconnectedcomponentsVM2[] = {
+  mgconnectedcomponentsValMap<CcString,true>,
+  mgconnectedcomponentsValMap<Mem,true>,
+  mgconnectedcomponentsValMap<MPointer,true>,
+};
+
+
 
 int mgconnectedcomponentsSelect(ListExpr args){
   return getRepNum(nl->First(args));
@@ -14155,8 +14171,8 @@ OperatorSpec mgconnectedcomponentsSpec(
 7.37.5 Instance of operator ~mgconnectedcomponents~
 
 */
-Operator mgconnectedcomponentsOp (
-    "mgconnectedcomponents",
+Operator mgconnectedcomponents_oldOp (
+    "mgconnectedcomponents_old",
     mgconnectedcomponentsSpec.getStr(),
     3,
     mgconnectedcomponentsVM,
@@ -14164,6 +14180,14 @@ Operator mgconnectedcomponentsOp (
     mgconnectedcomponentsTypeMap
 );
 
+Operator mgconnectedcomponentsOp (
+    "mgconnectedcomponents",
+    mgconnectedcomponentsSpec.getStr(),
+    3,
+    mgconnectedcomponentsVM2,
+    mgconnectedcomponentsSelect,
+    mgconnectedcomponentsTypeMap
+);
 
 /*
 7.38 ~momapmatchmht~
@@ -17888,6 +17912,9 @@ class MainMemory2Algebra : public Algebra {
           mgshortestpathaOp.SetUsesArgsInTypeMapping();
           AddOperator(&mgconnectedcomponentsOp);
           mgconnectedcomponentsOp.SetUsesArgsInTypeMapping();
+          
+          AddOperator(&mgconnectedcomponents_oldOp);
+          mgconnectedcomponents_oldOp.SetUsesArgsInTypeMapping();
         
 //           AddOperator(&momapmatchmhtOp);
 //           momapmatchmhtOp.SetUsesArgsInTypeMapping(); 

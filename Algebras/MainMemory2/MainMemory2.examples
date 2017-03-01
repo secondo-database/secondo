@@ -855,6 +855,18 @@ Signature : {string, mem(graph(tuple(x)))} -> stream(tuple(a1:t1,...an+1:tn+1))
 Example   : query pwrap("graph") mgconnectedcomponents count;
 Result    : 74
 
+Operator  : mgconnectedcomponents_old
+Number    : 214
+Signature : {string, mem(graph(tuple(x)))} -> stream(tuple(a1:t1,...an+1:tn+1))
+Example   : query "graph" mgconnectedcomponents_old count;
+Result    : 74
+
+Operator  : mgconnectedcomponents_old
+Number    : 215
+Signature : {string, mem(graph(tuple(x)))} -> stream(tuple(a1:t1,...an+1:tn+1))
+Example   : query pwrap("graph") mgconnectedcomponents_old count;
+Result    : 74
+
 Operator  : mwrap
 Number    : 300
 Signature : string -> mem(x)
