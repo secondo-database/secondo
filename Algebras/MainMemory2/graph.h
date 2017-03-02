@@ -310,6 +310,10 @@ Returns the memory size of this vertex.
       return res;  
     }
 
+    const std::vector<EdgeWrap>* getEdges() const{
+      return edges;
+    }
+
 private:
     int nr;
     bool seen;
@@ -665,7 +669,7 @@ Iterative variant of tarjan.
 */
     void tarjan2() {
 
-      //int index = 0;                            
+      int index = 0;                            
       int compNo = 1;                
       std::stack<Vertex*> stack;  // stack of tarjan
       std::set<Vertex*,Vertex::EqualVertex>::iterator it;
@@ -673,18 +677,15 @@ Iterative variant of tarjan.
       for(it = graph->begin(); it!=graph->end();it++){
           Vertex* v = *it;
           if(!v->seen){
-             tarjan2(v,stack,compNo); 
+             tarjan2(v,index,stack,compNo); 
           }
       }
     }
 
 
-    void tarjan2(Vertex* v,
+    void tarjan2(Vertex* v, int& index,
                  std::stack<Vertex*>& stack, int& compNo){
 
-
-       //cout << "called tarjan2:" << v->nr << endl;
-       int index = 0;
 
        typedef std::pair<Vertex*, size_t> stackentry;
        std::stack<stackentry> rstack; // simulating recursion
@@ -696,51 +697,55 @@ Iterative variant of tarjan.
          rstack.push(e);
        }
 
-
        while(!rstack.empty()){
           stackentry e = rstack.top();
           rstack.pop();
           v = e.first;
           size_t pos = e.second;
-          if(pos==0){
-            v->index = index;
-            v->lowlink = index;
-            index++;
-            v->inStack = true;
-            v->seen = true;
-            stack.push(v);
-          }
-          if(pos<v->edges->size()){
-            Vertex* w = getVertex(v->edges->at(pos).getPointer()->getDest());
-            if(!w->seen){
-              rstack.push(stackentry(w,w->edges->size()));
-              for(size_t i=0;i<w->edges->size();i++){
-                 stackentry e(w,w->edges->size()-(i+1));
-                 rstack.push(e);
-              }
-            } else if(w->inStack){
-               v->lowlink = std::min(v->lowlink, w->index);
+          if(!v->seen || pos>0){
+            if(pos==0){
+              v->index = index;
+              v->lowlink = index;
+              index++;
+              v->inStack = true;
+              v->seen = true;
+              stack.push(v);
+            } else {
             }
-          } else {
-             for(size_t i=0;i<v->edges->size();i++){
-                Vertex* w = getVertex(v->edges->at(i).getPointer()->getDest());
-                assert(w->seen);
-                assert(w->lowlink >=0);
-                v->lowlink = std::min(v->lowlink,w->lowlink); 
-             }
-             if(v->lowlink == v->index){
-               v->compNo = compNo;
-               while(true){
+            if(pos<v->edges->size()){
+              Vertex* w = getVertex(v->edges->at(pos).getPointer()->getDest());
+              if(!w->seen){
+                rstack.push(stackentry(w,w->edges->size()));
+                for(size_t i=0;i<w->edges->size();i++){
+                   stackentry e(w,w->edges->size()-(i+1));
+                   rstack.push(e);
+                }
+              } else if(w->inStack){
+                 v->lowlink = std::min(v->lowlink, w->index);
+              }
+            } else {
+               for(size_t i=0;i<v->edges->size();i++){
+                 Vertex* w =getVertex(v->edges->at(i).getPointer()->getDest());
+                 if(w->compNo<0){
+                    v->lowlink = std::min(v->lowlink,w->lowlink); 
+                 }
+               }
+               if(v->lowlink == v->index){
+                 assert(v->compNo < 0);
+                 v->compNo = compNo;
+                 while(true){
                    Vertex* w = stack.top();
                    stack.pop();
                    w->inStack=false;
                    if(v->nr == w->nr)
                       break;
+                   assert(w->compNo < 0);
                    w->compNo = compNo;
+                 }
+                 compNo++;
                }
-               compNo++;
-             }
-          }
+            }
+          } // vertex not seen before
        } // while recursion stack not empty 
     }
 

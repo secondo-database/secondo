@@ -13962,6 +13962,7 @@ with the appended component number are returned in an output stream.
 {string, mem(graph(tuple(x)))} -> stream(tuple(a1:t1,...an+1:tn+1))
     
 */
+template<bool perNode>
 ListExpr mgconnectedcomponentsTypeMap(ListExpr args) {
   
     if(nl->ListLength(args) != 1) {
@@ -14000,10 +14001,18 @@ ListExpr mgconnectedcomponentsTypeMap(ListExpr args) {
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
+    string n1 = perNode?"CompNo_Source":"CompNo";
     lastlistn = nl->Append(lastlistn,
                           nl->TwoElemList(
-                            nl->SymbolAtom("CompNo"),
+                            nl->SymbolAtom(n1),
                             listutils::basicSymbol<CcInt>()));
+    if(perNode){
+       lastlistn = nl->Append(lastlistn,
+                          nl->TwoElemList(
+                            nl->SymbolAtom("CompNo2"),
+                            listutils::basicSymbol<CcInt>()));
+    }
+
     
     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                         nl->TwoElemList(
@@ -14019,69 +14028,68 @@ class mgconnectedComponentsInfo{
         : graph(_graph),tt(_tt) {
       
       // compute the strongly connected components
-
       graph->resetComp();
+
       if(iter){
          graph->tarjan2();
       } else {
          graph->tarjan();
       }
-      it = graph->getGraph()->begin();
-      j = 0;
+      graphit = graph->getGraph()->begin();
+      nextVertex();
     }
     
     ~mgconnectedComponentsInfo(){
       tt->DeleteIfAllowed();
-      graph->clearScc();
     }
     
     
     Tuple* next() {
-      if(it == graph->getGraph()->end()) {
-        //graph->print(cout);
-        return 0;
+      while(graphit != graph->getGraph()->end()) {
+         if(vertexit!=vertex->getEdges()->end()){
+            Tuple* result = createResultTuple(
+                                  vertexit->getPointer()->getTuple());
+            vertexit++;
+            return result; 
+         }
+         graphit++;
+         nextVertex();
       }      
-      // get next edge from graph
-      graph::Vertex* v = *it;
-      if(j>=v->getEdges()->size()) {
-        it++;
-        j=0;
-        if(it != graph->getGraph()->end()) {
-          v = *it;
-        }
-        else return 0;
-      }
-      while(v->getEdges()->size() == 0) {
-        it++;
-        if(it != graph->getGraph()->end()) {
-          v = *it;
-        }
-        else return 0;
-      }
+      return 0;
+   }
 
-      // get the tuple
-      graph::Edge* e = v->getEdges()->at(j).getPointer();
-      Tuple* tup = e->getTuple();
-      graph::Vertex* u = graph->getVertex(e->getDest());
-      int compNo = u->getCompNo();
-      j++;
-
-      // add component number to output tuple
-      CcInt* comp = new CcInt(true,compNo);
-      Tuple* res = new Tuple(tt);
-      int i = 0;
-      for(; i<tup->GetNoAttributes(); i++) {
-        res->CopyAttribute(i,tup,i);
-      }     
-      res->PutAttribute(i,comp);
-      return res;  
-    }
     
   private:
     graph::Graph* graph;
     TupleType* tt;
-    size_t j;
-    set<graph::Vertex*,graph::Vertex::EqualVertex>::iterator it;
+    set<graph::Vertex*,graph::Vertex::EqualVertex>::iterator graphit;
+    vector<graph::EdgeWrap>::iterator vertexit;
+    int compNo;
+    graph::Vertex* vertex;
+
+    void nextVertex(){
+      if(graphit!= graph->getGraph()->end()){
+         vertex = *graphit;
+         compNo = vertex->getCompNo();
+         vertexit = vertex->getEdges()->begin();
+      } else {
+         vertex = 0;
+         compNo = -1;
+      }
+    }
+
+    Tuple* createResultTuple(Tuple* tup){
+      graph::Vertex* w = graph->getVertex(vertexit->getPointer()->getDest());
+      int comp = w->getCompNo()==compNo?compNo:-2;
+      Tuple* res = new Tuple(tt);
+      for(int i=0; i<tup->GetNoAttributes(); i++) {
+        res->CopyAttribute(i,tup,i);
+      }     
+      res->PutAttribute(tup->GetNoAttributes(),new CcInt(true,comp));
+      return res;  
+
+    }
+
 };
 
 /*
@@ -14177,7 +14185,7 @@ Operator mgconnectedcomponents_oldOp (
     3,
     mgconnectedcomponentsVM,
     mgconnectedcomponentsSelect,
-    mgconnectedcomponentsTypeMap
+    mgconnectedcomponentsTypeMap<false>
 );
 
 Operator mgconnectedcomponentsOp (
@@ -14186,7 +14194,7 @@ Operator mgconnectedcomponentsOp (
     3,
     mgconnectedcomponentsVM2,
     mgconnectedcomponentsSelect,
-    mgconnectedcomponentsTypeMap
+    mgconnectedcomponentsTypeMap<false>
 );
 
 /*
