@@ -44,6 +44,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <vector>
 #include <assert.h>
 #include <limits>
+#include <stack>
 
 
 
@@ -1847,57 +1848,44 @@ class gbidijkstraInfo{
            commonNode = 0;
            Ffront.push(queueEntry<T>(source,0,0));
            Bfront.push(queueEntry<T>(target,0,0));
-           maxBfront=0;
-           maxFfront=0;
-           maxFtree=0;
-           maxBtree=0;
-           misBfront=0;
-           misFfront=0;
-
            dijkstra(); 
-
-         //  printStatistics();
-
-           dir = true;
            if(commonNode){
              currentNode = commonNode->GetValue();
            }
+           fillForwardTuples();
      }
 
      ~gbidijkstraInfo(){
         tt->DeleteIfAllowed();
         removeEdges(Ftree);
         removeEdges(Btree);
+        while(!forwardTuples.empty()){
+           forwardTuples.top()->DeleteIfAllowed();
+           forwardTuples.pop();
+        }
      }
 
      Tuple* next(){
          if(!commonNode){
            return 0;
          }
-         typename std::map<ct,treeEntry<ct> >::iterator it;
-         if(dir){  // direction to start
-            it = Ftree.find(currentNode);
-            if(it==Ftree.end()){
-               assert(currentNode == source->GetValue());
-               dir = false;
-               currentNode = commonNode->GetValue();
-            } else {
-               Tuple* res = createResultTuple(it->second,true);
-               currentNode = it->second.pred;
-               return res;
+         if(!forwardTuples.empty()){
+            Tuple* res = forwardTuples.top();
+            forwardTuples.pop();
+            return res;
+         } else {
+            typename std::map<ct,treeEntry<ct> >::iterator it;
+            // direction to target
+            it = Btree.find(currentNode);         
+            if(it==Btree.end()){
+               assert(currentNode == target->GetValue());
+               commonNode = 0;
+               return 0;
             }
+            Tuple* res = createResultTuple(it->second,false);
+            currentNode = it->second.pred;
+            return res; 
          }
-
-         // direction to target
-         it = Btree.find(currentNode);         
-         if(it==Btree.end()){
-           assert(currentNode == target->GetValue());
-           commonNode = 0;
-           return 0;
-         }
-         Tuple* res = createResultTuple(it->second,false);
-         currentNode = it->second.pred;
-         return res; 
      }
 
 
@@ -1924,27 +1912,15 @@ class gbidijkstraInfo{
      std::set<ct> Bfinished;
      std::map<ct,treeEntry<ct> > Ftree;
      std::map<ct,treeEntry<ct> > Btree;
+     
 
-     bool dir;
      ct currentNode;
 
-     // some statistical data
-     size_t maxBfront;
-     size_t maxFfront;
-     size_t maxFtree;
-     size_t maxBtree;
-     size_t misBfront;
-     size_t misFfront;
+     // to return the path in a 'normal' order from source
+     // to target, we put the tuples from fromward tree to
+     // a stack
+     std::stack<Tuple*> forwardTuples;
 
-
-     void printStatistics(){
-        cout << "maxFfront : " << maxFfront << endl;
-        cout << "maxBfront : " << maxBfront << endl;
-        cout << "maxFtree  : " << maxFtree << endl;
-        cout << "maxBtree  : " << maxBtree << endl;
-        cout << "misBfront : " << misBfront << endl;
-        cout << "misFfront : " << misFfront << endl; 
-     }
 
 
      void removeEdges(std::map<ct,treeEntry<ct> >& tree){
@@ -1954,24 +1930,27 @@ class gbidijkstraInfo{
        }
      }
 
+
+    void fillForwardTuples(){
+       typename std::map<ct,treeEntry<ct> >::iterator it;
+       bool dir=true;
+       while(dir){
+            it = Ftree.find(currentNode);
+            if(it==Ftree.end()){
+               assert(currentNode == source->GetValue());
+               dir = false;
+               currentNode = commonNode->GetValue();
+            } else {
+               Tuple* res = createResultTuple(it->second,true);
+               currentNode = it->second.pred;
+               forwardTuples.push(res);
+            }
+       }
+    }
      
      void dijkstra(){
 
         while(!commonNode){
-          if(Ffront.size()>maxFfront){
-             maxFfront=Ffront.size();
-          }
-          if(Bfront.size()>maxBfront){
-             maxBfront=Bfront.size();
-          }
-          if(Ftree.size()>maxFtree){
-             maxFtree=Ftree.size();
-          }
-          if(Btree.size()>maxBtree){
-             maxBtree=Btree.size();
-          }
-             
-
           if(Ffront.empty()){
              if(Bfront.empty()){
                return;
@@ -2013,7 +1992,6 @@ class gbidijkstraInfo{
          if(isForward){
             if(Ffinished.find(v)!=Ffinished.end()){
                // missing updates on front
-               misFfront++;
                return;
             }
             Ffinished.insert(v);
@@ -2027,7 +2005,6 @@ class gbidijkstraInfo{
          } else {
             if(Bfinished.find(v)!=Bfinished.end()){
                // missing updates on front
-               misBfront++;
                return;
             }
            Bfinished.insert(v);
