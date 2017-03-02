@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation of Module HubLabeling Algebra
 
-Februar 2016 Sebastian Krings
+Maerz 2017 Sebastian Krings
 
 [TOC]
 
@@ -36,7 +36,58 @@ The HubLabeling Algebra implements the HubLabeling Algorithm.
 It offers some operators for creating the neccessary Hub-Labels over all nodes
  and for doing shortest path queries on this structure.
 
-2 Defines, includes, and constants
+2 Sourcecode of HubLabelingAlgebra
+
+Within this sourcecode we provide three different approaches to implement
+ the HubLabeling (HL) algorithm and the Contraction Hierarchy (CH) algorithm
+ which is a part of the HubLabeling algorithm.
+Basic input is the import of an OSM graph using the Secondo-Script
+ for importing OSM graphs.
+In the following we describe those three approaches in short:
+
+1) Persistent Approach
+   Within this approach most data, except for auxiliary, is kept within
+    the Secondo persistance structures like OrderedRelations and Relations.
+   Due to this the memory foodprint is very low.
+   But also due to this there are many expensive load-operations
+    which lead to very bad runtime perfomances.
+   Using this approach only  is suitable for networks not greater than
+    1000 Edges.
+   One can use the following Secondo-Operators:
+   - hlCalcWeightsOrel
+     (calculates the edge costs by a fix set of speed limits per roadType
+       of the given OSM Graph)
+   - hlIterateOverAllNodesByRankAscAndDoContraction
+     (to create a contracted graph)
+   - hlCreateLabels
+     (create HubLabels on this contracted graph)
+   - hlQuery
+     (do a HL search on the HubLabels)
+
+2) In-Memory Approach
+   Here all data is loaded into main memory and then be processed.
+   This increases of course memory footprint of some GB
+   (depends on the given networks size) but decreases runtime.
+   One can use the following Secondo-Operators:
+   - hlCalcWeightsOrel
+     (calculates the edge costs by a fix set of speed limits per roadType
+       of the given OSM Graph)
+   - hlDoContractionOfHlGraph
+     (to create a contracted graph)
+   - hlDoChSearchInHlGraph
+     (performs a CH search over the contracted hlGraph)
+   - hlCreateLabelsFromHlGraph
+     (create HubLabels on this contracted hlGraph)
+   - hlQuery
+     (do a HL search on the HubLabels)
+
+3) In-Memory Approach using MainMemory2Algebra
+   Here we make use of the existing MainMemory2Algebra to process CH and HL
+    within main memory.
+   This Apporach is not yet implemented and do not work at the moment.
+
+
+2.1 Defines, includes, and constants
 
 */
 
@@ -73,8 +124,13 @@ It offers some operators for creating the neccessary Hub-Labels over all nodes
 
 #include <unordered_set>
 #include <tuple>
+
+
+#include "MainMemory2Algebra.cpp"
+
+
 /*
-2.1 Global Variables
+2.2 Global Variables
 
 Secondo uses some variables designed as singleton pattern. For accessing these
 global variables, these variables have to be declared to be extern:
@@ -88,7 +144,7 @@ extern AlgebraManager *am;
 using namespace std;
 
 /*
-2.2 Namespace
+2.3 Namespace
 
 Each algebra file defines a lot of functions. Thus, name conflicts may arise
 with function names defined in other algebra modules during compiling/linking
@@ -99,14 +155,293 @@ embedded into a namespace.
 
 namespace hublabeling
 {
-//Debug
-//#define USEDEBUG
+
+/*
+2.4 Logging
+
+We provide some console outputs through very simple logging.
+It provides levels of error, debug and info
+
+*/
+  //Debug
+  //#define USEDEBUG
 
 #ifdef USEDEBUG
-#define Debug(x) std::cout << x
+#define LogDebug(x) std::cout << x
 #else
-#define Debug(x)
+#define LogDebug(x)
 #endif
+
+
+  //Info
+#define USEINFO
+
+#ifdef USEINFO
+#define LogInfo(x) std::cout << x
+#else
+#define LogInfo(x)
+#endif
+
+
+  //Error
+#define USEERROR
+
+#ifdef USEERROR
+#define LogError(x) std::cout << x
+#else
+#define LogError(x)
+#endif
+
+
+  //Performance measure
+#define USEPERF
+
+#ifdef USEPERF
+#define LogPerf(x) std::cout << std::setprecision (2) << x
+#else
+#define LogPerf(x)
+#endif
+
+
+/*
+2.5 Auxilary Classes
+
+Some functionality uses special defined classes to store information
+ during processing.
+
+*/
+
+/*
+
+This class provides a structure to represent an edge out of the hlGraph
+which is the in memory representation of the underlying network to process.
+This class is used by the (2) In-Memory Approach.
+
+An edge here is stored space efficient by storing edges as they are
+and additionally the same edges a second time but in reverse manner.
+
+Functions related to 'forward' mean the original edge as it is and
+'reverse' relates to the reverse edges.
+
+*/
+
+class HlEdgeEntry
+{
+public:
+   // constructor doing nothing
+    HlEdgeEntry() {}
+   // destructor
+    ~HlEdgeEntry() {}
+    int getTargetIndex() const
+    {
+        return targetIndex;
+    }
+    int getParentIndexForward() const
+    {
+        return parentIndexForward;
+    }
+    int getParentIndexReverse() const
+    {
+        return parentIndexReverse;
+    }
+    double getWeightForward() const
+    {
+        return weightForward;
+    }
+    double getWeightReverse() const
+    {
+        return weightReverse;
+    }
+    bool getIsForward() const
+    {
+        return isForward;
+    }
+    bool getIsReverse() const
+    {
+        return isReverse;
+    }
+    bool getIsUpwardOriginal() const
+    {
+        return isUpwardOriginal;
+    }
+
+    void setTargetIndex(const int _targetIndex)
+    {
+        targetIndex = _targetIndex;
+    }
+
+    /*
+    A parent here is the node v which was contracted
+     and then replaced by this shortcutedge.
+
+    */
+    void setParentIndexForward(const int _parentIndexForward)
+    {
+        parentIndexForward = _parentIndexForward;
+    }
+
+    /*
+    A parent here is the node v which was contracted
+     and then replaced by this shortcutedge.
+
+    */
+    void setParentIndexReverse(const int _parentIndexReverse)
+    {
+        parentIndexReverse = _parentIndexReverse;
+    }
+    void setWeightForward(const double _weightForward)
+    {
+        weightForward = _weightForward;
+    }
+    void setWeightReverse(const double _weightReverse)
+    {
+        weightReverse = _weightReverse;
+    }
+    void setIsForward(const bool _isForward)
+    {
+        isForward = _isForward;
+    }
+    void setIsReverse(const bool _isReverse)
+    {
+        isReverse = _isReverse;
+    }
+    void setIsUpwardOriginal(const bool _isUpwardOriginal)
+    {
+        isUpwardOriginal = _isUpwardOriginal;
+    }
+
+    private:
+
+        int targetIndex = -1;
+        int parentIndexForward = -1; //used for shortcuts
+        int parentIndexReverse = -1; //used for shortcuts
+        double weightForward = -1.0;
+        double weightReverse = -1.0;
+        bool isForward = false;
+        bool isReverse = false;
+        bool isUpwardOriginal = false;
+};
+
+/*
+This class provides a structure to represent an node out of the hlGraph
+ which is the in memory representation of the underlying network to process.
+This class is used by the (2) In-Memory Approach.
+A node consists of a nodeId, the nodes Rank and a vector of adjacent edges.
+
+*/
+class HlNodeEntry
+{
+public:
+    // constructor doing nothing
+    HlNodeEntry() {}
+    // destructor
+    ~HlNodeEntry() {}
+
+    int getNodeId() const
+    {
+        return nodeId;
+    }
+    int getRankValue() const
+    {
+        return rankValue;
+    }
+    std::vector<HlEdgeEntry*>* getEdgesVector() const
+    {
+        return edgesVector;
+    }
+
+    void setNodeId(const int _nodeId)
+    {
+        nodeId = _nodeId;
+    }
+    void setRankValue(const int _rankValue)
+    {
+        rankValue = _rankValue;
+    }
+    void setEdgesVector(std::vector<HlEdgeEntry*>* _edgesVector)
+    {
+        edgesVector = _edgesVector;
+    }
+
+    private:
+
+        int nodeId = -1;
+        int rankValue = -1;
+        std::vector<HlEdgeEntry*>* edgesVector = 0;
+};
+
+
+
+
+/*
+ This class provides a structure to represent a node out of the searchTree
+  resulting from an CH search.
+
+ The search tree is space efficient in that way that that a visitedNode,
+  represented by this class, stores information of forward- and reversesearch
+  within the same object if both searches visit the same nodes.
+ This for there are functions for every of those both search spaces.
+
+ A predecessor here means to be the node which directly comes before the
+  current node on the shortest path from the source
+  of this forward- or reversesearch.
+ Using this one can resolve the path recursively back to the source node,
+  which has no valid predecessor (= -1).
+
+ This class is used by the (2) In-Memory Approach.
+
+*/
+class ChNode
+{
+public:
+    // constructor doing nothing
+    ChNode() {}
+    // destructor
+    ~ChNode() {}
+
+
+    double getDistForward() const
+    {
+        return distForward;
+    }
+    double getDistReverse() const
+    {
+        return distReverse;
+    }
+    int getPredecessorIndexForward() const
+    {
+        return predecessorIndexForward;
+    }
+    int getPredecessorIndexReverse() const
+    {
+        return predecessorIndexReverse;
+    }
+
+    void setDistForward(const double _distForward)
+    {
+        distForward = _distForward;
+    }
+    void setDistReverse(const double _distReverse)
+    {
+        distReverse = _distReverse;
+    }
+    void setPredecessorIndexForward(const int _predecessorIndexForward)
+    {
+        predecessorIndexForward = _predecessorIndexForward;
+    }
+    void setPredecessorIndexReverse(const int _predecessorIndexReverse)
+    {
+        predecessorIndexReverse = _predecessorIndexReverse;
+    }
+
+    private:
+
+
+        double distForward = 0.0;
+        double distReverse = 0.0;
+        int predecessorIndexForward = -1;
+        int predecessorIndexReverse = -1;
+};
 
 
 /*
@@ -161,36 +496,77 @@ public:
         return r;
     }
 
-    /*
+    int getProgressInterval() const
+    {
+        return progressInterval;
+    }
 
-    3.2 HubLabeling functionality
+    void setProgressInterval(int _progressInterval)
+    {
+        int tmpVal = _progressInterval;
+        if(tmpVal < 1)
+        {
+            tmpVal = 1;
+        }
+        progressInterval = tmpVal;
+    }
+
+
+    /*
+    function to receive the current time in milliseconds
 
     */
-    /**
-     * Definition of CostModes.
-     * Used for getting shortest paths by different cost-calculations.
-     */
+    double getCurrentTimeInMs() const
+    {
+        struct timeval tp;
+        gettimeofday(&tp, NULL);
+         //get current timestamp in milliseconds
+        long nsLong = (long) tp.tv_sec1000L1000L + tp.tv_usec;
+        double msDouble = (double) nsLong / 1000;
+
+        #ifdef USEDEBUG
+        #ifdef USEPERF
+        LogPerf("current time in nanoseconds: "
+         << nsLong << " in milliseconds: " << fixed << msDouble << endl);
+        #endif
+        #endif
+
+        return msDouble;
+    }
+
+/*
+
+3.2 HubLabeling functionality of (1) Persistent Approach
+
+*/
+
+    /*
+    Definition of CostModes.
+    Used for getting shortest paths by different cost-calculations.
+
+    */
     static const int HL_DEFAULT_COST_MODE = 1;
     static const int HL_LENGTH_COST_MODE = 2;
     static const int HL_TIME_COST_MODE = 3;
 
-    /**
-     * Gets the weightedCosts of a given edge.
-     * Differences between several cost modes to calculate the weighted
-     *   costs of edges.
-     *
-     * !TODO: Currently does not support different cost modes
-     *  but extracts the weighted costs directly from the given edge
-     *  independently of the given cost mode using the Tuple-field
-     *  on index position like @see HL_INDEX_OF_COSTS_IN_EDGE_TUPLE
-     *
-     * @param costMode Defines the cost mode with which the weighted
-     *  costs will be calculated
-     *  uses @see HL_DEFAULT_COST_MODE when a value of -1 is given
-     * @param currentEdge The edge for which the weighted costs shall
-     *  be calculated/ extracted from
-     * @return the calculated/ extracted weighted costs
-     */
+    /*
+    Gets the weightedCosts of a given edge.
+    Differences between several cost modes to calculate the weighted
+      costs of edges.
+
+    !TODO: Currently does not support different cost modes
+     but extracts the weighted costs directly from the given edge
+     independently of the given cost mode using the Tuple-field
+     on index position like @see HL_INDEX_OF_COSTS_IN_EDGE_TUPLE
+
+    @param costMode Defines the cost mode with which the weighted
+     costs will be calculated
+     uses @see HL_DEFAULT_COST_MODE when a value of -1 is given
+    @param currentEdge The edge for which the weighted costs shall
+     be calculated/ extracted from
+    @return the calculated/ extracted weighted costs
+
+    */
     double hlGetWeightedCost(int costMode,
                              Tuple* currentEdge) const
     {
@@ -209,36 +585,37 @@ public:
         return calculatedDistance;
     }
 
-    /**
-     * Definition of Calculation Functions used to calculate the rank
-     *  of a vertex inside the underlying graph.
-     */
+    /*
+    Definition of Calculation Functions used to calculate the rank
+     of a vertex inside the underlying graph.
+
+    */
     static const int HL_DEFAULT_CALC_FUNCTION = 1;
 
-    /**
-     * Calculcates the ranking for he current vertext by either a given
-     *  calculation function
-     *  or else by the default calculation function.
-     *
-     * !TODO:
-     * Supported Calculation Functions are:
-     * @see HL_DEFAULT_CALC_FUNCTION
-     *  calculates a ration of (countIncomingEdges *
-     *  countOutgoingEdges) / (countIncomingEdges + countOutgoingEdges)
-     *
-     * @param orelEdgesSource is an OrderedRelation containging all
-     *  edges of the underlying graph sorted by the field Source
-     * @param orelEdgesTarget is an OrderedRelation containging all
-     *  edges of the underlying graph sorted by the field Target
-     * @param calcFunctionHL defines the calculationFunction to be used
-     *  to calculate the rank, uses @see HL_DEFAULT_CALC_FUNCTION when
-     *  a value of < 1 has been given
-     * @param currentVertexId is the ID of the current vertex the rank
-     *  shall be calculated for
-     * @return the calculatedRank
-     */
-    double hlCalcRank(OrderedRelation*
-                      orelEdgesSource,
+    /*
+    Calculcates the ranking for he current vertext by either a given
+     calculation function
+     or else by the default calculation function.
+
+    !TODO:
+    Supported Calculation Functions are:
+    @see HL_DEFAULT_CALC_FUNCTION
+     calculates a ration of (countIncomingEdges *
+     countOutgoingEdges) / (countIncomingEdges + countOutgoingEdges)
+
+    @param orelEdgesSource is an OrderedRelation containging all
+     edges of the underlying graph sorted by the field Source
+    @param orelEdgesTarget is an OrderedRelation containging all
+     edges of the underlying graph sorted by the field Target
+    @param calcFunctionHL defines the calculationFunction to be used
+     to calculate the rank, uses @see HL_DEFAULT_CALC_FUNCTION when
+     a value of < 1 has been given
+    @param currentVertexId is the ID of the current vertex the rank
+     shall be calculated for
+    @return the calculatedRank
+
+    */
+    double hlCalcRank(OrderedRelation* orelEdgesSource,
                       OrderedRelation* orelEdgesTarget,
                       int calcFunctionHL,
                       CcInt* currentVertexId) const
@@ -341,13 +718,14 @@ public:
     }
 
 
-    /**
-     * OrderedRelation type for the returnType of the
-     *  OneHopReverseSearch
-     * Used for creation of new OrderedRelation Objects, new Tuples of
-     *  this OrderedRelation or cloning or deleting of an
-     *  OrderedRelation of this type
-     */
+    /*
+    OrderedRelation type for the returnType of the
+     OneHopReverseSearch
+    Used for creation of new OrderedRelation Objects, new Tuples of
+     this OrderedRelation or cloning or deleting of an
+     OrderedRelation of this type
+
+    */
     static const string
     hlGetOneHopReverseOrelIdTypeInfo()
     {
@@ -365,26 +743,44 @@ public:
     }
 
 
-    /**
-     * OrderedRelation type for Edges
-     * Used for creation of new OrderedRelation Objects, new Tuples of
-     *  this OrderedRelation or cloning or deleting of an
-     *  OrderedRelation of this type
-     */
+    /*
+    OrderedRelation type for Edges ordered by Source
+    Used for creation of new OrderedRelation Objects, new Tuples of
+     this OrderedRelation or cloning or deleting of an
+     OrderedRelation of this type
+
+    */
     static const string hlGetEdgesOrelSourceTypeInfo()
     {
-        return "(" + OrderedRelation::BasicType() +
+        return "(" + Relation::BasicType() +
                hlGetEdgesTupleTypeInfo() +
                "(Source)" +
                ")";
     }
 
 
-    /**
-     * Relation type for Edges
-     * Used for creation of new Relation Objects, new Tuples of this
-     *  Relation or cloning or deleting of an Relation of this type
-     */
+    /*
+    OrderedRelation type for Edges ordered by Target
+    Used for creation of new OrderedRelation Objects, new Tuples of
+     this OrderedRelation or cloning or deleting of an
+     OrderedRelation of this type
+
+    */
+    static const string hlGetEdgesOrelTargetTypeInfo()
+    {
+        return "(" + OrderedRelation::BasicType() +
+               hlGetEdgesTupleTypeInfo() +
+               "(Target)" +
+               ")";
+    }
+
+
+    /*
+    Relation type for Edges
+    Used for creation of new Relation Objects, new Tuples of this
+     Relation or cloning or deleting of an Relation of this type
+
+    */
     static const string hlGetEdgesRelTypeInfo()
     {
         return "(" + Relation::BasicType() +
@@ -393,9 +789,10 @@ public:
     }
 
 
-    /**
-     * TupleType type for Edges
-     */
+    /*
+    TupleType type for Edges
+
+    */
     static const string hlGetEdgesTupleTypeInfo()
     {
         return "(" + Tuple::BasicType() +
@@ -418,41 +815,10 @@ public:
     }
 
 
-    /**
-     * OrderedRelation type for Edges ordered by Target
-     * Used for creation of new OrderedRelation Objects, new Tuples of
-     *  this OrderedRelation or cloning or deleting of an
-     *  OrderedRelation of this type
-     */
-    static const string hlGetEdgesOrelTargetTypeInfo()
-    {
-        return "(" + OrderedRelation::BasicType() +
-               "(" + Tuple::BasicType() +
-               "(" +
-               "(Source " + CcInt::BasicType() + ")" +
-               "(Target " + CcInt::BasicType() + ")" +
-               "(SourcePos " + Point::BasicType() + ")" +
-               "(TargetPos " + Point::BasicType() + ")" +
-               "(SourceNodeCounter " + CcInt::BasicType() +
-               ")" +
-               "(TargetNodeCounter " + CcInt::BasicType() +
-               ")" +
-               "(Curve " + SimpleLine::BasicType() + ")" +
-               "(RoadName " + FText::BasicType() + ")" +
-               "(RoadType " + FText::BasicType() + ")" +
-               "(WayId " + LongInt::BasicType() + ")" +
-               "(Costs " + CcReal::BasicType() + ")" +
-               "(HlShortcutViaParent " + CcInt::BasicType() +
-               ")" +
-               ")" +
-               ")" +
-               "(Target)" +
-               ")";
-    }
+    /*
+    Definition of Field-Indexes for edgesOrel and oneHopReverseOrel
 
-    /**
-     * Definition of Field-Indexes for edgesOrel and oneHopReverseOrel
-     */
+    */
     static const int HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE
         = 0;
     static const int HL_INDEX_OF_TARGET_IN_EDGE_TUPLE
@@ -484,32 +850,33 @@ public:
     static const int
     HL_INDEX_OF_DIST_IN_TEMP_REV_TUPLE = 2;
 
-    /**
-     * Processes a one-hop reverse search for every target-node
-     *  reachable from v.
-     * That means that there exists an outgoing edge from v to t.
-     *
-     * For every of those vertexes t an own one-hop reverse search is
-     *  done.
-     * There all vertexes x with an incoming edge e(x, t) to t are
-     *  stored with the distance of e(x, t) into the given
-     *  OrderedRelation ordered by the vertex ID of x.
-     * All distances of all iterations done within this function call
-     *  are stored together in the same orel such that there will be
-     *  only one orel (the given one) for the given vertex v to be
-     *  contracted.
-     *
-     * @param orelEdgesSource is an OrderedRelation containging all
-     *  edges of the underlying graph sorted by the field Source
-     * @param orelEdgesTarget is an OrderedRelation containging all
-     *  edges of the underlying graph sorted by the field Target
-     * @param currentVertexIdRevV the current vertex v to be contracted
-     * @param oneHopReverseMultiMap the Ordered map by reference where
-     *  all distances found by the reverse search  will be stored in
-     * @return true, since the result of this function will be stored
-     *  directly in @see oneHopReverseMultiMap
-     *
-     */
+    /*
+    Processes a one-hop reverse search for every target-node
+     reachable from v.
+    That means that there exists an outgoing edge from v to t.
+
+    For every of those vertexes t an own one-hop reverse search is
+     done.
+    There all vertexes x with an incoming edge e(x, t) to t are
+     stored with the distance of e(x, t) into the given
+     OrderedRelation ordered by the vertex ID of x.
+    All distances of all iterations done within this function call
+     are stored together in the same orel such that there will be
+     only one orel (the given one) for the given vertex v to be
+     contracted.
+
+    @param orelEdgesSource is an OrderedRelation containging all
+     edges of the underlying graph sorted by the field Source
+    @param orelEdgesTarget is an OrderedRelation containging all
+     edges of the underlying graph sorted by the field Target
+    @param currentVertexIdRevV the current vertex v to be contracted
+    @param oneHopReverseMultiMap the Ordered map by reference where
+     all distances found by the reverse search  will be stored in
+    @return true, since the result of this function will be stored
+     directly in @see oneHopReverseMultiMap
+
+
+    */
     bool hlOneHopReverseSearch(OrderedRelation*
                                orelEdgesSource,
                                OrderedRelation* orelEdgesTarget,
@@ -573,21 +940,22 @@ public:
         return true;
     }
 
-    /**
-     * Procession of inner iteration of reverse search
-     *  ( @see hlOneHopReverseSearch)
-     *  over all vertexes x incoming to the current vertext t.
-     *
-     * @param orelEdgesTarget is an OrderedRelation containging all
-     *  edges of the underlying graph sorted by the field Target
-     * @param oneHopReverseMultiMap the ordered map by reference where
-     *  all distances found by the reverse search  will be stored in
-     * @param currentTargetNodeRevT the current vertex t reachable
-     *  from v
-     * @return true, since the result of this function will be stored
-     *  directly in @see oneHopReverseMultiMap
-     *
-     */
+    /*
+    Procession of inner iteration of reverse search
+     ( @see hlOneHopReverseSearch)
+     over all vertexes x incoming to the current vertext t.
+
+    @param orelEdgesTarget is an OrderedRelation containging all
+     edges of the underlying graph sorted by the field Target
+    @param oneHopReverseMultiMap the ordered map by reference where
+     all distances found by the reverse search  will be stored in
+    @param currentTargetNodeRevT the current vertex t reachable
+     from v
+    @return true, since the result of this function will be stored
+     directly in @see oneHopReverseMultiMap
+
+
+    */
     bool hlOneHopReverseSearchProcessIncomingEdges(
         OrderedRelation* orelEdgesTarget,
         std::multimap<int, std::tuple<int, double>>
@@ -626,7 +994,9 @@ public:
             relEdgesTargetIterUT->GetNextTuple();
 
         //Iterate over all Incoming Tuples u
-        int i = 0;
+        #ifdef USEDEBUG
+            int i = 0;
+        #endif
         while(currentEdgeTargetTupleU)
         {
             //Dont ignore current Node to be contracted because
@@ -636,10 +1006,12 @@ public:
                                             HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE);
             double currentDistXT = hlGetWeightedCost(
                             HL_DEFAULT_COST_MODE, currentEdgeTargetTupleU);
-            Debug(i++ << ": (" <<
+            #ifdef USEDEBUG
+            LogDebug(i++ << ": (" <<
                   currentSourceNodeU->GetIntval() << ";" <<
                   currentTargetNodeRevT->GetIntval() << ";" <<
-                  currentDistXT << "), ");
+                  currentDistXT << "), " << endl);
+            #endif
 
             bool doInsertNewXT = true;
 
@@ -669,11 +1041,17 @@ public:
                 if(currentTargetNodeRevT->GetIntval() ==
                         lookupEdgeIdT)
                 {
-                    Debug("XT still exists" << endl);
+                    #ifdef USEDEBUG
+                    LogDebug("XT still exists" << endl);
+                    #endif
                     if(currentDistXT < lookupEdgeDistXT)
                     {
-                        Debug("still existing XT is longer, going to delete it"
-                         " here to insert the current new XT afterwards");
+                        #ifdef USEDEBUG
+                        LogDebug("still existing XT is longer,"
+                         " going to delete it"
+                         " here to insert the current new XT afterwards"
+                          << endl );
+                          #endif
                         oneHopReverseMultiMap.erase(revXTRangeIter);
                     }
                     else
@@ -704,7 +1082,7 @@ public:
         }
         if(oneHopReverseMultiMap.size() > 10)
         {
-            //sleep(1000 * 1000 * 10);
+            //sleep(1000100010);
         }
         delete relEdgesTargetIterUT;
 
@@ -712,13 +1090,14 @@ public:
     }
 
 
-    /**
-     * OrderedRelation type for shortcuts to be created,
-     *  identified during the contraction.
-     * Used for creation of new OrderedRelation Objects,
-     *  new Tuples of this OrderedRelation
-     *  or cloning or deleting of an OrderedRelation of this type
-     */
+    /*
+    OrderedRelation type for shortcuts to be created,
+     identified during the contraction.
+    Used for creation of new OrderedRelation Objects,
+     new Tuples of this OrderedRelation
+     or cloning or deleting of an OrderedRelation of this type
+
+    */
     static const string
     hlGetShortcutsCreatedSourceTypeInfo()
     {
@@ -735,9 +1114,10 @@ public:
                ")";
     }
 
-    /**
-     * Definition of Field-Indexes for shortcuts-orel
-     */
+    /*
+    Definition of Field-Indexes for shortcuts-orel
+
+    */
     static const int
     HL_INDEX_OF_SOURCE_IN_SHORTCUT_TUPLE = 0;
     static const int
@@ -747,13 +1127,14 @@ public:
     static const int
     HL_INDEX_OF_PARENT_ID_IN_SHORTCUT_TUPLE = 3;
 
-    /**
-     * OrderedRelation type for vertices scanned but not yet visited
-     *  during forward search.
-     * Used for creation of new OrderedRelation Objects, new Tuples
-     *  of this OrderedRelation
-     *  or cloning or deleting of an OrderedRelation of this type
-     */
+    /*
+    OrderedRelation type for vertices scanned but not yet visited
+     during forward search.
+    Used for creation of new OrderedRelation Objects, new Tuples
+     of this OrderedRelation
+     or cloning or deleting of an OrderedRelation of this type
+
+    */
     static const string
     hlGetNotYetVisitedNodesTypeInfo()
     {
@@ -769,9 +1150,10 @@ public:
                ")";
     }
 
-    /**
-     * Definition of Field-Indexes for notYetVisitedNodes-orel
-     */
+    /*
+    Definition of Field-Indexes for notYetVisitedNodes-orel
+
+    */
     static const int
     HL_INDEX_OF_DIST_IN_NOT_YET_VISITED = 0;
     static const int
@@ -779,17 +1161,19 @@ public:
     static const int
     HL_INDEX_OF_HOP_DEPTH_IN_NOT_YET_VISITED = 2;
 
-    /**
-     * Definition of default h-hop-size
-     */
+    /*
+    Definition of default h-hop-size
+
+    */
     static const int HL_DEFAULT_H_DEPTH = 1;
 
-    /**
-     * OrderedRelation type for vertices still visited during forward search.
-     * Used for creation of new OrderedRelation Objects, new Tuples
-     *  of this OrderedRelation
-     *  or cloning or deleting of an OrderedRelation of this type
-     */
+    /*
+    OrderedRelation type for vertices still visited during forward search.
+    Used for creation of new OrderedRelation Objects, new Tuples
+     of this OrderedRelation
+     or cloning or deleting of an OrderedRelation of this type
+
+    */
     static const string
     hlGetStillVisitedNodesTypeInfo()
     {
@@ -803,45 +1187,47 @@ public:
                ")";
     }
 
-    /**
-     * Definition of Field-Indexes for stillVisitedNodes-orel
-     */
+    /*
+    Definition of Field-Indexes for stillVisitedNodes-orel
+
+    */
     static const int
     HL_INDEX_OF_NODE_ID_IN_STILL_VISITED = 0;
 
 
-    /**
-     * Processes a h-hop forward search for the given vertex v to be contracted.
-     * Does so by iterating over all source nodes s having an incoming
-     *  edge e(s, v) to v.
-     * Takes the given distances from a previously executed one-hop reverse
-     *  search ( @see copyMultimapReverseSearchXT)
-     *  for the same vertext v and creates a copy of it for each source node s.
-     * Stores shortcuts found during forward search in
-     *  the given OrderedRelation.
-     * Uses a h-hop-size during forward search to abort when looking
-     *  for shorter pathes
-     *  than the potentially shortcut currently viewed.
-     * The h-hop-size means how deep (in the meaning of network depth)
-     *  the dijkstra-search shall be performed,
-     *  started out of the appropriate source node s (having an edge e(s, v)
-     *  incoming to the current vertex v.
-     *
-     * @param orelEdgesSource is an OrderedRelation containging all edges
-     *  of the underlying graph sorted by the field Source
-     * @param orelEdgesTarget is an OrderedRelation containging all edges
-     *  of the underlying graph sorted by the field Target
-     * @param multimapReverseSearchXT the Ordered map by reference where
-     *  all distances found by the reverse search  have been stored in
-     * @param currentVertexIdFwdV the current vertex v to be contracted
-     * @param shortcutsToBeCreatedOrelSourceToBeDeleted the multimap by
-     *  reference where all shortcuts will be stored in
-     * @param hDepth the h-hop-size to be used, will be overwritten
-     *  by @see HL_DEFAULT_H_DEPTH if value < 1
-     * @return true, since the result of this function will be stored
-     *  directly in @see shortcutsToBeCreatedOrelSourceToBeDeleted
-     *
-     */
+    /*
+    Processes a h-hop forward search for the given vertex v to be contracted.
+    Does so by iterating over all source nodes s having an incoming
+     edge e(s, v) to v.
+    Takes the given distances from a previously executed one-hop reverse
+     search ( @see copyMultimapReverseSearchXT)
+     for the same vertext v and creates a copy of it for each source node s.
+    Stores shortcuts found during forward search in
+     the given OrderedRelation.
+    Uses a h-hop-size during forward search to abort when looking
+     for shorter pathes
+     than the potentially shortcut currently viewed.
+    The h-hop-size means how deep (in the meaning of network depth)
+     the dijkstra-search shall be performed,
+     started out of the appropriate source node s (having an edge e(s, v)
+     incoming to the current vertex v.
+
+    @param orelEdgesSource is an OrderedRelation containging all edges
+     of the underlying graph sorted by the field Source
+    @param orelEdgesTarget is an OrderedRelation containging all edges
+     of the underlying graph sorted by the field Target
+    @param multimapReverseSearchXT the Ordered map by reference where
+     all distances found by the reverse search  have been stored in
+    @param currentVertexIdFwdV the current vertex v to be contracted
+    @param shortcutsToBeCreatedOrelSourceToBeDeleted the multimap by
+     reference where all shortcuts will be stored in
+    @param hDepth the h-hop-size to be used, will be overwritten
+     by @see HL_DEFAULT_H_DEPTH if value < 1
+    @return true, since the result of this function will be stored
+     directly in @see shortcutsToBeCreatedOrelSourceToBeDeleted
+
+
+    */
     bool hlHHopForwardSearch(OrderedRelation*
                              orelEdgesSource, OrderedRelation* orelEdgesTarget,
                              std::multimap<int, std::tuple<int, double>>
@@ -851,9 +1237,11 @@ public:
                              &shortcutsToBeCreatedOrelSourceToBeDeleted,
                              int hDepth) const
     {
-        Debug("Starting hlHHopForwardSearch with v = " <<
-              currentVertexIdFwdV->GetIntval() <<
-              " and hDepth = " << hDepth << endl);
+        #ifdef USEDEBUG
+        LogDebug("Starting hlHHopForwardSearch with v = " <<
+                      currentVertexIdFwdV->GetIntval() <<
+                      " and hDepth = " << hDepth << endl);
+        #endif
 
         if(hDepth < 1)
         {
@@ -903,8 +1291,10 @@ public:
                                     currentEdgeTargetTupleSV->GetAttribute(
                                         HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE);
 
-            Debug("Process next source node s = " <<
-                  currentSourceNodeFwdS->GetIntval() << endl);
+            #ifdef USEDEBUG
+            LogDebug("Process next source node s = " <<
+                              currentSourceNodeFwdS->GetIntval() << endl);
+            #endif
 
             //Copy of multimapReverseSearchXT
             std::multimap<int, std::tuple<int, double>>
@@ -936,18 +1326,20 @@ public:
                 int currentEraseId =
                     std::get<HL_INDEX_OF_ID_OF_T_IN_TEMP_REV_TUPLE -
                     1>(currReverseTuple);
-                double tmpDist =
-                    std::get<HL_INDEX_OF_DIST_IN_TEMP_REV_TUPLE - 1>
-                    (currReverseTuple);
                 // removes all even values
                 if (currentEraseId ==
                         currentSourceNodeFwdS->GetIntval())
                 {
                     copyMultimapReverseSearchXT.erase(
                         currReverseIter);
-                    Debug("erased s (=t) itself from XT: x=" <<
+                    #ifdef USEDEBUG
+                    double tmpDist =
+                        std::get<HL_INDEX_OF_DIST_IN_TEMP_REV_TUPLE - 1>
+                        (currReverseTuple);
+                    LogDebug("erased s (=t) itself from XT: x=" <<
                           (*currReverseIter).first << ", t=" <<
                           currentEraseId << " dist: " << tmpDist << endl);
+                    #endif
                 }
             }
 
@@ -970,8 +1362,10 @@ public:
                 currentEdgeTargetTupleSV->DeleteIfAllowed();
                 currentEdgeTargetTupleSV = 0;
 
-                Debug("all witnesses found continue with next SV edge"
+                #ifdef USEDEBUG
+                LogDebug("all witnesses found continue with next SV edge"
                       << endl);
+                #endif
                 continue;
             }
 
@@ -1002,39 +1396,40 @@ public:
         return true;
     }
 
-    /**
-     * Procession of iteration over all incoming Nodes s to current
-     *  vertex v to be contracted
-     *  of current forward search ( @see hlHHopForwardSearch).
-     * Does a forward search starting from this current incoming node s.
-     * The aim is to find other nodes x during the forward search which
-     *  exist in copyMultimapReverseSearchXT
-     *  and for which then there exist a shorter path from s to t via x
-     *7than via v.
-     * If there exist a shorter path all occurrences of x will be eraised
-     *7 from copyMultimapReverseSearchXT.
-     * Remaining occurences of t within copyMultimapReverseSearchXT will
-     *  lead to the creation of a shortcut.
-     * These then are stored in shortcutsToBeCreatedOrelSourceToBeDeleted.
-     *
-     * @param orelEdgesSource is an OrderedRelation containging all edges
-     *  of the underlying graph sorted by the field Source
-     * @param shortcutsToBeCreatedOrelSourceToBeDeleted the multimap by
-     *  reference where all shortcuts will be stored in
-     * @param currentVertexIdFwdV the current vertex v to be contracted
-     * @param currentSourceNodeFwdS the current source vertex s
-     * @param stillVisitedNodesSet is an unordered_set by reference
-     *  containging all nodes still visited during forward search
-     * @param copyMultimapReverseSearchXT copy of the Ordered map by
-     *  reference where all distances found by the reverse search have
-     *  been stored in
-     * @param hDepth the h-hop-size to be used, will be overwritten
-     *  by @see HL_DEFAULT_H_DEPTH if value < 1
-     * @param distSV the weighted costs of the edge from curent s to current v
-     * @return true, since the result of this function will be stored
-     *  directly in @see shortcutsToBeCreatedOrelSourceToBeDeleted
-     *
-     */
+    /*
+    Procession of iteration over all incoming Nodes s to current
+     vertex v to be contracted
+     of current forward search ( @see hlHHopForwardSearch).
+    Does a forward search starting from this current incoming node s.
+    The aim is to find other nodes x during the forward search which
+     exist in copyMultimapReverseSearchXT
+     and for which then there exist a shorter path from s to t via x
+7than via v.
+    If there exist a shorter path all occurrences of x will be eraised
+7 from copyMultimapReverseSearchXT.
+    Remaining occurences of t within copyMultimapReverseSearchXT will
+     lead to the creation of a shortcut.
+    These then are stored in shortcutsToBeCreatedOrelSourceToBeDeleted.
+
+    @param orelEdgesSource is an OrderedRelation containging all edges
+     of the underlying graph sorted by the field Source
+    @param shortcutsToBeCreatedOrelSourceToBeDeleted the multimap by
+     reference where all shortcuts will be stored in
+    @param currentVertexIdFwdV the current vertex v to be contracted
+    @param currentSourceNodeFwdS the current source vertex s
+    @param stillVisitedNodesSet is an unordered_set by reference
+     containging all nodes still visited during forward search
+    @param copyMultimapReverseSearchXT copy of the Ordered map by
+     reference where all distances found by the reverse search have
+     been stored in
+    @param hDepth the h-hop-size to be used, will be overwritten
+     by @see HL_DEFAULT_H_DEPTH if value < 1
+    @param distSV the weighted costs of the edge from curent s to current v
+    @return true, since the result of this function will be stored
+     directly in @see shortcutsToBeCreatedOrelSourceToBeDeleted
+
+
+    */
     bool hlForwardSearchProcessIncomingEdge(
         OrderedRelation* orelEdgesSource,
         std::multimap<int, std::tuple<int, double, int>>
@@ -1050,19 +1445,25 @@ public:
         std::multimap<double, std::tuple<int, int>>
                 notYetVisitedNodesMultiMap;
 
-        Debug("Do initial" << endl);
+        #ifdef USEDEBUG
+        LogDebug("Do initial" << endl);
+        #endif
         hlForwardSearchProcessIncomingEdgeInitialSteps(
             orelEdgesSource, currentVertexIdFwdV,
             currentSourceNodeFwdS, notYetVisitedNodesMultiMap,
             copyMultimapReverseSearchXT, distSV);
 
-        Debug("Do iterative" << endl);
+        #ifdef USEDEBUG
+        LogDebug("Do iterative" << endl);
+        #endif
         hlForwardSearchProcessIncomingEdgeIterativeSteps(
             orelEdgesSource, currentVertexIdFwdV,
             notYetVisitedNodesMultiMap, stillVisitedNodesSet,
             copyMultimapReverseSearchXT, hDepth, distSV);
 
-        Debug("Do create shortcuts" << endl);
+        #ifdef USEDEBUG
+        LogDebug("Do create shortcuts" << endl);
+        #endif
         hlForwardSearchCreateAndAppendShortcuts(
             shortcutsToBeCreatedOrelSourceToBeDeleted,
             copyMultimapReverseSearchXT,
@@ -1072,26 +1473,27 @@ public:
         return true;
     }
 
-    /**
-     * Does initial, non-iterative Steps as part of
-     *  @see hlForwardSearchProcessIncomingEdge.
-     * At least initializes the search-stack with all other vertexes w
-     *  outgoing from s but ignoring current v to be contracted.
-     *
-     * @param orelEdgesSource is an OrderedRelation containging all edges
-     *  of the underlying graph sorted by the field Source
-     * @param currentVertexIdFwdV the current vertex v to be contracted
-     * @param currentSourceNodeFwdS the current source vertex s
-     * @param notYetVisitedNodesMultiMap is a Multimap by reference
-     *  containging all nodes scanned but not yet visited during forward search
-     * @param copyMultimapReverseSearchXT copy of the Ordered map by
-     *  reference where all distances found by the reverse search
-     *  have been stored in
-     * @param distSV the weighted costs of the edge from curent s to current v
-     * @return true, since the result of this function is the modification
-     *  of notYetVisitedNodesMultiMap and copyMultimapReverseSearchXT
-     *
-     */
+    /*
+    Does initial, non-iterative Steps as part of
+     @see hlForwardSearchProcessIncomingEdge.
+    At least initializes the search-stack with all other vertexes w
+     outgoing from s but ignoring current v to be contracted.
+
+    @param orelEdgesSource is an OrderedRelation containging all edges
+     of the underlying graph sorted by the field Source
+    @param currentVertexIdFwdV the current vertex v to be contracted
+    @param currentSourceNodeFwdS the current source vertex s
+    @param notYetVisitedNodesMultiMap is a Multimap by reference
+     containging all nodes scanned but not yet visited during forward search
+    @param copyMultimapReverseSearchXT copy of the Ordered map by
+     reference where all distances found by the reverse search
+     have been stored in
+    @param distSV the weighted costs of the edge from curent s to current v
+    @return true, since the result of this function is the modification
+     of notYetVisitedNodesMultiMap and copyMultimapReverseSearchXT
+
+
+    */
     bool hlForwardSearchProcessIncomingEdgeInitialSteps(
         OrderedRelation* orelEdgesSource,
         int currentVertexIdFwdV,
@@ -1166,16 +1568,20 @@ public:
                     currentEdgeSourceTupleFwdSW->DeleteIfAllowed();
                     currentEdgeSourceTupleFwdSW = 0;
 
-                    Debug("all witnesses found, break initial steps"
+                    #ifdef USEDEBUG
+                    LogDebug("all witnesses found, break initial steps"
                           << endl);
+                    #endif
                     break;
                 }
 
                 std::tuple<double, int, int>
                 currMinNotYetVisitedNodeTuple = std::make_tuple(
                                 0.0, currentSourceNodeFwdS->GetIntval(), 0);
-                Debug("forward search initial steps insertOrUpdateInNotYet"
+                #ifdef USEDEBUG
+                LogDebug("forward search initial steps insertOrUpdateInNotYet"
                       << endl);
+                #endif
                 bool isForward = true;
                 bool isHHop = true;
                 hlInsertOrUpdateTupleInNotYetVisitedList(
@@ -1197,33 +1603,33 @@ public:
         return true;
     }
 
-    /**
-     * Does iterative Steps as part of @see hlForwardSearchProcessIncomingEdge.
-     * At least gets next min vertex w of notYetVisitedNodesOrel
-     *  and scans next vertices x having an edge e(w, x) outgoing from
-     *  w to x with respect to the hop depth.
-     * If the next vertex to scan is more hops (in the meaning of graph depth)
-     *  away than the h-hop-size allows,
-     *  this next vertex will not be scanned.
-     *
-     * @param orelEdgesSource is an OrderedRelation containging all edges of
-     *  the underlying graph sorted by the field Source
-     * @param currentVertexIdFwdV the current vertex v to be contracted
-     * @param notYetVisitedNodesMultiMap is a Multimap by refeerence
-     *  containging all nodes scanned but not yet visited during forward search
-     * @param stillVisitedNodesSet is an unordered_set bx reference
-     *  containging all nodes still visited during forward search
-     * @param copyMultimapReverseSearchXT copy of the Ordered map by
-     *  reference where all distances found by the reverse search have been
-     *  stored in
-     * @param hDepth the h-hop-size to be used, will be overwritten
-     *  by @see HL_DEFAULT_H_DEPTH if value < 1
-     * @param distSV the weighted costs of the edge from curent s to current v
-     * @return true, since the result of this function is the modification
-     *  of notYetVisitedNodesMultiMap, stillVisitedNodesSet and
-     *  copyMultimapReverseSearchXT
-     *
-     */
+    /*
+    Does iterative Steps as part of @see hlForwardSearchProcessIncomingEdge.
+    At least gets next min vertex w of notYetVisitedNodesOrel
+     and scans next vertices x having an edge e(w, x) outgoing from
+     w to x with respect to the hop depth.
+    If the next vertex to scan is more hops (in the meaning of graph depth)
+     away than the h-hop-size allows,
+     this next vertex will not be scanned.
+
+    @param orelEdgesSource is an OrderedRelation containging all edges of
+     the underlying graph sorted by the field Source
+    @param currentVertexIdFwdV the current vertex v to be contracted
+    @param notYetVisitedNodesMultiMap is a Multimap by refeerence
+     containging all nodes scanned but not yet visited during forward search
+    @param stillVisitedNodesSet is an unordered_set bx reference
+     containging all nodes still visited during forward search
+    @param copyMultimapReverseSearchXT copy of the Ordered map by
+     reference where all distances found by the reverse search have been
+     stored in
+    @param hDepth the h-hop-size to be used, will be overwritten
+     by @see HL_DEFAULT_H_DEPTH if value < 1
+    @param distSV the weighted costs of the edge from curent s to current v
+    @return true, since the result of this function is the modification
+     of notYetVisitedNodesMultiMap, stillVisitedNodesSet and
+     copyMultimapReverseSearchXT
+
+    */
     bool hlForwardSearchProcessIncomingEdgeIterativeSteps(
         OrderedRelation* orelEdgesSource,
         int currentVertexIdFwdV,
@@ -1234,10 +1640,12 @@ public:
         &copyMultimapReverseSearchXT, int hDepth,
         double distSV) const
     {
-        Debug("notYetVisitedNodesMultiMap.size(): " <<
+        #ifdef USEDEBUG
+        LogDebug("notYetVisitedNodesMultiMap.size(): " <<
               notYetVisitedNodesMultiMap.size() <<
               " copyMultimapReverseSearchXT.size(): " <<
               copyMultimapReverseSearchXT.size() << endl);
+        #endif
         //Do forward Dijkstra
         //Abort when either there are no more vertices
         // to scan (with respect to the hop-depth)
@@ -1266,8 +1674,10 @@ public:
             std::tuple<double, int, int>
             currMinNotYetVisitedNodeTuple = std::make_tuple(
                                 currMinDist, currMinNodeId, currMinHopDepth);
-            Debug("next minW: " << currMinNodeId << " - " <<
+            #ifdef USEDEBUG
+            LogDebug("next minW: " << currMinNodeId << " - " <<
                   currMinDist << " - " << currMinHopDepth << endl);
+            #endif
 
             //Remove currMinNotYetVisitedNodeTuple from notYetVisitedNodesOrel
             notYetVisitedNodesMultiMap.erase(
@@ -1290,32 +1700,34 @@ public:
                     copyMultimapReverseSearchXT, distSV);
             }
         }
-        Debug("finish of hlForwardSearchProcessIncomingEdgeIterativeSteps"
+        #ifdef USEDEBUG
+        LogDebug("finish of hlForwardSearchProcessIncomingEdgeIterativeSteps"
               << endl);
+        #endif
         return true;
     }
 
-    /**
-     * Scans for new vertices x reachable from the current vertex w.
-     * Adds new vertices scanned in notYetVisitedNodesMultiMap.
-     *
-     * @param orelEdgesSource is an OrderedRelation containging all edges
-     *  of the underlying graph sorted by the field Source
-     * @param currentVertexIdFwdV the current vertex v to be contracted
-     * @param currMinNotYetVisitedNodeTupleFwdW the current tuple w by
-     *  reference with minimum distance to the current source node
-     * @param notYetVisitedNodesMultiMap is an multi map by reference
-     *  containging all nodes scanned but not yet visited during forward search
-     * @param stillVisitedNodesSet is an unordered_set by reference
-     *  containging all nodes still visited during forward search
-     * @param copyMultimapReverseSearchXT copy of the Ordered map by
-     *  reference where all distances found by the reverse search have
-     *  been stored in
-     * @param distSV the weighted costs of the edge from curent s to current v
-     * @return true, since the result of this function is the modification of
-     *  notYetVisitedNodesMultiMap and copyMultimapReverseSearchXT
-     *
-     */
+    /*
+    Scans for new vertices x reachable from the current vertex w.
+    Adds new vertices scanned in notYetVisitedNodesMultiMap.
+
+    @param orelEdgesSource is an OrderedRelation containging all edges
+     of the underlying graph sorted by the field Source
+    @param currentVertexIdFwdV the current vertex v to be contracted
+    @param currMinNotYetVisitedNodeTupleFwdW the current tuple w by
+     reference with minimum distance to the current source node
+    @param notYetVisitedNodesMultiMap is an multi map by reference
+     containging all nodes scanned but not yet visited during forward search
+    @param stillVisitedNodesSet is an unordered_set by reference
+     containging all nodes still visited during forward search
+    @param copyMultimapReverseSearchXT copy of the Ordered map by
+     reference where all distances found by the reverse search have
+     been stored in
+    @param distSV the weighted costs of the edge from curent s to current v
+    @return true, since the result of this function is the modification of
+     notYetVisitedNodesMultiMap and copyMultimapReverseSearchXT
+
+/
     bool hlForwardSearchIterativeStepsScanNewVertices(
         OrderedRelation* orelEdgesSource,
         int currentVertexIdFwdV,
@@ -1327,8 +1739,10 @@ public:
         std::multimap<int, std::tuple<int, double>>
         &copyMultimapReverseSearchXT, double distSV) const
     {
-        Debug("start hlForwardSearchIterativeStepsScanNewVertices"
+        #ifdef USEDEBUG
+        LogDebug("start hlForwardSearchIterativeStepsScanNewVertices"
               << endl);
+        #endif
         //Get ID of current SourceNode (=w)
         double currentSourceNodeDistSW =
             std::get<HL_INDEX_OF_DIST_IN_NOT_YET_VISITED>
@@ -1382,8 +1796,10 @@ public:
             CcInt* currentTargetNodeX = (CcInt*)
                                         currentEdgeSourceTupleWX->GetAttribute(
                                             HL_INDEX_OF_TARGET_IN_EDGE_TUPLE);
-            Debug("next iteration: currentTargetNodeX: " <<
+            #ifdef USEDEBUG
+            LogDebug("next iteration: currentTargetNodeX: " <<
                   currentTargetNodeX->GetIntval() << endl);
+            #endif
 
             //ignore current v to be contracted and also ignore still
             // visited nodes
@@ -1407,9 +1823,11 @@ public:
                 // else abort loop
                 if(copyMultimapReverseSearchXT.size() == 0)
                 {
-                    Debug("all witnesses found break scan new vertices"
+                    #ifdef USEDEBUG
+                    LogDebug("all witnesses found break scan new vertices"
                      " of forward search"
                           << endl);
+                    #endif
                     //Free Resources
                     currentEdgeSourceTupleWX->DeleteIfAllowed();
                     currentEdgeSourceTupleWX = 0;
@@ -1417,8 +1835,11 @@ public:
                     break;
                 }
 
-                Debug("forward search scan new vertices insertOrUpdateInNotYet"
+                #ifdef USEDEBUG
+                LogDebug("forward search scan new vertices"
+                 " insertOrUpdateInNotYet"
                       << endl);
+                #endif
                 //Either insert the new scanned X into not visited list
                 // or update it if it sill exists and has a shorter path
                 // via current w
@@ -1440,42 +1861,44 @@ public:
 
         delete relEdgesSourceIterWX;
 
-        Debug("finish hlForwardSearchIterativeStepsScanNewVertices"
+        #ifdef USEDEBUG
+        LogDebug("finish hlForwardSearchIterativeStepsScanNewVertices"
               << endl);
+        #endif
 
         return true;
     }
 
-    /**
-     * Either insert the new scanned vertex x into notYetVisitedList
-     *  or update it if it sill exists but has a shorter path via current w.
-     * If currMinNotYetVisitedNodeTupleFwdW is null then its meant that the
-     *  current tuple is equal the current starting node s.
-     * It processe different then regarding the hop-depth and the distance to
-     *  the source node (so to itself = 0).
-     *  If x is going to be inserted or updated e.g. its distance is calculated
-     *  by the distance of the given vertex w so far
-     *   and the distance of the also given edge leading to x.
-     * All descriptions behave vice versa if isForward = false.
-     *
-     * @param currentVertexIdFwdV the current vertex v to be contracted
+    /*
+    Either insert the new scanned vertex x into notYetVisitedList
+     or update it if it sill exists but has a shorter path via current w.
+    If currMinNotYetVisitedNodeTupleFwdW is null then its meant that the
+     current tuple is equal the current starting node s.
+    It processe different then regarding the hop-depth and the distance to
+     the source node (so to itself = 0).
+     If x is going to be inserted or updated e.g. its distance is calculated
+     by the distance of the given vertex w so far
+      and the distance of the also given edge leading to x.
+    All descriptions behave vice versa if isForward = false.
+
+    @param currentVertexIdFwdV the current vertex v to be contracted
                used to skip iteration if next vertex considered is equeal to v
                can be set to -1 when no skipping shall be used
-     * @param currMinNotYetVisitedNodeTupleFwdW the current tuple w with the
-     *  current minimum distance to the actual source s by reference
+    @param currMinNotYetVisitedNodeTupleFwdW the current tuple w with the
+     current minimum distance to the actual source s by reference
                it values are used to create those one for the node x which
-               *  might be inserted or updaten within notYet
-     * @param currentEdgeSourceTupleWX the current edge with source = w
-     *  ( @see currMinNotYetVisitedNodeTupleFwdW)
-     *         and target = x where x may be inserted or updated within notYet
-     * @param notYetVisitedNodesMultiMap is an multi map by reference
-     *  containging all nodes scanned but not yet visited during forward search
-     * @param isForward is a boolean flag to indicate whether the given
-     *  edgeOrelTuple is used during a forward or reverse search
-     * @return true, since the result of this function is the modification
-     *  of notYetVisitedNodesMultiMap
-     *
-     */
+               might be inserted or updaten within notYet
+    @param currentEdgeSourceTupleWX the current edge with source = w
+     ( @see currMinNotYetVisitedNodeTupleFwdW)
+            and target = x where x may be inserted or updated within notYet
+    @param notYetVisitedNodesMultiMap is an multi map by reference
+     containging all nodes scanned but not yet visited during forward search
+    @param isForward is a boolean flag to indicate whether the given
+     edgeOrelTuple is used during a forward or reverse search
+    @return true, since the result of this function is the modification
+     of notYetVisitedNodesMultiMap
+
+/
     bool hlInsertOrUpdateTupleInNotYetVisitedList(
         int currentVertexIdFwdV,
         std::tuple<double, int, int>
@@ -1485,8 +1908,10 @@ public:
         &notYetVisitedNodesMultiMap, bool isForward,
         bool isHHop) const
     {
-        Debug("doing hlInsertOrUpdateTupleInNotYetVisitedList"
+        #ifdef USEDEBUG
+LogDebug("doing hlInsertOrUpdateTupleInNotYetVisitedList"
               << endl);
+#endif
         //Get ID of current TargetNode (=x)
         CcInt* currentTargetNodeX;
         if(isForward)
@@ -1552,8 +1977,10 @@ public:
                     {
                         //remove old entry for inserting new one (which is
                         //like an update)
-                        Debug("update: erasing old entry for reinserting"
+                        #ifdef USEDEBUG
+                        LogDebug("update: erasing old entry for reinserting"
                               << endl);
+                        #endif
                         notYetVisitedNodesMultiMap.erase(
                             notYetVisitedNodesMultiMapIter);
                     }
@@ -1570,9 +1997,11 @@ public:
 
             if(insertOrUpdate)
             {
-                Debug("going to insert new element to notYet : "
+                #ifdef USEDEBUG
+LogDebug("going to insert new element to notYet : "
                       << currentTargetNodeX->GetIntval() << " - " <<
                       currDistSWX << endl);
+#endif
 
                 //during Label creation we need the parentNodeId but not
                 // the hopDepth so we reuse the hHop field for this
@@ -1594,30 +2023,32 @@ public:
             }
         }
 
-        Debug("finish hlInsertOrUpdateTupleInNotYetVisitedList"
+        #ifdef USEDEBUG
+LogDebug("finish hlInsertOrUpdateTupleInNotYetVisitedList"
               << endl);
+#endif
 
         return true;
     }
 
-    /**
-     * Checks for a given vertex x whether a witness-path to endpoints
-     *  from the previous reverse search can be found.
-     * Deletes the endpoints then within the given endpoint-list.
-     * A Witness-Path is a shorter path from start node s to target node t
-     *  than the potential shortcut path from s to t via v
-     *  (the node to be contracted).
-     *
-     * @param copyMultimapReverseSearchXT copy of the Ordered map by reference
-     *  where all distances found by the reverse search have been stored in
-     * @param currentContractNodeV the current vertex v to be contracted
-     * @param currentSourceNodeWitnessX the current vertex x to be found
-     * @param distSX the weighted costs of the edge from curent s to current x
-     * @param distSV the weighted costs of the edge from curent s to current v
-     * @return true, since the result of this function is the modification of
-     *  copyMultimapReverseSearchXT
-     *
-     */
+    /*
+    Checks for a given vertex x whether a witness-path to endpoints
+     from the previous reverse search can be found.
+    Deletes the endpoints then within the given endpoint-list.
+    A Witness-Path is a shorter path from start node s to target node t
+     than the potential shortcut path from s to t via v
+     (the node to be contracted).
+
+    @param copyMultimapReverseSearchXT copy of the Ordered map by reference
+     where all distances found by the reverse search have been stored in
+    @param currentContractNodeV the current vertex v to be contracted
+    @param currentSourceNodeWitnessX the current vertex x to be found
+    @param distSX the weighted costs of the edge from curent s to current x
+    @param distSV the weighted costs of the edge from curent s to current v
+    @return true, since the result of this function is the modification of
+     copyMultimapReverseSearchXT
+
+/
     bool hlForwardSearchCheckForWitnessPath(
         std::multimap<int, std::tuple<int, double>>
         &copyMultimapReverseSearchXT,
@@ -1625,7 +2056,9 @@ public:
         int currentSourceNodeWitnessX, double distSX,
         double distSV) const
     {
-        Debug("check for witness start" << endl);
+        #ifdef USEDEBUG
+LogDebug("check for witness start" << endl);
+#endif
         //Vector containing node ids to be deleted from orelXT after
         // finishing full iteration
         std::vector<int> nodesToDeleteVector;
@@ -1653,9 +2086,11 @@ public:
                 std::get<HL_INDEX_OF_DIST_IN_TEMP_REV_TUPLE - 1>
                 (currTupleXT);
 
-            Debug("xt found (x = " <<
+            #ifdef USEDEBUG
+LogDebug("xt found (x = " <<
                   currentSourceNodeWitnessX << ", t = " <<
                   currentEdgeReverseAttributeIdT << ")" << endl);
+#endif
 
             double distSXT = (double) distSX +
                              currentEdgeReverseAttributeDistXT;
@@ -1666,7 +2101,9 @@ public:
 
             if(distSXT <= distSVT)
             {
-                Debug("witness found" << endl);
+                #ifdef USEDEBUG
+LogDebug("witness found" << endl);
+#endif
                 //Witnesspath found, remove all Tuples with target = t
                 // from current WitnessList (= copyMultimapReverseSearchXT)
                 //Build list containing all nodes to be deleted later after
@@ -1680,8 +2117,10 @@ public:
                     nodesToDeleteVector.begin();
                 vecIter != nodesToDeleteVector.end(); ++vecIter)
         {
-            Debug("going to erase from XT: " << *vecIter <<
+            #ifdef USEDEBUG
+LogDebug("going to erase from XT: " << *vecIter <<
                   endl);
+#endif
             //emtpy increment section since its incremented manually
             // next to the erase-command
             for (std::multimap<int, std::tuple<int, double>>::iterator
@@ -1704,29 +2143,33 @@ public:
                 {
                     copyMultimapReverseSearchXT.erase(
                         currReverseIter);
-                    Debug("erased witness from XT x= " <<
+                    #ifdef USEDEBUG
+LogDebug("erased witness from XT x= " <<
                           (*currReverseIter).first << " t = " <<
                           currentEraseId << endl);
+#endif
                 }
             }
         }
-        Debug("finish check for witness" << endl);
+        #ifdef USEDEBUG
+LogDebug("finish check for witness" << endl);
+#endif
 
         return true;
     }
 
-    /**
-     * Deletes every tuple from the given orel containing the given
-     *  nodeId at the given index position.
-     *
-     * @param currentOrel the OrderedRelation where all tuples found by
-     *  the search will be deleted
-     * @param givenNodeId the Node ID of the vertex t to bedeleted
-     * @param index the index position ath which the ID field should be found
-     * @return true, since the result of this function is the modification
-     *  of currentOrel
-     *
-     */
+    /*
+    Deletes every tuple from the given orel containing the given
+     nodeId at the given index position.
+
+    @param currentOrel the OrderedRelation where all tuples found by
+     the search will be deleted
+    @param givenNodeId the Node ID of the vertex t to bedeleted
+    @param index the index position ath which the ID field should be found
+    @return true, since the result of this function is the modification
+     of currentOrel
+
+/
     bool hlRemoveTuplesFromOrel(OrderedRelation*
                                 currentOrel, int givenNodeId, int index) const
     {
@@ -1777,19 +2220,19 @@ public:
         return true;
     }
 
-    /**
-     * Gets the Distance between the given curent node v to be contracted
-     *  and the given current target node t by extracting it from the given
-     *  orel created by the reverse search.
-     *
-     * @param copyMultimapReverseSearchXT copy of the OrderedRelation where
-     *  all distances found by the reverse search have been stored in
-     * @param currentContractNodeV the Node ID of the vertex t to contracted
-     * @param currentTargetNodeWitnessT the Node ID of the vertex t to bedeleted
-     * @return true, since the result of this function is the modification of
-     *  copyMultimapReverseSearchXT
-     *
-     */
+    /*
+    Gets the Distance between the given curent node v to be contracted
+     and the given current target node t by extracting it from the given
+     orel created by the reverse search.
+
+    @param copyMultimapReverseSearchXT copy of the OrderedRelation where
+     all distances found by the reverse search have been stored in
+    @param currentContractNodeV the Node ID of the vertex t to contracted
+    @param currentTargetNodeWitnessT the Node ID of the vertex t to bedeleted
+    @return true, since the result of this function is the modification of
+     copyMultimapReverseSearchXT
+
+/
     double hlForwardSearchGetDistVT(
         std::multimap<int, std::tuple<int, double>>
         &copyMultimapReverseSearchXT,
@@ -1828,23 +2271,23 @@ public:
         return retVal;
     }
 
-    /**
-     * Creates an shortcut for every entry of the given second multimap and
-     *  appends it to the first given orel
-     *
-     * @param shortcutsToBeCreatedOrelSourceToBeDeleted the multimap by
-     *  reference containing all shortcuts to be added to the original
-     *  edges OrderedRelations
-     * @param copyMultimapReverseSearchXT copy of the Ordered multimap by
-     *  reference where all distances found by the reverse search have been
-     *  stored in
-     * @param currentSourceNodeS the Node ID of the source node s
-     * @param currentContractNodeV the Node ID of the vertex t to contracted
-     * @param distSV the weighted costs of the edge from curent s to current v
-     * @return true, since the result of this function is the modification of
-     *  shortcutsToBeCreatedOrelSourceToBeDeleted
-     *
-     */
+    /*
+    Creates an shortcut for every entry of the given second multimap and
+     appends it to the first given orel
+
+    @param shortcutsToBeCreatedOrelSourceToBeDeleted the multimap by
+     reference containing all shortcuts to be added to the original
+     edges OrderedRelations
+    @param copyMultimapReverseSearchXT copy of the Ordered multimap by
+     reference where all distances found by the reverse search have been
+     stored in
+    @param currentSourceNodeS the Node ID of the source node s
+    @param currentContractNodeV the Node ID of the vertex t to contracted
+    @param distSV the weighted costs of the edge from curent s to current v
+    @return true, since the result of this function is the modification of
+     shortcutsToBeCreatedOrelSourceToBeDeleted
+
+/
     bool hlForwardSearchCreateAndAppendShortcuts(
         std::multimap<int, std::tuple<int, double, int>>
         &shortcutsToBeCreatedOrelSourceToBeDeleted,
@@ -1853,8 +2296,10 @@ public:
         int currentSourceNodeS, int currentContractNodeV,
         double distSV) const
     {
-        Debug("start hlForwardSearchCreateAndAppendShortcuts"
+        #ifdef USEDEBUG
+LogDebug("start hlForwardSearchCreateAndAppendShortcuts"
               << endl);
+#endif
         //Iterate over all Tuples (x, t) where x = v
         std::pair <std::multimap<int, std::tuple<int, double>>::iterator,
          std::multimap<int, std::tuple<int, double>>::iterator>
@@ -1871,8 +2316,7 @@ public:
         {
             std::tuple<int, double> currTuple =
                 (*reverseXTMultimapIter).second;
-            int currentEdgeSourceIDX =
-                (*reverseXTMultimapIter).first;
+            //int currentEdgeSourceIDX = (*reverseXTMultimapIter).first;
             int currentEdgeSourceIDT =
                 std::get<HL_INDEX_OF_ID_OF_T_IN_TEMP_REV_TUPLE -
                 1>(currTuple);
@@ -1882,10 +2326,12 @@ public:
 
             //create shortcut and add to
             // shortcutsToBeCreatedOrelSourceToBeDeleted
-            Debug("insert new shortcut to multimap (" <<
+            #ifdef USEDEBUG
+LogDebug("insert new shortcut to multimap (" <<
                   currentSourceNodeS << ", " << currentEdgeSourceIDT
                   << ", " << distSV + currentEdgeSourceDistVT <<
                   ")"<< endl);
+#endif
             std::tuple<int, double, int> insertTuple =
                 std::make_tuple(currentEdgeSourceIDT,
                                 distSV + currentEdgeSourceDistVT,
@@ -1894,55 +2340,61 @@ public:
                 pair<int, std::tuple<int, double, int>>
                 (currentSourceNodeS, insertTuple));
         }
-        Debug("finish hlForwardSearchCreateAndAppendShortcuts"
+        #ifdef USEDEBUG
+LogDebug("finish hlForwardSearchCreateAndAppendShortcuts"
               << endl);
+#endif
         return true;
     }
 
-    /**
-     * Definition of Field-Indexes for ranked nodes-orel
-     */
+    /*
+    Definition of Field-Indexes for ranked nodes-orel
+
+    */
     static const int HL_INDEX_OF_ID_IN_NODES_RANKED =
         2;
     static const int HL_INDEX_OF_RANK_IN_NODES_RANKED
         = 4;
 
-    /**
-     * Iterates over all nodes of the given Orel nodesWithRankOrelRank
-     *  which is expected to be sorted by Rank.
-     *  These nodes will be contracted in their particular iteration.
-     * Creates a copy of the orels edgesWithViaOrelSource and
-     *  edgesWithViaOrelTarget (outside the following loop).
-     * Calls for each iteration hlDoContraction which returns the
-     *  shortcuts to be created.
-     * Adds the shortcuts to be created to the copies of the Orels
-     *  edgesWithViaOrelTarget and edgesWithViaOrelSource
-     *  (inside the particular iteration).
-     * Adds the same shortcuts to be created to the original Orels
-     *  edgesWithViaOrelSource and edgesWithViaOrelTarget.
-     * Removes all Edges leading to or coming from the current node to be
-     *  contracted
-     *  within the copies of edgesWithViaOrelSource and edgesWithViaOrelTarget.
-     *
-     * @param nodesWithRankOrelRank is an OrderedRelation containging all
-     *  nodes of the underlying graph sorted by the field Rank
-     * @param edgesWithViaOrelSource is an OrderedRelation containging all
-     *  edges of the underlying graph sorted by the field Source
-     * @param edgesWithViaOrelTarget is an OrderedRelation containging all
-     *  edges of the underlying graph sorted by the field Target
-     * @param hHop the h-hop-size to be used, will be overwritten
-     *  by @see HL_DEFAULT_H_DEPTH if value < 1
-     * @return true, since the result of this function is the modification
-     *  of edgesWithViaOrelSource and edgesWithViaOrelTarget
-     */
+    /*
+    Iterates over all nodes of the given Orel nodesWithRankOrelRank
+     which is expected to be sorted by Rank.
+     These nodes will be contracted in their particular iteration.
+    Creates a copy of the orels edgesWithViaOrelSource and
+     edgesWithViaOrelTarget (outside the following loop).
+    Calls for each iteration hlDoContraction which returns the
+     shortcuts to be created.
+    Adds the shortcuts to be created to the copies of the Orels
+     edgesWithViaOrelTarget and edgesWithViaOrelSource
+     (inside the particular iteration).
+    Adds the same shortcuts to be created to the original Orels
+     edgesWithViaOrelSource and edgesWithViaOrelTarget.
+    Removes all Edges leading to or coming from the current node to be
+     contracted
+     within the copies of edgesWithViaOrelSource and edgesWithViaOrelTarget.
+
+    @param nodesWithRankOrelRank is an OrderedRelation containging all
+     nodes of the underlying graph sorted by the field Rank
+    @param edgesWithViaOrelSource is an OrderedRelation containging all
+     edges of the underlying graph sorted by the field Source
+    @param edgesWithViaOrelTarget is an OrderedRelation containging all
+     edges of the underlying graph sorted by the field Target
+    @param hHop the h-hop-size to be used, will be overwritten
+     by @see HL_DEFAULT_H_DEPTH if value < 1
+    @return true, since the result of this function is the modification
+     of edgesWithViaOrelSource and edgesWithViaOrelTarget
+
+    */
     bool hlIterateOverAllNodesByRankAscAndDoContraction(
         OrderedRelation* nodesWithRankOrelRank,
         OrderedRelation* edgesWithViaOrelSource,
         OrderedRelation* edgesWithViaOrelTarget,
         int hHop) const
     {
-        Debug("start hlIterateOverAllNodesByRankAscAndDoContraction"
+        #ifdef USEDEBUG
+LogDebug("start hlIterateOverAllNodesByRankAscAndDoContraction"
               << endl);
+#endif
         //Copy of edgesWithViaOrelSource
         ListExpr relTypeSource;
         nl->ReadFromString(hlGetEdgesOrelSourceTypeInfo(),
@@ -1959,7 +2411,9 @@ public:
         //TODO: die geklonte rel muss aber noch wie unten gelöscht werden oder?
         //TODO: der numtype, kann der auch aus der orel ausgelesen werden?
         //TODO: ggf. muss der Klon noch gelöscht werden per Delete?
-        Debug("edgesWithViaOrelSource cloned" << endl);
+        #ifdef USEDEBUG
+LogDebug("edgesWithViaOrelSource cloned" << endl);
+#endif
 
         //Copy of edgesWithViaOrelTarget
         ListExpr relTypeTarget;
@@ -1977,7 +2431,9 @@ public:
         //TODO: die geklonte rel muss aber noch wie unten gelöscht werden oder?
         //TODO: der numtype, kann der auch aus der orel ausgelesen werden?
         //TODO: ggf. muss der Klon noch gelöscht werden per Delete?
-        Debug("edgesWithViaOrelTarget cloned" << endl);
+        #ifdef USEDEBUG
+LogDebug("edgesWithViaOrelTarget cloned" << endl);
+#endif
 
         std::multimap<int, std::tuple<int, double, int>>
                 shortcutsToBeCreatedOrelSourceToBeDeleted;
@@ -1987,56 +2443,72 @@ public:
             = nodesWithRankOrelRank->MakeScan();
         Tuple* currentNodeRanked =
             nodesWithRankOrelRankIter->GetNextTuple();
-        Debug("iterate over all nodes by rank" << endl);
+        #ifdef USEDEBUG
+        LogDebug("iterate over all nodes by rank" << endl);
+        #endif
 
-        int countProgress = 0;
+        #ifdef USEDEBUG
+            int countProgress = 0;
+        #endif
         while(currentNodeRanked)
         {
             CcInt* currentNodeRankedId = (CcInt*)
-                                         currentNodeRanked->GetAttribute(
-                                             HL_INDEX_OF_ID_IN_NODES_RANKED);
+             currentNodeRanked->GetAttribute(HL_INDEX_OF_ID_IN_NODES_RANKED);
 
-            Debug("do Contraction for: " <<
+            #ifdef USEDEBUG
+            LogDebug("do Contraction for: " <<
                   currentNodeRankedId->GetIntval() << " (" <<
                   ++countProgress << "/" <<
                   nodesWithRankOrelRank->GetNoTuples() << ")" <<
                   endl);
+            #endif
+
             hlDoContraction(copyEdgesWithViaOrelSource,
                             copyEdgesWithViaOrelTarget,
                             shortcutsToBeCreatedOrelSourceToBeDeleted,
                             currentNodeRankedId, hHop);
 
-            Debug("remove edges to and from current v in copy edges relation"
+            #ifdef USEDEBUG
+LogDebug("remove edges to and from current v in copy edges relation"
                   << endl);
+#endif
             hlRemoveContractedEdgesFromEdgesRelations(
                 copyEdgesWithViaOrelSource,
                 copyEdgesWithViaOrelTarget, currentNodeRankedId);
 
-            Debug("remove existing edges parallel to new"
+            #ifdef USEDEBUG
+LogDebug("remove existing edges parallel to new"
              " shortcuts to be created"
                   << endl);
+#endif
             hlRemoveParallelEdgesFromEdgesRelations(
                 copyEdgesWithViaOrelSource,
                 copyEdgesWithViaOrelTarget,
                 shortcutsToBeCreatedOrelSourceToBeDeleted);
 
-            Debug("remove existing original edges parallel to"
+            #ifdef USEDEBUG
+LogDebug("remove existing original edges parallel to"
              " new shortcuts to be created"
                   << endl);
+#endif
             hlRemoveParallelEdgesFromEdgesRelations(
                 edgesWithViaOrelSource, edgesWithViaOrelTarget,
                 shortcutsToBeCreatedOrelSourceToBeDeleted);
 
-            Debug("add shortcuts to copy edges relations" <<
+            #ifdef USEDEBUG
+LogDebug("add shortcuts to copy edges relations" <<
                   endl);
+#endif
             //Add Shortcuts to Edges Relations
             hlAddShortcutsToEdgesRelations(
                 copyEdgesWithViaOrelSource,
                 copyEdgesWithViaOrelTarget,
                 shortcutsToBeCreatedOrelSourceToBeDeleted);
 
-            Debug("add shortcuts to original edges relations"
+            #ifdef USEDEBUG
+LogDebug("add shortcuts to original edges relations"
                   << endl);
+#endif
             //Add Shortcuts to Edges Relations
             hlAddShortcutsToEdgesRelations(
                 edgesWithViaOrelSource, edgesWithViaOrelTarget,
@@ -2052,7 +2524,9 @@ public:
             shortcutsToBeCreatedOrelSourceToBeDeleted.clear();
 
         }
-        Debug("finished iteration" << endl);
+        #ifdef USEDEBUG
+LogDebug("finished iteration" << endl);
+#endif
 
         //Free Resources
         delete nodesWithRankOrelRankIter; //TODO: richtig, dass der
@@ -2062,28 +2536,31 @@ public:
         OrderedRelation::Delete(relNumTypeTarget,
                                 wrelTarget2);
 
-        Debug("finish hlIterateOverAllNodesByRankAscAndDoContraction"
+        #ifdef USEDEBUG
+LogDebug("finish hlIterateOverAllNodesByRankAscAndDoContraction"
               << endl);
+#endif
         return true;
     }
 
-    /**
-     * Contract the given node by running a oneHopReverse-Search
-     *  and a hHopForwardSearch.
-     *
-     * @param edgesWithViaOrelSource is an OrderedRelation containging all
-     *  edges of the underlying graph sorted by the field Source
-     * @param edgesWithViaOrelTarget is an OrderedRelation containging all
-     *  edges of the underlying graph sorted by the field Target
-     * @param shortcutsToBeCreatedOrelSourceToBeDeleted is a Multimap by
-     *  reference containging all shortcuts to be added to the original edges
-     *  OrderedRelations
-     * @param currentVToBeContracted the Node ID of the vertex t to contracted
-     * @param hHop the h-hop-size to be used, will be overwritten
-     *  by @see HL_DEFAULT_H_DEPTH if value < 1
-     * @return true, since the result of this function is the modification
-     *  of shortcutsToBeCreatedOrelSourceToBeDeleted
-     */
+    /*
+    Contract the given node by running a oneHopReverse-Search
+     and a hHopForwardSearch.
+
+    @param edgesWithViaOrelSource is an OrderedRelation containging all
+     edges of the underlying graph sorted by the field Source
+    @param edgesWithViaOrelTarget is an OrderedRelation containging all
+     edges of the underlying graph sorted by the field Target
+    @param shortcutsToBeCreatedOrelSourceToBeDeleted is a Multimap by
+     reference containging all shortcuts to be added to the original edges
+     OrderedRelations
+    @param currentVToBeContracted the Node ID of the vertex t to contracted
+    @param hHop the h-hop-size to be used, will be overwritten
+     by @see HL_DEFAULT_H_DEPTH if value < 1
+    @return true, since the result of this function is the modification
+     of shortcutsToBeCreatedOrelSourceToBeDeleted
+
+    */
     bool hlDoContraction(OrderedRelation*
                          edgesWithViaOrelSource,
                          OrderedRelation* edgesWithViaOrelTarget,
@@ -2091,19 +2568,25 @@ public:
                          &shortcutsToBeCreatedOrelSourceToBeDeleted,
                          CcInt* currentVToBeContracted, int hHop) const
     {
-        Debug("start hlDoContraction" << endl);
+        #ifdef USEDEBUG
+LogDebug("start hlDoContraction" << endl);
+#endif
 
         //Reverse search
         std::multimap<int, std::tuple<int, double>>
                 oneHopReverseMultiMap; //XXTODO: ist diese zuweisung ein
                 // Problem in Bezug auf Daten aus vorherigen Iterationen?
 
-        Debug("do hlOneHopReverseSearch" << endl);
+        #ifdef USEDEBUG
+LogDebug("do hlOneHopReverseSearch" << endl);
+#endif
         hlOneHopReverseSearch(edgesWithViaOrelSource,
                               edgesWithViaOrelTarget, currentVToBeContracted,
                               oneHopReverseMultiMap);
 
-        Debug("do hlHHopForwardSearch" << endl);
+        #ifdef USEDEBUG
+LogDebug("do hlHHopForwardSearch" << endl);
+#endif
         hlHHopForwardSearch(edgesWithViaOrelSource,
                             edgesWithViaOrelTarget, oneHopReverseMultiMap,
                             currentVToBeContracted,
@@ -2111,35 +2594,40 @@ public:
 
         oneHopReverseMultiMap.clear();
 
-        Debug("finish hlDoContraction" << endl);
+        #ifdef USEDEBUG
+LogDebug("finish hlDoContraction" << endl);
+#endif
         return true;
     }
 
 
 
-    /**
-     * Adds all shortcuts from shortcutsToBeCreatedOrelSourceToBeDeleted to
-     *  the original edges OrderedRelations
-     *  edgesWithViaOrelSource and edgesWithViaOrelTarget
-     *
-     * @param edgesWithViaOrelSource is an OrderedRelation containging all
-     *  edges of the underlying graph sorted by the field Source
-     * @param edgesWithViaOrelTarget is an OrderedRelation containging all
-     *  edges of the underlying graph sorted by the field Target
-     * @param shortcutsToBeCreatedOrelSourceToBeDeleted is a Multimap by
-     *  reference containging all shortcuts to be added to the original edges
-     *  OrderedRelations
-     * @return true, since the result of this function is the modification of
-     *  edgesWithViaOrelSource and edgesWithViaOrelTarget
-     */
+    /*
+    Adds all shortcuts from shortcutsToBeCreatedOrelSourceToBeDeleted to
+     the original edges OrderedRelations
+     edgesWithViaOrelSource and edgesWithViaOrelTarget
+
+    @param edgesWithViaOrelSource is an OrderedRelation containging all
+     edges of the underlying graph sorted by the field Source
+    @param edgesWithViaOrelTarget is an OrderedRelation containging all
+     edges of the underlying graph sorted by the field Target
+    @param shortcutsToBeCreatedOrelSourceToBeDeleted is a Multimap by
+     reference containging all shortcuts to be added to the original edges
+     OrderedRelations
+    @return true, since the result of this function is the modification of
+     edgesWithViaOrelSource and edgesWithViaOrelTarget
+
+    */
     bool hlAddShortcutsToEdgesRelations(
         OrderedRelation* edgesWithViaOrelSource,
         OrderedRelation* edgesWithViaOrelTarget,
         std::multimap<int, std::tuple<int, double, int>>
         &shortcutsToBeCreatedOrelSourceToBeDeleted) const
     {
-        Debug("start hlAddShortcutsToEdgesRelations" <<
+        #ifdef USEDEBUG
+LogDebug("start hlAddShortcutsToEdgesRelations" <<
               endl);
+#endif
 
         for (std::multimap<int, std::tuple<int, double, int>>::iterator
                 shortcutsIter =
@@ -2162,12 +2650,13 @@ public:
                 std::get<HL_INDEX_OF_DIST_IN_SHORTCUT_TUPLE - 1>
                 (currTuple);
 
-            Debug("build next inputtuple (" << currentSource
+            #ifdef USEDEBUG
+LogDebug("build next inputtuple (" << currentSource
                   << ", " << currentTarget << ")" << endl);
+#endif
 
             ListExpr relTypeSource;
-            nl->ReadFromString(hlGetEdgesOrelSourceTypeInfo(),
-                               relTypeSource);
+            nl->ReadFromString(hlGetEdgesOrelSourceTypeInfo(), relTypeSource);
             ListExpr tupleNumTypeSource =
                 SecondoSystem::GetCatalog()->NumericType(
                     nl->Second(relTypeSource));
@@ -2211,49 +2700,62 @@ public:
                 HL_INDEX_OF_PARENT_ID_IN_EDGE_TUPLE,
                 new CcInt(true, currentParent));
 
-            Debug("append to edgesWithViaOrelSource" << endl);
+            #ifdef USEDEBUG
+LogDebug("append to edgesWithViaOrelSource" << endl);
+#endif
             edgesWithViaOrelSource->AppendTuple(insertTuple);
 
-            Debug("append to edgesWithViaOrelTarget" << endl);
+            #ifdef USEDEBUG
+LogDebug("append to edgesWithViaOrelTarget" << endl);
+#endif
             edgesWithViaOrelTarget->AppendTuple(insertTuple);
 
             insertTuple->DeleteIfAllowed(); //TODO zu früh gelöscht weil orel
             // wo es appended wurde noch verwendet wird?
             insertTuple = 0;
 
-            Debug("get next tuple" << endl);
+            #ifdef USEDEBUG
+LogDebug("get next tuple" << endl);
+#endif
             //Free Outgoing-Iteration
         }
-        Debug("finish iteration" << endl);
+        #ifdef USEDEBUG
+LogDebug("finish iteration" << endl);
+#endif
 
-        Debug("end hlAddShortcutsToEdgesRelations" <<
+        #ifdef USEDEBUG
+LogDebug("end hlAddShortcutsToEdgesRelations" <<
               endl);
+#endif
         return true;
     }
 
 
-    /**
-     * Removes all incoming and outgoing edges to and from the given node
-     *  v within the given edges orels which are the current temporal
-     *  copies (currentEdgesOrelSource and currentEdgesOrelTarget)
-     *
-     * @param currentEdgesOrelSource is an OrderedRelation containging all
-     *  remaining edges of the underlying graph sorted by the field Source
-     * @param currentEdgesOrelTarget is an OrderedRelation containging all
-     *  remaining edges of the underlying graph sorted by the field Target
-     * @param currentContractedV the current node v which has been contracted
-     *  and for which its incoming and outgoing edges
-     *         shall be deleted within the given edgesOrels Source and Target
-     * @return true, since the result of this function is the modification of
-     *  currentEdgesOrelSource and currentEdgesOrelTarget
-     */
+    /*
+    Removes all incoming and outgoing edges to and from the given node
+     v within the given edges orels which are the current temporal
+     copies (currentEdgesOrelSource and currentEdgesOrelTarget)
+
+    @param currentEdgesOrelSource is an OrderedRelation containging all
+     remaining edges of the underlying graph sorted by the field Source
+    @param currentEdgesOrelTarget is an OrderedRelation containging all
+     remaining edges of the underlying graph sorted by the field Target
+    @param currentContractedV the current node v which has been contracted
+     and for which its incoming and outgoing edges
+            shall be deleted within the given edgesOrels Source and Target
+    @return true, since the result of this function is the modification of
+     currentEdgesOrelSource and currentEdgesOrelTarget
+
+    */
     bool hlRemoveContractedEdgesFromEdgesRelations(
         OrderedRelation* currentEdgesOrelSource,
         OrderedRelation* currentEdgesOrelTarget,
         CcInt* currentContractedV) const
     {
-        Debug("start hlRemoveContractedEdgesFromEdgesRelations"
+        #ifdef USEDEBUG
+            LogDebug("start hlRemoveContractedEdgesFromEdgesRelations"
               << endl);
+        #endif
 
         //Prepare Range scan
         //Create From and to by currentVertexID (=v)
@@ -2264,10 +2766,10 @@ public:
         vecAttrTypesFromFwdV[0] =
             currentContractedV->getSMIKeyType();
         CompositeKey fromFwdV(vecAttributesFromFwdV,
-                              vecAttrTypesFromFwdV, false);
+         vecAttrTypesFromFwdV, false);
 
-        CcInt currentContractedVPlusOneFwdV(true,
-                                    currentContractedV->GetIntval() + 1);
+        CcInt currentContractedVPlusOneFwdV(
+         true, currentContractedV->GetIntval() + 1);
         CcInt* currentVertexIdPlusOnePtrFwdV =
             &currentContractedVPlusOneFwdV;
         std::vector<void*> vecAttributesToFwdV(1);
@@ -2277,16 +2779,17 @@ public:
         vecAttrTypesToFwdV(1);
         vecAttrTypesToFwdV[0] =
             currentVertexIdPlusOnePtrFwdV->getSMIKeyType();
-        CompositeKey toFwdV(vecAttributesToFwdV,
-                            vecAttrTypesToFwdV, false);
+        CompositeKey toFwdV(vecAttributesToFwdV, vecAttrTypesToFwdV, false);
 
 
         vector<Tuple*> tupleVectorToDeleteSource;
         vector<Tuple*> tupleVectorToDeleteTarget;
 
 
-        Debug("remove incoming edges SV" <<
-              endl); //XXTODO: in orelTarget müssten aber auch die
+        #ifdef USEDEBUG
+            LogDebug("remove incoming edges SV" <<
+              endl);
+        #endif //XXTODO: in orelTarget müssten aber auch die
               // ausgehenden Kanten gelöscht werden, dafür wäre aber
               // ein full scan notwendig?!
         GenericRelationIterator* relEdgesTargetIterSV =
@@ -2300,14 +2803,17 @@ public:
             CcInt* currentEdgeTargetTupleSVSourceId =
                 (CcInt*) currentEdgeTargetTupleSV->GetAttribute(
                     HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE);
+
+            #ifdef USEDEBUG
             CcInt* currentEdgeTargetTupleSVTargetId =
                 (CcInt*) currentEdgeTargetTupleSV->GetAttribute(
                     HL_INDEX_OF_TARGET_IN_EDGE_TUPLE);
 
-            Debug("going to delete: (" <<
+                LogDebug("going to delete: (" <<
                   currentEdgeTargetTupleSVSourceId->GetIntval() <<
                   "," << currentEdgeTargetTupleSVTargetId->GetIntval()
                   << ")" << endl);
+            #endif
             //Add tuple to vector
             tupleVectorToDeleteTarget.push_back(
                 currentEdgeTargetTupleSV);
@@ -2327,8 +2833,10 @@ public:
         delete relEdgesTargetIterSV;
 
 
-        Debug("remove outgoing edges VT" <<
-              endl); //XXTOTO: auch eingehende Kanten sollten gelöscht werden?!
+        #ifdef USEDEBUG
+            LogDebug("remove outgoing edges VT" <<
+              endl);
+        #endif //XXTOTO: auch eingehende Kanten sollten gelöscht werden?!
         GenericRelationIterator* relEdgesSourceIterVT =
             currentEdgesOrelSource->MakeRangeScan(fromFwdV,
                     toFwdV);
@@ -2340,14 +2848,17 @@ public:
             CcInt* currentEdgeSourceTupleVTTargetId =
                 (CcInt*) currentEdgeSourceTupleVT->GetAttribute(
                     HL_INDEX_OF_TARGET_IN_EDGE_TUPLE);
-            CcInt* currentEdgeSourceTupleVTSourceId =
-                (CcInt*) currentEdgeSourceTupleVT->GetAttribute(
+
+            #ifdef USEDEBUG
+                CcInt* currentEdgeSourceTupleVTSourceId =
+                    (CcInt*) currentEdgeSourceTupleVT->GetAttribute(
                     HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE);
 
-            Debug("going to delete: (" <<
+                LogDebug("going to delete: (" <<
                   currentEdgeSourceTupleVTSourceId->GetIntval() <<
                   "," << currentEdgeSourceTupleVTTargetId->GetIntval()
                   << ")" << endl);
+            #endif
             //Add tuple to vector
             tupleVectorToDeleteSource.push_back(
                 currentEdgeSourceTupleVT);
@@ -2367,8 +2878,10 @@ public:
         delete relEdgesSourceIterVT;
 
 
-        Debug("iterate tupleVectorToDeleteTarget" <<
+        #ifdef USEDEBUG
+            LogDebug("iterate tupleVectorToDeleteTarget" <<
               endl);
+        #endif
         for (std::vector<Tuple*>::iterator
                 currVectorTargetIter =
                     tupleVectorToDeleteTarget.begin();
@@ -2388,8 +2901,10 @@ public:
         }
 
 
-        Debug("iterate tupleVectorToDeleteSource" <<
+        #ifdef USEDEBUG
+            LogDebug("iterate tupleVectorToDeleteSource" <<
               endl);
+        #endif
         for (std::vector<Tuple*>::iterator
                 currVectorSourceIter =
                     tupleVectorToDeleteSource.begin();
@@ -2405,35 +2920,40 @@ public:
             tmpTuple2 = 0;
         }
 
-        Debug("end hlRemoveContractedEdgesFromEdgesRelations"
+        #ifdef USEDEBUG
+            LogDebug("end hlRemoveContractedEdgesFromEdgesRelations"
               << endl);
+        #endif
         return true;
     }
 
 
-    /**
-     * Searches for still existing edges (s, t) within the given
-     *  OrderedReation currentEdgesOrelSource and currentEdgesOrelTarget
-     *  which run parallel to a shortcut to be added to the same
-     *  OrderedRelations.
-     *
-     * @param currentEdgesOrelSource is an OrderedRelation containging all
-     *  remaining edges of the underlying graph sorted by the field Source
-     * @param currentEdgesOrelTarget is an OrderedRelation containging all
-     *  remaining edges of the underlying graph sorted by the field Target
-     * @param shortcutsToBeCreatedOrelSourceToBeDeleted the shortcuts to be
-     *  added to the orderedRelations
-     * @return true, since the result of this function is the modification
-     *  of currentEdgesOrelSource and currentEdgesOrelTarget
-     */
+    /*
+    Searches for still existing edges (s, t) within the given
+     OrderedReation currentEdgesOrelSource and currentEdgesOrelTarget
+     which run parallel to a shortcut to be added to the same
+     OrderedRelations.
+
+    @param currentEdgesOrelSource is an OrderedRelation containging all
+     remaining edges of the underlying graph sorted by the field Source
+    @param currentEdgesOrelTarget is an OrderedRelation containging all
+     remaining edges of the underlying graph sorted by the field Target
+    @param shortcutsToBeCreatedOrelSourceToBeDeleted the shortcuts to be
+     added to the orderedRelations
+    @return true, since the result of this function is the modification
+     of currentEdgesOrelSource and currentEdgesOrelTarget
+
+    */
     bool hlRemoveParallelEdgesFromEdgesRelations(
         OrderedRelation* currentEdgesOrelSource,
         OrderedRelation* currentEdgesOrelTarget,
         std::multimap<int, std::tuple<int, double, int>>
         shortcutsToBeCreatedOrelSourceToBeDeleted) const
     {
-        Debug("start hlRemoveParallelEdgesFromEdgesRelations"
+        #ifdef USEDEBUG
+            LogDebug("start hlRemoveParallelEdgesFromEdgesRelations"
               << endl);
+        #endif
 
         vector<Tuple*> tupleVectorToDeleteSource;
         vector<Tuple*> tupleVectorToDeleteTarget;
@@ -2452,11 +2972,6 @@ public:
             int currentTarget =
                 std::get<HL_INDEX_OF_TARGET_IN_SHORTCUT_TUPLE -
                 1>(currTuple);
-            //int currentParent =
-            // std::get<HL_INDEX_OF_PARENT_ID_IN_SHORTCUT_TUPLE - 1>(currTuple);
-            double currentCosts =
-                std::get<HL_INDEX_OF_DIST_IN_SHORTCUT_TUPLE - 1>
-                (currTuple);
 
             //Prepare Range scan
             //Create From and to by currentSource (=s)
@@ -2487,23 +3002,15 @@ public:
             CompositeKey toSource(vecAttributesToSource,
                                   vecAttrTypesToSource, false);
 
-            GenericRelationIterator*
-            currentEdgesOrelSourceIter =
-                currentEdgesOrelSource->MakeRangeScan(fromSource,
-                        toSource);
+            GenericRelationIterator* currentEdgesOrelSourceIter =
+                currentEdgesOrelSource->MakeRangeScan(fromSource, toSource);
             Tuple* currentEdgesOrelSourceTuple =
                 currentEdgesOrelSourceIter->GetNextTuple();
             while(currentEdgesOrelSourceTuple)
             {
-                CcInt* currentEdgesOrelSourceTupleSourceId =
-                    (CcInt*) currentEdgesOrelSourceTuple->GetAttribute(
-                        HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE);
                 CcInt* currentEdgesOrelSourceTupleTargetId =
                     (CcInt*) currentEdgesOrelSourceTuple->GetAttribute(
                         HL_INDEX_OF_TARGET_IN_EDGE_TUPLE);
-                CcReal* currentEdgesOrelSourceTupleDist =
-                    (CcReal*) currentEdgesOrelSourceTuple->GetAttribute(
-                        HL_INDEX_OF_COSTS_IN_EDGE_TUPLE);
 
 
                 //If there is a parallel edge it should be
@@ -2511,13 +3018,21 @@ public:
                 if(currentEdgesOrelSourceTupleTargetId->GetIntval()
                         == currentTarget)
                 {
-                    Debug("remove incoming edges ST: (" <<
+                    #ifdef USEDEBUG
+                        CcInt* currentEdgesOrelSourceTupleSourceId =
+                            (CcInt*) currentEdgesOrelSourceTuple->GetAttribute(
+                            HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE);
+                        CcReal* currentEdgesOrelSourceTupleDist =
+                            (CcReal*) currentEdgesOrelSourceTuple->GetAttribute(
+                            HL_INDEX_OF_COSTS_IN_EDGE_TUPLE);
+                        LogDebug("remove incoming edges ST: (" <<
                           currentEdgesOrelSourceTupleSourceId->GetIntval()
                           << ", " <<
                           currentEdgesOrelSourceTupleTargetId->GetIntval()
                           << ", " <<
                           currentEdgesOrelSourceTupleDist->GetRealval() <<
                           ")"<< endl);
+                    #endif
                     tupleVectorToDeleteSource.push_back(
                         currentEdgesOrelSourceTuple);
 
@@ -2570,25 +3085,27 @@ public:
                 CcInt* currentEdgesOrelTargetTupleSourceId =
                     (CcInt*) currentEdgesOrelTargetTuple->GetAttribute(
                         HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE);
-                CcInt* currentEdgesOrelTargetTupleTargetId =
-                    (CcInt*) currentEdgesOrelTargetTuple->GetAttribute(
-                        HL_INDEX_OF_TARGET_IN_EDGE_TUPLE);
-                CcReal* currentEdgesOrelTargetTupleDist =
-                    (CcReal*) currentEdgesOrelTargetTuple->GetAttribute(
-                        HL_INDEX_OF_COSTS_IN_EDGE_TUPLE);
 
                 //If there is a parallel edge it should be
                 // removed from the working-graph
                 if(currentEdgesOrelTargetTupleSourceId->GetIntval()
                         == currentSource)
                 {
-                    Debug("remove incoming edges ST: (" <<
+                    #ifdef USEDEBUG
+                        CcInt* currentEdgesOrelTargetTupleTargetId =
+                            (CcInt*) currentEdgesOrelTargetTuple->GetAttribute(
+                            HL_INDEX_OF_TARGET_IN_EDGE_TUPLE);
+                        CcReal* currentEdgesOrelTargetTupleDist =
+                            (CcReal*) currentEdgesOrelTargetTuple->GetAttribute(
+                            HL_INDEX_OF_COSTS_IN_EDGE_TUPLE);
+                        LogDebug("remove incoming edges ST: (" <<
                           currentEdgesOrelTargetTupleSourceId->GetIntval()
                           << ", " <<
                           currentEdgesOrelTargetTupleTargetId->GetIntval()
                           << ", " <<
                           currentEdgesOrelTargetTupleDist->GetRealval() <<
                           ")"<< endl);
+                    #endif
                     tupleVectorToDeleteTarget.push_back(
                         currentEdgesOrelTargetTuple);
 
@@ -2603,8 +3120,10 @@ public:
         }
 
 
-        Debug("iterate tupleVectorToDeleteSource" <<
+        #ifdef USEDEBUG
+            LogDebug("iterate tupleVectorToDeleteSource" <<
               endl);
+        #endif
         for (vector<Tuple*>::iterator currVectorSourceIter
                 = tupleVectorToDeleteSource.begin();
                 currVectorSourceIter !=
@@ -2618,8 +3137,10 @@ public:
             tmpTuple2 = 0;
         }
 
-        Debug("iterate tupleVectorToDeleteTarget" <<
+        #ifdef USEDEBUG
+            LogDebug("iterate tupleVectorToDeleteTarget" <<
               endl);
+        #endif
         for (vector<Tuple*>::iterator currVectorTargetIter
                 = tupleVectorToDeleteTarget.begin();
                 currVectorTargetIter !=
@@ -2633,44 +3154,47 @@ public:
             tmpTuple = 0;
         }
 
-        Debug("end hlRemoveParallelEdgesFromEdgesRelations"
+        #ifdef USEDEBUG
+            LogDebug("end hlRemoveParallelEdgesFromEdgesRelations"
               << endl);
+        #endif
         return true;
     }
 
 
 
-    /**
-     * Scans one of the given Orels (depending on scanBySourceOrTarget) for
-     *  the given currentNodeSourceOrTarget and only processes if the opposite
-     *  endpoint is v.
-     * If so stores the edge-tuple into the given vector.
-     * Scenario:
-     *  If the outer iteration scanned hlEdgesOrelSource (which gets outgoing
-     *  edges from v; outer iteration) then scanBySourceOrTarget shall be set
-     *  to false.
-     *  In this case currentEdgesOrelSourceOrTarget is equal to
-     *  hlEdgesOrelTarget.
-     *  Furthermore this function scans currentEdgesOrelSourceOrTarget by
-     *  the given targetNode t (inner iteration).
-     *  For each edge within the inner iteration the function checks whether
-     *  the sourceNodeId is equal to the given nodeIdV.
-     *  If so the current tuple is stored into the given vector and the inner
-     *  iteration will be aborted.
-     *
-     * @param currentEdgesOrelSourceOrTarget is an OrderedRelation containging
-     *  all remaining edges of the underlying graph sorted by the field Source
-     * @param currentNodeIdV the current contracted node which is used to find
-     *  only edges incoming to or outgoinf from v
-     * @param currentNodeSourceOrTarget the current source or target node which
-     *  is used to find edges within the opposite orderedRelation
-     * @param currentVector the current vector by reference where to store the
-     *  tuples into found by this function
-     * @param scanBySourceOrTarget a boolean to differ whether to scan by
-     *  source (=true) oder by target (=false)
-     * @return true, since the result of this function is the modification
-     *  of currentEdgesOrelSource and currentEdgesOrelTarget
-     */
+    /*
+    Scans one of the given Orels (depending on scanBySourceOrTarget) for
+     the given currentNodeSourceOrTarget and only processes if the opposite
+     endpoint is v.
+    If so stores the edge-tuple into the given vector.
+    Scenario:
+     If the outer iteration scanned hlEdgesOrelSource (which gets outgoing
+     edges from v; outer iteration) then scanBySourceOrTarget shall be set
+     to false.
+     In this case currentEdgesOrelSourceOrTarget is equal to
+     hlEdgesOrelTarget.
+     Furthermore this function scans currentEdgesOrelSourceOrTarget by
+     the given targetNode t (inner iteration).
+     For each edge within the inner iteration the function checks whether
+     the sourceNodeId is equal to the given nodeIdV.
+     If so the current tuple is stored into the given vector and the inner
+     iteration will be aborted.
+
+    @param currentEdgesOrelSourceOrTarget is an OrderedRelation containging
+     all remaining edges of the underlying graph sorted by the field Source
+    @param currentNodeIdV the current contracted node which is used to find
+     only edges incoming to or outgoinf from v
+    @param currentNodeSourceOrTarget the current source or target node which
+     is used to find edges within the opposite orderedRelation
+    @param currentVector the current vector by reference where to store the
+     tuples into found by this function
+    @param scanBySourceOrTarget a boolean to differ whether to scan by
+     source (=true) oder by target (=false)
+    @return true, since the result of this function is the modification
+     of currentEdgesOrelSource and currentEdgesOrelTarget
+
+    */
     bool hlRemoveContractedEdgesFromEdgesRelationsScanOppositeOrel(
         OrderedRelation* currentEdgesOrelSourceOrTarget,
         int currentNodeIdV,
@@ -2678,8 +3202,10 @@ public:
         vector<Tuple*> &currentVector,
         bool scanBySourceOrTarget) const
     {
-        Debug("start hlRemoveContractedEdgesFromEdgesRelationsScanOppositeOrel"
+        #ifdef USEDEBUG
+LogDebug("start hlRemoveContractedEdgesFromEdgesRelationsScanOppositeOrel"
               << endl);
+#endif
 
         //Prepare Range scan
         //Create From and to by currentNodeSourceOrTarget
@@ -2734,8 +3260,10 @@ public:
                     currentNodeIdV)
             {
                 //only add tuple if edge really is connected to v
-                Debug("pushback: " <<
+                #ifdef USEDEBUG
+LogDebug("pushback: " <<
                       currentSourceOrTargetNodeId->GetIntval() << endl);
+#endif
                 currentVector.push_back(
                     currentEdgeSourceOrTargetTuple);
             }
@@ -2750,8 +3278,10 @@ public:
         }
         delete currentEdgesOrelSourceOrTargetIter;
 
-        Debug("end hlRemoveContractedEdgesFromEdgesRelationsScanOppositeOrel"
+        #ifdef USEDEBUG
+LogDebug("end hlRemoveContractedEdgesFromEdgesRelationsScanOppositeOrel"
               << endl);
+#endif
         return true;
     }
 
@@ -2764,12 +3294,13 @@ public:
         return "ReverseLabel";
     }
 
-    /**
-     * NestedRelation type for the set containing all labels.
-     * Used for creation of new NestedRelations,
-     *  new Tuples of this NestedRelations
-     *  or cloning or deleting of an NestedRelations of this type
-     */
+    /*
+    NestedRelation type for the set containing all labels.
+    Used for creation of new NestedRelations,
+     new Tuples of this NestedRelations
+     or cloning or deleting of an NestedRelations of this type
+
+    */
     static const string hlGetAllLabelsTypeInfo()
     {
         return "(" + NestedRelation::BasicType() +
@@ -2785,12 +3316,13 @@ public:
                ")";
     }
 
-    /**
-     * Relation type for forward and reverse labels.
-     * Used for creation of new Relation Objects representing
-     *  a forward or reverse label.
-     * Used for Testing-Operator
-     */
+    /*
+    Relation type for forward and reverse labels.
+    Used for creation of new Relation Objects representing
+     a forward or reverse label.
+    Used for Testing-Operator
+
+    */
     static const string
     hlGetForwardOrReverseLabelTypeInfo()
     {
@@ -2799,12 +3331,13 @@ public:
                ")";
     }
 
-    /**
-     * AttributeRelation type for forward and reverse labels.
-     * Used for creation of new AttributeRelation Objects, new
-     *  Tuples of this AttributeRelation
-     *  or cloning or deleting of an AttributeRelation of this type
-     */
+    /*
+    AttributeRelation type for forward and reverse labels.
+    Used for creation of new AttributeRelation Objects, new
+     Tuples of this AttributeRelation
+     or cloning or deleting of an AttributeRelation of this type
+
+    */
     static const string
     hlGetForwardOrReverseLabelArelTypeInfo() //XXTODO: geht das?
     {
@@ -2813,11 +3346,12 @@ public:
                ")";
     }
 
-    /**
-     * Tuple type for forward and reverse labels.
-     * Used for creation of new Relation Objects, new Tuples of this Relation
-     *  or cloning or deleting of an Relation of this type
-     */
+    /*
+    Tuple type for forward and reverse labels.
+    Used for creation of new Relation Objects, new Tuples of this Relation
+     or cloning or deleting of an Relation of this type
+
+    */
     static const string
     hlGetForwardOrReverseLabelTupleTypeInfo()
     {
@@ -2834,9 +3368,9 @@ public:
                ")";
     }
 
-    /**
-     * Definition of Field-Indexes for NestedRelation allLabels
-     */
+    /*
+    Definition of Field-Indexes for NestedRelation allLabels
+/
     static const int
     HL_INDEX_OF_NODE_ID_IN_ALL_LABELS_TUPLE = 0;
     static const int
@@ -2844,9 +3378,9 @@ public:
     static const int
     HL_INDEX_OF_REVERSE_LABEL_IN_ALL_LABELS_TUPLE = 2;
 
-    /**
-     * Definition of Field-Indexes for AttributeRelation forwardOrReverseLabel
-     */
+    /*
+    Definition of Field-Indexes for AttributeRelation forwardOrReverseLabel
+/
     static const int
     HL_INDEX_OF_HUB_NODE_ID_NEW_IN_LABEL_TUPLE = 0;
     static const int
@@ -2863,22 +3397,22 @@ public:
 
 
 
-    /**
-     * Creates a Lable (either forward or reverse) for every node
-     *  in nodesRankedDescOrelRank.
-     *
-     * @param allLabelsNrel is an NestedRelation representing the result
-     *  of this operator
-     * @param nodesRankedDescOrelRank is an OrderedRelation containging all
-     *  nodes of the underlying graph sorted by the field NodeIdNew
-     * @param edgesContractedUpwardsOrelSource is an OrderedRelation
-     *  containging all edges of the underlying graph sorted by the field Source
-     * @param edgesContractedDownwardsOrelTarget is an OrderedRelation
-     *  containging all edges of the underlying graph sorted by the field Target
-     * @param hHop is a an integer which defines the h-Hop-Size used for
-     *  local look-up queries which is used for stalling on demand
-     * @return true since the result is stored in the gviven allLabelsNrel
-     */
+    /*
+    Creates a Lable (either forward or reverse) for every node
+     in nodesRankedDescOrelRank.
+
+    @param allLabelsNrel is an NestedRelation representing the result
+     of this operator
+    @param nodesRankedDescOrelRank is an OrderedRelation containging all
+     nodes of the underlying graph sorted by the field NodeIdNew
+    @param edgesContractedUpwardsOrelSource is an OrderedRelation
+     containging all edges of the underlying graph sorted by the field Source
+    @param edgesContractedDownwardsOrelTarget is an OrderedRelation
+     containging all edges of the underlying graph sorted by the field Target
+    @param hHop is a an integer which defines the h-Hop-Size used for
+     local look-up queries which is used for stalling on demand
+    @return true since the result is stored in the gviven allLabelsNrel
+/
     bool hlCreateLabels(NestedRelation* allLabelsNrel,
                         BTree* bTreeNodesRankedDescOrelRank,
                         OrderedRelation* nodesRankedDescOrelRank,
@@ -2887,11 +3421,15 @@ public:
                         edgesContractedDownwardsOrelTarget,
                         int hHop) const
     {
-        Debug("start hlCreateLabels" << endl);
+        #ifdef USEDEBUG
+LogDebug("start hlCreateLabels" << endl);
+#endif
 
-        Debug("create forward and reverse relation containing label-data"
+        #ifdef USEDEBUG
+LogDebug("create forward and reverse relation containing label-data"
          " used by all single forward and reverse labels"
               << endl);
+#endif
         SubRelation* forwardDataSubRel =
             allLabelsNrel->getSubRel(
                 hlForwardLabelColumnName());
@@ -2912,7 +3450,9 @@ public:
         Relation* forwardDataRel = forwardDataSubRel->rel;
         Relation* reverseDataRel = reverseDataSubRel->rel;
 
-        Debug("do while" << endl);
+        #ifdef USEDEBUG
+LogDebug("do while" << endl);
+#endif
         GenericRelationIterator* nodesRankIter =
             nodesRankedDescOrelRank->MakeScan();
             //XXTODO: iteration in der iteration???
@@ -2921,13 +3461,17 @@ public:
 
         while(currentNodeV)
         {
-            Debug("next iteration" << endl);
+            #ifdef USEDEBUG
+LogDebug("next iteration" << endl);
+#endif
 
             CcInt* nodeIdV = (CcInt*)
                              currentNodeV->GetAttribute(
                                  HL_INDEX_OF_ID_IN_NODES_RANKED);
 
-            Debug("prepare NestedRelationTuple" << endl);
+            #ifdef USEDEBUG
+LogDebug("prepare NestedRelationTuple" << endl);
+#endif
 
             TupleType* tupleTypeAllLabels =
                 allLabelsNrel->getPrimary()->GetTupleType();
@@ -2937,8 +3481,10 @@ public:
                 HL_INDEX_OF_NODE_ID_IN_ALL_LABELS_TUPLE,
                 new CcInt(true, nodeIdV->GetIntval()));
 
-            Debug("forward  and reverse label multimaps" <<
+            #ifdef USEDEBUG
+LogDebug("forward  and reverse label multimaps" <<
                   endl);
+#endif
             std::multimap<int, std::tuple<int, int, double>>
                     labelForwardMultimap;
             std::multimap<int, std::tuple<int, int, double>>
@@ -2946,17 +3492,23 @@ public:
 
             bool isForward = true;
             //Create forward label
-            Debug("create forward label" << endl);
+            #ifdef USEDEBUG
+LogDebug("create forward label" << endl);
+#endif
             hlCreateLabelByDijkstraWithStalling(
                 bTreeNodesRankedDescOrelRank,
                 nodesRankedDescOrelRank,
                 edgesContractedUpwardsOrelSource,
                 edgesContractedDownwardsOrelTarget,
                 labelForwardMultimap, nodeIdV, hHop, isForward);
-            Debug("fully prune forward label" << endl);
+            #ifdef USEDEBUG
+LogDebug("fully prune forward label" << endl);
+#endif
             //hlPruneLabelByBootstrapping(allLabelsNrel,
             // labelForwardMultimap, nodeIdV, isForward);
-            Debug("create and fill forwardLabel");
+            #ifdef USEDEBUG
+LogDebug("create and fill forwardLabel" << endl);
+#endif
             AttributeRelation* labelForwardArel = new
             AttributeRelation(forwardDataSubRelFileId,
                               forwardDataSubRelTypeInfo,
@@ -2964,24 +3516,32 @@ public:
             labelForwardArel->setPartOfNrel(true);
             hlFillForwardOrReverseLabel(labelForwardArel,
                                         forwardDataRel, labelForwardMultimap);
-            Debug("add forward label to all labels" << endl);
+            #ifdef USEDEBUG
+LogDebug("add forward label to all labels" << endl);
+#endif
             allLabelsTuple->PutAttribute(
                 HL_INDEX_OF_FORWARD_LABEL_IN_ALL_LABELS_TUPLE,
                 labelForwardArel);
 
             //Create reverse label
             isForward = false;
-            Debug("create reverse label" << endl);
+            #ifdef USEDEBUG
+LogDebug("create reverse label" << endl);
+#endif
             hlCreateLabelByDijkstraWithStalling(
                 bTreeNodesRankedDescOrelRank,
                 nodesRankedDescOrelRank,
                 edgesContractedUpwardsOrelSource,
                 edgesContractedDownwardsOrelTarget,
                 labelReverseMultimap, nodeIdV, hHop, isForward);
-            Debug("fully prune reverse label" << endl);
+            #ifdef USEDEBUG
+            LogDebug("fully prune reverse label" << endl);
+            #endif
             //hlPruneLabelByBootstrapping(allLabelsNrel,
             // labelReverseMultimap, nodeIdV, isForward);
-            Debug("create and fill reverseLabel");
+            #ifdef USEDEBUG
+            LogDebug("create and fill reverseLabel" << endl);
+            #endif
             AttributeRelation* labelReverseArel = new
             AttributeRelation(reverseDataSubRelFileId,
                               reverseDataSubRelTypeInfo,
@@ -2990,12 +3550,16 @@ public:
             hlFillForwardOrReverseLabel(labelReverseArel,
                                         reverseDataRel, labelReverseMultimap);
 
-            Debug("add forward label to all labels" << endl);
+            #ifdef USEDEBUG
+            LogDebug("add reverse label to all labels" << endl);
+            #endif
             allLabelsTuple->PutAttribute(
                 HL_INDEX_OF_REVERSE_LABEL_IN_ALL_LABELS_TUPLE,
                 labelReverseArel);
 
-            Debug("finish current all labels Tuple" << endl);
+            #ifdef USEDEBUG
+            LogDebug("finish current all labels Tuple" << endl);
+            #endif
             allLabelsNrel->getPrimary()->AppendTuple(
                 allLabelsTuple);
 
@@ -3004,7 +3568,9 @@ public:
             allLabelsTuple = 0;
 
 
-            Debug("get next tuple" << endl);
+            #ifdef USEDEBUG
+            LogDebug("get next tuple" << endl);
+            #endif
             //Free Outgoing-Iteration
             currentNodeV->DeleteIfAllowed();
             currentNodeV = 0;
@@ -3013,35 +3579,41 @@ public:
 
         delete nodesRankIter;
 
-        Debug("reorder labels" << endl);
+        #ifdef USEDEBUG
+LogDebug("reorder labels" << endl);
+#endif
         //hlReorderLabels(); //XXTODO
 
-        Debug("finish hlCreateLabels" << endl);
+        #ifdef USEDEBUG
+LogDebug("finish hlCreateLabels" << endl);
+#endif
 
         return true;
     }
 
-    /**
-     * Adds all Hubs of the given Label to the corresponding Attribute-
-     *  and Data-Relation
-     *
-     * @param fwdOrRvsLabelArel is an AttributeRelation to be filled with
-     *  data from the given multimap
-     * @param fwdOrRvsDataRel is an Relation to be filled with data from the
-     *  given multimap
-     * @param fwdOrRvsLabelMultimap is a Multimap containging all final
-     *  Label-Data
-     * @return true, since all modification will be done within the
-     *  given parameters
-     */
+    /*
+    Adds all Hubs of the given Label to the corresponding Attribute-
+     and Data-Relation
+
+    @param fwdOrRvsLabelArel is an AttributeRelation to be filled with
+     data from the given multimap
+    @param fwdOrRvsDataRel is an Relation to be filled with data from the
+     given multimap
+    @param fwdOrRvsLabelMultimap is a Multimap containging all final
+     Label-Data
+    @return true, since all modification will be done within the
+     given parameters
+/
     bool hlFillForwardOrReverseLabel(
         AttributeRelation* fwdOrRvsLabelArel,
         Relation* fwdOrRvsDataRel,
         std::multimap<int, std::tuple<int, int, double>>
         &fwdOrRvsLabelMultimap) const
     {
-        Debug("start hlFillForwardOrReverseLabel" <<
+        #ifdef USEDEBUG
+LogDebug("start hlFillForwardOrReverseLabel" <<
               endl);
+#endif
 
         std::multimap<int, int> tmpIndexTupleIds;
         for (std::multimap<int, std::tuple<int, int, double>>::iterator
@@ -3051,7 +3623,9 @@ public:
                 fwdOrRvsLabelMultimap.end();
                 ++fwdOrRvsLabelMultimapIter)
         {
-            Debug("next iteration" << endl);
+            #ifdef USEDEBUG
+LogDebug("next iteration" << endl);
+#endif
 
             int currNodeIdNew =
                 (*fwdOrRvsLabelMultimapIter).first;
@@ -3064,18 +3638,22 @@ public:
                 std::get<HL_INDEX_OF_HUB_PARENT_NODE_ID_IN_LABEL_TUPLE
                 - 1>(currTuple);
 
-            Debug("currNode rank: " << currNodeIdNew <<
+            #ifdef USEDEBUG
+LogDebug("currNode rank: " << currNodeIdNew <<
                   " id: " << currNodeId << " parent: " <<
                   currParentNodeId << endl);
+#endif
 
             TupleType* tt1 = fwdOrRvsDataRel->GetTupleType();
             Tuple* relInsertTuple = new Tuple(tt1);
 
 
             //get tupleId of currParentNodeId from temporal structure
-            Debug("suche nach parent von " << currParentNodeId
+            #ifdef USEDEBUG
+LogDebug("suche nach parent von " << currParentNodeId
                   << " anzahl gesamt vorhanden: " <<
                   tmpIndexTupleIds.size() << endl);
+#endif
             std::multimap<int, int>::iterator
             parentTupleIdIter = tmpIndexTupleIds.find(
                                     currParentNodeId);
@@ -3086,13 +3664,17 @@ public:
             if(parentTupleIdIter != tmpIndexTupleIds.end())
             {
                 currParentTupleId = (*parentTupleIdIter).second;
-                Debug("parent tupleId found (" <<
+                #ifdef USEDEBUG
+LogDebug("parent tupleId found (" <<
                       currParentTupleId << ") of parent nodeId: " <<
                       currParentNodeId << " for currTuple: " <<
                       currNodeId << endl);
+#endif
             }
 
-            Debug("Add data to Data-Relation" << endl);
+            #ifdef USEDEBUG
+LogDebug("Add data to Data-Relation" << endl);
+#endif
             relInsertTuple->PutAttribute(
                 HL_INDEX_OF_HUB_NODE_ID_NEW_IN_LABEL_TUPLE,
                 new CcInt(true, currNodeIdNew));
@@ -3121,32 +3703,38 @@ public:
             tmpIndexTupleIds.insert(pair<int, int>(currNodeId,
                                                    relInsertTupleId));
 
-            Debug("Free Resources" << endl);
+            #ifdef USEDEBUG
+LogDebug("Free Resources" << endl);
+#endif
             relInsertTuple->DeleteIfAllowed();
         }
 
-        Debug("finish hlFillForwardOrReverseLabel" <<
+        #ifdef USEDEBUG
+LogDebug("finish hlFillForwardOrReverseLabel" <<
               endl);
+#endif
 
         return true;
     }
 
 
-    /**
-     * Scans the nodes Relation for the given nodeId and extracts
-     *  the rank of the node and returns it.
-     *  Returns -1 if no adequate
-     *
-     * @param nodesRanked is an OrderedRelation containging all
-     *  nodes of the graph with their rank
-     * @param givenNodeId is the given nodeId
-     * @return the rank extracted or -1 if no node was found
-     */
+    /*
+    Scans the nodes Relation for the given nodeId and extracts
+     the rank of the node and returns it.
+     Returns -1 if no adequate
+
+    @param nodesRanked is an OrderedRelation containging all
+     nodes of the graph with their rank
+    @param givenNodeId is the given nodeId
+    @return the rank extracted or -1 if no node was found
+/
     int hlGetRankById(BTree* btreeNodesRanked,
                       OrderedRelation* nodesRanked,
                       CcInt* givenNodeId) const
     {
-        Debug("start hlGetRankById" << endl);
+        #ifdef USEDEBUG
+LogDebug("start hlGetRankById" << endl);
+#endif
 
         int resultingRank = -1;
         int tupleIdRankedNodeInt = -1;
@@ -3156,14 +3744,20 @@ public:
 
         if(btreeNodesRankedIter)
         {
-            Debug("using btree iterator" << endl);
+            #ifdef USEDEBUG
+LogDebug("using btree iterator" << endl);
+#endif
             if(btreeNodesRankedIter->Next())
             {
-                Debug("next iterated element" << endl);
+                #ifdef USEDEBUG
+LogDebug("next iterated element" << endl);
+#endif
                 tupleIdRankedNodeInt =
                     btreeNodesRankedIter->GetId();
-                Debug("tupleId: " << tupleIdRankedNodeInt <<
+                #ifdef USEDEBUG
+LogDebug("tupleId: " << tupleIdRankedNodeInt <<
                       endl);
+#endif
             }
             delete btreeNodesRankedIter;
         }
@@ -3177,7 +3771,9 @@ public:
         if(!rankedNodeTuple) //XXTODO Debug/ korrigieren,
         // obiges findet kein tuple
         {
-            Debug("Warning, no tuple found" << endl);
+            #ifdef USEDEBUG
+LogDebug("Warning, no tuple found" << endl);
+#endif
             GenericRelationIterator* nodesRankedIter =
                 nodesRanked->MakeScan();
             Tuple* tmpTuple = nodesRankedIter->GetNextTuple();
@@ -3186,13 +3782,17 @@ public:
 
                 CcInt* tmpId = (CcInt*) tmpTuple->GetAttribute(
                                    HL_INDEX_OF_ID_IN_NODES_RANKED);
-                Debug("next iteration nodeId: " <<
+                #ifdef USEDEBUG
+LogDebug("next iteration nodeId: " <<
                       tmpId->GetIntval() << endl);
+#endif
 
                 if(tmpId->GetIntval() == givenNodeId->GetIntval())
                 {
-                    Debug("right tuple found, going to break" <<
+                    #ifdef USEDEBUG
+LogDebug("right tuple found, going to break" <<
                           endl);
+#endif
                     rankedNodeTuple = tmpTuple;
                     break;
                 }
@@ -3203,46 +3803,54 @@ public:
                     tmpTuple = nodesRankedIter->GetNextTuple();
                 }
             }
-            Debug("finish iteration" << endl);
+            #ifdef USEDEBUG
+LogDebug("finish iteration" << endl);
+#endif
             delete nodesRankedIter;
         }
 
         if(rankedNodeTuple)
         {
-            Debug("tuple found" << endl);
+            #ifdef USEDEBUG
+LogDebug("tuple found" << endl);
+#endif
             CcInt* currentRank = (CcInt*)
                                  rankedNodeTuple->GetAttribute(
                                      HL_INDEX_OF_RANK_IN_NODES_RANKED);
             resultingRank = currentRank->GetIntval();
             rankedNodeTuple->DeleteIfAllowed();
-            Debug("node: " << givenNodeId->GetIntval() <<
+            #ifdef USEDEBUG
+LogDebug("node: " << givenNodeId->GetIntval() <<
                   " rank: "<< currentRank->GetIntval() << endl);
+#endif
         }
 
-        Debug("end hlGetRankById" << endl);
+        #ifdef USEDEBUG
+LogDebug("end hlGetRankById" << endl);
+#endif
 
         return resultingRank;
     }
 
 
-    /**
-     * Creates a Lable (either forward or reverse) for the given source node.
-     *
-     * @param edgesContractedUpwardsOrelSource is an OrderedRelation
-     *  containging all edges of the underlying graph sorted by the field Source
-     * @param edgesContractedDownwardsOrelTarget is an OrderedRelation
-     *  containging all edges of the underlying graph sorted by the field Target
-     * @param fwdOrRvsLabelMultimap must be an empty Multimap representing the
-     *  label which will be filled by this method
-     * @param givenSourceIdS is the vertext ID of the current source node s for
-     *  which the labels shall be created
-     * @param hHop is a an integer which defines the h-Hop-Size used for local
-     *  look-up queries which is used for stalling on demand
-     * @param isForward is a boolean that indicates whether a forward or
-     *  reverselabel shall be created
-     * @return true since the result of this method is storen into
-     *  fwdOrRvsLabelMultimap
-     */
+    /*
+    Creates a Lable (either forward or reverse) for the given source node.
+
+    @param edgesContractedUpwardsOrelSource is an OrderedRelation
+     containging all edges of the underlying graph sorted by the field Source
+    @param edgesContractedDownwardsOrelTarget is an OrderedRelation
+     containging all edges of the underlying graph sorted by the field Target
+    @param fwdOrRvsLabelMultimap must be an empty Multimap representing the
+     label which will be filled by this method
+    @param givenSourceIdS is the vertext ID of the current source node s for
+     which the labels shall be created
+    @param hHop is a an integer which defines the h-Hop-Size used for local
+     look-up queries which is used for stalling on demand
+    @param isForward is a boolean that indicates whether a forward or
+     reverselabel shall be created
+    @return true since the result of this method is storen into
+     fwdOrRvsLabelMultimap
+/
     bool hlCreateLabelByDijkstraWithStalling(
         BTree* btreeNodesRanked,
         OrderedRelation* nodesRanked,
@@ -3253,12 +3861,16 @@ public:
         &fwdOrRvsLabelMultimap, CcInt* givenSourceIdS,
         int hHop, bool isForward) const
     {
-        Debug("start hlCreateLabelByDijkstraWithStalling"
+        #ifdef USEDEBUG
+        LogDebug("start hlCreateLabelByDijkstraWithStalling"
               << endl);
+        #endif
         int currRank = -1;
 
-        Debug("insert source node itself into label" <<
+        #ifdef USEDEBUG
+        LogDebug("insert source node itself into label" <<
               endl);
+        #endif
         currRank = hlGetRankById(btreeNodesRanked,
                                  nodesRanked, givenSourceIdS);
         std::tuple<int, int, double> insertTupleSource =
@@ -3268,26 +3880,36 @@ public:
             pair<int, std::tuple<int, int, double>>(currRank,
                     insertTupleSource));
 
-        Debug("create labelNotYetVisitedNodes" << endl);
+        #ifdef USEDEBUG
+LogDebug("create labelNotYetVisitedNodes" << endl);
+#endif
         std::multimap<double, std::tuple<int, int>>
                 labelNotYetVisitedNodes;
 
-        Debug("create stillVisitedNodes" << endl);
+        #ifdef USEDEBUG
+LogDebug("create stillVisitedNodes" << endl);
+#endif
         std::vector<int> labelStillVisitedNodes;
         labelStillVisitedNodes.push_back(
             givenSourceIdS->GetIntval());
 
-        Debug("process initial edges" << endl);
+        #ifdef USEDEBUG
+LogDebug("process initial edges" << endl);
+#endif
         hlCreateLabelScanNewVertices(
             labelNotYetVisitedNodes, labelStillVisitedNodes,
             edgesContractedUpwardsOrelSource,
             edgesContractedDownwardsOrelTarget,
             givenSourceIdS, 0.0, isForward);
 
-        Debug("process iterative edges" << endl);
+        #ifdef USEDEBUG
+LogDebug("process iterative edges" << endl);
+#endif
         while(labelNotYetVisitedNodes.size() > 0)
         {
-            Debug("get next minV" << endl);
+            #ifdef USEDEBUG
+LogDebug("get next minV" << endl);
+#endif
             std::multimap<double, std::tuple<int, int>>::iterator
                     labelNotYetVisitedNodesIter =
                         labelNotYetVisitedNodes.begin();
@@ -3306,16 +3928,22 @@ public:
                                                    currMinVNodeId);
                                                     //zwingend per new erzeugen?
 
-            Debug("remove tuple from orel" << endl);
+            #ifdef USEDEBUG
+LogDebug("remove tuple from orel" << endl);
+#endif
             labelNotYetVisitedNodes.erase(
                 labelNotYetVisitedNodesIter);
 
-            Debug("Add to still visited Nodes" << endl);
+            #ifdef USEDEBUG
+LogDebug("Add to still visited Nodes" << endl);
+#endif
             labelStillVisitedNodes.push_back(currMinVNodeId);
 
-            Debug("check for witness before inserting by doing"
+            #ifdef USEDEBUG
+LogDebug("check for witness before inserting by doing"
              " h-Hop-Reverse-Search"
                   << endl);
+#endif
             bool isPruned = hlCreateLabelCheckForWitness(
                                 fwdOrRvsLabelMultimap,
                                 edgesContractedUpwardsOrelSource,
@@ -3325,7 +3953,9 @@ public:
 
             if(!isPruned)
             {
-                Debug("append tuple to label" << endl);
+                #ifdef USEDEBUG
+LogDebug("append tuple to label" << endl);
+#endif
                 currRank = -1;
                 currRank = hlGetRankById(btreeNodesRanked,
                                          nodesRanked, currMinVNodeIdCcInt);
@@ -3336,7 +3966,9 @@ public:
                     pair<int, std::tuple<int, int, double>>(currRank,
                             insertTupleLabel));
 
-                Debug("scan new vertices" << endl);
+                #ifdef USEDEBUG
+LogDebug("scan new vertices" << endl);
+#endif
                 hlCreateLabelScanNewVertices(
                     labelNotYetVisitedNodes, labelStillVisitedNodes,
                     edgesContractedUpwardsOrelSource,
@@ -3348,35 +3980,37 @@ public:
                 true); //TODO: notwendig? bei getAttribute auch nicht notwendig
         }
 
-        Debug("finish hlCreateLabelByDijkstraWithStalling"
+        #ifdef USEDEBUG
+LogDebug("finish hlCreateLabelByDijkstraWithStalling"
               << endl);
+#endif
 
         return true;
     }
 
 
 
-    /**
-     * Scans for new vertices during dijkstra forward or reverse search used
-     *  to create labels
-     *
-     * @param labelNotYetVisitedNodes is a Multimap by reference storing the
-     *  vertices which are not yet visited by the dijkstra search
-     * @param labelStillVisitedNodes is a vector by reference storing the
-     *  vertices which are still visited by the dijkstra search
-     * @param edgesContractedUpwardsOrelSource is an OrderedRelation
-     *  containging all edges of the underlying graph sorted by the field Source
-     * @param edgesContractedDownwardsOrelTarget is an OrderedRelation
-     *  containging all edges of the underlying graph sorted by the field Target
-     * @param givenSourceIdV is the vertext ID of the current source node v
-     *  which was chosen as next vertex during dijkstra search
-     * @param givenDistSV contains the weighted distance from the original
-     *  source s to the current given node v
-     * @param isForward is a boolean that indicates whether a forward or
-     *  reverselabel shall be created
-     * @return true since the result of this method is stored into
-     *  labelNotYetVisitedNodes
-     */
+    /*
+    Scans for new vertices during dijkstra forward or reverse search used
+     to create labels
+
+    @param labelNotYetVisitedNodes is a Multimap by reference storing the
+     vertices which are not yet visited by the dijkstra search
+    @param labelStillVisitedNodes is a vector by reference storing the
+     vertices which are still visited by the dijkstra search
+    @param edgesContractedUpwardsOrelSource is an OrderedRelation
+     containging all edges of the underlying graph sorted by the field Source
+    @param edgesContractedDownwardsOrelTarget is an OrderedRelation
+     containging all edges of the underlying graph sorted by the field Target
+    @param givenSourceIdV is the vertext ID of the current source node v
+     which was chosen as next vertex during dijkstra search
+    @param givenDistSV contains the weighted distance from the original
+     source s to the current given node v
+    @param isForward is a boolean that indicates whether a forward or
+     reverselabel shall be created
+    @return true since the result of this method is stored into
+     labelNotYetVisitedNodes
+/
     bool hlCreateLabelScanNewVertices(
         std::multimap<double, std::tuple<int, int>>
         &labelNotYetVisitedNodes,
@@ -3387,10 +4021,14 @@ public:
         CcInt* givenSourceIdV, double givenDistSV,
         bool isForward) const
     {
-        Debug("Start hlCreateLabelScanNewVertices with isForward = "
+        #ifdef USEDEBUG
+LogDebug("Start hlCreateLabelScanNewVertices with isForward = "
               << isForward << endl);
+#endif
 
-        Debug("prepare iteration" << endl);
+        #ifdef USEDEBUG
+LogDebug("prepare iteration" << endl);
+#endif
         //iterate over all outgoing edges (v, w) (on forward search,
         // vice versa else)
         //Prepare Range scan
@@ -3423,16 +4061,20 @@ public:
         Tuple* currentContractedEdgeVW;
         if(isForward)
         {
-            Debug("get outgoing edges (v, w) within upwardsgraph"
+            #ifdef USEDEBUG
+LogDebug("get outgoing edges (v, w) within upwardsgraph"
                   << endl);
+#endif
             edgesContractedUpOrDownOrelSourceOrTargetIter =
                 edgesContractedUpwardsOrelSource->MakeRangeScan(
                     fromSourceV, toSourceV);
         }
         else
         {
-            Debug("get incoming edges (w, v) within downwardsgraph"
+            #ifdef USEDEBUG
+LogDebug("get incoming edges (w, v) within downwardsgraph"
                   << endl);
+#endif
             edgesContractedUpOrDownOrelSourceOrTargetIter =
                 edgesContractedDownwardsOrelTarget->MakeRangeScan(
                     fromSourceV, toSourceV);
@@ -3440,12 +4082,16 @@ public:
         currentContractedEdgeVW =
             edgesContractedUpOrDownOrelSourceOrTargetIter->GetNextTuple();
 
-        Debug("iterate and store outgoing/ incoming egdes (v, w)/ (w, v)"
+        #ifdef USEDEBUG
+LogDebug("iterate and store outgoing/ incoming egdes (v, w)/ (w, v)"
          " into labelNotYetVisited"
               << endl);
+#endif
         while(currentContractedEdgeVW)
         {
-            Debug("next iteration" << endl);
+            #ifdef USEDEBUG
+LogDebug("next iteration" << endl);
+#endif
             CcInt* currentSourceOrTargetW;
             if(isForward)
             {
@@ -3465,7 +4111,9 @@ public:
                          currentSourceOrTargetW->GetIntval()) ==
                     labelStillVisitedNodes.end())
             {
-                Debug("append tuple to labelNotYet" << endl);
+                #ifdef USEDEBUG
+LogDebug("append tuple to labelNotYet" << endl);
+#endif
 
                 //create auxiliary data
                 //hopDepth is set to -1 because it doesnt matter but its
@@ -3479,7 +4127,9 @@ public:
                 //isHHop = false means to use the parentsNodeId
                 // instead of the parentsHopDepth to store within notYet
                 bool isHHop = false;
-                Debug("insert or update" << endl);
+                #ifdef USEDEBUG
+LogDebug("insert or update" << endl);
+#endif
                 //Either insert the new scanned W/V into not visited
                 // list or update it if it sill exists and has a shorter
                 // path via current v
@@ -3487,53 +4137,61 @@ public:
                         currParentNotYetMultimapTuple,
                         currentContractedEdgeVW, labelNotYetVisitedNodes,
                         isForward, isHHop);
-                Debug("inserted or updated" << endl);
+                #ifdef USEDEBUG
+LogDebug("inserted or updated" << endl);
+#endif
             }
 
-            Debug("get next tuple" << endl);
+            #ifdef USEDEBUG
+LogDebug("get next tuple" << endl);
+#endif
             //Free Outgoing-Iteration
             currentContractedEdgeVW->DeleteIfAllowed();
             currentContractedEdgeVW = 0;
             currentContractedEdgeVW =
                 edgesContractedUpOrDownOrelSourceOrTargetIter->GetNextTuple();
         }
-        Debug("finish iteration" << endl);
+        #ifdef USEDEBUG
+LogDebug("finish iteration" << endl);
+#endif
 
         //Free resources
         delete edgesContractedUpOrDownOrelSourceOrTargetIter;
 
-        Debug("end hlCreateLabelScanNewVertices" << endl);
+        #ifdef USEDEBUG
+LogDebug("end hlCreateLabelScanNewVertices" << endl);
+#endif
         return true;
     }
 
-    /**
-     * Scans for new vertices during dijkstra h-Hop reverse or forward
-     *  search used to check the previously found node
-     *  for a witness path in the opposite graph. see also
-     *  hlCreateLabelCheckForWitness;
-     *
-     * @param fwdOrRvsLabelMultimap is a Multimap representing the label
-     *  which will be filled by this method
-     * @param reverseNotYetVisitedNodes is an OrderedRelation storing the
-     *  vertices which are not yet visited by the h-hop reverse search
-     * @param edgesContractedUpwardsOrelSource is an OrderedRelation
-     *  containging all edges of the underlying upwardsgraph sorted by
-     *  the field Source
-     * @param edgesContractedDownwardsOrelTarget is an OrderedRelation
-     *  containging all edges of the underlying downwardsgraph sorted by
-     *  the field Target
-     * @param fwdCurrSourceOrTargetW is the vertext ID of the current node
-     *  w which was chosen as next vertex during forward (or reverse) search
-     *         for which a witness path shall be found
-     * @param fwdDistSW is a double representing the weighted distance
-     *  between the actual source node s of this label and the given node
-     *  w during forward (or reverse) search
-     * @param hHop is a an integer representing maximum allowed hop-size
-     *  used during this h-hop-reverse-search
-     * @param isForward is a boolean that indicates whether a forward or
-     *  reverselabel shall be created
-     * @return true if the given node needs to be pruned out, false else
-     */
+    /*
+    Scans for new vertices during dijkstra h-Hop reverse or forward
+     search used to check the previously found node
+     for a witness path in the opposite graph. see also
+     hlCreateLabelCheckForWitness;
+
+    @param fwdOrRvsLabelMultimap is a Multimap representing the label
+     which will be filled by this method
+    @param reverseNotYetVisitedNodes is an OrderedRelation storing the
+     vertices which are not yet visited by the h-hop reverse search
+    @param edgesContractedUpwardsOrelSource is an OrderedRelation
+     containging all edges of the underlying upwardsgraph sorted by
+     the field Source
+    @param edgesContractedDownwardsOrelTarget is an OrderedRelation
+     containging all edges of the underlying downwardsgraph sorted by
+     the field Target
+    @param fwdCurrSourceOrTargetW is the vertext ID of the current node
+     w which was chosen as next vertex during forward (or reverse) search
+            for which a witness path shall be found
+    @param fwdDistSW is a double representing the weighted distance
+     between the actual source node s of this label and the given node
+     w during forward (or reverse) search
+    @param hHop is a an integer representing maximum allowed hop-size
+     used during this h-hop-reverse-search
+    @param isForward is a boolean that indicates whether a forward or
+     reverselabel shall be created
+    @return true if the given node needs to be pruned out, false else
+/
     bool hlCreateLabelCheckForWitness(
         std::multimap<int, std::tuple<int, int, double>>
         &fwdOrRvsLabelMultimap,
@@ -3543,15 +4201,21 @@ public:
         CcInt* fwdCurrSourceOrTargetW, double fwdDistSW,
         int hHop, bool isForward) const
     {
-        Debug("Start hlCreateLabelCheckForWitness" <<
+        #ifdef USEDEBUG
+LogDebug("Start hlCreateLabelCheckForWitness" <<
               endl);
+#endif
         bool isPruned = false;
 
-        Debug("create reverseNotYetVisitedNodes" << endl);
+        #ifdef USEDEBUG
+LogDebug("create reverseNotYetVisitedNodes" << endl);
+#endif
         std::multimap<double, std::tuple<int, int>>
                 reverseNotYetVisitedNodes;
 
-        Debug("create stillVisitedNodes" << endl);
+        #ifdef USEDEBUG
+LogDebug("create stillVisitedNodes" << endl);
+#endif
         std::vector<int> stillVisitedNodes;
         stillVisitedNodes.push_back(
             fwdCurrSourceOrTargetW->GetIntval());
@@ -3563,13 +4227,19 @@ public:
             edgesContractedDownwardsOrelTarget,
             fwdCurrSourceOrTargetW, 0.0, 0, isForward);
 
-        Debug("process iterative edges in hHop-reverse" <<
+        #ifdef USEDEBUG
+LogDebug("process iterative edges in hHop-reverse" <<
               endl);
+#endif
         while(reverseNotYetVisitedNodes.size() > 0)
         {
-            Debug("next iteration witness" << endl);
+            #ifdef USEDEBUG
+LogDebug("next iteration witness" << endl);
+#endif
 
-            Debug("get next revMinV" << endl);
+            #ifdef USEDEBUG
+LogDebug("get next revMinV" << endl);
+#endif
             std::multimap<double, std::tuple<int, int>>::iterator
                     reverseNotYetVisitedNodesIter =
                         reverseNotYetVisitedNodes.begin();
@@ -3585,12 +4255,16 @@ public:
                 std::get<HL_INDEX_OF_HOP_DEPTH_IN_NOT_YET_VISITED
                 - 1>(currRevMinVTuple);
 
-            Debug("remove tuple from orel" << endl);
+            #ifdef USEDEBUG
+LogDebug("remove tuple from orel" << endl);
+#endif
             reverseNotYetVisitedNodes.erase(
                 reverseNotYetVisitedNodesIter);
 
-            Debug("check for witness for: " << revMinVNodeID
+            #ifdef USEDEBUG
+LogDebug("check for witness for: " << revMinVNodeID
                   << endl);
+#endif
             std::multimap<int, std::tuple<int, int, double>>::iterator
                     fwdOrRvsLabelMultimapIter =
                         fwdOrRvsLabelMultimap.find(revMinVNodeID);
@@ -3600,7 +4274,9 @@ public:
             if(fwdOrRvsLabelMultimapIter !=
                     fwdOrRvsLabelMultimap.end())
             {
-                Debug("potential witness access found" << endl);
+                #ifdef USEDEBUG
+LogDebug("potential witness access found" << endl);
+#endif
                 std::tuple<int, int, double> currLabelTuple =
                     (*fwdOrRvsLabelMultimapIter).second;
                 double revDistSV =
@@ -3614,13 +4290,17 @@ public:
                         // prüfen? kleiner-gleich erzeugt kleinere labels,
                         // aber funktioniert der algorithmus dann noch?
                 {
-                    Debug("witness found" << endl);
+                    #ifdef USEDEBUG
+LogDebug("witness found" << endl);
+#endif
                     isPruned = true;
                     break;
                 }
             }
 
-            Debug("scan new vertices" << endl);
+            #ifdef USEDEBUG
+LogDebug("scan new vertices" << endl);
+#endif
             if(hHop > revMinVHopDepth)
             {
                 CcInt* revMinVNodeIDCcInt = new CcInt(true,
@@ -3638,40 +4318,42 @@ public:
             }
         }
 
-        Debug("finish hlCreateLabelCheckForWitness" <<
+        #ifdef USEDEBUG
+LogDebug("finish hlCreateLabelCheckForWitness" <<
               endl);
+#endif
         return isPruned;
     }
 
 
-    /**
-     * Scans for new vertices during dijkstra h-Hop reverse or
-     *  forward search used to check the previously found node
-     *  for a witness path in the opposite graph. see also
-     *  hlCreateLabelCheckForWitness;
-     *
-     * @param reverseNotYetVisitedNodes is a Multimap by reference storing
-     *  the vertices which are not yet visited by the h-hop reverse search
-     * @param reverseStillVisitedNodes is a vector by reference storing the
-     *  vertices which are still visited by the h-hop reverse search
-     * @param edgesContractedUpwardsOrelSource is an OrderedRelation
-     *  containging all edges of the underlying upwardsgraph sorted
-     *  by the field Source
-     * @param edgesContractedDownwardsOrelTarget is an OrderedRelation
-     *  containging all edges of the underlying downwardsgraph sorted
-     *  by the field Target
-     * @param revGivenTargetIdV is the vertext ID of the current source
-     *  node v which was chosen as next vertex to be scanned during
-     *  h-hop reverse (or forward) search
-     * @param revGivenDistanceVToW contains the weighted distance from the
-     *  original source w (of this reverse search) to the current given node v
-     * @param revGivenHopDepthV is a an integer representing the current
-     *  hop-depth of the given node v
-     * @param isForward is a boolean that indicates whether a forward or
-     *  reverselabel shall be created
-     * @return true since the result of this method is stored into
-     *  reverseNotYetVisitedNodes
-     */
+    /*
+    Scans for new vertices during dijkstra h-Hop reverse or
+     forward search used to check the previously found node
+     for a witness path in the opposite graph. see also
+     hlCreateLabelCheckForWitness;
+
+    @param reverseNotYetVisitedNodes is a Multimap by reference storing
+     the vertices which are not yet visited by the h-hop reverse search
+    @param reverseStillVisitedNodes is a vector by reference storing the
+     vertices which are still visited by the h-hop reverse search
+    @param edgesContractedUpwardsOrelSource is an OrderedRelation
+     containging all edges of the underlying upwardsgraph sorted
+     by the field Source
+    @param edgesContractedDownwardsOrelTarget is an OrderedRelation
+     containging all edges of the underlying downwardsgraph sorted
+     by the field Target
+    @param revGivenTargetIdV is the vertext ID of the current source
+     node v which was chosen as next vertex to be scanned during
+     h-hop reverse (or forward) search
+    @param revGivenDistanceVToW contains the weighted distance from the
+     original source w (of this reverse search) to the current given node v
+    @param revGivenHopDepthV is a an integer representing the current
+     hop-depth of the given node v
+    @param isForward is a boolean that indicates whether a forward or
+     reverselabel shall be created
+    @return true since the result of this method is stored into
+     reverseNotYetVisitedNodes
+/
     bool hlCreateLabelCheckForWitnessScanNewVertices(
         std::multimap<double, std::tuple<int, int>>
         &reverseNotYetVisitedNodes,
@@ -3683,10 +4365,14 @@ public:
         double revGivenDistanceVToW,
         int revGivenHopDepthV, bool isForward) const
     {
-        Debug("Start hlCreateLabelCheckForWitnessScanNewVertices"
+        #ifdef USEDEBUG
+LogDebug("Start hlCreateLabelCheckForWitnessScanNewVertices"
               << endl);
+#endif
 
-        Debug("prepare iteration" << endl);
+        #ifdef USEDEBUG
+LogDebug("prepare iteration" << endl);
+#endif
         //iterate over all incoming edges (u, v)
         // (on isForward = true search, vice versa else)
         //Prepare Range scan
@@ -3720,16 +4406,20 @@ public:
 
         if(isForward)
         {
-            Debug("get incoming edges (u, v) within downwardsgraph"
+            #ifdef USEDEBUG
+LogDebug("get incoming edges (u, v) within downwardsgraph"
                   << endl);
+#endif
             reverseSearchEdgeOrelIter =
                 edgesContractedDownwardsOrelTarget->MakeRangeScan(
                     fromSourceV, toSourceV);
         }
         else
         {
-            Debug("get outgoing edges (v, u) within upwardsgraph"
+            #ifdef USEDEBUG
+LogDebug("get outgoing edges (v, u) within upwardsgraph"
                   << endl);
+#endif
             reverseSearchEdgeOrelIter =
                 edgesContractedUpwardsOrelSource->MakeRangeScan(
                     fromSourceV, toSourceV);
@@ -3737,13 +4427,17 @@ public:
         currentReverseEdgeUV =
             reverseSearchEdgeOrelIter->GetNextTuple();
 
-        Debug("iterate and store incoming/outgoing egdes (u, v)/(v, u)"
+        #ifdef USEDEBUG
+LogDebug("iterate and store incoming/outgoing egdes (u, v)/(v, u)"
          " into reverseNotYetVisited"
               << endl);
+#endif
         while(currentReverseEdgeUV)
         {
-            Debug("next iteration witness scan new vertices"
+            #ifdef USEDEBUG
+LogDebug("next iteration witness scan new vertices"
                   << endl);
+#endif
 
             //Get ID of current TargetNode (=x)
             CcInt* currentTargetNodeX;
@@ -3767,7 +4461,9 @@ public:
                          currentTargetNodeX->GetIntval()) ==
                     reverseStillVisitedNodes.end())
             {
-                Debug("append tuple to reverseNotYet" << endl);
+                #ifdef USEDEBUG
+LogDebug("append tuple to reverseNotYet" << endl);
+#endif
 
                 //create auxiliary data
                 std::tuple<double, int, int>
@@ -3775,7 +4471,9 @@ public:
                                                     revGivenDistanceVToW,
                                     revGivenTargetIdV->GetIntval(),
                                                     revGivenHopDepthV);
-                Debug("insert or update" << endl);
+                #ifdef USEDEBUG
+LogDebug("insert or update" << endl);
+#endif
                 //Either insert the new scanned W/V into not visited list
                 // or update it if it sill exists and has a shorter
                 // path via current v
@@ -3784,41 +4482,49 @@ public:
                         currParentNotYetMultimapTuple,
                         currentReverseEdgeUV, reverseNotYetVisitedNodes,
                         not isForward, isHHop);
-                Debug("inserted or updated" << endl);
+                #ifdef USEDEBUG
+LogDebug("inserted or updated" << endl);
+#endif
             }
 
-            Debug("get next tuple" << endl);
+            #ifdef USEDEBUG
+LogDebug("get next tuple" << endl);
+#endif
             //Free Outgoing-Iteration
             currentReverseEdgeUV->DeleteIfAllowed();
             currentReverseEdgeUV = 0;
             currentReverseEdgeUV =
                 reverseSearchEdgeOrelIter->GetNextTuple();
         }
-        Debug("finish iteration" << endl);
+        #ifdef USEDEBUG
+LogDebug("finish iteration" << endl);
+#endif
 
         //Free resources
         delete reverseSearchEdgeOrelIter;
 
-        Debug("end hlCreateLabelCheckForWitnessScanNewVertices"
+        #ifdef USEDEBUG
+        LogDebug("end hlCreateLabelCheckForWitnessScanNewVertices"
               << endl);
+        #endif
         return true;
     }
 
 
-    /**
-     * Fully prunes the given label by running HL itself (bootstrapping),
-     *  an OrderedRelation containing all labels (forward and reverse)
-     *  for all nodes
-     * @param allLabelsOrel is an OrderedRelation containging all nodes of
-     *  the underlying graph sorted by the field NodeIdNew
-     * @param currentForwardOrReverseLabel is an forward or reverse label
-     * @param currentSourceNode is the actual source node of the given
-     *  forward or reverse label
-     * @param isForward is a boolean that indicates whether a forward or
-     *  reverselabel shall be created
-     * @return an OrderedRelation containing all labels (forward and reverse)
-     *  for all nodes within @see nodesRankedDescOrelRank
-     */
+    /*
+    Fully prunes the given label by running HL itself (bootstrapping),
+     an OrderedRelation containing all labels (forward and reverse)
+     for all nodes
+    @param allLabelsOrel is an OrderedRelation containging all nodes of
+     the underlying graph sorted by the field NodeIdNew
+    @param currentForwardOrReverseLabel is an forward or reverse label
+    @param currentSourceNode is the actual source node of the given
+     forward or reverse label
+    @param isForward is a boolean that indicates whether a forward or
+     reverselabel shall be created
+    @return an OrderedRelation containing all labels (forward and reverse)
+     for all nodes within @see nodesRankedDescOrelRank
+/
     bool hlPruneLabelByBootstrapping(OrderedRelation*
                                      allLabelsOrel, OrderedRelation*
                                      currentForwardOrReverseLabel,
@@ -3850,7 +4556,9 @@ public:
             if(currentDistanceSourceToHub->GetRealval() <
                     currentHubDistance->GetRealval())
             {
-                Debug("Witness found by bootstrapping" << endl);
+                #ifdef USEDEBUG
+LogDebug("Witness found by bootstrapping" << endl);
+#endif
 
                 //prune this hub out
                 //Build list containing all hubs to be deleted
@@ -3864,7 +4572,9 @@ public:
             currentHubTuple =
                 currentForwardOrReverseLabelIter->GetNextTuple();
         }
-        Debug("Free resources" << endl);
+        #ifdef USEDEBUG
+LogDebug("Free resources" << endl);
+#endif
 
         delete currentForwardOrReverseLabelIter;
 
@@ -3877,15 +4587,17 @@ public:
                 HL_INDEX_OF_HUB_NODE_ID_IN_LABEL_TUPLE); //TODO: ggf.
                 // rangescan in subfunktion ausführen um laufzeit zu sparen
         }
-        Debug("finish" << endl);
+        #ifdef USEDEBUG
+LogDebug("finish" << endl);
+#endif
 
         return true;
     }
 
 
-    /**
-     * XXTODO
-     */
+    /*
+    XXTODO
+/
     bool hlReorderLabels() const
     {
         //XXTODO
@@ -3893,20 +4605,22 @@ public:
     }
 
 
-    /**
-     * Gets all edges by the given source and iterates over them searching
-     * for the given target.
-     * Returns the first edge-Tuple if found.
-     *
-     * @param currOrel
-     * @param sourceId
-     * @param targetId
-     * @return a new Tuple-Pointer
-     */
-    Tuple* hlGetEdgeFromOrel(OrderedRelation*
-                             currOrel, CcInt* sourceId, CcInt* targetId) const
+    /*
+    Gets all edges by the given source and iterates over them searching
+    for the given target.
+    Returns the first edge-Tuple if found.
+
+    @param currOrel
+    @param sourceId
+    @param targetId
+    @return a new Tuple-Pointer
+/
+    Tuple* hlGetEdgeFromOrel(OrderedRelation* currOrel,
+     CcInt* sourceId, CcInt* targetId) const
     {
-        Debug("start hlGetEdgeFromOrel" << endl);
+        #ifdef USEDEBUG
+        LogDebug("start hlGetEdgeFromOrel" << endl);
+        #endif
 
         std::vector<void*> vecAttributesFrom(1);
         vecAttributesFrom[0] = sourceId;
@@ -3934,14 +4648,14 @@ public:
 
         while(currTuple)
         {
-            CcInt* currTargetId = (CcInt*)
-                                  currTuple->GetAttribute(
-                                      HL_INDEX_OF_TARGET_IN_EDGE_TUPLE);
+            CcInt* currTargetId = (CcInt*) currTuple->GetAttribute(
+             HL_INDEX_OF_TARGET_IN_EDGE_TUPLE);
 
-            if(currTargetId->GetIntval() ==
-                    targetId->GetIntval())
+            if(currTargetId->GetIntval() == targetId->GetIntval())
             {
-                Debug("tupleFound, break" << endl);
+                #ifdef USEDEBUG
+                LogDebug("tupleFound, break" << endl);
+                #endif
                 break;
             }
             else
@@ -3951,65 +4665,76 @@ public:
                 currTuple = currOrelIter->GetNextTuple();
             }
         }
+        delete currOrelIter;
 
-        Debug("finish hlGetEdgeFromOrel" << endl);
+        #ifdef USEDEBUG
+        LogDebug("finish hlGetEdgeFromOrel" << endl);
+        #endif
         return currTuple;
     }
 
-    /**
-     * Gets an shortcut edge tuple and retrieves its both parent edges
-     * If one of the parent-edges are also shortcuts,
-     *   the function itself is called recursively for it.
-     *
-     * @param edgesOrelSource the orel containing all edges including shortcuts
-     * @param currEdge the current edge to be resolved
-     * @param currPath the vector where all original edges resolved shall
-     *  be stored into
-     * @param isForward indicates whether we perform the forward or reverse
-     *  label, used for input order of shortcut-parts
-     * @return true since the result of this operator is stored into currPath
-     */
-    bool hlResolveShortcuts(OrderedRelation*
-                            edgesOrelSource, Tuple* currEdge,
-                            std::vector<Tuple*> &currPath,
-                            bool isForward) const
+    /*
+    Gets an shortcut edge tuple and retrieves its both parent edges
+    If one of the parent-edges are also shortcuts,
+      the function itself is called recursively for it.
+
+    @param edgesOrelSource the orel containing all edges including shortcuts
+    @param currEdge the current edge to be resolved
+    @param currPath the vector where all original edges resolved shall
+     be stored into
+    @param isForward indicates whether we perform the forward or reverse
+     label, used for input order of shortcut-parts
+    @return true since the result of this operator is stored into currPath
+/
+    bool hlResolveShortcuts(OrderedRelation* edgesOrelSource, Tuple* currEdge,
+     std::vector<Tuple*> &currPath, bool isForward) const
     {
-        Debug("start hlResolveShortcuts" << endl);
+        #ifdef USEDEBUG
+        LogDebug("start hlResolveShortcuts" << endl);
+        #endif
 
         //Get parameters of currEdge
         CcInt* sourceId = (CcInt*) currEdge->GetAttribute(
                               HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE);
         CcInt* targetId = (CcInt*) currEdge->GetAttribute(
                               HL_INDEX_OF_TARGET_IN_EDGE_TUPLE);
+
+        //get parentId from current edgeTuple
         CcInt* parentId = (CcInt*) currEdge->GetAttribute(
-                              HL_INDEX_OF_PARENT_ID_IN_EDGE_TUPLE);
+         HL_INDEX_OF_PARENT_ID_IN_EDGE_TUPLE);
 
         Tuple* parentTuple = 0;
 
         //check whether curr Edge is shortcut
         if(parentId->GetIntval() > -1)
         {
-            Debug("source: " << sourceId->GetIntval() <<
+            #ifdef USEDEBUG
+            LogDebug("source: " << sourceId->GetIntval() <<
                   " parent: " << parentId->GetIntval() <<
                   " target: " << targetId->GetIntval() <<
                   " is shortcut, doing recursive call" << endl);
+            #endif
             if(isForward)
             {
                 //reverse insert because we will reverse output them because
                 // we handle forward label here
                 // (which means that we are inserting the hub first, then its
                 // parents and the source last
-                Debug("edge from parent: " <<
+                #ifdef USEDEBUG
+                LogDebug("edge from parent: " <<
                       parentId->GetIntval() << " to target: " <<
                       targetId->GetIntval() << endl);
+                #endif
                 parentTuple = hlGetEdgeFromOrel(edgesOrelSource,
                                                 parentId, targetId);
                 hlResolveShortcuts(edgesOrelSource, parentTuple,
                                    currPath, isForward);
 
-                Debug("edge from source: " <<
+                #ifdef USEDEBUG
+                LogDebug("edge from source: " <<
                       sourceId->GetIntval() << " to parent: " <<
                       parentId->GetIntval() << endl);
+                #endif
                 parentTuple = hlGetEdgeFromOrel(edgesOrelSource,
                                                 sourceId, parentId);
                 hlResolveShortcuts(edgesOrelSource, parentTuple,
@@ -4019,17 +4744,21 @@ public:
             else
             {
                 //vice versa as forward
-                Debug("edge from source: " <<
+                #ifdef USEDEBUG
+                LogDebug("edge from source: " <<
                       sourceId->GetIntval() << " to parent: " <<
                       parentId->GetIntval() << endl);
+                #endif
                 parentTuple = hlGetEdgeFromOrel(edgesOrelSource,
                                                 sourceId, parentId);
                 hlResolveShortcuts(edgesOrelSource, parentTuple,
                                    currPath, isForward);
 
-                Debug("edge from parent: " <<
+                #ifdef USEDEBUG
+                LogDebug("edge from parent: " <<
                       parentId->GetIntval() << " to target: " <<
                       targetId->GetIntval() << endl);
+                #endif
                 parentTuple = hlGetEdgeFromOrel(edgesOrelSource,
                                                 parentId, targetId);
                 hlResolveShortcuts(edgesOrelSource, parentTuple,
@@ -4041,83 +4770,220 @@ public:
         }
         else
         {
-            Debug("is original Edge, pushback into path-vector");
+            #ifdef USEDEBUG
+            LogDebug("is original Edge, pushback into path-vector" << endl);
+            #endif
             currPath.push_back(currEdge);
         }
 
-        Debug("finish hlResolveShortcuts" << endl);
+        #ifdef USEDEBUG
+        LogDebug("finish hlResolveShortcuts" << endl);
+        #endif
         return true;
     }
 
-    /**
-     * Function traversing from the given hup to all its parents back to
-     * the source or target (on reverse-hub)
-     * Also resolves shortcuts by temporal creating edges on the path build
-     *  up and find the
-     *  corresponding edges within the Edges-Relation containing also shortcuts.
-     * Inserts all original nodes represented by this shortcut and its
-     *  underlying shortcuts
-     *  also into the path-vector
-     * After resolving a shortcut it comes back to the basic iteration over
-     *  all parents of the hub.
-     * @param edgesWithShortcutsOrelSource is an OrderedRelation containing
-     *  all edges including shortcuts
-     * @param dataRel is the Relation containing all data-tuples of the
-     *  forward- and reverse labels
-     * @param currHub is an Tuple representing the current hub for whichs
-     *  parent a recursive call is made
-     * @param path is a vector used to store all edges on the way from source
-     *  to the hub
-     * @param isForward is a boolean to indicate whether the path shall be
-     *  retrieved from a forward or reverse Label
-     * @return true, since the result ist stored in path
-     */
-    bool hlGetPathViaPoints(OrderedRelation*
-                            edgesWithShortcutsOrelSource, Relation* dataRel,
-                            Tuple* givenHubTuple, std::vector<Tuple*> &path,
-                            bool isForward) const
+    /*
+    Gets an shortcut edge tuple and retrieves its both parent edges
+    If one of the parent-edges are also shortcuts,
+      the function itself is called recursively for it.
+
+    @param edgesOrelSource the orel containing all edges but not shortcuts
+    @param hlGraph the orel representing the hlGraph
+    @param sourceNodeId the sourceNodeId
+    @param targetNodeId the targetNodeId
+    @param currPath the vector where all original edges resolved shall
+     be stored into
+    @param isForward indicates whether we perform the forward or reverse
+     label, used for input order of shortcut-parts
+    @param isUpward indicates whether we perform an upward or downward edge
+    @return true since the result of this operator is stored into currPath
+/
+    bool hlResolveShortcutsHlGraph(OrderedRelation* edgesOrelSource,
+     OrderedRelation* hlGraph, CcInt* sourceNodeId, CcInt* targetNodeId,
+     std::vector<Tuple*> &currPath, bool isForward, bool isUpward) const
     {
-        Debug("start hlGetPathViaPoints" << endl);
+        #ifdef USEDEBUG
+        LogDebug("start hlResolveShortcutsHlGraph" << endl);
+        #endif
+
+        Tuple* currHlGraphEdge = hlGetEdgeFromOrel(hlGraph,
+             sourceNodeId, targetNodeId);
+
+        //get parentId from current edgeTuple
+        int currFieldIndex = -1;
+        if(isUpward)
+        {
+            currFieldIndex = HL_INDEX_OF_PARENT_ID_FORWARD_IN_HL_GRAPH;
+        }else{
+            currFieldIndex = HL_INDEX_OF_PARENT_ID_REVERSE_IN_HL_GRAPH;
+        }
+        CcInt* parentNodeId =
+         (CcInt*) currHlGraphEdge->GetAttribute(currFieldIndex);
+
+        //check whether curr Edge is shortcut
+        if(parentNodeId->GetIntval() > -1)
+        {
+            #ifdef USEDEBUG
+            LogDebug("source: " << sourceNodeId->GetIntval() <<
+                  " parent: " << parentNodeId->GetIntval() <<
+                  " target: " << targetNodeId->GetIntval() <<
+                  " is shortcut, doing recursive call" << endl);
+            #endif
+
+            //there are four cases
+            // 1) isForwardLabel and isUpwardEdge
+            // 2) isForwardLabel and not isUpwardEdge
+            // 3) not isForwardLabel and not isUpwardEdge
+            // 4) not isForwardLabel and isUpwardEdge
+            //
+            // in case of 1) and 2) we want sub-edges parent->target
+            //  before parent->source
+            if(isUpward == isForward)
+            {
+                //first process edge from parent to target
+                // second process edge from parent to souce
+                // is valid for both forward and reverse processing
+                #ifdef USEDEBUG
+                LogDebug("next is edge from parent: " <<
+                      parentNodeId->GetIntval() << " to target: " <<
+                      targetNodeId->GetIntval() << endl);
+                #endif
+                hlResolveShortcutsHlGraph(edgesOrelSource, hlGraph,
+                 parentNodeId, targetNodeId, currPath, isForward, isUpward);
+
+                #ifdef USEDEBUG
+                LogDebug("next is edge from parent: " <<
+                      parentNodeId->GetIntval() << " to source: " <<
+                      sourceNodeId->GetIntval() << endl);
+                #endif
+                hlResolveShortcutsHlGraph(edgesOrelSource, hlGraph,
+                 parentNodeId, sourceNodeId, currPath, isForward, !isUpward);
+            }
+            else
+            {
+                //vice versa as upward
+                #ifdef USEDEBUG
+                LogDebug("edge from parent: " <<
+                      parentNodeId->GetIntval() << " to source: " <<
+                      sourceNodeId->GetIntval() << endl);
+                #endif
+                hlResolveShortcutsHlGraph(edgesOrelSource, hlGraph,
+                 parentNodeId, sourceNodeId, currPath, isForward, !isUpward);
+
+                #ifdef USEDEBUG
+                LogDebug("edge from parent: " <<
+                      parentNodeId->GetIntval() << " to target: " <<
+                      targetNodeId->GetIntval() << endl);
+                #endif
+                hlResolveShortcutsHlGraph(edgesOrelSource, hlGraph,
+                 parentNodeId, targetNodeId, currPath, isForward, isUpward);
+            }
+        }
+        else
+        {
+            #ifdef USEDEBUG
+            LogDebug("is original Edge, pushback into path-vector" << endl);
+            #endif
+
+            //get edge from edgesOrelSource
+            // originalEdge only matches with current source/ target if
+            // isUpwardEdge
+            Tuple* currOriginalEdge = 0;
+            if(isUpward)
+            {
+                currOriginalEdge = hlGetEdgeFromOrel(edgesOrelSource,
+                 sourceNodeId, targetNodeId);
+            }else{
+                currOriginalEdge = hlGetEdgeFromOrel(edgesOrelSource,
+                 targetNodeId, sourceNodeId);
+            }
+
+
+            currPath.push_back(currOriginalEdge);
+        }
+
+        currHlGraphEdge->DeleteIfAllowed();
+        currHlGraphEdge = 0;
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlResolveShortcutsHlGraph" << endl);
+        #endif
+        return true;
+    }
+
+    /*
+    Function traversing from the given hup to all its parents back to
+    the source or target (on reverse-hub)
+    Also resolves shortcuts by temporal creating edges on the path build
+     up and find the
+     corresponding edges within the Edges-Relation containing also shortcuts.
+    Inserts all original nodes represented by this shortcut and its
+     underlying shortcuts
+     also into the path-vector
+    After resolving a shortcut it comes back to the basic iteration over
+     all parents of the hub.
+    @param edgesWithShortcutsOrelSource is an OrderedRelation containing
+     all edges including shortcuts
+    @param dataRel is the Relation containing all data-tuples of the
+     forward- and reverse labels
+    @param currHub is an Tuple representing the current hub for whichs
+     parent a recursive call is made
+    @param path is a vector used to store all edges on the way from source
+     to the hub
+    @param isForward is a boolean to indicate whether the path shall be
+     retrieved from a forward or reverse Label
+    @return true, since the result ist stored in path
+/
+    bool hlGetPathViaPoints(OrderedRelation* edgesWithShortcutsOrelSource,
+     Relation* dataRel, Tuple* givenHubTuple,
+     std::vector<Tuple*> &path, bool isForward) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlGetPathViaPoints" << endl);
+        #endif
 
         bool isFinished = false;
         Tuple* currTuple = givenHubTuple;
 
         while(!isFinished)
         {
-            CcInt* currTupleNodeIdNew = (CcInt*)
-                                        currTuple->GetAttribute(
-                            HL_INDEX_OF_HUB_NODE_ID_NEW_IN_LABEL_TUPLE);
-            CcInt* currTupleNodeId = (CcInt*)
-                                     currTuple->GetAttribute(
-                                    HL_INDEX_OF_HUB_NODE_ID_IN_LABEL_TUPLE);
-            CcInt* currTupleParentTupleId = (CcInt*)
-                                            currTuple->GetAttribute(
-                        HL_INDEX_OF_HUB_PARENT_TUPLE_ID_IN_LABEL_TUPLE);
+            CcInt* currTupleNodeId = (CcInt*) currTuple->GetAttribute(
+                            HL_INDEX_OF_HUB_NODE_ID_IN_LABEL_TUPLE);
+            CcInt* currTupleParentTupleId = (CcInt*) currTuple->GetAttribute(
+                            HL_INDEX_OF_HUB_PARENT_TUPLE_ID_IN_LABEL_TUPLE);
 
-            Debug("current tuple rank: " <<
+            #ifdef USEDEBUG
+                CcInt* currTupleNodeIdNew = (CcInt*) currTuple->GetAttribute(
+                    HL_INDEX_OF_HUB_NODE_ID_NEW_IN_LABEL_TUPLE);
+                LogDebug("current tuple rank: " <<
                   currTupleNodeIdNew->GetIntval() << " nodeId: " <<
                   currTupleNodeId->GetIntval() << endl);
+            #endif
 
             if(currTupleParentTupleId->GetIntval() > -1)
             {
-                TupleId currParentTupleId = (TupleId)
-                                            currTupleParentTupleId->GetIntval();
-                Tuple* currParentTuple = dataRel->GetTuple(
-                                             currParentTupleId, false);
+                TupleId currParentTupleId =
+                 (TupleId) currTupleParentTupleId->GetIntval();
+                Tuple* currParentTuple =
+                 dataRel->GetTuple(currParentTupleId, false);
 
                 if(!currParentTuple)
                 {
-                    Debug("Fehler, Tuple aus dataRel ist null mit TupleId: "
+                    #ifdef USEDEBUG
+                    LogDebug("Fehler, Tuple aus dataRel ist null mit TupleId: "
                           << currParentTupleId << endl);
+                    #endif
                     return false;
                 }
 
-                CcInt* currParentNodeId = (CcInt*)
-                                          currParentTuple->GetAttribute(
-                                    HL_INDEX_OF_HUB_NODE_ID_IN_LABEL_TUPLE);
-                Debug("curr parentNodeId: " <<
+                CcInt* currParentNodeId =
+                 (CcInt*) currParentTuple->GetAttribute(
+                 HL_INDEX_OF_HUB_NODE_ID_IN_LABEL_TUPLE);
+                #ifdef USEDEBUG
+                LogDebug("curr parentNodeId: " <<
                       currParentNodeId->GetIntval() <<
                       " parentTupleid: " << currParentTupleId << endl);
+                #endif
 
                 //get current Edge
                 Tuple* currEdge = 0;
@@ -4134,20 +5000,18 @@ public:
                     currTargetId = currParentNodeId;
                 }
 
-                currEdge = hlGetEdgeFromOrel(
-                               edgesWithShortcutsOrelSource, currSourceId,
-                               currTargetId);
+                currEdge = hlGetEdgeFromOrel(edgesWithShortcutsOrelSource,
+                 currSourceId, currTargetId);
 
 
-                CcInt* currEdgeParentVia = (CcInt*)
-                                           currEdge->GetAttribute(
-                                    HL_INDEX_OF_PARENT_ID_IN_EDGE_TUPLE);
-
-                Debug("resolve shortcuts for source: " <<
+                #ifdef USEDEBUG
+                LogDebug("resolve shortcuts for source: " <<
                       currSourceId->GetIntval() << " target: " <<
                       currTargetId->GetIntval() << endl);
+                #endif
+
                 hlResolveShortcuts(edgesWithShortcutsOrelSource,
-                                   currEdge, path, isForward);
+                 currEdge, path, isForward);
 
                 currTuple->DeleteIfAllowed();
                 currTuple = 0;
@@ -4156,7 +5020,9 @@ public:
             }
             else
             {
-                Debug("parent found exit" << endl);
+                #ifdef USEDEBUG
+                LogDebug("endpoint found exit" << endl);
+                #endif
 
                 currTuple->DeleteIfAllowed();
                 currTuple = 0;
@@ -4164,44 +5030,178 @@ public:
             }
         }
 
-        Debug("finish hlGetPathViaPoints" << endl);
+        #ifdef USEDEBUG
+        LogDebug("finish hlGetPathViaPoints" << endl);
+        #endif
+
+        return true;
+    }
+
+    /*
+    Function traversing from the given hup to all its parents back to
+    the source or target (on reverse-hub)
+    Also resolves shortcuts by temporal creating edges on the path build
+     up and find the
+     corresponding edges within the Edges-Relation containing also shortcuts.
+    Inserts all original nodes represented by this shortcut and its
+     underlying shortcuts
+     also into the path-vector
+    After resolving a shortcut it comes back to the basic iteration over
+     all parents of the hub.
+    @param edgesOrelSource is an OrderedRelation containing
+     all original edges but not shortcuts
+    @param hlGraphOrel is an OrderedRelation representing the hlGraph
+    @param dataRel is the Relation containing all data-tuples of the
+     forward- and reverse labels
+    @param currHub is an Tuple representing the current hub for whichs
+     parent a recursive call is made
+    @param path is a vector used to store all edges on the way from source
+     to the hub
+    @param isForward is a boolean to indicate whether the path shall be
+     retrieved from a forward or reverse Label
+    @return true, since the result ist stored in path
+/
+    bool hlGetPathViaPointsHlGraph(OrderedRelation* edgesOrelSource,
+     OrderedRelation* hlGraphOrel,
+     Relation* dataRel, Tuple* givenHubTuple,
+     std::vector<Tuple*> &path, bool isForward) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlGetPathViaPointsHlGraph" << endl);
+        #endif
+
+        bool isFinished = false;
+        Tuple* currTuple = givenHubTuple;
+
+        while(!isFinished)
+        {
+            CcInt* currTupleNodeId = (CcInt*) currTuple->GetAttribute(
+                            HL_INDEX_OF_HUB_NODE_ID_IN_LABEL_TUPLE);
+            CcInt* currTupleParentTupleId = (CcInt*) currTuple->GetAttribute(
+                            HL_INDEX_OF_HUB_PARENT_TUPLE_ID_IN_LABEL_TUPLE);
+
+            #ifdef USEDEBUG
+                CcInt* currTupleNodeIdNew = (CcInt*) currTuple->GetAttribute(
+                    HL_INDEX_OF_HUB_NODE_ID_NEW_IN_LABEL_TUPLE);
+                LogDebug("current tuple rank: " <<
+                  currTupleNodeIdNew->GetIntval() << " nodeId: " <<
+                  currTupleNodeId->GetIntval() << endl);
+            #endif
+
+            if(currTupleParentTupleId->GetIntval() > -1)
+            {
+                TupleId currParentTupleId =
+                 (TupleId) currTupleParentTupleId->GetIntval();
+                Tuple* currParentTuple =
+                 dataRel->GetTuple(currParentTupleId, false);
+
+                if(!currParentTuple)
+                {
+                    #ifdef USEDEBUG
+                    LogDebug("Fehler, Tuple aus dataRel ist null mit TupleId: "
+                          << currParentTupleId << endl);
+                    #endif
+                    return false;
+                }
+
+                CcInt* currParentNodeId =
+                 (CcInt*) currParentTuple->GetAttribute(
+                 HL_INDEX_OF_HUB_NODE_ID_IN_LABEL_TUPLE);
+                #ifdef USEDEBUG
+                LogDebug("curr parentNodeId: " <<
+                      currParentNodeId->GetIntval() <<
+                      " parentTupleid: " << currParentTupleId << endl);
+                #endif
+
+                //get current Edge
+                CcInt* currSourceId = 0;
+                CcInt* currTargetId = 0;
+
+                //in both cases of forward and reverse Label
+                // we need to get edges in upward manner
+                // which means currTuple always is target
+                // and currParent is always source
+                currSourceId = currParentNodeId;
+                currTargetId = currTupleNodeId;
+
+                #ifdef USEDEBUG
+                LogDebug("resolve shortcuts for source: " <<
+                      currSourceId->GetIntval() << " target: " <<
+                      currTargetId->GetIntval() << endl);
+                #endif
+
+                hlResolveShortcutsHlGraph(edgesOrelSource, hlGraphOrel,
+                 currSourceId, currTargetId, path, isForward, isForward);
+
+                currTuple->DeleteIfAllowed();
+                currTuple = 0;
+                currTuple = currParentTuple;
+            }
+            else
+            {
+                #ifdef USEDEBUG
+                LogDebug("endpoint found exit" << endl);
+                #endif
+
+                currTuple->DeleteIfAllowed();
+                currTuple = 0;
+                isFinished = true;
+            }
+        }
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlGetPathViaPointsHlGraph" << endl);
+        #endif
 
         return true;
     }
 
 
-    /**
-     * Searches for the shortest path from the given sourceNodeId to
-     *  the given targetNodeId
-     *  and stores the path with all its via-points into the given relation
-     *  shortestPath
-     *  where the nodes are stored in the order of the path going from source
-     *  to target.
-     * @param allLabelsNRel is NestedList containing all Labels
-     * @param allLabelsBTree is BTree over the NestedRelation containging
-     * all Labels of all nodes
-     * @param edgesWithShortcutsOrelSource is an OrderedRelation containing
-     *  all edges including shortcuts
-     * @param shortestPath is an Relation representing the result of this
-     *  function
-     * @param sourceNodeId is the actual source node of the given forward or
-     *  reverse label
-     * @param targetNodeId is a boolean that indicates whether a forward or
-     *  reverselabel shall be created
-     * @return true, since the result ist stored in shortestPath
-     */
-    bool hlQuery(NestedRelation* allLabelsNRel,
-                 BTree* allLabelsBTree,
+    /*
+    Searches for the shortest path from the given sourceNodeId to
+     the given targetNodeId
+     and stores the path with all its via-points into the given relation
+     shortestPath
+     where the nodes are stored in the order of the path going from source
+     to target.
+    @param allLabelsNRel is NestedList containing all Labels
+    @param allLabelsBTree is BTree over the NestedRelation containging
+    all Labels of all nodes
+    @param edgesWithShortcutsOrelSource is an OrderedRelation containing
+     all edges including shortcuts (does not contain shortcuts in case
+     of isHlGraph == true)
+    @param hlGraphOrel is an OrderedRelation containing
+     the hlGraph or null if not isHlGraph == true
+    @param shortestPath is an Relation representing the result of this
+     function
+    @param sourceNodeId is the actual source node of the given forward or
+     reverse label
+    @param targetNodeId is a boolean that indicates whether a forward or
+     reverselabel shall be created
+    @param isHlGraph indicates whether we are in (1) old logic or
+     (2) new logic using hlGraph
+    @return true, since the result ist stored in shortestPath
+/
+    bool hlQuery(NestedRelation* allLabelsNRel, BTree* allLabelsBTree,
                  OrderedRelation* edgesWithShortcutsOrelSource,
-                 Relation* shortestPath, CcInt* sourceNodeId,
-                 CcInt* targetNodeId) const
+                 OrderedRelation* hlGraphOrel, Relation* shortestPath,
+                 CcInt* sourceNodeId, CcInt* targetNodeId, bool isHlGraph) const
     {
-        Debug("start hlQuery" << endl);
+        #ifdef USEDEBUG
+        LogDebug("start hlQuery" << endl);
+        #endif
 
+        #ifdef USEPERF
+        double perfTime = getCurrentTimeInMs();
+        double perfTime2 = 0.0;
+        double perfTime3 = 0.0;
+        #endif
 
-        Debug("get btree iterator by source: " <<
+        #ifdef USEDEBUG
+        LogDebug("get btree iterator by source: " <<
               sourceNodeId->GetIntval() << " target: " <<
               targetNodeId->GetIntval() << endl);
+        #endif
 
         BTreeIterator* bTreeSourceIter =
             allLabelsBTree->ExactMatch(sourceNodeId);
@@ -4209,8 +5209,10 @@ public:
             allLabelsBTree->ExactMatch(targetNodeId);
 
 
-        Debug("get next tuple from btree forward" <<
+        #ifdef USEDEBUG
+        LogDebug("get next tuple from btree forward" <<
               endl);
+        #endif
 
         int tupleIdSourceInt = -1;
         int tupleIdTargetInt = -1;
@@ -4223,23 +5225,29 @@ public:
             }
             else
             {
-                Debug("Fehler: kein Tuple in BTree für Source enthalten,"
+                #ifdef USEDEBUG
+                LogDebug("Fehler: kein Tuple in BTree für Source enthalten,"
                  " breche Anfrage ab"
                       << endl);
+                #endif
                 return false;
             }
             delete bTreeSourceIter;
         }
         else
         {
-            Debug("Fehler: sourceNode wurde nicht in Labels gefunden,"
+            #ifdef USEDEBUG
+            LogDebug("Fehler: sourceNode wurde nicht in Labels gefunden,"
              " breche Anfrage ab"
                   << endl);
+            #endif
             return false;
         }
 
-        Debug("get next tuple from btree reverse" <<
+        #ifdef USEDEBUG
+        LogDebug("get next tuple from btree reverse" <<
               endl);
+        #endif
 
         if(bTreeTargetIter)
         {
@@ -4249,38 +5257,46 @@ public:
             }
             else
             {
-                Debug("Fehler: kein Tuple in BTree für Target enthalten,"
+                #ifdef USEDEBUG
+                LogDebug("Fehler: kein Tuple in BTree für Target enthalten,"
                  " breche Anfrage ab"
                       << endl);
+                #endif
                 return false;
             }
             delete bTreeTargetIter;
         }
         else
         {
-            Debug("Fehler: targetNode wurde nicht in Labels gefunden,"
+            #ifdef USEDEBUG
+            LogDebug("Fehler: targetNode wurde nicht in Labels gefunden,"
              " breche Anfrage ab"
                   << endl);
+            #endif
             return false;
         }
 
-        Debug("create TupleIds and get primary" << endl);
+        #ifdef USEDEBUG
+        LogDebug("create TupleIds and get primary" << endl);
+        #endif
 
-        TupleId tupleIdSource = (TupleId)
-                                tupleIdSourceInt;
-        TupleId tupleIdTarget = (TupleId)
-                                tupleIdTargetInt;
+        TupleId tupleIdSource = (TupleId) tupleIdSourceInt;
+        TupleId tupleIdTarget = (TupleId) tupleIdTargetInt;
 
         Relation* primary = allLabelsNRel->getPrimary();
 
-        Debug("get tuple from primary" << endl);
+        #ifdef USEDEBUG
+        LogDebug("get tuple from primary" << endl);
+        #endif
 
-        Tuple* tupleSource = primary->GetTuple(
-                                 tupleIdSource, false);
-        Tuple* tupleTarget = primary->GetTuple(
-                                 tupleIdTarget, false);
+        //gets tuplepointers created by new
+        Tuple* tupleSource = primary->GetTuple(tupleIdSource, false);
+        Tuple* tupleTarget = primary->GetTuple(tupleIdTarget, false);
 
-        Debug("get arel from tupled" << endl);
+
+        #ifdef USEDEBUG
+        LogDebug("get arel from tupleId " << endl);
+        #endif
 
         AttributeRelation* attrRelSource =
             (AttributeRelation*) tupleSource->GetAttribute(
@@ -4289,7 +5305,11 @@ public:
             (AttributeRelation*) tupleTarget->GetAttribute(
                 HL_INDEX_OF_REVERSE_LABEL_IN_ALL_LABELS_TUPLE);
 
-        Debug("get subrel from nrel" << endl);
+
+
+        #ifdef USEDEBUG
+        LogDebug("get subrel from nrel" << endl);
+        #endif
 
         SubRelation* dataSubRelForward =
             allLabelsNRel->getSubRel(
@@ -4298,12 +5318,16 @@ public:
             allLabelsNRel->getSubRel(
                 hlReverseLabelColumnName());
 
-        Debug("get datarel from subrel" << endl);
+        #ifdef USEDEBUG
+        LogDebug("get datarel from subrel" << endl);
+        #endif
 
         Relation* dataRelForward = dataSubRelForward->rel;
         Relation* dataRelReverse = dataSubRelReverse->rel;
 
-        Debug("get tupleids from arels" << endl);
+        #ifdef USEDEBUG
+                LogDebug("get tupleids from arels" << endl);
+        #endif
 
         DbArray<TupleId>* tupleIdsForward =
             attrRelSource->getTupleIds();
@@ -4317,48 +5341,58 @@ public:
         int indexReverse = 0;
 
 
-        Debug("get tuple is for data rel from dbarray" <<
+        #ifdef USEDEBUG
+        LogDebug("get tuple id for data rel from dbarray" <<
               endl);
+        #endif
 
-        tupleIdsForward->Get(indexForward,
-                             tidForward); //XXTODO: TupleId hier kein Zeiger?
-        tupleIdsReverse->Get(indexReverse,
-                             tidReverse); //XXTODO: TupleId hier kein Zeiger?
+         //XXTODO: TupleId hier kein Zeiger?
+        tupleIdsForward->Get(indexForward, tidForward);
+         //XXTODO: TupleId hier kein Zeiger?
+        tupleIdsReverse->Get(indexReverse, tidReverse);
 
-        Debug("get tuples from datarel" << endl);
+        #ifdef USEDEBUG
+        LogDebug("get tuples from datarel" << endl);
+        #endif
 
+             //XXTODO: TupleId hier kein Zeiger?
         Tuple* currTupleDataRelSource =
-            dataRelForward->GetTuple(tidForward,
-                                     false); //XXTODO: TupleId hier kein Zeiger?
+         dataRelForward->GetTuple(tidForward, false);
+             //XXTODO: TupleId hier kein Zeiger?
         Tuple* currTupleDataRelTarget =
-            dataRelReverse->GetTuple(tidReverse,
-                                     false); //XXTODO: TupleId hier kein Zeiger?
+         dataRelReverse->GetTuple(tidReverse, false);
+
 
         Tuple* currMinHubSource = 0;
         Tuple* currMinHubTarget = 0;
 
         double currMinDist = -1.0;
 
-        Debug("parallel sweep" << endl);
+        #ifdef USEDEBUG
+        LogDebug("parallel sweep" << endl);
+        #endif
 
         //usually breaks when tupleId-arrays reach end of index
         while(currTupleDataRelSource &&
                 currTupleDataRelTarget)
         {
             //get HubNodeIds of both Iterators
-            CcInt* currHubNodeIdNewSource = (CcInt*)
-                                        currTupleDataRelSource->GetAttribute(
-                                HL_INDEX_OF_HUB_NODE_ID_NEW_IN_LABEL_TUPLE);
-            CcInt* currHubNodeIdNewTarget = (CcInt*)
-                            currTupleDataRelTarget->GetAttribute(
-                            HL_INDEX_OF_HUB_NODE_ID_NEW_IN_LABEL_TUPLE);
+            CcInt* currHubNodeIdNewSource =
+             (CcInt*) currTupleDataRelSource->GetAttribute(
+             HL_INDEX_OF_HUB_NODE_ID_NEW_IN_LABEL_TUPLE);
+            CcInt* currHubNodeIdNewTarget =
+             (CcInt*) currTupleDataRelTarget->GetAttribute(
+             HL_INDEX_OF_HUB_NODE_ID_NEW_IN_LABEL_TUPLE);
+
 
             if(currHubNodeIdNewSource->GetIntval() ==
                     currHubNodeIdNewTarget->GetIntval())
             {
 
-                Debug("source and target are equal: " <<
+                #ifdef USEDEBUG
+                LogDebug("source and target are equal: " <<
                       currHubNodeIdNewSource->GetIntval() << endl);
+                #endif
 
                 //get distances of both iterators
                 CcReal* currHubDistToSource = (CcReal*)
@@ -4375,8 +5409,9 @@ public:
                 if(currMinDist == -1.0 ||
                         currMinDistTmp < currMinDist)
                 {
-                    Debug("new min found: " << currMinDistTmp <<
-                          endl);
+                    #ifdef USEDEBUG
+                    LogDebug("new min found: " << currMinDistTmp << endl);
+                    #endif
                     currMinDist = currMinDistTmp;
 
                     if(currMinHubSource)
@@ -4411,7 +5446,9 @@ public:
                     currTupleDataRelTarget = 0;
                 }
 
-                Debug("increase both" << endl);
+                #ifdef USEDEBUG
+                LogDebug("increase both" << endl);
+                #endif
 
                 //increase both iterators
                 indexForward++;
@@ -4423,9 +5460,11 @@ public:
                 }
                 else
                 {
-                    Debug("end of Array tupleIdsForward reached (size: "
+                    #ifdef USEDEBUG
+                    LogDebug("end of Array tupleIdsForward reached (size: "
                           << tupleIdsForward->Size() << " currIndex: " <<
                           indexForward << "), breaking loop" << endl);
+                    #endif
                     break;
                 }
 
@@ -4435,15 +5474,19 @@ public:
                 }
                 else
                 {
-                    Debug("end of Array tupleIdsReverse reached (size: "
+                    #ifdef USEDEBUG
+                    LogDebug("end of Array tupleIdsReverse reached (size: "
                           << tupleIdsReverse->Size() << " currIndex: " <<
                           indexReverse << "), breaking loop" << endl);
+                    #endif
                     break;
                 }
 
-                Debug("increase both - set next tuples. forward: "
+                #ifdef USEDEBUG
+                LogDebug("increase both - set next tuples. forward: "
                       << tidForward << " reverse: " << tidReverse <<
                       endl);
+                #endif
 
                 currTupleDataRelSource = dataRelForward->GetTuple(
                                              tidForward, false);
@@ -4457,7 +5500,9 @@ public:
                 currTupleDataRelSource->DeleteIfAllowed();
                 currTupleDataRelSource = 0;
 
-                Debug("increase forward" << endl);
+                #ifdef USEDEBUG
+                LogDebug("increase forward" << endl);
+                #endif
 
                 indexForward++;
 
@@ -4467,17 +5512,21 @@ public:
                 }
                 else
                 {
-                    Debug("end of Array tupleIdsForward reached (size: "
+                    #ifdef USEDEBUG
+                    LogDebug("end of Array tupleIdsForward reached (size: "
                           << tupleIdsForward->Size() << " currIndex: " <<
                           indexForward << "), breaking loop" << endl);
+                    #endif
                     break;
                 }
 
-                Debug("increase forward - set next tuple. forward: "
+                #ifdef USEDEBUG
+                LogDebug("increase forward - set next tuple. forward: "
                       << tidForward << endl);
+                #endif
                 currTupleDataRelSource = dataRelForward->GetTuple(
-                                             tidForward,
-                                false); //XXTODO: TupleId hier kein Zeiger?
+                                             tidForward, false);
+                                        //XXTODO: TupleId hier kein Zeiger?
             }
             else
             {
@@ -4485,7 +5534,9 @@ public:
                 currTupleDataRelTarget->DeleteIfAllowed();
                 currTupleDataRelTarget = 0;
 
-                Debug("increase reverse" << endl);
+                #ifdef USEDEBUG
+                LogDebug("increase reverse" << endl);
+                #endif
 
                 indexReverse++;
 
@@ -4495,52 +5546,91 @@ public:
                 }
                 else
                 {
-                    Debug("end of Array tupleIdsReverse reached (size: "
+                    #ifdef USEDEBUG
+                    LogDebug("end of Array tupleIdsReverse reached (size: "
                           << tupleIdsReverse->Size() << " currIndex: " <<
                           indexReverse << "), breaking loop" << endl);
+                    #endif
                     break;
                 }
 
-                Debug("increase reverse - set next tuple. reverse: "
+                #ifdef USEDEBUG
+                LogDebug("increase reverse - set next tuple. reverse: "
                       << tidReverse << endl);
-                currTupleDataRelTarget = dataRelReverse->GetTuple(
-                                             tidReverse,
-                                             false);
+                #endif
+                currTupleDataRelTarget =
+                 dataRelReverse->GetTuple(tidReverse, false);
                                              //XXTODO: TupleId hier kein Zeiger?
             }
         }
 
+        tupleSource->DeleteIfAllowed();
+        tupleTarget->DeleteIfAllowed();
+
+        #ifdef USEPERF
+        perfTime2 = getCurrentTimeInMs();
+        LogPerf("perf: duration of actual hl search: (ms) "
+         << fixed << (perfTime2 - perfTime) << endl);
+        #endif
+
         std::vector<Tuple*> pathForward;
         std::vector<Tuple*> pathReverse;
 
-        Debug("lookup paths" << endl);
+        #ifdef USEDEBUG
+        LogDebug("lookup paths" << endl);
+        #endif
 
         if(currMinHubSource)
         {
-            Debug("get PathVia for currMinHubSource" << endl);
-            hlGetPathViaPoints(edgesWithShortcutsOrelSource,
-                               dataRelForward, currMinHubSource, pathForward,
-                               true);
+            #ifdef USEDEBUG
+            LogDebug("get PathVia for currMinHubSource" << endl);
+            #endif
+
+            //differ between (1) old logic and (2) new logic
+            if(isHlGraph)
+            {
+                hlGetPathViaPointsHlGraph(edgesWithShortcutsOrelSource,
+                 hlGraphOrel, dataRelForward, currMinHubSource,
+                 pathForward, true);
+            }else{
+                hlGetPathViaPoints(edgesWithShortcutsOrelSource,
+                 dataRelForward, currMinHubSource, pathForward, true);
+            }
         }
         else
         {
-            Debug("Warnung, Tuple currMinHubSource ist null, fahre fort"
+            #ifdef USEDEBUG
+            LogDebug("Warnung, Tuple currMinHubSource ist null, fahre fort"
                   << endl);
+            #endif
         }
         if(currMinHubTarget)
         {
-            Debug("get PathVia for currMinHubTarget" << endl);
-            hlGetPathViaPoints(edgesWithShortcutsOrelSource,
-                               dataRelReverse, currMinHubTarget, pathReverse,
-                               false);
+            #ifdef USEDEBUG
+            LogDebug("get PathVia for currMinHubTarget" << endl);
+            #endif
+
+            if(isHlGraph)
+            {
+                hlGetPathViaPointsHlGraph(edgesWithShortcutsOrelSource,
+                 hlGraphOrel, dataRelReverse, currMinHubTarget,
+                 pathReverse, false);
+            }else{
+                hlGetPathViaPoints(edgesWithShortcutsOrelSource,
+                 dataRelReverse, currMinHubTarget, pathReverse, false);
+            }
         }
         else
         {
-            Debug("Warnung, Tuple currMinHubTarget ist null, fahre fort"
+            #ifdef USEDEBUG
+            LogDebug("Warnung, Tuple currMinHubTarget ist null, fahre fort"
                   << endl);
+            #endif
         }
 
-        Debug("iterate forward path" << endl);
+        #ifdef USEDEBUG
+        LogDebug("iterate forward path" << endl);
+        #endif
 
         //Reverse-Iterate through pathForward and add edges
         // (source and target) to shortestPath
@@ -4549,25 +5639,30 @@ public:
                 pathForwardIterReverse != pathForward.rend();
                 ++pathForwardIterReverse )
         {
-            Debug("insert next edge" << endl);
+            #ifdef USEDEBUG
+            LogDebug("insert next edge" << endl);
+            #endif
             Tuple* currEdge = *(pathForwardIterReverse);
 
-            //XXTODO
+            #ifdef USEDEBUG
             CcInt* sourceTmp = (CcInt*)
                                currEdge->GetAttribute(
                                    HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE);
             CcInt* targetTmp = (CcInt*)
                                currEdge->GetAttribute(
                                    HL_INDEX_OF_TARGET_IN_EDGE_TUPLE);
-            Debug("appendtuple forward: source = " <<
+            LogDebug("append tuple forward: source = " <<
                   sourceTmp->GetIntval() << " target:  " <<
                   targetTmp->GetIntval() << endl);
+            #endif
 
             shortestPath->AppendTuple(currEdge);
             currEdge->DeleteIfAllowed();
         }
 
-        Debug("iterate reverse path" << endl);
+        #ifdef USEDEBUG
+        LogDebug("iterate reverse path" << endl);
+        #endif
 
         //forward iterate through pathReverse and add it to shortestPath
         for (std::vector<Tuple*>::iterator pathReverseIter
@@ -4575,35 +5670,3648 @@ public:
                 pathReverseIter != pathReverse.end();
                 ++pathReverseIter)
         {
-            Debug("insert next edge" << endl);
+            #ifdef USEDEBUG
+            LogDebug("insert next edge" << endl);
+            #endif
             Tuple* currEdge = *(pathReverseIter);
 
-            //XXTODO
+            #ifdef USEDEBUG
             CcInt* sourceTmp = (CcInt*)
                                currEdge->GetAttribute(
                                    HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE);
             CcInt* targetTmp = (CcInt*)
                                currEdge->GetAttribute(
                                    HL_INDEX_OF_TARGET_IN_EDGE_TUPLE);
-            Debug("appendtuple reverse: source = " <<
+            LogDebug("append tuple reverse: source = " <<
                   sourceTmp->GetIntval() << " target:  " <<
                   targetTmp->GetIntval() << endl);
+            #endif
 
             shortestPath->AppendTuple(currEdge);
             currEdge->DeleteIfAllowed();
         }
 
-        Debug("finish hlQuery" << endl);
+        #ifdef USEPERF
+        perfTime3 = getCurrentTimeInMs();
+        LogPerf("perf: duration of resolving shortest path: (ms) "
+         << fixed << (perfTime3 - perfTime2) << endl);
+        #endif
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlQuery" << endl);
+        #endif
 
         return true;
     }
+
+
+
+
+
+/*
+
+3.3 HubLabeling functionality of (2) In-Memory Approach
+
+*/
+    /*
+    OrderedRelation type for a set of Nodes contained within the hlGraph
+    Used for creation of new OrderedRelation Objects, new Tuples of
+     this OrderedRelation or cloning or deleting of an
+     OrderedRelation of this type
+/
+    static const string hlGetHlGraphNodesOrelTypeInfo()
+    {
+        return "(" + OrderedRelation::BasicType() +
+               hlGetHlGraphNodesTupleTypeInfo() +
+               "(Source)" +
+               ")";
+    }
+
+
+    /*
+    TupleType type for Edges
+/
+    static const string hlGetHlGraphNodesTupleTypeInfo()
+    {
+        return "(" + Tuple::BasicType() +
+                   "(" +
+                   "(Source " + CcInt::BasicType() + ")" +
+                   ")" +
+               ")";
+    }
+
+
+    /*
+    Definition of Field-Indexes for HlGraph Orel Representation
+/
+    static const int HL_INDEX_OF_SOURCE_IN_HL_GRAPH_NODES = 0;
+
+
+
+
+    /*
+    OrderedRelation type for a HlGraph
+    Used for creation of new OrderedRelation Objects, new Tuples of
+     this OrderedRelation or cloning or deleting of an
+     OrderedRelation of this type
+/
+    static const string hlGetHlGraphOrelTypeInfo()
+    {
+        return "(" + OrderedRelation::BasicType() +
+               hlGetHlGraphTupleTypeInfo() +
+               "(Source)" +
+               ")";
+    }
+
+
+    /*
+    TupleType type for Edges
+/
+    static const string hlGetHlGraphTupleTypeInfo()
+    {
+        return "(" + Tuple::BasicType() +
+                   "(" +
+                   "(Source " + CcInt::BasicType() + ")" +
+                   "(Target " + CcInt::BasicType() + ")" +
+                   "(SourceIndex " + CcInt::BasicType() + ")" +
+                   "(TargetIndex " + CcInt::BasicType() + ")" +
+                   "(SourceRank " + CcInt::BasicType() + ")" +
+                   "(IsForward " + CcInt::BasicType() + ")" +
+                   "(IsReverse " + CcInt::BasicType() + ")" +
+                   "(ShortcutParentIdForward " + CcInt::BasicType() + ")" +
+                   "(ShortcutParentIdReverse " + CcInt::BasicType() + ")" +
+                   "(ShortcutParentIndexForward " + CcInt::BasicType() + ")" +
+                   "(ShortcutParentIndexReverse " + CcInt::BasicType() + ")" +
+                   "(WeightForward " + CcReal::BasicType() + ")" +
+                   "(WeightReverse " + CcReal::BasicType() + ")" +
+                   ")" +
+               ")";
+    }
+
+
+
+
+    /*
+    Definition of Field-Indexes for HlGraph Orel Representation
+/
+    static const int HL_INDEX_OF_SOURCE_IN_HL_GRAPH = 0;
+    static const int HL_INDEX_OF_TARGET_IN_HL_GRAPH = 1;
+    static const int HL_INDEX_OF_SOURCE_INDEX_IN_HL_GRAPH = 2;
+    static const int HL_INDEX_OF_TARGET_INDEX_IN_HL_GRAPH = 3;
+    static const int HL_INDEX_OF_SOURCE_RANK_IN_HL_GRAPH = 4;
+    static const int HL_INDEX_OF_IS_FORWARD_IN_HL_GRAPH = 5;
+    static const int HL_INDEX_OF_IS_REVERSE_IN_HL_GRAPH = 6;
+    static const int HL_INDEX_OF_PARENT_ID_FORWARD_IN_HL_GRAPH = 7;
+    static const int HL_INDEX_OF_PARENT_ID_REVERSE_IN_HL_GRAPH = 8;
+    static const int HL_INDEX_OF_PARENT_INDEX_FORWARD_IN_HL_GRAPH = 9;
+    static const int HL_INDEX_OF_PARENT_INDEX_REVERSE_IN_HL_GRAPH = 10;
+    static const int HL_INDEX_OF_WEIGHT_FORWARD_IN_HL_GRAPH = 11;
+    static const int HL_INDEX_OF_WEIGHT_REVERSE_IN_HL_GRAPH = 12;
+
+
+
+    /*
+    Gets an OrderedRelation containing Edges from OSM Import
+     and transforms its contents into an internal graph structure.
+    The internal graph is represented as an adjacency list.
+    There all Edges are grouped by their sourceNodeId within HlNodeEntry.
+    An Edge entry only consists of its targetNodeId, the edge weight and
+     two booleans to distinguish between original edges an so called
+     reverse edges which are inverted edges stored additionally to
+     perform backward searches.
+    That for theres also a second edgeWeight for those reverse edges
+     in case an original edge from u to v has got another weight
+     than the original edge from v to u.
+    Instead of storing the edges targetId we store the index position
+     of the target node within the hlGraph.
+    This for we iterate through the given orel twice. First to get
+     all index positions of all nodes, second to create the hlGraph
+     using these index positions.
+
+    @param nodesOrel the orel to be transformed
+    @param edgesOrel an orel just containing all nodes Ids of the OSM-Graph
+    @param nodesEdgesVector by reference the adjacency-list to fill
+
+    @return true since all modifications take place in the given parameters
+/
+    bool hlTransformOrelToHlGraph(OrderedRelation* nodesOrel,
+     OrderedRelation* edgesOrel,
+     std::vector<HlNodeEntry*> &nodesEdgesVector) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlTransformOrelToHlGraph" << endl);
+        #endif
+
+        //default rank to set within hlGraph, should be -1
+        int defaultRank = -1;
+        std::map<int, int> indexedNodeIds;
+
+        GenericRelationIterator* nodesListOrelIter = nodesOrel->MakeScan();
+
+        //Get first Tuple
+        Tuple* currNode = nodesListOrelIter->GetNextTuple();
+
+        int currIndex = 0;
+
+        //Iterate over all Tuples first time
+        // and create index-mapping
+        while(currNode)
+        {
+            #ifdef USEDEBUG
+            LogDebug("next edge from while" << endl);
+            #endif
+            CcInt* currNodeId = (CcInt*) currNode->GetAttribute(
+                    HL_INDEX_OF_SOURCE_IN_HL_GRAPH_NODES);
+
+            indexedNodeIds.insert(std::make_pair(currNodeId->GetIntval(),
+             currIndex++));
+
+            //get next Tuple from Orel
+            currNode->DeleteIfAllowed();
+            currNode = 0;
+            currNode = nodesListOrelIter->GetNextTuple();
+        }
+        delete nodesListOrelIter;
+
+        GenericRelationIterator*  edgesOrelIter = edgesOrel->MakeScan();
+
+        //Get first Tuple
+        Tuple* currEdge = edgesOrelIter->GetNextTuple();
+
+        int currOrderedNodeId = -1;
+        std::vector<HlEdgeEntry*>* currSourceEdgesVector = 0;
+        std::vector<HlEdgeEntry*>* currTargetEdgesVector = 0;
+
+        //Iterate over all Tuples second time
+        // and create hlGraph
+        while(currEdge)
+        {
+            #ifdef USEDEBUG
+            LogDebug("next edge from while" << endl);
+            #endif
+
+            CcInt* currEdgeSource = (CcInt*) currEdge->GetAttribute(
+                    HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE);
+            CcInt* currEdgeTarget = (CcInt*) currEdge->GetAttribute(
+                    HL_INDEX_OF_TARGET_IN_EDGE_TUPLE);
+            CcReal* currEdgeWeight = (CcReal*) currEdge->GetAttribute(
+                    HL_INDEX_OF_COSTS_IN_EDGE_TUPLE);
+
+            int currSourceNodeId = currEdgeSource->GetIntval();
+            int currTargetNodeId = currEdgeTarget->GetIntval();
+
+            std::map<int, int>::iterator currSourceIndexIter =
+             indexedNodeIds.find(currSourceNodeId);
+
+            if(currSourceIndexIter == indexedNodeIds.end())
+            {
+                LogError("Fehler, SourceNode (" << currSourceNodeId
+                 << ") der aktuellen Kante existiert nicht."
+                 << endl);
+
+                 hlFreeHlGraph(nodesEdgesVector);
+
+                 return false;
+            }
+
+
+            std::map<int, int>::iterator currTargetIndexIter =
+             indexedNodeIds.find(currTargetNodeId);
+
+            if(currTargetIndexIter == indexedNodeIds.end())
+            {
+                LogError("Fehler, TargetNode (" << currTargetNodeId
+                 << ") der aktuellen Kante existiert nicht."
+                 << endl);
+
+                 hlFreeHlGraph(nodesEdgesVector);
+
+                 return false;
+            }
+
+
+            int currSourceIndex = (*currSourceIndexIter).second;
+            int currTargetIndex = (*currTargetIndexIter).second;
+
+            #ifdef USEDEBUG
+            LogDebug("check nodeId (" << currSourceNodeId << ") is new (old: "
+             << currOrderedNodeId << ")" << endl);
+            #endif
+
+
+            //check whether we reached next sourceId
+            if(currOrderedNodeId != currSourceNodeId)
+            {
+                #ifdef USEDEBUG
+                LogDebug("yes, it is new" << endl);
+                #endif
+                //set next nodeId and create new nodeEntry
+                currOrderedNodeId = currSourceNodeId;
+
+                //check whether current SourceNode still exists
+                // due to reverse-edges
+                HlNodeEntry* currHlNodeEntry =
+                 nodesEdgesVector[currSourceIndex];
+
+                if(currHlNodeEntry)
+                {
+                    #ifdef USEDEBUG
+                    LogDebug("source node Id (" << currSourceNodeId <<
+                     ") still exists" << endl);
+                    #endif
+
+                    currSourceEdgesVector = currHlNodeEntry->getEdgesVector();
+                }else{
+                    #ifdef USEDEBUG
+                    LogDebug("source node Id (" << currSourceNodeId <<
+                     ") does not exist" << endl);
+                    #endif
+
+                    //we need a new one
+                    currSourceEdgesVector = new std::vector<HlEdgeEntry*>();
+
+                    currHlNodeEntry = new HlNodeEntry();
+                    currHlNodeEntry->setNodeId(currSourceNodeId);
+                    currHlNodeEntry->setRankValue(defaultRank);
+                    currHlNodeEntry->setEdgesVector(currSourceEdgesVector);
+
+                    nodesEdgesVector[currSourceIndex] = currHlNodeEntry;
+                }
+            }
+
+
+            //get targetEdgesVector for reverse edges
+
+            //check whether current TargetNode still exists
+            // as sourceNode due to reverse-edges or forward-edges
+            HlNodeEntry* currTargetHlNodeEntry =
+             nodesEdgesVector[currTargetIndex];
+
+
+            //if the targetNodeId still exists
+            // we just edit the existing edgeEntry
+            if(currTargetHlNodeEntry)
+            {
+                #ifdef USEDEBUG
+                LogDebug("target node Id (" << currTargetNodeId <<
+                 ") still exists" << endl);
+                #endif
+
+                currTargetEdgesVector = currTargetHlNodeEntry->getEdgesVector();
+            }else{
+                #ifdef USEDEBUG
+                LogDebug("target node Id (" << currTargetNodeId <<
+                 ") does not exist" << endl);
+                #endif
+
+                //we need a new one
+                currTargetEdgesVector = new std::vector<HlEdgeEntry*>();
+
+                currTargetHlNodeEntry = new HlNodeEntry();
+                currTargetHlNodeEntry->setNodeId(currTargetNodeId);
+                currTargetHlNodeEntry->setRankValue(defaultRank);
+                currTargetHlNodeEntry->setEdgesVector(currTargetEdgesVector);
+
+                nodesEdgesVector[currTargetIndex] = currTargetHlNodeEntry;
+            }
+
+            #ifdef USEDEBUG
+            LogDebug("add forward edge (" << currSourceNodeId << ", "
+             << currTargetNodeId << ")" << endl);
+            #endif
+            //check whether the targetNodeId still exists
+            // due to reverseEdges
+            HlEdgeEntry* currSourceEdgeEntry =
+             hlGetEdgeFromVector(currSourceEdgesVector, currTargetIndex);
+
+             //create new if does not exist
+            if(!currSourceEdgeEntry)
+            {
+                currSourceEdgeEntry = new HlEdgeEntry();
+
+                //add current forward edge (u, v)
+                currSourceEdgeEntry->setTargetIndex(currTargetIndex);
+                currSourceEdgeEntry->setWeightForward(
+                    currEdgeWeight->GetRealval());
+                currSourceEdgeEntry->setIsForward(true);
+                currSourceEdgesVector->push_back(currSourceEdgeEntry);
+            }else{
+                //else just edit fields
+                currSourceEdgeEntry->setWeightForward(
+                    currEdgeWeight->GetRealval());
+                currSourceEdgeEntry->setIsForward(true);
+            }
+
+
+            #ifdef USEDEBUG
+            LogDebug("add reverse edge (" << currTargetNodeId << ", "
+             << currSourceNodeId << ")" << endl);
+            #endif
+            //check whether the sourceNodeId still exists
+            // due to forwardEdges
+            HlEdgeEntry* currTargetEdgeEntry =
+             hlGetEdgeFromVector(currTargetEdgesVector, currSourceIndex);
+
+             //create new if does not exist
+            if(!currTargetEdgeEntry)
+            {
+                currTargetEdgeEntry = new HlEdgeEntry();
+
+                //add the same edge as reverse edge (v, u)
+                currTargetEdgeEntry->setTargetIndex(currSourceIndex);
+                currTargetEdgeEntry->setWeightReverse(
+                    currEdgeWeight->GetRealval());
+                currTargetEdgeEntry->setIsReverse(true);
+                currTargetEdgesVector->push_back(currTargetEdgeEntry);
+            }else{
+                //else just edit fields
+                currTargetEdgeEntry->setWeightReverse(
+                    currEdgeWeight->GetRealval());
+                currTargetEdgeEntry->setIsReverse(true);
+            }
+
+
+            //get next Tuple from Orel
+            currEdge->DeleteIfAllowed();
+            currEdge = 0;
+            currEdge = edgesOrelIter->GetNextTuple();
+        }
+
+        delete edgesOrelIter;
+
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlTransformOrelToHlGraph" << endl);
+        #endif
+        return true;
+    }
+
+    /*
+    Iterates through the given vector and compares each element
+     with the given targetNodeId.
+    If they match it returns the pointer to the current HlEdgeEntry-element.
+
+    @param edgeVector the Vector to be searched in
+    @param targetNodeIndex the index positionof the node to be searched for
+    @return the pointer to the desired object if found, null else
+/
+    HlEdgeEntry* hlGetEdgeFromVector(std::vector<HlEdgeEntry*>* edgeVector,
+     int targetNodeIndex) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlGetEdgeFromVector" << endl);
+        #endif
+
+        HlEdgeEntry* resultEdgeEntry = 0;
+        for (std::vector<HlEdgeEntry*>::iterator it =
+         edgeVector->begin(); it != edgeVector->end(); ++it)
+        {
+            HlEdgeEntry* currEdgeEntry = *it;
+            #ifdef USEDEBUG
+            LogDebug("next edge from vector: " <<
+             currEdgeEntry->getTargetIndex() << endl);
+            #endif
+            if(currEdgeEntry->getTargetIndex() == targetNodeIndex)
+            {
+                #ifdef USEDEBUG
+                LogDebug("match" << endl);
+                #endif
+                resultEdgeEntry = currEdgeEntry;
+                break;
+            }
+        }
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlGetEdgeFromVector" << endl);
+        #endif
+
+        return resultEdgeEntry;
+    }
+
+
+    /*
+    Calculates the priority for the given sourceNodeId.
+    Does ignor edges not existing within priority multimap
+     since these nodes still have been contracted.
+
+    @param currNodeEntry the current nodeEntry to calculate its priority
+    @param nodesEdgesVector by reference the whole adjacency-list
+    @param initPriorityQueue indicated whethere the rankedMultimap is
+             being built up right now
+    @return the calculated rank
+/
+    double hlCalcPriorityOfHlNodeEntry(HlNodeEntry* currNodeEntry,
+     std::vector<HlNodeEntry*> &nodesEdgesVector, bool initPriorityQueue) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlCalcPriorityOfHlNodeEntry" << endl);
+        #endif
+
+        double calculatedPriority = 0;
+
+        int inOutEdgesCount = 0;
+        int inEdgesCount = 0;
+        int outEdgesCount = 0;
+
+        std::vector<HlEdgeEntry*>* edgeVector = currNodeEntry->getEdgesVector();
+
+        for (std::vector<HlEdgeEntry*>::iterator it =
+         edgeVector->begin(); it != edgeVector->end(); ++it)
+        {
+            HlEdgeEntry* currEdgeEntry = *it;
+
+            int currTargetIndex = currEdgeEntry->getTargetIndex();
+            HlNodeEntry* currTargetNodeEntry =
+             nodesEdgesVector[currTargetIndex];
+
+            #ifdef USEDEBUG
+            LogDebug("next edge from vector: (" <<
+             currNodeEntry->getNodeId() << ", " <<
+             currTargetNodeEntry->getNodeId() << ")" << endl);
+            #endif
+
+
+            //check whether target node still has been contracted
+            //skip if yes, proceed else
+            //still contracted nodes do have a rank > -1
+            //also proceed if given flag initPriorityQueue = true
+            // which means that the priority multimap is just being built up
+            // right now and we will consider all nodes
+            int currTargetRank = -1;
+            if(!initPriorityQueue)
+            {
+                currTargetRank = currTargetNodeEntry->getRankValue();
+            }
+
+
+            if(currTargetRank == -1)
+            {
+                //node not contracted yet, proceed
+
+                if(currEdgeEntry->getIsReverse() &&
+                 currEdgeEntry->getIsForward())
+                {
+                    //incoming and outgoing edge
+                    inOutEdgesCount++;
+
+                }
+                else if(currEdgeEntry->getIsReverse())
+                {
+                    //incoming edge oneway
+                    inEdgesCount++;
+                }
+                else if (currEdgeEntry->getIsForward())
+                {
+                    //outgoing edge oneway
+                    outEdgesCount++;
+                }
+            }
+        }
+
+
+        //do calcutation
+
+        //calculate edge dffierence
+
+        //total number of incoming and outgoing edges
+        int totalInOutEdges = inOutEdgesCount2
+         + inEdgesCount + outEdgesCount;
+
+        //total number of shortcuts to be created
+        //do not count nodes being source and target at the same time
+        //e.g. if theres an incoming edge from u to v and also there
+        // is an edge from v to u we do not count an shortcut from u to u
+        // which would be nonsense
+        //Thats why we subtract inOutEdgesCount.
+        int totalShortcutsToCreate =
+         (inOutEdgesCount + inEdgesCount)(inOutEdgesCount + outEdgesCount)
+         - inOutEdgesCount;
+
+        int edgeDifference = totalShortcutsToCreate - totalInOutEdges;
+         #ifdef USEDEBUG
+        LogDebug("ED: " << edgeDifference << " = shortcuts: " <<
+          totalShortcutsToCreate << " - inoutEdges: " << totalInOutEdges
+           << endl);
+        #endif
+
+
+        //multiply by -1 such that we get a min-priority queue
+        calculatedPriority = (double) edgeDifference;
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlCalcPriorityOfHlNodeEntry" << endl);
+        #endif
+
+        return calculatedPriority;
+    }
+
+
+    /*
+    type definitions and
+    comparable function for using priority_queue
+     within nodeContraction
+    Format is: edgeWeightToSource, targetNodeIndex
+/
+    typedef std::pair<double, int> QueuePairType;
+
+    struct CompareQueueEntry :
+     public std::binary_function<QueuePairType, QueuePairType, bool>
+    {
+        bool operator()
+         (const QueuePairType firstQueuePair,
+          const QueuePairType secondQueuePair) const
+        {
+            return firstQueuePair.first > secondQueuePair.first;
+        }
+    };
+
+    typedef std::priority_queue<QueuePairType, vector<QueuePairType>,
+     CompareQueueEntry> PriorityQueueType;
+
+
+    /*
+    type definitions and comparable function
+     for using priority_queue
+     within hHopForwardSearch
+    Format is: edgeWeightToSource, targetNodeIndex, targetHHop
+/
+    typedef std::pair<double, std::pair<int, int>> QueuePairTypeForwardSearch;
+
+    struct CompareQueueEntryForwardSearch :
+     public std::binary_function<QueuePairTypeForwardSearch,
+      QueuePairTypeForwardSearch, bool>
+    {
+        bool operator()
+         (const QueuePairTypeForwardSearch firstQueuePair,
+          const QueuePairTypeForwardSearch secondQueuePair) const
+        {
+            return firstQueuePair.first > secondQueuePair.first;
+        }
+    };
+
+    typedef std::priority_queue<QueuePairTypeForwardSearch,
+     vector<QueuePairTypeForwardSearch>,
+     CompareQueueEntryForwardSearch> PriorityQueueTypeForwardSearch;
+
+
+    /*
+    Iterates through the given graph and creates a priority for every node.
+    Inserts these priorities into the given multimap.
+
+    @param nodesEdgesVector by reference the adjacency-list to fill
+    @param priorityQueue by reference priorityQueue to fill
+    @return true since all modifications are done within the given parameters
+/
+    bool hlInitPriorityQueueOfHlGraph(
+     std::vector<HlNodeEntry*> &nodesEdgesVector,
+     PriorityQueueType &priorityQueue) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlInitPriorityQueueOfHlGraph" << endl);
+        #endif
+
+        //iterate over all nodes and initial calc their priority
+        #ifdef USEDEBUG
+        LogDebug("init priority" << endl);
+        #endif
+        for (uint i = 0; i < nodesEdgesVector.size(); i++)
+        {
+            HlNodeEntry* currNodeEntry = nodesEdgesVector[i];
+
+            //calc priority of current node
+            double currPriority = 0.0;
+            bool initPriorityQueue = true;
+            currPriority = hlCalcPriorityOfHlNodeEntry(currNodeEntry,
+             nodesEdgesVector, initPriorityQueue);
+
+            //store priority in queue
+            priorityQueue.push(std::make_pair(currPriority, i));
+        }
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlInitPriorityQueueOfHlGraph" << endl);
+        #endif
+
+        return true;
+    }
+
+
+    /*
+    Iteratively does Contraction for every element within the given queue.
+    Recalculates the priority of every node chosen next from queue
+     for better contaction.
+    Stores a sequenced rank for every node in order of its contraction.
+
+    @param nodesEdgesVector by reference the adjacency-list
+    @param priorityQueue by reference the priorityQueue to work off
+    @param hHopSize the size how depth hHop searches shall be processed
+    @param skipContractionRemainingCount the size after how many remaining
+            elements from contraction recalculation of priority shall be
+            stopped and elements are just contracted in the order so far
+    @return true since all modifications are done within the given parameters
+/
+    bool hlDoContractionOfHlGraph(std::vector<HlNodeEntry*> &nodesEdgesVector,
+     PriorityQueueType &priorityQueue,
+      int hHopSize, int skipContractionRemainingCount) const
+    {
+        #ifdef USEINFO
+        LogInfo("start hlDoContractionOfHlGraph" << endl);
+        #endif
+
+        int newRankSequence = 0;
+        size_t skipRecalcRank = (size_t) skipContractionRemainingCount;
+
+        int progressCount = 0;
+        #ifdef USEPERF
+        bool perfBool = false;
+
+        double perfTime = 0.0;
+        double perfTime2 = 0.0;
+        double perfTime3 = 0.0;
+        double perfTime4 = 0.0;
+        #endif
+
+        //iterate while queue is not empty
+        while(!priorityQueue.empty())
+        {
+            progressCount++;
+            #ifdef USEPERF
+
+            if(progressCount % getProgressInterval() == 0)
+            {
+                perfBool = true;
+            }
+
+            if(perfBool)
+            {
+                perfTime = getCurrentTimeInMs();
+            }
+            #endif
+
+            //get first element of map
+            QueuePairType currQueuePair = priorityQueue.top();
+            int currPriorityContraction = currQueuePair.first;
+            int currNodeIndex = currQueuePair.second;
+            HlNodeEntry* currNodeEntry = nodesEdgesVector[currNodeIndex];
+
+            //remove node from map its not used any more
+            //but we may reinsert it when priority has changed
+            priorityQueue.pop();
+
+
+            #ifdef USEINFO
+            if(progressCount % getProgressInterval() == 0)
+            {
+            int currNodeIdContraction = currNodeEntry->getNodeId();
+            LogInfo("next top element is: nodeId: " << currNodeIdContraction
+                << " priority: " << currPriorityContraction
+                << " elements left:" << priorityQueue.size() - 1 << endl);
+            }
+            #endif
+
+            //recalculate the priority of the first element
+            //Only recalculate if we are not processing the last X Nodes
+            // where x depends on the soze of the network an is
+            // n = 10.000
+            //there probably is no lower rank than -2
+            // (in case a death end node is contracted)
+            double recalculatedPriority = -10.0;
+
+            if(priorityQueue.size() >= skipRecalcRank)
+            {
+                bool initPriorityQueue = false;
+                recalculatedPriority = hlCalcPriorityOfHlNodeEntry(
+                    currNodeEntry, nodesEdgesVector, initPriorityQueue
+                );
+            }
+
+
+            //check whether the priority has increased
+            if(recalculatedPriority > currPriorityContraction)
+            {
+                #ifdef USEDEBUG
+                LogDebug("reinserting, priority has increased from "
+                    << currPriorityContraction
+                    << " to: " << recalculatedPriority << endl);
+                #endif
+                //if yes we need to reinsert this element with its
+                // recalculated priority
+                //and repeat getting the new top element
+                priorityQueue.push(
+                 std::make_pair(recalculatedPriority, currNodeIndex));
+                continue;
+            }
+
+
+            //store rank in hlGraph for later use
+            //for uniqueness we use a novel increasing sequence for that
+            currNodeEntry->setRankValue(newRankSequence++);
+
+
+
+
+            #ifdef USEPERF
+            if(perfBool)
+            {
+                perfTime2 = getCurrentTimeInMs();
+            }
+            #endif
+
+
+            //contract
+            hlContractNodeOfHlGraph(nodesEdgesVector, currNodeEntry,
+             currNodeIndex, hHopSize);
+
+
+            #ifdef USEPERF
+            if(perfBool)
+            {
+                perfTime3 = getCurrentTimeInMs();
+                LogPerf("perf: duration of contraction itself in: (ms) "
+                 << fixed << (perfTime3 - perfTime2) << endl);
+            }
+            #endif
+
+            if(priorityQueue.size() <= skipRecalcRank)
+            {
+                //recalculate priorities of neighbours of contracted node
+                hlRecalculateNeighboursInHlGraph(nodesEdgesVector,
+                 currNodeEntry);
+            }
+
+
+            #ifdef USEPERF
+            if(perfBool)
+            {
+                perfTime4 = getCurrentTimeInMs();
+
+                LogPerf(
+                 "perf: duration of receiving and contracting a node: (ms) "
+                 << fixed << (perfTime4 - perfTime) << endl);
+
+                perfTime = 0.0;
+                perfTime2 = 0.0;
+                perfTime3 = 0.0;
+                perfTime4 = 0.0;
+
+                perfBool = false;
+            }
+
+
+            #endif
+        }
+
+
+        #ifdef USEINFO
+        LogInfo("finish hlDoContractionOfHlGraph" << endl);
+        #endif
+
+        return true;
+    }
+
+
+    /*
+    Contracts a specific node.
+    Contraction mean that shortcuts will be created
+     and added to the existing graph structure.
+    For every incoming node u and every outgoing node w there will
+     be a shortcut created with the given nodeIdV as parent.
+    Nodes or edges are not deleted here because still contracted edges
+     and nodes are identified by not finding them within the ranks-queue.
+    Does ignor edges not existing within ranked multimap
+     since these nodes still have been contracted.
+
+    @param nodesEdgesVector by reference the adjacency-list
+    @param currNodeEntryV the current node v to be contracted.
+    @param nodeIndexV the index position of node v within hlGraph.
+    @param hHopSize the size how depth hHop searches shall be processed
+    @return true since all modifications are done within the given parameters
+/
+    bool hlContractNodeOfHlGraph(std::vector<HlNodeEntry*> &nodesEdgesVector,
+     HlNodeEntry* currNodeEntryV, int nodeIndexV, int hHopSize) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlContractNodeOfHlGraph" << endl);
+        #endif
+
+
+        //get EdgesTuple of curent node to be contracted
+        std::vector<HlEdgeEntry*>* currEdgesV =
+         currNodeEntryV->getEdgesVector();
+
+        //save all incoming edges for later h-hop forward search
+        std::vector<HlEdgeEntry*> incomingEdgesUV;
+
+        //store results of one hop reverse search
+        std::map<int, std::vector<std::pair<int, double>>>
+         reverseSearchResultsXW;
+        std::map<int, double> distancesVW;
+
+        //iterate over all incoming and outgoing edges
+        for (std::vector<HlEdgeEntry*>::iterator currEdgesVIter =
+         currEdgesV->begin() ; currEdgesVIter != currEdgesV->end();
+         ++currEdgesVIter)
+        {
+            HlEdgeEntry* currEdgeEntryV = *currEdgesVIter;
+
+            //check whether edge is a reverse/incoming edge (u, v)
+            // remember it then for later forward search
+            // do one-hop reverse search if its a forward/outgoing edge
+            if(currEdgeEntryV->getIsReverse())
+            {
+                incomingEdgesUV.push_back(currEdgeEntryV);
+            }
+
+            if(currEdgeEntryV->getIsForward())
+            {
+
+                //get edgeVector of w
+                int nodeIndexW = currEdgeEntryV->getTargetIndex();
+                HlNodeEntry* currNodeEntryW = nodesEdgesVector[nodeIndexW];
+
+                int rankW = currNodeEntryW->getRankValue();
+                std::vector<HlEdgeEntry*>* edgesVectorW =
+                 currNodeEntryW->getEdgesVector();
+
+
+                //skip if targetNode w still has been contracted
+                // they are stil contracted if they do have a rank != -1
+                if(rankW != -1)
+                {
+                    continue;
+                }
+
+
+                //insert for lookups while hHop Forward search
+                distancesVW.insert(std::make_pair(
+                  currEdgeEntryV->getTargetIndex(),
+                  currEdgeEntryV->getWeightForward()
+                 ));
+
+                #ifdef USEDEBUG
+                int nodeIdW = currNodeEntryW->getNodeId();
+                LogDebug("next node w: " << nodeIdW << " with index: "
+                 << nodeIndexW << " with rank: " << rankW << endl);
+                #endif
+
+
+                // store the additional information that this is
+                // an upward-edge (for easier deletion later on
+                // creating Up- and Downwardgraphs
+                currEdgeEntryV->setIsUpwardOriginal(true);
+
+
+                //iterate over all incoming edges (x, w) to store them as
+                // one hop reverse search
+                for (std::vector<HlEdgeEntry*>::iterator
+                 edgesVectorWIter = edgesVectorW->begin();
+                 edgesVectorWIter != edgesVectorW->end();
+                 ++edgesVectorWIter)
+                {
+                    HlEdgeEntry* currEdgeEntryXW = *edgesVectorWIter;
+
+                    int nodeIndexX = currEdgeEntryXW->getTargetIndex();
+                    HlNodeEntry* currNodeEntryX = nodesEdgesVector[nodeIndexX];
+
+                    //skip if is v itself, we still stored its distance
+                    // also skip if is no incoming edge to t
+                    // skip still contracted nodes
+                    if(!currEdgeEntryXW->getIsReverse()
+                     || nodeIndexX == nodeIndexV
+                     || currNodeEntryX->getRankValue() != -1)
+                    {
+                        continue;
+                    }
+
+                    //store x with distance to current w
+                    double currDistXW = currEdgeEntryXW->getWeightReverse();
+
+                    //creates a new entry if nodeIndexX it did not exist
+                    reverseSearchResultsXW[nodeIndexX].push_back(
+                     std::make_pair(nodeIndexW, currDistXW));
+
+                }
+            } //finish reverse search of current node
+        }//finish iteration over all adjacent nodes
+
+
+        //iterate over all remembered incoming nodes
+        //iterate over all incoming edges (= reverse edges) (u, v)
+        for (std::vector<HlEdgeEntry*>::iterator
+         incomingEdgesUVIter = incomingEdgesUV.begin();
+         incomingEdgesUVIter != incomingEdgesUV.end();
+         ++incomingEdgesUVIter)
+        {
+            HlEdgeEntry* currEdgeEntryIncomingUV = *incomingEdgesUVIter;
+
+            int nodeIndexU = currEdgeEntryIncomingUV->getTargetIndex();
+
+
+            //get edgeVector of u
+            HlNodeEntry* currNodeEntryU = nodesEdgesVector[nodeIndexU];
+            int rankU = currNodeEntryU->getRankValue();
+            std::vector<HlEdgeEntry*>* edgesVectorU =
+             currNodeEntryU->getEdgesVector();
+
+
+            //skip if sourceNode u still has been contracted
+            // they are stil contracted if they do have a rank != -1
+            if(rankU != -1)
+            {
+                continue;
+            }
+
+
+            // store the additional information that this is
+            // an reverse-upward-edge (for easier deletion later on
+            // creating Up- and Downwardgraphs
+            // we just check if this edge not yet still has been flagged
+            //  with this information
+            // such that we only set this flag here if the current edge
+            // actually is an oneway on the graph
+            if(!currEdgeEntryIncomingUV->getIsUpwardOriginal())
+            {
+                currEdgeEntryIncomingUV->setIsUpwardOriginal(true);
+            }
+
+
+            #ifdef USEDEBUG
+            int nodeIdU = currNodeEntryU->getNodeId();
+            LogDebug("next node u: " << nodeIdU << " with rank: "
+             << rankU << endl);
+            #endif
+
+            //copy distancesVW for make shortcut creation easier
+            std::map<int, double> distancesVWCopy = distancesVW;
+
+
+            //directly erase current w == u from distancesVWCopy
+            std::map<int, double>::iterator distCopyCurrUIter =
+             distancesVWCopy.find(nodeIndexU);
+
+            if(distCopyCurrUIter != distancesVWCopy.end())
+            {
+                distancesVWCopy.erase(distCopyCurrUIter);
+            }
+
+
+            double currDistUV = currEdgeEntryIncomingUV->getWeightReverse();
+
+            //do h-Hop forward search
+            hlDoHHopForwardSearchInHlGraph(nodesEdgesVector,
+             reverseSearchResultsXW, distancesVWCopy, edgesVectorU,
+             nodeIndexU, nodeIndexV, currDistUV, hHopSize);
+
+
+            //iterate over all remaining elements from distancesVWCopy
+            //create shortcut for every pair with current sourceNode
+            for (std::map<int, double>::iterator
+             distancesVWCopyIter = distancesVWCopy.begin();
+             distancesVWCopyIter != distancesVWCopy.end();
+             ++distancesVWCopyIter)
+            {
+                int nodeIndexWShortcut = (*distancesVWCopyIter).first;
+                double currDistVWShortcut = (*distancesVWCopyIter).second;
+
+                //skip if u == w
+                if(nodeIndexU == nodeIndexWShortcut)
+                {
+                    continue;
+                }
+
+                HlNodeEntry* currNodeEntryWShortcut =
+                 nodesEdgesVector[nodeIndexWShortcut];
+                std::vector<HlEdgeEntry*>* edgesVectorWShortcut =
+                 currNodeEntryWShortcut->getEdgesVector();
+
+                double currShortcutWeight = currDistUV + currDistVWShortcut;
+
+                //check whether an edge (u, w) still exists
+                // for creating a forward edge
+                HlEdgeEntry* currShortcutUW =
+                 hlGetEdgeFromVector(edgesVectorU, nodeIndexWShortcut);
+
+                //check whether an edge (w, u) still exists
+                // for creating a reverse edge
+                HlEdgeEntry* currShortcutWU =
+                 hlGetEdgeFromVector(edgesVectorWShortcut, nodeIndexU);
+
+
+                //merge UW if edge still exists, create new else
+                if(currShortcutUW)
+                {
+                    #ifdef USEDEBUG
+                    int nodeIdU = currNodeEntryU->getNodeId();
+                    int nodeIdW = currNodeEntryWShortcut->getNodeId();
+                    LogDebug("edge (u, w) (" << nodeIdU << ", " << nodeIdW <<
+                    ") still exists going to merge" << endl);
+                    #endif
+
+                    currShortcutUW->setIsForward(true);
+                    currShortcutUW->setParentIndexForward(nodeIndexV);
+                    currShortcutUW->setWeightForward(currShortcutWeight);
+                }else
+                {
+                    #ifdef USEDEBUG
+                    int nodeIdU = currNodeEntryU->getNodeId();
+                    HlNodeEntry* currNodeEntryWShortcut =
+                     nodesEdgesVector[nodeIndexWShortcut];
+                    int nodeIdW = currNodeEntryWShortcut->getNodeId();
+                    LogDebug("edge (u, w) (" << nodeIdU << ", " << nodeIdW <<
+                      ") does not exist, create new" << endl);
+                    #endif
+
+                    //create new and append to edgesVector
+                    currShortcutUW = new HlEdgeEntry();
+                    currShortcutUW->setIsForward(true);
+                    currShortcutUW->setParentIndexForward(nodeIndexV);
+                    currShortcutUW->setTargetIndex(nodeIndexWShortcut);
+                    currShortcutUW->setWeightForward(currShortcutWeight);
+
+                    edgesVectorU->push_back(currShortcutUW);
+                }
+
+                //merge WU if existed crete new else
+                if(currShortcutWU)
+                {
+                    #ifdef USEDEBUG
+                    int nodeIdU = currNodeEntryU->getNodeId();
+                    int nodeIdW = currNodeEntryWShortcut->getNodeId();
+                    LogDebug("edge (w, u) (" << nodeIdW << ", " << nodeIdU <<
+                      ") still exists going to merge" << endl);
+                    #endif
+
+                    currShortcutWU->setIsReverse(true);
+                    currShortcutWU->setParentIndexReverse(nodeIndexV);
+                    currShortcutWU->setWeightReverse(currShortcutWeight);
+                }else
+                {
+                    #ifdef USEDEBUG
+                    int nodeIdU = currNodeEntryU->getNodeId();
+                    int nodeIdW = currNodeEntryWShortcut->getNodeId();
+                    LogDebug("edge (w, u) (" << nodeIdW << ", " << nodeIdU <<
+                    ") does not exist, create new" << endl);
+                    #endif
+
+                    //create new and append to edgesVector
+                    currShortcutWU = new HlEdgeEntry();
+                    currShortcutWU->setIsReverse(true);
+                    currShortcutWU->setParentIndexReverse(nodeIndexV);
+                    currShortcutWU->setTargetIndex(nodeIndexU);
+                    currShortcutWU->setWeightReverse(currShortcutWeight);
+
+                    edgesVectorWShortcut->push_back(currShortcutWU);
+                }
+            }
+
+
+        } // finish iterating over all incoming nodes
+
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlContractNodeOfHlGraph" << endl);
+        #endif
+
+        return true;
+    }
+
+
+    /*
+    Do H-Hop forward search
+
+    @param nodesEdgesVector by reference the adjacency-list
+    @param reverseSearchResultsXW by reference the result of reverse search.
+    @param distancesVWCopy by reference the targetNodes with distance to v.
+    @param edgesVectorU the edgesVector of current u.
+    @param nodeIndexU the id of current u.
+    @param nodeIndexV the id of current v to be contracted.
+    @param distUV the distance of current u to v.
+    @param givenHHop the max hop-size.
+    @return true since all modifications are done within the given parameters
+/
+    bool hlDoHHopForwardSearchInHlGraph(
+     std::vector<HlNodeEntry*> &nodesEdgesVector,
+     std::map<int, std::vector<std::pair<int, double>>> reverseSearchResultsXW,
+     std::map<int, double> &distancesVWCopy,
+     std::vector<HlEdgeEntry*>* edgesVectorU, int nodeIndexU, int nodeIndexV,
+      double distUV, int givenHHop) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlDoHHopForwardSearchInHlGraph" << endl);
+        #endif
+
+
+        double distUX = 0.0;
+
+        //at first check whether curr u is one element of X
+        std::map<int, std::vector<std::pair<int, double>>>::iterator
+         reverseSearchResultsIter = reverseSearchResultsXW.find(nodeIndexU);
+
+
+
+        if(reverseSearchResultsIter != reverseSearchResultsXW.end())
+        {
+            std::vector<std::pair<int, double>> currVectorXW =
+             (*reverseSearchResultsIter).second;
+
+            //X found check for witness and may remove potential shortcuts
+            hlCheckForWitnessInHlGraph(currVectorXW, distancesVWCopy,
+             distUX, distUV, nodeIndexU);
+        }
+
+
+        //only proceed if givenHHop was chosen correctly
+        if(givenHHop < 1)
+        {
+            return true;
+        }
+
+        //do forward search until givenHHop is reached
+        //init queue
+        PriorityQueueTypeForwardSearch forwardQueue;
+        std::set<int> stillVisitedNodes;
+
+
+        #ifdef USEDEBUG
+        LogDebug("initiate hHop forward search" << endl);
+        #endif
+
+
+        int currHHop = 1;
+        stillVisitedNodes.insert(nodeIndexU);
+
+
+        //skip if there are no more witnesses to find
+        if(!distancesVWCopy.empty())
+        {
+            //iterate over all k of current u
+            //to initiate hHop forward search
+            for (std::vector<HlEdgeEntry*>::iterator
+             edgesVectorUIter = edgesVectorU->begin();
+             edgesVectorUIter != edgesVectorU->end();
+             ++edgesVectorUIter)
+             {
+                //get data
+                HlEdgeEntry* currEdgeEntryUK = *edgesVectorUIter;
+                int targetIndexK = currEdgeEntryUK->getTargetIndex();
+
+                HlNodeEntry* currNodeEntryK = nodesEdgesVector[targetIndexK];
+
+                //skip if is no forward edge or if k = v
+                // or if target is still contracted
+                // or if is still visited
+                if(!currEdgeEntryUK->getIsForward()
+                 || targetIndexK == nodeIndexV
+                 || currNodeEntryK->getRankValue() != -1
+                 || stillVisitedNodes.find(targetIndexK)
+                    != stillVisitedNodes.end()
+                )
+                {
+                    continue;
+                }
+
+
+                forwardQueue.push(std::make_pair(
+                 currEdgeEntryUK->getWeightForward(),
+                 std::make_pair(targetIndexK, currHHop)
+                ));
+            }
+        }
+
+        #ifdef USEDEBUG
+        LogDebug("do hHop forward search" << endl);
+        #endif
+
+
+        while(!forwardQueue.empty())
+        {
+            QueuePairTypeForwardSearch currQueuePair = forwardQueue.top();
+            forwardQueue.pop();
+
+            double currDistToSourceUK = currQueuePair.first;
+            std::pair<int, int> currTupleQueue = currQueuePair.second;
+
+            int currNodeIndexK = currTupleQueue.first;
+            int currHHopK = currTupleQueue.second;
+
+
+            stillVisitedNodes.insert(currNodeIndexK);
+
+            HlNodeEntry* currNodeEntryK = nodesEdgesVector[currNodeIndexK];
+
+            #ifdef USEDEBUG
+            int currNodeIdK = currNodeEntryK->getNodeId();
+            LogDebug("next node from queue: " << currNodeIdK
+             << " with index: " << currNodeIndexK
+             << " with hHop: " << currHHopK << endl);
+            #endif
+
+            //check for match with an x
+            //reuse iterator
+            reverseSearchResultsIter =
+             reverseSearchResultsXW.find(currNodeIndexK);
+
+            if(reverseSearchResultsIter != reverseSearchResultsXW.end())
+            {
+                std::vector<std::pair<int, double>> currVectorXW =
+                 (*reverseSearchResultsIter).second;
+
+
+                //X found check for witness and may remove potential shortcuts
+                hlCheckForWitnessInHlGraph(currVectorXW, distancesVWCopy,
+                 currDistToSourceUK, distUV, nodeIndexU);
+
+                //if there are no more nodes w to find a witness path for
+                //we can abort the search
+                if(distancesVWCopy.empty())
+                {
+                    break;
+                }
+            }
+
+            //only proceed if we did not exceed givenHHop
+            if(currHHopK >= givenHHop)
+            {
+                continue;
+            }
+
+
+
+            #ifdef USEDEBUG
+            LogDebug("scan new vertices" << endl);
+            #endif
+
+            //get edgeVector of current k
+            std::vector<HlEdgeEntry*>* edgesVectorK =
+             currNodeEntryK->getEdgesVector();
+
+            //iterate over all j of current k with edge (k, j)
+            for (std::vector<HlEdgeEntry*>::iterator
+             edgesVectorKIter = edgesVectorK->begin();
+             edgesVectorKIter != edgesVectorK->end();
+             ++edgesVectorKIter)
+             {
+                //get data
+                HlEdgeEntry* currEdgeEntryKJ = *edgesVectorKIter;
+                int currTargetIndexJ = currEdgeEntryKJ->getTargetIndex();
+
+                HlNodeEntry* currNodeEntryJ =
+                 nodesEdgesVector[currTargetIndexJ];
+
+                //skip if is not forward edge or if k = v
+                // or if target is still contracted
+                if(!currEdgeEntryKJ->getIsForward()
+                 || currTargetIndexJ == nodeIndexV
+                 || currNodeEntryJ->getRankValue() != -1
+                 || stillVisitedNodes.find(currTargetIndexJ)
+                    != stillVisitedNodes.end()
+                )
+                {
+                    continue;
+                }
+
+                //may inserts target nodes which still have been visited
+                forwardQueue.push(std::make_pair(
+                  currEdgeEntryKJ->getWeightForward() + currDistToSourceUK,
+                  std::make_pair(currTargetIndexJ,
+                   currHHopK + 1)
+                 ));
+            }
+        }
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlDoHHopForwardSearchInHlGraph" << endl);
+        #endif
+
+        return true;
+    }
+
+
+    /*
+    Check for Witness during H-Hop forward search
+     and delete w from distancesVWCopy if witness has been found.
+
+    @param currVectorXW by reference the current x-Array
+    @param distancesVWCopy by reference the targetNodes with distance to v.
+    @param distUX the current distance from u to x
+    @param distUV the current distance from u to v
+    @param currNodeIndexU the index of current node u
+    @return true since all modifications are done within the given parameters
+/
+    bool hlCheckForWitnessInHlGraph(
+     std::vector<std::pair<int, double>> &currVectorXW,
+     std::map<int, double> &distancesVWCopy,
+     double distUX, double distUV, int currNodeIndexU) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlCheckForWitnessInHlGraph" << endl);
+        #endif
+
+        //iterate over all w of current x
+        for (std::vector<std::pair<int, double>>::iterator
+         currVectorXWIter = currVectorXW.begin();
+         currVectorXWIter != currVectorXW.end();
+         ++currVectorXWIter)
+         {
+            //get data
+            int currNodeIndexW = (*currVectorXWIter).first;
+            double currDistXW = (*currVectorXWIter).second;
+
+            //skip if u == w
+            if(currNodeIndexU == currNodeIndexW)
+            {
+                continue;
+            }
+
+            //calc potential shortcut length
+            std::map<int, double>::iterator distVWIter =
+             distancesVWCopy.find(currNodeIndexW);
+            if(distVWIter == distancesVWCopy.end())
+            {
+                //skip if current w still as been erased
+                // from current on hop reverse search
+                continue;
+            }
+
+            double currDistVW = (*distVWIter).second;
+            double potentialShortcutLength = distUV + currDistVW;
+
+            #ifdef USEDEBUG
+            LogDebug("check for witness for targetIndex: " << currNodeIndexW
+             << " with shortcutLength: " << potentialShortcutLength
+             << " and witness length: " << distUX + currDistXW << endl);
+            #endif
+
+            //check whether witness can be found
+            if(potentialShortcutLength >= distUX + currDistXW)
+            {
+                #ifdef USEDEBUG
+                LogDebug("witness found, erase index: "
+                 << currNodeIndexW << endl);
+                #endif
+
+                //witness found, remove potential shortcut
+                distancesVWCopy.erase(distVWIter);
+            }
+
+            //break if there are no more witnesses to find
+            if(distancesVWCopy.empty())
+            {
+                break;
+            }
+         }
+
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlCheckForWitnessInHlGraph" << endl);
+        #endif
+
+        return true;
+    }
+
+
+    /*
+    Iterates through all incoming and outgoing neighbours
+     of the current contracted node and recalculates their ranks.
+    Does ignor edges not existing within ranked multimap
+     since these nodes still have been contracted.
+    TODO: not implemented yet.
+    TODO: parameterize the secondo operator with flags to enable or
+             disable this functionality to choose between better
+             contraction and faster processing
+    TODO: ignor still visited nodes and edges
+
+    @param nodesEdgesVector by reference the adjacency-list
+    @param currNodeEntry the current contracted node.
+    @return true since all modifications are done within the given parameters
+/
+    bool hlRecalculateNeighboursInHlGraph(
+     std::vector<HlNodeEntry*> &nodesEdgesVector,
+     HlNodeEntry* currNodeEntry) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlRecalculateNeighboursInHlGraph" << endl);
+        #endif
+
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlRecalculateNeighboursInHlGraph" << endl);
+        #endif
+
+        return true;
+    }
+
+
+    /*
+    Creates the Upward- and Downwardgraph from the given HlGraph.
+    The Upward Graph only contains edges (u, v) leading to nodes v
+     having a higher rank than u.
+    The Downward Graph only contains edges (u, v) leading to nodes v
+     having a lower rank than u.
+    Because the HlGraph still contaings original edges and reverse-edges
+     we can make use of this.
+    For searches we only need:
+     - original (forward) edges leading to nodes with a higher rank
+     - reverse (backward) edges leading to nodes with a higher rank
+       (because we actually need forward edges leading to nodes with
+        lower rank and invert them which in turn are reverse edges
+        leading to nodes with higher rank)
+
+    We still do have both but also we have edges leading to nodes with
+     lower rank.
+    So this function just removes forward and backward-edges leading to
+     nodes with lower rank.
+
+    @param nodesEdgesVector by reference the adjacency-list
+    @param contractNodeTuple by reference the data-tuple
+                of the current node contracted.
+    @param contractNodeId the id of the node to be contracted.
+    @return true since all modifications are done within the given parameters
+/
+    bool hlCreateUpwardAndDownwardHlGraph(std::vector<HlNodeEntry*>
+     &nodesEdgesVector) const
+    {
+        #ifdef USEINFO
+        LogInfo("start hlCreateUpwardAndDownwardHlGraph" << endl);
+        #endif
+
+
+        #ifdef USEINFO
+        size_t graphSize = nodesEdgesVector.size();
+        int progress = 0;
+        #endif
+
+        //iterate over whole graph-map
+        for (std::vector<HlNodeEntry*>::iterator
+            nodesEdgesVectorIter = nodesEdgesVector.begin();
+            nodesEdgesVectorIter != nodesEdgesVector.end();
+            ++nodesEdgesVectorIter)
+        {
+            HlNodeEntry* currNodeEntry = *nodesEdgesVectorIter;
+
+            std::vector<HlEdgeEntry*>* currNodeVector =
+             currNodeEntry->getEdgesVector();
+
+            #ifdef USEINFO
+            progress++;
+            if(progress % getProgressInterval() == 0)
+            {
+                int currSourceNodeId = currNodeEntry->getNodeId();
+                int currRank = currNodeEntry->getRankValue();
+
+                LogInfo("Current SourceNode: " << currSourceNodeId
+                 << " with rank: " << currRank << " has #edges: "
+                 << currNodeVector->size() << " nodes left: "
+                 << (graphSize - progress) << endl);
+            }
+            #endif
+
+
+            //iterate over all adjacent nodes and delete edges (u, v)
+            // leading to nodes v having a lower rank than u
+            for(size_t i = 0; i < currNodeVector->size();)
+            {
+                //dereference vector-pointer to acces via index
+                HlEdgeEntry* currEdge = (*currNodeVector)[i];
+
+                #ifdef USEDEBUG
+                LogDebug("next edge with targetIndex: "
+                 << currEdge->getTargetIndex() << endl);
+                #endif
+
+                if( !currEdge->getIsUpwardOriginal())
+                {
+                    #ifdef USEDEBUG
+                    LogDebug("delete currEdge" << endl);
+                    #endif
+                    delete currEdge;
+
+                    #ifdef USEDEBUG
+                    LogDebug("swap currEdge" << endl);
+                    #endif
+                    std::swap((*currNodeVector)[i], currNodeVector->back());
+
+                    #ifdef USEDEBUG
+                    LogDebug("pop currEdge" << endl);
+                    #endif
+                    currNodeVector->pop_back();
+
+                    //do not increase i because we swapped the last element
+                    // to the position i and want to get it next
+                }else{
+                  ++i;
+                }
+
+
+            }
+
+            #ifdef USEDEBUG
+            LogDebug("after source: " << currSourceNodeId << " with rank: " <<
+              currRank << " has #edges: " << currNodeVector->size() << endl);
+            #endif
+        }
+
+        #ifdef USEINFO
+        LogInfo("finish hlCreateUpwardAndDownwardHlGraph" << endl);
+        #endif
+
+        return true;
+    }
+
+
+
+    /*
+    Help Function to check whether an edge from hlGraph
+     leads to a node with lower rank then the given Rank.
+
+    @param nodesEdgesVector by reference the adjacency-list
+    @param currEdgeEntry the current edge to be checked
+    @param sourceNodeRank the rank of the sourceNode of the current edge
+
+    @return true if the edge leads to a node with a lower rank, false else
+/
+    bool hlIsDownwardsInHlGraph(std::vector<HlNodeEntry*> &nodesEdgesVector,
+     HlEdgeEntry* currEdgeEntry, int sourceNodeRank) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlIsDownwardsInHlGraph" << endl);
+        #endif
+
+        bool retVal = false;
+
+        int currTargetNodeIndex = currEdgeEntry->getTargetIndex();
+
+
+        //get Rank of current node
+        HlNodeEntry* currTargetNodeEntry =
+         nodesEdgesVector[currTargetNodeIndex];
+        int currTargetNodeRank = currTargetNodeEntry->getRankValue();
+
+        #ifdef USEDEBUG
+        LogDebug("sourceNodeRank: " << sourceNodeRank << " currTargetNodeRank: "
+        << currTargetNodeRank << endl);
+        #endif
+
+        //remove edges if leads to a node with lower rank
+        if(sourceNodeRank > currTargetNodeRank)
+        {
+            #ifdef USEDEBUG
+        LogDebug("true" << endl);
+        #endif
+            retVal = true;
+        }
+        #ifdef USEDEBUG
+        LogDebug("targetnodeindex: " << currTargetNodeIndex << " with rank: "
+         << currTargetNodeRank
+         << " isDownward: " << retVal << "(0 = false)"<< endl);
+        #endif
+
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlIsDownwardsInHlGraph" << endl);
+        #endif
+
+        return retVal;
+    }
+
+
+
+    /*
+    Gets an OrderedRelation representing an previous exported HlGraph.
+    Transforms it against to an HlGraph for further use.
+
+    @param hlGraphOrel the orel to be transformed
+    @param nodesEdgesVector by reference the hlGraph to fill
+
+    @return true since all modifications take place in the given parameters
+/
+    bool hlTransformHlGraphOrelToHlGraph(OrderedRelation* hlGraphOrel,
+     std::vector<HlNodeEntry*> &nodesEdgesVector) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlTransformHlGraphOrelToHlGraph" << endl);
+        #endif
+
+        GenericRelationIterator* hlGraphOrelIter = hlGraphOrel->MakeScan();
+
+        //Get first Tuple
+        Tuple* currNode = hlGraphOrelIter->GetNextTuple();
+
+        HlNodeEntry* currNodeEntry = 0;
+        std::vector<HlEdgeEntry*>* currEdgeVector = 0;
+        int currSourceId = -1;
+        //Iterate over all Tuples
+        while(currNode)
+        {
+            CcInt* currEdgeSource = (CcInt*) currNode->GetAttribute(
+                    HL_INDEX_OF_SOURCE_IN_HL_GRAPH);
+            CcInt* currEdgeTarget = (CcInt*) currNode->GetAttribute(
+                    HL_INDEX_OF_TARGET_IN_HL_GRAPH);
+            CcInt* currEdgeSourceIndex = (CcInt*) currNode->GetAttribute(
+                    HL_INDEX_OF_SOURCE_INDEX_IN_HL_GRAPH);
+            CcInt* currEdgeTargetIndex = (CcInt*) currNode->GetAttribute(
+                    HL_INDEX_OF_TARGET_INDEX_IN_HL_GRAPH);
+            CcInt* currEdgeSourceRank = (CcInt*) currNode->GetAttribute(
+                    HL_INDEX_OF_SOURCE_RANK_IN_HL_GRAPH);
+            CcBool* currEdgeIsForward = (CcBool*) currNode->GetAttribute(
+                    HL_INDEX_OF_IS_FORWARD_IN_HL_GRAPH);
+            CcBool* currEdgeIsReverse = (CcBool*) currNode->GetAttribute(
+                    HL_INDEX_OF_IS_REVERSE_IN_HL_GRAPH);
+            CcInt* currEdgeParentForward = (CcInt*) currNode->GetAttribute(
+                    HL_INDEX_OF_PARENT_INDEX_FORWARD_IN_HL_GRAPH);
+            CcInt* currEdgeParentReverse = (CcInt*) currNode->GetAttribute(
+                    HL_INDEX_OF_PARENT_INDEX_REVERSE_IN_HL_GRAPH);
+            CcReal* currEdgeWeightForward = (CcReal*) currNode->GetAttribute(
+                    HL_INDEX_OF_WEIGHT_FORWARD_IN_HL_GRAPH);
+            CcReal* currEdgeWeightReverse = (CcReal*) currNode->GetAttribute(
+                    HL_INDEX_OF_WEIGHT_REVERSE_IN_HL_GRAPH);
+
+
+            int currEdgeSourceId = currEdgeSource->GetIntval();
+            int currEdgeTargetId = currEdgeTarget->GetIntval();
+
+            //check if we reached the next source ID, create new nodeEntry then
+            // use the previous one else
+            if(currSourceId != currEdgeSourceId)
+            {
+                #ifdef USEDEBUG
+                LogDebug("new source reached, create new vector, new id: "
+                 << currEdgeSourceId
+                 << " old: " << currSourceId << endl);
+                #endif
+
+                currNodeEntry = new HlNodeEntry();
+                currEdgeVector = new std::vector<HlEdgeEntry*>();
+
+                currNodeEntry->setNodeId(currEdgeSourceId);
+                currNodeEntry->setRankValue(currEdgeSourceRank->GetIntval());
+                currNodeEntry->setEdgesVector(currEdgeVector);
+
+                //also add it to map
+                nodesEdgesVector[currEdgeSourceIndex->GetIntval()] =
+                 currNodeEntry;
+
+                //set currSourceId to next available source
+                currSourceId = currEdgeSourceId;
+            }
+
+
+            #ifdef USEDEBUG
+            LogDebug("next edge (" << currEdgeSourceId
+             << ", " << currEdgeTargetId << " from while" << endl);
+            #endif
+
+            //check whether the current edge leads to a valid target
+            //in case of the highest rank vertext there are no edges
+            // outgoing from that node (because there are no other nodes having
+            // higher rank
+            //but we still need the node to transform into hlGraph
+            // thats why we look for the target id beeing not -1
+            // in case of -1 we assume to have the highest rank vertext
+            // and will not do add any HlEdgeEntries
+            if(currEdgeTargetId != -1)
+            {
+                HlEdgeEntry* currSourceEdgeEntry = new HlEdgeEntry();
+                currSourceEdgeEntry->setTargetIndex(
+                 currEdgeTargetIndex->GetIntval());
+                currSourceEdgeEntry->setIsForward(
+                 currEdgeIsForward->GetBoolval());
+                currSourceEdgeEntry->setIsReverse(
+                 currEdgeIsReverse->GetBoolval());
+                currSourceEdgeEntry->setParentIndexForward(
+                 currEdgeParentForward->GetIntval());
+                currSourceEdgeEntry->setParentIndexReverse(
+                 currEdgeParentReverse->GetIntval());
+                currSourceEdgeEntry->setWeightForward(
+                 currEdgeWeightForward->GetRealval());
+                currSourceEdgeEntry->setWeightReverse(
+                 currEdgeWeightReverse->GetRealval());
+                currEdgeVector->push_back(currSourceEdgeEntry);
+            }
+
+
+            //get next Tuple from Orel
+            currNode->DeleteIfAllowed();
+            currNode = 0;
+            currNode = hlGraphOrelIter->GetNextTuple();
+        }
+        delete hlGraphOrelIter;
+
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlTransformHlGraphOrelToHlGraph" << endl);
+        #endif
+        return true;
+    }
+
+
+
+    /*
+    Gets the hlGraph and frees all its containing elements by iterating
+     over it and its subelements and deleting them.
+
+    @param nodesEdgesVector the hlGraph to be deleted
+
+    @return true since all modifications take place in the given parameters
+/
+    bool hlFreeHlGraph(std::vector<HlNodeEntry*> &nodesEdgesVector) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlFreeHlGraph" << endl);
+        #endif
+
+        for (std::vector<HlNodeEntry*>::iterator
+         nodesEdgesVectorIter = nodesEdgesVector.begin();
+         nodesEdgesVectorIter != nodesEdgesVector.end();
+         ++nodesEdgesVectorIter)
+        {
+             HlNodeEntry* currHlNodeEntry = (*nodesEdgesVectorIter);
+
+             std::vector<HlEdgeEntry*>* currHlEdgeEntries =
+              currHlNodeEntry->getEdgesVector();
+
+            for (std::vector<HlEdgeEntry*>::iterator
+             currHlEdgeEntriesIter = currHlEdgeEntries->begin();
+             currHlEdgeEntriesIter != currHlEdgeEntries->end();
+             ++currHlEdgeEntriesIter)
+            {
+                 HlEdgeEntry* currHlEdgeEntry = (*currHlEdgeEntriesIter);
+                 delete currHlEdgeEntry;
+            }
+
+            delete currHlEdgeEntries;
+            delete currHlNodeEntry;
+        }
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlFreeHlGraph" << endl);
+        #endif
+
+        return true;
+    }
+
+
+
+    /*
+    Gets the searchTree and frees all its containing elements by iterating
+     over it and deleting them.
+
+    @param searchTree the searchTree to be deleted
+
+    @return true since all modifications take place in the given parameters
+/
+    bool hlFreeSearchTree(std::map<int, ChNode*> &searchTree) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlFreeSearchTree" << endl);
+        #endif
+
+        for (std::map<int, ChNode*>::iterator
+         searchTreeIter = searchTree.begin();
+         searchTreeIter != searchTree.end();
+         ++searchTreeIter)
+        {
+            ChNode* currChNode = (*searchTreeIter).second;
+            delete currChNode;
+        }
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlFreeSearchTree" << endl);
+        #endif
+
+        return true;
+    }
+
+
+
+    /*
+    Processes either a CH (isChElseHl = true) or a HL Search (else)
+     for the given source and target.
+
+    Basically it performs a Bi-Directional Dijkstra (a forward search from
+     source and a reverse search from target).
+    By this both searches have their on distance-queue. The search having the
+     next node to scan with the minimum distance of both queues is
+     processed next.
+    This way both search-spaced expand equally.
+
+    In case of both HL and CH Search are proceeded until both queues are
+     empty. If one queue gets empty the other search still is continued.
+
+    In case of CH search theres an additional break condition.
+    If the search distance of an (either forward or reverse) search does
+     exceed the shortestPath found so far this search is aborted. The other
+     search keeps proceeding.
+
+    In case of HL search theres no such additional break condition.
+    Target of an HL search is to retrieve the full search tree of a node.
+    That way one should use the same nodeId as source and target as well.
+
+    Elsewise the behaviour of an CH search is as follows for retrieving the
+     shortest path.
+    If theres a node visited by both (forward and reverse) searches,
+     the distances of both searches to this node are summed up and
+     if the sum is the smallest distance found so far this node will
+     be stored as current minimum distance.
+    After both searches have finished the currentMinimumDistance is
+     retrieved as shortest path from source to target.
+
+    As result it returns a tuple containing
+    - At first the NodeId of the hub found on the shortest path
+       during Bi-Directional Dijkstra Search/ CH Search.
+      May this is -1 if theres no shortest path or when a HL-Search was
+       started.
+    - At second the length of this shortest path if found, 0.0 else.
+    - At third the search tree build up so far during the searches.
+      Using this tree one can retrieve the single edges of the shortest path.
+      On HL Queries this is the valid Label of the given node as desired.
+
+    @param nodesEdgesVector by reference the adjacency-list
+    @param source the sourceNodeId
+    @param target the targetnodeId
+    @param isChElseHl indicates whether we perform a CH Search or HL Search
+    @return the result Tuple as described above.
+/
+    std::tuple<int, double, std::map<int, ChNode*>> hlDoCHSearch(
+     std::vector<HlNodeEntry*> &nodesEdgesVector,
+     int source, int target, bool isChElseHl) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlDoCHSearch" << endl);
+        #endif
+
+
+        //define returnValue
+        std::map<int, ChNode*> searchTree;
+
+
+        //the Predecessor of source/ target itself does not exists
+        // and the distance to the nodes themselves is 0.0
+        //predecessor must not be -1 since this an indicator for not visited
+        // nodes
+        int initPredecessorIndex = -2;
+        double initDistance = 0.0;
+
+
+
+
+        //get source and target NodeIndex
+        HlNodeEntry* sourceNodeEntry = 0;
+        HlNodeEntry* targetNodeEntry = 0;
+        int sourceNodeIndex = -1;
+        int targetNodeIndex = -1;
+
+        for(uint i = 0; i< nodesEdgesVector.size(); i++)
+        {
+            HlNodeEntry* currNodeEntry = nodesEdgesVector[i];
+
+            if(currNodeEntry->getNodeId() == source)
+            {
+                sourceNodeEntry = currNodeEntry;
+                sourceNodeIndex = i;
+
+                //check if target still has been found, abort if true
+                if(targetNodeEntry)
+                {
+                    break;
+                }
+            }
+            if(currNodeEntry->getNodeId() == target)
+            {
+                targetNodeEntry = currNodeEntry;
+                targetNodeIndex = i;
+
+                //check if source still has been found, abort if true
+                if(sourceNodeEntry)
+                {
+                    break;
+                }
+            }
+        }
+
+        if(!sourceNodeEntry || !targetNodeEntry)
+        {
+            #ifdef USEERROR
+            LogError("Fehler, source or target not found" << endl);
+            #endif
+
+            return std::make_tuple(-1, 0.0, searchTree);
+        }
+
+        //if source  = target and isCH theres nothing to search
+        if(source == target && isChElseHl)
+        {
+            std::cout <<
+             "Warn. Given Source and Target are qual, no path to retrieve."
+              << endl;
+            return std::make_tuple(sourceNodeIndex, 0.0, searchTree);
+        }
+
+
+        #ifdef USEDEBUG
+        LogDebug("prepare forward search" << endl);
+        #endif
+
+        //prepare forward search
+        // format is double, int, int -> dist, nodeIndex, predecessorIndex
+        PriorityQueueTypeForwardSearch forwardQueue;
+
+        //add source itself to searchtree with distance 0.0
+        ChNode* sourceChNode = new ChNode();
+        sourceChNode->setDistForward(initDistance);
+        sourceChNode->setPredecessorIndexForward(initPredecessorIndex);
+
+        searchTree.insert(std::pair<int, ChNode*>(sourceNodeIndex,
+         sourceChNode));
+
+        //get outgoing edges from source
+        std::vector<HlEdgeEntry*>* currNodeVectorSource =
+         sourceNodeEntry->getEdgesVector();
+
+        //init forward queue
+        bool isForwardSearch = true;
+        hlCHSearchScanNewVertices(forwardQueue, searchTree,
+         currNodeVectorSource, initDistance, isForwardSearch, sourceNodeIndex);
+
+
+
+
+
+        #ifdef USEDEBUG
+        LogDebug("prepare reverse search" << endl);
+        #endif
+
+        //prepare reverse search
+        // format is double, int, int -> dist, nodeIndex, predecessorIndex
+        PriorityQueueTypeForwardSearch reverseQueue;
+
+        //add target itself to searchtree with distance 0.0
+        // but check if source and target are equal
+        // use existing chNode object then
+        // only occurs on hlMode (else a previous return had been done
+        ChNode* targetChNode = 0;
+        if(source == target)
+        {
+            targetChNode = sourceChNode;
+
+            targetChNode->setDistReverse(initDistance);
+            targetChNode->setPredecessorIndexReverse(initPredecessorIndex);
+        }else{
+            targetChNode = new ChNode();
+            targetChNode->setDistReverse(initDistance);
+            targetChNode->setPredecessorIndexReverse(initPredecessorIndex);
+
+            searchTree.insert(std::pair<int, ChNode*>(targetNodeIndex,
+             targetChNode));
+        }
+
+        //get outgoing edges from target
+        std::vector<HlEdgeEntry*>* currNodeVectorTarget =
+         targetNodeEntry->getEdgesVector();
+
+        //init reverse queue
+        hlCHSearchScanNewVertices(reverseQueue, searchTree,
+         currNodeVectorTarget, initDistance, !isForwardSearch, targetNodeIndex);
+
+
+
+
+        //do search until ready
+
+        #ifdef USEDEBUG
+        LogDebug("do iterative CH search" << endl);
+        #endif
+
+
+        //get top element of forward queue
+        double currDistToSourceForward = 0.0;
+        int currNodeIndexForward = -1;
+        int currNodeIdForward = -1;
+        int currPredecessorIndexForward = -1;
+        HlNodeEntry* currNodeEntryForward = 0;
+
+        if(!forwardQueue.empty())
+        {
+            //get data
+            QueuePairTypeForwardSearch currForwardQueuePair =
+             forwardQueue.top();
+
+            //do not pop yet
+
+            currDistToSourceForward = currForwardQueuePair.first;
+            std::pair<int, int> currTupleQueueForward =
+             currForwardQueuePair.second;
+            currNodeIndexForward = currTupleQueueForward.first;
+            currPredecessorIndexForward = currTupleQueueForward.second;
+
+            currNodeEntryForward = nodesEdgesVector[currNodeIndexForward];
+            currNodeIdForward = currNodeEntryForward->getNodeId();
+        }
+
+        //get top element of reverse queue
+        double currDistToTargetReverse = 0.0;
+        int currNodeIndexReverse = -1;
+        int currNodeIdReverse = -1;
+        int currPredecessorIndexReverse = -1;
+        HlNodeEntry* currNodeEntryReverse = 0;
+
+        if(!reverseQueue.empty())
+        {
+            //get data
+            QueuePairTypeForwardSearch currReverseQueuePair =
+             reverseQueue.top();
+
+            //do not pop yet
+
+            currDistToTargetReverse = currReverseQueuePair.first;
+            std::pair<int, int> currTupleQueueReverse =
+             currReverseQueuePair.second;
+            currNodeIndexReverse = currTupleQueueReverse.first;
+            currPredecessorIndexReverse = currTupleQueueReverse.second;
+
+            currNodeEntryReverse = nodesEdgesVector[currNodeIndexReverse];
+            currNodeIdReverse = currNodeEntryReverse->getNodeId();
+        }
+
+
+        int currMinShortestPathHubIndex = -1;
+        double currMinShortestPathDist = 0.0;
+
+        //do while queues are not empty
+        //if other break-conditions are fullfilled we just clear the related
+        // queue such that it gets empty
+        while((!forwardQueue.empty() || !reverseQueue.empty()))
+        {
+            #ifdef USEDEBUG
+            LogDebug("next queue candidate are: fwd: "
+             << currNodeIdForward
+             << " with dist: " << currDistToSourceForward
+             << " and rvs: " << currNodeIdReverse << " with dist: "
+             << currDistToTargetReverse << endl);
+            #endif
+
+            //check which queue has the smaller element
+            //a queue also has the smaller element if the other queue is empty
+            if( (reverseQueue.empty() )
+                || ( currDistToSourceForward <= currDistToTargetReverse
+                && !forwardQueue.empty() ) )
+            {
+                //forward search
+
+                //exit if currNodeIndexForward was not found
+                if(!currNodeEntryForward)
+                {
+                    #ifdef USEERROR
+                LogError("error while retrieving currForwardNode from hlGraph "
+                     << currNodeIdForward << endl);
+                    #endif
+                }
+
+
+                //get data
+                std::vector<HlEdgeEntry*>* currNodeVectorForward =
+                 currNodeEntryForward->getEdgesVector();
+
+
+                #ifdef USEDEBUG
+                LogDebug("next top min forward: " << currNodeIdForward << endl);
+                #endif
+
+                //check whether the current node still exists within
+                // search tree by reverse search
+                // if yes edit the existing object and check for new
+                // shortestPath
+                //if it exists in search tree but by forward search,
+                // we ignore this still visited node
+                bool isStillVisitedByReverse = false;
+                bool isStillVisitedByForward = false;
+
+                std::map<int, ChNode*>::iterator searchTreeIter =
+                    searchTree.find(currNodeIndexForward);
+
+                if(searchTreeIter != searchTree.end())
+                {
+                    ChNode* currChNode = (*searchTreeIter).second;
+
+
+                    //chech whether node found is still from forward search
+                    if(currChNode->getPredecessorIndexForward() != -1)
+                    {
+                        isStillVisitedByForward = true;
+                    }
+
+                    //chech whether node found is still from reverse search
+                    if(currChNode->getPredecessorIndexReverse() != -1)
+                    {
+                        isStillVisitedByReverse = true;
+                    }
+                }
+
+                //only proceed if is not still visited by forward search
+                if(!isStillVisitedByForward)
+                {
+                    //if is still visited by opposite search check
+                    // for shortest path else add to search tree
+                    if(isStillVisitedByReverse)
+                    {
+                        #ifdef USEDEBUG
+                        LogDebug("hub found: " << currNodeIdForward << endl);
+                        #endif
+
+                        //edit entry and check for new shortestPath
+                        ChNode* currForwardChNode = (*searchTreeIter).second;
+                        currForwardChNode->setDistForward(
+                         currDistToSourceForward);
+                        currForwardChNode->setPredecessorIndexForward(
+                         currPredecessorIndexForward);
+
+                        double shortestPathCandidateDist =
+                            currDistToSourceForward
+                            + currForwardChNode->getDistReverse();
+
+                        //check if a hub still has been found or if the current
+                        // hub provides a shorter path than found so far
+                        if(currMinShortestPathHubIndex == -1 ||
+                         shortestPathCandidateDist < currMinShortestPathDist)
+                        {
+                            #ifdef USEDEBUG
+                            LogDebug("new shorter path with length: "
+                             << shortestPathCandidateDist << endl);
+                            #endif
+
+                            currMinShortestPathHubIndex = currNodeIndexForward;
+                            currMinShortestPathDist = shortestPathCandidateDist;
+                        }
+                    }
+                    else
+                    {
+                        #ifdef USEDEBUG
+                        LogDebug("insert new into searchTree id:"
+                            << currNodeIdForward
+                            << " with dist: " << currDistToSourceForward
+                            << " and predecessor index "
+                            << currPredecessorIndexForward
+                            << endl);
+                        #endif
+
+                        ChNode* currForwardChNode = new ChNode();
+                        currForwardChNode->setDistForward(
+                         currDistToSourceForward);
+                        currForwardChNode->setPredecessorIndexForward(
+                         currPredecessorIndexForward);
+
+                        searchTree.insert(std::pair<int, ChNode*>(
+                            currNodeIndexForward, currForwardChNode));
+                    }
+
+                    //scan new vertices for inserting into queue
+                    hlCHSearchScanNewVertices(forwardQueue, searchTree,
+                     currNodeVectorForward, currDistToSourceForward,
+                     isForwardSearch, currNodeIndexForward);
+                }
+
+                //pop current top element from queue to get next
+                forwardQueue.pop();
+
+                //check whether its empty
+                if(!forwardQueue.empty())
+                {
+                    //get data
+                    QueuePairTypeForwardSearch currForwardQueuePair =
+                     forwardQueue.top();
+
+                    currDistToSourceForward = currForwardQueuePair.first;
+                    std::pair<int, int> currTupleQueueForward =
+                     currForwardQueuePair.second;
+                    currNodeIndexForward = currTupleQueueForward.first;
+                    currPredecessorIndexForward =
+                     currTupleQueueForward.second;
+
+                    currNodeEntryForward =
+                     nodesEdgesVector[currNodeIndexForward];
+                    currNodeIdForward = currNodeEntryForward->getNodeId();
+
+                    //check whether we are in CH mode and if the distance
+                    // of the next top element exceeds the current shortest
+                    // path found so far
+                    //also check that there still exists a shortet path hub
+                    //clear the queue then to stop the search
+                    if(isChElseHl && currMinShortestPathHubIndex != -1 &&
+                       currDistToSourceForward >= currMinShortestPathDist)
+                    {
+                        #ifdef USEDEBUG
+                        LogDebug("next top node id:" << currNodeIdForward
+                            << " with distToSource: " << currDistToSourceForward
+                            << " exceeds currMinDist: "
+                            << currMinShortestPathDist << endl);
+                        #endif
+
+                        //clear queue by reassigning it
+                        forwardQueue = PriorityQueueTypeForwardSearch();
+                    }
+                }
+            }
+            else
+            {
+                //reverse search
+
+                //exit if currNodeIdReverse was not found
+                if(!currNodeEntryReverse)
+                {
+                    #ifdef USEERROR
+                LogError("error while retrieving currReverseNode from hlGraph "
+                     << currNodeIdReverse << endl);
+                    #endif
+                }
+
+
+                //get data
+                std::vector<HlEdgeEntry*>* currNodeVectorReverse =
+                 currNodeEntryReverse->getEdgesVector();
+
+
+                #ifdef USEDEBUG
+                LogDebug("next top min reverse: " << currNodeIdReverse << endl);
+                #endif
+
+                //check whether the current node still exists within
+                // search tree by forward search
+                // if yes edit the existing object and check for new
+                // shortestPath
+                //if it exists in search tree but by reverse search,
+                // we ignore this still visited node
+                bool isStillVisitedByReverse = false;
+                bool isStillVisitedByForward = false;
+
+                std::map<int, ChNode*>::iterator searchTreeIter =
+                    searchTree.find(currNodeIndexReverse);
+
+                if(searchTreeIter != searchTree.end())
+                {
+                    ChNode* currChNode = (*searchTreeIter).second;
+
+                    //chech whether node found is still from reverse search
+                    if(currChNode->getPredecessorIndexReverse() != -1)
+                    {
+                        isStillVisitedByReverse = true;
+                    }
+
+                    //chech whether node found is still from forward search
+                    if(currChNode->getPredecessorIndexForward() != -1)
+                    {
+                        isStillVisitedByForward = true;
+                    }
+                }
+
+                //if is still visited by opposite search check
+                // for shortest path else add to search tree
+                if(!isStillVisitedByReverse)
+                {
+                    if(isStillVisitedByForward)
+                    {
+                        #ifdef USEDEBUG
+                        LogDebug("hub found: " << currNodeIdReverse << endl);
+                        #endif
+
+                        //edit entry and check for new shortestPath
+                        ChNode* currReverseChNode = (*searchTreeIter).second;
+                        currReverseChNode->setDistReverse(
+                        currDistToTargetReverse);
+                        currReverseChNode->setPredecessorIndexReverse(
+                         currPredecessorIndexReverse);
+
+                        double shortestPathCandidateDist =
+                         currDistToTargetReverse
+                            + currReverseChNode->getDistForward();
+
+                        //check if a hub still has been found or if the current
+                        // hub provides a shorter path than found so far
+                        if(currMinShortestPathHubIndex == -1
+                         || shortestPathCandidateDist < currMinShortestPathDist)
+                        {
+                            #ifdef USEDEBUG
+                            LogDebug("new shorter path with length: "
+                             << shortestPathCandidateDist << endl);
+                            #endif
+
+                            currMinShortestPathHubIndex = currNodeIndexReverse;
+                            currMinShortestPathDist = shortestPathCandidateDist;
+                        }
+                    }
+                    else
+                    {
+                        #ifdef USEDEBUG
+                        LogDebug("insert new into searchTree id:"
+                            << currNodeIdReverse
+                            << " with dist: " << currDistToTargetReverse
+                            << " and predecessor "
+                            << currPredecessorIndexReverse
+                            << endl);
+                        #endif
+
+                        ChNode* currReverseChNode = new ChNode();
+                        currReverseChNode->setDistReverse(
+                         currDistToTargetReverse);
+                        currReverseChNode->setPredecessorIndexReverse(
+                         currPredecessorIndexReverse);
+
+                        searchTree.insert(std::pair<int, ChNode*>(
+                            currNodeIndexReverse, currReverseChNode));
+                    }
+
+                    //scan new vertices for inserting into queue
+                    hlCHSearchScanNewVertices(reverseQueue, searchTree,
+                     currNodeVectorReverse, currDistToTargetReverse,
+                     !isForwardSearch, currNodeIndexReverse);
+                }
+
+                //pop current top element from queue to get next
+                reverseQueue.pop();
+
+                //check whether its empty
+                if(!reverseQueue.empty())
+                {
+                    //get data
+                    QueuePairTypeForwardSearch currReverseQueuePair =
+                     reverseQueue.top();
+                    //do not pop it yet, we need to handle it within next
+                    //  iteration
+
+                    currDistToTargetReverse = currReverseQueuePair.first;
+                    std::pair<int, int> currTupleQueueReverse =
+                     currReverseQueuePair.second;
+                    currNodeIndexReverse = currTupleQueueReverse.first;
+                    currPredecessorIndexReverse =
+                     currTupleQueueReverse.second;
+
+                    currNodeEntryReverse =
+                     nodesEdgesVector[currNodeIndexReverse];
+
+                    currNodeIdReverse = currNodeEntryReverse->getNodeId();
+
+                    //check whether we are in CH mode and if the distance
+                    // of the next top element exceeds the current shortest
+                    // path found so far
+                    //also check that there still exists a shortet path hub
+                    //clear the queue then to stop the search
+                    if(isChElseHl && currMinShortestPathHubIndex != -1 &&
+                       currDistToTargetReverse >= currMinShortestPathDist)
+                    {
+                        #ifdef USEDEBUG
+                        LogDebug("next top node id:" << currNodeIdReverse
+                            << " with distToTarget: " << currDistToTargetReverse
+                            << " exceeds currMinDist: "
+                            << currMinShortestPathDist << endl);
+                        #endif
+
+                        //clear queue by reassigning it
+                        forwardQueue = PriorityQueueTypeForwardSearch();
+                    }
+                }
+            }
+        }
+
+        //search finished build result type
+        std::tuple<int, double, std::map<int, ChNode*>> retVal =
+            std::make_tuple(currMinShortestPathHubIndex,
+            currMinShortestPathDist, searchTree);
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlDoCHSearch" << endl);
+        #endif
+
+
+
+        return retVal;
+    }
+
+
+    /*
+    Ierates over all outgoing edges and may adds or merge them into
+     the given forwardQueueMultimap. Edges are only added if they do not
+     have been still visited due to previous iterations.
+    Edges are merged if they still exist within the queue but are on a
+     shorter path to the specific target node than it was inserted into
+     the queue before.
+    To check whether a node still has been visited we make a lookup
+     within the searchTree.
+
+    @param currQueue by reference the queue where to maybe insert or merge
+             the given edges
+    @param searchTree the search tree by reference build up so far
+    @param nodesEdges the hlGraph for getting nodeIds
+    @param currNodeVector the edges to be inserted or merged
+    @param distanceSoFar the search-distance of the current node
+             being source of the given edges
+    @param isForward indicates whether we are on forward or reverse search
+    @param predecessorIndex the index within hlGraph of the predecessor
+    @return true since all modifications are done within the given parameters
+/
+    bool hlCHSearchScanNewVertices(PriorityQueueTypeForwardSearch &currQueue,
+     std::map<int, ChNode*> &searchTree,
+     std::vector<HlEdgeEntry*>* currNodeVector, double distanceSoFar,
+     bool isForward, int predecessorIndex) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlCHSearchScanNewVertices" << endl);
+        #endif
+
+        //iterate over all edges
+        for (std::vector<HlEdgeEntry*>::iterator
+         currNodeVectorIter = currNodeVector->begin();
+         currNodeVectorIter != currNodeVector->end();
+         ++currNodeVectorIter)
+        {
+            HlEdgeEntry* currEdgeEntry =
+        currNodeVectorIter;
+
+            int currTargetIndex = -1;
+            double currWeight = 0.0;
+
+            //check whether edge relates to the desired search
+            // or if theres no related edge to scan
+            if(isForward && currEdgeEntry->getIsForward())
+            {
+                currTargetIndex = currEdgeEntry->getTargetIndex();
+                currWeight = currEdgeEntry->getWeightForward();
+            }
+            else if(!isForward && currEdgeEntry->getIsReverse())
+            {
+                currTargetIndex = currEdgeEntry->getTargetIndex();
+                currWeight = currEdgeEntry->getWeightReverse();
+            }else{
+                #ifdef USEDEBUG
+                LogDebug("current edge not related to the desired direction"
+                 << endl);
+                #endif
+                continue;
+            }
+
+
+            #ifdef USEDEBUG
+            LogDebug("scan next edge for inserting into queue, targetIndex: "
+             << currTargetIndex << endl);
+            #endif
+
+            //check whether current target node still has been visited
+            // by current search direction (it may still exists by
+            // the opposite search)x
+            bool isStillVisited = false;
+
+            std::map<int, ChNode*>::iterator searchTreeIter =
+             searchTree.find(currTargetIndex);
+
+            if(searchTreeIter != searchTree.end())
+            {
+                ChNode* currChNode = (*searchTreeIter).second;
+
+                //in case of start end end nodes of the CH Search
+                // the predecessor of these both nodes is -2
+                //so it is safe to compare predecessor to -1 here
+                if( ( isForward &&
+                 currChNode->getPredecessorIndexForward() != -1)
+                 || (!isForward &&
+                  currChNode->getPredecessorIndexReverse() != -1) )
+                {
+                    isStillVisited = true;
+                }
+            }
+
+            //only add to search tree if not has been still visited
+            //just skip else
+            if(!isStillVisited)
+            {
+                double distFromSourceToCurrTarget = distanceSoFar + currWeight;
+
+                #ifdef USEDEBUG
+                LogDebug("insert into queue index: " << currTargetIndex
+                 << " with dist from source: " << distFromSourceToCurrTarget
+                 << " with predecessorIndex: " << predecessorIndex
+                 << endl);
+                #endif
+
+                currQueue.push(std::make_pair(
+                  distFromSourceToCurrTarget,
+                  std::make_pair(currTargetIndex, predecessorIndex)
+                 ));
+            }
+        }
+
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlCHSearchScanNewVertices" << endl);
+        #endif
+
+        return true;
+    }
+
+
+
+    /*
+    Extracts the shortestPath from the given search tree and alo
+     resolves shortcut edges to the underlying original edges
+     and adds all original osm edges in their order from source to
+     target to the given Relation.
+
+    @param shortestPathHubIndex the hub nodeIndex
+            on the shortest path from s to t
+    @param nodesEdgesVector the hlGraph by reference used for
+            resolving shortcut edges
+    @param searchTree the search tree by reference build up so far
+    @param edgesSourceOrel the osm graph used to extract osm edges
+    @param shortestPathRel the resulting relation containing shortest path
+    @return true since all modifications are done within the given parameters
+/
+    bool hlResolveShortestPathFromSearchTree(int shortestPathHubIndex,
+     std::vector<HlNodeEntry*> &nodesEdgesVector,
+     std::map<int, ChNode*> &searchTree, OrderedRelation* edgesSourceOrel,
+     Relation* shortestPathRel) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlResolveShortestPathFromSearchTree" << endl);
+        #endif
+
+        //if searchtree does not have at least three elements (s, v, t) theres
+        // no path to retrieve
+        if(searchTree.size() < 2)
+        {
+            #ifdef USEDEBUG
+            LogDebug("Not enough hops for creating edges." << endl);
+            #endif
+            return false;
+        }
+
+        //prepare path vectors
+        std::vector<int> shortestPathForward;
+        std::vector<int> shortestPathReverse;
+
+        bool isForward = true;
+
+        #ifdef USEDEBUG
+        LogDebug("forward resolve from searchTree" << endl);
+        #endif
+
+        hlResolveShortestPathFromSearchTreeToVector(searchTree,
+         shortestPathForward, shortestPathHubIndex, isForward);
+
+
+        #ifdef USEDEBUG
+        LogDebug("reverse resolve from searchTree" << endl);
+        #endif
+
+        hlResolveShortestPathFromSearchTreeToVector(searchTree,
+         shortestPathReverse, shortestPathHubIndex, !isForward);
+
+        //since the forward vector was traversed in reverse manner we need
+        // to invert it
+        //since the reverse vector was traversed in reverse manner and
+        // it was reverse search it still has the right order
+
+        int currUIndex = -1;
+        int currWIndex = -1;
+
+        LogDebug("iterate forward edges" << endl);
+
+        //iterate forward edges and resolve by OSM-Edges and add to result rel
+        for (std::vector<int>::reverse_iterator
+         shortestPathForwardIter = shortestPathForward.rbegin();
+         shortestPathForwardIter != shortestPathForward.rend();
+         ++shortestPathForwardIter)
+        {
+            currWIndex = (*shortestPathForwardIter);
+
+
+             //resolve shortcut and get osm edge (if its not the first call)
+             if(currUIndex != -1)
+             {
+                hlResolveShortcutAndAddToOrel(currUIndex, currWIndex,
+                 nodesEdgesVector, shortestPathRel, edgesSourceOrel, isForward);
+             }
+
+             //go to next edge
+             currUIndex = currWIndex;
+        }
+
+        currUIndex = -1;
+        currWIndex = -1;
+
+
+        LogDebug("iterate reverse edges" << endl);
+
+        //iterate reverse edges and resolve by OSM-Edges and add to result Orel
+        for (std::vector<int>::iterator
+         shortestPathReverseIter = shortestPathReverse.begin();
+         shortestPathReverseIter != shortestPathReverse.end();
+         ++shortestPathReverseIter)
+        {
+             currWIndex = (*shortestPathReverseIter);
+
+
+             //resolve shortcut and get osm edge (if its not the first call)
+             if(currUIndex != -1)
+             {
+                hlResolveShortcutAndAddToOrel(currUIndex, currWIndex,
+                 nodesEdgesVector, shortestPathRel, edgesSourceOrel,
+                 !isForward);
+             }
+
+             //go to next edge
+             currUIndex = currWIndex;
+        }
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlResolveShortestPathFromSearchTree" << endl);
+        #endif
+
+        return true;
+    }
+
+
+
+
+    /*
+    Traverses the searchTree in a reverse manner such that we get the
+     shortestPath of the specific search to the given hubId.
+
+    @param forwardQueueMultimap the quere where to maybe insert or merge
+             the given edges
+    @param searchTree the search tree by reference
+    @param shortestPathVector by reference the container to
+               store shortest path edges
+    @param shortestPathHubIndex the hubIndex of the shortest path
+    @param isForward indicates whether we are on forward or reverse search
+    @return true since all modifications are done within the given parameters
+/
+    bool hlResolveShortestPathFromSearchTreeToVector(std::map<int, ChNode*>
+     &searchTree, std::vector<int> &shortestPathVector,
+     int shortestPathHubIndex, bool isForward) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlResolveShortestPathFromSearchTreeToVector" << endl);
+        #endif
+
+        #ifdef USEDEBUG
+        LogDebug("add shortestPathHubIndex from search tree to forward vector: "
+          << shortestPathHubIndex << " while isForward: " << isForward << endl);
+        #endif
+
+        //insert hub to path vector
+        shortestPathVector.push_back(shortestPathHubIndex);
+
+
+        std::map<int, ChNode*>::iterator searchTreeIter =
+         searchTree.find(shortestPathHubIndex);
+
+        int currPredecessorIndex = -2;
+
+        //resolve forward search
+        while(searchTreeIter != searchTree.end())
+        {
+            //get next node
+            ChNode* currNode = (*searchTreeIter).second;
+
+            if(isForward)
+            {
+                currPredecessorIndex = currNode->getPredecessorIndexForward();
+            }else{
+                currPredecessorIndex = currNode->getPredecessorIndexReverse();
+            }
+
+            //check whether currPredecessorId = -2 which means were done
+            // because we reached the actual source or target
+            if(currPredecessorIndex != -2)
+            {
+
+                #ifdef USEDEBUG
+                LogDebug("add next node from search tree to vector: "
+                  << currPredecessorIndex << endl);
+                #endif
+
+                //add next node to vector
+                shortestPathVector.push_back(currPredecessorIndex);
+            }
+
+            //find next node
+            searchTreeIter = searchTree.find(currPredecessorIndex);
+        }
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlResolveShortestPathFromSearchTreeToVector" << endl);
+        #endif
+
+        return true;
+    }
+
+
+
+
+    /*
+    Gets the edge for the given endpoints u and w and checks whether it
+     is a shortcut. If yes it calls the methode itself recursively.
+    If not the both underlying edges are added to the given vector.
+    The edges are inserted in forward direction u -> w.
+
+    Because we sparsed the hlGraph during creation of upward and downward
+     graphs the underlying edges/ shortcuts of an shortcut from u via v to w
+     need to be found in different direction. Naturally v always has a
+     lower rank than u and w as well. So we can find the underlying edge
+     u to v as reverse edge stored at v in the hlGrapg and v to w as
+     forward edge stored with v. This is valid for both, the forward array
+     and the backward array as well.
+
+    @param nodeUIndex the start nodeIndex of the currnt edge
+    @param nodeWIndex the target nodeIndex of the currnt edge
+    @param nodesEdgesVector the search tree by reference
+    @param resultEdgesRel the resulting rel filled with shortest path edges
+    @param edgesSourceOrel the osm graph used to extract osm edges
+    @param isForward indicates whether we want to retrieve an forward
+            or reverse edeg
+    @return true since all modifications are done within the given parameters
+/
+    bool hlResolveShortcutAndAddToOrel(int currUIndex, int currWIndex,
+     std::vector<HlNodeEntry*> &nodesEdgesVector,
+     Relation* resultEdgesRel, OrderedRelation* edgesSourceOrel,
+     bool isForward) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlResolveShortcutAndAddToOrel" << endl);
+        #endif
+
+        //if we want a reverse edge we need to search for it at the target node
+        int tmpLookupNodeIndex = -1;
+        int tmpOppositeNodeIndex = -1;
+        if(isForward)
+        {
+            tmpLookupNodeIndex = currUIndex;
+            tmpOppositeNodeIndex = currWIndex;
+        }else{
+            tmpLookupNodeIndex = currWIndex;
+            tmpOppositeNodeIndex = currUIndex;
+        }
+
+        HlNodeEntry* currHlNodeEntry = nodesEdgesVector[tmpLookupNodeIndex];
+
+        //get data
+        std::vector<HlEdgeEntry*>* currEdgeVector =
+         currHlNodeEntry->getEdgesVector();
+
+        HlEdgeEntry* currEdge = hlGetEdgeFromVector(currEdgeVector,
+         tmpOppositeNodeIndex);
+
+        //shortcut parent
+        int currVIndex = -1;
+
+        //if is reverse edge we need to get the reverse-edges parent
+        if(isForward)
+        {
+            currVIndex = currEdge->getParentIndexForward();
+        }else{
+            currVIndex = currEdge->getParentIndexReverse();
+        }
+
+        //check if is shortcut, recursive call if true
+        if(currVIndex != -1)
+        {
+            bool isForwardShortcut = true;
+
+            #ifdef USEDEBUG
+            LogDebug("is shortcut, resolve (uIndex, vIndex): ("
+             << currUIndex << ", " << currVIndex << ")" << endl);
+            #endif
+
+            //(u, v)
+            //the shortcuts part-edge u-> v always is to be searched
+            // as reverse edge because u and w mus have higher rank than v
+            //this is independent of whether we are currently iterating the
+            // forward or reverse vector
+            hlResolveShortcutAndAddToOrel(currUIndex, currVIndex,
+             nodesEdgesVector, resultEdgesRel, edgesSourceOrel,
+              !isForwardShortcut);
+
+            #ifdef USEDEBUG
+            LogDebug("is shortcut, resolve (vIndex, wIndex): ("
+             << currVIndex << ", " << currWIndex << ")" << endl);
+            #endif
+
+            //(v, w)
+            //the shortcuts part-edge v-> w always is to be searched
+            // as forward edge because u and w mus have higher rank than v
+            //this is independent of whether we are currently iterating the
+            // forward or reverse vector
+            hlResolveShortcutAndAddToOrel(currVIndex, currWIndex,
+             nodesEdgesVector, resultEdgesRel, edgesSourceOrel,
+             isForwardShortcut);
+        }else{
+            #ifdef USEDEBUG
+            LogDebug("no shortcut, add to result relation (uIndex, wIndex): ("
+             << currUIndex << ", " << currWIndex << ")" << endl);
+            #endif
+            //no shortcut so add it to resultrel
+
+            //get OSM nodeIds
+            HlNodeEntry* currUNodeEntry = nodesEdgesVector[currUIndex];
+            HlNodeEntry* currWNodeEntry = nodesEdgesVector[currWIndex];
+            int currUNodeId = currUNodeEntry->getNodeId();
+            int currWNodeId = currWNodeEntry->getNodeId();
+
+            #ifdef USEDEBUG
+            LogDebug("osm Node IDs: (u, w): ("
+             << currUNodeId << ", " << currWNodeId << ")" << endl);
+            #endif
+
+            //get osm-edge Tuple
+            CcInt* sourceNodeIdCcInt = new CcInt(true, currUNodeId);
+            CcInt* targetNodeIdCcInt = new CcInt(true, currWNodeId);
+            Tuple* currOrelTuple = hlGetEdgeFromOrel(edgesSourceOrel,
+             sourceNodeIdCcInt, targetNodeIdCcInt);
+            delete sourceNodeIdCcInt;
+            delete targetNodeIdCcInt;
+
+            //insert into result relTuple
+            resultEdgesRel->AppendTuple(currOrelTuple);
+
+            currOrelTuple->DeleteIfAllowed();
+            currOrelTuple = 0;
+        }
+
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlResolveShortcutAndAddToOrel" << endl);
+        #endif
+
+        return true;
+    }
+
+    /*
+    Iterates through the given Edges-Orel from OSM Graph and
+     retrieves the length of every curve.
+    Also retrieves the RoadType of the specific edge and multiplies
+     the length with a const valua representing the driving speed
+     valid for this RoadType.
+    Stores the calculated weights within the field Costs
+     of the specific edge.
+    Expects the Osm-Orel to fulfil the schema of
+     @see hlGetEdgesTupleTypeInfo()
+
+    Supports a parameter to give the calculation mode but currently
+     it is not implemented.
+
+    @param edgesOrelOsm the input Edges-Orel from OSM Import
+    @param calcMode the calculation mode to use (not yet implemented)
+    @param true since all modifications are done within the given parameters
+
+/
+    void hlCalcWeightsOrel(OrderedRelation* edgesOrel, int calcMode) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlCalcWeightsOrel" << endl);
+        #endif
+
+        GenericRelationIterator* edgesOrelIter = edgesOrel->MakeScan();
+        Tuple* currTuple = edgesOrelIter->GetNextTuple();
+
+        while(currTuple)
+        {
+            //for non static use
+            int indexCosts = HubLabelClass::HL_INDEX_OF_COSTS_IN_EDGE_TUPLE;
+
+            SimpleLine* curve = (SimpleLine*) currTuple->GetAttribute(
+                        HubLabelClass::HL_INDEX_OF_CURVE_IN_EDGE_TUPLE);
+            FText* roadTypeFText = (FText*) currTuple->GetAttribute(
+                    HubLabelClass::HL_INDEX_OF_ROAD_TYPE_IN_EDGE_TUPLE);
+
+            //get data
+            double curveLength = curve->Length();
+            string roadType = roadTypeFText->GetValue();
+
+            int assumedSpeed = 0;
+            double calculatedCosts = 0.0;
+
+            //get speed information
+            int defaultSpeed = 30;      //Default Speed for unkown cases
+            int motorwayLike = 130;     //Autobahn
+            int motorwayLinkLike = 80;  //Autobahn Auf- und Abfahrt
+            int trunkLike = 60;         //Ausgebaute Schnellstraße
+            int trunkLinkLike = 110;    //Auf-/ Abfahrt zu Schnellstraßen
+            int primaryLike = 90;       //Bundesstraßen
+            int primaryLinkLike = 30;   //Auf-/ Abfahrt zu Bundesstraßen
+            int secondaryLike = 70;     //Landstraßen
+            int secondaryLinkLike = 30; //Auf-/ Abfahrt zu Landstraßen
+            int tertiaryLike = 70;      //Kreisstraßen
+            int tertiaryLinkLike = 30;  //Auf-/ Abfahrt zu Kreisstraßen
+            int roadLike = defaultSpeed;//Unknown type treat as slow
+            int residentialLike = 40;   //Anwohnerstraßen
+            int livingStreetLike = 20;  //Spielstraße
+            int unclassifiedLike = 40;  //asphaltierte Feldwege
+
+            if(roadType == "motorway")
+            {
+                //Autobahn -> 130
+                assumedSpeed = motorwayLike;
+            }
+            else if(roadType == "motorway_link")
+            {
+                //Autobahn Auf- und Abfahrt -> 30
+                assumedSpeed = motorwayLinkLike;
+            }
+            else if(roadType == "trunk")
+            {
+                //Ausgebaute Schnellstraße -> 110
+                assumedSpeed = trunkLike;
+            }
+            else if(roadType == "trunk_link")
+            {
+                //Auf-/ Abfahrt zu Schnellstraßen -> 30
+                assumedSpeed = trunkLinkLike;
+            }
+            else if(roadType == "primary")
+            {
+                //Bundesstraßen -> 90
+                assumedSpeed = primaryLike;
+            }
+            else if(roadType == "primary_link")
+            {
+                //Auf-/ Abfahrt zu Bundesstraßen -> 30
+                assumedSpeed = primaryLinkLike;
+            }
+            else if(roadType == "secondary")
+            {
+                //Landstraßen -> 70
+                assumedSpeed = secondaryLike;
+            }
+            else if(roadType == "secondary_link")
+            {
+                //Auf-/ Abfahrt zu Landstraßen -> 30
+                assumedSpeed = secondaryLinkLike;
+            }
+            else if(roadType == "tertiary")
+            {
+                //Kreisstraßen -> 70
+                assumedSpeed = tertiaryLike;
+            }
+            else if(roadType == "tertiary_link")
+            {
+                //Auf-/ Abfahrt zu Kreisstraßen -> 30
+                assumedSpeed = tertiaryLinkLike;
+            }
+            else if(roadType == "road")
+            {
+                //Unknown type treat as slow -> 30
+                assumedSpeed = roadLike;
+            }
+            else if(roadType == "residential")
+            {
+                //Anwohnerstraßen -> 40
+                assumedSpeed = residentialLike;
+            }
+            else if(roadType == "living_street")
+            {
+                //Spielstraße -> 20
+                assumedSpeed = livingStreetLike;
+            }
+            else if(roadType == "unclassified")
+            {
+                //asphaltierte Feldwege -> 40
+                assumedSpeed = unclassifiedLike;
+            }
+            else
+            {
+                //Default Speed like unknown 'road'
+                assumedSpeed = defaultSpeed;
+            }
+
+            //calc
+
+            //curveLength = way in km
+            //speed given in km/h = way per time
+            //travel time = way / way per time
+            // -> curveLength / speed
+            //
+            // we think to multiply length by 10 to get the value with
+            // unit nearly to be kilometer (does not fit exactly like measuring
+            // with google, duffers about several ten meters
+            //
+            calculatedCosts = curveLength10 / assumedSpeed;
+
+            //set costs
+            CcReal* newCosts = new CcReal();
+            newCosts->Set(true, calculatedCosts);
+
+            //prepare updateTuple
+            std::vector<int> changedIndices;
+            changedIndices.push_back(indexCosts);
+
+            std::vector<Attribute*> changedAttributes;
+            changedAttributes.push_back(newCosts);
+
+
+            //update costs
+            edgesOrel->UpdateTuple(currTuple, changedIndices,
+             changedAttributes);
+
+            //Free Outgoing-Iteration
+            currTuple->DeleteIfAllowed();
+            currTuple = 0;
+            currTuple = edgesOrelIter->GetNextTuple();
+        }
+
+        //Free Iterator
+        delete edgesOrelIter;
+
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlCalcWeightsOrel" << endl);
+        #endif
+    }
+
+
+
+    /*
+    Nimmt einen hlGraph entgegen und führt eine HL Search für jeden Knoten
+     aus dem hlGraph aus und persistiert die resultierenden SearchTrees.
+
+    TODO: die ursprünglich space efficient serchTree Struktur wird hier
+     nicht wiederverwendet für die persistierung der Labels
+     Statdessen wird die alte NRel darstellung aus dem
+     ersten Versuch verwendet
+
+    @param allLabelsNrel the nrel to persist labels to be cerated
+    @param nodesOrel an orel containing all nodes of the hlGraph
+    @param nodesEdgesVector by reference the hlGraph to fill
+    @param true since all modifications are done within the given parameters
+
+/
+    void hlCreateLabelsFromHlGraph(NestedRelation* allLabelsNrel,
+     OrderedRelation* nodesOrel,
+     std::vector<HlNodeEntry*> nodesEdgesVector) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlCreateLabelsFromHlGraph" << endl);
+        #endif
+
+
+        bool isChElseHl = false;
+
+        //prepare nestedRelation
+        SubRelation* forwardDataSubRel =
+            allLabelsNrel->getSubRel(
+                hlForwardLabelColumnName());
+        SubRelation* reverseDataSubRel =
+            allLabelsNrel->getSubRel(
+                hlReverseLabelColumnName());
+
+        SmiFileId forwardDataSubRelFileId =
+            forwardDataSubRel->fileId;
+        SmiFileId reverseDataSubRelFileId =
+            reverseDataSubRel->fileId;
+
+        ListExpr forwardDataSubRelTypeInfo =
+            forwardDataSubRel->typeInfo;
+        ListExpr reverseDataSubRelTypeInfo =
+            reverseDataSubRel->typeInfo;
+
+        Relation* forwardDataRel = forwardDataSubRel->rel;
+        Relation* reverseDataRel = reverseDataSubRel->rel;
+
+        TupleType* tupleTypeAllLabels =
+            allLabelsNrel->getPrimary()->GetTupleType();
+
+        //iterate through nodesOrel and create Labels for every Node
+        GenericRelationIterator* nodesOrelIter = nodesOrel->MakeScan();
+
+        //Get first Tuple
+        Tuple* currNode = nodesOrelIter->GetNextTuple();
+
+        #ifdef USEINFO
+        int nodesCount = nodesOrel->GetNoTuples();
+        int progressCount = 0;
+        #endif
+
+
+        //Iterate over all Tuples
+        while(currNode)
+        {
+            CcInt* currNodeIdCcInt = (CcInt*) currNode->GetAttribute(
+                    HL_INDEX_OF_SOURCE_IN_HL_GRAPH_NODES);
+
+            int currNodeId = currNodeIdCcInt->GetIntval();
+
+            #ifdef USEINFO
+            ++progressCount;
+            if(progressCount % getProgressInterval() == 0)
+            {
+                LogInfo("Create Labels for next nodeId: "
+                 << currNodeId << " (progress: " << progressCount
+                 << " nodes left: " << (nodesCount - progressCount) << ")"
+                 << endl);
+            }
+            #endif
+
+
+            #ifdef USEDEBUG
+            LogDebug("forward  and reverse label multimaps" << endl);
+            #endif
+            std::multimap<int, std::tuple<int, int, double>>
+                    labelForwardMultimap;
+            std::multimap<int, std::tuple<int, int, double>>
+                    labelReverseMultimap;
+
+
+            #ifdef USEDEBUG
+            LogDebug("do search" << endl);
+            #endif
+            std::tuple<int, double, std::map<int, ChNode*>> searchResultTuple =
+            hlDoCHSearch(nodesEdgesVector, currNodeId, currNodeId, isChElseHl);
+
+            std::map<int, ChNode*> searchTree = std::get<2>(searchResultTuple);
+
+
+            //iterate through searchTree
+            for (std::map<int, ChNode*>::iterator
+                    searchTreeIter = searchTree.begin();
+                    searchTreeIter != searchTree.end();
+                    ++searchTreeIter)
+            {
+
+                int currHubIndex = (*searchTreeIter).first;
+                ChNode* currHubChNode = (*searchTreeIter).second;
+
+                double distForward = currHubChNode->getDistForward();
+                double distReverse = currHubChNode->getDistReverse();
+                int predecessorIndexForward =
+                 currHubChNode->getPredecessorIndexForward();
+                int predecessorIndexReverse =
+                 currHubChNode->getPredecessorIndexReverse();
+
+                delete currHubChNode;
+
+
+                HlNodeEntry* currHubNodeEntry = nodesEdgesVector[currHubIndex];
+                int currHubNodeId = currHubNodeEntry->getNodeId();
+                int currHubRankValue = currHubNodeEntry->getRankValue();
+
+                //only get predecessor if there is one
+                // it can be -1 or -2
+                int currPredecessorForwardNodeId = -1;
+                if(predecessorIndexForward > -1)
+                {
+                    HlNodeEntry* currPredecessorForwardNodeEntry =
+                     nodesEdgesVector[predecessorIndexForward];
+                    currPredecessorForwardNodeId =
+                     currPredecessorForwardNodeEntry->getNodeId();
+                }
+
+                int currPredecessorReverseNodeId = -1;
+                if(predecessorIndexReverse > -1)
+                {
+                    HlNodeEntry* currPredecessorReverseNodeEntry =
+                     nodesEdgesVector[predecessorIndexReverse];
+                    currPredecessorReverseNodeId =
+                     currPredecessorReverseNodeEntry->getNodeId();
+                }
+
+
+
+
+                //add to forward label if is sourceNode or if is hub
+                // which always has a forward predecessor
+                if(currNodeId == currHubNodeId ||
+                 predecessorIndexForward > -1)
+                {
+
+                    //rankOfHub/nodeIdNew, hubNodeId, predecessorId,
+                    // distToSource
+                    labelForwardMultimap.insert(std::make_pair(currHubRankValue,
+                     std::make_tuple(currHubNodeId,
+                     currPredecessorForwardNodeId, distForward)));
+                }
+
+                //add to reverse label if is sourceNode or if is hub
+                // which always has a reverse predecessor
+                if(currNodeId == currHubNodeId ||
+                 predecessorIndexReverse > -1)
+                {
+
+                    //rankOfHub/nodeIdNew, hubNodeId, predecessorId,
+                    // distToSource
+                    labelReverseMultimap.insert(std::make_pair(currHubRankValue,
+                     std::make_tuple(currHubNodeId,
+                     currPredecessorReverseNodeId, distReverse)));
+                }
+
+            }
+
+            #ifdef USEDEBUG
+            LogDebug("prepare NestedRelationTuple" << endl);
+            #endif
+
+            Tuple* allLabelsTuple = new Tuple(
+                tupleTypeAllLabels);
+            allLabelsTuple->PutAttribute(
+                HL_INDEX_OF_NODE_ID_IN_ALL_LABELS_TUPLE,
+                new CcInt(true, currNodeId));
+
+
+            #ifdef USEDEBUG
+            LogDebug("create and fill forwardLabel" << endl);
+            #endif
+            AttributeRelation* labelForwardArel = new
+            AttributeRelation(forwardDataSubRelFileId,
+                              forwardDataSubRelTypeInfo,
+                              labelForwardMultimap.size());
+            labelForwardArel->setPartOfNrel(true);
+
+            hlFillForwardOrReverseLabel(labelForwardArel, forwardDataRel,
+             labelForwardMultimap);
+
+            #ifdef USEDEBUG
+            LogDebug("add forward label to all labels" << endl);
+            #endif
+            allLabelsTuple->PutAttribute(
+                HL_INDEX_OF_FORWARD_LABEL_IN_ALL_LABELS_TUPLE,
+                labelForwardArel);
+
+
+            #ifdef USEDEBUG
+            LogDebug("create and fill reverseLabel" << endl);
+            #endif
+            AttributeRelation* labelReverseArel = new
+            AttributeRelation(reverseDataSubRelFileId,
+                              reverseDataSubRelTypeInfo,
+                              labelReverseMultimap.size());
+            labelReverseArel->setPartOfNrel(true);
+
+            hlFillForwardOrReverseLabel(labelReverseArel, reverseDataRel,
+             labelReverseMultimap);
+
+
+            #ifdef USEDEBUG
+            LogDebug("add reverse label to all labels" << endl);
+            #endif
+            allLabelsTuple->PutAttribute(
+                HL_INDEX_OF_REVERSE_LABEL_IN_ALL_LABELS_TUPLE,
+                labelReverseArel);
+
+            #ifdef USEDEBUG
+            LogDebug("finish current all labels Tuple" << endl);
+            #endif
+            allLabelsNrel->getPrimary()->AppendTuple(
+                allLabelsTuple);
+
+            allLabelsTuple->DeleteIfAllowed();
+            allLabelsTuple = 0;
+
+
+            //get next Tuple from Orel
+            currNode->DeleteIfAllowed();
+            currNode = 0;
+            currNode = nodesOrelIter->GetNextTuple();
+        }
+
+        delete nodesOrelIter;
+
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlCreateLabelsFromHlGraph" << endl);
+        #endif
+    }
+
+
+
+
+
+
+
+
+
+
+/*
+
+3.4 HubLabeling functionality of (3) In-Memory Approach using MainMemory2Algebra
+
+*/
+
+
+
+
+
+    /*
+     TODO: function for doing ContractionHierarchies
+      using graph from existing Algebra MainMemory2
+      and its shortestPath implementations
+     Not working yet.
+/
+    bool hlContractMmGraph(graph::Graph* graphUp, graph::Graph* graphDown,
+        Word calcFunction) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlContractMmGraph" << endl);
+        #endif
+
+        graph::Queue rankQueue;
+
+        //it doesnt matter here which graph to use, both have the same nodes
+        set<graph::Vertex*,graph::Vertex::EqualVertex>::iterator vertexIt =
+                                            graphUp->getGraph()->begin();
+        //iterate over all nodes
+        int currRank = 1;
+        std::multimap<int, int> ranksNodesMultimap;
+        while(vertexIt != graphUp->getGraph()->end()) {
+            graph::Vertex* v = *vertexIt;
+
+            ranksNodesMultimap.insert(pair<int, int>(currRank, v->getNr()));
+
+            vertexIt++;
+            currRank++;
+        }
+
+        //iterate over all nodes v in ranked order
+        while(!ranksNodesMultimap.empty())
+        {
+            //get first element of multimap
+            std::multimap<int,int>::iterator rankIter =
+             ranksNodesMultimap.begin();
+
+            //int rankV = (*rankIter).first;
+            int vId = (*rankIter).second;
+
+            //remove node from multimap its not used any more
+            ranksNodesMultimap.erase(rankIter);
+
+            //get incoming edges (u, v) to v
+            graph::Vertex* vDown = graphDown->getVertex(vId);
+            for(size_t iDown = 0; iDown < vDown->getEdges()->size(); iDown++)
+            {
+                //get u from ! graphUp for doing forward searches
+                // but reach u via ! downGraph
+                vector<graph::EdgeWrap>* edgesDown = vDown->getEdges();
+                int uId = edgesDown->at(iDown).getPointer()->getDest();
+                graph::Vertex* uUp = graphUp->getVertex(uId);
+
+                //skip if u does not exist in rankMultimap
+                // it then still must have been contracted
+                // we use function to get the nodes rank
+                // which is -1 if the node does not exist
+                int rankU = hlGetRankOfNode(ranksNodesMultimap, uId);
+                if(rankU > -1)
+                {
+                    graph::Vertex* vUp = graphUp->getVertex(vId);
+                    for(size_t iUp = 0; iUp < vUp->getEdges()->size(); iUp++)
+                    {
+                        //get w from ! downGraph for doing reverse searches
+                        // but reach w via ! UpGraph
+                        vector<graph::EdgeWrap>* edgesUp = vUp->getEdges();
+                        int wId = edgesUp->at(iUp).getPointer()->getDest();
+                        //graph::Vertex* wDown = graphDown->getVertex(wId);
+
+                        //skip if w does not exist in rankMultimap
+                        // it then still must have been contracted
+                        // we use function to get the nodes rank
+                        // which is -1 if the node does not exist
+                        int rankW = hlGetRankOfNode(ranksNodesMultimap, wId);
+                        if(rankW > -1)
+                        {
+                            graph::Vertex* wUp = graphUp->getVertex(wId);
+
+                            //do local query from u to w
+                            //TODO wie dijkstra aufrufen von hier aus?
+                            bool dijkstraFound = mm2algebra::dijkstra(graphUp,
+                             calcFunction, uUp, wUp);
+
+                            if(!dijkstraFound)
+                            {
+                                #ifdef USEDEBUG
+                                LogDebug("no shortest path found" << endl);
+                                #endif
+                            }
+
+                            //retrieve distance of previous local query
+                            double distUW = wUp->getCost();
+
+                            //calc shortcutLength for UV
+                            //note that down is the same as up but only
+                            // with invertes edges, means
+                            // dist(u, v) \in up = dist(v, u) \in down
+                            double distUV = hlGetCostOfEdgeUV(
+                                vDown, iDown, calcFunction);
+
+                            //calc shortcutLength for UV
+                            double distVW = hlGetCostOfEdgeUV(
+                                vUp, iUp, calcFunction);
+
+                            double distUVWShortcut = distUV + distVW;
+
+                            //if shortcut is shorter then create shortcu-edge
+                            if(distUVWShortcut < distUW)
+                            {
+                                //add edge (u, w) to up
+                                // and inverted edge (w, u) to down
+                                hlCreateShortcutEdgeTuple(graphUp, uId, wId,
+                                 distUVWShortcut, vId);
+                                hlCreateShortcutEdgeTuple(graphDown, wId, uId,
+                                 distUVWShortcut, vId);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlContractMmGraph" << endl);
+        #endif
+
+        return true;
+    }
+
+    /*
+    retrieves the costs of an edge (u, v) of an graph:Graph
+
+    @param vertexU is the given graph::Vertex* u
+    @param vIndex is the index position of the edge which leads to vertex v
+    @param calcFunction is the Function used to calculate the cost
+
+    @return the calculated costs of the given edge
+/
+    double hlGetCostOfEdgeUV(graph::Vertex* vertexU, int vIndex,
+        Word calcFunction) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlGetCostOfEdgeUV" << endl);
+        #endif
+        //TODO: costFunction auf festes Feld umbauen,
+        // damit Shortcutsunterstützt werden können?
+        // ansonsten müsste für diese ja auch die curve definiert werden
+
+        double cost = -1.0;
+
+        ArgVectorPointer funArgs = qp->Argument(calcFunction.addr);
+        Word funResult;
+        ((*funArgs)[0]).setAddr(
+            vertexU->getEdges()->at(vIndex).getPointer()->getTuple()
+        );
+        qp->Request(calcFunction.addr,funResult);
+        cost = ((CcReal*)funResult.addr)->GetRealval();
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlGetCostOfEdgeUV" << endl);
+        #endif
+
+        return cost;
+    }
+
+    /*
+    Retrieves the Rank for the given nodeId
+
+    @param currMultimap the map containing all nodes with their ranks
+            ordered by nodeId
+    @param nodeId
+    @return the rank if found, -1 telse
+/
+    int hlGetRankOfNode(std::multimap<int, int> currMultimap,
+     int nodeId) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlGetRankOfNode" << endl);
+        #endif
+
+        int rankValue = -1;
+        std::multimap<int,int>::iterator multimapIter =
+         currMultimap.find(nodeId);
+
+        if(multimapIter != currMultimap.end())
+        {
+            rankValue = (*multimapIter).second;
+        }
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlGetRankOfNode" << endl);
+        #endif
+
+        return rankValue;
+    }
+
+    /*
+    Creates an Shortcut Tuple (u, v, w) and adds it to the given graph
+    Uses @see HubLabelClass::hlGetEdgesTupleTypeInfo()
+
+    @param graph where the edge shall be added
+    @param source the index of the Attribute containing the sourceId u
+    @param target the index of the Attribute containing the targetId w
+    @param costs the costs of the shortcutEdge to be created
+    @param parentNode the nodeId of the parent v
+
+/
+    void hlCreateShortcutEdgeTuple(graph::Graph* graph, int source,
+        int target, double costs, int parentNode) const
+    {
+        #ifdef USEDEBUG
+        LogDebug("start hlCreateShortcutEdgeTuple" << endl);
+        #endif
+
+        ListExpr tupleType;
+        nl->ReadFromString(HubLabelClass::hlGetEdgesTupleTypeInfo(), tupleType);
+        ListExpr tupNumType =
+            SecondoSystem::GetCatalog()->NumericType(tupleType);
+        Tuple* insertTuple = new Tuple(tupNumType);
+        insertTuple->PutAttribute(
+            HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE, new CcInt(true, source));
+        insertTuple->PutAttribute(
+            HL_INDEX_OF_TARGET_IN_EDGE_TUPLE, new CcInt(true, target));
+        insertTuple->PutAttribute(
+            HL_INDEX_OF_SOURCE_POS_IN_EDGE_TUPLE,
+            new Point(false, 0.0, 0.0));
+        insertTuple->PutAttribute(
+            HL_INDEX_OF_TARGET_POS_IN_EDGE_TUPLE,
+            new Point(false, 0.0, 0.0));
+        insertTuple->PutAttribute(
+            HL_INDEX_OF_SOURCE_NODE_COUNTER_IN_EDGE_TUPLE,
+            new CcInt(false));
+        insertTuple->PutAttribute(
+            HL_INDEX_OF_TARGET_NODE_COUNTER_IN_EDGE_TUPLE,
+            new CcInt(false));
+        insertTuple->PutAttribute(
+            HL_INDEX_OF_CURVE_IN_EDGE_TUPLE,
+            new SimpleLine(0));
+        insertTuple->PutAttribute(
+            HL_INDEX_OF_ROAD_NAME_IN_EDGE_TUPLE,
+            new FText(false));
+        insertTuple->PutAttribute(
+            HL_INDEX_OF_ROAD_TYPE_IN_EDGE_TUPLE,
+            new FText(false));
+        insertTuple->PutAttribute(
+            HL_INDEX_OF_WAY_ID_IN_EDGE_TUPLE,
+            new LongInt(false));
+        insertTuple->PutAttribute(
+            HL_INDEX_OF_COSTS_IN_EDGE_TUPLE, new CcReal(true, costs));
+        insertTuple->PutAttribute(
+            HL_INDEX_OF_PARENT_ID_IN_EDGE_TUPLE,
+            new CcInt(true, parentNode));
+
+        //TODO sinnvoll, dass hier cost gesetzt wird?
+        // oder ist das nur relevant für die dijkstrasuche?
+        graph->addEdge(insertTuple,
+            HL_INDEX_OF_SOURCE_IN_EDGE_TUPLE,
+            HL_INDEX_OF_TARGET_IN_EDGE_TUPLE,
+            costs, 0.0);
+
+        #ifdef USEDEBUG
+        LogDebug("finish hlCreateShortcutEdgeTuple" << endl);
+        #endif
+    }
+
+
+
 
 
 private:
     double x;
     double y;
     double r;
+
+    int progressInterval;
 };
+
 
 /*
 4 HubLabeling Secondo-Type
@@ -4656,18 +9364,18 @@ the ~addr~ pointer of the result points to an object instance having the
 value represented by the ~instance~ argument.
 The parameters of the function are:
 
-  * ~typeInfo~: contains the complete type description and is required
+ ~typeInfo~: contains the complete type description and is required
    for nested types
     like tuples
 
-  * ~instance~: the value of the object in external (nested list) representation
+ ~instance~: the value of the object in external (nested list) representation
 
-  * ~errorPos~: output parameter reporting the position of an error within
+ ~errorPos~: output parameter reporting the position of an error within
    the list (set types)
 
-  * ~errorInfo~: can provide information about an error to the user
+ ~errorInfo~: can provide information about an error to the user
 
-  * ~correct~: output parameter returning the success of this call
+ ~correct~: output parameter returning the success of this call
 
 
 
@@ -4722,10 +9430,10 @@ This function is used to create the external representation of an object
 as nested list. Note that the ~IN~ function must be able to read in the
 result of this function.  The arguments are:
 
-  * ~typeInfo~: nested list representing the type of the object (required for
+ ~typeInfo~: nested list representing the type of the object (required for
               complex types)
 
-  * ~value~: the ~addr~ pointer of ~value~ points to the object to export.
+ ~value~: the ~addr~ pointer of ~value~ points to the object to export.
    The Secondo
     framework ensures that the type of this object is the correct one. The
     cast in the first line will be successful.
@@ -4772,9 +9480,9 @@ Removes the complete object (inclusive disc parts if there are any, see section
 The Secondo framework ensures that the type behind the ~addr~ pointer
 of ~w~ is the expected one. The arguments are:
 
-  * ~typeInfo~: the type description (for complex types)
+ ~typeInfo~: the type description (for complex types)
 
-  * ~w~: the ~addr~ pointer of this argument points to the object to delete.
+ ~w~: the ~addr~ pointer of this argument points to the object to delete.
 
 */
 void DeleteHubLabelClass( const ListExpr typeInfo,
@@ -4790,14 +9498,14 @@ void DeleteHubLabelClass( const ListExpr typeInfo,
 
 Reads an object from disc  via an ~SmiRecord~.
 
-  * ~valueRecord~: here, the disc representation of the object is stored
+ ~valueRecord~: here, the disc representation of the object is stored
 
-  * ~offset~: the object representation starts here in ~valueRecord~ After
+ ~offset~: the object representation starts here in ~valueRecord~ After
     the call of this function, ~offset~ must be after the object's value
 
-  * ~typeInfo~: the type description (required for complex types)
+ ~typeInfo~: the type description (required for complex types)
 
-  * ~value~: output argument
+ ~value~: output argument
 
 The function reads data out of the SmiRecord and creates a new object from them
 in case of success. The created object is stored in the ~addr~-pointer of the
@@ -4845,15 +9553,15 @@ Saves an object to disc (via SmiRecord). This function has to be symmetrically
 to the ~OPEN~ function. The result reports the success of the call.
 The arguments are
 
-  * ~valueRecord~: here the object will be stored
+ ~valueRecord~: here the object will be stored
 
-  * ~offset~: the object has to be  stored at this position in ~valueRecord~;
+ ~offset~: the object has to be  stored at this position in ~valueRecord~;
    after the call of this
     function, ~offset~ must be after the object's representation
 
-  * ~typeInfo~: type description as a nested list (required for complex types)
+ ~typeInfo~: type description as a nested list (required for complex types)
 
-  * ~value~: the addr pointer of this argument points to the object to save
+ ~value~: the addr pointer of this argument points to the object to save
 
 The used ~Write~ function of the ~SmiRecord~ works similar to its ~Read~
  function but transfers the
@@ -4886,9 +9594,9 @@ bool SaveHubLabelClass( SmiRecord& valueRecord,
 Removes the main memory part of an object. In contrast to delete, the
 disc part of the object is untouched (if there is one).
 
-  * ~typeInfo~: type description as  a nested list
+ ~typeInfo~: type description as  a nested list
 
-  * ~w~: the ~addr~ pointer of ~w~ points to the object which is to close
+ ~w~: the ~addr~ pointer of ~w~ points to the object which is to close
 
 */
 void CloseHubLabelClass( const ListExpr typeInfo,
@@ -4904,9 +9612,9 @@ void CloseHubLabelClass( const ListExpr typeInfo,
 
 Creates a depth copy (inclusive disc parts) of an object.
 
-  * ~typeInfo~: type description as nested list
+ ~typeInfo~: type description as nested list
 
-  * ~w~: holds a pointer to the object which is to clone
+ ~w~: holds a pointer to the object which is to clone
 
 */
 Word CloneHubLabelClass( const ListExpr typeInfo,
@@ -5039,6 +9747,8 @@ is the result type of the operator in nested list format.
 All TypeMappings are related to the equal named function of the
  class HubLabelClass.
 The TypeMapping just got an additional suffix 'TM'.
+
+5.1.1 Type Mappings of (1) Persistent Approach
 
 */
 
@@ -6252,10 +10962,10 @@ ListExpr hlGetPathViaPointsTM(ListExpr args)
 ListExpr hlQueryTM(ListExpr args)
 {
     string err =
-        "1x Nrel, 1x BTree, 1x Orel, 2x CcInt expected.";
+        "1x Nrel, 1x BTree, 2x Orel, 2x CcInt, 1x CcInt (CcBool) expected.";
 
     // check the number of arguments
-    if(!nl->HasLength(args,5))
+    if(!nl->HasLength(args,7))
     {
         return listutils::typeError(err +
                                     " (wrong number of arguments)");
@@ -6283,17 +10993,31 @@ ListExpr hlQueryTM(ListExpr args)
     }
 
     // check type of the argument
-    if(!CcInt::checkType(nl->Fourth(args)))
+    if(!OrderedRelation::checkType(nl->Fourth(args)))
     {
         return listutils::typeError(err +
-                                    " (fourth arg no CcInt)");
+                                    " (fourth arg no OrderedRelation)");
     }
 
     // check type of the argument
-    if(!CcInt::checkType(nl->Fourth(args)))
+    if(!CcInt::checkType(nl->Fifth(args)))
     {
         return listutils::typeError(err +
                                     " (fifth arg no CcInt)");
+    }
+
+    // check type of the argument
+    if(!CcInt::checkType(nl->Sixth(args)))
+    {
+        return listutils::typeError(err +
+                                    " (sixth arg no CcInt)");
+    }
+
+    // check type of the argument
+    if(!CcInt::checkType(nl->Seventh(args)))
+    {
+        return listutils::typeError(err +
+                                    " (seventh arg no CcInt)");
     }
 
     // return the result type
@@ -6468,6 +11192,409 @@ ListExpr hlCreateLabelsTM(ListExpr args)
 
 
 /*
+5.1.2 Type Mappings of (2) In-Memory Approach
+
+*/
+
+
+ListExpr hlTransformOrelToHlGraphTM(ListExpr args)
+{
+    #ifdef USEDEBUG
+    LogDebug("start hlTransformOrelToHlGraphTM" << endl);
+    #endif
+
+
+
+    string err = "2x orderedRelation";
+
+    // check the number of arguments
+    if(!nl->HasLength(args,2))
+    {
+        return listutils::typeError(err + " (wrong number of arguments)");
+    }
+
+    // check type of the argument
+    if(!OrderedRelation::checkType(nl->First(args)))
+    {
+        return listutils::typeError(err +
+                                    " (first arg no OrderedRelation)");
+    }
+
+    // check type of the argument
+    if(!OrderedRelation::checkType(nl->Second(args)))
+    {
+        return listutils::typeError(err +
+                                    " (second arg no OrderedRelation)");
+    }
+
+    // return the result type
+    ListExpr relType;
+    nl->ReadFromString(
+        HubLabelClass::hlGetHlGraphOrelTypeInfo(),
+        relType);
+
+    #ifdef USEDEBUG
+    LogDebug("finish hlTransformOrelToHlGraphTM" << endl);
+    #endif
+
+    return relType;
+}
+
+
+
+ListExpr hlDoContractionOfHlGraphTM(ListExpr args)
+{
+    #ifdef USEDEBUG
+    LogDebug("start hlDoContractionOfHlGraphTM" << endl);
+    #endif
+
+
+
+    string err = "2x orderedRelation, 2x Int expected";
+
+    // check the number of arguments
+    if(!nl->HasLength(args,4))
+    {
+        return listutils::typeError(err + " (wrong number of arguments)");
+    }
+
+    // check type of the argument
+    if(!OrderedRelation::checkType(nl->First(args)))
+    {
+        return listutils::typeError(err +
+                                    " (first arg no OrderedRelation)");
+    }
+
+    // check type of the argument
+    if(!OrderedRelation::checkType(nl->Second(args)))
+    {
+        return listutils::typeError(err +
+                                    " (second arg no OrderedRelation)");
+    }
+
+    // check type of the argument
+    if(!CcInt::checkType(nl->Third(args)))
+    {
+        return listutils::typeError(err +
+                                    " (third arg no Int)");
+    }
+
+    // check type of the argument
+    if(!CcInt::checkType(nl->Fourth(args)))
+    {
+        return listutils::typeError(err +
+                                    " (fourth arg no Int)");
+    }
+
+    // return the result type
+    ListExpr relType;
+    nl->ReadFromString(
+        HubLabelClass::hlGetHlGraphOrelTypeInfo(),
+        relType);
+
+    #ifdef USEDEBUG
+    LogDebug("finish hlDoContractionOfHlGraphTM" << endl);
+    #endif
+
+    return relType;
+}
+
+
+
+ListExpr hlDoChSearchInHlGraphTM(ListExpr args)
+{
+    #ifdef USEDEBUG
+    LogDebug("start hlDoChSearchInHlGraphTM" << endl);
+    #endif
+
+
+
+    string err = "3x orel, 2x int expectd";
+
+    // check the number of arguments
+    if(!nl->HasLength(args,5))
+    {
+        return listutils::typeError(err + " (wrong number of arguments)");
+    }
+
+    // check type of the argument
+    if(!OrderedRelation::checkType(nl->First(args)))
+    {
+        return listutils::typeError(err +
+                                    " (first arg no OrderedRelation)");
+    }
+    if(!OrderedRelation::checkType(nl->Second(args)))
+    {
+        return listutils::typeError(err +
+                                    " (second arg no OrderedRelation)");
+    }
+    if(!OrderedRelation::checkType(nl->Third(args)))
+    {
+        return listutils::typeError(err +
+                                    " (third arg no OrderedRelation)");
+    }
+    if(!CcInt::checkType(nl->Fourth(args)))
+    {
+        return listutils::typeError(err +
+                                    " (fourth arg no Int)");
+    }
+    if(!CcInt::checkType(nl->Fifth(args)))
+    {
+        return listutils::typeError(err +
+                                    " (fifth arg no Int)");
+    }
+
+    // return the result type
+    ListExpr relType;
+    nl->ReadFromString(
+        HubLabelClass::hlGetEdgesRelTypeInfo(),
+        relType);
+
+    #ifdef USEDEBUG
+    LogDebug("finish hlDoChSearchInHlGraphTM" << endl);
+    #endif
+
+    return relType;
+}
+
+
+
+ListExpr hlCalcWeightsOrelTM(ListExpr args)
+{
+    #ifdef USEDEBUG
+    LogDebug("start hlCalcWeightsOrelTM" << endl);
+    #endif
+
+
+
+    string err = "1x orel, 1x int expected";
+
+    // check the number of arguments
+    if(!nl->HasLength(args,2))
+    {
+        return listutils::typeError(err + " (wrong number of arguments)");
+    }
+
+    // check type of the argument
+    if(!OrderedRelation::checkType(nl->First(args)))
+    {
+        return listutils::typeError(err +
+                                    " (first arg no OrderedRelation)");
+    }
+    if(!CcInt::checkType(nl->Second(args)))
+    {
+        return listutils::typeError(err +
+                                    " (second arg no Int)");
+    }
+
+    #ifdef USEDEBUG
+    LogDebug("finish hlCalcWeightsOrelTM" << endl);
+    #endif
+
+    // return the result type
+    return listutils::basicSymbol<CcInt>();
+}
+
+
+
+ListExpr hlCreateLabelsFromHlGraphTM(ListExpr args)
+{
+    #ifdef USEDEBUG
+    LogDebug("start hlCreateLabelsFromHlGraphTM" << endl);
+    #endif
+
+
+
+    string err = "2x orel expected";
+
+    // check the number of arguments
+    if(!nl->HasLength(args,2))
+    {
+        return listutils::typeError(err + " (wrong number of arguments)");
+    }
+
+    // check type of the argument
+    if(!OrderedRelation::checkType(nl->First(args)))
+    {
+        return listutils::typeError(err +
+                                    " (first arg no OrderedRelation)");
+    }
+
+    // check type of the argument
+    if(!OrderedRelation::checkType(nl->Second(args)))
+    {
+        return listutils::typeError(err +
+                                    " (second arg no OrderedRelation)");
+    }
+
+    #ifdef USEDEBUG
+    LogDebug("finish hlCreateLabelsFromHlGraphTM" << endl);
+    #endif
+
+    // return the result type
+    ListExpr relType;
+    nl->ReadFromString(
+        HubLabelClass::hlGetAllLabelsTypeInfo(), relType);
+
+    return relType;
+}
+
+
+
+
+
+
+
+/*
+5.1.3 Type Mappings of (3) In-Memory Approach using MainMemory2Algebra
+
+not yet implemented
+
+*/
+
+/*
+ TODO: functions for doing ContractionHierarchies
+  using graph from existing Algebra MainMemory2
+  and its shortestPath implementations
+ Not working yet.
+
+ */
+ListExpr hlContractMmGraphTM(ListExpr args)
+{
+    #ifdef USEDEBUG
+LogDebug("start contractNewTM" << endl);
+#endif
+
+    //overall
+    if(nl->ListLength(args) != 3) {
+      return listutils::typeError("four arguments expected");
+    }
+
+    //first
+    ListExpr first = nl->First(args);
+
+    if(!nl->HasLength(first,2)){
+      return listutils::typeError("internal error");
+    }
+
+    string errMsg;
+
+    if(!mm2algebra::getMemType(nl->First(first),
+     nl->Second(first), first, errMsg))
+    return listutils::typeError("\n problem in first arg: " + errMsg);
+
+    ListExpr graph = nl->Second(first); // remove leading mem
+    if(!mm2algebra::MemoryGraphObject::checkType(graph))
+    return listutils::typeError("first arg is not a mem graph");
+
+    graph = nl->Second(graph);
+
+    if(!listutils::isTupleDescription(graph)) {
+    return listutils::typeError(
+                       "second value of graph is not of type tuple");
+    }
+
+    ListExpr relAttrList(nl->Second(graph));
+
+    if(!listutils::isAttrList(relAttrList)) {
+    return listutils::typeError("Error in rel attrlist.");
+    }
+
+    if(!(nl->ListLength(relAttrList) >= 3)) {
+    return listutils::typeError("rel has less than 3 attributes.");
+    }
+
+
+
+
+    //second
+    ListExpr second = nl->First(args);
+
+    if(!nl->HasLength(second,2)){
+      return listutils::typeError("internal error");
+    }
+
+    if(!mm2algebra::getMemType(nl->First(second),
+     nl->Second(second), second, errMsg))
+    return listutils::typeError("\n problem in second arg: " + errMsg);
+
+    ListExpr graph2 = nl->Second(second); // remove leading mem
+    if(!mm2algebra::MemoryGraphObject::checkType(graph2))
+    return listutils::typeError("second arg is not a mem graph2");
+
+
+    graph2 = nl->Second(graph2);
+
+    if(!listutils::isTupleDescription(graph2)) {
+    return listutils::typeError(
+                       "second value of graph2 is not of type tuple");
+    }
+
+    ListExpr relAttrList2(nl->Second(graph2));
+
+    if(!listutils::isAttrList(relAttrList2)) {
+    return listutils::typeError("Error in rel attrlist.");
+    }
+
+    if(!(nl->ListLength(relAttrList2) >= 3)) {
+    return listutils::typeError("rel has less than 3 attributes.");
+    }
+
+
+    //TODO nur graph nicht aber graph2 im Folgenden berücksichtigt
+
+    //Check of third argument
+
+    ListExpr map = nl->First(nl->Third(args));
+    if(!listutils::isMap<1>(map)) {
+    return listutils::typeError("fourth argument should be a map");
+    }
+
+    ListExpr mapTuple = nl->Second(map);
+
+    if(!nl->Equal(graph,mapTuple)) {
+    return listutils::typeError(
+                       "Tuple of map function must match graph tuple");
+    }
+
+    ListExpr mapres = nl->Third(map);
+
+    if(!listutils::isSymbol(mapres,CcReal::BasicType())) {
+    return listutils::typeError(
+                 "Wrong mapping result type for mgshortestpatha");
+    }
+
+
+
+    // appends Attribute SeqNo to Attributes in orel
+    ListExpr rest = nl->Second(graph);
+    ListExpr listn = nl->OneElemList(nl->First(rest));
+    ListExpr lastlistn = listn;
+    rest = nl->Rest(rest);
+    while (!(nl->IsEmpty(rest))) {
+    lastlistn = nl->Append(lastlistn,nl->First(rest));
+    rest = nl->Rest(rest);
+    }
+    lastlistn = nl->Append(lastlistn,
+                        nl->TwoElemList(
+                          nl->SymbolAtom("SeqNo"),
+                          nl->SymbolAtom(TupleIdentifier::BasicType())));
+
+    #ifdef USEDEBUG
+LogDebug("finish contractNewTM" << endl);
+#endif
+
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                      nl->TwoElemList(
+                                        nl->SymbolAtom(Tuple::BasicType()),
+                                        listn));
+}
+
+
+
+
+
+/*
 5.2 Value Mapping
 
 The value mapping takes values as arguments and computes the result.
@@ -6482,23 +11609,25 @@ The result of the operator for non-stream operators is always 0.
 
 The arguments are :
 
-  * ~args~: array with the arguments of the operator
+ ~args~: array with the arguments of the operator
 
-  * ~result~: output parameter, for non stream operators, the
+ ~result~: output parameter, for non stream operators, the
           result storage must be used
 
-  * ~message~: message used by stream operators
+ ~message~: message used by stream operators
 
-  * ~local~: possibility to store the state of an operator, used in
+ ~local~: possibility to store the state of an operator, used in
            stream operators
 
-  * ~s~: node of this operator within the operator tree
+ ~s~: node of this operator within the operator tree
 
 
 
 All ValueMappings are related to the equal named function of the
  class HubLabelClass.
 The ValueMappings just got an additional suffix 'VM'.
+
+5.2.1 Value Mappings of (1) Persistent Approach
 
 */
 
@@ -6538,7 +11667,9 @@ int hlOneHopReverseSearchVM (Word* args,
                              Word& result, int message, Word& local,
                              Supplier s)
 {
-    Debug("start hlOneHopReverseSearchVM" << endl);
+    #ifdef USEDEBUG
+LogDebug("start hlOneHopReverseSearchVM" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* orelEdgesSource =
@@ -6547,7 +11678,9 @@ int hlOneHopReverseSearchVM (Word* args,
         (OrderedRelation*) args[1].addr;
     CcInt* nodeId = (CcInt*) args[2].addr;
 
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
     result = qp->ResultStorage(
                  s);       // use the result storage
     OrderedRelation* oneHopReverseOrelId =
@@ -6560,14 +11693,18 @@ int hlOneHopReverseSearchVM (Word* args,
         oneHopReverseOrelId->Clear();
     }
 
-    Debug("do hlOneHopReverseSearch" << endl);
+    #ifdef USEDEBUG
+LogDebug("do hlOneHopReverseSearch" << endl);
+#endif
     std::multimap<int, std::tuple<int, double>>
             oneHopReverseMultimap;
     k->hlOneHopReverseSearch(orelEdgesSource,
                              orelEdgesTarget, nodeId, oneHopReverseMultimap);
 
-    Debug("Add elements from oneHopReverseMultimap to oneHopReverseOrelId"
+    #ifdef USEDEBUG
+LogDebug("Add elements from oneHopReverseMultimap to oneHopReverseOrelId"
           << endl);
+#endif
     for (std::multimap<int, std::tuple<int, double>>::iterator
             oneHopReverseMultimapIter =
                 oneHopReverseMultimap.begin();
@@ -6611,7 +11748,9 @@ int hlOneHopReverseSearchVM (Word* args,
     //free resources
     delete k;
 
-    Debug("finish hlOneHopReverseSearchVM" << endl);
+    #ifdef USEDEBUG
+LogDebug("finish hlOneHopReverseSearchVM" << endl);
+#endif
 
     return 0;
 }
@@ -6970,37 +12109,38 @@ int hlForwardSearchCheckForWitnessPathVM (
 
 
 
-/**
- * Erwartet eine relEdgesSource bei der die enthaltenen Edges in der
- *  Reihenfolge  der rel auch in diesem Test-Operator verarbeitet
- *  werden sollen.
- * Der 3. Parameter enthält die ID für den Startknoten, dieser
- *  erkennt alle Edges der rel,
- *  die vom Startknoten aus weggehen.
+/*
+Erwartet eine relEdgesSource bei der die enthaltenen Edges in der
+ Reihenfolge  der rel auch in diesem Test-Operator verarbeitet
+ werden sollen.
+Der 3. Parameter enthält die ID für den Startknoten, dieser
+ erkennt alle Edges der rel,
+ die vom Startknoten aus weggehen.
  *
- * Folgende Testfälle sollten (jedoch in beliebiger Reihenfolge)
- *  enthalten sein:
+Folgende Testfälle sollten (jedoch in beliebiger Reihenfolge)
+ enthalten sein:
  *
- * Die Erste Edge sollte S->V sein, es wird erwartet, dass diese nicht
- *  eingefügt wird.
- * Die zweite Edge sollte S->W sein, es wird erwartet, dass diese eingefügt
- *  wird.
- * Die dritte Edge sollte W->X sein, es wird erwartet, dass diese eingefügt
- *  wird.
- * Die folgenden Edges sollten X1->X2 sein, es wird erwartet, dass diese
- *  eingefügt werden.
- * Die nächste Edge sollte X3->X4 sein, wobei X4 bereits in der Orel enthalten
- *  sein soll (hier U genannt),
- *  der Weg S->X4 sollte länger sein, als der bisherige Weg S->U, es erwartet,
- *  dass diese edge nicht eingefügt wird.
- * Die folgenden Edges sollten X1->X2 sein, es wird erwartet, dass diese
- *  eingefügt werden.
- * Die nächste Edge sollte X5->X6 sein, wobei X6 bereits in der Orel
- *  enthalten sein soll (hier U2 genannt),
- *  der Weg S->X6 sollte kürzer sein, als der bisherige Weg S->U2,
- *  es erwartet, dass diese edge eingefügt wird.
- * Es sollten keine weiteren Edges im Input enthalten sein.
- *  Die Orel wird an die Query zurückgegeben.
+Die Erste Edge sollte S->V sein, es wird erwartet, dass diese nicht
+ eingefügt wird.
+Die zweite Edge sollte S->W sein, es wird erwartet, dass diese eingefügt
+ wird.
+Die dritte Edge sollte W->X sein, es wird erwartet, dass diese eingefügt
+ wird.
+Die folgenden Edges sollten X1->X2 sein, es wird erwartet, dass diese
+ eingefügt werden.
+Die nächste Edge sollte X3->X4 sein, wobei X4 bereits in der Orel enthalten
+ sein soll (hier U genannt),
+ der Weg S->X4 sollte länger sein, als der bisherige Weg S->U, es erwartet,
+ dass diese edge nicht eingefügt wird.
+Die folgenden Edges sollten X1->X2 sein, es wird erwartet, dass diese
+ eingefügt werden.
+Die nächste Edge sollte X5->X6 sein, wobei X6 bereits in der Orel
+ enthalten sein soll (hier U2 genannt),
+ der Weg S->X6 sollte kürzer sein, als der bisherige Weg S->U2,
+ es erwartet, dass diese edge eingefügt wird.
+Es sollten keine weiteren Edges im Input enthalten sein.
+ Die Orel wird an die Query zurückgegeben.
+
  */
 int hlInsertOrUpdateTupleInNotYetVisitedListVM (
     Word* args, Word& result,
@@ -7153,7 +12293,9 @@ int hlForwardSearchIterativeStepsScanNewVerticesVM (
     Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* orelEdgesSource =
@@ -7168,7 +12310,9 @@ int hlForwardSearchIterativeStepsScanNewVerticesVM (
         (Relation*) args[4].addr;
     CcInt* currNodeIdV = (CcInt*) args[5].addr;
     CcReal* distSV = (CcReal*) args[6].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -7176,7 +12320,9 @@ int hlForwardSearchIterativeStepsScanNewVerticesVM (
                        result.addr; // cast the result
     resultInt->Set(true, 1);
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
     //minW Tuple aus Container-Relation auslesen
     GenericRelationIterator*
@@ -7188,7 +12334,9 @@ int hlForwardSearchIterativeStepsScanNewVerticesVM (
 
     if(!currMinSingleTupleRelWTuple)
     {
-        Debug("kein Tuple, komisch" << endl);
+        #ifdef USEDEBUG
+LogDebug("kein Tuple, komisch" << endl);
+#endif
     }
     CcReal* currMinDist = (CcReal*)
                           currMinSingleTupleRelWTuple->GetAttribute(
@@ -7326,7 +12474,9 @@ int hlForwardSearchIterativeStepsScanNewVerticesVM (
 
 
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
     k->hlForwardSearchIterativeStepsScanNewVertices(
         orelEdgesSource,
         currNodeIdV->GetIntval(),
@@ -7334,7 +12484,9 @@ int hlForwardSearchIterativeStepsScanNewVerticesVM (
         notYetVisitedNodesMultiMap, stillVisitedNodesSet,
         oneHopReverseMultimap,
         distSV->GetRealval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
 
 
@@ -7446,7 +12598,9 @@ int hlForwardSearchProcessIncomingEdgeIterativeStepsVM (
     Word& result, int message, Word& local,
     Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* orelEdgesSource =
@@ -7460,7 +12614,9 @@ int hlForwardSearchProcessIncomingEdgeIterativeStepsVM (
     CcInt* hHop = (CcInt*) args[4].addr;
     CcInt* currNodeIdV = (CcInt*) args[5].addr;
     CcReal* distSV = (CcReal*) args[6].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -7468,7 +12624,9 @@ int hlForwardSearchProcessIncomingEdgeIterativeStepsVM (
                        result.addr; // cast the result
     resultInt->Set(true, 1);
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
 
     //convert OrderedRelation to multimap notYetVisited
@@ -7586,7 +12744,9 @@ int hlForwardSearchProcessIncomingEdgeIterativeStepsVM (
 
 
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
     k->hlForwardSearchProcessIncomingEdgeIterativeSteps(
         orelEdgesSource,
         currNodeIdV->GetIntval(),
@@ -7594,7 +12754,9 @@ int hlForwardSearchProcessIncomingEdgeIterativeStepsVM (
         stillVisitedNodesSet, oneHopReverseMultimap,
         hHop->GetIntval(),
         distSV->GetRealval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
 
 
@@ -7740,7 +12902,9 @@ int hlForwardSearchProcessIncomingEdgeInitialStepsVM (
     Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* orelEdgesSource =
@@ -7752,7 +12916,9 @@ int hlForwardSearchProcessIncomingEdgeInitialStepsVM (
     CcInt* currNodeIdS = (CcInt*) args[3].addr;
     CcInt* currNodeIdV = (CcInt*) args[4].addr;
     CcReal* distSV = (CcReal*) args[5].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -7760,7 +12926,9 @@ int hlForwardSearchProcessIncomingEdgeInitialStepsVM (
                        result.addr; // cast the result
     resultInt->Set(true, 1);
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
 
     //convert OrderedRelation to multimap notYetVisited
@@ -7846,13 +13014,17 @@ int hlForwardSearchProcessIncomingEdgeInitialStepsVM (
     delete copyMultimapReverseSearchXTIter;
 
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
     k->hlForwardSearchProcessIncomingEdgeInitialSteps(
         orelEdgesSource,
         currNodeIdV->GetIntval(), currNodeIdS,
         notYetVisitedNodesMultiMap,
         oneHopReverseMultimap, distSV->GetRealval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
 
 
@@ -7963,7 +13135,9 @@ int hlForwardSearchCreateAndAppendShortcutsVM (
     Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* copyMultimapReverseSearchXT =
@@ -7973,7 +13147,9 @@ int hlForwardSearchCreateAndAppendShortcutsVM (
     CcInt* currentVertexIdFwdV = (CcInt*)
                                  args[2].addr;
     CcReal* distSV = (CcReal*) args[3].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -7981,7 +13157,9 @@ int hlForwardSearchCreateAndAppendShortcutsVM (
     shortcutsToBeCreatedOrelSourceToBeDeleted =
         (OrderedRelation*) result.addr; // cast the result
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
 
     //Convert OrderedRelation to MultiMap
@@ -8025,14 +13203,18 @@ int hlForwardSearchCreateAndAppendShortcutsVM (
     std::multimap<int, std::tuple<int, double, int>>
             shortcutsMultimap;
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
     k->hlForwardSearchCreateAndAppendShortcuts(
         shortcutsMultimap,
         reverseXTMultimap,
         currentSourceNodeFwdS->GetIntval(),
         currentVertexIdFwdV->GetIntval(),
         distSV->GetRealval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
     //convert multimap back to OrdeedRelation
     shortcutsToBeCreatedOrelSourceToBeDeleted->Clear();
@@ -8091,7 +13273,9 @@ int hlForwardSearchProcessIncomingEdgeVM (
     Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* orelEdgesSource =
@@ -8109,7 +13293,9 @@ int hlForwardSearchProcessIncomingEdgeVM (
                                  args[5].addr;
     CcInt* hDepth = (CcInt*) args[6].addr;
     CcReal* distSV = (CcReal*) args[7].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -8117,7 +13303,9 @@ int hlForwardSearchProcessIncomingEdgeVM (
                        result.addr; // cast the result
     resultInt->Set(true, 1);
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
     //Convert OrderedRelation to MultiMap
     std::multimap<int, std::tuple<int, double>>
@@ -8163,7 +13351,9 @@ int hlForwardSearchProcessIncomingEdgeVM (
     std::multimap<int, std::tuple<int, double, int>>
             shortcutsMultimap;
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
     k->hlForwardSearchProcessIncomingEdge(
         orelEdgesSource, shortcutsMultimap,
         currentVertexIdFwdV->GetIntval(),
@@ -8171,7 +13361,9 @@ int hlForwardSearchProcessIncomingEdgeVM (
         stillVisitedNodesSet, oneHopReverseMultimap,
         hDepth->GetIntval(),
         distSV->GetRealval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
     //convert multimap back to OrdeedRelation
     shortcutsToBeCreatedOrelSourceToBeDeleted->Clear();
@@ -8316,7 +13508,9 @@ int hlRemoveContractedEdgesFromEdgesRelationsVM (
     Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* edgesCopyOrelSource =
@@ -8324,7 +13518,9 @@ int hlRemoveContractedEdgesFromEdgesRelationsVM (
     OrderedRelation* edgesCopyOrelTarget =
         (OrderedRelation*) args[1].addr;
     CcInt* currentContractV = (CcInt*) args[2].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -8332,7 +13528,9 @@ int hlRemoveContractedEdgesFromEdgesRelationsVM (
                        result.addr; // cast the result
     resultInt->Set(true, 1);
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
     k->hlRemoveContractedEdgesFromEdgesRelations(
         edgesCopyOrelSource,
@@ -8345,7 +13543,9 @@ int hlRemoveContractedEdgesFromEdgesRelationsVM (
     qp->SetModified(qp->GetSon(s,0));
     qp->SetModified(qp->GetSon(s,1));
 
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
     return 0;
 }
 
@@ -8354,7 +13554,9 @@ int hlRemoveParallelEdgesFromEdgesRelationsVM (
     Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* edgesCopyOrelSource =
@@ -8364,7 +13566,9 @@ int hlRemoveParallelEdgesFromEdgesRelationsVM (
     OrderedRelation*
     shortcutsToBeCreatedOrelSourceToBeDeleted =
         (OrderedRelation*) args[2].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -8372,7 +13576,9 @@ int hlRemoveParallelEdgesFromEdgesRelationsVM (
                        result.addr; // cast the result
     resultInt->Set(true, 1);
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
 
 
@@ -8427,7 +13633,9 @@ int hlRemoveParallelEdgesFromEdgesRelationsVM (
     qp->SetModified(qp->GetSon(s,0));
     qp->SetModified(qp->GetSon(s,1));
 
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
     return 0;
 }
 
@@ -8436,7 +13644,9 @@ int hlDoContractionVM (Word* args, Word& result,
                        int message, Word& local,
                        Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+    LogDebug("start" << endl);
+    #endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* edgesWithViaOrelSource =
@@ -8446,7 +13656,9 @@ int hlDoContractionVM (Word* args, Word& result,
     CcInt* currentVToBeContracted = (CcInt*)
                                     args[2].addr;
     CcInt* hHop = (CcInt*) args[3].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+    LogDebug("Parameter gelesen" << endl);
+    #endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -8454,19 +13666,25 @@ int hlDoContractionVM (Word* args, Word& result,
     shortcutsToBeCreatedOrelSourceToBeDeleted =
         (OrderedRelation*) result.addr; // cast the result
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+    LogDebug("result gelesen" << endl);
+    #endif
 
     std::multimap<int, std::tuple<int, double, int>>
             shortcutsMultimap;
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+    LogDebug("los" << endl);
+    #endif
     k->hlDoContraction(edgesWithViaOrelSource,
                        edgesWithViaOrelTarget,
                        shortcutsMultimap, currentVToBeContracted,
                        hHop->GetIntval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+    LogDebug("fertig" << endl);
+    #endif
 
-    //convert multimap back to OrdeedRelation
+    //convert multimap back to OrderedRelation
     for (std::multimap<int, std::tuple<int, double, int>>::iterator
             shortcutsMultimapIter = shortcutsMultimap.begin();
             shortcutsMultimapIter != shortcutsMultimap.end();
@@ -8524,7 +13742,9 @@ int hlIterateOverAllNodesByRankAscAndDoContractionVM (
     Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+    LogDebug("start" << endl);
+    #endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* nodesWithRankOrelRank =
@@ -8534,7 +13754,9 @@ int hlIterateOverAllNodesByRankAscAndDoContractionVM (
     OrderedRelation* edgesWithViaOrelTarget =
         (OrderedRelation*) args[2].addr;
     CcInt* hHop = (CcInt*) args[3].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+    LogDebug("Parameter gelesen" << endl);
+    #endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -8542,14 +13764,20 @@ int hlIterateOverAllNodesByRankAscAndDoContractionVM (
                        result.addr; // cast the result
     resultInt->Set(true, 1);
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+    LogDebug("result gelesen" << endl);
+    #endif
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+    LogDebug("los" << endl);
+    #endif
     k->hlIterateOverAllNodesByRankAscAndDoContraction(
         nodesWithRankOrelRank,
         edgesWithViaOrelSource, edgesWithViaOrelTarget,
         hHop->GetIntval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+    LogDebug("fertig" << endl);
+    #endif
 
     //free resources
     delete k;
@@ -8566,7 +13794,9 @@ int hlCreateLabelCheckForWitnessScanNewVerticesVM (
     Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+    LogDebug("start" << endl);
+    #endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* edgesContractedUpwardsOrelSource
@@ -8580,9 +13810,9 @@ int hlCreateLabelCheckForWitnessScanNewVerticesVM (
     CcReal* revGivenDistanceVToW = (CcReal*)
                                    args[4].addr;
     CcBool* isForward = (CcBool*) args[5].addr;
-    CcInt* isForwardInt = (CcInt*)
-                          args[5].addr; //Debug
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+    LogDebug("Parameter gelesen" << endl);
+    #endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -8590,7 +13820,9 @@ int hlCreateLabelCheckForWitnessScanNewVerticesVM (
         (OrderedRelation*)
         result.addr; // cast the result
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+    LogDebug("result gelesen" << endl);
+    #endif
 
     std::vector<int> stillVisitedNodes;
     stillVisitedNodes.push_back(
@@ -8599,7 +13831,9 @@ int hlCreateLabelCheckForWitnessScanNewVerticesVM (
     std::multimap<double, std::tuple<int, int>>
             reverseNotYetVisitedNodes;
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+    LogDebug("los" << endl);
+    #endif
     k->hlCreateLabelCheckForWitnessScanNewVertices(
         reverseNotYetVisitedNodes,
         stillVisitedNodes,
@@ -8609,7 +13843,9 @@ int hlCreateLabelCheckForWitnessScanNewVerticesVM (
         revGivenDistanceVToW->GetRealval(),
         revGivenHopDepthV->GetIntval(),
         isForward->GetBoolval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+    LogDebug("fertig" << endl);
+    #endif
 
     //convert multimap back to OrderedRelation
     for (std::multimap<double, std::tuple<int, int>>::iterator
@@ -8665,7 +13901,9 @@ int hlCreateLabelCheckForWitnessVM (Word* args,
                                     Word& result, int message,
                                     Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* edgesContractedUpwardsOrelSource
@@ -8681,14 +13919,18 @@ int hlCreateLabelCheckForWitnessVM (Word* args,
     CcInt* hHopSize = (CcInt*) args[4].addr;
     CcReal* givenDistanceSW = (CcReal*) args[5].addr;
     CcBool* isForward = (CcBool*) args[6].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
     CcInt* resultInt = (CcInt*)
                        result.addr; // cast the result
 
-    Debug("result vorbereitet" << endl);
+    #ifdef USEDEBUG
+LogDebug("result vorbereitet" << endl);
+#endif
 
 
     //Convert Relation to MultiMap
@@ -8736,7 +13978,9 @@ int hlCreateLabelCheckForWitnessVM (Word* args,
     delete fwdOrRvsLabelIter;
 
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
     bool isPruned = k->hlCreateLabelCheckForWitness(
                         fwdOrRvsLabelMultimap,
                         edgesContractedUpwardsOrelSource,
@@ -8744,12 +13988,16 @@ int hlCreateLabelCheckForWitnessVM (Word* args,
                         givenTargetIdW, givenDistanceSW->GetRealval(),
                         hHopSize->GetIntval(),
                         isForward->GetBoolval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
 
     resultInt->Set(true, isPruned);
 
-    Debug("result vorbereitet" << endl);
+    #ifdef USEDEBUG
+LogDebug("result vorbereitet" << endl);
+#endif
 
     //free resources
     delete k;
@@ -8762,7 +14010,9 @@ int hlCreateLabelScanNewVerticesVM (Word* args,
                                     Word& result, int message,
                                     Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     OrderedRelation* edgesContractedUpwardsOrelSource
@@ -8777,7 +14027,9 @@ int hlCreateLabelScanNewVerticesVM (Word* args,
     CcInt* givenTargetIdV = (CcInt*) args[3].addr;
     CcReal* givenDistanceSV = (CcReal*) args[4].addr;
     CcBool* isForward = (CcBool*) args[5].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -8785,7 +14037,9 @@ int hlCreateLabelScanNewVerticesVM (Word* args,
         (OrderedRelation*)
         result.addr; // cast the result
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
 
 
@@ -8824,7 +14078,7 @@ int hlCreateLabelScanNewVerticesVM (Word* args,
          std::make_tuple(currTupleHubIdNew->GetIntval(),
          currTupleHubParentId->GetIntval(),
          currTupleHubDistanceToSource->GetRealval());
-        */
+   /
         stillVisitedNodes.push_back(
             currTupleHubID->GetIntval());
 
@@ -8836,14 +14090,18 @@ int hlCreateLabelScanNewVerticesVM (Word* args,
     delete fwdOrRvsLabelIter;
 
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
     k->hlCreateLabelScanNewVertices(
         labelNotYetVisitedNodes, stillVisitedNodes,
         edgesContractedUpwardsOrelSource,
         edgesContractedDownwardsOrelTarget,
         givenTargetIdV, givenDistanceSV->GetRealval(),
         isForward->GetBoolval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
 
     //convert multimap back to OrderedRelation
@@ -8901,28 +14159,38 @@ int hlGetRankByIdVM (Word* args, Word& result,
                      int message, Word& local,
                      Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     BTree* bTreeNodesRanked = (BTree*) args[0].addr;
     OrderedRelation* nodesRanked = (OrderedRelation*)
                                    args[1].addr;
     CcInt* givenNodeId = (CcInt*) args[2].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
     CcInt* resultInt = (CcInt*)
                        result.addr; // cast the result
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
     int retVal = -2;
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
     retVal = k->hlGetRankById(bTreeNodesRanked,
                               nodesRanked, givenNodeId);
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
     resultInt->Set(true, retVal);
 
@@ -8937,7 +14205,9 @@ int hlCreateLabelByDijkstraWithStallingVM (
     Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     BTree* bTreeNodesRanked = (BTree*) args[0].addr;
@@ -8950,27 +14220,35 @@ int hlCreateLabelByDijkstraWithStallingVM (
     CcInt* sourceNodeId = (CcInt*) args[4].addr;
     CcInt* hHop = (CcInt*) args[5].addr;
     CcBool* isForward = (CcBool*) args[6].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
     Relation* fwdOrRvsLabelRel = (Relation*)
                                  result.addr; // cast the result
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
 
     std::multimap<int, std::tuple<int, int, double>>
             fwdOrRvsLabelMultimap;
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
     k->hlCreateLabelByDijkstraWithStalling(
         bTreeNodesRanked, nodesRanked,
         edgesWithViaOrelSource, edgesWithViaOrelTarget,
         fwdOrRvsLabelMultimap,
         sourceNodeId, hHop->GetIntval(),
         isForward->GetBoolval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
 
     //convert multimap back to OrderedRelation
@@ -9032,12 +14310,16 @@ int hlFillForwardOrReverseLabelVM (Word* args,
                                    Word& result, int message,
                                    Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     Relation* fwdOrRvsLabelRelation = (Relation*)
                                       args[0].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -9045,7 +14327,9 @@ int hlFillForwardOrReverseLabelVM (Word* args,
                                     result.addr;
     // cast the result
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
 
     std::multimap<int, std::tuple<int, int, double>>
@@ -9072,10 +14356,12 @@ int hlFillForwardOrReverseLabelVM (Word* args,
                                                currTuple->GetAttribute(
             HubLabelClass::HL_INDEX_OF_HUB_DISTANCE_TO_SOURCE_IN_LABEL_TUPLE);
 
-        Debug("fill Label nex tuple with rank: " <<
+        #ifdef USEDEBUG
+LogDebug("fill Label nex tuple with rank: " <<
               currTupleHubIdNew->GetIntval() << " id: " <<
               currTupleHubID->GetIntval() << " parentId: " <<
               currTupleHubParentId->GetIntval() << endl);
+#endif
         std::tuple<int, int, double> insertTupleLabel =
             std::make_tuple(
                 currTupleHubID->GetIntval(),
@@ -9114,12 +14400,16 @@ int hlFillForwardOrReverseLabelVM (Word* args,
     labelfwdOrRvsArel->setPartOfNrel(true);
 
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
 
     k->hlFillForwardOrReverseLabel(labelfwdOrRvsArel,
                                    fwdOrRvsDataRel,
                                    labelfwdOrRvsMultimap);
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
     //leere zweite Arel erzeugen
     SubRelation* fwdOrRvsDataSubRel2 =
@@ -9165,7 +14455,9 @@ int hlGetPathViaPointsVM (Word* args,
                           Word& result, int message,
                           Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+    LogDebug("start" << endl);
+    #endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     NestedRelation* allLabelsNRel = (NestedRelation*)
@@ -9177,14 +14469,18 @@ int hlGetPathViaPointsVM (Word* args,
     CcInt* rootNodeId = (CcInt*) args[3].addr;
     CcInt* hubId = (CcInt*) args[4].addr;
     CcBool* isForward = (CcBool*) args[5].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+    LogDebug("Parameter gelesen" << endl);
+    #endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
     Relation* shortesPath = (Relation*)
                             result.addr; // cast the result
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+    LogDebug("result gelesen" << endl);
+    #endif
 
     BTreeIterator* bTreeSourceIter =
         allLabelsBTree->ExactMatch(rootNodeId);
@@ -9193,7 +14489,9 @@ int hlGetPathViaPointsVM (Word* args,
     if(bTreeSourceIter->Next())
     {
         tupleIdSource = bTreeSourceIter->GetId();
-        Debug("id: " << tupleIdSource << endl);
+        #ifdef USEDEBUG
+    LogDebug("id: " << tupleIdSource << endl);
+    #endif
     }
     else
     {
@@ -9233,7 +14531,9 @@ int hlGetPathViaPointsVM (Word* args,
     for(int i = 0; i < tupleIds->Size(); i++)
     {
         tupleIds->Get(i, tid);
-        Debug("next TupleId: " << tid << endl);
+        #ifdef USEDEBUG
+        LogDebug("next TupleId: " << tid << endl);
+        #endif
         Tuple* tmpCurrDataTuple = dataRel->GetTuple(tid,
                                   false);
 
@@ -9242,14 +14542,18 @@ int hlGetPathViaPointsVM (Word* args,
             CcInt* currDataTupleHubId = (CcInt*)
                                         tmpCurrDataTuple->GetAttribute(
                     HubLabelClass::HL_INDEX_OF_HUB_NODE_ID_IN_LABEL_TUPLE);
-            Debug("currNodeId: " <<
+            #ifdef USEDEBUG
+            LogDebug("currNodeId: " <<
                   currDataTupleHubId->GetIntval() <<
                   " searchedHubId: " << hubId->GetIntval()<< endl);
+            #endif
             if(hubId->GetIntval() ==
                     currDataTupleHubId->GetIntval())
             {
-                Debug("Tuple found for given hubId, break loop and hold"
+                #ifdef USEDEBUG
+                LogDebug("Tuple found for given hubId, break loop and hold"
                       " current Tuple object" << endl);
+                #endif
                 currDataTuple = tmpCurrDataTuple;
                 break;
             }
@@ -9260,8 +14564,10 @@ int hlGetPathViaPointsVM (Word* args,
 
     if(!currDataTuple)
     {
-        Debug("Warnung: kein Tuple in Arel gefunden, breche ab"
+        #ifdef USEDEBUG
+        LogDebug("Warnung: kein Tuple in Arel gefunden, breche ab"
               << endl);
+        #endif
         delete k;
         currTuple->DeleteIfAllowed();
         return 0;
@@ -9270,13 +14576,14 @@ int hlGetPathViaPointsVM (Word* args,
 
     std::vector<Tuple*> shortestPathVector;
 
-
-    Debug("los" << endl);
-    k->hlGetPathViaPoints(
-        edgesWithShortcutsOrelSource, dataRel,
-        currDataTuple,
-        shortestPathVector, isForward->GetBoolval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+    LogDebug("los" << endl);
+    #endif
+    k->hlGetPathViaPoints( edgesWithShortcutsOrelSource, dataRel,
+        currDataTuple, shortestPathVector, isForward->GetBoolval());
+    #ifdef USEDEBUG
+    LogDebug("fertig" << endl);
+    #endif
 
 
     //convert multimap back to OrderedRelation
@@ -9304,38 +14611,67 @@ int hlGetPathViaPointsVM (Word* args,
 }
 
 
-//XXTODO
+
 int hlQueryVM (Word* args, Word& result,
                int message, Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+    LogDebug("start" << endl);
+    #endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
-    NestedRelation* allLabelsNRel = (NestedRelation*)
-                                    args[0].addr;
+    #ifdef USEPERF
+    double perfTime = k->getCurrentTimeInMs();
+    double perfTime2 = 0.0;
+    #endif
+
+    NestedRelation* allLabelsNRel = (NestedRelation*) args[0].addr;
     BTree* allLabelsBTree = (BTree*) args[1].addr;
     OrderedRelation* edgesWithShortcutsOrelSource =
-        (OrderedRelation*)
-        args[2].addr;
-    CcInt* sourceNodeId = (CcInt*) args[3].addr;
-    CcInt* targetNodeId = (CcInt*) args[4].addr;
-    Debug("Parameter gelesen" << endl);
+     (OrderedRelation*) args[2].addr;
+    OrderedRelation* hlGraphOrel = (OrderedRelation*) args[3].addr;
+    CcInt* sourceNodeId = (CcInt*) args[4].addr;
+    CcInt* targetNodeId = (CcInt*) args[5].addr;
+    CcBool* isHlGraph = (CcBool*) args[6].addr;
 
-    result = qp->ResultStorage(
-                 s);       // use the result storage
-    Relation* shortesPath = (Relation*)
-                            result.addr; // cast the result
+    if(isHlGraph->GetBoolval() && !hlGraphOrel)
+    {
+        LogError(
+         "Fehlerhafte Parameter: isHlGraph == true but hlGraphOrel is null"
+         << endl);
+    }
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+    LogDebug("Parameter gelesen" << endl);
+    #endif
 
-    Debug("los" << endl);
-    k->hlQuery(allLabelsNRel, allLabelsBTree,
-               edgesWithShortcutsOrelSource,
-               shortesPath, sourceNodeId, targetNodeId);
-    Debug("fertig" << endl);
+    result = qp->ResultStorage(s);       // use the result storage
+    Relation* shortesPath = (Relation*) result.addr; // cast the result
+
+    #ifdef USEDEBUG
+    LogDebug("result gelesen" << endl);
+    #endif
+
+    #ifdef USEDEBUG
+    LogDebug("los" << endl);
+    #endif
+
+    k->hlQuery(allLabelsNRel, allLabelsBTree, edgesWithShortcutsOrelSource,
+     hlGraphOrel, shortesPath, sourceNodeId, targetNodeId,
+     isHlGraph->GetBoolval());
+
+    #ifdef USEDEBUG
+    LogDebug("fertig" << endl);
+    #endif
 
     //free resources
     delete k;
+
+    #ifdef USEPERF
+    perfTime2 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of full hl search: (ms) "
+     << fixed << (perfTime2 - perfTime)<< endl);
+    #endif
 
     return 0;
 }
@@ -9346,17 +14682,21 @@ int hlPruneLabelByBootstrappingVM (Word* args,
                                    Word& result, int message,
                                    Word& local, Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
-    /*
-    OrderedRelation* nodesWithRankOrelRank = (OrderedRelation*) args[0].addr;
-    OrderedRelation* edgesWithViaOrelSource = (OrderedRelation*) args[1].addr;
-    OrderedRelation* edgesWithViaOrelTarget = (OrderedRelation*) args[2].addr;
-    CcInt* hHop = (CcInt*) args[3].addr;
-    CcInt* calcFunction = (CcInt*) args[4].addr;
-    */
-    Debug("Parameter gelesen" << endl);
+
+    //OrderedRelation* nodesWithRankOrelRank = (OrderedRelation*) args[0].addr;
+    //OrderedRelation* edgesWithViaOrelSource = (OrderedRelation*) args[1].addr;
+    //OrderedRelation* edgesWithViaOrelTarget = (OrderedRelation*) args[2].addr;
+    //CcInt* hHop = (CcInt*) args[3].addr;
+    //CcInt* calcFunction = (CcInt*) args[4].addr;
+
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -9364,11 +14704,17 @@ int hlPruneLabelByBootstrappingVM (Word* args,
                        result.addr; // cast the result
     resultInt->Set(true, 1);
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
     //k->hlPruneLabelByBootstrapping(hHop);
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
     //free resources
     delete k;
@@ -9386,17 +14732,21 @@ int hlReorderLabelsVM (Word* args, Word& result,
                        int message, Word& local
                        , Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
-    /*
-    OrderedRelation* nodesWithRankOrelRank = (OrderedRelation*) args[0].addr;
-    OrderedRelation* edgesWithViaOrelSource = (OrderedRelation*) args[1].addr;
-    OrderedRelation* edgesWithViaOrelTarget = (OrderedRelation*) args[2].addr;
-    CcInt* hHop = (CcInt*) args[3].addr;
-    CcInt* calcFunction = (CcInt*) args[4].addr;
-    */
-    Debug("Parameter gelesen" << endl);
+
+    //OrderedRelation* nodesWithRankOrelRank = (OrderedRelation*) args[0].addr;
+    //OrderedRelation* edgesWithViaOrelSource = (OrderedRelation*) args[1].addr;
+    //OrderedRelation* edgesWithViaOrelTarget = (OrderedRelation*) args[2].addr;
+    //CcInt* hHop = (CcInt*) args[3].addr;
+    //CcInt* calcFunction = (CcInt*) args[4].addr;
+
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -9404,11 +14754,17 @@ int hlReorderLabelsVM (Word* args, Word& result,
                        result.addr; // cast the result
     resultInt->Set(true, 1);
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
     //k->hlReorderLabels(hHop);
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
     //free resources
     delete k;
@@ -9426,7 +14782,9 @@ int hlCreateLabelsVM (Word* args, Word& result,
                       int message, Word& local,
                       Supplier s)
 {
-    Debug("start" << endl);
+    #ifdef USEDEBUG
+LogDebug("start" << endl);
+#endif
     HubLabelClass* k = new HubLabelClass(1, 2, 3);
 
     BTree* bTreeNodesWithRankOrelRank =
@@ -9438,7 +14796,9 @@ int hlCreateLabelsVM (Word* args, Word& result,
     OrderedRelation* edgesWithViaOrelTarget =
         (OrderedRelation*) args[3].addr;
     CcInt* hHop = (CcInt*) args[4].addr;
-    Debug("Parameter gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
 
     result = qp->ResultStorage(
                  s);       // use the result storage
@@ -9446,21 +14806,896 @@ int hlCreateLabelsVM (Word* args, Word& result,
                                     result.addr;
     // cast the result
 
-    Debug("result gelesen" << endl);
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
 
-    Debug("los" << endl);
+    #ifdef USEDEBUG
+LogDebug("los" << endl);
+#endif
     k->hlCreateLabels(allLabelsNrel,
                       bTreeNodesWithRankOrelRank,
                       nodesWithRankOrelRank, edgesWithViaOrelSource,
                       edgesWithViaOrelTarget,
                       hHop->GetIntval());
-    Debug("fertig" << endl);
+    #ifdef USEDEBUG
+LogDebug("fertig" << endl);
+#endif
 
     //free resources
     delete k;
 
     return 0;
 }
+
+
+
+
+/*
+5.2.2 Value Mappings of (2) In-Memory Approach
+
+*/
+
+
+/*
+Takes an OSM-Graph (Orel Edges) and creates an HlGraph.
+Retrieves an Orel-Representation of that graph.
+Only used for testing purposes.
+
+ */
+int hlTransformOrelToHlGraphVM (Word* args, Word& result,
+                    int message, Word& local, Supplier s)
+{
+    #ifdef USEDEBUG
+    LogDebug("start hlTransformOrelToHlGraphVM" << endl);
+    #endif
+
+    HubLabelClass* k = new HubLabelClass(1, 2, 3);
+
+    OrderedRelation* edgesOrelSource = (OrderedRelation*) args[0].addr;
+    OrderedRelation* nodesOrel = (OrderedRelation*) args[1].addr;
+    #ifdef USEDEBUG
+    LogDebug("Parameter gelesen" << endl);
+    #endif
+
+    result = qp->ResultStorage(s);       // use the result storage
+    OrderedRelation* reTransformedGraphOrel =
+        (OrderedRelation*) result.addr; // cast the result
+
+    #ifdef USEDEBUG
+    LogDebug("result gelesen" << endl);
+    #endif
+
+    //initialize vector with number of nodes
+    //  such that we can use []-operator of vector instead using push_back
+    std::vector<HlNodeEntry*> nodesEdgesVector(nodesOrel->GetNoTuples());
+
+    #ifdef USEDEBUG
+    LogDebug("los" << endl);
+    #endif
+    k->hlTransformOrelToHlGraph(nodesOrel, edgesOrelSource, nodesEdgesVector);
+    #ifdef USEDEBUG
+    LogDebug("fertig" << endl);
+    #endif
+
+
+    //convert multimap back to OrderedRelation
+    for (uint currSourceNodeIndex = 0;
+     currSourceNodeIndex < nodesEdgesVector.size();
+     currSourceNodeIndex++)
+    {
+        HlNodeEntry* currNodeEntry = nodesEdgesVector[currSourceNodeIndex];
+        int currSourceNodeId = currNodeEntry->getNodeId();
+        int currNodeRank = currNodeEntry->getRankValue();
+        std::vector<HlEdgeEntry*>* currNodeVector =
+         currNodeEntry->getEdgesVector();
+
+        for (std::vector<HlEdgeEntry*>::iterator
+                edgesVectorIter = currNodeVector->begin();
+                edgesVectorIter != currNodeVector->end();
+                ++edgesVectorIter)
+        {
+            //get next edge
+            HlEdgeEntry* currEdgeEntry = *edgesVectorIter;
+
+            int currTargetNodeIndex = currEdgeEntry->getTargetIndex();
+
+            int currEdgeParentIndexForward =
+             currEdgeEntry->getParentIndexForward();
+            int currEdgeParentIndexReverse =
+             currEdgeEntry->getParentIndexReverse();
+
+            int currTargetNodeId =  -1;
+            if(currTargetNodeIndex > -1)
+            {
+                HlNodeEntry* currTargetNodeEntry =
+                 nodesEdgesVector[currTargetNodeIndex];
+                currTargetNodeId = currTargetNodeEntry->getNodeId();
+            }
+
+            int currEdgeParentIdForward = -1;
+            if(currEdgeParentIndexForward > -1)
+            {
+                HlNodeEntry* currParentNodeEntryForward =
+                 nodesEdgesVector[currEdgeParentIndexForward];
+                currEdgeParentIdForward =
+                 currParentNodeEntryForward->getNodeId();
+            }
+
+            int currEdgeParentIdReverse = -1;
+            if(currEdgeParentIndexReverse > -1)
+            {
+                HlNodeEntry* currParentNodeEntryReverse =
+                 nodesEdgesVector[currEdgeParentIndexReverse];
+                currEdgeParentIdReverse =
+                 currParentNodeEntryReverse->getNodeId();
+            }
+
+            int isForwardInt = 0;
+            int isReverseInt = 0;
+            if(currEdgeEntry->getIsForward())
+            {
+                isForwardInt = 1;
+            }
+            if(currEdgeEntry->getIsReverse())
+            {
+                isReverseInt = 1;
+            }
+
+            //create orelTuple
+            ListExpr relTypeSource;
+            nl->ReadFromString(HubLabelClass::hlGetHlGraphOrelTypeInfo(),
+             relTypeSource);
+            ListExpr tupleNumTypeSource =
+             SecondoSystem::GetCatalog()->NumericType(
+             nl->Second(relTypeSource));
+            Tuple* insertTuple = new Tuple(tupleNumTypeSource);
+
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_SOURCE_IN_HL_GRAPH,
+                new CcInt(true, currSourceNodeId));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_TARGET_IN_HL_GRAPH,
+                new CcInt(true, currTargetNodeId));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_SOURCE_INDEX_IN_HL_GRAPH,
+                new CcInt(true, currSourceNodeIndex));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_TARGET_INDEX_IN_HL_GRAPH,
+                new CcInt(true, currTargetNodeIndex));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_SOURCE_RANK_IN_HL_GRAPH,
+                new CcInt(true, currNodeRank));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_IS_FORWARD_IN_HL_GRAPH,
+                new CcInt(true, isForwardInt));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_IS_REVERSE_IN_HL_GRAPH,
+                new CcInt(true, isReverseInt));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_PARENT_ID_FORWARD_IN_HL_GRAPH,
+                new CcInt(true, currEdgeParentIdForward));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_PARENT_ID_REVERSE_IN_HL_GRAPH,
+                new CcInt(true, currEdgeParentIdReverse));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_PARENT_INDEX_FORWARD_IN_HL_GRAPH,
+                new CcInt(true, currEdgeParentIndexForward));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_PARENT_INDEX_REVERSE_IN_HL_GRAPH,
+                new CcInt(true, currEdgeParentIndexReverse));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_WEIGHT_FORWARD_IN_HL_GRAPH,
+                new CcReal(true, currEdgeEntry->getWeightForward()));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_WEIGHT_REVERSE_IN_HL_GRAPH,
+                new CcReal(true, currEdgeEntry->getWeightReverse()));
+
+            reTransformedGraphOrel->AppendTuple(insertTuple);
+
+            insertTuple->DeleteIfAllowed();
+            insertTuple = 0;
+
+            delete currEdgeEntry;
+        }
+        delete currNodeVector;
+        delete currNodeEntry;
+    }
+
+    #ifdef USEDEBUG
+    LogDebug("finish hlTransformOrelToHlGraphVM" << endl);
+    #endif
+
+
+    //free resources
+    delete k;
+
+    return 1;
+
+}
+
+
+/*
+Takes an OSM-Graph (Orel Edges) and creates an HlGraph and contracts it.
+Retrieves an Orel-Representation of that contracted graph.
+This in turn can be used for performing a CH Search of to create HL Labels.
+
+ */
+int hlDoContractionOfHlGraphVM (Word* args, Word& result,
+                    int message, Word& local, Supplier s)
+{
+    #ifdef USEINFO
+    LogInfo("start hlDoContractionOfHlGraphVM" << endl);
+    #endif
+
+    HubLabelClass* k = new HubLabelClass(1, 2, 3);
+
+    #ifdef USEPERF
+    double perfTime = k->getCurrentTimeInMs();
+    double perfTime2 = 0.0;
+    double perfTime3 = 0.0;
+    double perfTime4 = 0.0;
+    double perfTime5 = 0.0;
+    double perfTime6 = 0.0;
+    double perfTime7 = 0.0;
+    double perfTime8 = 0.0;
+    #endif
+
+
+    OrderedRelation* edgesOrelSource = (OrderedRelation*) args[0].addr;
+    OrderedRelation* nodesOrel = (OrderedRelation*) args[1].addr;
+    CcInt* hHopSizeCcInt = (CcInt*) args[2].addr;
+    CcInt* skipContractionRemainingCountCcInt = (CcInt*) args[3].addr;
+
+    int skipContractionRemainingCount =
+     skipContractionRemainingCountCcInt->GetIntval();
+    if(skipContractionRemainingCount < 0)
+    {
+        skipContractionRemainingCount = 0;
+    }
+
+    int hHopSize = hHopSizeCcInt->GetIntval();
+
+    if(hHopSize < 0)
+    {
+        hHopSize = 0;
+    }
+
+    #ifdef USEINFO
+    LogInfo("Parameter gelesen" << endl);
+    #endif
+
+    result = qp->ResultStorage(s);       // use the result storage
+    OrderedRelation* reTransformedGraphOrel =
+        (OrderedRelation*) result.addr; // cast the result
+
+    #ifdef USEINFO
+    LogInfo("result gelesen" << endl);
+    #endif
+
+    int nodesCount = nodesOrel->GetNoTuples();
+    k->setProgressInterval(nodesCount / 10); //ganzzahlige division
+
+    //initialize vector with number of nodes
+    //  such that we can use []-operator of vector instead using push_back
+    std::vector<HlNodeEntry*> nodesEdgesVector(nodesCount);
+
+    HubLabelClass::PriorityQueueType priorityQueue;
+
+    #ifdef USEINFO
+    LogInfo("los transform" << endl);
+    #endif
+
+    #ifdef USEPERF
+    perfTime2 = k->getCurrentTimeInMs();
+    #endif
+
+    k->hlTransformOrelToHlGraph(nodesOrel, edgesOrelSource, nodesEdgesVector);
+
+    #ifdef USEPERF
+    perfTime3 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of transformation: (ms) "
+     << fixed << (perfTime3 - perfTime2) << endl);
+    #endif
+
+
+    #ifdef USEINFO
+    LogInfo("init priority queue" << endl);
+    #endif
+    k->hlInitPriorityQueueOfHlGraph(nodesEdgesVector, priorityQueue);
+
+    #ifdef USEPERF
+    perfTime4 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of init priority queue: (ms) "
+     << fixed << (perfTime4 - perfTime3) << endl);
+    #endif
+
+
+    #ifdef USEINFO
+    LogInfo("los contraction" << endl);
+    #endif
+    k->hlDoContractionOfHlGraph(nodesEdgesVector, priorityQueue,
+     hHopSize, skipContractionRemainingCount);
+
+    #ifdef USEPERF
+    perfTime5 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of full contraction: (ms) "
+     << fixed << (perfTime5 - perfTime4)<< endl);
+    #endif
+
+    #ifdef USEINFO
+    LogInfo("create upward downward graph" << endl);
+    #endif
+    k->hlCreateUpwardAndDownwardHlGraph(nodesEdgesVector);
+
+    #ifdef USEPERF
+    perfTime6 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of up-/ downwardsgraph creation: (ms) "
+     << fixed << (perfTime6 - perfTime5) << endl);
+    #endif
+
+    #ifdef USEINFO
+    LogInfo("fertig" << endl);
+    #endif
+
+
+    //convert nodesEdgesVector back to OrderedRelation
+    for (uint currSourceNodeIndex = 0;
+     currSourceNodeIndex < nodesEdgesVector.size();
+     currSourceNodeIndex++)
+    {
+        HlNodeEntry* currSourceNodeEntry =
+         nodesEdgesVector[currSourceNodeIndex];
+        int currSourceNodeId = currSourceNodeEntry->getNodeId();
+        int currSourceNodeRank = currSourceNodeEntry->getRankValue();
+        std::vector<HlEdgeEntry*>* currSourceNodeEdgesVector =
+         currSourceNodeEntry->getEdgesVector();
+
+
+         //check whether the currSourceNodeEdgesVector is empty
+         //this is the case if we process the highest rank value
+         //we need to insert an empty edge leading to target == -1
+         // just for persistance purposes
+         //because else we would lose information about the highest rank
+         // vertext at all
+
+         if(currSourceNodeEdgesVector->empty())
+         {
+
+            HlEdgeEntry* highestRankVertexDummyEdge = new HlEdgeEntry();
+            highestRankVertexDummyEdge->setTargetIndex(-1);
+            highestRankVertexDummyEdge->setIsForward(false);
+            highestRankVertexDummyEdge->setIsReverse(false);
+            highestRankVertexDummyEdge->setParentIndexForward(-1);
+            highestRankVertexDummyEdge->setParentIndexReverse(-1);
+            highestRankVertexDummyEdge->setWeightForward(0.0);
+            highestRankVertexDummyEdge->setWeightReverse(0.0);
+            currSourceNodeEdgesVector->push_back(highestRankVertexDummyEdge);
+         }
+
+        for (std::vector<HlEdgeEntry*>::iterator
+            currSourceNodeEdgesVectorIter = currSourceNodeEdgesVector->begin();
+            currSourceNodeEdgesVectorIter != currSourceNodeEdgesVector->end();
+            ++currSourceNodeEdgesVectorIter)
+        {
+
+            //get next edge
+            HlEdgeEntry* currEdgeEntry = *currSourceNodeEdgesVectorIter;
+
+            int currTargetNodeIndex = currEdgeEntry->getTargetIndex();
+
+            int currEdgeParentIndexForward =
+             currEdgeEntry->getParentIndexForward();
+            int currEdgeParentIndexReverse =
+             currEdgeEntry->getParentIndexReverse();
+
+            int currEdgeParentIdForward = -1;
+            if(currEdgeParentIndexForward > -1)
+            {
+                HlNodeEntry* currParentNodeEntryForward =
+                 nodesEdgesVector[currEdgeParentIndexForward];
+                currEdgeParentIdForward =
+                 currParentNodeEntryForward->getNodeId();
+            }
+
+            int currEdgeParentIdReverse = -1;
+            if(currEdgeParentIndexReverse > -1)
+            {
+                HlNodeEntry* currParentNodeEntryReverse =
+                 nodesEdgesVector[currEdgeParentIndexReverse];
+                currEdgeParentIdReverse =
+                 currParentNodeEntryReverse->getNodeId();
+             }
+
+            //in case of highest rank vertex the current targetIndex is -1
+            int currTargetNodeId = -1;
+            if(currTargetNodeIndex != -1)
+            {
+                HlNodeEntry* currTargetNodeEntry =
+                 nodesEdgesVector[currTargetNodeIndex];
+
+                currTargetNodeId = currTargetNodeEntry->getNodeId();
+            }
+
+            int isForwardInt = 0;
+            int isReverseInt = 0;
+
+            if(currEdgeEntry->getIsForward())
+            {
+                isForwardInt = 1;
+            }
+
+            if(currEdgeEntry->getIsReverse())
+            {
+                isReverseInt = 1;
+            }
+
+            //create orelTuple
+            ListExpr relTypeSource;
+            nl->ReadFromString(HubLabelClass::hlGetHlGraphOrelTypeInfo(),
+             relTypeSource);
+            ListExpr tupleNumTypeSource =
+             SecondoSystem::GetCatalog()->NumericType(
+             nl->Second(relTypeSource));
+            Tuple* insertTuple = new Tuple(tupleNumTypeSource);
+
+
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_SOURCE_IN_HL_GRAPH,
+                new CcInt(true, currSourceNodeId));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_TARGET_IN_HL_GRAPH,
+                new CcInt(true, currTargetNodeId));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_SOURCE_INDEX_IN_HL_GRAPH,
+                new CcInt(true, currSourceNodeIndex));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_TARGET_INDEX_IN_HL_GRAPH,
+                new CcInt(true, currTargetNodeIndex));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_SOURCE_RANK_IN_HL_GRAPH,
+                new CcInt(true, currSourceNodeRank));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_IS_FORWARD_IN_HL_GRAPH,
+                new CcInt(true, isForwardInt));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_IS_REVERSE_IN_HL_GRAPH,
+                new CcInt(true, isReverseInt));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_PARENT_ID_FORWARD_IN_HL_GRAPH,
+                new CcInt(true, currEdgeParentIdForward));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_PARENT_ID_REVERSE_IN_HL_GRAPH,
+                new CcInt(true, currEdgeParentIdReverse));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_PARENT_INDEX_FORWARD_IN_HL_GRAPH,
+                new CcInt(true, currEdgeParentIndexForward));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_PARENT_INDEX_REVERSE_IN_HL_GRAPH,
+                new CcInt(true, currEdgeParentIndexReverse));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_WEIGHT_FORWARD_IN_HL_GRAPH,
+                new CcReal(true, currEdgeEntry->getWeightForward()));
+            insertTuple->PutAttribute(
+                HubLabelClass::HL_INDEX_OF_WEIGHT_REVERSE_IN_HL_GRAPH,
+                new CcReal(true, currEdgeEntry->getWeightReverse()));
+
+
+            reTransformedGraphOrel->AppendTuple(insertTuple);
+
+            insertTuple->DeleteIfAllowed();
+            insertTuple = 0;
+
+            delete currEdgeEntry;
+
+        }
+        delete currSourceNodeEdgesVector;
+    }
+
+    #ifdef USEPERF
+    perfTime7 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of retransforming into orel: (ms) "
+     << fixed << (perfTime7 - perfTime6) << endl);
+    #endif
+
+    //again iterate through nodesEdgesVector to delete all nodeEntries
+    // we could not do this before
+    for(std::vector<HlNodeEntry*>::iterator nodesEdgesVectorIter2
+     = nodesEdgesVector.begin(); nodesEdgesVectorIter2
+     != nodesEdgesVector.end(); nodesEdgesVectorIter2++)
+    {
+
+        HlNodeEntry* currSourceNodeEntry2 = *nodesEdgesVectorIter2;
+        delete currSourceNodeEntry2;
+    }
+
+
+
+
+
+    //free resources
+    delete k;
+
+    #ifdef USEPERF
+    perfTime8 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of clearing memory: (ms) "
+     << fixed << (perfTime8 - perfTime7) << endl);
+    LogPerf("perf: duration of full contraction operator: (ms) "
+     << fixed << (perfTime8 - perfTime) << endl);
+    #endif
+
+    #ifdef USEINFO
+    LogInfo("finish hlDoContractionOfHlGraphVM" << endl);
+    #endif
+
+    return 1;
+
+}
+
+
+
+
+/*
+Takes an Orel-Representation of a HlGraph.
+Performs a CH search.
+Retrieves the shortest path of the search represented by an Orel
+ of edges from the given OSM-graph.
+
+ */
+int hlDoChSearchInHlGraphVM (Word* args, Word& result,
+                    int message, Word& local, Supplier s)
+{
+    #ifdef USEINFO
+    LogInfo("start hlDoChSearchInHlGraphVM" << endl);
+    #endif
+
+    HubLabelClass* k = new HubLabelClass(1, 2, 3);
+
+    #ifdef USEPERF
+    double perfTime = k->getCurrentTimeInMs();
+    double perfTime2 = 0.0;
+    double perfTime3 = 0.0;
+    double perfTime4 = 0.0;
+    double perfTime5 = 0.0;
+    double perfTime6 = 0.0;
+    #endif
+
+
+    OrderedRelation* nodesOrel = (OrderedRelation*) args[0].addr;
+    OrderedRelation* edgesSourceOrel = (OrderedRelation*) args[1].addr;
+    OrderedRelation* contractedHlGraphOrel = (OrderedRelation*) args[2].addr;
+    CcInt* SourceCcInt = (CcInt*) args[3].addr;
+    CcInt* targetCcInt = (CcInt*) args[4].addr;
+
+    #ifdef USEINFO
+    LogInfo("Parameter gelesen" << endl);
+    #endif
+
+    result = qp->ResultStorage(s);       // use the result storage
+    Relation* shortestPathRel = (Relation*) result.addr; // cast the result
+
+    #ifdef USEINFO
+    LogInfo("result gelesen" << endl);
+    #endif
+
+
+    //prepare data
+    bool isChElseHl = true;
+    int source = SourceCcInt->GetIntval();
+    int target = targetCcInt->GetIntval();
+    std::vector<HlNodeEntry*> nodesEdgesVector(nodesOrel->GetNoTuples());
+
+    #ifdef USEPERF
+    perfTime2 = k->getCurrentTimeInMs();
+    #endif
+
+    #ifdef USEINFO
+    LogInfo("convert hlGraphOrel to hlGraph" << endl);
+    #endif
+    k->hlTransformHlGraphOrelToHlGraph(contractedHlGraphOrel, nodesEdgesVector);
+
+    #ifdef USEPERF
+    perfTime3 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of transformation: (ms) "
+     << fixed << (perfTime3 - perfTime2) << endl);
+    #endif
+
+    #ifdef USEINFO
+    LogInfo("do search" << endl);
+    #endif
+    std::tuple<int, double, std::map<int, ChNode*>> searchResultTuple =
+    k->hlDoCHSearch(nodesEdgesVector, source, target, isChElseHl);
+
+    #ifdef USEPERF
+    perfTime4 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration CHSearch: (ms) "
+     << fixed << (perfTime4 - perfTime3) << endl);
+    #endif
+
+    int shortestPathHubIndex = std::get<0>(searchResultTuple);
+    std::map<int, ChNode*> searchTree = std::get<2>(searchResultTuple);
+
+    #ifdef USEINFO
+    double shortestPathLength = std::get<1>(searchResultTuple);
+    #endif
+
+    #ifdef USEINFO
+    LogInfo("resolve shortestpath" << endl);
+    #endif
+
+    k->hlResolveShortestPathFromSearchTree(shortestPathHubIndex,
+     nodesEdgesVector, searchTree, edgesSourceOrel, shortestPathRel);
+
+    #ifdef USEPERF
+    perfTime5 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of resolving shortest path: (ms) "
+     << fixed << (perfTime5 - perfTime4) << endl);
+    #endif
+
+    #ifdef USEINFO
+    LogInfo("fertig" << endl);
+    #endif
+
+    if(shortestPathHubIndex != -1)
+    {
+        #ifdef USEINFO
+        HlNodeEntry* hubNodeEntry = nodesEdgesVector[shortestPathHubIndex];
+        int hubNodeId = hubNodeEntry->getNodeId();
+
+        LogInfo("shortest path found start: " << source << " target: " << target
+         << " hubNodeId: " << hubNodeId << " length: "
+         << shortestPathLength << endl);
+        #endif
+    }
+    else
+    {
+        #ifdef USEINFO
+        LogInfo("no shortest path found start: "
+         << source << " target: " << target
+         << " hubNodeId: " << shortestPathHubIndex
+         << " length: " << shortestPathLength << endl);
+        #endif
+    }
+
+    //free resources
+    k->hlFreeSearchTree(searchTree);
+    k->hlFreeHlGraph(nodesEdgesVector);
+    delete k;
+
+
+    #ifdef USEPERF
+    perfTime6 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of clearing memory: (ms) "
+     << fixed << (perfTime6 - perfTime5) << endl);
+    LogPerf("perf: duration of complete CH serch operator: (ms) "
+     << fixed << (perfTime6 - perfTime) << endl);
+    #endif
+
+    #ifdef USEINFO
+    LogInfo("finish hlDoChSearchInHlGraphVM" << endl);
+    #endif
+
+    return 1;
+
+}
+
+
+
+
+/*
+Takes an Orel-Representation of a HlGraph.
+Performs multiple CH searches to create HubLabels.
+
+*/
+int hlCreateLabelsFromHlGraphVM (Word* args, Word& result,
+                    int message, Word& local, Supplier s)
+{
+    #ifdef USEINFO
+    LogInfo("start hlCreateLabelsFromHlGraphVM" << endl);
+    #endif
+
+    HubLabelClass* k = new HubLabelClass(1, 2, 3);
+
+    #ifdef USEPERF
+    double perfTime = k->getCurrentTimeInMs();
+    double perfTime2 = 0.0;
+    double perfTime3 = 0.0;
+    double perfTime4 = 0.0;
+    double perfTime5 = 0.0;
+    #endif
+
+
+    OrderedRelation* nodesOrel = (OrderedRelation*) args[0].addr;
+    OrderedRelation* contractedHlGraphOrel = (OrderedRelation*) args[1].addr;
+
+    #ifdef USEINFO
+    LogInfo("Parameter gelesen" << endl);
+    #endif
+
+    result = qp->ResultStorage(s);       // use the result storage
+    NestedRelation* allLabelsNrel = (NestedRelation*) result.addr;
+
+    #ifdef USEINFO
+    LogInfo("result gelesen" << endl);
+    #endif
+
+    int nodesCount = nodesOrel->GetNoTuples();
+    k->setProgressInterval(nodesCount / 10); //ganzzahlige division
+    std::vector<HlNodeEntry*> nodesEdgesVector(nodesCount);
+
+    #ifdef USEPERF
+    perfTime2 = k->getCurrentTimeInMs();
+    #endif
+
+    #ifdef USEINFO
+    LogInfo("convert hlGraphOrel to hlGraph" << endl);
+    #endif
+    k->hlTransformHlGraphOrelToHlGraph(contractedHlGraphOrel, nodesEdgesVector);
+
+    #ifdef USEPERF
+    perfTime3 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of transformation: (ms) "
+     << fixed << (perfTime3 - perfTime2)<< endl);
+    #endif
+
+    #ifdef USEINFO
+    LogInfo("Create Labels" << endl);
+    #endif
+    //also does delete hlGraph objects
+    k->hlCreateLabelsFromHlGraph(allLabelsNrel, nodesOrel, nodesEdgesVector);
+
+
+    #ifdef USEPERF
+    perfTime4 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of creating all hublabels: (ms) "
+     << fixed << (perfTime4 - perfTime3)<< endl);
+    #endif
+
+    //free resources
+    k->hlFreeHlGraph(nodesEdgesVector);
+    delete k;
+
+    #ifdef USEPERF
+    perfTime5 = k->getCurrentTimeInMs();
+    LogPerf("perf: duration of complete operator for creating hublabels: (ms) "
+     << fixed << (perfTime5 - perfTime)<< endl);
+    #endif
+
+    #ifdef USEINFO
+    LogInfo("finish hlCreateLabelsFromHlGraphVM" << endl);
+    #endif
+
+    return 1;
+
+}
+
+
+
+
+/*
+Takes an Orel-Representation of an OSM-Graph.
+Expects the Osm-Orel to fulfil the schema of
+ @see hlGetEdgesTupleTypeInfo()
+Iterates over every edge and retrieves its Curves' length.
+Gets the Edges RoadType and multiplies the length with a const value
+ dependent of the RoadType representing the average speed driven
+ when traversing this edge.
+
+ */
+int hlCalcWeightsOrelVM (Word* args, Word& result,
+                    int message, Word& local, Supplier s)
+{
+    #ifdef USEDEBUG
+    LogDebug("start hlCalcWeightsOrelVM" << endl);
+    #endif
+
+    HubLabelClass* k = new HubLabelClass(1, 2, 3);
+
+    OrderedRelation* edgesSourceOrel = (OrderedRelation*) args[0].addr;
+    CcInt* calculationMode = (CcInt*) args[1].addr;
+
+    #ifdef USEDEBUG
+    LogDebug("Parameter gelesen" << endl);
+    #endif
+
+    result = qp->ResultStorage(s);       // use the result storage
+    CcInt* resultInt = (CcInt*) result.addr; // cast the result
+    resultInt->Set(true, 1);
+
+    #ifdef USEDEBUG
+    LogDebug("result gelesen" << endl);
+    #endif
+
+
+    #ifdef USEDEBUG
+    LogDebug("los" << endl);
+    #endif
+    k->hlCalcWeightsOrel(edgesSourceOrel, calculationMode->GetIntval());
+
+
+    #ifdef USEDEBUG
+    LogDebug("finish" << endl);
+    #endif
+
+
+    //free resources
+    delete k;
+
+    //Änderungen an als Parameter übergebenen Orels persistieren
+    qp->SetModified(qp->GetSon(s,0));
+
+    #ifdef USEDEBUG
+    LogDebug("finish hlCalcWeightsOrelVM" << endl);
+    #endif
+
+    return 1;
+
+}
+
+
+
+
+
+
+
+/*
+5.2.3 Value Mappings of (3) In-Memory Approach using MainMemory2Algebra
+
+not yet implemented right
+
+*/
+
+int hlContractMmGraphVM (Word* args, Word& result,
+                    int message, Word& local, Supplier s)
+{
+    #ifdef USEDEBUG
+LogDebug("start contractNewVM" << endl);
+#endif
+
+    HubLabelClass* k = new HubLabelClass(1, 2, 3);
+
+    CcString* oNUp = (CcString*) args[0].addr;
+    CcString* oNDown = (CcString*) args[1].addr;
+    Word* calcFunction = (Word*) args[2].addr;
+    #ifdef USEDEBUG
+LogDebug("Parameter gelesen" << endl);
+#endif
+
+    result = qp->ResultStorage(
+                 s);       // use the result storage
+    CcInt* resultInt = (CcInt*)
+                       result.addr; // cast the result
+    resultInt->Set(true, 1);
+
+    #ifdef USEDEBUG
+LogDebug("result gelesen" << endl);
+#endif
+
+
+    mm2algebra::MemoryGraphObject* memgraphUp =
+      mm2algebra::getMemGraph(oNUp);
+    mm2algebra::MemoryGraphObject* memgraphDown =
+      mm2algebra::getMemGraph(oNDown);
+
+    if(!memgraphUp || !memgraphDown) {
+        return 0;
+    }
+
+    graph::Graph* graphUp = memgraphUp->getgraph();
+    graph::Graph* graphDown = memgraphDown->getgraph();
+
+    k->hlContractMmGraph(graphUp, graphDown, calcFunction);
+
+
+    #ifdef USEDEBUG
+LogDebug("finish contractNewVM" << endl);
+#endif
+
+    return 1;
+
+}
+
+
 
 
 
@@ -9477,6 +15712,8 @@ argument can provide some remark to this operator.
 All specifications are related to the equal named function of the class
 HubLabelClass.
 The specifications just got an additional suffix 'Spec'
+
+5.3.1 Specification of (1) Persistent Approach
 
 */
 
@@ -9748,12 +15985,12 @@ OperatorSpec hlGetPathViaPointsSpec(
 
 
 OperatorSpec hlQuerySpec(
-    "nrel x btree x orel x ccint x ccint -> rel",
-    "hlQuery(_, _, _, _, _)",
+    "nrel x btree x orel x ccint x ccint x ccbool -> rel",
+    "hlQuery(_, _, _, _, _, _)",
     "hlQuery(allLabelsNRel, allLabelsBTree, hlEdgesOrelSourceParentVia,"
-    " sourceNodeId, targetNodeId)",
+    " sourceNodeId, targetNodeId, isHlGraph)",
     "query hlQuery(allLabelsNRel, allLabelsBTree,"
-    " hlEdgesOrelSourceParentVia, 62, 630)"
+    " hlEdgesOrelSourceParentVia, 62, 630, 0)"
 );
 
 
@@ -9790,6 +16027,86 @@ OperatorSpec hlCreateLabelsSpec(
 
 
 
+
+
+
+/*
+5.3.2 Specification of (2) In-Memory Approach
+
+*/
+
+OperatorSpec hlTransformOrelToHlGraphSpec(
+    "Orel x Orel -> Orel",
+    "hlTransformOrelToHlGraph(_,_)",
+    "query hlTransformOrelToHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel)"
+        "feed consume",
+    "query hlTransformOrelToHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel)"
+        "feed consume"
+);
+
+
+OperatorSpec hlDoContractionOfHlGraphSpec(
+    "Orel x Orel x Int x Int-> Orel",
+    "hlDoContractionOfHlGraph(_, _, _, _)",
+    "query hlDoContractionOfHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel,"
+        " 2, 50000) feed consume",
+    "query hlDoContractionOfHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel,"
+        " hHop, skipContractionRemainingCountCcInt) feed consume"
+);
+
+
+OperatorSpec hlDoChSearchInHlGraphSpec(
+    "Orel x orel x orel x int x int -> rel",
+    "hlDoChSearchInHlGraph(_, _, _, _, _)",
+    "query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource,"
+        " hlGraphOrel, 1030, 2456) feed consume",
+    "query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource,"
+        " hlGraphOrel, sourceId, targetId) feed consume"
+);
+
+
+OperatorSpec hlCalcWeightsOrelSpec(
+    "Orel x int -> int",
+    "hlCalcWeightsOrel(_, _)",
+    "query hlCalcWeightsOrel(hlEdgesOrelSource, 1) consume",
+    "query hlDoChSearchInHlGraph(hlEdgesOrelSource, calculationMode) consume"
+);
+
+
+OperatorSpec hlCreateLabelsFromHlGraphSpec(
+    "Orel -> nrel",
+    "hlCreateLabelsFromHlGraph(_)",
+    "query hlCreateLabelsFromHlGraph(hlNodesSourceOnlyOrel, hlGraphOrel)"
+         " feed consume",
+    "query hlCreateLabelsFromHlGraph(hlNodesSourceOnlyOrel, hlGraphOrel)"
+        " feed consume"
+);
+
+
+
+
+
+
+
+/*
+5.3.3 Specification of (3) In-Memory Approach using MainMemory2Algebra
+
+*/
+
+
+OperatorSpec hlContractMmGraphSpec(
+    "memgraph x memgraph x fun -> bool",
+    "hlContractMmGraph(_, _, _)",
+    "query hlContractMmGraph(memgraphUp, memgraphDown, distanceFunction)",
+    "query hlContractMmGraph(memgraphUp, memgraphDown, distanceFunction)"
+);
+
+
+
+
+
+
+
 /*
 5.4 Operator Instance
 
@@ -9801,6 +16118,8 @@ For non-overloaded operators, always the selection function
 All operators are related to the equal named function of the class
  HubLabelClass.
 The Ooerators just got an additional suffix 'Op'
+
+5.4.1 Operator Instance of (1) Persistent Approach
 
 */
 
@@ -10082,6 +16401,86 @@ Operator hlCreateLabelsOp(
 );
 
 
+
+
+/*
+5.4.2 Operator Instance of (2) In-Memory Approach
+
+*/
+
+
+Operator hlTransformOrelToHlGraphOp(
+    "hlTransformOrelToHlGraph",             // name of the operator
+    hlTransformOrelToHlGraphSpec.getStr(),  // specification
+    hlTransformOrelToHlGraphVM,             // value mapping
+    Operator::SimpleSelect,  // selection function
+    hlTransformOrelToHlGraphTM              // type mapping
+);
+
+
+
+Operator hlDoContractionOfHlGraphOp(
+    "hlDoContractionOfHlGraph",             // name of the operator
+    hlDoContractionOfHlGraphSpec.getStr(),  // specification
+    hlDoContractionOfHlGraphVM,             // value mapping
+    Operator::SimpleSelect,  // selection function
+    hlDoContractionOfHlGraphTM              // type mapping
+);
+
+
+
+Operator hlDoChSearchInHlGraphOp(
+    "hlDoChSearchInHlGraph",             // name of the operator
+    hlDoChSearchInHlGraphSpec.getStr(),  // specification
+    hlDoChSearchInHlGraphVM,             // value mapping
+    Operator::SimpleSelect,  // selection function
+    hlDoChSearchInHlGraphTM              // type mapping
+);
+
+
+
+Operator hlCalcWeightsOrelOp(
+    "hlCalcWeightsOrel",             // name of the operator
+    hlCalcWeightsOrelSpec.getStr(),  // specification
+    hlCalcWeightsOrelVM,             // value mapping
+    Operator::SimpleSelect,  // selection function
+    hlCalcWeightsOrelTM              // type mapping
+);
+
+
+
+Operator hlCreateLabelsFromHlGraphOp(
+    "hlCreateLabelsFromHlGraph",             // name of the operator
+    hlCreateLabelsFromHlGraphSpec.getStr(),  // specification
+    hlCreateLabelsFromHlGraphVM,             // value mapping
+    Operator::SimpleSelect,  // selection function
+    hlCreateLabelsFromHlGraphTM              // type mapping
+);
+
+
+
+
+
+
+
+/*
+5.4.2 Operator Instance of (2) In-Memory Approach
+
+*/
+
+Operator hlContractMmGraphOp(
+    "hlContractMmGraph",             // name of the operator
+    hlContractMmGraphSpec.getStr(),  // specification
+    hlContractMmGraphVM,             // value mapping
+    Operator::SimpleSelect,  // selection function
+    hlContractMmGraphTM              // type mapping
+);
+
+
+
+
+
+
 /*
 6 Definition of the Algebra
 
@@ -10142,6 +16541,16 @@ public:
         AddOperator(&hlPruneLabelByBootstrappingOp);
         AddOperator(&hlReorderLabelsOp);
         AddOperator(&hlCreateLabelsOp);
+
+
+        AddOperator(&hlContractMmGraphOp);
+
+
+        AddOperator(&hlTransformOrelToHlGraphOp);
+        AddOperator(&hlDoContractionOfHlGraphOp);
+        AddOperator(&hlDoChSearchInHlGraphOp);
+        AddOperator(&hlCalcWeightsOrelOp);
+        AddOperator(&hlCreateLabelsFromHlGraphOp);
     }
 };
 
