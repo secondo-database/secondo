@@ -394,34 +394,6 @@ public void ScanValue(ListExpr value){
      basicArrow = new Area(s);
   }
 
-public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = extendString(name,nameWidth, indent);
-    ScanValue(value);
-    if (err) {
-      Reporter.writeError("Error in ListExpr :parsing aborted");
-      entry = AttrName + " : <error>";
-      qr.addEntry(entry);
-      bounds =null;
-      GP=null;
-      return;
-    }
-    else if(!defined){
-      entry = AttrName+" : undefined";
-      qr.addEntry(entry);
-      return;
-    }
-    // normal case-> defined line
-    entry = AttrName + " : sline";
-    defined=GP!=null;
-    err=false;
-    qr.addEntry(this);
-    if(GP==null)
-        bounds = null;
-    else{
-       bounds = new Rectangle2D.Double();
-       bounds.setRect(GP.getBounds2D());
-    }
-  }
 
   /** returns the string for the textual representation of this **/
   public String toString(){
