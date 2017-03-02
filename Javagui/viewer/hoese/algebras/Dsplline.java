@@ -197,6 +197,7 @@ public class Dsplline extends DisplayGraph {
 
   public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = extendString(name,nameWidth, indent);
+
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");
@@ -216,9 +217,9 @@ public class Dsplline extends DisplayGraph {
     defined=GP!=null;
     err=false;
     qr.addEntry(this);
-    if(GP==null)
+    if(GP==null) {
         bounds = null;
-    else{
+    } else{
        bounds = new Rectangle2D.Double();
        bounds.setRect(GP.getBounds2D());
     }
