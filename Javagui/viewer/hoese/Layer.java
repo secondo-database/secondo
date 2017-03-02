@@ -288,7 +288,7 @@ public class Layer extends JComponent {
           if(bounds==null){
                bounds = shp.getBounds2D();
           } else {
-            bounds.add(shp.getBounds());
+            bounds.add(shp.getBounds2D());
           }
           setCategory(dg,g2,i);
           
@@ -365,6 +365,7 @@ public class Layer extends JComponent {
    */
   public static  void drawLabel (DsplGraph dg, Graphics g, Rectangle2D r, 
                                  double time, AffineTransform af2,Color C) {
+
     if(r==null){
        Reporter.writeError("drawLabel with null-bounding box called !!");
        return; 
