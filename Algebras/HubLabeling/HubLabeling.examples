@@ -218,8 +218,8 @@ Tolerance : 0.02
 
 Operator : hlQuery
 Number   : 28
-Signature   : nrel x btree x orel x ccint x ccint -> rel
-Example  : query hlQuery(allLabelsNRel, allLabelsBTree, hlEdgesOrelSourceParentVia, 62, 630) feed consume
+Signature   : nrel x btree x orel x ccint x ccint x ccbool -> rel
+Example  : query hlQuery(allLabelsNRel, allLabelsBTree, hlEdgesOrelSourceParentVia, 62, 630, 0) feed consume
 Result   : 111
 Tolerance : 0.02
 
@@ -244,6 +244,66 @@ Operator : hlCreateLabels
 Number   : 31
 Signature   : btree x orel x orel x orel x ccint -> nrel
 Example  : query hlCreateLabels(hlNodesWithRankOrelRank_NodeIdNew, nodesWithRankeOrelRank, hlUpwardEdgesOrelSourceParentVia, hlDownwardEdgesOrelTargetParentVia, 10) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+
+
+
+
+Operator : hlContractNew
+Number   : 32
+Signature   : memgraph x memgraph x fun -> bool
+Example  : query hlContractNew(mwrap("graphUp"), mwrap("graphDown"), distance(.SourcePos,.TargetPos))
+Result   : 111
+Tolerance : 0.02
+
+
+
+
+
+
+Operator : hlTransformOrelToHlGraph
+Number   : 33
+Signature   : Orel x Orel -> Orel
+Example  : query hlTransformOrelToHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel) feed consume
+Result   : 111
+Tolerance : 0.02
+
+Operator : hlDoContractionOfHlGraph
+Number   : 34
+Signature   : Orel x Orel x Int x Int-> Orel
+Example  : query hlDoContractionOfHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel, 2, 50000) feed consume
+Result   : 111
+Tolerance : 0.02
+
+Operator : hlDoChSearchInHlGraph
+Number   : 35
+Signature   : Orel x orel x int x int -> Orel
+Example  : query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 1030, 2456) feed consume
+Result   : 111
+Tolerance : 0.02
+
+Operator : hlCalcWeightsOrel
+Number   : 36
+Signature   : Orel x int -> int
+Example  : query hlCalcWeightsOrel(hlEdgesOrelSource, 1) consume
+Result   : 111
+Tolerance : 0.02
+
+Operator : hlCreateLabelsFromHlGraph
+Number   : 37
+Signature   : Orel -> int
+Example  : query hlCreateLabelsFromHlGraph(hlNodesSourceOnlyOrel, hlGraphOrel) feed consume
+Result   : 111
+Tolerance : 0.02
+
+
+Operator : hlQuery
+Number   : 38
+Signature   : nrel x btree x orel x ccint x ccint x ccbool -> rel
+Example  : query hlQuery(allLabelsNRel, allLabelsBTree, hlGraphOrel, 62, 630, 1) feed consume
 Result   : 111
 Tolerance : 0.02
 

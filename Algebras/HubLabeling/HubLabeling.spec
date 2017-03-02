@@ -48,10 +48,26 @@ operator hlFillForwardOrReverseLabel alias hlFillForwardOrReverseLabel pattern o
 
 operator hlGetPathViaPoints alias hlGetPathViaPoints pattern op(_,_,_,_,_,_)
 
-operator hlQuery alias hlQuery pattern op(_,_,_,_,_)
+operator hlQuery alias hlQuery pattern op(_,_,_,_,_,_)
 
 operator hlPruneLabelByBootstrapping alias hlPruneLabelByBootstrapping pattern op(_,_,_,_,_,_)
 
 operator hlReorderLabels alias hlReorderLabels pattern op(_,_,_,_,_,_)
 
 operator hlCreateLabels alias hlCreateLabels pattern op(_,_,_,_,_)
+
+
+
+operator hlContractNew alias hlContractNew pattern op(_,_,_)
+
+
+
+operator hlTransformOrelToHlGraph alias hlTransformOrelToHlGraph pattern op(_,_)
+
+operator hlDoContractionOfHlGraph alias hlDoContractionOfHlGraph pattern op(_,_,_,_)
+
+operator hlDoChSearchInHlGraph alias hlDoChSearchInHlGraph pattern op(_,_,_,_,_)
+
+operator hlCalcWeightsOrel alias hlCalcWeightsOrel pattern op(_,_)
+
+operator hlCreateLabelsFromHlGraph alias hlCreateLabelsFromHlGraph pattern op(_,_)
