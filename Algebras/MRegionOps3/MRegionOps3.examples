@@ -1,0 +1,13 @@
+Database : berlintest
+Restore  : NO
+
+Operator : selftest
+Number   : 1
+Signature: x -> bool
+Example  : query selftest()
+Result   : TRUE 
+
+
+
+
+
