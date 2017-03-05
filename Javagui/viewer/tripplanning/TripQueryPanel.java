@@ -94,7 +94,7 @@ public class TripQueryPanel extends JPanel{
         tfCityDest = new JTextField(30);
         target.add(tfCityDest);
         
-        JLabel gradientLabel = new JLabel("slope panelty (>=0)");
+        JLabel gradientLabel = new JLabel("slope penalty (>=0)");
         searchPanel.add(gradientLabel);
         tfGradient = new JFormattedTextField(NumberFormat.getNumberInstance());
         //tfGradient.setSize(500, 1000);

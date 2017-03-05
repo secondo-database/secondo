@@ -31,6 +31,9 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.List;
 
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+
 import tools.Reporter;
 import viewer.TripplanningViewer;
 
@@ -81,16 +84,21 @@ public class TripplanningViewerController implements ActionListener,
         String targetPostcode = viewer.getQueryPanel().getTfPlzDest().getText();
         String targetCity = viewer.getQueryPanel().getTfCityDest().getText();
         String gradientWeight = viewer.getQueryPanel().getTfGradient().getText();
-        double gradientWeightDoub =  Double.parseDouble(gradientWeight);
+        gradientWeight=gradientWeight.replace(",","");
 
-        TripplanningSecondoCommand tsc = new TripplanningSecondoCommand(
+        try{
+           double gradientWeightDoub =  Double.parseDouble(gradientWeight);   
+           TripplanningSecondoCommand tsc = new TripplanningSecondoCommand(
                 sourceStreet, sourceNo, sourcePostcode, sourceCity,
                 targetStreet, targetNo, targetPostcode, targetCity, gradientWeightDoub);
-        this.executeSecondoCommand(tsc.getCommands());
-        String mainQuery="query EdgesHeight oshortestpatha[-1,0,0;distanceWithGradient(.SourcePos,.TargetPos,[const real value "+gradientWeight+" ],.Heightfunction), distance(.TargetPos, targetPos)] feed extend[Gradient: (lfResult(size(.Curve), .Heightfunction) -  lfResult(0.0, .Heightfunction)) * 100 / size(gk(.Curve))] feed extend[GradientCategory:(ifthenelse(.Gradient<-20,\"lower-20\",ifthenelse(.Gradient<-10,\"lower-10\",ifthenelse(.Gradient<-6,\"lower-6\",ifthenelse(.Gradient<-2,\"lower-2\",ifthenelse(.Gradient<2,\"lower2\",ifthenelse(.Gradient<6,\"lower6\",ifthenelse(.Gradient<10,\"lower10\",ifthenelse(.Gradient<20,\"lower20\",\"bigger20\")))))))))]  consume;";
-        logStart(mainQuery);
-        vc.execUserCommand(mainQuery);
-        logEnd();
+           this.executeSecondoCommand(tsc.getCommands());
+           String mainQuery="query EdgesHeight oshortestpatha[-1,0,0;distanceWithGradient(.SourcePos,.TargetPos,[const real value "+gradientWeight+" ],.Heightfunction), distance(gk(.TargetPos), gk(targetPos))] feed extend[Gradient: (lfResult(size(.Curve), .Heightfunction) -  lfResult(0.0, .Heightfunction)) * 100 / size(gk(.Curve))] feed extend[GradientCategory:(ifthenelse(.Gradient<-20,\"lower-20\",ifthenelse(.Gradient<-10,\"lower-10\",ifthenelse(.Gradient<-6,\"lower-6\",ifthenelse(.Gradient<-2,\"lower-2\",ifthenelse(.Gradient<2,\"lower2\",ifthenelse(.Gradient<6,\"lower6\",ifthenelse(.Gradient<10,\"lower10\",ifthenelse(.Gradient<20,\"lower20\",\"bigger20\")))))))))]  consume;";
+           logStart(mainQuery);
+           vc.execUserCommand(mainQuery);
+           logEnd();
+        } catch (NumberFormatException e){
+            JOptionPane.showMessageDialog(new JFrame(), "Please enter a decimal number in the field 'slope panelty'","ERROR",JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     /**
