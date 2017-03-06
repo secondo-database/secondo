@@ -1851,8 +1851,8 @@ class gbidijkstraInfo{
            dijkstra(); 
            if(commonNode){
              currentNode = commonNode->GetValue();
+             fillForwardTuples();
            }
-           fillForwardTuples();
      }
 
      ~gbidijkstraInfo(){
@@ -1875,9 +1875,8 @@ class gbidijkstraInfo{
             return res;
          } else {
             typename std::map<ct,treeEntry<ct> >::iterator it;
-            // direction to target
             it = Btree.find(currentNode);         
-            if(it==Btree.end()){
+            if(it==Btree.end()){ // end reached
                assert(currentNode == target->GetValue());
                commonNode = 0;
                return 0;
@@ -1936,9 +1935,10 @@ class gbidijkstraInfo{
        bool dir=true;
        while(dir){
             it = Ftree.find(currentNode);
-            if(it==Ftree.end()){
+            if(it==Ftree.end()){ // begin of path reached
                assert(currentNode == source->GetValue());
                dir = false;
+               // prepare for back
                currentNode = commonNode->GetValue();
             } else {
                Tuple* res = createResultTuple(it->second,true);
@@ -1953,15 +1953,17 @@ class gbidijkstraInfo{
         while(!commonNode){
           if(Ffront.empty()){
              if(Bfront.empty()){
+               // no common node found
                return;
              } else {
-                
-                queueEntry<T> e = Bfront.top();
-                Bfront.pop();
-                processNode(e,false);
+               // only back front available
+               queueEntry<T> e = Bfront.top();
+               Bfront.pop();
+               processNode(e,false);
              }
           } else {
             if(Bfront.empty()){
+               // only forward front not empty
                queueEntry<T> e = Ffront.top();
                Ffront.pop();
                processNode(e,true);  
@@ -1983,7 +1985,6 @@ class gbidijkstraInfo{
  
 
      void processNode(queueEntry<T>& e, bool isForward){
-
          // check stop criterion
          ct v = e.nodeValue;
          Supplier fun;
@@ -1991,33 +1992,36 @@ class gbidijkstraInfo{
          int pos;
          if(isForward){
             if(Ffinished.find(v)!=Ffinished.end()){
-               // missing updates on front
+               // node already processed
                return;
             }
             Ffinished.insert(v);
-            if(Bfinished.find(v)!=Bfinished.end()){ // be happy
+            if(Bfinished.find(v)!=Bfinished.end()){ 
+               // common node found
                commonNode = e.node;
                return; 
             }
+            // further search
             fun = succFun;
             arg = succArg;
             pos = succPos;
          } else {
             if(Bfinished.find(v)!=Bfinished.end()){
-               // missing updates on front
+               // node already processed 
                return;
             }
-           Bfinished.insert(v);
-           if(Ffinished.find(v)!=Ffinished.end()){
+            Bfinished.insert(v);
+            if(Ffinished.find(v)!=Ffinished.end()){
+              // common node found
               commonNode = e.node;
               return; 
-           }
-           fun = predFun;
-           arg = predArg;
-           pos = predPos;
+            }
+            fun = predFun;
+            arg = predArg;
+            pos = predPos;
          }
 
-
+         // process all edges
          (*arg)[0] = e.node;
          Word f(fun);
          Stream<Tuple> stream(f);
@@ -2045,7 +2049,7 @@ class gbidijkstraInfo{
         std::priority_queue<queueEntry<T> >* front = isForward?&Ffront:&Bfront; 
 
         if(finished->find(v)!=finished->end()){
-           // node already processed completely
+           // target node already processed 
            edge->DeleteIfAllowed();
            return;
         }
@@ -2057,10 +2061,8 @@ class gbidijkstraInfo{
         }
 
 
-        typename std::map<ct,treeEntry<ct> >::iterator it = tree->find(v);
-
         double newCosts = costs + edgeCosts;
-
+        typename std::map<ct,treeEntry<ct> >::iterator it = tree->find(v);
         if(it==tree->end()){  // node reached the first time
            treeEntry<ct> e(pred,newCosts,depth + 1, edge);
            (*tree)[v] = e;
@@ -2076,11 +2078,11 @@ class gbidijkstraInfo{
         }
 
         // update case
-        it->second.edge->DeleteIfAllowed();
+        it->second.edge->DeleteIfAllowed(); 
+        it->second.edge = edge;
         it->second.pred = pred;
         it->second.costs = newCosts;
         it->second.depth = depth+1;
-        it->second.edge = edge;
         queueEntry<T> qe(target, newCosts,depth+1);
         front->push(qe);
      }
@@ -2106,9 +2108,6 @@ class gbidijkstraInfo{
         res->PutAttribute(src->GetNoAttributes(),new CcBool(true,forward));
         return res;
      }
-
-
-
 };
 
 
