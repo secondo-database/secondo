@@ -1981,7 +1981,6 @@ class GenericRelationIterator
 {
   public:
     GenericRelationIterator(){ 
-       srand (time(NULL));
     }
 
     virtual ~GenericRelationIterator() {};

@@ -4522,6 +4522,13 @@ int feedNthVM(Word* args, Word& result, int message,
   typedef pair<GenericRelationIterator*, pair<int,bool> > LI;
   LI* li = (LI*) local.addr;
   switch(message){
+     case INIT : {
+         srand(time(0));
+         return 0;
+     }
+     case FINISH: {
+         return 0;
+     }
      case OPEN : {
              if(li){
                delete li->first;
@@ -4665,6 +4672,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgfeedproject);
     relalgfeedproject.enableInitFinishSupport();
     AddOperator(&feedNthOP);
+    feedNthOP.enableInitFinishSupport();
 
     cpptuple.AssociateKind( Kind::TUPLE() );
     cpprel.AssociateKind( Kind::REL() );

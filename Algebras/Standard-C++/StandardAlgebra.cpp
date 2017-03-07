@@ -2490,11 +2490,12 @@ int randint(int u)      //Computes a random integer in the range 0..u-1,
                         //for u >= 2
 {
   if ( u < 2 ) {u=2; srand ( time(NULL) );}
-        // For u < 2 also initialize the random number generator
+  // For u < 2 also initialize the random number generator
   // rand creates a value between [0,RAND_MAX]. The calculation procedure
   // below is recommended in the manpage of the rand() function.
   // Using rand() % u will yield poor results.
-  return (int) ( (float)u * rand()/(RAND_MAX+1.0) );
+  double r = rand();
+  return (int) ( (float)u * r/(RAND_MAX+1.0) );
 }
 
 
@@ -2504,8 +2505,9 @@ RandInt( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage( s );
   if( ((CcInt*)args[0].addr)->IsDefined() )
   {
-    ((CcInt *)result.addr)->
-      Set( true, randint(((CcInt*)args[0].addr)->GetIntval()) );
+    int arg = ((CcInt*) args[0].addr)->GetValue();
+    int res = randint(arg);
+    ((CcInt *)result.addr)-> Set( true, res);
   }
   else
   {
@@ -6402,6 +6404,7 @@ InitializeStandardAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
+  srand ( time(NULL) );
   return (new CcAlgebra1);
 }
 
