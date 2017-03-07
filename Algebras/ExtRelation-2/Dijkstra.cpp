@@ -235,6 +235,7 @@ class treeEntry{
             uint32_t _depth, Tuple* _edge):
      pred(_pred), costs(_costs), depth(_depth),
      edge(_edge){
+     assert(edge);
   }
 
   treeEntry(const treeEntry<T>& e):
@@ -1853,15 +1854,16 @@ class gbidijkstraInfo{
         costFun(_costFun),
         source(_source), target(_target),
         tt(_tt){
-
            tt->IncReference();
            succArg = qp->Argument(succFun);
            predArg = qp->Argument(predFun);
            costArg = qp->Argument(costFun);
            commonNode = 0;
+           minCosts = 0;
            Ffront.push(queueEntry<T>(source,0,0));
            Bfront.push(queueEntry<T>(target,0,0));
-           dijkstra(); 
+           dijkstra();
+           targetValue = target->GetValue(); 
            if(commonNode){
              currentNode = commonNode->GetValue();
              fillForwardTuples();
@@ -1887,13 +1889,13 @@ class gbidijkstraInfo{
             forwardTuples.pop();
             return res;
          } else {
-            typename std::map<ct,treeEntry<ct> >::iterator it;
-            it = Btree.find(currentNode);         
-            if(it==Btree.end()){ // end reached
-               assert(currentNode == target->GetValue());
+            if(targetValue == currentNode){
+               // end reached
                commonNode = 0;
                return 0;
-            }
+            }       
+            tree_it it = Btree.find(currentNode);         
+            assert(it!=Btree.end());
             Tuple* res = createResultTuple(it->second,false);
             currentNode = it->second.pred;
             return res; 
@@ -1912,21 +1914,28 @@ class gbidijkstraInfo{
      Supplier costFun;
      T* source;
      T* target;
+     ct targetValue;
      TupleType* tt;
      ArgVectorPointer succArg;
      ArgVectorPointer predArg;
      ArgVectorPointer costArg;
      T* commonNode;
+     double minCosts;
 
      std::priority_queue<queueEntry<T> > Ffront;
      std::priority_queue<queueEntry<T> > Bfront;
-     std::set<ct> Ffinished;
-     std::set<ct> Bfinished;
-     std::map<ct,treeEntry<ct> > Ftree;
-     std::map<ct,treeEntry<ct> > Btree;
+     typedef std::map<ct,treeEntry<ct> > tree_t;
+     typedef typename tree_t::iterator tree_it; 
+     tree_t Ftree;
+     tree_t Btree;
      
+     typedef std::map<ct,double> finish_t;
+     typedef typename finish_t::iterator finish_it;
 
-     ct currentNode;
+     finish_t Ffinished;
+     finish_t Bfinished;
+
+     ct currentNode; // for tracing the path
 
      // to return the path in a 'normal' order from source
      // to target, we put the tuples from fromward tree to
@@ -1935,38 +1944,53 @@ class gbidijkstraInfo{
 
 
 
-     void removeEdges(std::map<ct,treeEntry<ct> >& tree){
-       typename std::map<ct,treeEntry<ct> >::iterator it;
-       for(it = tree.begin();it!=tree.end();it++){
-         it->second.edge->DeleteIfAllowed();
+     void removeEdges(tree_t& tree){
+       for(tree_it it = tree.begin();it!=tree.end();it++){
+         Tuple* edge = it->second.edge;
+         assert(edge);
+         edge->DeleteIfAllowed();
+         it->second.edge=0;
        }
      }
 
 
     void fillForwardTuples(){
-       typename std::map<ct,treeEntry<ct> >::iterator it;
-       bool dir=true;
-       while(dir){
-            it = Ftree.find(currentNode);
-            if(it==Ftree.end()){ // begin of path reached
-               assert(currentNode == source->GetValue());
-               dir = false;
-               // prepare for back
-               currentNode = commonNode->GetValue();
-            } else {
-               Tuple* res = createResultTuple(it->second,true);
-               currentNode = it->second.pred;
-               forwardTuples.push(res);
-            }
+       if(!commonNode){
+          return;
        }
+       currentNode = commonNode->GetValue();
+       ct sn = source->GetValue();
+       tree_it it;
+       while(sn != currentNode){
+         it = Ftree.find(currentNode);
+         assert(it!=Ftree.end());
+         treeEntry<ct>& e = it->second;
+         assert(e.edge);
+         Tuple* res = createResultTuple(e,true);
+         currentNode = it->second.pred;
+         forwardTuples.push(res);
+       }
+       // prepare back direction
+       currentNode = commonNode->GetValue();
     }
      
      void dijkstra(){
 
-        while(!commonNode){
+       while(!Ffront.empty() || !Bfront.empty()){
+          if(commonNode){
+             if(!Ffront.empty() && Ffront.top().costs>=minCosts){
+                 makeempty(Ffront);
+             }
+             if(!Bfront.empty() && Bfront.top().costs>=minCosts){
+                 makeempty(Bfront);
+             }
+             if(Ffront.empty() && Bfront.empty()){
+                 return;
+             }
+          } 
           if(Ffront.empty()){
              if(Bfront.empty()){
-               // no common node found
+               // no better solution to find 
                return;
              } else {
                // only back front available
@@ -1993,9 +2017,16 @@ class gbidijkstraInfo{
                }
             }
           }
-        }
+       }
      }
  
+
+
+     void makeempty(std::priority_queue<queueEntry<T> >& q){
+         while(!q.empty()){
+            q.pop();
+         }
+     }
 
      void processNode(queueEntry<T>& e, bool isForward){
          // check stop criterion
@@ -2008,11 +2039,16 @@ class gbidijkstraInfo{
                // node already processed
                return;
             }
-            Ffinished.insert(v);
-            if(Bfinished.find(v)!=Bfinished.end()){ 
-               // common node found
-               commonNode = e.node;
-               return; 
+            Ffinished[v] = e.costs;
+            finish_it fit = Bfinished.find(v);
+            if(fit!=Bfinished.end()){
+               // found common green node
+               double fc = fit->second;
+               if(!commonNode || minCosts>e.costs+fc){
+                  // found common node the first time or shorter path
+                  commonNode = e.node;
+                  minCosts = e.costs + fc;
+               }
             }
             // further search
             fun = succFun;
@@ -2023,11 +2059,16 @@ class gbidijkstraInfo{
                // node already processed 
                return;
             }
-            Bfinished.insert(v);
-            if(Ffinished.find(v)!=Ffinished.end()){
-              // common node found
-              commonNode = e.node;
-              return; 
+            Bfinished[v] = e.costs;
+            finish_it fit = Ffinished.find(v);
+            if(fit!=Ffinished.end()){
+               // found common green node
+               double fc = fit->second;
+               if(!commonNode || minCosts>e.costs+fc){
+                  // found common node the first time or shorter path
+                  commonNode = e.node;
+                  minCosts = e.costs + fc;
+               }
             }
             fun = predFun;
             arg = predArg;
@@ -2041,7 +2082,7 @@ class gbidijkstraInfo{
          Tuple* edge;
          stream.open();
          while( (edge = stream.request()) ){
-            processEdge(e.nodeValue, e.costs, edge, isForward, pos, e.depth);  
+           processEdge(e.nodeValue, e.costs, edge, isForward, pos, e.depth);
          }
          stream.close();
      }
@@ -2050,6 +2091,7 @@ class gbidijkstraInfo{
                       Tuple* edge, bool isForward, int pos,
                       int depth){
 
+       assert(edge);
 
         T* target = (T*) edge->GetAttribute(pos);
         if(!target->IsDefined()){ // ignore nonsense tuples
@@ -2057,8 +2099,8 @@ class gbidijkstraInfo{
            return;
         }
         ct v = target->GetValue();
-        std::set<ct>* finished = isForward?&Ffinished:&Bfinished;
-        std::map<ct,treeEntry<ct> >* tree = isForward?&Ftree:&Btree;
+        finish_t* finished = isForward?&Ffinished:&Bfinished;
+        tree_t* tree = isForward?&Ftree:&Btree;
         std::priority_queue<queueEntry<T> >* front = isForward?&Ffront:&Bfront; 
 
         if(finished->find(v)!=finished->end()){
@@ -2075,10 +2117,10 @@ class gbidijkstraInfo{
 
 
         double newCosts = costs + edgeCosts;
-        typename std::map<ct,treeEntry<ct> >::iterator it = tree->find(v);
+        tree_it it = tree->find(v);
         if(it==tree->end()){  // node reached the first time
            treeEntry<ct> e(pred,newCosts,depth + 1, edge);
-           (*tree)[v] = e;
+           (*tree)[v]  = e;
            queueEntry<T> qe(target, newCosts,depth+1);
            front->push(qe);
            return;
@@ -2112,9 +2154,10 @@ class gbidijkstraInfo{
         return g->GetValue();
      }
 
-     Tuple* createResultTuple(treeEntry<ct>& e, bool forward){
+     Tuple* createResultTuple(const treeEntry<ct>& e, bool forward){
         Tuple* res = new Tuple(tt);
         Tuple* src = e.edge;
+        assert(src);
         for(int i=0;i<src->GetNoAttributes();i++){
           res->CopyAttribute(i,src,i);
         } 
