@@ -188,13 +188,17 @@ ListExpr gdijkstraTM(ListExpr args){
     return listutils::typeError("6th argument (mode) is not an int");
   }
 
-  ListExpr extendTuple = nl->TwoElemList(
+  ListExpr extendTuple = nl->ThreeElemList(
                                nl->TwoElemList(
                                  nl->SymbolAtom("EdgeNoSP"),
                                  listutils::basicSymbol<CcInt>()),
                                nl->TwoElemList(
                                  nl->SymbolAtom("CostsSP"),
-                                 listutils::basicSymbol<CcReal>())
+                                 listutils::basicSymbol<CcReal>()),
+                               nl->TwoElemList(
+                                 nl->SymbolAtom("PredSP"),
+                                 nodeType  
+                               )
                              );
 
   ListExpr resAttrList = listutils::concat(attrList, extendTuple);
@@ -425,6 +429,15 @@ class gdijkstraInfo{
                            new CcInt(true,depth));
          res->PutAttribute(oedge->GetNoAttributes()+1, 
                            new CcReal(true,costs));
+
+         typename std::map<ct,treeEntry<ct> >::iterator it = tree.find(pred);
+         T* ppred;
+         if(it==tree.end()){
+            ppred = new T(false); 
+         } else {
+            ppred = new T(true, it->second.pred);
+         }
+         res->PutAttribute(oedge->GetNoAttributes()+2,ppred);
          currentTarget = pred;
          oedge->DeleteIfAllowed();
          return res;
