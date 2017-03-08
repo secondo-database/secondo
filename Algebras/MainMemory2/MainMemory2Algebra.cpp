@@ -72,6 +72,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "MemoryVectorObject.h"
 #include "MemoryPQueue.h"
+#include "MemoryStack.h"
 
 using namespace std;
 
@@ -622,8 +623,48 @@ MemoryPQueueObject* getMemoryPQueue(MPointer* q){
    return (MemoryPQueueObject*) ((*q)());
 }
 
+template<class T>
+MemoryStackObject* getMemoryStack(T* qN){
+   if(!qN->IsDefined()){
+      return 0;
+   }
+   string qn = qN->GetValue();
+   if(!catalog->isMMObject(qn) || !catalog->isAccessible(qn)){
+      return 0;
+   }
+   ListExpr qt = nl->Second(catalog->getMMObjectTypeExpr(qn));
+   if(!MemoryStackObject::checkType(qt)){
+       return 0;
+   }
+   return (MemoryStackObject*)catalog->getMMObject(qn);
+}
+
+template<>
+MemoryStackObject* getMemoryStack(MPointer* q){
+   return (MemoryStackObject*) ((*q)());
+}
 
 
+template<class M, class S>
+M* getMemObject(S* qN){
+   if(!qN->IsDefined()){
+      return 0;
+   }
+   string qn = qN->GetValue();
+   if(!catalog->isMMObject(qn) || !catalog->isAccessible(qn)){
+      return 0;
+   }
+   ListExpr qt = nl->Second(catalog->getMMObjectTypeExpr(qn));
+   if(!M::checkType(qt)){
+       return 0;
+   }
+   return (M*)catalog->getMMObject(qn);
+}
+
+template<class M>
+M* getMemObject(MPointer* t){
+   return (M*) ((*t)());
+}
 
 /*
 Function returning the current database name.
@@ -16908,7 +16949,7 @@ Operator mcreatepqueueOp(
 );
 
 
-
+template<class T>
 ListExpr sizeTM( ListExpr args){
    if(!nl->HasLength(args,1)){
      return listutils::typeError("one argument expected");
@@ -16922,20 +16963,19 @@ ListExpr sizeTM( ListExpr args){
        return listutils::typeError(err);
    }
    a1 = nl->Second(a1);
-   if(!MemoryPQueueObject::checkType(a1)){
-     return listutils::typeError("argument is not a memory priority queue");
+   if(!T::checkType(a1)){
+     return listutils::typeError("argument is not of type " + T::BasicType());
    }
    return listutils::basicSymbol<CcInt>();
 }
 
 
-template<class T>
+template<class T, class C>
 int sizeVMT(Word* args, Word& result, int message,
                 Word& local, Supplier s){
-
   result = qp->ResultStorage(s);
   CcInt* res = (CcInt*) result.addr;
-  MemoryPQueueObject* q = getMemoryPQueue((T*) args[0].addr);
+  C* q = getMemObject<C>((T*) args[0].addr);
   if(!q){
     res->SetDefined(false);
   } else {
@@ -16945,9 +16985,9 @@ int sizeVMT(Word* args, Word& result, int message,
 }
 
 ValueMapping sizeVM[] = {
-   sizeVMT<CcString>,
-   sizeVMT<Mem>,
-   sizeVMT<MPointer>
+   sizeVMT<CcString, MemoryPQueueObject>,
+   sizeVMT<Mem, MemoryPQueueObject>,
+   sizeVMT<MPointer, MemoryPQueueObject>,
 };
 
 int sizeSelect(ListExpr args){
@@ -16963,7 +17003,7 @@ OperatorSpec sizeSpec(
   "mpqueue -> int",
   "size(_)",
   "Returns the number of entries in an mpqueue.",
-  "query size(strassen_L"
+  "query size(\"strassen_L\")"
 );
 
 Operator sizeOp(
@@ -16972,7 +17012,7 @@ Operator sizeOp(
   3,
   sizeVM,
   sizeSelect,
-  sizeTM
+  sizeTM<MemoryPQueueObject>
 );
 
 
@@ -17607,6 +17647,409 @@ Operator minserttuplepqprojectOp(
 );
 
 
+/*
+9 Operators on Memory Stacks
+
+9.1 mcreatestack
+
+9.1.1 Type Mapping
+
+Stream<Tuple> x string -> Stream<Tuple>
+
+*/
+ListExpr mcreatestackTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two arguments expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr ts = nl->First(nl->First(args));
+  if(!Stream<Tuple>::checkType(ts)){
+    return listutils::typeError("first arf is not a tuple stream");
+  }
+  ListExpr nt = nl->First(nl->Second(args));
+  if(!CcString::checkType(nt)){
+    return listutils::typeError("second arg is not a string");
+  }
+  ListExpr nv = nl->Second(nl->Second(args));
+  if(nl->AtomType(nv)!=StringType){
+    return listutils::typeError("only constant strings are allowed");
+  }
+  string name = nl->StringValue(nv);
+  if(catalog->isMMObject(name)){
+    return listutils::typeError("main memory object with this name "
+                                "already exists");
+  }
+  return ts;
+}
+
+
+class mcreatestackInfo{
+  public:
+     mcreatestackInfo(Word& _stream, const string& memName, 
+                      bool flob, const string type): 
+                      stream(_stream) {
+       string dbname = getDBname(); 
+       s = new MemoryStackObject(flob, dbname,type);
+       catalog->insert(memName, s);
+       stream.open();
+     }
+
+     ~mcreatestackInfo(){
+         stream.close();
+     }
+
+     Tuple* next(){
+        Tuple* tuple = stream.request();
+        if(tuple){
+           s->push(tuple);
+        }
+        return tuple;
+     }
+
+
+     private:
+        Stream<Tuple> stream;
+        MemoryStackObject* s;
+};
+
+template<bool flob>
+int mcreatestackVM(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   mcreatestackInfo* li = (mcreatestackInfo*) local.addr;
+   switch(message){
+      case OPEN: { 
+                if(li){
+                  delete li;
+                  local.addr = 0;
+                }
+                string objName = ((CcString*)args[1].addr)->GetValue();
+                ListExpr tt = nl->Second(qp->GetType(s));
+                ListExpr type = nl->TwoElemList(
+                                 listutils::basicSymbol<Mem>(),
+                                 nl->TwoElemList(
+                                   listutils::basicSymbol<MemoryStackObject>(),
+                                   tt));
+                local.addr = new mcreatestackInfo(args[0], 
+                                                 objName,flob,
+                                                 nl->ToString(type));
+                return 0;  
+      }
+      case REQUEST:
+                result.addr = li?li->next():0;
+                return result.addr?YIELD:CANCEL;
+      case CLOSE:
+             if(li){
+               delete li;
+               local.addr = 0;
+             }
+             return 0;
+
+   }
+   return -1;
+}
+
+OperatorSpec mcreatestackSpec(
+  "stream<Tuple> x string -> stream<Tuple>",
+  " _ mcreatestack[_]",
+  "Inserts incoming tuples into a newly created "
+  "memory stack. Incoming tuples are passed to the output",
+  "query plz feed mcreatestack[\"PLZStack\"] count"
+);
+
+Operator mcreatestackOp(
+  "mcreatestack",
+  mcreatestackSpec.getStr(),
+  mcreatestackVM<false>,
+  Operator::SimpleSelect,
+  mcreatestackTM
+);
+
+
+Operator mcreatestackflobOp(
+  "mcreatestackflob",
+  mcreatestackSpec.getStr(),
+  mcreatestackVM<true>,
+  Operator::SimpleSelect,
+  mcreatestackTM
+);
+
+
+
+/*
+9.2 Operator mfeedstack
+
+*/
+ListExpr mfeedstackTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  string err;
+  ListExpr a1 = nl->First(args);
+  if(!getMemType(nl->First(a1), nl->Second(a1),a1, err, true)){
+    return listutils::typeError(err);
+  }
+  a1 = nl->Second(a1);
+  if(!MemoryStackObject::checkType(a1)){
+    return listutils::typeError("expected mstack");
+  }
+  return nl->TwoElemList(
+                listutils::basicSymbol<Stream<Tuple> >(),
+                nl->Second(a1));  
+
+}
+
+class mfeedstackInfo{
+   public:
+      mfeedstackInfo(MemoryStackObject* _obj): obj(_obj){}
+
+      ~mfeedstackInfo(){}
+
+      Tuple* next(){
+          if(obj->empty()){
+             return 0;
+          }
+          Tuple* t =  obj->pop();
+          return t;
+      }
+
+   private:
+      MemoryStackObject* obj;
+};
+
+
+template<class T>
+int mfeedstackVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   mfeedstackInfo* li = (mfeedstackInfo*) local.addr;
+   switch(message){
+     case OPEN:{
+            if(li){
+                delete li;
+                local.addr = 0;
+            }
+            MemoryStackObject* q = getMemoryStack((T*) args[0].addr);
+            if(q){
+              local.addr = new mfeedstackInfo(q);
+            }
+            return 0;
+     }
+     case REQUEST:
+             result.addr = li?li->next():0;
+             return result.addr?YIELD:CANCEL;
+     case CLOSE:
+             if(li){
+               delete li;
+               local.addr = 0;
+             }
+             return 0;
+     
+ 
+   }
+
+  return -1;
+}
+
+ValueMapping mfeedstackVM[] = {
+   mfeedstackVMT<CcString>,
+   mfeedstackVMT<Mem>,
+   mfeedstackVMT<MPointer>
+};
+
+int mfeedstackSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
+
+OperatorSpec mfeedstackSpec(
+  "MSTACK -> stream(tuple)",   
+  " _ mfeedstack ",
+  "Feeds the content of a memory stack into a tuple stream. "
+  "In contrast to a 'normal' feed, the stack is eat up.",
+  "query \"plzstack\" mfeedstack count"
+);
+
+
+Operator mfeedstackOp(
+  "mfeedstack",
+  mfeedstackSpec.getStr(),
+  3,
+  mfeedstackVM,
+  mfeedstackSelect,
+  mfeedstackTM
+);
+
+
+/*
+9.3 Operator ~stacksize~
+
+We have to use a special name because in the selection
+function there is no chance to get the type. Fortunately,
+a lot of functions are implemented as templates.
+
+*/
+
+
+OperatorSpec stacksizeSpec(
+  "MSTACK -> int",
+  "stacksize(_)",
+  "Retrieves the size of a memeory stack",
+  "query stacksize(\"plzstack\")"
+);
+
+ValueMapping stacksizeVM[] = {
+  sizeVMT<CcString, MemoryStackObject>,
+  sizeVMT<Mem, MemoryStackObject>,
+  sizeVMT<MPointer, MemoryStackObject>,
+};
+
+int stacksizeSelect(ListExpr args){
+  int res = getRepNum(nl->First(args));
+  return res;
+}
+
+
+Operator stacksizeOp(
+  "stacksize",
+   stacksizeSpec.getStr(),
+   3,
+   stacksizeVM,
+   stacksizeSelect,
+   sizeTM<MemoryStackObject>
+);
+
+
+/*
+9.4 insertmstack
+
+Inserts a tuple stream into an existing memory stack
+
+*/
+
+ListExpr insertmstackTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two arguments expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr ts = nl->First(nl->First(args));
+  if(!Stream<Tuple>::checkType(ts)){
+    return listutils::typeError("first argument is not a tuple stream");
+  }
+  string err;
+  ListExpr s = nl->Second(args);
+  if(!getMemType(nl->First(s), nl->Second(s),s,err,true)){
+    return listutils::typeError(err);
+  }
+  s = nl->Second(s);
+  if(!MemoryStackObject::checkType(s)){
+    return listutils::typeError("second arg is not a memory stack");
+  }
+  ListExpr st = nl->Second(s);
+  if(!nl->Equal(st, nl->Second(ts))){
+    return listutils::typeError("tuple type in stack and stream differ");
+  }
+  return ts; 
+}
+
+class insertmstackInfo{
+
+ public:
+    insertmstackInfo(Word& _stream, MemoryStackObject* _s):
+      stream(_stream), s(_s){
+      stream.open();
+    }
+
+    ~insertmstackInfo(){
+       stream.close();
+     }
+
+     Tuple* next(){
+        Tuple* t = stream.request();
+        if(t){
+            s->push(t);
+        }
+        return t;
+     }
+
+ private:
+   Stream<Tuple> stream;
+   MemoryStackObject* s;
+};
+
+
+
+template<class T>
+int insertmstackVMT(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+
+  insertmstackInfo* li = (insertmstackInfo*) local.addr;
+  switch(message){
+    case OPEN: {
+        if(li){
+          delete li;
+          local.addr = 0;
+        }
+        MemoryStackObject* o = getMemObject<MemoryStackObject>((T*) 
+                                  args[1].addr);
+        if(o){
+          local.addr = new insertmstackInfo(args[0],o);
+        }
+        return 0;
+    }
+    case REQUEST:{
+        result.addr = li?li->next():0;
+        return result.addr?YIELD:CANCEL;
+    }
+    case CLOSE:{
+        if(li){
+           delete li;
+           local.addr = 0;
+        }
+        return 0;
+    }
+  }
+  return -1;  
+}
+
+ValueMapping insertmstackVM[] = {
+  insertmstackVMT<CcString>,
+  insertmstackVMT<Mem>,
+  insertmstackVMT<MPointer>
+};
+
+int insertmstackSelect(ListExpr args){
+  return getRepNum(nl->Second(args));
+}
+
+OperatorSpec insertmstackSpec(
+  "stream(tuple) x MSTACK -> stream(tuple)",
+  "_ insertmstack[_]",
+  "Inserts incoming tuples into a memory stack.",
+  "query plz feed insertmstack[\"plzstack1\"] count"
+);
+
+Operator insertmstackOp(
+  "insertmstack",
+  insertmstackSpec.getStr(),
+  3,
+  insertmstackVM,
+  insertmstackSelect,
+  insertmstackTM
+);
+
+
 
 /*
 Operator ~mblock~
@@ -17975,9 +18418,20 @@ class MainMemory2Algebra : public Algebra {
 
           AddOperator(&minserttuplepqprojectUOp);
           minserttuplepqprojectUOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mfeedstackOp);
+          mfeedstackOp.SetUsesArgsInTypeMapping();
+
+          // operators on stack
+          AddOperator(&mcreatestackOp);
+          mcreatestackOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mcreatestackflobOp);
+          mcreatestackflobOp.SetUsesArgsInTypeMapping();
+          AddOperator(&stacksizeOp);
+          stacksizeOp.SetUsesArgsInTypeMapping();
+          AddOperator(&insertmstackOp);
+          insertmstackOp.SetUsesArgsInTypeMapping();
 
           AddOperator(&mblockOp);
-
 
         }
         

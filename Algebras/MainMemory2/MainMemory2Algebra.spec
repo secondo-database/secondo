@@ -151,5 +151,13 @@ operator minserttuplepqprojectU alias MINSERTTUPLEPQPROJECTU pattern _ op[_,_,_;
 operator minserttuplepqproject alias MINSERTTUPLEPQPROJECT pattern _ op[_,_;list]
 
 
+operator mcreatestack alias MCREATESTACK pattern _ op [_]
+operator mcreatestackflob alias MCREATESTACKFLOB pattern _ op [_]
+operator mfeedstack alias MFEEDSTACK pattern _ op
+operator stacksize alias STACKSIZE pattern op(_)
+operator insertmstack alias INSERTMSTACK pattern _ op[_]
+
+
+
 
 
