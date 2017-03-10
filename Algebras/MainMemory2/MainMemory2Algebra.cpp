@@ -2697,7 +2697,6 @@ bool mcreateRtree(MemoryRelObject* mmrel,
                   ListExpr typeList){
 
 
-    bool flob = mmrel->hasflob();
     string database = mmrel->getDatabase();
     vector<Tuple*>* relVec = mmrel->getmmrel();
     vector<Tuple*>::iterator it;
@@ -2727,7 +2726,7 @@ bool mcreateRtree(MemoryRelObject* mmrel,
     usedMainMemory = rtree->usedMem();
     MemoryRtreeObject<dim>* mmRtreeObject =
         new MemoryRtreeObject<dim>(rtree, usedMainMemory,
-                        nl->ToString(typeList), flob, database);
+                        nl->ToString(typeList), database);
 
     if (usedMainMemory>availableMemSize){
         cout<<"there is not enough memory left to create the rtree";
@@ -3000,7 +2999,7 @@ int mcreateRtree2ValMapT (Word* args, Word& result,
 
     MemoryRtreeObject<dim>* mmRtreeObject =
         new MemoryRtreeObject<dim>(rtree, usedMainMemory,
-                        nl->ToString(le), false, "");
+                        nl->ToString(le), "");
 
     if (usedMainMemory>availableMemSize){
         cout<<"there is not enough memory left to create the rtree";
