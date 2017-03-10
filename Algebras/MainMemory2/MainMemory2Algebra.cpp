@@ -74,6 +74,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MemoryPQueue.h"
 #include "MemoryStack.h"
 
+#include "MGraph2.h"
+#include "MGraph3.h"
+#include "LongInt.h"
+
+
 using namespace std;
 
 extern NestedList* nl;
@@ -728,7 +733,12 @@ bool getMemType(ListExpr type, ListExpr value,
     return true;
 }
 
-
+inline bool getMemType(ListExpr typevalue, 
+                ListExpr & result, string& error, 
+                bool allowMPointer=false){
+  return getMemType(nl->First(typevalue), nl->Second(typevalue),
+                    result,error,allowMPointer);
+}
 /*
 some functions related to strings.
 
@@ -17725,6 +17735,9 @@ int mcreatestackVM(Word* args, Word& result, int message,
                   local.addr = 0;
                 }
                 string objName = ((CcString*)args[1].addr)->GetValue();
+                if(catalog->isMMObject(objName)){
+                    return 0;
+                }
                 ListExpr tt = nl->Second(qp->GetType(s));
                 ListExpr type = nl->TwoElemList(
                                  listutils::basicSymbol<Mem>(),
@@ -18156,12 +18169,1534 @@ Operator mblockOp(
 );
 
 
+/*
+10 Operators on mgraph2
+
+
+*/
 
 
 
+/*
+
+10.1 Creation of the graph
+
+10.1.1 Type mapping
+
+stream(tuple) x attrname x attrname x fun x string 
+
+edges           source     target     costs  result's name
+
+*/
+
+ListExpr createmgraph2TM(ListExpr args){
+
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError("five arguments expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  // first arg: tuple stream
+  ListExpr ts = nl->First(nl->First(args));
+  if(!Stream<Tuple>::checkType(ts)){
+    return listutils::typeError("first argument is not a tuple stream");
+  }
+  // second arg: attribute name of source
+  ListExpr source_a = nl->First(nl->Second(args));
+  if(nl->AtomType(source_a)!=SymbolType){
+    return listutils::typeError("second arg is not a valid symbol value");
+  }
+  string source_n = nl->SymbolValue(source_a);
+  ListExpr source_t;
+  ListExpr attrList = nl->Second(nl->Second(ts));
+  int source_index = listutils::findAttribute(attrList,source_n,source_t);
+  if(!source_index){
+    return listutils::typeError("Attribute " + source_n 
+                                 + " not found in tuple");
+  }
+  // check for valid node type, (int or longint)
+  if(   !CcInt::checkType(source_t) 
+     && !LongInt::checkType(source_t)){
+    return listutils::typeError("Invalid source type required int or longint");
+  }
+  // third arg : attribute name of target
+  ListExpr target_a = nl->First(nl->Third(args));
+  if(nl->AtomType(target_a)!=SymbolType){
+    return listutils::typeError("third arg is not a valid symbol value");
+  }
+  string target_n = nl->SymbolValue(target_a);
+  ListExpr target_t;
+  int target_index = listutils::findAttribute(attrList,target_n,target_t);
+  if(!target_index){
+    return listutils::typeError("Attribute " + target_n 
+                                + " not found in tuple");
+  }
+  if(!nl->Equal(source_t, target_t)){
+    return listutils::typeError("types ofd source and target differ");
+  }
+  // fourth arg: cost function
+  ListExpr costfun = nl->First(nl->Fourth(args));
+  if(!listutils::isMap<1>(costfun)){
+    return listutils::typeError("fourth arg is not an unary function");
+  }
+  if(!nl->Equal(nl->Second(costfun), nl->Second(ts))){
+    return listutils::typeError("tuple type and function argument of "
+                                "cost function differ");
+  }
+  if(!CcReal::checkType(nl->Third(costfun))){
+    return listutils::typeError("result of cost function is not a real");
+  }
+  // fifth argument: name of the graph
+  ListExpr gn = nl->Fifth(args);
+  if(!CcString::checkType(nl->First(gn))){
+    return listutils::typeError("5th argument is not a string");
+  }
+  gn = nl->Second(gn);
+  if(nl->AtomType(gn)!=StringType){
+    return listutils::typeError("5th argument is not constant");
+  }
+  string name = nl->StringValue(gn);
+  if(catalog->isMMObject(name)){
+    return listutils::typeError("name " + name + 
+                                " is already an main memory object");
+  }
+
+  ListExpr newAttr = nl->ThreeElemList(
+    nl->TwoElemList(
+       nl->SymbolAtom("MG_Source"),
+       listutils::basicSymbol<CcInt>()),
+    nl->TwoElemList(
+       nl->SymbolAtom("MG_Target"),
+       listutils::basicSymbol<CcInt>()),
+    nl->TwoElemList(
+       nl->SymbolAtom("MG_Cost"),
+       listutils::basicSymbol<CcReal>())
+  );
+
+  attrList = listutils::concat(attrList, newAttr);
+  ListExpr tt = nl->TwoElemList(
+                     listutils::basicSymbol<Tuple>(),
+                     attrList);
+  if(!Tuple::checkType(tt)){
+    return listutils::typeError("attribute MG_source, MG_Target, "
+                                "or MG_Cost already present in tuple");
+  }
+
+  return nl->ThreeElemList(
+              nl->SymbolAtom(Symbols::APPEND()),
+              nl->TwoElemList(
+                     nl->IntAtom(source_index-1),
+                     nl->IntAtom(target_index-1)),
+              nl->TwoElemList(
+                 listutils::basicSymbol<Stream<Tuple> >(),
+                 tt)   
+              );
+}
+
+
+template<class T>
+class createmgraph2Info{
+
+  public:
+     createmgraph2Info( Word& _stream, MGraph2* _graph,int _sourcePos, 
+       int _targetPos, Word& _costFun):
+       stream(_stream), graph(_graph), sourcePos(_sourcePos),
+       targetPos(_targetPos), costFun(_costFun.addr){
+       stream.open();
+       costArg = qp->Argument(costFun);
+     }
+     ~createmgraph2Info(){
+       stream.close();
+     }
+
+     Tuple* next(){
+       Tuple* orig;
+
+       while( (orig = stream.request())) {
+          T* Source = (T*) orig->GetAttribute(sourcePos);
+          T* Target = (T*) orig->GetAttribute(targetPos);
+          (*costArg)[0] = orig;
+          qp->Request(costFun,value);
+          CcReal* Costs = (CcReal*) value.addr;
+          if(Source->IsDefined() && Target->IsDefined() && Costs->IsDefined()){
+            Tuple* res = graph->insertOrigEdge<T>(orig,Source->GetValue(), 
+                                               Target->GetValue(), 
+                                               Costs->GetValue());
+            orig->DeleteIfAllowed();
+            return res;
+          }
+          // ignore nonsense tuples
+          orig->DeleteIfAllowed();
+       }
+       return 0;
+     }
+  private:
+    Stream<Tuple> stream;
+    MGraph2* graph;
+    int sourcePos;
+    int targetPos;
+    Supplier costFun;
+    ArgVectorPointer costArg;
+    Word value;
+};
 
 
 
+template<class T, bool flob>
+int createmgraph2VMT(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+
+  createmgraph2Info<T>* li = (createmgraph2Info<T>*)local.addr;
+
+  switch(message){
+
+     case OPEN:{
+       if(li){
+          delete li;
+          local.addr = 0;
+       }
+       CcString* Name = (CcString*) args[4].addr;
+       if(!Name->IsDefined()){
+         return 0;
+       }
+       string name = Name->GetValue();
+       if(catalog->isMMObject(name)){
+         return 0;
+       }
+       ListExpr tt = nl->Second(qp->GetType(s));
+       tt = nl->TwoElemList(
+                   listutils::basicSymbol<Mem>(),
+                   nl->TwoElemList(
+                      listutils::basicSymbol<MGraph2>(),
+                      tt));
+       string type = nl->ToString(tt);
+       string dbname = getDBname(); 
+       MGraph2* graph = new MGraph2(flob, dbname,type);
+       catalog->insert(name, graph);
+       local.addr = new createmgraph2Info<T>(
+                          args[0], graph,
+                          ((CcInt*) args[5].addr)->GetValue(),
+                          ((CcInt*) args[6].addr)->GetValue(),
+                          args[3]);
+        return 0;
+     }
+     case REQUEST:{
+          result.addr = li?li->next():0;
+          return result.addr?YIELD:CANCEL;
+     }                     
+     case CLOSE: {
+         if(li){
+           delete li;
+           local.addr = 0;
+         }
+         return 0;
+     }
+  }
+  return -1; 
+}
+
+
+ValueMapping createmgraph2VM[] ={
+   createmgraph2VMT<CcInt,false>,
+   createmgraph2VMT<LongInt,false>
+};
+
+int createmgraph2Select(ListExpr args){
+  ListExpr nodeType;
+  listutils::findAttribute( nl->Second(nl->Second(nl->First(args))),
+                            nl->SymbolValue(nl->Second(args)),
+                            nodeType);
+  return CcInt::checkType(nodeType)?0:1;
+}
+
+OperatorSpec createmgraph2Spec(
+  "stream(tuple) x IDENT x INDENT x fun x string -> stream(tuple2)",
+  " edges createmgraph2[SourceAttr, TargetAttr, CostFun, GraphName]",
+  "Creates an mgraph2 from an stream of edges. Edges with undefined "
+  "source, target or costs are ignored. " 
+  "All other edges are inserted into the graph and extended by "
+  "new source, target, and a cost attribute.",
+  "query otestrel feed createmgraph2[S1_id, S2_id, "
+  "distance(.S1_Pos, .S2_Pos), \"g\"] count"
+);
+
+Operator createmgraph2Op(
+  "createmgraph2",
+  createmgraph2Spec.getStr(),
+  2,
+  createmgraph2VM,
+  createmgraph2Select,
+  createmgraph2TM  
+);
+
+
+/*
+10.2 mg2insertorig
+
+This operator inserts new edges into an existing graph
+in the same way as in the graph creation. The only difference
+is that the graph has to exist with the correct tuple type.
+Note that as in the creation double edges are allowed.
+
+*/
+
+ListExpr mg2insertorigTM(ListExpr args){
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError("five arguments expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  // first arg: tuple stream
+  ListExpr ts = nl->First(nl->First(args));
+  if(!Stream<Tuple>::checkType(ts)){
+    return listutils::typeError("first argument is not a tuple stream");
+  }
+  // second arg: attribute name of source
+  ListExpr source_a = nl->First(nl->Second(args));
+  if(nl->AtomType(source_a)!=SymbolType){
+    return listutils::typeError("second arg is not a valid symbol value");
+  }
+  string source_n = nl->SymbolValue(source_a);
+  ListExpr source_t;
+  ListExpr attrList = nl->Second(nl->Second(ts));
+  int source_index = listutils::findAttribute(attrList,source_n,source_t);
+  if(!source_index){
+    return listutils::typeError("Attribute " + source_n 
+                                 + " not found in tuple");
+  }
+  // check for valid node type, (int or longint)
+  if(   !CcInt::checkType(source_t) 
+     && !LongInt::checkType(source_t)){
+    return listutils::typeError("Invalid source type required int or longint");
+  }
+  // third arg : attribute name of target
+  ListExpr target_a = nl->First(nl->Third(args));
+  if(nl->AtomType(target_a)!=SymbolType){
+    return listutils::typeError("third arg is not a valid symbol value");
+  }
+  string target_n = nl->SymbolValue(target_a);
+  ListExpr target_t;
+  int target_index = listutils::findAttribute(attrList,target_n,target_t);
+  if(!target_index){
+    return listutils::typeError("Attribute " + target_n 
+                                + " not found in tuple");
+  }
+  if(!nl->Equal(source_t, target_t)){
+    return listutils::typeError("types ofd source and target differ");
+  }
+  // fourth arg: cost function
+  ListExpr costfun = nl->First(nl->Fourth(args));
+  if(!listutils::isMap<1>(costfun)){
+    return listutils::typeError("fourth arg is not an unary function");
+  }
+  if(!nl->Equal(nl->Second(costfun), nl->Second(ts))){
+    return listutils::typeError("tuple type and function argument of "
+                                "cost function differ");
+  }
+  if(!CcReal::checkType(nl->Third(costfun))){
+    return listutils::typeError("result of cost function is not a real");
+  }
+  // fifth argument: name of the graph
+  ListExpr graph = nl->Fifth(args);
+  string err;
+  ListExpr graphT;
+  if(!getMemType(nl->First(graph), nl->Second(graph), graphT, err,true)){
+    return listutils::typeError(err);
+  }
+  graphT = nl->Second(graphT);
+  if(!MGraph2::checkType(graphT)){
+    return listutils::typeError("5th arg is not an mgraph2");
+  }
+  ListExpr sAttrList = nl->Second(nl->Second(ts));
+  ListExpr gAttrList = nl->Second(nl->Second(graphT));
+  if(nl->ListLength(sAttrList)+3 != nl->ListLength(gAttrList)){
+    return listutils::typeError("invalid number of attributes in tuple");
+  }
+  while(!nl->IsEmpty(sAttrList)){
+     ListExpr sf = nl->First(sAttrList);
+     ListExpr gf = nl->First(gAttrList);
+     sAttrList = nl->Rest(sAttrList);
+     gAttrList = nl->Rest(gAttrList);
+     if(!nl->Equal(sf,gf)){
+       return listutils::typeError("invalid tuple type (differs to graph)");
+     }
+  }
+
+  ListExpr gTuple = nl->Second(graphT);
+
+  return nl->ThreeElemList(
+              nl->SymbolAtom(Symbols::APPEND()),
+              nl->TwoElemList(
+                     nl->IntAtom(source_index-1),
+                     nl->IntAtom(target_index-1)),
+              nl->TwoElemList(
+                 listutils::basicSymbol<Stream<Tuple> >(),
+                 gTuple)   
+              );
+}
+
+template<class T, class G>
+int mg2insertorigVMT(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+
+  createmgraph2Info<T>* li = (createmgraph2Info<T>*)local.addr;
+
+  switch(message){
+
+     case OPEN:{
+       if(li){
+          delete li;
+          local.addr = 0;
+       }
+       MGraph2* graph = getMemObject<MGraph2>((G*) args[4].addr); 
+       if(!graph){
+         return 0;
+       }
+
+       local.addr = new createmgraph2Info<T>(
+                          args[0], graph,
+                          ((CcInt*) args[5].addr)->GetValue(),
+                          ((CcInt*) args[6].addr)->GetValue(),
+                          args[3]);
+        return 0;
+     }
+     case REQUEST:{
+          result.addr = li?li->next():0;
+          return result.addr?YIELD:CANCEL;
+     }                     
+     case CLOSE: {
+         if(li){
+           delete li;
+           local.addr = 0;
+         }
+         return 0;
+     }
+  }
+  return -1; 
+}
+
+ValueMapping mg2insertorigVM[] = {
+  mg2insertorigVMT<CcInt,CcString>,
+  mg2insertorigVMT<LongInt,CcString>,
+  mg2insertorigVMT<CcInt,Mem>,
+  mg2insertorigVMT<LongInt,Mem>,
+  mg2insertorigVMT<CcInt,MPointer>,
+  mg2insertorigVMT<LongInt,MPointer>
+};
+
+int mg2insertorigSelect(ListExpr args){
+  ListExpr nodeType;
+  listutils::findAttribute( nl->Second(nl->Second(nl->First(args))),
+                            nl->SymbolValue(nl->Second(args)),
+                            nodeType);
+  int n1 =  CcInt::checkType(nodeType)?0:1;
+  int n2 = getRepNum(nl->Fifth(args));
+  return n1 + 2*n2; 
+}
+
+OperatorSpec mg2insertorigSpec(
+  "stream(tuple) x IDENT x INDENT x fun x MGRAPH2 -> stream(tuple)",
+  " edges mg2insertorig[SourceName, TargetName, CostFun, Graph] ",
+  "Inserts new edges into an existing graph using the original "
+  "tuple representation taht was used during the graphg creation.",
+  " query edges feed mg2insertgraph[Source, Target, .Cost, \"mg2\"] count"
+);
+
+Operator mg2insertorigOp(
+  "mg2insertorig",
+  mg2insertorigSpec.getStr(),
+  6,
+  mg2insertorigVM,
+  mg2insertorigSelect,
+  mg2insertorigTM
+);
+
+/*
+10.3 Operator mg2insert
+
+*/
+template<class G>
+ListExpr mginsertTM(ListExpr args){
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError("two arguments expected");
+   }
+   if(!checkUsesArgs(args)){
+     return listutils::typeError("internal error");
+   }
+   ListExpr ts = nl->First(nl->First(args));
+   if(!Stream<Tuple>::checkType(ts)){
+     return listutils::typeError("first arg is not a tuple stream");
+   }
+   string err;
+   ListExpr graph = nl->Second(args);
+   if(!getMemType(nl->First(graph), nl->Second(graph), graph, err,true)){
+     return listutils::typeError(err);
+   } 
+   graph = nl->Second(graph);
+   if(!G::checkType(graph)){
+     return listutils::typeError("second argument is not an " +
+                                 G::BasicType());
+   }
+   if(!nl->Equal(nl->Second(ts), nl->Second(graph))){
+     //cout << "stream : " << nl->ToString(nl->Second(ts)) << endl;
+     //cout << "graph : " << nl->ToString(nl->Second(graph));
+     return listutils::typeError("tuple types differ");
+   }
+   return ts;
+}
+
+template<class G>
+class mginsertInfo{
+  public:
+
+    mginsertInfo(Word& _stream, G* _graph): stream(_stream), graph(_graph){
+       stream.open();
+    }
+
+    ~mginsertInfo(){
+      stream.close();
+    }
+
+    Tuple* next(){
+       Tuple* t;
+       while( (t = stream.request())){
+         if(!graph->insertGraphEdge(t)){
+           t->DeleteIfAllowed();
+         } else {
+           return t;
+         }
+       }
+       return 0;
+    }
+
+
+  private:
+    Stream<Tuple> stream;
+    G* graph; 
+};
+
+template<class GN, class Graph>
+int mginsertVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+  mginsertInfo<Graph>* li = (mginsertInfo<Graph>*) local.addr;
+  switch(message){
+    case OPEN: {
+       if(li) {
+         delete li;
+         local.addr =0;
+       }
+       Graph* g = getMemObject<Graph>((GN*)args[1].addr);
+       if(!g) return 0;
+       local.addr = new mginsertInfo<Graph>(args[0],g);
+       return 0;
+    }
+    case REQUEST:
+       result.addr = li?li->next():0;
+       return result.addr?YIELD:CANCEL;
+    case CLOSE:
+        if(li){
+          delete li;
+          local.addr = 0;
+        }
+        return 0;
+  } 
+  return -1;
+}
+
+ValueMapping mg2insertVM[] = {
+   mginsertVMT<CcString, MGraph2>,
+   mginsertVMT<Mem, MGraph2>,
+   mginsertVMT<MPointer, MGraph2>
+};
+
+int mginsertSelect(ListExpr args){
+  return getRepNum(nl->Second(args));
+}
+
+OperatorSpec mg2insertSpec(
+  "stream<tuple> x MGRAPH2 -> stream(tuple)",
+  "_ mg2insert[_]",
+  "Inserts graph tuples into a graph."
+  "Tuples with invalid values are ignored and are "
+  "not passed to the output stream. "
+  "Invalid tuples may have source or target node "
+  "outside the graph or negative costs.",
+  "query newEdges feed mginsert[\"mg2\"] count"
+);
+
+
+Operator mg2insertOp(
+  "mg2insert",
+  mg2insertSpec.getStr(),
+  3,
+  mg2insertVM,
+  mginsertSelect,
+  mginsertTM<MGraph2>
+);
+
+/*
+10.5 mgfeed
+
+*/
+template<class G>
+ListExpr mgfeedTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  } 
+  ListExpr g = nl->First(args);
+  string err;
+  if(!getMemType(g,g,err,true)){
+    return listutils::typeError(err);
+  }
+  g = nl->Second(g);
+  if(!G::checkType(g)){
+    return listutils::typeError("argument is not a memory graph");
+  }
+  return nl->TwoElemList(
+             listutils::basicSymbol<Stream<Tuple> >(),
+             nl->Second(g));
+  
+}
+
+
+template<class GN, class Graph>
+int mg2feedVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+
+  typedef typename Graph::edgeIterator iterator;
+  iterator* li = (iterator*) local.addr;
+  switch(message){
+    case OPEN: {
+      if(li){
+         delete li;
+         local.addr = 0;
+      }
+      Graph* g = getMemObject<Graph>((GN*) args[0].addr);
+      if(!g) return 0;
+      local.addr = g->getEdgeIt();
+      return 0;
+    }
+    case REQUEST:
+      result.addr = li?li->next():0;
+      return result.addr?YIELD:CANCEL;
+    case CLOSE:
+      if(li){
+         delete li;
+         local.addr = 0;
+      }
+      return 0;
+  }
+  return -1; 
+}
+
+ValueMapping mg2feedVM[] = {
+   mg2feedVMT<CcString, MGraph2>,
+   mg2feedVMT<Mem, MGraph2>,
+   mg2feedVMT<MPointer, MGraph2>
+};
+
+int mgfeedSelect(ListExpr args){
+  return getRepNum(nl->First(args));
+}
+
+OperatorSpec mg2feedSpec(
+  "MGRAPH -> stream(tuple)",
+  " _ mg2feed",
+  "Extract the edges from a mgraph2 object",
+  "query \"mg2\" mgfeed count"
+);
+
+
+Operator mg2feedOp(
+  "mg2feed",
+  mg2feedSpec.getStr(),
+  3,
+  mg2feedVM,
+  mgfeedSelect,
+  mgfeedTM<MGraph2>
+);
+
+
+/*
+10.5 Operator mg2nodemap
+
+*/
+ListExpr mg2nodemapTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two arguments required");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  } 
+  ListExpr g = nl->First(args);
+  string err;
+  if(!getMemType(g,g,err,true)){
+    return listutils::typeError(err);
+  }
+  g = nl->Second(g);
+  if(!MGraph2::checkType(g)){
+    return listutils::typeError("argument is not a memory graph");
+  }
+  // check second argument
+  ListExpr node = nl->First(nl->Second(args));
+  if(!CcInt::checkType(node) && !LongInt::checkType(node)){
+    return listutils::typeError("second arg has to be of type int or longint");
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+
+template<class G, class N>
+int mg2nodemapVMT(Word* args, Word& result, int message,
+                  Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  CcInt*  res = (CcInt*) result.addr;
+  MGraph2* g = getMemObject<MGraph2>((G*) args[0].addr);
+  if(!g){
+     res->SetDefined(false);
+     return 0;
+  }
+  N* v = (N*) args[1].addr;
+  if(!v->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+
+  int r = g->mapNode(v->GetValue());
+  if(r<0){
+     res->SetDefined(false);
+     return 0;
+  }
+  res->Set(true,r);
+  return 0;
+}
+
+ValueMapping mg2nodemapVM[] = {
+  mg2nodemapVMT<CcString,CcInt>,
+  mg2nodemapVMT<CcString,LongInt>,
+  mg2nodemapVMT<Mem,CcInt>,
+  mg2nodemapVMT<Mem,LongInt>,
+  mg2nodemapVMT<MPointer,CcInt>,
+  mg2nodemapVMT<MPointer,LongInt>
+};
+
+int mg2nodemapSelect(ListExpr args){
+  int n1 = getRepNum(nl->First(args));
+  int n2 = CcInt::checkType(nl->Second(args))?0:1;
+  return 2*n1+n2;
+}
+
+OperatorSpec mg2nodemapSpec(
+  "MGRAPH2 x {int, longint}  -> int",
+  "_ mg2nodemap[_]",
+  "Returns the internal node number for a node having "
+  "a nodenumber corresponding to the argument.",
+  "query \"mg2\" noemap[40]"
+);
+
+Operator mg2nodemapOp(
+  "mg2nodemap",
+  mg2nodemapSpec.getStr(),
+  6,
+  mg2nodemapVM,
+  mg2nodemapSelect,
+  mg2nodemapTM
+);
+
+/*
+10.6 Operator mg2numvertices
+
+*/
+template<class Graph>
+ListExpr mgnumverticesTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  } 
+  ListExpr g = nl->First(args);
+  string err;
+  if(!getMemType(g,g,err,true)){
+    return listutils::typeError(err);
+  }
+  g = nl->Second(g);
+  if(!Graph::checkType(g)){
+    return listutils::typeError("argument is not a" + Graph::BasicType());
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+template<class GN, class Graph>
+int mgnumverticesVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  CcInt*  res = (CcInt*) result.addr;
+  Graph* g = getMemObject<Graph>((GN*) args[0].addr);
+  if(!g){
+     res->SetDefined(false);
+     return 0;
+  }
+  res->Set(true,g->numVertices());
+  return 0; 
+}
+
+ValueMapping mg2numverticesVM[] = {
+  mgnumverticesVMT<CcString, MGraph2>,
+  mgnumverticesVMT<Mem, MGraph2>,
+  mgnumverticesVMT<MPointer, MGraph2>
+};
+
+int mgnumverticesSelect(ListExpr args){
+  return getRepNum(nl->First(args));
+}
+
+OperatorSpec mg2numverticesSpec(
+  "MGRAPH2 -> int",
+  "mg2numvertices(_)",
+  "Returns the number of nodes of a mgraph2 object",
+  "query mgenumvertices(\"mg2\")"
+);
+
+Operator mg2numverticesOp(
+  "mg2numvertices",
+  mg2numverticesSpec.getStr(),
+  3,
+  mg2numverticesVM,
+  mgnumverticesSelect,
+  mgnumverticesTM<MGraph2>
+);
+
+/*
+10.7 mgsuccessors mgpredecessors
+
+*/
+template<class Graph>
+ListExpr mgsuccpredTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two arguments required");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  } 
+  ListExpr g = nl->First(args);
+  string err;
+  if(!getMemType(g,g,err,true)){
+    return listutils::typeError(err);
+  }
+  g = nl->Second(g);
+  if(!Graph::checkType(g)){
+    return listutils::typeError("argument is not a " + Graph::BasicType());
+  }
+  // check second argument
+  ListExpr node = nl->First(nl->Second(args));
+  if(!CcInt::checkType(node) ){
+    return listutils::typeError("second arg has to be of type int");
+  }
+  return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                         nl->Second(g));
+}
+
+
+
+template<class GN, class Graph, bool isSucc>
+int mgsuccpredVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+ 
+   typedef typename Graph::singleNodeIterator iterator;
+   iterator* li = (iterator*) local.addr;
+
+   switch(message){
+     case OPEN: {
+        if(li){
+          delete li;
+          local.addr = 0;
+        }
+        Graph* g = getMemObject<Graph>((GN*) args[0].addr);
+        if(!g){
+          return 0;
+        }
+        CcInt* v = (CcInt*) args[1].addr;
+        if(!v->IsDefined()){
+          return 0;
+        }
+        if(isSucc){
+           local.addr = g->getSuccessors(v->GetValue());
+        } else {
+           local.addr = g->getPredecessors(v->GetValue());
+        }
+        return 0;
+     }
+     case REQUEST:{
+        result.addr = li?li->next():0;
+        return result.addr?YIELD:CANCEL;
+     }
+     case CLOSE: {
+         if(li){
+           delete li;
+           local.addr = 0;
+         }
+         return 0;
+     }
+   }
+   return -1;
+}
+
+ValueMapping mg2successorsVM[] = {
+mgsuccpredVMT<CcString,MGraph2,true>,
+mgsuccpredVMT<Mem,MGraph2,true>,
+mgsuccpredVMT<MPointer,MGraph2,true>
+};
+
+ValueMapping mg2predecessorsVM[] = {
+mgsuccpredVMT<CcString,MGraph2,false>,
+mgsuccpredVMT<Mem,MGraph2,false>,
+mgsuccpredVMT<MPointer,MGraph2,false>
+};
+
+int mgsuccpredSelect(ListExpr args){
+return getRepNum(nl->First(args));
+}
+
+OperatorSpec mg2successorsSpec(
+"MGRAPH2 x int -> stream(tuple)",
+"_ mg2successors [_]",
+"returns the successors of a specified node.",
+"query \"mg2\" mg2successors[0] count"
+);
+
+OperatorSpec mg2predecessorsSpec(
+"MGRAPH2 x int -> stream(tuple)",
+"_ mg2predecessors [_]",
+"returns the predecessors of a specified node.",
+"query \"mg2\" mg2predecessors[0] count"
+);
+
+Operator mg2successorsOp(
+"mg2successors",
+mg2successorsSpec.getStr(),
+3,
+mg2successorsVM,
+mgsuccpredSelect,
+mgsuccpredTM<MGraph2>
+);
+
+
+Operator mg2predecessorsOp(
+"mg2predecessors",
+mg2predecessorsSpec.getStr(),
+3,
+mg2predecessorsVM,
+mgsuccpredSelect,
+mgsuccpredTM<MGraph2>
+);
+
+/*
+10.7 number of predecessors and successors
+
+*/
+template<class Graph>
+ListExpr mgnumsuccpredTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two arguments required");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  } 
+  ListExpr g = nl->First(args);
+  string err;
+  if(!getMemType(g,g,err,true)){
+    return listutils::typeError(err);
+  }
+  g = nl->Second(g);
+  if(!Graph::checkType(g)){
+    return listutils::typeError("argument is not a " + Graph::BasicType());
+  }
+  // check second argument
+  ListExpr node = nl->First(nl->Second(args));
+  if(!CcInt::checkType(node) ){
+    return listutils::typeError("second arg has to be of type int");
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+template<class GN, class Graph, bool isSucc>
+int mgnumsuccpredVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  CcInt*  res = (CcInt*) result.addr;
+  Graph* g = getMemObject<Graph>((GN*) args[0].addr);
+  if(!g){
+     res->SetDefined(false);
+     return 0;
+  }
+  CcInt* v = (CcInt*) args[1].addr;
+  if(!v->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  int c = isSucc?g->succCount(v->GetValue()):g->predCount(v->GetValue());
+  if(c<0){
+    res->SetDefined(false);
+    return 0;
+  }
+  res->Set(true,c);
+  return 0;
+}
+
+
+ValueMapping mg2numsuccessorsVM[] = {
+   mgnumsuccpredVMT<CcString,MGraph2,true>,
+   mgnumsuccpredVMT<Mem,MGraph2,true>,
+   mgnumsuccpredVMT<MPointer,MGraph2,true>
+};
+
+ValueMapping mg2numpredecessorsVM[] = {
+   mgnumsuccpredVMT<CcString,MGraph2,false>,
+   mgnumsuccpredVMT<Mem,MGraph2,false>,
+   mgnumsuccpredVMT<MPointer,MGraph2,false>
+};
+
+int mgnumsuccpredSelect(ListExpr args){
+  return getRepNum(nl->First(args));
+}
+
+OperatorSpec mg2numsuccessorsSpec(
+  "MGRAPH2 x int -> int",
+  "_ mg2numsuccessors[_]",
+  "Return the count of successors of a vertex.",
+  "query \"mg2\" mg2numsuccessors[1] "
+);
+
+OperatorSpec mg2numpredecessorsSpec(
+  "MGRAPH2 x int -> int",
+  "_ mg2numpredecessors[_]",
+  "Return the count of predecessors of a vertex.",
+  "query \"mg2\" mg2numpredecessors[1] "
+);
+
+Operator mg2numsuccessorsOp(
+  "mg2numsuccessors",
+  mg2numsuccessorsSpec.getStr(),
+  3,
+  mg2numsuccessorsVM,
+  mgnumsuccpredSelect,
+  mgnumsuccpredTM<MGraph2>
+);
+
+Operator mg2numpredecessorsOp(
+  "mg2numpredecessors",
+  mg2numpredecessorsSpec.getStr(),
+  3,
+  mg2numpredecessorsVM,
+  mgnumsuccpredSelect,
+  mgnumsuccpredTM<MGraph2>
+);
+
+/*
+10.8 mg2disconnect
+
+*/
+template<class Graph>
+ListExpr mgdisconnectTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two arguments required");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  } 
+  ListExpr g = nl->First(args);
+  string err;
+  if(!getMemType(g,g,err,true)){
+    return listutils::typeError(err);
+  }
+  g = nl->Second(g);
+  if(!Graph::checkType(g)){
+    return listutils::typeError("argument is not a " + Graph::BasicType());
+  }
+  // check second argument
+  ListExpr node = nl->First(nl->Second(args));
+  if(!CcInt::checkType(node) ){
+    return listutils::typeError("second arg has to be of type int");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+template<class GN, class Graph>
+int mgdisconnectVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  CcBool*  res = (CcBool*) result.addr;
+  Graph* g = getMemObject<Graph>((GN*) args[0].addr);
+  if(!g){
+     res->SetDefined(false);
+     return 0;
+  }
+  CcInt* v = (CcInt*) args[1].addr;
+  if(!v->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  res->Set(true,g->disconnect(v->GetValue()));
+  return 0;
+}
+
+ValueMapping mg2disconnectVM[] = {
+   mgdisconnectVMT<CcString, MGraph2>,
+   mgdisconnectVMT<Mem, MGraph2>,
+   mgdisconnectVMT<MPointer, MGraph2>
+};
+
+int mgdisconnectSelect(ListExpr args){
+  return getRepNum(nl->First(args));
+}
+
+
+OperatorSpec mg2disconnectSpec(
+  "MGRAPH2 x int -> bool",
+  "_ mg2disconnect[_]",
+  "Disconnects a specified node from the rest of the graph",
+  "query \"mg2\" mg2disconnect[6] "
+);
+
+
+Operator mg2disconnectOp(
+  "mg2disconnect",
+  mg2disconnectSpec.getStr(),
+  3,
+  mg2disconnectVM,
+  mgdisconnectSelect,
+  mgdisconnectTM<MGraph2>
+);
+
+/*
+11 Operators for mgraph3
+
+*/
+ListExpr createmgraph3TM(ListExpr args){
+  // stream(tuple) x SourceName x TargetName x CostName x Size x GraphName
+  if(!nl->HasLength(args,6)){
+     return listutils::typeError("6 args expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  // first arg: tuple stream
+  ListExpr ts = nl->First(nl->First(args));
+  if(!Stream<Tuple>::checkType(ts)){
+    return listutils::typeError("First arg is not a tuple stream");
+  }
+  // second arg: name of src
+  ListExpr sn = nl->First(nl->Second(args));
+  if(nl->AtomType(sn)!=SymbolType){
+    return listutils::typeError("second arg is not a valid attribute name");
+  }
+  string src = nl->SymbolValue(sn);
+  ListExpr attrType;
+  ListExpr attrList = nl->Second(nl->Second(ts));
+  int srcIndex = listutils::findAttribute(attrList, src,attrType);
+  if(!srcIndex){
+     return listutils::typeError("attribute " + src + " not part of the tuple");
+  }
+  if(!CcInt::checkType(attrType)){
+     return listutils::typeError("attribute " + src + " not of type int");
+  }
+  // third arg: name of target
+  ListExpr tn = nl->First(nl->Third(args));
+  if(nl->AtomType(tn)!=SymbolType){
+    return listutils::typeError("third arg is not a valid attribute name");
+  }
+  string target = nl->SymbolValue(tn);
+  int targetIndex = listutils::findAttribute(attrList, target,attrType);
+  if(!targetIndex){
+     return listutils::typeError("attribute " + target 
+                                  + " not part of the tuple");
+  }
+  if(!CcInt::checkType(attrType)){
+     return listutils::typeError("attribute " + target + " not of type int");
+  }
+  // fourth  arg: name of cost
+  ListExpr cn = nl->First(nl->Fourth(args));
+  if(nl->AtomType(cn)!=SymbolType){
+    return listutils::typeError("fourth arg is not a valid attribute name");
+  }
+  string cost = nl->SymbolValue(cn);
+  int costIndex = listutils::findAttribute(attrList, cost,attrType);
+  if(!costIndex){
+     return listutils::typeError("attribute " + cost 
+                                 + " not part of the tuple");
+  }
+  if(!CcReal::checkType(attrType)){
+     return listutils::typeError("attribute " + cost + " not of type real");
+  }
+  // fifth arg: graph size
+  ListExpr size = nl->First(nl->Fifth(args));
+  if(!CcInt::checkType(size)){
+     return listutils::typeError("fifth attribute is not of type int");
+  }
+  // sicth arg: a constant string
+  ListExpr gn = nl->First(nl->Sixth(args));
+  if(!CcString::checkType(gn)){
+    return listutils::typeError("sixth arg is not of type string");
+  }
+  gn = nl->Second(nl->Sixth(args));
+  if(nl->AtomType(gn) != StringType){
+    return listutils::typeError("sixth arg is not a constant string");
+  }
+  string graph = nl->StringValue(gn);
+  if(catalog->isMMObject(graph)){
+     return listutils::typeError(graph + " is already a main memory object");
+  }
+  return nl->ThreeElemList(
+            nl->SymbolAtom(Symbols::APPEND()),
+            nl->ThreeElemList( nl->IntAtom(srcIndex-1),
+                               nl->IntAtom(targetIndex-1),
+                               nl->IntAtom(costIndex-1)),
+            ts
+         );
+}
+
+
+
+class createmgraph3Info{
+  public:
+     createmgraph3Info(Word _stream,MGraph3* _graph):
+       stream(_stream), graph(_graph){
+       stream.open();
+     }
+     ~createmgraph3Info(){
+       stream.close();
+     }
+     Tuple* next(){
+        Tuple* t;
+        while((t = stream.request())){
+           if(graph->insertGraphEdge(t)){
+              return t;
+           }
+           t->DeleteIfAllowed();
+        }
+        return 0;
+     }
+  private:
+     Stream<Tuple> stream;
+     MGraph3* graph;
+};
+             
+template<bool flob>
+int createmgraph3VMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+
+   createmgraph3Info* li = (createmgraph3Info*) local.addr;
+   switch(message){
+      case OPEN:{
+             if(li){
+               delete li;
+               local.addr = 0;
+             }
+             CcString* g = (CcString*)args[5].addr;
+             if(!g->IsDefined()){
+                return 0;
+             }
+             string gn = g->GetValue();
+             if(catalog->isMMObject(gn)){
+                return 0;
+             }
+             CcInt* Size = (CcInt*) args[4].addr;
+             if(!Size->IsDefined()){
+                return 0;
+             }
+             int size = Size->GetValue();
+             if(size<=0){
+                return 0;
+             }
+             int srcPos = ((CcInt*) args[6].addr)->GetValue();
+             int targetPos = ((CcInt*) args[7].addr)->GetValue();
+             int costPos = ((CcInt*) args[8].addr)->GetValue();
+             ListExpr tupleType = nl->Second(qp->GetType(s));
+             ListExpr gt = nl->TwoElemList(
+                   listutils::basicSymbol<Mem>(),
+                   nl->TwoElemList(
+                      listutils::basicSymbol<MGraph3>(),
+                      tupleType));
+             MGraph3* mg3 = new MGraph3(flob, getDBname(),
+                                  nl->ToString(gt),
+                                  srcPos, targetPos, costPos,
+                                  size);
+             catalog->insert(gn,mg3);
+             local.addr = new createmgraph3Info(args[0], mg3);
+             return 0;
+           }
+     case REQUEST: {
+             result.addr = li?li->next():0;
+             return result.addr?YIELD:CANCEL;
+          }
+     case CLOSE : {
+              if(li){
+                delete li;
+                local.addr = 0;
+              }
+              return 0;
+          }
+   }
+   return -1;
+}
+
+OperatorSpec createmgraph3Spec(
+  "stream(tuple) x IDENT x IDENT x IDENT x int x string -> stream(tuple)",
+  "edges createmgraph3[Src, Target, Cost, Size , GName] ",
+  "Creates an mgraph3 object in main memory using the given size. The graph "
+  "will have Size vertices numbered from 0..Size-1. "
+  "The Edges are defined by the incoming tuples. Src and Target must be "
+  "attributes of the edges of type int. Cost ist an attribute of the edges "
+  "of type real. GName is the name of the resulting mgraph3 object. "
+  "Edges having undefined or negative costs are removed from the stream and "
+  "not inserted into the graph. The same holds for edges having invalid "
+  "Source or Target (undefined or outside the range [0,Size-1]).",
+  "query rel feed createmgraph3[Id_s1, Id_s2, Cost, 1024, \"mg3\""
+);
+
+Operator createmgraph3Op(
+  "createmgraph3",
+  createmgraph3Spec.getStr(),
+  createmgraph3VMT<false>,
+  Operator::SimpleSelect,
+  createmgraph3TM
+);
+
+
+/*
+11.2 inserting new edges using mg3insert
+
+*/
+
+ValueMapping mg3insertVM[] = {
+   mginsertVMT<CcString, MGraph3>,
+   mginsertVMT<Mem, MGraph3>,
+   mginsertVMT<MPointer, MGraph3>
+};
+
+
+OperatorSpec mg3insertSpec(
+  "stream<tuple> x MGRAPH3 -> stream(tuple)",
+  "_ mg2insert[_]",
+  "Inserts tuples into an existing graph."
+  "Tuples with invalid values are ignored and are "
+  "not passed to the output stream. "
+  "Invalid tuples may have source or target node "
+  "outside the graph or negative costs.",
+  "query newEdges feed mginsert[\"mg3\"] count"
+);
+
+
+Operator mg3insertOp(
+  "mg3insert",
+  mg3insertSpec.getStr(),
+  3,
+  mg3insertVM,
+  mginsertSelect,
+  mginsertTM<MGraph3>
+);
+
+
+/*
+11.3 Operator mg3feed
+
+*/
+
+ValueMapping mg3feedVM[] = {
+   mg2feedVMT<CcString, MGraph3>,
+   mg2feedVMT<Mem, MGraph3>,
+   mg2feedVMT<MPointer, MGraph3>
+};
+
+
+OperatorSpec mg3feedSpec(
+  "MGRAPH3 -> stream(tuple)",
+  " _ mg3feed",
+  "Extract the edges from a mgraph3 object",
+  "query \"mg3\" mgfeed count"
+);
+
+
+Operator mg3feedOp(
+  "mg3feed",
+  mg3feedSpec.getStr(),
+  3,
+  mg3feedVM,
+  mgfeedSelect,
+  mgfeedTM<MGraph3>
+);
+
+
+/*
+Number of vertices
+
+*/
+
+ValueMapping mg3numverticesVM[] = {
+  mgnumverticesVMT<CcString, MGraph3>,
+  mgnumverticesVMT<Mem, MGraph3>,
+  mgnumverticesVMT<MPointer, MGraph3>
+};
+
+OperatorSpec mg3numverticesSpec(
+  "MGRAPH3 -> int",
+  "mg3numvertices(_)",
+  "Returns the number of nodes of a mgraph3 object",
+  "query mg3numvertices(\"mg3\")"
+);
+
+Operator mg3numverticesOp(
+  "mg3numvertices",
+  mg3numverticesSpec.getStr(),
+  3,
+  mg3numverticesVM,
+  mgnumverticesSelect,
+  mgnumverticesTM<MGraph3>
+);
+
+
+/*
+Successors, Predecessors
+
+*/
+
+ValueMapping mg3successorsVM[] = {
+mgsuccpredVMT<CcString,MGraph3,true>,
+mgsuccpredVMT<Mem,MGraph3,true>,
+mgsuccpredVMT<MPointer,MGraph3,true>
+};
+
+ValueMapping mg3predecessorsVM[] = {
+mgsuccpredVMT<CcString,MGraph3,false>,
+mgsuccpredVMT<Mem,MGraph3,false>,
+mgsuccpredVMT<MPointer,MGraph3,false>
+};
+
+
+OperatorSpec mg3successorsSpec(
+"MGRAPH3 x int -> stream(tuple)",
+"_ mg3successors [_]",
+"returns the successors of a specified node.",
+"query \"mg3\" mg3successors[0] count"
+);
+
+OperatorSpec mg3predecessorsSpec(
+"MGRAPH3 x int -> stream(tuple)",
+"_ mg3predecessors [_]",
+"returns the predecessors of a specified node.",
+"query \"mg3\" mg3predecessors[0] count"
+);
+
+Operator mg3successorsOp(
+"mg3successors",
+mg3successorsSpec.getStr(),
+3,
+mg3successorsVM,
+mgsuccpredSelect,
+mgsuccpredTM<MGraph3>
+);
+
+
+Operator mg3predecessorsOp(
+"mg3predecessors",
+mg3predecessorsSpec.getStr(),
+3,
+mg3predecessorsVM,
+mgsuccpredSelect,
+mgsuccpredTM<MGraph3>
+);
+
+
+/*
+Number of successors / predecessors
+
+*/
+ValueMapping mg3numsuccessorsVM[] = {
+   mgnumsuccpredVMT<CcString,MGraph3,true>,
+   mgnumsuccpredVMT<Mem,MGraph3,true>,
+   mgnumsuccpredVMT<MPointer,MGraph3,true>
+};
+
+ValueMapping mg3numpredecessorsVM[] = {
+   mgnumsuccpredVMT<CcString,MGraph3,false>,
+   mgnumsuccpredVMT<Mem,MGraph3,false>,
+   mgnumsuccpredVMT<MPointer,MGraph3,false>
+};
+
+
+OperatorSpec mg3numsuccessorsSpec(
+  "MGRAPH3 x int -> int",
+  "_ mg3numsuccessors[_]",
+  "Return the count of successors of a vertex.",
+  "query \"mg3\" mg3numsuccessors[1] "
+);
+
+OperatorSpec mg3numpredecessorsSpec(
+  "MGRAPH3 x int -> int",
+  "_ mg3numpredecessors[_]",
+  "Return the count of predecessors of a vertex.",
+  "query \"mg3\" mg3numpredecessors[1] "
+);
+
+Operator mg3numsuccessorsOp(
+  "mg3numsuccessors",
+  mg3numsuccessorsSpec.getStr(),
+  3,
+  mg3numsuccessorsVM,
+  mgnumsuccpredSelect,
+  mgnumsuccpredTM<MGraph3>
+);
+
+Operator mg3numpredecessorsOp(
+  "mg3numpredecessors",
+  mg3numpredecessorsSpec.getStr(),
+  3,
+  mg3numpredecessorsVM,
+  mgnumsuccpredSelect,
+  mgnumsuccpredTM<MGraph3>
+);
+
+/*
+disconect
+
+*/
+
+ValueMapping mg3disconnectVM[] = {
+   mgdisconnectVMT<CcString, MGraph3>,
+   mgdisconnectVMT<Mem, MGraph3>,
+   mgdisconnectVMT<MPointer, MGraph3>
+};
+
+
+
+OperatorSpec mg3disconnectSpec(
+  "MGRAPH3 x int -> bool",
+  "_ mg3disconnect[_]",
+  "Disconnects a specified node from the rest of the graph",
+  "query \"mg3\" mg3disconnect[6] "
+);
+
+
+Operator mg3disconnectOp(
+  "mg3disconnect",
+  mg3disconnectSpec.getStr(),
+  3,
+  mg3disconnectVM,
+  mgdisconnectSelect,
+  mgdisconnectTM<MGraph3>
+);
+
+
+/*
+23 Algebra Definition
+
+*/
 
 
 class MainMemory2Algebra : public Algebra {
@@ -18431,6 +19966,51 @@ class MainMemory2Algebra : public Algebra {
           insertmstackOp.SetUsesArgsInTypeMapping();
 
           AddOperator(&mblockOp);
+
+          // operators on mgraph2
+
+          AddOperator(&createmgraph2Op);
+          createmgraph2Op.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2insertorigOp);
+          mg2insertorigOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2insertOp);
+          mg2insertOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2feedOp);
+          mg2feedOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2nodemapOp);
+          mg2nodemapOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2numverticesOp);
+          mg2numverticesOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2successorsOp);
+          mg2successorsOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2predecessorsOp);
+          mg2predecessorsOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2numsuccessorsOp);
+          mg2numsuccessorsOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2numpredecessorsOp);
+          mg2numpredecessorsOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2disconnectOp);
+          mg2disconnectOp.SetUsesArgsInTypeMapping();
+           
+          // operators on mgraph3
+          AddOperator(&createmgraph3Op);
+          createmgraph3Op.SetUsesArgsInTypeMapping();
+          AddOperator(&mg3insertOp);
+          mg3insertOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg3feedOp);
+          mg3feedOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg3numverticesOp);
+          mg3numverticesOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg3successorsOp);
+          mg3successorsOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg3predecessorsOp);
+          mg3predecessorsOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg3numsuccessorsOp);
+          mg3numsuccessorsOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg3numpredecessorsOp);
+          mg3numpredecessorsOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg3disconnectOp);
+          mg3disconnectOp.SetUsesArgsInTypeMapping();
 
         }
         

@@ -1264,4 +1264,141 @@ Signature : stream(tuple) x MSTACK -> stream(tuple)
 Example   : query plz feed insertmstack["plzstack1"] count = plz count
 Result    : TRUE
 
+Operator  : createmgraph2
+Number    : 900
+Signature : stream(tuple) x IDENT x IDENT x fun x string -> stream(tuple@(MG_Source int, MG_Target int, MG_Cost : real))
+Example   : query otestrel feed createmgraph2[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2), "mgraph2"] count = otestrel count
+Result    : TRUE
+
+
+Operator  : createmgraph2
+Number    : 901
+Signature : stream(tuple) x IDENT x IDENT x fun x string -> stream(tuple@(MG_Source int, MG_Target int, MG_Cost : real))
+Example   : query otestrel feed head[0] createmgraph2[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2), "mgraph2_1"] count 
+Result    : 0
+
+Operator  : mg2insertorig
+Number    : 902
+Signature : stream(tuple) x IDENT x IDENT x fun x MGRAPH2 -> stream(tuple@(MG_Source int, MG_Target int, MG_Cost : real))
+Example   : query otestrel feed mg2insertorig[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2), "mgraph2_1"] count = otestrel count
+Result    : TRUE
+
+Operator  : mg2insert
+Number    : 903
+Signature : stream(tuple) x MGRAPH -> stream(tuple)
+Example   : query intstream(0,0) transformstream projectextend[; Id_s1 : 1, Id_s2 : 12, Name_s1 : "Brandenburger Tor", Name_s2 : "Glockenturm", GeoData_s1 : [const point value (8593 12243)] , GeoData_s2 :[const point value (-1265 11792)] , MG_Source : 0, MG_Target : 11] extend[MG_Cost : distance(.GeoData_s1, .GeoData_s2)] mg2insert["mgraph2_1"] count
+Result    : 1
+
+
+Operator  : mg2feed
+Number    : 904
+Signature : MGRAPH2 -> stream(tuple)
+Example   : query "mgraph2_1" mg2feed count
+Result    : 75
+
+
+Operator  : mg2nodemap
+Number    : 905
+Signature : MGRAPH2 x {int,longint} -> int
+Example   : query "mgraph2_1" mg2nodemap[40] = "mgraph2_1" mg2feed filter[.Id_s1=40] extract[MG_Source]
+Result    : TRUE
+
+Operator  : mg2numvertices
+Number    : 906
+Signature : MGRAPH2 -> int
+Example   : query mg2numvertices("mgraph2_1");
+Result    : 20
+
+Operator  : mg2successors
+Number    : 907
+Signature : MGRAPH2 x int -> stream(tuple)
+Example   : query "mgraph2_1" mg2successors[1] count
+Result    : 4
+
+Operator  : mg2predecessors
+Number    : 908
+Signature : MGRAPH2 x int -> stream(tuple)
+Example   : query "mgraph2_1" mg2predecessors[1] count
+Result    : 4
+
+
+Operator  : mg2numsuccessors
+Number    : 909
+Signature : MGRAPH2 x int -> stream(tuple)
+Example   : query "mgraph2_1" mg2numsuccessors[1] 
+Result    : 4
+
+Operator  : mg2numpredecessors
+Number    : 910
+Signature : MGRAPH2 x int -> stream(tuple)
+Example   : query "mgraph2_1" mg2numpredecessors[1] 
+Result    : 4
+ 
+
+Operator  : mg2disconnect
+Number    : 911
+Signature : MGRAPH2 x int -> stream(tuple)
+Example   : query "mgraph2_1" mg2disconnect[1] 
+Result    : TRUE
+
+
+Operator  : createmgraph3
+Number    : 1000
+Signature : stream(tuple) x IDENT x IDENT x IDENT x int x string -> stream(tuple)
+Example   : query "mgraph2_1" mg2feed projectextend[GeoData_s1, GeoData_s2, Name_s1, Name_s2; Id_s1 : .MG_Source, Id_s2 : .MG_Target, Cost : .MG_Cost] createmgraph3[Id_s1, Id_s2, Cost, mg2numvertices("mgraph2_1"),"mgraph3_1"] count = "mgraph2_1" mg2feed count
+Result    : TRUE
+
+
+Operator  : mg3feed
+Number    : 1002
+Signature : MGRAPH3 -> stream(tuple)
+Example   : query "mgraph3_1" mg3feed count = "mgraph2_1" mg2feed count
+Result    : TRUE
+
+
+Operator  : mg3numvertices
+Number    : 1003
+Signature : MGRAPH3 -> int
+Example   : query mg3numvertices("mgraph3_1") = mg2numvertices("mgraph2_1")
+Result    : TRUE
+
+
+Operator  : mg3successors
+Number    : 1004
+Signature : MGRAPH3 x int -> stream(tuple)
+Example   : query "mgraph3_1" mg3successors[1]  count =  "mgraph2_1" mg2successors[1]  count 
+Result    : TRUE
+
+Operator  : mg3predecessors
+Number    : 1005
+Signature : MGRAPH3 x int -> stream(tuple)
+Example   : query "mgraph3_1" mg3predecessors[1] count = "mgraph2_1" mg2predecessors[1] count
+Result    : TRUE
+
+
+Operator  : mg3numsuccessors
+Number    : 1006
+Signature : MGRAPH3 x int -> stream(tuple)
+Example   : query "mgraph3_1" mg3numsuccessors[1] =  "mgraph2_1" mg2numsuccessors[1] 
+Result    : TRUE
+
+Operator  : mg3numpredecessors
+Number    : 1007
+Signature : MGRAPH3 x int -> stream(tuple)
+Example   : query "mgraph3_1" mg3numpredecessors[1]  = "mgraph2_1" mg2numpredecessors[1]
+Result    : TRUE
+ 
+
+Operator  : mg3disconnect
+Number    : 1008
+Signature : MGRAPH3 x int -> stream(tuple)
+Example   : query "mgraph3_1" mg3disconnect[1] 
+Result    : TRUE
+
+
+Operator  : mg3insert
+Number    : 1009
+Signature : stream(tuple) x MGRAPH3 -> stream(tuple)
+Example   : query intstream(0,0) transformstream projectextend[; GeoData_s1 : [const point value (8593 12243)] , GeoData_s2 :[const point value (-1265 11792)], Name_s1 : "Brandenburger Tor", Name_s2 : "Glockenturm", Id_s1 : 1, Id_s2 : 12  ] extend[Cost : distance(.GeoData_s1, .GeoData_s2)] mg3insert["mgraph3_1"] count
+Result    : 1
 

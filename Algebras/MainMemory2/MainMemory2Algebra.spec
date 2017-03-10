@@ -135,6 +135,7 @@ operator insertmv alias INSERTMV pattern _ op [_,_]
 
 
 operator count alias COUNT pattern _ op
+operator mblock alias MBLOCK pattern _ op 
 
 
 operator mcreatepqueue alias mcreatepqueue pattern _ op[_,_]
@@ -142,11 +143,6 @@ operator size alias SIZE pattern op(_)
 operator mfeedpq alias MFEEDPQ pattern _ op
 operator mfeedpqAbort alias MFEEDPQABORT pattern _ op [_ ]
 operator minserttuplepq alias MINSERTTUPLEPQ pattern op(_,_,_,_)
-
-
-operator mblock alias MBLOCK pattern _ op 
-
-
 operator minserttuplepqprojectU alias MINSERTTUPLEPQPROJECTU pattern _ op[_,_,_;list]
 operator minserttuplepqproject alias MINSERTTUPLEPQPROJECT pattern _ op[_,_;list]
 
@@ -155,7 +151,30 @@ operator mcreatestack alias MCREATESTACK pattern _ op [_]
 operator mcreatestackflob alias MCREATESTACKFLOB pattern _ op [_]
 operator mfeedstack alias MFEEDSTACK pattern _ op
 operator stacksize alias STACKSIZE pattern op(_)
-operator insertmstack alias INSERTMSTACK pattern _ op[_]
+operator insertmstack alias INSERTMSTACK pattern _ op [_]
+
+
+operator createmgraph2 alias CREATEMGRAPH2 pattern _ op [_,_,fun,_] implicit parameter streamelem type STREAMELEM
+operator mg2insertorig alias MG2INSERTORIG pattern _ op [_,_,fun,_] implicit parameter streamelem type STREAMELEM
+operator mg2insert alias MG2INSERT pattern _ op [_]
+operator mg2feed alias MG2FEED pattern _ op
+operator mg2nodemap alias MG2NODEMAP pattern _ op[_]
+operator mg2numvertices alias MG2NUMVERTICES pattern op(_)
+operator mg2successors alias MG2SUCCESSORS pattern _ op[_]
+operator mg2predecessors alias MG2PREDECESSORS pattern _ op[_]
+operator mg2numsuccessors alias MG2NUMSUCCESSORS pattern _ op[_]
+operator mg2numpredecessors alias MG2NUMPREDECESSORS pattern _ op[_]
+operator mg2disconnect alias MG2NUMPREDECESSORS pattern _ op[_]
+
+operator createmgraph3 alias CREATEMGRAPH3 pattern _ op [_,_,_,_,_]
+operator mg3insert alias MG3INSERT pattern _ op [_]
+operator mg3feed alias mg3feed pattern _ op
+operator mg3numvertices alias MG3NUMVERTICES pattern op(_)
+operator mg3successors alias MG3SUCCESSORS pattern _ op[_]
+operator mg3predecessors alias MG3PREDECESSORS pattern _ op[_]
+operator mg3numsuccessors alias MG3NUMSUCCESSORS pattern _ op[_]
+operator mg3numpredecessors alias MG3NUMPREDECESSORS pattern _ op[_]
+operator mg3disconnect alias MG3NUMPREDECESSORS pattern _ op[_]
 
 
 
