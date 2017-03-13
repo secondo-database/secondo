@@ -1341,6 +1341,12 @@ Signature : MGRAPH2 x int -> stream(tuple)
 Example   : query "mgraph2_1" mg2disconnect[1] 
 Result    : TRUE
 
+Operator  : mg2connectedcomponents
+Number    : 912
+Signature : MGRAPH2 -> stream(tuple)
+Example   : query "mgraph2_1"  mg2connectedcomponents sortby[CompNo] krdup[CompNo] count
+Result    : 2
+
 
 Operator  : createmgraph3
 Number    : 1000
@@ -1402,3 +1408,8 @@ Signature : stream(tuple) x MGRAPH3 -> stream(tuple)
 Example   : query intstream(0,0) transformstream projectextend[; GeoData_s1 : [const point value (8593 12243)] , GeoData_s2 :[const point value (-1265 11792)], Name_s1 : "Brandenburger Tor", Name_s2 : "Glockenturm", Id_s1 : 1, Id_s2 : 12  ] extend[Cost : distance(.GeoData_s1, .GeoData_s2)] mg3insert["mgraph3_1"] count
 Result    : 1
 
+Operator  : mg3connectedcomponents
+Number    : 1010
+Signature : MGRAPH3 -> stream(tuple)
+Example   : query "mgraph3_1" mg3connectedcomponents sortby[CompNo] krdup[CompNo] count
+Result    : 2

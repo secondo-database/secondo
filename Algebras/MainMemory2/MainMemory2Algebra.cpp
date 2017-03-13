@@ -19707,6 +19707,186 @@ Operator mg3disconnectOp(
 
 
 /*
+Operator mgconnectedcomponents
+
+*/
+ListExpr mg23connectedcomponentsTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  string err;
+  ListExpr graph = nl->First(args);
+  if(!getMemType(graph,graph,err,true)){
+     return listutils::typeError(err);
+  } 
+  graph = nl->Second(graph);
+  if(!MGraph2::checkType(graph) && !MGraph3::checkType(graph)){
+    return listutils::typeError("arg is not an mgraph{2,3}");
+  }
+  ListExpr attrList = nl->Second(nl->Second(graph));
+  ListExpr d;
+  if(listutils::findAttribute(attrList,"CompNo",d)){
+   return listutils::typeError("Graph representation contains an "
+                               "attribute CompNo");
+  }
+  ListExpr cl = nl->OneElemList(nl->TwoElemList(
+                         nl->SymbolAtom("CompNo"),
+                         listutils::basicSymbol<CcInt>()));
+  attrList = listutils::concat(attrList,cl);
+  return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                 nl->TwoElemList( listutils::basicSymbol<Tuple>(),
+                 attrList));
+}
+
+
+class mg23connectedcomponentsInfo{
+  public:
+     mg23connectedcomponentsInfo(MGraphCommon* _g, TupleType* _tt): 
+     graph(_g),tt(_tt){
+        tt->IncReference();
+        graph->components(compInfo); 
+        pos = 0;
+        if(pos<graph->numVertices()){
+          it = graph->getSuccList(pos).begin(); 
+        }
+     }
+
+     ~mg23connectedcomponentsInfo(){
+        tt->DeleteIfAllowed();
+     }
+    
+     Tuple* next(){
+        while(pos < graph->numVertices()){
+           if(it != graph->getSuccList(pos).end()){
+              Tuple* t = createResultTuple(*it);
+              it++;
+              return t;
+           }
+           pos++;
+           if(pos<graph->numVertices()){
+             it = graph->getSuccList(pos).begin(); 
+           }
+        }
+        return 0;
+     }
+
+  private:
+     MGraphCommon* graph;
+     TupleType* tt;
+     vector<int> compInfo;
+     size_t pos;
+     list<MEdge>::const_iterator it;
+
+     Tuple* createResultTuple(const MEdge& e){
+        int comp = compInfo[pos] == compInfo[e.target]?compInfo[pos]:-2;
+        const Tuple* src = e.info;
+        Tuple* res = new Tuple(tt);
+        for(int i=0;i<src->GetNoAttributes();i++){
+           res->CopyAttribute(i,src,i);
+        }
+        res->PutAttribute(src->GetNoAttributes(),new CcInt(true,comp));
+        return res;
+     }
+
+};
+
+template<class GN, class Graph>
+int mg23connectedcomponentsVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+
+   mg23connectedcomponentsInfo* li = (mg23connectedcomponentsInfo*) local.addr;
+   switch(message){
+      case INIT: {
+         qp->GetLocal2(s).addr = new TupleType( 
+                                         nl->Second(GetTupleResultType(s)));
+         return 0;
+      }
+      case FINISH: {
+         TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+         if(tt){
+            tt->DeleteIfAllowed();
+            qp->GetLocal2(s).addr=0;
+         }
+         return 0;
+      }
+      case OPEN: {
+          if(li){
+              delete li;
+              local.addr = 0;
+          }
+          MGraphCommon* g = getMemObject<Graph>((GN*) args[0].addr);
+          if(!g){
+             return 0;
+          }
+          TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+          local.addr = new mg23connectedcomponentsInfo(g,tt);
+          return 0;
+      }
+      case REQUEST: {
+        result.addr = li?li->next():0;
+        return result.addr?YIELD:CANCEL;
+      }
+      case CLOSE : {
+         if(li){
+           delete li;
+           local.addr = 0;
+         }
+         return 0;
+      }
+   }
+   return -1;
+}
+
+int mg23connectedcomponentsSelect(ListExpr args){
+   return getRepNum(nl->First(args));
+}
+
+ValueMapping mg2connectedcomponentsVM [] = {
+  mg23connectedcomponentsVMT<CcString,MGraph2>,
+  mg23connectedcomponentsVMT<Mem,MGraph2>,
+  mg23connectedcomponentsVMT<MPointer,MGraph2>
+};
+
+ValueMapping mg3connectedcomponentsVM [] = {
+  mg23connectedcomponentsVMT<CcString,MGraph3>,
+  mg23connectedcomponentsVMT<Mem,MGraph3>,
+  mg23connectedcomponentsVMT<MPointer,MGraph3>
+};
+
+
+OperatorSpec mg23connctedcomponentsSpec(
+  "mgraph{2,3} -> stream(tuple)",
+  "mgconnectedcomponents(_)",
+  "Append a component number to the graph edges",
+  "query mgconnectedcomponents(\"mg2\")"
+);
+
+Operator mg2connectedcomponentsOp(
+  "mg2connectedcomponents",
+  mg23connctedcomponentsSpec.getStr(),
+  3,
+  mg2connectedcomponentsVM,
+  mg23connectedcomponentsSelect,
+  mg23connectedcomponentsTM
+);
+
+Operator mg3connectedcomponentsOp(
+  "mg3connectedcomponents",
+  mg23connctedcomponentsSpec.getStr(),
+  3,
+  mg3connectedcomponentsVM,
+  mg23connectedcomponentsSelect,
+  mg23connectedcomponentsTM
+);
+
+
+
+
+
+/*
 23 Algebra Definition
 
 */
@@ -20024,6 +20204,12 @@ class MainMemory2Algebra : public Algebra {
           mg3numpredecessorsOp.SetUsesArgsInTypeMapping();
           AddOperator(&mg3disconnectOp);
           mg3disconnectOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2connectedcomponentsOp);
+          mg2connectedcomponentsOp.SetUsesArgsInTypeMapping();
+          mg2connectedcomponentsOp.enableInitFinishSupport();
+          AddOperator(&mg3connectedcomponentsOp);
+          mg3connectedcomponentsOp.SetUsesArgsInTypeMapping();
+          mg3connectedcomponentsOp.enableInitFinishSupport();
 
         }
         

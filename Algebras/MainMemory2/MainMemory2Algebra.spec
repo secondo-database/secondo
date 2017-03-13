@@ -165,6 +165,7 @@ operator mg2predecessors alias MG2PREDECESSORS pattern _ op[_]
 operator mg2numsuccessors alias MG2NUMSUCCESSORS pattern _ op[_]
 operator mg2numpredecessors alias MG2NUMPREDECESSORS pattern _ op[_]
 operator mg2disconnect alias MG2NUMPREDECESSORS pattern _ op[_]
+operator mg2connectedcomponents alias MG2CONNECTEDCOMPONENTS pattern _ op
 
 operator createmgraph3 alias CREATEMGRAPH3 pattern _ op [_,_,_,_,_]
 operator mg3insert alias MG3INSERT pattern _ op [_]
@@ -175,6 +176,7 @@ operator mg3predecessors alias MG3PREDECESSORS pattern _ op[_]
 operator mg3numsuccessors alias MG3NUMSUCCESSORS pattern _ op[_]
 operator mg3numpredecessors alias MG3NUMPREDECESSORS pattern _ op[_]
 operator mg3disconnect alias MG3NUMPREDECESSORS pattern _ op[_]
+operator mg3connectedcomponents alias MG3CONNECTEDCOMPONENTS pattern _ op 
 
 
 

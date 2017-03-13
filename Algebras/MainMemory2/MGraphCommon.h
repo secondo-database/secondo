@@ -112,7 +112,7 @@ class MGraphCommon : public MemoryObject{
         return true;
      }
 
-     int numVertices() const{
+     size_t numVertices() const{
        return graph.size();
      }
 
@@ -197,6 +197,11 @@ class MGraphCommon : public MemoryObject{
         return new singleNodeIterator(&(graph[v].second));
      }
 
+     const std::list<MEdge>& getSuccList(int vertex){
+         return graph[vertex].first;
+     }
+     
+
      int succCount(int v){
         if(v<0 || (size_t)v >= graph.size()){
            return -1;
@@ -237,7 +242,15 @@ class MGraphCommon : public MemoryObject{
         return true;
      }
 
-     
+     void components(std::vector<int>& v){
+         v.clear();
+         std::vector<tarjanInfo> v2;
+         tarjan(v2);
+         for(size_t i=0;i<v2.size();i++){
+           v.push_back(v2[i].compNo);
+         }
+     }
+ 
 
   protected:
     std::vector<alist> graph;
@@ -251,6 +264,104 @@ class MGraphCommon : public MemoryObject{
       targetPos = t;
       costPos = c;
     }
+
+
+    
+    class tarjanInfo{
+      public:
+        tarjanInfo():
+          seen(false), index(0), lowlink(0),
+          inStack(false), compNo(-1){} 
+        bool seen;
+        int index;
+        int lowlink;
+        bool inStack; 
+        int compNo; 
+    };
+
+
+    void tarjan(std::vector<tarjanInfo>& tarjanVector) {
+
+      tarjanVector.clear();
+      for(size_t i = 0; i< graph.size();i++){
+          tarjanInfo ti;
+          tarjanVector.push_back(ti);
+      }
+      std::stack<int> tarjanstack;
+      int index = 0;
+      int compNo = 1;
+      for(size_t i=0;i<tarjanVector.size();i++){
+        if(!tarjanVector[i].seen){
+          tarjan(i,tarjanVector, index,tarjanstack, compNo);
+        }
+      }
+    } 
+
+    void tarjan(int vertex, std::vector<tarjanInfo>& tarjanVector,
+                int& index, std::stack<int>& stack, int& compNo){
+      
+        // pair of vertex number and iterator in successor list
+        typedef std::pair<size_t, std::list<MEdge>::iterator > stackentry; 
+        std::stack<stackentry> rstack; // recursion stack
+        rstack.push(stackentry(vertex,graph[vertex].first.begin()));
+
+        while(!rstack.empty()){
+           stackentry e = rstack.top();
+           rstack.pop();
+           vertex = e.first;
+           std::list<MEdge>::iterator pos = e.second;
+           if(!tarjanVector[vertex].seen 
+              || pos != graph[vertex].first.begin()){ 
+              if(!tarjanVector[vertex].seen ){ // first time visited
+                tarjanVector[vertex].index = index;
+                tarjanVector[vertex].lowlink = index;
+                index++;
+                tarjanVector[vertex].inStack = true;
+                tarjanVector[vertex].seen  = true;
+                stack.push(vertex);
+              }
+              if(pos != graph[vertex].first.end()){ 
+                 // not the end of vertex's successors
+                 int w = pos->target;
+                 pos++;
+                 rstack.push(stackentry(vertex,pos));
+                 if(!tarjanVector[w].seen){
+                    rstack.push(stackentry(w,graph[w].first.begin()));
+                 } else  if(tarjanVector[w].inStack) {
+                    tarjanVector[vertex].lowlink = std::min( 
+                                              tarjanVector[vertex].lowlink,
+                                              tarjanVector[w].index);      
+                 }
+              } else { // end of successors
+                 std::list<MEdge>::iterator sit;
+                 for(sit=graph[vertex].first.begin(); 
+                     sit!=graph[vertex].first.end(); sit++){
+                   int w = sit->target;
+                   if(tarjanVector[w].compNo<0){
+                      tarjanVector[vertex].lowlink = std::min(
+                                                  tarjanVector[vertex].lowlink,
+                                                  tarjanVector[w].lowlink);
+                   }
+                 }
+                 if(tarjanVector[vertex].lowlink == tarjanVector[vertex].index){
+                    assert(tarjanVector[vertex].compNo<0);
+                    tarjanVector[vertex].compNo = compNo;
+                    while(true){
+                        int w = stack.top();
+                        stack.pop();
+                        tarjanVector[w].inStack=false;
+                        if(w==vertex)
+                           break;
+                        assert(tarjanVector[w].compNo<0);
+                        tarjanVector[w].compNo = compNo;
+                    }
+                    compNo++;
+                 }
+              }
+           }
+        } // while 
+    } // tarjan
+
 
   private:
     void removeSource(std::list<MEdge>& l, int s){

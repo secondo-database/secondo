@@ -643,8 +643,7 @@ Calculates the scc for a given vertex.
         if(!w->seen) {
           tarjan(w,index,stack,compNo);    // recursive call
           v->lowlink = std::min(v->lowlink,w->lowlink);
-        }
-        else if(w->inStack) {
+        } else if(w->inStack) {
           v->lowlink = std::min(v->lowlink,w->index);
         }
       }
