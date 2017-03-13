@@ -273,8 +273,8 @@ Tolerance : 0.02
 
 Operator : hlDoContractionOfHlGraph
 Number   : 34
-Signature   : Orel x Orel x Int x Int-> Orel
-Example  : query hlDoContractionOfHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel, 2, 50000) feed consume
+Signature   : Orel x Orel x Int x Int x Int -> Orel
+Example  : query hlDoContractionOfHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel, 2, 50000, 0) feed consume
 Result   : 111
 Tolerance : 0.02
 

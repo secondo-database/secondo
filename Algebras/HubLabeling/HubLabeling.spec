@@ -64,7 +64,7 @@ operator hlContractNew alias hlContractNew pattern op(_,_,_)
 
 operator hlTransformOrelToHlGraph alias hlTransformOrelToHlGraph pattern op(_,_)
 
-operator hlDoContractionOfHlGraph alias hlDoContractionOfHlGraph pattern op(_,_,_,_)
+operator hlDoContractionOfHlGraph alias hlDoContractionOfHlGraph pattern op(_,_,_,_,_)
 
 operator hlDoChSearchInHlGraph alias hlDoChSearchInHlGraph pattern op(_,_,_,_,_)
 

@@ -25,1101 +25,183 @@
  ********************************
  */
 
-/*
- * 1.1 -> Relationen zum Schutz der Originaldaten duplizieren
+ /*
+ * 1.1 Kanten reduzieren
  */
-let hlNodesCopy = Nodes;
-let hlEdgesCopy = Edges;
-/* erwartetes Ergebnis: die beiden neuen Objekte existieren */
+delete hlEdgesReducedOrelSource;
+let hlEdgesReducedOrelSource = Edges feed filter[
+	(.RoadType = "motorway") or (.RoadType = "motorway_link")
+ or (.RoadType = "trunk") or (.RoadType = "trunk_link")
+ or (.RoadType = "primary") or (.RoadType = "primary_link")
+ or (.RoadType = "secondary") or (.RoadType = "secondary_link")
+ or (.RoadType = "tertiary") or (.RoadType = "tertiary_link")
+ or (.RoadType = "road") or (.RoadType = "unclassified")
+ or (.RoadType = "residential") or (.RoadType = "living_street")
+]
+oconsume[Source];
+ 
+// or (.RoadType = "track") or (.RoadType = "pedestrian")
+// or (.RoadType = "service") or (.RoadType = "bus_guideway")
+// or (.RoadType = "escape") or (.RoadType = "raceway")
+
 
 /*
- * 1.2 doppelte Knoten aus Edges entfernen
+ * 1.2 zusätzliche Felder Parent und Costs hinzufügen
  */
-let hlNodesDuplicatesRemoved = hlNodesCopy feed sortby[NodeIdNew] krdup[NodeIdNew] consume;
-/* erwartetes Ergebnis: es sollten weniger oder gleich viele Elemente in der rel enthalten sein. Es sollten keine Knoten dieselbe NodeIdNew mehr haben */
+delete hlEdgesExtendedOrelSource;
+let hlEdgesExtendedOrelSource = hlEdgesReducedOrelSource feed
+ extend[Costs : 0.0]
+ extend[HlShortcutViaParent : -1]
+ oconsume[Source];
+
+//delete hlEdgesReducedOrelSource;
+
+
 
 /*
  * 1.3 Kosten ermitteln
  */
-let hlEdgesCostsOrelSource = hlEdgesCopy feed extend[Costs : size(gk(.Curve))] oconsume[Source];
-/* erwartetes Ergebnis: es gibt ein neues Feld Costs welchen plausible Werte enthält */
-
-
-/*
- * 1.4 Parent-Feld hinzufügen
- */
-delete hlEdgesCostsParentOrelSource;
-let hlEdgesCostsParentOrelSource = hlEdgesCostsOrelSource feed extend[HlShortcutViaParent : -1] oconsume[Source];
-/* erwartetes Ergebnis: es gibt ein neues Feld HLShortcutViaParent welches stets den Wert 0 enthält. */
-
-
-/*
- * 1.5 Ordered Relations erstellen Edges
- */
 delete hlEdgesOrelSource;
-let hlEdgesOrelSource = hlEdgesCostsParentOrelSource;
-delete hlEdgesOrelTarget;
-let hlEdgesOrelTarget = hlEdgesCostsParentOrelSource feed oconsume[Target];
-/* erwartetes Ergebnis: die beiden neuen Objekte existieren als OrderedRelation, eines nach Source sortiert, das andere nach Target */
+let hlEdgesOrelSource = hlEdgesExtendedOrelSource;
+
+query hlCalcWeightsOrel(hlEdgesOrelSource, 1);
+
+//delete hlEdgesExtendedOrelSource;
 
 
 /*
- * 1.6 Rank erstellen
+ * 1.3 Knotenmenge ermitteln
  */
-delete hlNodesRankedOrelId;
-let hlNodesRankedOrelId = hlNodesDuplicatesRemoved feed extend [RankTmp: hlCalcRank(hlEdgesOrelSource, hlEdgesOrelTarget, .NodeIdNew)] sortby[RankTmp, NodeIdNew] addcounter[Rank, 1] remove[RankTmp] oconsume[Rank];
-/* erwartetes Ergebnis: es gibt ein neues Feld Rank welches eindeutige Werte enthält und nach welchem die OrderedRelation sortiert ist */
-
-
-/*
- * 1.7 BTree über nodesRanked erstellen
- */
-delete hlNodesRankedOrelId_NodeIdNew;
-let hlNodesRankedOrelId_NodeIdNew = hlNodesRankedOrelId feed extend[TmpTid: tupleid(.)] createbtree[NodeIdNew];
-
-query hlNodesRankedOrelId_NodeIdNew rangeS[0, 99999] consume;
-
-/*
- ********************************
- * 2 One-Hop Reverse Search (Debug only)
- ********************************
- */
-
-/*
- * 2.1 den Knoten mit dem kleinsten Rank ermitteln via Rank-Sortierung
- * (Alternative 2)
- */
-query hlNodesRankedOrelId feed filter[.Rank = 1] head[1] consume;
-/* erwartetes Ergebnis: der gefundene Knoten hat die NodeIdNew = 693 */
-
-
-/*
- * 2.2 den Knoten mit dem kleinsten Rank ermitteln via min-Funktion
- * (Alternative 2)
- */
-query hlNodesRankedOrelId feed min[Rank] within [ 
-hlNodesRankedOrelId feed filter[ fun(t : STREAMELEM) attr(t,Rank) = . 
-]] head[1]consume;
-/* erwartetes Ergebnis: der gefundene Knoten hat die NodeIdNew = 693 */
-
-
-/*
- * 2.3 Rückwärtssuche für einen Knoten v = 693 ausführen
- */
-let hlOneHopReverseSearchXTOrelX = hlOneHopReverseSearch(hlEdgesOrelSource, hlEdgesOrelTarget, 693);
-/* erwartetes Ergebnis: hlOneHopReverseSearchXTOrelX enthält drei Einträge zu x = 693, 933 und 829 */
-
-/*
- ********************************
- * 3 Knoten Kontrahieren (Debug only)
- ********************************
- */
-
-/*
- * 3.1 hlForwardSearchGetDist
- */
-
-/* 3.1.1 einen beliebigen Targetknoten zu 693 finden*/
-query hlEdgesOrelSource feed project[Source, Target] filter[.Source = 693] head[1] consume;
-/* erwartetes Ergebnis: es existiert nur 835 */
-
-/* 3.1.2 Distanz zwischen 693 und 835 ermitteln */
-query hlForwardSearchGetDist(hlOneHopReverseSearchXTOrelX, 693, 835);
-/* erwartetes Ergebnis: 456.6610761457 */
-
-
-/*
- * 3.2 hlRemoveTFromCurrentWitnessList
- */
-query hlRemoveTFromCurrentWitnessList(hlOneHopReverseSearchXTOrelX, 835) feed consume;
-/* erwartetes Ergebnis: die zurückgegebene OrderedRelation (!= der übergebenen) sollte leer sein, alle drei Einträge wurden gelöscht */
-
-
-/*
- * 3.3 hlForwardSearchCheckForWitnessPath
- */
-
-/* 3.3.1 neue Rückwärtssuche durchführen für andere Knoten */
-let hlOneHopReverseSearchXTOrelX2 = hlOneHopReverseSearch(hlEdgesOrelSource, hlEdgesOrelTarget, 1505);
-/* erwartetes Ergebnis: die neue OrderedRelation sollte neun Einträge aufweisen */
-
-/* 3.3.2 Hilfsdaten ermitteln */
-//es existiert eine Kante von s = 1492 nach x = 1495 mit einer Länge von 6.16
-//es existiert eine Kante von s = 1492 nach v = 1505 mit einer Länge von 42,453
-
-/* 3.3.3 WitnessPath suchen */
-query hlForwardSearchCheckForWitnessPath(hlOneHopReverseSearchXTOrelX2, 1505, 1495, 6.16, 42.453) feed consume;
-/* erwartetes Ergebnis: alle Einträge mit t = 1496 sollten nun fehlen, sodass nur noch sechs Elemente in der OrderedRelation aus der Rückwärtssuche enthalten sind */
-
-
-/*
- * 3.4 hlGetTupleFromOrelByRangeScan
- */
-query hlGetTupleFromOrelByRangeScan(hlOneHopReverseSearchXTOrelX2, 1505) feed consume;
-/* erwartetes Ergebnis: eine orel mit einem! (dem erstbesten) Tuple sollte zurückkommen, hier 1475 */
-
-
-/*
- * 3.5 hlInsertOrUpdateTupleInNotYetVisitedList
- * mit isForward = true (=0)
- */
-let hlNotYetVisitedNodesRel =
-hlInsertOrUpdateTupleInNotYetVisitedList(
-(
-hlEdgesOrelSource feed filter[.Source = 1480] filter[.Target = 1424]
-hlEdgesOrelSource feed filter[.Source = 1492] filter[.Target = 1505]
-concat hlEdgesOrelSource feed filter[.Source = 1505] filter[.Target = 1496]
-concat hlEdgesOrelSource feed filter[.Source = 1492] filter[.Target = 1480]
-concat hlEdgesOrelSource feed filter[.Source = 1480] filter[.Target = 1475]
-concat hlEdgesOrelSource feed filter[.Source = 1475] filter[.Target = 1505]
-concat hlEdgesOrelSource feed filter[.Source = 1424] filter[.Target = 1480]
-concat hlEdgesOrelSource feed filter[.Source = 1495] filter[.Target = 1496]
-concat consume
-)
-, 1492, 1424, 1) feed consume;
-/* erwartetes Ergebnis: OrderedRelation mit 4 Einträgen
- * s = 1492, v = 1424
- *  (1480, 1424) wird nicht eingefügt, da noch kein source enthalten
- *  (1492, 1505) wird eingefügt, da source mit 42.4353
- *  (1505, 1496) wird eingefügt mit 80.7225
- *  (1492, 1480) wird eingefügt mit 13.8838 ohne parent da source
- *  (1480, 1475) wird eingefügt mit 37.1093
- *  (1475, 1505) veranlasst kein update, da länger mit 58.7595
- *  (1492, 1480) wird nicht eingefügt, da = v
- *  (1495, 1496) veranlasst ein update, da kürzer mit 12.0245
- */
-
-
-/*
- * 3.6 NotYet als Orel nach Dist sortieren
- */
-let hlNotYetVisitedNodesOrelDist = hlNotYetVisitedNodesRel feed oconsume[Dist];
-/* erwartetes Ergebnis: das neue Objekt existiert und ist nach Dist sortiert */
-
-
-/*
- * 3.7 hlForwardSearchIterativeStepsScanNewVertices
- */
-
-/*
- * 3.7.1 Testcase 1 Still visited + Testcase 2 no Witness found
- */
-let hlNotYetVisitedNodesOrelDist2 = hlNotYetVisitedNodesOrelDist;
-
-let hlStillVisitedNodesOrelId =
-1496 feed namedtransformstream[NodeId] oconsume[NodeId];
-
-let hlOneHopReverseSearchXTOrelX3 = hlOneHopReverseSearchXTOrelX2;
-
-let hlCurrMinNotYetVisitedNodesSingleTupleRelFwdW =
-hlNotYetVisitedNodesOrelDist feed filter[.NodeId = 1495] consume;
-
-query hlForwardSearchIterativeStepsScanNewVertices(hlEdgesOrelSource, hlNotYetVisitedNodesOrelDist2, hlStillVisitedNodesOrelId,  hlOneHopReverseSearchXTOrelX3, hlCurrMinNotYetVisitedNodesSingleTupleRelFwdW, 1424, 30.00);
-
-delete hlNotYetVisitedNodesOrelDist2;
-delete hlStillVisitedNodesOrelId;
-delete hlOneHopReverseSearchXTOrelX3;
-delete hlCurrMinNotYetVisitedNodesSingleTupleRelFwdW;
-/* erwartetes Ergebnis:
- *  hlNotYetVisitedNodesOrelDist2 sollte identisch sein mit
- *   hlNotYetVisitedNodesOrelDist (1492, 1495, 1480, 1475, 1505).
- *  Zzgl. neuer Kanten von W (=1495) abgehend: 1496 und 1493.
- *  Mit Ausnahme von Knoten die in StillVisitedNodes enthalten sind (1496).
- *  Somit nur noch 1493 als zusätzliche Kante.
- *
- *  hlOneHopReverseSearchXTOrelX3 sollte identisch mit
- *   hlOneHopReverseSearchXTOrelX2 sein.
- *   (1431, 1480, 1495, 1505, 1505, 1505, 1581, 1679, 1778)
- */
-
-/*
- * 3.7.2 Testcase 3 Witness found
- */
-let hlNotYetVisitedNodesOrelDist2 = hlNotYetVisitedNodesOrelDist;
-
-let hlStillVisitedNodesOrelId =
-1495 feed namedtransformstream[NodeId] oconsume[NodeId];
-
-let hlOneHopReverseSearchXTOrelX3 = hlOneHopReverseSearchXTOrelX2;
-
-let hlCurrMinNotYetVisitedNodesSingleTupleRelFwdW =
-hlNotYetVisitedNodesOrelDist feed filter[.NodeId = 1492] consume;
-
-
-query hlForwardSearchIterativeStepsScanNewVertices(hlEdgesOrelSource, hlNotYetVisitedNodesOrelDist2, hlStillVisitedNodesOrelId,  hlOneHopReverseSearchXTOrelX3, hlCurrMinNotYetVisitedNodesSingleTupleRelFwdW, 1505, 300.00);
-
-delete hlNotYetVisitedNodesOrelDist2;
-delete hlStillVisitedNodesOrelId;
-delete hlOneHopReverseSearchXTOrelX3;
-delete hlCurrMinNotYetVisitedNodesSingleTupleRelFwdW;
-/* erwartetes Ergebnis:
- *  hlNotYetVisitedNodesOrelDist2 sollte identisch sein mit
- *   hlNotYetVisitedNodesOrelDist (1492, 1495, 1480, 1475, 1505).
- *
- *  hlOneHopReverseSearchXTOrelX3 sollte identisch mit
- *   hlOneHopReverseSearchXTOrelX2 sein.
- *   (1431, 1480, 1495, 1505, 1505, 1505, 1581, 1679, 1778)
- *  Mit Außnahme von Einträge mit t = 1475,
- *   hier sollte ein WitnessPath gefunden werden,
- *   sodass diese aus hlOneHopReverseSearchXTOrelX3 gelöscht werden.
- */
-
-/*
- * 3.7.3 Testcase 4 Witness found + abort
- */
-let hlNotYetVisitedNodesOrelDist2 = hlNotYetVisitedNodesOrelDist;
-
-let hlStillVisitedNodesOrelId =
-1431 feed namedtransformstream[NodeId] oconsume[NodeId];
-
-let hlOneHopReverseSearchXTOrelX3 = hlOneHopReverseSearchXTOrelX2 feed filter[.NodeIdTargetT = 1475] oconsume[NodeIdSourceReverseX];
-
-let hlCurrMinNotYetVisitedNodesSingleTupleRelFwdW =
-hlNotYetVisitedNodesOrelDist feed filter[.NodeId = 1475] consume;
-
-query hlForwardSearchIterativeStepsScanNewVertices(hlEdgesOrelSource, hlNotYetVisitedNodesOrelDist, hlStillVisitedNodesOrelId,  hlOneHopReverseSearchXTOrelX3, hlCurrMinNotYetVisitedNodesSingleTupleRelFwdW, 1505, 300.00);
-
-delete hlNotYetVisitedNodesOrelDist2;
-delete hlStillVisitedNodesOrelId;
-delete hlOneHopReverseSearchXTOrelX3;
-delete hlCurrMinNotYetVisitedNodesSingleTupleRelFwdW;
-/* erwartetes Ergebnis:
- *  hlNotYetVisitedNodesOrelDist2 sollte identisch sein mit
- *   hlNotYetVisitedNodesOrelDist (1492, 1495, 1480, 1475, 1505).
- *
- *  hlOneHopReverseSearchXTOrelX3 sollte leer sein
- */
-
-
-/*
- * 3.8 hlForwardSearchProcessIncomingEdgeIterativeSteps
- */
-
-let hlNotYetVisitedNodesOrelDist2 = hlNotYetVisitedNodesOrelDist feed filter[not(.NodeId = 1505)] oconsume[Dist];
-let hlOneHopReverseSearchXTOrelX3 = hlOneHopReverseSearchXTOrelX2;
-let hlStillVisitedNodesOrelId = 1778 feed namedtransformstream[NodeId] oconsume[NodeId];
-
-/* Testcase 1: normale ausführung */
-query hlForwardSearchProcessIncomingEdgeIterativeSteps(hlEdgesOrelSource, hlNotYetVisitedNodesOrelDist2, hlStillVisitedNodesOrelId, hlOneHopReverseSearchXTOrelX3, 3, 1505, 0.00);
-/* erwartetes Ergebnis:
- *  hlNotYetVisitedNodesOrelDist2 sollte außer 1505 identisch sein mit
- *   hlNotYetVisitedNodesOrelDist (1492, 1495, 1480, 1479, 1475),
- *   jedoch abzüglich der nächsten minW-Knoten aus NotYet (innerhalb von hHop)
- *   (1492, 1495, 1496, 1493, 1480, 1479, 1475, 1424)
- *   und sollte somit leer sein
- *  hlStillVisitedNodesOrelId (1778) sollte um die ermittelten minW-Knoten
- *   erweitert werden (1778, 1492, 1495, 1496, 1493, 1480, 1479, 1475)
- *
- *  hlOneHopReverseSearchXTOrelX3 (1431, 1480, 1495, 1505, 1505, 1505,
- *    1581, 1679, 1778) sollte reduziert werden um
- *    (1495, 1505, 1778)
- */
-
-/* 
- * Testcase 2: erneute Ausführung der Query darf keinen Fehler werfen
- * Testcase 3: distSV = 500 und hHop = 30 setzen
- *  bist auf 1668 sollten alle Witnesses gefunden werden
- * Testcase 4: wie Testcase 3 nur dass v = 1429 gesetzt wird
- */
-
-delete hlNotYetVisitedNodesOrelDist2;
-delete hlOneHopReverseSearchXTOrelX3;
-delete hlStillVisitedNodesOrelId;
-
-/*
- * 3.9 hlForwardSearchProcessIncomingEdgeInitialSteps
- */
-
-let hlNotYetVisitedNodesCopyOrelDist = hlNotYetVisitedNodesOrelDist feed head[0] oconsume[Dist];
-let hlOneHopReverseSearchXTOrelX3 = hlOneHopReverseSearchXTOrelX2;
-
-/* 3.9.1 Testcase 1: normale ausführung */
-query hlForwardSearchProcessIncomingEdgeInitialSteps(hlEdgesOrelSource, hlNotYetVisitedNodesCopyOrelDist, hlOneHopReverseSearchXTOrelX3, 1492, 1505, 6.16);
-/* erwartetes Ergebnis:
- *  hlOneHopReverseSearchXTOrelX3 sollte ohne
- *  (1431, 1480, 1495, 1505, 1505, 1778) auftreten: (1505, 1581, 1679)
- *
- *  hlNotYetVisitedNodesCopyOrelDist sollte ausegehende Knoten von s (1492)
- *   beinhalten (1495, 1480) außer v (1505)
- */
-
-/* 3.9.2 Testcase 2: distSV auf 500 setzen
- *  hlOneHopReverseSearchXTOrelX3 sollte ohne
- *  (1431, 1480, 1495, 1505, 1505, 1778) auftreten
- */
-
-/* 3.9.3 Testcase 3: erneute Ausführung der Query darf keinen Fehler werfen
- *  es sollte nichts weiter passieren
- */
-
-delete hlNotYetVisitedNodesCopyOrelDist;
-delete hlOneHopReverseSearchXTOrelX3;
-
-/*
- * 3.10 hlForwardSearchCreateAndAppendShortcuts
- */
-let hlOneHopReverseSearchXTOrelX3 = hlOneHopReverseSearchXTOrelX2;
-
-/* 3.10.1 Testcase 1: normale ausführung */
-
-query hlForwardSearchCreateAndAppendShortcuts(hlOneHopReverseSearchXTOrelX3, 1492, 1505, 1000.0) feed consume;
-/* erwartetes Ergenis:
- *  für jedes t in XT sollte ein Shortcut von 1492 aus gehend
- *   mit via 1505 erstellt werden, die Kosten betragen 
- *   1000 + die jeweilige distances aus XT
- */
-
-/* 3.10.2 Testcase 2: 1668 statt 1492 */
-query hlForwardSearchCreateAndAppendShortcuts(hlOneHopReverseSearchXTOrelX3, 1668, 1505, 1000.0) feed consume;
-/* erwartetes Ergebnis:
- *  wenn 1668 als source genommen wird und es zeitgleich 
- *  als mögliches target in XT auftaucht, sollte dennoch kein 
- *  shortcut von 1668 via 1505 nach 1668 erstellt werden
- */
-
-delete hlOneHopReverseSearchXTOrelX3;
-
-
-/*
- * 3.11 hlForwardSearchProcessIncomingEdge
- */
-
-let hlStillVisitedNodesOrelId2 = 1492 feed namedtransformstream[NodeId] head[0] oconsume[NodeId];
-let hlOneHopReverseSearchXTOrelX3 = hlOneHopReverseSearchXTOrelX2;
-let hlShortcutstoBeAdded = hlForwardSearchCreateAndAppendShortcuts(hlOneHopReverseSearchXTOrelX3, 1492, 1505, 0.0) feed head[0] oconsume[Source];
-
-/* 3.11.1 Testcase 1: normale ausführung */
-query hlForwardSearchProcessIncomingEdge(hlEdgesOrelSource, hlStillVisitedNodesOrelId2, hlOneHopReverseSearchXTOrelX3, hlShortcutstoBeAdded, 1492, 1505, 0, 1000.00);
-
-/* 3.11.2 Testcase 2: erneute Ausführung der Query
- *  darf keinen Fehler werfen
- *  es sollte nichts weiter passieren, leeres ergebnis erwartet
- */
-
-/* 3.11.3 Testcase 3: erneute Ausführung der Query mit hHop = 50
- *  es sollten alle Witnesses gefunden werden und keine
- *  Shortcuts erzeugt werden
- */
-
-/* 3.11.4 Testcase 4: erneute Ausführung der Query mit hHop = 1
- *  es sollten Witnesses gefunden werden für (1496, 1475)
- *  und Shortcuts erzeugt werdenerzeugt werden für (1668)
- */
-
-/* 3.11.5 Testcase 5: erneute Ausführung der Query mit hHop = 0
- *  der Code geht stets von hHop >= 1 aus, hHop = 0 hat keinen Effekt
- *  es sollten Witnesses gefunden werden für (1496, 1475)
- *  und Shortcuts erzeugt werdenerzeugt werden für (1668)
- */
-
-delete hlStillVisitedNodesOrelId2;
-delete hlOneHopReverseSearchXTOrelX3;
-delete hlShortcutstoBeAdded;
-
-
-/*
- * 3.12 hlHHopForwardSearch
- */
-
-let hlOneHopReverseSearchXTOrelX3 = hlOneHopReverseSearchXTOrelX2;
-
-/* 3.12.1 Testcase 1: normale ausführung */
-query hlHHopForwardSearch(hlEdgesOrelSource, hlEdgesOrelTarget, hlOneHopReverseSearchXTOrelX3, 1505, -1) feed consume;
-/* erwartetes Ergebnis:
- *  folgende Shortcuts wurden erstellt:
- *  [1492->1668(259,134)], [1668->1496(254,976)], [1668->1475(261,565)],
- *  [1475->1668(261,565)], [1475->1496(83,162)]
- */
-
-/* 3.12.2 Testcase 2: erneute Ausführung der Query
- * erwartetes Ergebnis: wie 3.12.1, keine Abweichung sonst
- */
-
-/* 3.12.3 Testcase 3: Ausführung mit hHop = 3
- * erwartetes Ergebnis:
- *  folgende Shortcuts wurden erstellt:
- *  [1492->1668(259,134)], [1668->1496(254,976)], [1668->1475(261,565)],
- *  [1475->1668(261,565)]
- *  der Shortcut von 1475 nach 1496 sollte nicht existieren
- */
-query hlHHopForwardSearch(hlEdgesOrelSource, hlEdgesOrelTarget, hlOneHopReverseSearchXTOrelX3, 1505, 3) feed consume;
-
-/* 3.12.4 Testcase 4: Ausführung mit hHop = 500
- * erwartetes Ergebnis:
- *  wie 3.12.3, keine Abweichung sonst
- */
-query hlHHopForwardSearch(hlEdgesOrelSource, hlEdgesOrelTarget, hlOneHopReverseSearchXTOrelX3, 1505, 500) feed consume;
-
-
-delete hlOneHopReverseSearchXTOrelX3;
-
-
-/*
- * 3.13 hlAddShortcutsToEdgesRealtions
- */
-
-/* shortcuts orel erstellen */
-let hlOneHopReverseSearchXTOrelX3 = hlOneHopReverseSearchXTOrelX2;
-let hlShortcutsToBeCreatedOrelToBeDeleted = hlForwardSearchCreateAndAppendShortcuts(hlOneHopReverseSearchXTOrelX3, 1492, 1505, 1000.0);
-let hlEdgesOrelSourceParentVia = hlEdgesOrelSource feed head[0] oconsume[Source];
-let hlEdgesOrelTargetParentVia = hlEdgesOrelTarget feed head[0] oconsume[Target];
-
-/* 3.13.1 Testcase 1: normale ausführung */
-query hlAddShortcutsToEdgesRealtions(hlEdgesOrelSourceParentVia, hlEdgesOrelTargetParentVia, hlShortcutsToBeCreatedOrelToBeDeleted);
-
-query hlEdgesOrelSourceParentVia feed consume;
-query hlEdgesOrelTargetParentVia feed consume;
-query hlEdgesOrelSourceParentVia count;
-query hlEdgesOrelTargetParentVia count;
-
-/* 3.13.2 Testcase 2: erneute Ausführung der Query darf keinen Fehler werfen */
-//die shortcuts werden doppelt hinzugefügt (im code wird dies bereits aus konzeptioneller sicht verhindert)
-
-delete hlOneHopReverseSearchXTOrelX3;
-delete hlShortcutsToBeCreatedOrelToBeDeleted;
-delete hlEdgesOrelSourceParentVia;
-delete hlEdgesOrelTargetParentVia;
-
-
-/*
- * 3.14 hlRemoveContractedEdgesFromEdgesRelations
- */
-
-/* shortcuts orel erstellen */
-let hlEdgesOrelSourceCopy = hlEdgesOrelSource;
-let hlEdgesOrelTargetCopy = hlEdgesOrelTarget;
-
-/* 3.14.1 Testcase 1: normale ausführung
- *  erwartetes Ergebnis: eingehende und ausgehende Kanten
- *   von und zu v (=1505) sollten gelöscht werden
- *   ([1505->1475], [1505->1496], [1505->1668],
- *    [1475->1505], [1492->1505], [1668->1505])
- *  die Gesamtanzahl der Elemente in in den beiden Orels
- *   sollte damit 394 betragen.
- */
-query hlRemoveContractedEdgesFromEdgesRelations(hlEdgesOrelSourceCopy, hlEdgesOrelTargetCopy, 1505);
-
-query hlEdgesOrelSourceCopy count;
-query hlEdgesOrelSourceCopy feed project[Source, Target] filter[(.Source = 1505) or (.Target = 1505)] consume;
-query hlEdgesOrelSourceCopy feed project[Source, Target] filter[(.Source = 1505) or (.Target = 1505)] count;
-
-query hlEdgesOrelTargetCopy count;
-query hlEdgesOrelTargetCopy feed project[Source, Target] filter[(.Source = 1505) or (.Target = 1505)] consume;
-query hlEdgesOrelTargetCopy feed project[Source, Target] filter[(.Source = 1505) or (.Target = 1505)] count;
-
-/* 3.14.2 Testcase 2: erneute Ausführung der Query darf keinen Fehler werfen
- *  es sollten keine Kanten gelöscht werden
- */
-
-delete hlEdgesOrelSourceCopy;
-delete hlEdgesOrelTargetCopy;
-
-
-/*
- * 3.15 hlRemoveParallelEdgesFromEdgesRelations
- */
-
-/* shortcuts orel erstellen */
-let hlEdgesOrelSourceCopy = hlEdgesOrelSource;
-let hlEdgesOrelTargetCopy = hlEdgesOrelTarget;
-let hlShortcutsToBeCreatedOrelToBeDeleted = hlEdgesOrelSource feed filter[
-((.Source = 693) and (.Target = 835))
- or 
-(
- ((.Source = 1495) and (.Target = 1492))
- or 
- (
-  ((.Source = 941) and (.Target = 933))
-  or 
-  ((.Source = 933) and (.Target = 941))
- )
-)
-]
-oconsume[Source];
-
-
-/* 3.15.1 Testcase 1: normale ausführung
- *  erwartetes Ergebnis: 
- */
-query hlRemoveParallelEdgesFromEdgesRelations(hlEdgesOrelSourceCopy, hlEdgesOrelTargetCopy, hlShortcutsToBeCreatedOrelToBeDeleted);
-
-/* 3.15.2 Testcase 2: erneute Ausführung der Query darf keinen Fehler werfen
- *  es sollten keine Kanten gelöscht werden
- */
-
-delete hlEdgesOrelSourceCopy;
-delete hlEdgesOrelTargetCopy;
-delete hlShortcutsToBeCreatedOrelToBeDeleted;
-
-
-/*
- * 3.16 hlDoContraction
- */
-
-/*  3.16.1 Testcase 1: normale ausführung */
-query hlDoContraction(hlEdgesOrelSource, hlEdgesOrelTarget, 1505, 2) feed consume;
-
-/* 3.16.2 Testcase 2: erneute Ausführung der Query darf keinen Fehler werfen */
-
-/* 3.16.3 Testcase 3: erneute Ausführung mit hHop = 3
- *  1475->1496 sollte kein Shortcut mehr sein
- */
-query hlDoContraction(hlEdgesOrelSource, hlEdgesOrelTarget, 1505, 3) feed consume;
-
-
-
-/*
- ********************************
- * 4 - Full Graph Contraction
- ********************************
- */
-
-/*
- * 4.1 hlIterateOverAllNodesByRankAscAndDoContraction
- */
-
-/* 4.1.1 Orels kopieren */
-delete hlEdgesOrelSourceParentVia;
-delete hlEdgesOrelTargetParentVia;
-let hlEdgesOrelSourceParentVia = hlEdgesOrelSource;
-let hlEdgesOrelTargetParentVia = hlEdgesOrelTarget;
-
-/* 4.1.2 Testcase 1: normale ausführung */
-query hlIterateOverAllNodesByRankAscAndDoContraction(hlNodesRankedOrelId, hlEdgesOrelSourceParentVia, hlEdgesOrelTargetParentVia, 10);
-/*
- * Reelkirchen:
- * original: 400
- * 1: 1323 (8 sec)
- * 2: 1182
- * 10: 926 (15 sec)
- * 100: 915
- * 1000: 915 (19 sec)
- */
-
-query hlEdgesOrelSourceParentVia feed filter[not(.HlShortcutViaParent = 0)] head[5] consume;
-query hlEdgesOrelTargetParentVia feed filter[not(.HlShortcutViaParent = 0)] head[5] consume;
-query hlEdgesOrelSourceParentVia count;
-query hlEdgesOrelTargetParentVia count;
-
-/* 4.1.3 Testcase 2: erneute Ausführung der Query darf keinen Fehler werfen */
-//die shortcuts sollten nicht doppelt auftreten
-
-delete hlEdgesOrelSourceParentVia;
-delete hlEdgesOrelTargetParentVia;
-
-
-
-/*
- ********************************
- * 5 - Aufwärts- und Abwärtsgraphen erzeugen
- ********************************
- */
-delete hlUpwardEdgesOrelSource;
-delete hlDownwardEdgesOrelTarget;
-
-/* 5.1 Upwardsgraph Ordered by Source */
-let hlUpwardEdgesOrelSource =
-hlEdgesOrelSourceParentVia feed {alias1}
-hlNodesRankedOrelId feed project[NodeIdNew, Rank] {alias2}
-itHashJoin[Source_alias1, NodeIdNew_alias2]
-hlNodesRankedOrelId feed project[NodeIdNew, Rank] {alias3}
-itHashJoin[Target_alias1, NodeIdNew_alias3]
-filter[.Rank_alias2 < .Rank_alias3]
-remove[NodeIdNew_alias2, Rank_alias2, NodeIdNew_alias3, Rank_alias3]
-renameattr[Source : Source_alias1, Target : Target_alias1, SourcePos : SourcePos_alias1, TargetPos : TargetPos_alias1, SourceNodeCounter : SourceNodeCounter_alias1, TargetNodeCounter : TargetNodeCounter_alias1, Curve : Curve_alias1, RoadName : RoadName_alias1, RoadType : RoadType_alias1, WayId : WayId_alias1, Costs : Costs_alias1, HlShortcutViaParent : HlShortcutViaParent_alias1]
-oconsume[Source];
-
-
-/* 5.2 Downwardsgraph Ordered by Target */
-let hlDownwardEdgesOrelTarget =
-hlEdgesOrelTargetParentVia feed {alias1}
-hlNodesRankedOrelId feed project[NodeIdNew, Rank] {alias2}
-itHashJoin[Source_alias1, NodeIdNew_alias2]
-hlNodesRankedOrelId feed project[NodeIdNew, Rank] {alias3}
-itHashJoin[Target_alias1, NodeIdNew_alias3]
-filter[.Rank_alias2 > .Rank_alias3]
-remove[NodeIdNew_alias2, Rank_alias2, NodeIdNew_alias3, Rank_alias3]
-renameattr[Source : Source_alias1, Target : Target_alias1, SourcePos : SourcePos_alias1, TargetPos : TargetPos_alias1, SourceNodeCounter : SourceNodeCounter_alias1, TargetNodeCounter : TargetNodeCounter_alias1, Curve : Curve_alias1, RoadName : RoadName_alias1, RoadType : RoadType_alias1, WayId : WayId_alias1, Costs : Costs_alias1, HlShortcutViaParent : HlShortcutViaParent_alias1]
-oconsume[Target];
-
-
-
-/*
- ********************************
- * 6 - Labels erzeugen (Debug only)
- ********************************
- */
-
-/*
- * 6.1 hlCreateLabelCheckForWitnessScanNewVertices
- */
-
-/* 6.1.1 Testcase 1: einfache Ausführung mit isForward = true (=1) */
-query hlCreateLabelCheckForWitnessScanNewVertices(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 291, 1, 1000.0, 1) feed consume;
-/*  erwartetes Ergebnis: enthält alle eingehenden Kanten zu v aus dem Downwardsgraph mit ihren Kosten + 1000
- *   bei 291: [584, 273] (nicht 270, 291)
- *   bei 1505: [1668, zzgl. Shortcuts] (nicht 1492, 1496, 1475)
- *   bei 1496: [1505, 1495, zzgl. Shortcuts] (nicht 1778)
- */
-
-/* 6.1.2 Testcase 2: einfache Ausfuehrung mit isForward = false (=0) */
-query hlCreateLabelCheckForWitnessScanNewVertices(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 291, 1, 1000.0, 0) feed consume;
-/*  erwartetes Ergebnis: enthält alle ausgehenden Kanten zu v aus dem Upwardsgraph mit ihren Kosten + 1000
- *   bei 291: [584, 273] (nicht 270, 291)
- *   bei 1505: [1668, zzgl. Shortcuts] (nicht 1492, 1496, 1475)
- *   bei 1496: [1495, zzgl. Shortcuts] (nicht 1778, 1505)
- */
-
-/*
- * 6.2 hlCreateLabelCheckForWitness
- */
-
-/* 6.2.1 Testcase 1 forward */
-delete hlFwdOrRvsLabel;
-let hlFwdOrRvsLabel =
-hlNodesRankedOrelId feed project[NodeIdNew] filter[.NodeIdNew = 585] renameattr[HubId: NodeIdNew] extend[HubIdNew: .HubId] extend[ParentViaId: -1] extend[ParentViaTupleId: -1] extend[DistanceToSource: 0.0]
-hlNodesRankedOrelId feed project[NodeIdNew] filter[.NodeIdNew = 590] renameattr[HubId: NodeIdNew] extend[HubIdNew: .HubId] extend[ParentViaId: 585] extend[ParentViaTupleId: -1] extend[DistanceToSource: 100.0]
+delete hlNodesSourceOnlyOrel;
+let hlNodesSourceOnlyOrel =
+hlEdgesOrelSource feed extend[NodeId: .Source] project[NodeId]
+hlEdgesOrelSource feed extend[NodeId: .Target] project[NodeId]
 concat
-hlNodesRankedOrelId feed project[NodeIdNew] filter[.NodeIdNew = 700] renameattr[HubId: NodeIdNew] extend[HubIdNew: .HubId] extend[ParentViaId: 585] extend[ParentViaTupleId: -1] extend[DistanceToSource: 100.0]
-concat
-consume;
-
-/* 6.2.1.1 Testcase 1.1
- * 585 -> 590 -> 700
- * 585 -> (723)
- * hHop = 10, DistSV = 0.0, isForward = true (=1)
- */
-query hlCreateLabelCheckForWitness(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 723, 10, 0.0, 1);
-/* erwartetes Ergebnis: kein Witness found (=false)*/
-
-/* 6.2.1.2 Testcase 1.2
- * 585 -> 590 -> 700
- * 585 -> (723)
- * hHop = 10, DistSV = 10000.0, isForward = true (=1)
- */
-query hlCreateLabelCheckForWitness(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 723, 10, 10000.0, 1);
-/* erwartetes Ergebnis: Witness found (=true)*/
-
-/* 6.2.1 Testcase 1 free resources*/
-delete hlFwdOrRvsLabel;
-
-
-/* 6.2.2 Testcase 2 forward */
-delete hlFwdOrRvsLabel;
-let hlFwdOrRvsLabel =
-hlNodesRankedOrelId feed project[NodeIdNew] filter[.NodeIdNew = 585] renameattr[HubId: NodeIdNew] extend[HubIdNew: .HubId] extend[ParentViaId: -1] extend[ParentViaTupleId: -1] extend[DistanceToSource: 0.0]
-consume;
-
-/* 6.2.2.1 Testcase 2.1
- * 585 -> (723)
- * hHop = 1000, DistSV = 0.0, isForward = true (=1)
- */
-query hlCreateLabelCheckForWitness(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 723, 1000, 0.0, 1);
-/* erwartetes Ergebnis: kein Witness found (=false)*/
-
-/* 6.2.2.2 Testcase 2.2
- * 585 -> (723)
- * hHop = 1000, DistSV = 10000.0, isForward = true (=1)
- */
-query hlCreateLabelCheckForWitness(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 723, 1000, 10000.0, 1);
-/* erwartetes Ergebnis: kein Witness found (=false)*/
-
-/* 6.2.2 Testcase 2 free resources*/
-delete hlFwdOrRvsLabel;
-
-
-/* 6.2.3 Testcase 3 forward */
-delete hlFwdOrRvsLabel;
-let hlFwdOrRvsLabel =
-hlNodesRankedOrelId feed project[NodeIdNew] filter[.NodeIdNew = 585] renameattr[HubId: NodeIdNew] extend[HubIdNew: .HubId] extend[ParentViaId: -1] extend[ParentViaTupleId: -1] extend[DistanceToSource: 0.0]
-hlNodesRankedOrelId feed project[NodeIdNew] filter[.NodeIdNew = 723] renameattr[HubId: NodeIdNew] extend[HubIdNew: .HubId] extend[ParentViaId: 585] extend[ParentViaTupleId: -1] extend[DistanceToSource: 100.0]
-concat
-consume;
-
-/* 6.2.3.1 Testcase 3.1
- * 585 -> 723
- * 585 -> (590)
- * hHop = 10, DistSV = 0.0, isForward = true (=1)
- */
-query hlCreateLabelCheckForWitness(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 590, 10, 0.0, 1);
-/* erwartetes Ergebnis: kein Witness found (=false)*/
-
-/* 6.2.3.2 Testcase 3.2
- * 585 -> 723
- * 585 -> (590)
- * hHop = 1, DistSV = 0.0, isForward = true (=1)
- */
-query hlCreateLabelCheckForWitness(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 590, 1, 0.0, 1);
-/* erwartetes Ergebnis: kein Witness found (=false)*/
-
-/* 6.2.3.3 Testcase 3.3
- * 585 -> 723
- * 585 -> (590)
- * hHop = 1, DistSV = 10000.0, isForward = true (=1)
- */
-query hlCreateLabelCheckForWitness(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 590, 1, 10000.0, 1);
-/* erwartetes Ergebnis: Witness found (=false)*/
-
-/* 6.2.3 Testcase 3 free resources*/
-delete hlFwdOrRvsLabel;
-
-
-
-/* 6.2.6 Testcase 6 reverse */
-/*
- * Alle vorherigen Testcases mit isForward = false erneut ausführen
- * es sollte keine abweichenden Ergebnisse geben
- */
-
-
+sortby[NodeId]
+krdup[NodeId]
+oconsume[NodeId];
+ 
 
 
 /*
- * 6.3 hlCreateLabelScanNewVertices
+ ********************************
+ * 2 - Contraction
+ ********************************
  */
-
-
-/* 6.3.1 Testcase 1 */
-delete hlFwdOrRvsLabel;
-let hlFwdOrRvsLabel =
-hlNodesRankedOrelId feed project[NodeIdNew] filter[.NodeIdNew = 700] renameattr[HubId: NodeIdNew] extend[HubIdNew: .HubId] extend[ParentViaId: -1] extend[ParentViaTupleId: -1] extend[DistanceToSource: 0.0]
-consume;
-
-/* 6.3.1.1 Testcase 1.1
- * 700
- * DistSV = 0.0, isForward = true (=1)
- */
-query hlCreateLabelScanNewVertices(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 700, 0.0, 1) feed consume;
-/*  erwartetes Ergebnis: 
- *  das result (notYetVisited) ist leer
- */
-
-/* 6.3.1.2 Testcase 1.2
- * 700
- * DistSV = 0.0, isForward = false (=0)
- */
-query hlCreateLabelScanNewVertices(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 700, 0.0, 0) feed consume;
-/*  erwartetes Ergebnis: 
- *  das result (notYetVisited) ist leer
- */
-
-
-/* 6.3.2 Testcase 2 */
-delete hlFwdOrRvsLabel;
-let hlFwdOrRvsLabel =
-hlNodesRankedOrelId feed project[NodeIdNew] filter[.NodeIdNew = 630] renameattr[HubId: NodeIdNew] extend[HubIdNew: .HubId] extend[ParentViaId: -1] extend[ParentViaTupleId: -1] extend[DistanceToSource: 0.0]
-consume;
-
-/* 6.3.2.1 Testcase 2.1
- * 700
- * DistSV = 0.0, isForward = true (=1)
- */
-query hlCreateLabelScanNewVertices(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 630, 0.0, 1) feed consume;
-/*  erwartetes Ergebnis: 
- *  das result (notYetVisited) enthaelt 700 mit 630 als Vorgaenger (hHop)
- */
-
-/* 6.3.2.2 Testcase 2.2
- * 700
- * DistSV = 0.0, isForward = false (=0)
- */
-query hlCreateLabelScanNewVertices(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 630, 0.0, 0) feed consume;
-/*  erwartetes Ergebnis: 
- *  das result (notYetVisited) enthaelt 700 mit 630 als Vorgaenger (hHop)
- */
-
-
-/* 6.3.3 Testcase 3 */
-delete hlFwdOrRvsLabel;
-let hlFwdOrRvsLabel =
-hlNodesRankedOrelId feed project[NodeIdNew] filter[.NodeIdNew = 585] renameattr[HubId: NodeIdNew] extend[HubIdNew: .HubId] extend[ParentViaId: -1] extend[ParentViaTupleId: -1] extend[DistanceToSource: 0.0]
-hlNodesRankedOrelId feed project[NodeIdNew] filter[.NodeIdNew = 590] renameattr[HubId: NodeIdNew] extend[HubIdNew: .HubId] extend[ParentViaId: 585] extend[ParentViaTupleId: -1] extend[DistanceToSource: 10000.0]
-concat
-consume;
-
-/* 6.3.3.1 Testcase 3.1
- * 700
- * DistSV = 0.0, isForward = true (=1)
- */
-query hlCreateLabelScanNewVertices(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 590, 0.0, 1) feed consume;
-/*  erwartetes Ergebnis: 
- *  das result (notYetVisited) enthaelt 723, 273, 630, 700 jeweils mit 590 als Voränger
- */
-
-/* 6.3.3.2 Testcase 3.2
- * 700
- * DistSV = 0.0, isForward = false (=0)
- */
-query hlCreateLabelScanNewVertices(hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, 590, 0.0, 0) feed consume;
-/*  erwartetes Ergebnis: 
- *  das result (notYetVisited) enthaelt 723, 273, 630, 700 jeweils mit 590 als Voränger
- */
-
-
-
+delete hlGraphOrel;
+let hlGraphOrel =
+hlDoContractionOfHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel, 2, 100, 0)
+feed oconsume[Source];
+/* erwartetes Ergebnis: Eine Darstellung eines kontrahierten HLGraphen mit Kanten und Shortcuts*/
 
 
 /*
- * 6.3 hlGetRankById
+ ********************************
+ * 3 - CH Search
+ ********************************
  */
-query hlGetRankById(hlNodesRankedOrelId_NodeIdNew, hlNodesRankedOrelId, 700);
-/*erwartetes Ergebnis: 35 (siehe folgende Query)*/
+/*Dreierwalde*/
+query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 102, 747) feed consume;
 
-query hlNodesRankedOrelId_NodeIdNew exactmatchS[700] consume;
+/*Reelkirchen*/
+query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 2365, 777) feed consume;
+query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 2365, 3933) feed consume;
 
+/*Bad Driburg*/
+query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 668, 38382) feed consume;
+query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 668, 32294) feed consume;
+query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 32294, 668) feed consume;
 
 /*
- * 6.4 hlCreateLabelByDijkstraWithStalling
- */
-
-/* 6.4.1 Testcase 1 */
-query hlCreateLabelByDijkstraWithStalling(hlNodesRankedOrelId_NodeIdNew, hlNodesRankedOrelId, hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 700, 10, 1) feed consume;
-/*erwartets Ergebnis: Label mit nur 700 und ohne Parent*/
-
-/* 6.4.2 Testcase 2 */
-query hlCreateLabelByDijkstraWithStalling(hlNodesRankedOrelId_NodeIdNew, hlNodesRankedOrelId, hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 630, 10, 1) feed consume;
-;
-/*erwartets Ergebnis: Label mit 700 ohne Parent und 630 mit 700 als parent (parentTupleId ist -1, wird erst bei fillLabel gesetzt)*/
-
-/* 6.4.3 Testcase 3 */
-query hlCreateLabelByDijkstraWithStalling(hlNodesRankedOrelId_NodeIdNew, hlNodesRankedOrelId, hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 273, 10, 1) feed consume;
-
-/* 6.4.4 Testcase 4 */
-query hlCreateLabelByDijkstraWithStalling(hlNodesRankedOrelId_NodeIdNew, hlNodesRankedOrelId, hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 62, 10, 1) feed consume;
-
-/*
- * 6.4.5 Testcase 5
- * Alles mit isForward = 0 (=false) wiederholen
- */
-
-
-
-/*
- * 6.5 hlFillForwardOrReverseLabel
- */
-
-/* 6.5.1 Testcase 1 */
-delete hlFwdOrRvsLabelRel;
-let hlFwdOrRvsLabelRel = hlCreateLabelByDijkstraWithStalling(hlNodesRankedOrelId_NodeIdNew, hlNodesRankedOrelId, hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 62, 10, 1) feed consume;
-
-query hlFillForwardOrReverseLabel(hlFwdOrRvsLabelRel) feed consume;
-
-/*erwartetes Ergebins: zeigt ein vollständiges ForwardLabel für 700 */
-
-/*
- * 6.5.2 Testcases 2+
+ * Arnsberg
  *
- * Weitere Sources ausprobieren: 630, 273, 92
- * Labels auch auch mit isForward = false (=0) ausprobieren
- * Bei Parents sollte auch die parentTupleId gesetzt sein
- *  nur beim root steht dort -1
+ * Soest Wohngebiet (Konrad-Koler-Weg): 10635354
+ * Fernuni Hagen (Universitätsstraße): 2612894
+ * Dortmund-Lanstrup (Hutererweg): 8264971
  */
+query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 10635354, 8264971) feed consume;
+query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 10635354, 2612894) feed consume;
+query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 10635354, 8264971) feed consume;
+query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 2612894, 8264971) feed consume;
+
+
+/*
+ * NRW
+ *
+ * min: 1912
+ * max: 59595922
+ */
+query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 1912, 59595922) feed consume;
+
 
 
 
 
 /*
- * 6.6 hlGetPathViaPoints
+ * Germany
+ *
+ * Ilseweg Paderborn: 736735944
+ * Böcklingstraße München: 195503889
  */
-delete hlFwdOrRvsLabelRel;
-let hlFwdOrRvsLabelRel = hlCreateLabelByDijkstraWithStalling(hlNodesRankedOrelId_NodeIdNew, hlNodesRankedOrelId, hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 62, 10, 1) feed consume;
+let hlQueryResult =
+hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, 736735944, 195503889) feed consume;
 
-/* 6.6.1 Sample Nrel erzeugen */
-delete hlAllLabelsNRel;
-let hlAllLabelsNRel = hlFillForwardOrReverseLabel(hlFwdOrRvsLabelRel) feed consume;
-
-
-/* 6.6.2 BTree über NestedRelation erzeugen */
-delete hlAllLabelsNRel_SourceNodeId;
-let hlAllLabelsNRel_SourceNodeId = hlAllLabelsNRel feed extend[TmpTid: tupleid(.)] createbtree[SourceNodeId];
-
-query hlAllLabelsNRel_SourceNodeId rangeS[0, 99999999] hlAllLabelsNRel gettuples consume;
-
-query hlAllLabelsNRel_SourceNodeId exactmatchS[99999999] hlAllLabelsNRel gettuples consume;
-
-
-/*
- * Sample BTree Usage
- *  - createBTree by Stream
- *  - createBTree by Relation
- *  - query Elements from BTree by range
- */
-delete Nodes_NodeIdNew;
-let Nodes_NodeIdNew = Nodes feed head[1] extend[TmpTid: tupleid(.)] createbtree[NodeIdNew];
-
-let Nodes_NodeIdNew = Nodes feed head[10] consume createbtree[NodeIdNew];
-
-query Nodes_NodeIdNew Nodes range[0, 99999999] consume;
-query Nodes_NodeIdNew rangeS[0, 999999999] consume;
-
-/* 6.6.3 Testcase 1 */
-query hlGetPathViaPoints(hlAllLabelsNRel, hlAllLabelsNRel_SourceNodeId, hlEdgesOrelSourceParentVia, 62, 630, 1) feed consume;
-
-/*erwartetes Ergebins: zeigt den ganzen Pfad von 62 nach 630 */
-
-
-/*
- * 6.6.4 Testcase 2
- * Mit isForward = 0 (= false) ausführen
- * Kein Ergebnis, da Reverse leer
- */
-
-
-/*
- * 6.6.5 Testcase 3
- * Mit anderen IDs ausführen, die existieren
- */
-
-/*
- * 6.6.6 Testcase 
- * Mit IDs ausführen, die es nicht gibt
- */
-
-/*
- * 6.6.7 Testcase 
- * Mit der rootId als HubId ausführen
- *  Die Root Id sollte ausgegeben werden
- */
-
-
-
-/*
- * 6.7 hlQuery
- */
-delete hlFwdOrRvsLabelRelSource;
-let hlFwdOrRvsLabelRelSource = hlCreateLabelByDijkstraWithStalling(hlNodesRankedOrelId_NodeIdNew, hlNodesRankedOrelId, hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 62, 10, 1) feed consume;
-
-delete hlFwdOrRvsLabelRelTarget;
-let hlFwdOrRvsLabelRelTarget = hlCreateLabelByDijkstraWithStalling(hlNodesRankedOrelId_NodeIdNew, hlNodesRankedOrelId, hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 747, 10, 1) feed consume;
-
-
-/* 6.7.1 Sample Nrel erzeugen */
-delete hlAllLabelsNRel;
-let hlAllLabelsNRel =
-hlFillForwardOrReverseLabel(hlFwdOrRvsLabelRelSource) feed
-remove[ReverseLabel] extend[ReverseLabel: .ForwardLabel]
-hlFillForwardOrReverseLabel(hlFwdOrRvsLabelRelTarget) feed
-remove[ReverseLabel] extend[ReverseLabel: .ForwardLabel]
-concat
-consume;
-/*die beiden fill-Aufrufe erzeugen für sich jeweils eine nrel mit eigener data rel die dann konkateniert werden, sodass teilweise neue tupleids vergeben werden, sodass die in den labels gespeicherten tuple ids verfälscht werden, dies führt in den folgenden unter-testcases zu diesem testcase zu seltsamen ergebnissen, in der gesamtausführung von create labels sollte es dann funktionieren*/
-
-
-/* 6.7.2 BTree über NestedRelation erzeugen */
-delete hlAllLabelsNRel_SourceNodeId;
-let hlAllLabelsNRel_SourceNodeId = hlAllLabelsNRel feed extend[TmpTid: tupleid(.)] createbtree[SourceNodeId];
-
-query hlAllLabelsNRel_SourceNodeId rangeS[0, 99999999] hlAllLabelsNRel gettuples consume;
-
-
-query hlAllLabelsNRel_SourceNodeId exactmatchS[62] hlAllLabelsNRel gettuples consume;
-
-
-query hlAllLabelsNRel_SourceNodeId exactmatchS[747] hlAllLabelsNRel gettuples consume;
-
-
-/* 6.7.3 Testcase 1 */
-query hlQuery(hlAllLabelsNRel, hlAllLabelsNRel_SourceNodeId, 62, 747) feed consume;
-
-/*erwartetes Ergebins: zeigt den ganzen Pfad von 62 nach 747 */
-
-
-/*
- * 6.7.4 Testcase 2
- * IDs umkehren
- */
-
-
-/*
- * 6.7.5 Testcase 3
- * Mit anderen IDs ausführen (die es nicht gibt)
- *  Kein Ergebnis erwartet, da nodes nicht vorhanden
- */
 
 
 
 /*
  ********************************
- * 7 - Labels erzeugen
+ * 4 - Create HubLabels
  ********************************
  */
+ 
+/* 4.1 NestedRelation erzeugen */
+delete hlAllLabelsNrel;
+let hlAllLabelsNrel =
+hlCreateLabelsFromHlGraph(hlNodesSourceOnlyOrel, hlGraphOrel) feed consume;
 
-/* 7.1 Sample NestedRelation erzeugen (Debug only)*/
-query
-Nodes feed filter[.NodeIdNew = 123] extend[ Forward : Nodes feed head[2] aconsume,
-Backward: Nodes feed tail[2] aconsume]
-Nodes feed filter[.NodeIdNew = 747] extend[ Forward : Nodes feed head[2] aconsume,
-Backward: Nodes feed tail[2] aconsume]
-concat consume
-;
+/* 4.2 BTree über NestedRelation erzeugen */
+delete hlAllLabelsNrel_SourceNodeId;
+let hlAllLabelsNrel_SourceNodeId = hlAllLabelsNrel feed extend[TmpTid: tupleid(.)] createbtree[SourceNodeId];
 
-/* 7.2 NestedRelation erzeugen */
-delete hlAllLabelsNRel;
-let hlAllLabelsNRel = hlCreateLabels(hlNodesRankedOrelId_NodeIdNew, hlNodesRankedOrelId, hlUpwardEdgesOrelSource, hlDownwardEdgesOrelTarget, 10) feed consume;
+
+
+
 /*
-dadurch, dass jedes label z.B. den Knoten 700 enthält, wird der Knoten 700 auch n mal in die dataRel eingefügt und erhält dadurch auch stets unterschiedliche tupleIds
+ ********************************
+ * 5 - Do HL Search
+ ********************************
+ */
+/*Dreierwalde*/
+query hlQuery(hlAllLabelsNrel, hlAllLabelsNrel_SourceNodeId, hlEdgesOrelSource, hlGraphOrel, 102, 747, 1) feed consume;
 
-das ist aber unproblematisch, da in jedem label auch die Information zu dem jeweiligen parent enthält, welchre von label zu label anders sein kann für 700, sprich in einem label ist der parent von 700 die 630, in einem anderen label ist es die 273 
+/*Reelkirchen*/
+query hlQuery(hlAllLabelsNrel, hlAllLabelsNrel_SourceNodeId, hlEdgesOrelSource, hlGraphOrel, 2365, 777, 1) feed consume;
+query hlQuery(hlAllLabelsNrel, hlAllLabelsNrel_SourceNodeId, hlEdgesOrelSource, hlGraphOrel, 2365, 3933, 1) feed consume;
+
+/*Bad Driburg*/
+query hlQuery(hlAllLabelsNrel, hlAllLabelsNrel_SourceNodeId, hlEdgesOrelSource, hlGraphOrel, 668, 38382, 1) feed consume;
+query hlQuery(hlAllLabelsNrel, hlAllLabelsNrel_SourceNodeId, hlEdgesOrelSource, hlGraphOrel, 668, 32294, 1) feed consume;
+
+/*
+ * Arnsberg
+ *
+ * Soest Wohngebiet (Konrad-Koler-Weg): 10635354
+ * Fernuni Hagen (Universitätsstraße): 2612894
+ * Dortmund-Lanstrup (Hutererweg): 8264971
 */
-
-/* 7.3 BTree über NestedRelation erzeugen */
-delete hlAllLabelsNRel_SourceNodeId;
-let hlAllLabelsNRel_SourceNodeId = hlAllLabelsNRel feed extend[TmpTid: tupleid(.)] createbtree[SourceNodeId];
-
-query hlAllLabelsNRel_SourceNodeId rangeS[0, 99999999] hlAllLabelsNRel gettuples consume;
-
-
-query hlAllLabelsNRel_SourceNodeId exactmatchS[62] hlAllLabelsNRel gettuples consume;
-
-
-query hlAllLabelsNRel_SourceNodeId exactmatchS[747] hlAllLabelsNRel gettuples consume;
-
-
+query hlQuery(hlAllLabelsNrel, hlAllLabelsNrel_SourceNodeId, hlEdgesOrelSource, hlGraphOrel, 10635354, 2612894, 1) feed consume;
+query hlQuery(hlAllLabelsNrel, hlAllLabelsNrel_SourceNodeId, hlEdgesOrelSource, hlGraphOrel, 10635354, 8264971, 1) feed consume;
+query hlQuery(hlAllLabelsNrel, hlAllLabelsNrel_SourceNodeId, hlEdgesOrelSource, hlGraphOrel, 2612894, 8264971, 1) feed consume;
 
 
 /*
- ********************************
- * 8 - Query
- ********************************
- */
-
-/* 8.1 Sample Query (Debug only) */
-query
-hlAllLabelsNRel_SourceNodeId exactmatchS[62] hlAllLabelsNRel gettuples feed {sourceAlias}
-hlAllLabelsNRel_SourceNodeId exactmatchS[747] hlAllLabelsNRel gettuples feed {targetAlias}
-product extend[Path:
-.ForwardLabel_sourceAlias afeed{sourceArelAlias}
-.ReverseLabel_targetAlias afeed{targetArelAlias}
-mergejoin[HubNodeIdNew_sourceAlias_sourceArelAlias, HubNodeIdNew_targetAlias_targetArelAlias]
-extend[Cost: .HubDistanceToSource_sourceAlias_sourceArelAlias + .HubDistanceToSource_targetAlias_targetArelAlias]
-sortby[Cost]
-head[1]
-aconsume
-]
-consume;
-/* hub = idNew:33 id=273 Cost: 3572.1686355815 */
-
-/* 8.2 Testcase 1 */
-query hlQuery(hlAllLabelsNRel, hlAllLabelsNRel_SourceNodeId, hlEdgesOrelSourceParentVia, 102, 747) feed consume;
-
-/* erwartetes Ergebins: zeigt den ganzen Pfad von 62 nach 747 */
-
-
-/*
- * 8.3 Testcase 2
- * IDs umkehren
- */
-
-
-/*
- * 8.4 Testcase 3
- * Mit anderen IDs ausführen
+ * NRW
  *
- * z.B. Durch verwendung von randInt
+ * min: 1912
+ * max: 59595922
  */
-
-
-
+query hlQuery(hlAllLabelsNrel, hlAllLabelsNrel_SourceNodeId, hlEdgesOrelSource, hlGraphOrel, 1912, 59595922, 1) feed consume;
 
 
 
