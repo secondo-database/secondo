@@ -18305,8 +18305,13 @@ class createmgraph2Info{
        targetPos(_targetPos), costFun(_costFun.addr){
        stream.open();
        costArg = qp->Argument(costFun);
+       lost = 0; 
      }
      ~createmgraph2Info(){
+       if(lost>0){
+          cout << "Lost : " << lost 
+               << " edges during creating the graph" << endl;
+       }
        stream.close();
      }
 
@@ -18327,6 +18332,7 @@ class createmgraph2Info{
             return res;
           }
           // ignore nonsense tuples
+          lost++;
           orig->DeleteIfAllowed();
        }
        return 0;
@@ -18339,6 +18345,7 @@ class createmgraph2Info{
     Supplier costFun;
     ArgVectorPointer costArg;
     Word value;
+    size_t lost;
 };
 
 
@@ -19368,8 +19375,12 @@ class createmgraph3Info{
      createmgraph3Info(Word _stream,MGraph3* _graph):
        stream(_stream), graph(_graph){
        stream.open();
+       lost = 0;
      }
      ~createmgraph3Info(){
+       if(lost>0){
+          cout << "lost " << lost << " Edges " << endl;
+       }
        stream.close();
      }
      Tuple* next(){
@@ -19378,6 +19389,7 @@ class createmgraph3Info{
            if(graph->insertGraphEdge(t)){
               return t;
            }
+           lost++;
            t->DeleteIfAllowed();
         }
         return 0;
@@ -19385,6 +19397,7 @@ class createmgraph3Info{
   private:
      Stream<Tuple> stream;
      MGraph3* graph;
+     size_t lost;
 };
              
 template<bool flob>
