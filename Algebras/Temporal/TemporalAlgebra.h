@@ -3531,6 +3531,16 @@ ConstTempralUnit - Mappings.
 */
     void ExtendDefTime(Unit u, Mapping<Unit, Alpha>& result);
 
+
+/*
+3.10.5.5 ~GetInterval~
+
+Extracts the time interval of the unit at a certain position.
+
+*/
+    void GetInterval(const int pos, SecInterval& result);
+
+    
 /*
 type name used in Secondo
 
@@ -7084,6 +7094,14 @@ void Mapping<Unit, Alpha>::ExtendDefTime(Unit u,
        result.MergeAdd(gap);
    }
    result.EndBulkLoad(false);
+}
+
+template<class Unit, class Alpha>
+void Mapping<Unit, Alpha>::GetInterval(const int pos, SecInterval& result) {
+  assert(pos >= 0 && pos < GetNoComponents());
+  Unit u(true);
+  units.Get(pos, u);
+  result = u.timeInterval;
 }
 
 template<class Unit, class Alpha>
