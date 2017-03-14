@@ -158,9 +158,15 @@ class MemoryPQueueObject : public MemoryObject {
             return tt;
         }
 
+        void swapQueue(std::priority_queue<pqueueentry> & q){
+           std::swap(q,queue);
+        }
+
+
+        typedef std::priority_queue<pqueueentry> queue_t;
 
     private:
-        std::priority_queue<pqueueentry> queue;
+        queue_t queue;
         TupleType* tt;
 };
 

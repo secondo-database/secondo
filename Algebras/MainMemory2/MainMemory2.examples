@@ -1225,6 +1225,19 @@ Signature : mpqueue x {int,real} -> stream(tuple)
 Example   : query pwrap("strassen_PQ_L") mfeedpqAbort[700.0] count
 Result    : 0
 
+Operator  : mpqreorder
+Number    : 613
+Signature : MPQUEUE x fun -> int
+Example   : query pwrap("strassen_PQ_L") mpqreorder[ -1 * .L] 
+Result    : 0
+
+Operator  : mpqreorderupdate
+Number    : 614
+Signature : MPQUEUE x fun x IDENT -> int
+Example   : query pwrap("strassen_PQ_L") mpqreorderupdate[ -1 * .L, L] 
+Result    : 0
+
+
 
 
 Operator : mblock

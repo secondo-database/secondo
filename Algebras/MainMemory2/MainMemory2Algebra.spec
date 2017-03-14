@@ -145,6 +145,9 @@ operator mfeedpqAbort alias MFEEDPQABORT pattern _ op [_ ]
 operator minserttuplepq alias MINSERTTUPLEPQ pattern op(_,_,_,_)
 operator minserttuplepqprojectU alias MINSERTTUPLEPQPROJECTU pattern _ op[_,_,_;list]
 operator minserttuplepqproject alias MINSERTTUPLEPQPROJECT pattern _ op[_,_;list]
+operator mpqreorder alias MPQREORDER pattern _ op[fun] implicit parameter tuple type MTUPLE
+operator mpqreorderupdate alias MPQREORDERUPDATE pattern _ op[fun,_] implicit parameter tuple type MTUPLE
+
 
 
 operator mcreatestack alias MCREATESTACK pattern _ op [_]

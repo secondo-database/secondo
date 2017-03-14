@@ -17656,6 +17656,191 @@ Operator minserttuplepqprojectOp(
 );
 
 
+
+
+/*
+8.8 mpwreorder
+
+*/
+template<int numArgs>
+ListExpr mpqreorderTM(ListExpr args){
+
+  // mpqueue x fun [x AttrName]
+  if(!nl->HasLength(args,numArgs)){
+     return listutils::typeError("invalid number of arguments");
+  }
+
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  ListExpr q = nl->First(args);
+  string err;
+  if(!getMemType(q,q,err,true)){
+    return listutils::typeError(err);
+  }
+  q = nl->Second(q);
+  if(!MemoryPQueueObject::checkType(q)){
+    return listutils::typeError("first arg is not a memory priority queue");
+  }
+  ListExpr tt = nl->Second(q); 
+  ListExpr fun = nl->First(nl->Second(args));
+  if(!listutils::isMap<1>(fun)){
+    return listutils::typeError("second arg is not an unary function");
+  }
+  if(!nl->Equal(nl->Second(fun),tt)){
+     return listutils::typeError("function argument and tuple type in "
+                                 "queue differ");
+  }
+  if(!CcReal::checkType(nl->Third(fun))){
+    return listutils::typeError("function result is not a real");
+  }
+  if(numArgs==2){
+     return listutils::basicSymbol<CcInt>();
+  }
+  ListExpr an = nl->First(nl->Third(args));
+  if(nl->AtomType(an) != SymbolType){
+    return listutils::typeError("third arg is not a valid attribute name ");
+  }
+  string ann = nl->SymbolValue(an);
+  ListExpr attrType;
+  int index = listutils::findAttribute(nl->Second(tt),ann,attrType);
+  if(!index){
+     return  listutils::typeError("attribute " + ann
+                                  + " not part of the tuple");
+  }
+  if(!CcReal::checkType(attrType)){
+     return listutils::typeError("attribute " + ann 
+                                  + " not of type real");
+  }
+  return nl->ThreeElemList(
+            nl->SymbolAtom(Symbols::APPEND()),
+            nl->OneElemList(nl->IntAtom(index-1)),
+            listutils::basicSymbol<CcInt>()
+         );
+}
+
+class mpqreorderInfo{
+
+  public:
+     mpqreorderInfo(MemoryPQueueObject* _q, Word& _fun, int _attrPos):
+       q(_q), fun(_fun.addr), attrPos(_attrPos)
+     {
+       arg = qp->Argument(fun);  
+     }
+ 
+     int compute(){
+        MemoryPQueueObject::queue_t nq;
+        int fails = 0;
+        while(!q->empty()){
+          pqueueentry e = q->pop();
+          if(!insertnewentry(e,nq)){
+             fails++;
+          }
+        }
+        q->swapQueue(nq);
+        return fails;
+     }
+
+
+  private:
+     MemoryPQueueObject* q;
+     Supplier fun;
+     int attrPos;
+     ArgVectorPointer arg;
+     Word funres;
+
+     bool insertnewentry(pqueueentry& e, MemoryPQueueObject::queue_t& q){
+        Tuple* t = e();
+        ((*arg)[0]).addr = t;
+        qp->Request(fun,funres);
+        CcReal* prio = (CcReal*) funres.addr;
+        if(!prio->IsDefined()){
+           t->DeleteIfAllowed();
+           return false;
+        }
+        double d = prio->GetValue();
+        if(attrPos>=0){
+          t->PutAttribute(attrPos,new CcReal(true,d));
+        }
+        q.push(pqueueentry(t,d));
+        t->DeleteIfAllowed();
+        return true;
+     }
+};
+
+
+template<class Q>
+int mpqreorderVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   MemoryPQueueObject* q = getMemObject<MemoryPQueueObject>((Q*) args[0].addr);
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+   if(!q){
+      res->SetDefined(false);
+      return 0;
+   }
+   int attrPos = -1;
+   if(qp->GetNoSons(s)==4){
+     attrPos = ((CcInt*) args[3].addr)->GetValue();
+   }
+   mpqreorderInfo li(q, args[1], attrPos);
+   res->Set(true,li.compute());
+   return 0;
+}
+
+ValueMapping mpqreorderVM[] = {
+   mpqreorderVMT<CcString>,
+   mpqreorderVMT<Mem>,
+   mpqreorderVMT<MPointer>
+};
+
+int mpqreorderSelect(ListExpr args){
+  return getRepNum(nl->First(args));
+}
+
+OperatorSpec mpqreorderSpec(
+   "mpqueue x fun -> int",
+   " _ mpqreorder [_] ",
+   "Changes the priorities of the contents of a memory "
+   "priority queue. Returns the number of failed reinsertions, "
+   "i.e., entries having an undefined function result.",
+   " query \"mpq\" mpwreorder[ 1/.Prio] count."
+);
+
+Operator mpqreorderOp(
+  "mpqreorder",
+  mpqreorderSpec.getStr(),
+  3,
+  mpqreorderVM,
+  mpqreorderSelect,
+  mpqreorderTM<2>
+);
+
+
+OperatorSpec mpqreorderupdateSpec(
+   "mpqueue x fun -> int",
+   " _ mpqreorderupdate [_,_] ",
+   "Changes the priorities of the contents of a memory "
+   "priority queue. Returns the number of failed reinsertions, "
+   "i.e., entries having an undefined function result. The "
+   "attribute that's name is given as the last argument is "
+   "changed to the new priority value.",
+   " query \"mpq\" mpwreorder[ 1/.Prio] count."
+);
+
+Operator mpqreorderupdateOp(
+  "mpqreorderupdate",
+  mpqreorderupdateSpec.getStr(),
+  3,
+  mpqreorderVM,
+  mpqreorderSelect,
+  mpqreorderTM<3>
+);
+
+
+
+
 /*
 9 Operators on Memory Stacks
 
@@ -20142,13 +20327,16 @@ class MainMemory2Algebra : public Algebra {
           minsertTuplepqOp.SetUsesArgsInTypeMapping();
           AddOperator(&minserttuplepqprojectOp);
           minserttuplepqprojectOp.SetUsesArgsInTypeMapping();
-
           AddOperator(&minserttuplepqprojectUOp);
           minserttuplepqprojectUOp.SetUsesArgsInTypeMapping();
-          AddOperator(&mfeedstackOp);
-          mfeedstackOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mpqreorderOp);
+          mpqreorderOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mpqreorderupdateOp);
+          mpqreorderupdateOp.SetUsesArgsInTypeMapping();
 
           // operators on stack
+          AddOperator(&mfeedstackOp);
+          mfeedstackOp.SetUsesArgsInTypeMapping();
           AddOperator(&mcreatestackOp);
           mcreatestackOp.SetUsesArgsInTypeMapping();
           AddOperator(&mcreatestackflobOp);
