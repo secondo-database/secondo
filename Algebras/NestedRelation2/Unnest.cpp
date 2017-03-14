@@ -186,6 +186,7 @@ Unnest::~Unnest()
             if (localInfo->tupleOut != NULL)
             {
               localInfo->tupleOut->DeleteIfAllowed();
+              localInfo->tupleOut = NULL;
             }
             if (tupleSubRel != NULL)
             {

@@ -66,7 +66,7 @@ Both types of relations offer an function to request their amount of tuples.
     Word& local, Supplier s)
 {
   int resultInt = 0;
-  if (message == OPEN)
+  //if (message == OPEN)
   {
     ARel *arel = static_cast<ARel*>(args[0].addr);
 
@@ -83,7 +83,7 @@ Both types of relations offer an function to request their amount of tuples.
     Word& local, Supplier s)
 {
   int resultInt = 0;
-  if (message == OPEN)
+  //if (message == OPEN)
   {
     NRel *nrel = static_cast<NRel*>(args[0].addr);
 
