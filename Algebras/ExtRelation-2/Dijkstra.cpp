@@ -1402,12 +1402,14 @@ into the targets map.
             }
           } 
           stream.close();
+          /*
           if(failed>0){
              cout << "found some targets more than one time " << endl;
              cout << "found " << targets.size() << " unique targets" << endl;
              cout << "ignored " << failed 
                   << " targets which was given more than once" << endl;
           }
+          */
       }
 
 /*
