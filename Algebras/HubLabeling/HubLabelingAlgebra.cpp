@@ -126,8 +126,8 @@ In the following we describe those three approaches in short:
 #include <tuple>
 
 
-#include "MainMemory2Algebra.cpp"
-
+#include "graph.h"
+#include "MainMemoryExt.h"
 
 /*
 2.2 Global Variables
