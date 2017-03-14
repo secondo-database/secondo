@@ -323,6 +323,12 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
 
 bool SecondoTTY::ProcessCommand()
 {
+  if(cmd.find_first_not_of(" \t\t\n")==string::npos){
+    // found empty command
+    cmd="";
+    return true;
+  }
+
   istringstream is(cmd);
   string cmdWord = ReadCommand(is);
 
@@ -406,7 +412,7 @@ bool SecondoTTY::ProcessCommand()
       }
     }
   }
-  else
+  else 
   {
     isQuery = MatchQuery(cmdWord,is);
     CallSecondo2();
