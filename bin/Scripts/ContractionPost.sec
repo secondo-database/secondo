@@ -1,0 +1,73 @@
+# run after ContractionC.sec
+
+# if isDBObject("ContractionX") then delete ContractionX endif
+
+# let ContractionX = "ContractionX" mfeed  consume
+
+# if isDBObject("NodeOrder") then delete NodeOrder endif
+
+# let NodeOrder = "DeletedNodes" mfeed addcounter[NewId, 1] consume
+
+# ... number nodes correctly in edges
+
+# query meminit(10000)
+
+# query memclear()
+
+if isDBObject("AllEdges") then delete AllEdges endif
+
+let AllEdges = EdgesC feed 
+  ContractionX feed 
+  NodeOrder feed project[Node, Pos, Prio, NewId] 
+  itHashJoin[Middle, Node] replaceAttr[Middle: .NewId] 
+    remove[Node, Pos, Prio, NewId] 
+  concat
+  NodeOrder feed project[Node, Pos, Prio, NewId] 
+  itHashJoin[Source, Node] replaceAttr[Source: .NewId, SourcePos: .Pos] 
+    remove[Node, Pos, Prio, NewId]
+  NodeOrder feed project[Node, Pos, Prio, NewId] 
+  itHashJoin[Target, Node] replaceAttr[Target: .NewId, TargetPos: .Pos] 
+    remove[Node, Pos, Prio, NewId]
+  project[Source, Target, SourcePos, TargetPos, Cost, Middle, NEdges]
+  sortby[Source, Target]
+  oconsume[Source, Target]
+
+
+
+if isDBObject("AllEdgesUp") then delete AllEdgesUp endif
+
+let AllEdgesUp = AllEdges feed filter[.Source < .Target] oconsume[Source, Target]
+
+
+if isDBObject("AllEdgesDown") then delete AllEdgesDown endif
+
+let AllEdgesDown = AllEdges feed filter[.Source > .Target] oconsume[Target, Source]
+
+
+
+if isDBObject("LabelCountsUp") then delete LabelCountsUp endif
+
+let LabelCountsUp = intstream(1, (NodeOrder count)) namedtransformstream[Source] 
+nth[(NodeOrder count) div 300, FALSE]
+extend[NNodes: (fun(a: int) AllEdgesUp orange[a; a]) gdijkstra[Target, .Source, 0, .Cost, 3, 0] count] consume 
+
+query LabelCountsUp feed groupby[; Avg: group feed avg[NNodes], Max: group feed max[NNodes]] consume
+
+
+if isDBObject("LabelCountsDown") then delete LabelCountsDown endif
+
+let LabelCountsDown = intstream(1, (NodeOrder count)) namedtransformstream[Target] 
+  nth[(NodeOrder count) div 300, FALSE]
+  extend[NNodes: (fun(a: int) AllEdgesDown orange[a; a]) 
+    gdijkstra[Source, .Target, 0, .Cost, 3, 0] count] 
+  consume 
+
+query LabelCountsDown feed groupby[; Avg: group feed avg[NNodes], Max: group feed max[NNodes]] consume
+
+
+query (fun(a : int) AllEdgesUp orange[a; a] ) (fun(b : int) AllEdgesDown orange[b; b] )
+  gbidijkstra[Target, Source, 215491, 218161, .Cost] count
+
+
+
+

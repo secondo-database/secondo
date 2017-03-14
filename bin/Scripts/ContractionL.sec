@@ -1,0 +1,62 @@
+### final phase: contract all nodes with negative score (CEdges - Deleted)
+# 
+# to be called from a master script such as ContractionK
+
+if isDBObject("NContracted") then delete NContracted endif
+
+let NContracted = 1
+
+
+while (NContracted > 0) do
+{
+update NContracted := "NodesX" mfeedpq
+  extend[ 
+    In: pwrap("EdgesX_Target") pwrap("EdgesX") mexactmatch[.Node] count, 
+    Out: pwrap("EdgesX_Source") pwrap("EdgesX") mexactmatch[.Node] count] 
+  extend[CEdges: fun(t: TUPLE)
+      pwrap("EdgesX_Target") pwrap("EdgesX") mexactmatch[attr(t, Node)] 
+        sortby[Source, Cost] krdup[Source] {i} 
+      pwrap("EdgesX_Source") pwrap("EdgesX") mexactmatch[attr(t, Node)] 
+        sortby[Target, Cost] krdup[Target] {o} 
+      product 
+      filter[.Source_i # .Target_o] 
+      filter[ ( fun(node: int) pwrap("EdgesX_Source") pwrap("EdgesX") 
+        mexactmatch[node] ) 
+        minPathCost1[Target, .Source_i, .Target_o, Cost, 4] >= (.Cost_i + .Cost_o)]
+      groupby[; Added: fun(g: GROUP) ifthenelse(g count <= (attr(t, In) + attr(t, Out)),
+        g feed
+        projectextend[; Source: .Source_i, Target: .Target_o, 
+          SourcePos: .SourcePos_i, TargetPos: .TargetPos_o,
+              Cost: .Cost_i + .Cost_o, Middle: attr(t, Node), 
+              NEdges: .NEdges_i + .NEdges_o] 
+        minsert[pwrap("EdgesX")] 
+        minsertavltree[pwrap("EdgesX_Source"), Source] 
+        minsertavltree[pwrap("EdgesX_Target"), Target] remove[TID] 
+        minsert[pwrap("ContractionX")] count,
+        -10)]
+      extractDef[Added, 0]
+  ]
+  filter[.CEdges >= 0]
+  extend[Deleted: 
+      pwrap("EdgesX_Target") pwrap("EdgesX") mexactmatch[.Node] 
+      pwrap("EdgesX_Source") pwrap("EdgesX") mexactmatch[.Node] 
+      concat mblock pwrap("EdgesX") mdeletedirect 
+      mdeleteavltree[pwrap("EdgesX_Target"), Target] 
+      mdeleteavltree[pwrap("EdgesX_Source"), Source] 
+      count
+  ]
+#  printstream
+  minsert[pwrap("DeletedNodes")]
+  count
+|
+query memdelete("NodesX")
+|
+query 
+  "EdgesX" mfeed project[Source, SourcePos] renameattr[Node: Source, Pos: SourcePos] 
+  "EdgesX" mfeed project[Target, TargetPos] renameattr[Node: Target, Pos: TargetPos] concat sort rdup 
+  extend[Prio: 0.0] 
+  mcreatepqueue[Prio, "NodesX"] count
+}
+endwhile
+
+

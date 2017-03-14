@@ -1,0 +1,154 @@
+### Prio: product(In, Out) + edge difference
+#
+# if product <= prio then 
+#   ed := edge difference;
+#   if product + ed <= prio then
+#     contract node
+#   else pushback node with prio product + ed
+#   endif
+# else pushback node with prio product
+# endif
+#
+# requires EdgesA
+
+query meminit(20000)
+
+query memclear()
+
+# assign speeds - EdgesB
+
+if not(isDBObject("EdgesB")) then 
+let EdgesB =
+  Speeds2 feed filter[.Speed > 1] {s} 
+  EdgesA feed filter[isdefined(.Curve)] itHashJoin[RoadType_s, RoadType]
+    extend[Cost: size(gk(.Curve)) / (.Speed_s / 3.6), Middle: 0, NEdges: 1.0] 
+     project[Source, Target, SourcePos, TargetPos, Cost, Middle, NEdges] 
+  consume
+endif
+
+if not(isDBObject("EdgesB2")) then 
+let EdgesB2 = EdgesB feed 
+  sortby[Source, Target]
+  oconsume[Source, Target]
+endif
+
+# compute connected components - EdgesC
+
+if not(isDBObject("EdgesC")) then
+{ query memglet("EdgesB", EdgesB2) 
+| let maxcompno =  "EdgesB" mgconnectedcomponents sortby[CompNo] 
+    groupby[CompNo; Cnt: group count]  kbiggest[1; Cnt] extract[CompNo] 
+| let EdgesC = "EdgesB" mgconnectedcomponents filter[.CompNo = maxcompno] remove[CompNo] consume 
+| query memdelete("EdgesB") 
+| delete maxcompno
+}
+endif
+
+query EdgesC feed letmconsume["EdgesX"]
+
+query "EdgesX" mfeed count
+
+query "EdgesX" mcreateAVLtree[Source]
+
+query "EdgesX" mcreateAVLtree[Target]
+
+if isDBObject("NodesA") then delete NodesA endif
+
+let NodesA = "EdgesX" mfeed project[Source, SourcePos] renameattr[NodeIdNew: Source, Pos: SourcePos] "EdgesX" mfeed project[Target, TargetPos] renameattr[NodeIdNew: Target, Pos: TargetPos] concat sort rdup consume
+
+query NodesA count
+
+# query "EdgesX" mfeed head[0] letmoconsume["ContractionX"; Source, Target]
+query "EdgesX" mfeed head[0] letmconsume["ContractionX"]
+
+query NodesA feed 
+projectextend[; Node: .NodeIdNew, Pos: .Pos, Prio: 0.0] 
+  mcreatepqueue[Prio, "NodesX"] count
+
+query NodesA feed  projectextend[; Node: .NodeIdNew, Pos: .Pos, Prio: 0.0, In: 0, Out: 0, CEdges: 0, Deleted: 0] head[0] 
+  letmconsume["DeletedNodes"];
+
+if isDBObject("contract") then delete contract endif
+
+let contract = fun(maxprio: int)
+"NodesX" mfeedpqAbort[maxprio]
+  extend[ 
+    In: pwrap("EdgesX_Target") pwrap("EdgesX") mexactmatch[.Node] count, 
+    Out: pwrap("EdgesX_Source") pwrap("EdgesX") mexactmatch[.Node] count] 
+  extend[CEdges: fun(t: TUPLE)
+    ifthenelse( (attr(t, In) * attr(t, Out)) <= attr(t, Prio), 
+      pwrap("EdgesX_Target") pwrap("EdgesX") mexactmatch[attr(t, Node)]
+        sortby[Source, Cost] krdup[Source] {i} 
+      pwrap("EdgesX_Source") pwrap("EdgesX") mexactmatch[attr(t, Node)]
+        sortby[Target, Cost] krdup[Target] {o} 
+      product 
+      filter[.Source_i # .Target_o] 
+      filter[ ( fun(node: int) pwrap("EdgesX_Source") pwrap("EdgesX") 
+        mexactmatch[node] ) 
+        minPathCost1[Target, .Source_i, .Target_o, Cost, 8] >= (.Cost_i + .Cost_o)] 
+      groupby[; Added: fun(g: GROUP)
+         ifthenelse(
+            ((attr(t, In) * attr(t, Out)) + 
+            ((g count) - (attr(t, In) + attr(t, Out)))) <= attr(t, Prio), 
+            g feed 
+            projectextend[; Source: .Source_i, Target: .Target_o, 
+              SourcePos: .SourcePos_i,
+              TargetPos: .TargetPos_o,
+              Cost: .Cost_i + .Cost_o, Middle: attr(t, Node), 
+              NEdges: .NEdges_i + .NEdges_o] 
+            minsert[pwrap("EdgesX")] 
+            minsertavltree[pwrap("EdgesX_Source"), Source] 
+            minsertavltree[pwrap("EdgesX_Target"), Target] remove[TID] 
+            minsert[pwrap("ContractionX")] count, 
+            bool2int(pwrap("NodesX") minserttuplepqprojectU[t, 
+            ((attr(t, In) * attr(t, Out)) + 
+            ((g count) - (attr(t, In) + attr(t, Out)))) * 1.0, 
+              Prio; Node, Pos, Prio]) - 10
+            )] 
+      extractDef[Added, 0]
+    ,
+      bool2int(pwrap("NodesX") minserttuplepqprojectU[t, 
+        (attr(t, In) * attr(t, Out)) * 1.0, 
+        Prio; Node, Pos, Prio]) - 10
+    )
+  ] 
+  filter[.CEdges >= 0]
+  extend[Deleted: 
+      pwrap("EdgesX_Target") pwrap("EdgesX") mexactmatch[.Node] 
+      pwrap("EdgesX_Source") pwrap("EdgesX") mexactmatch[.Node] 
+      concat mblock pwrap("EdgesX") mdeletedirect 
+      mdeleteavltree[pwrap("EdgesX_Target"), Target] 
+      mdeleteavltree[pwrap("EdgesX_Source"), Source] 
+      count
+  ]
+  minsert[pwrap("DeletedNodes")]
+  count
+
+########## Contraction
+
+query contract(100)
+
+@Scripts/ContractionL.sec
+
+query contract(100)
+
+if isDBObject("EdgesX") then delete EdgesX endif
+
+let EdgesX = "EdgesX" mfeed consume
+
+if isDBObject("NodesX") then delete NodesX endif
+
+let NodesX = "NodesX" mfeedpq consume
+
+{query memdelete("NodesX") | query NodesX feed mcreatepqueue[Prio, "NodesX"] count}
+
+
+
+if isDBObject("ContractionX") then delete ContractionX endif
+
+let ContractionX = "ContractionX" mfeed  consume
+
+if isDBObject("NodeOrder") then delete NodeOrder endif
+
+let NodeOrder = "DeletedNodes" mfeed addcounter[NewId, 1] consume
+

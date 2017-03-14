@@ -1,0 +1,62 @@
+### Compute the path for a contraction edge:
+
+# initialize structure
+
+let initsearch = fun() AllEdges feed head[0] 
+  project[Source, Target, SourcePos, TargetPos, Cost, Middle, NEdges]
+  extend[Prio: 0.0]
+  mcreatepqueue[NEdges, "Path"] count
+
+# repeatable. Enter source and target of a contraction edge.
+
+query initsearch()
+
+if isDBObject("findpath") then delete findpath endif
+
+let findpath = fun(Start: int, Dest: int)
+  (fun(a : int) AllEdgesUp orange[a; a] ) (fun(b : int) AllEdgesDown orange[b; b] )
+  gbidijkstra[Target, Source, Start, Dest, .Cost]
+  replaceAttr[NEdges: 0.0]
+  remove[IsForward]
+  extend[Prio: 0.0]
+  filter[minserttuplepq("Path", ., 0.0, Prio)]
+  loopsel[
+    "Path" mfeedpq
+  filter[fun(t: TUPLE) ifthenelse(attr(t, Middle) = 0, TRUE,
+    (AllEdges orange[attr(t, Source), attr(t, Middle); attr(t, Source), attr(t, Middle)]
+      ksmallest[1; Cost]
+    extend[Prio: 0.0]
+    extend[XX: minserttuplepq("Path", ., 0.0, Prio)]
+    extract[NEdges])
+    within[fun (previous: ANY)
+    (AllEdges orange[attr(t, Middle), attr(t, Target); attr(t, Middle), attr(t, Target)]
+      ksmallest[1; Cost]
+    extend[Prio: 0.0]
+    extend[XX: minserttuplepq("Path", ., previous, Prio)]
+    count = 0)
+    ])]
+  ]
+  consume
+  
+let gbi = fun(m: int, n: int)
+  (fun(a : int) AllEdgesUp orange[a; a] )
+  (fun(b : int) AllEdgesDown orange[b; b] )
+  gbidijkstra[Target, Source, m, n, .Cost] consume
+
+
+
+let expand = fun(source: int, middle: inttarget: int)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
