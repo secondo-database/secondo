@@ -58,6 +58,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ttree.h"
 #include "graph.h"
 #include "PointerWrapper.h"
+#include "MPointer.h"
 
 
 
@@ -979,9 +980,18 @@ class MemoryAVLObject : public MemoryObject {
 };
 
 
+bool dijkstra(graph::Graph* graph, Word& arg,
+               graph::Vertex* start, graph::Vertex* dest);
 
+bool getMemType(ListExpr type, ListExpr value,
+                   ListExpr & result, std::string& error,
+                   bool allowMPointer=false);
 
+template<class T>
+MemoryGraphObject* getMemGraph(T* aN);
 
+template<>
+MemoryGraphObject* getMemGraph(MPointer* a);
 
 } //ende namespace mm2algebra
 

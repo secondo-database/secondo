@@ -51,6 +51,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MovingRegionAlgebra.h"
 #include "RectangleAlgebra.h"
 #include "AvlTree.h"
+#include "StopWatch.h"
 
 #include "MainMemoryExt.h"
 #include "ttree.h"
@@ -466,7 +467,7 @@ MemoryGraphObject* getMemGraph(T* aN){
   if(!aN->IsDefined()){
      return 0;
   }
-  string an = aN->GetValue();
+  std::string an = aN->GetValue();
   if(!catalog->isMMObject(an) || !catalog->isAccessible(an)){
     return 0;
   }
@@ -694,7 +695,7 @@ and result will have the type in the memory.
 */
 bool getMemType(ListExpr type, ListExpr value, 
                 ListExpr & result, string& error, 
-                bool allowMPointer=false){
+                bool allowMPointer){
     if(allowMPointer){
       if(MPointer::checkType(type)){
          if(Mem::checkType(nl->Second(type))){
@@ -17729,6 +17730,10 @@ class mpqreorderInfo{
      }
  
      int compute(){
+
+        cout << "Reorder queue entries" << endl;
+        StopWatch w;
+
         MemoryPQueueObject::queue_t nq;
         int fails = 0;
         while(!q->empty()){
@@ -17738,6 +17743,9 @@ class mpqreorderInfo{
           }
         }
         q->swapQueue(nq);
+
+        cout << "reordering has taken " << w.diffTimes() << endl;
+
         return fails;
      }
 

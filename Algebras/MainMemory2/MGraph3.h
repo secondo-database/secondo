@@ -28,6 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_] [\_]
 
 */
+#ifndef MGRAPH3_H
+#define MGRAPH3_H
+
 
 #include "MainMemoryExt.h"
 #include "RelationAlgebra.h"
@@ -81,4 +84,6 @@ class MGraph3 : public MGraphCommon{
 
 
 } // end of namespace mm2algebra
+
+#endif
 

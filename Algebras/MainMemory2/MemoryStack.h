@@ -26,7 +26,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
-#ifndef MEMORYSTACK
+#ifndef MEMORYSTACK_H
+#define MEMORYSTACK_H
+
 
 #include "MainMemoryExt.h"
 #include <stack>
