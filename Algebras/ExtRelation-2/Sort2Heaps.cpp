@@ -324,10 +324,11 @@ class Sort2HeapsInfo{
   public:
      Sort2HeapsInfo(Word& _stream, 
                std::vector< std::pair<int, bool> >& positions, 
-               ListExpr _tt, size_t _maxFiles, size_t _maxMem): 
+               TupleType* _tt, size_t _maxFiles, size_t _maxMem): 
                stream(_stream), Comp(positions), maxFiles(_maxFiles), 
                maxMem(_maxMem){
-        tt = new TupleType(_tt);
+        tt = _tt;
+        tt->IncReference();
         sort();
      }
 
@@ -504,19 +505,29 @@ class Sort2HeapsInfo{
 };
 
 
+struct s2hinfo2{
+  TupleType* tt;
+  std::vector<std::pair<int, bool> > sorting;
+  bool initialized;
+};
+
 int Sort2HeapsVM(Word* args, Word& result, int message,
           Word& local, Supplier s){
 
-  Sort2HeapsInfo* li = (Sort2HeapsInfo*) local.addr;
-  typedef std::vector<std::pair<int, bool> > posvec;
-  posvec* li2 = (posvec*) qp->GetLocal2(s).addr;
+   Sort2HeapsInfo* li = (Sort2HeapsInfo*) local.addr;
+   s2hinfo2* li2 = (s2hinfo2*) qp->GetLocal2(s).addr;
 
   switch(message){
     case INIT :{
-      return 0;
+       li2 = new s2hinfo2;
+       li2->tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       li2->initialized = false; 
+       qp->GetLocal2(s).addr = li2;
+       return 0;
     }
     case FINISH: {
        if(li2){
+         li2->tt->DeleteIfAllowed();
          delete li2;
          qp->GetLocal2(s).addr = 0;
        }
@@ -526,8 +537,7 @@ int Sort2HeapsVM(Word* args, Word& result, int message,
     case OPEN : {
         if(li){ delete li;};
 
-        if(!li2){
-          posvec* pos= new posvec();
+        if(!li2->initialized){
           Supplier sp = qp->GetSon(s,qp->GetNoSons(s)-2); // positions
           Supplier sd = qp->GetSon(s,qp->GetNoSons(s)-1); // directions
           assert( qp->GetNoSons(sp) == qp->GetNoSons(sd)); // ensured by tm
@@ -537,10 +547,9 @@ int Sort2HeapsVM(Word* args, Word& result, int message,
              int p = ( (CcInt*) w.addr)->GetValue();
              qp->Request(qp->GetSon(sd,i),w);
              int d = ( (CcBool*) w.addr)->GetValue();
-             pos->push_back( std::make_pair(p,d));
+             li2->sorting.push_back( std::make_pair(p,d));
           }
-          qp->GetLocal2(s).addr = pos;         
-          li2 = pos; 
+          li2->initialized = true;
         } 
         size_t maxFiles = 200;  // maximum number of open files 
         size_t maxMem = qp->GetMemorySize(s)*1024*1024;
@@ -549,8 +558,8 @@ int Sort2HeapsVM(Word* args, Word& result, int message,
         if(maxMem<1024){
           maxMem = 1024;
         }
-        local.addr = new Sort2HeapsInfo(args[0], *li2,
-                      nl->Second(GetTupleResultType(s)),
+        local.addr = new Sort2HeapsInfo(args[0], li2->sorting,
+                      li2->tt,
                       maxFiles, maxMem);
         return 0;
     }
