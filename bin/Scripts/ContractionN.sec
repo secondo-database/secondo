@@ -121,7 +121,7 @@ query NodesA feed  projectextend[; Node: .NodeIdNew, Pos: .Pos, Prio: 0.0, In: 0
 if isDBObject("contract") then delete contract endif
 
 
-let contract = fun(maxprio: int, minBlockSize : int, maxHops : int)
+let contract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress : int)
   "NodesX" mfeedpq
      extend[ 
        In : pwrap("EdgesX") mg3numpredecessors[.Node], 
@@ -168,7 +168,12 @@ let contract = fun(maxprio: int, minBlockSize : int, maxHops : int)
   filter[.CEdges >= 0]
   addModCounter[Num,1, (.Prio > maxprio) and (.. > minBlockSize), 0]
   extend[ Dummy : ifthenelse(.Num = 0,pwrap("NodesX") mpqreorderupdate[ 0.0, Prio ],0)]
-  remove[Num,Dummy]                                                               
+  remove[Num,Dummy]  
+  addcounter[Progress,1]
+  filter[ ifthenelse((.Progress mod progress)=0,
+                     TRUE echo[num2string(.Progress)],
+                     TRUE)]
+  remove[Progress]                                                             
   extend[Deleted: bool2int(pwrap("EdgesX") mg3disconnect[.Node]) ]
   minsert[pwrap("DeletedNodes")]
   count
@@ -196,7 +201,7 @@ let mtcreationEdges = fun(node10 : int, maxHops : int)
 
 if isDBObject("mtcontract") then delete mtcontract endif
 
-let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int)
+let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress : int)
   "NodesX" mfeedpq
      extend[ 
        In : pwrap("EdgesX") mg3numpredecessors[.Node], 
@@ -238,6 +243,11 @@ let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int)
   addModCounter[Num,1, (.Prio > maxprio) and (.. > minBlockSize), 0]
   extend[ Dummy : ifthenelse(.Num = 0,pwrap("NodesX") mpqreorderupdate[ 0.0, Prio ],0)]
   remove[Num,Dummy]                                                               
+  addcounter[Progress,1]
+  filter[ ifthenelse((.Progress mod progress)=0,
+                     TRUE echo[num2string(.Progress)],
+                     TRUE)]
+  remove[Progress]                                                             
   extend[Deleted: bool2int(pwrap("EdgesX") mg3disconnect[.Node]) ]
   minsert[pwrap("DeletedNodes")]
   count
@@ -247,7 +257,7 @@ let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int)
 ########## the actual Contraction, play with arguments
 
 
-query mtcontract(30,300,8)  
+query mtcontract(30,300,8, NodeCount div 100)  
   
 
 
