@@ -180,10 +180,12 @@ let mtcreationEdges = fun(node10 : int, maxHops : int)
             (fun(node11: int) pwrap("EdgesX") mg3successors[node11])
             pwrap("EdgesX") mg3successors[node10] sortbyh[Target,Cost] krdup[Target] {o}
             mtMinPathCosts1[Target,attr(t10,Source_i), Target_o, Cost, maxHops]
+            filter[attr(t10,Source_i) # .Target_o]
+            extend[Cost : attr(t10,Cost_i) + .Cost_o]
+            filter[.MinPC >= .Cost] 
+            remove[MinPC]
        ]
-       filter[.Source_i # .Target_o]
-       extend[Cost : .Cost_i + .Cost_o]
-       filter[.MinPC >= .Cost] remove[MinPC]
+
 
 
 if isDBObject("mtcontract") then delete mtcontract endif
