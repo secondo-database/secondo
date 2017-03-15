@@ -115,4 +115,6 @@ operator tids alias TIDS pattern _ op
 
 operator noRefs alias NOREFS pattern op(_)
 
+operator addModCounter alias ADDMODCOUNTER pattern _ op[_,_,fun,fun] implicit parameters tuple, value types TUPLE, int
+
 

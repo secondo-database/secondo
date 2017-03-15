@@ -14964,9 +14964,201 @@ Operator noRefsOp(
 
 );
 
+/*
+Operator ~addModCounter~
+
+*/
+ListExpr addModCounterTM(ListExpr args){
+ // stream(t) x IDENT x int x (t x int -> bool) x (t x int -> int)
+ if(!nl->HasLength(args,5)){
+   return listutils::typeError("5 args expected");
+ }
+ if(!Stream<Tuple>::checkType(nl->First(args))){
+   return listutils::typeError("first arg is not a tuple stream");
+ }
+ string err;
+ if(!listutils::isValidAttributeName(nl->Second(args),err)){
+   return listutils::typeError("second arg is not a valid attribute name");
+ }
+ if(!CcInt::checkType(nl->Third(args))){
+   return listutils::typeError("third arg is not an int");
+ }
+ if(!listutils::isMap<2>(nl->Fourth(args))){
+   return listutils::typeError("Fourth arg is not a binary funtion");
+ }
+ if(!listutils::isMap<2>(nl->Fifth(args))){
+   return listutils::typeError("Fifth arg is not a binary funtion");
+ }
+  
+ string n = nl->SymbolValue(nl->Second(args));
+ ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+ ListExpr type;
+ if(listutils::findAttribute(attrList,n,type)){
+   return listutils::typeError("Attribute " + n 
+                               + " already part of the tuple");
+ }
+ ListExpr tt = nl->Second(nl->First(args));
+ ListExpr fun1 = nl->Fourth(args);
+ if(!nl->Equal(tt,nl->Second(fun1))){
+   return listutils::typeError("first arg of fun1 and tuple type "
+                               "in stream differ");
+ }
+ if(!CcInt::checkType(nl->Third(fun1))){
+   return listutils::typeError("second arg of fun 1 is not an int");
+ } 
+ if(!CcBool::checkType(nl->Fourth(fun1))){
+   return listutils::typeError("fun 1 does not create a bool");
+ }
+ ListExpr fun2 = nl->Fifth(args);
+ if(!nl->Equal(tt,nl->Second(fun2))){
+   return listutils::typeError("first arg of fun2 and tuple type "
+                               "in stream differ");
+ }
+ if(!CcInt::checkType(nl->Third(fun2))){
+   return listutils::typeError("second arg of fun 2 is not an int");
+ } 
+ if(!CcInt::checkType(nl->Fourth(fun2))){
+   return listutils::typeError("fun 2 does not create an int");
+ }
+
+ ListExpr al = nl->OneElemList(nl->TwoElemList( nl->SymbolAtom(n),
+                                             listutils::basicSymbol<CcInt>()));
+ attrList = listutils::concat(attrList,al);
+ if(!listutils::isAttrList(attrList)){
+    return listutils::typeError("result is not a valid attrlist");
+ }
+ tt = nl->TwoElemList(listutils::basicSymbol<Tuple>(), attrList);
+ return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(), tt);
+}
+
+class addModCounterInfo{
+  public:
+     addModCounterInfo( Word& _stream, CcInt* initial,
+                        Word& _fun1, Word& _fun2, TupleType* _tt):
+     stream(_stream), fun1(_fun1.addr), fun2(_fun2.addr), tt(_tt)
+     {
+       tt->IncReference();
+       f1args = qp->Argument(fun1);
+       f2args = qp->Argument(fun2);
+       currentValue = 0;
+       if(initial->IsDefined()){
+         currentValue = initial->GetValue();
+       }
+       initValue = currentValue;
+       stream.open();
+     }
+
+     ~addModCounterInfo(){
+       stream.close();
+       tt->DeleteIfAllowed();  
+     }
+
+     Tuple* next(){
+        Tuple* in = stream.request();
+        if(!in){
+          return 0;  
+        }
+        CcInt* c = new CcInt(true,currentValue);
+        (*f1args)[0] = in;
+        (*f1args)[1] = c;
+        qp->Request(fun1,funres);
+        CcBool* b = (CcBool*) funres.addr;
+        if(b->IsDefined() && b->GetValue()){
+          // modify counter
+          (*f2args)[0] = in;
+          (*f2args)[1] = c;
+          qp->Request(fun2,funres);
+          CcInt* nv = (CcInt*) funres.addr;
+          currentValue = nv->IsDefined()?nv->GetValue():initValue;
+          c->Set(true,currentValue);
+        }
+        Tuple* res = new Tuple(tt);
+        for(int i=0;i<in->GetNoAttributes();i++){
+          res->CopyAttribute(i,in,i);
+        }
+        res->PutAttribute(in->GetNoAttributes(),c);
+        in->DeleteIfAllowed();
+        currentValue++;
+        return res;
+     }
+
+  private:
+     Stream<Tuple> stream;
+     Supplier fun1;
+     Supplier fun2;
+     TupleType* tt;
+     ArgVectorPointer f1args;
+     ArgVectorPointer f2args;
+     int currentValue;
+     int initValue;
+     Word funres;
+};
 
 
+int addModCounterVM(Word* args, Word& result, int message,
+                     Word& local, Supplier s) {
 
+   addModCounterInfo* li = (addModCounterInfo*)local.addr;
+   switch(message){
+     case INIT: {
+        qp->GetLocal2(s).addr = new TupleType(
+                                     nl->Second(GetTupleResultType(s)));
+        return 0;
+     }
+     case FINISH: {
+         TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+         if(tt){
+           tt->DeleteIfAllowed();
+           qp->GetLocal2(s).addr = 0;
+         }
+         return 0;
+     }
+     case OPEN: {
+         TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+         if(li){
+          delete li;
+         }
+         local.addr = new addModCounterInfo(args[0], (CcInt*) args[2].addr, 
+                                            args[3],args[4], tt);
+         return 0;
+     }
+     case REQUEST: {
+          result.addr = li?li->next():0;
+          return result.addr?YIELD:CANCEL;
+     }
+     case CLOSE: {
+         if(li){
+            delete li;
+            local.addr = 0;
+         }
+         return 0;
+     }
+
+   }
+   return -1;
+}
+
+OperatorSpec addModCounterSpec(
+  "stream(t) x IDENT x int x ( t x int -> bool) x (t x int -> int) "
+  "-> stream(T@(I int)",
+  " _ addModCounter[Name, initial, fun1, fun2] ",
+  "Adds a counter to a tuple stream. The counter starts with the value "
+  "initial and is inremeneted for each tuple. " 
+  "The first function takes the tuple and the current value of the "
+  "counter as arguments. If this function evaluates to true, "
+  "the current counter value is replaced by the result of the second "
+  "function. If this result is undefined, the counter uses it's initial "
+  " value.",
+  "query plz feed addModCounter[C ,1, .PLZ * .. > 80000, 0] consume"
+);
+
+Operator addModCounterOp(
+  "addModCounter",
+  addModCounterSpec.getStr(),
+  addModCounterVM,
+  Operator::SimpleSelect,
+  addModCounterTM
+);
 
 
 
@@ -15121,6 +15313,8 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&tidsOp);
     AddOperator(&noRefsOp);
     AddOperator(&extractDefOp);
+    AddOperator(&addModCounterOp);
+    addModCounterOp.enableInitFinishSupport();
 
 
 #ifdef USE_PROGRESS
