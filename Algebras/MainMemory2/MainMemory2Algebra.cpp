@@ -17731,8 +17731,8 @@ class mpqreorderInfo{
  
      int compute(){
 
-        cout << "Reorder queue entries" << endl;
-        StopWatch w;
+        // cout << "Reorder queue entries" << endl;
+        // StopWatch w;
 
         MemoryPQueueObject::queue_t nq;
         int fails = 0;
@@ -17744,7 +17744,7 @@ class mpqreorderInfo{
         }
         q->swapQueue(nq);
 
-        cout << "reordering has taken " << w.diffTimes() << endl;
+        //cout << "reordering has taken " << w.diffTimes() << endl;
 
         return fails;
      }
