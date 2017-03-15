@@ -114,7 +114,7 @@ closeregex (\]\+)|(\]\*)|(\]\?)|\]
                }
               }
 <condition>\( {if (!openQuotes) {
-                 ++openParentheses; 
+                 ++openParentheses;
                  return '(';
                }
               }

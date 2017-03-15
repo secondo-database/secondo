@@ -5148,12 +5148,12 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(createunitrtreeInfo(), createunitrtreeVMs, createunitrtreeSelect,
               createunitrtreeTM);
   
-  ValueMapping indexmatchesVMs[] = {indexmatchesVM<MLabel, FText>, 
-    indexmatchesVM<MLabels, FText>, indexmatchesVM<MPlace, FText>, 
-    indexmatchesVM<MPlaces, FText>, indexmatchesVM<MLabel, PatPersistent>,
-    indexmatchesVM<MLabels, PatPersistent>, 
-    indexmatchesVM<MPlace, PatPersistent>,
-    indexmatchesVM<MPlaces, PatPersistent>, 0};
+//   ValueMapping indexmatchesVMs[] = {indexmatchesVM<MLabel, FText>, 
+//     indexmatchesVM<MLabels, FText>, indexmatchesVM<MPlace, FText>, 
+//     indexmatchesVM<MPlaces, FText>, indexmatchesVM<MLabel, PatPersistent>,
+//     indexmatchesVM<MLabels, PatPersistent>, 
+//     indexmatchesVM<MPlace, PatPersistent>,
+//     indexmatchesVM<MPlaces, PatPersistent>, 0};
 //   AddOperator(indexmatchesInfo(), indexmatchesVMs, indexmatchesSelect,
 //               indexmatchesTM);
 

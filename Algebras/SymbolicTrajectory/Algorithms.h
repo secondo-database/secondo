@@ -930,7 +930,7 @@ class TMatch {
   bool mainValuesMatch(const int u, const int atom);
   bool otherValuesMatch(const int pos, 
                         const temporalalgebra::SecInterval& iv, const int atom);
-  bool valuesMatch(const int u, const int atom);
+  bool valuesMatch(const int u, const int atom, const bool checkMain);
   bool easyCondsMatch(const int u, const int atom);
   bool performTransitions(const int u, std::set<int>& states);
   bool performTransitionsWithMatrix(const int u, std::set<int>& states);
@@ -1321,10 +1321,10 @@ class TMatchIndexLI : public IndexMatchSuper {
                            std::pair<Word, SetRel> values, std::string type,
                            std::vector<temporalalgebra::Periods*> &prev,
                            std::vector<temporalalgebra::Periods*> &result,
-                           bool checkPrev = false);
-  bool getResultForAtomTime(const int atomNo, 
+                           const int prevCrucial, bool checkPrev = false);
+  bool getResultForAtomTime(const int atomNo, const int prevCrucial,
                             std::vector<temporalalgebra::Periods*> &result);
-  void storeIndexResult(int atomNo, int &noResults);
+  void storeIndexResult(const int atomNo, const int prevCrucial,int &noResults);
   void initMatchInfo();
   bool atomMatch(int state, std::pair<int, int> trans,
                  const bool rewrite = false);
@@ -6037,10 +6037,11 @@ template<class M, class U>
 void TMatchIndexLI::unitsToPeriods(Attribute *traj, const std::set<int> &units,
                                    temporalalgebra::Periods *per) {
   M *m = (M*)traj;
-  U u(true);
+  temporalalgebra::SecInterval iv(true);
   for (std::set<int>::iterator it = units.begin(); it != units.end(); it++) {
-    m->Get(*it, u);
-    per->MergeAdd(u.timeInterval);
+    m->GetInterval(*it, iv);
+    per->MergeAdd(iv);
+//     cout << "time interval " << u.timeInterval << " added" << endl;
   }
 }
 
