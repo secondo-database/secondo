@@ -42,6 +42,12 @@ if not(isDBObject("EdgesC")) then
 }
 endif
 
+
+# release memory used by the graph "EdgesB"
+
+query memclear()
+
+
 # We renumber the nodes from 0 .. nodecount -1
 # using an mgraph2
 
