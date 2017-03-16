@@ -45,7 +45,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <assert.h>
 #include <limits>
 #include <stack>
-
+#include "AvlTree.h"
 
 
 extern NestedList* nl;
@@ -1321,16 +1321,10 @@ class mtMinPathCostsInfo{
         while(resPos < results.size()){
            results[resPos++]->DeleteIfAllowed();
         }
-        // delete non-found nodes from targets
-        typename std::map<ct,Tuple*>::iterator it;
-        for(it=targets.begin();it!=targets.end();it++){
-           if(it->second){
-             it->second->DeleteIfAllowed();
-             it->second=0;
-           }
-        }
-        targets.clear();
         results.clear();
+        // all targets should be tranferred into
+        // result, possible with maximum costs
+        assert(targets.IsEmpty());
         tt->DeleteIfAllowed();
      }
 
@@ -1357,16 +1351,71 @@ class mtMinPathCostsInfo{
       ArgVectorPointer costFunArg;
 
 
+
       typedef typename T::ctype ct;
+      typedef avltree::AVLTree<ct>  set_T;
+
+      
+      struct costentry{
+        costentry(ct _n, double _c): node(_n), cost(_c){}
+        ct node;
+        double cost;
+
+      };
+      class costentryComp{
+          public:
+            static bool smaller(const costentry& o1, const costentry& o2){ 
+               return o1.node < o2.node;
+            }    
+            static bool equal(const costentry& o1, const costentry& o2){ 
+               return o1.node == o2.node;
+            }    
+            static bool greater(const costentry& o1, const costentry& o2){ 
+               return o1.node > o2.node;
+            }    
+      };
+
+
+      //typedef std::map<ct,double> frontCost_T;
+      typedef avltree::AVLTree<costentry,costentryComp> frontCost_T;
+
+
+      struct targetentry{
+         targetentry(ct _n, Tuple* _t): node(_n),tuple(_t){}
+        /*
+         static void kill(targetentry& e){
+           e.tuple->DeleteIfAllowed();
+           e.tuple = 0;
+         }
+        */
+         ct node;
+         Tuple* tuple;
+      };
+
+      class targetentryComp{
+          public:
+            static bool smaller(const targetentry& o1, const targetentry& o2){ 
+               return o1.node < o2.node;
+            }    
+            static bool equal(const targetentry& o1, const targetentry& o2){ 
+               return o1.node == o2.node;
+            }    
+            static bool greater(const targetentry& o1, const targetentry& o2){ 
+               return o1.node > o2.node;
+            }    
+      };
+
+      typedef avltree::AVLTree<targetentry,targetentryComp>  targets_T;
+
       ArgVectorPointer succArg;
-      std::map<ct,Tuple*> targets;
+      targets_T targets;
       std::vector<Tuple*> results;
       
 
       std::priority_queue<queueEntry<T> > front;
-      std::set<ct> processedNodes;
+      set_T processedNodes;
       double targetCosts;
-      std::map<ct,double> frontCosts;
+      frontCost_T  frontCosts;
       
       size_t resPos;
       
@@ -1386,6 +1435,7 @@ into the targets map.
           Stream<Tuple> stream(s);
           stream.open();
           Tuple* tuple;
+          bool found;
           while( (tuple=stream.request())!=0){
              T* target = ((T*) tuple->GetAttribute(targetIndex));
              if(!target->IsDefined()){
@@ -1393,15 +1443,16 @@ into the targets map.
                tuple->DeleteIfAllowed();
              } else {
                ct node = target->GetValue();
-               if(targets.find(node)==targets.end()){
-                  targets[node] = tuple;
-               } else {
-                  failed++;
-                  tuple->DeleteIfAllowed();
-               }
+               targetentry e(node,tuple);
+               targets.insert3(e,found);
+               if(found){ // target already there
+                 tuple->DeleteIfAllowed();
+                 failed++;
+               }               
             }
           } 
           stream.close();
+
           /*
           if(failed>0){
              cout << "found some targets more than one time " << endl;
@@ -1425,18 +1476,23 @@ available in the results vector.
          // may be there are nodes that are not found.
          // such nodes are inserted into the result set
          // with maximum costs
-         typename std::map<ct,Tuple*>::iterator it;
+         typename targets_T::iterator it = targets.begin();
          double c = std::numeric_limits<double>::max();
-         for(it=targets.begin();it!=targets.end();it++){
-            Tuple* t = it->second;
-            results.push_back(createResultTuple(t,c));
-            t->DeleteIfAllowed();
-            it->second=0;
-         }
+         while(!it.onEnd()){
+             Tuple* t = it.Get()->tuple;
+             assert(t);
+             results.push_back(createResultTuple(t,c));
+             t->DeleteIfAllowed();
+             it.Get()->tuple=0;
+             it++;
+         } 
+         targets.Empty();
+
       }
 
       Tuple* createResultTuple(const Tuple* t, double c){
          Tuple* res = new Tuple(tt);
+         assert(t);
          for(int i=0;i<t->GetNoAttributes();i++){
            res->CopyAttribute(i,t,i);
          }
@@ -1446,7 +1502,7 @@ available in the results vector.
 
 
       void dijkstra(){
-         while(!front.empty() && !targets.empty()){
+         while(!front.empty() && !targets.IsEmpty()){
             queueEntry<T> e = front.top();
             front.pop();
             processNode(e);
@@ -1455,20 +1511,20 @@ available in the results vector.
       }
 
       void processNode(queueEntry<T>& e){
-         if(processedNodes.find(e.nodeValue)!=processedNodes.end()){
+         if(processedNodes.member(e.nodeValue)){
            return;
          }
          processedNodes.insert(e.nodeValue);
 
-         typename std::map<ct,Tuple*>::iterator it;
-         it=targets.find(e.nodeValue);
+         targetentry dummy(e.nodeValue,0);
+         targetentry* te = targets.getMember(dummy);
 
-         if(it!=targets.end()){
+         if(te){
            // found a target node
-           results.push_back(createResultTuple(it->second,e.costs));
-           it->second->DeleteIfAllowed();
-           targets.erase(it);
-           if(targets.empty()){ // all targets reached
+           results.push_back(createResultTuple(te->tuple,e.costs));
+           te->tuple->DeleteIfAllowed();
+           targets.remove(dummy);
+           if(targets.IsEmpty()){ // all targets reached
               return; 
            }
          }
@@ -1506,24 +1562,26 @@ available in the results vector.
          }
          ct targetVal = target->GetValue();
          // target already finished
-         if(processedNodes.find(targetVal)!=processedNodes.end()){
+         if(processedNodes.member(targetVal)){
              tup->DeleteIfAllowed();
              return;
          } 
          target = (T*) target->Copy();
          tup->DeleteIfAllowed();
          double nc = e.costs + costs;
-         typename std::map<ct,double>::iterator it 
-               = frontCosts.find(targetVal);
 
-         if(it==frontCosts.end()){ // node found the first time 
-            frontCosts[targetVal] = nc;  
+
+         bool found;
+         costentry e1(targetVal, nc);
+         costentry* e2 = frontCosts.insert3(e1,found);
+
+         if(!found){ // node found the first time 
             front.push(queueEntry<T>(target, nc, e.depth+1));
          } else {
-            if(it->second<= nc){ // old path is shorter
+            if(e2->cost <= nc ){ // old path is shorter
                target->DeleteIfAllowed();
             } else {
-               it->second = nc; // update costs  
+               e2->cost = nc; // update costs  
                front.push(queueEntry<T>(target, nc, e.depth+1));
             }
          }
