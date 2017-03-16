@@ -155,7 +155,7 @@ but keeping the subtrees in the memory
 returns the left subtree
 
 */
-   AvlNode<contenttype,Comparator> const* getLeftSon()const{
+   AvlNode<contenttype,Comparator>* getLeftSon()const{
       __AVL_TRACE__
       return left;
    }
@@ -166,7 +166,7 @@ returns the left subtree
 Returns the right subtree.
 
 */
-   AvlNode<contenttype,Comparator> const* getRightSon()const{
+   AvlNode<contenttype,Comparator>* getRightSon()const{
       __AVL_TRACE__
       return right;
    }
@@ -212,7 +212,7 @@ bool isLeaf()const{
    return left==NULL && right==NULL;
 }
 
-const contenttype* getContent() const{
+contenttype* getContent() {
    return &content;
 }
 
@@ -428,12 +428,20 @@ is returned.
 */
 const contenttype* insert2(const contenttype& x){
    __AVL_TRACE__
-   const contenttype* result=0;
-   root = insert2(root,x, result);
+   contenttype* result=0;
+   bool dummy;
+   root = insert2(root,x, result, dummy);
    root->updateHeight();
    return result; 
 }
 
+contenttype* insert3(const contenttype& x, bool& found){
+   __AVL_TRACE__
+   contenttype* result=0;
+   root = insert2(root,x, result, found);
+   root->updateHeight();
+   return result; 
+}
 
 
 /*
@@ -529,7 +537,7 @@ bool member(const contenttype& x) const{
 }
 
 
-const contenttype* getMember(const contenttype& x) const{
+contenttype* getMember(const contenttype& x) const{
    __AVL_TRACE__
    return getMember(root,x);
 }
@@ -700,12 +708,12 @@ class iterator{
 The ~Get~ function returns the value currently under this iterator.
 
 */
-     contenttype const* Get() const{
+     contenttype* Get() const{
         __AVL_TRACE__
         if(thestack.empty()){
           return 0;
         } else {
-          const Node* elem = thestack.top();
+          Node* elem = thestack.top();
           return (elem->getContent());
         }
      }
@@ -723,7 +731,7 @@ otherwise   __true__.
         return false;
      }
      const Node* elem = thestack.top();
-     const Node* son;
+     Node* son;
      if( (son = elem->getRightSon())){
         thestack.pop(); // the current node is processed
         thestack.push(son);
@@ -744,9 +752,9 @@ Creates an iterator for the given tree. The position
 is set to the smallest entry in the tree.
 
 */
-  iterator(const Node* root){
+  iterator(Node* root){
      __AVL_TRACE__
-     const Node* son = root;
+     Node* son = root;
      while(son){
        thestack.push(son);
        son = son->getLeftSon();   
@@ -760,7 +768,7 @@ Creates a new iterator for root. The position is set to the first
 entry within the tree which is equals to or greater than min.
 
 */
-  iterator(const Node* root, const contenttype min){
+  iterator(Node* root, const contenttype min){
      __AVL_TRACE__
      if(root){
         tail(root,min);
@@ -834,7 +842,7 @@ any elements, i.e. whether Get or [*] would return NULL.
 
 */
  
-     std::stack<const Node*> thestack;
+     std::stack<Node*> thestack;
 
 /*
 ~tail~
@@ -842,8 +850,8 @@ any elements, i.e. whether Get or [*] would return NULL.
  This function support the contructor having a mimimum argument.
 
 */
- const Node* tail(
-         const Node* root, 
+ Node* tail(
+         Node* root, 
          const contenttype& min){
     __AVL_TRACE__
    assert(root);
@@ -854,7 +862,7 @@ any elements, i.e. whether Get or [*] would return NULL.
       // root.content < min
       // may be in the right subtree there is the node
       // searched for
-      const Node* son = root->getRightSon();
+      Node* son = root->getRightSon();
       if(!son){
          return 0;
       } else {
@@ -864,9 +872,9 @@ any elements, i.e. whether Get or [*] would return NULL.
       // may be within the left subtree there is a better
       // node
       thestack.push(root);
-      const Node* son = root->getLeftSon();
+      Node* son = root->getLeftSon();
       if(son){
-        const Node* best = tail(son,min);
+        Node* best = tail(son,min);
         return best?best:root;
       } else {
         return 0;
@@ -1136,23 +1144,24 @@ static  Node* insertN(
 }
 
 
-static  Node* insert2(
-                                  Node* root, 
-                                  const contenttype& content,
-                                  contenttype const*& elem){
+static  Node* insert2(Node* root, 
+                      const contenttype& content,
+                      contenttype *& elem,
+                      bool& found){
    __AVL_TRACE__
    if(root==NULL){ // leaf reached
-      Node* res =  
-                   new Node(content);
+      Node* res =  new Node(content);
       elem = &res->content;
+      found = false;
       return res;
    }
    contenttype c = root->content;
    if(Comparator::equal(c,content)){ //an AVL tree represents a set, do nothing
       elem = &root->content;
+      found = true;
       return root;
    } else if(Comparator::smaller(content,c)){ // perform the left subtree
-      root->left = insert2(root->left,content,elem);
+      root->left = insert2(root->left,content,elem, found);
       root->updateHeight();
       if(abs(root->balance())>1){ // rotation or double rotation required
          // check where the overhang is
@@ -1169,7 +1178,7 @@ static  Node* insert2(
       }
    } else{
    // content > c => insert at right 
-      root->right = insert2(root->right,content,elem);
+      root->right = insert2(root->right,content,elem,found);
       root->updateHeight();
       if(abs(root->balance())>1){
         if(root->right->balance()<0){ // LeftRotation
@@ -1576,11 +1585,11 @@ static bool member(Node const* const root,
 }
 
 
-static const contenttype* getMember(
-             Node const* const root,
+static contenttype* getMember(
+             Node*  root,
              const contenttype& content){
    __AVL_TRACE__
-  Node const* current = root;
+  Node* current = root;
   while(current && !( Comparator::equal(current->content,content))){
       if(Comparator::smaller(content , current->content)){
         current = current->left;
