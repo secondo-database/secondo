@@ -192,6 +192,7 @@ noAttributes(0), attrTypeArray(0),totalSize(0),refs(1),coreSize(0)
          << "(a1 (algid typeid) a2 (algid typeid) ....) or" << endl;
     cerr << "               "
          << "(a1 ((algid typeid)) a2 ((algid typeid)) ....) " << endl;
+    assert(false);
   }
 }
 
