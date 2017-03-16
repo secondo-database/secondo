@@ -27,11 +27,13 @@ let findpath = fun(Start: int, Dest: int)
     "Path" mfeedpq
   filter[fun(t: TUPLE) ifthenelse(attr(t, Middle) = 0, TRUE,
     (AllEdges orange[attr(t, Source), attr(t, Middle); attr(t, Source), attr(t, Middle)]
+      ksmallest[1; Cost]
     extend[Prio: 0.0]
     extend[XX: minserttuplepq("Path", ., attr(t, NEdges), Prio)]
     extract[NEdges])
     within[fun (previous: ANY)
     (AllEdges orange[attr(t, Middle), attr(t, Target); attr(t, Middle), attr(t, Target)]
+      ksmallest[1; Cost]
     extend[Prio: 0.0]
     extend[XX: minserttuplepq("Path", ., (attr(t, NEdges) + previous), Prio)]
     count = 0)
