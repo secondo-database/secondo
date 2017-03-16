@@ -26,7 +26,7 @@ endif
 
 if not(isDBObject("EdgesB2")) then 
 let EdgesB2 = EdgesB feed 
-  sortby[Source, Target]
+  sortbyh[Source, Target]
   oconsume[Source, Target]
 endif
 
@@ -34,7 +34,7 @@ endif
 
 if not(isDBObject("EdgesC")) then
 { query memglet("EdgesB", EdgesB2) 
-| let maxcompno =  "EdgesB" mgconnectedcomponents sortby[CompNo] 
+| let maxcompno =  "EdgesB" mgconnectedcomponents sortbyh[CompNo] 
     groupby[CompNo; Cnt: group count]  kbiggest[1; Cnt] extract[CompNo] 
 | let EdgesC = "EdgesB" mgconnectedcomponents filter[.CompNo = maxcompno] remove[CompNo] consume 
 | query memdelete("EdgesB") 
@@ -74,13 +74,14 @@ query EdgesD feed createmgraph3[Source, Target, Cost, NodeCount, "EdgesX"] count
 
 # store the nodes into a relation NodesA
 
-if isDBObject("NodesA") then delete NodesA endif
 
+if not(isDBObject("NodesA")) then
 let NodesA = "EdgesX" mg3feed project[Source, SourcePos] 
                      renameattr[NodeIdNew: Source, Pos: SourcePos] 
              "EdgesX" mg3feed project[Target, TargetPos] 
                       renameattr[NodeIdNew: Target, Pos: TargetPos] 
-              concat sort rdup consume
+              concat sorth rdup consume
+endif
 
 
 # create an empty relation for the contraction edges 
@@ -130,8 +131,8 @@ let contract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress : i
     extend[CEdges: fun(t: TUPLE)
        ifthenelse(
           (attr(t, In) * attr(t, Out)) <= attr(t, Prio), 
-             pwrap("EdgesX") mg3predecessors[attr(t,Node)] sortby[Source, Cost] krdup[Source] {i} 
-             pwrap("EdgesX") mg3successors[attr(t,Node)] sortby[Target, Cost] krdup[Target] {o} 
+             pwrap("EdgesX") mg3predecessors[attr(t,Node)] sortbyh[Source, Cost] krdup[Source] {i} 
+             pwrap("EdgesX") mg3successors[attr(t,Node)] sortbyh[Target, Cost] krdup[Target] {o} 
              product 
              filter[.Source_i # .Target_o] 
              filter[    ( fun(node: int) pwrap("EdgesX") mg3successors[node] ) 
