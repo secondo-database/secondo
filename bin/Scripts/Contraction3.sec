@@ -2,14 +2,17 @@
 
 # initialize structure
 
+query memclear()
+
+if isDBObject("initsearch") then delete initsearch endif
+
 let initsearch = fun() AllEdges feed head[0] 
   project[Source, Target, SourcePos, TargetPos, Cost, Middle, NEdges]
   extend[Prio: 0.0]
   mcreatepqueue[NEdges, "Path"] count
 
-# repeatable. Enter source and target of a contraction edge.
-
 query initsearch()
+
 
 if isDBObject("findpath") then delete findpath endif
 
@@ -24,39 +27,22 @@ let findpath = fun(Start: int, Dest: int)
     "Path" mfeedpq
   filter[fun(t: TUPLE) ifthenelse(attr(t, Middle) = 0, TRUE,
     (AllEdges orange[attr(t, Source), attr(t, Middle); attr(t, Source), attr(t, Middle)]
-      ksmallest[1; Cost]
     extend[Prio: 0.0]
-    extend[XX: minserttuplepq("Path", ., 0.0, Prio)]
+    extend[XX: minserttuplepq("Path", ., attr(t, NEdges), Prio)]
     extract[NEdges])
     within[fun (previous: ANY)
     (AllEdges orange[attr(t, Middle), attr(t, Target); attr(t, Middle), attr(t, Target)]
-      ksmallest[1; Cost]
     extend[Prio: 0.0]
-    extend[XX: minserttuplepq("Path", ., previous, Prio)]
+    extend[XX: minserttuplepq("Path", ., (attr(t, NEdges) + previous), Prio)]
     count = 0)
     ])]
   ]
   consume
-  
+
+if isDBObject("gbi") then delete gbi endif
+
 let gbi = fun(m: int, n: int)
   (fun(a : int) AllEdgesUp orange[a; a] )
   (fun(b : int) AllEdgesDown orange[b; b] )
   gbidijkstra[Target, Source, m, n, .Cost] consume
-
-
-
-let expand = fun(source: int, middle: inttarget: int)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
