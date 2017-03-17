@@ -1212,7 +1212,7 @@ The return value is true, if current was changed.
 
 bool MysplitByNeighbour(avltree::AVLTree<myavlseg::MyAVLSegment>& sss,
                       myavlseg::MyAVLSegment& current,
-                      myavlseg::MyAVLSegment const*& neighbour,
+                      myavlseg::MyAVLSegment*& neighbour,
                       priority_queue<HalfSegment,
                                      vector<HalfSegment>,
                                      greater<HalfSegment> >& q1,
@@ -1315,8 +1315,8 @@ interiors and performs the required actions.
 */
 
 void MysplitNeighbours(avltree::AVLTree<myavlseg::MyAVLSegment>& sss,
-                     myavlseg::MyAVLSegment const*& leftN,
-                     myavlseg::MyAVLSegment const*& rightN,
+                     myavlseg::MyAVLSegment *& leftN,
+                     myavlseg::MyAVLSegment *& rightN,
                      priority_queue<HalfSegment,
                                     vector<HalfSegment>,
                                     greater<HalfSegment> >& q1,
@@ -1508,9 +1508,9 @@ void MySetOp(const Region& reg1,
   HalfSegment nextHs;
   int src = 0;
 
-  const myavlseg::MyAVLSegment* member = 0;
-  const myavlseg::MyAVLSegment* leftN  = 0;
-  const myavlseg::MyAVLSegment* rightN = 0;
+  myavlseg::MyAVLSegment* member = 0;
+  myavlseg::MyAVLSegment* leftN  = 0;
+  myavlseg::MyAVLSegment* rightN = 0;
 
   myavlseg::MyAVLSegment left1,right1,common1,
              left2,right2;
@@ -1804,9 +1804,9 @@ void MySetOp(const Line& line,
   HalfSegment nextHs;
   int src = 0;
 
-  const myavlseg::MyAVLSegment* member=0;
-  const myavlseg::MyAVLSegment* leftN = 0;
-  const myavlseg::MyAVLSegment* rightN = 0;
+  myavlseg::MyAVLSegment* member=0;
+  myavlseg::MyAVLSegment* leftN = 0;
+  myavlseg::MyAVLSegment* rightN = 0;
 
   myavlseg::MyAVLSegment left1,right1,common1,
              left2,right2;
@@ -1994,9 +1994,9 @@ void MySetOp(const Line& line1,
   HalfSegment nextHs;
   int src = 0;
 
-  const myavlseg::MyAVLSegment* member=0;
-  const myavlseg::MyAVLSegment* leftN = 0;
-  const myavlseg::MyAVLSegment* rightN = 0;
+  myavlseg::MyAVLSegment* member=0;
+  myavlseg::MyAVLSegment* leftN = 0;
+  myavlseg::MyAVLSegment* rightN = 0;
 
   myavlseg::MyAVLSegment left1,right1,common1,
              left2,right2;
