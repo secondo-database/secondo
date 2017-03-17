@@ -46,6 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <limits>
 #include <stack>
 #include "AvlTree.h"
+#include "mmheap.h"
 
 
 extern NestedList* nl;
@@ -67,6 +68,8 @@ costs of an edge.
 
 
 namespace general_dijkstra{
+
+
 
 
 /*
@@ -300,11 +303,49 @@ class queueEntry{
 
 };
 
+
+class queueentryComp{
+  public:
+     template<class T>
+     bool operator()(const queueEntry<T>& f, const queueEntry<T>& s) const {
+          return f.costs < s.costs;
+     }
+};
+
+
 template<class T>
 std::ostream& operator<<(std::ostream& o, const queueEntry<T>& e){
    return e.print(o);
 }
 
+template<class Key, class Value>
+class avlmapentry{
+  public:
+   avlmapentry(Key& _key, Value& _value):
+     key(_key), value(_value){}
+
+    Key key;
+    Value value;
+};
+
+class avlMapComp{
+   public:
+     template<class Key, class Value>
+     static bool smaller(const avlmapentry<Key,Value>& o1, 
+                         const avlmapentry<Key,Value>& o2){ 
+         return o1.key < o2.key;
+     }    
+     template<class Key, class Value>
+     static bool equal(const avlmapentry<Key,Value>& o1, 
+                         const avlmapentry<Key,Value>& o2){ 
+         return o1.key == o2.key;
+     }    
+     template<class Key, class Value>
+     static bool greater(const avlmapentry<Key,Value>& o1, 
+                         const avlmapentry<Key,Value>& o2){ 
+         return o1.key > o2.key;
+     }    
+};
 
 
 
@@ -343,17 +384,13 @@ class gdijkstraInfo{
    ~gdijkstraInfo(){
         tt->DeleteIfAllowed();
         // remove edges in tree
-        typename std::map<ct,treeEntry<ct> >::iterator it = tree.begin();
-        while(it!=tree.end()){
-            it->second.edge->DeleteIfAllowed();
-            it++;
-        }
+        tree.destroy(&kill);
         while(!yellowEdges.empty()){
            yellowEdges.back()->DeleteIfAllowed();
            yellowEdges.pop_back();
         }
     }
-                
+
 
     Tuple* next(){
       switch(mode){
@@ -409,11 +446,24 @@ class gdijkstraInfo{
 
 
       // representation of the current tree
-      std::map<ct,treeEntry<ct> > tree;
-      std::priority_queue<queueEntry<T> > front;
+      typedef avlmapentry<ct, treeEntry<ct> > avlentry;
+      typedef avltree::AVLTree<avlentry,avlMapComp > tree_t;
+
+      tree_t tree;
+
+
+      typedef  mmheap::mmheap<queueEntry<T>, queueentryComp> prio_queue_t;
+      //typedef std::priority_queue<queueEntry<T> > prio_queue_t;
+      prio_queue_t front;
       avltree::AVLTree<ct> processedNodes;
 
 
+      static void kill(avlentry& e){
+         e.value.edge->DeleteIfAllowed();
+         e.value.edge = 0;
+      }
+
+                
  
       inline Tuple* createResultTuple( treeEntry<ct>& entry){
          return createResultTuple(entry.edge, entry.depth, 
@@ -431,12 +481,14 @@ class gdijkstraInfo{
          res->PutAttribute(oedge->GetNoAttributes()+1, 
                            new CcReal(true,costs));
 
-         typename std::map<ct,treeEntry<ct> >::iterator it = tree.find(pred);
+         treeEntry<ct> te;
+         avlentry ae(pred,te);
+         avlentry* old = tree.getMember(ae);         
          T* ppred;
-         if(it==tree.end()){
+         if(!old){
             ppred = new T(false); 
          } else {
-            ppred = new T(true, it->second.pred);
+            ppred = new T(true, old->value.pred);
          }
          res->PutAttribute(oedge->GetNoAttributes()+2,ppred);
          currentTarget = pred;
@@ -532,17 +584,19 @@ this edge is ignored completely, except in mode 2.
 
          typename T::ctype t = target->GetValue();
          double wc = nc + costs; 
-       
+
          if(!processedNodes.member(t)){
-           if(tree.find(t) == tree.end()){
+            treeEntry<ct> te(node->GetValue(), wc, depth+1, edge);
+            avlentry ae(t,te);
+            bool found;
+            avlentry*  oldentry = tree.insert3(ae,found);
+            if(!found){
               // t found the first time
-              tree[t] = treeEntry<ct>(node->GetValue(), wc, depth+1, edge);
               front.push( queueEntry<T>(target,wc,depth+1));
-           } else {
+            } else {
               // check for shorter path to t
-              treeEntry<typename T::ctype> te = tree[t];
-              if(wc < te.costs){
-                 tree[t] = treeEntry<ct>(node->GetValue(), wc,depth+1,edge);
+              if(wc < oldentry->value.costs){
+                 std::swap(te,oldentry->value);
                  if(mode!=2){
                     te.edge->DeleteIfAllowed();
                  } else {
@@ -600,9 +654,10 @@ this edge is ignored completely, except in mode 2.
         if(currentTarget == initialNode){
            return 0;
         }
-        treeEntry<ct> entry = tree[currentTarget];
-        tree.erase(currentTarget);
-        return createResultTuple(entry);
+        treeEntry<ct> entry;
+        avlentry ae(currentTarget,entry);
+        tree.remove(ae);
+        return createResultTuple(ae.value);
     }
 
 
@@ -613,9 +668,10 @@ this edge is ignored completely, except in mode 2.
             if(!processedNodes.member(n.nodeValue)){
                 processNode(n.node, n.nodeValue,n.costs,n.depth);
                 if(n.nodeValue!=initialNode){ // the initial node has no pred
-                    treeEntry<ct> entry = tree[n.nodeValue];
-                    tree.erase(n.nodeValue);
-                    return createResultTuple(entry);
+                    treeEntry<ct> entry;
+                    avlentry ae(n.nodeValue,entry);
+                    tree.remove(ae);
+                    return createResultTuple(ae.value);
                 }
             } 
 
@@ -639,10 +695,11 @@ this edge is ignored completely, except in mode 2.
          front.pop();
          if( !processedNodes.member(n.nodeValue))
           {
-             processedNodes.insert(n.nodeValue);   
-             treeEntry<ct> entry = tree[n.nodeValue];
-             tree.erase(n.nodeValue);
-             return createResultTuple(entry);
+             processedNodes.insert(n.nodeValue);  
+             treeEntry<ct> entry;
+             avlentry ae(n.nodeValue, entry);
+             tree.remove(ae);
+             return createResultTuple(ae.value);
 
          }
           
@@ -933,7 +990,9 @@ class minPathCostsInfo{
      ArgVectorPointer costFunArg;
 
 
-     std::priority_queue<queueEntry<T> > front;
+     typedef  mmheap::mmheap<queueEntry<T>, queueentryComp> prio_queue_t;
+     // typedef  std::priority_queue<queueEntry<T> > prio_queue_t;
+     prio_queue_t front;
      avltree::AVLTree<ct> processedNodes;
      bool found;
      double targetCosts;
@@ -1411,7 +1470,9 @@ class mtMinPathCostsInfo{
       std::vector<Tuple*> results;
       
 
-      std::priority_queue<queueEntry<T> > front;
+      typedef  mmheap::mmheap<queueEntry<T>, queueentryComp> prio_queue_t;
+      //typedef  std::priority_queue<queueEntry<T> > prio_queue_t;
+      prio_queue_t front;
       set_T processedNodes;
       double targetCosts;
       frontCost_T  frontCosts;
@@ -1981,8 +2042,10 @@ class gbidijkstraInfo{
      T* commonNode;
      double minCosts;
 
-     std::priority_queue<queueEntry<T> > Ffront;
-     std::priority_queue<queueEntry<T> > Bfront;
+     typedef  mmheap::mmheap<queueEntry<T>, queueentryComp> prio_queue_t;
+     //typedef std::priority_queue<queueEntry<T> > prio_queue_t;
+     prio_queue_t Ffront;
+     prio_queue_t Bfront;
      typedef std::map<ct,treeEntry<ct> > tree_t;
      typedef typename tree_t::iterator tree_it; 
      tree_t Ftree;
@@ -2081,7 +2144,7 @@ class gbidijkstraInfo{
  
 
 
-     void makeempty(std::priority_queue<queueEntry<T> >& q){
+     void makeempty(prio_queue_t& q){
          while(!q.empty()){
             q.pop();
          }
@@ -2160,7 +2223,7 @@ class gbidijkstraInfo{
         ct v = target->GetValue();
         finish_t* finished = isForward?&Ffinished:&Bfinished;
         tree_t* tree = isForward?&Ftree:&Btree;
-        std::priority_queue<queueEntry<T> >* front = isForward?&Ffront:&Bfront; 
+        prio_queue_t* front = isForward?&Ffront:&Bfront; 
 
         if(finished->find(v)!=finished->end()){
            // target node already processed 
