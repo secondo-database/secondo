@@ -693,9 +693,9 @@ bool GetInt9M(Line const* const line,
       if(owner==avlseg::second){ // event comes from the point(s) value
          avlseg::AVLSegment current(resPoi,avlseg::second);
 
-         const avlseg::AVLSegment* leftN=0;
-         const avlseg::AVLSegment* rightN=0;
-         const avlseg::AVLSegment* member= sss.getMember(current,leftN,rightN);
+         avlseg::AVLSegment* leftN=0;
+         avlseg::AVLSegment* rightN=0;
+         avlseg::AVLSegment* member= sss.getMember(current,leftN,rightN);
          if(leftN){
             tmpL = *leftN;
             leftN = &tmpL;
@@ -757,9 +757,9 @@ bool GetInt9M(Line const* const line,
         // only check for dompoints if the segment is a new one (left)
         // or its actually stored in the tree
         avlseg::AVLSegment current(resHs, avlseg::first);
-        const avlseg::AVLSegment* leftN=0;
-        const avlseg::AVLSegment* rightN=0;
-        const avlseg::AVLSegment* member= sss.getMember(current,leftN,rightN);
+        avlseg::AVLSegment* leftN=0;
+        avlseg::AVLSegment* rightN=0;
+        avlseg::AVLSegment* member= sss.getMember(current,leftN,rightN);
         if(leftN){
            tmpL = *leftN;
            leftN = &tmpL;
@@ -1240,9 +1240,9 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
            ( (owner= selectNext(reg,q1,pos1, ps,pos2,CH,CP))!=avlseg::none)){
       if(owner==avlseg::second){ // the point
          avlseg::AVLSegment current(CP,avlseg::second);
-         const avlseg::AVLSegment* left=0;
-         const avlseg::AVLSegment* right=0;
-         const avlseg::AVLSegment* member = sss.getMember(current, left, right);
+         avlseg::AVLSegment* left=0;
+         avlseg::AVLSegment* right=0;
+         avlseg::AVLSegment* member = sss.getMember(current, left, right);
          if(left){
             tmpL = *left;
             left = &tmpL;
@@ -1266,9 +1266,9 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
       } else {  // the next element comes from the region
         avlseg::AVLSegment current(CH,avlseg::first);
   
-        const avlseg::AVLSegment* leftN = 0;
-        const avlseg::AVLSegment* rightN = 0;
-        const avlseg::AVLSegment* member = sss.getMember(current,leftN,rightN);
+        avlseg::AVLSegment* leftN = 0;
+        avlseg::AVLSegment* rightN = 0;
+        avlseg::AVLSegment* member = sss.getMember(current,leftN,rightN);
         if(leftN){
            tmpL = *leftN;
            leftN = &tmpL;
@@ -1441,9 +1441,9 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
   bool done = false;
   avlseg::ExtendedHalfSegment nextSeg;
 
-  const avlseg::AVLSegment* member=0; // current member stored in the tree
-  const avlseg::AVLSegment* leftN=0;  // the left neightboor of member
-  const avlseg::AVLSegment* rightN=0; // the right neighbour of member
+  avlseg::AVLSegment* member=0; // current member stored in the tree
+  avlseg::AVLSegment* leftN=0;  // the left neightboor of member
+  avlseg::AVLSegment* rightN=0; // the right neighbour of member
   avlseg::ownertype owner;
   OwnedPoint lastDomPoint; // initialized to be undefined
   int src;
@@ -2022,9 +2022,9 @@ bool GetInt9M(Line const* const line1,
 
  avlseg::ownertype owner;
 
- const avlseg::AVLSegment* leftN=0;
- const avlseg::AVLSegment* rightN=0;
- const avlseg::AVLSegment* member=0;
+ avlseg::AVLSegment* leftN=0;
+ avlseg::AVLSegment* rightN=0;
+ avlseg::AVLSegment* member=0;
 
  Point lastDomPoint;
  int lastDomPointCount1 = 0;
@@ -2386,9 +2386,9 @@ bool GetInt9M(Line   const* const line,
 
  avlseg::ownertype owner;
 
- const avlseg::AVLSegment* leftN=0;
- const avlseg::AVLSegment* rightN=0;
- const avlseg::AVLSegment* member=0;
+ avlseg::AVLSegment* leftN=0;
+ avlseg::AVLSegment* rightN=0;
+ avlseg::AVLSegment* member=0;
 
  Point lastDomPoint;
  int lastDomPointCount1 = 0;

@@ -4277,7 +4277,7 @@ Otherwise, the algorithms tries to correct the error.
 
 bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
                       avlseg::AVLSegment& current,
-                      avlseg::AVLSegment const*& neighbour,
+                      avlseg::AVLSegment*& neighbour,
                       std::priority_queue<avlseg::ExtendedHalfSegment,
                           std::vector<avlseg::ExtendedHalfSegment>,
                           std::greater<avlseg::ExtendedHalfSegment> >& q1,
@@ -4295,8 +4295,8 @@ inserted into the queues.
 
 */
 void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
-                     avlseg::AVLSegment const*& leftN,
-                     avlseg::AVLSegment const*& rightN,
+                     avlseg::AVLSegment*& leftN,
+                     avlseg::AVLSegment*& rightN,
                      std::priority_queue<avlseg::ExtendedHalfSegment,
                              std::vector<avlseg::ExtendedHalfSegment>,
                              std::greater<avlseg::ExtendedHalfSegment> >& q1,
