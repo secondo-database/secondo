@@ -411,7 +411,7 @@ class gdijkstraInfo{
       // representation of the current tree
       std::map<ct,treeEntry<ct> > tree;
       std::priority_queue<queueEntry<T> > front;
-      std::set<ct> processedNodes;
+      avltree::AVLTree<ct> processedNodes;
 
 
  
@@ -455,7 +455,7 @@ All successor of this node will be processed.
 */
 
       void processNode(T* node,ct nvalue, double costs, uint32_t depth){
-         if(processedNodes.find(nvalue)!=processedNodes.end()){
+         if(processedNodes.member(nvalue)){
             // node already processed. this case may occur because 
             // updates values are not remove from the priority 
             // queue
@@ -533,7 +533,7 @@ this edge is ignored completely, except in mode 2.
          typename T::ctype t = target->GetValue();
          double wc = nc + costs; 
        
-         if(processedNodes.find(t)==processedNodes.end()){
+         if(!processedNodes.member(t)){
            if(tree.find(t) == tree.end()){
               // t found the first time
               tree[t] = treeEntry<ct>(node->GetValue(), wc, depth+1, edge);
@@ -610,7 +610,7 @@ this edge is ignored completely, except in mode 2.
         while(!front.empty() && !found){
             queueEntry<T> n = front.top();
             front.pop();
-            if(processedNodes.find(n.nodeValue)==processedNodes.end()){
+            if(!processedNodes.member(n.nodeValue)){
                 processNode(n.node, n.nodeValue,n.costs,n.depth);
                 if(n.nodeValue!=initialNode){ // the initial node has no pred
                     treeEntry<ct> entry = tree[n.nodeValue];
@@ -637,9 +637,8 @@ this edge is ignored completely, except in mode 2.
        while(!front.empty()){
          queueEntry<T> n = front.top();
          front.pop();
-         if(processedNodes.find(n.nodeValue)
-            ==processedNodes.end()
-          ){
+         if( !processedNodes.member(n.nodeValue))
+          {
              processedNodes.insert(n.nodeValue);   
              treeEntry<ct> entry = tree[n.nodeValue];
              tree.erase(n.nodeValue);
@@ -935,7 +934,7 @@ class minPathCostsInfo{
 
 
      std::priority_queue<queueEntry<T> > front;
-     std::set<ct> processedNodes;
+     avltree::AVLTree<ct> processedNodes;
      bool found;
      double targetCosts;
      ArgVectorPointer succFunArg;
@@ -944,7 +943,7 @@ class minPathCostsInfo{
 
      void processNode(queueEntry<T>& e){
 
-        if(processedNodes.find(e.nodeValue)!=processedNodes.end()){
+        if(processedNodes.member(e.nodeValue)){
            return;
         }
         if(e.nodeValue==targetNode){
@@ -983,7 +982,7 @@ class minPathCostsInfo{
             return;
          }
          ct targetVal = target->GetValue();
-         if(processedNodes.find(targetVal)!=processedNodes.end()){
+         if(processedNodes.member(targetVal)){
              tup->DeleteIfAllowed();
              return;
          } 
