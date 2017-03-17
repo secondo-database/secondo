@@ -1532,7 +1532,7 @@ The return value is true, if current was changed.
 
 bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
                       avlseg::AVLSegment& current,
-                      avlseg::AVLSegment const*& neighbour,
+                      avlseg::AVLSegment *& neighbour,
                       priority_queue<avlseg::ExtendedHalfSegment,
                                  vector<avlseg::ExtendedHalfSegment>,
                                  greater<avlseg::ExtendedHalfSegment> >& q1,
@@ -1548,7 +1548,7 @@ bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
           sss.remove(*neighbour);
           if(!left1.isPoint()){
             // debug::start
-            const avlseg::AVLSegment* x = sss.getMember(left1);
+            avlseg::AVLSegment* x = sss.getMember(left1);
             if(x){
                cerr << "we have a problem " << __LINE__ << endl;
                cerr << " left1 = " << left1 << endl;
@@ -1657,8 +1657,8 @@ interiors and performs the required actions.
 */
 
 void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
-                     avlseg::AVLSegment const*& leftN,
-                     avlseg::AVLSegment const*& rightN,
+                     avlseg::AVLSegment *& leftN,
+                     avlseg::AVLSegment *& rightN,
                      priority_queue<avlseg::ExtendedHalfSegment,
                                     vector<avlseg::ExtendedHalfSegment>,
                                     greater<avlseg::ExtendedHalfSegment> >& q1,
@@ -2237,9 +2237,9 @@ void Realminize2(const Line& src, Line& result, const bool forceThrow){
   int pos = 0;
 
   avlseg::ExtendedHalfSegment nextHS;
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN  = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN  = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1, right1,left2,right2;
 
@@ -2385,9 +2385,9 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments,
         int pos = 0;
       
         avlseg::ExtendedHalfSegment nextHS;
-        const avlseg::AVLSegment* member=0;
-        const avlseg::AVLSegment* leftN  = 0;
-        const avlseg::AVLSegment* rightN = 0;
+        avlseg::AVLSegment* member=0;
+        avlseg::AVLSegment* leftN  = 0;
+        avlseg::AVLSegment* rightN = 0;
       
         avlseg::AVLSegment left1, right1,left2,right2;
       
@@ -2473,14 +2473,14 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments,
              cerr << "error during comparision detected" << endl;
              avltree::AVLTree<avlseg::AVLSegment>::iterator it = sss.begin();
              double val = avlseg::AVLSegment::getErrorValue();
-             vector<const avlseg::AVLSegment*> evilsegments;
+             vector<avlseg::AVLSegment*> evilsegments;
              cout << "start iterating" << endl;
              unsigned int size = sss.Size();
              cout << "The tree has " << size << " entries" << endl;
              unsigned int b=0;
              while(!it.onEnd()){
                 b++;
-                const avlseg::AVLSegment* seg = it.Get();
+                avlseg::AVLSegment* seg = it.Get();
                 double x2 = seg->getX2();
                 if(!AlmostEqual(x2,val) && x2 < val){
                     evilsegments.push_back(seg);
@@ -2494,7 +2494,7 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments,
                 cout << "error_value = " << val << endl;
                 unsigned int count = 0;
                 for(unsigned int i=0; i< evilsegments.size();i++){
-                  const avlseg::AVLSegment* seg = evilsegments[i];
+                  avlseg::AVLSegment* seg = evilsegments[i];
                   HalfSegment hs1 = seg->convertToExtendedHs(true);
                   HalfSegment hs2 = seg->convertToExtendedHs(false);
                   hs1.attr.edgeno = edgeno;
@@ -2572,9 +2572,9 @@ DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments,
   int pos = 0;
 
   avlseg::ExtendedHalfSegment nextHS;
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN  = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN  = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1, right1,left2,right2;
 
@@ -2675,9 +2675,9 @@ bool hasOverlaps(const DbArray<HalfSegment>& segments,
   int pos = 0;
 
   avlseg::ExtendedHalfSegment nextHS;
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN  = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN  = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1, right1,left2,right2;
 
@@ -2787,9 +2787,9 @@ void SetOp(const Line& line1,
   avlseg::ExtendedHalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1,right1,common1,
              left2,right2;
@@ -3004,9 +3004,9 @@ void SetOp(const Region& reg1,
   avlseg::ExtendedHalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member = 0;
-  const avlseg::AVLSegment* leftN  = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member = 0;
+  avlseg::AVLSegment* leftN  = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1,right1,common1,
              left2,right2;
@@ -3315,9 +3315,9 @@ void SetOp(const Line& line,
   avlseg::ExtendedHalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1,right1,common1,
              left2,right2;
@@ -3497,9 +3497,9 @@ void SetOp(const Line& line1, const SimpleLine& line2, SimpleLine& result,
   avlseg::ExtendedHalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1,right1,common1, left2,right2;
 
@@ -3630,9 +3630,9 @@ void SetOp(const Line& line1, const SimpleLine& line2, Line& result,
   avlseg::ExtendedHalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1,right1,common1,left2,right2;
   int edgeno =0;
@@ -3785,9 +3785,9 @@ void SetOp(const SimpleLine& line1, const Line& line2, SimpleLine& result,
   avlseg::ExtendedHalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1,right1,common1, left2,right2;
 
@@ -3935,9 +3935,9 @@ void SetOp(const SimpleLine& line1, const Line& line2, Line& result,
   avlseg::ExtendedHalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN = 0;
+  avlseg::AVLSegment* rightN = 0;
   avlseg::AVLSegment left1,right1,common1,left2,right2;
 
   int edgeno =0;
@@ -4068,9 +4068,9 @@ void SetOp(const SimpleLine& line1, const SimpleLine& line2, SimpleLine& result,
   avlseg::ExtendedHalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1,right1,common1, left2,right2;
 
@@ -4219,9 +4219,9 @@ void SetOp(const SimpleLine& line1, const SimpleLine& line2, Line& result,
   avlseg::ExtendedHalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1,right1,common1, left2,right2;
 
@@ -4372,9 +4372,9 @@ void SetOp(const SimpleLine& line, const Region& region, SimpleLine& result,
   avlseg::ExtendedHalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1,right1,common1,left2,right2;
 
@@ -4580,9 +4580,9 @@ void CommonBorder(
   avlseg::ExtendedHalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN = 0;
-  const avlseg::AVLSegment* rightN = 0;
+  avlseg::AVLSegment* member=0;
+  avlseg::AVLSegment* leftN = 0;
+  avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1,right1,common1,
              left2,right2;
