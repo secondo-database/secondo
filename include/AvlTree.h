@@ -426,7 +426,7 @@ If x is already an element of the tree, a pointer to the stored element
 is returned.
 
 */
-const contenttype* insert2(const contenttype& x){
+contenttype* insert2(const contenttype& x){
    __AVL_TRACE__
    contenttype* result=0;
    bool dummy;
@@ -448,9 +448,10 @@ contenttype* insert3(const contenttype& x, bool& found){
 2.2 remove
 
 Deletes __x__ from the tree. 
+if found, x is set to the current entry in the tree
 
 */
-bool remove(const contenttype& x){
+bool remove(contenttype& x){
   __AVL_TRACE__
 
   bool found = false;
@@ -553,9 +554,9 @@ the corresponding parameter is set to NULL.
 
 
 */
-const contenttype* getMember(const contenttype& x, 
-                             const contenttype*& left,
-                             const contenttype*& right) const{
+contenttype* getMember(contenttype& x, 
+                       contenttype*& left,
+                       contenttype*& right){
   __AVL_TRACE__
   left = 0;
   right = 0;
@@ -1206,7 +1207,7 @@ It returns the new root of the created tree.
 
 */
 static Node* remove( Node* root,
-                     const contenttype& x, bool& found){
+                     contenttype& x, bool& found){
    __AVL_TRACE__
    if(root==NULL){ // nothing found
       found = false;
@@ -1260,6 +1261,7 @@ static Node* remove( Node* root,
    }  
    // value == x , value found , we have a lot to do
    found = true;
+   x = root->content; 
    if(root->isLeaf()){
       delete root; // free the memory
       return NULL; // delete a single leaf
@@ -1605,11 +1607,11 @@ static contenttype* getMember(
 }
 
 
-static const contenttype* getMember(
-            Node const* const root,
-            const contenttype& x,
-            const contenttype*& left,
-            const contenttype*& right){
+static contenttype* getMember(
+            Node* root,
+            contenttype& x,
+            contenttype*& left,
+            contenttype*& right){
 
   __AVL_TRACE__
   if(root==NULL) return 0;  // member not found
@@ -1634,13 +1636,13 @@ static const contenttype* getMember(
      return &root->content;
   }
   if(Comparator::smaller(x , root->content)){
-     const contenttype* res = getMember(root->left,x,left,right);
+     contenttype* res = getMember(root->left,x,left,right);
      if(!right){
         right = &root->content;
      }
      return res;
   } else { // x > root->content
-     const contenttype* res = getMember(root->right,x,left,right);
+     contenttype* res = getMember(root->right,x,left,right);
      if(!left){
         left = &root->content;
      }
