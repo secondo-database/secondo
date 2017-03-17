@@ -45,6 +45,22 @@ class mmheap{
        bubbleUp(content.size());
      }
   }
+  
+  void push(const T& elem){
+     content.push_back(elem);
+     bubbleUp(content.size());
+  }
+
+  void pop(){
+     if(content.size() <= 1){
+        content.clear();
+        return;
+     }
+     content[0] = content[content.size()-1]; // bring last element to front
+     content.pop_back(); // remove last element
+     sinkBU(); 
+  }
+   
 
   void deleteMin(){
      assert(!bulkload);
@@ -63,6 +79,10 @@ class mmheap{
       return 0;
     }
     return &content[0];
+  }
+  
+  inline const T& top() const{
+    return content[0];
   }
 
   inline size_t size() const{
