@@ -171,5 +171,5 @@ Result    : 3
 Operator  : filterinsert
 Number    : 1
 Signature : stream(t) x (t -> bool) x rel(t) -> stream(t)
-Example   : query ten feed filterinsert[.No > 3, ten1) count
-Result    : 7
+Example   : query ten feed filterinsert[.No > 3, ten1] count
+Result    : 4
