@@ -432,10 +432,8 @@ struct toplacesInfo : OperatorInfo {
 /*
 \section{Operator ~contains~}
 
-contains: labels x label -> bool
-contains: places x place -> bool
-contains: labels x labels -> bool
-contains: places x places -> bool
+contains: labels x {label(s), string, text} -> bool
+contains: places x place(s) -> bool
 
 \subsection{Type Mapping}
 
@@ -448,7 +446,8 @@ ListExpr containsTM(ListExpr args) {
   ListExpr first = nl->First(args);
   ListExpr second = nl->Second(args);
   if (Labels::checkType(first)) {
-    if (Label::checkType(second) || Labels::checkType(second)) {
+    if (Label::checkType(second) || Labels::checkType(second) ||
+        CcString::checkType(second) || FText::checkType(second)) {
       return nl->SymbolAtom(CcBool::BasicType());
     }
   }
@@ -466,7 +465,18 @@ ListExpr containsTM(ListExpr args) {
 */
 int containsSelect(ListExpr args) {
   if (Labels::checkType(nl->First(args))) {
-    return Label::checkType(nl->Second(args)) ? 0 : 2;
+    if (Label::checkType(nl->Second(args))) {
+      return 0;
+    }
+    if (Labels::checkType(nl->Second(args))) {
+      return 2;
+    }
+    if (CcString::checkType(nl->Second(args))) {
+      return 4;
+    }
+    if (FText::checkType(nl->Second(args))) {
+      return 5;
+    }
   }
   if (Places::checkType(nl->First(args))) {
     return Place::checkType(nl->Second(args)) ? 1 : 3;
@@ -489,6 +499,23 @@ int containsSingleVM(Word* args, Word& result, int message, Word& local,
     typename Value::base value;
     val->GetValue(value);
     res->Set(true, coll->Contains(value));
+  }
+  else {
+    res->SetDefined(false);
+  }
+  return 0;
+}
+
+template<class Value>
+int containsBasicVM(Word* args, Word& result, int message, Word& local, 
+                    Supplier s) {
+  Labels *lbs = static_cast<Labels*>(args[0].addr);
+  Value* val = static_cast<Value*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  if (lbs->IsDefined() && val->IsDefined()) {
+    std::string value = val->GetValue();
+    res->Set(true, lbs->Contains(value));
   }
   else {
     res->SetDefined(false);
@@ -527,8 +554,8 @@ int containsMultiVM(Word* args, Word& result, int message, Word& local,
 struct containsInfo : OperatorInfo {
   containsInfo() {
     name      = "contains";
-    signature = "labels x label -> bool";
-    appendSignature("places x place -> bool");
+    signature = "labels x {label(s), string, text} -> bool";
+    appendSignature("places x place(s) -> bool");
     syntax    = "_ contains _;";
     meaning   = "Checks whether a labels/places object contains a label/place.";
   }
@@ -4959,7 +4986,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
   ValueMapping containsVMs[] = {containsSingleVM<Labels, Label>,
     containsSingleVM<Places, Place>, containsMultiVM<Labels, Labels>, 
-    containsMultiVM<Places, Places>, 0};
+    containsMultiVM<Places, Places>, containsBasicVM<CcString>,
+    containsBasicVM<FText>, 0};
   AddOperator(containsInfo(), containsVMs, containsSelect, containsTM);
   
   ValueMapping intersectsVMs[] = {intersectsVM<Labels>, intersectsVM<Places>,0};
