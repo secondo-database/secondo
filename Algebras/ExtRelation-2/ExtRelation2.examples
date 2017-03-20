@@ -145,5 +145,10 @@ Signature: fun(A -> stream(tuple(B))) x stream(Tuple(C)) x IDENT x A x IDENT x f
 Example : query (fun(i1 : int) otestrel orange[i1;i1] extend[C : distance(.GeoData_s1,.GeoData_s2)]) (otestrel feed sortby[Id_s2] krdup[Id_s2] ) mtMinPathCosts2[Id_s2,1,Id_s2,.C,4] count
 Result : 20 
 
+Operator : kmergediff
+Number   : 1
+Signature : stream(tuple(A)) x stream(tuple(B)) -> stream(tuple(A))
+Example   : query thousand feed extend[D : 1] ten feed kmergediff count
+Result    : 990
 
 

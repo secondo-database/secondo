@@ -2634,6 +2634,176 @@ Operator mtMinPathCosts2Op(
 );
 
 
+/*
+Operator kmergediff
+
+Removes from an ordered tuple stream elements which are 
+occure in the secord ordered stream. In contrast to the
+mergediff operator, in the second stream only a subset of
+the attributes in the first stream has to be. Both streams
+have to be sorted by the attributes of the second stream.
+
+*/
+ListExpr kmergediffTM(ListExpr args){
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError("two args expected");
+   }
+   if(  !Stream<Tuple>::checkType(nl->First(args))
+      ||!Stream<Tuple>::checkType(nl->Second(args))){
+     return listutils::typeError("both arguments must be tuple streams");
+   }
+   ListExpr attrList1 = nl->Second(nl->Second(nl->First(args)));
+   ListExpr attrList2 = nl->Second(nl->Second(nl->Second(args)));
+
+   ListExpr appendList;
+   ListExpr last;
+   bool first = true;
+   while(!nl->IsEmpty(attrList2)){
+     ListExpr attr = nl->First(attrList2);
+     attrList2 = nl->Rest(attrList2);
+     string name = nl->SymbolValue(nl->First(attr));
+     ListExpr attrType;
+     int index = listutils::findAttribute(attrList1,name,attrType);
+     if(!index){
+       return listutils::typeError("Attribute " + name + 
+                                   " not part of the first stream"); 
+     }
+     if(!nl->Equal(nl->Second(attr), attrType)){
+        return listutils::typeError("Attribute " + name +
+                                    "has a different type in the streams");
+     }
+     if(first){
+         appendList = nl->OneElemList(nl->IntAtom(index-1));
+         last = appendList;
+         first = false;
+     } else {
+         last = nl->Append(last, nl->IntAtom(index-1));
+     }
+   }
+   return nl->ThreeElemList(
+                  nl->SymbolAtom(Symbols::APPEND()),
+                  appendList,
+                  nl->First(args));
+}
+
+
+class kmergediffInfo{
+    public:
+      kmergediffInfo(Word& _stream1, Word& _stream2, vector<int>& _pos):
+                     stream1(_stream1), stream2(_stream2), pos(_pos){
+         stream1.open();
+         stream2.open();
+         s2exhausted = false;
+         tup2 = 0;
+      }
+      ~kmergediffInfo(){
+         stream1.close();
+         stream2.close();
+       }
+
+      Tuple* next(){
+         Tuple* tup1=0;
+         while( (tup1= stream1.request())){
+             if(check(tup1)){
+               return tup1;
+             }
+             tup1->DeleteIfAllowed();
+         }
+         return 0;
+      }  
+
+   private:
+      Stream<Tuple> stream1;
+      Stream<Tuple> stream2;
+      vector<int> pos; 
+      bool s2exhausted;
+      Tuple* tup2;
+
+   /* returns true if the incoming tuple is not
+      in the second stream. Both streams must be sorted
+      according all attributes in stream 2
+    */
+    bool check(Tuple* tuple){
+      while(!s2exhausted){
+         if(!tup2){
+            tup2 = stream2.request();
+         } 
+         if(!tup2){
+           s2exhausted = true;
+         } else {
+           int cmp = compare(tup2,tuple);
+           if(cmp<0){
+             tup2->DeleteIfAllowed();
+             tup2 = 0; 
+           } else if(cmp > 0){
+             return 0;
+           } else {
+             return false;
+           }
+         }
+      }
+      return true;
+    }
+
+
+    /* compares two tuples according the pos vector */
+    int compare(Tuple* t1, Tuple* t2){
+       for(size_t i=0;i<pos.size();i++){
+          int c = t1->GetAttribute(i)->Compare(t2->GetAttribute(pos[i]));
+          if(c!=0) return c;
+       }
+       return 0;
+    }
+};
+
+
+int kmergediffVM( Word* args, Word& result,
+                   int message, Word& local, Supplier s ){
+
+   kmergediffInfo* li = (kmergediffInfo*) local.addr;
+   switch(message){
+     case OPEN :{
+           if(li){
+             delete li;
+             local.addr = 0;
+           }
+           vector<int> v;
+           for(int i=2;i<qp->GetNoSons(s);i++){
+             v.push_back( ((CcInt*)args[i].addr)->GetValue());
+           }
+           local.addr = new kmergediffInfo(args[0],args[1],v);
+           return 0;
+     }
+     case REQUEST :
+           result.addr = li?li->next():0;
+           return result.addr? YIELD:CANCEL;
+     case CLOSE :
+            if(li){
+               delete li;
+               local.addr = 0;
+            }
+            return 0;
+   }
+   return -1;
+}
+
+OperatorSpec kmergediffSpec(
+  "stream(tuple(A)) x stream(tuple(B)) -> stream(tuple(A)) ",
+  " _ _ kmergediff",
+  "Computes the difference between the first and the second stream. "
+  "The attributes of the second stream must be a subset of the "
+  "attributes in the first stream.  Furthermore, moth streams "
+  " has to be sorted by the attributes in the second stream.",
+  "query thousand feed extend[ D : 1] ten feed kmergediff count"
+);
+
+Operator kmergediffOp(
+  "kmergediff",
+  kmergediffSpec.getStr(),
+  kmergediffVM,
+  Operator::SimpleSelect,
+  kmergediffTM
+);
 
 
 
@@ -2719,6 +2889,8 @@ class ExtRelation2Algebra : public Algebra
     AddOperator(&extrel2::mtMinPathCosts2Op);
     extrel2::mtMinPathCosts2Op.enableInitFinishSupport();
 
+
+    AddOperator(&extrel2::kmergediffOp);
 
 #ifdef USE_PROGRESS
 // support for progress queries

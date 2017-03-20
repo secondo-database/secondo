@@ -57,6 +57,6 @@ operator mtMinPathCosts1 alias MTMINPATHCOSTS1 pattern _ _ op[_,_,_,_,_]
 
 operator mtMinPathCosts2 alias MTMINPATHCOSTS2 pattern _ _ op[_,_,_,fun,_] implicit parameter tuple type GD
 
-
+operator kmergediff alias KMERGEDIFF pattern _ _ op
 
 
