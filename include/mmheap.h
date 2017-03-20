@@ -38,6 +38,7 @@ class mmheap{
 
  public:
   mmheap( C _comp): content(), cmp(_comp), bulkload(false){}
+  mmheap(): content(), cmp(),bulkload(false){}
 
   void insert(const T& elem){
      content.push_back(elem);
