@@ -4551,21 +4551,21 @@
                     ("2010-07-01" "2011-06-30" TRUE FALSE) 
                     (
                         'Barrios' 
-                        'Hummels' 
-                        'Kagawa')) 
+                        'Kehl' 
+                        'Dédé')) 
                 (
                     ("2014-01-30" "2014-01-31-21:55:44.002" TRUE FALSE) 
                     (
                         'Durm' 
-                        'Großkreutz' 
-                        'Hummels' 
+                        'Schmelzer' 
+                        'Castro' 
                         'Reus' 
-                        'Schieber')) 
+                        'Schürrle')) 
                 (
                     ("2014-07-01" "2015-06-30" TRUE FALSE) 
                     (
-                        'Ji' 
-                        'Jojic')))) 
+                        'Passlack' 
+                        'Merino')))) 
         (OBJECT mplace1 
             () 
             mplace 
@@ -4573,11 +4573,11 @@
                 (
                     ("2014-01-01" "2014-01-01-00:30" TRUE FALSE) 
                     (
-                        'Hummels' 15)) 
+                        'Bartra' 5)) 
                 (
                     ("2014-01-01-00:30" "2014-01-01-01:00" TRUE FALSE) 
                     (
-                        'Mkhitaryan' 10)) 
+                        'Götze' 10)) 
                 (
                     ("2014-01-01-01:00" "2014-01-01-01:30" TRUE FALSE) 
                     (
@@ -4589,7 +4589,7 @@
                 (
                     ("2014-01-01-02:00" "2014-01-01-02:30" TRUE FALSE) 
                     (
-                        'Kehl' 5)) 
+                        'Weigl' 33)) 
                 (
                     ("2014-01-01-02:30" "2014-01-01-03:00" TRUE FALSE) 
                     (
@@ -4602,7 +4602,7 @@
                     ("2014-01-01" "2014-01-01-00:30" TRUE FALSE) 
                     (
                         (
-                            'Hummels' 15) 
+                            'Sokratis' 25) 
                         (
                             'Piszczek' 26) 
                         (
@@ -4611,12 +4611,12 @@
                     ("2014-01-01-00:30" "2014-01-01-01:00" TRUE FALSE) 
                     (
                         (
-                            'Mkhitaryan' 10))) 
+                            'Götze' 10))) 
                 (
                     ("2014-01-01-02:30" "2014-01-01-03:00" TRUE FALSE) 
                     (
                         (
-                            'Langerak' 20) 
+                            'Bürki' 38) 
                         (
                             'Weidenfeller' 1))))) 
         (OBJECT rewrite1 
