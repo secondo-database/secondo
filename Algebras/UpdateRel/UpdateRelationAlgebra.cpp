@@ -4981,6 +4981,7 @@ int filterinsertVM(Word* args, Word& result, int message,
            if(li){
              delete li;
              local.addr = 0;
+             qp->SetModified(qp->GetSon(s, 2));
            }
            return 0;
   }
