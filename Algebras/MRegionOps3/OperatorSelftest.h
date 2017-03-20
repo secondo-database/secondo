@@ -44,6 +44,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NList.h"
 #include "StandardTypes.h"
 
+#include "PointVectorSegment.h"
+#include "PFace.h"
+#include "NumericUtil.h"
+
 #ifndef OPERATORSELFTEST_H
 #define OPERATORSELFTEST_H
 
