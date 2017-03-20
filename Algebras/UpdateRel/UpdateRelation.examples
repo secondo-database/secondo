@@ -168,5 +168,8 @@ Signature : stream(tid) x stream(tuple(X)) -> stream(tuple(X))
 Example   : query ten feed head[3] tids  ten deletebyid3 count
 Result    : 3
 
-
-
+Operator  : filterinsert
+Number    : 1
+Signature : stream(t) x (t -> bool) x rel(t) -> stream(t)
+Example   : query ten feed filterinsert[.No > 3, ten1) count
+Result    : 7

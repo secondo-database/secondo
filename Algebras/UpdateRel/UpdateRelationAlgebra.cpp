@@ -56,6 +56,7 @@ searched on can be hold in an random memory based hash table.
 #include "Symbols.h"
 #include "Stream.h"
 #include <assert.h>
+#include "OrderedRelationAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -4888,6 +4889,125 @@ Operator deletebyid3Op(
 );
 
 
+/*
+Operator ~filterinsert~
+
+*/
+ListExpr filterinsertTM(ListExpr args){
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("two arguments expected");
+  }
+  ListExpr stream = nl->First(args);
+  if(!Stream<Tuple>::checkType(stream)){
+    return listutils::typeError("first arg is not a tuple stream");
+  }
+  ListExpr fun = nl->Second(args);
+  if(!listutils::isMap<1>(fun)){
+    return listutils::typeError("second arg is not an unary function");
+  }
+  if(!CcBool::checkType(nl->Third(fun))){
+    return listutils::typeError("function result is not a bool");
+  }
+  if(!nl->Equal(nl->Second(stream), nl->Second(fun))){
+    return listutils::typeError("function arg and tuple type in "
+                                "stream differ");
+  }
+
+  ListExpr rel = nl->Third(args);
+  if(! (    Relation::checkType(rel)
+         || OrderedRelation::checkType(rel))){
+    return listutils::typeError("third arg is not an (ordered) relation");
+  }
+  if(!nl->Equal(nl->Second(stream), nl->Second(rel))){
+    return listutils::typeError("tuple type in stream and rel differ");
+  }
+  return nl->First(args);
+}
+
+class filterinsertInfo{
+  public:
+    filterinsertInfo(Word& _stream, Word& _fun,
+                 GenericRelation* _rel):
+           stream(_stream), fun(_fun.addr), rel(_rel){
+       stream.open();
+       arg = qp->Argument(fun);
+    }
+    ~filterinsertInfo(){
+        stream.close();
+    }
+
+    Tuple* next(){
+      Tuple* t;
+      while( (t=stream.request())){
+        (*arg)[0] = t;
+        qp->Request(fun,funresult);
+        CcBool* r = (CcBool*) funresult.addr;
+        bool k = r->IsDefined()?r->GetValue():false;
+        if(k){
+          return t;
+        } else {
+          rel->AppendTuple(t);
+          t->DeleteIfAllowed();
+        }
+      }
+      return 0;
+    }
+
+
+  private:
+     Stream<Tuple> stream;
+     Supplier fun;
+     GenericRelation* rel;
+     ArgVectorPointer arg;
+     Word funresult;
+};
+
+
+
+int filterinsertVM(Word* args, Word& result, int message,
+                        Word& local, Supplier s)
+{
+  filterinsertInfo* li = (filterinsertInfo*) local.addr;
+  switch(message){
+    case OPEN:
+         if(li) delete li;
+         local.addr = new filterinsertInfo(args[0],args[1],
+                            (GenericRelation*) args[2].addr);
+         return 0;
+    case REQUEST:
+           result.addr = li?li->next():0;
+           return result.addr?YIELD:CANCEL;
+    case CLOSE:
+           if(li){
+             delete li;
+             local.addr = 0;
+           }
+           return 0;
+  }
+  return -1;
+}
+
+OperatorSpec filterinsertSpec(
+  "stream(t) x (t->bool) x rel(t) -> stream(t)",
+  "_ filterinsert[_,_]",
+  "As the usual filter operator, this operator filters "
+  "out tuples from a stream using a boolean function. "
+  "The removed tuples are nicht destroyed directly but "
+  "inserted into a relation.",
+  "query ten feed filterinsert[.No > 3, t2] count"
+);
+
+Operator filterinsertOp(
+  "filterinsert",
+  filterinsertSpec.getStr(),
+  filterinsertVM,
+  Operator::SimpleSelect,
+  filterinsertTM
+);
+
+
+
+
 
 /*
 
@@ -4935,6 +5055,8 @@ class UpdateRelationAlgebra : public Algebra
 
     AddOperator(&deletebyid2Op);
     AddOperator(&deletebyid3Op);
+
+    AddOperator(&filterinsertOp);
 
   }
   ~UpdateRelationAlgebra() {};

@@ -46,3 +46,5 @@ operator updatertree alias UPDATERTREE pattern _ _ op [ _ ]
 operator deletebyid2 alias DELETEBYID2 pattern _ _ op  [ _ ]
 operator deletebyid3 alias DELETEBYID3 pattern _ _ op  
 
+operator filterinsert alias FILTERINSERT pattern _ op[fun,_] implicit parameter tuple type TUPLE
+
