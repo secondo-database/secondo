@@ -1287,7 +1287,7 @@ Result    : TRUE
 Operator  : createmgraph2
 Number    : 901
 Signature : stream(tuple) x IDENT x IDENT x fun x string -> stream(tuple@(MG_Source int, MG_Target int, MG_Cost : real))
-Example   : query otestrel feed head[0] createmgraph2[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2), "mgraph2_1"] count 
+Example   : query otestrel feed head[0] createmgraph2[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2), "mgraph2_1", TRUE] count 
 Result    : 0
 
 Operator  : mg2insertorig
