@@ -558,7 +558,7 @@ struct OpNode
   bool         evaluable;
   ListExpr     typeExpr;
   ListExpr     numTypeExpr;
-  OpNodeType   nodetype;
+  const OpNodeType   nodetype;
   int          id;
   bool         isRoot;
   ArgVector    tmpArg;
@@ -639,59 +639,41 @@ OpNode(OpNodeType type) :
   isRoot(false)
 {
   OpNodeAddr2Id[this] = id;
+  u.symbol=0;
+  u.received=false;
 
-  switch ( nodetype )
-  {
-    case Object :
-    case Pointer :
-    {
-      u.symbol = 0;
-      u.dobj.value = SetWord(Address(0));
-      u.dobj.valNo = 0;
-      u.dobj.isConstant = false;
-      u.dobj.isModified = false;
-      break;
-    }
-    case IndirectObject :
-    {
-      u.iobj.vector = 0;
-      u.iobj.funNumber = 0;
-      u.iobj.argIndex = 0;
-      u.received = false;
-      break;
-    }
-    case Operator :
-    {
-      u.symbol = 0;
-      u.op.algebraId = 0;
-      u.op.opFunId = 0;
-      u.op.noSons = 0;
-      u.op.valueMap = 0;
-      u.op.theOperator = 0;
-      u.op.isFun = false;
-      u.op.funArgs = 0;
-      u.op.funNo  = 0;
-      u.op.isStream = false;
-      u.op.local = SetWord(Address(0));
-      u.op.local2 = SetWord(Address(0));
-      u.received = false;
-      u.op.resultAlgId = 0;
-      u.op.resultTypeId = 0;
-      u.op.resultWord = SetWord(Address(0));
-      u.op.deleteFun = 0;
-      u.op.counterNo = 0;
-      u.op.selectivity = 0.1;
-      u.op.predCost = 0.1;
-      u.op.supportsProgress = false;
-      u.op.usesMemory = false;
-      u.op.memorySize = 0;     
-      u.op.costEstimation = 0; 
-      u.op.argsAvailable = false;
-      break;
-    }
-    default :
-    { assert( false ); }
-  }
+  u.dobj.value = SetWord(Address(0));
+  u.dobj.valNo = 0;
+  u.dobj.isConstant = false;
+  u.dobj.isModified = false;
+
+  u.iobj.vector = 0;
+  u.iobj.funNumber = 0;
+  u.iobj.argIndex = 0;
+
+  u.op.algebraId = 0;
+  u.op.opFunId = 0;
+  u.op.noSons = 0;
+  u.op.valueMap = 0;
+  u.op.theOperator = 0;
+  u.op.isFun = false;
+  u.op.funArgs = 0;
+  u.op.funNo  = 0;
+  u.op.isStream = false;
+  u.op.local = SetWord(Address(0));
+  u.op.local2 = SetWord(Address(0));
+  u.op.resultAlgId = 0;
+  u.op.resultTypeId = 0;
+  u.op.resultWord = SetWord(Address(0));
+  u.op.deleteFun = 0;
+  u.op.counterNo = 0;
+  u.op.selectivity = 0.1;
+  u.op.predCost = 0.1;
+  u.op.supportsProgress = false;
+  u.op.usesMemory = false;
+  u.op.memorySize = 0;     
+  u.op.costEstimation = 0; 
+  u.op.argsAvailable = false;
 }
 
   string symbol() const {
@@ -761,7 +743,7 @@ OpNode(OpNodeType type) :
 
 
 private:
-  OpNode(){} // bad idea to use an uninitialized object
+  //OpNode(){} // bad idea to use an uninitialized object
 
 };
 
