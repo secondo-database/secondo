@@ -157,7 +157,7 @@ operator stacksize alias STACKSIZE pattern op(_)
 operator insertmstack alias INSERTMSTACK pattern _ op [_]
 
 
-operator createmgraph2 alias CREATEMGRAPH2 pattern _ op [_,_,fun,_] implicit parameter streamelem type STREAMELEM
+operator createmgraph2 alias CREATEMGRAPH2 pattern _ op [_,_,fun,_,_] implicit parameter streamelem type STREAMELEM
 operator mg2insertorig alias MG2INSERTORIG pattern _ op [_,_,fun,_] implicit parameter streamelem type STREAMELEM
 operator mg2insert alias MG2INSERT pattern _ op [_]
 operator mg2feed alias MG2FEED pattern _ op

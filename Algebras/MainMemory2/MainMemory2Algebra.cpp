@@ -682,6 +682,34 @@ string getDBname() {
     return sys->GetDatabaseName();
 }
 
+template<class T>
+T* computeValue(ListExpr expression){
+   Word queryResult;
+   string typeString = "";
+   string errorString = "";
+   bool correct;
+   bool evaluable;
+   bool defined;
+   bool isFunction;
+   // use the queryprocessor for executing the expression
+   try{
+     qp->ExecuteQuery(expression, queryResult,
+                      typeString, errorString, correct,
+                      evaluable, defined, isFunction);
+     // check correctness of the expression
+     if(!correct || !evaluable || !defined || isFunction){
+        assert(queryResult.addr == 0);
+        return 0;
+     }
+     T* fn = (T*) queryResult.addr;
+     return fn;
+   } catch(...){
+     return 0;
+   }
+}
+
+
+
 /*
 This function extract the type information from a 
 memory object. If the type is given as mem object,
@@ -695,7 +723,8 @@ and result will have the type in the memory.
 */
 bool getMemType(ListExpr type, ListExpr value, 
                 ListExpr & result, string& error, 
-                bool allowMPointer){
+                bool allowMPointer,
+                bool allowComplex){
     if(allowMPointer){
       if(MPointer::checkType(type)){
          if(Mem::checkType(nl->Second(type))){
@@ -713,11 +742,28 @@ bool getMemType(ListExpr type, ListExpr value,
        error = "not of type mem or string";
        return false;
     }
-    if(nl->AtomType(value)!=StringType){
-       error="only constant strings are supported";
-       return false;
+    string n = "";
+    if(nl->AtomType(value)==StringType){
+      n = nl->StringValue(value);
+    } else {
+      if(!allowComplex){
+        error = "only constant strings supported";
+        return false;
+      }
+      CcString* N = computeValue<CcString>(value);
+      if(!N){
+        error = "could not compute result for " +nl->ToString(value);
+        return false;
+      }
+      if(!N->IsDefined()){
+        N->DeleteIfAllowed();
+        error = "Undefined name for memory object";
+        return false;
+      }
+      n = N->GetValue();
+      N->DeleteIfAllowed();
     }
-    string n = nl->StringValue(value);
+
     if(!catalog->isMMObject(n)){
        error = n + " is not a memory object";
        return false;
@@ -736,9 +782,10 @@ bool getMemType(ListExpr type, ListExpr value,
 
 inline bool getMemType(ListExpr typevalue, 
                 ListExpr & result, string& error, 
-                bool allowMPointer=false){
+                bool allowMPointer=false,
+                bool allowComplex = false){
   return getMemType(nl->First(typevalue), nl->Second(typevalue),
-                    result,error,allowMPointer);
+                    result,error,allowMPointer, allowComplex);
 }
 /*
 some functions related to strings.
@@ -18383,13 +18430,25 @@ edges           source     target     costs  result's name
 */
 
 ListExpr createmgraph2TM(ListExpr args){
-
-  if(!nl->HasLength(args,5)){
+  if(!nl->HasLength(args,6)){
     return listutils::typeError("five arguments expected");
   }
   if(!checkUsesArgs(args)){
     return listutils::typeError("internal error");
   }
+
+  bool checkName = true;
+  if(nl->HasLength(args,6)){
+    if(!CcBool::checkType(nl->First(nl->Sixth(args)))){
+      return listutils::typeError("6th arg is not a bool");
+    }
+    ListExpr v = nl->Second(nl->Sixth(args));
+    if(nl->AtomType(v)!=BoolType){
+      return listutils::typeError("sixth elem is not constant");
+    }
+    checkName = nl->BoolValue(v);
+  }
+
   // first arg: tuple stream
   ListExpr ts = nl->First(nl->First(args));
   if(!Stream<Tuple>::checkType(ts)){
@@ -18445,16 +18504,28 @@ ListExpr createmgraph2TM(ListExpr args){
   if(!CcString::checkType(nl->First(gn))){
     return listutils::typeError("5th argument is not a string");
   }
-  gn = nl->Second(gn);
-  if(nl->AtomType(gn)!=StringType){
-    return listutils::typeError("5th argument is not constant");
+  if(checkName){
+    gn = nl->Second(gn);
+    string name = "";
+    if(nl->AtomType(gn)==StringType){
+        name = nl->StringValue(gn);
+    } else {
+       CcString* Name = computeValue<CcString>(gn);
+       if(!Name){
+         return listutils::typeError("cannot determine value of " +
+                                     nl->ToString(gn));
+       }
+       if(!Name->IsDefined()){
+         return listutils::typeError("undefined name for the graph");
+       }
+       name = Name->GetValue();
+       Name->DeleteIfAllowed();
+    }
+    if(catalog->isMMObject(name)){
+      return listutils::typeError("name " + name + 
+                                  " is already an main memory object");
+    }
   }
-  string name = nl->StringValue(gn);
-  if(catalog->isMMObject(name)){
-    return listutils::typeError("name " + name + 
-                                " is already an main memory object");
-  }
-
   ListExpr newAttr = nl->ThreeElemList(
     nl->TwoElemList(
        nl->SymbolAtom("MG_Source"),
@@ -18611,12 +18682,15 @@ int createmgraph2Select(ListExpr args){
 }
 
 OperatorSpec createmgraph2Spec(
-  "stream(tuple) x IDENT x INDENT x fun x string -> stream(tuple2)",
+  "stream(tuple) x IDENT x INDENT x fun x string x bool -> stream(tuple2)",
   " edges createmgraph2[SourceAttr, TargetAttr, CostFun, GraphName]",
   "Creates an mgraph2 from an stream of edges. Edges with undefined "
   "source, target or costs are ignored. " 
   "All other edges are inserted into the graph and extended by "
-  "new source, target, and a cost attribute.",
+  "new source, target, and a cost attribute."
+  "the last attribute determines whether the name should be checked "
+  "in the type mapping."
+  ,
   "query otestrel feed createmgraph2[S1_id, S2_id, "
   "distance(.S1_Pos, .S2_Pos), \"g\"] count"
 );
@@ -18702,7 +18776,7 @@ ListExpr mg2insertorigTM(ListExpr args){
   ListExpr graph = nl->Fifth(args);
   string err;
   ListExpr graphT;
-  if(!getMemType(nl->First(graph), nl->Second(graph), graphT, err,true)){
+  if(!getMemType(nl->First(graph), nl->Second(graph), graphT, err,true, true)){
     return listutils::typeError(err);
   }
   graphT = nl->Second(graphT);

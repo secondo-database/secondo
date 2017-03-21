@@ -985,7 +985,8 @@ bool dijkstra(graph::Graph* graph, Word& arg,
 
 bool getMemType(ListExpr type, ListExpr value,
                    ListExpr & result, std::string& error,
-                   bool allowMPointer=false);
+                   bool allowMPointer=false,
+                   bool allowComplex = false);
 
 template<class T>
 MemoryGraphObject* getMemGraph(T* aN);
