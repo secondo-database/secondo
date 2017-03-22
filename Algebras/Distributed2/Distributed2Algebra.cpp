@@ -11297,21 +11297,21 @@ ListExpr dmapTM(ListExpr args){
   ListExpr arg2Type = nl->First(nl->Second(args));
   ListExpr arg3Type = nl->First(nl->Third(args));
 
-  if(  (!DFArray::checkType(arg1Type) && !DArray::checkType(arg1Type))
+  if(  (    !DFArray::checkType(arg1Type) 
+         && !DArray::checkType(arg1Type))
      ||!CcString::checkType(arg2Type)
      ||!listutils::isMap<1>(arg3Type)){
     return listutils::typeError(err);
   }
 
-  if(   DArray::checkType(arg1Type) 
-     && !Relation::checkType(nl->Second(arg1Type))){
-     return listutils::typeError("subtype of darray is not a relation");
+  
+  ListExpr frelt = nl->TheEmptyList(); 
+
+  if( Relation::checkType(nl->Second(arg1Type))){
+     frelt = nl->TwoElemList(
+                   listutils::basicSymbol<frel>(),
+                   nl->Second(nl->Second(arg1Type)));
   }
-
-
-  ListExpr frelt = nl->TwoElemList(
-                     listutils::basicSymbol<frel>(),
-                     nl->Second(nl->Second(arg1Type)));
 
   ListExpr funArg = nl->Second(arg3Type);
 
