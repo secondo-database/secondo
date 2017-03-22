@@ -1426,3 +1426,20 @@ Number    : 1010
 Signature : MGRAPH3 -> stream(tuple)
 Example   : query "mgraph3_1" mg3connectedcomponents sortby[CompNo] krdup[CompNo] count
 Result    : 2
+
+
+Operator  : mwrap2
+Number    : 1100
+Signature : text x string -> mem(X)
+Example   : query mwrap2('string', "name")
+Result    : ( (mem string) "name")
+
+
+Operator  : mwrap3
+Number    : 1101
+Signature : text x string -> mem(X)
+Example   : query mwrap3('string', "name")
+Result    : ( (mem text) "name")
+
+
+

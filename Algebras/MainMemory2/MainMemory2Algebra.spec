@@ -62,6 +62,8 @@ operator gettuples alias GETTUPLES pattern _ _ op
 
 
 operator mwrap alias MWRAP pattern op(_)
+operator mwrap2 alias MWRAP2 pattern op(_,_)
+operator mwrap3 alias MWRAP3 pattern op(_,_)
 
 operator mcreatettree alias  MCREATETTREE pattern _ op [_]
 operator minsertttree alias MINSERTTTREE pattern _ op [_,_]

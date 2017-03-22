@@ -6716,7 +6716,6 @@ stored type in the memory catalog
 
 */
 ListExpr mwrapTM(ListExpr args){
-
    if(!nl->HasLength(args,1)){
       return listutils::typeError("one argument expected");
    }
@@ -6731,7 +6730,7 @@ ListExpr mwrapTM(ListExpr args){
    }
    ListExpr res;
    string error;
-   if(!getMemType(type, value,res, error)){
+   if(!getMemType(type, value,res, error, false,true)){
      return listutils::typeError(error);
    }
    return res;
@@ -6742,9 +6741,10 @@ ListExpr mwrapTM(ListExpr args){
 7.1.2 Value Mapping Function of operator ~mwrap~
 
 */
+template<int strpos>
 int mwrapVM(Word* args, Word& result,
              int message, Word& local, Supplier s) {
-   CcString* arg = (CcString*) args[0].addr;
+   CcString* arg = (CcString*) args[strpos].addr;
    result = qp->ResultStorage(s);
    Mem* res = (Mem*) result.addr;
    bool def = arg->IsDefined();
@@ -6774,10 +6774,116 @@ OperatorSpec mwrapSpec(
 Operator mwrapOp(
    "mwrap",
    mwrapSpec.getStr(),
-   mwrapVM,
+   mwrapVM<0>,
    Operator::SimpleSelect,
    mwrapTM
 );
+
+
+/*
+Operator ~mwrap2~
+
+This operator may create an mem(x) object without accessing the
+memory catalog to get the type. Instead of this, the type is
+given explicitely in the first argument. The type must be a 
+constant text but the string may be any expression that evaluates
+to string. The value mapping checks the equqlity between the
+given type and the actual type. If not, the mem object will be
+undefined.
+
+*/
+ListExpr mwrap2TM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("2 args expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  if(!FText::checkType(nl->First(nl->First(args)))){
+    return listutils::typeError("first arg is not a text");
+  }
+  if(!CcString::checkType(nl->First(nl->Second(args)))){
+    return listutils::typeError("second arg is not a string");
+  }
+  ListExpr typeList = nl->Second(nl->First(args));
+  if(nl->AtomType(typeList)!=TextType){
+    return listutils::typeError("the text is not constant");
+  }
+  string type = nl->Text2String(typeList);
+  if(!nl->ReadFromString(type,typeList)){
+   return listutils::typeError("the type is not a valid nested list");
+  }
+  SecondoCatalog* ctlg = SecondoSystem::GetInstance()->GetCatalog();
+  int aid,tid;
+  if(!ctlg->LookUpTypeExpr(typeList,type,aid,tid)){
+    return listutils::typeError("the first attribute is not a valid "
+                                "type description");
+  }
+  ListExpr res = nl->TwoElemList(
+            listutils::basicSymbol<Mem>(),
+            typeList
+         );
+  if(!Mem::checkType(res)){
+    return listutils::typeError("type is not a valid mem type");
+  }
+  return res;
+}
+
+OperatorSpec mwrap2Spec(
+  "text x string -> mem(X)",
+  "mwrap2(_,_)",
+  "Creates a mem object whose type is given "
+  "as a text in nested list format",
+  "query mwrap2('string', \"myName\")" 
+);
+
+Operator mwrap2Op(
+  "mwrap2",
+  mwrap2Spec.getStr(),
+  mwrapVM<1>,
+  Operator::SimpleSelect,
+  mwrap2TM
+);
+
+
+/*
+Another variant determining the subtype from an expression.
+
+*/
+ListExpr mwrap3TM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two args expected");
+  }
+  if(!CcString::checkType(nl->Second(args))){
+    return listutils::typeError("second arg is not a string");
+  }
+  ListExpr res =  nl->TwoElemList(
+                    listutils::basicSymbol<Mem>(),
+                    nl->First(args));
+  if(!Mem::checkType(res)){
+    return listutils::typeError("first arg is not a valid mem subtype");
+  }
+  return res;
+}
+
+
+OperatorSpec mwrap3Spec(
+  "X x string -> mem(X)",
+  "mwrap3(_,_)",
+  "Creates a mem object whose type is given "
+  "by the first argument. The value of the first "
+  "argument is not used",
+  "query mwrap2('string', \"myName\")" 
+);
+
+Operator mwrap3Op(
+  "mwrap3",
+  mwrap3Spec.getStr(),
+  mwrapVM<1>,
+  Operator::SimpleSelect,
+  mwrap3TM
+);
+
 
 
 
@@ -18647,8 +18753,8 @@ int createmgraph2VMT(Word* args, Word& result, int message,
        catalog->insert(name, graph);
        local.addr = new createmgraph2Info<T>(
                           args[0], graph,
-                          ((CcInt*) args[5].addr)->GetValue(),
                           ((CcInt*) args[6].addr)->GetValue(),
+                          ((CcInt*) args[7].addr)->GetValue(),
                           args[3]);
         return 0;
      }
@@ -19024,7 +19130,7 @@ ListExpr mgfeedTM(ListExpr args){
   } 
   ListExpr g = nl->First(args);
   string err;
-  if(!getMemType(g,g,err,true)){
+  if(!getMemType(g,g,err,true,true)){
     return listutils::typeError(err);
   }
   g = nl->Second(g);
@@ -20267,6 +20373,11 @@ class MainMemory2Algebra : public Algebra {
           
           AddOperator(&mwrapOp);
           mwrapOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mwrap2Op);
+          mwrap2Op.SetUsesArgsInTypeMapping();
+          AddOperator(&mwrap3Op);
+
+
           AddOperator(&MTUPLEOp);
           MTUPLEOp.SetUsesArgsInTypeMapping();
           AddOperator(&MTUPLE2Op);
