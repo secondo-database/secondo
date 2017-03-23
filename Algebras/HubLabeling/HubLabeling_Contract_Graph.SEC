@@ -1,0 +1,86 @@
+###
+#1 - Vorbereitungen
+###
+
+#
+#1.1 Kanten reduzieren
+#
+
+#delete hlEdgesReducedOrelSource
+
+let hlEdgesReducedOrelSource = Edges feed filter[
+	(.RoadType = "motorway") or (.RoadType = "motorway_link")
+ or (.RoadType = "trunk") or (.RoadType = "trunk_link")
+ or (.RoadType = "primary") or (.RoadType = "primary_link")
+ or (.RoadType = "secondary") or (.RoadType = "secondary_link")
+ or (.RoadType = "tertiary") or (.RoadType = "tertiary_link")
+ or (.RoadType = "road") or (.RoadType = "unclassified")
+ or (.RoadType = "residential") or (.RoadType = "living_street")
+]
+oconsume[Source]
+ 
+# or (.RoadType = "track") or (.RoadType = "pedestrian")
+# or (.RoadType = "service") or (.RoadType = "bus_guideway")
+# or (.RoadType = "escape") or (.RoadType = "raceway")
+
+#
+#1.2 zusätzliche Felder Parent und Costs hinzufügen
+#
+
+#delete hlEdgesExtendedOrelSource
+
+let hlEdgesExtendedOrelSource = hlEdgesReducedOrelSource feed
+ extend[Costs : 0.0]
+ extend[HlShortcutViaParent : -1]
+ oconsume[Source]
+
+
+
+#
+# 1.3 Kosten ermitteln
+#
+
+#delete hlEdgesOrelSource
+
+let hlEdgesOrelSource = hlEdgesExtendedOrelSource
+
+query hlCalcWeightsOrel(hlEdgesOrelSource, 1)
+
+
+#
+# 1.3 Knotenmenge ermitteln
+#
+
+#delete hlNodesSourceOnlyOrel
+
+let hlNodesSourceOnlyOrel =
+hlEdgesOrelSource feed extend[NodeId: .Source] project[NodeId]
+hlEdgesOrelSource feed extend[NodeId: .Target] project[NodeId]
+concat
+sortby[NodeId]
+krdup[NodeId]
+oconsume[NodeId]
+ 
+
+
+###
+#2 - Contraction
+#
+#Usable Parameters:
+# hHop = 2
+# skipContractionWhenXNodesAreLeft = 100
+###
+
+#delete hlGraphOrel
+
+let hlGraphOrel =
+hlDoContractionOfHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel, 2, 100, 0) 
+feed oconsume[Source]
+
+
+###
+#3 - CH Query
+#
+#query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource, hlGraphOrel, <SourceNodeId>, <TargetNodeId>) feed consume
+#
+###

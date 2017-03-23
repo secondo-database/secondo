@@ -1,23 +1,23 @@
 ###
 #4 - Create HubLabels
 ###
- 
+
 #
 #4.1 NestedRelation erzeugen
 #
 
-#delete hlAllLabelsNrel;
+#delete hlAllLabelsNrel
 
 let hlAllLabelsNrel =
-hlCreateLabelsFromHlGraph(hlNodesSourceOnlyOrel, hlGraphOrel) feed consume;
+hlCreateLabelsFromHlGraph(hlNodesSourceOnlyOrel, hlGraphOrel) feed consume
 
 #
 #4.2 BTree über NestedRelation erzeugen
 #
 
-#delete hlAllLabelsNrel_SourceNodeId;
+#delete hlAllLabelsNrel_SourceNodeId
 
-let hlAllLabelsNrel_SourceNodeId = hlAllLabelsNrel feed extend[TmpTid: tupleid(.)] createbtree[SourceNodeId];
+let hlAllLabelsNrel_SourceNodeId = hlAllLabelsNrel feed extend[TmpTid: tupleid(.)] createbtree[SourceNodeId]
 
 
 
@@ -28,6 +28,6 @@ let hlAllLabelsNrel_SourceNodeId = hlAllLabelsNrel feed extend[TmpTid: tupleid(.
 #Usable Parameters:
 # isHlGraph = 1 (do not change)
 #
-#query hlQuery(hlAllLabelsNrel, hlAllLabelsNrel_SourceNodeId, hlEdgesOrelSource, hlGraphOrel, <SourceNodeId>, <TargetNodeId>, 1) feed consume;
+#query hlQuery(hlAllLabelsNrel, hlAllLabelsNrel_SourceNodeId, hlEdgesOrelSource, hlGraphOrel, <SourceNodeId>, <TargetNodeId>, 1) feed consume
 #
 ###
