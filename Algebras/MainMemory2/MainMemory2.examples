@@ -1238,7 +1238,11 @@ Example   : query pwrap("strassen_PQ_L") mpqreorderupdate[ -1 * .L, L]
 Result    : 0
 
 
-
+Operator  : mcreatepqueue2
+Number    : 615
+Signature : stream(tuple) x IDENT x string -> (mem (pqueue tuple)) 
+Example   : query strassen feed extend[L : size(.GeoData)] mcreatepqueue2[L, "strassen_PQ_L2"]
+Result    : ((mem (mpqueue (tuple ( (Name string) (Typ string) (GeoData line) (L real))))) "strassen_PQ_L2")
 
 Operator : mblock
 Number   : 700
@@ -1359,6 +1363,13 @@ Number    : 912
 Signature : MGRAPH2 -> stream(tuple)
 Example   : query "mgraph2_1"  mg2connectedcomponents sortby[CompNo] krdup[CompNo] count
 Result    : 2
+
+
+Operator  : createmgraph2m
+Number    : 913
+Signature : stream(tuple) x IDENT x IDENT x fun x string -> mem(mgraph(tuple@MG_Source,MG_Target,MG_Cost))
+Example   : query otestrel feed createmgraph2m[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2), "mgraph2m", FALSE] mg2feed count = otestrel count
+Result    : TRUE
 
 
 Operator  : createmgraph3

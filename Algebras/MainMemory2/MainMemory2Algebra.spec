@@ -141,6 +141,7 @@ operator mblock alias MBLOCK pattern _ op
 
 
 operator mcreatepqueue alias mcreatepqueue pattern _ op[_,_]
+operator mcreatepqueue2 alias mcreatepqueue2 pattern _ op[_,_]
 operator size alias SIZE pattern op(_)
 operator mfeedpq alias MFEEDPQ pattern _ op
 operator mfeedpqAbort alias MFEEDPQABORT pattern _ op [_ ]
@@ -160,6 +161,7 @@ operator insertmstack alias INSERTMSTACK pattern _ op [_]
 
 
 operator createmgraph2 alias CREATEMGRAPH2 pattern _ op [_,_,fun,_,_] implicit parameter streamelem type STREAMELEM
+operator createmgraph2m alias CREATEMGRAPH2M pattern _ op [_,_,fun,_,_] implicit parameter streamelem type STREAMELEM
 operator mg2insertorig alias MG2INSERTORIG pattern _ op [_,_,fun,_] implicit parameter streamelem type STREAMELEM
 operator mg2insert alias MG2INSERT pattern _ op [_]
 operator mg2feed alias MG2FEED pattern _ op

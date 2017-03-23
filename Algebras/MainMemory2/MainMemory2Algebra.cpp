@@ -6813,12 +6813,6 @@ ListExpr mwrap2TM(ListExpr args){
   if(!nl->ReadFromString(type,typeList)){
    return listutils::typeError("the type is not a valid nested list");
   }
-  SecondoCatalog* ctlg = SecondoSystem::GetInstance()->GetCatalog();
-  int aid,tid;
-  if(!ctlg->LookUpTypeExpr(typeList,type,aid,tid)){
-    return listutils::typeError("the first attribute is not a valid "
-                                "type description");
-  }
   ListExpr res = nl->TwoElemList(
             listutils::basicSymbol<Mem>(),
             typeList
@@ -16625,21 +16619,28 @@ ListExpr pwrapTM(ListExpr args){
     return listutils::typeError("internal error");
   }
   ListExpr t = nl->First(arg);
-  if(!CcString::checkType(t)
+  if(  !CcString::checkType(t)
      &&!Mem::checkType(t)){
     return listutils::typeError("string or mem(...) expected");
-  }  
-  ListExpr v = nl->Second(arg);
-  if(nl->AtomType(v)!=StringType){
-    return listutils::typeError("only constant objects allowed");
-  }
-  string n = nl->StringValue(v);
-  MemoryObject* mo = catalog->getMMObject(n);
-  if(mo==0){
-    return listutils::typeError("No mm object with name " + n + " found");
+  } 
+
+  ListExpr motype;
+  if(CcString::checkType(t)) {
+     ListExpr v = nl->Second(arg);
+     if(nl->AtomType(v)!=StringType){
+       return listutils::typeError("only constant objects allowed");
+     }
+     string n = nl->StringValue(v);
+     MemoryObject* mo = catalog->getMMObject(n);
+     if(mo==0){
+        return listutils::typeError("No mm object with name " + n + " found");
+     }
+     motype = mo->getType();
+  } else {
+     motype = t;
   }
   ListExpr res = nl->TwoElemList(listutils::basicSymbol<MPointer>(),
-                                 mo->getType());
+                                 motype);
 
   return res; 
 }
@@ -16963,7 +16964,7 @@ Creates a new priority queue in main  memory.
 stream(tuple) x AttrName x string -> stream(tuple)
 
 */
-
+template<bool passStream, bool checkNameInTM>
 ListExpr mcreatepqueueTM(ListExpr args){
 
    if(!nl->HasLength(args,3)){
@@ -16996,20 +16997,31 @@ ListExpr mcreatepqueueTM(ListExpr args){
    if(!CcString::checkType(nameType)){
      return listutils::typeError("last arg not of type string");
    }
-   ListExpr nameValue = nl->Second(nl->Third(args));
-   if(nl->AtomType(nameValue)!=StringType){
-     return listutils::typeError("memory object queue's name must "
-                                 "be a constant");
+   if(checkNameInTM){
+      ListExpr nameValue = nl->Second(nl->Third(args));
+      if(nl->AtomType(nameValue)!=StringType){
+         return listutils::typeError("memory object queue's name must "
+                                     "be a constant");
+      }
+      string moname = nl->StringValue(nameValue);
+      if(catalog->isMMObject(moname)){
+        return listutils::typeError("There is already a main memoray "
+                                    "object named " + moname);
+      }
    }
-   string moname = nl->StringValue(nameValue);
-   if(catalog->isMMObject(moname)){
-     return listutils::typeError("There is already a main memoray "
-                                 "object named " + moname);
-   }
+
+   ListExpr resType =   passStream 
+                      ? stream 
+                      : nl->TwoElemList(
+                          listutils::basicSymbol<Mem>(),
+                          nl->TwoElemList(
+                             listutils::basicSymbol<MemoryPQueueObject>(),
+                             nl->Second(stream)));;
+
    return nl->ThreeElemList(
                 nl->SymbolAtom(Symbols::APPEND()),
                 nl->OneElemList(nl->IntAtom(index-1)),
-                stream);
+                resType);
 }
 
 
@@ -17108,8 +17120,75 @@ Operator mcreatepqueueOp(
   mcreatepqueueSpec.getStr(),
   mcreatepqueueVM,
   Operator::SimpleSelect,
-  mcreatepqueueTM
+  mcreatepqueueTM<true, true>
 );
+
+
+
+int mcreatepqueue2VM(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+
+   result = qp->ResultStorage(s);
+   Mem* res = (Mem*) result.addr;
+
+   CcString* ObjName = (CcString*)args[2].addr;
+   if(!ObjName->IsDefined()){
+      res->SetDefined(false);
+      return 0;   
+   }
+   string objName = ObjName->GetValue();
+   if(catalog->isMMObject(objName)){
+      res->SetDefined(false);
+      return 0;   
+   }
+   int prioIndex = ((CcInt*) args[3].addr)->GetValue();
+   ListExpr type  = qp->GetType(s);
+   string dbname = getDBname();
+   MemoryPQueueObject* q = new MemoryPQueueObject(false, 
+                                  dbname,nl->ToString(type));
+   catalog->insert(objName, q);
+   Stream<Tuple> stream(args[0]);
+   stream.open();
+   Tuple* tuple;
+   while( (tuple = stream.request())){
+      CcReal* p  = (CcReal*) tuple->GetAttribute(prioIndex);
+      if(p->IsDefined()){
+         q->push(tuple,p->GetValue());
+      }
+      tuple->DeleteIfAllowed();      
+   }
+   stream.close();
+   res->set(true,objName);
+   return 0;
+}
+
+
+
+OperatorSpec mcreatepqueue2Spec(
+   "stream(tuple) x IDENT x string -> mem(pqueue(tuple)) ",
+   "_ mcreatepqueue[_,_]",
+   "Creates a priority in memory with the given name storing "
+   "the tuples of the stream. The priority comes from the "
+   "attribute that's name is given in the second argument. "
+   "This attribute has to be of type real. " 
+   "If this attribute is undefined, the values are not inserted "
+   "into the queue. The result is a mem objecvt with the name "
+   "of the created queue",
+   "query strassen extend[L : size(.GeoData)] mcreatepqueue[L,\"S_L\"]"
+
+);
+
+Operator mcreatepqueue2Op(
+  "mcreatepqueue2",
+  mcreatepqueue2Spec.getStr(),
+  mcreatepqueue2VM,
+  Operator::SimpleSelect,
+  mcreatepqueueTM<false,false>
+);
+
+
+
 
 
 template<class T>
@@ -18534,7 +18613,7 @@ stream(tuple) x attrname x attrname x fun x string
 edges           source     target     costs  result's name
 
 */
-
+template<bool passStream>
 ListExpr createmgraph2TM(ListExpr args){
   if(!nl->HasLength(args,6)){
     return listutils::typeError("five arguments expected");
@@ -18652,16 +18731,25 @@ ListExpr createmgraph2TM(ListExpr args){
     return listutils::typeError("attribute MG_source, MG_Target, "
                                 "or MG_Cost already present in tuple");
   }
+  ListExpr resType;
 
+  if(passStream){
+    resType = nl->TwoElemList(
+                 listutils::basicSymbol<Stream<Tuple> >(),
+                 tt);
+  } else {
+    resType = nl->TwoElemList(
+                listutils::basicSymbol<Mem>(),
+                nl->TwoElemList(
+                  listutils::basicSymbol<MGraph2>(),
+                  tt));
+  }
   return nl->ThreeElemList(
               nl->SymbolAtom(Symbols::APPEND()),
               nl->TwoElemList(
                      nl->IntAtom(source_index-1),
                      nl->IntAtom(target_index-1)),
-              nl->TwoElemList(
-                 listutils::basicSymbol<Stream<Tuple> >(),
-                 tt)   
-              );
+              resType);
 }
 
 
@@ -18807,8 +18895,88 @@ Operator createmgraph2Op(
   2,
   createmgraph2VM,
   createmgraph2Select,
-  createmgraph2TM  
+  createmgraph2TM<true>  
 );
+
+
+template<class T, bool flob>
+int createmgraph2mVMT(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   Mem* res = (Mem*) result.addr;
+   CcString* Name = (CcString*) args[4].addr;
+   if(!Name->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   string name = Name->GetValue();
+   if(catalog->isMMObject(name)){
+     res->SetDefined(false);
+     return 0;
+   }
+   string type = nl->ToString(qp->GetType(s));
+   string dbname = getDBname(); 
+   MGraph2* graph = new MGraph2(flob, dbname,type);
+   catalog->insert(name, graph);
+   int sourcePos = ((CcInt*) args[6].addr)->GetValue();
+   int targetPos = ((CcInt*) args[7].addr)->GetValue();
+   Supplier costFun = args[3].addr;
+   ArgVectorPointer costArg = qp->Argument(costFun);
+   Stream<Tuple> stream(args[0]);
+   stream.open();
+   Tuple* orig;
+   Word value;
+   while( (orig = stream.request())) {
+      T* Source = (T*) orig->GetAttribute(sourcePos);
+      T* Target = (T*) orig->GetAttribute(targetPos);
+      (*costArg)[0] = orig;
+      qp->Request(costFun,value);
+      CcReal* Costs = (CcReal*) value.addr;
+      if(Source->IsDefined() && Target->IsDefined() && Costs->IsDefined()){
+        Tuple* res = graph->insertOrigEdge<T>(orig,Source->GetValue(), 
+                                              Target->GetValue(), 
+                                              Costs->GetValue());
+         res->DeleteIfAllowed();
+      }
+      orig->DeleteIfAllowed();
+   }
+   stream.close();
+   res->set(true,name);
+   return 0;
+}
+
+ValueMapping createmgraph2mVM[] ={
+   createmgraph2mVMT<CcInt,false>,
+   createmgraph2mVMT<LongInt,false>
+};
+
+OperatorSpec createmgraph2mSpec(
+  "stream(tuple) x IDENT x INDENT x fun x string x bool ->"
+  " mem(mgraph2(tuple2))",
+  " edges createmgraph2[SourceAttr, TargetAttr, CostFun, GraphName]",
+  "Creates an mgraph2 from an stream of edges. Edges with undefined "
+  "source, target or costs are ignored. " 
+  "All other edges are inserted into the graph and extended by "
+  "new source, target, and a cost attribute."
+  "the last attribute determines whether the name should be checked "
+  "in the type mapping. The result is a mem object allowing access "
+  " to the memory graph2"
+  ,
+  "query otestrel feed createmgraph2m[S1_id, S2_id, "
+  "distance(.S1_Pos, .S2_Pos), \"g2\"] "
+);
+
+Operator createmgraph2mOp(
+  "createmgraph2m",
+  createmgraph2mSpec.getStr(),
+  2,
+  createmgraph2mVM,
+  createmgraph2Select,
+  createmgraph2TM<false>  
+);
+
+
 
 
 /*
@@ -20510,6 +20678,8 @@ class MainMemory2Algebra : public Algebra {
           // operators on priority queues
           AddOperator(&mcreatepqueueOp);
           mcreatepqueueOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mcreatepqueue2Op);
+          mcreatepqueue2Op.SetUsesArgsInTypeMapping();
           AddOperator(&sizeOp);
           sizeOp.SetUsesArgsInTypeMapping();
           AddOperator(&mfeedpqOp);
@@ -20545,6 +20715,8 @@ class MainMemory2Algebra : public Algebra {
 
           AddOperator(&createmgraph2Op);
           createmgraph2Op.SetUsesArgsInTypeMapping();
+          AddOperator(&createmgraph2mOp);
+          createmgraph2mOp.SetUsesArgsInTypeMapping();
           AddOperator(&mg2insertorigOp);
           mg2insertorigOp.SetUsesArgsInTypeMapping();
           AddOperator(&mg2insertOp);
