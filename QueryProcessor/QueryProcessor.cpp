@@ -3673,27 +3673,33 @@ the function in a database object.
 
   resultType = nl->Second( list );
 
-  if ( TypeOfSymbol(resultType) == QP_TYPEERROR )
-  {   // check if a type error was detected
-    if (nl->ListLength(nl->Third(nl->First(list))) > 1) {
-      if (nl->ListLength(nl->First(nl->Second(nl->Third(nl->First(list))))) >1){
-        try {
-          type = nl->Second(nl->First(nl->Second(nl->Third(nl->First(list)))));
-          if (nl->ToString(type) != "pointer") {
-            DestroyValuesArray();
-          }
-        }
-        catch (...) {
-          DestroyValuesArray();
-        }
-        throw ERR_IN_QUERY_EXPR;
-      }
-      else {
-        DestroyValuesArray();
-      }
-    }
-    else {
+  if ( TypeOfSymbol(resultType) == QP_TYPEERROR ) { 
+    // a type error has been detected
+    // if in the first part of list is no pointer,
+    // we have to delete the Values Array
+    ListExpr tmp = nl->First(list);
+    if(!nl->HasMinLength(tmp,3)){
       DestroyValuesArray();
+      throw ERR_IN_QUERY_EXPR;
+    }
+    tmp = nl->Third(tmp);
+    if(!nl->HasMinLength(tmp,2)){
+      DestroyValuesArray();
+      throw ERR_IN_QUERY_EXPR;
+    }
+    tmp = nl->Second(tmp);
+    if(!nl->HasMinLength(tmp,1)){
+      DestroyValuesArray();
+      throw ERR_IN_QUERY_EXPR;
+    } 
+    tmp = nl->First(tmp);
+    if(!nl->HasMinLength(tmp,2)){
+      DestroyValuesArray();
+      throw ERR_IN_QUERY_EXPR;
+    }
+    type = nl->Second(tmp); 
+    if (nl->ToString(type) != "pointer") {
+        DestroyValuesArray();
     }
     throw ERR_IN_QUERY_EXPR;
   }
@@ -3758,6 +3764,7 @@ the function in a database object.
   ResetCounters();
 
   evaluable = tree->evaluable;
+
 
   if(evaluable && tree->isAbstraction()){
      evaluable = !tree->isStreamOp();
