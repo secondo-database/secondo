@@ -59,3 +59,7 @@ operator consume alias CONSUME pattern _ op
 operator ts alias TS pattern _ op[funlist] implicit parameter streamelem type STREAMELEM
 
 operator as alias AS pattern _ op[fun] implicit parameter streamelem type STREAMELEM
+
+operator streamfun alias streamfun pattern _ op[fun] implicit parameter streamelem type STREAMELEM
+operator prog alias prog pattern _ op[fun,_] implicit parameter streamelem type STREAMELEM
+

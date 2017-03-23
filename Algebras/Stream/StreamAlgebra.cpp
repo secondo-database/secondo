@@ -6102,7 +6102,215 @@ Operator asOp(
 );
 
 
+/*
+Operator ~streamfun~
 
+*/
+ListExpr streamfunTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two args expected");
+  }
+  if(!(Stream<Attribute>::checkType(nl->First(args))
+       || Stream<Tuple>::checkType(nl->First(args)))){
+    return listutils::typeError("first arg must be a stream "
+                                "of DATA or a stream of tuple");
+  }
+  if(!listutils::isMap<1>(nl->Second(args))){
+    return listutils::typeError("second arg is not an unary function");
+  }
+  if(!nl->Equal(nl->Second(nl->First(args)), nl->Second(nl->Second(args)))){
+    return listutils::typeError("function argument and stream "
+                                "elem type differ");
+  }
+  ListExpr funres = nl->Third(nl->Second(args));
+  if(nl->HasLength(funres,2) 
+     && listutils::isSymbol(nl->First(funres), "stream")){
+   return listutils::typeError("function result cannot be a stream");
+  }
+
+
+  return nl->First(args);
+}
+
+
+template<class T>
+class streamfunInfo{
+  public:
+    streamfunInfo( Word& _stream, Word& _fun,
+                   int _f = 1):
+         stream(_stream), fun(_fun.addr){
+      funarg = qp->Argument(fun);
+      stream.open();
+      count = 0;
+      f = _f;
+    }
+    ~streamfunInfo(){
+        stream.close();
+     }
+     T* next(){
+        T* in = stream.request(); 
+        if(!in) return 0;
+        count++;
+        if(count % f == 0){ 
+          (*funarg)[0] = in;
+          qp->Request(fun,funres);
+          count = 0;
+        }
+        return in;
+     }
+     
+ private:
+    Stream<T> stream;
+    Supplier fun;
+    ArgVectorPointer funarg;   
+    Word funres;
+    int f;
+    int count;
+};
+
+
+template<class T>
+int streamfunVMT(Word* args, Word& result,
+              int message, Word& local, Supplier s){
+  streamfunInfo<T>* li = (streamfunInfo<T>*) local.addr;
+  switch(message){
+    case OPEN  : {
+          if(li) delete li;
+          local.addr = new streamfunInfo<T>(args[0],args[1]);
+          return 0;
+        }
+    case REQUEST:
+         result.addr = li?li->next():0;
+         return result.addr?YIELD:CANCEL;
+    case CLOSE:{
+          if(li){
+            delete li;
+            local.addr = 0;
+          }
+          return 0;
+    }
+  }
+  return -1;
+}
+
+int streamfunSelect(ListExpr args){
+  return Stream<Attribute>::checkType(nl->First(args))?0:1;
+}
+
+ValueMapping streamfunVM[] = {
+  streamfunVMT<Attribute>,
+  streamfunVMT<Tuple>
+};
+
+OperatorSpec streamfunSpec(
+  "stream(T) x fun(T)->.. -> stream(T), T in {DATA,tuple}",
+  "_ streamfun[_]",
+  "Performs a function for each element in a stream. "
+  " The result is ignored, thus this operator is only useful "
+  "for functions with side effects.",
+  "query intstream(1,10) streamfun( TRUE echo[.] ) count"
+);
+
+Operator streamfunOp(
+  "streamfun",
+  streamfunSpec.getStr(),
+  2,
+  streamfunVM,
+  streamfunSelect,
+  streamfunTM
+);
+
+
+/*
+Operator prog
+
+calls a function each xth stream element
+
+*/
+
+ListExpr progTM(ListExpr args){
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("two args expected");
+  }
+  if(!(Stream<Attribute>::checkType(nl->First(args))
+       || Stream<Tuple>::checkType(nl->First(args)))){
+    return listutils::typeError("first arg must be a stream "
+                                "of DATA or a stream of tuple");
+  }
+  if(!listutils::isMap<1>(nl->Second(args))){
+    return listutils::typeError("second arg is not an unary function");
+  }
+  if(!nl->Equal(nl->Second(nl->First(args)), nl->Second(nl->Second(args)))){
+    return listutils::typeError("function argument and stream "
+                                "elem type differ");
+  }
+  ListExpr funres = nl->Third(nl->Second(args));
+  if(nl->HasLength(funres,2) 
+     && listutils::isSymbol(nl->First(funres), "stream")){
+   return listutils::typeError("function result cannot be a stream");
+  }
+  if(!CcInt::checkType(nl->Third(args))){
+    return listutils::typeError("third argument has to be of type int");
+  }
+  return nl->First(args);
+}
+
+
+template<class T>
+int progVMT(Word* args, Word& result,
+              int message, Word& local, Supplier s){
+  streamfunInfo<T>* li = (streamfunInfo<T>*) local.addr;
+  switch(message){
+    case OPEN  : {
+          if(li) delete li;
+          int f =1;
+          CcInt* F = (CcInt*) args[2].addr;
+          if(F->IsDefined() ){
+              f = std::max(f,F->GetValue());
+          }
+          local.addr = new streamfunInfo<T>(args[0],args[1],f);
+          return 0;
+        }
+    case REQUEST:
+         result.addr = li?li->next():0;
+         return result.addr?YIELD:CANCEL;
+    case CLOSE:{
+          if(li){
+            delete li;
+            local.addr = 0;
+          }
+          return 0;
+    }
+  }
+  return -1;
+}
+
+int progSelect(ListExpr args){
+  return Stream<Attribute>::checkType(nl->First(args))?0:1;
+}
+
+ValueMapping progVM[] = {
+  progVMT<Attribute>,
+  progVMT<Tuple>
+};
+
+OperatorSpec progSpec(
+  "stream(T) x fun(T)->.. x int -> stream(T), T in {DATA,tuple}",
+  "_ streamfun[_]",
+  "Performs a function for each xth element in a stream. "
+  "x is defined by the last argument."
+  " The result is ignored. ",
+  "query intstream(1,10) prog( TRUE echo[.] , 3 ) count"
+);
+
+Operator progOp(
+  "prog",
+  progSpec.getStr(),
+  2,
+  progVM,
+  progSelect,
+  progTM
+);
 
 
 /*
@@ -6154,6 +6362,8 @@ public:
     AddOperator(&consumeOp);
     AddOperator(&tsOp);
     AddOperator(&asOp);
+    AddOperator(&streamfunOp);
+    AddOperator(&progOp);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();

@@ -343,5 +343,18 @@ Signature : stream(tuple) x fun(tuple->attr=  -> stream(attr)
 Example   : query plz feed as[ .PLZ ] maxattr = plz feed max[PLZ]
 Result    : TRUE
 
+Operator : streamfun
+Number   : 1
+Signature : stream(T) x fun(T->NONSTREAM) -> stream(T), T in {DATA,TUPLE}
+Example   : query intstream(1,10) streamfun[ . + 12 ] count
+Result    : 10
+
+Operator : prog 
+Number   : 1
+Signature : stream(T) x fun(T->NONSTREAM) x int -> stream(T), T in {DATA,TUPLE}
+Example   : query intstream(1,10) prog[ TRUE echo[num2string(.)], 4 ] count
+Result    : 10
+
+
 
 
