@@ -2736,7 +2736,7 @@ class kmergediffInfo{
              tup2->DeleteIfAllowed();
              tup2 = 0; 
            } else if(cmp > 0){
-             return 0;
+             return true;
            } else {
              return false;
            }
