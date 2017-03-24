@@ -20,6 +20,10 @@ query memclear();
 
 query meminit(2000);
 
+if  not(isDBObject("Edges")) then
+  restore Edges from 'Edges'
+endif
+
 
 if not(isDBObject("workers")) then
 restore workers from workers
@@ -50,7 +54,7 @@ let noSlots = cs * cs
 
 if isDBObject("box") then delete box endif
 
-let box = 'Edges' ffeed5 feed projectextend[; B: bbox(.Curve)] transformstream collect_box[FALSE]
+let box = Edges feed projectextend[; B: bbox(.Curve)] transformstream collect_box[FALSE]
 
 # Create a grid from this box
 
@@ -72,7 +76,7 @@ let grid = createCellGrid2D(minD(box,1),minD(box,2), (maxD(box,1)-minD(box,1))/c
 if isDBObject("CellSpanningEdges") then delete CellSpanningEdges endif
 
 
-let CellSpanningEdges = 'Edges' ffeed5 feed extend[SourceCell : 0, TargetCell : 0] head[0] consume
+let CellSpanningEdges = Edges feed extend[SourceCell : 0, TargetCell : 0] head[0] consume
 
 
 # function computing the cell number of a given point
@@ -88,7 +92,7 @@ let getCellNo = fun(p : point) cellnumber(bbox(p),grid) transformstream sorth ex
 if isDBObject("dedges") then delete dedges endif
 
 
-let dedges = 'Edges' ffeed5
+let dedges = Edges feed
             filter[isdefined(bbox(.Curve))]
             extend[SourceCell : getCellNo(.SourcePos),
                    TargetCell : getCellNo(.TargetPos) ]
@@ -582,7 +586,7 @@ if isDBObject("finalContractionX") then delete finalContractionX endif
 
 let finalContractionX = localContraction feed allContraction feed concat consume
 
-if idDBObject("finalNodeOrder") then delete finalNodeOrder endif
+if isDBObject("finalNodeOrder") then delete finalNodeOrder endif
 
 let finalNodeOrder = alldeletedNodes feed localNodeOrder feed concat consume
 
@@ -608,14 +612,14 @@ let numberedEdges =
 query memclear();
 if isDBObject("cgraph") then delete cgraph endif
 
-let cgraph = numberedEdges feed createmgraph2m["cgraph"]
+let cgraph = numberedEdges feed createmgraph2m[Source, Target,.Cost,"cgraph",TRUE]
 
 
-if isDBObject("forward") delete forward endif
+if isDBObject("forward") then delete forward endif
 
 let forward = fun(n : int) cgraph mg2successors[n] filter[.SourceNum < .TargetNum]
 
-if isDBOject("backward") then delete  backward endif
+if isDBObject("backward") then delete  backward endif
 
 let backward = fun(nb : int) cgraph mg2predecessors[nb] filter[.SourceNum > .TargetNum]
 
