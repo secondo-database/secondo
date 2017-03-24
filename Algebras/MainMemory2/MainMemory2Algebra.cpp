@@ -1867,35 +1867,14 @@ Operator letmconsumeflobOp (
 5.6.1 Type Mapping Functions of operator ~memdelete~ (string -> bool)
 
 */
-ListExpr memdeleteTypeMap(ListExpr args)
-{
- if(nl->ListLength(args)!=1){
-        return listutils::typeError("wrong number of arguments");
-    }
-
-    ListExpr arg = nl->First(args);
-
-    if(!nl->HasLength(arg,2)){
-        return listutils::typeError("internal error");
-    }
-
-    if (!CcString::checkType(nl->First(arg))) {
-        return listutils::typeError("string expected");
-    };
-
-    ListExpr fn = nl->Second(arg);
-
-    if(nl->AtomType(fn)!=StringType){
-        return listutils::typeError("error");
-    }
-
-    string oN = nl->StringValue(fn);
-
-    if(!catalog->isMMObject(oN))
-    {
-      return listutils::typeError("not a MainMemory member");
-    }
-     return listutils::basicSymbol<CcBool>();
+ListExpr memdeleteTypeMap(ListExpr args) {
+  if(!nl->HasLength(args,1)){
+   return listutils::typeError("1 arg expected");
+  }
+  if(!CcString::checkType(nl->First(args))){
+    return listutils::typeError("string expected");
+  }
+  return listutils::basicSymbol<CcBool>();
 }
 
 
@@ -1913,15 +1892,13 @@ int memdeleteValMap (Word* args, Word& result,
     bool deletesucceed = false;
     CcString* oN = (CcString*) args[0].addr;
     if(!oN->IsDefined()){
-            b->Set(true, deletesucceed);
-            return 0;
-        }
+       b->Set(true, deletesucceed);
+       return 0;
+    }
     string objectName = oN->GetValue();
     deletesucceed = catalog->deleteObject(objectName);
-
     b->Set(true, deletesucceed);
     return 0;
-
 }
 
 
@@ -20474,7 +20451,6 @@ class MainMemory2Algebra : public Algebra {
           AddOperator (&letmconsumeOp);
           AddOperator (&letmconsumeflobOp);
           AddOperator (&memdeleteOp);
-          memdeleteOp.SetUsesArgsInTypeMapping();
           AddOperator (&memobjectOp);
           memobjectOp.SetUsesArgsInTypeMapping();
           AddOperator (&memgetcatalogOp);
