@@ -28,3 +28,17 @@ Signature : string x int x string -> bool
 Example   : query addnode("host", 1234, "config")
 Result    : TRUE
 Remark    : Requires a remote server
+
+Operator  : registerdbservice
+Number    : 1
+Signature : string x int -> bool
+Example   : query registerdbservice("host", 2345)
+Result    : TRUE
+Remark    : Requires a remote server
+
+Operator  : initdbserviceworker
+Number    : 1
+Signature : int -> bool
+Example   : query initdbserviceworker(3456)
+Result    : TRUE
+Remark    : Requires a remote server

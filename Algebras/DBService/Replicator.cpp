@@ -31,8 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "SecParser.h"
 #include "Algebra.h"
-#include "ConnectionInfo.h"
-#include "CommandLog.h"
+/*#include "ConnectionInfo.h"
+#include "CommandLog.h"*/
 
 #include "Replicator.hpp"
 #include "DBServiceManager.hpp"
@@ -41,7 +41,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#include <boost/thread.hpp>
 
 using namespace std;
-using namespace distributed2;
 
 namespace DBService
 {
@@ -93,18 +92,19 @@ void Replicator::runReplication(const RelationInfo& relationInfo) const
             i != relationInfo.nodesEnd(); ++i)
     {
         stringstream createObjectFromFileCommand;
-        ConnectionInfo* connection =
+        /*ConnectionInfo* connection =
                 DBServiceManager::getInstance()->getConnection(*i);
         createObjectFromFileCommand << "let " << relationInfo.getRelationName()
                 << " =  '" << connection->getSendFolder() << fileName
                 << "' getObjectFromFile consume";
 
         cout << createObjectFromFileCommand.str() << endl;
+        */
 
         // TODO
         //boost::thread replicationThread;
 
-        int errorCode;
+        /*int errorCode;
         string errorMessage;
         string result;
         double runtime;
@@ -115,6 +115,7 @@ void Replicator::runReplication(const RelationInfo& relationInfo) const
         connection->simpleCommand(createObjectFromFileCommand.str(), errorCode,
                                   errorMessage, result, false, runtime, false,
                                   false, commandLog);
+                                  */
     }
 }
 

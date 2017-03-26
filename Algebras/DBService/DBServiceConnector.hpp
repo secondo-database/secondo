@@ -1,0 +1,87 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2016,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+
+//[$][\$]
+//[_][\_]
+
+*/
+#ifndef ALGEBRAS_DBSERVICE_DBSERVICECONNECTOR_HPP_
+#define ALGEBRAS_DBSERVICE_DBSERVICECONNECTOR_HPP_
+
+#include <string>
+
+#include <boost/shared_ptr.hpp>
+
+#include "DBServiceCommunicationClient.hpp"
+
+namespace DBService {
+
+class DBServiceConnector {
+public:
+
+/*
+1.1 getInstance
+
+Returns the DBServiceConnector instance (singleton).
+
+*/
+	static DBServiceConnector* getInstance();
+
+
+protected:
+/*
+1.2 Constructor
+
+Creates a new DBServiceConnector instance.
+
+*/
+    DBServiceConnector();
+/*
+1.3 Copy Constructor
+
+Does not do anything.
+
+*/
+    DBServiceConnector(const DBServiceConnector&)
+    {}
+
+/*
+1.3 Destructor
+
+Deletes existing DBServiceConnector instance.
+
+*/
+    ~DBServiceConnector();
+
+private:
+    static DBServiceConnector* _instance;
+    std::string host;
+    int port;
+    boost::shared_ptr<DBServiceCommunicationClient> commClient;
+};
+
+
+} /* namespace DBService */
+
+#endif /* ALGEBRAS_DBSERVICE_DBSERVICECONNECTOR_HPP_ */

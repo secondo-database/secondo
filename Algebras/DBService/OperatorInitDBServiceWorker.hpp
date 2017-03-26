@@ -26,24 +26,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
-#define ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
+#ifndef ALGEBRAS_DBSERVICE_OPERATORINITDBSERVICEWORKER_HPP_
+#define ALGEBRAS_DBSERVICE_OPERATORINITDBSERVICEWORKER_HPP_
 
-#include "Algebra.h"
+#include "Operator.h"
 
-namespace DBService
+namespace DBService {
+
+struct InitDBServiceWorkerInfo : OperatorInfo
 {
+    InitDBServiceWorkerInfo()
+    {
+        name = "initdbserviceworker";
+        signature = ""; // TODO
+        syntax = ""; // TODO
+        meaning = "initialize listeners on DBService worker node";
+        usesArgsInTypeMapping = true;
+    }
+};
 
-void print(std::string& text);
-void print(const std::string& text);
-void print(const char* text);
-void print(ListExpr nestedList);
-void print(int number);
-void print(const char* text, int number);
-void print(const char* text, ListExpr nestedList);
+class OperatorInitDBServiceWorker {
+public:
+    static ListExpr mapType(ListExpr nestedList);
+    static int mapValue(Word* args,
+            Word& result,
+            int message,
+            Word& local,
+            Supplier s);
+};
 
-}
+} /* namespace DBService */
 
-
-
-#endif /* ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_OPERATORINITDBSERVICEWORKER_HPP_ */

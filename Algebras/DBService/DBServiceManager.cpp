@@ -28,13 +28,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <iostream>
 #include <cstdlib>
+#include <string>
+
+#include <boost/make_shared.hpp>
 
 #include "DBServiceManager.hpp"
 #include "RelationInfo.hpp"
 #include "Replicator.hpp"
+#include "DBServiceCommunicationServer.hpp"
+#include "DBServiceUtils.hpp"
+#include "DebugOutput.hpp"
 
 #include "SecondoException.h"
-
+#include "ConnectionInfo.h"
+#include "SecParser.h"
 
 using namespace std;
 using namespace distributed2;
@@ -44,7 +51,12 @@ namespace DBService
 
 DBServiceManager::DBServiceManager()
 {
-    std::vector<distributed2::ConnectionInfo*> workers;
+    string port;
+    DBServiceUtils::readFromConfigFile(
+            port, "DBService","DBServicePort", "9989");
+    commServer = boost::make_shared<DBServiceCommunicationServer>(
+            DBServiceCommunicationServer(atoi(port.c_str())));
+    vector<ConnectionInfo*> workers;
 }
 
 DBServiceManager* DBServiceManager::getInstance()
@@ -62,21 +74,66 @@ ConnectionID DBServiceManager::getNextConnectionID()
 }
 
 void DBServiceManager::addNode(const string host,
-                               const int port,
-                               string config)
+        const int port,
+        string config,
+        const int commPort)
 {
     cout << "Adding connection: "
-         << host << ":" << port << " -> " << config << endl;
+            << host << ":" << port << " -> " << config << "(CommPort: "
+            << commPort << ")" << endl;
     ConnectionInfo* connectionInfo =
-    ConnectionInfo::createConnection(host, port, config);
+            ConnectionInfo::createConnection(host, port, config);
     connections.insert(
             pair<size_t, ConnectionInfo*>(
                     getNextConnectionID(), connectionInfo));
+
+
+    if(!startFileTransferServer(connectionInfo, commPort))
+    {
+        // TODO more descriptive error message (host, port, etc)
+        throw new SecondoException("could not start file transfer server");
+    }
+    // TODO start communicationServer(/client?) on node
+    // file transfer client needs to be started after request to commServer
+
+}
+
+bool DBServiceManager::startFileTransferServer(
+        distributed2::ConnectionInfo* connectionInfo,
+        const int commPort)
+{
+    //    query << "create database dbservice";
+    //    try
+    //    {
+    //    DBServiceUtils::executeQueryOnRemoteServer(
+    //connectionInfo, query.str());
+    //    } catch(const SecondoException& e)
+    //    {
+    //    // result can be ignored, as error means that database already exists
+    //    }
+
+    string queryOpen("open database dbservice");
+    bool resultOk =
+            DBServiceUtils::executeQueryOnRemoteServer(connectionInfo,
+                    queryOpen);
+    if(!resultOk)
+    {
+        //throw new SecondoException("could not open database 'dbservice'");
+        print("Boo");
+    }
+
+    stringstream query;
+    query << "query fileTransferServer(" << commPort << ")";
+    print(query.str());
+
+    return DBServiceUtils::executeQueryOnRemoteServer(connectionInfo,
+            query.str());
 }
 
 bool DBServiceManager::replicateRelation(const std::string& relationName)
 {
-    shared_ptr<RelationInfo> replicaInfo(new RelationInfo(relationName));
+    boost::shared_ptr<RelationInfo> replicaInfo(
+            new RelationInfo(relationName));
     vector<ConnectionID> nodes;
     getWorkerNodesForReplication(nodes);
     replicaInfo->addNodes(nodes);
@@ -86,7 +143,8 @@ bool DBServiceManager::replicateRelation(const std::string& relationName)
     return false;
 }
 
-void DBServiceManager::getWorkerNodesForReplication(vector<ConnectionID>& nodes)
+void DBServiceManager::getWorkerNodesForReplication(
+        vector<ConnectionID>& nodes)
 {
     size_t numberOfReplicas = 3;
 
@@ -116,6 +174,25 @@ void DBServiceManager::getWorkerNodesForReplication(vector<ConnectionID>& nodes)
 ConnectionInfo* DBServiceManager::getConnection(ConnectionID id)
 {
     return connections.at(id);
+}
+
+//TODO
+bool DBServiceManager::persistLocationInformation()
+{
+    string query = "query ten feed head[3] consume";
+    SecParser mySecParser;
+    string nl_query_str;
+    if(!mySecParser.Text2List(query,nl_query_str)!=0){
+        // fehlerbehandlung
+    } else {
+        ListExpr nl_query;
+        if(!nl->ReadFromString(nl_query_str,nl_query)){
+            // sollte nicht auftreten
+        } else {
+            //QueryProcessor::ExecuteQuery(nl_query,...);
+        }
+    }
+    return true;
 }
 
 DBServiceManager* DBServiceManager::_instance = NULL;

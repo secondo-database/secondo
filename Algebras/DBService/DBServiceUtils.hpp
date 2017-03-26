@@ -26,24 +26,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
-#define ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
+#ifndef ALGEBRAS_DBSERVICE_DBSERVICEUTILS_HPP_
+#define ALGEBRAS_DBSERVICE_DBSERVICEUTILS_HPP_
 
-#include "Algebra.h"
+#include <string>
 
-namespace DBService
-{
+#include "ConnectionInfo.h"
 
-void print(std::string& text);
-void print(const std::string& text);
-void print(const char* text);
-void print(ListExpr nestedList);
-void print(int number);
-void print(const char* text, int number);
-void print(const char* text, ListExpr nestedList);
+namespace DBService {
 
-}
+class DBServiceUtils {
+public:
+    static void readFromConfigFile(std::string& resultValue,
+            const char* section,
+            const char* key,
+            const char* defaultValue);
+    static bool executeQueryOnRemoteServer(
+            distributed2::ConnectionInfo* connectionInfo,
+            const std::string& query);
+};
 
+} /* namespace DBService */
 
-
-#endif /* ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_DBSERVICEUTILS_HPP_ */

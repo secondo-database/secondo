@@ -31,7 +31,12 @@ CURRENT_ALGEBRA := DBServiceAlgebra
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) -Werror 
+CCFLAGS += $(ALG_INC_DIRS) -Werror
+
+# dirty hack: move Distributed3 to the end of CCFLAGS
+TMPCCFLAGS := $(CCFLAGS)
+CCFLAGS := $(filter-out -I../Distributed3, $(TMPCCFLAGS))
+CCFLAGS += -I../Distributed3
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
@@ -51,6 +56,7 @@ endif
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
+	
 
 # generic rule for cleaning all generated files
 .PHONY: clean

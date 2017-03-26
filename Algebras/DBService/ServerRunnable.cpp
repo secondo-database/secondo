@@ -26,24 +26,38 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
-#define ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
+#include "ServerRunnable.hpp"
+#include "DBServiceCommunicationServer.hpp"
 
-#include "Algebra.h"
+namespace DBService {
 
-namespace DBService
+ServerRunnable::ServerRunnable(int serverPort)
+: runner(0), port(serverPort)
+{}
+
+ServerRunnable::~ServerRunnable()
 {
+    if(runner){
+        runner->join();
+        delete runner;
+    }
+}
 
-void print(std::string& text);
-void print(const std::string& text);
-void print(const char* text);
-void print(ListExpr nestedList);
-void print(int number);
-void print(const char* text, int number);
-void print(const char* text, ListExpr nestedList);
+void ServerRunnable::createServer()
+{
+    DBServiceCommunicationServer server(port);
+    server.start();
+}
 
+void ServerRunnable::run()
+{
+    if(runner){
+       runner->join();
+       delete runner;
+    }
+    runner = new boost::thread(&ServerRunnable::createServer, this);
 }
 
 
 
-#endif /* ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_ */
+} /* namespace DBService */

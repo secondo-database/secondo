@@ -26,24 +26,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
-#define ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
+#ifndef ALGEBRAS_DBSERVICE_SERVERRUNNER_HPP_
+#define ALGEBRAS_DBSERVICE_SERVERRUNNER_HPP_
 
-#include "Algebra.h"
+namespace DBService {
 
-namespace DBService
-{
+template<class T>
+class ServerRunner {
+};
 
-void print(std::string& text);
-void print(const std::string& text);
-void print(const char* text);
-void print(ListExpr nestedList);
-void print(int number);
-void print(const char* text, int number);
-void print(const char* text, ListExpr nestedList);
+} /* namespace DBService */
 
-}
-
-
-
-#endif /* ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_SERVERRUNNER_HPP_ */

@@ -38,6 +38,13 @@ void print(std::string& text)
         std::cout << "********************************" << std::endl;
 }
 
+void print(const std::string& text)
+{
+        std::cout << "********************************" << std::endl;
+        std::cout << text << std::endl;
+        std::cout << "********************************" << std::endl;
+}
+
 void print(const char* text)
 {
         std::cout << "********************************" << std::endl;

@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "OperatorLetDConsume.hpp"
 #include "OperatorStartDBService.hpp"
 #include "OperatorAddNode.hpp"
+#include "OperatorRegisterDBService.hpp"
+#include "OperatorInitDBServiceWorker.hpp"
 
 namespace DBService
 {
@@ -50,6 +52,12 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(AddNodeInfo(),
                 OperatorAddNode::mapValue,
                 OperatorAddNode::mapType);
+    AddOperator(RegisterDBServiceInfo(),
+                OperatorRegisterDBService::mapValue,
+                OperatorRegisterDBService::mapType);
+    AddOperator(InitDBServiceWorkerInfo(),
+                OperatorInitDBServiceWorker::mapValue,
+                OperatorInitDBServiceWorker::mapType);
 }
 
 } /* namespace DBService */

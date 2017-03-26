@@ -26,24 +26,34 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
-#define ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
+#include <cstdlib>
 
-#include "Algebra.h"
+#include <boost/make_shared.hpp>
 
-namespace DBService
+#include "DBServiceConnector.hpp"
+
+using namespace std;
+
+namespace DBService {
+
+DBServiceConnector::DBServiceConnector()
 {
-
-void print(std::string& text);
-void print(const std::string& text);
-void print(const char* text);
-void print(ListExpr nestedList);
-void print(int number);
-void print(const char* text, int number);
-void print(const char* text, ListExpr nestedList);
-
+    string host;
+    host.assign("localhost");
+    commClient = boost::make_shared<DBServiceCommunicationClient>(
+            DBServiceCommunicationClient(host, 12345, 0));
+    //TODO read port from config file
 }
 
+DBServiceConnector* DBServiceConnector::getInstance()
+{
+    if (!_instance)
+    {
+        _instance = new DBServiceConnector();
+    }
+    return _instance;
+}
 
+DBServiceConnector* DBServiceConnector::_instance = NULL;
 
-#endif /* ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_ */
+} /* namespace DBService */

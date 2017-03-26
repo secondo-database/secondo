@@ -26,24 +26,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
-#define ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
+#include "DBServiceCommunicationClient.hpp"
 
-#include "Algebra.h"
+using namespace distributed2;
 
-namespace DBService
+namespace DBService {
+
+DBServiceCommunicationClient::DBServiceCommunicationClient(
+        std::string& _server, int _port, Socket* _socket)
+:Client(_server, _port, _socket)
 {
-
-void print(std::string& text);
-void print(const std::string& text);
-void print(const char* text);
-void print(ListExpr nestedList);
-void print(int number);
-void print(const char* text, int number);
-void print(const char* text, ListExpr nestedList);
-
 }
 
+int DBServiceCommunicationClient::start()
+{
+    return 0;
+}
 
-
-#endif /* ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_ */
+} /* namespace DBService */

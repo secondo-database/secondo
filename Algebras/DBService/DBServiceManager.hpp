@@ -31,8 +31,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <memory>
 
+#include <boost/shared_ptr.hpp>
+
 #include "ConnectionInfo.h"
 #include "RelationInfo.hpp"
+#include "DBServiceCommunicationServer.hpp"
 
 namespace DBService
 {
@@ -67,7 +70,8 @@ storing relation replicas.
 */
     void addNode(const std::string host,
                  const int port,
-                 std::string config);
+                 std::string config,
+				 const int commPort);
 
 /*
 1.2 replicateRelation
@@ -115,10 +119,14 @@ private:
     ConnectionID getNextConnectionID();
     void getWorkerNodesForReplication(std::vector<
                                       ConnectionID>& nodes);
+    bool startFileTransferServer(distributed2::ConnectionInfo* connectionInfo,
+    		const int commPort);
+    bool persistLocationInformation();
 
     static DBServiceManager* _instance;
     static std::map<ConnectionID, distributed2::ConnectionInfo*> connections;
-    std::vector<std::shared_ptr<RelationInfo> > replicaLocations;
+    std::vector<boost::shared_ptr<RelationInfo> > replicaLocations;
+    boost::shared_ptr<DBServiceCommunicationServer> commServer;
 
 };
 
