@@ -233,13 +233,13 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include "Counter.h"
 #include "StopWatch.h"
 #include "NList.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "GenOps.h"
 #include "ListUtils.h"
 #include "AlmostEqual.h"
 #include "Progress.h"
 #include "Symbols.h"
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 #include <iostream>
 #include <string>
