@@ -57,7 +57,7 @@ This section contains  __includes__,
 #include <utility>
 #include <stack>
 
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 
 
 namespace mmrtree {

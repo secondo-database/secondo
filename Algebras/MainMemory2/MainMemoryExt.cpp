@@ -29,9 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "ListUtils.h"
 #include <vector>
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 #include "MainMemoryExt.h"
-#include "GraphAlgebra.h"
+//#include "GraphAlgebra.h"
 
 using namespace std;
 

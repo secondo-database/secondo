@@ -15,7 +15,7 @@ of a point data type.
 
 #include "Coord.h"
 #include "Geoid.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 
 class Point;
 class Points;

@@ -46,7 +46,7 @@ RelationAlgebra.cpp file.
 #include "IndexableAttribute.h"
 #include "ListUtils.h"
 
-#include "TupleIdentifier.h"
+#include "Algebras/TupleIdentifier/TupleIdentifier.h"
 
 class CompositeKey : public IndexableAttribute {
   public:

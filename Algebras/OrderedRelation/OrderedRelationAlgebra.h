@@ -43,7 +43,7 @@ RelationAlgebra.cpp file.
 #ifndef __ORDEREDRELATIONALGEBRA_H__
 #define __ORDEREDRELATIONALGEBRA_H__
 
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "CompositeKey.h"
 
 const std::string OREL = "orel";

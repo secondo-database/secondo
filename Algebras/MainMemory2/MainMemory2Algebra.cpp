@@ -41,15 +41,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Symbols.h"
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
-#include "RelationAlgebra.h"
-#include "OrderedRelationAlgebra.h"
-#include "GraphAlgebra.h"
-#include "Stream.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/OrderedRelation/OrderedRelationAlgebra.h"
+//#include "GraphAlgebra.h"
+#include "Algebras/Stream/Stream.h"
 #include "MMRTree.h"
 #include "MMMTree.h"
-#include "FTextAlgebra.h"
-#include "MovingRegionAlgebra.h"
-#include "RectangleAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
+//#include "MovingRegionAlgebra.h"
+#include "Algebras/Rectangle/RectangleAlgebra.h"
 #include "AvlTree.h"
 #include "StopWatch.h"
 
@@ -77,7 +77,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "MGraph2.h"
 #include "MGraph3.h"
-#include "LongInt.h"
+#include "Algebras/Standard-C++/LongInt.h"
 
 
 using namespace std;
