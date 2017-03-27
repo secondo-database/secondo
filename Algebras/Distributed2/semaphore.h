@@ -6,7 +6,8 @@
 
 */
 
-
+#ifndef SEMAPHORE_H
+#define SEMAPHORE_H
 
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>    
@@ -65,3 +66,5 @@ public:
         --count_;
     }
 };
+
+#endif
