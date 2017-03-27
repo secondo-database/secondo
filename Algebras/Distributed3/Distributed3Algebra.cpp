@@ -61,6 +61,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileAttribute.h"
 
 #include "ConnectionInfo.h"
+#include "CommandLog.h"
 
 
   // use boost for thread handling
@@ -78,6 +79,9 @@ using namespace std;
 using namespace distributed2;
 
 namespace distributed3 {
+
+
+CommandLog commandLog;
 
 
 class Distributed3Algebra: public Algebra{
@@ -380,7 +384,7 @@ Transfers a local file to a remove server.
          c = connections[con];
       }
       if(!c) return false;
-      return c->check();
+      return c->check(false,false,commandLog);
     }
     
 
@@ -407,7 +411,8 @@ Transfers a local file to a remove server.
          runtime = 0;
          return false;
       }
-      c->simpleCommand(cmd,error,errMsg,resList, rewrite, runtime);
+      c->simpleCommand(cmd,error,errMsg,resList, rewrite, runtime,
+                       false, false,  commandLog);
       return true;
     }
     
@@ -434,7 +439,8 @@ Transfers a local file to a remove server.
          runtime = 0;
          return false;
       }
-      c->simpleCommand(cmd,error,errMsg,resList, rewrite, runtime);
+      c->simpleCommand(cmd,error,errMsg,resList, rewrite, runtime, 
+                       false, false, commandLog);
       return true;
     }
 
@@ -461,7 +467,7 @@ connections coming from darray elements.
      }
      string wdbname = dbname;
      if(pr.first!=wdbname){
-         if(!pr.second->switchDatabase(wdbname,true)){
+         if(!pr.second->switchDatabase(wdbname,true, false)){
             it->second.first="";
             return 0;
          } else {
@@ -639,7 +645,7 @@ specified DArrayElement.
      vector<boost::thread*> runners;
      for(size_t i=0;i<unique.size();i++){
         ConnectionInfo* ci = unique[i];
-        boost::thread* r = new boost::thread(&ConnectionInfo::cleanUp, ci);
+        boost::thread* r = new boost::thread(&ConnectionInfo::cleanUp1, ci);
         runners.push_back(r);
      }
      for(size_t i=0;i<runners.size();i++){
@@ -683,6 +689,9 @@ specified DArrayElement.
       res.second = ci;
       return ci!=0;
     }
+
+    CommandLog commandLog;
+
 };
 
 Distributed3Algebra* algInstance;
@@ -3405,7 +3414,8 @@ void retrieveObject(const string arrayName, int i,
       cmd = "query " + originalName + " feed fconsume5['" 
             + tempObject +"'] count";
 //  }
-  ci2->simpleCommand( cmd, err,errMsg,r,false, runTime);
+  ci2->simpleCommand( cmd, err,errMsg,r,false, runTime,
+                      false, false,commandLog);
   if(err){
     cerr << "cmd << " << cmd << " failed  with code " << err << endl;
     cerr << errMsg;
@@ -3417,7 +3427,8 @@ void retrieveObject(const string arrayName, int i,
               + ci2->getHost() 
               + "', " + stringutils::int2str(ci2->getPort()) 
               + ", TRUE, '" + tempObject+"')";
-  ci1->simpleCommand( cmd, err,errMsg,r,false, runTime);
+  ci1->simpleCommand( cmd, err,errMsg,r,false, runTime,
+                      false, false, commandLog);
   if(err){
     cerr << "cmd << " << cmd << " failed  with code " << err << endl;
     cerr << errMsg;
@@ -3431,7 +3442,8 @@ void retrieveObject(const string arrayName, int i,
       cmd = "let " + tempObject + " = '" + tempObject
             + "' ffeed5 consume";
 //  }
-  ci1->simpleCommand( cmd, err,errMsg,r,false, runTime);
+  ci1->simpleCommand( cmd, err,errMsg,r,false, runTime, 
+                      false, false, commandLog);
   if(err){
     cerr << "cmd << " << cmd << " failed  with code " << err << endl;
     cerr << errMsg;
@@ -3439,12 +3451,14 @@ void retrieveObject(const string arrayName, int i,
   }  
   // step4 delete temp files on ci1 and ci2
   cmd = "query removeFile('" + tempObject+"')";
-  ci1->simpleCommand( cmd, err,errMsg,r,false, runTime);
+  ci1->simpleCommand( cmd, err,errMsg,r,false, runTime, false, false,
+                      commandLog);
   if(err){
     cerr << "cmd << " << cmd << " failed  with code " << err << endl;
     cerr << errMsg;
   }  
-  ci2->simpleCommand( cmd, err,errMsg,r,false, runTime);
+  ci2->simpleCommand( cmd, err,errMsg,r,false, runTime, false, false,
+                      commandLog);
   if(err){
     cerr << "cmd << " << cmd << " failed  with code " << err << endl;
     cerr << errMsg;
@@ -3490,12 +3504,14 @@ class ScheduleRunner{
     string nameA2 = task->GetA2Name() + "_" + 
       stringutils::int2str(task->GetPart2());
     // remove old stuff
-    cRes->simpleCommand("delete " + resName,err,errMsg,strres,false,runtime);
+    cRes->simpleCommand("delete " + resName,err,errMsg,strres,false,runtime,
+                        false, false, commandLog);
     // create new one
     string cmd ="(let " + resName + " = ( " + 
       task->GetFunQuery() + " " + nameA1 + " " + nameA2 +"))";
 
-    cRes->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime);
+    cRes->simpleCommandFromList(cmd, err,errMsg, strres, false, runtime,
+                                false, false, commandLog);
     if(err!=0){
       cerr << "error in creating result via " << cmd << endl;
       cerr << errMsg << endl;
