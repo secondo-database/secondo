@@ -369,18 +369,18 @@ Here, each include is commented with some functionality used.
 #include "AlgebraManager.h"     // e.g., check for a certain kind
 #include "Operator.h"           // for operator creation
 #include "StandardTypes.h"      // priovides int, real, string, bool type
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "Symbols.h"            // predefined strings
 #include "ListUtils.h"          // useful functions for nested lists
-#include "Stream.h"             // wrapper for secondo streams
+#include "Algebras/Stream/Stream.h"  // wrapper for secondo streams
 
 #include "GenericTC.h"          // use of generic type constructors
 
 #include "LogMsg.h"             // send error messages
 
-#include "../../Tools/Flob/DbArray.h"  // use of DbArrays
+#include "Tools/Flob/DbArray.h"  // use of DbArrays
 
-#include "RelationAlgebra.h"           // use of tuples
+#include "Algebras/Relation-C++/RelationAlgebra.h" // use of tuples
 
 
 #include <math.h>               // required for some operators
