@@ -21,7 +21,8 @@ query memclear();
 query meminit(2000);
 
 if  not(isDBObject("Edges")) then
-  restore Edges from 'Edges'
+#  restore Edges from 'Edges'
+let Edges = 'Edges' ffeed5 consume
 endif
 
 
@@ -101,10 +102,10 @@ let dedges = Edges feed
             
 
 # check slot sizes
-# query dedges dmap["", . feed count] dsummarize consume
+query dedges dmap["", . feed count] dsummarize consume
 
 # check size of CellSpanningEdges
-# query CellSpanningEdges count
+query CellSpanningEdges count
 
            
 
@@ -155,7 +156,7 @@ let borderNodes = CellSpanningEdges feed project[Source] renameattr[Node: Source
                   concat sort rdup consume                     
 
 # check size of borderNodes
-# query borderNodes count
+query borderNodes count
 
 
 # share bordernodes                  
@@ -229,7 +230,7 @@ let nodesA = graphs dmap["nodesA",
                            kmergediff ]
 
 # check the number of nodes in slots
-# query nodesA dmap["", . feed count] dsummarize consume
+query nodesA dmap["", . feed count] dsummarize consume
                           
 
 # create names for the priority queues
@@ -255,7 +256,7 @@ let nodesX = nodesA pqNames dmap2[
 
 
 # check sizes of the queues                 
-# query nodesX dmap["", size(.) ] dsummarize consume
+query nodesX dmap["", size(.) ] dsummarize consume
 
 
 
@@ -409,6 +410,9 @@ if isDBObject("remainingEdges") then delete remainingEdges endif
 
 let remainingEdges = pgraphs dsummarize remove[MG_Source, MG_Target, MG_Cost] consume
 
+# check number of remaining edges
+query remainingEdges count
+
 
 # merge the deletedNodes, sort and renumber them
 if isDBObject("alldeletedNodes") then delete alldeletedNodes endif
@@ -421,6 +425,8 @@ let alldeletedNodes  = pdeletedNodes dsummarize sortby[DelNum] remove[DelNum] ad
 if isDBObject("allContraction") then delete allContraction endif
 
 let allContraction = pcontractionX dsummarize remove[MG_Source, MG_Target, MG_Cost]  consume
+
+query allContraction count
 
 
 #store  contraction edges between border nodes
@@ -435,6 +441,8 @@ let borderContractions = borderNodes feed {s}
                          project[Source, Target, SourcePos, TargetPos, Cost, Middle, NEdges]
                          consume
 
+query borderContractions count
+
 
 # build a graph from the remaining edges and the CellSpanning edges
 
@@ -447,10 +455,26 @@ let remainingGraph = remainingEdges feed
                      concat
                      consume
 
+query remainingGraph count
+
 
 if isDBObject("localGraph") then delete localGraph endif
 
 let localGraph =   remainingGraph   feed createmgraph2m[Source,Target,.Cost,"localGraph", FALSE]
+
+
+query mg2numvertices(localGraph)
+
+query localGraph mg2feed count
+
+query localGraph mg2feed sortby[Source] groupby[Source; C : group count] max[C]
+
+query localGraph mg2feed sortby[Target] groupby[Target; C : group count] max[C]
+
+
+
+
+
 
 
 # extract the node information from this graph
@@ -566,7 +590,7 @@ let localmtcontract = fun( maxprio: int,
 
 # contract the graph
 
-query localmtcontract(30,200,8)
+query localmtcontract(30,200,4)
 
 
 # make results persistent
