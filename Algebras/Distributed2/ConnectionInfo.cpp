@@ -265,6 +265,12 @@ bool ConnectionInfo::cleanUp(bool showCommands,
     return result;
 }
 
+
+bool ConnectionInfo::cleanUp1() {
+   static CommandLog log;
+   return cleanUp(false,false,log);
+}
+
 /*
  1.11 switchDatabase
 

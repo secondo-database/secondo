@@ -108,6 +108,9 @@ public:
     bool cleanUp(bool showCommands,
                  bool logOn,
                  CommandLog& commandLog);
+
+    bool cleanUp1();
+
     bool switchDatabase(const std::string& dbname,
                         bool createifnotexists,
                         bool showCommands);
