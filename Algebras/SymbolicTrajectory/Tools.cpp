@@ -750,6 +750,10 @@ bool Tools::isInterval(const string& str) {
 
 */
 void Tools::stringToInterval(const string& str, SecInterval& result) {
+  if (!isInterval(str)) {
+    result.SetDefined(false);
+    return;
+  }
   Instant pStart(instanttype);
   Instant pEnd(instanttype);
   if (str[0] == '~') { // 3rd case: ~2012-05-12

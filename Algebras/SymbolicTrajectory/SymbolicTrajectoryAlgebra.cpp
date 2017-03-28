@@ -3226,6 +3226,9 @@ Operator tmatches("tmatches", tmatchesSpec, 2, tmatchesVMs, tmatchesSelect,
 ListExpr indextmatchesTM(ListExpr args) {
   string err = "the expected syntax is: tupleindex x rel x attrname x "
                "(text | pattern)";
+  if (!nl->HasLength(args, 4)) {
+    return listutils::typeError(err + " (4 arguments expected)");
+  }
   if (!TupleIndex::checkType(nl->First(nl->First(args)))) {
     return listutils::typeError(err + " (first argument is not a tuple index)");
   }
@@ -3297,7 +3300,7 @@ int indextmatchesVM(Word* args, Word& result, int message, Word& local,
             DataType mtype = Tools::getDataType(tt, attrno->GetIntval());
             li = new TMatchIndexLI(rel, ttList, ti, attrno->GetIntval(), p, 
                                    majorValueNo, mtype);
-            if (!li->initialize()) {
+            if (!li->initialize(true)) {
               delete li;
               li = 0;
               local.addr = 0;
@@ -3347,6 +3350,120 @@ ValueMapping indextmatchesVMs[] = {indextmatchesVM<FText>,
 
 Operator indextmatches("indextmatches", indextmatchesSpec, 2, indextmatchesVMs,
                        indextmatchesSelect, indextmatchesTM);
+
+/*
+\section{Operator ~indextmatches2~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr indextmatches2TM(ListExpr args) {
+  string err = "the expected syntax is: tupleindex x rel x (text | pattern)";
+  if (!nl->HasLength(args, 3)) {
+    return listutils::typeError(err + " (3 arguments expected)");
+  }
+  if (!TupleIndex::checkType(nl->First(args))) {
+    return listutils::typeError(err + " (1st argument is not a tuple index)");
+  }
+  if (!Relation::checkType(nl->Second(args))) {
+    return listutils::typeError(err + " (2nd argument is not a relation)");
+  }
+  if (!FText::checkType(nl->Third(args)) && 
+      !PatPersistent::checkType(nl->Third(args))) {
+    return listutils::typeError(err + " (3rd argument is not a text/pattern)");
+  }
+  ListExpr tList = nl->Second(nl->Second(args));
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), tList);
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int indextmatches2Select(ListExpr args) {
+  return FText::checkType(nl->Third(args)) ? 0 : 1;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class P>
+int indextmatches2VM(Word* args, Word& result, int message, Word& local, 
+                     Supplier s) {
+  TMatchIndexLI *li = (TMatchIndexLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      Relation *rel = static_cast<Relation*>(args[1].addr);
+      TupleIndex *ti = static_cast<TupleIndex*>(args[0].addr);
+      FText* pText = static_cast<FText*>(args[2].addr);
+      Pattern *p = 0;
+      if (pText->IsDefined() && rel->GetNoTuples() > 0) {
+        Supplier s0 = qp->GetSon(s, 1);
+        ListExpr ttList = nl->Second(qp->GetType(s0));
+//         cout << "ttype is " << nl->ToString(ttList) << endl;
+        Tuple *firstTuple = rel->GetTuple(1, false);
+        TupleType *tt = firstTuple->GetTupleType();
+        p = Pattern::getPattern(pText->GetValue(), false, firstTuple, ttList);
+        if (p) {
+          vector<pair<int, string> > relevantAttrs;
+          int majorValueNo;
+          if (p->isCompatible(tt, -1, relevantAttrs, majorValueNo)) {
+            li = new TMatchIndexLI(rel, ttList, ti, p);
+            if (!li->initialize(false)) {
+              delete li;
+              li = 0;
+              local.addr = 0;
+              cout << "initialization failed" << endl;
+            }
+          }
+        }
+        else {
+          cout << "invalid pattern" << endl;
+        }
+        firstTuple->DeleteIfAllowed();
+      }
+      local.addr = li;
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+const string indextmatches2Spec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> tuple(X) x attrname x (pattern | text) -> bool </text--->"
+  "<text> tupleindex rel indextmatches2 [p] </text--->"
+  "<text> Checks whether the moving type attributes of the relation match the\n"
+  "pattern. A main attribute is not specified, in contrast to indextmatches."
+  "<text>query Part bulkloadtupleindex[ML] Part indextmatches2["
+  "'* (_ _ superset{\"BKA\"}) *'] count </text--->) )";
+
+ValueMapping indextmatches2VMs[] = {indextmatches2VM<FText>, 
+                                   indextmatches2VM<PatPersistent>};
+
+Operator indextmatches2("indextmatches2", indextmatches2Spec, 2, 
+                     indextmatches2VMs, indextmatches2Select, indextmatches2TM);
+
 
 /*
 \section{Operator ~indexrewrite~}
@@ -3435,7 +3552,7 @@ int indexrewriteVM(Word* args, Word& result, int message, Word& local,
             DataType mtype = Tools::getDataType(tt, attrno->GetIntval());
             li = new IndexRewriteLI<M>(rel, ttList, ti, attrno->GetIntval(), p, 
                                        majorValueNo, mtype);
-            if (!li->initialize(true)) {
+            if (!li->initialize(true, true)) {
               delete li;
               li = 0;
               local.addr = 0;
@@ -5163,6 +5280,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   tmatches.SetUsesArgsInTypeMapping();
   
   AddOperator(&indextmatches);
+  indextmatches.SetUsesArgsInTypeMapping();
+  
+  AddOperator(&indextmatches2);
   indextmatches.SetUsesArgsInTypeMapping();
   
   ValueMapping indexrewriteVMs[] = {indexrewriteVM<MLabel>, 

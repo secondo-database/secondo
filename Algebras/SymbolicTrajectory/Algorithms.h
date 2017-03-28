@@ -545,6 +545,7 @@ class PatElem {
   bool     hasValuesWithContent() const;
   bool     isRelevantForTupleIndex() const;
   bool     extractValues(std::string &input, Tuple *tuple);
+  void     getInterval(temporalalgebra::SecInterval& result) const;
   std::vector<std::pair<Word, SetRel> > getValues() const      {return values;}
   void   deleteValues(std::vector<std::pair<int, std::string> > &relevantAttrs);
 };
@@ -1039,6 +1040,33 @@ struct IndexRetrieval : public UnitSet {
 };
 
 /*
+\section{Struct ~IndexRetrieval2~}
+
+*/
+struct IndexRetrieval2 {
+  IndexRetrieval2() : pred(0), succ(0), per(0) {}
+  IndexRetrieval2(const unsigned int p, const unsigned int s = 0) : 
+                                                     pred(p), succ(s), per(0) {}
+  IndexRetrieval2(const unsigned int p, const unsigned int s, 
+                  const temporalalgebra::SecInterval& iv) : pred(p), succ(s) {
+                    per = new temporalalgebra::Periods(1);
+                    per->Add(iv);
+                  }
+  IndexRetrieval2(const unsigned int p, const unsigned int s, 
+                  temporalalgebra::Periods *_per) : 
+                     pred(p), succ(s), per(_per) {} // no new instance, copy ref
+
+  ~IndexRetrieval2() {
+    if (per != 0) {
+      per->DeleteIfAllowed();
+    }
+  }
+
+  unsigned int pred, succ;
+  temporalalgebra::Periods* per;
+};
+
+/*
 \section{Struct ~IndexMatchInfo~}
 
 */
@@ -1158,6 +1186,89 @@ struct IndexMatchSlot {
 };
 
 /*
+\section{Struct ~IndexMatchInfo2~}
+
+*/
+struct IndexMatchInfo2 {
+  IndexMatchInfo2() : inst(datetime::instanttype) {inst.ToMinimum();}
+  IndexMatchInfo2(IndexMatchInfo2 *imi) : 
+                                       inst(imi->inst), binding(imi->binding) {}
+  IndexMatchInfo2(IndexMatchInfo2 *imi, temporalalgebra::Periods *per) :
+                                                   inst(datetime::instanttype) {
+    
+    per->Minimum(inst);
+    inst = std::max(imi->inst, inst);
+    binding = imi->binding;
+  }
+  IndexMatchInfo2(const Instant& ins) : inst(ins) {}
+  IndexMatchInfo2(const Instant& ins, const int elem,
+                  const temporalalgebra::SecInterval& iv) : inst(ins) {
+    binding.insert(std::make_pair(elem, iv));
+  }
+  
+  ~IndexMatchInfo2() {}
+  
+  void setInstant(const Instant& ins) {inst = ins;}
+  
+  void extend(const Instant& ins, const int elem,
+         const temporalalgebra::SecInterval& iv) {
+    inst = ins;
+    binding.insert(std::make_pair(elem, iv));
+  }
+  
+  void extend(const Instant& ins, const int elem) {
+    inst = ins;
+    temporalalgebra::SecInterval iv(ins, ins, true, true);
+    binding.insert(std::make_pair(elem, iv));
+  }
+  
+  Instant getInstant() {return inst;}
+  
+  void getInterval(const int elem, temporalalgebra::SecInterval& result) {
+    if (binding.find(elem) == binding.end()) { // elem not found
+      result.SetDefined(false);
+    }
+    else {
+      result = binding[elem];
+    }
+  }
+  
+  bool checkPeriods(temporalalgebra::Periods *per) {
+    if (!per->IsDefined()) {
+      return false;
+    }
+    if (per->IsEmpty()) {
+      return false;
+    }
+    cout << inst << endl << *per << endl;
+    return !per->Before(inst); // match has to occur at or after inst
+  }
+  
+  bool exhausted(const Instant& end) {
+    return inst > end;
+  }
+  
+  Instant inst; 
+  std::map<int, temporalalgebra::SecInterval> binding; // patelem --> interval
+};
+
+/*
+\section{Struct ~IndexMatchSlot2~}
+
+*/
+struct IndexMatchSlot2 {
+  IndexMatchSlot2() : pred(0), succ(0) {}
+  IndexMatchSlot2(const IndexMatchInfo2 &imi) : pred(0), succ(0) {
+    imis.push_back(imi);
+  }
+  IndexMatchSlot2(IndexMatchSlot2 *src) : pred(src->pred), succ(src->succ),
+                                          imis(src->imis) {}
+  
+  unsigned int pred, succ;
+  std::vector<IndexMatchInfo2> imis;
+};
+
+/*
 \section{struct ~DoubleUnitSet~}
 
 */
@@ -1252,8 +1363,12 @@ class IndexMatchSuper {
  public:
   IndexMatchSuper(Relation *r, Pattern *_p, int a, DataType t) :
     rel(r), p(_p), attrNo(a), mtype(t), matchRecord(0), condRecord(0),
-    trajSize(0), activeTuples(0), unitCtr(0), indexResult(0), matchInfo(0), 
-    newMatchInfo(0) {}
+    trajSize(0), activeTuples(0), unitCtr(0), indexResult(0), indexResult2(0),
+    matchInfo(0), newMatchInfo(0), matchInfo2(0), newMatchInfo2(0) {}
+  IndexMatchSuper(Relation *r, Pattern *_p) : rel(r), p(_p), attrNo(-1),
+    mtype(MLABEL), matchRecord(0), condRecord(0), trajSize(0), activeTuples(0),
+    unitCtr(0), indexResult(0), indexResult2(0), matchInfo(0), newMatchInfo(0),
+    matchInfo2(0), newMatchInfo2(0) {}
   
   ~IndexMatchSuper();
   
@@ -1265,13 +1380,14 @@ class IndexMatchSuper {
   template<class M>
   void periodsToUnits(const temporalalgebra::Periods *per, 
                       const TupleId tId, std::set<int> &units);
-  void remove(std::vector<TupleId> &toRemove);
-  void removeIdFromIndexResult(const TupleId id);
-  void removeIdFromMatchInfo(const TupleId id);
+  void remove(std::vector<TupleId> &toRemove, const bool mainAttr);
+  void removeIdFromIndexResult(const TupleId id, const bool mainAttr);
+  void removeIdFromMatchInfo(const TupleId id, const bool mainAttr);
   bool canBeDeactivated(const TupleId id, const int state, const int atom,
                         const bool checkRange = false) const;
   void clearMatchInfo();
-  bool hasIdIMIs(const TupleId id, const int state = -1);
+  void clearMatchInfo2();
+  bool hasIdIMIs(const TupleId id, const bool mainAttr, const int state = -1);
   void extendBinding(IndexMatchInfo& imi, const int atom, const bool wc,
                      const TupleId id = 0);
   void deletePattern();
@@ -1290,7 +1406,9 @@ class IndexMatchSuper {
   int activeTuples, unitCtr;
   std::set<int> loopStates, crucialAtoms;
   IndexRetrieval ***indexResult;
+  IndexRetrieval2 ***indexResult2;
   IndexMatchSlot ***matchInfo, ***newMatchInfo;
+  IndexMatchSlot2 ***matchInfo2, ***newMatchInfo2;
 };
 
 /*
@@ -1298,12 +1416,12 @@ class IndexMatchSuper {
 
 */
 class TMatchIndexLI : public IndexMatchSuper {
-  
  public:
   TMatchIndexLI(Relation *r, ListExpr tt, TupleIndex *t, int a, Pattern *pat,
                 int majorValueNo, DataType type);
+  TMatchIndexLI(Relation *r, ListExpr tt, TupleIndex *t, Pattern *p);
   
-  ~TMatchIndexLI() {};
+  ~TMatchIndexLI();
   
   bool tiCompatibleToRel();
   bool getSingleIndexResult(
@@ -1311,31 +1429,38 @@ class TMatchIndexLI : public IndexMatchSuper {
              std::pair<Word, SetRel> values, std::string type,
              int valueNo, std::vector<std::set<int> > &result);
   int getNoComponents(const TupleId tId, const int attrNo);
+  Instant getFirstEnd(const TupleId id);
   void unitsToPeriods(const std::set<int> &units, const TupleId tId, 
                       const int attr, temporalalgebra::Periods *per);
   template<class M, class U>
   void unitsToPeriods(Attribute *traj, const std::set<int> &units, 
                       temporalalgebra::Periods *per);
-  void getResultForAtomPart(
-                           std::pair<int, std::pair<IndexType, int> > indexInfo,
-                           std::pair<Word, SetRel> values, std::string type,
-                           std::vector<temporalalgebra::Periods*> &prev,
-                           std::vector<temporalalgebra::Periods*> &result,
-                           const int prevCrucial, bool checkPrev = false);
+  void getResultForAtomPart(std::pair<int, std::pair<IndexType,int> > indexInfo,
+                            std::pair<Word, SetRel> values, std::string type,
+                            std::vector<temporalalgebra::Periods*> &prev,
+                            std::vector<temporalalgebra::Periods*> &result,
+                            const int prevCrucial, const bool mainAttr,
+                            bool checkPrev = false);
   bool getResultForAtomTime(const int atomNo, const int prevCrucial,
                             std::vector<temporalalgebra::Periods*> &result);
-  void storeIndexResult(const int atomNo, const int prevCrucial,int &noResults);
-  void initMatchInfo();
+  void storeIndexResult(const int atomNo, const int prevCrucial,
+                        const bool mainAttr, int &noResults);
+  void initMatchInfo(const bool mainAttr);
   bool atomMatch(int state, std::pair<int, int> trans,
                  const bool rewrite = false);
-  void applyNFA(const bool rewrite = false);
-  bool initialize(const bool rewrite = false);
+  void extendBinding2(IndexMatchInfo2& imi, const int elem, 
+                      const bool totalMatch);
+  bool canBeDeactivated2(const TupleId id, const int state, const int atom);
+  bool atomMatch2(const int state, std::pair<int, int> trans);
+  void applyNFA(const bool mainAttr, const bool rewrite = false);
+  bool initialize(const bool mainAttr, const bool rewrite = false);
   Tuple* nextTuple();
   
  private:
   ListExpr ttList;
   TupleIndex *ti;
   int valueNo;
+  Instant **firstEnd; //earliest end of time-dependent attributes for each tuple
 };
 
 /*
@@ -5903,7 +6028,7 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
 //         }
         if (p->isFinalState(newState) && newIMI.finished(trajSize[id]) && 
             checkConditions(id, newIMI)) { // complete match
-          removeIdFromIndexResult(id);
+          removeIdFromIndexResult(id, true);
           removeIdFromMatchInfo(id);
   //         cout << id << " removed (index match) " << activeTuples 
   //              << " active tuples" << endl;
@@ -5934,7 +6059,7 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
             removeIdFromMatchInfo(id);
   //           cout << id << " removed (range match) " << activeTuples 
   //                << " active tuples" << endl;
-            removeIdFromIndexResult(id);
+            removeIdFromIndexResult(id, true);
             matches.push_back(id);
             return true;
           }
