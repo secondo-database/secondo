@@ -133,12 +133,17 @@ public class MapMatchingGps implements LocationListener, GpsStatus.Listener, Gps
 
     @Override
     public void onProviderEnabled(String provider) {
+        if(provider.equals("gps")){
+            mapMatchingActivity.showLineInfoMessage("GPS was enabled.");
+        }
     }
 
     @Override
     public void onProviderDisabled(String provider) {
-        mapMatchingActivity.mapMatchingStop();
-        mapMatchingActivity.showLineErrorMessage("GPS was disabled.");
+        //mapMatchingActivity.mapMatchingStop();
+        if(provider.equals("gps")){
+            mapMatchingActivity.showLineErrorMessage("GPS was disabled. Map Matching will go on when GPS is enabled again.");
+        }
     }
 
     @Override
