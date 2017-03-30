@@ -144,6 +144,7 @@ operator mcreatepqueue alias mcreatepqueue pattern _ op[_,_]
 operator mcreatepqueue2 alias mcreatepqueue2 pattern _ op[_,_]
 operator size alias SIZE pattern op(_)
 operator mfeedpq alias MFEEDPQ pattern _ op
+operator mfeedpqSize alias MFEEDPQSIZE pattern _ op[_]
 operator mfeedpqAbort alias MFEEDPQABORT pattern _ op [_ ]
 operator minserttuplepq alias MINSERTTUPLEPQ pattern op(_,_,_,_)
 operator minserttuplepqprojectU alias MINSERTTUPLEPQPROJECTU pattern _ op[_,_,_;list]

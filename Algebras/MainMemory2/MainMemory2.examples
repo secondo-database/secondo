@@ -1244,6 +1244,14 @@ Signature : stream(tuple) x IDENT x string -> (mem (pqueue tuple))
 Example   : query strassen feed extend[L : size(.GeoData)] mcreatepqueue2[L, "strassen_PQ_L2"]
 Result    : ((mem (mpqueue (tuple ( (Name string) (Typ string) (GeoData line) (L real))))) "strassen_PQ_L2")
 
+
+
+Operator  : mfeedpqSize
+Number    : 616
+Signature : MPQUEUE(X) x int -> stream(X)
+Example   : query pwrap("strassen_PQ_L") mfeedpqSize[4] count > 0
+Result    : TRUE
+
 Operator : mblock
 Number   : 700
 Signature : stream(X) -> stream(X) , X in {tuple,DATA}

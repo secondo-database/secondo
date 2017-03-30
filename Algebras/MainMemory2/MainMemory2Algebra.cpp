@@ -17263,7 +17263,9 @@ ListExpr mfeedpqTM(ListExpr args){
 
 class mfeedpqInfo{
    public:
-      mfeedpqInfo(MemoryPQueueObject* _obj): obj(_obj){}
+      mfeedpqInfo(MemoryPQueueObject* _obj): obj(_obj),minSize(0){}
+      mfeedpqInfo(MemoryPQueueObject* _obj,
+                  int _minSize): obj(_obj),minSize(_minSize){}
 
       ~mfeedpqInfo(){}
 
@@ -17276,8 +17278,19 @@ class mfeedpqInfo{
           return t;
       }
 
+      Tuple* nextMinSize(){
+         if(obj->empty() || obj->size()<=minSize){
+           return 0;
+         }  
+         pqueueentry e = obj->pop();
+         Tuple* t =  e();
+         return t;
+      }
+
+
    private:
       MemoryPQueueObject* obj;
+      size_t minSize;
 };
 
 
@@ -17346,6 +17359,113 @@ Operator mfeedpqOp(
   mfeedpqSelect,
   mfeedpqTM
 );
+
+
+/*
+Operator mfeedpqSize
+
+*/
+ListExpr mfeedpqSizeTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two arguments expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  string err;
+  ListExpr a1 = nl->First(args);
+  if(!getMemType(nl->First(a1), nl->Second(a1),a1, err, true)){
+    return listutils::typeError("expected mpqueue");
+  }
+  a1 = nl->Second(a1);
+  if(!MemoryPQueueObject::checkType(a1)){
+    return listutils::typeError("expected mpqueue");
+  }
+  if(!CcInt::checkType(nl->First(nl->Second(args)))){
+    return listutils::typeError("expected int as second argument");
+  }
+
+  return nl->TwoElemList(
+                listutils::basicSymbol<Stream<Tuple> >(),
+                nl->Second(a1));  
+
+}
+
+template<class T>
+int mfeedpqSizeVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   mfeedpqInfo* li = (mfeedpqInfo*) local.addr;
+   switch(message){
+     case OPEN:{
+            if(li){
+                delete li;
+                local.addr = 0;
+            }
+            MemoryPQueueObject* q = getMemoryPQueue((T*) args[0].addr);
+            if(q){
+              int s = 0;
+              CcInt* S = (CcInt*) args[1].addr;
+              if(S->IsDefined()){
+                s = S->GetValue();
+                if(s<0) s = 0;
+              }
+              local.addr = new mfeedpqInfo(q,s);
+            }
+            return 0;
+     }
+     case REQUEST:
+             result.addr = li?li->nextMinSize():0;
+             return result.addr?YIELD:CANCEL;
+     case CLOSE:
+             if(li){
+               delete li;
+               local.addr = 0;
+             }
+             return 0;
+     
+ 
+   }
+
+  return -1;
+}
+
+ValueMapping mfeedpqSizeVM[] = {
+   mfeedpqSizeVMT<CcString>,
+   mfeedpqSizeVMT<Mem>,
+   mfeedpqSizeVMT<MPointer>
+};
+
+int mfeedpqSizeSelect(ListExpr args){
+  ListExpr a = nl->First(args);
+  if(CcString::checkType(a)) return 0;
+  if(Mem::checkType(a)) return 1;
+  if(MPointer::checkType(a)) return 2;
+  return -1;
+}
+
+
+OperatorSpec mfeedpqSizeSpec(
+  "MPQUEUE x int -> stream(tuple)",   
+  " _ mfeedpq ",
+  "Feeds the content of a priority queue into a tuple stream "
+  "until the queue is empty or a minimum size of the queue "
+  "is reached."
+  "In contrast to a 'normal' feed, the queue is eat up.",
+  "query strassen_L mfeedpqSize[2] count"
+);
+
+
+Operator mfeedpqSizeOp(
+  "mfeedpqSize",
+  mfeedpqSizeSpec.getStr(),
+  3,
+  mfeedpqSizeVM,
+  mfeedpqSizeSelect,
+  mfeedpqSizeTM
+);
+
+
 
 /*
 Operator mfeedpqAbort
@@ -20660,6 +20780,8 @@ class MainMemory2Algebra : public Algebra {
           sizeOp.SetUsesArgsInTypeMapping();
           AddOperator(&mfeedpqOp);
           mfeedpqOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mfeedpqSizeOp);
+          mfeedpqSizeOp.SetUsesArgsInTypeMapping();
           AddOperator(&mfeedpqAbortOp);
           mfeedpqAbortOp.SetUsesArgsInTypeMapping();
           AddOperator(&minsertTuplepqOp);
