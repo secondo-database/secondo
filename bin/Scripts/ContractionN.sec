@@ -52,7 +52,7 @@ query memclear()
 # using an mgraph2
 
 if not(isDBObject("EdgesD")) then
-  { query EdgesC  feed createmgraph2[Source,Target,.Cost,"EdgesD"] count
+  { query EdgesC  feed createmgraph2[Source,Target,.Cost,"EdgesD", TRUE] count
     |
     let EdgesD = "EdgesD" mg2feed projectextend[; Source : .MG_Source, SourcePos : .SourcePos,
                                                        Cost : .MG_Cost, Middle : .Middle, NEdges : .NEdges,
