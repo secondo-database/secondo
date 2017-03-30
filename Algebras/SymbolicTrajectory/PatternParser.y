@@ -419,23 +419,29 @@ patternsequence : patternsequence variable element {
                       yyerror(errMsg);
                       YYERROR;
                     }
-                    else if (var != "") {
+                    if (var != "") {
                       patVars.insert(var);
                       if ((pElems.size() == 1) && (pElems[0].getW() == NO) &&
                           (regEx[0] != '(')) {
                         unitVars.insert(var);
                       }
                     }
-                    wholepat->addRegExSymbol(regEx.c_str());
-                    for (unsigned int i = 0; i < pElems.size(); i++) {
-                      wholepat->addVarPos(var, wholepat->getSize());
-                      pElems[i].setVar(var);
-                      wholepat->addPatElem(pElems[i]);
+                    if (pElems.size() > 0) {
+                      wholepat->addRegExSymbol(regEx.c_str());
+                      for (unsigned int i = 0; i < pElems.size(); i++) {
+                        wholepat->addVarPos(var, wholepat->getSize(), false);
+                        pElems[i].setVar(var);
+                        wholepat->addPatElem(pElems[i]);
+                      }
+                      numOfElems++;
+                      pElems.clear();
+                      regEx.clear();
+                      free($2);
                     }
-                    numOfElems++;
-                    pElems.clear();
-                    regEx.clear();
-                    free($2);
+                    else { // for indextmatches2, X (..) Y Z (..)
+                      wholepat->addVarPos(var, wholepat->getSize(), true);
+                      free($2);
+                    }
                   }
                 | variable element {
                     string var($1);
@@ -446,23 +452,29 @@ patternsequence : patternsequence variable element {
                       yyerror(errMsg);
                       YYERROR;
                     }
-                    else if (var != "") {
+                    if (var != "") {
                       patVars.insert(var);
                       if ((pElems.size() == 1) && (pElems[0].getW() == NO) &&
                           (regEx[0] != '(')) {
                         unitVars.insert(var);
                       }
                     }
-                    wholepat->addRegExSymbol(regEx.c_str());
-                    for (unsigned int i = 0; i < pElems.size(); i++) {
-                      pElems[i].setVar(var);
-                      wholepat->addVarPos(var, wholepat->getSize());
-                      wholepat->addPatElem(pElems[i]);
+                    if (pElems.size() > 0) {
+                      wholepat->addRegExSymbol(regEx.c_str());
+                      for (unsigned int i = 0; i < pElems.size(); i++) {
+                        pElems[i].setVar(var);
+                        wholepat->addVarPos(var, wholepat->getSize(), false);
+                        wholepat->addPatElem(pElems[i]);
+                      }
+                      numOfElems++;
+                      pElems.clear();
+                      regEx.clear();
+                      free($1);
                     }
-                    numOfElems++;
-                    pElems.clear();
-                    regEx.clear();
-                    free($1);
+                    else { // for indextmatches2, X (..) Y Z (..)
+                      wholepat->addVarPos(var, wholepat->getSize(), true);
+                      free($1);
+                    }
                   }
                 ;
 
@@ -490,6 +502,8 @@ element : patternelement {
             }
             free($1);
             free($3);
+          }
+        | /* empty */ { // for indextmatches2
           }
         ;
 
@@ -898,22 +912,26 @@ bool Assign::convertVarKey(const char *varKey, Tuple *tuple /* = 0 */,
   return true;
 }
 
-void Pattern::addVarPos(string var, int pos) {
-  if (var.length() > 0) {
-    if (varPos.count(var)) {
-      varPos[var].second = pos;
+void Pattern::addVarPos(const string var, const int pos, const bool between) {
+  if (!between) { // normal case
+    if (var.length() > 0) {
+      if (varPos.count(var)) {
+        varPos[var].second = pos;
+      }
+      else {
+        varPos[var] = make_pair(pos, pos);
+      }
     }
-    else {
-      varPos[var] = make_pair(pos, pos);
-    }
+    elemToVar[numOfElems] = var;
+    varToElem[var] = numOfElems;
   }
-  elemToVar[numOfElems] = var;
-  varToElem[var] = numOfElems;
+  else { // for indextmatches2
+    varToElem[var] = -1 * (pos + 1);
+  }
 }
 
 void Pattern::addAtomicPos() {
-  int atomNo = atomicToElem.size();
-  atomicToElem[atomNo] = numOfElems;
+  atomicToElem[atomicToElem.size()] = numOfElems;
 }
 
 void Pattern::collectAssVars() {

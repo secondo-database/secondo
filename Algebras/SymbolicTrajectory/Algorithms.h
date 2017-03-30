@@ -664,7 +664,7 @@ class Pattern {
   ExtBool tmatches(Tuple *tuple, const int attrno, ListExpr ttype);
   int getResultPos(const std::string v);
   void collectAssVars();
-  void addVarPos(std::string var, int pos);
+  void addVarPos(const std::string var, const int pos, const bool between);
   void addAtomicPos();
   int getPatternPos(const std::string v);
   bool checkAssignTypes();
@@ -1240,13 +1240,14 @@ struct IndexMatchInfo2 {
     if (per->IsEmpty()) {
       return false;
     }
-    cout << inst << endl << *per << endl;
     return !per->Before(inst); // match has to occur at or after inst
   }
   
   bool exhausted(const Instant& end) {
     return inst > end;
   }
+  
+  void print();
   
   Instant inst; 
   std::map<int, temporalalgebra::SecInterval> binding; // patelem --> interval
@@ -1451,6 +1452,8 @@ class TMatchIndexLI : public IndexMatchSuper {
   void extendBinding2(IndexMatchInfo2& imi, const int elem, 
                       const bool totalMatch);
   bool canBeDeactivated2(const TupleId id, const int state, const int atom);
+  bool geoMatch(const int atomNo, Tuple *t, IndexMatchInfo2 *imi,
+                temporalalgebra::Periods *per);
   bool atomMatch2(const int state, std::pair<int, int> trans);
   void applyNFA(const bool mainAttr, const bool rewrite = false);
   bool initialize(const bool mainAttr, const bool rewrite = false);

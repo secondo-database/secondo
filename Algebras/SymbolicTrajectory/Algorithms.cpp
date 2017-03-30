@@ -2875,6 +2875,7 @@ Instant TMatchIndexLI::getFirstEnd(const TupleId id) {
       result = temp;
     }
   }
+  t->DeleteIfAllowed();
   return result;
 }
 
@@ -2886,7 +2887,6 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
       indexInfo, pair<Word, SetRel> values, string type, vector<Periods*> &prev,
       vector<Periods*> &result, const int prevCrucial, const bool mainAttr, 
       bool checkPrev /* = false */) {
-  cout << "gRFAP, " << mainAttr << endl;
   vector<set<int> > temp1, temp2;
   temp1.resize(rel->GetNoTuples() + 1);
   temp2.resize(rel->GetNoTuples() + 1);
@@ -3757,6 +3757,7 @@ void TMatchIndexLI::extendBinding2(IndexMatchInfo2& imi, const int elem,
     SecInterval iv(imi.inst, in, false, false);
     imi.binding[elem - 1] = iv;
   }
+  
 }
 
 /*
@@ -3787,6 +3788,71 @@ bool TMatchIndexLI::canBeDeactivated2(const TupleId id, const int state,
       }
     }
   }
+  return true;
+}
+
+/*
+\subsection{Function ~geoMatch~}
+
+Checks whether geometric specifications from a pattern atom match the
+corresponding information from the tuple. Applied for indextmatches2
+
+*/
+bool TMatchIndexLI::geoMatch(const int atomNo, Tuple *t, IndexMatchInfo2 *imi,
+                             Periods *per) {
+  for (unsigned int i = 0; i < relevantAttrs.size(); i++) {
+    if (relevantAttrs[i].second == "mpoint") {
+      MPoint *mpoint = (MPoint*)t->GetAttribute(relevantAttrs[i].first);
+      MPoint mpAtPer(true);
+      mpoint->AtPeriods(*per, mpAtPer);
+      if (mpAtPer.IsEmpty()) {
+        return false;
+      }
+      PatElem atom;
+      p->getElem(atomNo, atom);
+      pair<Word, SetRel> values = atom.values[i];
+      if (!Tools::relationHolds(mpAtPer, *((Region*)values.first.addr), 
+                                values.second)) {
+        return false;
+      }
+    }
+    else if (relevantAttrs[i].second == "mregion") {
+      MRegion *mreg = (MRegion*)t->GetAttribute(relevantAttrs[i].first);
+      MRegion mrAtPer(true);
+      mreg->AtPeriods(per, &mrAtPer);
+      if (mrAtPer.IsEmpty()) {
+        return false;
+      }
+      PatElem atom;
+      p->getElem(atomNo, atom);
+      pair<Word, SetRel> values = atom.values[i];
+      if (!Tools::relationHolds(mrAtPer, *((Region*)values.first.addr), 
+                                values.second)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~easyCondsMatch~}
+
+applied for indextmatches2
+
+*/
+bool TMatchIndexLI::easyCondsMatch(const int atomNo, Tuple *t, 
+                                   IndexMatchInfo2 *imi, Periods *per) {
+  set<int> pos = p->getEasyCondPos(atomNo);
+  if (pos.empty() || p->easyConds.empty()) {
+    return true;
+  }
+//   IndexMatchInfo imi(p->getElemFromAtom(atom), u);
+  std::map<std::string, int> vte = p->getVarToElem();
+  for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
+    switch (type) {
+      case MLABEL: {
+        MLabel *traj = (MLabel*)t->GetAttribute(attrno);
   return true;
 }
 
@@ -3825,8 +3891,10 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
           bool ok = imiPtr->checkPeriods(per);
           if (ok) {
             Tuple *t = rel->GetTuple(id, false);
-            // TODO: check if mpoint attribute(s) and symbolic times specs match
-            bool match = true; 
+            // TODO: check if symbolic times specs and easy conds match
+            bool match = geoMatch(trans.first, t, imiPtr, per) &&
+                         easyCondsMatch(trans.first, t, imiPtr, per);
+//             && symTimesMatch() && easyCondsMatch();
             if (match) {
               transition = true;
               IndexMatchInfo2 newIMI(imiPtr, per);
@@ -3834,6 +3902,7 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
               if (p->hasConds()) {
                 extendBinding2(newIMI, p->getElemFromAtom(trans.first),
                                totalMatch);
+                newIMI.print();
                 if (totalMatch && p->hasConds()) { // TODO: check conditions
 //                   TMatch tmatch(p, t, ttList, attrNo, relevantAttrs,valueNo);
 //                   totalMatch = tmatch.conditionsMatch(newIMI);
@@ -5409,6 +5478,9 @@ IndexMatchSuper::~IndexMatchSuper() {
           }
         }
       }
+      delete[] indexResult2;
+      delete[] matchInfo2;
+      delete[] newMatchInfo2;
     }
     delete[] active;
     deletePattern();
@@ -6222,6 +6294,16 @@ void IndexMatchInfo::print(const bool printBinding) {
     }
     cout << endl;
   }
+}
+
+void IndexMatchInfo2::print() {
+  cout << "inst: " << inst << endl;
+  cout << "binding has " << binding.size() << " components:" << endl;
+  for (map<int, SecInterval>::iterator it = binding.begin(); 
+       it != binding.end(); it++) {
+    cout << it->first << " ---> " << it->second;
+  }
+  cout << endl;
 }
 
 }
