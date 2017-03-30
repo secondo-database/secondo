@@ -26,26 +26,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceCommunicationServer.hpp"
 
-#include <iostream>
+#include "DBServiceCommunicationProtocol.hpp"
 
-using namespace distributed2;
 using namespace std;
 
 namespace DBService {
 
-DBServiceCommunicationServer::DBServiceCommunicationServer(int port) :
-        Server(port) {
-    cout << "Initializing DBServiceCommunicationServer (port " << port << ")"
-            << endl;
-}
-
-DBServiceCommunicationServer::~DBServiceCommunicationServer() {
-}
-
-int DBServiceCommunicationServer::start() {
-    return 0;
+string DBServiceCommunicationProtocol::CommunicationServer() {
+    return "<DBSERVICECOMMSERV>";
 }
 
 } /* namespace DBService */

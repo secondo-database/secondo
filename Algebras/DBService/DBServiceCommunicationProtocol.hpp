@@ -26,26 +26,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceCommunicationServer.hpp"
+#ifndef ALGEBRAS_DBSERVICE_DBSERVICECOMMUNICATIONPROTOCOL_HPP_
+#define ALGEBRAS_DBSERVICE_DBSERVICECOMMUNICATIONPROTOCOL_HPP_
 
-#include <iostream>
-
-using namespace distributed2;
-using namespace std;
+#include <string>
 
 namespace DBService {
 
-DBServiceCommunicationServer::DBServiceCommunicationServer(int port) :
-        Server(port) {
-    cout << "Initializing DBServiceCommunicationServer (port " << port << ")"
-            << endl;
-}
-
-DBServiceCommunicationServer::~DBServiceCommunicationServer() {
-}
-
-int DBServiceCommunicationServer::start() {
-    return 0;
-}
+class DBServiceCommunicationProtocol {
+public:
+    static std::string CommunicationServer();
+};
 
 } /* namespace DBService */
+
+#endif /* ALGEBRAS_DBSERVICE_DBSERVICECOMMUNICATIONPROTOCOL_HPP_ */
