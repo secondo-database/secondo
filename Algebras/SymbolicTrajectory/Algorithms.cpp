@@ -3849,10 +3849,13 @@ bool TMatchIndexLI::easyCondsMatch(const int atomNo, Tuple *t,
   }
 //   IndexMatchInfo imi(p->getElemFromAtom(atom), u);
   std::map<std::string, int> vte = p->getVarToElem();
-  for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
-    switch (type) {
-      case MLABEL: {
-        MLabel *traj = (MLabel*)t->GetAttribute(attrno);
+//   for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
+//     switch (type) {
+//       case MLABEL: {
+//         MLabel *traj = (MLabel*)t->GetAttribute(attrno);
+//       }
+//     }
+//   }
   return true;
 }
 

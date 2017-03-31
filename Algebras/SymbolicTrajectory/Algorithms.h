@@ -1454,6 +1454,8 @@ class TMatchIndexLI : public IndexMatchSuper {
   bool canBeDeactivated2(const TupleId id, const int state, const int atom);
   bool geoMatch(const int atomNo, Tuple *t, IndexMatchInfo2 *imi,
                 temporalalgebra::Periods *per);
+  bool easyCondsMatch(const int atomNo, Tuple *t, IndexMatchInfo2 *imi, 
+                      temporalalgebra::Periods *per);
   bool atomMatch2(const int state, std::pair<int, int> trans);
   void applyNFA(const bool mainAttr, const bool rewrite = false);
   bool initialize(const bool mainAttr, const bool rewrite = false);
@@ -3798,7 +3800,7 @@ void MBasics<B>::Get(const int i, UBasics<B>& result) const {
 }
 
 /*
-\subsection{Function ~GetValues~}
+\subsection{Function ~GetBasics~}
 
 */
 template<class B>
