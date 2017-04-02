@@ -1,0 +1,11 @@
+./SecondoTTYBDB -c ConfigSystem1
+create database saskia;
+open database saskia;
+
+
+./SecondoTTYBDB -c DBService1
+create database dbservice;
+open database dbservice;
+query addnode("127.0.0.1", 9950, "/home/saskia/workspace/secondo/bin/DBService2", 9951)
+
+
