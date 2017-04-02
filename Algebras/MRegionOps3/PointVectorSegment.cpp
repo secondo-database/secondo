@@ -93,7 +93,7 @@ namespace temporalalgebra{
       return z;    
     }// getZ
     
-    RationalPoint3D Point3D::get() const{
+    RationalPoint3D Point3D::getR() const{
       return RationalPoint3D(x,y,z);  
     }// get
     
@@ -119,47 +119,7 @@ namespace temporalalgebra{
       return *this;
     }// Operator =
 /*
-4 Class Segment3D
-
-*/      
-    Segment3D::Segment3D(){   
-    }// Konstruktor
-    
-    Segment3D::Segment3D(const Point3D& tail, const Point3D& head){
-      this->tail = tail;
-      this->head = head;    
-    }// Konstruktor
-
-    Point3D Segment3D::getHead() const{
-      return head;
-    }// getHead
-    
-    Point3D Segment3D::getTail() const{
-      return tail;
-    }// getTail 
-  
-    bool Segment3D::isOrthogonalToZAxis() const{
-      return NumericUtil::nearlyEqual(tail.getZ(), head.getZ());
-    }// isOrthogonalToZAxis
-     
-    double Segment3D::length() const{
-      return (tail.get() - head.get()).length();
-    }// length
-    
-    mpq_class Segment3D::length2() const{
-      return (tail.get() - head.get()).length2();
-    }// length2
-        
-    std::ostream& operator <<(std::ostream& os, const Segment3D& segment){
-      os << "Segment3D (" << segment.tail << ", " << segment.head << ")";
-      return os; 
-    }// operator <<
-    
-    bool Segment3D::operator ==(const Segment3D& segment) const{
-      return (this->head == segment.head && this->tail == segment.tail);
-    }// operator ==
-/*
-5 Class RationalPoint3D
+4 Class RationalPoint3D
 
 */      
     RationalPoint3D::RationalPoint3D():x(0),y(0),z(0){
@@ -207,7 +167,7 @@ namespace temporalalgebra{
       return z;    
     }// getZ
     
-    Point3D RationalPoint3D::get() const{
+    Point3D RationalPoint3D::getD() const{
       return Point3D(x.get_d(),y.get_d(),z.get_d());  
     }// get
     
@@ -263,9 +223,9 @@ namespace temporalalgebra{
       
     double RationalPoint3D::distance(const RationalPoint3D& point)const{
        return (point - *this).length();      
-    }// distance 
+    }// distance     
 /*
-6 Class RationalVector3D
+5 Class RationalVector3D
 
 */    
     RationalVector3D::RationalVector3D():x(0),y(0),z(0){
@@ -382,7 +342,343 @@ namespace temporalalgebra{
     
     double RationalVector3D::length() const{
       return sqrt(length2().get_d());    
-    }// length
- 
+    }// length  
+/*
+6 Class Segment3D
+
+*/      
+    Segment3D::Segment3D(){   
+    }// Konstruktor
+    
+    Segment3D::Segment3D(const Point3D& tail, const Point3D& head){
+      this->tail = tail;
+      this->head = head;    
+    }// Konstruktor
+       
+    Segment3D::Segment3D(const Segment3D& segment){
+      set(segment);
+    }// konstruktor
+    
+    Segment3D::Segment3D(const RationalSegment3D& segment){
+      this->tail = segment.getTail();
+      this->head = segment.getHead(); 
+    }// konstruktor    
+    
+    void Segment3D::set(const Segment3D& segment){
+      this->tail = segment.tail;
+      this->head = segment.head; 
+    }// konstruktor   
+
+    Point3D Segment3D::getHead() const{
+      return this->head;
+    }// getHead
+    
+    Point3D Segment3D::getTail() const{
+      return this->tail;
+    }// getTail 
+    
+    RationalSegment3D Segment3D::getR()const {
+      return RationalSegment3D(tail,head);
+    }// getR
+        
+    std::ostream& operator <<(std::ostream& os, const Segment3D& segment){
+      os << "Segment3D (" << segment.tail << ", " << segment.head << ")";
+      return os; 
+    }// operator <<
+    
+    bool Segment3D::operator ==(const Segment3D& segment) const{
+      return (this->head == segment.head && this->tail == segment.tail);
+    }// operator == 
+    
+    Segment3D&  Segment3D::operator =(const Segment3D& segment){
+      set(segment);
+      return *this;      
+    }// Operator =    
+/*
+7 Class RationalSegment3D
+
+*/
+    RationalSegment3D::RationalSegment3D(){
+    }// Konstruktor
+    
+    RationalSegment3D::RationalSegment3D(const RationalSegment3D& segment){
+      set(segment);
+    }// Konstruktor
+    
+    RationalSegment3D::RationalSegment3D(const Segment3D& segment){
+      this->tail = segment.getTail();
+      this->head = segment.getHead();
+    }// Kostruktor
+    
+    RationalSegment3D::RationalSegment3D(const RationalPoint3D& tail, 
+                                         const RationalPoint3D& head){
+      this->tail = tail;
+      this->head = head;
+    }// konstruktor
+
+    void RationalSegment3D::set(const RationalSegment3D& segment){
+      this->tail = segment.tail;
+      this->head = segment.head;
+    }// set
+    
+    RationalPoint3D RationalSegment3D::getHead() const{
+      return head;
+    }// getHead
+    
+    RationalPoint3D RationalSegment3D::getTail() const{
+      return tail;
+    }// getTail
+    
+    Segment3D RationalSegment3D::getD() const{
+      return Segment3D(tail.getD(), head.getD());
+    }// get
+    
+    std::ostream& operator <<(std::ostream& os, 
+                              const RationalSegment3D& segment){
+       os << "RationalSegment3D (" << segment.tail << ", ";
+       os << segment.head << ")";
+      return os; 
+    }// Operator << 
+
+    bool RationalSegment3D::operator ==(
+        const RationalSegment3D& segment) const{
+      return (this->head == segment.head && this->tail == segment.tail);
+    }// operator == 
+    
+    RationalSegment3D& RationalSegment3D::operator =(
+        const RationalSegment3D& segment){
+      set(segment);
+      return *this;
+    }// operator =
+/*
+8 Class Point2D
+
+*/      
+    Point2D::Point2D():x(0),y(0){
+    }// Konstruktor
+    
+    Point2D::Point2D(const Point2D& point){
+      set(point);    
+    }// Konstruktor
+    
+    Point2D::Point2D(const RationalPoint2D& point){
+      set(point.getX().get_d(),point.getY().get_d());  
+    }// konstruktor
+    
+    Point2D::Point2D(double x, double y){
+      set(x,y);
+    }// Konstriktor
+    
+    void  Point2D::set(const Point2D& point){
+      this->x = point.x;
+      this->y = point.y;
+    }// set
+    
+    void  Point2D::set(double x, double y){
+      this->x = x;
+      this->y = y;
+    }// set
+    
+    double  Point2D::getX() const{
+      return x;
+    }// getX
+    
+    double  Point2D::getY() const{
+      return y;
+    }// getY
+            
+    RationalPoint2D Point2D::getR()const{
+      return RationalPoint2D(x,y);
+    }// getR
+    
+    bool Point2D::operator ==(const Point2D& point) const{
+      return NumericUtil::nearlyEqual(this->x, point.x) && 
+             NumericUtil::nearlyEqual(this->y, point.y);
+    }// Operator ==
+    
+    Point2D&  Point2D::operator =(const Point2D& point){
+      set(point);
+      return *this;      
+    }// Operator =
+         
+    std::ostream& operator <<(std::ostream& os, const Point2D& point){
+      os << "Point2D (" << point.x;
+      os << ", " << point.y << ")";
+      return os; 
+    }// Operator <<     
+/*
+9 Class RationalPoint2D
+
+*/     
+    RationalPoint2D::RationalPoint2D():x(0),y(0){
+    }// Konstruktor
+    
+    RationalPoint2D::RationalPoint2D(const RationalPoint2D& point){
+      set(point);
+    }// Konstruktor
+    
+    RationalPoint2D::RationalPoint2D(const Point2D& point){
+      set(point.getX(),point.getY());
+    }// konstruktor
+    
+    RationalPoint2D::RationalPoint2D(const mpq_class& x, 
+                                     const mpq_class& y){
+      set(x,y);
+    }// Konstruktor
+    
+    void RationalPoint2D::set(const RationalPoint2D& point){
+      this->x = point.x;
+      this->y = point.y;
+    }// set
+    
+    void RationalPoint2D::set(const mpq_class& x, const mpq_class& y){
+      this->x = x;
+      this->y = y;
+    }// set
+    
+    mpq_class RationalPoint2D::getX() const{
+      return x;
+    }// getX
+    
+    mpq_class RationalPoint2D::getY() const{
+      return y;
+    }// getY
+    
+    Point2D RationalPoint2D::getD()const{
+      return (Point2D(x.get_d(),y.get_d()));
+    }// getD
+
+    bool RationalPoint2D::operator ==(const RationalPoint2D& point) const{
+      return NumericUtil::nearlyEqual(this->x, point.x) && 
+      NumericUtil::nearlyEqual(this->y, point.y);
+    }// Operator ==
+
+    RationalPoint2D& RationalPoint2D::operator =(const RationalPoint2D& point){
+      set(point);
+      return *this;  
+    }// Operator =
+    
+    std::ostream& operator <<(std::ostream& os, const RationalPoint2D& point){
+      os << "RationalPoint2D (" << point.x;
+      os << ", " << point.y << ")";
+      return os; 
+    }// Oparator <<
+    
+    RationalVector2D RationalPoint2D::operator -(
+        const RationalPoint2D& point) const{
+      return RationalVector2D(x - point.x, y - point.y);
+    }// Operator -  
+/*
+10 Class RationalVector2D
+
+*/     
+    RationalVector2D::RationalVector2D():x(0),y(0){
+    }// Konstruktor
+    
+    RationalVector2D::RationalVector2D(const RationalVector2D& vector){
+      set(vector);
+    }// Konstruktor  
+    
+    RationalVector2D::RationalVector2D(const mpq_class& x, 
+                                       const mpq_class& y){
+      set(x,y);
+    }// Konstruktor
+    
+    void RationalVector2D::set(const RationalVector2D& vector){
+      this->x = vector.x;
+      this->y = vector.y;
+    }// set
+    
+    void RationalVector2D::set(const mpq_class& x, const mpq_class& y){
+      this->x = x;
+      this->y = y;
+    }// set
+    
+    mpq_class RationalVector2D::getX() const{
+      return x;
+    }// getX
+    
+    mpq_class RationalVector2D::getY() const{
+      return y;
+    }// getY
+
+
+    bool RationalVector2D::operator ==(const RationalVector2D& point) const{
+      return NumericUtil::nearlyEqual(this->x, point.x) && 
+      NumericUtil::nearlyEqual(this->y, point.y);
+    }// Operator ==
+
+    RationalVector2D& RationalVector2D::operator =(
+        const RationalVector2D& vector){
+      set(vector);
+      return *this;  
+    }// Operator =
+    
+    std::ostream& operator <<(std::ostream& os, 
+                              const RationalVector2D& vector){
+      os << "RationalVector2D (" << vector.x;
+      os << ", " << vector.y << ")";
+      return os; 
+    }// Oparator <<
+    
+      
+    void RationalVector2D::normalize(){
+      mpq_class len2 = this->x * this->x + 
+                       this->y * this->y;                       
+      double len = sqrt(len2.get_d());
+      if (len != 0.0) {
+        x /= len;
+        y /= len;
+      }// if
+    }// normalize
+   
+     mpq_class RationalVector2D::operator |(
+         const RationalVector2D& vector) const{
+       return (x * vector.y - y * vector.x);    
+     }// operator |
+/*
+11 Class Segment2D
+
+*/      
+    Segment2D::Segment2D(){
+    }// Konstruktor
+      
+    Segment2D::Segment2D(const Point2D& tail, const Point2D& head){
+      this->tail = tail;
+      this->head = head;
+    }// Konstruktor 
+
+    Point2D Segment2D::getHead() const{
+      return this->head;
+    }// getHead
+      
+    Point2D Segment2D::getTail() const{
+      return this->tail;
+    }// getTail      
+      
+    std::ostream& operator <<(std::ostream& os, const Segment2D& segment){
+      os << "Segment2D (" << segment.tail << ", " << segment.head << ")";
+      return os; 
+    }// Opaerator 
+    
+     bool Segment2D::operator ==(const Segment2D& segment) const{
+      return (this->head == segment.head && this->tail == segment.tail);
+    }// operator == 
+    
+    bool Segment2D::isLeft(const Point2D& point)const{
+      // This is the fast version:
+      //
+      // value = (start.x - x) * (end.y - y) - (end.x - x) * (start.y - y);
+      // This is slower, but numerical more stable:
+      RationalVector2D vector1 = head.getR() - 
+                                 tail.getR();
+      RationalVector2D vector2 = point.getR() - 
+                                 tail.getR();      
+      vector1.normalize();
+      vector2.normalize();
+      mpq_class value = vector1 | vector2;     
+      return NumericUtil::greater(value, 0.0); 
+    }// isLeft
+  
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

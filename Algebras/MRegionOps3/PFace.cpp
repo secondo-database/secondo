@@ -49,7 +49,9 @@ namespace temporalalgebra {
 /*
 3 Enumeration SourceFlag
 
-4 Class RationalPoint3DExt
+4 Enumeration State
+
+5 Class RationalPoint3DExt
 
 */      
     RationalPoint3DExt::RationalPoint3DExt():RationalPoint3D(){
@@ -90,7 +92,7 @@ namespace temporalalgebra {
       return os; 
     }// operator <<
 /*
-5 Class RationalPoint3DExtSet
+6 Class RationalPoint3DExtSet
 
 */     
     RationalPoint3DExtSet::RationalPoint3DExtSet(){
@@ -104,7 +106,8 @@ namespace temporalalgebra {
       return this->points.size();
     }// size
 
-    bool RationalPoint3DExtSet::getIntersectionSegment(Segment3D& result)const{
+    bool RationalPoint3DExtSet::getIntersectionSegment(
+        RationalSegment3D& result)const{
       if (this->points.size() != 4) return false;
       set<RationalPoint3DExt>::iterator it = this->points.begin();
       RationalPoint3DExt point1 = *it;
@@ -117,7 +120,7 @@ namespace temporalalgebra {
         // The length of the intersection segment is zero.
         return false;
       }// if
-      result = Segment3D(point2.get(), point3.get());
+      result = RationalSegment3D(point2, point3);
       return true;
     }// getIntersectionSegment
 
@@ -132,7 +135,7 @@ namespace temporalalgebra {
       return os;
     }// operator <<
 /*
-6 Class RationalPlane3D
+7 Class RationalPlane3D
 
 */      
     RationalPlane3D::RationalPlane3D():normalVector(),pointOnPlane(){  
@@ -143,10 +146,10 @@ namespace temporalalgebra {
     }// konstruktor
    
     RationalPlane3D::RationalPlane3D(const PFace& pf){
-      RationalPoint3D a = pf.getA().get();
-      RationalPoint3D b = pf.getB().get();
-      RationalPoint3D c = pf.getC().get();
-      RationalPoint3D d = pf.getD().get();
+      RationalPoint3D a = pf.getA().getR();
+      RationalPoint3D b = pf.getB().getR();
+      RationalPoint3D c = pf.getC().getR();
+      RationalPoint3D d = pf.getD().getR();
       this->pointOnPlane = a;
       // We compute the normalvector
       if (a != b) {
@@ -162,6 +165,17 @@ namespace temporalalgebra {
         this->normalVector = (c - d) ^ (b - d);
       }// else
       this->normalVector.normalize();
+      // The vector w is either the normalized cross product 
+      // of the normal vector and the t-unit-vector, or it's opposite.
+      // This depends on the kind of set-operation, we want to perform.
+      //
+      // wVector = Vector3D(GetNormalVector() ^ Vector3D(0.0, 0.0, 1.0);
+      // wVector.Normalize();
+      // This can be simplified to:
+      wVector = RationalVector3D( normalVector.getY(), 
+                                - normalVector.getX(),
+                                  0.0);
+      wVector.normalize();
     }// Konstruktor
       
     void RationalPlane3D::set(const RationalPlane3D& plane){
@@ -198,7 +212,8 @@ namespace temporalalgebra {
     }// isParallelTo
     
     bool RationalPlane3D::isCoplanarTo(const RationalPlane3D& plane) const{
-      return NumericUtil::nearlyEqual(distance2ToPlane(plane.pointOnPlane),0.0);
+      return NumericUtil::nearlyEqual(distance2ToPlane(plane.pointOnPlane),
+                                      0.0);
     }// isCoplanarTo
           
     bool RationalPlane3D::intersection(const Segment3D segment, 
@@ -262,12 +277,220 @@ namespace temporalalgebra {
         }// if
       }// for      
     }// intersection
+    
+    bool RationalPlane3D::isLeftAreaInner(const RationalSegment3D segment,
+                                          const RationalPlane3D other)const{
+      RationalVector3D segmentVector(segment.getHead() - segment.getTail());
+      segmentVector.normalize();
+      RationalVector3D vector = this->normalVector ^ segmentVector;
+      if((vector * other.normalVector) < 0) return true;
+      return false;
+    }// isLeftAreaInner
+                       
+    Point2D RationalPlane3D::transform(const RationalPoint3D& point) const{
+      // check point d on plane
+      if(!NumericUtil::nearlyEqual(distance2ToPlane(point),0.0)){
+           NUM_FAIL("Point isn,t located on plane.");
+      }// if
+      mpq_class w = point.getX() * wVector.getX() +
+                    point.getY() * wVector.getY();
+      return Point2D(w.get_d(),point.getZ().get_d());  
+    }// transform
+      
+    Segment2D RationalPlane3D::transform(
+        const RationalSegment3D& segment) const{  
+      return Segment2D(transform(segment.getTail()),
+                       transform(segment.getHead())); 
+    }// transform
 /*
-7 Class PFace
+8 Class IntersectionPoint
+
+*/   
+    IntersectionPoint::IntersectionPoint():x(0),y(0),z(0),w(0){
+    }// Konstruktor
+   
+    IntersectionPoint::IntersectionPoint(const IntersectionPoint& point){
+      set(point);
+    }// Konstruktor
+    
+    IntersectionPoint::IntersectionPoint(const Point3D& point3D, 
+                                         const Point2D& point2D){
+      if(!(point3D.getZ() == point2D.getY())){
+        NUM_FAIL("Point3D and Point2D don't discribe the same.");
+      }// if
+      this->x = point3D.getX();
+      this->y = point3D.getY();
+      this->z = point3D.getZ();
+      this->w = point2D.getX();
+    }// Konstruktor
+    
+    IntersectionPoint::IntersectionPoint(double x, double y, double z, 
+                                         double w){
+      this->x = x;
+      this->y = y;
+      this->z = z;
+      this->w = w; 
+    }// Konstruktor
+    
+    void IntersectionPoint::set(const IntersectionPoint& point){
+      this->x = point.x;
+      this->y = point.y;
+      this->z = point.z;
+      this->w = point.w;      
+    }// set
+    Point3D IntersectionPoint::getPoint3D() const{
+      return Point3D(x,y,z);
+    }// getPoint3D
+      
+    Point2D IntersectionPoint::getPoint2D() const{
+      return Point2D(w,z);
+    }// getPoint2D
+      
+    double IntersectionPoint::getX()const{
+      return x;
+    }// getX
+      
+    double IntersectionPoint::getY()const{
+      return y;
+    }// getY
+      
+    double IntersectionPoint::getZ()const{
+      return z;
+    }// getZ
+      
+    double IntersectionPoint::getW()const{
+      return w;        
+    }// getW
+      
+    double IntersectionPoint::getT()const{
+      return z;    
+    }// getT
+          
+    std::ostream& operator <<(std::ostream& os, 
+                              const IntersectionPoint& point){
+      os << "IntersectionPoint (" << point.x << ", " << point.y << ", ";
+      os << point.z <<", " <<point.w <<")";
+      return os; 
+    }// OPerator <<
+    
+    IntersectionPoint& IntersectionPoint::operator =(
+        const IntersectionPoint& point){
+      set(point);
+      return *this;
+    }// Operator =
+    
+    bool IntersectionPoint::operator ==(const IntersectionPoint& point) const{
+      return NumericUtil::nearlyEqual(this->x, point.x) && 
+             NumericUtil::nearlyEqual(this->y, point.y) && 
+             NumericUtil::nearlyEqual(this->z, point.z) &&
+             NumericUtil::nearlyEqual(this->w, point.w);
+    }// Operator ==
+/*
+9 Class IntersectionSegment
+
+*/  
+    IntersectionSegment::IntersectionSegment(){
+      this->leftAreaIsInner = false;   
+    }// Konstruktor
+    
+    IntersectionSegment::IntersectionSegment(
+        const IntersectionSegment& segment){
+      set(segment);    
+    }// konstruktor    
+    
+    IntersectionSegment::IntersectionSegment(const IntersectionPoint& tail,
+                                             const IntersectionPoint& head,
+                                             bool leftAreaIsInner){
+      this->tail = tail;
+      this->head = head;
+      this->leftAreaIsInner = leftAreaIsInner; 
+    }// konstruktor
+    
+    IntersectionSegment::IntersectionSegment(const Segment3D& segment3D, 
+                                             const Segment2D& segment2D,
+                                             bool leftAreaIsInner){
+      this->head = IntersectionPoint(segment3D.getHead(),segment2D.getHead());
+      this->tail = IntersectionPoint(segment3D.getTail(),segment2D.getTail());
+      this->leftAreaIsInner = leftAreaIsInner;   
+    }// Konstruktor
+      
+    void IntersectionSegment::set(const IntersectionSegment& segment){
+      this->tail = segment.tail;
+      this->head = segment.head;
+      this->leftAreaIsInner = segment.leftAreaIsInner; 
+    }// set
+      
+    Segment3D IntersectionSegment::getSegment3D()const{
+      return Segment3D(tail.getPoint3D(),head.getPoint3D());
+    }// getSegment3D
+    
+    Segment2D IntersectionSegment::getSegment2D()const{
+      return Segment2D(tail.getPoint2D(),head.getPoint2D());
+    }// getSegment2D
+    
+    IntersectionPoint IntersectionSegment::getTail() const{
+      return tail;
+    }// getTail
+    
+    IntersectionPoint IntersectionSegment::getHead() const{
+      return head;   
+    }// getHead
+    
+    bool IntersectionSegment::isleftAreaInner()const{
+      return leftAreaIsInner;
+    }// getSegment3D
+    
+    std::ostream& operator <<(
+        std::ostream& os, const IntersectionSegment& segment){
+      os << "IntersectionSegment (" << segment.tail << ", " << segment.head;
+      if(segment.leftAreaIsInner) os << ", Left area is inner.)";
+      else  os << ", Right area is inner.) ";
+      return os;  
+    }// Operator <<
+    
+    IntersectionSegment& IntersectionSegment::operator =(
+        const IntersectionSegment& segment){
+       set(segment); 
+       return *this;
+    }// OPerator =
+    
+    bool IntersectionSegment::operator ==(
+        const IntersectionSegment& segment) const{
+      return this->head == segment.head && 
+             this->tail == segment.tail &&
+             this->leftAreaIsInner == segment.leftAreaIsInner;
+    }// Operator ==   
+/*
+10 Struct IntSegCompare
+
+*/
+    bool IntSegCompare::operator()(const IntersectionSegment* const& segment1,
+                                   const IntersectionSegment* const& segment2)
+        const{
+      IntersectionPoint tail1 = segment1->getTail();
+      IntersectionPoint tail2 = segment2->getTail();
+      IntersectionPoint head1 = segment1->getHead();
+      IntersectionPoint head2 = segment2->getHead();
+      // We sort by (t_start, w_start, IsLeft())
+      // Precondition:  tail1.getT() < haed1.getT() &&
+      //                tail2.getT() < head2.getT() 
+      if (NumericUtil::lower(  tail1.getT(), tail2.getT())) return true;
+      if (NumericUtil::greater(tail1.getT(), tail2.getT())) return false;
+      // tail1.getT() == tail2.getT()
+      if (NumericUtil::lower(  tail1.getW(), tail2.getW())) return true;
+      if (NumericUtil::greater(tail1.getW(), tail2.getW())) return false;
+      // tail1.getW() == tail2.GetW()  
+      if (head1.getPoint2D() == head2.getPoint2D()) return true;    
+      return segment2->getSegment2D().isLeft(head1.getPoint2D());
+    }// IntSegCompare
+   
+/*
+12 Class PFace
 
 */            
     PFace::PFace(const Point3D& a, const Point3D& b, const Point3D& c, 
                  const Point3D& d){
+      this->state = UNKNOWN;
       this->a = a;
       this->b = b;
       this->c = c;
@@ -284,28 +507,45 @@ namespace temporalalgebra {
     }// Konstruktor
       
     Point3D PFace::getA() const{
-      return a;
+      return this->a;
     }// getA
     
     Point3D PFace::getB() const{
-      return b;
+      return this->b;
     }// getB
     
     Point3D PFace::getC() const{
-      return c;
+      return this->c;
     }// getC
     
     Point3D PFace::getD() const{
-      return d;
+      return this->d;
     }// getD    
     
+    State PFace::getState() const{
+      return state;
+    }// getState
+    
+    string PFace::toString(State state){
+      switch(state){
+        case UNKNOWN:               return "UNKNOWN";
+        case ENTIRELY_INSIDE:       return "ENTIRELY_INSIDE";
+        case ENTIRELY_OUTSIDE:      return "ENTIRELY_OUTSIDE";
+        case RELEVANT_NOT_CRITICAL: return "RELEVANT_NOT_CRITICAL";
+        case RELEVANT_CRITICAL:     return "RELEVANT_CRITICAL";
+        case NOT_RELEVANT:          return "NOT_RELEVANT";
+        default: return "";
+      }// switch
+    }// toString
+    
     std::ostream& operator <<(std::ostream& os, const PFace& pf){
-      os << "PFace ( "<< pf.a << ", " << pf.b << ", " << pf.c << ", " << pf.d;
-      os <<")";
+      os << "PFace ("<< pf.a << ", " << pf.b << ", " << pf.c << ", " << pf.d; 
+      os <<"," << PFace::toString(pf.getState()) << ")";
       return os;   
     }// Operator <<
-             
-    bool PFace::intersection(const PFace& other,Segment3D& intSeg)const{
+          
+    bool PFace::intersection(PFace& other,IntersectionSegment& iSegSelf, 
+                                          IntersectionSegment& iSegOther){
       // check bounding rectangles
       if(!(this->boundingRect.Intersects(other.boundingRect))){
         cout << "No intersect bounding rectangles found." << endl;  
@@ -317,8 +557,8 @@ namespace temporalalgebra {
       // check planes
       if (planeSelf.isParallelTo(planeOther)) {
         if(planeSelf.isCoplanarTo(planeOther)) {
-          // this->MarkAsCriticalRelevant();
-          // other.MarkAsCriticalRelevant();
+          this->state = RELEVANT_CRITICAL;
+          other.state = RELEVANT_CRITICAL;
           cout << "Coplanar plane pair found." << endl;            
         }// if 
         else {
@@ -332,9 +572,15 @@ namespace temporalalgebra {
       if (intPointSet.size() != 2) return false; 
       planeOther.intersection(*this, PFACE_B, intPointSet);  
       // There is no intersection
+      RationalSegment3D intSeg;
       if(!intPointSet.getIntersectionSegment(intSeg)) return false;    
-      return true;
+      bool result = planeSelf.isLeftAreaInner(intSeg,planeOther);
+      Segment2D segment = planeSelf.transform(intSeg);
+      iSegSelf = IntersectionSegment(intSeg,segment,result);
+      result  = planeOther.isLeftAreaInner(intSeg,planeSelf);
+      segment = planeOther.transform(intSeg);
+      iSegOther = IntersectionSegment(intSeg,segment,result);
+      return true;    
     }// intersection    
-
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

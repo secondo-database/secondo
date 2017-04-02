@@ -57,12 +57,27 @@ namespace temporalalgebra {
     
       bool run(){
         Point3DTest1();
+        Point2DTest1();
+        
         RationalPoint3DTest1();
+        RationalPoint3DTest2();
+        
         RationalVector3DTest1();
         RationalVector3DTest2();
-        Point3DTest2();
+        RationalVector3DTest3();
         
         Segment3DTest();
+        RationalSegment3DTest1();
+        RationalSegment3DTest2();
+        
+        Point2DTest1();
+        
+        RationalPoint2DTest1();
+        
+        RationalVector2DTest1();
+        
+        Segment2DTest1();
+        Segment2DTest2();
         
         RationalPoint3DExtTest();
         RationalPoint3DExtSetTest1();
@@ -72,6 +87,10 @@ namespace temporalalgebra {
         
         RationalPlane3DTest1();
         RationalPlane3DTest2();
+        RationalPlane3DTest3();
+        
+        IntersectionPointTest();
+        IntersectionSegmentTest();
         
         PFaceTesst1();
         
@@ -95,11 +114,13 @@ namespace temporalalgebra {
         Point3D point3(1,2,3);
         Point3D point4(point3);
         Point3D point5 = point3;
-        assert_("Point3DTest 1.1", "points aren't equal", point1 == point2);
-        assert_("Point3DTest 1.2", "points aren't equal", point3 == point4);
-        assert_("Point3DTest 1.3", "points aren't equal", point5.getX() == 1 &&
-                                                          point5.getY() == 2 &&
-                                                          point5.getZ() == 3);
+        assert_("Point3DTest 1.1", "points aren't equal.", 
+                point1 == point2);
+        assert_("Point3DTest 1.2", "points aren't equal.", 
+                point3 == point4);
+        assert_("Point3DTest 1.3", "points aren't equal.", 
+                point5.getX() == 1 && point5.getY() == 2 &&
+                point5.getZ() == 3);
         // cout << point5 <<endl;
       }// Point3DTest1
       
@@ -109,15 +130,25 @@ namespace temporalalgebra {
         RationalPoint3D point3(1,2,3);
         RationalPoint3D point4(point3);
         RationalPoint3D point5 = point3;
-        assert_("RationalPoint3DTest 1.1", "points aren't equal", 
+        assert_("RationalPoint3DTest 1.1", "points aren't equal.", 
                 point1 == point2);
-        assert_("RationalPoint3DTest 1.2", "points aren't equal", 
+        assert_("RationalPoint3DTest 1.2", "points aren't equal.", 
                 point3 == point4);
-        assert_("RationalPoint3DTest 1.3", "points aren't equal",
+        assert_("RationalPoint3DTest 1.3", "points aren't equal.",
                 point5.getX() == 1 && point5.getY() == 2 && 
                 point5.getZ() == 3);
         // cout << point5 <<endl;
       }// Point3DTest1
+      
+      void RationalPoint3DTest2(){
+        Point3D point1(1,2,3);
+        RationalPoint3D point2(1,2,3);
+        assert_("RationalPoint3DTest 2.1", "points aren't equal.", 
+                point1.getR() == point2);
+        assert_("RationalPoint3DTest 2.2", "points aren't equal.", 
+                point1 == point2.getD());
+        // cout << point5 <<endl;
+      }// Point3DTest2
       
       void RationalVector3DTest1(){
         RationalVector3D vector1;
@@ -125,11 +156,11 @@ namespace temporalalgebra {
         RationalVector3D vector3(1,2,3);
         RationalVector3D vector4(vector3);
         RationalVector3D vector5 = vector3;
-        assert_("RationalVector3DTest 1.1", "vectors aren't equal", 
+        assert_("RationalVector3DTest 1.1", "vectors aren't equal.", 
                 vector1 == vector2);
-        assert_("RationalVector3DTest 1.2", "vectors aren't equal", 
+        assert_("RationalVector3DTest 1.2", "vectors aren't equal.", 
                 vector3 == vector4);
-        assert_("RationalVector3DTest 1.3", "vectors aren't equal", 
+        assert_("RationalVector3DTest 1.3", "vectors aren't equal.", 
                 vector5.getX() == 1 && vector5.getY() == 2 &&
                 vector5.getZ() == 3);
         // cout << vector5 << endl;
@@ -141,15 +172,15 @@ namespace temporalalgebra {
         mpq_class value1 = -1;
         RationalVector3D vector3 = value1 * vector2;
         RationalVector3D vector4 = vector1 * value1;
-        assert_("RationalVector3DTest 2.1", "vectors aren't equal", 
+        assert_("RationalVector3DTest 2.1", "vectors aren't equal.", 
                 vector1 == vector3);
-        assert_("RationalVector3DTest 2.2", "vectors aren't equal", 
+        assert_("RationalVector3DTest 2.2", "vectors aren't equal.", 
                 vector2 == vector4);
         mpq_class        value2  = vector1 * vector2;         
         RationalVector3D vector5 = vector1 ^ vector2;  
-        assert_("RationalVector3DTest 2.3", "values aren't equal", 
+        assert_("RationalVector3DTest 2.3", "values aren't equal.", 
                 value2 == -14);
-        assert_("RationalVector3DTest 2.4", "vectors aren't equal", 
+        assert_("RationalVector3DTest 2.4", "vectors aren't equal.", 
                 vector5 == RationalVector3D(0,0,0));                
         // cout << vector1 << endl;
         // cout << vector2 << endl;
@@ -159,16 +190,19 @@ namespace temporalalgebra {
         // cout << vector5 << endl;                                
       }// RationalVector3DTest2
       
-      void Point3DTest2(){
+       void RationalVector3DTest3(){
         Point3D point1(1,2,3);
         Point3D point2(10,11,9);
-        RationalVector3D vector1 = point2.get() - point1.get();
+        RationalVector3D vector1 = point2.getR() - point1.getR();
         RationalVector3D vector2(9,9,6);
-        Point3D point3 = (point1.get() + vector1).get();
-        Point3D point4 = (point2.get() - vector1).get();
-        assert_("Point3DTest 2.1", "vectors aren't equal", vector1 == vector2);
-        assert_("Point3DTest 2.2", "points aren't equal", point2 == point3);
-        assert_("Point3DTest 2.3", "points aren't equal", point1 == point4);    
+        Point3D point3 = (point1.getR() + vector1).getD();
+        Point3D point4 = (point2.getR() - vector1).getD();
+        assert_("RationalVector3DTest 3.1", "vectors aren't equal.", 
+                vector1 == vector2);
+        assert_("RationalVector3DTest 3.2", "points aren't equal.", 
+                point2 == point3);
+        assert_("RationalVector3DTest 3.3", "points aren't equal.", 
+                point1 == point4);    
         // cout << vector1 << endl;
         // cout << point3 << endl;
         // cout << point4 << endl;       
@@ -180,31 +214,154 @@ namespace temporalalgebra {
         Point3D point3(3,4,1);
         Segment3D segment1(point1,point2);
         Segment3D segment2(point1,point3);
-        assert_("Segment3DTest 1", "points aren't equal", 
+        Segment3D segment3 = segment1;
+        assert_("Segment3DTest 1.1", "points aren't equal.", 
+                 segment1.getTail() == point1);
+        assert_("Segment3DTest 1.2", "points aren't equal.", 
+                 segment1.getHead() == point2); 
+        assert_("Segment3DTest 1.3", "segments are equal.", 
+                 !(segment1 == segment2)); 
+        assert_("Segment3DTest 1.4", "segments aren't equal.", 
+                 segment1 == segment3); 
+        // cout << segment1 << endl; ;
+      }// Segment3DTest
+      
+      void RationalSegment3DTest1(){
+        RationalPoint3D point1(1,2,0);
+        RationalPoint3D point2(3,4,0);  
+        RationalPoint3D point3(3,4,1);
+        RationalSegment3D segment1(point1,point2);
+        RationalSegment3D segment2(point1,point3);
+        RationalSegment3D segment3 = segment1;
+        assert_("RationalSegment3DTest 1.1", "points aren't equal.", 
+                 segment1.getTail() == point1);
+        assert_("RationalSegment3DTest 1.2", "points aren't equal.", 
+                 segment1.getHead() == point2); 
+        assert_("RationalSegment3DTest 1.3", "segments are equal.", 
+                 !(segment1 == segment2)); 
+        assert_("RationalSegment3DTest 1.4", "segments aren't equal.", 
+                 segment1 == segment3); 
+        // cout << segment1 << endl; ;
+      }// RationalSegment3DTest1
+      
+      void RationalSegment3DTest2(){
+        Point3D point1(1,2,0);
+        Point3D point2(3,4,0);  
+        Segment3D segment1(point1,point2);
+        RationalSegment3D segment2(point1.getR(),point2.getR());        
+        assert_("RationalSegment3DTest 2.1", "segments aren't equal.", 
+                 segment1.getR() == segment2);
+        assert_("RationalSegment3DTest 2.2", "segments aren't equal.", 
+                 segment1 == segment2.getD()); 
+        //cout << segment1 << endl; 
+        //cout << segment2 << endl;
+      }// RationalSegment3DTest2
+      
+      void Point2DTest1(){
+        Point2D point1;
+        Point2D point2(0,0);
+        Point2D point3(1,2);
+        Point2D point4(point3);
+        Point2D point5 = point3;
+        assert_("Point2DTest 1.1", "points aren't equal.", 
+                point1 == point2);
+        assert_("Point2DTest 1.2", "points aren't equal.", 
+                point3 == point4);
+        assert_("Point2DTest 1.3", "points aren't equal.", 
+                point5.getX() == 1 &&  point5.getY() == 2);
+        // cout << point5 <<endl;
+      }// Point3DTest1
+      
+      void RationalPoint2DTest1(){
+        RationalPoint2D point1;
+        RationalPoint2D point2(0,0);
+        RationalPoint2D point3(1,2);
+        RationalPoint2D point4(point3);
+        RationalPoint2D point5 = point3;
+        assert_("RationalPoint2DTest 1.1", "points aren't equal.", 
+                point1 == point2);
+        assert_("RationalPoint2DTest 1.2", "points aren't equal.", 
+                point3 == point4);
+        assert_("RationalPoint2DTest 1.3", "points aren't equal.", 
+                point5.getX() == 1 &&  point5.getY() == 2);
+        // cout << point5 <<endl;
+      }// PationalPoint2DTest1
+      
+      void RationalPoint2DTest2(){
+        Point2D point1(1,2);
+        RationalPoint2D point2(1,2);
+        assert_("RationalPoint2DTest 2.1", "points aren't equal.", 
+                point1.getR() == point2);
+        assert_("RationalPoint2DTest 2.2", "points aren't equal.", 
+                point1 == point2.getD());
+        // cout << point5 <<endl;
+      }// Point2DTest2
+      
+      void RationalVector2DTest1(){
+        RationalVector2D point1;
+        RationalVector2D point2(0,0);
+        RationalVector2D point3(1,2);
+        RationalVector2D point4(point3);
+        RationalVector2D point5 = point3;
+        assert_("RationalVector2DTest 1.1", "vectors aren't equal.", 
+                point1 == point2);
+        assert_("RationalVector2DTest 1.2", "vectors aren't equal.", 
+                point3 == point4);
+        assert_("RationalVector2DTest 1.3", "vectors aren't equal.", 
+                point5.getX() == 1 &&  point5.getY() == 2);
+        // cout << point5 <<endl;
+      }// RationalVector2DTest1
+      
+      void Segment2DTest1(){
+        Point2D point1(1,2);
+        Point2D point2(3,4);  
+        Point2D point3(3,4);
+        Segment2D segment1(point1,point2);
+        Segment2D segment2(point1,point3);
+        assert_("Segment2DTest 1.1", "points aren't equal.", 
                 segment1.getTail() == point1);
-        assert_("Segment3DTest 2", "points aren't equal", 
+        assert_("Segment2DTest 1.2", "points aren't equal.", 
                 segment1.getHead() == point2); 
-        assert_("Segment3DTest 3", "values aren't equal", 
-                segment1.length2() == 8); 
-        assert_("Segment3DTest 4", "segment is orthogonal to z axis", 
-                segment1.isOrthogonalToZAxis());
-        assert_("Segment3DTest 5", "segment isn't orthogonal to z axis", 
-                !segment2.isOrthogonalToZAxis());
+        // cout << segment1 << endl; ;
+      }// Segment3DTest1
+
+      void Segment2DTest2(){
+        Point2D point1(1,1);
+        Point2D point2(3,4.5);  
+        Point2D point3(3,2);
+        Point2D point4(1,3);
+        Point2D point5(3,6);  
+        Point2D point6(0,0);
+        Point2D point7(1,0);  
+        Point2D point8(1,1);
+        Segment2D segment1(point1,point2);
+        assert_("Segment2DTest 2.1", "point isn't left.", 
+                !segment1.isLeft(point3));
+        assert_("Segment2DTest 2.2", "point is left.", 
+                segment1.isLeft(point4));
+        assert_("Segment2DTest 2.3", "point is left.", 
+                segment1.isLeft(point5));
+        assert_("Segment2DTest 2.4", "point is left.", 
+                segment1.isLeft(point6));
+        assert_("Segment2DTest 2.5", "point isn't left.", 
+                !segment1.isLeft(point7));
+        assert_("Segment2DTest 2.6", "point isn't left.", 
+                !segment1.isLeft(point8));
         // cout << segment1 << endl; ;
       }// Segment3DTest
       
       void RationalPoint3DExtTest(){
         RationalPoint3DExt point1(1,2,3,PFACE_A);
         RationalPoint3DExt point2(5,6,7,PFACE_B);
-        assert_("RationalPoint3DExtTest 1", "point is from pface A", 
+        assert_("RationalPoint3DExtTest 1", "point is from pface A.", 
                 point1.getSourceFlag() == PFACE_A);
-        assert_("RationalPoint3DExtTest 1", "point is from pface B", 
+        assert_("RationalPoint3DExtTest 1", "point is from pface B.", 
                 point2.getSourceFlag() == PFACE_B);
-        assert_("RationalPoint3DExtTest 1", "point 1 isn't lower point 1", 
+        assert_("RationalPoint3DExtTest 1", "point 1 isn't lower point 1.", 
                 !(point1 < point1));
-        assert_("RationalPoint3DExtTest 1", "point 1 is lower point 2", 
+        assert_("RationalPoint3DExtTest 1", "point 1 is lower point 2.", 
                 point1 < point2);
-        assert_("RationalPoint3DExtTest 1", "point 2 isn't lower point 1", 
+        assert_("RationalPoint3DExtTest 1", "point 2 isn't lower point 1.", 
                 !(point2 < point1));
         // cout << point1 << endl;
         // cout << point2 << endl;        
@@ -220,12 +377,13 @@ namespace temporalalgebra {
         points.insert(point2);
         points.insert(point3);
         points.insert(point4);
-        Segment3D segment1;  
-        Segment3D segment2(Point3D(1,1,0),Point3D(2,2,0));
+        RationalSegment3D segment1;  
+        RationalSegment3D segment2(Point3D(1,1,0),Point3D(2,2,0));
         bool result = points.getIntersectionSegment(segment1);
-        assert_("RationalPoint3DExt 1.1", "it exist a intersection", result);
-        assert_("RationalPoint3DExt 1.1", 
-                " intersection segment is incorrect", segment1 == segment2);   
+        assert_("RationalPoint3DExt 1.1", "it exist a intersection.", 
+                result);
+        assert_("RationalPoint3DExt 1.1", "intersection segment is incorrect.",
+                segment1 == segment2); 
         // cout << segment1 << endl;
         // cout << points << endl; 
       }// PointExtSetTest1
@@ -240,13 +398,13 @@ namespace temporalalgebra {
         points.insert(point2);
         points.insert(point3);
         points.insert(point4);
-        Segment3D segment1;  
-        Segment3D segment2(Point3D(2,2,0),Point3D(3,3,0));
+        RationalSegment3D segment1;  
+        RationalSegment3D segment2(Point3D(2,2,0),Point3D(3,3,0));
         bool result = points.getIntersectionSegment(segment1);
-        assert_("RationalPoint3DExtSetTest 2.1", "it exist a intersection",
+        assert_("RationalPoint3DExtSetTest 2.1", "it exist a intersection.",
                 result);
-        assert_("RationalPoint3DExtSetTest 2.1",
-                " intersection segment is incorrect", segment1 == segment2);    
+        assert_("RationalPoint3DExtSetTest 2.1", 
+                "intersection segment is incorrect.", segment1 == segment2);
         // cout << segment1 << endl;
         // cout << points << endl; 
       }// PointExtSetTest2
@@ -261,7 +419,7 @@ namespace temporalalgebra {
         points.insert(point2);
         points.insert(point3);
         points.insert(point4);
-        Segment3D segment1;  
+        RationalSegment3D segment1;  
         bool result = points.getIntersectionSegment(segment1);
         assert_("RationalPoint3DExtSetTest 3", "it exist no intersection",
                 !result);
@@ -277,7 +435,7 @@ namespace temporalalgebra {
         points.insert(point1);
         points.insert(point2);
         points.insert(point3);
-        Segment3D segment1;  
+        RationalSegment3D segment1;  
         bool result = points.getIntersectionSegment(segment1);
         assert_("RationalPoint3DExtSetTest 4", "it exist no intersection",
                 !result);   
@@ -365,6 +523,96 @@ namespace temporalalgebra {
         assert_("RationalPlane3DTest 2.5", "pface isn't parallel.",!result1);
       }// RationalPlane3DTest2  
       
+      void RationalPlane3DTest3(){
+         // points from pface 1 
+        Point3D point1(1,2,0);
+        Point3D point2(3,4,0);         
+        Point3D point3(1,2,3);
+        Point3D point4(3,4,3);
+        // pfaces
+        RationalPlane3D plane1(PFace(point1,point2,point3,point4));
+        // transformation
+        Point2D point5 = plane1.transform(point1);
+        Point2D point6 = plane1.transform(point2);
+        Point2D point7 = plane1.transform(point3);
+        Point2D point8 = plane1.transform(point4);
+        // result
+        Point2D point9(-2.12132034,0);
+        Point2D point10(-4.94974747,0);
+        Point2D point11(-2.12132034,3);
+        Point2D point12(-4.94974747,3);
+        assert_("RationalPlane3DTest 3.1", "transformation is incorrect.",
+                point5 == point9);
+        assert_("RationalPlane3DTest 3.2", "transformation is incorrect.",
+                point6 == point10);
+        assert_("RationalPlane3DTest 3.3", "transformation is incorrect.",
+                point7 == point11);
+        assert_("RationalPlane3DTest 3.4", "transformation is incorrect.",
+                point8 == point12);        
+        // cout << setprecision(9);
+        // cout << point1 << ", " << point5 << endl;
+        // cout << point2 << ", " << point6 << endl;
+        // cout << point3 << ", " << point7 << endl;
+        // cout << point4 << ", " << point8 << endl;
+      }// RationalPlane3DTest3 
+      
+      void IntersectionPointTest(){
+        Point3D point1(1,2,3);
+        Point2D point2(4,3);       
+        IntersectionPoint point3(point1,point2);
+        IntersectionPoint point4 = point3;
+        IntersectionPoint point5(1,2,3,4);
+        assert_("IntersectionPointTest 1.1", "3D component is incorrect.",
+                point4.getPoint3D() == point1);
+        assert_("IntersectionPointTest 1.2", "2D component is incorrect.",
+                point4.getPoint2D() == point2);
+        assert_("IntersectionPointTest 1.3", "3D component is incorrect.",
+                point4.getX() == 1 &&  point4.getY() == 2 &&
+                point4.getZ() == 3);
+        assert_("IntersectionPointTest 1.4", "2D component is incorrect.",
+                point4.getW() == 4 && point4.getT() == 3 );
+        assert_("IntersectionPointTest 1.5", "points are equal.",
+                point4 == point3);
+        assert_("IntersectionPointTest 1.6", "points are equal.",
+                point4 == point5);
+        // cout << point4 <<endl;
+      }// IntersectionPointTest
+      
+      void IntersectionSegmentTest(){
+        Point3D point1(1,2,0);
+        Point3D point2(4,5,3);
+        Point2D point3(6,0);
+        Point2D point4(7,3);
+        IntersectionPoint point5(1,2,0,6);
+        IntersectionPoint point6(4,5,3,7);
+        Segment3D segment1(point1,point2);
+        Segment2D segment2(point3,point4);
+        IntersectionSegment segment3(segment1,segment2,true);
+        IntersectionSegment segment4 = segment3;
+        IntersectionSegment segment5(point5,point6,true);
+        assert_("IntersectionSegmentTest 1.1", "3D component is incorrect.",
+                segment4.getSegment3D() == segment1);
+        assert_("IntersectionSegmentTest 1.2", "2D component is incorrect.",
+                segment4.getSegment2D() == segment2);
+        assert_("IntersectionSegmentTest 1.3", "point on head is incorrect.",
+                segment4.getTail() == IntersectionPoint(point1, point3));
+        assert_("IntersectionSegmentTest 1.4", "point on tail is incorrect.",
+                segment4.getHead() == IntersectionPoint(point2, point4));
+        assert_("IntersectionSegmentTest 1.5", "Left area is inner.",
+                segment4.isleftAreaInner());
+        assert_("IntersectionSegmentTest 1.6", "Segments are equal.",
+                segment3 == segment4);
+        assert_("IntersectionSegmentTest 1.7", "Segments are equal.",
+                segment3 == segment5);
+        assert_("IntersectionSegmentTest 1.8", "Segments arn't equal.",
+                !(segment3 == IntersectionSegment()));
+        // cout << segment1 << endl; 
+        // cout << segment2 << endl; 
+        // cout << segment3 << endl; 
+        // cout << segment3.getSegment3D() << endl; 
+        // cout << segment3.getSegment2D() << endl; 
+      }// IntersectionSegmentTest
+      
       void PFaceTesst1(){
          // points from pface 1 
         Point3D point1(2,1,0);
@@ -377,22 +625,27 @@ namespace temporalalgebra {
         Point3D point7(2.5,4.5,3);
         Point3D point8(5,4.5,3);
         // Result points
-        Point3D point9(2.5,2.1666666666,1);
-        Point3D point10(3.2,3.8,2.4);
-        Segment3D intSeg;
-        Segment3D resultSeg(point9,point10);
+        IntersectionPoint point9(2.5, 2.16666667, 1.0, -3.29983165);
+        IntersectionPoint point10(3.2, 3.8, 2.4, -4.94974747);
+        IntersectionPoint point11(2.5, 2.16666667, 1, -2.5);
+        IntersectionPoint point12(3.2, 3.8, 2.4, -3.2);
+        IntersectionSegment segment1,segment2;
+        IntersectionSegment segment3(point9,point10,false);
+        IntersectionSegment segment4(point11,point12,true);
         // pfaces
         PFace pf1(point1,point2,point3,point4);
         PFace pf2(point5,point6,point7,point8);
-        bool result = pf1.intersection(pf2,intSeg);
+        bool result = pf1.intersection(pf2,segment1,segment2);
         assert_("PFaceTesst 1.1", "pfaces intersect.",result);
         assert_("PFaceTesst 1.2", "intersection segment is incorecct.",
-                intSeg == resultSeg);
-        // cout << result << endl;
+                segment1 == segment3);
+        assert_("PFaceTesst 1.3", "intersection segment is incorecct.",
+                segment2 == segment4);
         // cout << pf1 << endl;
         // cout << pf2 << endl;
-        // cout << intSeg << endl;
-        // cout << resultSeg << endl;
+        // cout << setprecision(9);
+        // cout << segment1 << endl;
+        // cout << segment2 << endl;
       }// PFaceTesst1
       
       int numberOfTestsRun;
