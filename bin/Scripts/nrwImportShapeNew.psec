@@ -1,4 +1,11 @@
 # Importing NRW Data
+#
+# Such data sets can be downloaded from GeoFabrik (download.geofabrik.de), e.g.
+#
+#   http://download.geofabrik.de/europe/germany/nordrhein-westfalen-latest-free.shp.zip 
+#
+# and then be extracted.
+
 
 # close database
 
