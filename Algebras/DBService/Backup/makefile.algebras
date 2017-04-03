@@ -166,6 +166,18 @@ ALGEBRAS     += NetworkAlgebra
 ALGEBRA_DIRS += TemporalNet
 ALGEBRAS     += TemporalNetAlgebra
 
+ALGEBRA_DIRS += STPattern
+ALGEBRAS     += STPatternAlgebra
+
+ALGEBRA_DIRS += SymbolicTrajectory
+ALGEBRAS     += SymbolicTrajectoryAlgebra
+
+ALGEBRA_DIRS += TrajectorySimilarity
+ALGEBRAS     += TrajectorySimilarityAlgebra
+
+
+
+
 ALGEBRA_DIRS += PlugJoin
 ALGEBRAS     += PlugJoinAlgebra
 
@@ -178,8 +190,8 @@ ALGEBRAS     += UpdateRelationAlgebra
 ALGEBRA_DIRS += IMEX
 ALGEBRAS     += ImExAlgebra
 
-ALGEBRA_DIRS += PointSequence
-ALGEBRAS     += PointSequenceAlgebra
+#ALGEBRA_DIRS += PointSequence
+#ALGEBRAS     += PointSequenceAlgebra
 
 ALGEBRA_DIRS += MovingRegion
 ALGEBRAS     += MovingRegionAlgebra
@@ -199,8 +211,10 @@ ALGEBRAS     += PartitionedStreamAlgebra
 ALGEBRA_DIRS += Array
 ALGEBRAS     += ArrayAlgebra
 
-#ALGEBRA_DIRS += MP3
+#ALGEBRA_DIRS += MP3b
 #ALGEBRAS     += MP3Algebra
+CCFLAGS += -DNO_MP3
+
 
 ALGEBRA_DIRS += Picture
 ALGEBRAS     += PictureAlgebra
@@ -256,6 +270,12 @@ ALGEBRAS     += CollectionAlgebra
 ALGEBRA_DIRS  += Cluster
 ALGEBRAS      += ClusterAlgebra
 
+ALGEBRA_DIRS  += Optics 
+ALGEBRAS      += OpticsAlgebra
+
+ALGEBRA_DIRS  += FileIndexAlgebra
+ALGEBRAS      += FileIndexAlgebra
+
 ALGEBRA_DIRS  += NestedRelation
 ALGEBRAS      += NestedRelationAlgebra
 
@@ -270,11 +290,14 @@ ALGEBRAS      += AuxiliaryAlgebra
 ##ALGEBRA_LINK_FLAGS += -framework CoreServices
 
 
-#ALGEBRA_DIRS += Distributed2
-#ALGEBRAS += Distributed2Algebra
-#DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
-#CCFLAGS += -pthread -DTHREAD_SAFE
-#COMMON_LD_FLAGS += -lboost_thread -lboost_system
+ALGEBRA_DIRS += Distributed2
+ALGEBRAS += Distributed2Algebra
+DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
+CCFLAGS += -pthread -DTHREAD_SAFE
+COMMON_LD_FLAGS += -lboost_thread -lboost_system
+
+ALGEBRA_DIRS += DBService
+ALGEBRAS += DBServiceAlgebra
 
 # note if you want to enable thread save compilation the first time
 # on your system, goto into Secondo's home directory and enter:
@@ -284,14 +307,13 @@ ALGEBRAS      += AuxiliaryAlgebra
 # Note on some system, all boost things from above must be
 # extended by -mt, meaning, the following lines are required there:
 
-ALGEBRA_DIRS += Distributed2
-ALGEBRAS += Distributed2Algebra
-DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
-CCFLAGS += -pthread -DTHREAD_SAFE
-COMMON_LD_FLAGS += -lboost_thread-mt -lboost_system-mt
+#ALGEBRA_DIRS += Distributed2
+#ALGEBRAS += Distributed2Algebra
+#DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
+#CCFLAGS += -pthread -DTHREAD_SAFE
+#COMMON_LD_FLAGS += -lboost_thread-mt -lboost_system-mt
 
-ALGEBRA_DIRS += DBService
-ALGEBRAS += DBServiceAlgebra
+
 
 #ALGEBRA_DIRS += TIN
 #ALGEBRAS     += TinAlgebra
@@ -303,8 +325,14 @@ ALGEBRAS += DBServiceAlgebra
 #ALGEBRA_DIRS  += Constraint
 #ALGEBRAS      += ConstraintAlgebra
 
-#ALGEBRA_DIRS  += MTree
-#ALGEBRAS      += MTreeAlgebra
+ALGEBRA_DIRS  += MTree
+ALGEBRAS      += MTreeAlgebra
+
+ALGEBRA_DIRS  += GeneralTree
+ALGEBRAS      += GeneralTreeAlgebra
+
+ALGEBRA_DIRS  += XTree
+ALGEBRAS      += XTreeAlgebra
 
 #ALGEBRA_DIRS += OldRelation-C++
 #ALGEBRAS     += OldRelationAlgebra
@@ -358,14 +386,17 @@ ALGEBRAS     += SuffixTreeAlgebra
 # uncomment the next line if you use mac os
 #ALGEBRA_LINK_FLAGS += -framework CoreServices
 
-#ALGEBRA_DIRS += Groupby
-#ALGEBRAS     += GroupbyAlgebra
+ALGEBRA_DIRS += Groupby
+ALGEBRAS     += GroupbyAlgebra
 
 #ALGEBRA_DIRS  += RIndex
 #ALGEBRAS     += RIndexAlgebra
 
 ALGEBRA_DIRS  += MMRTree 
 ALGEBRAS     += MMRTreeAlgebra
+
+ALGEBRA_DIRS  += MainMemory2 
+ALGEBRAS     += MainMemory2Algebra
 
 #ALGEBRA_DIRS += RobustGeometry
 #ALGEBRAS   += RobustGeometryAlgebra
@@ -396,4 +427,3 @@ ALGEBRAS     += JNetAlgebra
 endif
 
 ALGEBRA_DEPS := $(sort $(ALGEBRA_DEPS))
-
