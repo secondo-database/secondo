@@ -469,7 +469,7 @@ ExtBool Pattern::tmatches(Tuple *tuple, const int attrno, ListExpr ttype) {
   vector<pair<int, string> > relevantAttrs;
   int majorValueNo = -1;
   if (isCompatible(tuple->GetTupleType(), attrno, relevantAttrs, majorValueNo)){
-    if (initEasyCondOpTrees(tuple, ttype) && !isNFAempty()) {
+    if (initEasyCondOpTrees(true, tuple, ttype) && !isNFAempty()) {
       TMatch tmatch(this, tuple, ttype, attrno, relevantAttrs, majorValueNo);
       result = tmatch.matches();
     }
@@ -600,7 +600,9 @@ void Condition::setLeftRightclosedPtr(unsigned int pos, bool value) {
 Static function invoked by ~initCondOpTrees~ or ~initAssignOpTrees~
 
 */
-pair<string, Attribute*> Pattern::getPointer(int key, Tuple *tuple /* = 0 */) {
+pair<string, Attribute*> Pattern::getPointer(const int key, const bool mainAttr,
+                                             Tuple *tuple /* = 0 */) {
+  cout << "getPointer: " << key << " " << mainAttr << endl;
   pair<string, Attribute*> result;
   if (key > 99) { // attribute name
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
@@ -618,54 +620,63 @@ pair<string, Attribute*> Pattern::getPointer(int key, Tuple *tuple /* = 0 */) {
     }
   }
   else {
-    switch (key) {
-      case 0: { // label, type Label
-        result.second = new Label(true);
-        result.first = "[const label pointer "
+    if (mainAttr) {
+      switch (key) {
+        case 0: { // label, type Label
+          result.second = new Label(true);
+          result.first = "[const label pointer "
                      + nl->ToString(listutils::getPtrList(result.second)) + "]";
-        break;
-      }
-      case 1: { // place, type Place
-        result.second = new Place(true);
-        result.first = "[const place pointer "
+          break;
+        }
+        case 1: { // place, type Place
+          result.second = new Place(true);
+          result.first = "[const place pointer "
                      + nl->ToString(listutils::getPtrList(result.second)) + "]";
-        break;
-      }
-      case 2: { // time, type Periods
-        result.second = new Periods(1);
-        result.first = "[const periods pointer "
+          break;
+        }
+        case 2: { // time, type Periods
+          result.second = new Periods(1);
+          result.first = "[const periods pointer "
                      + nl->ToString(listutils::getPtrList(result.second)) + "]";
-        break;
+          break;
+        }
+        case 3:   // start, type Instant
+        case 4: { // end, type Instant
+          result.second = new datetime::DateTime(datetime::instanttype);
+          result.first = "[const instant pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+          break;
+        }
+        case 5:   // leftclosed, type CcBool
+        case 6: { // rightclosed, type CcBool
+          result.second = new CcBool(false);
+          result.first = "[const bool pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+          break;
+        }
+        case 7: { // card, type CcInt
+          result.second = new CcInt(false);
+          result.first = "[const int pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+          break;
+        }
+        case 8: { // labels, type Labels
+          result.second = new Labels(true);
+          result.first = "[const labels pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+          break;
+        }
+        default: { // places, type Places
+          result.second = new Places(true);
+          result.first = "[const places pointer "
+                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+        }
       }
-      case 3:   // start, type Instant
-      case 4: { // end, type Instant
+    }
+    else { // used for indextmatches2
+      if (key >= 2 && key <= 4) { // time, start, end: type instant
         result.second = new datetime::DateTime(datetime::instanttype);
         result.first = "[const instant pointer "
-                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
-        break;
-      }
-      case 5:   // leftclosed, type CcBool
-      case 6: { // rightclosed, type CcBool
-        result.second = new CcBool(false);
-        result.first = "[const bool pointer "
-                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
-        break;
-      }
-      case 7: { // card, type CcInt
-        result.second = new CcInt(false);
-        result.first = "[const int pointer "
-                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
-        break;
-      }
-      case 8: { // labels, type Labels
-        result.second = new Labels(true);
-        result.first = "[const labels pointer "
-                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
-        break;
-      }
-      default: { // places, type Places
-        result.second = new Places(true);
-        result.first = "[const places pointer "
                      + nl->ToString(listutils::getPtrList(result.second)) + "]";
       }
     }
@@ -696,7 +707,7 @@ bool Condition::initOpTree(Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
   if (!isTreeOk()) {
     q = "query " + text;
     for (unsigned int j = 0; j < varKeys.size(); j++) { // init pointers
-      strAttr = Pattern::getPointer(getKey(j), tuple);
+      strAttr = Pattern::getPointer(getKey(j), true, tuple);
       ptrs.push_back(strAttr.second);
       toReplace = getVar(j) + getType(getKey(j), tuple, ttype);
       q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
@@ -719,7 +730,7 @@ bool Condition::initOpTree(Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
 For a pattern with conditions, an operator tree structure is prepared.
 
 */
-bool Pattern::initEasyCondOpTrees(Tuple *tuple /* = 0 */, 
+bool Pattern::initEasyCondOpTrees(const bool mainAttr, Tuple *tuple /* = 0 */, 
                                   ListExpr ttype /* = 0 */) {
   string q(""), part, toReplace("");
   pair<string, Attribute*> strAttr;
@@ -728,7 +739,7 @@ bool Pattern::initEasyCondOpTrees(Tuple *tuple /* = 0 */,
     if (!easyConds[i].isTreeOk()) {
       q = "query " + easyConds[i].getText();
       for (int j = 0; j < easyConds[i].getVarKeysSize(); j++) { // init pointers
-        strAttr = getPointer(easyConds[i].getKey(j), tuple);
+        strAttr = getPointer(easyConds[i].getKey(j), mainAttr, tuple);
         ptrs.push_back(strAttr.second);
         toReplace = easyConds[i].getVar(j)
                   + Condition::getType(easyConds[i].getKey(j), tuple, ttype);
@@ -3058,7 +3069,6 @@ bool TMatchIndexLI::getResultForAtomTime(const int atomNo,
 */
 void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
                                      const bool mainAttr, int &noResults) {
-  cout << "sIR, atom " << atomNo << endl;
   if (!mainAttr && indexResult2[atomNo] != 0) {
     return;
   }
@@ -3798,8 +3808,7 @@ Checks whether geometric specifications from a pattern atom match the
 corresponding information from the tuple. Applied for indextmatches2
 
 */
-bool TMatchIndexLI::geoMatch(const int atomNo, Tuple *t, IndexMatchInfo2 *imi,
-                             Periods *per) {
+bool TMatchIndexLI::geoMatch(const int atomNo, Tuple *t, Periods *per) {
   for (unsigned int i = 0; i < relevantAttrs.size(); i++) {
     if (relevantAttrs[i].second == "mpoint") {
       MPoint *mpoint = (MPoint*)t->GetAttribute(relevantAttrs[i].first);
@@ -3811,9 +3820,11 @@ bool TMatchIndexLI::geoMatch(const int atomNo, Tuple *t, IndexMatchInfo2 *imi,
       PatElem atom;
       p->getElem(atomNo, atom);
       pair<Word, SetRel> values = atom.values[i];
-      if (!Tools::relationHolds(mpAtPer, *((Region*)values.first.addr), 
-                                values.second)) {
-        return false;
+      if (!((Region*)values.first.addr)->IsEmpty()) {
+        if (!Tools::relationHolds(mpAtPer, *((Region*)values.first.addr), 
+                                  values.second)) {
+          return false;
+        }
       }
     }
     else if (relevantAttrs[i].second == "mregion") {
@@ -3826,13 +3837,44 @@ bool TMatchIndexLI::geoMatch(const int atomNo, Tuple *t, IndexMatchInfo2 *imi,
       PatElem atom;
       p->getElem(atomNo, atom);
       pair<Word, SetRel> values = atom.values[i];
-      if (!Tools::relationHolds(mrAtPer, *((Region*)values.first.addr), 
-                                values.second)) {
-        return false;
+      if (!((Region*)values.first.addr)->IsEmpty()) {
+        if (!Tools::relationHolds(mrAtPer, *((Region*)values.first.addr), 
+                                  values.second)) {
+          return false;
+        }
       }
     }
   }
   return true;
+}
+
+/*
+\subsection{Function ~evaluateInstant~}
+
+applied for indextmatches2
+
+*/
+bool Condition::evaluateInstant(const ListExpr tt, Tuple *t, 
+                                IndexMatchInfo2& imi) {
+  Word qResult;
+  for (int i = 0; i < getVarKeysSize(); i++) {
+    int key = getKey(i);
+    if (key > 99) { // reference to attribute of tuple, e.g., X.Trip
+      if (Tools::isMovingAttr(tt, key)) {
+        
+      }
+      else { 
+        pointers[i]->CopyFrom(t->GetAttribute(key - 100));
+      }
+    }
+    else { // reference to instant; X.time
+      ((Periods*)pointers[i])->DeleteIfAllowed();
+      pointers[i] = new datetime::DateTime(datetime::instanttype);
+      *((Instant*)pointers[i]) = imi.inst;
+    }
+  }
+  getQP()->EvalS(getOpTree(), qResult, OPEN);
+  return ((CcBool*)qResult.addr)->GetValue();
 }
 
 /*
@@ -3842,20 +3884,16 @@ applied for indextmatches2
 
 */
 bool TMatchIndexLI::easyCondsMatch(const int atomNo, Tuple *t, 
-                                   IndexMatchInfo2 *imi, Periods *per) {
+                                   IndexMatchInfo2& imi) {
   set<int> pos = p->getEasyCondPos(atomNo);
   if (pos.empty() || p->easyConds.empty()) {
     return true;
   }
-//   IndexMatchInfo imi(p->getElemFromAtom(atom), u);
-  std::map<std::string, int> vte = p->getVarToElem();
-//   for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
-//     switch (type) {
-//       case MLABEL: {
-//         MLabel *traj = (MLabel*)t->GetAttribute(attrno);
-//       }
-//     }
-//   }
+  for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
+    if (!p->easyConds[*it].evaluateInstant(ttList, t, imi)) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -3895,12 +3933,12 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
           if (ok) {
             Tuple *t = rel->GetTuple(id, false);
             // TODO: check if symbolic times specs and easy conds match
-            bool match = geoMatch(trans.first, t, imiPtr, per) &&
-                         easyCondsMatch(trans.first, t, imiPtr, per);
-//             && symTimesMatch() && easyCondsMatch();
+            IndexMatchInfo2 newIMI(imiPtr, per);
+            bool match = geoMatch(trans.first, t, per) &&
+                         easyCondsMatch(trans.first, t, newIMI);
+//             && symTimesMatch();
             if (match) {
               transition = true;
-              IndexMatchInfo2 newIMI(imiPtr, per);
               totalMatch = p->isFinalState(trans.second);
               if (p->hasConds()) {
                 extendBinding2(newIMI, p->getElemFromAtom(trans.first),
@@ -4222,7 +4260,7 @@ bool TMatchIndexLI::initialize(const bool mainAttr,
 //          << minResultPos << endl;
   }
   Tuple *firstTuple = rel->GetTuple(1, false);
-  if (!p->initEasyCondOpTrees(firstTuple, ttList)) {
+  if (!p->initEasyCondOpTrees(mainAttr, firstTuple, ttList)) {
     return false;
   }
   if (!p->initCondOpTrees(firstTuple, ttList)) {
@@ -4781,7 +4819,7 @@ bool Assign::initOpTrees() {
                    + nl->ToString(listutils::getPtrList(strAttr.second)) + "]";
         }
         else {
-          strAttr = Pattern::getPointer(right[i][j].second);
+          strAttr = Pattern::getPointer(right[i][j].second, true);
         }
         pointers[i].push_back(strAttr.second);
         toReplace = right[i][j].first + Condition::getType(right[i][j].second);
@@ -5368,7 +5406,7 @@ void IndexMatchesLI::initialize() {
     storeIndexResult(*it);
   }
   deactivated.resize(rel->GetNoTuples() + 1, true);
-  p->initEasyCondOpTrees();
+  p->initEasyCondOpTrees(true);
   p->initCondOpTrees();
   activeTuples = 0;
   initMatchInfo(cruElems);

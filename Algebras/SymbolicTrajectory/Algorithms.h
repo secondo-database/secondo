@@ -79,6 +79,7 @@ class Assign;
 class ClassifyLI;
 class IndexLI;
 struct IndexMatchInfo;
+struct IndexMatchInfo2;
 
 Pattern* parseString(const char* input, bool classify, Tuple *t,ListExpr ttype);
 void patternFlushBuffer();
@@ -483,6 +484,7 @@ class Condition {
   bool    evaluate(const IndexMatchInfo &imi, M *traj,
                    std::map<std::string, int> &varToElem,
                    Tuple *tuple = 0, ListExpr ttype = 0);
+  bool    evaluateInstant(const ListExpr tt, Tuple *t, IndexMatchInfo2& imi);
 };
 
 /*
@@ -668,8 +670,8 @@ class Pattern {
   void addAtomicPos();
   int getPatternPos(const std::string v);
   bool checkAssignTypes();
-  static std::pair<std::string, Attribute*> getPointer(int key, 
-        Tuple *tuple = 0);
+  static std::pair<std::string, Attribute*> getPointer(const int key,
+                                         const bool mainAttr, Tuple *tuple = 0);
   bool initAssignOpTrees();
   void deleteAssignOpTrees(bool conds);
   bool parseNFA();
@@ -680,7 +682,8 @@ class Pattern {
                        std::set<int>& result);
   bool containsFinalState(std::set<int> &states);
   bool initCondOpTrees(Tuple *tuple = 0, ListExpr ttype = 0);
-  bool initEasyCondOpTrees(Tuple *tuple = 0, ListExpr ttype = 0);
+  bool initEasyCondOpTrees(const bool mainAttr, Tuple *tuple = 0, 
+                           ListExpr ttype = 0);
   void deleteCondOpTrees();
   void deleteEasyCondOpTrees();
   void deleteAtomValues(std::vector<std::pair<int, std::string> > &attrs);
@@ -1452,10 +1455,8 @@ class TMatchIndexLI : public IndexMatchSuper {
   void extendBinding2(IndexMatchInfo2& imi, const int elem, 
                       const bool totalMatch);
   bool canBeDeactivated2(const TupleId id, const int state, const int atom);
-  bool geoMatch(const int atomNo, Tuple *t, IndexMatchInfo2 *imi,
-                temporalalgebra::Periods *per);
-  bool easyCondsMatch(const int atomNo, Tuple *t, IndexMatchInfo2 *imi, 
-                      temporalalgebra::Periods *per);
+  bool geoMatch(const int atomNo, Tuple *t, temporalalgebra::Periods *per);
+  bool easyCondsMatch(const int atomNo, Tuple *t, IndexMatchInfo2& imi);
   bool atomMatch2(const int state, std::pair<int, int> trans);
   void applyNFA(const bool mainAttr, const bool rewrite = false);
   bool initialize(const bool mainAttr, const bool rewrite = false);
@@ -1534,7 +1535,7 @@ class Match {
   bool isSensiblyBound(const std::map<std::string, std::pair<int, int> > &b,
                        std::string& var);
   void deletePattern() {if (p) {delete p; p = 0;}}
-  bool initEasyCondOpTrees() {return p->initEasyCondOpTrees();}
+  bool initEasyCondOpTrees() {return p->initEasyCondOpTrees(true);}
   bool initCondOpTrees() {return p->initCondOpTrees();}
   bool initAssignOpTrees() {return p->initAssignOpTrees();}
   void deleteSetMatrix() {if (matching) {
@@ -4683,7 +4684,7 @@ ExtBool Pattern::matches(M *m) {
     return result;
   }
   Match<M> *match = new Match<M>(this, m);
-  if (initEasyCondOpTrees()) {
+  if (initEasyCondOpTrees(true)) {
     result = match->matches();
   }
   delete match;
@@ -4722,7 +4723,7 @@ ExtBool Match<M>::matches() {
     cout << "empty nfa" << endl;
     return ST_UNDEF;
   }
-  if (!p->initEasyCondOpTrees()) {
+  if (!p->initEasyCondOpTrees(true)) {
     cout << "Error: EasyCondOpTrees not initialized" << endl;
     return ST_UNDEF;
   }
