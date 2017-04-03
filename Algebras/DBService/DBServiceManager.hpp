@@ -70,8 +70,7 @@ storing relation replicas.
 */
     void addNode(const std::string host,
                  const int port,
-                 std::string config,
-				 const int commPort);
+                 std::string config);
 
 /*
 1.2 replicateRelation
@@ -119,8 +118,7 @@ private:
     ConnectionID getNextConnectionID();
     void getWorkerNodesForReplication(std::vector<
                                       ConnectionID>& nodes);
-    bool startFileTransferServer(distributed2::ConnectionInfo* connectionInfo,
-    		const int commPort);
+    bool startFileTransferServer(distributed2::ConnectionInfo* connectionInfo);
     bool persistLocationInformation();
 
     static DBServiceManager* _instance;

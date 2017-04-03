@@ -37,26 +37,15 @@ namespace DBService {
 
 ListExpr OperatorInitDBServiceWorker::mapType(ListExpr nestedList)
 {
-    if (!nl->HasLength(nestedList, 1))
+    if (!nl->HasLength(nestedList, 0))
     {
         ErrorReporter::ReportError(
-                "expected signature: port");
+                "expected signature: (empty signature)");
         return nl->TypeError();
     }
 
-    if (!nl->HasLength(nl->First(nestedList), 2))
-    {
-        ErrorReporter::ReportError("first argument"
-                " should be a (type, expression) pair");
-        return nl->TypeError();
-    }
-
-    if(!CcInt::checkType(nl->First(nl->First(nestedList))))
-    {
-        ErrorReporter::ReportError(
-                "first argument must be: int");
-        return nl->TypeError();
-    }
+    // TODO read ports from config file (probably makes more sense in value
+    // mapping, so just return true here?)
 
     ListExpr typeMapResult = nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()),
@@ -73,6 +62,7 @@ int OperatorInitDBServiceWorker::mapValue(Word* args,
         Word& local,
         Supplier s)
 {
+    // TODO read from config
     CcInt* port = static_cast<CcInt*>(args[0].addr);
     print(port->GetValue());
 

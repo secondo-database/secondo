@@ -75,12 +75,10 @@ ConnectionID DBServiceManager::getNextConnectionID()
 
 void DBServiceManager::addNode(const string host,
         const int port,
-        string config,
-        const int commPort)
+        string config)
 {
     cout << "Adding connection: "
-            << host << ":" << port << " -> " << config << "(CommPort: "
-            << commPort << ")" << endl;
+            << host << ":" << port << " -> " << config << endl;
     ConnectionInfo* connectionInfo =
             ConnectionInfo::createConnection(host, port, config);
     connections.insert(
@@ -88,7 +86,7 @@ void DBServiceManager::addNode(const string host,
                     getNextConnectionID(), connectionInfo));
 
 
-    if(!startFileTransferServer(connectionInfo, commPort))
+    if(!startFileTransferServer(connectionInfo))
     {
         // TODO more descriptive error message (host, port, etc)
         throw new SecondoException("could not start file transfer server");
@@ -99,8 +97,7 @@ void DBServiceManager::addNode(const string host,
 }
 
 bool DBServiceManager::startFileTransferServer(
-        distributed2::ConnectionInfo* connectionInfo,
-        const int commPort)
+        distributed2::ConnectionInfo* connectionInfo)
 {
     //    query << "create database dbservice";
     //    try
@@ -123,7 +120,8 @@ bool DBServiceManager::startFileTransferServer(
     }
 
     stringstream query;
-    query << "query fileTransferServer(" << commPort << ")";
+    //query << "query fileTransferServer(" << commPort << ")";
+    // TODO new operator that triggers FileTransferServer startup
     print(query.str());
 
     return DBServiceUtils::executeQueryOnRemoteServer(connectionInfo,

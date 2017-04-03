@@ -39,6 +39,6 @@ Remark    : Requires a remote server
 Operator  : initdbserviceworker
 Number    : 1
 Signature : int -> bool
-Example   : query initdbserviceworker(3456)
+Example   : query initdbserviceworker()
 Result    : TRUE
 Remark    : Requires a remote server

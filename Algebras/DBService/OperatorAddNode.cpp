@@ -40,10 +40,10 @@ ListExpr OperatorAddNode::mapType(ListExpr nestedList)
 {
     print(nestedList);
 
-    if (!nl->HasLength(nestedList, 4))
+    if (!nl->HasLength(nestedList, 3))
     {
         ErrorReporter::ReportError(
-                "expected signature: host x port x config x commPort");
+                "expected signature: host x port x config");
                 return nl->TypeError();
     }
 
@@ -89,24 +89,9 @@ ListExpr OperatorAddNode::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
-    if (!nl->HasLength(nl->Fourth(nestedList), 2))
-    {
-        ErrorReporter::ReportError("fourth argument"
-                                   " should be a (type, expression) pair");
-        return nl->TypeError();
-    }
-
-    if(!CcInt::checkType(nl->First(nl->Fourth(nestedList))))
-    {
-        ErrorReporter::ReportError(
-                "fourth argument must be: int");
-        return nl->TypeError();
-    }
-
-    ListExpr appendList = nl->FourElemList(nl->Second(nl->First(nestedList)),
+    ListExpr appendList = nl->ThreeElemList(nl->Second(nl->First(nestedList)),
                                             nl->Second(nl->Second(nestedList)),
-                                            nl->Second(nl->Third(nestedList)),
-                                            nl->Second(nl->Fourth(nestedList)));
+                                            nl->Second(nl->Third(nestedList)));
 
     ListExpr typeMapResult = nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()), appendList,
@@ -124,17 +109,14 @@ int OperatorAddNode::mapValue(Word* args,
     CcString* host = static_cast<CcString*>(args[0].addr);
     CcInt* port = static_cast<CcInt*>(args[1].addr);
     CcString* config = static_cast<CcString*>(args[2].addr);
-    CcInt* commPort = static_cast<CcInt*>(args[3].addr);
 
     print(host->GetValue());
     print(port->GetValue());
     print(config->GetValue());
-    print(commPort->GetValue());
 
     DBServiceManager::getInstance()->addNode(host->GetValue(),
                                              port->GetValue(),
-                                             config->getCsvStr(),
-                                             commPort->GetValue());
+                                             config->getCsvStr());
 
     result = qp->ResultStorage(s);
     static_cast<CcBool*>(result.addr)->Set(true,true);

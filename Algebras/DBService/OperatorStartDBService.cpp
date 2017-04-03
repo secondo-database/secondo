@@ -151,9 +151,7 @@ int OperatorStartDBService::mapValue(Word* args,
        tuple->DeleteIfAllowed();
 
        print("add node");
-       DBServiceManager::getInstance()->addNode(host, port, config, 0);
-       // TODO use correct port
-
+       DBServiceManager::getInstance()->addNode(host, port, config);
     }
     delete it;
     return 0;
