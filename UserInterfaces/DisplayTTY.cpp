@@ -171,7 +171,6 @@ function.
 void DisplayTTY::CallDisplayFunction( const string& name,
                                       ListExpr type,
                                       ListExpr value ) {
-
   
   DisplayMap::iterator dfPos = displayFunctions.find(name );
   if ( dfPos != displayFunctions.end() ) {
@@ -434,7 +433,7 @@ struct DisplayAttributeRelation : DisplayFunction
       } else {
          tn = nl->SymbolValue(nl->First(attrType));
       }
-      CallDisplayFunction(tn, nl->First(nl->First(type)), nl->First(value));
+      CallDisplayFunction(tn, attrType, nl->First(value));
       cout << endl;
       type    = nl->Rest( type );
       value   = nl->Rest( value );
@@ -442,7 +441,114 @@ struct DisplayAttributeRelation : DisplayFunction
   }
 };
 
+struct DisplayARel : DisplayFunction
+{
+    const static int c_indentBy = 4;
 
+    virtual void Display(ListExpr type, ListExpr value)
+    {
+      DisplayRelation(type, value);
+    }
+
+    static void DisplayRelation(ListExpr type, ListExpr value,
+        int indentation = 0)
+    {
+      ListExpr attrDescs = nl->Second(nl->Second(type));
+      if (indentation == 0)
+      {
+        indentation = GetBaseIndentation(attrDescs);
+      }
+      if (!nl->IsAtom(value))
+      {
+        cout << endl; // Print Subvalues in new line and increase indentation
+        while (!nl->IsEmpty(value))
+        {
+          const ListExpr &currentTuple = nl->First(value);
+          DisplayTuple(attrDescs, currentTuple, indentation);
+          value = nl->Rest(value);
+        }
+      }
+      else
+      {
+        cout << nl->ToString(value) << endl;
+      }
+    }
+
+  private:
+
+    static void DisplayTuple(ListExpr attrDescs, ListExpr value,
+        const int indentation)
+    {
+      while (!nl->IsEmpty(attrDescs))
+      {
+        const ListExpr &currentAttrDesc = nl->First(attrDescs);
+        const string &attrName = nl->SymbolValue(nl->First(currentAttrDesc));
+        const ListExpr &currentAttrType = nl->Second(currentAttrDesc);
+        const string &attrShortType = GetShortType(currentAttrType);
+        cout << string(indentation - attrName.length(), ' ') << attrName
+            << " : ";
+        if ((attrShortType == "arel2") || (attrShortType == "nrel2"))
+        {
+          DisplayRelation(currentAttrType, nl->First(value),
+              indentation + c_indentBy);
+          //Print an empty line after a complete (sub)relation.
+          //On higher levels this will sum up to multiple empty lines,
+          //the "bigger" the relation the bigger the space.
+        }
+        else
+        {
+          DisplayTTY::GetInstance().CallDisplayFunction(attrShortType,
+              currentAttrType, nl->First(value));
+          cout << endl;
+        }
+        attrDescs = nl->Rest(attrDescs);
+        value = nl->Rest(value);
+      }
+      //Print an empty line after each tuple to group attributes of one tuple
+      //together visually
+      cout << endl;
+    }
+
+    static int GetBaseIndentation(ListExpr attrDescs)
+    {
+      int result = 0;
+      //listForeach should be available here...
+      while (!nl->IsEmpty(attrDescs))
+      {
+        ListExpr currentAttrDesc = nl->First(attrDescs);
+        const ListExpr &attrType = nl->Second(currentAttrDesc);
+        string shortType = GetShortType(attrType);
+        int len = 0;
+        const string &attrName = nl->SymbolValue(
+            nl->First(currentAttrDesc));
+        len = attrName.length();
+        result = (len > result) ? len : result;
+        if ((shortType == "arel2") || (shortType == "nrel2"))
+        {
+          len = GetBaseIndentation(nl->Second(nl->Second(attrType)))-c_indentBy;
+          result = (len > result) ? len : result;
+        }
+        attrDescs = nl->Rest(attrDescs);
+      }
+      return result;
+    }
+
+    static string GetShortType(const ListExpr attrType)
+    {
+      return
+          nl->IsAtom(attrType) ?
+              nl->SymbolValue(attrType) : nl->SymbolValue(nl->First(attrType));
+    }
+
+};
+
+struct DisplayNRel : DisplayFunction
+{
+  virtual void Display( ListExpr type, ListExpr value )
+  {
+    DisplayARel::DisplayRelation(type, value);
+  }
+};
 
 struct DisplayInquiry: DisplayFunction{
 
@@ -3521,6 +3627,8 @@ DisplayTTY::Initialize()
   d.Insert( "mrel",    new DisplayRelation() );
   d.Insert( "nrel",    new DisplayNestedRelation() );
   d.Insert( "arel",    new DisplayAttributeRelation() );
+  d.Insert( "nrel2",   new DisplayNRel() ); //nr2a::ARel::BasicType()
+  d.Insert( "arel2",   new DisplayARel() ); //nr2a::NRel::BasicType()
   d.Insert( "tuple",   new DisplayTuples() );
   d.Insert( "mtuple",  new DisplayTuples() );
   d.Insert( "map",     new DisplayFun() );
