@@ -27,6 +27,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "DBServiceCommunicationServer.hpp"
+#include "DBServiceCommunicationProtocol.hpp"
+#include "DBServiceCommunicationProtocol.hpp"
+
+#include "SocketIO.h"
+#include "StringUtils.h"
 
 #include <iostream>
 
@@ -36,15 +41,54 @@ using namespace std;
 namespace DBService {
 
 DBServiceCommunicationServer::DBServiceCommunicationServer(int port) :
-        Server(port) {
+        Server(port)
+{
     cout << "Initializing DBServiceCommunicationServer (port " << port << ")"
             << endl;
 }
 
-DBServiceCommunicationServer::~DBServiceCommunicationServer() {
+DBServiceCommunicationServer::~DBServiceCommunicationServer()
+{}
+
+int DBServiceCommunicationServer::start()
+{
+    listener = Socket::CreateGlobal("localhost", stringutils::int2str(port));
+    if (!listener->IsOk())
+    {
+        return 1;
+    }
+    server = listener->Accept();
+    if (!server->IsOk())
+    {
+        return 2;
+    }
+    return communicate();
 }
 
-int DBServiceCommunicationServer::start() {
+int DBServiceCommunicationServer::communicate()
+{
+    try
+    {
+        iostream& io = server->GetSocketStream();
+        io << DBServiceCommunicationProtocol::CommunicationServer() << endl;
+        io.flush();
+        string line;
+        getline(io, line);
+        while(line != DBServiceCommunicationProtocol::ShutDown())
+        {
+            if (line != DBServiceCommunicationProtocol::CommunicationClient())
+            {
+                cerr << "Protocol error" << endl;
+                continue;
+            }
+
+            getline(io, line);
+        }
+    } catch (...)
+    {
+        cerr << "DBServiceCommunicationServer: communication error" << endl;
+        return 5;
+    }
     return 0;
 }
 

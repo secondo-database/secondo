@@ -36,6 +36,8 @@ namespace DBService {
 class DBServiceCommunicationProtocol {
 public:
     static std::string CommunicationServer();
+    static std::string CommunicationClient();
+    static std::string ShutDown();
 };
 
 } /* namespace DBService */

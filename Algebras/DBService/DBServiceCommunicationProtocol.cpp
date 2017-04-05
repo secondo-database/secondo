@@ -33,8 +33,19 @@ using namespace std;
 
 namespace DBService {
 
-string DBServiceCommunicationProtocol::CommunicationServer() {
+string DBServiceCommunicationProtocol::CommunicationServer()
+{
     return "<DBSERVICECOMMSERV>";
+}
+
+string DBServiceCommunicationProtocol::CommunicationClient()
+{
+    return "<DBSERVICECOMMCLI>";
+}
+
+string DBServiceCommunicationProtocol::ShutDown()
+{
+    return "<SHUTDOWN>";
 }
 
 } /* namespace DBService */

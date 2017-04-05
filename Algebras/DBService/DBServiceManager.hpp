@@ -124,7 +124,7 @@ private:
     static DBServiceManager* _instance;
     static std::map<ConnectionID, distributed2::ConnectionInfo*> connections;
     std::vector<boost::shared_ptr<RelationInfo> > replicaLocations;
-    boost::shared_ptr<DBServiceCommunicationServer> commServer;
+    //boost::shared_ptr<DBServiceCommunicationServer> commServer;
 
 };
 

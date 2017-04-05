@@ -38,6 +38,8 @@ public:
 	explicit DBServiceCommunicationServer(int port);
 	virtual ~DBServiceCommunicationServer();
 	int start();
+protected:
+	int communicate();
 };
 
 } /* namespace DBService */

@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DBServiceCommunicationServer.hpp"
 #include "DBServiceUtils.hpp"
 #include "DebugOutput.hpp"
+#include "ServerRunnable.hpp"
 
 #include "SecondoException.h"
 #include "ConnectionInfo.h"
@@ -54,9 +55,10 @@ DBServiceManager::DBServiceManager()
     string port;
     DBServiceUtils::readFromConfigFile(
             port, "DBService","DBServicePort", "9989");
-    commServer = boost::make_shared<DBServiceCommunicationServer>(
-            DBServiceCommunicationServer(atoi(port.c_str())));
+    ServerRunnable commServer(atoi(port.c_str()));
+    commServer.run<DBServiceCommunicationServer>();
     vector<ConnectionInfo*> workers;
+
 }
 
 DBServiceManager* DBServiceManager::getInstance()
