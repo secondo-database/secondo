@@ -29,9 +29,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "OperatorInitDBServiceWorker.hpp"
 #include "ServerRunnable.hpp"
 #include "DebugOutput.hpp"
+#include "DBServiceUtils.hpp"
+#include "DBServiceCommunicationServer.hpp"
 
 #include "NestedList.h"
 #include "StandardTypes.h"
+#include "FileTransferServer.h"
+
+using namespace std;
+using namespace distributed2;
 
 namespace DBService {
 
@@ -44,16 +50,7 @@ ListExpr OperatorInitDBServiceWorker::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
-    // TODO read ports from config file (probably makes more sense in value
-    // mapping, so just return true here?)
-
-    ListExpr typeMapResult = nl->ThreeElemList(
-            nl->SymbolAtom(Symbols::APPEND()),
-            nl->Second(nl->First(nestedList)),
-            listutils::basicSymbol<CcBool>());
-
-    print(typeMapResult);
-    return typeMapResult;
+    return listutils::basicSymbol<CcInt>();
 }
 
 int OperatorInitDBServiceWorker::mapValue(Word* args,
@@ -62,12 +59,24 @@ int OperatorInitDBServiceWorker::mapValue(Word* args,
         Word& local,
         Supplier s)
 {
-    // TODO read from config
-    CcInt* port = static_cast<CcInt*>(args[0].addr);
-    print(port->GetValue());
+    string commPort;
+    DBServiceUtils::readFromConfigFile(commPort,
+                                       "DBService",
+                                       "CommunicationPort",
+                                       "0");
+    // TODO ErrorHandling
 
-    ServerRunnable runnable(port->GetValue());
-    runnable.run();
+    ServerRunnable commServer(atoi(commPort.c_str()));
+    commServer.run<DBServiceCommunicationServer>();
+
+    string fileTransferPort;
+    DBServiceUtils::readFromConfigFile(commPort,
+                                           "DBService",
+                                           "CommunicationPort",
+                                           "0");
+    // TODO ErrorHandling
+    ServerRunnable fileServer(atoi(commPort.c_str()));
+    fileServer.run<FileTransferServer>();
 
     result = qp->ResultStorage(s);
     static_cast<CcBool*>(result.addr)->Set(true,true);

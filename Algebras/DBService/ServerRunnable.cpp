@@ -28,6 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "ServerRunnable.hpp"
 #include "DBServiceCommunicationServer.hpp"
+#include "FileTransferServer.h"
+
+using namespace distributed2;
 
 namespace DBService {
 
@@ -37,26 +40,34 @@ ServerRunnable::ServerRunnable(int serverPort)
 
 ServerRunnable::~ServerRunnable()
 {
-    if(runner){
+ /*   if(runner){
         runner->join();
         delete runner;
-    }
+    }*/
 }
 
+template <typename T>
 void ServerRunnable::createServer()
 {
-    DBServiceCommunicationServer server(port);
+    T server(port);
     server.start();
 }
 
+template void ServerRunnable::createServer<DBServiceCommunicationServer>();
+template void ServerRunnable::createServer<FileTransferServer>();
+
+template <typename T>
 void ServerRunnable::run()
 {
     if(runner){
        runner->join();
        delete runner;
     }
-    runner = new boost::thread(&ServerRunnable::createServer, this);
+    runner = new boost::thread(&ServerRunnable::createServer<T>, this);
 }
+
+template void ServerRunnable::run<DBServiceCommunicationServer>();
+template void ServerRunnable::run<FileTransferServer>();
 
 
 

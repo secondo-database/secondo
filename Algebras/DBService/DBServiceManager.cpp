@@ -119,13 +119,11 @@ bool DBServiceManager::startFileTransferServer(
         print("Boo");
     }
 
-    stringstream query;
-    //query << "query fileTransferServer(" << commPort << ")";
-    // TODO new operator that triggers FileTransferServer startup
-    print(query.str());
+    string queryInit("query initdbserviceworker()");
+    print(queryInit);
 
     return DBServiceUtils::executeQueryOnRemoteServer(connectionInfo,
-            query.str());
+            queryInit);
 }
 
 bool DBServiceManager::replicateRelation(const std::string& relationName)

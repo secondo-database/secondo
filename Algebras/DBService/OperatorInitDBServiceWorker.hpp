@@ -41,7 +41,7 @@ struct InitDBServiceWorkerInfo : OperatorInfo
         signature = ""; // TODO
         syntax = ""; // TODO
         meaning = "initialize listeners on DBService worker node";
-        usesArgsInTypeMapping = true;
+        usesArgsInTypeMapping = false;
     }
 };
 

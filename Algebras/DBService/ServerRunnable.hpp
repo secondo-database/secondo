@@ -31,15 +31,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <boost/thread.hpp>
 
+#include "FileTransferServer.h"
+#include "DBServiceCommunicationServer.hpp"
+
 namespace DBService {
 
 class ServerRunnable {
 public:
-	explicit ServerRunnable(int serverPort);
-	~ServerRunnable();
-	void run();
+    explicit ServerRunnable(int serverPort);
+    ~ServerRunnable();
+    template <typename T>
+    void run();
 private:
-	void createServer();
+    template <typename T>
+    void createServer();
     boost::thread* runner;
     int port;
 };
