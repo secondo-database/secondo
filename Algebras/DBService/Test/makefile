@@ -115,25 +115,27 @@ DBSERVICE_INCLUDE_DIRS += -I $(RELATION_DIR) -I $(FTEXT_DIR) -I $(STREAM_DIR)
 DBSERVICE_INCLUDE_DIRS += -I $(ARRAY_DIR) -I $(STANDARDC_DIR) $(DEFAULTCCFLAGS)
 
 #ALG_INC_DIRS?
-DBServiceManagerTest.o : $(USER_DIR)/DBServiceManagerTest.cpp $(GMOCK_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -I $(DISTRIBUTED2_DIR) \
-    -I $(INCLUDEDIR) -I $(RELATION_DIR) -I $(FTEXT_DIR) -I $(STREAM_DIR) \
-    -I $(ARRAY_DIR) -I $(STANDARDC_DIR) $(DEFAULTCCFLAGS) \
-    -c $< -o $@
+#DBServiceManagerTest.o : $(USER_DIR)/DBServiceManagerTest.cpp $(GMOCK_HEADERS)
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -I $(DISTRIBUTED2_DIR) \
+#    -I $(INCLUDEDIR) -I $(RELATION_DIR) -I $(FTEXT_DIR) -I $(STREAM_DIR) \
+#    -I $(ARRAY_DIR) -I $(STANDARDC_DIR) $(DEFAULTCCFLAGS) \
+#    -c $< -o $@
 
-OperatorFeedPFTest.o : $(USER_DIR)/OperatorFeedPFTest.cpp $(GMOCK_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) $(DEFAULTCCFLAGS) \
-    -c $< -o $@
-
-OperatorLetDConsumeTest.o : $(USER_DIR)/OperatorLetDConsumeTest.cpp $(GMOCK_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) $(DEFAULTCCFLAGS) \
-    -c $< -o $@
+#OperatorFeedPFTest.o : $(USER_DIR)/OperatorFeedPFTest.cpp $(GMOCK_HEADERS)
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) $(DEFAULTCCFLAGS) \
+#    -c $< -o $@
+#
+#OperatorLetDConsumeTest.o : $(USER_DIR)/OperatorLetDConsumeTest.cpp $(GMOCK_HEADERS)
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) $(DEFAULTCCFLAGS) \
+#    -c $< -o $@
 
 #DBServiceManagerTest.o : $(USER_DIR)/DBServiceManagerTest.cpp $(GMOCK_HEADERS)
 #	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-SuiteDBService : DBServiceManagerTest.o OperatorFeedPFTest.o \
-    OperatorLetDConsumeTest.o \
+DBServiceCommunicationServerTest.o : $(USER_DIR)/DBServiceCommunicationServerTest.cpp $(GMOCK_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DBSERVICE_INCLUDE_DIRS) -c $< -o $@
+
+SuiteDBService : DBServiceCommunicationServerTest.o \
     gmock_main.a \
-    $(LIBDBSERVICE) $(LIBDISTRIBUTED2) $(LIBUTILS)
+    $(LIBDBSERVICE)# $(LIBDISTRIBUTED2) $(LIBUTILS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ -lpthread $(COMMON_LD_FLAGS)

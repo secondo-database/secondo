@@ -26,14 +26,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
+
 #include "DBServiceCommunicationServer.hpp"
-#include "DBServiceCommunicationProtocol.hpp"
 #include "DBServiceCommunicationProtocol.hpp"
 
 #include "SocketIO.h"
 #include "StringUtils.h"
 
-#include <iostream>
 
 using namespace distributed2;
 using namespace std;
@@ -65,11 +64,16 @@ int DBServiceCommunicationServer::start()
     return communicate();
 }
 
+iostream& DBServiceCommunicationServer::getSocketStream()
+{
+    return server->GetSocketStream();
+}
+
 int DBServiceCommunicationServer::communicate()
 {
     try
     {
-        iostream& io = server->GetSocketStream();
+        iostream& io = getSocketStream();
         io << DBServiceCommunicationProtocol::CommunicationServer() << endl;
         io.flush();
         string line;

@@ -29,17 +29,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_DBServiceCommunicationServer_HPP_
 #define ALGEBRAS_DBSERVICE_DBServiceCommunicationServer_HPP_
 
+#include <iostream>
+
 #include "FileTransferServer.h"
 
 namespace DBService {
 
 class DBServiceCommunicationServer: public distributed2::Server {
 public:
-	explicit DBServiceCommunicationServer(int port);
-	virtual ~DBServiceCommunicationServer();
-	int start();
+    explicit DBServiceCommunicationServer(int port);
+    virtual ~DBServiceCommunicationServer();
+    virtual int start();
 protected:
-	int communicate();
+    int communicate();
+    virtual std::iostream& getSocketStream();
 };
 
 } /* namespace DBService */

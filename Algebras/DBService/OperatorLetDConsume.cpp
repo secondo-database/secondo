@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "OperatorLetDConsume.hpp"
 
 #include "OperatorConsume.h"
-#include "DBServiceManager.hpp"
+#include "DBServiceConnector.hpp"
 #include "DebugOutput.hpp"
 
 #include <sstream>
@@ -99,7 +99,7 @@ int OperatorLetDConsume::mapValue(Word* args,
     int consumeValueMappingResult = OperatorConsume::Consume(args, result,
                                                              message, local, s);
     // checking return code of value mapping is noOp?!
-    DBServiceManager::getInstance()->replicateRelation(
+    DBServiceConnector::getInstance()->replicateRelation(
             static_cast<CcString*>(args[0].addr)->GetValue());
     return consumeValueMappingResult;
 }

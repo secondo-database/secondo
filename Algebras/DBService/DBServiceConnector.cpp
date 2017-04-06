@@ -31,6 +31,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/make_shared.hpp>
 
 #include "DBServiceConnector.hpp"
+#include "DBServiceUtils.hpp"
+#include "DBServiceCommunicationClient.hpp"
+
+#include "SecondoException.h"
 
 using namespace std;
 
@@ -52,6 +56,38 @@ DBServiceConnector* DBServiceConnector::getInstance()
         _instance = new DBServiceConnector();
     }
     return _instance;
+}
+
+bool DBServiceConnector::replicateRelation(const std::string& relationName)
+{
+    string dbServiceHost;
+    DBServiceUtils::readFromConfigFile(dbServiceHost,
+                                           "DBService",
+                                           "DBServiceHost",
+                                           "");
+    if(dbServiceHost.length() == 0)
+    {
+        throw new SecondoException("DBServiceHost not configured");
+    }
+
+    string dbServicePort;
+    DBServiceUtils::readFromConfigFile(dbServicePort,
+                                       "DBService",
+                                       "DBServicePort",
+                                       "");
+    if(dbServicePort.length() == 0)
+    {
+        throw new SecondoException("DBServicePort not configured");
+    }
+
+    // connect to DBService master to find out location for replication
+    DBServiceCommunicationClient masterClient(dbServiceHost,
+                                              atoi(dbServicePort.c_str()), 0);
+    masterClient.start(); //TODO appropriate signature to find out workers
+
+    // TODO replicate relation according to configured number
+    //      by connecting to each of the nodes
+    return true;
 }
 
 DBServiceConnector* DBServiceConnector::_instance = NULL;

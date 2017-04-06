@@ -46,8 +46,15 @@ public:
 Returns the DBServiceConnector instance (singleton).
 
 */
-	static DBServiceConnector* getInstance();
+    static DBServiceConnector* getInstance();
 
+/*
+1.2 replicateRelation
+
+//TODO
+
+*/
+    bool replicateRelation(const std::string& relationName);
 
 protected:
 /*

@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "OperatorFilter.h"
 #include "OperatorProject.h"
 
-#include "DBServiceManager.hpp"
+#include "DBServiceConnector.hpp"
 
 namespace DBService
 {
@@ -73,12 +73,12 @@ ListExpr OperatorFeedPF::mapType(ListExpr nestedList)
     ListExpr filterConditions = nl->Third(nestedList);
     ListExpr projectAttributes = nl->Second(nestedList);
 
-    DBServiceManager::getInstance();
+    DBServiceConnector::getInstance();
 
     ListExpr feedResult = OperatorFeed::FeedTypeMap(feedInput);
     if (feedResult == nl->TypeError())
     {
-        // TODO -> contact DBServiceManager and retrieve stream from there
+        // TODO -> contact DBServiceConnector and retrieve stream from there
     }
     ListExpr filterInput = nl->TwoElemList(
             feedResult,

@@ -26,8 +26,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceCommunicationClient.hpp"
+#include <iostream>
 
+#include "DBServiceCommunicationClient.hpp"
+#include "DBServiceCommunicationProtocol.hpp"
+
+#include "SocketIO.h"
+#include "StringUtils.h"
+
+
+using namespace std;
 using namespace distributed2;
 
 namespace DBService {
@@ -40,6 +48,26 @@ DBServiceCommunicationClient::DBServiceCommunicationClient(
 
 int DBServiceCommunicationClient::start()
 {
+    socket = Socket::Connect(server, stringutils::int2str(port),
+                Socket::SockGlobalDomain, 3, 1);
+        if (!socket) {
+            return 8;
+        }
+        if (!socket->IsOk()) {
+            return 9;
+        }
+        return communicate();
+}
+
+int DBServiceCommunicationClient::communicate()
+{
+    iostream& io = socket->GetSocketStream();
+    string line;
+    getline(io, line);
+    if (line != DBServiceCommunicationProtocol::CommunicationServer())
+    {
+        return 11;
+    }
     return 0;
 }
 
