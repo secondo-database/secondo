@@ -267,7 +267,7 @@ class MBasic : public Attribute {
   bool Passes(const B& basic) const;
   void At(const B& basic, MBasic<B>& result) const;
   void DefTime(temporalalgebra::Periods& per) const;
-  void Atinstant(const Instant& inst, IBasic<B>& result) const;
+  void AtInstant(const Instant& inst, IBasic<B>& result) const;
   void AtPeriods(const temporalalgebra::Periods& per, MBasic<B>& result) const;
   void Initial(IBasic<B>& result) const;
   void Final(IBasic<B>& result) const;
@@ -360,7 +360,7 @@ class MBasics : public Attribute {
   void At(const typename B::single& sg, MBasics<B>& result) const;
   void At(const B& bs, MBasics<B>& result) const;
   void DefTime(temporalalgebra::Periods& per) const;
-  void Atinstant(const Instant& inst, IBasics<B>& result) const;
+  void AtInstant(const Instant& inst, IBasics<B>& result) const;
   void AtPeriods(const temporalalgebra::Periods& per, MBasics<B>& result) const;
   void Initial(IBasics<B>& result) const;
   void Final(IBasics<B>& result) const;
@@ -430,6 +430,8 @@ class Condition {
   int convertVarKey(const char *varKey, Tuple *t = 0, ListExpr tupleType = 0);
   void clear();
   static std::string getType(int t, Tuple *tuple = 0, ListExpr ttype = 0);
+  static void getConstValue(Attribute *src, const std::string& type,
+                            const Instant& inst, Attribute*& result);
   bool initOpTree(Tuple *tuple = 0, ListExpr ttype = 0);
   void deleteOpTree();
   
@@ -455,6 +457,7 @@ class Condition {
   void    clearTimePtr(unsigned int pos);
   void    mergeAddTimePtr(unsigned int pos, 
                          temporalalgebra::Interval<Instant>& value);
+  void    setTimePtr(unsigned int pos, const temporalalgebra::Periods& per);
   void    setStartEndPtr(unsigned int pos, Instant& value);
   void    setCardPtr(unsigned int pos, int value);
   void    cleanLabelsPtr(unsigned int pos);
@@ -485,6 +488,10 @@ class Condition {
                    std::map<std::string, int> &varToElem,
                    Tuple *tuple = 0, ListExpr ttype = 0);
   bool    evaluateInstant(const ListExpr tt, Tuple *t, IndexMatchInfo2& imi);
+  bool    copyPtrFromAttr(const int pos, Attribute *attr);
+  void    copyAndRestrictPtr(const int pos, Tuple *tuple, const ListExpr ttype,
+                            const int key, const temporalalgebra::Periods& per);
+  void    setPtrToTimeValue(const int pos, const temporalalgebra::Periods& per);
 };
 
 /*
@@ -671,7 +678,7 @@ class Pattern {
   int getPatternPos(const std::string v);
   bool checkAssignTypes();
   static std::pair<std::string, Attribute*> getPointer(const int key,
-                                         const bool mainAttr, Tuple *tuple = 0);
+                      const bool mainAttr, const bool isEasy, Tuple *tuple = 0);
   bool initAssignOpTrees();
   void deleteAssignOpTrees(bool conds);
   bool parseNFA();
@@ -752,7 +759,7 @@ class Pattern {
                                                               {varToElem = vte;}
   int               getElemFromVar(std::string var) {
                                    if (varToElem.find(var) == varToElem.end()) {
-                                     return -1;
+                                     return INT_MIN;
                                    }
                                    return varToElem[var];}
   int               getElemFromAtom(int atom) {return atomicToElem[atom];}
@@ -1252,6 +1259,44 @@ struct IndexMatchInfo2 {
   
   void print();
   
+  bool getBinding(const int elem, temporalalgebra::SecInterval& result) const {
+    result.SetDefined(true);
+    if (elem >= 0) { // variable directly precedes elem
+      if (binding.find(elem) == binding.end()) { // not found
+        result.SetDefined(false);
+        return false;
+      }
+      result = binding.at(elem);
+    }
+    else { // between case
+      int pred = std::abs(elem) - 2;
+      if (pred == -1) { // variable before first element
+        if (binding.find(0) == binding.end()) { // not found
+          result.SetDefined(false);
+          return false;
+        }
+        result.start.ToMinimum();
+        result.lc = false;
+        result.SetEnd(binding.at(0).start, false);
+      }
+      else {
+        if (binding.find(pred) == binding.end()) { // not found
+          result.SetDefined(false);
+          return false;
+        }
+        result.SetStart(binding.at(pred).end, false);
+        if (binding.find(pred + 1) == binding.end()) { // end not found
+          result.end.ToMaximum();
+          result.rc = false;
+        }
+        else {
+          result.SetEnd(binding.at(pred + 1).start, false);
+        }
+      }
+    }
+    return true;
+  }
+  
   Instant inst; 
   std::map<int, temporalalgebra::SecInterval> binding; // patelem --> interval
 };
@@ -1456,6 +1501,7 @@ class TMatchIndexLI : public IndexMatchSuper {
                       const bool totalMatch);
   bool canBeDeactivated2(const TupleId id, const int state, const int atom);
   bool geoMatch(const int atomNo, Tuple *t, temporalalgebra::Periods *per);
+  bool condsMatch(Tuple *t, const IndexMatchInfo2& imi);
   bool easyCondsMatch(const int atomNo, Tuple *t, IndexMatchInfo2& imi);
   bool atomMatch2(const int state, std::pair<int, int> trans);
   void applyNFA(const bool mainAttr, const bool rewrite = false);
@@ -2928,11 +2974,11 @@ void MBasic<B>::DefTime(temporalalgebra::Periods& per) const {
 }
 
 /*
-\subsection{Function ~Atinstant~}
+\subsection{Function ~AtInstant~}
 
 */
 template<class B>
-void MBasic<B>::Atinstant(const Instant& inst, IBasic<B>& result) const {
+void MBasic<B>::AtInstant(const Instant& inst, IBasic<B>& result) const {
   if(!IsDefined() || !inst.IsDefined()) {
     result.SetDefined(false);
     return;
@@ -4135,7 +4181,7 @@ void MBasics<B>::DefTime(temporalalgebra::Periods& per) const {
 
 */
 template<class B>
-void MBasics<B>::Atinstant(const Instant& inst, 
+void MBasics<B>::AtInstant(const Instant& inst, 
                            IBasics<B>& result) const {
   if(!IsDefined() || !inst.IsDefined()) {
     result.SetDefined(false);
@@ -4408,66 +4454,7 @@ void Condition::restrictPtr(const int pos, M *traj, const int from,
     iv.rc = ivtemp.rc;
     per.Add(iv);
   }
-  std::string attrtype = nl->ToString(nl->Second(nl->Nth(key, 
-                                      nl->Second(ttype))));
-  if (attrtype == "mbool") {
-    ((temporalalgebra::MBool*)tuple->GetAttribute(key - 1))->AtPeriods(per,
-                                   *((temporalalgebra::MBool*)pointers[pos]));
-  }
-  else if (attrtype == "mint") {
-    ((temporalalgebra::MInt*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                  *((temporalalgebra::MInt*)pointers[pos]));
-  }
-  else if (attrtype == "mlabel") {
-    ((MLabel*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                  *((MLabel*)pointers[pos]));
-  }
-  else if (attrtype == "mlabels") {
-    ((MLabels*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                  *((MLabels*)pointers[pos]));
-  }
-  else if (attrtype == "mplace") {
-    MPlace mp(true);
-    Place::base value;
-    Region tmp(true);
-    std::string type;
-    Word geo;
-    ((MPlace*)tuple->GetAttribute(key - 1))->AtPeriods(per, mp);
-    for (int i = 0; i < mp.GetNoComponents(); i++) {
-      mp.GetValue(i, value);
-      if (value.second > 0) {
-        Tools::getGeoFromORel("Places", value.second, false, geo, type);
-        if (type == "point") {
-          tmp.Union(*((Point*)geo.addr), (*((Region*)pointers[pos])));
-        }
-        else if (type == "line") {
-          tmp.Union(*((Line*)geo.addr), (*((Region*)pointers[pos])));
-        }
-        else if (type == "region") {
-          tmp.Union(*((Region*)geo.addr), (*((Region*)pointers[pos])));
-        }
-        else {
-          cout << "ERROR: type is " << type << endl; // cannot occur
-        }
-      }
-    }
-  }
-  else if (attrtype == "mplaces") {
-    ((MPlaces*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                                    *((MPlaces*)pointers[pos]));
-  }
-  else if (attrtype == "mpoint") {
-    ((temporalalgebra::MPoint*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                    *((temporalalgebra::MPoint*)pointers[pos]));
-  }
-  else if (attrtype == "mreal") {
-    ((temporalalgebra::MReal*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                 *((temporalalgebra::MReal*)pointers[pos]));
-  }
-  else if (attrtype == "mregion") {
-    ((temporalalgebra::MRegion*)tuple->GetAttribute(key - 1))->AtPeriods(&per, 
-                                     (temporalalgebra::MRegion*)pointers[pos]);
-  }
+  copyAndRestrictPtr(pos, tuple, ttype, key, per);
 }
 
 /*

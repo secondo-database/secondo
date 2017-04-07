@@ -100,9 +100,9 @@ class Label : public Attribute {
   typedef Labels coll;
    
   Label() {}
-  Label(const std::string& text) : Attribute(true), value(0) {SetValue(text);}
+  Label(const std::string& text) : Attribute(true), value(8) {SetValue(text);}
   Label(const Label& rhs);
-  explicit Label(const bool def) : Attribute(def), value(0) {}
+  explicit Label(const bool def) : Attribute(def), value(8) {}
   
   ~Label() {}
   

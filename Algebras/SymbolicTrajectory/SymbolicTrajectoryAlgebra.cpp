@@ -853,7 +853,12 @@ int equalsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   U *second = static_cast<U*>(args[1].addr);
   result = qp->ResultStorage(s);
   CcBool *res = static_cast<CcBool*>(result.addr);
+  cout << T::BasicType() << " " << U::BasicType() << endl;
+  cout << second->IsDefined() << endl;
+  cout << first->IsDefined() << endl;
   if (first->IsDefined() && second->IsDefined()) {
+    cout << second->GetValue() << endl;
+    cout << first->GetValue() << endl;
     res->Set(true, first->GetValue() == second->GetValue());
   }
   else {
@@ -1886,7 +1891,7 @@ int atinstantSymbolicVM(Word* args, Word& result, int message, Word& local,
   Mapping *src = static_cast<Mapping*>(args[0].addr);
   Instant *inst = static_cast<Instant*>(args[1].addr);
   Intime *res = static_cast<Intime*>(result.addr);
-  src->Atinstant(*inst, *res);
+  src->AtInstant(*inst, *res);
   return 0;
 }
 

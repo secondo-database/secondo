@@ -884,6 +884,14 @@ int Condition::convertVarKey(const char *varKey, Tuple *t /* = 0 */,
       return key;
     }
   }
+  if (wholepat->getElemFromVar(varInput) != INT_MIN) { // indextmatches2
+    key = Tools::getKey(kInput, t, tupleType);
+    condVars.insert(varInput);
+    wholepat->addRelevantVar(varInput);
+    varKeys.push_back(make_pair(varInput, key));
+    easyCond = false;
+    return key;
+  }
   cout << "variable " << varInput << " does not exist in the pattern" << endl;
   return -1;
 }

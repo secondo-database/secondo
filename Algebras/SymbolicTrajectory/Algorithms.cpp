@@ -478,6 +478,111 @@ ExtBool Pattern::tmatches(Tuple *tuple, const int attrno, ListExpr ttype) {
   return result;
 }
 
+/*
+function ~getConstValue~
+
+Extracts a constant value from a moving attribute at a certain instant, e.g.,
+for an mpoint attribute, the function yields a point result.
+
+*/
+void Condition::getConstValue(Attribute *src, const std::string& type,
+                              const Instant& inst, Attribute*& result) {
+  if (type == "mlabel") {
+    if (src != 0) {
+      ILabel il(true);
+      ((MLabel*)src)->AtInstant(inst, il);
+      result = il.value.Clone();
+    }
+    else {
+      result = new Label(true);
+    }
+  }
+  else if (type == "mlabels") {
+    if (src != 0) {
+      ILabels ils(true);
+      ((MLabels*)src)->AtInstant(inst, ils);
+      result = ils.value.Clone();
+    }
+    else {
+      result = new Labels(true);
+    }
+  }
+  else if (type == "mplace") {
+    if (src != 0) {
+      IPlace ip(true);
+      ((MPlace*)src)->AtInstant(inst, ip);
+      result = ip.value.Clone();
+    }
+    else {
+      result = new Place(true);
+    }
+  }
+  else if (type == "mplaces") {
+    if (src != 0) {
+      IPlaces ips(true);
+      ((MPlaces*)src)->AtInstant(inst, ips);
+      result = ips.value.Clone();
+    }
+    else {
+      result = new Places(true);
+    }
+  }
+  else if (type == "mbool") {
+    if (src != 0) {
+      IBool ib(true);
+      ((MBool*)src)->AtInstant(inst, ib);
+      result = ib.value.Clone();
+    }
+    else {
+      result = new CcBool(true);
+    }
+  }
+  else if (type == "mint") {
+    if (src != 0) {
+      IInt ii(true);
+      ((MInt*)src)->AtInstant(inst, ii);
+      result = ii.value.Clone();
+    }
+    else {
+      result = new CcInt(true);
+    }
+  }
+  else if (type == "mreal") {
+    if (src != 0) {
+      IReal ir(true);
+      ((MReal*)src)->AtInstant(inst, ir);
+      result = ir.value.Clone();
+    }
+    else {
+      result = new CcReal(true);
+    }
+  }
+  else if (type == "mpoint") {
+    if (src != 0) {
+      IPoint ip(true);
+      ((MPoint*)src)->AtInstant(inst, ip);
+      result = ip.value.Clone();
+    }
+    else {
+      result = new Point(true);
+    }
+  }
+  else if (type == "mregion") {
+    if (src != 0) {
+      IRegion ir(true);
+      ((MRegion*)src)->AtInstant(inst, ir);
+      result = ir.value.Clone();
+    }
+    else {
+      result = new Region(1);
+    }
+  }
+  else {
+    cout << "INVALID type " << type << endl;
+    result = 0;
+  }
+}
+
 string Condition::getType(int t, Tuple *tuple /* = 0 */, 
                           ListExpr ttype /* = 0 */) {
   if (t > 99) {
@@ -535,6 +640,12 @@ void Condition::clearTimePtr(unsigned int pos) {
 void Condition::mergeAddTimePtr(unsigned int pos, Interval<Instant>& value) {
   if (pos < pointers.size()) {
     ((Periods*)pointers[pos])->MergeAdd(value);
+  }
+}
+
+void Condition::setTimePtr(unsigned int pos, const Periods& per) {
+  if (pos < pointers.size()) {
+    ((Periods*)pointers[pos])->CopyFrom(&per);
   }
 }
 
@@ -601,22 +712,38 @@ Static function invoked by ~initCondOpTrees~ or ~initAssignOpTrees~
 
 */
 pair<string, Attribute*> Pattern::getPointer(const int key, const bool mainAttr,
-                                             Tuple *tuple /* = 0 */) {
+                                    const bool isEasy, Tuple *tuple /* = 0 */) {
   cout << "getPointer: " << key << " " << mainAttr << endl;
   pair<string, Attribute*> result;
   if (key > 99) { // attribute name
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
     AttributeType attrType = tuple->GetTupleType()->GetAttributeType(key - 100);
     string type = sc->GetTypeName(attrType.algId, attrType.typeId);
-    if (type == "mplace" || type == "mplaces") {
-      result.second = new Region(1);
-      result.first = "[const region pointer "
-                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+    cout << "TYPE is " << type << endl;
+    if (!isEasy) {
+      if (type == "mplace" || type == "mplaces") {
+        result.second = new Region(1);
+        result.first = "[const region pointer "
+                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      }
+      else {
+        result.second = tuple->GetAttribute(key - 100)->Clone();
+        result.first = "[const " + type + " pointer "
+                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      }
     }
     else {
-      result.second = tuple->GetAttribute(key - 100)->Clone();
+      if (Tools::isRelevantAttr(type)) { // moving attribute
+        Instant inst(datetime::instanttype);
+        Condition::getConstValue(0, type, inst, result.second);
+        type = type.substr(1);
+      }
+      else { // constant attribute type
+        result.second = tuple->GetAttribute(key - 100)->Clone();
+      }
       result.first = "[const " + type + " pointer "
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      cout << result.first << endl;
     }
   }
   else {
@@ -706,10 +833,12 @@ bool Condition::initOpTree(Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
   vector<Attribute*> ptrs;
   if (!isTreeOk()) {
     q = "query " + text;
-    for (unsigned int j = 0; j < varKeys.size(); j++) { // init pointers
-      strAttr = Pattern::getPointer(getKey(j), true, tuple);
+    for (unsigned int i = 0; i < varKeys.size(); i++) { // init pointers
+      cout << "|| " << varKeys[i].first << "|" << varKeys[i].second 
+           << "|" << endl;
+      strAttr = Pattern::getPointer(getKey(i), true, false, tuple);
       ptrs.push_back(strAttr.second);
-      toReplace = getVar(j) + getType(getKey(j), tuple, ttype);
+      toReplace = getVar(i) + getType(getKey(i), tuple, ttype);
       q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
     }
     pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
@@ -739,7 +868,10 @@ bool Pattern::initEasyCondOpTrees(const bool mainAttr, Tuple *tuple /* = 0 */,
     if (!easyConds[i].isTreeOk()) {
       q = "query " + easyConds[i].getText();
       for (int j = 0; j < easyConds[i].getVarKeysSize(); j++) { // init pointers
-        strAttr = getPointer(easyConds[i].getKey(j), mainAttr, tuple);
+        cout << "|" << easyConds[i].getVar(j) << "|" << easyConds[i].getKey(j)
+             << "|" << varPos[easyConds[i].getVar(j)].first << " " 
+             << varPos[easyConds[i].getVar(j)].second << endl;
+        strAttr = getPointer(easyConds[i].getKey(j), mainAttr, true, tuple);
         ptrs.push_back(strAttr.second);
         toReplace = easyConds[i].getVar(j)
                   + Condition::getType(easyConds[i].getKey(j), tuple, ttype);
@@ -3860,8 +3992,9 @@ bool Condition::evaluateInstant(const ListExpr tt, Tuple *t,
   for (int i = 0; i < getVarKeysSize(); i++) {
     int key = getKey(i);
     if (key > 99) { // reference to attribute of tuple, e.g., X.Trip
-      if (Tools::isMovingAttr(tt, key)) {
-        
+      if (Tools::isMovingAttr(tt, key - 99)) {
+        string type = nl->ToString(nl->Second(nl->Nth(key-99, nl->Second(tt))));
+        getConstValue(t->GetAttribute(key - 100), type, imi.inst, pointers[i]);
       }
       else { 
         pointers[i]->CopyFrom(t->GetAttribute(key - 100));
@@ -3873,7 +4006,11 @@ bool Condition::evaluateInstant(const ListExpr tt, Tuple *t,
       *((Instant*)pointers[i]) = imi.inst;
     }
   }
+  cout << "|||" << ((Label*)pointers[0])->IsDefined() << "|||" 
+             << ((Label*)pointers[0])->GetValue() << endl;
   getQP()->EvalS(getOpTree(), qResult, OPEN);
+//   cout << "result for |" << text << "| is "
+//        << (((CcBool*)qResult.addr)->GetValue() ? "TRUE" : "FALSE") << endl;
   return ((CcBool*)qResult.addr)->GetValue();
 }
 
@@ -3891,6 +4028,188 @@ bool TMatchIndexLI::easyCondsMatch(const int atomNo, Tuple *t,
   }
   for (set<int>::iterator it = pos.begin(); it != pos.end(); it++) {
     if (!p->easyConds[*it].evaluateInstant(ttList, t, imi)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~copyPtrFromAttr~}
+
+Used for indextmatches2.
+
+*/
+bool Condition::copyPtrFromAttr(const int pos, Attribute *attr) {
+  if (pos < 0 || pos >= (int)pointers.size()) {
+    return false;
+  }
+  pointers[pos]->CopyFrom(attr);
+  return true;
+}
+
+/*
+\subsection{Function ~copyAndRestrictPtr~}
+
+Used for indextmatches2.
+
+*/
+void Condition::copyAndRestrictPtr(const int pos, Tuple *tuple, 
+                      const ListExpr ttype, const int key, const Periods& per) {
+  cout << "CALL cARP" << endl;
+  std::string attrtype = nl->ToString(nl->Second(nl->Nth(key, 
+                                      nl->Second(ttype))));
+  if (attrtype == "mbool") {
+    ((temporalalgebra::MBool*)tuple->GetAttribute(key - 1))->AtPeriods(per,
+                                   *((temporalalgebra::MBool*)pointers[pos]));
+  }
+  else if (attrtype == "mint") {
+    ((temporalalgebra::MInt*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                  *((temporalalgebra::MInt*)pointers[pos]));
+  }
+  else if (attrtype == "mlabel") {
+    ((MLabel*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                  *((MLabel*)pointers[pos]));
+  }
+  else if (attrtype == "mlabels") {
+    ((MLabels*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                  *((MLabels*)pointers[pos]));
+  }
+  else if (attrtype == "mplace") {
+    MPlace mp(true);
+    Place::base value;
+    Region tmp(true);
+    std::string type;
+    Word geo;
+    ((MPlace*)tuple->GetAttribute(key - 1))->AtPeriods(per, mp);
+    for (int i = 0; i < mp.GetNoComponents(); i++) {
+      mp.GetValue(i, value);
+      if (value.second > 0) {
+        Tools::getGeoFromORel("Places", value.second, false, geo, type);
+        if (type == "point") {
+          tmp.Union(*((Point*)geo.addr), (*((Region*)pointers[pos])));
+        }
+        else if (type == "line") {
+          tmp.Union(*((Line*)geo.addr), (*((Region*)pointers[pos])));
+        }
+        else if (type == "region") {
+          tmp.Union(*((Region*)geo.addr), (*((Region*)pointers[pos])));
+        }
+        else {
+          cout << "ERROR: type is " << type << endl; // cannot occur
+        }
+      }
+    }
+  }
+  else if (attrtype == "mplaces") {
+    ((MPlaces*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                                    *((MPlaces*)pointers[pos]));
+  }
+  else if (attrtype == "mpoint") {
+    ((temporalalgebra::MPoint*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                    *((temporalalgebra::MPoint*)pointers[pos]));
+  }
+  else if (attrtype == "mreal") {
+    ((temporalalgebra::MReal*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                 *((temporalalgebra::MReal*)pointers[pos]));
+  }
+  else if (attrtype == "mregion") {
+    ((temporalalgebra::MRegion*)tuple->GetAttribute(key - 1))->AtPeriods(&per, 
+                                     (temporalalgebra::MRegion*)pointers[pos]);
+  }
+}
+
+/*
+\subsection{Function ~setPtrToTimeValue~}
+
+Used for indextmatches2.
+
+*/
+void Condition::setPtrToTimeValue(const int pos, const Periods& per) {
+  SecInterval iv(true);
+  Instant inst(datetime::instanttype);
+  switch (getKey(pos)) {
+    case 2: { // time
+      clearTimePtr(pos);
+      setTimePtr(pos, per);
+      break;
+    }
+    case 3: { // start
+      per.Minimum(inst);
+      setStartEndPtr(pos, iv.start);
+      break;
+    }
+    case 4: { // end
+      per.Maximum(inst);
+      setStartEndPtr(pos, iv.end);
+      break;
+    }
+    case 5: { // leftclosed
+      per.Minimum(inst);
+      setLeftRightclosedPtr(pos, iv.lc);
+      break;
+    }
+    case 6: { // rightclosed
+      per.Maximum(inst);
+      setLeftRightclosedPtr(pos, iv.rc);
+      break;
+    }
+    default: {
+      cout << "ERROR: key " << getKey(pos) << " is invalid" << endl;
+    }
+  }
+}
+
+/*
+\subsection{Function ~condsMatch~}
+
+Used for indextmatches2.
+
+*/
+bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
+  if (!p->hasConds()) {
+    return true;
+  }
+  Word qResult;
+  vector<Condition> *conds = p->getConds();
+  Instant i1(datetime::instanttype), i2(datetime::instanttype);
+  i1.ToMinimum();
+  i2.ToMaximum();
+  Periods per(true);
+  for (unsigned int i = 0; i < conds->size(); i++) {
+    cout << "evaluate cond " << i << " %%% " << conds->at(i).getText() << endl;
+//     conds->at(i).evaluate(t, imi);
+    for (int j = 0; j < conds->at(i).getVarKeysSize(); j++) {
+      int elem = p->getElemFromVar(conds->at(i).getVar(j));
+      SecInterval iv(i1, i2);
+      if (!imi.getBinding(elem, iv)) {
+        cout << "ERROR" << endl;
+        return false;
+      }
+      per.Add(iv);
+      int key = conds->at(i).getKey(j);
+      cout << conds->at(i).getVar(j) << " $ " << key << " $ "
+           << elem << " $ " << iv << endl;
+      if (key > 99) { // reference to attribute, e.g., X.Pos
+        if (!t) {
+          return false;
+        }
+        if (Tools::isMovingAttr(ttList, key - 99)) {
+          conds->at(i).copyAndRestrictPtr(j, t, ttList, key - 99, per);
+        }
+        else { // constant attribute type
+          if (!conds->at(i).copyPtrFromAttr(j, t->GetAttribute(key - 100))) {
+            cout << "ERROR: attribute " << key - 100 << " not copied" << endl;
+            return false;
+          }
+        }
+      }
+      else { // X.time, X.start, X.end, X.leftclosed, X.rightclosed
+        conds->at(i).setPtrToTimeValue(j, per);
+      }
+    }
+    conds->at(i).getQP()->EvalS(conds->at(i).getOpTree(), qResult, OPEN);
+    if (!((CcBool*)qResult.addr)->GetValue()) {
       return false;
     }
   }
@@ -3932,7 +4251,7 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
           bool ok = imiPtr->checkPeriods(per);
           if (ok) {
             Tuple *t = rel->GetTuple(id, false);
-            // TODO: check if symbolic times specs and easy conds match
+            // TODO: check if symbolic times specs match
             IndexMatchInfo2 newIMI(imiPtr, per);
             bool match = geoMatch(trans.first, t, per) &&
                          easyCondsMatch(trans.first, t, newIMI);
@@ -3943,10 +4262,9 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
               if (p->hasConds()) {
                 extendBinding2(newIMI, p->getElemFromAtom(trans.first),
                                totalMatch);
-                newIMI.print();
-                if (totalMatch && p->hasConds()) { // TODO: check conditions
-//                   TMatch tmatch(p, t, ttList, attrNo, relevantAttrs,valueNo);
-//                   totalMatch = tmatch.conditionsMatch(newIMI);
+//                 newIMI.print();
+                if (totalMatch && p->hasConds()) {
+                  totalMatch = condsMatch(t, newIMI);
                 }
               }
               if (totalMatch) {
@@ -4016,9 +4334,8 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
           totalMatch = p->isFinalState(trans.second);
           if (p->hasConds()) {
             extendBinding2(newIMI, p->getElemFromAtom(trans.first), totalMatch);
-            if (totalMatch && p->hasConds()) { // TODO: check conditions
-//               TMatch tmatch(p, t, ttList, attrNo, relevantAttrs, valueNo);
-//               totalMatch = tmatch.conditionsMatch(newIMI);
+            if (totalMatch && p->hasConds()) {
+              totalMatch = condsMatch(t, newIMI);
             }
           }
           if (totalMatch) {
@@ -4819,7 +5136,7 @@ bool Assign::initOpTrees() {
                    + nl->ToString(listutils::getPtrList(strAttr.second)) + "]";
         }
         else {
-          strAttr = Pattern::getPointer(right[i][j].second, true);
+          strAttr = Pattern::getPointer(right[i][j].second, true, false);
         }
         pointers[i].push_back(strAttr.second);
         toReplace = right[i][j].first + Condition::getType(right[i][j].second);
@@ -6342,7 +6659,7 @@ void IndexMatchInfo2::print() {
   cout << "binding has " << binding.size() << " components:" << endl;
   for (map<int, SecInterval>::iterator it = binding.begin(); 
        it != binding.end(); it++) {
-    cout << it->first << " ---> " << it->second;
+    cout << it->first << " ---> " << it->second << ";    ";
   }
   cout << endl;
 }
