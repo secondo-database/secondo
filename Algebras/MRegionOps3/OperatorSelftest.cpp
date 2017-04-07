@@ -92,7 +92,16 @@ namespace temporalalgebra {
         IntersectionPointTest();
         IntersectionSegmentTest();
         
+        IntSegContainerTest1();
+        IntSegContainerTest2();
+        
         PFaceTesst1();
+        PFaceTesst2();
+        PFaceTesst3();
+        PFaceTesst4();
+        PFaceTesst5();
+        PFaceTesst6();
+        
         
         cerr << endl;
         cerr << numberOfTestsRun << " tests run, ";
@@ -613,8 +622,53 @@ namespace temporalalgebra {
         // cout << segment3.getSegment2D() << endl; 
       }// IntersectionSegmentTest
       
+      void IntSegContainerTest1(){
+        IntSegContainer container1,container2;
+        container1.addIntSeg(new IntersectionSegment(
+          IntersectionPoint(0,0,0,0),IntersectionPoint(0,0,1,1),true));
+        container1.addIntSeg(new IntersectionSegment(
+          IntersectionPoint(0,0,2,2),IntersectionPoint(0,0,3,3),false)); 
+        container2.addIntSeg(new IntersectionSegment(
+          IntersectionPoint(0,0,2,2),IntersectionPoint(0,0,3,3),false));
+        assert_("IntSegContainerTest 1.1", 
+                "intersection segments are incorect.",
+                !(container1 == container2));
+        container2.addIntSeg(new IntersectionSegment(
+          IntersectionPoint(0,0,0,0),IntersectionPoint(0,0,1,1),true));
+        assert_("IntSegContainerTest 1.2", 
+                "intersection segments are incorect.",
+                container1 == container2);
+        // cout << container1;
+        // cout << container2;
+      }// IntSegContainerTest1
+      
+      void IntSegContainerTest2(){
+        IntSegContainer container1,container2;
+        container1.addIntSeg(new IntersectionSegment(
+          IntersectionPoint(0,0,0,0),IntersectionPoint(0,0,1,1),true));
+        container1.addIntSeg(new IntersectionSegment(
+          IntersectionPoint(0,0,2,2),IntersectionPoint(0,0,3,3),false));
+        container1.addIntSeg(new IntersectionSegment(
+          IntersectionPoint(0,0,1.5,2),IntersectionPoint(0,0,1.5,3),true));
+        container1.addIntSeg(new IntersectionSegment(
+          IntersectionPoint(0,0,1.5,2),IntersectionPoint(0,0,3,3),false));
+        container2.addIntSeg(new IntersectionSegment(
+          IntersectionPoint(0,0,1.5,2),IntersectionPoint(0,0,3,3),false));
+        container2.addIntSeg(new IntersectionSegment(
+          IntersectionPoint(0,0,1.5,2),IntersectionPoint(0,0,1.5,3),true));
+        container2.addIntSeg(new IntersectionSegment(
+          IntersectionPoint(0,0,2,2),IntersectionPoint(0,0,3,3),false));
+        container2.addIntSeg(new IntersectionSegment(
+          IntersectionPoint(0,0,0,0),IntersectionPoint(0,0,1,1),true));
+        assert_("IntSegContainerTest 2.1", 
+                "intersection segments are incorect.",
+                container1 == container2);
+        // cout << container1;
+        // cout << container2;
+      }// IntSegContainerTest2
+      
       void PFaceTesst1(){
-         // points from pface 1 
+        // points from pface 1 
         Point3D point1(2,1,0);
         Point3D point2(4,3,0);         
         Point3D point3(1,2,3);
@@ -629,24 +683,135 @@ namespace temporalalgebra {
         IntersectionPoint point10(3.2, 3.8, 2.4, -4.94974747);
         IntersectionPoint point11(2.5, 2.16666667, 1, -2.5);
         IntersectionPoint point12(3.2, 3.8, 2.4, -3.2);
-        IntersectionSegment segment1,segment2;
-        IntersectionSegment segment3(point9,point10,false);
-        IntersectionSegment segment4(point11,point12,true);
+        IntSegContainer intSegContainer1, intSegContainer2;
+        intSegContainer1.addIntSeg(
+          new IntersectionSegment(point9,point10,false));
+        intSegContainer2.addIntSeg(
+          new IntersectionSegment(point11,point12,true));
         // pfaces
         PFace pf1(point1,point2,point3,point4);
         PFace pf2(point5,point6,point7,point8);
-        bool result = pf1.intersection(pf2,segment1,segment2);
+        bool result = pf1.intersection(pf2);
         assert_("PFaceTesst 1.1", "pfaces intersect.",result);
-        assert_("PFaceTesst 1.2", "intersection segment is incorecct.",
-                segment1 == segment3);
-        assert_("PFaceTesst 1.3", "intersection segment is incorecct.",
-                segment2 == segment4);
+        assert_("PFaceTesst 1.2", "intersection segment is incorrect.",
+                pf1.intSegContainer == intSegContainer1);
+        assert_("PFaceTesst 1.3", "intersection segment is incorrect.",
+                pf2.intSegContainer == intSegContainer2);
+        // cout << setprecision(9);
         // cout << pf1 << endl;
         // cout << pf2 << endl;
-        // cout << setprecision(9);
-        // cout << segment1 << endl;
-        // cout << segment2 << endl;
       }// PFaceTesst1
+      
+      void PFaceTesst2(){
+        // points from pface 1 
+        Point3D point1(11,12,0);
+        Point3D point2(13,14,0);         
+        Point3D point3(11,12,3);
+        Point3D point4(13,14,3);
+        // points from pface 2
+        Point3D point5(2,1,0);
+        Point3D point6(4,3,0);         
+        Point3D point7(2,1,3);
+        Point3D point8(4,3,3);
+        // pfaces
+        PFace pf1(point1,point2,point3,point4);
+        PFace pf2(point5,point6,point7,point8);
+        bool result = pf1.intersection(pf2);
+        assert_("PFaceTesst 2.1", "pfaces not intersect.",!result);
+      }// PFaceTesst2
+      
+      void PFaceTesst3(){
+        // points from pface 1 
+        Point3D point1(1,2,0);
+        Point3D point2(3,4,0);         
+        Point3D point3(1,2,3);
+        Point3D point4(3,4,3);
+        // points from pface 2
+        Point3D point5(2,1,0);
+        Point3D point6(4,3,0);         
+        Point3D point7(2,1,3);
+        Point3D point8(4,3,3);
+        // pfaces
+        PFace pf1(point1,point2,point3,point4);
+        PFace pf2(point5,point6,point7,point8);
+        bool result = pf1.intersection(pf2);
+        assert_("PFaceTesst 3.1", "pfaces not intersect.",!result);
+      }// PFaceTesst3
+      
+      void PFaceTesst4(){
+        // points from pface 1 
+        Point3D point1(1,2,0);
+        Point3D point2(3,4,0);         
+        Point3D point3(1,2,3);
+        Point3D point4(3,4,3);
+        // points from pface 2
+        Point3D point5(2,3,0);
+        Point3D point6(4,5,0);         
+        Point3D point7(2,3,3);
+        Point3D point8(4,5,3);
+        // pfaces
+        PFace pf1(point1,point2,point3,point4);
+        PFace pf2(point5,point6,point7,point8);
+        bool result = pf1.intersection(pf2);
+        assert_("PFaceTesst 4.1", "pfaces not intersect.",!result);
+      }// PFaceTesst4
+      
+      void PFaceTesst5(){
+        // points from pface 1 
+        Point3D point1(1,2,0);
+        Point3D point2(3,4,0);         
+        Point3D point3(1,2,3);
+        Point3D point4(3,4,3);
+        // points from pface 2
+        Point3D point5(3,2,0);
+        Point3D point6(1,4,0);         
+        Point3D point7(3,2,3);
+        Point3D point8(1,4,3);
+        // result     
+        IntersectionPoint point9(2, 3, 0, -3.53553391);
+        IntersectionPoint point10(2, 3, 3, -3.53553391);
+        IntersectionPoint point11(2, 3, 0, -0.707106781);
+        IntersectionPoint point12(2, 3, 3, -0.707106781);
+        IntSegContainer intSegContainer1, intSegContainer2;
+        intSegContainer1.addIntSeg(
+          new IntersectionSegment(point9,point10,true));
+        intSegContainer2.addIntSeg(
+          new IntersectionSegment(point11,point12,false));
+        // pfaces
+        PFace pf1(point1,point2,point3,point4);
+        PFace pf2(point5,point6,point7,point8);
+        bool result = pf1.intersection(pf2);
+        assert_("PFaceTesst 5.1", "pfaces intersect.",result);
+        assert_("PFaceTesst 5.2", "intersection segment is incorrect.",
+                pf1.intSegContainer == intSegContainer1);
+        assert_("PFaceTesst 5.3", "intersection segment is incorrect.",
+                pf2.intSegContainer == intSegContainer2);
+        // cout << setprecision(9);
+        // cout << pf1 << endl;
+        // cout << pf2 << endl;
+      }// PFaceTesst5    
+      
+      void PFaceTesst6(){
+        // points from pface 1 
+        Point3D point1(1,2,0);
+        Point3D point2(3,4,0);         
+        Point3D point3(1,2,3);
+        Point3D point4(3,4,3);
+        // points from pface 2
+        Point3D point5(1,0,0);
+        Point3D point6(-1,2,0);         
+        Point3D point7(1,0,3);
+        Point3D point8(-1,2,3);
+        // pfaces
+        PFace pf1(point1,point2,point3,point4);
+        PFace pf2(point5,point6,point7,point8);
+        bool result = pf1.intersection(pf2);
+        assert_("PFaceTesst 6.1", "pfaces not intersect.",!result);
+      }// PFaceTesst4
+       
+      
+
+      
       
       int numberOfTestsRun;
       int numberOfTestsFailed; 

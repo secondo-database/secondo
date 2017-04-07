@@ -443,8 +443,8 @@ namespace temporalalgebra {
     std::ostream& operator <<(
         std::ostream& os, const IntersectionSegment& segment){
       os << "IntersectionSegment (" << segment.tail << ", " << segment.head;
-      if(segment.leftAreaIsInner) os << ", Left area is inner.)";
-      else  os << ", Right area is inner.) ";
+      if(segment.leftAreaIsInner) os << ", Left is inner.)";
+      else  os << ", Right is inner.)";
       return os;  
     }// Operator <<
     
@@ -483,6 +483,50 @@ namespace temporalalgebra {
       if (head1.getPoint2D() == head2.getPoint2D()) return true;    
       return segment2->getSegment2D().isLeft(head1.getPoint2D());
     }// IntSegCompare
+    
+   
+    IntSegContainer::IntSegContainer(){
+      
+    }// Konstrktor
+
+    IntSegContainer::~IntSegContainer(){  
+      set<IntersectionSegment*>::iterator iter;
+      for (iter = intSegs.begin(); iter != intSegs.end(); ++iter){
+        delete *iter;
+      }// for  
+    }// Destruktor
+ 
+    void IntSegContainer::addIntSeg(IntersectionSegment* seg){
+       intSegs.insert(seg);
+    }// addIntSeg
+  
+    std::ostream& operator <<(std::ostream& os, 
+                              const IntSegContainer& container){
+      os << "IntSegContainer (";
+      if (container.intSegs.empty()) {  
+        os << "is empty)" << endl;
+      }// if
+      else {        
+        set<IntersectionSegment*>::iterator iter;
+        for (iter = container.intSegs.begin(); 
+             iter != container.intSegs.end(); ++iter) {
+          os << endl << "  "<< *(*iter);
+        }// for
+        os << ")" <<endl;
+      }// else
+      return os;
+    }// operator 
+     
+    bool IntSegContainer::operator ==(const IntSegContainer& container){
+      if(this->intSegs.size() != container.intSegs.size()) return false;
+      set<IntersectionSegment*>::iterator iter1, iter2;
+      for(iter1  = this->intSegs.begin(), iter2 =  container.intSegs.begin();
+          iter1 != this->intSegs.end() && iter2 != container.intSegs.end();
+          ++iter1, ++iter2){
+        if(!(*(*iter1) == *(*iter2))) return false;
+      }// for
+      return true;
+    }// Operator ==  
    
 /*
 12 Class PFace
@@ -540,15 +584,25 @@ namespace temporalalgebra {
     
     std::ostream& operator <<(std::ostream& os, const PFace& pf){
       os << "PFace ("<< pf.a << ", " << pf.b << ", " << pf.c << ", " << pf.d; 
-      os <<"," << PFace::toString(pf.getState()) << ")";
+      os << "," << PFace::toString(pf.getState()) << "," <<endl;
+      os << " " << pf.intSegContainer <<")" << endl;
       return os;   
     }// Operator <<
-          
-    bool PFace::intersection(PFace& other,IntersectionSegment& iSegSelf, 
-                                          IntersectionSegment& iSegOther){
+    
+    void PFace::addIntSeg(const RationalPlane3D &planeSelf, 
+                          const RationalPlane3D &planeOther,
+                          const RationalSegment3D &intSeg){
+      bool result = planeSelf.isLeftAreaInner(intSeg,planeOther);
+      Segment2D segment = planeSelf.transform(intSeg);
+      this->state = RELEVANT_NOT_CRITICAL;
+      this->intSegContainer.addIntSeg(
+        new IntersectionSegment(intSeg,segment,result));              
+    }// addIntSeg
+  
+    bool PFace::intersection(PFace& other){
       // check bounding rectangles
       if(!(this->boundingRect.Intersects(other.boundingRect))){
-        cout << "No intersect bounding rectangles found." << endl;  
+        // cout << "No intersect bounding rectangles found." << endl;  
         return false; 
       }// if
       // create planes
@@ -559,10 +613,10 @@ namespace temporalalgebra {
         if(planeSelf.isCoplanarTo(planeOther)) {
           this->state = RELEVANT_CRITICAL;
           other.state = RELEVANT_CRITICAL;
-          cout << "Coplanar plane pair found." << endl;            
+          // cout << "Coplanar plane pair found." << endl;            
         }// if 
         else {
-          cout << "Parallel plane pair found." << endl;
+          // cout << "Parallel plane pair found." << endl;
         }// else
         return false;
       }// if
@@ -573,13 +627,23 @@ namespace temporalalgebra {
       planeOther.intersection(*this, PFACE_B, intPointSet);  
       // There is no intersection
       RationalSegment3D intSeg;
-      if(!intPointSet.getIntersectionSegment(intSeg)) return false;    
-      bool result = planeSelf.isLeftAreaInner(intSeg,planeOther);
-      Segment2D segment = planeSelf.transform(intSeg);
-      iSegSelf = IntersectionSegment(intSeg,segment,result);
-      result  = planeOther.isLeftAreaInner(intSeg,planeSelf);
-      segment = planeOther.transform(intSeg);
-      iSegOther = IntersectionSegment(intSeg,segment,result);
+      if(!intPointSet.getIntersectionSegment(intSeg)) return false;  
+      // create and save result segments
+      this->addIntSeg(planeSelf,planeOther,intSeg);
+      other.addIntSeg(planeOther,planeSelf,intSeg);
+      
+//       bool result = planeSelf.isLeftAreaInner(intSeg,planeOther);
+//       Segment2D segment = planeSelf.transform(intSeg);
+//       this->state = RELEVANT_NOT_CRITICAL;
+//       this->intSegContainer.addIntSeg(
+//         new IntersectionSegment(intSeg,segment,result));
+//       
+//       result  = planeOther.isLeftAreaInner(intSeg,planeSelf);
+//       segment = planeOther.transform(intSeg);
+//       other.state = RELEVANT_NOT_CRITICAL;
+//       other.intSegContainer.addIntSeg(
+//         new IntersectionSegment(intSeg,segment,result));
+      
       return true;    
     }// intersection    
   } // end of namespace mregionops3

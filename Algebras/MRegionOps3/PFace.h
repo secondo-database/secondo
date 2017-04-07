@@ -425,7 +425,7 @@ Adds seg to the set of ~IntersectionSegments~.
 11.3.3 operator ==
     
 */     
-     bool operator ==(const IntSegContainer& container) const; 
+     bool operator ==(const IntSegContainer& container); 
    private:
 /*
 11.4 Attributes
@@ -475,25 +475,31 @@ Print the object values to stream.
 Computes the intersection of this ~PFace~ with pf. 
 
 */
-      bool intersection(PFace& other,IntersectionSegment& iSegSelf, 
-                                     IntersectionSegment& iSegOther);
+      bool intersection(PFace& other);
 /*
 12.3.5 toString
 
 */      
       static std::string toString(State state);
-      
+/*
+12.3.6 addIntSeg
+
+*/       
+      void addIntSeg(const RationalPlane3D &planeSelf, 
+                     const RationalPlane3D &planeOther,
+                     const RationalSegment3D &intSeg);     
     private:    
 /*
 12.4 Attributes
 
 */      
-      State        state;
-      Rectangle<2> boundingRect;  
-      Point3D      a;
-      Point3D      b;
-      Point3D      c;
-      Point3D      d;            
+      IntSegContainer   intSegContainer;
+      State             state;
+      Rectangle<2>      boundingRect;  
+      Point3D           a;
+      Point3D           b;
+      Point3D           c;
+      Point3D           d;            
     };// calss PFace   
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra
