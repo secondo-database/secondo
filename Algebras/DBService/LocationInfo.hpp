@@ -26,22 +26,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DBSERVICECOMMUNICATIONPROTOCOL_HPP_
-#define ALGEBRAS_DBSERVICE_DBSERVICECOMMUNICATIONPROTOCOL_HPP_
-
-#include <string>
+#ifndef ALGEBRAS_DBSERVICE_LOCATIONINFO_HPP_
+#define ALGEBRAS_DBSERVICE_LOCATIONINFO_HPP_
 
 namespace DBService {
 
-class DBServiceCommunicationProtocol {
+class LocationInfo {
 public:
-    static std::string CommunicationServer();
-    static std::string CommunicationClient();
-    static std::string ShutDown();
-    static std::string ProvideReplica();
-    static std::string UseReplica();
+    LocationInfo(const std::string& host,
+                 const std::string& port,
+                 const std::string& disk);
+private:
+    std::string host;
+    std::string port;
+    std::string disk;
 };
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_DBSERVICECOMMUNICATIONPROTOCOL_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_LOCATIONINFO_HPP_ */

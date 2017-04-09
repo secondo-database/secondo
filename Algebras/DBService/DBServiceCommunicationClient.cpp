@@ -56,10 +56,10 @@ int DBServiceCommunicationClient::start()
         if (!socket->IsOk()) {
             return 9;
         }
-        return communicate();
+        return 0;
 }
 
-int DBServiceCommunicationClient::communicate()
+int DBServiceCommunicationClient::getNodesForReplication()
 {
     iostream& io = socket->GetSocketStream();
     string line;
@@ -68,6 +68,13 @@ int DBServiceCommunicationClient::communicate()
     {
         return 11;
     }
+    io << DBServiceCommunicationProtocol::CommunicationClient() << endl;
+    io << DBServiceCommunicationProtocol::ProvideReplica() << endl;
+    return 0;
+}
+
+int DBServiceCommunicationClient::getReplicaLocation()
+{
     return 0;
 }
 

@@ -47,4 +47,15 @@ string DBServiceCommunicationProtocol::ShutDown()
     return "<SHUTDOWN>";
 }
 
+string DBServiceCommunicationProtocol::ProvideReplica()
+{
+    return "<PROVIDEREPLICA>";
+}
+
+string DBServiceCommunicationProtocol::UseReplica()
+{
+    return "<USEREPLICA>";
+}
+
+
 } /* namespace DBService */

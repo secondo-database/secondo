@@ -38,9 +38,8 @@ class DBServiceCommunicationClient: public distributed2::Client {
 public:
     DBServiceCommunicationClient(std::string& _server, int _port, Socket* _socket);
     int start();
-
-protected:
-    int communicate();
+    int getNodesForReplication();
+    int getReplicaLocation();
 };
 
 } /* namespace DBService */

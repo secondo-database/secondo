@@ -41,9 +41,32 @@ public:
             const char* section,
             const char* key,
             const char* defaultValue);
+
     static bool executeQueryOnRemoteServer(
             distributed2::ConnectionInfo* connectionInfo,
             const std::string& query);
+
+    static bool executeQueryOnRemoteServer(
+            distributed2::ConnectionInfo* connectionInfo,
+            const std::string& query,
+            std::string& result);
+
+    static bool openDatabaseOnRemoteServer(
+            distributed2::ConnectionInfo* connectionInfo,
+            const char* dbName);
+
+    static bool createDatabaseOnRemoteServer(
+                distributed2::ConnectionInfo* connectionInfo,
+                const char* dbName);
+
+    static bool closeDatabaseOnRemoteServer(
+                distributed2::ConnectionInfo* connectionInfo);
+
+private:
+    static bool handleRemoteDatabase(
+            distributed2::ConnectionInfo* connectionInfo,
+            const std::string& action,
+            const std::string& dbName);
 };
 
 } /* namespace DBService */

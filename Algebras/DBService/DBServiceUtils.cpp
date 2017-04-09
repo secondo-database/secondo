@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include <string>
+#include <sstream>
 
 #include "DBServiceUtils.hpp"
 #include "DebugOutput.hpp"
@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "CharTransform.h"
 
 using namespace std;
+using namespace distributed2;
 
 namespace DBService {
 
@@ -48,13 +49,67 @@ void DBServiceUtils::readFromConfigFile(std::string& resultValue,
             key, defaultValue, secondoConfig);
 }
 
+bool DBServiceUtils::openDatabaseOnRemoteServer(
+        distributed2::ConnectionInfo* connectionInfo,
+        const char* dbName)
+{
+    return DBServiceUtils::handleRemoteDatabase(connectionInfo,
+                                                "open",
+                                                dbName);
+}
+
+bool DBServiceUtils::createDatabaseOnRemoteServer(
+        distributed2::ConnectionInfo* connectionInfo,
+        const char* dbName)
+{
+    return DBServiceUtils::handleRemoteDatabase(connectionInfo,
+                                                "create",
+                                                dbName);
+}
+
+bool DBServiceUtils::closeDatabaseOnRemoteServer(
+        distributed2::ConnectionInfo* connectionInfo)
+{
+    return DBServiceUtils::handleRemoteDatabase(connectionInfo,
+                                                "close",
+                                                "");
+}
+
+bool DBServiceUtils::handleRemoteDatabase(ConnectionInfo* connectionInfo,
+                                          const string& action,
+                                          const string& dbName)
+{
+    stringstream query;
+    query << action << " database " << dbName;
+    print(query.str());
+    bool resultOk =
+            DBServiceUtils::executeQueryOnRemoteServer(connectionInfo,
+                    query.str());
+    if(!resultOk)
+    {
+        //throw new SecondoException("could not open database 'dbservice'");
+        print("Boo");
+    }
+    return resultOk;
+}
+
 bool DBServiceUtils::executeQueryOnRemoteServer(
         distributed2::ConnectionInfo* connectionInfo,
         const std::string& query)
 {
+    string result;
+    return executeQueryOnRemoteServer(connectionInfo,
+                                      query,
+                                      result);
+}
+
+bool DBServiceUtils::executeQueryOnRemoteServer(
+        distributed2::ConnectionInfo* connectionInfo,
+        const std::string& query,
+        std::string& result)
+{
     int errorCode;
     string errorMessage;
-    string result;
     double runtime;
     distributed2::CommandLog commandLog;
     connectionInfo->simpleCommand(query,

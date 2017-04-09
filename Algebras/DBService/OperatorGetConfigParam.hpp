@@ -26,22 +26,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DBSERVICECOMMUNICATIONPROTOCOL_HPP_
-#define ALGEBRAS_DBSERVICE_DBSERVICECOMMUNICATIONPROTOCOL_HPP_
+#ifndef ALGEBRAS_DBSERVICE_OPERATORGETCONFIGPARAM_HPP_
+#define ALGEBRAS_DBSERVICE_OPERATORGETCONFIGPARAM_HPP_
 
-#include <string>
+#include "Operator.h"
 
 namespace DBService {
 
-class DBServiceCommunicationProtocol {
+struct GetConfigParamInfo: OperatorInfo
+{
+    GetConfigParamInfo()
+    {
+        name = "getconfigparam";
+        signature = ""; // TODO
+        syntax = ""; // TODO
+        meaning = "get parameter setting from the configuration file";
+        usesArgsInTypeMapping = true;
+    }
+};
+
+class OperatorGetConfigParam
+{
 public:
-    static std::string CommunicationServer();
-    static std::string CommunicationClient();
-    static std::string ShutDown();
-    static std::string ProvideReplica();
-    static std::string UseReplica();
+    static ListExpr mapType(ListExpr nestedList);
+    static int mapValue(Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s);
 };
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_DBSERVICECOMMUNICATIONPROTOCOL_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_OPERATORGETCONFIGPARAMETER_HPP_ */

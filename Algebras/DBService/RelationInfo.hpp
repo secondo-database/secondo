@@ -40,15 +40,18 @@ typedef size_t ConnectionID;
 class RelationInfo
 {
 public:
-    RelationInfo(const std::string& name);
+    RelationInfo(const std::string& name,
+                 const std::string& dbName);
     const std::string& getRelationName() const;
+    const std::string& getDatabaseName() const;
     void addNode(ConnectionID id);
     void addNodes(std::vector<ConnectionID>& nodes);
     const std::vector<ConnectionID>::const_iterator nodesBegin() const;
     const std::vector<ConnectionID>::const_iterator nodesEnd() const;
 
 private:
-    std::string relationName;
+    const std::string relationName;
+    const std::string& databaseName;
     std::vector<ConnectionID> nodes;
 
 };

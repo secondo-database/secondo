@@ -42,3 +42,10 @@ Signature : int -> bool
 Example   : query initdbserviceworker()
 Result    : TRUE
 Remark    : Requires a remote server
+
+Operator  : getconfigparam
+Number    : 1
+Signature : string x string -> string
+Example   : query getconfigparam("DBService", "DBServiceHost")
+Result    : TRUE
+Remark    : Requires a remote server

@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "DBServiceCommunicationServer.hpp"
 #include "DBServiceCommunicationProtocol.hpp"
+#include "DBServiceManager.hpp"
 
 #include "SocketIO.h"
 #include "StringUtils.h"
@@ -85,7 +86,20 @@ int DBServiceCommunicationServer::communicate()
                 cerr << "Protocol error" << endl;
                 continue;
             }
-
+            getline(io, line);
+            if(line == DBServiceCommunicationProtocol::ProvideReplica())
+            {
+                DBServiceManager::getInstance();
+            }else if(line == DBServiceCommunicationProtocol::UseReplica())
+            {
+                //TODO contact DBServiceManager and find out where replica is
+                // stored
+                //DBServiceManager::getInstance();
+            }else
+            {
+                cerr << "Protocol error" << endl;
+                continue;
+            }
             getline(io, line);
         }
     } catch (...)

@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ConnectionInfo.h"
 #include "RelationInfo.hpp"
+#include "LocationInfo.hpp"
 #include "DBServiceCommunicationServer.hpp"
 
 namespace DBService
@@ -118,11 +119,15 @@ private:
     ConnectionID getNextConnectionID();
     void getWorkerNodesForReplication(std::vector<
                                       ConnectionID>& nodes);
-    bool startFileTransferServer(distributed2::ConnectionInfo* connectionInfo);
+    bool startServersOnWorker(distributed2::ConnectionInfo* connectionInfo);
     bool persistLocationInformation();
+    bool retrieveSecondoHomeOnWorker(std::string& dir,
+            distributed2::ConnectionInfo* connectionInfo);
 
     static DBServiceManager* _instance;
-    static std::map<ConnectionID, distributed2::ConnectionInfo*> connections;
+    static std::map<ConnectionID,
+                    std::pair<LocationInfo,
+                              distributed2::ConnectionInfo*> > connections;
     std::vector<boost::shared_ptr<RelationInfo> > replicaLocations;
     //boost::shared_ptr<DBServiceCommunicationServer> commServer;
 

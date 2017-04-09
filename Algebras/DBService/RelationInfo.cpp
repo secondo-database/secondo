@@ -33,14 +33,21 @@ using namespace std;
 namespace DBService
 {
 
-RelationInfo::RelationInfo(const std::string& name) :
-        relationName(name)
+RelationInfo::RelationInfo(const string& name,
+                           const string& dbName) :
+        relationName(name), databaseName(dbName)
 {}
 
-const std::string& RelationInfo::getRelationName() const
+const string& RelationInfo::getRelationName() const
 {
     return relationName;
 }
+
+const string& RelationInfo::getDatabaseName() const
+{
+    return databaseName;
+}
+
 void RelationInfo::addNode(ConnectionID id)
 {
     nodes.push_back(id);
