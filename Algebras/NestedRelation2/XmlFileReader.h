@@ -62,9 +62,10 @@ class XmlFileReader
 {
 
   public:
-
     static const int c_success = 0;
     static const int c_fileOpenError = -1;
+    static const int c_processingError = -2;
+    static const int c_maxErrorLines = 100;
 
     XmlFileReader();
     XmlFileReader(const std::string &fileName,
@@ -80,6 +81,7 @@ class XmlFileReader
 #ifdef WITH_LIBXML2_SUPPORT
     void processXmlNode(xmlTextReaderPtr reader);
 #endif
+    std::string getErrorMessages();
 
   protected:
     void setXmlParser(XmlParserInterface *parser);
@@ -102,6 +104,10 @@ class XmlFileReader
 
     xmlTextReaderPtr *m_reader;
     nr2a::DblpImportLocalInfo *m_info;
+  private:
+    static void errorHandler(void *ctx, const char *msg, ...);
+    std::string m_errorString;
+    int m_errorCounter;
 };
 
 #endif /* __XML_FILE_READER_H__*/

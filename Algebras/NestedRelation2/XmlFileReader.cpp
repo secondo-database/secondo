@@ -122,24 +122,34 @@ libxml2 API.
 int XmlFileReader::readXmlFile()
 {
   int result = 0;
-  xmlInitParser();
   const char *fileName = getFileName().c_str();
-  xmlTextReaderPtr reader;
+  const int readSuccess = 1;
+  xmlTextReaderPtr reader = NULL;
   int ret = 1;
+  m_errorCounter = 0;
+  m_errorString = "";
 
+  xmlGenericErrorFunc handler = (xmlGenericErrorFunc)errorHandler;
+  xmlSetGenericErrorFunc(this, handler);
+
+  xmlInitParser();
   reader = xmlReaderForFile(fileName, NULL,
-      XML_PARSE_RECOVER | //Relax about errors (e.g. missing mandatory fields)
-      XML_PARSE_HUGE | // Very big input is no reason to complain
-      XML_PARSE_NONET | // Do not attempt to download schema etc.
-      XML_PARSE_DTDLOAD | // Load the DTD
-      //XML_PARSE_DTDVALID | // Validate XML against the DTD
-      XML_PARSE_NOENT | // Map entities as specified in DTD
-      XML_PARSE_NOERROR | // Do not output errors to cout
-      XML_PARSE_NOWARNING); // Do not output warnings to cout
+    XML_PARSE_RECOVER | //Relax about errors (e.g. missing mandatory fields)
+    XML_PARSE_HUGE | // Very big input is no reason to complain
+    XML_PARSE_NONET | // Do not attempt to download schema etc.
+    XML_PARSE_DTDLOAD | // Load the DTD
+    //XML_PARSE_DTDVALID | // Validate XML against the DTD
+    XML_PARSE_NOENT // Map entities as specified in DTD
+    //XML_PARSE_NOERROR | // Do not output errors to cout
+    //XML_PARSE_NOWARNING // Do not output warnings to cout
+  );
   if (reader != NULL)
   {
     m_info->SetReader(reader);
-    while (ret == 1)
+
+    //int res = xmlTextReaderGetParserProp(reader, XML_PARSER_LOADDTD);
+
+    while ((ret == readSuccess) && (m_errorCounter < c_maxErrorLines))
     {
       ret = xmlTextReaderRead(reader);
       try
@@ -152,30 +162,26 @@ int XmlFileReader::readXmlFile()
         throw nr2a::Nr2aParserException(e.what(), lineNumber);
       }
     }
-    xmlErrorPtr errorPtr = xmlGetLastError();
-    if (errorPtr != NULL)
+    if (m_errorCounter > 0)
     {
-      string msg("Message: ");
-      msg += errorPtr->message;
-      msg.append("\nString1: ");
-      msg += errorPtr->str1;
-      msg.append("\nString2: ");
-      msg += errorPtr->str2;
-      msg.append("\nString3: ");
-      msg += errorPtr->str3;
-      msg.append("\nInt1: ");
-      msg += errorPtr->int1;
-      msg.append("\nInt2: ");
-      msg += errorPtr->int2;
-      throw nr2a::Nr2aParserException(msg, errorPtr->line);
+      int lineNumber = xmlTextReaderGetParserLineNumber(reader);
+      throw nr2a::Nr2aParserException(getErrorMessages(), lineNumber);
     }
     xmlFreeTextReader(reader);
+
+    xmlCleanupParser();
   }
   else
   {
     result = c_fileOpenError;
+    xmlCleanupParser();
   }
-  xmlCleanupParser();
+
+  if (m_errorCounter > 0)
+  {
+    result = c_processingError;
+  }
+
   return result;
 }
 
@@ -361,4 +367,39 @@ bool XmlFileReader::foundInterestingElement() const
 {
   assert(m_parser != NULL);
   return m_parser->foundInterestingElement();
+}
+
+/*
+Function used for receiving errors from libxml2.
+
+*/
+/*static*/
+void XmlFileReader::errorHandler(void *ctx, const char *msg, ...)
+{
+   char buf[2048];
+   va_list arg_ptr;
+   va_start(arg_ptr, msg);
+   vsnprintf(buf, 2048, msg, arg_ptr);
+   va_end(arg_ptr);
+   XmlFileReader *self = (XmlFileReader*)ctx;
+   self->m_errorCounter++;
+   self->m_errorString.append(buf);
+   return;
+}
+
+/*
+Returns the error messages received so far.
+
+*/
+string XmlFileReader::getErrorMessages()
+{
+  string result = "\n" + m_errorString;
+
+  if (m_errorCounter >= c_maxErrorLines)
+  {
+    result += "\nThere might be more errors existing in the document, "
+        "than the ones mentioned here. \n";
+  }
+
+  return result;
 }

@@ -32,6 +32,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DblpImport.h"
 #include "DblpImportLocalInfo.h"
 
+#ifndef MAX_PATH
+#define MAX_PATH 2048
+#endif
+
 using namespace nr2a;
 
 DblpImport::Info::Info()
@@ -126,6 +130,14 @@ The XML file is processed by another class, called "DblpParser"[2].
       error = true;
     }
 
+    string workingDirectory = GetWorkingDirectory();
+    int resSetDir = chdir(GetXmlFilePath(xmlFilename).c_str());
+    if (resSetDir != 0)
+    {
+      cmsg.otherError("Error determining directory of XML-file.");
+      error = true;
+    }
+
     FText *arg1 = static_cast<FText*>(args[1].addr);
     string stopwordsFilename = arg1->GetValue();
     if (!error && access(stopwordsFilename.c_str(), F_OK) == -1)
@@ -162,6 +174,10 @@ The XML file is processed by another class, called "DblpParser"[2].
           {
             throw Nr2aException("Error while opening XML-file");
           }
+          else if (retReadXml == XmlFileReader::c_processingError)
+          {
+            throw Nr2aException("\n" + reader->getErrorMessages());
+          }
           else
           {
             assert(false);
@@ -171,14 +187,14 @@ The XML file is processed by another class, called "DblpParser"[2].
       } catch (Nr2aParserException e)
       {
         error = true;
-        string msg("\nNR2A parser error: ");
+        string msg("\nNR2A parser error(s): ");
         msg += e.what();
         cmsg.otherError(msg);
         cmsg.send();
       } catch (Nr2aException e)
       {
         error = true;
-        string msg("\nNR2A error: ");
+        string msg("\nNR2A error(s): ");
         msg += e.what();
         cmsg.otherError(msg);
         cmsg.send();
@@ -199,6 +215,12 @@ The XML file is processed by another class, called "DblpParser"[2].
     if (error)
     {
       nrel->Clear();
+    }
+    int resResetDir = chdir(workingDirectory.c_str());
+    if (resResetDir != 0)
+    {
+      cmsg.otherError("Error while resetting working directory.");
+      error = true;
     }
   }
   return 0;
@@ -230,6 +252,49 @@ DblpImport::GetFilesize(const char* filename)
     std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
     return in.tellg();
 }
+
+/*
+Returns the path of the directory the given file resides in.
+
+*/
+/*static*/ string
+DblpImport::GetXmlFilePath(const string xmlFilename)
+{
+  string result = "";
+  const string xmlExtension = ".xml";
+  if (xmlFilename.size() > xmlExtension.size())
+  {
+    string end = xmlFilename.substr(xmlFilename.size() - xmlExtension.size());
+    if (0 == strncasecmp(end.c_str(), xmlExtension.c_str(),
+        xmlExtension.size()))
+    {
+      int pos = xmlFilename.find_last_of("/\\");
+      if (pos >= 0) // Path includes a directory
+        result = xmlFilename.substr(0,pos+1);
+      else
+        result = ""; // Default directory (e.g. ""+"file.ext")
+    }
+  }
+  return result;
+}
+
+/*
+Returns the applications current working directory.
+
+*/
+/*static*/ string
+DblpImport::GetWorkingDirectory()
+{
+  char buffer[MAX_PATH];
+  char *pathChar = getcwd(buffer, sizeof(buffer));
+  string pathString = "";
+  if (pathChar)
+  {
+    pathString = pathChar;
+  }
+  return pathString;
+}
+
 
 /*
 List of functions for cost estimation.

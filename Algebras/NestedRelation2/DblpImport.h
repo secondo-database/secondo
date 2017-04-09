@@ -63,6 +63,8 @@ class DblpImport
     static void ReadStopwords(const string & stopwordsFilename,
         std::set<std::string> *stopwords);
     static std::ifstream::pos_type GetFilesize(const char* filename);
+    static string GetXmlFilePath(const string xmlFilename);
+    static string GetWorkingDirectory();
 };
 
 } /* namespace nr2a*/
