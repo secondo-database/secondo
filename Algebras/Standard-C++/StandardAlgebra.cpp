@@ -3276,63 +3276,51 @@ CcSetMinus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 static int
 RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  ListExpr resultType, queryList, resultList, valueList;
+  ListExpr resultType, queryList;
   QueryProcessor* qpp = 0;
   OpTree tree;
-  char* relname;
+  string relname;
   bool correct      = false;
   bool evaluable    = false;
   bool defined      = false;
   bool isFunction   = false;
 
   result = qp->ResultStorage( s );
+  // initialize result to be undefined
+  ((CcInt *)result.addr)->Set( false, 0 );
 
   if ( ((CcString*)args[0].addr)->IsDefined() )
   {
     // create the query list (count (feed <relname>))
-    relname = (char*)(((CcString*)args[0].addr)->GetStringval());
-    string querystring = "(count(feed " + (string)relname + "))";
+    relname = ((CcString*)args[0].addr)->GetValue();
+    string querystring = "(count " + relname + ")";
     nl->ReadFromString(querystring, queryList);
 
     // construct the operator tree within a new query processor instance
     // NOTE: variable name for this instance must differ from qp
     qpp = new QueryProcessor( nl, SecondoSystem::GetAlgebraManager() );
+    try{
     qpp->Construct( queryList, correct,
                     evaluable, defined, isFunction, tree, resultType );
-    if ( !defined )
+    if ( defined && correct  && evaluable )
     {
-      cout << "object value is undefined" << endl;
-    }
-    else if ( correct )
-    {
-      if ( evaluable )
-      {
         // evaluate the operator tree
-        Word tmpresult;
-        qpp->EvalS( tree, tmpresult, 1 );
+          Word tmpresult;
+          qpp->EvalS( tree, tmpresult, 1 );
 
-        // create the result list ( type, value )
-        valueList = SecondoSystem::GetCatalog()->
-          OutObject( resultType, tmpresult );
-        resultList = nl->TwoElemList( resultType, valueList );
-
-        // set the result value and destroy the operator tree
-        ((CcInt *)result.addr)->Set ( true,
-          nl->IntValue(nl->Second(resultList)) );
-        qpp->Destroy( tree, false );
-        if(tmpresult.addr){
-            ((CcInt*)tmpresult.addr)->DeleteIfAllowed();
-        }
-      }
-      else cout << "Operator query not evaluable" << endl;
+          // create the result list ( type, value )
+          CcInt* TmpResult = (CcInt*) tmpresult.addr;
+          if(TmpResult->IsDefined()){
+             int count = TmpResult->GetValue();
+             ((CcInt*) result.addr)->Set(true,count);
+          }
     }
-    else cout << "Error in operator query" << endl;
+    if(correct){
+       qpp->Destroy( tree, true );
+    }
+    } catch(...){}
+    delete qpp;
   }
-  else
-  {
-    ((CcInt *)result.addr)->Set( false, 0 );
-  }
-  delete qpp;
   return (0);
 }
 
