@@ -40,6 +40,7 @@ public:
     static std::string ShutDown();
     static std::string ProvideReplica();
     static std::string UseReplica();
+    static std::string LocationRequest();
 };
 
 } /* namespace DBService */

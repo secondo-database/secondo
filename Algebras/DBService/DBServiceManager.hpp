@@ -90,6 +90,8 @@ storing relation replicas.
 */
     distributed2::ConnectionInfo* getConnection(ConnectionID id);
 
+    LocationInfo& getLocation(ConnectionID id);
+
 protected:
 /*
 1.2 Constructor
@@ -116,13 +118,14 @@ Deletes existing DBServiceManager instance.
     ~DBServiceManager();
 
 private:
-    ConnectionID getNextConnectionID();
+    ConnectionID getNextFreeConnectionID();
     void getWorkerNodesForReplication(std::vector<
                                       ConnectionID>& nodes);
     bool startServersOnWorker(distributed2::ConnectionInfo* connectionInfo);
     bool persistLocationInformation();
     bool retrieveSecondoHomeOnWorker(std::string& dir,
             distributed2::ConnectionInfo* connectionInfo);
+    ConnectionID determineReplicaLocation();
 
     static DBServiceManager* _instance;
     static std::map<ConnectionID,
@@ -130,6 +133,7 @@ private:
                               distributed2::ConnectionInfo*> > connections;
     std::vector<boost::shared_ptr<RelationInfo> > replicaLocations;
     //boost::shared_ptr<DBServiceCommunicationServer> commServer;
+    size_t replicaCount;
 
 };
 

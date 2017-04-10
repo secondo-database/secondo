@@ -26,41 +26,40 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceCommunicationProtocol.hpp"
+#include "Google/googletest/include/gtest/gtest.h"
+
+#include "CommunicationUtils.hpp"
 
 using namespace std;
 
-namespace DBService {
-
-string DBServiceCommunicationProtocol::CommunicationServer()
+namespace DBService
 {
-    return "<DBSERVICECOMMSERV>";
+
+namespace Test
+{
+
+class CommunicationUtilsTest: public ::testing::Test
+{};
+
+TEST_F(CommunicationUtilsTest, testDifferentStringsNotEqual)
+{
+    stringbuf buffer;
+    iostream io(&buffer);
+    string bla("bla");
+    string blub("blub");
+    io << bla << endl;
+    ASSERT_FALSE(CommunicationUtils::receivedExpectedLine(io, blub));
 }
 
-string DBServiceCommunicationProtocol::CommunicationClient()
+TEST_F(CommunicationUtilsTest, testSameStringEqual)
 {
-    return "<DBSERVICECOMMCLI>";
+    stringbuf buffer;
+    iostream io(&buffer);
+    string bla("bla");
+    io << bla << endl;
+    ASSERT_TRUE(CommunicationUtils::receivedExpectedLine(io, bla));
 }
 
-string DBServiceCommunicationProtocol::ShutDown()
-{
-    return "<SHUTDOWN>";
 }
 
-string DBServiceCommunicationProtocol::ProvideReplica()
-{
-    return "<PROVIDEREPLICA>";
 }
-
-string DBServiceCommunicationProtocol::UseReplica()
-{
-    return "<USEREPLICA>";
-}
-
-string DBServiceCommunicationProtocol::LocationRequest()
-{
-    return "<LOCATIONREQUEST>";
-}
-
-
-} /* namespace DBService */

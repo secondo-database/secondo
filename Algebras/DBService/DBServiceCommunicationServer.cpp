@@ -77,6 +77,7 @@ int DBServiceCommunicationServer::communicate()
         iostream& io = getSocketStream();
         io << DBServiceCommunicationProtocol::CommunicationServer() << endl;
         io.flush();
+
         string line;
         getline(io, line);
         while(line != DBServiceCommunicationProtocol::ShutDown())
@@ -89,7 +90,7 @@ int DBServiceCommunicationServer::communicate()
             getline(io, line);
             if(line == DBServiceCommunicationProtocol::ProvideReplica())
             {
-                DBServiceManager::getInstance();
+                handleProvideReplicaRequest(io);
             }else if(line == DBServiceCommunicationProtocol::UseReplica())
             {
                 //TODO contact DBServiceManager and find out where replica is
@@ -108,6 +109,26 @@ int DBServiceCommunicationServer::communicate()
         return 5;
     }
     return 0;
+}
+
+bool DBServiceCommunicationServer::handleProvideReplicaRequest(
+        std::iostream& io)
+{
+    string line;
+    getline(io, line);
+    string relationAndDatabaseName = line;
+    io << DBServiceCommunicationProtocol::LocationRequest() << endl;
+    io.flush();
+    getline(io, line);
+    // TODO line contains host, port and disk of remote system
+    // -> store in LocationInfo object
+    return true;
+}
+
+bool DBServiceCommunicationServer::handleUseReplicaRequest(
+        std::iostream& io)
+{
+    return true;
 }
 
 } /* namespace DBService */

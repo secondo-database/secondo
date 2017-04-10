@@ -26,41 +26,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceCommunicationProtocol.hpp"
+
+#include <iostream>
+#include <string>
+
+#include "CommunicationUtils.hpp"
 
 using namespace std;
 
-namespace DBService {
-
-string DBServiceCommunicationProtocol::CommunicationServer()
+namespace DBService
 {
-    return "<DBSERVICECOMMSERV>";
-}
 
-string DBServiceCommunicationProtocol::CommunicationClient()
+bool CommunicationUtils::receivedExpectedLine(iostream& io,
+                                              const string& expectedLine)
 {
-    return "<DBSERVICECOMMCLI>";
+    string line;
+    getline(io, line);
+    if (line != expectedLine)
+    {
+        return false;
+    }
+    return true;
 }
-
-string DBServiceCommunicationProtocol::ShutDown()
-{
-    return "<SHUTDOWN>";
-}
-
-string DBServiceCommunicationProtocol::ProvideReplica()
-{
-    return "<PROVIDEREPLICA>";
-}
-
-string DBServiceCommunicationProtocol::UseReplica()
-{
-    return "<USEREPLICA>";
-}
-
-string DBServiceCommunicationProtocol::LocationRequest()
-{
-    return "<LOCATIONREQUEST>";
-}
-
 
 } /* namespace DBService */

@@ -62,6 +62,10 @@ DBServiceManager::DBServiceManager()
     ServerRunnable commServer(atoi(port.c_str()));
     commServer.run<DBServiceCommunicationServer>();
 
+    string replicaNumber;
+    DBServiceUtils::readFromConfigFile(
+            replicaNumber, "DBService","ReplicaNumber", "1");
+    replicaCount = atoi(replicaNumber.c_str());
 }
 
 DBServiceManager* DBServiceManager::getInstance()
@@ -73,7 +77,7 @@ DBServiceManager* DBServiceManager::getInstance()
     return _instance;
 }
 
-ConnectionID DBServiceManager::getNextConnectionID()
+ConnectionID DBServiceManager::getNextFreeConnectionID()
 {
     return connections.size() + 1;
 }
@@ -88,6 +92,11 @@ void DBServiceManager::addNode(const string host,
     ConnectionInfo* connectionInfo =
             ConnectionInfo::createConnection(host, port, config);
 
+    // TODO create database on remote server if it does not exist
+
+    DBServiceUtils::openDatabaseOnRemoteServer(connectionInfo,
+                                                   "dbservice");
+
     // retrieve information on SecondoHome (disk where data is stored on worker)
     string dir;
     retrieveSecondoHomeOnWorker(dir, connectionInfo);
@@ -97,7 +106,7 @@ void DBServiceManager::addNode(const string host,
                                                           connectionInfo);
     connections.insert(
             pair<size_t, pair<LocationInfo, ConnectionInfo*> >(
-                    getNextConnectionID(), workerConnDetails));
+                    getNextFreeConnectionID(), workerConnDetails));
 
     if(!startServersOnWorker(connectionInfo))
     {
@@ -119,9 +128,6 @@ bool DBServiceManager::startServersOnWorker(
     //    // result can be ignored, as error means that database already exists
     //    }
 
-    DBServiceUtils::openDatabaseOnRemoteServer(connectionInfo,
-                                               "dbservice");
-
     string queryInit("query initdbserviceworker()");
     print(queryInit);
 
@@ -133,8 +139,6 @@ bool DBServiceManager::retrieveSecondoHomeOnWorker(string& dir,
         distributed2::ConnectionInfo* connectionInfo)
 {
     string resultAsString;
-    DBServiceUtils::openDatabaseOnRemoteServer(connectionInfo,
-                                               "dbservice");
     string querySecondoHome(
             "query getconfigparam(\"Environment\", \"SecondoHome\")");
     bool resultOk = DBServiceUtils::executeQueryOnRemoteServer(connectionInfo,
@@ -166,35 +170,35 @@ bool DBServiceManager::retrieveSecondoHomeOnWorker(string& dir,
 void DBServiceManager::getWorkerNodesForReplication(
         vector<ConnectionID>& nodes)
 {
-    size_t numberOfReplicas = 3;
-
-    if(getNextConnectionID() <= numberOfReplicas)
+    if (connections.size() < replicaCount)
     {
-        for(ConnectionID id = 1; id <= getNextConnectionID(); ++id)
-        {
-            nodes.push_back(id);
-        }
-        if(nodes.size() < numberOfReplicas)
-        {
-            //TODO warning
-        }
-        return;
+        throw new SecondoException("not enough DBService worker nodes");
     }
-
-    while(nodes.size() < numberOfReplicas)
+    while(nodes.size() < replicaCount)
     {
-        ConnectionID id = rand() % getNextConnectionID() + 1;
-
-        if(find(nodes.begin(), nodes.end(), id) == nodes.end()) {
-            nodes.push_back(id);
-        }
+        nodes.push_back(determineReplicaLocation());
     }
+}
+
+ConnectionID DBServiceManager::determineReplicaLocation()
+{
+    // TODO consider fault tolerance mode etc
+    // maybe introduce a helper structure to store all possible locations
+    // for each node
+    return rand() % connections.size() + 1;
 }
 
 ConnectionInfo* DBServiceManager::getConnection(ConnectionID id)
 {
     return connections.at(id).second;
 }
+
+LocationInfo& DBServiceManager::getLocation(ConnectionID id)
+{
+    return connections.at(id).first;
+}
+
+
 
 //TODO
 bool DBServiceManager::persistLocationInformation()

@@ -132,10 +132,13 @@ DBSERVICE_INCLUDE_DIRS += -I $(ARRAY_DIR) -I $(STANDARDC_DIR) $(DEFAULTCCFLAGS)
 #DBServiceManagerTest.o : $(USER_DIR)/DBServiceManagerTest.cpp $(GMOCK_HEADERS)
 #	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-DBServiceCommunicationServerTest.o : $(USER_DIR)/DBServiceCommunicationServerTest.cpp $(GMOCK_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DBSERVICE_INCLUDE_DIRS) -c $< -o $@
+#DBServiceCommunicationServerTest.o : $(USER_DIR)/DBServiceCommunicationServerTest.cpp $(GMOCK_HEADERS)
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DBSERVICE_INCLUDE_DIRS) -c $< -o $@
 
-SuiteDBService : DBServiceCommunicationServerTest.o \
+CommunicationUtilsTest.o : $(USER_DIR)/CommunicationUtilsTest.cpp $(GMOCK_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -c $< -o $@
+
+SuiteDBService : CommunicationUtilsTest.o \
     gmock_main.a \
     $(LIBDBSERVICE)# $(LIBDISTRIBUTED2) $(LIBUTILS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ -lpthread $(COMMON_LD_FLAGS)

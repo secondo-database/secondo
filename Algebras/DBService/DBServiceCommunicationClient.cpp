@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "DBServiceCommunicationClient.hpp"
 #include "DBServiceCommunicationProtocol.hpp"
+#include "CommunicationUtils.hpp"
+#include "DBServiceUtils.hpp"
 
 #include "SocketIO.h"
 #include "StringUtils.h"
@@ -59,18 +61,57 @@ int DBServiceCommunicationClient::start()
         return 0;
 }
 
-int DBServiceCommunicationClient::getNodesForReplication()
+int DBServiceCommunicationClient::getNodesForReplication(string& relationName)
 {
     iostream& io = socket->GetSocketStream();
-    string line;
-    getline(io, line);
-    if (line != DBServiceCommunicationProtocol::CommunicationServer())
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            DBServiceCommunicationProtocol::CommunicationServer()))
     {
-        return 11;
+        return 1;
     }
+
     io << DBServiceCommunicationProtocol::CommunicationClient() << endl;
     io << DBServiceCommunicationProtocol::ProvideReplica() << endl;
+    io << relationName
+       << ":"
+       << SecondoSystem::GetInstance()->GetDatabaseName()
+       << endl;
+    io.flush();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            DBServiceCommunicationProtocol::LocationRequest()))
+    {
+        return 2;
+    }
+
+    string location;
+    buildLocationString(location);
+    io << location << endl;
+    io.flush();
     return 0;
+}
+
+void DBServiceCommunicationClient::buildLocationString(string& location)
+{
+    string host;
+    DBServiceUtils::readFromConfigFile(host,
+                                       "Environment",
+                                       "SecondoHost",
+                                       "");
+    string port;
+    DBServiceUtils::readFromConfigFile(port,
+                                       "Environment",
+                                       "SecondoPort",
+                                       "");
+    string disk;
+    DBServiceUtils::readFromConfigFile(disk,
+                                       "Environment",
+                                       "SecondoHome",
+                                       "");
+    stringstream ss;
+    ss << host << ":" << port << ":" << disk;
+    location = ss.str();
 }
 
 int DBServiceCommunicationClient::getReplicaLocation()

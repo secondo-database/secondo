@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-
 #include <string>
 
 #include "LocationInfo.hpp"
@@ -38,5 +37,7 @@ LocationInfo::LocationInfo(const std::string& host,
                            const std::string& disk)
 : host(host), port(port), disk(disk)
 {}
+
+//TODO take only one argument and split
 
 } /* namespace DBService */

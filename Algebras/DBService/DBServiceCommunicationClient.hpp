@@ -36,10 +36,14 @@ namespace DBService {
 class DBServiceCommunicationClient: public distributed2::Client {
 
 public:
-    DBServiceCommunicationClient(std::string& _server, int _port, Socket* _socket);
+    DBServiceCommunicationClient(std::string& _server,
+                                 int _port,
+                                 Socket* _socket);
     int start();
-    int getNodesForReplication();
+    int getNodesForReplication(std::string& relationName);
     int getReplicaLocation();
+protected:
+    void buildLocationString(std::string& location);
 };
 
 } /* namespace DBService */

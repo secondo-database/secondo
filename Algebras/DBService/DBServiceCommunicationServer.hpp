@@ -42,6 +42,9 @@ public:
     virtual int start();
 protected:
     int communicate();
+    bool handleProvideReplicaRequest(std::iostream& io);
+    bool handleUseReplicaRequest(std::iostream& io);
+
     virtual std::iostream& getSocketStream();
 };
 
