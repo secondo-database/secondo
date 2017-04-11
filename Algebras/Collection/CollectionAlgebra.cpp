@@ -231,6 +231,9 @@ Necessary to difference between an empty and an undefined collection.
 
 //#define DEBUG
 //#define DEBUGHEAD
+#ifdef DEBUGHEAD
+#undef DEBUGHEAD
+#endif
 
 #include "CollectionAlgebra.h"
 #include "ListUtils.h"
@@ -841,7 +844,7 @@ cout << "Print" << endl;
 
   void* Collection::Cast(void* addr) {
 #ifdef DEBUGHEAD
-cout << "Cast" << endl;
+//cout << "Cast" << endl;
 #endif
     return (new (addr) Collection);
   }
