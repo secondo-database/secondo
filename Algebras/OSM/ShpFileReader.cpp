@@ -46,9 +46,9 @@ For more detailed information see ShpFileReader.h.
 
 // --- Including header-files
 #include "ShpFileReader.h"
-#include "../Spatial/SpatialAlgebra.h"
-#include "RegionTools.h"
-#include "../FText/FTextAlgebra.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Spatial/RegionTools.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "ScalingEngine.h"
 using namespace std;
 

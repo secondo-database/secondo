@@ -46,10 +46,10 @@ This header file essentially contains the definition of the classes ~OsmAlgebra~
 #include <libxml/parser.h>
 #include <libxml/xmlreader.h>
 #include <libxml/xmlmemory.h>
-#include "RelationAlgebra.h"
-#include "LongInt.h"
-#include "Stream.h"
-#include "../Spatial/SpatialAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Standard-C++/LongInt.h"
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/Spatial/SpatialAlgebra.h"
 #include <string>
 
 enum entityKind {NODE, WAY, RELATION};

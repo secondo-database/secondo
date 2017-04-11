@@ -48,8 +48,8 @@ For more detailed information see OsmImportOperator.h.
 // --- Including header-files
 #include "OsmImportOperator.h"
 #include "OsmParser.h"
-#include "RelationAlgebra.h"
-#include "../FText/FTextAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include <iostream>
 
 using namespace std;
