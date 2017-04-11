@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_NESTEDRELATION2_OPERATORS_EXTRACT_H_
 #define ALGEBRAS_NESTEDRELATION2_OPERATORS_EXTRACT_H_
 
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 using namespace std;
 namespace nr2a {

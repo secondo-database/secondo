@@ -39,6 +39,8 @@ This class defines an interface used by the XML reader ("XmlFileReader"[2]) to
 send information about events that just occured.
 
 */
+namespace nr2a{
+
 class XmlParserInterface
 {
 public:
@@ -54,5 +56,7 @@ public:
    virtual void processedText(const std::string &text);
    virtual void processedEntityReference(const std::string &name);
 };
+
+} // end of namespace
 
 #endif /* __XML_PARSER_INTERFACE_H__*/

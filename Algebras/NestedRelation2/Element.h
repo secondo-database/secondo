@@ -35,6 +35,7 @@ found in the XML file while reading.
 // --- Including header-files
 #include <string>
 #include <vector>
+namespace nr2a{
 
 class Element {
 
@@ -81,6 +82,8 @@ protected:
 };
 
 void printElement (const Element & element);
+
+}
 
 #endif /*__ELEMENT_H__*/
 

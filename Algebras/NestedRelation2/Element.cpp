@@ -26,6 +26,8 @@ created by Thomas Uchdorf.
 */
 
 // [...]
+
+
 #undef __TRACE__
 //#define __TRACE__ cout <<  __FILE__ << "::" << __LINE__;
 #define __TRACE__
@@ -35,6 +37,7 @@ created by Thomas Uchdorf.
 #include <iostream>
 #include <cassert>
 
+namespace nr2a{
 // --- Constructors
 // Default-Constructor
 Element::Element ()
@@ -144,3 +147,7 @@ void printElement (const Element &element)
         std::cout << std::endl;
     }
 }
+
+} // end of namespace nr2a
+
+

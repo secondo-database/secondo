@@ -44,20 +44,18 @@
 class xmlTextReaderPtr;
 #endif
 
-class XmlParserInterface;
 
-#ifndef ALGEBRAS_NESTEDRELATION2_DBLPIMPORTLOCALINFO_DECLARED_
-#define ALGEBRAS_NESTEDRELATION2_DBLPIMPORTLOCALINFO_DECLARED_
-namespace nr2a {
-  class DblpImportLocalInfo;
-}
-#endif
 
 /*
 This class acts as an object oriented wrapper around the API of libxml2. it is
 based on the "XmlFileReader"[2] class of the OSM algebra.
 
 */
+namespace nr2a{
+  
+class DblpImportLocalInfo;
+class XmlParserInterface;
+
 class XmlFileReader
 {
 
@@ -68,8 +66,9 @@ class XmlFileReader
     static const int c_maxErrorLines = 100;
 
     XmlFileReader();
+
     XmlFileReader(const std::string &fileName,
-        XmlParserInterface *parser, nr2a::DblpImportLocalInfo *info);
+           XmlParserInterface *parser, DblpImportLocalInfo *info);
     ~XmlFileReader();
 
     void setFileName(const std::string &fileName);
@@ -103,11 +102,13 @@ class XmlFileReader
     std::stack<Element> m_elements;
 
     xmlTextReaderPtr *m_reader;
-    nr2a::DblpImportLocalInfo *m_info;
+    DblpImportLocalInfo *m_info;
   private:
     static void errorHandler(void *ctx, const char *msg, ...);
     std::string m_errorString;
     int m_errorCounter;
 };
+
+} // end of namespace
 
 #endif /* __XML_FILE_READER_H__*/

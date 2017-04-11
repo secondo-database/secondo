@@ -75,7 +75,7 @@ tuple of the subrelation.
 #ifndef ALGEBRAS_NESTEDRELATION2_OPERATORS_UNNEST_H_
 #define ALGEBRAS_NESTEDRELATION2_OPERATORS_UNNEST_H_
 
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 using namespace std;
 namespace nr2a {

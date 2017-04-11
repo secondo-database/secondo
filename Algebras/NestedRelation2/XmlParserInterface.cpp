@@ -29,6 +29,8 @@ It features a default implementation with functions doing nothing.
 
 #include "XmlParserInterface.h"
 
+namespace nr2a{
+
 XmlParserInterface::XmlParserInterface ()
 {
 
@@ -58,4 +60,4 @@ Signals that an entity reference has been processed.
 {
   // Default implementation does nothing
 }
-
+} 

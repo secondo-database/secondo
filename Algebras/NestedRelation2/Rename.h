@@ -30,7 +30,7 @@ underscore and a given postfix. This is done for subrelations too.
 #ifndef ALGEBRAS_NESTEDRELATION2_OPERATORS_RENAME_H_
 #define ALGEBRAS_NESTEDRELATION2_OPERATORS_RENAME_H_
 
-#include "Stream.h"
+#include "Algebras/Stream/Stream.h"
 
 using namespace std;
 namespace nr2a {

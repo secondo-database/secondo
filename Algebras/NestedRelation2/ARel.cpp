@@ -26,7 +26,7 @@
 
 #include "Symbols.h"
 #include "TypeConstructor.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 
 #include "../FText/FTextAlgebra.h"
 

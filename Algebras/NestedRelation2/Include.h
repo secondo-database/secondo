@@ -40,8 +40,8 @@ own type of exception.
 #include "ARel.h"
 #include "NRel.h"
 
-#include "RelationAlgebra.h"
-#include "Stream.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Stream/Stream.h"
 
 #include "Nr2aException.h"
 #include "NestedRelation2Algebra.h"

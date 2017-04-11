@@ -44,6 +44,8 @@ fulfilled it writes an error message to the cerr output.
 
 #include "DblpImportLocalInfo.h"
 
+namespace nr2a{
+
 XmlFileReader::XmlFileReader()
     : m_fileName(), m_parser(NULL), m_elements(), m_reader(NULL)
 {
@@ -51,7 +53,7 @@ XmlFileReader::XmlFileReader()
 }
 
 XmlFileReader::XmlFileReader(const std::string &fileName,
-    XmlParserInterface *parser, nr2a::DblpImportLocalInfo *info)
+    XmlParserInterface *parser, DblpImportLocalInfo *info)
     : m_fileName(fileName), m_parser(parser), m_elements(), m_reader(NULL),
         m_info(info)
 {
@@ -156,16 +158,16 @@ int XmlFileReader::readXmlFile()
       {
         processXmlNode(reader);
       }
-      catch (nr2a::Nr2aException e)
+      catch (Nr2aException e)
       {
         int lineNumber = xmlTextReaderGetParserLineNumber(reader);
-        throw nr2a::Nr2aParserException(e.what(), lineNumber);
+        throw Nr2aParserException(e.what(), lineNumber);
       }
     }
     if (m_errorCounter > 0)
     {
       int lineNumber = xmlTextReaderGetParserLineNumber(reader);
-      throw nr2a::Nr2aParserException(getErrorMessages(), lineNumber);
+      throw Nr2aParserException(getErrorMessages(), lineNumber);
     }
     xmlFreeTextReader(reader);
 
@@ -403,3 +405,6 @@ string XmlFileReader::getErrorMessages()
 
   return result;
 }
+
+} // end of namespace nr2a
+
