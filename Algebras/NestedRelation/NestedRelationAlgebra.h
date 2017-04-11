@@ -86,7 +86,7 @@ constructors, namely ~AttributeRelation~ and ~NestedRelation~.
 // #include "DBArray.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "Attribute.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include <vector>
 
 extern NestedList* nl;
