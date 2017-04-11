@@ -131,15 +131,15 @@ This file contains the implementation of the stream operators.
 #include "AlgebraManager.h"
 #include "Algebra.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "SecondoSystem.h"
 #include "Symbols.h"
 #include "NList.h"
 #include "ListUtils.h"
 #include "Progress.h"
 #include "AlmostEqual.h"
-#include "Stream.h"
-#include "LongInt.h"
+#include "Algebras/Stream/Stream.h"
+#include "Algebras/Standard-C++/LongInt.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
