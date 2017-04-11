@@ -99,7 +99,7 @@ public class TestData {
 //    static Point[] test = {point7,point8,point9,point10,point11,point12,point11,point10,point9,point8,point7};
 
 //    static Point[] test = {motorwayJunction1, motorwayJunction2, motorwayJunction3, motorwayJunction4, motorwayJunction5, motorwayJunction6};
-//    static Point[] test = {fernuni};
+    //static Point[] test = {fernuni};
 //    static Point[] test = {skippedStreet1, skippedStreet2};
 //    static Point[] test = {skippedStreet1, skippedStreet2, skippedStreet3};
 

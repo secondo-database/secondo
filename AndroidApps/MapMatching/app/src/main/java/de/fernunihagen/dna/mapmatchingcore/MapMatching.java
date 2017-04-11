@@ -27,7 +27,15 @@ public class MapMatching {
 
     private boolean improveFootwayPerformance;
 
+    private int footwaySpeed;
+    private int roadMalus;
+    private boolean treatFootwaysDifferent;
+    private boolean temporaryPreferRoads = false;
+
+    private double averageSpeed;
+
     private boolean preferSmallerPaths;
+    private int preferSmallerPathsMalus;
     private boolean allowUTurns;
     private boolean allowMultipleUTurns;
     private boolean alwaysExtent;
@@ -117,7 +125,7 @@ public class MapMatching {
     }
 
     private void checkPreferenceMatchFootways(){
-        util.setTemporaryPreferRoads(false);
+        temporaryPreferRoads = false;
         if(secondoDB.isMatchFootways()!= isPreferenceMatchFootwaysChange()){
             if(isPreferenceMatchFootwaysChange()==false && paths.size()!=0){
                 int indexOfLastEdge = paths.get(0).getEdges().size()-1;
@@ -139,7 +147,7 @@ public class MapMatching {
                 else{
                     mapMatchingListener.showInfoMessage("Matching Footways will be disabled when a road is entered.<br>");
                     mapMatchingListener.showLineInfoMessage("Roads will be temporary preferred.");
-                    util.setTemporaryPreferRoads(true);
+                    temporaryPreferRoads = true;
                 }
             }
             else {
@@ -176,7 +184,7 @@ public class MapMatching {
     }
 
     private void calculateAverageSpeed(Point locationPoint){
-        if(util.isTreatFootwaysDifferent()&&secondoDB.isMatchFootways()){
+        if(treatFootwaysDifferent&&secondoDB.isMatchFootways()){
             util.averageSpeedOfLastThreePoints(locationPoint);
         }
     }
@@ -290,16 +298,7 @@ public class MapMatching {
                     pathExtension.getEdges().add(edgeToExtent);
                     pathExtension.getHistoryPerEdge().add(new ArrayList<MapMatchingPathHistoryEntry>());
                     pathExtension.setExtensionCounter(pathExtension.getExtensionCounter() + 1);
-                    if(preferSmallerPaths){
-                        pathExtension.setScore(pathExtension.getScore()+5);
-                    }
-                    if(path.isUTurnExtension()){
-                        if(edge.getSourceNode() != null){
-                            if(edge.getSourceNode().getOutgoingEdges().contains(edgeToExtent)){
-                                pathExtension.setScore(pathExtension.getScore()+uTurnMalus);
-                            }
-                        }
-                    }
+                    adjustScore(path, edge, edgeToExtent, pathExtension);
                     findProjection(locationPoint, pathExtension);
                     if(isNewPathUseful(locationPoint, pathExtension)){
                         if(!edgeToExtent.getSourcePos().equals(pathExtension.getRecentProjectedPoint())){
@@ -311,6 +310,36 @@ public class MapMatching {
                 }
             }
             path.setUTurnExtension(false);
+        }
+    }
+
+    private void adjustScore(MapMatchingPath path, NetworkEdge edge, NetworkEdge edgeToExtent, MapMatchingPath pathExtension) {
+        if(preferSmallerPaths){
+            pathExtension.setScore(pathExtension.getScore()+preferSmallerPathsMalus);
+        }
+        if(path.isUTurnExtension()){
+            if(edge.getSourceNode() != null){
+                if(edge.getSourceNode().getOutgoingEdges().contains(edgeToExtent)){
+                    pathExtension.setScore(pathExtension.getScore()+uTurnMalus);
+                }
+            }
+        }
+        //Service Road Malus
+        if(edge.getRoadType().equals("service") && averageSpeed>20){
+            pathExtension.setScore(pathExtension.getScore()+50);
+        }
+
+        if(secondoDB.isMatchFootways()&&treatFootwaysDifferent&&!temporaryPreferRoads){
+            if(averageSpeed<=footwaySpeed){
+                if(util.isRoad(edge.getRoadType())){
+                    pathExtension.setScore(pathExtension.getScore()+ roadMalus);
+                }
+            }
+            else{
+                if(!util.isRoad(edge.getRoadType())){
+                    pathExtension.setScore(pathExtension.getScore()+200);
+                }
+            }
         }
     }
 
@@ -433,6 +462,7 @@ public class MapMatching {
                             return true;
                         }
                         else{
+                            //path.setScore(path.getScore()+1);
                             uselessPathsToRemove.add(path);
                         }
                     }
@@ -905,4 +935,34 @@ public class MapMatching {
         this.improveFootwayPerformance = improveFootwayPerformance;
     }
 
+    public void setPreferSmallerPathsMalus(int preferSmallerPathsMalus) {
+        this.preferSmallerPathsMalus = preferSmallerPathsMalus;
+    }
+
+    public void setFootwaySpeed(int footwaySpeed) {
+        this.footwaySpeed = footwaySpeed;
+    }
+
+    public void setRoadMalus(int roadMalus) {
+        this.roadMalus = roadMalus;
+    }
+
+    public void setTemporaryPreferRoads(boolean temporaryPreferRoads) {
+        this.temporaryPreferRoads = temporaryPreferRoads;
+    }
+    public void setTreatFootwaysDifferent(boolean treatFootwaysDifferent) {
+        this.treatFootwaysDifferent = treatFootwaysDifferent;
+    }
+
+    public void setAverageSpeed(double averageSpeed) {
+        this.averageSpeed = averageSpeed;
+    }
+
+    public double getAverageSpeed() {
+        return averageSpeed;
+    }
+
+    public boolean isTemporaryPreferRoads() {
+        return temporaryPreferRoads;
+    }
 }

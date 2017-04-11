@@ -9,18 +9,13 @@ public class MapMatchingUtilities {
 
     private Point lastProjectedPoint;
     private MapMatching mapMatching;
-    private int footwaySpeed ;
-    private int wayOrRoadMalus;
-    private boolean treatFootwaysDifferent;
+
     private int distanceMultiplicator;
-    private double averageSpeed;
 
     private int countOfDisplayedEdges;
     private boolean cleanMapData;
     private List<List<GeoPoint>> startWayPoints = new ArrayList<List<GeoPoint>>();
     private List<List<GeoPoint>> endWayPoints = new ArrayList<List<GeoPoint>>();
-
-    private boolean temporaryPreferRoads = false;
 
     public MapMatchingUtilities(MapMatching mapMatching){
         this.mapMatching = mapMatching;
@@ -88,34 +83,17 @@ public class MapMatchingUtilities {
 
         double finalScore = distanceScore + bearingScore;
 
-        if(treatFootwaysDifferent&&mapMatching.getSecondoDB().isMatchFootways()&&!temporaryPreferRoads){
-            if(averageSpeed<=footwaySpeed){
-                if(isRoad(edge.getRoadType())){
-                    finalScore = finalScore + wayOrRoadMalus;
-                }
-            }
-            else{
-                if(!isRoad(edge.getRoadType())){
-                    finalScore = finalScore + wayOrRoadMalus;
-                }
-            }
-        }
-
-        //Service Road Malus
-        if(edge.getRoadType().equals("service") && averageSpeed>20){
-            finalScore = finalScore + 20;
-        }
-
-        if(temporaryPreferRoads){
+        if(mapMatching.isTemporaryPreferRoads()){
             if(!isRoad(edge.getRoadType())){
-                finalScore = finalScore + 50;
+                finalScore = finalScore+20;
             }
         }
+
         return finalScore;
     }
 
     public void averageSpeedOfLastThreePoints(Point locationPoint){
-        averageSpeed = locationPoint.getSpeed();
+        mapMatching.setAverageSpeed(locationPoint.getSpeed());
         int counter = 1;
         MapMatchingPath path = mapMatching.getCurrentResult();
 
@@ -125,14 +103,14 @@ public class MapMatchingUtilities {
                 for (int j=path.getHistoryPerEdge().get(i).size()-1 ; j>=0 ; j--)
                 {
                     counter = counter + 1;
-                    averageSpeed = averageSpeed + path.getHistoryPerEdge().get(i).get(j).getLocationPoint().getSpeed();
+                    mapMatching.setAverageSpeed(mapMatching.getAverageSpeed() + path.getHistoryPerEdge().get(i).get(j).getLocationPoint().getSpeed());
                     if(counter==3){break;}
                 }
                 if(counter==3){break;}
             }
         }
 
-        averageSpeed = averageSpeed / counter;
+        mapMatching.setAverageSpeed(mapMatching.getAverageSpeed() / counter);
     }
 
     public boolean isRoad(String roadType){
@@ -584,25 +562,8 @@ public class MapMatchingUtilities {
         return lastProjectedPoint;
     }
 
-    public void setFootwaySpeed(int footwaySpeed) {
-        this.footwaySpeed = footwaySpeed;
-    }
-
-    public void setWayOrRoadMalus(int wayOrRoadMalus) {
-        this.wayOrRoadMalus = wayOrRoadMalus;
-    }
-
-
-    public void setTreatFootwaysDifferent(boolean treatFootwaysDifferent) {
-        this.treatFootwaysDifferent = treatFootwaysDifferent;
-    }
-
     public void setDistanceMultiplicator(int distanceMultiplicator) {
         this.distanceMultiplicator = distanceMultiplicator;
-    }
-
-    public boolean isTreatFootwaysDifferent() {
-        return treatFootwaysDifferent;
     }
 
     public void setCountOfDisplayedEdges(int countOfDisplayedEdges) {
@@ -621,8 +582,6 @@ public class MapMatchingUtilities {
         return startWayPoints;
     }
 
-    public void setTemporaryPreferRoads(boolean temporaryPreferRoads) {
-        this.temporaryPreferRoads = temporaryPreferRoads;
-    }
+
 
 }

@@ -23,6 +23,7 @@ public class SettingsAdvancedActivity extends PreferenceActivity implements Pref
     private Preference hypothesisCountPref;
     private Preference hypothesisExtensionDepthPref;
     private Preference hypothesisPreferSmallerPathsPref;
+    private Preference hypothesisPreferSmallerPathsMalusPref;
     private Preference hypothesisResetDistancePref;
     private Preference hypothesisCleanPref;
     private Preference hypothesisCleanCountPref;
@@ -64,6 +65,7 @@ public class SettingsAdvancedActivity extends PreferenceActivity implements Pref
         hypothesisCountPref = findPreference(getString(R.string.preference_advancedMaxPathsSize_key));
         hypothesisExtensionDepthPref = findPreference(getString(R.string.preference_advancedExtensionDepth_key));
         hypothesisPreferSmallerPathsPref = findPreference(getString(R.string.preference_advancedPreferSmallerPaths_key));
+        hypothesisPreferSmallerPathsMalusPref = findPreference(getString(R.string.preference_advancedPreferSmallerPathsMalus_key));
         hypothesisResetDistancePref = findPreference(getString(R.string.preference_advancedResetDistance_key));
         hypothesisCleanPref = findPreference(getString(R.string.preference_advancedCleanPaths_key));
         hypothesisCleanCountPref = findPreference(getString(R.string.preference_advancedCleanPathsCount_key));
@@ -89,6 +91,7 @@ public class SettingsAdvancedActivity extends PreferenceActivity implements Pref
         hypothesisCountPref.setOnPreferenceChangeListener(this);
         hypothesisExtensionDepthPref.setOnPreferenceChangeListener(this);
         hypothesisPreferSmallerPathsPref.setOnPreferenceChangeListener(this);
+        hypothesisPreferSmallerPathsMalusPref.setOnPreferenceChangeListener(this);
         hypothesisResetDistancePref.setOnPreferenceChangeListener(this);
         hypothesisCleanPref.setOnPreferenceChangeListener(this);
         hypothesisCleanCountPref.setOnPreferenceChangeListener(this);
@@ -115,6 +118,13 @@ public class SettingsAdvancedActivity extends PreferenceActivity implements Pref
         boolean savedHypothesisCleanPref = sharedPrefs.getBoolean(getString(R.string.preference_advancedCleanPaths_key), Boolean.valueOf(getString(R.string.preference_advancedCleanPaths_default)));
         boolean savedMapCleanPref = sharedPrefs.getBoolean(getString(R.string.preference_advancedCleanMap_key), Boolean.valueOf(getString(R.string.preference_advancedCleanMap_default)));
         boolean savedFootwaysPref = sharedPrefs.getBoolean(getString(R.string.preference_advancedFootwaysDifferent_key), Boolean.valueOf(getString(R.string.preference_advancedFootwaysDifferent_default)));
+        boolean savedPreferSmallerPathsPref = sharedPrefs.getBoolean(getString(R.string.preference_advancedPreferSmallerPaths_key), Boolean.valueOf(getString(R.string.preference_advancedPreferSmallerPaths_default)));
+
+        if(savedPreferSmallerPathsPref){
+            hypothesisPreferSmallerPathsMalusPref.setEnabled(true);
+        }else{
+            hypothesisPreferSmallerPathsMalusPref.setEnabled(false);
+        }
 
         if(savedUTurnAllowPref){
             uTurnMalusPref.setEnabled(true);
@@ -250,6 +260,22 @@ public class SettingsAdvancedActivity extends PreferenceActivity implements Pref
                 return false;
             }
         }
+        else if(preference == hypothesisPreferSmallerPathsPref)
+        {
+            if(Boolean.valueOf(value.toString())){
+                hypothesisPreferSmallerPathsMalusPref.setEnabled(true);
+            }
+            else{
+                hypothesisPreferSmallerPathsMalusPref.setEnabled(false);
+            }
+        }
+        else if(preference == hypothesisPreferSmallerPathsMalusPref)
+        {
+            if(value.toString().isEmpty()){
+                Toast.makeText(this, "Preference can not be empty.", Toast.LENGTH_LONG).show();
+                return false;
+            }
+        }
         else if (preference == hypothesisCleanPref)
         {
             if(Boolean.valueOf(value.toString())){
@@ -360,6 +386,7 @@ public class SettingsAdvancedActivity extends PreferenceActivity implements Pref
         editor.putString(getString(R.string.preference_advancedExtensionDepth_key),getString(R.string.preference_advancedExtensionDepth_default));
         editor.putString(getString(R.string.preference_advancedResetDistance_key),getString(R.string.preference_advancedResetDistance_default));
         editor.putBoolean(getString(R.string.preference_advancedPreferSmallerPaths_key),Boolean.valueOf(getString(R.string.preference_advancedPreferSmallerPaths_default)));
+        editor.putString(getString(R.string.preference_advancedPreferSmallerPathsMalus_key),getString(R.string.preference_advancedPreferSmallerPathsMalus_default));
         editor.putBoolean(getString(R.string.preference_advancedCleanPaths_key),Boolean.valueOf(getString(R.string.preference_advancedCleanPaths_default)));
         editor.putString(getString(R.string.preference_advancedCleanPathsCount_key),getString(R.string.preference_advancedCleanPathsCount_default));
         editor.putString(getString(R.string.preference_advancedCleanPathsEdges_key),getString(R.string.preference_advancedCleanPathsEdges_default));

@@ -278,6 +278,11 @@
     <string name="preference_advancedPreferSmallerPaths_default">true</string>
     <string name="preference_advancedPreferSmallerPaths_summary">Enable to prefer Hypotheses with less edges. (Default = enabled)</string>
 
+    <string name="preference_advancedPreferSmallerPathsMalus">Prefer Smaller Hypotheses Malus</string>
+    <string name="preference_advancedPreferSmallerPathsMalus_key">preferSmallerPathsMalus</string>
+    <string name="preference_advancedPreferSmallerPathsMalus_default">15</string>
+    <string name="preference_advancedPreferSmallerPathsMalus_summary">Malus for each edge in Score Points. (Default = 15)</string>
+
     <string name="preference_advancedCleanPaths">Clean Hypotheses</string>
     <string name="preference_advancedCleanPaths_key">cleanPaths</string>
     <string name="preference_advancedCleanPaths_default">true</string>
@@ -296,12 +301,12 @@
     <string name="preference_advancedCleanMap">Clean Map Data</string>
     <string name="preference_advancedCleanMap_key">cleanMap</string>
     <string name="preference_advancedCleanMap_default">false</string>
-    <string name="preference_advancedCleanMap_summary">Enable to clean Map Data. Old results will disappear after some time. Improves performance when many locations has been processed. Only relevant if \"Show Map\" in General Settings is enabled. (Default = disabled)</string>
+    <string name="preference_advancedCleanMap_summary">Enable to clean Map Data. Old results will disappear after some time. Improves performance when many locations has been processed. (Default = disabled)</string>
 
     <string name="preference_advancedCleanMapCount">Clean Map Data Count</string>
     <string name="preference_advancedCleanMapCount_key">cleanMapCount</string>
     <string name="preference_advancedCleanMapCount_default">250</string>
-    <string name="preference_advancedCleanMapCount_summary">Maximal Count of Edges that will be shown on Map. Only relevant if \"Show Map\" in General Settings is enabled. (Default = 250)</string>
+    <string name="preference_advancedCleanMapCount_summary">Maximal Count of Edges that will be shown on Map. (Default = 250)</string>
 
     <string name="preference_advancedFootwaysPerformance">Improve Footway Map Matching Performance</string>
     <string name="preference_advancedFootwaysPerformance_key">footwaysPerformance</string>
@@ -311,17 +316,17 @@
     <string name="preference_advancedFootwaysDifferent">Prefer Footways or Roads</string>
     <string name="preference_advancedFootwaysDifferent_key">footwaysDifferent</string>
     <string name="preference_advancedFootwaysDifferent_default">true</string>
-    <string name="preference_advancedFootwaysDifferent_summary">Enable to prefer Footways or Roads depending on Speed.  Only relevant if \"Match Footways\" is disabled. (Default = enabled)</string>
+    <string name="preference_advancedFootwaysDifferent_summary">Enable to prefer Footways or Roads depending on Speed. (Default = enabled)</string>
 
     <string name="preference_advancedFootwaySpeed">Footway Speed</string>
     <string name="preference_advancedFootwaySpeed_key">footwaySpeed</string>
-    <string name="preference_advancedFootwaySpeed_default">6</string>
-    <string name="preference_advancedFootwaySpeed_summary">Speed limit until roads are preferred for map matching. Only relevant if \"Match Footways\" is disabled. (Default = 6)</string>
+    <string name="preference_advancedFootwaySpeed_default">7</string>
+    <string name="preference_advancedFootwaySpeed_summary">Speed limit until roads are preferred for map matching. (Default = 7)</string>
 
-    <string name="preference_advancedWayOrRoadMalus">Footway or Road Malus</string>
+    <string name="preference_advancedWayOrRoadMalus">Road Malus</string>
     <string name="preference_advancedWayOrRoadMalus_key">wayOrRoadMalus</string>
-    <string name="preference_advancedWayOrRoadMalus_default">100</string>
-    <string name="preference_advancedWayOrRoadMalus_summary">Malus for a road or footway depending on speed in Score Points. Only relevant if \"Match Footways\" is disabled. (Default = 100)</string>
+    <string name="preference_advancedWayOrRoadMalus_default">50</string>
+    <string name="preference_advancedWayOrRoadMalus_summary">Malus for a road depending on speed in Score Points. (Default = 50)</string>
 
     <string name="preference_advancedScoreDistanceMulti">Distance Multiplicator</string>
     <string name="preference_advancedScoreDistanceMulti_key">scoreDistanceMulti</string>

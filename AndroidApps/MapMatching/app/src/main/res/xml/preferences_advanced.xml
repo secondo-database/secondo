@@ -96,6 +96,13 @@
             android:key="@string/preference_advancedPreferSmallerPaths_key"
             android:summary="@string/preference_advancedPreferSmallerPaths_summary"
             android:title="@string/preference_advancedPreferSmallerPaths" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedPreferSmallerPathsMalus_default"
+            android:key="@string/preference_advancedPreferSmallerPathsMalus_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedPreferSmallerPathsMalus_summary"
+            android:title="@string/preference_advancedPreferSmallerPathsMalus" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/preferenceCategory_advancedExtensions">
         <EditTextPreference

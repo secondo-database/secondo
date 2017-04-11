@@ -292,6 +292,7 @@ public class MapMatchingCoreInterface implements MapMatchingListener {
         int savedAdvancedExtensionDepth = Integer.parseInt(sharedPrefs.getString(mapMatchingActivity.getString(R.string.preference_advancedExtensionDepth_key), mapMatchingActivity.getString(R.string.preference_advancedExtensionDepth_default)));
         int savedAdvancedResetDistance = Integer.parseInt(sharedPrefs.getString(mapMatchingActivity.getString(R.string.preference_advancedResetDistance_key), mapMatchingActivity.getString(R.string.preference_advancedResetDistance_default)));
         boolean savedAdvancedPreferSmallerPaths = sharedPrefs.getBoolean(mapMatchingActivity.getString(R.string.preference_advancedPreferSmallerPaths_key), Boolean.valueOf(mapMatchingActivity.getString(R.string.preference_advancedPreferSmallerPaths_default)));
+        int savedAdvancedPreferSmallerPathsMalus = Integer.parseInt(sharedPrefs.getString(mapMatchingActivity.getString(R.string.preference_advancedPreferSmallerPathsMalus_key), mapMatchingActivity.getString(R.string.preference_advancedPreferSmallerPathsMalus_default)));
         boolean savedAdvancedFootwaysDifferent = sharedPrefs.getBoolean(mapMatchingActivity.getString(R.string.preference_advancedFootwaysDifferent_key), Boolean.valueOf(mapMatchingActivity.getString(R.string.preference_advancedFootwaysDifferent_default)));
         boolean savedAdvancedFootwaysPerformance = sharedPrefs.getBoolean(mapMatchingActivity.getString(R.string.preference_advancedFootwaysPerformance_key), Boolean.valueOf(mapMatchingActivity.getString(R.string.preference_advancedFootwaysPerformance_default)));
         int savedFootwaySpeed = Integer.parseInt(sharedPrefs.getString(mapMatchingActivity.getString(R.string.preference_advancedFootwaySpeed_key), mapMatchingActivity.getString(R.string.preference_advancedFootwaySpeed_default)));
@@ -304,7 +305,7 @@ public class MapMatchingCoreInterface implements MapMatchingListener {
         setServerSettings(savedServerIp,savedServerPort,savedServerUsername,savedServerPassword,savedServerDatabaseName,savedServerDatabaseRTreeName,savedServerDatabaseEdgeIndexName,savedEdgesRelation,savedServerTimeout,androidId,savedResultServer,savedResultServerIp,savedResultServerPort,savedResultServerUsername,savedResultServerPassword,savedResultServerDatabaseName);
         setGeneralSettings(savedMapMatchingMatchFootways,savedMapMatchingNoOneWay,savedResultDirectTransmission,savedResultStreetname,savedResultCardinalDirection,savedResultSpeed,savedResultHeight,savedResultLocalMode,savedResultMovementData,savedResultTimeUtc);
         setGpsSettings(savedAdvancedFirstLocation, savedAdvancedUpdateRate, savedAdvancedUpdateDistance, savedAdvancedAccuracy, savedAdvancedSatUsed, savedAdvancedMaxPdop, savedAdvancedMaxHdop, savedAdvancedMaxVdop);
-        setAdvancedSettings(savedResultStreetnameCalc,savedResultPreciseMPoint,savedAdvancedUTurn, savedAdvancedMultipleUTurn, savedAdvancedBoundingBoxSize, savedAdvancedBoundingBoxRadius, savedAdvancedMaxPathsSize, savedAdvancedExtensionDepth, savedAdvancedResetDistance, savedAdvancedPreferSmallerPaths, savedAdvancedUTurnMalus, savedAdvancedCleanPaths, savedAdvancedCleanPathsCount, savedAdvancedCleanPathsEdges, savedAdvancedFootwaysDifferent, savedFootwaySpeed, savedWayOrRoadMalus, savedDistanceMulti,savedAlwaysExtend, savedAdvancedFootwaysPerformance);
+        setAdvancedSettings(savedResultStreetnameCalc,savedResultPreciseMPoint,savedAdvancedUTurn, savedAdvancedMultipleUTurn, savedAdvancedBoundingBoxSize, savedAdvancedBoundingBoxRadius, savedAdvancedMaxPathsSize, savedAdvancedExtensionDepth, savedAdvancedResetDistance, savedAdvancedPreferSmallerPaths,savedAdvancedPreferSmallerPathsMalus, savedAdvancedUTurnMalus, savedAdvancedCleanPaths, savedAdvancedCleanPathsCount, savedAdvancedCleanPathsEdges, savedAdvancedFootwaysDifferent, savedFootwaySpeed, savedWayOrRoadMalus, savedDistanceMulti,savedAlwaysExtend, savedAdvancedFootwaysPerformance);
         setMapSettings(savedMapMatchingShowMap,savedMapMatchingShowGpsPoints,savedAdvancedCleanMap,savedAdvancedCleanMapCount);
     }
 
@@ -367,7 +368,7 @@ public class MapMatchingCoreInterface implements MapMatchingListener {
         MapMatchingGps.setMaximalAllowedVdop(maxVdop);
     }
 
-    private static void setAdvancedSettings(boolean streetnameCalc, boolean preciseMPoint, boolean allowUTurns, boolean multipleUTurns, int boundingBoxSize, double boundingBoxRadius, int maxPathsSize, int extensionDepth, int resetDistance, boolean preferSmallerPaths, int uTurnMalus, boolean cleanPaths, int cleanPathsCount, int cleanPathsEdges, boolean footwaysDifferent, int footwaySpeed, int wayOrRoadMalus, int distanceMulti, boolean alwaysExtend, boolean footwayPerformance){
+    private static void setAdvancedSettings(boolean streetnameCalc, boolean preciseMPoint, boolean allowUTurns, boolean multipleUTurns, int boundingBoxSize, double boundingBoxRadius, int maxPathsSize, int extensionDepth, int resetDistance, boolean preferSmallerPaths,int preferSmallerPathsMalus, int uTurnMalus, boolean cleanPaths, int cleanPathsCount, int cleanPathsEdges, boolean footwaysDifferent, int footwaySpeed, int wayOrRoadMalus, int distanceMulti, boolean alwaysExtend, boolean footwayPerformance){
         SymbolicTrajectory.setCalcStreetnameTime(streetnameCalc);
         mapMatching.setAllowUTurns(allowUTurns);
         mapMatching.setAllowMultipleUTurns(multipleUTurns);
@@ -378,14 +379,15 @@ public class MapMatchingCoreInterface implements MapMatchingListener {
         mapMatching.setExtensionDepth(extensionDepth);
         mapMatching.setResetDistance(resetDistance);
         mapMatching.setPreferSmallerPaths(preferSmallerPaths);
+        mapMatching.setPreferSmallerPathsMalus(preferSmallerPathsMalus);
         mapMatching.setuTurnMalus(uTurnMalus);
         mapMatching.setCleanPaths(cleanPaths);
         mapMatching.setMaxLocationCountUntilClean(cleanPathsCount);
         mapMatching.setEdgesLeftInCleanPaths(cleanPathsEdges);
-        mapMatching.getUtil().setTreatFootwaysDifferent(footwaysDifferent);
+        mapMatching.setTreatFootwaysDifferent(footwaysDifferent);
         mapMatching.setImproveFootwayPerformance(footwayPerformance);
-        mapMatching.getUtil().setFootwaySpeed(footwaySpeed);
-        mapMatching.getUtil().setWayOrRoadMalus(wayOrRoadMalus);
+        mapMatching.setFootwaySpeed(footwaySpeed);
+        mapMatching.setRoadMalus(wayOrRoadMalus);
         mapMatching.getUtil().setDistanceMultiplicator(distanceMulti);
         mapMatching.setAlwaysExtent(alwaysExtend);
         mapMatching.getMovementResults().setPreciseMovingPoint(preciseMPoint);
