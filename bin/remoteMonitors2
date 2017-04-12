@@ -1,0 +1,220 @@
+#!/bin/bash
+
+# Maintenance:
+# * Recfactored from original version (2016-07-04) on 2017-04-07 by Sebastian J.
+#   Bronner <sebastian@bronner.name>.
+# * <log further changes>
+
+DEFAULT_BINDIR='$HOME/secondo/bin'
+
+function die {
+  for arg
+  do
+    echo "$arg" >&2
+  done
+  echo >&2
+  echo "Usage  : $0 <conffile> <action>" >&2
+  echo "Details: $0 --help" >&2
+  exit 1
+}
+
+function printUsage {
+  cat << EOF
+Usage: $0 <conffile> <action>
+
+<action> can be start, stop, check, update, or mkdbdir:"
+'start'   starts the monitors in <conffile>.
+'stop'    stops any running monitors in <conffile>.
+'check'   shows the status of the monitors in <conffile>.
+'update'  updates Secondo via CVS on all <server>s in <conffile>.
+'mkdbdir' creates the database directories specified in <conffile>.
+
+Each line within <conffile> has to be in the following format:
+<server> <conffile> [<bindir> [<dbdir> [<port> [<user>]]]]
+
+<server>: the hostname where the monitor should be run
+<config>: configuration file to use, must exist on server side
+<bin>   : the Secondo bin directory containing the SecondoMonitor executable
+<home>  : overwrite the database directory specified in the configuration file
+          if not used, but later arguments should be set, use a dollar sign as
+          place holder
+<port>  : overwrite the monitor port specified in the configuration file if not
+          used, but later arguments should be set, use a dollar sign as place
+          holder
+<user>  : user with which to run command on the remote machine, including the
+          monitor
+EOF
+  exit
+}
+
+function startLine {
+  echo -n "$userhost${port:+:}$port ... "
+  ssh "$userhost" 'bash -s' << EOF
+set -e
+. \$HOME/.secondorc
+cd ${bindir:-$DEFAULT_BINDIR}
+port=${port:-\$(sed -rn 's/^SecondoPort=([^#[:space:]]*)[[:space:]]*(#.*$)?/\1/p' $conffile)}
+test "\$TMPDIR" || export TMPDIR=/tmp
+tmpfile="\$TMPDIR/SM_\$port.lck"
+if [ -e "\$tmpfile" ]
+then
+  echo "failed! A SecondoMonitor (pid \$(cat "\$tmpfile")) is already running on port \$port."
+  exit
+fi
+nohup ./SecondoMonitor -s -c $conffile ${dbdir:+-d }$dbdir ${port:+-p }$port > SecondoMonitor.log 2>&1 &
+pid=\$!
+echo \$pid > "\$tmpfile"
+if ps --no-headers -p \$pid > /dev/null
+then
+  echo "started with pid \$pid$(test "$port" || echo " on port \$port")."
+else
+  echo "failed! The SecondoMonitor process (pid \$pid) disappeared unexpectedly."
+  rm "\$tmpfile"
+fi
+EOF
+  test $? -eq 0 || echo 'failed!'
+}
+
+function stopLine {
+  echo -n "$userhost${port:+:}$port ... "
+  ssh "$userhost" 'bash -s' << EOF
+set -e
+cd ${bindir:-$DEFAULT_BINDIR}
+port=${port:-\$(sed -rn 's/^SecondoPort=([^#[:space:]]*)[[:space:]]*(#.*$)?/\1/p' $conffile)}
+test "\$TMPDIR" || export TMPDIR=/tmp
+tmpfile="\$TMPDIR/SM_\$port.lck"
+if [ ! -e "\$tmpfile" ]
+then
+  echo "done. No SecondoMonitor was found running on port \$port."
+  exit
+fi
+pid=\$(cat "\$tmpfile")
+if ! pgid=\$(ps --no-headers -p \$pid -o pgid)
+then
+  echo "done. No SecondoMonitor was found with pid \$pid."
+  rm "\$tmpfile"
+  exit
+fi
+pgid=\$(echo \$pgid)
+if kill -s 9 -\$pgid
+then
+  echo "done."
+  rm "\$tmpfile"
+else
+  echo "failed! The SecondoMonitor on port \$port with pid \$pid could not be killed."
+fi
+EOF
+  test $? -eq 0 || echo 'failed!'
+}
+
+function checkLine {
+  echo -n "$userhost${port:+:}$port ... "
+  ssh "$userhost" 'bash -s' << EOF
+set -e
+cd ${bindir:-$DEFAULT_BINDIR}
+port=${port:-\$(sed -rn 's/^SecondoPort=([^#[:space:]]*)[[:space:]]*(#.*$)?/\1/p' $conffile)}
+test "\$TMPDIR" || export TMPDIR=/tmp
+tmpfile="\$TMPDIR/SM_\$port.lck"
+if [ ! -e "\$tmpfile" ]
+then
+  echo "NOT RUNNING!$(test "$port" || echo " (port \$port)")"
+  exit
+fi
+pid=\$(cat "\$tmpfile")
+if ps --no-headers -p \$pid > /dev/null
+  echo "running with pid \$pid$(test "$port" || echo " on port \$port")."
+else
+  echo "NOT RUNNING! (pid \$pid$(test "$port" || echo ", port \$port")), removing marker."
+  rm "\$tmpfile"
+fi
+EOF
+  test $? -eq 0 || echo 'ERROR!'
+}
+
+function updateLine {
+  # Check whether $userhost was already updated and update the list of already
+  # updated userhosts and their update status.
+  for u in "${updated[@]}"
+  do
+    test "$u" == "$userhost" && return
+  done
+  n=${#updated[@]}
+  updated[n]="$userhost"
+  status[n]='not started'
+
+  # Label the output.
+  echo
+  echo "> > > $userhost < < <"
+  echo
+
+  # Determine $remotedir.
+  if [ "$bindir" ]
+  then
+    remotedir="${bindir%/bin}"
+  else
+    remotedir="$(ssh "$userhost" '. $HOME/.bashrc; echo $SECONDO_BUILD_DIR')"
+    if [ -z "$remotedir" ]
+    then
+      echo "Can't determine SECONDO_BUILD_DIR for $userhost!"
+      status[n]='aborted, no SECONDO_BUILD_DIR'
+      return
+    fi
+  fi
+  echo "Remote SECONDO_BUILD_DIR: $remotedir"
+
+  # Copy current makefile.algebras to $userhost.
+  scp "$SECONDO_BUILD_DIR/makefile.algebras" "$userhost:$remotedir/"
+  status[n]='aborted, copied makefile.algebras'
+
+  # Run the update.
+  ssh "$userhost" 'bash -s' << EOF
+set -e
+. \$HOME/.bashrc
+cd $remotedir
+cvs update -PdA
+make
+EOF
+  test $? == 0 && status[n]='complete' || status[n]='aborted with remote errors'
+}
+
+function mkdbdirLine {
+  test -z "$dbdir" && echo "no dbdir specified in line '$*'." && return
+  ssh "$userhost" mkdir -p "$dbdir"
+}
+
+# Check <conffile> specified on commandline.
+test "$1" || die "No <conffile> was specified."
+test "$1" == '--help' && printUsage
+test -r "$1" || die "Unable to read <conffile> '$1'."
+
+# Check <action> specified on commandline.
+test "$2" || die "No <action> was specified."
+method="${2}Line"
+declare -f "$method" > /dev/null || die "The <action> '$2' is not valid."
+
+# Execute <action> for every line in <conffile>.
+while read server conffile bindir dbdir port user rest
+do
+  test "$server" || return  # empty line
+  test -z "$conffile" && echo "Invalid format in line '$*'." && return
+  test "$bindir" == '$' && unset bindir
+  test "$dbdir" == '$' && unset dbdir
+  test "$port" == '$' && unset port
+  test "$user" == '$' && unset user
+  userhost="$user${user:+@}$server"
+  $method
+done < $1
+
+# Perform some post-action stuff.
+if [ "$2" == 'update' ]
+then
+  echo
+  echo 'Update Summary'
+  echo
+  for((i=0; i<${#updated[@]}; i++))
+  do
+    echo "${updated[i]}: ${status[i]}"
+  done
+fi
+
+# vim: textwidth=80:shiftwidth=2:softtabstop=-1:expandtab
