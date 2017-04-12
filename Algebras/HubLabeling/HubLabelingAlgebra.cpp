@@ -98,24 +98,23 @@ In the following we describe those three approaches in short:
 #include "AlgebraManager.h"     // e.g., check for a certain kind
 #include "Operator.h"           // for operator creation
 #include "StandardTypes.h"      // priovides int, real, string, bool type
-#include "FTextAlgebra.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "Symbols.h"            // predefined strings
 #include "ListUtils.h"          // useful functions for nested lists
-#include "Stream.h"             // wrapper for secondo streams
+#include "Algebras/Stream/Stream.h"             // wrapper for secondo streams
 
-#include "GenericTC.h"          // use of generic type constructors
 
 #include "LogMsg.h"             // send error messages
 
 #include "../../Tools/Flob/DbArray.h"  // use of DbArrays
 
-#include "RelationAlgebra.h"           // use of tuples
-#include "OrderedRelationAlgebra.h"           // use of tuples
-#include "NestedRelationAlgebra.h"           // use of tuples
-#include "BTreeAlgebra.h"           // use of tuples
-#include "LongInt.h"           // use of longint
-#include "Point.h"           // use of point
-#include "SpatialAlgebra.h"           // use of sline
+#include "Algebras/Relation-C++/RelationAlgebra.h"           // use of tuples
+#include "Algebras/OrderedRelation/OrderedRelationAlgebra.h" // use of tuples
+#include "Algebras/NestedRelation/NestedRelationAlgebra.h"   // use of tuples
+#include "Algebras/BTree/BTreeAlgebra.h"           // use of tuples
+#include "Algebras/Standard-C++/LongInt.h"           // use of longint
+#include "Algebras/Spatial/Point.h"           // use of point
+#include "Algebras/Spatial/SpatialAlgebra.h"           // use of sline
 
 #include <math.h>               // required for some operators
 #include <stack>
@@ -126,8 +125,7 @@ In the following we describe those three approaches in short:
 #include <tuple>
 
 
-#include "graph.h"
-#include "MainMemoryExt.h"
+#include "Algebras/MainMemory2/MainMemoryExt.h"
 
 /*
 2.2 Global Variables
@@ -139,7 +137,6 @@ global variables, these variables have to be declared to be extern:
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
-extern AlgebraManager *am;
 
 using namespace std;
 

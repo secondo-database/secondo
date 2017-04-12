@@ -32,7 +32,6 @@ ALGEBRA_DEPENDENCIES += RelationAlgebra
 
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS)
 CCFLAGS += -std=c++11
 
 # create objects and algebra library. The values for the variables
@@ -52,57 +51,6 @@ endif
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
-
-
-
-
-doc: GuideAlgebra.pdf
-
-GuideAlgebra.pdf: title.pdf GuideAlgebra.doc.pdf
-	pdftk title.pdf GuideAlgebra.doc.pdf cat output GuideAlgebra.pdf
-
-
-
-
-title.pdf: title.ps
-	ps2pdf $<
-
-title.ps: title.dvi
-	dvips $<
-
-title.dvi: title.tex
-	latex $<
-
-
-GuideAlgebra.doc.pdf: GuideAlgebra.doc
-	pd2pdf $<
-
-
-GuideAlgebra.doc: GuideAlgebra.cpp SpecificationDescription.pd Guide.spec ExampleFile.pd TestRunner.pd Guide.examples makefile
-	@echo "Concatenate documentation file"
-	@cat GuideAlgebra.cpp > $@
-	@cat SpecificationDescription.pd >> $@
-	@echo >> $@
-	@echo "----" >>$@
-	@cat Guide.spec >>$@
-	@echo "----" >> $@
-	@echo >>$@
-	@echo "*/" >> $@
-	@echo >>$@
-	@cat ExampleFile.pd >> $@
-	@echo >>$@
-	@echo "----" >>$@
-	@echo >>$@
-	@cat Guide.examples >>$@
-	@echo >>$@
-	@echo "----" >>$@
-	@echo >>$@
-	@echo "*/" >> $@
-	@cat TestRunner.pd >>$@
-
-
-
-
 
 
 # generic rule for cleaning all generated files
