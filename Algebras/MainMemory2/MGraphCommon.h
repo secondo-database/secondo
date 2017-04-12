@@ -44,6 +44,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <list>
 
 namespace mm2algebra{
+    
+
+class shortCutInfo{
+      public:
+        shortCutInfo(size_t _source, size_t _target, double _cost,
+                     size_t _middle):
+           source(_source), target(_target), cost(_cost), middle(_middle){}
+        size_t source;
+        size_t target;
+        double cost;
+        size_t middle;
+};
 
 class MGraphCommon : public MemoryObject{
   protected:
@@ -112,6 +124,18 @@ class MGraphCommon : public MemoryObject{
         return true;
      }
 
+     void insert(MEdge& e){
+        int source = e.source;
+        int target = e.target;
+        assert(source>=0);
+        assert(target>=0);
+        assert((size_t)source<graph.size()); 
+        assert((size_t)target<graph.size());
+        graph[source].first.push_back(e);
+        graph[target].second.push_back(e);
+     }
+
+
      size_t numVertices() const{
        return graph.size();
      }
@@ -137,8 +161,6 @@ class MGraphCommon : public MemoryObject{
               return 0;
            }
            
-
-
         private:
            std::vector<alist>::iterator vit;
            std::list<MEdge>::iterator eit;
@@ -250,7 +272,15 @@ class MGraphCommon : public MemoryObject{
            v.push_back(v2[i].compNo);
          }
      }
- 
+
+
+
+
+     size_t contract(int maxPrio, int minBlockSize, int maxHops, 
+                     std::vector<shortCutInfo>& allShortCuts){
+       return simpleContraction1(maxPrio, minBlockSize, maxHops, allShortCuts);
+     }
+
 
   protected:
     std::vector<alist> graph;
@@ -258,6 +288,7 @@ class MGraphCommon : public MemoryObject{
     int sourcePos;
     int targetPos;
     int costPos;
+    std::vector<int> nodeOrder;
 
     void setPositions(int s, int t, int c){
       sourcePos = s;
@@ -385,6 +416,375 @@ class MGraphCommon : public MemoryObject{
         std::swap(l,nl);
     }
 
+
+    MEdge createEdge(Tuple* templ, int source, int target, double cost)const{
+      Tuple* t = new Tuple(tt);
+      for(int i=0;i<t->GetNoAttributes();i++){
+           Attribute* a;
+           if(i==sourcePos){
+             a = new CcInt(true,source);
+           }  else if(i==targetPos){
+             a = new CcInt(true,target);
+           } else if(i==costPos){
+             a = new CcReal(true,cost);
+           } else {
+             a = templ->GetAttribute(i)->Clone();
+             a->SetDefined(false);
+           }
+           t->PutAttribute(i,a);
+      }
+      MEdge e(source, target,cost,t);
+      t->DeleteIfAllowed();
+      return e;
+   }
+
+
+   // computes the costs for all targets that can be reached within maxHops hops
+   // without using the node forbidden.
+   struct queueentry{
+      queueentry(size_t _node, double _cost, size_t _depth):
+       node(_node), cost(_cost), depth(_depth){
+      }
+      bool operator<(const queueentry& e) const{
+         return cost > e.cost;
+      }
+      size_t node;
+      double cost;
+      size_t depth;
+   };
+
+   void processNode(queueentry e, size_t forbidden, 
+                    std::map<size_t,double>& targets,
+                    size_t maxHops, size_t reached, 
+                    std::set<size_t>& finished,
+                      std::priority_queue<queueentry>& q
+                    ){
+
+      // check wether node has already been processed
+      if(finished.find(e.node)!=finished.end()){
+         return;
+      }
+      finished.insert(e.node);
+      // check whether node is one of the target nodes
+      std::map<size_t,double>::iterator it = targets.find(e.node);
+      if(it!=targets.end()){
+         it->second = e.cost;
+         reached--;
+         if(reached==0) return;
+      }
+      // check whether maxHops has been reached
+      if(e.depth >= maxHops){
+         return;
+      }
+      // process edges
+      std::list<MEdge>& succs =  graph[e.node].first;
+      std::list<MEdge>::iterator sit;
+      for(sit = succs.begin(); sit!=succs.end();sit++){
+         MEdge& me = *sit;
+         size_t t = me.target;
+         if(t!=forbidden && finished.find(t)==finished.end()){
+            queueentry et(t, e.cost + me.costs,e.depth+1);
+            q.push(et);
+         } 
+      }
+   }
+
+
+   void computeCosts(size_t source, size_t forbidden, 
+                     std::map<size_t, double>& targets, 
+                     double maxCost, size_t maxHops){
+       queueentry e(source,0,0);
+       std::priority_queue<queueentry> q;
+       std::set<size_t> finished;
+       q.push(e);
+       size_t reached = targets.size();
+       while(!q.empty() && reached>0){
+          queueentry e = q.top();
+          q.pop();
+          if(e.cost > maxCost){
+             //cout << "abort because maxCosts reached" << endl;
+             //cout << "maxCosts : " << maxCost << endl;
+             return;
+          }
+          processNode(e, forbidden, targets, maxHops, reached, finished,q);
+       }
+ 
+   }
+
+
+   void computeShortCuts(size_t node, size_t maxHops, 
+                         std::vector<MEdge>& result){
+       // collect all target nodes in a set
+       result.clear();
+       std::list<MEdge>& preds = graph[node].second;
+       std::list<MEdge>& succs = graph[node].first;
+       typedef std::list<MEdge>::iterator edgeIt;
+       std::map<size_t, std::map<size_t,double> > cand;
+       std::map<size_t,double> maxCost;
+
+       size_t candsize = 0;
+      
+       // collect all candidates and there costs 
+       for(edgeIt predIt = preds.begin(); predIt!=preds.end(); predIt++){
+          MEdge& inEdge = *predIt;
+          size_t source = inEdge.source;
+          double sc = inEdge.costs;
+          std::map<size_t, double> cmap;
+          double max = 0;
+          for(edgeIt succit = succs.begin();succit!=succs.end();succit++){
+             MEdge& outEdge = *succit;
+             size_t target = outEdge.target;
+             if(source != target){
+                std::map<size_t,double>::iterator it = cmap.find(target);
+                double cost = sc + outEdge.costs;
+                if(cost>max){
+                   max = cost;
+                }
+                if(it==cmap.end()){
+                  cmap[target] = cost;
+                }  else  if(it->second > cost){
+                   it->second = cost;
+                }
+             }
+          }
+          if(cmap.size()>0){
+             cand[source] = cmap;
+             maxCost[source] = max;
+          }
+          candsize += cmap.size();
+       }
+      
+       // all potential shortcuts are collected in cand
+       Tuple* tuple = 0;
+       if(cand.size()>0){
+       //  cout << "Candidates : " << candsize << endl;
+         tuple = graph[node].first.begin()->info;
+       }
+
+       std::map<size_t, std::map<size_t,double> >::iterator sit;
+       for(sit= cand.begin(); sit!=cand.end();sit++){
+          int source = sit->first;
+          double costs = maxCost[source];
+          std::map<size_t,double>::iterator tit;
+          std::map<size_t,double>  targets;
+          for(tit =  sit->second.begin(); tit!=sit->second.end(); tit++){
+             targets[tit->first] = std::numeric_limits<double>::max();
+          } 
+          // store minPathCost in targets
+          computeCosts(source, node, targets, costs, maxHops);
+          //
+          for(tit =  sit->second.begin(); tit!=sit->second.end(); tit++){
+             if(tit->second < targets[tit->first]){
+                // shortcut is shorter than another way
+                result.push_back(createEdge(tuple, source, tit->first, 
+                                            tit->second));   
+             }
+          } 
+       }
+     //  if(cand.size()>0){
+     //    cout << "shortcuts " << result.size() << endl;
+     //  }
+   } 
+
+    void insertShortCuts(std::vector<MEdge> & edges){
+       for(size_t i = 0; i< edges.size();i++){
+           insert(edges[i]);
+       }
+    }
+
+    // simple contraction as done in Script
+    class simplePrioEntry{
+       public:
+          simplePrioEntry(size_t _node): node(_node), prio(0.0){}
+          bool operator<(const simplePrioEntry& e) const{
+              return prio > e.prio;
+          }
+          size_t node;
+          double prio;
+       
+    };
+
+
+
+
+    size_t simpleContraction1(int maxPrio, size_t minBlockSize, int maxHops,
+                              std::vector<shortCutInfo>& allShortCuts){
+
+       //std::cout << "called simple contraction" << std::endl;
+
+       // initialize priority queue with all nodes and prio 0.0
+       typedef std::priority_queue<simplePrioEntry> queue_t;
+       queue_t queue;
+       for(size_t i=0;i<graph.size();i++){
+          simplePrioEntry e(i);
+          queue.push(e);
+       }
+       nodeOrder.clear();
+       size_t blockCount = 0;
+       //typedef std::pair<MEdge, size_t> contractEdgeT;
+
+       size_t cs = 0;
+       size_t prog = queue.size() / 100;
+       if(prog <2) prog = 2;
+       size_t p2 = 0;
+
+       std::cout << "start with queue of size " << queue.size() << std::endl;
+       std::cout << "write a dot each " << prog << " processed nodes" << endl;
+       
+       std::vector<MEdge> shortcuts;
+       allShortCuts.clear();
+
+       size_t removedEdges = 0;
+
+       while(!queue.empty()){
+          simplePrioEntry e = queue.top();
+          queue.pop();
+          size_t node = e.node;
+          double prio = e.prio;
+          int in = numPredecessor(node);
+          int out = numSuccessor(node);
+          if(in*out > prio){ // reinsert level 1
+             e.prio = in*out;
+             queue.push(e);
+          } else {
+            computeShortCuts(node, maxHops, shortcuts);
+            if(   (in*out + (shortcuts.size() - (in + out)) > prio)
+               && (shortcuts.size() > (size_t)(in+out))){
+              // reinsert level 2
+              e.prio = (in*out + shortcuts.size()) - (in + out);
+              queue.push(e);
+            } else {
+              // this is either the next node to contract or the node will
+              // simplify the graph
+              // do contraction
+              insertShortCuts(shortcuts);
+              disconnect(node);
+              nodeOrder.push_back(node);
+              removedEdges += (in + out);
+
+              /*
+              if(shortcuts.size() > (size_t)(in + out)){
+                cout << "insert " << shortcuts.size() << " shortcuts " << endl;
+                cout << "removed " << in + out << " edges " << endl;
+              }
+              */
+              for(size_t i=0;i<shortcuts.size();i++){
+                 MEdge& sc = shortcuts[i];
+                 shortCutInfo sci(sc.source, sc.target, sc.costs, node);
+                 allShortCuts.push_back(sci);
+              }
+
+              cs += shortcuts.size();
+              blockCount++;
+              if(prio>maxPrio && blockCount > minBlockSize){
+                  // reinit queue
+                  //cout << "reinit queue" << endl;
+                  blockCount = 0;
+                  queue_t tmp;
+                  while(!queue.empty()){
+                   simplePrioEntry e = queue.top();
+                   queue.pop();
+                   e.prio = 0;
+                   tmp.push(e);
+                  }
+                  std::swap(tmp,queue);
+              }
+              p2++; // some progress counter
+              if(p2==prog){
+                p2=0;
+                cout << ".";
+                cout.flush();
+              }              
+            }
+          }
+       }
+       cout << "processed " << nodeOrder.size() << "nodes" << endl;
+       cout << "shortcut edges " << allShortCuts.size() << endl;
+       cout << "removed edges " << removedEdges << endl;
+
+       return cs;
+    }
+
+    size_t simpleContraction2(int maxPrio, size_t minBlockSize, int maxHops,
+                              std::vector<shortCutInfo>& allShortCuts){
+
+       //std::cout << "called simple contraction" << std::endl;
+
+       // initialize priority queue with all nodes and prio 0.0
+       typedef std::priority_queue<simplePrioEntry> queue_t;
+       queue_t queue;
+       for(size_t i=0;i<graph.size();i++){
+          simplePrioEntry e(i);
+          queue.push(e);
+       }
+       nodeOrder.clear();
+       size_t blockCount = 0;
+
+       size_t cs = 0; // number of contraction edges
+       size_t prog = queue.size() / 100;
+       if(prog <2) prog = 2;
+       size_t p2 = 0;
+
+       std::cout << "start with queue of size " << queue.size() << std::endl;
+       std::cout << "write a dot each " << prog << " processed nodes" << endl;
+       
+       std::vector<MEdge> shortcuts;
+       allShortCuts.clear();
+
+       size_t removedEdges = 0;
+
+       while(!queue.empty()){
+          simplePrioEntry e = queue.top();
+          queue.pop();
+          size_t node = e.node;
+          double prio = e.prio;
+          int in = numPredecessor(node);
+          int out = numSuccessor(node);
+          int extra = in*out - (in + out); // Edge difference 
+          if(extra > prio){
+            e.prio = extra;
+            queue.push(e);
+          } else { // do contraction
+            computeShortCuts(node, maxHops, shortcuts);
+            insertShortCuts(shortcuts);
+            disconnect(node);
+            nodeOrder.push_back(node);
+            removedEdges += (in + out);
+
+            for(size_t i=0;i<shortcuts.size();i++){
+                MEdge& sc = shortcuts[i];
+                shortCutInfo sci(sc.source, sc.target, sc.costs, node);
+                allShortCuts.push_back(sci);
+            }
+
+            cs += shortcuts.size();
+            blockCount++;
+            if(prio>maxPrio && blockCount > minBlockSize){
+                  // reinit queue
+                  //cout << "reinit queue" << endl;
+                  blockCount = 0;
+                  queue_t tmp;
+                  while(!queue.empty()){
+                   simplePrioEntry e = queue.top();
+                   queue.pop();
+                   e.prio = 0;
+                   tmp.push(e);
+                  }
+                  std::swap(tmp,queue);
+            }
+            p2++; // some progress counter
+            if(p2==prog){
+               p2=0;
+               cout << ".";
+               cout.flush();
+             }              
+          }
+       }
+       cout << "processed " << nodeOrder.size() << "nodes" << endl;
+       cout << "shortcut edges " << allShortCuts.size() << endl;
+       cout << "removed edges " << removedEdges << endl;
+       return cs;
+    }
 
 };
 

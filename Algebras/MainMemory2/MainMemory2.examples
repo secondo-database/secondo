@@ -1380,6 +1380,13 @@ Example   : query otestrel feed createmgraph2m[Id_s1,Id_s2, distance(.GeoData_s1
 Result    : TRUE
 
 
+Operator : mg2contract
+Number   : 914
+Signature : MGRAPH2 -> int
+Example   : query "mgraph2m" mg2contract
+Result    : 8
+
+
 Operator  : createmgraph3
 Number    : 1000
 Signature : stream(tuple) x IDENT x IDENT x IDENT x int x string -> stream(tuple)
@@ -1425,7 +1432,6 @@ Number    : 1007
 Signature : MGRAPH3 x int -> stream(tuple)
 Example   : query "mgraph3_1" mg3numpredecessors[1]  = "mgraph2_1" mg2numpredecessors[1]
 Result    : TRUE
- 
 
 Operator  : mg3disconnect
 Number    : 1008
@@ -1446,6 +1452,11 @@ Signature : MGRAPH3 -> stream(tuple)
 Example   : query "mgraph3_1" mg3connectedcomponents sortby[CompNo] krdup[CompNo] count
 Result    : 2
 
+Operator : mg3contract
+Number   :  1011
+Signature : MGRAPH3 -> int
+Example   : query  mg3contract("mgraph3_1")
+Result    : 8
 
 Operator  : mwrap2
 Number    : 1100

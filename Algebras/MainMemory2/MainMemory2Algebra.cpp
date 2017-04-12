@@ -20521,6 +20521,122 @@ Operator mg3connectedcomponentsOp(
 );
 
 
+/*
+~ Computing contraction ~
+
+*/
+template<class G, bool onlySize>
+ListExpr mgcontractTM(ListExpr args){
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  string err;
+  ListExpr graph = nl->First(args);
+  if(!getMemType(graph,graph,err,true)){
+     return listutils::typeError(err);
+  } 
+  graph = nl->Second(graph);
+  if(!G::checkType(graph)){
+    return listutils::typeError("argument not of type " + G::BasicType());
+  }
+
+  if(!CcInt::checkType(nl->First(nl->Second(args)))){
+    return listutils::typeError("expected graph x int x int x int");
+  }
+  if(!CcInt::checkType(nl->First(nl->Third(args)))){
+    return listutils::typeError("expected graph x int x int x int");
+  }
+  if(!CcInt::checkType(nl->First(nl->Fourth(args)))){
+    return listutils::typeError("expected graph x int x int x int");
+  }
+  if(onlySize){
+     return listutils::basicSymbol<CcInt>();
+  }
+}
+
+
+template<class GN, class Graph>
+int mgcontractVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcInt*  res = (CcInt*) result.addr;
+  Graph* g = getMemObject<Graph>((GN*) args[0].addr);
+  if(!g){
+     res->SetDefined(false);
+     return 0;
+  }
+  int maxPrio = 30;
+  CcInt* V = (CcInt*) args[1].addr;
+  if(V->IsDefined()){
+    maxPrio = V->GetValue();
+  }
+  int minBlockSize = 100;
+  V = (CcInt*) args[2].addr;
+  if(V->IsDefined()){
+    minBlockSize = V->GetValue();
+    if(minBlockSize<1) minBlockSize = 1;
+  } 
+  int maxHops = 4;
+  V = (CcInt*) args[3].addr;
+  if(V->IsDefined()){
+    maxHops = V->GetValue();
+    if(maxHops<1) maxHops = 1;
+  }
+  std::vector<shortCutInfo> shortcuts; 
+  res->Set(true, g->contract(maxPrio, minBlockSize, maxHops,shortcuts));
+  return 0;
+}
+
+ValueMapping mg2contractVM[] = {
+   mgcontractVMT<CcString, MGraph2>,
+   mgcontractVMT<Mem, MGraph2>,
+   mgcontractVMT<MPointer, MGraph2>
+};
+
+ValueMapping mg3contractVM[] = {
+   mgcontractVMT<CcString, MGraph3>,
+   mgcontractVMT<Mem, MGraph3>,
+   mgcontractVMT<MPointer, MGraph3>
+};
+
+int mgcontractSelect(ListExpr args){
+  return getRepNum(nl->First(args));
+}
+
+OperatorSpec mg2contractSpec(
+  "MGRAPH2 -> int",
+  "op(_)",
+  "just a debug operator",
+  "query mg2contract(\"g2\")"
+);
+OperatorSpec mg3contractSpec(
+  "MGRAPH3 -> int",
+  "op(_)",
+  "just a debug operator",
+  "query mg3contract(\"g2\")"
+);
+
+Operator mg2contractOp(
+  "mg2contract",
+  mg2contractSpec.getStr(),
+  3,
+  mg2contractVM,
+  mgcontractSelect,
+  mgcontractTM<MGraph2, true>
+);
+
+Operator mg3contractOp(
+  "mg3contract",
+  mg3contractSpec.getStr(),
+  3,
+  mg3contractVM,
+  mgcontractSelect,
+  mgcontractTM<MGraph3,true>
+);
 
 
 
@@ -20835,6 +20951,8 @@ class MainMemory2Algebra : public Algebra {
           mg2numpredecessorsOp.SetUsesArgsInTypeMapping();
           AddOperator(&mg2disconnectOp);
           mg2disconnectOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2contractOp);
+          mg2contractOp.SetUsesArgsInTypeMapping();
            
           // operators on mgraph3
           AddOperator(&createmgraph3Op);
@@ -20861,6 +20979,8 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mg3connectedcomponentsOp);
           mg3connectedcomponentsOp.SetUsesArgsInTypeMapping();
           mg3connectedcomponentsOp.enableInitFinishSupport();
+          AddOperator(&mg3contractOp);
+          mg3contractOp.SetUsesArgsInTypeMapping();
 
         }
         
