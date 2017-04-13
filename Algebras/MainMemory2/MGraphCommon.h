@@ -42,6 +42,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <vector>
 #include <list>
+//#include <mmheap.h>
+//#include <priority_queue>
 
 namespace mm2algebra{
     
@@ -276,10 +278,32 @@ class MGraphCommon : public MemoryObject{
 
 
 
-     size_t contract(int maxPrio, int minBlockSize, int maxHops, 
-                     std::vector<shortCutInfo>& allShortCuts){
-       return simpleContraction2(maxPrio, minBlockSize, maxHops, allShortCuts);
+     size_t contract(int maxPrio, int minBlockSize, 
+                     int maxHopsF, int maxHopsB,
+                     std::vector<shortCutInfo>& allShortCuts,
+                     int variant){
+       if(variant == 1){
+         return simpleContraction1(maxPrio, minBlockSize, maxHopsF,
+                                   maxHopsB, allShortCuts);
+       } else {
+         return simpleContraction2(maxPrio, minBlockSize, maxHopsF,
+                                   maxHopsB, allShortCuts);
+       }
      }
+
+
+     double pathCosts(const int source, const int target, 
+                      const int maxHopsForward, const int maxHopsBackward,
+                      const int forbidden, 
+                      double maxCosts = std::numeric_limits<double>::max()){
+          minPathCosts mpc(this);
+          if(maxCosts<=0){
+            maxCosts = std::numeric_limits<double>::max();
+          }
+          return mpc(source, target, maxHopsForward, maxHopsBackward, 
+                     maxCosts, forbidden);
+     }
+
 
 
   protected:
@@ -448,16 +472,27 @@ class MGraphCommon : public MemoryObject{
       bool operator<(const queueentry& e) const{
          return cost > e.cost;
       }
+
       size_t node;
       double cost;
       size_t depth;
    };
 
+  class queueentryComp{
+    public:
+       bool operator()(const queueentry& f, const queueentry& s) const {
+          return f.cost < s.cost;
+       }    
+  };
+
+   //typedef mmheap::mmheap<queueentry, queueentryComp> queue_t;
+   typedef std::priority_queue<queueentry> queue_t;
+
    void processNode(queueentry e, size_t forbidden, 
                     std::map<size_t,double>& targets,
                     size_t maxHops, size_t reached, 
                     std::set<size_t>& finished,
-                      std::priority_queue<queueentry>& q
+                    queue_t& q
                     ){
 
       // check wether node has already been processed
@@ -494,7 +529,7 @@ class MGraphCommon : public MemoryObject{
                      std::map<size_t, double>& targets, 
                      double maxCost, size_t maxHops){
        queueentry e(source,0,0);
-       std::priority_queue<queueentry> q;
+       queue_t q;
        std::set<size_t> finished;
        q.push(e);
        size_t reached = targets.size();
@@ -512,7 +547,7 @@ class MGraphCommon : public MemoryObject{
    }
 
 
-   void computeShortCuts(size_t node, size_t maxHops, 
+   void computeShortCuts1(size_t node, size_t maxHops, 
                          std::vector<MEdge>& result){
        // collect all target nodes in a set
        result.clear();
@@ -581,10 +616,67 @@ class MGraphCommon : public MemoryObject{
              }
           } 
        }
-     //  if(cand.size()>0){
-     //    cout << "shortcuts " << result.size() << endl;
-     //  }
    } 
+
+
+   void computeShortCuts2(size_t node, size_t maxHopsF, 
+                          size_t maxHopsB, std::vector<MEdge>& result){
+       result.clear();
+       std::list<MEdge>& preds1  = graph[node].second;
+       std::list<MEdge>& succs1 = graph[node].first;
+       minPathCosts mpc(this);
+
+       // remove duplicates from both lists, keep only such with minimum costs
+       std::map<int,MEdge> preds;
+       std::list<MEdge>::iterator itp1;
+
+       for(itp1 = preds1.begin(); itp1!=preds1.end(); itp1++){
+          std::map<int,MEdge>::iterator i1 = preds.find(itp1->source);
+          if(i1==preds.end()){
+             preds[itp1->source] = (*itp1);
+          } else {
+             if(i1->second.costs > itp1->costs){
+                preds[itp1->source] = *itp1;
+             }
+          }
+       }
+       
+       std::map<int,MEdge> succs;
+       std::list<MEdge>::iterator itp2;
+       for(itp2 = succs1.begin(); itp2!=succs1.end(); itp2++){
+          std::map<int,MEdge>::iterator i2 = succs.find(itp2->target);
+          if(i2==succs.end()){
+             succs[itp2->target] = *itp2;
+          } else {
+             if(i2->second.costs > itp2->costs){
+                succs[itp2->target] = *itp2;
+             }
+          }
+       }
+       
+
+
+       std::map<int,MEdge>::iterator itp;
+       for(itp = preds.begin(); itp != preds.end();itp++){
+          MEdge& pedge = itp->second;
+          double c1 = pedge.costs;
+          int s = pedge.source;
+
+          std::map<int,MEdge>::iterator its;
+          for(its=succs.begin();its!=succs.end();its++){
+            MEdge& sedge = its->second;
+            int t = sedge.target;
+            double c = c1 + sedge.costs;
+            if(s!=t){
+               double spc = mpc(s,t,maxHopsF, maxHopsB,c,node);
+               if(spc > c){ // path longer than going over node
+                  result.push_back(createEdge(pedge.info, s, t, c));
+               }
+            }
+          }
+       }
+   }
+
 
     void insertShortCuts(std::vector<MEdge> & edges){
        for(size_t i = 0; i< edges.size();i++){
@@ -605,14 +697,24 @@ class MGraphCommon : public MemoryObject{
     };
 
 
+  class simplePrioEntryComp{
+    public:
+       bool operator()(const simplePrioEntry& f, 
+                       const simplePrioEntry& s) const {
+          return f.prio > s.prio;
+       }    
+  };
 
 
-    size_t simpleContraction1(int maxPrio, size_t minBlockSize, int maxHops,
+    size_t simpleContraction1(int maxPrio, size_t minBlockSize, int maxHopsF,
+                              int maxHopsB, 
                               std::vector<shortCutInfo>& allShortCuts){
 
        //std::cout << "called simple contraction" << std::endl;
 
        // initialize priority queue with all nodes and prio 0.0
+       // typedef mmheap::mmheap<simplePrioEntry,simplePrioEntryComp> queue_t;
+        
        typedef std::priority_queue<simplePrioEntry> queue_t;
        queue_t queue;
        for(size_t i=0;i<graph.size();i++){
@@ -647,7 +749,11 @@ class MGraphCommon : public MemoryObject{
              e.prio = in*out;
              queue.push(e);
           } else {
-            computeShortCuts(node, maxHops, shortcuts);
+            if(maxHopsB<=0){
+               computeShortCuts1(node, maxHopsF, shortcuts);
+            } else {
+               computeShortCuts2(node, maxHopsF, maxHopsB,shortcuts);
+            }
             if(   (in*out + (shortcuts.size() - (in + out)) > prio)
                && (shortcuts.size() > (size_t)(in+out))){
               // reinsert level 2
@@ -688,6 +794,7 @@ class MGraphCommon : public MemoryObject{
                    tmp.push(e);
                   }
                   std::swap(tmp,queue);
+                  //queue.swap(tmp);
               }
               p2++; // some progress counter
               if(p2==prog){
@@ -705,13 +812,16 @@ class MGraphCommon : public MemoryObject{
        return cs;
     }
 
-    size_t simpleContraction2(int maxPrio, size_t minBlockSize, int maxHops,
+    size_t simpleContraction2(int maxPrio, size_t minBlockSize, 
+                              int maxHopsF, int maxHopsB,
                               std::vector<shortCutInfo>& allShortCuts){
 
        //std::cout << "called simple contraction" << std::endl;
 
        // initialize priority queue with all nodes and prio 0.0
+       //typedef mmheap::mmheap<simplePrioEntry,simplePrioEntryComp> queue_t;
        typedef std::priority_queue<simplePrioEntry> queue_t;
+
        queue_t queue;
        for(size_t i=0;i<graph.size();i++){
           simplePrioEntry e(i);
@@ -745,7 +855,11 @@ class MGraphCommon : public MemoryObject{
             e.prio = extra;
             queue.push(e);
           } else { // do contraction
-            computeShortCuts(node, maxHops, shortcuts);
+            if(maxHopsB<=0){
+               computeShortCuts1(node, maxHopsF, shortcuts);
+            } else {
+               computeShortCuts2(node, maxHopsF, maxHopsB,shortcuts);
+            }
             insertShortCuts(shortcuts);
             disconnect(node);
             nodeOrder.push_back(node);
@@ -771,6 +885,7 @@ class MGraphCommon : public MemoryObject{
                    tmp.push(e);
                   }
                   std::swap(tmp,queue);
+                  //queue.swap(tmp);
             }
             p2++; // some progress counter
             if(p2==prog){
@@ -785,6 +900,172 @@ class MGraphCommon : public MemoryObject{
        cout << "removed edges " << removedEdges << endl;
        return cs;
     }
+
+
+
+
+
+    class minPathCosts{
+
+      public:
+          minPathCosts(MGraphCommon* _g){
+             g = _g;
+          }
+          double operator()(const int _source, 
+                            const int _target,
+                            const int _maxHopsForward,
+                            const int _maxHopsBackward,
+                            const double _maxCosts,
+                            const int _forbidden){
+
+
+            source = _source;
+            target = _target;
+            maxHopsForward = _maxHopsForward;
+            maxHopsBackward = _maxHopsBackward;
+            maxCosts = _maxCosts;
+            forbidden = _forbidden;
+            
+
+            double costs = std::numeric_limits<double>::max();
+            if(_source < 0 || source>= g->graph.size()){
+               return costs;
+            }
+            if(_target<0 || target>=g->graph.size()){
+              return costs;
+            }
+            if(source == target){
+             return 0;
+            }
+            processedForward.clear();
+            processedBackward.clear();
+            //while(!frontForward.empty()){frontForward.pop();}
+            //while(!frontBackward.empty()){frontBackward.pop();}
+            //frontForward.clear();
+            //frontBackward.clear();
+            queue_t q1;
+            std::swap(q1,frontForward);
+            queue_t q2;
+            std::swap(q2,frontBackward);
+            return compute(); 
+          }
+
+
+      private:
+         size_t source;
+         size_t target;
+         int maxHopsForward;
+         int maxHopsBackward;
+         double maxCosts;
+         int forbidden;
+         std::map<int,double> processedForward;
+         std::map<int,double> processedBackward;
+      //   std::priority_queue<queueentry> frontForward;
+      //   std::priority_queue<queueentry> frontBackward;
+        // typedef mmheap::mmheap<queueentry,queueentryComp> queue_t;
+         typedef std::priority_queue<queueentry> queue_t;
+         queue_t frontForward;
+         queue_t frontBackward;
+
+         MGraphCommon* g;
+
+
+         double compute(){
+            queueentry ef(source,0,0);
+            frontForward.push(ef);    
+            queueentry eb(target,0,0);
+            frontBackward.push(eb);
+            bool done = false;
+            double costs = std::numeric_limits<double>::max();
+
+            while((!frontForward.empty() || !frontBackward.empty()) &&  !done){
+               bool forward;
+               queueentry e(0,0,0);
+               if(frontForward.empty()){
+                  e = frontBackward.top();
+                  frontBackward.pop();
+                  forward = false;
+               } else if(frontBackward.empty()){
+                  e = frontForward.top();
+                  frontForward.pop();
+                  forward = true;
+               } else {
+                  queueentry f = frontForward.top();
+                  queueentry b = frontBackward.top();
+                  if(b.cost > f.cost){
+                     e = f;
+                     frontForward.pop();
+                     forward = true;
+                  } else {
+                     e = b;
+                     frontBackward.pop();
+                     forward = false;
+                 }
+              }
+              if(e.cost > maxCosts || e.cost > costs){
+                 done = true;
+              } else {
+                 processNode(e, forward, costs, done);
+              }
+           }
+           return costs;
+         }
+
+         void processNode(queueentry& e, bool forward, double& costs, 
+                         bool& done){
+            int node = e.node;
+            std::map<int,double>* processed = forward?&processedForward
+                                                    :&processedBackward;
+
+            if(processed->find(node) != processed->end()){
+               return; // already processed
+            }
+            (*processed)[node] = e.cost;
+             
+            // check whether we hit a processed node of the other direction
+            std::map<int,double>* processedReverse = !forward
+                                                     ?&processedForward
+                                                     :&processedBackward;
+            std::map<int,double>::iterator it = processedReverse->find(e.node);
+            if(it != processedReverse->end()){
+               double x = it->second + e.cost;
+               if(x < costs){
+                 costs = x;
+               }
+            }
+            // check whether maxHops are reached
+            int maxHops = forward?maxHopsForward:maxHopsBackward;
+            if((int)e.depth >= maxHops){
+               return;
+            }           
+            // process edges
+            std::list<MEdge>& nextNodes = forward?g->graph[node].first
+                                                 :g->graph[node].second;
+            std::list<MEdge>::iterator itN;
+            for(itN=nextNodes.begin(); itN!=nextNodes.end(); itN++){
+               processEdge(*itN,forward,e);
+            }  
+         }
+
+         void processEdge(MEdge& edge, bool forward, queueentry& e){
+            int target = forward?edge.target:edge.source;
+            if(target==forbidden) return; // do not use forbidden node
+            std::map<int,double>& processed = forward?processedForward
+                                                     :processedBackward;
+            if(processed.find(target)!=processed.end()){
+               return;
+            }
+            queue_t& front = forward?frontForward
+                                                            :frontBackward;
+            queueentry ne(target, e.cost + edge.costs, e.depth+1);
+            front.push(ne);
+         }
+
+    }; // end of class minPathCosts
+
+
+
+
 
 };
 

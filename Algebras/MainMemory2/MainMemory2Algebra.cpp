@@ -20521,13 +20521,14 @@ Operator mg3connectedcomponentsOp(
 );
 
 
+
 /*
 ~ Computing contraction ~
 
 */
 template<class G, bool onlySize>
 ListExpr mgcontractTM(ListExpr args){
-  if(!nl->HasLength(args,4)){
+  if(!nl->HasLength(args,6)){
     return listutils::typeError("one argument expected");
   }
   if(!checkUsesArgs(args)){
@@ -20544,13 +20545,19 @@ ListExpr mgcontractTM(ListExpr args){
   }
 
   if(!CcInt::checkType(nl->First(nl->Second(args)))){
-    return listutils::typeError("expected graph x int x int x int");
+    return listutils::typeError("expected graph x int x int x int x int x int");
   }
   if(!CcInt::checkType(nl->First(nl->Third(args)))){
-    return listutils::typeError("expected graph x int x int x int");
+    return listutils::typeError("expected graph x int x int x int x int x int");
   }
   if(!CcInt::checkType(nl->First(nl->Fourth(args)))){
-    return listutils::typeError("expected graph x int x int x int");
+    return listutils::typeError("expected graph x int x int x int x int x int");
+  }
+  if(!CcInt::checkType(nl->First(nl->Fifth(args)))){
+    return listutils::typeError("expected graph x int x int x int x int x int");
+  }
+  if(!CcInt::checkType(nl->First(nl->Sixth(args)))){
+    return listutils::typeError("expected graph x int x int x int x int x int");
   }
   if(onlySize){
      return listutils::basicSymbol<CcInt>();
@@ -20580,14 +20587,30 @@ int mgcontractVMT(Word* args, Word& result, int message,
     minBlockSize = V->GetValue();
     if(minBlockSize<1) minBlockSize = 1;
   } 
-  int maxHops = 4;
+  int maxHopsF = 4;
   V = (CcInt*) args[3].addr;
   if(V->IsDefined()){
-    maxHops = V->GetValue();
-    if(maxHops<1) maxHops = 1;
+    maxHopsF = V->GetValue();
+    if(maxHopsF<1) maxHopsF = 1;
   }
+  int maxHopsB = 0;
+  V = (CcInt*) args[4].addr;
+  if(V->IsDefined()){
+    maxHopsB = V->GetValue();
+  }
+  int variant = 1;
+  V = (CcInt*) args[5].addr;
+  if(V->IsDefined()){
+    variant = V->GetValue();
+  }
+  if( (variant !=1) && (variant!=2)){
+    res->SetDefined(false);
+    return 0;
+  }
+
   std::vector<shortCutInfo> shortcuts; 
-  res->Set(true, g->contract(maxPrio, minBlockSize, maxHops,shortcuts));
+  res->Set(true, g->contract(maxPrio, minBlockSize, maxHopsF, 
+                             maxHopsB,shortcuts,variant));
   return 0;
 }
 
@@ -20608,16 +20631,37 @@ int mgcontractSelect(ListExpr args){
 }
 
 OperatorSpec mg2contractSpec(
-  "MGRAPH2 -> int",
-  "op(_)",
-  "just a debug operator",
-  "query mg2contract(\"g2\")"
+  "MGRAPH2 x int x int x int x int x int -> int",
+  "mg2contract(graph, maxPrio, minBlockSIze, maxHopsF, maxHopsB, variant)",
+  "Computed the number of contraction edges created during contraction "
+  "of a graph. \n"
+  "graph : the graph to contract\n"
+  "maxPrio : do not reorganize the queue until maxPrio is reached\n"
+  "minBlockSize: do not reorganize the queue until minBlocksize nodes "
+  "have been contracted\n"
+  "maxHopsF : maximum number of hops (forward) for searching shortest paths\n"
+  "maxHopsB : maximum number of hops for backward search. If <=0, the "
+  "multitarget variant is used\n"
+  "variant: 1 - two step variant as in ContractN, 2 - use EdgeDifference "
+  "in single step",
+  "query mg2contract(\"g2\",20,800,3,1,2)"
 );
+
 OperatorSpec mg3contractSpec(
-  "MGRAPH3 -> int",
-  "op(_)",
-  "just a debug operator",
-  "query mg3contract(\"g2\")"
+  "MGRAPH3 x int x int x int x int x int -> int",
+  "mg3contract(graph, maxPrio, minBlockSIze, maxHopsF, maxHopsB, variant)",
+  "Computed the number of contraction edges created during contraction "
+  "of a graph. \n"
+  "graph : the graph to contract\n"
+  "maxPrio : do not reorganize the queue until maxPrio is reached\n"
+  "minBlockSize: do not reorganize the queue until minBlocksize nodes "
+  "have been contracted\n"
+  "maxHopsF : maximum number of hops (forward) for searching shortest paths\n"
+  "maxHopsB : maximum number of hops for backward search. If <=0, the "
+  "multitarget variant is used\n"
+  "variant: 1 - two step variant as in ContractN, 2 - use EdgeDifference "
+  "in single step",
+  "query mg3contract(\"g2\",20,800,3,1,2)"
 );
 
 Operator mg2contractOp(
@@ -20637,6 +20681,158 @@ Operator mg3contractOp(
   mgcontractSelect,
   mgcontractTM<MGraph3,true>
 );
+
+
+/*
+Operator minPathCosts for mgraph2 and mgraph3
+
+*/
+template<class G>
+ListExpr mgminPathCostTM(ListExpr args){
+  if(!nl->HasLength(args,5) && !nl->HasLength(args,7)){
+    return listutils::typeError("5 arguments expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  string err;
+  ListExpr graph = nl->First(args);
+  if(!getMemType(graph,graph,err,true)){
+     return listutils::typeError(err);
+  } 
+  graph = nl->Second(graph);
+  if(!G::checkType(graph)){
+    return listutils::typeError("argument not of type " + G::BasicType());
+  }
+
+  if(!CcInt::checkType(nl->First(nl->Second(args)))){
+    return listutils::typeError("expected graph x int x int x int 2");
+  }
+  if(!CcInt::checkType(nl->First(nl->Third(args)))){
+    return listutils::typeError("expected graph x int x int x int 3");
+  }
+  if(!CcInt::checkType(nl->First(nl->Fourth(args)))){
+    return listutils::typeError("expected graph x int x int x int 4");
+  }
+  if(!CcInt::checkType(nl->First(nl->Fifth(args)))){
+    return listutils::typeError("expected graph x int x int x int 5");
+  }
+  if(nl->HasLength(args,5)){
+    return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                              nl->TwoElemList(nl->IntAtom(-1), nl->RealAtom(0)),
+                              listutils::basicSymbol<CcReal>());
+  }
+  if(!CcInt::checkType(nl->First(nl->Sixth(args)))){
+    return listutils::typeError("expected graph x int x int x int 6");
+  }
+  if(!CcReal::checkType(nl->First( nl->Sixth(nl->Rest(args))))){
+    return listutils::typeError("maxCosts not of type real");
+  }
+  return listutils::basicSymbol<CcReal>();
+}
+
+
+template<class GN, class Graph>
+int mgminPathCostVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcReal*  res = (CcReal*) result.addr;
+  Graph* g = getMemObject<Graph>((GN*) args[0].addr);
+  if(!g){
+     res->SetDefined(false);
+     return 0;
+  }
+  int source = 0;
+  CcInt* V = (CcInt*) args[1].addr;
+  if(V->IsDefined()){
+    source = V->GetValue();
+  }
+  int target = 1;
+  V = (CcInt*) args[2].addr;
+  if(V->IsDefined()){
+    target = V->GetValue();
+  } 
+  int maxHopsForward = 4;
+  V = (CcInt*) args[3].addr;
+  if(V->IsDefined()){
+    maxHopsForward = V->GetValue();
+  }
+  int maxHopsBackward = 4;
+  V = (CcInt*) args[4].addr;
+  if(V->IsDefined()){
+    maxHopsBackward = V->GetValue();
+  }
+  int forbidden = -1;
+  V = (CcInt*) args[5].addr;
+  if(V->IsDefined()){
+    forbidden = V->GetValue();
+  }
+  double maxCosts = 0;
+  CcReal* CV = (CcReal*) args[6].addr;
+  if(CV->IsDefined()){
+    maxCosts = CV->GetValue();
+  }
+   
+  
+  res->Set(true, g->pathCosts(source, target, maxHopsForward, 
+                              maxHopsBackward,forbidden, maxCosts));
+  return 0;
+}
+
+ValueMapping mg2minPathCostVM[] = {
+   mgminPathCostVMT<CcString, MGraph2>,
+   mgminPathCostVMT<Mem, MGraph2>,
+   mgminPathCostVMT<MPointer, MGraph2>
+};
+
+ValueMapping mg3minPathCostVM[] = {
+   mgminPathCostVMT<CcString, MGraph3>,
+   mgminPathCostVMT<Mem, MGraph3>,
+   mgminPathCostVMT<MPointer, MGraph3>
+};
+
+int mgminPathCostSelect(ListExpr args){
+  return getRepNum(nl->First(args));
+}
+
+OperatorSpec mg2minPathCostSpec(
+  "MGRAPH2 x int x int x int x int [x int x real] -> real",
+  "mg2minpathcists(graph, source, target, maxHopsForward, maxHopsBackward)"
+  " [, forbidden, maxCosts]",
+  "Comutes the minimum path length from source to target using a "
+  "maximum number of hops in each direction",
+  "query mg2minPathCost(\"g2\", 1,42,10,10)"
+);
+
+OperatorSpec mg3minPathCostSpec(
+  "MGRAPH3 x int x int x int x int [x int x real] -> real",
+  "mg3minpathcists(graph, source, target, maxHopsForward, maxHopsBackward)"
+  " [, forbidden, maxCosts]",
+  "Comutes the minimum path length from source to target using a "
+  "maximum number of hops in each direction",
+  "query mg3minPathCost(\"g2\", 1,42,10,10)"
+);
+
+Operator mg2minPathCostOp(
+  "mg2minPathCost",
+  mg2minPathCostSpec.getStr(),
+  3,
+  mg2minPathCostVM,
+  mgminPathCostSelect,
+  mgminPathCostTM<MGraph2>
+);
+
+Operator mg3minPathCostOp(
+  "mg3minPathCost",
+  mg3minPathCostSpec.getStr(),
+  3,
+  mg3minPathCostVM,
+  mgminPathCostSelect,
+  mgminPathCostTM<MGraph3>
+);
+
+
 
 
 
@@ -20953,6 +21149,8 @@ class MainMemory2Algebra : public Algebra {
           mg2disconnectOp.SetUsesArgsInTypeMapping();
           AddOperator(&mg2contractOp);
           mg2contractOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2minPathCostOp);
+          mg2minPathCostOp.SetUsesArgsInTypeMapping();
            
           // operators on mgraph3
           AddOperator(&createmgraph3Op);
@@ -20981,6 +21179,8 @@ class MainMemory2Algebra : public Algebra {
           mg3connectedcomponentsOp.enableInitFinishSupport();
           AddOperator(&mg3contractOp);
           mg3contractOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg3minPathCostOp);
+          mg3minPathCostOp.SetUsesArgsInTypeMapping();
 
         }
         

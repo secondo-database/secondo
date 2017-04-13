@@ -36,20 +36,28 @@ namespace mm2algebra{
 class MEdge{
 
   public:
+    MEdge():info(0){}
+
     MEdge(const int _source, const int _target, 
           const double _costs, Tuple* _info):
          source(_source), target(_target), costs(_costs),
          info(_info) {
-      info->IncReference();
+      if(info){
+        info->IncReference();
+      } 
    }
 
    MEdge(const MEdge& e): source(e.source), target(e.target),costs(e.costs),
                           info(e.info){
-        info->IncReference();
+        if(info){
+           info->IncReference();
+        }
    }
 
    ~MEdge(){
-      info->DeleteIfAllowed();
+      if(info){
+        info->DeleteIfAllowed();
+      }
    }
 
    MEdge& operator=(const MEdge& e){
@@ -60,7 +68,9 @@ class MEdge{
        info->DeleteIfAllowed();
      }
      info = e.info;
-     info->IncReference(); 
+     if(info){
+       info->IncReference(); 
+     }
      return *this;
    }
 
