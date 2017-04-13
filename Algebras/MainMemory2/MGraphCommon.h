@@ -278,7 +278,7 @@ class MGraphCommon : public MemoryObject{
 
      size_t contract(int maxPrio, int minBlockSize, int maxHops, 
                      std::vector<shortCutInfo>& allShortCuts){
-       return simpleContraction1(maxPrio, minBlockSize, maxHops, allShortCuts);
+       return simpleContraction2(maxPrio, minBlockSize, maxHops, allShortCuts);
      }
 
 

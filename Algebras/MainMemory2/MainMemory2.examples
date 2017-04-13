@@ -1383,8 +1383,8 @@ Result    : TRUE
 Operator : mg2contract
 Number   : 914
 Signature : MGRAPH2 -> int
-Example   : query "mgraph2m" mg2contract
-Result    : 8
+Example   : query mg2contract("mgraph2_1",10,100,6)
+Result    : 18
 
 
 Operator  : createmgraph3
@@ -1450,13 +1450,13 @@ Operator  : mg3connectedcomponents
 Number    : 1010
 Signature : MGRAPH3 -> stream(tuple)
 Example   : query "mgraph3_1" mg3connectedcomponents sortby[CompNo] krdup[CompNo] count
-Result    : 2
+Result    : 1
 
 Operator : mg3contract
 Number   :  1011
 Signature : MGRAPH3 -> int
-Example   : query  mg3contract("mgraph3_1")
-Result    : 8
+Example   : query mg3contract("mgraph3_1",10,100,6)
+Result    : 0
 
 Operator  : mwrap2
 Number    : 1100
