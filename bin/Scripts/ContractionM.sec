@@ -181,6 +181,7 @@ let bdcreationEdges = fun(node11 : int, maxHopsF : int, maxHopsB : int)
      pwrap("EdgesX") mg3predecessors[node11] sortbyh[Source,Cost] krdup[Source] {i}
      pwrap("EdgesX") mg3successors[node11] sortbyh[Target,Cost] krdup[Target] {o}
      product
+     filter[.Source_i # .Target_o]
      extend[C : .Cost_i + .Cost_o]
      extend[SP : mg3minPathCost(pwrap("EdgesX"), .Source_i, .Target_o, maxHopsF, maxHopsB, node11, .C)]
      filter[.C < .SP]
