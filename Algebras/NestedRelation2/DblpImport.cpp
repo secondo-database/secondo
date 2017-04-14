@@ -47,7 +47,10 @@ DblpImport::Info::Info()
   meaning = "Import an XML-file containing a dump of the DBLP to "
       "a nested relation. First parameter is the filename of the "
       "dump and the second is a file containing stopwords (one "
-      "per line). ";
+      "per line). The DTD referenced by the XML-file is expected "
+      "to exist in the location, mentioned in the XML-file's header. "
+      "If a relative path is used, it is assumed to be relative to the "
+      "directory containing the XML-file.";
   example = "let dblp = '/home/user/dblp/dblp.xml' dblp"
       "['/home/user/dblp/stopwords.txt'];";
 }

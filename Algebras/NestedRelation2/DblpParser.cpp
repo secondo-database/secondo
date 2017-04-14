@@ -81,7 +81,12 @@ No events about the beginning of elements are parsed any further.
 */
 /*virtual*/void DblpParser::pushedElementToStack(const Element &element)
 {
-  //empty
+  std::map<std::string, popMethodType>::const_iterator it =
+      DblpParser::parserMapping->find(element.getName());
+  if (it != DblpParser::parserMapping->end())
+  {
+    m_currentText = "";
+  }
 }
 
 /*
