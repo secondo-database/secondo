@@ -26,16 +26,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "OperatorFeedPF.hpp"
 #include "Algebra.h"
 #include "Symbols.h"
 #include "NestedList.h"
 
-#include "OperatorFeed.h"
-#include "OperatorFilter.h"
-#include "OperatorProject.h"
+#include "Algebras/Relation-C++/OperatorFeed.h"
+#include "Algebras/Relation-C++/OperatorFilter.h"
+#include "Algebras/Relation-C++/OperatorProject.h"
 
-#include "DBServiceConnector.hpp"
+#include "Algebras/DBService/OperatorFeedPF.hpp"
+#include "Algebras/DBService/DBServiceConnector.hpp"
 
 namespace DBService
 {

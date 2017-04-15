@@ -26,26 +26,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DBServiceCommunicationClient_HPP_
-#define ALGEBRAS_DBSERVICE_DBServiceCommunicationClient_HPP_
+#ifndef ALGEBRAS_DBSERVICE_CommunicationServer_HPP_
+#define ALGEBRAS_DBSERVICE_CommunicationServer_HPP_
 
-#include "FileTransferClient.h"
+#include <iostream>
+
+#include "Algebras/Distributed2/FileTransferServer.h"
 
 namespace DBService {
 
-class DBServiceCommunicationClient: public distributed2::Client {
-
+class CommunicationServer: public distributed2::Server {
 public:
-    DBServiceCommunicationClient(std::string& _server,
-                                 int _port,
-                                 Socket* _socket);
-    int start();
-    int getNodesForReplication(std::string& relationName);
-    int getReplicaLocation();
+    explicit CommunicationServer(int port);
+    virtual ~CommunicationServer();
+    virtual int start();
 protected:
-    void buildLocationString(std::string& location);
+    int communicate();
+    bool handleProvideReplicaRequest(std::iostream& io);
+    bool handleUseReplicaRequest(std::iostream& io);
+
+    virtual std::iostream& getSocketStream();
 };
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_DBServiceCommunicationClient_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_CommunicationServer_HPP_ */

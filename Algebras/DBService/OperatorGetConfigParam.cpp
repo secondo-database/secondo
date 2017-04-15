@@ -26,12 +26,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "OperatorGetConfigParam.hpp"
-#include "DBServiceUtils.hpp"
-#include "DebugOutput.hpp"
-
 #include "NestedList.h"
 #include "StandardTypes.h"
+
+#include "Algebras/DBService/OperatorGetConfigParam.hpp"
+#include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
 
 using namespace std;
 
@@ -100,7 +100,7 @@ int OperatorGetConfigParam::mapValue(Word* args,
     print(key->GetValue());
 
     string resultValue;
-    DBServiceUtils::readFromConfigFile(resultValue,
+    SecondoUtils::readFromConfigFile(resultValue,
                                        section->GetValue().c_str(),
                                        key->GetValue().c_str(),
                                        "");

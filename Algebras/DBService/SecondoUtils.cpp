@@ -28,18 +28,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <sstream>
 
-#include "DBServiceUtils.hpp"
-#include "DebugOutput.hpp"
-
 #include "Profiles.h"
 #include "CharTransform.h"
+
+#include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
+
 
 using namespace std;
 using namespace distributed2;
 
 namespace DBService {
 
-void DBServiceUtils::readFromConfigFile(std::string& resultValue,
+void SecondoUtils::readFromConfigFile(std::string& resultValue,
         const char* section,
         const char* key,
         const char* defaultValue)
@@ -49,33 +50,33 @@ void DBServiceUtils::readFromConfigFile(std::string& resultValue,
             key, defaultValue, secondoConfig);
 }
 
-bool DBServiceUtils::openDatabaseOnRemoteServer(
+bool SecondoUtils::openDatabaseOnRemoteServer(
         distributed2::ConnectionInfo* connectionInfo,
         const char* dbName)
 {
-    return DBServiceUtils::handleRemoteDatabase(connectionInfo,
+    return SecondoUtils::handleRemoteDatabase(connectionInfo,
                                                 "open",
                                                 dbName);
 }
 
-bool DBServiceUtils::createDatabaseOnRemoteServer(
+bool SecondoUtils::createDatabaseOnRemoteServer(
         distributed2::ConnectionInfo* connectionInfo,
         const char* dbName)
 {
-    return DBServiceUtils::handleRemoteDatabase(connectionInfo,
+    return SecondoUtils::handleRemoteDatabase(connectionInfo,
                                                 "create",
                                                 dbName);
 }
 
-bool DBServiceUtils::closeDatabaseOnRemoteServer(
+bool SecondoUtils::closeDatabaseOnRemoteServer(
         distributed2::ConnectionInfo* connectionInfo)
 {
-    return DBServiceUtils::handleRemoteDatabase(connectionInfo,
+    return SecondoUtils::handleRemoteDatabase(connectionInfo,
                                                 "close",
                                                 "");
 }
 
-bool DBServiceUtils::handleRemoteDatabase(ConnectionInfo* connectionInfo,
+bool SecondoUtils::handleRemoteDatabase(ConnectionInfo* connectionInfo,
                                           const string& action,
                                           const string& dbName)
 {
@@ -83,7 +84,7 @@ bool DBServiceUtils::handleRemoteDatabase(ConnectionInfo* connectionInfo,
     query << action << " database " << dbName;
     print(query.str());
     bool resultOk =
-            DBServiceUtils::executeQueryOnRemoteServer(connectionInfo,
+            SecondoUtils::executeQueryOnRemoteServer(connectionInfo,
                     query.str());
     if(!resultOk)
     {
@@ -93,7 +94,7 @@ bool DBServiceUtils::handleRemoteDatabase(ConnectionInfo* connectionInfo,
     return resultOk;
 }
 
-bool DBServiceUtils::executeQueryOnRemoteServer(
+bool SecondoUtils::executeQueryOnRemoteServer(
         distributed2::ConnectionInfo* connectionInfo,
         const std::string& query)
 {
@@ -103,7 +104,7 @@ bool DBServiceUtils::executeQueryOnRemoteServer(
                                       result);
 }
 
-bool DBServiceUtils::executeQueryOnRemoteServer(
+bool SecondoUtils::executeQueryOnRemoteServer(
         distributed2::ConnectionInfo* connectionInfo,
         const std::string& query,
         std::string& result)

@@ -28,13 +28,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <iostream>
 
-#include "DBServiceCommunicationClient.hpp"
-#include "DBServiceCommunicationProtocol.hpp"
-#include "CommunicationUtils.hpp"
-#include "DBServiceUtils.hpp"
-
 #include "SocketIO.h"
 #include "StringUtils.h"
+
+#include "Algebras/DBService/CommunicationClient.hpp"
+#include "Algebras/DBService/CommunicationProtocol.hpp"
+#include "Algebras/DBService/CommunicationUtils.hpp"
+#include "Algebras/DBService/SecondoUtils.hpp"
+
 
 
 using namespace std;
@@ -42,13 +43,13 @@ using namespace distributed2;
 
 namespace DBService {
 
-DBServiceCommunicationClient::DBServiceCommunicationClient(
+CommunicationClient::CommunicationClient(
         std::string& _server, int _port, Socket* _socket)
 :Client(_server, _port, _socket)
 {
 }
 
-int DBServiceCommunicationClient::start()
+int CommunicationClient::start()
 {
     socket = Socket::Connect(server, stringutils::int2str(port),
                 Socket::SockGlobalDomain, 3, 1);
@@ -61,18 +62,18 @@ int DBServiceCommunicationClient::start()
         return 0;
 }
 
-int DBServiceCommunicationClient::getNodesForReplication(string& relationName)
+int CommunicationClient::getNodesForReplication(string& relationName)
 {
     iostream& io = socket->GetSocketStream();
 
     if(!CommunicationUtils::receivedExpectedLine(io,
-            DBServiceCommunicationProtocol::CommunicationServer()))
+            CommunicationProtocol::CommunicationServer()))
     {
         return 1;
     }
 
-    io << DBServiceCommunicationProtocol::CommunicationClient() << endl;
-    io << DBServiceCommunicationProtocol::ProvideReplica() << endl;
+    io << CommunicationProtocol::CommunicationClient() << endl;
+    io << CommunicationProtocol::ProvideReplica() << endl;
     io << relationName
        << ":"
        << SecondoSystem::GetInstance()->GetDatabaseName()
@@ -80,7 +81,7 @@ int DBServiceCommunicationClient::getNodesForReplication(string& relationName)
     io.flush();
 
     if(!CommunicationUtils::receivedExpectedLine(io,
-            DBServiceCommunicationProtocol::LocationRequest()))
+            CommunicationProtocol::LocationRequest()))
     {
         return 2;
     }
@@ -92,20 +93,20 @@ int DBServiceCommunicationClient::getNodesForReplication(string& relationName)
     return 0;
 }
 
-void DBServiceCommunicationClient::buildLocationString(string& location)
+void CommunicationClient::buildLocationString(string& location)
 {
     string host;
-    DBServiceUtils::readFromConfigFile(host,
+    SecondoUtils::readFromConfigFile(host,
                                        "Environment",
                                        "SecondoHost",
                                        "");
     string port;
-    DBServiceUtils::readFromConfigFile(port,
+    SecondoUtils::readFromConfigFile(port,
                                        "Environment",
                                        "SecondoPort",
                                        "");
     string disk;
-    DBServiceUtils::readFromConfigFile(disk,
+    SecondoUtils::readFromConfigFile(disk,
                                        "Environment",
                                        "SecondoHome",
                                        "");
@@ -114,7 +115,7 @@ void DBServiceCommunicationClient::buildLocationString(string& location)
     location = ss.str();
 }
 
-int DBServiceCommunicationClient::getReplicaLocation()
+int CommunicationClient::getReplicaLocation()
 {
     return 0;
 }

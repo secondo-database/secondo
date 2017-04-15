@@ -27,14 +27,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include <cstdlib>
-
 #include <boost/make_shared.hpp>
 
-#include "DBServiceConnector.hpp"
-#include "DBServiceUtils.hpp"
-#include "DBServiceCommunicationClient.hpp"
-
 #include "SecondoException.h"
+
+#include "Algebras/DBService/DBServiceConnector.hpp"
+#include "Algebras/DBService/CommunicationClient.hpp"
+#include "Algebras/DBService/SecondoUtils.hpp"
 
 using namespace std;
 
@@ -44,8 +43,8 @@ DBServiceConnector::DBServiceConnector()
 {
     string host;
     host.assign("localhost");
-    commClient = boost::make_shared<DBServiceCommunicationClient>(
-            DBServiceCommunicationClient(host, 12345, 0));
+    commClient = boost::make_shared<CommunicationClient>(
+            CommunicationClient(host, 12345, 0));
     //TODO read port from config file
 }
 
@@ -61,7 +60,7 @@ DBServiceConnector* DBServiceConnector::getInstance()
 bool DBServiceConnector::replicateRelation(const std::string& relationName)
 {
     string dbServiceHost;
-    DBServiceUtils::readFromConfigFile(dbServiceHost,
+    SecondoUtils::readFromConfigFile(dbServiceHost,
                                            "DBService",
                                            "DBServiceHost",
                                            "");
@@ -71,7 +70,7 @@ bool DBServiceConnector::replicateRelation(const std::string& relationName)
     }
 
     string dbServicePort;
-    DBServiceUtils::readFromConfigFile(dbServicePort,
+    SecondoUtils::readFromConfigFile(dbServicePort,
                                        "DBService",
                                        "DBServicePort",
                                        "");
@@ -81,7 +80,7 @@ bool DBServiceConnector::replicateRelation(const std::string& relationName)
     }
 
     // connect to DBService master to find out location for replication
-    DBServiceCommunicationClient masterClient(dbServiceHost,
+    CommunicationClient masterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()), 0);
     masterClient.start(); //TODO appropriate signature to find out workers
 

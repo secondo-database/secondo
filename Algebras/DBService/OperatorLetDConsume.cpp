@@ -26,13 +26,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "OperatorLetDConsume.hpp"
-
-#include "OperatorConsume.h"
-#include "DBServiceConnector.hpp"
-#include "DebugOutput.hpp"
-
 #include <sstream>
+
+#include "Algebras/Relation-C++/OperatorConsume.h"
+
+#include "Algebras/DBService/OperatorLetDConsume.hpp"
+#include "Algebras/DBService/DBServiceConnector.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
+
 
 using namespace std;
 

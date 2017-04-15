@@ -26,31 +26,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-
-#include "DBServiceCommunicationServer.hpp"
-#include "DBServiceCommunicationProtocol.hpp"
-#include "DBServiceManager.hpp"
-
 #include "SocketIO.h"
 #include "StringUtils.h"
 
+#include "Algebras/DBService/CommunicationServer.hpp"
+#include "Algebras/DBService/CommunicationProtocol.hpp"
+#include "Algebras/DBService/DBServiceManager.hpp"
 
 using namespace distributed2;
 using namespace std;
 
 namespace DBService {
 
-DBServiceCommunicationServer::DBServiceCommunicationServer(int port) :
+CommunicationServer::CommunicationServer(int port) :
         Server(port)
 {
-    cout << "Initializing DBServiceCommunicationServer (port " << port << ")"
+    cout << "Initializing CommunicationServer (port " << port << ")"
             << endl;
 }
 
-DBServiceCommunicationServer::~DBServiceCommunicationServer()
+CommunicationServer::~CommunicationServer()
 {}
 
-int DBServiceCommunicationServer::start()
+int CommunicationServer::start()
 {
     listener = Socket::CreateGlobal("localhost", stringutils::int2str(port));
     if (!listener->IsOk())
@@ -65,33 +63,33 @@ int DBServiceCommunicationServer::start()
     return communicate();
 }
 
-iostream& DBServiceCommunicationServer::getSocketStream()
+iostream& CommunicationServer::getSocketStream()
 {
     return server->GetSocketStream();
 }
 
-int DBServiceCommunicationServer::communicate()
+int CommunicationServer::communicate()
 {
     try
     {
         iostream& io = getSocketStream();
-        io << DBServiceCommunicationProtocol::CommunicationServer() << endl;
+        io << CommunicationProtocol::CommunicationServer() << endl;
         io.flush();
 
         string line;
         getline(io, line);
-        while(line != DBServiceCommunicationProtocol::ShutDown())
+        while(line != CommunicationProtocol::ShutDown())
         {
-            if (line != DBServiceCommunicationProtocol::CommunicationClient())
+            if (line != CommunicationProtocol::CommunicationClient())
             {
                 cerr << "Protocol error" << endl;
                 continue;
             }
             getline(io, line);
-            if(line == DBServiceCommunicationProtocol::ProvideReplica())
+            if(line == CommunicationProtocol::ProvideReplica())
             {
                 handleProvideReplicaRequest(io);
-            }else if(line == DBServiceCommunicationProtocol::UseReplica())
+            }else if(line == CommunicationProtocol::UseReplica())
             {
                 //TODO contact DBServiceManager and find out where replica is
                 // stored
@@ -105,19 +103,19 @@ int DBServiceCommunicationServer::communicate()
         }
     } catch (...)
     {
-        cerr << "DBServiceCommunicationServer: communication error" << endl;
+        cerr << "CommunicationServer: communication error" << endl;
         return 5;
     }
     return 0;
 }
 
-bool DBServiceCommunicationServer::handleProvideReplicaRequest(
+bool CommunicationServer::handleProvideReplicaRequest(
         std::iostream& io)
 {
     string line;
     getline(io, line);
     string relationAndDatabaseName = line;
-    io << DBServiceCommunicationProtocol::LocationRequest() << endl;
+    io << CommunicationProtocol::LocationRequest() << endl;
     io.flush();
     getline(io, line);
     // TODO line contains host, port and disk of remote system
@@ -125,7 +123,7 @@ bool DBServiceCommunicationServer::handleProvideReplicaRequest(
     return true;
 }
 
-bool DBServiceCommunicationServer::handleUseReplicaRequest(
+bool CommunicationServer::handleUseReplicaRequest(
         std::iostream& io)
 {
     return true;

@@ -26,9 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "ServerRunnable.hpp"
-#include "DBServiceCommunicationServer.hpp"
-#include "FileTransferServer.h"
+#include "Algebras/DBService/ServerRunnable.hpp"
+#include "Algebras/DBService/CommunicationServer.hpp"
 
 using namespace distributed2;
 
@@ -53,7 +52,7 @@ void ServerRunnable::createServer()
     server.start();
 }
 
-template void ServerRunnable::createServer<DBServiceCommunicationServer>();
+template void ServerRunnable::createServer<CommunicationServer>();
 template void ServerRunnable::createServer<FileTransferServer>();
 
 template <typename T>
@@ -66,7 +65,7 @@ void ServerRunnable::run()
     runner = new boost::thread(&ServerRunnable::createServer<T>, this);
 }
 
-template void ServerRunnable::run<DBServiceCommunicationServer>();
+template void ServerRunnable::run<CommunicationServer>();
 template void ServerRunnable::run<FileTransferServer>();
 
 

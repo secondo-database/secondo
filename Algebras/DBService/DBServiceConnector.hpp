@@ -30,10 +30,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DBSERVICE_DBSERVICECONNECTOR_HPP_
 
 #include <string>
-
 #include <boost/shared_ptr.hpp>
 
-#include "DBServiceCommunicationClient.hpp"
+#include "Algebras/DBService/CommunicationClient.hpp"
 
 namespace DBService {
 
@@ -85,7 +84,7 @@ private:
     static DBServiceConnector* _instance;
     std::string host;
     int port;
-    boost::shared_ptr<DBServiceCommunicationClient> commClient;
+    boost::shared_ptr<CommunicationClient> commClient;
 };
 
 

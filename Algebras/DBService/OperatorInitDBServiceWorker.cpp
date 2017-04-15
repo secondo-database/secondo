@@ -26,15 +26,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "OperatorInitDBServiceWorker.hpp"
-#include "ServerRunnable.hpp"
-#include "DebugOutput.hpp"
-#include "DBServiceUtils.hpp"
-#include "DBServiceCommunicationServer.hpp"
+#include "Algebras/DBService/OperatorInitDBServiceWorker.hpp"
+#include "Algebras/DBService/ServerRunnable.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/CommunicationServer.hpp"
 
 #include "NestedList.h"
 #include "StandardTypes.h"
-#include "FileTransferServer.h"
+
+#include "Algebras/Distributed2/FileTransferServer.h"
 
 using namespace std;
 using namespace distributed2;
@@ -60,17 +61,17 @@ int OperatorInitDBServiceWorker::mapValue(Word* args,
         Supplier s)
 {
     string commPort;
-    DBServiceUtils::readFromConfigFile(commPort,
+    SecondoUtils::readFromConfigFile(commPort,
                                        "DBService",
                                        "CommunicationPort",
                                        "0");
     // TODO ErrorHandling
 
     ServerRunnable commServer(atoi(commPort.c_str()));
-    commServer.run<DBServiceCommunicationServer>();
+    commServer.run<CommunicationServer>();
 
     string fileTransferPort;
-    DBServiceUtils::readFromConfigFile(commPort,
+    SecondoUtils::readFromConfigFile(commPort,
                                            "DBService",
                                            "CommunicationPort",
                                            "0");

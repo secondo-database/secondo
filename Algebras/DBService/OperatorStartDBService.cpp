@@ -26,12 +26,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "OperatorStartDBService.hpp"
+#include "Algebras/Distributed2/Dist2Helper.h"
 
-#include "Dist2Helper.h"
-#include "DBServiceManager.hpp"
-
-#include "DebugOutput.hpp"
+#include "Algebras/DBService/OperatorStartDBService.hpp"
+#include "Algebras/DBService/DBServiceManager.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
 
 using namespace std;
 

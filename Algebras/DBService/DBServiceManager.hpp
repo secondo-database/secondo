@@ -30,13 +30,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DBSERVICE_DBSERVICEMANAGER_HPP_
 
 #include <memory>
-
 #include <boost/shared_ptr.hpp>
 
-#include "ConnectionInfo.h"
-#include "RelationInfo.hpp"
-#include "LocationInfo.hpp"
-#include "DBServiceCommunicationServer.hpp"
+#include "Algebras/Distributed2/ConnectionInfo.h"
+
+#include "Algebras/DBService/RelationInfo.hpp"
+#include "Algebras/DBService/LocationInfo.hpp"
+#include "Algebras/DBService/CommunicationServer.hpp"
 
 namespace DBService
 {
@@ -132,7 +132,7 @@ private:
                     std::pair<LocationInfo,
                               distributed2::ConnectionInfo*> > connections;
     std::vector<boost::shared_ptr<RelationInfo> > replicaLocations;
-    //boost::shared_ptr<DBServiceCommunicationServer> commServer;
+    //boost::shared_ptr<CommunicationServer> commServer;
     size_t replicaCount;
 
 };

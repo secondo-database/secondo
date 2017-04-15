@@ -26,16 +26,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DBSERVICEUTILS_HPP_
-#define ALGEBRAS_DBSERVICE_DBSERVICEUTILS_HPP_
+#ifndef ALGEBRAS_DBSERVICE_SecondoUtils_HPP_
+#define ALGEBRAS_DBSERVICE_SecondoUtils_HPP_
 
 #include <string>
 
-#include "ConnectionInfo.h"
+#include "Algebras/Distributed2/ConnectionInfo.h"
 
 namespace DBService {
 
-class DBServiceUtils {
+class SecondoUtils {
 public:
     static void readFromConfigFile(std::string& resultValue,
             const char* section,
@@ -71,4 +71,4 @@ private:
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_DBSERVICEUTILS_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_SecondoUtils_HPP_ */

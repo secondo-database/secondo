@@ -29,24 +29,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <cstdlib>
 #include <string>
-
 #include <boost/make_shared.hpp>
 
-#include "DBServiceManager.hpp"
-#include "RelationInfo.hpp"
-#include "Replicator.hpp"
-#include "DBServiceCommunicationServer.hpp"
-#include "DBServiceUtils.hpp"
-#include "DebugOutput.hpp"
-#include "ServerRunnable.hpp"
-
 #include "SecondoException.h"
-#include "ConnectionInfo.h"
 #include "SecParser.h"
 #include "StringUtils.h"
 #include "NestedList.h"
 #include "Algebra.h"
 #include "Operator.h"
+#include "Algebras/Distributed2/ConnectionInfo.h"
+
+#include "Algebras/DBService/DBServiceManager.hpp"
+#include "Algebras/DBService/RelationInfo.hpp"
+#include "Algebras/DBService/Replicator.hpp"
+#include "Algebras/DBService/CommunicationServer.hpp"
+#include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/ServerRunnable.hpp"
+
 
 using namespace std;
 using namespace distributed2;
@@ -57,13 +57,13 @@ namespace DBService
 DBServiceManager::DBServiceManager()
 {
     string port;
-    DBServiceUtils::readFromConfigFile(
+    SecondoUtils::readFromConfigFile(
             port, "DBService","DBServicePort", "9989");
     ServerRunnable commServer(atoi(port.c_str()));
-    commServer.run<DBServiceCommunicationServer>();
+    commServer.run<CommunicationServer>();
 
     string replicaNumber;
-    DBServiceUtils::readFromConfigFile(
+    SecondoUtils::readFromConfigFile(
             replicaNumber, "DBService","ReplicaNumber", "1");
     replicaCount = atoi(replicaNumber.c_str());
 }
@@ -94,7 +94,7 @@ void DBServiceManager::addNode(const string host,
 
     // TODO create database on remote server if it does not exist
 
-    DBServiceUtils::openDatabaseOnRemoteServer(connectionInfo,
+    SecondoUtils::openDatabaseOnRemoteServer(connectionInfo,
                                                    "dbservice");
 
     // retrieve information on SecondoHome (disk where data is stored on worker)
@@ -121,7 +121,7 @@ bool DBServiceManager::startServersOnWorker(
     //    query << "create database dbservice";
     //    try
     //    {
-    //    DBServiceUtils::executeQueryOnRemoteServer(
+    //    SecondoUtils::executeQueryOnRemoteServer(
     //connectionInfo, query.str());
     //    } catch(const SecondoException& e)
     //    {
@@ -131,7 +131,7 @@ bool DBServiceManager::startServersOnWorker(
     string queryInit("query initdbserviceworker()");
     print(queryInit);
 
-    return DBServiceUtils::executeQueryOnRemoteServer(connectionInfo,
+    return SecondoUtils::executeQueryOnRemoteServer(connectionInfo,
             queryInit);
 }
 
@@ -141,7 +141,7 @@ bool DBServiceManager::retrieveSecondoHomeOnWorker(string& dir,
     string resultAsString;
     string querySecondoHome(
             "query getconfigparam(\"Environment\", \"SecondoHome\")");
-    bool resultOk = DBServiceUtils::executeQueryOnRemoteServer(connectionInfo,
+    bool resultOk = SecondoUtils::executeQueryOnRemoteServer(connectionInfo,
             querySecondoHome, resultAsString);
     print(resultAsString);
 

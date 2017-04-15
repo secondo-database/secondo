@@ -26,41 +26,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceCommunicationProtocol.hpp"
+#ifndef ALGEBRAS_DBSERVICE_CommunicationProtocol_HPP_
+#define ALGEBRAS_DBSERVICE_CommunicationProtocol_HPP_
 
-using namespace std;
+#include <string>
 
 namespace DBService {
 
-string DBServiceCommunicationProtocol::CommunicationServer()
-{
-    return "<DBSERVICECOMMSERV>";
-}
-
-string DBServiceCommunicationProtocol::CommunicationClient()
-{
-    return "<DBSERVICECOMMCLI>";
-}
-
-string DBServiceCommunicationProtocol::ShutDown()
-{
-    return "<SHUTDOWN>";
-}
-
-string DBServiceCommunicationProtocol::ProvideReplica()
-{
-    return "<PROVIDEREPLICA>";
-}
-
-string DBServiceCommunicationProtocol::UseReplica()
-{
-    return "<USEREPLICA>";
-}
-
-string DBServiceCommunicationProtocol::LocationRequest()
-{
-    return "<LOCATIONREQUEST>";
-}
-
+class CommunicationProtocol {
+public:
+    static std::string CommunicationServer();
+    static std::string CommunicationClient();
+    static std::string ShutDown();
+    static std::string ProvideReplica();
+    static std::string UseReplica();
+    static std::string LocationRequest();
+};
 
 } /* namespace DBService */
+
+#endif /* ALGEBRAS_DBSERVICE_CommunicationProtocol_HPP_ */
