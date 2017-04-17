@@ -29,13 +29,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_COMMUNICATIONUTILS_HPP_
 #define ALGEBRAS_DBSERVICE_COMMUNICATIONUTILS_HPP_
 
+#include <queue>
+
 namespace DBService {
 
 class CommunicationUtils
 {
 public:
     static bool receivedExpectedLine(std::iostream& io,
-                                     const std::string& expectedLine);
+            const std::string& expectedLine);
+    static bool receivedExpectedLines(std::iostream& io,
+            std::queue<std::string>& expectedLines);
+    static void receiveLine(std::iostream& io,
+            std::string& line);
+    static void receiveLines(std::iostream& io,
+            const size_t count,
+            std::queue<std::string>& lines);
+    static void sendLine(std::iostream& io,
+            const std::string& line);
+    static void sendBatch(std::iostream& io,
+            std::queue<std::string>& lines);
+
 };
 
 } /* namespace DBService */

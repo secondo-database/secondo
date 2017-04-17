@@ -57,6 +57,11 @@ string CommunicationProtocol::UseReplica()
     return "<USEREPLICA>";
 }
 
+string CommunicationProtocol::RelationRequest()
+{
+    return "<RELATIONREQUEST>";
+}
+
 string CommunicationProtocol::LocationRequest()
 {
     return "<LOCATIONREQUEST>";

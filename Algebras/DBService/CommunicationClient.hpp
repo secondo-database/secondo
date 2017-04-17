@@ -43,7 +43,7 @@ public:
     int getNodesForReplication(std::string& relationName);
     int getReplicaLocation();
 protected:
-    void buildLocationString(std::string& location);
+    void getLocationParameter(std::string& location, const char* key);
 };
 
 } /* namespace DBService */

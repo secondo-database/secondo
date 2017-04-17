@@ -32,6 +32,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <vector>
 
+// TODO use fully qualified path (need to change test makefile)
+#include "LocationInfo.hpp"
+
 namespace DBService
 {
 
@@ -40,19 +43,27 @@ typedef size_t ConnectionID;
 class RelationInfo
 {
 public:
-    RelationInfo(const std::string& name,
-                 const std::string& dbName);
-    const std::string& getRelationName() const;
+    RelationInfo(const std::string& dbName,
+                 const std::string& relName,
+                 const std::string& host,
+                 const std::string& port,
+                 const std::string& disk);
     const std::string& getDatabaseName() const;
+    const std::string& getRelationName() const;
     void addNode(ConnectionID id);
     void addNodes(std::vector<ConnectionID>& nodes);
     const std::vector<ConnectionID>::const_iterator nodesBegin() const;
     const std::vector<ConnectionID>::const_iterator nodesEnd() const;
+    const LocationInfo& getOriginalLocation() const;
+    const std::string toString() const;
+    static std::string getIdentifier(const std::string dbName,
+                                     const std::string relName);
 
 private:
-    const std::string relationName;
     const std::string& databaseName;
+    const std::string relationName;
     std::vector<ConnectionID> nodes;
+    const LocationInfo originalLocation;
 
 };
 

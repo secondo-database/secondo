@@ -166,6 +166,29 @@ bool DBServiceManager::retrieveSecondoHomeOnWorker(string& dir,
     replicator.replicateRelation(*replicaInfo);
     return false;
 }*/
+void DBServiceManager::storeRelationInfo(const string& databaseName,
+                                         const string& relationName,
+                                         const string& host,
+                                         const string& port,
+                                         const string& disk)
+{
+    RelationInfo relationInfo(databaseName,
+                              relationName,
+                              host,
+                              port,
+                              disk);
+    // TODO handle more than one location (getWorkerNodesForReplication)
+    relationInfo.addNode(determineReplicaLocation());
+    replicaLocations.insert(pair<string, RelationInfo>(relationInfo.toString(),
+            relationInfo));
+}
+
+void DBServiceManager::getReplicaLocations(const string& relationAsString,
+                                           vector<ConnectionID>& ids)
+{
+    RelationInfo& relInfo = getRelationInfo(relationAsString);
+    ids.insert(ids.begin(), relInfo.nodesBegin(), relInfo.nodesEnd());
+}
 
 void DBServiceManager::getWorkerNodesForReplication(
         vector<ConnectionID>& nodes)
@@ -198,7 +221,10 @@ LocationInfo& DBServiceManager::getLocation(ConnectionID id)
     return connections.at(id).first;
 }
 
-
+RelationInfo& DBServiceManager::getRelationInfo(const string& relationAsString)
+{
+    return replicaLocations.at(relationAsString);
+}
 
 //TODO
 bool DBServiceManager::persistLocationInformation()

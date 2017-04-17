@@ -92,6 +92,16 @@ storing relation replicas.
 
     LocationInfo& getLocation(ConnectionID id);
 
+    RelationInfo& getRelationInfo(const std::string& relationAsString);
+
+    void storeRelationInfo(const std::string& databaseName,
+            const std::string& relationName,
+            const std::string& host,
+            const std::string& port,
+            const std::string& disk);
+    void getReplicaLocations(const std::string& relationAsString,
+                             std::vector<ConnectionID>& ids);
+
 protected:
 /*
 1.2 Constructor
@@ -131,7 +141,7 @@ private:
     static std::map<ConnectionID,
                     std::pair<LocationInfo,
                               distributed2::ConnectionInfo*> > connections;
-    std::vector<boost::shared_ptr<RelationInfo> > replicaLocations;
+    std::map<std::string, RelationInfo> replicaLocations;
     //boost::shared_ptr<CommunicationServer> commServer;
     size_t replicaCount;
 

@@ -26,33 +26,64 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include <string>
+#include "Google/googletest/include/gtest/gtest.h"
 
-#include "LocationInfo.hpp"
+#include "CommunicationServer.hpp"
 
 using namespace std;
 
-namespace DBService {
-
-LocationInfo::LocationInfo(const string& host,
-                           const string& port,
-                           const string& disk)
-: host(host), port(port), disk(disk)
-{}
-
-const string& LocationInfo::getHost() const
+namespace DBService
 {
-    return host;
+
+namespace Test
+{
+
+class TestCommServer : public CommunicationServer
+{
+public:
+    TestCommServer() : CommunicationServer(12345)
+    {}
+
+    int start()
+    {
+        cout << "start communication server" << endl;
+        return 0;
+    }
+
+    int communicate()
+    {
+        return DBServiceCommunicationServer::communicate();
+    }
+
+//    iostream& getSocketStream()
+//    {
+//        return io;
+//    }
+//
+//protected:
+//    iostream io;
+};
+
+class DBServiceCommunicationServerTest: public ::testing::Test
+{
+public:
+    void SetUp()
+    {
+        printf("SetUp!\n");
+    }
+
+    void TearDown()
+    {
+        printf("TearDown!\n");
+    }
+};
+
+TEST_F(DBServiceCommunicationServerTest, bla)
+{
+    TestCommServer server;
+    server.communicate();
 }
 
-const string& LocationInfo::getPort() const
-{
-    return port;
 }
 
-const string& LocationInfo::getDisk() const
-{
-    return disk;
 }
-
-} /* namespace DBService */

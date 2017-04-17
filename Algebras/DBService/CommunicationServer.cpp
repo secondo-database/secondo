@@ -26,12 +26,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
+#include <queue>
+
 #include "SocketIO.h"
 #include "StringUtils.h"
 
 #include "Algebras/DBService/CommunicationServer.hpp"
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/DBServiceManager.hpp"
+#include "Algebras/DBService/CommunicationUtils.hpp"
 
 using namespace distributed2;
 using namespace std;
@@ -73,23 +76,24 @@ int CommunicationServer::communicate()
     try
     {
         iostream& io = getSocketStream();
-        io << CommunicationProtocol::CommunicationServer() << endl;
-        io.flush();
+        CommunicationUtils::sendLine(io,
+                CommunicationProtocol::CommunicationServer());
 
-        string line;
-        getline(io, line);
-        while(line != CommunicationProtocol::ShutDown())
+        while(!CommunicationUtils::receivedExpectedLine(io,
+                CommunicationProtocol::ShutDown()))
         {
-            if (line != CommunicationProtocol::CommunicationClient())
+            if (!CommunicationUtils::receivedExpectedLine(io,
+                    CommunicationProtocol::CommunicationClient()))
             {
                 cerr << "Protocol error" << endl;
                 continue;
             }
-            getline(io, line);
-            if(line == CommunicationProtocol::ProvideReplica())
+            if(CommunicationUtils::receivedExpectedLine(io,
+                    CommunicationProtocol::ProvideReplica()))
             {
                 handleProvideReplicaRequest(io);
-            }else if(line == CommunicationProtocol::UseReplica())
+            }else if(CommunicationUtils::receivedExpectedLine(io,
+                    CommunicationProtocol::UseReplica()))
             {
                 //TODO contact DBServiceManager and find out where replica is
                 // stored
@@ -99,7 +103,6 @@ int CommunicationServer::communicate()
                 cerr << "Protocol error" << endl;
                 continue;
             }
-            getline(io, line);
         }
     } catch (...)
     {
@@ -112,14 +115,39 @@ int CommunicationServer::communicate()
 bool CommunicationServer::handleProvideReplicaRequest(
         std::iostream& io)
 {
-    string line;
-    getline(io, line);
-    string relationAndDatabaseName = line;
-    io << CommunicationProtocol::LocationRequest() << endl;
-    io.flush();
-    getline(io, line);
-    // TODO line contains host, port and disk of remote system
-    // -> store in LocationInfo object
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::RelationRequest());
+
+    queue<string> receivedLines;
+    CommunicationUtils::receiveLines(io, 2, receivedLines);
+
+    string databaseName = receivedLines.front();
+    receivedLines.pop();
+    string relationName = receivedLines.front();
+    receivedLines.pop();
+
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::LocationRequest());
+
+    CommunicationUtils::receiveLines(io, 3, receivedLines);
+    string host = receivedLines.front();
+    receivedLines.pop();
+    string port = receivedLines.front();
+    receivedLines.pop();
+    string disk = receivedLines.front();
+    receivedLines.pop();
+
+    DBServiceManager* dbService = DBServiceManager::getInstance();
+    dbService->storeRelationInfo(databaseName,
+                                 relationName,
+                                 host,
+                                 port,
+                                 disk);
+    vector<ConnectionID> connections;
+    dbService->getReplicaLocations(RelationInfo::getIdentifier(
+            databaseName, relationName),
+            connections);
+    // TODO send to replica locations to client
     return true;
 }
 

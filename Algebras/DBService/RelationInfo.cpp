@@ -33,19 +33,23 @@ using namespace std;
 namespace DBService
 {
 
-RelationInfo::RelationInfo(const string& name,
-                           const string& dbName) :
-        relationName(name), databaseName(dbName)
+RelationInfo::RelationInfo(const string& dbName,
+                           const string& relName,
+                           const string& host,
+                           const string& port,
+                           const string& disk) :
+        databaseName(dbName), relationName(relName),
+        originalLocation(host, port, disk)
 {}
-
-const string& RelationInfo::getRelationName() const
-{
-    return relationName;
-}
 
 const string& RelationInfo::getDatabaseName() const
 {
     return databaseName;
+}
+
+const string& RelationInfo::getRelationName() const
+{
+    return relationName;
 }
 
 void RelationInfo::addNode(ConnectionID id)
@@ -70,6 +74,22 @@ const vector<ConnectionID>::const_iterator RelationInfo::nodesBegin() const
 const vector<ConnectionID>::const_iterator RelationInfo::nodesEnd() const
 {
     return nodes.end();
+}
+
+const string RelationInfo::toString() const
+{
+    return RelationInfo::getIdentifier(databaseName, relationName);
+}
+
+string RelationInfo::getIdentifier(const string dbName,
+                                 const std::string relName)
+{
+    return dbName + "::" + relName;
+}
+
+const LocationInfo& RelationInfo::getOriginalLocation() const
+{
+return originalLocation;
 }
 
 } /* namespace DBService */

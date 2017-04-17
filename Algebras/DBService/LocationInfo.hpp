@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_LOCATIONINFO_HPP_
 #define ALGEBRAS_DBSERVICE_LOCATIONINFO_HPP_
 
+#include <string>
+
 namespace DBService {
 
 class LocationInfo {
@@ -36,6 +38,9 @@ public:
     LocationInfo(const std::string& host,
                  const std::string& port,
                  const std::string& disk);
+    const std::string& getHost() const;
+    const std::string& getPort() const;
+    const std::string& getDisk() const;
 private:
     std::string host;
     std::string port;

@@ -41,9 +41,13 @@ CCFLAGS += -Werror $(ADDINCLUDES)
 .PHONY: all
 all: check_dependencies $(OBJECTS) $(LIBOBJ)
 
+.PHONY: test
+test: check_dependencies $(OBJECTS) $(LIBOBJ)
+	$(MAKE) -C Test
+	Test/SuiteDBService
+
 check_dependencies:
 	$(check-algebra-dependencies)
-
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -53,7 +57,6 @@ endif
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
-	
 
 # generic rule for cleaning all generated files
 .PHONY: clean

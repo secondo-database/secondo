@@ -28,7 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "Google/googletest/include/gtest/gtest.h"
 
-#include "DBServiceCommunicationServer.hpp"
+#include "LocationInfo.hpp"
+
+#include <queue>
 
 using namespace std;
 
@@ -38,50 +40,41 @@ namespace DBService
 namespace Test
 {
 
-class TestCommServer : public DBServiceCommunicationServer
+class LocationInfoTest: public ::testing::Test
 {
 public:
-    TestCommServer() : DBServiceCommunicationServer(12345)
-    {}
+    LocationInfoTest()
+: host("myHost"), port("12345"), disk("myDisk")
+{}
 
-    int start()
-    {
-        cout << "start communication server" << endl;
-        return 0;
-    }
-
-    int communicate()
-    {
-        return DBServiceCommunicationServer::communicate();
-    }
-
-//    iostream& getSocketStream()
-//    {
-//        return io;
-//    }
-//
-//protected:
-//    iostream io;
+protected:
+    string host;
+    string port;
+    string disk;
 };
 
-class DBServiceCommunicationServerTest: public ::testing::Test
+TEST_F(LocationInfoTest, testGetHost)
 {
-public:
-    void SetUp()
-    {
-        printf("SetUp!\n");
-    }
+    LocationInfo locationInfo(host,
+                              port,
+                              disk);
+    ASSERT_STREQ(host.c_str(), locationInfo.getHost().c_str());
+}
 
-    void TearDown()
-    {
-        printf("TearDown!\n");
-    }
-};
-
-TEST_F(DBServiceCommunicationServerTest, bla)
+TEST_F(LocationInfoTest, testGetPort)
 {
-    TestCommServer server;
-    server.communicate();
+    LocationInfo locationInfo(host,
+                              port,
+                              disk);
+    ASSERT_STREQ(port.c_str(), locationInfo.getPort().c_str());
+}
+
+TEST_F(LocationInfoTest, testGetDisk)
+{
+    LocationInfo locationInfo(host,
+                              port,
+                              disk);
+    ASSERT_STREQ(disk.c_str(), locationInfo.getDisk().c_str());
 }
 
 }

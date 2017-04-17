@@ -72,47 +72,46 @@ int CommunicationClient::getNodesForReplication(string& relationName)
         return 1;
     }
 
-    io << CommunicationProtocol::CommunicationClient() << endl;
-    io << CommunicationProtocol::ProvideReplica() << endl;
-    io << relationName
-       << ":"
-       << SecondoSystem::GetInstance()->GetDatabaseName()
-       << endl;
-    io.flush();
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::ProvideReplica());
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::RelationRequest()))
+    {
+        return 2;
+    }
+    sendBuffer.push(SecondoSystem::GetInstance()->GetDatabaseName());
+    sendBuffer.push(relationName);
+    CommunicationUtils::sendBatch(io, sendBuffer);
 
     if(!CommunicationUtils::receivedExpectedLine(io,
             CommunicationProtocol::LocationRequest()))
     {
-        return 2;
+        return 3;
     }
 
     string location;
-    buildLocationString(location);
-    io << location << endl;
-    io.flush();
+    getLocationParameter(location, "SecondoHost");
+    sendBuffer.push(location);
+    getLocationParameter(location, "SecondoPort");
+    sendBuffer.push(location);
+    getLocationParameter(location, "SecondoHome");
+    sendBuffer.push(location);
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    // TODO receive location(s)
     return 0;
 }
 
-void CommunicationClient::buildLocationString(string& location)
+void CommunicationClient::getLocationParameter(
+        string& location, const char* key)
 {
-    string host;
-    SecondoUtils::readFromConfigFile(host,
+    SecondoUtils::readFromConfigFile(location,
                                        "Environment",
-                                       "SecondoHost",
+                                       key,
                                        "");
-    string port;
-    SecondoUtils::readFromConfigFile(port,
-                                       "Environment",
-                                       "SecondoPort",
-                                       "");
-    string disk;
-    SecondoUtils::readFromConfigFile(disk,
-                                       "Environment",
-                                       "SecondoHome",
-                                       "");
-    stringstream ss;
-    ss << host << ":" << port << ":" << disk;
-    location = ss.str();
 }
 
 int CommunicationClient::getReplicaLocation()

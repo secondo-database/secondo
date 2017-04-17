@@ -49,4 +49,56 @@ bool CommunicationUtils::receivedExpectedLine(iostream& io,
     return true;
 }
 
+bool CommunicationUtils::receivedExpectedLines(iostream& io,
+                                               queue<string>& expectedLines)
+{
+    string line;
+    while(!expectedLines.empty())
+    {
+        getline(io, line);
+        if (line != expectedLines.front())
+        {
+            return false;
+        }
+        expectedLines.pop();
+    }
+    return true;
+}
+
+void CommunicationUtils::receiveLine(iostream& io,
+        string& line)
+{
+    getline(io, line);
+}
+
+void CommunicationUtils::receiveLines(iostream& io,
+        const size_t count,
+        queue<string>& lines)
+{
+    string line;
+    for(size_t i = 0; i < count; i++)
+    {
+        getline(io, line);
+        lines.push(line);
+    }
+}
+
+void CommunicationUtils::sendLine(iostream& io,
+                                  const std::string& line)
+{
+    io << line << endl;
+    io.flush();
+}
+
+void CommunicationUtils::sendBatch(iostream& io,
+                                   queue<string>& lines)
+{
+    while(!lines.empty())
+    {
+        io << lines.front() << endl;
+        lines.pop();
+    }
+    io.flush();
+}
+
 } /* namespace DBService */
