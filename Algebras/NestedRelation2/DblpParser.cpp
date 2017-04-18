@@ -52,8 +52,8 @@ DblpParser::DblpParser(NRel *nrel, std::set<std::string> *stopwords,
   m_nrel = nrel;
   m_tupleType = SecondoSystem::GetCatalog()->NumericType(nl->Second(
       DblpParser::BuildResultType()));
-  m_authorsType = nl->Second(nl->Nth(14, nl->Second(m_tupleType)));
-  m_keywordsType = nl->Second(nl->Nth(15, nl->Second(m_tupleType)));
+  m_authorsType = nl->Second(nl->Nth(15, nl->Second(m_tupleType)));
+  m_keywordsType = nl->Second(nl->Nth(16, nl->Second(m_tupleType)));
   prepareTuple();
 }
 
@@ -66,7 +66,7 @@ destroys the unused objects built after the last element.
 */
 DblpParser::~DblpParser()
 {
-  m_authors->DeleteIfAllowed();
+  m_authorsList->DeleteIfAllowed();
   m_keywords->DeleteIfAllowed();
   if (m_currentTuple != NULL)
   {
@@ -151,14 +151,15 @@ atomic attributes are not defined they get set to default values.
 void DblpParser::poppedDocument(const Element &element)
 {
   setAttribute(0, new CcString(true, element.getName()));
-  setAttribute(13, m_authors);
-  setAttribute(14, m_keywords);
+  setAttribute(1, new FText(true, m_authorsText));
+  setAttribute(14, m_authorsList);
+  setAttribute(15, m_keywords);
 
   for (int index = 0; index < c_attributeCount; index++)
   {
     if (m_attributeSet[index] == false)
     {
-      if ((index < 1) || (index > 12)) // Range of atomic values
+      if ((index < 1) || (index > 13)) // Range of atomic values
       {
         //This parser's destructor is called while unwindig the stack
         throw Nr2aException("Non-optional attribute unset in document "
@@ -180,7 +181,9 @@ void DblpParser::poppedDocument(const Element &element)
 
 /*
 If authors are found their name gets converted to lower case letters and
-both representations are added to a subrelation collecting them.
+both representations are added to a subrelation collecting them. The
+representation, which has not been converted is also concatenated to a
+text attribute containing all authors as a comma separated enumeration.
 
 */
 void DblpParser::poppedAuthor(const Element &element)
@@ -193,7 +196,13 @@ void DblpParser::poppedAuthor(const Element &element)
   if (pos != -1)
     name = name.substr(pos + 1, name.length() - pos);
   tuple->PutAttribute(1, new CcString(true, name));
-  m_authors->AppendTuple(tuple);
+  m_authorsList->AppendTuple(tuple);
+
+  if(!m_authorsText.empty())
+  {
+    m_authorsText.append(", ");
+  }
+  m_authorsText.append(m_currentText);
 }
 
 /*
@@ -395,6 +404,7 @@ string mapElementNameToAttributeName(const string & elementName)
 
   ListBuilder resultType;
   resultType.AppendAttribute("Type", Symbols::STRING());
+  resultType.AppendAttribute("Authors", Symbols::TEXT());
   resultType.AppendAttribute("Title", Symbols::TEXT());
   resultType.AppendAttribute("Booktitle", Symbols::TEXT());
   resultType.AppendAttribute("Pages", Symbols::STRING());
@@ -407,7 +417,7 @@ string mapElementNameToAttributeName(const string & elementName)
   resultType.AppendAttribute("School", Symbols::TEXT());
   resultType.AppendAttribute("Publisher", Symbols::TEXT());
   resultType.AppendAttribute("Isbn", Symbols::STRING());
-  resultType.AppendAttribute("Authors", authorsType.GetARel());
+  resultType.AppendAttribute("AuthorsList", authorsType.GetARel());
   resultType.AppendAttribute("Keywords", keywordsType.GetARel());
 
   return resultType.GetNRel();
@@ -458,34 +468,35 @@ Function used to create the needed mappings during initialising.
     std::map<std::string, int> &mapAttr =
         *(new std::map<std::string, int>());
 
-    mapAttr["title"] = 1;
-    mapAttr["booktitle"] = 2;
-    mapAttr["pages"] = 3;
-    mapAttr["year"] = 4;
-    mapAttr["journal"] = 5;
-    mapAttr["volume"] = 6;
-    mapAttr["number"] = 7;
-    mapAttr["month"] = 8;
-    mapAttr["url"] = 9;
-    mapAttr["school"] = 10;
-    mapAttr["publisher"] = 11;
-    mapAttr["isbn"] = 12;
+    mapAttr["title"] = 2;
+    mapAttr["booktitle"] = 3;
+    mapAttr["pages"] = 4;
+    mapAttr["year"] = 5;
+    mapAttr["journal"] = 6;
+    mapAttr["volume"] = 7;
+    mapAttr["number"] = 8;
+    mapAttr["month"] = 9;
+    mapAttr["url"] = 10;
+    mapAttr["school"] = 11;
+    mapAttr["publisher"] = 12;
+    mapAttr["isbn"] = 13;
 
     creationMapping[0] = NULL;
     creationMapping[1] = createText;
     creationMapping[2] = createText;
-    creationMapping[3] = createString;
+    creationMapping[3] = createText;
     creationMapping[4] = createString;
-    creationMapping[5] = createText;
-    creationMapping[6] = createString;
+    creationMapping[5] = createString;
+    creationMapping[6] = createText;
     creationMapping[7] = createString;
     creationMapping[8] = createString;
-    creationMapping[9] = createText;
+    creationMapping[9] = createString;
     creationMapping[10] = createText;
     creationMapping[11] = createText;
-    creationMapping[12] = createString;
-    creationMapping[13] = NULL;
+    creationMapping[12] = createText;
+    creationMapping[13] = createString;
     creationMapping[14] = NULL;
+    creationMapping[15] = NULL;
 
     parserMapping = &map;
     attributeMapping = &mapAttr;
@@ -500,7 +511,8 @@ elements found next.
 void DblpParser::prepareTuple()
 {
   m_currentTuple = new Tuple(m_tupleType);
-  m_authors = new ARel(m_authorsType);
+  m_authorsList = new ARel(m_authorsType);
+  m_authorsText.clear();
   m_keywords = new ARel(m_keywordsType);
   for (int i = 0; i < c_attributeCount; i++)
   {
