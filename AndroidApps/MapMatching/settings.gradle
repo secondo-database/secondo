@@ -1,0 +1,1 @@
+include ':app', ':osmdroid-android-5.5-release', ':osmbonuspack_v6.0'
