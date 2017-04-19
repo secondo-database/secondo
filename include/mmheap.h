@@ -117,6 +117,17 @@ class mmheap{
     bulkload = false;
   }
 
+  inline void clear(){
+    content.clear();
+  }
+
+  void swap(mmheap<T,C>& rhs){
+     std::swap(content,rhs.content);
+     std::swap(cmp,rhs.cmp);
+     std::swap(bulkload,rhs.bulkload);
+  }
+
+
 
 private:
   std::vector<T> content;
@@ -177,6 +188,7 @@ private:
 
 
 } // end of namepsace mmheap;
+
 
 
 #endif
