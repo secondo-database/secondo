@@ -1,0 +1,7 @@
+delete hlEdgesReducedOrelSource
+delete hlEdgesExtendedOrelSource
+delete hlEdgesOrelSource
+delete hlNodesSourceOnlyOrel
+delete hlGraphOrel
+delete hlAllLabelsNrel
+delete hlAllLabelsNrel_SourceNodeId
