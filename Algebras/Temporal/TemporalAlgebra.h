@@ -3538,9 +3538,25 @@ ConstTempralUnit - Mappings.
 Extracts the time interval of the unit at a certain position.
 
 */
-    void GetInterval(const int pos, SecInterval& result);
+    void GetInterval(const int pos, SecInterval& result) const;
 
-    
+
+/*
+3.10.5.6 ~InitialInstant~
+
+Extracts the initial instant of the object.
+
+*/
+    void InitialInstant(Instant& result) const;
+
+/*
+3.10.5.7 ~FinalInstant~
+
+Extracts the final instant of the object.
+
+*/
+    void FinalInstant(Instant& result) const;
+
 /*
 type name used in Secondo
 
@@ -7097,11 +7113,35 @@ void Mapping<Unit, Alpha>::ExtendDefTime(Unit u,
 }
 
 template<class Unit, class Alpha>
-void Mapping<Unit, Alpha>::GetInterval(const int pos, SecInterval& result) {
+void Mapping<Unit,Alpha>::GetInterval(const int pos, SecInterval& result) const{
   assert(pos >= 0 && pos < GetNoComponents());
   Unit u(true);
   units.Get(pos, u);
   result = u.timeInterval;
+}
+
+template<class Unit, class Alpha>
+void Mapping<Unit, Alpha>::InitialInstant(Instant& result) const {
+  assert(result.GetType() == datetime::instanttype);
+  if (!IsDefined() || IsEmpty()) {
+    result.SetDefined(false);
+    return;
+  }
+  Unit unit(true);
+  units.Get(0, unit);
+  result = unit.timeInterval.start;
+}
+
+template<class Unit, class Alpha>
+void Mapping<Unit, Alpha>::FinalInstant(Instant& result) const {
+  assert(result.GetType() == datetime::instanttype);
+  if (!IsDefined() || IsEmpty()) {
+    result.SetDefined(false);
+    return;
+  }
+  Unit unit(true);
+  units.Get(GetNoComponents() - 1, unit);
+  result = unit.timeInterval.end;
 }
 
 template<class Unit, class Alpha>
