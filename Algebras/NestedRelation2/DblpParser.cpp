@@ -225,7 +225,7 @@ void DblpParser::poppedTitle(const Element &element)
     m_keywords->AppendTuple(tuple);
   }
 
-  setAttribute(1, (new FText(true, title)));
+  setAttribute(2, (new FText(true, title)));
 }
 
 /*
