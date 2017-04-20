@@ -15769,8 +15769,8 @@ The specifications just got an additional suffix 'Spec'
 OperatorSpec hlCalcRankSpec(
     "orel x orel x ccint -> real",
     "hlCalcRank(_, _, _)",
-    "hlCalcRank(orelEdgesSource, orelEdgesTarget, nodeId)"
-    " -- Computes and returns the rank of the given nodeId.",
+    "For testing purposes. "
+    "Computes and returns the rank of the given nodeId.",
     "query hlCalcRank(EdgesOrelSource feed head[10] oconsume,"
     " EdgesOreltarget feed head[10] oconsume, 12345678)"
 );
@@ -15779,8 +15779,8 @@ OperatorSpec hlCalcRankSpec(
 OperatorSpec hlOneHopReverseSearchSpec(
     "orel x orel x ccint -> orel",
     "hlOneHopReverseSearch(_, _, _)",
-    "hlOneHopReverseSearch(orelEdgesSource, orelEdgesTarget, nodeIdV)"
-    " -- Processes a one hop reverse Search and returns an orel containing"
+    "For testing purposes. "
+    "Processes a one hop reverse Search and returns an orel containing"
     " the results.",
     "query hlOneHopReverseSearch(EdgesTestOrelSource, EdgesTestOrelTarget,"
     " 7264168)"
@@ -15790,6 +15790,7 @@ OperatorSpec hlOneHopReverseSearchSpec(
 OperatorSpec hlHHopForwardSearchSpec(
     "orel x ore x orel x ccint x ccint -> real",
     "hlHHopForwardSearch(_, _, _, _, _)",
+    "For testing purposes. "
     "hlHHopForwardSearch(orelEdgesSource, orelEdgesTarget,"
     " multimapReverseSearchXT, contractNodeV, hHop)",
     "query hlHHopForwardSearch(orelEdgesSource, orelEdgesTarget,"
@@ -15800,6 +15801,7 @@ OperatorSpec hlHHopForwardSearchSpec(
 OperatorSpec hlForwardSearchGetDistSpec(
     "orel x ccint x ccint -> real",
     "hlForwardSearchGetDist(_, _, _)",
+    "For testing purposes. "
     "hlForwardSearchGetDist(oneHopReverseSearchOrelXT, contractNodeV,"
     " currentTargetNodeT)",
     "query hlForwardSearchGetDist(OneHopReverseSearchToBeDeleted, 7264168,"
@@ -15810,6 +15812,7 @@ OperatorSpec hlForwardSearchGetDistSpec(
 OperatorSpec hlRemoveTFromCurrentWitnessListSpec(
     "orel x ccint -> orel",
     "hlRemoveTFromCurrentWitnessList(_, _)",
+    "For testing purposes. "
     "hlRemoveTFromCurrentWitnessList(oneHopReverseSearchOrelXT,"
     " currentTargetNodeT)",
     "query hlRemoveTFromCurrentWitnessList(OneHopReverseSearchToBeDeleted,"
@@ -15821,6 +15824,7 @@ OperatorSpec
 hlForwardSearchCheckForWitnessPathSpec(
     "orel x ccint x ccint x ccreal x ccreal -> orel",
     "hlForwardSearchCheckForWitnessPath(_, _, _, _, _)",
+    "For testing purposes. "
     "hlForwardSearchCheckForWitnessPath(oneHopReverseSearchOrelXT,"
     " contractNodeV, currentNodeX, distSX, distSV)",
     "query hlForwardSearchCheckForWitnessPath("
@@ -15833,6 +15837,7 @@ OperatorSpec
 hlInsertOrUpdateTupleInNotYetVisitedListSpec(
     "rel x ccint x ccint x ccint -> orel",
     "hlInsertOrUpdateTupleInNotYetVisitedList(_, _, _, _)",
+    "For testing purposes. "
     "hlInsertOrUpdateTupleInNotYetVisitedList(EdgesSourceTmpRel,"
     " currentNodeV, currentNodeS, isForward)",
     "query hlInsertOrUpdateTupleInNotYetVisitedList(EdgesTestRelSourceTmp,"
@@ -15844,6 +15849,7 @@ OperatorSpec
 hlForwardSearchIterativeStepsScanNewVerticesSpec(
     "orel x orel x orel x orel x rel x ccint x ccreal -> ccin",
     "hlForwardSearchIterativeStepsScanNewVertices(_, _, _, _, _, _, _, _)",
+    "For testing purposes. "
     "hlForwardSearchIterativeStepsScanNewVertices(EdgesTestOrelSource,"
     " hlNotYetVisitedNodesTest, stillVisitedNodesOrel,"
     "  OneHopReverseSearchToBeDeleted2,"
@@ -15860,6 +15866,7 @@ hlForwardSearchProcessIncomingEdgeIterativeStepsSpec(
     "orel x orel x orel x orel x ccint x ccint x ccreal -> cint",
     "hlForwardSearchProcessIncomingEdgeIterativeSteps(_, _, _, _, _, _, _,"
     " _)",
+    "For testing purposes. "
     "hlForwardSearchProcessIncomingEdgeIterativeSteps(EdgesTestOrelSource,"
     " hlNotYetVisitedNodesTest, stillVisitedNodesOrel,  hHop, nodeV,"
     " distSV)",
@@ -15873,6 +15880,7 @@ OperatorSpec
 hlForwardSearchProcessIncomingEdgeInitialStepsSpec(
     "orel x orel x orel x ccint x ccint x ccreal -> cint",
     "hlForwardSearchProcessIncomingEdgeInitialSteps(_, _, _, _, _, _,)",
+    "For testing purposes. "
     "hlForwardSearchProcessIncomingEdgeInitialSteps(EdgesTestOrelSource,"
     " hlNotYetVisitedNodesTes, hlOneHopReverseSearchXTOrel, nodeS, nodeV,"
     " distSV)",
@@ -15886,6 +15894,7 @@ OperatorSpec
 hlForwardSearchCreateAndAppendShortcutsSpec(
     "orel x ccint x ccint x ccreal -> orel",
     "hlForwardSearchCreateAndAppendShortcuts(_, _, _, _)",
+    "For testing purposes. "
     "hlForwardSearchCreateAndAppendShortcuts(copyMultimapReverseSearchXT,"
     " currentSourceNodeFwdS, currentVertexIdFwdV, distSV) feed consume",
     "query hlForwardSearchCreateAndAppendShortcuts("
@@ -15897,6 +15906,7 @@ OperatorSpec
 hlForwardSearchProcessIncomingEdgeSpec(
     "orel x orel x orel x orel x ccint x ccint x ccint x ccreal -> orel",
     "hlForwardSearchProcessIncomingEdge(_, _, _, _, _, _, _, _)",
+    "For testing purposes. "
     "hlForwardSearchProcessIncomingEdge(hlEdgesOrelSource,"
     " stillVisitedNodesOrel, copyMultimapReverseSearchXT,"
     " hlShortcutstoBeAdded, currentSourceNodeFwdS, currentVertexIdFwdV,"
@@ -15911,6 +15921,7 @@ OperatorSpec
 hlRemoveContractedEdgesFromEdgesRelationsSpec(
     "orel x orel x ccint -> ccint",
     "hlRemoveContractedEdgesFromEdgesRelations(_, _, _)",
+    "For testing purposes. "
     "hlRemoveContractedEdgesFromEdgesRelations(hlEdgesOrelSourceCopy,"
     " hlEdgesOrelTargetCopy, hlCurrentContractV)",
     "query hlRemoveContractedEdgesFromEdgesRelations(hlEdgesOrelSource,"
@@ -15922,6 +15933,7 @@ OperatorSpec
 hlRemoveParallelEdgesFromEdgesRelationsSpec(
     "orel x orel x orel -> ccint",
     "hlRemoveParallelEdgesFromEdgesRelations(_, _, _)",
+    "For testing purposes. "
     "hlRemoveParallelEdgesFromEdgesRelations(hlEdgesOrelSourceCopy,"
     " hlEdgesOrelTargetCopy, hlShortcutsToBeCreatedOrelToBeDeleted)",
     "query hlRemoveParallelEdgesFromEdgesRelations(hlEdgesOrelSource,"
@@ -15932,6 +15944,7 @@ hlRemoveParallelEdgesFromEdgesRelationsSpec(
 OperatorSpec hlDoContractionSpec(
     "orel x orel x ccint x ccint -> orel",
     "hlDoContraction(_, _, _, _)",
+    "For testing purposes. "
     "hlDoContraction(edgesWithViaOrelSource, edgesWithViaOrelTarget,"
     " currentVToBeContracted, hHop) feed consume",
     "query hlDoContraction(edgesWithViaOrelSource, edgesWithViaOrelTarget,"
@@ -15943,6 +15956,7 @@ OperatorSpec
 hlIterateOverAllNodesByRankAscAndDoContractionSpec(
     "orel x orel x orel x ccint -> ccint",
     "hlIterateOverAllNodesByRankAscAndDoContraction(_, _, _, _)",
+    "For testing purposes. "
     "hlIterateOverAllNodesByRankAscAndDoContraction(nodesWithRankOrelRank,"
     " edgesWithViaOrelSource, edgesWithViaOrelTarget, hHop)",
     "query hlIterateOverAllNodesByRankAscAndDoContraction("
@@ -15955,6 +15969,7 @@ OperatorSpec
 hlCreateLabelCheckForWitnessScanNewVerticesSpec(
     "orel x orel x ccint x ccint x ccreal x ccint (ccbool) -> orel",
     "hlCreateLabelCheckForWitnessScanNewVertices(_, _, _, _, _, _)",
+    "For testing purposes. "
     "hlCreateLabelCheckForWitnessScanNewVertices(hlUpwardEdgesOrelSource,"
     " hlDownwardEdgesOrelTarget, nextNodeToScan, nextNodeHHop,"
     " NextNodeDistToSource, isForward) feed consume",
@@ -15968,6 +15983,7 @@ OperatorSpec hlCreateLabelCheckForWitnessSpec(
     "orel x orel x rel x ccint x ccint x ccreal x ccint (ccbool) -> ccint"
     " (ccbool)",
     "hlCreateLabelCheckForWitness(_, _, _, _, _, _)",
+    "For testing purposes. "
     "hlCreateLabelCheckForWitness(hlUpwardEdgesOrelSource,"
     " hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, currentNode, hlhHop,"
     " currentNodeDistToSource, isForward)",
@@ -15979,6 +15995,7 @@ OperatorSpec hlCreateLabelCheckForWitnessSpec(
 OperatorSpec hlCreateLabelScanNewVerticesSpec(
     "orel x orel x rel x ccint x ccreal x ccint (ccbool) -> orel",
     "hlCreateLabelScanNewVertices(_, _, _, _, _, _)",
+    "For testing purposes. "
     "hlCreateLabelScanNewVertices(hlUpwardEdgesOrelSource,"
     " hlDownwardEdgesOrelTarget, hlFwdOrRvsLabel, currentNode,"
     " currentNodeDistToSource, isForward) feed consume",
@@ -15991,6 +16008,7 @@ OperatorSpec hlCreateLabelScanNewVerticesSpec(
 OperatorSpec hlGetRankByIdSpec(
     "btree x orel x ccint -> orel",
     "hlGetRankById(_, _, _)",
+    "For testing purposes. "
     "hlGetRankById(hlNodesWithRankOrelRank_NodeIdNew,"
     " hlNodesWithRankOrelRank, givenNodeId) feed consume",
     "query hlGetRankById(hlNodesWithRankOrelRank_NodeIdNew,"
@@ -16002,6 +16020,7 @@ OperatorSpec
 hlCreateLabelByDijkstraWithStallingSpec(
     "btree x orel x orel x orel x Ccint x ccint x ccint (ccbool) -> orel",
     "hlCreateLabelByDijkstraWithStalling(_, _, _, _, _, _, _)",
+    "For testing purposes. "
     "hlCreateLabelByDijkstraWithStalling(hlNodesWithRankOrelRank_NodeIdNew,"
     " hlNodesWithRankOrelRank, hlEdgesWithViaOrelSource,"
     " hlEdgesWithViaOrelTarget, sourceNodeId, hHop, calcFunction) feed"
@@ -16016,6 +16035,7 @@ hlCreateLabelByDijkstraWithStallingSpec(
 OperatorSpec hlFillForwardOrReverseLabelSpec(
     "Rel -> Nrel",
     "hlFillForwardOrReverseLabel(_)",
+    "For testing purposes. "
     "hlFillForwardOrReverseLabel(fwdOrRvsLabelRel) feed consume",
     "query hlFillForwardOrReverseLabel(fwdOrRvsLabelRel) feed consume"
 );
@@ -16024,6 +16044,7 @@ OperatorSpec hlFillForwardOrReverseLabelSpec(
 OperatorSpec hlGetPathViaPointsSpec(
     "Nrel x Btree x Orel x Int x Int x Bool -> Rel",
     "hlGetPathViaPoints(_, _, _, _, _, _)",
+    "For testing purposes. "
     "hlGetPathViaPoints(allLabelsNRel, allLabelsBTree,"
     " hlEdgesOrelSourceParentVia, rootNodeId, hubId, isForward) feed"
     " consume",
@@ -16035,16 +16056,19 @@ OperatorSpec hlGetPathViaPointsSpec(
 OperatorSpec hlQuerySpec(
     "Nrel x Btree x Orel x Int x Int x Bool -> Rel",
     "hlQuery(_, _, _, _, _, _)",
-    "hlQuery(allLabelsNRel, allLabelsBTree, hlEdgesOrelSourceParentVia,"
-    " sourceNodeId, targetNodeId, isHlGraph)",
+    "Performs a HubLabeling query using the given Nrel containing all Hub Label"
+    ", the BTree over this Nrel, an Orel containing all Edges ordered by"
+    " its sourcenode, the sourceNodeId and targetNodeId of this search and"
+    " and a boolean to define the mode (only use 1).",
     "query hlQuery(allLabelsNRel, allLabelsBTree,"
-    " hlEdgesOrelSourceParentVia, 62, 630, 0)"
+    " hlEdgesOrelSourceParentVia, 62, 630, 1)"
 );
 
 
 OperatorSpec hlPruneLabelByBootstrappingSpec(
     "Orel x Orel x Orel x Int x Int -> Int",
     "hlPruneLabelByBootstrapping(_, _, _, _, _)",
+    "For testing purposes. "
     "hlPruneLabelByBootstrapping(nodesWithRankOrelRank,"
     " edgesWithViaOrelSource, edgesWithViaOrelTarget, hHop, calcFunction)",
     "query hlPruneLabelByBootstrapping(nodesWithRankOrelRank,"
@@ -16055,6 +16079,7 @@ OperatorSpec hlPruneLabelByBootstrappingSpec(
 OperatorSpec hlReorderLabelsSpec(
     "Orel x Orel x Orel x Int x Int -> Int",
     "hlReorderLabels(_, _, _, _, _)",
+    "For testing purposes. "
     "hlReorderLabels(nodesWithRankOrelRank, edgesWithViaOrelSource,"
     " edgesWithViaOrelTarget, hHop, calcFunction)",
     "query hlReorderLabels(nodesWithRankOrelRank, edgesWithViaOrelSource,"
@@ -16065,6 +16090,7 @@ OperatorSpec hlReorderLabelsSpec(
 OperatorSpec hlCreateLabelsSpec(
     "Btree x Orel x Orel x Orel x Int -> Nrel",
     "hlCreateLabels(_, _, _, _)",
+    "For testing purposes. "
     "query hlCreateLabels(hlNodesWithRankOrelRank_NodeIdNew,"
     " nodesWithRankOrelRank, hlUpwardEdgesOrelSourceParentVia,"
     " hlDownwardEdgesOrelTargetParentVia, hHop) feed consume)",
@@ -16086,8 +16112,9 @@ OperatorSpec hlCreateLabelsSpec(
 OperatorSpec hlTransformOrelToHlGraphSpec(
     "Orel x Orel -> Orel",
     "hlTransformOrelToHlGraph(_,_)",
-    "query hlTransformOrelToHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel)"
-        "feed consume",
+    "For testing purposes. "
+    "Reads the given edges-orel and nodes-orel into main memory"
+    " and does nothing else",
     "query hlTransformOrelToHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel)"
         "feed consume"
 );
@@ -16096,36 +16123,47 @@ OperatorSpec hlTransformOrelToHlGraphSpec(
 OperatorSpec hlDoContractionOfHlGraphSpec(
     "Orel x Orel x Int x Int x Int -> Orel",
     "hlDoContractionOfHlGraph(_, _, _, _, _)",
+    "Performs the contraction of the given edges-orel and nodes-orel."
+    " Takes also a desired hop-size for h-hop searches, a skip-parameter"
+    " to define to stop recalculating node-priorities after that many nodes"
+    " are left to be contracted and at least it takes an integer to define"
+    " which function shall be used to calculate node priorities"
+    " (0 = EdgeDifference; 1 = Random; 2 = InputOrder)."
+    " Returns the contracted graph (hlGraph) as OrderedRelation.",
     "query hlDoContractionOfHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel,"
-        " 2, 50000, 0) feed consume",
-    "query hlDoContractionOfHlGraph(hlEdgesOrelSource, hlNodesSourceOnlyOrel,"
-        " hHop, skipContractionRemainingCountCcInt, calcFunction) feed consume"
+        " 2, 50000, 0) feed consume"
 );
 
 
 OperatorSpec hlDoChSearchInHlGraphSpec(
     "Orel x Orel x Orel x Int x Int -> Rel",
     "hlDoChSearchInHlGraph(_, _, _, _, _)",
+    "Performs a CH search using the given nodes-orel, edges-orel,"
+    " the hlGraph of a previous contraction and the source- and targetNodeId"
+    " Returns a relation containing all edges on the shortest path in"
+    " their order of occurence on that path. Is empty if no path was found.",
     "query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource,"
-        " hlGraphOrel, 1030, 2456) feed consume",
-    "query hlDoChSearchInHlGraph(hlNodesSourceOnlyOrel, hlEdgesOrelSource,"
-        " hlGraphOrel, sourceId, targetId) feed consume"
+        " hlGraphOrel, 1030, 2456) feed consume"
 );
 
 
 OperatorSpec hlCalcWeightsOrelSpec(
     "Orel x Int -> Int",
     "hlCalcWeightsOrel(_, _)",
-    "query hlCalcWeightsOrel(hlEdgesOrelSource, 1) consume",
-    "query hlDoChSearchInHlGraph(hlEdgesOrelSource, calculationMode) consume"
+    "Takes the given edges-orel and calculates the edge-weight for every"
+    " edge using the calculation mode defined with the second parameter"
+    " (which currently is not supported, so ever use 1) and"
+    " stores the weight directly with the edge of the given orel.",
+    "query hlCalcWeightsOrel(hlEdgesOrelSource, 1) consume"
 );
 
 
 OperatorSpec hlCreateLabelsFromHlGraphSpec(
     "Orel x Orel -> Nrel",
     "hlCreateLabelsFromHlGraph(_, _)",
-    "query hlCreateLabelsFromHlGraph(hlNodesSourceOnlyOrel, hlGraphOrel)"
-         " feed consume",
+    "Takes the node-orel and the previous contracted hlGraph and"
+    " creates Hub Label for every node of the node-orel."
+    " Returns a Nrel containing all Hub Label.",
     "query hlCreateLabelsFromHlGraph(hlNodesSourceOnlyOrel, hlGraphOrel)"
         " feed consume"
 );
@@ -16145,7 +16183,7 @@ OperatorSpec hlCreateLabelsFromHlGraphSpec(
 OperatorSpec hlContractMmGraphSpec(
     "memgraph x memgraph x fun -> bool",
     "hlContractMmGraph(_, _, _)",
-    "query hlContractMmGraph(memgraphUp, memgraphDown, distanceFunction)",
+    "Not yet implemented.",
     "query hlContractMmGraph(memgraphUp, memgraphDown, distanceFunction)"
 );
 
