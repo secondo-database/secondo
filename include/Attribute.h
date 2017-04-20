@@ -353,20 +353,6 @@ virtual ~Equal~ or ~Less~ functions in the derived classes.
       return Compare(rhs) == 0;
     }
 
-    template<class T>
-    static inline bool GenericEqual( const T* left,
-                                     const T* right,
-                                     const bool lDef,
-                                     const bool rDef    )
-    {
-      static long& ctr = Counter::getRef("ATTR::GenericEqual");
-      ctr++;
-      if (  *left == *right  )
-        return true;
-      else
-        return lDef == rDef;
-    }
-
     inline virtual bool Less(const Attribute* rhs) const
     {
       static long& ctr = Counter::getRef("ATTR::Less");
@@ -380,21 +366,6 @@ virtual ~Equal~ or ~Less~ functions in the derived classes.
       ctr++;
       return CompareAlmost(rhs) < 0;
     }
-
-    template<class T>
-    static inline bool GenericLess( const T* left,
-                                    const T* right,
-                                    const bool lDef,
-                                    const bool rDef    )
-    {
-      static long& ctr = Counter::getRef("ATTR::GenericLess");
-      ctr++;
-      if (  *left < *right  )
-        return true;
-      else
-        return (rDef && !lDef);
-    }
-
 
     int CompareDefs(const Attribute* rhs) const{
        if(IsDefined()==rhs->IsDefined()){
