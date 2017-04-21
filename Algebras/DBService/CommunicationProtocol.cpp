@@ -67,5 +67,10 @@ string CommunicationProtocol::LocationRequest()
     return "<LOCATIONREQUEST>";
 }
 
+string CommunicationProtocol::ReplicaLocation()
+{
+    return "<REPLICALOCATION>";
+}
+
 
 } /* namespace DBService */

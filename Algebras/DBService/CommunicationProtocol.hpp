@@ -42,6 +42,7 @@ public:
     static std::string UseReplica();
     static std::string LocationRequest();
     static std::string RelationRequest();
+    static std::string ReplicaLocation();
 };
 
 } /* namespace DBService */

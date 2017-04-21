@@ -62,7 +62,8 @@ int CommunicationClient::start()
         return 0;
 }
 
-int CommunicationClient::getNodesForReplication(string& relationName)
+int CommunicationClient::getNodesForReplication(const string& relationName,
+        vector<LocationInfo>& locations)
 {
     iostream& io = socket->GetSocketStream();
 
@@ -101,7 +102,28 @@ int CommunicationClient::getNodesForReplication(string& relationName)
     sendBuffer.push(location);
     CommunicationUtils::sendBatch(io, sendBuffer);
 
-    // TODO receive location(s)
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::ReplicaLocation()))
+    {
+        return 4;
+    }
+    string count;
+    CommunicationUtils::receiveLine(io, count);
+    size_t locationCount = atoi(count.c_str());
+
+    queue<string> receivedLines;
+    CommunicationUtils::receiveLines(io, locationCount*3, receivedLines);
+    for(size_t i= 0; i < locationCount; i++)
+    {
+        string host = receivedLines.front();
+        receivedLines.pop();
+        string port= receivedLines.front();
+        receivedLines.pop();
+        string disk= receivedLines.front();
+        receivedLines.pop();
+        LocationInfo location(host, port, disk);
+        locations.push_back(location);
+    }
     return 0;
 }
 

@@ -84,8 +84,11 @@ bool DBServiceConnector::replicateRelation(const std::string& relationName)
                                               atoi(dbServicePort.c_str()), 0);
     masterClient.start(); //TODO appropriate signature to find out workers
 
-    // TODO replicate relation according to configured number
-    //      by connecting to each of the nodes
+    vector<LocationInfo> locations;
+    masterClient.getNodesForReplication(relationName, locations);
+
+    // TODO use create file
+    // initiate file transfer
     return true;
 }
 

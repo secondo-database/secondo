@@ -147,7 +147,20 @@ bool CommunicationServer::handleProvideReplicaRequest(
     dbService->getReplicaLocations(RelationInfo::getIdentifier(
             databaseName, relationName),
             connections);
-    // TODO send to replica locations to client
+
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::ReplicaLocation());
+    sendBuffer.push(stringutils::int2str(connections.size()));
+
+    for(vector<ConnectionID>::const_iterator it = connections.begin();
+            it != connections.end(); it++)
+    {
+        LocationInfo& location = dbService->getLocation(*it);
+        sendBuffer.push(location.getHost());
+        sendBuffer.push(location.getPort());
+        sendBuffer.push(location.getDisk());
+    }
+    CommunicationUtils::sendBatch(io, sendBuffer);
     return true;
 }
 
