@@ -1,0 +1,63 @@
+
+
+#{delete database hombruch | create database hombruch | open database hombruch}
+
+#restore Edges from EdgesHombruch
+
+#open database Arnsberg
+
+if not(isDBObject("Speeds2")) then
+  restore Speeds2 from Speeds2
+endif
+
+
+if not(isDBObject("EdgesR")) then
+{
+let EdgesR = Edges feed filter[
+  (.RoadType = "motorway") or (.RoadType = "motorway_link")
+ or (.RoadType = "trunk") or (.RoadType = "trunk_link")
+ or (.RoadType = "primary") or (.RoadType = "primary_link")
+ or (.RoadType = "secondary") or (.RoadType = "secondary_link")
+ or (.RoadType = "tertiary") or (.RoadType = "tertiary_link")
+ or (.RoadType = "road") or (.RoadType = "unclassified")
+ or (.RoadType = "residential") or (.RoadType = "living_street")
+] consume
+|
+if isDBObject("EdgesB") then delete EdgesB endif
+}
+endif
+
+
+if not(isDBObject("EdgesB")) then
+let EdgesB =
+  Speeds2  feed  {s} 
+  EdgesR   feed filter[isdefined(.Curve)] 
+           itHashJoin[RoadType_s, RoadType]
+           extend[Cost: size(.Curve,[const geoid value WGS1984]) / (.Speed_s / 3.6), 
+                  Middle: 0, 
+                  NEdges: 1.0] 
+           project[Source, Target, SourcePos, TargetPos, Cost, Middle, NEdges]
+           filter[isdefined(.Cost)] 
+  consume
+endif
+
+
+query memclear()
+
+query meminit(2000)
+
+query EdgesB  feed createmgraph2[Source,Target,.Cost,"EdgesD", TRUE] count
+
+
+# mg2contract(graph, maxPrio, minBlockSize, maxHopsforward, maxHopsBackward, variant, skipReinsertions, maxEdges)
+# queue is reinitialized if minBlockSize and maxPriority is reached
+# if maxHopsBackwars is set to <= 0, a one-direction-multitarget-dijkstra is used
+# variant may be 1 or 2, 1: two steps reinsertion, 2: use EdgeDifference
+
+query mg2contract("EdgesD",10,500,5,-1,2, 0, 00)
+
+
+
+
+
+
