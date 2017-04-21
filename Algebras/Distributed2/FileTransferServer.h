@@ -39,12 +39,12 @@ class FileTransferServer : public Server {
 
 public:
     FileTransferServer(int _port);
-    int start();
+    virtual int start();
 
-private:
-    int communicate();
-    int sendFile(std::iostream& io);
-    bool receiveFile(std::iostream& io);
+protected:
+    virtual int communicate();
+    virtual int sendFile(std::iostream& io);
+    virtual bool receiveFile(std::iostream& io);
 
 };
 
