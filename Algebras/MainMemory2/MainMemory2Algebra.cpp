@@ -20528,8 +20528,8 @@ Operator mg3connectedcomponentsOp(
 */
 template<class G, bool onlySize>
 ListExpr mgcontractTM(ListExpr args){
-  if(!nl->HasLength(args,6)){
-    return listutils::typeError("one argument expected");
+  if(!nl->HasLength(args,8)){
+    return listutils::typeError("8 arguments expected");
   }
   if(!checkUsesArgs(args)){
     return listutils::typeError("internal error");
@@ -20545,20 +20545,28 @@ ListExpr mgcontractTM(ListExpr args){
   }
 
   if(!CcInt::checkType(nl->First(nl->Second(args)))){
-    return listutils::typeError("expected graph x int x int x int x int x int");
+    return listutils::typeError("expected graph x int^7");
   }
   if(!CcInt::checkType(nl->First(nl->Third(args)))){
-    return listutils::typeError("expected graph x int x int x int x int x int");
+    return listutils::typeError("expected graph x int^7");
   }
   if(!CcInt::checkType(nl->First(nl->Fourth(args)))){
-    return listutils::typeError("expected graph x int x int x int x int x int");
+    return listutils::typeError("expected graph x int^7");
   }
   if(!CcInt::checkType(nl->First(nl->Fifth(args)))){
-    return listutils::typeError("expected graph x int x int x int x int x int");
+    return listutils::typeError("expected graph x int^7");
   }
   if(!CcInt::checkType(nl->First(nl->Sixth(args)))){
-    return listutils::typeError("expected graph x int x int x int x int x int");
+    return listutils::typeError("expected graph x int^7");
   }
+  if(!CcInt::checkType(nl->First(nl->Sixth(nl->Rest(args))))){
+    return listutils::typeError("expected graph x int^7");
+  }
+  if(!CcInt::checkType(nl->First(nl->Sixth(nl->Rest(nl->Rest(args)))))){
+    return listutils::typeError("expected graph x int^7");
+  }
+
+
   if(onlySize){
      return listutils::basicSymbol<CcInt>();
   }
@@ -20607,10 +20615,25 @@ int mgcontractVMT(Word* args, Word& result, int message,
     res->SetDefined(false);
     return 0;
   }
+  int skipReinsert = 0;
+  V = (CcInt*) args[6].addr;
+  if(V->IsDefined()){
+     skipReinsert =  V->GetValue();
+     if(skipReinsert<0) skipReinsert=0;
+  }
+  size_t maxEdges = std::numeric_limits<size_t>::max();
+  V = (CcInt*) args[7].addr;
+  if(V->IsDefined()){
+     int e =  V->GetValue();
+     if(e>0) maxEdges = e; 
+  }
+   
+
 
   std::vector<shortCutInfo> shortcuts; 
   res->Set(true, g->contract(maxPrio, minBlockSize, maxHopsF, 
-                             maxHopsB,shortcuts,variant));
+                             maxHopsB,shortcuts,variant,
+                             skipReinsert, maxEdges));
   return 0;
 }
 
@@ -20631,8 +20654,9 @@ int mgcontractSelect(ListExpr args){
 }
 
 OperatorSpec mg2contractSpec(
-  "MGRAPH2 x int x int x int x int x int -> int",
-  "mg2contract(graph, maxPrio, minBlockSIze, maxHopsF, maxHopsB, variant)",
+  "MGRAPH2 x int x int x int x int x int x int x int -> int",
+  "mg2contract(graph, maxPrio, minBlockSIze, maxHopsF, maxHopsB, "
+  "variant, skipReinsert, maxEdges)",
   "Computed the number of contraction edges created during contraction "
   "of a graph. \n"
   "graph : the graph to contract\n"
@@ -20643,13 +20667,17 @@ OperatorSpec mg2contractSpec(
   "maxHopsB : maximum number of hops for backward search. If <=0, the "
   "multitarget variant is used\n"
   "variant: 1 - two step variant as in ContractN, 2 - use EdgeDifference "
-  "in single step",
+  "in single step\n"
+  "skipReinsert: if the queue is smaller than this value, reinsertion of "
+  "nodes into the queue is omitted\n"
+  "maxEdges : maximum number of edges for a single shortest path search.",
   "query mg2contract(\"g2\",20,800,3,1,2)"
 );
 
 OperatorSpec mg3contractSpec(
-  "MGRAPH3 x int x int x int x int x int -> int",
-  "mg3contract(graph, maxPrio, minBlockSIze, maxHopsF, maxHopsB, variant)",
+  "MGRAPH3 x int x int x int x int x int x int x int -> int",
+  "mg3contract(graph, maxPrio, minBlockSIze, maxHopsF, maxHopsB, "
+  "variant, skipReinsert, maxEdges)",
   "Computed the number of contraction edges created during contraction "
   "of a graph. \n"
   "graph : the graph to contract\n"
@@ -20659,9 +20687,12 @@ OperatorSpec mg3contractSpec(
   "maxHopsF : maximum number of hops (forward) for searching shortest paths\n"
   "maxHopsB : maximum number of hops for backward search. If <=0, the "
   "multitarget variant is used\n"
-  "variant: 1 - two step variant as in ContractN, 2 - use EdgeDifference "
-  "in single step",
-  "query mg3contract(\"g2\",20,800,3,1,2)"
+  "variant: 1 - two step variant as in ContractN, 3 - use EdgeDifference "
+  "in single step\n"
+  "skipReinsert: if the queue is smaller than this value, reinsertion of "
+  "nodes into the queue is omitted"
+  "maxEdges : maximum number of edges for a single shortest path search.",
+  "query mg3contract(\"g3\",30,800,3,1,3)"
 );
 
 Operator mg2contractOp(

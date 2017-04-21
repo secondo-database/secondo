@@ -1383,8 +1383,8 @@ Result    : TRUE
 Operator : mg2contract
 Number   : 914
 Signature : MGRAPH2 -> int
-Example   : query mg2contract("mgraph2_1",10,100,6,-1,2)
-Result    : 18
+Example   : query mg2contract("mgraph2_1",10,100,6,-1,2,0,0) > 0
+Result    : TRUE
 
 Operator : mg2minPathCost
 Number   : 915
@@ -1461,8 +1461,8 @@ Result    : 1
 
 Operator : mg3contract
 Number   :  1011
-Signature : MGRAPH3 -> int
-Example   : query mg3contract("mgraph3_1",10,100,6,-1,2)
+Signature : MGRAPH3 x int^7 -> int
+Example   : query mg3contract("mgraph3_1",10,100,6,-1,2,0,0)
 Result    : 0
 
 Operator : mg3minPathCost

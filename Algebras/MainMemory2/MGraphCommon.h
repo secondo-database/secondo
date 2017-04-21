@@ -38,16 +38,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
 #include "MEdge.h"
+#include "StopWatch.h"
 
 #include <string>
 #include <vector>
 #include <list>
-//#include <mmheap.h>
+#include <mmheap.h>
 //#include <priority_queue>
 
 namespace mm2algebra{
     
+/*
+1 Class ~shortCutInfo~
 
+This is an auxiliary class for graph contraction.
+
+*/
 class shortCutInfo{
       public:
         shortCutInfo(size_t _source, size_t _target, double _cost,
@@ -59,11 +65,23 @@ class shortCutInfo{
         size_t middle;
 };
 
+/*
+2 Class ~MGraphCommon~
+
+This class represents a graph object.
+
+*/
+
 class MGraphCommon : public MemoryObject{
   protected:
     typedef std::pair<std::list<MEdge>,std::list<MEdge> > alist;
 
    public:
+
+/*
+2.1 constructor
+
+*/
      MGraphCommon(const bool _flob, 
                   const std::string& _database,
                   const std::string& _type,
@@ -86,24 +104,51 @@ class MGraphCommon : public MemoryObject{
         tt = new TupleType(k);
      }
 
+/*
+2.2 Destructor
+
+*/
      ~MGraphCommon(){
          tt->DeleteIfAllowed();
       }
         
-     size_t numSuccessor(size_t vertex){
+/*
+2.3 ~numSuccessors~
+
+Returns the number of successors of a node.
+
+*/
+     size_t numSuccessor(size_t vertex)const{
         if(vertex>=graph.size()){
           return 0;
         }
         return graph[vertex].first.size();
      }
- 
 
-     size_t numPredecessor(size_t vertex){
+/*
+2.4 ~numPredecessors~
+
+Returns the number of predecessors of a node.
+
+*/ 
+
+     size_t numPredecessor(size_t vertex) const{
         if(vertex>=graph.size()){
           return 0;
         }
         return graph[vertex].second.size();
      }
+
+/*
+2.5 ~insertGraphEdge~
+
+Inserts an edge to this graph. Source, Target and costs are
+taken from the argument. If one of these valus is undefined or
+outside the allowed range, false is returned and the graph
+is keepts as before. Otherwise, the edge is inserted into the
+graph.
+
+*/
 
      bool insertGraphEdge(Tuple* ginfo){
         CcInt* Source = (CcInt*) ginfo->GetAttribute(sourcePos);
@@ -126,6 +171,12 @@ class MGraphCommon : public MemoryObject{
         return true;
      }
 
+/*
+2.6 ~inserts~
+
+Inserts an edge to this graph.
+
+*/
      void insert(MEdge& e){
         int source = e.source;
         int target = e.target;
@@ -138,11 +189,21 @@ class MGraphCommon : public MemoryObject{
      }
 
 
+/*
+2.7 ~numVertices~
+
+Returns the number of vertices of this graph.
+
+*/
      size_t numVertices() const{
        return graph.size();
      }
 
 
+/*
+2.8 Auxiliary class ~edgeIterator~
+
+*/
      class edgeIterator{
         public:
            friend class MGraphCommon;
@@ -178,13 +239,24 @@ class MGraphCommon : public MemoryObject{
               }              
            }
 
-     };
+     }; // end of class edgeIterator
+
+/*
+2.9 ~getEdgeIt~
+
+Returns an iterator over all edges of this graph.
+
+*/
 
      edgeIterator* getEdgeIt(){
        return new edgeIterator(this);
      }
 
 
+/*
+2.10 Auxiliary class ~singleNodeIterator~
+
+*/
      class singleNodeIterator{
         friend class MGraphCommon;
         public:
@@ -205,8 +277,14 @@ class MGraphCommon : public MemoryObject{
               this->list = _list;
               it = list->begin();
            } 
-     };
+     }; // end of class singleNodeIterator
 
+/*
+2.11 ~getSuccessors~
+
+Returns an iterator over all edges of this graph having ~v~ as source.
+
+*/
      singleNodeIterator* getSuccessors(int v){
         if(v<0 || (size_t)v >= graph.size()){
            return 0;
@@ -214,6 +292,15 @@ class MGraphCommon : public MemoryObject{
         return new singleNodeIterator(&(graph[v].first));
      }
      
+/*
+2.12 ~getPredecessors~
+
+
+Returns an iterator over all edges of this graph having ~v~ as target.
+
+
+*/
+
      singleNodeIterator* getPredecessors(int v){
         if(v<0 || (size_t)v >= graph.size()){
            return 0;
@@ -221,11 +308,24 @@ class MGraphCommon : public MemoryObject{
         return new singleNodeIterator(&(graph[v].second));
      }
 
+
+/*
+2.13 ~getSuccList~
+
+Returns the list of successorts of ~vertex~
+
+*/
      const std::list<MEdge>& getSuccList(int vertex){
          return graph[vertex].first;
      }
      
 
+/*
+2.14 ~succCount~
+
+Returns the numbers of successors of a node.
+
+*/
      int succCount(int v){
         if(v<0 || (size_t)v >= graph.size()){
            return -1;
@@ -233,6 +333,12 @@ class MGraphCommon : public MemoryObject{
         return graph[v].first.size();
      }
 
+/*
+2.16 ~predCount~
+
+Returns the number of predecessors of a node.
+
+*/
      int predCount(int v){
         if(v<0 || (size_t)v >= graph.size()){
            return -1;
@@ -240,6 +346,12 @@ class MGraphCommon : public MemoryObject{
         return graph[v].second.size();
      }
 
+/*
+2.17. ~disconnect~
+
+Removes all edges from and to a specified node.
+
+*/
      bool disconnect(int vertex){
         if(vertex<0 || (size_t)vertex >=graph.size()){
           return false;
@@ -249,14 +361,14 @@ class MGraphCommon : public MemoryObject{
         std::list<MEdge>::iterator it;
         for(it = vlist.first.begin(); it!=vlist.first.end();it++){
            MEdge& edge = *it;
-           assert(edge.source==vertex);
+           //assert(edge.source==vertex);
            removeSource(graph[edge.target].second,vertex);  
         }
 
         // remove vertex from successors list of its predecessors
         for(it = vlist.second.begin(); it!=vlist.second.end();it++){
            MEdge& edge = *it;
-           assert(edge.target==vertex);
+           //assert(edge.target==vertex);
            removeTarget(graph[edge.source].first,vertex);  
         }
 
@@ -266,6 +378,13 @@ class MGraphCommon : public MemoryObject{
         return true;
      }
 
+
+/*
+2.18 ~components~
+
+Assigns a component number to each node.
+
+*/
      void components(std::vector<int>& v){
          v.clear();
          std::vector<tarjanInfo> v2;
@@ -277,31 +396,50 @@ class MGraphCommon : public MemoryObject{
 
 
 
+/*
+2.19 ~contract~
 
+This operator crontracts this graph. 
+
+*/
      size_t contract(int maxPrio, int minBlockSize, 
                      int maxHopsF, int maxHopsB,
                      std::vector<shortCutInfo>& allShortCuts,
-                     int variant){
+                     int variant,
+                     size_t skipRecalculate,
+                     const size_t maxEdges){
        if(variant == 1){
          return simpleContraction1(maxPrio, minBlockSize, maxHopsF,
-                                   maxHopsB, allShortCuts);
+                                   maxHopsB, allShortCuts, 
+                                   skipRecalculate, maxEdges);
        } else {
          return simpleContraction2(maxPrio, minBlockSize, maxHopsF,
-                                   maxHopsB, allShortCuts);
+                                   maxHopsB, allShortCuts,
+                                   skipRecalculate, maxEdges);
        }
      }
 
+/*
+2.20 ~pathCosts~
 
+Computes the length of the minimum path between ~source~ and ~target~.
+The search is restricted to a certain number of hops from source and from 
+target. The forbidden node is not used. If the maximum costs are reached,
+the search terminates as well. Using negative number for the number of
+hops and the forbidden node, then the search spans the whole graph.
+
+*/
      double pathCosts(const int source, const int target, 
                       const int maxHopsForward, const int maxHopsBackward,
                       const int forbidden, 
                       double maxCosts = std::numeric_limits<double>::max()){
-          minPathCosts mpc(this);
+          minPathCosts mpc;
           if(maxCosts<=0){
             maxCosts = std::numeric_limits<double>::max();
           }
-          return mpc(source, target, maxHopsForward, maxHopsBackward, 
-                     maxCosts, forbidden);
+          return mpc(this,source, target, maxHopsForward, maxHopsBackward, 
+                     maxCosts, forbidden, false, 
+                     std::numeric_limits<size_t>::max());
      }
 
 
@@ -314,6 +452,14 @@ class MGraphCommon : public MemoryObject{
     int costPos;
     std::vector<int> nodeOrder;
 
+
+/*
+2.21 ~setPositions~
+
+Sets the attribute positions for the edge tuples where to find 
+the source, the target and the costs.
+
+*/
     void setPositions(int s, int t, int c){
       sourcePos = s;
       targetPos = t;
@@ -321,6 +467,12 @@ class MGraphCommon : public MemoryObject{
     }
 
 
+/*
+2.22 Auxiliary class ~tarjanInfo~
+
+This class helps to compute the strongly connected components.
+
+*/
     
     class tarjanInfo{
       public:
@@ -334,6 +486,13 @@ class MGraphCommon : public MemoryObject{
         int compNo; 
     };
 
+/*
+2.23 ~tarjan~
+
+This function computes the connected components. Each node is assigned to a 
+component number.
+
+*/
 
     void tarjan(std::vector<tarjanInfo>& tarjanVector) {
 
@@ -352,6 +511,13 @@ class MGraphCommon : public MemoryObject{
       }
     } 
 
+
+/*
+2.24 ~tarjan~
+
+Auxiliary method to compute connnected components.
+
+*/
     void tarjan(int vertex, std::vector<tarjanInfo>& tarjanVector,
                 int& index, std::stack<int>& stack, int& compNo){
       
@@ -419,7 +585,15 @@ class MGraphCommon : public MemoryObject{
 
 
   private:
-    void removeSource(std::list<MEdge>& l, int s){
+
+/*
+2.28 ~removeSource~
+
+Removes all edges from ~l~ with source = ~s~.
+
+*/
+
+    static void removeSource(std::list<MEdge>& l, int s){
         std::list<MEdge> nl;
         std::list<MEdge>::iterator it;
         for(it = l.begin();it!=l.end();it++){
@@ -427,9 +601,16 @@ class MGraphCommon : public MemoryObject{
                nl.push_back(*it);
            }
         }
-        std::swap(l,nl);
+        //std::swap(l,nl);
+        l = nl;
     }
-    void removeTarget(std::list<MEdge>& l, int s){
+/*
+2.29 ~removeTarget~
+
+Removes all edges from ~l~ with target = ~s~.
+
+*/
+    static void removeTarget(std::list<MEdge>& l, int s){
         std::list<MEdge> nl;
         std::list<MEdge>::iterator it;
         for(it = l.begin();it!=l.end();it++){
@@ -437,11 +618,20 @@ class MGraphCommon : public MemoryObject{
                nl.push_back(*it);
            }
         }
-        std::swap(l,nl);
+        //std::swap(l,nl);
+        l = nl;
     }
 
 
-    MEdge createEdge(Tuple* templ, int source, int target, double cost)const{
+/*
+2.30 ~createEdge~
+
+Creates a new MEdge from the given infos.
+
+*/
+    static MEdge createEdge(Tuple* templ, int source, 
+                            int target, double cost){
+     /*
       Tuple* t = new Tuple(tt);
       for(int i=0;i<t->GetNoAttributes();i++){
            Attribute* a;
@@ -457,12 +647,22 @@ class MGraphCommon : public MemoryObject{
            }
            t->PutAttribute(i,a);
       }
+      */
+      Tuple* t = 0;
       MEdge e(source, target,cost,t);
-      t->DeleteIfAllowed();
+      //t->DeleteIfAllowed();
       return e;
    }
 
 
+
+/*
+2.31 ~struct queueentry~
+
+Structure supporting dijkstra algorithm.
+
+
+*/
    // computes the costs for all targets that can be reached within maxHops hops
    // without using the node forbidden.
    struct queueentry{
@@ -478,6 +678,13 @@ class MGraphCommon : public MemoryObject{
       size_t depth;
    };
 
+
+/*
+2.32 queueentryComp
+
+This is a comparator class for queueentry.
+
+*/
   class queueentryComp{
     public:
        bool operator()(const queueentry& f, const queueentry& s) const {
@@ -487,12 +694,22 @@ class MGraphCommon : public MemoryObject{
 
    //typedef mmheap::mmheap<queueentry, queueentryComp> queue_t;
    typedef std::priority_queue<queueentry> queue_t;
+   typedef mmheap::mmheap<queueentry,queueentryComp> queue_t2;
 
+
+/*
+2.33 ~processNode~
+
+Auxiliary function for computing multi-target-path-costs.
+
+*/
+   template<class Q> 
    void processNode(queueentry e, size_t forbidden, 
                     std::map<size_t,double>& targets,
                     size_t maxHops, size_t reached, 
                     std::set<size_t>& finished,
-                    queue_t& q
+                    Q& front, size_t& processedEdges,
+                    const size_t maxEdges
                     ){
 
       // check wether node has already been processed
@@ -512,43 +729,66 @@ class MGraphCommon : public MemoryObject{
          return;
       }
       // process edges
+      if(processedEdges >= maxEdges){ // early stop
+          return;
+      }
       std::list<MEdge>& succs =  graph[e.node].first;
       std::list<MEdge>::iterator sit;
-      for(sit = succs.begin(); sit!=succs.end();sit++){
+      for(sit = succs.begin(); 
+         (sit!=succs.end()) && (processedEdges < maxEdges);
+         sit++){
          MEdge& me = *sit;
          size_t t = me.target;
          if(t!=forbidden && finished.find(t)==finished.end()){
+            processedEdges++;
             queueentry et(t, e.cost + me.costs,e.depth+1);
-            q.push(et);
+            front.push(et);
          } 
       }
    }
 
+/*
+2.34 ~conputeCosts~
 
+Computes the costs from source to all targets in the graph.
+The search stops if the number of hops, the maximum costs, or
+the maximum number of edges is reached. Unreached targets will 
+have maximum costs.
+
+*/
    void computeCosts(size_t source, size_t forbidden, 
                      std::map<size_t, double>& targets, 
-                     double maxCost, size_t maxHops){
+                     double maxCost, size_t maxHops,
+                     size_t maxEdges){
        queueentry e(source,0,0);
-       queue_t q;
+       queue_t2 front;
        std::set<size_t> finished;
-       q.push(e);
+       front.push(e);
+       size_t edges = 0;
        size_t reached = targets.size();
-       while(!q.empty() && reached>0){
-          queueentry e = q.top();
-          q.pop();
+       while(!front.empty() && reached>0){
+          queueentry e = front.top();
+          front.pop();
           if(e.cost > maxCost){
-             //cout << "abort because maxCosts reached" << endl;
-             //cout << "maxCosts : " << maxCost << endl;
              return;
           }
-          processNode(e, forbidden, targets, maxHops, reached, finished,q);
+          processNode(e, forbidden, targets, maxHops, reached, finished,front, 
+                      edges, maxEdges);
        }
- 
    }
 
 
+/*
+2.35 ~computeSHortCuts1~
+
+This operator computes the shortcuts if a given node would be 
+contracted. This variant computes the costs from a source
+to all targets in a single step.
+
+*/
    void computeShortCuts1(size_t node, size_t maxHops, 
-                         std::vector<MEdge>& result){
+                         std::vector<MEdge>& result,
+                         const size_t maxEdges){
        // collect all target nodes in a set
        result.clear();
        std::list<MEdge>& preds = graph[node].second;
@@ -606,7 +846,7 @@ class MGraphCommon : public MemoryObject{
              targets[tit->first] = std::numeric_limits<double>::max();
           } 
           // store minPathCost in targets
-          computeCosts(source, node, targets, costs, maxHops);
+          computeCosts(source, node, targets, costs, maxHops, maxEdges);
           //
           for(tit =  sit->second.begin(); tit!=sit->second.end(); tit++){
              if(tit->second < targets[tit->first]){
@@ -619,12 +859,23 @@ class MGraphCommon : public MemoryObject{
    } 
 
 
+/*
+2.36 computeShortCuts2
+
+This function computes the shortcuts to be inserted into the graph
+if the node ~node~ is contracted. This variante computes the shortest
+path costs for all combinations of source and target using a 
+bidirectional dijkstra restricted by hops and maxEdges.
+
+*/
+
    void computeShortCuts2(size_t node, size_t maxHopsF, 
-                          size_t maxHopsB, std::vector<MEdge>& result){
+                          size_t maxHopsB, std::vector<MEdge>& result,
+                          const size_t maxEdges){
        result.clear();
        std::list<MEdge>& preds1  = graph[node].second;
        std::list<MEdge>& succs1 = graph[node].first;
-       minPathCosts mpc(this);
+       static minPathCosts mpc;
 
        // remove duplicates from both lists, keep only such with minimum costs
        std::map<int,MEdge> preds;
@@ -668,7 +919,8 @@ class MGraphCommon : public MemoryObject{
             int t = sedge.target;
             double c = c1 + sedge.costs;
             if(s!=t){
-               double spc = mpc(s,t,maxHopsF, maxHopsB,c,node);
+               double spc = mpc(this,s,t,maxHopsF, maxHopsB,c,
+                                node,true, maxEdges);
                if(spc > c){ // path longer than going over node
                   result.push_back(createEdge(pedge.info, s, t, c));
                }
@@ -677,26 +929,48 @@ class MGraphCommon : public MemoryObject{
        }
    }
 
+/*
+2.40 ~insertShortCuts~
 
+Inserts all edges in ~edges~ into this graph.
+
+*/
     void insertShortCuts(std::vector<MEdge> & edges){
        for(size_t i = 0; i< edges.size();i++){
            insert(edges[i]);
        }
     }
 
+
+/*
+2.41 Auxiliary class ~simplePrioEntry~
+
+This class represents a queue entry for contraction.
+
+*/
+
     // simple contraction as done in Script
     class simplePrioEntry{
        public:
-          simplePrioEntry(size_t _node): node(_node), prio(0.0){}
+          simplePrioEntry(size_t _node): node(_node), prio(0.0)
+                         , reinsertions(0){}
+          simplePrioEntry(size_t _node, double _prio):
+           node(_node), prio(_prio),reinsertions(0){}
           bool operator<(const simplePrioEntry& e) const{
               return prio > e.prio;
           }
           size_t node;
           double prio;
+          size_t reinsertions;
        
     };
 
+/*
+2.42 ~simplePrioEntryComp~
 
+Comparator class for simplePrioEntry.
+
+*/
   class simplePrioEntryComp{
     public:
        bool operator()(const simplePrioEntry& f, 
@@ -706,9 +980,85 @@ class MGraphCommon : public MemoryObject{
   };
 
 
+/*
+2.42 ~edgeDifferenceA~
+
+Computes the edgeDifference in a simple way. It ignores common 
+source and target nodes, i.e., it also counts edges having the same
+source and target.
+
+*/
+    int edgeDifferenceA(int node) const{
+       const std::list<MEdge>& inL = graph[node].second;
+       const std::list<MEdge>& outL = graph[node].first;
+       int in = inL.size();
+       int out = outL.size();
+       return in*out - (in + out);
+    }
+
+
+/*
+2.43 ~edgeDifference~
+
+Computes the maximum edgeDifference without counting loops of a single node.
+
+*/    
+    int edgeDifference(int node) const{
+       const std::list<MEdge>& inL = graph[node].second;
+       const std::list<MEdge>& outL = graph[node].first;
+       if(inL.empty()) return -outL.size();
+       if(outL.empty()) return -inL.size(); 
+
+       static std::set<int> inS;
+       inS.clear();
+       static std::list<MEdge>::const_iterator it;
+       for(it = inL.begin();it!=inL.end();it++){
+         inS.insert(it->source);
+       }
+       static std::set<int> outS;
+       outS.clear();
+       for(it = outL.begin();it!=outL.end();it++){
+         outS.insert(it->target);
+       }
+       int in=0;
+       int out=0;
+       int inout = 0;
+       static std::set<int>::iterator it1;
+       it1=inS.begin();
+       static std::set<int>::iterator it2;
+       it2 = outS.begin();
+       while(it1!=inS.end() && it2!=outS.end()){
+          if(*it1<*it2){
+            in++; it1++;
+          } else if(*it1>*it2){
+            out++; it2++;
+          } else {
+            inout++; it1++; it2++;
+          }
+       }     
+       while(it1!=inS.end()){ in++; it1++;}
+       while(it2!=outS.end()){ out++; it2++;}
+
+
+       int create = (in+inout) * (out+inout) - inout;
+       int remove = in + out + 2*inout;
+       int prio =  create - remove;
+       return prio;
+    }
+
+
+/*
+2.44 simpleContraction1
+
+This method contracts this graph using a two-step priority computation.
+
+*/
+
     size_t simpleContraction1(int maxPrio, size_t minBlockSize, int maxHopsF,
                               int maxHopsB, 
-                              std::vector<shortCutInfo>& allShortCuts){
+                              std::vector<shortCutInfo>& allShortCuts,
+                              size_t skipReinsert,
+                              const size_t maxEdges){
 
        //std::cout << "called simple contraction" << std::endl;
 
@@ -718,12 +1068,11 @@ class MGraphCommon : public MemoryObject{
        typedef std::priority_queue<simplePrioEntry> queue_t;
        queue_t queue;
        for(size_t i=0;i<graph.size();i++){
-          simplePrioEntry e(i);
+          simplePrioEntry e(i,-1);
           queue.push(e);
        }
        nodeOrder.clear();
        size_t blockCount = 0;
-       //typedef std::pair<MEdge, size_t> contractEdgeT;
 
        size_t cs = 0;
        size_t prog = queue.size() / 100;
@@ -737,25 +1086,28 @@ class MGraphCommon : public MemoryObject{
        allShortCuts.clear();
 
        size_t removedEdges = 0;
+       size_t reinits = 0;
 
        while(!queue.empty()){
+          size_t s = queue.size();
           simplePrioEntry e = queue.top();
           queue.pop();
           size_t node = e.node;
           double prio = e.prio;
           int in = numPredecessor(node);
           int out = numSuccessor(node);
-          if(in*out > prio){ // reinsert level 1
+          if((in*out > prio) && (s >= skipReinsert)){ // reinsert level 1
              e.prio = in*out;
              queue.push(e);
           } else {
             if(maxHopsB<=0){
-               computeShortCuts1(node, maxHopsF, shortcuts);
+               computeShortCuts1(node, maxHopsF, shortcuts, maxEdges);
             } else {
-               computeShortCuts2(node, maxHopsF, maxHopsB,shortcuts);
+               computeShortCuts2(node, maxHopsF, maxHopsB,shortcuts, maxEdges);
             }
             if(   (in*out + (shortcuts.size() - (in + out)) > prio)
-               && (shortcuts.size() > (size_t)(in+out))){
+               && (shortcuts.size() > (size_t)(in+out))
+               && (s>=skipReinsert)){
               // reinsert level 2
               e.prio = (in*out + shortcuts.size()) - (in + out);
               queue.push(e);
@@ -783,8 +1135,7 @@ class MGraphCommon : public MemoryObject{
               cs += shortcuts.size();
               blockCount++;
               if(prio>maxPrio && blockCount > minBlockSize){
-                  // reinit queue
-                  //cout << "reinit queue" << endl;
+                  reinits++;
                   blockCount = 0;
                   queue_t tmp;
                   while(!queue.empty()){
@@ -808,13 +1159,26 @@ class MGraphCommon : public MemoryObject{
        cout << "processed " << nodeOrder.size() << "nodes" << endl;
        cout << "shortcut edges " << allShortCuts.size() << endl;
        cout << "removed edges " << removedEdges << endl;
+       cout << "number of reinitializations " << reinits << endl;
 
        return cs;
     }
 
+
+
+/*
+2.45 ~simpleContraction2~
+
+Contract this graph using edgeDifference and number of contracted
+neighbors as priority.
+
+*/
+
     size_t simpleContraction2(int maxPrio, size_t minBlockSize, 
                               int maxHopsF, int maxHopsB,
-                              std::vector<shortCutInfo>& allShortCuts){
+                              std::vector<shortCutInfo>& allShortCuts,
+                              size_t skipReinit,
+                              const size_t maxEdges){
 
        //std::cout << "called simple contraction" << std::endl;
 
@@ -822,11 +1186,28 @@ class MGraphCommon : public MemoryObject{
        //typedef mmheap::mmheap<simplePrioEntry,simplePrioEntryComp> queue_t;
        typedef std::priority_queue<simplePrioEntry> queue_t;
 
+       // initialize a vector with number of contracted neighbors
+       std::vector<int> contractedNeighbors(graph.size(),0);
+
+       int weight_EdgeDiff = 5;
+       int weight_contractedNeighbors = 1;
+
+
+       cout << "init prio" << endl;
+       int minPrio =  1000000;
+       int maxPrioQ = -1000000;
        queue_t queue;
        for(size_t i=0;i<graph.size();i++){
-          simplePrioEntry e(i);
+          int p = edgeDifference(i) * weight_EdgeDiff;
+          simplePrioEntry e(i,p);
           queue.push(e);
+          if(minPrio > p) minPrio=p;
+          if(maxPrioQ < p) maxPrioQ = p;
        }
+       cout << "prio initialized" << endl;
+       cout << "minPrio = " << minPrio;
+       cout << "maxPrio = " << maxPrioQ; 
+
        nodeOrder.clear();
        size_t blockCount = 0;
 
@@ -842,25 +1223,63 @@ class MGraphCommon : public MemoryObject{
        allShortCuts.clear();
 
        size_t removedEdges = 0;
+       size_t reinits = 0;
+       size_t maxShortcutsPerNode = 0;
+       size_t sumreinsertions=0;
+       size_t maxreinsertions=0;
 
-       while(!queue.empty()){
+       while(queue.size() > 1){
           simplePrioEntry e = queue.top();
           queue.pop();
           size_t node = e.node;
           double prio = e.prio;
           int in = numPredecessor(node);
           int out = numSuccessor(node);
-          int extra = in*out - (in + out); // Edge difference 
-          if(extra > prio){
-            e.prio = extra;
+          int extra = edgeDifference(node); // Edge difference 
+          int nprio =   weight_EdgeDiff*extra 
+                      + weight_contractedNeighbors*contractedNeighbors[node];
+
+          if((nprio > prio) && (queue.size() >= skipReinit)){
+            e.prio = nprio;
+            e.reinsertions++;
             queue.push(e);
           } else { // do contraction
+            sumreinsertions += e.reinsertions;
+            if(maxreinsertions < e.reinsertions){
+              maxreinsertions = e.reinsertions;
+              assert(maxreinsertions < 400); // pure debug code
+            }
+
             if(maxHopsB<=0){
-               computeShortCuts1(node, maxHopsF, shortcuts);
+               computeShortCuts1(node, maxHopsF, shortcuts, maxEdges);
             } else {
-               computeShortCuts2(node, maxHopsF, maxHopsB,shortcuts);
+               computeShortCuts2(node, maxHopsF, maxHopsB,shortcuts, maxEdges);
             }
             insertShortCuts(shortcuts);
+            // update number of contracted neighbors
+            static std::set<int> neighbors;
+            neighbors.clear();
+            static std::list<MEdge>::iterator it;
+            for(it = graph[node].first.begin(); 
+                it!=graph[node].first.end();
+                it++){
+               int n = it->target;
+               if(neighbors.find(n)==neighbors.end()){
+                  neighbors.insert(n);
+                  contractedNeighbors[n]++;
+               }
+            }
+            for(it = graph[node].second.begin(); 
+                it!=graph[node].second.end();
+                it++){
+               int n = it->source;
+               if(neighbors.find(n)==neighbors.end()){
+                  neighbors.insert(n);
+                  contractedNeighbors[n]++;
+               }
+            }
+
+
             disconnect(node);
             nodeOrder.push_back(node);
             removedEdges += (in + out);
@@ -872,20 +1291,24 @@ class MGraphCommon : public MemoryObject{
             }
 
             cs += shortcuts.size();
+            if(maxShortcutsPerNode < shortcuts.size()){
+              maxShortcutsPerNode = shortcuts.size();
+            }
+
             blockCount++;
-            if(prio>maxPrio && blockCount > minBlockSize){
-                  // reinit queue
-                  //cout << "reinit queue" << endl;
-                  blockCount = 0;
-                  queue_t tmp;
-                  while(!queue.empty()){
-                   simplePrioEntry e = queue.top();
-                   queue.pop();
-                   e.prio = 0;
-                   tmp.push(e);
-                  }
-                  std::swap(tmp,queue);
-                  //queue.swap(tmp);
+            if( (prio>maxPrio) && (blockCount > minBlockSize)){
+               // reinit queue
+               reinits++;
+               blockCount = 0;
+               queue_t tmp;
+               while(!queue.empty()){
+                 simplePrioEntry e = queue.top();
+                 queue.pop();
+                 e.prio = weight_EdgeDiff * edgeDifference(e.node) 
+                        +weight_contractedNeighbors*contractedNeighbors[e.node];
+                 tmp.push(e);
+               }
+               std::swap(tmp,queue);
             }
             p2++; // some progress counter
             if(p2==prog){
@@ -895,36 +1318,60 @@ class MGraphCommon : public MemoryObject{
              }              
           }
        }
+       if(queue.size()>0){ // process the last node
+         simplePrioEntry e = queue.top();
+         // insert into node order
+         nodeOrder.push_back(e.node);
+         // remove edges
+         graph[e.node].first.clear();
+         graph[e.node].second.clear();
+       }
+
+
        cout << "processed " << nodeOrder.size() << "nodes" << endl;
        cout << "shortcut edges " << allShortCuts.size() << endl;
        cout << "removed edges " << removedEdges << endl;
+       cout << "reinitializations " << reinits << endl;
+       cout << "maximum shortcuts per node " << maxShortcutsPerNode << endl;
+       cout << "sum reinsertions " << sumreinsertions << endl;
+       cout << "max reinsertions " << maxreinsertions << endl;
        return cs;
     }
 
 
 
+/*
+2.46 Auxiliary class ~minPathCosts~
+
+This class can be used to compute the costs between two nodes
+using a bidirectional dijkstra.
+
+*/
 
 
     class minPathCosts{
 
       public:
-          minPathCosts(MGraphCommon* _g){
-             g = _g;
-          }
-          double operator()(const int _source, 
+          minPathCosts(){ }
+          double operator()(MGraphCommon* _g,
+                            const int _source, 
                             const int _target,
                             const int _maxHopsForward,
                             const int _maxHopsBackward,
                             const double _maxCosts,
-                            const int _forbidden){
+                            const int _forbidden,
+                            const bool  _skipIfSmaller,
+                            const size_t _maxEdges){
 
-
+            g = _g;
             source = _source;
             target = _target;
             maxHopsForward = _maxHopsForward;
             maxHopsBackward = _maxHopsBackward;
             maxCosts = _maxCosts;
             forbidden = _forbidden;
+            skipIfSmaller = _skipIfSmaller;
+            maxEdges = _maxEdges;
             
 
             double costs = std::numeric_limits<double>::max();
@@ -937,16 +1384,12 @@ class MGraphCommon : public MemoryObject{
             if(source == target){
              return 0;
             }
+            // clear all structures
             processedForward.clear();
             processedBackward.clear();
-            //while(!frontForward.empty()){frontForward.pop();}
-            //while(!frontBackward.empty()){frontBackward.pop();}
-            //frontForward.clear();
-            //frontBackward.clear();
-            queue_t q1;
-            std::swap(q1,frontForward);
-            queue_t q2;
-            std::swap(q2,frontBackward);
+            frontForward.clear();
+            frontBackward.clear();
+            edges = 0;
             return compute(); 
           }
 
@@ -960,13 +1403,13 @@ class MGraphCommon : public MemoryObject{
          int forbidden;
          std::map<int,double> processedForward;
          std::map<int,double> processedBackward;
-      //   std::priority_queue<queueentry> frontForward;
-      //   std::priority_queue<queueentry> frontBackward;
-        // typedef mmheap::mmheap<queueentry,queueentryComp> queue_t;
-         typedef std::priority_queue<queueentry> queue_t;
+         //typedef std::priority_queue<queueentry> queue_t;
+         typedef mmheap::mmheap<queueentry, queueentryComp> queue_t;
          queue_t frontForward;
          queue_t frontBackward;
-
+         bool skipIfSmaller;
+         size_t edges;
+         size_t maxEdges;
          MGraphCommon* g;
 
 
@@ -1002,7 +1445,14 @@ class MGraphCommon : public MemoryObject{
                      forward = false;
                  }
               }
-              if(e.cost > maxCosts || e.cost > costs){
+              if(skipIfSmaller){ 
+                if(costs < maxCosts){
+                  // found a path shorter than maxcosts
+                  done = true;
+                }
+              }
+              if(done || e.cost > maxCosts || e.cost > costs){
+                 // maxcosts reached or current path cannot shortened
                  done = true;
               } else {
                  processNode(e, forward, costs, done);
@@ -1039,11 +1489,17 @@ class MGraphCommon : public MemoryObject{
                return;
             }           
             // process edges
+            if(edges >= maxEdges){ // maximum number of edges reached
+              return;
+            }
             std::list<MEdge>& nextNodes = forward?g->graph[node].first
                                                  :g->graph[node].second;
             std::list<MEdge>::iterator itN;
-            for(itN=nextNodes.begin(); itN!=nextNodes.end(); itN++){
+            for(itN=nextNodes.begin(); 
+                (itN!=nextNodes.end()) && (edges<=maxEdges); 
+                itN++){
                processEdge(*itN,forward,e);
+               edges++;
             }  
          }
 
