@@ -283,7 +283,7 @@ namespace temporalalgebra {
       RationalVector3D segmentVector(segment.getHead() - segment.getTail());
       segmentVector.normalize();
       RationalVector3D vector = this->normalVector ^ segmentVector;
-      if((vector * other.normalVector) < 0) return true;
+      if((vector * other.normalVector) > 0) return true;
       return false;
     }// isLeftAreaInner
                        
@@ -390,7 +390,7 @@ namespace temporalalgebra {
 
 */  
     IntersectionSegment::IntersectionSegment(){
-      this->leftAreaIsInner = false;   
+      this->indicator = LEFT_IS_INNER;   
     }// Konstruktor
     
     IntersectionSegment::IntersectionSegment(
@@ -400,24 +400,24 @@ namespace temporalalgebra {
     
     IntersectionSegment::IntersectionSegment(const IntersectionPoint& tail,
                                              const IntersectionPoint& head,
-                                             bool leftAreaIsInner){
+                                             const Indicator indicator){
       this->tail = tail;
       this->head = head;
-      this->leftAreaIsInner = leftAreaIsInner; 
+      this->indicator = indicator; 
     }// konstruktor
     
     IntersectionSegment::IntersectionSegment(const Segment3D& segment3D, 
                                              const Segment2D& segment2D,
-                                             bool leftAreaIsInner){
+                                             const Indicator indicator){
       this->head = IntersectionPoint(segment3D.getHead(),segment2D.getHead());
       this->tail = IntersectionPoint(segment3D.getTail(),segment2D.getTail());
-      this->leftAreaIsInner = leftAreaIsInner;   
+      this->indicator = indicator;   
     }// Konstruktor
       
     void IntersectionSegment::set(const IntersectionSegment& segment){
       this->tail = segment.tail;
       this->head = segment.head;
-      this->leftAreaIsInner = segment.leftAreaIsInner; 
+      this->indicator = segment.indicator; 
     }// set
       
     Segment3D IntersectionSegment::getSegment3D()const{
@@ -436,15 +436,30 @@ namespace temporalalgebra {
       return head;   
     }// getHead
     
-    bool IntersectionSegment::isleftAreaInner()const{
-      return leftAreaIsInner;
+    Indicator IntersectionSegment::getIndicator()const{
+      return indicator;
     }// getSegment3D
+    
+    
+    bool IntersectionSegment::isOrthogonalToTAxis()const{
+      return NumericUtil::nearlyEqual(tail.getT(),head.getT());
+    }// isOrthogonalToTAxis
+    
+    string IntersectionSegment::toString(Indicator indicator){
+      switch(indicator){
+        case LEFT_IS_INNER:   return "LEFT_IS_INNER";
+        case RIGHT_IS_INNER:  return "RIGHT_IS_INNER";
+        case LEFT_BORDER:     return "LEFT_BORDER";
+        case RIGHT_BORDER:    return "RIGHT_BORDER";
+        default: return "";
+      }// switch
+    }// toString
     
     std::ostream& operator <<(
         std::ostream& os, const IntersectionSegment& segment){
       os << "IntersectionSegment (" << segment.tail << ", " << segment.head;
-      if(segment.leftAreaIsInner) os << ", Left is inner.)";
-      else  os << ", Right is inner.)";
+      os << ", " << IntersectionSegment::toString(segment.getIndicator());
+      os << ")";
       return os;  
     }// Operator <<
     
@@ -458,7 +473,7 @@ namespace temporalalgebra {
         const IntersectionSegment& segment) const{
       return this->head == segment.head && 
              this->tail == segment.tail &&
-             this->leftAreaIsInner == segment.leftAreaIsInner;
+             this->indicator == segment.indicator;
     }// Operator ==   
 /*
 10 Struct IntSegCompare
@@ -483,43 +498,63 @@ namespace temporalalgebra {
       if (head1.getPoint2D() == head2.getPoint2D()) return true;    
       return segment2->getSegment2D().isLeft(head1.getPoint2D());
     }// IntSegCompare
-    
-   
-    IntSegContainer::IntSegContainer(){
-      
-    }// Konstrktor
+/*
+11 class IntSegContainer
 
+*/   
+    IntSegContainer::IntSegContainer(){
+    }// Konstrktor
+    
+    IntSegContainer::IntSegContainer(const IntSegContainer& container){
+      set(container);
+    }// Konstrktor
+    
     IntSegContainer::~IntSegContainer(){  
-      set<IntersectionSegment*>::iterator iter;
+      std::set<IntersectionSegment*>::iterator iter;
       for (iter = intSegs.begin(); iter != intSegs.end(); ++iter){
         delete *iter;
       }// for  
     }// Destruktor
+    
+    void IntSegContainer::set(const IntSegContainer& container){
+      std::set<IntersectionSegment*>::iterator iter;
+      for (iter = container.intSegs.begin(); 
+           iter != container.intSegs.end(); ++iter){
+        this->intSegs.insert(new IntersectionSegment(**iter));
+      }// for
+    }// set
  
     void IntSegContainer::addIntSeg(IntersectionSegment* seg){
-       intSegs.insert(seg);
+      intSegs.insert(seg);
     }// addIntSeg
+    
+    size_t IntSegContainer::size()const{
+      return intSegs.size();
+    }// size
   
     std::ostream& operator <<(std::ostream& os, 
-                              const IntSegContainer& container){
-      os << "IntSegContainer (";
-      if (container.intSegs.empty()) {  
-        os << "is empty)" << endl;
-      }// if
+                              IntSegContainer& container){
+      return container.print(os,"");
+    }// operator 
+    
+    std::ostream& IntSegContainer::print(std::ostream& os, 
+                                         std::string prefix){
+      os << prefix << "IntSegContainer (";
+      if (intSegs.empty()) os << "is empty)" << endl;
       else {        
-        set<IntersectionSegment*>::iterator iter;
-        for (iter = container.intSegs.begin(); 
-             iter != container.intSegs.end(); ++iter) {
-          os << endl << "  "<< *(*iter);
+        std::set<IntersectionSegment*>::iterator iter;
+        for (iter  = intSegs.begin(); 
+             iter != intSegs.end(); ++iter) {
+          os << endl << prefix + "  " << *(*iter);
         }// for
-        os << ")" <<endl;
+        os << endl << prefix << ")" <<endl;
       }// else
       return os;
-    }// operator 
-     
+    }// print
+    
     bool IntSegContainer::operator ==(const IntSegContainer& container){
       if(this->intSegs.size() != container.intSegs.size()) return false;
-      set<IntersectionSegment*>::iterator iter1, iter2;
+      std::set<IntersectionSegment*>::iterator iter1, iter2;
       for(iter1  = this->intSegs.begin(), iter2 =  container.intSegs.begin();
           iter1 != this->intSegs.end() && iter2 != container.intSegs.end();
           ++iter1, ++iter2){
@@ -527,11 +562,16 @@ namespace temporalalgebra {
       }// for
       return true;
     }// Operator ==  
-   
+    
+    IntSegContainer& IntSegContainer::operator =(
+        const IntSegContainer& container){
+      set(container);
+      return *this;
+    }// Operator = 
 /*
 12 Class PFace
 
-*/            
+*/          
     PFace::PFace(const Point3D& a, const Point3D& b, const Point3D& c, 
                  const Point3D& d){
       this->state = UNKNOWN;
@@ -539,16 +579,29 @@ namespace temporalalgebra {
       this->b = b;
       this->c = c;
       this->d = d;
-      // BoundingRect bestimmen
-      pair<double, double> x = NumericUtil::minMax4(a.getX(),b.getX(),
-                                                    c.getX(),d.getX());
-      pair<double, double> y = NumericUtil::minMax4(a.getY(),b.getY(),
-                                                    c.getY(),d.getY());
-      boundingRect = Rectangle<2>(true, x.first  - NumericUtil::eps2, 
-                                        x.second + NumericUtil::eps2, 
-                                        y.first  - NumericUtil::eps2, 
-                                        y.second + NumericUtil::eps2);
+      boundingRect = getBoundingRec(a);
+      boundingRect.Extend(getBoundingRec(b));
+      boundingRect.Extend(getBoundingRec(c));
+      boundingRect.Extend(getBoundingRec(d));
     }// Konstruktor
+    
+    PFace::PFace(const PFace& pf){
+      set(pf);
+    }// Konstruktor
+    
+    void PFace::set(const PFace& pf){
+      this->a = pf.a;
+      this->b = pf.b;
+      this->c = pf.c;
+      this->d = pf.d;
+      this->state = pf.state;
+      this->boundingRect = pf.boundingRect;
+      this->intSegContainer = pf.intSegContainer;
+    }// Konstruktor
+    
+    void PFace::setState(State state){
+      this->state = state;
+    }// setState
       
     Point3D PFace::getA() const{
       return this->a;
@@ -570,6 +623,10 @@ namespace temporalalgebra {
       return state;
     }// getState
     
+    bool PFace::existsIntSegs()const{
+      return (intSegContainer.size() != 0);
+    }// hasIntseg
+    
     string PFace::toString(State state){
       switch(state){
         case UNKNOWN:               return "UNKNOWN";
@@ -582,24 +639,80 @@ namespace temporalalgebra {
       }// switch
     }// toString
     
-    std::ostream& operator <<(std::ostream& os, const PFace& pf){
-      os << "PFace ("<< pf.a << ", " << pf.b << ", " << pf.c << ", " << pf.d; 
-      os << "," << PFace::toString(pf.getState()) << "," <<endl;
-      os << " " << pf.intSegContainer <<")" << endl;
-      return os;   
-    }// Operator <<
+    Rectangle<2> PFace::getBoundingRec(const Point3D& point)const{
+      double array[2] = {point.getX(),point.getY()};
+      return Rectangle<2>(true,array,array);
+    }// getBoundingBox 
     
+    Rectangle<2> PFace::getBoundingRec()const{
+      return boundingRect;
+    }// getBoundingBox 
+    
+    std::ostream& operator <<(std::ostream& os, PFace& pf){
+      return pf.print(os,"");
+    }// operator 
+    
+    std::ostream& PFace::print(std::ostream& os, std::string prefix){
+      os << prefix << "PFace ("<< a << ", " << b << ", " << c << ", ";
+      os << d << "," << PFace::toString(state) << "," <<endl;
+      intSegContainer.print(os,prefix + "  ");
+      os << prefix <<")" << endl;
+      return os;
+    }// print
+    
+    PFace& PFace::operator =(
+        const PFace& pf){
+      set(pf);
+      return *this;
+    }// Operator =
+    
+    bool PFace::operator ==(const PFace& pf){
+      if ((this->a == pf.a) &&
+          (this->b == pf.b) &&
+          (this->c == pf.c) &&
+          (this->d == pf.d) &&
+          (this->state == pf.state) &&
+          (this->boundingRect == pf.boundingRect) &&
+          (this->intSegContainer == pf.intSegContainer)) return true;
+      return false;
+    }// Operator == 
+        
     void PFace::addIntSeg(const RationalPlane3D &planeSelf, 
                           const RationalPlane3D &planeOther,
                           const RationalSegment3D &intSeg){
-      bool result = planeSelf.isLeftAreaInner(intSeg,planeOther);
+      Indicator result = LEFT_IS_INNER;
+      if(!planeSelf.isLeftAreaInner(intSeg,planeOther)){
+        result = RIGHT_IS_INNER;
+      } // if
       Segment2D segment = planeSelf.transform(intSeg);
       this->state = RELEVANT_NOT_CRITICAL;
-      this->intSegContainer.addIntSeg(
-        new IntersectionSegment(intSeg,segment,result));              
+      IntersectionSegment seg(intSeg,segment,result);
+      addIntSeg(seg);              
     }// addIntSeg
   
+    void PFace::addIntSeg(const IntersectionSegment& seg){
+      if (!(seg.isOrthogonalToTAxis())){
+        this->intSegContainer.addIntSeg(
+          new IntersectionSegment(seg));
+      }// if
+    }// addIntSeg
+    
+    void PFace::addBorders(const RationalPlane3D &planeSelf){
+      Segment3D segment3d(this->a,this->c);
+      Segment2D segment2d = planeSelf.transform(segment3d);
+      IntersectionSegment seg(segment3d,segment2d,LEFT_BORDER);
+      addIntSeg(seg); 
+      
+      segment3d =Segment3D(this->b,this->d);
+      segment2d = planeSelf.transform(segment3d);
+      seg = IntersectionSegment(segment3d,segment2d,RIGHT_BORDER);
+      addIntSeg(seg); 
+    }// addBorders 
+  
     bool PFace::intersection(PFace& other){
+      Rectangle<2> bRec = boundingRect;
+      // Boundingbox etwas vergrößern
+      bRec.Extend(NumericUtil::eps2);
       // check bounding rectangles
       if(!(this->boundingRect.Intersects(other.boundingRect))){
         // cout << "No intersect bounding rectangles found." << endl;  
@@ -630,20 +743,7 @@ namespace temporalalgebra {
       if(!intPointSet.getIntersectionSegment(intSeg)) return false;  
       // create and save result segments
       this->addIntSeg(planeSelf,planeOther,intSeg);
-      other.addIntSeg(planeOther,planeSelf,intSeg);
-      
-//       bool result = planeSelf.isLeftAreaInner(intSeg,planeOther);
-//       Segment2D segment = planeSelf.transform(intSeg);
-//       this->state = RELEVANT_NOT_CRITICAL;
-//       this->intSegContainer.addIntSeg(
-//         new IntersectionSegment(intSeg,segment,result));
-//       
-//       result  = planeOther.isLeftAreaInner(intSeg,planeSelf);
-//       segment = planeOther.transform(intSeg);
-//       other.state = RELEVANT_NOT_CRITICAL;
-//       other.intSegContainer.addIntSeg(
-//         new IntersectionSegment(intSeg,segment,result));
-      
+      other.addIntSeg(planeOther,planeSelf,intSeg);   
       return true;    
     }// intersection    
   } // end of namespace mregionops3

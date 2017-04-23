@@ -27,6 +27,7 @@
 include ../../makefile.env
 
 # expand compile flags if necessary
+CCFLAGS += -std=c++11
 CCFLAGS += $(ALG_INC_DIRS) -Werror
 
 # create objects and algebra library. The values for the variables

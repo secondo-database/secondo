@@ -28,7 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[x] [$\times $]
 //[->] [$\rightarrow $]
 
-[1] Implementation of the MRegionOps3Algebra
+[1] Implementation of the MRegionOpsAlgebra
+
+April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [TOC]
 
@@ -38,26 +40,58 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include <string.h>
-#include "Algebra.h"
-#include "NestedList.h"
-#include "NList.h"
-#include "StandardTypes.h"
-
-#include "PointVectorSegment.h"
 #include "PFace.h"
+#include "PointVectorSegment.h"
 #include "NumericUtil.h"
-#include "SourceUnit.h"
+#include "TemporalAlgebra.h"
+#include "MMRTree.h"
+#include <memory>
+#include <gmp.h>
+#include <gmpxx.h>
+#include <set>
+#include <vector>
+#include <string>
 
-#ifndef OPERATORSELFTEST_H
-#define OPERATORSELFTEST_H
+#ifndef SOURCEUNIT_H
+#define SOURCEUNIT_H
 
 namespace temporalalgebra {
   namespace mregionops3 {
+    class SourceUnit{
+    public:
+      SourceUnit();
+      ~SourceUnit();
+      void addPFace(const PFace& pf);
+      void addPFace(const Point3D& a, const Point3D& b, 
+                    const Point3D& c, const Point3D& d);
+      bool intersection(SourceUnit& other);   
+/*
+12.3 Operators and Predicates
+
+12.3.3 Operator <<
     
-    Operator* getSelftestPtr(); 
-    
+Print the object values to stream.
+
+*/         
+      friend std::ostream& operator <<(std::ostream& os, SourceUnit& unit);
+      bool operator ==(const SourceUnit& unit); 
+    private:    
+/*
+1.1.1 pFaces
+
+A ~std::vector~ to store all ~PFaces~.
+
+*/
+      std::vector<PFace*> pFaces;
+/*
+1.1.1 boundingRect
+
+The projection bounding rectangle of this ~SourceUnit~ to the xy-plane.
+
+*/  
+      mmrtree::RtreeT<2, size_t> pFaceTree;  
+    };// class SourceUnit  
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra
 #endif 
-// OPERATORSELFTEST_H  
+// SOURCEUNIT_H
