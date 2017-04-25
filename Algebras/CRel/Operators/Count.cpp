@@ -24,19 +24,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Count.h"
 
+#include "CRel.h"
+#include "CRelTI.h"
 #include <cstddef>
 #include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "LongInt.h"
+#include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include "Stream.h"
 #include <string>
 #include "TBlock.h"
 #include "TBlockTI.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
+using listutils::isStream;
 using std::exception;
 using std::string;
 
@@ -44,15 +50,24 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 
 Count::Count() :
-  Operator(info, ValueMapping, TypeMapping)
+  Operator(info, valueMappings, SelectValueMapping, TypeMapping)
 {
 }
 
 const OperatorInfo Count::info = OperatorInfo(
-  "count", "",
-  "",
-  "",
-  "");
+  "count", "crel | stream(tblock) | tblock -> longint",
+  "_ count",
+  "Returns the (accumulated) number of entries for a given column_oriented "
+  "relation, tuple block or stream of tuple block(s)",
+  "query people feed filter[.Age > 50] count");
+
+ValueMapping Count::valueMappings[] =
+{
+  CRelValueMapping,
+  BlockStreamValueMapping,
+  BlockValueMapping,
+  nullptr
+};
 
 ListExpr Count::TypeMapping(ListExpr args)
 {
@@ -63,28 +78,65 @@ ListExpr Count::TypeMapping(ListExpr args)
   }
 
   //Check first parameter for stream
-  ListExpr stream = nl->First(args);
-  if (!nl->HasLength(stream, 2) ||
-      !nl->IsEqual(nl->First(stream), Symbol::STREAM()))
-  {
-    return listutils::typeError("Argument isn't a stream!");
-  }
+  ListExpr firstArgExpr = nl->First(args);
 
-  const ListExpr tblockType = nl->Second(stream);
-
-  //Check first parameter's stream type for 'tblock'
-  string typeError;
-  if (!TBlockTI::Check(tblockType, typeError))
+  if (!CRelTI::Check(firstArgExpr))
   {
-    return listutils::typeError("Argument isn't a stream of tblock: " +
-                                typeError);
+    ListExpr tblockType;
+
+    if (isStream(firstArgExpr))
+    {
+      tblockType = GetStreamType(firstArgExpr);
+    }
+    else
+    {
+      tblockType = firstArgExpr;
+    }
+
+    //Check first parameter's stream type for 'tblock'
+    if (!TBlockTI::Check(tblockType))
+    {
+      return GetTypeError(0, "Isn't a crel or (stream of) tblock.");
+    }
   }
 
   //Result is a 'int'
-  return nl->SymbolAtom(CcInt::BasicType());
+  return nl->SymbolAtom(LongInt::BasicType());
 }
 
-int Count::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
+int Count::SelectValueMapping(ListExpr args)
+{
+  const ListExpr arg = nl->First(args);
+
+  if (CRelTI::Check(arg))
+  {
+    return 0;
+  }
+
+  return isStream(arg) ? 1 : 2;
+}
+
+int Count::CRelValueMapping(ArgVector args, Word &result, int, Word&,
+                            Supplier s)
+{
+  try
+  {
+    CRel *rel = (CRel*)args[0].addr;
+
+    qp->ResultStorage<LongInt>(result, s).SetValue(rel->GetRowCount());
+
+    return 0;
+  }
+  catch (const exception &e)
+  {
+    ErrorReporter::ReportError(e.what());
+  }
+
+  return FAILURE;
+}
+
+int Count::BlockStreamValueMapping(ArgVector args, Word &result, int, Word&,
+                                   Supplier s)
 {
   try
   {
@@ -95,7 +147,7 @@ int Count::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
 
     size_t count = 0;
 
-    while ((block = stream.request()) != NULL)
+    while ((block = stream.request()) != nullptr)
     {
       count += block->GetRowCount();
 
@@ -104,7 +156,26 @@ int Count::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
 
     stream.close();
 
-    qp->ResultStorage<CcInt>(result, s).Set(count);
+    qp->ResultStorage<LongInt>(result, s).SetValue(count);
+
+    return 0;
+  }
+  catch (const exception &e)
+  {
+    ErrorReporter::ReportError(e.what());
+  }
+
+  return FAILURE;
+}
+
+int Count::BlockValueMapping(ArgVector args, Word &result, int, Word&,
+                             Supplier s)
+{
+  try
+  {
+    TBlock *block = (TBlock*)args[0].addr;
+
+    qp->ResultStorage<LongInt>(result, s).SetValue(block->GetRowCount());
 
     return 0;
   }

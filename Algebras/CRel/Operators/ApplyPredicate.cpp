@@ -25,17 +25,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ApplyPredicate.h"
 
 #include "Attribute.h"
-#include "AttrArrayTI.h"
+#include "AttrArray.h"
 #include <cstddef>
 #include <exception>
-#include "GenericAttrArray.h"
-#include "IndicesTI.h"
+#include "LongInts.h"
+#include "LongIntsTI.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include <string>
 #include "Symbols.h"
+#include "TypeUtils.h"
 #include <vector>
 
 using namespace CRelAlgebra;
@@ -56,10 +57,12 @@ ApplyPredicate::ApplyPredicate() :
 }
 
 const OperatorInfo ApplyPredicate::info = OperatorInfo(
-  "ap", "",
-  "",
-  "",
-  "");
+  "apply", "ATTRARRAY x (map DATA bool) -> longints",
+  "_ apply[ fun ]",
+  "Determines the indices of those entries in the array whose attribute "
+  "representations fullfill the predicate function.\n"
+  "The returned indices are in ascending order.",
+  "query [const longints value (1 2 3)] apply[. >= 2] consume");
 
 ListExpr ApplyPredicate::TypeMapping(ListExpr args)
 {
@@ -72,11 +75,9 @@ ListExpr ApplyPredicate::TypeMapping(ListExpr args)
   //Check the first argument for 'attrarray' type
   const ListExpr arrayType = nl->First(args);
 
-  string typeError;
-  if (!AttrArrayTI::Check(arrayType, typeError))
+  if (!CheckKind(Kind::ATTRARRAY(), arrayType))
   {
-    return listutils::typeError("First argument isn't a attrblock: " +
-                                typeError);
+    return listutils::typeError("First argument isn't of kind ATTRARRAY.");
   }
 
   //Check the second argument for function type
@@ -88,12 +89,15 @@ ListExpr ApplyPredicate::TypeMapping(ListExpr args)
                                 "argument.");
   }
 
+  AttrArrayTypeConstructor &constructor =
+    (AttrArrayTypeConstructor&)*GetTypeConstructor(arrayType);
+
   //Compare the arrays Attribute-Type with the functions parameter type
   if (!nl->Equal(nl->Second(mapType),
-      AttrArrayTI(arrayType).GetAttributeType()))
+      constructor.GetAttributeType(arrayType, false)))
   {
     return listutils::typeError("Second argument's (map) argument type doesn't "
-                                "match the first argument's (attrblock) "
+                                "match the first argument's (attrarray) "
                                 "attribute type.");
   }
 
@@ -104,7 +108,7 @@ ListExpr ApplyPredicate::TypeMapping(ListExpr args)
   }
 
   //Result type is 'indices'
-  return IndicesTI().GetTypeInfo();
+  return LongIntsTI(false).GetTypeExpr();
 }
 
 int ApplyPredicate::ValueMapping(ArgVector args, Word &result, int, Word&,
@@ -117,21 +121,26 @@ int ApplyPredicate::ValueMapping(ArgVector args, Word &result, int, Word&,
     //The function's parameter
     Address &predicateArg = (*qp->Argument(predicate))[0].addr;
     //The indices which satisfy the predicate
-    vector<size_t> &indices = qp->ResultStorage<vector<size_t>>(result, s);
+    LongInts &indices = qp->ResultStorage<LongInts>(result, s);
+    indices.IncRef();
 
-    indices.clear();
+    indices.Clear();
 
     size_t index = 0;
 
-    for (Attribute &attribute : *(GenericAttrArray*)args[0].addr)
+    for (const AttrArrayEntry &entry : *(AttrArray*)args[0].addr)
     {
-      predicateArg = &attribute;
+      Attribute *attribute = entry.GetAttribute();
+
+      predicateArg = attribute;
 
       CcBool &predicateResult = *(CcBool*)qp->Request(predicate).addr;
 
+      attribute->DeleteIfAllowed();
+
       if (predicateResult.IsDefined() && predicateResult.GetValue())
       {
-        indices.push_back(index);
+        indices.Append(index);
       }
 
       ++index;

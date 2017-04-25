@@ -34,26 +34,23 @@ namespace CRelAlgebra
   class CRelTI : public TBlockTI
   {
   public:
+    static bool Check(ListExpr typeExpr);
+
     static bool Check(ListExpr typeExpr, std::string &error);
 
-    CRelTI();
+    CRelTI(bool numeric);
 
-    CRelTI(const TBlockTI &info, size_t cacheSize, size_t blockSize);
+    CRelTI(const TBlockTI &info, size_t cacheSize);
 
-    CRelTI(ListExpr typeExpr);
+    CRelTI(ListExpr typeExpr, bool numeric);
 
     size_t GetCacheSize() const;
 
     void SetCacheSize(size_t value);
 
-    size_t GetDesiredBlockSize() const;
-
-    void SetDesiredBlockSize(size_t value);
-
-    ListExpr GetTypeInfo() const;
+    ListExpr GetTypeExpr() const;
 
   private:
-    size_t m_cacheSize,
-      m_desiredBlockSize;
+    size_t m_cacheSize;
   };
 }

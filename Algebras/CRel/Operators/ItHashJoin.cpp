@@ -24,25 +24,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ItHashJoin.h"
 
-#include <exception>
+#include <algorithm>
+#include "ListExprUtils.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
+#include "Project.h"
 #include "QueryProcessor.h"
 #include <set>
 #include "StandardTypes.h"
 #include "StreamValueMapping.h"
 #include <string>
 #include "Symbols.h"
-#include "TBlockTI.h"
-#include "Utility.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 using namespace listutils;
 
-using std::exception;
+using listutils::isStream;
+using std::copy;
 using std::set;
 using std::string;
+using std::vector;
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -50,180 +54,353 @@ extern QueryProcessor *qp;
 //ItHashJoin--------------------------------------------------------------------
 
 ItHashJoin::ItHashJoin() :
-  Operator(info, StreamValueMapping<State>, TypeMapping)
+  Operator(info, valueMappings, SelectValueMapping, TypeMapping)
 {
   SetUsesArgsInTypeMapping();
+  SetUsesMemory();
 }
 
+ValueMapping ItHashJoin::valueMappings[] =
+{
+  StreamValueMapping<State<false>, CreateState<false>>,
+  StreamValueMapping<State<true>, CreateState<true>>,
+  nullptr
+};
+
 const OperatorInfo ItHashJoin::info = OperatorInfo(
-  "itHashJoin", "crel(c, m, (A)) -> stream(tblock(m, (A)))",
-  "_ feed",
-  "Produces a stream of tuple-blocks from a column-oriented relation.",
-  "query cities feed cconsume");
+  "itHashJoin",
+  "stream(tblock(ma, ((na0, ca0) ... (nai, cai)))) x "
+  "stream(tblock(mb, ((nb0, cb0) ... (nbi, cbi)))) x "
+  "jna x jnb x (pn0 ... pni) x bc x ml x bs "
+  "-> stream(tblock(bs, ((pn0 c0) ... (pni ci)))) with:\n\n"
+
+  "jna / jnb: symbol. the column names from block type a / b to join on.\n\n"
+
+  "(pn0 ... pni): symbol(s). optional. column names to project the result on."
+  "omiting -> (na0 ... nai, nb0 ... nbi).\n\n"
+
+  "bc: int. optional. bucket count of the used hash map. omitting -> 1048576."
+  "\n\n"
+
+  "ml: int. optional. main memory limit for this operator in MiB. omitting -> "
+  "provided by Secondo.\n\n"
+
+  "bs: int. optional. block size. omitting -> ma.",
+  "_ _ itHashJoin[_, _, [list], _, _, _]",
+  "Executes a iterative hash join algorithm over two streams of tuple blocks."
+  "The second stream arument will be used for index creation and should "
+  "contain less entries than the first one. Optionally the resulting tuple "
+  "blocks can be projected on a selected subset of columns. This avoids "
+  "copying workload and is therefore recommended.", "");
 
 ListExpr ItHashJoin::TypeMapping(ListExpr args)
 {
-  if (!nl->HasLength(args, 6))
+  const size_t argCount = nl->ListLength(args);
+
+  if (argCount < 4 || argCount > 8)
   {
-    return listutils::typeError("Expected five arguments.");
+    return listutils::typeError("Expected four to seven arguments.");
   }
 
-  ListExpr stream = nl->First(nl->First(args));
+  //Check 'stream a' argument
 
-  if (!nl->HasLength(stream, 2) ||
-      !nl->IsEqual(nl->First(stream), Symbols::STREAM()))
+  string error;
+
+  TBlockTI blockAInfo = TBlockTI(false);
+
+  if (!IsBlockStream(nl->First(nl->First(args)), blockAInfo, error))
   {
-    return listutils::typeError("First argument isn't a stream.");
+    return GetTypeError(0, "stream a", error);
   }
 
-  ListExpr tblock = nl->Second(stream);
-  string typeError;
+  //Check 'stream b' argument
 
-  if (!TBlockTI::Check(tblock, typeError))
+  TBlockTI blockBInfo = TBlockTI(false);
+
+  if (!IsBlockStream(nl->First(nl->Second(args)), blockBInfo, error))
   {
-    return listutils::typeError("First argument isn't a stream of tblock: " +
-                                typeError);
+    return GetTypeError(1, "stream b", error);
   }
 
-  const TBlockTI blockAInfo(tblock);
+  //Check 'column-name a'
 
-  stream = nl->First(nl->Second(args));
+  string nameA;
 
-  if(!nl->HasLength(stream, 2) ||
-     !nl->IsEqual(nl->First(stream), Symbols::STREAM()))
+  if (!TryGetSymbolValue(nl->First(nl->Third(args)), nameA, error))
   {
-    return listutils::typeError("Second argument isn't a stream.");
+    return GetTypeError(2, "column-name a", error);
   }
 
-  tblock = nl->Second(stream);
+  size_t nameAIndex;
 
-  if (!TBlockTI::Check(tblock, typeError))
+  if (!GetIndexOfColumn(blockAInfo, nameA, nameAIndex))
   {
-    return listutils::typeError("Second argument isn't a stream of tblock: " +
-                                typeError);
+    return GetTypeError(2, "column-name a",
+                        "Colum named '" + nameA + "' not found.");
   }
 
-  const TBlockTI blockBInfo(tblock);
+  //Check 'column-name b'
 
-  const ListExpr nameAExpr = nl->First(nl->Third(args));
-  if (!nl->IsNodeType(SymbolType, nameAExpr))
+  string nameB;
+
+  if (!TryGetSymbolValue(nl->First(nl->Fourth(args)), nameB, error))
   {
-    return listutils::typeError("Third argument isn't a symbol.");
+    return GetTypeError(3, "column-name b", error);
   }
 
-  const string nameA = nl->SymbolValue(nameAExpr);
+  size_t nameBIndex;
 
-  const ListExpr nameBExpr = nl->First(nl->Fourth(args));
-  if (!nl->IsNodeType(SymbolType, nameBExpr))
+  if (!GetIndexOfColumn(blockBInfo, nameB, nameBIndex))
   {
-    return listutils::typeError("Fourth argument isn't a symbol.");
+    return GetTypeError(3, "column-name b",
+                        "Colum named '" + nameB + "' not found.");
   }
 
-  const string nameB = nl->SymbolValue(nameBExpr);
+  //Initialize the result type from both block-types
+  //Check for duplicate column names
 
-  set<string> attributeNames;
+  TBlockTI resultBlockInfo = TBlockTI(false);
 
-  TBlockTI resultBlockInfo;
+  set<string> columnNames;
 
-  const size_t blockAAttributeCount = blockAInfo.attributeInfos.size();
-  size_t nameAIndex = blockAAttributeCount;
-
-  for (size_t i = 0; i < blockAAttributeCount; ++i)
+  for (const TBlockTI::ColumnInfo &columnInfo : blockAInfo.columnInfos)
   {
-    if (!attributeNames.insert(blockAInfo.attributeInfos[i].name).second)
+    columnNames.insert(columnInfo.name).second;
+
+    resultBlockInfo.columnInfos.push_back(columnInfo);
+  }
+
+  for (const TBlockTI::ColumnInfo &columnInfo : blockBInfo.columnInfos)
+  {
+    if (!columnNames.insert(columnInfo.name).second)
     {
-      return listutils::typeError("Not unique attribute name: " +
-                                  blockAInfo.attributeInfos[i].name);
+      return GetTypeError(1, "stream b", "Column name " + columnInfo.name +
+                          " allready exists in stream a.");
     }
 
-    resultBlockInfo.attributeInfos.push_back(blockAInfo.attributeInfos[i]);
+    resultBlockInfo.columnInfos.push_back(columnInfo);
+  }
 
-    if (nameAIndex == blockAAttributeCount &&
-        nameA == blockAInfo.attributeInfos[i].name)
+  //Check optional arguments
+
+  size_t argNo = 5;
+
+  ListExpr appendArgs = nl->TwoElemList(nl->IntAtom(nameAIndex),
+                                        nl->IntAtom(nameBIndex));
+
+  //Check 'projection' argument
+
+  if (argCount >= argNo)
+  {
+    Project::Info info(resultBlockInfo, nl->Second(nl->Nth(argNo, args)));
+
+    if (!info.HasError())
     {
-      nameAIndex = i;
+      resultBlockInfo = info.GetBlockTypeInfo();
+
+      appendArgs = nl->ThreeElemList(ToIntListExpr(info.GetIndices()),
+                                     nl->IntAtom(nameAIndex),
+                                     nl->IntAtom(nameBIndex));
+
+      ++argNo;
+    }
+    else
+    {
+      error = info.GetError();
+
+      if (argCount == 8)
+      {
+        return GetTypeError(argNo - 1, "projection", error);
+      }
     }
   }
 
-  if (nameAIndex == blockAAttributeCount)
-  {
-    return listutils::typeError("Third argument doesn't match any attribute "
-                                "name in the first argument's tblock.");
-  }
+  //Check 'bucket count' argument
 
-  const size_t blockBAttributeCount = blockBInfo.attributeInfos.size();
-  size_t nameBIndex = blockBAttributeCount;
-
-  for (size_t i = 0; i < blockBAttributeCount; ++i)
+  if (argCount >= argNo)
   {
-    if (!attributeNames.insert(blockBInfo.attributeInfos[i].name).second)
+    if (!CcInt::checkType(nl->First(nl->Nth(argNo, args))))
     {
-      return listutils::typeError("Not unique attribute name: " +
-                                  blockBInfo.attributeInfos[i].name);
+      return GetTypeError(argNo - 1, "projection | bucket count",
+                          error + "Not a int.");
     }
 
-    resultBlockInfo.attributeInfos.push_back(blockBInfo.attributeInfos[i]);
+    ++argNo;
+  }
 
-    if (nameBIndex == blockBAttributeCount &&
-        nameB == blockBInfo.attributeInfos[i].name)
+  //Check 'memory limit' argument
+
+  if (argCount >= argNo)
+  {
+    if (!CcInt::checkType(nl->First(nl->Nth(argNo, args))))
     {
-      nameBIndex = i;
+      return GetTypeError(argNo - 1, "memory limit", "Not a int.");
     }
+
+    ++argNo;
   }
 
-  if (nameBIndex == blockBAttributeCount)
+  //Check 'block size' argument
+
+  resultBlockInfo.SetDesiredBlockSize(blockAInfo.GetDesiredBlockSize());
+
+  if (argCount >= argNo)
   {
-    return listutils::typeError("Fourth argument doesn't match any attribute "
-                                "name in the second argument's tblock.");
+    const ListExpr arg = nl->Nth(argNo, args);
+
+    if (!CcInt::checkType(nl->First(arg)))
+    {
+      return GetTypeError(argNo - 1, "block size", "Not a int.");
+    }
+
+    const long blockSize = nl->IntValue(nl->Second(arg));
+
+    if (blockSize > 0)
+    {
+      resultBlockInfo.SetDesiredBlockSize(blockSize);
+    }
+
+    ++argNo;
   }
 
-  const ListExpr memLimitExpr = nl->Fifth(args);
-
-  if (!CcInt::checkType(nl->First(memLimitExpr)))
-  {
-    return listutils::typeError("Fifth argument (mem limit) isn't an int.");
-  }
-
-  const ListExpr blockSizeExpr = nl->Sixth(args);
-
-  if (!CcInt::checkType(nl->First(blockSizeExpr)))
-  {
-    return listutils::typeError("Sixth argument (block size) isn't an int.");
-  }
-
-  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                           nl->TwoElemList(nl->IntAtom(nameAIndex),
-                                           nl->IntAtom(nameBIndex)),
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()), appendArgs,
                            nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                           resultBlockInfo.GetTypeInfo()));
+                                           resultBlockInfo.GetTypeExpr()));
+}
+
+int ItHashJoin::SelectValueMapping(ListExpr args)
+{
+  if (nl->HasMinLength(args, 5) && !CcInt::checkType(nl->Fifth(args)))
+  {
+    return 1;
+  }
+
+  return 0;
+}
+
+template<bool project>
+ItHashJoin::State<project> *ItHashJoin::CreateState(ArgVector args, Supplier s)
+{
+  static const size_t defaultBucketCount = 1024 * 1024;
+
+  const size_t argCount = qp->GetNoSons(s);
+
+  Supplier streamA = args[0].addr,
+    streamB = args[1].addr;
+
+  size_t joinIndexA = ((CcInt*)args[argCount - 2].addr)->GetValue(),
+    joinIndexB = ((CcInt*)args[argCount - 1].addr)->GetValue();
+
+  const TBlockTI blockTypeInfo = TBlockTI(qp->GetType(s), false);
+
+  size_t columnCountA =
+    TBlockTI(qp->GetType(streamA), false).columnInfos.size(),
+    columnCountB = TBlockTI(qp->GetType(streamB), false).columnInfos.size();
+
+  IndexProjection *projectionsA,
+    *projectionsB;
+
+  long bucketCount,
+    memLimit;
+
+  if (project)
+  {
+    bucketCount = argCount > 8 ? ((CcInt*)args[5].addr)->GetValue() : 0;
+
+    memLimit = (argCount > 9 ? ((CcInt*)args[6].addr)->GetValue() : 0) *
+               1024 * 1024;
+
+    vector<IndexProjection> tmpProjectionsA,
+      tmpProjectionsB;
+
+    size_t index = 0;
+
+    for (const Word &subArg : GetSubArgvector(args[argCount - 3].addr))
+    {
+      const size_t projectedIndex = ((CcInt*)subArg.addr)->GetValue();
+
+      if (projectedIndex < columnCountA)
+      {
+        tmpProjectionsA.push_back(IndexProjection(projectedIndex, index));
+      }
+      else
+      {
+        tmpProjectionsB.push_back(IndexProjection(projectedIndex - columnCountA,
+                                                  index));
+      }
+
+      ++index;
+    }
+
+    columnCountA = tmpProjectionsA.size();
+    columnCountB = tmpProjectionsB.size();
+
+    projectionsA = new IndexProjection[columnCountA];
+    projectionsB = new IndexProjection[columnCountB];
+
+    copy(tmpProjectionsA.begin(), tmpProjectionsA.end(), projectionsA);
+    copy(tmpProjectionsB.begin(), tmpProjectionsB.end(), projectionsB);
+  }
+  else
+  {
+    bucketCount = argCount > 6 ? ((CcInt*)args[4].addr)->GetValue() : 0;
+
+    memLimit = (argCount > 7 ? ((CcInt*)args[5].addr)->GetValue() : 0) *
+               1024 * 1024;
+
+    projectionsA = nullptr;
+    projectionsB = nullptr;
+  }
+
+  if (bucketCount <= 0)
+  {
+    bucketCount = defaultBucketCount;
+  }
+
+  if (memLimit <= 0)
+  {
+    memLimit = qp->GetMemorySize(s) * 1024 * 1024;
+  }
+
+  return new State<project>(streamA, streamB, joinIndexA, joinIndexB,
+                            columnCountA, columnCountB, projectionsA,
+                            projectionsB, bucketCount, memLimit, blockTypeInfo);
 }
 
 //ItHashJoin::State-------------------------------------------------------------
 
-ItHashJoin::State::State(ArgVector args, Supplier s) :
-  m_joinIndexA(((CcInt*)args[6].addr)->GetValue()),
-  m_joinIndexB(((CcInt*)args[7].addr)->GetValue()),
-  m_memLimit(((CcInt*)args[4].addr)->GetValue()),
-  m_blockSize(((CcInt*)args[5].addr)->GetValue()),
-  m_map(((CcInt*)args[4].addr)->GetValue()),
-  m_blockA(NULL),
+template<bool project>
+ItHashJoin::State<project>::State(Supplier streamA, Supplier streamB,
+                                  size_t joinIndexA, size_t joinIndexB,
+                                  size_t columnCountA, size_t columnCountB,
+                                  IndexProjection *projectionsA,
+                                  IndexProjection *projectionsB,
+                                  size_t bucketCount, size_t memLimit,
+                                  const TBlockTI &blockTypeInfo) :
+  m_joinIndexA(joinIndexA),
+  m_joinIndexB(joinIndexB),
+  m_columnCountA(columnCountA),
+  m_columnCountB(columnCountB),
+  m_memLimit(memLimit),
+  m_blockSize(blockTypeInfo.GetDesiredBlockSize() * TBlockTI::blockSizeFactor),
+  m_map(bucketCount),
+  m_blockA(nullptr),
   m_isBExhausted(false),
-  m_streamA(args[0]),
-  m_streamB(args[1])
+  m_streamA(streamA),
+  m_streamB(streamB),
+  m_blockInfo(blockTypeInfo.GetBlockInfo()),
+  m_tuple(new AttrArrayEntry[blockTypeInfo.columnInfos.size()]),
+  m_projectionsA(projectionsA),
+  m_projectionsB(projectionsB)
 {
-  qp->DeleteResultStorage(s);
-
-  m_blockInfo = TBlockTI(qp->GetType(s)).GetBlockInfo();
-
-  m_tuple = new ArrayAttribute[m_blockInfo->columnCount];
-
   m_streamA.open();
   m_streamB.open();
 }
 
-ItHashJoin::State::~State()
+template<bool project>
+ItHashJoin::State<project>::~State()
 {
-  if (m_blockA != NULL)
+  if (m_blockA != nullptr)
   {
     m_blockA->DecRef();
   }
@@ -235,27 +412,41 @@ ItHashJoin::State::~State()
 
   delete[] m_tuple;
 
+  if (m_projectionsA != nullptr)
+  {
+    delete[] m_projectionsA;
+  }
+
+  if (m_projectionsB != nullptr)
+  {
+    delete[] m_projectionsB;
+  }
+
   m_streamA.close();
   m_streamB.close();
 }
 
-TBlock *ItHashJoin::State::Request()
+template<bool project>
+TBlock *ItHashJoin::State<project>::Request()
 {
   if (m_blocksB.empty() && !ProceedStreamB())
   {
-    return NULL;
+    return nullptr;
   }
 
-  if (m_blockA == NULL)
+  const size_t columnCountA = m_columnCountA,
+    columnCountB = m_columnCountB;
+
+  if (m_blockA == nullptr)
   {
-    if ((m_blockA = m_streamA.request()) == NULL)
+    if ((m_blockA = m_streamA.request()) == nullptr)
     {
       m_streamA.close();
       m_streamA.open();
 
-      if ((m_blockA = m_streamA.request()) == NULL || !ProceedStreamB())
+      if ((m_blockA = m_streamA.request()) == nullptr || !ProceedStreamB())
       {
-        return NULL;
+        return nullptr;
       }
     }
 
@@ -263,24 +454,30 @@ TBlock *ItHashJoin::State::Request()
 
     if (m_blockAIterator.IsValid())
     {
-      m_mapResult = m_map.Get(m_blockAIterator.GetAttribute(m_joinIndexA));
+      const TBlockEntry &tuple = m_blockAIterator.Get();
+
+      m_mapResult = m_map.Get(tuple[m_joinIndexA]);
 
       if (m_mapResult.IsValid())
       {
-        const size_t columnCount = m_blockA->GetColumnCount();
-
-        for (size_t i = 0; i < columnCount; ++i)
+        for (size_t i = 0; i < columnCountA; ++i)
         {
-          m_tuple[i] = m_blockAIterator.GetAttribute(i);
+          if (project)
+          {
+            const IndexProjection &projection = m_projectionsA[i];
+
+            m_tuple[projection.projection] = tuple[projection.index];
+          }
+          else
+          {
+            m_tuple[i] = tuple[i];
+          }
         }
       }
     }
   }
 
   TBlock *block = new TBlock(m_blockInfo, 0, 0);
-
-  const size_t blockAColumnCount = m_blockA->GetColumnCount(),
-    blockBColumnCount = m_blocksB[0]->GetColumnCount();
 
   do
   {
@@ -292,7 +489,7 @@ TBlock *ItHashJoin::State::Request()
         {
           m_blockA->DecRef();
 
-          if ((m_blockA = m_streamA.request()) == NULL)
+          if ((m_blockA = m_streamA.request()) == nullptr)
           {
             m_streamA.close();
             m_streamA.open();
@@ -302,7 +499,7 @@ TBlock *ItHashJoin::State::Request()
               break;
             }
 
-            if ((m_blockA = m_streamA.request()) == NULL)
+            if ((m_blockA = m_streamA.request()) == nullptr)
             {
               break;
             }
@@ -313,18 +510,29 @@ TBlock *ItHashJoin::State::Request()
         while (!m_blockAIterator.IsValid());
       }
 
-      if (m_blockA == NULL || m_blocksB.empty())
+      if (m_blockA == nullptr || m_blocksB.empty())
       {
         break;
       }
 
-      m_mapResult = m_map.Get(m_blockAIterator.GetAttribute(m_joinIndexA));
+      const TBlockEntry &tuple = m_blockAIterator.Get();
+
+      m_mapResult = m_map.Get(tuple[m_joinIndexA]);
 
       if (m_mapResult.IsValid())
       {
-        for (size_t i = 0; i < blockAColumnCount; ++i)
+        for (size_t i = 0; i < columnCountA; ++i)
         {
-          m_tuple[i] = m_blockAIterator.GetAttribute(i);
+          if (project)
+          {
+            const IndexProjection &projection = m_projectionsA[i];
+
+            m_tuple[projection.projection] = tuple[projection.index];
+          }
+          else
+          {
+            m_tuple[i] = tuple[i];
+          }
         }
 
         break;
@@ -336,11 +544,20 @@ TBlock *ItHashJoin::State::Request()
       break;
     }
 
-    const BlockTuple tupleB = m_mapResult.GetValue();
+    const TBlockEntry tupleB = m_mapResult.GetValue();
 
-    for (size_t i = 0; i < blockBColumnCount; ++i)
+    for (size_t i = 0; i < columnCountB; ++i)
     {
-      m_tuple[blockAColumnCount + i] = tupleB[i];
+      if (project)
+      {
+        const IndexProjection &projection = m_projectionsB[i];
+
+        m_tuple[projection.projection] = tupleB[projection.index];
+      }
+      else
+      {
+        m_tuple[columnCountA + i] = tupleB[i];
+      }
     }
 
     block->Append(m_tuple);
@@ -352,18 +569,21 @@ TBlock *ItHashJoin::State::Request()
   return block;
 }
 
-size_t ItHashJoin::State::HashKey(const ArrayAttribute &attribute)
+template<bool project>
+size_t ItHashJoin::State<project>::HashKey(const AttrArrayEntry &entry)
 {
-  return attribute.GetHash();
+  return entry.GetHash();
 }
 
-int ItHashJoin::State::CompareKey(const ArrayAttribute &a,
-                                  const ArrayAttribute &b)
+template<bool project>
+bool ItHashJoin::State<project>::CompareKey(const AttrArrayEntry &a,
+                                            const AttrArrayEntry &b)
 {
-  return a.Compare(b);
+  return a == b;
 }
 
-bool ItHashJoin::State::ProceedStreamB()
+template<bool project>
+bool ItHashJoin::State<project>::ProceedStreamB()
 {
   m_map.Clear();
 
@@ -376,13 +596,14 @@ bool ItHashJoin::State::ProceedStreamB()
 
   if (!m_isBExhausted)
   {
-    size_t size = 0;
+    size_t size = 0,
+      lastBlockSize = 0;
 
-    while (size < m_memLimit)
+    do
     {
       TBlock *block = m_streamB.request();
 
-      if (block == NULL)
+      if (block == nullptr)
       {
         m_isBExhausted = true;
         break;
@@ -391,14 +612,17 @@ bool ItHashJoin::State::ProceedStreamB()
       {
         m_blocksB.push_back(block);
 
-        for (const BlockTuple &tuple : *block)
+        for (const TBlockEntry &tuple : *block)
         {
           m_map.Add(tuple[m_joinIndexB], tuple);
         }
 
-        size += block->GetSize();
+        lastBlockSize = block->GetSize();
+
+        size += lastBlockSize;
       }
     }
+    while (size + m_map.GetSize() + lastBlockSize < m_memLimit);
   }
 
   return !m_blocksB.empty();

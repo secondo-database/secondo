@@ -25,26 +25,30 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ItSpatialJoin.h"
 
 #include <cstddef>
-#include <exception>
+#include "ListExprUtils.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
+#include "Project.h"
 #include "QueryProcessor.h"
 #include "RectangleAlgebra.h"
 #include <set>
 #include "SpatialAttrArray.h"
 #include "StandardTypes.h"
 #include "StreamValueMapping.h"
+#include "StringUtils.h"
 #include <string>
 #include "Symbols.h"
-#include "TBlockTI.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
-using std::exception;
+using listutils::isStream;
 using std::set;
 using std::string;
-using std::unique_ptr;
+using std::vector;
+using stringutils::any2str;
 using mmrtree::RtreeT;
 
 extern NestedList *nl;
@@ -56,305 +60,521 @@ ItSpatialJoin::ItSpatialJoin() :
   Operator(info, valueMappings, SelectValueMapping, TypeMapping)
 {
   SetUsesArgsInTypeMapping();
+  SetUsesMemory();
 }
+
+const long ItSpatialJoin::defaultNodeMin = 4;
 
 const OperatorInfo ItSpatialJoin::info = OperatorInfo(
   "itSpatialJoin",
-  "",
-  "",
-  "",
-  "");
+  "stream(tblock(ma, ((na0, ca0) ... (nai, cai)))) x "
+  "stream(tblock(mb, ((nb0, cb0) ... (nbi, cbi)))) x "
+  "jna x jnb x (pn0 ... pni) x nmin x nmax x ml x bs "
+  "-> stream(tblock(bs, ((pn0 c0) ... (pni ci)))) with:\n\n"
+
+  "jna / jnb: symbol. the column names from block type a / b to join on. "
+  "(jna, c) || (jnb, c) => c is of kind SPATIALATTRARRAY1D ... "
+  "SPATIALATTRARRAY8D\n\n"
+
+  "(pn0 ... pni): symbol(s). optional. column names to project the result on."
+  "omiting -> (na0 ... nai, nb0 ... nbi).\n\n"
+
+  "nmin: int. optional. min number of entries within the nodes of the used "
+  "rtree. omitting -> 4.\n\n"
+
+  "nmin: int. optional. max number of entries within the nodes of the used "
+  "rtree. omitting -> 2 * nmin.\n\n"
+
+  "ml: int. optional. main memory limit for this operator in MiB. omitting -> "
+  "provided by Secondo.\n\n"
+
+  "bs: int. optional. block size. omitting -> ma",
+  "_ _ itSpatialJoin[_, _, [list], _, _, _, _]",
+  "Executes a iterative spatial join algorithm over two streams of tuple "
+  "blocks using an rtree index. The second stream arument will be used for "
+  "index creation and should contain less entries than the first one. "
+  "Optionally the resulting tuple blocks can be projected on a selected subset "
+  "of columns. This avoids copying workload and is therefore recommended.", "");
 
 ValueMapping ItSpatialJoin::valueMappings[] =
 {
-  StreamValueMapping<State<2, 2>>,
-  StreamValueMapping<State<2, 3>>,
-  StreamValueMapping<State<3, 2>>,
-  StreamValueMapping<State<3, 3>>,
-  NULL
+  StreamValueMapping<State<1, 1, false>, CreateState<1, 1, false>>,
+  StreamValueMapping<State<1, 2, false>, CreateState<1, 2, false>>,
+  StreamValueMapping<State<1, 3, false>, CreateState<1, 3, false>>,
+  StreamValueMapping<State<1, 4, false>, CreateState<1, 4, false>>,
+  StreamValueMapping<State<1, 8, false>, CreateState<1, 8, false>>,
+
+  StreamValueMapping<State<2, 1, false>, CreateState<2, 1, false>>,
+  StreamValueMapping<State<2, 2, false>, CreateState<2, 2, false>>,
+  StreamValueMapping<State<2, 3, false>, CreateState<2, 3, false>>,
+  StreamValueMapping<State<2, 4, false>, CreateState<2, 4, false>>,
+  StreamValueMapping<State<2, 8, false>, CreateState<2, 8, false>>,
+
+  StreamValueMapping<State<3, 1, false>, CreateState<3, 1, false>>,
+  StreamValueMapping<State<3, 2, false>, CreateState<3, 2, false>>,
+  StreamValueMapping<State<3, 3, false>, CreateState<3, 3, false>>,
+  StreamValueMapping<State<3, 4, false>, CreateState<3, 4, false>>,
+  StreamValueMapping<State<3, 8, false>, CreateState<3, 8, false>>,
+
+  StreamValueMapping<State<4, 1, false>, CreateState<4, 1, false>>,
+  StreamValueMapping<State<4, 2, false>, CreateState<4, 2, false>>,
+  StreamValueMapping<State<4, 3, false>, CreateState<4, 3, false>>,
+  StreamValueMapping<State<4, 4, false>, CreateState<4, 4, false>>,
+  StreamValueMapping<State<4, 8, false>, CreateState<4, 8, false>>,
+
+  StreamValueMapping<State<8, 1, false>, CreateState<8, 1, false>>,
+  StreamValueMapping<State<8, 2, false>, CreateState<8, 2, false>>,
+  StreamValueMapping<State<8, 3, false>, CreateState<8, 3, false>>,
+  StreamValueMapping<State<8, 4, false>, CreateState<8, 4, false>>,
+  StreamValueMapping<State<8, 8, false>, CreateState<8, 8, false>>,
+
+  StreamValueMapping<State<1, 1, true>, CreateState<1, 1, true>>,
+  StreamValueMapping<State<1, 2, true>, CreateState<1, 2, true>>,
+  StreamValueMapping<State<1, 3, true>, CreateState<1, 3, true>>,
+  StreamValueMapping<State<1, 4, true>, CreateState<1, 4, true>>,
+  StreamValueMapping<State<1, 8, true>, CreateState<1, 8, true>>,
+
+  StreamValueMapping<State<2, 1, true>, CreateState<2, 1, true>>,
+  StreamValueMapping<State<2, 2, true>, CreateState<2, 2, true>>,
+  StreamValueMapping<State<2, 3, true>, CreateState<2, 3, true>>,
+  StreamValueMapping<State<2, 4, true>, CreateState<2, 4, true>>,
+  StreamValueMapping<State<2, 8, true>, CreateState<2, 8, true>>,
+
+  StreamValueMapping<State<3, 1, true>, CreateState<3, 1, true>>,
+  StreamValueMapping<State<3, 2, true>, CreateState<3, 2, true>>,
+  StreamValueMapping<State<3, 3, true>, CreateState<3, 3, true>>,
+  StreamValueMapping<State<3, 4, true>, CreateState<3, 4, true>>,
+  StreamValueMapping<State<3, 8, true>, CreateState<3, 8, true>>,
+
+  StreamValueMapping<State<4, 1, true>, CreateState<4, 1, true>>,
+  StreamValueMapping<State<4, 2, true>, CreateState<4, 2, true>>,
+  StreamValueMapping<State<4, 3, true>, CreateState<4, 3, true>>,
+  StreamValueMapping<State<4, 4, true>, CreateState<4, 4, true>>,
+  StreamValueMapping<State<4, 8, true>, CreateState<4, 8, true>>,
+
+  StreamValueMapping<State<8, 1, true>, CreateState<8, 1, true>>,
+  StreamValueMapping<State<8, 2, true>, CreateState<8, 2, true>>,
+  StreamValueMapping<State<8, 3, true>, CreateState<8, 3, true>>,
+  StreamValueMapping<State<8, 4, true>, CreateState<8, 4, true>>,
+  StreamValueMapping<State<8, 8, true>, CreateState<8, 8, true>>,
+  nullptr
 };
 
 ListExpr ItSpatialJoin::TypeMapping(ListExpr args)
 {
-  if (!nl->HasLength(args, 8))
+  const size_t argCount = nl->ListLength(args);
+
+  if (argCount < 4 || argCount > 9)
   {
-    return listutils::typeError("Expected eight arguments.");
+    return listutils::typeError("Expected four to nine arguments.");
   }
 
-  ListExpr stream = nl->First(nl->First(args));
+  //Check 'stream a' argument
 
-  if (!nl->HasLength(stream, 2) ||
-      !nl->IsEqual(nl->First(stream), Symbols::STREAM()))
+  string error;
+
+  TBlockTI blockAInfo = TBlockTI(false);
+
+  if (!IsBlockStream(nl->First(nl->First(args)), blockAInfo, error))
   {
-    return listutils::typeError("First argument isn't a stream.");
+    return GetTypeError(0, "stream a", error);
   }
 
-  ListExpr tblock = nl->Second(stream);
-  string typeError;
+  //Check 'stream b' argument
 
-  if (!TBlockTI::Check(tblock, typeError))
+  TBlockTI blockBInfo = TBlockTI(false);
+
+  if (!IsBlockStream(nl->First(nl->Second(args)), blockBInfo, error))
   {
-    return listutils::typeError("First argument isn't a stream of tblock: " +
-                                typeError);
+    return GetTypeError(1, "stream b", error);
   }
 
-  const TBlockTI blockAInfo(tblock);
+  //Check 'column-name a'
 
-  stream = nl->First(nl->Second(args));
+  string nameA;
 
-  if(!nl->HasLength(stream, 2) ||
-     !nl->IsEqual(nl->First(stream), Symbols::STREAM()))
+  if (!TryGetSymbolValue(nl->First(nl->Third(args)), nameA, error))
   {
-    return listutils::typeError("Second argument isn't a stream.");
+    return GetTypeError(2, "column-name a", error);
   }
 
-  tblock = nl->Second(stream);
+  size_t nameAIndex;
 
-  if (!TBlockTI::Check(tblock, typeError))
+  if (!GetIndexOfColumn(blockAInfo, nameA, nameAIndex))
   {
-    return listutils::typeError("Second argument isn't a stream of tblock: " +
-                                typeError);
+    return GetTypeError(2, "column-name a",
+                        "Colum named '" + nameA + "' not found.");
   }
 
-  const TBlockTI blockBInfo(tblock);
+  TypeConstructor *typeConstructorA =
+    GetTypeConstructor(blockAInfo.columnInfos[nameAIndex].type);
 
-  const ListExpr nameAExpr = nl->First(nl->Third(args));
-  if (!nl->IsNodeType(SymbolType, nameAExpr))
+  if (!typeConstructorA->MemberOf(Kind::SPATIALATTRARRAY1D()) &&
+      !typeConstructorA->MemberOf(Kind::SPATIALATTRARRAY2D()) &&
+      !typeConstructorA->MemberOf(Kind::SPATIALATTRARRAY3D()) &&
+      !typeConstructorA->MemberOf(Kind::SPATIALATTRARRAY4D()) &&
+      !typeConstructorA->MemberOf(Kind::SPATIALATTRARRAY8D()))
   {
-    return listutils::typeError("Third argument isn't a symbol.");
+    return GetTypeError(2, "column-name a",
+                        "Colum named '" + nameA + "' is not of kind "
+                        "SPATIALATTRARRAY1D, SPATIALATTRARRAY2D, "
+                        "SPATIALATTRARRAY3D, SPATIALATTRARRAY4D, or "
+                        "SPATIALATTRARRAY8D.");
   }
 
-  const string nameA = nl->SymbolValue(nameAExpr);
+  //Check 'column-name b'
 
-  const ListExpr nameBExpr = nl->First(nl->Fourth(args));
-  if (!nl->IsNodeType(SymbolType, nameBExpr))
+  string nameB;
+
+  if (!TryGetSymbolValue(nl->First(nl->Fourth(args)), nameB, error))
   {
-    return listutils::typeError("Fourth argument isn't a symbol.");
+    return GetTypeError(3, "column-name b", error);
   }
 
-  const string nameB = nl->SymbolValue(nameBExpr);
+  size_t nameBIndex;
 
-  set<string> attributeNames;
-
-  TBlockTI resultBlockInfo;
-
-  const size_t blockAAttributeCount = blockAInfo.attributeInfos.size();
-  size_t nameAIndex = blockAAttributeCount;
-
-  for (size_t i = 0; i < blockAAttributeCount; ++i)
+  if (!GetIndexOfColumn(blockBInfo, nameB, nameBIndex))
   {
-    if (!attributeNames.insert(blockAInfo.attributeInfos[i].name).second)
+    return GetTypeError(3, "column-name b",
+                        "Colum named '" + nameB + "' not found.");
+  }
+
+  TypeConstructor *typeConstructorB =
+    GetTypeConstructor(blockBInfo.columnInfos[nameBIndex].type);
+
+  if (!typeConstructorB->MemberOf(Kind::SPATIALATTRARRAY1D()) &&
+      !typeConstructorA->MemberOf(Kind::SPATIALATTRARRAY2D()) &&
+      !typeConstructorA->MemberOf(Kind::SPATIALATTRARRAY3D()) &&
+      !typeConstructorA->MemberOf(Kind::SPATIALATTRARRAY4D()) &&
+      !typeConstructorA->MemberOf(Kind::SPATIALATTRARRAY8D()))
+  {
+    return GetTypeError(3, "column-name b",
+                        "Colum named '" + nameB + "' is not of kind "
+                        "SPATIALATTRARRAY1D, SPATIALATTRARRAY2D, "
+                        "SPATIALATTRARRAY3D, SPATIALATTRARRAY4D, or "
+                        "SPATIALATTRARRAY8D.");
+  }
+
+  //Initialize the result type from both block-types
+  //Check for duplicate column names
+
+  TBlockTI resultBlockInfo = TBlockTI(false);
+
+  set<string> columnNames;
+
+  for (const TBlockTI::ColumnInfo &columnInfo : blockAInfo.columnInfos)
+  {
+    columnNames.insert(columnInfo.name).second;
+
+    resultBlockInfo.columnInfos.push_back(columnInfo);
+  }
+
+  for (const TBlockTI::ColumnInfo &columnInfo : blockBInfo.columnInfos)
+  {
+    if (!columnNames.insert(columnInfo.name).second)
     {
-      return listutils::typeError("Not unique attribute name: " +
-                                  blockAInfo.attributeInfos[i].name);
+      return GetTypeError(1, "stream b", "Column name " + columnInfo.name +
+                          " allready exists in stream a.");
     }
 
-    resultBlockInfo.attributeInfos.push_back(blockAInfo.attributeInfos[i]);
+    resultBlockInfo.columnInfos.push_back(columnInfo);
+  }
 
-    if (nameAIndex == blockAAttributeCount &&
-        nameA == blockAInfo.attributeInfos[i].name)
+  //Check optional arguments
+
+  size_t argNo = 5;
+
+  ListExpr appendArgs = nl->TwoElemList(nl->IntAtom(nameAIndex),
+                                        nl->IntAtom(nameBIndex));
+
+  //Check 'projection' argument
+
+  if (argCount >= argNo)
+  {
+    Project::Info info(resultBlockInfo, nl->Second(nl->Nth(argNo, args)));
+
+    if (!info.HasError())
     {
-      nameAIndex = i;
+      resultBlockInfo = info.GetBlockTypeInfo();
+
+      appendArgs = nl->ThreeElemList(ToIntListExpr(info.GetIndices()),
+                                     nl->IntAtom(nameAIndex),
+                                     nl->IntAtom(nameBIndex));
+
+      ++argNo;
+    }
+    else
+    {
+      error = info.GetError();
+
+      if (argCount == 8)
+      {
+        return GetTypeError(argNo - 1, "projection", error);
+      }
     }
   }
 
-  if (nameAIndex == blockAAttributeCount)
+  //Check 'node min' argument
+
+  if (argCount >= argNo)
   {
-    return listutils::typeError("Third argument doesn't match any attribute "
-                                "name in the first argument's tblock.");
-  }
+    const ListExpr nodeMinExpr = nl->Nth(argNo, args);
 
-
-  ListExpr error;
-
-  //check attributeA type
-  const ListExpr typeExprA = blockAInfo.attributeInfos[nameAIndex].type;
-
-  if(!am->CheckKind(Kind::SPATIAL2D(), typeExprA,
-                    error = nl->OneElemList(nl->Empty())) &&
-     !am->CheckKind(Kind::SPATIAL3D(), typeExprA,
-                    error = nl->OneElemList(nl->Empty())))
-  {
-    return listutils::typeError("Attribute " + nameA + "is not of kind "
-                                "Spatial2D or Spatial3D");
-  }
-
-  const size_t blockBAttributeCount = blockBInfo.attributeInfos.size();
-  size_t nameBIndex = blockBAttributeCount;
-
-  for (size_t i = 0; i < blockBAttributeCount; ++i)
-  {
-    if (!attributeNames.insert(blockBInfo.attributeInfos[i].name).second)
+    if (!CcInt::checkType(nl->First(nodeMinExpr)))
     {
-      return listutils::typeError("Not unique attribute name: " +
-                                  blockBInfo.attributeInfos[i].name);
+      return GetTypeError(argNo - 1, "node min", "Not a int.");
     }
 
-    resultBlockInfo.attributeInfos.push_back(blockBInfo.attributeInfos[i]);
+    const long nodeMin = nl->IntValue(nl->Second(nodeMinExpr));
 
-    if (nameBIndex == blockBAttributeCount &&
-        nameB == blockBInfo.attributeInfos[i].name)
+    //Check 'node max' argument
+
+    if (argCount >= ++argNo)
     {
-      nameBIndex = i;
+      const ListExpr nodeMaxExpr = nl->Nth(argNo, args);
+
+      if (!CcInt::checkType(nl->First(nodeMaxExpr)))
+      {
+        return GetTypeError(argNo - 1, "node min", "Not a int.");
+      }
+
+      const long nodeMax = nl->IntValue(nl->Second(nodeMinExpr));
+
+      if (nodeMax > 0)
+      {
+        if (nodeMin > 0)
+        {
+          if (nodeMax < nodeMin)
+          {
+            return GetTypeError(argNo - 1, "node max", "Less than node min (" +
+                                any2str(nodeMin) + ").");
+          }
+        }
+        else
+        {
+          if (nodeMax < defaultNodeMin)
+          {
+            return GetTypeError(argNo - 1, "node max", "Less than default node "
+                                "min (" + any2str(defaultNodeMin) + ").");
+          }
+        }
+      }
+
+      ++argNo;
     }
   }
 
-  if (nameBIndex == blockBAttributeCount)
+  //Check 'memory limit' argument
+
+  if (argCount >= argNo)
   {
-    return listutils::typeError("Fourth argument doesn't match any attribute "
-                                "name in the second argument's tblock.");
+    if (!CcInt::checkType(nl->First(nl->Nth(argNo, args))))
+    {
+      return GetTypeError(argNo - 1, "memory limit", "Not a int.");
+    }
+
+    ++argNo;
   }
 
-  //check attributeB type
-  const ListExpr typeExprB = blockBInfo.attributeInfos[nameBIndex].type;
+  //Check 'block size' argument
 
-  if(!am->CheckKind(Kind::SPATIAL2D(), typeExprB,
-                    error = nl->OneElemList(nl->Empty())) &&
-     !am->CheckKind(Kind::SPATIAL3D(), typeExprB,
-                    error = nl->OneElemList(nl->Empty())))
+  resultBlockInfo.SetDesiredBlockSize(blockAInfo.GetDesiredBlockSize());
+
+  if (argCount >= argNo)
   {
-    return listutils::typeError("Attribute " + nameA + "is not of kind "
-                                "Spatial2D or Spatial3D");
+    const ListExpr arg = nl->Nth(argNo, args);
+
+    if (!CcInt::checkType(nl->First(arg)))
+    {
+      return GetTypeError(argNo - 1, "block size", "Not a int.");
+    }
+
+    const long blockSize = nl->IntValue(nl->Second(arg));
+
+    if (blockSize > 0)
+    {
+      resultBlockInfo.SetDesiredBlockSize(blockSize);
+    }
+
+    ++argNo;
   }
 
-  //Check nodeMin argument
-  const ListExpr nodeMinExpr = nl->Fifth(args);
-
-  if (!CcInt::checkType(nl->First(nodeMinExpr)))
-  {
-    return listutils::typeError("Fifth argument (node min) isn't an int.");
-  }
-
-  const int nodeMin = nl->IntValue(nl->Second(nodeMinExpr));
-
-  if (nodeMin < 1)
-  {
-    return listutils::typeError("Fifth argument (node min) isn't >= 1.");
-  }
-
-  //Check nodeMax argument
-
-  const ListExpr nodeMaxExpr = nl->Sixth(args);
-
-  if (!CcInt::checkType(nl->First(nodeMaxExpr)))
-  {
-    return listutils::typeError("Sixth argument (node max) isn't an int.");
-  }
-
-  const int nodeMax = nl->IntValue(nl->Second(nodeMaxExpr));
-
-  if (nodeMax < 2 || nodeMax < nodeMin)
-  {
-    return listutils::typeError("Sixth argument (node max) "
-                                "isn't >= 2 && >= node min.");
-  }
-
-  //Check memLimit argument
-
-  const ListExpr memLimitExpr = nl->Seventh(args);
-
-  if (!CcInt::checkType(nl->First(memLimitExpr)))
-  {
-    return listutils::typeError("Seventh argument (mem limit) isn't an int.");
-  }
-
-  const ListExpr blockSizeExpr = nl->Eigth(args);
-
-  if (!CcInt::checkType(nl->First(blockSizeExpr)))
-  {
-    return listutils::typeError("Eigth argument (block size) isn't an int.");
-  }
-
-  //---
-
-  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                           nl->TwoElemList(nl->IntAtom(nameAIndex),
-                                           nl->IntAtom(nameBIndex)),
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()), appendArgs,
                            nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                           resultBlockInfo.GetTypeInfo()));
+                                           resultBlockInfo.GetTypeExpr()));
 }
 
 int ItSpatialJoin::SelectValueMapping(ListExpr args)
 {
-  int result = 0;
+  const vector<string> kinds = { Kind::SPATIALATTRARRAY1D(),
+                                 Kind::SPATIALATTRARRAY2D(),
+                                 Kind::SPATIALATTRARRAY3D(),
+                                 Kind::SPATIALATTRARRAY4D(),
+                                 Kind::SPATIALATTRARRAY8D() };
 
-  const TBlockTI blockAInfo(nl->Second(nl->First(args))),
-    blockBInfo(nl->Second(nl->Second(args)));
+  int result = nl->HasMinLength(args, 5) && !CcInt::checkType(nl->Fifth(args)) ?
+    25 : 0;
 
-  const string nameA = nl->SymbolValue(nl->Third(args)),
-    nameB = nl->SymbolValue(nl->Fourth(args));
-
-  const size_t blockAAttributeCount = blockAInfo.attributeInfos.size();
-  for (size_t i = 0; i < blockAAttributeCount; ++i)
+  for (char i = 0; i < 2; ++i)
   {
-    if (nameA == blockAInfo.attributeInfos[i].name)
+    const TBlockTI blockInfo = TBlockTI(GetStreamType(nl->Nth(1 + i, args)),
+                                        false);
+
+    size_t nameIndex;
+
+    GetIndexOfColumn(blockInfo, nl->SymbolValue(nl->Nth(3 + i, args)),
+                     nameIndex);
+
+    TypeConstructor *typeConstructor =
+      GetTypeConstructor(blockInfo.columnInfos[nameIndex].type);
+
+    const size_t inc = i == 0 ? 5 : 1;
+
+    for (const string &kind : kinds)
     {
-      const ListExpr typeExprA = blockAInfo.attributeInfos[i].type;
-      ListExpr error = nl->Empty();
-
-      if(am->CheckKind(Kind::SPATIAL2D(), typeExprA, error))
+      if (typeConstructor->MemberOf(kind))
       {
-        result = 0;
-      }
-      else
-      {
-        result = 2;
+        break;
       }
 
-      break;
+      result += inc;
     }
   }
 
-  const size_t blockBAttributeCount = blockBInfo.attributeInfos.size();
-  for (size_t i = 0; i < blockBAttributeCount; ++i)
-  {
-    if (nameB == blockBInfo.attributeInfos[i].name)
-    {
-      const ListExpr typeExprB = blockBInfo.attributeInfos[i].type;
-      ListExpr error = nl->Empty();
+  return result;
+}
 
-      if(am->CheckKind(Kind::SPATIAL2D(), typeExprB, error))
+template<int dimA, int dimB, bool project>
+ItSpatialJoin::State<dimA, dimB, project> *ItSpatialJoin::CreateState(
+  ArgVector args, Supplier s)
+{
+  const size_t argCount = qp->GetNoSons(s);
+
+  Supplier streamA = args[0].addr,
+    streamB = args[1].addr;
+
+  size_t joinIndexA = ((CcInt*)args[argCount - 2].addr)->GetValue(),
+    joinIndexB = ((CcInt*)args[argCount - 1].addr)->GetValue();
+
+  const TBlockTI blockTypeInfo = TBlockTI(qp->GetType(s), false);
+
+  size_t columnCountA =
+    TBlockTI(qp->GetType(streamA), false).columnInfos.size(),
+    columnCountB = TBlockTI(qp->GetType(streamB), false).columnInfos.size();
+
+  IndexProjection *projectionsA,
+    *projectionsB;
+
+  long nodeMin,
+    nodeMax,
+    memLimit;
+
+  if (project)
+  {
+    nodeMin = argCount > 8 ? ((CcInt*)args[5].addr)->GetValue() : 0;
+
+    nodeMax = argCount > 9 ? ((CcInt*)args[6].addr)->GetValue() : 0;
+
+    memLimit = (argCount > 10 ? ((CcInt*)args[7].addr)->GetValue() : 0) *
+               1024 * 1024;
+
+    vector<IndexProjection> tmpProjectionsA,
+      tmpProjectionsB;
+
+    size_t index = 0;
+
+    for (const Word &subArg : GetSubArgvector(args[argCount - 3].addr))
+    {
+      const size_t projectedIndex = ((CcInt*)subArg.addr)->GetValue();
+
+      if (projectedIndex < columnCountA)
       {
-        return result;
+        tmpProjectionsA.push_back(IndexProjection(projectedIndex, index));
       }
       else
       {
-        return result + 1;
+        tmpProjectionsB.push_back(IndexProjection(projectedIndex - columnCountA,
+                                                  index));
       }
+
+      ++index;
     }
+
+    columnCountA = tmpProjectionsA.size();
+    columnCountB = tmpProjectionsB.size();
+
+    projectionsA = new IndexProjection[columnCountA];
+    projectionsB = new IndexProjection[columnCountB];
+
+    copy(tmpProjectionsA.begin(), tmpProjectionsA.end(), projectionsA);
+    copy(tmpProjectionsB.begin(), tmpProjectionsB.end(), projectionsB);
+  }
+  else
+  {
+    nodeMin = argCount > 6 ? ((CcInt*)args[4].addr)->GetValue() : 0;
+
+    nodeMax = argCount > 7 ? ((CcInt*)args[5].addr)->GetValue() : 0;
+
+    memLimit = (argCount > 8 ? ((CcInt*)args[6].addr)->GetValue() : 0) *
+               1024 * 1024;
+
+    projectionsA = nullptr;
+    projectionsB = nullptr;
   }
 
-  return -1;
+  if (nodeMin <= 0)
+  {
+    nodeMin = defaultNodeMin;
+  }
+
+  if (nodeMax <= 0)
+  {
+    nodeMax = nodeMin * 2;
+  }
+
+  if (memLimit <= 0)
+  {
+    memLimit = qp->GetMemorySize(s) * 1024 * 1024;
+  }
+
+  return new State<dimA, dimB, project>(streamA, streamB, joinIndexA,
+                                        joinIndexB, columnCountA, columnCountB,
+                                        projectionsA, projectionsB, nodeMin,
+                                        nodeMax, memLimit, blockTypeInfo);
 }
 
 //ItSpatialJoin::State----------------------------------------------------------
 
-template<int dimA, int dimB>
-ItSpatialJoin::State<dimA, dimB>::State(ArgVector args, Supplier s) :
-  m_joinIndexA(((CcInt*)args[8].addr)->GetValue()),
-  m_joinIndexB(((CcInt*)args[9].addr)->GetValue()),
-  m_memLimit(((CcInt*)args[6].addr)->GetValue()),
-  m_blockSize(((CcInt*)args[7].addr)->GetValue()),
-  m_map(((CcInt*)args[4].addr)->GetValue(), ((CcInt*)args[5].addr)->GetValue()),
-  m_blockA(NULL),
+template<int dimA, int dimB, bool project>
+ItSpatialJoin::State<dimA, dimB, project>::State(
+  Supplier streamA, Supplier streamB, size_t joinIndexA, size_t joinIndexB,
+  size_t columnCountA, size_t columnCountB, IndexProjection *projectionsA,
+  IndexProjection *projectionsB, size_t nodeMin, size_t nodeMax,
+  size_t memLimit, const TBlockTI &blockTypeInfo) :
+  m_joinIndexA(joinIndexA),
+  m_joinIndexB(joinIndexB),
+  m_columnCountA(columnCountA),
+  m_columnCountB(columnCountB),
+  m_memLimit(memLimit),
+  m_blockSize(blockTypeInfo.GetDesiredBlockSize() * TBlockTI::blockSizeFactor),
+  m_map(nodeMin, nodeMax),
+  m_blockA(nullptr),
   m_isBExhausted(false),
-  m_streamA(args[0]),
-  m_streamB(args[1])
+  m_streamA(streamA),
+  m_streamB(streamB),
+  m_blockInfo(blockTypeInfo.GetBlockInfo()),
+  m_tuple(new AttrArrayEntry[blockTypeInfo.columnInfos.size()]),
+  m_projectionsA(projectionsA),
+  m_projectionsB(projectionsB)
 {
-  qp->DeleteResultStorage(s);
-
-  m_blockInfo = TBlockTI(qp->GetType(s)).GetBlockInfo();
-
-  m_tuple.reset(new ArrayAttribute[m_blockInfo->columnCount]);
-
   m_streamA.open();
   m_streamB.open();
 }
 
-template<int dimA, int dimB>
-ItSpatialJoin::State<dimA, dimB>::~State()
+template<int dimA, int dimB, bool project>
+ItSpatialJoin::State<dimA, dimB, project>::~State()
 {
-  if (m_blockA != NULL)
+  if (m_blockA != nullptr)
   {
     m_blockA->DecRef();
   }
@@ -364,28 +584,43 @@ ItSpatialJoin::State<dimA, dimB>::~State()
     block->DecRef();
   }
 
+  delete[] m_tuple;
+
+  if (m_projectionsA != nullptr)
+  {
+    delete[] m_projectionsA;
+  }
+
+  if (m_projectionsB != nullptr)
+  {
+    delete[] m_projectionsB;
+  }
+
   m_streamA.close();
   m_streamB.close();
 }
 
-template<int dimA, int dimB>
-TBlock *ItSpatialJoin::State<dimA, dimB>::Request()
+template<int dimA, int dimB, bool project>
+TBlock *ItSpatialJoin::State<dimA, dimB, project>::Request()
 {
   if (m_blocksB.empty() && !ProceedStreamB())
   {
-    return NULL;
+    return nullptr;
   }
 
-  if (m_blockA == NULL)
+  const size_t columnCountA = m_columnCountA,
+    columnCountB = m_columnCountB;
+
+  if (m_blockA == nullptr)
   {
-    if ((m_blockA = m_streamA.request()) == NULL)
+    if ((m_blockA = m_streamA.request()) == nullptr)
     {
       m_streamA.close();
       m_streamA.open();
 
-      if ((m_blockA = m_streamA.request()) == NULL || !ProceedStreamB())
+      if ((m_blockA = m_streamA.request()) == nullptr || !ProceedStreamB())
       {
-        return NULL;
+        return nullptr;
       }
     }
 
@@ -393,27 +628,35 @@ TBlock *ItSpatialJoin::State<dimA, dimB>::Request()
 
     if (m_blockAIterator.IsValid())
     {
-      SpatialArrayAttribute<dimA> attribute =
-        m_blockAIterator.GetAttribute(m_joinIndexA);
+      const TBlockEntry &tuple = m_blockAIterator.Get();
+
+      SpatialAttrArrayEntry<dimA> attribute = tuple[m_joinIndexA];
 
       Rectangle<dimA> bbox = attribute.GetBoundingBox();
 
       if (minDim != dimA)
       {
-        m_pendingMapResult = m_map.find(bbox. template project<minDim>());
+        m_mapResult = m_map.find(bbox. template project<minDim>());
       }
       else
       {
-        m_pendingMapResult = m_map.find(*(Rectangle<minDim>*)&bbox);
+        m_mapResult = m_map.find(*(Rectangle<minDim>*)&bbox);
       }
 
-      if (m_pendingMapResult.IsValid())
+      if (m_mapResult.IsValid())
       {
-        const size_t columnCount = m_blockA->GetColumnCount();
-
-        for (size_t i = 0; i < columnCount; ++i)
+        for (size_t i = 0; i < columnCountA; ++i)
         {
-          m_tuple[i] = m_blockAIterator.GetAttribute(i);
+          if (project)
+          {
+            const IndexProjection &projection = m_projectionsA[i];
+
+            m_tuple[projection.projection] = tuple[projection.index];
+          }
+          else
+          {
+            m_tuple[i] = tuple[i];
+          }
         }
       }
     }
@@ -421,12 +664,9 @@ TBlock *ItSpatialJoin::State<dimA, dimB>::Request()
 
   TBlock *block = new TBlock(m_blockInfo, 0, 0);
 
-  const size_t blockAColumnCount = m_blockA->GetColumnCount(),
-    blockBColumnCount = m_blocksB[0]->GetColumnCount();
-
   do
   {
-    while (!m_pendingMapResult.IsValid())
+    while (!m_mapResult.IsValid())
     {
       if (!m_blockAIterator.IsValid() || !m_blockAIterator.MoveToNext())
       {
@@ -434,7 +674,7 @@ TBlock *ItSpatialJoin::State<dimA, dimB>::Request()
         {
           m_blockA->DecRef();
 
-          if ((m_blockA = m_streamA.request()) == NULL)
+          if ((m_blockA = m_streamA.request()) == nullptr)
           {
             m_streamA.close();
             m_streamA.open();
@@ -444,7 +684,7 @@ TBlock *ItSpatialJoin::State<dimA, dimB>::Request()
               break;
             }
 
-            if ((m_blockA = m_streamA.request()) == NULL)
+            if ((m_blockA = m_streamA.request()) == nullptr)
             {
               break;
             }
@@ -455,59 +695,78 @@ TBlock *ItSpatialJoin::State<dimA, dimB>::Request()
         while (!m_blockAIterator.IsValid());
       }
 
-      if (m_blockA == NULL || m_blocksB.empty())
+      if (m_blockA == nullptr || m_blocksB.empty())
       {
         break;
       }
 
-      SpatialArrayAttribute<dimA> attribute =
-        m_blockAIterator.GetAttribute(m_joinIndexA);
+      const TBlockEntry &tuple = m_blockAIterator.Get();
+
+      SpatialAttrArrayEntry<dimA> attribute = tuple[m_joinIndexA];
 
       Rectangle<dimA> bbox = attribute.GetBoundingBox();
 
       if (minDim != dimA)
       {
-        m_pendingMapResult = m_map.find(bbox. template project<minDim>());
+        m_mapResult = m_map.find(bbox. template project<minDim>());
       }
       else
       {
-        m_pendingMapResult = m_map.find(*(Rectangle<minDim>*)&bbox);
+        m_mapResult = m_map.find(*(Rectangle<minDim>*)&bbox);
       }
 
-      if (m_pendingMapResult.IsValid())
+      if (m_mapResult.IsValid())
       {
-        for (size_t i = 0; i < blockAColumnCount; ++i)
+        for (size_t i = 0; i < columnCountA; ++i)
         {
-          m_tuple[i] = m_blockAIterator.GetAttribute(i);
+          if (project)
+          {
+            const IndexProjection &projection = m_projectionsA[i];
+
+            m_tuple[projection.projection] = tuple[projection.index];
+          }
+          else
+          {
+            m_tuple[i] = tuple[i];
+          }
         }
 
         break;
       }
     }
 
-    if (!m_pendingMapResult.IsValid())
+    if (!m_mapResult.IsValid())
     {
       break;
     }
 
-    const MapEntry entry = m_pendingMapResult.GetValue();
+    const MapEntry tupleB = m_mapResult.GetValue();
 
-    for (size_t i = 0; i < blockBColumnCount; ++i)
+    for (size_t i = 0; i < columnCountB; ++i)
     {
-      m_tuple[blockAColumnCount + i] = entry[i];
+      if (project)
+      {
+        const IndexProjection &projection = m_projectionsB[i];
+
+        m_tuple[projection.projection] = tupleB[projection.index];
+      }
+      else
+      {
+        m_tuple[columnCountA + i] = tupleB[i];
+      }
     }
 
-    block->Append(m_tuple.get());
+    block->Append(m_tuple);
 
-    m_pendingMapResult.MoveToNext();
+    m_mapResult.MoveToNext();
   }
   while (block->GetSize() < m_blockSize);
 
   return block;
 }
 
-template<int dimA, int dimB>
-bool ItSpatialJoin::State<dimA, dimB>::ProceedStreamB()
+template<int dimA, int dimB, bool project>
+bool ItSpatialJoin::State<dimA, dimB, project>::ProceedStreamB()
 {
   m_map = RtreeT<minDim, MapEntry>(4, 8);
 
@@ -520,24 +779,29 @@ bool ItSpatialJoin::State<dimA, dimB>::ProceedStreamB()
 
   if (!m_isBExhausted)
   {
-    size_t size = 0;
+    size_t size = 0,
+      rowCount = 0,
+      lastBlockSize = 0;
 
-    while (size < m_memLimit)
+    do
     {
       TBlock *block = m_streamB.request();
 
-      if (block == NULL)
+      if (block == nullptr)
       {
         m_isBExhausted = true;
         break;
       }
       else
       {
+        size += block->GetSize();
+        rowCount += block->GetRowCount();
+
         m_blocksB.push_back(block);
 
-        for (const BlockTuple &tuple : *block)
+        for (const TBlockEntry &tuple : *block)
         {
-          const SpatialArrayAttribute<dimB> attribute = tuple[m_joinIndexB];
+          const SpatialAttrArrayEntry<dimB> attribute = tuple[m_joinIndexB];
           Rectangle<dimB> bbox = attribute.GetBoundingBox();
 
           if (minDim != dimB)
@@ -550,88 +814,96 @@ bool ItSpatialJoin::State<dimA, dimB>::ProceedStreamB()
           }
         }
 
-        size += block->GetSize();
+        lastBlockSize = block->GetSize();
+
+        size += lastBlockSize;
       }
     }
+    while (size + m_map.guessSize(rowCount, true) + lastBlockSize < m_memLimit);
   }
 
   return !m_blocksB.empty();
 }
 
-template<int dimA, int dimB>
-ItSpatialJoin::State<dimA, dimB>::MapEntry::MapEntry(int)
+template<int dimA, int dimB, bool project>
+ItSpatialJoin::State<dimA, dimB, project>::MapEntry::MapEntry(int)
 {
 }
 
-template<int dimA, int dimB>
-ItSpatialJoin::State<dimA, dimB>::MapEntry::MapEntry(const BlockTuple &tuple) :
-BlockTuple(tuple)
+template<int dimA, int dimB, bool project>
+ItSpatialJoin::State<dimA, dimB, project>::MapEntry::MapEntry(
+  const TBlockEntry &tuple) :
+  TBlockEntry(tuple)
 {
 }
 
-template<int dimA, int dimB>
-ItSpatialJoin::State<dimA, dimB>::MapResultIterator::MapResultIterator() :
-  m_iterator(NULL),
-  m_current(NULL)
+template<int dimA, int dimB, bool project>
+ItSpatialJoin::State<dimA, dimB, project>::MapResultIterator::
+MapResultIterator() :
+  m_iterator(nullptr),
+  m_current(nullptr)
 {
 }
 
-template<int dimA, int dimB>
-ItSpatialJoin::State<dimA, dimB>::MapResultIterator::MapResultIterator(
+template<int dimA, int dimB, bool project>
+ItSpatialJoin::State<dimA, dimB, project>::MapResultIterator::
+MapResultIterator(
   typename mmrtree::RtreeT<minDim, MapEntry>::iterator* iterator) :
   m_iterator(iterator),
   m_current(iterator->next())
 {
 }
 
-template<int dimA, int dimB>
-ItSpatialJoin::State<dimA, dimB>::MapResultIterator::~MapResultIterator()
+template<int dimA, int dimB, bool project>
+ItSpatialJoin::State<dimA, dimB, project>::MapResultIterator::
+~MapResultIterator()
 {
-  if (m_iterator != NULL)
+  if (m_iterator != nullptr)
   {
     delete m_iterator;
   }
 }
 
-template<int dimA, int dimB>
-bool ItSpatialJoin::State<dimA, dimB>::MapResultIterator::IsValid() const
+template<int dimA, int dimB, bool project>
+bool ItSpatialJoin::State<dimA, dimB, project>::MapResultIterator::IsValid()
+  const
 {
-  return m_current != NULL;
+  return m_current != nullptr;
 }
 
-template<int dimA, int dimB>
-bool ItSpatialJoin::State<dimA, dimB>::MapResultIterator::MoveToNext()
+template<int dimA, int dimB, bool project>
+bool ItSpatialJoin::State<dimA, dimB, project>::MapResultIterator::MoveToNext()
 {
-  if (m_current != NULL)
+  if (m_current != nullptr)
   {
     m_current = m_iterator->next();
 
-    return m_current != NULL;
+    return m_current != nullptr;
   }
 
   return false;
 }
 
-template<int dimA, int dimB>
-const typename ItSpatialJoin::State<dimA, dimB>::MapEntry&
-ItSpatialJoin::State<dimA, dimB>::MapResultIterator::GetValue() const
+template<int dimA, int dimB, bool project>
+const typename ItSpatialJoin::State<dimA, dimB, project>::MapEntry&
+ItSpatialJoin::State<dimA, dimB, project>::MapResultIterator::GetValue() const
 {
   return *m_current;
 }
 
-template<int dimA, int dimB>
-typename ItSpatialJoin::State<dimA, dimB>::MapResultIterator &
-ItSpatialJoin::State<dimA, dimB>::MapResultIterator::operator=(
+template<int dimA, int dimB, bool project>
+typename ItSpatialJoin::State<dimA, dimB, project>::MapResultIterator &
+ItSpatialJoin::State<dimA, dimB, project>::MapResultIterator::operator=(
   typename mmrtree::RtreeT<minDim, MapEntry>::iterator* iterator)
 {
-  if (m_iterator != NULL)
+  if (m_iterator != nullptr)
   {
     delete m_iterator;
   }
 
   m_iterator = iterator;
 
-  m_current = m_iterator != NULL ? m_iterator->next() : NULL;
+  m_current = m_iterator != nullptr ? m_iterator->next() : nullptr;
 
   return *this;
 }

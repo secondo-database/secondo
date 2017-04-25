@@ -1,98 +1,122 @@
 Database : berlintest
-Restore  : No
-
-Operator : ap
-Number   : 1
-Signature: tblock(m, (A)) x Ai -> attrblock(m, Ai)
-Example  : query attr([const tblock([1, [No: int]]) value ((0))], No)
-Result   : (0)
-
-Operator : attr
-Number   : 2
-Signature: tblock(m, (A)) x Ai -> attrblock(m, Ai)
-Example  : query attr([const tblock([1, [No: int]]) value ((0))], No)
-Result   : (0)
-
-Operator : feed
-Number   : 3
-Signature: crel(c, m, (A)) -> stream(tblock(m, (A)))
-Example  : query [const crel([1, 1, [No: int]]) value ((0))] feed 1 cconsume
-Result   : ((0))
-
-Operator : feedproject
-Number   : 4
-Signature: crel(c, m, (A)) -> stream(tblock(m, (A)))
-Example  : query [const crel([1, 1, [No: int]]) value ((0))] feed 1 cconsume
-Result   : ((0))
-
-Operator : cconsume
-Number   : 5
-Signature: stream(tblock(m, (A))) -> crel(1, m, (A))
-Example  : query [const crel([1, 1, [No: int]]) value ((0))] feed 1 cconsume
-Result   : ((0))
-
-Operator : filter
-Number   : 6
-Signature: crel(c, m, (A)) -> stream(tblock(m, (A)))
-Example  : query [const crel([1, 1, [No: int]]) value ((0))] feed 1 cconsume
-Result   : ((0))
-
-Operator : rename
-Number   : 7
-Signature: crel(c, m, (A)) -> stream(tblock(m, (A)))
-Example  : query [const crel([1, 1, [No: int]]) value ((0))] feed 1 cconsume
-Result   : ((0))
-
-Operator : itHashJoin
-Number   : 8
-Signature: crel(c, m, (A)) -> stream(tblock(m, (A)))
-Example  : query [const crel([1, 1, [No: int]]) value ((0))] feed 1 cconsume
-Result   : ((0))
-
-Operator : repeat
-Number   : 9
-Signature: DATA -> stream(DATA)
-Example  : query repeat("Test", 2) transformstream consume
-Result   : (("Test")("Test"))
-
-Operator : test
-Number   : 9
-Signature: DATA -> stream(DATA)
-Example  : query repeat("Test", 2) transformstream consume
-Result   : (("Test")("Test"))
-
-Operator : count
-Number   : 10
-Signature: DATA -> stream(DATA)
-Example  : query repeat("Test", 2) transformstream consume
-Result   : (("Test")("Test"))
-
-Operator : blockCount
-Number   : 10
-Signature: DATA -> stream(DATA)
-Example  : query repeat("Test", 2) transformstream consume
-Result   : (("Test")("Test"))
-
-Operator : itSpatialJoin
-Number   : 10
-Signature: DATA -> stream(DATA)
-Example  : query repeat("Test", 2) transformstream consume
-Result   : (("Test")("Test"))
+Restore  : Yes
 
 Operator : and
-Number   : 10
-Signature: DATA -> stream(DATA)
-Example  : query repeat("Test", 2) transformstream consume
-Result   : (("Test")("Test"))
+Number   : 0
+Signature: longints x longints -> longints
+Example  : query cplz feed filter[(.PLZ = 0) and (.PLZ = 0)] count
+Result   : 0
 
-Operator : or
-Number   : 10
-Signature: DATA -> stream(DATA)
-Example  : query repeat("Test", 2) transformstream consume
-Result   : (("Test")("Test"))
+Operator : apply
+Number   : 0
+Signature: ATTRARRAY x (map DATA bool) -> longints
+Example  : query cplz feed filter[.Ort apply[. contains("s")]] count
+Result   : 14228
+
+Operator : attr
+Number   : 0
+Signature: tblock x symbol -> ATTRARRAY
+Example  : query cplz feed filter[attr(., PLZ) = 0] count
+Result   : 0
+
+Operator : blockcount
+Number   : 0
+Signature: stream tblock -> int
+Example  : query cplz feed blockcount
+Result   : 3
+
+Operator : cconsume
+Number   : 0
+Signature: stream(tuple | tblock) x (int | crel) -> crel
+Example  : query plz feed cconsume[1] count
+Result   : 41267
+
+Operator : cfilter
+Number   : 0
+Signature: stream(tblock) x (map tblock longints) x symbol x symbol* x int -> stream(tblock)
+Example  : query cplz feed cfilter[.PLZ = 0, [PLZ], 0] count
+Result   : 0
+
+Operator : consume
+Number   : 0
+Signature: stream(tblock) -> crel
+Example  : query cplz feed consume count
+Result   : 41267
+
+Operator : count
+Number   : 0
+Signature: crel | stream(tblock) | tblock -> longint
+Example  : query cplz count
+Result   : 41267
+
+Operator : feed
+Number   : 0
+Signature: crel -> stream(tblock)
+Example  : query cplz feed count
+Result   : 41267
+
+Operator : feedproject
+Number   : 0
+Signature: crel x symbol x symbol* -> stream tblock
+Example  : query cplz feedproject[PLZ] count
+Result   : 41267
+
+Operator : filter
+Number   : 0
+Signature: stream(tblock) x (map tblock longints) -> stream(tblock)
+Example  : query cplz feed filter[.PLZ = 0] count
+Result   : 0
+
+Operator : itHashJoin
+Number   : 0
+Signature: stream(tblock) x stream(tblock) x symbol x symbol x [symbol x symbol*] x int x int x int -> stream(tblock)
+Example  : query cplz feed {a} cplz feed {b} itHashJoin[PLZ_a, PLZ_b, [PLZ_a]] count
+Result   : 248793
+
+Operator : itSpatialJoin
+Number   : 0
+Signature: stream(tblock) x stream(tblock) x symbol x symbol x [symbol x symbol*] x int x int x int x int -> stream(tblock)
+Example  : query cstrassen feed {a} cstrassen feed {b} itSpatialJoin[GeoData_a, GeoData_b, [GeoData_a]] count
+Result   : 26492
 
 Operator : not
-Number   : 10
-Signature: DATA -> stream(DATA)
-Example  : query repeat("Test", 2) transformstream consume
-Result   : (("Test")("Test"))
+Number   : 0
+Signature: longint x longints -> longints
+Example  : query cplz feed filter[not(. count, .PLZ = 0)] count
+Result   : 41267
+
+Operator : or
+Number   : 0
+Signature: longints x longints -> longints
+Example  : query cplz feed filter[(.PLZ = 0) or (.PLZ = 0)] count
+Result   : 0
+
+Operator : project
+Number   : 0
+Signature: stream(tblock) x symbol x symbol* -> stream(tblock)
+Example  : query cplz feed project[PLZ] count
+Result   : 41267
+
+Operator : rename
+Number   : 0
+Signature: stream(tblock) x symbol -> stream(tblock)
+Example  : query cplz feed rename[a] filter[.PLZ_a = 0] count
+Result   : 0
+
+Operator : repeat
+Number   : 1
+Signature: stream(T) x int -> stream(T)
+Example  : query repeat(repeat("Test" feed, 2), 2) count
+Result   : 4
+
+Operator : transformstream
+Number   : 0
+Signature: stream(tblock) -> stream(tuple)
+Example  : query cplz feed transformstream consume feed count
+Result   : 41267
+
+Operator : =
+Number   : 0
+Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
+Example  : query cplz feed filter[.PLZ = 0] count
+Result   : 0

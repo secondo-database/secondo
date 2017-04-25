@@ -25,13 +25,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attr.h"
 
 #include "AttrArray.h"
-#include "AttrArrayTI.h"
 #include <cstddef>
 #include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "QueryProcessor.h"
-#include <stdexcept>
 #include "StandardTypes.h"
 #include <string>
 #include "Symbols.h"
@@ -42,7 +40,6 @@ using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
 using std::exception;
-using std::runtime_error;
 using std::string;
 
 extern NestedList *nl;
@@ -55,10 +52,10 @@ Attr::Attr() :
 }
 
 const OperatorInfo Attr::info = OperatorInfo(
-  "attr", "",
-  "",
-  "",
-  "");
+  "attr", "tblock x symbol -> ATTRARRAY",
+  "attr(_, _)",
+  "Returns the column of the tuple block which has the given name.",
+  "query people feed filter[attr(., Age) > 50] count");
 
 ListExpr Attr::TypeMapping(ListExpr args)
 {
@@ -89,22 +86,21 @@ ListExpr Attr::TypeMapping(ListExpr args)
 
   //Find the column with matching name
   const string attributeName = nl->SymbolValue(attributeNameExpr);
-  const TBlockTI tblockInfo(tblockType);
-  const size_t columnCount = tblockInfo.attributeInfos.size();
+  const TBlockTI tblockInfo(tblockType, false);
+  size_t index = 0;
 
-  for (size_t i = 0; i < columnCount; ++i)
+  for (const TBlockTI::ColumnInfo &columnInfo : tblockInfo.columnInfos)
   {
-    if (tblockInfo.attributeInfos[i].name == attributeName)
+    if (columnInfo.name == attributeName)
     {
-      AttrArrayTI typeInfo;
-      typeInfo.SetAttributeType(tblockInfo.attributeInfos[i].type);
-
       //Append the matching column's index
       //Result type is the matching column's type
       return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
-                               nl->OneElemList(nl->IntAtom(i)),
-                               typeInfo.GetTypeInfo());
+                               nl->OneElemList(nl->IntAtom(index)),
+                               columnInfo.type);
     }
+
+    ++index;
   }
 
   return listutils::typeError("Second argument (attribute name) didn't match "
@@ -122,7 +118,7 @@ int Attr::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
     qp->DeleteResultStorage(s);
 
     AttrArray *array = &block[attributeIndex.GetValue()];
-    array->AddRef();
+    array->IncRef();
 
     //Return the pointer to the column
     //Let the delete function only decrease the ref-count

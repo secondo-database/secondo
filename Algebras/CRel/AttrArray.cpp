@@ -24,343 +24,404 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AttrArray.h"
 
-#include "GenericAttrArray.h"
-#include "GenericSpatialAttrArray.h"
+#include "GAttrArrayTI.h"
+#include "GSpatialAttrArrayTI.h"
+#include "IntsTI.h"
+#include "LogMsg.h"
+#include "LongInt.h"
+#include "LongIntsTI.h"
+#include <map>
+#include "SecondoSystem.h"
+#include "SmiUtils.h"
+#include "StandardTypes.h"
 #include "Symbols.h"
 #include "TypeConstructor.h"
+#include "TypeUtils.h"
 
-//AttrArray---------------------------------------------------------------------
+using namespace CRelAlgebra;
 
-AttrArray::~AttrArray()
+using std::string;
+using std::map;
+
+extern CMsg cmsg;
+extern NestedList *nl;
+
+//AttrArrayManager--------------------------------------------------------------
+
+AttrArrayManager::AttrArrayManager() :
+  m_refCount(1)
 {
 }
 
-ArrayAttribute AttrArray::GetAt(size_t row) const
-{
-  return ArrayAttribute(this, row);
-}
-
-ArrayAttribute AttrArray::operator[](size_t row) const
-{
-  return ArrayAttribute(this, row);
-}
-
-void AttrArray::Append(const ArrayAttribute &value)
-{
-  Append(*value.m_block, value.m_row);
-}
-
-int AttrArray::Compare(size_t row, const ArrayAttribute &value) const
-{
-  return Compare(row, *value.m_block, value.m_row);
-}
-
-int AttrArray::Equals(size_t rowA, const AttrArray &blockB, size_t rowB) const
-{
-  return Compare(rowA, blockB, rowB) == 0;
-}
-
-int AttrArray::Equals(size_t row, Attribute &value) const
-{
-  return Compare(row, value) == 0;
-}
-
-int AttrArray::Equals(size_t row, const ArrayAttribute &value) const
-{
-  return Equals(row, *value.m_block, value.m_row);
-}
-
-void AttrArray::DeleteRecords()
+AttrArrayManager::~AttrArrayManager()
 {
 }
 
-void AttrArray::CloseFiles()
+void AttrArrayManager::IncRef() const
 {
+  ++m_refCount;
 }
 
-AttrArrayIterator AttrArray::GetIterator() const
+void AttrArrayManager::DecRef() const
 {
-  return AttrArrayIterator(this);
-}
-
-//ArrayAttribute----------------------------------------------------------------
-
-ArrayAttribute::ArrayAttribute()
-{
-}
-
-ArrayAttribute::ArrayAttribute(const AttrArray *block, size_t row) :
-  m_block(block),
-  m_row(row)
-{
-}
-
-const AttrArray *ArrayAttribute::GetBlock() const
-{
-  return m_block;
-}
-
-size_t ArrayAttribute::GetRow() const
-{
-  return m_row;
-}
-
-int ArrayAttribute::Compare(const AttrArray &block, size_t row) const
-{
-  return m_block->Compare(m_row, block, row);
-}
-
-int ArrayAttribute::Compare(const ArrayAttribute &value) const
-{
-  return m_block->Compare(m_row, *value.m_block, value.m_row);
-}
-
-int ArrayAttribute::Compare(size_t row, Attribute &value) const
-{
-  return m_block->Compare(m_row, value);
-}
-
-bool ArrayAttribute::operator < (const ArrayAttribute& value)
-{
-  return Compare(value) < 0;
-}
-
-bool ArrayAttribute::operator <= (const ArrayAttribute& value)
-{
-  return Compare(value) <= 0;
-}
-
-bool ArrayAttribute::operator > (const ArrayAttribute& value)
-{
-  return Compare(value) > 0;
-}
-
-bool ArrayAttribute::operator >= (const ArrayAttribute& value)
-{
-  return Compare(value) >= 0;
-}
-
-int ArrayAttribute::ArrayAttribute::Equals(const AttrArray &block,
-                                           size_t row) const
-{
-  return m_block->Compare(m_row, block, row);
-}
-
-int ArrayAttribute::Equals(const ArrayAttribute &value) const
-{
-  return m_block->Compare(m_row, *value.m_block, value.m_row);
-}
-
-int ArrayAttribute::Equals(Attribute &value) const
-{
-  return m_block->Compare(m_row, value);
-}
-
-bool ArrayAttribute::operator == (const ArrayAttribute& value)
-{
-  return Equals(value);
-}
-
-bool ArrayAttribute::operator != (const ArrayAttribute& value)
-{
-  return !Equals(value);
-}
-
-size_t ArrayAttribute::GetHash() const
-{
-  return m_block->GetHash(m_row);
-}
-
-ListExpr ArrayAttribute::GetListExpr() const
-{
-  return m_block->GetListExpr(m_row);
-}
-
-//AttrArrayIterator-------------------------------------------------------------
-
-AttrArrayIterator::AttrArrayIterator() :
-  m_count(0),
-  m_current(NULL, 0)
-{
-}
-
-AttrArrayIterator::AttrArrayIterator(const AttrArray *instance) :
-  m_instance(instance),
-  m_count(instance != NULL ? instance->GetCount() : 0),
-  m_current(instance, 0)
-{
-}
-
-bool AttrArrayIterator::IsValid() const
-{
-  return m_current.m_row < m_count;
-}
-
-bool AttrArrayIterator::MoveToNext()
-{
-  if (m_current.m_row < m_count)
+  if (--m_refCount == 0)
   {
-    return ++m_current.m_row < m_count;
+    delete this;
+  }
+}
+
+size_t AttrArrayManager::GetRefCount() const
+{
+  return m_refCount;
+}
+
+//AttrArrayTypeConstructor------------------------------------------------------
+
+/*
+The default ATTRARRAY types are determined by searching a map for the passed
+attribute type's name.
+
+If no default type is found we return a corresponding generic ATTRARRAY type.
+
+Because Secondo can't stand static ~ListExpr~s we store functions.
+
+*/
+ListExpr AttrArrayTypeConstructor::GetDefaultAttrArrayType(
+  ListExpr attributeType, bool numeric)
+{
+  static map<string, ListExpr(*)()> types =
+  {
+    { CcInt::BasicType(), [](){ return IntsTI(false).GetTypeExpr(); } },
+    { LongInt::BasicType(), [](){ return LongIntsTI(false).GetTypeExpr(); } }
+  };
+
+  TypeConstructor *typeConstructor = GetTypeConstructor(attributeType);
+
+  if (typeConstructor == nullptr)
+  {
+    return nl->Empty();
   }
 
-  return false;
-}
+  map<string, ListExpr(*)()>::iterator result =
+    types.find(typeConstructor->Name());
 
-ArrayAttribute &AttrArrayIterator::GetAttribute()
-{
-  return m_current;
-}
-
-//AttrArrayCatalog-----------------------------------------------------
-
-AttrArrayCatalog &AttrArrayCatalog::GetInstance()
-{
-  return instance;
-}
-
-class GenericAttrArrayFactory : public AttrArrayFactory
-{
-public:
-  GenericAttrArrayFactory(ListExpr attributeType) :
-    m_info(GenericAttrArray::Info(attributeType))
+  if (result != types.end())
   {
+    const ListExpr type = result->second();
+
+    return numeric ? SecondoSystem::GetCatalog()->NumericType(type) : type;
   }
 
-  virtual AttrArray *Create(SmiFileId fileId)
+  if (typeConstructor->MemberOf(Kind::SPATIAL1D()))
   {
-    return new GenericAttrArray(m_info, fileId);
+    GSpatialAttrArrayTI<1> genericTypeInfo = GSpatialAttrArrayTI<1>(numeric);
+
+    genericTypeInfo.SetAttributeType(attributeType);
+
+    return genericTypeInfo.GetTypeExpr();
   }
 
-  virtual AttrArray *Load(Reader &source)
+  if (typeConstructor->MemberOf(Kind::SPATIAL2D()))
   {
-    return new GenericAttrArray(m_info, source);
+    GSpatialAttrArrayTI<2> genericTypeInfo = GSpatialAttrArrayTI<2>(numeric);
+
+    genericTypeInfo.SetAttributeType(attributeType);
+
+    return genericTypeInfo.GetTypeExpr();
   }
 
-protected:
-  GenericAttrArray::PInfo m_info;
-};
-
-template<int dim>
-class GenericSpatialAttrArrayFactory : public GenericAttrArrayFactory
-{
-public:
-  GenericSpatialAttrArrayFactory(ListExpr attributeType) :
-    GenericAttrArrayFactory(attributeType)
+  if (typeConstructor->MemberOf(Kind::SPATIAL3D()))
   {
+    GSpatialAttrArrayTI<3> genericTypeInfo = GSpatialAttrArrayTI<3>(numeric);
+
+    genericTypeInfo.SetAttributeType(attributeType);
+
+    return genericTypeInfo.GetTypeExpr();
   }
 
-  virtual AttrArray *Create(SmiFileId fileId)
+  if (typeConstructor->MemberOf(Kind::SPATIAL4D()))
   {
-    return new GenericSpatialAttrArray<dim>(m_info, fileId);
-  }
+    GSpatialAttrArrayTI<4> genericTypeInfo = GSpatialAttrArrayTI<4>(numeric);
 
-  virtual AttrArray *Load(Reader &source)
-  {
-    return new GenericSpatialAttrArray<dim>(m_info, source);
-  }
-};
+    genericTypeInfo.SetAttributeType(attributeType);
 
-AttrArrayFactory *AttrArrayCatalog::CreateFactory(ListExpr attributeType)
-{
-  ListExpr typeExpr = attributeType;
-
-  TypeConstructor *typeConstructor;
-
-  while (true)
-  {
-    if (nl->IsAtom(typeExpr) || nl->IsEmpty(typeExpr))
-    {
-      return NULL;
-    }
-
-    const ListExpr first = nl->First(typeExpr);
-
-    if (!nl->HasLength(typeExpr, 2) || !nl->IsNodeType(IntType, first))
-    {
-      typeExpr = first;
-    }
-    else
-    {
-      const ListExpr second = nl->Second(typeExpr);
-
-      if (!nl->IsNodeType(IntType, second))
-      {
-        return NULL;
-      }
-
-      typeConstructor = am->GetTC(nl->IntValue(first), nl->IntValue(second));
-      break;
-    }
-  }
-
-  FactoryMap::EqualRangeIterator iterator =
-    m_registrations.Get(typeConstructor->Name());
-
-  if (iterator.IsValid())
-  {
-    do
-    {
-      AttrArrayRegistration &registration = *iterator.GetValue();
-
-      if (registration.CheckAttributeType(attributeType))
-      {
-        return registration.Create(attributeType);
-      }
-    }
-    while (iterator.MoveToNext());
+    return genericTypeInfo.GetTypeExpr();
   }
 
   if (typeConstructor->MemberOf(Kind::SPATIAL8D()))
   {
-    return new GenericSpatialAttrArrayFactory<8>(attributeType);
-  }
-  else if (typeConstructor->MemberOf(Kind::SPATIAL4D()))
-  {
-    return new GenericSpatialAttrArrayFactory<4>(attributeType);
-  }
-  else if (typeConstructor->MemberOf(Kind::SPATIAL3D()))
-  {
-    return new GenericSpatialAttrArrayFactory<3>(attributeType);
-  }
-  else if (typeConstructor->MemberOf(Kind::SPATIAL2D()))
-  {
-    return new GenericSpatialAttrArrayFactory<2>(attributeType);
-  }
-  else if (typeConstructor->MemberOf(Kind::SPATIAL1D()))
-  {
-    return new GenericSpatialAttrArrayFactory<1>(attributeType);
+    GSpatialAttrArrayTI<8> genericTypeInfo = GSpatialAttrArrayTI<8>(numeric);
+
+    genericTypeInfo.SetAttributeType(attributeType);
+
+    return genericTypeInfo.GetTypeExpr();
   }
 
-  return new GenericAttrArrayFactory(attributeType);
+  GAttrArrayTI genericTypeInfo = GAttrArrayTI(numeric);
+
+  genericTypeInfo.SetAttributeType(attributeType);
+
+  return genericTypeInfo.GetTypeExpr();
 }
 
-void AttrArrayCatalog::Register(AttrArrayRegistration *registration)
+/*
+We use all possible default functions.
+
+*/
+AttrArrayTypeConstructor::AttrArrayTypeConstructor(const std::string& name,
+  TypeProperty typeProperty, TypeCheckFunction typeCheck,
+  AttrArrayTypeFunction attributeType, AttrArrayManagerFunction manager) :
+  AttrArrayTypeConstructor(name, typeProperty, DefaultOut, DefaultIn,
+                           DefaultCreate, DefaultDelete, DefaultOpen,
+                           DefaultSave, DefaultClose, DefaultClone, DefaultCast,
+                           DefaultSizeOf, typeCheck, attributeType, manager)
 {
-  m_registrations.Add(registration->GetAttributeTypeName(), registration);
 }
 
-AttrArrayCatalog AttrArrayCatalog::instance = AttrArrayCatalog();
-
-size_t AttrArrayCatalog::HashString(const std::string &value)
+AttrArrayTypeConstructor::AttrArrayTypeConstructor(const string& name,
+  TypeProperty typeProperty, OutObject out, InObject in, ObjectCreation create,
+  ObjectDeletion del, ObjectOpen open, ObjectSave save, ObjectClose close,
+  ObjectClone clone, ObjectCast cast, ObjectSizeof sizeOf,
+  TypeCheckFunction typeCheck, AttrArrayTypeFunction attributeType,
+  AttrArrayManagerFunction manager) :
+  TypeConstructor(name, typeProperty, out, in, nullptr, nullptr, create, del,
+                  open, save, close, clone, cast, sizeOf, typeCheck),
+  m_getAttributeType(attributeType),
+  m_createManager(manager)
 {
-  size_t hash = 5381;
+  AssociateKind(Kind::ATTRARRAY());
+}
 
-  const size_t size = value.size();
-  for (size_t i = 0; i < size; ++i)
+ListExpr AttrArrayTypeConstructor::GetAttributeType(ListExpr typeExpr,
+                                                    bool numeric)
+{
+  return m_getAttributeType(typeExpr, numeric);
+}
+
+AttrArrayManager *AttrArrayTypeConstructor::CreateManager(
+  ListExpr attributeType)
+{
+  return m_createManager(attributeType);
+}
+
+Word AttrArrayTypeConstructor::DefaultIn(ListExpr typeExpr, ListExpr value,
+                                         int errorPos, ListExpr &errorInfo,
+                                         bool &correct)
+{
+  try
   {
-    hash = ((hash << 5) + hash) + value[i];
+    AttrArrayTypeConstructor *typeConstructor =
+      (AttrArrayTypeConstructor*)GetTypeConstructor(typeExpr);
+
+    const SmiFileId fileId =
+      SecondoSystem::GetCatalog()->GetFlobFile()->GetFileId();
+
+    const ListExpr attrType = typeConstructor->GetAttributeType(typeExpr,
+                                                                true);
+
+    const InObject attrIn = GetInFunction(attrType);
+
+    AttrArrayManager *manager = typeConstructor->CreateManager(attrType);
+
+    AttrArray *result = manager->Create(fileId);
+
+    manager->DecRef();
+
+    ListExpr attributeValues = value;
+
+    if (nl->IsAtom(attributeValues))
+    {
+      cmsg.inFunError(nl->ToString(typeExpr) +
+                      ": Expected list of attribute values.");
+
+      correct = false;
+
+      result->DecRef();
+
+      return Word();
+    }
+
+    std::string error;
+
+    size_t row = 0;
+
+    while (!nl->IsEmpty(attributeValues))
+    {
+      Word attrInResult = attrIn(attrType, nl->First(attributeValues),
+                                  row++, errorInfo, correct);
+
+      if (!correct)
+      {
+        cmsg.inFunError("Attribute InFunction failed: "+
+                        nl->ToString(errorInfo));
+
+        result->DecRef();
+
+        return Word();
+      }
+
+      Attribute *attribute = (Attribute*)attrInResult.addr;
+
+      result->Append(*attribute);
+
+      attribute->DeleteIfAllowed();
+
+      attributeValues = nl->Rest(attributeValues);
+    }
+
+    correct = true;
+
+    return Word(result);
+  }
+  catch (const std::exception &e)
+  {
+    cmsg.inFunError(nl->ToString(typeExpr) + ": " + e.what());
+
+    correct = false;
+
+    return Word();
+  }
+}
+
+ListExpr AttrArrayTypeConstructor::DefaultOut(ListExpr typeExpr, Word value)
+{
+  AttrArrayTypeConstructor *typeConstructor =
+    (AttrArrayTypeConstructor*)GetTypeConstructor(typeExpr);
+
+  const ListExpr attrType = typeConstructor->GetAttributeType(typeExpr,
+                                                              true);
+
+  const OutObject attrOut = GetOutFunction(attrType);
+
+  AttrArray &instance = *(AttrArray*)value.addr;
+
+  ListExpr attributeValues = nl->OneElemList(nl->Empty()),
+    attributeValuesEnd = attributeValues;
+
+  for (AttrArrayEntry &entry : instance)
+  {
+    Attribute *attr = entry.GetAttribute();
+
+    attributeValuesEnd = nl->Append(attributeValuesEnd, attrOut(attrType,
+                                                                attr));
+
+    attr->DeleteIfAllowed();
   }
 
-  return hash;
+  return nl->Rest(attributeValues);
 }
 
-int AttrArrayCatalog::CompareString(const std::string &a,
-                                             const std::string &b)
+Word AttrArrayTypeConstructor::DefaultCreate(const ListExpr typeExpr)
 {
-  return a.compare(b);
+  const SmiFileId fileId =
+    SecondoSystem::GetCatalog()->GetFlobFile()->GetFileId();
+
+  AttrArrayTypeConstructor *typeConstructor =
+    (AttrArrayTypeConstructor*)GetTypeConstructor(typeExpr);
+
+  const ListExpr attrType = typeConstructor->GetAttributeType(typeExpr,
+                                                              true);
+
+  AttrArrayManager *manager = typeConstructor->CreateManager(attrType);
+
+  AttrArray *result = manager->Create(fileId);
+
+  manager->DecRef();
+
+  return result;
 }
 
-AttrArrayCatalog::AttrArrayCatalog() :
-  m_registrations(100)
+void AttrArrayTypeConstructor::DefaultDelete(const ListExpr typeExpr,
+                                             Word &value)
 {
+  AttrArray &instance = *(AttrArray*)value.addr;
+
+  instance.DeleteRecords();
+  instance.DecRef();
+
+  value.addr = nullptr;
+}
+
+bool AttrArrayTypeConstructor::DefaultOpen(SmiRecord &valueRecord,
+                                           size_t &offset,
+                                           const ListExpr typeExpr, Word &value)
+{
+  try
+  {
+    SmiReader source = SmiReader(valueRecord, offset);
+
+    AttrArrayTypeConstructor *typeConstructor =
+      (AttrArrayTypeConstructor*)GetTypeConstructor(typeExpr);
+
+    const ListExpr attrType = typeConstructor->GetAttributeType(typeExpr, true);
+
+    AttrArrayManager *manager = typeConstructor->CreateManager(attrType);
+
+    AttrArray *result = manager->Load(source);
+
+    manager->DecRef();
+
+    offset = source.GetPosition();
+
+    value = Word(result);
+    return true;
+  }
+  catch (const std::exception &e)
+  {
+    value = Word();
+    return false;
+  }
+}
+
+bool AttrArrayTypeConstructor::DefaultSave(SmiRecord &valueRecord,
+                                           size_t &offset,
+                                           const ListExpr typeExpr, Word &value)
+{
+  try
+  {
+    SmiWriter target = SmiWriter(valueRecord, offset);
+
+    ((AttrArray*)value.addr)->Save(target, true);
+
+    offset = target.GetPosition();
+
+    return true;
+  }
+  catch (const std::exception &e)
+  {
+    return false;
+  }
+}
+
+void AttrArrayTypeConstructor::DefaultClose(const ListExpr typeExpr,
+                                            Word &value)
+{
+  ((AttrArray*)value.addr)->DecRef();
+
+  value.addr = nullptr;
+}
+
+void *AttrArrayTypeConstructor::DefaultCast(void *addr)
+{
+  return nullptr;
+}
+
+int AttrArrayTypeConstructor::DefaultSizeOf()
+{
+  return 0;
+}
+
+Word AttrArrayTypeConstructor::DefaultClone(const ListExpr typeExpr,
+                                            const Word &value)
+{
+  AttrArray &instance = *(AttrArray*)value.addr;
+
+  AttrArray *result = (AttrArray*)DefaultCreate(typeExpr).addr;
+
+  for (AttrArrayEntry &entry : instance)
+  {
+    result->Append(entry);
+  }
+
+  return Word(result);
 }

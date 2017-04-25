@@ -23,22 +23,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "CRelTC.h"
 
+#include "AlgebraTypes.h"
 #include "AlgebraManager.h"
+#include "CRelTI.h"
 #include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
-#include <memory>
+#include "Shared.h"
 #include "StringUtils.h"
 #include "TBlock.h"
+#include "TBlockTC.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace listutils;
 
 using std::exception;
 using std::string;
-using std::unique_ptr;
 using stringutils::any2str;
 
+extern CMsg cmsg;
 extern NestedList *nl;
 extern AlgebraManager *am;
 
@@ -46,14 +50,14 @@ const string CRelTC::name = "crel";
 
 ListExpr CRelTC::TypeProperty()
 {
-  return nl->TwoElemList(nl->FourElemList(nl->StringAtom("Signature"),
-                                          nl->StringAtom("Example Type List"),
-                                          nl->StringAtom("List Rep"),
-                                          nl->StringAtom("Example List")),
-                         nl->FourElemList(nl->StringAtom(""),
-                                          nl->StringAtom(""),
-                                          nl->TextAtom(""),
-                                          nl->TextAtom("")));
+  return ConstructorInfo(
+    name,
+    "int x TBLOCK -> " + name,
+    "(" + name + " (1 (" + TBlockTC::name +
+    " (1000 ((Name string)(Age: int))))))))",
+    "((<attr1> ... <attrn>)*)",
+    "((\"Myers\" 53)(\"Smith\" 21))",
+    "The int parameter defines the maximum number of cached blocks.").list();
 }
 
 bool CRelTC::CheckType(ListExpr typeExpr, ListExpr &errorInfo)
@@ -61,7 +65,7 @@ bool CRelTC::CheckType(ListExpr typeExpr, ListExpr &errorInfo)
   string error;
   if (!CRelTI::Check(typeExpr, error))
   {
-    errorInfo = listutils::simpleMessage(error);
+    cmsg.typeError(error);
     return false;
   }
 
@@ -75,37 +79,71 @@ Word CRelTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
 
   try
   {
-    const CRelTI typeInfo = CRelTI(typeExpr);
-    const TBlock::PInfo blockInfo = typeInfo.GetBlockInfo();
+    const CRelTI typeInfo = CRelTI(typeExpr, true);
+    const PTBlockInfo blockInfo = typeInfo.GetBlockInfo();
     const size_t columnCount = blockInfo->columnCount;
 
-    unique_ptr<AttributeInFunction[]> inFunctions(
-      new AttributeInFunction[columnCount]);
+    SharedArray<InObject> inFunctions(columnCount);
+    SharedArray<ListExpr> attributeTypes(columnCount);
 
     for (size_t i = 0; i < columnCount; i++)
     {
-      const ListExpr type = blockInfo->columnTypes[i];
+      const ListExpr type = blockInfo->columnAttributeTypes[i];
 
       int algebraId,
         typeId;
 
-      ResolveTypeInfo(type, algebraId, typeId);
+      ResolveTypeOrThrow(type, algebraId, typeId);
 
-      inFunctions[i] = AttributeInFunction(am->InObj(algebraId, typeId), type);
+      inFunctions[i] = am->InObj(algebraId, typeId);
+      attributeTypes[i] = type;
     }
 
-    CRel *relation = new CRel(blockInfo, typeInfo.GetDesiredBlockSize(),
-                              typeInfo.GetCacheSize());
+    CRel *relation = new CRel(blockInfo, typeInfo.GetDesiredBlockSize() *
+                              CRelTI::blockSizeFactor, typeInfo.GetCacheSize());
 
     ListExpr tupleValues = value;
 
-    unique_ptr<Attribute*[]> tuple(new Attribute*[columnCount]);
+    if (nl->IsAtom(tupleValues))
+    {
+      correct = false;
+
+      cmsg.inFunError(name + ": List of tuples expected.");
+
+      relation->DeleteFiles();
+      delete relation;
+
+      return Word();
+
+      /*
+      errorInfo = nl->Append(errorInfo, nl->FourElemList(
+        nl->IntAtom(ERR_SPECIFIC_FOR_TYPE_CONSTRUCTOR),
+        nl->SymbolAtom(name), nl->IntAtom(0),
+        nl->TextAtom("List of tuples expected.")));
+      */
+    }
+
+    SharedArray<Attribute*> tuple(columnCount);
 
     size_t index = 0;
 
     while (!nl->IsEmpty(tupleValues))
     {
       ListExpr attributeValues = nl->First(tupleValues);
+
+      if (nl->IsAtom(attributeValues))
+      {
+        correct = false;
+
+        cmsg.inFunError(name + ": Invalid tuple at position " +
+                        any2str(index / columnCount) + ".");
+
+        relation->DeleteFiles();
+        delete relation;
+
+        return Word();
+      }
+
       tupleValues = nl->Rest(tupleValues);
 
       for (size_t i = 0; i < columnCount; ++i)
@@ -113,26 +151,38 @@ Word CRelTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
         if (nl->IsEmpty(attributeValues))
         {
           correct = false;
-          ErrorReporter::ReportError("Not enough values in tuple " +
-                                     any2str(index / columnCount) + '\n');
+
+          cmsg.inFunError(name + ": Not enough values in tuple " +
+                          any2str(index / columnCount) + '\n');
+
+          relation->DeleteFiles();
+          delete relation;
+
           return Word();
         }
 
-        tuple[i] = inFunctions[i](nl->First(attributeValues), index, errorInfo,
-                                  correct);
+        tuple[i] = (Attribute*)inFunctions[i](attributeTypes[i],
+                                              nl->First(attributeValues), index,
+                                              errorInfo, correct).addr;
 
         attributeValues = nl->Rest(attributeValues);
 
         if (!correct)
         {
-          ErrorReporter::ReportError(nl->ToString(errorInfo));
+          cmsg.inFunError(name + ": Value for attribute no. " + any2str(i) +
+                          " in tuple no. " + any2str(index / columnCount) +
+                          " is not valid.");
+
+          relation->DeleteFiles();
+          delete relation;
+
           return Word();
         }
 
         ++index;
       }
 
-      relation->Append(tuple.get());
+      relation->Append(tuple.GetPointer());
 
       for (size_t i = 0; i < columnCount; ++i)
       {
@@ -144,8 +194,10 @@ Word CRelTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
   }
   catch (const exception &e)
   {
-    ErrorReporter::ReportError(e.what());
+    cmsg.inFunError(e.what());
+
     correct = false;
+
     return Word();
   }
 }
@@ -156,21 +208,35 @@ ListExpr CRelTC::Out(ListExpr typeExpr, Word value)
 
   const size_t columnCount = instance.GetColumnCount();
 
+  OutObject *attrOuts = new OutObject[columnCount];
+
+  const ListExpr *attrTypes = instance.GetBlockInfo()->columnAttributeTypes;
+
+  for (size_t i = 0; i < columnCount; ++i)
+  {
+    attrOuts[i] = GetOutFunction(attrTypes[i]);
+  }
+
   if (columnCount > 0)
   {
-    const CRelTI typeInfo = CRelTI(typeExpr);
+    const CRelTI typeInfo = CRelTI(typeExpr, true);
 
     const ListExpr tupleExprList = nl->OneElemList(nl->Empty());
       ListExpr tupleExprListEnd = tupleExprList;
 
-    for (const BlockTuple &tuple : instance)
+    for (const TBlockEntry &tuple : instance)
     {
       const ListExpr tupleExpr = nl->OneElemList(nl->Empty());
       ListExpr tupleExprEnd = tupleExpr;
 
       for (size_t i = 0; i < columnCount; ++i)
       {
-        tupleExprEnd = nl->Append(tupleExprEnd, tuple[i].GetListExpr());
+        Attribute *attr = tuple[i].GetAttribute();
+
+        tupleExprEnd = nl->Append(tupleExprEnd, attrOuts[i](attrTypes[i],
+                                                            attr));
+
+        attr->DeleteIfAllowed();
       }
 
       tupleExprListEnd = nl->Append(tupleExprListEnd, nl->Rest(tupleExpr));
@@ -184,10 +250,10 @@ ListExpr CRelTC::Out(ListExpr typeExpr, Word value)
 
 Word CRelTC::Create(const ListExpr typeExpr)
 {
-  const CRelTI typeInfo = CRelTI(typeExpr);
+  const CRelTI typeInfo = CRelTI(typeExpr, true);
 
-  return Word(new CRel(typeInfo.GetBlockInfo(), typeInfo.GetDesiredBlockSize(),
-                       typeInfo.GetCacheSize()));
+  return Word(new CRel(typeInfo.GetBlockInfo(), typeInfo.GetDesiredBlockSize() *
+                       CRelTI::blockSizeFactor, typeInfo.GetCacheSize()));
 }
 
 void CRelTC::Delete(const ListExpr, Word &value)
@@ -198,7 +264,7 @@ void CRelTC::Delete(const ListExpr, Word &value)
 
   delete instance;
 
-  value.addr = NULL;
+  value.addr = nullptr;
 }
 
 bool CRelTC::Open(SmiRecord &valueRecord, size_t &offset,
@@ -206,7 +272,7 @@ bool CRelTC::Open(SmiRecord &valueRecord, size_t &offset,
 {
   try
   {
-    const CRelTI typeInfo = CRelTI(typeExpr);
+    const CRelTI typeInfo = CRelTI(typeExpr, true);
 
     SmiReader source = SmiReader(valueRecord, offset);
 
@@ -248,26 +314,26 @@ void CRelTC::Close(const ListExpr, Word &value)
 {
   delete (CRel*)value.addr;
 
-  value.addr = NULL;
+  value.addr = nullptr;
 }
 
 void *CRelTC::Cast(void *addr)
 {
-  return CRel::Cast(addr);
+  return nullptr;
 }
 
 int CRelTC::SizeOf()
 {
-  return sizeof(CRel);
+  return 0;
 }
 
 Word CRelTC::Clone(const ListExpr, const Word &value)
 {
   CRel &instance = *(CRel*)value.addr,
-    *clone = new CRel(instance.GetBlockInfo(), instance.GetDesiredBlockSize(),
-                      instance.GetCacheSize());
+    *clone = new CRel(instance.GetBlockInfo(), instance.GetDesiredBlockSize() *
+                      CRelTI::blockSizeFactor, instance.GetCacheSize());
 
-  for (const BlockTuple &tuple : instance)
+  for (const TBlockEntry &tuple : instance)
   {
     clone->Append(tuple);
   }
@@ -276,7 +342,7 @@ Word CRelTC::Clone(const ListExpr, const Word &value)
 }
 
 CRelTC::CRelTC() :
-  TypeConstructor(name, TypeProperty, Out, In, NULL, NULL, Create, Delete,
+  TypeConstructor(name, TypeProperty, Out, In, nullptr, nullptr, Create, Delete,
                   Open, Save, Close, Clone, Cast, SizeOf, CheckType)
 {
 }

@@ -25,20 +25,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Rename.h"
 
 #include <cstddef>
-#include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "QueryProcessor.h"
-#include <stdexcept>
 #include <string>
 #include "StreamValueMapping.h"
 #include "Symbols.h"
-#include "TBlockTC.h"
+#include "TBlockTI.h"
 
+using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
 using listutils::isValidAttributeName;
-using std::exception;
 using std::string;
 
 extern NestedList *nl;
@@ -50,10 +48,11 @@ Rename::Rename() :
 }
 
 const OperatorInfo Rename::info = OperatorInfo(
-  "rename", "crel(c, m, (A)) -> stream(tblock(m, (A)))",
-  "_ feed",
-  "Produces a stream of tuple-blocks from a column-oriented relation.",
-  "query cities feed cconsume");
+  "rename", "stream(tblock) x symbol -> stream(tblock)",
+  "_ rename[ _ ]",
+  "Transforms a stream of tuple-blocks into one to which's column names the "
+  "specified suffix got appended.",
+  "");
 
 ListExpr Rename::TypeMapping(ListExpr args)
 {
@@ -90,12 +89,12 @@ ListExpr Rename::TypeMapping(ListExpr args)
 
   string error;
 
-  TBlockTI blockInfo(tblock);
+  TBlockTI blockInfo(tblock, false);
 
-  const size_t blockAttributeCount = blockInfo.attributeInfos.size();
+  const size_t blockAttributeCount = blockInfo.columnInfos.size();
   for (size_t i = 0; i < blockAttributeCount; ++i)
   {
-    const string name = blockInfo.attributeInfos[i].name + "_" + suffix;
+    const string name = blockInfo.columnInfos[i].name + "_" + suffix;
 
     if (!isValidAttributeName(nl->SymbolAtom(name), error))
     {
@@ -103,11 +102,11 @@ ListExpr Rename::TypeMapping(ListExpr args)
                                   error);
     }
 
-    blockInfo.attributeInfos[i].name = name;
+    blockInfo.columnInfos[i].name = name;
   }
 
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                         blockInfo.GetTypeInfo());
+                         blockInfo.GetTypeExpr());
 }
 
 Rename::State::State(Word* args, Supplier s) :

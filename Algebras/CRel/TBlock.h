@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include "GenericAttrArray.h"
 #include "AttrArray.h"
 #include "Attribute.h"
 #include <cstddef>
@@ -33,239 +32,414 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "SecondoSMI.h"
 #include "Shared.h"
-#include <string>
-#include <vector>
 
-class TBlock;
-
-class BlockTuple
+namespace CRelAlgebra
 {
-public:
-  BlockTuple();
+  class TBlockInfo;
+  class TBlockEntry;
+  class TBlockIterator;
 
-  BlockTuple(const TBlock *block, size_t row);
+  typedef Shared<const TBlockInfo> PTBlockInfo;
 
-  ArrayAttribute operator[](size_t index) const;
+  /*
+  Represents data of a ~TBlock~ which can be stored seperately.
+  It also is used as a ~AttrArrayHeader~ on column restoring to avoid redundant
+  data.
 
-  bool operator == (const BlockTuple &other) const;
-
-  bool operator != (const BlockTuple &other) const;
-
-private:
-  const TBlock *m_block;
-
-  size_t m_row;
-
-  friend class TBlock;
-};
-
-class TBlock : public RefCounter
-{
-public:
-  class TupleIterator
+  */
+  class TBlockHeader
   {
   public:
-    TupleIterator();
+    size_t rowCount,
+      size;
 
-    TupleIterator(const TBlock *block);
+    SmiFileId columnFileId,
+      flobFileId;
 
-    bool IsValid() const;
+    TBlockHeader();
 
-    const BlockTuple &GetCurrent() const;
+    TBlockHeader(size_t rowCount, size_t size, SmiFileId columnFileId,
+            SmiFileId flobFileId);
 
-    bool MoveToNext();
-
-    const BlockTuple &operator * () const;
-
-    TupleIterator &operator ++ ();
-
-    bool operator == (const TupleIterator &other) const;
-
-    bool operator != (const TupleIterator &other) const;
-
-  private:
-    BlockTuple m_tuple;
-
-    size_t m_rowCount;
+    operator AttrArrayHeader() const;
   };
 
-  class Iterator
+  /*
+  Implements a column-oriented tuple-block.
+
+  The main functionality provided is appending tuples, retrieving tuples
+  and persisting / restoring the block.
+
+  The tuple-block is split into columns which themselves are ~AttrArray~s.
+  Each of them is restored only when neccessary.
+
+  This class is reference counted because it's heavily used in stream operators.
+
+  */
+  class TBlock
   {
   public:
-    Iterator() :
-      m_block(NULL),
-      m_row(0),
-      m_rowCount(0)
+    /*
+    Returns the size the metadata of a ~TBlock~ with the specified number of
+    columns would occupy.
+
+    ~include~ header determines if ~TBlockHeader~ data should be included.
+
+    */
+    static size_t GetSaveSize(size_t columnCount, bool includeHeader = true);
+
+    /*
+    Creates a ~TBlock~ parameterized by a ~TBlockInfo~ and the provided column-
+    and flob-file id.
+
+    ~columnFile~ provides a (potentialy shared) ~SmiRecordFile~ instance.
+
+    */
+    TBlock(const PTBlockInfo &info, SmiFileId columnFileId,
+           SmiFileId flobFileId);
+    TBlock(const PTBlockInfo &info, SmiFileId columnFileId,
+           SmiFileId flobFileId, Shared<SmiRecordFile> columnFile);
+
+    /*
+    Restores a ~TBlock~ parameterized by a ~TBlockInfo~ from the provided
+    ~source~.
+
+    ~columnFile~ provides a (potentialy shared) ~SmiRecordFile~ instance.
+
+    Precondition: ~source~ must hold data saved by a ~TBlock~ with similar
+    ~info~ and ~includeHeader~ == true.
+
+    */
+    TBlock(const PTBlockInfo &info, Reader &source);
+    TBlock(const PTBlockInfo &info, Reader &source,
+           Shared<SmiRecordFile> columnFile);
+
+    /*
+    Restores a ~TBlock~ parameterized by a ~TBlockInfo~ from the provided
+    ~source~ and ~header~.
+
+    ~columnFile~ provides a (potentialy shared) ~SmiRecordFile~ instance.
+
+    Precondition: ~source~ must hold data saved by a ~TBlock~ with similar
+    ~info~ and ~includeHeader~ == false.
+
+    */
+    TBlock(const PTBlockInfo &info, const TBlockHeader &header, Reader &source);
+
+    TBlock(const PTBlockInfo &info, const TBlockHeader &header, Reader &source,
+           Shared<SmiRecordFile> columnFile);
+
+    /*
+    Creates the projection of a existing ~block~.
+    The indices of the columns to project on are provided by the array pointer
+    ~columnIndices~. The number of columns in ~columnIndices~ is passed by
+    ~columnCount~.
+
+    The returned ~TBlock~ is supposed to be read only.
+    God knows what might happen if one trys to actually modify or save it.
+
+    */
+    TBlock(const TBlock &block, size_t *columnIndices, size_t columnCount);
+
+    virtual ~TBlock();
+
+    /*
+    Returns the ~TBlockInfo~ used by this ~TBlock~.
+
+    */
+    const PTBlockInfo &GetInfo() const;
+
+    /*
+    Writes this ~TBlock~ into the specified ~target~ either with or without
+    ~TBlockHeader~ data.
+
+    */
+    void Save(Writer &target, bool includeHeader = true);
+
+    /*
+    Deletes persistent data created by this tuple-block.
+
+    */
+    void DeleteRecords();
+
+    /*
+    Returns the number of columns of this ~TBlock~.
+
+    */
+    size_t GetColumnCount() const;
+
+    /*
+    Returns the number of tuples in this ~TBlock~.
+
+    */
+    size_t GetRowCount() const;
+
+    /*
+    Returns the size of this ~TBlock~ in bytes.
+
+    */
+    size_t GetSize() const;
+
+    /*
+    Appends a tuple to this tuple-block.
+
+    Preconditions:
+      *~tuple~ must point to a array of ~AttrArrayEntry~
+      *~tuple~ must contain ~GetColumnCount()~ entries
+      *the attribute-array types of the entries must match the attribute-array
+       types of this tuple-block's columns
+    */
+    void Append(const AttrArrayEntry* tuple);
+
+    /*
+    Appends a tuple to this tuple-block.
+
+    This function does not touch the ~Attribute~'s reference counters.
+
+    Preconditions:
+      *~tuple~ must point to a array of ~Attribute~ pointers
+      *~tuple~ must contain ~GetColumnCount()~ entries
+      *the attribute types of the entries must match the attribute types of this
+       tuple-block's columns
+    */
+    void Append(Attribute** tuple);
+
+    /*
+    Appends a tuple to this tuple-block.
+
+    Preconditions:
+      *~tuple~ must represent a valid ~TBlockEntry~
+      *~tuple~'s ~TBlock~ must have a similar ~TBlockInfo~ to this tuple-block
+    */
+    void Append(const TBlockEntry &tuple);
+
+    /*
+    Appends a tuple to this tuple-block.
+
+    This function does not touch the ~Tuple~'s reference counter.
+
+    Preconditions:
+      *~tuple~ must contain ~GetColumnCount()~ attributes
+      *the attribute types of the tuple's attributes must match the attribute
+       types of this tuple-block's columns
+    */
+    void Append(const Tuple &tuple);
+
+    /*
+    Accesses the column with the specified ~index~
+
+    */
+    AttrArray &GetAt(size_t index) const;
+    AttrArray &operator[](size_t index) const;
+
+    /*
+    Returns a ~TBlockIterator~ over this tuple-block's tuples.
+
+    */
+    TBlockIterator GetIterator() const;
+
+    /*
+    ~TBlockIterator~s used (only!) for range-loop support.
+
+    */
+    TBlockIterator begin() const;
+    TBlockIterator end() const;
+
+    /*
+    Increases the reference counter by one.
+
+    */
+    void IncRef() const;
+
+    /*
+    Decreases the reference counter by one.
+    If the reference counter reaches zero this object is deleted.
+
+    */
+    void DecRef() const;
+
+    /*
+    Returns the reference count.
+
+    */
+    size_t GetRefCount() const;
+
+  private:
+    TBlockHeader m_header;
+
+    PTBlockInfo m_info;
+
+    //The count of tuples in this block.
+    //Corresponds the count of attributes in each block.
+    const size_t m_columnCount;
+
+    SmiRecordId *m_recordIds;
+
+    //The attribute-blocks.
+    AttrArray **m_columns;
+
+    mutable Shared<SmiRecordFile> m_columnFile;
+
+    mutable size_t m_refCount;
+
+    TBlock(const TBlock&) = delete;
+  };
+
+  /*
+  Class used to configure a ~TBlock~'s columns.
+  It can be shared among multiple ~TBlock~s.
+
+  */
+  class TBlockInfo
+  {
+  public:
+    size_t columnCount;
+
+    ListExpr *columnTypes,
+      *columnAttributeTypes;
+
+    AttrArrayManager **columnFactories;
+
+    TBlockInfo();
+
+    /*
+    Creates a ~TBlockInfo~ from a list of attribute-array types.
+
+    */
+    TBlockInfo(ListExpr columnTypes);
+
+    ~TBlockInfo();
+  };
+
+  /*
+  This class represents the tuple of a ~TBlock~ by a pointer to the block and
+  a row number.
+
+  If either the pointer doesn't point to a ~TBlock~ instance or the row
+  number is out of the block's range of rows, the ~TBlockEntry~ is considered
+  invalid.
+
+  This class doesn't change a ~TBlockEntry~'s reference count.
+  If the pointed to block is deleted this ~TBlockEntry~ becomes invalid.
+
+  Using a invalid ~TBlockEntry~ is considered undefined behaviour.
+
+  */
+  class TBlockEntry
+  {
+  public:
+    TBlockEntry()
     {
     }
 
-    Iterator(const TBlock *block) :
+    TBlockEntry(const TBlock *block, size_t row) :
       m_block(block),
-      m_row(0),
-      m_rowCount(block->GetRowCount())
+      m_row(row)
     {
     }
 
-    bool IsValid()
+    const AttrArrayEntry operator[](size_t index) const
     {
-      return m_row < m_rowCount;
+      return AttrArrayEntry(&m_block->GetAt(index), m_row);
     }
 
-    ArrayAttribute GetAttribute(size_t column)
+    bool operator == (const TBlockEntry &other) const
     {
-      return m_block->GetAttrArray(column)[m_row];
+      return m_row == other.m_row && m_block == other.m_block;
     }
 
-    bool MoveToNext()
+    bool operator != (const TBlockEntry &other) const
     {
-      if (m_row < m_rowCount)
-      {
-        return ++m_row < m_rowCount;
-      }
-
-      return false;
+      return !(*this == other);
     }
 
   private:
     const TBlock *m_block;
 
-    size_t m_row,
-      m_rowCount;
+    size_t m_row;
+
+    friend class TBlockIterator;
   };
 
-  class Info
+  /*
+  A iterator over a ~TBlock~’s tuples.
+
+  Changes of the ~TBlock~ invalidate the iterator which is not reflected by
+  ~TBlockIterator.IsValid~. Further usage is considered undefined behaviour.
+
+  The functions are defined in this header file to enable inlining.
+
+  */
+  class TBlockIterator
   {
   public:
-    size_t columnCount;
+    TBlockIterator() :
+      m_tuple(nullptr, 0),
+      m_rowCount(0)
+    {
+    }
 
-    ListExpr *columnTypes;
+    TBlockIterator(const TBlock *block) :
+      m_tuple(block, 0),
+      m_rowCount(block->GetRowCount())
+    {
+    }
 
-    AttrArrayFactory **columnFactories;
+    bool IsValid() const
+    {
+      return m_tuple.m_row < m_rowCount;
+    }
 
-    Info();
+    const TBlockEntry &Get() const
+    {
+      return m_tuple;
+    }
 
-    Info(ListExpr columnTypes);
+    bool MoveToNext()
+    {
+      if (m_tuple.m_row < m_rowCount)
+      {
+        return ++m_tuple.m_row < m_rowCount;
+      }
 
-    ~Info();
+      return false;
+    }
+
+    const TBlockEntry &operator * () const
+    {
+      return Get();
+    }
+
+    TBlockIterator &operator ++ ()
+    {
+      MoveToNext();
+
+      return *this;
+    }
+
+    bool operator == (const TBlockIterator &other) const
+    {
+      if (IsValid())
+      {
+        if (other.IsValid())
+        {
+          return m_tuple == other.m_tuple;
+        }
+
+        return false;
+      }
+
+      return !other.IsValid();
+    }
+
+    bool operator != (const TBlockIterator &other) const
+    {
+      return !(*this == other);
+    }
+
+  private:
+    TBlockEntry m_tuple;
+
+    size_t m_rowCount;
   };
-
-  typedef Shared<const Info> PInfo;
-
-  typedef SharedArray<const GenericAttrArray::PInfo> ColumnInfos;
-
-  static void* Cast(void *pointer);
-
-  static size_t GetSaveSize(size_t columnCount);
-
-  TBlock(const PInfo &info, SmiFileId columnFileId, SmiFileId flobFileId);
-
-  TBlock(const PInfo &info, SmiFileId columnFileId, SmiFileId flobFileId,
-         Shared<SmiRecordFile> columnFile, Shared<SmiRecordFile> flobFile);
-
-  TBlock(const PInfo &info, Reader &source);
-
-  TBlock(const PInfo &info, Reader &source, Shared<SmiRecordFile> columnFile,
-         Shared<SmiRecordFile> flobFile);
-
-  TBlock(const TBlock &instance, size_t *columnIndices, size_t columnCount);
-
-  virtual ~TBlock();
-
-  const PInfo GetInfo() const;
-
-  const ColumnInfos GetColumnInfos() const;
-
-  void Save(Writer &target);
-
-  void DeleteRecords();
-
-  void CloseFiles();
-
-  size_t GetColumnCount() const;
-
-  size_t GetRowCount() const;
-
-  size_t GetSize() const;
-
-  const TBlock *Project(size_t *columnIndices, size_t columnCount) const;
-
-  void Append(ArrayAttribute* tuple);
-
-  void Append(Attribute** tuple);
-
-  void Append(const BlockTuple &tuple);
-
-  void Append(const Tuple &tuple);
-
-  AttrArray &GetAt(size_t index) const;
-
-  AttrArray &operator[](size_t index) const
-  {
-    return GetAt(index);
-  }
-
-  Iterator GetIterator() const;
-
-  TupleIterator GetTupleIterator() const
-  {
-    return TupleIterator(this);
-  }
-
-  TupleIterator begin() const
-  {
-    return TupleIterator(this);
-  }
-
-  TupleIterator end() const
-  {
-    return TupleIterator();
-  }
-
-private:
-  class PersistentMembers
-  {
-  public:
-    size_t rowCount;
-
-    SmiFileId columnFileId,
-      flobFileId;
-
-    PersistentMembers()
-    {
-    }
-
-    PersistentMembers(size_t rowCount, SmiFileId columnFileId,
-                      SmiFileId flobFileId) :
-      rowCount(rowCount),
-      columnFileId(columnFileId),
-      flobFileId(flobFileId)
-    {
-    }
-
-    PersistentMembers(Reader &source)
-    {
-      source.ReadOrThrow((char*)this, sizeof(PersistentMembers));
-    }
-  };
-
-  PersistentMembers m_persistent;
-
-  PInfo m_info;
-
-  //The count of tuples in this block.
-  //Corresponds the count of attributes in each block.
-  size_t m_columnCount;
-
-  SmiRecordId *m_recordIds;
-
-  //The attribute-blocks.
-  AttrArray **m_columns;
-
-  mutable Shared<SmiRecordFile> m_columnFile,
-    m_flobFile;
-
-  TBlock();
-  TBlock(const TBlock &instance);
-
-  AttrArray &GetAttrArray(size_t index) const;
-};
+}

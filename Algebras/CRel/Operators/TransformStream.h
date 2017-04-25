@@ -24,42 +24,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include "GenericAttrArray.h"
-#include <cstddef>
+#include "AlgebraTypes.h"
 #include "NestedList.h"
-#include <string>
+#include "Operator.h"
+#include "RelationAlgebra.h"
+#include "Stream.h"
+#include "TBlock.h"
 
 namespace CRelAlgebra
 {
-  class AttrArrayTI
+  namespace Operators
   {
-  public:
-    static bool Check(ListExpr typeExpr, std::string &error);
+    class TransformStream : public Operator
+    {
+    public:
+      TransformStream();
 
-    AttrArrayTI();
-    AttrArrayTI(ListExpr typeExpr);
-    AttrArrayTI(ListExpr attributeType, size_t capacity);
+    private:
+      class State
+      {
+      public:
+        State(ArgVector args, Supplier s);
 
-    bool HasCapacity();
-    void ClearCapacity();
+        Tuple *Request();
 
-    size_t GetCapacity();
-    void SetCapacity(size_t value);
+      private:
+        Stream<TBlock> m_stream;
 
-    ListExpr GetAttributeType();
-    void SetAttributeType(ListExpr value);
+        TBlock *m_block;
 
-    GenericAttrArray::PInfo GetPInfo();
+        TBlockIterator m_blockIterator;
 
-    ListExpr GetTypeInfo();
+        TupleType *m_tupleType;
+      };
 
-  private:
-    GenericAttrArray::PInfo m_info;
+      static const OperatorInfo info;
 
-    ListExpr m_attributeType;
-
-    bool m_hasCapacity;
-
-    size_t m_capacity;
-  };
+      static ListExpr TypeMapping(ListExpr args);
+    };
+  }
 }

@@ -24,19 +24,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "TBlockTI.h"
 
-#include "GenericAttrArray.h"
+#include "AlgebraManager.h"
+#include "AttrArray.h"
+#include "ListUtils.h"
+#include "RelationAlgebra.h"
 #include "SecondoSystem.h"
 #include "SecondoCatalog.h"
+#include <set>
 #include "StringUtils.h"
 #include "TBlockTC.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace listutils;
 
+using std::set;
 using std::string;
 using stringutils::any2str;
 
+extern AlgebraManager *am;
 extern NestedList *nl;
+
+const size_t TBlockTI::blockSizeFactor = 1024 * 1024; //MiB
+
+bool TBlockTI::Check(ListExpr typeExpr)
+{
+  string error;
+
+  return Check(typeExpr, error);
+}
 
 bool TBlockTI::Check(ListExpr typeExpr, string &error)
 {
@@ -53,115 +69,248 @@ bool TBlockTI::Check(ListExpr typeExpr, string &error)
 
   if (!nl->IsEqual(nl->First(typeExpr), TBlockTC::name))
   {
-    error = "TypeInfo's first element != " + TBlockTC::name + ".";
+    error = "TypeInfo's first element (type name) != " + TBlockTC::name + ".";
     return false;
   }
 
-  ListExpr attributeList = nl->Second(typeExpr);
-  if (!isAttrList(attributeList))
+  const ListExpr parameters = nl->Second(typeExpr);
+
+  if (!nl->HasLength(parameters, 2))
   {
-    error = "TypeInfo's argument isn't a valid attribute list.";
+    error = "TypeInfo's second element (parameters) isn't a two element list.";
     return false;
   }
 
-  size_t attributeIndex = 0;
-  while (!nl->IsEmpty(attributeList))
-  {
-    const ListExpr attribute = Take(attributeList);
+  const ListExpr blockSizeExpr = nl->First(parameters);
 
-    if (!isValidAttributeName(nl->First(attribute), error))
+  if (!nl->IsNodeType(IntType, blockSizeExpr))
+  {
+    error = "TypeInfo's first parameter (desired size) isn't a int.";
+    return false;
+  }
+
+  ListExpr columnList = nl->Second(parameters);
+
+  if (nl->IsEmpty(columnList) || nl->AtomType(columnList) != NoAtom)
+  {
+    error = "TypeInfo's second parameter (column list) is empty / no list.";
+    return false;
+  }
+
+  ListExpr errorExpr = emptyErrorInfo();
+  set<string> names;
+  size_t i = 0;
+
+  while (!nl->IsEmpty(columnList))
+  {
+    const ListExpr current = nl->First(columnList);
+
+    columnList = nl->Rest(columnList);
+
+    if (nl->ListLength(current) != 2)
     {
-      error = "Attribute name at position " + any2str(attributeIndex) +
-              " isn't valid: " + error;
+      error = "Column list element at " + any2str(i) +
+              ": Element isn't a two element list.";
       return false;
     }
 
-    ++attributeIndex;
+    const ListExpr nameExpr = nl->First(current);
+
+    if(nl->AtomType(nameExpr) != SymbolType)
+    {
+      error = "Column list element at " + any2str(i) +
+              ": Element's first element (name) isn't a symbol.";
+      return false;
+    }
+
+    if (!isValidAttributeName(nameExpr, error))
+    {
+      return false;
+    }
+
+    if(!names.insert(nl->SymbolValue(nameExpr)).second)
+    {
+      error = "Column list element at " + any2str(i) +
+              ": Element's first element (name) isn't unique.";
+      return false;
+    }
+
+    if (!am->CheckKind(Kind::ATTRARRAY(), nl->Second(current), errorExpr))
+    {
+      error = "Column list element at " + any2str(i) +
+              ": Element's second element (type) isn't of kind ATTRARRAY.";
+      return false;
+    }
   }
 
   return true;
 }
 
-TBlockTI::TBlockTI()
+TBlockTI::TBlockTI(bool numeric) :
+  m_isNumeric(numeric),
+  m_info(nullptr)
 {
 }
 
-TBlockTI::TBlockTI(ListExpr typeExpr)
+TBlockTI::TBlockTI(ListExpr typeExpr, bool numeric) :
+  m_isNumeric(numeric),
+  m_info(nullptr)
 {
   if (nl->IsEqual(nl->First(typeExpr), Symbols::STREAM()))
   {
-    *this = TBlockTI(nl->Second(typeExpr));
+    *this = TBlockTI(nl->Second(typeExpr), numeric);
     return;
   }
 
-  AppendAttributeInfos(nl->Second(typeExpr));
+  const ListExpr parameters = nl->Second(typeExpr);
+
+  m_desiredBlockSize = nl->IntValue(nl->First(parameters));
+
+  AppendColumnInfos(nl->Second(parameters));
 }
 
-void TBlockTI::AppendAttributeInfos(ListExpr attributeList)
+bool TBlockTI::IsNumeric() const
 {
-  ListExpr attributeListCopy = attributeList;
-  while (!nl->IsEmpty(attributeListCopy))
+  return m_isNumeric;
+}
+
+size_t TBlockTI::GetDesiredBlockSize() const
+{
+  return m_desiredBlockSize;
+}
+
+void TBlockTI::SetDesiredBlockSize(size_t value)
+{
+  m_desiredBlockSize = value;
+  m_info = nullptr;
+}
+
+void TBlockTI::AppendColumnInfos(ListExpr columnList)
+{
+  ListExpr columnListCopy = columnList;
+
+  while (!nl->IsEmpty(columnListCopy))
   {
-    attributeInfos.push_back(GetAttributeInfo(Take(attributeListCopy)));
+    const ListExpr columnExpr = nl->First(columnListCopy);
+
+    ColumnInfo columnInfo;
+    columnInfo.name = nl->SymbolValue(nl->First(columnExpr));
+    columnInfo.type = nl->Second(columnExpr);
+
+    columnInfos.push_back(columnInfo);
+
+    columnListCopy = nl->Rest(columnListCopy);
   }
 
-  m_info = NULL;
+  m_info = nullptr;
 }
 
-ListExpr TBlockTI::GetTypeInfo() const
+ListExpr TBlockTI::GetColumnList() const
 {
-  ListExpr attributes = nl->Empty();
+  ListExpr columnList = nl->Empty(),
+    columnListEnd = columnList;
 
-  size_t count = attributeInfos.size();
-
-  if (count > 0)
+  for (const ColumnInfo &columnInfo : columnInfos)
   {
-    attributes = nl->OneElemList(GetListExpr(attributeInfos[0]));
-
-    ListExpr lastAttribute = attributes;
-
-    for (size_t i = 1; i < count; ++i)
+    if (nl->IsEmpty(columnList))
     {
-      Append(lastAttribute, GetListExpr(attributeInfos[i]));
+      columnList =
+        nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(columnInfo.name),
+                                        columnInfo.type));
+      columnListEnd = columnList;
+    }
+    else
+    {
+      columnListEnd =
+        nl->Append(columnListEnd,
+                   nl->TwoElemList(nl->SymbolAtom(columnInfo.name),
+                                   columnInfo.type));
     }
   }
 
-  return nl->TwoElemList(nl->SymbolAtom(TBlockTC::name), attributes);
+  return columnList;
 }
 
-TBlock::PInfo TBlockTI::GetBlockInfo() const
+ListExpr TBlockTI::GetTypeExpr() const
+{
+  if (m_isNumeric)
+  {
+    return nl->TwoElemList(GetNumericType(TBlockTC::name),
+                           nl->TwoElemList(nl->IntAtom(m_desiredBlockSize),
+                                           GetColumnList()));
+  }
+  else
+  {
+    return nl->TwoElemList(nl->SymbolAtom(TBlockTC::name),
+                           nl->TwoElemList(nl->IntAtom(m_desiredBlockSize),
+                                           GetColumnList()));
+  }
+}
+
+ListExpr TBlockTI::GetTupleTypeExpr() const
+{
+  ListExpr attributeList = nl->Empty(),
+    attributeListEnd = attributeList;
+
+  for (const ColumnInfo &columnInfo : columnInfos)
+  {
+    AttrArrayTypeConstructor &arrayConstructor =
+      (AttrArrayTypeConstructor&)*GetTypeConstructor(columnInfo.type);
+
+    const ListExpr columnName = nl->SymbolAtom(columnInfo.name),
+      attributeType = arrayConstructor.GetAttributeType(columnInfo.type,
+                                                        m_isNumeric);
+
+    if (nl->IsEmpty(attributeList))
+    {
+      attributeList = nl->OneElemList(nl->TwoElemList(columnName,
+                                                      attributeType));
+
+      attributeListEnd = attributeList;
+    }
+    else
+    {
+      attributeListEnd = nl->Append(attributeListEnd,
+                                    nl->TwoElemList(columnName,
+                                                    attributeType));
+    }
+  }
+
+  if (m_isNumeric)
+  {
+    return nl->TwoElemList(GetNumericType(Tuple::BasicType()), attributeList);
+  }
+  else
+  {
+    return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attributeList);
+  }
+}
+
+const PTBlockInfo &TBlockTI::GetBlockInfo() const
 {
   if (m_info.IsNull())
   {
     SecondoCatalog &catalog = *SecondoSystem::GetCatalog();
 
-    const ListExpr attributeTypes = nl->OneElemList(nl->Empty());
+    ListExpr columnTypes = nl->Empty(),
+      columnTypesEnd = columnTypes;
 
-    ListExpr attributeTypesEnd = attributeTypes;
-
-    for (const AttributeInfo &attributeInfo : attributeInfos)
+    for (const ColumnInfo &columnInfo : columnInfos)
     {
-      attributeTypesEnd = nl->Append(attributeTypesEnd,
-                                     catalog.NumericType(attributeInfo.type));
+      if (nl->IsEmpty(columnTypes))
+      {
+        columnTypes = nl->OneElemList(catalog.NumericType(columnInfo.type));
+        columnTypesEnd = columnTypes;
+      }
+      else
+      {
+        columnTypesEnd = nl->Append(columnTypesEnd,
+                                    catalog.NumericType(columnInfo.type));
+      }
     }
 
-    m_info = new TBlock::Info(nl->Rest(attributeTypes));
+    m_info = new TBlockInfo(columnTypes);
   }
 
   return m_info;
-}
-
-TBlockTI::AttributeInfo TBlockTI::GetAttributeInfo(ListExpr value)
-{
-  AttributeInfo attribute;
-  attribute.name = nl->SymbolValue(nl->First(value));
-  attribute.type = nl->Second(value);
-
-  return attribute;
-}
-
-ListExpr TBlockTI::GetListExpr(const AttributeInfo &value)
-{
-  return nl->TwoElemList(nl->SymbolAtom(value.name),
-                         value.type);
 }

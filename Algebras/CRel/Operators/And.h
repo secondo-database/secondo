@@ -39,9 +39,10 @@ namespace CRelAlgebra
     The Operator expects two parameters.
 
     The parameters represent the sets to intersect and must be of type
-    'indices'.
+    'longints'.
 
-    The returned value represents the intersection and is of type 'indices'.
+    The returned value represents the sorted intersection and is of type
+    'longints'.
     */
     class And : public Operator
     {

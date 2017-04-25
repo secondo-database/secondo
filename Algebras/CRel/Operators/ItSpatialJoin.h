@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Shared.h"
 #include "Stream.h"
 #include "TBlock.h"
+#include "TBlockTI.h"
 #include <vector>
 
 namespace CRelAlgebra
@@ -44,19 +45,32 @@ namespace CRelAlgebra
       ItSpatialJoin();
 
     private:
-      static const OperatorInfo info;
+      class IndexProjection
+      {
+      public:
+        size_t index,
+          projection;
 
-      static ValueMapping valueMappings[];
+        IndexProjection()
+        {
+        }
 
-      static ListExpr TypeMapping(ListExpr args);
+        IndexProjection(size_t index, size_t projection) :
+          index(index),
+          projection(projection)
+        {
+        }
+      };
 
-      static int SelectValueMapping(ListExpr args);
-
-      template<int dimA, int dimB>
+      template<int dimA, int dimB, bool project>
       class State
       {
       public:
-        State(ArgVector args, Supplier s);
+        State(Supplier streamA, Supplier streamB, size_t joinIndexA,
+              size_t joinIndexB, size_t columnCountA, size_t columnCountB,
+              IndexProjection *projectionsA, IndexProjection *projectionsB,
+              size_t nodeMin, size_t nodeMax, size_t memLimit,
+              const TBlockTI &blockTypeInfo);
 
         ~State();
 
@@ -65,12 +79,12 @@ namespace CRelAlgebra
       private:
         static const int minDim = dimA > dimB ? dimB : dimA;
 
-        class MapEntry : public BlockTuple
+        class MapEntry : public TBlockEntry
         {
         public:
           MapEntry(int);
 
-          MapEntry(const BlockTuple &tuple);
+          MapEntry(const TBlockEntry &tuple);
         };
 
         class MapResultIterator
@@ -100,12 +114,14 @@ namespace CRelAlgebra
 
         const size_t m_joinIndexA,
           m_joinIndexB,
+          m_columnCountA,
+          m_columnCountB,
           m_memLimit,
           m_blockSize;
 
         mmrtree::RtreeT<minDim, MapEntry> m_map;
 
-        MapResultIterator m_pendingMapResult;
+        MapResultIterator m_mapResult;
 
         TBlock *m_blockA;
 
@@ -113,17 +129,34 @@ namespace CRelAlgebra
 
         bool m_isBExhausted;
 
-        TBlock::Iterator m_blockAIterator;
+        TBlockIterator m_blockAIterator;
 
         Stream<TBlock> m_streamA,
           m_streamB;
 
-        TBlock::PInfo m_blockInfo;
+        const PTBlockInfo m_blockInfo;
 
-        std::unique_ptr<ArrayAttribute[]> m_tuple;
+        AttrArrayEntry * const m_tuple;
+
+        const IndexProjection * const m_projectionsA,
+          * const m_projectionsB;
 
         bool ProceedStreamB();
       };
+
+      static const long defaultNodeMin;
+
+      static const OperatorInfo info;
+
+      static ValueMapping valueMappings[];
+
+      static ListExpr TypeMapping(ListExpr args);
+
+      static int SelectValueMapping(ListExpr args);
+
+      template<int dimA, int dimB, bool project>
+      static State<dimA, dimB, project> *CreateState(ArgVector args,
+                                                     Supplier s);
     };
   }
 }

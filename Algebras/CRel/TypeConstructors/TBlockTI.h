@@ -34,7 +34,7 @@ namespace CRelAlgebra
   class TBlockTI
   {
   public:
-    class AttributeInfo
+    class ColumnInfo
     {
     public:
       std::string name;
@@ -42,25 +42,39 @@ namespace CRelAlgebra
       ListExpr type;
     };
 
+    static const size_t blockSizeFactor;
+
+    static bool Check(ListExpr typeExpr);
+
     static bool Check(ListExpr typeExpr, std::string &error);
 
-    std::vector<AttributeInfo> attributeInfos;
+    std::vector<ColumnInfo> columnInfos;
 
-    TBlockTI();
+    TBlockTI(bool numeric);
 
-    TBlockTI(ListExpr typeExpr);
+    TBlockTI(ListExpr typeExpr, bool numeric);
 
-    void AppendAttributeInfos(ListExpr attributeList);
+    bool IsNumeric() const;
 
-    ListExpr GetTypeInfo() const;
+    size_t GetDesiredBlockSize() const;
 
-    TBlock::PInfo GetBlockInfo() const;
+    void SetDesiredBlockSize(size_t value);
 
-  protected:
-    static AttributeInfo GetAttributeInfo(ListExpr value);
+    void AppendColumnInfos(ListExpr columnList);
 
-    static ListExpr GetListExpr(const AttributeInfo &value);
+    ListExpr GetColumnList() const;
 
-    mutable TBlock::PInfo m_info;
+    ListExpr GetTypeExpr() const;
+
+    ListExpr GetTupleTypeExpr() const;
+
+    const PTBlockInfo &GetBlockInfo() const;
+
+  private:
+    bool m_isNumeric;
+
+    size_t m_desiredBlockSize;
+
+    mutable PTBlockInfo m_info;
   };
 }

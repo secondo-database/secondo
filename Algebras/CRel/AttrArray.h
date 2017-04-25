@@ -24,193 +24,825 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
+#include "AlgebraTypes.h"
 #include "Attribute.h"
 #include <cstddef>
-#include "HashMap.h"
 #include "NestedList.h"
 #include "ReadWrite.h"
 #include "SecondoSMI.h"
-#include "Shared.h"
 #include <string>
 #include "TypeConstructor.h"
 
-class ArrayAttribute;
-class AttrArrayIterator;
+/*
+Those classes are used for implementing and using types of kind ATTRARRAY which
+can be used as column-types in column-oriented relations.
 
-class AttrArray : public RefCounter
+To implement such a type:
+  *your type must derive from ~AttrArray~
+  *your types type-constructor must derive from ~AttrArrayTypeConstructor~
+
+*/
+
+namespace CRelAlgebra
 {
-public:
-  virtual ~AttrArray();
+  class AttrArrayEntry;
+  class AttrArrayIterator;
 
-  ArrayAttribute GetAt(size_t row) const;
+  /*
+  Abstract class corresponding to kind ATTRARRAY
 
-  ArrayAttribute operator[](size_t row) const;
+  All attribute array implementations must derive from this class to provide a
+  minimum set of functionality which can be used in a generic manner.
 
+  */
+  class AttrArray
+  {
+  public:
+    AttrArray() :
+      m_refCount(1)
+    {
+    }
 
-  virtual void Append(const AttrArray &block, size_t row) = 0;
+    virtual ~AttrArray()
+    {
+    }
 
-  virtual void Append(ListExpr value) = 0;
+    /*
+    Creates a ~AttrArrayEntry~ representing the entry in the specified ~row~.
 
-  virtual void Append(Attribute &value) = 0;
+    Precondition: ~row~ < ~GetCount()~
 
-  void Append(const ArrayAttribute &value);
+    */
+    AttrArrayEntry GetAt(size_t row) const;
+    AttrArrayEntry operator[](size_t row) const;
 
+    /*
+    Appends a entry located in the passed ~array~ and ~row~.
 
-  virtual void Remove() = 0;
+    Preconitions:
+      *this array and ~array~ are of same type
+      *~row~ < ~array.GetCount()~
 
+    */
+    virtual void Append(const AttrArray &array, size_t row) = 0;
 
-  //Anzahl der Elemente im Block
-  virtual size_t GetCount() const = 0;
+    /*
+    Appends a entry created from the passed ~Attribute~.
 
-  //Byte-Groesse des Blocks
-  virtual size_t GetSize() const = 0;
+    Preconition: ~value~ must be of this array's attribute type
 
+    */
+    virtual void Append(Attribute &value) = 0;
 
-  //Vergleich eines Eintrags des Blocks mit dem Eintrag eines anderen
-  virtual int Compare(size_t rowA, const AttrArray &blockB,
-                      size_t rowB) const = 0;
+    /*
+    Appends a entry represented by the provided ~AttrArrayEntry~.
 
-  //Vergleich eines Eintrags des Blocks mit einer Attribute-Instanz
-  virtual int Compare(size_t row, Attribute &value) const = 0;
+    Preconition: ~value~ represents the entry of a ~AttrArray~ of this array's
+    type
 
-  int Compare(size_t row, const ArrayAttribute &value) const;
+    */
+    void Append(const AttrArrayEntry &value);
 
+    /*
+    Removes the last entry.
 
-  //Vergleich eines Eintrags des Blocks mit dem Eintrag eines anderen
-  virtual int Equals(size_t rowA, const AttrArray &blockB, size_t rowB) const;
+    Precondition: ~GetCount()~ > 0
 
-  //Vergleich eines Eintrags des Blocks mit einer Attribute-Instanz
-  virtual int Equals(size_t row, Attribute &value) const;
+    */
+    virtual void Remove() = 0;
 
-  int Equals(size_t row, const ArrayAttribute &value) const;
+    /*
+    Removes all entries.
 
+    */
+    virtual void Clear() = 0;
 
-  //Funktion zum Berechnen des Hash-Werts eines Eintrags des Blocks
-  virtual size_t GetHash(size_t row) const = 0;
+    /*
+    Returns the number of entries.
 
-  virtual ListExpr GetListExpr(size_t row) const = 0;
+    */
+    virtual size_t GetCount() const = 0;
 
+    /*
+    Returns the size of this ~AttrArray~ in bytes.
 
-  //Schreibt die Daten serialisiert in ein Zielobjekt
-  virtual void Save(Writer &target) const = 0;
+    */
+    virtual size_t GetSize() const = 0;
 
-  virtual void DeleteRecords();
+    /*
+    Returns true if the entry specified by ~row~ is defined, false otherwise.
 
-  virtual void CloseFiles();
+    Precondition: ~row~ < ~GetCount()~
 
-  AttrArrayIterator GetIterator() const;
-};
+    */
+    virtual bool IsDefined(size_t row) const = 0;
 
-class ArrayAttribute
-{
-public:
-  ArrayAttribute();
+    /*
+    All entry comparisons behave like ~Attribute~ comparisons.
 
-  ArrayAttribute(const AttrArray *block, size_t row);
+    compare(entryA, entryB) < 0 => entryA < entryB
+    compare(entryA, entryB) == 0 => entryA == entryB
+    compare(entryA, entryB) > 0 => entryA > entryB
 
+    Additionaly to an entrie's value, it's definition state must also be
+    considered when evaluating comparisons.
 
-  const AttrArray *GetBlock() const;
+    undefined == undefined
+    undefined < value
 
-  size_t GetRow() const;
+    */
 
+    /*
+    Compares this array's entry in ~rowA~ with ~arrayB~'s entry in ~rowB~.
 
-  int Compare(const AttrArray &block, size_t row) const;
+    Preconditions:
+      *this array and ~arrayB~ are of same type
+      *~rowA~ < ~GetCount()~
+      *~rowB~ < ~arrayB.GetCount()~
 
-  int Compare(const ArrayAttribute &value) const;
+    */
+    virtual int Compare(size_t rowA, const AttrArray &arrayB,
+                        size_t rowB) const = 0;
 
-  int Compare(size_t row, Attribute &value) const;
+    /*
+    Compares this array's entry in ~row~ with the passed ~Attribute~'s value.
 
-  bool operator < (const ArrayAttribute& value);
+    Preconditions:
+      *~row~ < ~GetCount()~
+      *~value~ must be of this array's attribute type
 
-  bool operator <= (const ArrayAttribute& value);
+    */
+    virtual int Compare(size_t row, Attribute &value) const = 0;
 
-  bool operator > (const ArrayAttribute& value);
+    /*
+    Compares this array's entry in ~row~ the entry represented by ~value~.
 
-  bool operator >= (const ArrayAttribute& value);
+    Preconditions:
+      *~row~ < ~GetCount()~
+      *~value~ represents the entry of a ~AttrArray~ of this array's type
 
-  int Equals(const AttrArray &block, size_t row) const;
+    */
+    int Compare(size_t row, const AttrArrayEntry &value) const;
 
-  int Equals(const ArrayAttribute &value) const;
+    /*
+    Checks this array's entry in ~rowA~ with ~arrayB~'s entry in ~rowB~ for
+    equality.
 
-  int Equals(Attribute &value) const;
+    Preconditions:
+      *this array and ~arrayB~ are of same type
+      *~rowA~ < ~GetCount()~
+      *~rowB~ < ~arrayB.GetCount()~
 
-  bool operator == (const ArrayAttribute& value);
+    */
+    virtual bool Equals(size_t rowA, const AttrArray &arrayB, size_t rowB) const
+    {
+      return Compare(rowA, arrayB, rowB) == 0;
+    }
 
-  bool operator != (const ArrayAttribute& value);
+    /*
+    Checks this array's entry in ~row~ with the passed ~Attribute~'s value for
+    equality.
 
+    Preconditions:
+      *~row~ < ~GetCount()~
+      *~value~ must be of this array's attribute type
 
-  size_t GetHash() const;
+    */
+    virtual bool Equals(size_t row, Attribute &value) const
+    {
+      return Compare(row, value) == 0;
+    }
 
-  ListExpr GetListExpr() const;
+    /*
+    Checks this array's entry in ~row~ the entry represented by ~value~ for
+    equality.
 
-protected:
-  const AttrArray *m_block;
+    Preconditions:
+      *~row~ < ~GetCount()~
+      *~value~ represents the entry of a ~AttrArray~ of this array's type
 
-  size_t m_row;
+    */
+    bool Equals(size_t row, const AttrArrayEntry &value) const;
 
-  friend class AttrArray;
-  friend class AttrArrayIterator;
-};
+    /*
+    Returns a hash value for the entry specified by ~row~
 
-class AttrArrayIterator
-{
-public:
-  AttrArrayIterator();
+    Precondition: ~row~ < ~GetCount()~
 
-  AttrArrayIterator(const AttrArray *instance);
+    */
+    virtual size_t GetHash(size_t row) const = 0;
 
-  bool IsValid() const;
+    /*
+    Returns a ~Attribute~ representation of the entry in the specified ~row~.
 
-  bool MoveToNext();
+    The returned value may be only valid during this array's lifetime.
+    Passing ~clone~ == true returns a independent ~Attribute~.
 
-  ArrayAttribute &GetAttribute();
+    The returned object must be released calling ~DeleteIfAllowed()~!
 
-private:
-  const AttrArray *m_instance;
+    Precondition: ~row~ < ~GetCount()~
 
-  size_t m_count;
+    */
+    virtual Attribute *GetAttribute(size_t row, bool clone = false) const = 0;
 
-  ArrayAttribute m_current;
-};
+    /*
+    Writes this array's data into the passed target.
+    ~includeHeader~ determines if ~AttrArrayHeader~ data should be omitted.
 
-class AttrArrayFactory : public RefCounter
-{
-public:
-  virtual AttrArray *Create(SmiFileId fileId) = 0;
+    */
+    virtual void Save(Writer &target, bool includeHeader = true) const = 0;
 
-  virtual AttrArray *Load(Reader &source) = 0;
-};
+    /*
+    Deletes persistent data created by this array.
 
-class AttrArrayRegistration
-{
-public:
-  virtual AttrArrayFactory *Create(ListExpr attributeType) = 0;
+    */
+    virtual void DeleteRecords()
+    {
+    }
 
-  virtual bool CheckAttributeType(ListExpr attributeType) = 0;
+    /*
+    Returns a ~AttrArrayIterator~ over the entries.
 
-  virtual std::string GetAttributeTypeName() = 0;
-};
+    */
+    AttrArrayIterator GetIterator() const;
 
-class AttrArrayCatalog
-{
-public:
-  static AttrArrayCatalog &GetInstance();
+    /*
+    ~AttrArrayIterator~s used (only!) for range-loop support.
 
-  AttrArrayFactory *CreateFactory(ListExpr attributeType);
+    */
+    AttrArrayIterator begin() const;
+    AttrArrayIterator end() const;
 
-  void Register(AttrArrayRegistration *registration);
+    /*
+    Increases the reference counter by one.
 
-private:
-  static AttrArrayCatalog instance;
+    */
+    void IncRef() const
+    {
+      ++m_refCount;
+    }
 
-  static size_t HashString(const std::string &value);
+    /*
+    Decreases the reference counter by one.
+    If the reference counter reaches zero this object is deleted.
 
-  static int CompareString(const std::string &a, const std::string &b);
+    */
+    void DecRef() const
+    {
+      if (--m_refCount == 0)
+      {
+        delete this;
+      }
+    }
 
-  typedef SortedHashMap<std::string, AttrArrayRegistration*,
-                        HashString, CompareString> FactoryMap;
+    /*
+    Returns the reference count.
 
-  FactoryMap m_registrations;
+    */
+    size_t GetRefCount() const
+    {
+      return m_refCount;
+    }
 
-  AttrArrayCatalog();
-};
+  private:
+    mutable size_t m_refCount;
+  };
+
+  /*
+  This class represents the entry of a ~AttrArray~ by a pointer to the array and
+  a row number.
+
+  If either the pointer doesn't point to a ~AttrArray~ instance or the row
+  number is out of the array's range of rows, the ~AttrArrayEntry~ is considered
+  invalid.
+
+  This class doesn't change a ~AttrArray~'s reference count.
+  If the pointed to array is deleted this ~AttrArrayEntry~ becomes invalid.
+
+  Using a invalid ~AttrArrayEntry~ is considered undefined behaviour.
+
+  This class only wraps ~AttrArray~ functions.
+  The functions are defined in this header file to enable inlining.
+
+  */
+  class AttrArrayEntry
+  {
+  public:
+    /*
+    Creates a invalid ~AttrArrayEntry~.
+
+    */
+    AttrArrayEntry()
+    {
+    }
+
+    /*
+    Creates a ~AttrArrayEntry~ representing the entry in the passed ~array~ and
+    ~row~.
+
+    ~array->GetCount()~ < ~row~ <=> the returned entry is valid
+
+    */
+    AttrArrayEntry(const AttrArray *array, size_t row) :
+      m_array(array),
+      m_row(row)
+    {
+    }
+
+    /*
+    Returns the ~AttrArray~ pointer
+
+    */
+    const AttrArray *GetArray() const
+    {
+      return m_array;
+    }
+
+    /*
+    Returns the row number
+
+    */
+    size_t GetRow() const
+    {
+      return m_row;
+    }
+
+    bool IsDefined() const
+    {
+      return m_array->IsDefined(m_row);
+    }
+
+    int Compare(const AttrArray &array, size_t row) const
+    {
+      return m_array->Compare(m_row, array, row);
+    }
+
+    int Compare(const AttrArrayEntry &value) const
+    {
+      return m_array->Compare(m_row, *value.m_array, value.m_row);
+    }
+
+    int Compare(size_t row, Attribute &value) const
+    {
+      return m_array->Compare(m_row, value);
+    }
+
+    bool operator < (const AttrArrayEntry& value) const
+    {
+      return m_array->Compare(m_row, *value.m_array, value.m_row) < 0;
+    }
+
+    bool operator <= (const AttrArrayEntry& value) const
+    {
+      return m_array->Compare(m_row, *value.m_array, value.m_row) <= 0;
+    }
+
+    bool operator > (const AttrArrayEntry& value) const
+    {
+      return m_array->Compare(m_row, *value.m_array, value.m_row) > 0;
+    }
+
+    bool operator >= (const AttrArrayEntry& value) const
+    {
+      return m_array->Compare(m_row, *value.m_array, value.m_row) >= 0;
+    }
+
+    bool Equals(const AttrArray &array, size_t row) const
+    {
+      return m_array->Equals(m_row, array, row);
+    }
+
+    bool Equals(const AttrArrayEntry &value) const
+    {
+      return m_array->Equals(m_row, *value.m_array, value.m_row);
+    }
+
+    bool Equals(Attribute &value) const
+    {
+      return m_array->Equals(m_row, value);
+    }
+
+    bool operator == (const AttrArrayEntry& value) const
+    {
+      return m_array->Equals(m_row, *value.m_array, value.m_row);
+    }
+
+    bool operator != (const AttrArrayEntry& value) const
+    {
+      return !m_array->Equals(m_row, *value.m_array, value.m_row);
+    }
+
+
+    size_t GetHash() const
+    {
+      return m_array->GetHash(m_row);
+    }
+
+    Attribute *GetAttribute(bool clone = false) const
+    {
+      return m_array->GetAttribute(m_row, clone);
+    }
+
+  protected:
+    const AttrArray *m_array;
+
+    size_t m_row;
+
+    friend class AttrArray;
+    friend class AttrArrayIterator;
+  };
+
+  /*
+  Those ~AttrArray~ functions should be inlined if possible.
+  Yet they depend on ~AttrArrayEntry~ so they are defined here.
+
+  */
+
+  inline AttrArrayEntry AttrArray::GetAt(size_t row) const
+  {
+    return AttrArrayEntry(this, row);
+  }
+
+  inline AttrArrayEntry AttrArray::operator[](size_t row) const
+  {
+    return AttrArrayEntry(this, row);
+  }
+
+  inline void AttrArray::Append(const AttrArrayEntry &value)
+  {
+    Append(*value.m_array, value.m_row);
+  }
+
+  inline int AttrArray::Compare(size_t row, const AttrArrayEntry &value) const
+  {
+    return Compare(row, *value.m_array, value.m_row);
+  }
+
+  inline bool AttrArray::Equals(size_t row, const AttrArrayEntry &value) const
+  {
+    return Equals(row, *value.m_array, value.m_row) == 0;
+  }
+
+  /*
+  A very simple implementation of iterator over a ~AttrArray~’s entries.
+
+  Changes of the ~AttrArray~ invalidate the iterator which is not reflected by
+  ~AttrArrayIterator.IsValid~. Further usage is considered undefined behaviour.
+
+  The functions are defined in this header file to enable inlining.
+
+  */
+  class AttrArrayIterator
+  {
+  public:
+    /*
+    Creates a invalid iterator.
+
+    */
+    AttrArrayIterator() :
+      m_count(0),
+      m_entry(nullptr, 0)
+    {
+    }
+
+    /*
+    Creates a iterator pointing at the first entry in the passed ~array~.
+    If the ~array~ is empty the iterator is invalid.
+
+    */
+    AttrArrayIterator(const AttrArray *array) :
+      m_array(array),
+      m_count(array != nullptr ? array->GetCount() : 0),
+      m_entry(array, 0)
+    {
+    }
+
+    /*
+    Determines if the iterator's current position is valid.
+
+    */
+    bool IsValid() const
+    {
+      return m_entry.m_row < m_count;
+    }
+
+    /*
+    Moves the iterator to the next position.
+    ~MoveToNext~ returns true if that position is still valid.
+
+    Precondition: ~IsValid()~
+
+    */
+    bool MoveToNext()
+    {
+      if (m_entry.m_row < m_count)
+      {
+        return ++m_entry.m_row < m_count;
+      }
+
+      return false;
+    }
+
+    AttrArrayIterator &operator ++ ()
+    {
+      MoveToNext();
+
+      return *this;
+    }
+
+    /*
+    Returns a ~AttrArrayEntry~ representing the entry at the iterator's current
+    position.
+
+    Precondition: ~IsValid()~
+
+    */
+    AttrArrayEntry &Get()
+    {
+      return m_entry;
+    }
+
+    AttrArrayEntry &operator * ()
+    {
+      return Get();
+    }
+
+    /*
+    Compares this iterator and the ~other~ iterator for equality.
+
+    */
+    bool operator == (const AttrArrayIterator &other) const
+    {
+      return !(*this != other);
+    }
+
+    /*
+    Compares this iterator and the ~other~ iterator for inequality.
+
+    */
+    bool operator != (const AttrArrayIterator &other) const
+    {
+      if (IsValid())
+      {
+        if (other.IsValid())
+        {
+          return m_entry.m_row != other.m_entry.m_row ||
+                m_array != other.m_array;
+        }
+
+        return true;
+      }
+
+      return other.IsValid();
+    }
+
+  private:
+    const AttrArray *m_array;
+
+    size_t m_count;
+
+    AttrArrayEntry m_entry;
+  };
+
+  /*
+  Those ~AttrArray~ functions should be inlined if possible.
+  Yet they depend on ~AttrArrayIterator~ so they are defined here.
+
+  */
+
+  inline AttrArrayIterator AttrArray::GetIterator() const
+  {
+    return AttrArrayIterator(this);
+  }
+
+  inline AttrArrayIterator AttrArray::begin() const
+  {
+    return GetIterator();
+  }
+
+  inline AttrArrayIterator AttrArray::end() const
+  {
+    return AttrArrayIterator();
+  }
+
+  /*
+  Class used to persist some members of a attribute array seperately to avoid
+  data redundancy in ~TBlock~s and ~CRel~s.
+
+  */
+  class AttrArrayHeader
+  {
+  public:
+    //number of rows in a ~AttrArray~.
+    size_t count;
+
+    //id of the file a ~AttrArray~ should use for ~Flob~ storage.
+    SmiFileId flobFileId;
+
+    AttrArrayHeader()
+    {
+    }
+
+    AttrArrayHeader(size_t count, SmiFileId flobFileId) :
+      count(count),
+      flobFileId(flobFileId)
+    {
+    }
+  };
+
+  /*
+  ~AttrArrayManager~ allows to create and load instances of ~AttrArray~s without
+  knowledge of the implementing class.
+
+  Instances of ~AttrArrayManager~ can be obtained from a
+  ~AttrArrayTypeConstructor~.
+
+  */
+  class AttrArrayManager
+  {
+  public:
+    AttrArrayManager();
+
+    virtual ~AttrArrayManager();
+
+    /*
+    Creates a new instance of ~AttrArray~, providing a file id for ~Flob~
+    storage.
+
+    ~flobFileId~ == 0 => no ~Flob~ storage
+
+    The returned object must be released using ~DecRef~.
+
+    */
+    virtual AttrArray *Create(SmiFileId flobFileId) = 0;
+
+    /*
+    Loads a new instance of ~AttrArray~ from the provided ~source~.
+
+    Preconditions:
+      *~source~ holds data created by calling a ~AttrArray~'s ~Save~ function
+       with ~includeHeader~ == true
+      *the ~AttrArray~ was created by this ~AttrArrayManager~ implementation
+
+    The returned object must be released using ~DecRef~.
+
+    */
+    virtual AttrArray *Load(Reader &source) = 0;
+
+    /*
+    Loads a new instance of ~AttrArray~ from the provided ~source~ passing
+    ~AttrArrayHeader~ data seperately.
+
+    Preconditions:
+      *~source~ holds data created by calling a ~AttrArray~'s ~Save~ function
+       with ~includeHeader~ == false
+      *the ~AttrArray~ was created by this ~AttrArrayManager~ implementation
+
+    The returned object must be released using ~DecRef~.
+
+    */
+    virtual AttrArray *Load(Reader &source, const AttrArrayHeader &header) = 0;
+
+    /*
+    Increases the reference counter by one.
+
+    */
+    void IncRef() const;
+
+    /*
+    Decreases the reference counter by one.
+    If the reference counter reaches zero this object is deleted.
+
+    */
+    void DecRef() const;
+
+
+    /*
+    Returns the reference count.
+
+    */
+    size_t GetRefCount() const;
+
+  private:
+    mutable size_t m_refCount;
+  };
+
+  /*
+  This function is supposed to return the attribute type for a attribute-array
+  type ~typeExpr~.
+
+  If ~numeric~ the provided and returned types must be in their numeric
+  representation (see ~SecondoCatalog~).
+
+  */
+  typedef ListExpr (*AttrArrayTypeFunction)(ListExpr typeExpr, bool numeric);
+
+  /*
+  This function is supposed to return instance of ~AttrArrayManager~ for the
+  provided attribute type.
+
+  Normally ~attributeType~ was previously determined by a
+  ~AttrArrayTypeFunction~.
+
+  */
+  typedef AttrArrayManager *(*AttrArrayManagerFunction)(ListExpr attributeType);
+
+  /*
+  ~TypeConstructor~ for ATTRARRAY types.
+  Every ~TypeConstructor~ for a ATTRARRAY type must derive from
+  ~AttrArrayTypeConstructor~ to provide functions used by ~TBlock~ and ~CRel~.
+
+  */
+  class AttrArrayTypeConstructor : public TypeConstructor
+  {
+  public:
+    /*
+    This function returns a default ATTRARRAY type with the provided attribute
+    type.
+
+    If ~numeric~ the provided and returned types must be in their numeric
+    representation (see ~SecondoCatalog~).
+
+    */
+    static ListExpr GetDefaultAttrArrayType(ListExpr attributeType,
+                                            bool numeric);
+
+    /*
+    Creates a ~AttrArrayTypeConstructor~ with the provided ~name~ and functions
+    and accociates it with ATTRARRAY.
+
+    */
+    AttrArrayTypeConstructor(const std::string& name, TypeProperty typeProperty,
+                             TypeCheckFunction typeCheck,
+                             AttrArrayTypeFunction attributeType,
+                             AttrArrayManagerFunction manager);
+
+    /*
+    Creates a ~AttrArrayTypeConstructor~ with the provided ~name~ and functions
+    and accociates it with ATTRARRAY.
+
+    */
+    AttrArrayTypeConstructor(const std::string& name, TypeProperty typeProperty,
+                             OutObject out, InObject in, ObjectCreation create,
+                             ObjectDeletion del, ObjectOpen open,
+                             ObjectSave save, ObjectClose close,
+                             ObjectClone clone, ObjectCast cast,
+                             ObjectSizeof sizeOf, TypeCheckFunction typeCheck,
+                             AttrArrayTypeFunction attributeType,
+                             AttrArrayManagerFunction manager);
+
+    /*
+    Returns the attribute type for this ~TypeConstructor~'s ATTRARRAY type
+    ~typeExpr~.
+
+    If ~numeric~ the provided and returned types must be in their numeric
+    representation (see ~SecondoCatalog~).
+
+    */
+    ListExpr GetAttributeType(ListExpr typeExpr, bool numeric);
+
+    /*
+    Returns a instance of ~AttrArrayManager~ for this ~TypeConstructor~'s
+    ATTRARRAY type with the provided attribute type.
+
+    The returned object must be released using ~DecRef~.
+
+    */
+    AttrArrayManager *CreateManager(ListExpr attributeType);
+
+  protected:
+    /*
+    Default implementations of some ~TypeConstructor~ functions for
+    ATTRARRAY types.
+
+    */
+
+    static Word DefaultIn(ListExpr typeExpr, ListExpr value, int errorPos,
+                          ListExpr &errorInfo, bool &correct);
+
+    static ListExpr DefaultOut(ListExpr typeExpr, Word value);
+
+    static Word DefaultCreate(const ListExpr typeExpr);
+
+    static void DefaultDelete(const ListExpr typeExpr, Word &value);
+
+    static bool DefaultOpen(SmiRecord &valueRecord, size_t &offset,
+                            const ListExpr typeExpr, Word &value);
+
+    static bool DefaultSave(SmiRecord &valueRecord, size_t &offset,
+                            const ListExpr typeExpr, Word &value);
+
+    static void DefaultClose(const ListExpr typeExpr, Word &value);
+
+    static void *DefaultCast(void *addr);
+
+    static int DefaultSizeOf();
+
+    static Word DefaultClone(const ListExpr typeExpr, const Word &value);
+
+  private:
+    AttrArrayTypeFunction m_getAttributeType;
+
+    AttrArrayManagerFunction m_createManager;
+  };
+}

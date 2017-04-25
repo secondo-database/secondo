@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SecondoSMI.h"
 #include "Stream.h"
 #include "TBlock.h"
+#include "TBlockTI.h"
 #include <vector>
 
 namespace CRelAlgebra
@@ -44,30 +45,55 @@ namespace CRelAlgebra
       ItHashJoin();
 
     private:
+      class IndexProjection
+      {
+      public:
+        size_t index,
+          projection;
+
+        IndexProjection()
+        {
+        }
+
+        IndexProjection(size_t index, size_t projection) :
+          index(index),
+          projection(projection)
+        {
+        }
+      };
+
+      template<bool project>
       class State
       {
       public:
-        State(ArgVector args, Supplier s);
+        State(Supplier streamA, Supplier streamB, size_t joinIndexA,
+              size_t joinIndexB, size_t columnCountA, size_t columnCountB,
+              IndexProjection *projectionsA, IndexProjection *projectionsB,
+              size_t bucketCount, size_t memLimit,
+              const TBlockTI &blockTypeInfo);
 
         ~State();
 
         TBlock *Request();
 
       private:
-        static size_t HashKey(const ArrayAttribute &attribute);
+        static size_t HashKey(const AttrArrayEntry &entry);
 
-        static int CompareKey(const ArrayAttribute &a, const ArrayAttribute &b);
+        static bool CompareKey(const AttrArrayEntry &a,
+                               const AttrArrayEntry &b);
 
-        typedef HashMap<ArrayAttribute, BlockTuple, HashKey, CompareKey> Map;
+        typedef HashMap<AttrArrayEntry, TBlockEntry, HashKey, CompareKey> Map;
 
         const size_t m_joinIndexA,
           m_joinIndexB,
+          m_columnCountA,
+          m_columnCountB,
           m_memLimit,
           m_blockSize;
 
         Map m_map;
 
-        Map::EqualRangeIterator m_mapResult;
+        typename Map::EqualRangeIterator m_mapResult;
 
         TBlock *m_blockA;
 
@@ -75,21 +101,31 @@ namespace CRelAlgebra
 
         bool m_isBExhausted;
 
-        TBlock::Iterator m_blockAIterator;
+        TBlockIterator m_blockAIterator;
 
         Stream<TBlock> m_streamA,
           m_streamB;
 
-        TBlock::PInfo m_blockInfo;
+        const PTBlockInfo m_blockInfo;
 
-        ArrayAttribute *m_tuple;
+        AttrArrayEntry * const m_tuple;
+
+        const IndexProjection * const m_projectionsA,
+          * const m_projectionsB;
 
         bool ProceedStreamB();
       };
 
       static const OperatorInfo info;
 
+      static ValueMapping valueMappings[];
+
       static ListExpr TypeMapping(ListExpr args);
+
+      static int SelectValueMapping(ListExpr args);
+
+      template<bool project>
+      static State<project> *CreateState(ArgVector args, Supplier s);
     };
   }
 }

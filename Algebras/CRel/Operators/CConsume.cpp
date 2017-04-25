@@ -24,22 +24,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "CConsume.h"
 
+#include "AttrArray.h"
 #include "CRel.h"
 #include "CRelTI.h"
 #include <cstddef>
 #include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "LongInt.h"
 #include "QueryProcessor.h"
 #include "RelationAlgebra.h"
+#include "StandardTypes.h"
 #include "Stream.h"
 #include <string>
 #include "TBlock.h"
 #include "TBlockTI.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
+using listutils::isStream;
+using listutils::typeError;
 using std::exception;
 using std::string;
 
@@ -52,71 +58,158 @@ CConsume::CConsume() :
   SetUsesArgsInTypeMapping();
 }
 
-const OperatorInfo CConsume::info = OperatorInfo(
-  "cconsume", "stream(tblock(m, (A))) -> crel(c, m, (A))",
-  "_ cconsume",
-  "Produces a column-oriented relation from a stream of tuple-blocks.",
-  "query cities feed cconsume");
-
 ValueMapping CConsume::valueMappings[] =
 {
   TBlockValueMapping,
   TupleValueMapping,
-  NULL
+  nullptr
 };
+
+const OperatorInfo CConsume::info = OperatorInfo(
+  "cconsume", "stream(tuple | tblock) x (int | crel) -> crel",
+  "_ cconsume[ _ ]",
+  "Creates a column-oriented relation from a stream of tuples or tuple blocks. "
+  "The second argument can be either the desired block size (int) or a "
+  "template (crel) for the new relation.\n\n"
+  "stream(tuple) x int: The column types in the relation are derived from "
+  "the tuple attribute types.\n\n"
+  "stream(tblock) x int: The column types in the relation equal those in the "
+  "tuple block type.\n"
+  "stream(tuple | tblock) x crel): The relation type equals the template's "
+  "type.\n",
+  "query cities feed cconsume[1]");
 
 ListExpr CConsume::TypeMapping(ListExpr args)
 {
-  //Expect two args
-  if (!nl->HasLength(args, 2))
+  //Two args?
+  const size_t argCount = nl->ListLength(args);
+
+  if (argCount < 2 || argCount > 3)
   {
-    return listutils::typeError("Expected two arguments!");
+    return typeError("Expected two or three arguments!");
   }
 
-  //Check first parameter for stream
+  //First parameter a stream?
   ListExpr stream = nl->First(nl->First(args));
-  if (!nl->HasLength(stream, 2) ||
-      !nl->IsEqual(nl->First(stream), Symbol::STREAM()))
+  if (!isStream(stream))
   {
-    return listutils::typeError("First argument isn't' a stream!");
+    return typeError("The first argument (source) isn't a stream!");
   }
 
-  //Check second parameter for 'int' type and boundary
-  ListExpr blockSizeArg = nl->Second(nl->Second(args));
-  long blockSize;
+  const ListExpr streamType = GetStreamType(stream),
+    secondArg = nl->Second(args),
+    secondArgType = nl->First(secondArg);
 
-  if (!nl->IsNodeType(IntType, blockSizeArg) ||
-      (blockSize = nl->IntValue(blockSizeArg)) < 0)
+  CRelTI typeInfo(false);
+
+  const bool sourceIsBlockStream = TBlockTI::Check(streamType);
+
+  //First parameter a stream of 'tuple'?
+  if (!sourceIsBlockStream && !Tuple::checkType(streamType))
   {
-    return listutils::typeError("Second argument (block size) isn't an int >= "
-                                "0.");
+    return typeError("The first argument (source) isn't a stream of 'tuple' or "
+                     "'tblock'.");
   }
 
-  CRelTI crelInfo;
-
-  ListExpr argType = nl->Second(stream);
-  string argTypeError;
-
-  //Check first parameter's stream type for 'tblock'
-  if (TBlockTI::Check(argType, argTypeError))
+  if (CRelTI::Check(secondArgType))
   {
-    crelInfo = CRelTI(TBlockTI(argType), 1, blockSize);
-  }
-  //Check first parameter's stream type for 'tuple'
-  else if (Tuple::checkType(argType))
-  {
-    crelInfo.AppendAttributeInfos(nl->Second(argType));
-    crelInfo.SetCacheSize(1);
-    crelInfo.SetDesiredBlockSize(blockSize);
+    typeInfo = CRelTI(secondArgType, false);
+
+    const ListExpr sourceAttributeList = sourceIsBlockStream ?
+      nl->Second(TBlockTI(streamType, false).GetTupleTypeExpr()) :
+      nl->Second(streamType);
+
+    if (!nl->Equal(sourceAttributeList,
+                   nl->Second(typeInfo.GetTupleTypeExpr())))
+    {
+      if (sourceIsBlockStream)
+      {
+        return typeError("The attribute types or names of the columns in the "
+                         "first argument (source) don't match those in the "
+                         "second argument (target template).");
+      }
+
+      return typeError("The types or names of the attributes in the first "
+                       "argument (source) don't match those in the second "
+                       "argument (target template).");
+    }
+
+    if (argCount > 2)
+    {
+      return typeError("Expected two arguments because the second argument "
+                       "is a 'crel' (target template).");
+    }
   }
   else
   {
-    return listutils::typeError("First argument is neither a stream of tblock "
-                                "nor a stream of tuple.");
+    size_t desiredBlockSize;
+
+    if (!GetSizeTValue(secondArgType, nl->Second(secondArg), desiredBlockSize))
+    {
+      return typeError("The second argument is neither a 'int' or 'longint' "
+                       "(block size) nor a 'crel' (target template).");
+    }
+
+    size_t cacheSize;
+
+    if (argCount < 3)
+    {
+      cacheSize = 1;
+    }
+    else
+    {
+      const ListExpr cacheSizeExpr = nl->Third(args);
+
+      if (!GetSizeTValue(nl->First(cacheSizeExpr), nl->Second(cacheSizeExpr),
+                         cacheSize) ||
+          cacheSize == 0)
+      {
+        return typeError("The third argument (cache size) isn't a 'int' or"
+                         "'longint' > 0.");
+      }
+    }
+
+    if (sourceIsBlockStream)
+    {
+      typeInfo = CRelTI(TBlockTI(streamType, false), cacheSize);
+    }
+    else
+    {
+      ListExpr attributeList = nl->Second(streamType),
+        columns = nl->Empty(),
+        columnsEnd = columns;
+
+      //Create column types of kind ATTRARRAY from attribute types of kind DATA
+      while (!nl->IsEmpty(attributeList))
+      {
+        const ListExpr current = nl->First(attributeList),
+          columnName = nl->First(current),
+          columnType = AttrArrayTypeConstructor::GetDefaultAttrArrayType(
+                        nl->Second(current), false);
+
+        attributeList = nl->Rest(attributeList);
+
+        if (nl->IsEmpty(columns))
+        {
+          columns = nl->OneElemList(nl->TwoElemList(columnName, columnType));
+          columnsEnd = columns;
+        }
+        else
+        {
+          columnsEnd = nl->Append(columnsEnd,
+                                  nl->TwoElemList(columnName, columnType));
+        }
+      }
+
+      typeInfo.AppendColumnInfos(columns);
+      typeInfo.SetCacheSize(cacheSize);
+    }
+
+    typeInfo.SetDesiredBlockSize(desiredBlockSize);
   }
 
   //Return 'crel' type
-  return crelInfo.GetTypeInfo();
+  return typeInfo.GetTypeExpr();
 }
 
 int CConsume::SelectValueMapping(ListExpr args)
@@ -141,9 +234,9 @@ int CConsume::TBlockValueMapping(Word* args, Word &result, int, Word&,
 
     stream.open();
 
-    while ((block = stream.request()) != NULL)
+    while ((block = stream.request()) != nullptr)
     {
-      for (const BlockTuple &tuple : *block)
+      for (const TBlockEntry &tuple : *block)
       {
         relation.Append(tuple);
       }
@@ -174,7 +267,7 @@ int CConsume::TupleValueMapping(ArgVector args, Word &result, int, Word&,
 
     stream.open();
 
-    while ((tuple = stream.request()) != NULL)
+    while ((tuple = stream.request()) != nullptr)
     {
       relation.Append(*tuple);
 

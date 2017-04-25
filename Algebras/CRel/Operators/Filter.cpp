@@ -25,143 +25,276 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Filter.h"
 
 #include "AttrArray.h"
-#include <exception>
-#include "IndicesTI.h"
+#include "LongIntsTC.h"
+#include "LongIntsTI.h"
+#include "ListExprUtils.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
-#include <memory>
+#include "OperatorUtils.h"
+#include "Project.h"
 #include "QueryProcessor.h"
+#include "Shared.h"
 #include "StreamValueMapping.h"
 #include <string>
 #include "Symbols.h"
-#include "TBlockTI.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
-using std::exception;
+using listutils::isStream;
 using std::string;
-using std::unique_ptr;
 using std::vector;
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
-Filter::Filter() :
-  Operator(info, StreamValueMapping<State>, TypeMapping)
+//Filter------------------------------------------------------------------------
+
+template<bool project>
+Filter<project>::Filter() :
+  Operator(info, StreamValueMapping<State, CreateState>,
+           TypeMapping)
 {
+  SetUsesArgsInTypeMapping();
 }
 
-const OperatorInfo Filter::info = OperatorInfo(
-  "filter", "nö",
-  "_ feed [fun]",
-  "schnö",
-  "niemals");
+template<bool project>
+const OperatorInfo Filter<project>::info = project ?
+  OperatorInfo("cfilter", "stream(tblock) x (map tblock longints) x symbol x "
+               "symbol* x int -> stream(tblock)",
+               "_ cfilter[ fun , [ list ], _]",
+               "Transforms a stream of tuple blocks into one wich:\n\n"
+               "1) Only contains the entries which's indices are returned by "
+               "the filter function."
+               "\n2) Is projected to the passed column names.\n"
+               "3) Has the specified block size if it's > 0 or the input block "
+               "streams block size otherwise.",
+               "query plz feed filter[.PLZ = 5000, [Ort], 1] consume") :
+  OperatorInfo("filter", "stream(tblock) x (map tblock longints) -> "
+               "stream(tblock)",
+               "_ filter[ fun ]",
+               "Transforms a stream of tuple blocks into one wich only "
+               "contains the entries which's indices are returned by the "
+               "filter function.",
+               "query plz feed filter[.PLZ = 5000] consume");
 
-ListExpr Filter::TypeMapping(ListExpr args)
+template<bool project>
+ListExpr Filter<project>::TypeMapping(ListExpr args)
 {
-  const size_t argumentCount = nl->ListLength(args);
+  const size_t argCount = nl->ListLength(args);
 
-  if (argumentCount != 1 && argumentCount != 2)
+  if (project)
   {
-    return listutils::typeError("Expected one or two arguments!");
+    if (argCount < 3 || argCount > 4)
+    {
+      return listutils::typeError("Expected three to four arguments!");
+    }
+  }
+  else
+  {
+    if (argCount != 2)
+    {
+      return listutils::typeError("Expected two to four arguments!");
+    }
   }
 
-  ListExpr stream = nl->First(args);
-  if (!nl->HasLength(stream, 2) ||
-      !nl->IsEqual(nl->First(stream), Symbol::STREAM()))
+  //Check 'block stream' argument
+
+  string error;
+
+  ListExpr blockType;
+
+  if (!IsBlockStream(nl->First(nl->First(args)), blockType, error))
   {
-    return listutils::typeError("First argument isn't' a stream!");
+    return GetTypeError(0, "block stream", error);
   }
 
-  const ListExpr tblockType = nl->Second(stream);
+  TBlockTI blockInfo = TBlockTI(blockType, false);
 
-  string typeError;
-  if (!TBlockTI::Check(tblockType, typeError))
+  //Check 'predicate' argument
+
+  const ListExpr mapType = nl->First(nl->Second(args));
+
+  if (!nl->HasMinLength(mapType, 2) ||
+      !nl->IsEqual(nl->First(mapType), Symbols::MAP()))
   {
-    return listutils::typeError("First argument isn't a stream of tblock: " +
-                                typeError);
+    return GetTypeError(1, "predicate", "Isn't a map.");
   }
 
-  const ListExpr mapType = nl->Second(args);
   if(!nl->HasLength(mapType, 3) ||
-     !nl->IsEqual(nl->First(mapType), Symbols::MAP()))
+     !nl->Equal(nl->Second(mapType), blockType))
   {
-    return listutils::typeError("Second argument (map) doesn't take one "
-                                "argument.");
+    return GetTypeError(1, "predicate", "Doesn't accept the first argument's "
+                        "(block stream) block type");
   }
 
-  if (!nl->Equal(nl->Second(mapType), tblockType))
+  if(!LongIntsTI::Check(nl->Third(mapType)))
   {
-    return listutils::typeError("Second argument's (map) argument type doesn't "
-                                "match the first argument's (stream) tblock "
-                                "type.");
+    return GetTypeError(1, "predicate", "Doesn't evaluate to " +
+                        LongIntsTC::name);
   }
 
-  if(!IndicesTI::Check(nl->Third(mapType), typeError))
+  //Check optional arguments
+
+  size_t argNo = 3;
+  ListExpr appendArgs = nl->Empty();
+
+  //Check 'projection' argument
+
+  if (argCount >= argNo)
   {
-    return listutils::typeError("Second argument (map) doesn't return a "
-                                "intset: " + typeError);
+    const Project::Info info(blockInfo, nl->First(nl->Third(args)));
+
+    if (!info.HasError())
+    {
+      blockInfo = info.GetBlockTypeInfo();
+
+      appendArgs = nl->OneElemList(ToIntListExpr(info.GetIndices()));
+
+      ++argNo;
+    }
+    else
+    {
+      error = info.GetError();
+
+      if (argCount == 4)
+      {
+        return GetTypeError(argNo - 1, "projection", error);
+      }
+    }
   }
 
-  return stream;
+  if (argCount >= argNo)
+  {
+    const ListExpr arg = nl->Nth(argNo, args);
+
+    if (!CcInt::checkType(nl->First(arg)))
+    {
+      return GetTypeError(argNo - 1, "block size", "Not a int.");
+    }
+
+    const long blockSize = nl->IntValue(nl->Second(arg));
+
+    if (blockSize > 0)
+    {
+      blockInfo.SetDesiredBlockSize(blockSize);
+    }
+  }
+
+  const ListExpr result = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                          blockInfo.GetTypeExpr());
+
+  if (nl->IsEmpty(appendArgs))
+  {
+    return result;
+  }
+
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()), appendArgs,
+                           result);
 }
 
-Filter::State::State(Word* args, Supplier s) :
-  m_sourceBlock(NULL),
-  m_filteredIndices(NULL),
-  m_stream(args[0]),
-  m_filter(args[1].addr),
-  m_filterArg((*qp->Argument(m_filter))[0].addr)
+template<bool project>
+typename Filter<project>::State *Filter<project>::CreateState(ArgVector args,
+                                                              Supplier s)
 {
   qp->DeleteResultStorage(s);
 
+  const TBlockTI blockType = TBlockTI(qp->GetType(s), false);
+
+  size_t *projection;
+
+  if (project)
+  {
+    const vector<Word> subArgVector =
+      GetSubArgvector(args[qp->GetNoSons(s) - 1].addr);
+
+    projection = new size_t[subArgVector.size()];
+
+    size_t i = 0;
+
+    for (const Word &subArg : subArgVector)
+    {
+      projection[i++] = ((CcInt*)subArg.addr)->GetValue();
+    }
+  }
+  else
+  {
+    projection = nullptr;
+  }
+
+  return new State(args[0].addr, args[1].addr, blockType, projection);
+}
+
+//Filter::State-----------------------------------------------------------------
+
+template<bool project>
+Filter<project>::State::State(Supplier stream, Supplier filter,
+                              const TBlockTI &blockType, size_t *projection) :
+  m_sourceBlock(nullptr),
+  m_filteredIndices(nullptr),
+  m_desiredBlockSize(blockType.GetDesiredBlockSize() *
+                     TBlockTI::blockSizeFactor),
+  m_filteredIndex(0),
+  m_stream(stream),
+  m_filter(filter),
+  m_filterArg((*qp->Argument(m_filter))[0].addr),
+  m_blockInfo(blockType.GetBlockInfo()),
+  m_projection(projection)
+{
   m_stream.open();
 }
 
-Filter::State::~State()
+template<bool project>
+Filter<project>::State::~State()
 {
   m_stream.close();
 
-  if (m_sourceBlock != NULL)
+  if (m_sourceBlock != nullptr)
   {
     m_sourceBlock->DecRef();
   }
+
+  if (m_projection != nullptr)
+  {
+    delete[] m_projection;
+  }
 }
 
-TBlock *Filter::State::Request()
+template<bool project>
+TBlock *Filter<project>::State::Request()
 {
-  while (m_sourceBlock == NULL)
+  while (m_sourceBlock == nullptr)
   {
-    if ((m_sourceBlock = m_stream.request()) != NULL)
+    if ((m_sourceBlock = m_stream.request()) != nullptr)
     {
       m_filterArg = m_sourceBlock;
 
       Word filteredIndices;
       qp->Request(m_filter, filteredIndices);
 
-      if (!(m_filteredIndices = (vector<size_t>*)filteredIndices.addr)->empty())
+      if ((m_filteredIndices = (LongInts*)filteredIndices.addr)->GetCount() > 0)
       {
         m_filteredIndex = 0;
       }
       else
       {
         m_sourceBlock->DecRef();
-        m_sourceBlock = NULL;
+        m_sourceBlock = nullptr;
       }
     }
     else
     {
-      return NULL;
+      return nullptr;
     }
   }
 
-  const size_t size = 1000000,
-    columnCount = m_sourceBlock->GetColumnCount();
+  const size_t desiredBlockSize = m_desiredBlockSize,
+    columnCount = m_blockInfo->columnCount;
 
-  TBlock *target = new TBlock(m_sourceBlock->GetInfo(), 0, 0);
+  TBlock *target = new TBlock(m_blockInfo, 0, 0);
 
-  unique_ptr<ArrayAttribute[]> tuple(new ArrayAttribute[columnCount]);
+  SharedArray<AttrArrayEntry> tuple(columnCount);
 
   do
   {
@@ -169,28 +302,28 @@ TBlock *Filter::State::Request()
 
     for (size_t i = 0; i < columnCount; ++i)
     {
-      columns[i] = &m_sourceBlock->GetAt(i);
+      columns[i] = &m_sourceBlock->GetAt(project ? m_projection[i] : i);
     }
 
-    const size_t filteredCount = m_filteredIndices->size();
+    const size_t filteredCount = m_filteredIndices->GetCount();
 
     for (size_t i = m_filteredIndex; i < filteredCount; ++i)
     {
-      const size_t index = m_filteredIndices->at(i);
+      const size_t index = m_filteredIndices->GetAt(i).value;
 
       for (size_t j = 0; j < columnCount; ++j)
       {
         tuple[j] = columns[j]->GetAt(index);
       }
 
-      target->Append(tuple.get());
+      target->Append(tuple.GetPointer());
 
-      if (target->GetSize() >= size)
+      if (target->GetSize() >= desiredBlockSize)
       {
         if (++i == filteredCount)
         {
           m_sourceBlock->DecRef();
-          m_sourceBlock = NULL;
+          m_sourceBlock = nullptr;
         }
         else
         {
@@ -203,21 +336,26 @@ TBlock *Filter::State::Request()
 
     m_sourceBlock->DecRef();
 
-    while ((m_sourceBlock = m_stream.request()) != NULL)
+    while ((m_sourceBlock = m_stream.request()) != nullptr)
     {
       m_filterArg = m_sourceBlock;
 
       Word filteredIndices;
       qp->Request(m_filter, filteredIndices);
 
-      if (!(m_filteredIndices = (vector<size_t>*)filteredIndices.addr)->empty())
+      if ((m_filteredIndices = (LongInts*)filteredIndices.addr)->GetCount() > 0)
       {
         m_filteredIndex = 0;
         break;
       }
+
+      m_sourceBlock->DecRef();
     }
   }
-  while (m_sourceBlock != NULL);
+  while (m_sourceBlock != nullptr);
 
   return target;
 }
+
+template class Filter<true>;
+template class Filter<false>;

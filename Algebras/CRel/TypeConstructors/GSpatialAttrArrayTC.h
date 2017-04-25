@@ -24,22 +24,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
+#include "AttrArray.h"
 #include "AlgebraTypes.h"
-#include "AttrArrayTI.h"
-#include "GenericAttrArray.h"
 #include <cstddef>
 #include "NestedList.h"
-#include "ReadWrite.h"
 #include "SecondoSMI.h"
 #include <string>
 #include "TypeConstructor.h"
 
 namespace CRelAlgebra
 {
-  class AttrArrayTC : public TypeConstructor
+  template<int dim>
+  class GSpatialAttrArrayTC : public AttrArrayTypeConstructor
   {
   public:
-    static const std::string name;
+    static const std::string &Name();
 
     static ListExpr TypeProperty();
 
@@ -68,6 +67,10 @@ namespace CRelAlgebra
 
     static Word Clone(const ListExpr typeExpr, const Word &value);
 
-    AttrArrayTC();
+    static ListExpr GetAttributeType(ListExpr typeExpr, bool numeric);
+
+    static AttrArrayManager *CreateManager(ListExpr attributeType);
+
+    GSpatialAttrArrayTC();
   };
 }

@@ -32,14 +32,14 @@ namespace CRelAlgebra
   namespace Operators
   {
     /*
-    Operator implementation of the 'BLOCKTYPE' type-operator.
+    Operator implementation of the 'ATTRIBUTETYPE' type-operator.
     This operator determines the type of a attribute-array's entries from the
     attribute-arrays's type.
     */
-    class BlockType : public Operator
+    class AttributeType : public Operator
     {
     public:
-      BlockType();
+      AttributeType();
 
     private:
       static const OperatorInfo info;

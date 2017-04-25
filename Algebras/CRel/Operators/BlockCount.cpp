@@ -33,10 +33,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include "TBlock.h"
 #include "TBlockTI.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
+using listutils::isStream;
 using std::exception;
 using std::string;
 
@@ -49,10 +51,10 @@ BlockCount::BlockCount() :
 }
 
 const OperatorInfo BlockCount::info = OperatorInfo(
-  "blockCount", "",
-  "",
-  "",
-  "");
+  "blockcount", "stream tblock -> int",
+  "_ blockcount",
+  "Returns the number of blocks in the provided stream.",
+  "query people feed filter[attr(., Age) > 50] blockcount");
 
 ListExpr BlockCount::TypeMapping(ListExpr args)
 {
@@ -64,13 +66,12 @@ ListExpr BlockCount::TypeMapping(ListExpr args)
 
   //Check first parameter for stream
   ListExpr stream = nl->First(args);
-  if (!nl->HasLength(stream, 2) ||
-      !nl->IsEqual(nl->First(stream), Symbol::STREAM()))
+  if (!isStream(stream))
   {
     return listutils::typeError("Argument isn't a stream!");
   }
 
-  const ListExpr tblockType = nl->Second(stream);
+  const ListExpr tblockType = GetStreamType(stream);
 
   //Check first parameter's stream type for 'tblock'
   string typeError;
@@ -96,7 +97,7 @@ int BlockCount::ValueMapping(ArgVector args, Word &result, int, Word&,
 
     size_t count = 0;
 
-    while ((block = stream.request()) != NULL)
+    while ((block = stream.request()) != nullptr)
     {
       ++count;
 

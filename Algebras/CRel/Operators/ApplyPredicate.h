@@ -34,7 +34,7 @@ namespace CRelAlgebra
   namespace Operators
   {
     /*
-    Operator implementation of the 'ap' operator.
+    Operator implementation of the 'apply' operator.
     This operator determines the indices of entries in a array of attributes
     which satisfy a given predicate.
 
@@ -46,7 +46,7 @@ namespace CRelAlgebra
     evaluating from the array's attribute-type to 'bool'.
 
     The returned value represents the determined indices and is of type
-    'indices'.
+    'longints'.
     */
     class ApplyPredicate : public Operator
     {

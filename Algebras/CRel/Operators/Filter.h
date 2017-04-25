@@ -26,17 +26,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AlgebraTypes.h"
 #include <cstddef>
+#include "LongInts.h"
 #include "NestedList.h"
 #include "Operator.h"
 #include "SecondoSMI.h"
 #include "Stream.h"
 #include "TBlock.h"
+#include "TBlockTI.h"
 #include <vector>
 
 namespace CRelAlgebra
 {
   namespace Operators
   {
+    template<bool project>
     class Filter : public Operator
     {
     public:
@@ -46,7 +49,8 @@ namespace CRelAlgebra
       class State
       {
       public:
-        State(ArgVector args, Supplier s);
+        State(Supplier stream, Supplier filter, const TBlockTI &blockType,
+              size_t *projection);
 
         ~State();
 
@@ -55,7 +59,9 @@ namespace CRelAlgebra
       private:
         TBlock *m_sourceBlock;
 
-        std::vector<size_t> *m_filteredIndices;
+        LongInts *m_filteredIndices;
+
+        const size_t m_desiredBlockSize;
 
         size_t m_filteredIndex;
 
@@ -64,11 +70,17 @@ namespace CRelAlgebra
         Supplier m_filter;
 
         Address &m_filterArg;
+
+        const PTBlockInfo m_blockInfo;
+
+        const size_t * const m_projection;
       };
 
       static const OperatorInfo info;
 
       static ListExpr TypeMapping(ListExpr args);
+
+      static State *CreateState(ArgVector args, Supplier s);
     };
   }
 }

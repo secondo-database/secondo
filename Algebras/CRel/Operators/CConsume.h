@@ -36,18 +36,15 @@ namespace CRelAlgebra
     Operator implementation of the 'cconsume' operator.
     This operator appends a stream of tuples or tuple-blocks to a new
     column oriented relation.
-    Depending on the stream the relation's desired block-size must be specified
-    or can be ommited.
 
-    The Operator expects one or two parameters.
+    The Operator expects two parameters.
 
     The first parameter represents the incoming values and must be either a
     stream of 'tuple' or a stream of 'tblock'.
 
-    The second parameter represents the desired block-size and must be of type
-    'int'.
-
-    If the first parameter is a stream of 'tblock' can be ommited;
+    The second parameter represents the:
+     *desired block-size: must be of type 'int'.
+     *type of the relation (template): must be of type 'crel'
 
     The returned value represents the relation and is of type 'crel'.
     */

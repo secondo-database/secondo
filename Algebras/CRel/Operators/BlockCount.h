@@ -34,8 +34,8 @@ namespace CRelAlgebra
   namespace Operators
   {
     /*
-    Operator implementation of the 'blockCount' operator.
-    This operator returns the number blocks a stream of tuple-blocks.
+    Operator implementation of the 'blockcount' operator.
+    This operator returns the number of blocks in a stream of tuple-blocks.
 
     The Operator expects one parameter.
 

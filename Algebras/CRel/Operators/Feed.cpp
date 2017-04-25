@@ -25,24 +25,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Feed.h"
 
 #include "CRelTI.h"
-#include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "Project.h"
 #include "QueryProcessor.h"
+#include "StandardTypes.h"
 #include "StreamValueMapping.h"
 #include <string>
 #include "Symbols.h"
-#include "TBlock.h"
 #include "TBlockTI.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
-using std::exception;
 using std::string;
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
+
+//Feed--------------------------------------------------------------------------
 
 Feed::Feed() :
   Operator(info, StreamValueMapping<State>, TypeMapping)
@@ -50,10 +51,10 @@ Feed::Feed() :
 }
 
 const OperatorInfo Feed::info = OperatorInfo(
-  "feed", "crel(c, m, (A)) -> stream(tblock(m, (A)))",
+  "feed", "crel -> stream(tblock)",
   "_ feed",
-  "Produces a stream of tuple-blocks from a column-oriented relation.",
-  "query cities feed cconsume");
+  "Creates a stream of tuple blocks from a column-oriented relation.",
+  "query people feed consume");
 
 ListExpr Feed::TypeMapping(ListExpr args)
 {
@@ -74,8 +75,10 @@ ListExpr Feed::TypeMapping(ListExpr args)
 
   //Return type is stream of 'tblock'
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                         TBlockTI(CRelTI(crelType)).GetTypeInfo());
+                         TBlockTI(CRelTI(crelType, false)).GetTypeExpr());
 }
+
+//Feed::State-------------------------------------------------------------------
 
 Feed::State::State(ArgVector args, Supplier s) :
   m_relation(*(CRel*)args[0].addr),
@@ -89,10 +92,10 @@ TBlock *Feed::State::Request()
   if (m_blockIndex < m_relation.GetBlockCount())
   {
     TBlock *block = &m_relation.GetBlock(m_blockIndex++);
-    block->AddRef();
+    block->IncRef();
 
     return block;
   }
 
-  return NULL;
+  return nullptr;
 }

@@ -35,14 +35,10 @@ namespace CRelAlgebra
   {
     /*
     Operator implementation of the 'count' operator.
-    This operator returns the accumulated number of tuples from a stream of
-    tuple-blocks.
+    This operator returns the accumulated number of tuples from a 'crel' or a
+    (stream of) 'tblock'.
 
-    The Operator expects one parameter.
-
-    The parameters represent the blocks and must be a stream of 'tblock'.
-
-    The returned value represents the count and is of type 'int'.
+    The returned value represents the count and is of type 'longint'.
     */
     class Count : public Operator
     {
@@ -52,10 +48,20 @@ namespace CRelAlgebra
     private:
       static const OperatorInfo info;
 
+      static ValueMapping valueMappings[];
+
       static ListExpr TypeMapping(ListExpr args);
 
-      static int ValueMapping(ArgVector args, Word &result, int message,
-                              Word &local, Supplier s);
+      static int SelectValueMapping(ListExpr args);
+
+      static int CRelValueMapping(ArgVector args, Word &result, int message,
+                                  Word &local, Supplier s);
+
+      static int BlockStreamValueMapping(ArgVector args, Word &result,
+                                         int message, Word &local, Supplier s);
+
+      static int BlockValueMapping(ArgVector args, Word &result, int message,
+                                   Word &local, Supplier s);
     };
   }
 }

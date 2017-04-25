@@ -16,36 +16,39 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
+asize_t with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
 
-#pragma once
+#include "DisplayLongInts.h"
 
-#include <cstddef>
-#include "NestedList.h"
+#include <iostream>
+#include "LongInt.h"
+#include "SecondoSystem.h"
 #include <string>
 
-namespace CRelAlgebra
+using namespace CRelAlgebra;
+
+using std::cout;
+using std::string;
+
+extern AlgebraManager *am;
+
+void DisplayLongInts::Display(ListExpr type, ListExpr value)
 {
-  class IndicesTI
+  const string longIntTypeName = LongInt::BasicType();
+  const ListExpr longIntTypeExpr = nl->SymbolAtom(longIntTypeName);
+
+  ListExpr values = value;
+
+  while (!nl->IsEmpty(values))
   {
-  public:
-    static bool Check(ListExpr typeExpr, std::string &error);
+    CallDisplayFunction(longIntTypeName, longIntTypeExpr, nl->First(values));
 
-    IndicesTI();
+    values = nl->Rest(values);
 
-    IndicesTI(ListExpr typeExpr);
-
-    size_t GetCapacity() const;
-
-    void SetCapacity(size_t capacity);
-
-    ListExpr GetTypeInfo() const;
-
-  private:
-    size_t m_capacity;
-  };
+    cout << '\n';
+  }
 }

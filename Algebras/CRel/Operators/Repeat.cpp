@@ -24,42 +24,32 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Repeat.h"
 
-#include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "StreamValueMapping.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra::Operators;
 
 using listutils::isDATA;
+using listutils::isStream;
 using listutils::isTupleDescription;
-using std::exception;
 
 extern QueryProcessor *qp;
 
 Repeat::Repeat() :
-  Operator(info, valueMappings, SelectValueMapping, TypeMapping)
+  Operator(info, StreamValueMapping<State>, TypeMapping)
 {
   SetUsesArgsInTypeMapping();
 }
 
 const OperatorInfo Repeat::info = OperatorInfo(
-  "repeat",
-  "DATA -> stream(DATA)",
-  "repeat(_,_)",
-  "Creates a stream by repeating the value the specified numer of times.",
-  "query repeat('Test', 2) transformstream consume");
-
-ValueMapping Repeat::valueMappings[] =
-{
-  StreamValueMapping<AttributeState>,
-  StreamValueMapping<TupleState>,
-  StreamValueMapping<StreamState<Attribute>>,
-  StreamValueMapping<StreamState<Tuple>>,
-  NULL
-};
+  "repeat", "stream(T) x int -> stream(T)",
+  "repeat( _, _ )",
+  "Creates a stream by repeating a stream the specified number of times.",
+  "query repeat('Test' feed, 2) count");
 
 ListExpr Repeat::TypeMapping(ListExpr args)
 {
@@ -70,14 +60,9 @@ ListExpr Repeat::TypeMapping(ListExpr args)
 
   const ListExpr firstArg = nl->First(nl->First(args));
 
-  const bool isStream = nl->HasLength(firstArg, 2) &&
-                        nl->IsEqual(nl->First(firstArg), Symbol::STREAM());
-
-  const ListExpr attributeType = isStream ? nl->Second(firstArg) : firstArg;
-  if (!isDATA(attributeType) && !isTupleDescription(attributeType))
+  if (!isStream(firstArg))
   {
-    return listutils::typeError("First argument is not a (stream of) tuple or "
-                                "of kind DATA.");
+    return listutils::typeError("First argument is not a stream.");
   }
 
   const ListExpr count = nl->Second(args);
@@ -91,66 +76,10 @@ ListExpr Repeat::TypeMapping(ListExpr args)
     return listutils::typeError("Second argument is < 0.");
   }
 
-  return nl->TwoElemList(nl->SymbolAtom(Symbols::STREAM()), attributeType);
+  return firstArg;
 }
 
-int Repeat::SelectValueMapping(ListExpr args)
-{
-  const ListExpr firstArg = nl->First(args);
-
-  if (nl->HasLength(firstArg, 2) &&
-      nl->IsEqual(nl->First(firstArg), Symbol::STREAM()))
-  {
-    return isDATA(nl->Second(firstArg)) ? 2 : 3;
-  }
-  else
-  {
-    return isDATA(firstArg) ? 0 : 1;
-  }
-}
-
-
-Repeat::AttributeState::AttributeState(Word *args, Supplier s) :
-  m_count(((CcInt*)args[1].addr)->GetValue()),
-  m_index(0),
-  m_attribute(*(Attribute*)args[0].addr)
-{
-  qp->DeleteResultStorage(s);
-}
-
-Attribute *Repeat::AttributeState::Request()
-{
-  if (m_index++ < m_count)
-  {
-    return m_attribute.Clone();
-  }
-
-  return NULL;
-}
-
-
-Repeat::TupleState::TupleState(Word *args, Supplier s) :
-  m_count(((CcInt*)args[1].addr)->GetValue()),
-  m_index(0),
-  m_tuple(*(Tuple*)args[0].addr)
-{
-  qp->DeleteResultStorage(s);
-}
-
-Tuple *Repeat::TupleState::Request()
-{
-  if (m_index++ < m_count)
-  {
-    m_tuple.IncReference();
-
-    return &m_tuple;
-  }
-
-  return NULL;
-}
-
-template<class T>
-Repeat::StreamState<T>::StreamState(Word *args, Supplier s) :
+Repeat::State::State(Word *args, Supplier s) :
   m_count(((CcInt*)args[1].addr)->GetValue()),
   m_index(0),
   m_stream(args[0].addr)
@@ -160,31 +89,29 @@ Repeat::StreamState<T>::StreamState(Word *args, Supplier s) :
   m_stream.open();
 }
 
-template<class T>
-Repeat::StreamState<T>::~StreamState()
+Repeat::State::~State()
 {
   m_stream.close();
 }
 
-template<class T>
-T *Repeat::StreamState<T>::Request()
+void *Repeat::State::Request()
 {
-  T *value = m_stream.request();
+  void *value = m_stream.request();
 
-  if (value == NULL)
+  if (value == nullptr)
   {
     if (++m_index < m_count)
     {
       m_stream.close();
       m_stream.open();
 
-      if ((value = m_stream.request()) != NULL)
+      if ((value = m_stream.request()) != nullptr)
       {
         return value;
       }
     }
 
-    return NULL;
+    return nullptr;
   }
 
   return value;

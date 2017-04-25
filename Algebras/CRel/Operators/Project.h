@@ -29,9 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "Operator.h"
 #include "SecondoSMI.h"
-#include "Shared.h"
 #include "Stream.h"
 #include "TBlock.h"
+#include "TBlockTI.h"
 #include <vector>
 
 namespace CRelAlgebra
@@ -41,6 +41,31 @@ namespace CRelAlgebra
     class Project : public Operator
     {
     public:
+      class Info
+      {
+      public:
+        Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames);
+
+        bool HasError() const;
+
+        const std::string &GetError() const;
+
+        const TBlockTI &GetBlockTypeInfo() const;
+
+        const std::vector<size_t> &GetIndices() const;
+
+        ListExpr GetIndicesExpr() const;
+
+        ListExpr GetIndicesExpr(ListExpr listEnd) const;
+
+      private:
+        TBlockTI m_blockTypeInfo;
+
+        std::vector<size_t> m_indices;
+
+        std::string m_error;
+      };
+
       Project();
 
     private:
@@ -56,11 +81,7 @@ namespace CRelAlgebra
       private:
         Stream<TBlock> m_stream;
 
-        std::vector<size_t> m_attributeIndices;
-
-        SmiFileId m_fileId;
-
-        Shared<SmiRecordFile> m_file;
+        std::vector<size_t> m_indices;
       };
 
       static const OperatorInfo info;

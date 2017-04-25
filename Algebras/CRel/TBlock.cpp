@@ -24,170 +24,118 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "TBlock.h"
 
-#include <stdexcept>
-#include "StringUtils.h"
-#include "Utility.h"
+#include "SmiUtils.h"
+#include "TypeUtils.h"
 
-using std::invalid_argument;
-using std::runtime_error;
-using std::string;
-using std::vector;
-using stringutils::any2str;
+using namespace CRelAlgebra;
 
 extern NestedList *nl;
 
 //TBlock------------------------------------------------------------------------
 
-TBlock::Info::Info() :
-  columnCount(0),
-  columnTypes(NULL),
-  columnFactories(NULL)
+size_t TBlock::GetSaveSize(size_t columnCount, bool includeHeader)
 {
-}
+  size_t size = sizeof(size_t) + (columnCount * sizeof(SmiRecordId));
 
-TBlock::Info::Info(ListExpr columnTypes) :
-  columnCount(nl->ListLength(columnTypes)),
-  columnTypes(new ListExpr[columnCount]),
-  columnFactories(new AttrArrayFactory*[columnCount])
-{
-  AttrArrayCatalog &catalog = AttrArrayCatalog::GetInstance();
-
-  ListExpr types = columnTypes;
-
-  for (size_t i = 0; i < columnCount; ++i)
+  if (includeHeader)
   {
-    this->columnTypes[i] = nl->First(types);
-    columnFactories[i] = catalog.CreateFactory(this->columnTypes[i]);
-
-    types = nl->Rest(types);
-  }
-}
-
-TBlock::Info::~Info()
-{
-  for (size_t i = 0; i < columnCount; ++i)
-  {
-    columnFactories[i]->DecRef();
+    size += 2 * sizeof(SmiFileId);
   }
 
-  delete[] columnTypes;
-  delete[] columnFactories;
+  return size;
 }
 
-void* TBlock::Cast(void *pointer)
-{
-  return new (pointer) TBlock;
-}
-
-size_t TBlock::GetSaveSize(size_t columnCount)
-{
-  return sizeof(size_t) + (2* sizeof(SmiFileId)) +
-         (columnCount * sizeof(SmiRecordId));
-}
-
-TBlock::TBlock(const PInfo &info, SmiFileId columnFileId,
+TBlock::TBlock(const PTBlockInfo &info, SmiFileId columnFileId,
                SmiFileId flobFileId) :
-  m_persistent(0, columnFileId, flobFileId),
+  TBlock(info, columnFileId, flobFileId,
+         columnFileId != 0 ? new SmiRecordFile(false) : nullptr)
+{
+}
+
+TBlock::TBlock(const PTBlockInfo &info, SmiFileId columnFileId,
+               SmiFileId flobFileId, Shared<SmiRecordFile> columnFile) :
+  m_header(0, 0, columnFileId, flobFileId),
   m_info(info),
   m_columnCount(m_info->columnCount),
   m_recordIds(new SmiRecordId[m_columnCount]),
   m_columns(new AttrArray*[m_columnCount]),
-  m_columnFile(columnFileId != 0 ? new SmiRecordFile(false) : NULL),
-  m_flobFile(flobFileId != 0 ? new SmiRecordFile(false) : NULL)
+  m_columnFile(columnFileId != 0 ? columnFile : nullptr),
+  m_refCount(1)
 {
   for (size_t i = 0; i < m_columnCount; i++)
   {
     m_recordIds[i] = 0;
-    m_columns[i] = NULL;
+    m_columns[i] = nullptr;
   }
 }
 
-TBlock::TBlock(const PInfo &info, SmiFileId columnFileId, SmiFileId flobFileId,
-               Shared<SmiRecordFile> columnFile,
-               Shared<SmiRecordFile> flobFile) :
-  m_persistent(0, columnFileId, flobFileId),
-  m_info(info),
-  m_columnCount(m_info->columnCount),
-  m_recordIds(new SmiRecordId[m_columnCount]),
-  m_columns(new AttrArray*[m_columnCount]),
-  m_columnFile(columnFileId != 0 ? columnFile : NULL),
-  m_flobFile(flobFileId != 0 ? flobFile : NULL)
+TBlock::TBlock(const PTBlockInfo &info, Reader &source) :
+  TBlock(info, source.ReadOrThrow<TBlockHeader>(), source)
 {
-  for (size_t i = 0; i < m_columnCount; i++)
-  {
-    m_recordIds[i] = 0;
-    m_columns[i] = NULL;
-  }
 }
 
-TBlock::TBlock(const PInfo &info, Reader &source) :
-  m_persistent(source),
+TBlock::TBlock(const PTBlockInfo &info, Reader &source,
+               Shared<SmiRecordFile> columnFile) :
+  TBlock(info, source.ReadOrThrow<TBlockHeader>(), source, columnFile)
+{
+}
+
+TBlock::TBlock(const PTBlockInfo &info, const TBlockHeader &header,
+               Reader &source) :
+  TBlock(info, header, source,
+         header.columnFileId != 0 ? new SmiRecordFile(false) : nullptr)
+{
+}
+
+TBlock::TBlock(const PTBlockInfo &info, const TBlockHeader &header,
+               Reader &source, Shared<SmiRecordFile> columnFile) :
+  m_header(header),
   m_info(info),
   m_columnCount(m_info->columnCount),
   m_recordIds(new SmiRecordId[m_columnCount]),
   m_columns(new AttrArray*[m_columnCount]),
-  m_columnFile(m_persistent.columnFileId != 0 ? new SmiRecordFile(false) :
-                                                NULL),
-  m_flobFile(m_persistent.flobFileId != 0 ? new SmiRecordFile(false) : NULL)
+  m_columnFile(header.columnFileId != 0 ? columnFile : nullptr),
+  m_refCount(1)
 {
   source.ReadOrThrow((char*)m_recordIds, m_columnCount * sizeof(SmiRecordId));
 
   for (size_t i = 0; i < m_columnCount; i++)
   {
-    m_columns[i] = NULL;
-  }
-}
-
-TBlock::TBlock(const PInfo &info, Reader &source,
-               Shared<SmiRecordFile> columnFile,
-               Shared<SmiRecordFile> flobFile) :
-  m_persistent(source),
-  m_info(info),
-  m_columnCount(m_info->columnCount),
-  m_recordIds(new SmiRecordId[m_columnCount]),
-  m_columns(new AttrArray*[m_columnCount]),
-  m_columnFile(m_persistent.columnFileId != 0 ? columnFile : NULL),
-  m_flobFile(m_persistent.flobFileId != 0 ? flobFile : NULL)
-{
-  source.ReadOrThrow((char*)m_recordIds, m_columnCount * sizeof(SmiRecordId));
-
-  for (size_t i = 0; i < m_columnCount; i++)
-  {
-    m_columns[i] = NULL;
+    m_columns[i] = nullptr;
   }
 }
 
 TBlock::TBlock(const TBlock &instance, size_t *columnIndices,
                size_t columnCount) :
-  m_persistent(instance.m_persistent),
+  m_header(instance.m_header),
   m_columnCount(columnCount),
   m_recordIds(new SmiRecordId[columnCount]),
   m_columns(new AttrArray*[columnCount]),
   m_columnFile(instance.m_columnFile),
-  m_flobFile(instance.m_flobFile)
+  m_refCount(1)
 {
-  Info *info = new Info();
+  TBlockInfo *info = new TBlockInfo();
   info->columnCount = columnCount;
   info->columnTypes = new ListExpr[columnCount];
-  info->columnFactories = new AttrArrayFactory*[columnCount];
+  info->columnFactories = new AttrArrayManager*[columnCount];
 
   for (size_t i = 0; i < columnCount; ++i)
   {
     AttrArray *column = instance.m_columns[columnIndices[i]];
-    if (column != NULL)
+    if (column != nullptr)
     {
-      column->AddRef();
+      column->IncRef();
     }
 
-    AttrArrayFactory *columnFactory =
+    AttrArrayManager *columnManager =
       instance.m_info->columnFactories[columnIndices[i]];
-    columnFactory->AddRef();
+    columnManager->IncRef();
 
     m_recordIds[i] = instance.m_recordIds[columnIndices[i]];
     m_columns[i] = column;
 
     info->columnTypes[i] = instance.m_info->columnTypes[columnIndices[i]];
-    info->columnFactories[i] = columnFactory;
+    info->columnFactories[i] = columnManager;
   }
 
   m_info = info;
@@ -195,11 +143,9 @@ TBlock::TBlock(const TBlock &instance, size_t *columnIndices,
 
 TBlock::~TBlock()
 {
-  CloseFiles();
-
   for (size_t i = 0; i < m_columnCount; i++)
   {
-    if (m_columns[i] != NULL)
+    if (m_columns[i] != nullptr)
     {
       m_columns[i]->DecRef();
     }
@@ -209,29 +155,26 @@ TBlock::~TBlock()
   delete[] m_recordIds;
 }
 
-
-const TBlock::PInfo TBlock::GetInfo() const
+const PTBlockInfo &TBlock::GetInfo() const
 {
   return m_info;
 }
 
-const TBlock::ColumnInfos TBlock::GetColumnInfos() const
+void TBlock::Save(Writer &target, bool includeHeader)
 {
-  return *(ColumnInfos*)NULL;
-}
-
-void TBlock::Save(Writer &target)
-{
-  target.WriteOrThrow(m_persistent);
-
-  if (m_columnFile->GetFileId() != m_persistent.columnFileId)
+  if (m_columnFile->GetFileId() != m_header.columnFileId)
   {
     CloseOrThrow(*m_columnFile);
   }
 
   if (!m_columnFile->IsOpen())
   {
-    OpenOrThrow(*m_columnFile, m_persistent.columnFileId);
+    OpenOrThrow(*m_columnFile, m_header.columnFileId);
+  }
+
+  if (includeHeader)
+  {
+    target.WriteOrThrow(m_header);
   }
 
   for (size_t i = 0; i < m_columnCount; i++)
@@ -249,14 +192,14 @@ void TBlock::Save(Writer &target)
   {
     AttrArray *column = m_columns[i];
 
-    if (column != NULL)
+    if (column != nullptr)
     {
       SmiRecord record;
       SelectOrThrow(*m_columnFile, m_recordIds[i], SmiFile::Update, record);
 
       SmiWriter columnTarget(record, 0);
 
-      column->Save(columnTarget);
+      column->Save(columnTarget, false);
     }
   }
 }
@@ -265,19 +208,19 @@ void TBlock::DeleteRecords()
 {
   if (!m_columnFile.IsNull())
   {
-    if (m_columnFile->GetFileId() != m_persistent.columnFileId)
+    if (m_columnFile->GetFileId() != m_header.columnFileId)
     {
       CloseOrThrow(*m_columnFile);
     }
 
     if (!m_columnFile->IsOpen())
     {
-      OpenOrThrow(*m_columnFile, m_persistent.columnFileId);
+      OpenOrThrow(*m_columnFile, m_header.columnFileId);
     }
 
     for (size_t i = 0; i < m_columnCount; i++)
     {
-      if (m_columns[i] == NULL)
+      if (m_columns[i] == nullptr)
       {
         SmiRecordId recordId = m_recordIds[i];
 
@@ -313,28 +256,6 @@ void TBlock::DeleteRecords()
   }
 }
 
-void TBlock::CloseFiles()
-{
-  if (!m_columnFile.IsNull() && m_columnFile->IsOpen())
-  {
-    CloseOrThrow(*m_columnFile);
-  }
-
-  if (!m_flobFile.IsNull() && m_flobFile->IsOpen())
-  {
-    CloseOrThrow(*m_flobFile);
-  }
-
-  const size_t columnCount = m_columnCount;
-  for (size_t i = 0; i < columnCount; ++i)
-  {
-    if (m_columns[i] != NULL)
-    {
-      m_columns[i]->CloseFiles();
-    }
-  }
-}
-
 size_t TBlock::GetColumnCount() const
 {
   return m_columnCount;
@@ -342,104 +263,124 @@ size_t TBlock::GetColumnCount() const
 
 size_t TBlock::GetRowCount() const
 {
-  return m_persistent.rowCount;
+  return m_header.rowCount;
 }
 
 size_t TBlock::GetSize() const
 {
-  size_t size = 0;
-
-  for (size_t i = 0; i < m_columnCount; ++i)
-  {
-    size += GetAttrArray(i).GetSize();
-  }
-
-  return sizeof(TBlock) + size;
+  return m_header.size;
 }
 
-void TBlock::Append(ArrayAttribute* tuple)
+void TBlock::Append(const AttrArrayEntry* tuple)
 {
   const size_t columnCount = m_columnCount;
+
+  size_t size = 0;
+
   for (size_t i = 0; i < columnCount; i++)
   {
-    GetAttrArray(i).Append(tuple[i]);
+    AttrArray &array = GetAt(i);
+
+    array.Append(tuple[i]);
+
+    size += array.GetSize();
   }
 
-  ++m_persistent.rowCount;
+  TBlockHeader &header = m_header;
+
+  header.size = size;
+
+  ++header.rowCount;
 }
 
 void TBlock::Append(Attribute** tuple)
 {
   const size_t columnCount = m_columnCount;
+
+  size_t size = 0;
+
   for (size_t i = 0; i < columnCount; i++)
   {
-    GetAttrArray(i).Append(*tuple[i]);
+    AttrArray &array = GetAt(i);
+
+    array.Append(*tuple[i]);
+
+    size += array.GetSize();
   }
 
-  ++m_persistent.rowCount;
+  TBlockHeader &header = m_header;
+
+  header.size = size;
+
+  ++header.rowCount;
 }
 
-void TBlock::Append(const BlockTuple &tuple)
+void TBlock::Append(const TBlockEntry &tuple)
 {
   const size_t columnCount = m_columnCount;
+
+  size_t size = 0;
+
   for (size_t i = 0; i < columnCount; i++)
   {
-    GetAttrArray(i).Append(tuple[i]);
+    AttrArray &array = GetAt(i);
+
+    array.Append(tuple[i]);
+
+    size += array.GetSize();
   }
 
-  ++m_persistent.rowCount;
+  TBlockHeader &header = m_header;
+
+  header.size = size;
+
+  ++header.rowCount;
 }
 
 void TBlock::Append(const Tuple &tuple)
 {
   const size_t columnCount = m_columnCount;
+
+  size_t size = 0;
+
   for (size_t i = 0; i < columnCount; i++)
   {
-    GetAttrArray(i).Append(*tuple.GetAttribute(i));
+    AttrArray &array = GetAt(i);
+
+    array.Append(*tuple.GetAttribute(i));
+
+    size += array.GetSize();
   }
 
-  ++m_persistent.rowCount;
+  TBlockHeader &header = m_header;
+
+  header.size = size;
+
+  ++header.rowCount;
 }
 
 AttrArray &TBlock::GetAt(size_t index) const
 {
-  return GetAttrArray(index);
-}
+  AttrArray *column = m_columns[index];
 
-TBlock::Iterator TBlock::GetIterator() const
-{
-  return Iterator(this);
-}
-
-TBlock::TBlock()
-{
-}
-
-TBlock::TBlock(const TBlock &instance)
-{
-}
-
-AttrArray &TBlock::GetAttrArray(size_t index) const
-{
-  if (m_columns[index] == NULL)
+  if (column == nullptr)
   {
     SmiRecordId recordId = m_recordIds[index];
 
     if (recordId == 0)
     {
-      m_columns[index] =
-        m_info->columnFactories[index]->Create(m_persistent.flobFileId);
+      column = m_info->columnFactories[index]->Create(m_header.flobFileId);
     }
     else
     {
-      if (m_columnFile->GetFileId() != m_persistent.columnFileId)
+      if (m_columnFile->GetFileId() != m_header.columnFileId)
       {
         CloseOrThrow(*m_columnFile);
       }
 
       if (!m_columnFile->IsOpen())
       {
-        OpenOrThrow(*m_columnFile, m_persistent.columnFileId);
+        OpenOrThrow(*m_columnFile, m_header.columnFileId);
       }
 
       SmiRecord columnRecord;
@@ -490,107 +431,129 @@ AttrArray &TBlock::GetAttrArray(size_t index) const
         size_t m_position;
       } source = RecordFileReader(*m_columnFile, recordId, 0);*/
 
-      AttrArray *column =  m_info->columnFactories[index]->Load(source),
-        *&entry = m_columns[index];
-
-      entry = column;
-
-      column = entry;
-    }
-  }
-
-  return *(m_columns[index]);
-}
-
-//TBlock::TupleIterator---------------------------------------------------------
-
-TBlock::TupleIterator::TupleIterator() :
-  m_tuple(NULL, 0),
-  m_rowCount(0)
-{
-}
-
-TBlock::TupleIterator::TupleIterator(const TBlock *block) :
-  m_tuple(block, 0),
-  m_rowCount(block->GetRowCount())
-{
-}
-
-bool TBlock::TupleIterator::IsValid() const
-{
-  return m_tuple.m_row < m_rowCount;
-}
-
-const BlockTuple &TBlock::TupleIterator::GetCurrent() const
-{
-  return m_tuple;
-}
-
-bool TBlock::TupleIterator::MoveToNext()
-{
-  if (m_tuple.m_row < m_rowCount)
-  {
-    return ++m_tuple.m_row < m_rowCount;
-  }
-
-  return false;
-}
-
-const BlockTuple &TBlock::TupleIterator::operator * () const
-{
-  return GetCurrent();
-}
-
-TBlock::TupleIterator &TBlock::TupleIterator::operator ++ ()
-{
-  MoveToNext();
-
-  return *this;
-}
-
-bool TBlock::TupleIterator::operator == (const TupleIterator &other) const
-{
-  if (IsValid())
-  {
-    if (other.IsValid())
-    {
-      return m_tuple == other.m_tuple;
+      column =  m_info->columnFactories[index]->Load(source, m_header);
     }
 
-    return false;
+    m_columns[index] = column;
   }
 
-  return !other.IsValid();
+  return *column;
 }
 
-bool TBlock::TupleIterator::operator != (const TupleIterator &other) const
+AttrArray &TBlock::operator[](size_t index) const
 {
-  return !(*this == other);
+  return GetAt(index);
 }
 
-//BlockTuple--------------------------------------------------------------------
+TBlockIterator TBlock::GetIterator() const
+{
+  return TBlockIterator(this);
+}
 
-BlockTuple::BlockTuple()
+TBlockIterator TBlock::begin() const
+{
+  return GetIterator();
+}
+
+TBlockIterator TBlock::end() const
+{
+  return TBlockIterator();
+}
+
+void TBlock::IncRef() const
+{
+  ++m_refCount;
+}
+
+void TBlock::DecRef() const
+{
+  if (--m_refCount == 0)
+  {
+    delete this;
+  }
+}
+
+size_t TBlock::GetRefCount() const
+{
+  return m_refCount;
+}
+
+//TBlockInfo------------------------------------------------------------------
+
+TBlockInfo::TBlockInfo() :
+  columnCount(0),
+  columnTypes(nullptr),
+  columnAttributeTypes(nullptr),
+  columnFactories(nullptr)
 {
 }
 
-BlockTuple::BlockTuple(const TBlock *block, size_t row) :
-  m_block(block),
-  m_row(row)
+TBlockInfo::TBlockInfo(ListExpr columnTypes) :
+  columnCount(nl->ListLength(columnTypes)),
+  columnTypes(new ListExpr[columnCount]),
+  columnAttributeTypes(new ListExpr[columnCount]),
+  columnFactories(new AttrArrayManager*[columnCount])
+{
+  ListExpr types = columnTypes;
+
+  for (size_t i = 0; i < columnCount; ++i)
+  {
+    const ListExpr columnType = nl->First(types);
+
+    types = nl->Rest(types);
+
+    this->columnTypes[i] = columnType;
+
+    AttrArrayTypeConstructor &arrayConstructor =
+      (AttrArrayTypeConstructor&)*GetTypeConstructor(columnType);
+
+    const ListExpr attributeType =
+      arrayConstructor.GetAttributeType(columnType, true);
+
+    columnAttributeTypes[i] = attributeType;
+    columnFactories[i] = arrayConstructor.CreateManager(attributeType);
+  }
+}
+
+TBlockInfo::~TBlockInfo()
+{
+  for (size_t i = 0; i < columnCount; ++i)
+  {
+    columnFactories[i]->DecRef();
+  }
+
+  if (columnTypes != nullptr)
+  {
+    delete[] columnTypes;
+  }
+
+  if (columnAttributeTypes != nullptr)
+  {
+    delete[] columnAttributeTypes;
+  }
+
+  if (columnFactories != nullptr)
+  {
+    delete[] columnFactories;
+  }
+}
+
+//TBlockHeader-----------------------------------------------------
+
+TBlockHeader::TBlockHeader()
 {
 }
 
-ArrayAttribute BlockTuple::operator[](size_t index) const
+TBlockHeader::TBlockHeader(size_t rowCount, size_t size, SmiFileId columnFileId,
+                           SmiFileId flobFileId) :
+  rowCount(rowCount),
+  size(size),
+  columnFileId(columnFileId),
+  flobFileId(flobFileId)
 {
-  return m_block->GetAt(index)[m_row];
 }
 
-bool BlockTuple::operator == (const BlockTuple &other) const
+TBlockHeader::operator AttrArrayHeader() const
 {
-  return m_block == other.m_block && m_row == other.m_row;
-}
-
-bool BlockTuple::operator != (const BlockTuple &other) const
-{
-  return !(*this == other);
+  return AttrArrayHeader(rowCount, flobFileId);
 }

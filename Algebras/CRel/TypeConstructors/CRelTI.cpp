@@ -25,12 +25,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "CRelTC.h"
 #include "TBlockTC.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 
 using std::string;
 
 extern NestedList *nl;
+
+bool CRelTI::Check(ListExpr typeExpr)
+{
+  string error;
+
+  return Check(typeExpr, error);
+}
 
 bool CRelTI::Check(ListExpr typeExpr, string &error)
 {
@@ -52,7 +60,7 @@ bool CRelTI::Check(ListExpr typeExpr, string &error)
   }
 
   ListExpr parameters = nl->Second(typeExpr);
-  if (nl->IsAtom(parameters) || !nl->HasLength(parameters, 3))
+  if (nl->IsAtom(parameters) || !nl->HasLength(parameters, 2))
   {
     error = "TypeInfo's second element isn't a three element list.";
     return false;
@@ -68,46 +76,33 @@ bool CRelTI::Check(ListExpr typeExpr, string &error)
     return false;
   }
 
-  ListExpr desiredBlockSizeArg = nl->Second(parameters);
-  long desiredBlockSize;
-
-  if (!nl->IsNodeType(IntType, desiredBlockSizeArg) ||
-      (desiredBlockSize = nl->IntValue(desiredBlockSizeArg)) < 0)
-  {
-    error = "TypeInfo's second parameter (block size) is not an int >= 0.";
-    return false;
-  }
-
-  return TBlockTI::Check(nl->TwoElemList(nl->SymbolAtom(TBlockTC::name),
-                                         nl->Third(parameters)),
-                         error);
+  return TBlockTI::Check(nl->Second(parameters), error);
 }
 
-CRelTI::CRelTI()
+CRelTI::CRelTI(bool numeric) :
+  TBlockTI(numeric)
 {
 }
 
-CRelTI::CRelTI(const TBlockTI &info, size_t cacheSize, size_t blockSize) :
+CRelTI::CRelTI(const TBlockTI &info, size_t cacheSize) :
   TBlockTI(info),
-  m_cacheSize(cacheSize),
-  m_desiredBlockSize(blockSize)
+  m_cacheSize(cacheSize)
 {
 }
 
-CRelTI::CRelTI(ListExpr typeExpr)
+CRelTI::CRelTI(ListExpr typeExpr, bool numeric) :
+  TBlockTI(numeric)
 {
   if (nl->IsEqual(nl->First(typeExpr), Symbols::STREAM()))
   {
-    *this = CRelTI(nl->Second(typeExpr));
+    *this = CRelTI(nl->Second(typeExpr), numeric);
     return;
   }
 
-  ListExpr parameters = nl->Second(typeExpr);
+  const ListExpr parameters = nl->Second(typeExpr);
 
-  m_cacheSize = nl->IntValue(nl->First(parameters));
-  m_desiredBlockSize = nl->IntValue(nl->Second(parameters));
-
-  AppendAttributeInfos(nl->Third(parameters));
+  *this = CRelTI(TBlockTI(nl->Second(parameters), numeric),
+                 nl->IntValue(nl->First(parameters)));
 }
 
 size_t CRelTI::GetCacheSize() const
@@ -120,35 +115,18 @@ void CRelTI::SetCacheSize(size_t value)
   m_cacheSize = value;
 }
 
-size_t CRelTI::GetDesiredBlockSize() const
+ListExpr CRelTI::GetTypeExpr() const
 {
-  return m_desiredBlockSize;
-}
-
-void CRelTI::SetDesiredBlockSize(size_t value)
-{
-  m_desiredBlockSize = value;
-}
-
-ListExpr CRelTI::GetTypeInfo() const
-{
-  ListExpr attributes = nl->Empty();
-
-  const size_t count = attributeInfos.size();
-  if (count > 0)
+  if (IsNumeric())
   {
-    attributes = nl->OneElemList(GetListExpr(attributeInfos[0]));
-
-    ListExpr lastAttribute = attributes;
-
-    for (size_t i = 1; i < count; ++i)
-    {
-      Append(lastAttribute, GetListExpr(attributeInfos[i]));
-    }
+    return nl->TwoElemList(GetNumericType(CRelTC::name),
+                           nl->TwoElemList(nl->IntAtom(m_cacheSize),
+                                           TBlockTI::GetTypeExpr()));
   }
-
-  return nl->TwoElemList(nl->SymbolAtom(CRelTC::name),
-                         nl->ThreeElemList(nl->IntAtom(m_cacheSize),
-                                           nl->IntAtom(m_desiredBlockSize),
-                                           attributes));
+  else
+  {
+    return nl->TwoElemList(nl->SymbolAtom(CRelTC::name),
+                           nl->TwoElemList(nl->IntAtom(m_cacheSize),
+                                           TBlockTI::GetTypeExpr()));
+  }
 }

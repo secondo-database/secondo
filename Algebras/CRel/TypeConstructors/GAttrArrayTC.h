@@ -16,7 +16,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-asize_t with SECONDO; if not, write to the Free Software
+along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
@@ -24,17 +24,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
+#include "AttrArray.h"
+#include "AlgebraTypes.h"
 #include <cstddef>
-#include "IndicesTI.h"
 #include "NestedList.h"
-#include "ReadWrite.h"
+#include "SecondoSMI.h"
 #include <string>
 #include "TypeConstructor.h"
-#include <vector>
 
 namespace CRelAlgebra
 {
-  class IndicesTC : public TypeConstructor
+  class GAttrArrayTC : public AttrArrayTypeConstructor
   {
   public:
     static const std::string name;
@@ -58,14 +58,18 @@ namespace CRelAlgebra
     static bool Save(SmiRecord &valueRecord, size_t &offset,
                      const ListExpr typeExpr, Word &value);
 
-    static void Close(const ListExpr typeExpr, Word &w);
+    static void Close(const ListExpr typeExpr, Word &value);
 
     static void *Cast(void *addr);
 
     static int SizeOf();
 
-    static Word Clone(const ListExpr typeExpr, const Word &w);
+    static Word Clone(const ListExpr typeExpr, const Word &value);
 
-    IndicesTC();
+    static ListExpr GetAttributeType(ListExpr typeExpr, bool numeric);
+
+    static AttrArrayManager *CreateManager(ListExpr attributeType);
+
+    GAttrArrayTC();
   };
 }

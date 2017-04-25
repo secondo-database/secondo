@@ -25,190 +25,304 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include <cstddef>
+#include <cstring>
+#include "SecondoException.h"
 #include "SecondoSMI.h"
-#include <stdexcept>
-#include "Utility.h"
 
-class Reader
+namespace CRelAlgebra
 {
-public:
-  virtual size_t GetPosition() = 0;
-  virtual void SetPosition(size_t position) = 0;
-
-  virtual bool Read(char *target, size_t count) = 0;
-
-  inline void ReadOrThrow(char *target, size_t count)
+  class Reader
   {
-    if (!Read(target, count))
+  public:
+    virtual size_t GetPosition() = 0;
+    virtual void SetPosition(size_t position) = 0;
+
+    virtual bool Read(char *target, size_t count) = 0;
+
+    inline void ReadOrThrow(char *target, size_t count)
     {
-      throw std::runtime_error("Reading failed.");
+      if (!Read(target, count))
+      {
+        throw SecondoException("Reading failed.");
+      }
     }
-  }
 
-  template<class T>
-  inline bool Read(T &value)
-  {
-    return Read((char*)&value, sizeof(T));
-  }
-
-  template<class T>
-  inline void ReadOrThrow(T &value)
-  {
-    if (!Read(value))
+    template<class T>
+    inline bool Read(T &value)
     {
-      throw std::runtime_error("Reading failed.");
+      return Read((char*)&value, sizeof(T));
     }
-  }
 
-  template<class T>
-  inline T ReadOrThrow()
-  {
-    T value;
-    ReadOrThrow(value);
-
-    return value;
-  }
-};
-
-class Writer
-{
-public:
-  virtual size_t GetPosition() = 0;
-  virtual void SetPosition(size_t position) = 0;
-
-  virtual bool Write(char *source, size_t count) = 0;
-
-  inline void WriteOrThrow(char *source, size_t count)
-  {
-    if (!Write(source, count))
+    template<class T>
+    inline void ReadOrThrow(T &value)
     {
-      throw std::runtime_error("Writing failed.");
+      if (!Read(value))
+      {
+        throw SecondoException("Reading failed.");
+      }
     }
-  }
 
-  template<class T>
-  inline bool Write(const T &value)
-  {
-    return Write((char*)&value, sizeof(T));
-  }
-
-  template<class T>
-  inline void WriteOrThrow(const T &value)
-  {
-    if (!Write(value))
+    template<class T>
+    inline T ReadOrThrow()
     {
-      throw std::runtime_error("Writing failed.");
+      T value;
+      ReadOrThrow(value);
+
+      return value;
     }
-  }
-};
+  };
 
-class SmiReader : public Reader
-{
-public:
-  SmiReader(SmiRecord &record, size_t offset) :
-    m_offset(offset),
-    m_record(record)
+  class Writer
   {
-  }
+  public:
+    virtual size_t GetPosition() = 0;
+    virtual void SetPosition(size_t position) = 0;
 
-  virtual inline size_t GetPosition()
+    virtual bool Write(char *source, size_t count) = 0;
+
+    inline void WriteOrThrow(char *source, size_t count)
+    {
+      if (!Write(source, count))
+      {
+        throw SecondoException("Writing failed.");
+      }
+    }
+
+    template<class T>
+    inline bool Write(const T &value)
+    {
+      return Write((char*)&value, sizeof(T));
+    }
+
+    template<class T>
+    inline void WriteOrThrow(const T &value)
+    {
+      if (!Write(value))
+      {
+        throw SecondoException("Writing failed.");
+      }
+    }
+  };
+
+  class BufferReader : public Reader
   {
-    return m_offset;
-  }
+  public:
+    BufferReader(char *buffer, size_t offset) :
+      m_offset(offset),
+      m_buffer(buffer)
+    {
+    }
 
-  virtual inline void SetPosition(size_t position)
+    virtual inline size_t GetPosition()
+    {
+      return m_offset;
+    }
+
+    virtual inline void SetPosition(size_t position)
+    {
+      m_offset = position;
+    }
+
+    virtual inline bool Read(char *target, size_t count)
+    {
+      memcpy(target, m_buffer + m_offset, count);
+
+      m_offset += count;
+
+      return true;
+    }
+
+  private:
+    size_t m_offset;
+
+    char *m_buffer;
+  };
+
+  class BufferWriter : public Writer
   {
-    m_offset = position;
-  }
+  public:
+    BufferWriter(char *buffer, size_t offset) :
+      m_offset(offset),
+      m_buffer(buffer)
+    {
+    }
 
-  virtual inline bool Read(char *target, size_t count)
+    virtual inline size_t GetPosition()
+    {
+      return m_offset;
+    }
+
+    virtual inline void SetPosition(size_t position)
+    {
+      m_offset = position;
+    }
+
+    virtual inline bool Write(char *source, size_t count)
+    {
+      memcpy(m_buffer + m_offset, source, count);
+
+      m_offset += count;
+
+      return true;
+    }
+
+  private:
+    size_t m_offset;
+
+    char *m_buffer;
+  };
+
+  class BufferReadWriter : public Reader, public Writer
   {
-    size_t read = m_record.Read(target, count, m_offset);
+  public:
+    BufferReadWriter(char *buffer, size_t offset) :
+      m_offset(offset),
+      m_buffer(buffer)
+    {
+    }
 
-    m_offset += read;
+    virtual inline size_t GetPosition()
+    {
+      return m_offset;
+    }
 
-    return read == count;
-  }
+    virtual inline void SetPosition(size_t position)
+    {
+      m_offset = position;
+    }
 
-private:
-  size_t m_offset;
+    virtual inline bool Read(char *target, size_t count)
+    {
+      memcpy(target, m_buffer + m_offset, count);
 
-  SmiRecord &m_record;
-};
+      m_offset += count;
 
-class SmiWriter : public Writer
-{
-public:
-  SmiWriter(SmiRecord &record, size_t offset) :
-    m_offset(offset),
-    m_record(record)
+      return true;
+    }
+
+    virtual inline bool Write(char *source, size_t count)
+    {
+      memcpy(m_buffer + m_offset, source, count);
+
+      m_offset += count;
+
+      return true;
+    }
+
+  private:
+    size_t m_offset;
+
+    char *m_buffer;
+  };
+
+  class SmiReader : public Reader
   {
-  }
+  public:
+    SmiReader(SmiRecord &record, size_t offset) :
+      m_offset(offset),
+      m_record(record)
+    {
+    }
 
-  virtual inline size_t GetPosition()
+    virtual inline size_t GetPosition()
+    {
+      return m_offset;
+    }
+
+    virtual inline void SetPosition(size_t position)
+    {
+      m_offset = position;
+    }
+
+    virtual inline bool Read(char *target, size_t count)
+    {
+      size_t read = m_record.Read(target, count, m_offset);
+
+      m_offset += read;
+
+      return read == count;
+    }
+
+  private:
+    size_t m_offset;
+
+    SmiRecord &m_record;
+  };
+
+  class SmiWriter : public Writer
   {
-    return m_offset;
-  }
+  public:
+    SmiWriter(SmiRecord &record, size_t offset) :
+      m_offset(offset),
+      m_record(record)
+    {
+    }
 
-  virtual inline void SetPosition(size_t position)
+    virtual inline size_t GetPosition()
+    {
+      return m_offset;
+    }
+
+    virtual inline void SetPosition(size_t position)
+    {
+      m_offset = position;
+    }
+
+    virtual inline bool Write(char *source, size_t count)
+    {
+      size_t written = m_record.Write(source, count, m_offset);
+
+      m_offset += written;
+
+      return written == count;
+    }
+
+  private:
+    size_t m_offset;
+
+    SmiRecord &m_record;
+  };
+
+  class SmiReadWriter : public Reader, public Writer
   {
-    m_offset = position;
-  }
+  public:
+    SmiReadWriter(SmiRecord &record, size_t offset) :
+      m_offset(offset),
+      m_record(record)
+    {
+    }
 
-  virtual inline bool Write(char *source, size_t count)
-  {
-    size_t written = m_record.Write(source, count, m_offset);
+    virtual inline size_t GetPosition()
+    {
+      return m_offset;
+    }
 
-    m_offset += written;
+    virtual inline void SetPosition(size_t position)
+    {
+      m_offset = position;
+    }
 
-    return written == count;
-  }
+    virtual inline bool Read(char *target, size_t count)
+    {
+      size_t read = m_record.Read(target, count, m_offset);
 
-private:
-  size_t m_offset;
+      m_offset += read;
 
-  SmiRecord &m_record;
-};
+      return read == count;
+    }
 
-class SmiReadWriter : public Reader, public Writer
-{
-public:
-  SmiReadWriter(SmiRecord &record, size_t offset) :
-    m_offset(offset),
-    m_record(record)
-  {
-  }
+    virtual inline bool Write(char *source, size_t count)
+    {
+      size_t written = m_record.Write(source, count, m_offset);
 
-  virtual inline size_t GetPosition()
-  {
-    return m_offset;
-  }
+      m_offset += written;
 
-  virtual inline void SetPosition(size_t position)
-  {
-    m_offset = position;
-  }
+      return written == count;
+    }
 
-  virtual inline bool Read(char *target, size_t count)
-  {
-    size_t read = m_record.Read(target, count, m_offset);
+  private:
+    size_t m_offset;
 
-    m_offset += read;
-
-    return read == count;
-  }
-
-  virtual inline bool Write(char *source, size_t count)
-  {
-    size_t written = m_record.Write(source, count, m_offset);
-
-    m_offset += written;
-
-    return written == count;
-  }
-
-private:
-  size_t m_offset;
-
-  SmiRecord &m_record;
-};
+    SmiRecord &m_record;
+  };
+}

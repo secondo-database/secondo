@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <cstddef>
 #include "CRel.h"
-#include "CRelTI.h"
 #include "NestedList.h"
 #include "ReadWrite.h"
 #include "SecondoSMI.h"

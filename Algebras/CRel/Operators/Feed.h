@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <cstddef>
 #include "NestedList.h"
 #include "Operator.h"
+#include "TBlock.h"
 
 namespace CRelAlgebra
 {
@@ -39,9 +40,7 @@ namespace CRelAlgebra
     This operator returns a stream of tuple-block's from a column-oriented
     relation.
 
-    The operator expects one parameter.
-
-    The parameter represents the relation and must be of type 'crel'.
+    The operator expects one parameter of type 'crel'.
 
     The returned value is a stream of 'tblock'.
     */
@@ -51,8 +50,6 @@ namespace CRelAlgebra
       Feed();
 
     private:
-      //This class holds the operator's state between contiguous calls to
-      //ValueMapping
       class State
       {
       public:

@@ -26,278 +26,240 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <cstddef>
 
-class RefCounter
+namespace CRelAlgebra
 {
-public:
-  RefCounter() :
-    m_count(1)
+  template <class T>
+  class Shared
   {
-  }
-
-  size_t GetRefCount() const
-  {
-    return m_count;
-  }
-
-  void AddRef() const
-  {
-    ++m_count;
-  }
-
-  void DecRef() const
-  {
-    if (m_count <= 1)
+  public:
+    Shared() :
+      m_instance(nullptr),
+      m_refCount(nullptr)
     {
-      m_count = 0;
+    };
 
-      delete this;
-    }
-    else
+    Shared(const T &instance) :
+      m_instance(new T(instance)),
+      m_refCount(nullptr)
     {
-      --m_count;
-    }
-  }
+    };
 
-protected:
-  virtual ~RefCounter()
-  {
-  }
-
-private:
-  mutable size_t m_count;
-};
-
-template <class T>
-class Shared
-{
-public:
-  Shared() :
-    m_instance(NULL),
-    m_refCount(NULL)
-  {
-  };
-
-  Shared(const T &instance) :
-    m_instance(new T(instance)),
-    m_refCount(NULL)
-  {
-  };
-
-  Shared(T *instance) :
-    m_instance(instance),
-    m_refCount(NULL)
-  {
-  };
-
-  Shared(const Shared &instance) :
-    m_instance(instance.m_instance),
-    m_refCount(instance.m_refCount)
-  {
-    if (m_instance != NULL)
+    Shared(T *instance) :
+      m_instance(instance),
+      m_refCount(nullptr)
     {
-      if (m_refCount == NULL)
+    };
+
+    Shared(const Shared &instance) :
+      m_instance(instance.m_instance),
+      m_refCount(instance.m_refCount)
+    {
+      if (m_instance != nullptr)
       {
-        m_refCount = new size_t(2);
-        instance.m_refCount = m_refCount;
-      }
-      else
-      {
-        ++*m_refCount;
+        if (m_refCount == nullptr)
+        {
+          m_refCount = new size_t(2);
+          instance.m_refCount = m_refCount;
+        }
+        else
+        {
+          ++*m_refCount;
+        }
       }
     }
-  }
 
-  ~Shared()
-  {
-    if (m_instance != NULL)
+    virtual ~Shared()
     {
-      if (m_refCount == NULL)
+      if (m_instance != nullptr)
       {
-        delete m_instance;
+        if (m_refCount == nullptr)
+        {
+          delete m_instance;
+        }
+        else if (*m_refCount == 1)
+        {
+          delete m_refCount;
+          delete m_instance;
+        }
+        else
+        {
+          --*m_refCount;
+        }
       }
-      else if (*m_refCount == 1)
+    };
+
+    T * GetPointer() const
+    {
+      return m_instance;
+    }
+
+    bool IsNull() const
+    {
+      return m_instance == nullptr;
+    }
+
+    size_t GetCount()
+    {
+      return m_refCount != nullptr ? *m_refCount : 1;
+    }
+
+    Shared &operator=(const Shared &instance)
+    {
+      this->~Shared();
+      new (this) Shared(instance);
+
+      return *this;
+    }
+
+    Shared &operator=(T *instance)
+    {
+      this->~Shared();
+      new (this) Shared(instance);
+
+      return *this;
+    }
+
+    T *operator->() const
+    {
+      return m_instance;
+    }
+
+    T &operator*() const
+    {
+      return *m_instance;
+    }
+
+    operator Shared<const T>()
+    {
+      if (m_instance != nullptr)
       {
+        if (m_refCount == nullptr)
+        {
+          m_refCount = new size_t(2);
+        }
+        else
+        {
+          ++*m_refCount;
+        }
+      }
+
+      return Shared<const T>(m_instance, m_refCount);
+    }
+
+  private:
+    template <class F>
+    friend class Shared;
+
+    T *m_instance;
+
+    mutable size_t *m_refCount;
+
+    Shared(T *instance, size_t *refCount) :
+      m_instance(instance),
+      m_refCount(refCount)
+    {
+    }
+  };
+
+  template <class T>
+  class SharedArray
+  {
+  public:
+    SharedArray() :
+      m_instance(nullptr),
+      m_capacity(0),
+      m_refCount(new size_t(1))
+    {
+    };
+
+    SharedArray(size_t capacity) :
+      m_instance(capacity > 0 ? new T[capacity] : nullptr),
+      m_capacity(capacity),
+      m_refCount(new size_t(1))
+    {
+    };
+
+    SharedArray(T *instance, size_t capacity) :
+      m_instance(instance),
+      m_capacity(capacity),
+      m_refCount(new size_t(1))
+    {
+    };
+
+    SharedArray(const SharedArray &instance) :
+      m_instance(instance.m_instance),
+      m_capacity(instance.m_capacity),
+      m_refCount(instance.m_refCount)
+    {
+      ++*m_refCount;
+    }
+
+    virtual ~SharedArray()
+    {
+      if (*m_refCount == 1)
+      {
+        if (m_instance != nullptr)
+        {
+          delete[] m_instance;
+        }
+
         delete m_refCount;
-        delete m_instance;
       }
       else
       {
-        --*m_refCount;
+        (*m_refCount)--;
       }
-    }
-  };
+    };
 
-  inline T * GetPointer() const
-  {
-    return m_instance;
-  }
-
-  inline bool IsNull() const
-  {
-    return m_instance == NULL;
-  }
-
-  inline size_t GetCount()
-  {
-    return m_refCount != NULL ? *m_refCount : 1;
-  }
-
-  inline Shared &operator=(const Shared &instance)
-  {
-    this->~Shared();
-    new (this) Shared(instance);
-
-    return *this;
-  }
-
-  inline Shared &operator=(T *instance)
-  {
-    this->~Shared();
-    new (this) Shared(instance);
-
-    return *this;
-  }
-
-  inline T *operator->() const
-  {
-    return m_instance;
-  }
-
-  inline T &operator*() const
-  {
-    return *m_instance;
-  }
-
-  inline operator Shared<const T>()
-  {
-    if (m_instance != NULL)
+    T * GetPointer() const
     {
-      if (m_refCount == NULL)
-      {
-        m_refCount = new size_t(2);
-      }
-      else
-      {
-        ++*m_refCount;
-      }
+      return m_instance;
     }
 
-    return Shared<const T>(m_instance, m_refCount);
-  }
-
-private:
-  template <class F>
-  friend class Shared;
-
-  T *m_instance;
-
-  mutable size_t *m_refCount;
-
-  Shared(T *instance, size_t *refCount) :
-    m_instance(instance),
-    m_refCount(refCount)
-  {
-  }
-};
-
-template <class T>
-class SharedArray
-{
-public:
-  SharedArray() :
-    m_instance(NULL),
-    m_capacity(0),
-    m_refCount(new size_t(1))
-  {
-  };
-
-  SharedArray(size_t capacity) :
-    m_instance(capacity > 0 ? new T[capacity] : NULL),
-    m_capacity(capacity),
-    m_refCount(new size_t(1))
-  {
-  };
-
-  SharedArray(T *instance, size_t capacity) :
-    m_instance(instance),
-    m_capacity(capacity),
-    m_refCount(new size_t(1))
-  {
-  };
-
-  SharedArray(const SharedArray &instance) :
-    m_instance(instance.m_instance),
-    m_capacity(instance.m_capacity),
-    m_refCount(instance.m_refCount)
-  {
-    ++*m_refCount;
-  }
-
-  ~SharedArray()
-  {
-    if (*m_refCount == 1)
+    bool IsNull() const
     {
-      if (m_instance != NULL)
-      {
-        delete[] m_instance;
-      }
-
-      delete m_refCount;
+      return m_instance == nullptr;
     }
-    else
+
+    size_t GetCapacity() const
     {
-      (*m_refCount)--;
+      return m_capacity;
+    }
+
+    SharedArray &operator=(const SharedArray &instance)
+    {
+      this->~SharedArray();
+      new (this) SharedArray(instance);
+
+      return *this;
+    }
+
+    T& operator[](size_t index) const
+    {
+      return m_instance[index];
+    }
+
+    operator SharedArray<const T>()
+    {
+      return SharedArray<const T>(m_instance, m_refCount, m_capacity);
+    }
+
+  private:
+    template <class F>
+    friend class SharedArray;
+
+    T *m_instance;
+
+    size_t m_capacity;
+
+    size_t *m_refCount;
+
+    SharedArray(T *instance, size_t *refCount, size_t capacity) :
+      m_instance(instance),
+      m_capacity(capacity),
+      m_refCount(refCount)
+    {
+      ++*m_refCount;
     }
   };
-
-  inline T * GetPointer() const
-  {
-    return m_instance;
-  }
-
-  inline bool IsNull() const
-  {
-    return m_instance == NULL;
-  }
-
-  inline size_t GetCapacity() const
-  {
-    return m_capacity;
-  }
-
-  inline SharedArray &operator=(const SharedArray &instance)
-  {
-    this->~SharedArray();
-    new (this) SharedArray(instance);
-
-    return *this;
-  }
-
-  inline T& operator[](size_t index) const
-  {
-    return m_instance[index];
-  }
-
-  inline operator SharedArray<const T>()
-  {
-    return SharedArray<const T>(m_instance, m_refCount, m_capacity);
-  }
-
-private:
-  template <class F>
-  friend class SharedArray;
-
-  T *m_instance;
-
-  size_t m_capacity;
-
-  size_t *m_refCount;
-
-  SharedArray(T *instance, size_t *refCount, size_t capacity) :
-    m_instance(instance),
-    m_capacity(capacity),
-    m_refCount(refCount)
-  {
-    ++*m_refCount;
-  }
-};
+}

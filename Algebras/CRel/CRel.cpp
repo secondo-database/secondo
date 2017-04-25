@@ -24,22 +24,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "CRel.h"
 
-#include <stdexcept>
-#include "StringUtils.h"
-#include "Utility.h"
+#include "SmiUtils.h"
 
-using std::invalid_argument;
-using std::runtime_error;
+using namespace CRelAlgebra;
+
 using std::string;
-using std::vector;
-using stringutils::any2str;
 
-void* CRel::Cast(void *pointer)
-{
-  return new (pointer) CRel;
-}
+//CRel--------------------------------------------------------------------------
 
-CRel::CRel(const TBlock::PInfo &blockInfo, size_t desiredBlockSize,
+CRel::CRel(const PTBlockInfo &blockInfo, size_t desiredBlockSize,
            size_t cacheSize) :
   m_blockInfo(blockInfo),
   m_columnCount(blockInfo->columnCount),
@@ -50,22 +43,27 @@ CRel::CRel(const TBlock::PInfo &blockInfo, size_t desiredBlockSize,
   m_nextBlockIndex(0),
   m_recordCount(0),
   m_iteratorPosition(0),
-  m_blockIterator(NULL),
-  m_blockFile(new SmiRecordFile(false)),
+  m_blockIterator(nullptr),
+  m_blockRecordEntrySize(TBlock::GetSaveSize(m_columnCount, false) +
+                         sizeof(BlockHeader)),
+  m_blockRecordEntryCount((BlockRecord::sizeLimit + m_blockRecordEntrySize - 1)
+                          / m_blockRecordEntrySize),
+  m_blockRecordSize(m_blockRecordEntryCount * m_blockRecordEntrySize),
+  m_blockFile(false),
   m_columnFile(new SmiRecordFile(false)),
   m_flobFile(new SmiRecordFile(false)),
   m_blockCache(cacheSize)
 {
-  CreateOrThrow(*m_blockFile);
+  CreateOrThrow(m_blockFile);
   CreateOrThrow(*m_columnFile);
   CreateOrThrow(*m_flobFile);
 
-  m_blockFileId = m_blockFile->GetFileId();
+  m_blockFileId = m_blockFile.GetFileId();
   m_columnFileId = m_columnFile->GetFileId();
   m_flobFileId = m_flobFile->GetFileId();
 }
 
-CRel::CRel(const TBlock::PInfo &blockInfo, size_t cacheSize, Reader &source) :
+CRel::CRel(const PTBlockInfo &blockInfo, size_t cacheSize, Reader &source) :
   m_blockInfo(blockInfo),
   m_columnCount(blockInfo->columnCount),
   m_desiredBlockSize(source.ReadOrThrow<size_t>()),
@@ -75,26 +73,53 @@ CRel::CRel(const TBlock::PInfo &blockInfo, size_t cacheSize, Reader &source) :
   m_nextBlockIndex(source.ReadOrThrow<size_t>()),
   m_recordCount(m_blockCount),
   m_iteratorPosition(0),
-  m_blockIterator(NULL),
+  m_blockIterator(nullptr),
+  m_blockRecordEntrySize(TBlock::GetSaveSize(m_columnCount, false) +
+                         sizeof(BlockHeader)),
+  m_blockRecordEntryCount((BlockRecord::sizeLimit + m_blockRecordEntrySize - 1)
+                          / m_blockRecordEntrySize),
+  m_blockRecordSize(m_blockRecordEntryCount * m_blockRecordEntrySize),
   m_blockFileId(source.ReadOrThrow<SmiFileId>()),
   m_columnFileId(source.ReadOrThrow<SmiFileId>()),
   m_flobFileId(source.ReadOrThrow<SmiFileId>()),
-  m_blockFile(new SmiRecordFile(false)),
+  m_blockFile(false),
   m_columnFile(new SmiRecordFile(false)),
   m_flobFile(new SmiRecordFile(false)),
   m_blockCache(cacheSize)
 {
-  OpenOrThrow(*m_blockFile, m_blockFileId);
+  OpenOrThrow(m_blockFile, m_blockFileId);
   OpenOrThrow(*m_columnFile, m_columnFileId);
-  OpenOrThrow(*m_flobFile, m_blockFileId);
+  OpenOrThrow(*m_flobFile, m_flobFileId);
 }
 
 CRel::~CRel()
 {
-  if (m_blockIterator != NULL)
+  if (m_blockRecord.data != nullptr)
   {
-    delete m_blockIterator;
-    m_blockIterator = NULL;
+    if (m_blockRecord.modified)
+    {
+      size_t offset = 0;
+
+      if (m_recordCount > m_blockRecord.index)
+      {
+        WriteOrThrow(m_blockFile, m_blockRecord.index + 1, m_blockRecord.data,
+                     m_blockRecordSize, offset);
+      }
+      else
+      {
+        SmiRecord record;
+
+        do
+        {
+          AppendOrThrow(m_blockFile, record);
+        }
+        while (++m_recordCount <= m_blockRecord.index);
+
+        WriteOrThrow(record, m_blockRecord.data, m_blockRecordSize, offset);
+      }
+    }
+
+    delete[] m_blockRecord.data;
   }
 
   if (m_blockFileId != 0 && m_flobFileId != 0)
@@ -118,10 +143,24 @@ CRel::~CRel()
       while (iterator.MoveToNext());
     }
   }
-
-  if (m_blockFile->IsOpen())
+  else
   {
-    CloseOrThrow(*m_blockFile);
+    LRUCache<BlockCacheEntry>::Iterator iterator(m_blockCache);
+
+    if (iterator.IsValid())
+    {
+      do
+      {
+        size_t index;
+        iterator.GetValue(index).block->DecRef();
+      }
+      while (iterator.MoveToNext());
+    }
+  }
+
+  if (m_blockFile.IsOpen())
+  {
+    CloseOrThrow(m_blockFile);
   }
 
   if (m_flobFile->IsOpen())
@@ -130,7 +169,7 @@ CRel::~CRel()
   }
 }
 
-const TBlock::PInfo CRel::GetBlockInfo() const
+const PTBlockInfo &CRel::GetBlockInfo() const
 {
   return m_blockInfo;
 }
@@ -166,37 +205,7 @@ void CRel::Save(Writer &target)
 
 void CRel::DeleteFiles()
 {
-  if (m_blockIterator != NULL)
-  {
-    delete m_blockIterator;
-    m_blockIterator = NULL;
-  }
-
-  LRUCache<BlockCacheEntry>::Iterator iterator(m_blockCache);
-  if (iterator.IsValid())
-  {
-    do
-    {
-      size_t index;
-      BlockCacheEntry &entry = iterator.GetValue(index);
-
-      entry.block->CloseFiles();
-    }
-    while (iterator.MoveToNext());
-  }
-
-  if (m_blockFile->GetFileId() != m_blockFileId)
-  {
-    CloseOrThrow(*m_blockFile);
-  }
-
-  if (!m_blockFile->IsOpen())
-  {
-    OpenOrThrow(*m_blockFile, m_blockFileId);
-  }
-
-  DropOrThrow(*m_blockFile);
-
+  DropOrThrow(m_blockFile);
 
   if (m_columnFile->GetFileId() != m_columnFileId)
   {
@@ -253,17 +262,7 @@ size_t CRel::GetCacheSize() const
   return m_blockCache.GetSize();
 }
 
-CRel::Column CRel::GetAt(size_t index) const
-{
-  return Column(*this, index);
-}
-
-CRel::Iterator CRel::GetIterator() const
-{
-  return Iterator(this);
-}
-
-void CRel::Append(ArrayAttribute* tuple)
+void CRel::Append(const AttrArrayEntry* tuple)
 {
   TAppend(tuple);
 }
@@ -273,9 +272,9 @@ void CRel::Append(Attribute** tuple)
   TAppend(tuple);
 }
 
-void CRel::Append(const BlockTuple &tuple)
+void CRel::Append(const TBlockEntry &tuple)
 {
-  TAppend<const BlockTuple&>(tuple);
+  TAppend<const TBlockEntry&>(tuple);
 }
 
 void CRel::Append(const Tuple &tuple)
@@ -298,10 +297,10 @@ TBlock &CRel::GetBlock(size_t index) const
     entry.modified = false;
 
     entry.block->DecRef();
-    entry.block = NULL;
+    entry.block = nullptr;
   }
 
-  if (entry.block == NULL)
+  if (entry.block == nullptr)
   {
     entry.block = LoadBlock(index);
   }
@@ -309,12 +308,24 @@ TBlock &CRel::GetBlock(size_t index) const
   return *entry.block;
 }
 
-CRel::CRel() :
-  m_columnCount(0),
-  m_desiredBlockSize(0),
-  m_blockSaveSize(0),
-  m_blockCache(0)
+CRelIterator CRel::GetIterator() const
 {
+  return CRelIterator(this);
+}
+
+CRelBlockIterator CRel::GetBlockIterator() const
+{
+  return CRelBlockIterator(this);
+}
+
+CRelIterator CRel::begin() const
+{
+  return GetIterator();
+}
+
+CRelIterator CRel::end() const
+{
+  return CRelIterator();
 }
 
 template<class T>
@@ -331,8 +342,7 @@ void CRel::TAppend(T tuple)
   }
   else
   {
-    block = new TBlock(m_blockInfo, m_columnFileId, m_flobFileId, m_columnFile,
-                       m_flobFile);
+    block = new TBlock(m_blockInfo, m_columnFileId, m_flobFileId, m_columnFile);
 
     ++m_blockCount;
 
@@ -364,116 +374,125 @@ void CRel::TAppend(T tuple)
 
 TBlock *CRel::LoadBlock(size_t index) const
 {
-  if (m_blockFile->GetFileId() != m_blockFileId)
-  {
-    CloseOrThrow(*m_blockFile);
-  }
+  BlockRecord &blockRecord = GetBlockRecord(index);
 
-  if (!m_blockFile->IsOpen())
-  {
-    OpenOrThrow(*m_blockFile, m_blockFileId);
-  }
+  const size_t offset =
+    (index % m_blockRecordEntryCount) * m_blockRecordEntrySize;
 
-  if (m_iteratorPosition > index && m_blockIterator != NULL)
-  {
-    delete m_blockIterator;
-    m_blockIterator = NULL;
-  }
+  BufferReader source(blockRecord.data, offset);
 
-  if (m_blockIterator == NULL)
-  {
-    m_blockIterator = m_blockFile->SelectAllPrefetched();
-    m_blockIterator->Next();
-    m_iteratorPosition = 0;
-  }
-
-  while (m_iteratorPosition < index)
-  {
-    m_blockIterator->Next();
-    ++m_iteratorPosition;
-  }
-
-  //SmiRecord record;
-  //SelectOrThrow(*m_blockFile, (SmiRecordId)index + 1, SmiFile::ReadOnly,
-  //              record);
-
-  class PrefetchingIteratorReader : public Reader
-  {
-  public:
-    PrefetchingIteratorReader(PrefetchingIterator &iterator, size_t position) :
-      m_iterator(iterator),
-      m_position(position)
-    {
-    }
-
-    virtual size_t GetPosition()
-    {
-      return m_position;
-    }
-
-    virtual void SetPosition(size_t position)
-    {
-      m_position = position;
-    }
-
-    virtual bool Read(char *target, size_t count)
-    {
-      size_t read = m_iterator.ReadCurrentData(target, count, m_position);
-
-      m_position += read;
-
-      return read == count;
-    }
-
-  private:
-    PrefetchingIterator &m_iterator;
-
-    size_t m_position;
-  };
-
-  PrefetchingIteratorReader source(*m_blockIterator, 0);
-
-  return new TBlock(m_blockInfo, source, m_columnFile, m_flobFile);
+  return new TBlock(m_blockInfo,
+                    source.ReadOrThrow<BlockHeader>().ToHeader(m_columnFileId,
+                                                               m_flobFileId),
+                    source, m_columnFile);
 }
 
 void CRel::SaveBlock(size_t index, TBlock &block) const
 {
-  if (m_blockIterator != NULL)
-  {
-    delete m_blockIterator;
-    m_blockIterator = NULL;
-  }
+  BlockRecord &blockRecord = GetBlockRecord(index);
 
-  if (m_blockFile->GetFileId() != m_blockFileId)
-  {
-    CloseOrThrow(*m_blockFile);
-  }
+  blockRecord.modified = true;
 
-  if (!m_blockFile->IsOpen())
-  {
-    OpenOrThrow(*m_blockFile, m_blockFileId);
-  }
+  const size_t offset =
+    (index % m_blockRecordEntryCount) * m_blockRecordEntrySize;
 
-  SmiRecord record;
-  if (m_recordCount <= index)
-  {
-    do
-    {
-      AppendOrThrow(*m_blockFile, record);
-    }
-    while (++m_recordCount <= index);
-  }
-  else
-  {
-    SelectOrThrow(*m_blockFile, (SmiRecordId)index + 1, SmiFile::Update,
-                  record);
-  }
+  BufferWriter target(blockRecord.data, offset);
 
-  SmiWriter target(record, 0);
-  block.Save(target);
+  target.WriteOrThrow(BlockHeader(block));
+
+  block.Save(target, false);
 }
 
-ArrayAttribute CRel::GetAttribute(size_t block, size_t column, size_t row) const
+
+CRel::BlockRecord &CRel::GetBlockRecord(size_t blockIndex) const
 {
-  return GetBlock(block).GetAt(column)[row];
+  const size_t recordIndex = blockIndex / m_blockRecordEntryCount;
+
+  BlockRecord &blockRecord = m_blockRecord;
+
+  if (blockRecord.data != nullptr && blockRecord.index != recordIndex)
+  {
+    if (blockRecord.modified)
+    {
+      size_t offset = 0;
+
+      if (m_recordCount > blockRecord.index)
+      {
+        WriteOrThrow(m_blockFile, blockRecord.index + 1, blockRecord.data,
+                    m_blockRecordSize, offset);
+      }
+      else
+      {
+        SmiRecord record;
+
+        do
+        {
+          AppendOrThrow(m_blockFile, record);
+        }
+        while (++m_recordCount <= blockRecord.index);
+
+        WriteOrThrow(record, blockRecord.data, m_blockRecordSize, offset);
+      }
+    }
+
+    delete[] blockRecord.data;
+
+    blockRecord.data = nullptr;
+  }
+
+  if (blockRecord.data == nullptr)
+  {
+    size_t offset = 0;
+
+    blockRecord.index = recordIndex;
+
+    blockRecord.modified = false;
+
+    if (m_recordCount > recordIndex)
+    {
+      blockRecord.data = ReadOrThrow(m_blockFile, recordIndex + 1,
+                                     m_blockRecordSize, offset);
+    }
+    else
+    {
+      blockRecord.data = new char[m_blockRecordSize];
+    }
+  }
+
+  return m_blockRecord;
+}
+
+//CRel::BlockCacheEntry---------------------------------------------------------
+
+CRel::BlockCacheEntry::BlockCacheEntry() :
+  block(nullptr),
+  modified(false)
+{
+}
+
+//CRel::BlockHeader-------------------------------------------------------------
+
+CRel::BlockHeader::BlockHeader()
+{
+}
+
+CRel::BlockHeader::BlockHeader(const TBlock &block) :
+  rowCount(block.GetRowCount()),
+  size(block.GetSize())
+{
+}
+
+TBlockHeader CRel::BlockHeader::ToHeader(SmiFileId columnFileId,
+                                           SmiFileId flobFileId)
+{
+  return TBlockHeader(rowCount, size, columnFileId, flobFileId);
+}
+
+//CRel::BlockRecord-------------------------------------------------------------
+
+CRel::BlockRecord::BlockRecord() :
+  index(0),
+  data(nullptr),
+  modified(false)
+{
 }

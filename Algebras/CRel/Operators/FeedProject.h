@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "Operator.h"
 #include "SecondoSMI.h"
-#include "Shared.h"
 #include "TBlock.h"
 #include <vector>
 
@@ -52,15 +51,9 @@ namespace CRelAlgebra
         TBlock *Request();
 
       private:
-        const CRel &m_relation;
+        CRelBlockIterator m_blockIterator;
 
-        size_t m_blockIndex;
-
-        std::vector<size_t> m_attributeIndices;
-
-        SmiFileId m_fileId;
-
-        Shared<SmiRecordFile> m_file;
+        std::vector<size_t> m_indices;
       };
 
       static const OperatorInfo info;

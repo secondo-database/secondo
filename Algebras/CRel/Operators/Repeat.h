@@ -25,11 +25,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include "AlgebraTypes.h"
-#include "Attribute.h"
 #include <cstddef>
 #include "NestedList.h"
 #include "Operator.h"
-#include "RelationAlgebra.h"
 #include "Stream.h"
 
 namespace CRelAlgebra
@@ -44,62 +42,23 @@ namespace CRelAlgebra
     private:
       static const OperatorInfo info;
 
-      static ValueMapping valueMappings[];
-
       static ListExpr TypeMapping(ListExpr args);
 
-      static int SelectValueMapping(ListExpr args);
-
-      template<class T>
-      static int TValueMapping(ArgVector args, Word &result, int message,
-                               Word &local, Supplier s);
-
-      class AttributeState
+      class State
       {
       public:
-        AttributeState(Word *args, Supplier s);
+        State(Word *args, Supplier s);
 
-        Attribute *Request();
+        ~State();
+
+        void *Request();
 
       private:
         const size_t m_count;
 
         size_t m_index;
 
-        Attribute &m_attribute;
-      };
-
-      class TupleState
-      {
-      public:
-        TupleState(Word *args, Supplier s);
-
-        Tuple *Request();
-
-      private:
-        const size_t m_count;
-
-        size_t m_index;
-
-        Tuple &m_tuple;
-      };
-
-      template<class T>
-      class StreamState
-      {
-      public:
-        StreamState(Word *args, Supplier s);
-
-        ~StreamState();
-
-        T *Request();
-
-      private:
-        const size_t m_count;
-
-        size_t m_index;
-
-        Stream<T> m_stream;
+        Stream<void> m_stream;
       };
     };
   }

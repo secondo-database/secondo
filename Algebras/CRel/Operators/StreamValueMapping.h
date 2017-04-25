@@ -33,6 +33,12 @@ namespace CRelAlgebra
   namespace Operators
   {
     template<class T>
+    T *DefaultCreate(ArgVector args, Supplier s)
+    {
+      return new T(args, s);
+    }
+
+    template<class T, T *(*create)(ArgVector, Supplier) = DefaultCreate<T>>
     int StreamValueMapping(ArgVector args, Word &result, int message,
                            Word &local, Supplier s)
     {
@@ -42,18 +48,18 @@ namespace CRelAlgebra
         {
         case OPEN:
         {
-          if (local.addr != NULL)
+          if (local.addr != nullptr)
           {
             delete (T*)local.addr;
           }
 
-          local.addr = new T(args, s);
+          local.addr = create(args, s);
 
           break;
         }
         case REQUEST:
         {
-          if ((result.addr = ((T*)local.addr)->Request()) == NULL)
+          if ((result.addr = ((T*)local.addr)->Request()) == nullptr)
           {
             return CANCEL;
           }
@@ -62,11 +68,11 @@ namespace CRelAlgebra
         }
         case CLOSE:
         {
-          if (local.addr != NULL)
+          if (local.addr != nullptr)
           {
             delete (T*)local.addr;
 
-            local.addr = NULL;
+            local.addr = nullptr;
           }
 
           break;

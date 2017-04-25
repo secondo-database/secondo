@@ -24,26 +24,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "FeedProject.h"
 
-#include "AttrArray.h"
 #include "CRelTI.h"
-#include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "Project.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "StreamValueMapping.h"
 #include <string>
 #include "Symbols.h"
-#include "TBlockTI.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
-using std::exception;
 using std::string;
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
+
+//FeedProject-------------------------------------------------------------------
 
 FeedProject::FeedProject() :
   Operator(info, StreamValueMapping<State>, TypeMapping)
@@ -51,12 +50,11 @@ FeedProject::FeedProject() :
 }
 
 const OperatorInfo FeedProject::info = OperatorInfo(
-  "feedproject",
-  "crel(c, m, (A)) x (a0, ..., ai) -> stream(tblock(m, (a0, ..., ai)))",
-  "_ feedproject _",
-  "Produces a stream of tuple-blocks from a column-oriented relation projected "
-  "on the selected attributes.",
-  "query cities feed cconsume");
+  "feedproject", "crel x symbol x symbol* -> stream tblock",
+  "_ feedproject[ list ]",
+  "Produces a stream of tuple blocks from a relation projected on the columns "
+  "determined by the provided names.",
+  "query people feedproject[Name, Age] consume");
 
 ListExpr FeedProject::TypeMapping(ListExpr args)
 {
@@ -73,76 +71,26 @@ ListExpr FeedProject::TypeMapping(ListExpr args)
     return listutils::typeError(crelTypeError);
   }
 
-  ListExpr attributeNames = nl->Second(args);
-  if (nl->IsAtom(attributeNames))
+  const Project::Info info(CRelTI(crelType, false), nl->Second(args));
+
+  if (info.HasError())
   {
-    return listutils::typeError("Second argument isn't a list!");
+    return listutils::typeError("Error in second argument (column names): " +
+                                info.GetError());
   }
 
-  if (nl->IsEmpty(attributeNames))
-  {
-    return listutils::typeError("Second argument is a empty list!");
-  }
-
-  const CRelTI crelInfo(crelType);
-
-  TBlockTI tblockInfo(crelInfo);
-  tblockInfo.attributeInfos.clear();
-
-  const size_t columnCount = crelInfo.attributeInfos.size();
-
-  ListExpr attributeIndices = nl->OneElemList(nl->Empty()),
-    attributeIndicesBack = attributeIndices;
-
-  size_t attributeIndexCount = 0;
-
-  do
-  {
-    const ListExpr attributeNameExpr = Take(attributeNames);
-
-    if (!nl->IsNodeType(SymbolType, attributeNameExpr))
-    {
-      return listutils::typeError("!");
-    }
-
-    const string attributeName = nl->SymbolValue(attributeNameExpr);
-
-    size_t attributeIndex = 0;
-    do
-    {
-      if (crelInfo.attributeInfos[attributeIndex].name == attributeName)
-      {
-        tblockInfo.attributeInfos.push_back(
-          crelInfo.attributeInfos[attributeIndex]);
-        break;
-      }
-    }
-    while (++attributeIndex < columnCount);
-
-    if (attributeIndex == columnCount)
-    {
-      return listutils::typeError("Attribute name '" + attributeName + "' not "
-                                  "found!");
-    }
-
-    Append(attributeIndicesBack, nl->IntAtom(attributeIndex));
-
-    ++attributeIndexCount;
-  }
-  while (!nl->IsEmpty(attributeNames));
+  const ListExpr projectedBlockType = info.GetBlockTypeInfo().GetTypeExpr();
 
   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
-                            nl->Cons(nl->IntAtom(attributeIndexCount),
-                                    nl->Rest(attributeIndices)),
-                            nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                            tblockInfo.GetTypeInfo()));
+                           info.GetIndicesExpr(),
+                           nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                           projectedBlockType));
 }
 
+//FeedProject::State------------------------------------------------------------
+
 FeedProject::State::State(ArgVector args, Supplier s) :
-  m_relation(*(CRel*)args[0].addr),
-  m_blockIndex(0),
-  m_fileId(SecondoSystem::GetCatalog()->GetFlobFile()->GetFileId()),
-  m_file(new SmiRecordFile(false))
+  m_blockIterator(((CRel*)args[0].addr)->GetBlockIterator())
 {
   qp->DeleteResultStorage(s);
 
@@ -150,19 +98,21 @@ FeedProject::State::State(ArgVector args, Supplier s) :
 
   for (size_t i = 0; i < indexCount; ++i)
   {
-    m_attributeIndices.push_back(((CcInt*)args[i + 3].addr)->GetValue());
+    m_indices.push_back(((CcInt*)args[i + 3].addr)->GetValue());
   }
 }
 
 TBlock *FeedProject::State::Request()
 {
-  if (m_blockIndex < m_relation.GetBlockCount())
+  if (m_blockIterator.IsValid())
   {
-    TBlock &block = m_relation.GetBlock(m_blockIndex++);
+    TBlock *block = new TBlock(m_blockIterator.Get(), &m_indices.front(),
+                               m_indices.size());
 
-    return new TBlock(block, &m_attributeIndices.front(),
-                      m_attributeIndices.size());
+    m_blockIterator.MoveToNext();
+
+    return block;
   }
 
-  return NULL;
+  return nullptr;
 }

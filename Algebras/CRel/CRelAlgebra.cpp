@@ -23,14 +23,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "Algebra.h"
+#include "DisplayTTY.h"
 #include "NestedList.h"
+#include "SimpleAttrArray.h"
 #include "Operators/And.h"
 #include "Operators/ApplyPredicate.h"
 #include "Operators/Attr.h"
+#include "Operators/AttributeType.h"
 #include "Operators/BlockCount.h"
-#include "Operators/BlockType.h"
+#include "Operators/Consume.h"
 #include "Operators/CConsume.h"
 #include "Operators/Count.h"
+#include "Operators/Equal.h"
 #include "Operators/Feed.h"
 #include "Operators/FeedProject.h"
 #include "Operators/Filter.h"
@@ -41,12 +45,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/Project.h"
 #include "Operators/Rename.h"
 #include "Operators/Repeat.h"
-//#include "Operators/Test.h"
+#include "Operators/TransformStream.h"
 #include "QueryProcessor.h"
-#include "TypeConstructors/AttrArrayTC.h"
-#include "TypeConstructors/TBlockTC.h"
 #include "TypeConstructors/CRelTC.h"
-#include "TypeConstructors/IndicesTC.h"
+#include "TypeConstructors/DisplayLongInts.h"
+#include "TypeConstructors/DisplayTBlock.h"
+#include "TypeConstructors/DisplayCRel.h"
+#include "TypeConstructors/GAttrArrayTC.h"
+#include "TypeConstructors/GSpatialAttrArrayTC.h"
+#include "TypeConstructors/IntsTC.h"
+#include "TypeConstructors/LongIntsTC.h"
+#include "TypeConstructors/TBlockTC.h"
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -67,9 +76,23 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
 
       AddTypeConstructor(new TBlockTC(), true);
 
-      AddTypeConstructor(new AttrArrayTC(), true);
+      AddTypeConstructor(new GAttrArrayTC(), true);
 
-      AddTypeConstructor(new IndicesTC(), true);
+      AddTypeConstructor(new GSpatialAttrArrayTC<1>(), true);
+
+      AddTypeConstructor(new GSpatialAttrArrayTC<2>(), true);
+
+      AddTypeConstructor(new GSpatialAttrArrayTC<3>(), true);
+
+      AddTypeConstructor(new GSpatialAttrArrayTC<4>(), true);
+
+      AddTypeConstructor(new GSpatialAttrArrayTC<8>(), true);
+
+      AddTypeConstructor(new IntsTC(), true);
+
+      AddTypeConstructor(new Ints2TC(), true);
+
+      AddTypeConstructor(new LongIntsTC(), true);
 
       AddOperator(new And(), true);
 
@@ -77,19 +100,25 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
 
       AddOperator(new Attr(), true);
 
+      AddOperator(new Operators::AttributeType(), true);
+
       AddOperator(new BlockCount(), true);
 
-      AddOperator(new BlockType(), true);
+      AddOperator(new Consume(), true);
 
       AddOperator(new CConsume(), true);
 
       AddOperator(new Count(), true);
 
+      AddOperator(new Equal(), true);
+
       AddOperator(new Feed(), true);
 
       AddOperator(new FeedProject(), true);
 
-      AddOperator(new Filter(), true);
+      AddOperator(new Filter<false>(), true);
+
+      AddOperator(new Filter<true>(), true);
 
       AddOperator(new ItHashJoin(), true);
 
@@ -105,9 +134,17 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
 
       AddOperator(new Repeat(), true);
 
+      AddOperator(new TransformStream(), true);
+
       //AddOperator(new Test(), true);
     }
   };
+
+  DisplayTTY &display = DisplayTTY::GetInstance();
+
+  display.Insert(LongIntsTC::name, new DisplayLongInts());
+  display.Insert(TBlockTC::name, new DisplayTBlock());
+  display.Insert(CRelTC::name, new DisplayCRel());
 
   return new CRelAlgebra();
 }
