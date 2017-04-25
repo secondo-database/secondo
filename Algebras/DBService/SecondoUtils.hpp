@@ -61,7 +61,9 @@ public:
 
     static bool closeDatabaseOnRemoteServer(
                 distributed2::ConnectionInfo* connectionInfo);
+    static bool executeQueryOnCurrentNode(const std::string& query);
 
+    static bool adjustDatabaseOnCurrentNode(const std::string& databaseName);
 private:
     static bool handleRemoteDatabase(
             distributed2::ConnectionInfo* connectionInfo,

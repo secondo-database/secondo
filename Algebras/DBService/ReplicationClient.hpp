@@ -45,6 +45,7 @@ public:
             std::string& relationName);
     int start();
 private:
+    std::string fileName;
     std::string databaseName;
     std::string relationName;
 };

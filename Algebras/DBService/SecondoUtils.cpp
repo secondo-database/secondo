@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Profiles.h"
 #include "CharTransform.h"
+#include "SecParser.h"
 
 #include "Algebras/DBService/SecondoUtils.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
@@ -120,6 +121,44 @@ bool SecondoUtils::executeQueryOnRemoteServer(
     print(errorCode);
     print(errorMessage.c_str());
     return errorCode == 0;
+}
+
+bool SecondoUtils::executeQueryOnCurrentNode(const string& query)
+{
+    SecParser secondoParser;
+    string queryAsNestedList;
+    if (secondoParser.Text2List(query, queryAsNestedList) != 0)
+    {
+        // TODO
+        return false;
+    } else
+    {
+        Word result;
+        QueryProcessor::ExecuteQuery(queryAsNestedList, result, 1024);
+    }
+    return true;
+}
+
+bool SecondoUtils::adjustDatabaseOnCurrentNode(const std::string& databaseName)
+{
+    if(SecondoSystem::GetInstance()->GetDatabaseName()
+            != databaseName)
+    {
+        string queryClose("close database");
+        SecondoUtils::executeQueryOnCurrentNode(queryClose);
+        stringstream queryCreate;
+
+        queryCreate << "create database "
+                    << databaseName;
+        SecondoUtils::executeQueryOnCurrentNode(queryCreate.str());
+
+        stringstream queryOpen;
+        queryOpen << "open database "
+                    << databaseName;
+        SecondoUtils::executeQueryOnCurrentNode(queryOpen.str());
+        return true;
+    }
+    return false;
 }
 
 } /* namespace DBService */

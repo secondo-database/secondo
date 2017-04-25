@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StringUtils.h"
 
 #include "Algebras/DBService/ReplicationClient.hpp"
+#include "Algebras/DBService/SecondoUtils.hpp"
 
 using namespace std;
 using namespace distributed2;
@@ -43,6 +44,7 @@ ReplicationClient::ReplicationClient(
         string& databaseName,
         string& relationName)
 : FileTransferClient(server, port, true, fileName, fileName),
+  fileName(fileName),
   databaseName(databaseName),
   relationName(relationName)
 
@@ -59,9 +61,18 @@ int ReplicationClient::start()
         return 2;
     }
     receiveFile(); // TODO error handling
+    stringstream query;
 
-    // TODO create relation from file
+    SecondoUtils::adjustDatabaseOnCurrentNode(databaseName);
 
+    query << "let "
+          << relationName
+          << "_DBS"
+            " = \""
+          << fileName
+          << "\""
+          << " getObjectFromFile consume";
+    SecondoUtils::executeQueryOnCurrentNode(query.str());
     return 0;
 }
 

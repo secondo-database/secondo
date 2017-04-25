@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sstream>
 #include <vector>
 
-#include "SecParser.h"
 #include "Algebra.h"
 
 #include "Algebras/DBService/Replicator.hpp"
@@ -84,22 +83,13 @@ void Replicator::replicateRelation(const string& relationName,
 void Replicator::createFileOnCurrentNode(const string& relationName) const
 {
     stringstream query;
-    query << "query saveObjectToFile "
+    query << "query "
           << relationName
-          << "[\""
+          << " saveObjectToFile[\""
           << getFileName(relationName)
           << "\"]";
 
-    SecParser secondoParser;
-    string queryAsNestedList;
-    if (secondoParser.Text2List(query.str(), queryAsNestedList) != 0)
-    {
-        // TODO
-    } else
-    {
-        Word result;
-        QueryProcessor::ExecuteQuery(queryAsNestedList, result, 1024);
-    }
+    SecondoUtils::executeQueryOnCurrentNode(query.str());
 }
 
 void Replicator::runReplication(const string& relationName,
