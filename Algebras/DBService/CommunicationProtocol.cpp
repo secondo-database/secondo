@@ -73,4 +73,4 @@ string CommunicationProtocol::ReplicaLocation()
 }
 
 
-} /* namespace DBService */
+} /* namespace DBService test */
