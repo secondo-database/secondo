@@ -112,7 +112,7 @@ int CommunicationClient::getNodesForReplication(const string& relationName,
     size_t locationCount = atoi(count.c_str());
 
     queue<string> receivedLines;
-    CommunicationUtils::receiveLines(io, locationCount*3, receivedLines);
+    CommunicationUtils::receiveLines(io, locationCount*5, receivedLines);
     for(size_t i= 0; i < locationCount; i++)
     {
         string host = receivedLines.front();
@@ -121,9 +121,45 @@ int CommunicationClient::getNodesForReplication(const string& relationName,
         receivedLines.pop();
         string disk= receivedLines.front();
         receivedLines.pop();
-        LocationInfo location(host, port, disk);
+        string commPort = receivedLines.front();
+        receivedLines.pop();
+        string transferPort = receivedLines.front();
+        receivedLines.pop();
+        LocationInfo location(host, port, disk, commPort, transferPort);
         locations.push_back(location);
     }
+    return 0;
+}
+
+int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
+                                             const string& transferServerPort,
+                                             const string& fileName,
+                                             const string& databaseName,
+                                             const string& relationName)
+{
+    iostream& io = socket->GetSocketStream();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::CommunicationServer()))
+    {
+        return 1;
+    }
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::TriggerReplication());
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::ReplicationDetailsRequest()))
+    {
+        return 1;
+    }
+    sendBuffer.push(transferServerHost);
+    sendBuffer.push(transferServerPort);
+    sendBuffer.push(fileName);
+    sendBuffer.push(databaseName);
+    sendBuffer.push(relationName);
+    CommunicationUtils::sendBatch(io, sendBuffer);
     return 0;
 }
 

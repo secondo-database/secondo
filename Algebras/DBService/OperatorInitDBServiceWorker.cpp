@@ -26,16 +26,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
+
+#include "NestedList.h"
+#include "StandardTypes.h"
+
 #include "Algebras/DBService/OperatorInitDBServiceWorker.hpp"
 #include "Algebras/DBService/ServerRunnable.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/SecondoUtils.hpp"
 #include "Algebras/DBService/CommunicationServer.hpp"
-
-#include "NestedList.h"
-#include "StandardTypes.h"
-
-#include "Algebras/Distributed2/FileTransferServer.h"
+#include "Algebras/DBService/ReplicationServer.hpp"
 
 using namespace std;
 using namespace distributed2;
@@ -51,7 +51,7 @@ ListExpr OperatorInitDBServiceWorker::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
-    return listutils::basicSymbol<CcInt>();
+    return listutils::basicSymbol<CcBool>();
 }
 
 int OperatorInitDBServiceWorker::mapValue(Word* args,
@@ -71,13 +71,13 @@ int OperatorInitDBServiceWorker::mapValue(Word* args,
     commServer.run<CommunicationServer>();
 
     string fileTransferPort;
-    SecondoUtils::readFromConfigFile(commPort,
+    SecondoUtils::readFromConfigFile(fileTransferPort,
                                            "DBService",
-                                           "CommunicationPort",
+                                           "FileTransferPort",
                                            "0");
     // TODO ErrorHandling
-    ServerRunnable fileServer(atoi(commPort.c_str()));
-    fileServer.run<FileTransferServer>();
+    ServerRunnable fileServer(atoi(fileTransferPort.c_str()));
+    fileServer.run<ReplicationServer>();
 
     result = qp->ResultStorage(s);
     static_cast<CcBool*>(result.addr)->Set(true,true);

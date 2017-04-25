@@ -36,8 +36,11 @@ namespace DBService {
 
 LocationInfo::LocationInfo(const string& host,
                            const string& port,
-                           const string& disk)
-: host(host), port(port), disk(disk)
+                           const string& disk,
+                           const string& commPort,
+                           const string& transferPort)
+: host(host), port(port), disk(disk),
+  commPort(commPort), transferPort(transferPort)
 {}
 
 const string& LocationInfo::getHost() const
@@ -53,6 +56,15 @@ const string& LocationInfo::getPort() const
 const string& LocationInfo::getDisk() const
 {
     return disk;
+}
+
+const string& LocationInfo::getCommPort() const
+{
+    return commPort;
+}
+const string& LocationInfo::getTransferPort() const
+{
+    return transferPort;
 }
 
 } /* namespace DBService */

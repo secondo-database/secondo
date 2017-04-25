@@ -37,14 +37,20 @@ class LocationInfo {
 public:
     LocationInfo(const std::string& host,
                  const std::string& port,
-                 const std::string& disk);
+                 const std::string& disk,
+                 const std::string& commPort,
+                 const std::string& transferPort);
     const std::string& getHost() const;
     const std::string& getPort() const;
     const std::string& getDisk() const;
+    const std::string& getCommPort() const;
+    const std::string& getTransferPort() const;
 private:
     std::string host;
     std::string port;
     std::string disk;
+    std::string commPort;
+    std::string transferPort;
 };
 
 } /* namespace DBService */

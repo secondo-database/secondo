@@ -26,30 +26,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_CommunicationProtocol_HPP_
-#define ALGEBRAS_DBSERVICE_CommunicationProtocol_HPP_
+#ifndef ALGEBRAS_DBSERVICE_COMMUNICATIONCommunicationClientRunnable_HPP_
+#define ALGEBRAS_DBSERVICE_COMMUNICATIONCommunicationClientRunnable_HPP_
 
-#include <string>
+#include <boost/thread.hpp>
 
 namespace DBService {
 
-class CommunicationProtocol {
+class CommunicationClientRunnable {
 public:
-    static std::string CommunicationServer();
-    static std::string CommunicationClient();
-    static std::string ShutDown();
-    static std::string ProvideReplica();
-    static std::string UseReplica();
-    static std::string LocationRequest();
-    static std::string RelationRequest();
-    static std::string ReplicaLocation();
-    static std::string ReplicationServer();
-    static std::string ReplicationClient();
-    static std::string ReplicationClientRequest();
-    static std::string TriggerReplication();
-    static std::string ReplicationDetailsRequest();
+    CommunicationClientRunnable(std::string sourceHost,
+            int sourceTransferPort,
+            std::string targetHost,
+            int targetCommPort,
+            std::string localFileName,
+            std::string databaseName,
+            std::string relationName);
+    ~CommunicationClientRunnable();
+    void run();
+private:
+    void createClient();
+    boost::thread* runner;
+    std::string sourceHost;
+    int sourceTransferPort;
+    std::string targetHost;
+    int targetCommPort;
+    std::string localFileName;
+    std::string databaseName;
+    std::string relationName;
 };
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_CommunicationProtocol_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_COMMUNICATIONCommunicationClientRunnable_HPP_ */

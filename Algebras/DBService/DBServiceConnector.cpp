@@ -40,13 +40,7 @@ using namespace std;
 namespace DBService {
 
 DBServiceConnector::DBServiceConnector()
-{
-    string host;
-    host.assign("localhost");
-    commClient = boost::make_shared<CommunicationClient>(
-            CommunicationClient(host, 12345, 0));
-    //TODO read port from config file
-}
+{}
 
 DBServiceConnector* DBServiceConnector::getInstance()
 {
@@ -82,13 +76,12 @@ bool DBServiceConnector::replicateRelation(const std::string& relationName)
     // connect to DBService master to find out location for replication
     CommunicationClient masterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()), 0);
-    masterClient.start(); //TODO appropriate signature to find out workers
+    masterClient.start();
 
     vector<LocationInfo> locations;
     masterClient.getNodesForReplication(relationName, locations);
 
-    // TODO use create file
-    // initiate file transfer
+    replicator.replicateRelation(relationName, locations);
     return true;
 }
 

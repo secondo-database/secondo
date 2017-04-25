@@ -26,15 +26,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include <queue>
+#include <boost/bind.hpp>
 
-#include "SocketIO.h"
 #include "StringUtils.h"
 
 #include "Algebras/DBService/CommunicationServer.hpp"
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/DBServiceManager.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
+#include "Algebras/DBService/ReplicationClient.hpp"
 
 using namespace distributed2;
 using namespace std;
@@ -42,7 +42,7 @@ using namespace std;
 namespace DBService {
 
 CommunicationServer::CommunicationServer(int port) :
-        Server(port)
+        MultiClientServer(port)
 {
     cout << "Initializing CommunicationServer (port " << port << ")"
             << endl;
@@ -51,31 +51,10 @@ CommunicationServer::CommunicationServer(int port) :
 CommunicationServer::~CommunicationServer()
 {}
 
-int CommunicationServer::start()
-{
-    listener = Socket::CreateGlobal("localhost", stringutils::int2str(port));
-    if (!listener->IsOk())
-    {
-        return 1;
-    }
-    server = listener->Accept();
-    if (!server->IsOk())
-    {
-        return 2;
-    }
-    return communicate();
-}
-
-iostream& CommunicationServer::getSocketStream()
-{
-    return server->GetSocketStream();
-}
-
-int CommunicationServer::communicate()
+int CommunicationServer::communicate(iostream& io)
 {
     try
     {
-        iostream& io = getSocketStream();
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::CommunicationServer());
 
@@ -88,12 +67,22 @@ int CommunicationServer::communicate()
                 cerr << "Protocol error" << endl;
                 continue;
             }
-            if(CommunicationUtils::receivedExpectedLine(io,
-                    CommunicationProtocol::ProvideReplica()))
+
+            queue<string> receivedLines;
+            CommunicationUtils::receiveLines(io, 1, receivedLines);
+            string request = receivedLines.front();
+            receivedLines.pop();
+
+            if(request ==
+                    CommunicationProtocol::ProvideReplica())
             {
                 handleProvideReplicaRequest(io);
-            }else if(CommunicationUtils::receivedExpectedLine(io,
-                    CommunicationProtocol::UseReplica()))
+            }else if(request ==
+                    CommunicationProtocol::TriggerReplication())
+            {
+                handleTriggerFileTransferRequest(io);
+            }else if(request ==
+                    CommunicationProtocol::UseReplica())
             {
                 //TODO contact DBServiceManager and find out where replica is
                 // stored
@@ -159,8 +148,36 @@ bool CommunicationServer::handleProvideReplicaRequest(
         sendBuffer.push(location.getHost());
         sendBuffer.push(location.getPort());
         sendBuffer.push(location.getDisk());
+        sendBuffer.push(location.getCommPort());
+        sendBuffer.push(location.getTransferPort());
     }
     CommunicationUtils::sendBatch(io, sendBuffer);
+    return true;
+}
+
+bool CommunicationServer::handleTriggerFileTransferRequest(std::iostream& io)
+{
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::ReplicationDetailsRequest());
+    queue<string> receivedLines;
+    CommunicationUtils::receiveLines(io, 5, receivedLines);
+    string host = receivedLines.front();
+    receivedLines.pop();
+    string port = receivedLines.front();
+    receivedLines.pop();
+    string fileName = receivedLines.front();
+    receivedLines.pop();
+    string databaseName = receivedLines.front();
+    receivedLines.pop();
+    string relationName = receivedLines.front();
+    receivedLines.pop();
+
+    ReplicationClient client(host,
+                             atoi(port.c_str()),
+                             fileName,
+                             databaseName,
+                             relationName);
+    client.start();
     return true;
 }
 
@@ -169,5 +186,6 @@ bool CommunicationServer::handleUseReplicaRequest(
 {
     return true;
 }
+
 
 } /* namespace DBService */

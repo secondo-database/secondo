@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "Algebras/DBService/ServerRunnable.hpp"
 #include "Algebras/DBService/CommunicationServer.hpp"
+#include "Algebras/DBService/ReplicationServer.hpp"
 
 using namespace distributed2;
 
@@ -53,7 +54,7 @@ void ServerRunnable::createServer()
 }
 
 template void ServerRunnable::createServer<CommunicationServer>();
-template void ServerRunnable::createServer<FileTransferServer>();
+template void ServerRunnable::createServer<ReplicationServer>();
 
 template <typename T>
 void ServerRunnable::run()
@@ -66,7 +67,7 @@ void ServerRunnable::run()
 }
 
 template void ServerRunnable::run<CommunicationServer>();
-template void ServerRunnable::run<FileTransferServer>();
+template void ServerRunnable::run<ReplicationServer>();
 
 
 

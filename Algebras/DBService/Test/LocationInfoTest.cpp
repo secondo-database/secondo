@@ -44,20 +44,25 @@ class LocationInfoTest: public ::testing::Test
 {
 public:
     LocationInfoTest()
-: host("myHost"), port("12345"), disk("myDisk")
+: host("myHost"), port("12345"), disk("myDisk"),
+  commPort("98765"), transferPort("65432")
 {}
 
 protected:
     string host;
     string port;
     string disk;
+    string commPort;
+    string transferPort;
 };
 
 TEST_F(LocationInfoTest, testGetHost)
 {
     LocationInfo locationInfo(host,
                               port,
-                              disk);
+                              disk,
+                              commPort,
+                              transferPort);
     ASSERT_STREQ(host.c_str(), locationInfo.getHost().c_str());
 }
 
@@ -65,7 +70,9 @@ TEST_F(LocationInfoTest, testGetPort)
 {
     LocationInfo locationInfo(host,
                               port,
-                              disk);
+                              disk,
+                              commPort,
+                              transferPort);
     ASSERT_STREQ(port.c_str(), locationInfo.getPort().c_str());
 }
 
@@ -73,8 +80,30 @@ TEST_F(LocationInfoTest, testGetDisk)
 {
     LocationInfo locationInfo(host,
                               port,
-                              disk);
+                              disk,
+                              commPort,
+                              transferPort);
     ASSERT_STREQ(disk.c_str(), locationInfo.getDisk().c_str());
+}
+
+TEST_F(LocationInfoTest, testGetCommPort)
+{
+    LocationInfo locationInfo(host,
+                              port,
+                              disk,
+                              commPort,
+                              transferPort);
+    ASSERT_STREQ(commPort.c_str(), locationInfo.getCommPort().c_str());
+}
+
+TEST_F(LocationInfoTest, testGetTransferPort)
+{
+    LocationInfo locationInfo(host,
+                              port,
+                              disk,
+                              commPort,
+                              transferPort);
+    ASSERT_STREQ(transferPort.c_str(), locationInfo.getTransferPort().c_str());
 }
 
 }

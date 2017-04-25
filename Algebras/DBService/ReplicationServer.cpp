@@ -26,12 +26,49 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "Algebras/Distributed2/FileTransferServer.h"
+#include <iostream>
+
+#include "SocketIO.h"
 
 #include "Algebras/DBService/ReplicationServer.hpp"
+#include "Algebras/DBService/CommunicationProtocol.hpp"
+#include "Algebras/DBService/CommunicationUtils.hpp"
+
+using namespace std;
 
 namespace DBService {
 
+ReplicationServer::ReplicationServer(int port) :
+ MultiClientServer(port), FileTransferServer(port)
+{}
 
+int ReplicationServer::start()
+{
+    return MultiClientServer::start();
+}
+
+int ReplicationServer::communicate(iostream& io)
+{
+    try
+    {
+        CommunicationUtils::sendLine(io,
+                CommunicationProtocol::ReplicationServer());
+
+        if(!CommunicationUtils::receivedExpectedLine(io,
+                CommunicationProtocol::ReplicationClient()))
+        {
+            return 1;
+        }
+    } catch (...)
+    {
+        cerr << "ReplicationServer: communication error" << endl;
+        return 5;
+    }
+    return 0;
+    //TODO create communication client to communicate with worker node
+    //trigger ReplicationClient creation for given port
+    // wait for file transmission
+    //TODO call send file function of super class
+}
 
 } /* namespace DBService */

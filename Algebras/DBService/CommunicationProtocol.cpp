@@ -72,5 +72,30 @@ string CommunicationProtocol::ReplicaLocation()
     return "<REPLICALOCATION>";
 }
 
+string CommunicationProtocol::ReplicationServer()
+{
+    return "<REPLICATIONSERVER>";
+}
 
-} /* namespace DBService test */
+string CommunicationProtocol::ReplicationClient()
+{
+    return "<REPLICATIONCLIENT>";
+}
+
+string CommunicationProtocol::ReplicationClientRequest()
+{
+    return "<REPLICATIONCLIENTREQUEST>";
+}
+
+string CommunicationProtocol::TriggerReplication()
+{
+    return "<TRIGGERREPLICATION>";
+}
+
+string CommunicationProtocol::ReplicationDetailsRequest()
+{
+    return "<REPLICATIONDETAILSREQUEST>";
+}
+
+
+} /* namespace DBService */

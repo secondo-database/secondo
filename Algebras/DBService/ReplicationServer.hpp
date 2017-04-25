@@ -29,11 +29,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_REPLICATIONSERVER_HPP_
 #define ALGEBRAS_DBSERVICE_REPLICATIONSERVER_HPP_
 
+#include <iostream>
+
+#include "Algebras/Distributed2/FileTransferServer.h"
+
+#include "Algebras/DBService/MultiClientServer.hpp"
+
 namespace DBService {
 
-class ReplicationServer: public distributed2::FileTransferServer {
+class ReplicationServer: public MultiClientServer,
+                                distributed2::FileTransferServer {
 public:
-
+    ReplicationServer(int port);
+    int start();
+protected:
+    int communicate(std::iostream& io);
 };
 
 } /* namespace DBService */

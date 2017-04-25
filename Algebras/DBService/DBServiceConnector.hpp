@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/shared_ptr.hpp>
 
 #include "Algebras/DBService/CommunicationClient.hpp"
+#include "Algebras/DBService/Replicator.hpp"
 
 namespace DBService {
 
@@ -63,14 +64,6 @@ Creates a new DBServiceConnector instance.
 
 */
     DBServiceConnector();
-/*
-1.3 Copy Constructor
-
-Does not do anything.
-
-*/
-    DBServiceConnector(const DBServiceConnector&)
-    {}
 
 /*
 1.3 Destructor
@@ -84,7 +77,7 @@ private:
     static DBServiceConnector* _instance;
     std::string host;
     int port;
-    boost::shared_ptr<CommunicationClient> commClient;
+    Replicator replicator;
 };
 
 

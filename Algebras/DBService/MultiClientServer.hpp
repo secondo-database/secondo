@@ -26,15 +26,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_SERVERRUNNER_HPP_
-#define ALGEBRAS_DBSERVICE_SERVERRUNNER_HPP_
+#ifndef ALGEBRAS_DBSERVICE_MULTICLIENTSERVER_HPP_
+#define ALGEBRAS_DBSERVICE_MULTICLIENTSERVER_HPP_
+
+#include <iostream>
+#include <queue>
+#include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
+
+#include "SocketIO.h"
+
+#include "Algebras/Distributed2/Server.h"
+
+class Socket;
 
 namespace DBService {
 
-template<class T>
-class ServerRunner {
+class MultiClientServer : public distributed2::Server {
+public:
+    explicit MultiClientServer(int port);
+    virtual ~MultiClientServer();
+    int start();
+protected:
+    virtual int communicate(std::iostream& io) = 0;
+    bool handleCommunicationThread();
+private:
+    std::queue<Socket*> socketBuffer;
+    boost::mutex queueGuard;
+    boost::condition_variable queueIndicator;
 };
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_SERVERRUNNER_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_MULTICLIENTSERVER_HPP_ */

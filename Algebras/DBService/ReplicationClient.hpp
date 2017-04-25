@@ -31,9 +31,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Distributed2/FileTransferClient.h"
 
+#include "Algebras/DBService/LocationInfo.hpp"
+
 namespace DBService {
 
 class ReplicationClient: public distributed2::FileTransferClient {
+public:
+    ReplicationClient(
+            std::string& server,
+            int port,
+            std::string& fileName,
+            std::string& databaseName,
+            std::string& relationName);
+    int start();
+private:
+    std::string databaseName;
+    std::string relationName;
 };
 
 } /* namespace DBService */

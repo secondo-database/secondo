@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <cstdlib>
 #include <string>
+#include <sstream>
 #include <boost/make_shared.hpp>
 
 #include "SecondoException.h"
@@ -92,15 +93,24 @@ void DBServiceManager::addNode(const string host,
     ConnectionInfo* connectionInfo =
             ConnectionInfo::createConnection(host, port, config);
 
-    // TODO create database on remote server if it does not exist
+    SecondoUtils::createDatabaseOnRemoteServer(connectionInfo,
+            "dbservice");
 
     SecondoUtils::openDatabaseOnRemoteServer(connectionInfo,
                                                    "dbservice");
 
-    // retrieve information on SecondoHome (disk where data is stored on worker)
+    // retrieve location info from worker
     string dir;
-    retrieveSecondoHomeOnWorker(dir, connectionInfo);
-    LocationInfo location(host, stringutils::int2str(port), dir);
+    getConfigParamFromWorker(dir, connectionInfo,
+            "Environment", "SecondoHome");
+    string commPort;
+    getConfigParamFromWorker(commPort, connectionInfo,
+            "DBService", "CommunicationPort");
+    string transferPort;
+    getConfigParamFromWorker(transferPort, connectionInfo,
+            "DBService", "FileTransferPort");
+    LocationInfo location(host, stringutils::int2str(port), dir,
+            commPort, transferPort);
 
     pair<LocationInfo, ConnectionInfo*> workerConnDetails(location,
                                                           connectionInfo);
@@ -118,16 +128,6 @@ void DBServiceManager::addNode(const string host,
 bool DBServiceManager::startServersOnWorker(
         distributed2::ConnectionInfo* connectionInfo)
 {
-    //    query << "create database dbservice";
-    //    try
-    //    {
-    //    SecondoUtils::executeQueryOnRemoteServer(
-    //connectionInfo, query.str());
-    //    } catch(const SecondoException& e)
-    //    {
-    //    // result can be ignored, as error means that database already exists
-    //    }
-
     string queryInit("query initdbserviceworker()");
     print(queryInit);
 
@@ -135,37 +135,29 @@ bool DBServiceManager::startServersOnWorker(
             queryInit);
 }
 
-bool DBServiceManager::retrieveSecondoHomeOnWorker(string& dir,
-        distributed2::ConnectionInfo* connectionInfo)
+bool DBServiceManager::getConfigParamFromWorker(string& result,
+        distributed2::ConnectionInfo* connectionInfo, const char* section,
+        const char* key)
 {
     string resultAsString;
-    string querySecondoHome(
-            "query getconfigparam(\"Environment\", \"SecondoHome\")");
+    stringstream query;
+    query << "query getconfigparam(\""
+          << section
+          << "\", \""
+          << key
+          << "\")";
     bool resultOk = SecondoUtils::executeQueryOnRemoteServer(connectionInfo,
-            querySecondoHome, resultAsString);
+            query.str(), resultAsString);
     print(resultAsString);
 
-    dir.assign(resultAsString);
-    // TODO retrieve result from nested list
-//    ListExpr resultAsNestedList,
-//    nl->ReadFromString(resultAsString, resultExpr);
-//    dir.assign(nl->ToString(nl->Second(resultAsNestedList)));
+    ListExpr resultAsNestedList;
+    nl->ReadFromString(resultAsString, resultAsNestedList);
+    result.assign(nl->StringValue(nl->Second(resultAsNestedList)));
+    print(result);
 
-    return resultOk && dir.size() != 0;
+    return resultOk && result.size() != 0;
 }
 
-/*bool DBServiceManager::replicateRelation(const std::string& relationName)
-{
-    boost::shared_ptr<RelationInfo> replicaInfo(
-            new RelationInfo(relationName));
-    vector<ConnectionID> nodes;
-    getWorkerNodesForReplication(nodes);
-    replicaInfo->addNodes(nodes);
-    replicaLocations.push_back(replicaInfo);
-    Replicator replicator(".txt");
-    replicator.replicateRelation(*replicaInfo);
-    return false;
-}*/
 void DBServiceManager::storeRelationInfo(const string& databaseName,
                                          const string& relationName,
                                          const string& host,

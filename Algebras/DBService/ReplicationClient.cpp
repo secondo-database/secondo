@@ -26,8 +26,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "ReplicationClient.hpp"
+#include "SocketIO.h"
+#include "StringUtils.h"
+
+#include "Algebras/DBService/ReplicationClient.hpp"
+
+using namespace std;
+using namespace distributed2;
 
 namespace DBService {
+
+ReplicationClient::ReplicationClient(
+        string& server,
+        int port,
+        string& fileName,
+        string& databaseName,
+        string& relationName)
+: FileTransferClient(server, port, true, fileName, fileName),
+  databaseName(databaseName),
+  relationName(relationName)
+
+{}
+
+int ReplicationClient::start()
+{
+    socket = Socket::Connect(server, stringutils::int2str(port),
+            Socket::SockGlobalDomain, 3, 1);
+    if (!socket) {
+        return 1;
+    }
+    if (!socket->IsOk()) {
+        return 2;
+    }
+    receiveFile(); // TODO error handling
+
+    // TODO create relation from file
+
+    return 0;
+}
 
 } /* namespace DBService */

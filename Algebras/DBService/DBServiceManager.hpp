@@ -73,17 +73,9 @@ storing relation replicas.
                  const int port,
                  std::string config);
 
-/*
-1.2 replicateRelation
-
-//TODO
-
-*/
-
-    bool replicateRelation(const std::string& relationName);
 
 /*
-1.2 replicateRelation
+1.2 getConnection
 
 //TODO
 
@@ -133,8 +125,9 @@ private:
                                       ConnectionID>& nodes);
     bool startServersOnWorker(distributed2::ConnectionInfo* connectionInfo);
     bool persistLocationInformation();
-    bool retrieveSecondoHomeOnWorker(std::string& dir,
-            distributed2::ConnectionInfo* connectionInfo);
+    bool getConfigParamFromWorker(std::string& dir,
+            distributed2::ConnectionInfo* connectionInfo, const char* section,
+            const char* key);
     ConnectionID determineReplicaLocation();
 
     static DBServiceManager* _instance;

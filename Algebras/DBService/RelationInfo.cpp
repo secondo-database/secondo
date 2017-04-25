@@ -39,7 +39,7 @@ RelationInfo::RelationInfo(const string& dbName,
                            const string& port,
                            const string& disk) :
         databaseName(dbName), relationName(relName),
-        originalLocation(host, port, disk)
+        originalLocation(host, port, disk, "", "")
 {}
 
 const string& RelationInfo::getDatabaseName() const

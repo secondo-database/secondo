@@ -31,44 +31,65 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "SecParser.h"
 #include "Algebra.h"
-/*#include "ConnectionInfo.h"
-#include "CommandLog.h"*/
 
-#include "Replicator.hpp"
-#include "DBServiceManager.hpp"
-#include "DebugOutput.hpp"
-
-//#include <boost/thread.hpp>
+#include "Algebras/DBService/Replicator.hpp"
+#include "Algebras/DBService/ReplicationServer.hpp"
+#include "Algebras/DBService/ServerRunnable.hpp"
+#include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/CommunicationClientRunnable.hpp"
 
 using namespace std;
 
 namespace DBService
 {
 
-Replicator::Replicator(string ext) : fileExtension(ext)
-{}
+Replicator::Replicator()
+{
+    string fileTransferPort;
+    SecondoUtils::readFromConfigFile(fileTransferPort,
+            "DBService",
+            "FileTransferPort",
+            "");
+    print(fileTransferPort);
+    transferPort = atoi(fileTransferPort.c_str());
+    ServerRunnable replicationServer(transferPort);
+    replicationServer.run<ReplicationServer>();
+
+    SecondoUtils::readFromConfigFile(host,
+            "Environment",
+            "SecondoHost",
+            "");
+    print(host);
+}
 
 Replicator::~Replicator()
 {
     // TODO Auto-generated destructor stub
 }
 
-std::string& Replicator::getFileExtension()
+string Replicator::getFileName(const std::string& relationName) const
 {
-    return fileExtension;
+    return SecondoSystem::GetInstance()->GetDatabaseName()
+            + "_-_" + relationName + ".bin";
 }
 
-void Replicator::replicateRelation(const RelationInfo& relationInfo) const
+void Replicator::replicateRelation(const string& relationName,
+        const vector<LocationInfo>& locations) const
 {
-    createFileOnCurrentNode(relationInfo.getRelationName());
-    runReplication(relationInfo);
+    createFileOnCurrentNode(relationName);
+    runReplication(relationName, locations);
 }
 
-void Replicator::createFileOnCurrentNode(const std::string& relationName) const
+void Replicator::createFileOnCurrentNode(const string& relationName) const
 {
     stringstream query;
-    query << "query saveObjectToFile " << relationName << "[\"" << relationName
-            << "." << fileExtension << "\"]";
+    query << "query saveObjectToFile "
+          << relationName
+          << "[\""
+          << getFileName(relationName)
+          << "\"]";
+
     SecParser secondoParser;
     string queryAsNestedList;
     if (secondoParser.Text2List(query.str(), queryAsNestedList) != 0)
@@ -81,42 +102,21 @@ void Replicator::createFileOnCurrentNode(const std::string& relationName) const
     }
 }
 
-void Replicator::runReplication(const RelationInfo& relationInfo) const
+void Replicator::runReplication(const string& relationName,
+        const vector<LocationInfo>& locations) const
 {
-    string fileName = relationInfo.getRelationName() + "." + fileExtension;
-    stringstream sendFileToRemoteServerCommand;
-    sendFileToRemoteServerCommand << "query sendFile(0, '" << fileName
-            << "', \"" << fileName << "\")";
-    cout << sendFileToRemoteServerCommand.str() << endl;
-    for (vector<ConnectionID>::const_iterator i = relationInfo.nodesBegin();
-            i != relationInfo.nodesEnd(); ++i)
+    for(vector<LocationInfo>::const_iterator it = locations.begin();
+            it != locations.end(); it++)
     {
-        stringstream createObjectFromFileCommand;
-        /*ConnectionInfo* connection =
-                DBServiceManager::getInstance()->getConnection(*i);
-        createObjectFromFileCommand << "let " << relationInfo.getRelationName()
-                << " =  '" << connection->getSendFolder() << fileName
-                << "' getObjectFromFile consume";
-
-        cout << createObjectFromFileCommand.str() << endl;
-        */
-
-        // TODO
-        //boost::thread replicationThread;
-
-        /*int errorCode;
-        string errorMessage;
-        string result;
-        double runtime;
-        CommandLog commandLog;
-        connection->simpleCommand(sendFileToRemoteServerCommand.str(),
-                                  errorCode, errorMessage, result, false,
-                                  runtime, false, false, commandLog);
-        connection->simpleCommand(createObjectFromFileCommand.str(), errorCode,
-                                  errorMessage, result, false, runtime, false,
-                                  false, commandLog);
-                                  */
-    }
+        CommunicationClientRunnable commClient(
+                           host,
+                           transferPort,
+                           it->getHost(),
+                           atoi(it->getCommPort().c_str()),
+                           getFileName(relationName),
+                           SecondoSystem::GetInstance()->GetDatabaseName(),
+                           relationName);
+}
 }
 
 } /* namespace DBService */
