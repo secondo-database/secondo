@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "SecondoSMI.h"
 #include "Shared.h"
+#include "SmiUtils.h"
 #include <string>
 #include "TBlock.h"
 
@@ -291,8 +292,7 @@ namespace CRelAlgebra
 
     mutable SmiRecordFile m_blockFile;
 
-    Shared<SmiRecordFile> m_columnFile,
-      m_flobFile;
+    Shared<SmiRecordFile> m_columnFile;
 
     mutable LRUCache<BlockCacheEntry> m_blockCache;
 

@@ -74,7 +74,6 @@ namespace CRelAlgebra
     Ints(Reader &source, size_t rowCount);
 
     //using SimpleFSAttrArray<IntEntry>::Append;
-
     void Append(const IntEntry &value)
     {
       SimpleFSAttrArray<IntEntry>::Append(value);
@@ -128,7 +127,6 @@ namespace CRelAlgebra
     Ints2(Reader &source, size_t rowCount);
 
     //using SimpleFSAttrArray<IntEntry2, IntEntry2::Cast>::Append;
-
     void Append(const IntEntry2 &value)
     {
       SimpleFSAttrArray<IntEntry2, IntEntry2::Cast>::Append(value);

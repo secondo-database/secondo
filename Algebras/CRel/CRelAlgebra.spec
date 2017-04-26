@@ -30,7 +30,12 @@ operator cfilter alias CFILTER pattern _ op [ fun, _, _ ] implicit parameter str
 operator and alias AND pattern _ infixop _
 operator or alias OR pattern _ infixop _
 operator not alias NOT pattern op ( _ )
+operator # alias NE pattern _ infixop _
+operator < alias LT pattern _ infixop _
+operator <= alias LE pattern _ infixop _
 operator = alias EQ pattern _ infixop _
+operator >= alias GE pattern _ infixop _
+operator > alias GT pattern _ infixop _
 operator rename alias RENAME pattern _ op [ _ ]
 operator itHashJoin alias ITHASHJOIN pattern _ _ op [_,_]
 operator itSpatialjoin alias SPATIALJOIN pattern _ _ op [_, _, _, _, _]

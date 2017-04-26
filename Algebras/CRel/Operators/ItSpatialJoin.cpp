@@ -537,6 +537,8 @@ ItSpatialJoin::State<dimA, dimB, project> *ItSpatialJoin::CreateState(
     memLimit = qp->GetMemorySize(s) * 1024 * 1024;
   }
 
+  qp->DeleteResultStorage(s);
+
   return new State<dimA, dimB, project>(streamA, streamB, joinIndexA,
                                         joinIndexB, columnCountA, columnCountB,
                                         projectionsA, projectionsB, nodeMin,

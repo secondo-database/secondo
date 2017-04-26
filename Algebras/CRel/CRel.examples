@@ -115,8 +115,38 @@ Signature: stream(tblock) -> stream(tuple)
 Example  : query cplz feed transformstream consume feed count
 Result   : 41267
 
+Operator : #
+Number   : 0
+Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
+Example  : query cplz feed filter[.PLZ # 0] count
+Result   : 41267
+
+Operator : <
+Number   : 0
+Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
+Example  : query cplz feed filter[.PLZ < 0] count
+Result   : 0
+
+Operator : <=
+Number   : 0
+Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
+Example  : query cplz feed filter[.PLZ = 0] count
+Result   : 0
+
 Operator : =
 Number   : 0
 Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
 Example  : query cplz feed filter[.PLZ = 0] count
 Result   : 0
+
+Operator : >=
+Number   : 0
+Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
+Example  : query cplz feed filter[.PLZ = 0] count
+Result   : 41267
+
+Operator : >
+Number   : 0
+Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
+Example  : query cplz feed filter[.PLZ = 0] count
+Result   : 41267

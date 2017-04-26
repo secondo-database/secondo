@@ -33,8 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/BlockCount.h"
 #include "Operators/Consume.h"
 #include "Operators/CConsume.h"
+#include "Operators/Compare.h"
 #include "Operators/Count.h"
-#include "Operators/Equal.h"
 #include "Operators/Feed.h"
 #include "Operators/FeedProject.h"
 #include "Operators/Filter.h"
@@ -108,9 +108,19 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
 
       AddOperator(new CConsume(), true);
 
-      AddOperator(new Count(), true);
+      AddOperator(new Compare<CompareMode::Less>(), true);
 
-      AddOperator(new Equal(), true);
+      AddOperator(new Compare<CompareMode::LessOrEqual>(), true);
+
+      AddOperator(new Compare<CompareMode::Equal>(), true);
+
+      AddOperator(new Compare<CompareMode::NotEqual>(), true);
+
+      AddOperator(new Compare<CompareMode::GreaterOrEqual>(), true);
+
+      AddOperator(new Compare<CompareMode::Greater>(), true);
+
+      AddOperator(new Count(), true);
 
       AddOperator(new Feed(), true);
 

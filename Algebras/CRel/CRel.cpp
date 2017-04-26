@@ -51,16 +51,17 @@ CRel::CRel(const PTBlockInfo &blockInfo, size_t desiredBlockSize,
   m_blockRecordSize(m_blockRecordEntryCount * m_blockRecordEntrySize),
   m_blockFile(false),
   m_columnFile(new SmiRecordFile(false)),
-  m_flobFile(new SmiRecordFile(false)),
   m_blockCache(cacheSize)
 {
+  SmiRecordFile flobFile = SmiRecordFile(false);
+
   CreateOrThrow(m_blockFile);
   CreateOrThrow(*m_columnFile);
-  CreateOrThrow(*m_flobFile);
+  CreateOrThrow(flobFile);
 
   m_blockFileId = m_blockFile.GetFileId();
   m_columnFileId = m_columnFile->GetFileId();
-  m_flobFileId = m_flobFile->GetFileId();
+  m_flobFileId = flobFile.GetFileId();
 }
 
 CRel::CRel(const PTBlockInfo &blockInfo, size_t cacheSize, Reader &source) :
@@ -84,12 +85,10 @@ CRel::CRel(const PTBlockInfo &blockInfo, size_t cacheSize, Reader &source) :
   m_flobFileId(source.ReadOrThrow<SmiFileId>()),
   m_blockFile(false),
   m_columnFile(new SmiRecordFile(false)),
-  m_flobFile(new SmiRecordFile(false)),
   m_blockCache(cacheSize)
 {
   OpenOrThrow(m_blockFile, m_blockFileId);
   OpenOrThrow(*m_columnFile, m_columnFileId);
-  OpenOrThrow(*m_flobFile, m_flobFileId);
 }
 
 CRel::~CRel()
@@ -162,11 +161,6 @@ CRel::~CRel()
   {
     CloseOrThrow(m_blockFile);
   }
-
-  if (m_flobFile->IsOpen())
-  {
-    CloseOrThrow(*m_flobFile);
-  }
 }
 
 const PTBlockInfo &CRel::GetBlockInfo() const
@@ -219,18 +213,11 @@ void CRel::DeleteFiles()
 
   DropOrThrow(*m_columnFile);
 
+  SmiRecordFile flobFile = SmiRecordFile(false);
 
-  if (m_flobFile->GetFileId() != m_flobFileId)
-  {
-    CloseOrThrow(*m_flobFile);
-  }
+  OpenOrThrow(flobFile, m_flobFileId);
 
-  if (!m_flobFile->IsOpen())
-  {
-    OpenOrThrow(*m_flobFile, m_flobFileId);
-  }
-
-  DropOrThrow(*m_flobFile);
+  DropOrThrow(flobFile);
 
   m_blockFileId = 0;
   m_columnFileId = 0;

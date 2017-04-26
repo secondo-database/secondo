@@ -68,7 +68,7 @@ namespace CRelAlgebra
       }
     }
 
-    virtual ~Shared()
+    ~Shared()
     {
       if (m_instance != nullptr)
       {
@@ -78,8 +78,8 @@ namespace CRelAlgebra
         }
         else if (*m_refCount == 1)
         {
-          delete m_refCount;
           delete m_instance;
+          delete m_refCount;
         }
         else
         {
@@ -129,7 +129,8 @@ namespace CRelAlgebra
       return *m_instance;
     }
 
-    operator Shared<const T>()
+    template<class F>
+    operator Shared<F>()
     {
       if (m_instance != nullptr)
       {
@@ -143,7 +144,7 @@ namespace CRelAlgebra
         }
       }
 
-      return Shared<const T>(m_instance, m_refCount);
+      return Shared<F>(m_instance, m_refCount);
     }
 
   private:
@@ -194,7 +195,7 @@ namespace CRelAlgebra
       ++*m_refCount;
     }
 
-    virtual ~SharedArray()
+    ~SharedArray()
     {
       if (*m_refCount == 1)
       {

@@ -231,23 +231,19 @@ ListExpr TBlockTI::GetColumnList() const
   return columnList;
 }
 
-ListExpr TBlockTI::GetTypeExpr() const
+ListExpr TBlockTI::GetTypeExpr(bool stream) const
 {
-  if (m_isNumeric)
-  {
-    return nl->TwoElemList(GetNumericType(TBlockTC::name),
-                           nl->TwoElemList(nl->IntAtom(m_desiredBlockSize),
-                                           GetColumnList()));
-  }
-  else
-  {
-    return nl->TwoElemList(nl->SymbolAtom(TBlockTC::name),
-                           nl->TwoElemList(nl->IntAtom(m_desiredBlockSize),
-                                           GetColumnList()));
-  }
+  const ListExpr type =
+    nl->TwoElemList(m_isNumeric ? GetNumericType(TBlockTC::name) :
+                                  nl->SymbolAtom(TBlockTC::name),
+                    nl->TwoElemList(nl->IntAtom(m_desiredBlockSize),
+                                    GetColumnList()));
+
+  return stream ? nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), type) :
+                  type;
 }
 
-ListExpr TBlockTI::GetTupleTypeExpr() const
+ListExpr TBlockTI::GetTupleTypeExpr(bool stream) const
 {
   ListExpr attributeList = nl->Empty(),
     attributeListEnd = attributeList;
@@ -276,14 +272,13 @@ ListExpr TBlockTI::GetTupleTypeExpr() const
     }
   }
 
-  if (m_isNumeric)
-  {
-    return nl->TwoElemList(GetNumericType(Tuple::BasicType()), attributeList);
-  }
-  else
-  {
-    return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attributeList);
-  }
+  const ListExpr type =
+    nl->TwoElemList(m_isNumeric ? GetNumericType(Tuple::BasicType()) :
+                                  nl->SymbolAtom(Tuple::BasicType()),
+                    attributeList);
+
+  return stream ? nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), type) :
+                  type;
 }
 
 const PTBlockInfo &TBlockTI::GetBlockInfo() const

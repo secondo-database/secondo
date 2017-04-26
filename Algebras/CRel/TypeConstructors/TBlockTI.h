@@ -64,9 +64,9 @@ namespace CRelAlgebra
 
     ListExpr GetColumnList() const;
 
-    ListExpr GetTypeExpr() const;
+    ListExpr GetTypeExpr(bool stream = false) const;
 
-    ListExpr GetTupleTypeExpr() const;
+    ListExpr GetTupleTypeExpr(bool stream = false) const;
 
     const PTBlockInfo &GetBlockInfo() const;
 

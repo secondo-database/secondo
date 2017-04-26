@@ -33,10 +33,21 @@ namespace CRelAlgebra
 {
   namespace Operators
   {
-    class Equal : public Operator
+    enum class CompareMode
+    {
+      NotEqual,
+      Less,
+      LessOrEqual,
+      Equal,
+      GreaterOrEqual,
+      Greater
+    };
+
+    template<CompareMode mode>
+    class Compare : public Operator
     {
     public:
-      Equal();
+      Compare();
 
     private:
       static const OperatorInfo info;
@@ -47,18 +58,11 @@ namespace CRelAlgebra
 
       static int SelectValueMapping(ListExpr args);
 
-      static int DefaultValueMapping(ArgVector args, Word &result, int message,
-                                     Word &local, Supplier s);
+      static int AttributeValueMapping(ArgVector args, Word &result,
+                                       int message, Word &local, Supplier s);
 
-      template<class T>
-      static int GAttrArrayValueMapping(ArgVector args, Word &result,
-                                        int message, Word &local, Supplier s);
-
-      static int IntsValueMapping(ArgVector args, Word &result, int message,
-                                  Word &local, Supplier s);
-
-      static int Ints2ValueMapping(ArgVector args, Word &result, int message,
-                                   Word &local, Supplier s);
+      static int AttrArrayValueMapping(ArgVector args, Word &result,
+                                       int message, Word &local, Supplier s);
     };
   }
 }

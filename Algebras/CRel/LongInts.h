@@ -72,7 +72,6 @@ namespace CRelAlgebra
     LongInts(Reader &source, size_t rowCount);
 
     //using SimpleFSAttrArray<LongIntEntry>::Append;
-
     void Append(const LongIntEntry &value)
     {
       SimpleFSAttrArray<LongIntEntry>::Append(value);

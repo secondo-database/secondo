@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <cstddef>
 #include "SecondoSMI.h"
 #include "Shared.h"
+#include <unordered_map>
 
 namespace CRelAlgebra
 {
@@ -87,28 +88,20 @@ namespace CRelAlgebra
 
   void DeleteOrThrow(SmiRecordFile &file, SmiRecordId id);
 
+
   class SharedRecordFile : public SmiRecordFile
   {
   public:
-    SharedRecordFile(bool isFixedSize = false) :
-      SmiRecordFile(isFixedSize),
-      m_refCount(1)
+    SharedRecordFile(bool fixedSize = false) :
+      SmiRecordFile(fixedSize)
     {
-    }
-
-    SharedRecordFile(SmiFileId id, bool isFixedSize = false) :
-      SmiRecordFile(isFixedSize),
-      m_refCount(1)
-    {
-      OpenOrThrow(*this, id);
     }
 
     virtual ~SharedRecordFile()
     {
-      Close(true);
     }
 
-    void IncRef() const
+    void AddRef() const
     {
       ++m_refCount;
     }
@@ -127,6 +120,82 @@ namespace CRelAlgebra
     }
 
   private:
+    mutable size_t m_refCount;
+  };
+
+  class SharedRecordFiles
+  {
+  public:
+    SharedRecordFiles()
+    {
+    }
+
+    SharedRecordFile *GetFile(SmiFileId id, bool fixedSize = false)
+    {
+      auto i = m_files.find(id);
+
+      if (i == m_files.end())
+      {
+        i = m_files.insert({ id, new Entry(id, fixedSize, this) }).first;
+      }
+
+      return i->second;
+    };
+
+    SharedRecordFile *operator[](SmiFileId id)
+    {
+      return GetFile(id);
+    };
+
+    void AddRef() const
+    {
+      ++m_refCount;
+    }
+
+    void DecRef() const
+    {
+      if (--m_refCount == 0)
+      {
+        delete this;
+      }
+    }
+
+    size_t GetRefCount() const
+    {
+      return m_refCount;
+    }
+
+  private:
+    class Entry : public SharedRecordFile
+    {
+    public:
+      Entry(SmiFileId id, bool fixedSize, SharedRecordFiles *files) :
+        SharedRecordFile(fixedSize),
+        m_id(id),
+        m_files(files)
+      {
+        OpenOrThrow(*this, id);
+
+        files->AddRef();
+      }
+
+      virtual ~Entry()
+      {
+        m_files->m_files.erase(m_id);
+
+        m_files->DecRef();
+
+        CloseOrThrow(*this);
+      }
+
+    private:
+      size_t m_id;
+
+      SharedRecordFiles *m_files;
+    };
+
+    std::unordered_map<SmiFileId, SharedRecordFile*> m_files;
+
     mutable size_t m_refCount;
   };
 }

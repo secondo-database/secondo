@@ -392,9 +392,19 @@ namespace CRelAlgebra
       return m_array->Compare(m_row, *value.m_array, value.m_row) < 0;
     }
 
+    bool operator < (Attribute& value) const
+    {
+      return m_array->Compare(m_row, value) < 0;
+    }
+
     bool operator <= (const AttrArrayEntry& value) const
     {
       return m_array->Compare(m_row, *value.m_array, value.m_row) <= 0;
+    }
+
+    bool operator <= (Attribute& value) const
+    {
+      return m_array->Compare(m_row, value) <= 0;
     }
 
     bool operator > (const AttrArrayEntry& value) const
@@ -402,9 +412,19 @@ namespace CRelAlgebra
       return m_array->Compare(m_row, *value.m_array, value.m_row) > 0;
     }
 
+    bool operator > (Attribute& value) const
+    {
+      return m_array->Compare(m_row, value) > 0;
+    }
+
     bool operator >= (const AttrArrayEntry& value) const
     {
       return m_array->Compare(m_row, *value.m_array, value.m_row) >= 0;
+    }
+
+    bool operator >= (Attribute& value) const
+    {
+      return m_array->Compare(m_row, value) >= 0;
     }
 
     bool Equals(const AttrArray &array, size_t row) const
@@ -427,9 +447,19 @@ namespace CRelAlgebra
       return m_array->Equals(m_row, *value.m_array, value.m_row);
     }
 
+    bool operator == (Attribute& value) const
+    {
+      return m_array->Equals(m_row, value);
+    }
+
     bool operator != (const AttrArrayEntry& value) const
     {
       return !m_array->Equals(m_row, *value.m_array, value.m_row);
+    }
+
+    bool operator != (Attribute& value) const
+    {
+      return !m_array->Equals(m_row, value);
     }
 
 
