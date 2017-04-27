@@ -66,11 +66,13 @@ ValueMapping CConsume::valueMappings[] =
 };
 
 const OperatorInfo CConsume::info = OperatorInfo(
-  "cconsume", "stream(tuple | tblock) x (int | crel) -> crel",
-  "_ cconsume[ _ ]",
+  "cconsume", "stream(tuple | tblock) x (int | crel) x [int] -> crel",
+  "_ cconsume[ _, _ ]",
   "Creates a column-oriented relation from a stream of tuples or tuple blocks. "
   "The second argument can be either the desired block size (int) or a "
-  "template (crel) for the new relation.\n\n"
+  "template (crel) for the new relation. If the second argument is a block "
+  "size, a optional third argument representing the relation's cache size "
+  "(int) is accepted.\n\n"
   "stream(tuple) x int: The column types in the relation are derived from "
   "the tuple attribute types.\n\n"
   "stream(tblock) x int: The column types in the relation equal those in the "

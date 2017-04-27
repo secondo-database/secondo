@@ -109,6 +109,12 @@ Signature: stream(T) x int -> stream(T)
 Example  : query repeat(repeat("Test" feed, 2), 2) count
 Result   : 4
 
+Operator : toblocks
+Number   : 0
+Signature: stream(tuple) -> stream(tblock)
+Example  : query plz feed toblocks count
+Result   : 41267
+
 Operator : transformstream
 Number   : 0
 Signature: stream(tblock) -> stream(tuple)

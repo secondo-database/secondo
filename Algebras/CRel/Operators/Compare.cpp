@@ -82,7 +82,7 @@ OperatorInfo GetOperatorInfo(CompareMode mode)
       s1 = "less or equal to";
       break;
     case CompareMode::Equal:
-      s0 = "==";
+      s0 = "=";
       s1 = "equal to";
       break;
     case CompareMode::NotEqual:

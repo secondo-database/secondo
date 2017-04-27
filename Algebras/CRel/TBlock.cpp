@@ -47,8 +47,7 @@ size_t TBlock::GetSaveSize(size_t columnCount, bool includeHeader)
 
 TBlock::TBlock(const PTBlockInfo &info, SmiFileId columnFileId,
                SmiFileId flobFileId) :
-  TBlock(info, columnFileId, flobFileId,
-         columnFileId != 0 ? new SmiRecordFile(false) : nullptr)
+  TBlock(info, columnFileId, flobFileId, Shared<SmiRecordFile>())
 {
 }
 
@@ -59,7 +58,8 @@ TBlock::TBlock(const PTBlockInfo &info, SmiFileId columnFileId,
   m_columnCount(m_info->columnCount),
   m_recordIds(new SmiRecordId[m_columnCount]),
   m_columns(new AttrArray*[m_columnCount]),
-  m_columnFile(columnFileId != 0 ? columnFile : nullptr),
+  m_columnFile(columnFileId != 0 ?
+    (!columnFile.IsNull() ? columnFile : new SmiRecordFile(false)) : nullptr),
   m_refCount(1)
 {
   for (size_t i = 0; i < m_columnCount; i++)
@@ -82,8 +82,7 @@ TBlock::TBlock(const PTBlockInfo &info, Reader &source,
 
 TBlock::TBlock(const PTBlockInfo &info, const TBlockHeader &header,
                Reader &source) :
-  TBlock(info, header, source,
-         header.columnFileId != 0 ? new SmiRecordFile(false) : nullptr)
+  TBlock(info, header, source, Shared<SmiRecordFile>())
 {
 }
 
@@ -94,7 +93,8 @@ TBlock::TBlock(const PTBlockInfo &info, const TBlockHeader &header,
   m_columnCount(m_info->columnCount),
   m_recordIds(new SmiRecordId[m_columnCount]),
   m_columns(new AttrArray*[m_columnCount]),
-  m_columnFile(header.columnFileId != 0 ? columnFile : nullptr),
+  m_columnFile(header.columnFileId != 0 ?
+    (!columnFile.IsNull() ? columnFile : new SmiRecordFile(false)) : nullptr),
   m_refCount(1)
 {
   source.ReadOrThrow((char*)m_recordIds, m_columnCount * sizeof(SmiRecordId));
@@ -206,7 +206,7 @@ void TBlock::Save(Writer &target, bool includeHeader)
 
 void TBlock::DeleteRecords()
 {
-  if (!m_columnFile.IsNull())
+  if (m_header.columnFileId != 0)
   {
     if (m_columnFile->GetFileId() != m_header.columnFileId)
     {
@@ -251,6 +251,20 @@ void TBlock::DeleteRecords()
 
           m_recordIds[i] = 0;
         }
+      }
+    }
+  }
+  else if (m_header.flobFileId != 0)
+  {
+    for (size_t i = 0; i < m_columnCount; i++)
+    {
+      m_columns[i]->DeleteRecords();
+
+      if (m_recordIds[i] != 0)
+      {
+        DeleteOrThrow(*m_columnFile, m_recordIds[i]);
+
+        m_recordIds[i] = 0;
       }
     }
   }

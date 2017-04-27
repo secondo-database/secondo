@@ -42,4 +42,5 @@ operator itSpatialjoin alias SPATIALJOIN pattern _ _ op [_, _, _, _, _]
 
 operator repeat alias REPEAT pattern op(_,_)
 operator transformstream alias TRANSFORMSTREAM pattern _ op
+operator toblocks alias TOBLOCKS pattern _ op [ _ ]
 operator test alias TEST pattern op ( _ )
