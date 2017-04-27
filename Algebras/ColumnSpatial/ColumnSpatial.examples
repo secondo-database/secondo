@@ -22,6 +22,6 @@ Result   : (2 4 6)
 Operator : mp
 Number   : 1
 Signature: stream(region) -> aregion
-Example  : query Kreis feed mp (1)
-Result   : TRUE
+Example  : query Kreis feed mp
+Result   : ((2 3) (3 4))
 

@@ -966,36 +966,33 @@ ListExpr insideTM(ListExpr args) {
 }
 
 ListExpr mapTM(ListExpr args) {
-  string err = "stream({point|line|region}) x "
-               "{apoint|aline|aregion} expected\n";
+  string err = "stream({point|line|region}) expected\n";
   // check for correct number of arguments
-  if (!nl->HasLength(args, 2)) {
+  if (!nl->HasLength(args, 1)) {
       return listutils::typeError(err + " (wrong number of arguments)");
   }
   // first argument must be a stream of points, lines or regions
-  // second argument must be a single column spatial type apoint, aline, aregion
-
-  if( Stream<CcInt>::checkType(nl->First(args))
-  && CcInt::checkType(nl->Second(args))){
+  if(Stream<Point>::checkType(nl->First(args))) {
+    return listutils::basicSymbol<ColPoint>();
   }
-
-  if ((Point::checkType(nl->Second(args)) &&
-       ColPoint::checkType(nl->First(args))) ||
-      (Line::checkType(nl->Second(args)) &&
-       ColLine::checkType(nl->First(args))) ||
-      (Region::checkType(nl->Second(args)) &&
-       ColRegion::checkType(nl->First(args)))) {
-    // result is a bool
-    return listutils::basicSymbol<CcBool>();
+  if(Stream<Line>::checkType(nl->First(args))) {
+    return listutils::basicSymbol<ColLine>();
   }
+  if(Stream<Region>::checkType(nl->First(args))) {
+    return listutils::basicSymbol<ColRegion>();
+  }
+//  if((Point::checkType(nl->Second(args)) &&
+//    ColPoint::checkType(nl->First(args)))) {
+//    return listutils::basicSymbol<ColPoint>(); }
+//  if(Line::checkType(nl->Second(args)) &&
+//    ColLine::checkType(nl->First(args))) {
+//    return listutils::basicSymbol<ColLine>(); }
+//  if(Region::checkType(nl->Second(args)) &&
+//    ColRegion::checkType(nl->First(args)))) {
+//    return listutils::basicSymbol<ColRegion>(); }
   return listutils::typeError(err + " (wrong type of arguments)");
 }
 
-/*
-Value mapping functions
-TODO: replace by type mapping
-
-*/
 int insidePoint (Word* args, Word& result, int message,
                  Word& local, Supplier s) {
 
@@ -1011,26 +1008,16 @@ int insidePoint (Word* args, Word& result, int message,
 int insideLine (Word* args, Word& result, int message,
                 Word& local, Supplier s) {
 
-//ColLine* line = (ColLine*) args[0].addr;
-//Region* region = (Region*) args[1].addr;
-//result = qp->ResultStorage(s);
-//(AttrArray*) result.addr;
-//region->l_inside(line->getArray(), line->getCount(), result.addr);
   return 0;
 }
 
 int insideRegion (Word* args, Word& result, int message,
                   Word& local, Supplier s) {
-//ColRegion* region1 = (ColRegion*) args[0].addr;
-//Region* region2 = (Region*) args[1].addr;
-//result = qp->ResultStorage(s);
-//(AttrArray*) result.addr;
-//region->r_inside(region->getArray(), region->getCount(), result.addr);
+
   return 0;
 }
 
 int mapPoint (Word* args, Word& result, int message, Word& local, Supplier s) {
- // ColPoint* point = (ColPoint*) args[0].addr;
 
   return 0;
 
@@ -1041,31 +1028,23 @@ int mapLine (Word* args, Word& result, int message, Word& local, Supplier s) {
 }
 
 /*
-converts region to aregion by using the ~out~ function of the stream object
-and an append function of the aregion object. this is just a quick
-implementation
-and should be modiefied for abetter performance.
-
-TODO (Radke): direct mapping of the stream object
+converts region to aregion
 
 */
 int mapRegion (Word* args, Word& result, int message, Word& local, Supplier s) {
-  // result object is ColRegion
+  // result object is set to the object cRegion
   ColRegion* cRegion = static_cast<ColRegion*> (result.addr);
-  cRegion->clear(result);               // clear variables of instance
-  result = qp->ResultStorage(s);        // use result storage for the result
-  Stream<Region> stream(args[0]);       // wrap the stream
-  stream.open();                        // open the stream
-  Region* elem;                         // actual region element
-  while( (elem = stream.request()) ){   // get next region, if not empty
-    cRegion->append(cRegion, elem);              // append region to
-    //array(region)
-    elem->DeleteIfAllowed();            // remove element
+  cRegion->clear(result);              // clear arrays of instance
+  result = qp->ResultStorage(s);       // use result storage for the result
+  Stream<Region> stream(args[0]);      // wrap the stream
+  stream.open();                       // open the stream
+  Region* elem;                        // actual region element
+  while( (elem = stream.request()) ){  // if exists, get next region
+    cRegion->append(cRegion, elem);    // append region to aregion
+    elem->DeleteIfAllowed();           // remove element
   }
-  //Region* res = (Region*) result.addr;  // initialize res with result
-  //res->Set(true, cRegion);              // set result to the array(region)
-  stream.close();                       // close the stream
-return 0;
+  stream.close();                      // close the stream
+  return 0;
 }
 
 /*
