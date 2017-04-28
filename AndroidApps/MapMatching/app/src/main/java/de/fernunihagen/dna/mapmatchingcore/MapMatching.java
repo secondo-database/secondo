@@ -298,7 +298,7 @@ public class MapMatching {
                     pathExtension.getEdges().add(edgeToExtent);
                     pathExtension.getHistoryPerEdge().add(new ArrayList<MapMatchingPathHistoryEntry>());
                     pathExtension.setExtensionCounter(pathExtension.getExtensionCounter() + 1);
-                    adjustScore(path, edge, edgeToExtent, pathExtension);
+                    adjustScore(path, edge, edgeToExtent, pathExtension, locationPoint);
                     findProjection(locationPoint, pathExtension);
                     if(isNewPathUseful(locationPoint, pathExtension)){
                         if(!edgeToExtent.getSourcePos().equals(pathExtension.getRecentProjectedPoint())){
@@ -313,7 +313,7 @@ public class MapMatching {
         }
     }
 
-    private void adjustScore(MapMatchingPath path, NetworkEdge edge, NetworkEdge edgeToExtent, MapMatchingPath pathExtension) {
+    private void adjustScore(MapMatchingPath path, NetworkEdge edge, NetworkEdge edgeToExtent, MapMatchingPath pathExtension, Point locationPoint) {
         if(preferSmallerPaths){
             pathExtension.setScore(pathExtension.getScore()+preferSmallerPathsMalus);
         }
@@ -325,8 +325,8 @@ public class MapMatching {
             }
         }
         //Service Road Malus
-        if(edge.getRoadType().equals("service") && averageSpeed>20){
-            pathExtension.setScore(pathExtension.getScore()+50);
+        if(edge.getRoadType().equals("service") && locationPoint.getSpeed() > 20){
+            pathExtension.setScore(pathExtension.getScore()+25);
         }
 
         if(secondoDB.isMatchFootways()&&treatFootwaysDifferent&&!temporaryPreferRoads){
@@ -459,7 +459,14 @@ public class MapMatching {
                 else if(path.getScore()+tempScoreOldPath == newPath.getScore()+tempScoreNewPath){
                     if(!areEdgesEqual){
                         if(path.getEdges().size()==newPath.getEdges().size()){
-                            return true;
+                            double distancePath = util.distanceOfPath(path);
+                            double distanceNewPath = util.distanceOfPath(newPath);
+                            if(distancePath<=distanceNewPath){
+                                return true;
+                            }
+                            else{
+                                uselessPathsToRemove.add(path);
+                            }
                         }
                         else if(path.getEdges().size()<newPath.getEdges().size()){
                             return true;

@@ -335,8 +335,8 @@
 
     <string name="preference_advancedWayOrRoadMalus">Road Malus</string>
     <string name="preference_advancedWayOrRoadMalus_key">wayOrRoadMalus</string>
-    <string name="preference_advancedWayOrRoadMalus_default">5</string>
-    <string name="preference_advancedWayOrRoadMalus_summary">Malus for a road depending on speed in Score Points. (Default = 5)</string>
+    <string name="preference_advancedWayOrRoadMalus_default">10</string>
+    <string name="preference_advancedWayOrRoadMalus_summary">Malus for a road depending on speed in Score Points. (Default = 10)</string>
 
     <string name="preference_advancedScoreDistanceMulti">Distance Multiplicator</string>
     <string name="preference_advancedScoreDistanceMulti_key">scoreDistanceMulti</string>

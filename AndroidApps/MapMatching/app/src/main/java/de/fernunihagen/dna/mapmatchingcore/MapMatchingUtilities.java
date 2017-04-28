@@ -221,6 +221,16 @@ public class MapMatchingUtilities {
         return false;
     }
 
+    public double distanceOfPath(MapMatchingPath path){
+        double distance = 0;
+
+        for (NetworkEdge edge : path.getEdges()) {
+            distance = distance + distanceOfEdge(edge);
+        }
+
+        return distance;
+    }
+
     public double distanceOfEdge(NetworkEdge edge) {
         double distance = 0;
         for (int i = 0; i < edge.getStartSegmentPoint().size(); i++) {
