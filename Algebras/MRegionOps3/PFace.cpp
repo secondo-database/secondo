@@ -524,8 +524,8 @@ namespace temporalalgebra {
       }// for
     }// set
  
-    void IntSegContainer::addIntSeg(IntersectionSegment* seg){
-      intSegs.insert(seg);
+    void IntSegContainer::addIntSeg(const IntersectionSegment& seg){
+      intSegs.insert(new IntersectionSegment(seg));
     }// addIntSeg
     
     size_t IntSegContainer::size()const{
@@ -533,12 +533,12 @@ namespace temporalalgebra {
     }// size
   
     std::ostream& operator <<(std::ostream& os, 
-                              IntSegContainer& container){
+                              const IntSegContainer& container){
       return container.print(os,"");
     }// operator 
     
     std::ostream& IntSegContainer::print(std::ostream& os, 
-                                         std::string prefix){
+                                         std::string prefix)const{
       os << prefix << "IntSegContainer (";
       if (intSegs.empty()) os << "is empty)" << endl;
       else {        
@@ -552,7 +552,7 @@ namespace temporalalgebra {
       return os;
     }// print
     
-    bool IntSegContainer::operator ==(const IntSegContainer& container){
+    bool IntSegContainer::operator ==(const IntSegContainer& container)const{
       if(this->intSegs.size() != container.intSegs.size()) return false;
       std::set<IntersectionSegment*>::iterator iter1, iter2;
       for(iter1  = this->intSegs.begin(), iter2 =  container.intSegs.begin();
@@ -569,7 +569,43 @@ namespace temporalalgebra {
       return *this;
     }// Operator = 
 /*
-12 Class PFace
+12 struct DoubleCompare
+
+*/      
+    bool DoubleCompare::operator()(const double& d1, const double& d2) const{ 
+        return NumericUtil::lower(d1, d2);
+    }// Operator
+/*
+13 calss GlobalTimeValues
+
+*/      
+    void GlobalTimeValues::addTimeValue(double t){
+        time.insert(t);
+    }// addTimeValue
+      
+    std::ostream& operator <<(std::ostream& os, GlobalTimeValues& timeValues){
+      std::set<double, DoubleCompare>::iterator iter;
+      os << "GlobalTimeValues (";
+      for (iter = timeValues.time.begin(); 
+           iter != timeValues.time.end(); iter++){
+        if (iter != timeValues.time.begin()) os << ", " ;      
+        os << *iter;
+      }// for
+      os <<")" << endl;
+      return os;
+    }// Operator <<
+    
+    bool GlobalTimeValues::operator ==(const GlobalTimeValues& other)const{
+      if(this->time.size() != other.time.size()) return false;
+      std::set<double, DoubleCompare>::iterator iter1,iter2;
+      for (iter1  = this->time.begin(),iter2  = other.time.begin(); 
+           iter1 != this->time.end(); iter1++,iter2++){
+        if(!(NumericUtil::nearlyEqual(*iter1,*iter2))) return false;
+      }// for
+      return true;
+    }// Operator ==
+/*
+14 Class PFace
 
 */          
     PFace::PFace(const Point3D& a, const Point3D& b, const Point3D& c, 
@@ -648,11 +684,11 @@ namespace temporalalgebra {
       return boundingRect;
     }// getBoundingBox 
     
-    std::ostream& operator <<(std::ostream& os, PFace& pf){
+    std::ostream& operator <<(std::ostream& os, const PFace& pf) {
       return pf.print(os,"");
     }// operator 
     
-    std::ostream& PFace::print(std::ostream& os, std::string prefix){
+    std::ostream& PFace::print(std::ostream& os, std::string prefix)const{
       os << prefix << "PFace ("<< a << ", " << b << ", " << c << ", ";
       os << d << "," << PFace::toString(state) << "," <<endl;
       intSegContainer.print(os,prefix + "  ");
@@ -666,7 +702,7 @@ namespace temporalalgebra {
       return *this;
     }// Operator =
     
-    bool PFace::operator ==(const PFace& pf){
+    bool PFace::operator ==(const PFace& pf)const{
       if ((this->a == pf.a) &&
           (this->b == pf.b) &&
           (this->c == pf.c) &&
@@ -677,37 +713,39 @@ namespace temporalalgebra {
       return false;
     }// Operator == 
         
-    void PFace::addIntSeg(const RationalPlane3D &planeSelf, 
-                          const RationalPlane3D &planeOther,
-                          const RationalSegment3D &intSeg){
+    IntersectionSegment PFace::createIntSeg(const RationalPlane3D &planeSelf,
+                                            const RationalPlane3D &planeOther,
+                                            const RationalSegment3D &intSeg){
       Indicator result = LEFT_IS_INNER;
       if(!planeSelf.isLeftAreaInner(intSeg,planeOther)){
         result = RIGHT_IS_INNER;
       } // if
       Segment2D segment = planeSelf.transform(intSeg);
-      this->state = RELEVANT_NOT_CRITICAL;
-      IntersectionSegment seg(intSeg,segment,result);
-      addIntSeg(seg);              
+      this->state = RELEVANT_NOT_CRITICAL;             
+      return IntersectionSegment(intSeg,segment,result);
     }// addIntSeg
-  
+      
+    IntersectionSegment PFace::createBorder( const RationalPlane3D &planeSelf,
+                                             Border border){
+      Segment3D segment3D;
+      Segment2D segment2D;
+      if(border == LEFT){
+        segment3D = Segment3D(this->a,this->c);
+        segment2D = planeSelf.transform(segment3D);
+        return IntersectionSegment(segment3D,segment2D,LEFT_BORDER); 
+      }// if
+      else {
+        segment3D = Segment3D(this->b,this->d);
+        segment2D = planeSelf.transform(segment3D);
+        return IntersectionSegment(segment3D,segment2D,RIGHT_BORDER);
+      }// else
+    }// addBorders 
+    
     void PFace::addIntSeg(const IntersectionSegment& seg){
       if (!(seg.isOrthogonalToTAxis())){
-        this->intSegContainer.addIntSeg(
-          new IntersectionSegment(seg));
+        this->intSegContainer.addIntSeg(seg);
       }// if
     }// addIntSeg
-    
-    void PFace::addBorders(const RationalPlane3D &planeSelf){
-      Segment3D segment3d(this->a,this->c);
-      Segment2D segment2d = planeSelf.transform(segment3d);
-      IntersectionSegment seg(segment3d,segment2d,LEFT_BORDER);
-      addIntSeg(seg); 
-      
-      segment3d =Segment3D(this->b,this->d);
-      segment2d = planeSelf.transform(segment3d);
-      seg = IntersectionSegment(segment3d,segment2d,RIGHT_BORDER);
-      addIntSeg(seg); 
-    }// addBorders 
   
     bool PFace::intersection(PFace& other){
       Rectangle<2> bRec = boundingRect;
@@ -741,10 +779,36 @@ namespace temporalalgebra {
       // There is no intersection
       RationalSegment3D intSeg;
       if(!intPointSet.getIntersectionSegment(intSeg)) return false;  
+      IntersectionSegment iSeg;
       // create and save result segments
-      this->addIntSeg(planeSelf,planeOther,intSeg);
-      other.addIntSeg(planeOther,planeSelf,intSeg);   
+      iSeg = this->createIntSeg(planeSelf,planeOther,intSeg);
+      addIntSeg(iSeg);
+      iSeg = other.createIntSeg(planeOther,planeSelf,intSeg); 
+      other.addIntSeg(iSeg);
       return true;    
-    }// intersection    
+    }// intersection   
+    
+    void PFace::addIntSeg(const RationalPlane3D &planeSelf,
+                          const RationalPlane3D &planeOther,
+                          const RationalSegment3D &intSeg,
+                          GlobalTimeValues &timeValues){
+      IntersectionSegment iSeg = createIntSeg(planeSelf,planeOther,intSeg);
+      timeValues.addTimeValue(iSeg.getTail().getT());
+      timeValues.addTimeValue(iSeg.getHead().getT());
+      addIntSeg(iSeg);
+    }// addIntSeg
+    
+    void PFace::addBorder(const RationalPlane3D &plane,
+                          GlobalTimeValues &timeValues){
+      IntersectionSegment iSeg = createBorder(plane,LEFT);
+      timeValues.addTimeValue(iSeg.getTail().getT());
+      timeValues.addTimeValue(iSeg.getHead().getT());
+      addIntSeg(iSeg); 
+      iSeg = createBorder(plane,RIGHT);
+      timeValues.addTimeValue(iSeg.getTail().getT());
+      timeValues.addTimeValue(iSeg.getHead().getT());
+      addIntSeg(iSeg); 
+    }// addBorder   
+    
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

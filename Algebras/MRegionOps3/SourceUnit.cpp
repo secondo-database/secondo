@@ -46,6 +46,7 @@ using namespace std;
 
 namespace temporalalgebra { 
   namespace mregionops3 {
+    
     SourceUnit::SourceUnit():pFaceTree(4,8){
     }// Konstruktor
     
@@ -73,7 +74,8 @@ namespace temporalalgebra {
       pFaceTree.insert(boundigRec,index);
     }// addPFace
 
-    bool SourceUnit::intersection(SourceUnit& other){
+    bool SourceUnit::intersection(SourceUnit& other, 
+                                  GlobalTimeValues& timeValues){
       bool result =false;
       vector<PFace*>::iterator iter;
       for (iter = this->pFaces.begin(); iter != this->pFaces.end(); iter++) {
@@ -105,27 +107,28 @@ namespace temporalalgebra {
           // There is no intersection
           RationalSegment3D intSeg;
           if(!intPointSet.getIntersectionSegment(intSeg)) break;  
-          // create and save result segments
-          pFaceA->addIntSeg(planeSelf,planeOther,intSeg);
-          pFaceB->addIntSeg(planeOther,planeSelf,intSeg);
+          IntersectionSegment iSeg;
+          // create and save result segments  
+          pFaceA->addIntSeg(planeSelf,planeOther,intSeg,timeValues);
+          pFaceB->addIntSeg(planeOther,planeSelf,intSeg,timeValues);      
           result = true;
         }// while
         if(pFaceA->existsIntSegs()){
-          pFaceA->addBorders(planeSelf);
+          pFaceA->addBorder(planeSelf, timeValues);
         }// if
       }// for
       for (iter = other.pFaces.begin(); iter != other.pFaces.end(); iter++) {
         PFace* pFaceB = *iter;
         if(pFaceB->existsIntSegs()){
           RationalPlane3D planeOther(*pFaceB);
-          pFaceB->addBorders(planeOther);
+          pFaceB->addBorder(planeOther, timeValues);
         }// if
       }// for
       return result;
     }// intersection
     
-    std::ostream& operator <<(std::ostream& os, SourceUnit& unit){
-      vector<PFace*>::iterator iter; 
+    std::ostream& operator <<(std::ostream& os, const SourceUnit& unit){
+      vector<PFace*>::const_iterator iter; 
       os << "SourceUnit ("<< endl;
       for (iter = unit.pFaces.begin(); iter != unit.pFaces.end(); iter++) {
         PFace* pf = *iter;
@@ -135,7 +138,7 @@ namespace temporalalgebra {
       return os;
     }// Operator <<
     
-    bool SourceUnit::operator ==(const SourceUnit& unit){
+    bool SourceUnit::operator ==(const SourceUnit& unit)const{
       if(this->pFaces.size() != unit.pFaces.size()) return false;
       for(size_t i = 0; i < this->pFaces.size(); i++){
         if(!(*(this->pFaces[i]) == *(unit.pFaces[i]))) return false;

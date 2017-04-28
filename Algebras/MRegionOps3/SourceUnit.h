@@ -57,6 +57,7 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 
 namespace temporalalgebra {
   namespace mregionops3 {
+
     class SourceUnit{
     public:
       SourceUnit();
@@ -64,7 +65,8 @@ namespace temporalalgebra {
       void addPFace(const PFace& pf);
       void addPFace(const Point3D& a, const Point3D& b, 
                     const Point3D& c, const Point3D& d);
-      bool intersection(SourceUnit& other);   
+      bool intersection(SourceUnit& other, GlobalTimeValues& timeValues);  
+      
 /*
 12.3 Operators and Predicates
 
@@ -73,8 +75,9 @@ namespace temporalalgebra {
 Print the object values to stream.
 
 */         
-      friend std::ostream& operator <<(std::ostream& os, SourceUnit& unit);
-      bool operator ==(const SourceUnit& unit); 
+      friend std::ostream& operator <<(std::ostream& os, 
+                                       const SourceUnit& unit);
+      bool operator ==(const SourceUnit& unit)const; 
     private:    
 /*
 1.1.1 pFaces
