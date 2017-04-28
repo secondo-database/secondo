@@ -28,16 +28,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 // TODO: remove relative paths
-#include "ColumnSpatialAlgebra.h"           // header for this algebra
-#include "../../include/Symbols.h"          // predefined strings
-#include "../../include/ListUtils.h"        // useful functions for nested lists
-#include "../../include/NestedList.h"       // required at many places
-#include "../../include/QueryProcessor.h"   // needed for value mappings
-#include "../../include/TypeConstructor.h"  // constructor for Secondo Types
-#include "../Spatial/SpatialAlgebra.h"      // spatial types and operators
-#include "../Stream/Stream.h"               // wrapper for secondo streams
+#include "ColumnSpatialAlgebra.h"             // header for this algebra
+#include "../../include/Symbols.h"            // predefined strings
+#include "../../include/ListUtils.h"          // useful nested list functions
+#include "../../include/NestedList.h"         // required at many places
+#include "../../include/QueryProcessor.h"     // needed for value mappings
+#include "../../include/TypeConstructor.h"    // constructor for Secondo Types
+#include "../Spatial/SpatialAlgebra.h"        // spatial types and operators
+#include "../Relation-C++/RelationAlgebra.h"  // use of tuples
+#include "../Stream/Stream.h"                 // wrapper for secondo streams
 //#include "../CRel/AttrArray.h"              // column oriented relations
-
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -82,7 +82,7 @@ namespace col {
       nl->StringAtom(BasicType()),
       nl->StringAtom("((real real) .. (real real))"),
       nl->StringAtom("((3.5 -6.0) (1.0 2) (-9.1 5))"),
-      nl->StringAtom("An apoint is created by a nested list of points."))));
+      nl->StringAtom("created by nested list or stream of points."))));
   }
 
   Word ColPoint::In(const ListExpr typeInfo, ListExpr instance,
@@ -492,31 +492,33 @@ Class ColRegion for column-oriented representation of Regions
     return listutils::isSymbol(list, BasicType());
   }
 
-  // clear variables if neccessary
-  void ColRegion::clear(Word& arg) {
-    ColRegion* cr = static_cast<ColRegion*>(arg.addr);
-    // free all arrays
-    free(cr->aTuple);
-    free(cr->aCycle);
-    free(cr->aPoint);
-    cout << "clear... done";
+  // free all arrays if neccessary
+  void ColRegion::clear() {
+    // cout << "clear ... ";
+    // cout << countTuple << "\n";
+    // cout << countCycle << "\n";
+    // cout << countPoint << "\n";
+    // free(aTuple);
+    // free(aCycle);
+    // free(aPoint);
+    // cout << "... done!";
   }
 
 /*
-This function appends one region datatype of the spatial algebra
+This function appends one region of the spatial algebra
 to an attrarray of regions of the column spatial algebra.
-It needs the source ~region~ and the destiniation ~aregion~ as parameters.
+It needs the source ~region~ as parameter.
 
 */
-  void ColRegion::append(ColRegion* cRegion, Region* region) {
-    //ColRegion* cRegion = static_cast<ColRegion*>(arg.addr);
-    cout << "append: " << region->BasicType() << " -> " << cRegion->BasicType();
+  void ColRegion::append(Region* region) {
     int hSegCount = region->Size();
+    cout << hSegCount << "segments to evaluate\n";
     HalfSegment hSeg;
     for (int i = 0; i < hSegCount; i++) {
+      cout << "processing segment nr. " << i << "\n";
       if (region->Get(i, hSeg)){
         cout << "x=" << hSeg.GetDomPoint().GetX() << "/ty="
-             << hSeg.GetDomPoint().GetY();
+             << hSeg.GetDomPoint().GetY() << "\n";
       }
     }
   }
@@ -714,8 +716,8 @@ It needs the source ~region~ and the destiniation ~aregion~ as parameters.
     // create new region object with the just read in arrays
     answer.addr = new ColRegion(inTuple, inCycle, inPoint, ct, cc, cp);
     // the following two lines are only for debugging mode
-    // ColRegion* cRegion = static_cast<ColRegion*>(answer.addr);
-    // cRegion->showArrays("ColRegion after In-function");
+    ColRegion* cRegion = static_cast<ColRegion*>(answer.addr);
+    cRegion->showArrays("ColRegion after In-function");
     correct = true;
     return answer;  // return the object
   }
@@ -960,27 +962,38 @@ ListExpr insideTM(ListExpr args) {
          ColLine::checkType(nl->First(args)) ||
          ColRegion::checkType(nl->First(args))) &&
          Region::checkType(nl->Second(args))) {
-      return listutils::basicSymbol<CcBool>();
+      return listutils::basicSymbol<CcBool>();  // replace by CRel::Ints
     }
     return listutils::typeError(err);
 }
 
 ListExpr mapTM(ListExpr args) {
-  string err = "stream({point|line|region}) expected\n";
+  string err = "stream(tuple) expected\n";
   // check for correct number of arguments
-  if (!nl->HasLength(args, 1)) {
-      return listutils::typeError(err + " (wrong number of arguments)");
+  if (!nl->HasLength(args,2)) {
+     return listutils::typeError("wrong number of arguments");
   }
-  // first argument must be a stream of points, lines or regions
-  if(Stream<Point>::checkType(nl->First(args))) {
-    return listutils::basicSymbol<ColPoint>();
+  if (!Stream<Tuple>::checkType(nl->First(args))) {
+    return listutils::typeError("first arg is not a tuple stream");
   }
-  if(Stream<Line>::checkType(nl->First(args))) {
-    return listutils::basicSymbol<ColLine>();
+  if (nl->AtomType(nl->Second(args))!=SymbolType) {
+     return listutils::typeError("second arg is not a valid attribute name");
   }
-  if(Stream<Region>::checkType(nl->First(args))) {
-    return listutils::basicSymbol<ColRegion>();
-  }
+  // extract the attribute list
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr type;
+  string name = nl->SymbolValue(nl->Second(args));
+  int j = listutils::findAttribute(attrList, name, type);
+  if (j==0) {
+    return listutils::typeError("attribute not found");
+  };
+  // the append mechanism
+  return nl->ThreeElemList(
+           nl->SymbolAtom(Symbols::APPEND()),
+           nl->OneElemList(nl->IntAtom(j)),
+           listutils::basicSymbol<Tuple>());
+
+
 //  if((Point::checkType(nl->Second(args)) &&
 //    ColPoint::checkType(nl->First(args)))) {
 //    return listutils::basicSymbol<ColPoint>(); }
@@ -990,7 +1003,6 @@ ListExpr mapTM(ListExpr args) {
 //  if(Region::checkType(nl->Second(args)) &&
 //    ColRegion::checkType(nl->First(args)))) {
 //    return listutils::basicSymbol<ColRegion>(); }
-  return listutils::typeError(err + " (wrong type of arguments)");
 }
 
 int insidePoint (Word* args, Word& result, int message,
@@ -1028,23 +1040,33 @@ int mapLine (Word* args, Word& result, int message, Word& local, Supplier s) {
 }
 
 /*
-converts region to aregion
+The operator ~mapRegion~ expects a stream of tuples as input.
+It extracts the region attribute and hands it over to the append function
+of the column spatial region object.
 
 */
 int mapRegion (Word* args, Word& result, int message, Word& local, Supplier s) {
   // result object is set to the object cRegion
   ColRegion* cRegion = static_cast<ColRegion*> (result.addr);
-  cRegion->clear(result);              // clear arrays of instance
+  cRegion->clear();                    // clear arrays of instance
   result = qp->ResultStorage(s);       // use result storage for the result
-  Stream<Region> stream(args[0]);      // wrap the stream
+  CcInt* index = (CcInt*) args[2].addr; // index of the appended attribute
+  int v = index->GetValue();
+  cout << "v=" << v << "\n";
+  Stream<Tuple> stream(args[0]);      // wrap the stream
   stream.open();                       // open the stream
-  Region* elem;                        // actual region element
-  while( (elem = stream.request()) ){  // if exists, get next region
-    cRegion->append(cRegion, elem);    // append region to aregion
-    elem->DeleteIfAllowed();           // remove element
+  cout << "Tuple Stream geöffnet!\n";
+  Tuple* tuple;       // actual tuple element
+  Region* region;     // actual region attribute
+  while( (tuple = stream.request()) ){  // if exists, get next tuple
+    // extract region from tuple
+    region = (Region*) tuple->GetAttribute(v);
+    cRegion->append(region);    // append region to aregion
+    tuple->DeleteIfAllowed();           // remove tuple from stream
   }
   stream.close();                      // close the stream
-  return 0;
+
+return 0;
 }
 
 /*

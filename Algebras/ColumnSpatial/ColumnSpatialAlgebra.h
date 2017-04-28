@@ -485,18 +485,19 @@ description of the Secondo type for the user
 /*
 3.7 Auxiliary functions
 
-*/
+The ~clear~ function frees possible former allocated memory to assure a
+clean object for the following mapping.
 
-  static void clear(Word& arg);
+*/
+  void clear();
 
 /*
-  This function appends a region datatype of the spatial algebra
-  to an attrarray of regions of the column spatial algebra.
-  It needs the source ~region~ and the destiniation ~aregion~ as parameters.
+This function appends a region datatype of the spatial algebra
+to an attrarray of regions of the column spatial algebra.
+It needs the source ~region~ and the destiniation ~aregion~ as parameters.
 
 */
-
-  static void append(ColRegion* cRegion, Region* region);
+  void append(Region* region);
 
 /*
 The auxiliary function ~showArrays~ prints the contents of the internal arrays,
@@ -702,12 +703,12 @@ remark (optional)
 OperatorSpec insideSpec(" obj x region -> ints, obj={apoint,aline,aregion}",
                         " _ inside _ ",
                         "attrarray(obj) within region",
-                        "query p1 inside cr1");
+                        "query cp1 inside r1");
 
-OperatorSpec mapSpec(" aobj -> stream(obj), obj={point,line,region}",
+OperatorSpec mapSpec(" stream(obj) -> aobj, obj={point,line,region}",
                         " mp _ ",
-                        "maps the attributarray into standard type",
-                        "query mp cr1");
+                        "maps a stream of standard type to attributarray",
+                        "query r feed mp");
 
 /*
 4.5 Operator Instance

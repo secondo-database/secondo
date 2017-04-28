@@ -19,5 +19,5 @@
 
 operator intersects alias INTERSECTS pattern _ infixop _
 operator inside alias INSIDE pattern _ infixop _
-operator mp alias MP pattern _ op
+operator mp alias MP pattern _ op [ _ ] 
 
