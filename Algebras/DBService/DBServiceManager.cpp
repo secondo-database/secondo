@@ -41,6 +41,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed2/ConnectionInfo.h"
 
 #include "Algebras/DBService/DBServiceManager.hpp"
+#include "Algebras/DBService/DBServicePersistenceAccessor.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
 #include "Algebras/DBService/Replicator.hpp"
 #include "Algebras/DBService/CommunicationServer.hpp"
@@ -57,6 +58,12 @@ namespace DBService
 
 DBServiceManager::DBServiceManager()
 {
+    restoreConfiguration();
+    restoreReplicaInformation();
+}
+
+void DBServiceManager::restoreConfiguration()
+{
     string port;
     SecondoUtils::readFromConfigFile(
             port, "DBService","DBServicePort", "9989");
@@ -67,6 +74,20 @@ DBServiceManager::DBServiceManager()
     SecondoUtils::readFromConfigFile(
             replicaNumber, "DBService","ReplicaNumber", "1");
     replicaCount = atoi(replicaNumber.c_str());
+}
+void DBServiceManager::restoreReplicaInformation()
+{
+//    map<ConnectionID, LocationInfo> locations;
+//    DBServicePersistenceAccessor::restoreLocationInfo(locations);
+//
+//    vector<RelationInfo> relations;
+//    DBServicePersistenceAccessor::restoreRelationInfo(relations);
+//
+//    queue<pair<std::string, ConnectionID> > mapping;
+//    DBServicePersistenceAccessor::restoreLocationMapping(mapping);
+
+    // TODO connect related information and store accordingly
+    // TODO open connections
 }
 
 DBServiceManager* DBServiceManager::getInstance()
@@ -114,9 +135,12 @@ void DBServiceManager::addNode(const string host,
 
     pair<LocationInfo, ConnectionInfo*> workerConnDetails(location,
                                                           connectionInfo);
+    ConnectionID connID = getNextFreeConnectionID();
     connections.insert(
             pair<size_t, pair<LocationInfo, ConnectionInfo*> >(
-                    getNextFreeConnectionID(), workerConnDetails));
+                    connID, workerConnDetails));
+
+    DBServicePersistenceAccessor::persistLocationInfo(connID, location);
 
     if(!startServersOnWorker(connectionInfo))
     {
@@ -173,6 +197,7 @@ void DBServiceManager::storeRelationInfo(const string& databaseName,
     relationInfo.addNode(determineReplicaLocation());
     replicaLocations.insert(pair<string, RelationInfo>(relationInfo.toString(),
             relationInfo));
+    DBServicePersistenceAccessor::persistRelationInfo(relationInfo);
 }
 
 void DBServiceManager::getReplicaLocations(const string& relationAsString,
@@ -221,19 +246,7 @@ RelationInfo& DBServiceManager::getRelationInfo(const string& relationAsString)
 //TODO
 bool DBServiceManager::persistLocationInformation()
 {
-    string query = "query ten feed head[3] consume";
-    SecParser mySecParser;
-    string nl_query_str;
-    if(!mySecParser.Text2List(query,nl_query_str)!=0){
-        // fehlerbehandlung
-    } else {
-        ListExpr nl_query;
-        if(!nl->ReadFromString(nl_query_str,nl_query)){
-            // sollte nicht auftreten
-        } else {
-            //QueryProcessor::ExecuteQuery(nl_query,...);
-        }
-    }
+
     return true;
 }
 

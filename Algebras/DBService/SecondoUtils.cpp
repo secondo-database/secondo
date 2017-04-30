@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Profiles.h"
 #include "CharTransform.h"
 #include "SecParser.h"
+#include "NestedList.h"
 
 #include "Algebras/DBService/SecondoUtils.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
@@ -134,9 +135,53 @@ bool SecondoUtils::executeQueryOnCurrentNode(const string& query)
     } else
     {
         Word result;
-        QueryProcessor::ExecuteQuery(queryAsNestedList, result, 1024);
+        print(queryAsNestedList);
+        return executeQuery(queryAsNestedList, result, 1024);
     }
-    return true;
+}
+
+bool
+SecondoUtils::executeQuery(
+        const string& queryListStr,
+        Word& queryResult,
+        const size_t availableMemory)
+{
+  string typeString(""), errorString("");
+  bool success = true;
+  bool correct = false, evaluable = false, defined = false, isFunction = false;
+  ListExpr queryList;
+  NestedList* nli = SecondoSystem::GetNestedList();
+  success = nli->ReadFromString( queryListStr, queryList );
+  if (!success)
+  {
+    errorString += "Error in operator query. ";
+  }
+  else {
+    try{
+       success = QueryProcessor::ExecuteQuery( queryList,
+                            queryResult,
+                            typeString,
+                            errorString,
+                            correct,
+                            evaluable,
+                            defined,
+                            isFunction,
+                            availableMemory);
+    } catch(...){
+      cout << "caught exception" << endl;
+      success=false;
+    }
+    cout << "success: " << success << endl;
+    cout << "correct: " << correct << endl;
+    cout << "evaluable: " << evaluable << endl;
+    cout << "defined: " << defined << endl;
+    cout << "isFunction: " << isFunction << endl;
+  }
+  if (errorString != "OK")
+  {
+    cout << errorString << endl;
+  }
+  return success;
 }
 
 bool SecondoUtils::adjustDatabaseOnCurrentNode(const std::string& databaseName)
@@ -159,6 +204,145 @@ bool SecondoUtils::adjustDatabaseOnCurrentNode(const std::string& databaseName)
         return true;
     }
     return false;
+}
+
+bool
+SecondoUtils::createRelationOnCurrentNode(const string& queryAsString,
+        string& errorMessage)
+{
+    bool correct = false;
+    bool evaluable = false;
+    bool defined = false;
+    bool isFunction = false;
+
+    QueryProcessor* queryProcessor = SecondoSystem::GetQueryProcessor();
+    SecondoCatalog* catalog = SecondoSystem::GetCatalog();
+
+    Word result = SetWord(Address(0));
+    OpTree tree = 0;
+
+    ListExpr resultType = nl->TheEmptyList();
+
+    SecParser secondoParser;
+    string queryAsNestedListString;
+    if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {
+        // TODO
+        print("could not parse query");
+        return false;
+    }
+    ListExpr queryAsNestedList;
+    if (!nl->ReadFromString(queryAsNestedListString, queryAsNestedList)) {
+        print("could not convert string to list");
+    }
+
+    //TODO check open database?
+    //TODO transaction?
+    // SecondoSystem::BeginTransaction();
+    string objectName = nl->SymbolValue(nl->Second(queryAsNestedList));
+    ListExpr valueExpr = nl->Fourth(queryAsNestedList);
+
+    try {
+        queryProcessor->Construct(valueExpr, correct, evaluable, defined,
+                isFunction, tree, resultType);
+
+        // update relation
+        if (catalog->IsObjectName(objectName)) {
+            ListExpr typeExpr = catalog->GetObjectTypeExpr(objectName);
+            if (!nl->Equal(typeExpr, resultType)) {
+                print("wrong object type");
+                return false;
+            }
+        }
+
+        if (evaluable) {
+            string typeName = "";
+            catalog->CreateObject(objectName, typeName, resultType, 0);
+            queryProcessor->EvalP(tree, result, 1);
+            catalog->UpdateObject(objectName, result);
+            queryProcessor->Destroy(tree, false);
+        } else {
+            return false;
+        }
+    } catch (...) {
+
+        print("caught error");
+        queryProcessor->Destroy(tree, true);
+    }
+
+    // TODO
+    //SecondoSystem::CommitTransaction(true);
+
+    return true;
+}
+
+bool SecondoUtils::excuteQueryOnCurrentNode(const string& queryAsString,
+        ListExpr& resultList, string& errorMessage) {
+    bool correct = false;
+    bool evaluable = false;
+    bool defined = false;
+    bool isFunction = false;
+
+    QueryProcessor* queryProcessor = SecondoSystem::GetQueryProcessor();
+    SecondoCatalog* catalog = SecondoSystem::GetCatalog();
+
+    Word result = SetWord(Address(0));
+    OpTree tree = 0;
+
+    ListExpr resultType = nl->TheEmptyList();
+
+    SecParser secondoParser;
+    string queryAsNestedListString;
+    if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {
+        // TODO
+        print("could not parse query");
+        return false;
+    }
+    ListExpr queryAsNestedList;
+    if (!nl->ReadFromString(queryAsNestedListString, queryAsNestedList)) {
+        print("could not convert string to list");
+    }
+
+    // database open?
+
+    // transaction?
+
+    try {
+
+        queryProcessor->Construct(nl->Second(queryAsNestedList), correct,
+                evaluable, defined, isFunction, tree, resultType);
+
+        if (evaluable) {
+            print(evaluable);
+            queryProcessor->EvalP(tree, result, 1);
+
+            ListExpr valueList = catalog->OutObject(resultType, result);
+            resultList = nl->TwoElemList(resultType, valueList);
+
+            queryProcessor->Destroy(tree, true);
+
+        }
+
+        if (isFunction) // abstraction or function object
+        {
+            print("function");
+            ListExpr second = nl->Second(queryAsNestedList);
+            if (nl->IsAtom(second))  // function object
+                    {
+                ListExpr valueList = catalog->GetObjectValue(
+                        nl->SymbolValue(second));
+                resultList = nl->TwoElemList(resultType, valueList);
+            } else {
+                resultList = nl->TwoElemList(resultType, second);
+            }
+        }
+
+    } catch (SI_Error err) {
+
+        print("caught error");
+    }
+
+  queryProcessor->Destroy( tree, true );
+  return true;
 }
 
 } /* namespace DBService */

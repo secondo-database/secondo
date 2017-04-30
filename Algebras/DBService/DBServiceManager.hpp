@@ -129,6 +129,8 @@ private:
             distributed2::ConnectionInfo* connectionInfo, const char* section,
             const char* key);
     ConnectionID determineReplicaLocation();
+    void restoreConfiguration();
+    void restoreReplicaInformation();
 
     static DBServiceManager* _instance;
     static std::map<ConnectionID,

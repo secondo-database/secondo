@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 
+#include "NestedList.h"
+
 #include "Algebras/Distributed2/ConnectionInfo.h"
 
 namespace DBService {
@@ -64,11 +66,22 @@ public:
     static bool executeQueryOnCurrentNode(const std::string& query);
 
     static bool adjustDatabaseOnCurrentNode(const std::string& databaseName);
+    static bool createRelationOnCurrentNode(
+            const std::string& queryAsString,
+            std::string& errorMessage);
+    static bool excuteQueryOnCurrentNode(
+            const std::string& queryAsString,
+            ListExpr& resultList,
+            std::string& errorMessage);
 private:
     static bool handleRemoteDatabase(
             distributed2::ConnectionInfo* connectionInfo,
             const std::string& action,
             const std::string& dbName);
+    static bool executeQuery(
+            const std::string& queryListStr,
+            Word& queryResult,
+            const size_t availableMemory);
 };
 
 } /* namespace DBService */
