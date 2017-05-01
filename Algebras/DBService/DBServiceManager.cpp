@@ -58,12 +58,14 @@ namespace DBService
 
 DBServiceManager::DBServiceManager()
 {
+    printFunction("DBServiceManager::DBServiceManager");
     restoreConfiguration();
     restoreReplicaInformation();
 }
 
 void DBServiceManager::restoreConfiguration()
 {
+    printFunction("DBServiceManager::restoreConfiguration");
     string port;
     SecondoUtils::readFromConfigFile(
             port, "DBService","DBServicePort", "9989");
@@ -77,6 +79,7 @@ void DBServiceManager::restoreConfiguration()
 }
 void DBServiceManager::restoreReplicaInformation()
 {
+    printFunction("DBServiceManager::restoreReplicaInformation");
 //    map<ConnectionID, LocationInfo> locations;
 //    DBServicePersistenceAccessor::restoreLocationInfo(locations);
 //
@@ -92,6 +95,7 @@ void DBServiceManager::restoreReplicaInformation()
 
 DBServiceManager* DBServiceManager::getInstance()
 {
+    printFunction("DBServiceManager::getInstance");
     if (!_instance)
     {
         _instance = new DBServiceManager();
@@ -101,6 +105,7 @@ DBServiceManager* DBServiceManager::getInstance()
 
 ConnectionID DBServiceManager::getNextFreeConnectionID()
 {
+    printFunction("DBServiceManager::getNextFreeConnectionID");
     return connections.size() + 1;
 }
 
@@ -108,6 +113,7 @@ void DBServiceManager::addNode(const string host,
         const int port,
         string config)
 {
+    printFunction("DBServiceManager::addNode");
     // TODO check that connection does not already exist!
     cout << "Adding connection: "
             << host << ":" << port << " -> " << config << endl;
@@ -152,8 +158,9 @@ void DBServiceManager::addNode(const string host,
 bool DBServiceManager::startServersOnWorker(
         distributed2::ConnectionInfo* connectionInfo)
 {
+    printFunction("DBServiceManager::startServersOnWorker");
     string queryInit("query initdbserviceworker()");
-    print(queryInit);
+    print("queryInit", queryInit);
 
     return SecondoUtils::executeQueryOnRemoteServer(connectionInfo,
             queryInit);
@@ -163,6 +170,7 @@ bool DBServiceManager::getConfigParamFromWorker(string& result,
         distributed2::ConnectionInfo* connectionInfo, const char* section,
         const char* key)
 {
+    printFunction("DBServiceManager::getConfigParamFromWorker");
     string resultAsString;
     stringstream query;
     query << "query getconfigparam(\""
@@ -172,12 +180,12 @@ bool DBServiceManager::getConfigParamFromWorker(string& result,
           << "\")";
     bool resultOk = SecondoUtils::executeQueryOnRemoteServer(connectionInfo,
             query.str(), resultAsString);
-    print(resultAsString);
+    print("resultAsString", resultAsString);
 
     ListExpr resultAsNestedList;
     nl->ReadFromString(resultAsString, resultAsNestedList);
     result.assign(nl->StringValue(nl->Second(resultAsNestedList)));
-    print(result);
+    print("result", result);
 
     return resultOk && result.size() != 0;
 }
@@ -188,6 +196,7 @@ void DBServiceManager::storeRelationInfo(const string& databaseName,
                                          const string& port,
                                          const string& disk)
 {
+    printFunction("DBServiceManager::storeRelationInfo");
     RelationInfo relationInfo(databaseName,
                               relationName,
                               host,
@@ -203,6 +212,7 @@ void DBServiceManager::storeRelationInfo(const string& databaseName,
 void DBServiceManager::getReplicaLocations(const string& relationAsString,
                                            vector<ConnectionID>& ids)
 {
+    printFunction("DBServiceManager::getReplicaLocations");
     RelationInfo& relInfo = getRelationInfo(relationAsString);
     ids.insert(ids.begin(), relInfo.nodesBegin(), relInfo.nodesEnd());
 }
@@ -210,6 +220,7 @@ void DBServiceManager::getReplicaLocations(const string& relationAsString,
 void DBServiceManager::getWorkerNodesForReplication(
         vector<ConnectionID>& nodes)
 {
+    printFunction("DBServiceManager::getWorkerNodesForReplication");
     if (connections.size() < replicaCount)
     {
         throw new SecondoException("not enough DBService worker nodes");
@@ -222,6 +233,7 @@ void DBServiceManager::getWorkerNodesForReplication(
 
 ConnectionID DBServiceManager::determineReplicaLocation()
 {
+    printFunction("DBServiceManager::determineReplicaLocation");
     // TODO consider fault tolerance mode etc
     // maybe introduce a helper structure to store all possible locations
     // for each node
@@ -230,23 +242,26 @@ ConnectionID DBServiceManager::determineReplicaLocation()
 
 ConnectionInfo* DBServiceManager::getConnection(ConnectionID id)
 {
+    printFunction("DBServiceManager::getConnection");
     return connections.at(id).second;
 }
 
 LocationInfo& DBServiceManager::getLocation(ConnectionID id)
 {
+    printFunction("DBServiceManager::getLocation");
     return connections.at(id).first;
 }
 
 RelationInfo& DBServiceManager::getRelationInfo(const string& relationAsString)
 {
+    printFunction("DBServiceManager::getRelationInfo");
     return replicaLocations.at(relationAsString);
 }
 
 //TODO
 bool DBServiceManager::persistLocationInformation()
 {
-
+    printFunction("DBServiceManager::persistLocationInformation");
     return true;
 }
 

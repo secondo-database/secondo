@@ -58,40 +58,37 @@ int CommunicationServer::communicate(iostream& io)
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::CommunicationServer());
 
-        while(!CommunicationUtils::receivedExpectedLine(io,
-                CommunicationProtocol::ShutDown()))
+        if (!CommunicationUtils::receivedExpectedLine(io,
+                CommunicationProtocol::CommunicationClient()))
         {
-            if (!CommunicationUtils::receivedExpectedLine(io,
-                    CommunicationProtocol::CommunicationClient()))
-            {
-                cerr << "Protocol error" << endl;
-                continue;
-            }
+            cerr <<
+                "Protocol error: Not connected to CommunicationClient" << endl;
+            return 1;
+        }
 
-            queue<string> receivedLines;
-            CommunicationUtils::receiveLines(io, 1, receivedLines);
-            string request = receivedLines.front();
-            receivedLines.pop();
+        queue<string> receivedLines;
+        CommunicationUtils::receiveLines(io, 1, receivedLines);
+        string request = receivedLines.front();
+        receivedLines.pop();
 
-            if(request ==
-                    CommunicationProtocol::ProvideReplica())
-            {
-                handleProvideReplicaRequest(io);
-            }else if(request ==
-                    CommunicationProtocol::TriggerReplication())
-            {
-                handleTriggerFileTransferRequest(io);
-            }else if(request ==
-                    CommunicationProtocol::UseReplica())
-            {
-                //TODO contact DBServiceManager and find out where replica is
-                // stored
-                //DBServiceManager::getInstance();
-            }else
-            {
-                cerr << "Protocol error" << endl;
-                continue;
-            }
+        if(request ==
+                CommunicationProtocol::ProvideReplica())
+        {
+            handleProvideReplicaRequest(io);
+        }else if(request ==
+                CommunicationProtocol::TriggerReplication())
+        {
+            handleTriggerFileTransferRequest(io);
+        }else if(request ==
+                CommunicationProtocol::UseReplica())
+        {
+            //TODO contact DBServiceManager and find out where replica is
+            // stored
+            //DBServiceManager::getInstance();
+        }else
+        {
+            cerr << "Protocol error: invalid request: " << request << endl;
+            return 2;
         }
     } catch (...)
     {

@@ -82,6 +82,7 @@ bool MultiClientServer::handleCommunicationThread()
 {
     while(true)
     {
+        //boost::this_thread::get_id();
         try
         {
             boost::unique_lock<boost::mutex> lock(queueGuard);
@@ -100,7 +101,6 @@ bool MultiClientServer::handleCommunicationThread()
         socketBuffer.pop();
 
         lock.unlock();
-
         communicate(server->GetSocketStream());
     }
 }

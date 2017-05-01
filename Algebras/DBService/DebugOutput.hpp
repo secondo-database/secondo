@@ -29,18 +29,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
 #define ALGEBRAS_DBSERVICE_DEBUGOUTPUT_HPP_
 
+#include <sstream>
+
 #include "Algebra.h"
 
 namespace DBService
 {
 
 void print(std::string& text);
+void printFunction(const char* text);
 void print(const std::string& text);
 void print(const char* text);
 void print(ListExpr nestedList);
 void print(int number);
 void print(const char* text, int number);
 void print(const char* text, ListExpr nestedList);
+void print(const char* text1, std::string& text2);
+void print(const char* text1, const std::string& text2);
 
 }
 

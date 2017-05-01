@@ -34,16 +34,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/CommunicationClient.hpp"
 #include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
 
 using namespace std;
 
 namespace DBService {
 
 DBServiceConnector::DBServiceConnector()
-{}
+{
+    printFunction("DBServiceConnector::DBServiceConnector");
+}
 
 DBServiceConnector* DBServiceConnector::getInstance()
 {
+    printFunction("DBServiceConnector::getInstance");
     if (!_instance)
     {
         _instance = new DBServiceConnector();
@@ -53,6 +57,8 @@ DBServiceConnector* DBServiceConnector::getInstance()
 
 bool DBServiceConnector::replicateRelation(const std::string& relationName)
 {
+    printFunction("DBServiceConnector::replicateRelation");
+
     string dbServiceHost;
     SecondoUtils::readFromConfigFile(dbServiceHost,
                                            "DBService",
@@ -60,6 +66,7 @@ bool DBServiceConnector::replicateRelation(const std::string& relationName)
                                            "");
     if(dbServiceHost.length() == 0)
     {
+        print("could not find DBServiceHost in config file");
         throw new SecondoException("DBServiceHost not configured");
     }
 
@@ -70,6 +77,7 @@ bool DBServiceConnector::replicateRelation(const std::string& relationName)
                                        "");
     if(dbServicePort.length() == 0)
     {
+        print("could not find DBServicePort in config file");
         throw new SecondoException("DBServicePort not configured");
     }
 

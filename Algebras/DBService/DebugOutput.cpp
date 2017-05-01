@@ -31,57 +31,63 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace DBService
 {
 
-void print(std::string& text)
+using namespace std;
+
+void print(string& text)
 {
-        std::cout << "********************************" << std::endl;
-        std::cout << text << std::endl;
-        std::cout << "********************************" << std::endl;
+        cout << text << endl;
 }
 
-void print(const std::string& text)
+void printFunction(const char* text)
 {
-        std::cout << "********************************" << std::endl;
-        std::cout << text << std::endl;
-        std::cout << "********************************" << std::endl;
+        cout << "********************************" << endl;
+        cout << text << endl;
+}
+
+void print(const string& text)
+{
+        cout << text << endl;
 }
 
 void print(const char* text)
 {
-        std::cout << "********************************" << std::endl;
-        std::cout << text << std::endl;
-        std::cout << "********************************" << std::endl;
+        cout << text << endl;
 }
 
 void print(ListExpr nestedList)
 {
-        std::cout << "********************************" << std::endl;
-        std::cout << "length: " << nl->ListLength(nestedList) << std::endl;
-        std::cout << nl->ToString(nestedList) << std::endl;
-        std::cout << "********************************" << std::endl;
+        cout << "length: " << nl->ListLength(nestedList) << endl;
+        cout << nl->ToString(nestedList) << endl;
 }
 
 void print(int number)
 {
-        std::cout << "********************************" << std::endl;
-        std::cout << number << std::endl;
-        std::cout << "********************************" << std::endl;
+        cout << number << endl;
 }
 
 void print(const char* text, int number)
 {
-        std::cout << "********************************" << std::endl;
-        std::cout << text << std::endl;
-        std::cout << number << std::endl;
-        std::cout << "********************************" << std::endl;
+        cout << text << endl;
+        cout << number << endl;
 }
 
 void print(const char* text, ListExpr nestedList)
 {
-        std::cout << "********************************" << std::endl;
-        std::cout << text << std::endl;
-        std::cout << "length: " << nl->ListLength(nestedList) << std::endl;
-        std::cout << nl->ToString(nestedList) << std::endl;
-        std::cout << "********************************" << std::endl;
+        cout << text << endl;
+        cout << "length: " << nl->ListLength(nestedList) << endl;
+        cout << nl->ToString(nestedList) << endl;
+}
+
+void print(const char* text1, string& text2)
+{
+        cout << text1 << endl;
+        cout << text2 << endl;
+}
+
+void print(const char* text1, const string& text2)
+{
+        cout << text1 << endl;
+        cout << text2 << endl;
 }
 
 }

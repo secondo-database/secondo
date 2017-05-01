@@ -42,6 +42,7 @@ namespace DBService
 
 ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
 {
+    printFunction("OperatorLetDConsume::mapType");
     print("nestedList", nestedList);
 
     if (nl->ListLength(nestedList) != 2)
@@ -65,22 +66,21 @@ ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
-    ListExpr consumeTypeMapInput = nl->First(nestedList);
-    print(consumeTypeMapInput);
-
-    ListExpr test = nl->First(nl->First(nl->First(nestedList)));
-    print(test);
+    ListExpr consumeTypeMapInput = nl->OneElemList(
+            nl->First(nl->First(nestedList)));
+    print("consumeTypeMapInput", consumeTypeMapInput);
 
     ListExpr consumeTypeMapResult = OperatorConsume::ConsumeTypeMap<false>(
             consumeTypeMapInput);
+
+    print("consumeTypeMapResult", consumeTypeMapResult);
     if (consumeTypeMapResult == nl->TypeError())
     {
         return consumeTypeMapResult;
     }
 
-    print("consumeTypeMapResult", consumeTypeMapResult);
-
     ListExpr appendList = nl->OneElemList(nl->Second(nl->Second(nestedList)));
+    print("appendList", appendList);
 
     ListExpr typeMapResult = nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()), appendList,
@@ -97,6 +97,7 @@ int OperatorLetDConsume::mapValue(Word* args,
                                   Word& local,
                                   Supplier s)
 {
+    printFunction("OperatorLetDConsume::mapValue");
     int consumeValueMappingResult = OperatorConsume::Consume(args, result,
                                                              message, local, s);
     // checking return code of value mapping is noOp?!

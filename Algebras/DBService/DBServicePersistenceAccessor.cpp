@@ -43,6 +43,7 @@ bool DBServicePersistenceAccessor::createOrInsert(
         const string& createQuery,
         const string& insertQuery)
 {
+    printFunction("DBServicePersistenceAccessor::createOrInsert");
     string databaseName("dbservice");
     SecondoUtils::adjustDatabaseOnCurrentNode(databaseName);
 
@@ -62,7 +63,7 @@ bool DBServicePersistenceAccessor::createOrInsert(
     ListExpr resultList;
     resultOk = SecondoUtils::excuteQueryOnCurrentNode(
             insertQuery, resultList, errorMessage);
-    print(resultList);
+    print("resultList", resultList);
 
     if(!resultOk)
     {
@@ -78,8 +79,9 @@ bool DBServicePersistenceAccessor::createOrInsert(
 bool DBServicePersistenceAccessor::persistLocationInfo(
         ConnectionID connID, LocationInfo& locationInfo)
 {
-    string relationName("locations_DBSP");
+    printFunction("DBServicePersistenceAccessor::persistLocationInfo");
 
+    string relationName("locations_DBSP");
     stringstream createQuery;
     createQuery << "let locations_DBSP = [const rel(tuple(["
             << "ConnectionID: int, "
@@ -95,7 +97,7 @@ bool DBServicePersistenceAccessor::persistLocationInfo(
             << "\"" << locationInfo.getCommPort() << "\" "
             << "\"" << locationInfo.getTransferPort() << "\""
             << "))]";
-    print(createQuery.str());
+    print("createQuery", createQuery.str());
 
     stringstream insertQuery;
     insertQuery << "query locations_DBSP inserttuple["
@@ -106,7 +108,7 @@ bool DBServicePersistenceAccessor::persistLocationInfo(
             << "\"" << locationInfo.getCommPort() << "\", "
             << "\"" << locationInfo.getTransferPort() << "\""
             << "] consume";
-    print(insertQuery.str());
+    print("insertQuery", insertQuery.str());
 
     return createOrInsert(relationName, createQuery.str(), insertQuery.str());
 }
@@ -114,6 +116,8 @@ bool DBServicePersistenceAccessor::persistLocationInfo(
 bool DBServicePersistenceAccessor::persistRelationInfo(
         RelationInfo& relationInfo)
 {
+    printFunction("DBServicePersistenceAccessor::persistRelationInfo");
+
     string relationName("relations_DBSP");
 
     stringstream createQuery;
@@ -131,7 +135,7 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
             << "\"" << relationInfo.getOriginalLocation().getPort() << "\" "
             << "\"" << relationInfo.getOriginalLocation().getDisk() << "\""
             << "))]";
-    print(createQuery.str());
+    print("createQuery", createQuery.str());
 
     stringstream insertQuery;
     insertQuery << "query locations_DBSP inserttuple["
@@ -142,7 +146,7 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
             << "\"" << relationInfo.getOriginalLocation().getPort() << "\", "
             << "\"" << relationInfo.getOriginalLocation().getDisk() << "\""
             << "] consume";
-    print(insertQuery.str());
+    print("insertQuery", insertQuery.str());
 
     // TODO check return code
     createOrInsert(relationName, createQuery.str(), insertQuery.str());
@@ -157,6 +161,8 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
         vector<ConnectionID>::const_iterator nodesBegin,
         vector<ConnectionID>::const_iterator nodesEnd)
 {
+    printFunction("DBServicePersistenceAccessor::persistLocationMapping");
+
     for(vector<ConnectionID>::const_iterator it = nodesBegin;
             it != nodesEnd; it++)
     {
@@ -169,14 +175,14 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
                 << "\"" << relationID << "\" "
                 << *it
                 << "))]";
-        print(createQuery.str());
+        print("createQuery", createQuery.str());
 
         stringstream insertQuery;
         insertQuery << "query locations_DBSP inserttuple["
                 << "\"" << relationID << ", "
                 << *it
                 << "] consume";
-        print(insertQuery.str());
+        print("insertQuery", insertQuery.str());
 
         createOrInsert(relationName, createQuery.str(), insertQuery.str());
     }
@@ -187,25 +193,28 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
 bool DBServicePersistenceAccessor::restoreLocationInfo(
         map<ConnectionID, LocationInfo>& locations)
 {
-    print("restore location info");
+    printFunction("DBServicePersistenceAccessor::restoreLocationInfo");
+
     string query("query locations_DBSP");
     string errorMessage;
     ListExpr resultList;
     bool resultOk = SecondoUtils::excuteQueryOnCurrentNode(
             query, resultList, errorMessage);
-    print(resultList);
+    print("resultList", resultList);
     return resultOk;
 }
 
 bool DBServicePersistenceAccessor::restoreRelationInfo(
         vector<RelationInfo>& relations)
 {
+    printFunction("DBServicePersistenceAccessor::restoreRelationInfo");
     return true;
 }
 
 bool DBServicePersistenceAccessor::restoreLocationMapping(
         queue<pair<std::string, ConnectionID> >& mapping)
 {
+    printFunction("DBServicePersistenceAccessor::restoreLocationMapping");
     return true;
 }
 

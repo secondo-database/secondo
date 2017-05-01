@@ -35,8 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
 #include "Algebras/DBService/SecondoUtils.hpp"
-
-
+#include "Algebras/DBService/DebugOutput.hpp"
 
 using namespace std;
 using namespace distributed2;
@@ -47,10 +46,14 @@ CommunicationClient::CommunicationClient(
         std::string& _server, int _port, Socket* _socket)
 :Client(_server, _port, _socket)
 {
+    printFunction("CommunicationClient::CommunicationClient");
+    print("server", _server);
+    print("port", port);
 }
 
 int CommunicationClient::start()
 {
+    printFunction("CommunicationClient::start");
     socket = Socket::Connect(server, stringutils::int2str(port),
                 Socket::SockGlobalDomain, 3, 1);
         if (!socket) {
@@ -65,6 +68,7 @@ int CommunicationClient::start()
 int CommunicationClient::getNodesForReplication(const string& relationName,
         vector<LocationInfo>& locations)
 {
+    printFunction("CommunicationClient::getNodesForReplication");
     iostream& io = socket->GetSocketStream();
 
     if(!CommunicationUtils::receivedExpectedLine(io,
@@ -137,6 +141,7 @@ int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
                                              const string& databaseName,
                                              const string& relationName)
 {
+    printFunction("CommunicationClient::triggerFileTransfer");
     iostream& io = socket->GetSocketStream();
 
     if(!CommunicationUtils::receivedExpectedLine(io,
@@ -166,6 +171,7 @@ int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
 void CommunicationClient::getLocationParameter(
         string& location, const char* key)
 {
+    printFunction("CommunicationClient::getLocationParameter");
     SecondoUtils::readFromConfigFile(location,
                                        "Environment",
                                        key,
@@ -174,6 +180,7 @@ void CommunicationClient::getLocationParameter(
 
 int CommunicationClient::getReplicaLocation()
 {
+    printFunction("CommunicationClient::getReplicaLocation");
     return 0;
 }
 
