@@ -506,13 +506,15 @@ Class ColRegion for column-oriented representation of Regions
 
 /*
 This function appends one region of the spatial algebra
-to an attrarray of regions of the column spatial algebra.
+to an aregion of the column spatial algebra.
 It needs the source ~region~ as parameter.
 
 */
   void ColRegion::append(Region* region) {
     //cout << nl->ToString(list) << endl;
     cout << region->BasicType() << endl;
+    cout << region->IsEmpty()<<endl;
+    cout << region->IsDefined()<<endl;
     int hSegCount = region->Size();
     cout << hSegCount << "segments to evaluate\n";
     HalfSegment hSeg;
@@ -751,7 +753,7 @@ It needs the source ~region~ as parameter.
         if (cRegion->aCycle[cc - 1].index >= 0) {  // positive value = face
           faceNL = nl->OneElemList(cycleNL);
           faceNLLast = faceNL;
-        } else {  // negative value = append hole to last face
+        } else {  // negative value = hole = append to last face
           faceNLLast = nl->Append(faceNLLast, cycleNL);
         }
         // check whether the actual cycle is an outer cycle = new face
@@ -993,7 +995,7 @@ ListExpr mapTM(ListExpr args) {
   return nl->ThreeElemList(
            nl->SymbolAtom(Symbols::APPEND()),
            nl->OneElemList(nl->IntAtom(j)),
-           listutils::basicSymbol<Region>());
+           listutils::basicSymbol<ColRegion>());
 
 
 //  if((Point::checkType(nl->Second(args)) &&
@@ -1050,23 +1052,22 @@ of the column spatial region object.
 int mapRegion (Word* args, Word& result, int message, Word& local, Supplier s) {
   // result object is set to the object cRegion
   ColRegion* cRegion = static_cast<ColRegion*> (result.addr);
-  cRegion->clear();                    // clear arrays of instance
-  result = qp->ResultStorage(s);       // use result storage for the result
-  CcInt* index = (CcInt*) args[2].addr; // index of the appended attribute
+  cRegion->clear();                      // clear arrays of instance
+  result = qp->ResultStorage(s);         // use result storage for the result
+  CcInt* index = (CcInt*) args[2].addr;  // index of the appended attribute
   int v = index->GetValue();
-  cout << "Attribut Nr. " << v << " enthält die Region.\n";
-  Stream<Tuple> stream(args[0]);      // get the tuples
-  stream.open();                       // open the stream
-  cout << "Tuple Stream geöffnet!\n";
-  Tuple* tuple;       // actual tuple element
-  Region* region;     // actual region attribute
-  while( (tuple = stream.request()) ){  // if exists, get next tuple
+  Stream<Tuple> stream(args[0]);                  // get the tuples
+  stream.open();                                 // open the stream
+  cout << "Tuple Stream geöffnet (Attribut " << v << " ist Region)!\n";
+  Tuple* tuple;                                  // actual tuple element
+  Region* region;                               // actual region attribute
+  while( (tuple = stream.request()) ){          // if exists, get next tuple
     // extract region from tuple
-    region = (Region*) tuple->GetAttribute(v);
-    cRegion->append(region);    // append region to aregion
-    tuple->DeleteIfAllowed();           // remove tuple from stream
+    region = (Region*) tuple->GetAttribute(v);  // get region attribute
+    cRegion->append(region);                    // append region to aregion
+    tuple->DeleteIfAllowed();            // remove tuple from stream
   }
-  stream.close();                      // close the stream
+  stream.close();                        // close the stream
 
 return 0;
 }
