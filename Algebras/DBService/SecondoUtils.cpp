@@ -47,6 +47,7 @@ void SecondoUtils::readFromConfigFile(std::string& resultValue,
         const char* key,
         const char* defaultValue)
 {
+    printFunction("SecondoUtils::readFromConfigFile");
     string secondoConfig = expandVar("$(SECONDO_CONFIG)");
     resultValue = SmiProfile::GetParameter(section,
             key, defaultValue, secondoConfig);
@@ -56,6 +57,7 @@ bool SecondoUtils::openDatabaseOnRemoteServer(
         distributed2::ConnectionInfo* connectionInfo,
         const char* dbName)
 {
+    printFunction("SecondoUtils::openDatabaseOnRemoteServer");
     return SecondoUtils::handleRemoteDatabase(connectionInfo,
                                                 "open",
                                                 dbName);
@@ -65,6 +67,7 @@ bool SecondoUtils::createDatabaseOnRemoteServer(
         distributed2::ConnectionInfo* connectionInfo,
         const char* dbName)
 {
+    printFunction("SecondoUtils::createDatabaseOnRemoteServer");
     return SecondoUtils::handleRemoteDatabase(connectionInfo,
                                                 "create",
                                                 dbName);
@@ -73,6 +76,7 @@ bool SecondoUtils::createDatabaseOnRemoteServer(
 bool SecondoUtils::closeDatabaseOnRemoteServer(
         distributed2::ConnectionInfo* connectionInfo)
 {
+    printFunction("SecondoUtils::closeDatabaseOnRemoteServer");
     return SecondoUtils::handleRemoteDatabase(connectionInfo,
                                                 "close",
                                                 "");
@@ -82,6 +86,7 @@ bool SecondoUtils::handleRemoteDatabase(ConnectionInfo* connectionInfo,
                                           const string& action,
                                           const string& dbName)
 {
+    printFunction("SecondoUtils::handleRemoteDatabase");
     stringstream query;
     query << action << " database " << dbName;
     print(query.str());
@@ -100,6 +105,7 @@ bool SecondoUtils::executeQueryOnRemoteServer(
         distributed2::ConnectionInfo* connectionInfo,
         const std::string& query)
 {
+    printFunction("SecondoUtils::executeQueryOnRemoteServer");
     string result;
     return executeQueryOnRemoteServer(connectionInfo,
                                       query,
@@ -111,6 +117,7 @@ bool SecondoUtils::executeQueryOnRemoteServer(
         const std::string& query,
         std::string& result)
 {
+    printFunction("SecondoUtils::executeQueryOnRemoteServer");
     int errorCode;
     string errorMessage;
     double runtime;
@@ -126,6 +133,7 @@ bool SecondoUtils::executeQueryOnRemoteServer(
 
 bool SecondoUtils::executeQueryOnCurrentNode(const string& query)
 {
+    printFunction("SecondoUtils::executeQueryOnCurrentNode");
     SecParser secondoParser;
     string queryAsNestedList;
     if (secondoParser.Text2List(query, queryAsNestedList) != 0)
@@ -146,46 +154,50 @@ SecondoUtils::executeQuery(
         Word& queryResult,
         const size_t availableMemory)
 {
-  string typeString(""), errorString("");
-  bool success = true;
-  bool correct = false, evaluable = false, defined = false, isFunction = false;
-  ListExpr queryList;
-  NestedList* nli = SecondoSystem::GetNestedList();
-  success = nli->ReadFromString( queryListStr, queryList );
-  if (!success)
-  {
-    errorString += "Error in operator query. ";
-  }
-  else {
-    try{
-       success = QueryProcessor::ExecuteQuery( queryList,
-                            queryResult,
-                            typeString,
-                            errorString,
-                            correct,
-                            evaluable,
-                            defined,
-                            isFunction,
-                            availableMemory);
-    } catch(...){
-      cout << "caught exception" << endl;
-      success=false;
+    printFunction("SecondoUtils::executeQuery");
+    string typeString(""), errorString("");
+    bool success = true;
+    bool correct = false, evaluable = false, defined = false,
+            isFunction = false;
+    ListExpr queryList;
+    NestedList* nli = SecondoSystem::GetNestedList();
+    success = nli->ReadFromString( queryListStr, queryList );
+    if (!success)
+    {
+        errorString += "Error in operator query. ";
     }
-    cout << "success: " << success << endl;
-    cout << "correct: " << correct << endl;
-    cout << "evaluable: " << evaluable << endl;
-    cout << "defined: " << defined << endl;
-    cout << "isFunction: " << isFunction << endl;
-  }
-  if (errorString != "OK")
-  {
-    cout << errorString << endl;
-  }
-  return success;
+    else {
+        try{
+            success = QueryProcessor::ExecuteQuery( queryList,
+                    queryResult,
+                    typeString,
+                    errorString,
+                    correct,
+                    evaluable,
+                    defined,
+                    isFunction,
+                    availableMemory);
+        } catch(...){
+            cout << "caught exception" << endl;
+            success=false;
+        }
+        cout << "success: " << success << endl;
+        cout << "correct: " << correct << endl;
+        cout << "evaluable: " << evaluable << endl;
+        cout << "defined: " << defined << endl;
+        cout << "isFunction: " << isFunction << endl;
+    }
+    if (errorString != "OK")
+    {
+        cout << errorString << endl;
+    }
+    return success;
 }
 
 bool SecondoUtils::adjustDatabaseOnCurrentNode(const std::string& databaseName)
 {
+    printFunction("SecondoUtils::adjustDatabaseOnCurrentNode");
+    //TODO check correctness
     if(SecondoSystem::GetInstance()->GetDatabaseName()
             != databaseName)
     {
@@ -210,6 +222,7 @@ bool
 SecondoUtils::createRelationOnCurrentNode(const string& queryAsString,
         string& errorMessage)
 {
+    printFunction("SecondoUtils::createRelationOnCurrentNode");
     bool correct = false;
     bool evaluable = false;
     bool defined = false;
@@ -245,15 +258,6 @@ SecondoUtils::createRelationOnCurrentNode(const string& queryAsString,
         queryProcessor->Construct(valueExpr, correct, evaluable, defined,
                 isFunction, tree, resultType);
 
-        // update relation
-        if (catalog->IsObjectName(objectName)) {
-            ListExpr typeExpr = catalog->GetObjectTypeExpr(objectName);
-            if (!nl->Equal(typeExpr, resultType)) {
-                print("wrong object type");
-                return false;
-            }
-        }
-
         if (evaluable) {
             string typeName = "";
             catalog->CreateObject(objectName, typeName, resultType, 0);
@@ -275,8 +279,22 @@ SecondoUtils::createRelationOnCurrentNode(const string& queryAsString,
     return true;
 }
 
+bool SecondoUtils::createRelationFromConsumeResult(
+        const string& relationName,
+        Word& result)
+{
+    printFunction("SecondoUtils::createRelationFromConsumeResult");
+    SecondoCatalog* catalog = SecondoSystem::GetCatalog();
+    string typeName = "";
+    catalog->CreateObject(relationName, typeName,
+            nl->SymbolAtom(Relation::BasicType()), 0);
+    catalog->UpdateObject(relationName, result);
+    return true;
+}
+
 bool SecondoUtils::excuteQueryOnCurrentNode(const string& queryAsString,
         ListExpr& resultList, string& errorMessage) {
+    printFunction("SecondoUtils::excuteQueryOnCurrentNode");
     bool correct = false;
     bool evaluable = false;
     bool defined = false;
@@ -320,20 +338,6 @@ bool SecondoUtils::excuteQueryOnCurrentNode(const string& queryAsString,
 
             queryProcessor->Destroy(tree, true);
 
-        }
-
-        if (isFunction) // abstraction or function object
-        {
-            print("function");
-            ListExpr second = nl->Second(queryAsNestedList);
-            if (nl->IsAtom(second))  // function object
-                    {
-                ListExpr valueList = catalog->GetObjectValue(
-                        nl->SymbolValue(second));
-                resultList = nl->TwoElemList(resultType, valueList);
-            } else {
-                resultList = nl->TwoElemList(resultType, second);
-            }
         }
 
     } catch (SI_Error err) {

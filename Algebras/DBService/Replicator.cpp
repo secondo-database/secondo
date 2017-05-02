@@ -45,6 +45,7 @@ namespace DBService
 
 Replicator::Replicator()
 {
+    printFunction("Replicator::Replicator");
     string fileTransferPort;
     SecondoUtils::readFromConfigFile(fileTransferPort,
             "DBService",
@@ -62,13 +63,9 @@ Replicator::Replicator()
     print(host);
 }
 
-Replicator::~Replicator()
-{
-    // TODO Auto-generated destructor stub
-}
-
 string Replicator::getFileName(const std::string& relationName) const
 {
+    printFunction("Replicator::getFileName");
     return SecondoSystem::GetInstance()->GetDatabaseName()
             + "_-_" + relationName + ".bin";
 }
@@ -76,18 +73,21 @@ string Replicator::getFileName(const std::string& relationName) const
 void Replicator::replicateRelation(const string& relationName,
         const vector<LocationInfo>& locations) const
 {
+    printFunction("Replicator::replicateRelation");
     createFileOnCurrentNode(relationName);
     runReplication(relationName, locations);
 }
 
 void Replicator::createFileOnCurrentNode(const string& relationName) const
 {
+    printFunction("Replicator::createFileOnCurrentNode");
     stringstream query;
     query << "query "
           << relationName
           << " saveObjectToFile[\""
           << getFileName(relationName)
           << "\"]";
+    print("query", query.str());
 
     SecondoUtils::executeQueryOnCurrentNode(query.str());
 }
@@ -95,9 +95,11 @@ void Replicator::createFileOnCurrentNode(const string& relationName) const
 void Replicator::runReplication(const string& relationName,
         const vector<LocationInfo>& locations) const
 {
+    printFunction("Replicator::runReplication");
     for(vector<LocationInfo>::const_iterator it = locations.begin();
             it != locations.end(); it++)
     {
+        printFunction("");
         CommunicationClientRunnable commClient(
                            host,
                            transferPort,
@@ -106,7 +108,7 @@ void Replicator::runReplication(const string& relationName,
                            getFileName(relationName),
                            SecondoSystem::GetInstance()->GetDatabaseName(),
                            relationName);
-}
+    }
 }
 
 } /* namespace DBService */

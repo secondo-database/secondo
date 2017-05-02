@@ -38,8 +38,6 @@ class Replicator
 {
 public:
     Replicator();
-    virtual ~Replicator();
-
     void replicateRelation(const std::string& relationName,
             const std::vector<LocationInfo>& locations) const;
     void createFileOnCurrentNode(const std::string& relationName) const;

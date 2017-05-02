@@ -73,6 +73,9 @@ public:
             const std::string& queryAsString,
             ListExpr& resultList,
             std::string& errorMessage);
+    static bool createRelationFromConsumeResult(
+            const std::string& relationName,
+            Word& result);
 private:
     static bool handleRemoteDatabase(
             distributed2::ConnectionInfo* connectionInfo,

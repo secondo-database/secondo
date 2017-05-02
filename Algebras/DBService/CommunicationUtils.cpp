@@ -37,9 +37,26 @@ using namespace std;
 namespace DBService
 {
 
+bool CommunicationUtils::streamStatusOk(iostream& io)
+{
+    if(!io.good())
+    {
+        std::cout << " eof()=" << io.eof();
+        std::cout << " fail()=" << io.fail();
+        std::cout << " bad()=" << io.bad();
+        return false;
+    }
+    return true;
+}
+
+
 bool CommunicationUtils::receivedExpectedLine(iostream& io,
                                               const string& expectedLine)
 {
+    if(!streamStatusOk(io))
+    {
+        return false;
+    }
     string line;
     getline(io, line);
     if (line != expectedLine)
@@ -52,6 +69,10 @@ bool CommunicationUtils::receivedExpectedLine(iostream& io,
 bool CommunicationUtils::receivedExpectedLines(iostream& io,
                                                queue<string>& expectedLines)
 {
+    if(!streamStatusOk(io))
+    {
+        return false;
+    }
     string line;
     while(!expectedLines.empty())
     {
@@ -68,37 +89,49 @@ bool CommunicationUtils::receivedExpectedLines(iostream& io,
 void CommunicationUtils::receiveLine(iostream& io,
         string& line)
 {
-    getline(io, line);
+    if(streamStatusOk(io))
+    {
+        getline(io, line);
+    }
 }
 
 void CommunicationUtils::receiveLines(iostream& io,
         const size_t count,
         queue<string>& lines)
 {
-    string line;
-    for(size_t i = 0; i < count; i++)
+    if(streamStatusOk(io))
     {
-        getline(io, line);
-        lines.push(line);
+        string line;
+        for(size_t i = 0; i < count; i++)
+        {
+            getline(io, line);
+            lines.push(line);
+        }
     }
 }
 
 void CommunicationUtils::sendLine(iostream& io,
                                   const std::string& line)
 {
-    io << line << endl;
-    io.flush();
+    if(streamStatusOk(io))
+    {
+        io << line << endl;
+        io.flush();
+    }
 }
 
 void CommunicationUtils::sendBatch(iostream& io,
                                    queue<string>& lines)
 {
-    while(!lines.empty())
+    if(streamStatusOk(io))
     {
-        io << lines.front() << endl;
-        lines.pop();
+        while(!lines.empty())
+        {
+            io << lines.front() << endl;
+            lines.pop();
+        }
+        io.flush();
     }
-    io.flush();
 }
 
 } /* namespace DBService */

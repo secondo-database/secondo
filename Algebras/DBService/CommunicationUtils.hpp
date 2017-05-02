@@ -49,7 +49,8 @@ public:
             const std::string& line);
     static void sendBatch(std::iostream& io,
             std::queue<std::string>& lines);
-
+protected:
+    static bool streamStatusOk(std::iostream& io);
 };
 
 } /* namespace DBService */

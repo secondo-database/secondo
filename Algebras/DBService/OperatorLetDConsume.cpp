@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/OperatorLetDConsume.hpp"
 #include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/SecondoUtils.hpp"
 
 
 using namespace std;
@@ -100,9 +101,15 @@ int OperatorLetDConsume::mapValue(Word* args,
     printFunction("OperatorLetDConsume::mapValue");
     int consumeValueMappingResult = OperatorConsume::Consume(args, result,
                                                              message, local, s);
+
+    CcString* relationName = static_cast<CcString*>(args[0].addr);
+    SecondoUtils::createRelationFromConsumeResult(
+            relationName->getCsvStr(),
+            result);
+
     // checking return code of value mapping is noOp?!
     DBServiceConnector::getInstance()->replicateRelation(
-            static_cast<CcString*>(args[0].addr)->GetValue());
+            relationName->GetValue());
     return consumeValueMappingResult;
 }
 
