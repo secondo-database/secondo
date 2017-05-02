@@ -511,6 +511,8 @@ It needs the source ~region~ as parameter.
 
 */
   void ColRegion::append(Region* region) {
+    //cout << nl->ToString(list) << endl;
+    cout << region->BasicType() << endl;
     int hSegCount = region->Size();
     cout << hSegCount << "segments to evaluate\n";
     HalfSegment hSeg;
@@ -985,13 +987,13 @@ ListExpr mapTM(ListExpr args) {
   string name = nl->SymbolValue(nl->Second(args));
   int j = listutils::findAttribute(attrList, name, type);
   if (j==0) {
-    return listutils::typeError("attribute not found");
+    return listutils::typeError("attribute " + name + "not found");
   };
   // the append mechanism
   return nl->ThreeElemList(
            nl->SymbolAtom(Symbols::APPEND()),
            nl->OneElemList(nl->IntAtom(j)),
-           listutils::basicSymbol<Tuple>());
+           listutils::basicSymbol<Region>());
 
 
 //  if((Point::checkType(nl->Second(args)) &&
@@ -1052,8 +1054,8 @@ int mapRegion (Word* args, Word& result, int message, Word& local, Supplier s) {
   result = qp->ResultStorage(s);       // use result storage for the result
   CcInt* index = (CcInt*) args[2].addr; // index of the appended attribute
   int v = index->GetValue();
-  cout << "v=" << v << "\n";
-  Stream<Tuple> stream(args[0]);      // wrap the stream
+  cout << "Attribut Nr. " << v << " enthält die Region.\n";
+  Stream<Tuple> stream(args[0]);      // get the tuples
   stream.open();                       // open the stream
   cout << "Tuple Stream geöffnet!\n";
   Tuple* tuple;       // actual tuple element
