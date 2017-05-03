@@ -99,15 +99,14 @@ int OperatorLetDConsume::mapValue(Word* args,
                                   Supplier s)
 {
     printFunction("OperatorLetDConsume::mapValue");
+
+    CcString* relationName = static_cast<CcString*>(args[0].addr);
+    print(relationName->GetValue());
+    print("relationName", relationName->GetValue());
+
     int consumeValueMappingResult = OperatorConsume::Consume(args, result,
                                                              message, local, s);
 
-    CcString* relationName = static_cast<CcString*>(args[0].addr);
-    SecondoUtils::createRelationFromConsumeResult(
-            relationName->getCsvStr(),
-            result);
-
-    // checking return code of value mapping is noOp?!
     DBServiceConnector::getInstance()->replicateRelation(
             relationName->GetValue());
     return consumeValueMappingResult;

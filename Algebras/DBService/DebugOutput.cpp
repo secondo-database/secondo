@@ -90,4 +90,10 @@ void print(const char* text1, const string& text2)
         cout << text2 << endl;
 }
 
+void print(const std::string& text1, const char* text2)
+{
+    cout << text1 << endl;
+    cout << text2 << endl;
+}
+
 }

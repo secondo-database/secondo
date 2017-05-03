@@ -58,6 +58,7 @@ DBServiceConnector* DBServiceConnector::getInstance()
 bool DBServiceConnector::replicateRelation(const std::string& relationName)
 {
     printFunction("DBServiceConnector::replicateRelation");
+    print(relationName, "relationName");
 
     string dbServiceHost;
     SecondoUtils::readFromConfigFile(dbServiceHost,
