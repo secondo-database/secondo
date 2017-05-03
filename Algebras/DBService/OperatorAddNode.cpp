@@ -47,59 +47,30 @@ ListExpr OperatorAddNode::mapType(ListExpr nestedList)
                 return nl->TypeError();
     }
 
-    if (!nl->HasLength(nl->First(nestedList), 2))
-    {
-        ErrorReporter::ReportError("first argument"
-                                   " should be a (type, expression) pair");
-        return nl->TypeError();
-    }
-
-    if(!CcString::checkType(nl->First(nl->First(nestedList))))
+    if(!CcString::checkType(nl->First(nestedList)))
     {
         ErrorReporter::ReportError(
                 "first argument must be: string");
         return nl->TypeError();
     }
 
-    if (!nl->HasLength(nl->Second(nestedList), 2))
-    {
-        ErrorReporter::ReportError("second argument"
-                                   " should be a (type, expression) pair");
-        return nl->TypeError();
-    }
-
-    if(!CcInt::checkType(nl->First(nl->Second(nestedList))))
+    if(!CcInt::checkType(nl->Second(nestedList)))
     {
         ErrorReporter::ReportError(
                 "second argument must be: int");
         return nl->TypeError();
     }
 
-    if (!nl->HasLength(nl->Third(nestedList), 2))
-    {
-        ErrorReporter::ReportError("third argument"
-                                   " should be a (type, expression) pair");
-        return nl->TypeError();
-    }
-
-    if(!CcString::checkType(nl->First(nl->Third(nestedList))))
+    if(!CcString::checkType(nl->Third(nestedList)))
     {
         ErrorReporter::ReportError(
                 "third argument must be: string");
         return nl->TypeError();
     }
 
-    ListExpr appendList = nl->ThreeElemList(nl->Second(nl->First(nestedList)),
-                                            nl->Second(nl->Second(nestedList)),
-                                            nl->Second(nl->Third(nestedList)));
-
-    ListExpr typeMapResult = nl->ThreeElemList(
-            nl->SymbolAtom(Symbols::APPEND()), appendList,
-            listutils::basicSymbol<CcBool>());
-
-    print(typeMapResult);
-    return typeMapResult;
+    return listutils::basicSymbol<CcBool>();
 }
+
 int OperatorAddNode::mapValue(Word* args,
                               Word& result,
                               int message,

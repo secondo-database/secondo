@@ -53,14 +53,14 @@ ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
-    if (!Stream<Tuple>::checkType(nl->First(nl->First(nestedList))))
+    if (!Stream<Tuple>::checkType(nl->First(nestedList)))
     {
         ErrorReporter::ReportError(
                 "first argument must be: stream(tuple(...))");
         return nl->TypeError();
     }
 
-    if(!CcString::checkType(nl->First(nl->Second(nestedList))))
+    if(!CcString::checkType(nl->Second(nestedList)))
     {
         ErrorReporter::ReportError(
                 "second argument must be: string");
@@ -68,28 +68,28 @@ ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
     }
 
     ListExpr consumeTypeMapInput = nl->OneElemList(
-            nl->First(nl->First(nestedList)));
+            nl->First(nestedList));
     print("consumeTypeMapInput", consumeTypeMapInput);
 
     ListExpr consumeTypeMapResult = OperatorConsume::ConsumeTypeMap<false>(
             consumeTypeMapInput);
 
-    print("consumeTypeMapResult", consumeTypeMapResult);
-    if (consumeTypeMapResult == nl->TypeError())
-    {
-        return consumeTypeMapResult;
-    }
+//    print("consumeTypeMapResult", consumeTypeMapResult);
+//    if (consumeTypeMapResult == nl->TypeError())
+//    {
+//        return consumeTypeMapResult;
+//    }
+//
+//    ListExpr appendList = nl->OneElemList(nl->Second(nl->Second(nestedList)));
+//    print("appendList", appendList);
+//
+//    ListExpr typeMapResult = nl->ThreeElemList(
+//            nl->SymbolAtom(Symbols::APPEND()), appendList,
+//            consumeTypeMapResult);
+//
+//    print("typeMapResult", typeMapResult);
 
-    ListExpr appendList = nl->OneElemList(nl->Second(nl->Second(nestedList)));
-    print("appendList", appendList);
-
-    ListExpr typeMapResult = nl->ThreeElemList(
-            nl->SymbolAtom(Symbols::APPEND()), appendList,
-            consumeTypeMapResult);
-
-    print("typeMapResult", typeMapResult);
-
-    return typeMapResult;
+    return consumeTypeMapResult;
 }
 
 int OperatorLetDConsume::mapValue(Word* args,
@@ -100,7 +100,7 @@ int OperatorLetDConsume::mapValue(Word* args,
 {
     printFunction("OperatorLetDConsume::mapValue");
 
-    CcString* relationName = static_cast<CcString*>(args[0].addr);
+    CcString* relationName = static_cast<CcString*>(args[1].addr);
     print(relationName->GetValue());
     print("relationName", relationName->GetValue());
 

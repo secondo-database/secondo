@@ -42,7 +42,7 @@ struct AddNodeInfo: OperatorInfo
         signature = ""; // TODO
         syntax = ""; // TODO
         meaning = "add a worker node to the fault-tolerant DBService";
-        usesArgsInTypeMapping = true;
+        usesArgsInTypeMapping = false;
     }
 };
 
