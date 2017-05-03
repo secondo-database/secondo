@@ -271,6 +271,7 @@ class MBasic : public Attribute {
   void AtPeriods(const temporalalgebra::Periods& per, MBasic<B>& result) const;
   void Initial(IBasic<B>& result) const;
   void Final(IBasic<B>& result) const;
+  void FinalInstant(Instant& result) const;
   void Inside(const typename B::coll& coll, 
               temporalalgebra::MBool& result) const;
   void Fill(MBasic<B>& result, datetime::DateTime& duration) const;
@@ -364,6 +365,7 @@ class MBasics : public Attribute {
   void AtPeriods(const temporalalgebra::Periods& per, MBasics<B>& result) const;
   void Initial(IBasics<B>& result) const;
   void Final(IBasics<B>& result) const;
+  void FinalInstant(Instant& result) const;
   void Fill(MBasics<B>& result, datetime::DateTime& duration) const;
   void Concat(const MBasics<B>& src1, const MBasics<B>& src2);
   void Compress(MBasics<B>& result) const;
@@ -3097,6 +3099,21 @@ void MBasic<B>::Final(IBasic<B>& result) const {
 }
 
 /*
+\subsection{Function ~FinalInstant~}
+
+*/
+template<class B>
+void MBasic<B>::FinalInstant(Instant& result) const {
+  if (!IsDefined() || IsEmpty()) {
+    result.SetDefined(false);
+    return;
+  }
+  typename B::unitelem unit;
+  units.Get(GetNoComponents() - 1, unit);
+  result = unit.iv.end;
+}
+
+/*
 \subsection{Function ~Inside~}
 
 */
@@ -4295,6 +4312,21 @@ void MBasics<B>::Final(IBasics<B>& result) const {
   GetInterval(GetNoComponents() - 1, iv);
   result.instant = iv.end;
   GetBasics(GetNoComponents() - 1, result.value);
+}
+
+/*
+\subsection{Function ~FinalInstant~}
+
+*/
+template<class B>
+void MBasics<B>::FinalInstant(Instant& result) const {
+  if (!IsDefined() || IsEmpty()) {
+    result.SetDefined(false);
+    return;
+  }
+  typename B::unitelem unit;
+  units.Get(GetNoComponents() - 1, unit);
+  result = unit.iv.end;
 }
 
 /*

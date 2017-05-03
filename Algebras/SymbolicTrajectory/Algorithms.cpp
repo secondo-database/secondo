@@ -2966,49 +2966,31 @@ Instant TMatchIndexLI::getFirstEnd(const TupleId id) {
   Tuple *t = rel->GetTuple(id, false);
   for (unsigned int i = 0; i < relevantAttrs.size(); i++) {
     if (relevantAttrs[i].second == "mlabel") {
-      ILabel il(true);
-      ((MLabel*)t->GetAttribute(relevantAttrs[i].first))->Final(il);
-      temp = il.instant;
+      ((MLabel*)t->GetAttribute(relevantAttrs[i].first))->FinalInstant(temp);
     }
     else if (relevantAttrs[i].second == "mlabels") {
-      ILabels ils(true);
-      ((MLabels*)t->GetAttribute(relevantAttrs[i].first))->Final(ils);
-      temp = ils.instant;
+      ((MLabels*)t->GetAttribute(relevantAttrs[i].first))->FinalInstant(temp);
     }
     else if (relevantAttrs[i].second == "mplace") {
-      IPlace ip(true);
-      ((MPlace*)t->GetAttribute(relevantAttrs[i].first))->Final(ip);
-      temp = ip.instant;
+      ((MPlace*)t->GetAttribute(relevantAttrs[i].first))->FinalInstant(temp);
     }
     else if (relevantAttrs[i].second == "mplaces") {
-      IPlaces ips(true);
-      ((MPlaces*)t->GetAttribute(relevantAttrs[i].first))->Final(ips);
-      temp = ips.instant;
+      ((MPlaces*)t->GetAttribute(relevantAttrs[i].first))->FinalInstant(temp);
     }
     else if (relevantAttrs[i].second == "mpoint") {
-      IPoint ip(true);
-      ((MPoint*)t->GetAttribute(relevantAttrs[i].first))->Final(ip);
-      temp = ip.instant;
+      ((MPoint*)t->GetAttribute(relevantAttrs[i].first))->FinalInstant(temp);
     }
     else if (relevantAttrs[i].second == "mregion") {
-      IRegion ir(true);
-      ((MRegion*)t->GetAttribute(relevantAttrs[i].first))->Final(ir);
-      temp = ir.instant;
+      ((MRegion*)t->GetAttribute(relevantAttrs[i].first))->FinalInstant(temp);
     }
     else if (relevantAttrs[i].second == "mbool") {
-      IBool ib(true);
-      ((MBool*)t->GetAttribute(relevantAttrs[i].first))->Final(ib);
-      temp = ib.instant;
+      ((MBool*)t->GetAttribute(relevantAttrs[i].first))->FinalInstant(temp);
     }
     else if (relevantAttrs[i].second == "mint") {
-      IInt ii(true);
-      ((MInt*)t->GetAttribute(relevantAttrs[i].first))->Final(ii);
-      temp = ii.instant;
+      ((MInt*)t->GetAttribute(relevantAttrs[i].first))->FinalInstant(temp);
     }
     else if (relevantAttrs[i].second == "mreal") {
-      IReal ir(true);
-      ((MReal*)t->GetAttribute(relevantAttrs[i].first))->Final(ir);
-      temp = ir.instant;
+      ((MReal*)t->GetAttribute(relevantAttrs[i].first))->FinalInstant(temp);
     }
     else {
       cout << "invalid type " << relevantAttrs[i].second << endl;
@@ -3481,7 +3463,7 @@ void TMatchIndexLI::initMatchInfo(const bool mainAttr) {
           newMatchInfo2[s][pred]->succ = id;
         }
         matchInfo2[0][id]->imis.push_back(imi);
-        cout << "pushed back imi for id " << id << endl;
+//         cout << "pushed back imi for id " << id << endl;
         pred = id;
       }
     }
@@ -3941,38 +3923,41 @@ corresponding information from the tuple. Applied for indextmatches2
 
 */
 bool TMatchIndexLI::geoMatch(const int atomNo, Tuple *t, Periods *per) {
+  PatElem atom;
   for (unsigned int i = 0; i < relevantAttrs.size(); i++) {
     if (relevantAttrs[i].second == "mpoint") {
-      MPoint *mpoint = (MPoint*)t->GetAttribute(relevantAttrs[i].first);
-      MPoint mpAtPer(true);
-      mpoint->AtPeriods(*per, mpAtPer);
-      if (mpAtPer.IsEmpty()) {
-        return false;
-      }
-      PatElem atom;
       p->getElem(atomNo, atom);
       pair<Word, SetRel> values = atom.values[i];
-      if (!((Region*)values.first.addr)->IsEmpty()) {
-        if (!Tools::relationHolds(mpAtPer, *((Region*)values.first.addr), 
-                                  values.second)) {
+      if (values.first.addr != 0) {
+        MPoint *mpoint = (MPoint*)t->GetAttribute(relevantAttrs[i].first);
+        MPoint mpAtPer(true);
+        mpoint->AtPeriods(*per, mpAtPer);
+        if (mpAtPer.IsEmpty()) {
           return false;
+        }
+        if (!((Region*)values.first.addr)->IsEmpty()) {
+          if (!Tools::relationHolds(mpAtPer, *((Region*)values.first.addr), 
+                                    values.second)) {
+            return false;
+          }
         }
       }
     }
     else if (relevantAttrs[i].second == "mregion") {
-      MRegion *mreg = (MRegion*)t->GetAttribute(relevantAttrs[i].first);
-      MRegion mrAtPer(true);
-      mreg->AtPeriods(per, &mrAtPer);
-      if (mrAtPer.IsEmpty()) {
-        return false;
-      }
-      PatElem atom;
       p->getElem(atomNo, atom);
       pair<Word, SetRel> values = atom.values[i];
-      if (!((Region*)values.first.addr)->IsEmpty()) {
-        if (!Tools::relationHolds(mrAtPer, *((Region*)values.first.addr), 
-                                  values.second)) {
+      if (values.first.addr != 0) {
+        MRegion *mreg = (MRegion*)t->GetAttribute(relevantAttrs[i].first);
+        MRegion mrAtPer(true);
+        mreg->AtPeriods(per, &mrAtPer);
+        if (mrAtPer.IsEmpty()) {
           return false;
+        }
+        if (!((Region*)values.first.addr)->IsEmpty()) {
+          if (!Tools::relationHolds(mrAtPer, *((Region*)values.first.addr), 
+                                    values.second)) {
+            return false;
+          }
         }
       }
     }
@@ -4006,8 +3991,8 @@ bool Condition::evaluateInstant(const ListExpr tt, Tuple *t,
       *((Instant*)pointers[i]) = imi.inst;
     }
   }
-  cout << "|||" << ((Label*)pointers[0])->IsDefined() << "|||" 
-             << ((Label*)pointers[0])->GetValue() << endl;
+//   cout << "|||" << ((Instant*)pointers[0])->IsDefined() << "|||" 
+//              << *((Instant*)pointers[0]) << endl;
   getQP()->EvalS(getOpTree(), qResult, OPEN);
 //   cout << "result for |" << text << "| is "
 //        << (((CcBool*)qResult.addr)->GetValue() ? "TRUE" : "FALSE") << endl;
