@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DBServiceManager.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
 #include "Algebras/DBService/ReplicationClient.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
 
 using namespace distributed2;
 using namespace std;
@@ -44,25 +45,33 @@ namespace DBService {
 CommunicationServer::CommunicationServer(int port) :
         MultiClientServer(port)
 {
+    printFunction("CommunicationServer::CommunicationServer");
     cout << "Initializing CommunicationServer (port " << port << ")"
             << endl;
+    string context("CommunicationServer");
+    traceWriter= auto_ptr<TraceWriter>
+    (new TraceWriter(context));
 }
 
 CommunicationServer::~CommunicationServer()
-{}
+{
+    printFunction("CommunicationServer::~CommunicationServer");
+}
 
 int CommunicationServer::communicate(iostream& io)
 {
+    printFunction("CommunicationServer::communicate");
     try
     {
+        traceWriter->write("Communicating...");
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::CommunicationServer());
 
         if (!CommunicationUtils::receivedExpectedLine(io,
                 CommunicationProtocol::CommunicationClient()))
         {
-            cerr <<
-                "Protocol error: Not connected to CommunicationClient" << endl;
+            traceWriter->write(
+            "Protocol error: Not connected to CommunicationClient");
             return 1;
         }
 
@@ -70,6 +79,9 @@ int CommunicationServer::communicate(iostream& io)
         CommunicationUtils::receiveLines(io, 1, receivedLines);
         string request = receivedLines.front();
         receivedLines.pop();
+
+        traceWriter->write("request");
+        traceWriter->write(request);
 
         if(request ==
                 CommunicationProtocol::ProvideReplica())
@@ -101,6 +113,8 @@ int CommunicationServer::communicate(iostream& io)
 bool CommunicationServer::handleProvideReplicaRequest(
         std::iostream& io)
 {
+    printFunction("CommunicationServer::handleProvideReplicaRequest");
+    traceWriter->write("CommunicationServer::handleProvideReplicaRequest");
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::RelationRequest());
 
@@ -112,6 +126,11 @@ bool CommunicationServer::handleProvideReplicaRequest(
     string relationName = receivedLines.front();
     receivedLines.pop();
 
+    traceWriter->write("databaseName");
+    traceWriter->write(databaseName);
+    traceWriter->write("relationName");
+    traceWriter->write(relationName);
+
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
 
@@ -122,6 +141,13 @@ bool CommunicationServer::handleProvideReplicaRequest(
     receivedLines.pop();
     string disk = receivedLines.front();
     receivedLines.pop();
+
+    traceWriter->write("host");
+    traceWriter->write(host);
+    traceWriter->write("port");
+    traceWriter->write(port);
+    traceWriter->write("disk");
+    traceWriter->write(disk);
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
     dbService->storeRelationInfo(databaseName,
@@ -138,10 +164,14 @@ bool CommunicationServer::handleProvideReplicaRequest(
     sendBuffer.push(CommunicationProtocol::ReplicaLocation());
     sendBuffer.push(stringutils::int2str(connections.size()));
 
+    traceWriter->write("number of locations");
+    traceWriter->write(connections.size());
+
     for(vector<ConnectionID>::const_iterator it = connections.begin();
             it != connections.end(); it++)
     {
         LocationInfo& location = dbService->getLocation(*it);
+        traceWriter->write(location);
         sendBuffer.push(location.getHost());
         sendBuffer.push(location.getPort());
         sendBuffer.push(location.getDisk());
@@ -154,6 +184,7 @@ bool CommunicationServer::handleProvideReplicaRequest(
 
 bool CommunicationServer::handleTriggerFileTransferRequest(std::iostream& io)
 {
+    printFunction("CommunicationServer::handleTriggerFileTransferRequest");
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::ReplicationDetailsRequest());
     queue<string> receivedLines;
@@ -181,6 +212,7 @@ bool CommunicationServer::handleTriggerFileTransferRequest(std::iostream& io)
 bool CommunicationServer::handleUseReplicaRequest(
         std::iostream& io)
 {
+    printFunction("CommunicationServer::handleUseReplicaRequest");
     return true;
 }
 

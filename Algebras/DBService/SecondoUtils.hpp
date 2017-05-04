@@ -69,7 +69,7 @@ public:
     static bool createRelationOnCurrentNode(
             const std::string& queryAsString,
             std::string& errorMessage);
-    static bool excuteQueryOnCurrentNode(
+    static bool excuteQueryCommandOnCurrentNode(
             const std::string& queryAsString,
             ListExpr& resultList,
             std::string& errorMessage);

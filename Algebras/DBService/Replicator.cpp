@@ -89,7 +89,12 @@ void Replicator::createFileOnCurrentNode(const string& relationName) const
           << "\"]";
     print("query", query.str());
 
-    SecondoUtils::executeQueryOnCurrentNode(query.str());
+    ListExpr resultList;
+    string errorMessage;
+    SecondoUtils::excuteQueryCommandOnCurrentNode(
+            query.str(), resultList, errorMessage);
+    print("resultList", resultList);
+    print("errorMessage", errorMessage);
 }
 
 void Replicator::runReplication(const string& relationName,

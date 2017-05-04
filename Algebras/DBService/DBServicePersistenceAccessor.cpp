@@ -61,7 +61,7 @@ bool DBServicePersistenceAccessor::createOrInsert(
     }
 
     ListExpr resultList;
-    resultOk = SecondoUtils::excuteQueryOnCurrentNode(
+    resultOk = SecondoUtils::excuteQueryCommandOnCurrentNode(
             insertQuery, resultList, errorMessage);
     print("resultList", resultList);
 
@@ -138,8 +138,8 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
     print("createQuery", createQuery.str());
 
     stringstream insertQuery;
-    insertQuery << "query locations_DBSP inserttuple["
-            << "\"" << relationInfo.toString() << ", "
+    insertQuery << "query relations_DBSP inserttuple["
+            << "\"" << relationInfo.toString() << "\", "
             << "\"" << relationInfo.getDatabaseName() << "\", "
             << "\"" << relationInfo.getRelationName() << "\", "
             << "\"" << relationInfo.getOriginalLocation().getHost() << "\", "
@@ -178,7 +178,7 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
         print("createQuery", createQuery.str());
 
         stringstream insertQuery;
-        insertQuery << "query locations_DBSP inserttuple["
+        insertQuery << "query mapping_DBSP inserttuple["
                 << "\"" << relationID << ", "
                 << *it
                 << "] consume";
@@ -198,7 +198,7 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
     string query("query locations_DBSP");
     string errorMessage;
     ListExpr resultList;
-    bool resultOk = SecondoUtils::excuteQueryOnCurrentNode(
+    bool resultOk = SecondoUtils::excuteQueryCommandOnCurrentNode(
             query, resultList, errorMessage);
     print("resultList", resultList);
     return resultOk;

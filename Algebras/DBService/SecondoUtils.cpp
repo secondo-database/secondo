@@ -292,9 +292,10 @@ bool SecondoUtils::createRelationFromConsumeResult(
     return true;
 }
 
-bool SecondoUtils::excuteQueryOnCurrentNode(const string& queryAsString,
+bool SecondoUtils::excuteQueryCommandOnCurrentNode(const string& queryAsString,
         ListExpr& resultList, string& errorMessage) {
     printFunction("SecondoUtils::excuteQueryOnCurrentNode");
+    print("queryAsString", queryAsString);
     bool correct = false;
     bool evaluable = false;
     bool defined = false;
