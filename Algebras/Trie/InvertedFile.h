@@ -51,8 +51,6 @@ defined.
 */
 
 typedef SmiRecordId TrieContentType; // content of trie entries
-typedef uint32_t wordPosType;        // type representing word positions
-typedef uint32_t charPosType;        // type representing character positions
 
 typedef vtrie::VTrieIterator<TrieContentType> TrieIteratorType;
 typedef vtrie::VTrieNode<TrieContentType> TrieNodeType;
@@ -288,15 +286,15 @@ Removes all entries from the cache writing the buffers to disk.
 
 */
 
-
-class InvertedFile: public TrieType {
+template<typename wordPosType, typename charPosType>
+class InvertedFileT: public TrieType {
 
   public:
 /*
 ~Standard Constructor~
 
 */
-     InvertedFile(): TrieType(), listFile(false,0,false),ignoreCase(false),
+     InvertedFileT(): TrieType(), listFile(false,0,false),ignoreCase(false),
                            minWordLength(1),stopWordsId(0), memStopWords(0) {
         listFile.Create();
         separators = getDefaultSeparators();
@@ -306,7 +304,8 @@ class InvertedFile: public TrieType {
 ~Copy Constructor~
 
 */
-     InvertedFile(const InvertedFile& src): TrieType(src), 
+     InvertedFileT(const InvertedFileT<wordPosType,charPosType>& src): 
+                                            TrieType(src), 
                                             listFile(src.listFile),
                                             ignoreCase(src.ignoreCase),
                                             minWordLength(src.minWordLength),
@@ -320,7 +319,7 @@ class InvertedFile: public TrieType {
 ~Constructor~
 
 */
-    InvertedFile(SmiFileId& _trieFileId, SmiRecordId& _trieRootId,
+    InvertedFileT(SmiFileId& _trieFileId, SmiRecordId& _trieRootId,
                  SmiFileId& _listFileId, const bool _ignoreCase, 
                  uint32_t _minWordLength,
                  SmiRecordId& _stopWordsId,
@@ -341,7 +340,7 @@ class InvertedFile: public TrieType {
 ~Destructor~
 
 */
-    ~InvertedFile(){
+    ~InvertedFileT(){
        if(listFile.IsOpen()){
            listFile.Close();
        }
@@ -373,8 +372,9 @@ Not implemented yet.
 
 */
 
-   InvertedFile* clone(){
-      InvertedFile* res = new InvertedFile();
+   InvertedFileT<wordPosType, charPosType>* clone(){
+      InvertedFileT<wordPosType, charPosType>* res 
+              = new InvertedFileT<wordPosType,charPosType>();
       TrieIteratorType* it = getEntries("");
       TrieNodeCacheType* cache = createTrieCache(1048576);
       std::string word;
@@ -555,9 +555,8 @@ Returns the fileId of the file containing the inverted lists.
 The class can be used for iterating over a single inverted list.
 
 */
-
   class exactIterator {
-     friend class InvertedFile;
+     friend class InvertedFileT<wordPosType,charPosType>;
      public:
 
 /*
@@ -788,9 +787,8 @@ This function returns the size of a single entry within an inverted list.
 This iterator iterates over all entries starting with a specified prefix.
 
 */
-  
   class prefixIterator{
-     friend class InvertedFile;
+     friend class InvertedFileT<wordPosType,charPosType>;
      public:
 
 /*
@@ -835,7 +833,7 @@ unchanged and the return value if false.
        }
 
      private:
-       InvertedFile* inv;
+       InvertedFileT<wordPosType, charPosType>* inv;
        TrieIteratorType* it;
        exactIterator* exactIt;
        SmiRecordId id; 
@@ -845,7 +843,8 @@ unchanged and the return value if false.
 ~constructor~
 
 */ 
-       prefixIterator(InvertedFile* _inv, const std::string& prefix): inv(_inv){
+       prefixIterator(InvertedFileT<wordPosType, charPosType>* _inv, 
+                      const std::string& prefix): inv(_inv){
           it = inv->getEntries(prefix);
           exactIt = 0;
           id = 0;
@@ -876,7 +875,7 @@ structure together with the count of this word.
 
 */
   class countPrefixIterator{
-    friend class InvertedFile;
+    friend class InvertedFileT<wordPosType, charPosType>;
     public:
        bool next(std::string& word, size_t& count){
           TrieContentType id;
@@ -892,11 +891,12 @@ structure together with the count of this word.
         }
 
     private:
-       InvertedFile* inv;
+       InvertedFileT<wordPosType,charPosType>* inv;
        TrieIteratorType* it;
 
 
-       countPrefixIterator(InvertedFile* _inv, const std::string& prefix):  
+       countPrefixIterator(InvertedFileT<wordPosType, charPosType>* _inv, 
+                           const std::string& prefix):  
          inv(_inv) {
          it = inv->getEntries(prefix);
        }
@@ -1120,6 +1120,9 @@ inserts a new element into this inverted file
   }
 
 };
+
+typedef InvertedFileT<uint32_t,uint32_t> InvertedFile;
+
 
 class InvFileInsertLI {
  public:

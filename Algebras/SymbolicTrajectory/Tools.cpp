@@ -30,6 +30,9 @@ Started July 2014, Fabio Vald\'{e}s
 using namespace std;
 using namespace datetime;
 
+typedef uint32_t wordPosType;
+typedef uint32_t charPosType;
+
 using namespace temporalalgebra;
 namespace stj {
  

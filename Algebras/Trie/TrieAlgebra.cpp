@@ -619,8 +619,8 @@ class searchWordLocalInfo{
 
       Tuple* next(){
          TupleId id;
-         wordPosType wp;
-         charPosType cp;
+         uint32_t wp;
+         uint32_t cp;
          if(it->next(id,wp,cp)){
             Tuple* res = new Tuple(tt);
             res->PutAttribute(0, new TupleIdentifier(true,id));
@@ -761,8 +761,8 @@ class searchPrefixLocalInfo{
       Tuple* next(){
          string word;
          TupleId id;
-         wordPosType wp;
-         charPosType cp;
+         uint32_t wp;
+         uint32_t cp;
          if(it->next(word,id,wp,cp)){
             Tuple* res = new Tuple(tt);
             res->PutAttribute(0, new FText(true,word));

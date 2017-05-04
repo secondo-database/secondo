@@ -39,6 +39,9 @@ This is the implementation of the Symbolic Trajectory Algebra.
 
 using namespace temporalalgebra;
 using namespace std;
+typedef uint32_t wordPosType;
+typedef uint32_t charPosType;
+
 
 
 namespace stj{
