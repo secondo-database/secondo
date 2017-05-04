@@ -462,6 +462,7 @@ the counters indicate the size of the corresponding arrays
   // non-standard constructor initializing the object with parameters
   ColRegion(sTuple* newTuple, sCycle* newCycle, sPoint* newPoint,
             long newCountTuple, long newCountCycle, long newCountPoint);
+  ColRegion(int min);
   ~ColRegion();   // destructor - free allocated menory
 
 /*
@@ -489,7 +490,8 @@ The ~clear~ function frees possible former allocated memory to assure a
 clean object for the following mapping.
 
 */
-  void clear();
+  int appendPoint(Point p, long &stepPoint);
+  int appendCycle(long cp, long &stepCycle);
 
 /*
 This function appends a region datatype of the spatial algebra
@@ -497,14 +499,20 @@ to an attrarray of regions of the column spatial algebra.
 It needs the source ~region~ and the destiniation ~aregion~ as parameters.
 
 */
-  void append(Region* region);
+  bool append(Region* region);
+
+/*
+The ~finalize~ function appends a terminator to each array of the aregion type.
+
+*/
+  void finalize();
 
 /*
 The auxiliary function ~showArrays~ prints the contents of the internal arrays,
 there sizes and counters to the screen. It is useful during the debugging phase.
 
 */
-  void showArrays(string title);
+  void showArrays(string title, bool showPoints);
 
 /*
 3.8 Standard functions
@@ -538,7 +546,9 @@ this loop it is checked whether a new cycle, face, hole or region starts,
 which can be done by comparing the actual point index to the
 next entries in the tuple array and in the cycle array respectively.
 if there is a match, the resulting nested list is extended
-to the corresponding list element.
+to the corresponding list element. Minimum bounding boxes aren't stored
+separately - they will be computed just in time in the ~In~ and
+~append~ functions.
 
 */
   static ListExpr Out(ListExpr typeInfo, Word value);
@@ -629,7 +639,6 @@ TypeConstructor ColRegionTC(
   ColRegion::Cast, ColRegion::SizeOf,
   ColRegion::TypeCheck);
 
-
 /*
 4 Operator Implementation
 
@@ -645,9 +654,7 @@ Without an example, the operator will be switched off by the Secondo framework.
 
 */
 ListExpr insideTM(ListExpr args);
-
 ListExpr mapTM(ListExpr args);
-
 
 /*
 4.2 Value mapping functions
@@ -658,14 +665,12 @@ whether they are inside a given region and returns an AttrArray with the
 indizes of all matching points, lines or regions.
 
 */
-int insidePoint (Word* args, Word& result, int message,
-                 Word& local, Supplier s);
-
-int insideLine (Word* args, Word& result, int message,
-                Word& local, Supplier s);
-
-int insideRegion (Word* args, Word& result, int message,
+int insidePointVM (Word* args, Word& result, int message,
+                   Word& local, Supplier s);
+int insideLineVM (Word* args, Word& result, int message,
                   Word& local, Supplier s);
+int insideRegionVM (Word* args, Word& result, int message,
+                    Word& local, Supplier s);
 
 /*
 ~map~
@@ -674,17 +679,17 @@ into its corresponding column-oriented type apoint, aline or a region
 respectively.
 
 */
-
-int mapPoint (Word* args, Word& result, int message, Word& local, Supplier s);
-int mapLine (Word* args, Word& result, int message, Word& local, Supplier s);
-int mapRegion (Word* args, Word& result, int message, Word& local, Supplier s);
+int mapPointVM (Word* args, Word& result, int message, Word& local, Supplier s);
+int mapLineVM (Word* args, Word& result, int message, Word& local, Supplier s);
+int mapRegionVM (Word* args, Word& result, int message,
+                 Word& local, Supplier s);
 
 /*
 4.3 Value Mapping Array and Selection Function
 
 */
-ValueMapping insideVM[] = {insidePoint, insideLine, insideRegion};
-ValueMapping mapVM[] = {mapPoint, mapLine, mapRegion};
+ValueMapping insideVM[] = {insidePointVM, insideLineVM, insideRegionVM};
+ValueMapping mapVM[] = {mapPointVM, mapLineVM, mapRegionVM};
 
 int insideSelect(ListExpr args);
 int mapSelect(ListExpr args);
@@ -692,7 +697,7 @@ int mapSelect(ListExpr args);
 /*
 4.4 Specification
 
-arguments of the ~OperatorSpec~ constructor
+arguments of the ~OperatorSpec~ constructor:
 description of the type mapping
 the syntax of the operator
 the operator's meaning
@@ -700,15 +705,15 @@ example query.
 remark (optional)
 
 */
-OperatorSpec insideSpec(" obj x region -> ints, obj={apoint,aline,aregion}",
+OperatorSpec insideSpec(" obj x region -> ints, obj={apoint,aline,aregion} ",
                         " _ inside _ ",
-                        "attrarray(obj) within region",
-                        "query cp1 inside r1");
+                        " checks each element of obj whether in region",
+                        " query cp1 inside r1 ");
 
-OperatorSpec mapSpec(" stream(obj) -> aobj, obj={point,line,region}",
-                        " mp _ ",
-                        "maps a stream of standard type to attributarray",
-                        "query r feed mp");
+OperatorSpec mapSpec(" stream(tuple) -> {apoint, aline, aregion} ",
+                     " mp _ ",
+                     " maps a stream of standard type to attribute array",
+                     " query Kreis feed mp[Grebiet] ");
 
 /*
 4.5 Operator Instance

@@ -253,6 +253,11 @@ namespace col {
     array = newArray;
     count = newCount;
   }
+  ColLine::ColLine(int min) {  // constructor with minimum initialized arrays
+    array = NULL;
+    array = static_cast<line*>(calloc(1, sizeof(line)));
+    count = 0;
+  }
   ColLine::~ColLine() {   // destructor
     free(array);
   }
@@ -478,6 +483,18 @@ Class ColRegion for column-oriented representation of Regions
     countCycle = newCountCycle;
     countPoint = newCountPoint;
   }
+  // non-standard constructor initializing the object with minimum data
+  ColRegion::ColRegion(int min) {
+    aTuple = NULL;
+    aCycle = NULL;
+    aPoint = NULL;
+    aTuple = static_cast<sTuple*>(calloc(1, sizeof(sTuple)));
+    aCycle = static_cast<sCycle*>(calloc(1, sizeof(sCycle)));
+    aPoint = static_cast<sPoint*>(calloc(1, sizeof(sPoint)));
+    countTuple = 0;
+    countCycle = 0;
+    countPoint = 0;
+  }
   ColRegion::~ColRegion() {   // destructor - free allocated menory
     free(aTuple);
     free(aCycle);
@@ -492,62 +509,240 @@ Class ColRegion for column-oriented representation of Regions
     return listutils::isSymbol(list, BasicType());
   }
 
-  // free all arrays if neccessary
-  void ColRegion::clear() {
-    // cout << "clear ... ";
-    // cout << countTuple << "\n";
-    // cout << countCycle << "\n";
-    // cout << countPoint << "\n";
-    // free(aTuple);
-    // free(aCycle);
-    // free(aPoint);
-    // cout << "... done!";
+  // allocates memory for the point array and appends the given point
+  int ColRegion::appendPoint(Point p, long &stepPoint) {
+    double x = p.GetX();
+    double y = p.GetY();
+    // allocate more memory if actual allocated memory is insufficient
+    if ((long) ((countPoint + 2) * sizeof(sPoint)) >= allocBytes[stepPoint]) {
+      // allocate more memory - in C++ a type casting is necessary
+      aPoint = static_cast<sPoint*>
+        (realloc(aPoint, allocBytes[++stepPoint]));  // increase alloc counter
+      if (aPoint == NULL) {  // exit on memory overflow
+        cmsg.inFunError("not enough memory!");
+        return 0;
+      }
+    }
+    aPoint[countPoint].x = x;
+    aPoint[countPoint].y = y;
+    // adjust mbr coordinates if neccessary
+    if (x < aTuple[countTuple].mbrX1) aTuple[countTuple].mbrX1 = x;
+    if (x > aTuple[countTuple].mbrX2) aTuple[countTuple].mbrX2 = x;
+    if (y < aTuple[countTuple].mbrY1) aTuple[countTuple].mbrY1 = y;
+    if (y > aTuple[countTuple].mbrY2) aTuple[countTuple].mbrY2 = y;
+    countPoint++;  // increase index of point array
+    return 1;
+  }
+
+  // allocates memory for the cycle array and appends the give cycle
+  int ColRegion::appendCycle(long cp, long &stepCycle) {
+    // allocate more memory if actual allocated memory is insufficient
+    if ((long)
+      ((countCycle + 2) * sizeof(sCycle)) >= allocBytes[stepCycle]) {
+      // allocate more memory - in C++ a type casting is necessary
+      aCycle =static_cast<sCycle*>
+               (realloc(aCycle, allocBytes[++stepCycle]));
+      if (aCycle == NULL) {  // exit on memory overflow
+        cmsg.inFunError("not enough memory!");
+        return 0;
+      }
+    }
+    aCycle[countCycle].index = cp;
+    countCycle++;
+    return 1;
   }
 
 /*
 This function appends one region of the spatial algebra
-to an aregion of the column spatial algebra.
-It needs the source ~region~ as parameter.
+to an existing aregion of the column spatial algebra.
+It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
 
 */
-  void ColRegion::append(Region* region) {
-    //cout << nl->ToString(list) << endl;
-    cout << region->BasicType() << endl;
-    cout << region->IsEmpty()<<endl;
-    cout << region->IsDefined()<<endl;
-    int hSegCount = region->Size();
-    cout << hSegCount << "segments to evaluate\n";
-    HalfSegment hSeg;
-    for (int i = 0; i < hSegCount; i++) {
-      cout << "processing segment nr. " << i << "\n";
-      if (region->Get(i, hSeg)){
-        cout << "x=" << hSeg.GetDomPoint().GetX() << "/ty="
-             << hSeg.GetDomPoint().GetY() << "\n";
+  bool ColRegion::append(Region* region) {
+    if(!region->IsDefined()) {
+      cout << "region is undefined!" << endl;
+      return false;
+    }
+    if(region->IsEmpty()) {
+      cout << "region is empty" << endl;
+      return false;
+    }
+    long stepTuple = 0;
+    long stepCycle = 0;
+    long stepPoint = 0;
+    // calculate and allocate sufficient memory for the tuple array
+    while ((long)
+          ((countTuple + 2) * sizeof(sTuple)) >= allocBytes[stepTuple]) {
+      stepTuple++;
+    }
+    aTuple = static_cast<sTuple*> (realloc(aTuple, allocBytes[stepTuple++]));
+    if (aTuple == NULL) {  // exit on memory overflow
+      cmsg.inFunError("not enough memory!");
+      return false;
+    }
+    // initialize tuple array with region. mbr set to extremes
+    aTuple[countTuple].indexCycle = countCycle;
+    aTuple[countTuple].indexPoint = countPoint;
+    aTuple[countTuple].mbrX1 = 999999;
+    aTuple[countTuple].mbrY1 = 999999;
+    aTuple[countTuple].mbrX2 = -999999;
+    aTuple[countTuple].mbrY2 = -999999;
+    Point outputP, leftoverP;
+    HalfSegment hs, hsnext;
+    // make a copy of the input region to avoid modifying the original data
+    Region *rCopy=new Region(*region, true);
+    rCopy->LogicSort();  // sort is important for consecutive iterations
+    rCopy->Get(0, hs);  // extract first hs
+    int currFace = hs.attr.faceno;     // set actual face to face of first hs
+    int currCycle = hs.attr.cycleno;   // set actual cycle to cycle of first hs
+    // calculate coordinates of first point in region
+    rCopy->Get(1, hsnext);  // extract second hs
+    if ((hs.GetLeftPoint() == hsnext.GetLeftPoint()) ||
+       ((hs.GetLeftPoint() == hsnext.GetRightPoint()))) {
+      outputP = hs.GetRightPoint();
+      leftoverP = hs.GetLeftPoint();
+    } else if ((hs.GetRightPoint() == hsnext.GetLeftPoint()) ||
+              ((hs.GetRightPoint() == hsnext.GetRightPoint()))) {
+      outputP = hs.GetLeftPoint();
+      leftoverP = hs.GetRightPoint();
+    } else {
+      cmsg.inFunError("1 Wrong data format: discontiguous segments!");
+      return false;
+    }
+    // append first point to aPoint[]
+    if (!appendPoint(outputP, stepPoint)) {
+      cmsg.inFunError("error on appending first point!");
+      return false;
+    }
+      // append first cycle (face) to aCycle[]
+    if (!appendCycle(countPoint - 1, stepCycle)) {
+      cmsg.inFunError("error on appending first face!");
+      return false;
+    }
+    // main loop: scan all remaining halfsegments
+    for (int i = 1; i < rCopy->Size(); i++) {
+      rCopy->Get(i, hs);  // extract actual hs
+      if (hs.attr.faceno == currFace) {  // hs belongs to actual face
+        if (hs.attr.cycleno == currCycle) {  // hs belongs to actual cycle
+          // calculate coordinates of actual point in region
+          outputP=leftoverP;
+          if (hs.GetLeftPoint() == leftoverP)
+            leftoverP = hs.GetRightPoint();
+          else if (hs.GetRightPoint() == leftoverP) {
+            leftoverP = hs.GetLeftPoint();
+          } else {
+            cmsg.inFunError("2 Wrong data format: discontiguous segments!");
+            return false;
+          }
+          // append actual point to aPoint[]
+          if (!appendPoint(outputP, stepPoint)) {
+            cmsg.inFunError("error on appending point!");
+            return false;
+          }
+        } else {  // hs belongs to new cycle = hole
+          currCycle = hs.attr.cycleno;
+          rCopy->Get(i+1, hsnext);
+          if ((hs.GetLeftPoint() == hsnext.GetLeftPoint()) ||
+             ((hs.GetLeftPoint() == hsnext.GetRightPoint()))) {
+            outputP = hs.GetRightPoint();
+            leftoverP = hs.GetLeftPoint();
+          } else if ((hs.GetRightPoint() == hsnext.GetLeftPoint()) ||
+                    ((hs.GetRightPoint() == hsnext.GetRightPoint()))) {
+            outputP = hs.GetLeftPoint();
+            leftoverP = hs.GetRightPoint();
+          } else {
+            cmsg.inFunError("3 Wrong data format: discontiguous segments!");
+            return false;
+          }
+          // append new point to aPoint[]
+          if (!appendPoint(outputP, stepPoint)) {
+            cmsg.inFunError("error on appending point!");
+            return false;
+          }
+          // append new cycle (hole = -index) to aCycle[]
+          if (!appendCycle((countPoint - 1) * (-1), stepCycle)) {
+            cmsg.inFunError("error on appending hole!");
+            return false;
+          }
+        }
+      } else {  // hs belongs to new face
+        currFace = hs.attr.faceno;
+        currCycle = hs.attr.cycleno;
+        rCopy->Get( i+1, hsnext );
+        if ((hs.GetLeftPoint() == hsnext.GetLeftPoint()) ||
+           ((hs.GetLeftPoint() == hsnext.GetRightPoint()))) {
+          outputP = hs.GetRightPoint();
+          leftoverP = hs.GetLeftPoint();
+        } else if ((hs.GetRightPoint() == hsnext.GetLeftPoint()) ||
+                  ((hs.GetRightPoint() == hsnext.GetRightPoint()))) {
+          outputP = hs.GetLeftPoint();
+          leftoverP = hs.GetRightPoint();
+        } else {
+          cmsg.inFunError("4 Wrong data format: discontiguous segments!");
+          return false;
+        }
+        if (!appendPoint(outputP, stepPoint)) {
+          cmsg.inFunError("error on appending point!");
+          return false;
+        }
+
+        if (!appendCycle(countPoint - 1, stepCycle)) {
+          cmsg.inFunError("error on appending face!");
+          return false;
+        }
       }
     }
+    countTuple++;
+    return true;
+  }
+
+  // add terminator entries to arrays and finalize counters
+  void ColRegion::finalize() {
+    aPoint[countPoint].x = 0;
+    aPoint[countPoint].y = 0;
+    aCycle[countCycle].index = countPoint;
+    aTuple[countTuple].indexCycle = countCycle;
+    aTuple[countTuple].indexPoint = countPoint;
+    aTuple[countTuple].mbrX1 = 0;
+    aTuple[countTuple].mbrY1 = 0;
+    aTuple[countTuple].mbrX2 = 0;
+    aTuple[countTuple].mbrY2 = 0;
+    countTuple++;
+    countCycle++;
+    countPoint++;
   }
 
   // test output of the arrays aRegion, aCycle and aPoint and there parameters
-  void ColRegion::showArrays(string title) {
+  void ColRegion::showArrays(string title, bool showPoints) {
+    // example output of a nested list: cout << nl->ToString(list) << endl;
     cout << "\n--------------------------------------------\n" << title << "\n";
+    // output of the array aTuple
     cout << "aRegion (" << countTuple << "):\n";
     cout << "Bytes allocated: " << countTuple * sizeof(aTuple[0]) << "\n";
-    cout << "index\tcycle\tpoint\n";
+    cout << "index\tcycle\tpoint\tmbr-l\tmbr-b\tmbr-r\tmbr-t\n";
     for (long ct = 0; ct < countTuple; ct++) {
       cout << ct << ":\t" << aTuple[ct].indexCycle << "\t"
-           << aTuple[ct].indexPoint << "\n";
+           << aTuple[ct].indexPoint << "\t"
+           << aTuple[ct].mbrX1 << "\t"
+           << aTuple[ct].mbrY1 << "\t"
+           << aTuple[ct].mbrX2 << "\t"
+           << aTuple[ct].mbrY2 << "\n";
     }
+    // output of the array aCycle
     cout << "aCycle (" << countCycle << "):\n";
     cout << "Bytes allocated: " << countCycle * sizeof(aCycle[0]) << "\n";
     cout << "index\tpoint\n";
     for (long cc = 0; cc < countCycle; cc++) {
       cout << cc << ":\t" << aCycle[cc].index << "\n";
     }
+    // output of the array aPoint
     cout << "aPoint (" << countPoint << "):\n";
     cout << "Bytes allocated: " << countPoint * sizeof(aPoint[0]) << "\n";
-    cout << "index\tx\ty\n";
-    for (long cp = 0; cp < countPoint; cp++) {
-      cout << cp << ":\t" << aPoint[cp].x << "\t" << aPoint[cp].y << "\n";
+    if (showPoints) {
+      cout << "index\tx\ty\n";
+      for (long cp = 0; cp < countPoint; cp++) {
+        cout << cp << ":\t" << aPoint[cp].x << "\t" << aPoint[cp].y << "\n";
+      }
     }
     cout << "--------------------------------------------\n";
   }
@@ -615,7 +810,7 @@ It needs the source ~region~ as parameter.
     int cycleSign = 1;  // 1 marks an outer cycle and -1 marks an inner cycle
     // loops to parse a nested list of regions
     ListExpr regionNL = instance;
-    while (!nl->IsEmpty(regionNL)) {  // regions
+    while (!nl->IsEmpty(regionNL)) {  // as long as there are regions left
       // allocate more memory if the actual allocated memory is insufficient
       if ((long)
         ((ct + 2) * sizeof(sTuple)) >= allocBytes[stepTuple]) {
@@ -629,7 +824,7 @@ It needs the source ~region~ as parameter.
       }
       inTuple[ct].indexCycle = cc;
       inTuple[ct].indexPoint = cp;
-      // temp values for the actual minimum bounding rectangle per region
+      // values for the actual minimum bounding rectangle per region
       inTuple[ct].mbrX1 = 0;
       inTuple[ct].mbrY1 = 0;
       inTuple[ct].mbrX2 = 0;
@@ -652,7 +847,8 @@ It needs the source ~region~ as parameter.
           if ((long)
             ((cc + 2) * sizeof(sCycle)) >= allocBytes[stepCycle]) {
             // allocate more memory - in C++ a type casting is necessary
-            inCycle = (sCycle*) realloc(inCycle, allocBytes[++stepCycle]);
+            inCycle =static_cast<sCycle*>
+                     (realloc(inCycle, allocBytes[++stepCycle]));
             if (inCycle == NULL) {  // exit on memory overflow
               cmsg.inFunError("not enough memory!");
               return error;
@@ -691,9 +887,9 @@ It needs the source ~region~ as parameter.
             if (inPoint[cp].x > inTuple[ct].mbrX2)
               inTuple[ct].mbrX2 = inPoint[cp].x;
             if (inPoint[cp].y < inTuple[ct].mbrY1)
-              inTuple[ct].mbrX2 = inPoint[cp].x;
+              inTuple[ct].mbrY1 = inPoint[cp].y;
             if (inPoint[cp].y > inTuple[ct].mbrY2)
-              inTuple[ct].mbrY2 = inPoint[cp].x;
+              inTuple[ct].mbrY2 = inPoint[cp].y;
 
             cp++;
             cycleNL = nl->Rest(cycleNL);  // "move" to next point
@@ -710,7 +906,11 @@ It needs the source ~region~ as parameter.
     inCycle[cc].index = cp;
     inTuple[ct].indexCycle = cc;
     inTuple[ct].indexPoint = cp;
-    // truncate oversized memory to allocate the real used memory
+    inTuple[ct].mbrX1 = 0;
+    inTuple[ct].mbrY1 = 0;
+    inTuple[ct].mbrX2 = 0;
+    inTuple[ct].mbrY2 = 0;
+    // truncate oversized memory to allocate only the real used memory
     inTuple = static_cast<sTuple*>(realloc(inTuple, ++ct * sizeof(sTuple)));
     inCycle = static_cast<sCycle*>(realloc(inCycle, ++cc * sizeof(sCycle)));
     inPoint = static_cast<sPoint*>(realloc(inPoint, ++cp * sizeof(sPoint)));
@@ -720,8 +920,8 @@ It needs the source ~region~ as parameter.
     // create new region object with the just read in arrays
     answer.addr = new ColRegion(inTuple, inCycle, inPoint, ct, cc, cp);
     // the following two lines are only for debugging mode
-    ColRegion* cRegion = static_cast<ColRegion*>(answer.addr);
-    cRegion->showArrays("ColRegion after In-function");
+    // ColRegion* cRegion = static_cast<ColRegion*>(answer.addr);
+    // cRegion->showArrays("ColRegion after In-function", true);
     correct = true;
     return answer;  // return the object
   }
@@ -972,16 +1172,14 @@ ListExpr insideTM(ListExpr args) {
 }
 
 ListExpr mapTM(ListExpr args) {
-  string err = "stream(tuple) expected\n";
-  // check for correct number of arguments
   if (!nl->HasLength(args,2)) {
-     return listutils::typeError("wrong number of arguments");
+     return listutils::typeError("\nWrong number of arguments!");
   }
   if (!Stream<Tuple>::checkType(nl->First(args))) {
-    return listutils::typeError("first arg is not a tuple stream");
+    return listutils::typeError("\nFirst arg is not a tuple stream!");
   }
   if (nl->AtomType(nl->Second(args))!=SymbolType) {
-     return listutils::typeError("second arg is not a valid attribute name");
+     return listutils::typeError("\nSecond arg is not a valid attribute name!");
   }
   // extract the attribute list
   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
@@ -989,87 +1187,119 @@ ListExpr mapTM(ListExpr args) {
   string name = nl->SymbolValue(nl->Second(args));
   int j = listutils::findAttribute(attrList, name, type);
   if (j==0) {
-    return listutils::typeError("attribute " + name + "not found");
+    return listutils::typeError("\nAttribute " + name + " not found!");
   };
-  // the append mechanism
-  return nl->ThreeElemList(
+  // check type and return corresponding result type using the append mechanism
+  if (Point::checkType(type) ||
+      Line::checkType(type) ||
+      Region::checkType(type)) {
+    cout << "Attribute " << j << " is " << nl->ToString(type) << endl;
+    return nl->ThreeElemList(
            nl->SymbolAtom(Symbols::APPEND()),
            nl->OneElemList(nl->IntAtom(j)),
-           listutils::basicSymbol<ColRegion>());
-
-
-//  if((Point::checkType(nl->Second(args)) &&
-//    ColPoint::checkType(nl->First(args)))) {
-//    return listutils::basicSymbol<ColPoint>(); }
-//  if(Line::checkType(nl->Second(args)) &&
-//    ColLine::checkType(nl->First(args))) {
-//    return listutils::basicSymbol<ColLine>(); }
-//  if(Region::checkType(nl->Second(args)) &&
-//    ColRegion::checkType(nl->First(args)))) {
-//    return listutils::basicSymbol<ColRegion>(); }
+           type);
+  } else {
+    return listutils::typeError("\nAttribute type point, line or region"
+                                "not found!");
+  }
 }
 
-int insidePoint (Word* args, Word& result, int message,
-                 Word& local, Supplier s) {
-
+int insidePointVM (Word* args, Word& result, int message,
+                   Word& local, Supplier s) {
 //ColPoint* point = (ColPoint*) args[0].addr;
 //Region* region = (Region*) args[1].addr;
 //result = qp->ResultStorage(s);
 //(AttrArray*) result.addr;
 //region->p_inside(point->getArray(), point->getCount(), result.addr);
-
   return 0;
 }
 
-int insideLine (Word* args, Word& result, int message,
-                Word& local, Supplier s) {
-
-  return 0;
-}
-
-int insideRegion (Word* args, Word& result, int message,
+int insideLineVM (Word* args, Word& result, int message,
                   Word& local, Supplier s) {
-
   return 0;
 }
 
-int mapPoint (Word* args, Word& result, int message, Word& local, Supplier s) {
-
+int insideRegionVM (Word* args, Word& result, int message,
+                    Word& local, Supplier s) {
   return 0;
-
-}
-int mapLine (Word* args, Word& result, int message, Word& local, Supplier s) {
-  return 0;
-
 }
 
 /*
-The operator ~mapRegion~ expects a stream of tuples as input.
-It extracts the region attribute and hands it over to the append function
-of the column spatial region object.
+The operator ~mapPointVM~ expects a stream of tuples as input parameter.
+It extracts the ~point~ attribute of each tuple and hands it over to the
+append function of the column spatial ~apoint~ object.
 
 */
-int mapRegion (Word* args, Word& result, int message, Word& local, Supplier s) {
-  // result object is set to the object cRegion
-  ColRegion* cRegion = static_cast<ColRegion*> (result.addr);
-  cRegion->clear();                      // clear arrays of instance
+int mapPointVM (Word* args, Word& result, int message,
+                Word& local, Supplier s) {
+  return 0;
+}
+
+/*
+The operator ~mapLineVM~ expects a stream of tuples as input parameter.
+It extracts the ~line~ attribute of each tuple and hands it over to the
+append function of the column spatial ~aline~ object.
+
+*/
+int mapLineVM (Word* args, Word& result, int message,
+               Word& local, Supplier s) {
+  result.addr = new ColLine(1);
+  ColLine* cLine = static_cast<ColLine*> (result.addr);
   result = qp->ResultStorage(s);         // use result storage for the result
   CcInt* index = (CcInt*) args[2].addr;  // index of the appended attribute
   int v = index->GetValue();
-  Stream<Tuple> stream(args[0]);                  // get the tuples
-  stream.open();                                 // open the stream
-  cout << "Tuple Stream geöffnet (Attribut " << v << " ist Region)!\n";
-  Tuple* tuple;                                  // actual tuple element
-  Region* region;                               // actual region attribute
-  while( (tuple = stream.request()) ){          // if exists, get next tuple
+  Stream<Tuple> stream(args[0]);         // get the tuples
+  stream.open();                         // open the stream
+  Tuple* tuple;                          // actual tuple element
+  Line* line;                            // actual line attribute
+  while( (tuple = stream.request()) ) {  // if exists, get next tuple
     // extract region from tuple
-    region = (Region*) tuple->GetAttribute(v);  // get region attribute
-    cRegion->append(region);                    // append region to aregion
+    region = (Line*) tuple->GetAttribute(v - 1);
+    if (!cLine->append(line)) {          // append line to aline
+      cout << "Error in line mapping!";
+      return 0;
+    }
     tuple->DeleteIfAllowed();            // remove tuple from stream
-  }
+   }
   stream.close();                        // close the stream
+  cRegion->finalize();
+  // next line is only for debugging cases - should be commented out
+  cRegion->showArrays("Nach append aller Linien", false);
+  return 0;
+}
 
-return 0;
+/*
+The operator ~mapRegionVM~ expects a stream of tuples as input parameter.
+It extracts the ~region~ attribute of each tuple and hands it over to the
+append function of the column spatial ~aregion~ object.
+
+*/
+int mapRegionVM (Word* args, Word& result, int message,
+                 Word& local, Supplier s) {
+  result.addr = new ColRegion(1);        // result set to cRegion object
+  ColRegion* cRegion = static_cast<ColRegion*> (result.addr);
+  result = qp->ResultStorage(s);         // use result storage for the result
+  CcInt* index = (CcInt*) args[2].addr;  // index of the appended attribute
+  int v = index->GetValue();
+  Stream<Tuple> stream(args[0]);         // get the tuples
+  stream.open();                         // open the stream
+  Tuple* tuple;                          // actual tuple element
+  Region* region;                        // actual region attribute
+  while( (tuple = stream.request()) ) {  // if exists, get next tuple
+    // extract region from tuple
+    region = (Region*) tuple->GetAttribute(v - 1);
+    if (!cRegion->append(region)) {      // append region to aregion
+      cout << "Error in mapping!";
+      return 0;
+    }
+    tuple->DeleteIfAllowed();            // remove tuple from stream
+   }
+  stream.close();                        // close the stream
+  cRegion->finalize();
+  // next line is only for debugging cases - should be commented out
+  cRegion->showArrays("Nach append aller Regionen - Ausgabe ohne Punkte",
+                      false);
+  return 0;
 }
 
 /*
@@ -1083,9 +1313,17 @@ int insideSelect(ListExpr args) {
 }
 
 int mapSelect(ListExpr args) {
-    if (ColPoint::checkType(nl->First(args))) { return 0; }
-    if (ColLine::checkType(nl->First(args))) { return 1; }
-    return 2; // ColRegion
+    // extract the attribute list
+    ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+    ListExpr type;
+    string name = nl->SymbolValue(nl->Second(args));
+    listutils::findAttribute(attrList, name, type);
+    if (Point::checkType(type)) return 0;  // mapPointVM
+    if (Line::checkType(type)) return 1;   // mapLineVM
+    // in any other case choose mapRegionVM
+    // if this is wrong, it will be detected in the type mapping function
+    return 2;
 }
+
 
 }  // namespace col
