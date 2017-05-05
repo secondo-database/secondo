@@ -9,10 +9,25 @@ query memclear()
 
 # in a first step, we sssign speeds to the edges of the relation
 
+if isDBObject("useAll") then delete useAll endif
+
+let useAll = TRUE
+
+
 if not(isDBObject("EdgesB")) then 
 let EdgesB =
   Speeds2  feed  {s} 
-  Edges    feed filter[isdefined(.Curve)] 
+  Edges    feed 
+           filter[isdefined(.Curve)] 
+           filter[ useAll or
+                   (.RoadType = "motorway") or (.RoadType = "motorway_link")
+                   or (.RoadType = "trunk") or (.RoadType = "trunk_link")
+                   or (.RoadType = "primary") or (.RoadType = "primary_link")
+                   or (.RoadType = "secondary") or (.RoadType = "secondary_link")
+                   or (.RoadType = "tertiary") or (.RoadType = "tertiary_link")
+                   or (.RoadType = "road") or (.RoadType = "unclassified")
+                   or (.RoadType = "residential") or (.RoadType = "living_street")
+           ]
            itHashJoin[RoadType_s, RoadType]
            extend[Cost: size(.Curve,[const geoid value WGS1984]) / (.Speed_s / 3.6), 
                   Middle: 0, 
@@ -55,8 +70,10 @@ if not(isDBObject("EdgesD")) then
   { query EdgesC  feed createmgraph2[Source,Target,.Cost,"EdgesD", TRUE] count
     |
     let EdgesD = "EdgesD" mg2feed projectextend[; Source : .MG_Source, SourcePos : .SourcePos,
-                                                       Cost : .MG_Cost, Middle : .Middle, NEdges : .NEdges,
-                                                       Target : .MG_Target, TargetPos : .TargetPos] consume
+                                                  Cost : .MG_Cost, Middle : .Middle, NEdges : .NEdges,
+                                                  Target : .MG_Target, TargetPos : .TargetPos
+                                                ] 
+                                  consume
     |
     if isDBObject("NodeCount") then delete NodeCount endif
     |
@@ -88,18 +105,87 @@ endif
 query "EdgesX" mg3feed head[0] letmconsume["ContractionX"]
 
 
-# create a priority queue from the nodes
-query NodesA feed  projectextend[; Node: .NodeIdNew, Pos: .Pos, Prio: 0.0] 
-                   mcreatepqueue[Prio, "NodesX"] count
 
 # create an empty relation for the deleted nodes
-query NodesA feed  projectextend[; Node: .NodeIdNew, Pos: .Pos, Prio: 0.0, In: 0, Out: 0, CEdges: 0, Deleted: 0] head[0] 
+query NodesA feed  projectextend[; Node: .NodeIdNew, Pos: .Pos, Prio: 0.0, Reinsertions: 0, NewPrio: 0.0, CEdges: 0, Deleted: 0] head[0] 
   letmconsume["DeletedNodes"];
 
   
- 
-  
+# create a main memory vector holding the number of contracted neighbors 
+# for each node, initial of course 0
 
+query NodesA feed extend[CN : 0] projecttransformstream[CN] collect_mvector["ContractedNeighbours",TRUE]  
+ 
+
+#define a function increasing the ContractedNeighboursVector at a specified index
+
+if isDBObject("increaseCN") then delete increaseCN endif
+
+let increaseCN = fun( node : int)
+           pwrap("ContractedNeighbours") putmv[node, pwrap("ContractedNeighbours") getmv[node] + 1]
+
+
+ 
+
+# store a priority function
+
+if isDBObject("edgeDiff") then delete edgeDiff endif
+
+
+# simple version
+
+let edgeDiff = fun(node : int)
+                   (pwrap("EdgesX") mg3numsuccessors[node]
+                   * pwrap("EdgesX") mg3numpredecessors[node])
+                   - 
+                   (pwrap("EdgesX") mg3numsuccessors[node]
+                   + pwrap("EdgesX") mg3numpredecessors[node])
+
+# more exact version
+
+#if isDBObject("allIn") then delete allIn endif
+#
+#let allIn = fun(node : int) 
+#      pwrap("EdgesX") mg3successors[node] project[Target]  sorth rdup
+#      pwrap("EdgesX") mg3predecessors[node] project[Source]  sorth rdup
+#      pMerge[Target,Source]
+#      filter[ isdefined(.Source)] count
+#
+#
+#if isDBObject("allOut") then delete allOut endif
+#
+#let allOut = fun(node : int) 
+#      pwrap("EdgesX") mg3successors[node] project[Target]  sorth rdup
+#      pwrap("EdgesX") mg3predecessors[node] project[Source]  sorth rdup
+#      pMerge[Target,Source]
+#      filter[ isdefined(.Target)] count
+#
+#
+#if isDBObject("noDelEdges") then delete noDelEdges endif
+#
+#
+#let noDelEdges = fun(node : int)
+#      (pwrap("EdgesX") mg3numsuccessors[node]) +
+#      (pwrap("EdgesX") mg3numpredecessors[node]) 
+#      
+#
+
+#let edgeDiff = fun(node : int) (allIn(node) * allOut(node)) - noDelEdges(node)
+
+
+
+
+if isDBObject("getPriority") then delete getPriority endif
+
+let getPriority = fun(node : int) 
+                      (8.0 * edgeDiff(node)) 
+                  +   (1 * pwrap("ContractedNeighbours") getmv[node])
+
+
+# create a priority queue from the nodes
+query NodesA feed  projectextend[; Node: .NodeIdNew, Pos: .Pos, Prio: getPriority(.NodeIdNew),
+                                   Reinsertions : -1 ] 
+                   mcreatepqueue[Prio, "NodesX"] count
 
 # define a function for contraction
 
@@ -128,15 +214,18 @@ if isDBObject("mtcontract") then delete mtcontract endif
 let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress : int)
   "NodesX" mfeedpq
      extend[ 
-       In : pwrap("EdgesX") mg3numpredecessors[.Node], 
-       Out: pwrap("EdgesX") mg3numsuccessors[.Node] 
-    ]
-    extend[CEdges: fun(t: TUPLE)
+       NewPrio : getPriority(.Node)
+     ]
+     replaceAttr[Reinsertions : .Reinsertions + 1]
+     extend[CEdges: fun(t: TUPLE)
        ifthenelse(
-          ((attr(t, In) * attr(t, Out)) - (attr(t,In) + attr(t,Out)) ) <= attr(t, Prio),
+          (attr(t,NewPrio)) <= attr(t, Prio),
            mtcreationEdges(attr(t,Node), maxHops)
-             groupby[; Added: fun(g: GROUP)
-                 g feed 
+             memgroupby[; Added: fun(g: MGROUP)
+                 g mfeed 
+                   extend[ D1 : increaseCN(.Source_i), 
+                           D2 : increaseCN(.Target_o)
+                   ] 
                    projectextend[; Source: .Source_i, 
                                    SourcePos: .SourcePos_i,
                                    Cost: .Cost_i + .Cost_o,
@@ -144,20 +233,20 @@ let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress :
                                    NEdges: .NEdges_i + .NEdges_o,
                                    Target: .Target_o, 
                                    TargetPos: .TargetPos_o
-                   ] 
+                   ]
                    mg3insert[pwrap("EdgesX")] 
                    minsert[pwrap("ContractionX")] count 
              ] 
              count
     ,
-      bool2int(pwrap("NodesX") minserttuplepqprojectU[t, 
-        ((attr(t, In) * attr(t, Out)) - (attr(t,In) + attr(t,Out))) * 1.0, 
-        Prio; Node, Pos, Prio]) - 10
+      bool2int(pwrap("NodesX") minserttuplepqprojectU[t,
+        (attr(t,NewPrio)), 
+        Prio; Node, Pos, Prio, Reinsertions]) - 10
     )
   ] 
   filter[.CEdges >= 0]
   addModCounter[Num,1, (.Prio > maxprio) and (.. > minBlockSize), 0]
-  extend[ Dummy : ifthenelse(.Num = 0,pwrap("NodesX") mpqreorderupdate[ -1.0, Prio ],0)]
+  extend[ Dummy : ifthenelse(.Num = 0,pwrap("NodesX") mpqreorderupdate[ getPriority(.Node), Prio ],0)]
   remove[Num,Dummy]                                                               
   addcounter[Progress,1]
   filter[ ifthenelse((.Progress mod progress)=0,
@@ -173,8 +262,10 @@ let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress :
 ########## the actual Contraction, play with arguments
 
 
-# query mtcontract(10,600,5, NodeCount div 100)  
-  
+query mtcontract(100,500,5, NodeCount div 100)  
+
+
+
 if isDBObject("bdcreationEdges") then delete bdcreationEdges endif
 
 let bdcreationEdges = fun(node11 : int, maxHopsF : int, maxHopsB : int)
@@ -194,16 +285,19 @@ if isDBObject("bdcontract") then delete bdcontract endif
 let bdcontract = fun(maxprio: int, minBlockSize : int, maxHopsF : int,
                      maxHopsB : int, progress : int)
   "NodesX" mfeedpq
+     replaceAttr[Reinsertions : .Reinsertions + 1]
      extend[ 
-       In : pwrap("EdgesX") mg3numpredecessors[.Node], 
-       Out: pwrap("EdgesX") mg3numsuccessors[.Node] 
-    ]
+       NewPrio : getPriority(.Node) 
+     ]
     extend[CEdges: fun(t: TUPLE)
        ifthenelse(
-          ((attr(t, In) * attr(t, Out)) - (attr(t,In) + attr(t,Out)) ) <= attr(t, Prio),
+           attr(t, NewPrio)  <= attr(t, Prio),
            bdcreationEdges(attr(t,Node), maxHopsF, maxHopsB)
-             groupby[; Added: fun(g: GROUP)
-                 g feed 
+             memgroupby[; Added: fun(g: MGROUP)
+                 g mfeed 
+                   extend[ D1 : increaseCN(.Source_i), 
+                           D2 : increaseCN(.Target_o)
+                   ] 
                    projectextend[; Source: .Source_i, 
                                    SourcePos: .SourcePos_i,
                                    Cost: .Cost_i + .Cost_o,
@@ -218,8 +312,8 @@ let bdcontract = fun(maxprio: int, minBlockSize : int, maxHopsF : int,
              count
     ,
       bool2int(pwrap("NodesX") minserttuplepqprojectU[t, 
-        ((attr(t, In) * attr(t, Out)) - (attr(t,In) + attr(t,Out))) * 1.0, 
-        Prio; Node, Pos, Prio]) - 10
+        attr(t, NewPrio) , 
+        Prio; Node, Pos, Prio,Reinsertions]) - 10
     )
   ] 
   filter[.CEdges >= 0]
@@ -237,7 +331,7 @@ let bdcontract = fun(maxprio: int, minBlockSize : int, maxHopsF : int,
 
 
 
-query bdcontract(10,600,2,1, NodeCount div 100)  
+# query bdcontract(10,600,2,1, NodeCount div 100)  
 
 
 
