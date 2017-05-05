@@ -45,20 +45,25 @@ bool DBServicePersistenceAccessor::createOrInsert(
 {
     printFunction("DBServicePersistenceAccessor::createOrInsert");
     string databaseName("dbservice");
+    print(relationName);
+
     SecondoUtils::adjustDatabaseOnCurrentNode(databaseName);
 
     bool resultOk = false;
     string errorMessage;
 
-    if(!SecondoSystem::GetCatalog()->IsObjectName(relationName))
-    {
+//    if(!SecondoSystem::GetCatalog()->IsObjectName(relationName))
+//    {
+        print("relation does not exist: ", relationName);
         resultOk = SecondoUtils::createRelationOnCurrentNode(
                 createQuery, errorMessage);
         if(resultOk)
         {
             return true;
         }
-    }
+//        return false;
+//    }
+//    print("relation exists, trying insert command");
 
     ListExpr resultList;
     resultOk = SecondoUtils::excuteQueryCommandOnCurrentNode(

@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/CommunicationClient.hpp"
 #include "Algebras/DBService/SecondoUtils.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/ReplicatorRunnable.hpp"
 
 using namespace std;
 
@@ -90,7 +91,11 @@ bool DBServiceConnector::replicateRelation(const std::string& relationName)
     vector<LocationInfo> locations;
     masterClient.getNodesForReplication(relationName, locations);
 
-    replicator.replicateRelation(relationName, locations);
+    ReplicatorRunnable replicationThread(
+            SecondoSystem::GetInstance()->GetDatabaseName(),
+            relationName,
+            locations);
+    replicationThread.run();
     return true;
 }
 

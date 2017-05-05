@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <sstream>
 #include <vector>
+#include <stdlib.h>
 
 #include "Algebra.h"
 
@@ -63,29 +64,38 @@ Replicator::Replicator()
     print(host);
 }
 
-string Replicator::getFileName(const std::string& relationName) const
+string Replicator::getFileName(const string& databaseName,
+                               const std::string& relationName) const
 {
     printFunction("Replicator::getFileName");
     return SecondoSystem::GetInstance()->GetDatabaseName()
-            + "_-_" + relationName + ".bin";
+            + "___" + relationName + ".bin";
 }
 
-void Replicator::replicateRelation(const string& relationName,
+void Replicator::replicateRelation(
+        const string& databaseName,
+        const string& relationName,
         const vector<LocationInfo>& locations) const
 {
     printFunction("Replicator::replicateRelation");
-    createFileOnCurrentNode(relationName);
-    runReplication(relationName, locations);
+    createFileOnCurrentNode(databaseName, relationName);
+    runReplication(databaseName, relationName, locations);
 }
 
-void Replicator::createFileOnCurrentNode(const string& relationName) const
+void Replicator::createFileOnCurrentNode(const string& databaseName,
+                                         const string& relationName) const
 {
     printFunction("Replicator::createFileOnCurrentNode");
+
+    // wait for "let" command to finish
+    sleep(1000);
+    // TODO adjust database if necessary
+
     stringstream query;
     query << "query "
           << relationName
           << " saveObjectToFile[\""
-          << getFileName(relationName)
+          << getFileName(databaseName, relationName)
           << "\"]";
     print("query", query.str());
 
@@ -97,8 +107,9 @@ void Replicator::createFileOnCurrentNode(const string& relationName) const
     print("errorMessage", errorMessage);
 }
 
-void Replicator::runReplication(const string& relationName,
-        const vector<LocationInfo>& locations) const
+void Replicator::runReplication(const string& databaseName,
+                                const string& relationName,
+                                const vector<LocationInfo>& locations) const
 {
     printFunction("Replicator::runReplication");
     for(vector<LocationInfo>::const_iterator it = locations.begin();
@@ -110,8 +121,8 @@ void Replicator::runReplication(const string& relationName,
                            transferPort,
                            it->getHost(),
                            atoi(it->getCommPort().c_str()),
-                           getFileName(relationName),
-                           SecondoSystem::GetInstance()->GetDatabaseName(),
+                           getFileName(databaseName, relationName),
+                           databaseName,
                            relationName);
     }
 }
