@@ -5084,8 +5084,8 @@ const string ExtendSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "<text>Extends each input tuple by new "
                            "attributes as specified in the parameter"
                            " list.</text--->"
-                           "<text>query ten feed extend [mult5 : "
-                           ".nr * 5, mod2 : .nr mod 2] consume"
+                           "<text>query ten feed extend [Mult5 : "
+                           ".nr * 5, Mod2 : .nr mod 2] consume"
                            "</text--->"
                            ") )";
 
