@@ -20864,6 +20864,355 @@ Operator mg3minPathCostOp(
 );
 
 
+ListExpr MGroupTM(ListExpr args)
+{
+  if(nl->ListLength(args)<1){
+     ErrorReporter::ReportError("one argument expected");
+     return nl->TypeError();
+  }
+
+  ListExpr first = nl->First(args);
+
+  if(!Stream<Tuple>::checkType(first)){
+    return listutils::typeError("tuple stream expected");
+  }
+
+  return nl->TwoElemList(listutils::basicSymbol<MemoryRelObject>(),
+                nl->Second(first));
+}
+/*
+2.3.2 Specification of operator ~MGroup~
+
+*/
+const string MGroupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Remarks\" ) "
+                          "( <text>((stream x)) -> (mem (rel x))</text--->"
+                          "<text>type operator</text--->"
+                          "<text>Maps stream type to a mem rel.</text--->"
+                          "<text>not for use with sos-syntax</text--->"
+                          ") )";
+
+/*
+2.3.3 Definition of operator ~group~
+
+*/
+Operator mgroupOp (
+         "MGROUP",              // name
+         MGroupSpec,            // specification
+         0,                    // no value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         MGroupTM          // type mapping
+);
+
+
+
+
+/*
+Operator memgroupby
+
+*/
+ListExpr memgroupbyTM(ListExpr args){
+
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("stream x attrlist x funlist expected");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError("first arg is not a tuple stream");
+  }
+  if(nl->AtomType(nl->Second(args))!=NoAtom){
+    return listutils::typeError("second arg is not a list of attributes");
+  }
+  if(nl->AtomType(nl->Third(args))!=NoAtom){
+    return listutils::typeError("third arg is not a list of attributes");
+  }
+  vector<int> groupAttr;
+  vector<ListExpr> groupTypes;
+  vector<string> groupNames;
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr groupAttrList = nl->Second(args);
+  while(!nl->IsEmpty( groupAttrList)){
+    ListExpr ga = nl->First(groupAttrList);
+    groupAttrList = nl->Rest(groupAttrList);
+    if(nl->AtomType(ga)!=SymbolType){
+      return listutils::typeError("Invalid attr ID in attr list");
+    }
+    string aname = nl->SymbolValue(ga);
+    ListExpr at;
+    int index = listutils::findAttribute(attrList, aname, at);
+    if(!index){
+      return listutils::typeError("attribute " + aname 
+      + " not part of the incoming stream");
+    }
+    groupAttr.push_back(index - 1);
+    groupTypes.push_back(at);
+    groupNames.push_back(aname);
+  }
+  
+
+  /*ListExpr funarg = nl->TwoElemList(
+                       listutils::basicSymbol<Mem>(),
+                       nl->TwoElemList(
+                         listutils::basicSymbol<Relation>(),
+                         nl->Second(nl->First(args))));
+   */
+   ListExpr funarg = nl->TwoElemList(
+                        listutils::basicSymbol<MemoryRelObject>(),
+                        nl->Second(nl->First(args)));
+
+  // check funtion list
+  ListExpr funlist = nl->Third(args);
+  while(!nl->IsEmpty(funlist)){
+    ListExpr nfun = nl->First(funlist);
+    funlist = nl->Rest(funlist);
+    if(!nl->HasLength(nfun,2)){
+       return listutils::typeError("found problem in function list");
+    }    
+    ListExpr aname = nl->First(nfun);
+    string err;
+    if(!listutils::isValidAttributeName(aname, err)){
+      return listutils::typeError("invalid attr name " + err);
+    }
+    ListExpr fun = nl->Second(nfun);
+    if(!listutils::isMap<1>(fun)){
+      return listutils::typeError("found something that is not "
+                                  "an unary function");
+    }
+    if(!nl->Equal(funarg, nl->Second(fun))){
+      return listutils::typeError("invalid function argument");
+    } 
+    if(!Attribute::checkType(nl->Third(fun))){
+      return listutils::typeError("function result is not an attribute");
+    }
+    groupNames.push_back(nl->SymbolValue(aname));
+    groupTypes.push_back(nl->Third(fun));
+  } 
+
+  if(groupNames.empty()){
+    return listutils::typeError("grouping attributes and functions are empty");
+  }
+  assert(groupNames.size() == groupTypes.size());
+ 
+  ListExpr resAttrList = nl->OneElemList( 
+                         nl->TwoElemList(nl->SymbolAtom(groupNames[0]),
+                                         groupTypes[0]));
+  ListExpr last = resAttrList;
+  for(size_t i=1;i<groupNames.size();i++){
+    last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom(groupNames[i]),
+                                         groupTypes[i]));
+  }
+  ListExpr resType = nl->TwoElemList(
+                        listutils::basicSymbol<Stream<Tuple> >(),
+                        nl->TwoElemList(
+                           listutils::basicSymbol<Tuple>(),
+                           resAttrList));
+
+
+
+  if(groupAttr.empty()){
+    return resType;
+  }
+
+  ListExpr appendList = nl->OneElemList( nl->IntAtom(groupAttr[0]));
+  last = appendList;
+  for(size_t i=1;i<groupAttr.size();i++){
+    last = nl->Append(last, nl->IntAtom(groupAttr[i]));
+  }
+
+
+  ListExpr r =  nl->ThreeElemList(
+               nl->SymbolAtom(Symbols::APPEND()),
+               appendList,
+               resType);
+  return r;
+}
+
+
+class memgroupbyLocalInfo{
+  public:
+
+    memgroupbyLocalInfo(Word _stream, 
+                      vector<int>* _groupAttr, 
+                      vector<Supplier>* _funs,
+                      vector<ArgVectorPointer>* _funargs,
+                      TupleType* _tt): stream(_stream),
+                      groupAttr(_groupAttr), funs(_funs),
+                      funargs(_funargs), tt(_tt) {
+        tt->IncReference();
+        stream.open();
+        start = stream.request();
+        mrel = new MemoryRelObject();
+    }
+
+    ~memgroupbyLocalInfo(){
+        tt->DeleteIfAllowed();
+        stream.close();
+        delete mrel;
+    }
+
+    Tuple* next() {
+       if(!start){
+         return 0;
+       }
+       updateMRel();
+       return createResultTuple();
+    }  
+
+
+    private:
+      Stream<Tuple> stream;
+      vector<int>* groupAttr;
+      vector<Supplier>* funs;
+      vector<ArgVectorPointer>* funargs;
+      TupleType* tt;
+      Tuple* start;
+      MemoryRelObject* mrel;
+      Word funres;
+      
+
+      bool matches(Tuple* tuple){
+        for(size_t i=0;i<groupAttr->size();i++){
+          int a = (*groupAttr)[i];
+          Attribute* a1 = start->GetAttribute(a);
+          Attribute* a2 = tuple->GetAttribute(a);
+          if(a1->Compare(a2)!=0){
+            return false;
+          }
+        }
+        return true;
+      }
+
+      void updateMRel(){
+         mrel->clear();
+         mrel->addTuple(start);
+         Tuple* tuple;
+         while( (tuple=stream.request())){
+           if(matches(tuple)){
+              mrel->addTuple(tuple);
+           } else {
+             start = tuple;
+             return;
+           }
+         }
+         start = 0;
+      }
+
+      Tuple* createResultTuple(){
+         vector<Tuple*>* rel = mrel->getmmrel();
+         Tuple* t1 = (*rel)[0];
+         Tuple* res = new Tuple(tt);
+         // copy group attributes
+         for(size_t i=0;i<groupAttr->size();i++){
+            res->CopyAttribute(i,t1, (*groupAttr)[i]);
+         }
+         // append the function results
+         int n1 = groupAttr->size();
+         for(size_t i=0;i<funs->size();i++){
+           ArgVectorPointer avp = (*funargs)[i];
+           ((*avp)[0]).setAddr(mrel); 
+           Supplier fun = (*funs)[i];
+           qp->Request(fun, funres);
+           res->PutAttribute(n1+i, ((Attribute*)funres.addr)->Clone());
+         }
+         return res;
+      }
+};
+
+
+struct memgroupbyGlobalInfo{
+  TupleType* tt;
+  vector<int> groupAttr;
+  vector<Supplier> funs;
+  vector<ArgVectorPointer> funargs;
+};
+
+int memgroupbyVM(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+
+   memgroupbyLocalInfo* li = (memgroupbyLocalInfo*) local.addr;
+   memgroupbyGlobalInfo* gi = (memgroupbyGlobalInfo*) qp->GetLocal2(s).addr;
+
+   switch(message){
+     case INIT:{
+        return 0;
+     }
+
+     case FINISH: {
+        if(gi){
+           gi->tt->DeleteIfAllowed();
+           delete gi;
+           qp->GetLocal2(s).addr=0;
+        } 
+        return 0;
+     }
+
+     case OPEN:{
+        if(!gi){
+                    gi = new memgroupbyGlobalInfo();
+                    gi->tt = new TupleType(nl->Second(GetTupleResultType(s)));
+          // collect attribute positions
+                    for(int i=3; i<qp->GetNoSons(s);i++){
+                        gi->groupAttr.push_back(
+                                 ((CcInt*)args[i].addr)->GetValue());
+                    }
+          // collect functions and theire argument vectors
+                    Supplier funlist = qp->GetSon(s,2); 
+                    for(int i=0;i<qp->GetNoSons(funlist);i++){
+            Supplier namedfun = qp->GetSupplier(funlist,i);
+            Supplier fun = qp->GetSupplier(namedfun,1);
+                        gi->funs.push_back(fun);  
+            ArgVectorPointer avp = qp->Argument(fun);
+            gi->funargs.push_back(avp); 
+                    }
+                    qp->GetLocal2(s).addr = gi;
+
+        }
+
+
+        if(li) delete li;
+        local.addr = new memgroupbyLocalInfo(args[0], 
+                                   &(gi->groupAttr),
+                                   &(gi->funs),
+                                   &(gi->funargs),
+                                   gi->tt);
+        return 0;
+
+     }
+
+     case REQUEST:
+            result.addr = li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+
+     case CLOSE:{
+         if(li){
+            delete li;
+            local.addr = 0;
+         }
+         return 0;
+     }
+
+   }
+  return -1;
+}
+
+
+OperatorSpec memgroupbySpec(
+  "stream(T) x attrlist x funlist -> stream(B) ",
+  " _ memgroupby[_ , _ ] ",
+  "Groupes a sorted stream of tuples by a set of "
+  "attributes and extend each group by "
+  "evaluating functions on this group. "
+  "For each group, one result tuple is created",
+  "query plz feed sortby[PLZ] memgroupby[PLZ; C : group count] consume"
+);
+
+Operator memgroupbyOp(
+   "memgroupby",
+   memgroupbySpec.getStr(),
+   memgroupbyVM,
+   Operator::SimpleSelect,
+   memgroupbyTM
+
+);
 
 
 
@@ -21212,6 +21561,10 @@ class MainMemory2Algebra : public Algebra {
           mg3contractOp.SetUsesArgsInTypeMapping();
           AddOperator(&mg3minPathCostOp);
           mg3minPathCostOp.SetUsesArgsInTypeMapping();
+
+          AddOperator(&mgroupOp);
+          AddOperator(&memgroupbyOp);
+          memgroupbyOp.enableInitFinishSupport();
 
         }
         

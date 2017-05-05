@@ -190,7 +190,7 @@ operator mg3connectedcomponents alias MG3CONNECTEDCOMPONENTS pattern _ op
 operator mg3contract alias MG3CONTRACT pattern op(_,_,_,_)
 operator mg3minPathCost alias MG3MINPATHCOST pattern op(_,_,_,_,_)
 
-
+operator memgroupby alias MEMGROUPBY pattern _ op [list; funlist] implicit parameter mgroup type MGROUP
 
 
 

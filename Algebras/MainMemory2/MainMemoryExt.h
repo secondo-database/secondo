@@ -285,6 +285,16 @@ class MemoryRelObject : public MemoryObject {
            return mmrel?mmrel->size():0;
         }
 
+        inline void clear(){
+           if(mmrel) {
+             for(size_t i=0;i<mmrel->size(); i++){
+               (*mmrel)[i]->DeleteIfAllowed();
+               (*mmrel)[i] = 0;
+             }
+             mmrel->clear();
+           }
+        }
+
     private:
         std::vector<Tuple*>* mmrel;
 

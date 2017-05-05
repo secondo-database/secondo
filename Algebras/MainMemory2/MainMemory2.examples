@@ -1485,4 +1485,10 @@ Example   : query mwrap3('string', "name")
 Result    : ( (mem text) "name")
 
 
+Operator : memgroupby
+Number   : 1200
+Signature: stream(T) x attrlist x funlist -> stream(G)
+Example  : query plz feed sortby[PLZ] memgroupby[PLZ; C : group mfeed count] = plz feed sortby[PLZ] groupby[PLZ; C : group count] 
+Result   : TRUE
+
 
