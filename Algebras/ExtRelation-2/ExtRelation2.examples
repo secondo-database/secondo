@@ -151,4 +151,9 @@ Signature : stream(tuple(A)) x stream(tuple(B)) -> stream(tuple(A))
 Example   : query thousand feed extend[D : 1] ten feed kmergediff count
 Result    : 990
 
+Operator : pMerge
+Number   : 1
+Signature: stream(A) x stream(B) x ID1 x ID2 -> stream(A@B)
+Example  : query intstream(1,10) namedtransformstream[A] intstream(5,14) namedtransformstream[B] pMerge[A,B] count 
+Result   : 14
 

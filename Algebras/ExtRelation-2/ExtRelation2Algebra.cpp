@@ -1914,7 +1914,7 @@ ListExpr itHashJoinTM(ListExpr args){
 }
 
 
-class ItHashJoinDInfo{
+class itHashJoinInfo{
 
   public:
 
@@ -1922,7 +1922,7 @@ class ItHashJoinDInfo{
 Constructor
 
 */
-    ItHashJoinDInfo(Word& _stream1, Word& _stream2, 
+    itHashJoinInfo(Word& _stream1, Word& _stream2, 
                 const int _index1, const int _index2, 
                 const ListExpr _resType,
                 const size_t _maxMem,
@@ -1962,7 +1962,7 @@ Constructor
 Destructor
 
 */
-   ~ItHashJoinDInfo(){
+   ~itHashJoinInfo(){
       stream1.close();
       stream2.close();
       tt->DeleteIfAllowed();
@@ -2212,7 +2212,7 @@ removes all Tuple from the current table
 int itHashJoinVM( Word* args, Word& result,
                    int message, Word& local, Supplier s ){
    
-   ItHashJoinDInfo* li = (ItHashJoinDInfo*) local.addr;
+   itHashJoinInfo* li = (itHashJoinInfo*) local.addr;
    switch(message){
      case OPEN: { if(li){
                     delete li;
@@ -2263,7 +2263,7 @@ int itHashJoinVM( Word* args, Word& result,
                      is2 = 0;
                   } 
 
-                  local.addr = new ItHashJoinDInfo(args[is1],args[is2], 
+                  local.addr = new itHashJoinInfo(args[is1],args[is2], 
                                ((CcInt*)args[iindex1].addr)->GetValue(),
                                ((CcInt*)args[iindex2].addr)->GetValue(),
                                ttype,mem, buckets, costEstimation, argswitch);
@@ -2297,12 +2297,12 @@ const string itHashJoinSpec  =
       "  ( <text>stream(tuple(X)) x stream(tuple(Y)) "
           "  x a1 x a2 [x int] [x bool]-> stream(tuple(XY))"
       "    </text--->"
-      "   <text> _ _ itHashJoinD [_ _ _ _ ] </text--->"
+      "   <text> _ _ itHashJoin [_ _ _ _ ] </text--->"
       "   <text> Computes a hash join of two streams. The optional "
       " integer argument  determines the number of buckets. If the "
       " boolean argument is present and has value TRUE, the "
       " input streams are switched in processing.  </text--->"
-      "   <text> query ten feed thousand feed {b} itHashJoinD[No, No_b] count"
+      "   <text> query ten feed thousand feed {b} itHashJoin[No, No_b] count"
       "   </text--->))";
 
 
@@ -2806,6 +2806,268 @@ Operator kmergediffOp(
 );
 
 
+/*
+2.10 Operator ~pMerge~
+
+Merges two sorted streams by an attribute.
+
+*/
+ListExpr pMergeTM(ListExpr args){
+   if(!nl->HasLength(args,4)){
+      return listutils::typeError("4 arguments required");
+   }
+   if(!Stream<Tuple>::checkType(nl->First(args))){
+     return listutils::typeError("First arg is not a tuple stream");
+   }
+   if(!Stream<Tuple>::checkType(nl->Second(args))){
+     return listutils::typeError("Second arg is not a tuple stream");
+   }
+   if(!listutils::isSymbol(nl->Third(args))){
+     return listutils::typeError("Third arg is not a valid attribute name");
+   }
+   if(!listutils::isSymbol(nl->Fourth(args))){
+     return listutils::typeError("Fourth arg is not a valid attribute name");
+   }
+   string a1 = nl->SymbolValue(nl->Third(args));
+   ListExpr al1 = nl->Second(nl->Second(nl->First(args)));
+   ListExpr t1;
+   int i1 = listutils::findAttribute(al1, a1, t1);
+   if(!i1){
+     return listutils::typeError("Attribute " + a1 + " not part of stream 1");
+   }
+   string a2 = nl->SymbolValue(nl->Fourth(args));
+   ListExpr al2 = nl->Second(nl->Second(nl->Second(args)));
+   ListExpr t2;
+   int i2 = listutils::findAttribute(al2, a2, t2);
+   if(!i2){
+     return listutils::typeError("Attribute " + a2 + " not part of stream 2");
+   }
+   if(!nl->Equal(t1,t2)){
+     return listutils::typeError("Attribute " + a1 + " and " + a2 
+                                 + " have different types");
+   }
+   ListExpr alres = listutils::concat(al1,al2);
+   if(!listutils::isAttrList(alres)){
+     return listutils::typeError("Input streams have conflicting "
+                                 "attribute names");
+   }
+   ListExpr resstream = nl->TwoElemList(
+                          listutils::basicSymbol<Stream<Tuple> >(),
+                          nl->TwoElemList(
+                               listutils::basicSymbol<Tuple>(),
+                               alres));
+   return nl->ThreeElemList(
+                nl->SymbolAtom(Symbols::APPEND()),
+                nl->TwoElemList( nl->IntAtom(i1-1), nl->IntAtom(i2-1)),
+                resstream);  
+}
+
+class pMergeLocalInfo{
+  public:
+     pMergeLocalInfo(Word _s1, Word _s2, int _p1, int _p2, TupleType* _tt,
+       Tuple* _t1u, Tuple* _t2u
+     ):
+     s1(_s1), s2(_s2), p1(_p1), p2(_p2), t1(0), t2(0), tt(_tt), t1u(_t1u),
+     t2u(_t2u)
+     {
+        s1.open();
+        s2.open();
+        t1 = s1.request();
+        t2 = s2.request();
+        t1u->IncReference();
+        t2u->IncReference();
+        tt->IncReference();
+     }
+
+     ~pMergeLocalInfo(){
+         s1.close();
+         s2.close();
+         if(t1) t1->DeleteIfAllowed();
+         if(t2) t2->DeleteIfAllowed();
+         t1u->DeleteIfAllowed();
+         t2u->DeleteIfAllowed();
+         tt->DeleteIfAllowed();
+      }
+
+     Tuple* next(){
+        if(t1==0){
+           if(t2==0){
+             return 0;
+           }
+           return next2();
+        }
+        if(t2==0){
+           return next1();
+        }
+        // both tuples are not null
+        int cmp = t1->GetAttribute(p1)->Compare(t2->GetAttribute(p2));
+        if(cmp<0) return next1();
+        if(cmp>0) return next2(); 
+        Tuple* res = createResultTuple(t1,t2);
+        t1->DeleteIfAllowed();
+        t2->DeleteIfAllowed();
+        t1 = s1.request();
+        t2 = s2.request();
+        return res;
+
+     }
+
+     private:
+       Stream<Tuple> s1;
+       Stream<Tuple> s2;
+       int p1;
+       int p2;
+       Tuple* t1;
+       Tuple* t2;
+       TupleType* tt; // result tuple type
+       Tuple* t1u; // undefined version of t1
+       Tuple* t2u; // undefined version of t2
+
+       Tuple* createResultTuple(Tuple* t1, Tuple* t2){
+           if(t1==0) t1 = t1u;
+           if(t2==0) t2 = t2u;
+           Tuple* res = new Tuple(tt);
+           int no1 = t1->GetNoAttributes();
+           for( int i=0; i<no1; i++){
+             res->CopyAttribute(i,t1,i);
+           }
+           for(int i=0;i<t2->GetNoAttributes(); i++){
+              res->CopyAttribute(i,t2,i+no1);
+           }
+           return res;
+       }
+
+       Tuple* next2(){
+          Tuple* res = createResultTuple(0,t2);
+          t2->DeleteIfAllowed();
+          t2 = s2.request();
+          return res;
+       }
+
+       Tuple* next1(){
+          Tuple* res = createResultTuple(t1,0);
+          t1->DeleteIfAllowed();
+          t1 = s1.request();
+          return res;
+       }
+
+
+};
+
+struct pMergeGlobalInfo{
+
+  TupleType* tt;
+  Tuple* t1u;
+  Tuple* t2u;
+
+};
+
+
+Attribute* getUndefinedAttribute(AttributeType at, 
+                                 ListExpr type){
+
+  int aid = at.algId;
+  int tid = at.typeId;
+  ObjectCreation oc = am->CreateObj(aid,tid);
+  return (Attribute*) oc(type).addr;
+}
+
+
+Tuple* getUndefinedTuple(ListExpr _tt, 
+                         ListExpr attrList){
+
+  TupleType* tt = new TupleType(_tt);
+  Tuple* res = new Tuple(tt);
+  for(int i=0;i<tt->GetNoAttributes();i++){
+     Attribute* a = getUndefinedAttribute(tt->GetAttributeType(i),
+                                          nl->First(attrList));
+     res->PutAttribute(i, a);
+     attrList = nl->Rest(attrList);
+  }  
+  tt->DeleteIfAllowed();
+  return res;
+}
+
+
+int pMergeVM( Word* args, Word& result,
+                   int message, Word& local, Supplier s ){
+
+  switch(message){
+     case INIT: {
+        TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
+
+        Tuple* t1u = getUndefinedTuple(
+                        nl->Second(GetTupleResultType(qp->GetSon(s,0))),
+                        nl->Second(nl->Second(qp->GetType(qp->GetSon(s,0)))));
+        Tuple* t2u = getUndefinedTuple(
+                        nl->Second(GetTupleResultType(qp->GetSon(s,1))),
+                        nl->Second(nl->Second(qp->GetType(qp->GetSon(s,1)))));
+        pMergeGlobalInfo* gi = new pMergeGlobalInfo();
+        gi->tt = tt;
+        gi->t1u = t1u;
+        gi->t2u = t2u;
+        qp->GetLocal2(s).addr = gi;
+        return 0;
+     }
+     case FINISH: {
+        pMergeGlobalInfo* gi = (pMergeGlobalInfo*) qp->GetLocal2(s).addr;
+        gi->tt->DeleteIfAllowed();
+        gi->t1u->DeleteIfAllowed();
+        gi->t2u->DeleteIfAllowed();
+        delete gi;
+        qp->GetLocal2(s).addr = 0;  
+        return 0;
+     }
+     case OPEN: {
+          pMergeGlobalInfo* gi = (pMergeGlobalInfo*) qp->GetLocal2(s).addr;
+          pMergeLocalInfo* li = (pMergeLocalInfo*) local.addr;
+          if(li) delete li;
+          int p1 = ((CcInt*) args[4].addr)->GetValue();
+          int p2 = ((CcInt*) args[5].addr)->GetValue();
+          local.addr = new pMergeLocalInfo(args[0], args[1], 
+                                           p1,p2,gi->tt, gi->t1u, gi->t2u);
+          return 0;
+     }
+     case REQUEST: {
+         pMergeLocalInfo* li = (pMergeLocalInfo*) local.addr;
+         result.addr = li?li->next():0;
+         return result.addr?YIELD:CANCEL;
+     }
+     case CLOSE: {
+         pMergeLocalInfo* li = (pMergeLocalInfo*) local.addr;
+         if(li){
+            delete li;
+            local.addr = 0;
+         }
+         return 0;
+     }
+  }
+  return -1;
+
+}
+
+OperatorSpec pMergeSpec(
+   "stream(A) x stream(B) x ID1 x ID2 -> stream(A@B)",
+   "_ _ pMerge[_,_]",
+   "This operator merges two streams of tuples. "
+   "Both streams must be sorted by the corresponding attribute."
+   "If the attribute is equal in both streams, the tuples "
+   "are concatenated and both stream get the next element. " 
+   "if one of the attributes is smaller, this tuple is "
+   "concatenated with an undefined one and only this stream "
+   "goes one step further. ",
+   "query plz feed sortby[PLZ] plz feed sortby{PLZ] {a} pMerge count"
+);
+
+Operator pMergeOp(
+  "pMerge",
+  pMergeSpec.getStr(),
+  pMergeVM,
+  Operator::SimpleSelect,
+  pMergeTM
+);
+
+
 
 
 } // end of namespace extrel2
@@ -2891,6 +3153,10 @@ class ExtRelation2Algebra : public Algebra
 
 
     AddOperator(&extrel2::kmergediffOp);
+
+    AddOperator(&extrel2::pMergeOp);
+    extrel2::pMergeOp.enableInitFinishSupport();
+
 
 #ifdef USE_PROGRESS
 // support for progress queries

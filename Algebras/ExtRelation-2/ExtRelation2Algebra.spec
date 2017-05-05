@@ -59,4 +59,4 @@ operator mtMinPathCosts2 alias MTMINPATHCOSTS2 pattern _ _ op[_,_,_,fun,_] impli
 
 operator kmergediff alias KMERGEDIFF pattern _ _ op
 
-
+operator pMerge alias PMERGE pattern _ _ op[_,_]
