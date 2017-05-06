@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SecParser.h"
 
 #include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
 
 
 using namespace std;
@@ -42,98 +42,20 @@ using namespace distributed2;
 
 namespace DBService {
 
-void SecondoUtils::readFromConfigFile(std::string& resultValue,
+void SecondoUtilsLocal::readFromConfigFile(std::string& resultValue,
         const char* section,
         const char* key,
         const char* defaultValue)
 {
-    printFunction("SecondoUtils::readFromConfigFile");
+    printFunction("SecondoUtilsLocal::readFromConfigFile");
     string secondoConfig = expandVar("$(SECONDO_CONFIG)");
     resultValue = SmiProfile::GetParameter(section,
             key, defaultValue, secondoConfig);
 }
 
-bool SecondoUtils::openDatabaseOnRemoteServer(
-        distributed2::ConnectionInfo* connectionInfo,
-        const char* dbName)
+bool SecondoUtilsLocal::executeQuery(const string& query)
 {
-    printFunction("SecondoUtils::openDatabaseOnRemoteServer");
-    return SecondoUtils::handleRemoteDatabase(connectionInfo,
-                                                "open",
-                                                dbName);
-}
-
-bool SecondoUtils::createDatabaseOnRemoteServer(
-        distributed2::ConnectionInfo* connectionInfo,
-        const char* dbName)
-{
-    printFunction("SecondoUtils::createDatabaseOnRemoteServer");
-    return SecondoUtils::handleRemoteDatabase(connectionInfo,
-                                                "create",
-                                                dbName);
-}
-
-bool SecondoUtils::closeDatabaseOnRemoteServer(
-        distributed2::ConnectionInfo* connectionInfo)
-{
-    printFunction("SecondoUtils::closeDatabaseOnRemoteServer");
-    return SecondoUtils::handleRemoteDatabase(connectionInfo,
-                                                "close",
-                                                "");
-}
-
-bool SecondoUtils::handleRemoteDatabase(ConnectionInfo* connectionInfo,
-                                          const string& action,
-                                          const string& dbName)
-{
-    printFunction("SecondoUtils::handleRemoteDatabase");
-    stringstream query;
-    query << action << " database " << dbName;
-    print(query.str());
-    bool resultOk =
-            SecondoUtils::executeQueryOnRemoteServer(connectionInfo,
-                    query.str());
-    if(!resultOk)
-    {
-        //throw new SecondoException("could not open database 'dbservice'");
-        print("Boo");
-    }
-    return resultOk;
-}
-
-bool SecondoUtils::executeQueryOnRemoteServer(
-        distributed2::ConnectionInfo* connectionInfo,
-        const std::string& query)
-{
-    printFunction("SecondoUtils::executeQueryOnRemoteServer");
-    string result;
-    return executeQueryOnRemoteServer(connectionInfo,
-                                      query,
-                                      result);
-}
-
-bool SecondoUtils::executeQueryOnRemoteServer(
-        distributed2::ConnectionInfo* connectionInfo,
-        const std::string& query,
-        std::string& result)
-{
-    printFunction("SecondoUtils::executeQueryOnRemoteServer");
-    int errorCode;
-    string errorMessage;
-    double runtime;
-    distributed2::CommandLog commandLog;
-    connectionInfo->simpleCommand(query,
-            errorCode, errorMessage, result, false,
-            runtime, false, false, commandLog);
-    //TODO better error handling
-    print(errorCode);
-    print(errorMessage.c_str());
-    return errorCode == 0;
-}
-
-bool SecondoUtils::executeQueryOnCurrentNode(const string& query)
-{
-    printFunction("SecondoUtils::executeQueryOnCurrentNode");
+    printFunction("SecondoUtilsLocal::executeQuery");
     SecParser secondoParser;
     string queryAsNestedList;
     if (secondoParser.Text2List(query, queryAsNestedList) != 0)
@@ -149,12 +71,12 @@ bool SecondoUtils::executeQueryOnCurrentNode(const string& query)
 }
 
 bool
-SecondoUtils::executeQuery(
+SecondoUtilsLocal::executeQuery(
         const string& queryListStr,
         Word& queryResult,
         const size_t availableMemory)
 {
-    printFunction("SecondoUtils::executeQuery");
+    printFunction("SecondoUtilsLocal::executeQuery");
     string typeString(""), errorString("");
     bool success = true;
     bool correct = false, evaluable = false, defined = false,
@@ -194,35 +116,35 @@ SecondoUtils::executeQuery(
     return success;
 }
 
-bool SecondoUtils::adjustDatabaseOnCurrentNode(const std::string& databaseName)
+bool SecondoUtilsLocal::adjustDatabase(const std::string& databaseName)
 {
-    printFunction("SecondoUtils::adjustDatabaseOnCurrentNode");
+    printFunction("SecondoUtilsLocal::adjustDatabase");
     //TODO check correctness
     if(SecondoSystem::GetInstance()->GetDatabaseName()
             != databaseName)
     {
         string queryClose("close database");
-        SecondoUtils::executeQueryOnCurrentNode(queryClose);
+        SecondoUtilsLocal::executeQuery(queryClose);
         stringstream queryCreate;
 
         queryCreate << "create database "
                     << databaseName;
-        SecondoUtils::executeQueryOnCurrentNode(queryCreate.str());
+        SecondoUtilsLocal::executeQuery(queryCreate.str());
 
         stringstream queryOpen;
         queryOpen << "open database "
                     << databaseName;
-        SecondoUtils::executeQueryOnCurrentNode(queryOpen.str());
+        SecondoUtilsLocal::executeQuery(queryOpen.str());
         return true;
     }
     return false;
 }
 
 bool
-SecondoUtils::createRelationOnCurrentNode(const string& queryAsString,
+SecondoUtilsLocal::createRelation(const string& queryAsString,
         string& errorMessage)
 {
-    printFunction("SecondoUtils::createRelationOnCurrentNode");
+    printFunction("SecondoUtilsLocal::createRelation");
     bool correct = false;
     bool evaluable = false;
     bool defined = false;
@@ -230,6 +152,8 @@ SecondoUtils::createRelationOnCurrentNode(const string& queryAsString,
 
     QueryProcessor* queryProcessor = SecondoSystem::GetQueryProcessor();
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
+
+    // TODO check for existing catalog object
 
     Word result = SetWord(Address(0));
     OpTree tree = 0;
@@ -279,11 +203,11 @@ SecondoUtils::createRelationOnCurrentNode(const string& queryAsString,
     return true;
 }
 
-bool SecondoUtils::createRelationFromConsumeResult(
+bool SecondoUtilsLocal::createRelationFromConsumeResult(
         const string& relationName,
         Word& result)
 {
-    printFunction("SecondoUtils::createRelationFromConsumeResult");
+    printFunction("SecondoUtilsLocal::createRelationFromConsumeResult");
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
     string typeName = "";
     catalog->CreateObject(relationName, typeName,
@@ -292,9 +216,9 @@ bool SecondoUtils::createRelationFromConsumeResult(
     return true;
 }
 
-bool SecondoUtils::excuteQueryCommandOnCurrentNode(const string& queryAsString,
+bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
         ListExpr& resultList, string& errorMessage) {
-    printFunction("SecondoUtils::excuteQueryOnCurrentNode");
+    printFunction("SecondoUtilsLocal::excuteQuery");
     print("queryAsString", queryAsString);
     bool correct = false;
     bool evaluable = false;

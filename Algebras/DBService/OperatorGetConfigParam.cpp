@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorGetConfigParam.hpp"
-#include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
 
 using namespace std;
 
@@ -100,7 +100,7 @@ int OperatorGetConfigParam::mapValue(Word* args,
     print(key->GetValue());
 
     string resultValue;
-    SecondoUtils::readFromConfigFile(resultValue,
+    SecondoUtilsLocal::readFromConfigFile(resultValue,
                                        section->GetValue().c_str(),
                                        key->GetValue().c_str(),
                                        "");

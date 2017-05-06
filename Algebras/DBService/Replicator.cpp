@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ReplicationServer.hpp"
 #include "Algebras/DBService/Replicator.hpp"
-#include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/ServerRunnable.hpp"
 
 using namespace std;
@@ -48,7 +48,7 @@ Replicator::Replicator()
 {
     printFunction("Replicator::Replicator");
     string fileTransferPort;
-    SecondoUtils::readFromConfigFile(fileTransferPort,
+    SecondoUtilsLocal::readFromConfigFile(fileTransferPort,
             "DBService",
             "FileTransferPort",
             "");
@@ -57,7 +57,7 @@ Replicator::Replicator()
     ServerRunnable replicationServer(transferPort);
     replicationServer.run<ReplicationServer>();
 
-    SecondoUtils::readFromConfigFile(host,
+    SecondoUtilsLocal::readFromConfigFile(host,
             "Environment",
             "SecondoHost",
             "");
@@ -101,8 +101,10 @@ void Replicator::createFileOnCurrentNode(const string& databaseName,
 
     ListExpr resultList;
     string errorMessage;
-    SecondoUtils::excuteQueryCommandOnCurrentNode(
-            query.str(), resultList, errorMessage);
+    SecondoUtilsLocal::excuteQueryCommand(
+            query.str(),
+            resultList,
+            errorMessage);
     print("resultList", resultList);
     print("errorMessage", errorMessage);
 }
@@ -115,7 +117,7 @@ void Replicator::runReplication(const string& databaseName,
     for(vector<LocationInfo>::const_iterator it = locations.begin();
             it != locations.end(); it++)
     {
-        printFunction("");
+        printFunction("Replicator::runReplication");
         CommunicationClientRunnable commClient(
                            host,
                            transferPort,

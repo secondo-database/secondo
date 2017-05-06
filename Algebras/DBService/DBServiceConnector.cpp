@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ReplicatorRunnable.hpp"
-#include "Algebras/DBService/SecondoUtils.hpp"
+#include "SecondoUtilsLocal.hpp"
 
 using namespace std;
 
@@ -63,7 +63,7 @@ bool DBServiceConnector::replicateRelation(const std::string& relationName)
     print(relationName, "relationName");
 
     string dbServiceHost;
-    SecondoUtils::readFromConfigFile(dbServiceHost,
+    SecondoUtilsLocal::readFromConfigFile(dbServiceHost,
                                            "DBService",
                                            "DBServiceHost",
                                            "");
@@ -74,7 +74,7 @@ bool DBServiceConnector::replicateRelation(const std::string& relationName)
     }
 
     string dbServicePort;
-    SecondoUtils::readFromConfigFile(dbServicePort,
+    SecondoUtilsLocal::readFromConfigFile(dbServicePort,
                                        "DBService",
                                        "DBServicePort",
                                        "");
@@ -92,6 +92,7 @@ bool DBServiceConnector::replicateRelation(const std::string& relationName)
     vector<LocationInfo> locations;
     masterClient.getNodesForReplication(relationName, locations);
 
+    print("creating replication thread");
     ReplicatorRunnable replicationThread(
             SecondoSystem::GetInstance()->GetDatabaseName(),
             relationName,

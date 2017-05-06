@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/CommunicationClient.hpp"
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
-#include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 
 using namespace std;
@@ -118,13 +118,13 @@ int CommunicationClient::getNodesForReplication(const string& relationName,
     }
     string count;
     CommunicationUtils::receiveLine(io, count);
-    size_t locationCount = atoi(count.c_str());
+    int locationCount = atoi(count.c_str());
     print("number of replica locations: ", locationCount);
 
     queue<string> receivedLines;
     CommunicationUtils::receiveLines(io, locationCount*5, receivedLines);
     print("Received locations for replication");
-    for(size_t i= 0; i < locationCount; i++)
+    for(int i= 0; i < locationCount; i++)
     {
         string host = receivedLines.front();
         receivedLines.pop();
@@ -189,7 +189,7 @@ void CommunicationClient::getLocationParameter(
         string& location, const char* key)
 {
     printFunction("CommunicationClient::getLocationParameter");
-    SecondoUtils::readFromConfigFile(location,
+    SecondoUtilsLocal::readFromConfigFile(location,
                                        "Environment",
                                        key,
                                        "");

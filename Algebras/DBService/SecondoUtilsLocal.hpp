@@ -26,8 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_SecondoUtils_HPP_
-#define ALGEBRAS_DBSERVICE_SecondoUtils_HPP_
+#ifndef ALGEBRAS_DBSERVICE_SecondoUtilsLocal_HPP_
+#define ALGEBRAS_DBSERVICE_SecondoUtilsLocal_HPP_
 
 #include <string>
 
@@ -37,39 +37,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace DBService {
 
-class SecondoUtils {
+class SecondoUtilsLocal {
 public:
     static void readFromConfigFile(std::string& resultValue,
             const char* section,
             const char* key,
             const char* defaultValue);
 
-    static bool executeQueryOnRemoteServer(
-            distributed2::ConnectionInfo* connectionInfo,
-            const std::string& query);
+    static bool executeQuery(const std::string& query);
 
-    static bool executeQueryOnRemoteServer(
-            distributed2::ConnectionInfo* connectionInfo,
-            const std::string& query,
-            std::string& result);
-
-    static bool openDatabaseOnRemoteServer(
-            distributed2::ConnectionInfo* connectionInfo,
-            const char* dbName);
-
-    static bool createDatabaseOnRemoteServer(
-                distributed2::ConnectionInfo* connectionInfo,
-                const char* dbName);
-
-    static bool closeDatabaseOnRemoteServer(
-                distributed2::ConnectionInfo* connectionInfo);
-    static bool executeQueryOnCurrentNode(const std::string& query);
-
-    static bool adjustDatabaseOnCurrentNode(const std::string& databaseName);
-    static bool createRelationOnCurrentNode(
+    static bool adjustDatabase(const std::string& databaseName);
+    static bool createRelation(
             const std::string& queryAsString,
             std::string& errorMessage);
-    static bool excuteQueryCommandOnCurrentNode(
+    static bool excuteQueryCommand(
             const std::string& queryAsString,
             ListExpr& resultList,
             std::string& errorMessage);
@@ -77,10 +58,6 @@ public:
             const std::string& relationName,
             Word& result);
 private:
-    static bool handleRemoteDatabase(
-            distributed2::ConnectionInfo* connectionInfo,
-            const std::string& action,
-            const std::string& dbName);
     static bool executeQuery(
             const std::string& queryListStr,
             Word& queryResult,
@@ -89,4 +66,4 @@ private:
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_SecondoUtils_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_SecondoUtilsLocal_HPP_ */

@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService/DBServicePersistenceAccessor.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/SecondoUtils.hpp"
+#include "SecondoUtilsLocal.hpp"
 
 using namespace std;
 
@@ -47,7 +47,7 @@ bool DBServicePersistenceAccessor::createOrInsert(
     string databaseName("dbservice");
     print(relationName);
 
-    SecondoUtils::adjustDatabaseOnCurrentNode(databaseName);
+    SecondoUtilsLocal::adjustDatabase(databaseName);
 
     bool resultOk = false;
     string errorMessage;
@@ -55,7 +55,7 @@ bool DBServicePersistenceAccessor::createOrInsert(
 //    if(!SecondoSystem::GetCatalog()->IsObjectName(relationName))
 //    {
         print("relation does not exist: ", relationName);
-        resultOk = SecondoUtils::createRelationOnCurrentNode(
+        resultOk = SecondoUtilsLocal::createRelation(
                 createQuery, errorMessage);
         if(resultOk)
         {
@@ -66,7 +66,7 @@ bool DBServicePersistenceAccessor::createOrInsert(
 //    print("relation exists, trying insert command");
 
     ListExpr resultList;
-    resultOk = SecondoUtils::excuteQueryCommandOnCurrentNode(
+    resultOk = SecondoUtilsLocal::excuteQueryCommand(
             insertQuery, resultList, errorMessage);
     print("resultList", resultList);
 
@@ -203,7 +203,7 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
     string query("query locations_DBSP");
     string errorMessage;
     ListExpr resultList;
-    bool resultOk = SecondoUtils::excuteQueryCommandOnCurrentNode(
+    bool resultOk = SecondoUtilsLocal::excuteQueryCommand(
             query, resultList, errorMessage);
     print("resultList", resultList);
     return resultOk;

@@ -48,7 +48,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
 #include "Algebras/DBService/Replicator.hpp"
-#include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService/SecondoUtilsRemote.hpp"
 #include "Algebras/DBService/ServerRunnable.hpp"
 
 using namespace std;
@@ -68,13 +69,13 @@ void DBServiceManager::restoreConfiguration()
 {
     printFunction("DBServiceManager::restoreConfiguration");
     string port;
-    SecondoUtils::readFromConfigFile(
+    SecondoUtilsLocal::readFromConfigFile(
             port, "DBService","DBServicePort", "9989");
     ServerRunnable commServer(atoi(port.c_str()));
     commServer.run<CommunicationServer>();
 
     string replicaNumber;
-    SecondoUtils::readFromConfigFile(
+    SecondoUtilsLocal::readFromConfigFile(
             replicaNumber, "DBService","ReplicaNumber", "1");
     replicaCount = atoi(replicaNumber.c_str());
 }
@@ -121,11 +122,9 @@ void DBServiceManager::addNode(const string host,
     ConnectionInfo* connectionInfo =
             ConnectionInfo::createConnection(host, port, config);
 
-    SecondoUtils::createDatabaseOnRemoteServer(connectionInfo,
-            "dbservice");
+    SecondoUtilsRemote::createDatabase(connectionInfo, "dbservice");
 
-    SecondoUtils::openDatabaseOnRemoteServer(connectionInfo,
-                                                   "dbservice");
+    SecondoUtilsRemote::openDatabase(connectionInfo, "dbservice");
 
     // retrieve location info from worker
     string dir;
@@ -163,8 +162,7 @@ bool DBServiceManager::startServersOnWorker(
     string queryInit("query initdbserviceworker()");
     print("queryInit", queryInit);
 
-    return SecondoUtils::executeQueryOnRemoteServer(connectionInfo,
-            queryInit);
+    return SecondoUtilsRemote::executeQuery(connectionInfo, queryInit);
 }
 
 bool DBServiceManager::getConfigParamFromWorker(string& result,
@@ -179,8 +177,10 @@ bool DBServiceManager::getConfigParamFromWorker(string& result,
           << "\", \""
           << key
           << "\")";
-    bool resultOk = SecondoUtils::executeQueryOnRemoteServer(connectionInfo,
-            query.str(), resultAsString);
+    bool resultOk = SecondoUtilsRemote::executeQuery(
+            connectionInfo,
+            query.str(),
+            resultAsString);
     print("resultAsString", resultAsString);
 
     ListExpr resultAsNestedList;

@@ -33,7 +33,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorLetDConsume.hpp"
-#include "Algebras/DBService/SecondoUtils.hpp"
 
 
 using namespace std;
@@ -73,21 +72,6 @@ ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
 
     ListExpr consumeTypeMapResult = OperatorConsume::ConsumeTypeMap<false>(
             consumeTypeMapInput);
-
-//    print("consumeTypeMapResult", consumeTypeMapResult);
-//    if (consumeTypeMapResult == nl->TypeError())
-//    {
-//        return consumeTypeMapResult;
-//    }
-//
-//    ListExpr appendList = nl->OneElemList(nl->Second(nl->Second(nestedList)));
-//    print("appendList", appendList);
-//
-//    ListExpr typeMapResult = nl->ThreeElemList(
-//            nl->SymbolAtom(Symbols::APPEND()), appendList,
-//            consumeTypeMapResult);
-//
-//    print("typeMapResult", typeMapResult);
 
     return consumeTypeMapResult;
 }

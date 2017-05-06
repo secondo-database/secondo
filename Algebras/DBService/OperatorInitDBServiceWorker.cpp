@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorInitDBServiceWorker.hpp"
 #include "Algebras/DBService/ReplicationServer.hpp"
-#include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/ServerRunnable.hpp"
 
 using namespace std;
@@ -61,7 +61,7 @@ int OperatorInitDBServiceWorker::mapValue(Word* args,
         Supplier s)
 {
     string commPort;
-    SecondoUtils::readFromConfigFile(commPort,
+    SecondoUtilsLocal::readFromConfigFile(commPort,
                                        "DBService",
                                        "CommunicationPort",
                                        "0");
@@ -71,7 +71,7 @@ int OperatorInitDBServiceWorker::mapValue(Word* args,
     commServer.run<CommunicationServer>();
 
     string fileTransferPort;
-    SecondoUtils::readFromConfigFile(fileTransferPort,
+    SecondoUtilsLocal::readFromConfigFile(fileTransferPort,
                                            "DBService",
                                            "FileTransferPort",
                                            "0");
