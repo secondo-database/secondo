@@ -6,21 +6,21 @@ Number    : 1
 Signature : stream(tuple) x string -> rel(tuple)
 Example   : let Roads2 = Roads filter[ . startsWith "A"] letdconsume["Roads2"]
 Result    : bug
-Remark    : Requires a remote server
+Remark    : Requires a DBServiceSystem
 
 Operator  : feedpf
 Number    : 1
 Signature : ((rel (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik) (map x bool)) -> (stream (tuple ((ai1 Ti1) ... (aik Tik))))
 Example   : query Roads2 feedpf[.Name, .Name startsWith "A"]
 Result    : bug
-Remark    : Requires a remote server
+Remark    : Requires a DBServiceSystem
 
-Operator  : startdbservice
-Number    : 1
-Signature : rel -> bool
-Example   : query startdbservice(Workers14)
-Result    : TRUE
-Remark    : Requires a remote server
+#Operator  : startdbservice
+#Number    : 1
+#Signature : rel -> bool
+#Example   : query startdbservice(Workers14)
+#Result    : TRUE
+#Remark    : Requires a remote server
 
 Operator  : addnode
 Number    : 1
@@ -29,23 +29,23 @@ Example   : query addnode("host", 1234, "config")
 Result    : TRUE
 Remark    : Requires a remote server
 
-Operator  : registerdbservice
+Operator  : checkdbservicestatus
 Number    : 1
-Signature : string x int -> bool
-Example   : query registerdbservice("host", 2345)
+Signature : -> bool
+Example   : query checkdbservicestatus()
 Result    : TRUE
-Remark    : Requires a remote server
+Remark    : None
 
 Operator  : initdbserviceworker
 Number    : 1
-Signature : int -> bool
+Signature : -> bool
 Example   : query initdbserviceworker()
 Result    : TRUE
-Remark    : Requires a remote server
+Remark    : For internal usage only
 
 Operator  : getconfigparam
 Number    : 1
 Signature : string x string -> string
 Example   : query getconfigparam("DBService", "DBServiceHost")
-Result    : TRUE
-Remark    : Requires a remote server
+Result    : "127.0.0.1"
+Remark    : None

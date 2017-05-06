@@ -28,11 +28,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "Algebras/DBService/DBServiceAlgebra.hpp"
 #include "Algebras/DBService/OperatorAddNode.hpp"
+#include "Algebras/DBService/OperatorCheckDBServiceStatus.hpp"
 #include "Algebras/DBService/OperatorFeedPF.hpp"
 #include "Algebras/DBService/OperatorGetConfigParam.hpp"
 #include "Algebras/DBService/OperatorInitDBServiceWorker.hpp"
 #include "Algebras/DBService/OperatorLetDConsume.hpp"
-#include "Algebras/DBService/OperatorRegisterDBService.hpp"
 #include "Algebras/DBService/OperatorStartDBService.hpp"
 
 namespace DBService
@@ -41,27 +41,27 @@ namespace DBService
 DBServiceAlgebra::DBServiceAlgebra() :
         Algebra()
 {
+    AddOperator(AddNodeInfo(),
+                OperatorAddNode::mapValue,
+                OperatorAddNode::mapType);
+    AddOperator(CheckDBServiceStatusInfo(),
+                OperatorCheckDBServiceStatus::mapValue,
+                OperatorCheckDBServiceStatus::mapType);
     AddOperator(FeedPFInfo(),
                 OperatorFeedPF::mapValue,
                 OperatorFeedPF::mapType);
     AddOperator(LetDConsumeInfo(),
                 OperatorLetDConsume::mapValue,
                 OperatorLetDConsume::mapType);
-    AddOperator(StartDBServiceInfo(),
-                OperatorStartDBService::mapValue,
-                OperatorStartDBService::mapType);
-    AddOperator(AddNodeInfo(),
-                OperatorAddNode::mapValue,
-                OperatorAddNode::mapType);
-    AddOperator(RegisterDBServiceInfo(),
-                OperatorRegisterDBService::mapValue,
-                OperatorRegisterDBService::mapType);
-    AddOperator(InitDBServiceWorkerInfo(),
-                OperatorInitDBServiceWorker::mapValue,
-                OperatorInitDBServiceWorker::mapType);
     AddOperator(GetConfigParamInfo(),
                 OperatorGetConfigParam::mapValue,
                 OperatorGetConfigParam::mapType);
+    AddOperator(InitDBServiceWorkerInfo(),
+                OperatorInitDBServiceWorker::mapValue,
+                OperatorInitDBServiceWorker::mapType);
+    AddOperator(StartDBServiceInfo(),
+                OperatorStartDBService::mapValue,
+                OperatorStartDBService::mapType);
 }
 
 } /* namespace DBService */

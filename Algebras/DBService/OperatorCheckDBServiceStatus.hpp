@@ -26,27 +26,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_OPERATORREGISTERDBSERVICE_HPP_
-#define ALGEBRAS_DBSERVICE_OPERATORREGISTERDBSERVICE_HPP_
+#ifndef ALGEBRAS_DBSERVICE_OperatorCheckDBServiceStatus_HPP_
+#define ALGEBRAS_DBSERVICE_OperatorCheckDBServiceStatus_HPP_
 
 #include "Operator.h"
 
-namespace DBService {
-
-struct RegisterDBServiceInfo: OperatorInfo
+namespace DBService
 {
-	RegisterDBServiceInfo()
+
+struct CheckDBServiceStatusInfo: OperatorInfo
+{
+    CheckDBServiceStatusInfo()
     {
-        name = "registerdbservice";
+        name = "checkdbservicestatus";
         signature = ""; // TODO
         syntax = ""; // TODO
-        meaning = "register the master of the DBService system within the SECONDO system"
-        		  "for which we would like to enable fault tolerance";
-        usesArgsInTypeMapping = true;
+        meaning = "check status of DBService and reconnect to worker nodes";
+        usesArgsInTypeMapping = false;
     }
 };
 
-class OperatorRegisterDBService {
+class OperatorCheckDBServiceStatus
+{
 public:
     static ListExpr mapType(ListExpr nestedList);
     static int mapValue(Word* args,
@@ -58,4 +59,4 @@ public:
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_OPERATORREGISTERDBSERVICE_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_OperatorCheckDBServiceStatus_HPP_ */
