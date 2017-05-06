@@ -44,13 +44,14 @@ class LocationInfoTest: public ::testing::Test
 {
 public:
     LocationInfoTest()
-: host("myHost"), port("12345"), disk("myDisk"),
+: host("myHost"), port("12345"), config("myConfig"), disk("myDisk"),
   commPort("98765"), transferPort("65432")
 {}
 
 protected:
     string host;
     string port;
+    string config;
     string disk;
     string commPort;
     string transferPort;
@@ -60,6 +61,7 @@ TEST_F(LocationInfoTest, testGetHost)
 {
     LocationInfo locationInfo(host,
                               port,
+                              config,
                               disk,
                               commPort,
                               transferPort);
@@ -70,16 +72,29 @@ TEST_F(LocationInfoTest, testGetPort)
 {
     LocationInfo locationInfo(host,
                               port,
+                              config,
                               disk,
                               commPort,
                               transferPort);
     ASSERT_STREQ(port.c_str(), locationInfo.getPort().c_str());
 }
 
+TEST_F(LocationInfoTest, testGetConfig)
+{
+    LocationInfo locationInfo(host,
+                              port,
+                              config,
+                              disk,
+                              commPort,
+                              transferPort);
+    ASSERT_STREQ(config.c_str(), locationInfo.getConfig().c_str());
+}
+
 TEST_F(LocationInfoTest, testGetDisk)
 {
     LocationInfo locationInfo(host,
                               port,
+                              config,
                               disk,
                               commPort,
                               transferPort);
@@ -90,6 +105,7 @@ TEST_F(LocationInfoTest, testGetCommPort)
 {
     LocationInfo locationInfo(host,
                               port,
+                              config,
                               disk,
                               commPort,
                               transferPort);
@@ -100,6 +116,7 @@ TEST_F(LocationInfoTest, testGetTransferPort)
 {
     LocationInfo locationInfo(host,
                               port,
+                              config,
                               disk,
                               commPort,
                               transferPort);

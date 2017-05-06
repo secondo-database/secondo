@@ -173,6 +173,7 @@ bool CommunicationServer::handleProvideReplicaRequest(
         traceWriter->write(location);
         sendBuffer.push(location.getHost());
         sendBuffer.push(location.getPort());
+        sendBuffer.push(location.getConfig());
         sendBuffer.push(location.getDisk());
         sendBuffer.push(location.getCommPort());
         sendBuffer.push(location.getTransferPort());

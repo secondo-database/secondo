@@ -52,8 +52,8 @@ bool DBServicePersistenceAccessor::createOrInsert(
     bool resultOk = false;
     string errorMessage;
 
-//    if(!SecondoSystem::GetCatalog()->IsObjectName(relationName))
-//    {
+    if(!SecondoSystem::GetCatalog()->IsObjectName(relationName))
+    {
         print("relation does not exist: ", relationName);
         resultOk = SecondoUtilsLocal::createRelation(
                 createQuery, errorMessage);
@@ -61,9 +61,9 @@ bool DBServicePersistenceAccessor::createOrInsert(
         {
             return true;
         }
-//        return false;
-//    }
-//    print("relation exists, trying insert command");
+        return false;
+    }
+    print("relation exists, trying insert command");
 
     ListExpr resultList;
     resultOk = SecondoUtilsLocal::excuteQueryCommand(
@@ -92,12 +92,14 @@ bool DBServicePersistenceAccessor::persistLocationInfo(
             << "ConnectionID: int, "
             << "Host: string, "
             << "Port: string, "
+            << "Config: string, "
             << "Disk: string, "
             << "CommPort: string, "
             << "TransferPort: string])) value(("
             << connID << " "
             << "\"" << locationInfo.getHost() << "\" "
             << "\"" << locationInfo.getPort() << "\" "
+            << "\"" << locationInfo.getConfig() << "\" "
             << "\"" << locationInfo.getDisk() << "\" "
             << "\"" << locationInfo.getCommPort() << "\" "
             << "\"" << locationInfo.getTransferPort() << "\""
@@ -109,6 +111,7 @@ bool DBServicePersistenceAccessor::persistLocationInfo(
             << connID << ", "
             << "\"" << locationInfo.getHost() << "\", "
             << "\"" << locationInfo.getPort() << "\", "
+            << "\"" << locationInfo.getConfig() << "\", "
             << "\"" << locationInfo.getDisk() << "\", "
             << "\"" << locationInfo.getCommPort() << "\", "
             << "\"" << locationInfo.getTransferPort() << "\""
@@ -205,7 +208,43 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
     ListExpr resultList;
     bool resultOk = SecondoUtilsLocal::excuteQueryCommand(
             query, resultList, errorMessage);
-    print("resultList", resultList);
+    if(resultOk)
+    {
+        print("resultList", resultList);
+        ListExpr resultData = nl->Second(resultList);
+        print("resultData", resultData);
+
+        int resultCount = nl->ListLength(resultData);
+        print(resultCount);
+
+        for(int i = 0; i < resultCount; i++)
+        {
+            if(!nl->IsEmpty(resultData))
+            {
+                print("resultData", resultData);
+                ListExpr currentRow = nl->First(resultData);
+                ConnectionID conn(nl->IntValue(nl->First(currentRow)));
+                string host(nl->StringValue(nl->Second(currentRow)));
+                string port(nl->StringValue(nl->Third(currentRow)));
+                string config(nl->StringValue(nl->Fourth(currentRow)));
+                string disk(nl->StringValue(nl->Fifth(currentRow)));
+                string commPort(nl->StringValue(nl->Sixth(currentRow)));
+                string transferPort(nl->StringValue(nl->Seventh(currentRow)));
+
+                LocationInfo location(
+                        host, port, config, disk, commPort, transferPort);
+                print(location);
+                locations.insert(
+                        pair<ConnectionID, LocationInfo>(conn, location));
+                // nl->Seventh(currentRow);
+
+                resultData = nl->Rest(resultData);
+            }
+        }
+    }else
+    {
+        print(errorMessage);
+    }
     return resultOk;
 }
 
@@ -224,3 +263,4 @@ bool DBServicePersistenceAccessor::restoreLocationMapping(
 }
 
 } /* namespace DBService */
+

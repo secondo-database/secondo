@@ -218,7 +218,7 @@ bool SecondoUtilsLocal::createRelationFromConsumeResult(
 
 bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
         ListExpr& resultList, string& errorMessage) {
-    printFunction("SecondoUtilsLocal::excuteQuery");
+    printFunction("SecondoUtilsLocal::excuteQueryCommand");
     print("queryAsString", queryAsString);
     bool correct = false;
     bool evaluable = false;
@@ -268,10 +268,11 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
     } catch (SI_Error err) {
 
         print("caught error");
+        queryProcessor->Destroy(tree, true);
+        return false;
     }
 
-  queryProcessor->Destroy( tree, true );
-  return true;
+    return true;
 }
 
 } /* namespace DBService */

@@ -82,9 +82,24 @@ void DBServiceManager::restoreConfiguration()
 void DBServiceManager::restoreReplicaInformation()
 {
     printFunction("DBServiceManager::restoreReplicaInformation");
-//    map<ConnectionID, LocationInfo> locations;
-//    DBServicePersistenceAccessor::restoreLocationInfo(locations);
-//
+    map<ConnectionID, LocationInfo> locations;
+    DBServicePersistenceAccessor::restoreLocationInfo(locations);
+    for(map<ConnectionID, LocationInfo>::const_iterator it = locations.begin();
+            it != locations.end(); it++)
+    {
+        ConnectionInfo* connectionInfo =
+                ConnectionInfo::createConnection(
+                            it->second.getHost(),
+                            atoi(it->second.getPort().c_str()),
+                            *(const_cast<string*>(&(it->second.getConfig()))));
+        pair<LocationInfo, ConnectionInfo*> workerConnDetails(it->second,
+                                                              connectionInfo);
+        connections.insert(
+                pair<size_t, pair<LocationInfo, ConnectionInfo*> >(
+                        it->first, workerConnDetails));
+
+    }
+
 //    vector<RelationInfo> relations;
 //    DBServicePersistenceAccessor::restoreRelationInfo(relations);
 //
@@ -136,7 +151,7 @@ void DBServiceManager::addNode(const string host,
     string transferPort;
     getConfigParamFromWorker(transferPort, connectionInfo,
             "DBService", "FileTransferPort");
-    LocationInfo location(host, stringutils::int2str(port), dir,
+    LocationInfo location(host, stringutils::int2str(port), config, dir,
             commPort, transferPort);
 
     pair<LocationInfo, ConnectionInfo*> workerConnDetails(location,

@@ -122,7 +122,7 @@ int CommunicationClient::getNodesForReplication(const string& relationName,
     print("number of replica locations: ", locationCount);
 
     queue<string> receivedLines;
-    CommunicationUtils::receiveLines(io, locationCount*5, receivedLines);
+    CommunicationUtils::receiveLines(io, locationCount*6, receivedLines);
     print("Received locations for replication");
     for(int i= 0; i < locationCount; i++)
     {
@@ -130,13 +130,15 @@ int CommunicationClient::getNodesForReplication(const string& relationName,
         receivedLines.pop();
         string port= receivedLines.front();
         receivedLines.pop();
+        string config = receivedLines.front();
+        receivedLines.pop();
         string disk= receivedLines.front();
         receivedLines.pop();
         string commPort = receivedLines.front();
         receivedLines.pop();
         string transferPort = receivedLines.front();
         receivedLines.pop();
-        LocationInfo location(host, port, disk, commPort, transferPort);
+        LocationInfo location(host, port, config, disk, commPort, transferPort);
         locations.push_back(location);
         print(location);
     }
