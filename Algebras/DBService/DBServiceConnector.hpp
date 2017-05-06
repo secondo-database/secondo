@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/shared_ptr.hpp>
 
 #include "Algebras/DBService/CommunicationClient.hpp"
-#include "Algebras/DBService/Replicator.hpp"
+#include "Algebras/DBService/LocationInfo.hpp"
 
 namespace DBService {
 
@@ -75,10 +75,14 @@ Deletes existing DBServiceConnector instance.
     ~DBServiceConnector();
 
 private:
+    void getNodesForReplication(
+            std::string& host,
+            int port,
+            const std::string& relationName,
+            std::vector<LocationInfo>& locations);
     static DBServiceConnector* _instance;
     std::string host;
     int port;
-    Replicator replicator;
 };
 
 

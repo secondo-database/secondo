@@ -35,7 +35,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/thread.hpp>
 
 #include "Algebras/DBService/LocationInfo.hpp"
-#include "Algebras/DBService/Replicator.hpp"
 
 namespace DBService {
 
@@ -45,6 +44,7 @@ public:
     ReplicatorRunnable(const std::string databaseName,
                        const std::string relationName,
                        const std::vector<LocationInfo> locations);
+    ~ReplicatorRunnable();
     void run();
 protected:
     void create();

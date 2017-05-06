@@ -57,6 +57,18 @@ DBServiceConnector* DBServiceConnector::getInstance()
     return _instance;
 }
 
+void DBServiceConnector::getNodesForReplication(
+        string& host,
+        int port,
+        const string& relationName,
+        vector<LocationInfo>& locations)
+{
+    CommunicationClient dbServiceMasterClient(host, port, 0);
+    dbServiceMasterClient.start();
+
+    dbServiceMasterClient.getNodesForReplication(relationName, locations);
+}
+
 bool DBServiceConnector::replicateRelation(const std::string& relationName)
 {
     printFunction("DBServiceConnector::replicateRelation");
@@ -85,12 +97,12 @@ bool DBServiceConnector::replicateRelation(const std::string& relationName)
     }
 
     // connect to DBService master to find out location for replication
-    CommunicationClient masterClient(dbServiceHost,
-                                              atoi(dbServicePort.c_str()), 0);
-    masterClient.start();
-
     vector<LocationInfo> locations;
-    masterClient.getNodesForReplication(relationName, locations);
+    getNodesForReplication(
+            dbServiceHost,
+            atoi(dbServicePort.c_str()),
+            relationName,
+            locations);
 
     print("creating replication thread");
     ReplicatorRunnable replicationThread(

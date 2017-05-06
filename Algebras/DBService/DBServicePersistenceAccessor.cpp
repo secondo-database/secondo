@@ -59,6 +59,7 @@ bool DBServicePersistenceAccessor::createOrInsert(
                 createQuery, errorMessage);
         if(resultOk)
         {
+            print("created relation: ", relationName);
             return true;
         }
         return false;
@@ -68,7 +69,6 @@ bool DBServicePersistenceAccessor::createOrInsert(
     ListExpr resultList;
     resultOk = SecondoUtilsLocal::excuteQueryCommand(
             insertQuery, resultList, errorMessage);
-    print("resultList", resultList);
 
     if(!resultOk)
     {

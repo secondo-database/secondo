@@ -26,7 +26,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "ReplicatorRunnable.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/Replicator.hpp"
+#include "Algebras/DBService/ReplicatorRunnable.hpp"
 
 using namespace std;
 
@@ -35,11 +37,18 @@ namespace DBService {
 ReplicatorRunnable::ReplicatorRunnable(const string databaseName,
                                        const string relationName,
                                        const vector<LocationInfo> locations)
-: databaseName(databaseName), relationName(relationName), locations(locations)
+: databaseName(databaseName), relationName(relationName), locations(locations),
+  runner(0)
+{
+    printFunction("ReplicatorRunnable::ReplicatorRunnable");
+}
+
+ReplicatorRunnable::~ReplicatorRunnable()
 {}
 
 void ReplicatorRunnable::run()
 {
+    printFunction("ReplicatorRunnable::run");
     if(runner){
         runner->join();
         delete runner;
@@ -51,9 +60,9 @@ void ReplicatorRunnable::run()
 
 void ReplicatorRunnable::create()
 {
+    printFunction("ReplicatorRunnable::create");
     Replicator replicator;
     replicator.replicateRelation(databaseName, relationName, locations);
-
 }
 
 } /* namespace DBService */

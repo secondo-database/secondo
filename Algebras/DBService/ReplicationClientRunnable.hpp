@@ -46,12 +46,12 @@ class ReplicationClientRunnable {
         void run();
     private:
         void create();
-        boost::thread* runner;
         std::string targetHost;
         int targetTransferPort;
         std::string remoteFileName;
         std::string databaseName;
         std::string relationName;
+        boost::thread* runner;
 };
 
 } /* namespace DBService */

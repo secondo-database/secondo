@@ -26,8 +26,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "ReplicationClient.hpp"
-#include "ReplicationClientRunnable.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/ReplicationClient.hpp"
+#include "Algebras/DBService/ReplicationClientRunnable.hpp"
 
 using namespace std;
 
@@ -41,14 +42,20 @@ ReplicationClientRunnable::ReplicationClientRunnable(
         string relationName)
 : targetHost(targetHost), targetTransferPort(targetTransferPort),
   remoteFileName(remoteFileName),
-  databaseName(databaseName), relationName(relationName)
-{}
+  databaseName(databaseName), relationName(relationName),
+  runner(0)
+{
+    print("ReplicationClientRunnable::ReplicationClientRunnable");
+}
 
 ReplicationClientRunnable::~ReplicationClientRunnable()
-{}
+{
+    print("ReplicationClientRunnable::~ReplicationClientRunnable");
+}
 
 void ReplicationClientRunnable::run()
 {
+    print("ReplicationClientRunnable::run");
     if(runner){
         runner->join();
         delete runner;
@@ -59,7 +66,7 @@ void ReplicationClientRunnable::run()
 
 void ReplicationClientRunnable::create()
 {
-
+    print("ReplicationClientRunnable::create");
     ReplicationClient client(targetHost,
                              targetTransferPort,
                              remoteFileName,
