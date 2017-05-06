@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -31,9 +31,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <iostream>
 #include <queue>
+
 #include <boost/thread.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
+#include <boost/thread/mutex.hpp>
 
 #include "SocketIO.h"
 

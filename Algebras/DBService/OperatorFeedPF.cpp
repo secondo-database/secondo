@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -27,15 +27,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "Algebra.h"
-#include "Symbols.h"
 #include "NestedList.h"
+#include "Symbols.h"
 
 #include "Algebras/Relation-C++/OperatorFeed.h"
 #include "Algebras/Relation-C++/OperatorFilter.h"
 #include "Algebras/Relation-C++/OperatorProject.h"
 
-#include "Algebras/DBService/OperatorFeedPF.hpp"
 #include "Algebras/DBService/DBServiceConnector.hpp"
+#include "Algebras/DBService/OperatorFeedPF.hpp"
 
 namespace DBService
 {

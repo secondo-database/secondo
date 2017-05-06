@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -27,15 +27,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include <cstdlib>
+
 #include <boost/make_shared.hpp>
 
 #include "SecondoException.h"
 
-#include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/CommunicationClient.hpp"
-#include "Algebras/DBService/SecondoUtils.hpp"
+#include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ReplicatorRunnable.hpp"
+#include "Algebras/DBService/SecondoUtils.hpp"
 
 using namespace std;
 

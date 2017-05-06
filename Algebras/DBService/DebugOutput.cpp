@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DebugOutput.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
 
 namespace DBService
 {
@@ -94,6 +94,16 @@ void print(const std::string& text1, const char* text2)
 {
     cout << text1 << endl;
     cout << text2 << endl;
+}
+
+void print(LocationInfo& location)
+{
+    cout << "LocationInfo:" << endl;
+    cout << location.getHost() << endl;
+    cout << location.getPort() << endl;
+    cout << location.getDisk() << endl;
+    cout << location.getCommPort() << endl;
+    cout << location.getTransferPort() << endl;
 }
 
 }

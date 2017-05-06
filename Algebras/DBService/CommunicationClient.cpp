@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -74,6 +74,7 @@ int CommunicationClient::getNodesForReplication(const string& relationName,
     if(!CommunicationUtils::receivedExpectedLine(io,
             CommunicationProtocol::CommunicationServer()))
     {
+        print("Not connected to CommunicationServer");
         return 1;
     }
 
@@ -85,6 +86,7 @@ int CommunicationClient::getNodesForReplication(const string& relationName,
     if(!CommunicationUtils::receivedExpectedLine(io,
             CommunicationProtocol::RelationRequest()))
     {
+        print("Did not receive expected RelationRequest keyword");
         return 2;
     }
     sendBuffer.push(SecondoSystem::GetInstance()->GetDatabaseName());
@@ -94,29 +96,34 @@ int CommunicationClient::getNodesForReplication(const string& relationName,
     if(!CommunicationUtils::receivedExpectedLine(io,
             CommunicationProtocol::LocationRequest()))
     {
+        print("Did not receive expected LocationRequest keyword");
         return 3;
     }
 
-    string location;
-    getLocationParameter(location, "SecondoHost");
-    sendBuffer.push(location);
-    getLocationParameter(location, "SecondoPort");
-    sendBuffer.push(location);
-    getLocationParameter(location, "SecondoHome");
-    sendBuffer.push(location);
+    string originalLocation;
+    getLocationParameter(originalLocation, "SecondoHost");
+    sendBuffer.push(originalLocation);
+    getLocationParameter(originalLocation, "SecondoPort");
+    sendBuffer.push(originalLocation);
+    getLocationParameter(originalLocation, "SecondoHome");
+    sendBuffer.push(originalLocation);
     CommunicationUtils::sendBatch(io, sendBuffer);
+    print("sent original location details");
 
     if(!CommunicationUtils::receivedExpectedLine(io,
             CommunicationProtocol::ReplicaLocation()))
     {
+        print("Did not receive expected ReplicaLocation keyword");
         return 4;
     }
     string count;
     CommunicationUtils::receiveLine(io, count);
     size_t locationCount = atoi(count.c_str());
+    print("number of replica locations: ", locationCount);
 
     queue<string> receivedLines;
     CommunicationUtils::receiveLines(io, locationCount*5, receivedLines);
+    print("Received locations for replication");
     for(size_t i= 0; i < locationCount; i++)
     {
         string host = receivedLines.front();
@@ -131,6 +138,7 @@ int CommunicationClient::getNodesForReplication(const string& relationName,
         receivedLines.pop();
         LocationInfo location(host, port, disk, commPort, transferPort);
         locations.push_back(location);
+        print(location);
     }
     return 0;
 }
@@ -142,11 +150,18 @@ int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
                                              const string& relationName)
 {
     printFunction("CommunicationClient::triggerFileTransfer");
+    print("transferServerHost", transferServerHost);
+    print("transferServerPort", transferServerPort);
+    print("fileName", fileName);
+    print("databaseName", databaseName);
+    print("relationName", relationName);
+
     iostream& io = socket->GetSocketStream();
 
     if(!CommunicationUtils::receivedExpectedLine(io,
             CommunicationProtocol::CommunicationServer()))
     {
+        print("Not connected to CommunicationServer");
         return 1;
     }
     queue<string> sendBuffer;
@@ -157,7 +172,8 @@ int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
     if(!CommunicationUtils::receivedExpectedLine(io,
             CommunicationProtocol::ReplicationDetailsRequest()))
     {
-        return 1;
+        print("Did not receive expected ReplicationDetailsRequest keyword");
+        return 2;
     }
     sendBuffer.push(transferServerHost);
     sendBuffer.push(transferServerPort);
@@ -165,6 +181,7 @@ int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
     sendBuffer.push(databaseName);
     sendBuffer.push(relationName);
     CommunicationUtils::sendBatch(io, sendBuffer);
+    print("File transfer details sent to DBService worker");
     return 0;
 }
 

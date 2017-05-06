@@ -31,8 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SecondoException.h"
 
 #include "Algebras/DBService/DBServicePersistenceAccessor.hpp"
-#include "Algebras/DBService/SecondoUtils.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/SecondoUtils.hpp"
 
 using namespace std;
 

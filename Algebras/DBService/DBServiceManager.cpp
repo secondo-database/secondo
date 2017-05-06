@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -26,29 +26,30 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include <iostream>
 #include <cstdlib>
-#include <string>
+#include <iostream>
 #include <sstream>
+#include <string>
+
 #include <boost/make_shared.hpp>
 
+#include "Algebra.h"
+#include "NestedList.h"
+#include "Operator.h"
 #include "SecondoException.h"
 #include "SecParser.h"
 #include "StringUtils.h"
-#include "NestedList.h"
-#include "Algebra.h"
-#include "Operator.h"
+
 #include "Algebras/Distributed2/ConnectionInfo.h"
 
+#include "Algebras/DBService/CommunicationServer.hpp"
 #include "Algebras/DBService/DBServiceManager.hpp"
 #include "Algebras/DBService/DBServicePersistenceAccessor.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
 #include "Algebras/DBService/Replicator.hpp"
-#include "Algebras/DBService/CommunicationServer.hpp"
 #include "Algebras/DBService/SecondoUtils.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ServerRunnable.hpp"
-
 
 using namespace std;
 using namespace distributed2;

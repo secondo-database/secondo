@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -26,14 +26,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "DBServiceAlgebra.hpp"
-#include "OperatorFeedPF.hpp"
-#include "OperatorLetDConsume.hpp"
-#include "OperatorStartDBService.hpp"
-#include "OperatorAddNode.hpp"
-#include "OperatorRegisterDBService.hpp"
-#include "OperatorInitDBServiceWorker.hpp"
-#include "OperatorGetConfigParam.hpp"
+#include "Algebras/DBService/DBServiceAlgebra.hpp"
+#include "Algebras/DBService/OperatorAddNode.hpp"
+#include "Algebras/DBService/OperatorFeedPF.hpp"
+#include "Algebras/DBService/OperatorGetConfigParam.hpp"
+#include "Algebras/DBService/OperatorInitDBServiceWorker.hpp"
+#include "Algebras/DBService/OperatorLetDConsume.hpp"
+#include "Algebras/DBService/OperatorRegisterDBService.hpp"
+#include "Algebras/DBService/OperatorStartDBService.hpp"
 
 namespace DBService
 {

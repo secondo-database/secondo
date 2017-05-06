@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -28,13 +28,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <sstream>
 
-#include "Profiles.h"
 #include "CharTransform.h"
-#include "SecParser.h"
 #include "NestedList.h"
+#include "Profiles.h"
+#include "SecParser.h"
 
-#include "Algebras/DBService/SecondoUtils.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/SecondoUtils.hpp"
 
 
 using namespace std;

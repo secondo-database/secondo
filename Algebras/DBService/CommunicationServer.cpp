@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -26,16 +26,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include <boost/bind.hpp>
-
 #include "StringUtils.h"
 
-#include "Algebras/DBService/CommunicationServer.hpp"
 #include "Algebras/DBService/CommunicationProtocol.hpp"
-#include "Algebras/DBService/DBServiceManager.hpp"
+#include "Algebras/DBService/CommunicationServer.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
-#include "Algebras/DBService/ReplicationClient.hpp"
+#include "Algebras/DBService/DBServiceManager.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/ReplicationClientRunnable.hpp"
 
 using namespace distributed2;
 using namespace std;
@@ -46,11 +44,11 @@ CommunicationServer::CommunicationServer(int port) :
         MultiClientServer(port)
 {
     printFunction("CommunicationServer::CommunicationServer");
-    cout << "Initializing CommunicationServer (port " << port << ")"
-            << endl;
     string context("CommunicationServer");
     traceWriter= auto_ptr<TraceWriter>
     (new TraceWriter(context));
+    traceWriter->write("Initializing CommunicationServer");
+    traceWriter->write("port", port);
 }
 
 CommunicationServer::~CommunicationServer()
@@ -167,6 +165,7 @@ bool CommunicationServer::handleProvideReplicaRequest(
     traceWriter->write("number of locations");
     traceWriter->write(connections.size());
 
+    traceWriter->write("sending locations");
     for(vector<ConnectionID>::const_iterator it = connections.begin();
             it != connections.end(); it++)
     {
@@ -187,6 +186,8 @@ bool CommunicationServer::handleTriggerFileTransferRequest(std::iostream& io)
     printFunction("CommunicationServer::handleTriggerFileTransferRequest");
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::ReplicationDetailsRequest());
+    traceWriter->write("sent ReplicationDetailsRequest");
+
     queue<string> receivedLines;
     CommunicationUtils::receiveLines(io, 5, receivedLines);
     string host = receivedLines.front();
@@ -199,13 +200,20 @@ bool CommunicationServer::handleTriggerFileTransferRequest(std::iostream& io)
     receivedLines.pop();
     string relationName = receivedLines.front();
     receivedLines.pop();
+    traceWriter->write("received replication details");
+    traceWriter->write("host", host);
+    traceWriter->write("port", port);
+    traceWriter->write("fileName", fileName);
+    traceWriter->write("databaseName", databaseName);
+    traceWriter->write("relationName", relationName);
 
-    ReplicationClient client(host,
-                             atoi(port.c_str()),
-                             fileName,
-                             databaseName,
-                             relationName);
-    client.start();
+    ReplicationClientRunnable replicationClient(
+            host,
+            atoi(port.c_str()),
+            fileName,
+            databaseName,
+            relationName);
+    replicationClient.run();
     return true;
 }
 

@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -28,9 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #ifndef ALGEBRAS_DBSERVICE_DBSERVICEALGEBRA_HPP_
 #define ALGEBRAS_DBSERVICE_DBSERVICEALGEBRA_HPP_
+
+#include "Algebra.h"
 #include "NList.h"
 #include "QueryProcessor.h"
-#include "Algebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

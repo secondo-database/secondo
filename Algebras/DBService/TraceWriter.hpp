@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -29,9 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_TRACEWRITER_HPP_
 #define ALGEBRAS_DBSERVICE_TRACEWRITER_HPP_
 
-#include <string>
 #include <fstream>
 #include <memory>
+#include <string>
 
 #include "Algebras/DBService/LocationInfo.hpp"
 
@@ -45,6 +45,8 @@ public:
     void write(const char* text);
     void write(const size_t text);
     void write(const LocationInfo& location);
+    void write(const char* description, const std::string& text);
+    void write(const char* description, int number);
 private:
     std::string fileName;
     std::auto_ptr<std::ofstream> traceFile;

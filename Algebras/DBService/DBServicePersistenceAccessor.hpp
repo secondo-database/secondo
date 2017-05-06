@@ -30,8 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DBSERVICE_DBSERVICEPERSISTENCEACCESSOR_HPP_
 
 #include <map>
-#include <vector>
 #include <queue>
+#include <vector>
 
 #include "NestedList.h"
 

@@ -26,49 +26,46 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "Algebras/DBService/CommunicationServer.hpp"
-#include "Algebras/DBService/ReplicationServer.hpp"
-#include "Algebras/DBService/ServerRunnable.hpp"
+#include "ReplicationClient.hpp"
+#include "ReplicationClientRunnable.hpp"
 
-using namespace distributed2;
+using namespace std;
 
 namespace DBService {
 
-ServerRunnable::ServerRunnable(int serverPort)
-: runner(0), port(serverPort)
+ReplicationClientRunnable::ReplicationClientRunnable(
+        string targetHost,
+        int targetTransferPort,
+        string remoteFileName,
+        string databaseName,
+        string relationName)
+: targetHost(targetHost), targetTransferPort(targetTransferPort),
+  remoteFileName(remoteFileName),
+  databaseName(databaseName), relationName(relationName)
 {}
 
-ServerRunnable::~ServerRunnable()
-{
- /*   if(runner){
-        runner->join();
-        delete runner;
-    }*/
-}
+ReplicationClientRunnable::~ReplicationClientRunnable()
+{}
 
-template <typename T>
-void ServerRunnable::createServer()
-{
-    T server(port);
-    server.start();
-}
-
-template void ServerRunnable::createServer<CommunicationServer>();
-template void ServerRunnable::createServer<ReplicationServer>();
-
-template <typename T>
-void ServerRunnable::run()
+void ReplicationClientRunnable::run()
 {
     if(runner){
-       runner->join();
-       delete runner;
+        runner->join();
+        delete runner;
     }
-    runner = new boost::thread(&ServerRunnable::createServer<T>, this);
+    runner = new boost::thread(
+            &ReplicationClientRunnable::create, this);
 }
 
-template void ServerRunnable::run<CommunicationServer>();
-template void ServerRunnable::run<ReplicationServer>();
+void ReplicationClientRunnable::create()
+{
 
-
+    ReplicationClient client(targetHost,
+                             targetTransferPort,
+                             remoteFileName,
+                             databaseName,
+                             relationName);
+    client.start();
+}
 
 } /* namespace DBService */

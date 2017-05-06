@@ -26,33 +26,34 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_LOCATIONINFO_HPP_
-#define ALGEBRAS_DBSERVICE_LOCATIONINFO_HPP_
+#ifndef ALGEBRAS_DBSERVICE_REPLICATIONCLIENTRUNNABLE_HPP_
+#define ALGEBRAS_DBSERVICE_REPLICATIONCLIENTRUNNABLE_HPP_
 
 #include <string>
 
+#include <boost/thread.hpp>
+
 namespace DBService {
 
-class LocationInfo {
-public:
-    LocationInfo(const std::string& host,
-                 const std::string& port,
-                 const std::string& disk,
-                 const std::string& commPort,
-                 const std::string& transferPort);
-    const std::string& getHost() const;
-    const std::string& getPort() const;
-    const std::string& getDisk() const;
-    const std::string& getCommPort() const;
-    const std::string& getTransferPort() const;
-private:
-    std::string host;
-    std::string port;
-    std::string disk;
-    std::string commPort;
-    std::string transferPort;
+class ReplicationClientRunnable {
+    public:
+    ReplicationClientRunnable(std::string targetHost,
+                int targetTransferPort,
+                std::string remoteFileName,
+                std::string databaseName,
+                std::string relationName);
+        ~ReplicationClientRunnable();
+        void run();
+    private:
+        void create();
+        boost::thread* runner;
+        std::string targetHost;
+        int targetTransferPort;
+        std::string remoteFileName;
+        std::string databaseName;
+        std::string relationName;
 };
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_LOCATIONINFO_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_REPLICATIONCLIENTRUNNABLE_HPP_ */

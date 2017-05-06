@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -29,9 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "StandardTypes.h"
 
+#include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorGetConfigParam.hpp"
 #include "Algebras/DBService/SecondoUtils.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
 
 using namespace std;
 

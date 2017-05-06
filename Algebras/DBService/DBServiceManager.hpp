@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -30,13 +30,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DBSERVICE_DBSERVICEMANAGER_HPP_
 
 #include <memory>
+
 #include <boost/shared_ptr.hpp>
 
 #include "Algebras/Distributed2/ConnectionInfo.h"
 
-#include "Algebras/DBService/RelationInfo.hpp"
-#include "Algebras/DBService/LocationInfo.hpp"
 #include "Algebras/DBService/CommunicationServer.hpp"
+#include "Algebras/DBService/LocationInfo.hpp"
+#include "Algebras/DBService/RelationInfo.hpp"
 
 namespace DBService
 {

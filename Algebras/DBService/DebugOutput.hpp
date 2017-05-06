@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -33,6 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebra.h"
 
+#include "Algebras/DBService/LocationInfo.hpp"
+
 namespace DBService
 {
 
@@ -47,6 +49,7 @@ void print(const char* text, ListExpr nestedList);
 void print(const char* text1, std::string& text2);
 void print(const char* text1, const std::string& text2);
 void print(const std::string& text1, const char* text2);
+void print(LocationInfo& location);
 
 }
 

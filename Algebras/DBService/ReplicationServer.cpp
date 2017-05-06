@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -30,9 +30,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "SocketIO.h"
 
-#include "Algebras/DBService/ReplicationServer.hpp"
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
+#include "Algebras/DBService/ReplicationServer.hpp"
 
 using namespace std;
 

@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -66,6 +66,16 @@ void TraceWriter::write(const LocationInfo& location)
     *traceFile << location.getDisk() << endl;
     *traceFile << location.getCommPort() << endl;
     *traceFile << location.getTransferPort() << endl;
+}
+
+void TraceWriter::write(const char* description, const string& text)
+{
+    *traceFile << description << ": " << text << endl;
+}
+
+void TraceWriter::write(const char* description, int number)
+{
+    *traceFile << description << ": " << number << endl;
 }
 
 TraceWriter::~TraceWriter()

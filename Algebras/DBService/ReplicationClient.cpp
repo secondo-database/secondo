@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -47,7 +47,6 @@ ReplicationClient::ReplicationClient(
   fileName(fileName),
   databaseName(databaseName),
   relationName(relationName)
-
 {}
 
 int ReplicationClient::start()
