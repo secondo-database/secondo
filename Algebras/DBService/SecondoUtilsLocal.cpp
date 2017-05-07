@@ -119,14 +119,17 @@ SecondoUtilsLocal::executeQuery(
 bool SecondoUtilsLocal::adjustDatabase(const std::string& databaseName)
 {
     printFunction("SecondoUtilsLocal::adjustDatabase");
-    //TODO check correctness
-    if(SecondoSystem::GetInstance()->GetDatabaseName()
+    const string currentDB = SecondoSystem::GetInstance()->GetDatabaseName();
+    print("current database name", currentDB);
+    print("requested database name", databaseName);
+    if(currentDB
             != databaseName)
     {
+        print("need to adjust database");
         string queryClose("close database");
         SecondoUtilsLocal::executeQuery(queryClose);
-        stringstream queryCreate;
 
+        stringstream queryCreate;
         queryCreate << "create database "
                     << databaseName;
         SecondoUtilsLocal::executeQuery(queryCreate.str());

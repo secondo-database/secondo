@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SocketIO.h"
 #include "StringUtils.h"
 
+#include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ReplicationClient.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
 
@@ -47,10 +48,22 @@ ReplicationClient::ReplicationClient(
   fileName(fileName),
   databaseName(databaseName),
   relationName(relationName)
-{}
+{
+    printFunction("ReplicationClient::ReplicationClient");
+    string context("ReplicationClient");
+    traceWriter= auto_ptr<TraceWriter>
+    (new TraceWriter(context));
+    traceWriter->write("Initializing ReplicationClient");
+    traceWriter->write("server", server);
+    traceWriter->write("port", port);
+    traceWriter->write("fileName", fileName);
+    traceWriter->write("databaseName", databaseName);
+    traceWriter->write("relationName", relationName);
+}
 
 int ReplicationClient::start()
 {
+    printFunction("ReplicationClient::start");
     socket = Socket::Connect(server, stringutils::int2str(port),
             Socket::SockGlobalDomain, 3, 1);
     if (!socket) {
@@ -59,7 +72,12 @@ int ReplicationClient::start()
     if (!socket->IsOk()) {
         return 2;
     }
-    receiveFile(); // TODO error handling
+    int receiveOk = receiveFile();
+    if(!receiveOk)
+    {
+        print("receive failed");
+        traceWriter->write("receive failed");
+    }
     stringstream query;
 
     SecondoUtilsLocal::adjustDatabase(databaseName);
@@ -71,7 +89,17 @@ int ReplicationClient::start()
           << fileName
           << "\""
           << " getObjectFromFile consume";
-    SecondoUtilsLocal::executeQuery(query.str());
+    print(query.str());
+
+    string errorMessage;
+    bool resultOk =
+            SecondoUtilsLocal::createRelation(query.str(), errorMessage);
+    if(!resultOk)
+    {
+        print(errorMessage);
+        traceWriter->write("error: ", errorMessage);
+        return 3;
+    }
     return 0;
 }
 

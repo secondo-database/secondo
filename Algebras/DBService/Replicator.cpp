@@ -44,9 +44,13 @@ using namespace std;
 namespace DBService
 {
 
-Replicator::Replicator()
+Replicator::Replicator(
+        const std::string& databaseName,
+        const std::string& relationName)
+: databaseName(databaseName), relationName(relationName)
 {
     printFunction("Replicator::Replicator");
+
     string fileTransferPort;
     SecondoUtilsLocal::readFromConfigFile(fileTransferPort,
             "DBService",
@@ -54,8 +58,6 @@ Replicator::Replicator()
             "");
     print(fileTransferPort);
     transferPort = atoi(fileTransferPort.c_str());
-    ServerRunnable replicationServer(transferPort);
-    replicationServer.run<ReplicationServer>();
 
     SecondoUtilsLocal::readFromConfigFile(host,
             "Environment",
@@ -64,26 +66,25 @@ Replicator::Replicator()
     print(host);
 }
 
-string Replicator::getFileName(const string& databaseName,
-                               const std::string& relationName) const
+string Replicator::getFileName() const
 {
     printFunction("Replicator::getFileName");
-    return SecondoSystem::GetInstance()->GetDatabaseName()
-            + "___" + relationName + ".bin";
+    stringstream fileName;
+    fileName << databaseName
+             << "___"
+             << relationName
+             << ".bin";
+    return fileName.str();
 }
 
-void Replicator::replicateRelation(
-        const string& databaseName,
-        const string& relationName,
-        const vector<LocationInfo>& locations) const
+void Replicator::replicateRelation(const vector<LocationInfo>& locations) const
 {
     printFunction("Replicator::replicateRelation");
-    createFileOnCurrentNode(databaseName, relationName);
-    runReplication(databaseName, relationName, locations);
+    createFileOnCurrentNode();
+    runReplication(locations);
 }
 
-void Replicator::createFileOnCurrentNode(const string& databaseName,
-                                         const string& relationName) const
+void Replicator::createFileOnCurrentNode() const
 {
     printFunction("Replicator::createFileOnCurrentNode");
 
@@ -95,7 +96,7 @@ void Replicator::createFileOnCurrentNode(const string& databaseName,
     query << "query "
           << relationName
           << " saveObjectToFile[\""
-          << getFileName(databaseName, relationName)
+          << getFileName()
           << "\"]";
     print("query", query.str());
 
@@ -109,9 +110,7 @@ void Replicator::createFileOnCurrentNode(const string& databaseName,
     print("errorMessage", errorMessage);
 }
 
-void Replicator::runReplication(const string& databaseName,
-                                const string& relationName,
-                                const vector<LocationInfo>& locations) const
+void Replicator::runReplication(const vector<LocationInfo>& locations) const
 {
     printFunction("Replicator::runReplication");
     for(vector<LocationInfo>::const_iterator it = locations.begin();
@@ -123,7 +122,7 @@ void Replicator::runReplication(const string& databaseName,
                            transferPort,
                            it->getHost(),
                            atoi(it->getCommPort().c_str()),
-                           getFileName(databaseName, relationName),
+                           getFileName(),
                            databaseName,
                            relationName);
     }

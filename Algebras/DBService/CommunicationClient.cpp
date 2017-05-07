@@ -34,8 +34,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/CommunicationClient.hpp"
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
 
 using namespace std;
 using namespace distributed2;
@@ -49,6 +49,13 @@ CommunicationClient::CommunicationClient(
     printFunction("CommunicationClient::CommunicationClient");
     print("server", _server);
     print("port", port);
+
+    string context("CommunicationClient");
+    traceWriter= auto_ptr<TraceWriter>
+    (new TraceWriter(context));
+    traceWriter->write("Initializing CommunicationClient");
+    traceWriter->write("server", _server);
+    traceWriter->write("port", _port);
 }
 
 int CommunicationClient::start()

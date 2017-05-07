@@ -61,8 +61,8 @@ void ReplicatorRunnable::run()
 void ReplicatorRunnable::create()
 {
     printFunction("ReplicatorRunnable::create");
-    Replicator replicator;
-    replicator.replicateRelation(databaseName, relationName, locations);
+    Replicator replicator(databaseName, relationName);
+    replicator.replicateRelation(locations);
 }
 
 } /* namespace DBService */

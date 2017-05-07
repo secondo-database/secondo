@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DBSERVICE_CommunicationServer_HPP_
 
 #include "Algebras/DBService/MultiClientServer.hpp"
-#include "Algebras/DBService/TraceWriter.hpp"
 
 class Socket;
 
@@ -45,8 +44,6 @@ protected:
     bool handleProvideReplicaRequest(std::iostream& io);
     bool handleTriggerFileTransferRequest(std::iostream& io);
     bool handleUseReplicaRequest(std::iostream& io);
-private:
-    std::auto_ptr<TraceWriter> traceWriter;
 };
 
 } /* namespace DBService */

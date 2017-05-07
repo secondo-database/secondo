@@ -40,6 +40,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Distributed2/Server.h"
 
+#include "Algebras/DBService/TraceWriter.hpp"
+
 class Socket;
 
 namespace DBService {
@@ -52,6 +54,7 @@ public:
 protected:
     virtual int communicate(std::iostream& io) = 0;
     bool handleCommunicationThread();
+    std::auto_ptr<TraceWriter> traceWriter;
 private:
     std::queue<Socket*> socketBuffer;
     boost::mutex queueGuard;

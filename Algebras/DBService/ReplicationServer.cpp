@@ -40,7 +40,13 @@ namespace DBService {
 
 ReplicationServer::ReplicationServer(int port) :
  MultiClientServer(port), FileTransferServer(port)
-{}
+{
+    string context("ReplicationServer");
+    traceWriter= auto_ptr<TraceWriter>
+    (new TraceWriter(context));
+    traceWriter->write("Initializing ReplicationServer");
+    traceWriter->write("port", port);
+}
 
 int ReplicationServer::start()
 {

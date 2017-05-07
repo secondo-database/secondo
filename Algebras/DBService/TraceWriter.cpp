@@ -29,7 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <ctime>
 #include <sstream>
 
-#include "TraceWriter.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService/TraceWriter.hpp"
 
 using namespace std;
 
@@ -39,7 +40,26 @@ TraceWriter::TraceWriter(string& context)
 {
     std::time_t currentTime = std::time(0);
     stringstream fileName;
-    fileName << context << "_" << currentTime << ".trc";
+
+    string host;
+    SecondoUtilsLocal::readFromConfigFile(
+            host,
+            "Environment",
+            "SecondoHost",
+            "");
+
+    string port;
+    SecondoUtilsLocal::readFromConfigFile(
+            host,
+            "Environment",
+            "SecondoPort",
+            "");
+
+    fileName << context << "_"
+             << host << "_"
+             << port << "_"
+             << currentTime << ".trc";
+
     traceFile= auto_ptr<ofstream>
     (new ofstream(fileName.str().c_str(),std::ios::binary));
 }

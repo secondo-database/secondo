@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StringUtils.h"
 
 #include "Algebras/DBService/CommunicationClient.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
 
 using namespace std;
 
@@ -47,13 +48,18 @@ CommunicationClientRunnable::CommunicationClientRunnable(string sourceHost,
  targetHost(targetHost), targetCommPort(targetCommPort),
  localFileName(localFileName),
  databaseName(databaseName), relationName(relationName)
-{}
+{
+    printFunction("CommunicationClientRunnable::CommunicationClientRunnable");
+}
 
 CommunicationClientRunnable::~CommunicationClientRunnable()
-{}
+{
+    printFunction("CommunicationClientRunnable::~CommunicationClientRunnable");
+}
 
 void CommunicationClientRunnable::run()
 {
+    printFunction("CommunicationClientRunnable::run");
     if(runner){
         runner->join();
         delete runner;
@@ -63,6 +69,7 @@ void CommunicationClientRunnable::run()
 }
 void CommunicationClientRunnable::createClient()
 {
+    printFunction("CommunicationClientRunnable::createClient");
     CommunicationClient client(targetHost, targetCommPort, 0);
     client.start();
     client.triggerFileTransfer(sourceHost,

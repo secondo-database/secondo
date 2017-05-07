@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed2/FileTransferClient.h"
 
 #include "Algebras/DBService/LocationInfo.hpp"
+#include "Algebras/DBService/TraceWriter.hpp"
 
 namespace DBService {
 
@@ -48,6 +49,7 @@ private:
     std::string fileName;
     std::string databaseName;
     std::string relationName;
+    std::auto_ptr<TraceWriter> traceWriter;
 };
 
 } /* namespace DBService */
