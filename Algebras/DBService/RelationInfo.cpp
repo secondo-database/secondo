@@ -84,7 +84,7 @@ const string RelationInfo::toString() const
 string RelationInfo::getIdentifier(const string dbName,
                                  const std::string relName)
 {
-    return dbName + "::" + relName;
+    return dbName + "__" + relName;
 }
 
 const LocationInfo& RelationInfo::getOriginalLocation() const

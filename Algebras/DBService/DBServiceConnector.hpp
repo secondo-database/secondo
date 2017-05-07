@@ -55,7 +55,7 @@ Returns the DBServiceConnector instance (singleton).
 //TODO
 
 */
-    bool replicateRelation(const std::string& relationName);
+    bool replicateRelation(const std::string relationName);
 
 protected:
 /*

@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_REPLICATORRUNNABLE_HPP_
 #define ALGEBRAS_DBSERVICE_REPLICATORRUNNABLE_HPP_
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -41,13 +42,15 @@ namespace DBService {
 class ReplicatorRunnable
 {
 public:
-    ReplicatorRunnable(const std::string databaseName,
+    ReplicatorRunnable(std::string databaseName,
                        const std::string relationName,
-                       const std::vector<LocationInfo> locations);
+                       std::vector<LocationInfo>& locations);
     ~ReplicatorRunnable();
     void run();
 protected:
-    void create();
+    void create(std::string& databaseName,
+            std::string& relationName,
+            std::vector<LocationInfo>& locations);
 private:
     std::string databaseName;
     std::string relationName;

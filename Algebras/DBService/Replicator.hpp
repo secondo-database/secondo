@@ -37,8 +37,8 @@ namespace DBService
 class Replicator
 {
 public:
-    Replicator(const std::string& databaseName,
-               const std::string& relationName);
+    Replicator(std::string& databaseName,
+               std::string& relationName);
     void replicateRelation(const std::vector<LocationInfo>& locations) const;
     void createFileOnCurrentNode() const;
 

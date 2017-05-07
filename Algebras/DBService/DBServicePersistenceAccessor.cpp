@@ -187,7 +187,7 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
 
         stringstream insertQuery;
         insertQuery << "query mapping_DBSP inserttuple["
-                << "\"" << relationID << ", "
+                << "\"" << relationID << "\", "
                 << *it
                 << "] consume";
         print("insertQuery", insertQuery.str());

@@ -45,8 +45,8 @@ namespace DBService
 {
 
 Replicator::Replicator(
-        const std::string& databaseName,
-        const std::string& relationName)
+        std::string& databaseName,
+        std::string& relationName)
 : databaseName(databaseName), relationName(relationName)
 {
     printFunction("Replicator::Replicator");

@@ -79,7 +79,7 @@ void DBServiceConnector::getNodesForReplication(
     dbServiceMasterClient.getNodesForReplication(relationName, locations);
 }
 
-bool DBServiceConnector::replicateRelation(const std::string& relationName)
+bool DBServiceConnector::replicateRelation(const std::string relationName)
 {
     printFunction("DBServiceConnector::replicateRelation");
     print(relationName, "relationName");
@@ -115,8 +115,17 @@ bool DBServiceConnector::replicateRelation(const std::string& relationName)
             locations);
 
     print("creating replication thread");
+    string databaseName = SecondoSystem::GetInstance()->GetDatabaseName();
+    print("databaseName", databaseName);
+
+//    std::auto_ptr<std::string> dbName(new string(databaseName));
+//    std::auto_ptr<std::string> relName(new string(relationName));
+//
+//    print("dbName", *dbName);
+//    print("relName", *relName);
+
     ReplicatorRunnable replicationThread(
-            SecondoSystem::GetInstance()->GetDatabaseName(),
+            databaseName,
             relationName,
             locations);
     replicationThread.run();

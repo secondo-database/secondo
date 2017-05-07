@@ -34,13 +34,15 @@ using namespace std;
 
 namespace DBService {
 
-ReplicatorRunnable::ReplicatorRunnable(const string databaseName,
-                                       const string relationName,
-                                       const vector<LocationInfo> locations)
+ReplicatorRunnable::ReplicatorRunnable(std::string databaseName,
+                                       const std::string relationName,
+                                       vector<LocationInfo>& locations)
 : databaseName(databaseName), relationName(relationName), locations(locations),
   runner(0)
 {
     printFunction("ReplicatorRunnable::ReplicatorRunnable");
+    print("databaseName", databaseName);
+    print("relationName", relationName);
 }
 
 ReplicatorRunnable::~ReplicatorRunnable()
@@ -54,13 +56,21 @@ void ReplicatorRunnable::run()
         delete runner;
     }
     runner = new boost::thread(
-            &ReplicatorRunnable::create, this);
+            boost::bind(&ReplicatorRunnable::create,
+                        this,
+                        databaseName,
+                        relationName,
+                        locations));
 }
 
 
-void ReplicatorRunnable::create()
+void ReplicatorRunnable::create(std::string& databaseName,
+                                std::string& relationName,
+                                vector<LocationInfo>& locations)
 {
     printFunction("ReplicatorRunnable::create");
+    print("databaseName", databaseName);
+    print("relationName", relationName);
     Replicator replicator(databaseName, relationName);
     replicator.replicateRelation(locations);
 }

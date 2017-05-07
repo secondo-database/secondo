@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
+#include <algorithm>
 #include <sstream>
 
 #include "CharTransform.h"
@@ -122,8 +123,17 @@ bool SecondoUtilsLocal::adjustDatabase(const std::string& databaseName)
     const string currentDB = SecondoSystem::GetInstance()->GetDatabaseName();
     print("current database name", currentDB);
     print("requested database name", databaseName);
+
+    string databaseNameUppered(databaseName);
+
+    std::transform(
+            databaseNameUppered.begin(),
+            databaseNameUppered.end(),
+            databaseNameUppered.begin(),
+            ::toupper);
+
     if(currentDB
-            != databaseName)
+            != databaseNameUppered)
     {
         print("need to adjust database");
         string queryClose("close database");
@@ -170,10 +180,12 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
         print("could not parse query");
         return false;
     }
+    print("query converted to nested list string");
     ListExpr queryAsNestedList;
     if (!nl->ReadFromString(queryAsNestedListString, queryAsNestedList)) {
         print("could not convert string to list");
     }
+    print("nested list string converted to nested list");
 
     //TODO check open database?
     //TODO transaction?
@@ -202,7 +214,10 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
 
     // TODO
     //SecondoSystem::CommitTransaction(true);
-
+    cout << "correct: " << correct << endl;
+    cout << "evaluable: " << evaluable << endl;
+    cout << "defined: " << defined << endl;
+    cout << "isFunction: " << isFunction << endl;
     return true;
 }
 
@@ -243,10 +258,13 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
         print("could not parse query");
         return false;
     }
+    print("query converted to nested list string");
+
     ListExpr queryAsNestedList;
     if (!nl->ReadFromString(queryAsNestedListString, queryAsNestedList)) {
         print("could not convert string to list");
     }
+    print("nested list string converted to nested list");
 
     // database open?
 
@@ -256,6 +274,10 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
 
         queryProcessor->Construct(nl->Second(queryAsNestedList), correct,
                 evaluable, defined, isFunction, tree, resultType);
+        cout << "correct: " << correct << endl;
+        cout << "evaluable: " << evaluable << endl;
+        cout << "defined: " << defined << endl;
+        cout << "isFunction: " << isFunction << endl;
 
         if (evaluable) {
             print(evaluable);
@@ -265,10 +287,9 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
             resultList = nl->TwoElemList(resultType, valueList);
 
             queryProcessor->Destroy(tree, true);
-
         }
 
-    } catch (SI_Error err) {
+    } catch (...) {
 
         print("caught error");
         queryProcessor->Destroy(tree, true);
