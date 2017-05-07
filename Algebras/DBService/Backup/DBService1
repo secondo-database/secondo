@@ -313,7 +313,7 @@ FileTransferPort=9942
 # Fault Tolerance Level
 # 0 = None (replica can be stored on arbitrary node)
 # 1 = Disk (replica must not be stored on same disk)
-# 2 = Machine (replica must not be stored on same node)
+# 2 = Node (replica must not be stored on same node)
 FaultToleranceLevel=0
 
 # Number of Replicas

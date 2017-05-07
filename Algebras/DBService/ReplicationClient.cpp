@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SocketIO.h"
 #include "StringUtils.h"
 
+#include "Algebras/DBService/CommunicationProtocol.hpp"
+#include "Algebras/DBService/CommunicationUtils.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ReplicationClient.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
@@ -72,33 +74,52 @@ int ReplicationClient::start()
     if (!socket->IsOk()) {
         return 2;
     }
-    int receiveOk = receiveFile();
-    if(!receiveOk)
+
+    try
     {
-        print("receive failed");
-        traceWriter->write("receive failed");
-    }
-    stringstream query;
+        iostream& io = socket->GetSocketStream();
+        if(!CommunicationUtils::receivedExpectedLine(io,
+                CommunicationProtocol::ReplicationServer()))
+        {
+            print("not connected to ReplicationServer");
+            traceWriter->write("not connected to ReplicationServer");
+            return 1;
+        }
+        CommunicationUtils::sendLine(io,
+                CommunicationProtocol::ReplicationClient());
 
-    SecondoUtilsLocal::adjustDatabase(databaseName);
+        int receiveOk = receiveFile();
+        if(!receiveOk)
+        {
+            print("receive failed");
+            traceWriter->write("receive failed");
+        }
+        stringstream query;
 
-    query << "let "
-          << relationName
-          << "_DBS"
-            " = \""
-          << fileName
-          << "\""
-          << " getObjectFromFile consume";
-    print(query.str());
+        SecondoUtilsLocal::adjustDatabase(databaseName);
 
-    string errorMessage;
-    bool resultOk =
-            SecondoUtilsLocal::createRelation(query.str(), errorMessage);
-    if(!resultOk)
+        query << "let "
+              << relationName
+              << "_DBS"
+                " = \""
+              << fileName
+              << "\""
+              << " getObjectFromFile consume";
+        print(query.str());
+
+        string errorMessage;
+        bool resultOk =
+                SecondoUtilsLocal::createRelation(query.str(), errorMessage);
+        if(!resultOk)
+        {
+            print(errorMessage);
+            traceWriter->write("error: ", errorMessage);
+            return 3;
+        }
+    } catch (...)
     {
-        print(errorMessage);
-        traceWriter->write("error: ", errorMessage);
-        return 3;
+        cerr << "ReplicationClient: communication error" << endl;
+        return 5;
     }
     return 0;
 }

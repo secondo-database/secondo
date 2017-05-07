@@ -1,5 +1,5 @@
-# This file is part of SECONDO.
 
+# This file is part of SECONDO.
 # Copyright (C) 2004, University in Hagen, Department of Computer Science,
 # Database Systems for New Applications.
 
@@ -313,7 +313,7 @@ FileTransferPort=9962
 # Fault Tolerance Level
 # 0 = None (replica can be stored on arbitrary node)
 # 1 = Disk (replica must not be stored on same disk)
-# 2 = Machine (replica must not be stored on same node)
+# 2 = Node (replica must not be stored on same node)
 FaultToleranceLevel=0
 
 # Number of Replicas

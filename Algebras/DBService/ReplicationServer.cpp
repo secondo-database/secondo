@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ReplicationServer.hpp"
 
 using namespace std;
@@ -65,16 +66,20 @@ int ReplicationServer::communicate(iostream& io)
         {
             return 1;
         }
+
+        int sendOk = sendFile(io);
+        if(!sendOk)
+        {
+            print("send failed");
+            traceWriter->write("send failed");
+        }
+
     } catch (...)
     {
         cerr << "ReplicationServer: communication error" << endl;
         return 5;
     }
     return 0;
-    //TODO create communication client to communicate with worker node
-    //trigger ReplicationClient creation for given port
-    // wait for file transmission
-    //TODO call send file function of super class
 }
 
 } /* namespace DBService */

@@ -60,11 +60,22 @@ void ReplicationClientRunnable::run()
         runner->join();
         delete runner;
     }
-    runner = new boost::thread(
-            &ReplicationClientRunnable::create, this);
+    runner = new boost::thread(boost::bind(
+            &ReplicationClientRunnable::create,
+            this,
+            targetHost,
+            targetTransferPort,
+            remoteFileName,
+            databaseName,
+            relationName));
 }
 
-void ReplicationClientRunnable::create()
+void ReplicationClientRunnable::create(
+        string& targetHost,
+        int targetTransferPort,
+        string& remoteFileName,
+        string& databaseName,
+        string& relationName)
 {
     print("ReplicationClientRunnable::create");
     ReplicationClient client(targetHost,

@@ -50,7 +50,7 @@ TraceWriter::TraceWriter(string& context)
 
     string port;
     SecondoUtilsLocal::readFromConfigFile(
-            host,
+            port,
             "Environment",
             "SecondoPort",
             "");

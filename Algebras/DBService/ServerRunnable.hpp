@@ -41,7 +41,7 @@ public:
     void run();
 private:
     template <typename T>
-    void createServer();
+    void createServer(int port);
     boost::thread* runner;
     int port;
 };

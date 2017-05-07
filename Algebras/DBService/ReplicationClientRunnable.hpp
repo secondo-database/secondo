@@ -45,7 +45,12 @@ class ReplicationClientRunnable {
         ~ReplicationClientRunnable();
         void run();
     private:
-        void create();
+        void create(
+                std::string& targetHost,
+                int targetTransferPort,
+                std::string& remoteFileName,
+                std::string& databaseName,
+                std::string& relationName);
         std::string targetHost;
         int targetTransferPort;
         std::string remoteFileName;

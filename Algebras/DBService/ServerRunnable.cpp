@@ -47,14 +47,14 @@ ServerRunnable::~ServerRunnable()
 }
 
 template <typename T>
-void ServerRunnable::createServer()
+void ServerRunnable::createServer(int port)
 {
     T server(port);
     server.start();
 }
 
-template void ServerRunnable::createServer<CommunicationServer>();
-template void ServerRunnable::createServer<ReplicationServer>();
+template void ServerRunnable::createServer<CommunicationServer>(int port);
+template void ServerRunnable::createServer<ReplicationServer>(int port);
 
 template <typename T>
 void ServerRunnable::run()
@@ -63,7 +63,10 @@ void ServerRunnable::run()
        runner->join();
        delete runner;
     }
-    runner = new boost::thread(&ServerRunnable::createServer<T>, this);
+    runner = new boost::thread(boost::bind(
+            &ServerRunnable::createServer<T>,
+            this,
+            port));
 }
 
 template void ServerRunnable::run<CommunicationServer>();
