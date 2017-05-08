@@ -59,13 +59,14 @@ Also the operators on these types are defined.
 #include "../Stream/Stream.h"               // wrapper for secondo streams
 //#include "../CRel/AttrArray.h"              // column oriented relations
 
+using std::string;
+
+namespace col {
+
 class ColPoint;
 class ColLine;
 class ColRegion;
 
-using std::string;
-
-namespace col {
 
 /*
 3 Implementation of column-oriented spatial types
@@ -120,9 +121,10 @@ points and in the ~Open~ function by reading it from disc.
   typedef struct {
     double x;
     double y;
-  } point;
-  point* array;
-  long count;
+  } sPoint;
+  sPoint* aPoint;  // array of points
+  long count;  // number of points
+  long step;  // index to ~allocBytes~ amount of memory that is allocated next
 
 /*
 The public section provides constructors and a destructor of the class
@@ -132,38 +134,54 @@ and contains all static functions for the neccessary class operations.
  public:
 
 /*
-  constructors AND destructor
+  constructors and destructor
 
 */
   ColPoint();
-  ColPoint(point* newArray, long newCount);
+  ColPoint(sPoint* newArray, long newCount);
+  ColPoint(int min);
   ~ColPoint();
+
 /*
-returns the corresponding basic type
+~BasicType~ returns "apoint".
 
 */
   static const string BasicType();
 
 /*
-compares the type of the given object with the class type
+~checkType~ compares the type of the given object with the class type.
 
 */
   static const bool checkType(const ListExpr list);
 
 /*
-returns the number of elements in the point array
+~getCount~ returns the number of elements in the point array.
 
 */
   long getCount();
 
 /*
-returns the address of the point array for external access
+~getArray~ returns the address of the point array for external access.
 
 */
 void* getArray();
 
 /*
-description of the Secondo type for the user
+The following function appends one point of the spatial algebra to the
+array apoint of the column spatial algebra.
+
+*/
+bool append(Point* point);
+
+/*
+The function ~finalize~ reallocates the memory used for the array ~apoint~
+to the real needed bytes.
+
+*/
+
+void finalize();
+/*
+description of the Secondo type ~apoint~ for the user
 
 */
   static ListExpr Property();
@@ -254,8 +272,7 @@ This function is quite similar to the ~checkType~ function the class.
 
 /*
 The function ~SizeOf~ is excpected by the type constructor below. Because there
-is no standard size of a ColPoint object, it doesn't return any meaningful
-value.
+is no access to a special object, it only returns the size of an empty ~apoint~.
 
 */
   static int SizeOf();
@@ -333,6 +350,11 @@ compares the type of the given object with class type
 */
   static const bool checkType(const ListExpr list);
 
+/*
+returns the number of elements in the line array
+
+*/
+  long getCount();
 
 /*
 This function appends a line datatype of the spatial algebra
@@ -356,7 +378,7 @@ there sizes and counters to the screen. It is useful during the debugging phase.
   void showArrays(string title);
 
 /*
-description of the Secondo type for the user
+description of the Secondo type ~aline~ for the user
 
 */
 static ListExpr Property();
@@ -398,6 +420,11 @@ the standard funtions for the line object
 
   static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
 
+/*
+The function ~SizeOf~ is excpected by the type constructor below. Because there
+is no access to a special object, it only returns the size of an empty ~aline~.
+
+*/
   static int SizeOf();
 };  // class ColLine
 
@@ -688,8 +715,7 @@ This function is quite similar to the ~checkType~ function the class.
 
 /*
 The function ~SizeOf~ is excpected by the type constructor below. Because there
-is no standard size of a ColRegion object, it doesn't return any meaningful
-value.
+is no access to a special object, it only returns the size of one region.
 
 */
   static int SizeOf();

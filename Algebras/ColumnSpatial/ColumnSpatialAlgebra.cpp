@@ -42,17 +42,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
-using std::string;
-
 namespace col {
   ColPoint::ColPoint() {}  // standard constructor doing nothing
-  ColPoint::ColPoint(point* newArray, long newCount) {  // non-standard
+  ColPoint::ColPoint(sPoint* newArray, long newCount) {  // non-standard
     //constructor
-    array = newArray;
+    aPoint = newArray;
     count = newCount;
   }
+  ColPoint::ColPoint(int min) {  // constructor with minimum initialized array
+    aPoint = NULL;
+    aPoint = static_cast<sPoint*>(calloc(1, sizeof(sPoint)));
+    count = 0;
+    step = 0;
+  }
+
   ColPoint::~ColPoint() {  // destructor
-    free(array);
+    free(aPoint);
   }
   // returns the corresponding basic type
   const string ColPoint::BasicType() { return "apoint"; }
@@ -66,8 +71,39 @@ namespace col {
   }
   // returns the address of the point array for external access
   void* ColPoint::getArray() {
-    return &array;
+    return &aPoint;
   }
+
+  // appends one point to the point array
+  bool ColPoint::append(Point* point) {
+    if(!point->IsDefined()) {
+      cout << "point is undefined!" << endl;
+      return false;
+    }
+    if(point->IsEmpty()) {
+      cout << "point is empty" << endl;
+      return false;
+    }
+    // calculate and allocate sufficient memory for the tuple array
+    while ((long) (count * sizeof(sPoint)) >= allocBytes[step]) step++;
+    aPoint = static_cast<sPoint*> (realloc(aPoint, allocBytes[step]));
+    if (aPoint == NULL) {  // exit on memory overflow
+      cmsg.inFunError("not enough memory for all lines!");
+      return false;
+    }
+    // initialize tuple array with next line
+    aPoint[count].x = point->GetX();
+    aPoint[count].y = point->GetY();
+    count++;
+    return true;
+  }
+
+  // add terminator entries to arrays and finalize counters
+  void ColPoint::finalize() {
+    aPoint = static_cast<sPoint*>(realloc(aPoint, count * sizeof(sPoint)));
+    cout << count * sizeof(sPoint) << " bytes used.\n";
+  }
+
   // description of the Secondo type for the user
   ListExpr ColPoint::Property() {
     return (nl->TwoElemList(
@@ -88,7 +124,7 @@ namespace col {
   Word ColPoint::In(const ListExpr typeInfo, ListExpr instance,
                  const int errorPos, ListExpr &errorInfo, bool &correct) {
     correct = false;
-    point* inArray = NULL;  // array which contains the input point values
+    sPoint* inArray = NULL;  // array which contains the input point values
     long inCount = 0;       // counter of input points, grows with each point
     long step = 0;          // index of actual allocated memory (allocBytes)
     Word error(static_cast<void*>(0));  // create an error result pointing at 0
@@ -111,9 +147,9 @@ namespace col {
         return error;
       }
       // allocate more memory if the actual allocated memory is insufficient
-      if ((long)((inCount + 1) * sizeof(point)) >= allocBytes[step]) {
+      if ((long)((inCount + 1) * sizeof(sPoint)) >= allocBytes[step]) {
         // allocate more memory - in C++ a type casting is necessary unlike in C
-        inArray = static_cast<point*>(realloc(inArray, allocBytes[++step]));
+        inArray = static_cast<sPoint*>(realloc(inArray, allocBytes[++step]));
         if (inArray == NULL) {    // exit on memory overflow
           cmsg.inFunError("not enough memory (??? allocBytes needed)!");
           return error;
@@ -126,7 +162,7 @@ namespace col {
       instance = nl->Rest(instance);  // move to next entry
     }
     // truncate oversized memory to allocate the real used memory
-    inArray = static_cast<point*>(realloc(inArray, inCount * sizeof(point)));
+    inArray = static_cast<sPoint*>(realloc(inArray, inCount * sizeof(sPoint)));
     Word answer(static_cast<void*>(0));
     answer.addr = new ColPoint(inArray, inCount);  // create new point object
     correct = true;
@@ -139,21 +175,21 @@ namespace col {
       return listutils::emptyErrorInfo();
     }
     ListExpr res = nl->OneElemList(nl->TwoElemList(  // init first point
-      nl->RealAtom(cPoint->array[0].x),
-      nl->RealAtom(cPoint->array[0].y)));
+      nl->RealAtom(cPoint->aPoint[0].x),
+      nl->RealAtom(cPoint->aPoint[0].y)));
       ListExpr last = res;  // set actual list element
-    for (long i = 1; i < cPoint->count; i++) {  // read all array elements
+    for (long i = 1; i < cPoint->count; i++) {  // read all aPoint elements
       last = nl->Append(last,  // append the point to the nested list
         nl->TwoElemList(
-          nl->RealAtom(cPoint->array[i].x),
-          nl->RealAtom(cPoint->array[i].y)));
+          nl->RealAtom(cPoint->aPoint[i].x),
+          nl->RealAtom(cPoint->aPoint[i].y)));
     }
     return res;  // pointer to the beginning of the nested list
   }
 
   Word ColPoint::Create(const ListExpr typeInfo) {
     Word answer(static_cast<void*>(0));
-    point* inArray = NULL;
+    sPoint* inArray = NULL;
     answer.addr = new ColPoint(inArray, 0);  // create a new point object
     return answer;  // return its adress
   }
@@ -166,7 +202,7 @@ namespace col {
 
   bool ColPoint::Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
-    point* array = NULL;  // array which contains the input point values
+    sPoint* aPoint = NULL;  // array which contains the input point values
     long count;           // amount of points
     double x, y;          // actual read coordinates
     size_t sizeL = sizeof(long);
@@ -174,8 +210,8 @@ namespace col {
     bool ok = (valueRecord.Read(&count, sizeL, offset) == sizeL);
     offset += sizeL;
     // allocate memory depending on the ammount of points
-    array = static_cast<point*>(malloc(count * sizeof(point)));
-    if (array == NULL) {    // exit on memory overflow
+    aPoint = static_cast<sPoint*>(malloc(count * sizeof(sPoint)));
+    if (aPoint == NULL) {    // exit on memory overflow
       cmsg.inFunError("not enough memory (??? Bytes needed)!");
       return false;
     }
@@ -183,15 +219,15 @@ namespace col {
     for (long i = 0; i < count; i++) {
       ok = ok && (valueRecord.Read(&x, sizeD, offset) == sizeD);
       offset += sizeD;
-      array[i].x = x;
+      aPoint[i].x = x;
       ok = ok && (valueRecord.Read(&y, sizeD, offset) == sizeD);
       offset += sizeD;
-      array[i].y = y;
+      aPoint[i].y = y;
       if (!ok) { break; }
     }
 
     if (ok) {  // create a new ColPoint and store the read values in it
-      value.addr = new ColPoint(array, count);
+      value.addr = new ColPoint(aPoint, count);
     } else {  // error
       value.addr = 0;
     }
@@ -208,8 +244,8 @@ namespace col {
     bool ok = valueRecord.Write(&c, sizeL, offset);
     offset += sizeL;
     for (long i = 0; i < cPoint->count; i++) {
-      x = cPoint->array[i].x;
-      y = cPoint->array[i].y;
+      x = cPoint->aPoint[i].x;
+      y = cPoint->aPoint[i].y;
       ok = ok && valueRecord.Write(&x, sizeL, offset);
       offset += sizeD;
       ok = ok && valueRecord.Write(&y, sizeL, offset);
@@ -239,7 +275,7 @@ namespace col {
   }
 
   int ColPoint::SizeOf() {
-    return sizeof(point);
+    return sizeof(sPoint);
   }
 
 //------------------------------------------------------------------------------
@@ -278,6 +314,11 @@ namespace col {
     return listutils::isSymbol(list, BasicType());
   }
 
+  // returns the number of elements in the line array
+  long ColLine::getCount() {
+    return countLine;
+  }
+
   bool ColLine::append(Line* line) {
     if(!line->IsDefined()) {
       cout << "line is undefined!" << endl;
@@ -310,14 +351,8 @@ namespace col {
         if ((long)
            ((countSegment + 2) * sizeof(sSegment)) >= allocBytes[stepSegment]) {
           // allocate more memory - in C++ a type casting is necessary
-          cout << "countSegment = " << countSegment << "\t"
-               << "needed memory = "
-               << (countSegment + 2) * sizeof(sSegment) << "\t"
-               << "allocBytes[" << stepSegment << "] = "
-               << allocBytes[stepSegment +  1] << "\n";
           aSegment = static_cast<sSegment*>
             (realloc(aSegment, allocBytes[++stepSegment]));
-          cout << "memory expanded to " << allocBytes[stepSegment] << "\n";
           if (aSegment == NULL) {  // exit on memory overflow
             cmsg.inFunError("not enough memoryfor new segment!");
             return 0;
@@ -350,7 +385,7 @@ namespace col {
     aSegment = static_cast<sSegment*>
              (realloc(aSegment, countSegment * sizeof(sSegment)));
     // next line is only for debugging cases - should be commented out
-    showArrays("Nach append aller Linien");
+    // showArrays("Nach append aller Linien");
     cout << countLine * sizeof(sLine) + countSegment * sizeof(sSegment)
          << " bytes used.\n";
   }
@@ -1413,15 +1448,15 @@ ListExpr mapTM(ListExpr args) {
     return listutils::typeError("\nAttribute " + name + " not found!");
   };
   // check type and return corresponding result type using the append mechanism
-  if (Point::checkType(type) ||
-      Line::checkType(type) ||
-      Region::checkType(type)) {
-    cout << "'" << name << "'' is attribute " << j << ", type is '"
+  ListExpr returnType = nl->Empty();
+  if (Point::checkType(type)) returnType = listutils::basicSymbol<ColPoint>();
+  if (Line::checkType(type)) returnType = listutils::basicSymbol<ColLine>();
+  if (Region::checkType(type)) returnType = listutils::basicSymbol<ColRegion>();
+  if (!nl->IsEmpty(returnType)) {
+    cout << "'" << name << "' is attribute " << j << ", type is '"
          << nl->ToString(type) << "'." << endl;
-    return nl->ThreeElemList(
-           nl->SymbolAtom(Symbols::APPEND()),
-           nl->OneElemList(nl->IntAtom(j)),
-           type);
+    return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+           nl->OneElemList(nl->IntAtom(j)), returnType);
   } else {
     return listutils::typeError("\nAttribute type point, line or region"
                                 "not found!");
@@ -1456,6 +1491,26 @@ append function of the column spatial ~apoint~ object.
 */
 int mapPointVM (Word* args, Word& result, int message,
                 Word& local, Supplier s) {
+  result.addr = new ColPoint(1);
+  ColPoint* cPoint = static_cast<ColPoint*> (result.addr);
+  result = qp->ResultStorage(s);         // use result storage for the result
+  CcInt* index = (CcInt*) args[2].addr;  // index of the appended attribute
+  int v = index->GetValue();
+  Stream<Tuple> stream(args[0]);         // get the tuples
+  stream.open();                         // open the stream
+  Tuple* tuple;                          // actual tuple element
+  Point* point;                          // actual line attribute
+  while( (tuple = stream.request()) ) {  // if exists, get next tuple
+    // extract point from tuple
+    point = (Point*) tuple->GetAttribute(v - 1);
+    if (!cPoint->append(point)) {        // append line to aline
+      cout << "Error in point mapping!";
+      return 0;
+    }
+    tuple->DeleteIfAllowed();            // remove tuple from stream
+   }
+  stream.close();                        // close the stream
+  cPoint->finalize();
   return 0;
 }
 
@@ -1477,7 +1532,7 @@ int mapLineVM (Word* args, Word& result, int message,
   Tuple* tuple;                          // actual tuple element
   Line* line;                            // actual line attribute
   while( (tuple = stream.request()) ) {  // if exists, get next tuple
-    // extract region from tuple
+    // extract line from tuple
     line = (Line*) tuple->GetAttribute(v - 1);
     if (!cLine->append(line)) {          // append line to aline
       cout << "Error in line mapping!";
