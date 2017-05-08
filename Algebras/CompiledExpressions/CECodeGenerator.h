@@ -280,7 +280,7 @@ This function insert all in the code to included headerfiles
 in the array ~hf~.
 
 */
-    virtual void getHeaderFilesEntry(std::set<std::string>(&hf)[HF_SIZEOF]);
+    virtual void getHeaderFilesEntry(std::set<std::string>(&hf)[HF_SIZEOF]) {}
     
 /*
 A ~get~-function returned a string with the code to defintion additional variables.

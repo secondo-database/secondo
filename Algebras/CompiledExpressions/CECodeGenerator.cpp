@@ -262,19 +262,7 @@ corresponding ~Secondo Operator~ a stream operator or not.
   }
 
 /*
-4.7 Function ~getHeaderFilesEntry~
-
-This function insert all in the code to included headerfiles
-in the array ~hf~.
-
-*/
-  void
-  CECGImplSecondoOperator::getHeaderFilesEntry
-                             (std::set<std::string>(&hf)[HF_SIZEOF]) {}
-    
-
-/*
-4.8 Function ~getCodeOperatorAdditionalVariablesDefinition~
+4.7 Function ~getCodeOperatorAdditionalVariablesDefinition~
 
 A ~get~-function returned a string with the code to defintion additional variables.
 
@@ -285,7 +273,7 @@ A ~get~-function returned a string with the code to defintion additional variabl
   }
 
 /*
-4.9 Function ~getCodeOperatorAdditionalVariablesInitialisation~
+4.8 Function ~getCodeOperatorAdditionalVariablesInitialisation~
 
 A ~get~-function returned a string with the code to initialisation additional variables.
 
@@ -296,7 +284,7 @@ A ~get~-function returned a string with the code to initialisation additional va
   }
 
 /*
-4.10 Function ~getCodeOperatorEvalOpenBody~
+4.9 Function ~getCodeOperatorEvalOpenBody~
 
 A ~get~-function returned a string with the code from the body of the ~eval open~-function.
 
@@ -307,7 +295,7 @@ A ~get~-function returned a string with the code from the body of the ~eval open
   }
 
 /*
-4.11 Function ~getCodeOperatorEvalRequestBody~
+4.10 Function ~getCodeOperatorEvalRequestBody~
 
 A ~get~-function returned a string with the code from the body of the ~eval request~-function.
 
@@ -319,7 +307,7 @@ A ~get~-function returned a string with the code from the body of the ~eval requ
   }
     
 /*
-4.12 Function ~getCodeOperatorEvalCloseBody~
+4.11 Function ~getCodeOperatorEvalCloseBody~
 
 A ~get~-function returned a string with the code from the body of the ~eval close~-function.
 
