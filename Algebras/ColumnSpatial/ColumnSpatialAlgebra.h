@@ -78,25 +78,26 @@ In the array ~allocBytes~ are listed several steps of memory allocation as
 they are used in the ~In~ function of each spatial type.
 
 */
-long allocBytes[19] = {     0,   //   [0]  initial value
-                        16384,   //   [1]  32 KB L1 data cache
-                       245760,   //   [2] 256 KB L2 cache
-                      1032192,   //   [3]   1 MB L3 cache
-                      2080768,   //   [4]   2 MB L3 cache
-                      3129344,   //   [5]   3 MB L3 cache
-                      6275072,   //   [6]   6 MB L3 cache
-                      8257536,   //   [7]   8 MB L3 cache
-                     12566528,   //   [8]  12 MB L3 cache
-                     16760832,   //   [9]  16 MB L3 cache
-                    134201344,   //   [1] 128 MB
-                   1073725440,   //  [11]   1 GB
-                   2147467264,   //  [12]   2 GB
-                   3221209088,   //  [13]   3 GB
-                   4294950912,   //  [14]   4 GB
-                   7516176384,   //  [15]   7 GB
-                   8589918208,   //  [16]   8 GB
-                  16106110976,   //  [17]  15 GB
-                  17179852800};  //  [18]  16 GB;
+long allocBytes[20] = {     0,   //   initial value
+                         8192,   // fit in L1 data cache
+                        16384,   // fit in L1 data cache
+                       245760,   // 256 KB L2 cache
+                      1032192,   // fit in L3 cache
+                      2080768,   // fit in L3 cache
+                      3129344,   // fit in L3 cache
+                      6275072,   //   6 MB L3 cache
+                      8257536,   //   8 MB L3 cache
+                     12566528,   //  12 MB L3 cache
+                     16760832,   //  16 MB L3 cache
+                    134201344,   // 128 MB
+                   1073725440,   //   1 GB
+                   2147467264,   //   2 GB
+                   3221209088,   //   3 GB
+                   4294950912,   //   4 GB
+                   7516176384,   //   7 GB
+                   8589918208,   //   8 GB
+                  16106110976,   //  15 GB
+                  17179852800};  //  16 GB maximum, more memory = error
 /*
 3.2 Class ColPoint for column-oriented representation of points
 
@@ -277,56 +278,115 @@ TypeConstructor ColPointTC(
 /*
 3.3 Class ColLine for column-oriented representation of lines
 
-This class handles an array of lines and their column-wise internal
-representation. Because the functions are similar to the functions of the
-class ColPoint, they are explained only if they diverge.
+This class handles an array of lines and their internal
+representation. A line consists of consecutive coherent segments.
+Therefore two arrays are needed. The first array contains all segments
+of all lines. The segments of one line has to be consecutive. The second
+array contains the indizes of the first segment of each line.
 
 */
 class ColLine {
  private:
-    typedef struct {
+  typedef struct {
     double x1;
     double y1;
     double x2;
     double y2;
-  } line;
-  line* array;  // contains all lines. Size is set in functions In and Open
-  long count;    // amount of lines stored in the array
+  } sSegment;
+  typedef struct {
+    long index;
+  } sLine;
+
+  sLine* aLine;        // contains all lines. In and Open functions set size
+  sSegment* aSegment;  // array of segments
+
+  long countLine;      // amount of lines
+  long countSegment;   // amount of segments
+
+  // indices in the ~allocBytes~ - array to mark which amount of memory
+  // is allocated next.
+  long stepLine;
+  long stepSegment;
+
 
  public:
-  // constructors
+
+/*
+constructors and destructors
+
+*/
   ColLine();
-  ColLine(line* newArray, long newCount);
-  // destructor
+  ColLine(sLine* newLine, sSegment* newSegment,
+          long newCountLine, long newCountSegment);
+  ColLine(int min);
   ~ColLine();
 
-  // returns the corresponding basic type
+/*
+returns the corresponding basic type
+
+*/
   static const string BasicType();
 
-  // compares the type of the given object with class type
+/*
+compares the type of the given object with class type
+
+*/
   static const bool checkType(const ListExpr list);
 
-  // description of the Secondo type for the user
-  static ListExpr Property();
 
-  // scans a nested-list and converts it into an array of lines.
+/*
+This function appends a line datatype of the spatial algebra
+to an attrarray of lines of the column spatial algebra.
+It needs the source ~line~ as input parameter.
+
+*/
+  bool append(Line* line);
+
+/*
+The ~finalize~ function appends a terminator to each array of the aregion type.
+
+*/
+  void finalize();
+
+/*
+The auxiliary function ~showArrays~ prints the contents of the internal arrays,
+there sizes and counters to the screen. It is useful during the debugging phase.
+
+*/
+  void showArrays(string title);
+
+/*
+description of the Secondo type for the user
+
+*/
+static ListExpr Property();
+
+/*
+scans a nested-list and converts it into an array of lines.
+
+*/
   static Word In(const ListExpr typeInfo, ListExpr instance,
                  const int errorPos, ListExpr &errorInfo, bool &correct);
 
-  // converts a line array into a nested list format
+/*
+converts a line array into a nested list format
+
+*/
   static ListExpr Out(ListExpr typeInfo, Word value);
 
-  // creates a new line object and returns its address
+/*
+the standard funtions for the line object
+
+*/
   static Word Create(const ListExpr typeInfo);
 
-  // Removes the complete object including disc parts if there are any
+
   static void Delete(const ListExpr typeInfo, Word& w);
 
-  // Reads an array from disc via an ~SmiRecord~.
+
   static bool Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value);
 
-  // Saves an array of lines into a SmiRecord.
   static bool Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value);
 
@@ -365,7 +425,7 @@ so it will be sparse with memory on one hand and allows a quick mass evaluation
 by ordering the data dense and ascending on the other hand.
 The internal representation differs widely from the datatype ~region~.
 And so it works:
-The three arrays ~aTuple~, ~aPoint~ and ~aCycle~ are declared.
+The three arrays ~aRegion~, ~aPoint~ and ~aCycle~ are declared.
 The array ~aPoint~ contains all points of all regions and the points are stored
 in a special order. First come all points of an outer cycle, also called face,
 followed by all points of corresponding inner cycles, called holes.
@@ -377,7 +437,7 @@ The array ~aCycle~ contains the indices within the array ~aPoint~ at which a
 face or a hole starts. Faces are stored with positive, holes with
 negative indices. Therefore only the sign decides whether a cycle is a
 face or a hole.
-Finally the array ~aTuple~ contains the start indices of complete regions
+Finally the array ~aRegion~ contains the start indices of complete regions
 both within the array ~aPoint~ to identify the first point within a region
 and the array ~aCycle~ to identify the first cycle of a region.
 For each array there is also a counter to provide fast access to the size
@@ -427,7 +487,7 @@ class ColRegion {
     double mbrY1;     // minimum bounding rectangle lower y coordinate
     double mbrX2;     // minimum bounding rectangle right x coordinate
     double mbrY2;     // minimum bounding rectangle upper y coordinate
-  } sTuple;
+  } sRegion;
   typedef struct {    // one cycle
     long index;       // index of cycle's first point in the point array
   } sCycle;
@@ -437,20 +497,30 @@ class ColRegion {
   } sPoint;
 
 /*
-these arrays build the main internal representation of regions:
+These arrays build the main internal representation of regions:
 
 */
-  sTuple* aTuple;  // array of regions
-  sCycle* aCycle;  // array of cycles
-  sPoint* aPoint;  // array of points
+  sRegion* aRegion;  // array of regions
+  sCycle* aCycle;    // array of cycles
+  sPoint* aPoint;    // array of points
 
 /*
-the counters indicate the size of the corresponding arrays
+The counters indicate the size of the corresponding arrays:
 
 */
-  long countTuple;
+  long countRegion;
   long countCycle;
   long countPoint;
+
+/*
+The following step - variables mark the indices in the ~allocBytes~ - array
+(see before).
+TODO: calculate step - variables by evaluating the counters!
+
+*/
+  long stepRegion;
+  long stepCycle;
+  long stepPoint;
 
  public:
 
@@ -460,7 +530,7 @@ the counters indicate the size of the corresponding arrays
 */
   ColRegion();  // standard constructor doing nothing
   // non-standard constructor initializing the object with parameters
-  ColRegion(sTuple* newTuple, sCycle* newCycle, sPoint* newPoint,
+  ColRegion(sRegion* newTuple, sCycle* newCycle, sPoint* newPoint,
             long newCountTuple, long newCountCycle, long newCountPoint);
   ColRegion(int min);
   ~ColRegion();   // destructor - free allocated menory
@@ -496,7 +566,6 @@ clean object for the following mapping.
 /*
 This function appends a region datatype of the spatial algebra
 to an attrarray of regions of the column spatial algebra.
-It needs the source ~region~ and the destiniation ~aregion~ as parameters.
 
 */
   bool append(Region* region);

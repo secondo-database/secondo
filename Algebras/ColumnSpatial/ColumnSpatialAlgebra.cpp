@@ -249,17 +249,26 @@ namespace col {
 
 */
   ColLine::ColLine() {}  // standard constructor doing nothing
-  ColLine::ColLine(line* newArray, long newCount) {  // non-standard constructor
-    array = newArray;
-    count = newCount;
+  ColLine::ColLine(sLine *newLine, sSegment *newSegment,
+                   long newCountLine, long newCountSegment) {
+    aLine = newLine;
+    aSegment = newSegment;
+    countLine = newCountLine;
+    countSegment = newCountSegment;
   }
   ColLine::ColLine(int min) {  // constructor with minimum initialized arrays
-    array = NULL;
-    array = static_cast<line*>(calloc(1, sizeof(line)));
-    count = 0;
+    aLine = NULL;
+    aSegment = NULL;
+    aLine = static_cast<sLine*>(calloc(1, sizeof(sLine)));
+    aSegment = static_cast<sSegment*>(calloc(1, sizeof(sSegment)));
+    countLine = 0;
+    countSegment = 0;
+    stepLine = 0;
+    stepSegment = 0;
   }
   ColLine::~ColLine() {   // destructor
-    free(array);
+    free(aLine);
+    free(aSegment);
   }
 
   // returns the corresponding basic type
@@ -267,6 +276,107 @@ namespace col {
   // compares the type of the given object with class type
   const bool ColLine::checkType(const ListExpr list) {
     return listutils::isSymbol(list, BasicType());
+  }
+
+  bool ColLine::append(Line* line) {
+    if(!line->IsDefined()) {
+      cout << "line is undefined!" << endl;
+      return false;
+    }
+    if(line->IsEmpty()) {
+      cout << "line is empty" << endl;
+      return false;
+    }
+    // calculate and allocate sufficient memory for the tuple array
+    while ((long)
+          ((countLine + 2) * sizeof(sLine)) >= allocBytes[stepLine]) {
+      stepLine++;
+    }
+    aLine = static_cast<sLine*> (realloc(aLine, allocBytes[stepLine]));
+    if (aLine == NULL) {  // exit on memory overflow
+      cmsg.inFunError("not enough memory for all lines!");
+      return false;
+    }
+    // initialize tuple array with next line
+    aLine[countLine].index = countSegment;
+    Point lp, rp;
+    HalfSegment hs;
+    // make a copy of the input line to avoid modifying the original data
+    Line *lCopy = new Line(*line);
+    for(int i = 0; i < lCopy->Size(); i++) {
+      lCopy->Get(i, hs);  // extract actual halfsegment
+      if(hs.IsLeftDomPoint() == true) {
+        // allocates memory for the point array and appends the given segment
+        if ((long)
+           ((countSegment + 2) * sizeof(sSegment)) >= allocBytes[stepSegment]) {
+          // allocate more memory - in C++ a type casting is necessary
+          cout << "countSegment = " << countSegment << "\t"
+               << "needed memory = "
+               << (countSegment + 2) * sizeof(sSegment) << "\t"
+               << "allocBytes[" << stepSegment << "] = "
+               << allocBytes[stepSegment +  1] << "\n";
+          aSegment = static_cast<sSegment*>
+            (realloc(aSegment, allocBytes[++stepSegment]));
+          cout << "memory expanded to " << allocBytes[stepSegment] << "\n";
+          if (aSegment == NULL) {  // exit on memory overflow
+            cmsg.inFunError("not enough memoryfor new segment!");
+            return 0;
+          }
+        }
+        lp = hs.GetLeftPoint();
+        rp = hs.GetRightPoint();
+        aSegment[countSegment].x1 = lp.GetX();
+        aSegment[countSegment].y1 = lp.GetY();
+        aSegment[countSegment].x2 = rp.GetX();
+        aSegment[countSegment].y2 = rp.GetY();
+        countSegment++;
+      }
+   }
+    countLine++;
+   return true;
+  }
+
+  // add terminator entries to arrays and finalize counters
+  void ColLine::finalize() {
+    aLine[countLine].index = countSegment;
+    aSegment[countSegment].x1 = 0;
+    aSegment[countSegment].y1 = 0;
+    aSegment[countSegment].x2 = 0;
+    aSegment[countSegment].y2 = 0;
+    countLine++;
+    countSegment++;
+    aLine = static_cast<sLine*>
+             (realloc(aLine, countLine * sizeof(sLine)));
+    aSegment = static_cast<sSegment*>
+             (realloc(aSegment, countSegment * sizeof(sSegment)));
+    // next line is only for debugging cases - should be commented out
+    showArrays("Nach append aller Linien");
+    cout << countLine * sizeof(sLine) + countSegment * sizeof(sSegment)
+         << " bytes used.\n";
+  }
+
+  // test output of the arrays aLine and aSegment and there parameters
+  void ColLine::showArrays(string title) {
+    cout << "\n--------------------------------------------\n" << title << "\n";
+    // output of the array aLine
+    cout << "aLine (" << countLine << "):\n";
+    cout << "Bytes allocated: " << countLine * sizeof(sLine) << "\n";
+    cout << "index\tsegment\n";
+    for (long cl = 0; cl < countLine; cl++) {
+      cout << cl << ":\t" << aLine[cl].index << "\n";
+    }
+    // output of the array aSegment
+    cout << "aSegment (" << countSegment << "):\n";
+    cout << "Bytes allocated: " << countSegment * sizeof(sSegment) << "\n";
+    cout << "index\tx1\ty1\tx2\ty2\n";
+    for (long cs = 0; cs < countSegment; cs++) {
+      cout << cs << ":\t"
+           << aSegment[cs].x1 << "\t"
+           << aSegment[cs].y1 << "\t"
+           << aSegment[cs].x2 << "\t"
+           << aSegment[cs].y2 << "\n";
+    }
+    cout << "--------------------------------------------\n";
   }
 
   // description of the Secondo type for the user
@@ -281,18 +391,15 @@ namespace col {
     nl->FiveElemList(
       nl->StringAtom("-> SIMPLE"),
       nl->StringAtom(BasicType()),
-      nl->StringAtom("((x1 y1 x2 y2 ... xn yn) ... )"),
-      nl->StringAtom("((3.5 -6.0 5 3) (1.0 2 5 2) (-9.1 5))"),
-      nl->StringAtom("An aline is created by a nested list of lines"))));
+      nl->StringAtom("((x1 y1 x2 y2) (x2 y2 x3 y3) ... ) ...)"),
+      nl->StringAtom("(((3.5 -6.0 5 3) (5 3 5 2) (5 3 4 7)))"),
+      nl->StringAtom("aline is defined by a list of lines"))));
   }
 
   // scans a nested-list and converts it into an array of lines.
   Word ColLine::In(const ListExpr typeInfo, ListExpr instance,
                  const int errorPos, ListExpr &errorInfo, bool &correct) {
     correct = false;
-    line* inArray = NULL;  // array which contains the input line values
-    long inCount = 0;       // counter of input lines, grows with each line
-    long step = 0;          // index of actual allocated memory (allocBytes)
     Word error(static_cast<void*>(0));  // create an error result pointing at 0
     errorInfo = listutils::typeError("Error in ColLine.In!!!");
     if (listutils::isSymbolUndefined(instance)) {
@@ -303,67 +410,137 @@ namespace col {
       cmsg.inFunError("Nested list must not be an atom!");
       return error;
     }
-    while (!nl->IsEmpty(instance)) {  // as long as there are lines left
-      ListExpr lineLeaf = nl->First(instance);  // get the line
-      if ((!nl->HasLength(lineLeaf, 4)) ||
-          (!listutils::isNumeric(nl->First(lineLeaf))) ||
-          (!listutils::isNumeric(nl->Second(lineLeaf)))) {
-          // exit on invalid point
-        cmsg.inFunError("expected an atom with four numeric values!");
-        return error;
-      }
+    sLine* inLine = NULL;  // array which contains the input line values
+    sSegment* inSeg = NULL;  // array which contains the input line values
+    long cl = 0;    // counter of input lines, grows with each line
+    long cs = 0;    // counter of input lines, grows with each line
+    // index to the array allocbytes of actual allocated memory for each array
+    long stepLine = 0;
+    long stepSegment = 0;
+
+    // allocate memory for the input arrays
+    inLine = static_cast<sLine*>(realloc(inLine, allocBytes[stepLine]));
+    inSeg = static_cast<sSegment*>(realloc(inSeg, allocBytes[stepSegment]));
+    ListExpr lineNL = instance;  // get all lines
+    while (!nl->IsEmpty(lineNL)) {  // as long as there are lines left
       // allocate more memory if the actual allocated memory is insufficient
-      if ((long)((inCount + 1) * sizeof(line)) >= allocBytes[step]) {
+      if ((long)((cl + 2) * sizeof(sLine)) >= allocBytes[stepLine]) {
         // allocate more memory - C++ needs type casting unlike C
-        inArray = static_cast<line*>(realloc(inArray, allocBytes[++step]));
-        if (inArray == NULL) {  // exit on memory overflow
-          cmsg.inFunError("not enough memory (??? Bytes needed)!");
+        inLine = static_cast<sLine*>(realloc(inLine, allocBytes[++stepLine]));
+        if (inLine == NULL) {  // exit on memory overflow
+          cmsg.inFunError("not enough memory for line indices!");
           return error;
         }
       }
-      // append the coordinates from the actual line to the array
-      inArray[inCount].x1 = listutils::getNumValue((nl->First(lineLeaf)));
-      inArray[inCount].y1 = listutils::getNumValue((nl->Second(lineLeaf)));
-      inArray[inCount].x2 = listutils::getNumValue((nl->Third(lineLeaf)));
-      inArray[inCount].y2 = listutils::getNumValue((nl->Fourth(lineLeaf)));
-      inCount++;
-      instance = nl->Rest(instance);  // move to next entry
+      inLine[cl].index = cs;
+      cl++;
+
+      ListExpr segmentNL = nl->First(lineNL);  // get first segment
+      if (nl->IsAtom(segmentNL)) {
+        cmsg.inFunError("expected a nested list of segments for each line!");
+        return error;
+      }
+      while(!nl->IsEmpty(segmentNL)) {
+        ListExpr segmentLeaf = nl->First(segmentNL);  // get first segment
+        if ((!nl->HasLength(segmentLeaf, 4)) ||
+            (!listutils::isNumeric(nl->First(segmentLeaf))) ||
+            (!listutils::isNumeric(nl->Second(segmentLeaf))) ||
+            (!listutils::isNumeric(nl->Third(segmentLeaf))) ||
+            (!listutils::isNumeric(nl->Fourth(segmentLeaf)))) {
+           // exit on invalid segment
+          cmsg.inFunError("expected an atom with four numeric values!");
+          return error;
+        }
+        // allocate more memory if the actual allocated memory is insufficient
+        if ((long)((cs + 2) * sizeof(sSegment)) >= allocBytes[stepSegment]) {
+          // allocate more memory - C++ needs type casting unlike C
+          inSeg = static_cast<sSegment*>
+                      (realloc(inSeg, allocBytes[++stepSegment]));
+          if (inSeg == NULL) {  // exit on memory overflow
+            cmsg.inFunError("not enough memory for line segments!");
+            return error;
+          }
+        }
+        // append the coordinates from the actual line to the array
+        inSeg[cs].x1 = listutils::getNumValue((nl->First(segmentLeaf)));
+        inSeg[cs].y1 = listutils::getNumValue((nl->Second(segmentLeaf)));
+        inSeg[cs].x2 = listutils::getNumValue((nl->Third(segmentLeaf)));
+        inSeg[cs].y2 = listutils::getNumValue((nl->Fourth(segmentLeaf)));
+        cs++;
+        segmentNL = nl->Rest(segmentNL);
+      }
+      lineNL = nl->Rest(lineNL);  // move to next line
     }
+    // add terminator entries to arrays. they are needed for the Out-function.
+    inLine[cl].index = cs;
+    inSeg[cs].x1 = 0;
+    inSeg[cs].y1 = 0;
+    inSeg[cs].x2 = 0;
+    inSeg[cs].y2 = 0;
     // truncate oversized memory to allocate the real used memory
-    inArray = static_cast<line*>(realloc(inArray, inCount * sizeof(line)));
+    inLine = static_cast<sLine*>(realloc(inLine, ++cl * sizeof(sLine)));
+    inSeg = static_cast<sSegment*>(realloc(inSeg, ++cs * sizeof(sSegment)));
+    cout << cl * sizeof(sLine) + cs * sizeof(sSegment) << " bytes used\n";
     Word answer(static_cast<void*>(0));
-    answer.addr = new ColLine(inArray, inCount);  // create a new line object
+    answer.addr = new ColLine(inLine, inSeg, cl, cs);  // create new line object
+    // the following two lines are only for debugging mode
+    ColLine* cLine = static_cast<ColLine*>(answer.addr);
+    cLine->showArrays("ColLine after In-function");
     correct = true;
-    return answer;  // return its adress
+    return answer;  // return the object
+
   }
 
   // converts a line array into a nested list format
   ListExpr ColLine::Out(ListExpr typeInfo, Word value) {
     ColLine* cLine = static_cast<ColLine*>(value.addr);
-    if (cLine->count == 0) {
+    if (cLine->countLine == 0) {
       return listutils::emptyErrorInfo();
     }
-    ListExpr res = nl->OneElemList(nl->FourElemList(  // init list
-      nl->RealAtom(cLine->array[0].x1),
-      nl->RealAtom(cLine->array[0].y1),
-      nl->RealAtom(cLine->array[0].x2),
-      nl->RealAtom(cLine->array[0].y2)));
-    ListExpr last = res;  // set actual list element
-    for (long i = 1; i < cLine->count; i++) {  // read all array elements
-      last = nl->Append(last,  // append the line to the nested list
-        nl->FourElemList(
-          nl->RealAtom(cLine->array[i].x1),
-          nl->RealAtom(cLine->array[i].y1),
-          nl->RealAtom(cLine->array[i].x2),
-          nl->RealAtom(cLine->array[i].y2)));
+    long cl = 1;  // counter for index array aLine starting at second entry
+    // initialize heads and tails for working lists
+    ListExpr lineNL     = nl->TheEmptyList();
+    ListExpr lineNLLast = lineNL;
+    // init tuple with first segment
+    ListExpr tupleNL = nl->OneElemList(nl->FourElemList(
+                           nl->RealAtom(cLine->aSegment[0].x1),
+                           nl->RealAtom(cLine->aSegment[0].y1),
+                           nl->RealAtom(cLine->aSegment[0].x2),
+                           nl->RealAtom(cLine->aSegment[0].y2)));
+    ListExpr tupleNLLast  = tupleNL;
+    // main loop: traverse all segments in the segment array
+    for (long cs = 1; cs < cLine->countSegment; cs++) {  // read all segments
+      // check whether a new line appears
+      if (cs == cLine->aLine[cl].index) {
+        if (nl->IsEmpty(lineNL)) {  // append tuple to first line
+          lineNL = nl->OneElemList(tupleNL);
+          lineNLLast = lineNL;
+        } else {  // append tuple to line
+          lineNLLast = nl->Append(lineNLLast, tupleNL);
+        }
+        tupleNL = nl->OneElemList(nl->FourElemList(
+                                   nl->RealAtom(cLine->aSegment[cs].x1),
+                                   nl->RealAtom(cLine->aSegment[cs].y1),
+                                   nl->RealAtom(cLine->aSegment[cs].x2),
+                                   nl->RealAtom(cLine->aSegment[cs].y2)));
+        tupleNLLast  = tupleNL;
+        cl++;
+      } else { // append new segment to segment list
+        tupleNLLast = nl->Append(tupleNLLast, nl->FourElemList(
+                                   nl->RealAtom(cLine->aSegment[cs].x1),
+                                   nl->RealAtom(cLine->aSegment[cs].y1),
+                                   nl->RealAtom(cLine->aSegment[cs].x2),
+                                   nl->RealAtom(cLine->aSegment[cs].y2)));
+      }
     }
-    return res;  // pointer to the beginning of the nested list
+    return lineNL;
   }
 
   Word ColLine::Create(const ListExpr typeInfo) {
     Word answer(static_cast<void*>(0));
-    line* inArray = NULL;
-    answer.addr = new ColLine(inArray, 0);  // create a new line object
+    sLine* inLine = NULL;
+    sSegment* inSeg = NULL;
+    answer.addr = new ColLine(inLine, inSeg, 0, 0);  // create new line object
     return answer;  // return its adress
   }
 
@@ -377,38 +554,56 @@ namespace col {
   // Reads an array from disc via an ~SmiRecord~.
   bool ColLine::Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
-    line* array = NULL;  // array which contains the input line values
-    long count;           // amount of lines
+    sLine* inLine = NULL;  // array which contains the input line values
+    sSegment* inSegment = NULL;  // array which contains the input line values
+    long cl;           // number of lines
+    long cs;  // number  of segments
+    long valueL;
     double x1, y1, x2, y2;          // actual read coordinates
     size_t sizeL = sizeof(long);
     size_t sizeD = sizeof(double);
-    bool ok = (valueRecord.Read(&count, sizeL, offset) == sizeL);
+    // allocate memory depending on the ammount of lines
+    bool ok = (valueRecord.Read(&cl, sizeL, offset) == sizeL);
+    offset += sizeL;
+    ok = (valueRecord.Read(&cs, sizeL, offset) == sizeL);
     offset += sizeL;
     // allocate memory depending on the ammount of lines
-    array = static_cast<line*>(malloc(count * sizeof(line)));
-    if (array == NULL) {    // exit on memory overflow
-      cmsg.inFunError("not enough memory (??? Bytes needed)!");
+    inLine = static_cast<sLine*>(malloc(cl * sizeof(sLine)));
+    if (inLine == NULL) {    // exit on memory overflow
+      cmsg.inFunError("not enough memory for line indices!");
+      return false;
+    }
+    inSegment = static_cast<sSegment*>(malloc(cs * sizeof(sSegment)));
+    if (inSegment == NULL) {    // exit on memory overflow
+      cmsg.inFunError("not enough memory for segments!");
       return false;
     }
     // read each line and store it into the array
-    for (long i = 0; i < count; i++) {
+    for (long i = 0; i < cl; i++) {
+      ok = ok && (valueRecord.Read(&valueL, sizeL, offset) == sizeL);
+      offset += sizeL;
+      inLine[i].index = valueL;
+      if (!ok) break;
+    }
+    // read each segment and store it into the array
+    for (long i = 0; i < cs; i++) {
       ok = ok && (valueRecord.Read(&x1, sizeD, offset) == sizeD);
       offset += sizeD;
-      array[i].x1 = x1;
       ok = ok && (valueRecord.Read(&y1, sizeD, offset) == sizeD);
       offset += sizeD;
-      array[i].y1 = y1;
       ok = ok && (valueRecord.Read(&x2, sizeD, offset) == sizeD);
       offset += sizeD;
-      array[i].x2 = x2;
       ok = ok && (valueRecord.Read(&y2, sizeD, offset) == sizeD);
       offset += sizeD;
-      array[i].y2 = y2;
-      if (!ok) { break; }
+      inSegment[i].x1 = x1;
+      inSegment[i].y1 = y1;
+      inSegment[i].x2 = x2;
+      inSegment[i].y2 = y2;
+      if (!ok) break;
     }
 
     if (ok) {  // create a new ColLine and store the read values in it
-      value.addr = new ColLine(array, count);
+      value.addr = new ColLine(inLine, inSegment, cl, cs);
     } else {  // error
       value.addr = 0;
     }
@@ -421,21 +616,32 @@ namespace col {
     ColLine* cLine = static_cast<ColLine*>(value.addr);
     size_t sizeL = sizeof(long);
     size_t sizeD = sizeof(double);
-    long c = cLine->count;
+    long cl = cLine->countLine;
+    long cs = cLine->countSegment;
+    long valueL;
     double x1, y1, x2, y2;
-    bool ok = valueRecord.Write(&c, sizeL, offset);
+    bool ok = valueRecord.Write(&cl, sizeL, offset);
     offset += sizeL;
-    for (long i = 0; i < cLine->count; i++) {
-      x1 = cLine->array[i].x1;
+    ok = valueRecord.Write(&cs, sizeL, offset);
+    offset += sizeL;
+    // write all line indices to smi record
+    for (long i = 0; i < cLine->countLine; i++) {
+      valueL = cLine->aLine[i].index;
+      ok = ok && valueRecord.Write(&valueL, sizeL, offset);
+      offset += sizeL;
+    }
+    // write all segments to smi record
+    for (long i = 0; i < cLine->countSegment; i++) {
+      x1 = cLine->aSegment[i].x1;
       ok = ok && valueRecord.Write(&x1, sizeL, offset);
       offset += sizeD;
-      y1 = cLine->array[i].y1;
+      y1 = cLine->aSegment[i].y1;
       ok = ok && valueRecord.Write(&y1, sizeL, offset);
       offset += sizeD;
-      x2 = cLine->array[i].x2;
+      x2 = cLine->aSegment[i].x2;
       ok = ok && valueRecord.Write(&x2, sizeL, offset);
       offset += sizeD;
-      y2 = cLine->array[i].y2;
+      y2 = cLine->aSegment[i].y2;
       ok = ok && valueRecord.Write(&y2, sizeL, offset);
       offset += sizeD;
     }
@@ -463,7 +669,7 @@ namespace col {
   }
 
   int ColLine::SizeOf() {
-    return sizeof(line);  // the result isn't meaningful
+    return sizeof(sLine) + sizeof(sSegment);  // the result isn't meaningful
   }
 
 //-----------------------------------------------------------------------------
@@ -474,29 +680,32 @@ Class ColRegion for column-oriented representation of Regions
 */
   ColRegion::ColRegion() {}  // standard constructor doing nothing
   // non-standard constructor initializing the object with parameters
-  ColRegion::ColRegion(sTuple* newTuple, sCycle* newCycle, sPoint* newPoint,
+  ColRegion::ColRegion(sRegion* newTuple, sCycle* newCycle, sPoint* newPoint,
             long newCountTuple, long newCountCycle, long newCountPoint) {
-    aTuple = newTuple;
+    aRegion = newTuple;
     aCycle = newCycle;
     aPoint = newPoint;
-    countTuple = newCountTuple;
+    countRegion = newCountTuple;
     countCycle = newCountCycle;
     countPoint = newCountPoint;
   }
   // non-standard constructor initializing the object with minimum data
   ColRegion::ColRegion(int min) {
-    aTuple = NULL;
+    aRegion = NULL;
     aCycle = NULL;
     aPoint = NULL;
-    aTuple = static_cast<sTuple*>(calloc(1, sizeof(sTuple)));
+    aRegion = static_cast<sRegion*>(calloc(1, sizeof(sRegion)));
     aCycle = static_cast<sCycle*>(calloc(1, sizeof(sCycle)));
     aPoint = static_cast<sPoint*>(calloc(1, sizeof(sPoint)));
-    countTuple = 0;
+    countRegion = 0;
     countCycle = 0;
     countPoint = 0;
+    stepRegion = 0;
+    stepCycle = 0;
+    stepPoint = 0;
   }
   ColRegion::~ColRegion() {   // destructor - free allocated menory
-    free(aTuple);
+    free(aRegion);
     free(aCycle);
     free(aPoint);
   }
@@ -516,20 +725,20 @@ Class ColRegion for column-oriented representation of Regions
     // allocate more memory if actual allocated memory is insufficient
     if ((long) ((countPoint + 2) * sizeof(sPoint)) >= allocBytes[stepPoint]) {
       // allocate more memory - in C++ a type casting is necessary
-      aPoint = static_cast<sPoint*>
-        (realloc(aPoint, allocBytes[++stepPoint]));  // increase alloc counter
+      stepPoint++;
+      aPoint = static_cast<sPoint*> (realloc(aPoint, allocBytes[stepPoint]));
       if (aPoint == NULL) {  // exit on memory overflow
-        cmsg.inFunError("not enough memory!");
+        cmsg.inFunError("not enough memory for all points!");
         return 0;
       }
     }
     aPoint[countPoint].x = x;
     aPoint[countPoint].y = y;
     // adjust mbr coordinates if neccessary
-    if (x < aTuple[countTuple].mbrX1) aTuple[countTuple].mbrX1 = x;
-    if (x > aTuple[countTuple].mbrX2) aTuple[countTuple].mbrX2 = x;
-    if (y < aTuple[countTuple].mbrY1) aTuple[countTuple].mbrY1 = y;
-    if (y > aTuple[countTuple].mbrY2) aTuple[countTuple].mbrY2 = y;
+    if (x < aRegion[countRegion].mbrX1) aRegion[countRegion].mbrX1 = x;
+    if (x > aRegion[countRegion].mbrX2) aRegion[countRegion].mbrX2 = x;
+    if (y < aRegion[countRegion].mbrY1) aRegion[countRegion].mbrY1 = y;
+    if (y > aRegion[countRegion].mbrY2) aRegion[countRegion].mbrY2 = y;
     countPoint++;  // increase index of point array
     return 1;
   }
@@ -543,7 +752,7 @@ Class ColRegion for column-oriented representation of Regions
       aCycle =static_cast<sCycle*>
                (realloc(aCycle, allocBytes[++stepCycle]));
       if (aCycle == NULL) {  // exit on memory overflow
-        cmsg.inFunError("not enough memory!");
+        cmsg.inFunError("not enough memory for all cycles!");
         return 0;
       }
     }
@@ -557,6 +766,7 @@ This function appends one region of the spatial algebra
 to an existing aregion of the column spatial algebra.
 It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
 
+
 */
   bool ColRegion::append(Region* region) {
     if(!region->IsDefined()) {
@@ -567,26 +777,24 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
       cout << "region is empty" << endl;
       return false;
     }
-    long stepTuple = 0;
-    long stepCycle = 0;
-    long stepPoint = 0;
     // calculate and allocate sufficient memory for the tuple array
     while ((long)
-          ((countTuple + 2) * sizeof(sTuple)) >= allocBytes[stepTuple]) {
-      stepTuple++;
+          ((countRegion + 2) * sizeof(sRegion)) >= allocBytes[stepRegion]) {
+      stepRegion++;
     }
-    aTuple = static_cast<sTuple*> (realloc(aTuple, allocBytes[stepTuple++]));
-    if (aTuple == NULL) {  // exit on memory overflow
-      cmsg.inFunError("not enough memory!");
+    aRegion = static_cast<sRegion*> (realloc(aRegion, allocBytes[stepRegion]));
+    if (aRegion == NULL) {  // exit on memory overflow
+      cmsg.inFunError("not enough memory for all regions!");
       return false;
     }
-    // initialize tuple array with region. mbr set to extremes
-    aTuple[countTuple].indexCycle = countCycle;
-    aTuple[countTuple].indexPoint = countPoint;
-    aTuple[countTuple].mbrX1 = 999999;
-    aTuple[countTuple].mbrY1 = 999999;
-    aTuple[countTuple].mbrX2 = -999999;
-    aTuple[countTuple].mbrY2 = -999999;
+    // initialize tuple array with region
+    aRegion[countRegion].indexCycle = countCycle;
+    aRegion[countRegion].indexPoint = countPoint;
+    // mbr set to extremes, so they will be adapted in any case
+    aRegion[countRegion].mbrX1 = 999999;
+    aRegion[countRegion].mbrY1 = 999999;
+    aRegion[countRegion].mbrX2 = -999999;
+    aRegion[countRegion].mbrY2 = -999999;
     Point outputP, leftoverP;
     HalfSegment hs, hsnext;
     // make a copy of the input region to avoid modifying the original data
@@ -606,7 +814,7 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
       outputP = hs.GetLeftPoint();
       leftoverP = hs.GetRightPoint();
     } else {
-      cmsg.inFunError("1 Wrong data format: discontiguous segments!");
+      cmsg.inFunError("Wrong data format: discontiguous segments!");
       return false;
     }
     // append first point to aPoint[]
@@ -631,7 +839,7 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
           else if (hs.GetRightPoint() == leftoverP) {
             leftoverP = hs.GetLeftPoint();
           } else {
-            cmsg.inFunError("2 Wrong data format: discontiguous segments!");
+            cmsg.inFunError("Wrong data format: discontiguous segments!");
             return false;
           }
           // append actual point to aPoint[]
@@ -651,7 +859,7 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
             outputP = hs.GetLeftPoint();
             leftoverP = hs.GetRightPoint();
           } else {
-            cmsg.inFunError("3 Wrong data format: discontiguous segments!");
+            cmsg.inFunError("Wrong data format: discontiguous segments!");
             return false;
           }
           // append new point to aPoint[]
@@ -678,7 +886,7 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
           outputP = hs.GetLeftPoint();
           leftoverP = hs.GetRightPoint();
         } else {
-          cmsg.inFunError("4 Wrong data format: discontiguous segments!");
+          cmsg.inFunError("Wrong data format: discontiguous segments!");
           return false;
         }
         if (!appendPoint(outputP, stepPoint)) {
@@ -692,41 +900,59 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
         }
       }
     }
-    countTuple++;
+    countRegion++;
     return true;
   }
 
-  // add terminator entries to arrays and finalize counters
+/*
+After all regions from the spatial alegbra are appended to the
+arrays of the column spatial algebra, this function adds
+terminator entries to the arrays and set the counters to correct values,
+so they can be used correctly in the ~Out~ - function.
+Additional the arrays are allocated to their real used memory.
+
+*/
   void ColRegion::finalize() {
     aPoint[countPoint].x = 0;
     aPoint[countPoint].y = 0;
     aCycle[countCycle].index = countPoint;
-    aTuple[countTuple].indexCycle = countCycle;
-    aTuple[countTuple].indexPoint = countPoint;
-    aTuple[countTuple].mbrX1 = 0;
-    aTuple[countTuple].mbrY1 = 0;
-    aTuple[countTuple].mbrX2 = 0;
-    aTuple[countTuple].mbrY2 = 0;
-    countTuple++;
+    aRegion[countRegion].indexCycle = countCycle;
+    aRegion[countRegion].indexPoint = countPoint;
+    aRegion[countRegion].mbrX1 = 0;
+    aRegion[countRegion].mbrY1 = 0;
+    aRegion[countRegion].mbrX2 = 0;
+    aRegion[countRegion].mbrY2 = 0;
+    countRegion++;
     countCycle++;
     countPoint++;
+    // truncate oversized memory to allocate only the real used memory
+    aRegion = static_cast<sRegion*>
+              (realloc(aRegion, countRegion * sizeof(sRegion)));
+    aCycle = static_cast<sCycle*>
+             (realloc(aCycle, countCycle * sizeof(sCycle)));
+    aPoint = static_cast<sPoint*>
+             (realloc(aPoint, countPoint * sizeof(sPoint)));
+    // next lines is only for debugging cases - should be commented out
+    // showArrays("arrays after appending regions (no points)", false);
+    cout << countRegion * sizeof(sRegion) + countCycle * sizeof(sCycle)
+          + countPoint * sizeof(sPoint) << " bytes used.\n";
   }
 
   // test output of the arrays aRegion, aCycle and aPoint and there parameters
   void ColRegion::showArrays(string title, bool showPoints) {
     // example output of a nested list: cout << nl->ToString(list) << endl;
     cout << "\n--------------------------------------------\n" << title << "\n";
-    // output of the array aTuple
-    cout << "aRegion (" << countTuple << "):\n";
-    cout << "Bytes allocated: " << countTuple * sizeof(aTuple[0]) << "\n";
+    // output of the array aRegion
+    cout << "aRegion (" << countRegion << "):\n";
+    cout << "Bytes allocated: " << countRegion * sizeof(aRegion[0]) << "\n";
     cout << "index\tcycle\tpoint\tmbr-l\tmbr-b\tmbr-r\tmbr-t\n";
-    for (long ct = 0; ct < countTuple; ct++) {
-      cout << ct << ":\t" << aTuple[ct].indexCycle << "\t"
-           << aTuple[ct].indexPoint << "\t"
-           << aTuple[ct].mbrX1 << "\t"
-           << aTuple[ct].mbrY1 << "\t"
-           << aTuple[ct].mbrX2 << "\t"
-           << aTuple[ct].mbrY2 << "\n";
+    for (long cr = 0; cr < countRegion; cr++) {
+      cout << cr << ":\t" << aRegion[cr].indexCycle << "\t"
+           << aRegion[cr].indexPoint << "\t"
+           << aRegion[cr].mbrX1 << "\t"
+           << aRegion[cr].mbrY1 << "\t"
+           << aRegion[cr].mbrX2 << "\t"
+           << aRegion[cr].mbrY2 << "\n";
     }
     // output of the array aCycle
     cout << "aCycle (" << countCycle << "):\n";
@@ -792,19 +1018,19 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
       return error;
     }
     // initialize the arrays which contain the latter input values
-    sTuple* inTuple = NULL;
+    sRegion* inRegion = NULL;
     sCycle* inCycle = NULL;
     sPoint* inPoint = NULL;
-    long ct = 0;  // index counter of the tuple array
+    long cr = 0;  // index counter of the tuple array
     long cc = 0;  // index counter of the cycle array
     long cp = 0;  // index counter of the point array
     // index to the array allocbytes of actual allocated memory for each array
-    long stepTuple = 0;
+    long stepRegion = 0;
     long stepCycle = 0;
     long stepPoint = 0;
 
     // allocate memory for the input arrays
-    inTuple = static_cast<sTuple*>(realloc(inTuple, allocBytes[stepTuple]));
+    inRegion = static_cast<sRegion*>(realloc(inRegion, allocBytes[stepRegion]));
     inCycle = static_cast<sCycle*>(realloc(inCycle, allocBytes[stepCycle]));
     inPoint = static_cast<sPoint*>(realloc(inPoint, allocBytes[stepPoint]));
     int cycleSign = 1;  // 1 marks an outer cycle and -1 marks an inner cycle
@@ -813,23 +1039,23 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
     while (!nl->IsEmpty(regionNL)) {  // as long as there are regions left
       // allocate more memory if the actual allocated memory is insufficient
       if ((long)
-        ((ct + 2) * sizeof(sTuple)) >= allocBytes[stepTuple]) {
+        ((cr + 2) * sizeof(sRegion)) >= allocBytes[stepRegion]) {
         // allocate more memory - in C++ a type casting is necessary
-        inTuple = static_cast<sTuple*>
-                  (realloc(inTuple, allocBytes[++stepTuple]));
-        if (inTuple == NULL) {  // exit on memory overflow
+        inRegion = static_cast<sRegion*>
+                  (realloc(inRegion, allocBytes[++stepRegion]));
+        if (inRegion == NULL) {  // exit on memory overflow
           cmsg.inFunError("not enough memory!");
           return error;
         }
       }
-      inTuple[ct].indexCycle = cc;
-      inTuple[ct].indexPoint = cp;
+      inRegion[cr].indexCycle = cc;
+      inRegion[cr].indexPoint = cp;
       // values for the actual minimum bounding rectangle per region
-      inTuple[ct].mbrX1 = 0;
-      inTuple[ct].mbrY1 = 0;
-      inTuple[ct].mbrX2 = 0;
-      inTuple[ct].mbrY2 = 0;
-      ct++;
+      inRegion[cr].mbrX1 = 0;
+      inRegion[cr].mbrY1 = 0;
+      inRegion[cr].mbrX2 = 0;
+      inRegion[cr].mbrY2 = 0;
+      cr++;
       ListExpr tupleNL = nl->First(regionNL);
       if (nl->IsAtom(tupleNL)) {
         cmsg.inFunError("expected a nested list for regions!");
@@ -879,17 +1105,14 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
                 return error;
               }
             }
-            inPoint[cp].x = listutils::getNumValue((nl->First(pointNL)));
-            inPoint[cp].y = listutils::getNumValue((nl->Second(pointNL)));
-
-            if (inPoint[cp].x < inTuple[ct].mbrX1)
-              inTuple[ct].mbrX1 = inPoint[cp].x;
-            if (inPoint[cp].x > inTuple[ct].mbrX2)
-              inTuple[ct].mbrX2 = inPoint[cp].x;
-            if (inPoint[cp].y < inTuple[ct].mbrY1)
-              inTuple[ct].mbrY1 = inPoint[cp].y;
-            if (inPoint[cp].y > inTuple[ct].mbrY2)
-              inTuple[ct].mbrY2 = inPoint[cp].y;
+            double x = listutils::getNumValue((nl->First(pointNL)));
+            double y = listutils::getNumValue((nl->Second(pointNL)));
+            inPoint[cp].x = x;
+            inPoint[cp].y = y;
+            if (x < inRegion[cr].mbrX1) inRegion[cr].mbrX1 = x;
+            if (x > inRegion[cr].mbrX2) inRegion[cr].mbrX2 = x;
+            if (y < inRegion[cr].mbrY1) inRegion[cr].mbrY1 = y;
+            if (y > inRegion[cr].mbrY2) inRegion[cr].mbrY2 = y;
 
             cp++;
             cycleNL = nl->Rest(cycleNL);  // "move" to next point
@@ -904,35 +1127,35 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
     inPoint[cp].x = 0;
     inPoint[cp].y = 0;
     inCycle[cc].index = cp;
-    inTuple[ct].indexCycle = cc;
-    inTuple[ct].indexPoint = cp;
-    inTuple[ct].mbrX1 = 0;
-    inTuple[ct].mbrY1 = 0;
-    inTuple[ct].mbrX2 = 0;
-    inTuple[ct].mbrY2 = 0;
+    inRegion[cr].indexCycle = cc;
+    inRegion[cr].indexPoint = cp;
+    inRegion[cr].mbrX1 = 0;
+    inRegion[cr].mbrY1 = 0;
+    inRegion[cr].mbrX2 = 0;
+    inRegion[cr].mbrY2 = 0;
     // truncate oversized memory to allocate only the real used memory
-    inTuple = static_cast<sTuple*>(realloc(inTuple, ++ct * sizeof(sTuple)));
+    inRegion = static_cast<sRegion*>(realloc(inRegion, ++cr * sizeof(sRegion)));
     inCycle = static_cast<sCycle*>(realloc(inCycle, ++cc * sizeof(sCycle)));
     inPoint = static_cast<sPoint*>(realloc(inPoint, ++cp * sizeof(sPoint)));
-    cout << ct * sizeof(sTuple) + cc * sizeof(sCycle) + cp * sizeof(sPoint)
+    cout << cr * sizeof(sRegion) + cc * sizeof(sCycle) + cp * sizeof(sPoint)
          << " bytes used\n";
     Word answer(static_cast<void*>(0));
     // create new region object with the just read in arrays
-    answer.addr = new ColRegion(inTuple, inCycle, inPoint, ct, cc, cp);
+    answer.addr = new ColRegion(inRegion, inCycle, inPoint, cr, cc, cp);
     // the following two lines are only for debugging mode
-    // ColRegion* cRegion = static_cast<ColRegion*>(answer.addr);
-    // cRegion->showArrays("ColRegion after In-function", true);
+    ColRegion* cRegion = static_cast<ColRegion*>(answer.addr);
+    cRegion->showArrays("ColRegion after In-function", true);
     correct = true;
     return answer;  // return the object
   }
 
   ListExpr ColRegion::Out(ListExpr typeInfo, Word value) {
     ColRegion* cRegion = static_cast<ColRegion*>(value.addr);
-    if (cRegion->countTuple == 0) {  // no elements lead to error
+    if (cRegion->countRegion == 0) {  // no elements lead to error
       return listutils::emptyErrorInfo();
     }
-    // counters for index arrays aTuple and aCycle starting at second entries
-    long ct = 1;
+    // counters for index arrays aRegion and aCycle starting at second entries
+    long cr = 1;
     long cc = 1;
     // initialize heads and tails for working lists
     ListExpr regionNL     = nl->TheEmptyList();
@@ -965,7 +1188,7 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
             tupleNLLast = nl->Append(tupleNLLast, faceNL);
           }
           // check whether a new tuple appears
-          if (cp == cRegion->aTuple[ct].indexPoint) {
+          if (cp == cRegion->aRegion[cr].indexPoint) {
             if (nl->IsEmpty(regionNL)) {  // append last tuple to new region
               regionNL = nl->OneElemList(tupleNL);
               regionNLLast = regionNL;
@@ -975,7 +1198,7 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
             // clear tuple and increase region counter
             tupleNL = nl->TheEmptyList();
             tupleNLLast = tupleNL;
-            ct++;
+            cr++;
           }
         }
         // initialize new cycle and increase cycle counter
@@ -998,9 +1221,9 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
     Word answer(static_cast<void*>(0));
     sPoint *inPoint = NULL;
     sCycle *inCycle = NULL;
-    sTuple *inTuple = NULL;
+    sRegion *inRegion = NULL;
     // create a new region object
-    answer.addr = new ColRegion(inTuple, inCycle, inPoint, 0, 0, 0);
+    answer.addr = new ColRegion(inRegion, inCycle, inPoint, 0, 0, 0);
     return answer;  // return its adress
   }
 
@@ -1013,11 +1236,11 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
   bool ColRegion::Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
     // initialize arrays
-    sTuple* tuple = NULL;
+    sRegion* region = NULL;
     sCycle* cycle = NULL;
     sPoint* point = NULL;
     // initialize counters
-    long ct;
+    long cr;
     long cc;
     long cp;
     long valueL;
@@ -1025,15 +1248,15 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
     size_t sizeL = sizeof(long);
     size_t sizeD = sizeof(double);
     // 1. read the counters from disc
-    bool ok = (valueRecord.Read(&ct, sizeL, offset) == sizeL);
+    bool ok = (valueRecord.Read(&cr, sizeL, offset) == sizeL);
     offset += sizeL;
     ok = ok && (valueRecord.Read(&cc, sizeL, offset) == sizeL);
     offset += sizeL;
     ok = ok && (valueRecord.Read(&cp, sizeL, offset) == sizeL);
     offset += sizeL;
     // allocate memory depending on the counters
-    tuple = static_cast<sTuple*>(malloc(ct * sizeof(sTuple)));
-    if (tuple == NULL) {    // exit on memory overflow
+    region = static_cast<sRegion*>(malloc(cr * sizeof(sRegion)));
+    if (region == NULL) {    // exit on memory overflow
       cmsg.inFunError("not enough memory (??? Bytes needed)!");
       return false;
     }
@@ -1048,13 +1271,13 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
       return false;
     }
     // 2. read the tuples and store them into the array tuple
-    for (long i = 0; i < ct; i++) {
+    for (long i = 0; i < cr; i++) {
       ok = ok && (valueRecord.Read(&valueL, sizeL, offset) == sizeL);
       offset += sizeL;
-      tuple[i].indexCycle = valueL;
+      region[i].indexCycle = valueL;
       ok = ok && (valueRecord.Read(&valueL, sizeL, offset) == sizeL);
       offset += sizeL;
-      tuple[i].indexPoint = valueL;
+      region[i].indexPoint = valueL;
       if (!ok) { break; }
     }
     // 3. read the cycles and store them into the array tuple
@@ -1075,7 +1298,7 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
       if (!ok) { break; }
     }
     if (ok) {  // create a new ColRegion and store the read values in it
-      value.addr = new ColRegion(tuple, cycle, point, ct, cc, cp);
+      value.addr = new ColRegion(region, cycle, point, cr, cc, cp);
     } else {  // error
       value.addr = 0;
     }
@@ -1089,24 +1312,24 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
     size_t sizeL = sizeof(long);
     size_t sizeD = sizeof(double);
     // order of counters and arrays are tuples - cycles - points
-    long ct = cRegion->countTuple;
+    long cr = cRegion->countRegion;
     long cc = cRegion->countCycle;
     long cp = cRegion->countPoint;
     long valueL;
     double x, y;
     // 1. write the counters to disc
-    bool ok = valueRecord.Write(&ct, sizeL, offset);
+    bool ok = valueRecord.Write(&cr, sizeL, offset);
     offset += sizeL;
     ok = ok && valueRecord.Write(&cc, sizeL, offset);
     offset += sizeL;
     ok = ok && valueRecord.Write(&cp, sizeL, offset);
     offset += sizeL;
     // 2. write the tuple array to disc
-    for (long i = 0; i < ct; i++) {
-      valueL = cRegion->aTuple[i].indexCycle;
+    for (long i = 0; i < cr; i++) {
+      valueL = cRegion->aRegion[i].indexCycle;
       ok = ok && valueRecord.Write(&valueL, sizeL, offset);
       offset += sizeL;
-      valueL = cRegion->aTuple[i].indexPoint;
+      valueL = cRegion->aRegion[i].indexPoint;
       ok = ok && valueRecord.Write(&valueL, sizeL, offset);
       offset += sizeL;
     }
@@ -1150,7 +1373,7 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
   }
 
   int ColRegion::SizeOf() {
-    return sizeof(sTuple) + sizeof(sCycle) + sizeof(sPoint);
+    return sizeof(sRegion) + sizeof(sCycle) + sizeof(sPoint);
   }
 
 //------------------------------ Operators ------------------------------------
@@ -1193,7 +1416,8 @@ ListExpr mapTM(ListExpr args) {
   if (Point::checkType(type) ||
       Line::checkType(type) ||
       Region::checkType(type)) {
-    cout << "Attribute " << j << " is " << nl->ToString(type) << endl;
+    cout << "'" << name << "'' is attribute " << j << ", type is '"
+         << nl->ToString(type) << "'." << endl;
     return nl->ThreeElemList(
            nl->SymbolAtom(Symbols::APPEND()),
            nl->OneElemList(nl->IntAtom(j)),
@@ -1254,7 +1478,7 @@ int mapLineVM (Word* args, Word& result, int message,
   Line* line;                            // actual line attribute
   while( (tuple = stream.request()) ) {  // if exists, get next tuple
     // extract region from tuple
-    region = (Line*) tuple->GetAttribute(v - 1);
+    line = (Line*) tuple->GetAttribute(v - 1);
     if (!cLine->append(line)) {          // append line to aline
       cout << "Error in line mapping!";
       return 0;
@@ -1262,9 +1486,7 @@ int mapLineVM (Word* args, Word& result, int message,
     tuple->DeleteIfAllowed();            // remove tuple from stream
    }
   stream.close();                        // close the stream
-  cRegion->finalize();
-  // next line is only for debugging cases - should be commented out
-  cRegion->showArrays("Nach append aller Linien", false);
+  cLine->finalize();
   return 0;
 }
 
@@ -1296,9 +1518,6 @@ int mapRegionVM (Word* args, Word& result, int message,
    }
   stream.close();                        // close the stream
   cRegion->finalize();
-  // next line is only for debugging cases - should be commented out
-  cRegion->showArrays("Nach append aller Regionen - Ausgabe ohne Punkte",
-                      false);
   return 0;
 }
 
