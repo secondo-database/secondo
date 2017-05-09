@@ -30,9 +30,6 @@ Started July 2014, Fabio Vald\'{e}s
 using namespace std;
 using namespace datetime;
 
-typedef uint32_t wordPosType;
-typedef uint32_t charPosType;
-
 using namespace temporalalgebra;
 namespace stj {
  
@@ -1119,28 +1116,27 @@ void Tools::deleteValue(Word &value, const string &type) {
 \subsection{Function ~queryTrie~}
 
 */
-void Tools::queryTrie(InvertedFile *inv, string str, vector<set<int> > &result){
-  InvertedFile::exactIterator* eit = 0;
+void Tools::queryTrie(InvertedFileT<UnitPos, UnitPos> *inv, string str, 
+                      vector<set<int> > &result){
+  InvertedFileT<UnitPos, UnitPos>::exactIterator* eit = 0;
   TupleId id;
-  wordPosType wc;
-  charPosType cc;
+  UnitPos wc, cc;
   eit = inv->getExactIterator(str, 16777216);
   while (eit->next(id, wc, cc)) {
-    result[id].insert(wc);
+    result[id].insert(wc.pos);
   }
   delete eit;
 }
 
-void Tools::queryTrie(InvertedFile *inv, pair<string, unsigned int> place,
-                      vector<set<int> > &result){
-  InvertedFile::exactIterator* eit = 0;
+void Tools::queryTrie(InvertedFileT<UnitPos, UnitPos> *inv, 
+                  pair<string, unsigned int> place, vector<set<int> > &result) {
+  InvertedFileT<UnitPos, UnitPos>::exactIterator* eit = 0;
   TupleId id;
-  wordPosType wc;
-  charPosType cc;
+  UnitPos wc, cc;
   eit = inv->getExactIterator(place.first, 16777216);
   while (eit->next(id, wc, cc)) {
     if (cc == place.second) {
-      result[id].insert(wc);
+      result[id].insert(wc.pos);
     }
   }
   delete eit;
@@ -1150,22 +1146,13 @@ void Tools::queryTrie(InvertedFile *inv, pair<string, unsigned int> place,
 \subsection{Function ~queryBtree~}
 
 */
-void Tools::queryBtree(BTree_t<LongInt> *btree, Interval<CcReal> &iv, 
-                        vector<set<int> > &result) {
+void Tools::queryBtree(BTree_t<NewPair<TupleId, UnitPos> > *btree, 
+                       Interval<CcReal> &iv, vector<set<int> > &result) {
   CcInt *left = new CcInt(true, (int)(floor(iv.start.GetValue())));
   CcInt *right = new CcInt(true, (int)(ceil(iv.end.GetValue())));
-  BTreeIterator_t<LongInt> *it = btree->Range(left, right);
+  BTreeIterator_t<NewPair<TupleId, UnitPos> > *it = btree->Range(left, right);
   while (it->Next()) {
-    if (it->GetId().IsDefined()) {
-      cout << "DEFINED" << endl;
-      int64_t value = it->GetId().GetValue();
-      int32_t id = (int32_t)(value>>32);
-      int32_t unit = (int32_t)value;
-      result[id].insert(unit);
-    }
-    else {
-      cout << "undef" << endl;
-    }
+    result[it->GetId().first].insert(it->GetId().second.pos);
   }
   delete it;
   left->DeleteIfAllowed();
@@ -1176,18 +1163,18 @@ void Tools::queryBtree(BTree_t<LongInt> *btree, Interval<CcReal> &iv,
 \subsection{Function ~queryRtree1~}
 
 */
-void Tools::queryRtree1(RTree1TLLI *rtree, Interval<CcReal> &iv, 
-                        vector<set<int> > &result) {
-  R_TreeLeafEntry<1, TwoLayerLeafInfo> leaf;
+void Tools::queryRtree1(R_Tree<1, NewPair<TupleId, UnitPos> > *rtree, 
+                        Interval<CcReal> &iv, vector<set<int> > &result) {
+  R_TreeLeafEntry<1, NewPair<TupleId, UnitPos> > leaf;
   double min[1], max[1];
   min[0] = iv.start.GetValue();
   max[0] = iv.end.GetValue();
   Rectangle<1> rect1(true, min, max);
   if (rtree->First(rect1, leaf)) {
-    result[leaf.info.tupleId].insert(leaf.info.low);
+    result[leaf.info.first].insert(leaf.info.second.pos);
   }
   while (rtree->Next(leaf)) {
-    result[leaf.info.tupleId].insert(leaf.info.low);
+    result[leaf.info.first].insert(leaf.info.second.pos);
   }
 }
 
@@ -1195,14 +1182,14 @@ void Tools::queryRtree1(RTree1TLLI *rtree, Interval<CcReal> &iv,
 \subsection{Function ~queryRtree2~}
 
 */
-void Tools::queryRtree2(RTree2TLLI *rtree, Rectangle<2> &box, 
-                        vector<set<int> > &result) {
-  R_TreeLeafEntry<2, TwoLayerLeafInfo> leaf;
+void Tools::queryRtree2(R_Tree<2, NewPair<TupleId, UnitPos> > *rtree,
+                        Rectangle<2> &box, vector<set<int> > &result) {
+  R_TreeLeafEntry<2, NewPair<TupleId, UnitPos> > leaf;
   if (rtree->First(box, leaf)) {
-    result[leaf.info.tupleId].insert(leaf.info.low);
+    result[leaf.info.first].insert(leaf.info.second.pos);
   }
   while (rtree->Next(leaf)) {
-    result[leaf.info.tupleId].insert(leaf.info.low);
+    result[leaf.info.first].insert(leaf.info.second.pos);
   }
 }
 

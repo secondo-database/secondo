@@ -2926,6 +2926,7 @@ Operator matches("matches", matchesSpec, 8, matchesVMs, matchesSelect,
 \subsection{Type Mapping}
 
 */
+template<class PosType, class PosType2>
 ListExpr createtupleindexTM(ListExpr args) {
   string err = "Operator expects a stream of tuples where at least one "
                "attribute is a symbolic trajectory. Optionally, the user can "
@@ -2965,19 +2966,21 @@ ListExpr createtupleindexTM(ListExpr args) {
   }
   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
                            nl->OneElemList(nl->IntAtom(pos - 1)),
-                           nl->SymbolAtom(TupleIndex::BasicType()));
+                    nl->SymbolAtom(TupleIndex<PosType, PosType2>::BasicType()));
 }
 
 /*
 \subsection{Value Mapping}
 
 */
+template<class PosType, class PosType2>
 int createtupleindexVM(Word* args, Word& result, int message, Word& local, 
                        Supplier s) {
   result = qp->ResultStorage(s);
   Stream<Tuple> stream = static_cast<Stream<Tuple> >(args[0].addr);
   CcInt *attrno = static_cast<CcInt*>(args[2].addr);
-  TupleIndex* ti = static_cast<TupleIndex*>(result.addr);
+  TupleIndex<PosType, PosType2> * ti 
+                    = static_cast<TupleIndex<PosType, PosType2>* >(result.addr);
   int counter = 0;
   stream.open();
   Tuple* tuple = stream.request();
@@ -3020,6 +3023,7 @@ struct createtupleindexInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
+template<class PosType, class PosType2>
 ListExpr bulkloadtupleindexTM(ListExpr args) {
   string err = "Operator expects a relation of tuples where at least one "
                "attribute is a symbolic trajectory. Optionally, the user can "
@@ -3059,19 +3063,21 @@ ListExpr bulkloadtupleindexTM(ListExpr args) {
   }
   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
                            nl->OneElemList(nl->IntAtom(pos - 1)),
-                           nl->SymbolAtom(TupleIndex::BasicType()));
+                    nl->SymbolAtom(TupleIndex<PosType, PosType2>::BasicType()));
 }
 
 /*
 \subsection{Value Mapping}
 
 */
+template<class PosType, class PosType2>
 int bulkloadtupleindexVM(Word* args, Word& result, int message, Word& local, 
                          Supplier s) {
   result = qp->ResultStorage(s);
   Relation *rel = static_cast<Relation*>(args[0].addr);
   CcInt *attrno = static_cast<CcInt*>(args[2].addr);
-  TupleIndex* ti = static_cast<TupleIndex*>(result.addr);
+  TupleIndex<PosType, PosType2>* ti
+                     = static_cast<TupleIndex<PosType, PosType2>*>(result.addr);
   if (rel->GetNoTuples() == 0) {
     return 0;
   }
@@ -3116,7 +3122,8 @@ struct bulkloadtupleindexInfo : OperatorInfo {
 };
 
 Operator bulkloadtupleindex("bulkloadtupleindex", bulkloadtupleindexSpec, 
-            bulkloadtupleindexVM, Operator::SimpleSelect, bulkloadtupleindexTM);
+            bulkloadtupleindexVM<UnitPos, UnitPos>, Operator::SimpleSelect, 
+            bulkloadtupleindexTM<UnitPos, UnitPos>);
 
 /*
 \section{Operator ~tmatches~}
@@ -3234,7 +3241,7 @@ ListExpr indextmatchesTM(ListExpr args) {
   if (!nl->HasLength(args, 4)) {
     return listutils::typeError(err + " (4 arguments expected)");
   }
-  if (!TupleIndex::checkType(nl->First(nl->First(args)))) {
+  if (!TupleIndex<UnitPos, UnitPos>::checkType(nl->First(nl->First(args)))) {
     return listutils::typeError(err + " (first argument is not a tuple index)");
   }
   if (!Relation::checkType(nl->First(nl->Second(args)))) {
@@ -3287,7 +3294,8 @@ int indextmatchesVM(Word* args, Word& result, int message, Word& local,
       }
       Relation *rel = static_cast<Relation*>(args[1].addr);
       CcInt *attrno = static_cast<CcInt*>(args[4].addr);
-      TupleIndex *ti = static_cast<TupleIndex*>(args[0].addr);
+      TupleIndex<UnitPos, UnitPos> *ti
+                     = static_cast<TupleIndex<UnitPos, UnitPos>*>(args[0].addr);
       FText* pText = static_cast<FText*>(args[3].addr);
       Pattern *p = 0;
       if (pText->IsDefined() && attrno->IsDefined() && rel->GetNoTuples() > 0) {
@@ -3367,7 +3375,7 @@ ListExpr indextmatches2TM(ListExpr args) {
   if (!nl->HasLength(args, 3)) {
     return listutils::typeError(err + " (3 arguments expected)");
   }
-  if (!TupleIndex::checkType(nl->First(args))) {
+  if (!TupleIndex<UnitPos, UnitPos>::checkType(nl->First(args))) {
     return listutils::typeError(err + " (1st argument is not a tuple index)");
   }
   if (!Relation::checkType(nl->Second(args))) {
@@ -3404,7 +3412,8 @@ int indextmatches2VM(Word* args, Word& result, int message, Word& local,
         local.addr = 0;
       }
       Relation *rel = static_cast<Relation*>(args[1].addr);
-      TupleIndex *ti = static_cast<TupleIndex*>(args[0].addr);
+      TupleIndex<NewInterval, UnitPos> *ti 
+                 = static_cast<TupleIndex<NewInterval, UnitPos>*>(args[0].addr);
       FText* pText = static_cast<FText*>(args[2].addr);
       Pattern *p = 0;
       if (pText->IsDefined() && rel->GetNoTuples() > 0) {
@@ -3479,7 +3488,7 @@ Operator indextmatches2("indextmatches2", indextmatches2Spec, 2,
 ListExpr indexrewriteTM(ListExpr args) {
   string err = "the expected syntax is: tupleindex x rel x attrname x "
                "(text | pattern)";
-  if (!TupleIndex::checkType(nl->First(args))) {
+  if (!TupleIndex<UnitPos, UnitPos>::checkType(nl->First(args))) {
     return listutils::typeError(err + " (first argument is not a tuple index)");
   }
   if (!Relation::checkType(nl->Second(args))) {
@@ -3539,7 +3548,8 @@ int indexrewriteVM(Word* args, Word& result, int message, Word& local,
       }
       Relation *rel = static_cast<Relation*>(args[1].addr);
       CcInt *attrno = static_cast<CcInt*>(args[4].addr);
-      TupleIndex *ti = static_cast<TupleIndex*>(args[0].addr);
+      TupleIndex<UnitPos, UnitPos> *ti
+                     = static_cast<TupleIndex<UnitPos, UnitPos>*>(args[0].addr);
       FText* pText = static_cast<FText*>(args[3].addr);
       Pattern *p = 0;
       if (pText->IsDefined() && attrno->IsDefined() && rel->GetNoTuples() > 0) {
@@ -4370,8 +4380,8 @@ int indexclassifyVM(Word* args, Word& result, int message, Word& local,
         local.addr = 0;
       }
       InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
-      R_Tree<1, NewPair<TupleId, int> > *rt = 
-                  static_cast<R_Tree<1, NewPair<TupleId, int> >*>(args[3].addr);
+      R_Tree<1, NewPair<TupleId, UnitPos> > *rt = 
+              static_cast<R_Tree<1, NewPair<TupleId, UnitPos> >*>(args[3].addr);
       CcInt *attr = static_cast<CcInt*>(args[5].addr);
       Relation *rel = static_cast<Relation*>(args[0].addr);
       if (!attr->IsDefined()) {
@@ -4867,7 +4877,8 @@ int createtrieVM(Word* args, Word& result, int message, Word& local,Supplier s){
   Tuple *tuple = 0;
   M *src = 0;
   result = qp->ResultStorage(s);
-  InvertedFile* inv = (InvertedFile*)result.addr;
+  InvertedFileT<UnitPos, UnitPos>* inv 
+                                = (InvertedFileT<UnitPos, UnitPos>*)result.addr;
   inv->setParams(false, 1, "");
   size_t maxMem = 0;/*qp->GetMemorySize(s) * 1024 * 1024*/
   size_t trieCacheSize = maxMem / 20;
@@ -4887,7 +4898,7 @@ int createtrieVM(Word* args, Word& result, int message, Word& local,Supplier s){
   for (int i = 0; i < rel->GetNoTuples(); i++) {
     tuple = rel->GetTuple(i + 1, false);
     src = (M*)(tuple->GetAttribute(attrno));
-    TupleIndex::insertIntoTrie(inv, i + 1, src, 
+    TupleIndex<UnitPos, UnitPos>::insertIntoTrie(inv, i + 1, src, 
            Tools::getDataType(tuple->GetTupleType(), attrno), cache, trieCache);
     tuple->DeleteIfAllowed();
   }
@@ -5089,6 +5100,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
   AddTypeConstructor(&patternTC);
   AddTypeConstructor(&tupleindexTC);
+  AddTypeConstructor(&tupleindex2TC);
   AddTypeConstructor(&classifierTC);
 
   ValueMapping tolabelVMs[] = {tolabelVM<FText>, tolabelVM<CcString>, 0};
@@ -5276,7 +5288,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(&matches);
   matches.SetUsesArgsInTypeMapping();
   
-  AddOperator(createtupleindexInfo(), createtupleindexVM, createtupleindexTM);
+  AddOperator(createtupleindexInfo(), createtupleindexVM<UnitPos, UnitPos>,
+              createtupleindexTM<UnitPos, UnitPos>);
   
   AddOperator(&bulkloadtupleindex);
   bulkloadtupleindex.SetUsesMemory();
@@ -5287,8 +5300,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(&indextmatches);
   indextmatches.SetUsesArgsInTypeMapping();
   
-  AddOperator(&indextmatches2);
-  indextmatches.SetUsesArgsInTypeMapping();
+//   AddOperator(&indextmatches2);
+//   indextmatches2.SetUsesArgsInTypeMapping();
   
   ValueMapping indexrewriteVMs[] = {indexrewriteVM<MLabel>, 
     indexrewriteVM<MLabels>, indexrewriteVM<MPlace>, indexrewriteVM<MPlaces>,0};

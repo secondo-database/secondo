@@ -54,11 +54,11 @@ class NewPair {
   F first;
   S second;
   
-  bool operator == (const NewPair& np) const {
+  bool operator==(const NewPair& np) const {
     return (first == np.first && second == np.second);
   }
   
-  bool operator < (const NewPair& np) const {
+  bool operator<(const NewPair& np) const {
     if (first < np.first) {
       return true;
     }
@@ -66,6 +66,13 @@ class NewPair {
       return second < np.second;
     }
     return false;
+  }
+  
+  template<class X>
+  void copy2ndFrom(const X newValue) {
+    if (sizeof(S) == sizeof(X)) {
+      memcpy(&second, &newValue, sizeof(S));
+    }
   }
 };
   

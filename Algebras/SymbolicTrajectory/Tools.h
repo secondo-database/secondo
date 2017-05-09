@@ -56,6 +56,20 @@ Started July 2014, Fabio Vald\'{e}s
   int newState;
 };
 
+struct UnitPos {
+  UnitPos() {}
+  UnitPos(const unsigned int u) : pos(u) {}
+  
+  void operator=(const unsigned int p) {pos = p;}
+  bool operator==(const unsigned int p) const {return pos == p;}
+  bool operator<(const UnitPos p) const {return pos < p.pos;}
+  bool operator<(const unsigned int p) const {return pos < p;}
+  
+  static const std::string BasicType() {return "unitpos";}
+
+  uint32_t pos;
+};
+
 struct ivCmp {
   bool operator() (const temporalalgebra::Interval<CcReal>& iv1, 
                    const temporalalgebra::Interval<CcReal>& iv2)
@@ -136,19 +150,19 @@ class Tools {
                        TupleType *ttype, 
                        const int majorAttrNo, int& majorValueNo);
   static void deleteValue(Word &value, const std::string &type);
-  static void queryTrie(InvertedFile *inv, std::string str, 
+  static void queryTrie(InvertedFileT<UnitPos, UnitPos> *inv, 
+                        std::string str, std::vector<std::set<int> > &result);
+  static void queryTrie(InvertedFileT<UnitPos, UnitPos> *inv, 
+                        std::pair<std::string, unsigned int> place, 
                         std::vector<std::set<int> > &result);
-  static void queryTrie(InvertedFile *inv, std::pair<std::string, 
-                        unsigned int> place, 
-                        std::vector<std::set<int> > &result);
-  static void queryBtree(BTree_t<LongInt> *btree, 
+  static void queryBtree(BTree_t<NewPair<TupleId, UnitPos> > *btree, 
                          temporalalgebra::Interval<CcReal> &iv,
                          std::vector<std::set<int> > &result);
-  static void queryRtree1(RTree1TLLI *rtree, 
+  static void queryRtree1(R_Tree<1, NewPair<TupleId, UnitPos> > *rtree, 
                           temporalalgebra::Interval<CcReal> &iv,
                           std::vector<std::set<int> > &result);
-  static void queryRtree2(RTree2TLLI *rtree, Rectangle<2> &box,
-                          std::vector<std::set<int> > &result);
+  static void queryRtree2(R_Tree<2, NewPair<TupleId, UnitPos> > *rtree, 
+                        Rectangle<2> &box, std::vector<std::set<int> > &result);
   static bool timesMatch(
                    const temporalalgebra::Interval<Instant>& iv, 
                    const std::set<std::string>& ivs);

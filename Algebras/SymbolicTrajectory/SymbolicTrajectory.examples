@@ -376,8 +376,8 @@ Result   : 3
 Operator : initial
 Number   : 13
 Signature: ulabels -> ilabels
-Example  : query initial(the_unit([const labels value ("Mkhitaryan")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE))
-Result   : (ilabels ("2000-01-03" ('Mkhitaryan')))
+Example  : query initial(the_unit([const labels value ("Schürrle")], [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE))
+Result   : (ilabels ("2000-01-03" ('Schürrle')))
 
 Operator : final
 Number   : 13
@@ -388,8 +388,8 @@ Result   : (iplaces ("2014-01-01-03:00" (('Bürki' 38) ('Weidenfeller' 1))))
 Operator : val
 Number   : 5
 Signature: ilabels -> label
-Example  : query val([const ilabels value ("2013-10-29" ("Mkhitaryan" "Jojic"))])
-Result   : (labels ('Mkhitaryan' 'Jojic'))
+Example  : query val([const ilabels value ("2013-10-29" ("Pulisic" "Weigl"))])
+Result   : (labels ('Pulisic' 'Weigl'))
 
 Operator : inst
 Number   : 5
@@ -457,12 +457,6 @@ Number   : 1
 Signature: tupleindex x rel(tuple(X)) x IDENT x (text | pattern) -> stream(tuple(X))
 Example  : query Dotraj bulkloadtupleindex[Trajectory] Dotraj indextmatches[Trajectory, '(_ "Innenstadt-Ost") *'] count
 Result   : 1
-
-Operator : indextmatches2
-Number   : 1
-Signature: tupleindex x rel(tuple(X)) x (text | pattern) -> stream(tuple(X))
-Example  : query Dotraj bulkloadtupleindex[Trajectory] Dotraj indextmatches2['(_ "Innenstadt-Ost")'] count
-Result   : 8
 
 Operator : indexrewrite
 Number   : 1
