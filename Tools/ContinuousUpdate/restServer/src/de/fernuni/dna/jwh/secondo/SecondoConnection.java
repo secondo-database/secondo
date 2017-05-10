@@ -36,6 +36,7 @@ public class SecondoConnection {
 	private String handler;
 	
 	
+	
 		/**
 	 * This Constructor sets up a SecondoConnection for provided Handler-Name
 	 * 
@@ -47,12 +48,13 @@ public class SecondoConnection {
 	public SecondoConnection(String newHandler) throws SecondoException {
 		handler = newHandler;
 		secondoInterface = new ESInterface();
-		
+		String line1="";
+	    String line2="";
+		File file = new File("passwd");
      try
     {
     
-    File file = new File("passwd");
-    
+   
     if ((file.exists())) {
     
     FileReader fr = new FileReader("passwd");
@@ -61,10 +63,22 @@ public class SecondoConnection {
     
     
     
-    String line1 = in.readLine().trim();
-    String line2 = in.readLine().trim();
+     line1 = in.readLine().trim();
+     line2 = in.readLine().trim();
+    }
     
+    }
+    
+    
+    catch(Exception e)
+     {
+      Reporter.showInfo("wrong file or wrong user/passwort specification");
+       
+     } 
    
+    
+    
+     if ((file.exists())) {
     
     
     // Initalize the connection according to the configuration of the
@@ -78,10 +92,10 @@ public class SecondoConnection {
 		}
     
      
-      } 
+      }
       
       
-    else   {
+   else {
     
     if (!secondoInterface.initialize(null, null,
 				Configuration.values.handlers.get(handler).secondoHost,
@@ -93,18 +107,14 @@ public class SecondoConnection {
     }  
     
     
-    }
     
     
     }
     
-    catch(Exception e)
-     {
-      Reporter.showInfo("wrong file or wrong user/passwort specification");
-       
-     } 
+      
      
-     
+		
+		
 		
 		
 		
