@@ -4187,7 +4187,7 @@ class TailLocalInfo
         finished       ( true ),
         bufferSize     ( 0 ),
         returnedResults( 0 ),
-        buffer         ( qp->GetMemorySize(s) )
+        buffer         ( (size_t)qp->GetMemorySize(s)*1024*1024 )
       {
         // member translationTable initialized automatically
       };
