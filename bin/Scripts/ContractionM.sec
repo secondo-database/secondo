@@ -11,7 +11,7 @@ query memclear()
 
 if isDBObject("useAll") then delete useAll endif
 
-let useAll = TRUE
+let useAll = FALSE
 
 
 if not(isDBObject("EdgesB")) then 
@@ -173,13 +173,16 @@ let edgeDiff = fun(node : int)
 #let edgeDiff = fun(node : int) (allIn(node) * allOut(node)) - noDelEdges(node)
 
 
-
-
 if isDBObject("getPriority") then delete getPriority endif
 
-let getPriority = fun(node : int) 
-                      (8.0 * edgeDiff(node)) 
-                  +   (1 * pwrap("ContractedNeighbours") getmv[node])
+#let getPriority = fun(node : int) 
+#                      (8.0 * edgeDiff(node)) 
+#                  +   (1 * pwrap("ContractedNeighbours") getmv[node])
+
+
+let getPriority = fun(node : int) 8.0 * edgeDiff(node)
+
+
 
 
 # create a priority queue from the nodes
@@ -200,12 +203,14 @@ let mtcreationEdges = fun(node10 : int, maxHops : int)
          fun(t10 : TUPLE)
             (fun(node11: int) pwrap("EdgesX") mg3successors[node11])
             pwrap("EdgesX") mg3successors[node10] sortbyh[Target,Cost] krdup[Target] {o}
-            mtMinPathCosts1[Target,attr(t10,Source_i), Target_o, Cost, maxHops]
+            mtMinPathCosts1[Target,attr(t10,Source_i), Target_o, Cost, maxHops, attr(t10, Cost_i) + (pwrap("EdgesX") mg3successors[node10] max[Cost])  ]
             filter[attr(t10,Source_i) # .Target_o]
             extend[Cost : attr(t10,Cost_i) + .Cost_o]
             filter[.MinPC >= .Cost] 
             remove[MinPC]
        ]
+
+
 
 
 
@@ -219,10 +224,10 @@ let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress :
      replaceAttr[Reinsertions : .Reinsertions + 1]
      extend[CEdges: fun(t: TUPLE)
        ifthenelse(
-          (attr(t,NewPrio)) <= attr(t, Prio),
+          (attr(t,NewPrio)) <= attr(t, Prio) + 4,
            mtcreationEdges(attr(t,Node), maxHops)
-             memgroupby[; Added: fun(g: MGROUP)
-                 g mfeed 
+             groupby[; Added: fun(g: GROUP)
+                 g feed 
                    extend[ D1 : increaseCN(.Source_i), 
                            D2 : increaseCN(.Target_o)
                    ] 
@@ -235,7 +240,8 @@ let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress :
                                    TargetPos: .TargetPos_o
                    ]
                    mg3insert[pwrap("EdgesX")] 
-                   minsert[pwrap("ContractionX")] count 
+                   minsert[pwrap("ContractionX")] 
+                   count 
              ] 
              count
     ,
@@ -246,13 +252,13 @@ let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress :
   ] 
   filter[.CEdges >= 0]
   addModCounter[Num,1, (.Prio > maxprio) and (.. > minBlockSize), 0]
-  extend[ Dummy : ifthenelse(.Num = 0,pwrap("NodesX") mpqreorderupdate[ getPriority(.Node), Prio ],0)]
+  extend[ Dummy : ifthenelse(.Num = 0,pwrap("NodesX") mpqreorderupdate[ getPriority(.Node), Prio ] ,0)]
   remove[Num,Dummy]                                                               
   addcounter[Progress,1]
   filter[ ifthenelse((.Progress mod progress)=0,
                      TRUE echo[num2string(.Progress)],
                      TRUE)]
-  remove[Progress]                                                             
+  remove[Progress]           
   extend[Deleted: bool2int(pwrap("EdgesX") mg3disconnect[.Node]) ]
   minsert[pwrap("DeletedNodes")]
   count
@@ -260,9 +266,10 @@ let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress :
   
   
 ########## the actual Contraction, play with arguments
+## mtcontract(maxPrio, minBlockSize, maxHops, ProgressAfterEachNodes)
 
 
-query mtcontract(100,500,5, NodeCount div 100)  
+query mtcontract(80,100,5, NodeCount div 100)  
 
 
 
