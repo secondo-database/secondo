@@ -1171,8 +1171,8 @@ minimum path costs for a set of targets.
 */
 template<bool costsAsFun>
 ListExpr mtMinPathCostsTM(ListExpr args){
-  if(!nl->HasLength(args,7)){
-    return listutils::typeError("7 arguments expected");
+  if(!nl->HasLength(args,7) &&!nl->HasLength(args,8)){
+    return listutils::typeError("7 or 8 arguments expected");
   }
   /*
     1 : successor function
@@ -1182,6 +1182,7 @@ ListExpr mtMinPathCostsTM(ListExpr args){
     5 : name of the target in the target stream
     6 : name of the cost attribute or cost function (depends on template)
     7 : maximum number of hops
+    8 : maximum costs (optional)
   */
    // allowed node types: int, longint
    ListExpr source = nl->Fourth(args);
@@ -1205,8 +1206,14 @@ ListExpr mtMinPathCostsTM(ListExpr args){
    }
    ListExpr hops = nl->Sixth(nl->Rest(args));
    if(!CcInt::checkType(hops)){
-     return listutils::typeError("last argument not of type int");
+     return listutils::typeError("7th argument not of type int");
    }
+   if(nl->HasLength(args,8) 
+      && !CcReal::checkType(nl->Sixth(nl->Rest(nl->Rest(args))))){
+    return listutils::typeError("8th argument not of type real");
+   }
+
+
    ListExpr succTargetName = nl->Third(args);
    if(nl->AtomType(succTargetName)!=SymbolType){
      return listutils::typeError("3rd argument is not a valid attribute name");
@@ -1281,11 +1288,21 @@ ListExpr mtMinPathCostsTM(ListExpr args){
           return listutils::typeError("Attribute " + costName + " not of type "
                                       "real in successor tuple");
       }
-      ListExpr appendList = nl->ThreeElemList(
+      ListExpr appendList;
+      if(nl->HasLength(args,7)){
+         appendList  = nl->FourElemList(
+                                nl->RealAtom(-1),
                                 nl->IntAtom(succIndex -1),
                                 nl->IntAtom(targetIndex -1),
                                 nl->IntAtom(succCostsIndex-1));
-     return nl->ThreeElemList(
+
+      } else {
+         appendList  = nl->ThreeElemList(
+                                nl->IntAtom(succIndex -1),
+                                nl->IntAtom(targetIndex -1),
+                                nl->IntAtom(succCostsIndex-1));
+      }
+      return nl->ThreeElemList(
                   nl->SymbolAtom(Symbols::APPEND()),
                   appendList,
                   res);
@@ -1303,10 +1320,17 @@ ListExpr mtMinPathCostsTM(ListExpr args){
       return listutils::typeError("successor tuple and argument of the cost "
                                  "function differ");
    }
-   ListExpr appendList = nl->TwoElemList(
-                               nl->IntAtom(succIndex -1),
-                               nl->IntAtom(targetIndex -1));
- 
+   ListExpr appendList;
+   if(nl->HasLength(args,7)){
+         appendList  = nl->ThreeElemList(
+                          nl->RealAtom(-1),
+                          nl->IntAtom(succIndex -1),
+                          nl->IntAtom(targetIndex -1));
+   } else {
+       appendList = nl->TwoElemList(
+                          nl->IntAtom(succIndex -1),
+                          nl->IntAtom(targetIndex -1));
+   }
    return nl->ThreeElemList(
               nl->SymbolAtom(Symbols::APPEND()),
               appendList,
@@ -1328,17 +1352,29 @@ class mtMinPathCostsInfo{
                       int _targetIndex,
                       int _costsIndex,
                       size_t _maxHops,
+                      double _maxCosts,
                       TupleType* _tt):
      succFun(_succFun),succIndex(_succIndex),
      targetIndex(_targetIndex),
      costsIndex(_costsIndex), maxHops(_maxHops),
+     maxCosts(_maxCosts),
      tt(_tt){
+       if(maxCosts<=0){
+         maxCosts = std::numeric_limits<double>::max();
+       }
        succArg = qp->Argument(succFun);
        tt->IncReference();
        costFun = 0;
        collectTargets(_targetStream);
        queueEntry<T> qe((T*)_source->Copy(), 0,0);
        front.push(qe);
+
+
+       //noprocessedNodes = 0;
+       //noreprocessedNodes = 0;
+       //noprocessedEdges = 0;
+       //maxFront = 1;
+
        compute();
        resPos = 0;
      }
@@ -1351,12 +1387,16 @@ class mtMinPathCostsInfo{
                       int _targetIndex,
                       Supplier _costsFun,
                       int _maxHops,
+                      double _maxCosts,
                       TupleType* _tt):
      succFun(_succFun),succIndex(_succIndex),
      targetIndex(_targetIndex),
      costsIndex(-1), maxHops(_maxHops),
+     maxCosts(_maxCosts),
      tt(_tt){
-
+       if(maxCosts<=0){
+         maxCosts = std::numeric_limits<double>::max();
+       }
        costFun = _costsFun;
        succArg = qp->Argument(succFun);
        tt->IncReference();
@@ -1365,11 +1405,27 @@ class mtMinPathCostsInfo{
        collectTargets(_targetStream);
        queueEntry<T> qe((T*)_source->Copy(), 0,0);
        front.push(qe);
+
+       //noprocessedNodes = 0;
+       //noreprocessedNodes = 0;
+       //noprocessedEdges = 0;
+       //maxFront = 1;
+
        compute();
        resPos = 0;
      }
 
      ~mtMinPathCostsInfo(){
+
+        /*if(noprocessedEdges>130){
+          cout << "processedNodes " << noprocessedNodes << endl;
+          cout << "reporcessedNodes " << noreprocessedNodes << endl;
+          cout << "processedEdges " << noprocessedEdges << endl;
+          cout << "maxFront " << maxFront << endl << endl;
+        }
+        */
+
+
         // delete remaining tuples in front
         while(!front.empty()){
            front.top().node->DeleteIfAllowed();
@@ -1403,10 +1459,16 @@ class mtMinPathCostsInfo{
       int targetIndex;
       int costsIndex;
       size_t maxHops;
+      double maxCosts;
       TupleType* tt;
 
       Supplier costFun;
       ArgVectorPointer costFunArg;
+
+       //size_t noprocessedNodes;
+       //size_t noreprocessedNodes;
+       //size_t noprocessedEdges;
+       //size_t maxFront;
 
 
 
@@ -1572,8 +1634,10 @@ available in the results vector.
 
       void processNode(queueEntry<T>& e){
          if(processedNodes.member(e.nodeValue)){
+           //noreprocessedNodes++;
            return;
          }
+         //noprocessedNodes++;
          processedNodes.insert(e.nodeValue);
 
          targetentry dummy(e.nodeValue,0);
@@ -1592,6 +1656,11 @@ available in the results vector.
          if(maxHops>0 && e.depth>=maxHops){
             return;
          }
+         if(e.costs>maxCosts){
+            // threshold reached
+            return;
+         }
+
          // use successors of e node
          (*succArg)[0] = e.node;
          qp->Open(succFun);
@@ -1602,10 +1671,16 @@ available in the results vector.
              qp->Request(succFun,value);
          } 
          qp->Close(succFun);
+      /*
+         if(front.size()>maxFront){
+           maxFront = front.size();
+         }
+       */
       } 
 
 
       void processEdge(queueEntry<T>& e, Tuple* tup){
+         //noprocessedEdges++;
          double costs = getCosts(tup);
          // special case: invalid costs
          if(costs<0){
@@ -1716,12 +1791,17 @@ int mtMinPathCost1VMT(Word* args, Word& result, int message,
               hops = 0;
            }
         }
-        int succIndex = ((CcInt*) args[7].addr)->GetValue();
-        int targetIndex = ((CcInt*) args[8].addr)->GetValue();
-        int costsIndex = ((CcInt*) args[9].addr)->GetValue();
+        double mc = -1;
+        CcReal* maxCosts = (CcReal*)args[7].addr;
+        if(maxCosts->IsDefined()){
+          mc = maxCosts->GetValue();
+        }
+        int succIndex = ((CcInt*) args[8].addr)->GetValue();
+        int targetIndex = ((CcInt*) args[9].addr)->GetValue();
+        int costsIndex = ((CcInt*) args[10].addr)->GetValue();
         li = new mtMinPathCostsInfo<T>(args[0].addr, args[1],
                                        succIndex, source, targetIndex,
-                                       costsIndex, hops,tt);
+                                       costsIndex, hops,mc,tt);
         local.addr = li;
         return 0;
      }
@@ -1778,12 +1858,18 @@ int mtMinPathCost2VMT(Word* args, Word& result, int message,
               hops=0;
            }
         }
-        int succIndex = ((CcInt*) args[7].addr)->GetValue();
-        int targetIndex = ((CcInt*) args[8].addr)->GetValue();
+        double mc = -1;
+        CcReal* maxCosts = (CcReal*)args[7].addr;
+        if(maxCosts->IsDefined()){
+          mc = maxCosts->GetValue();
+        }
+
+        int succIndex = ((CcInt*) args[8].addr)->GetValue();
+        int targetIndex = ((CcInt*) args[9].addr)->GetValue();
         Supplier costsFun = args[5].addr;
         li = new mtMinPathCostsInfo<T>(args[0].addr, args[1],
                                        succIndex, source, targetIndex,
-                                       costsFun, hops,tt);
+                                       costsFun, hops,mc, tt);
         local.addr = li;
         return 0;
      }
