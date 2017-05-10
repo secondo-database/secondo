@@ -3329,7 +3329,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->u.op.resultWord =
         (algebraManager->CreateObj
           ( node->u.op.resultAlgId, node->u.op.resultTypeId ))
-            ( GetCatalog()->NumericType( node->typeExpr ) );
+            ( node->numTypeExpr  );
 
       if (traceNodes)
       {
@@ -3895,7 +3895,7 @@ Deletes an operator tree object.
             }
             if( tree->u.dobj.isConstant ){
               (algebraManager->DeleteObj( algebraId, typeId ))
-                ( GetCatalog()->NumericType( tree->typeExpr ),
+                ( tree->numTypeExpr ,
                   tree->u.dobj.value );
             } else
             {
@@ -3909,7 +3909,7 @@ Deletes an operator tree object.
               else
               {
                 (algebraManager->CloseObj( algebraId, typeId ))
-                  ( GetCatalog()->NumericType( tree->typeExpr ),
+                  ( tree->numTypeExpr ,
                     tree->u.dobj.value );
               }
             }
@@ -4970,13 +4970,13 @@ QueryProcessor::DeleteResultStorage( const Supplier s )
     if (!tree->u.op.deleteFun)
     {
       algebraManager->DeleteObj( algId, typeId)
-        ( GetCatalog()->NumericType( tree->typeExpr ),
+        ( tree->numTypeExpr ,
           tree->u.op.resultWord );
     }
     else
     {
       tree->u.op.deleteFun(
-        GetCatalog()->NumericType( tree->typeExpr ),
+        tree->numTypeExpr,
         tree->u.op.resultWord );
     }
   }
@@ -4993,12 +4993,13 @@ QueryProcessor::ReInitResultStorage( const Supplier s )
   }
 
   //cerr << "u.op.isFun = " << tree->u.op.isFun << endl;
-  ListExpr type = (tree->u.op.isFun) ? nl->Third(tree->typeExpr)
-                               : tree->typeExpr;
+  //ListExpr type = (tree->u.op.isFun) ? nl->Third(tree->typeExpr)
+  //                             : tree->typeExpr;
 
   int algId = tree->u.op.resultAlgId;
   int typeId = tree->u.op.resultTypeId;
-  ListExpr numType = GetCatalog()->NumericType( type );
+  ListExpr numType = tree->numTypeExpr;
+
 
   //cerr << "typeExpr " << nl->ToString(tree->typeExpr) << endl;
 
