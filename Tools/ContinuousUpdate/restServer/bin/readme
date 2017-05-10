@@ -1,0 +1,2 @@
+Use the passwd file to specify an user and a passwort, when you want to connect to a server with passwort protection. 
+If you don´t use a passwort protected connection delete the passwd file.
