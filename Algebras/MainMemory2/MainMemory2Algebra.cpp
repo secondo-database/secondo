@@ -18123,6 +18123,7 @@ int mpqreorderVMT(Word* args, Word& result, int message,
    }
    mpqreorderInfo li(q, args[1], attrPos);
    res->Set(true,li.compute());
+
    return 0;
 }
 
