@@ -9,6 +9,16 @@ import sj.lang.IntByReference;
 import sj.lang.ListExpr;
 import de.fernuni.dna.jwh.Configuration;
 
+
+
+import java.io.*;
+//import java.io.BufferedReader;
+//import java.io.IOException;
+//import java.io.InputStreamReader;
+import java.util.Scanner;
+import java.io.FileReader;
+import tools.Reporter;
+
 /**
  * This class handels the basics of opening a Secondo-Session Each handler will
  * have to use its own SecondoConnection
@@ -24,8 +34,9 @@ public class SecondoConnection {
 	private ESInterface secondoInterface;
 	private SecondoReceiver receiver;
 	private String handler;
-
-	/**
+	
+	
+		/**
 	 * This Constructor sets up a SecondoConnection for provided Handler-Name
 	 * 
 	 * @param newHandler
@@ -36,15 +47,67 @@ public class SecondoConnection {
 	public SecondoConnection(String newHandler) throws SecondoException {
 		handler = newHandler;
 		secondoInterface = new ESInterface();
-
-		// Initalize the connection according to the configuration of the
+		
+     try
+    {
+    
+    File file = new File("passwd");
+    
+    if ((file.exists())) {
+    
+    FileReader fr = new FileReader("passwd");
+      
+    BufferedReader in = new BufferedReader(fr);
+    
+    
+    
+    String line1 = in.readLine().trim();
+    String line2 = in.readLine().trim();
+    
+   
+    
+    
+    // Initalize the connection according to the configuration of the
 		// handler
-		if (!secondoInterface.initialize(null, null,
+		if (!secondoInterface.initialize(line1, line2,
 				Configuration.values.handlers.get(handler).secondoHost,
 				Configuration.values.handlers.get(handler).secondoPort)) {
 			throw new SecondoException(
 					"Could not initialize Connection to Secondo Server!");
+		
 		}
+    
+     
+      } 
+      
+      
+    else   {
+    
+    if (!secondoInterface.initialize(null, null,
+				Configuration.values.handlers.get(handler).secondoHost,
+				Configuration.values.handlers.get(handler).secondoPort)) {
+			throw new SecondoException(
+					"Could not initialize Connection to Secondo Server!");
+		
+      
+    }  
+    
+    
+    }
+    
+    
+    }
+    
+    catch(Exception e)
+     {
+      Reporter.showInfo("wrong file or wrong user/passwort specification");
+       
+     } 
+     
+     
+		
+		
+		
 
 		secondoInterface.useBinaryLists(true);
 
