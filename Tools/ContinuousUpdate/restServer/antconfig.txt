@@ -1,0 +1,26 @@
+
+Make sure you have a Java environment installed
+
+Enter the URL: http://ant.apache.org/bindownload.cgi.
+
+On the Apache Ant Project page, find the heading Current Release of Ant. 
+
+Save and extract the package file into a Linux home directory.
+
+Set the ANT_OPTS environment variable:
+export ANT_OPTS="-Xmx256M".
+
+Set the ANT_HOME environment variable to the directory where you installed Ant:
+export ANT_HOME=${ant_dir}.
+
+Set the PATH environment variable to include the directory where you installed the Ant bin directory:
+export PATH=${PATH}:${ANT_HOME}/bin
+
+Optionally, from the ANT_HOME directory run ant -f fetch.xml -Ddest=system to get the library dependencies of most of the Ant tasks that require them. If you don't do this, many of the dependent Ant tasks will not be available. See Optional Tasks for details and other options for the -Ddest parameter.
+
+ant -f fetch.xml -Ddest=system
+
+
+
+
+
