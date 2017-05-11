@@ -59,19 +59,27 @@ namespace col {
   ColPoint::~ColPoint() {  // destructor
     free(aPoint);
   }
+
   // returns the corresponding basic type
   const string ColPoint::BasicType() { return "apoint"; }
   // compares the type of the given object with the class type
   const bool ColPoint::checkType(const ListExpr list) {
     return listutils::isSymbol(list, BasicType());
   }
+
   // returns the number of elements in the point array
   long ColPoint::getCount() {
     return count;
   }
-  // returns the address of the point array for external access
-  void* ColPoint::getArray() {
-    return &aPoint;
+
+  // returns the x coordinate of the indexed point entry
+  double ColPoint::getX(long index) {
+    return aPoint[index].x;
+  }
+
+  // returns the x coordinate of the indexed point entry
+  double ColPoint::getY(long index) {
+    return aPoint[index].y;
   }
 
   // appends one point to the point array
@@ -1446,7 +1454,8 @@ ListExpr mapTM(ListExpr args) {
     if (j==0) {
       return listutils::typeError("Attribute " + name + " not found!");
     };
-    // check type and return corresponding result type using append mechanism
+    // check type and return corresponding attribute number
+    // and result type using append mechanism
     ListExpr returnType = nl->Empty();
     if (Point::checkType(type))
       returnType = listutils::basicSymbol<ColPoint>();
@@ -1464,9 +1473,9 @@ ListExpr mapTM(ListExpr args) {
                                   "not found!");
     }
   }
-  // check for column spatial object
+  // check for column spatial object and return corresponding spatial type
   if (ColPoint::checkType(nl->First(args)))
-    return listutils::basicSymbol<Points>();
+    return listutils::basicSymbol<Point>();
   if (ColLine::checkType(nl->First(args)))
     return listutils::basicSymbol<Line>();
   if (ColRegion::checkType(nl->First(args)))
@@ -1593,14 +1602,34 @@ int mapRegionVM (Word* args, Word& result, int message,
 /*
 The operator ~mapColPointVM~ expects an apoint type of the column spatial
 algebra and an index. Then it extracts the entry specified by index and
-converts it into a single spatial object ~point~.
+converts it into the spatial object ~point~.
 
 */
 int mapColPointVM (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
   cout << "ColPoint -> Point\n";
+  result = qp->ResultStorage(s);
+  ColPoint* cPoint = static_cast<ColPoint*> (args[0].addr);
+  cout << "apoint has " << cPoint->getCount() << " elements" << endl;
 
-  return 0;
+  // how to access the second parameter?
+
+  long* index = (long*) args[1].addr;
+
+
+  cout << "index: " << index << endl;
+
+/*
+  cout << "x: " << cPoint->getX(index) << endl;
+  cout << "y: " << cPoint->getY(index) << endl;
+
+  double x = cPoint->getX(index);
+  double y = cPoint->getY(index);
+  result.addr = new Point(true, x, y);  // first parameter = defined
+
+*/
+
+  return 1;
 }
 
 

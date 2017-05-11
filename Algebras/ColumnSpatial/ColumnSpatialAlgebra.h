@@ -160,18 +160,25 @@ and contains all static functions for the neccessary class operations.
 */
   long getCount();
 
+
 /*
-~getArray~ returns the address of the point array for external access.
+returns the x coordinate of the indexed point entry
 
 */
-void* getArray();
+  double getX(long index);
+
+/*
+returns the y coordinate of the indexed point entry
+
+*/
+  double getY(long index);
 
 /*
 The following function appends one point of the spatial algebra to the
 array apoint of the column spatial algebra.
 
 */
-bool append(Point* point);
+  bool append(Point* point);
 
 /*
 The function ~finalize~ reallocates the memory used for the array ~apoint~
@@ -179,7 +186,8 @@ to the real needed bytes.
 
 */
 
-void finalize();
+  void finalize();
+
 /*
 description of the Secondo type ~apoint~ for the user
 
