@@ -1431,36 +1431,50 @@ ListExpr insideTM(ListExpr args) {
 
 ListExpr mapTM(ListExpr args) {
   if (!nl->HasLength(args,2)) {
-     return listutils::typeError("\nWrong number of arguments!");
+     return listutils::typeError("Wrong number of arguments!");
   }
-  if (!Stream<Tuple>::checkType(nl->First(args))) {
-    return listutils::typeError("\nFirst arg is not a tuple stream!");
+  // check for tuple stream
+  if (Stream<Tuple>::checkType(nl->First(args))) {
+    if (nl->AtomType(nl->Second(args))!=SymbolType) {
+      return listutils::typeError("Second arg is no valid attribute name!");
+    }
+    // extract the attribute list
+    ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+    ListExpr type;
+    string name = nl->SymbolValue(nl->Second(args));
+    int j = listutils::findAttribute(attrList, name, type);
+    if (j==0) {
+      return listutils::typeError("Attribute " + name + " not found!");
+    };
+    // check type and return corresponding result type using append mechanism
+    ListExpr returnType = nl->Empty();
+    if (Point::checkType(type))
+      returnType = listutils::basicSymbol<ColPoint>();
+    if (Line::checkType(type))
+      returnType = listutils::basicSymbol<ColLine>();
+    if (Region::checkType(type))
+      returnType = listutils::basicSymbol<ColRegion>();
+    if (!nl->IsEmpty(returnType)) {
+      cout << "'" << name << "' is attribute " << j << ", type is '"
+           << nl->ToString(type) << "'." << endl;
+      return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+             nl->OneElemList(nl->IntAtom(j)), returnType);
+    } else {
+      return listutils::typeError("Attribute type point, line or region"
+                                  "not found!");
+    }
   }
-  if (nl->AtomType(nl->Second(args))!=SymbolType) {
-     return listutils::typeError("\nSecond arg is not a valid attribute name!");
-  }
-  // extract the attribute list
-  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
-  ListExpr type;
-  string name = nl->SymbolValue(nl->Second(args));
-  int j = listutils::findAttribute(attrList, name, type);
-  if (j==0) {
-    return listutils::typeError("\nAttribute " + name + " not found!");
-  };
-  // check type and return corresponding result type using the append mechanism
-  ListExpr returnType = nl->Empty();
-  if (Point::checkType(type)) returnType = listutils::basicSymbol<ColPoint>();
-  if (Line::checkType(type)) returnType = listutils::basicSymbol<ColLine>();
-  if (Region::checkType(type)) returnType = listutils::basicSymbol<ColRegion>();
-  if (!nl->IsEmpty(returnType)) {
-    cout << "'" << name << "' is attribute " << j << ", type is '"
-         << nl->ToString(type) << "'." << endl;
-    return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
-           nl->OneElemList(nl->IntAtom(j)), returnType);
-  } else {
-    return listutils::typeError("\nAttribute type point, line or region"
-                                "not found!");
-  }
+  // check for column spatial object
+  if (ColPoint::checkType(nl->First(args)))
+    return listutils::basicSymbol<Points>();
+  if (ColLine::checkType(nl->First(args)))
+    return listutils::basicSymbol<Line>();
+  if (ColRegion::checkType(nl->First(args)))
+    return listutils::basicSymbol<Region>();
+  // if neither a tuple stream nor a column spatial object is detected as
+  // input then throw an error!
+  return listutils::typeError("First arg is no tuple stream and no column"
+                              " spatial type!");
 }
 
 int insidePointVM (Word* args, Word& result, int message,
@@ -1491,9 +1505,9 @@ append function of the column spatial ~apoint~ object.
 */
 int mapPointVM (Word* args, Word& result, int message,
                 Word& local, Supplier s) {
+  result = qp->ResultStorage(s);         // use result storage for the result
   result.addr = new ColPoint(1);
   ColPoint* cPoint = static_cast<ColPoint*> (result.addr);
-  result = qp->ResultStorage(s);         // use result storage for the result
   CcInt* index = (CcInt*) args[2].addr;  // index of the appended attribute
   int v = index->GetValue();
   Stream<Tuple> stream(args[0]);         // get the tuples
@@ -1504,14 +1518,14 @@ int mapPointVM (Word* args, Word& result, int message,
     // extract point from tuple
     point = (Point*) tuple->GetAttribute(v - 1);
     if (!cPoint->append(point)) {        // append line to aline
-      cout << "Error in point mapping!";
+      cout << "Error in mapping stream(point) to apoint!" << endl;
       return 0;
     }
     tuple->DeleteIfAllowed();            // remove tuple from stream
    }
   stream.close();                        // close the stream
   cPoint->finalize();
-  return 0;
+  return 1;
 }
 
 /*
@@ -1522,9 +1536,9 @@ append function of the column spatial ~aline~ object.
 */
 int mapLineVM (Word* args, Word& result, int message,
                Word& local, Supplier s) {
+  result = qp->ResultStorage(s);         // use result storage for the result
   result.addr = new ColLine(1);
   ColLine* cLine = static_cast<ColLine*> (result.addr);
-  result = qp->ResultStorage(s);         // use result storage for the result
   CcInt* index = (CcInt*) args[2].addr;  // index of the appended attribute
   int v = index->GetValue();
   Stream<Tuple> stream(args[0]);         // get the tuples
@@ -1535,14 +1549,14 @@ int mapLineVM (Word* args, Word& result, int message,
     // extract line from tuple
     line = (Line*) tuple->GetAttribute(v - 1);
     if (!cLine->append(line)) {          // append line to aline
-      cout << "Error in line mapping!";
+      cout << "Error in mapping stream(line) to aline!" << endl;
       return 0;
     }
     tuple->DeleteIfAllowed();            // remove tuple from stream
    }
   stream.close();                        // close the stream
   cLine->finalize();
-  return 0;
+  return 1;
 }
 
 /*
@@ -1553,9 +1567,9 @@ append function of the column spatial ~aregion~ object.
 */
 int mapRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s) {
+  result = qp->ResultStorage(s);         // use result storage for the result
   result.addr = new ColRegion(1);        // result set to cRegion object
   ColRegion* cRegion = static_cast<ColRegion*> (result.addr);
-  result = qp->ResultStorage(s);         // use result storage for the result
   CcInt* index = (CcInt*) args[2].addr;  // index of the appended attribute
   int v = index->GetValue();
   Stream<Tuple> stream(args[0]);         // get the tuples
@@ -1566,13 +1580,44 @@ int mapRegionVM (Word* args, Word& result, int message,
     // extract region from tuple
     region = (Region*) tuple->GetAttribute(v - 1);
     if (!cRegion->append(region)) {      // append region to aregion
-      cout << "Error in mapping!";
+      cout << "Error in mapping stream(region) to aregion!" << endl;
       return 0;
     }
     tuple->DeleteIfAllowed();            // remove tuple from stream
    }
   stream.close();                        // close the stream
   cRegion->finalize();
+  return 1;
+}
+
+/*
+The operator ~mapColPointVM~ expects an apoint type of the column spatial
+algebra and an index. Then it extracts the entry specified by index and
+converts it into a single spatial object ~point~.
+
+*/
+int mapColPointVM (Word* args, Word& result, int message,
+                   Word& local, Supplier s) {
+  cout << "ColPoint -> Point\n";
+
+  return 0;
+}
+
+
+// maps the column spatial type ~aline~ to a single spatial object ~line~.
+// needs an index.
+
+int mapColLineVM (Word* args, Word& result, int message,
+                  Word& local, Supplier s) {
+  cout << "ColLine -> Line\n";
+  return 0;
+}
+
+// maps column spatial type ~aregion~ to a single spatial object ~region~.
+// needs an index.
+int mapColRegionVM (Word* args, Word& result, int message,
+                 Word& local, Supplier s) {
+  cout << "ColRegion -> Region\n";
   return 0;
 }
 
@@ -1581,23 +1626,43 @@ Selection Function
 
 */
 int insideSelect(ListExpr args) {
-    if (ColPoint::checkType(nl->First(args))) { return 0; }
-    if (ColLine::checkType(nl->First(args))) { return 1; }
-    return 2; // ColRegion
+  if (ColPoint::checkType(nl->First(args))) { return 0; }
+  if (ColLine::checkType(nl->First(args))) { return 1; }
+  return 2; // ColRegion
 }
 
+/*
+There are two different mappings: one for spatial objects within a relation
+and one for column spatial objects.
+In the first case a tuple stream is generated and the spatial attribute
+is processed. e. g. 'query City feed mp[area]' extracts the area of all tuples
+within the City - relation and convert them to a column spatial object.
+In the second case a column spatial object is searched for a given index
+and one single spatial object is generated. e.g. 'query colRiver mp[3]'
+returns the third entry within the colRiver - object and converts it into
+a spatial object.
+
+*/
 int mapSelect(ListExpr args) {
+  // first check for column spatial objects
+  ListExpr arg1 = nl->First( args );
+  if (ColPoint::checkType(arg1)) return 3;   // mapColLineVM
+  if (ColLine::checkType(arg1)) return 4;   // mapColLineVM
+  if (ColRegion::checkType(arg1)) return 5;   // mapColRegionVM
+
+  // second check for tuple stream
+  if (Stream<Tuple>::checkType(arg1)) {
     // extract the attribute list
     ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
-    ListExpr type;
     string name = nl->SymbolValue(nl->Second(args));
+    ListExpr type;
     listutils::findAttribute(attrList, name, type);
     if (Point::checkType(type)) return 0;  // mapPointVM
     if (Line::checkType(type)) return 1;   // mapLineVM
-    // in any other case choose mapRegionVM
-    // if this is wrong, it will be detected in the type mapping function
-    return 2;
+    if (Region::checkType(type)) return 2;   // mapLineVM
+  }
+  // return mapPointVM, type mapping will be done later on
+  return 0;
 }
-
 
 }  // namespace col

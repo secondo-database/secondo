@@ -769,14 +769,35 @@ int insideRegionVM (Word* args, Word& result, int message,
 
 /*
 ~map~
-This operator converts a stream of standard types points, lines or regions
-into its corresponding column-oriented type apoint, aline or a region
-respectively.
+Thes following three operators convert streams of the standard types points,
+lines or regions into their corresponding column-oriented types apoint,
+aline or aregion respectively and vice versa.
 
 */
-int mapPointVM (Word* args, Word& result, int message, Word& local, Supplier s);
-int mapLineVM (Word* args, Word& result, int message, Word& local, Supplier s);
+int mapPointVM (Word* args, Word& result, int message,
+                Word& local, Supplier s);
+int mapLineVM (Word* args, Word& result, int message,
+               Word& local, Supplier s);
 int mapRegionVM (Word* args, Word& result, int message,
+                 Word& local, Supplier s);
+
+/*
+The operator ~mapColPointVM~ expects an ~apoint~ type of the column spatial
+algebra and converts it into ~points~ data type of the spatial algebra.
+
+*/
+int mapColPointVM (Word* args, Word& result, int message,
+                   Word& local, Supplier s);
+
+/*
+The following ~map~ operators expects an data type of the column spatial
+algebra and converts it into a stream of the spatial algebra data type.
+
+*/
+int mapColLineVM (Word* args, Word& result, int message,
+                  Word& local, Supplier s);
+
+int mapColRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s);
 
 /*
@@ -784,7 +805,8 @@ int mapRegionVM (Word* args, Word& result, int message,
 
 */
 ValueMapping insideVM[] = {insidePointVM, insideLineVM, insideRegionVM};
-ValueMapping mapVM[] = {mapPointVM, mapLineVM, mapRegionVM};
+ValueMapping mapVM[] = {mapPointVM, mapLineVM, mapRegionVM,
+                        mapColPointVM, mapColLineVM, mapColRegionVM};
 
 int insideSelect(ListExpr args);
 int mapSelect(ListExpr args);
@@ -825,7 +847,7 @@ Operator insideOp(
 Operator mapOp(
   "mp",                // operator's name
   mapSpec.getStr(),    // specification
-  3,                   // number of Value Mappings
+  6,                   // number of Value Mappings
   mapVM,               // value mapping array
   mapSelect,           // selection function
   mapTM);              // type mapping
