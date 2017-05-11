@@ -1,2 +1,4 @@
 Use the passwd file to specify an user and a passwort, when you want to connect to a server with passwort protection. 
-If you don´t use a passwort protected connection delete the passwd file.
+In the first line enter your username and in the second your passwort.
+If you don´t use a passwort protected connection  you can just ignore the passwd file or delete it.
+

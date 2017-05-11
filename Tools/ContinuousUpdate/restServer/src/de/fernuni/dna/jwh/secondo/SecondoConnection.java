@@ -53,7 +53,7 @@ public class SecondoConnection {
 		File file = new File("passwd");
      try
     {
-    
+     
    
     if ((file.exists())) {
     
@@ -65,14 +65,33 @@ public class SecondoConnection {
     
      line1 = in.readLine().trim();
      line2 = in.readLine().trim();
+     in.close();
     }
+    
+    else { 
+            File file2 = new File("passwd");
+            FileWriter writit = new FileWriter(file2); 
+            BufferedWriter writer = new BufferedWriter(writit);
+            file2.createNewFile();            
+            writer.write("testuser");
+            writer.newLine(); 
+            writer.write("passwd");
+            writer.flush();
+            writer.close();
+            writit.close();
+    
+    
+         }
+    
+    
+    
     
     }
     
     
     catch(Exception e)
      {
-      Reporter.showInfo("wrong file or wrong user/passwort specification");
+      Reporter.showInfo("passwd file error");
        
      } 
    
