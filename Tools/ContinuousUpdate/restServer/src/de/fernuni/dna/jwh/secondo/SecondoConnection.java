@@ -82,8 +82,7 @@ public class SecondoConnection {
     
     
          }
-    
-    
+        
     
     
     }
