@@ -95,82 +95,11 @@ void DeleteInvfile( const ListExpr typeInfo, Word& w ){
   w.addr = 0;
 }
 
-bool OpenInvfile( SmiRecord& valueRecord,
-                 size_t& offset,
-                 const ListExpr typeInfo,
-                 Word& value ){
-  SmiFileId triefileid;
-  valueRecord.Read( &triefileid, sizeof( SmiFileId ), offset );
-  offset += sizeof( SmiFileId );
-  SmiRecordId trierid;
-  valueRecord.Read( &trierid, sizeof( SmiRecordId ), offset );
-  offset += sizeof( SmiRecordId );
-  SmiFileId listfileid;
-  valueRecord.Read( &listfileid, sizeof( SmiFileId ), offset );
-  offset += sizeof(SmiFileId); 
-  bool ignoreCase;
-  valueRecord.Read(&ignoreCase, sizeof(bool), offset);
-  offset += sizeof(bool);
-  uint32_t minWordLength;
-  valueRecord.Read(&minWordLength, sizeof(uint32_t), offset);
-  offset += sizeof(uint32_t);
-  SmiRecordId stopWordsId;
-  valueRecord.Read(&stopWordsId, sizeof(SmiRecordId), offset);
-  offset += sizeof(SmiRecordId);
-  size_t separatorsLength;
-  valueRecord.Read(&separatorsLength,sizeof(size_t), offset);
-  offset += sizeof(size_t);
-  char sepBuffer[separatorsLength];
-  valueRecord.Read(sepBuffer, separatorsLength, offset);
-  offset += separatorsLength;
-  string separators(sepBuffer,separatorsLength);
-  InvertedFile* invFile = new InvertedFile(triefileid, trierid, listfileid, 
-                                      ignoreCase, minWordLength, stopWordsId, 
-                                      separators);
-  value.setAddr(invFile);
-  return true;
-}
-
-
 void CloseInvfile( const ListExpr typeInfo, Word& w ){
   InvertedFile* t = (InvertedFile*) w.addr;
   delete t;
   w.addr = 0;
 }
-
-bool SaveInvfile( SmiRecord& valueRecord,
-               size_t& offset,
-               const ListExpr typeInfo,
-               Word& value ){
-   InvertedFile* t = static_cast<InvertedFile*>(value.addr);
-   SmiFileId triefileId = t->getFileId();
-   valueRecord.Write( &triefileId, sizeof( SmiFileId ), offset );
-   offset += sizeof( SmiFileId );
-   SmiRecordId rootId = t->getRootId();
-   valueRecord.Write(&rootId, sizeof(SmiRecordId), offset);
-   offset += sizeof( SmiRecordId );
-   SmiFileId listFileId = t->getListFileId();
-   valueRecord.Write(&listFileId, sizeof(SmiFileId), offset);
-   offset += sizeof(SmiFileId);
-   bool ignoreCase = t->getIgnoreCase(); 
-   valueRecord.Write(&ignoreCase, sizeof(bool),offset);
-   offset += sizeof(bool);
-   uint32_t minWordLength = t->getMinWordLength();
-   valueRecord.Write(&minWordLength, sizeof(uint32_t), offset);
-   offset += sizeof(uint32_t);
-   SmiRecordId stopWordsId = t->getStopWordsId();
-   valueRecord.Write(&stopWordsId, sizeof(SmiRecordId), offset);
-   offset += sizeof(SmiRecordId);
-   string separators = t->getSeparators();
-   size_t separatorsLength = separators.length();
-   valueRecord.Write(&separatorsLength, sizeof(size_t), offset);
-   offset+= sizeof(size_t);
-   const char* seps = separators.c_str();
-   valueRecord.Write(seps,separatorsLength, offset);
-   offset += separatorsLength;  
-   return true;
-}
-
 
 Word CloneInvfile(const ListExpr typeInfo, const Word& value){
   InvertedFile* src = (InvertedFile*) value.addr;
@@ -194,8 +123,8 @@ TypeConstructor invfiletc( InvertedFile::BasicType(),
                         0,
                         CreateInvfile,
                         DeleteInvfile,
-                        OpenInvfile,
-                        SaveInvfile,
+                        OpenInvfile<uint32_t, uint32_t>,
+                        SaveInvfile<uint32_t, uint32_t>,
                         CloseInvfile,
                         CloneInvfile,
                         CastInvfile,

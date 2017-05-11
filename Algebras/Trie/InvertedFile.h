@@ -1182,11 +1182,73 @@ Word CreateInvfile(const ListExpr typeInfo);
 
 void DeleteInvfile( const ListExpr typeInfo, Word& w );
 
+template<typename wordPosType, typename charPosType>
 bool SaveInvfile(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value);
+                 const ListExpr typeInfo, Word& value) {
+   InvertedFileT<wordPosType, charPosType>* t 
+            = static_cast<InvertedFileT<wordPosType, charPosType>*>(value.addr);
+   SmiFileId triefileId = t->getFileId();
+   valueRecord.Write(&triefileId, sizeof(SmiFileId), offset);
+   offset += sizeof(SmiFileId);
+   SmiRecordId rootId = t->getRootId();
+   valueRecord.Write(&rootId, sizeof(SmiRecordId), offset);
+   offset += sizeof(SmiRecordId);
+   SmiFileId listFileId = t->getListFileId();
+   valueRecord.Write(&listFileId, sizeof(SmiFileId), offset);
+   offset += sizeof(SmiFileId);
+   bool ignoreCase = t->getIgnoreCase(); 
+   valueRecord.Write(&ignoreCase, sizeof(bool),offset);
+   offset += sizeof(bool);
+   uint32_t minWordLength = t->getMinWordLength();
+   valueRecord.Write(&minWordLength, sizeof(uint32_t), offset);
+   offset += sizeof(uint32_t);
+   SmiRecordId stopWordsId = t->getStopWordsId();
+   valueRecord.Write(&stopWordsId, sizeof(SmiRecordId), offset);
+   offset += sizeof(SmiRecordId);
+   std::string separators = t->getSeparators();
+   size_t separatorsLength = separators.length();
+   valueRecord.Write(&separatorsLength, sizeof(size_t), offset);
+   offset+= sizeof(size_t);
+   const char* seps = separators.c_str();
+   valueRecord.Write(seps,separatorsLength, offset);
+   offset += separatorsLength;  
+   return true;
+}
 
+template<typename wordPosType, typename charPosType>
 bool OpenInvfile(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value);
+                 const ListExpr typeInfo, Word& value) {
+  SmiFileId triefileid;
+  valueRecord.Read(&triefileid, sizeof(SmiFileId), offset);
+  offset += sizeof(SmiFileId);
+  SmiRecordId trierid;
+  valueRecord.Read(&trierid, sizeof(SmiRecordId), offset);
+  offset += sizeof(SmiRecordId);
+  SmiFileId listfileid;
+  valueRecord.Read(&listfileid, sizeof(SmiFileId), offset);
+  offset += sizeof(SmiFileId); 
+  bool ignoreCase;
+  valueRecord.Read(&ignoreCase, sizeof(bool), offset);
+  offset += sizeof(bool);
+  uint32_t minWordLength;
+  valueRecord.Read(&minWordLength, sizeof(uint32_t), offset);
+  offset += sizeof(uint32_t);
+  SmiRecordId stopWordsId;
+  valueRecord.Read(&stopWordsId, sizeof(SmiRecordId), offset);
+  offset += sizeof(SmiRecordId);
+  size_t separatorsLength;
+  valueRecord.Read(&separatorsLength, sizeof(size_t), offset);
+  offset += sizeof(size_t);
+  char sepBuffer[separatorsLength];
+  valueRecord.Read(sepBuffer, separatorsLength, offset);
+  offset += separatorsLength;
+  std::string separators(sepBuffer, separatorsLength);
+  InvertedFileT<wordPosType, charPosType>* invFile 
+              = new InvertedFileT<wordPosType, charPosType>(triefileid, trierid,
+                listfileid, ignoreCase, minWordLength, stopWordsId, separators);
+  value.setAddr(invFile);
+  return true;
+}
   
 }
 
