@@ -81,45 +81,45 @@ namespace ImageSignaturealg{
 
 bool 
 ImageSignature::readSignatureFromFile(const std::string _fileName, 
-	const int colorSpace, const int texRange, const int percentSamples, 
-	const int noClusters)
+    const int colorSpace, const int texRange, const int percentSamples, 
+    const int noClusters)
 {
-	int range = 10; //todo: range parameter
-	
-	this->fileName = _fileName;
-	
-	if(this->fileName == ""
+    int range = 10; //todo: range parameter
+    
+    this->fileName = _fileName;
+    
+    if(this->fileName == ""
         || !(access (this->fileName.c_str(), F_OK) != -1))
         //|| S_ISDIR(fileName.st_mode)
     {
-		std::cerr << "readSignatureFromFile: Cannot open file '" 
-		<< this->fileName << "'!" << endl;
-		SetDefined(false);
-		return false;
-	}
-	
-	JPEGImage ji;
+        std::cerr << "readSignatureFromFile: Cannot open file '" 
+        << this->fileName << "'!" << endl;
+        SetDefined(false);
+        return false;
+    }
+    
+    JPEGImage ji;
     
     ji.importJPEGFile(this->fileName, colorSpace, 
-						texRange, 
-						percentSamples, 
-						noClusters);
+                        texRange, 
+                        percentSamples, 
+                        noClusters);
     
     ji.computeCoarsenessValues(false, range);
 
-	ji.computeContrastValues(false, range);
+    ji.computeContrastValues(false, range);
 
     unsigned int noDataPoints = ji.height * ji.width;
 
     ji.clusterFeatures(noClusters, DIMENSIONS, noDataPoints);
 
-	for (auto tupl : ji.signature)
+    for (auto tupl : ji.signature)
     {
-		this->Append(tupl);
-	}
+        this->Append(tupl);
+    }
 
     SetDefined(true);
-	return true;
+    return true;
 }
 
 
@@ -129,39 +129,39 @@ ImageSignature::readSignatureFromFile(const std::string _fileName,
 */
 ListExpr readSignatureFromFileTM(ListExpr args) 
 {
-	if ( nl->ListLength(args) == 5) 
-	{
-		ListExpr arg1 = nl->First(args);
-		ListExpr arg2 = nl->Second(args);
-		ListExpr arg3 = nl->Third(args);
-		ListExpr arg4 = nl->Fourth(args);
-		ListExpr arg5 = nl->Fifth(args);
-		
-		if (
-			(nl->IsEqual(arg1, FText::BasicType()) ||
-			nl->IsEqual(arg1, CcString::BasicType())
-			) &&
-			nl->IsEqual(arg2, CcInt::BasicType()) &&
-			nl->IsEqual(arg3, CcInt::BasicType()) &&
-			nl->IsEqual(arg4, CcInt::BasicType()) &&
-			nl->IsEqual(arg5, CcInt::BasicType()))
-			{
-			return nl->SymbolAtom(ImageSignature::BasicType());
-		}
-	}
-	return nl->SymbolAtom(Symbol::TYPEERROR());
+    if ( nl->ListLength(args) == 5) 
+    {
+        ListExpr arg1 = nl->First(args);
+        ListExpr arg2 = nl->Second(args);
+        ListExpr arg3 = nl->Third(args);
+        ListExpr arg4 = nl->Fourth(args);
+        ListExpr arg5 = nl->Fifth(args);
+        
+        if (
+            (nl->IsEqual(arg1, FText::BasicType()) ||
+            nl->IsEqual(arg1, CcString::BasicType())
+            ) &&
+            nl->IsEqual(arg2, CcInt::BasicType()) &&
+            nl->IsEqual(arg3, CcInt::BasicType()) &&
+            nl->IsEqual(arg4, CcInt::BasicType()) &&
+            nl->IsEqual(arg5, CcInt::BasicType()))
+            {
+            return nl->SymbolAtom(ImageSignature::BasicType());
+        }
+    }
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
 int readSignatureFromFileSelect(ListExpr args) 
 {
-	ListExpr arg1 = nl->First(args);
-	if (nl->IsEqual(arg1, FText::BasicType())) 
-		return 0;
-	if (nl->IsEqual(arg1, CcString::BasicType()))
-		return 1;
-			
-	return -1;
+    ListExpr arg1 = nl->First(args);
+    if (nl->IsEqual(arg1, FText::BasicType())) 
+        return 0;
+    if (nl->IsEqual(arg1, CcString::BasicType()))
+        return 1;
+            
+    return -1;
 }
 
 
@@ -173,27 +173,27 @@ template<class StringType>
 int readSignatureFromFileFun(Word* args, Word& result,
                    int message, Word& local, Supplier s)
 {
-	result = qp->ResultStorage(s);
-	ImageSignature* res = static_cast<ImageSignature*>(result.addr);
-	
-	StringType* fileName = static_cast<StringType*>(args[0].addr);
-	
-	CcInt* colorSpace = static_cast<CcInt*>(args[1].addr);
-	CcInt* texRange = static_cast<CcInt*>(args[2].addr);
-	CcInt* percentSamples = static_cast<CcInt*>(args[3].addr);
-	CcInt* noClusters = static_cast<CcInt*>(args[4].addr);
+    result = qp->ResultStorage(s);
+    ImageSignature* res = static_cast<ImageSignature*>(result.addr);
+    
+    StringType* fileName = static_cast<StringType*>(args[0].addr);
+    
+    CcInt* colorSpace = static_cast<CcInt*>(args[1].addr);
+    CcInt* texRange = static_cast<CcInt*>(args[2].addr);
+    CcInt* percentSamples = static_cast<CcInt*>(args[3].addr);
+    CcInt* noClusters = static_cast<CcInt*>(args[4].addr);
 
-	if(fileName->IsDefined())
-	{
-		res->readSignatureFromFile(fileName->GetValue(),
-			colorSpace->GetIntval(),texRange->GetIntval(),
-			percentSamples->GetIntval(), noClusters->GetIntval());
-	} 
-	else 
-	{
-		res->SetDefined(false);
-	}
-	return 0;
+    if(fileName->IsDefined())
+    {
+        res->readSignatureFromFile(fileName->GetValue(),
+            colorSpace->GetIntval(),texRange->GetIntval(),
+            percentSamples->GetIntval(), noClusters->GetIntval());
+    } 
+    else 
+    {
+        res->SetDefined(false);
+    }
+    return 0;
 }
 
 
@@ -228,7 +228,7 @@ static const std::string readSignatureFromFileSpec  =
 
 */
 static Operator readSignatureFromFileOp(
-						"readSignatureFromFile",
+                        "readSignatureFromFile",
                         readSignatureFromFileSpec,
                         2,
                         readSignatureFromFileVM,
@@ -280,7 +280,7 @@ ImageSignature::ImageSignature(const int n) :
 
 
 ImageSignature::ImageSignature(const int n, 
-	const double *W, const int *X, const int *Y ) :
+    const double *W, const int *X, const int *Y ) :
   Attribute(true),
   imageSignatureTuples(n) 
 {
@@ -510,8 +510,8 @@ Returns if the ImageSignature is empty or not.
 */
 const bool ImageSignature::IsEmpty() const
 {
-	// todo: report correct number
-	return GetNoImageSignatureTuples() == 0;
+    // todo: report correct number
+    return GetNoImageSignatureTuples() == 0;
 }
 
 
@@ -526,36 +526,36 @@ const bool ImageSignature::IsEmpty() const
 
 */  
 ListExpr ImageSignature::Out(ListExpr typeInfo, Word value)
-{	
-	ImageSignature* imgsig = static_cast<ImageSignature*>(value.addr);
+{    
+    ImageSignature* imgsig = static_cast<ImageSignature*>(value.addr);
   
-	if(!imgsig->IsDefined())
-	{
-		return nl->SymbolAtom(Symbol::UNDEFINED());
-	}
+    if(!imgsig->IsDefined())
+    {
+        return nl->SymbolAtom(Symbol::UNDEFINED());
+    }
   
-	if( imgsig->IsEmpty() )
-	{
-		return (nl->TheEmptyList());
-	}
-	else
-	{		
-	ListExpr result = nl->OneElemList(nl->ThreeElemList(
-		nl->RealAtom(imgsig->GetImageSignatureTuple(0).weight),
-		nl->IntAtom(imgsig->GetImageSignatureTuple(0).centroidXpos),
-		nl->IntAtom(imgsig->GetImageSignatureTuple(0).centroidYpos))
-		);				
+    if( imgsig->IsEmpty() )
+    {
+        return (nl->TheEmptyList());
+    }
+    else
+    {        
+    ListExpr result = nl->OneElemList(nl->ThreeElemList(
+        nl->RealAtom(imgsig->GetImageSignatureTuple(0).weight),
+        nl->IntAtom(imgsig->GetImageSignatureTuple(0).centroidXpos),
+        nl->IntAtom(imgsig->GetImageSignatureTuple(0).centroidYpos))
+        );                
      
-	ListExpr last = result;
+    ListExpr last = result;
 
-	for(int i = 1; i < imgsig->GetNoImageSignatureTuples(); i++)
-	{
-		last = nl->Append(last,nl->ThreeElemList(
-		nl->RealAtom(imgsig->GetImageSignatureTuple(i).weight),
-		nl->IntAtom(imgsig->GetImageSignatureTuple(i).centroidXpos),
-		nl->IntAtom(imgsig->GetImageSignatureTuple(i).centroidYpos)));
-	}
-	return result;
+    for(int i = 1; i < imgsig->GetNoImageSignatureTuples(); i++)
+    {
+        last = nl->Append(last,nl->ThreeElemList(
+        nl->RealAtom(imgsig->GetImageSignatureTuple(i).weight),
+        nl->IntAtom(imgsig->GetImageSignatureTuple(i).centroidXpos),
+        nl->IntAtom(imgsig->GetImageSignatureTuple(i).centroidYpos)));
+    }
+    return result;
   }
 }
 
@@ -569,49 +569,49 @@ Word
 ImageSignature::In(const ListExpr typeInfo, const ListExpr instance,
            const int errorPos, ListExpr& errorInfo, bool& correct)
 {
-	ImageSignature* imgsig = new ImageSignature(0);
-	
-	if(listutils::isSymbolUndefined(instance)){
-		imgsig->SetDefined(false);
-		correct = true;
-		return SetWord(imgsig);
-	}
-	
-	imgsig->SetDefined(true);
-	
-	
-	ListExpr first = nl->Empty();
-	ListExpr rest = instance;
-  	
-	while(!nl->IsEmpty(rest))
-	{
-		first = nl->First(rest);
-		rest = nl->Rest(rest);
-		
-		if( nl->ListLength(first) == 3 &&
-			nl->IsAtom(nl->First(first )) &&
-			nl->AtomType(nl->First(first)) == RealType &&
-			nl->IsAtom(nl->Second(first)) &&
-			nl->AtomType(nl->Second(first)) == IntType && 
-			nl->IsAtom(nl->Third(first)) &&
-			nl->AtomType(nl->Third(first)) == IntType 
+    ImageSignature* imgsig = new ImageSignature(0);
+    
+    if(listutils::isSymbolUndefined(instance)){
+        imgsig->SetDefined(false);
+        correct = true;
+        return SetWord(imgsig);
+    }
+    
+    imgsig->SetDefined(true);
+    
+    
+    ListExpr first = nl->Empty();
+    ListExpr rest = instance;
+      
+    while(!nl->IsEmpty(rest))
+    {
+        first = nl->First(rest);
+        rest = nl->Rest(rest);
+        
+        if( nl->ListLength(first) == 3 &&
+            nl->IsAtom(nl->First(first )) &&
+            nl->AtomType(nl->First(first)) == RealType &&
+            nl->IsAtom(nl->Second(first)) &&
+            nl->AtomType(nl->Second(first)) == IntType && 
+            nl->IsAtom(nl->Third(first)) &&
+            nl->AtomType(nl->Third(first)) == IntType 
          )
-		{
-			ImageSignatureTuple ist( 
-				nl->RealValue(nl->First(first)),
-				nl->IntValue(nl->Second(first)),
+        {
+            ImageSignatureTuple ist( 
+                nl->RealValue(nl->First(first)),
+                nl->IntValue(nl->Second(first)),
                 nl->IntValue(nl->Third(first))
             );
-			imgsig->Append(ist);
-		}
-		else
-		{
-			correct = false;
-			delete imgsig;
-			return SetWord(Address(0));
-		}
-	}
-	
+            imgsig->Append(ist);
+        }
+        else
+        {
+            correct = false;
+            delete imgsig;
+            return SetWord(Address(0));
+        }
+    }
+    
   imgsig->Complete();
   correct = true;
   return SetWord(imgsig);
@@ -626,13 +626,13 @@ ListExpr ImageSignature::Property()
 {
   return (nl->TwoElemList(
          nl->FiveElemList(
-			nl->StringAtom("Signature"),
+            nl->StringAtom("Signature"),
             nl->StringAtom("Example Type List"),
             nl->StringAtom("List Rep"),
             nl->StringAtom("Example List"),
             nl->StringAtom("Remarks")),
          nl->FiveElemList(
-			nl->StringAtom("->" + Kind::DATA() ),
+            nl->StringAtom("->" + Kind::DATA() ),
             nl->StringAtom(ImageSignature::BasicType()),
             nl->StringAtom("(<tuple>*) where <tuple> is "
             "(real int int)"),
@@ -661,9 +661,9 @@ ImageSignature::KindCheck( ListExpr type, ListExpr& errorInfo )
 
 */
 Word ImageSignature::Create(const ListExpr typeInfo)
-{	
-	ImageSignature* imgsig = new ImageSignature(0);
-	return (SetWord(imgsig));
+{    
+    ImageSignature* imgsig = new ImageSignature(0);
+    return (SetWord(imgsig));
 }
 
 
