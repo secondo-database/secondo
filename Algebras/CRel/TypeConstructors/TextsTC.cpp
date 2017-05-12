@@ -24,22 +24,44 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "TextsTC.h"
 
-#include <exception>
 #include "FTextAlgebra.h"
 #include "Strings.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "TIUtils.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace listutils;
 
-using std::exception;
 using std::string;
-using std::vector;
 
 extern CMsg cmsg;
 extern NestedList *nl;
+
+//TextsTI-----------------------------------------------------------------------
+
+bool TextsTI::Check(ListExpr typeExpr)
+{
+  return SimpleTypeCheck(TextsTC::name, typeExpr);
+}
+
+bool TextsTI::Check(ListExpr typeExpr, string &error)
+{
+  return SimpleTypeCheck(TextsTC::name, typeExpr, error);
+}
+
+TextsTI::TextsTI(bool numeric) :
+  m_isNumeric(numeric)
+{
+}
+
+ListExpr TextsTI::GetTypeExpr() const
+{
+  return SimpleTypeExpr(TextsTC::name, m_isNumeric);
+}
+
+//TextsTC-----------------------------------------------------------------------
 
 const string TextsTC::name= "texts";
 

@@ -26,77 +26,155 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Attribute.h"
 #include <cstddef>
-#include "NestedList.h"
-#include "ReadWrite.h"
+#include <cstring>
+#include "FTextAlgebra.h"
 #include "SimpleAttrArray.h"
-#include <stdint.h>
-#include <string>
+#include "StandardTypes.h"
 
 namespace CRelAlgebra
 {
-  template<bool text = false>
+  template<class A = CcString>
   class StringEntry
   {
   public:
-    StringEntry();
+    typedef A AttributeType;
 
-    StringEntry(const char *data, size_t size);
+    static size_t GetSize(A &value)
+    {
+      if (value.IsDefined())
+      {
+        return value.Length() + 1;
+      }
 
-    bool IsDefined() const;
+      return 0;
+    }
 
-    int Compare(const StringEntry<text> &value) const;
+    static void Write(SimpleVSAttrArrayEntry target, const CcString &value)
+    {
+      if (value.IsDefined())
+      {
+        const size_t length = target.size - 1;
 
-    int Compare(Attribute &value) const;
+        memcpy(target.data, *value.GetStringval(), length);
 
-    bool Equals(const StringEntry<text> &value) const;
+        target.data[length] = '\0';
+      }
+    }
 
-    bool Equals(Attribute &value) const;
+    static void Write(SimpleVSAttrArrayEntry target, const FText &value)
+    {
+      if (value.IsDefined())
+      {
+        const size_t length = target.size - 1;
 
-    size_t GetHash() const;
+        memcpy(target.data, value.Get(), length);
 
-    size_t GetSize() const;
+        target.data[length] = '\0';
+      }
 
-    const char *GetData() const;
+      return;
+    }
 
-    operator const char *() const;
+    StringEntry()
+    {
+    }
 
+    StringEntry(const SimpleVSAttrArrayEntry &value) :
+      data(value.data),
+      size(value.size)
+    {
+    }
+
+    bool IsDefined() const
+    {
+      return size > 0;
+    }
+
+    int Compare(const StringEntry &value) const
+    {
+      const size_t sizeA = size,
+        sizeB = value.size;
+
+      if (sizeA > sizeB)
+      {
+        return sizeB == 0 ? 1 : strcmp(data, value.data);
+      }
+      else
+      {
+        return sizeA == 0 ? sizeB == 0 ? 0 : -1 : strcmp(data, value.data);
+      }
+    }
+
+    int Compare(const CcString &value) const
+    {
+      if (value.IsDefined())
+      {
+        if (size == 0)
+        {
+          return -1;
+        }
+
+        return strcmp(data, *value.GetStringval());
+      }
+
+      return size > 0 ? 1 : 0;
+    }
+
+    int Compare(const FText &value) const
+    {
+      if (value.IsDefined())
+      {
+        if (size == 0)
+        {
+          return -1;
+        }
+
+        return strcmp(data, value.Get());
+      }
+
+      return size > 0 ? 1 : 0;
+    }
+
+    bool Equals(const StringEntry &value) const
+    {
+      return Compare(value) == 0;
+    }
+
+    bool Equals(const CcString &value) const
+    {
+      return Compare(value) == 0;
+    }
+
+    bool Equals(const FText &value) const
+    {
+      return Compare(value) == 0;
+    }
+
+    size_t GetHash() const
+    {
+      size_t h = 0;
+
+      for (size_t i = 0; i < size; ++i)
+      {
+        h = 5 * h + data[i];
+      }
+
+      return h;
+    }
+
+    A *GetAttribute(bool clone = true) const
+    {
+      return size > 0 ? new A(true, data) : new A(false);
+    }
+
+  private:
     const char *data;
 
     size_t size;
   };
 
-  template<bool text = false>
-  class Strings : public SimpleVSAttrArray<StringEntry<text>>
-  {
-  public:
-    Strings();
+  typedef SimpleVSAttrArray<StringEntry<CcString>> Strings;
 
-    Strings(Reader &source);
-
-    Strings(Reader &source, size_t rowCount);
-
-    virtual AttrArray *Filter(SharedArray<const size_t> filter) const
-    {
-      return new Strings(*this, filter);
-    }
-
-    //using SimpleFSAttrArray<StringEntry>::Append;
-    void Append(const StringEntry<text> &value)
-    {
-      SimpleVSAttrArray<StringEntry<text>>::Append(value);
-    }
-
-    virtual void Append(Attribute &value);
-
-    virtual Attribute *GetAttribute(size_t row, bool clone) const;
-
-  private:
-    Strings(const Strings &array, const SharedArray<const size_t> &filter) :
-      SimpleVSAttrArray<StringEntry<text>>(array, filter)
-    {
-    }
-  };
-
-  typedef StringEntry<true> TextEntry;
-  typedef Strings<true> Texts;
+  typedef StringEntry<FText> TextEntry;
+  typedef SimpleVSAttrArray<TextEntry> Texts;
 }

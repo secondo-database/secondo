@@ -49,7 +49,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/ToTuples.h"
 #include "QueryProcessor.h"
 #include "TypeConstructors/CRelTC.h"
-#include "TypeConstructors/DisplayLongInts.h"
+#include "TypeConstructors/DisplayAttrArray.h"
 #include "TypeConstructors/DisplayTBlock.h"
 #include "TypeConstructors/DisplayCRel.h"
 #include "TypeConstructors/GAttrArrayTC.h"
@@ -93,8 +93,6 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
       AddTypeConstructor(new GSpatialAttrArrayTC<8>(), true);
 
       AddTypeConstructor(new IntsTC(), true);
-
-      AddTypeConstructor(new Ints2TC(), true);
 
       AddTypeConstructor(new LongIntsTC(), true);
 
@@ -164,9 +162,19 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
 
   DisplayTTY &display = DisplayTTY::GetInstance();
 
-  display.Insert(LongIntsTC::name, new DisplayLongInts());
   display.Insert(TBlockTC::name, new DisplayTBlock());
   display.Insert(CRelTC::name, new DisplayCRel());
+  display.Insert(GAttrArrayTC::name, new DisplayAttrArray());
+  display.Insert(GSpatialAttrArrayTC<1>::name, new DisplayAttrArray());
+  display.Insert(GSpatialAttrArrayTC<2>::name, new DisplayAttrArray());
+  display.Insert(GSpatialAttrArrayTC<3>::name, new DisplayAttrArray());
+  display.Insert(GSpatialAttrArrayTC<4>::name, new DisplayAttrArray());
+  display.Insert(GSpatialAttrArrayTC<8>::name, new DisplayAttrArray());
+  display.Insert(IntsTC::name, new DisplayAttrArray());
+  display.Insert(LongIntsTC::name, new DisplayAttrArray());
+  display.Insert(RealsTC::name, new DisplayAttrArray());
+  display.Insert(StringsTC::name, new DisplayAttrArray());
+  display.Insert(TextsTC::name, new DisplayAttrArray());
 
   return new CRelAlgebra();
 }

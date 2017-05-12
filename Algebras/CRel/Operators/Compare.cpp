@@ -28,11 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <cstddef>
 #include <exception>
 #include "GAttrArray.h"
-#include "GAttrArrayTI.h"
+#include "GAttrArrayTC.h"
 #include "Ints.h"
-#include "IntsTI.h"
-#include "LongInts.h"
-#include "LongIntsTI.h"
+#include "LongIntsTC.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
@@ -130,10 +128,10 @@ ListExpr Compare<mode>::TypeMapping(ListExpr args)
 
   const ListExpr firstArg = nl->First(args);
 
-  TypeConstructor *typeConstructorA = GetTypeConstructor(firstArg);
+  AttrArrayTypeConstructor *typeConstructorA =
+    AttrArray::GetTypeConstructor(firstArg);
 
-  if (typeConstructorA == nullptr ||
-      !typeConstructorA->MemberOf(Kind::ATTRARRAY()))
+  if (typeConstructorA == nullptr)
   {
     return GetTypeError(0, "Isn't of kind ATTRARRAY.");
   }
@@ -150,8 +148,7 @@ ListExpr Compare<mode>::TypeMapping(ListExpr args)
   if (!typeConstructorB->MemberOf(Kind::ATTRARRAY()) ||
       !nl->Equal(firstArg, secondArg))
   {
-    const ListExpr attributeType =
-      ((AttrArrayTypeConstructor*)typeConstructorA)->GetAttributeType(firstArg,
+    const ListExpr attributeType = typeConstructorA->GetAttributeType(firstArg,
                                                                       false);
 
     if (!nl->Equal(attributeType, secondArg))

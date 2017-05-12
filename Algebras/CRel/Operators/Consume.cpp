@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Consume.h"
 
 #include "CRel.h"
-#include "CRelTI.h"
+#include "CRelTC.h"
 #include <cstddef>
 #include <exception>
 #include "LogMsg.h"
@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Stream.h"
 #include <string>
 #include "TBlock.h"
-#include "TBlockTI.h"
+#include "TBlockTC.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;

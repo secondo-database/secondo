@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include "StreamValueMapping.h"
 #include "Symbols.h"
-#include "TBlockTI.h"
+#include "TBlockTC.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;

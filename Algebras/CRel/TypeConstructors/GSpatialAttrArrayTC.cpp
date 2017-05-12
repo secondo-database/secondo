@@ -28,19 +28,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AttrArray.h"
 #include <exception>
 #include "GAttrArray.h"
-#include "GSpatialAttrArrayTI.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "ReadWrite.h"
 #include "SecondoSystem.h"
 #include "StringUtils.h"
 #include "Symbols.h"
-#include "TypeUtils.h"
 #include "TypeConstructor.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace listutils;
 
+using listutils::isStream;
 using std::exception;
 using std::string;
 using stringutils::any2str;
@@ -49,13 +49,118 @@ extern NestedList *nl;
 extern AlgebraManager *am;
 extern CMsg cmsg;
 
-template <int dim>
-const std::string &GSpatialAttrArrayTC<dim>::Name()
-{
-  static const string name = "gattrarray" + any2str(dim) + "d";
+//GSpatialAttrArrayTI<dim>------------------------------------------------------
 
-  return name;
+template <int dim>
+bool GSpatialAttrArrayTI<dim>::Check(ListExpr typeExpr, string &error)
+{
+  if (!nl->HasLength(typeExpr, 2))
+  {
+    error = "GSpatialAttrArrayTI's length != 2.";
+    return false;
+  }
+
+  const ListExpr firstArg = nl->First(typeExpr);
+  if (isStream(typeExpr))
+  {
+    return Check(GetStreamType(typeExpr), error);
+  }
+
+  if (!nl->IsEqual(firstArg, GSpatialAttrArrayTC<dim>::name))
+  {
+    error = "GSpatialAttrArrayTI's first element != " +
+            GSpatialAttrArrayTC<dim>::name + ".";
+
+    return false;
+  }
+
+  TypeConstructor *typeConstructor = GetTypeConstructor(nl->Second(typeExpr));
+
+  if (typeConstructor != nullptr)
+  {
+    string kind;
+
+    switch (dim)
+    {
+      case 1:
+        kind = Kind::SPATIAL1D();
+        break;
+      case 2:
+        kind = Kind::SPATIAL2D();
+        break;
+      case 3:
+        kind = Kind::SPATIAL3D();
+        break;
+      case 4:
+        kind = Kind::SPATIAL4D();
+        break;
+      case 8:
+        kind = Kind::SPATIAL8D();
+        break;
+    }
+
+    if (typeConstructor->MemberOf(kind))
+    {
+      return true;
+    }
+  }
+
+  error = "GSpatialAttrArrayTI's argument (attribute type) is not of kind "
+          "SPATIAL" + any2str(dim) + "D.";
+
+  return false;
 }
+
+template <int dim>
+GSpatialAttrArrayTI<dim>::GSpatialAttrArrayTI(bool numeric) :
+  m_typeInfo(numeric)
+{
+}
+
+template <int dim>
+GSpatialAttrArrayTI<dim>::GSpatialAttrArrayTI(ListExpr typeExpr, bool numeric) :
+  m_typeInfo(typeExpr, numeric)
+{
+}
+
+template <int dim>
+bool GSpatialAttrArrayTI<dim>::IsNumeric() const
+{
+  return m_typeInfo.IsNumeric();
+}
+
+template <int dim>
+ListExpr GSpatialAttrArrayTI<dim>::GetAttributeType() const
+{
+  return m_typeInfo.GetAttributeType();
+}
+
+template <int dim>
+void GSpatialAttrArrayTI<dim>::SetAttributeType(ListExpr value)
+{
+  m_typeInfo.SetAttributeType(value);
+}
+
+template <int dim>
+const PGAttrArrayInfo &GSpatialAttrArrayTI<dim>::GetPInfo() const
+{
+  return m_typeInfo.GetPInfo();
+}
+
+template <int dim>
+ListExpr GSpatialAttrArrayTI<dim>::GetTypeExpr() const
+{
+  return nl->TwoElemList(
+    m_typeInfo.IsNumeric() ? GetNumericType(GSpatialAttrArrayTC<dim>::name) :
+                             nl->SymbolAtom(GSpatialAttrArrayTC<dim>::name),
+    m_typeInfo.GetAttributeType());
+}
+
+//GSpatialAttrArrayTC<dim>------------------------------------------------------
+
+template <int dim>
+const std::string GSpatialAttrArrayTC<dim>::name = "gattrarray" + any2str(dim) +
+                                                   "d";
 
 template <int dim>
 ListExpr GSpatialAttrArrayTC<dim>::TypeProperty()
@@ -81,8 +186,8 @@ ListExpr GSpatialAttrArrayTC<dim>::TypeProperty()
       break;
   }
 
-  return ConstructorInfo(Name(), "DATA -> " + kind,
-                         "(" + Name() + " int)", "(a0 a1 ... an)",
+  return ConstructorInfo(name, "DATA -> " + kind,
+                         "(" + name + " int)", "(a0 a1 ... an)",
                          "(1 2 3 4)", "").list();
 }
 
@@ -238,7 +343,7 @@ AttrArrayManager *GSpatialAttrArrayTC<dim>::CreateManager(
 
 template<int dim>
 GSpatialAttrArrayTC<dim>::GSpatialAttrArrayTC() :
-  AttrArrayTypeConstructor(Name(), TypeProperty, CheckType, GetAttributeType,
+  AttrArrayTypeConstructor(name, TypeProperty, CheckType, GetAttributeType,
                            CreateManager)
 {
   switch (dim)
@@ -260,6 +365,14 @@ GSpatialAttrArrayTC<dim>::GSpatialAttrArrayTC() :
       break;
   }
 }
+
+//------------------------------------------------------------------------------
+
+template class GSpatialAttrArrayTI<1>;
+template class GSpatialAttrArrayTI<2>;
+template class GSpatialAttrArrayTI<3>;
+template class GSpatialAttrArrayTI<4>;
+template class GSpatialAttrArrayTI<8>;
 
 template class GSpatialAttrArrayTC<1>;
 template class GSpatialAttrArrayTC<2>;

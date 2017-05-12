@@ -24,9 +24,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "DisplayCRel.h"
 
-#include "CRelTI.h"
+#include "CRelTC.h"
 #include "SecondoSystem.h"
-#include "TBlockTI.h"
+#include "TBlockTC.h"
 
 using namespace CRelAlgebra;
 

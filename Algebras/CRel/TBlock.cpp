@@ -577,7 +577,7 @@ TBlockInfo::TBlockInfo(ListExpr columnTypes) :
     this->columnTypes[i] = columnType;
 
     AttrArrayTypeConstructor &arrayConstructor =
-      (AttrArrayTypeConstructor&)*GetTypeConstructor(columnType);
+      *AttrArray::GetTypeConstructor(columnType, false);
 
     const ListExpr attributeType =
       arrayConstructor.GetAttributeType(columnType, true);

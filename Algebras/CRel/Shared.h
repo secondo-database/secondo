@@ -28,6 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace CRelAlgebra
 {
+  /*
+  The class ~Shared<T>~ implements a templated smart pointer.
+
+  */
   template <class T>
   class Shared
   {
@@ -163,10 +167,19 @@ namespace CRelAlgebra
     mutable size_t *m_refCount;
   };
 
+  /*
+  The class ~SharedArray<T>~ implements a templated smart array pointer.
+  For convenience it also stores the size of the array.
+
+  */
   template <class T>
   class SharedArray
   {
   public:
+    /*
+
+
+    */
     SharedArray() :
       m_instance(nullptr),
       m_capacity(0),

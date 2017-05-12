@@ -24,22 +24,44 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "IntsTC.h"
 
-#include <exception>
 #include "Ints.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "StandardTypes.h"
+#include "TIUtils.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace listutils;
 
-using std::exception;
 using std::string;
-using std::vector;
 
 extern CMsg cmsg;
 extern NestedList *nl;
+
+//IntsTI------------------------------------------------------------------------
+
+bool IntsTI::Check(ListExpr typeExpr)
+{
+  return SimpleTypeCheck(IntsTC::name, typeExpr);
+}
+
+bool IntsTI::Check(ListExpr typeExpr, string &error)
+{
+  return SimpleTypeCheck(IntsTC::name, typeExpr, error);
+}
+
+IntsTI::IntsTI(bool numeric) :
+  m_isNumeric(numeric)
+{
+}
+
+ListExpr IntsTI::GetTypeExpr() const
+{
+  return SimpleTypeExpr(IntsTC::name, m_isNumeric);
+}
+
+//IntsTC------------------------------------------------------------------------
 
 const string IntsTC::name= "ints";
 
@@ -152,118 +174,4 @@ IntsTC::IntsTC() :
                            CreateManager)
 {
   AssociateKind(Kind::ATTRARRAY());
-}
-
-//Ints2TC-----------------------------------------------------------------------
-
-
-const string Ints2TC::name= "ints2";
-
-ListExpr Ints2TC::TypeProperty()
-{
-  return ConstructorInfo(name, "-> " + name,
-                         "(" + name + ")",
-                         "(ai*) where ai is int",
-                         "(2 3 4 5)", "").list();
-}
-
-bool Ints2TC::CheckType(ListExpr typeExpr, ListExpr &errorInfo)
-{
-  std::string error;
-  if (!Ints2TI::Check(typeExpr, error))
-  {
-    cmsg.typeError(error);
-    return false;
-  }
-
-  return true;
-}
-
-Word Ints2TC::In(ListExpr typeExpr, ListExpr value, int errorPos,
-                    ListExpr &errorInfo, bool &correct)
-{
-  return DefaultIn(typeExpr, value, errorPos, errorInfo, correct);
-}
-
-ListExpr Ints2TC::Out(ListExpr typeExpr, Word value)
-{
-  return DefaultOut(typeExpr, value);
-}
-
-Word Ints2TC::Create(const ListExpr typeExpr)
-{
-  return DefaultCreate(typeExpr);
-}
-
-void Ints2TC::Delete(const ListExpr typeExpr, Word &value)
-{
-  return DefaultDelete(typeExpr, value);
-}
-
-bool Ints2TC::Open(SmiRecord &valueRecord, size_t &offset,
-                   const ListExpr typeExpr, Word &value)
-{
-  return DefaultOpen(valueRecord, offset, typeExpr, value);
-}
-
-bool Ints2TC::Save(SmiRecord &valueRecord, size_t &offset,
-                   const ListExpr typeExpr, Word &value)
-{
-  return DefaultSave(valueRecord, offset, typeExpr, value);
-}
-
-void Ints2TC::Close(const ListExpr typeExpr, Word &value)
-{
-  return DefaultClose(typeExpr, value);
-}
-
-void *Ints2TC::Cast(void *addr)
-{
-  return DefaultCast(addr);
-}
-
-int Ints2TC::SizeOf()
-{
-  return DefaultSizeOf();
-}
-
-Word Ints2TC::Clone(const ListExpr typeExpr, const Word &value)
-{
-  return DefaultClone(typeExpr, value);
-}
-
-ListExpr Ints2TC::GetAttributeType(ListExpr typeExpr, bool numeric)
-{
-  return numeric ? GetNumericType(CcInt::BasicType()) :
-                   nl->SymbolAtom(CcInt::BasicType());
-}
-
-class Ints2Manager : public AttrArrayManager
-{
-public:
-  virtual AttrArray *Create(SmiFileId flobFileId)
-  {
-    return new Ints2();
-  }
-
-  virtual AttrArray *Load(Reader &source)
-  {
-    return new Ints2(source);
-  }
-
-  virtual AttrArray *Load(Reader &source, const AttrArrayHeader &header)
-  {
-    return new Ints2(source, header.count);
-  }
-};
-
-AttrArrayManager *Ints2TC::CreateManager(ListExpr attributeType)
-{
-  return new Ints2Manager();
-}
-
-Ints2TC::Ints2TC() :
-  AttrArrayTypeConstructor(name, TypeProperty, CheckType, GetAttributeType,
-                           CreateManager)
-{
 }

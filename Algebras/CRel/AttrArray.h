@@ -50,6 +50,7 @@ namespace CRelAlgebra
   class AttrArrayEntry;
   class AttrArrayIterator;
   class FilteredAttrArrayIterator;
+  class AttrArrayTypeConstructor;
 
   class AttrArrayFilter
   {
@@ -100,6 +101,9 @@ namespace CRelAlgebra
   class AttrArray
   {
   public:
+    static AttrArrayTypeConstructor *GetTypeConstructor(ListExpr type,
+                                                        bool checkKind = true);
+
     AttrArray() :
       m_filter(*this),
       m_refCount(1)

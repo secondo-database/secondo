@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "LogMsg.h"
 #include "OperatorUtils.h"
 #include "Symbols.h"
-#include "TBlockTI.h"
+#include "TBlockTC.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;
@@ -65,15 +65,14 @@ ListExpr BlockEntry::TypeMapping(ListExpr args)
   //Either stream or nonstream
   arg = GetStreamType(arg, true);
 
-  TypeConstructor *constructor = GetTypeConstructor(arg);
+  AttrArrayTypeConstructor *constructor = AttrArray::GetTypeConstructor(arg);
 
-  if (constructor != nullptr && constructor->MemberOf(Kind::ATTRARRAY()))
+  if (constructor == nullptr)
   {
-    //Return Attribute-Type
-    return ((AttrArrayTypeConstructor*)constructor)->GetAttributeType(arg,
-                                                                      false);
+    return GetTypeError(0, "type", "Not (stream) of type tblock or kind "
+                      "ATTRARRAY.");
   }
 
-  return GetTypeError(0, "type", "Not (stream) of type tblock or kind "
-                      "ATTRARRAY.");
+  //Return Attribute-Type
+  return constructor->GetAttributeType(arg, false);
 }

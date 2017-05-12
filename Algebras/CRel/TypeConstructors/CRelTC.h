@@ -30,10 +30,34 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ReadWrite.h"
 #include "SecondoSMI.h"
 #include <string>
+#include "TBlockTC.h"
 #include "TypeConstructor.h"
 
 namespace CRelAlgebra
 {
+  class CRelTI : public TBlockTI
+  {
+  public:
+    static bool Check(ListExpr typeExpr);
+
+    static bool Check(ListExpr typeExpr, std::string &error);
+
+    CRelTI(bool numeric);
+
+    CRelTI(const TBlockTI &info, size_t cacheSize);
+
+    CRelTI(ListExpr typeExpr, bool numeric);
+
+    size_t GetCacheSize() const;
+
+    void SetCacheSize(size_t value);
+
+    ListExpr GetTypeExpr() const;
+
+  private:
+    size_t m_cacheSize;
+  };
+
   class CRelTC : public TypeConstructor
   {
   public:

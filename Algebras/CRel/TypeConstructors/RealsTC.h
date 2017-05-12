@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AttrArray.h"
 #include <cstddef>
-#include "RealsTI.h"
+#include "RealsTC.h"
 #include "NestedList.h"
 #include "ReadWrite.h"
 #include <string>
@@ -34,6 +34,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace CRelAlgebra
 {
+  class RealsTI
+  {
+  public:
+    static bool Check(ListExpr typeExpr);
+
+    static bool Check(ListExpr typeExpr, std::string &error);
+
+    RealsTI(bool numeric);
+
+    ListExpr GetTypeExpr() const;
+
+  private:
+    bool m_isNumeric;
+  };
+
   class RealsTC : public AttrArrayTypeConstructor
   {
   public:

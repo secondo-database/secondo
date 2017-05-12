@@ -24,22 +24,44 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "LongIntsTC.h"
 
-#include <exception>
+#include "Ints.h"
 #include "LongInt.h"
-#include "LongInts.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "TIUtils.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace listutils;
 
-using std::exception;
 using std::string;
-using std::vector;
 
 extern CMsg cmsg;
 extern NestedList *nl;
+
+//LongIntsTI--------------------------------------------------------------------
+
+bool LongIntsTI::Check(ListExpr typeExpr)
+{
+  return SimpleTypeCheck(LongIntsTC::name, typeExpr);
+}
+
+bool LongIntsTI::Check(ListExpr typeExpr, string &error)
+{
+  return SimpleTypeCheck(LongIntsTC::name, typeExpr, error);
+}
+
+LongIntsTI::LongIntsTI(bool numeric) :
+  m_isNumeric(numeric)
+{
+}
+
+ListExpr LongIntsTI::GetTypeExpr() const
+{
+  return SimpleTypeExpr(LongIntsTC::name, m_isNumeric);
+}
+
+//LongIntsTC--------------------------------------------------------------------
 
 const string LongIntsTC::name= "longints";
 

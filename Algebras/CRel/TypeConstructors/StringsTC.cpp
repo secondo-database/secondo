@@ -24,22 +24,44 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "StringsTC.h"
 
-#include <exception>
 #include "Strings.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "StandardTypes.h"
+#include "TIUtils.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace listutils;
 
-using std::exception;
 using std::string;
-using std::vector;
 
 extern CMsg cmsg;
 extern NestedList *nl;
+
+//StringsTI---------------------------------------------------------------------
+
+bool StringsTI::Check(ListExpr typeExpr)
+{
+  return SimpleTypeCheck(StringsTC::name, typeExpr);
+}
+
+bool StringsTI::Check(ListExpr typeExpr, string &error)
+{
+  return SimpleTypeCheck(StringsTC::name, typeExpr, error);
+}
+
+StringsTI::StringsTI(bool numeric) :
+  m_isNumeric(numeric)
+{
+}
+
+ListExpr StringsTI::GetTypeExpr() const
+{
+  return SimpleTypeExpr(StringsTC::name, m_isNumeric);
+}
+
+//StringsTC---------------------------------------------------------------------
 
 const string StringsTC::name= "strings";
 
@@ -127,17 +149,17 @@ class StringsManager : public AttrArrayManager
 public:
   virtual AttrArray *Create(SmiFileId flobFileId)
   {
-    return new Strings<false>();
+    return new Strings();
   }
 
   virtual AttrArray *Load(Reader &source)
   {
-    return new Strings<false>(source);
+    return new Strings(source);
   }
 
   virtual AttrArray *Load(Reader &source, const AttrArrayHeader &header)
   {
-    return new Strings<false>(source, header.count);
+    return new Strings(source, header.count);
   }
 };
 

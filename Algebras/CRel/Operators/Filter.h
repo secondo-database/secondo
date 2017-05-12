@@ -26,13 +26,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AlgebraTypes.h"
 #include <cstddef>
-#include "LongInts.h"
+#include "Ints.h"
 #include "NestedList.h"
 #include "Operator.h"
 #include "SecondoSMI.h"
 #include "Stream.h"
 #include "TBlock.h"
-#include "TBlockTI.h"
+#include "TBlockTC.h"
 #include <vector>
 
 namespace CRelAlgebra

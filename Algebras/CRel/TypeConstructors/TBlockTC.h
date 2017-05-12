@@ -34,6 +34,53 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace CRelAlgebra
 {
+  class TBlockTI
+  {
+  public:
+    class ColumnInfo
+    {
+    public:
+      std::string name;
+
+      ListExpr type;
+    };
+
+    static const size_t blockSizeFactor;
+
+    static bool Check(ListExpr typeExpr);
+
+    static bool Check(ListExpr typeExpr, std::string &error);
+
+    std::vector<ColumnInfo> columnInfos;
+
+    TBlockTI(bool numeric);
+
+    TBlockTI(ListExpr typeExpr, bool numeric);
+
+    bool IsNumeric() const;
+
+    size_t GetDesiredBlockSize() const;
+
+    void SetDesiredBlockSize(size_t value);
+
+    void AppendColumnInfos(ListExpr columnList);
+
+    ListExpr GetColumnList() const;
+
+    ListExpr GetTypeExpr(bool stream = false) const;
+
+    ListExpr GetTupleTypeExpr(bool stream = false) const;
+
+    const PTBlockInfo &GetBlockInfo() const;
+
+  private:
+    bool m_isNumeric;
+
+    size_t m_desiredBlockSize;
+
+    mutable PTBlockInfo m_info;
+  };
+
   class TBlockTC : public TypeConstructor
   {
   public:

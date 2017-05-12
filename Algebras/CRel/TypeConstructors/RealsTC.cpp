@@ -24,22 +24,44 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "RealsTC.h"
 
-#include <exception>
 #include "Reals.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "StandardTypes.h"
+#include "TIUtils.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace listutils;
 
-using std::exception;
 using std::string;
-using std::vector;
 
 extern CMsg cmsg;
 extern NestedList *nl;
+
+//RealsTI-----------------------------------------------------------------------
+
+bool RealsTI::Check(ListExpr typeExpr)
+{
+  return SimpleTypeCheck(RealsTC::name, typeExpr);
+}
+
+bool RealsTI::Check(ListExpr typeExpr, string &error)
+{
+  return SimpleTypeCheck(RealsTC::name, typeExpr, error);
+}
+
+RealsTI::RealsTI(bool numeric) :
+  m_isNumeric(numeric)
+{
+}
+
+ListExpr RealsTI::GetTypeExpr() const
+{
+  return SimpleTypeExpr(RealsTC::name, m_isNumeric);
+}
+
+//RealsTC-----------------------------------------------------------------------
 
 const string RealsTC::name= "reals";
 

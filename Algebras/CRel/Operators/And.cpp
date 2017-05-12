@@ -26,9 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <cstddef>
 #include <exception>
-#include "LongInts.h"
+#include "Ints.h"
 #include "LongIntsTC.h"
-#include "LongIntsTI.h"
 #include <iterator>
 #include "LogMsg.h"
 #include "OperatorUtils.h"

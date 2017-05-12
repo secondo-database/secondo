@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AttrArray.h"
 #include "AlgebraTypes.h"
 #include <cstddef>
+#include "GAttrArrayTC.h"
 #include "NestedList.h"
 #include "SecondoSMI.h"
 #include <string>
@@ -34,11 +35,34 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace CRelAlgebra
 {
+  template <int dim>
+  class GSpatialAttrArrayTI
+  {
+  public:
+    static bool Check(ListExpr typeExpr, std::string &error);
+
+    GSpatialAttrArrayTI(bool numeric);
+    GSpatialAttrArrayTI(ListExpr typeExpr, bool numeric);
+
+    bool IsNumeric() const;
+
+    ListExpr GetAttributeType() const;
+
+    void SetAttributeType(ListExpr value);
+
+    const PGAttrArrayInfo &GetPInfo() const;
+
+    ListExpr GetTypeExpr() const;
+
+  private:
+    GAttrArrayTI m_typeInfo;
+  };
+
   template<int dim>
   class GSpatialAttrArrayTC : public AttrArrayTypeConstructor
   {
   public:
-    static const std::string &Name();
+    static const std::string name;
 
     static ListExpr TypeProperty();
 

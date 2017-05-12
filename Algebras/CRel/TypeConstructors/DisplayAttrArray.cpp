@@ -22,12 +22,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "DisplayLongInts.h"
+#include "DisplayAttrArray.h"
 
+#include "AttrArray.h"
 #include <iostream>
-#include "LongInt.h"
 #include "SecondoSystem.h"
 #include <string>
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 
@@ -36,16 +37,27 @@ using std::string;
 
 extern AlgebraManager *am;
 
-void DisplayLongInts::Display(ListExpr type, ListExpr value)
+void DisplayAttrArray::Display(ListExpr type, ListExpr value)
 {
-  const string longIntTypeName = LongInt::BasicType();
-  const ListExpr longIntTypeExpr = nl->SymbolAtom(longIntTypeName);
+  NestedList *snl = SecondoSystem::GetNestedList();
+
+  const ListExpr sType = nl->CopyList(type, snl);
+
+  AttrArrayTypeConstructor *constructor = AttrArray::GetTypeConstructor(sType);
+
+  const ListExpr sAttributeType = constructor->GetAttributeType(sType, false);
+
+  string attributeTypeName;
+
+  ResolveTypeOrThrow(sAttributeType, attributeTypeName);
+
+  const ListExpr attributeType = snl->CopyList(sAttributeType, nl);
 
   ListExpr values = value;
 
   while (!nl->IsEmpty(values))
   {
-    CallDisplayFunction(longIntTypeName, longIntTypeExpr, nl->First(values));
+    CallDisplayFunction(attributeTypeName, attributeType, nl->First(values));
 
     values = nl->Rest(values);
 

@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AttrArray.h"
 #include "LongIntsTC.h"
-#include "LongIntsTI.h"
 #include "ListExprUtils.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"

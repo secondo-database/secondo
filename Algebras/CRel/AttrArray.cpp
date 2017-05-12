@@ -25,20 +25,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AttrArray.h"
 
 #include "FTextAlgebra.h"
-#include "GAttrArrayTI.h"
-#include "GSpatialAttrArrayTI.h"
-#include "IntsTI.h"
+#include "GAttrArrayTC.h"
+#include "GSpatialAttrArrayTC.h"
+#include "IntsTC.h"
 #include "LogMsg.h"
 #include "LongInt.h"
-#include "LongIntsTI.h"
+#include "LongIntsTC.h"
 #include <map>
-#include "RealsTI.h"
+#include "RealsTC.h"
 #include "SecondoSystem.h"
 #include "SmiUtils.h"
 #include "StandardTypes.h"
-#include "StringsTI.h"
+#include "StringsTC.h"
 #include "Symbols.h"
-#include "TextsTI.h"
+#include "TextsTC.h"
 #include "TypeConstructor.h"
 #include "TypeUtils.h"
 
@@ -49,6 +49,22 @@ using std::map;
 
 extern CMsg cmsg;
 extern NestedList *nl;
+
+//AttrArray---------------------------------------------------------------------
+
+AttrArrayTypeConstructor *AttrArray::GetTypeConstructor(ListExpr type,
+                                                        bool checkKind)
+{
+  TypeConstructor *typeConstructor = CRelAlgebra::GetTypeConstructor(type);
+
+  if (typeConstructor != nullptr &&
+      (!checkKind || typeConstructor->MemberOf(Kind::ATTRARRAY())))
+  {
+    return (AttrArrayTypeConstructor*)typeConstructor;
+  }
+
+  return nullptr;
+}
 
 //AttrArrayManager--------------------------------------------------------------
 

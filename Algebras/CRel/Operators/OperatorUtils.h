@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "QueryProcessor.h"
 #include <stdint.h>
 #include <string>
-#include "TBlockTI.h"
+#include "TBlockTC.h"
 #include "TypeUtils.h"
 #include <vector>
 

@@ -28,9 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AttrArray.h"
 #include <cstddef>
 #include <exception>
+#include "Ints.h"
 #include "LongInt.h"
-#include "LongInts.h"
-#include "LongIntsTI.h"
+#include "LongIntsTC.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
 #include "QueryProcessor.h"
@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include "Symbols.h"
 #include "TBlock.h"
-#include "TBlockTI.h"
+#include "TBlockTC.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra::Operators;

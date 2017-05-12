@@ -28,8 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AttrArray.h"
 #include <cstddef>
 #include <exception>
-#include "LongInts.h"
-#include "LongIntsTI.h"
+#include "Ints.h"
+#include "LongIntsTC.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
 #include "QueryProcessor.h"
@@ -92,16 +92,15 @@ ListExpr ApplyPredicate::TypeMapping(ListExpr args)
   }
   else
   {
-    TypeConstructor *constructor = GetTypeConstructor(firstArg);
+    AttrArrayTypeConstructor *constructor =
+      AttrArray::GetTypeConstructor(firstArg);
 
-    if (constructor == nullptr || !constructor->MemberOf(Kind::ATTRARRAY()))
+    if (constructor == nullptr)
     {
       return GetTypeError(0, "Isn't tblock or ATTRARRAY.");
     }
 
-    expectedMapArg =
-      ((AttrArrayTypeConstructor*)constructor)->GetAttributeType(firstArg,
-                                                                 false);
+    expectedMapArg = constructor->GetAttributeType(firstArg, false);
   }
 
   //Check the second argument for function type

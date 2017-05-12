@@ -24,70 +24,94 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include "Attribute.h"
-#include <cstddef>
-#include "NestedList.h"
-#include "ReadWrite.h"
+#include <functional>
 #include "SimpleAttrArray.h"
-#include <stdint.h>
-#include <string>
+#include "StandardTypes.h"
 
 namespace CRelAlgebra
 {
   class RealEntry
   {
   public:
-    RealEntry();
+    typedef CcReal AttributeType;
 
-    RealEntry(double value);
+    RealEntry()
+    {
+    }
 
-    bool IsDefined() const;
+    RealEntry(double value) :
+      value(value)
+    {
+    }
 
-    int Compare(const RealEntry &value) const;
+    RealEntry(CcReal &value) :
+      value(value.IsDefined() ? value.GetValue() : 0.0 / 0.0)
+    {
+    }
 
-    int Compare(Attribute &value) const;
+    bool IsDefined() const
+    {
+      return value != value;
+    }
 
-    bool Equals(const RealEntry &value) const;
+    int Compare(const RealEntry &value) const
+    {
+      const double a = this->value,
+        b = value.value;
 
-    bool Equals(Attribute &value) const;
+      return a != a ? b != b ? 0 : -1 : a < b ? -1 : a > b ? 1 : 0;
+    }
 
-    size_t GetHash() const;
+    int Compare(CcReal &value) const
+    {
+      const double a = this->value;
 
-    operator double() const;
+      if (value.IsDefined())
+      {
+        const double b = value.GetValue();
+
+        return a != a ? -1 : a < b ? -1 : a > b ? 1 : 0;
+      }
+
+      return a != a ? 0 : 1;
+    }
+
+    bool Equals(const RealEntry &value) const
+    {
+      const double a = this->value,
+        b = value.value;
+
+      return (a != a && b != b) || (a == b);
+    }
+
+    bool Equals(CcReal &value) const
+    {
+      const double a = this->value;
+
+      return (!value.IsDefined() && a != a) ||
+              (a == value.GetValue());
+    }
+
+    size_t GetHash() const
+    {
+      static const std::hash<double> hashFunction;
+
+      return hashFunction(value);
+    }
+
+    CcReal *GetAttribute(bool clone = true) const
+    {
+      return new CcReal(value == value, value);
+    }
+
+    operator double() const
+    {
+      return value;
+    }
 
     double value;
   };
 
+  typedef SimpleFSAttrArray<RealEntry> Reals;
   typedef SimpleFSAttrArrayIterator<RealEntry> RealsIterator;
-
-  class Reals : public SimpleFSAttrArray<RealEntry>
-  {
-  public:
-    Reals();
-
-    Reals(Reader &source);
-
-    Reals(Reader &source, size_t rowCount);
-
-    virtual AttrArray *Filter(SharedArray<const size_t> filter) const
-    {
-      return new Reals(*this, filter);
-    }
-
-    //using SimpleFSAttrArray<RealEntry>::Append;
-    void Append(const RealEntry &value)
-    {
-      SimpleFSAttrArray<RealEntry>::Append(value);
-    }
-
-    virtual void Append(Attribute &value);
-
-    virtual Attribute *GetAttribute(size_t row, bool clone) const;
-
-  private:
-    Reals(const Reals &array, const SharedArray<const size_t> &filter) :
-      SimpleFSAttrArray<RealEntry>(array, filter)
-    {
-    }
-  };
 }

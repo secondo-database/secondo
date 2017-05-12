@@ -16,7 +16,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
+asize_t with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
@@ -24,23 +24,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
+#include "DisplayTTY.h"
 #include "NestedList.h"
-#include <string>
 
 namespace CRelAlgebra
 {
-  class RealsTI
+  class DisplayAttrArray : public DisplayFunction
   {
   public:
-    static bool Check(ListExpr typeExpr);
-
-    static bool Check(ListExpr typeExpr, std::string &error);
-
-    RealsTI(bool numeric);
-
-    ListExpr GetTypeExpr() const;
-
-  private:
-    bool m_isNumeric;
+    virtual void Display(ListExpr type, ListExpr value);
   };
 }

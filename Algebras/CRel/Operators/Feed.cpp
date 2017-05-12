@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Feed.h"
 
-#include "CRelTI.h"
+#include "CRelTC.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StreamValueMapping.h"
 #include <string>
 #include "Symbols.h"
-#include "TBlockTI.h"
+#include "TBlockTC.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
