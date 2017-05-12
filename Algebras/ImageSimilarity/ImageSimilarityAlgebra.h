@@ -88,9 +88,10 @@ class ImageSignature : public Attribute
     
     ImageSignature(const int n);
     
-	ImageSignature(const int n, const double *W, 
-					const int *X, 
-					const int *Y );	
+    ImageSignature(const int n, 
+		const double *W, 
+		const int *X, 
+		const int *Y );	
     
    
     int NumOfFLOBs() const;
