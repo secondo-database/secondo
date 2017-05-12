@@ -1,0 +1,350 @@
+<resources>
+    <string name="app_name">Map Matching</string>
+
+    <!-- Activitiys -->
+    <string name="activityMapMatching">Secondo Map Matching</string>
+    <string name="activitySettingsGeneral">General Settings</string>
+    <string name="activitySettingsServer">Server Settings</string>
+    <string name="activitySettingsAdvanced">Advanced Settings</string>
+    <string name="activitySettingsGps">GPS Settings</string>
+
+    <string name="activityMapMatchingButtonStart">Start Map Matching</string>
+    <string name="activityMapMatchingButtonStop">Stop Map Matching</string>
+    <string name="activityMapMatchingTabMap">Map</string>
+    <string name="activityMapMatchingTabMapDisabled">Map Disabled</string>
+    <string name="activityMapMatchingTabConsole">Console</string>
+    <string name="activityMapMatchingTabOverview">Overview</string>
+
+    <string name="activityOverviewStreetnames">Recent Streetnames</string>
+    <string name="activityOverviewDirections">Recent Directions</string>
+    <string name="activityOverviewSpeed">Recent Speed</string>
+    <string name="activityOverviewHeight">Recent Height</string>
+
+    <!-- Menu -->
+    <string name="menuSettingsGeneral">General Settings</string>
+    <string name="menuSettingsServer">Server Settings</string>
+    <string name="menuSettingsGps">GPS Settings</string>
+    <string name="menuSettingsAdvanced">Advanced Settings</string>
+    <string name="menuReset">Reset Data</string>
+    <string name="menuHideMapOptions">Hide Map Options</string>
+    <string name="menuHideMapLabels">Hide Map Labels</string>
+    <string name="menuShowMapOptions">Show Map Options</string>
+    <string name="menuShowMapLabels">Show Map Labels</string>
+    <string name="menuExitApp">Exit</string>
+
+    <!-- Preference Categories -->
+    <string name="preferenceCategory_server">Secondo Server</string>
+    <string name="preferenceCategory_serverWayData">Secondo Server Way Data</string>
+    <string name="preferenceCategory_serverTimeout">Timeout</string>
+    <string name="preferenceCategory_serverResultServer">Secondo Result Server</string>
+    <string name="preferenceCategory_mapMatching">Map Matching</string>
+    <string name="preferenceCategory_map">Map</string>
+    <string name="preferenceCategory_symbolicTrajectories">Symbolic Trajectories</string>
+    <string name="preferenceCategory_movementData">Movement Data</string>
+    <string name="preferenceCategory_advancedUTurn">(U-)Turns</string>
+    <string name="preferenceCategory_advancedHypothesis">Hypotheses</string>
+    <string name="preferenceCategory_advancedExtensions">Extensions</string>
+    <string name="preferenceCategory_advancedNetwork">Network Updates</string>
+    <string name="preferenceCategory_advancedReset">Reset</string>
+    <string name="preferenceCategory_advancedMatchingFootways">Matching Footways</string>
+    <string name="preferenceCategory_advancedClean">Clean Hypotheses</string>
+    <string name="preferenceCategory_advancedCleanMap">Clean Map</string>
+    <string name="preferenceCategory_advancedScore">Score</string>
+    <string name="preferenceCategory_gps">GPS</string>
+    <string name="preferenceCategory_gpsFirstLocation">First Location Point</string>
+    <string name="preferenceCategory_gpsReset">Reset</string>
+    <string name="preferenceCategory_gpsDop">Dilution of Precision (DOP) Filter</string>
+    <string name="preferenceCategory_results">Results</string>
+
+    <!-- Preferences -->
+    <!-- Preferences Server-->
+    <string name="preference_serverIp">Server Address</string>
+    <string name="preference_serverIp_key">serverIp</string>
+    <string name="preference_serverResultIp_key">serverResultIp</string>
+    <string name="preference_serverResultIp_default">127.0.0.1</string>
+    <string name="preference_serverIp_default">127.0.0.1</string>
+
+    <string name="preference_serverPort">Server Port</string>
+    <string name="preference_serverPort_key">serverPort</string>
+    <string name="preference_serverResultPort_key">serverResultPort</string>
+    <string name="preference_serverPort_default">1234</string>
+
+    <string name="preference_serverUsername">Username</string>
+    <string name="preference_serverUsername_key">serverUsername</string>
+    <string name="preference_serverResultUsername_key">serverResultUsername</string>
+    <string name="preference_serverUsername_default"></string>
+
+    <string name="preference_serverPassword">Password</string>
+    <string name="preference_serverPassword_key">serverPassword</string>
+    <string name="preference_serverResultPassword_key">serverResultPassword</string>
+    <string name="preference_serverPassword_default"></string>
+
+    <string name="preference_serverDatabaseName">Database Name</string>
+    <string name="preference_serverDatabaseName_key">databaseName</string>
+    <string name="preference_serverResultDatabaseName_key">serverResultDatabaseName</string>
+    <string name="preference_serverDatabaseName_default">MyDatabase</string>
+
+    <string name="preference_serverDatabaseRTreeName">R-Tree Name</string>
+    <string name="preference_serverDatabaseRTreeName_key">databaseRTreeName</string>
+    <string name="preference_serverDatabaseRTreeName_default">EdgeIndex_Box_rtree</string>
+
+    <string name="preference_serverDatabaseEdgeIndexName">Edge-Index Name</string>
+    <string name="preference_serverDatabaseEdgeIndexName_key">edgeIndexName</string>
+    <string name="preference_serverDatabaseEdgeIndexName_default">EdgeIndex</string>
+
+    <string name="preference_serverTimeout">Timeout (in seconds)</string>
+    <string name="preference_serverTimeout_key">serverTimeout</string>
+    <string name="preference_serverTimeout_default">45</string>
+
+    <string name="preference_serverEdgesRelation">Use Edges Relation</string>
+    <string name="preference_serverEdgesRelation_key">edgesRelation</string>
+    <string name="preference_serverEdgesRelation_default">true</string>
+    <string name="preference_serverEdgesRelation_summary">Enable to use the Edges Relation to query Way Data. Disable to use only R-Tree and Edge-Index.</string>
+
+    <string name="preference_serverResultServer">Use Result Server</string>
+    <string name="preference_serverResultServer_key">resultServer</string>
+    <string name="preference_serverResultServer_default">false</string>
+    <string name="preference_serverResultServer_summary">Enable to use a different Server for transmitting the Results.</string>
+
+    <!-- Preferences Map Matching-->
+    <string name="preference_mapMatchingShowMap">Show Map</string>
+    <string name="preference_mapMatchingShowMap_key">showMap</string>
+    <string name="preference_mapMatchingShowMap_default">true</string>
+    <string name="preference_mapMatchingShowMap_summary">Enable to show the Map.</string>
+
+    <string name="preference_mapMatchingShowGpsPoints">Show GPS Positions</string>
+    <string name="preference_mapMatchingShowGpsPoints_key">showGpsPoints</string>
+    <string name="preference_mapMatchingShowGpsPoints_default">true</string>
+    <string name="preference_mapMatchingShowGpsPoints_summary">Enable to show received GPS positions on Map.</string>
+
+    <string name="preference_mapMatchingMatchFootways">Match Footways</string>
+    <string name="preference_mapMatchingMatchFootways_key">matchFootways</string>
+    <string name="preference_mapMatchingMatchFootways_default">false</string>
+    <string name="preference_mapMatchingMatchFootways_summary">Enable to include paths like footways, steps, cycleways etc. in Map Matching. Disable to match position only to roads. Footways should be disabled if they are not needed to improve performance and results.</string>
+
+    <string name="preference_mapMatchingNoOneWay">No One-Way Roads/Paths</string>
+    <string name="preference_mapMatchingNoOneWay_key">noOneWay</string>
+    <string name="preference_mapMatchingNoOneWay_default">false</string>
+    <string name="preference_mapMatchingNoOneWay_summary">Enable to enter one-way roads or one-way paths from both directions.</string>
+
+    <!-- Preferences Results-->
+    <string name="preference_resultTime">UTC Time</string>
+    <string name="preference_resultTime_key">resultTime</string>
+    <string name="preference_resultTime_default">false</string>
+    <string name="preference_resultTime_summary">Enable to use UTC time instead of local time.</string>
+
+    <string name="preference_resultLocalMode">Local Mode</string>
+    <string name="preference_resultLocalMode_key">localMode</string>
+    <string name="preference_resultLocalMode_default">false</string>
+    <string name="preference_resultLocalMode_summary">Enable to save symbolic trajectories as text file on your mobile device. No results will be transmitted to Secondo. File will be saved when Map Matching stops.</string>
+
+    <string name="preference_resultMovementData">Transmit Movement Data</string>
+    <string name="preference_resultMovementData_key">movementData</string>
+    <string name="preference_resultMovementData_default">true</string>
+    <string name="preference_resultMovementData_summary">Enable to transmit movement data to Secondo. Movement data will be transmitted when Map Matching stops.</string>
+
+    <string name="preference_resultDirectTransmission">Direct Transmission</string>
+    <string name="preference_resultDirectTransmission_key">directTransmission</string>
+    <string name="preference_resultDirectTransmission_default">false</string>
+    <string name="preference_resultDirectTransmission_summary">Enable to send symbolic trajectories to Secondo while Map Matching. Disable to send symbolic trajectories when Map Matching stops.</string>
+
+    <string name="preference_resultStreetname">Transmit Streetnames</string>
+    <string name="preference_resultStreetname_key">streetname</string>
+    <string name="preference_resultStreetname_default">true</string>
+    <string name="preference_resultStreetname_summary">Enable to transmit symbolic trajectories using streetnames to Secondo.</string>
+
+    <string name="preference_resultCardinalDirection">Transmit Cardinal Directions</string>
+    <string name="preference_resultCardinalDirection_key">cardinalDirection</string>
+    <string name="preference_resultCardinalDirection_default">true</string>
+    <string name="preference_resultCardinalDirection_summary">Enable to transmit symbolic trajectories using cardinal directions to Secondo.</string>
+
+    <string name="preference_resultSpeed">Transmit Speed Profile</string>
+    <string name="preference_resultSpeed_key">speed</string>
+    <string name="preference_resultSpeed_default">true</string>
+    <string name="preference_resultSpeed_summary">Enable to transmit symbolic trajectories using speed information to Secondo.</string>
+
+    <string name="preference_resultHeight">Transmit Height Profile</string>
+    <string name="preference_resultHeight_key">height</string>
+    <string name="preference_resultHeight_default">true</string>
+    <string name="preference_resultHeight_summary">Enable to transmit symbolic trajectories using height above sea level information to Secondo.</string>
+
+    <!-- Preferences GPS-->
+    <string name="preference_gpsReset">Reset to Defaults</string>
+    <string name="preference_gpsReset_key">gpsReset</string>
+    <string name="preference_gpsReset_summary">Reset all GPS Settings to default values.</string>
+
+    <string name="preference_gpsFirstLocation">Skip First Location Point</string>
+    <string name="preference_gpsFirstLocation_key">firstLocation</string>
+    <string name="preference_gpsFirstLocation_default">true</string>
+    <string name="preference_gpsFirstLocation_summary">Enable to skip first Location Point measured by (re)initialized GPS. First Point can have inaccurate Direction value. (Default = enabled)</string>
+
+    <string name="preference_gpsUpdateRate">Update Rate</string>
+    <string name="preference_gpsUpdateRate_key">updateRate</string>
+    <string name="preference_gpsUpdateRate_default">2500</string>
+    <string name="preference_gpsUpdateRate_summary">Minimal time passed between two processed Gps-Positions in milliseconds. (Default = 2500)</string>
+
+    <string name="preference_gpsUpdateDistance">Update Distance</string>
+    <string name="preference_gpsUpdateDistance_key">updateDistance</string>
+    <string name="preference_gpsUpdateDistance_default">25</string>
+    <string name="preference_gpsUpdateDistance_summary">Minimal distance between two processed Gps-Positions in meters. (Default = 25)</string>
+
+    <string name="preference_gpsAccuracy">Minimal Accuracy</string>
+    <string name="preference_gpsAccuracy_key">accuracy</string>
+    <string name="preference_gpsAccuracy_default">20</string>
+    <string name="preference_gpsAccuracy_summary">Minimal allowed probable accuracy for processing a Gps-Position in meters. (Default = 20)</string>
+
+    <string name="preference_gpsSatUsed">Minimal Satellites</string>
+    <string name="preference_gpsSatUsed_key">satUsed</string>
+    <string name="preference_gpsSatUsed_default">2</string>
+    <string name="preference_gpsSatUsed_summary">Minimal allowed count of Satellites used to determine a Gps-Position which is processed. (Default = 2)</string>
+
+    <string name="preference_gpsMaxPdop">Maximal PDOP</string>
+    <string name="preference_gpsMaxPdop_key">maxPdop</string>
+    <string name="preference_gpsMaxPdop_default">7</string>
+    <string name="preference_gpsMaxPdop_summary">Maximal allowed Positional DOP for processing a Gps-Position. (Default = 7)</string>
+
+    <string name="preference_gpsMaxHdop">Maximal HDOP</string>
+    <string name="preference_gpsMaxHdop_key">maxHdop</string>
+    <string name="preference_gpsMaxHdop_default">7</string>
+    <string name="preference_gpsMaxHdop_summary">Maximal allowed Horizontal DOP for processing a Gps-Position. (Default = 7)</string>
+
+    <string name="preference_gpsMaxVdop">Maximal VDOP</string>
+    <string name="preference_gpsMaxVdop_key">maxVdop</string>
+    <string name="preference_gpsMaxVdop_default">7</string>
+    <string name="preference_gpsMaxVdop_summary">Maximal allowed Vertical DOP for processing a Gps-Position. (Default = 7)</string>
+
+    <!-- Preferences Advanced-->
+    <string name="preference_advancedReset">Reset to Defaults</string>
+    <string name="preference_advancedReset_key">advancedReset</string>
+    <string name="preference_advancedReset_summary">Reset all Advanced Settings to default values.</string>
+
+    <string name="preference_advancedStreetnameCalc">Calculate Street Entry Time</string>
+    <string name="preference_advancedStreetnameCalc_key">streetnameCalc</string>
+    <string name="preference_advancedStreetnameCalc_default">true</string>
+    <string name="preference_advancedStreetnameCalc_summary">Enable to calculate probable entry time of a street. Disable to use time of first point that was matched to street. (Default = enabled)</string>
+
+    <string name="preference_advancedPreciseMPoint">Generate Moving-Point with Additional Data</string>
+    <string name="preference_advancedPreciseMPoint_key">preciseMPoint</string>
+    <string name="preference_advancedPreciseMPoint_default">false</string>
+    <string name="preference_advancedPreciseMPoint_summary">Enable to calculate Moving-Point timings using additional GPS points. For example a stop at a traffic light should be visible in movement data. But the movement of the Moving-Point may be more jerky in some situations. (Default = disabled)</string>
+
+    <string name="preference_advancedUTurn">Allow (U-)Turns</string>
+    <string name="preference_advancedUTurn_key">UTurn</string>
+    <string name="preference_advancedUTurn_default">true</string>
+    <string name="preference_advancedUTurn_summary">Enable to allow that an entered way can be left in both directions. Disabling improves performance. (Default = enabled)</string>
+
+    <string name="preference_advancedUTurnMalus">(U-)Turn Malus</string>
+    <string name="preference_advancedUTurnMalus_key">UTurnMalus</string>
+    <string name="preference_advancedUTurnMalus_default">100</string>
+    <string name="preference_advancedUTurnMalus_summary">Malus for a (U-)Turn in Score Points. Increase to generate less (U-)Turns in results. (Default = 100)</string>
+
+    <string name="preference_advancedMultipleUTurn">Allow Multiple (U-)Turns</string>
+    <string name="preference_advancedMultipleUTurn_key">multipleUTurn</string>
+    <string name="preference_advancedMultipleUTurn_default">false</string>
+    <string name="preference_advancedMultipleUTurn_summary">Enable to allow multiple (U-)Turns back to one junction. Disabling improves performance but in unusual case of multiple (U-)Turns back to one junction map matching results can´t be correct. (Default = disabled)</string>
+
+    <string name="preference_advancedBoundingBoxSize">Bounding Box Size</string>
+    <string name="preference_advancedBoundingBoxSize_key">boundingBoxSize</string>
+    <string name="preference_advancedBoundingBoxSize_default">500</string>
+    <string name="preference_advancedBoundingBoxSize_summary">Width/Height of a square area in meter which is used to query way data from the Secondo Server. (Default = 500)</string>
+
+    <string name="preference_advancedBoundingBoxRadius">Bounding Box Update Radius</string>
+    <string name="preference_advancedBoundingBoxRadius_key">boundingBoxRadius</string>
+    <string name="preference_advancedBoundingBoxRadius_default">50</string>
+    <string name="preference_advancedBoundingBoxRadius_summary">Relative radius around the middle point of the bounding box square area in percent. A 500x500 meter bounding box with a 50% update radius will trigger updates when a location point is more than 500/2*0.50 = 125 meters away from the middle point. (Default = 50)</string>
+
+    <string name="preference_advancedMaxPathsSize">Hypotheses Count</string>
+    <string name="preference_advancedMaxPathsSize_key">maxPathsSize</string>
+    <string name="preference_advancedMaxPathsSize_default">15</string>
+    <string name="preference_advancedMaxPathsSize_summary">Maximal count of Hypotheses which are made by Map Matching algorithm. (Default = 15)</string>
+
+    <string name="preference_advancedExtensionDepth">Extension Depth</string>
+    <string name="preference_advancedExtensionDepth_key">extensionDepth</string>
+    <string name="preference_advancedExtensionDepth_default">6</string>
+    <string name="preference_advancedExtensionDepth_summary">Count of edges which are maximal extended to an hypothesis to find a matching position. (Default = 6)</string>
+
+    <string name="preference_advancedAlwaysExtend">Always Extend</string>
+    <string name="preference_advancedAlwaysExtend_key">alwaysExtend</string>
+    <string name="preference_advancedAlwaysExtend_default">false</string>
+    <string name="preference_advancedAlwaysExtend_summary">If disabled extending a hypothesis stops if a location point is projected orthogonal and some other additional criteria are fulfilled. Enabling can produce better results depending on usage of the app but performance is significantly worse. (Default = disabled)</string>
+
+    <string name="preference_advancedCompareAngle">Compare Angle</string>
+    <string name="preference_advancedCompareAngle_key">compareAngle</string>
+    <string name="preference_advancedCompareAngle_default">true</string>
+    <string name="preference_advancedCompareAngle_summary">Compare segment angle with movement angle to decide if an edge should be extended. Enable to achieve better results. Disable to improve performance. (Default = enabled)</string>
+
+    <string name="preference_advancedCompareAngleTolerance">Compare Angle Tolerance</string>
+    <string name="preference_advancedCompareAngleTolerance_key">compareAngleTolerance</string>
+    <string name="preference_advancedCompareAngleTolerance_default">60</string>
+    <string name="preference_advancedCompareAngleTolerance_summary">Angle difference between segment angle and movement angle to trigger an Extension. (Default = 60)</string>
+
+    <string name="preference_advancedResetDistance">Reset Distance</string>
+    <string name="preference_advancedResetDistance_key">resetDistance</string>
+    <string name="preference_advancedResetDistance_default">200</string>
+    <string name="preference_advancedResetDistance_summary">Maximal allowed distance in meters from a location point to a projected point until hypotheses are reset. (Default = 200)</string>
+
+    <string name="preference_advancedPreferSmallerPaths">Prefer Smaller Hypotheses</string>
+    <string name="preference_advancedPreferSmallerPaths_key">preferSmallerPaths</string>
+    <string name="preference_advancedPreferSmallerPaths_default">true</string>
+    <string name="preference_advancedPreferSmallerPaths_summary">Enable to prefer Hypotheses with less edges. (Default = enabled)</string>
+
+    <string name="preference_advancedPreferSmallerPathsMalus">Prefer Smaller Hypotheses Malus</string>
+    <string name="preference_advancedPreferSmallerPathsMalus_key">preferSmallerPathsMalus</string>
+    <string name="preference_advancedPreferSmallerPathsMalus_default">15</string>
+    <string name="preference_advancedPreferSmallerPathsMalus_summary">Malus for each edge in Score Points. (Default = 15)</string>
+
+    <string name="preference_advancedCleanPaths">Clean Hypotheses</string>
+    <string name="preference_advancedCleanPaths_key">cleanPaths</string>
+    <string name="preference_advancedCleanPaths_default">true</string>
+    <string name="preference_advancedCleanPaths_summary">Enable to clean Hypotheses. Improves performance when many locations has been processed. (Default = enabled)</string>
+
+    <string name="preference_advancedCleanPathsCount">Clean Hypotheses Count</string>
+    <string name="preference_advancedCleanPathsCount_key">cleanPathsCount</string>
+    <string name="preference_advancedCleanPathsCount_default">100</string>
+    <string name="preference_advancedCleanPathsCount_summary">Count of Locations that will be processed until Hypotheses are cleaned. (Default = 100)</string>
+
+    <string name="preference_advancedCleanPathsEdges">Clean Hypotheses Edges</string>
+    <string name="preference_advancedCleanPathsEdges_key">cleanPathsEdges</string>
+    <string name="preference_advancedCleanPathsEdges_default">20</string>
+    <string name="preference_advancedCleanPathsEdges_summary">Count of edges left in cleaned Hypotheses. (Default = 20)</string>
+
+    <string name="preference_advancedCleanMap">Clean Map Data</string>
+    <string name="preference_advancedCleanMap_key">cleanMap</string>
+    <string name="preference_advancedCleanMap_default">false</string>
+    <string name="preference_advancedCleanMap_summary">Enable to clean Map Data. Old results will disappear after some time. Improves performance when many locations has been processed. (Default = disabled)</string>
+
+    <string name="preference_advancedCleanMapCount">Clean Map Data Count</string>
+    <string name="preference_advancedCleanMapCount_key">cleanMapCount</string>
+    <string name="preference_advancedCleanMapCount_default">250</string>
+    <string name="preference_advancedCleanMapCount_summary">Maximal Count of Edges that will be shown on Map. (Default = 250)</string>
+
+    <string name="preference_advancedFootwaysPerformance">Improve Footway Map Matching Performance</string>
+    <string name="preference_advancedFootwaysPerformance_key">footwaysPerformance</string>
+    <string name="preference_advancedFootwaysPerformance_default">true</string>
+    <string name="preference_advancedFootwaysPerformance_summary">Enable to set hypotheses count to 5 if footways are enabled. (Default = enabled)</string>
+
+    <string name="preference_advancedFootwaysDifferent">Prefer Footways or Roads</string>
+    <string name="preference_advancedFootwaysDifferent_key">footwaysDifferent</string>
+    <string name="preference_advancedFootwaysDifferent_default">true</string>
+    <string name="preference_advancedFootwaysDifferent_summary">Enable to prefer Footways or Roads depending on Speed. (Default = enabled)</string>
+
+    <string name="preference_advancedFootwaySpeed">Footway Speed</string>
+    <string name="preference_advancedFootwaySpeed_key">footwaySpeed</string>
+    <string name="preference_advancedFootwaySpeed_default">7</string>
+    <string name="preference_advancedFootwaySpeed_summary">Speed limit until roads are preferred for map matching. (Default = 7)</string>
+
+    <string name="preference_advancedWayOrRoadMalus">Road Malus</string>
+    <string name="preference_advancedWayOrRoadMalus_key">wayOrRoadMalus</string>
+    <string name="preference_advancedWayOrRoadMalus_default">10</string>
+    <string name="preference_advancedWayOrRoadMalus_summary">Malus for a road depending on speed in Score Points. (Default = 10)</string>
+
+    <string name="preference_advancedScoreDistanceMulti">Distance Multiplicator</string>
+    <string name="preference_advancedScoreDistanceMulti_key">scoreDistanceMulti</string>
+    <string name="preference_advancedScoreDistanceMulti_default">2</string>
+    <string name="preference_advancedScoreDistanceMulti_summary">Score is simplified calculated as follows: Distance in meters * distance multiplicator + |way-segement angle - movement angle|. Lower scores are better. Relevance of distance can be increased by higher distance multiplicator. (Default = 2)</string>
+
+    <string name="preference_advancedRandomizePosition">Randomize Position</string>
+    <string name="preference_advancedRandomizePosition_key">randomizePosition</string>
+    <string name="preference_advancedRandomizePosition_default">true</string>
+    <string name="preference_advancedRandomizePosition_summary">Enable to use a slightly randomized position for network updates to avoid sending your exact position to the server. Disable to use the exact position. (Default = enabled)</string>
+</resources>

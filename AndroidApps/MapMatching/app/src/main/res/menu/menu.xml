@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".MapMatchingActivity">
+
+    <item
+        android:id="@+id/settingsServer"
+        android:title="@string/menuSettingsServer" />
+
+    <item
+        android:id="@+id/settingsGeneral"
+        android:title="@string/menuSettingsGeneral" />
+
+    <item
+        android:id="@+id/settingsGps"
+        android:title="@string/menuSettingsGps" />
+
+    <item
+        android:id="@+id/settingsAdvanced"
+        android:title="@string/menuSettingsAdvanced" />
+
+    <item
+        android:id="@+id/reset"
+        android:title="@string/menuReset" />
+
+    <item
+        android:id="@+id/showHideMapOptions"
+        android:title="@string/menuHideMapOptions" />
+
+    <item
+        android:id="@+id/showHideMapLabels"
+        android:title="@string/menuHideMapLabels" />
+
+    <item
+        android:id="@+id/exitApp"
+        android:title="@string/menuExitApp" />
+
+</menu>
