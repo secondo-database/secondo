@@ -22,7 +22,7 @@ Optionally, from the ANT_HOME directory run
 
 ant -f fetch.xml -Ddest=system 
 
-to get the library dependencies of most of the Ant tasks that require them. If you don't do this, many of the dependent Ant tasks will not be available. See Optional Tasks for details and other options for the -Ddest parameter.
+
 
 
 
