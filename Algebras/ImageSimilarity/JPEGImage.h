@@ -68,13 +68,13 @@ struct HSV
 
 struct feature //todo: Uppercase for type feature
 {
-	double x;
-	double y;
-	double r;
-	double g;
-	double b;
-	double coarseness;
-	double contrast;
+    double x;
+    double y;
+    double r;
+    double g;
+    double b;
+    double coarseness;
+    double contrast;
 };
 
 
@@ -88,8 +88,8 @@ struct ImageSignatureTuple
     {}
 
   ImageSignatureTuple(const ImageSignatureTuple& ist) : 
-	weight(ist.weight), centroidXpos(ist.centroidXpos), 
-	centroidYpos(ist.centroidYpos) {}
+    weight(ist.weight), centroidXpos(ist.centroidXpos), 
+    centroidYpos(ist.centroidYpos) {}
 
   ImageSignatureTuple& operator=(const ImageSignatureTuple& ist){
     weight = ist.weight;
@@ -116,17 +116,17 @@ class JPEGImage
 {
 public:    
     void importJPEGFile(const std::string _fileName, 
-						const int colorSpace, 
-						const int picRange,
-						const int percentSamples,
-						const int noClusters);
+                        const int colorSpace, 
+                        const int picRange,
+                        const int percentSamples,
+                        const int noClusters);
     
     void computeCoarsenessValues(bool parallel, const int range);
     void computeContrastValues(bool parallel, const int range);
     void getRandomRepresentants(const unsigned int r);
     void clusterFeatures(const unsigned int k, 
-			unsigned int dimensions, 
-			unsigned int noDataPoints);
+            unsigned int dimensions, 
+            unsigned int noDataPoints);
     //void clusterFeatures2(int _k, int dimensions, int noDataPoints);
     
     void writeColorImage(const char* fileName);
@@ -139,15 +139,15 @@ public:
 
     int* centersX;  // output of k-kmeans
     int* centersY;  // output of k-means
-	double* weights; // of clusters
+    double* weights; // of clusters
     void createSignature();
     std::vector<ImageSignatureTuple> signature;
-	
+    
 private:
     bool isGrayscale;
     unsigned char* pixels; 
     unsigned char*** pixMat4;  // write clustered circle image
-	double*** pixMat5; // for use with HSV values
+    double*** pixMat5; // for use with HSV values
 
     double ak( int x, int y, unsigned int k);
     double ekh(int x, int y, unsigned int k);
