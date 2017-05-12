@@ -1,0 +1,1 @@
+g++ ../fast_kmeans/general_functions.cpp ../fast_kmeans/original_space_kmeans.cpp ../fast_kmeans/dataset.cpp ../fast_kmeans/hamerly_kmeans.cpp ../fast_kmeans/kmeans.cpp ../fast_kmeans/annulus_kmeans.cpp ../fast_kmeans/triangle_inequality_base_kmeans.cpp ../JPEGImage.cpp PicSim.cpp -o PicSim -std=c++11 -ljpeg -lpthread
