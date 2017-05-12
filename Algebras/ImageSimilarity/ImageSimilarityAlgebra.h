@@ -89,9 +89,9 @@ class ImageSignature : public Attribute
     ImageSignature(const int n);
     
     ImageSignature(const int n, 
-		const double *W, 
-		const int *X, 
-		const int *Y );	
+        const double *W, 
+        const int *X, 
+        const int *Y );    
     
    
     int NumOfFLOBs() const;
@@ -118,7 +118,7 @@ class ImageSignature : public Attribute
     operator <<(std::ostream& os,const ImageSignature& p);
 
     static Word     In( const ListExpr typeInfo, 
-						const ListExpr instance,
+                        const ListExpr instance,
                         const int errorPos, 
                         ListExpr& errorInfo,
                         bool& correct );
@@ -145,20 +145,20 @@ class ImageSignature : public Attribute
     ListExpr readImageTM(ListExpr args);
     
     int readImageVM(Word* args, Word& result, int message,
-						Word& local, Supplier s);
-						
-	
-	bool readSignatureFromFile(const std::string _fileName, 
-		const int colorSpace, 
-		const int texRange, 
-		const int percentSamples, 
-		const int noClusters);
+                        Word& local, Supplier s);
+                        
+    
+    bool readSignatureFromFile(const std::string _fileName, 
+        const int colorSpace, 
+        const int texRange, 
+        const int percentSamples, 
+        const int noClusters);
 
-	std::string GetFileName() const { return fileName; };
-	void SetFileName(const std::string _fileName) 
-	{ 
-		this->fileName = _fileName; 
-	}
+    std::string GetFileName() const { return fileName; };
+    void SetFileName(const std::string _fileName) 
+    { 
+        this->fileName = _fileName; 
+    }
     
 
   private:
