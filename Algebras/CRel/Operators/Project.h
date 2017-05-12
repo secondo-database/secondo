@@ -44,7 +44,8 @@ namespace CRelAlgebra
       class Info
       {
       public:
-        Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames);
+        Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames,
+             bool invert = false);
 
         bool HasError() const;
 
@@ -86,7 +87,14 @@ namespace CRelAlgebra
 
       static const OperatorInfo info;
 
+      static ValueMapping valueMappings[];
+
       static ListExpr TypeMapping(ListExpr args);
+
+      static int SelectValueMapping(ListExpr args);
+
+      static int TBlockValueMapping(ArgVector args, Word &result, int message,
+                                    Word &local, Supplier s);
     };
   }
 }

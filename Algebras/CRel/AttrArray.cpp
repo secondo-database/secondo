@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AttrArray.h"
 
+#include "FTextAlgebra.h"
 #include "GAttrArrayTI.h"
 #include "GSpatialAttrArrayTI.h"
 #include "IntsTI.h"
@@ -31,10 +32,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "LongInt.h"
 #include "LongIntsTI.h"
 #include <map>
+#include "RealsTI.h"
 #include "SecondoSystem.h"
 #include "SmiUtils.h"
 #include "StandardTypes.h"
+#include "StringsTI.h"
 #include "Symbols.h"
+#include "TextsTI.h"
 #include "TypeConstructor.h"
 #include "TypeUtils.h"
 
@@ -91,8 +95,11 @@ ListExpr AttrArrayTypeConstructor::GetDefaultAttrArrayType(
 {
   static map<string, ListExpr(*)()> types =
   {
-    { CcInt::BasicType(), [](){ return IntsTI(false).GetTypeExpr(); } },
-    { LongInt::BasicType(), [](){ return LongIntsTI(false).GetTypeExpr(); } }
+    /*{ CcInt::BasicType(), [](){ return IntsTI(false).GetTypeExpr(); } },
+    { LongInt::BasicType(), [](){ return LongIntsTI(false).GetTypeExpr(); } },
+    { CcReal::BasicType(), [](){ return RealsTI(false).GetTypeExpr(); } },
+    { CcString::BasicType(), [](){ return StringsTI(false).GetTypeExpr(); } },
+    { FText::BasicType(), [](){ return TextsTI(false).GetTypeExpr(); } }*/
   };
 
   TypeConstructor *typeConstructor = GetTypeConstructor(attributeType);
@@ -298,7 +305,7 @@ ListExpr AttrArrayTypeConstructor::DefaultOut(ListExpr typeExpr, Word value)
   ListExpr attributeValues = nl->OneElemList(nl->Empty()),
     attributeValuesEnd = attributeValues;
 
-  for (AttrArrayEntry &entry : instance)
+  for (AttrArrayEntry &entry : instance.GetFilter())
   {
     Attribute *attr = entry.GetAttribute();
 
@@ -418,7 +425,7 @@ Word AttrArrayTypeConstructor::DefaultClone(const ListExpr typeExpr,
 
   AttrArray *result = (AttrArray*)DefaultCreate(typeExpr).addr;
 
-  for (AttrArrayEntry &entry : instance)
+  for (AttrArrayEntry &entry : instance.GetFilter())
   {
     result->Append(entry);
   }

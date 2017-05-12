@@ -73,6 +73,11 @@ namespace CRelAlgebra
 
     Ints(Reader &source, size_t rowCount);
 
+    virtual AttrArray *Filter(SharedArray<const size_t> filter) const
+    {
+      return new Ints(*this, filter);
+    }
+
     //using SimpleFSAttrArray<IntEntry>::Append;
     void Append(const IntEntry &value)
     {
@@ -82,6 +87,12 @@ namespace CRelAlgebra
     virtual void Append(Attribute &value);
 
     virtual Attribute *GetAttribute(size_t row, bool clone = true) const;
+
+  private:
+    Ints(const Ints &array, const SharedArray<const size_t> &filter) :
+      SimpleFSAttrArray<IntEntry>(array, filter)
+    {
+    }
   };
 
   class IntEntry2
@@ -126,6 +137,11 @@ namespace CRelAlgebra
 
     Ints2(Reader &source, size_t rowCount);
 
+    virtual AttrArray *Filter(SharedArray<const size_t> filter) const
+    {
+      return new Ints2(*this, filter);
+    }
+
     //using SimpleFSAttrArray<IntEntry2, IntEntry2::Cast>::Append;
     void Append(const IntEntry2 &value)
     {
@@ -135,5 +151,11 @@ namespace CRelAlgebra
     virtual void Append(Attribute &value);
 
     virtual Attribute *GetAttribute(size_t row, bool clone = true) const;
+
+  private:
+    Ints2(const Ints2 &array, const SharedArray<const size_t> &filter) :
+      SimpleFSAttrArray<IntEntry2, IntEntry2::Cast>(array, filter)
+    {
+    }
   };
 }

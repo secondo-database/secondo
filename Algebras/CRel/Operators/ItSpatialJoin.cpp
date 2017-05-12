@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <cstddef>
 #include "ListExprUtils.h"
-#include "ListUtils.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
 #include "Project.h"
@@ -44,7 +43,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
-using listutils::isStream;
 using std::set;
 using std::string;
 using std::vector;
@@ -166,7 +164,7 @@ ListExpr ItSpatialJoin::TypeMapping(ListExpr args)
 
   if (argCount < 4 || argCount > 9)
   {
-    return listutils::typeError("Expected four to nine arguments.");
+    return GetTypeError("Expected four to nine arguments.");
   }
 
   //Check 'stream a' argument
@@ -237,6 +235,12 @@ ListExpr ItSpatialJoin::TypeMapping(ListExpr args)
   {
     return GetTypeError(3, "column-name b",
                         "Colum named '" + nameB + "' not found.");
+  }
+
+  if (!nl->Equal(blockAInfo.columnInfos[nameAIndex].type,
+                 blockBInfo.columnInfos[nameBIndex].type))
+  {
+    return GetTypeError("The columns to join on have different types.");
   }
 
   TypeConstructor *typeConstructorB =
@@ -400,8 +404,7 @@ ListExpr ItSpatialJoin::TypeMapping(ListExpr args)
   }
 
   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()), appendArgs,
-                           nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                           resultBlockInfo.GetTypeExpr()));
+                           resultBlockInfo.GetTypeExpr(true));
 }
 
 int ItSpatialJoin::SelectValueMapping(ListExpr args)
@@ -770,7 +773,9 @@ TBlock *ItSpatialJoin::State<dimA, dimB, project>::Request()
 template<int dimA, int dimB, bool project>
 bool ItSpatialJoin::State<dimA, dimB, project>::ProceedStreamB()
 {
-  m_map = RtreeT<minDim, MapEntry>(4, 8);
+  m_map.~RtreeT<minDim, MapEntry>();
+
+  new (&m_map) RtreeT<minDim, MapEntry>(4, 8);
 
   for (TBlock *block : m_blocksB)
   {
@@ -781,7 +786,7 @@ bool ItSpatialJoin::State<dimA, dimB, project>::ProceedStreamB()
 
   if (!m_isBExhausted)
   {
-    size_t size = 0,
+    size_t size = sizeof(ItSpatialJoin::State<dimA, dimB, project>),
       rowCount = 0,
       lastBlockSize = 0;
 
@@ -797,11 +802,11 @@ bool ItSpatialJoin::State<dimA, dimB, project>::ProceedStreamB()
       else
       {
         size += block->GetSize();
-        rowCount += block->GetRowCount();
+        rowCount += block->GetFilter().GetRowCount();
 
         m_blocksB.push_back(block);
 
-        for (const TBlockEntry &tuple : *block)
+        for (const TBlockEntry &tuple : block->GetFilter())
         {
           const SpatialAttrArrayEntry<dimB> attribute = tuple[m_joinIndexB];
           Rectangle<dimB> bbox = attribute.GetBoundingBox();

@@ -25,8 +25,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Project.h"
 
 #include "AttrArray.h"
+#include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include <set>
 #include "StandardTypes.h"
@@ -40,6 +42,7 @@ using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
 using listutils::isStream;
+using std::exception;
 using std::set;
 using std::string;
 using std::vector;
@@ -48,7 +51,10 @@ using stringutils::any2str;
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
-Project::Info::Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames) :
+//Project::Info-----------------------------------------------------------------
+
+Project::Info::Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames,
+                    bool invert) :
   m_blockTypeInfo(blockTypeInfo)
 {
   m_blockTypeInfo.columnInfos.clear();
@@ -61,29 +67,22 @@ Project::Info::Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames) :
     return;
   }
 
-  if (nl->IsEmpty(namesExpr))
-  {
-    m_error = "List of column names is empty!";
-    return;
-  }
-
   const size_t columnCount = blockTypeInfo.columnInfos.size();
-
-  ListExpr indices = nl->Empty(),
-    indicesBack = indices;
 
   size_t i = 0;
 
   set<string> names;
 
-  do
+  while (!nl->IsEmpty(namesExpr))
   {
     const ListExpr nameExpr = nl->First(namesExpr);
+
+    namesExpr = nl->Rest(namesExpr);
 
     if (!nl->IsNodeType(SymbolType, nameExpr))
     {
       m_error = "Column name no. " + any2str(i) + " isn't a symbol.";
-      return;
+      break;
     }
 
     const string name = nl->SymbolValue(nameExpr);
@@ -91,7 +90,7 @@ Project::Info::Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames) :
     if (!names.insert(name).second)
     {
       m_error = "List of column names contains duplicate value '" + name + "'.";
-      return;
+      break;
     }
 
     size_t index = 0;
@@ -100,7 +99,6 @@ Project::Info::Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames) :
     {
       if (columnInfo.name == name)
       {
-        m_blockTypeInfo.columnInfos.push_back(columnInfo);
         break;
       }
 
@@ -110,22 +108,45 @@ Project::Info::Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames) :
     if (index == columnCount)
     {
       m_error = "A column with the name '" + name + "' doesn't exist.";
-      return;
+      break;
     }
 
     m_indices.push_back(index);
-
-    if (nl->IsEmpty(indices))
-    {
-      indices = nl->OneElemList(nl->IntAtom(index));
-      indicesBack = indices;
-    }
-    else
-    {
-      indicesBack = nl->Append(indicesBack, nl->IntAtom(index));
-    }
   }
-  while (!nl->IsEmpty(namesExpr = nl->Rest(namesExpr)));
+
+  if (invert)
+  {
+    vector<size_t> indices;
+
+    i = 0;
+
+    for (const size_t excludedIndex : m_indices)
+    {
+      while (i < excludedIndex)
+      {
+        indices.push_back(i++);
+      }
+
+      ++i;
+    }
+
+    while (i < columnCount)
+    {
+      indices.push_back(i++);
+    }
+
+    m_indices = indices;
+  }
+
+  if (m_indices.empty())
+  {
+    m_error = "Resulting column list is empty!";
+  }
+
+  for (const size_t index : m_indices)
+  {
+    m_blockTypeInfo.columnInfos.push_back(blockTypeInfo.columnInfos[index]);
+  }
 }
 
 bool Project::Info::HasError() const
@@ -174,10 +195,19 @@ ListExpr Project::Info::GetIndicesExpr(ListExpr listEnd) const
   return indicesEnd;
 }
 
+//Project-----------------------------------------------------------------------
+
 Project::Project() :
-  Operator(info, StreamValueMapping<State>, TypeMapping)
+  Operator(info, valueMappings, SelectValueMapping, TypeMapping)
 {
 }
+
+ValueMapping Project::valueMappings[] =
+{
+  StreamValueMapping<State>,
+  TBlockValueMapping,
+  nullptr
+};
 
 const OperatorInfo Project::info = OperatorInfo(
   "project", "stream(tblock) x symbol x symbol* -> stream(tblock)",
@@ -190,39 +220,75 @@ ListExpr Project::TypeMapping(ListExpr args)
 {
   if (!nl->HasLength(args, 2))
   {
-    return listutils::typeError("Expected two arguments!");
+    return GetTypeError("Expected two arguments.");
   }
 
-  const ListExpr stream = nl->First(args);
-  if (!isStream(stream))
-  {
-    return listutils::typeError("First argument isn't' a stream!");
-  }
+  const ListExpr blockType = nl->First(args);
 
-  const ListExpr blockType = GetStreamType(stream);
-
-  string typeError;
-  if (!TBlockTI::Check(blockType, typeError))
+  if (!TBlockTI::Check(blockType))
   {
-    return listutils::typeError("First argument isn't a stream of tblock: " +
-                                typeError);
+    return GetTypeError(0, "Isn't a (stream of) tblock.");
   }
 
   const Info info = Info(TBlockTI(blockType, false), nl->Second(args));
 
   if (info.HasError())
   {
-    return listutils::typeError("Error in second argument (column names): " +
-                                info.GetError());
+    return GetTypeError(1, "column names", info.GetError());
   }
 
-  const ListExpr projectedBlockType = info.GetBlockTypeInfo().GetTypeExpr();
+  const ListExpr result =
+    info.GetBlockTypeInfo().GetTypeExpr(isStream(blockType));
 
   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
-                           info.GetIndicesExpr(),
-                           nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                           projectedBlockType));
+                           info.GetIndicesExpr(), result);
 }
+
+int Project::SelectValueMapping(ListExpr args)
+{
+  return isStream(nl->First(args)) ? 0 : 1;
+}
+
+int Project::TBlockValueMapping(ArgVector args, Word &result, int, Word&,
+                                Supplier s)
+{
+  try
+  {
+    //Don't want to return a new instance so delete it
+    qp->DeleteResultStorage(s);
+
+    const TBlock &block = *(TBlock*)args[0].addr;
+
+    const size_t indexCount = ((CcInt*)args[2].addr)->GetValue();
+
+    size_t indices[indexCount];
+
+    for (size_t i = 0; i < indexCount; ++i)
+    {
+      indices[i] = ((CcInt*)args[i + 3].addr)->GetValue();
+    }
+
+    TBlock *projection = new TBlock(block, indices, indexCount);
+
+    //Return the pointer to the column
+    //Let the delete function only decrease the ref-count
+    qp->ChangeResultStorage(s, result = Word(projection));
+    qp->SetDeleteFunction(s, [](const ListExpr, Word &value)
+    {
+      ((TBlock*)value.addr)->DecRef();
+    });
+
+    return 0;
+  }
+  catch (const exception &e)
+  {
+    ErrorReporter::ReportError(e.what());
+  }
+
+  return FAILURE;
+}
+
+//Project::State----------------------------------------------------------------
 
 Project::State::State(ArgVector args, Supplier s) :
   m_stream(args[0])

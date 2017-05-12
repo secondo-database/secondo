@@ -199,7 +199,7 @@ ListExpr TBlockTC::Out(ListExpr typeExpr, Word value)
   const ListExpr tupleExprList = nl->OneElemList(nl->Empty());
   ListExpr tupleExprListEnd = tupleExprList;
 
-  for (const TBlockEntry &tuple : instance)
+  for (const TBlockEntry &tuple : instance.GetFilter())
   {
     const ListExpr tupleExpr = nl->OneElemList(nl->Empty());
     ListExpr tupleExprEnd = tupleExpr;
@@ -304,7 +304,7 @@ Word TBlockTC::Clone(const ListExpr, const Word &value)
   TBlock &instance = *(TBlock*)value.addr,
     *clone = new TBlock(instance.GetInfo(), fileId, fileId);
 
-  for (const TBlockEntry &tuple : instance)
+  for (const TBlockEntry &tuple : instance.GetFilter())
   {
     clone->Append(tuple);
   }

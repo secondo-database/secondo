@@ -48,7 +48,7 @@ ListExpr IntsTC::TypeProperty()
   return ConstructorInfo(name, "-> " + name,
                          "(" + name + ")",
                          "(ai*) where ai is int",
-                         "(2 3 (0 4) 5)", "").list();
+                         "(2 3 5)", "").list();
 }
 
 bool IntsTC::CheckType(ListExpr typeExpr, ListExpr &errorInfo)

@@ -128,7 +128,12 @@ namespace CRelAlgebra
     GAttrArray(const PGAttrArrayInfo &info, Reader &source,
                const GAttrArrayHeader &header);
 
+    GAttrArray(const GAttrArray &array,
+               const SharedArray<const size_t> &filter);
+
     virtual ~GAttrArray();
+
+    virtual AttrArray *Filter(const SharedArray<const size_t> filter) const;
 
     /*
     Returns a shared pointer to the ~GAttrArrayInfo~ specifying this arrays
@@ -221,8 +226,10 @@ namespace CRelAlgebra
     size_t m_capacity,
       m_size;
 
-    char *m_attributeData,
-      *m_attributeDataEnd;
+    SharedArray<char> m_data;
+
+    char *m_attributes,
+      *m_attributesEnd;
 
     /*
     Deleted copy-constructor to prevent copying pointers.
@@ -302,8 +309,8 @@ namespace CRelAlgebra
     GAttrArrayIterator(const GAttrArray &array) :
       m_instance(&array),
       m_attributeSize(array.m_info->attributeSize),
-      m_current(array.m_attributeData),
-      m_end(array.m_attributeDataEnd)
+      m_current(array.m_attributes),
+      m_end(array.m_attributesEnd)
     {
     }
 
@@ -434,6 +441,11 @@ namespace CRelAlgebra
 
     GSpatialAttrArray(const PGAttrArrayInfo &info, Reader &source,
                       const GAttrArrayHeader &header);
+
+    GSpatialAttrArray(const GSpatialAttrArray &array,
+                      const SharedArray<const size_t> &filter);
+
+    virtual AttrArray *Filter(const SharedArray<const size_t> filter) const;
 
     //~AttrArray.GetCount~
     virtual size_t GetCount() const;

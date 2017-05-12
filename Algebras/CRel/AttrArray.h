@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "ReadWrite.h"
 #include "SecondoSMI.h"
+#include "Shared.h"
 #include <string>
 #include "TypeConstructor.h"
 
@@ -45,8 +46,49 @@ To implement such a type:
 
 namespace CRelAlgebra
 {
+  class AttrArray;
   class AttrArrayEntry;
   class AttrArrayIterator;
+  class FilteredAttrArrayIterator;
+
+  class AttrArrayFilter
+  {
+  public:
+    AttrArrayFilter(const AttrArray &array) :
+      m_array(&array)
+    {
+    }
+
+    AttrArrayFilter(const AttrArray &array,
+                    const SharedArray<const size_t> &filter) :
+      m_array(&array),
+      m_filter(filter)
+    {
+    }
+
+    size_t GetAt(size_t row) const
+    {
+      return m_filter.IsNull() ? row : m_filter[row];
+    }
+
+    size_t operator [] (size_t row) const
+    {
+      return m_filter.IsNull() ? row : m_filter[row];
+    }
+
+    size_t GetCount() const;
+
+    FilteredAttrArrayIterator GetIterator() const;
+
+    FilteredAttrArrayIterator begin() const;
+
+    FilteredAttrArrayIterator end() const;
+
+  protected:
+    const AttrArray * const m_array;
+
+    const SharedArray<const size_t> m_filter;
+  };
 
   /*
   Abstract class corresponding to kind ATTRARRAY
@@ -59,6 +101,13 @@ namespace CRelAlgebra
   {
   public:
     AttrArray() :
+      m_filter(*this),
+      m_refCount(1)
+    {
+    }
+
+    AttrArray(const SharedArray<const size_t> &filter) :
+      m_filter(*this, filter),
       m_refCount(1)
     {
     }
@@ -75,6 +124,13 @@ namespace CRelAlgebra
     */
     AttrArrayEntry GetAt(size_t row) const;
     AttrArrayEntry operator[](size_t row) const;
+
+    virtual AttrArray *Filter(const SharedArray<const size_t> filter) const = 0;
+
+    const AttrArrayFilter &GetFilter() const
+    {
+      return m_filter;
+    }
 
     /*
     Appends a entry located in the passed ~array~ and ~row~.
@@ -266,6 +322,8 @@ namespace CRelAlgebra
     */
     AttrArrayIterator GetIterator() const;
 
+    FilteredAttrArrayIterator GetFilteredIterator() const;
+
     /*
     ~AttrArrayIterator~s used (only!) for range-loop support.
 
@@ -305,8 +363,15 @@ namespace CRelAlgebra
     }
 
   private:
+    const AttrArrayFilter m_filter;
+
     mutable size_t m_refCount;
   };
+
+  inline size_t AttrArrayFilter::GetCount() const
+  {
+    return m_filter.IsNull() ? m_array->GetCount() : m_filter.GetCapacity();
+  }
 
   /*
   This class represents the entry of a ~AttrArray~ by a pointer to the array and
@@ -480,6 +545,7 @@ namespace CRelAlgebra
 
     friend class AttrArray;
     friend class AttrArrayIterator;
+    friend class FilteredAttrArrayIterator;
   };
 
   /*
@@ -653,6 +719,145 @@ namespace CRelAlgebra
   inline AttrArrayIterator AttrArray::end() const
   {
     return AttrArrayIterator();
+  }
+
+  class FilteredAttrArrayIterator
+  {
+  public:
+    /*
+    Creates a invalid iterator.
+
+    */
+    FilteredAttrArrayIterator() :
+      m_count(0),
+      m_row(0),
+      m_entry(nullptr, 0)
+    {
+    }
+
+    /*
+    Creates a iterator pointing at the first entry in the passed ~array~.
+    If the ~array~ is empty the iterator is invalid.
+
+    */
+    FilteredAttrArrayIterator(const AttrArray *array) :
+      m_filter(array != nullptr ? &array->GetFilter() : nullptr),
+      m_count(m_filter != nullptr ? m_filter->GetCount() : 0),
+      m_row(0),
+      m_entry(array, m_count > 0 ? m_filter->GetAt(0) : 0)
+    {
+    }
+
+    /*
+    Determines if the iterator's current position is valid.
+
+    */
+    bool IsValid() const
+    {
+      return m_row < m_count;
+    }
+
+    /*
+    Moves the iterator to the next position.
+    ~MoveToNext~ returns true if that position is still valid.
+
+    Precondition: ~IsValid()~
+
+    */
+    bool MoveToNext()
+    {
+      if (m_row < m_count)
+      {
+        if (++m_row < m_count)
+        {
+          m_entry.m_row = m_filter->GetAt(m_row);
+
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    FilteredAttrArrayIterator &operator ++ ()
+    {
+      MoveToNext();
+
+      return *this;
+    }
+
+    /*
+    Returns a ~AttrArrayEntry~ representing the entry at the iterator's current
+    position.
+
+    Precondition: ~IsValid()~
+
+    */
+    AttrArrayEntry &Get()
+    {
+      return m_entry;
+    }
+
+    AttrArrayEntry &operator * ()
+    {
+      return Get();
+    }
+
+    /*
+    Compares this iterator and the ~other~ iterator for equality.
+
+    */
+    bool operator == (const FilteredAttrArrayIterator &other) const
+    {
+      return !(*this != other);
+    }
+
+    /*
+    Compares this iterator and the ~other~ iterator for inequality.
+
+    */
+    bool operator != (const FilteredAttrArrayIterator &other) const
+    {
+      if (IsValid())
+      {
+        if (other.IsValid())
+        {
+          return m_row != other.m_row || m_filter != other.m_filter;
+        }
+
+        return true;
+      }
+
+      return other.IsValid();
+    }
+
+  private:
+    const AttrArrayFilter *m_filter;
+
+    size_t m_count,
+      m_row;
+
+    AttrArrayEntry m_entry;
+  };
+
+  inline FilteredAttrArrayIterator AttrArrayFilter::GetIterator() const
+  {
+    return FilteredAttrArrayIterator(m_array);
+  }
+
+  inline FilteredAttrArrayIterator AttrArrayFilter::begin() const
+  {
+    return FilteredAttrArrayIterator(m_array);
+  }
+
+  inline FilteredAttrArrayIterator AttrArrayFilter::end() const
+  {
+    return FilteredAttrArrayIterator();
+  }
+
+  inline FilteredAttrArrayIterator AttrArray::GetFilteredIterator() const
+  {
+    return FilteredAttrArrayIterator(this);
   }
 
   /*

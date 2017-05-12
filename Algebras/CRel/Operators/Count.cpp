@@ -74,30 +74,16 @@ ListExpr Count::TypeMapping(ListExpr args)
   //Expect one parameter
   if (!nl->HasLength(args, 1))
   {
-    return listutils::typeError("Expected one argument!");
+    return GetTypeError("Expected one argument!");
   }
 
-  //Check first parameter for stream
-  ListExpr firstArgExpr = nl->First(args);
+  const ListExpr firstArgExpr = nl->First(args);
 
-  if (!CRelTI::Check(firstArgExpr))
+  //Check first parameter for crel or (stream of) tblock
+  if (!CRelTI::Check(firstArgExpr) &&
+      !TBlockTI::Check(GetStreamType(firstArgExpr, true)))
   {
-    ListExpr tblockType;
-
-    if (isStream(firstArgExpr))
-    {
-      tblockType = GetStreamType(firstArgExpr);
-    }
-    else
-    {
-      tblockType = firstArgExpr;
-    }
-
-    //Check first parameter's stream type for 'tblock'
-    if (!TBlockTI::Check(tblockType))
-    {
-      return GetTypeError(0, "Isn't a crel or (stream of) tblock.");
-    }
+    return GetTypeError(0, "Isn't a crel or (stream of) tblock.");
   }
 
   //Result is a 'int'
@@ -149,7 +135,7 @@ int Count::BlockStreamValueMapping(ArgVector args, Word &result, int, Word&,
 
     while ((block = stream.request()) != nullptr)
     {
-      count += block->GetRowCount();
+      count += block->GetFilter().GetRowCount();
 
       block->DecRef();
     }
@@ -175,7 +161,8 @@ int Count::BlockValueMapping(ArgVector args, Word &result, int, Word&,
   {
     TBlock *block = (TBlock*)args[0].addr;
 
-    qp->ResultStorage<LongInt>(result, s).SetValue(block->GetRowCount());
+    qp->ResultStorage<LongInt>(result, s).SetValue(
+      block->GetFilter().GetRowCount());
 
     return 0;
   }

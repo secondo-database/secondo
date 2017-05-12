@@ -34,52 +34,56 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace CRelAlgebra
 {
-  class LongIntEntry
+  template<bool text = false>
+  class StringEntry
   {
   public:
-    static const LongIntEntry undefined;
+    StringEntry();
 
-    LongIntEntry();
-
-    LongIntEntry(int64_t value);
+    StringEntry(const char *data, size_t size);
 
     bool IsDefined() const;
 
-    int Compare(const LongIntEntry &value) const;
+    int Compare(const StringEntry<text> &value) const;
 
     int Compare(Attribute &value) const;
 
-    bool Equals(const LongIntEntry &value) const;
+    bool Equals(const StringEntry<text> &value) const;
 
     bool Equals(Attribute &value) const;
 
     size_t GetHash() const;
 
-    operator int64_t() const;
+    size_t GetSize() const;
 
-    int64_t value;
+    const char *GetData() const;
+
+    operator const char *() const;
+
+    const char *data;
+
+    size_t size;
   };
 
-  typedef SimpleFSAttrArrayIterator<LongIntEntry> LongIntsIterator;
-
-  class LongInts : public SimpleFSAttrArray<LongIntEntry>
+  template<bool text = false>
+  class Strings : public SimpleVSAttrArray<StringEntry<text>>
   {
   public:
-    LongInts();
+    Strings();
 
-    LongInts(Reader &source);
+    Strings(Reader &source);
 
-    LongInts(Reader &source, size_t rowCount);
+    Strings(Reader &source, size_t rowCount);
 
     virtual AttrArray *Filter(SharedArray<const size_t> filter) const
     {
-      return new LongInts(*this, filter);
+      return new Strings(*this, filter);
     }
 
-    //using SimpleFSAttrArray<LongIntEntry>::Append;
-    void Append(const LongIntEntry &value)
+    //using SimpleFSAttrArray<StringEntry>::Append;
+    void Append(const StringEntry<text> &value)
     {
-      SimpleFSAttrArray<LongIntEntry>::Append(value);
+      SimpleVSAttrArray<StringEntry<text>>::Append(value);
     }
 
     virtual void Append(Attribute &value);
@@ -87,9 +91,12 @@ namespace CRelAlgebra
     virtual Attribute *GetAttribute(size_t row, bool clone) const;
 
   private:
-    LongInts(const LongInts &array, const SharedArray<const size_t> &filter) :
-      SimpleFSAttrArray<LongIntEntry>(array, filter)
+    Strings(const Strings &array, const SharedArray<const size_t> &filter) :
+      SimpleVSAttrArray<StringEntry<text>>(array, filter)
     {
     }
   };
+
+  typedef StringEntry<true> TextEntry;
+  typedef Strings<true> Texts;
 }

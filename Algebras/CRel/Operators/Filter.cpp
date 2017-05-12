@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "LongIntsTC.h"
 #include "LongIntsTI.h"
 #include "ListExprUtils.h"
-#include "ListUtils.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
 #include "Project.h"
@@ -42,7 +41,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
-using listutils::isStream;
 using std::string;
 using std::vector;
 
@@ -62,13 +60,15 @@ Filter<project>::Filter() :
 template<bool project>
 const OperatorInfo Filter<project>::info = project ?
   OperatorInfo("cfilter", "stream(tblock) x (map tblock longints) x symbol x "
-               "symbol* x int -> stream(tblock)",
-               "_ cfilter[ fun , [ list ], _]",
+               "symbol* x real x int -> stream(tblock)",
+               "_ cfilter[ fun , [ list ], _ ,_]",
                "Transforms a stream of tuple blocks into one wich:\n\n"
                "1) Only contains the entries which's indices are returned by "
                "the filter function."
                "\n2) Is projected to the passed column names.\n"
-               "3) Has the specified block size if it's > 0 or the input block "
+               "3)Is a block with attached filter if the relative number of "
+               "accepted tuples doesn't exceed the privided value.\n"
+               "4) Has the specified block size if it's > 0 or the input block "
                "streams block size otherwise.",
                "query plz feed filter[.PLZ = 5000, [Ort], 1] consume") :
   OperatorInfo("filter", "stream(tblock) x (map tblock longints) -> "
@@ -82,20 +82,18 @@ const OperatorInfo Filter<project>::info = project ?
 template<bool project>
 ListExpr Filter<project>::TypeMapping(ListExpr args)
 {
-  const size_t argCount = nl->ListLength(args);
-
   if (project)
   {
-    if (argCount < 3 || argCount > 4)
+    if (!nl->HasLength(args, 5))
     {
-      return listutils::typeError("Expected three to four arguments!");
+      return GetTypeError("Expected five arguments.");
     }
   }
   else
   {
-    if (argCount != 2)
+    if (!nl->HasLength(args, 2))
     {
-      return listutils::typeError("Expected two to four arguments!");
+      return GetTypeError("Expected two arguments.");
     }
   }
 
@@ -135,63 +133,44 @@ ListExpr Filter<project>::TypeMapping(ListExpr args)
                         LongIntsTC::name);
   }
 
-  //Check optional arguments
+  //Check 'cfilter' arguments
 
-  size_t argNo = 3;
-  ListExpr appendArgs = nl->Empty();
-
-  //Check 'projection' argument
-
-  if (argCount >= argNo)
+  if (!project)
   {
-    const Project::Info info(blockInfo, nl->First(nl->Third(args)));
-
-    if (!info.HasError())
-    {
-      blockInfo = info.GetBlockTypeInfo();
-
-      appendArgs = nl->OneElemList(ToIntListExpr(info.GetIndices()));
-
-      ++argNo;
-    }
-    else
-    {
-      error = info.GetError();
-
-      if (argCount == 4)
-      {
-        return GetTypeError(argNo - 1, "projection", error);
-      }
-    }
+    return blockInfo.GetTypeExpr(true);
   }
 
-  if (argCount >= argNo)
+  const Project::Info info(blockInfo, nl->First(nl->Third(args)), true);
+
+  if (info.HasError())
   {
-    const ListExpr arg = nl->Nth(argNo, args);
-
-    if (!CcInt::checkType(nl->First(arg)))
-    {
-      return GetTypeError(argNo - 1, "block size", "Not a int.");
-    }
-
-    const long blockSize = nl->IntValue(nl->Second(arg));
-
-    if (blockSize > 0)
-    {
-      blockInfo.SetDesiredBlockSize(blockSize);
-    }
+    return GetTypeError(2, "exclude", info.GetError());
   }
 
-  const ListExpr result = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                          blockInfo.GetTypeExpr());
+  blockInfo = info.GetBlockTypeInfo();
 
-  if (nl->IsEmpty(appendArgs))
+  if (!CcReal::checkType(nl->First(nl->Fourth(args))))
   {
-    return result;
+    return GetTypeError(2, "copy limit", "Not of type real.");
   }
 
-  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()), appendArgs,
-                           result);
+  const ListExpr blockSizeArg = nl->Fifth(args);
+
+  if (!CcInt::checkType(nl->First(blockSizeArg)))
+  {
+    return GetTypeError(4, "block size", "Not of type int.");
+  }
+
+  const long blockSize = nl->IntValue(nl->Second(blockSizeArg));
+
+  if (blockSize > 0)
+  {
+    blockInfo.SetDesiredBlockSize(blockSize);
+  }
+
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                           nl->OneElemList(ToIntListExpr(info.GetIndices())),
+                           blockInfo.GetTypeExpr(true));
 }
 
 template<bool project>
@@ -203,6 +182,8 @@ typename Filter<project>::State *Filter<project>::CreateState(ArgVector args,
   const TBlockTI blockType = TBlockTI(qp->GetType(s), false);
 
   size_t *projection;
+
+  double copyLimit;
 
   if (project)
   {
@@ -217,21 +198,27 @@ typename Filter<project>::State *Filter<project>::CreateState(ArgVector args,
     {
       projection[i++] = ((CcInt*)subArg.addr)->GetValue();
     }
+
+    copyLimit = ((CcReal*)args[3].addr)->GetValue();
   }
   else
   {
     projection = nullptr;
+    copyLimit = 1.5;
   }
 
-  return new State(args[0].addr, args[1].addr, blockType, projection);
+  return new State(args[0].addr, args[1].addr, blockType, projection,
+                   copyLimit);
 }
 
 //Filter::State-----------------------------------------------------------------
 
 template<bool project>
 Filter<project>::State::State(Supplier stream, Supplier filter,
-                              const TBlockTI &blockType, size_t *projection) :
+                              const TBlockTI &blockType, size_t *projection,
+                              double copyLimit) :
   m_sourceBlock(nullptr),
+  m_targetBlock(nullptr),
   m_filteredIndices(nullptr),
   m_desiredBlockSize(blockType.GetDesiredBlockSize() *
                      TBlockTI::blockSizeFactor),
@@ -240,7 +227,8 @@ Filter<project>::State::State(Supplier stream, Supplier filter,
   m_filter(filter),
   m_filterArg((*qp->Argument(m_filter))[0].addr),
   m_blockInfo(blockType.GetBlockInfo()),
-  m_projection(projection)
+  m_projection(projection),
+  m_copyLimit(copyLimit)
 {
   m_stream.open();
 }
@@ -253,6 +241,11 @@ Filter<project>::State::~State()
   if (m_sourceBlock != nullptr)
   {
     m_sourceBlock->DecRef();
+  }
+
+  if (m_targetBlock != nullptr)
+  {
+    m_targetBlock->DecRef();
   }
 
   if (m_projection != nullptr)
@@ -273,8 +266,34 @@ TBlock *Filter<project>::State::Request()
       Word filteredIndices;
       qp->Request(m_filter, filteredIndices);
 
-      if ((m_filteredIndices = (LongInts*)filteredIndices.addr)->GetCount() > 0)
+      m_filteredIndices = (LongInts*)filteredIndices.addr;
+
+      const size_t count = m_filteredIndices->GetCount();
+
+      if (count > 0)
       {
+        if ((count / (double)m_sourceBlock->GetRowCount()) > m_copyLimit)
+        {
+          SharedArray<size_t> filter(m_filteredIndices->GetCount());
+
+          size_t i = 0;
+          for (size_t filteredIndex :
+              (SimpleFSAttrArray<LongIntEntry>&)*m_filteredIndices)
+          {
+            filter[i++] = filteredIndex;
+          }
+
+          TBlock *result = project ? new TBlock(*m_sourceBlock, m_projection,
+                                                m_blockInfo->columnCount,
+                                                filter) :
+                                     new TBlock(*m_sourceBlock, filter);
+
+          m_sourceBlock->DecRef();
+          m_sourceBlock = nullptr;
+
+          return result;
+        }
+
         m_filteredIndex = 0;
       }
       else
@@ -292,7 +311,8 @@ TBlock *Filter<project>::State::Request()
   const size_t desiredBlockSize = m_desiredBlockSize,
     columnCount = m_blockInfo->columnCount;
 
-  TBlock *target = new TBlock(m_blockInfo, 0, 0);
+  TBlock *target = m_targetBlock != nullptr ? m_targetBlock :
+                                              new TBlock(m_blockInfo, 0, 0);
 
   SharedArray<AttrArrayEntry> tuple(columnCount);
 
@@ -330,6 +350,8 @@ TBlock *Filter<project>::State::Request()
           m_filteredIndex = i;
         }
 
+        m_targetBlock = nullptr;
+
         return target;
       }
     }
@@ -343,9 +365,37 @@ TBlock *Filter<project>::State::Request()
       Word filteredIndices;
       qp->Request(m_filter, filteredIndices);
 
-      if ((m_filteredIndices = (LongInts*)filteredIndices.addr)->GetCount() > 0)
+      m_filteredIndices = (LongInts*)filteredIndices.addr;
+
+      const size_t count = m_filteredIndices->GetCount();
+
+      if (count > 0)
       {
+        if ((count / (double)m_sourceBlock->GetRowCount()) > m_copyLimit)
+        {
+          SharedArray<size_t> filter(m_filteredIndices->GetCount());
+
+          size_t i = 0;
+          for (size_t filteredIndex :
+              (SimpleFSAttrArray<LongIntEntry>&)*m_filteredIndices)
+          {
+            filter[i++] = filteredIndex;
+          }
+
+          TBlock *result = project ? new TBlock(*m_sourceBlock, m_projection,
+                                                columnCount, filter) :
+                                     new TBlock(*m_sourceBlock, filter);
+
+          m_sourceBlock->DecRef();
+          m_sourceBlock = nullptr;
+
+          m_targetBlock = target;
+
+          return result;
+        }
+
         m_filteredIndex = 0;
+
         break;
       }
 
@@ -353,6 +403,8 @@ TBlock *Filter<project>::State::Request()
     }
   }
   while (m_sourceBlock != nullptr);
+
+  m_targetBlock = nullptr;
 
   return target;
 }

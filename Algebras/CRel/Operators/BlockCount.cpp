@@ -26,8 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <cstddef>
 #include <exception>
-#include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include "Stream.h"
 #include <string>
@@ -38,7 +38,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
-using listutils::isStream;
 using std::exception;
 using std::string;
 
@@ -61,24 +60,13 @@ ListExpr BlockCount::TypeMapping(ListExpr args)
   //Expect one parameter
   if (!nl->HasLength(args, 1))
   {
-    return listutils::typeError("Expected one argument!");
+    return GetTypeError("Expected one argument.");
   }
 
   //Check first parameter for stream
-  ListExpr stream = nl->First(args);
-  if (!isStream(stream))
+  if (!IsBlockStream(nl->First(args)))
   {
-    return listutils::typeError("Argument isn't a stream!");
-  }
-
-  const ListExpr tblockType = GetStreamType(stream);
-
-  //Check first parameter's stream type for 'tblock'
-  string typeError;
-  if (!TBlockTI::Check(tblockType, typeError))
-  {
-    return listutils::typeError("Argument isn't a stream of tblock: " +
-                                typeError);
+    return GetTypeError(0, "Isn't a stream of tblock.");
   }
 
   //Result is a 'int'

@@ -24,36 +24,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include "AlgebraTypes.h"
 #include "NestedList.h"
-#include "Operator.h"
+#include <string>
 
 namespace CRelAlgebra
 {
-  namespace Operators
+  class StringsTI
   {
-    class Not : public Operator
-    {
-    public:
-      Not();
+  public:
+    static bool Check(ListExpr typeExpr);
 
-    private:
-      static const OperatorInfo info;
+    static bool Check(ListExpr typeExpr, std::string &error);
 
-      static ValueMapping valueMappings[];
+    StringsTI(bool numeric);
 
-      static ListExpr TypeMapping(ListExpr args);
+    ListExpr GetTypeExpr() const;
 
-      static int SelectValueMapping(ListExpr args);
-
-      static int RangeValueMapping(ArgVector args, Word &result, int message,
-                                   Word &local, Supplier s);
-
-      static int TBlockValueMapping(ArgVector args, Word &result, int message,
-                                    Word &local, Supplier s);
-
-      static int AttrArrayValueMapping(ArgVector args, Word &result,
-                                       int message, Word &local, Supplier s);
-    };
-  }
+  private:
+    bool m_isNumeric;
+  };
 }

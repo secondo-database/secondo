@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "LongIntsTI.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include <string>
@@ -124,7 +125,7 @@ ListExpr Compare<mode>::TypeMapping(ListExpr args)
   //Expect two arguments
   if(!nl->HasLength(args,2))
   {
-    return listutils::typeError("Two arguments expected.");
+    return GetTypeError("Two arguments expected.");
   }
 
   const ListExpr firstArg = nl->First(args);
@@ -134,7 +135,7 @@ ListExpr Compare<mode>::TypeMapping(ListExpr args)
   if (typeConstructorA == nullptr ||
       !typeConstructorA->MemberOf(Kind::ATTRARRAY()))
   {
-    return listutils::typeError("First argument isn't of kind ATTRARRAY.");
+    return GetTypeError(0, "Isn't of kind ATTRARRAY.");
   }
 
   const ListExpr secondArg = nl->Second(args);
@@ -143,8 +144,7 @@ ListExpr Compare<mode>::TypeMapping(ListExpr args)
 
   if (typeConstructorB == nullptr)
   {
-    return listutils::typeError("First argument's type could not be "
-                                "determined.");
+    return GetTypeError(1, "Type could not be determined.");
   }
 
   if (!typeConstructorB->MemberOf(Kind::ATTRARRAY()) ||
@@ -156,9 +156,8 @@ ListExpr Compare<mode>::TypeMapping(ListExpr args)
 
     if (!nl->Equal(attributeType, secondArg))
     {
-      return listutils::typeError("Second argument is neither of the first "
-                                  "argument's type nor of it's attribute "
-                                  "type.");
+      return GetTypeError(1, "Neither of the first argument's type nor of it's "
+                          "attribute type.");
     }
   }
 
@@ -187,7 +186,7 @@ int Compare<mode>::AttributeValueMapping(ArgVector args, Word &result,
 
     if (value.IsDefined())
     {
-      for (const AttrArrayEntry &entry : values)
+      for (const AttrArrayEntry &entry : values.GetFilter())
       {
         if ((mode == CompareMode::Less && entry < value) ||
             (mode == CompareMode::LessOrEqual && entry <= value) ||
@@ -202,7 +201,7 @@ int Compare<mode>::AttributeValueMapping(ArgVector args, Word &result,
     }
     else if (mode != CompareMode::Less)
     {
-      for (const AttrArrayEntry &entry : values)
+      for (const AttrArrayEntry &entry : values.GetFilter())
       {
         if ((mode == CompareMode::LessOrEqual && !entry.IsDefined()) ||
             (mode == CompareMode::Equal && !entry.IsDefined()) ||
@@ -235,8 +234,9 @@ int Compare<mode>::AttrArrayValueMapping(ArgVector args, Word &result,
 
     indices.Clear();
 
-    AttrArrayIterator iteratorA = (*(AttrArray*)args[0].addr).GetIterator(),
-      iteratorB = (*(AttrArray*)args[1].addr).GetIterator();
+    FilteredAttrArrayIterator iteratorA =
+      (*(AttrArray*)args[0].addr).GetFilteredIterator(),
+      iteratorB = (*(AttrArray*)args[1].addr).GetFilteredIterator();
 
     if (iteratorA.IsValid() && iteratorB.IsValid())
     {

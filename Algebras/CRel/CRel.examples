@@ -1,11 +1,17 @@
-Database : berlintest
+Database : creltest
 Restore  : Yes
+
+Operator : cand
+Number   : 0
+Signature: tblock x (map tblock longints) x (map tblock longints) -> longints
+Example  : query cplz feed cfilter[. cand[fun (b0: ANY) attr(b0, PLZ) > 10000, fun (b1: ANY) attr(b1, PLZ) < 20000], [], 0.0, 0] count
+Result   : 4975
 
 Operator : and
 Number   : 0
 Signature: longints x longints -> longints
-Example  : query cplz feed filter[(.PLZ = 0) and (.PLZ = 0)] count
-Result   : 0
+Example  : query cplz feed filter[(.PLZ > 10000) and (.PLZ < 20000)] count
+Result   : 4975
 
 Operator : apply
 Number   : 0
@@ -16,14 +22,14 @@ Result   : 14228
 Operator : attr
 Number   : 0
 Signature: tblock x symbol -> ATTRARRAY
-Example  : query cplz feed filter[attr(., PLZ) = 0] count
-Result   : 0
+Example  : query cplz feed filter[attr(., PLZ) > 50000] count
+Result   : 19797
 
 Operator : blockcount
 Number   : 0
 Signature: stream tblock -> int
 Example  : query cplz feed blockcount
-Result   : 3
+Result   : 1
 
 Operator : cconsume
 Number   : 0
@@ -33,9 +39,9 @@ Result   : 41267
 
 Operator : cfilter
 Number   : 0
-Signature: stream(tblock) x (map tblock longints) x symbol x symbol* x int -> stream(tblock)
-Example  : query cplz feed cfilter[.PLZ = 0, [PLZ], 0] count
-Result   : 0
+Signature: stream(tblock) x (map tblock longints) x symbol x symbol* x real x int -> stream(tblock)
+Example  : query cplz feed cfilter[.PLZ < 10000, [PLZ], 1.0, 0] count
+Result   : 4436
 
 Operator : consume
 Number   : 0
@@ -64,8 +70,8 @@ Result   : 41267
 Operator : filter
 Number   : 0
 Signature: stream(tblock) x (map tblock longints) -> stream(tblock)
-Example  : query cplz feed filter[.PLZ = 0] count
-Result   : 0
+Example  : query cplz feed filter[.PLZ < 10000] count
+Result   : 4436
 
 Operator : itHashJoin
 Number   : 0
@@ -82,14 +88,26 @@ Result   : 26492
 Operator : not
 Number   : 0
 Signature: longint x longints -> longints
-Example  : query cplz feed filter[not(. count, .PLZ = 0)] count
-Result   : 41267
+Example  : query cplz feed filter[not(. count, .Ort = "Dresden")] count
+Result   : 41121
+
+Operator : not
+Number   : 1
+Signature: tblock x longints -> longints
+Example  : query cplz feed filter[not(. , .Ort = "Dresden")] count
+Result   : 41121
 
 Operator : or
 Number   : 0
 Signature: longints x longints -> longints
-Example  : query cplz feed filter[(.PLZ = 0) or (.PLZ = 0)] count
-Result   : 0
+Example  : query cplz feed filter[(.Ort = "Dresden") or (.Ort = "Radebeul")] count
+Result   : 152
+
+Operator : cor
+Number   : 0
+Signature: tblock x (map tblock longints) x (map tblock longints) -> longints
+Example  : query cplz feed cfilter[. cor[fun (b0: ANY) attr(b0, Ort) = "Dresden", fun (b1: ANY) attr(b1, Ort) = "Radebeul"], [], 0.0, 0] count
+Result   : 152
 
 Operator : project
 Number   : 0
@@ -100,59 +118,59 @@ Result   : 41267
 Operator : rename
 Number   : 0
 Signature: stream(tblock) x symbol -> stream(tblock)
-Example  : query cplz feed rename[a] filter[.PLZ_a = 0] count
-Result   : 0
+Example  : query cplz feed rename[a] filter[.PLZ_a < 10000] count
+Result   : 4436
 
 Operator : repeat
 Number   : 1
 Signature: stream(T) x int -> stream(T)
-Example  : query repeat(repeat("Test" feed, 2), 2) count
-Result   : 4
+Example  : query repeat(plz feed, 2) count
+Result   : 82534
 
 Operator : toblocks
 Number   : 0
 Signature: stream(tuple) -> stream(tblock)
-Example  : query plz feed toblocks count
+Example  : query plz feed toblocks[1] count
 Result   : 41267
 
-Operator : transformstream
+Operator : totuples
 Number   : 0
 Signature: stream(tblock) -> stream(tuple)
-Example  : query cplz feed transformstream consume feed count
+Example  : query cplz feed totuples consume feed count
 Result   : 41267
 
 Operator : #
 Number   : 0
 Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
-Example  : query cplz feed filter[.PLZ # 0] count
-Result   : 41267
+Example  : query cplz feed filter[.Ort # "Dresden"] count
+Result   : 41121
 
 Operator : <
 Number   : 0
 Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
-Example  : query cplz feed filter[.PLZ < 0] count
-Result   : 0
+Example  : query cplz feed filter[.PLZ < 86556] count
+Result   : 36267
 
 Operator : <=
 Number   : 0
 Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
-Example  : query cplz feed filter[.PLZ = 0] count
-Result   : 0
+Example  : query cplz feed filter[.PLZ <= 86556] count
+Result   : 36268
 
 Operator : =
 Number   : 0
 Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
-Example  : query cplz feed filter[.PLZ = 0] count
-Result   : 0
+Example  : query cplz feed filter[.Ort = "Dresden"] count
+Result   : 145
 
 Operator : >=
 Number   : 0
 Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
-Example  : query cplz feed filter[.PLZ = 0] count
-Result   : 41267
+Example  : query cplz feed filter[.PLZ >= 86556] count
+Result   : 5000
 
 Operator : >
 Number   : 0
 Signature: ATTRARRAY x ATTRIBUTETYPE -> longints
-Example  : query cplz feed filter[.PLZ = 0] count
-Result   : 41267
+Example  : query cplz feed filter[.PLZ > 86556] count
+Result   : 4999

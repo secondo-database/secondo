@@ -27,8 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AttrArray.h"
 #include <cstddef>
 #include <exception>
-#include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include <string>
@@ -62,36 +62,33 @@ ListExpr Attr::TypeMapping(ListExpr args)
   //Expect two arguments
   if (!nl->HasLength(args, 2))
   {
-    return listutils::typeError("Expected two arguments!");
+    return GetTypeError("Expected two arguments!");
   }
 
   //Check the first argument for 'tblock' type
   ListExpr tblockType = nl->First(nl->First(args));
-  string tblockTypeError;
 
-  if (!TBlockTI::Check(tblockType, tblockTypeError))
+  if (!TBlockTI::Check(tblockType))
   {
-    return listutils::typeError("First argument isn't a tblock: " +
-                                tblockTypeError);
+    return GetTypeError(0 , "block", "Not of type tblock.");
   }
 
   //Check the second argument for 'symbol' type
-  ListExpr attributeNameExpr = nl->Second(nl->Second(args));
+  ListExpr columnNameExpr = nl->Second(nl->Second(args));
 
-  if (!nl->IsNodeType(SymbolType, attributeNameExpr))
+  if (!nl->IsNodeType(SymbolType, columnNameExpr))
   {
-    return listutils::typeError("Second argument (attribute name) isn't a "
-                                "symbol.");
+    return GetTypeError(1, "column name", "Not of type symbol.");
   }
 
   //Find the column with matching name
-  const string attributeName = nl->SymbolValue(attributeNameExpr);
+  const string columnName = nl->SymbolValue(columnNameExpr);
   const TBlockTI tblockInfo(tblockType, false);
   size_t index = 0;
 
   for (const TBlockTI::ColumnInfo &columnInfo : tblockInfo.columnInfos)
   {
-    if (columnInfo.name == attributeName)
+    if (columnInfo.name == columnName)
     {
       //Append the matching column's index
       //Result type is the matching column's type
@@ -103,8 +100,7 @@ ListExpr Attr::TypeMapping(ListExpr args)
     ++index;
   }
 
-  return listutils::typeError("Second argument (attribute name) didn't match "
-                              "any in the tblock's attribute list.");
+  return GetTypeError(1, "column name", "No such column.");
 }
 
 int Attr::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)

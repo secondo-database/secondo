@@ -28,8 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "CRelTI.h"
 #include <cstddef>
 #include <exception>
-#include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include "Stream.h"
 #include <string>
@@ -40,8 +40,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
-using listutils::isStream;
-using listutils::typeError;
 using std::exception;
 using std::string;
 
@@ -51,7 +49,6 @@ extern QueryProcessor *qp;
 Consume::Consume() :
   Operator(info, ValueMapping, TypeMapping)
 {
-  SetUsesArgsInTypeMapping();
 }
 
 const OperatorInfo Consume::info = OperatorInfo(
@@ -65,27 +62,19 @@ ListExpr Consume::TypeMapping(ListExpr args)
   //One arg?
   if (!nl->HasLength(args, 1))
   {
-    return typeError("Expected one argument!");
+    return GetTypeError("Expected one argument.");
   }
 
-  //Is first parameter a stream?
-  ListExpr stream = nl->First(nl->First(args));
-  if (!isStream(stream))
-  {
-    return typeError("First argument (source) isn't' a stream!");
-  }
+  ListExpr blockType;
 
-  const ListExpr streamType = GetStreamType(stream);
-  string streamTypeError;
-
-  //Is first parameter a stream of 'tblock'?
-  if (!TBlockTI::Check(streamType, streamTypeError))
+  //Is first parameter a stream of tblock?
+  if (!IsBlockStream(nl->First(args), blockType))
   {
-    return typeError("First argument (source) isn't' a stream of 'tblock'!");
+    return GetTypeError(0, "source", "Isn't' a stream of tblock.");
   }
 
   //Return 'crel' type
-  return CRelTI(TBlockTI(streamType, false), 1).GetTypeExpr();
+  return CRelTI(TBlockTI(blockType, false), 1).GetTypeExpr();
 }
 
 int Consume::ValueMapping(Word* args, Word &result, int, Word&, Supplier s)
@@ -100,7 +89,7 @@ int Consume::ValueMapping(Word* args, Word &result, int, Word&, Supplier s)
 
     while ((block = stream.request()) != nullptr)
     {
-      for (const TBlockEntry &tuple : *block)
+      for (const TBlockEntry &tuple : block->GetFilter())
       {
         relation.Append(tuple);
       }

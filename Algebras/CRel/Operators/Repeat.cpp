@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "StreamValueMapping.h"
@@ -33,9 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace CRelAlgebra::Operators;
 
-using listutils::isDATA;
 using listutils::isStream;
-using listutils::isTupleDescription;
 
 extern QueryProcessor *qp;
 
@@ -55,25 +54,21 @@ ListExpr Repeat::TypeMapping(ListExpr args)
 {
   if (!nl->HasLength(args, 2))
   {
-    return listutils::typeError("Expected two arguments.");
+    return GetTypeError("Expected two arguments.");
   }
 
   const ListExpr firstArg = nl->First(nl->First(args));
 
   if (!isStream(firstArg))
   {
-    return listutils::typeError("First argument is not a stream.");
+    return GetTypeError(0, "Isn't a stream.");
   }
 
   const ListExpr count = nl->Second(args);
-  if (!CcInt::checkType(nl->First(count)))
+  if (!CcInt::checkType(nl->First(count)) ||
+      nl->IntValue(nl->Second(count)) < 0)
   {
-    return listutils::typeError("Second argument is not an int.");
-  }
-
-  if (nl->IntValue(nl->Second(count)) < 0)
-  {
-    return listutils::typeError("Second argument is < 0.");
+    return GetTypeError(1, "Isn't a int >= 0.");
   }
 
   return firstArg;

@@ -17,7 +17,7 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator apply alias APPLYPREDICATE pattern _ op [fun] implicit parameter attributetype type ATTRIBUTETYPE
+operator apply alias APPLYPREDICATE pattern _ op [fun] implicit parameter blockentry type BLOCKENTRY
 operator attr alias ATTR pattern op (_, _)
 operator blockcount alias BLOCKCOUNT pattern _ op
 operator count alias COUNT pattern _ op
@@ -26,7 +26,7 @@ operator cconsume alias CCONSUME pattern _ op [ _ ]
 operator feed alias FEED pattern _ op
 operator feedproject alias FEEDPROJECT pattern _ op [list]
 operator filter alias FILTER pattern _ op [ fun ] implicit parameter streamelem type STREAMELEM !!
-operator cfilter alias CFILTER pattern _ op [ fun, _, _ ] implicit parameter streamelem type STREAMELEM !!
+operator cfilter alias CFILTER pattern _ op [ fun, _, _, _ ] implicit parameter streamelem type STREAMELEM !!
 operator and alias AND pattern _ infixop _
 operator or alias OR pattern _ infixop _
 operator not alias NOT pattern op ( _ )
@@ -40,7 +40,10 @@ operator rename alias RENAME pattern _ op [ _ ]
 operator itHashJoin alias ITHASHJOIN pattern _ _ op [_,_]
 operator itSpatialjoin alias SPATIALJOIN pattern _ _ op [_, _, _, _, _]
 
+operator cand alias CAND pattern _ op [fun, fun] implicit parameter block type ANY
+operator cor alias COR pattern _ op [fun, fun] implicit parameter block type ANY
+
 operator repeat alias REPEAT pattern op(_,_)
-operator transformstream alias TRANSFORMSTREAM pattern _ op
+operator totuples alias TOTUPLES pattern _ op
 operator toblocks alias TOBLOCKS pattern _ op [ _ ]
 operator test alias TEST pattern op ( _ )

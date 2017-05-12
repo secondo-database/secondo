@@ -24,12 +24,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
+#include <algorithm>
 #include "AttrArray.h"
 #include "Attribute.h"
 #include <cstddef>
 #include <cstring>
 #include "NestedList.h"
 #include "ReadWrite.h"
+#include "Shared.h"
 #include <string>
 
 extern NestedList *nl;
@@ -50,54 +52,8 @@ namespace CRelAlgebra
   class SimpleFSAttrArray : public AttrArray
   {
   public:
-    SimpleFSAttrArray() :
-      m_count(0),
-      m_size(0),
-      m_capacity(0),
-      m_data(nullptr),
-      m_values(nullptr)
-    {
-    }
-
-    SimpleFSAttrArray(Reader &source) :
-      SimpleFSAttrArray(source, source.ReadOrThrow<size_t>())
-    {
-    }
-
-    SimpleFSAttrArray(Reader &source, size_t rowCount) :
-      m_count(rowCount),
-      m_size(rowCount * sizeof(T)),
-      m_capacity(rowCount),
-      m_data(rowCount > 0 ? new char[m_size] : nullptr),
-      m_values((T*)m_data)
-    {
-      const size_t size = m_size;
-
-      if (size > 0)
-      {
-        source.ReadOrThrow(m_data, size);
-
-        if (cast != nullptr)
-        {
-          T *value = m_values,
-            *end = value + rowCount;
-
-          while (value < end)
-          {
-            cast(value);
-
-            ++value;
-          }
-        }
-      }
-    }
-
     virtual ~SimpleFSAttrArray()
     {
-      if (m_data != nullptr)
-      {
-        delete[] m_data;
-      }
     }
 
     virtual size_t GetCount() const
@@ -119,7 +75,7 @@ namespace CRelAlgebra
 
       if (m_count > 0)
       {
-        target.WriteOrThrow(m_data, m_size);
+        target.WriteOrThrow(m_data.GetPointer(), m_count * sizeof(T));
       }
     }
 
@@ -133,10 +89,8 @@ namespace CRelAlgebra
     void Append(const T &value)
     {
       size_t capacity = m_capacity,
-        count = m_count++,
-        size = m_size;
+        count = m_count++;
 
-      char *data;
       T *values;
 
       if (capacity == count)
@@ -145,26 +99,23 @@ namespace CRelAlgebra
         {
           capacity = 1;
 
-          data = m_data = new char[sizeof(T)];
-          values = m_values = (T*)data;
+          m_data = SharedArray<char>(sizeof(T));
+
+          values = m_values = (T*)m_data.GetPointer();
         }
         else
         {
-          const size_t newCapacity = capacity * 2;
+          const size_t newCapacity = capacity + capacity,
+            newByteCapacity = newCapacity * sizeof(T);
 
-          data = new char[newCapacity * sizeof(T)];
-          values = (T*)data;
+          char *data = new char[newByteCapacity];
 
-          char *oldData = m_data;
-
-          memcpy(data, oldData, size);
-
-          delete[] oldData;
+          memcpy(data, m_data.GetPointer(), m_data.GetCapacity());
 
           capacity = newCapacity;
 
-          m_data = data;
-          m_values = values;
+          m_data = SharedArray<char>(data, newByteCapacity);
+          m_values = values = (T*)data;
         }
 
         m_capacity = capacity;
@@ -176,7 +127,7 @@ namespace CRelAlgebra
 
       new (values + count) T(value);
 
-      m_size = size + sizeof(T);
+      m_size += sizeof(T);
     }
 
     virtual void Remove()
@@ -188,7 +139,7 @@ namespace CRelAlgebra
     virtual void Clear()
     {
       m_count = 0;
-      m_size = 0;
+      m_size = sizeof(SimpleFSAttrArray);
     }
 
     const T &GetAt(size_t index) const
@@ -250,6 +201,59 @@ namespace CRelAlgebra
       return SimpleFSAttrArrayIterator<T, cast>();
     }
 
+  protected:
+    SimpleFSAttrArray() :
+      m_count(0),
+      m_size(sizeof(SimpleFSAttrArray)),
+      m_capacity(0),
+      m_values(nullptr)
+    {
+    }
+
+    SimpleFSAttrArray(Reader &source) :
+      SimpleFSAttrArray(source, source.ReadOrThrow<size_t>())
+    {
+    }
+
+    SimpleFSAttrArray(Reader &source, size_t rowCount) :
+      m_count(rowCount),
+      m_size(sizeof(SimpleFSAttrArray) + (rowCount * sizeof(T))),
+      m_capacity(rowCount),
+      m_data(rowCount * sizeof(T)),
+      m_values((T*)m_data.GetPointer())
+    {
+      const size_t size = m_data.GetCapacity();
+
+      if (size > 0)
+      {
+        source.ReadOrThrow(m_data.GetPointer(), size);
+
+        if (cast != nullptr)
+        {
+          T *value = m_values,
+            *end = value + rowCount;
+
+          while (value < end)
+          {
+            cast(value);
+
+            ++value;
+          }
+        }
+      }
+    }
+
+    SimpleFSAttrArray(const SimpleFSAttrArray &array,
+                      const SharedArray<const size_t> &filter) :
+      AttrArray(filter),
+      m_count(array.m_count),
+      m_size(array.m_size),
+      m_capacity(array.m_capacity),
+      m_data(array.m_data),
+      m_values(array.m_values)
+    {
+    }
+
   private:
     friend class SimpleFSAttrArrayIterator<T, cast>;
 
@@ -257,7 +261,7 @@ namespace CRelAlgebra
       m_size,
       m_capacity;
 
-    char *m_data;
+    SharedArray<char> m_data;
 
     T *m_values;
 
@@ -345,5 +349,258 @@ namespace CRelAlgebra
 
     T *m_current,
       *m_end;
+  };
+
+
+  template <class T>
+  class SimpleVSAttrArray : public AttrArray
+  {
+  public:
+    virtual ~SimpleVSAttrArray()
+    {
+    }
+
+    virtual size_t GetCount() const
+    {
+      return m_header.count;
+    }
+
+    virtual size_t GetSize() const
+    {
+      return m_size;
+    }
+
+    virtual void Save(Writer &target, bool includeHeader = true) const
+    {
+      if (includeHeader)
+      {
+        target.WriteOrThrow(m_header);
+      }
+      else
+      {
+        target.WriteOrThrow(m_header.dataSize);
+      }
+
+      if (m_header.count > 0)
+      {
+        target.WriteOrThrow(m_data.GetPointer(), m_header.dataSize);
+        target.WriteOrThrow((char*)m_positions.GetPointer(),
+                            m_header.count * sizeof(size_t));
+      }
+    }
+
+    virtual void Append(const AttrArray &array, size_t row)
+    {
+      Append(((const SimpleVSAttrArray<T>&)array).GetAt(row));
+    }
+
+    virtual void Append(Attribute &value) = 0;
+
+    void Append(const T &value)
+    {
+      const size_t valueSize = value.GetSize(),
+        dataSize = m_header.dataSize,
+        count = m_header.count++,
+        capacity = m_data.GetCapacity(),
+        freeCapacity = capacity - dataSize;
+
+      //Add new positions entry
+      //Provide space if neccessery
+      if (m_positions.GetCapacity() == count)
+      {
+        if (count == 0)
+        {
+          m_positions = SharedArray<size_t>(1);
+          m_positions[0] = 0;
+        }
+        else
+        {
+          const size_t newCapacity = count + count;
+
+          size_t *positions = new size_t[newCapacity];
+
+          positions[count] = dataSize;
+
+          memcpy(positions, m_positions.GetPointer(), count * sizeof(size_t));
+
+          m_positions = SharedArray<size_t>(positions, newCapacity);
+        }
+      }
+      else
+      {
+        m_positions[count] = dataSize;
+      }
+
+      char *dataEnd;
+
+      //Provide space for the new value
+      if (freeCapacity < valueSize)
+      {
+        const size_t diffCapacity = valueSize - freeCapacity,
+          newCapacity = capacity == 0 ?
+            diffCapacity : capacity + std::max(capacity, diffCapacity);
+
+        char *data = new char[newCapacity];
+
+        if (dataSize > 0)
+        {
+          memcpy(data, m_data.GetPointer(), dataSize);
+        }
+
+        m_data = SharedArray<char>(data, newCapacity);
+
+        dataEnd = data + dataSize;
+      }
+      else
+      {
+        dataEnd = m_dataEnd;
+      }
+
+      memcpy(dataEnd, value.GetData(), valueSize);
+
+      m_header.dataSize = dataSize + valueSize;
+      m_dataEnd = dataEnd + valueSize;
+      m_size += valueSize + sizeof(size_t);
+    }
+
+    virtual void Remove()
+    {
+      const size_t oldDataSize = m_header.dataSize,
+        newDataSize = m_positions[--m_header.count];
+
+      m_header.dataSize = newDataSize;
+
+      m_size -= (oldDataSize - newDataSize) + sizeof(size_t);
+
+      m_dataEnd = m_data.GetPointer() + newDataSize;
+    }
+
+    virtual void Clear()
+    {
+      m_header.count = 0;
+      m_header.dataSize = 0;
+      m_size = sizeof(SimpleVSAttrArray);
+      m_dataEnd = m_data.GetPointer();
+    }
+
+    const T GetAt(size_t index) const
+    {
+      const size_t position = m_positions[index],
+        nextIndex = index + 1,
+        size = nextIndex < m_header.count ? m_positions[nextIndex] - position :
+                                            m_header.dataSize - position;
+
+      return T(m_data.GetPointer() + position, size);
+    }
+
+    const T operator[](size_t index) const
+    {
+      const size_t position = m_positions[index],
+        nextIndex = index + 1,
+        size = nextIndex < m_header.count ? m_positions[nextIndex] - position :
+                                            m_header.dataSize - position;
+
+      return T(m_data.GetPointer() + position, size);
+    }
+
+    virtual bool IsDefined(size_t row) const
+    {
+      return GetAt(row).IsDefined();
+    }
+
+    virtual int Compare(size_t rowA, const AttrArray &arrayB, size_t rowB) const
+    {
+      const T &value = ((const SimpleVSAttrArray<T>&)arrayB).GetAt(rowB);
+
+      return GetAt(rowA).Compare(value);
+    }
+
+    virtual int Compare(size_t row, Attribute &value) const
+    {
+      return GetAt(row).Compare(value);
+    }
+
+    virtual bool Equals(size_t rowA, const AttrArray &arrayB, size_t rowB) const
+    {
+      const T &value = ((const SimpleVSAttrArray<T>&)arrayB).GetAt(rowB);
+
+      return GetAt(rowA).Equals(value);
+    }
+
+    virtual bool Equals(size_t row, Attribute &value) const
+    {
+      return GetAt(row).Equals(value);
+    }
+
+    virtual size_t GetHash(size_t row) const
+    {
+      return GetAt(row).GetHash();
+    }
+
+  protected:
+    SimpleVSAttrArray() :
+      m_header({0, 0}),
+      m_dataEnd(nullptr),
+      m_size(sizeof(SimpleVSAttrArray))
+    {
+    }
+
+    SimpleVSAttrArray(Reader &source) :
+      SimpleVSAttrArray(source, source.ReadOrThrow<Header>())
+    {
+    }
+
+    SimpleVSAttrArray(Reader &source, size_t rowCount) :
+      SimpleVSAttrArray(source,
+                        Header({rowCount, source.ReadOrThrow<size_t>()}))
+    {
+    }
+
+    SimpleVSAttrArray(const SimpleVSAttrArray &array,
+                      const SharedArray<const size_t> &filter) :
+      AttrArray(filter),
+      m_header(array.m_header),
+      m_data(array.m_data),
+      m_dataEnd(array.m_dataEnd),
+      m_positions(array.m_positions),
+      m_size(array.m_size)
+    {
+    }
+
+  private:
+    class Header
+    {
+    public:
+      size_t count,
+        dataSize;
+    };
+
+    Header m_header;
+
+    SharedArray<char> m_data;
+
+    char* m_dataEnd;
+
+    SharedArray<size_t> m_positions;
+
+    size_t m_size;
+
+    SimpleVSAttrArray(Reader &source, const Header &header) :
+      m_header(header),
+      m_data(header.dataSize),
+      m_dataEnd(m_data.GetPointer() + header.dataSize),
+      m_positions(header.count),
+      m_size(sizeof(SimpleVSAttrArray) + header.dataSize +
+             (header.count * sizeof(size_t)))
+    {
+      char * data = m_data.GetPointer();
+      size_t * positions = m_positions.GetPointer();
+
+      source.ReadOrThrow(data, m_data.GetCapacity());
+      source.ReadOrThrow((char*)positions,
+                         m_positions.GetCapacity() * sizeof(size_t));
+    }
+
+    SimpleVSAttrArray(const SimpleVSAttrArray &instance) = delete;
   };
 }

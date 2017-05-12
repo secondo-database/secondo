@@ -24,49 +24,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include "AlgebraTypes.h"
 #include "NestedList.h"
 #include "Operator.h"
-#include "StandardTypes.h"
 
 namespace CRelAlgebra
 {
   namespace Operators
   {
     /*
-    Operator implementation of the 'apply' operator.
-    This operator determines the indices of entries in a array of attributes
-    which satisfy a given predicate.
-
-    The Operator expects two parameters.
-
-    The first parameter represents the array and must be of type 'attrarray'.
-
-    The second parameter represents the predicate and must be a function
-    evaluating from the array's attribute-type to 'bool'.
-
-    The returned value represents the determined indices and is of type
-    'longints'.
+    Operator implementation of the 'BLOCKENTRY' type-operator.
+    This operator determines the type of a attribute-array's entries from the
+    attribute-arrays's type.
     */
-    class ApplyPredicate : public Operator
+    class BlockEntry : public Operator
     {
     public:
-      ApplyPredicate();
+      BlockEntry();
 
     private:
       static const OperatorInfo info;
 
-      static ValueMapping valueMappings[];
-
       static ListExpr TypeMapping(ListExpr args);
-
-      static int SelectValueMapping(ListExpr args);
-
-      static int AttrArrayValueMapping(ArgVector args, Word &result,
-                                       int message, Word &local, Supplier s);
-
-      static int TBlockValueMapping(ArgVector args, Word &result,
-                                    int message, Word &local, Supplier s);
     };
   }
 }

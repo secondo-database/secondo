@@ -27,15 +27,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <cstddef>
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include <string>
 #include "StreamValueMapping.h"
 #include "Symbols.h"
 #include "TBlockTI.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
+using listutils::isStream;
 using listutils::isValidAttributeName;
 using std::string;
 
@@ -58,31 +61,28 @@ ListExpr Rename::TypeMapping(ListExpr args)
 {
   if (!nl->HasLength(args, 2))
   {
-    return listutils::typeError("Expected two arguments.");
+    return GetTypeError("Expected two arguments.");
   }
 
   ListExpr stream = nl->First(args);
 
-  if (!nl->HasLength(stream, 2) ||
-      !nl->IsEqual(nl->First(stream), Symbols::STREAM()))
+  if (!isStream(stream))
   {
-    return listutils::typeError("First argument isn't a stream.");
+    return GetTypeError(0, "Isn't a stream.");
   }
 
-  const ListExpr tblock = nl->Second(stream);
-  string typeError;
+  const ListExpr tblock = GetStreamType(stream);
 
-  if (!TBlockTI::Check(tblock, typeError))
+  if (!TBlockTI::Check(tblock))
   {
-    return listutils::typeError("First argument isn't a stream of tblock: " +
-                                typeError);
+    return GetTypeError(0, "Isn't a stream of tblock.");
   }
 
   const ListExpr suffixExpr = nl->Second(args);
 
   if (!nl->IsNodeType(SymbolType, suffixExpr))
   {
-    return listutils::typeError("Second argument isn't a symbol.");
+    return GetTypeError(1, "Isn't a symbol.");
   }
 
   const string suffix = nl->SymbolValue(suffixExpr);
@@ -98,15 +98,14 @@ ListExpr Rename::TypeMapping(ListExpr args)
 
     if (!isValidAttributeName(nl->SymbolAtom(name), error))
     {
-      return listutils::typeError("Resulting attribute name is not valid: " +
-                                  error);
+      return GetTypeError("Resulting attribute name '" + name + "' is not "
+                          "valid");
     }
 
     blockInfo.columnInfos[i].name = name;
   }
 
-  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                         blockInfo.GetTypeExpr());
+  return blockInfo.GetTypeExpr(true);
 }
 
 Rename::State::State(Word* args, Supplier s) :

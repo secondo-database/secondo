@@ -24,29 +24,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "And.h"
 
-#include <algorithm>
 #include <cstddef>
 #include <exception>
 #include "LongInts.h"
+#include "LongIntsTC.h"
 #include "LongIntsTI.h"
 #include <iterator>
-#include "ListUtils.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include <string>
-#include <vector>
 
-#include <set>
-
+using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
-using std::back_inserter;
 using std::exception;
-using std::max;
-using std::set_intersection;
 using std::string;
-using std::vector;
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -63,29 +56,85 @@ const OperatorInfo And::info = OperatorInfo(
   "Set intersection of two sorted sets of integers.\n"
   "Arguments are evaluated from left to right.\n"
   "If the left set is empty, the evaluation of the right set is skipped.",
-  "query [const longints value (1 2 3)] and [const longints value (2 3 4)]");
+  "");
 
 ListExpr And::TypeMapping(ListExpr args)
 {
   //Expect two arguments
   if (!nl->HasLength(args, 2))
   {
-    return listutils::typeError("Expected two arguments!");
+    return GetTypeError("Expected two arguments!");
   }
 
   //Check both arguments for 'indices' type
-  string typeError;
-  if (!LongIntsTI::Check(nl->First(args), typeError))
+  if (!LongIntsTI::Check(nl->First(args)))
   {
-    return GetTypeError(0, "indices a", typeError);
+    return GetTypeError(0, "indices a", "Not of type longints.");
   }
 
-  if (!LongIntsTI::Check(nl->Second(args), typeError))
+  if (!LongIntsTI::Check(nl->Second(args)))
   {
-    return GetTypeError(1, "indices b", typeError);
+    return GetTypeError(1, "indices b", "Not of type longints.");
   }
 
   return LongIntsTI(false).GetTypeExpr();
+}
+
+void SetIntersection(LongInts &setIntersection, const LongInts &setA,
+                     const LongInts &setB)
+{
+  setIntersection.Clear();
+
+  LongIntsIterator iteratorA = setA.GetIterator();
+
+  if (iteratorA.IsValid())
+  {
+    LongIntsIterator iteratorB = setB.GetIterator();
+
+    if (iteratorB.IsValid())
+    {
+      int64_t a = iteratorA.Get(),
+        b = iteratorB.Get();
+
+      do
+      {
+        while (a == b)
+        {
+          setIntersection.Append(a);
+
+          if(!iteratorA.MoveToNext() || !iteratorB.MoveToNext())
+          {
+            return;
+          }
+
+          a = iteratorA.Get();
+
+          b = iteratorB.Get();
+        }
+
+        while (a < b)
+        {
+          if (!iteratorA.MoveToNext())
+          {
+            return;
+          }
+
+          a = iteratorA.Get();
+        }
+
+        while (b < a)
+        {
+          if (!iteratorB.MoveToNext())
+          {
+            return;
+          }
+
+          b = iteratorB.Get();
+        }
+      }
+      while (true);
+    }
+  }
 }
 
 int And::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
@@ -97,56 +146,141 @@ int And::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
 
     setIntersection.Clear();
 
-    LongIntsIterator iteratorA = setA.GetIterator();
-
-    if (iteratorA.IsValid())
+    if (setA.GetCount() > 0)
     {
-      LongInts &setB = *(LongInts*)qp->Request(args[1].addr).addr;
+      SetIntersection(setIntersection, setA,
+                      *(LongInts*)qp->Request(args[1].addr).addr);
+    }
 
-      LongIntsIterator iteratorB = setB.GetIterator();
+    return 0;
+  }
+  catch (const exception &e)
+  {
+    ErrorReporter::ReportError(e.what());
+  }
 
-      if (iteratorB.IsValid())
+  return FAILURE;
+}
+
+CAnd::CAnd() :
+  Operator(info, ValueMapping, TypeMapping)
+{
+  SetRequestsArguments();
+}
+
+const OperatorInfo CAnd::info = OperatorInfo(
+  "cand", "tblock x (map tblock longints) x (map tblock longints) -> longints",
+  "_ cand[fun, fun]",
+  "Logical conjunction of two predicate functions over tuple blocks.\n"
+  "Predicate functions are evaluated from left to right.\n",
+  "");
+
+ListExpr CAnd::TypeMapping(ListExpr args)
+{
+  //Expect three arguments
+  if (!nl->HasLength(args, 3))
+  {
+    return GetTypeError("Expected three arguments!");
+  }
+
+  const ListExpr blockType = nl->First(args);
+  if (!TBlockTI::Check(blockType))
+  {
+    return GetTypeError(0, "block", "Isn't a tblock.");
+  }
+
+  //Check 'predicateA' argument
+
+  const ListExpr mapTypeA = nl->Second(args);
+
+  if (!nl->HasMinLength(mapTypeA, 2) ||
+      !nl->IsEqual(nl->First(mapTypeA), Symbols::MAP()))
+  {
+    return GetTypeError(1, "predicateA", "Isn't a map.");
+  }
+
+  if(!nl->HasLength(mapTypeA, 3) ||
+     !nl->Equal(nl->Second(mapTypeA), blockType))
+  {
+    return GetTypeError(1, "predicateA", "Doesn't accept the first argument "
+                        "(block).");
+  }
+
+  if(!LongIntsTI::Check(nl->Third(mapTypeA)))
+  {
+    return GetTypeError(1, "predicateA", "Doesn't evaluate to " +
+                        LongIntsTC::name);
+  }
+
+  const ListExpr mapTypeB = nl->Third(args);
+
+  if (!nl->HasMinLength(mapTypeB, 2) ||
+      !nl->IsEqual(nl->First(mapTypeB), Symbols::MAP()))
+  {
+    return GetTypeError(2, "predicateB", "Isn't a map.");
+  }
+
+  if(!nl->HasLength(mapTypeB, 3) ||
+     !nl->Equal(nl->Second(mapTypeB), blockType))
+  {
+    return GetTypeError(2, "predicateB", "Doesn't accept the first argument "
+                        "(block).");
+  }
+
+  if(!LongIntsTI::Check(nl->Third(mapTypeB)))
+  {
+    return GetTypeError(2, "predicateB", "Doesn't evaluate to " +
+                        LongIntsTC::name);
+  }
+
+  return LongIntsTI(false).GetTypeExpr();
+}
+
+int CAnd::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
+{
+  try
+  {
+    LongInts &indices = qp->ResultStorage<LongInts>(result, s);
+
+    indices.Clear();
+
+    TBlock *block = (TBlock*)qp->Request(args[0].addr).addr;
+
+    Supplier predicateA = args[1].addr;
+
+    (*qp->Argument(predicateA))[0].addr = block;
+
+    Word resultA;
+    qp->Request(predicateA, resultA);
+
+    LongInts &indicesA = *(LongInts*)resultA.addr;
+
+    const size_t countA = indicesA.GetCount();
+
+    if (countA > 0)
+    {
+      SharedArray<size_t> filter(countA);
+
+      size_t i = 0;
+      for (const LongIntEntry &entry : indicesA)
       {
-        int64_t a = iteratorA.Get(),
-          b = iteratorB.Get();
+        filter[i++] = entry.value;
+      }
 
-        do
-        {
-          while (a == b)
-          {
-            setIntersection.Append(a);
+      TBlock *filteredBlock = new TBlock(*block, filter);
 
-            if(!iteratorA.MoveToNext() || !iteratorB.MoveToNext())
-            {
-              return 0;
-            }
+      Supplier predicateB = args[2].addr;
 
-            a = iteratorA.Get();
+      (*qp->Argument(predicateB))[0].addr = filteredBlock;
 
-            b = iteratorB.Get();
-          }
+      Word resultB;
+      qp->Request(predicateB, resultB);
 
-          while (a < b)
-          {
-            if (!iteratorA.MoveToNext())
-            {
-              return 0;
-            }
+      filteredBlock->DecRef();
 
-            a = iteratorA.Get();
-          }
-
-          while (b < a)
-          {
-            if (!iteratorB.MoveToNext())
-            {
-              return 0;
-            }
-
-            b = iteratorB.Get();
-          }
-        }
-        while (true);
+      for (const LongIntEntry &entry : *(LongInts*)resultB.addr)
+      {
+        indices.Append(entry);
       }
     }
 

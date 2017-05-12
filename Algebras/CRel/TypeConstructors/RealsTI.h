@@ -25,26 +25,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include "NestedList.h"
-#include "Operator.h"
+#include <string>
 
 namespace CRelAlgebra
 {
-  namespace Operators
+  class RealsTI
   {
-    /*
-    Operator implementation of the 'ATTRIBUTETYPE' type-operator.
-    This operator determines the type of a attribute-array's entries from the
-    attribute-arrays's type.
-    */
-    class AttributeType : public Operator
-    {
-    public:
-      AttributeType();
+  public:
+    static bool Check(ListExpr typeExpr);
 
-    private:
-      static const OperatorInfo info;
+    static bool Check(ListExpr typeExpr, std::string &error);
 
-      static ListExpr TypeMapping(ListExpr args);
-    };
-  }
+    RealsTI(bool numeric);
+
+    ListExpr GetTypeExpr() const;
+
+  private:
+    bool m_isNumeric;
+  };
 }

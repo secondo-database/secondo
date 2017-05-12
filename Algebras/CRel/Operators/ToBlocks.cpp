@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "LongInt.h"
+#include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "StreamValueMapping.h"
@@ -42,7 +43,6 @@ using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
 using listutils::isStream;
-using listutils::typeError;
 using std::exception;
 using std::string;
 
@@ -69,14 +69,14 @@ ListExpr ToBlocks::TypeMapping(ListExpr args)
 
   if (argCount < 2 || argCount > 3)
   {
-    return typeError("Expected two or three arguments!");
+    return GetTypeError("Expected two or three arguments.");
   }
 
   //First parameter a stream?
   ListExpr stream = nl->First(nl->First(args));
   if (!isStream(stream))
   {
-    return typeError("The first argument (source) isn't a stream!");
+    return GetTypeError(0, "source", "Isn't a stream!");
   }
 
   const ListExpr streamType = GetStreamType(stream),
@@ -88,7 +88,7 @@ ListExpr ToBlocks::TypeMapping(ListExpr args)
   //First parameter a stream of 'tuple'?
   if (!Tuple::checkType(streamType))
   {
-    return typeError("The first argument (source) isn't a stream of 'tuple'.");
+    return GetTypeError(0, "source", "Isn't a stream of tuple.");
   }
 
   if (TBlockTI::Check(secondArgType))
@@ -98,9 +98,9 @@ ListExpr ToBlocks::TypeMapping(ListExpr args)
     if (!nl->Equal(nl->Second(streamType),
                    nl->Second(typeInfo.GetTupleTypeExpr())))
     {
-      return typeError("The types or names of the attributes in the first "
-                       "argument (source) don't match those in the second "
-                       "argument (target template).");
+      return GetTypeError("The types or names of the attributes in the first "
+                          "argument (source) don't match those in the second "
+                          "argument (target template).");
     }
   }
   else
@@ -109,8 +109,8 @@ ListExpr ToBlocks::TypeMapping(ListExpr args)
 
     if (!GetSizeTValue(secondArgType, nl->Second(secondArg), desiredBlockSize))
     {
-      return typeError("The second argument is neither a 'int' or 'longint' "
-                       "(block size) nor a 'tblock' (target template).");
+      return GetTypeError("The second argument is neither a int, longint "
+                          "(block size) nor a tblock (target template).");
     }
 
     ListExpr attributeList = nl->Second(streamType),
@@ -138,7 +138,7 @@ ListExpr ToBlocks::TypeMapping(ListExpr args)
 
   if (argCount > 2 && !CcBool::checkType(nl->First(nl->Third(args))))
   {
-    return typeError("The third argument (persistable) isn't a bool.");
+    return GetTypeError(2, "persistable", "Isn't a bool.");
   }
 
   //Return 'tblock' type

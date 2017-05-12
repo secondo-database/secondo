@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "CRelTI.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
 #include "Project.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
@@ -61,21 +62,19 @@ ListExpr Feed::TypeMapping(ListExpr args)
   //Expect one parameter
   if (!nl->HasLength(args, 1))
   {
-    return listutils::typeError("Expected one argument!");
+    return GetTypeError("Expected one argument.");
   }
 
   ListExpr crelType = nl->First(args);
-  string typeError;
 
   //Check parameter for 'crel' type
-  if (!CRelTI::Check(crelType, typeError))
+  if (!CRelTI::Check(crelType))
   {
-    return listutils::typeError(typeError);
+    return GetTypeError(0, "relation", "Not a crel.");
   }
 
   //Return type is stream of 'tblock'
-  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                         TBlockTI(CRelTI(crelType, false)).GetTypeExpr());
+  return TBlockTI(CRelTI(crelType, false)).GetTypeExpr(true);
 }
 
 //Feed::State-------------------------------------------------------------------

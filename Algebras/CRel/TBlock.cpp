@@ -53,13 +53,14 @@ TBlock::TBlock(const PTBlockInfo &info, SmiFileId columnFileId,
 
 TBlock::TBlock(const PTBlockInfo &info, SmiFileId columnFileId,
                SmiFileId flobFileId, Shared<SmiRecordFile> columnFile) :
-  m_header(0, 0, columnFileId, flobFileId),
+  m_header(0, sizeof(TBlock), columnFileId, flobFileId),
   m_info(info),
   m_columnCount(m_info->columnCount),
   m_recordIds(new SmiRecordId[m_columnCount]),
   m_columns(new AttrArray*[m_columnCount]),
   m_columnFile(columnFileId != 0 ?
     (!columnFile.IsNull() ? columnFile : new SmiRecordFile(false)) : nullptr),
+  m_filter(*this),
   m_refCount(1)
 {
   for (size_t i = 0; i < m_columnCount; i++)
@@ -95,6 +96,7 @@ TBlock::TBlock(const PTBlockInfo &info, const TBlockHeader &header,
   m_columns(new AttrArray*[m_columnCount]),
   m_columnFile(header.columnFileId != 0 ?
     (!columnFile.IsNull() ? columnFile : new SmiRecordFile(false)) : nullptr),
+  m_filter(*this),
   m_refCount(1)
 {
   source.ReadOrThrow((char*)m_recordIds, m_columnCount * sizeof(SmiRecordId));
@@ -105,13 +107,14 @@ TBlock::TBlock(const PTBlockInfo &info, const TBlockHeader &header,
   }
 }
 
-TBlock::TBlock(const TBlock &instance, size_t *columnIndices,
+TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
                size_t columnCount) :
   m_header(instance.m_header),
   m_columnCount(columnCount),
   m_recordIds(new SmiRecordId[columnCount]),
   m_columns(new AttrArray*[columnCount]),
   m_columnFile(instance.m_columnFile),
+  m_filter(*this, instance.m_filter.m_filter),
   m_refCount(1)
 {
   TBlockInfo *info = new TBlockInfo();
@@ -119,12 +122,21 @@ TBlock::TBlock(const TBlock &instance, size_t *columnIndices,
   info->columnTypes = new ListExpr[columnCount];
   info->columnFactories = new AttrArrayManager*[columnCount];
 
+  SharedArray<const size_t> filter = m_filter.m_filter;
+
   for (size_t i = 0; i < columnCount; ++i)
   {
     AttrArray *column = instance.m_columns[columnIndices[i]];
     if (column != nullptr)
     {
-      column->IncRef();
+      if (filter.IsNull())
+      {
+        column->IncRef();
+      }
+      else
+      {
+        column = column->Filter(filter);
+      }
     }
 
     AttrArrayManager *columnManager =
@@ -139,6 +151,81 @@ TBlock::TBlock(const TBlock &instance, size_t *columnIndices,
   }
 
   m_info = info;
+}
+
+TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
+               size_t columnCount, const SharedArray<const size_t> &filter) :
+  m_header(instance.m_header),
+  m_columnCount(columnCount),
+  m_recordIds(new SmiRecordId[columnCount]),
+  m_columns(new AttrArray*[columnCount]),
+  m_columnFile(instance.m_columnFile),
+  m_filter(*this, filter),
+  m_refCount(1)
+{
+  TBlockInfo *info = new TBlockInfo();
+  info->columnCount = columnCount;
+  info->columnTypes = new ListExpr[columnCount];
+  info->columnFactories = new AttrArrayManager*[columnCount];
+
+  for (size_t i = 0; i < columnCount; ++i)
+  {
+    AttrArray *column = instance.m_columns[columnIndices[i]];
+    if (column != nullptr)
+    {
+      if (filter.IsNull())
+      {
+        column->IncRef();
+      }
+      else
+      {
+        column = column->Filter(filter);
+      }
+    }
+
+    AttrArrayManager *columnManager =
+      instance.m_info->columnFactories[columnIndices[i]];
+    columnManager->IncRef();
+
+    m_recordIds[i] = instance.m_recordIds[columnIndices[i]];
+    m_columns[i] = column;
+
+    info->columnTypes[i] = instance.m_info->columnTypes[columnIndices[i]];
+    info->columnFactories[i] = columnManager;
+  }
+
+  m_info = info;
+}
+
+TBlock::TBlock(const TBlock &block, const SharedArray<const size_t> &filter) :
+  m_header(block.m_header),
+  m_info(block.m_info),
+  m_columnCount(block.m_columnCount),
+  m_recordIds(new SmiRecordId[m_columnCount]),
+  m_columns(new AttrArray*[m_columnCount]),
+  m_columnFile(block.m_columnFile),
+  m_filter(*this, filter),
+  m_refCount(1)
+{
+  for (size_t i = 0; i < m_columnCount; ++i)
+  {
+    AttrArray *column = block.m_columns[i];
+
+    if (column != nullptr)
+    {
+      if (filter.IsNull())
+      {
+        column->IncRef();
+      }
+      else
+      {
+        column = column->Filter(filter);
+      }
+    }
+
+    m_recordIds[i] = block.m_recordIds[i];
+    m_columns[i] = column;
+  }
 }
 
 TBlock::~TBlock()
@@ -158,6 +245,11 @@ TBlock::~TBlock()
 const PTBlockInfo &TBlock::GetInfo() const
 {
   return m_info;
+}
+
+const TBlockFilter &TBlock::GetFilter() const
+{
+  return m_filter;
 }
 
 void TBlock::Save(Writer &target, bool includeHeader)
@@ -289,7 +381,7 @@ void TBlock::Append(const AttrArrayEntry* tuple)
 {
   const size_t columnCount = m_columnCount;
 
-  size_t size = 0;
+  size_t size = sizeof(TBlock);
 
   for (size_t i = 0; i < columnCount; i++)
   {
@@ -311,7 +403,7 @@ void TBlock::Append(Attribute** tuple)
 {
   const size_t columnCount = m_columnCount;
 
-  size_t size = 0;
+  size_t size = sizeof(TBlock);
 
   for (size_t i = 0; i < columnCount; i++)
   {
@@ -333,7 +425,7 @@ void TBlock::Append(const TBlockEntry &tuple)
 {
   const size_t columnCount = m_columnCount;
 
-  size_t size = 0;
+  size_t size = sizeof(TBlock);
 
   for (size_t i = 0; i < columnCount; i++)
   {
@@ -355,7 +447,7 @@ void TBlock::Append(const Tuple &tuple)
 {
   const size_t columnCount = m_columnCount;
 
-  size_t size = 0;
+  size_t size = sizeof(TBlock);
 
   for (size_t i = 0; i < columnCount; i++)
   {
@@ -402,50 +494,16 @@ AttrArray &TBlock::GetAt(size_t index) const
 
       SmiReader source(columnRecord, 0);
 
-      /*class RecordFileReader : public Reader
-      {
-      public:
-        RecordFileReader(SmiRecordFile &file, SmiRecordId recordId,
-                         size_t position) :
-          m_file(file),
-          m_recordId(recordId),
-          m_position(position)
-        {
-        }
+      column = m_info->columnFactories[index]->Load(source, m_header);
+    }
 
-        virtual size_t GetPosition()
-        {
-          return m_position;
-        }
+    if (!m_filter.m_filter.IsNull())
+    {
+      AttrArray * filteredColumn = column->Filter(m_filter.m_filter);
 
-        virtual void SetPosition(size_t position)
-        {
-          m_position = position;
-        }
+      column->DecRef();
 
-        virtual bool Read(char *target, size_t count)
-        {
-          size_t read;
-
-          if (m_file.Read(m_recordId, target, count, m_position, read))
-          {
-            m_position += read;
-
-            return read == count;
-          }
-
-          return false;
-        }
-
-      private:
-        SmiRecordFile &m_file;
-
-        SmiRecordId m_recordId;
-
-        size_t m_position;
-      } source = RecordFileReader(*m_columnFile, recordId, 0);*/
-
-      column =  m_info->columnFactories[index]->Load(source, m_header);
+      column = filteredColumn;
     }
 
     m_columns[index] = column;

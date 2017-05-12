@@ -50,14 +50,15 @@ namespace CRelAlgebra
       {
       public:
         State(Supplier stream, Supplier filter, const TBlockTI &blockType,
-              size_t *projection);
+              size_t *projection, double copyLimit);
 
         ~State();
 
         TBlock *Request();
 
       private:
-        TBlock *m_sourceBlock;
+        TBlock *m_sourceBlock,
+          *m_targetBlock;
 
         LongInts *m_filteredIndices;
 
@@ -74,6 +75,8 @@ namespace CRelAlgebra
         const PTBlockInfo m_blockInfo;
 
         const size_t * const m_projection;
+
+        const double m_copyLimit;
       };
 
       static const OperatorInfo info;

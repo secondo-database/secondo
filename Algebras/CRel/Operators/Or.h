@@ -45,5 +45,19 @@ namespace CRelAlgebra
       static int ValueMapping(ArgVector args, Word &result, int message,
                               Word &local, Supplier s);
     };
+
+    class COr : public Operator
+    {
+    public:
+      COr();
+
+    private:
+      static const OperatorInfo info;
+
+      static ListExpr TypeMapping(ListExpr args);
+
+      static int ValueMapping(ArgVector args, Word &result, int message,
+                              Word &local, Supplier s);
+    };
   }
 }

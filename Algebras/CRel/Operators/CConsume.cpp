@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "LongInt.h"
+#include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include "RelationAlgebra.h"
 #include "StandardTypes.h"
@@ -45,7 +46,6 @@ using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
 using listutils::isStream;
-using listutils::typeError;
 using std::exception;
 using std::string;
 
@@ -88,14 +88,14 @@ ListExpr CConsume::TypeMapping(ListExpr args)
 
   if (argCount < 2 || argCount > 3)
   {
-    return typeError("Expected two or three arguments!");
+    return GetTypeError("Expected two or three arguments.");
   }
 
   //First parameter a stream?
   ListExpr stream = nl->First(nl->First(args));
   if (!isStream(stream))
   {
-    return typeError("The first argument (source) isn't a stream!");
+    return GetTypeError(0, "source", "Isn't a stream.");
   }
 
   const ListExpr streamType = GetStreamType(stream),
@@ -109,8 +109,7 @@ ListExpr CConsume::TypeMapping(ListExpr args)
   //First parameter a stream of 'tuple'?
   if (!sourceIsBlockStream && !Tuple::checkType(streamType))
   {
-    return typeError("The first argument (source) isn't a stream of 'tuple' or "
-                     "'tblock'.");
+    return GetTypeError(0, "source", "Isn't a stream of type tuple or tblock.");
   }
 
   if (CRelTI::Check(secondArgType))
@@ -126,20 +125,20 @@ ListExpr CConsume::TypeMapping(ListExpr args)
     {
       if (sourceIsBlockStream)
       {
-        return typeError("The attribute types or names of the columns in the "
-                         "first argument (source) don't match those in the "
-                         "second argument (target template).");
+        return GetTypeError("Attribute types or names of the columns in the "
+                            "first argument (source) don't match those in the "
+                            "second argument (target template).");
       }
 
-      return typeError("The types or names of the attributes in the first "
-                       "argument (source) don't match those in the second "
-                       "argument (target template).");
+      return GetTypeError("The types or names of the attributes in the first "
+                          "argument (source) don't match those in the second "
+                          "argument (target template).");
     }
 
     if (argCount > 2)
     {
-      return typeError("Expected two arguments because the second argument "
-                       "is a 'crel' (target template).");
+      return GetTypeError("Expected two arguments because the second argument "
+                          "is of type crel (target template).");
     }
   }
   else
@@ -148,8 +147,8 @@ ListExpr CConsume::TypeMapping(ListExpr args)
 
     if (!GetSizeTValue(secondArgType, nl->Second(secondArg), desiredBlockSize))
     {
-      return typeError("The second argument is neither a 'int' or 'longint' "
-                       "(block size) nor a 'crel' (target template).");
+      return GetTypeError(1, "Neither of type int, longint (block size) nor "
+                          "crel (target template).");
     }
 
     size_t cacheSize;
@@ -166,8 +165,7 @@ ListExpr CConsume::TypeMapping(ListExpr args)
                          cacheSize) ||
           cacheSize == 0)
       {
-        return typeError("The third argument (cache size) isn't a 'int' or"
-                         "'longint' > 0.");
+        return GetTypeError(2, "cache size", "Isn't a int or longint > 0.");
       }
     }
 
@@ -216,8 +214,7 @@ ListExpr CConsume::TypeMapping(ListExpr args)
 
 int CConsume::SelectValueMapping(ListExpr args)
 {
-  string typeError;
-  if (TBlockTI::Check(GetStreamType(nl->First(args)), typeError))
+  if (TBlockTI::Check(nl->First(args)))
   {
     return 0;
   }
@@ -238,7 +235,7 @@ int CConsume::TBlockValueMapping(Word* args, Word &result, int, Word&,
 
     while ((block = stream.request()) != nullptr)
     {
-      for (const TBlockEntry &tuple : *block)
+      for (const TBlockEntry &tuple : block->GetFilter())
       {
         relation.Append(tuple);
       }

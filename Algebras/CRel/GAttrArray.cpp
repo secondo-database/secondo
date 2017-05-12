@@ -67,9 +67,9 @@ GAttrArray::GAttrArray(const PGAttrArrayInfo &info, SmiFileId flobFileId) :
   m_header(0, flobFileId),
   m_info(info),
   m_capacity(0),
-  m_size(0),
-  m_attributeData(nullptr),
-  m_attributeDataEnd(nullptr)
+  m_size(sizeof(GAttrArray)),
+  m_attributes(nullptr),
+  m_attributesEnd(nullptr)
 {
 }
 
@@ -83,12 +83,8 @@ GAttrArray::GAttrArray(const PGAttrArrayInfo &info, Reader &source,
   m_header(header),
   m_info(info),
   m_capacity(m_header.count),
-  m_size(sizeof(GAttrArray) +
-         (m_header.count * (info->attributeSize + sizeof(char)))),
-  m_attributeData(m_header.count > 0 ?
-                  new char[info->attributeSize * m_header.count] : nullptr),
-  m_attributeDataEnd(m_header.count > 0 ?
-    m_attributeData + (info->attributeSize * m_header.count) : nullptr)
+  m_size(sizeof(GAttrArray) + (m_header.count * info->attributeSize)),
+  m_data(m_header.count * info->attributeSize)
 {
   const size_t count = m_header.count;
 
@@ -96,12 +92,15 @@ GAttrArray::GAttrArray(const PGAttrArrayInfo &info, Reader &source,
   {
     const size_t attributeSize = info->attributeSize;
 
-    source.ReadOrThrow(m_attributeData, attributeSize * count);
+    m_attributes = m_data.GetPointer();
+    m_attributesEnd = m_attributes + (attributeSize * count);
+
+    source.ReadOrThrow(m_attributes, attributeSize * count);
 
     ObjectCast cast = m_info->attributeCastFunction;
 
-    char *attribute = m_attributeData,
-      *end = m_attributeDataEnd;
+    char *attribute = m_attributes,
+      *end = m_attributesEnd;
 
     while (attribute < end)
     {
@@ -110,12 +109,29 @@ GAttrArray::GAttrArray(const PGAttrArrayInfo &info, Reader &source,
       attribute += attributeSize;
     }
   }
+  else
+  {
+    m_attributes = nullptr;
+    m_attributesEnd = nullptr;
+  }
+}
+
+GAttrArray::GAttrArray(const GAttrArray &array,
+                       const SharedArray<const size_t> &filter) :
+  AttrArray(filter),
+  m_header(array.m_header),
+  m_info(array.m_info),
+  m_capacity(array.m_capacity),
+  m_size(array.m_size),
+  m_data(array.m_data),
+  m_attributes(array.m_attributes),
+  m_attributesEnd(array.m_attributesEnd)
+{
 }
 
 GAttrArray::~GAttrArray()
 {
   const size_t count = m_header.count;
-  char * const attributeData = m_attributeData;
 
   if (count > 0)
   {
@@ -126,27 +142,28 @@ GAttrArray::~GAttrArray()
 
     if (flobCount > 0)
     {
-      char *currentAttributeData = attributeData,
-           *attributeDataEnd = currentAttributeData + (count * attributeSize);
+      char *currentAttribute = m_attributes,
+           *attributesEnd = m_attributesEnd;
 
-      while (currentAttributeData < attributeDataEnd)
+      while (currentAttribute < attributesEnd)
       {
-        Attribute *attribute = (Attribute*)currentAttributeData;
+        Attribute *attribute = (Attribute*)currentAttribute;
 
         for (size_t i = 0; i < flobCount; i++)
         {
           attribute->GetFLOB(i)->~Flob();
         }
 
-        currentAttributeData += attributeSize;
+        currentAttribute += attributeSize;
       }
     }
   }
+}
 
-  if (attributeData != nullptr)
-  {
-    delete[] attributeData;
-  }
+
+AttrArray *GAttrArray::Filter(const SharedArray<const size_t> filter) const
+{
+  return new GAttrArray(*this, filter);
 }
 
 const PGAttrArrayInfo &GAttrArray::GetInfo() const
@@ -175,7 +192,7 @@ void GAttrArray::Save(Writer &target, bool includeHeader) const
 
   if (count > 0)
   {
-    target.WriteOrThrow(m_attributeData, count * m_info->attributeSize);
+    target.WriteOrThrow(m_attributes, count * m_info->attributeSize);
   }
 }
 
@@ -198,8 +215,8 @@ void GAttrArray::DeleteRecords()
     {
       const size_t attributeSize = info.attributeSize;
 
-      char *currentAttributeData = m_attributeData,
-        *attributeDataEnd = m_attributeDataEnd;
+      char *currentAttributeData = m_attributes,
+        *attributeDataEnd = m_attributesEnd;
 
       while (currentAttributeData < attributeDataEnd)
       {
@@ -240,37 +257,33 @@ void GAttrArray::Append(Attribute &value)
     {
       capacity = 1;
 
-      attributeData = m_attributeData = new char[attributeSize];
+      attributeData = m_attributes = new char[attributeSize];
+      attributeDataEnd = m_attributesEnd = attributeData;
 
-      attributeDataEnd = m_attributeDataEnd = attributeData;
+      m_data = SharedArray<char>(attributeData, attributeSize);
     }
     else
     {
-      const size_t newCapacity = capacity * 2;
+      const size_t oldByteCapacity = capacity * attributeSize,
+        byteCapacity = oldByteCapacity + oldByteCapacity;
 
-      attributeData = new char[newCapacity * attributeSize];
+      capacity += capacity;
 
-      attributeDataEnd = m_attributeDataEnd =
-        attributeData + (capacity * attributeSize);
-
-      char *oldAttributeData = m_attributeData;
+      attributeData = m_attributes = new char[byteCapacity];
+      attributeDataEnd = m_attributesEnd = attributeData + oldByteCapacity;
 
       //copy existing values
-      memcpy(attributeData, oldAttributeData, capacity * attributeSize);
+      memcpy(attributeData, m_data.GetPointer(), oldByteCapacity);
 
-      delete[] oldAttributeData;
-
-      capacity = newCapacity;
-
-      m_attributeData = attributeData;
+      m_data = SharedArray<char>(attributeData, byteCapacity);
     }
 
     m_capacity = capacity;
   }
   else
   {
-    attributeData = m_attributeData;
-    attributeDataEnd = m_attributeDataEnd;
+    attributeData = m_attributes;
+    attributeDataEnd = m_attributesEnd;
   }
 
   Attribute *attribute = (Attribute*)attributeDataEnd;
@@ -318,7 +331,7 @@ void GAttrArray::Append(Attribute &value)
   ++m_header.count;
 
   m_size += attributeSize;
-  m_attributeDataEnd += attributeSize;
+  m_attributesEnd += attributeSize;
 }
 
 void GAttrArray::Remove()
@@ -336,7 +349,7 @@ void GAttrArray::Remove()
   {
     const size_t attributeSize = info.attributeSize;
 
-    Attribute *attribute = (Attribute*)(m_attributeDataEnd -= attributeSize);
+    Attribute *attribute = (Attribute*)(m_attributesEnd -= attributeSize);
 
     for (size_t i = 0; i < flobCount; i++)
     {
@@ -357,20 +370,20 @@ void GAttrArray::Clear()
 
     m_header.count = 0;
 
-    m_attributeDataEnd = m_attributeData;
+    m_attributesEnd = m_attributes;
 
-    m_size = 0;
+    m_size = sizeof(GAttrArray);
   }
 }
 
 Attribute &GAttrArray::GetAt(size_t row) const
 {
-  return *(Attribute*)(m_attributeData + (row * m_info->attributeSize));
+  return *(Attribute*)(m_attributes + (row * m_info->attributeSize));
 }
 
 Attribute &GAttrArray::operator[](size_t row) const
 {
-  return *(Attribute*)(m_attributeData + (row * m_info->attributeSize));
+  return *(Attribute*)(m_attributes + (row * m_info->attributeSize));
 }
 
 bool GAttrArray::IsDefined(size_t row) const
@@ -471,6 +484,20 @@ GSpatialAttrArray<dim>::GSpatialAttrArray(const PGAttrArrayInfo &info,
                                           const GAttrArrayHeader &header) :
   m_array(info, source, header)
 {
+}
+
+template<int dim>
+GSpatialAttrArray<dim>::GSpatialAttrArray(const GSpatialAttrArray &array,
+  const SharedArray<const size_t> &filter) :
+  m_array(array.m_array, filter)
+{
+}
+
+template<int dim>
+AttrArray *GSpatialAttrArray<dim>::Filter(
+  const SharedArray<const size_t> filter) const
+{
+  return new GSpatialAttrArray<dim>(*this, filter);
 }
 
 template<int dim>

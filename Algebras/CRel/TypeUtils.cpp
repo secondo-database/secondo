@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace CRelAlgebra;
 
 using listutils::emptyErrorInfo;
+using listutils::isStream;
 using std::max;
 using std::string;
 
@@ -232,9 +233,11 @@ void CRelAlgebra::ResolveTypeOrThrow(const ListExpr typeExpr, string &name,
   }
 }
 
-ListExpr CRelAlgebra::GetStreamType(const ListExpr typeExpr)
+ListExpr CRelAlgebra::GetStreamType(const ListExpr typeExpr,
+                                    bool allowNonStream)
 {
-  return nl->Second(typeExpr);
+  return (allowNonStream && !isStream(typeExpr)) ? typeExpr :
+                                                   nl->Second(typeExpr);
 }
 
 ListExpr CRelAlgebra::GetNumericType(const string &name)

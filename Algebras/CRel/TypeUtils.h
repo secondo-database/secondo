@@ -46,7 +46,7 @@ namespace CRelAlgebra
   void ResolveTypeOrThrow(const ListExpr typeExpr, std::string &name,
                           int &algebraId, int &typeId);
 
-  ListExpr GetStreamType(const ListExpr typeExpr);
+  ListExpr GetStreamType(const ListExpr typeExpr, bool allowNonStream = false);
 
   ListExpr GetNumericType(const std::string &name);
 

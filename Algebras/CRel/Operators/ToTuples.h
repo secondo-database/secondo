@@ -35,16 +35,18 @@ namespace CRelAlgebra
 {
   namespace Operators
   {
-    class TransformStream : public Operator
+    class ToTuples : public Operator
     {
     public:
-      TransformStream();
+      ToTuples();
 
     private:
       class State
       {
       public:
         State(ArgVector args, Supplier s);
+
+        ~State();
 
         Tuple *Request();
 
@@ -53,7 +55,7 @@ namespace CRelAlgebra
 
         TBlock *m_block;
 
-        TBlockIterator m_blockIterator;
+        FilteredTBlockIterator m_blockIterator;
 
         TupleType *m_tupleType;
       };

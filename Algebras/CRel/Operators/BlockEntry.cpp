@@ -22,54 +22,58 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "AttributeType.h"
+#include "BlockEntry.h"
 
 #include "AttrArray.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
 #include "Symbols.h"
+#include "TBlockTI.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
-using listutils::isStream;
-
 extern NestedList *nl;
 
-AttributeType::AttributeType() :
+BlockEntry::BlockEntry() :
   Operator(info, nullptr, TypeMapping)
 {
 }
 
-const OperatorInfo AttributeType::info = OperatorInfo(
-  "ATTRIBUTETYPE", "ATTRARRAY -> DATA",
+const OperatorInfo BlockEntry::info = OperatorInfo(
+  "BLOCKENTRY", "ATTRARRAY -> DATA or tblock -> tuple",
   "type operator",
-  "Determines the attribute type of the entries of a attribute array.",
+  "Determines the attribute type of the entries of a (stream of) attribute "
+  "array or the tuple type of a (stream of) tuple block.",
   "Not for use with sos-syntax");
 
-ListExpr AttributeType::TypeMapping(ListExpr args)
+ListExpr BlockEntry::TypeMapping(ListExpr args)
 {
-  if(nl->IsEmpty(args))
+  if(!nl->HasLength(args, 1))
   {
-    return listutils::typeError("Expected at least one argument.");
+    return GetTypeError("Expected one argument.");
   }
 
-  const ListExpr arg = nl->First(args);
+  ListExpr arg = nl->First(args);
 
-  if (isStream(arg))
+  if (TBlockTI::Check(arg))
   {
-    //Recursion if stream-type
-    return TypeMapping(GetStreamType(arg));
+    return TBlockTI(arg, false).GetTupleTypeExpr();
   }
 
-  if (!CheckKind(Kind::ATTRARRAY(), arg))
+  //Either stream or nonstream
+  arg = GetStreamType(arg, true);
+
+  TypeConstructor *constructor = GetTypeConstructor(arg);
+
+  if (constructor != nullptr && constructor->MemberOf(Kind::ATTRARRAY()))
   {
-    return listutils::typeError("Expected argument of kind ATTRARRAY.");
+    //Return Attribute-Type
+    return ((AttrArrayTypeConstructor*)constructor)->GetAttributeType(arg,
+                                                                      false);
   }
 
-  AttrArrayTypeConstructor &constructor =
-    (AttrArrayTypeConstructor&)*GetTypeConstructor(arg);
-
-  //Return Attribute-Type
-  return constructor.GetAttributeType(arg, false);
+  return GetTypeError(0, "type", "Not (stream) of type tblock or kind "
+                      "ATTRARRAY.");
 }

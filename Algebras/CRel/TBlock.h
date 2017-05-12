@@ -35,9 +35,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace CRelAlgebra
 {
+  class TBlock;
   class TBlockInfo;
   class TBlockEntry;
   class TBlockIterator;
+  class FilteredTBlockIterator;
 
   typedef Shared<const TBlockInfo> PTBlockInfo;
 
@@ -62,6 +64,47 @@ namespace CRelAlgebra
             SmiFileId flobFileId);
 
     operator AttrArrayHeader() const;
+  };
+
+  class TBlockFilter
+  {
+  public:
+    TBlockFilter(const TBlock &block) :
+      m_block(&block)
+    {
+    }
+
+    TBlockFilter(const TBlock &block,
+                 const SharedArray<const size_t> &filter) :
+      m_block(&block),
+      m_filter(filter)
+    {
+    }
+
+    size_t GetAt(size_t row) const
+    {
+      return m_filter.IsNull() ? row : m_filter[row];
+    }
+
+    size_t operator [] (size_t row) const
+    {
+      return m_filter.IsNull() ? row : m_filter[row];
+    }
+
+    size_t GetRowCount() const;
+
+    FilteredTBlockIterator GetIterator() const;
+
+    FilteredTBlockIterator begin() const;
+
+    FilteredTBlockIterator end() const;
+
+  protected:
+    friend class TBlock;
+
+    const TBlock * const m_block;
+
+    const SharedArray<const size_t> m_filter;
   };
 
   /*
@@ -139,7 +182,13 @@ namespace CRelAlgebra
     God knows what might happen if one trys to actually modify or save it.
 
     */
-    TBlock(const TBlock &block, size_t *columnIndices, size_t columnCount);
+    TBlock(const TBlock &block, const size_t *columnIndices,
+           size_t columnCount);
+
+    TBlock(const TBlock &block, const size_t *columnIndices, size_t columnCount,
+           const SharedArray<const size_t> &filter);
+
+    TBlock(const TBlock &block, const SharedArray<const size_t> &filter);
 
     virtual ~TBlock();
 
@@ -148,6 +197,8 @@ namespace CRelAlgebra
 
     */
     const PTBlockInfo &GetInfo() const;
+
+    const TBlockFilter &GetFilter() const;
 
     /*
     Writes this ~TBlock~ into the specified ~target~ either with or without
@@ -238,6 +289,8 @@ namespace CRelAlgebra
     */
     TBlockIterator GetIterator() const;
 
+    FilteredTBlockIterator GetFilteredIterator() const;
+
     /*
     ~TBlockIterator~s used (only!) for range-loop support.
 
@@ -280,10 +333,17 @@ namespace CRelAlgebra
 
     mutable Shared<SmiRecordFile> m_columnFile;
 
+    TBlockFilter m_filter;
+
     mutable size_t m_refCount;
 
     TBlock(const TBlock&) = delete;
   };
+
+  inline size_t TBlockFilter::GetRowCount() const
+  {
+    return m_filter.IsNull() ? m_block->GetRowCount() : m_filter.GetCapacity();
+  }
 
   /*
   Class used to configure a ~TBlock~'s columns.
@@ -338,6 +398,16 @@ namespace CRelAlgebra
     {
     }
 
+    size_t GetRow() const
+    {
+      return m_row;
+    }
+
+    const TBlock *GetBlock() const
+    {
+      return m_block;
+    }
+
     const AttrArrayEntry operator[](size_t index) const
     {
       return AttrArrayEntry(&m_block->GetAt(index), m_row);
@@ -359,6 +429,7 @@ namespace CRelAlgebra
     size_t m_row;
 
     friend class TBlockIterator;
+    friend class FilteredTBlockIterator;
   };
 
   /*
@@ -442,4 +513,109 @@ namespace CRelAlgebra
 
     size_t m_rowCount;
   };
+
+  class FilteredTBlockIterator
+  {
+  public:
+    FilteredTBlockIterator() :
+      m_filter(nullptr),
+      m_rowCount(0),
+      m_row(0),
+      m_tuple(nullptr, 0)
+    {
+    }
+
+    FilteredTBlockIterator(const TBlock *block) :
+      m_filter(block != nullptr ? &block->GetFilter() : nullptr),
+      m_rowCount(m_filter != nullptr ? m_filter->GetRowCount() : 0),
+      m_row(0),
+      m_tuple(block, m_rowCount > 0 ? m_filter->GetAt(0) : 0)
+    {
+    }
+
+    bool IsValid() const
+    {
+      return m_row < m_rowCount;
+    }
+
+    const TBlockEntry &Get() const
+    {
+      return m_tuple;
+    }
+
+    bool MoveToNext()
+    {
+      if (m_row < m_rowCount)
+      {
+        if (++m_row < m_rowCount)
+        {
+          m_tuple.m_row = m_filter->GetAt(m_row);
+
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    const TBlockEntry &operator * () const
+    {
+      return Get();
+    }
+
+    FilteredTBlockIterator &operator ++ ()
+    {
+      MoveToNext();
+
+      return *this;
+    }
+
+    bool operator == (const FilteredTBlockIterator &other) const
+    {
+      return !(*this != other);
+    }
+
+    bool operator != (const FilteredTBlockIterator &other) const
+    {
+      if (IsValid())
+      {
+        if (other.IsValid())
+        {
+          return m_tuple == other.m_tuple;
+        }
+
+        return true;
+      }
+
+      return other.IsValid();
+    }
+
+  private:
+    const TBlockFilter * m_filter;
+
+    size_t m_rowCount,
+      m_row;
+
+    TBlockEntry m_tuple;
+  };
+
+  inline FilteredTBlockIterator TBlockFilter::GetIterator() const
+  {
+    return FilteredTBlockIterator(m_block);
+  }
+
+  inline FilteredTBlockIterator TBlockFilter::begin() const
+  {
+    return FilteredTBlockIterator(m_block);
+  }
+
+  inline FilteredTBlockIterator TBlockFilter::end() const
+  {
+    return FilteredTBlockIterator();
+  }
+
+  inline FilteredTBlockIterator TBlock::GetFilteredIterator() const
+  {
+    return FilteredTBlockIterator(this);
+  }
 }

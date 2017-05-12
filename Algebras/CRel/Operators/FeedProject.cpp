@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "CRelTI.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
 #include "Project.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
@@ -60,31 +61,26 @@ ListExpr FeedProject::TypeMapping(ListExpr args)
 {
   if (!nl->HasLength(args, 2))
   {
-    return listutils::typeError("Expected two arguments!");
+    return GetTypeError("Expected two arguments.");
   }
 
   const ListExpr crelType = nl->First(args);
-  string crelTypeError;
 
-  if (!CRelTI::Check(crelType, crelTypeError))
+  if (!CRelTI::Check(crelType))
   {
-    return listutils::typeError(crelTypeError);
+    return GetTypeError(0, "relation", "Not a crel.");
   }
 
   const Project::Info info(CRelTI(crelType, false), nl->Second(args));
 
   if (info.HasError())
   {
-    return listutils::typeError("Error in second argument (column names): " +
-                                info.GetError());
+    return GetTypeError(1, "column names", info.GetError());
   }
-
-  const ListExpr projectedBlockType = info.GetBlockTypeInfo().GetTypeExpr();
 
   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
                            info.GetIndicesExpr(),
-                           nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                           projectedBlockType));
+                           info.GetBlockTypeInfo().GetTypeExpr(true));
 }
 
 //FeedProject::State------------------------------------------------------------

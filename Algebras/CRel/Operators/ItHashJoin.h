@@ -101,7 +101,7 @@ namespace CRelAlgebra
 
         bool m_isBExhausted;
 
-        TBlockIterator m_blockAIterator;
+        FilteredTBlockIterator m_blockAIterator;
 
         Stream<TBlock> m_streamA,
           m_streamB;

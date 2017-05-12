@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <algorithm>
 #include "ListExprUtils.h"
-#include "ListUtils.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
 #include "Project.h"
@@ -40,9 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
-using namespace listutils;
 
-using listutils::isStream;
 using std::copy;
 using std::set;
 using std::string;
@@ -99,7 +96,7 @@ ListExpr ItHashJoin::TypeMapping(ListExpr args)
 
   if (argCount < 4 || argCount > 8)
   {
-    return listutils::typeError("Expected four to seven arguments.");
+    return GetTypeError("Expected four to seven arguments.");
   }
 
   //Check 'stream a' argument
@@ -154,6 +151,12 @@ ListExpr ItHashJoin::TypeMapping(ListExpr args)
   {
     return GetTypeError(3, "column-name b",
                         "Colum named '" + nameB + "' not found.");
+  }
+
+  if (!nl->Equal(blockAInfo.columnInfos[nameAIndex].type,
+                 blockBInfo.columnInfos[nameBIndex].type))
+  {
+    return GetTypeError("The columns to join on have different types.");
   }
 
   //Initialize the result type from both block-types
@@ -264,8 +267,7 @@ ListExpr ItHashJoin::TypeMapping(ListExpr args)
   }
 
   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()), appendArgs,
-                           nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                           resultBlockInfo.GetTypeExpr()));
+                           resultBlockInfo.GetTypeExpr(true));
 }
 
 int ItHashJoin::SelectValueMapping(ListExpr args)
@@ -450,7 +452,7 @@ TBlock *ItHashJoin::State<project>::Request()
       }
     }
 
-    m_blockAIterator = m_blockA->GetIterator();
+    m_blockAIterator = m_blockA->GetFilteredIterator();
 
     if (m_blockAIterator.IsValid())
     {
@@ -505,7 +507,7 @@ TBlock *ItHashJoin::State<project>::Request()
             }
           }
 
-          m_blockAIterator = m_blockA->GetIterator();
+          m_blockAIterator = m_blockA->GetFilteredIterator();
         }
         while (!m_blockAIterator.IsValid());
       }
@@ -596,7 +598,7 @@ bool ItHashJoin::State<project>::ProceedStreamB()
 
   if (!m_isBExhausted)
   {
-    size_t size = 0,
+    size_t size = sizeof(ItHashJoin::State<project>),
       lastBlockSize = 0;
 
     do
@@ -612,7 +614,7 @@ bool ItHashJoin::State<project>::ProceedStreamB()
       {
         m_blocksB.push_back(block);
 
-        for (const TBlockEntry &tuple : *block)
+        for (const TBlockEntry &tuple : block->GetFilter())
         {
           m_map.Add(tuple[m_joinIndexB], tuple);
         }

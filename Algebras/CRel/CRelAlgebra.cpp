@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/And.h"
 #include "Operators/ApplyPredicate.h"
 #include "Operators/Attr.h"
-#include "Operators/AttributeType.h"
+#include "Operators/BlockEntry.h"
 #include "Operators/BlockCount.h"
 #include "Operators/Consume.h"
 #include "Operators/CConsume.h"
@@ -46,7 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/Rename.h"
 #include "Operators/Repeat.h"
 #include "Operators/ToBlocks.h"
-#include "Operators/TransformStream.h"
+#include "Operators/ToTuples.h"
 #include "QueryProcessor.h"
 #include "TypeConstructors/CRelTC.h"
 #include "TypeConstructors/DisplayLongInts.h"
@@ -56,6 +56,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TypeConstructors/GSpatialAttrArrayTC.h"
 #include "TypeConstructors/IntsTC.h"
 #include "TypeConstructors/LongIntsTC.h"
+#include "TypeConstructors/RealsTC.h"
+#include "TypeConstructors/StringsTC.h"
+#include "TypeConstructors/TextsTC.h"
 #include "TypeConstructors/TBlockTC.h"
 
 extern NestedList *nl;
@@ -95,13 +98,20 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
 
       AddTypeConstructor(new LongIntsTC(), true);
 
+      AddTypeConstructor(new RealsTC(), true);
+
+      AddTypeConstructor(new StringsTC(), true);
+
+      AddTypeConstructor(new TextsTC(), true);
+
+      AddOperator(new CAnd(), true);
       AddOperator(new And(), true);
 
       AddOperator(new ApplyPredicate(), true);
 
       AddOperator(new Attr(), true);
 
-      AddOperator(new Operators::AttributeType(), true);
+      AddOperator(new Operators::BlockEntry(), true);
 
       AddOperator(new BlockCount(), true);
 
@@ -137,6 +147,7 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
 
       AddOperator(new Not(), true);
 
+      AddOperator(new COr(), true);
       AddOperator(new Or(), true);
 
       AddOperator(new Project(), true);
@@ -147,7 +158,7 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
 
       AddOperator(new ToBlocks(), true);
 
-      AddOperator(new TransformStream(), true);
+      AddOperator(new ToTuples(), true);
     }
   };
 

@@ -39,8 +39,8 @@ extern QueryProcessor *qp;
 namespace CRelAlgebra
 {
   inline std::string GetTypeErrorString(size_t argumentIndex,
-                                 const std::string argumentName,
-                                 const std::string error)
+                                 const std::string &argumentName,
+                                 const std::string &error)
   {
     static const std::string numberStrings[] =
     {
@@ -53,7 +53,7 @@ namespace CRelAlgebra
   }
 
   inline std::string GetTypeErrorString(size_t argumentIndex,
-                                        const std::string error)
+                                        const std::string &error)
   {
     static const std::string numberStrings[] =
     {
@@ -64,17 +64,49 @@ namespace CRelAlgebra
     return numberStrings[argumentIndex] + " argument is not valid: " + error;
   }
 
+  inline ListExpr GetTypeError(const std::string &error)
+  {
+    return listutils::typeError(error);
+  }
+
   inline ListExpr GetTypeError(size_t argumentIndex,
-                               const std::string argumentName,
-                               const std::string error)
+                               const std::string &argumentName,
+                               const std::string &error)
   {
     return listutils::typeError(GetTypeErrorString(argumentIndex, argumentName,
                                                    error));
   }
 
-  inline ListExpr GetTypeError(size_t argumentIndex, const std::string error)
+  inline ListExpr GetTypeError(size_t argumentIndex, const std::string &error)
   {
     return listutils::typeError(GetTypeErrorString(argumentIndex, error));
+  }
+
+  inline bool IsBlockStream(ListExpr typeExpr, std::string &error)
+  {
+    if (listutils::isStream(typeExpr))
+    {
+      if (TBlockTI::Check(GetStreamType(typeExpr)))
+      {
+        return true;
+      }
+      else
+      {
+        error = "Not a stream of tblock.";
+      }
+    }
+    else
+    {
+      error = "Not a stream.";
+    }
+
+    return false;
+  }
+
+  inline bool IsBlockStream(ListExpr typeExpr)
+  {
+    std::string error;
+    return IsBlockStream(typeExpr, error);
   }
 
   inline bool IsBlockStream(ListExpr typeExpr, ListExpr &blockType,

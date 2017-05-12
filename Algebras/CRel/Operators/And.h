@@ -57,5 +57,19 @@ namespace CRelAlgebra
       static int ValueMapping(ArgVector args, Word &result, int message,
                               Word &local, Supplier s);
     };
+
+    class CAnd : public Operator
+    {
+    public:
+      CAnd();
+
+    private:
+      static const OperatorInfo info;
+
+      static ListExpr TypeMapping(ListExpr args);
+
+      static int ValueMapping(ArgVector args, Word &result, int message,
+                              Word &local, Supplier s);
+    };
   }
 }

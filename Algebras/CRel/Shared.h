@@ -68,6 +68,25 @@ namespace CRelAlgebra
       }
     }
 
+    template<class F>
+    Shared(const Shared<F> &instance) :
+      m_instance(instance.m_instance),
+      m_refCount(instance.m_refCount)
+    {
+      if (m_instance != nullptr)
+      {
+        if (m_refCount == nullptr)
+        {
+          m_refCount = new size_t(2);
+          instance.m_refCount = m_refCount;
+        }
+        else
+        {
+          ++*m_refCount;
+        }
+      }
+    }
+
     ~Shared()
     {
       if (m_instance != nullptr)
@@ -132,19 +151,7 @@ namespace CRelAlgebra
     template<class F>
     operator Shared<F>()
     {
-      if (m_instance != nullptr)
-      {
-        if (m_refCount == nullptr)
-        {
-          m_refCount = new size_t(2);
-        }
-        else
-        {
-          ++*m_refCount;
-        }
-      }
-
-      return Shared<F>(m_instance, m_refCount);
+      return Shared<F>(*this);
     }
 
   private:
@@ -154,12 +161,6 @@ namespace CRelAlgebra
     T *m_instance;
 
     mutable size_t *m_refCount;
-
-    Shared(T *instance, size_t *refCount) :
-      m_instance(instance),
-      m_refCount(refCount)
-    {
-    }
   };
 
   template <class T>
@@ -169,21 +170,21 @@ namespace CRelAlgebra
     SharedArray() :
       m_instance(nullptr),
       m_capacity(0),
-      m_refCount(new size_t(1))
+      m_refCount(nullptr)
     {
     };
 
     SharedArray(size_t capacity) :
       m_instance(capacity > 0 ? new T[capacity] : nullptr),
       m_capacity(capacity),
-      m_refCount(new size_t(1))
+      m_refCount(nullptr)
     {
     };
 
     SharedArray(T *instance, size_t capacity) :
       m_instance(instance),
       m_capacity(capacity),
-      m_refCount(new size_t(1))
+      m_refCount(nullptr)
     {
     };
 
@@ -192,12 +193,42 @@ namespace CRelAlgebra
       m_capacity(instance.m_capacity),
       m_refCount(instance.m_refCount)
     {
-      ++*m_refCount;
+      if (m_refCount != nullptr)
+      {
+        ++*m_refCount;
+      }
+      else
+      {
+        m_refCount = instance.m_refCount = new size_t(2);
+      }
+    }
+
+    template<class F>
+    SharedArray(const SharedArray<F> &instance) :
+      m_instance(instance.m_instance),
+      m_capacity(instance.m_capacity),
+      m_refCount(instance.m_refCount)
+    {
+      if (m_refCount != nullptr)
+      {
+        ++*m_refCount;
+      }
+      else
+      {
+        m_refCount = instance.m_refCount = new size_t(2);
+      }
     }
 
     ~SharedArray()
     {
-      if (*m_refCount == 1)
+      if (m_refCount == nullptr)
+      {
+        if (m_instance != nullptr)
+        {
+          delete[] m_instance;
+        }
+      }
+      else if (*m_refCount == 1)
       {
         if (m_instance != nullptr)
         {
@@ -208,7 +239,7 @@ namespace CRelAlgebra
       }
       else
       {
-        (*m_refCount)--;
+        --*m_refCount;
       }
     };
 
@@ -242,7 +273,7 @@ namespace CRelAlgebra
 
     operator SharedArray<const T>()
     {
-      return SharedArray<const T>(m_instance, m_refCount, m_capacity);
+      return SharedArray<const T>(*this);
     }
 
   private:
@@ -253,14 +284,6 @@ namespace CRelAlgebra
 
     size_t m_capacity;
 
-    size_t *m_refCount;
-
-    SharedArray(T *instance, size_t *refCount, size_t capacity) :
-      m_instance(instance),
-      m_capacity(capacity),
-      m_refCount(refCount)
-    {
-      ++*m_refCount;
-    }
+    mutable size_t *m_refCount;
   };
 }

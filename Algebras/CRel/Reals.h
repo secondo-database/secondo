@@ -34,52 +34,50 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace CRelAlgebra
 {
-  class LongIntEntry
+  class RealEntry
   {
   public:
-    static const LongIntEntry undefined;
+    RealEntry();
 
-    LongIntEntry();
-
-    LongIntEntry(int64_t value);
+    RealEntry(double value);
 
     bool IsDefined() const;
 
-    int Compare(const LongIntEntry &value) const;
+    int Compare(const RealEntry &value) const;
 
     int Compare(Attribute &value) const;
 
-    bool Equals(const LongIntEntry &value) const;
+    bool Equals(const RealEntry &value) const;
 
     bool Equals(Attribute &value) const;
 
     size_t GetHash() const;
 
-    operator int64_t() const;
+    operator double() const;
 
-    int64_t value;
+    double value;
   };
 
-  typedef SimpleFSAttrArrayIterator<LongIntEntry> LongIntsIterator;
+  typedef SimpleFSAttrArrayIterator<RealEntry> RealsIterator;
 
-  class LongInts : public SimpleFSAttrArray<LongIntEntry>
+  class Reals : public SimpleFSAttrArray<RealEntry>
   {
   public:
-    LongInts();
+    Reals();
 
-    LongInts(Reader &source);
+    Reals(Reader &source);
 
-    LongInts(Reader &source, size_t rowCount);
+    Reals(Reader &source, size_t rowCount);
 
     virtual AttrArray *Filter(SharedArray<const size_t> filter) const
     {
-      return new LongInts(*this, filter);
+      return new Reals(*this, filter);
     }
 
-    //using SimpleFSAttrArray<LongIntEntry>::Append;
-    void Append(const LongIntEntry &value)
+    //using SimpleFSAttrArray<RealEntry>::Append;
+    void Append(const RealEntry &value)
     {
-      SimpleFSAttrArray<LongIntEntry>::Append(value);
+      SimpleFSAttrArray<RealEntry>::Append(value);
     }
 
     virtual void Append(Attribute &value);
@@ -87,8 +85,8 @@ namespace CRelAlgebra
     virtual Attribute *GetAttribute(size_t row, bool clone) const;
 
   private:
-    LongInts(const LongInts &array, const SharedArray<const size_t> &filter) :
-      SimpleFSAttrArray<LongIntEntry>(array, filter)
+    Reals(const Reals &array, const SharedArray<const size_t> &filter) :
+      SimpleFSAttrArray<RealEntry>(array, filter)
     {
     }
   };

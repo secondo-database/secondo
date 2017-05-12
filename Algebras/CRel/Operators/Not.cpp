@@ -25,20 +25,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Not.h"
 
 #include <algorithm>
+#include "AttrArray.h"
 #include <cstddef>
 #include <exception>
 #include "LongInt.h"
 #include "LongInts.h"
 #include "LongIntsTI.h"
-#include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
 #include "QueryProcessor.h"
 #include <stdint.h>
 #include <string>
+#include "Symbols.h"
+#include "TBlock.h"
+#include "TBlockTI.h"
+#include "TypeUtils.h"
 
 using namespace CRelAlgebra::Operators;
 
-using listutils::typeError;
 using std::back_inserter;
 using std::exception;
 using std::set_union;
@@ -49,9 +53,17 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 
 Not::Not() :
-  Operator(info, ValueMapping, TypeMapping)
+  Operator(info, valueMappings, SelectValueMapping, TypeMapping)
 {
 }
+
+ValueMapping Not::valueMappings[] =
+{
+  RangeValueMapping,
+  TBlockValueMapping,
+  AttrArrayValueMapping,
+  nullptr
+};
 
 const OperatorInfo Not::info = OperatorInfo(
   "not", "longint x longints -> longints",
@@ -65,25 +77,33 @@ ListExpr Not::TypeMapping(ListExpr args)
 {
   if (!nl->HasLength(args, 2))
   {
-    return typeError("Expected two arguments!");
+    return GetTypeError("Expected two arguments.");
   }
 
-  if (!LongInt::checkType(nl->First(args)))
+  const ListExpr firstArg = nl->First(args);
+
+  if (!LongInt::checkType(firstArg) && !TBlockTI::Check(firstArg) &&
+      !CheckKind(Kind::ATTRARRAY(), firstArg))
   {
-    return typeError("First parameter (range) isn't a longint!");
+    return GetTypeError(0, "Isn't a longint, tblock or of kind ATTRARRAY.");
   }
 
-  string typeError;
-  if (!LongIntsTI::Check(nl->Second(args), typeError))
+  if (!LongIntsTI::Check(nl->Second(args)))
   {
-    return listutils::typeError("Second parameter (indices) isn't of type "
-                                "longints!");
+    return GetTypeError(1, "indices", "Isn't of type longints.");
   }
 
   return LongIntsTI(false).GetTypeExpr();
 }
 
-int Not::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
+int Not::SelectValueMapping(ListExpr args)
+{
+  const ListExpr firstArg = nl->First(args);
+
+  return LongInt::checkType(firstArg) ? 0 : TBlockTI::Check(firstArg) ? 1 : 2;
+}
+
+int Not::RangeValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
 {
   try
   {
@@ -112,6 +132,100 @@ int Not::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
     while (i < range)
     {
       setInversion.Append(i++);
+    }
+
+    return 0;
+  }
+  catch (const exception &e)
+  {
+    ErrorReporter::ReportError(e.what());
+  }
+
+  return FAILURE;
+}
+
+int Not::TBlockValueMapping(ArgVector args, Word &result, int, Word&,
+                            Supplier s)
+{
+  try
+  {
+    const TBlock &block = *(const TBlock*)args[0].addr;
+    const TBlockFilter &filter = block.GetFilter();
+
+    LongInts &set = *(LongInts*)args[1].addr,
+      &setInversion = qp->ResultStorage<LongInts>(result, s);
+
+    setInversion.Clear();
+
+    const size_t countA = filter.GetRowCount();
+
+    if (countA > 0)
+    {
+      size_t indexA = 0;
+
+      for (int64_t b : set)
+      {
+        int64_t a = filter[indexA++];
+
+        while (a < b)
+        {
+          setInversion.Append(a);
+          a = filter[indexA++];
+        }
+      }
+
+      while (indexA < countA)
+      {
+        setInversion.Append(filter[indexA++]);
+      }
+    }
+
+    return 0;
+  }
+  catch (const exception &e)
+  {
+    ErrorReporter::ReportError(e.what());
+  }
+
+  return FAILURE;
+}
+
+int Not::AttrArrayValueMapping(ArgVector args, Word &result, int, Word&,
+                               Supplier s)
+{
+  try
+  {
+    const AttrArray &array = *(const AttrArray*)args[0].addr;
+    const AttrArrayFilter &filter = array.GetFilter();
+
+    LongInts &set = *(LongInts*)args[1].addr,
+      &setInversion = qp->ResultStorage<LongInts>(result, s);
+
+    setInversion.Clear();
+
+    const size_t countA = filter.GetCount();
+
+    if (countA > 0)
+    {
+      size_t indexA = 0;
+
+      for (int64_t b : set)
+      {
+        int64_t a = filter[indexA++];
+
+        while (a < b)
+        {
+          setInversion.Append(a);
+          a = filter[indexA++];
+        }
+
+        setInversion.Append(a);
+      }
+
+      while (indexA < countA)
+      {
+        setInversion.Append(filter[indexA++]);
+      }
     }
 
     return 0;

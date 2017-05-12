@@ -22,12 +22,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "TransformStream.h"
+#include "ToTuples.h"
 
 #include <cstddef>
 #include "ListUtils.h"
 #include "LogMsg.h"
+#include "OperatorUtils.h"
 #include "QueryProcessor.h"
+#include "SecondoSystem.h"
 #include "StreamValueMapping.h"
 #include <string>
 #include "Symbols.h"
@@ -44,60 +46,66 @@ using std::string;
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
-TransformStream::TransformStream() :
+ToTuples::ToTuples() :
   Operator(info, StreamValueMapping<State>, TypeMapping)
 {
 }
 
-const OperatorInfo TransformStream::info = OperatorInfo(
-  "transformstream", "stream(tblock) -> stream(tuple)",
-  "_ transformstream",
+const OperatorInfo ToTuples::info = OperatorInfo(
+  "totuples", "stream(tblock) -> stream(tuple)",
+  "_ totuples",
   "Transforms a stream of tuple blocks into one of tuples.",
   "");
 
-ListExpr TransformStream::TypeMapping(ListExpr args)
+ListExpr ToTuples::TypeMapping(ListExpr args)
 {
   //Expect one parameter
   if (!nl->HasLength(args, 1))
   {
-    return listutils::typeError("Expected one argument!");
+    return GetTypeError("Expected one argument.");
   }
 
   //Check first parameter for stream
   ListExpr stream = nl->First(args);
   if (!isStream(stream))
   {
-    return listutils::typeError("Argument isn't a stream!");
+    return GetTypeError(0, "Isn't a stream.");
   }
 
   const ListExpr tblockType = GetStreamType(stream);
 
   //Check first parameter's stream type for 'tblock'
-  string typeError;
-  if (!TBlockTI::Check(tblockType, typeError))
+  if (!TBlockTI::Check(tblockType))
   {
-    return listutils::typeError("Argument isn't a stream of tblock: " +
-                                typeError);
+    return GetTypeError(0, "Isn't a stream of tblock.");
   }
 
   //Result is a stream of 'tuple'
-  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                         TBlockTI(tblockType, false).GetTupleTypeExpr());
+  return TBlockTI(tblockType, false).GetTupleTypeExpr(true);
 }
 
-TransformStream::State::State(ArgVector args, Supplier s) :
+ToTuples::State::State(ArgVector args, Supplier s) :
   m_stream(args[0]),
   m_block(nullptr),
-  m_tupleType(((Tuple*)qp->ResultStorage(s).addr)->GetTupleType())
+  m_tupleType(new TupleType(
+    SecondoSystem::GetCatalog()->NumericType(nl->Second(qp->GetType(s)))))
 {
-  m_tupleType->IncReference();
-
   qp->DeleteResultStorage(s);
 
   m_stream.open();
 }
 
-Tuple *TransformStream::State::Request()
+ToTuples::State::~State()
+{
+  m_tupleType->DeleteIfAllowed();
+
+  if (m_block != nullptr)
+  {
+    m_block->DecRef();
+  }
+}
+
+Tuple *ToTuples::State::Request()
 {
   if (!m_blockIterator.IsValid() || !m_blockIterator.MoveToNext())
   {
@@ -113,7 +121,7 @@ Tuple *TransformStream::State::Request()
         return nullptr;
       }
     }
-    while (!(m_blockIterator = m_block->GetIterator()).IsValid());
+    while (!(m_blockIterator = m_block->GetFilteredIterator()).IsValid());
   }
 
   const TBlockEntry &blockTuple = m_blockIterator.Get();
