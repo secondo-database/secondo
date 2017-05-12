@@ -11,7 +11,7 @@ query memclear()
 
 if isDBObject("useAll") then delete useAll endif
 
-let useAll = FALSE
+let useAll = FALSE 
 
 
 if not(isDBObject("EdgesB")) then 
@@ -175,12 +175,12 @@ let edgeDiff = fun(node : int)
 
 if isDBObject("getPriority") then delete getPriority endif
 
-#let getPriority = fun(node : int) 
-#                      (8.0 * edgeDiff(node)) 
-#                  +   (1 * pwrap("ContractedNeighbours") getmv[node])
+let getPriority = fun(node : int) 
+                      (8.0 * edgeDiff(node)) 
+                  +   (1 * pwrap("ContractedNeighbours") getmv[node])
 
 
-let getPriority = fun(node : int) 8.0 * edgeDiff(node)
+#let getPriority = fun(node : int) 8.0 * edgeDiff(node)
 
 
 
@@ -228,9 +228,6 @@ let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress :
            mtcreationEdges(attr(t,Node), maxHops)
              groupby[; Added: fun(g: GROUP)
                  g feed 
-                   extend[ D1 : increaseCN(.Source_i), 
-                           D2 : increaseCN(.Target_o)
-                   ] 
                    projectextend[; Source: .Source_i, 
                                    SourcePos: .SourcePos_i,
                                    Cost: .Cost_i + .Cost_o,
@@ -240,7 +237,14 @@ let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress :
                                    TargetPos: .TargetPos_o
                    ]
                    mg3insert[pwrap("EdgesX")] 
-                   minsert[pwrap("ContractionX")] 
+                   minsert[pwrap("ContractionX")]
+                   groupby[ 
+                     ; D1 : fun(g2 : GROUP) 
+                                g2 feed project[Source] 
+                                g2 feed project[Target] renameattr[Source : Target]
+                                concat 
+                                sorth rdup extend[D1_1 : increaseCN(.Source)] count
+                   ]
                    count 
              ] 
              count
