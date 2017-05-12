@@ -80,6 +80,14 @@ class Kind{
     static const std::string UNIT()          { return "UNIT"; }
     static const std::string VISUALGRAPH()   { return "VISUALGRAPH"; }
     static const std::string DELIVERABLE()   { return "DELIVERABLE"; }
+    static const std::string CREL()          { return "CREL"; }
+    static const std::string TBLOCK()        { return "TBLOCK"; }
+    static const std::string ATTRARRAY()     { return "ATTRARRAY"; }
+    static const std::string SPATIALATTRARRAY1D(){return "SPATIALATTRARRAY1D";}
+    static const std::string SPATIALATTRARRAY2D(){return "SPATIALATTRARRAY2D";}
+    static const std::string SPATIALATTRARRAY3D(){return "SPATIALATTRARRAY3D";}
+    static const std::string SPATIALATTRARRAY4D(){return "SPATIALATTRARRAY4D";}
+    static const std::string SPATIALATTRARRAY8D(){return "SPATIALATTRARRAY8D";}
 };
 
 /*
