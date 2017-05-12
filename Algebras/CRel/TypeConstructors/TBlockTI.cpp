@@ -45,7 +45,7 @@ using stringutils::any2str;
 extern AlgebraManager *am;
 extern NestedList *nl;
 
-const size_t TBlockTI::blockSizeFactor = 1024;// * 1024; //MiB
+const size_t TBlockTI::blockSizeFactor = 1024 * 1024; //MiB
 
 bool TBlockTI::Check(ListExpr typeExpr)
 {
