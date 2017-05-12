@@ -6436,7 +6436,8 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
   for (unsigned int i = 0; i < noComponents; i++) {
     val.addr = ti->tries[i];
     cout << "save trie # " << i + 1 << " of " << noComponents << endl;
-    if (!triealg::SaveInvfile(valueRecord, offset, tList, val)) {
+    if (!triealg::SaveInvfile<PosType,PosType2>(valueRecord, offset, 
+                                                tList, val)) {
       cout << "error saving trie " << i << endl;
       return false;
     }
@@ -6556,7 +6557,8 @@ bool TupleIndex<PosType, PosType2>::Open(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(unsigned int);
 //   cout << "There are " << noComponents << " tries, ";
   for (unsigned int i = 0; i < noComponents; i++) {
-    if (!triealg::OpenInvfile(valueRecord, offset, tList, val)) {
+    if (!triealg::OpenInvfile<PosType,PosType2>(valueRecord, offset, 
+                                                tList, val)) {
       cout << "error opening trie" << endl;
       return false;
     }
