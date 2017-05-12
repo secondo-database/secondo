@@ -81,8 +81,8 @@ namespace ImageSignaturealg{
 
 bool 
 ImageSignature::readSignatureFromFile(const std::string _fileName, 
-const int colorSpace, const int texRange, const int percentSamples, 
-const int noClusters)
+	const int colorSpace, const int texRange, const int percentSamples, 
+	const int noClusters)
 {
 	int range = 10; //todo: range parameter
 	
