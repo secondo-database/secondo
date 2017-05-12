@@ -18,7 +18,7 @@ export PATH=${PATH}:${ANT_HOME}/bin
 
 
 
-Optionally, from the ANT_HOME directory run 
+From the ANT_HOME directory run 
 
 ant -f fetch.xml -Ddest=system 
 
