@@ -41,7 +41,7 @@ April 2017 Michael Loris
 #include <fstream>
 
 double transport2(std::vector<ImageSignatureTuple> ist1,
-					std::vector<ImageSignatureTuple> ist2);
+                    std::vector<ImageSignatureTuple> ist2);
 
 
 struct Flow
@@ -55,144 +55,144 @@ struct Flow
 
 int main(int argc, char** argv)
 {
-	if (argc < 2)
-	{
-		std::cout << "please provide two signature files" << std::endl;
-		return 1;
-	}
-	std::vector<ImageSignatureTuple> ist1;
-	std::vector<ImageSignatureTuple> ist2;
-		
-	std::cout << argv[1] << " " << argv[2] << std::endl;
-		
+    if (argc < 2)
+    {
+        std::cout << "please provide two signature files" << std::endl;
+        return 1;
+    }
+    std::vector<ImageSignatureTuple> ist1;
+    std::vector<ImageSignatureTuple> ist2;
+        
+    std::cout << argv[1] << " " << argv[2] << std::endl;
+        
 
-	int x, y;
-	double w;
-	
-	std::ifstream infile(argv[1]);
-	std::string std;
-	while (infile >> x >> y >> w)
-	{		
-		ist1.push_back({x, y, w});
-	}
-	
-	
-	std::ifstream infile2(argv[2]);
-	while (infile2 >> x >> y >> w)
-	{
-		ist2.push_back({x, y, w});
-	}
-	
-	
-	
-	double res = transport2(ist1, ist2);
-	
-	std::cout << "res:" << res << std::endl;
-	return 0;
+    int x, y;
+    double w;
+    
+    std::ifstream infile(argv[1]);
+    std::string std;
+    while (infile >> x >> y >> w)
+    {        
+        ist1.push_back({x, y, w});
+    }
+    
+    
+    std::ifstream infile2(argv[2]);
+    while (infile2 >> x >> y >> w)
+    {
+        ist2.push_back({x, y, w});
+    }
+    
+    
+    
+    double res = transport2(ist1, ist2);
+    
+    std::cout << "res:" << res << std::endl;
+    return 0;
 }
 
 double transport2(std::vector<ImageSignatureTuple> ist1, 
-	std::vector<ImageSignatureTuple> ist2)
+    std::vector<ImageSignatureTuple> ist2)
 {
 
-	// set the larger vector to p to avoid artifical nodes
+    // set the larger vector to p to avoid artifical nodes
     std::vector<ImageSignatureTuple> p;
     std::vector<ImageSignatureTuple> q;
   
 
-	if (ist1.size() > ist2.size())
-	{
-		p = ist1;
-		q = ist2;
-	}
-	else
-	{
-		p = ist2;
-		q = ist1;
-	}
-	
-	  
+    if (ist1.size() > ist2.size())
+    {
+        p = ist1;
+        q = ist2;
+    }
+    else
+    {
+        p = ist2;
+        q = ist1;
+    }
+    
+      
     std::cout << " p:" << p.size() << std::endl;
     std::cout << " q:" << q.size() << std::endl;
 
-	struct TableauTuple
-	{
-		double distance;
-		double delivered;
-	};
-	
+    struct TableauTuple
+    {
+        double distance;
+        double delivered;
+    };
+    
     double** distMat = new double*[p.size()];
     for (unsigned int i = 0; i < p.size(); i++)
-		distMat[i] = new double[q.size()];
+        distMat[i] = new double[q.size()];
    
     // fill distance matrix
     for (unsigned int i = 0; i < p.size(); i++) // rows
     {
-		for (unsigned int j = 0; j < q.size(); j++) // columns
-		{
-			distMat[i][j] 
-			= std::abs(p.at(i).weight - q.at(j).weight);
-		}
-		std::cout << std::endl;
+        for (unsigned int j = 0; j < q.size(); j++) // columns
+        {
+            distMat[i][j] 
+            = std::abs(p.at(i).weight - q.at(j).weight);
+        }
+        std::cout << std::endl;
     }
 
-	std::cout << "survived" << std::endl;
-	std::cout << std::abs(1.0 - 0.5) << std::endl;
-	
+    std::cout << "survived" << std::endl;
+    std::cout << std::abs(1.0 - 0.5) << std::endl;
+    
     // side preliminaries
     // 1. indices start with 1
     // 2. no negative signs
     double cost =  0.0;
     unsigned int i = 0;
     unsigned int j = 0;
-	
-	double sumDists = 0.0;
-	
+    
+    double sumDists = 0.0;
+    
     // start in top left corner
     // supply and demand are equal -> no costs, move one down
     // supply < demand -> move one down,
     // supply > demand -> move one right,
     // adjust supply (demand - supply) 
     
-	while (i < q.size() && j < p.size())
-	{
-		if (p.at(j).weight > q.at(i).weight) // supply higher
-	  	{
-			//std::cout << " case 1, i:" << i << " j:" << j
-			// << " p:" << p.at(j).weight << " q:" 
-			//<< q.at(i).weight << std::endl;
-			p.at(j).weight -= q.at(i).weight;
-	    	cost += distMat[i][j] * q.at(i).weight;
-	    	sumDists += distMat[i][j];
-			q.at(i).weight = 0;
-        	i++;
-	  	}
-	  	else if (p.at(j).weight < q.at(i).weight) // demand higher
-	  	{
-			//std::cout << " case 2, i:" << i << " j:" 
-			//<< j << " p:" << p.at(j).weight << " q:"
-			// << q.at(i).weight << std::endl;
-			q.at(i).weight -= p.at(j).weight;
-	    	cost += distMat[i][j] * q.at(j).weight;
-	    	sumDists += distMat[i][j];
-			p.at(j).weight = 0;
-        	j++;
-	  	}
-	  	else
-	  	{
-			//std::cout << " case 3, i:" << i << " j:" 
-			//<< j << " p:" << p.at(j).weight << " q:" 
-			//<< q.at(i).weight << std::endl;
-	    	distMat[i][j] *= q.at(i).weight;
-	    	cost += distMat[i][j] * q.at(j).weight;
-			p.at(j).weight = 0;
-			q.at(i).weight = 0;
-        	j++;
-	  	}
-	}
-	//std::cout << std::endl;
-	std::cout << "cost:" << cost << std::endl;
-  	double result = (sumDists * cost) / cost;
-  	return result;
+    while (i < q.size() && j < p.size())
+    {
+        if (p.at(j).weight > q.at(i).weight) // supply higher
+          {
+            //std::cout << " case 1, i:" << i << " j:" << j
+            // << " p:" << p.at(j).weight << " q:" 
+            //<< q.at(i).weight << std::endl;
+            p.at(j).weight -= q.at(i).weight;
+            cost += distMat[i][j] * q.at(i).weight;
+            sumDists += distMat[i][j];
+            q.at(i).weight = 0;
+            i++;
+          }
+          else if (p.at(j).weight < q.at(i).weight) // demand higher
+          {
+            //std::cout << " case 2, i:" << i << " j:" 
+            //<< j << " p:" << p.at(j).weight << " q:"
+            // << q.at(i).weight << std::endl;
+            q.at(i).weight -= p.at(j).weight;
+            cost += distMat[i][j] * q.at(j).weight;
+            sumDists += distMat[i][j];
+            p.at(j).weight = 0;
+            j++;
+          }
+          else
+          {
+            //std::cout << " case 3, i:" << i << " j:" 
+            //<< j << " p:" << p.at(j).weight << " q:" 
+            //<< q.at(i).weight << std::endl;
+            distMat[i][j] *= q.at(i).weight;
+            cost += distMat[i][j] * q.at(j).weight;
+            p.at(j).weight = 0;
+            q.at(i).weight = 0;
+            j++;
+          }
+    }
+    //std::cout << std::endl;
+    std::cout << "cost:" << cost << std::endl;
+      double result = (sumDists * cost) / cost;
+      return result;
 }
 
