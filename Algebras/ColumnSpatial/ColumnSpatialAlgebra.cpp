@@ -34,10 +34,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../include/NestedList.h"         // required at many places
 #include "../../include/QueryProcessor.h"     // needed for value mappings
 #include "../../include/TypeConstructor.h"    // constructor for Secondo Types
+#include "../../include/StandardTypes.h"
 #include "../Spatial/SpatialAlgebra.h"        // spatial types and operators
+#include "../Spatial/RegionTools.h"           // cycles and region building
 #include "../Relation-C++/RelationAlgebra.h"  // use of tuples
 #include "../Stream/Stream.h"                 // wrapper for secondo streams
 //#include "../CRel/AttrArray.h"              // column oriented relations
+
+using std::vector;
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -65,6 +69,23 @@ namespace col {
   // compares the type of the given object with the class type
   const bool ColPoint::checkType(const ListExpr list) {
     return listutils::isSymbol(list, BasicType());
+  }
+
+  // description of the Secondo type for the user
+  ListExpr ColPoint::Property() {
+    return (nl->TwoElemList(
+    nl->FiveElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List"),
+      nl->StringAtom("Remarks")),
+    nl->FiveElemList(
+      nl->StringAtom("-> SIMPLE"),
+      nl->StringAtom(BasicType()),
+      nl->StringAtom("((real real) .. (real real))"),
+      nl->StringAtom("((3.5 -6.0) (1.0 2) (-9.1 5))"),
+      nl->StringAtom("created by nested list or stream of points."))));
   }
 
   // returns the number of elements in the point array
@@ -112,23 +133,7 @@ namespace col {
     cout << count * sizeof(sPoint) << " bytes used.\n";
   }
 
-  // description of the Secondo type for the user
-  ListExpr ColPoint::Property() {
-    return (nl->TwoElemList(
-    nl->FiveElemList(
-      nl->StringAtom("Signature"),
-      nl->StringAtom("Example Type List"),
-      nl->StringAtom("List Rep"),
-      nl->StringAtom("Example List"),
-      nl->StringAtom("Remarks")),
-    nl->FiveElemList(
-      nl->StringAtom("-> SIMPLE"),
-      nl->StringAtom(BasicType()),
-      nl->StringAtom("((real real) .. (real real))"),
-      nl->StringAtom("((3.5 -6.0) (1.0 2) (-9.1 5))"),
-      nl->StringAtom("created by nested list or stream of points."))));
-  }
-
+  // reads a nested list and stores it into the array format
   Word ColPoint::In(const ListExpr typeInfo, ListExpr instance,
                  const int errorPos, ListExpr &errorInfo, bool &correct) {
     correct = false;
@@ -175,8 +180,9 @@ namespace col {
     answer.addr = new ColPoint(inArray, inCount);  // create new point object
     correct = true;
     return answer;  // return its adress
-}
+  }
 
+  // converts the internal array structure int a nested list
   ListExpr ColPoint::Out(ListExpr typeInfo, Word value) {
     ColPoint* cPoint = static_cast<ColPoint*>(value.addr);
     if (cPoint->count == 0) {
@@ -317,16 +323,68 @@ namespace col {
 
   // returns the corresponding basic type
   const string ColLine::BasicType() { return "aline"; }
+
   // compares the type of the given object with class type
   const bool ColLine::checkType(const ListExpr list) {
     return listutils::isSymbol(list, BasicType());
   }
 
-  // returns the number of elements in the line array
-  long ColLine::getCount() {
-    return countLine;
+  // description of the Secondo type for the user
+  ListExpr ColLine::Property() {
+    return (nl->TwoElemList(
+    nl->FiveElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List"),
+      nl->StringAtom("Remarks")),
+    nl->FiveElemList(
+      nl->StringAtom("-> SIMPLE"),
+      nl->StringAtom(BasicType()),
+      nl->StringAtom("((x1 y1 x2 y2) (x2 y2 x3 y3) ... ) ...)"),
+      nl->StringAtom("(((3.5 -6.0 5 3) (5 3 5 2) (5 3 4 7)))"),
+      nl->StringAtom("aline is defined by a list of lines"))));
   }
 
+  // returns the number of elements in the line array
+  long ColLine::getCount() {
+    return countLine - 1;  // subtract the terminator element
+  }
+
+  // returns the total number of segments in the segments array
+  long ColLine::getSegments() {
+    return countSegment - 1;  // subtract the terminator element
+  }
+
+  // returns the number of segmets for a single line
+  long ColLine::getSegments(long index) {
+      return aLine[index + 1].index - aLine[index].index;
+  }
+
+  // returns the line found at index of aline
+  bool ColLine::createLine(Line* line, long index) {
+    long start = aLine[index].index;
+    long stop  = aLine[index + 1].index;
+    double x1, y1, x2, y2;  // work variables
+    Point* lp = new Point(true, 0, 0);  // actual point
+    Point* rp = new Point(true, 1, 1);  // actual point
+    HalfSegment* hs = new HalfSegment(true, *lp, *rp);  // actual halfsegment
+    line->StartBulkLoad();  // bulk load for easy filling of line type
+    for (long i = start; i < stop; i++) {  // scan all segments
+      x1 = aSegment[i].x1;
+      y1 = aSegment[i].y1;
+      x2 = aSegment[i].x2;
+      y2 = aSegment[i].y2;
+      lp->Set(x1, y1);
+      rp->Set(x2, y2);
+      hs->Set(true, *lp, *rp);
+      line->Put(i - start, *hs);  // insert segment to line
+    }
+    line->EndBulkLoad(true, true, true);
+    return true;
+  }
+
+  // appends a complete line to an aline object
   bool ColLine::append(Line* line) {
     if(!line->IsDefined()) {
       cout << "line is undefined!" << endl;
@@ -363,7 +421,7 @@ namespace col {
             (realloc(aSegment, allocBytes[++stepSegment]));
           if (aSegment == NULL) {  // exit on memory overflow
             cmsg.inFunError("not enough memoryfor new segment!");
-            return 0;
+            return false;
           }
         }
         lp = hs.GetLeftPoint();
@@ -420,23 +478,6 @@ namespace col {
            << aSegment[cs].y2 << "\n";
     }
     cout << "--------------------------------------------\n";
-  }
-
-  // description of the Secondo type for the user
-  ListExpr ColLine::Property() {
-    return (nl->TwoElemList(
-    nl->FiveElemList(
-      nl->StringAtom("Signature"),
-      nl->StringAtom("Example Type List"),
-      nl->StringAtom("List Rep"),
-      nl->StringAtom("Example List"),
-      nl->StringAtom("Remarks")),
-    nl->FiveElemList(
-      nl->StringAtom("-> SIMPLE"),
-      nl->StringAtom(BasicType()),
-      nl->StringAtom("((x1 y1 x2 y2) (x2 y2 x3 y3) ... ) ...)"),
-      nl->StringAtom("(((3.5 -6.0 5 3) (5 3 5 2) (5 3 4 7)))"),
-      nl->StringAtom("aline is defined by a list of lines"))));
   }
 
   // scans a nested-list and converts it into an array of lines.
@@ -761,6 +802,64 @@ Class ColRegion for column-oriented representation of Regions
     return listutils::isSymbol(list, BasicType());
   }
 
+  // description of the Secondo type for the user
+  ListExpr ColRegion::Property() {
+    return (nl->TwoElemList(
+    nl->FiveElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List"),
+      nl->StringAtom("Remarks")),
+    nl->FiveElemList(
+      nl->StringAtom("-> SIMPLE"),
+      nl->StringAtom(BasicType()),
+      nl->StringAtom("((real real) .. (real real))"),
+      nl->StringAtom("((3.5 -6.0) (1.0 2) (-9.1 5))"),
+      nl->StringAtom("aregion is defined by a list of regions."))));
+  }
+
+  long ColRegion::getCount() {
+    return countRegion;
+  }
+
+  long ColRegion::getCycles(long index) {
+    return aRegion[index + 1].indexCycle - aRegion[index].indexCycle;
+  }
+
+  // extracts the region with given index to a region object of the
+  // spatial algebra.
+  bool ColRegion::createRegion(Region* region, long index) {
+    vector<vector<Point> > cycles;  // initialize all cycles
+    long firstCyc = aRegion[index].indexCycle;
+    long lastCyc  = aRegion[index + 1].indexCycle;
+    // scan all cycles of the region
+    for (long indexCyc = firstCyc; indexCyc < lastCyc; indexCyc++) {
+      vector<Point> cycle;            // initialize the actual cycle
+      long firstPnt = abs(aCycle[indexCyc].index);
+      long lastPnt  = abs(aCycle[indexCyc + 1].index);
+      // append all points of the actual cycle to the vector
+      for (long indexPnt = firstPnt; indexPnt < lastPnt; indexPnt++) {
+        Point p(true, aPoint[indexPnt].x, aPoint[indexPnt].y);
+        cycle.push_back(p);
+        // cout << "Point " << indexPnt << "\t" << p.GetX()
+        // << "\t" << p.GetY() << "\n";
+      }
+      // append first point to close the cycle
+      Point p(true, aPoint[firstPnt].x, aPoint[firstPnt].y);
+      cycle.push_back(p);
+      // cout << "Point " << lastPnt << "\t" << p.GetX()
+      // << "\t" << p.GetY() << "\n";
+      if (aCycle[indexCyc].index < 0) {  // if the actual cycle is a hole
+        reverseCycle(cycle);             // then cycle is counterclockwise
+      }
+      cycles.push_back(cycle); //  append the complete cycle to all cycles
+    }
+    // finally build the region from all cycles
+    region = buildRegion(cycles);
+    return true;
+  }
+
   // allocates memory for the point array and appends the given point
   int ColRegion::appendPoint(Point p, long &stepPoint) {
     double x = p.GetX();
@@ -772,7 +871,7 @@ Class ColRegion for column-oriented representation of Regions
       aPoint = static_cast<sPoint*> (realloc(aPoint, allocBytes[stepPoint]));
       if (aPoint == NULL) {  // exit on memory overflow
         cmsg.inFunError("not enough memory for all points!");
-        return 0;
+        return false;
       }
     }
     aPoint[countPoint].x = x;
@@ -783,7 +882,7 @@ Class ColRegion for column-oriented representation of Regions
     if (y < aRegion[countRegion].mbrY1) aRegion[countRegion].mbrY1 = y;
     if (y > aRegion[countRegion].mbrY2) aRegion[countRegion].mbrY2 = y;
     countPoint++;  // increase index of point array
-    return 1;
+    return true;
   }
 
   // allocates memory for the cycle array and appends the give cycle
@@ -796,21 +895,16 @@ Class ColRegion for column-oriented representation of Regions
                (realloc(aCycle, allocBytes[++stepCycle]));
       if (aCycle == NULL) {  // exit on memory overflow
         cmsg.inFunError("not enough memory for all cycles!");
-        return 0;
+        return false;
       }
     }
     aCycle[countCycle].index = cp;
     countCycle++;
-    return 1;
+    return true;
   }
 
-/*
-This function appends one region of the spatial algebra
-to an existing aregion of the column spatial algebra.
-It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
-
-
-*/
+  // This function appends a region datatype of the spatial algebra
+  // to an attrarray of regions of the column spatial algebra.
   bool ColRegion::append(Region* region) {
     if(!region->IsDefined()) {
       cout << "region is undefined!" << endl;
@@ -948,11 +1042,7 @@ It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
   }
 
 /*
-After all regions from the spatial alegbra are appended to the
-arrays of the column spatial algebra, this function adds
-terminator entries to the arrays and set the counters to correct values,
-so they can be used correctly in the ~Out~ - function.
-Additional the arrays are allocated to their real used memory.
+The ~finalize~ function appends a terminator to each array of the aregion type.
 
 */
   void ColRegion::finalize() {
@@ -1028,23 +1118,6 @@ Additional the arrays are allocated to their real used memory.
 //      }
 //    }
     return 0;
-  }
-
-  // description of the Secondo type for the user
-  ListExpr ColRegion::Property() {
-    return (nl->TwoElemList(
-    nl->FiveElemList(
-      nl->StringAtom("Signature"),
-      nl->StringAtom("Example Type List"),
-      nl->StringAtom("List Rep"),
-      nl->StringAtom("Example List"),
-      nl->StringAtom("Remarks")),
-    nl->FiveElemList(
-      nl->StringAtom("-> SIMPLE"),
-      nl->StringAtom(BasicType()),
-      nl->StringAtom("((real real) .. (real real))"),
-      nl->StringAtom("((3.5 -6.0) (1.0 2) (-9.1 5))"),
-      nl->StringAtom("aregion is defined by a list of regions."))));
   }
 
   Word ColRegion::In(const ListExpr typeInfo, const ListExpr instance,
@@ -1517,8 +1590,8 @@ int mapPointVM (Word* args, Word& result, int message,
   result = qp->ResultStorage(s);         // use result storage for the result
   result.addr = new ColPoint(1);
   ColPoint* cPoint = static_cast<ColPoint*> (result.addr);
-  CcInt* index = (CcInt*) args[2].addr;  // index of the appended attribute
-  int v = index->GetValue();
+  CcInt* index = (CcInt*) args[2].addr;  // CcInt object with append attribute
+  int v = index->GetValue();             // value of index
   Stream<Tuple> stream(args[0]);         // get the tuples
   stream.open();                         // open the stream
   Tuple* tuple;                          // actual tuple element
@@ -1528,13 +1601,13 @@ int mapPointVM (Word* args, Word& result, int message,
     point = (Point*) tuple->GetAttribute(v - 1);
     if (!cPoint->append(point)) {        // append line to aline
       cout << "Error in mapping stream(point) to apoint!" << endl;
-      return 0;
+      return false;
     }
     tuple->DeleteIfAllowed();            // remove tuple from stream
    }
   stream.close();                        // close the stream
   cPoint->finalize();
-  return 1;
+  return true;
 }
 
 /*
@@ -1548,8 +1621,8 @@ int mapLineVM (Word* args, Word& result, int message,
   result = qp->ResultStorage(s);         // use result storage for the result
   result.addr = new ColLine(1);
   ColLine* cLine = static_cast<ColLine*> (result.addr);
-  CcInt* index = (CcInt*) args[2].addr;  // index of the appended attribute
-  int v = index->GetValue();
+  CcInt* index = (CcInt*) args[2].addr;  // CcInt object with append attribute
+  int v = index->GetValue();             // value of index
   Stream<Tuple> stream(args[0]);         // get the tuples
   stream.open();                         // open the stream
   Tuple* tuple;                          // actual tuple element
@@ -1559,13 +1632,13 @@ int mapLineVM (Word* args, Word& result, int message,
     line = (Line*) tuple->GetAttribute(v - 1);
     if (!cLine->append(line)) {          // append line to aline
       cout << "Error in mapping stream(line) to aline!" << endl;
-      return 0;
+      return false;
     }
     tuple->DeleteIfAllowed();            // remove tuple from stream
    }
   stream.close();                        // close the stream
   cLine->finalize();
-  return 1;
+  return true;
 }
 
 /*
@@ -1579,8 +1652,8 @@ int mapRegionVM (Word* args, Word& result, int message,
   result = qp->ResultStorage(s);         // use result storage for the result
   result.addr = new ColRegion(1);        // result set to cRegion object
   ColRegion* cRegion = static_cast<ColRegion*> (result.addr);
-  CcInt* index = (CcInt*) args[2].addr;  // index of the appended attribute
-  int v = index->GetValue();
+  CcInt* index = (CcInt*) args[2].addr;  // CcInt object with append attribute
+  int v = index->GetValue();             // value of index
   Stream<Tuple> stream(args[0]);         // get the tuples
   stream.open();                         // open the stream
   Tuple* tuple;                          // actual tuple element
@@ -1590,13 +1663,13 @@ int mapRegionVM (Word* args, Word& result, int message,
     region = (Region*) tuple->GetAttribute(v - 1);
     if (!cRegion->append(region)) {      // append region to aregion
       cout << "Error in mapping stream(region) to aregion!" << endl;
-      return 0;
+      return false;
     }
     tuple->DeleteIfAllowed();            // remove tuple from stream
    }
   stream.close();                        // close the stream
   cRegion->finalize();
-  return 1;
+  return true;
 }
 
 /*
@@ -1607,29 +1680,19 @@ converts it into the spatial object ~point~.
 */
 int mapColPointVM (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
-  cout << "ColPoint -> Point\n";
   result = qp->ResultStorage(s);
   ColPoint* cPoint = static_cast<ColPoint*> (args[0].addr);
-  cout << "apoint has " << cPoint->getCount() << " elements" << endl;
-
-  // how to access the second parameter?
-
-  long* index = (long*) args[1].addr;
-
-
-  cout << "index: " << index << endl;
-
-/*
-  cout << "x: " << cPoint->getX(index) << endl;
-  cout << "y: " << cPoint->getY(index) << endl;
-
-  double x = cPoint->getX(index);
-  double y = cPoint->getY(index);
+  // extract the index from the second argument
+  CcInt* index = static_cast<CcInt*> (args[1].addr);
+  int indexVal = index->GetValue();
+  if ((indexVal < 0) || (indexVal >= cPoint->getCount())) {
+    cout << "Error: apoint index " << indexVal << " out of bounds!" << endl;
+    return false;
+  }
+  double x = cPoint->getX(indexVal);
+  double y = cPoint->getY(indexVal);
   result.addr = new Point(true, x, y);  // first parameter = defined
-
-*/
-
-  return 1;
+  return true;
 }
 
 
@@ -1638,16 +1701,55 @@ int mapColPointVM (Word* args, Word& result, int message,
 
 int mapColLineVM (Word* args, Word& result, int message,
                   Word& local, Supplier s) {
-  cout << "ColLine -> Line\n";
-  return 0;
+  cout << "map ColLine to Line\n";
+  result = qp->ResultStorage(s);
+  ColLine* cLine = static_cast<ColLine*> (args[0].addr);
+  // extract the index from the second argument
+  CcInt* index = static_cast<CcInt*> (args[1].addr);
+  int indexVal = index->GetValue();
+  if ((indexVal < 0) || (indexVal > cLine->getCount())) {
+    cout << "Error: aline index " << indexVal << " out of bounds!" << endl;
+    return false;
+  }
+  cout << "aline contains " << cLine->getCount() << " lines!" << endl;
+  long segCount = cLine->getSegments(indexVal);
+  // cout << "line " << indexVal << " contains " << segCount
+  // << " segments!" << endl;
+  result.addr = new Line(segCount);
+  Line* line = static_cast<Line*> (result.addr);
+  if (!cLine->createLine(line, indexVal)) {
+    cout << "Error mapping aline to line!" << endl;
+    return false;
+  }
+  return true;
 }
 
 // maps column spatial type ~aregion~ to a single spatial object ~region~.
 // needs an index.
 int mapColRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s) {
-  cout << "ColRegion -> Region\n";
-  return 0;
+  cout << "map ColRegion to Region\n";
+
+  result = qp->ResultStorage(s);
+  ColRegion* cRegion = static_cast<ColRegion*> (args[0].addr);
+  // extract the index from the second argument
+  CcInt* index = static_cast<CcInt*> (args[1].addr);
+  int indexVal = index->GetValue();
+  if ((indexVal < 0) || (indexVal > cRegion->getCount())) {
+    cout << "Error: aregion index " << indexVal << " out of bounds!" << endl;
+    return 0;
+  }
+  cout << "aregion contains " << cRegion->getCount() << " cycles!" << endl;
+  long cycCount = cRegion->getCycles(indexVal);
+  // cout << "region " << indexVal << " contains " << cycCount
+  // << " cycles!" << endl;
+  result.addr = new Region(cycCount * 2);
+  Region* region = static_cast<Region*> (result.addr);
+  if (!cRegion->createRegion(region, indexVal)) {
+    cout << "Error mapping aregion to region!" << endl;
+    return false;
+  }
+  return true;
 }
 
 /*

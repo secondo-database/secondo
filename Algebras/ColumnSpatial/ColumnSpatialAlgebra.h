@@ -155,11 +155,16 @@ and contains all static functions for the neccessary class operations.
   static const bool checkType(const ListExpr list);
 
 /*
+description of the Secondo type ~apoint~ for the user
+
+*/
+  static ListExpr Property();
+
+/*
 ~getCount~ returns the number of elements in the point array.
 
 */
   long getCount();
-
 
 /*
 returns the x coordinate of the indexed point entry
@@ -185,14 +190,7 @@ The function ~finalize~ reallocates the memory used for the array ~apoint~
 to the real needed bytes.
 
 */
-
   void finalize();
-
-/*
-description of the Secondo type ~apoint~ for the user
-
-*/
-  static ListExpr Property();
 
 /*
 The ~In~ function scans a nested-list (parameter ~instance~) and converts it
@@ -359,10 +357,36 @@ compares the type of the given object with class type
   static const bool checkType(const ListExpr list);
 
 /*
+description of the Secondo type ~aline~ for the user
+
+*/
+  static ListExpr Property();
+
+/*
 returns the number of elements in the line array
 
 */
   long getCount();
+
+/*
+returns the total number of segments in the segments array
+
+*/
+  long getSegments();
+
+/*
+returns the number of segmets for a single line
+
+*/
+  long getSegments(long index);
+
+/*
+Extracts a line from the aline and stores it in a standard spatial type,
+which is returned as parameter. Fills the given spatial type line with
+the data found in the column spatial type aline at the given index.
+
+*/
+  bool createLine(Line* line, long index);
 
 /*
 This function appends a line datatype of the spatial algebra
@@ -384,12 +408,6 @@ there sizes and counters to the screen. It is useful during the debugging phase.
 
 */
   void showArrays(string title);
-
-/*
-description of the Secondo type ~aline~ for the user
-
-*/
-static ListExpr Property();
 
 /*
 scans a nested-list and converts it into an array of lines.
@@ -591,22 +609,43 @@ description of the Secondo type for the user
 /*
 3.7 Auxiliary functions
 
-The ~clear~ function frees possible former allocated memory to assure a
-clean object for the following mapping.
+In this section there are defined some functions which can only be used
+in a special context, e. g. the append- and finalize functions make only sense
+if used together with a constructor.
+
+*/
+  long getCount();
+  long getCycles(long index);
+  bool createRegion(Region* region, long index);
+
+/*
+The ~appendPoint~ function allocates memory for the point array
+and appends the given point.
 
 */
   int appendPoint(Point p, long &stepPoint);
+
+/*
+The ~appendCycle~ function allocates memory for the cycle array
+and appends the given cycle.
+
+*/
   int appendCycle(long cp, long &stepCycle);
 
 /*
-This function appends a region datatype of the spatial algebra
-to an attrarray of regions of the column spatial algebra.
+This function appends one region of the spatial algebra
+to an existing aregion of the column spatial algebra.
+It's algorithm is similar to the ~OutRegion~ - function of the spatial algebra.
 
 */
   bool append(Region* region);
 
 /*
-The ~finalize~ function appends a terminator to each array of the aregion type.
+After all regions from the spatial alegbra are appended to the
+arrays of the column spatial algebra, this function adds
+terminator entries to the arrays and set the counters to correct values,
+so they can be used correctly in the ~Out~ - function.
+Additional the arrays are allocated to their real used memory.
 
 */
   void finalize();
