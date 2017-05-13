@@ -52,8 +52,8 @@ static double f_s(int x1, int y1, int x2, int y2)
 }
 
 
-static double sqfd(std::vector<ImageSignatureTuple> i1, 
-					std::vector<ImageSignatureTuple> i2)
+static double sqfd(std::vector<ImageSignatureTuple> i1,
+                    std::vector<ImageSignatureTuple> i2)
 {
     
     int width = i1.size() + i2.size();    
