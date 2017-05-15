@@ -176,6 +176,7 @@ operator mg2disconnect alias MG2NUMPREDECESSORS pattern _ op[_]
 operator mg2connectedcomponents alias MG2CONNECTEDCOMPONENTS pattern _ op
 operator mg2contract alias MG2CONTRACT pattern op(_,_,_,_)
 operator mg2minPathCost alias MG2MINPATHCOST pattern op(_,_,_,_,_)
+operator mg2exportddsg alias MG2EXPORTDDSG pattern _ op[_,_]
 
 operator createmgraph3 alias CREATEMGRAPH3 pattern _ op [_,_,_,_,_]
 operator mg3insert alias MG3INSERT pattern _ op [_]
@@ -189,6 +190,7 @@ operator mg3disconnect alias MG3NUMPREDECESSORS pattern _ op[_]
 operator mg3connectedcomponents alias MG3CONNECTEDCOMPONENTS pattern _ op 
 operator mg3contract alias MG3CONTRACT pattern op(_,_,_,_)
 operator mg3minPathCost alias MG3MINPATHCOST pattern op(_,_,_,_,_)
+operator mg3exportddsg alias MG3EXPORTDDSG pattern _ op[_,_]
 
 operator memgroupby alias MEMGROUPBY pattern _ op [list; funlist] implicit parameter mgroup type MGROUP
 

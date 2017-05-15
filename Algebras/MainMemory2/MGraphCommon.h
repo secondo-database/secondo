@@ -443,6 +443,84 @@ hops and the forbidden node, then the search spans the whole graph.
      }
 
 
+     struct ddsgedge{
+      ddsgedge(const size_t _target,
+               const size_t _cost,
+               const size_t _dir): target(_target), cost(_cost),dir(_dir){}
+
+      size_t target;
+      size_t cost;
+      size_t dir; // 0 both, 1 forward, 2 backward
+
+      void print(std::ostream& o, size_t source){
+        o << source << " " << target << " " << cost << " " << dir << std::endl; 
+      }
+
+     };
+
+     bool exportDDSG(std::string& filename, const double scaleCost){
+       std::ofstream out(filename.c_str(), std::ios::out | std::ios::trunc);
+       if(!out){
+         return false;
+       }
+       std::vector<std::vector<ddsgedge> > edges;
+       fillddsg(edges, scaleCost);
+       out << "d" << endl;
+       out << graph.size() << " " << edges.size() << endl;
+       for(size_t i=0;i<edges.size();i++){
+          std::vector<ddsgedge>& v = edges[i];
+          for(size_t j=0;j<v.size();j++){
+              v[j].print(out,i);
+          }
+       }
+       out.close();
+       return true;
+     }
+
+     void fillddsg(std::vector< std::vector<ddsgedge> >& result, double scale){
+        result.clear();
+        for(size_t i=0;i<graph.size();i++){
+           std::vector<ddsgedge> v;
+           result.push_back(v);
+        }
+        for(size_t i=0;i<graph.size();i++){
+           std::list<MEdge> successors = graph[i].first;
+           std::list<MEdge>::iterator it;
+           for( it = successors.begin(); it!=successors.end(); it++){
+              size_t source = i;
+              MEdge e = *it;
+              size_t target = e.target;
+              if(source != target){
+                size_t cost = (size_t)((e.costs*scale)+0.5);
+                size_t dir = 1;
+                if(source > target){
+                   std::swap(source,target);
+                   dir = 2;
+                }    
+                std::vector<ddsgedge>& v = result[source];
+                bool found = false;
+                for(size_t e=0;e<v.size();e++){
+                   ddsgedge& d = v[e];
+                   if(d.target==target){
+                      found = true;
+                      if(d.cost > cost){
+                         d.cost = cost;
+                      }
+                      if(d.dir!=dir){
+                         d.dir = 0;
+                      }
+                   }
+                }
+                if(!found){
+                   v.push_back(ddsgedge(target,cost,dir));
+                }
+             }
+           }           
+        }
+
+     }
+
+
 
   protected:
     std::vector<alist> graph;

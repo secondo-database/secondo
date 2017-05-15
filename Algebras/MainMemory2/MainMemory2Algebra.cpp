@@ -20864,6 +20864,144 @@ Operator mg3minPathCostOp(
   mgminPathCostTM<MGraph3>
 );
 
+/*
+2.4  exportddsg
+
+*/
+template<class G>
+ListExpr exportddsgTM(ListExpr args){
+   if(!nl->HasLength(args,3)){
+     return listutils::typeError("three arguments expected");
+   }
+   if(!checkUsesArgs(args)){
+      return listutils::typeError("internal error");
+   }
+   string err;
+   ListExpr graph = nl->First(args);
+   if(!getMemType(graph,graph,err,true)){
+     return listutils::typeError(err);
+   } 
+   graph = nl->Second(graph);
+   if(!G::checkType(graph)){
+     return listutils::typeError("argument not of type " + G::BasicType());
+   }
+   ListExpr fn = nl->First(nl->Second(args));
+   if(!FText::checkType(fn) && !CcString::checkType(fn)){
+     return listutils::typeError("expected text or string as second argument");
+   }
+   ListExpr scale = nl->First(nl->Third(args));
+   if(!CcInt::checkType(scale) && !CcReal::checkType(scale)){
+     return listutils::typeError("expected int or real as third argument");
+   }
+   return listutils::basicSymbol<CcBool>();
+}
+
+
+template<class GN, class FN, class SF, class Graph>
+int exportddsgVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcBool*  res = (CcBool*) result.addr;
+  Graph* g = getMemObject<Graph>((GN*) args[0].addr);
+  FN* fileName = (FN*) args[1].addr;
+  SF* scaleFactor = (SF*) args[2].addr;
+  if(!g || !fileName->IsDefined() || !scaleFactor->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  string fn = fileName->GetValue();
+  double sf = scaleFactor->GetValue();
+  if(sf<=0){
+     res->Set(true,false);
+     return 0;
+  }
+  res->Set(true,g->exportDDSG(fn,sf));
+  return 0;
+}
+
+ValueMapping mg2exportddsgVM[] = {
+  exportddsgVMT<CcString, CcString, CcInt, MGraph2>,
+  exportddsgVMT<CcString, CcString, CcReal, MGraph2>,
+  exportddsgVMT<CcString, FText, CcInt, MGraph2>,
+  exportddsgVMT<CcString, FText, CcReal, MGraph2>,
+
+  exportddsgVMT<Mem, CcString, CcInt, MGraph2>,
+  exportddsgVMT<Mem, CcString, CcReal, MGraph2>,
+  exportddsgVMT<Mem, FText, CcInt, MGraph2>,
+  exportddsgVMT<Mem, FText, CcReal, MGraph2>,
+  
+  exportddsgVMT<MPointer, CcString, CcInt, MGraph2>,
+  exportddsgVMT<MPointer, CcString, CcReal, MGraph2>,
+  exportddsgVMT<MPointer, FText, CcInt, MGraph2>,
+  exportddsgVMT<MPointer, FText, CcReal, MGraph2>
+};
+
+ValueMapping mg3exportddsgVM[] = {
+  exportddsgVMT<CcString, CcString, CcInt, MGraph3>,
+  exportddsgVMT<CcString, CcString, CcReal, MGraph3>,
+  exportddsgVMT<CcString, FText, CcInt, MGraph3>,
+  exportddsgVMT<CcString, FText, CcReal, MGraph3>,
+
+  exportddsgVMT<Mem, CcString, CcInt, MGraph3>,
+  exportddsgVMT<Mem, CcString, CcReal, MGraph3>,
+  exportddsgVMT<Mem, FText, CcInt, MGraph3>,
+  exportddsgVMT<Mem, FText, CcReal, MGraph3>,
+  
+  exportddsgVMT<MPointer, CcString, CcInt, MGraph3>,
+  exportddsgVMT<MPointer, CcString, CcReal, MGraph3>,
+  exportddsgVMT<MPointer, FText, CcInt, MGraph3>,
+  exportddsgVMT<MPointer, FText, CcReal, MGraph3>
+};
+
+int exportddsgSelect(ListExpr args){
+  int n1 = getRepNum(nl->First(args)) * 4;
+  int n2 = CcString::checkType(nl->Second(args))?0:2;
+  int n3 = CcInt::checkType(nl->Third(args))?0:1;
+  return n1+n2+n3;
+}
+
+OperatorSpec mg2exportddsgSpec(
+  "MGRAPH2 x {string,text} x {int,real} -> bool",
+  "graph mg2exportddsg[filename, scalefactor] ",
+  "Export an mgraph2 to a file using the ddsg format. "
+  "DDSG supports only integers as costs. All costs in the "
+  "graph a multiplied with the scale factor and rounded "
+  " to the next integer value. " 
+  "The return value gives the success of this operation.",
+  "query mg2 exportddsg['graph.txt', 1000]"
+);
+
+OperatorSpec mg3exportddsgSpec(
+  "MGRAPH3 x {string,text} x {int,real} -> bool",
+  "graph mg3exportddsg[filename, scalefactor] ",
+  "Export an mgraph3 to a file using the ddsg format. "
+  "DDSG supports only integers as costs. All costs in the "
+  "graph a multiplied with the scale factor and rounded "
+  " to the next integer value. " 
+  "The return value gives the success of this operation.",
+  "query mg3 exportddsg['graph.txt', 1000]"
+);
+
+Operator mg2exportddsgOp(
+  "mg2exportddsg",
+  mg2exportddsgSpec.getStr(),
+  12,
+  mg2exportddsgVM,
+  exportddsgSelect,
+  exportddsgTM<MGraph2>
+);
+
+Operator mg3exportddsgOp(
+  "mg3exportddsg",
+  mg3exportddsgSpec.getStr(),
+  12,
+  mg3exportddsgVM,
+  exportddsgSelect,
+  exportddsgTM<MGraph3>
+);
+
+
 
 ListExpr MGroupTM(ListExpr args)
 {
@@ -20892,6 +21030,9 @@ const string MGroupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "<text>Maps stream type to a mem rel.</text--->"
                           "<text>not for use with sos-syntax</text--->"
                           ") )";
+
+
+
 
 /*
 2.3.3 Definition of operator ~group~
@@ -21532,6 +21673,8 @@ class MainMemory2Algebra : public Algebra {
           mg2contractOp.SetUsesArgsInTypeMapping();
           AddOperator(&mg2minPathCostOp);
           mg2minPathCostOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg2exportddsgOp);
+          mg2exportddsgOp.SetUsesArgsInTypeMapping();
            
           // operators on mgraph3
           AddOperator(&createmgraph3Op);
@@ -21562,6 +21705,8 @@ class MainMemory2Algebra : public Algebra {
           mg3contractOp.SetUsesArgsInTypeMapping();
           AddOperator(&mg3minPathCostOp);
           mg3minPathCostOp.SetUsesArgsInTypeMapping();
+          AddOperator(&mg3exportddsgOp);
+          mg3exportddsgOp.SetUsesArgsInTypeMapping();
 
           AddOperator(&mgroupOp);
           AddOperator(&memgroupbyOp);

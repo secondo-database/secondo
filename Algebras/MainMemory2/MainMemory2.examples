@@ -1392,6 +1392,11 @@ Signature : MGRAPH2 x int x int x int x int -> double
 Example   : query mg2minPathCost("mgraph2",1, 16, 10, 10) > 0
 Result    : TRUE
 
+Operator : mg2exportddsg
+Number   : 916
+Signature: MGRAPH2 x {string,text} x {int,real} -> bool
+Example  : query "mgraph2" mg2exportddsg['mgraph2.ddsg', 1000]
+Result   : TRUE
 
 
 Operator  : createmgraph3
@@ -1440,6 +1445,9 @@ Signature : MGRAPH3 x int -> stream(tuple)
 Example   : query "mgraph3_1" mg3numpredecessors[1]  = "mgraph2_1" mg2numpredecessors[1]
 Result    : TRUE
 
+
+
+
 Operator  : mg3disconnect
 Number    : 1008
 Signature : MGRAPH3 x int -> stream(tuple)
@@ -1470,6 +1478,12 @@ Number   : 1012
 Signature : MGRAPH3 x int x int x int x int -> double
 Example   : query mg3minPathCost("mgraph3_1",1, 16, 10, 10) > 0
 Result    : TRUE
+
+Operator : mg3exportddsg
+Number   : 1013
+Signature: MGRAPH3 x {string,text} x {int,real} -> bool
+Example  : query "mgraph3_1" mg3exportddsg['mgraph3_1.ddsg', 1000]
+Result   : TRUE
 
 Operator  : mwrap2
 Number    : 1100
