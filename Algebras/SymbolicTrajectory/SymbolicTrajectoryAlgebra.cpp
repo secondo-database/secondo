@@ -3025,12 +3025,14 @@ struct createtupleindexInfo : OperatorInfo {
 */
 template<class PosType, class PosType2>
 ListExpr bulkloadtupleindexTM(ListExpr args) {
-  string err = "Operator expects a relation of tuples where at least one "
-               "attribute is a symbolic trajectory. Optionally, the user can "
-               "specify the name of the main attribute.";
-  if (!nl->HasLength(args, 1) && !nl->HasLength(args, 2)) {
-    return listutils::typeError(err + " (" 
-     + stringutils::int2str(nl->ListLength(args)) + " arguments instead of 1)");
+  string err = (PosType::BasicType() == "unitpos" ? "Operator expects a "
+         "relation and the name of an attribute of a moving type, e.g., mlabel."
+         : "Operator expects a relation");
+  int numOfArgs = (PosType::BasicType() == "unitpos" ? 2 : 1);
+  if (!nl->HasLength(args, numOfArgs)) {
+    return listutils::typeError(err + " (" + 
+      stringutils::int2str(nl->ListLength(args)) + " arguments instead of " +
+      stringutils::int2str(numOfArgs) + ")");
   }
   if (!listutils::isRelDescription(nl->First(args))) {
     return listutils::typeError(err + " (no relation received)");
@@ -3038,21 +3040,21 @@ ListExpr bulkloadtupleindexTM(ListExpr args) {
   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
   string attrName;
   int pos = -1;
-  if (nl->HasLength(args, 1)) {
-    string symAttrNames[] = {"mlabel", "mlabels", "mplace", "mplaces"};
-    int found = 0;
-    for (int i = 0; i < 4; i++) {
-      found += listutils::findType(attrList, nl->SymbolAtom(symAttrNames[i]),
-                                   attrName);
-      if (found != 0 && pos == -1) {
-        pos = found;
-      }
-    }
-    if (found == 0) {
-      return listutils::typeError(err + " (no symbolic attribute found)");
-    }
-  }
-  else {
+//   if (nl->HasLength(args, 1)) {
+//     string symAttrNames[] = {"mlabel", "mlabels", "mplace", "mplaces"};
+//     int found = 0;
+//     for (int i = 0; i < 4; i++) {
+//       found += listutils::findType(attrList, nl->SymbolAtom(symAttrNames[i]),
+//                                    attrName);
+//       if (found != 0 && pos == -1) {
+//         pos = found;
+//       }
+//     }
+//     if (found == 0) {
+//       return listutils::typeError(err + " (no symbolic attribute found)");
+//     }
+//   }
+  if (numOfArgs == 2) { // attribute name given
     attrName = nl->SymbolValue(nl->Second(args));
     ListExpr type;
     pos = listutils::findAttribute(attrList, attrName, type);
@@ -3061,9 +3063,12 @@ ListExpr bulkloadtupleindexTM(ListExpr args) {
              + "a symbolic attribute)");
     }
   }
-  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
-                           nl->OneElemList(nl->IntAtom(pos - 1)),
-                    nl->SymbolAtom(TupleIndex<PosType, PosType2>::BasicType()));
+  ListExpr result = (numOfArgs == 1 ? 
+    nl->SymbolAtom(TupleIndex<PosType, PosType2>::BasicType()) :
+    nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                      nl->OneElemList(nl->IntAtom(pos - 1)),
+                   nl->SymbolAtom(TupleIndex<PosType, PosType2>::BasicType())));
+  return result;
 }
 
 /*
@@ -3075,17 +3080,21 @@ int bulkloadtupleindexVM(Word* args, Word& result, int message, Word& local,
                          Supplier s) {
   result = qp->ResultStorage(s);
   Relation *rel = static_cast<Relation*>(args[0].addr);
-  CcInt *attrno = static_cast<CcInt*>(args[2].addr);
+  int attrPos = -1;
+  if (PosType::BasicType() == "unitpos") {
+    CcInt* attrno = static_cast<CcInt*>(args[2].addr);
+    attrPos = attrno->GetIntval();
+  }
   TupleIndex<PosType, PosType2>* ti
                      = static_cast<TupleIndex<PosType, PosType2>*>(result.addr);
   if (rel->GetNoTuples() == 0) {
     return 0;
   }
   TupleType *tt = rel->GetTupleType();
-  ti->initialize(tt, attrno->GetIntval());
+  ti->initialize(tt, attrPos);
   int majorValueNo;
   vector<pair<int, string> > relevantAttrs = 
-                 Tools::getRelevantAttrs(tt, attrno->GetIntval(), majorValueNo);
+                 Tools::getRelevantAttrs(tt, attrPos, majorValueNo);
   Supplier s0 = qp->GetSon(s, 0);
   ListExpr ttList = nl->Second(qp->GetType(s0));
   int relevantAttrCount = 0;
@@ -3105,25 +3114,49 @@ int bulkloadtupleindexVM(Word* args, Word& result, int message, Word& local,
 */
 const string bulkloadtupleindexSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text> relation(tuple(X)) [x attrname] --> bool </text--->"
+  "( <text> relation(tuple(X)) x attrname --> tupleindex </text--->"
   "<text> _ bulkloadtupleindex[attr] </text--->"
-  "<text> Creates a multiple index for all moving attributes of the \n"
-  "relation. </text--->"
+  "<text> Creates a tupleindex for all moving attributes of the \n"
+  "relation, given the name of an attribute. </text--->"
   "<text> Dotraj bulkloadtupleindex[Trajectory]</text--->) )";
 
 struct bulkloadtupleindexInfo : OperatorInfo {
   bulkloadtupleindexInfo() {
     name      = "bulkloadtupleindex";
-    signature = "relation(tuple(X)) [ x ATTRNAME] --> bool";
-    syntax    = "_ bulkloadtupleindex";
+    signature = "relation(tuple(X)) x ATTRNAME --> tupleindex";
+    syntax    = "_ bulkloadtupleindex[ _ ]";
     meaning   = "Creates a multiple index for all moving attributes of the "
-                "relation.";
+                "relation, given the name of an attribute (applicable with "
+                "indextmatches).";
   }
 };
 
 Operator bulkloadtupleindex("bulkloadtupleindex", bulkloadtupleindexSpec, 
             bulkloadtupleindexVM<UnitPos, UnitPos>, Operator::SimpleSelect, 
             bulkloadtupleindexTM<UnitPos, UnitPos>);
+
+const string bulkloadtupleindex2Spec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> relation(tuple(X)) --> tupleindex2 </text--->"
+  "<text> _ bulkloadtupleindex[attr] </text--->"
+  "<text> Creates a tupleindex2 for all moving attributes of the \n"
+  "relation. </text--->"
+  "<text> Dotraj bulkloadtupleindex2</text--->) )";
+
+struct bulkloadtupleindex2Info : OperatorInfo {
+  bulkloadtupleindex2Info() {
+    name      = "bulkloadtupleindex2";
+    signature = "relation(tuple(X)) --> tupleindex2";
+    syntax    = "_ bulkloadtupleindex2";
+    meaning   = "Creates a tupleindex2 for all moving attributes of the "
+                "relation (applicable with indextmatches2).";
+  }
+};
+
+
+Operator bulkloadtupleindex2("bulkloadtupleindex2", bulkloadtupleindex2Spec, 
+            bulkloadtupleindexVM<NewInterval, UnitPos>, Operator::SimpleSelect, 
+            bulkloadtupleindexTM<NewInterval, UnitPos>);
 
 /*
 \section{Operator ~tmatches~}
@@ -3375,17 +3408,17 @@ ListExpr indextmatches2TM(ListExpr args) {
   if (!nl->HasLength(args, 3)) {
     return listutils::typeError(err + " (3 arguments expected)");
   }
-  if (!TupleIndex<UnitPos, UnitPos>::checkType(nl->First(args))) {
-    return listutils::typeError(err + " (1st argument is not a tuple index)");
+  if (!TupleIndex<NewInterval, UnitPos>::checkType(nl->First(nl->First(args)))){
+    return listutils::typeError(err + " (1st argument is not a tupleindex2)");
   }
-  if (!Relation::checkType(nl->Second(args))) {
+  if (!Relation::checkType(nl->First(nl->Second(args)))) {
     return listutils::typeError(err + " (2nd argument is not a relation)");
   }
-  if (!FText::checkType(nl->Third(args)) && 
+  if (!FText::checkType(nl->First(nl->Third(args))) && 
       !PatPersistent::checkType(nl->Third(args))) {
     return listutils::typeError(err + " (3rd argument is not a text/pattern)");
   }
-  ListExpr tList = nl->Second(nl->Second(args));
+  ListExpr tList = nl->Second(nl->First(nl->Second(args)));
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), tList);
 }
 
@@ -3489,7 +3522,7 @@ ListExpr indexrewriteTM(ListExpr args) {
   string err = "the expected syntax is: tupleindex x rel x attrname x "
                "(text | pattern)";
   if (!TupleIndex<UnitPos, UnitPos>::checkType(nl->First(args))) {
-    return listutils::typeError(err + " (first argument is not a tuple index)");
+    return listutils::typeError(err + " (first argument is not a tupleindex)");
   }
   if (!Relation::checkType(nl->Second(args))) {
     return listutils::typeError(err + " (second argument is not a relation)");
@@ -4895,11 +4928,12 @@ int createtrieVM(Word* args, Word& result, int message, Word& local,Supplier s){
   appendcache::RecordAppendCache* cache = inv->createAppendCache(invCacheSize);
   TrieNodeCacheType* trieCache = inv->createTrieCache(trieCacheSize);
   int attrno = ((CcInt*)args[2].addr)->GetIntval() - 1;
+  int64_t dummy;
   for (int i = 0; i < rel->GetNoTuples(); i++) {
     tuple = rel->GetTuple(i + 1, false);
     src = (M*)(tuple->GetAttribute(attrno));
     TupleIndex<UnitPos, UnitPos>::insertIntoTrie(inv, i + 1, src, 
-           Tools::getDataType(tuple->GetTupleType(), attrno), cache, trieCache);
+    Tools::getDataType(tuple->GetTupleType(), attrno), cache, trieCache, dummy);
     tuple->DeleteIfAllowed();
   }
   delete trieCache;
@@ -5293,6 +5327,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   AddOperator(&bulkloadtupleindex);
   bulkloadtupleindex.SetUsesMemory();
+  
+  AddOperator(&bulkloadtupleindex2);
+  bulkloadtupleindex2.SetUsesMemory();
    
   AddOperator(&tmatches);
   tmatches.SetUsesArgsInTypeMapping();
@@ -5300,8 +5337,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(&indextmatches);
   indextmatches.SetUsesArgsInTypeMapping();
   
-//   AddOperator(&indextmatches2);
-//   indextmatches2.SetUsesArgsInTypeMapping();
+  AddOperator(&indextmatches2);
+  indextmatches2.SetUsesArgsInTypeMapping();
   
   ValueMapping indexrewriteVMs[] = {indexrewriteVM<MLabel>, 
     indexrewriteVM<MLabels>, indexrewriteVM<MPlace>, indexrewriteVM<MPlaces>,0};

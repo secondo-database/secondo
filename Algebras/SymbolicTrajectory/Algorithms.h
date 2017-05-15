@@ -952,40 +952,6 @@ class TMatch {
   bool findBinding(const int u, const int atom, IndexMatchInfo& imi);
 };
 
-/*
-\section{Struct ~NewInterval~}
-
-Used for class ~TupleIndex~, operator ~indextmatches2~.
-
-*/
-struct NewInterval {
-  NewInterval() {}
-  NewInterval(int64_t s, int64_t e, bool l, bool r) :
-    start(s), end(e), lc(l), rc(r) {}
-  NewInterval(Instant& s, Instant& e, bool l, bool r) : lc(l), rc(r) {
-    start = s.millisecondsToNull();
-    end = e.millisecondsToNull();
-  }
-  NewInterval(temporalalgebra::SecInterval& iv) {
-    start = iv.start.millisecondsToNull();
-    end = iv.end.millisecondsToNull();
-    lc = iv.lc;
-    rc = iv.rc;
-  }
-  
-  static const std::string BasicType() {return "newinterval";}
-  
-  void operator=(temporalalgebra::SecInterval& iv) {
-    start = iv.start.millisecondsToNull();
-    end = iv.end.millisecondsToNull();
-    lc = iv.lc;
-    rc = iv.rc;
-  }
-
-  int64_t start, end;
-  bool lc, rc;
-};
-
 extern TypeConstructor tupleindexTC;
 extern TypeConstructor tupleindex2TC;
 
@@ -1038,14 +1004,15 @@ class TupleIndex {
   bool addTuple(Tuple *tuple);
   static void insertIntoTrie(InvertedFileT<PosType, PosType2> *inv, TupleId tid,
           Attribute *traj, DataType type, appendcache::RecordAppendCache* cache,
-          TrieNodeCacheType* trieCache);
+          TrieNodeCacheType* trieCache, int64_t& inst);
   static bool fillTimeIndex(RTree1TI* rt, TupleId tid, Attribute *traj,
                             DataType type);
   static void insertIntoBTree(BTreeTI *bt, TupleId tid, 
-                              temporalalgebra::MInt *mint);
-  static bool insertIntoRTree1(RTree1TI *rt, TupleId tid, Attribute *m);
+                              temporalalgebra::MInt *mint, int64_t& inst);
+  static bool insertIntoRTree1(RTree1TI *rt, TupleId tid, Attribute *m, 
+                               int64_t& inst);
   static bool insertIntoRTree2(RTree2TI *rt, TupleId tid, Attribute *m,
-                               std::string type);
+                               std::string type, int64_t& inst);
   void deleteIndexes();
   
   void processTimeIntervals(Relation *rel, const int attr, 
@@ -1068,7 +1035,7 @@ class TupleIndex {
   std::map<int, std::pair<IndexType, int> > attrToIndex;
   std::map<std::pair<IndexType, int>, int> indexToAttr;
   int mainAttr;
-  int64_t *firstEnd; // array of instants, one entry for each tuple
+  std::vector<int64_t> firstEnd; // vector of instants, one entry for each tuple
 };
 
 /*
@@ -1523,10 +1490,11 @@ class TMatchIndexLI : public IndexMatchSuper {
   ~TMatchIndexLI();
   
   bool tiCompatibleToRel();
+  template<class ResultType>
   bool getSingleIndexResult(
              std::pair<int, std::pair<IndexType, int> > indexInfo, 
              std::pair<Word, SetRel> values, std::string type,
-             int valueNo, std::vector<std::set<int> > &result);
+             int valueNo, std::vector<ResultType> &result);
   int getNoComponents(const TupleId tId, const int attrNo);
   Instant getFirstEnd(const TupleId id);
   void unitsToPeriods(const std::set<int> &units, const TupleId tId, 
@@ -6229,6 +6197,148 @@ void IndexMatchSuper::periodsToUnits(const temporalalgebra::Periods *per,
 }
 
 /*
+\subsection{Function ~getSingleIndexResult~}
+
+*/
+template<class ResultType>
+bool TMatchIndexLI::getSingleIndexResult(
+                           std::pair<int, std::pair<IndexType, int> > indexInfo,
+                  std::pair<Word, SetRel> values, std::string type, int valueNo,
+                                              std::vector<ResultType> &result) {
+  std::string attrType = nl->ToString(nl->Second(nl->Nth(indexInfo.first + 1, 
+                                                    nl->Second(ttList))));
+  switch (indexInfo.second.first) {
+    case TRIE: {
+      if (values.first.addr == 0) {
+        return false; // no content
+      }
+      if (attrType.substr(0,6) == "mlabel" || attrType.substr(0,6) == "mplace"){
+        SecondoCatalog* sc = SecondoSystem::GetCatalog();
+        if (attrType.substr(0, 6) == "mplace" && sc->IsObjectName("Places") &&
+            (type != Labels::BasicType())) {
+          Rectangle<2> rect(true);
+          if (type == Rectangle<2>::BasicType()) {
+            rect.CopyFrom((Rectangle<2>*)(values.first.addr));
+            cout << "rect retrieved: ";
+            ((Rectangle<2>*)(values.first.addr))->Print(cout);
+            rect.Print(cout);
+          }
+          else {
+            rect = ((Region*)(values.first.addr))->BoundingBox();
+            cout << "bbox of region retrieved: ";
+          }
+          rect.Print(cout);
+          if (ti != 0) {
+            Tools::queryRtree2(ti->rtrees2[indexInfo.second.second], rect, 
+                               result);
+          }
+          else {
+            Tools::queryRtree2(ti2->rtrees2[indexInfo.second.second], rect, 
+                               result);
+          }
+          cout << "rtree queried" << endl;
+          return false;
+        }
+        std::set<std::string> lbs;
+        ((Labels*)(values.first.addr))->GetValues(lbs);
+        if (valueNo == 0 && lbs.empty()) {
+          return false; // first access unsuccessful
+        }
+        std::set<std::string>::iterator it = lbs.begin();
+        for (int i = 0; i < valueNo; i++) {
+          it++;
+        }
+        if (ti != 0) {
+          Tools::queryTrie(ti->tries[indexInfo.second.second], *it, result);
+        }
+        else {
+          Tools::queryTrie(ti2->tries[indexInfo.second.second], *it, result);
+        }
+        return (int)(lbs.size()) > valueNo + 1; // TRUE iff there is a successor
+      }
+      break;
+    }
+    case BTREE: {
+//       cout << "BTREE, type " << type << ", pos " << indexInfo.second.second 
+//            << endl;
+      if (values.first.addr == 0) {
+        return false; // no content
+      }
+      temporalalgebra::Range<CcReal> *range 
+                         = (temporalalgebra::Range<CcReal>*)(values.first.addr);
+      temporalalgebra::Interval<CcReal> iv;
+      if (valueNo == 0 && range->IsEmpty()) {
+        return false; // first access unsuccessful
+      }
+      range->Get(valueNo, iv);
+      if (ti != 0) {
+        Tools::queryBtree(ti->btrees[indexInfo.second.second], iv, result);
+      }
+      else {
+        Tools::queryBtree(ti2->btrees[indexInfo.second.second], iv, result);
+      }
+//       for (unsigned int i = 0; i < result.size(); i++) {
+//         cout << "|" << i << ": " << result[i].size() << " ";
+//       }
+//       cout << endl;
+      return range->GetNoComponents() > valueNo + 1;
+    }
+    case RTREE1: {
+//       cout << "RTREE1, type " << type << ", pos " << indexInfo.second.second 
+//            << endl;
+      if (values.first.addr == 0) {
+        return false; // no content
+      }
+      temporalalgebra::Range<CcReal> *range 
+                         = (temporalalgebra::Range<CcReal>*)(values.first.addr);
+      temporalalgebra::Interval<CcReal> iv;
+      if (valueNo == 0 && range->IsEmpty()) {
+        return false; // first access unsuccessful
+      }
+      range->Get(valueNo, iv);
+      if (ti != 0) {
+        Tools::queryRtree1(ti->rtrees1[indexInfo.second.second], iv, result);
+      }
+      else {
+        Tools::queryRtree1(ti2->rtrees1[indexInfo.second.second], iv, result);
+      }
+//       for (unsigned int i = 0; i < result.size(); i++) {
+//         cout << "|" << i << ": " << result[i].size() << " ";
+//       }
+//       cout << endl;
+      return range->GetNoComponents() > valueNo + 1;
+    }
+    case RTREE2: {
+//       cout << "RTREE2, type " << type << ", pos " << indexInfo.second.second 
+//            << endl;
+      if (values.first.addr == 0) {
+        return false; // no content
+      }
+      Rectangle<2> rect = ((Region*)(values.first.addr))->BoundingBox();
+      if (rect.IsEmpty()) {
+        return false; // first access unsuccessful
+      }
+      if (ti != 0) {
+        Tools::queryRtree2(ti->rtrees2[indexInfo.second.second], rect, result);
+      }
+      else {
+        Tools::queryRtree2(ti2->rtrees2[indexInfo.second.second], rect, result);
+      }
+//       for (unsigned int i = 0; i < result.size(); i++) {
+//         cout << "|" << i << ": " << result[i].size() << " ";
+//       }
+//       cout << endl;
+      return false;
+    }
+    default: { // case NONE
+      break;
+    }
+  }
+  return false;
+}
+
+
+/*
 \subsection{Function ~unitsToPeriods~}
 
 */
@@ -6436,8 +6546,8 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
   for (unsigned int i = 0; i < noComponents; i++) {
     val.addr = ti->tries[i];
     cout << "save trie # " << i + 1 << " of " << noComponents << endl;
-    if (!triealg::SaveInvfile<PosType,PosType2>(valueRecord, offset, 
-                                                tList, val)) {
+    if (!triealg::SaveInvfile<PosType, PosType2>(valueRecord, offset, tList, 
+                                                 val)) {
       cout << "error saving trie " << i << endl;
       return false;
     }
@@ -6460,15 +6570,20 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   offset += sizeof(unsigned int);
-  tList = nl->FourElemList(nl->Empty(), nl->Empty(), nl->Empty(), 
-                           nl->BoolAtom(true));
+//   tList = nl->FourElemList(nl->Empty(), nl->Empty(), nl->Empty(), 
+//                            nl->BoolAtom(true));
   for (unsigned int i = 0; i < noComponents; i++) {
-    val.addr = ti->rtrees1[i];
+//     val.addr = ti->rtrees1[i];
     cout << "save rtree1 # " << i + 1 << " of " << noComponents << endl;
-    if (!SaveRTree<1>(valueRecord, offset, tList, val)) {
-      cout << "error saving rtree1 " << i << endl;
+    SmiFileId fileId = ti->rtrees1[i]->FileId();
+    if (!valueRecord.Write(&fileId, sizeof(SmiFileId), offset)) {
       return false;
     }
+    offset += sizeof(SmiFileId);
+//     if (!SaveRTree<1>(valueRecord, offset, tList, val)) {
+//       cout << "error saving rtree1 " << i << endl;
+//       return false;
+//     }
   }
   noComponents = ti->rtrees2.size();
   if (!valueRecord.Write(&noComponents, sizeof(unsigned int), offset)) {
@@ -6476,19 +6591,31 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
   }
   offset += sizeof(unsigned int);
   for (unsigned int i = 0; i < noComponents; i++) {
-    val.addr = ti->rtrees2[i];
+//     val.addr = ti->rtrees2[i];
     cout << "save rtree2 # " << i + 1 << " of " << noComponents << endl;
-    if (!SaveRTree<2>(valueRecord, offset, tList, val)) {
-      cout << "error saving rtree2 " << i << endl;
+    SmiFileId fileId = ti->rtrees2[i]->FileId();
+    if (!valueRecord.Write(&fileId, sizeof(SmiFileId), offset)) {
       return false;
     }
+    offset += sizeof(SmiFileId);
+//     if (!SaveRTree<2>(valueRecord, offset, tList, val)) {
+//       cout << "error saving rtree2 " << i << endl;
+//       return false;
+//     }
   }
-  val.addr = ti->timeIndex;
-  cout << "save time index" << endl;
-  if (!SaveRTree<1>(valueRecord, offset, tList, val)) {
-    cout << "error saving timeIndex" << endl;
-    return false;
+//   val.addr = ti->timeIndex;
+  if (PosType::BasicType() == "unitpos") {
+    cout << "save time index" << endl;
+    SmiFileId fileId = ti->timeIndex->FileId();
+    if (!valueRecord.Write(&fileId, sizeof(SmiFileId), offset)) {
+      return false;
+    }
+    offset += sizeof(SmiFileId);
   }
+//   if (!SaveRTree<1>(valueRecord, offset, tList, val)) {
+//     cout << "error saving timeIndex" << endl;
+//     return false;
+//   }
   noComponents = ti->attrToIndex.size();
   if (!valueRecord.Write(&noComponents, sizeof(unsigned int), offset)) {
     return false;
@@ -6540,6 +6667,20 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
   }
   cout << "mainAttr = " << ti->mainAttr << " saved" << endl;
   offset += sizeof(int);
+  noComponents = ti->firstEnd.size();
+  if (!valueRecord.Write(&noComponents, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noComponents; i++) {
+    if (!valueRecord.Write(&(ti->firstEnd[i]), sizeof(int64_t), offset)) {
+      return false;
+    }
+    offset += sizeof(int64_t);
+  }
+  if (noComponents > 0) {
+    cout << "first ends for " << noComponents - 1 << " tuples saved" << endl;
+  }
   return true;
 }
 
@@ -6549,6 +6690,7 @@ bool TupleIndex<PosType, PosType2>::Open(SmiRecord& valueRecord, size_t& offset,
   SecondoCatalog *sc = SecondoSystem::GetCatalog();
   TupleIndex *ti = new TupleIndex();
   Word val;
+  SmiFileId fileId;
   ListExpr tList = sc->NumericType(nl->SymbolAtom(TrieTI::BasicType()));
   unsigned int noComponents;
   if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
@@ -6557,8 +6699,8 @@ bool TupleIndex<PosType, PosType2>::Open(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(unsigned int);
 //   cout << "There are " << noComponents << " tries, ";
   for (unsigned int i = 0; i < noComponents; i++) {
-    if (!triealg::OpenInvfile<PosType,PosType2>(valueRecord, offset, 
-                                                tList, val)) {
+    if (!triealg::OpenInvfile<PosType, PosType2>(valueRecord, offset, tList, 
+                                                 val)) {
       cout << "error opening trie" << endl;
       return false;
     }
@@ -6584,13 +6726,18 @@ bool TupleIndex<PosType, PosType2>::Open(SmiRecord& valueRecord, size_t& offset,
   }
   offset += sizeof(unsigned int);
 //   cout << "There are " << noComponents << " rtree1s, ";
-  tList = nl->FourElemList(nl->Empty(), nl->Empty(), nl->Empty(), 
-                           nl->BoolAtom(true));
+//   tList = nl->FourElemList(nl->Empty(), nl->Empty(), nl->Empty(), 
+//                            nl->BoolAtom(true));
   for (unsigned int i = 0; i < noComponents; i++) {
-    if (!OpenRTree<1>(valueRecord, offset, tList, val)) {
-      cout << "error opening rtree1" << endl;
+//     if (!OpenRTree<1>(valueRecord, offset, tList, val)) {
+//       cout << "error opening rtree1" << endl;
+//       return false;
+//     }
+    if (!valueRecord.Read(&fileId, sizeof(SmiFileId), offset)) {
       return false;
     }
+    offset += sizeof(SmiFileId);
+    val.addr = new RTree1TI(fileId);
     ti->rtrees1.push_back((RTree1TI*)val.addr);
   }
   if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
@@ -6599,18 +6746,33 @@ bool TupleIndex<PosType, PosType2>::Open(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(unsigned int);
 //   cout << "There are " << noComponents << " rtree2s, ";
   for (unsigned int i = 0; i < noComponents; i++) {
-    if (!OpenRTree<2>(valueRecord, offset, tList, val)) {
-      cout << "error opening rtree2" << endl;
+//     if (!OpenRTree<2>(valueRecord, offset, tList, val)) {
+//       cout << "error opening rtree2" << endl;
+//       return false;
+//     }
+    if (!valueRecord.Read(&fileId, sizeof(SmiFileId), offset)) {
       return false;
     }
+    offset += sizeof(SmiFileId);
+    val.addr = new RTree2TI(fileId);
     ti->rtrees2.push_back((RTree2TI*)val.addr);
   }
-  if (!OpenRTree<1>(valueRecord, offset, tList, val)) {
-    cout << "error opening time index" << endl;
-    return false;
+//   if (!OpenRTree<1>(valueRecord, offset, tList, val)) {
+//     cout << "error opening time index" << endl;
+//     return false;
+//   }
+  if (PosType::BasicType() == "unitpos") {
+    if (!valueRecord.Read(&fileId, sizeof(SmiFileId), offset)) {
+      return false;
+    }
+    offset += sizeof(SmiFileId);
+    val.addr = new RTree1TI(fileId);
+    ti->timeIndex = (RTree1TI*)val.addr;
+//     cout << "Time index opened, ";
   }
-  ti->timeIndex = (RTree1TI*)val.addr;
-//   cout << "Time index opened, ";
+  else {
+    ti->timeIndex = 0;
+  }
   if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
     return false;
   }
@@ -6656,6 +6818,17 @@ bool TupleIndex<PosType, PosType2>::Open(SmiRecord& valueRecord, size_t& offset,
   }
   offset += sizeof(int);
   value = SetWord(ti);
+  if (!valueRecord.Read(&noComponents, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  ti->firstEnd.resize(noComponents);
+  for (unsigned int i = 0; i < noComponents; i++) {
+    if (!valueRecord.Read(&(ti->firstEnd[i]), sizeof(int64_t), offset)) {
+      return false;
+    }
+    offset += sizeof(int64_t);
+  }
 //   cout << "TupleIndex opened succesfully" << endl;
   return true;
 }
@@ -6699,8 +6872,13 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
 //   ListExpr typeInfo = nl->FourElemList(nl->Empty(), nl->Empty(), 
 //                                        nl->Empty(), nl->BoolAtom(true));
 //   RTree1TLLI* rtbla = (RTree1TLLI*)((CreateRTree<1>(typeInfo)).addr);
-  timeIndex = new R_Tree<1, NewPair<TupleId, PosType> >(4000);
-  cout << "RTree1 for time intervals created" << endl;
+  if (PosType::BasicType() == "newinterval") { // version for tupleindex2
+    timeIndex = 0;
+  }
+  else { // version for tupleindex with main attribute
+    timeIndex = new R_Tree<1, NewPair<TupleId, PosType> >(4000);
+    cout << "RTree1 for time intervals created" << endl;
+  }
   for (int i = 0; i < ttype->GetNoAttributes(); i++) {
     AttributeType atype = ttype->GetAttributeType(i);
     std::string name = sc->GetTypeName(atype.algId, atype.typeId);
@@ -6760,10 +6938,11 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
 \subsection{Function ~insertIntoTrie~}
 
 */
-template<class PosType, class PosType2> // TODO: complete for tupleindex2
+template<class PosType, class PosType2>
 void TupleIndex<PosType, PosType2>::insertIntoTrie(TrieTI *inv, TupleId tid, 
           Attribute *traj, DataType type, appendcache::RecordAppendCache* cache,
-                                                 TrieNodeCacheType* trieCache) {
+                              TrieNodeCacheType* trieCache, int64_t& inst) {
+  Instant insttmp(datetime::instanttype);
   switch (type) {
     case MLABEL: {
       std::string value;
@@ -6772,6 +6951,9 @@ void TupleIndex<PosType, PosType2>::insertIntoTrie(TrieTI *inv, TupleId tid,
         inv->insertString(tid, value, j, 0, cache, trieCache);
 //         cout << "inserted " << tid << " " << value << " " << j << endl;
       }
+      if (PosType::BasicType() == "newinterval") {
+        ((MLabel*)traj)->FinalInstant(insttmp);
+      }
       break;
     }
     case MPLACE: {
@@ -6779,6 +6961,9 @@ void TupleIndex<PosType, PosType2>::insertIntoTrie(TrieTI *inv, TupleId tid,
       for (int j = 0; j < ((MPlace*)traj)->GetNoComponents(); j++) {
         ((MPlace*)traj)->GetValue(j, value);
         inv->insertString(tid, value.first, j, value.second, cache, trieCache);
+      }
+      if (PosType::BasicType() == "newinterval") {
+        ((MPlace*)traj)->FinalInstant(insttmp);
       }
       break;
     }
@@ -6791,6 +6976,9 @@ void TupleIndex<PosType, PosType2>::insertIntoTrie(TrieTI *inv, TupleId tid,
           inv->insertString(tid, *it, j, 0, cache, trieCache);
         }
       }
+      if (PosType::BasicType() == "newinterval") {
+        ((MLabels*)traj)->FinalInstant(insttmp);
+      }
       break;
     }
     default: { // mplaces
@@ -6802,6 +6990,14 @@ void TupleIndex<PosType, PosType2>::insertIntoTrie(TrieTI *inv, TupleId tid,
           inv->insertString(tid, it->first, j, it->second, cache, trieCache);
         }
       }
+      if (PosType::BasicType() == "newinterval") {
+        ((MPlaces*)traj)->FinalInstant(insttmp);
+      }
+    }
+  }
+  if (PosType::BasicType() == "newinterval") {
+    if (insttmp.millisecondsToNull() < inst) {
+      inst = insttmp.millisecondsToNull();
     }
   }
 }
@@ -6872,21 +7068,27 @@ bool TupleIndex<PosType, PosType2>::fillTimeIndex(RTree1TI* rt, TupleId tid,
 */
 template<class PosType, class PosType2>
 void TupleIndex<PosType, PosType2>::insertIntoBTree(BTreeTI *bt, TupleId tid,
-                                                  temporalalgebra::MInt *mint) {
+                                   temporalalgebra::MInt *mint, int64_t& inst) {
+  Instant insttmp(datetime::instanttype);
   temporalalgebra::UInt unit(true);
   NewPair<TupleId, PosType> position;
   position.first = tid;
-  temporalalgebra::SecInterval iv(true);
   for (int i = 0; i < mint->GetNoComponents(); i++) {
     mint->Get(i, unit);
-    position.copy2ndFrom(i);
-    position.copy2ndFrom(unit.timeInterval);
+    if (PosType::BasicType() == "unitpos") {
+      position.copy2ndFrom(i);
+    }
+    else {
+      position.copy2ndFrom(unit.timeInterval);
+    }
     bt->Append(unit.constValue.GetValue(), position);
   }
-//   int64_t tid_64(tid);
-//   tid_64 = tid_64<<32;
-//   LongInt pos(tid_64 | (uint32_t)i);
-//   bt->Append(unit.constValue.GetValue(), pos);
+  if (PosType::BasicType() == "newinterval") {
+    mint->FinalInstant(insttmp);
+    if (insttmp.millisecondsToNull() < inst) {
+      inst = insttmp.millisecondsToNull();
+    }
+  }
 }
 
 /*
@@ -6895,7 +7097,8 @@ void TupleIndex<PosType, PosType2>::insertIntoBTree(BTreeTI *bt, TupleId tid,
 */
 template<class PosType, class PosType2>
 bool TupleIndex<PosType, PosType2>::insertIntoRTree1(RTree1TI *rt, TupleId tid, 
-                                                     Attribute *m) {
+                                                  Attribute *m, int64_t& inst) {
+  Instant insttmp(datetime::instanttype);
   double start[1], end[1];
   temporalalgebra::UReal unit(true);
   bool correct1(true), correct2(true);
@@ -6913,6 +7116,12 @@ bool TupleIndex<PosType, PosType2>::insertIntoRTree1(RTree1TI *rt, TupleId tid,
     R_TreeLeafEntry<1, NewPair<TupleId, PosType> > entry(doubleIv, position);
     rt->Insert(entry);
   }
+  if (PosType::BasicType() == "newinterval") {
+    ((temporalalgebra::MReal*)m)->FinalInstant(insttmp);
+    if (insttmp.millisecondsToNull() < inst) {
+      inst = insttmp.millisecondsToNull();
+    }
+  }
   return true;
 }
 
@@ -6922,7 +7131,8 @@ bool TupleIndex<PosType, PosType2>::insertIntoRTree1(RTree1TI *rt, TupleId tid,
 */
 template<class PosType, class PosType2>
 bool TupleIndex<PosType, PosType2>::insertIntoRTree2(RTree2TI *rt, TupleId tid,
-                                               Attribute *m, std::string type) {
+                                Attribute *m, std::string type, int64_t& inst) {
+  Instant insttmp(datetime::instanttype);
   if (type == "mpoint") {
     temporalalgebra::UPoint up(true);
     for (int i = 0; i < ((temporalalgebra::MPoint*)m)->GetNoComponents(); i++) {
@@ -6933,6 +7143,12 @@ bool TupleIndex<PosType, PosType2>::insertIntoRTree2(RTree2TI *rt, TupleId tid,
         R_TreeLeafEntry<2, NewPair<TupleId, PosType> > 
                                        entry(up.BoundingBoxSpatial(), position);
         rt->Insert(entry);
+      }
+    }
+    if (PosType::BasicType() == "newinterval") {
+      ((temporalalgebra::MPoint*)m)->FinalInstant(insttmp);
+      if (insttmp.millisecondsToNull() < inst) {
+        inst = insttmp.millisecondsToNull();
       }
     }
   }
@@ -6953,6 +7169,12 @@ bool TupleIndex<PosType, PosType2>::insertIntoRTree2(RTree2TI *rt, TupleId tid,
         rt->Insert(entry);
       }
     }
+    if (PosType::BasicType() == "newinterval") {
+      ((temporalalgebra::MRegion*)m)->FinalInstant(insttmp);
+      if (insttmp.millisecondsToNull() < inst) {
+        inst = insttmp.millisecondsToNull();
+      }
+    }
   }
   else {
     cout << "Invalid type " << type << endl;
@@ -6967,6 +7189,7 @@ bool TupleIndex<PosType, PosType2>::insertIntoRTree2(RTree2TI *rt, TupleId tid,
 */
 template<class PosType, class PosType2>
 bool TupleIndex<PosType, PosType2>::addTuple(Tuple *tuple) {
+  int64_t inst = std::numeric_limits<int64_t>::max();
   for (int i = 0; i < tuple->GetNoAttributes(); i++) {
     std::pair<IndexType, int> indexPos = attrToIndex[i];
     if (indexPos.second > -1) {
@@ -6989,7 +7212,7 @@ bool TupleIndex<PosType, PosType2>::addTuple(Tuple *tuple) {
         TrieNodeCacheType* trieCache = inv->createTrieCache(trieCacheSize);
 //         cout << "INSERT INTO TRIE " << indexPos.second << endl;
         insertIntoTrie(inv, tuple->GetTupleId(), tuple->GetAttribute(i),
-                Tools::getDataType(tuple->GetTupleType(), i), cache, trieCache);
+          Tools::getDataType(tuple->GetTupleType(), i), cache, trieCache, inst);
         delete trieCache;
         delete cache;
         if (i == mainAttr) {
@@ -7004,12 +7227,12 @@ bool TupleIndex<PosType, PosType2>::addTuple(Tuple *tuple) {
       else if (indexPos.first == BTREE) {
 //         cout << "INSERT INTO BTREE" << endl;
         insertIntoBTree(btrees[indexPos.second], tuple->GetTupleId(),
-          (temporalalgebra::MInt*)(tuple->GetAttribute(i)));
+                        (temporalalgebra::MInt*)(tuple->GetAttribute(i)), inst);
       }
       else if (indexPos.first == RTREE1) {
 //         cout << "INSERT INTO RTREE1 " << indexPos.second << endl;
         if (!insertIntoRTree1(rtrees1[indexPos.second], tuple->GetTupleId(),
-                              tuple->GetAttribute(i))) {
+                              tuple->GetAttribute(i), inst)) {
           cout << "Error adding tuple " << tuple->GetTupleId() << endl;
           return false;
         }
@@ -7017,12 +7240,20 @@ bool TupleIndex<PosType, PosType2>::addTuple(Tuple *tuple) {
       else if (indexPos.first == RTREE2) {
 //         cout << "INSERT INTO RTREE2" << endl;
         if (!insertIntoRTree2(rtrees2[indexPos.second], tuple->GetTupleId(),
-        tuple->GetAttribute(i), Tools::getTypeName(tuple->GetTupleType(), i))) {
+                              tuple->GetAttribute(i), 
+                          Tools::getTypeName(tuple->GetTupleType(), i), inst)) {
           cout << "Error adding tuple " << tuple->GetTupleId() << endl;
           return false;
         }
       }
     }
+  }
+  if (PosType::BasicType() == "newinterval") {
+    while (firstEnd.size() <= tuple->GetTupleId()) {
+      firstEnd.resize(tuple->GetTupleId() + 1, 
+                      std::numeric_limits<int64_t>::max());
+    }
+    firstEnd[tuple->GetTupleId()] = inst;
   }
   return true;
 }
@@ -7134,11 +7365,11 @@ void TupleIndex<PosType, PosType2>::processTimeIntervals(Relation *rel,
     start[0] = values[i].first.first;
     end[0] = values[i].first.second;
     Rectangle<1> doubleIv(true, start, end);
-    NewPair<TupleId, PosType> position(values[i].second.first, 
+    NewPair<TupleId, UnitPos> position(values[i].second.first, 
                                        values[i].second.second);
 //     TwoLayerLeafInfo position(values[i].second.first,values[i].second.second,
 //                               values[i].second.second);
-    R_TreeLeafEntry<1, NewPair<TupleId, PosType> > entry(doubleIv, position);
+    R_TreeLeafEntry<1, NewPair<TupleId, UnitPos> > entry(doubleIv, position);
     timeIndex->InsertBulkLoad(entry);
   }
   bool bulkLoadFinalized = timeIndex->FinalizeBulkLoad();
@@ -7154,8 +7385,9 @@ template<class PosType, class PosType2>
 void TupleIndex<PosType, PosType2>::processRTree2(Relation *rel,
                                 const int attrNo, const std::string &typeName) {
   std::vector<NewPair<NewPair<NewPair<double, double>, NewPair<double,double> >,
-                 NewPair<TupleId, int> > > values;
+                 NewPair<TupleId, PosType> > > values;
   TupleId noTuples = rel->GetNoTuples();
+  Instant insttmp(datetime::instanttype);
   if (typeName == "mpoint") {
     temporalalgebra::MPoint *mp = 0;
     temporalalgebra::UPoint up(true);
@@ -7170,8 +7402,23 @@ void TupleIndex<PosType, PosType2>::processRTree2(Relation *rel,
           NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
           NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
         NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
-        NewPair<TupleId, int> > value(bboxValues, NewPair<TupleId, int>(i, j));
+        NewPair<TupleId, PosType> > value;
+        value.first = bboxValues;
+        value.second.first = i;
+        if (PosType::BasicType() == "unitpos") {
+          value.second.copy2ndFrom(j);
+        }
+        else {
+          NewInterval niv(up.timeInterval);
+          value.second.copy2ndFrom(niv);
+        }
         values.push_back(value);
+      }
+      if (PosType::BasicType() == "newinterval") {
+        mp->FinalInstant(insttmp);
+        if (insttmp.millisecondsToNull() < firstEnd[t->GetTupleId()]) {
+          firstEnd[t->GetTupleId()] = insttmp.millisecondsToNull();
+        }
       }
       t->DeleteIfAllowed();
     }
@@ -7190,8 +7437,23 @@ void TupleIndex<PosType, PosType2>::processRTree2(Relation *rel,
           NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
           NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
         NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
-         NewPair<TupleId, int> > value(bboxValues, NewPair<TupleId, int>(i, j));
+         NewPair<TupleId, PosType> > value;
+        value.first = bboxValues;
+        value.second.first = i;
+        if (PosType::BasicType() == "unitpos") {
+          value.second.copy2ndFrom(j);
+        }
+        else {
+          NewInterval niv(ur.timeInterval);
+          value.second.copy2ndFrom(niv);
+        }
         values.push_back(value);
+      }
+      if (PosType::BasicType() == "newinterval") {
+        mr->FinalInstant(insttmp);
+        if (insttmp.millisecondsToNull() < firstEnd[t->GetTupleId()]) {
+          firstEnd[t->GetTupleId()] = insttmp.millisecondsToNull();
+        }
       }
       t->DeleteIfAllowed();
     }
@@ -7230,9 +7492,23 @@ void TupleIndex<PosType, PosType2>::processRTree2(Relation *rel,
             NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
             NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
           NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
-                  NewPair<TupleId, int> > 
-                                 value(bboxValues, NewPair<TupleId, int>(i, j));
+                  NewPair<TupleId, PosType> > value;
+          value.first = bboxValues;
+          value.second.first = i;
+          if (PosType::BasicType() == "unitpos") {
+            value.second.copy2ndFrom(j);
+          }
+          else {
+            NewInterval niv(up.timeInterval);
+            value.second.copy2ndFrom(niv);
+          }
           values.push_back(value);
+        }
+      }
+      if (PosType::BasicType() == "newinterval") {
+        mp->FinalInstant(insttmp);
+        if (insttmp.millisecondsToNull() < firstEnd[t->GetTupleId()]) {
+          firstEnd[t->GetTupleId()] = insttmp.millisecondsToNull();
         }
       }
       t->DeleteIfAllowed();
@@ -7243,6 +7519,7 @@ void TupleIndex<PosType, PosType2>::processRTree2(Relation *rel,
     MPlaces *mp = 0;
     std::set<std::pair<std::string, unsigned int> > pls;
     std::set<std::pair<std::string, unsigned int> >::iterator it;
+    temporalalgebra::SecInterval iv(true);
     for (TupleId i = 1; i <= noTuples; i++) {
       Tuple *t = rel->GetTuple(i, false);
       mp = (MPlaces*)t->GetAttribute(attrNo);
@@ -7257,8 +7534,26 @@ void TupleIndex<PosType, PosType2>::processRTree2(Relation *rel,
             NewPair<double, double>(bbox.MinD(0), bbox.MinD(1)),
             NewPair<double, double>(bbox.MaxD(0), bbox.MaxD(1)));
           NewPair<NewPair<NewPair<double, double>, NewPair<double, double> >, 
-          NewPair<TupleId, int> > value(bboxValues, NewPair<TupleId, int>(i,j));
+          NewPair<TupleId, PosType> > value;
+          value.first = bboxValues;
+          value.second.first = i;
+          if (PosType::BasicType() == "unitpos") {
+            value.second.copy2ndFrom(j);
+          }
+          else {
+            if (it == pls.begin()) {
+              mp->GetInterval(j, iv);
+            }
+            NewInterval niv(iv);
+            value.second.copy2ndFrom(niv);
+          }
           values.push_back(value);
+        }
+      }
+      if (PosType::BasicType() == "newinterval") {
+        mp->FinalInstant(insttmp);
+        if (insttmp.millisecondsToNull() < firstEnd[t->GetTupleId()]) {
+          firstEnd[t->GetTupleId()] = insttmp.millisecondsToNull();
         }
       }
       t->DeleteIfAllowed();
@@ -7307,7 +7602,9 @@ void TupleIndex<PosType, PosType2>::processRTree2(Relation *rel,
 template<class PosType, class PosType2>
 void TupleIndex<PosType, PosType2>::processRTree1(Relation *rel, 
                                                   const int attr) {
-  std::vector<NewPair<NewPair<double, double>, NewPair<TupleId, int> > > values;
+  Instant insttmp(datetime::instanttype);
+  std::vector<NewPair<NewPair<double, double>, NewPair<TupleId, PosType> > >
+    values;
   TupleId noTuples = rel->GetNoTuples();
   temporalalgebra::MReal *mr = 0;
   temporalalgebra::UReal ur(true);
@@ -7321,10 +7618,24 @@ void TupleIndex<PosType, PosType2>::processRTree1(Relation *rel,
       mr->Get(j, ur);
       start = ur.Min(correct1);
       end = ur.Max(correct2);
-      NewPair<NewPair<double, double>, NewPair<TupleId, int> > value
-             (NewPair<double, double>(start, end), NewPair<TupleId, int>(i, j));
+      NewPair<NewPair<double, double>, NewPair<TupleId, PosType> > value;
+      value.first = NewPair<double, double>(start, end);
+      value.second.first = i;
+      if (PosType::BasicType() == "unitpos") {
+        value.second.copy2ndFrom(j);
+      }
+      else {
+        NewInterval niv(ur.timeInterval);
+        value.second.copy2ndFrom(niv);
+      }
       values.push_back(value);
     }
+    if (PosType::BasicType() == "newinterval") {
+        mr->FinalInstant(insttmp);
+        if (insttmp.millisecondsToNull() < firstEnd[t->GetTupleId()]) {
+          firstEnd[t->GetTupleId()] = insttmp.millisecondsToNull();
+        }
+      }
     t->DeleteIfAllowed();
   }
   cout << values.size() << " real intervals in vector" << endl;
@@ -7356,6 +7667,7 @@ void TupleIndex<PosType, PosType2>::processRTree1(Relation *rel,
 */
 template<class PosType, class PosType2>
 void TupleIndex<PosType, PosType2>::processBTree(Relation *rel, const int attr){
+  Instant insttmp(datetime::instanttype);
   std::vector<NewPair<int, NewPair<TupleId, PosType> > > values;
   TupleId noTuples = rel->GetNoTuples();
   temporalalgebra::MInt *mi = 0;
@@ -7368,11 +7680,22 @@ void TupleIndex<PosType, PosType2>::processBTree(Relation *rel, const int attr){
     int noComponents = mi->GetNoComponents();
     for (int j = 0; j < noComponents; j++) {
       mi->Get(j, ui);
-      pos.copy2ndFrom(j);
-      pos.copy2ndFrom(ui.timeInterval);
+      if (PosType::BasicType() == "unitpos") {
+        pos.copy2ndFrom(j);
+      }
+      else {
+        NewInterval niv(ui.timeInterval);
+        pos.copy2ndFrom(niv);
+      }
       NewPair<int, NewPair<TupleId, PosType> > value(ui.constValue.GetValue(), 
                                                      pos);
       values.push_back(value);
+    }
+    if (PosType::BasicType() == "newinterval") {
+      mi->FinalInstant(insttmp);
+      if (insttmp.millisecondsToNull() < firstEnd[t->GetTupleId()]) {
+        firstEnd[t->GetTupleId()] = insttmp.millisecondsToNull();
+      }
     }
     t->DeleteIfAllowed();
   }
@@ -7393,6 +7716,7 @@ void TupleIndex<PosType, PosType2>::processBTree(Relation *rel, const int attr){
 template<class PosType, class PosType2>
 void TupleIndex<PosType, PosType2>::processTrie(Relation *rel, const int attr,
                             const std::string &typeName, const size_t memSize) {
+  Instant insttmp(datetime::instanttype);
   std::vector<NewPair<std::string, NewPair<TupleId, PosType> > > values;
   NewPair<std::string, NewPair<TupleId, PosType> > value;
   TupleId noTuples = rel->GetNoTuples();
@@ -7407,9 +7731,21 @@ void TupleIndex<PosType, PosType2>::processTrie(Relation *rel, const int attr,
       for (int j = 0; j < noComponents; j++) {
         ml->GetValue(j, value.first);
         value.second.first = i;
-        value.second.copy2ndFrom(j);
-        value.second.copy2ndFrom(iv);
+        if (PosType::BasicType() == "unitpos") {
+          value.second.copy2ndFrom(j);
+        }
+        else {
+          ml->GetInterval(j, iv);
+          NewInterval niv(iv);
+          value.second.copy2ndFrom(niv);
+        }
         values.push_back(value);
+      }
+      if (PosType::BasicType() == "newinterval") {
+        ml->FinalInstant(insttmp);
+        if (insttmp.millisecondsToNull() < firstEnd[t->GetTupleId()]) {
+          firstEnd[t->GetTupleId()] = insttmp.millisecondsToNull();
+        }
       }
       t->DeleteIfAllowed();
     }
@@ -7429,10 +7765,22 @@ void TupleIndex<PosType, PosType2>::processTrie(Relation *rel, const int attr,
         while (it != labels.end()) {
           value.first = *it;
           value.second.first = i;
-          value.second.copy2ndFrom(j);
-          value.second.copy2ndFrom(iv);
+          if (PosType::BasicType() == "unitpos") {
+            value.second.copy2ndFrom(j);
+          }
+          else {
+            mls->GetInterval(j, iv);
+            NewInterval niv(iv);
+            value.second.copy2ndFrom(niv);
+          }
           values.push_back(value);
           it++;
+        }
+      }
+      if (PosType::BasicType() == "newinterval") {
+        mls->FinalInstant(insttmp);
+        if (insttmp.millisecondsToNull() < firstEnd[t->GetTupleId()]) {
+          firstEnd[t->GetTupleId()] = insttmp.millisecondsToNull();
         }
       }
       t->DeleteIfAllowed();
@@ -7449,9 +7797,21 @@ void TupleIndex<PosType, PosType2>::processTrie(Relation *rel, const int attr,
         mp->GetValue(j, place);
         value.first = place.first;
         value.second.first = i;
-        value.second.copy2ndFrom(j);
-        value.second.copy2ndFrom(iv);
+        if (PosType::BasicType() == "unitpos") {
+          value.second.copy2ndFrom(j);
+        }
+        else {
+          mp->GetInterval(j, iv);
+          NewInterval niv(iv);
+          value.second.copy2ndFrom(niv);
+        }
         values.push_back(value);
+      }
+      if (PosType::BasicType() == "newinterval") {
+        mp->FinalInstant(insttmp);
+        if (insttmp.millisecondsToNull() < firstEnd[t->GetTupleId()]) {
+          firstEnd[t->GetTupleId()] = insttmp.millisecondsToNull();
+        }
       }
       t->DeleteIfAllowed();
     }
@@ -7471,10 +7831,22 @@ void TupleIndex<PosType, PosType2>::processTrie(Relation *rel, const int attr,
         while (it != places.end()) {
           value.first = it->first;
           value.second.first = i;
-          value.second.copy2ndFrom(j);
-          value.second.copy2ndFrom(iv);
+          if (PosType::BasicType() == "unitpos") {
+            value.second.copy2ndFrom(j);
+          }
+          else {
+            mps->GetInterval(j, iv);
+            NewInterval niv(iv);
+            value.second.copy2ndFrom(niv);
+          }
           values.push_back(value);
           it++;
+        }
+      }
+      if (PosType::BasicType() == "newinterval") {
+        mps->FinalInstant(insttmp);
+        if (insttmp.millisecondsToNull() < firstEnd[t->GetTupleId()]) {
+          firstEnd[t->GetTupleId()] = insttmp.millisecondsToNull();
         }
       }
       t->DeleteIfAllowed();
@@ -7514,8 +7886,12 @@ void TupleIndex<PosType, PosType2>::processTrie(Relation *rel, const int attr,
 template<class PosType, class PosType2>
 void TupleIndex<PosType, PosType2>::collectSortInsert(Relation *rel,
          const int attrPos, const std::string &typeName, const size_t memSize) {
-  if (attrPos == mainAttr) {
+  if (PosType::BasicType() == "newinterval") {
+    firstEnd.resize(rel->GetNoTuples()+ 1, std::numeric_limits<int64_t>::max());
+  }
+  else if (attrPos == mainAttr) {
     processTimeIntervals(rel, attrPos, typeName);
+    firstEnd.clear();
   }
   IndexType indexType = attrToIndex[attrPos].first;
   switch (indexType) {

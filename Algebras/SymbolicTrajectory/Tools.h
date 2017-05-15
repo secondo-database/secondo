@@ -66,8 +66,98 @@ struct UnitPos {
   bool operator<(const unsigned int p) const {return pos < p;}
   
   static const std::string BasicType() {return "unitpos";}
+  
+  std::string print() const {
+    std::stringstream strstr;
+    strstr << pos;
+    return strstr.str();
+  }
 
   uint32_t pos;
+};
+
+/*
+\section{Struct ~NewInterval~}
+
+Used for class ~TupleIndex~, operator ~indextmatches2~.
+
+*/
+struct NewInterval {
+  NewInterval() {}
+  NewInterval(int64_t s, int64_t e, bool l, bool r) :
+    start(s), end(e), lc(l), rc(r) {}
+  NewInterval(Instant& s, Instant& e, bool l, bool r) : lc(l), rc(r) {
+    start = s.millisecondsToNull();
+    end = e.millisecondsToNull();
+  }
+  NewInterval(temporalalgebra::SecInterval& iv) {
+    start = iv.start.millisecondsToNull();
+    end = iv.end.millisecondsToNull();
+    lc = iv.lc;
+    rc = iv.rc;
+  }
+  NewInterval(temporalalgebra::Interval<datetime::DateTime>& iv) {
+    start = iv.start.millisecondsToNull();
+    end = iv.end.millisecondsToNull();
+    lc = iv.lc;
+    rc = iv.rc;
+  }
+  
+  static const std::string BasicType() {return "newinterval";}
+  
+  void operator=(temporalalgebra::SecInterval& iv) {
+    start = iv.start.millisecondsToNull();
+    end = iv.end.millisecondsToNull();
+    lc = iv.lc;
+    rc = iv.rc;
+  }
+  
+  bool operator<(const NewInterval& iv) const {return compareTo(iv) < 0;}
+  
+  bool operator==(const NewInterval& iv) const {return compareTo(iv) == 0;}
+  
+  int compareTo(const NewInterval& iv) const {
+    if (start < iv.start) {
+      return -1;
+    }
+    if (start > iv.start) {
+      return 1;
+    }
+    if (!lc && iv.lc) {
+      return 1;
+    }
+    if (lc && !iv.lc) {
+      return -1;
+    }
+    if (end < iv.end) {
+      return -1;
+    }
+    if (end > iv.end) {
+      return 1;
+    }
+    if (rc && !iv.rc) {
+      return 1;
+    }
+    if (!rc && iv.rc) {
+      return -1;
+    }
+    return 0;
+  }
+  
+  void copyToInterval(temporalalgebra::SecInterval& result) const {
+    Instant s(start), e(end);
+    result.Set(s, e, lc, rc);
+    result.SetDefined(true);
+  }
+  
+  std::string print() const {
+    Instant s(start), e(end);
+    return (lc ? "[" : "(") + s.ToString() + " " + e.ToString() +
+           (rc ? "]" : ")");
+  }
+
+  int64_t start, end;
+  bool lc, rc;
 };
 
 struct ivCmp {
@@ -150,24 +240,10 @@ class Tools {
                        TupleType *ttype, 
                        const int majorAttrNo, int& majorValueNo);
   static void deleteValue(Word &value, const std::string &type);
-  static void queryTrie(InvertedFileT<UnitPos, UnitPos> *inv, 
-                        std::string str, std::vector<std::set<int> > &result);
-  static void queryTrie(InvertedFileT<UnitPos, UnitPos> *inv, 
-                        std::pair<std::string, unsigned int> place, 
-                        std::vector<std::set<int> > &result);
-  static void queryBtree(BTree_t<NewPair<TupleId, UnitPos> > *btree, 
-                         temporalalgebra::Interval<CcReal> &iv,
-                         std::vector<std::set<int> > &result);
-  static void queryRtree1(R_Tree<1, NewPair<TupleId, UnitPos> > *rtree, 
-                          temporalalgebra::Interval<CcReal> &iv,
-                          std::vector<std::set<int> > &result);
-  static void queryRtree2(R_Tree<2, NewPair<TupleId, UnitPos> > *rtree, 
-                        Rectangle<2> &box, std::vector<std::set<int> > &result);
-  static bool timesMatch(
-                   const temporalalgebra::Interval<Instant>& iv, 
-                   const std::set<std::string>& ivs);
-  static std::pair<QueryProcessor*, OpTree> processQueryStr(
-                           std::string query, int type);
+  static bool timesMatch(const temporalalgebra::Interval<Instant>& iv,
+                         const std::set<std::string>& ivs);
+  static std::pair<QueryProcessor*, OpTree> processQueryStr(std::string query, 
+                                                            int type);
   // static Word evaluate(string input);
   static bool createTransitions(const bool dortmund,
                                 std::map<std::string, 
@@ -202,6 +278,111 @@ class Tools {
                              const bool bbox, Word& geo, std::string& type);
   static bool getRectFromOrel(const std::string& relName,const unsigned int ref,
                               Rectangle<2>& box);
+  
+  
+  
+  static void insertIndexResult(const NewPair<TupleId, UnitPos>& pos,
+                                std::vector<std::set<int> > &result) {
+    result[pos.first].insert(result[pos.first].end(), pos.second.pos);
+  }
+  
+  static void insertIndexResult(const NewPair<TupleId, NewInterval>& pos,
+                               std::vector<temporalalgebra::Periods*> &result) {
+    temporalalgebra::SecInterval iv(true);
+    pos.second.copyToInterval(iv);
+    if (result[pos.first] == 0) {
+      result[pos.first] = new temporalalgebra::Periods(true);
+      ((temporalalgebra::Periods*)result[pos.first])->Add(iv);
+    }
+    else {
+      result[pos.first]->MergeAdd(iv);
+    }
+  }
+  
+  static void insertIndexResult(const NewPair<TupleId, NewInterval>& pos,
+                                std::vector<std::set<int> > &result) {}
+
+  static void insertIndexResult(const NewPair<TupleId, UnitPos>& pos,
+                              std::vector<temporalalgebra::Periods*> &result) {}
+
+                              
+                              
+  template<class PosType, class ResultType>
+  static void queryRtree1(R_Tree<1, NewPair<TupleId, PosType> > *rtree, 
+       temporalalgebra::Interval<CcReal> &iv, std::vector<ResultType> &result) {
+    R_TreeLeafEntry<1, NewPair<TupleId, PosType> > leaf;
+    double min[1], max[1];
+    min[0] = iv.start.GetValue();
+    max[0] = iv.end.GetValue();
+    Rectangle<1> rect1(true, min, max);
+    if (rtree->First(rect1, leaf)) {
+      insertIndexResult(leaf.info, result);
+    }
+    while (rtree->Next(leaf)) {
+      insertIndexResult(leaf.info, result);
+    }
+  }
+
+  template<class PosType, class ResultType>
+  static void queryBtree(BTree_t<NewPair<TupleId, PosType> > *btree, 
+       temporalalgebra::Interval<CcReal> &iv, std::vector<ResultType> &result) {
+    CcInt *left = new CcInt(true, (int)(floor(iv.start.GetValue())));
+    CcInt *right = new CcInt(true, (int)(ceil(iv.end.GetValue())));
+    BTreeIterator_t<NewPair<TupleId, PosType> > *it = btree->Range(left, right);
+    while (it->Next()) {
+      NewPair<TupleId, PosType> pos(it->GetId().first, it->GetId().second);
+      insertIndexResult(pos, result);
+    }
+    delete it;
+    left->DeleteIfAllowed();
+    right->DeleteIfAllowed();
+  }
+  
+  template<class PosType, class ResultType>
+  static void queryTrie(InvertedFileT<PosType, UnitPos> *inv, std::string str, 
+                        std::vector<ResultType> &result) {
+    typename InvertedFileT<PosType, UnitPos>::exactIterator* eit = 0;
+    TupleId id;
+    PosType wc;
+    UnitPos cc;
+    eit = inv->getExactIterator(str, 16777216);
+    while (eit->next(id, wc, cc)) {
+      NewPair<TupleId, PosType> pos(id, wc);
+      insertIndexResult(pos, result);
+    }
+    delete eit;
+  }
+
+  template<class PosType, class ResultType>
+  static void queryTrie(InvertedFileT<PosType, UnitPos> *inv, 
+  std::pair<std::string, unsigned int> place, std::vector<ResultType> &result) {
+    typename InvertedFileT<PosType, UnitPos>::exactIterator* eit = 0;
+    TupleId id;
+    PosType wc;
+    UnitPos cc;
+    eit = inv->getExactIterator(place.first, 16777216);
+    while (eit->next(id, wc, cc)) {
+      if (cc == place.second) {
+        NewPair<TupleId, PosType> pos(id, wc);
+        insertIndexResult(pos, result);
+      }
+    }
+    delete eit;
+  }
+  
+  template<class PosType, class ResultType>
+  static void queryRtree2(R_Tree<2, NewPair<TupleId, PosType> > *rtree,
+                           Rectangle<2> &box, std::vector<ResultType> &result) {
+    R_TreeLeafEntry<2, NewPair<TupleId, PosType> > leaf;
+    if (rtree->First(box, leaf)) {
+      insertIndexResult(leaf.info, result);
+    }
+    while (rtree->Next(leaf)) {
+      insertIndexResult(leaf.info, result);
+    }
+  }
+  
+
   
   static bool relationHolds(const std::set<std::string>& s1, 
                             const std::set<std::string>& s2, const SetRel rel) {

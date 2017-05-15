@@ -12,6 +12,7 @@ operator toclassifier alias TOCLASSIFIER pattern _ op
 operator matches alias MATCHES pattern _ infixop _
 operator createtupleindex alias CREATETUPLEINDEX pattern _ op [ _ ]
 operator bulkloadtupleindex alias BULKLOADTUPLEINDEX pattern _ op [ _ ]
+operator bulkloadtupleindex2 alias BULKLOADTUPLEINDEX pattern _ op
 operator tmatches alias TMATCHES pattern _ op [ _ , _ ]
 operator indextmatches alias INDEXTMATCHES pattern _ _ op [ _ , _ ]
 operator indextmatches2 alias INDEXTMATCHES2 pattern _ _ op [ _ ]

@@ -1583,8 +1583,8 @@ TypeConstructor tupleindex2TC(
 TMatchIndexLI::TMatchIndexLI(Relation *r, ListExpr tt, 
                              TupleIndex<UnitPos, UnitPos> *t, int a, 
                              Pattern *pat, int majorValueNo, DataType type) :
-  IndexMatchSuper(r, pat, a, type), ttList(tt), ti(t), valueNo(majorValueNo),
-                                                                   firstEnd(0) {
+  IndexMatchSuper(r, pat, a, type), ttList(tt), ti(t), ti2(0),
+                                            valueNo(majorValueNo), firstEnd(0) {
     TupleType *tupletype = rel->GetTupleType();
     relevantAttrs = Tools::getRelevantAttrs(tupletype, a, majorValueNo);
 //     tupletype->DeleteIfAllowed();
@@ -1596,7 +1596,7 @@ TMatchIndexLI::TMatchIndexLI(Relation *r, ListExpr tt,
 */
 TMatchIndexLI::TMatchIndexLI(Relation *r, ListExpr tt, 
                              TupleIndex<NewInterval, UnitPos> *t, Pattern *p) :
-  IndexMatchSuper(r, p), ttList(tt), ti2(t), valueNo(-1), firstEnd(0) {
+  IndexMatchSuper(r, p), ttList(tt), ti(0), ti2(t), valueNo(-1), firstEnd(0) {
     TupleType *tupletype = rel->GetTupleType();
     int dummy = INT_MIN;
     relevantAttrs = Tools::getRelevantAttrs(tupletype, -1, dummy);
@@ -1630,15 +1630,15 @@ bool TMatchIndexLI::tiCompatibleToRel() {
     attrType.first = ttype->GetAttributeType(i);
     attrType.second = sc->GetTypeName(attrType.first.algId,
                                       attrType.first.typeId);
-    indexType = ti->attrToIndex[i].first;
-    pos = ti->attrToIndex[i].second;
+    indexType = (ti!= 0 ? ti->attrToIndex[i].first : ti2->attrToIndex[i].first);
+    pos = (ti != 0 ? ti->attrToIndex[i].second : ti2->attrToIndex[i].second);
     switch (indexType) {
       case TRIE: {
         if (attrType.second != "mlabel" && attrType.second != "mplace" &&
             attrType.second != "mlabels" && attrType.second != "mplaces") {
           return false;
         }
-        if (pos >= ti->tries.size()) {
+        if (pos >= (ti != 0 ? ti->tries.size() : ti2->tries.size())) {
           return false;
         }
         break;
@@ -1647,7 +1647,7 @@ bool TMatchIndexLI::tiCompatibleToRel() {
         if (attrType.second != "mint") {
           return false;
         }
-        if (pos >= ti->btrees.size()) {
+        if (pos >= (ti != 0 ? ti->btrees.size() : ti2->btrees.size())) {
           return false;
         }
         break;
@@ -1656,7 +1656,7 @@ bool TMatchIndexLI::tiCompatibleToRel() {
         if (attrType.second != "mreal") {
           return false;
         }
-        if (pos >= ti->rtrees1.size()) {
+        if (pos >= (ti != 0 ? ti->rtrees1.size() : ti2->rtrees1.size())) {
           return false;
         }
         break;
@@ -1665,7 +1665,7 @@ bool TMatchIndexLI::tiCompatibleToRel() {
         if (attrType.second != "mpoint" && attrType.second != "mregion") {
           return false;
         }
-        if (pos >= ti->rtrees2.size()) {
+        if (pos >= (ti != 0 ? ti->rtrees2.size() : ti2->rtrees2.size())) {
           return false;
         }
         break;
@@ -1676,116 +1676,6 @@ bool TMatchIndexLI::tiCompatibleToRel() {
     }
   }
   return true;
-}
-
-/*
-\subsection{Function ~getSingleIndexResult~}
-
-*/
-bool TMatchIndexLI::getSingleIndexResult(pair<int, pair<IndexType, int> > 
-                indexInfo, pair<Word, SetRel> values, string type, int valueNo, 
-                                         vector<set<int> > &result) {
-  string attrType = nl->ToString(nl->Second(nl->Nth(indexInfo.first + 1, 
-                                                    nl->Second(ttList))));
-  switch (indexInfo.second.first) {
-    case TRIE: {
-      if (values.first.addr == 0) {
-        return false; // no content
-      }
-      if (attrType.substr(0,6) == "mlabel" || attrType.substr(0,6) == "mplace"){
-        SecondoCatalog* sc = SecondoSystem::GetCatalog();
-        if (attrType.substr(0, 6) == "mplace" && sc->IsObjectName("Places") &&
-            (type != Labels::BasicType())) {
-          Rectangle<2> rect(true);
-          if (type == Rectangle<2>::BasicType()) {
-            rect.CopyFrom((Rectangle<2>*)(values.first.addr));
-            cout << "rect retrieved: ";
-            ((Rectangle<2>*)(values.first.addr))->Print(cout);
-            rect.Print(cout);
-          }
-          else {
-            rect = ((Region*)(values.first.addr))->BoundingBox();
-            cout << "bbox of region retrieved: ";
-          }
-          rect.Print(cout);
-          Tools::queryRtree2(ti->rtrees2[indexInfo.second.second], rect,result);
-          cout << "rtree queried" << endl;
-          return false;
-        }
-        set<string> lbs;
-        ((Labels*)(values.first.addr))->GetValues(lbs);
-        if (valueNo == 0 && lbs.empty()) {
-          return false; // first access unsuccessful
-        }
-        set<string>::iterator it = lbs.begin();
-        for (int i = 0; i < valueNo; i++) {
-          it++;
-        }
-        Tools::queryTrie(ti->tries[indexInfo.second.second], *it, result);
-        return (int)(lbs.size()) > valueNo + 1; // TRUE iff there is a successor
-      }
-      break;
-    }
-    case BTREE: {
-//       cout << "BTREE, type " << type << ", pos " << indexInfo.second.second 
-//            << endl;
-      if (values.first.addr == 0) {
-        return false; // no content
-      }
-      Range<CcReal> *range = (Range<CcReal>*)(values.first.addr);
-      Interval<CcReal> iv;
-      if (valueNo == 0 && range->IsEmpty()) {
-        return false; // first access unsuccessful
-      }
-      range->Get(valueNo, iv);
-      Tools::queryBtree(ti->btrees[indexInfo.second.second], iv, result);
-//       for (unsigned int i = 0; i < result.size(); i++) {
-//         cout << "|" << i << ": " << result[i].size() << " ";
-//       }
-//       cout << endl;
-      return range->GetNoComponents() > valueNo + 1;
-    }
-    case RTREE1: {
-//       cout << "RTREE1, type " << type << ", pos " << indexInfo.second.second 
-//            << endl;
-      if (values.first.addr == 0) {
-        return false; // no content
-      }
-      Range<CcReal> *range = (Range<CcReal>*)(values.first.addr);
-      Interval<CcReal> iv;
-      if (valueNo == 0 && range->IsEmpty()) {
-        return false; // first access unsuccessful
-      }
-      range->Get(valueNo, iv);
-      Tools::queryRtree1(ti->rtrees1[indexInfo.second.second], iv, result);
-//       for (unsigned int i = 0; i < result.size(); i++) {
-//         cout << "|" << i << ": " << result[i].size() << " ";
-//       }
-//       cout << endl;
-      return range->GetNoComponents() > valueNo + 1;
-    }
-    case RTREE2: {
-//       cout << "RTREE2, type " << type << ", pos " << indexInfo.second.second 
-//            << endl;
-      if (values.first.addr == 0) {
-        return false; // no content
-      }
-      Rectangle<2> rect = ((Region*)(values.first.addr))->BoundingBox();
-      if (rect.IsEmpty()) {
-        return false; // first access unsuccessful
-      }
-      Tools::queryRtree2(ti->rtrees2[indexInfo.second.second], rect, result);
-//       for (unsigned int i = 0; i < result.size(); i++) {
-//         cout << "|" << i << ": " << result[i].size() << " ";
-//       }
-//       cout << endl;
-      return false;
-    }
-    default: { // case NONE
-      break;
-    }
-  }
-  return false;
 }
 
 /*
@@ -1858,11 +1748,23 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
       vector<Periods*> &result, const int prevCrucial, const bool mainAttr, 
       bool checkPrev /* = false */) {
   vector<set<int> > temp1, temp2;
-  temp1.resize(rel->GetNoTuples() + 1);
-  temp2.resize(rel->GetNoTuples() + 1);
+  vector<Periods*> tempp2;
+  if (mainAttr) {
+    temp1.resize(rel->GetNoTuples() + 1);
+    temp2.resize(rel->GetNoTuples() + 1);
+  }
+  else {
+    tempp2.resize(rel->GetNoTuples() + 1, 0);
+  }
   result.resize(rel->GetNoTuples() + 1);
   int valueNo = 0;
-  bool proceed = getSingleIndexResult(indexInfo, values, type, valueNo, temp1);
+  bool proceed = false;
+  if (mainAttr) {
+    proceed = getSingleIndexResult(indexInfo, values, type, valueNo, temp1);
+  }
+  else {
+    proceed = getSingleIndexResult(indexInfo, values, type, valueNo, result);
+  }
 //   int counter = 0;
 //   for (int i = 1; i < rel->GetNoTuples(); i++) {
 //     if (temp1[i].size() > 0) {
@@ -1873,50 +1775,93 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
   set<int> tmp;
   while (proceed) {
     valueNo++;
-    proceed = getSingleIndexResult(indexInfo, values, type, valueNo, temp2);
+    if (mainAttr) {
+      proceed = getSingleIndexResult(indexInfo, values, type, valueNo, temp2);
+    }
+    else {
+      proceed = getSingleIndexResult(indexInfo, values, type, valueNo, tempp2);
+    }
     switch (values.second) {
       case STANDARD:
       case INTERSECT: // unite intermediate results
-        for (int i = 1; i <= rel->GetNoTuples(); i++) {
-          temp1[i].insert(temp2[i].begin(), temp2[i].end());
+        if (mainAttr) {
+          for (int i = 1; i <= rel->GetNoTuples(); i++) {
+            temp1[i].insert(temp2[i].begin(), temp2[i].end());
+          }
+        }
+        else {
+          Periods pertmp(true);
+          for (int i = 1; i <= rel->GetNoTuples(); i++) {
+            if (result[i] != 0 && tempp2[i] != 0) {
+              result[i]->Union(*(tempp2[i]), pertmp);
+              result[i]->CopyFrom(&pertmp);
+            }  
+            else if (result[i] == 0 && tempp2[i] != 0) {
+              result[i] = new Periods(*(tempp2[i]));
+            }
+          }
         }
         break;
       case SUPERSET:
       case EQUAL: // intersect intermediate results
-        for (int i = 1; i <= rel->GetNoTuples(); i++) {
-          std::set_intersection(temp1[i].begin(), temp1[i].end(),
+        if (mainAttr) {
+          for (int i = 1; i <= rel->GetNoTuples(); i++) {
+            std::set_intersection(temp1[i].begin(), temp1[i].end(),
              temp2[i].begin(), temp2[i].end(), std::inserter(tmp, tmp.begin()));
-          temp1[i] = tmp;
-          tmp.clear();
+            temp1[i] = tmp;
+            tmp.clear();
+          }
+        }
+        else {
+          Periods pertmp(true);
+          for (int i = 1; i <= rel->GetNoTuples(); i++) {
+            if (result[i] != 0 && tempp2[i] != 0) {
+              result[i]->Intersection(*(tempp2[i]), pertmp);
+              result[i]->CopyFrom(&pertmp);
+            }
+            else if (result[i] != 0) {
+              result[i]->DeleteIfAllowed();
+            }
+          }
         }
         break;
       default: { // case DISJOINT: ignore
         break;
       }
     }
-    temp2.clear();
-    temp2.resize(rel->GetNoTuples() + 1);
-  }
-  if (prevCrucial == -1) { // standard version
-    if (!checkPrev) {
-      for (int i = 1; i <= rel->GetNoTuples(); i++) {
-        if (!temp1[i].empty()) {
-          result[i] = new Periods(1);
-          unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
-        }
-      }
-    }
-    else { // create periods iff necessary
-      for (int i = 1; i <= rel->GetNoTuples(); i++) {
-        if (!temp1[i].empty() && prev[i]) {
-          result[i] = new Periods(1);
-          unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
-        }
-      }
-    }
-  }
-  else {
     if (mainAttr) {
+      temp2.clear();
+      temp2.resize(rel->GetNoTuples() + 1);
+    }
+    else {
+      for (int i = 1; i <= rel->GetNoTuples(); i++) {
+        if (tempp2[i] != 0) {
+          tempp2[i]->DeleteIfAllowed();
+        }
+      }
+    }
+  }
+  if (mainAttr) {
+    if (prevCrucial == -1) { // standard version
+      if (!checkPrev) {
+        for (int i = 1; i <= rel->GetNoTuples(); i++) {
+          if (!temp1[i].empty()) {
+            result[i] = new Periods(1);
+            unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
+          }
+        }
+      }
+      else { // create periods iff necessary
+        for (int i = 1; i <= rel->GetNoTuples(); i++) {
+          if (!temp1[i].empty() && prev[i]) {
+            result[i] = new Periods(1);
+            unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
+          }
+        }
+      }
+    }
+    else {
+//     if (mainAttr) {
       if (!checkPrev) {
         for (int i = 1; i <= rel->GetNoTuples(); i++) {
           if (!temp1[i].empty() && indexResult[prevCrucial][i] != 0) {
@@ -1934,25 +1879,25 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
         }
       }
     }
-    else {
-      if (!checkPrev) {
-        for (int i = 1; i <= rel->GetNoTuples(); i++) {
-          if (!temp1[i].empty() && indexResult2[prevCrucial][i] != 0) {
-            result[i] = new Periods(1);
-            unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
-          }
-        }
-      }
-      else { // create periods iff necessary
-        for (int i = 1; i <= rel->GetNoTuples(); i++) {
-          if (!temp1[i].empty() && prev[i] && 
-              indexResult2[prevCrucial][i] != 0) {
-            result[i] = new Periods(1);
-            unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
-          }
-        }
-      }
-    }
+//     else {
+//       if (!checkPrev) {
+//         for (int i = 1; i <= rel->GetNoTuples(); i++) {
+//           if (!temp1[i].empty() && indexResult2[prevCrucial][i] != 0) {
+//             result[i] = new Periods(1);
+//             unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
+//           }
+//         }
+//       }
+//       else { // create periods iff necessary
+//         for (int i = 1; i <= rel->GetNoTuples(); i++) {
+//           if (!temp1[i].empty() && prev[i] && 
+//               indexResult2[prevCrucial][i] != 0) {
+//             result[i] = new Periods(1);
+//             unitsToPeriods(temp1[i], i, indexInfo.first, result[i]);
+//           }
+//         }
+//       }
+//     }
   }
 }
 
@@ -2028,18 +1973,21 @@ bool TMatchIndexLI::getResultForAtomTime(const int atomNo,
 */
 void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
                                      const bool mainAttr, int &noResults) {
+  cout << "sIR " << atomNo << endl;
   if (!mainAttr && indexResult2[atomNo] != 0) {
     return;
   }
   noResults = 0;
   PatElem atom;
   p->getElem(atomNo, atom);
-  map<int, pair<IndexType, int> >::iterator it;
+  map<int, pair<IndexType, int> >::iterator it
+               = (ti != 0 ? ti->attrToIndex.begin() : ti2->attrToIndex.begin());
   int noRelevantAttrs = 0;
-  for (it = ti->attrToIndex.begin(); it != ti->attrToIndex.end(); it++) {
+  while (it != (ti != 0 ? ti->attrToIndex.end() : ti2->attrToIndex.end())) {
     if (it->second.first != NONE) {
       noRelevantAttrs++;
     }
+    it++;
   }
   if (noRelevantAttrs != atom.getNoValues()) {
     cout << "Error: " << noRelevantAttrs << " != " << atom.getNoValues()<< endl;
@@ -2073,7 +2021,8 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
 //   for (it = ti->attrToIndex.begin(); it != ti->attrToIndex.end(); it++) {
 //     cout << it->first << " ---> " << it->second.second << endl;
 //   }
-  for (it = ti->attrToIndex.begin(); it != ti->attrToIndex.end(); it++) {
+  it = (ti != 0 ? ti->attrToIndex.begin() : ti2->attrToIndex.begin());
+  while (it != (ti != 0 ? ti->attrToIndex.end() : ti2->attrToIndex.end())) {
     if (!intersect && it->second.second != -1 && 
         atom.values[pos].first.addr != 0) {
       getResultForAtomPart(*it, atom.values[pos], atom.types[pos], temp, 
@@ -2111,6 +2060,7 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
     if (it->second.first != NONE) {
       pos++;
     }
+    it++;
   } // index information collected and intersected
   if (mainAttr) { // version for indextmatches
     if (prevCrucial == -1) { // standard version
@@ -2196,14 +2146,16 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
   else {
     indexResult2[atomNo][pred]->succ = 0;
   }
-//   cout << "index result for atom " << atomNo << ":" << endl;
-//   for (int i = 1; i <= rel->GetNoTuples(); i++) {
-//     if (indexResult2[atomNo][i] != 0) {
-//       cout << "tuple " << i << ": " << indexResult2[atomNo][i]->pred << ", "
-//            << indexResult2[atomNo][i]->succ << ", "
-//            << *(indexResult2[atomNo][i]->per) << endl;
-//     }
-//   }
+  if (!mainAttr) {
+  cout << "index result for atom " << atomNo << ":" << endl;
+    for (int i = 1; i <= rel->GetNoTuples(); i++) {
+      if (indexResult2[atomNo][i] != 0) {
+        cout << "tuple " << i << ": " << indexResult2[atomNo][i]->pred << ", "
+            << indexResult2[atomNo][i]->succ << ", "
+            << *(indexResult2[atomNo][i]->per) << endl;
+      }
+    }
+  }
 }
 
 /*
@@ -3276,7 +3228,7 @@ positions. Otherwise, we apply periods.
 bool TMatchIndexLI::initialize(const bool mainAttr, 
                                const bool rewrite /* = false */) {
   if (!tiCompatibleToRel()) {
-    cout << "Error: Tuple index is not compatible with relation" << endl;
+    cout << "Error: tuple index is not compatible with relation" << endl;
     return false;
   }
   vector<map<int, int> > simpleNFA;

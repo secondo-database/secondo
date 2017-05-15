@@ -452,11 +452,23 @@ Signature: rel(tuple(X)) x IDENT -> tupleindex
 Example  : query Dotraj bulkloadtupleindex[Trajectory] Dotraj indextmatches[Trajectory, '(_ "Innenstadt-Ost") *'] count
 Result   : 1
 
+Operator : bulkloadtupleindex2
+Number   : 1
+Signature: rel(tuple(X)) -> tupleindex
+Example  : query Dotraj bulkloadtupleindex2 Dotraj indextmatches2['(_ "Innenstadt-Ost")'] count
+Result   : 8
+
 Operator : indextmatches
 Number   : 1
 Signature: tupleindex x rel(tuple(X)) x IDENT x (text | pattern) -> stream(tuple(X))
 Example  : query Dotraj bulkloadtupleindex[Trajectory] Dotraj indextmatches[Trajectory, '(_ "Innenstadt-Ost") *'] count
 Result   : 1
+
+Operator : indextmatches2
+Number   : 1
+Signature: tupleindex x rel(tuple(X)) x (text | pattern) -> stream(tuple(X))
+Example  : query Dotraj bulkloadtupleindex2 Dotraj indextmatches2['(_ "Innenstadt-Ost")'] count
+Result   : 8
 
 Operator : indexrewrite
 Number   : 1
