@@ -237,12 +237,6 @@ ListExpr ItSpatialJoin::TypeMapping(ListExpr args)
                         "Colum named '" + nameB + "' not found.");
   }
 
-  if (!nl->Equal(blockAInfo.columnInfos[nameAIndex].type,
-                 blockBInfo.columnInfos[nameBIndex].type))
-  {
-    return GetTypeError("The columns to join on have different types.");
-  }
-
   TypeConstructor *typeConstructorB =
     GetTypeConstructor(blockBInfo.columnInfos[nameBIndex].type);
 
@@ -311,7 +305,7 @@ ListExpr ItSpatialJoin::TypeMapping(ListExpr args)
     {
       error = info.GetError();
 
-      if (argCount == 8)
+      if (argCount == 9)
       {
         return GetTypeError(argNo - 1, "projection", error);
       }
