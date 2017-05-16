@@ -51,7 +51,8 @@ DBServiceAlgebra::DBServiceAlgebra() :
                 OperatorFeedPF::mapValue,
                 OperatorFeedPF::mapType);
     AddOperator(LetDConsumeInfo(),
-                OperatorLetDConsume::mapValue,
+                OperatorLetDConsume::letdconsumeVM,
+                OperatorLetDConsume::selectFunction,
                 OperatorLetDConsume::mapType);
     AddOperator(GetConfigParamInfo(),
                 OperatorGetConfigParam::mapValue,

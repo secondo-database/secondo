@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <sstream>
 
+#include "Algebras/Distributed2/DArray.h"
 #include "Algebras/Relation-C++/OperatorConsume.h"
 
 #include "Algebras/DBService/DBServiceConnector.hpp"
@@ -36,6 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 using namespace std;
+using namespace distributed2;
 
 namespace DBService
 {
@@ -52,12 +54,16 @@ ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
-    if (!Stream<Tuple>::checkType(nl->First(nestedList)))
+    if (!Stream<Tuple>::checkType(nl->First(nestedList)) &&
+            !DArray::checkType(nl->First(nestedList)))
     {
         ErrorReporter::ReportError(
-                "first argument must be: stream(tuple(...))");
+                "first argument must be: stream(tuple(...))"
+                " or DArray(rel(tuple))");
         return nl->TypeError();
     }
+
+    // TODO more checks in case of DArray (-> rel(tuple(...)))
 
     if(!CcString::checkType(nl->Second(nestedList)))
     {
@@ -76,13 +82,31 @@ ListExpr OperatorLetDConsume::mapType(ListExpr nestedList)
     return consumeTypeMapResult;
 }
 
+int OperatorLetDConsume::selectFunction(ListExpr nestedList)
+{
+    if(DArray::checkType(nl->First(nestedList)))
+    {
+        return 1;
+    }
+    return 0;
+}
+
+template<bool isDArray>
 int OperatorLetDConsume::mapValue(Word* args,
                                   Word& result,
                                   int message,
                                   Word& local,
                                   Supplier s)
 {
-    printFunction("OperatorLetDConsume::mapValue");
+    if(isDArray)
+    {
+        printFunction("OperatorLetDConsume::mapValue<true>");
+        // TODO
+        return OperatorConsume::Consume(args, result,
+                message, local, s);
+    }else
+    {
+    printFunction("OperatorLetDConsume::mapValue<false>");
 
     CcString* relationName = static_cast<CcString*>(args[1].addr);
     print(relationName->GetValue());
@@ -94,6 +118,23 @@ int OperatorLetDConsume::mapValue(Word* args,
     DBServiceConnector::getInstance()->replicateRelation(
             relationName->GetValue());
     return consumeValueMappingResult;
+    }
 }
+
+template int OperatorLetDConsume::mapValue<true>(Word* args,
+        Word& result,
+        int message,
+        Word& local,
+        Supplier s);
+template int OperatorLetDConsume::mapValue<false>(Word* args,
+        Word& result,
+        int message,
+        Word& local,
+        Supplier s);
+
+ValueMapping OperatorLetDConsume::letdconsumeVM[] = {
+        mapValue<false>,
+        mapValue<true>
+};
 
 } /* namespace DBService */

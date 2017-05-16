@@ -50,11 +50,15 @@ class OperatorLetDConsume
 {
 public:
     static ListExpr mapType(ListExpr nestedList);
+    static int selectFunction(ListExpr nestedList);
+    template<bool isDArray>
     static int mapValue(Word* args,
                         Word& result,
                         int message,
                         Word& local,
                         Supplier s);
+
+    static ValueMapping letdconsumeVM[];
 };
 
 } /* namespace DBService */
