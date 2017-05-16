@@ -39,9 +39,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../Spatial/RegionTools.h"           // cycles and region building
 #include "../Relation-C++/RelationAlgebra.h"  // use of tuples
 #include "../Stream/Stream.h"                 // wrapper for secondo streams
+#include "../CRel/LongInts.h"                 // type for id result list
+#include "../CRel/TypeConstructors/LongIntsTI.h"
 //#include "../CRel/AttrArray.h"              // column oriented relations
 
 using std::vector;
+
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -820,11 +823,12 @@ Class ColRegion for column-oriented representation of Regions
   }
 
   long ColRegion::getCount() {
-    return countRegion;
+    return countRegion - 1;
   }
 
-  long ColRegion::getCycles(long index) {
-    return aRegion[index + 1].indexCycle - aRegion[index].indexCycle;
+  // returns the number of points of a given region
+  long ColRegion::getCountPoints(long index) {
+    return aRegion[index + 1].indexPoint - aRegion[index].indexPoint - 1;
   }
 
   // extracts the region with given index to a region object of the
@@ -842,16 +846,13 @@ Class ColRegion for column-oriented representation of Regions
       for (long indexPnt = firstPnt; indexPnt < lastPnt; indexPnt++) {
         Point p(true, aPoint[indexPnt].x, aPoint[indexPnt].y);
         cycle.push_back(p);
-        // cout << "Point " << indexPnt << "\t" << p.GetX()
-        // << "\t" << p.GetY() << "\n";
       }
       // append first point to close the cycle
       Point p(true, aPoint[firstPnt].x, aPoint[firstPnt].y);
       cycle.push_back(p);
-      // cout << "Point " << lastPnt << "\t" << p.GetX()
-      // << "\t" << p.GetY() << "\n";
       if (aCycle[indexCyc].index < 0) {  // if the actual cycle is a hole
-        reverseCycle(cycle);             // then cycle is counterclockwise
+        if (getDir(cycle))               // and clockwise
+          reverseCycle(cycle);           // then set cycle to counterclockwise
       }
       cycles.push_back(cycle); //  append the complete cycle to all cycles
     }
@@ -1497,15 +1498,14 @@ The ~finalize~ function appends a terminator to each array of the aregion type.
 // Type Mapping
 
 ListExpr insideTM(ListExpr args) {
-    string err = "{apoint | aline | aregion} x region expected\n";
+    string err = "{apoint | aline} x aregion expected\n";
     if (!nl->HasLength(args, 2)) {
         return listutils::typeError(err + " (wrong number of arguments)");
     }
     if ((ColPoint::checkType(nl->First(args)) ||
-         ColLine::checkType(nl->First(args)) ||
-         ColRegion::checkType(nl->First(args))) &&
-         Region::checkType(nl->Second(args))) {
-      return listutils::basicSymbol<CcBool>();  // replace by CRel::Ints
+         ColLine::checkType(nl->First(args))) &&
+         ColRegion::checkType(nl->Second(args))) {
+      return LongIntsTI(false).GetTypeExpr();  // list of long ints for id
     }
     return listutils::typeError(err);
 }
@@ -1561,9 +1561,10 @@ ListExpr mapTM(ListExpr args) {
 
 int insidePointVM (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
-//ColPoint* point = (ColPoint*) args[0].addr;
-//Region* region = (Region*) args[1].addr;
-//result = qp->ResultStorage(s);
+//ColPoint* cPoint = (ColPoint*) args[0].addr;
+//ColRegion* cRegion = (ColRegion*) args[1].addr;
+result = qp->ResultStorage(s);
+//LongInts id;
 //(AttrArray*) result.addr;
 //region->p_inside(point->getArray(), point->getCount(), result.addr);
   return 0;
@@ -1590,15 +1591,14 @@ int mapPointVM (Word* args, Word& result, int message,
   result = qp->ResultStorage(s);         // use result storage for the result
   result.addr = new ColPoint(1);
   ColPoint* cPoint = static_cast<ColPoint*> (result.addr);
-  CcInt* index = (CcInt*) args[2].addr;  // CcInt object with append attribute
-  int v = index->GetValue();             // value of index
+  int index = ((CcInt*) args[2].addr)->GetValue();  // append attributes index
   Stream<Tuple> stream(args[0]);         // get the tuples
   stream.open();                         // open the stream
   Tuple* tuple;                          // actual tuple element
   Point* point;                          // actual line attribute
   while( (tuple = stream.request()) ) {  // if exists, get next tuple
     // extract point from tuple
-    point = (Point*) tuple->GetAttribute(v - 1);
+    point = (Point*) tuple->GetAttribute(index - 1);
     if (!cPoint->append(point)) {        // append line to aline
       cout << "Error in mapping stream(point) to apoint!" << endl;
       return false;
@@ -1621,15 +1621,14 @@ int mapLineVM (Word* args, Word& result, int message,
   result = qp->ResultStorage(s);         // use result storage for the result
   result.addr = new ColLine(1);
   ColLine* cLine = static_cast<ColLine*> (result.addr);
-  CcInt* index = (CcInt*) args[2].addr;  // CcInt object with append attribute
-  int v = index->GetValue();             // value of index
+  int index = ((CcInt*) args[2].addr)->GetValue();  // append attributes index
   Stream<Tuple> stream(args[0]);         // get the tuples
   stream.open();                         // open the stream
   Tuple* tuple;                          // actual tuple element
   Line* line;                            // actual line attribute
   while( (tuple = stream.request()) ) {  // if exists, get next tuple
     // extract line from tuple
-    line = (Line*) tuple->GetAttribute(v - 1);
+    line = (Line*) tuple->GetAttribute(index - 1);
     if (!cLine->append(line)) {          // append line to aline
       cout << "Error in mapping stream(line) to aline!" << endl;
       return false;
@@ -1652,15 +1651,14 @@ int mapRegionVM (Word* args, Word& result, int message,
   result = qp->ResultStorage(s);         // use result storage for the result
   result.addr = new ColRegion(1);        // result set to cRegion object
   ColRegion* cRegion = static_cast<ColRegion*> (result.addr);
-  CcInt* index = (CcInt*) args[2].addr;  // CcInt object with append attribute
-  int v = index->GetValue();             // value of index
+  int index = ((CcInt*) args[2].addr)->GetValue();  // append attributes index
   Stream<Tuple> stream(args[0]);         // get the tuples
   stream.open();                         // open the stream
   Tuple* tuple;                          // actual tuple element
   Region* region;                        // actual region attribute
   while( (tuple = stream.request()) ) {  // if exists, get next tuple
     // extract region from tuple
-    region = (Region*) tuple->GetAttribute(v - 1);
+    region = (Region*) tuple->GetAttribute(index - 1);
     if (!cRegion->append(region)) {      // append region to aregion
       cout << "Error in mapping stream(region) to aregion!" << endl;
       return false;
@@ -1682,42 +1680,30 @@ int mapColPointVM (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
   result = qp->ResultStorage(s);
   ColPoint* cPoint = static_cast<ColPoint*> (args[0].addr);
-  // extract the index from the second argument
-  CcInt* index = static_cast<CcInt*> (args[1].addr);
-  int indexVal = index->GetValue();
-  if ((indexVal < 0) || (indexVal >= cPoint->getCount())) {
-    cout << "Error: apoint index " << indexVal << " out of bounds!" << endl;
+  int index = ((CcInt*) args[1].addr)->GetValue();  // append attributes index
+  if ((index < 0) || (index >= cPoint->getCount())) {
+    cout << "Error: apoint index " << index << " out of bounds!" << endl;
     return false;
   }
-  double x = cPoint->getX(indexVal);
-  double y = cPoint->getY(indexVal);
-  result.addr = new Point(true, x, y);  // first parameter = defined
+  result.addr = new Point(true, cPoint->getX(index), cPoint->getY(index));
   return true;
 }
 
-
 // maps the column spatial type ~aline~ to a single spatial object ~line~.
-// needs an index.
-
 int mapColLineVM (Word* args, Word& result, int message,
                   Word& local, Supplier s) {
   cout << "map ColLine to Line\n";
   result = qp->ResultStorage(s);
   ColLine* cLine = static_cast<ColLine*> (args[0].addr);
-  // extract the index from the second argument
-  CcInt* index = static_cast<CcInt*> (args[1].addr);
-  int indexVal = index->GetValue();
-  if ((indexVal < 0) || (indexVal > cLine->getCount())) {
-    cout << "Error: aline index " << indexVal << " out of bounds!" << endl;
+  int index = ((CcInt*) args[1].addr)->GetValue();  // append attributes index
+  if ((index < 0) || (index > cLine->getCount())) {
+    cout << "Error: aline index " << index << " out of bounds!" << endl;
     return false;
   }
-  cout << "aline contains " << cLine->getCount() << " lines!" << endl;
-  long segCount = cLine->getSegments(indexVal);
-  // cout << "line " << indexVal << " contains " << segCount
-  // << " segments!" << endl;
+  long segCount = cLine->getSegments(index);
   result.addr = new Line(segCount);
   Line* line = static_cast<Line*> (result.addr);
-  if (!cLine->createLine(line, indexVal)) {
+  if (!cLine->createLine(line, index)) {
     cout << "Error mapping aline to line!" << endl;
     return false;
   }
@@ -1729,23 +1715,20 @@ int mapColLineVM (Word* args, Word& result, int message,
 int mapColRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s) {
   cout << "map ColRegion to Region\n";
-
   result = qp->ResultStorage(s);
   ColRegion* cRegion = static_cast<ColRegion*> (args[0].addr);
-  // extract the index from the second argument
-  CcInt* index = static_cast<CcInt*> (args[1].addr);
-  int indexVal = index->GetValue();
-  if ((indexVal < 0) || (indexVal > cRegion->getCount())) {
-    cout << "Error: aregion index " << indexVal << " out of bounds!" << endl;
+  int index = ((CcInt*) args[1].addr)->GetValue();  // append attributes index
+  cRegion->showArrays("before mapping", true);
+  cout << "countRegion = " << cRegion->getCount() << endl;
+  cout << "countPoints = " << cRegion->getCountPoints(index) << endl;
+  if ((index < 0) || (index > cRegion->getCount())) {
+    cout << "Error: aregion index " << index << " out of bounds!" << endl;
     return 0;
   }
-  cout << "aregion contains " << cRegion->getCount() << " cycles!" << endl;
-  long cycCount = cRegion->getCycles(indexVal);
-  // cout << "region " << indexVal << " contains " << cycCount
-  // << " cycles!" << endl;
-  result.addr = new Region(cycCount * 2);
+  // create a new region object with space for all halfs segments
+  result.addr = new Region(cRegion->getCountPoints(index) * 2);
   Region* region = static_cast<Region*> (result.addr);
-  if (!cRegion->createRegion(region, indexVal)) {
+  if (!cRegion->createRegion(region, index)) {
     cout << "Error mapping aregion to region!" << endl;
     return false;
   }
@@ -1755,6 +1738,7 @@ int mapColRegionVM (Word* args, Word& result, int message,
 /*
 Selection Function
 
+
 */
 int insideSelect(ListExpr args) {
   if (ColPoint::checkType(nl->First(args))) { return 0; }
@@ -1763,14 +1747,15 @@ int insideSelect(ListExpr args) {
 }
 
 /*
-There are two different mappings: one for spatial objects within a relation
-and one for column spatial objects.
+There are six different mappings: three for spatial objects within a relation
+and three for column spatial objects.
 In the first case a tuple stream is generated and the spatial attribute
-is processed. e. g. 'query City feed mp[area]' extracts the area of all tuples
-within the City - relation and convert them to a column spatial object.
+is processed. e. g. 'query City feed mp[Area]' extracts the attribute ~Area~
+of all tuples within the relation ~City~ and convert them to a column spatial
+object.
 In the second case a column spatial object is searched for a given index
 and one single spatial object is generated. e.g. 'query colRiver mp[3]'
-returns the third entry within the colRiver - object and converts it into
+returns the third entry within the object ~colRiver~ and converts it into
 a spatial object.
 
 */
@@ -1778,9 +1763,8 @@ int mapSelect(ListExpr args) {
   // first check for column spatial objects
   ListExpr arg1 = nl->First( args );
   if (ColPoint::checkType(arg1)) return 3;   // mapColLineVM
-  if (ColLine::checkType(arg1)) return 4;   // mapColLineVM
-  if (ColRegion::checkType(arg1)) return 5;   // mapColRegionVM
-
+  if (ColLine::checkType(arg1)) return 4;    // mapColLineVM
+  if (ColRegion::checkType(arg1)) return 5;  // mapColRegionVM
   // second check for tuple stream
   if (Stream<Tuple>::checkType(arg1)) {
     // extract the attribute list
@@ -1788,12 +1772,11 @@ int mapSelect(ListExpr args) {
     string name = nl->SymbolValue(nl->Second(args));
     ListExpr type;
     listutils::findAttribute(attrList, name, type);
-    if (Point::checkType(type)) return 0;  // mapPointVM
-    if (Line::checkType(type)) return 1;   // mapLineVM
+    if (Point::checkType(type)) return 0;    // mapPointVM
+    if (Line::checkType(type)) return 1;     // mapLineVM
     if (Region::checkType(type)) return 2;   // mapLineVM
   }
-  // return mapPointVM, type mapping will be done later on
-  return 0;
+  return 0;  // if no match then return dummy, type mapping will be done later
 }
 
 }  // namespace col

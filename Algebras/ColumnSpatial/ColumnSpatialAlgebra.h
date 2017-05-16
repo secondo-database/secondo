@@ -613,9 +613,23 @@ In this section there are defined some functions which can only be used
 in a special context, e. g. the append- and finalize functions make only sense
 if used together with a constructor.
 
+The ~getCount~ function returns the number of regions within the region array.
+
 */
   long getCount();
-  long getCycles(long index);
+
+/*
+~getCountPoints~ returns the number of points of a single region.
+it is used to calculate the needed halfsegments for a new region object.
+
+*/
+  long getCountPoints(long index);
+
+/*
+The function ~createRegion~ extracts the region with given index to a
+region object of the spatial algebra.
+
+*/
   bool createRegion(Region* region, long index);
 
 /*
