@@ -96,7 +96,7 @@ void print(const std::string& text1, const char* text2)
     cout << text2 << endl;
 }
 
-void print(LocationInfo& location)
+void print(const LocationInfo& location)
 {
     cout << "LocationInfo:" << endl;
     cout << location.getHost() << endl;

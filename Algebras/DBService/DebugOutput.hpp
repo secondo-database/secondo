@@ -49,7 +49,7 @@ void print(const char* text, ListExpr nestedList);
 void print(const char* text1, std::string& text2);
 void print(const char* text1, const std::string& text2);
 void print(const std::string& text1, const char* text2);
-void print(LocationInfo& location);
+void print(const LocationInfo& location);
 
 }
 

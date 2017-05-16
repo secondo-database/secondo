@@ -47,6 +47,7 @@ public:
     void write(const LocationInfo& location);
     void write(const char* description, const std::string& text);
     void write(const char* description, int number);
+    void writeFunction(const char* text);
 private:
     std::string fileName;
     std::auto_ptr<std::ofstream> traceFile;

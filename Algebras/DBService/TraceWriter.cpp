@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/TraceWriter.hpp"
+#include "Algebras/DBService/DebugOutput.hpp"
 
 using namespace std;
 
@@ -64,23 +65,35 @@ TraceWriter::TraceWriter(string& context)
     (new ofstream(fileName.str().c_str(),std::ios::binary));
 }
 
+TraceWriter::~TraceWriter()
+{
+    if(*traceFile)
+    {
+        traceFile->close();
+    }
+}
+
 void TraceWriter::write(const string& text)
 {
+    print(text);
     *traceFile << text << endl;
 }
 
 void TraceWriter::write(const char* text)
 {
+    print(text);
     *traceFile << text << endl;
 }
 
 void TraceWriter::write(const size_t text)
 {
+    print(text);
     *traceFile << text << endl;
 }
 
 void TraceWriter::write(const LocationInfo& location)
 {
+    print(location);
     *traceFile << location.getHost() << endl;
     *traceFile << location.getPort() << endl;
     *traceFile << location.getDisk() << endl;
@@ -90,22 +103,21 @@ void TraceWriter::write(const LocationInfo& location)
 
 void TraceWriter::write(const char* description, const string& text)
 {
+    print(description, text);
     *traceFile << description << ": " << text << endl;
 }
 
 void TraceWriter::write(const char* description, int number)
 {
+    print(description, number);
     *traceFile << description << ": " << number << endl;
 }
 
-TraceWriter::~TraceWriter()
+void TraceWriter::writeFunction(const char* text)
 {
-if(*traceFile)
-{
-    traceFile->close();
+    printFunction(text);
+    *traceFile << "********************************" << endl;
+    *traceFile << text << endl;
 }
-
-}
-
 
 } /* namespace DBService */

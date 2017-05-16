@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ReplicationServer.hpp"
 
 using namespace std;
@@ -45,17 +44,19 @@ ReplicationServer::ReplicationServer(int port) :
     string context("ReplicationServer");
     traceWriter= auto_ptr<TraceWriter>
     (new TraceWriter(context));
-    traceWriter->write("Initializing ReplicationServer");
+    traceWriter->writeFunction("ReplicationServer::ReplicationServer");
     traceWriter->write("port", port);
 }
 
 int ReplicationServer::start()
 {
+    traceWriter->writeFunction("ReplicationServer::start");
     return MultiClientServer::start();
 }
 
 int ReplicationServer::communicate(iostream& io)
 {
+    traceWriter->writeFunction("ReplicationServer::communicate");
     try
     {
         CommunicationUtils::sendLine(io,
@@ -64,19 +65,20 @@ int ReplicationServer::communicate(iostream& io)
         if(!CommunicationUtils::receivedExpectedLine(io,
                 CommunicationProtocol::ReplicationClient()))
         {
+            traceWriter->write("not connected to ReplicationClient");
             return 1;
         }
 
         int sendOk = sendFile(io);
         if(!sendOk)
         {
-            print("send failed");
             traceWriter->write("send failed");
         }
+        traceWriter->write("file sent");
 
     } catch (...)
     {
-        cerr << "ReplicationServer: communication error" << endl;
+        traceWriter->write("ReplicationServer: communication error");
         return 5;
     }
     return 0;

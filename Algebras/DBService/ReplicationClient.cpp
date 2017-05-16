@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ReplicationClient.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
 
@@ -51,11 +50,11 @@ ReplicationClient::ReplicationClient(
   databaseName(databaseName),
   relationName(relationName)
 {
-    printFunction("ReplicationClient::ReplicationClient");
     string context("ReplicationClient");
     traceWriter= auto_ptr<TraceWriter>
     (new TraceWriter(context));
-    traceWriter->write("Initializing ReplicationClient");
+
+    traceWriter->writeFunction("ReplicationClient::ReplicationClient");
     traceWriter->write("server", server);
     traceWriter->write("port", port);
     traceWriter->write("fileName", fileName);
@@ -65,13 +64,17 @@ ReplicationClient::ReplicationClient(
 
 int ReplicationClient::start()
 {
-    printFunction("ReplicationClient::start");
+    traceWriter->writeFunction("ReplicationClient::start");
     socket = Socket::Connect(server, stringutils::int2str(port),
             Socket::SockGlobalDomain, 3, 1);
-    if (!socket) {
+    if (!socket)
+    {
+        traceWriter->write("socket initialization failed");
         return 1;
     }
-    if (!socket->IsOk()) {
+    if (!socket->IsOk())
+    {
+        traceWriter->write("socket not ok");
         return 2;
     }
 
@@ -81,7 +84,6 @@ int ReplicationClient::start()
         if(!CommunicationUtils::receivedExpectedLine(io,
                 CommunicationProtocol::ReplicationServer()))
         {
-            print("not connected to ReplicationServer");
             traceWriter->write("not connected to ReplicationServer");
             return 1;
         }
@@ -91,13 +93,14 @@ int ReplicationClient::start()
         int receiveOk = receiveFile();
         if(!receiveOk)
         {
-            print("receive failed");
             traceWriter->write("receive failed");
         }
-        stringstream query;
+        traceWriter->write("received file");
 
+        // TODO currently not necessary
         SecondoUtilsLocal::adjustDatabase(databaseName);
 
+        stringstream query;
         query << "let "
               << relationName
               << "_DBS"
@@ -105,14 +108,14 @@ int ReplicationClient::start()
               << fileName
               << "\""
               << " getObjectFromFile consume";
-        print(query.str());
+        traceWriter->write(query.str());
 
         string errorMessage;
         bool resultOk =
                 SecondoUtilsLocal::createRelation(query.str(), errorMessage);
         if(!resultOk)
         {
-            print(errorMessage);
+            traceWriter->write(errorMessage);
             traceWriter->write("error: ", errorMessage);
             return 3;
         }
