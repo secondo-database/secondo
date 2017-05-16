@@ -45,7 +45,13 @@ public:
     ~CommunicationClientRunnable();
     void run();
 private:
-    void createClient();
+    void createClient(std::string sourceHost,
+            int sourceTransferPort,
+            std::string targetHost,
+            int targetCommPort,
+            std::string localFileName,
+            std::string databaseName,
+            std::string relationName);
     boost::thread* runner;
     std::string sourceHost;
     int sourceTransferPort;

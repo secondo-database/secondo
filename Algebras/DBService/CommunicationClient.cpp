@@ -54,6 +54,11 @@ CommunicationClient::CommunicationClient(
     traceWriter->write("port", _port);
 }
 
+CommunicationClient::~CommunicationClient()
+{
+    traceWriter->writeFunction("CommunicationClient::~CommunicationClient");
+}
+
 int CommunicationClient::start()
 {
     traceWriter->writeFunction("CommunicationClient::start");

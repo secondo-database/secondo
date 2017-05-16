@@ -64,10 +64,24 @@ void CommunicationClientRunnable::run()
         runner->join();
         delete runner;
     }
-    runner = new boost::thread(
-            &CommunicationClientRunnable::createClient, this);
+    runner = new boost::thread(boost::bind(
+            &CommunicationClientRunnable::createClient,
+            this,
+            sourceHost,
+            sourceTransferPort,
+            targetHost,
+            targetCommPort,
+            localFileName,
+            databaseName,
+            relationName));
 }
-void CommunicationClientRunnable::createClient()
+void CommunicationClientRunnable::createClient(string sourceHost,
+        int sourceTransferPort,
+        string targetHost,
+        int targetCommPort,
+        std::string localFileName,
+        std::string databaseName,
+        std::string relationName)
 {
     printFunction("CommunicationClientRunnable::createClient");
     CommunicationClient client(targetHost, targetCommPort, 0);

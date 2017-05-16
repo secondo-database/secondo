@@ -40,7 +40,8 @@ namespace DBService {
 class ReplicationServer: public MultiClientServer,
                                 distributed2::FileTransferServer {
 public:
-    ReplicationServer(int port);
+    explicit ReplicationServer(int port);
+    ~ReplicationServer();
     int start();
 protected:
     int communicate(std::iostream& io);

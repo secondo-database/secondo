@@ -44,6 +44,7 @@ public:
     CommunicationClient(std::string& _server,
                                  int _port,
                                  Socket* _socket);
+    ~CommunicationClient();
     int start();
     int getNodesForReplication(const std::string& relationName,
             std::vector<LocationInfo>& locations);

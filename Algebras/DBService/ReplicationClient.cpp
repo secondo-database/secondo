@@ -62,6 +62,11 @@ ReplicationClient::ReplicationClient(
     traceWriter->write("relationName", relationName);
 }
 
+ReplicationClient::~ReplicationClient()
+{
+    traceWriter->writeFunction("ReplicationClient::~ReplicationClient");
+}
+
 int ReplicationClient::start()
 {
     traceWriter->writeFunction("ReplicationClient::start");

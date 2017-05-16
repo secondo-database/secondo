@@ -32,7 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebra.h"
 
-#include "Algebras/DBService/CommunicationClientRunnable.hpp"
+//#include "Algebras/DBService/CommunicationClientRunnable.hpp"
+#include "Algebras/DBService/CommunicationClient.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ReplicationServer.hpp"
 #include "Algebras/DBService/Replicator.hpp"
@@ -90,6 +91,7 @@ void Replicator::createFileOnCurrentNode() const
 
     // wait for "let" command to finish
     sleep(1000);
+    print("starting replication");
     // TODO adjust database if necessary
 
     stringstream query;
@@ -117,14 +119,25 @@ void Replicator::runReplication(const vector<LocationInfo>& locations) const
             it != locations.end(); it++)
     {
         printFunction("Replicator::runReplication");
-        CommunicationClientRunnable commClient(
-                           host,
-                           transferPort,
-                           it->getHost(),
-                           atoi(it->getCommPort().c_str()),
-                           getFileName(),
-                           databaseName,
-                           relationName);
+//        CommunicationClientRunnable commClient(
+//                           host,
+//                           transferPort,
+//                           it->getHost(),
+//                           atoi(it->getCommPort().c_str()),
+//                           getFileName(),
+//                           databaseName,
+//                           relationName);
+//        commClient.run();
+
+        CommunicationClient client(*(const_cast<string*>(&(it->getHost()))),
+                                   atoi(it->getCommPort().c_str()),
+                                   0);
+        client.start();
+        client.triggerFileTransfer(host,
+                                   stringutils::int2str(transferPort),
+                                   getFileName(),
+                                   databaseName,
+                                   relationName);
     }
 }
 

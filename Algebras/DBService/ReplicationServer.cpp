@@ -48,6 +48,11 @@ ReplicationServer::ReplicationServer(int port) :
     traceWriter->write("port", port);
 }
 
+ReplicationServer::~ReplicationServer()
+{
+    traceWriter->writeFunction("ReplicationServer::~ReplicationServer");
+}
+
 int ReplicationServer::start()
 {
     traceWriter->writeFunction("ReplicationServer::start");

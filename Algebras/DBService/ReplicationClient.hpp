@@ -44,6 +44,7 @@ public:
             std::string& fileName,
             std::string& databaseName,
             std::string& relationName);
+    ~ReplicationClient();
     int start();
 private:
     std::string fileName;
