@@ -41,7 +41,7 @@ public:
     virtual ~CommunicationServer();
 protected:
     int communicate(std::iostream& io);
-    bool handleProvideReplicaRequest(std::iostream& io);
+    bool handleTriggerReplicationRequest(std::iostream& io);
     bool handleTriggerFileTransferRequest(std::iostream& io);
     bool handleUseReplicaRequest(std::iostream& io);
 };

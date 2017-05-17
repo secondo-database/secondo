@@ -38,8 +38,8 @@ public:
     static std::string CommunicationServer();
     static std::string CommunicationClient();
     static std::string ShutDown();
-    static std::string ProvideReplica();
-    static std::string UseReplica();
+//    static std::string ProvideReplica();
+//    static std::string UseReplica();
     static std::string LocationRequest();
     static std::string RelationRequest();
     static std::string ReplicaLocation();
@@ -47,6 +47,7 @@ public:
     static std::string ReplicationClient();
     static std::string ReplicationClientRequest();
     static std::string TriggerReplication();
+    static std::string TriggerFileTransfer();
     static std::string ReplicationDetailsRequest();
 };
 

@@ -100,24 +100,27 @@ int OperatorLetDConsume::mapValue(Word* args,
 {
     if(isDArray)
     {
-        printFunction("OperatorLetDConsume::mapValue<true>");
+        printFunction("OperatorLetDConsume::mapValue<isDArray=true>");
         // TODO
-        return OperatorConsume::Consume(args, result,
-                message, local, s);
+        // 1. initialize servers on worker via connection from array
+        // 2. DBServiceConnector::replicate for DArray
+
+        return 0;
     }else
     {
-    printFunction("OperatorLetDConsume::mapValue<false>");
+        printFunction("OperatorLetDConsume::mapValue<isDArray=false>");
 
-    CcString* relationName = static_cast<CcString*>(args[1].addr);
-    print(relationName->GetValue());
-    print("relationName", relationName->GetValue());
+        CcString* relationName = static_cast<CcString*>(args[1].addr);
+        print(relationName->GetValue());
+        print("relationName", relationName->GetValue());
 
-    int consumeValueMappingResult = OperatorConsume::Consume(args, result,
-                                                             message, local, s);
+        int consumeValueMappingResult = OperatorConsume::Consume(args, result,
+                message, local, s);
 
-    DBServiceConnector::getInstance()->replicateRelation(
-            relationName->GetValue());
-    return consumeValueMappingResult;
+        DBServiceConnector::getInstance()->triggerReplication(
+                SecondoSystem::GetInstance()->GetDatabaseName(),
+                relationName->GetValue());
+        return consumeValueMappingResult;
     }
 }
 

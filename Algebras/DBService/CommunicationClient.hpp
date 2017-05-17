@@ -46,7 +46,9 @@ public:
                                  Socket* _socket);
     ~CommunicationClient();
     int start();
-    int getNodesForReplication(const std::string& relationName,
+    int triggerReplication(
+            const std::string& databaseName,
+            const std::string& relationName,
             std::vector<LocationInfo>& locations);
     int getReplicaLocation();
     int triggerFileTransfer(

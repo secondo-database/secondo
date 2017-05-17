@@ -67,19 +67,24 @@ DBServiceConnector* DBServiceConnector::getInstance()
     return _instance;
 }
 
-void DBServiceConnector::getNodesForReplication(
+void DBServiceConnector::triggerReplication(
         string& host,
         int port,
+        const string& databaseName,
         const string& relationName,
         vector<LocationInfo>& locations)
 {
     CommunicationClient dbServiceMasterClient(host, port, 0);
     dbServiceMasterClient.start();
 
-    dbServiceMasterClient.getNodesForReplication(relationName, locations);
+    dbServiceMasterClient.triggerReplication(
+            databaseName,
+            relationName,
+            locations);
 }
 
-bool DBServiceConnector::replicateRelation(const std::string relationName)
+bool DBServiceConnector::triggerReplication(const std::string databaseName,
+                                            const std::string relationName)
 {
     printFunction("DBServiceConnector::replicateRelation");
     print(relationName, "relationName");
@@ -106,16 +111,16 @@ bool DBServiceConnector::replicateRelation(const std::string relationName)
         throw new SecondoException("DBServicePort not configured");
     }
 
-    // connect to DBService master to find out location for replication
+    // connect to DBService master to determine location for replication
     vector<LocationInfo> locations;
-    getNodesForReplication(
+    triggerReplication(
             dbServiceHost,
             atoi(dbServicePort.c_str()),
+            databaseName,
             relationName,
             locations);
 
     print("creating replication thread");
-    string databaseName = SecondoSystem::GetInstance()->GetDatabaseName();
     print("databaseName", databaseName);
 
 //    std::auto_ptr<std::string> dbName(new string(databaseName));

@@ -75,8 +75,9 @@ int CommunicationClient::start()
         return 0;
 }
 
-int CommunicationClient::getNodesForReplication(const string& relationName,
-        vector<LocationInfo>& locations)
+int CommunicationClient::triggerReplication(const string& databaseName,
+                                            const string& relationName,
+                                            vector<LocationInfo>& locations)
 {
     traceWriter->writeFunction("CommunicationClient::getNodesForReplication");
     iostream& io = socket->GetSocketStream();
@@ -90,7 +91,7 @@ int CommunicationClient::getNodesForReplication(const string& relationName,
 
     queue<string> sendBuffer;
     sendBuffer.push(CommunicationProtocol::CommunicationClient());
-    sendBuffer.push(CommunicationProtocol::ProvideReplica());
+    sendBuffer.push(CommunicationProtocol::TriggerReplication());
     CommunicationUtils::sendBatch(io, sendBuffer);
 
     if(!CommunicationUtils::receivedExpectedLine(io,
@@ -99,7 +100,7 @@ int CommunicationClient::getNodesForReplication(const string& relationName,
         traceWriter->write("Did not receive expected RelationRequest keyword");
         return 2;
     }
-    sendBuffer.push(SecondoSystem::GetInstance()->GetDatabaseName());
+    sendBuffer.push(databaseName);
     sendBuffer.push(relationName);
     CommunicationUtils::sendBatch(io, sendBuffer);
 
@@ -131,27 +132,30 @@ int CommunicationClient::getNodesForReplication(const string& relationName,
     int locationCount = atoi(count.c_str());
     traceWriter->write("number of replica locations: ", locationCount);
 
-    queue<string> receivedLines;
-    CommunicationUtils::receiveLines(io, locationCount*6, receivedLines);
-    traceWriter->write("Received locations for replication");
-    for(int i= 0; i < locationCount; i++)
-    {
-        string host = receivedLines.front();
-        receivedLines.pop();
-        string port= receivedLines.front();
-        receivedLines.pop();
-        string config = receivedLines.front();
-        receivedLines.pop();
-        string disk= receivedLines.front();
-        receivedLines.pop();
-        string commPort = receivedLines.front();
-        receivedLines.pop();
-        string transferPort = receivedLines.front();
-        receivedLines.pop();
-        LocationInfo location(host, port, config, disk, commPort, transferPort);
-        locations.push_back(location);
-        traceWriter->write(location);
-    }
+    // TODO cancel if number of replica locations does not match expectations
+
+//    queue<string> receivedLines;
+//    CommunicationUtils::receiveLines(io, locationCount*6, receivedLines);
+//    traceWriter->write("Received locations for replication");
+//    for(int i= 0; i < locationCount; i++)
+//    {
+//        string host = receivedLines.front();
+//        receivedLines.pop();
+//        string port= receivedLines.front();
+//        receivedLines.pop();
+//        string config = receivedLines.front();
+//        receivedLines.pop();
+//        string disk= receivedLines.front();
+//        receivedLines.pop();
+//        string commPort = receivedLines.front();
+//        receivedLines.pop();
+//        string transferPort = receivedLines.front();
+//        receivedLines.pop();
+//        LocationInfo location(
+//    host, port, config, disk, commPort, transferPort);
+//        locations.push_back(location);
+//        traceWriter->write(location);
+//    }
     return 0;
 }
 
@@ -178,7 +182,7 @@ int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
     }
     queue<string> sendBuffer;
     sendBuffer.push(CommunicationProtocol::CommunicationClient());
-    sendBuffer.push(CommunicationProtocol::TriggerReplication());
+    sendBuffer.push(CommunicationProtocol::TriggerFileTransfer());
     CommunicationUtils::sendBatch(io, sendBuffer);
 
     if(!CommunicationUtils::receivedExpectedLine(io,

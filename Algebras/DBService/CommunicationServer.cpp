@@ -82,16 +82,16 @@ int CommunicationServer::communicate(iostream& io)
         traceWriter->write(request);
 
         if(request ==
-                CommunicationProtocol::ProvideReplica())
-        {
-            handleProvideReplicaRequest(io);
-        }else if(request ==
                 CommunicationProtocol::TriggerReplication())
         {
-            handleTriggerFileTransferRequest(io);
+            handleTriggerReplicationRequest(io);
         }else if(request ==
-                CommunicationProtocol::UseReplica())
+                CommunicationProtocol::TriggerFileTransfer())
         {
+            handleTriggerFileTransferRequest(io);
+//        }else if(request ==
+//                CommunicationProtocol::UseReplica())
+//        {
             //TODO contact DBServiceManager and find out where replica is
             // stored
             //DBServiceManager::getInstance();
@@ -108,7 +108,7 @@ int CommunicationServer::communicate(iostream& io)
     return 0;
 }
 
-bool CommunicationServer::handleProvideReplicaRequest(
+bool CommunicationServer::handleTriggerReplicationRequest(
         std::iostream& io)
 {
     traceWriter->writeFunction(
@@ -157,22 +157,26 @@ bool CommunicationServer::handleProvideReplicaRequest(
     sendBuffer.push(CommunicationProtocol::ReplicaLocation());
     sendBuffer.push(stringutils::int2str(connections.size()));
 
-    traceWriter->write("number of locations: ", connections.size());
+    // TODO react on cancel as soon as it is sent by client
 
-    traceWriter->write("sending locations");
-    for(vector<ConnectionID>::const_iterator it = connections.begin();
-            it != connections.end(); it++)
-    {
-        LocationInfo& location = dbService->getLocation(*it);
-        traceWriter->write(location);
-        sendBuffer.push(location.getHost());
-        sendBuffer.push(location.getPort());
-        sendBuffer.push(location.getConfig());
-        sendBuffer.push(location.getDisk());
-        sendBuffer.push(location.getCommPort());
-        sendBuffer.push(location.getTransferPort());
-    }
-    CommunicationUtils::sendBatch(io, sendBuffer);
+    // TODO trigger replication on worker node
+
+//    traceWriter->write("number of locations: ", connections.size());
+//
+//    traceWriter->write("sending locations");
+//    for(vector<ConnectionID>::const_iterator it = connections.begin();
+//            it != connections.end(); it++)
+//    {
+//        LocationInfo& location = dbService->getLocation(*it);
+//        traceWriter->write(location);
+//        sendBuffer.push(location.getHost());
+//        sendBuffer.push(location.getPort());
+//        sendBuffer.push(location.getConfig());
+//        sendBuffer.push(location.getDisk());
+//        sendBuffer.push(location.getCommPort());
+//        sendBuffer.push(location.getTransferPort());
+//    }
+//    CommunicationUtils::sendBatch(io, sendBuffer);
     return true;
 }
 

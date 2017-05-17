@@ -47,15 +47,15 @@ string CommunicationProtocol::ShutDown()
     return "<SHUTDOWN>";
 }
 
-string CommunicationProtocol::ProvideReplica()
-{
-    return "<PROVIDEREPLICA>";
-}
-
-string CommunicationProtocol::UseReplica()
-{
-    return "<USEREPLICA>";
-}
+//string CommunicationProtocol::ProvideReplica()
+//{
+//    return "<PROVIDEREPLICA>";
+//}
+//
+//string CommunicationProtocol::UseReplica()
+//{
+//    return "<USEREPLICA>";
+//}
 
 string CommunicationProtocol::RelationRequest()
 {
@@ -90,6 +90,11 @@ string CommunicationProtocol::ReplicationClientRequest()
 string CommunicationProtocol::TriggerReplication()
 {
     return "<TRIGGERREPLICATION>";
+}
+
+string CommunicationProtocol::TriggerFileTransfer()
+{
+    return "<TRIGGERRFILETRANSFER>";
 }
 
 string CommunicationProtocol::ReplicationDetailsRequest()
