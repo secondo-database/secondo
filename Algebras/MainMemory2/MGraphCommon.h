@@ -464,9 +464,9 @@ hops and the forbidden node, then the search spans the whole graph.
          return false;
        }
        std::vector<std::vector<ddsgedge> > edges;
-       fillddsg(edges, scaleCost);
+       size_t noEdges = fillddsg(edges, scaleCost);
        out << "d" << endl;
-       out << graph.size() << " " << edges.size() << endl;
+       out << edges.size() << " " << noEdges << endl;
        for(size_t i=0;i<edges.size();i++){
           std::vector<ddsgedge>& v = edges[i];
           for(size_t j=0;j<v.size();j++){
@@ -477,12 +477,14 @@ hops and the forbidden node, then the search spans the whole graph.
        return true;
      }
 
-     void fillddsg(std::vector< std::vector<ddsgedge> >& result, double scale){
+     uint32_t fillddsg(std::vector< std::vector<ddsgedge> >& result, 
+                       double scale){
         result.clear();
         for(size_t i=0;i<graph.size();i++){
            std::vector<ddsgedge> v;
            result.push_back(v);
         }
+        uint32_t noEdges = 0;
         for(size_t i=0;i<graph.size();i++){
            std::list<MEdge> successors = graph[i].first;
            std::list<MEdge>::iterator it;
@@ -513,11 +515,12 @@ hops and the forbidden node, then the search spans the whole graph.
                 }
                 if(!found){
                    v.push_back(ddsgedge(target,cost,dir));
+                   noEdges++;
                 }
              }
            }           
         }
-
+        return noEdges;
      }
 
 

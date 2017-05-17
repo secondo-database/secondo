@@ -21356,6 +21356,297 @@ Operator memgroupbyOp(
 
 );
 
+/*
+2.5 Operator importCH
+
+*/
+ListExpr importCHTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+
+  ListExpr arg = nl->First(nl->First(args));
+  if(!FText::checkType(arg) && !CcString::checkType(arg)){
+    return listutils::typeError("string or text expected as first arg");
+  }
+  if(!CcBool::checkType(nl->First(nl->Second(args)))){
+     return listutils::typeError("second argument not of type bool");
+  }  
+  ListExpr b = nl->Second(nl->Second(args));
+  if(nl->AtomType(b) != BoolType){
+    return listutils::typeError("second argument must be a constant bool");
+  }
+  ListExpr attrList;
+  if(nl->BoolValue(b)){
+    attrList = nl->TwoElemList(
+                nl->TwoElemList(nl->SymbolAtom("Node"),
+                               listutils::basicSymbol<CcInt>()),
+                nl->TwoElemList(nl->SymbolAtom("Number"),
+                                listutils::basicSymbol<CcInt>())
+              );
+  } else {
+     attrList = nl->OneElemList(
+                    nl->TwoElemList(nl->SymbolAtom("Source"),
+                                    listutils::basicSymbol<CcInt>()));
+     ListExpr last = attrList;
+     last = nl->Append(last, 
+                         nl->TwoElemList(nl->SymbolAtom("Target"),
+                                         listutils::basicSymbol<CcInt>()));
+     last = nl->Append(last, 
+                         nl->TwoElemList(nl->SymbolAtom("Weight"),
+                                         listutils::basicSymbol<CcInt>()));
+     last = nl->Append(last, 
+                         nl->TwoElemList(nl->SymbolAtom("Middle"),
+                                         listutils::basicSymbol<CcInt>()));
+     last = nl->Append(last, 
+                         nl->TwoElemList(nl->SymbolAtom("Forward"),
+                                         listutils::basicSymbol<CcBool>()));
+     last = nl->Append(last, 
+                         nl->TwoElemList(nl->SymbolAtom("Backward"),
+                                         listutils::basicSymbol<CcBool>()));
+     last = nl->Append(last, 
+                         nl->TwoElemList(nl->SymbolAtom("Shortcut"),
+                                         listutils::basicSymbol<CcBool>()));
+  }
+  ListExpr res = nl->TwoElemList(
+                    listutils::basicSymbol<Stream<Tuple> >(),
+                    nl->TwoElemList(
+                       listutils::basicSymbol<Tuple>(),
+                       attrList));
+  return res;
+
+}
+
+
+class importCHInfo{
+   public:
+
+     importCHInfo(string _fn, bool _order, TupleType* _tt):
+        fn(_fn), order(_order), tt(_tt){
+        tt->IncReference();
+        in.open(fn.c_str(), ios::in | ios::binary);
+        size_t buffersize = 4*1024*1024;
+        inbuf = new char[buffersize];
+        in.rdbuf()->pubsetbuf(inbuf,buffersize);
+        error = false;
+        endChecked = false;
+        if(!in){
+           error = true;
+           cerr << "cannot open file " << fn << endl; 
+           return; 
+        }
+        char id[4];
+        in.read(id,4);   
+        if(!in){
+           error = true;
+           cerr << "cannot read id " << endl;
+           return;
+        }
+        if(id[0]!='C' || id[1]!='H' || id[2]!='\r' || id[3]!='\n'){
+          cerr << "invalid id" << endl;
+          error = true;
+          return;
+        }
+        uint32_t  version;
+        in.read((char*)&version,4);
+        if(version!=1){
+           cerr << "invalid version" << endl;
+           return;
+        }
+        in.read((char*)&noNodes,4);
+        in.read((char*)&m1,4);
+        in.read((char*)&m2,4);
+        cout << "noNodes " << noNodes << endl;
+        cout << "no original edges " << m1 << endl;
+        cout << "no shortcut edges " << m2 << endl;
+        currentNode =0;
+        currentM1 = 0;
+        currentM2 = 0;
+        if(!order){ // ignore node level block
+           char* buf = new char[noNodes*4];
+           in.read(buf,noNodes*4);
+           delete[] buf;
+        }
+        
+     }
+     ~importCHInfo(){
+         in.close();
+         delete[] inbuf;
+         tt->DeleteIfAllowed();
+      }
+
+     Tuple* next(){
+        return order?nextOrder():nextEdge();
+     }
+
+
+
+   private:
+      string fn;
+      bool order;
+      TupleType* tt;
+      char* inbuf;
+      ifstream in; 
+      bool error;
+      uint32_t noNodes;
+      uint32_t m1;
+      uint32_t m2;
+      uint32_t currentNode;
+      uint32_t currentM1;
+      uint32_t currentM2;
+      bool endChecked;
+
+     Tuple* nextOrder(){
+        if(error) return 0;
+        if(!in) {
+          error = true;
+          return 0;
+        }
+        if(currentNode>=noNodes){
+           error = true; // not really an error
+           return 0;
+        }
+        uint32_t level;
+        in.read((char*) &level,4);
+        if(!in){
+           error = true;
+           return 0;
+        }
+        Tuple* res = new Tuple(tt);
+        res->PutAttribute(0, new CcInt(true,currentNode));
+        res->PutAttribute(1, new CcInt(true, level));
+        currentNode++;
+        return res;
+     }
+
+     Tuple* nextEdge(){
+        if(error) return 0;
+        if(currentM1>=m1 && currentM2 >= m2){
+          if(!endChecked){
+             uint32_t end;
+             in.read((char*)&end,4);
+             if(end!=12345678){
+               cerr << "end check failed" << endl;
+             } else {
+               cout << "end recognized" << endl;
+             }
+             endChecked = true;  
+          }
+          return 0;
+        } 
+
+        uint32_t source;
+        uint32_t target;
+        uint32_t weight;
+        uint32_t flags;
+        uint32_t middle1;
+        int middle;
+        in.read((char*) &source,4);
+        in.read((char*) &target,4);
+        in.read((char*) &weight,4);
+        in.read((char*) &flags,4);
+        bool shortcut = currentM1>=m1;
+        if(shortcut){
+           in.read((char*) &middle1,4);
+           middle = middle1;
+        } else {
+           middle = -1;
+        }
+        Tuple* res = new Tuple(tt);
+        res->PutAttribute(0, new CcInt(true,source));
+        res->PutAttribute(1, new CcInt(true,target));
+        res->PutAttribute(2, new CcInt(true,weight));
+        res->PutAttribute(3, new CcInt(true,middle));
+        uint32_t mask = 1;
+        res->PutAttribute(4, new CcBool(true, flags & mask));
+        mask = 2;
+        res->PutAttribute(5, new CcBool(true, flags & mask));
+        mask = 4;
+        res->PutAttribute(6, new CcBool(true, flags & mask));
+        if(shortcut){
+           currentM2++;
+        } else {
+          currentM1++;
+        }
+        return res;
+     }
+
+
+};
+
+
+template<class F>
+int importCHVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+
+  importCHInfo* li = (importCHInfo*) local.addr;
+  switch(message){
+   case OPEN: {
+     if(li){
+       delete li;
+       local.addr = 0;
+     }
+     F* filename = (F*) args[0].addr;
+     CcBool* order = (CcBool*) args[1].addr;
+     if(!filename->IsDefined() || !order->IsDefined()){
+        return 0;
+     }
+     TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
+     local.addr = new importCHInfo(filename->GetValue(), order->GetValue(), tt);
+     tt->DeleteIfAllowed();
+     return 0;
+   }
+   case REQUEST: {
+      result.addr = li?li->next():0;
+      return result.addr?YIELD:CANCEL;
+   }
+   case CLOSE: {
+      if(li){
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+   }
+
+   }
+   return -1;
+    
+}
+
+
+ValueMapping importCHVM[] = {
+  importCHVMT<CcString>,
+  importCHVMT<FText>
+};
+
+int importCHSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec importCHSpec(
+  "{string,text} x bool -> stream(tuple)",
+  "importCH(fileName, onlyOrder)",
+  "Import a file in CH format (binary contraction hierarchie). "
+  "The first argument specifies the file name. If the second "
+  "argument is true, only the levels of the nodes are returned "
+  " as a tuple stream (Node : int, Level : int). "
+  "If this argument is set to false, the edges are returned in "
+  "a stream of tuple (Source : int, Target : int, Weight : int, Middle : int, "
+  "Forward : bool Backward : bool, Shortcut : bool).",
+  " query importCH('edges.hc', TRUE) count"
+);
+
+Operator importCHOp(
+  "importCH",
+   importCHSpec.getStr(),
+   2,
+   importCHVM,
+   importCHSelect,
+   importCHTM
+);
 
 
 /*
@@ -21711,6 +22002,9 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mgroupOp);
           AddOperator(&memgroupbyOp);
           memgroupbyOp.enableInitFinishSupport();
+
+          AddOperator(&importCHOp),
+          importCHOp.SetUsesArgsInTypeMapping();
 
         }
         

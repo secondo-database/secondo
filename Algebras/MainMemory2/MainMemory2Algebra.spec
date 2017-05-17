@@ -194,5 +194,7 @@ operator mg3exportddsg alias MG3EXPORTDDSG pattern _ op[_,_]
 
 operator memgroupby alias MEMGROUPBY pattern _ op [list; funlist] implicit parameter mgroup type MGROUP
 
+operator importCH alias IMPORTCH pattern op(_,_)
+
 
 

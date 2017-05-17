@@ -1505,4 +1505,8 @@ Signature: stream(T) x attrlist x funlist -> stream(G)
 Example  : query plz feed sortby[PLZ] memgroupby[PLZ; C : group mfeed count] = plz feed sortby[PLZ] groupby[PLZ; C : group count] 
 Result   : TRUE
 
-
+Operator  : importCH
+Number    : 1201
+Signature : {string, text} x bool -> stream(tuple)
+Example   : query importCH('graph.ch', TRUE) count
+Result    : 0
