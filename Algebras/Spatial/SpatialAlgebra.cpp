@@ -25031,7 +25031,6 @@ int calcDiscVM(Word* args, Word& result, int message, Word& local,
      res->SetDefined(false);
      return 0;
   }
-  vector<Point> R;
   Disc d = sedSt(*ps);
   *res = d; 
   return 0;
