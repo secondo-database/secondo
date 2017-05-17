@@ -498,7 +498,19 @@ the list may contain further information to describe the error.
   return alg->GetOperator(opId);
  }
   
+Algebra* getAlgebra(const std::string& algName) {
 
+  int algId = GetAlgebraId(algName);
+  if(algId<0 || (size_t)algId >= algebra.size()){
+    return 0;
+  }
+
+  if(IsAlgebraLoaded(algId)) {
+     return algebra[algId];
+  }
+
+  return 0;
+}
 
   void UpdateOperatorUsage(SystemInfoRel* table);
 
