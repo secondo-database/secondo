@@ -21462,10 +21462,13 @@ class importCHInfo{
         cout << "noNodes " << noNodes << endl;
         cout << "no original edges " << m1 << endl;
         cout << "no shortcut edges " << m2 << endl;
+        cout << "expected file size " << (4*5 + noNodes*4 + m1*16 + m2*20 + 4) 
+             << " bytes " << endl;
         currentNode =0;
         currentM1 = 0;
         currentM2 = 0;
         if(!order){ // ignore node level block
+           cout << " ignore " << (noNodes*4) << " bytes " << endl;
            char* buf = new char[noNodes*4];
            in.read(buf,noNodes*4);
            delete[] buf;
@@ -21528,8 +21531,10 @@ class importCHInfo{
           if(!endChecked){
              uint32_t end;
              in.read((char*)&end,4);
-             if(end!=12345678){
+             cout << "postion in file is " << in.tellg() << endl; 
+             if(end!=0x12345678){
                cerr << "end check failed" << endl;
+               cerr << "end code is " << ios::hex << end << endl;
              } else {
                cout << "end recognized" << endl;
              }
