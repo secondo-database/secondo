@@ -11,7 +11,7 @@ query memclear()
 
 if isDBObject("useAll") then delete useAll endif
 
-let useAll = FALSE 
+let useAll =  TRUE
 
 
 if not(isDBObject("EdgesB")) then 
@@ -267,6 +267,12 @@ let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress :
   minsert[pwrap("DeletedNodes")]
   count
   
+
+# export graph to a ddsg file
+
+query "EdgesX" mg3exportddsg["EdgesX.ddsg", 10000]
+
+
   
   
 ########## the actual Contraction, play with arguments
@@ -274,6 +280,7 @@ let mtcontract = fun(maxprio: int, minBlockSize : int, maxHops : int, progress :
 
 
 query mtcontract(80,100,5, NodeCount div 100)  
+
 
 
 
