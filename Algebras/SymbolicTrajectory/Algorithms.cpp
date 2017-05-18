@@ -485,97 +485,48 @@ Extracts a constant value from a moving attribute at a certain instant, e.g.,
 for an mpoint attribute, the function yields a point result.
 
 */
+template<class Moving, class Intime, class Constant>
+void Condition::getConstValue(Attribute *src, const Instant& inst,
+                              Attribute*& result) {
+  if (src != 0) {
+    Intime it(true);
+    ((Moving*)src)->AtInstant(inst, it);
+    result->CopyFrom((Constant*)&(it.value));
+  }
+  else {
+    result = new Constant(true);
+  }
+}
+
+
 void Condition::getConstValue(Attribute *src, const std::string& type,
                               const Instant& inst, Attribute*& result) {
   if (type == "mlabel") {
-    if (src != 0) {
-      ILabel il(true);
-      ((MLabel*)src)->AtInstant(inst, il);
-      result = il.value.Clone();
-    }
-    else {
-      result = new Label(true);
-    }
+    getConstValue<MLabel, ILabel, Label>(src, inst, result);
   }
   else if (type == "mlabels") {
-    if (src != 0) {
-      ILabels ils(true);
-      ((MLabels*)src)->AtInstant(inst, ils);
-      result = ils.value.Clone();
-    }
-    else {
-      result = new Labels(true);
-    }
+    getConstValue<MLabels, ILabels, Labels>(src, inst, result);
   }
   else if (type == "mplace") {
-    if (src != 0) {
-      IPlace ip(true);
-      ((MPlace*)src)->AtInstant(inst, ip);
-      result = ip.value.Clone();
-    }
-    else {
-      result = new Place(true);
-    }
+    getConstValue<MPlace, IPlace, Place>(src, inst, result);
   }
   else if (type == "mplaces") {
-    if (src != 0) {
-      IPlaces ips(true);
-      ((MPlaces*)src)->AtInstant(inst, ips);
-      result = ips.value.Clone();
-    }
-    else {
-      result = new Places(true);
-    }
+    getConstValue<MPlaces, IPlaces, Places>(src, inst, result);
   }
   else if (type == "mbool") {
-    if (src != 0) {
-      IBool ib(true);
-      ((MBool*)src)->AtInstant(inst, ib);
-      result = ib.value.Clone();
-    }
-    else {
-      result = new CcBool(true);
-    }
+    getConstValue<MBool, IBool, CcBool>(src, inst, result);
   }
   else if (type == "mint") {
-    if (src != 0) {
-      IInt ii(true);
-      ((MInt*)src)->AtInstant(inst, ii);
-      result = ii.value.Clone();
-    }
-    else {
-      result = new CcInt(true);
-    }
+    getConstValue<MInt, IInt, CcInt>(src, inst, result);
   }
   else if (type == "mreal") {
-    if (src != 0) {
-      IReal ir(true);
-      ((MReal*)src)->AtInstant(inst, ir);
-      result = ir.value.Clone();
-    }
-    else {
-      result = new CcReal(true);
-    }
+    getConstValue<MReal, IReal, CcReal>(src, inst, result);
   }
   else if (type == "mpoint") {
-    if (src != 0) {
-      IPoint ip(true);
-      ((MPoint*)src)->AtInstant(inst, ip);
-      result = ip.value.Clone();
-    }
-    else {
-      result = new Point(true);
-    }
+    getConstValue<MPoint, IPoint, Point>(src, inst, result);
   }
   else if (type == "mregion") {
-    if (src != 0) {
-      IRegion ir(true);
-      ((MRegion*)src)->AtInstant(inst, ir);
-      result = ir.value.Clone();
-    }
-    else {
-      result = new Region(1);
-    }
+    getConstValue<MRegion, IRegion, Region>(src, inst, result);
   }
   else {
     cout << "INVALID type " << type << endl;
@@ -711,16 +662,16 @@ void Condition::setLeftRightclosedPtr(unsigned int pos, bool value) {
 Static function invoked by ~initCondOpTrees~ or ~initAssignOpTrees~
 
 */
-pair<string, Attribute*> Pattern::getPointer(const int key, const bool mainAttr,
-                                    const bool isEasy, Tuple *tuple /* = 0 */) {
-  cout << "getPointer: " << key << " " << mainAttr << endl;
+pair<string, Attribute*> Pattern::getPointer(const int key, 
+                   const bool isInterval /* = true */, Tuple *tuple /* = 0 */) {
+//   cout << "getPointer: " << key << " " << isInterval << endl;
   pair<string, Attribute*> result;
   if (key > 99) { // attribute name
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
     AttributeType attrType = tuple->GetTupleType()->GetAttributeType(key - 100);
     string type = sc->GetTypeName(attrType.algId, attrType.typeId);
-    cout << "TYPE is " << type << endl;
-    if (!isEasy) {
+//     cout << "TYPE is " << type << endl;
+    if (isInterval) {
       if (type == "mplace" || type == "mplaces") {
         result.second = new Region(1);
         result.first = "[const region pointer "
@@ -730,6 +681,7 @@ pair<string, Attribute*> Pattern::getPointer(const int key, const bool mainAttr,
         result.second = tuple->GetAttribute(key - 100)->Clone();
         result.first = "[const " + type + " pointer "
                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
+        cout << result.first << endl;
       }
     }
     else {
@@ -743,11 +695,11 @@ pair<string, Attribute*> Pattern::getPointer(const int key, const bool mainAttr,
       }
       result.first = "[const " + type + " pointer "
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
-      cout << result.first << endl;
+//       cout << result.first << endl;
     }
   }
   else {
-    if (mainAttr) {
+    if (isInterval) {
       switch (key) {
         case 0: { // label, type Label
           result.second = new Label(true);
@@ -817,8 +769,12 @@ pair<string, Attribute*> Pattern::getPointer(const int key, const bool mainAttr,
 For a pattern with conditions, an operator tree structure is prepared.
 
 */
-bool Pattern::initCondOpTrees(Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */){
+bool Pattern::initCondOpTrees(Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */,
+                              const bool mainAttr) {
   for (unsigned int i = 0; i < conds.size(); i++) { // opTrees for conditions
+    if (!mainAttr) {
+      conds[i].collectInstantVars(varToElem);
+    }
     if (!conds[i].initOpTree(tuple, ttype)) {
       cout << "Operator tree for condition " << i << " uninitialized" << endl;
       return false;
@@ -834,12 +790,16 @@ bool Condition::initOpTree(Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
   if (!isTreeOk()) {
     q = "query " + text;
     for (unsigned int i = 0; i < varKeys.size(); i++) { // init pointers
-      cout << "|| " << varKeys[i].first << "|" << varKeys[i].second 
-           << "|" << endl;
-      strAttr = Pattern::getPointer(getKey(i), true, false, tuple);
+//       cout << "|| " << varKeys[i].first << "|" << varKeys[i].second 
+//            << "|" << endl;
+      bool isInterval = instantVars.find(varKeys[i].first) == instantVars.end();
+      strAttr = Pattern::getPointer(getKey(i), isInterval, tuple);
+//       strAttr = Pattern::getPointer(getKey(i), isInterval[varKeys[i].first]],
+//                                     tuple);
       ptrs.push_back(strAttr.second);
       toReplace = getVar(i) + getType(getKey(i), tuple, ttype);
       q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
+//       cout << "§ " << q << endl;
     }
     pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
     if (!qp_optree.first) {
@@ -868,10 +828,10 @@ bool Pattern::initEasyCondOpTrees(const bool mainAttr, Tuple *tuple /* = 0 */,
     if (!easyConds[i].isTreeOk()) {
       q = "query " + easyConds[i].getText();
       for (int j = 0; j < easyConds[i].getVarKeysSize(); j++) { // init pointers
-        cout << "|" << easyConds[i].getVar(j) << "|" << easyConds[i].getKey(j)
-             << "|" << varPos[easyConds[i].getVar(j)].first << " " 
-             << varPos[easyConds[i].getVar(j)].second << endl;
-        strAttr = getPointer(easyConds[i].getKey(j), mainAttr, true, tuple);
+//        cout << "|" << easyConds[i].getVar(j) << "|" << easyConds[i].getKey(j)
+//             << "|" << varPos[easyConds[i].getVar(j)].first << " " 
+//             << varPos[easyConds[i].getVar(j)].second << endl;
+        strAttr = getPointer(easyConds[i].getKey(j), false, tuple);
         ptrs.push_back(strAttr.second);
         toReplace = easyConds[i].getVar(j)
                   + Condition::getType(easyConds[i].getKey(j), tuple, ttype);
@@ -1608,12 +1568,7 @@ TMatchIndexLI::TMatchIndexLI(Relation *r, ListExpr tt,
 
 */
 TMatchIndexLI::~TMatchIndexLI() {
-  if (firstEnd) {
-    for (int i = 0; i <= rel->GetNoTuples(); i++) {
-      delete firstEnd[i];
-    }
-    delete[] firstEnd;
-  }
+  firstEnd = 0;
 }
 
 /*
@@ -1765,14 +1720,10 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
   else {
     proceed = getSingleIndexResult(indexInfo, values, type, valueNo, result);
   }
-//   int counter = 0;
-//   for (int i = 1; i < rel->GetNoTuples(); i++) {
-//     if (temp1[i].size() > 0) {
-//       counter++;
-//     }
-//   }
-//   cout << counter << " tuples with at least one result" << endl;
   set<int> tmp;
+  if (!proceed && !mainAttr) { // 
+    
+  }
   while (proceed) {
     valueNo++;
     if (mainAttr) {
@@ -1793,10 +1744,13 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
           Periods pertmp(true);
           for (int i = 1; i <= rel->GetNoTuples(); i++) {
             if (result[i] != 0 && tempp2[i] != 0) {
+              result[i]->EndBulkLoad();
+              tempp2[i]->EndBulkLoad();
               result[i]->Union(*(tempp2[i]), pertmp);
               result[i]->CopyFrom(&pertmp);
             }  
             else if (result[i] == 0 && tempp2[i] != 0) {
+              tempp2[i]->EndBulkLoad();
               result[i] = new Periods(*(tempp2[i]));
             }
           }
@@ -1816,6 +1770,8 @@ void TMatchIndexLI::getResultForAtomPart(pair<int, pair<IndexType, int> >
           Periods pertmp(true);
           for (int i = 1; i <= rel->GetNoTuples(); i++) {
             if (result[i] != 0 && tempp2[i] != 0) {
+              result[i]->EndBulkLoad();
+              tempp2[i]->EndBulkLoad();
               result[i]->Intersection(*(tempp2[i]), pertmp);
               result[i]->CopyFrom(&pertmp);
             }
@@ -1973,7 +1929,6 @@ bool TMatchIndexLI::getResultForAtomTime(const int atomNo,
 */
 void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
                                      const bool mainAttr, int &noResults) {
-  cout << "sIR " << atomNo << endl;
   if (!mainAttr && indexResult2[atomNo] != 0) {
     return;
   }
@@ -2042,6 +1997,12 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
                              temp, prevCrucial, mainAttr, true);
         for (int i = 1; i <= rel->GetNoTuples(); i++) {
           if (periods[i] && temp[i]) {
+            if (!periods[i]->IsOrdered()) {
+              periods[i]->EndBulkLoad();
+            }
+            if (!temp[i]->IsOrdered()) {
+              temp[i]->EndBulkLoad();
+            }
             periods[i]->Intersection(*temp[i], tmp);
             periods[i]->CopyFrom(&tmp);
             tmp.Clear();
@@ -2051,6 +2012,10 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
           else if (periods[i]) {
             periods[i]->DeleteIfAllowed();
             periods[i] = 0;
+          }
+          else if (temp[i]) {
+            temp[i]->DeleteIfAllowed();
+            temp[i] = 0;
           }
         }
         temp.clear();
@@ -2110,32 +2075,41 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
     if (prevCrucial == -1) {
       for (int i = 1; i <= rel->GetNoTuples(); i++) {
         if (periods[i]) {
-          if (!((Periods*)periods[i])->IsEmpty()) { // index result exists
+          if (!periods[i]->IsEmpty()) { // index result exists
             indexResult2[atomNo][pred]->succ = i;
             if (ivAtom.IsDefined()) {
               periods[i]->Intersection(ivAtom, per);
               periods[i]->CopyFrom(&per);
             }
-            indexResult2[atomNo][i] = new IndexRetrieval2(pred,0, periods[i]);
+            indexResult2[atomNo][i] = new IndexRetrieval2(pred, 0, periods[i]);
             noResults++;
             pred = i;
+          }
+          else { // remove empty results
+            periods[i]->DeleteIfAllowed();
           }
         }
       }
     }
     else {
       for (int i = 1; i <= rel->GetNoTuples(); i++) {
-        if (indexResult2[prevCrucial][i] != 0 && periods[i]) {
-          if (!((Periods*)periods[i])->IsEmpty()) { // prev. index result exists
+        if (indexResult2[prevCrucial][i] != 0 && periods[i] != 0) {
+          if (!periods[i]->IsEmpty()) { // prev. index result exists
             indexResult2[atomNo][pred]->succ = i; // refresh succ of pred
             if (ivAtom.IsDefined()) {
               periods[i]->Intersection(ivAtom, per);
               periods[i]->CopyFrom(&per);
             }
-            indexResult2[atomNo][i] = new IndexRetrieval2(pred,0, periods[i]);
+            indexResult2[atomNo][i] = new IndexRetrieval2(pred, 0, periods[i]);
             noResults++;
             pred = i;
           }
+          else { // remove empty results
+            periods[i]->DeleteIfAllowed();
+          }
+        }
+        else if (periods[i] != 0) {
+          periods[i]->DeleteIfAllowed();
         }
       }
     }
@@ -2146,16 +2120,16 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
   else {
     indexResult2[atomNo][pred]->succ = 0;
   }
-  if (!mainAttr) {
-  cout << "index result for atom " << atomNo << ":" << endl;
-    for (int i = 1; i <= rel->GetNoTuples(); i++) {
-      if (indexResult2[atomNo][i] != 0) {
-        cout << "tuple " << i << ": " << indexResult2[atomNo][i]->pred << ", "
-            << indexResult2[atomNo][i]->succ << ", "
-            << *(indexResult2[atomNo][i]->per) << endl;
-      }
-    }
-  }
+//   if (!mainAttr) {
+//     cout << "index result for atom " << atomNo << ":" << endl;
+//     for (int i = 1; i <= rel->GetNoTuples(); i++) {
+//       if (indexResult2[atomNo][i] != 0) {
+//         cout << "tuple " << i << ": " << indexResult2[atomNo][i]->pred
+//             << ", " << indexResult2[atomNo][i]->succ << ", "
+//             << *(indexResult2[atomNo][i]->per) << endl;
+//       }
+//     }
+//   }
 }
 
 /*
@@ -2788,8 +2762,7 @@ bool Condition::evaluateInstant(const ListExpr tt, Tuple *t,
       *((Instant*)pointers[i]) = imi.inst;
     }
   }
-//   cout << "|||" << ((Instant*)pointers[0])->IsDefined() << "|||" 
-//              << *((Instant*)pointers[0]) << endl;
+//   cout << nl->ToString(qp->ListOfTree(getOpTree(), cout)) << endl;
   getQP()->EvalS(getOpTree(), qResult, OPEN);
 //   cout << "result for |" << text << "| is "
 //        << (((CcBool*)qResult.addr)->GetValue() ? "TRUE" : "FALSE") << endl;
@@ -2838,66 +2811,72 @@ Used for indextmatches2.
 */
 void Condition::copyAndRestrictPtr(const int pos, Tuple *tuple, 
                       const ListExpr ttype, const int key, const Periods& per) {
-  cout << "CALL cARP" << endl;
-  std::string attrtype = nl->ToString(nl->Second(nl->Nth(key, 
-                                      nl->Second(ttype))));
-  if (attrtype == "mbool") {
-    ((temporalalgebra::MBool*)tuple->GetAttribute(key - 1))->AtPeriods(per,
-                                   *((temporalalgebra::MBool*)pointers[pos]));
-  }
-  else if (attrtype == "mint") {
-    ((temporalalgebra::MInt*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                  *((temporalalgebra::MInt*)pointers[pos]));
-  }
-  else if (attrtype == "mlabel") {
-    ((MLabel*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                  *((MLabel*)pointers[pos]));
-  }
-  else if (attrtype == "mlabels") {
-    ((MLabels*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                  *((MLabels*)pointers[pos]));
-  }
-  else if (attrtype == "mplace") {
-    MPlace mp(true);
-    Place::base value;
-    Region tmp(true);
-    std::string type;
-    Word geo;
-    ((MPlace*)tuple->GetAttribute(key - 1))->AtPeriods(per, mp);
-    for (int i = 0; i < mp.GetNoComponents(); i++) {
-      mp.GetValue(i, value);
-      if (value.second > 0) {
-        Tools::getGeoFromORel("Places", value.second, false, geo, type);
-        if (type == "point") {
-          tmp.Union(*((Point*)geo.addr), (*((Region*)pointers[pos])));
-        }
-        else if (type == "line") {
-          tmp.Union(*((Line*)geo.addr), (*((Region*)pointers[pos])));
-        }
-        else if (type == "region") {
-          tmp.Union(*((Region*)geo.addr), (*((Region*)pointers[pos])));
-        }
-        else {
-          cout << "ERROR: type is " << type << endl; // cannot occur
+  string attrtype = nl->ToString(nl->Second(nl->Nth(key, 
+                                        nl->Second(ttype))));
+  if (instantVars.find(getVar(pos)) == instantVars.end()) {
+    if (attrtype == "mbool") {
+      ((temporalalgebra::MBool*)tuple->GetAttribute(key - 1))->AtPeriods(per,
+                                    *((temporalalgebra::MBool*)pointers[pos]));
+    }
+    else if (attrtype == "mint") {
+      ((temporalalgebra::MInt*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                    *((temporalalgebra::MInt*)pointers[pos]));
+    }
+    else if (attrtype == "mlabel") {
+      ((MLabel*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                    *((MLabel*)pointers[pos]));
+    }
+    else if (attrtype == "mlabels") {
+      ((MLabels*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                    *((MLabels*)pointers[pos]));
+    }
+    else if (attrtype == "mplace") {
+      MPlace mp(true);
+      Place::base value;
+      Region tmp(true);
+      std::string type;
+      Word geo;
+      ((MPlace*)tuple->GetAttribute(key - 1))->AtPeriods(per, mp);
+      for (int i = 0; i < mp.GetNoComponents(); i++) {
+        mp.GetValue(i, value);
+        if (value.second > 0) {
+          Tools::getGeoFromORel("Places", value.second, false, geo, type);
+          if (type == "point") {
+            tmp.Union(*((Point*)geo.addr), (*((Region*)pointers[pos])));
+          }
+          else if (type == "line") {
+            tmp.Union(*((Line*)geo.addr), (*((Region*)pointers[pos])));
+          }
+          else if (type == "region") {
+            tmp.Union(*((Region*)geo.addr), (*((Region*)pointers[pos])));
+          }
+          else {
+            cout << "ERROR: type is " << type << endl; // cannot occur
+          }
         }
       }
     }
-  }
-  else if (attrtype == "mplaces") {
-    ((MPlaces*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+    else if (attrtype == "mplaces") {
+      ((MPlaces*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
                                                     *((MPlaces*)pointers[pos]));
-  }
-  else if (attrtype == "mpoint") {
-    ((temporalalgebra::MPoint*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+    }
+    else if (attrtype == "mpoint") {
+      ((temporalalgebra::MPoint*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
                                     *((temporalalgebra::MPoint*)pointers[pos]));
+    }
+    else if (attrtype == "mreal") {
+      ((temporalalgebra::MReal*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
+                                  *((temporalalgebra::MReal*)pointers[pos]));
+    }
+    else if (attrtype == "mregion") {
+      ((temporalalgebra::MRegion*)tuple->GetAttribute(key - 1))->AtPeriods(&per,
+                                      (temporalalgebra::MRegion*)pointers[pos]);
+    }
   }
-  else if (attrtype == "mreal") {
-    ((temporalalgebra::MReal*)tuple->GetAttribute(key - 1))->AtPeriods(per, 
-                                 *((temporalalgebra::MReal*)pointers[pos]));
-  }
-  else if (attrtype == "mregion") {
-    ((temporalalgebra::MRegion*)tuple->GetAttribute(key - 1))->AtPeriods(&per, 
-                                     (temporalalgebra::MRegion*)pointers[pos]);
+  else { // variable refers to an instant; delete old pointer
+    Instant inst;
+    per.Minimum(inst);
+    getConstValue(tuple->GetAttribute(key - 1), attrtype, inst, pointers[pos]);
   }
 }
 
@@ -2959,7 +2938,7 @@ bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
   i2.ToMaximum();
   Periods per(true);
   for (unsigned int i = 0; i < conds->size(); i++) {
-    cout << "evaluate cond " << i << " %%% " << conds->at(i).getText() << endl;
+//     cout << "evaluate cond " << i << " % " << conds->at(i).getText() << endl;
 //     conds->at(i).evaluate(t, imi);
     for (int j = 0; j < conds->at(i).getVarKeysSize(); j++) {
       int elem = p->getElemFromVar(conds->at(i).getVar(j));
@@ -2970,8 +2949,8 @@ bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
       }
       per.Add(iv);
       int key = conds->at(i).getKey(j);
-      cout << conds->at(i).getVar(j) << " $ " << key << " $ "
-           << elem << " $ " << iv << endl;
+//       cout << conds->at(i).getVar(j) << " $ " << key << " $ "
+//            << elem << " $ " << iv << endl;
       if (key > 99) { // reference to attribute, e.g., X.Pos
         if (!t) {
           return false;
@@ -3058,7 +3037,7 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
                 i = numOfIMIs; // stop processing this tuple id
                 active[id] = false;
               }
-              else if (!newIMI.exhausted(*(firstEnd[id]))) { // continue
+              else if (!newIMI.exhausted((*firstEnd)[id])) { // continue
                 newMatchInfo2[trans.second][id]->imis.push_back(newIMI);
 //                 cout << "Pushed back imi for id " << id << ", range="
 //                      << (newIMI.range ? "TRUE" : "FALSE") << endl;
@@ -3085,9 +3064,9 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
       }
       remove(toRemove, false);
     }
-    if (minInst > *(firstEnd[0]) && !minInst.IsMaximum()) {
-      *(firstEnd[0]) = minInst; // set global limit to minimum of index results
-    }
+    if (minInst.millisecondsToNull() > (*firstEnd)[0] && !minInst.IsMaximum()) {
+      (*firstEnd)[0] = minInst.millisecondsToNull();
+    } // set global limit to minimum of index results
   }
   else { // consider all existing imi instances
 //     cout << "not relevant for index; consider all instances; " 
@@ -3128,7 +3107,7 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
             i = numOfIMIs; // stop processing this tuple id
             active[id] = false;
           }
-          else if (!newIMI.exhausted(*(firstEnd[id]))) { // continue
+          else if (!newIMI.exhausted((*firstEnd)[id])) { // continue
             newMatchInfo2[trans.second][id]->imis.push_back(newIMI);
           }
         }
@@ -3261,13 +3240,13 @@ bool TMatchIndexLI::initialize(const bool mainAttr,
   else {
     indexResult2 = new IndexRetrieval2**[p->getSize()];
     memset(indexResult2, 0, p->getSize() * sizeof(void*));
-    firstEnd = new Instant*[rel->GetNoTuples() + 1];
-    memset(firstEnd, 0, (rel->GetNoTuples() + 1) * sizeof(void*));
-    for (int id = 1; id <= rel->GetNoTuples(); id++) {
-      firstEnd[id] = new Instant(getFirstEnd(id));
-    }
-    firstEnd[0] = new Instant(datetime::instanttype);
-    firstEnd[0]->ToMinimum();
+//     firstEnd = new Instant*[rel->GetNoTuples() + 1];
+//     memset(firstEnd, 0, (rel->GetNoTuples() + 1) * sizeof(void*));
+//     for (int id = 1; id <= rel->GetNoTuples(); id++) {
+//       firstEnd[id] = new Instant(getFirstEnd(id));
+//     }
+    firstEnd = &(ti2->firstEnd);
+    (*firstEnd)[0] = 0;
   }
   active = new bool[rel->GetNoTuples() + 1];
   memset(active, 1, (rel->GetNoTuples() + 1) * sizeof(bool));
@@ -3357,12 +3336,13 @@ bool TMatchIndexLI::initialize(const bool mainAttr,
     }
 //     cout << removed << " tuples removed due to crucial atom " 
 //          << minResultPos << endl;
+
   }
   Tuple *firstTuple = rel->GetTuple(1, false);
   if (!p->initEasyCondOpTrees(mainAttr, firstTuple, ttList)) {
     return false;
   }
-  if (!p->initCondOpTrees(firstTuple, ttList)) {
+  if (!p->initCondOpTrees(firstTuple, ttList, mainAttr)) {
     return false;
   }
   firstTuple->DeleteIfAllowed();
@@ -3919,7 +3899,7 @@ bool Assign::initOpTrees() {
                    + nl->ToString(listutils::getPtrList(strAttr.second)) + "]";
         }
         else {
-          strAttr = Pattern::getPointer(right[i][j].second, true, false);
+          strAttr = Pattern::getPointer(right[i][j].second, true);
         }
         pointers[i].push_back(strAttr.second);
         toReplace = right[i][j].first + Condition::getType(right[i][j].second);
@@ -4587,6 +4567,7 @@ IndexMatchSuper::~IndexMatchSuper() {
             pred = id;
             id = indexResult2[i][id]->succ;
             delete indexResult2[i][pred];
+            indexResult2[i][pred] = 0;
           }
           delete indexResult2[i][0];
           delete[] indexResult2[i];

@@ -422,6 +422,7 @@ class Condition {
   std::vector<std::pair<std::string, int> > varKeys;
   std::pair<QueryProcessor*, OpTree> opTree;
   std::vector<Attribute*> pointers; // for each expression like X.card
+  std::set<std::string> instantVars; // used for operator indextmatches2
   bool treeOk;
 
  public:
@@ -432,6 +433,9 @@ class Condition {
   int convertVarKey(const char *varKey, Tuple *t = 0, ListExpr tupleType = 0);
   void clear();
   static std::string getType(int t, Tuple *tuple = 0, ListExpr ttype = 0);
+  template<class Moving, class Intime, class Constant>
+  static void getConstValue(Attribute *src, const Instant& inst,
+                            Attribute*& result);
   static void getConstValue(Attribute *src, const std::string& type,
                             const Instant& inst, Attribute*& result);
   bool initOpTree(Tuple *tuple = 0, ListExpr ttype = 0);
@@ -448,6 +452,17 @@ class Condition {
                                             varKeys[pos].second : -1);}
 //   int     getPId(unsigned int pos) {return (pos < pIds.size() ?
 //                                                   pIds[pos] : -1);}
+  void    getAllVars(std::set<std::string>& result) const {
+                          for (unsigned int i = 0; i < varKeys.size(); i++) {
+                            result.insert(varKeys[i].first);}}
+  void    collectInstantVars(std::map<std::string, int>& varToElem) {
+            for (std::map<std::string, int>::iterator it = varToElem.begin(); 
+                                                  it != varToElem.end(); it++) {
+              if (it->second >= 0) {
+                instantVars.insert(it->first);
+              }
+            }
+  }
   void    clearVectors()           {varKeys.clear();}
 //   string  getVar(unsigned int pos) {return (pos < vars.size() ?
 //                                                   vars[pos] : "");}
@@ -680,7 +695,7 @@ class Pattern {
   int getPatternPos(const std::string v);
   bool checkAssignTypes();
   static std::pair<std::string, Attribute*> getPointer(const int key,
-                      const bool mainAttr, const bool isEasy, Tuple *tuple = 0);
+                                const bool isInterval = true, Tuple *tuple = 0);
   bool initAssignOpTrees();
   void deleteAssignOpTrees(bool conds);
   bool parseNFA();
@@ -690,7 +705,8 @@ class Pattern {
   void getCrucialElems(const std::set<std::pair<std::set<int>,int> >& paths, 
                        std::set<int>& result);
   bool containsFinalState(std::set<int> &states);
-  bool initCondOpTrees(Tuple *tuple = 0, ListExpr ttype = 0);
+  bool initCondOpTrees(Tuple *tuple = 0, ListExpr ttype = 0, 
+                       const bool mainAttr = true);
   bool initEasyCondOpTrees(const bool mainAttr, Tuple *tuple = 0, 
                            ListExpr ttype = 0);
   void deleteCondOpTrees();
@@ -1266,11 +1282,14 @@ struct IndexMatchInfo2 {
     if (per->IsEmpty()) {
       return false;
     }
+    if (!per->IsOrdered()) {
+      per->EndBulkLoad();
+    }
     return !per->Before(inst); // match has to occur at or after inst
   }
   
-  bool exhausted(const Instant& end) {
-    return inst > end;
+  bool exhausted(const int64_t end) {
+    return inst.millisecondsToNull() > end;
   }
   
   void print();
@@ -1531,7 +1550,7 @@ class TMatchIndexLI : public IndexMatchSuper {
   TupleIndex<UnitPos, UnitPos> *ti; // Unit (, Ref)
   TupleIndex<NewInterval, UnitPos> *ti2; // Interval (, Ref)
   int valueNo; // only relevant for indextmatches
-  Instant **firstEnd; //earliest end of time-dependent attrs for each tuple
+  std::vector<int64_t> *firstEnd; //earliest end of time-dep. attrs per tuple
 };
 
 /*

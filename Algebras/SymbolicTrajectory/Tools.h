@@ -292,10 +292,11 @@ class Tools {
     pos.second.copyToInterval(iv);
     if (result[pos.first] == 0) {
       result[pos.first] = new temporalalgebra::Periods(true);
-      ((temporalalgebra::Periods*)result[pos.first])->Add(iv);
+      result[pos.first]->StartBulkLoad();
+      result[pos.first]->Add(iv);
     }
     else {
-      result[pos.first]->MergeAdd(iv);
+      result[pos.first]->Add(iv);
     }
   }
   
@@ -305,8 +306,8 @@ class Tools {
   static void insertIndexResult(const NewPair<TupleId, UnitPos>& pos,
                               std::vector<temporalalgebra::Periods*> &result) {}
 
-                              
-                              
+
+
   template<class PosType, class ResultType>
   static void queryRtree1(R_Tree<1, NewPair<TupleId, PosType> > *rtree, 
        temporalalgebra::Interval<CcReal> &iv, std::vector<ResultType> &result) {
