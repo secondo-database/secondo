@@ -57,9 +57,12 @@ Also the operators on these types are defined.
 #include "../../include/TypeConstructor.h"  // constructor for Secondo Types
 #include "../Spatial/SpatialAlgebra.h"      // spatial types and operators
 #include "../Stream/Stream.h"               // wrapper for secondo streams
-//#include "../CRel/AttrArray.h"              // column oriented relations
+// #include "../CRel/TypeConstructors/LongIntsTI.h"
+// #include "../CRel/LongInts.h"                 // type for id result list
+// #include "../CRel/AttrArray.h"              // column oriented relations
 
 using std::string;
+// using namespace CRelAlgebra;
 
 namespace col {
 
@@ -191,6 +194,12 @@ to the real needed bytes.
 
 */
   void finalize();
+
+/*
+Shows the content of the array aPoint. This function is useful for debugging.
+
+*/
+  void showArray(string title);
 
 /*
 The ~In~ function scans a nested-list (parameter ~instance~) and converts it
@@ -623,21 +632,21 @@ The ~getCount~ function returns the number of regions within the region array.
 it is used to calculate the needed halfsegments for a new region object.
 
 */
-  long getCountPoints(long index);
+  long getCountPoints(const long index);
 
 /*
 The function ~createRegion~ extracts the region with given index to a
 region object of the spatial algebra.
 
 */
-  bool createRegion(Region* region, long index);
+  bool createRegion(Region* region, const long index);
 
 /*
 The ~appendPoint~ function allocates memory for the point array
 and appends the given point.
 
 */
-  int appendPoint(Point p, long &stepPoint);
+  int appendPoint(const Point p, long &stepPoint);
 
 /*
 The ~appendCycle~ function allocates memory for the cycle array
@@ -680,8 +689,14 @@ inside the region. if the check is true, the index of this element
 is appended to an attribute array of integer. The attribute array is returned.
 
 */
-  int p_inside(const Word value, const long count, Word& attrarray) const;
+  inline bool intersects();
 
+/*
+
+
+
+*/
+  void pointsInside(ColPoint* cPoint);
 
 /*
 The ~In~ function scans a nested-list (parameter ~instance~) and converts it

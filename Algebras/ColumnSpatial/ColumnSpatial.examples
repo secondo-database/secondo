@@ -1,4 +1,4 @@
-Database : COLTEST
+Database : coltest
 Restore  : YES
 
 Operator : inside
@@ -21,7 +21,37 @@ Result   : (2 4 6)
 
 Operator : mp
 Number   : 1
-Signature: stream(region) -> aregion
-Example  : query Kreis feed mp[Gebiet]
-Result   : ((2 3) (3 4))
+Signature: (stream(tuple) attribute) -> apoint
+Example  : query p1 feed mp[Ort]
+Result   : (apoint((1.0 3.0)(4.0 5.0)))
+
+Operator : mp
+Number   : 2
+Signature: (stream(tuple) attribute) -> aline
+Example  : query l1 feed mp[Verlauf]
+Result   : (aline((3.0 4.0 7.0 8.0)(6.0 10.0 7.0 8.0)))
+
+Operator : mp
+Number   : 3
+Signature: (stream(tuple) attribute) -> aregion
+Example  : query r1 feed filter[.Name="region1"] mp[Gebiet]
+Result   : (aregion(((((3.0 1.0)(4.0 2.0)(3.0 4.0))))))
+
+Operator : mp
+Number   : 4
+Signature: (apoint int) -> point
+Example  : query cp1 mp[1]
+Result   : (point(4.0 5.0))
+
+Operator : mp
+Number   : 5
+Signature: (aline int) -> line
+Example  : query cl1 mp[0]
+Result   : (line((3.0 4.0 7.0 8.0)(6.0 10.0 7.0 8.0)))
+
+Operator : mp
+Number   : 6
+Signature: (aregion int) -> region 
+Example  : query cr1 mp[0]
+Result   : (region())
 
