@@ -521,4 +521,10 @@ Example   : query (plz feed sortby[PLZ] addModCounter[C, 1, (.PLZ * ..) > 80000,
 Result    : TRUE
 
 
+Operator  : swap
+Number    : 1
+Signature : stream(tuple) x indent x indent -> stream(tuple)
+Example   : query plz feed addcounter[C,1] swap[PLZ,C] count = plz count
+Result    : TRUE
+
 

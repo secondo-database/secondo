@@ -15160,6 +15160,121 @@ Operator addModCounterOp(
   addModCounterTM
 );
 
+/*
+Operator ~swap~
+
+*/
+ListExpr swapTM(ListExpr args){
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("three arguments expected");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError("first arg is not an tuple stream");
+  }
+  if(nl->AtomType(nl->Second(args))!=SymbolType){
+    return listutils::typeError("second arg is not a valid attribute name");
+  }
+  if(nl->AtomType(nl->Third(args))!=SymbolType){
+    return listutils::typeError("third arg is not a valid attribute name");
+  }
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr t1;
+  string n1 = nl->SymbolValue(nl->Second(args));
+  int index1 = listutils::findAttribute(attrList,n1, t1);
+  if(!index1){
+    return listutils::typeError("attribute " + n1 + " not part of the tuple");
+  }
+  ListExpr t2;
+  string n2 = nl->SymbolValue(nl->Third(args));
+  int index2 = listutils::findAttribute(attrList,n2, t2);
+  if(!index2){
+    return listutils::typeError("attribute " + n2 + " not part of the tuple");
+  }
+  if(!nl->Equal(t1,t2)){
+    return listutils::typeError("attributes " + n1 + " and " + n1 
+                                + " have different types");
+  }
+  return nl->ThreeElemList(
+             nl->SymbolAtom(Symbols::APPEND()),
+             nl->TwoElemList(
+               nl->IntAtom(index1-1),
+               nl->IntAtom(index2-1)
+             ),
+             nl->First(args));
+
+        
+}
+
+class swapInfo{
+
+  public:
+    swapInfo(Word& _stream, int _index1, int _index2):
+        stream(_stream), index1(_index1), index2(_index2){
+        stream.open();
+    }
+    ~swapInfo(){
+      stream.close();
+    }
+
+    Tuple* next(){
+      Tuple* tuple = stream.request();
+      if(tuple){
+        Attribute* a1 = tuple->GetAttribute(index1)->Copy();
+        Attribute* a2 = tuple->GetAttribute(index2)->Copy();
+        tuple->PutAttribute(index1,a2);
+        tuple->PutAttribute(index2,a1);
+      }
+      return tuple;
+    }
+   private:
+     Stream<Tuple> stream;
+     int index1;
+     int index2;
+};
+
+
+int swapVM(Word* args, Word& result, int message,
+                     Word& local, Supplier s) {
+
+  swapInfo* li = (swapInfo*) local.addr;
+  switch(message){
+     case OPEN: 
+         if(li) delete li;
+         local.addr = new swapInfo(args[0],
+                           ((CcInt*) args[3].addr)->GetValue(),
+                           ((CcInt*) args[4].addr)->GetValue());
+         return 0;
+     case REQUEST:
+          result.addr = li?li->next():0;
+          return result.addr?YIELD:CANCEL;
+     case CLOSE:
+         if(li){
+            delete li;
+            local.addr = 0;
+         }    
+         return 0;
+
+  }
+  return -1;
+}
+
+OperatorSpec swapSpec(
+   "stream(tuple) x IDENT x INDENT -> stream(tuple)",
+   "_ swap [_,_]",
+   "Swaps two attribute values within each tuple of "
+   "a stream. The attributes must be of the same type.",
+   "query plz feed addcounter[c,3] swap[PLZ,C] count"
+);
+
+Operator swapOp(
+  "swap",
+  swapSpec.getStr(),
+  swapVM,
+  Operator::SimpleSelect,
+  swapTM
+);
+
+
 
 
 /*
@@ -15315,6 +15430,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extractDefOp);
     AddOperator(&addModCounterOp);
     addModCounterOp.enableInitFinishSupport();
+    AddOperator(&swapOp);
 
 
 #ifdef USE_PROGRESS
