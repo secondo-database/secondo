@@ -79,7 +79,7 @@ namespace CRelAlgebra
 
     */
     virtual Rectangle<dim> GetBoundingBox(size_t row,
-      const Geoid *geoId = nullptr) const = 0;
+      const Geoid *geoid = nullptr) const = 0;
 
     /*
     Returns the distance between the entry in the specified ~row~ and ~rect~.
@@ -88,7 +88,7 @@ namespace CRelAlgebra
 
     */
     virtual double GetDistance(size_t row, const Rectangle<dim>& rect,
-                               const Geoid *geoId = nullptr) const = 0;
+                               const Geoid *geoid = nullptr) const = 0;
 
     /*
     Checks if the entry in the specified ~row~ intersects with ~rect~.
@@ -97,7 +97,7 @@ namespace CRelAlgebra
 
     */
     virtual bool Intersects(size_t row, const Rectangle<dim>& rect,
-                            const Geoid *geoId = nullptr) const = 0;
+                            const Geoid *geoid = nullptr) const = 0;
 
     /*
     Checks if the entry in the specified ~row~ is empty.

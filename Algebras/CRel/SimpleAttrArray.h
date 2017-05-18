@@ -874,21 +874,21 @@ namespace CRelAlgebra
     }
 
     virtual Rectangle<T::dimension> GetBoundingBox(
-      size_t row, const Geoid *geoId = nullptr) const
+      size_t row, const Geoid *geoid = nullptr) const
     {
       return m_array.GetAt(row).GetBoundingBox();
     }
 
     virtual double GetDistance(size_t row, const Rectangle<T::dimension>& rect,
-                               const Geoid *geoId = nullptr) const
+                               const Geoid *geoid = nullptr) const
     {
-      return m_array.GetAt(row).GetDistance(rect, geoId);
+      return m_array.GetAt(row).GetDistance(rect, geoid);
     }
 
     virtual bool Intersects(size_t row, const Rectangle<T::dimension>& rect,
-                            const Geoid *geoId = nullptr) const
+                            const Geoid *geoid = nullptr) const
     {
-      return m_array.GetAt(row).Intersects(rect, geoId);
+      return m_array.GetAt(row).Intersects(rect, geoid);
     }
 
     virtual bool IsEmpty(size_t row) const

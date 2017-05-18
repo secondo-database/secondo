@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <limits>
 #include <cmath>
 #include "Point.h"
+#include "SecondoException.h"
 #include "SimpleAttrArray.h"
 #include "SpatialAlgebra.h"
 
@@ -442,8 +443,6 @@ namespace CRelAlgebra
             X = point.x,
             Y = point.y;
 
-          double result;
-
           if (xl == xr || yl == yr)
           {
             if (xl == xr) //is vertical
@@ -487,8 +486,6 @@ namespace CRelAlgebra
       double GetDistance(const SimpleHalfSegment& other,
                          const Geoid* geoid = nullptr) const
       {
-        assert(geoid == nullptr);
-
         if (geoid == nullptr) // euclidean geometry
         {
           if (!Intersects(other))
@@ -501,6 +498,10 @@ namespace CRelAlgebra
 
           return 0.0;
         }
+
+        assert(geoid == nullptr);
+
+        throw SecondoException("Not implemented!");
       }
 
       double GetDistance(const Rectangle<2>& rect,
@@ -878,7 +879,7 @@ namespace CRelAlgebra
     }
 
     virtual double GetDistance(const Rectangle<2>& rect,
-                               const Geoid *geoId = nullptr) const
+                               const Geoid *geoid = nullptr) const
     {
       assert(geoid == nullptr);
 
@@ -898,8 +899,6 @@ namespace CRelAlgebra
     virtual bool Intersects(const Rectangle<2>& rect,
                             const Geoid *geoid = nullptr) const
     {
-      assert(geoid == nullptr);
-
       if (size != 0 && geoid == nullptr &&
           !GetBoundingBoxP()->Intersects(rect, geoid))
       {
@@ -913,6 +912,10 @@ namespace CRelAlgebra
 
         return false;
       }
+
+      assert(geoid == nullptr);
+
+      throw SecondoException("Not implemented!");
     }
 
     virtual bool IsEmpty() const
