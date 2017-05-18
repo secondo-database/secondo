@@ -81,6 +81,11 @@ Returns ~true~ if $a < b-eps$.
 
 */      
       static bool lower(const mpq_class& a, const mpq_class& b);
+      
+      static bool lowerOrNearlyEqual(double a, double b);
+      static bool lowerOrNearlyEqual(const mpq_class&  a, 
+                                     const mpq_class&  b);
+      
 /*
 3.3 greater
 
@@ -88,6 +93,15 @@ Returns ~true~ if $a > b+eps$.
 
 */ 
       static bool greater(const mpq_class& a, const mpq_class& b);
+      
+      static bool greaterOrNearlyEqual(double a, double b); 
+      static bool greaterOrNearlyEqual(const mpq_class&  a, 
+                                       const mpq_class&  b); 
+      
+      static bool between(double a, double x, double b);           
+      static bool between(const mpq_class&  a, const mpq_class&  x, 
+                          const mpq_class&  b); 
+      
 /*
 3.4 minMax4
 

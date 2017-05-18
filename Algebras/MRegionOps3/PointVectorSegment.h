@@ -42,6 +42,11 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 #include <iostream>
 #include <gmp.h>
 #include <gmpxx.h>
+#include <vector>
+#include <string>
+#include <memory>
+#include "MMRTree.h"
+#include "TemporalAlgebra.h"
 #include "NumericUtil.h"
 
 #ifndef POINTVECTORSEGMENT_H
@@ -86,6 +91,7 @@ It's components are represented by three double values.
       double getY() const;
       double getZ() const;
       RationalPoint3D getR()const;
+      Rectangle<3> getBoundingBox()const;
 /*
 3.3 Operators and Predicates
     
@@ -613,7 +619,9 @@ Print the object values to stream.
 11.3.2 Operator for comparison.
 
 */
-      bool operator ==(const Segment2D& segment) const;  
+      bool operator ==(const Segment2D& segment) const; 
+      
+      double whichSide(const Point2D& point)const;
 /*      
 11.3.3 isLeft
 
@@ -623,6 +631,29 @@ Print the object values to stream.
       Point2D tail;
       Point2D head;
     };   
+    
+    template <typename T> class Container{
+    public:
+      // Konstruktor
+      Container();
+      Container(const Container<T>& points);
+      // Destruktor
+      ~Container();      
+      size_t          add(const T& points);
+      T               get(const size_t index)const;
+      size_t          size()const;
+      std::ostream& print(std::ostream& os, std::string prefix)const;
+      bool operator == (const Container<T>& points)const;
+      Container<T>& operator = (const Container<T>& points);
+    private:
+      void set(const Container<T>& points);
+      
+      std::vector<T> points; 
+      mmrtree::RtreeT<3, size_t> pointsTree;
+    };
+    
+    template <typename T> std::ostream& operator<<(
+      std::ostream& os, const Container<T>& container); 
     
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

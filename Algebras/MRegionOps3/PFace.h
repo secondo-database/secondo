@@ -84,8 +84,7 @@ Used in the class ~PFace~ to indicate it's current state.
     enum Indicator {
       LEFT_IS_INNER,
       RIGHT_IS_INNER,
-      LEFT_BORDER,
-      RIGHT_BORDER,
+      BORDER
     };
     
     enum Border {
@@ -314,6 +313,7 @@ Print the object values to stream.
       double getZ()const;
       double getW()const;
       double getT()const;
+      Rectangle<3> getBoundingBox()const;
 /*
 8.3.1 Operator <<
     
@@ -360,14 +360,17 @@ Print the object values to stream.
 9.2 Setter and getter methods
 
 */        
-      void set(const IntersectionSegment& segment);
+
       Segment3D getSegment3D()const;
       Segment2D getSegment2D()const;
       IntersectionPoint getTail() const;
       IntersectionPoint getHead() const;
       Indicator getIndicator()const;
       
-      bool isOrthogonalToTAxis()const;
+      bool isOrthogonalToTAxis()const;      
+      bool isOutOfRange(double t) const;
+      bool isLeftOf(const IntersectionSegment& intSeg) const;
+      Point3D evaluate(double t) const;
 /*
 9.3.1 Operator <<
     
@@ -392,6 +395,13 @@ Print the object values to stream.
 */      
       static std::string toString(Indicator indicator);      
     private: 
+      void set(const IntersectionPoint& tail,const IntersectionPoint& head,
+               Indicator indicator);
+      void set(const IntersectionSegment& segment);
+/*
+ 12.4 Attributes
+ 
+*/
       IntersectionPoint tail;
       IntersectionPoint head;
       Indicator indicator;  
@@ -453,7 +463,12 @@ Adds seg to the set of ~IntersectionSegments~.
 */     
       bool operator ==(const IntSegContainer& container)const; 
       IntSegContainer& operator =(const IntSegContainer& container);  
+      
+      void updateTimeLevel(double _t);
+      
     private:
+      
+      bool hasMoreSegsToInsert() const; 
 /*
 11.4 Attributes
 
@@ -464,6 +479,21 @@ provided by ~IntSegCompare~ and a suitable iterator.
 
 */
       std::set<IntersectionSegment*, IntSegCompare> intSegs;
+      std::set<IntersectionSegment*, IntSegCompare>::iterator intSegIter;
+      
+/*
+1.1.1 active, activeIter
+
+A ~std::list~ to store the active ~IntersectionSegments~ during the plane-sweep
+and a suitable iterator.
+
+*/
+      std::list<IntersectionSegment*> active;
+      std::list<IntersectionSegment*>::iterator activeIter;
+      
+      double t;
+      bool firstTimeLevel;
+      
     };   
 /*
 12 struct DoubleCompare
@@ -496,9 +526,16 @@ provided by ~IntSegCompare~ and a suitable iterator.
 
 */                                        
       bool operator ==(const GlobalTimeValues& other)const; 
+      
+      bool first(double& t);
+      
+      bool next(double& t);
             
     private: 
       std::set<double, DoubleCompare> time;
+      std::set<double, DoubleCompare>::const_iterator timeIter;
+      double t1;
+      double t2;
     };
 /*
 14 Class PFace
@@ -543,8 +580,7 @@ provided by ~IntSegCompare~ and a suitable iterator.
     
 Print the object values to stream.
 
-*/           
-     
+*/            
       friend std::ostream& operator <<(std::ostream& os, const PFace& pf);      
 /*
 14.3.4 intersection
@@ -591,7 +627,6 @@ Computes the intersection of this ~PFace~ with pf.
                                        const RationalSegment3D& intSeg); 
       IntersectionSegment createBorder(const RationalPlane3D &planeSelf,
                                        Border border);
-      
 /*
 14.4 Attributes
 

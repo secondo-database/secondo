@@ -43,14 +43,10 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 #include "PFace.h"
 #include "PointVectorSegment.h"
 #include "NumericUtil.h"
-#include "TemporalAlgebra.h"
-#include "MMRTree.h"
-#include <memory>
-#include <gmp.h>
-#include <gmpxx.h>
-#include <set>
-#include <vector>
-#include <string>
+// #include <memory>
+// #include <gmp.h>
+// #include <gmpxx.h>
+// #include <set>
 
 #ifndef SOURCEUNIT_H
 #define SOURCEUNIT_H

@@ -365,6 +365,11 @@ namespace temporalalgebra {
     double IntersectionPoint::getT()const{
       return z;    
     }// getT
+    
+    Rectangle<3> IntersectionPoint::getBoundingBox()const{
+      double array[3] = {x,y,z};
+      return Rectangle<3>(true,array,array);
+    }// getBoundingBox 
           
     std::ostream& operator <<(std::ostream& os, 
                               const IntersectionPoint& point){
@@ -390,7 +395,7 @@ namespace temporalalgebra {
 
 */  
     IntersectionSegment::IntersectionSegment(){
-      this->indicator = LEFT_IS_INNER;   
+      this->indicator = BORDER;   
     }// Konstruktor
     
     IntersectionSegment::IntersectionSegment(
@@ -401,19 +406,34 @@ namespace temporalalgebra {
     IntersectionSegment::IntersectionSegment(const IntersectionPoint& tail,
                                              const IntersectionPoint& head,
                                              const Indicator indicator){
-      this->tail = tail;
-      this->head = head;
-      this->indicator = indicator; 
+      set(tail,head,indicator);
     }// konstruktor
     
     IntersectionSegment::IntersectionSegment(const Segment3D& segment3D, 
                                              const Segment2D& segment2D,
                                              const Indicator indicator){
-      this->head = IntersectionPoint(segment3D.getHead(),segment2D.getHead());
-      this->tail = IntersectionPoint(segment3D.getTail(),segment2D.getTail());
-      this->indicator = indicator;   
+      IntersectionPoint tail(segment3D.getTail(),segment2D.getTail());
+      IntersectionPoint head(segment3D.getHead(),segment2D.getHead());
+      set(tail,head,indicator);  
     }// Konstruktor
       
+    void IntersectionSegment::set(const IntersectionPoint& tail,
+                                  const IntersectionPoint& head,
+                                  Indicator indicator){
+      if(tail.getT()<= head.getT()){
+        this->tail = tail;
+        this->head = head;
+        this->indicator = indicator; 
+      }// if
+      else {
+        this->tail = head;
+        this->head = tail;
+        if(indicator == LEFT_IS_INNER) indicator = RIGHT_IS_INNER;
+        else if (indicator == RIGHT_IS_INNER) indicator = LEFT_IS_INNER;
+        this->indicator = indicator;
+      }// else
+    }// set
+    
     void IntersectionSegment::set(const IntersectionSegment& segment){
       this->tail = segment.tail;
       this->head = segment.head;
@@ -445,12 +465,73 @@ namespace temporalalgebra {
       return NumericUtil::nearlyEqual(tail.getT(),head.getT());
     }// isOrthogonalToTAxis
     
+    bool IntersectionSegment::isOutOfRange(double t)const{
+      if(NumericUtil::lower(this->head.getT(),t)) return true;
+      return NumericUtil::nearlyEqual(this->head.getT(),t);
+    }// isOutOfRange
+    
+    bool IntersectionSegment::isLeftOf(const IntersectionSegment& intSeg)const{
+      double tail1T = this->getTail().getT();
+      double head2T = intSeg.getHead().getT();
+      double tail2T = intSeg.getTail().getT();
+      // Precondition: 
+      // this->getTail().getT() is inside the interval 
+      // [intSeg.getTail().getT(), intSeg.getHead().getT()]
+      // and this and intSeg don't intersect in their interior.
+      if(NumericUtil::lower(tail1T,tail2T) ||
+         NumericUtil::greater(tail1T,head2T)){
+        NUM_FAIL ("t must between the t value form tail und haed.");
+      }// if
+      Segment2D segment2D1 =  this->getSegment2D();
+      Segment2D segment2D2 = intSeg.getSegment2D();
+      double sideOfStart = segment2D2.whichSide(segment2D1.getTail());   
+      if(sideOfStart >   NumericUtil::eps) return true;
+      if(sideOfStart < - NumericUtil::eps) return false;
+      double sideOfEnd = segment2D2.whichSide(segment2D1.getHead());
+      return sideOfEnd > NumericUtil::eps;
+    }// bool
+    
+    Point3D IntersectionSegment::evaluate(double t) const {
+      double headT = this->getHead().getT();
+      double tailT = this->getTail().getT();
+      Point3D head3D = head.getPoint3D();
+      Point3D tail3D = tail.getPoint3D();
+      // Precondition:
+      // t is between t on tail and haed
+      if(!(NumericUtil::between(tailT, t, headT))){
+        NUM_FAIL ("t must between the t value form tail und haed.");
+      }// if
+      if(t == headT) return head3D;
+      if(t == tailT) return tail3D;
+      // Point3D pointInPlane(0.0, 0.0, t);
+      // Vector3D normalVectorOfPlane(0.0, 0.0, 1.0);
+      // Vector3D u = this->getHead().getPoint3D() - 
+      //              this->getTail().getPoint3D();
+      // Vector3D w = this->getTail().getPoint3D() - pointInPlane;
+      // double d = normalVectorOfPlane * u;
+      // double n = -normalVectorOfPlane * w;
+      //
+      // This can be simplified to:
+      RationalVector3D u = head3D.getR() - tail3D.getR();
+      mpq_class d =  mpq_class(headT) - tailT;
+      mpq_class n =  mpq_class(t) - tailT;
+      // this segment must not be parallel to plane
+      if(NumericUtil::nearlyEqual(d, 0.0)){
+        NUM_FAIL ("Intersection segment must not be parallel to plane."); 
+      }// if  
+      mpq_class s = n/d;
+      if(!(NumericUtil::between(0.0, s, 1.0))){
+        NUM_FAIL ("No point on segment found.");
+      }// if
+      // compute segment intersection point
+      return (tail3D.getR() + s * u).getD();  
+    }// evaluate    
+         
     string IntersectionSegment::toString(Indicator indicator){
       switch(indicator){
         case LEFT_IS_INNER:   return "LEFT_IS_INNER";
         case RIGHT_IS_INNER:  return "RIGHT_IS_INNER";
-        case LEFT_BORDER:     return "LEFT_BORDER";
-        case RIGHT_BORDER:    return "RIGHT_BORDER";
+        case BORDER:          return "BORDER";
         default: return "";
       }// switch
     }// toString
@@ -503,6 +584,7 @@ namespace temporalalgebra {
 
 */   
     IntSegContainer::IntSegContainer(){
+      firstTimeLevel = true;
     }// Konstrktor
     
     IntSegContainer::IntSegContainer(const IntSegContainer& container){
@@ -568,6 +650,49 @@ namespace temporalalgebra {
       set(container);
       return *this;
     }// Operator = 
+    
+    bool IntSegContainer::hasMoreSegsToInsert()const{
+      if(intSegIter == intSegs.end()) return false;
+      IntersectionPoint tail((*intSegIter)->getTail());
+      return NumericUtil::nearlyEqual(tail.getT(),t);
+    }// hasMoreSegsToInsert
+    
+    void IntSegContainer::updateTimeLevel(double _t){
+      if(firstTimeLevel){
+        intSegIter = intSegs.begin();
+        firstTimeLevel = false;
+      }// if
+      t = _t;
+      activeIter = active.begin(); 
+      while (activeIter != active.end()){
+        while (activeIter != active.end() && (*activeIter)->isOutOfRange(t)){
+          activeIter = active.erase(activeIter);
+        }// while
+        if (activeIter == active.end()) break;
+        if (hasMoreSegsToInsert()) {
+          IntersectionSegment* newSeg = *intSegIter;
+          if (newSeg->isLeftOf(**activeIter)) {
+            activeIter = active.insert(activeIter, newSeg);
+            intSegIter++;
+          }// if
+        }// if
+        activeIter++;
+      }// while
+      assert(activeIter == active.end());
+      // Add the tail, if there is one:
+      while (hasMoreSegsToInsert()) {
+        IntersectionSegment* newSeg = *intSegIter;
+        activeIter = active.insert(activeIter, newSeg);
+        intSegIter++;
+        // Iteration auf das Ende setzen
+        activeIter = active.end();
+      }// while
+      for(activeIter = active.begin();
+          activeIter != active.end();
+          activeIter++){
+        cout << **activeIter << endl;
+      }
+    }// updateTimeLevel  
 /*
 12 struct DoubleCompare
 
@@ -604,6 +729,25 @@ namespace temporalalgebra {
       }// for
       return true;
     }// Operator ==
+    
+     bool GlobalTimeValues::first(double& t){
+       // es gibt keine zwei Zeitwerte
+       if(time.size() < 2) return false;
+       timeIter = time.begin();
+       t = t2 = t1 = *timeIter;
+       return true;
+     }// first
+      
+     bool GlobalTimeValues::next(double& t){
+       if((++timeIter) != time.end()){
+         // Set the new initial timelevel:
+         t1 = t2;
+         // Set the final timelevel:
+         t = t2 = *timeIter;
+         return true;
+       }// if
+       return false;
+     }// next
 /*
 14 Class PFace
 
@@ -732,13 +876,12 @@ namespace temporalalgebra {
       if(border == LEFT){
         segment3D = Segment3D(this->a,this->c);
         segment2D = planeSelf.transform(segment3D);
-        return IntersectionSegment(segment3D,segment2D,LEFT_BORDER); 
       }// if
       else {
         segment3D = Segment3D(this->b,this->d);
         segment2D = planeSelf.transform(segment3D);
-        return IntersectionSegment(segment3D,segment2D,RIGHT_BORDER);
       }// else
+      return IntersectionSegment(segment3D,segment2D,BORDER);
     }// addBorders 
     
     void PFace::addIntSeg(const IntersectionSegment& seg){

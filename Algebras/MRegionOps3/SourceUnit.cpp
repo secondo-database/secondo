@@ -41,11 +41,18 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 */
 
 #include "SourceUnit.h"
+#include "Container.tpp"
 
 using namespace std;
 
 namespace temporalalgebra { 
   namespace mregionops3 {
+    
+        
+    template class Container<IntersectionPoint>;
+    template std::ostream& operator<<(
+      std::ostream& os, const Container<IntersectionPoint>& container); 
+   
     
     SourceUnit::SourceUnit():pFaceTree(4,8){
     }// Konstruktor

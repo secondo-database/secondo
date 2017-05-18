@@ -41,6 +41,7 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 */
 
 #include "PointVectorSegment.h"
+#include "Container.tpp"
 
 namespace temporalalgebra{
   namespace mregionops3 {          
@@ -96,6 +97,11 @@ namespace temporalalgebra{
     RationalPoint3D Point3D::getR() const{
       return RationalPoint3D(x,y,z);  
     }// get
+    
+    Rectangle<3> Point3D::getBoundingBox()const{
+      double array[3] = {x,y,z};
+      return Rectangle<3>(true,array,array);
+    }// getBoundingBox 
     
     std::ostream& operator <<(std::ostream& os, const Point3D& point){
       os << "Point3D (" << point.x;
@@ -665,9 +671,8 @@ namespace temporalalgebra{
       return (this->head == segment.head && this->tail == segment.tail);
     }// operator == 
     
-    bool Segment2D::isLeft(const Point2D& point)const{
+    double Segment2D::whichSide(const Point2D& point)const{
       // This is the fast version:
-      //
       // value = (start.x - x) * (end.y - y) - (end.x - x) * (start.y - y);
       // This is slower, but numerical more stable:
       RationalVector2D vector1 = head.getR() - 
@@ -677,8 +682,16 @@ namespace temporalalgebra{
       vector1.normalize();
       vector2.normalize();
       mpq_class value = vector1 | vector2;     
-      return NumericUtil::greater(value, 0.0); 
+      return value.get_d(); 
     }// isLeft
+    
+    bool Segment2D::isLeft(const Point2D& point)const{
+      return NumericUtil::greater(whichSide(point), 0.0); 
+    }// isLeft
+    
+    template class Container<Point3D>;
+    template std::ostream& operator<<(
+      std::ostream& os, const Container<Point3D>& container); 
   
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra
