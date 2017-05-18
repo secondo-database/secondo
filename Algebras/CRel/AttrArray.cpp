@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "GAttrArrayTC.h"
 #include "GSpatialAttrArrayTC.h"
 #include "IntsTC.h"
+#include "LinesTC.h"
 #include "LogMsg.h"
 #include "LongInt.h"
 #include "LongIntsTC.h"
@@ -35,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RealsTC.h"
 #include "SecondoSystem.h"
 #include "SmiUtils.h"
+#include "SpatialAlgebra.h"
 #include "StandardTypes.h"
 #include "StringsTC.h"
 #include "Symbols.h"
@@ -111,11 +113,12 @@ ListExpr AttrArrayTypeConstructor::GetDefaultAttrArrayType(
 {
   static map<string, ListExpr(*)()> types =
   {
-    /*{ CcInt::BasicType(), [](){ return IntsTI(false).GetTypeExpr(); } },
+    { CcInt::BasicType(), [](){ return IntsTI(false).GetTypeExpr(); } },
     { LongInt::BasicType(), [](){ return LongIntsTI(false).GetTypeExpr(); } },
     { CcReal::BasicType(), [](){ return RealsTI(false).GetTypeExpr(); } },
     { CcString::BasicType(), [](){ return StringsTI(false).GetTypeExpr(); } },
-    { FText::BasicType(), [](){ return TextsTI(false).GetTypeExpr(); } }*/
+    { FText::BasicType(), [](){ return TextsTI(false).GetTypeExpr(); } },
+    { Line::BasicType(), [](){ return LinesTI(false).GetTypeExpr(); } }
   };
 
   TypeConstructor *typeConstructor = GetTypeConstructor(attributeType);

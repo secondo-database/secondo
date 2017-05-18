@@ -39,7 +39,9 @@ namespace CRelAlgebra
   public:
     typedef A AttributeType;
 
-    static size_t GetSize(A &value)
+    static const bool isPrecise = true;
+
+    static size_t GetSize(const A &value)
     {
       if (value.IsDefined())
       {

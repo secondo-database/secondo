@@ -23,6 +23,7 @@ operator blockcount alias BLOCKCOUNT pattern _ op
 operator count alias COUNT pattern _ op
 operator consume alias CONSUME pattern _ op
 operator cconsume alias CCONSUME pattern _ op [ _ ]
+operator distance alias DISTANCE pattern op ( _ , _ )
 operator feed alias FEED pattern _ op
 operator feedproject alias FEEDPROJECT pattern _ op [list]
 operator filter alias FILTER pattern _ op [ fun ] implicit parameter streamelem type STREAMELEM !!

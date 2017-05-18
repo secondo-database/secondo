@@ -38,6 +38,8 @@ namespace CRelAlgebra
   public:
     typedef A AttributeType;
 
+    static const bool isPrecise = true;
+
     IntEntry()
     {
     }
@@ -47,7 +49,7 @@ namespace CRelAlgebra
     {
     }
 
-    IntEntry(A &value) :
+    IntEntry(const A &value) :
       value(value.IsDefined() ? (V)value.GetValue() : undefined)
     {
     }
@@ -62,7 +64,7 @@ namespace CRelAlgebra
       return this->value < value.value ? -1 : this->value > value.value ? 1 : 0;
     }
 
-    int Compare(A &value) const
+    int Compare(const A &value) const
     {
       if (value.IsDefined())
       {
@@ -84,7 +86,7 @@ namespace CRelAlgebra
       return this->value == value.value;
     }
 
-    bool Equals(A &value) const
+    bool Equals(const A &value) const
     {
       if (value.IsDefined())
       {

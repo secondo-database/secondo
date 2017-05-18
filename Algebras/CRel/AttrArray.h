@@ -245,6 +245,47 @@ namespace CRelAlgebra
     int Compare(size_t row, const AttrArrayEntry &value) const;
 
     /*
+    Compares this array's entry in ~rowA~ with ~arrayB~'s entry in ~rowB~.
+    For unprecise datatypes the comparison is performed unprecisely.
+
+    Preconditions:
+      *this array and ~arrayB~ are of same type
+      *~rowA~ < ~GetCount()~
+      *~rowB~ < ~arrayB.GetCount()~
+
+    */
+    virtual int CompareAlmost(size_t rowA, const AttrArray &arrayB,
+                              size_t rowB) const
+    {
+      return Compare(rowA, arrayB, rowB);
+    }
+
+    /*
+    Compares this array's entry in ~row~ with the passed ~Attribute~'s value.
+    For unprecise datatypes the comparison is performed unprecisely.
+
+    Preconditions:
+      *~row~ < ~GetCount()~
+      *~value~ must be of this array's attribute type
+
+    */
+    virtual int CompareAlmost(size_t row, Attribute &value) const
+    {
+      return Compare(row, value);
+    }
+
+    /*
+    Compares this array's entry in ~row~ the entry represented by ~value~.
+    For unprecise datatypes the comparison is performed unprecisely.
+
+    Preconditions:
+      *~row~ < ~GetCount()~
+      *~value~ represents the entry of a ~AttrArray~ of this array's type
+
+    */
+    int CompareAlmost(size_t row, const AttrArrayEntry &value) const;
+
+    /*
     Checks this array's entry in ~rowA~ with ~arrayB~'s entry in ~rowB~ for
     equality.
 
@@ -283,6 +324,47 @@ namespace CRelAlgebra
 
     */
     bool Equals(size_t row, const AttrArrayEntry &value) const;
+
+    /*
+    Checks this array's entry in ~rowA~ with ~arrayB~'s entry in ~rowB~ for
+    unprecise equality.
+
+    Preconditions:
+      *this array and ~arrayB~ are of same type
+      *~rowA~ < ~GetCount()~
+      *~rowB~ < ~arrayB.GetCount()~
+
+    */
+    virtual bool EqualsAlmost(size_t rowA, const AttrArray &arrayB,
+                              size_t rowB) const
+    {
+      return CompareAlmost(rowA, arrayB, rowB) == 0;
+    }
+
+    /*
+    Checks this array's entry in ~row~ with the passed ~Attribute~'s value for
+    unprecise equality.
+
+    Preconditions:
+      *~row~ < ~GetCount()~
+      *~value~ must be of this array's attribute type
+
+    */
+    virtual bool EqualsAlmost(size_t row, Attribute &value) const
+    {
+      return CompareAlmost(row, value) == 0;
+    }
+
+    /*
+    Checks this array's entry in ~row~ the entry represented by ~value~ for
+    unprecise equality.
+
+    Preconditions:
+      *~row~ < ~GetCount()~
+      *~value~ represents the entry of a ~AttrArray~ of this array's type
+
+    */
+    bool EqualsAlmost(size_t row, const AttrArrayEntry &value) const;
 
     /*
     Returns a hash value for the entry specified by ~row~
@@ -531,7 +613,6 @@ namespace CRelAlgebra
       return !m_array->Equals(m_row, value);
     }
 
-
     size_t GetHash() const
     {
       return m_array->GetHash(m_row);
@@ -578,9 +659,21 @@ namespace CRelAlgebra
     return Compare(row, *value.m_array, value.m_row);
   }
 
+  inline int AttrArray::CompareAlmost(size_t row,
+                                      const AttrArrayEntry &value) const
+  {
+    return CompareAlmost(row, *value.m_array, value.m_row);
+  }
+
   inline bool AttrArray::Equals(size_t row, const AttrArrayEntry &value) const
   {
-    return Equals(row, *value.m_array, value.m_row) == 0;
+    return Equals(row, *value.m_array, value.m_row);
+  }
+
+  inline bool AttrArray::EqualsAlmost(size_t row,
+                                     const AttrArrayEntry &value) const
+  {
+    return EqualsAlmost(row, *value.m_array, value.m_row);
   }
 
   /*

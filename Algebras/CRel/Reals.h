@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
+#include "ConstraintAlgebra.h"
 #include <functional>
 #include "SimpleAttrArray.h"
 #include "StandardTypes.h"
@@ -35,6 +36,8 @@ namespace CRelAlgebra
   public:
     typedef CcReal AttributeType;
 
+    static const bool isPrecise = false;
+
     RealEntry()
     {
     }
@@ -44,7 +47,7 @@ namespace CRelAlgebra
     {
     }
 
-    RealEntry(CcReal &value) :
+    RealEntry(const CcReal &value) :
       value(value.IsDefined() ? value.GetValue() : 0.0 / 0.0)
     {
     }
@@ -62,7 +65,7 @@ namespace CRelAlgebra
       return a != a ? b != b ? 0 : -1 : a < b ? -1 : a > b ? 1 : 0;
     }
 
-    int Compare(CcReal &value) const
+    int Compare(const CcReal &value) const
     {
       const double a = this->value;
 
@@ -76,6 +79,43 @@ namespace CRelAlgebra
       return a != a ? 0 : 1;
     }
 
+    int CompareAlmost(const RealEntry &value) const
+    {
+      const double a = this->value,
+        b = value.value;
+
+      if (a == a)
+      {
+        if (b == b)
+        {
+          return Constraint::AlmostEqual(a, b) ? 0 : a < b ? -1 : 1;
+        }
+
+        return 1;
+      }
+
+      return b != b ? 0 : -1;
+    }
+
+    int CompareAlmost(const CcReal &value) const
+    {
+      const double a = this->value;
+
+      if (a == a)
+      {
+        if (value.IsDefined())
+        {
+          const double b = value.GetValue();
+
+          return Constraint::AlmostEqual(a, b) ? 0 : a < b ? -1 : 1;
+        }
+
+        return 1;
+      }
+
+      return !value.IsDefined() ? 0 : -1;
+    }
+
     bool Equals(const RealEntry &value) const
     {
       const double a = this->value,
@@ -84,12 +124,28 @@ namespace CRelAlgebra
       return (a != a && b != b) || (a == b);
     }
 
-    bool Equals(CcReal &value) const
+    bool Equals(const CcReal &value) const
     {
       const double a = this->value;
 
       return (!value.IsDefined() && a != a) ||
               (a == value.GetValue());
+    }
+
+    bool EqualsAlmost(const RealEntry &value) const
+    {
+      const double a = this->value,
+        b = value.value;
+
+      return (a != a && b != b) || AlmostEqual(a, b);
+    }
+
+    bool EqualsAlmost(const CcReal &value) const
+    {
+      const double a = this->value;
+
+      return (!value.IsDefined() && a != a) ||
+              AlmostEqual(a, value.GetValue());
     }
 
     size_t GetHash() const

@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <stdint.h>
 #include <string>
 #include "TBlockTC.h"
+#include "TypeConstructor.h"
 #include "TypeUtils.h"
 #include <vector>
 
@@ -234,5 +235,62 @@ namespace CRelAlgebra
     }
 
     return subArgs;
+  }
+
+  inline bool IsSpatialAttrArray(TypeConstructor &constructor, int &dimension)
+  {
+    if (constructor.MemberOf(Kind::SPATIALATTRARRAY1D()))
+    {
+      dimension = 1;
+      return true;
+    }
+
+    if (constructor.MemberOf(Kind::SPATIALATTRARRAY2D()))
+    {
+      dimension = 2;
+      return true;
+    }
+
+    if (constructor.MemberOf(Kind::SPATIALATTRARRAY3D()))
+    {
+      dimension = 3;
+      return true;
+    }
+
+    if (constructor.MemberOf(Kind::SPATIALATTRARRAY4D()))
+    {
+      dimension = 4;
+      return true;
+    }
+
+    if (constructor.MemberOf(Kind::SPATIALATTRARRAY8D()))
+    {
+      dimension = 8;
+      return true;
+    }
+
+    return false;
+  }
+
+  inline bool IsSpatialAttrArray(TypeConstructor &constructor)
+  {
+    int dimension;
+
+    return IsSpatialAttrArray(constructor, dimension);
+  }
+
+  inline bool IsSpatialAttrArray(ListExpr typeExpr, int &dimension)
+  {
+    TypeConstructor *constructor = GetTypeConstructor(typeExpr);
+
+    return constructor != nullptr &&
+           IsSpatialAttrArray(*constructor, dimension);
+  }
+
+  inline bool IsSpatialAttrArray(ListExpr typeExpr)
+  {
+    int dimension;
+
+    return IsSpatialAttrArray(typeExpr, dimension);
   }
 }

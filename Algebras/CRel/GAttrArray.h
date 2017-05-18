@@ -190,6 +190,13 @@ namespace CRelAlgebra
     //AttrArray.Compare
     virtual int Compare(size_t row, Attribute &value) const;
 
+    //AttrArray.CompareAlmost
+    virtual int CompareAlmost(size_t rowA, const AttrArray &arrayB,
+                              size_t rowB) const;
+
+    //AttrArray.CompareAlmost
+    virtual int CompareAlmost(size_t row, Attribute &value) const;
+
     //AttrArray.Equals
     virtual bool Equals(size_t rowA, const AttrArray &arrayB,
                         size_t rowB) const;
@@ -491,6 +498,27 @@ namespace CRelAlgebra
     //~AttrArray.Compare~
     virtual int Compare(size_t row, Attribute &value) const;
 
+    //~AttrArray.CompareAlmost~
+    virtual int CompareAlmost(size_t rowA, const AttrArray &arrayB,
+                              size_t rowB) const;
+
+    //~AttrArray.CompareAlmost~
+    virtual int CompareAlmost(size_t row, Attribute &value) const;
+
+    //~AttrArray.Equals~
+    virtual bool Equals(size_t rowA, const AttrArray &arrayB,
+                        size_t rowB) const;
+
+    //~AttrArray.Equals~
+    virtual bool Equals(size_t row, Attribute &value) const;
+
+    //~AttrArray.EqualsAlmost~
+    virtual bool EqualsAlmost(size_t rowA, const AttrArray &arrayB,
+                              size_t rowB) const;
+
+    //~AttrArray.EqualsAlmost~
+    virtual bool EqualsAlmost(size_t row, Attribute &value) const;
+
     //~AttrArray.GetHash~
     virtual size_t GetHash(size_t row) const;
 
@@ -499,15 +527,15 @@ namespace CRelAlgebra
 
     //~SpatialAttrArray<dim>.GetBoundingBox~
     virtual Rectangle<dim> GetBoundingBox(size_t row,
-                                          const Geoid* geoid = 0) const;
+                                          const Geoid* geoid = nullptr) const;
 
     //~SpatialAttrArray<dim>.GetDistance~
     virtual double GetDistance(size_t row, const Rectangle<dim>& rect,
-                               const Geoid* geoid = 0) const;
+                               const Geoid* geoid = nullptr) const;
 
     //~SpatialAttrArray<dim>.Intersects~
     virtual bool Intersects(size_t row, const Rectangle<dim>& rect,
-                            const Geoid* geoid = 0) const;
+                            const Geoid* geoid = nullptr) const;
 
     //~SpatialAttrArray<dim>.IsEmpty~
     virtual bool IsEmpty(size_t row) const;

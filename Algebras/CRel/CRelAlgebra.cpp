@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/CConsume.h"
 #include "Operators/Compare.h"
 #include "Operators/Count.h"
+#include "Operators/Distance.h"
 #include "Operators/Feed.h"
 #include "Operators/FeedProject.h"
 #include "Operators/Filter.h"
@@ -55,6 +56,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TypeConstructors/GAttrArrayTC.h"
 #include "TypeConstructors/GSpatialAttrArrayTC.h"
 #include "TypeConstructors/IntsTC.h"
+#include "TypeConstructors/LinesTC.h"
 #include "TypeConstructors/LongIntsTC.h"
 #include "TypeConstructors/RealsTC.h"
 #include "TypeConstructors/StringsTC.h"
@@ -94,6 +96,8 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
 
       AddTypeConstructor(new IntsTC(), true);
 
+      AddTypeConstructor(new LinesTC(), true);
+
       AddTypeConstructor(new LongIntsTC(), true);
 
       AddTypeConstructor(new RealsTC(), true);
@@ -130,6 +134,8 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
       AddOperator(new Compare<CompareMode::Greater>(), true);
 
       AddOperator(new Count(), true);
+
+      AddOperator(new Distance(), true);
 
       AddOperator(new Feed(), true);
 
@@ -171,6 +177,7 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
   display.Insert(GSpatialAttrArrayTC<4>::name, new DisplayAttrArray());
   display.Insert(GSpatialAttrArrayTC<8>::name, new DisplayAttrArray());
   display.Insert(IntsTC::name, new DisplayAttrArray());
+  display.Insert(LinesTC::name, new DisplayAttrArray());
   display.Insert(LongIntsTC::name, new DisplayAttrArray());
   display.Insert(RealsTC::name, new DisplayAttrArray());
   display.Insert(StringsTC::name, new DisplayAttrArray());

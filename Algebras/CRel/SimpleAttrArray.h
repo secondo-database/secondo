@@ -209,26 +209,60 @@ namespace CRelAlgebra
 
     virtual int Compare(size_t rowA, const AttrArray &arrayB, size_t rowB) const
     {
-      const T &value = ((SimpleFSAttrArray<T>&)arrayB).m_values[rowB];
+      /*const T &value = ((SimpleFSAttrArray<T>&)arrayB).m_values[rowB];
 
-      return m_values[rowA].Compare(value);
+      return m_values[rowA].Compare(value);*/
+
+      return CompareAlmost(rowA, arrayB, rowB);
     }
 
     virtual int Compare(size_t row, Attribute &value) const
     {
-      return m_values[row].Compare((AttributeType&)value);
+      //return m_values[row].Compare((AttributeType&)value);
+
+      return CompareAlmost(row, value);
+    }
+
+    virtual int CompareAlmost(size_t rowA, const AttrArray &arrayB,
+                              size_t rowB) const
+    {
+      const T &value = ((const SimpleFSAttrArray<T>&)arrayB).GetAt(rowB);
+
+      return TCompareAlmost(GetAt(rowA), value);
+    }
+
+    virtual int CompareAlmost(size_t row, Attribute &value) const
+    {
+      return TCompareAlmost(GetAt(row), (const AttributeType&)value);
     }
 
     virtual bool Equals(size_t rowA, const AttrArray &arrayB, size_t rowB) const
     {
-      const T &value = ((SimpleFSAttrArray<T>&)arrayB).m_values[rowB];
+      /*const T &value = ((SimpleFSAttrArray<T>&)arrayB).m_values[rowB];
 
-      return m_values[rowA].Equals(value);
+      return m_values[rowA].Equals(value);*/
+
+      return EqualsAlmost(rowA, arrayB, rowB);
     }
 
     virtual bool Equals(size_t row, Attribute &value) const
     {
-      return m_values[row].Equals((AttributeType&)value);
+      //return m_values[row].Equals((AttributeType&)value);
+
+      return EqualsAlmost(row, value);
+    }
+
+    virtual bool EqualsAlmost(size_t rowA, const AttrArray &arrayB,
+                              size_t rowB) const
+    {
+      const T &value = ((const SimpleFSAttrArray<T>&)arrayB).GetAt(rowB);
+
+      return TEqualsAlmost(GetAt(rowA), value);
+    }
+
+    virtual bool EqualsAlmost(size_t row, Attribute &value) const
+    {
+      return TEqualsAlmost(GetAt(row), (const AttributeType&)value);
     }
 
     virtual size_t GetHash(size_t row) const
@@ -268,6 +302,34 @@ namespace CRelAlgebra
     T *m_values;
 
     SimpleFSAttrArray(const SimpleFSAttrArray &instance) = delete;
+
+    template <class V>
+    static int TCompareAlmost(const T &entry, V &value,
+                              char(*)[!T::isPrecise] = 0)
+    {
+      return entry.CompareAlmost(value);
+    }
+
+    template <class V>
+    static int TCompareAlmost(const T &entry, V &value,
+                              char(*)[T::isPrecise] = 0)
+    {
+      return entry.Compare(value);
+    }
+
+    template <class V>
+    static bool TEqualsAlmost(const T &entry, V &value,
+                              char(*)[!T::isPrecise] = 0)
+    {
+      return entry.EqualsAlmost(value);
+    }
+
+    template <class V>
+    static bool TEqualsAlmost(const T &entry, V &value,
+                              char(*)[T::isPrecise] = 0)
+    {
+      return entry.Equals(value);
+    }
   };
 
   /*
@@ -487,26 +549,60 @@ namespace CRelAlgebra
 
     virtual int Compare(size_t rowA, const AttrArray &arrayB, size_t rowB) const
     {
-      const T &value = ((const SimpleVSAttrArray<T>&)arrayB).GetAt(rowB);
+      /*const T &value = ((const SimpleVSAttrArray<T>&)arrayB).GetAt(rowB);
 
-      return GetAt(rowA).Compare(value);
+      return GetAt(rowA).Compare(value);*/
+
+      return CompareAlmost(rowA, arrayB, rowB);
     }
 
     virtual int Compare(size_t row, Attribute &value) const
     {
-      return GetAt(row).Compare((AttributeType&)value);
+      //return GetAt(row).Compare((AttributeType&)value);
+
+      return CompareAlmost(row, value);
+    }
+
+    virtual int CompareAlmost(size_t rowA, const AttrArray &arrayB,
+                              size_t rowB) const
+    {
+      const T &value = ((const SimpleVSAttrArray<T>&)arrayB).GetAt(rowB);
+
+      return TCompareAlmost(GetAt(rowA), value);
+    }
+
+    virtual int CompareAlmost(size_t row, Attribute &value) const
+    {
+      return TCompareAlmost(GetAt(row), (const AttributeType&)value);
     }
 
     virtual bool Equals(size_t rowA, const AttrArray &arrayB, size_t rowB) const
     {
-      const T &value = ((const SimpleVSAttrArray<T>&)arrayB).GetAt(rowB);
+      /*const T &value = ((const SimpleVSAttrArray<T>&)arrayB).GetAt(rowB);
 
-      return GetAt(rowA).Equals(value);
+      return GetAt(rowA).Equals(value);*/
+
+      return EqualsAlmost(rowA, arrayB, rowB);
     }
 
     virtual bool Equals(size_t row, Attribute &value) const
     {
-      return GetAt(row).Equals((AttributeType&)value);
+      //return GetAt(row).Equals((AttributeType&)value);
+
+      return EqualsAlmost(row, value);
+    }
+
+    virtual bool EqualsAlmost(size_t rowA, const AttrArray &arrayB,
+                              size_t rowB) const
+    {
+      const T &value = ((const SimpleVSAttrArray<T>&)arrayB).GetAt(rowB);
+
+      return TEqualsAlmost(GetAt(rowA), value);
+    }
+
+    virtual bool EqualsAlmost(size_t row, Attribute &value) const
+    {
+      return TEqualsAlmost(GetAt(row), (const AttributeType&)value);
     }
 
     virtual size_t GetHash(size_t row) const
@@ -554,6 +650,34 @@ namespace CRelAlgebra
     }
 
     SimpleVSAttrArray(const SimpleVSAttrArray &instance) = delete;
+
+    template <class V>
+    static int TCompareAlmost(const T &entry, V &value,
+                              char(*)[!T::isPrecise] = 0)
+    {
+      return entry.CompareAlmost(value);
+    }
+
+    template <class V>
+    static int TCompareAlmost(const T &entry, V &value,
+                              char(*)[T::isPrecise] = 0)
+    {
+      return entry.Compare(value);
+    }
+
+    template <class V>
+    static bool TEqualsAlmost(const T &entry, V &value,
+                              char(*)[!T::isPrecise] = 0)
+    {
+      return entry.EqualsAlmost(value);
+    }
+
+    template <class V>
+    static bool TEqualsAlmost(const T &entry, V &value,
+                              char(*)[T::isPrecise] = 0)
+    {
+      return entry.Equals(value);
+    }
 
     SimpleVSAttrArrayEntry GetEntry(size_t row) const
     {
@@ -641,18 +765,18 @@ namespace CRelAlgebra
     }
 
     SimpleSpatialVSAttrArray(Reader &source) :
-      SimpleVSAttrArray<T>(source)
+      m_array(source)
     {
     }
 
     SimpleSpatialVSAttrArray(Reader &source, size_t rowCount) :
-      SimpleVSAttrArray<T>(source, rowCount)
+      m_array(source, rowCount)
     {
     }
 
     SimpleSpatialVSAttrArray(const SimpleSpatialVSAttrArray &array,
                              const SharedArray<const size_t> &filter) :
-      SimpleVSAttrArray<T>(array.m_array, filter)
+      m_array(array.m_array, filter)
     {
     }
 
@@ -692,7 +816,7 @@ namespace CRelAlgebra
 
     virtual void Append(const AttrArray &array, size_t row)
     {
-      m_array.Append(array, row);
+      m_array.Append(((const SimpleSpatialVSAttrArray<T>&)array).m_array, row);
     }
 
     virtual void Append(Attribute &value)
@@ -756,18 +880,18 @@ namespace CRelAlgebra
     }
 
     virtual double GetDistance(size_t row, const Rectangle<T::dimension>& rect,
-                               const Geoid *geoId = 0)
+                               const Geoid *geoId = nullptr) const
     {
       return m_array.GetAt(row).GetDistance(rect, geoId);
     }
 
     virtual bool Intersects(size_t row, const Rectangle<T::dimension>& rect,
-                            const Geoid *geoId = 0)
+                            const Geoid *geoId = nullptr) const
     {
       return m_array.GetAt(row).Intersects(rect, geoId);
     }
 
-    virtual bool IsEmpty(size_t row)
+    virtual bool IsEmpty(size_t row) const
     {
       return m_array.GetAt(row).IsEmpty();
     }

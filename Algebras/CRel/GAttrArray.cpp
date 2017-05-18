@@ -391,8 +391,7 @@ bool GAttrArray::IsDefined(size_t row) const
   return GetAt(row).IsDefined();
 }
 
-int GAttrArray::Compare(size_t rowA, const AttrArray &arrayB,
-                              size_t rowB) const
+int GAttrArray::Compare(size_t rowA, const AttrArray &arrayB, size_t rowB) const
 {
   return GetAt(rowA).Compare(&((GAttrArray&)arrayB).GetAt(rowB));
 }
@@ -400,6 +399,17 @@ int GAttrArray::Compare(size_t rowA, const AttrArray &arrayB,
 int GAttrArray::Compare(size_t row, Attribute &value) const
 {
   return GetAt(row).Compare(&value);
+}
+
+int GAttrArray::CompareAlmost(size_t rowA, const AttrArray &arrayB,
+                              size_t rowB) const
+{
+  return GetAt(rowA).CompareAlmost(&((GAttrArray&)arrayB).GetAt(rowB));
+}
+
+int GAttrArray::CompareAlmost(size_t row, Attribute &value) const
+{
+  return GetAt(row).CompareAlmost(&value);
 }
 
 bool GAttrArray::Equals(size_t rowA, const AttrArray &arrayB,
@@ -578,6 +588,47 @@ template<int dim>
 int GSpatialAttrArray<dim>::Compare(size_t row, Attribute &value) const
 {
   return m_array.Compare(row, value);
+}
+
+template<int dim>
+int GSpatialAttrArray<dim>::CompareAlmost(size_t rowA, const AttrArray &arrayB,
+                                          size_t rowB) const
+{
+  return m_array.CompareAlmost(rowA,
+                               ((GSpatialAttrArray<dim>&)arrayB).m_array, rowB);
+}
+
+template<int dim>
+int GSpatialAttrArray<dim>::CompareAlmost(size_t row, Attribute &value) const
+{
+  return m_array.CompareAlmost(row, value);
+}
+
+template<int dim>
+bool GSpatialAttrArray<dim>::Equals(size_t rowA, const AttrArray &arrayB,
+                                   size_t rowB) const
+{
+  return m_array.Equals(rowA, ((GSpatialAttrArray<dim>&)arrayB).m_array, rowB);
+}
+
+template<int dim>
+bool GSpatialAttrArray<dim>::Equals(size_t row, Attribute &value) const
+{
+  return m_array.Equals(row, value);
+}
+
+template<int dim>
+bool GSpatialAttrArray<dim>::EqualsAlmost(size_t rowA, const AttrArray &arrayB,
+                                          size_t rowB) const
+{
+  return m_array.EqualsAlmost(rowA,
+                              ((GSpatialAttrArray<dim>&)arrayB).m_array, rowB);
+}
+
+template<int dim>
+bool GSpatialAttrArray<dim>::EqualsAlmost(size_t row, Attribute &value) const
+{
+  return m_array.EqualsAlmost(row, value);
 }
 
 template<int dim>

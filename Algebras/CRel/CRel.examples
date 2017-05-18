@@ -1,6 +1,12 @@
 Database : creltest
 Restore  : Yes
 
+Operator : distance
+Number   : 0
+Signature: tblock x (map tblock longints) x (map tblock longints) -> longints
+Example  : query cplz feed cfilter[. cand[fun (b0: ANY) attr(b0, PLZ) > 10000, fun (b1: ANY) attr(b1, PLZ) < 20000], [], 0.0, 0] count
+Result   : 4975
+
 Operator : cand
 Number   : 0
 Signature: tblock x (map tblock longints) x (map tblock longints) -> longints

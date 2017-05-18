@@ -88,7 +88,7 @@ namespace CRelAlgebra
 
     */
     virtual double GetDistance(size_t row, const Rectangle<dim>& rect,
-                               const Geoid *geoId = 0) const = 0;
+                               const Geoid *geoId = nullptr) const = 0;
 
     /*
     Checks if the entry in the specified ~row~ intersects with ~rect~.
@@ -97,7 +97,7 @@ namespace CRelAlgebra
 
     */
     virtual bool Intersects(size_t row, const Rectangle<dim>& rect,
-                            const Geoid *geoId = 0) const = 0;
+                            const Geoid *geoId = nullptr) const = 0;
 
     /*
     Checks if the entry in the specified ~row~ is empty.
@@ -187,19 +187,21 @@ namespace CRelAlgebra
       return (const SpatialAttrArray<dim>*)m_array;
     }
 
-    Rectangle<dim> GetBoundingBox(const Geoid* geoid = 0) const
+    Rectangle<dim> GetBoundingBox(const Geoid* geoid = nullptr) const
     {
       return ((const SpatialAttrArray<dim>*)m_array)->GetBoundingBox(m_row,
                                                                      geoid);
     }
 
-    double GetDistance(const Rectangle<dim>& rect, const Geoid* geoid = 0) const
+    double GetDistance(const Rectangle<dim>& rect,
+                       const Geoid* geoid = nullptr) const
     {
       return ((const SpatialAttrArray<dim>*)m_array)->GetDistance(m_row, rect,
                                                                   geoid);
     }
 
-    bool Intersects(const Rectangle<dim>& rect, const Geoid* geoid = 0) const
+    bool Intersects(const Rectangle<dim>& rect,
+                    const Geoid* geoid = nullptr) const
     {
       return ((const SpatialAttrArray<dim>*)m_array)->Intersects(m_row, rect,
                                                                 geoid);
