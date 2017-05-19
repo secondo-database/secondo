@@ -209,8 +209,8 @@ namespace CRelAlgebra
       {
         const SimplePoint &dpA = ldp ? lp : rp,
           spA = ldp ? rp : lp,
-          dpB = other.ldp ? lp : rp,
-          spB = other.ldp ? rp : lp;
+          dpB = other.ldp ? other.lp : other.rp,
+          spB = other.ldp ? other.rp : other.lp;
 
         if (dpA < dpB)
         {

@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include <cstddef>
+#include <cstring>
 
 namespace CRelAlgebra
 {
@@ -176,10 +177,6 @@ namespace CRelAlgebra
   class SharedArray
   {
   public:
-    /*
-
-
-    */
     SharedArray() :
       m_instance(nullptr),
       m_capacity(0),
@@ -192,6 +189,17 @@ namespace CRelAlgebra
       m_capacity(capacity),
       m_refCount(nullptr)
     {
+    };
+
+    SharedArray(size_t capacity, T *source, size_t count) :
+      m_instance(capacity > 0 ? new T[capacity] : nullptr),
+      m_capacity(capacity),
+      m_refCount(nullptr)
+    {
+      if (count > 0)
+      {
+        memcpy(m_instance, source, count * sizeof(T));
+      }
     };
 
     SharedArray(T *instance, size_t capacity) :
