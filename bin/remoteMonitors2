@@ -3,7 +3,7 @@
 # Maintenance:
 # * Recfactored from original version (2016-07-04) on 2017-04-07 by Sebastian J.
 #   Bronner <sebastian@bronner.name>.
-# * <log further changes>
+# * Modified: 2017-05-19 by Sebastian J. Bronner
 
 DEFAULT_BINDIR='$HOME/secondo/bin'
 
@@ -122,6 +122,7 @@ then
 fi
 pid=\$(cat "\$tmpfile")
 if ps --no-headers -p \$pid > /dev/null
+then
   echo "running with pid \$pid$(test "$port" || echo " on port \$port")."
 else
   echo "NOT RUNNING! (pid \$pid$(test "$port" || echo ", port \$port")), removing marker."
@@ -169,7 +170,7 @@ function updateLine {
   # Run the update.
   ssh "$userhost" 'bash -s' << EOF
 set -e
-. \$HOME/.bashrc
+. \$HOME/.secondorc
 cd $remotedir
 cvs update -PdA
 make
