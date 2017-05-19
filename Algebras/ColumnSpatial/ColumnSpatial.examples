@@ -3,21 +3,15 @@ Restore  : YES
 
 Operator : inside
 Number   : 1
-Signature: point x aregion -> ints
-Example  : query p1 inside cr1
-Result   : (1 3 6 10)
+Signature: apoint x aregion -> longints
+Example  : query cp1 inside cr1
+Result   : (longints(1))
 
 Operator : inside
 Number   : 2
-Signature: line x aregion -> ints
-Example  : query l1 inside cr1
-Result   : (2 3)
-
-Operator : inside
-Number   : 3
-Signature: region x aregion -> ints
-Example  : query r1 inside cr1
-Result   : (2 4 6)
+Signature: aline x aregion -> longints
+Example  : query cl1 inside cr1
+Result   : (longints(1))
 
 Operator : mp
 Number   : 1
@@ -29,7 +23,7 @@ Operator : mp
 Number   : 2
 Signature: (stream(tuple) attribute) -> aline
 Example  : query l1 feed mp[Verlauf]
-Result   : (aline((3.0 4.0 7.0 8.0)(6.0 10.0 7.0 8.0)))
+Result   : (aline(((3.0 4.0 7.0 8.0)(6.0 10.0 7.0 8.0))))
 
 Operator : mp
 Number   : 3
@@ -54,4 +48,3 @@ Number   : 6
 Signature: (aregion int) -> region 
 Example  : query cr1 mp[0]
 Result   : (region())
-

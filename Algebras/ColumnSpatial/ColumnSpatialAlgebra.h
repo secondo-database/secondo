@@ -57,12 +57,10 @@ Also the operators on these types are defined.
 #include "../../include/TypeConstructor.h"  // constructor for Secondo Types
 #include "../Spatial/SpatialAlgebra.h"      // spatial types and operators
 #include "../Stream/Stream.h"               // wrapper for secondo streams
-// #include "../CRel/TypeConstructors/LongIntsTI.h"
-// #include "../CRel/LongInts.h"                 // type for id result list
-// #include "../CRel/AttrArray.h"              // column oriented relations
+#include "../CRel/Ints.h"                   // type for id result list
 
 using std::string;
-// using namespace CRelAlgebra;
+using namespace CRelAlgebra;
 
 namespace col {
 
@@ -102,6 +100,7 @@ long allocBytes[20] = {     0,   //   initial value
                    8589918208,   //   8 GB
                   16106110976,   //  15 GB
                   17179852800};  //  16 GB maximum, more memory = error
+
 /*
 3.2 Class ColPoint for column-oriented representation of points
 
@@ -112,6 +111,7 @@ All points are stored dense and ascending in an array.
 
 */
 class ColPoint {
+
 /*
 In the private section the internal data structure is defined:
 The array ~array~ contains all points. It's size in bytes is set in both the
@@ -121,6 +121,7 @@ points and in the ~Open~ function by reading it from disc.
 
 */
  private:
+
   typedef struct {
     double x;
     double y;
@@ -137,12 +138,29 @@ and contains all static functions for the neccessary class operations.
  public:
 
 /*
-  constructors and destructor
+  Standard constructor
 
 */
   ColPoint();
+
+/*
+This is the main constructor. it initializes the internal point array
+and the counter given as parameters.
+
+*/
   ColPoint(sPoint* newArray, long newCount);
+
+/*
+Another constructor with minimum initialized array size and counters set
+to 0. It is need for the map operator.
+
+*/
   ColPoint(int min);
+
+/*
+Destructor
+
+*/
   ~ColPoint();
 
 /*
@@ -158,7 +176,7 @@ and contains all static functions for the neccessary class operations.
   static const bool checkType(const ListExpr list);
 
 /*
-description of the Secondo type ~apoint~ for the user
+Description of the Secondo type ~apoint~ for the user
 
 */
   static ListExpr Property();
@@ -170,13 +188,13 @@ description of the Secondo type ~apoint~ for the user
   long getCount();
 
 /*
-returns the x coordinate of the indexed point entry
+~getX~ returns the x coordinate of the indexed point entry
 
 */
   double getX(long index);
 
 /*
-returns the y coordinate of the indexed point entry
+~getY~ returns the y coordinate of the indexed point entry
 
 */
   double getY(long index);
@@ -265,7 +283,9 @@ In contrast to ~Delete~, the disc part of the object is untouched
   static void Close(const ListExpr typeInfo, Word& w);
 
 /*
-The ~Clone~ function creates a depth copy (inclusive disc parts) of an object.
+~Clone~ makes a copy of a ColPoint object. Therefore it allocates memory
+for the clone object and scans the array of the source object and copies
+each entry to the clone object.
 
 */
   static Word Clone(const ListExpr typeInfo, const Word& w);
@@ -318,7 +338,8 @@ array contains the indizes of the first segment of each line.
 
 */
 class ColLine {
- private:
+
+private:
   typedef struct {
     double x1;
     double y1;
@@ -329,14 +350,22 @@ class ColLine {
     long index;
   } sLine;
 
-  sLine* aLine;        // contains all lines. In and Open functions set size
-  sSegment* aSegment;  // array of segments
+/*
+Definition of the line- and segment arrays and their counters.
+The real used memory is allocated in the ~In~, ~append~ and ~Clone~ functions.
 
-  long countLine;      // amount of lines
-  long countSegment;   // amount of segments
+*/
+  sLine* aLine;
+  sSegment* aSegment;
 
-  // indices in the ~allocBytes~ - array to mark which amount of memory
-  // is allocated next.
+  long countLine;
+  long countSegment;
+
+/*
+The following two variables are indices for the array ~allocBytes~.
+They mark which amount of memory is allocated so far (see before).
+
+*/
   long stepLine;
   long stepSegment;
 
@@ -344,53 +373,70 @@ class ColLine {
  public:
 
 /*
-constructors and destructors
+  Standard constructor
 
 */
   ColLine();
+
+/*
+Main constructor initializes internal arrays ~aLine~ and ~aSegment~ as well
+as their counters.
+
+*/
   ColLine(sLine* newLine, sSegment* newSegment,
           long newCountLine, long newCountSegment);
+/*
+Another constructor with minimum initialized array size and counters set
+to 0. It is need for the map operator.
+
+*/
   ColLine(int min);
+
+/*
+Destructor
+
+*/
   ~ColLine();
 
 /*
-returns the corresponding basic type
+Returns the corresponding basic type:
 
 */
   static const string BasicType();
 
 /*
-compares the type of the given object with class type
+Compares the type of the given object with class type:
 
 */
   static const bool checkType(const ListExpr list);
 
 /*
-description of the Secondo type ~aline~ for the user
+Description of the Secondo type ~aline~ for the user:
 
 */
   static ListExpr Property();
 
 /*
-returns the number of elements in the line array
+returns the number of elements in the line array:
 
 */
   long getCount();
 
 /*
-returns the total number of segments in the segments array
+Returns the total number of segments in the segments array:
 
 */
   long getSegments();
 
 /*
-returns the number of segmets for a single line
+Returns the number of segmets for a single line:
 
 */
   long getSegments(long index);
 
 /*
-Extracts a line from the aline and stores it in a standard spatial type,
+The function ~createLine~ extracts a line from the aline and
+stores it in a standard spatial type,
 which is returned as parameter. Fills the given spatial type line with
 the data found in the column spatial type aline at the given index.
 
@@ -398,7 +444,7 @@ the data found in the column spatial type aline at the given index.
   bool createLine(Line* line, long index);
 
 /*
-This function appends a line datatype of the spatial algebra
+The ~append~ function appends a line datatype of the spatial algebra
 to an attrarray of lines of the column spatial algebra.
 It needs the source ~line~ as input parameter.
 
@@ -407,32 +453,34 @@ It needs the source ~line~ as input parameter.
 
 /*
 The ~finalize~ function appends a terminator to each array of the aregion type.
+The result is fully generated ColLine object that can be used further on.
 
 */
   void finalize();
 
 /*
 The auxiliary function ~showArrays~ prints the contents of the internal arrays,
-there sizes and counters to the screen. It is useful during the debugging phase.
+there sizes and counters to the screen.
+It is useful during the debugging phase.
 
 */
   void showArrays(string title);
 
 /*
-scans a nested-list and converts it into an array of lines.
+Scans a nested-list and converts it into an array of lines:
 
 */
   static Word In(const ListExpr typeInfo, ListExpr instance,
                  const int errorPos, ListExpr &errorInfo, bool &correct);
 
 /*
-converts a line array into a nested list format
+Converts a line array into a nested list format:
 
 */
   static ListExpr Out(ListExpr typeInfo, Word value);
 
 /*
-the standard funtions for the line object
+the standard funtions for the ~ColPoint~ object (analogical with ~ColPoint~)
 
 */
   static Word Create(const ListExpr typeInfo);
@@ -589,28 +637,44 @@ TODO: calculate step - variables by evaluating the counters!
 /*
 3.6 constructors and destructor
 
+Standard constructor doing nothing:
+
 */
-  ColRegion();  // standard constructor doing nothing
-  // non-standard constructor initializing the object with parameters
-  ColRegion(sRegion* newTuple, sCycle* newCycle, sPoint* newPoint,
-            long newCountTuple, long newCountCycle, long newCountPoint);
-  ColRegion(int min);
-  ~ColRegion();   // destructor - free allocated menory
+  ColRegion();
 
 /*
-returns the corresponding basic type
+Non-standard constructor initializing the object with given parameters:
+
+*/
+  ColRegion(sRegion* newTuple, sCycle* newCycle, sPoint* newPoint,
+            long newCountTuple, long newCountCycle, long newCountPoint);
+
+/*
+Non-standard constructor initializing the object with minimum data:
+
+*/
+  ColRegion(int min);
+
+/*
+Destructor frees allocated memory:
+
+*/
+  ~ColRegion();
+
+/*
+Returns the corresponding basic type "aregion":
 
 */
   static const string BasicType();
 
 /*
-compares the type of the given object with class type
+Compares the type of the given object with basic type:
 
 */
   static const bool checkType(const ListExpr list);
 
 /*
-description of the Secondo type for the user
+Description of the Secondo type for the user:
 
 */
   static ListExpr Property();
@@ -622,10 +686,23 @@ In this section there are defined some functions which can only be used
 in a special context, e. g. the append- and finalize functions make only sense
 if used together with a constructor.
 
-The ~getCount~ function returns the number of regions within the region array.
+The ~getCount~ function returns the number of regions within the region array
+without the terminator.
 
 */
   long getCount();
+
+/*
+Returns the number of cycles with terminator:
+
+*/
+  long getCountCycles();
+
+/*
+Returns the number of points with terminator:
+
+*/
+  long getCountPoints();
 
 /*
 ~getCountPoints~ returns the number of points of a single region.
@@ -692,11 +769,17 @@ is appended to an attribute array of integer. The attribute array is returned.
   inline bool intersects();
 
 /*
-
-
+The function ~pointsInside~ needs a ~ColPoint~ object as parameter and checks
+for each point whether it is within one of the regions of the actual
+~ColRegion~ object. The result is a list of type ~longints~.
+This function can handle a huge amount of points and regions, so if it is
+only needed to compare points to a single region, the array aRegion should
+contain only this special region.
 
 */
-  void pointsInside(ColPoint* cPoint);
+   LongInts* pointsInside(ColPoint* cPoint);
+
+   LongInts* linesInside(ColLine* cLine);
 
 /*
 The ~In~ function scans a nested-list (parameter ~instance~) and converts it
@@ -830,22 +913,24 @@ ListExpr mapTM(ListExpr args);
 /*
 4.2 Value mapping functions
 
-~inside~
-This operator checks for each element of an array of points, lines or regions
-whether they are inside a given region and returns an AttrArray with the
-indizes of all matching points, lines or regions.
+The ~inside~ operators check for each element
+of either ~apoint~, ~aline~ or ~aregion~
+whether they are inside a given ~region~
+and returns a ~longints~ containing the
+indices of of all matching points, lines or regions.
 
 */
-int insidePointVM (Word* args, Word& result, int message,
-                   Word& local, Supplier s);
-int insideLineVM (Word* args, Word& result, int message,
-                  Word& local, Supplier s);
-int insideRegionVM (Word* args, Word& result, int message,
+int pointsInsideVM (Word* args, Word& result, int message,
                     Word& local, Supplier s);
+int linesInsideVM (Word* args, Word& result, int message,
+                   Word& local, Supplier s);
+
+// not implemented yet
+int regionsInsideVM (Word* args, Word& result, int message,
+                     Word& local, Supplier s);
 
 /*
-~map~
-Thes following three operators convert streams of the standard types points,
+The ~map~ operators convert streams of the standard types points,
 lines or regions into their corresponding column-oriented types apoint,
 aline or aregion respectively and vice versa.
 
@@ -880,7 +965,7 @@ int mapColRegionVM (Word* args, Word& result, int message,
 4.3 Value Mapping Array and Selection Function
 
 */
-ValueMapping insideVM[] = {insidePointVM, insideLineVM, insideRegionVM};
+ValueMapping insideVM[] = {pointsInsideVM, linesInsideVM, regionsInsideVM};
 ValueMapping mapVM[] = {mapPointVM, mapLineVM, mapRegionVM,
                         mapColPointVM, mapColLineVM, mapColRegionVM};
 
