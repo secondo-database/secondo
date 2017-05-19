@@ -766,7 +766,8 @@ inside the region. if the check is true, the index of this element
 is appended to an attribute array of integer. The attribute array is returned.
 
 */
-  inline bool intersects();
+  inline bool intersects(double x1, double y1, double x2, double y2,
+                         double x3, double y3, double x4, double y4);
 
 /*
 The function ~pointsInside~ needs a ~ColPoint~ object as parameter and checks

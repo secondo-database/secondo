@@ -5,7 +5,7 @@ Operator : inside
 Number   : 1
 Signature: apoint x aregion -> longints
 Example  : query cp1 inside cr1
-Result   : (longints(1))
+Result   : (longints(1 2 3))
 
 Operator : inside
 Number   : 2
