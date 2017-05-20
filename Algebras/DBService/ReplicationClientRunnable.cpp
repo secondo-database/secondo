@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ReplicationClient.hpp"
 #include "Algebras/DBService/ReplicationClientRunnable.hpp"
+#include "Algebras/DBService/ReplicationUtils.hpp"
 
 using namespace std;
 
@@ -37,11 +38,9 @@ namespace DBService {
 ReplicationClientRunnable::ReplicationClientRunnable(
         string targetHost,
         int targetTransferPort,
-        string remoteFileName,
         string databaseName,
         string relationName)
 : targetHost(targetHost), targetTransferPort(targetTransferPort),
-  remoteFileName(remoteFileName),
   databaseName(databaseName), relationName(relationName),
   runner(0)
 {
@@ -65,7 +64,6 @@ void ReplicationClientRunnable::run()
             this,
             targetHost,
             targetTransferPort,
-            remoteFileName,
             databaseName,
             relationName));
 }
@@ -73,14 +71,24 @@ void ReplicationClientRunnable::run()
 void ReplicationClientRunnable::create(
         string& targetHost,
         int targetTransferPort,
-        string& remoteFileName,
         string& databaseName,
         string& relationName)
 {
     print("ReplicationClientRunnable::create");
+
+    const string fileNameDBS =
+            ReplicationUtils::getFileNameOnDBServiceWorker(
+                    databaseName,
+                    relationName);
+    const string fileNameOrigin =
+            ReplicationUtils::getFileName(
+                    databaseName,
+                    relationName);
+
     ReplicationClient client(targetHost,
                              targetTransferPort,
-                             remoteFileName,
+                             fileNameDBS,
+                             fileNameOrigin,
                              databaseName,
                              relationName);
     client.start();

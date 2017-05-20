@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "StringUtils.h"
 
+#include "Algebras/DBService/CommunicationClientRunnable.hpp"
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationServer.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
@@ -130,36 +131,55 @@ bool CommunicationServer::handleTriggerReplicationRequest(
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
 
-    CommunicationUtils::receiveLines(io, 3, receivedLines);
+    CommunicationUtils::receiveLines(io, 4, receivedLines);
     string host = receivedLines.front();
     receivedLines.pop();
     string port = receivedLines.front();
     receivedLines.pop();
     string disk = receivedLines.front();
     receivedLines.pop();
+    string transferPort = receivedLines.front();
+    receivedLines.pop();
 
     traceWriter->write("host", host);
     traceWriter->write("port", port);
     traceWriter->write("disk", disk);
+    traceWriter->write("transferPort", transferPort);
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
-    dbService->storeRelationInfo(databaseName,
+    dbService->determineReplicaLocations(databaseName,
                                  relationName,
                                  host,
                                  port,
                                  disk);
-    vector<ConnectionID> connections;
+    vector<ConnectionID> locations;
     dbService->getReplicaLocations(RelationInfo::getIdentifier(
             databaseName, relationName),
-            connections);
+            locations);
 
     queue<string> sendBuffer;
     sendBuffer.push(CommunicationProtocol::ReplicaLocation());
-    sendBuffer.push(stringutils::int2str(connections.size()));
+    sendBuffer.push(stringutils::int2str(locations.size()));
+    CommunicationUtils::sendBatch(io, sendBuffer);
 
     // TODO react on cancel as soon as it is sent by client
+    dbService->persistReplicaLocations(databaseName, relationName);
 
-    // TODO trigger replication on worker node
+    for(vector<ConnectionID>::const_iterator it = locations.begin();
+            it != locations.end(); it++)
+    {
+        LocationInfo locationInfo = dbService->getLocation(*it);
+        CommunicationClientRunnable clientToDBServiceWorker(
+                host, /*original location*/
+                atoi(transferPort.c_str()), /*original location*/
+                locationInfo.getHost(), /*DBService*/
+                atoi(locationInfo.getCommPort().c_str()), /*DBService*/
+                databaseName,
+                relationName);
+
+        clientToDBServiceWorker.run();
+    }
+
 
 //    traceWriter->write("number of locations: ", connections.size());
 //
@@ -203,6 +223,7 @@ bool CommunicationServer::handleTriggerFileTransferRequest(std::iostream& io)
     traceWriter->write("received replication details");
     traceWriter->write("host", host);
     traceWriter->write("port", port);
+    // TODO remove filename, is determined automatically
     traceWriter->write("fileName", fileName);
     traceWriter->write("databaseName", databaseName);
     traceWriter->write("relationName", relationName);
@@ -210,7 +231,6 @@ bool CommunicationServer::handleTriggerFileTransferRequest(std::iostream& io)
     ReplicationClientRunnable replicationClient(
             host,
             atoi(port.c_str()),
-            fileName,
             databaseName,
             relationName);
     replicationClient.run();

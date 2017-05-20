@@ -138,6 +138,10 @@ DBSERVICE_INCLUDE_DIRS += -I $(ARRAY_DIR) -I $(STANDARDC_DIR) $(DEFAULTCCFLAGS)
 CommunicationUtilsTest.o : $(USER_DIR)/CommunicationUtilsTest.cpp $(GMOCK_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -c $< -o $@
 
+ReplicationUtilsTest.o : $(USER_DIR)/ReplicationUtilsTest.cpp $(GMOCK_HEADERS) \
+    $(DBSERVICE_DIR)/ReplicationUtils.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -c $< -o $@
+
 RelationInfoTest.o : $(USER_DIR)/RelationInfoTest.cpp \
     $(DBSERVICE_DIR)/RelationInfo.cpp $(GMOCK_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -c $< -o $@
@@ -146,7 +150,8 @@ LocationInfoTest.o : $(USER_DIR)/LocationInfoTest.cpp \
     $(DBSERVICE_DIR)/LocationInfo.cpp $(GMOCK_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -c $< -o $@
 
-SuiteDBService : CommunicationUtilsTest.o RelationInfoTest.o LocationInfoTest.o \
+SuiteDBService : CommunicationUtilsTest.o  ReplicationUtilsTest.o \
+    RelationInfoTest.o LocationInfoTest.o \
     gmock_main.a \
     $(LIBDBSERVICE)# $(LIBDISTRIBUTED2) $(LIBUTILS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ -lpthread $(COMMON_LD_FLAGS)

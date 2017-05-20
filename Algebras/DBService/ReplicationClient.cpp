@@ -42,11 +42,17 @@ namespace DBService {
 ReplicationClient::ReplicationClient(
         string& server,
         int port,
-        string& fileName,
+        const std::string& fileNameDBS,
+        const std::string& fileNameOrigin,
         string& databaseName,
         string& relationName)
-: FileTransferClient(server, port, true, fileName, fileName),
-  fileName(fileName),
+: FileTransferClient(server,
+                     port,
+                     true,
+                     *(const_cast<string*>(&fileNameDBS)),
+                     *(const_cast<string*>(&fileNameOrigin))),
+  fileNameDBS(fileNameDBS),
+  fileNameOrigin(fileNameOrigin),
   databaseName(databaseName),
   relationName(relationName)
 {
@@ -57,7 +63,8 @@ ReplicationClient::ReplicationClient(
     traceWriter->writeFunction("ReplicationClient::ReplicationClient");
     traceWriter->write("server", server);
     traceWriter->write("port", port);
-    traceWriter->write("fileName", fileName);
+    traceWriter->write("fileNameDBS", fileNameDBS);
+    traceWriter->write("fileNameOrigin", fileNameOrigin);
     traceWriter->write("databaseName", databaseName);
     traceWriter->write("relationName", relationName);
 }
@@ -92,11 +99,12 @@ int ReplicationClient::start()
             traceWriter->write("not connected to ReplicationServer");
             return 1;
         }
-        CommunicationUtils::sendLine(io,
-                CommunicationProtocol::ReplicationClient());
+        queue<string> sendBuffer;
+        sendBuffer.push(CommunicationProtocol::ReplicationClient());
+        sendBuffer.push(fileNameOrigin);
+        CommunicationUtils::sendBatch(io, sendBuffer);
 
-        int receiveOk = receiveFile();
-        if(!receiveOk)
+        if(receiveFile() != 0)
         {
             traceWriter->write("receive failed");
         }
@@ -110,7 +118,7 @@ int ReplicationClient::start()
               << relationName
               << "_DBS"
                 " = \""
-              << fileName
+              << fileNameDBS
               << "\""
               << " getObjectFromFile consume";
         traceWriter->write(query.str());

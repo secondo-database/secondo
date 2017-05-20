@@ -61,60 +61,14 @@ bool SecondoUtilsLocal::executeQuery(const string& query)
     string queryAsNestedList;
     if (secondoParser.Text2List(query, queryAsNestedList) != 0)
     {
-        // TODO
+        //TODO
         return false;
     } else
     {
         Word result;
         print(queryAsNestedList);
-        return executeQuery(queryAsNestedList, result, 1024);
+        return QueryProcessor::ExecuteQuery(queryAsNestedList, result, 1024);
     }
-}
-
-bool
-SecondoUtilsLocal::executeQuery(
-        const string& queryListStr,
-        Word& queryResult,
-        const size_t availableMemory)
-{
-    printFunction("SecondoUtilsLocal::executeQuery");
-    string typeString(""), errorString("");
-    bool success = true;
-    bool correct = false, evaluable = false, defined = false,
-            isFunction = false;
-    ListExpr queryList;
-    NestedList* nli = SecondoSystem::GetNestedList();
-    success = nli->ReadFromString( queryListStr, queryList );
-    if (!success)
-    {
-        errorString += "Error in operator query. ";
-    }
-    else {
-        try{
-            success = QueryProcessor::ExecuteQuery( queryList,
-                    queryResult,
-                    typeString,
-                    errorString,
-                    correct,
-                    evaluable,
-                    defined,
-                    isFunction,
-                    availableMemory);
-        } catch(...){
-            cout << "caught exception" << endl;
-            success=false;
-        }
-        cout << "success: " << success << endl;
-        cout << "correct: " << correct << endl;
-        cout << "evaluable: " << evaluable << endl;
-        cout << "defined: " << defined << endl;
-        cout << "isFunction: " << isFunction << endl;
-    }
-    if (errorString != "OK")
-    {
-        cout << errorString << endl;
-    }
-    return success;
 }
 
 bool SecondoUtilsLocal::adjustDatabase(const std::string& databaseName)
@@ -221,19 +175,6 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     return true;
 }
 
-bool SecondoUtilsLocal::createRelationFromConsumeResult(
-        const string& relationName,
-        Word& result)
-{
-    printFunction("SecondoUtilsLocal::createRelationFromConsumeResult");
-    SecondoCatalog* catalog = SecondoSystem::GetCatalog();
-    string typeName = "";
-    catalog->CreateObject(relationName, typeName,
-            nl->SymbolAtom(Relation::BasicType()), 0);
-    catalog->UpdateObject(relationName, result);
-    return true;
-}
-
 bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
         ListExpr& resultList, string& errorMessage) {
     printFunction("SecondoUtilsLocal::excuteQueryCommand");
@@ -259,12 +200,14 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
         return false;
     }
     print("query converted to nested list string");
+    print("queryAsNestedListString", queryAsNestedListString);
 
     ListExpr queryAsNestedList;
     if (!nl->ReadFromString(queryAsNestedListString, queryAsNestedList)) {
         print("could not convert string to list");
     }
     print("nested list string converted to nested list");
+    print("queryAsNestedList", queryAsNestedList);
 
     // database open?
 
@@ -280,17 +223,20 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
         cout << "isFunction: " << isFunction << endl;
 
         if (evaluable) {
-            print(evaluable);
             queryProcessor->EvalP(tree, result, 1);
+            print("queryProcessor->EvalP done");
 
             ListExpr valueList = catalog->OutObject(resultType, result);
+            print("valueList done");
+
             resultList = nl->TwoElemList(resultType, valueList);
+            print("resultList done");
 
             queryProcessor->Destroy(tree, true);
+            print("queryProcessor->Destroy done");
         }
 
     } catch (...) {
-
         print("caught error");
         queryProcessor->Destroy(tree, true);
         return false;

@@ -58,6 +58,8 @@ Returns the DBServiceConnector instance (singleton).
     bool triggerReplication(const std::string databaseName,
                             const std::string relationName);
 
+    void createFileFromRelation();
+
 protected:
 /*
 1.2 Constructor

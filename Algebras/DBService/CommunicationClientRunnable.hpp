@@ -35,29 +35,28 @@ namespace DBService {
 
 class CommunicationClientRunnable {
 public:
-    CommunicationClientRunnable(std::string sourceHost,
-            int sourceTransferPort,
-            std::string targetHost,
-            int targetCommPort,
-            std::string localFileName,
+    CommunicationClientRunnable(
+            std::string sourceSystemHost,
+            int sourceSystemTransferPort,
+            std::string dbServiceWorkerHost,
+            int dbServiceWorkerCommPort,
             std::string databaseName,
             std::string relationName);
     ~CommunicationClientRunnable();
     void run();
 private:
-    void createClient(std::string sourceHost,
-            int sourceTransferPort,
-            std::string targetHost,
-            int targetCommPort,
-            std::string localFileName,
+    void createClient(
+            std::string sourceSystemHost,
+            int sourceSystemTransferPort,
+            std::string dbServiceWorkerHost,
+            int dbServiceWorkerCommPort,
             std::string databaseName,
             std::string relationName);
     boost::thread* runner;
-    std::string sourceHost;
-    int sourceTransferPort;
-    std::string targetHost;
-    int targetCommPort;
-    std::string localFileName;
+    std::string sourceSystemHost;
+    int sourceSystemTransferPort;
+    std::string dbServiceWorkerHost;
+    int dbServiceWorkerCommPort;
     std::string databaseName;
     std::string relationName;
 };

@@ -119,22 +119,12 @@ bool DBServiceConnector::triggerReplication(const std::string databaseName,
             databaseName,
             relationName,
             locations);
-
-    print("creating replication thread");
-    print("databaseName", databaseName);
-
-//    std::auto_ptr<std::string> dbName(new string(databaseName));
-//    std::auto_ptr<std::string> relName(new string(relationName));
-//
-//    print("dbName", *dbName);
-//    print("relName", *relName);
-
-    ReplicatorRunnable replicationThread(
-            databaseName,
-            relationName,
-            locations);
-    replicationThread.run();
     return true;
+}
+
+void DBServiceConnector::createFileFromRelation()
+{
+
 }
 
 DBServiceConnector* DBServiceConnector::_instance = NULL;

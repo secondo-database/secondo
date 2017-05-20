@@ -54,14 +54,6 @@ public:
             const std::string& queryAsString,
             ListExpr& resultList,
             std::string& errorMessage);
-    static bool createRelationFromConsumeResult(
-            const std::string& relationName,
-            Word& result);
-private:
-    static bool executeQuery(
-            const std::string& queryListStr,
-            Word& queryResult,
-            const size_t availableMemory);
 };
 
 } /* namespace DBService */

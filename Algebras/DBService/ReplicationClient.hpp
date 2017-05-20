@@ -41,13 +41,15 @@ public:
     ReplicationClient(
             std::string& server,
             int port,
-            std::string& fileName,
+            const std::string& fileNameDBS,
+            const std::string& fileNameOrigin,
             std::string& databaseName,
             std::string& relationName);
     ~ReplicationClient();
     int start();
 private:
-    std::string fileName;
+    const std::string fileNameDBS;
+    const std::string fileNameOrigin;
     std::string databaseName;
     std::string relationName;
     std::auto_ptr<TraceWriter> traceWriter;

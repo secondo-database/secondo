@@ -39,7 +39,6 @@ class ReplicationClientRunnable {
     public:
     ReplicationClientRunnable(std::string targetHost,
                 int targetTransferPort,
-                std::string remoteFileName,
                 std::string databaseName,
                 std::string relationName);
         ~ReplicationClientRunnable();
@@ -48,12 +47,10 @@ class ReplicationClientRunnable {
         void create(
                 std::string& targetHost,
                 int targetTransferPort,
-                std::string& remoteFileName,
                 std::string& databaseName,
                 std::string& relationName);
         std::string targetHost;
         int targetTransferPort;
-        std::string remoteFileName;
         std::string databaseName;
         std::string relationName;
         boost::thread* runner;

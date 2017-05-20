@@ -37,16 +37,18 @@ using namespace std;
 
 namespace DBService {
 
-CommunicationClientRunnable::CommunicationClientRunnable(string sourceHost,
-                               int sourceTransferPort,
-                               string targetHost,
-                               int targetCommPort,
-                               std::string localFileName,
+CommunicationClientRunnable::CommunicationClientRunnable(
+                               string sourceSystemHost,
+                               int sourceSystemTransferPort,
+                               string dbServiceWorkerHost,
+                               int dbServiceWorkerCommPort,
                                std::string databaseName,
                                std::string relationName)
-:sourceHost(sourceHost), sourceTransferPort(sourceTransferPort),
- targetHost(targetHost), targetCommPort(targetCommPort),
- localFileName(localFileName),
+:runner(0),
+ sourceSystemHost(sourceSystemHost),
+ sourceSystemTransferPort(sourceSystemTransferPort),
+ dbServiceWorkerHost(dbServiceWorkerHost),
+ dbServiceWorkerCommPort(dbServiceWorkerCommPort),
  databaseName(databaseName), relationName(relationName)
 {
     printFunction("CommunicationClientRunnable::CommunicationClientRunnable");
@@ -67,28 +69,29 @@ void CommunicationClientRunnable::run()
     runner = new boost::thread(boost::bind(
             &CommunicationClientRunnable::createClient,
             this,
-            sourceHost,
-            sourceTransferPort,
-            targetHost,
-            targetCommPort,
-            localFileName,
+            sourceSystemHost,
+            sourceSystemTransferPort,
+            dbServiceWorkerHost,
+            dbServiceWorkerCommPort,
             databaseName,
             relationName));
 }
-void CommunicationClientRunnable::createClient(string sourceHost,
-        int sourceTransferPort,
-        string targetHost,
-        int targetCommPort,
-        std::string localFileName,
+void CommunicationClientRunnable::createClient(
+        string sourceSystemHost,
+        int sourceSystemTransferPort,
+        string dbServiceWorkerHost,
+        int dbServiceWorkerCommPort,
         std::string databaseName,
         std::string relationName)
 {
     printFunction("CommunicationClientRunnable::createClient");
-    CommunicationClient client(targetHost, targetCommPort, 0);
-    client.start();
-    client.triggerFileTransfer(sourceHost,
-                               stringutils::int2str(sourceTransferPort),
-                               localFileName,
+    CommunicationClient client(dbServiceWorkerHost, dbServiceWorkerCommPort, 0);
+    if(client.start() != 0)
+    {
+        return;
+    }
+    client.triggerFileTransfer(sourceSystemHost,
+                               stringutils::int2str(sourceSystemTransferPort),
                                databaseName,
                                relationName);
 }

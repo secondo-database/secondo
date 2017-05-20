@@ -87,13 +87,17 @@ storing relation replicas.
 
     RelationInfo& getRelationInfo(const std::string& relationAsString);
 
-    void storeRelationInfo(const std::string& databaseName,
+    void determineReplicaLocations(const std::string& databaseName,
             const std::string& relationName,
             const std::string& host,
             const std::string& port,
             const std::string& disk);
+    void persistReplicaLocations(const std::string& databaseName,
+            const std::string& relationName);
     void getReplicaLocations(const std::string& relationAsString,
                              std::vector<ConnectionID>& ids);
+    void deleteReplicaLocationInfo(const std::string& databaseName,
+                                   const std::string& relationName);
 
 protected:
 /*

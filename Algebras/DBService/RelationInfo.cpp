@@ -57,10 +57,10 @@ void RelationInfo::addNode(ConnectionID id)
     nodes.push_back(id);
 }
 
-void RelationInfo::addNodes(std::vector<ConnectionID>& nodes)
+void RelationInfo::addNodes(std::vector<ConnectionID>& nodesToAdd)
 {
-    for (std::vector<ConnectionID>::const_iterator i = nodes.begin();
-            i != nodes.end(); ++i)
+    for (std::vector<ConnectionID>::const_iterator i = nodesToAdd.begin();
+            i != nodesToAdd.end(); ++i)
     {
         nodes.push_back(*i);
     }

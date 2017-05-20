@@ -54,7 +54,6 @@ public:
     int triggerFileTransfer(
             const std::string& transferServerHost,
             const std::string& transferServerPort,
-            const std::string& fileName,
             const std::string& databaseName,
             const std::string& relationName);
 protected:

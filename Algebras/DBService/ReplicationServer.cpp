@@ -28,11 +28,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <iostream>
 
+#include <boost/filesystem.hpp>
+
 #include "SocketIO.h"
+
+#include "Algebras/Distributed2/FileTransferKeywords.h"
 
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
 #include "Algebras/DBService/ReplicationServer.hpp"
+#include "Algebras/DBService/ReplicationUtils.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
 
 using namespace std;
 
@@ -73,13 +79,29 @@ int ReplicationServer::communicate(iostream& io)
             traceWriter->write("not connected to ReplicationClient");
             return 1;
         }
+        string fileName;
+        CommunicationUtils::receiveLine(io, fileName);
 
-        int sendOk = sendFile(io);
-        if(!sendOk)
+        if(!boost::filesystem::exists(fileName))
+        {
+            traceWriter->write("file does not exist");
+            createFile(fileName);
+        }
+
+        // expected by receiveFile function of FileTransferClient,
+        // but not sent by sendFile function of FileTransferServer
+        CommunicationUtils::sendLine(io,
+                distributed2::FileTransferKeywords::FileTransferServer());
+
+        if(sendFile(io) != 0)
         {
             traceWriter->write("send failed");
+        }else
+        {
+            traceWriter->write("file sent");
         }
-        traceWriter->write("file sent");
+
+        // TODO delete file
 
     } catch (...)
     {
@@ -87,6 +109,35 @@ int ReplicationServer::communicate(iostream& io)
         return 5;
     }
     return 0;
+}
+
+void ReplicationServer::createFile(string fileName) const
+{
+    traceWriter->writeFunction("ReplicationServer::createFile");
+
+    string databaseName;
+    string relationName;
+    ReplicationUtils::parseFileName(fileName, databaseName, relationName);
+
+    SecondoUtilsLocal::adjustDatabase(databaseName);
+
+    stringstream query;
+    query << "query "
+          << relationName
+          << " saveObjectToFile[\""
+          << fileName
+          << "\"]";
+    traceWriter->write("query", query.str());
+
+//    SecondoUtilsLocal::executeQuery(query.str());
+    ListExpr resultList;
+    string errorMessage;
+    SecondoUtilsLocal::excuteQueryCommand(query.str(),
+            resultList,
+            errorMessage);
+    traceWriter->write("resultList", resultList);
+    traceWriter->write("errorMessage", errorMessage);
+    traceWriter->write("file created");
 }
 
 } /* namespace DBService */

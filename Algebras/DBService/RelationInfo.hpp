@@ -52,7 +52,7 @@ public:
     const std::string& getDatabaseName() const;
     const std::string& getRelationName() const;
     void addNode(ConnectionID id);
-    void addNodes(std::vector<ConnectionID>& nodes);
+    void addNodes(std::vector<ConnectionID>& nodesToAdd);
     const std::vector<ConnectionID>::const_iterator nodesBegin() const;
     const std::vector<ConnectionID>::const_iterator nodesEnd() const;
     const LocationInfo& getOriginalLocation() const;

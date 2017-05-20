@@ -98,6 +98,12 @@ void DBServiceManager::restoreReplicaInformation()
                 pair<size_t, pair<LocationInfo, ConnectionInfo*> >(
                         it->first, workerConnDetails));
 
+        SecondoUtilsRemote::openDatabase(connectionInfo, "dbservice");
+        if(!startServersOnWorker(connectionInfo))
+        {
+            // TODO more descriptive error message (host, port, etc)
+            throw new SecondoException("could not start file transfer server");
+        }
     }
 
 //    vector<RelationInfo> relations;
@@ -107,7 +113,6 @@ void DBServiceManager::restoreReplicaInformation()
 //    DBServicePersistenceAccessor::restoreLocationMapping(mapping);
 
     // TODO connect related information and store accordingly
-    // TODO open connections
 }
 
 DBServiceManager* DBServiceManager::getInstance()
@@ -206,7 +211,7 @@ bool DBServiceManager::getConfigParamFromWorker(string& result,
     return resultOk && result.size() != 0;
 }
 
-void DBServiceManager::storeRelationInfo(const string& databaseName,
+void DBServiceManager::determineReplicaLocations(const string& databaseName,
                                          const string& relationName,
                                          const string& host,
                                          const string& port,
@@ -218,10 +223,26 @@ void DBServiceManager::storeRelationInfo(const string& databaseName,
                               host,
                               port,
                               disk);
-    // TODO handle more than one location (getWorkerNodesForReplication)
-    relationInfo.addNode(determineReplicaLocation());
+
+    vector<ConnectionID> locations;
+    getWorkerNodesForReplication(locations);
+    relationInfo.addNodes(locations);
     replicaLocations.insert(pair<string, RelationInfo>(relationInfo.toString(),
             relationInfo));
+}
+
+void DBServiceManager::deleteReplicaLocationInfo(const string& databaseName,
+                                              const string& relationName)
+{
+
+}
+
+void DBServiceManager::persistReplicaLocations(const string& databaseName,
+                                               const string& relationName)
+{
+    RelationInfo relationInfo =
+            replicaLocations.at(
+                    RelationInfo::getIdentifier(databaseName, relationName));
     DBServicePersistenceAccessor::persistRelationInfo(relationInfo);
 }
 
@@ -237,14 +258,17 @@ void DBServiceManager::getWorkerNodesForReplication(
         vector<ConnectionID>& nodes)
 {
     printFunction("DBServiceManager::getWorkerNodesForReplication");
-    if (connections.size() < replicaCount)
-    {
-        throw new SecondoException("not enough DBService worker nodes");
-    }
-    while(nodes.size() < replicaCount)
-    {
-        nodes.push_back(determineReplicaLocation());
-    }
+
+    //TODO multiple locations
+
+//    if (connections.size() < replicaCount)
+//    {
+//        throw new SecondoException("not enough DBService worker nodes");
+//    }
+//    while(nodes.size() < replicaCount)
+//    {
+    nodes.push_back(determineReplicaLocation());
+//    }
 }
 
 ConnectionID DBServiceManager::determineReplicaLocation()

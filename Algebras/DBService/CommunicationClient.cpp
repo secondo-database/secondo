@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService/ReplicationUtils.hpp"
 
 using namespace std;
 using namespace distributed2;
@@ -79,7 +80,7 @@ int CommunicationClient::triggerReplication(const string& databaseName,
                                             const string& relationName,
                                             vector<LocationInfo>& locations)
 {
-    traceWriter->writeFunction("CommunicationClient::getNodesForReplication");
+    traceWriter->writeFunction("CommunicationClient::triggerReplication");
     iostream& io = socket->GetSocketStream();
 
     if(!CommunicationUtils::receivedExpectedLine(io,
@@ -118,7 +119,15 @@ int CommunicationClient::triggerReplication(const string& databaseName,
     sendBuffer.push(originalLocation);
     getLocationParameter(originalLocation, "SecondoHome");
     sendBuffer.push(originalLocation);
+
+    string transferPort;
+    SecondoUtilsLocal::readFromConfigFile(transferPort,
+                                       "DBService",
+                                       "FileTransferPort",
+                                       "");
+    sendBuffer.push(transferPort);
     CommunicationUtils::sendBatch(io, sendBuffer);
+
     traceWriter->write("sent original location details");
 
     if(!CommunicationUtils::receivedExpectedLine(io,
@@ -161,14 +170,12 @@ int CommunicationClient::triggerReplication(const string& databaseName,
 
 int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
                                              const string& transferServerPort,
-                                             const string& fileName,
                                              const string& databaseName,
                                              const string& relationName)
 {
     traceWriter->writeFunction("CommunicationClient::triggerFileTransfer");
     traceWriter->write("transferServerHost", transferServerHost);
     traceWriter->write("transferServerPort", transferServerPort);
-    traceWriter->write("fileName", fileName);
     traceWriter->write("databaseName", databaseName);
     traceWriter->write("relationName", relationName);
 
@@ -194,7 +201,10 @@ int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
     }
     sendBuffer.push(transferServerHost);
     sendBuffer.push(transferServerPort);
-    sendBuffer.push(fileName);
+    sendBuffer.push(
+            ReplicationUtils::getFileName(
+                    *(const_cast<string*>(&databaseName)),
+                    *(const_cast<string*>(&relationName))));
     sendBuffer.push(databaseName);
     sendBuffer.push(relationName);
     CommunicationUtils::sendBatch(io, sendBuffer);

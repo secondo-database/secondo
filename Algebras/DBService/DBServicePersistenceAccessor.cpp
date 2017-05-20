@@ -69,6 +69,7 @@ bool DBServicePersistenceAccessor::createOrInsert(
     ListExpr resultList;
     resultOk = SecondoUtilsLocal::excuteQueryCommand(
             insertQuery, resultList, errorMessage);
+//    resultOk = SecondoUtilsLocal::executeQuery(insertQuery);
 
     if(!resultOk)
     {
@@ -158,6 +159,7 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
 
     // TODO check return code
     createOrInsert(relationName, createQuery.str(), insertQuery.str());
+    print("RelationInfo persisted");
     return persistLocationMapping(
             relationInfo.toString(),
             relationInfo.nodesBegin(),
@@ -194,6 +196,7 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
 
         createOrInsert(relationName, createQuery.str(), insertQuery.str());
     }
+    print("location mapping persisted");
     return true;
 }
 

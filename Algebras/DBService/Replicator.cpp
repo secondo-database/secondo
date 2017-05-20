@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/CommunicationClient.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ReplicationServer.hpp"
+#include "Algebras/DBService/ReplicationUtils.hpp"
 #include "Algebras/DBService/Replicator.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/ServerRunnable.hpp"
@@ -67,22 +68,12 @@ Replicator::Replicator(
     print(host);
 }
 
-string Replicator::getFileName() const
-{
-    printFunction("Replicator::getFileName");
-    stringstream fileName;
-    fileName << databaseName
-             << "___"
-             << relationName
-             << ".bin";
-    return fileName.str();
-}
 
 void Replicator::replicateRelation(const vector<LocationInfo>& locations) const
 {
     printFunction("Replicator::replicateRelation");
     createFileOnCurrentNode();
-    runReplication(locations);
+//    runReplication(locations);
 }
 
 void Replicator::createFileOnCurrentNode() const
@@ -98,7 +89,9 @@ void Replicator::createFileOnCurrentNode() const
     query << "query "
           << relationName
           << " saveObjectToFile[\""
-          << getFileName()
+          << ReplicationUtils::getFileName(
+                  *(const_cast<string*>(&databaseName)),
+                  *(const_cast<string*>(&relationName)))
           << "\"]";
     print("query", query.str());
 
@@ -112,33 +105,32 @@ void Replicator::createFileOnCurrentNode() const
     print("errorMessage", errorMessage);
 }
 
-void Replicator::runReplication(const vector<LocationInfo>& locations) const
-{
-    printFunction("Replicator::runReplication");
-    for(vector<LocationInfo>::const_iterator it = locations.begin();
-            it != locations.end(); it++)
-    {
-        printFunction("Replicator::runReplication");
-//        CommunicationClientRunnable commClient(
-//                           host,
-//                           transferPort,
-//                           it->getHost(),
-//                           atoi(it->getCommPort().c_str()),
-//                           getFileName(),
-//                           databaseName,
-//                           relationName);
-//        commClient.run();
-
-        CommunicationClient client(*(const_cast<string*>(&(it->getHost()))),
-                                   atoi(it->getCommPort().c_str()),
-                                   0);
-        client.start();
-        client.triggerFileTransfer(host,
-                                   stringutils::int2str(transferPort),
-                                   getFileName(),
-                                   databaseName,
-                                   relationName);
-    }
-}
+//void Replicator::runReplication(const vector<LocationInfo>& locations) const
+//{
+//    printFunction("Replicator::runReplication");
+//    for(vector<LocationInfo>::const_iterator it = locations.begin();
+//            it != locations.end(); it++)
+//    {
+//        printFunction("Replicator::runReplication");
+////        CommunicationClientRunnable commClient(
+////                           host,
+////                           transferPort,
+////                           it->getHost(),
+////                           atoi(it->getCommPort().c_str()),
+////                           getFileName(),
+////                           databaseName,
+////                           relationName);
+////        commClient.run();
+//
+//        CommunicationClient client(*(const_cast<string*>(&(it->getHost()))),
+//                                   atoi(it->getCommPort().c_str()),
+//                                   0);
+//        client.start();
+//        client.triggerFileTransfer(host,
+//                                   stringutils::int2str(transferPort),
+//                                   databaseName,
+//                                   relationName);
+//    }
+//}
 
 } /* namespace DBService */

@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2017
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -26,31 +26,30 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_REPLICATOR_HPP_
-#define ALGEBRAS_DBSERVICE_REPLICATOR_HPP_
+#ifndef ALGEBRAS_DBSERVICE_REPLICATIONUTILS_HPP_
+#define ALGEBRAS_DBSERVICE_REPLICATIONUTILS_HPP_
 
-#include "Algebras/DBService/RelationInfo.hpp"
+#include <string>
 
-namespace DBService
-{
+namespace DBService {
 
-class Replicator
-{
+class ReplicationUtils {
 public:
-    Replicator(std::string& databaseName,
-               std::string& relationName);
-    void replicateRelation(const std::vector<LocationInfo>& locations) const;
-    void createFileOnCurrentNode() const;
+    static const std::string getFileName(
+            const std::string& databaseName,
+            const std::string& relationName);
 
-//    void runReplication(const std::vector<LocationInfo>& locations) const;
-
+    static const std::string getFileNameOnDBServiceWorker(
+            std::string& databaseName,
+            std::string& relationName);
+    static void parseFileName(
+            const std::string& fileName,
+            std::string& databaseName,
+            std::string& relationName);
 private:
-    std::string databaseName;
-    std::string relationName;
-    std::string host;
-    int transferPort;
+    static std::string separator;
 };
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_REPLICATOR_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_REPLICATIONUTILS_HPP_ */
