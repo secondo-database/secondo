@@ -51,6 +51,8 @@ public:
             const std::string& queryAsString,
             std::string& errorMessage);
     static bool excuteQueryCommand(
+                const std::string& queryAsString);
+    static bool excuteQueryCommand(
             const std::string& queryAsString,
             ListExpr& resultList,
             std::string& errorMessage);

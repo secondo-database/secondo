@@ -60,26 +60,25 @@ bool DBServicePersistenceAccessor::createOrInsert(
         if(resultOk)
         {
             print("created relation: ", relationName);
-            return true;
+        }else
+        {
+            print("failed to create relation: ", relationName);
         }
-        return false;
+        return resultOk;
     }
     print("relation exists, trying insert command");
 
-    ListExpr resultList;
-    resultOk = SecondoUtilsLocal::excuteQueryCommand(
-            insertQuery, resultList, errorMessage);
+    resultOk = SecondoUtilsLocal::excuteQueryCommand(insertQuery);
 //    resultOk = SecondoUtilsLocal::executeQuery(insertQuery);
 
-    if(!resultOk)
+    if(resultOk)
     {
-        // TODO better error message (print everything)
+        print("insert successful");
+    }else
+    {
         print("insert failed");
-        //throw new SecondoException("Could not insert tuple");
-        return false;
     }
-
-    return true;
+    return resultOk;
 }
 
 bool DBServicePersistenceAccessor::persistLocationInfo(
@@ -157,13 +156,20 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
             << "] consume";
     print("insertQuery", insertQuery.str());
 
-    // TODO check return code
-    createOrInsert(relationName, createQuery.str(), insertQuery.str());
-    print("RelationInfo persisted");
-    return persistLocationMapping(
-            relationInfo.toString(),
-            relationInfo.nodesBegin(),
-            relationInfo.nodesEnd());
+    bool resultOk =
+            createOrInsert(relationName, createQuery.str(), insertQuery.str());
+    if(resultOk)
+    {
+        print("RelationInfo persisted");
+        resultOk = persistLocationMapping(
+                   relationInfo.toString(),
+                   relationInfo.nodesBegin(),
+                   relationInfo.nodesEnd());
+    }else
+    {
+        print("Could not persist RelationInfo. Skipping mapping.");
+    }
+    return resultOk;
 }
 
 bool DBServicePersistenceAccessor::persistLocationMapping(
@@ -173,6 +179,7 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
 {
     printFunction("DBServicePersistenceAccessor::persistLocationMapping");
 
+    bool resultOk = true;
     for(vector<ConnectionID>::const_iterator it = nodesBegin;
             it != nodesEnd; it++)
     {
@@ -194,12 +201,20 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
                 << "] consume";
         print("insertQuery", insertQuery.str());
 
-        createOrInsert(relationName, createQuery.str(), insertQuery.str());
+        resultOk = resultOk &&
+                createOrInsert(
+                        relationName, createQuery.str(), insertQuery.str());
+        if(!resultOk)
+        {
+            print("failed to persist location mapping");
+        }
     }
-    print("location mapping persisted");
-    return true;
+    if(resultOk)
+    {
+        print("location mapping persisted successfully");
+    }
+    return resultOk;
 }
-
 
 bool DBServicePersistenceAccessor::restoreLocationInfo(
         map<ConnectionID, LocationInfo>& locations)
@@ -239,8 +254,6 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
                 print(location);
                 locations.insert(
                         pair<ConnectionID, LocationInfo>(conn, location));
-                // nl->Seventh(currentRow);
-
                 resultData = nl->Rest(resultData);
             }
         }

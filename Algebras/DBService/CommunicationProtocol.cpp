@@ -47,6 +47,11 @@ string CommunicationProtocol::ShutDown()
     return "<SHUTDOWN>";
 }
 
+string CommunicationProtocol::Cancel()
+{
+    return "<CANCEL>";
+}
+
 //string CommunicationProtocol::ProvideReplica()
 //{
 //    return "<PROVIDEREPLICA>";

@@ -82,10 +82,11 @@ int ReplicationServer::communicate(iostream& io)
         string fileName;
         CommunicationUtils::receiveLine(io, fileName);
 
+        bool fileCreated = true;
         if(!boost::filesystem::exists(fileName))
         {
             traceWriter->write("file does not exist");
-            createFile(fileName);
+            fileCreated = createFile(fileName);
         }
 
         // expected by receiveFile function of FileTransferClient,
@@ -93,16 +94,23 @@ int ReplicationServer::communicate(iostream& io)
         CommunicationUtils::sendLine(io,
                 distributed2::FileTransferKeywords::FileTransferServer());
 
-        if(sendFile(io) != 0)
+        if(fileCreated)
         {
-            traceWriter->write("send failed");
+            traceWriter->write("file created, sending file");
+            if(sendFile(io) != 0)
+            {
+                traceWriter->write("send failed");
+            }else
+            {
+                traceWriter->write("file sent");
+            }
+            // TODO delete file
         }else
         {
-            traceWriter->write("file sent");
+            traceWriter->write("failed to create file, notfying client");
+            CommunicationUtils::sendLine(io,
+                            distributed2::FileTransferKeywords::FileNotFound());
         }
-
-        // TODO delete file
-
     } catch (...)
     {
         traceWriter->write("ReplicationServer: communication error");
@@ -111,7 +119,7 @@ int ReplicationServer::communicate(iostream& io)
     return 0;
 }
 
-void ReplicationServer::createFile(string fileName) const
+bool ReplicationServer::createFile(string fileName) const
 {
     traceWriter->writeFunction("ReplicationServer::createFile");
 
@@ -130,14 +138,15 @@ void ReplicationServer::createFile(string fileName) const
     traceWriter->write("query", query.str());
 
 //    SecondoUtilsLocal::executeQuery(query.str());
-    ListExpr resultList;
-    string errorMessage;
-    SecondoUtilsLocal::excuteQueryCommand(query.str(),
-            resultList,
-            errorMessage);
-    traceWriter->write("resultList", resultList);
-    traceWriter->write("errorMessage", errorMessage);
-    traceWriter->write("file created");
+    bool resultOk = SecondoUtilsLocal::excuteQueryCommand(query.str());
+    if(resultOk)
+    {
+        traceWriter->write("file created");
+    }else
+    {
+        traceWriter->write("could not create file");
+    }
+    return resultOk;
 }
 
 } /* namespace DBService */

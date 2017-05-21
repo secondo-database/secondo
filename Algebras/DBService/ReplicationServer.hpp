@@ -46,7 +46,7 @@ public:
 protected:
     int communicate(std::iostream& io);
 private:
-    void createFile(std::string fileName) const;
+    bool createFile(std::string fileName) const;
 };
 
 } /* namespace DBService */

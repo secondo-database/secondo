@@ -175,6 +175,26 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     return true;
 }
 
+bool SecondoUtilsLocal::excuteQueryCommand(const std::string& queryAsString)
+{
+    ListExpr resultList;
+    string errorMessage;
+    bool resultOk = SecondoUtilsLocal::excuteQueryCommand(
+                                                    queryAsString,
+                                                    resultList,
+                                                    errorMessage);
+    if(resultOk)
+    {
+        print("query executed successfully");
+        print("resultList", resultList);
+    }else
+    {
+        print("failed to execute query");
+        print("errorMessage", errorMessage);
+    }
+    return resultOk;
+}
+
 bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
         ListExpr& resultList, string& errorMessage) {
     printFunction("SecondoUtilsLocal::excuteQueryCommand");
@@ -214,9 +234,10 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
     // transaction?
 
     try {
-
+        print("queryProcessor->Construct");
         queryProcessor->Construct(nl->Second(queryAsNestedList), correct,
                 evaluable, defined, isFunction, tree, resultType);
+        print("trying queryProcessor->Construct done");
         cout << "correct: " << correct << endl;
         cout << "evaluable: " << evaluable << endl;
         cout << "defined: " << defined << endl;

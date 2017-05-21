@@ -48,7 +48,7 @@ TEST_F(ReplicationUtilsTest, testGetFileName)
 {
     string databaseName("myDB");
     string relationName("myRel");
-    ASSERT_STREQ("myDB_DBS_myRel.bin",
+    ASSERT_STREQ("myDBxDBSxmyRel.bin",
             ReplicationUtils::getFileName(databaseName, relationName).c_str());
 }
 
@@ -56,14 +56,14 @@ TEST_F(ReplicationUtilsTest, testGetFileNameOnDBServiceWorker)
 {
     string databaseName("myDB");
     string relationName("myRel");
-    ASSERT_STREQ("myDB_DBS_myRel_RPLCTD.bin",
+    ASSERT_STREQ("myDBxDBSxmyRelxRPLCTD.bin",
             ReplicationUtils::getFileNameOnDBServiceWorker(
                     databaseName, relationName).c_str());
 }
 
 TEST_F(ReplicationUtilsTest, testParseFileName)
 {
-    string fileName("myDB_DBS_myRel.bin");
+    string fileName("myDBxDBSxmyRel.bin");
     string databaseName;
     string relationName;
     ReplicationUtils::parseFileName(fileName, databaseName, relationName);

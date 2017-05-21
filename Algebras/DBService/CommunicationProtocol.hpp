@@ -38,6 +38,7 @@ public:
     static std::string CommunicationServer();
     static std::string CommunicationClient();
     static std::string ShutDown();
+    static std::string Cancel();
 //    static std::string ProvideReplica();
 //    static std::string UseReplica();
     static std::string LocationRequest();

@@ -140,31 +140,6 @@ int CommunicationClient::triggerReplication(const string& databaseName,
     CommunicationUtils::receiveLine(io, count);
     int locationCount = atoi(count.c_str());
     traceWriter->write("number of replica locations: ", locationCount);
-
-    // TODO cancel if number of replica locations does not match expectations
-
-//    queue<string> receivedLines;
-//    CommunicationUtils::receiveLines(io, locationCount*6, receivedLines);
-//    traceWriter->write("Received locations for replication");
-//    for(int i= 0; i < locationCount; i++)
-//    {
-//        string host = receivedLines.front();
-//        receivedLines.pop();
-//        string port= receivedLines.front();
-//        receivedLines.pop();
-//        string config = receivedLines.front();
-//        receivedLines.pop();
-//        string disk= receivedLines.front();
-//        receivedLines.pop();
-//        string commPort = receivedLines.front();
-//        receivedLines.pop();
-//        string transferPort = receivedLines.front();
-//        receivedLines.pop();
-//        LocationInfo location(
-//    host, port, config, disk, commPort, transferPort);
-//        locations.push_back(location);
-//        traceWriter->write(location);
-//    }
     return 0;
 }
 
@@ -208,7 +183,7 @@ int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
     sendBuffer.push(databaseName);
     sendBuffer.push(relationName);
     CommunicationUtils::sendBatch(io, sendBuffer);
-    traceWriter->write("File transfer details sent to DBService worker");
+    traceWriter->write("File transfer details sent to worker");
     return 0;
 }
 

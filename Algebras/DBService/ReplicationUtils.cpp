@@ -52,7 +52,7 @@ const std::string ReplicationUtils::getFileNameOnDBServiceWorker(
     fileName << databaseName
              << separator
              << relationName
-             << "_RPLCTD" << ".bin";
+             << "xRPLCTD" << ".bin";
     return fileName.str();
 }
 
@@ -67,9 +67,8 @@ void ReplicationUtils::parseFileName(const std::string& fileName,
     size_t relNameLength = fileName.length() - strlen(".bin") - relNameStartPos;
 
     relationName = fileName.substr(relNameStartPos, relNameLength);
-
 }
 
-string ReplicationUtils::separator("_DBS_");
+string ReplicationUtils::separator("xDBSx");
 
 } /* namespace DBService */
