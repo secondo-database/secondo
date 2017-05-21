@@ -104,33 +104,14 @@ int ReplicationClient::start()
         sendBuffer.push(fileNameOrigin);
         CommunicationUtils::sendBatch(io, sendBuffer);
 
-        if(receiveFile() != 0)
+        int rc = receiveFile();
+        if(rc != 0)
         {
             traceWriter->write("receive failed");
-        }
-        traceWriter->write("received file");
-
-        // TODO currently not necessary
-        SecondoUtilsLocal::adjustDatabase(databaseName);
-
-        stringstream query;
-        query << "let "
-              << relationName
-              << "_DBS"
-                " = \""
-              << fileNameDBS
-              << "\""
-              << " getObjectFromFile consume";
-        traceWriter->write(query.str());
-
-        string errorMessage;
-        bool resultOk =
-                SecondoUtilsLocal::createRelation(query.str(), errorMessage);
-        if(!resultOk)
+            traceWriter->write("rc=", rc);
+        }else
         {
-            traceWriter->write(errorMessage);
-            traceWriter->write("error: ", errorMessage);
-            return 3;
+            traceWriter->write("received file");
         }
     } catch (...)
     {

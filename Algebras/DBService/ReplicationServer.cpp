@@ -107,7 +107,7 @@ int ReplicationServer::communicate(iostream& io)
             // TODO delete file
         }else
         {
-            traceWriter->write("failed to create file, notfying client");
+            traceWriter->write("notifying client");
             CommunicationUtils::sendLine(io,
                             distributed2::FileTransferKeywords::FileNotFound());
         }
@@ -132,9 +132,11 @@ bool ReplicationServer::createFile(string fileName) const
     stringstream query;
     query << "query "
           << relationName
-          << " saveObjectToFile[\""
+//          << " saveObjectToFile[\""
+          << " saveObjectToFile[\\\"\""
           << fileName
-          << "\"]";
+//          << "\"]";
+          << "\"\\\"]";
     traceWriter->write("query", query.str());
 
 //    SecondoUtilsLocal::executeQuery(query.str());
