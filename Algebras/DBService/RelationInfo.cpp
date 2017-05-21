@@ -76,6 +76,11 @@ const vector<ConnectionID>::const_iterator RelationInfo::nodesEnd() const
     return nodes.end();
 }
 
+const size_t RelationInfo::getNodeCount()
+{
+    return nodes.size();
+}
+
 const string RelationInfo::toString() const
 {
     return RelationInfo::getIdentifier(databaseName, relationName);
@@ -84,7 +89,7 @@ const string RelationInfo::toString() const
 string RelationInfo::getIdentifier(const string dbName,
                                  const std::string relName)
 {
-    return dbName + "__" + relName;
+    return dbName + "xDBSx" + relName;
 }
 
 const LocationInfo& RelationInfo::getOriginalLocation() const

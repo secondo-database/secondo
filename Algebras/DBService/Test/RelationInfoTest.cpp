@@ -45,8 +45,27 @@ class RelationInfoTest: public ::testing::Test
 public:
     RelationInfoTest()
 : dbName("myDatabase"), relName("myRelation"),
-  host("myHost"), port("12345"), disk("myDisk")
+  host("myHost"), port("12345"), disk("myDisk"),
+  relationInfo(0)
 {}
+    virtual void SetUp()
+    {
+        relationInfo = new RelationInfo(
+                                    dbName,
+                                    relName,
+                                    host,
+                                    port,
+                                    disk);
+    }
+
+    virtual void TearDown()
+    {
+        if(relationInfo)
+        {
+            delete relationInfo;
+            relationInfo = 0;
+        }
+    }
 
 protected:
     string dbName;
@@ -54,26 +73,75 @@ protected:
     string host;
     string port;
     string disk;
+    RelationInfo* relationInfo;
 };
 
 TEST_F(RelationInfoTest, testGetDatabaseName)
 {
-    RelationInfo relationInfo(dbName,
-                              relName,
-                              host,
-                              port,
-                              disk);
-    ASSERT_STREQ(dbName.c_str(), relationInfo.getDatabaseName().c_str());
+    ASSERT_STREQ(dbName.c_str(), relationInfo->getDatabaseName().c_str());
 }
 
 TEST_F(RelationInfoTest, testGetRelationName)
 {
-    RelationInfo relationInfo(dbName,
-                              relName,
-                              host,
-                              port,
-                              disk);
-    ASSERT_STREQ(relName.c_str(), relationInfo.getRelationName().c_str());
+    ASSERT_STREQ(relName.c_str(), relationInfo->getRelationName().c_str());
+}
+
+TEST_F(RelationInfoTest, testGetHost)
+{
+    ASSERT_STREQ(host.c_str(),
+            relationInfo->getOriginalLocation().getHost().c_str());
+}
+
+TEST_F(RelationInfoTest, testGetPort)
+{
+    ASSERT_STREQ(port.c_str(),
+            relationInfo->getOriginalLocation().getPort().c_str());
+}
+
+TEST_F(RelationInfoTest, testGetDisk)
+{
+    ASSERT_STREQ(disk.c_str(),
+            relationInfo->getOriginalLocation().getDisk().c_str());
+}
+
+TEST_F(RelationInfoTest, testAddNode)
+{
+    ASSERT_EQ(0u, relationInfo->getNodeCount());
+    ConnectionID connID = 5;
+    relationInfo->addNode(connID);
+    ASSERT_EQ(1u, relationInfo->getNodeCount());
+    vector<ConnectionID>::const_iterator it = relationInfo->nodesBegin();
+    ASSERT_EQ(connID, *it);
+    ASSERT_EQ(relationInfo->nodesEnd(), ++it);
+}
+
+TEST_F(RelationInfoTest, testAddNodes)
+{
+    ASSERT_EQ(0u, relationInfo->getNodeCount());
+    vector<ConnectionID> nodesToAdd;
+    nodesToAdd.push_back(3);
+    nodesToAdd.push_back(9);
+    relationInfo->addNodes(nodesToAdd);
+    ASSERT_EQ(2u, relationInfo->getNodeCount());
+    vector<ConnectionID>::const_iterator it = relationInfo->nodesBegin();
+    ASSERT_EQ(3, *it);
+    ASSERT_EQ(9, *(++it));
+    ASSERT_EQ(relationInfo->nodesEnd(), ++it);
+}
+
+TEST_F(RelationInfoTest, testToString)
+{
+    string dbName("myDB");
+    ASSERT_STREQ("myDatabasexDBSxmyRelation",
+            relationInfo->toString().c_str());
+}
+
+TEST_F(RelationInfoTest, testGetIdentifier)
+{
+    string dbName("myDB");
+    string relName("myRel");
+    ASSERT_STREQ("myDBxDBSxmyRel",
+            RelationInfo::getIdentifier(dbName, relName).c_str());
 }
 
 }

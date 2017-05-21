@@ -59,6 +59,7 @@ public:
     const std::string toString() const;
     static std::string getIdentifier(const std::string dbName,
                                      const std::string relName);
+    const size_t getNodeCount();
 
 private:
     const std::string& databaseName;
