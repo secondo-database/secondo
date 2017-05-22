@@ -5974,7 +5974,7 @@ ListExpr Network::Save ( SmiRecord& in_xValueRecord,
    SmiRecordFile *rf = ctlg->GetFlobFile();
    m_xAdjacencyList.saveToFile(rf, m_xAdjacencyList);
    SmiSize offset = 0;
-   size_t bufsize = m_xAdjacencyList.headerSize()+ 2*sizeof(int);
+   size_t bufsize = m_xAdjacencyList.headerSize();
    char* buf = (char*) malloc(bufsize);
    m_xAdjacencyList.serializeHeader(buf,offset);
    assert(offset==bufsize);

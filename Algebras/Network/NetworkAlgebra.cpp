@@ -5861,7 +5861,7 @@ ListExpr Network::Save ( SmiRecord& in_xValueRecord,
    SmiRecordFile *rf = ctlg->GetFlobFile();
    m_xAdjacencyList.saveToFile(rf, m_xAdjacencyList);
    SmiSize offset = 0;
-   size_t bufsize = m_xAdjacencyList.headerSize()+ 2*sizeof(SmiSize);
+   size_t bufsize = m_xAdjacencyList.headerSize();
    char* buf = (char*) malloc(bufsize);
    m_xAdjacencyList.serializeHeader(buf,offset);
    assert(offset==bufsize);
@@ -5882,7 +5882,7 @@ ListExpr Network::Save ( SmiRecord& in_xValueRecord,
    //save m_reverseAdjacencyList
    m_reverseAdjacencyList.saveToFile(rf, m_reverseAdjacencyList);
    offset = 0;
-   bufsize = m_reverseAdjacencyList.headerSize()+ 2*sizeof(SmiSize);
+   bufsize = m_reverseAdjacencyList.headerSize();
    buf = (char*) malloc(bufsize);
    m_reverseAdjacencyList.serializeHeader(buf,offset);
    assert(offset==bufsize);
