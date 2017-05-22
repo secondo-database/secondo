@@ -21,9 +21,20 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-[1] Header of a column oriented spatial algebra
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//paragraph [2] Centered: [\begin{center}] [\end{center}]
+//[_] [\_]
+
+//[<] [\ensuremath{<}]
+//[>] [\ensuremath{>}]
+
+[1] Implementation of a column oriented spatial algebra
 
 [2] May 2017 by Sascha Radke for bachelor thesis
+
+
+
+1 Includes and global settings
 
 */
 
@@ -49,6 +60,11 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 
 namespace col {
+
+/*
+2 Class ColPoint for column-oriented representation of points
+
+*/
   ColPoint::ColPoint() {}  // standard constructor doing nothing
 
   ColPoint::ColPoint(sPoint* newArray, long newCount) {  // main constructor
@@ -394,7 +410,7 @@ each entry to the clone object.
 //------------------------------------------------------------------------------
 
 /*
-3.3 Class ColLine for column-oriented representation of lines
+3 Class ColLine for column-oriented representation of lines
 
 */
   ColLine::ColLine() {}  // standard constructor doing nothing
@@ -975,7 +991,7 @@ each entry to the clone object.
 //-----------------------------------------------------------------------------
 
 /*
-Class ColRegion for column-oriented representation of Regions
+4 Class ColRegion for column-oriented representation of Regions
 
 */
   ColRegion::ColRegion() {}  // standard constructor doing nothing
@@ -1410,16 +1426,15 @@ The ~finalize~ function appends a terminator to each array of the aregion type.
 
 
 /*
-Checks whether two segments intersect. It is used a copy of algorithm from
-the PSTAlgebra. the segments are
-s1 = (x1, y1, x2, y2) and s2 = (x3, y3, x4, y4)
+Checks whether two segments intersect. It uses the vector equation of two
+lines, which are derived from the two
+segments s1 = (x1, y1, x2, y2) and s2 = (x3, y3, x4, y4).
 
 */
   inline bool ColRegion::intersects(double x1, double y1,
                                     double x2, double y2,
                                     double x3, double y3,
                                     double x4, double y4) {
-
     double s1x = x2-x1;
     double s1y = y2-y1;
     double s2x = x4-x3;
@@ -1428,22 +1443,18 @@ s1 = (x1, y1, x2, y2) and s2 = (x3, y3, x4, y4)
     // vector equations of both straight lines solved for scalars t and s
     double s = (s1x*(y1-y3) - s1y*(x1-x3)) / (s1x*s2y - s2x*s1y);
     double t = (s2x*(y1-y3) - s2y*(x1-x3)) / (s1x*s2y - s2x*s1y);
-    // cout << "---\nsegment1 (" << x1 << ", " << y1 << ", " << x2
-    //      << ", " << y2 << ")\n";
-    // cout << "segment2 (" << x3 << ", " << y3 << ", "
-    // << x4 << ", " << y4 << ")\n";
 
-    // checks wether a point lies on both segments
-    if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
-      // cout << "intersects!\n";
-      return true;
-    }
-
-    return false; // no intersection point
+    // return true if a point lies on both segments, otherwise return false
+    return (s >= 0 && s <= 1 && t >= 0 && t <= 1);
   }
 
 
 
+/*
+checks for each point of the ~ColPoint~ object whether it is inside
+one of the regions of the actual ~ColRegions~ object.
+
+*/
   LongInts* ColRegion::pointsInside(ColPoint* cPoint) {
 
     const long cp1 = cPoint->getCount();  // index of point
@@ -1475,7 +1486,7 @@ s1 = (x1, y1, x2, y2) and s2 = (x3, y3, x4, y4)
           continue;  // if not inside bbox then continue with next region
         // define a point outside the region
         idPx2 = aRegion[idReg].mbrX1 - 1;
-        idPy2 = aRegion[idReg].mbrY1 - 1;
+        idPy2 = idPy1;
 
         cc = aRegion[idReg + 1].indexCycle;
         // counter of number of intersections
@@ -1512,7 +1523,11 @@ s1 = (x1, y1, x2, y2) and s2 = (x3, y3, x4, y4)
         }
 
         // if isCount is odd then point is inside region -> append
-        if (isCount & 1) id->Append(idP);
+        if (isCount & 1) {
+          id->Append(idP);
+          // no need to check further regions, continue with next point
+          break;
+        }
       }
     }
 
@@ -2068,8 +2083,12 @@ each entry to the clone object.
 
 //------------------------------ Operators ------------------------------------
 
-// Type Mapping
+/*
+5 Operators
 
+5.1 Type Mapping
+
+*/
 ListExpr insideTM(ListExpr args) {
     string err = "{apoint | aline} x aregion expected\n";
 
@@ -2154,6 +2173,9 @@ ListExpr mapTM(ListExpr args) {
 
 
 /*
+
+5.2 Value Mapping
+
 checks for each point of the apoint array if it's inside each region
 of a aregion array. If only one point or one region should be checked,
 then the arrays have to contain only one element. But the strength of
@@ -2351,7 +2373,11 @@ int mapColPointVM (Word* args, Word& result, int message,
   return true;
 }
 
-// maps the column spatial type ~aline~ to a single spatial object ~line~.
+/*
+maps the column spatial type ~aline~ to a single spatial type ~line~.
+needs an index.
+
+*/
 int mapColLineVM (Word* args, Word& result, int message,
                   Word& local, Supplier s) {
   cout << "map ColLine to Line\n";
@@ -2376,8 +2402,11 @@ int mapColLineVM (Word* args, Word& result, int message,
   return true;
 }
 
-// maps column spatial type ~aregion~ to a single spatial object ~region~.
-// needs an index.
+/*
+maps column spatial type ~aregion~ to a single spatial type ~region~.
+needs an index.
+
+*/
 int mapColRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s) {
   cout << "map ColRegion to Region\n";
@@ -2409,7 +2438,7 @@ int mapColRegionVM (Word* args, Word& result, int message,
 
 
 /*
-Selection Function
+5.3 Selection Function
 
 */
 int insideSelect(ListExpr args) {

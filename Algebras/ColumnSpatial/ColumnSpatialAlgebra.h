@@ -770,11 +770,12 @@ is appended to an attribute array of integer. The attribute array is returned.
                          double x3, double y3, double x4, double y4);
 
 /*
-The function ~pointsInside~ needs a ~ColPoint~ object as parameter and checks
-for each point whether it is within one of the regions of the actual
-~ColRegion~ object. The result is a list of type ~longints~.
-This function can handle a huge amount of points and regions, so if it is
-only needed to compare points to a single region, the array aRegion should
+The function ~pointsInside~ checks for each point inside the ~apoint~ type
+whether it is inside the set of regions of the actual ~aregion~ type.
+if a point is inside one or more regions its index is stored
+in a list of type ~longints~.
+This function processes the complete ~aregion~ array, so if it is
+only needed to compare points to a single region, the array ~aRegion~ should
 contain only this special region.
 
 */
@@ -952,13 +953,20 @@ int mapColPointVM (Word* args, Word& result, int message,
                    Word& local, Supplier s);
 
 /*
-The following ~map~ operators expects an data type of the column spatial
-algebra and converts it into a stream of the spatial algebra data type.
+The operator ~mapColLineVM~  expects an ~aline~ type and converts it
+into a single spatial type ~line~. It needs an index to specify one
+single line within the ~aline~ type.
 
 */
 int mapColLineVM (Word* args, Word& result, int message,
                   Word& local, Supplier s);
 
+/*
+The operator ~mapColRegionVM~  expects an ~aregion~ type and converts it
+into a single spatial type ~region~. It needs an index to specify one
+single region within the ~aregion~ type.
+
+*/
 int mapColRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s);
 
