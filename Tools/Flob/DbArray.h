@@ -487,6 +487,12 @@ size_t GetCapacity() const {
 return maxElements;
 }
 
+
+ inline static size_t headerSize() {
+   return Flob::headerSize() + 2*sizeof(SmiSize);
+ }
+ 
+
 /*
 ~SaveHeader~
 
