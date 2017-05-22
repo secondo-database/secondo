@@ -9466,7 +9466,7 @@ bool BusGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
 
    adj_list1.saveToFile(rf, adj_list1);
    SmiSize offset = 0;
-   size_t bufsize = adj_list1.headerSize()+ 2*sizeof(int);
+   size_t bufsize = adj_list1.headerSize();
    char* buf = (char*) malloc(bufsize);
    adj_list1.serializeHeader(buf,offset);
    assert(offset==bufsize);
@@ -9495,7 +9495,7 @@ bool BusGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
 
    adj_list2.saveToFile(rf, adj_list2);
    offset = 0;
-   bufsize = adj_list2.headerSize()+ 2*sizeof(int);
+   bufsize = adj_list2.headerSize();
    buf = (char*) malloc(bufsize);
    adj_list2.serializeHeader(buf,offset);
    assert(offset==bufsize);
@@ -9522,7 +9522,7 @@ bool BusGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
 
    adj_list3.saveToFile(rf, adj_list3);
    offset = 0;
-   bufsize = adj_list3.headerSize()+ 2*sizeof(int);
+   bufsize = adj_list3.headerSize();
    buf = (char*) malloc(bufsize);
    adj_list3.serializeHeader(buf,offset);
    assert(offset==bufsize);
@@ -16669,7 +16669,7 @@ bool MetroGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
 
    adj_list1.saveToFile(rf, adj_list1);
    SmiSize offset = 0;
-   size_t bufsize = adj_list1.headerSize()+ 2*sizeof(int);
+   size_t bufsize = adj_list1.headerSize();
    char* buf = (char*) malloc(bufsize);
    adj_list1.serializeHeader(buf,offset);
    assert(offset==bufsize);
@@ -16697,7 +16697,7 @@ bool MetroGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
 
    adj_list2.saveToFile(rf, adj_list2);
    offset = 0;
-   bufsize = adj_list2.headerSize()+ 2*sizeof(int);
+   bufsize = adj_list2.headerSize();
    buf = (char*) malloc(bufsize);
    adj_list2.serializeHeader(buf,offset);
    assert(offset==bufsize);

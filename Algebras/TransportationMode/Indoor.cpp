@@ -4928,7 +4928,7 @@ bool IndoorGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
    adj_list.saveToFile(rf, adj_list);
    SmiSize offset = 0;
 
-   size_t bufsize = adj_list.headerSize()+ 2*sizeof(int);
+   size_t bufsize = adj_list.headerSize();
 
 
    char* buf = (char*) malloc(bufsize);

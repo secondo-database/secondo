@@ -3394,7 +3394,7 @@ const ListExpr in_xTypeInfo)
    SmiRecordFile *rf = ctlg->GetFlobFile();
    adj_list.saveToFile(rf, adj_list);
    SmiSize offset = 0;
-   size_t bufsize = adj_list.headerSize()+ 2*sizeof(int);
+   size_t bufsize = adj_list.headerSize();
    char* buf = (char*) malloc(bufsize);
    adj_list.serializeHeader(buf,offset);
    assert(offset==bufsize);
@@ -7650,7 +7650,7 @@ bool VisualGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
    SmiRecordFile *rf = ctlg->GetFlobFile();
    adj_list.saveToFile(rf, adj_list);
    SmiSize offset = 0;
-   size_t bufsize = adj_list.headerSize()+ 2*sizeof(int);
+   size_t bufsize = adj_list.headerSize();
    char* buf = (char*) malloc(bufsize);
    adj_list.serializeHeader(buf,offset);
    assert(offset==bufsize);

@@ -12926,7 +12926,7 @@ bool Space::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
 
    infra_list.saveToFile(rf, infra_list);
    SmiSize offset = 0;
-   size_t bufsize = infra_list.headerSize()+ 2*sizeof(int);
+   size_t bufsize = infra_list.headerSize();
    char* buf = (char*) malloc(bufsize);
    infra_list.serializeHeader(buf,offset);
    assert(offset==bufsize);
