@@ -408,14 +408,19 @@ This operator crontracts this graph.
                      int variant,
                      size_t skipRecalculate,
                      const size_t maxEdges){
+       
+       std::vector<uint64_t> finished(graph.size(),0);
+       uint64_t finishedMark = 1;
        if(variant == 1){
          return simpleContraction1(maxPrio, minBlockSize, maxHopsF,
                                    maxHopsB, allShortCuts, 
-                                   skipRecalculate, maxEdges);
+                                   skipRecalculate, maxEdges,
+                                   &finished, finishedMark);
        } else {
          return simpleContraction2(maxPrio, minBlockSize, maxHopsF,
                                    maxHopsB, allShortCuts,
-                                   skipRecalculate, maxEdges);
+                                   skipRecalculate, maxEdges,
+                                   &finished, finishedMark);
        }
      }
 
@@ -439,7 +444,7 @@ hops and the forbidden node, then the search spans the whole graph.
           }
           return mpc(this,source, target, maxHopsForward, maxHopsBackward, 
                      maxCosts, forbidden, false, 
-                     std::numeric_limits<size_t>::max());
+                     std::numeric_limits<size_t>::max(),0,0);
      }
 
 
@@ -788,16 +793,19 @@ Auxiliary function for computing multi-target-path-costs.
    void processNode(queueentry e, size_t forbidden, 
                     std::map<size_t,double>& targets,
                     size_t maxHops, size_t reached, 
-                    std::set<size_t>& finished,
+                    std::vector<uint64_t>* finished,
+                    uint64_t& finishedMark,
                     Q& front, size_t& processedEdges,
                     const size_t maxEdges
                     ){
 
       // check wether node has already been processed
-      if(finished.find(e.node)!=finished.end()){
+      if( (*finished)[e.node] == finishedMark){
          return;
       }
-      finished.insert(e.node);
+
+      // mark node as finished
+      (*finished)[e.node] = finishedMark;
       // check whether node is one of the target nodes
       std::map<size_t,double>::iterator it = targets.find(e.node);
       if(it!=targets.end()){
@@ -820,7 +828,7 @@ Auxiliary function for computing multi-target-path-costs.
          sit++){
          MEdge& me = *sit;
          size_t t = me.target;
-         if(t!=forbidden && finished.find(t)==finished.end()){
+         if( (t!=forbidden) && ((*finished)[t] != finishedMark)){
             processedEdges++;
             queueentry et(t, e.cost + me.costs,e.depth+1);
             front.push(et);
@@ -840,10 +848,12 @@ have maximum costs.
    void computeCosts(size_t source, size_t forbidden, 
                      std::map<size_t, double>& targets, 
                      double maxCost, size_t maxHops,
-                     size_t maxEdges){
+                     size_t maxEdges,
+                     std::vector<uint64_t>* finished,
+                     uint64_t finishedMark){
        queueentry e(source,0,0);
        queue_t2 front;
-       std::set<size_t> finished;
+       //std::set<size_t> finished;
        front.push(e);
        size_t edges = 0;
        size_t reached = targets.size();
@@ -853,14 +863,15 @@ have maximum costs.
           if(e.cost > maxCost){
              return;
           }
-          processNode(e, forbidden, targets, maxHops, reached, finished,front, 
+          processNode(e, forbidden, targets, maxHops, reached, 
+                      finished,finishedMark,front, 
                       edges, maxEdges);
        }
    }
 
 
 /*
-2.35 ~computeSHortCuts1~
+2.35 ~computeShortCuts1~
 
 This operator computes the shortcuts if a given node would be 
 contracted. This variant computes the costs from a source
@@ -869,7 +880,9 @@ to all targets in a single step.
 */
    void computeShortCuts1(size_t node, size_t maxHops, 
                          std::vector<MEdge>& result,
-                         const size_t maxEdges){
+                         const size_t maxEdges,
+                         std::vector<uint64_t>* finished,
+                         uint64_t& finishedMark){
        // collect all target nodes in a set
        result.clear();
        std::list<MEdge>& preds = graph[node].second;
@@ -913,7 +926,6 @@ to all targets in a single step.
        // all potential shortcuts are collected in cand
        Tuple* tuple = 0;
        if(cand.size()>0){
-       //  cout << "Candidates : " << candsize << endl;
          tuple = graph[node].first.begin()->info;
        }
 
@@ -927,7 +939,15 @@ to all targets in a single step.
              targets[tit->first] = std::numeric_limits<double>::max();
           } 
           // store minPathCost in targets
-          computeCosts(source, node, targets, costs, maxHops, maxEdges);
+          computeCosts(source, node, targets, costs, maxHops, maxEdges, 
+                       finished, finishedMark);
+          finishedMark++;
+          if(finishedMark==std::numeric_limits<uint64_t>::max()){
+              for(size_t i=0;i<finished->size();i++){
+                 (*finished)[i] =0;
+              }
+              finishedMark = 1;
+          }
           //
           for(tit =  sit->second.begin(); tit!=sit->second.end(); tit++){
              if(tit->second < targets[tit->first]){
@@ -944,7 +964,7 @@ to all targets in a single step.
 2.36 computeShortCuts2
 
 This function computes the shortcuts to be inserted into the graph
-if the node ~node~ is contracted. This variante computes the shortest
+if the node ~node~ is contracted. This variant computes the shortest
 path costs for all combinations of source and target using a 
 bidirectional dijkstra restricted by hops and maxEdges.
 
@@ -952,7 +972,9 @@ bidirectional dijkstra restricted by hops and maxEdges.
 
    void computeShortCuts2(size_t node, size_t maxHopsF, 
                           size_t maxHopsB, std::vector<MEdge>& result,
-                          const size_t maxEdges){
+                          const size_t maxEdges,
+                          std::vector<uint64_t>* finished,
+                          uint64_t& finishedMark){
        result.clear();
        std::list<MEdge>& preds1  = graph[node].second;
        std::list<MEdge>& succs1 = graph[node].first;
@@ -1001,7 +1023,15 @@ bidirectional dijkstra restricted by hops and maxEdges.
             double c = c1 + sedge.costs;
             if(s!=t){
                double spc = mpc(this,s,t,maxHopsF, maxHopsB,c,
-                                node,true, maxEdges);
+                                node,true, maxEdges,
+                                finished, finishedMark);
+               finishedMark++;
+               if(finishedMark==std::numeric_limits<uint64_t>::max()){
+                  for(size_t i=0;i<finished->size();i++){
+                    (*finished)[i] =0;
+                  }
+                  finishedMark = 1;
+               }
                if(spc > c){ // path longer than going over node
                   result.push_back(createEdge(pedge.info, s, t, c));
                }
@@ -1139,7 +1169,9 @@ This method contracts this graph using a two-step priority computation.
                               int maxHopsB, 
                               std::vector<shortCutInfo>& allShortCuts,
                               size_t skipReinsert,
-                              const size_t maxEdges){
+                              const size_t maxEdges,
+                              std::vector<uint64_t>* finished,
+                              uint64_t& finishedMark){
 
        //std::cout << "called simple contraction" << std::endl;
 
@@ -1182,9 +1214,11 @@ This method contracts this graph using a two-step priority computation.
              queue.push(e);
           } else {
             if(maxHopsB<=0){
-               computeShortCuts1(node, maxHopsF, shortcuts, maxEdges);
+               computeShortCuts1(node, maxHopsF, shortcuts, maxEdges, 
+                                 finished, finishedMark);
             } else {
-               computeShortCuts2(node, maxHopsF, maxHopsB,shortcuts, maxEdges);
+               computeShortCuts2(node, maxHopsF, maxHopsB,shortcuts, maxEdges, 
+                                 finished, finishedMark);
             }
             if(   (in*out + (shortcuts.size() - (in + out)) > prio)
                && (shortcuts.size() > (size_t)(in+out))
@@ -1259,7 +1293,9 @@ neighbors as priority.
                               int maxHopsF, int maxHopsB,
                               std::vector<shortCutInfo>& allShortCuts,
                               size_t skipReinit,
-                              const size_t maxEdges){
+                              const size_t maxEdges,
+                              std::vector<uint64_t>* finished,
+                              uint64_t& finishedMark){
 
        //std::cout << "called simple contraction" << std::endl;
 
@@ -1332,9 +1368,11 @@ neighbors as priority.
             }
 
             if(maxHopsB<=0){
-               computeShortCuts1(node, maxHopsF, shortcuts, maxEdges);
+               computeShortCuts1(node, maxHopsF, shortcuts, maxEdges, 
+                                 finished, finishedMark);
             } else {
-               computeShortCuts2(node, maxHopsF, maxHopsB,shortcuts, maxEdges);
+               computeShortCuts2(node, maxHopsF, maxHopsB,shortcuts, maxEdges,
+                                 finished, finishedMark);
             }
             insertShortCuts(shortcuts);
             // update number of contracted neighbors
@@ -1442,7 +1480,9 @@ using a bidirectional dijkstra.
                             const double _maxCosts,
                             const int _forbidden,
                             const bool  _skipIfSmaller,
-                            const size_t _maxEdges){
+                            const size_t _maxEdges,
+                            std::vector<uint64_t>* finished,
+                            uint64_t finishedMark){
 
             g = _g;
             source = _source;
