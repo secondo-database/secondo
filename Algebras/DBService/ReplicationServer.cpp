@@ -132,11 +132,9 @@ bool ReplicationServer::createFile(string fileName) const
     stringstream query;
     query << "query "
           << relationName
-//          << " saveObjectToFile[\""
-          << " saveObjectToFile[\\\"\""
+          << " saveObjectToFile[\""
           << fileName
-//          << "\"]";
-          << "\"\\\"]";
+          << "\"]";
     traceWriter->write("query", query.str());
 
 //    SecondoUtilsLocal::executeQuery(query.str());

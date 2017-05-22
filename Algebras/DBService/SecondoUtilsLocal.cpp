@@ -118,6 +118,7 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     bool isFunction = false;
 
     QueryProcessor* queryProcessor = SecondoSystem::GetQueryProcessor();
+    queryProcessor->SetDebugLevel(3);
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
 
     // TODO check for existing catalog object

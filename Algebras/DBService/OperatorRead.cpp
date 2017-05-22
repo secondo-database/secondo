@@ -26,35 +26,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_TRACEWRITER_HPP_
-#define ALGEBRAS_DBSERVICE_TRACEWRITER_HPP_
+#include "NestedList.h"
+#include "StandardTypes.h"
 
-#include <fstream>
-#include <memory>
-#include <string>
-
-#include "Algebras/DBService/LocationInfo.hpp"
-#include "Algebras/DBService/RelationInfo.hpp"
+#include "Algebras/DBService/OperatorRead.hpp"
 
 namespace DBService {
 
-class TraceWriter {
-public:
-    TraceWriter(std::string& context);
-    ~TraceWriter();
-    void write(const std::string& text);
-    void write(const char* text);
-    void write(const size_t text);
-    void write(const LocationInfo& location);
-    void write(const RelationInfo& relationInfo);
-    void write(const char* description, const std::string& text);
-    void write(const char* description, int number);
-    void writeFunction(const char* text);
-private:
-    std::string fileName;
-    std::auto_ptr<std::ofstream> traceFile;
-};
+ListExpr OperatorRead::mapType(ListExpr nestedList)
+{
+    return listutils::basicSymbol<CcBool>();
+}
+
+int OperatorRead::mapValue(Word* args,
+                              Word& result,
+                              int message,
+                              Word& local,
+                              Supplier s)
+{
+    result = qp->ResultStorage(s);
+    static_cast<CcBool*>(result.addr)->Set(true,true);
+    return 0;
+}
 
 } /* namespace DBService */
-
-#endif /* ALGEBRAS_DBSERVICE_TRACEWRITER_HPP_ */

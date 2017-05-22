@@ -26,35 +26,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_TRACEWRITER_HPP_
-#define ALGEBRAS_DBSERVICE_TRACEWRITER_HPP_
+#ifndef ALGEBRAS_DBSERVICE_OPERATORREAD_HPP_
+#define ALGEBRAS_DBSERVICE_OPERATORREAD_HPP_
 
-#include <fstream>
-#include <memory>
-#include <string>
-
-#include "Algebras/DBService/LocationInfo.hpp"
-#include "Algebras/DBService/RelationInfo.hpp"
+#include "Operator.h"
 
 namespace DBService {
 
-class TraceWriter {
+struct ReadInfo: OperatorInfo
+{
+    ReadInfo()
+    {
+        name = "read";
+        signature = ""; // TODO
+        syntax = ""; // TODO
+        meaning = "execute a certain query and fall back to"
+                  "replica provided by DBService if necessary";
+        usesArgsInTypeMapping = false;
+    }
+};
+
+class OperatorRead
+{
 public:
-    TraceWriter(std::string& context);
-    ~TraceWriter();
-    void write(const std::string& text);
-    void write(const char* text);
-    void write(const size_t text);
-    void write(const LocationInfo& location);
-    void write(const RelationInfo& relationInfo);
-    void write(const char* description, const std::string& text);
-    void write(const char* description, int number);
-    void writeFunction(const char* text);
-private:
-    std::string fileName;
-    std::auto_ptr<std::ofstream> traceFile;
+    static ListExpr mapType(ListExpr nestedList);
+    static int mapValue(Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s);
 };
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_TRACEWRITER_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_OPERATORREAD_HPP_ */

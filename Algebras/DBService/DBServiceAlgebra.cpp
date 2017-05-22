@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/OperatorGetConfigParam.hpp"
 #include "Algebras/DBService/OperatorInitDBServiceWorker.hpp"
 #include "Algebras/DBService/OperatorLetDConsume.hpp"
+#include "Algebras/DBService/OperatorRead.hpp"
 #include "Algebras/DBService/OperatorStartDBService.hpp"
 
 namespace DBService
@@ -63,6 +64,9 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(StartDBServiceInfo(),
                 OperatorStartDBService::mapValue,
                 OperatorStartDBService::mapType);
+    AddOperator(ReadInfo(),
+                OperatorRead::mapValue,
+                OperatorRead::mapType);
 }
 
 } /* namespace DBService */

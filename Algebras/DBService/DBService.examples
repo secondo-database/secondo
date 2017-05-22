@@ -4,7 +4,7 @@ Restore  : No
 Operator  : letdconsume
 Number    : 1
 Signature : stream(tuple) x string -> rel(tuple)
-Example   : let Roads2 = Roads filter[ . startsWith "A"] letdconsume["Roads2"]
+Example   : let Roads2 = Roads filter[ .Name startsWith "A"] letdconsume["Roads2"]
 Result    : bug
 Remark    : Requires a DBServiceSystem
 
@@ -48,4 +48,11 @@ Number    : 1
 Signature : string x string -> string
 Example   : query getconfigparam("DBService", "DBServiceHost")
 Result    : "127.0.0.1"
+Remark    : None
+
+Operator  : read
+Number    : 1
+Signature : TODO
+Example   : TODO query myDArray read[ . filter[ .Name startsWith "A"] ]
+Result    : TODO
 Remark    : None

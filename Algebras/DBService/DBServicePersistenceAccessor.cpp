@@ -239,22 +239,23 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
         {
             if(!nl->IsEmpty(resultData))
             {
-                print("resultData", resultData);
-                ListExpr currentRow = nl->First(resultData);
-                ConnectionID conn(nl->IntValue(nl->First(currentRow)));
-                string host(nl->StringValue(nl->Second(currentRow)));
-                string port(nl->StringValue(nl->Third(currentRow)));
-                string config(nl->StringValue(nl->Fourth(currentRow)));
-                string disk(nl->StringValue(nl->Fifth(currentRow)));
-                string commPort(nl->StringValue(nl->Sixth(currentRow)));
-                string transferPort(nl->StringValue(nl->Seventh(currentRow)));
+            print("resultData", resultData);
+            ListExpr currentRow = nl->First(resultData);
+            ConnectionID conn(nl->IntValue(nl->First(currentRow)));
+            string host(nl->StringValue(nl->Second(currentRow)));
+            string port(nl->StringValue(nl->Third(currentRow)));
+            string config(nl->StringValue(nl->Fourth(currentRow)));
+            string disk(nl->StringValue(nl->Fifth(currentRow)));
+            string commPort(nl->StringValue(nl->Sixth(currentRow)));
+            string transferPort(nl->StringValue(nl->Seventh(currentRow)));
 
-                LocationInfo location(
-                        host, port, config, disk, commPort, transferPort);
-                print(location);
-                locations.insert(
-                        pair<ConnectionID, LocationInfo>(conn, location));
-                resultData = nl->Rest(resultData);
+            LocationInfo location(
+                    host, port, config, disk, commPort, transferPort);
+            print(location);
+            locations.insert(
+                    pair<ConnectionID, LocationInfo>(conn, location));
+            resultData = nl->Rest(resultData);
+
             }
         }
     }else
@@ -265,17 +266,88 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
 }
 
 bool DBServicePersistenceAccessor::restoreRelationInfo(
-        vector<RelationInfo>& relations)
+        map<string, RelationInfo>& relations)
 {
     printFunction("DBServicePersistenceAccessor::restoreRelationInfo");
-    return true;
+
+    string query("query relations_DBSP");
+    string errorMessage;
+    ListExpr resultList;
+    bool resultOk = SecondoUtilsLocal::excuteQueryCommand(
+            query, resultList, errorMessage);
+    if(resultOk)
+    {
+        print("resultList", resultList);
+        ListExpr resultData = nl->Second(resultList);
+        print("resultData", resultData);
+
+        int resultCount = nl->ListLength(resultData);
+        print(resultCount);
+
+        for(int i = 0; i < resultCount; i++)
+        {
+            if(!nl->IsEmpty(resultData))
+            {
+                print("resultData", resultData);
+                ListExpr currentRow = nl->First(resultData);
+                string relID(nl->StringValue(nl->First(currentRow)));
+                string dbName(nl->StringValue(nl->Second(currentRow)));
+                string relName(nl->StringValue(nl->Third(currentRow)));
+                string host(nl->StringValue(nl->Fourth(currentRow)));
+                string port(nl->StringValue(nl->Fifth(currentRow)));
+                string disk(nl->StringValue(nl->Sixth(currentRow)));
+                RelationInfo relationInfo(dbName, relName, host, port, disk);
+                print(relationInfo);
+                relations.insert(
+                        pair<string, RelationInfo>(relID, relationInfo));
+                resultData = nl->Rest(resultData);
+            }
+        }
+    }else
+    {
+        print(errorMessage);
+    }
+    return resultOk;
 }
 
 bool DBServicePersistenceAccessor::restoreLocationMapping(
         queue<pair<std::string, ConnectionID> >& mapping)
 {
     printFunction("DBServicePersistenceAccessor::restoreLocationMapping");
-    return true;
+    string query("query mapping_DBSP");
+        string errorMessage;
+        ListExpr resultList;
+        bool resultOk = SecondoUtilsLocal::excuteQueryCommand(
+                query, resultList, errorMessage);
+        if(resultOk)
+        {
+            print("resultList", resultList);
+            ListExpr resultData = nl->Second(resultList);
+            print("resultData", resultData);
+
+            int resultCount = nl->ListLength(resultData);
+            print(resultCount);
+
+            for(int i = 0; i < resultCount; i++)
+            {
+                if(!nl->IsEmpty(resultData))
+                {
+                    print("resultData", resultData);
+                    ListExpr currentRow = nl->First(resultData);
+                    string relID(nl->StringValue(nl->First(currentRow)));
+                    ConnectionID conn(nl->IntValue(nl->Second(currentRow)));
+                    print("RelationID: ", relID);
+                    print("ConnectionID: ", conn);
+                    mapping.push(
+                            pair<string, ConnectionID>(relID, conn));
+                    resultData = nl->Rest(resultData);
+                }
+            }
+        }else
+        {
+            print(errorMessage);
+        }
+        return resultOk;
 }
 
 } /* namespace DBService */

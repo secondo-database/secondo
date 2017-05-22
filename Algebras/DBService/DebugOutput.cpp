@@ -96,14 +96,24 @@ void print(const std::string& text1, const char* text2)
     cout << text2 << endl;
 }
 
-void print(const LocationInfo& location)
+void print(const LocationInfo& locationInfo)
 {
     cout << "LocationInfo:" << endl;
-    cout << location.getHost() << endl;
-    cout << location.getPort() << endl;
-    cout << location.getDisk() << endl;
-    cout << location.getCommPort() << endl;
-    cout << location.getTransferPort() << endl;
+    cout << locationInfo.getHost() << endl;
+    cout << locationInfo.getPort() << endl;
+    cout << locationInfo.getDisk() << endl;
+    cout << locationInfo.getCommPort() << endl;
+    cout << locationInfo.getTransferPort() << endl;
+}
+
+void print(const RelationInfo& relationInfo)
+{
+    cout << "RelationInfo:" << endl;
+    cout << relationInfo.getDatabaseName() << endl;
+    cout << relationInfo.getRelationName() << endl;
+    cout << relationInfo.getOriginalLocation().getHost() << endl;
+    cout << relationInfo.getOriginalLocation().getPort() << endl;
+    cout << relationInfo.getOriginalLocation().getDisk() << endl;
 }
 
 }

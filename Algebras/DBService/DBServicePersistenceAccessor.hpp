@@ -50,7 +50,8 @@ public:
     static bool restoreLocationInfo(
             std::map<ConnectionID, LocationInfo>& locations);
 
-    static bool restoreRelationInfo(std::vector<RelationInfo>& relations);
+    static bool restoreRelationInfo(
+            std::map<std::string, RelationInfo>& relations);
     static bool restoreLocationMapping(
             std::queue<std::pair<std::string, ConnectionID> >& mapping);
 private:

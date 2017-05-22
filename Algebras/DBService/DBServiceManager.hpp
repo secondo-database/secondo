@@ -138,10 +138,10 @@ private:
     void restoreReplicaInformation();
 
     static DBServiceManager* _instance;
-    static std::map<ConnectionID,
+    std::map<ConnectionID,
                     std::pair<LocationInfo,
                               distributed2::ConnectionInfo*> > connections;
-    std::map<std::string, RelationInfo> replicaLocations;
+    std::map<std::string, RelationInfo> relations;
     //boost::shared_ptr<CommunicationServer> commServer;
     size_t replicaCount;
 

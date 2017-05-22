@@ -101,6 +101,16 @@ void TraceWriter::write(const LocationInfo& location)
     *traceFile << location.getTransferPort() << endl;
 }
 
+void TraceWriter::write(const RelationInfo& relationInfo)
+{
+    *traceFile << "RelationInfo:" << endl;
+    *traceFile << relationInfo.getDatabaseName() << endl;
+    *traceFile << relationInfo.getRelationName() << endl;
+    *traceFile << relationInfo.getOriginalLocation().getHost() << endl;
+    *traceFile << relationInfo.getOriginalLocation().getPort() << endl;
+    *traceFile << relationInfo.getOriginalLocation().getDisk() << endl;
+}
+
 void TraceWriter::write(const char* description, const string& text)
 {
     print(description, text);

@@ -105,13 +105,24 @@ void DBServiceManager::restoreReplicaInformation()
         }
     }
 
-//    vector<RelationInfo> relations;
-//    DBServicePersistenceAccessor::restoreRelationInfo(relations);
-//
-//    queue<pair<std::string, ConnectionID> > mapping;
-//    DBServicePersistenceAccessor::restoreLocationMapping(mapping);
+    DBServicePersistenceAccessor::restoreRelationInfo(relations);
 
-    // TODO connect related information and store accordingly
+    queue<pair<std::string, ConnectionID> > mapping;
+    DBServicePersistenceAccessor::restoreLocationMapping(mapping);
+
+    while(!mapping.empty())
+    {
+        relations.at(mapping.front().first).addNode(mapping.front().second);
+        mapping.pop();
+    }
+
+    for(map<string, RelationInfo>::const_iterator it = relations.begin();
+            it != relations.end(); it++)
+    {
+        print("RelationID: ", it->first);
+        print("Number of Replicas: ",
+                const_cast<RelationInfo*>(&(it->second))->getNodeCount());
+    }
 }
 
 DBServiceManager* DBServiceManager::getInstance()
@@ -226,7 +237,7 @@ void DBServiceManager::determineReplicaLocations(const string& databaseName,
     vector<ConnectionID> locations;
     getWorkerNodesForReplication(locations);
     relationInfo.addNodes(locations);
-    replicaLocations.insert(pair<string, RelationInfo>(relationInfo.toString(),
+    relations.insert(pair<string, RelationInfo>(relationInfo.toString(),
             relationInfo));
 }
 
@@ -240,7 +251,7 @@ void DBServiceManager::persistReplicaLocations(const string& databaseName,
                                                const string& relationName)
 {
     RelationInfo relationInfo =
-            replicaLocations.at(
+            relations.at(
                     RelationInfo::getIdentifier(databaseName, relationName));
     DBServicePersistenceAccessor::persistRelationInfo(relationInfo);
 }
@@ -294,7 +305,7 @@ LocationInfo& DBServiceManager::getLocation(ConnectionID id)
 RelationInfo& DBServiceManager::getRelationInfo(const string& relationAsString)
 {
     printFunction("DBServiceManager::getRelationInfo");
-    return replicaLocations.at(relationAsString);
+    return relations.at(relationAsString);
 }
 
 //TODO
@@ -305,7 +316,5 @@ bool DBServiceManager::persistLocationInformation()
 }
 
 DBServiceManager* DBServiceManager::_instance = NULL;
-map<ConnectionID, pair<LocationInfo,
-                       ConnectionInfo*> > DBServiceManager::connections;
 
 } /* namespace DBService */
