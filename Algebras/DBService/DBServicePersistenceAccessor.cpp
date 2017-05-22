@@ -239,23 +239,22 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
         {
             if(!nl->IsEmpty(resultData))
             {
-            print("resultData", resultData);
-            ListExpr currentRow = nl->First(resultData);
-            ConnectionID conn(nl->IntValue(nl->First(currentRow)));
-            string host(nl->StringValue(nl->Second(currentRow)));
-            string port(nl->StringValue(nl->Third(currentRow)));
-            string config(nl->StringValue(nl->Fourth(currentRow)));
-            string disk(nl->StringValue(nl->Fifth(currentRow)));
-            string commPort(nl->StringValue(nl->Sixth(currentRow)));
-            string transferPort(nl->StringValue(nl->Seventh(currentRow)));
+                print("resultData", resultData);
+                ListExpr currentRow = nl->First(resultData);
+                ConnectionID conn(nl->IntValue(nl->First(currentRow)));
+                string host(nl->StringValue(nl->Second(currentRow)));
+                string port(nl->StringValue(nl->Third(currentRow)));
+                string config(nl->StringValue(nl->Fourth(currentRow)));
+                string disk(nl->StringValue(nl->Fifth(currentRow)));
+                string commPort(nl->StringValue(nl->Sixth(currentRow)));
+                string transferPort(nl->StringValue(nl->Seventh(currentRow)));
 
-            LocationInfo location(
-                    host, port, config, disk, commPort, transferPort);
-            print(location);
-            locations.insert(
-                    pair<ConnectionID, LocationInfo>(conn, location));
-            resultData = nl->Rest(resultData);
-
+                LocationInfo location(
+                        host, port, config, disk, commPort, transferPort);
+                print(location);
+                locations.insert(
+                        pair<ConnectionID, LocationInfo>(conn, location));
+                resultData = nl->Rest(resultData);
             }
         }
     }else
