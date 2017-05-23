@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Count.h"
 
+#include "AttrArray.h"
 #include "CRel.h"
 #include "CRelTC.h"
 #include <cstddef>
@@ -35,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "QueryProcessor.h"
 #include "Stream.h"
 #include <string>
+#include "Symbols.h"
 #include "TBlock.h"
 #include "TBlockTC.h"
 #include "TypeUtils.h"
@@ -66,6 +68,8 @@ ValueMapping Count::valueMappings[] =
   CRelValueMapping,
   BlockStreamValueMapping,
   BlockValueMapping,
+  ArrayStreamValueMapping,
+  ArrayValueMapping,
   nullptr
 };
 
@@ -80,10 +84,18 @@ ListExpr Count::TypeMapping(ListExpr args)
   const ListExpr firstArgExpr = nl->First(args);
 
   //Check first parameter for crel or (stream of) tblock
+  //or (stream of) ATTRARRAY
   if (!CRelTI::Check(firstArgExpr) &&
       !TBlockTI::Check(GetStreamType(firstArgExpr, true)))
   {
-    return GetTypeError(0, "Isn't a crel or (stream of) tblock.");
+    const ListExpr streamType = GetStreamType(firstArgExpr, true);
+
+    if (!TBlockTI::Check(streamType) &&
+        !CheckKind(Kind::ATTRARRAY(), streamType))
+    {
+      return GetTypeError(0, "Isn't a crel or (stream of) tblock or (stream of)"
+                             " ATTRARRAY.");
+    }
   }
 
   //Result is a 'int'
@@ -99,7 +111,9 @@ int Count::SelectValueMapping(ListExpr args)
     return 0;
   }
 
-  return isStream(arg) ? 1 : 2;
+  int index = TBlockTI::Check(arg) ? 1 : 3;
+
+  return isStream(arg) ? index : index + 1;
 }
 
 int Count::CRelValueMapping(ArgVector args, Word &result, int, Word&,
@@ -163,6 +177,59 @@ int Count::BlockValueMapping(ArgVector args, Word &result, int, Word&,
 
     qp->ResultStorage<LongInt>(result, s).SetValue(
       block->GetFilter().GetRowCount());
+
+    return 0;
+  }
+  catch (const exception &e)
+  {
+    ErrorReporter::ReportError(e.what());
+  }
+
+  return FAILURE;
+}
+
+int Count::ArrayStreamValueMapping(ArgVector args, Word &result, int, Word&,
+                                   Supplier s)
+{
+  try
+  {
+    Stream<AttrArray> stream = Stream<AttrArray>(args[0]);
+    AttrArray *array;
+
+    stream.open();
+
+    size_t count = 0;
+
+    while ((array = stream.request()) != nullptr)
+    {
+      count += array->GetFilter().GetCount();
+
+      array->DecRef();
+    }
+
+    stream.close();
+
+    qp->ResultStorage<LongInt>(result, s).SetValue(count);
+
+    return 0;
+  }
+  catch (const exception &e)
+  {
+    ErrorReporter::ReportError(e.what());
+  }
+
+  return FAILURE;
+}
+
+int Count::ArrayValueMapping(ArgVector args, Word &result, int, Word&,
+                             Supplier s)
+{
+  try
+  {
+    AttrArray *array = (AttrArray*)args[0].addr;
+
+    qp->ResultStorage<LongInt>(result, s).SetValue(
+      array->GetFilter().GetCount());
 
     return 0;
   }

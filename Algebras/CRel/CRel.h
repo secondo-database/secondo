@@ -268,17 +268,13 @@ namespace CRelAlgebra
     PTBlockInfo m_blockInfo;
 
     const size_t m_columnCount,
-      m_desiredBlockSize,
-      m_blockSaveSize;
+      m_desiredBlockSize;
 
     size_t m_rowCount,
       m_blockCount,
       m_nextBlockIndex;
 
-    mutable size_t m_recordCount,
-      m_iteratorPosition;
-
-    mutable PrefetchingIterator *m_blockIterator;
+    mutable size_t m_recordCount;
 
     const size_t m_blockRecordEntrySize,
       m_blockRecordEntryCount,

@@ -42,6 +42,300 @@ namespace CRelAlgebra
 {
   class LineEntry
   {
+  public:
+    typedef Line AttributeType;
+
+    static const bool isPrecise = true;
+
+    static const int dimension = 2;
+
+    static size_t GetSize(const Line &value)
+    {
+      if (value.IsDefined())
+      {
+        return sizeof(int64_t) + sizeof(Rectangle<2>) +
+               (value.Size() * sizeof(SimpleHalfSegment));
+      }
+
+      return 0;
+    }
+
+    static void Write(SimpleVSAttrArrayEntry target, const Line &value)
+    {
+      if (value.IsDefined())
+      {
+        LineEntry entry = LineEntry(target);
+
+        new (entry.GetCountP()) int64_t(value.Size());
+
+        value.SelectFirst();
+
+        HalfSegment sourceSegment;
+
+        for (SimpleHalfSegment &targetSegment : entry)
+        {
+          value.GetHs(sourceSegment);
+
+          const SimpleHalfSegment segment = SimpleHalfSegment(sourceSegment);
+
+          new (&targetSegment) SimpleHalfSegment(segment);
+
+          value.SelectNext();
+        }
+
+        new (entry.GetBoundingBoxP()) Rectangle<2>(value.BoundingBox());
+      }
+    }
+
+    LineEntry()
+    {
+    }
+
+    LineEntry(const SimpleVSAttrArrayEntry &value) :
+      data(value.data),
+      size(value.size)
+    {
+    }
+
+    bool IsDefined() const
+    {
+      return size != 0;
+    }
+
+    int Compare(const LineEntry &other) const
+    {
+      if (size > other.size)
+      {
+        return 1;
+      }
+
+      if (size < other.size)
+      {
+        return -1;
+      }
+
+      if (size == 0)
+      {
+        return 0;
+      }
+
+      const int64_t count = *GetCountP();
+
+      const SimpleHalfSegment *segmentsA = begin(),
+        *segmentsB = other.begin();
+
+      int cmp = 0;
+
+      for (int64_t i = 0; cmp == 0 && i < count; ++i)
+      {
+        cmp = segmentsA[i].Compare(segmentsB[i]);
+      }
+
+      return cmp;
+    }
+
+    int Compare(const Line &value) const
+    {
+      if (size == 0)
+      {
+        return value.IsDefined() ? -1 : 0;
+      }
+
+      if (!value.IsDefined())
+      {
+        return 1;
+      }
+
+      const int64_t countA = *GetCountP(),
+        countB = value.Size();
+
+      if (countA > countB)
+      {
+        return 1;
+      }
+
+      if (countA < countB)
+      {
+        return -1;
+      }
+
+      int cmp = 0;
+
+      if (countA > 0)
+      {
+        HalfSegment segmentB;
+
+        value.SelectFirst();
+
+        for (const SimpleHalfSegment& segmentA : *this)
+        {
+          value.GetHs(segmentB);
+
+          cmp = segmentA.Compare(SimpleHalfSegment(segmentB));
+
+          if (cmp != 0)
+          {
+            break;
+          }
+        }
+      }
+
+      return cmp;
+    }
+
+    bool Equals(const LineEntry &other) const
+    {
+      return Compare(other) == 0;
+    }
+
+    bool Equals(const Line &value) const
+    {
+      return Compare(value) == 0;
+    }
+
+    size_t GetHash() const
+    {
+      size_t h = 0;
+
+      if (size != 0)
+      {
+        char i = 0;
+
+        for (const SimpleHalfSegment& segment : *this)
+        {
+          h += (size_t)((5 * segment.lp.x + segment.lp.y) +
+                        (5 * segment.rp.x + segment.rp.y));
+
+          if (++i == 5)
+          {
+            break;
+          }
+        }
+      }
+
+      return h;
+    }
+
+    Line *GetAttribute(bool clone = true) const
+    {
+      if (size != 0)
+      {
+        const int64_t count = *GetCountP();
+
+        Line *line = new Line(count);
+
+        if (count > 0)
+        {
+          /*const Rectangle<2> &bbox = *GetBoundingBoxP();
+
+          *line += HalfSegment(true, Point(true, bbox.MinD(0), bbox.MinD(1)),
+                                     Point(true, bbox.MaxD(0), bbox.MaxD(1)));
+
+          int i = 0;*/
+
+          for (const SimpleHalfSegment& segment : *this)
+          {
+            //This causes significant overhead but there is currently no other
+            //way to ensure a correct bounding box
+            *line += segment.ToHalfSegment();
+
+            //line->Put(i++, segment.ToHalfSegment());
+          }
+        }
+
+        return line;
+      }
+
+      return new Line(false);
+    }
+
+    virtual Rectangle<2> GetBoundingBox(const Geoid *geoid = nullptr) const
+    {
+      if (size != 0)
+      {
+        if (geoid == nullptr) // euclidean
+        {
+          const double left = GetBoundingBoxP()->MinD(0),
+            top = GetBoundingBoxP()->MaxD(1),
+            right = GetBoundingBoxP()->MaxD(0),
+            bottom = GetBoundingBoxP()->MinD(1);
+
+          return Rectangle<2>(true, left, right, bottom, top);
+
+          //return *GetBoundingBoxP();
+        }
+
+        if (geoid->IsDefined()) // spherical
+        {
+          Rectangle<2> bbox = Rectangle<2>(false);
+
+          for (const SimpleHalfSegment& segment : *this)
+          {
+            if (segment.ldp) // ignore inverse HalfSegments
+            {
+              if (!bbox.IsDefined())
+              {
+                bbox = segment.GetBoundingBox(geoid);
+              }
+              else
+              {
+                bbox = bbox.Union(segment.GetBoundingBox(geoid));
+              }
+            }
+          }
+
+          return bbox;
+        }
+      }
+
+      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+    }
+
+    virtual double GetDistance(const Rectangle<2>& rect,
+                               const Geoid *geoid = nullptr) const
+    {
+      assert(geoid == nullptr);
+
+      double dist = std::numeric_limits<double>::max();
+
+      for (const SimpleHalfSegment &segment : *this)
+      {
+        if (segment.ldp)
+        {
+          dist = std::min(dist, segment.GetDistance(rect));
+        }
+      }
+
+      return dist;
+    }
+
+    virtual bool Intersects(const Rectangle<2>& rect,
+                            const Geoid *geoid = nullptr) const
+    {
+      if (size != 0 && geoid == nullptr &&
+          !GetBoundingBoxP()->Intersects(rect, geoid))
+      {
+        for (const SimpleHalfSegment &segment : *this)
+        {
+          if (segment.ldp && segment.Intersects(rect))
+          {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      assert(geoid == nullptr);
+
+      throw SecondoException("Not implemented!");
+    }
+
+    virtual bool IsEmpty() const
+    {
+      return size == 0 || *GetCountP() == 0;
+    }
+
   private:
     class SimplePoint : public Constraint::Point2D
     {
@@ -633,297 +927,6 @@ namespace CRelAlgebra
       return begin() + *GetCountP();
     }
 
-  public:
-    typedef Line AttributeType;
-
-    static const bool isPrecise = true;
-
-    static const int dimension = 2;
-
-    static size_t GetSize(const Line &value)
-    {
-      if (value.IsDefined())
-      {
-        return sizeof(int64_t) + sizeof(Rectangle<2>) +
-               (value.Size() * sizeof(SimpleHalfSegment));
-      }
-
-      return 0;
-    }
-
-    static void Write(SimpleVSAttrArrayEntry target, const Line &value)
-    {
-      if (value.IsDefined())
-      {
-        LineEntry entry = LineEntry(target);
-
-        new (entry.GetCountP()) int64_t(value.Size());
-
-        value.SelectFirst();
-
-        HalfSegment sourceSegment;
-
-        for (SimpleHalfSegment &targetSegment : entry)
-        {
-          value.GetHs(sourceSegment);
-
-          const SimpleHalfSegment segment = SimpleHalfSegment(sourceSegment);
-
-          new (&targetSegment) SimpleHalfSegment(segment);
-
-          value.SelectNext();
-        }
-
-        new (entry.GetBoundingBoxP()) Rectangle<2>(value.BoundingBox());
-      }
-    }
-
-    LineEntry()
-    {
-    }
-
-    LineEntry(const SimpleVSAttrArrayEntry &value) :
-      data(value.data),
-      size(value.size)
-    {
-    }
-
-    bool IsDefined() const
-    {
-      return size != 0;
-    }
-
-    int Compare(const LineEntry &other) const
-    {
-      if (size > other.size)
-      {
-        return 1;
-      }
-
-      if (size < other.size)
-      {
-        return -1;
-      }
-
-      if (size == 0)
-      {
-        return 0;
-      }
-
-      const int64_t count = *GetCountP();
-
-      const SimpleHalfSegment *segmentsA = begin(),
-        *segmentsB = other.begin();
-
-      int cmp = 0;
-
-      for (int64_t i = 0; cmp == 0 && i < count; ++i)
-      {
-        cmp = segmentsA[i].Compare(segmentsB[i]);
-      }
-
-      return cmp;
-    }
-
-    int Compare(const Line &value) const
-    {
-      if (size == 0)
-      {
-        return value.IsDefined() ? -1 : 0;
-      }
-
-      if (!value.IsDefined())
-      {
-        return 1;
-      }
-
-      const int64_t countA = *GetCountP(),
-        countB = value.Size();
-
-      if (countA > countB)
-      {
-        return 1;
-      }
-
-      if (countA < countB)
-      {
-        return -1;
-      }
-
-      int cmp = 0;
-
-      if (countA > 0)
-      {
-        HalfSegment segmentB;
-
-        value.SelectFirst();
-
-        for (const SimpleHalfSegment& segmentA : *this)
-        {
-          value.GetHs(segmentB);
-
-          cmp = segmentA.Compare(SimpleHalfSegment(segmentB));
-
-          if (cmp != 0)
-          {
-            break;
-          }
-        }
-      }
-
-      return cmp;
-    }
-
-    bool Equals(const LineEntry &other) const
-    {
-      return Compare(other) == 0;
-    }
-
-    bool Equals(const Line &value) const
-    {
-      return Compare(value) == 0;
-    }
-
-    size_t GetHash() const
-    {
-      size_t h = 0;
-
-      if (size != 0)
-      {
-        char i = 0;
-
-        for (const SimpleHalfSegment& segment : *this)
-        {
-          h += (size_t)((5 * segment.lp.x + segment.lp.y) +
-                        (5 * segment.rp.x + segment.rp.y));
-
-          if (++i == 5)
-          {
-            break;
-          }
-        }
-      }
-
-      return h;
-    }
-
-    Line *GetAttribute(bool clone = true) const
-    {
-      if (size != 0)
-      {
-        const int64_t count = *GetCountP();
-
-        Line *line = new Line(count);
-
-        if (count > 0)
-        {
-          const Rectangle<2> &bbox = *GetBoundingBoxP();
-
-          *line += HalfSegment(true, Point(true, bbox.MinD(0), bbox.MinD(1)),
-                                     Point(true, bbox.MaxD(0), bbox.MaxD(1)));
-
-          int i = 0;
-
-          for (const SimpleHalfSegment& segment : *this)
-          {
-            line->Put(i++, segment.ToHalfSegment());
-          }
-        }
-
-        return line;
-      }
-
-      return new Line(false);
-    }
-
-    virtual Rectangle<2> GetBoundingBox(const Geoid *geoid = nullptr) const
-    {
-      if (size != 0)
-      {
-        if (geoid == nullptr) // euclidean
-        {
-          const double left = GetBoundingBoxP()->MinD(0),
-            top = GetBoundingBoxP()->MaxD(1),
-            right = GetBoundingBoxP()->MaxD(0),
-            bottom = GetBoundingBoxP()->MinD(1);
-
-          return Rectangle<2>(true, left, right, bottom, top);
-
-          //return *GetBoundingBoxP();
-        }
-
-        if (geoid->IsDefined()) // spherical
-        {
-          Rectangle<2> bbox = Rectangle<2>(false);
-
-          for (const SimpleHalfSegment& segment : *this)
-          {
-            if (segment.ldp) // ignore inverse HalfSegments
-            {
-              if (!bbox.IsDefined())
-              {
-                bbox = segment.GetBoundingBox(geoid);
-              }
-              else
-              {
-                bbox = bbox.Union(segment.GetBoundingBox(geoid));
-              }
-            }
-          }
-
-          return bbox;
-        }
-      }
-
-      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
-    }
-
-    virtual double GetDistance(const Rectangle<2>& rect,
-                               const Geoid *geoid = nullptr) const
-    {
-      assert(geoid == nullptr);
-
-      double dist = std::numeric_limits<double>::max();
-
-      for (const SimpleHalfSegment &segment : *this)
-      {
-        if (segment.ldp)
-        {
-          dist = std::min(dist, segment.GetDistance(rect));
-        }
-      }
-
-      return dist;
-    }
-
-    virtual bool Intersects(const Rectangle<2>& rect,
-                            const Geoid *geoid = nullptr) const
-    {
-      if (size != 0 && geoid == nullptr &&
-          !GetBoundingBoxP()->Intersects(rect, geoid))
-      {
-        for (const SimpleHalfSegment &segment : *this)
-        {
-          if (segment.ldp && segment.Intersects(rect))
-          {
-            return true;
-          }
-        }
-
-        return false;
-      }
-
-      assert(geoid == nullptr);
-
-      throw SecondoException("Not implemented!");
-    }
-
-    virtual bool IsEmpty() const
-    {
-      return size == 0 || *GetCountP() == 0;
-    }
-
-  private:
     const char *data;
 
     size_t size;

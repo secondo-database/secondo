@@ -37,13 +37,10 @@ CRel::CRel(const PTBlockInfo &blockInfo, size_t desiredBlockSize,
   m_blockInfo(blockInfo),
   m_columnCount(blockInfo->columnCount),
   m_desiredBlockSize(desiredBlockSize),
-  m_blockSaveSize(TBlock::GetSaveSize(m_columnCount)),
   m_rowCount(0),
   m_blockCount(0),
   m_nextBlockIndex(0),
   m_recordCount(0),
-  m_iteratorPosition(0),
-  m_blockIterator(nullptr),
   m_blockRecordEntrySize(TBlock::GetSaveSize(m_columnCount, false) +
                          sizeof(BlockHeader)),
   m_blockRecordEntryCount((BlockRecord::sizeLimit + m_blockRecordEntrySize - 1)
@@ -68,13 +65,10 @@ CRel::CRel(const PTBlockInfo &blockInfo, size_t cacheSize, Reader &source) :
   m_blockInfo(blockInfo),
   m_columnCount(blockInfo->columnCount),
   m_desiredBlockSize(source.ReadOrThrow<size_t>()),
-  m_blockSaveSize(TBlock::GetSaveSize(m_columnCount)),
   m_rowCount(source.ReadOrThrow<size_t>()),
   m_blockCount(source.ReadOrThrow<size_t>()),
   m_nextBlockIndex(source.ReadOrThrow<size_t>()),
   m_recordCount(m_blockCount),
-  m_iteratorPosition(0),
-  m_blockIterator(nullptr),
   m_blockRecordEntrySize(TBlock::GetSaveSize(m_columnCount, false) +
                          sizeof(BlockHeader)),
   m_blockRecordEntryCount((BlockRecord::sizeLimit + m_blockRecordEntrySize - 1)

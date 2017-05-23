@@ -62,6 +62,12 @@ namespace CRelAlgebra
 
       static int BlockValueMapping(ArgVector args, Word &result, int message,
                                    Word &local, Supplier s);
+
+      static int ArrayStreamValueMapping(ArgVector args, Word &result,
+                                         int message, Word &local, Supplier s);
+
+      static int ArrayValueMapping(ArgVector args, Word &result, int message,
+                                   Word &local, Supplier s);
     };
   }
 }

@@ -52,14 +52,36 @@ namespace CRelAlgebra
   class FilteredAttrArrayIterator;
   class AttrArrayTypeConstructor;
 
+  /*
+  This class adds support to filter a ~AttrArray~'s attributes without copying
+  them to a new ~AttrArray~.
+
+  It does so by providing its own row numbers which are mapped to the
+  ~AttrArray~'s row numbers.
+
+  */
   class AttrArrayFilter
   {
   public:
+    /*
+    Creates a ~AttrArrayFilter~ for the passed ~array~ containing all
+    attributes.
+
+    Note: The ~AttrArray~'s refcounter is not touched
+
+    */
     AttrArrayFilter(const AttrArray &array) :
       m_array(&array)
     {
     }
 
+    /*
+    Creates a ~AttrArrayFilter~ for the passed ~array~ containing all only the
+    attributes specified by the passed row numbers in ~filter~.
+
+    Note: The ~AttrArray~'s refcounter is not touched
+
+    */
     AttrArrayFilter(const AttrArray &array,
                     const SharedArray<const size_t> &filter) :
       m_array(&array),
@@ -67,22 +89,38 @@ namespace CRelAlgebra
     {
     }
 
+    /*
+    Returns the ~AttrArray~'s row number for this ~AttrArrayFilter~'s row number
+    ~row~.
+
+    */
     size_t GetAt(size_t row) const
     {
       return m_filter.IsNull() ? row : m_filter[row];
     }
-
     size_t operator [] (size_t row) const
     {
       return m_filter.IsNull() ? row : m_filter[row];
     }
 
+    /*
+    Returns number of row numbers contained in this ~AttrArrayFilter~.
+
+    */
     size_t GetCount() const;
 
+    /*
+    Returns a iterator over the ~AttrArray~'s attributes taking this
+    ~AttrArrayFilter~ into account
+
+    */
     FilteredAttrArrayIterator GetIterator() const;
 
-    FilteredAttrArrayIterator begin() const;
+    /*
+    Only for range-loop support!
 
+    */
+    FilteredAttrArrayIterator begin() const;
     FilteredAttrArrayIterator end() const;
 
   protected:
@@ -97,6 +135,9 @@ namespace CRelAlgebra
   All attribute array implementations must derive from this class to provide a
   minimum set of functionality which can be used in a generic manner.
 
+  Note: When accessing a ~AttrArray~'s attributes you probably want to use the
+  ~AttrArrayFilter~ provided by ~GetFilter~!
+
   */
   class AttrArray
   {
@@ -110,6 +151,10 @@ namespace CRelAlgebra
     {
     }
 
+    /*
+    This constructor must be called in the ~Filter~ functions implementation.
+
+    */
     AttrArray(const SharedArray<const size_t> &filter) :
       m_filter(*this, filter),
       m_refCount(1)
@@ -129,8 +174,29 @@ namespace CRelAlgebra
     AttrArrayEntry GetAt(size_t row) const;
     AttrArrayEntry operator[](size_t row) const;
 
+    /*
+    Returns a new ~AttrArray~ instance holding this ~AttrArray~'s attributes
+    and a ~AttrArrayFilter~ containing the row numbers in ~filter~ applied to
+    it.
+
+    Notes:
+    This function is supposed to filter a ~AttrArray~ WITHOUT copying it's
+    attributes.
+
+    Make shure to make use of ~AttrArray(const SharedArray<const size_t>&)~ in
+    this function's implementation.
+
+    The row numbers are NOT copied to support sharing them among multiple
+    ~AttrArray~s so you shouldn't change ~filter~ after passing it to this
+    function.
+
+    */
     virtual AttrArray *Filter(const SharedArray<const size_t> filter) const = 0;
 
+    /*
+    Returns the applied ~AttrArrayFilter~.
+
+    */
     const AttrArrayFilter &GetFilter() const
     {
       return m_filter;

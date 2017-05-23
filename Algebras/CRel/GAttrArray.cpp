@@ -288,7 +288,7 @@ void GAttrArray::Append(Attribute &value)
 
   Attribute *attribute = (Attribute*)attributeDataEnd;
 
-  //copy the ne attribute's data
+  //copy the new attribute's data
   memcpy(attribute, &value, attributeSize);
 
   const size_t flobCount = info.attributeFLOBCount;

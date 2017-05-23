@@ -66,14 +66,36 @@ namespace CRelAlgebra
     operator AttrArrayHeader() const;
   };
 
+  /*
+  This class adds support to filter a ~TBlock~'s tuples without copying them to
+  a new ~TBlock~.
+
+  It does so by providing its own row numbers which are mapped to the
+  ~TBlock~'s row numbers.
+
+  */
   class TBlockFilter
   {
   public:
+    /*
+    Creates a ~TBlockFilter~ for the passed ~block~ containing all
+    tuples.
+
+    Note: The ~TBlock~'s refcounter is not touched
+
+    */
     TBlockFilter(const TBlock &block) :
       m_block(&block)
     {
     }
 
+    /*
+    Creates a ~TBlockFilter~ for the passed ~bloch~ containing all only the
+    tuples specified by the passed row numbers in ~filter~.
+
+    Note: The ~TBlock~'s refcounter is not touched
+
+    */
     TBlockFilter(const TBlock &block,
                  const SharedArray<const size_t> &filter) :
       m_block(&block),
@@ -81,20 +103,37 @@ namespace CRelAlgebra
     {
     }
 
+    /*
+    Returns the ~TBlocks~'s row number for this ~TBlockFilter~'s row number
+    ~row~.
+
+    */
     size_t GetAt(size_t row) const
     {
       return m_filter.IsNull() ? row : m_filter[row];
     }
-
     size_t operator [] (size_t row) const
     {
       return m_filter.IsNull() ? row : m_filter[row];
     }
 
+    /*
+    Returns number of row numbers contained in this ~TBlockFilter~.
+
+    */
     size_t GetRowCount() const;
 
+    /*
+    Returns a iterator over the ~TBlock~'s tuples taking this
+    ~TBlockFilter~ into account
+
+    */
     FilteredTBlockIterator GetIterator() const;
 
+    /*
+    Only for range-loop support!
+
+    */
     FilteredTBlockIterator begin() const;
 
     FilteredTBlockIterator end() const;
@@ -117,6 +156,9 @@ namespace CRelAlgebra
   Each of them is restored only when neccessary.
 
   This class is reference counted because it's heavily used in stream operators.
+
+   Note: When accessing a ~TBlock~'s tuples you probably want to use the
+  ~TBlockFilter~ provided by ~GetFilter~!
 
   */
   class TBlock
@@ -185,9 +227,24 @@ namespace CRelAlgebra
     TBlock(const TBlock &block, const size_t *columnIndices,
            size_t columnCount);
 
+    /*
+    Creates the projection of a existing ~block~ and applies a filter to it.
+    The indices of the columns to project on are provided by the array pointer
+    ~columnIndices~. The number of columns in ~columnIndices~ is passed by
+    ~columnCount~. The rows to include are specified by ~filter~.
+
+    The returned ~TBlock~ is supposed to be read only.
+    God knows what might happen if one trys to actually modify or save it.
+
+    */
     TBlock(const TBlock &block, const size_t *columnIndices, size_t columnCount,
            const SharedArray<const size_t> &filter);
 
+    /*
+    Creates filtered ~TBlock~ from the passed ~block~.
+    The rows to include are specified by ~filter~.
+
+    */
     TBlock(const TBlock &block, const SharedArray<const size_t> &filter);
 
     virtual ~TBlock();
@@ -198,6 +255,10 @@ namespace CRelAlgebra
     */
     const PTBlockInfo &GetInfo() const;
 
+    /*
+    Returns the applied ~TBlockFilter~.
+
+    */
     const TBlockFilter &GetFilter() const;
 
     /*
