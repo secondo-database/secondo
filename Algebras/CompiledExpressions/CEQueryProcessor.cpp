@@ -690,7 +690,7 @@ type error.
               if ( !foundOrigOp ) {
                 origAlgOpList = nl->TwoElemList(nl->IntAtom( alId ),
                                                 nl->IntAtom( opFunId ));
-		selFunIdxOrigOp = selFunIndex;
+                selFunIdxOrigOp = selFunIndex;
                 resultTypeOrigOp = resultType;
                 foundOrigOp = true;
               }

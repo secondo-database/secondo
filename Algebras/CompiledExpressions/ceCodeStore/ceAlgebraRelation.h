@@ -896,19 +896,19 @@ This function overrides the function of the base class ~CECGImplSecondoOperator~
         throw CECRuntimeError("Signature must contain 2 elements.");
       else {
         //Here insert code from operator.
-	if (signature[1]->getTypeName() == "rel"
-	  || signature[1]->getTypeName() == "orel"
-	  || signature[1]->getTypeName() == "trel") {
-	    code.append("GenericRelation* rel = ");
-	    code.append("(GenericRelation*)arg_0->eval();\n");
-	    code.append("resultStorage->Set(true, rel->GetNoTuples());\n");
-	} else {
-	  code.append("while ((tup = arg_0->eval()) != 0) {\n");
-	  code.append("count++;\n");
-	  code.append("tup->DeleteIfAllowed();\n");
-	  code.append("}\n");
-	  code.append("resultStorage->Set(true, count);\n");
-	}
+        if (signature[1]->getTypeName() == "rel"
+          || signature[1]->getTypeName() == "orel"
+          || signature[1]->getTypeName() == "trel") {
+            code.append("GenericRelation* rel = ");
+            code.append("(GenericRelation*)arg_0->eval();\n");
+            code.append("resultStorage->Set(true, rel->GetNoTuples());\n");
+        } else {
+          code.append("while ((tup = arg_0->eval()) != 0) {\n");
+          code.append("count++;\n");
+          code.append("tup->DeleteIfAllowed();\n");
+          code.append("}\n");
+          code.append("resultStorage->Set(true, count);\n");
+        }
       }
       return code;
     }
