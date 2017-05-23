@@ -69,7 +69,6 @@ bool DBServicePersistenceAccessor::createOrInsert(
     print("relation exists, trying insert command");
 
     resultOk = SecondoUtilsLocal::excuteQueryCommand(insertQuery);
-//    resultOk = SecondoUtilsLocal::executeQuery(insertQuery);
 
     if(resultOk)
     {

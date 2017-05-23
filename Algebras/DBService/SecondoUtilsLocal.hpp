@@ -44,7 +44,9 @@ public:
             const char* key,
             const char* defaultValue);
 
-    static bool executeQuery(const std::string& query);
+    static bool executeQuery(const std::string& queryAsString);
+    static bool executeQuery(const std::string& queryAsString,
+                             Word& queryResult);
 
     static bool adjustDatabase(const std::string& databaseName);
     static bool createRelation(

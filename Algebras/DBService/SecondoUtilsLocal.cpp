@@ -54,21 +54,68 @@ void SecondoUtilsLocal::readFromConfigFile(std::string& resultValue,
             key, defaultValue, secondoConfig);
 }
 
-bool SecondoUtilsLocal::executeQuery(const string& query)
+bool SecondoUtilsLocal::executeQuery(const string& queryAsString)
+{
+    Word queryResult;
+    return executeQuery(queryAsString, queryResult);
+}
+
+bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
+                                     Word& queryResult)
 {
     printFunction("SecondoUtilsLocal::executeQuery");
     SecParser secondoParser;
-    string queryAsNestedList;
-    if (secondoParser.Text2List(query, queryAsNestedList) != 0)
-    {
-        //TODO
+    string queryAsNestedListString;
+    if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {
+        print("could not parse query");
         return false;
-    } else
-    {
-        Word result;
-        print(queryAsNestedList);
-        return QueryProcessor::ExecuteQuery(queryAsNestedList, result, 1024);
     }
+    print("query converted to nested list string");
+//    ListExpr queryAsNestedList;
+//    if (!nl->ReadFromString(queryAsNestedListString, queryAsNestedList)) {
+//        print("could not convert string to list");
+//        return false;
+//    }
+
+    ListExpr queryAsNestedList;
+    NestedList* nli = SecondoSystem::GetNestedList();
+    if(!nli->ReadFromString(queryAsNestedListString,
+            queryAsNestedList))
+    {
+        return false;
+    }
+
+    print("nested list string converted to nested list");
+
+    print("queryAsNestedListString", queryAsNestedListString);
+
+    bool success = true;
+    bool correct, evaluable, defined, isFunction = false;
+    string typeString(""), errorString("");
+    try
+    {
+        success = QueryProcessor::ExecuteQuery(
+                queryAsNestedList,
+                queryResult,
+                typeString,
+                errorString,
+                correct,
+                evaluable,
+                defined,
+                isFunction
+                /*availableMemory*/);
+    } catch(...)
+    {
+        print("Caught exception during query execution");
+        success = false;
+        print("errorString", errorString);
+    }
+    print("success", success);
+    print("correct", correct);
+    print("evaluable", evaluable);
+    print("defined", defined);
+    print("isFunction", isFunction);
+    return success;
 }
 
 bool SecondoUtilsLocal::adjustDatabase(const std::string& databaseName)
@@ -117,7 +164,10 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     bool defined = false;
     bool isFunction = false;
 
-    QueryProcessor* queryProcessor = SecondoSystem::GetQueryProcessor();
+    NestedList* nli = SecondoSystem::GetNestedList();
+    QueryProcessor* queryProcessor = new QueryProcessor( nli,
+            SecondoSystem::GetAlgebraManager(),
+            DEFAULT_GLOBAL_MEMORY);
     queryProcessor->SetDebugLevel(3);
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
 
@@ -131,7 +181,6 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     SecParser secondoParser;
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {
-        // TODO
         print("could not parse query");
         return false;
     }
@@ -155,7 +204,7 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
         if (evaluable) {
             string typeName = "";
             catalog->CreateObject(objectName, typeName, resultType, 0);
-            queryProcessor->EvalP(tree, result, 1);
+            queryProcessor->EvalS(tree, result, 1);
             catalog->UpdateObject(objectName, result);
             queryProcessor->Destroy(tree, false);
         } else {
@@ -205,7 +254,10 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
     bool defined = false;
     bool isFunction = false;
 
-    QueryProcessor* queryProcessor = SecondoSystem::GetQueryProcessor();
+    NestedList* nli = SecondoSystem::GetNestedList();
+    QueryProcessor* queryProcessor = new QueryProcessor( nli,
+            SecondoSystem::GetAlgebraManager(),
+            DEFAULT_GLOBAL_MEMORY);
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
 
     Word result = SetWord(Address(0));
@@ -245,7 +297,7 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
         cout << "isFunction: " << isFunction << endl;
 
         if (evaluable) {
-            queryProcessor->EvalP(tree, result, 1);
+            queryProcessor->EvalS(tree, result, 1);
             print("queryProcessor->EvalP done");
 
             ListExpr valueList = catalog->OutObject(resultType, result);
