@@ -578,6 +578,8 @@ the ~Compiled Expressions Algebra~.
 
       bool foundOrigOp = false;
       bool foundCEAOp = false;
+      
+      int selFunIdxOrigOp = -1;
   
       static const int width=70;
       static const std::string sepLine = "\n" + std::string(width,'-') + "\n";
@@ -680,36 +682,36 @@ type error.
             if ( isCEAlgebra(alId)) {
               if ( !foundCEAOp ) {
                 ceaAlgOpList = nl->TwoElemList(nl->IntAtom( alId ),
-                                               nl->IntAtom( opId ));
+                                               nl->IntAtom( opFunId ));
                 resultTypeCEAlgOp = resultType;
                 foundCEAOp = true;
               }
             } else {
               if ( !foundOrigOp ) {
                 origAlgOpList = nl->TwoElemList(nl->IntAtom( alId ),
-                                                nl->IntAtom( opId ));
+                                                nl->IntAtom( opFunId ));
+		selFunIdxOrigOp = selFunIndex;
                 resultTypeOrigOp = resultType;
                 foundOrigOp = true;
               }
             }
           }
-
-          if (traceMode) {
-            cout << wordWrap( "IN: ",
-                              width, NList(typeList).convertToString() )
-              << endl
-              << wordWrap( "OUT-OrigOP: ",
-                           width, NList(resultTypeOrigOp).convertToString() )
-              << endl
-              << wordWrap( "OUT-CEAOP: ",
-                           width, NList(resultType).convertToString() )
-              << endl
-              << "SelectionFunction: index = " << selFunIndex << endl
-              << sepLine << endl;
-          }
         }
       } while ( !nl->IsEmpty(opList) && (!foundOrigOp || !foundCEAOp));
       
+      if (traceMode) {
+        cout << wordWrap( "IN: ",
+                          width, NList(typeList).convertToString() )
+          << endl
+          << wordWrap( "OUT-OrigOP: ",
+                       width, NList(resultTypeOrigOp).convertToString() )
+          << endl
+          << wordWrap( "OUT-CEAOP: ",
+                       width, NList(resultTypeCEAlgOp).convertToString() )
+          << endl
+          << "SelectionFunction: index = " << selFunIdxOrigOp << endl
+          << sepLine << endl;
+      }
       
       if ((foundOrigOp && foundCEAOp) &&
           nl->Equal(resultTypeOrigOp, resultTypeCEAlgOp)) {

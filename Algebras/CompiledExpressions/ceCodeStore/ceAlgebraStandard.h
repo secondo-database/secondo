@@ -2481,8 +2481,8 @@ This function overrides the function of the base class ~CECGImplSecondoAlgebra~.
 */
     void loadCECGImplSecondoOperators(CECodeGenerator* ceCG) {
       //list all operators
-      ceCG->loadCECGImplSecondoOperator
-              (algName, new CECGImplStandardOperatorPLUS());
+      /*ceCG->loadCECGImplSecondoOperator
+              (algName, new CECGImplStandardOperatorPLUS());*/
       ceCG->loadCECGImplSecondoOperator
               (algName, new CECGImplStandardOperatorMINUS());
       ceCG->loadCECGImplSecondoOperator
