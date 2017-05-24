@@ -5237,7 +5237,8 @@ bool
     QueryProcessor::ExecuteQuery( const string& queryListStr,
                                   Word& queryResult,
                                   const size_t availableMemory 
-                                    /* = DEFAULT_GLOBAL_MEMORY */)
+                                    /* = DEFAULT_GLOBAL_MEMORY */,
+                                  const int debugLevel /*=0*/)
 {
   string typeString(""), errorString("");
   bool success = true;
@@ -5259,7 +5260,8 @@ bool
                             evaluable,
                             defined,
                             isFunction,
-                            availableMemory);
+                            availableMemory,
+                            debugLevel);
     } catch(...){
       success=false;
     }
@@ -5281,7 +5283,8 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
                               bool& defined,
                               bool& isFunction,
                               const size_t availableMemory 
-                                /* = DEFAULT_GLOBAL_MEMORY */ )
+                                /* = DEFAULT_GLOBAL_MEMORY */,
+                              const int debugLevel /*=0*/ )
 { // reset return parameters
   errorString  = "";
   correct      = false;
@@ -5298,6 +5301,7 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
     new QueryProcessor( nli,
                         SecondoSystem::GetAlgebraManager(),
                         availableMemory );
+  qpp->SetDebugLevel(debugLevel);
   qpp->Construct( commandList, correct,
                   evaluable, defined, isFunction, tree, resultType );
   nli->WriteToString(typeString,resultType);

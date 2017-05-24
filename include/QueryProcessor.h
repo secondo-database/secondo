@@ -637,7 +637,8 @@ Returns a short name for a given supplier.
 
   static bool ExecuteQuery( const std::string& queryListStr,
                             Word& queryResult,
-                   const size_t availableMemory = DEFAULT_GLOBAL_MEMORY);
+                   const size_t availableMemory = DEFAULT_GLOBAL_MEMORY,
+                   const int debugLevel = 0);
 /*
   Executes a Secondo query, given in nested list syntax of type string 
 and returns
@@ -656,7 +657,8 @@ and returns
                           bool& evaluable,
                           bool& defined,
                           bool& isFunction,
-                    const size_t availableMemory = DEFAULT_GLOBAL_MEMORY);
+                    const size_t availableMemory = DEFAULT_GLOBAL_MEMORY,
+                    const int debugLevel = 0);
 /*
 Just as before, but if an error occurs, it is written to argument
   ~errorString~.
