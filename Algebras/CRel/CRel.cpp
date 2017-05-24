@@ -50,15 +50,11 @@ CRel::CRel(const PTBlockInfo &blockInfo, size_t desiredBlockSize,
   m_columnFile(new SmiRecordFile(false)),
   m_blockCache(cacheSize)
 {
-  SmiRecordFile flobFile = SmiRecordFile(false);
-
   CreateOrThrow(m_blockFile);
   CreateOrThrow(*m_columnFile);
-  CreateOrThrow(flobFile);
 
   m_blockFileId = m_blockFile.GetFileId();
   m_columnFileId = m_columnFile->GetFileId();
-  m_flobFileId = flobFile.GetFileId();
 }
 
 CRel::CRel(const PTBlockInfo &blockInfo, size_t cacheSize, Reader &source) :
@@ -76,7 +72,6 @@ CRel::CRel(const PTBlockInfo &blockInfo, size_t cacheSize, Reader &source) :
   m_blockRecordSize(m_blockRecordEntryCount * m_blockRecordEntrySize),
   m_blockFileId(source.ReadOrThrow<SmiFileId>()),
   m_columnFileId(source.ReadOrThrow<SmiFileId>()),
-  m_flobFileId(source.ReadOrThrow<SmiFileId>()),
   m_blockFile(false),
   m_columnFile(new SmiRecordFile(false)),
   m_blockCache(cacheSize)
@@ -115,7 +110,7 @@ CRel::~CRel()
     delete[] m_blockRecord.data;
   }
 
-  if (m_blockFileId != 0 && m_flobFileId != 0)
+  if (m_blockFileId != 0)
   {
     LRUCache<BlockCacheEntry>::Iterator iterator(m_blockCache);
 
@@ -170,7 +165,6 @@ void CRel::Save(Writer &target)
   target.WriteOrThrow(m_nextBlockIndex);
   target.WriteOrThrow(m_blockFileId);
   target.WriteOrThrow(m_columnFileId);
-  target.WriteOrThrow(m_flobFileId);
 
   LRUCache<BlockCacheEntry>::Iterator iterator(m_blockCache);
 
@@ -207,15 +201,8 @@ void CRel::DeleteFiles()
 
   DropOrThrow(*m_columnFile);
 
-  SmiRecordFile flobFile = SmiRecordFile(false);
-
-  OpenOrThrow(flobFile, m_flobFileId);
-
-  DropOrThrow(flobFile);
-
   m_blockFileId = 0;
   m_columnFileId = 0;
-  m_flobFileId = 0;
 }
 
 size_t CRel::GetColumnCount() const
@@ -323,7 +310,8 @@ void CRel::TAppend(T tuple)
   }
   else
   {
-    block = new TBlock(m_blockInfo, m_columnFileId, m_flobFileId, m_columnFile);
+    block = new TBlock(m_blockInfo, m_columnFileId, m_columnFileId,
+                       m_columnFile);
 
     ++m_blockCount;
 
@@ -364,7 +352,7 @@ TBlock *CRel::LoadBlock(size_t index) const
 
   return new TBlock(m_blockInfo,
                     source.ReadOrThrow<BlockHeader>().ToHeader(m_columnFileId,
-                                                               m_flobFileId),
+                                                               m_columnFileId),
                     source, m_columnFile);
 }
 

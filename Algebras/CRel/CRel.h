@@ -283,8 +283,7 @@ namespace CRelAlgebra
     mutable BlockRecord m_blockRecord;
 
     SmiFileId m_blockFileId,
-      m_columnFileId,
-      m_flobFileId;
+      m_columnFileId;
 
     mutable SmiRecordFile m_blockFile;
 
