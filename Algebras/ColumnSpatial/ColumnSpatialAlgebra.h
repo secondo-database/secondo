@@ -49,6 +49,7 @@ Also the operators on these types are defined.
 */
 
 // TODO: remove relative path
+// TODO: change type of indices to int64_t
 
 #include "../../include/Symbols.h"          // predefined strings
 #include "../../include/ListUtils.h"        // useful functions for nested lists
@@ -128,7 +129,7 @@ points and in the ~Open~ function by reading it from disc.
   } sPoint;
   sPoint* aPoint;  // array of points
   long count;  // number of points
-  long step;  // index to ~allocBytes~ amount of memory that is allocated next
+  long step;  // index to ~allocBytes~ amount of next allocated memory
 
 /*
 The public section provides constructors and a destructor of the class
@@ -155,7 +156,7 @@ Another constructor with minimum initialized array size and counters set
 to 0. It is need for the map operator.
 
 */
-  ColPoint(int min);
+  ColPoint(bool min);
 
 /*
 Destructor
@@ -390,7 +391,7 @@ Another constructor with minimum initialized array size and counters set
 to 0. It is need for the map operator.
 
 */
-  ColLine(int min);
+  ColLine(bool min);
 
 /*
 Destructor
@@ -433,6 +434,19 @@ Returns the number of segmets for a single line:
 
 */
   long getSegments(long index);
+
+/*
+Returns the indices of the first and last segment of a single line:
+
+*/
+  void getLineSegments(long index, long &first, long &last);
+
+/*
+Returns the coordinates of a single segment:
+
+*/
+  void getSegmentPoints(long index,
+                        double &x1, double &y1, double &x2, double &y2);
 
 /*
 The function ~createLine~ extracts a line from the aline and
@@ -769,19 +783,53 @@ is appended to an attribute array of integer. The attribute array is returned.
   inline bool intersects(double x1, double y1, double x2, double y2,
                          double x3, double y3, double x4, double y4);
 
+
 /*
-The function ~pointsInside~ checks for each point inside the ~apoint~ type
+The following function checks whether a single point is inside a region
+Needs x and y of the point and the index of aRegion.
+
+*/
+  inline bool pointInsideRegion(double x, double y, long idReg);
+
+
+
+/*
+The function ~pointsInside~ checks for each point of the ~apoint~ type
 whether it is inside the set of regions of the actual ~aregion~ type.
 if a point is inside one or more regions its index is stored
 in a list of type ~longints~.
+
+Precondition:
+- cycle points must be in clockwise or in counterclockwise order,
+  no matter if they are faces or holes. this precondition is always true.
+- the first point of a region must be the leftmost point.
+  this precondition is always true.
+Complexity: $O(m . n)$,
+where ~m~ is the number of points and ~n~ is the number of regions.
+
 This function processes the complete ~aregion~ array, so if it is
 only needed to compare points to a single region, the array ~aRegion~ should
-contain only this special region.
+contain only this single region.
+
+known weakness:
+if the region overlaps the 180th longitude then the function fails. (TODO)
 
 */
-   LongInts* pointsInside(ColPoint* cPoint);
+  LongInts* pointsInside(ColPoint* cPoint);
 
-   LongInts* linesInside(ColLine* cLine);
+
+/*
+Checks for each line of an ~aline~ type whether it is inside
+one of the regions of the actual ~aregion~ type.
+To do so, the first point of the line is checked whether it is inside or
+outside the boundig box of the region. If it is outside, then the line
+can not be inside the region and the next line is processed.
+If it is inside, the number of intersections are countes. if the
+number is even then the line is completely inside one of the regions.
+any other case the line only crosses the region.
+
+*/
+  LongInts* linesInside(ColLine* cLine);
 
 /*
 The ~In~ function scans a nested-list (parameter ~instance~) and converts it
@@ -910,20 +958,16 @@ Without an example, the operator will be switched off by the Secondo framework.
 
 */
 ListExpr insideTM(ListExpr args);
+
 ListExpr mapTM(ListExpr args);
 
 /*
 4.2 Value mapping functions
 
-The ~inside~ operators check for each element
-of either ~apoint~, ~aline~ or ~aregion~
-whether they are inside a given ~region~
-and returns a ~longints~ containing the
-indices of of all matching points, lines or regions.
-
 */
 int pointsInsideVM (Word* args, Word& result, int message,
                     Word& local, Supplier s);
+
 int linesInsideVM (Word* args, Word& result, int message,
                    Word& local, Supplier s);
 

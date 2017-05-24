@@ -72,7 +72,7 @@ namespace col {
     count = newCount;
   }
 
-  ColPoint::ColPoint(int min) {  // constructor with minimum initialized array
+  ColPoint::ColPoint(bool min) {  // constructor with minimum array
     aPoint = NULL;
     aPoint = static_cast<sPoint*>(calloc(1, sizeof(sPoint)));
     count = 0;
@@ -423,7 +423,7 @@ each entry to the clone object.
     countSegment = newCountSegment;
   }
 
-  ColLine::ColLine(int min) {  // constructor with minimum initialized arrays
+  ColLine::ColLine(bool min) {  // constructor with minimum initialized arrays
     aLine = NULL;
     aSegment = NULL;
     aLine = static_cast<sLine*>(calloc(1, sizeof(sLine)));
@@ -489,6 +489,26 @@ each entry to the clone object.
   // returns the number of segmets for a single line
   long ColLine::getSegments(long index) {
       return aLine[index + 1].index - aLine[index].index;
+  }
+
+
+
+  // returns the indices of the first and last segment of a single line
+  void ColLine::getLineSegments(long index, long &first, long &last) {
+    first = aLine[index].index;
+    last = aLine[index + 1].index;
+  }
+
+
+
+  // returns the coordinates of a single segment
+  void ColLine::getSegmentPoints(long index,
+                                 double &x1, double &y1,
+                                 double &x2, double &y2) {
+    x1 = aSegment[index].x1;
+    y1 = aSegment[index].y1;
+    x2 = aSegment[index].x2;
+    y2 = aSegment[index].y2;
   }
 
 
@@ -1451,79 +1471,100 @@ segments s1 = (x1, y1, x2, y2) and s2 = (x3, y3, x4, y4).
 
 
 /*
+The following function checks whether a single point is inside a region
+Needs x and y of the point and the index of aRegion.
+
+*/
+inline bool ColRegion::pointInsideRegion(double x, double y, long idReg) {
+
+  // define a x coordinate outside the region
+  long x2 = aRegion[idReg].mbrX1 - 1;
+  // first and last cycle within the region
+  long ccStart = aRegion[idReg].indexCycle;
+  long ccStop = aRegion[idReg + 1].indexCycle;
+  long cpStart, cpStop;
+  // number of intersections
+  long isCount = 0;
+  double x3, y3, x4, y4;
+
+  // scan all cycles of the actual region
+  for (long idCyc = ccStart; idCyc < ccStop; idCyc++) {
+    // set first and last point of the actual cycle
+    cpStart = abs(aCycle[idCyc].index);
+    cpStop = abs(aCycle[idCyc + 1].index);
+
+    // scan all points
+    for (long idPnt = cpStart; idPnt < cpStop; idPnt++) {
+
+      x3 = aPoint[idPnt].x;
+      y3 = aPoint[idPnt].y;
+
+      // set next point of cycle
+      if ((idPnt + 1) < cpStop) {
+        x4 = aPoint[idPnt + 1].x;
+        y4 = aPoint[idPnt + 1].y;
+      } else {
+        // if cycle's last point, then set first point to close the cycle
+        x4 = aPoint[cpStart].x;
+        y4 = aPoint[cpStart].y;
+      }
+
+      // avoid double counting of vertexes on vertical segments
+      // the intersection counts only if the second vertex of the segment
+      // lies below the tested point
+      if ((y == y3 && y3 > y4) || (y == y4 && y4 > y3))
+        continue;
+
+      if (intersects(x, y, x2, y, x3, y3, x4, y4))
+        isCount++;
+    }
+  }
+
+  // if isCount is odd then segment intersects with region
+  return isCount & 1;
+}
+
+
+
+/*
 checks for each point of the ~ColPoint~ object whether it is inside
 one of the regions of the actual ~ColRegions~ object.
+Precondition:
+- cycle points must be in clockwise or in counterclockwise order,
+  no matter if they are faces or holes. this precondition is always true.
+- the first point of a region must be the leftmost point.
+  this precondition is always true.
+Complexity: $O(m . n)$,
+where ~m~ is the number of points and ~n~ is the number of regions.
+known weakness:
+if the region overlaps the 180th longitude then the function fails. (TODO)
 
 */
   LongInts* ColRegion::pointsInside(ColPoint* cPoint) {
 
     const long cp1 = cPoint->getCount();  // index of point
     long cr = countRegion - 1;  // number of regions without terminator
-    long cc = 0;                          // index of region cycle
-    long cp = 0;                          // index of region point
-    double idPx1, idPx2, x4;
-    double idPy1, idPy2, y4;
-    long isCount = 0;
+    double idPx1;
+    double idPy1;
 
     // result array of matching indices
     LongInts* id = new LongInts();
 
     // scan all points
-    for (int64_t idP = 0; idP < cp1; idP++) {
+    for (long idP = 0; idP < cp1; idP++) {
 
       // this is the actual point to be checked
       idPx1 = cPoint->getX(idP);
       idPy1 = cPoint->getY(idP);
 
-      //cout << "\npoint " << idP << " = (" << idPx1 << ", " << idPy1 << ")\n";
-
       // scan all regions
       for (long idReg = 0; idReg < cr; idReg++) {
-        //cout << "region " << idReg << endl;
         // check if actual point is inside the bounding box of actual region
         if ((idPx1 < aRegion[idReg].mbrX1) || (idPx1 > aRegion[idReg].mbrX2) ||
             (idPy1 < aRegion[idReg].mbrY1) || (idPy1 > aRegion[idReg].mbrY2))
           continue;  // if not inside bbox then continue with next region
-        // define a point outside the region
-        idPx2 = aRegion[idReg].mbrX1 - 1;
-        idPy2 = idPy1;
 
-        cc = aRegion[idReg + 1].indexCycle;
-        // counter of number of intersections
-        isCount = 0;
-
-        // scan all cycles of the actual region
-        for (long idCyc = aRegion[idReg].indexCycle; idCyc < cc; idCyc++) {
-          // set last point of the actaul cycle
-          cp = aCycle[idCyc + 1].index;
-
-          // scan all points
-          for (long idPnt = aCycle[idCyc].index; idPnt < cp; idPnt++) {
-            // check intersection between two segments
-            // first segment from actual point to a point outside the region.
-
-            // second segment is from the actual point to the next point
-            // within a cycle.
-            //cout << idPnt<< " / " << cp << "\n";
-            if ((idPnt + 1) < cp) {  // set next point
-              x4 = aPoint[idPnt + 1].x;
-              y4 = aPoint[idPnt + 1].y;
-            } else {
-              // if cycle's last point, then set first point to close the cycle
-              x4 = aPoint[aCycle[idCyc].index].x;
-              y4 = aPoint[aCycle[idCyc].index].y;
-            }
-
-            if (intersects(idPx1, idPy1, idPx2, idPy2,
-                           aPoint[idPnt].x, aPoint[idPnt].y,
-                           x4, y4)) isCount++;
-
-            // TODO: change type of indices to int64_t
-          }
-        }
-
-        // if isCount is odd then point is inside region -> append
-        if (isCount & 1) {
+        if (pointInsideRegion(idPx1, idPy1, idReg)) {
           id->Append(idP);
           // no need to check further regions, continue with next point
           break;
@@ -1536,9 +1577,87 @@ one of the regions of the actual ~ColRegions~ object.
 
 
 
+/*
+Checks for each line of the ~ColLine~ object whether it is inside
+one of the regions of the actual ~ColRegions~ object.
+To do so, the first point of the line is checked whether it is inside or
+outside the boundig box of the region. If it is outside the line
+can not be inside the region and the next line is processed.
+If it is inside, the number of intersections are countes. if the
+number is even then the line is completely inside one of the regions.
+any other case the line only crosses the region.
+
+*/
   LongInts* ColRegion::linesInside(ColLine* cLine) {
 
-    return new LongInts();
+    const long cl1 = cLine->getCount();  // number of lines
+    long cr = countRegion -1;      // number of regions without terminator
+    long cc, cp, idSegStart, idSegStop;
+    cc = cp = idSegStart = idSegStop = 0;
+    double x1, y1, x2, y2, x4, y4;
+    x1 = y1 = x2 = y2 = x4 = y4 = 42;
+    bool intersect_flag = false;  // controls the loops
+
+    // result array of matching indices
+    LongInts* id = new LongInts();
+
+    // scan all lines
+    for (long idL = 0; idL < cl1; idL++) {
+
+      // set first and last segment of the line
+      cLine->getLineSegments(idL, idSegStart, idSegStop);
+
+      // scan all regions
+      for (long idReg = 0; idReg < cr; idReg++) {
+
+        // if first point is outside region -> continue with next region
+        cLine->getSegmentPoints(idSegStart, x1, y1, x2, y2);
+        if (!pointInsideRegion(x1, y1, idReg)) break;
+
+        intersect_flag = false;
+
+        // scan all line segments
+        for (long idLS = idSegStart; ((idLS < idSegStop) && !intersect_flag);
+             idLS++) {
+
+          // get points of actual line segment
+          cLine->getSegmentPoints(idSegStart, x1, y1, x2, y2);
+          // number of cycles within the actual region
+          cc = aRegion[idReg + 1].indexCycle;
+
+          // scan all cycles of the actual region
+          for (long idCyc = aRegion[idReg].indexCycle;
+               (idCyc < cc) && !intersect_flag; idCyc++) {
+            // set last point of the actual cycle
+            cp = aCycle[idCyc + 1].index;
+
+            // scan all points
+            for (long idPnt = aCycle[idCyc].index; idPnt < cp; idPnt++) {
+
+              // set next point of cycle
+              if ((idPnt + 1) < cp) {  // next point
+                x4 = aPoint[idPnt + 1].x;
+                y4 = aPoint[idPnt + 1].y;
+              } else {  // first point to close the cycle
+                x4 = aPoint[aCycle[idCyc].index].x;
+                y4 = aPoint[aCycle[idCyc].index].y;
+              }
+
+              // check intersection between line segment and region segment
+              if (intersects(x1, y1, x2, y2,
+                             aPoint[idPnt].x, aPoint[idPnt].y, x4, y4)) {
+                intersect_flag = true;
+                break;
+              }
+            }
+          }
+        }
+        // if no intersection has occured -> append
+        if (!intersect_flag) id->Append(idL);
+      }
+    }
+
+    return id;
   }
 
 
@@ -2108,6 +2227,8 @@ ListExpr insideTM(ListExpr args) {
     return listutils::typeError(err);
 }
 
+
+
 ListExpr mapTM(ListExpr args) {
 
   if (!nl->HasLength(args,2)) {
@@ -2180,7 +2301,7 @@ checks for each point of the apoint array if it's inside each region
 of a aregion array. If only one point or one region should be checked,
 then the arrays have to contain only one element. But the strength of
 this function lies within the bulk processing. The more elements are
-processed the more efficient it will be.
+processed the more efficient it will be. <- TODO: check statement!!!
 
 */
 int pointsInsideVM (Word* args, Word& result, int message,
@@ -2207,8 +2328,8 @@ int linesInsideVM (Word* args, Word& result, int message,
   ColLine* cLine = (ColLine*) args[0].addr;
   ColRegion* cRegion = (ColRegion*) args[1].addr;
 
-  cLine->showArrays("cLine:");
-  cRegion->showArrays("cRegion", false);
+  cout << "check " << cLine->getCount() << " lines "
+       << "and " << cRegion->getCount() << " regions..." << endl;
 
   result = qp->ResultStorage(s);
   LongInts* id = cRegion->linesInside(cLine);
@@ -2221,7 +2342,7 @@ int linesInsideVM (Word* args, Word& result, int message,
 
 int regionsInsideVM (Word* args, Word& result, int message,
                     Word& local, Supplier s) {
-  return 0;
+  return false;
 }
 
 
@@ -2235,7 +2356,7 @@ append function of the column spatial ~apoint~ object.
 int mapPointVM (Word* args, Word& result, int message,
                 Word& local, Supplier s) {
   result = qp->ResultStorage(s);         // use result storage for the result
-  result.addr = new ColPoint(1);
+  result.addr = new ColPoint(true);
 
   ColPoint* cPoint = static_cast<ColPoint*> (result.addr);
 
@@ -2277,7 +2398,7 @@ append function of the column spatial ~aline~ object.
 int mapLineVM (Word* args, Word& result, int message,
                Word& local, Supplier s) {
   result = qp->ResultStorage(s);         // use result storage for the result
-  result.addr = new ColLine(1);
+  result.addr = new ColLine(true);
 
   ColLine* cLine = static_cast<ColLine*> (result.addr);
 
@@ -2319,7 +2440,7 @@ append function of the column spatial ~aregion~ object.
 int mapRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s) {
   result = qp->ResultStorage(s);         // use result storage for the result
-  result.addr = new ColRegion(1);        // result set to cRegion object
+  result.addr = new ColRegion(true);     // result set to cRegion object
 
   ColRegion* cRegion = static_cast<ColRegion*> (result.addr);
 
@@ -2414,14 +2535,14 @@ int mapColRegionVM (Word* args, Word& result, int message,
   ColRegion* cRegion = static_cast<ColRegion*> (args[0].addr);
   int index = ((CcInt*) args[1].addr)->GetValue();  // append attributes index
 
-  cRegion->showArrays("before mapping", true);
-  cout << "countRegion = " << cRegion->getCount() << endl;
-  cout << "countPoints = " << cRegion->getCountPoints(index) << endl;
 
   if ((index < 0) || (index >= cRegion->getCount())) {
     cout << "Error: aregion index " << index << " out of bounds!" << endl;
     return 0;
   }
+
+  cRegion->showArrays("before mapping", true);
+  cout << "aregion[" << index << "] will be mapped into region...\n";
 
   // create a new region object with space for all halfs segments
   result.addr = new Region(cRegion->getCountPoints(index) * 2);

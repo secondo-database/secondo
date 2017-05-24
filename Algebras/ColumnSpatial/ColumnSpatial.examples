@@ -1,5 +1,5 @@
 Database : coltest
-Restore  : YES
+Restore  : NO
 
 Operator : inside
 Number   : 1
@@ -11,7 +11,7 @@ Operator : inside
 Number   : 2
 Signature: aline x aregion -> longints
 Example  : query cl1 inside cr1
-Result   : (longints(1))
+Result   : (longints(0))
 
 Operator : mp
 Number   : 1
@@ -40,8 +40,8 @@ Result   : (point(4.0 5.0))
 Operator : mp
 Number   : 5
 Signature: (aline int) -> line
-Example  : query cl1 mp[0]
-Result   : (line((3.0 4.0 7.0 8.0)(6.0 10.0 7.0 8.0)))
+Example  : query cl1 mp[1]
+Result   : (line((10.0 3.5 11.0 3.5)(11.0 3.5 12.0 4.5)))
 
 Operator : mp
 Number   : 6
