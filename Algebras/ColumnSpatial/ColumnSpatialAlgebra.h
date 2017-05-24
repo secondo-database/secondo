@@ -48,7 +48,7 @@ Also the operators on these types are defined.
 
 */
 
-// TODO: remove relative path
+// TODO: remove relative paths
 // TODO: change type of indices to int64_t
 
 #include "../../include/Symbols.h"          // predefined strings
@@ -153,7 +153,8 @@ and the counter given as parameters.
 
 /*
 Another constructor with minimum initialized array size and counters set
-to 0. It is need for the map operator.
+to 0. It is need for the map operator. The parameter ~min~ defines a
+new signature regardless of it's value.
 
 */
   ColPoint(bool min);
@@ -388,7 +389,8 @@ as their counters.
           long newCountLine, long newCountSegment);
 /*
 Another constructor with minimum initialized array size and counters set
-to 0. It is need for the map operator.
+to 0. It is need for the map operator. the paramerter ~min~ is used to
+create a different signature. It's value doesn't matter.
 
 */
   ColLine(bool min);
@@ -564,44 +566,50 @@ face or a hole.
 Finally the array ~aRegion~ contains the start indices of complete regions
 both within the array ~aPoint~ to identify the first point within a region
 and the array ~aCycle~ to identify the first cycle of a region.
+Additional the minimum bounding rectangle of a region is stored.
 For each array there is also a counter to provide fast access to the size
 of this array.
 
 To ensure that a set of regions is processed correctly by the  ~In~ and
 ~Out~ functions, any region has to satisfy the following conditions:
 
-  1) Any two cycles of the same region must be disconnected,
-     which means that no edges of different cycles can intersect each other
-  2) Edges of the same cycle can only intersect in their endpoints,
-     but not in their middle points
-  3) For a certain face, the holes must be inside the outer cycle
-  4) For a certain face, any two holes can not contain each other
-  5) Faces must have the outer cycle, but they can have no holes
-  6) For a certain cycle, any two vertex can not be the same
-  7) Any cycle must be made up of at least 3 edges
-  8) It is allowed that one face is inside another
-     provided that their edges do not intersect.
+  1 Any two cycles of the same region must be disconnected,
+    which means that no edges of different cycles can intersect each other
 
-  The list representation of a set of regions is
+  2 Edges of the same cycle can only intersect in their endpoints,
+    but not in their middle points
 
-----
-  (region1 region2 ... regionn)
-  where each region is (face1  face2 ... facen)
-  where each face is   (outercycle holecycle1 ... holecyclen)
-  where each cycle is  (vertex1 vertex2 ... vertexn)
-  where each vertex is a point.
+  3 For a certain face, the holes must be inside the outer cycle
 
-  or
+  4 For a certain face, any two holes can not contain each other
 
-  undef
-----
+  5 Faces must have the outer cycle, but they can have no holes
+
+  6 For a certain cycle, any two vertex can not be the same
+
+  7 Any cycle must be made up of at least 3 edges
+
+  8 It is allowed that one face is inside another
+    provided that their edges do not intersect.
+
+The list representation of a set of regions is
+
+  * (region\_1 region\_2 ... region\_n)
+
+  * where each region is (face\_1  face\_2 ... face\_n)
+
+  * where each face is   (outercycle holecycle\_1 ... holecycle\_n)
+
+  * where each cycle is  (vertex\_1 vertex\_2 ... vertex\_n)
+
+  * where each vertex is a point.
 
 */
 class ColRegion {
  private:
 
 /*
-3.5 Defining the structure for attribute arrays:
+Defining the structure for attribute arrays:
 
 */
   typedef struct {    // defines one region - head data
@@ -639,17 +647,17 @@ The counters indicate the size of the corresponding arrays:
 /*
 The following step - variables mark the indices in the ~allocBytes~ - array
 (see before).
-TODO: calculate step - variables by evaluating the counters!
 
 */
   long stepRegion;
   long stepCycle;
   long stepPoint;
+  // TODO: calculate step - variables by evaluating the counters!
 
  public:
 
 /*
-3.6 constructors and destructor
+3.6 Constructors and destructor
 
 Standard constructor doing nothing:
 
@@ -664,10 +672,12 @@ Non-standard constructor initializing the object with given parameters:
             long newCountTuple, long newCountCycle, long newCountPoint);
 
 /*
-Non-standard constructor initializing the object with minimum data:
+Non-standard constructor initializing the object with minimum data.
+The parameter ~min~ is only used to define a seperate signature
+regardless of it's value.
 
 */
-  ColRegion(int min);
+  ColRegion(bool min);
 
 /*
 Destructor frees allocated memory:
@@ -696,8 +706,9 @@ Description of the Secondo type for the user:
 /*
 3.7 Auxiliary functions
 
-In this section there are defined some functions which can only be used
-in a special context, e. g. the append- and finalize functions make only sense
+In this section there are defined some useful functions which can be used in
+different contextes. But there are also functions which are used in a special
+context, e. g. the append- and finalize functions make only sense
 if used together with a constructor.
 
 The ~getCount~ function returns the number of regions within the region array
@@ -707,13 +718,13 @@ without the terminator.
   long getCount();
 
 /*
-Returns the number of cycles with terminator:
+Returns the number of cycles including terminator:
 
 */
   long getCountCycles();
 
 /*
-Returns the number of points with terminator:
+Returns the number of points including terminator:
 
 */
   long getCountPoints();
@@ -772,8 +783,6 @@ there sizes and counters to the screen. It is useful during the debugging phase.
   void showArrays(string title, bool showPoints);
 
 /*
-3.8 Standard functions
-
 The ~inside~ function accepts a Secondo spatial datatype ~apoint~, ~aline~,
 ~aregion~ as input and checks for each element whether it is
 inside the region. if the check is true, the index of this element
@@ -812,26 +821,28 @@ only needed to compare points to a single region, the array ~aRegion~ should
 contain only this single region.
 
 known weakness:
-if the region overlaps the 180th longitude then the function fails. (TODO)
+if the region overlaps the 180th longitude then the function fails.
 
 */
   LongInts* pointsInside(ColPoint* cPoint);
 
 
 /*
-Checks for each line of an ~aline~ type whether it is inside
-one of the regions of the actual ~aregion~ type.
+The function ~linesInside~ checks for each line of an ~aline~ type
+whether it is inside one of the regions of the actual ~aregion~ type.
 To do so, the first point of the line is checked whether it is inside or
-outside the boundig box of the region. If it is outside, then the line
+outside the region. If it is outside, then the whole line
 can not be inside the region and the next line is processed.
-If it is inside, the number of intersections are countes. if the
+If it is inside, the number of intersections are counted. if the
 number is even then the line is completely inside one of the regions.
-any other case the line only crosses the region.
+In any other case the line only crosses the region.
 
 */
   LongInts* linesInside(ColLine* cLine);
 
 /*
+3.8 Standard functions
+
 The ~In~ function scans a nested-list (parameter ~instance~) and converts it
 into an internal array representation. Memory is allocated on a logarithmic
 scale from 16 KB up to 16 GB, trying to consider known cache-sizes as well as
@@ -903,12 +914,16 @@ In contrast to ~Delete~, the disc part of the object is untouched
 
 /*
 The ~Clone~ function creates a depth copy (inclusive disc parts) of an object.
+Therefore it allocates memory
+for the clone object and scans the arrays of the source object and copies
+each entry to the clone object.
+If big objects are cloned, then this function needs a lot of time.
 
 */
   static Word Clone(const ListExpr typeInfo, const Word& w);
 
 /*
-The ~Cast~ function crerates a new ColRegion object and lets it point to
+The ~Cast~ function creates a new ColRegion object and lets it point to
 the given address using a special call of new operator.
 The argument points to a memory block which is to cast to the object.
 
@@ -963,6 +978,14 @@ ListExpr mapTM(ListExpr args);
 
 /*
 4.2 Value mapping functions
+
+The ~inside~ functions check for each point of the ~apoint~ type,
+each line of the ~aline~ type or each region of the ~aregion~ type
+whether it is inside each region of an ~aregion~ type.
+The strength of these functions lies within the bulk processing.
+The more elements are processed the more efficient they will be.
+But it is also possible to check single elements only. To achieve this,
+the types should only contain single elements.
 
 */
 int pointsInsideVM (Word* args, Word& result, int message,

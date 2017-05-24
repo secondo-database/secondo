@@ -38,7 +38,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-// TODO: remove relative paths. they are only needed by qt-creator.
+// TODO: remove relative paths.
+// they are only needed for a better syntax hilighting with qt-creator.
 #include "ColumnSpatialAlgebra.h"             // header for this algebra
 #include "../../include/Symbols.h"            // predefined strings
 #include "../../include/ListUtils.h"          // useful nested list functions
@@ -1028,7 +1029,7 @@ each entry to the clone object.
   }
 
   // non-standard constructor initializing the object with minimum data
-  ColRegion::ColRegion(int min) {
+  ColRegion::ColRegion(bool min) {
     aRegion = NULL;
     aCycle = NULL;
     aPoint = NULL;
@@ -1537,7 +1538,7 @@ Precondition:
 Complexity: $O(m . n)$,
 where ~m~ is the number of points and ~n~ is the number of regions.
 known weakness:
-if the region overlaps the 180th longitude then the function fails. (TODO)
+if the region overlaps the 180th longitude then the function fails.
 
 */
   LongInts* ColRegion::pointsInside(ColPoint* cPoint) {
@@ -2301,9 +2302,11 @@ checks for each point of the apoint array if it's inside each region
 of a aregion array. If only one point or one region should be checked,
 then the arrays have to contain only one element. But the strength of
 this function lies within the bulk processing. The more elements are
-processed the more efficient it will be. <- TODO: check statement!!!
+processed the more efficient it will be.
 
 */
+
+// TODO: benchmark to verify the statement above
 int pointsInsideVM (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
 
