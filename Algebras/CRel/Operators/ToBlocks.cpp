@@ -105,11 +105,12 @@ ListExpr ToBlocks::TypeMapping(ListExpr args)
   }
   else
   {
-    size_t desiredBlockSize;
+    long desiredBlockSize;
 
-    if (!GetSizeTValue(secondArgType, nl->Second(secondArg), desiredBlockSize))
+    if (!CcInt::checkType(secondArgType) ||
+        (desiredBlockSize = nl->IntValue(nl->Second(secondArg))) < 0)
     {
-      return GetTypeError("The second argument is neither a int, longint "
+      return GetTypeError("The second argument is neither a int >= 0 "
                           "(block size) nor a tblock (target template).");
     }
 

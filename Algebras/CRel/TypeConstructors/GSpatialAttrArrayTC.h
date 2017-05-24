@@ -39,6 +39,8 @@ namespace CRelAlgebra
   class GSpatialAttrArrayTI
   {
   public:
+    static bool Check(ListExpr typeExpr);
+
     static bool Check(ListExpr typeExpr, std::string &error);
 
     GSpatialAttrArrayTI(bool numeric);

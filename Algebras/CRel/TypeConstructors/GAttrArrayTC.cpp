@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <exception>
 #include "GAttrArray.h"
 #include "ListUtils.h"
-#include "LogMsg.h"
 #include "ReadWrite.h"
 #include "SecondoSystem.h"
 #include "Symbols.h"
@@ -46,7 +45,6 @@ using std::string;
 
 extern NestedList *nl;
 extern AlgebraManager *am;
-extern CMsg cmsg;
 
 //GAttrArrayTI------------------------------------------------------------------
 
@@ -157,10 +155,8 @@ ListExpr GAttrArrayTC::TypeProperty()
 
 bool GAttrArrayTC::CheckType(ListExpr typeExpr, ListExpr &errorInfo)
 {
-  std::string error;
-  if (!GAttrArrayTI::Check(typeExpr, error))
+  if (!GAttrArrayTI::Check(typeExpr))
   {
-    cmsg.typeError(error);
     return false;
   }
 

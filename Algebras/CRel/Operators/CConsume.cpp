@@ -114,44 +114,43 @@ ListExpr CConsume::TypeMapping(ListExpr args)
 
   if (CRelTI::Check(secondArgType))
   {
-    typeInfo = CRelTI(secondArgType, false);
-
-    const ListExpr sourceAttributeList = sourceIsBlockStream ?
-      nl->Second(TBlockTI(streamType, false).GetTupleTypeExpr()) :
-      nl->Second(streamType);
-
-    if (!nl->Equal(sourceAttributeList,
-                   nl->Second(typeInfo.GetTupleTypeExpr())))
-    {
-      if (sourceIsBlockStream)
-      {
-        return GetTypeError("Attribute types or names of the columns in the "
-                            "first argument (source) don't match those in the "
-                            "second argument (target template).");
-      }
-
-      return GetTypeError("The types or names of the attributes in the first "
-                          "argument (source) don't match those in the second "
-                          "argument (target template).");
-    }
-
     if (argCount > 2)
     {
       return GetTypeError("Expected two arguments because the second argument "
                           "is of type crel (target template).");
     }
+
+    typeInfo = CRelTI(secondArgType, false);
+
+    if (sourceIsBlockStream)
+    {
+      if (!nl->Equal(typeInfo.GetColumnList(),
+                     TBlockTI(streamType, false).GetColumnList()))
+      {
+        return GetTypeError("Columns in the first argument (source) don't "
+                            "match those in the second argument (target "
+                            "template).");
+      }
+    }
+    else if (!nl->Equal(streamType, typeInfo.GetTupleTypeExpr()))
+    {
+      return GetTypeError("The types or names of the attributes in the first "
+                          "argument (source) don't match those in the second "
+                          "argument (target template).");
+    }
   }
   else
   {
-    size_t desiredBlockSize;
+    long desiredBlockSize;
 
-    if (!GetSizeTValue(secondArgType, nl->Second(secondArg), desiredBlockSize))
+    if (!CcInt::checkType(secondArgType) ||
+        (desiredBlockSize = nl->IntValue(nl->Second(secondArg))) < 0)
     {
-      return GetTypeError(1, "Neither of type int, longint (block size) nor "
+      return GetTypeError(1, "Neither a int >= 0 (block size) nor a "
                           "crel (target template).");
     }
 
-    size_t cacheSize;
+    long cacheSize;
 
     if (argCount < 3)
     {
@@ -161,11 +160,10 @@ ListExpr CConsume::TypeMapping(ListExpr args)
     {
       const ListExpr cacheSizeExpr = nl->Third(args);
 
-      if (!GetSizeTValue(nl->First(cacheSizeExpr), nl->Second(cacheSizeExpr),
-                         cacheSize) ||
-          cacheSize == 0)
+      if (!CcInt::checkType(nl->First(cacheSizeExpr)) ||
+          (cacheSize = nl->IntValue(nl->Second(cacheSizeExpr))) <= 0)
       {
-        return GetTypeError(2, "cache size", "Isn't a int or longint > 0.");
+        return GetTypeError(2, "cache size", "Isn't a int > 0.");
       }
     }
 

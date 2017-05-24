@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <exception>
 #include "GAttrArray.h"
 #include "ListUtils.h"
-#include "LogMsg.h"
 #include "ReadWrite.h"
 #include "SecondoSystem.h"
 #include "StringUtils.h"
@@ -47,9 +46,15 @@ using stringutils::any2str;
 
 extern NestedList *nl;
 extern AlgebraManager *am;
-extern CMsg cmsg;
 
 //GSpatialAttrArrayTI<dim>------------------------------------------------------
+
+template <int dim>
+bool GSpatialAttrArrayTI<dim>::Check(ListExpr typeExpr)
+{
+  string error;
+  return Check(typeExpr, error);
+}
 
 template <int dim>
 bool GSpatialAttrArrayTI<dim>::Check(ListExpr typeExpr, string &error)
@@ -194,10 +199,8 @@ ListExpr GSpatialAttrArrayTC<dim>::TypeProperty()
 template <int dim>
 bool GSpatialAttrArrayTC<dim>::CheckType(ListExpr typeExpr, ListExpr &errorInfo)
 {
-  std::string error;
-  if (!GSpatialAttrArrayTI<dim>::Check(typeExpr, error))
+  if (!GSpatialAttrArrayTI<dim>::Check(typeExpr))
   {
-    cmsg.typeError(error);
     return false;
   }
 

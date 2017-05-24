@@ -25,18 +25,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RealsTC.h"
 
 #include "Reals.h"
-#include "ListUtils.h"
-#include "LogMsg.h"
 #include "StandardTypes.h"
 #include "TIUtils.h"
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;
-using namespace listutils;
 
 using std::string;
 
-extern CMsg cmsg;
 extern NestedList *nl;
 
 //RealsTI-----------------------------------------------------------------------
@@ -75,10 +71,8 @@ ListExpr RealsTC::TypeProperty()
 
 bool RealsTC::CheckType(ListExpr typeExpr, ListExpr &errorInfo)
 {
-  std::string error;
-  if (!RealsTI::Check(typeExpr, error))
+  if (!RealsTI::Check(typeExpr))
   {
-    cmsg.typeError(error);
     return false;
   }
 

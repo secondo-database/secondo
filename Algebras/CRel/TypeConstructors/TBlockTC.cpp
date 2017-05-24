@@ -334,10 +334,8 @@ ListExpr TBlockTC::TypeProperty()
 
 bool TBlockTC::CheckType(ListExpr typeExpr, ListExpr &errorInfo)
 {
-  string error;
-  if (!TBlockTI::Check(typeExpr, error))
+  if (!TBlockTI::Check(typeExpr))
   {
-    cmsg.typeError(error);
     return false;
   }
 

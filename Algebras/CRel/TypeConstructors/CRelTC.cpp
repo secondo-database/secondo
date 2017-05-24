@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraTypes.h"
 #include "AlgebraManager.h"
 #include <exception>
-#include "ListUtils.h"
 #include "LogMsg.h"
 #include "Shared.h"
 #include "StringUtils.h"
@@ -35,7 +34,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TypeUtils.h"
 
 using namespace CRelAlgebra;
-using namespace listutils;
 
 using std::exception;
 using std::string;
@@ -163,10 +161,8 @@ ListExpr CRelTC::TypeProperty()
 
 bool CRelTC::CheckType(ListExpr typeExpr, ListExpr &errorInfo)
 {
-  string error;
-  if (!CRelTI::Check(typeExpr, error))
+  if (!CRelTI::Check(typeExpr))
   {
-    cmsg.typeError(error);
     return false;
   }
 

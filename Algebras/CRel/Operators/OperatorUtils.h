@@ -181,25 +181,6 @@ namespace CRelAlgebra
     return TryGetSymbolValue(symbolExpr, symbolValue, error);
   }
 
-  inline bool TryGetIntValue(ListExpr intExpr, long &intValue,
-                             std::string& error)
-  {
-    if (nl->IsNodeType(IntType, intExpr))
-    {
-      intValue = nl->IntValue(intExpr);
-      return true;
-    }
-
-    error = "Not a int atom.";
-    return false;
-  }
-
-  inline bool TryGetIntValue(ListExpr intExpr, long &intValue)
-  {
-    std::string error;
-    return TryGetIntValue(intExpr, intValue, error);
-  }
-
   inline bool GetIndexOfColumn(const TBlockTI &typeInfo,
                                const std::string &name, size_t &index)
   {

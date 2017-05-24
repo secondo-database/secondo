@@ -54,12 +54,6 @@ namespace CRelAlgebra
 
   bool CheckKind(const std::string &kind, const ListExpr typeExpr);
 
-  bool GetSizeTValue(ListExpr typeExpr, ListExpr valueExpr, size_t &value);
-
-  bool GetIntValue(ListExpr typeExpr, ListExpr valueExpr, int32_t &value);
-
-  bool GetLongIntValue(ListExpr typeExpr, ListExpr valueExpr, int64_t &value);
-
   InObject GetInFunction(const ListExpr typeExpr);
 
   OutObject GetOutFunction(const ListExpr typeExpr);
