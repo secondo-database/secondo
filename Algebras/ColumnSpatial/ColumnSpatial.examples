@@ -53,4 +53,4 @@ Operator : count
 Number   : 1
 Signature: apoint -> int 
 Example  : query cp1 count
-Result   : (int(6))
+Result   : (int 7)
