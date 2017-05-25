@@ -48,3 +48,9 @@ Number   : 6
 Signature: (aregion int) -> region 
 Example  : query cr1 mp[0]
 Result   : (region())
+
+Operator : count
+Number   : 1
+Signature: apoint -> int 
+Example  : query cp1 count
+Result   : (int(6))

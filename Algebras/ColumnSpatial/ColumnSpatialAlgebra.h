@@ -60,6 +60,7 @@ Also the operators on these types are defined.
 #include "../Stream/Stream.h"               // wrapper for secondo streams
 #include "../CRel/Ints.h"                   // type for id result list
 
+using std::vector;
 using std::string;
 using namespace CRelAlgebra;
 
@@ -976,6 +977,10 @@ ListExpr insideTM(ListExpr args);
 
 ListExpr mapTM(ListExpr args);
 
+ListExpr mapColTM(ListExpr args);
+
+ListExpr countTM(ListExpr args);
+
 /*
 4.2 Value mapping functions
 
@@ -1012,29 +1017,30 @@ int mapRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s);
 
 /*
-The operator ~mapColPointVM~ expects an ~apoint~ type of the column spatial
-algebra and converts it into ~points~ data type of the spatial algebra.
+The ~mapCol~ operators convert an column spatial type ~apoint~, ~aline~
+or ~aregion~ into their corresponding spatial types.
 
 */
 int mapColPointVM (Word* args, Word& result, int message,
                    Word& local, Supplier s);
 
-/*
-The operator ~mapColLineVM~  expects an ~aline~ type and converts it
-into a single spatial type ~line~. It needs an index to specify one
-single line within the ~aline~ type.
-
-*/
 int mapColLineVM (Word* args, Word& result, int message,
                   Word& local, Supplier s);
 
+int mapColRegionVM (Word* args, Word& result, int message,
+                 Word& local, Supplier s);
+
 /*
-The operator ~mapColRegionVM~  expects an ~aregion~ type and converts it
-into a single spatial type ~region~. It needs an index to specify one
-single region within the ~aregion~ type.
+The ~count~ operators returns the number of elements of a column spatial type
 
 */
-int mapColRegionVM (Word* args, Word& result, int message,
+int countPointVM (Word* args, Word& result, int message,
+                   Word& local, Supplier s);
+
+int countLineVM (Word* args, Word& result, int message,
+                 Word& local, Supplier s);
+
+int countRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s);
 
 /*
@@ -1042,11 +1048,14 @@ int mapColRegionVM (Word* args, Word& result, int message,
 
 */
 ValueMapping insideVM[] = {pointsInsideVM, linesInsideVM, regionsInsideVM};
-ValueMapping mapVM[] = {mapPointVM, mapLineVM, mapRegionVM,
-                        mapColPointVM, mapColLineVM, mapColRegionVM};
+ValueMapping mapVM[]    = {mapPointVM, mapLineVM, mapRegionVM};
+ValueMapping mapColVM[] = {mapColPointVM, mapColLineVM, mapColRegionVM};
+ValueMapping countVM[]  = {countPointVM, countLineVM, countRegionVM};
 
 int insideSelect(ListExpr args);
 int mapSelect(ListExpr args);
+int mapColSelect(ListExpr args);
+int countSelect(ListExpr args);
 
 /*
 4.4 Specification
@@ -1059,35 +1068,49 @@ example query.
 remark (optional)
 
 */
-OperatorSpec insideSpec(" obj x region -> ints, obj={apoint,aline,aregion} ",
-                        " _ inside _ ",
-                        " checks each element of obj whether in region",
-                        " query cp1 inside r1 ");
+OperatorSpec insideSpec("obj x region -> ints, obj={apoint,aline,aregion} ",
+                        "_ inside _ ",
+                        "checks each element of obj whether in region",
+                        "query cp1 inside r1 ");
 
-OperatorSpec mapSpec(" stream(tuple) -> {apoint, aline, aregion} ",
-                     " mp _ ",
-                     " maps a stream of standard type to attribute array",
-                     " query Kreis feed mp[Grebiet] ");
+OperatorSpec mapSpec("stream(tuple) -> {apoint, aline, aregion} ",
+                     "mp [_] ",
+                     "maps a stream of standard type to attribute array",
+                     "query Kreis feed mp[Gebiet] ");
+
+OperatorSpec mapColSpec("{apoint, aline, aregion} x int "
+                        "-> {point, line, region} ",
+                        "mp [_] ",
+                        "maps one entry of attribute array to standard type",
+                        "query cKreis mp[1] ");
+
+OperatorSpec countSpec("{apoint, aline, aregion} -> int ",
+                       "count ",
+                       "returns the number of elements of the spatial type",
+                       "query cKreis count ");
 
 /*
 4.5 Operator Instance
 
-*/
-Operator insideOp(
-  "inside",            // operator's name
-  insideSpec.getStr(), // specification
-  3,                   // number of Value Mappings
-  insideVM,            // value mapping array
-  insideSelect,        // selection function
-  insideTM);           // type mapping
+operator's name
+specification
+number of Value Mappings
+value mapping array
+selection function
+type mapping
 
-Operator mapOp(
-  "mp",                // operator's name
-  mapSpec.getStr(),    // specification
-  6,                   // number of Value Mappings
-  mapVM,               // value mapping array
-  mapSelect,           // selection function
-  mapTM);              // type mapping
+*/
+Operator insideOp("inside", insideSpec.getStr(), 3,
+                  insideVM, insideSelect, insideTM);
+
+Operator mapOp("mp", mapSpec.getStr(), 3,
+               mapVM, mapSelect, mapTM);
+
+Operator mapColOp("mp", mapColSpec.getStr(), 3,
+                  mapColVM, mapColSelect, mapColTM);
+
+Operator countOp("count", countSpec.getStr(), 3,
+                  countVM, countSelect, countTM);
 
 
 /*
@@ -1113,6 +1136,8 @@ class ColumnSpatialAlgebra : public Algebra {
 
    AddOperator(&insideOp);
    AddOperator(&mapOp);
+   AddOperator(&mapColOp);
+   AddOperator(&countOp);
   }
 };
 
