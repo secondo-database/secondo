@@ -91,6 +91,10 @@ public class OSMBackground extends Background {
 		setCheckedConfiguration(props);
 	}
 
+  public OSMDialog getDialog(){
+    return settings;
+  }
+
 
   /** This background supports preloading **/
   @Override
@@ -213,7 +217,9 @@ public class OSMBackground extends Background {
 		try {
 			lastParent = parent;
 			// only use the part inside the world
-			clipRect = clipRect.createIntersection(bbox);
+      if(bbox!=null){
+   			clipRect = clipRect.createIntersection(bbox);
+      } 
 			if (clipRect.isEmpty()) {
 				return;
 			}

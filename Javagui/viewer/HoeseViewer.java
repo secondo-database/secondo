@@ -112,6 +112,7 @@ import viewer.hoese.Layer;
 import viewer.hoese.LayerMgmt;
 import viewer.hoese.ManualLinkPool;
 import viewer.hoese.OSMBackground;
+import viewer.hoese.OSMDialog;
 import viewer.hoese.ProjectionManager;
 import viewer.hoese.QueryResult;
 import viewer.hoese.ScalableImage;
@@ -126,6 +127,8 @@ import viewer.hoese.algebras.continuousupdate.OnlineResultsReceiver;
 import components.ChangeValueEvent;
 import components.ChangeValueListener;
 import components.LongScrollBar;
+import java.awt.image.BufferedImage;
+import javax.imageio.*;
 
 /**
  * this is a viewer for spatial and temporal spatial objects but this viewer can
@@ -732,6 +735,7 @@ public class HoeseViewer extends SecondoViewer {
 		} else {
 			create_Point_MI.setSelected(true);
 		}
+    setDefaultBackground();
 	}
 
 	/* sets all contained componenets to be opaque */
@@ -3929,5 +3933,161 @@ public class HoeseViewer extends SecondoViewer {
 		private static final int POINT_MODE = 5;
 		private static final int REGION_MODE = 6;
 	}
+
+  void setDefaultBackground(){
+      try{
+     String bg = configuration.getProperty("BACKGROUND");
+     if(bg==null){
+        return;
+     }
+     bg = bg.trim();
+     StringTokenizer st = new StringTokenizer(bg," \t,;()");
+     if(st.hasMoreTokens()){
+       String bgMode = st.nextToken().trim().toLowerCase();
+       
+       int t = st.countTokens(); 
+       if(bgMode.equals("color")){
+          if(t==1){
+            String color = st.nextToken().trim().toLowerCase();
+            setColorBG(color);
+            return;
+          } else if(t==4){
+            try{
+               String rgb = st.nextToken().trim().toLowerCase();
+               if(!rgb.equals("rgb")){
+                 throw new Exception("invalid color definition");
+               }
+               Color c = new Color( Integer.parseInt(st.nextToken()),
+                                    Integer.parseInt(st.nextToken()),
+                                    Integer.parseInt(st.nextToken()));
+              setAllBackgrounds(HoeseViewer.this,c);
+              GraphDisplay.setBackgroundObject(new SimpleBackground(c));
+              Reporter.writeInfo("Set background to color " + c);
+              return;
+            } catch(Exception e1){
+              Reporter.debug(e1);
+              Reporter.writeWarning("invalid color definition" + bg);
+              return;
+            }
+          } else {
+             Reporter.writeWarning("invalid number of arguments to color background");
+             return;
+          }
+       } else if(bgMode.equals("image")){
+          if(st.countTokens()!=7){
+            Reporter.writeWarning("expected 7 arguments to image background");
+            return;
+          }
+          try{
+            File in = new File(st.nextToken());
+            Reporter.writeInfo("try to read background image from " + in.getAbsolutePath());
+            BufferedImage img = ImageIO.read(in);
+            double x = Double.parseDouble(st.nextToken());
+            double y = Double.parseDouble(st.nextToken());
+            double w = Double.parseDouble(st.nextToken());
+            double h = Double.parseDouble(st.nextToken());
+            boolean useForBBox = Boolean.parseBoolean(st.nextToken());
+            Color c = str2Color(st.nextToken());
+            ImageBackground ibg = new ImageBackground();
+            ibg.setConfiguration(img,x,y,w,h,useForBBox,c);
+            GraphDisplay.setBackgroundObject(ibg);
+            Reporter.writeInfo("set image background");
+            return;
+          } catch(Exception e1){
+            Reporter.debug(e1);
+            Reporter.writeWarning("Invalid image background spcififation: " + bg);
+            return;
+          }
+       } else if(bgMode.equals("map")){
+         String name = bg.substring(3).trim();
+         OSMBackground map = new OSMBackground();
+         OSMDialog dia = map.getDialog();
+         int index = dia.getItemIndex(name);
+         if(index < 0){
+           Reporter.writeWarning("Tiled Map name " + name + " not known");
+           return;
+         }
+         Reporter.writeInfo("Set background to map : " + name);
+         Properties props = new Properties();
+         dia.setSelectedIndex(index);
+         dia.storeSettingsToProperties(props);
+         map.setConfiguration(props,".");
+
+         GraphDisplay.setBackgroundObject(map);
+         return;
+       } else {
+          Reporter.writeWarning("invalid background mode " + bgMode);
+       }
+     } else {
+       Reporter.writeWarning("BACKGROUND without specifying it");
+     }
+    } catch(Exception e){
+         Reporter.debug(e);
+    }
+  }
+
+ private void setColorBG(String color){
+    Color  c = str2Color(color);
+    if(c==null){
+      return;
+    }
+    setAllBackgrounds(HoeseViewer.this,c);
+    GraphDisplay.setBackgroundObject(new SimpleBackground(c));
+    Reporter.writeInfo("Set background to color " + c);
+    return;
+ }
+
+ Color str2Color(String color){
+   try{
+    Color c = null;
+    if(color.equals("black")){
+      c = Color.BLACK;
+    } else if(color.equals("blue")){
+      c = Color.BLUE;
+    } else if(color.equals("cyan")){
+      c = Color.CYAN;
+    } else if(color.equals("dark_gray")){
+      c = Color.DARK_GRAY;
+    } else if(color.equals("gray")){
+      c = Color.GRAY;
+    } else if(color.equals("green")){
+      c = Color.GREEN;
+    } else if(color.equals("light_gray")){
+      c = Color.LIGHT_GRAY;
+    } else if(color.equals("magenta")){
+      c = Color.MAGENTA;
+    } else if(color.equals("orange")){
+      c = Color.ORANGE;
+    } else if(color.equals("pink")){
+      c = Color.PINK;
+    } else if(color.equals("red")){
+      c = Color.RED;
+    } else if(color.equals("white")){
+      c = Color.WHITE;
+    } else if(color.equals("yellow")){
+      c = Color.YELLOW;
+    }
+    if(c==null){
+      StringTokenizer st = new StringTokenizer(color," \t,();");
+      if(st.countTokens()!=4){
+         return null;
+      }
+      String rgb = st.nextToken().trim().toLowerCase();
+      if(!rgb.equals("rgb")){
+          return null;
+      }
+      return new Color( Integer.parseInt(st.nextToken()),
+                        Integer.parseInt(st.nextToken()),
+                        Integer.parseInt(st.nextToken()));
+    }
+    return c;
+  } catch(Exception e){
+    Reporter.debug(e);
+    return null;
+  }
+
+ }
+
+
 
 }

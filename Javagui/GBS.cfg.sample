@@ -46,6 +46,18 @@ PROJECTIONS Mercator Sinusoidal Miller_Cylindrical Cylindrical PolyConic Orthogr
 #Defaultprojection, if not given, None is used
 #DEFAULTPROJECTION OSMMercator
 
+#set background
+
+# BACKGROUND color green
+# BACKGROUND color rgb(255,255,255) 
+
+# BACKGROUND image file x y w h useForBBox Color
+# BACKGROUND image ../../Bilder/germany.jpg 40 40 600 400 true green
+
+# BACKGROUND map Open Street Map - Mapnik Style
+
+
+
 #Icons
 ImportIcon=res/Import.gif
 CateditIcon=res/allcat.gif

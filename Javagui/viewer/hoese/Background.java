@@ -347,6 +347,10 @@ public abstract class Background {
 		return useforbbox;
 	}
 
+  public final void setUseForBoundingBox(boolean b){
+     useforbbox = b;
+  }
+
 
 	/**
 	 * Creates a nested list representation of the Background's configuration,

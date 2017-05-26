@@ -236,6 +236,18 @@ public class ImageBackground extends Background {
 		informListeners(evt);
 	}
 
+  
+	public void setConfiguration(BufferedImage img, double x, double y, double w, double h, boolean useForBBox, Color  BGColor) {
+		if (listeners == null) {
+			listeners = new LinkedList<BackgroundListener>();
+		}
+    this.img = img;
+    setBBox(new Rectangle2D.Double(x,y,w,h));
+    setUseForBoundingBox(useForBBox);
+    setBackgroundColor(BGColor); 
+  }
+
+
 	/**
 	 * Return the Background's settings as a Properties object. The Properties
 	 * can be used to save Background settings for later reference. Additional

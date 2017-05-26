@@ -23,6 +23,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.WindowConstants;
 import javax.swing.BoxLayout;
+import java.util.Vector;
 
 public class OSMDialog extends JDialog {
 
@@ -37,7 +38,7 @@ public class OSMDialog extends JDialog {
 		licenseDialog = new LicenseDialog(null);
 
 		// create components for server settings
-		selectionCB = new JComboBox();
+		selectionCB = new JComboBox<String>();
 		protocolTF = new JTextField(8);
 		serverTF = new JTextField(24);
 		portTF = new JTextField(3);
@@ -248,6 +249,29 @@ public class OSMDialog extends JDialog {
 		setVisible(true);
 		return accepted;
 	}
+
+
+  public Vector<String> getNames(){
+    Vector<String> res = new Vector<String>();
+    for(int i=0;i<selectionCB.getItemCount();i++){
+       res.add(selectionCB.getItemAt(i));
+    }
+    return res;
+  }
+
+  public int getItemIndex(String name){
+    for(int i=0;i<selectionCB.getItemCount();i++){
+       if(selectionCB.getItemAt(i).equals(name)){
+         return i;
+       }
+    }
+    return -1;
+  }
+
+  public void setSelectedIndex(int i){
+     selectionCB.setSelectedIndex(i);
+  } 
+
 
 	/**
 	 * adds known servers to the selectionCb. Additionally, a listener is
@@ -1002,7 +1026,7 @@ public class OSMDialog extends JDialog {
 	}
 
 	// fields for server settings
-	private JComboBox selectionCB; // selection of predefined server settings +
+	private JComboBox<String> selectionCB; // selection of predefined server settings +
 									// customize
 
 	private JTextField protocolTF;
