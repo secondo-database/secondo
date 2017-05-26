@@ -13,10 +13,10 @@ This file is NOT part of SECONDO.
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //[TOC] [\tableofcontents]
 
-[1] Declarations for the DrakeKmeans algorithm
+[1] Declarations for the Drake's k-means algorithm
 
 
-1 Declarations for the DrakeKmeans algorithm
+1 Declarations for the Drake's k-means algorithm
 
 */
 
