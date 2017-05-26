@@ -3127,6 +3127,17 @@ public class HoeseViewer extends SecondoViewer {
 
 		}
 
+    String defaultProj = configuration.getProperty("DEFAULTPROJECTION");
+    if(defaultProj!=null){
+       Projection p = PrjSelector.getProjection(defaultProj.trim());
+       if(p==null){
+         Reporter.writeWarning("Projection " + defaultProj + " not loaded");
+       }
+       PrjSelector.selectProjection(p);
+       Reporter.writeInfo("use Projection " + defaultProj);
+    }
+
+
 		// category selection mode
 		boolean catSelDone = false;
 		String catSel = configuration.getProperty("CATEGORY_SELECTION");
@@ -3355,6 +3366,16 @@ public class HoeseViewer extends SecondoViewer {
 			selectedIndex = index;
 			((JCheckBoxMenuItem) source).setState(true);
 		}
+
+    public Projection getProjection(String name){
+      if(name==null) return null;
+      for(int i=0;i<Projections.size();i++){
+        if(Projections.get(i).getName().equals(name)){
+           return Projections.get(i);
+        }
+      }
+      return null;
+    }
 
 		private Vector<Projection> Projections = new Vector<Projection>();
 		private Vector MenuItems = new Vector();

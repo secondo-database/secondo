@@ -43,6 +43,8 @@ StandardCats= Osnabrueck.cat
 #Projections to load
 PROJECTIONS Mercator Sinusoidal Miller_Cylindrical Cylindrical PolyConic Orthographic WGSGK OSMMercator
 
+#Defaultprojection, if not given, None is used
+#DEFAULTPROJECTION OSMMercator
 
 #Icons
 ImportIcon=res/Import.gif
