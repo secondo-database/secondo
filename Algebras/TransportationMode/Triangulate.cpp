@@ -585,7 +585,7 @@ static int add_segment(int segnum)
 //  int i1, i2, t, t1, t2, tn;
   int i1, i2, t, tn;
   point_t tpt;
-  int tritop = 0, tribot = 0, is_swapped = 0;
+  int tritop =0, tribot = 0, is_swapped = 0;
   int tmptriseg;
 
   s = seg[segnum];

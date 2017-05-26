@@ -267,7 +267,7 @@ edge_rel2(NULL), adj_list2(0), entry_adj_list2(0)
   }
 
   /////////////////open adjacency list1////////////////////////////////
-   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   size_t bufsize = DbArray<int>::headerSize();
    SmiSize offset = 0;
    char* buf = (char*) malloc(bufsize);
    in_xValueRecord.Read(buf, bufsize, inout_iOffset);
@@ -297,7 +297,7 @@ edge_rel2(NULL), adj_list2(0), entry_adj_list2(0)
   }
 
   /////////////////open adjacency list2////////////////////////////////
-   bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   bufsize = DbArray<int>::headerSize();
    offset = 0;
    buf = (char*) malloc(bufsize);
    in_xValueRecord.Read(buf, bufsize, inout_iOffset);
@@ -818,12 +818,12 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
    ////////////check whether the end location is equal to junction node///////
    bool exist_jun2 = false;
-   int end_index = -1;
+   //int end_index = -1;
    for(unsigned int i = 0;i < gp_p_list2.size();i++){
       if(gp2->GetRouteId() == gp_p_list2[i].rid &&
          fabs(gp2->GetPosition() - gp_p_list2[i].pos1) < delta_d && 
          fabs(loc_end.Distance(gp_p_list2[i].loc1) < delta_d)){
-          end_index = i;
+          //end_index = i;
           exist_jun2 = true;
           break;
       }
@@ -1372,12 +1372,12 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
    
    ////////////check whether the end location is equal to junction node///////
    bool exist_jun2 = false;
-   int end_index = -1;
+   // int end_index = -1;
    for(unsigned int i = 0;i < gp_p_list2.size();i++){
       if(gp2->GetRouteId() == gp_p_list2[i].rid &&
          fabs(gp2->GetPosition() - gp_p_list2[i].pos1) < delta_d && 
          fabs(loc_end.Distance(gp_p_list2[i].loc1) < delta_d)){
-          end_index = i;
+          //end_index = i;
           exist_jun2 = true;
           break;
       }
@@ -1874,12 +1874,12 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
    
    ////////////check whether the end location is equal to junction node///////
    bool exist_jun2 = false;
-   int end_index = -1;
+   //int end_index = -1;
    for(unsigned int i = 0;i < gp_p_list2.size();i++){
       if(gp2->GetRouteId() == gp_p_list2[i].rid &&
          fabs(gp2->GetPosition() - gp_p_list2[i].pos1) < delta_d && 
          fabs(loc_end.Distance(gp_p_list2[i].loc1) < delta_d)){
-          end_index = i;
+          //end_index = i;
           exist_jun2 = true;
           break;
       }

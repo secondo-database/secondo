@@ -4815,7 +4815,7 @@ const ListExpr in_xTypeInfo)
   }
 
   ////////////////////adjaency list////////////////////////////////
-   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   size_t bufsize = DbArray<int>::headerSize();
 
    SmiSize offset = 0;
    char* buf = (char*) malloc(bufsize);

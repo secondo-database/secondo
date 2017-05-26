@@ -3183,12 +3183,13 @@ void BusRoute::CreateRoutes(vector<TupleId>& tid_list, int br_id,
           Point p1, p2;
           sub_line.AtPosition(0.0, sub_line.GetStartSmaller() ,p1); 
          sub_line.AtPosition(sub_line.Length(), sub_line.GetStartSmaller(), p2);
-          bool startSmaller;
+          //bool startSmaller;
           if(loc1.Distance(p1) < delta_dist){
-            startSmaller = !sub_line.GetStartSmaller();
+            //  startSmaller = !sub_line.GetStartSmaller();
+            ;
           }else if(loc1.Distance(p2) < delta_dist){
-            startSmaller = sub_line.GetStartSmaller();
-
+            //startSmaller = sub_line.GetStartSmaller();
+            ;
           }else assert(false); 
 
           br->Add(&sub_line, count);
@@ -3220,12 +3221,14 @@ void BusRoute::CreateRoutes(vector<TupleId>& tid_list, int br_id,
 
 //      cout<<"sp "<<sp<<" ep "<<ep<<endl<<endl; 
 
-      bool startSmaller; 
+      // bool startSmaller; 
       if(loc1.Distance(sp) < delta_dist && loc2.Distance(ep) < delta_dist){
-        startSmaller = sub_l.GetStartSmaller();
+        //startSmaller = sub_l.GetStartSmaller();
+        ;
       }else if(loc1.Distance(ep) < delta_dist && 
                loc2.Distance(sp) < delta_dist){
-        startSmaller = !sub_l.GetStartSmaller(); 
+        //startSmaller = !sub_l.GetStartSmaller(); 
+        ;
       }else assert(false); 
 
       br->Add(&sub_l, count);
@@ -3257,12 +3260,14 @@ void BusRoute::CreateRoutes(vector<TupleId>& tid_list, int br_id,
          Point p1, p2;
          sub_line.AtPosition(0.0, sub_line.GetStartSmaller() ,p1); 
          sub_line.AtPosition(sub_line.Length(), sub_line.GetStartSmaller(), p2);
-          bool startSmaller;
+          //bool startSmaller;
           //for the last bus segment, the point corresponds to the start point
           if(loc2.Distance(p1) < delta_dist){//the last segment is different 
-            startSmaller = sub_line.GetStartSmaller();
+            //startSmaller = sub_line.GetStartSmaller();
+            ;
           }else if(loc2.Distance(p2) < delta_dist){
-            startSmaller = !sub_line.GetStartSmaller();
+            //startSmaller = !sub_line.GetStartSmaller();
+            ;
           }else assert(false); 
 
           br->Add(&sub_line, count);
@@ -4359,7 +4364,7 @@ void RoadDenstiy::CreateUp(int br_id, Periods* peri,
 //          <<"endpoint1 "<<temp_sp1
 //          <<" endpoint2 "<<temp_sp2<<endl; 
 
-      bool start;
+      //bool start;
       double real_speed = speed_list[i] * 1000 / 60;// convert to meter minute 
       if(start_p.Distance(temp_sp1) < dist_delta){
         ////////moving bus moves to the bus stop and wait for a while//////
@@ -4385,7 +4390,7 @@ void RoadDenstiy::CreateUp(int br_id, Periods* peri,
             bus_periods.start = newend; 
         }
         
-        start = true;
+        //start = true;
         start_p = temp_sp2; 
         CreateBusTrip1(bus_mo, seq_halfseg, bus_periods.start, 
                        real_speed, last_upoint);
@@ -4412,7 +4417,7 @@ void RoadDenstiy::CreateUp(int br_id, Periods* peri,
             delete up; 
             bus_periods.start = newend; 
         }
-        start = false;
+        //start = false;
         start_p = temp_sp1; 
         CreateBusTrip2(bus_mo, seq_halfseg, bus_periods.start, 
                        real_speed, last_upoint);
@@ -9314,7 +9319,7 @@ edge_rel3(NULL), adj_list3(0), entry_adj_list3(0)
   }
   
   /////////////////open adjacency list1////////////////////////////////
-   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   size_t bufsize = DbArray<int>::headerSize();
    SmiSize offset = 0;
    char* buf = (char*) malloc(bufsize);
    in_xValueRecord.Read(buf, bufsize, inout_iOffset);
@@ -9345,7 +9350,7 @@ edge_rel3(NULL), adj_list3(0), entry_adj_list3(0)
   }
   
     /////////////////open adjacency list2////////////////////////////////
-   bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   bufsize = DbArray<int>::headerSize();
    offset = 0;
    buf = (char*) malloc(bufsize);
    in_xValueRecord.Read(buf, bufsize, inout_iOffset);
@@ -9378,7 +9383,7 @@ edge_rel3(NULL), adj_list3(0), entry_adj_list3(0)
   }
   
    /////////////////open adjacency list3////////////////////////////////
-   bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   bufsize = DbArray<ListEntry>::headerSize();
    offset = 0;
    buf = (char*) malloc(bufsize);
    in_xValueRecord.Read(buf, bufsize, inout_iOffset);
@@ -16582,7 +16587,7 @@ edge_rel2(NULL), adj_list2(0), entry_adj_list2(0)
   }
 
   /////////////////open adjacency list1////////////////////////////////
-   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   size_t bufsize = DbArray<ListEntry>::headerSize();
    SmiSize offset = 0;
    char* buf = (char*) malloc(bufsize);
    in_xValueRecord.Read(buf, bufsize, inout_iOffset);
@@ -16612,7 +16617,7 @@ edge_rel2(NULL), adj_list2(0), entry_adj_list2(0)
   }
 
   /////////////////open adjacency list2////////////////////////////////
-   bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   bufsize = DbArray<ListEntry>::headerSize();
    offset = 0;
    buf = (char*) malloc(bufsize);
    in_xValueRecord.Read(buf, bufsize, inout_iOffset);

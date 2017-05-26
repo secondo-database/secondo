@@ -12572,7 +12572,7 @@ Space::Space(SmiRecord& in_xValueRecord, size_t& inout_iOffset,
   in_xValueRecord.Read(&build_exist_m, sizeof(bool), inout_iOffset);
   inout_iOffset += sizeof(bool);
 
-   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   size_t bufsize = DbArray<InfraRef>::headerSize();
    SmiSize offset = 0;
    char* buf = (char*) malloc(bufsize);
    in_xValueRecord.Read(buf, bufsize, inout_iOffset);
