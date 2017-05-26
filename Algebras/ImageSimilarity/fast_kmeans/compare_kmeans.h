@@ -14,10 +14,10 @@ centers that cannot be close.
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //[TOC] [\tableofcontents]
 
-[1] Declarations for the annulus algorithm
+[1] Declarations for the CompareKmeans algorithm
 
 
-1 Declarations for the annulus algorithm
+1 Declarations for the CompareKmeans algorithm
 
 */
 
