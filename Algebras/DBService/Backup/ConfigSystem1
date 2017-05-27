@@ -32,7 +32,7 @@
 # specified below AND it exists!
 # Note: On windows you need absolute path names, e.g.
 # C:\msys\1.0\home\user\secondo-dbtest
-SecondoHome=/home/saskia/SecondoDisks/System/disk1
+SecondoHome=/opt/psec/secondo_disks/disk1
 
 # Algebralevel after startup (Executable|Descriptive|Hybrid).
 AlgebraLevel=Executable
@@ -49,10 +49,10 @@ RegistrarProgram=SecondoRegistrar
 ListenerProgram=SecondoListener
 
 # Host address of the Secondo server
-SecondoHost=127.0.0.1
+SecondoHost=132.176.69.184
 
 # Port of the Secondo server (default: )
-SecondoPort=9901
+SecondoPort=49099
 
 # Runtime Flags (refer to class RTFlags). This key can be used to define
 # a comma separated list of runtime flags which switch on some special messages
@@ -299,16 +299,15 @@ Node += Replayhost3:192.168.40.132:1234:3
 [DBService]
 
 # Host for DBService
-DBServiceHost=127.0.0.1
+DBServiceHost=132.176.69.181
 
 # Port for DBService
-DBServicePort=9989
-
+DBServicePort=49094
 # Port for Communication
-CommunicationPort=9902
+CommunicationPort=49095
 
 # Port for File Transfer
-FileTransferPort=9903
+FileTransferPort=49096
 
 # Fault Tolerance Level
 # 0 = None (replica can be stored on arbitrary node)
@@ -318,7 +317,6 @@ FaultToleranceLevel=0
 
 # Number of Replicas
 ReplicaNumber=1
-
 
 ######### End of Secondo Configuration ###########
 
