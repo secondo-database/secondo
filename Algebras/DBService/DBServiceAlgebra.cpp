@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DBServiceAlgebra.hpp"
 #include "Algebras/DBService/OperatorAddNode.hpp"
 #include "Algebras/DBService/OperatorCheckDBServiceStatus.hpp"
+#include "Algebras/DBService/OperatorDDelete.hpp"
 #include "Algebras/DBService/OperatorFeedPF.hpp"
 #include "Algebras/DBService/OperatorGetConfigParam.hpp"
 #include "Algebras/DBService/OperatorInitDBServiceWorker.hpp"
@@ -67,6 +68,9 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(ReadInfo(),
                 OperatorRead::mapValue,
                 OperatorRead::mapType);
+    AddOperator(DDeleteInfo(),
+                OperatorDDelete::mapValue,
+                OperatorDDelete::mapType);
 }
 
 } /* namespace DBService */

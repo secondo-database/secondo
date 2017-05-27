@@ -53,6 +53,13 @@ Remark    : None
 Operator  : read
 Number    : 1
 Signature : TODO
-Example   : TODO query myDArray read[ . filter[ .Name startsWith "A"] ]
+Example   : query myDArray read[ . feed filter[ .Name startsWith "A"] ]
 Result    : TODO
+Remark    : None
+
+Operator  : ddelete
+Number    : 1
+Signature : string x bool -> bool
+Example   : query ddelete("myRelation", TRUE)
+Result    : TRUE
 Remark    : None
