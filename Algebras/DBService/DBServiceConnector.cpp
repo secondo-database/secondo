@@ -35,7 +35,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/CommunicationClient.hpp"
 #include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/ReplicationClient.hpp"
 #include "Algebras/DBService/ReplicationServer.hpp"
+#include "Algebras/DBService/ReplicationUtils.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/ServerRunnable.hpp"
 
@@ -127,6 +129,31 @@ bool DBServiceConnector::getReplicaLocation(const string& databaseName,
                                                     relationName,
                                                     host,
                                                     transferPort);
+}
+
+string DBServiceConnector::retrieveReplicaAndGetFileName(
+                                const string& databaseName,
+                                const string& relationName,
+                                const string& functionAsNestedListString)
+{
+    string host;
+    string transferPort;
+    getReplicaLocation(databaseName, relationName, host, transferPort);
+
+    ReplicationClient clientToDBServiceWorker(
+            host,
+            atoi(transferPort.c_str()),
+            ReplicationUtils::getFileName(
+                    databaseName, relationName), /*local*/
+            ReplicationUtils::getFileNameOnDBServiceWorker(
+                    databaseName, relationName), /*remote*/
+            *(const_cast<string*>(&databaseName)),
+            *(const_cast<string*>(&relationName)));
+
+    clientToDBServiceWorker.start();
+    clientToDBServiceWorker.requestReplica(functionAsNestedListString);
+    //TODO additional argument for client function
+    return string("");
 }
 
 DBServiceConnector* DBServiceConnector::_instance = NULL;

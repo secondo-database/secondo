@@ -29,12 +29,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "StandardTypes.h"
 
+#include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorRead.hpp"
 
 namespace DBService {
 
 ListExpr OperatorRead::mapType(ListExpr nestedList)
 {
+    print(nestedList);
     return listutils::basicSymbol<CcBool>();
 }
 

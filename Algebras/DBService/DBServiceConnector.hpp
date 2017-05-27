@@ -55,14 +55,21 @@ Returns the DBServiceConnector instance (singleton).
 //TODO
 
 */
-    bool triggerReplication(const std::string& databaseName,
-                            const std::string& relationName);
+    bool triggerReplication(
+            const std::string& databaseName,
+            const std::string& relationName);
 
+    bool getReplicaLocation(
+            const std::string& databaseName,
+            const std::string& relationName,
+            std::string& host,
+            std::string& transferPort);
 
-    bool getReplicaLocation(const std::string& databaseName,
-                            const std::string& relationName,
-                            std::string& host,
-                            std::string& transferPort);
+    std::string retrieveReplicaAndGetFileName(
+            const std::string& databaseName,
+            const std::string& relationName,
+            const std::string&
+            functionAsNestedListString);
 
 protected:
 /*

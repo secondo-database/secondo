@@ -47,6 +47,8 @@ public:
             std::string& relationName);
     ~ReplicationClient();
     int start();
+    int receiveReplica();
+    int requestReplica(const std::string& functionAsNestedListString);
 private:
     const std::string fileNameDBS;
     const std::string fileNameOrigin;

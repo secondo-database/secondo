@@ -92,6 +92,7 @@ void ReplicationClientRunnable::create(
                              databaseName,
                              relationName);
     client.start();
+    client.receiveReplica();
 }
 
 } /* namespace DBService */

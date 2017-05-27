@@ -45,8 +45,8 @@ const std::string ReplicationUtils::getFileName(
 }
 
 const std::string ReplicationUtils::getFileNameOnDBServiceWorker(
-        std::string& databaseName,
-        std::string& relationName)
+        const std::string& databaseName,
+        const std::string& relationName)
 {
     stringstream fileName;
     fileName << databaseName

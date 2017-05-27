@@ -89,7 +89,12 @@ int ReplicationClient::start()
         traceWriter->write("socket not ok");
         return 2;
     }
+    return 0;
+}
 
+int ReplicationClient::receiveReplica()
+{
+    traceWriter->writeFunction("ReplicationClient::receiveReplica");
     try
     {
         iostream& io = socket->GetSocketStream();
@@ -118,6 +123,15 @@ int ReplicationClient::start()
         cerr << "ReplicationClient: communication error" << endl;
         return 5;
     }
+    return 0;
+}
+
+int ReplicationClient::requestReplica(const string& functionAsNestedListString)
+{
+    traceWriter->writeFunction("ReplicationClient::requestReplica");
+
+    // TODO implement
+
     return 0;
 }
 

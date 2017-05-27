@@ -40,8 +40,8 @@ public:
             const std::string& relationName);
 
     static const std::string getFileNameOnDBServiceWorker(
-            std::string& databaseName,
-            std::string& relationName);
+            const std::string& databaseName,
+            const std::string& relationName);
     static void parseFileName(
             const std::string& fileName,
             std::string& databaseName,
