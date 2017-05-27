@@ -31,7 +31,6 @@ using namespace CRelAlgebra;
 
 using stringutils::any2str;
 
-
 void CRelAlgebra::WriteOrThrow(SmiRecordFile &target, SmiRecordId recordId,
                                char *source, size_t count, size_t &offset)
 {

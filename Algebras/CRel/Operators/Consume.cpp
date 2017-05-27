@@ -85,6 +85,11 @@ int Consume::ValueMapping(Word* args, Word &result, int, Word&, Supplier s)
     CRel &relation = qp->ResultStorage<CRel>(result, s);
     TBlock *block;
 
+    if (relation.GetRowCount() > 0)
+    {
+      relation.Clear();
+    }
+
     stream.open();
 
     while ((block = stream.request()) != nullptr)

@@ -104,6 +104,12 @@ namespace CRelAlgebra
     void Save(Writer &target);
 
     /*
+    Removes all tupleblocks from this relation.
+
+    */
+    void Clear();
+
+    /*
     Deletes the files created by this relation.
 
     */
@@ -263,6 +269,10 @@ namespace CRelAlgebra
       bool modified;
 
       BlockRecord();
+
+      BlockRecord(const BlockRecord &instance) = delete;
+
+      ~BlockRecord();
     };
 
     PTBlockInfo m_blockInfo;

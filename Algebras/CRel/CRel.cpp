@@ -106,8 +106,6 @@ CRel::~CRel()
         WriteOrThrow(record, m_blockRecord.data, m_blockRecordSize, offset);
       }
     }
-
-    delete[] m_blockRecord.data;
   }
 
   if (m_blockFileId != 0)
@@ -182,6 +180,59 @@ void CRel::Save(Writer &target)
       }
     }
     while (iterator.MoveToNext());
+  }
+}
+
+void CRel::Clear()
+{
+  LRUCache<BlockCacheEntry>::Iterator iterator(m_blockCache);
+
+  if (iterator.IsValid())
+  {
+    do
+    {
+      size_t index;
+      iterator.GetValue(index).block->DecRef();
+    }
+    while (iterator.MoveToNext());
+  }
+
+  m_blockCache.~LRUCache<BlockCacheEntry>();
+  new (&m_blockCache) LRUCache<BlockCacheEntry>(m_blockCache.GetSize());
+
+  m_rowCount = 0;
+  m_blockCount = 0;
+  m_nextBlockIndex = 0;
+  m_recordCount = 0;
+
+  m_blockRecord = BlockRecord();
+
+  if (!m_blockFile.Truncate())
+  {
+    DropOrThrow(m_blockFile);
+
+    CreateOrThrow(m_blockFile);
+
+    m_blockFileId = m_blockFile.GetFileId();
+  }
+
+  if (m_columnFile->GetFileId() != m_columnFileId)
+  {
+    CloseOrThrow(*m_columnFile);
+  }
+
+  if (!m_columnFile->IsOpen())
+  {
+    OpenOrThrow(*m_columnFile, m_columnFileId);
+  }
+
+  if (!m_columnFile->Truncate())
+  {
+    DropOrThrow(*m_columnFile);
+
+    CreateOrThrow(*m_columnFile);
+
+    m_columnFileId = m_columnFile->GetFileId();
   }
 }
 
@@ -464,4 +515,12 @@ CRel::BlockRecord::BlockRecord() :
   data(nullptr),
   modified(false)
 {
+}
+
+CRel::BlockRecord::~BlockRecord()
+{
+  if (data != nullptr)
+  {
+    delete[] data;
+  }
 }

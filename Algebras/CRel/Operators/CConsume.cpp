@@ -229,6 +229,11 @@ int CConsume::TBlockValueMapping(Word* args, Word &result, int, Word&,
     CRel &relation = qp->ResultStorage<CRel>(result, s);
     TBlock *block;
 
+    if (relation.GetRowCount() > 0)
+    {
+      relation.Clear();
+    }
+
     stream.open();
 
     while ((block = stream.request()) != nullptr)
@@ -261,6 +266,11 @@ int CConsume::TupleValueMapping(ArgVector args, Word &result, int, Word&,
     Stream<Tuple> stream = Stream<Tuple>(args[0]);
     CRel &relation = qp->ResultStorage<CRel>(result, s);
     Tuple *tuple;
+
+    if (relation.GetRowCount() > 0)
+    {
+      relation.Clear();
+    }
 
     stream.open();
 
