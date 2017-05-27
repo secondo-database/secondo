@@ -42,25 +42,15 @@ string CommunicationProtocol::CommunicationClient()
     return "<DBSERVICECOMMCLI>";
 }
 
-string CommunicationProtocol::ShutDown()
+string CommunicationProtocol::ReplicationCanceled()
 {
-    return "<SHUTDOWN>";
+    return "<CANCELED>";
 }
 
-string CommunicationProtocol::Cancel()
+string CommunicationProtocol::ReplicationTriggered()
 {
-    return "<CANCEL>";
+    return "<TRIGGERED>";
 }
-
-//string CommunicationProtocol::ProvideReplica()
-//{
-//    return "<PROVIDEREPLICA>";
-//}
-//
-//string CommunicationProtocol::UseReplica()
-//{
-//    return "<USEREPLICA>";
-//}
 
 string CommunicationProtocol::RelationRequest()
 {
@@ -72,9 +62,9 @@ string CommunicationProtocol::LocationRequest()
     return "<LOCATIONREQUEST>";
 }
 
-string CommunicationProtocol::ReplicaLocation()
+string CommunicationProtocol::ReplicaLocationRequest()
 {
-    return "<REPLICALOCATION>";
+    return "<REPLICALOCATIONREQUEST>";
 }
 
 string CommunicationProtocol::ReplicationServer()

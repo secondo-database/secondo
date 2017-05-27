@@ -41,16 +41,20 @@ namespace DBService {
 class CommunicationClient: public distributed2::Client {
 
 public:
-    CommunicationClient(std::string& _server,
-                                 int _port,
-                                 Socket* _socket);
+    CommunicationClient(
+            std::string& server,
+            int port,
+            Socket* socket);
     ~CommunicationClient();
     int start();
-    int triggerReplication(
+    bool triggerReplication(
             const std::string& databaseName,
-            const std::string& relationName,
-            std::vector<LocationInfo>& locations);
-    int getReplicaLocation();
+            const std::string& relationName);
+    bool getReplicaLocation(
+            const std::string databaseName,
+            const std::string relationName,
+            std::string& host,
+            std::string& transferPort);
     int triggerFileTransfer(
             const std::string& transferServerHost,
             const std::string& transferServerPort,

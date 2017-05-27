@@ -241,10 +241,10 @@ void DBServiceManager::determineReplicaLocations(const string& databaseName,
             relationInfo));
 }
 
-void DBServiceManager::deleteReplicaLocationInfo(const string& databaseName,
+void DBServiceManager::deleteReplicaLocations(const string& databaseName,
                                               const string& relationName)
 {
-
+    relations.erase(RelationInfo::getIdentifier(databaseName, relationName));
 }
 
 void DBServiceManager::persistReplicaLocations(const string& databaseName,
@@ -306,13 +306,6 @@ RelationInfo& DBServiceManager::getRelationInfo(const string& relationAsString)
 {
     printFunction("DBServiceManager::getRelationInfo");
     return relations.at(relationAsString);
-}
-
-//TODO
-bool DBServiceManager::persistLocationInformation()
-{
-    printFunction("DBServiceManager::persistLocationInformation");
-    return true;
 }
 
 DBServiceManager* DBServiceManager::_instance = NULL;

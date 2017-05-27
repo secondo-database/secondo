@@ -43,16 +43,16 @@ using namespace distributed2;
 namespace DBService {
 
 CommunicationClient::CommunicationClient(
-        std::string& _server, int _port, Socket* _socket)
-:Client(_server, _port, _socket)
+        std::string& server, int port, Socket* socket)
+:Client(server, port, socket)
 {
     string context("CommunicationClient");
     traceWriter= auto_ptr<TraceWriter>
     (new TraceWriter(context));
 
     traceWriter->writeFunction("CommunicationClient::CommunicationClient");
-    traceWriter->write("server", _server);
-    traceWriter->write("port", _port);
+    traceWriter->write("server", server);
+    traceWriter->write("port", port);
 }
 
 CommunicationClient::~CommunicationClient()
@@ -76,9 +76,8 @@ int CommunicationClient::start()
         return 0;
 }
 
-int CommunicationClient::triggerReplication(const string& databaseName,
-                                            const string& relationName,
-                                            vector<LocationInfo>& locations)
+bool CommunicationClient::triggerReplication(const string& databaseName,
+                                            const string& relationName)
 {
     traceWriter->writeFunction("CommunicationClient::triggerReplication");
     iostream& io = socket->GetSocketStream();
@@ -87,7 +86,7 @@ int CommunicationClient::triggerReplication(const string& databaseName,
             CommunicationProtocol::CommunicationServer()))
     {
         traceWriter->write("Not connected to CommunicationServer");
-        return 1;
+        return false;
     }
 
     queue<string> sendBuffer;
@@ -99,7 +98,7 @@ int CommunicationClient::triggerReplication(const string& databaseName,
             CommunicationProtocol::RelationRequest()))
     {
         traceWriter->write("Did not receive expected RelationRequest keyword");
-        return 2;
+        return false;
     }
     sendBuffer.push(databaseName);
     sendBuffer.push(relationName);
@@ -109,7 +108,7 @@ int CommunicationClient::triggerReplication(const string& databaseName,
             CommunicationProtocol::LocationRequest()))
     {
         traceWriter->write("Did not receive expected LocationRequest keyword");
-        return 3;
+        return false;
     }
 
     string originalLocation;
@@ -131,16 +130,12 @@ int CommunicationClient::triggerReplication(const string& databaseName,
     traceWriter->write("sent original location details");
 
     if(!CommunicationUtils::receivedExpectedLine(io,
-            CommunicationProtocol::ReplicaLocation()))
+            CommunicationProtocol::ReplicationTriggered()))
     {
-        traceWriter->write("Did not receive expected ReplicaLocation keyword");
-        return 4;
+        traceWriter->write("Could not trigger replication");
+        return false;
     }
-    string count;
-    CommunicationUtils::receiveLine(io, count);
-    int locationCount = atoi(count.c_str());
-    traceWriter->write("number of replica locations: ", locationCount);
-    return 0;
+    return true;
 }
 
 int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
@@ -197,10 +192,36 @@ void CommunicationClient::getLocationParameter(
                                        "");
 }
 
-int CommunicationClient::getReplicaLocation()
+bool CommunicationClient::getReplicaLocation(const string databaseName,
+                                             const string relationName,
+                                             std::string& host,
+                                             std::string& transferPort)
 {
     traceWriter->writeFunction("CommunicationClient::getReplicaLocation");
-    return 0;
+    iostream& io = socket->GetSocketStream();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::CommunicationServer()))
+    {
+        traceWriter->write("Not connected to CommunicationServer");
+        return false;
+    }
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::ReplicaLocationRequest());
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    queue<string> receivedLines;
+    CommunicationUtils::receiveLines(io, 2, receivedLines);
+    host = receivedLines.front();
+    receivedLines.pop();
+    transferPort = receivedLines.front();
+    receivedLines.pop();
+    if(!host.empty() && !transferPort.empty())
+    {
+        return true;
+    }
+    return false;
 }
 
 } /* namespace DBService */

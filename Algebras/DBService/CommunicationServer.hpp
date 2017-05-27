@@ -43,7 +43,10 @@ protected:
     int communicate(std::iostream& io);
     bool handleTriggerReplicationRequest(std::iostream& io);
     bool handleTriggerFileTransferRequest(std::iostream& io);
-    bool handleUseReplicaRequest(std::iostream& io);
+    bool handleProvideReplicaLocationRequest(std::iostream& io);
+private:
+    void lookupMinimumReplicaCount();
+    int minimumReplicaCount;
 };
 
 } /* namespace DBService */

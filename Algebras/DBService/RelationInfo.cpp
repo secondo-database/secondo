@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
+#include <cstdlib>
+
 #include "Algebras/DBService/RelationInfo.hpp"
 
 using namespace std;
@@ -95,6 +97,12 @@ string RelationInfo::getIdentifier(const string dbName,
 const LocationInfo& RelationInfo::getOriginalLocation() const
 {
 return originalLocation;
+}
+
+const ConnectionID RelationInfo::getRandomReplicaLocation()
+{
+    int offset = rand() % nodes.size();
+    return *(nodes.begin() + offset);
 }
 
 } /* namespace DBService */

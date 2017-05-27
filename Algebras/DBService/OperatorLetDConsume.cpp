@@ -117,9 +117,14 @@ int OperatorLetDConsume::mapValue(Word* args,
         int consumeValueMappingResult = OperatorConsume::Consume(args, result,
                 message, local, s);
 
-        DBServiceConnector::getInstance()->triggerReplication(
+        bool replicationTriggered =
+                DBServiceConnector::getInstance()->triggerReplication(
                 SecondoSystem::GetInstance()->GetDatabaseName(),
                 relationName->GetValue());
+        if(!replicationTriggered)
+        {
+            // TODO
+        }
         return consumeValueMappingResult;
     }
 }

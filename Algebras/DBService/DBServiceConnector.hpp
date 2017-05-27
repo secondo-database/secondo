@@ -55,10 +55,14 @@ Returns the DBServiceConnector instance (singleton).
 //TODO
 
 */
-    bool triggerReplication(const std::string databaseName,
-                            const std::string relationName);
+    bool triggerReplication(const std::string& databaseName,
+                            const std::string& relationName);
 
-    void createFileFromRelation();
+
+    bool getReplicaLocation(const std::string& databaseName,
+                            const std::string& relationName,
+                            std::string& host,
+                            std::string& transferPort);
 
 protected:
 /*
@@ -78,15 +82,12 @@ Deletes existing DBServiceConnector instance.
     ~DBServiceConnector();
 
 private:
-    void triggerReplication(
-            std::string& host,
-            int port,
-            const std::string& databaseName,
-            const std::string& relationName,
-            std::vector<LocationInfo>& locations);
+    void lookupDBServiceLocation();
+    void startReplicationServer();
+
+    std::string dbServiceHost;
+    std::string dbServicePort;
     static DBServiceConnector* _instance;
-    std::string host;
-    int port;
 };
 
 

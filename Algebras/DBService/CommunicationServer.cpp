@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/CommunicationUtils.hpp"
 #include "Algebras/DBService/DBServiceManager.hpp"
 #include "Algebras/DBService/ReplicationClientRunnable.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
 
 using namespace distributed2;
 using namespace std;
@@ -50,11 +51,23 @@ CommunicationServer::CommunicationServer(int port) :
     traceWriter->writeFunction("CommunicationServer::CommunicationServer");
     traceWriter->write("Initializing CommunicationServer");
     traceWriter->write("port", port);
+
+    lookupMinimumReplicaCount();
 }
 
 CommunicationServer::~CommunicationServer()
 {
     traceWriter->writeFunction("CommunicationServer::~CommunicationServer");
+}
+
+void CommunicationServer::lookupMinimumReplicaCount()
+{
+    string replicaNumber;
+    SecondoUtilsLocal::readFromConfigFile(replicaNumber,
+                                           "DBService",
+                                           "ReplicaNumber",
+                                           "");
+    minimumReplicaCount = atoi(replicaNumber.c_str());
 }
 
 int CommunicationServer::communicate(iostream& io)
@@ -74,13 +87,10 @@ int CommunicationServer::communicate(iostream& io)
             return 1;
         }
 
-        queue<string> receivedLines;
-        CommunicationUtils::receiveLines(io, 1, receivedLines);
-        string request = receivedLines.front();
-        receivedLines.pop();
+        string request;
+        CommunicationUtils::receiveLine(io, request);
 
-        traceWriter->write("request");
-        traceWriter->write(request);
+        traceWriter->write("request", request);
 
         if(request ==
                 CommunicationProtocol::TriggerReplication())
@@ -90,12 +100,10 @@ int CommunicationServer::communicate(iostream& io)
                 CommunicationProtocol::TriggerFileTransfer())
         {
             handleTriggerFileTransferRequest(io);
-//        }else if(request ==
-//                CommunicationProtocol::UseReplica())
-//        {
-            //TODO contact DBServiceManager and find out where replica is
-            // stored
-            //DBServiceManager::getInstance();
+        }else if(request ==
+                CommunicationProtocol::ReplicaLocationRequest())
+        {
+            handleProvideReplicaLocationRequest(io);
         }else
         {
             traceWriter->write("Protocol error: invalid request: ", request);
@@ -157,13 +165,17 @@ bool CommunicationServer::handleTriggerReplicationRequest(
             databaseName, relationName),
             locations);
 
-    queue<string> sendBuffer;
-    sendBuffer.push(CommunicationProtocol::ReplicaLocation());
-    sendBuffer.push(stringutils::int2str(locations.size()));
-    CommunicationUtils::sendBatch(io, sendBuffer);
-
-    // TODO react on cancel as soon as it is sent by client
-    dbService->persistReplicaLocations(databaseName, relationName);
+    if(locations.size() < (size_t)minimumReplicaCount)
+    {
+        CommunicationUtils::sendLine(io,
+                CommunicationProtocol::ReplicationCanceled());
+        dbService->deleteReplicaLocations(databaseName, relationName);
+    }else
+    {
+        dbService->persistReplicaLocations(databaseName, relationName);
+        CommunicationUtils::sendLine(io,
+                CommunicationProtocol::ReplicationTriggered());
+    }
 
     for(vector<ConnectionID>::const_iterator it = locations.begin();
             it != locations.end(); it++)
@@ -179,24 +191,6 @@ bool CommunicationServer::handleTriggerReplicationRequest(
 
         clientToDBServiceWorker.run();
     }
-
-
-//    traceWriter->write("number of locations: ", connections.size());
-//
-//    traceWriter->write("sending locations");
-//    for(vector<ConnectionID>::const_iterator it = connections.begin();
-//            it != connections.end(); it++)
-//    {
-//        LocationInfo& location = dbService->getLocation(*it);
-//        traceWriter->write(location);
-//        sendBuffer.push(location.getHost());
-//        sendBuffer.push(location.getPort());
-//        sendBuffer.push(location.getConfig());
-//        sendBuffer.push(location.getDisk());
-//        sendBuffer.push(location.getCommPort());
-//        sendBuffer.push(location.getTransferPort());
-//    }
-//    CommunicationUtils::sendBatch(io, sendBuffer);
     return true;
 }
 
@@ -237,10 +231,40 @@ bool CommunicationServer::handleTriggerFileTransferRequest(std::iostream& io)
     return true;
 }
 
-bool CommunicationServer::handleUseReplicaRequest(
+bool CommunicationServer::handleProvideReplicaLocationRequest(
         std::iostream& io)
 {
-    traceWriter->writeFunction("CommunicationServer::handleUseReplicaRequest");
+    traceWriter->writeFunction(
+            "CommunicationServer::handleProvideReplicaLocationRequest");
+
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::RelationRequest());
+
+    queue<string> receivedLines;
+    CommunicationUtils::receiveLines(io, 2, receivedLines);
+
+    string databaseName = receivedLines.front();
+    receivedLines.pop();
+    string relationName = receivedLines.front();
+    receivedLines.pop();
+
+    traceWriter->write("databaseName", databaseName);
+    traceWriter->write("relationName", relationName);
+
+    DBServiceManager* dbService = DBServiceManager::getInstance();
+    ConnectionID randomReplicaLocation =
+            dbService->getRelationInfo(
+                RelationInfo::getIdentifier(databaseName, relationName)).
+                        getRandomReplicaLocation();
+    // TODO check whether replication to this node was successful
+    //      once status table exists
+    LocationInfo location = dbService->getLocation(randomReplicaLocation);
+
+    queue<string> sendBuffer;
+    sendBuffer.push(location.getHost());
+    sendBuffer.push(location.getTransferPort());
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
     return true;
 }
 

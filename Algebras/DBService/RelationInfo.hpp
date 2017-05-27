@@ -60,6 +60,7 @@ public:
     static std::string getIdentifier(const std::string dbName,
                                      const std::string relName);
     const size_t getNodeCount();
+    const ConnectionID getRandomReplicaLocation();
 
 private:
     const std::string& databaseName;

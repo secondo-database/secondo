@@ -46,6 +46,38 @@ namespace DBService {
 DBServiceConnector::DBServiceConnector()
 {
     printFunction("DBServiceConnector::DBServiceConnector");
+
+    lookupDBServiceLocation();
+    startReplicationServer();
+}
+
+void DBServiceConnector::lookupDBServiceLocation()
+{
+    printFunction("DBServiceConnector::lookupDBServiceLocation");
+    SecondoUtilsLocal::readFromConfigFile(dbServiceHost,
+                                           "DBService",
+                                           "DBServiceHost",
+                                           "");
+    if(dbServiceHost.length() == 0)
+    {
+        print("could not find DBServiceHost in config file");
+        throw new SecondoException("DBServiceHost not configured");
+    }
+
+    SecondoUtilsLocal::readFromConfigFile(dbServicePort,
+                                       "DBService",
+                                       "DBServicePort",
+                                       "");
+    if(dbServicePort.length() == 0)
+    {
+        print("could not find DBServicePort in config file");
+        throw new SecondoException("DBServicePort not configured");
+    }
+}
+
+void DBServiceConnector::startReplicationServer()
+{
+    printFunction("DBServiceConnector::startReplicationServer");
     string fileTransferPort;
     SecondoUtilsLocal::readFromConfigFile(fileTransferPort,
             "DBService",
@@ -66,64 +98,35 @@ DBServiceConnector* DBServiceConnector::getInstance()
     return _instance;
 }
 
-void DBServiceConnector::triggerReplication(
-        string& host,
-        int port,
-        const string& databaseName,
-        const string& relationName,
-        vector<LocationInfo>& locations)
+bool DBServiceConnector::triggerReplication(const std::string& databaseName,
+                                            const std::string& relationName)
 {
-    CommunicationClient dbServiceMasterClient(host, port, 0);
-    dbServiceMasterClient.start();
-
-    dbServiceMasterClient.triggerReplication(
-            databaseName,
-            relationName,
-            locations);
-}
-
-bool DBServiceConnector::triggerReplication(const std::string databaseName,
-                                            const std::string relationName)
-{
-    printFunction("DBServiceConnector::replicateRelation");
+    printFunction("DBServiceConnector::triggerReplication");
     print(relationName, "relationName");
 
-    string dbServiceHost;
-    SecondoUtilsLocal::readFromConfigFile(dbServiceHost,
-                                           "DBService",
-                                           "DBServiceHost",
-                                           "");
-    if(dbServiceHost.length() == 0)
-    {
-        print("could not find DBServiceHost in config file");
-        throw new SecondoException("DBServiceHost not configured");
-    }
+    CommunicationClient dbServiceMasterClient(dbServiceHost,
+                                              atoi(dbServicePort.c_str()),
+                                              0);
+    dbServiceMasterClient.start();
 
-    string dbServicePort;
-    SecondoUtilsLocal::readFromConfigFile(dbServicePort,
-                                       "DBService",
-                                       "DBServicePort",
-                                       "");
-    if(dbServicePort.length() == 0)
-    {
-        print("could not find DBServicePort in config file");
-        throw new SecondoException("DBServicePort not configured");
-    }
-
-    // connect to DBService master to determine location for replication
-    vector<LocationInfo> locations;
-    triggerReplication(
-            dbServiceHost,
-            atoi(dbServicePort.c_str()),
+    return dbServiceMasterClient.triggerReplication(
             databaseName,
-            relationName,
-            locations);
-    return true;
+            relationName);
 }
 
-void DBServiceConnector::createFileFromRelation()
+bool DBServiceConnector::getReplicaLocation(const string& databaseName,
+                                            const string& relationName,
+                                            string& host,
+                                            string& transferPort)
 {
-
+    CommunicationClient dbServiceMasterClient(dbServiceHost,
+                                              atoi(dbServicePort.c_str()),
+                                              0);
+    dbServiceMasterClient.start();
+    return dbServiceMasterClient.getReplicaLocation(databaseName,
+                                                    relationName,
+                                                    host,
+                                                    transferPort);
 }
 
 DBServiceConnector* DBServiceConnector::_instance = NULL;

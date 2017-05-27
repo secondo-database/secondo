@@ -96,8 +96,8 @@ storing relation replicas.
             const std::string& relationName);
     void getReplicaLocations(const std::string& relationAsString,
                              std::vector<ConnectionID>& ids);
-    void deleteReplicaLocationInfo(const std::string& databaseName,
-                                   const std::string& relationName);
+    void deleteReplicaLocations(const std::string& databaseName,
+                                const std::string& relationName);
 
 protected:
 /*
@@ -129,7 +129,6 @@ private:
     void getWorkerNodesForReplication(std::vector<
                                       ConnectionID>& nodes);
     bool startServersOnWorker(distributed2::ConnectionInfo* connectionInfo);
-    bool persistLocationInformation();
     bool getConfigParamFromWorker(std::string& dir,
             distributed2::ConnectionInfo* connectionInfo, const char* section,
             const char* key);
@@ -142,7 +141,6 @@ private:
                     std::pair<LocationInfo,
                               distributed2::ConnectionInfo*> > connections;
     std::map<std::string, RelationInfo> relations;
-    //boost::shared_ptr<CommunicationServer> commServer;
     size_t replicaCount;
 
 };
