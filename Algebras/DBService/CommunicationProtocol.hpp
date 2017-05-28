@@ -48,6 +48,10 @@ public:
     static std::string TriggerReplication();
     static std::string TriggerFileTransfer();
     static std::string ReplicationDetailsRequest();
+    static std::string SendReplicaForStorage();
+    static std::string SendReplicaForUsage();
+    static std::string FunctionRequest();
+    static std::string None();
 };
 
 } /* namespace DBService */

@@ -36,7 +36,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace DBService {
 
-class ReplicationClient: public distributed2::FileTransferClient {
+class ReplicationClient: public distributed2::FileTransferClient
+{
 public:
     ReplicationClient(
             std::string& server,
@@ -48,8 +49,11 @@ public:
     ~ReplicationClient();
     int start();
     int receiveReplica();
-    int requestReplica(const std::string& functionAsNestedListString);
+    int requestReplica(
+            const std::string& functionAsNestedListString,
+            std::string& fileName);
 private:
+    void receiveFileFromServer();
     const std::string fileNameDBS;
     const std::string fileNameOrigin;
     std::string databaseName;

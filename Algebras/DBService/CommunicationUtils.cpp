@@ -39,16 +39,22 @@ namespace DBService
 
 bool CommunicationUtils::streamStatusOk(iostream& io)
 {
-    if(!io.good())
+    try{
+
+        if(!io.good())
+        {
+            cout << " eof()=" << io.eof();
+            cout << " fail()=" << io.fail();
+            cout << " bad()=" << io.bad();
+            return false;
+        }
+        return true;
+    }catch(...)
     {
-        std::cout << " eof()=" << io.eof();
-        std::cout << " fail()=" << io.fail();
-        std::cout << " bad()=" << io.bad();
+        cout << "caught exception while trying to use stream" << endl;
         return false;
     }
-    return true;
 }
-
 
 bool CommunicationUtils::receivedExpectedLine(iostream& io,
                                               const string& expectedLine)
@@ -111,7 +117,7 @@ void CommunicationUtils::receiveLines(iostream& io,
 }
 
 void CommunicationUtils::sendLine(iostream& io,
-                                  const std::string& line)
+                                  const string& line)
 {
     if(streamStatusOk(io))
     {

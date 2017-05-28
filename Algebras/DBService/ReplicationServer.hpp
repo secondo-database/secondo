@@ -47,6 +47,7 @@ protected:
     int communicate(std::iostream& io);
 private:
     bool createFile(std::string fileName) const;
+    void sendFileToClient(std::iostream& io, bool fileCreated);
 };
 
 } /* namespace DBService */

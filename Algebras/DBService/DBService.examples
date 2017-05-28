@@ -8,6 +8,13 @@ Example   : let Roads2 = Roads filter[ .Name startsWith "A"] letdconsume["Roads2
 Result    : bug
 Remark    : Requires a DBServiceSystem
 
+Operator  : letdconsume
+Number    : 2
+Signature : stream(tuple) x string -> rel(tuple)
+Example   : let Roads2 = Roads filter[ .Name startsWith "A"] letdconsume["Roads2"]
+Result    : bug
+Remark    : Requires a DBServiceSystem
+
 Operator  : feedpf
 Number    : 1
 Signature : ((rel (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik) (map x bool)) -> (stream (tuple ((ai1 Ti1) ... (aik Tik))))
@@ -52,9 +59,9 @@ Remark    : None
 
 Operator  : read
 Number    : 1
-Signature : TODO
-Example   : query myDArray read[ . feed filter[ .Name startsWith "A"] ]
-Result    : TODO
+Signature : rel(tuple(X)) x fun -> ?
+Example   : query myRelation read[ . feed filter[ .Name startsWith "A"] consume ]
+Result    : ()
 Remark    : None
 
 Operator  : ddelete

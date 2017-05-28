@@ -28,8 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <iostream>
 
-#include <boost/filesystem.hpp>
-
+#include "FileSystem.h"
 #include "SocketIO.h"
 
 #include "Algebras/Distributed2/FileTransferKeywords.h"
@@ -79,37 +78,54 @@ int ReplicationServer::communicate(iostream& io)
             traceWriter->write("not connected to ReplicationClient");
             return 1;
         }
-        string fileName;
-        CommunicationUtils::receiveLine(io, fileName);
 
-        bool fileCreated = true;
-        if(!boost::filesystem::exists(fileName))
+        queue<string> receiveBuffer;
+        CommunicationUtils::receiveLines(io, 2, receiveBuffer);
+        string purpose = receiveBuffer.front();
+        receiveBuffer.pop();
+        string fileName = receiveBuffer.front();
+        receiveBuffer.pop();
+
+        if(purpose == CommunicationProtocol::SendReplicaForStorage())
         {
-            traceWriter->write("file does not exist");
-            fileCreated = createFile(fileName);
-        }
-
-        // expected by receiveFile function of FileTransferClient,
-        // but not sent by sendFile function of FileTransferServer
-        CommunicationUtils::sendLine(io,
-                distributed2::FileTransferKeywords::FileTransferServer());
-
-        if(fileCreated)
-        {
-            traceWriter->write("file created, sending file");
-            if(sendFile(io) != 0)
+            bool fileCreated = true;
+            if(!FileSystem::FileOrFolderExists(fileName))
             {
-                traceWriter->write("send failed");
+                traceWriter->write("file does not exist");
+                fileCreated = createFile(fileName);
+            }
+            sendFileToClient(io, fileCreated);
+        }else if(purpose == CommunicationProtocol::SendReplicaForUsage())
+        {
+            if(!FileSystem::FileOrFolderExists(fileName))
+            {
+                traceWriter->write("file not found, notifying client");
+                CommunicationUtils::sendLine(io,
+                        distributed2::FileTransferKeywords::FileNotFound());
             }else
             {
-                traceWriter->write("file sent");
+                CommunicationUtils::sendLine(io,
+                        CommunicationProtocol::FunctionRequest());
+                string function;
+                CommunicationUtils::receiveLine(io, function);
+                if(function == CommunicationProtocol::None())
+                {
+                    sendFileToClient(io, true);
+                }else
+                {
+                    // TODO
+                    // execute query with function on relation in file
+                    // create new file with new name
+                    // notify client about new name so that it can request file
+                    // send to client
+                    // delete
+                }
             }
-            // TODO delete file
+
         }else
         {
-            traceWriter->write("notifying client");
-            CommunicationUtils::sendLine(io,
-                            distributed2::FileTransferKeywords::FileNotFound());
+            traceWriter->write("unexpected purpose: ", purpose);
+            return 2;
         }
     } catch (...)
     {
@@ -147,6 +163,32 @@ bool ReplicationServer::createFile(string fileName) const
         traceWriter->write("could not create file");
     }
     return resultOk;
+}
+
+void ReplicationServer::sendFileToClient(iostream& io, bool fileCreated)
+{
+    // expected by receiveFile function of FileTransferClient,
+    // but not sent by sendFile function of FileTransferServer
+    CommunicationUtils::sendLine(io,
+            distributed2::FileTransferKeywords::FileTransferServer());
+
+    if(fileCreated)
+    {
+        traceWriter->write("file created, sending file");
+        if(sendFile(io) != 0)
+        {
+            traceWriter->write("send failed");
+        }else
+        {
+            traceWriter->write("file sent");
+        }
+        // TODO delete file
+    }else
+    {
+        traceWriter->write("notifying client");
+        CommunicationUtils::sendLine(io,
+                distributed2::FileTransferKeywords::FileNotFound());
+    }
 }
 
 } /* namespace DBService */

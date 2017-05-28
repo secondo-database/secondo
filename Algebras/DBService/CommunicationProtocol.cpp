@@ -97,5 +97,23 @@ string CommunicationProtocol::ReplicationDetailsRequest()
     return "<REPLICATIONDETAILSREQUEST>";
 }
 
+string CommunicationProtocol::SendReplicaForStorage()
+{
+    return "<SENDREPLICAFORSTORAGE>";
+}
+string CommunicationProtocol::SendReplicaForUsage()
+{
+    return "<SENDREPLICAFORUSAGE>";
+}
+
+string CommunicationProtocol::FunctionRequest()
+{
+    return "<FUNCTIONREQUEST>";
+}
+
+string CommunicationProtocol::None()
+{
+    return "<NONE>";
+}
 
 } /* namespace DBService */

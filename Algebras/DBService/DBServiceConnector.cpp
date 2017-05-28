@@ -151,9 +151,11 @@ string DBServiceConnector::retrieveReplicaAndGetFileName(
             *(const_cast<string*>(&relationName)));
 
     clientToDBServiceWorker.start();
-    clientToDBServiceWorker.requestReplica(functionAsNestedListString);
-    //TODO additional argument for client function
-    return string("");
+    string fileName;
+    clientToDBServiceWorker.requestReplica(
+            functionAsNestedListString,
+            fileName);
+    return fileName;
 }
 
 DBServiceConnector* DBServiceConnector::_instance = NULL;

@@ -106,18 +106,11 @@ int ReplicationClient::receiveReplica()
         }
         queue<string> sendBuffer;
         sendBuffer.push(CommunicationProtocol::ReplicationClient());
+        sendBuffer.push(CommunicationProtocol::SendReplicaForStorage());
         sendBuffer.push(fileNameOrigin);
         CommunicationUtils::sendBatch(io, sendBuffer);
 
-        int rc = receiveFile();
-        if(rc != 0)
-        {
-            traceWriter->write("receive failed");
-            traceWriter->write("rc=", rc);
-        }else
-        {
-            traceWriter->write("received file");
-        }
+        receiveFileFromServer();
     } catch (...)
     {
         cerr << "ReplicationClient: communication error" << endl;
@@ -126,13 +119,60 @@ int ReplicationClient::receiveReplica()
     return 0;
 }
 
-int ReplicationClient::requestReplica(const string& functionAsNestedListString)
+int ReplicationClient::requestReplica(const string& functionAsNestedListString,
+                                      std::string& fileName)
 {
     traceWriter->writeFunction("ReplicationClient::requestReplica");
-
-    // TODO implement
-
+    try
+    {
+        iostream& io = socket->GetSocketStream();
+        if(!CommunicationUtils::receivedExpectedLine(io,
+                CommunicationProtocol::ReplicationServer()))
+        {
+            traceWriter->write("not connected to ReplicationServer");
+            return 1;
+        }
+        queue<string> sendBuffer;
+        sendBuffer.push(CommunicationProtocol::ReplicationClient());
+        sendBuffer.push(CommunicationProtocol::SendReplicaForUsage());
+        sendBuffer.push(fileNameOrigin);
+        CommunicationUtils::sendBatch(io, sendBuffer);
+        if(!CommunicationUtils::receivedExpectedLine(io,
+                CommunicationProtocol::FunctionRequest()))
+        {
+            traceWriter->write("expected FunctionRequest");
+            return 2;
+        }
+        if(functionAsNestedListString.empty())
+        {
+            CommunicationUtils::sendLine(io, CommunicationProtocol::None());
+        }else
+        {
+            CommunicationUtils::sendLine(io, functionAsNestedListString);
+            // TODO
+            // new file name due to function execution
+            // -> adapt before requesting file
+        }
+        receiveFileFromServer();
+    } catch (...)
+    {
+        cerr << "ReplicationClient: communication error" << endl;
+        return 5;
+    }
     return 0;
+}
+
+void ReplicationClient::receiveFileFromServer()
+{
+    int rc = receiveFile();
+    if(rc != 0)
+    {
+        traceWriter->write("receive failed");
+        traceWriter->write("rc=", rc);
+    }else
+    {
+        traceWriter->write("received file");
+    }
 }
 
 } /* namespace DBService */
