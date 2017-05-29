@@ -464,7 +464,10 @@ Adds seg to the set of ~IntersectionSegments~.
       bool operator ==(const IntSegContainer& container)const; 
       IntSegContainer& operator =(const IntSegContainer& container);  
       
-      void updateTimeLevel(double _t);
+      void first(double t,std::vector<IntersectionSegment>& result);
+      void next(double t,std::vector<IntersectionSegment>& result);
+      
+ //     void updateTimeLevel(double _t);
       
     private:
       
@@ -492,7 +495,7 @@ and a suitable iterator.
       std::list<IntersectionSegment*>::iterator activeIter;
       
       double t;
-      bool firstTimeLevel;
+//      bool firstTimeLevel;
       
     };   
 /*

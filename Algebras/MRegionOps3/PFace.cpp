@@ -584,7 +584,7 @@ namespace temporalalgebra {
 
 */   
     IntSegContainer::IntSegContainer(){
-      firstTimeLevel = true;
+//      firstTimeLevel = true;
     }// Konstrktor
     
     IntSegContainer::IntSegContainer(const IntSegContainer& container){
@@ -657,15 +657,17 @@ namespace temporalalgebra {
       return NumericUtil::nearlyEqual(tail.getT(),t);
     }// hasMoreSegsToInsert
     
-    void IntSegContainer::updateTimeLevel(double _t){
-      if(firstTimeLevel){
-        intSegIter = intSegs.begin();
-        firstTimeLevel = false;
-      }// if
-      t = _t;
+    void IntSegContainer::first(double t, vector<IntersectionSegment>& result){
+      intSegIter = intSegs.begin();
+      next(t,result);
+    }// first
+    
+    void IntSegContainer::next(double t, vector<IntersectionSegment>& result){
+      this->t = t;
       activeIter = active.begin(); 
       while (activeIter != active.end()){
-        while (activeIter != active.end() && (*activeIter)->isOutOfRange(t)){
+        while (activeIter != active.end() && 
+              (*activeIter)->isOutOfRange(this->t)){
           activeIter = active.erase(activeIter);
         }// while
         if (activeIter == active.end()) break;
@@ -687,11 +689,14 @@ namespace temporalalgebra {
         // Iteration auf das Ende setzen
         activeIter = active.end();
       }// while
+//      vector<IntersectionSegment> result;
+      result.clear();
       for(activeIter = active.begin();
           activeIter != active.end();
           activeIter++){
-        cout << **activeIter << endl;
-      }
+        result.push_back(IntersectionSegment(**activeIter));
+//        cout << **activeIter << endl;
+      }// for
     }// updateTimeLevel  
 /*
 12 struct DoubleCompare
@@ -865,7 +870,7 @@ namespace temporalalgebra {
         result = RIGHT_IS_INNER;
       } // if
       Segment2D segment = planeSelf.transform(intSeg);
-      this->state = RELEVANT_NOT_CRITICAL;             
+      if(this->state != RELEVANT_CRITICAL)this->state = RELEVANT_NOT_CRITICAL;
       return IntersectionSegment(intSeg,segment,result);
     }// addIntSeg
       
@@ -885,9 +890,9 @@ namespace temporalalgebra {
     }// addBorders 
     
     void PFace::addIntSeg(const IntersectionSegment& seg){
-      if (!(seg.isOrthogonalToTAxis())){
+ //     if (!(seg.isOrthogonalToTAxis())){
         this->intSegContainer.addIntSeg(seg);
-      }// if
+ //     }// if
     }// addIntSeg
   
     bool PFace::intersection(PFace& other){

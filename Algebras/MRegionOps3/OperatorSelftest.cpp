@@ -80,7 +80,7 @@ namespace temporalalgebra {
         Segment2DTest1();
         Segment2DTest2();
         
-        ContainerPoint3DTest();
+        // ContainerPoint3DTest();
         
         RationalPoint3DExtTest();
         RationalPoint3DExtSetTest1();
@@ -113,7 +113,7 @@ namespace temporalalgebra {
      
         SourceUnitTest1();
         SourceUnitTest2();
-        // SourceUnitTest3();
+        SourceUnitTest3();
         
         
         cerr << endl;
@@ -1286,14 +1286,21 @@ namespace temporalalgebra {
         timeValues1.addTimeValue(3.4375);
         timeValues1.addTimeValue(4);
         timeValues1.addTimeValue(5);
-        
-        double value;
-        if (timeValues1.first(value)){
-          cout << "time:=" << value<< endl;
-          container1.updateTimeLevel(value);
-          while(timeValues1.next(value)){
-            cout << "time:=" << value << endl;
-            container1.updateTimeLevel(value);
+        vector<IntersectionSegment> result;
+        double t1,t2;
+        if (timeValues1.first(t1)){
+  //        cout << "time:=" << value<< endl;
+          container1.first(t1,result);
+          while(timeValues1.next(t2)){
+            cout << "t1:=" << t1 << ",t2:=" << t2<< endl;
+            for(size_t i = 0;i < result.size(); i++){
+  //            cout << result[i] << endl;
+              Point3D start = result[i].evaluate(t1);
+              Point3D end   = result[i].evaluate(t2);
+              cout << "start:=" << start << ",end:=" << end << endl;
+            }// for
+            t1 = t2;
+            container1.next(t1,result);
           }// while
         }// if
         
