@@ -452,14 +452,14 @@ double Line3D::Length()
   return length; 
 }
 
-void Line3D::Print()
+ostream& Line3D::Print(ostream& o) const
 {
   for(int i = 0;i < points.Size();i++){
     Point3D p;
     points.Get(i , p);
-    p.Print();
+    p.Print(o);
   }
-
+  return o;
 }
 
 const Rectangle<3> Line3D::BoundingBox(const Geoid* geoid) const
