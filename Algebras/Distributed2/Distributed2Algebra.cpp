@@ -23,13 +23,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 //[$][\$]
-//[_][\_]
 
 */
 
 #include "ConnectionInfo.h"
 #include "Dist2Helper.h"
-#include "FileSystem.h"
+#include "Distributed2Algebra.h"
 #include "FileTransferServer.h"
 #include "FileTransferClient.h"
 #include "FileTransferKeywords.h"
@@ -60,76 +59,6 @@ bool showCommands;
 
 CommandLog commandLog;
 bool logOn = false;
-
-
-/*
-1 Class ~ErrorWriter~
-
-This class will help to write error log files for this algebra.
-
-*/
-class ErrorWriter{
- public:
-    ErrorWriter(): dbname(""), pid(""), mtx(){
-       pid = stringutils::int2str(WinUnix::getpid());
-    }
-
-    ~ErrorWriter(){
-        if(dbname.size()>0){
-           out.close();
-        }
-     }
-
-    void writeLog( const string& host, const int port,
-              const int server_pid, const string& message){
-        boost::lock_guard<boost::mutex> guard(mtx);
-        try{
-           string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-           bool open = this->dbname.size()==0;
-           if(this->dbname.size()>0 && this->dbname!=dbname){
-              out.close();
-              this->dbname = dbname;   
-           }
-           if(this->dbname.size()==0){
-              return; // log only for  
-           }
-           string fn;
-
-           if(open){
-              FileSystem::CreateFolder("dist2Messages");
-              fn = "dist2Messages/Errors_" + dbname
-                 + "_"+pid+".txt";
-              out.open(fn.c_str(), ios::out|ios::app);
-            } 
-            if(!out.good()){
-               cerr << "Cannout write to file " << fn << endl;
-               return;
-            }
-            out << " ----- " << endl;
-            out << "Host " << host << "@" << port << endl;
-            out << "Server-PID " << server_pid << endl;
-            out << "message" << endl << message << endl << endl;
-        } catch(...){
-           cerr << "error in writing log file" << endl;
-        }
-    }
-
-
- private:
-     string dbname;
-     string pid;
-     boost::mutex mtx;
-     ofstream out;
-
-};
-
-
-
-
-
-
-
-
 
 /*
 2 CommandListener
@@ -378,188 +307,93 @@ class PProgressView: public MessageHandler{
 };
 
 
-
-/*
-5 The Distributed2Algebra
-
-
-Besides the usual Tasks of an algebra, namely providing types and 
-operators, this algebra alos manages sets of connections. One set is 
-for user defined connections, the other one contains connections used 
-in DArrays. 
-
-*/
-
-class Distributed2Algebra: public Algebra{
-
-  public:
-
-/*
-1.1 Constructor defined at the end of this file
-
-*/
-     Distributed2Algebra();
-
-
-/*
-1.2 Destructor
-
-Closes all open connections and destroys them.
-
-*/
-     virtual ~Distributed2Algebra();
-
-
-/*
-~addConnection~
-
-Adds a new connection to the connection pool.
-
-*/
-     int addConnection(ConnectionInfo* ci){
-       boost::lock_guard<boost::mutex> guard(mtx);
-       int res = connections.size();
-       connections.push_back(ci);
-       if(ci){
-           ci->setId(connections.size());
-       }
-       return res; 
-     }
-
-/*
-~noConnections~
-
-Returns the number of connections
-
-*/
-
-     size_t noConnections(){
-         boost::lock_guard<boost::mutex> guard(mtx);
-         size_t res =  connections.size();
-         return res;
-     }
-
-
-/*
-~getConnection~
-
-Returns a connection
-
-*/
-
-     ConnectionInfo* getConnection(const int i){
-         boost::lock_guard<boost::mutex> guard(mtx);
-         if(i<0 || ((size_t) i>=connections.size())){
-           return 0;
-         }
-         ConnectionInfo* res =  connections[i];
-         res->setId(i);;
-         return res;
-     }
-
-/*
-~showProgress~
-
-*/     
-    void showProgress(bool enable){
-       if(pprogView){
-           pprogView->enable(enable);
-           MessageCenter::GetInstance()->RemoveHandler(pprogView);
-           if(enable){
-               MessageCenter::GetInstance()->AddHandler(pprogView);
-           }
-       } 
+int Distributed2Algebra::addConnection(ConnectionInfo* ci) {
+    boost::lock_guard < boost::mutex > guard(mtx);
+    int res = connections.size();
+    connections.push_back(ci);
+    if (ci) {
+        ci->setId(connections.size());
     }
+    return res;
+}
 
+size_t Distributed2Algebra::noConnections(){
+    boost::lock_guard<boost::mutex> guard(mtx);
+    size_t res =  connections.size();
+    return res;
+}
 
+ConnectionInfo* Distributed2Algebra::getConnection(const int i){
+    boost::lock_guard<boost::mutex> guard(mtx);
+    if(i<0 || ((size_t) i>=connections.size())){
+        return 0;
+    }
+    ConnectionInfo* res =  connections[i];
+    res->setId(i);;
+    return res;
+}
 
-/*
-~noValidConnections~
-
-Returns the number of non-null connections.
-
-*/    
-
-   size_t noValidConnections(){
-     boost::lock_guard<boost::mutex> guard(mtx);
-     size_t count = 0;
-     for(size_t i=0;i<connections.size();i++){
-       if(connections[i]) count++;
-     }
-     return count;
-   }
-
-/*
-~disconnect~
-
-Closes all connections and destroys the instances.
-The return value is the number of closed connections.
-
-*/
-     int disconnect(){
-        int count = 0;
-        boost::lock_guard<boost::mutex> guard(mtx);
-        for(size_t i=0;i<connections.size();i++){
-          if(connections[i]){
-             delete connections[i];
-             count++;
-          }
+void Distributed2Algebra::showProgress(bool enable){
+    if(pprogView){
+        pprogView->enable(enable);
+        MessageCenter::GetInstance()->RemoveHandler(pprogView);
+        if(enable){
+            MessageCenter::GetInstance()->AddHandler(pprogView);
         }
-        connections.clear();
-        return count;
-     }
-     
+    }
+}
 
-/*
-~disconnect~
+size_t Distributed2Algebra::noValidConnections(){
+    boost::lock_guard<boost::mutex> guard(mtx);
+    size_t count = 0;
+    for(size_t i=0;i<connections.size();i++){
+        if(connections[i]) count++;
+    }
+    return count;
+}
 
-Disconnects a specified connection and removes it from the
-connection pool. The result is 0 or 1 depending whether the
-given argument specifies an existing connection.
-
-*/
-     int disconnect( unsigned int position){
-        boost::lock_guard<boost::mutex> guard(mtx);
-        if( position >= connections.size()){
-           return 0;
+int Distributed2Algebra::disconnect(){
+    int count = 0;
+    boost::lock_guard<boost::mutex> guard(mtx);
+    for(size_t i=0;i<connections.size();i++){
+        if(connections[i]){
+            delete connections[i];
+            count++;
         }
-        if(!connections[position]){
-           return 0;
-        }
-        delete connections[position];
-        connections[position] = 0;
-        return 1;
-     }
+    }
+    connections.clear();
+    return count;
+}
 
-/*
-~isValidServerNo~
+int Distributed2Algebra::disconnect( unsigned int position){
+    boost::lock_guard<boost::mutex> guard(mtx);
+    if( position >= connections.size()){
+        return 0;
+    }
+    if(!connections[position]){
+        return 0;
+    }
+    delete connections[position];
+    connections[position] = 0;
+    return 1;
+}
 
-checks whether an given integer points to a server
-
-*/
-   bool isValidServerNumber(int no){
-      if(no < 0){
+bool Distributed2Algebra::isValidServerNumber(int no){
+    if(no < 0){
         return false;
-      }
-      boost::lock_guard<boost::mutex> guard(mtx);
-      bool res = no < (int) connections.size();
-      return res; 
-   }
+    }
+    boost::lock_guard<boost::mutex> guard(mtx);
+    bool res = no < (int) connections.size();
+    return res;
+}
 
-/*
-~serverExists~
+bool Distributed2Algebra::serverExists(int s){
+    return isValidServerNumber(s) && (connections[s]!=0);
+}
 
-*/   
-  bool serverExists(int s){
-     return isValidServerNumber(s) && (connections[s]!=0);
-  }
 
-/*
-~serverPid~
 
-*/
-
-   int serverPid(int s){
+   int Distributed2Algebra::serverPid(int s){
       boost::lock_guard<boost::mutex> guard(mtx);
  
       if(s < 0 || (size_t) s >= connections.size()){
@@ -569,15 +403,7 @@ checks whether an given integer points to a server
       return ci?ci->serverPid():0;
    }
 
-
-
-/*
-~sendFile~
-
-Transfers a local file to a remove server.
-
-*/
-    int sendFile( const int con, 
+    int Distributed2Algebra::sendFile( const int con,
                        const string& local,
                        const string& remote,
                        const bool allowOverwrite){
@@ -599,15 +425,8 @@ Transfers a local file to a remove server.
       return c->sendFile(local,remote, allowOverwrite);
     }
     
-/*
-~requestFile~
 
-This functions copies a remotely stored file into the local
-file system.
-
-
-*/
-    int requestFile( const int con, 
+    int Distributed2Algebra::requestFile( const int con,
                      const string& remote,
                      const string& local,
                      const bool allowOverwrite){
@@ -629,14 +448,7 @@ file system.
       return c->requestFile(remote,local, allowOverwrite);
     }
 
-
-/*
-~getRequestFolder~
-
-returns the name of the folder where get requests start.
-
-*/
-    string getRequestFolder( int con){
+    string Distributed2Algebra::getRequestFolder( int con){
       if(con < 0 ){
        return "";
       }
@@ -655,14 +467,7 @@ returns the name of the folder where get requests start.
       return c->getRequestFolder(); 
     }
 
-
-/*
-~getSendFolder~
-
-returns the name of the folder where new files are stored on remote side.
-
-*/    
-    string getSendFolder( int con){
+    string Distributed2Algebra::getSendFolder( int con){
       if(con < 0 ){
        return "";
       }
@@ -681,36 +486,15 @@ returns the name of the folder where new files are stored on remote side.
       return c->getSendFolder(); 
     }
 
-
-/*
-~initProgress~
-
-initializes the progress view.
-
-*/
-    void initProgress(){
+    void Distributed2Algebra::initProgress(){
         pprogView->init(connections.size());
     }
 
-
-/*
-~finishProgress~
-
-mark the end of the progress view
-
-*/
-    void finishProgress(){
+    void Distributed2Algebra::finishProgress(){
         pprogView->finish();
     }
 
-/*
-~getHost~
-
-Returns the host name of the connection with index con.
-
-*/
-
-    string getHost(int con){
+    string Distributed2Algebra::getHost(int con){
       ConnectionInfo* c;
       {
          boost::lock_guard<boost::mutex> guard(mtx);
@@ -723,14 +507,7 @@ Returns the host name of the connection with index con.
       return c->getHost();
     }
 
-
-/*
-~getPort~
-
-Returns the port of the connection with index con.
-
-*/    
-    int getPort(int con){
+    int Distributed2Algebra::getPort(int con){
       ConnectionInfo* c;
       {
          boost::lock_guard<boost::mutex> guard(mtx);
@@ -743,15 +520,7 @@ Returns the port of the connection with index con.
       return c->getPort();
     }
 
-
-/*
-~getConfig~
-
-Returns the name of the configuration file of the
-connection at index ~con~.
-
-*/    
-    string getConfig(int con){
+    string Distributed2Algebra::getConfig(int con){
       ConnectionInfo* c;
       {
          boost::lock_guard<boost::mutex> guard(mtx);
@@ -764,14 +533,7 @@ connection at index ~con~.
       return c->getConfig();
     }
 
-
-/*
-~check~
-
-Tests whether the connection at index ~con~ is alive.
-
-*/
-    bool check(int con){
+    bool Distributed2Algebra::check(int con){
       ConnectionInfo* c;
       {
          boost::lock_guard<boost::mutex> guard(mtx);
@@ -783,17 +545,11 @@ Tests whether the connection at index ~con~ is alive.
       if(!c) return false;
       return c->check(showCommands, logOn, commandLog);
     }
-    
-/*
-~simpleCommand~
 
-Performs a command at connection with index ~con~.
-
-*/
-
-    bool simpleCommand(int con, const string& cmd, int& error, 
-                       string& errMsg, ListExpr& resList, const bool rewrite,
-                       double& runtime){
+    bool Distributed2Algebra::simpleCommand(int con, const string& cmd,
+                                    int& error, string& errMsg,
+                                    ListExpr& resList, const bool rewrite,
+                                    double& runtime){
       ConnectionInfo* c;
       {
          boost::lock_guard<boost::mutex> guard(mtx);
@@ -818,14 +574,8 @@ Performs a command at connection with index ~con~.
         return true;
     }
     
-/*
-~simpleCommand~
-
-Performs a command returning the result as as string.
-
-
-*/
-    bool simpleCommand(int con, const string& cmd, int& error, 
+    bool Distributed2Algebra::simpleCommand(
+                       int con, const string& cmd, int& error,
                        string& errMsg, string& resList, const bool rewrite,
                        double& runtime){
       ConnectionInfo* c;
@@ -853,12 +603,8 @@ Performs a command returning the result as as string.
     }
 
 
-/*
-The next functions are for interacting with workers, i.e.
-connections coming from darray elements.
-
-*/
-  ConnectionInfo* getWorkerConnection( const DArrayElement& info,
+  ConnectionInfo* Distributed2Algebra::getWorkerConnection(
+                                       const DArrayElement& info,
                                        const string& dbname ){
      boost::lock_guard<boost::mutex> guard(workerMtx);
      map<DArrayElement, pair<string, ConnectionInfo*> >::iterator it;
@@ -885,13 +631,7 @@ connections coming from darray elements.
      return pr.second;
   }
 
-/*
-~getDBName~
-
-Returns the database name currently opened at the specified connection.
-
-*/
-  string getDBName(const DArrayElement& info){
+  string Distributed2Algebra::getDBName(const DArrayElement& info){
      boost::lock_guard<boost::mutex> guard(workerMtx);
      map<DArrayElement, pair<string, ConnectionInfo*> >::iterator it;
      it = workerconnections.find(info);
@@ -902,13 +642,7 @@ Returns the database name currently opened at the specified connection.
      return db;
   }
 
-
-/*
-This operator closes all non user defined existing server connections.
-It returns the numer of closed workers
-
-*/
- int closeAllWorkers(){
+ int Distributed2Algebra::closeAllWorkers(){
     boost::lock_guard<boost::mutex> guard(workerMtx);
     map<DArrayElement, pair<string,ConnectionInfo*> > ::iterator it;
     int count = 0;
@@ -921,12 +655,7 @@ It returns the numer of closed workers
     return count;
  } 
 
-/*
-The operator ~closeWorker~ closes the connections for a 
-specified DArrayElement.
-
-*/ 
-  bool closeWorker(const DArrayElement& elem){
+  bool Distributed2Algebra::closeWorker(const DArrayElement& elem){
     boost::lock_guard<boost::mutex> guard(workerMtx);
      map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
      it = workerconnections.find(elem);
@@ -942,16 +671,9 @@ specified DArrayElement.
      return true;
   }
 
-
-/*
-~workerConnection~
-
-Checks whether the specified connection exists. If so, the currently 
-opened database and the ConnectionInfo are returned.
-
-*/
-  bool workerConnection(const DArrayElement& elem, string& dbname,
-                         ConnectionInfo*& ci){
+  bool Distributed2Algebra::workerConnection(const DArrayElement& elem,
+                                             string& dbname,
+                                                 ConnectionInfo*& ci){
     boost::lock_guard<boost::mutex> guard(workerMtx);
      map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
      it = workerconnections.find(elem);
@@ -964,36 +686,18 @@ opened database and the ConnectionInfo are returned.
   }
 
 
-/*
-workersIterator
-
-returns an iterator over the available connetions of workers.
-
-*/
   map<DArrayElement, pair<string,ConnectionInfo*> >::iterator
-  workersIterator(){
+  Distributed2Algebra::workersIterator(){
     return workerconnections.begin();
   }
 
-/*
-~isEnd~
-
-checks for the end of an iterator threadsafe.
-
-*/
-  bool isEnd( map<DArrayElement, pair<string,ConnectionInfo*> >::iterator& it){
+  bool Distributed2Algebra::isEnd(
+          map<DArrayElement, pair<string,ConnectionInfo*> >::iterator& it){
     boost::lock_guard<boost::mutex> guard(workerMtx);
     return it==workerconnections.end();
   } 
 
-
-/*
-~getTempName~
-
-returns a temporary name for a specified connection.
-
-*/
-  string getTempName(int server){
+  string Distributed2Algebra::getTempName(int server){
     boost::lock_guard<boost::mutex> guard(mtx);
     if(server < 0 || (size_t)server<connections.size()){
        return "";
@@ -1009,14 +713,7 @@ returns a temporary name for a specified connection.
     return ss.str();
   } 
 
-/*
-~getTempName~
-
-returns a temporary name for a specified DArrayElement.
-
-*/
-
-  string getTempName(const DArrayElement& elem){
+  string Distributed2Algebra::getTempName(const DArrayElement& elem){
      boost::lock_guard<boost::mutex> guard(workerMtx);
      map<DArrayElement, pair<string,ConnectionInfo*> >::iterator it;
      it = workerconnections.find(elem);
@@ -1030,14 +727,7 @@ returns a temporary name for a specified DArrayElement.
     return ss.str();
   }
 
-
-/*
-~getTempName~
-
-returns some temporary name.
-
-*/
-  string getTempName(){
+  string Distributed2Algebra::getTempName(){
      boost::lock_guard<boost::mutex> guard1(workerMtx);
      boost::lock_guard<boost::mutex> guard2(mtx);
      ConnectionInfo* ci=0;
@@ -1068,14 +758,8 @@ returns some temporary name.
     return ss.str();
   }
 
-/*
-~cleanUp~
 
-removes temporary files and objects of all opened 
-connections.
-
-*/
-  void cleanUp(){
+  void Distributed2Algebra::cleanUp(){
     
      set<pair<string,int> > used;
      vector<ConnectionInfo*> unique;
@@ -1118,36 +802,16 @@ connections.
      }
   }
 
-    ErrorWriter errorWriter;
-
-  private:
-    // connections managed by the user
-    vector<ConnectionInfo*> connections;
-    boost::mutex mtx;
-
-    // connections managed automatically 
-    // for darray type
-    // the key represents the connection information,
-    // the string the used database
-    // the ConnctionInfo the connection
-    map<DArrayElement, pair<string,ConnectionInfo*> > workerconnections;
-    boost::mutex workerMtx;
-
-    size_t namecounter;
-    boost::mutex namecounteraccess;
-
-    PProgressView* pprogView;
-
-
    // returns a unique number
-   size_t nextNameNumber(){
+   size_t Distributed2Algebra::nextNameNumber(){
       boost::lock_guard<boost::mutex> guard(namecounteraccess);
       namecounter++;
       return namecounter;
    } 
 
     // tries to create a new connection to a worker
-    bool createWorkerConnection(const DArrayElement& worker, pair<string, 
+    bool Distributed2Algebra::createWorkerConnection(
+            const DArrayElement& worker, pair<string,
                                 ConnectionInfo*>& res){
       string host = worker.getHost();
       int port = worker.getPort();
@@ -1157,13 +821,6 @@ connections.
       res.second = ci;
       return ci!=0;
     }
-
-
-
-};
-
-
-
 
   // Algebra instance
 Distributed2Algebra* algInstance;
