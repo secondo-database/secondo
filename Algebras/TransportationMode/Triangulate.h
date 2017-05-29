@@ -1487,7 +1487,7 @@ public:
     Vect2D      Center();   
     IterGCell   NextCell( const Vect2D& vct);
     IterGCell   NextCell( HFroSeg *pseg, 
-                          const IterGCell& iclprv=(IterGCell)NULL);
+                          const IterGCell& iclprv=IterGCell(NULL));
 
 
     const Vect2D&   CircCenter() const;

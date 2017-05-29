@@ -1575,16 +1575,16 @@ void GRoom::GetRegion(Region& r)
   }
 }
 
-void GRoom::Print()
+std::ostream& GRoom::Print(std::ostream& o) const
 {
    for( int i = 0; i < Size(); i++ ){
     Region r(0);
     float h;
     Get( i, h, r);
-    cout<<"elem "<<i<<" height "<<h<<endl; 
-    cout<<r<<endl; 
+    o<<"elem "<<i<<" height "<<h<<endl; 
+    o<<r<<endl; 
   }
-
+  return o;
 }
 
 /*

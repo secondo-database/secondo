@@ -163,9 +163,10 @@ public:
     inline int NumOfFLOBs() const { return reg.NumOfFLOBs();}
     inline Flob* GetFLOB(const int i) { return reg.GetFLOB(i);}
     /////////////////////////////////////////////////////////////////
-    void Print()
+    std::ostream& Print( std::ostream& o) const
     {
-      cout<<"height "<<floor_height<<"reg "<<reg<<endl; 
+      o<<"height "<<floor_height<<"reg "<<reg<<endl; 
+      return o;
     }
 
     bool Intersects(const Rectangle<2>& rect,
@@ -598,7 +599,8 @@ class GRoom:public StandardSpatialAttribute<2>{
       return &seg_list;
   }
   
-  void Print(); 
+   std::ostream& Print(std::ostream& o) const; 
+
 
    bool Intersects(const Rectangle<2>& rect,
                    const Geoid* geoid=0 ) const {

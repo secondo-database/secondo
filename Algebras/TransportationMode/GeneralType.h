@@ -239,8 +239,9 @@ class IORef:public Attribute{
   static void* Cast(void* addr){return new (addr)IORef();}
   unsigned int GetOid() const {return oid;}
   unsigned int GetLabel() const{return label;}
-  void Print(){
-    cout<<"oid "<<oid<<" label "<<GetSymbolStr(label)<<endl; 
+  std::ostream& Print(std::ostream& o) const{
+    o<<"oid "<<oid<<" label "<<GetSymbolStr(label)<<endl; 
+    return o;
   }
   private:
     unsigned int oid;
@@ -799,8 +800,8 @@ class Bus_Stop;
 struct BNNav;
 class BusNetwork;
 class IndoorInfra;
-class MaxRect;
-class RefBuild;
+struct MaxRect;
+struct RefBuild;
 
 
 

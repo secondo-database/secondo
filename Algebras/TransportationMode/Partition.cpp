@@ -1063,7 +1063,7 @@ myavlseg::ownertype myselectNext(const T1& v1,
                                     vector<HalfSegment>,
                                     greater<HalfSegment> >& q2,
                      HalfSegment& result,
-                     int& src = 0
+                     int& src
                     ){
 
 

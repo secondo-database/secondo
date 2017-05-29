@@ -198,7 +198,12 @@ public :
     } 
     void Print() const
     {
-      cout<<"x "<<x<<" y "<<y<<" z "<<z<<endl;
+      Print(std::cout);
+    }
+    inline virtual std::ostream& Print( std::ostream& os ) const
+    {
+      os<<"x "<<x<<" y "<<y<<" z "<<z<<endl;
+      return os;
     }
     double GetX(){return x;}
     double GetY(){return y;}
@@ -298,7 +303,7 @@ class Line3D: public StandardSpatialAttribute<3>
       return new Line3D( *this );
     }
     double Distance( const Rectangle<3>& r,const Geoid* geoid=0 ) const;
-    void Print();
+    virtual std::ostream& Print( std::ostream& os ) const;
     static void* Cast(void* addr){return (new(addr)Line3D());}
     double Length();
     
@@ -312,6 +317,7 @@ class Line3D: public StandardSpatialAttribute<3>
       assert(false); // not implemented yet
     }
 
+    void Print();
     
   private:
 
