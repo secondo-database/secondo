@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -26,37 +26,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "Google/googletest/include/gtest/gtest.h"
+#include <sstream>
 
-#include "DBServiceManager.hpp"
-#include "SecondoException.h"
+#include "Algebras/DBService/CommandBuilder.hpp"
 
-namespace DBService
+using namespace std;
+
+namespace DBService {
+
+string CommandBuilder::buildCreateCommand()
 {
-
-namespace Test
-{
-
-class DBServiceManagerTest: public ::testing::Test
-{
-public:
-    void SetUp()
-    {
-        printf("SetUp!\n");
-    }
-
-    void TearDown()
-    {
-        printf("TearDown!\n");
-    }
-};
-
-TEST_F(DBServiceManagerTest, testUninitializedDBServiceManagerThrowsException)
-{
-    // TODO make this test independent from test run order
-    ASSERT_THROW(DBServiceManager::getInstance(), SecondoException);
+    stringstream createCommand;
+    return createCommand.str();
 }
 
+string CommandBuilder::buildInsertCommand()
+{
+    stringstream insertCommand;
+    return insertCommand.str();
 }
 
-}
+} /* namespace DBService */

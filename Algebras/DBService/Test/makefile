@@ -150,8 +150,12 @@ LocationInfoTest.o : $(USER_DIR)/LocationInfoTest.cpp \
     $(DBSERVICE_DIR)/LocationInfo.cpp $(GMOCK_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -c $< -o $@
 
+CommandBuilderTest.o : $(USER_DIR)/CommandBuilderTest.cpp \
+    $(DBSERVICE_DIR)/CommandBuilder.cpp $(GMOCK_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -c $< -o $@
+
 SuiteDBService : CommunicationUtilsTest.o  ReplicationUtilsTest.o \
-    RelationInfoTest.o LocationInfoTest.o \
+    RelationInfoTest.o LocationInfoTest.o CommandBuilderTest.o \
     gmock_main.a \
     $(LIBDBSERVICE)# $(LIBDISTRIBUTED2) $(LIBUTILS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ -lpthread $(COMMON_LD_FLAGS)

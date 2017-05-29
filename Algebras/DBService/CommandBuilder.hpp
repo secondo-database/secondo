@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -26,35 +26,31 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "Google/googletest/include/gtest/gtest.h"
+#ifndef ALGEBRAS_DBSERVICE_COMMANDBUILDER_HPP_
+#define ALGEBRAS_DBSERVICE_COMMANDBUILDER_HPP_
 
-#include "OperatorFeedPF.hpp"
+#include <string>
 
-namespace DBService
+namespace DBService {
+
+enum AttributeType
 {
-
-namespace Test
-{
-
-class OperatorFeedPFTest: public ::testing::Test
-{
-public:
-    void SetUp()
-    {
-        printf("SetUp!\n");
-    }
-
-    void TearDown()
-    {
-        printf("TearDown!\n");
-    }
+    STRING = 1,
+    INT = 2
 };
 
-TEST_F(OperatorFeedPFTest, assertTrueFalse)
+struct AttributeInfo
 {
-    ASSERT_TRUE(false);
-}
+    AttributeType type;
+    std::string name;
+};
 
-}
+class CommandBuilder {
+public:
+    static std::string buildCreateCommand();
+    static std::string buildInsertCommand();
+};
 
-}
+} /* namespace DBService */
+
+#endif /* ALGEBRAS_DBSERVICE_COMMANDBUILDER_HPP_ */

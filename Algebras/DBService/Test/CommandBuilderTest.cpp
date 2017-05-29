@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -28,7 +28,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "Google/googletest/include/gtest/gtest.h"
 
-#include "OperatorLetDConsume.hpp"
+#include "CommandBuilder.hpp" //TODO proper path
+
+#include <queue>
+
+using namespace std;
 
 namespace DBService
 {
@@ -36,23 +40,18 @@ namespace DBService
 namespace Test
 {
 
-class OperatorLetDConsumeTest: public ::testing::Test
+class CommandBuilderTest: public ::testing::Test
 {
-public:
-    void SetUp()
-    {
-        printf("SetUp!\n");
-    }
-
-    void TearDown()
-    {
-        printf("TearDown!\n");
-    }
 };
 
-TEST_F(OperatorLetDConsumeTest, assertTrueFalse)
+TEST_F(CommandBuilderTest, testBuildCreateCommand)
 {
-    ASSERT_TRUE(false);
+    ASSERT_FALSE(true);
+}
+
+TEST_F(CommandBuilderTest, testBuildInsertCommand)
+{
+    ASSERT_FALSE(true);
 }
 
 }
