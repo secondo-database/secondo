@@ -3,6 +3,7 @@ package viewer.hoese.algebras.continuousupdate;
 import gui.ViewerControl;
 import sj.lang.IntByReference;
 import sj.lang.ListExpr;
+import java.util.Vector;
 
 /**
  * Starts a thread to run a Query which provieds the online updates
@@ -16,6 +17,7 @@ public class AsyncRequestThread extends Thread {
 	private OnlineResultsReceiver receiver;
 	private String filter;
 	private String remotePort;
+  private Vector<QueryFinishedListener> qflistener;
 
 	/**
 	 * Constructor
@@ -30,11 +32,20 @@ public class AsyncRequestThread extends Thread {
 	public AsyncRequestThread(OnlineResultsReceiver receiver, String filter,
 			String remotePort, ViewerControl vc) {
 		super();
+    qflistener = new Vector<QueryFinishedListener>();
 		this.vc = vc;
 		this.receiver = receiver;
 		this.filter = filter;
 		this.remotePort = remotePort;
 	}
+
+  /**
+   * Adds a new listener to be informed if the query is finished.
+   **/
+  public void addQueryFinishedListener(QueryFinishedListener qfl){
+     qflistener.add(qfl);
+  }
+
 
 	/**
 	 * Method run by the Thread-Framework
@@ -52,7 +63,10 @@ public class AsyncRequestThread extends Thread {
 		System.out.println(errorCode.value);
 		System.out.println(errorPos.value);
 		System.out.println(errorMessage);
-		receiver.disable();
+    int err = errorCode.value;
+    for(int i=0;i<qflistener.size();i++){
+       qflistener.get(i).queryFinished(err);
+    }
 	}
 
 }

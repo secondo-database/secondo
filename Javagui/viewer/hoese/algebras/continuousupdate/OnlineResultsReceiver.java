@@ -20,11 +20,11 @@ import viewer.hoese.QueryResult;
  * Enables the online receiving of Tuples from the Secondo Server.
  *
  */
-public class OnlineResultsReceiver implements MessageListener {
+public class OnlineResultsReceiver implements MessageListener, QueryFinishedListener {
 
 	private boolean enabled;
 	private QueryResult qr;
-	private Thread cmdThread;
+	private AsyncRequestThread cmdThread;
 	private HoeseViewer hoese;
 	private JButton button;
 	private ListExpr cache;
@@ -33,6 +33,7 @@ public class OnlineResultsReceiver implements MessageListener {
 	private Integer tupleLimit;
 	private Integer updateRate;
 	private long lastUpdate;
+  private String filter;
 
 	/**
 	 * Constructor
@@ -57,6 +58,7 @@ public class OnlineResultsReceiver implements MessageListener {
 		this.tupleLimit = tupleLimit;
 		this.updateRate = updateRate;
 		this.remotePort = remotePort;
+    this.filter = filter;
 
 		// Initialize the cache
 		resetCache();
@@ -68,6 +70,7 @@ public class OnlineResultsReceiver implements MessageListener {
 		hoese.getViewerControl().addMessageListener(this);
 		cmdThread = new AsyncRequestThread(this, filter, remotePort,
 				hoese.getViewerControl());
+    cmdThread.addQueryFinishedListener(this);
 		cmdThread.start();
 	}
 
@@ -175,4 +178,48 @@ public class OnlineResultsReceiver implements MessageListener {
 		MainWindow.disableCommandPanel();
 		enabled = true;
 	}
+
+  /** Implementation of QueryFinishedListener interface **/
+  public void queryFinished(int errorCode){
+    if(errorCode!=81){ 
+      disable();
+    } else {
+      restart();
+    }
+  }
+
+
+  private void restart(){
+    System.out.println("Connection lost during update query");
+    System.out.println("Try to reconnect");
+
+		((ESInterface) MainWindow.getUpdateInterface()).terminate();
+		cmdThread.interrupt();
+		try {
+			cmdThread.join();
+		} catch (InterruptedException e) {
+		}
+    // wait until a new connection is available
+		while (!((ESInterface) MainWindow.getUpdateInterface()).isConnected()) {
+			((ESInterface) MainWindow.getUpdateInterface()).connect();
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+			}
+		}
+		// Open the previous database
+		ListExpr l = new ListExpr();
+		IntByReference i1 = new IntByReference();
+		IntByReference i2 = new IntByReference();
+		StringBuffer sb = new StringBuffer();
+
+		((ESInterface) MainWindow.getUpdateInterface()).secondo(
+				"open database " + HoeseOnlineDialog.lastValues.database, l,
+				i1, i2, sb);
+    // create a new online query
+		cmdThread = new AsyncRequestThread(this, filter, remotePort,
+				hoese.getViewerControl());
+    cmdThread.addQueryFinishedListener(this);
+		cmdThread.start();
+  }
 }
