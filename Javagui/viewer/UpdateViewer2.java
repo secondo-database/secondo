@@ -518,7 +518,7 @@ public class UpdateViewer2 extends SecondoViewer {
 	public boolean canDisplay(SecondoObject so)
 	{
 		ListExpr le = so.toListExpr();
-		Reporter.debug("UpdateViewer2.canDisplay: full ListExpr is " + le.toString());
+		//Reporter.debug("UpdateViewer2.canDisplay: full ListExpr is " + le.toString());
 		
 		if (le.listLength() >= 2 && !le.first().isAtom())
 		{
