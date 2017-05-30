@@ -42,16 +42,54 @@ namespace Test
 
 class CommandBuilderTest: public ::testing::Test
 {
+public:
+    CommandBuilderTest() : relationName("myRel")
+{
+    rel.push_back(
+            pair<AttributeInfo, string>(
+                    { AttributeType::STRING, string("Col1")}, string("val1")));
+    rel.push_back(
+            pair<AttributeInfo, string>(
+                    { AttributeType::INT, string("Col2")}, string("2")));
+}
+
+protected:
+    string relationName;
+    RelationDefinition rel;
 };
+
+TEST_F(CommandBuilderTest, testGetTypeNameString)
+{
+    ASSERT_STREQ("string",
+            CommandBuilder::getTypeName(AttributeType::STRING).c_str());
+}
+
+TEST_F(CommandBuilderTest, testGetTypeNameInt)
+{
+    ASSERT_STREQ("int",
+            CommandBuilder::getTypeName(AttributeType::INT).c_str());
+}
+
+TEST_F(CommandBuilderTest, testGetTypeNameWrongType)
+{
+    ASSERT_STREQ("ERROR",
+            CommandBuilder::getTypeName(AttributeType(3)).c_str());
+}
 
 TEST_F(CommandBuilderTest, testBuildCreateCommand)
 {
-    ASSERT_FALSE(true);
+    string expectedCreateCommand("let myRel = [const rel(tuple([Col1: string,"
+            " Col2: int])) value((\"val1\", 2))]");
+    ASSERT_STREQ(expectedCreateCommand.c_str(),
+            CommandBuilder::buildCreateCommand(relationName, rel).c_str());
 }
 
 TEST_F(CommandBuilderTest, testBuildInsertCommand)
 {
-    ASSERT_FALSE(true);
+    string expectedInsertCommand("query myRel inserttuple["
+            "\"val1\", 2] consume");
+    ASSERT_STREQ(expectedInsertCommand.c_str(),
+            CommandBuilder::buildInsertCommand(relationName, rel).c_str());
 }
 
 }

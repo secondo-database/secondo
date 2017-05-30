@@ -30,8 +30,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DBSERVICE_COMMANDBUILDER_HPP_
 
 #include <string>
+#include <vector>
 
-namespace DBService {
+namespace DBService
+{
 
 enum AttributeType
 {
@@ -45,10 +47,17 @@ struct AttributeInfo
     std::string name;
 };
 
+typedef std::vector<std::pair<AttributeInfo, std::string> > RelationDefinition;
+
 class CommandBuilder {
 public:
-    static std::string buildCreateCommand();
-    static std::string buildInsertCommand();
+    static std::string getTypeName(AttributeType type);
+    static std::string buildCreateCommand(
+            std::string relationName,
+            RelationDefinition& rel);
+    static std::string buildInsertCommand(
+            std::string relationName,
+            RelationDefinition& rel);
 };
 
 } /* namespace DBService */

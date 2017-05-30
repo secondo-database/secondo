@@ -296,9 +296,6 @@ DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
 CCFLAGS += -pthread -DTHREAD_SAFE
 COMMON_LD_FLAGS += -lboost_thread -lboost_system
 
-ALGEBRA_DIRS += DBService
-ALGEBRAS += DBServiceAlgebra
-
 # note if you want to enable thread save compilation the first time
 # on your system, goto into Secondo's home directory and enter:
 # touch $(grep -l "THREAD_SAFE" $(find -iname "*.h" -o -iname "*.cpp"))
@@ -313,7 +310,8 @@ ALGEBRAS += DBServiceAlgebra
 #CCFLAGS += -pthread -DTHREAD_SAFE
 #COMMON_LD_FLAGS += -lboost_thread-mt -lboost_system-mt
 
-
+ALGEBRA_DIRS += DBService
+ALGEBRAS += DBServiceAlgebra
 
 #ALGEBRA_DIRS += TIN
 #ALGEBRAS     += TinAlgebra

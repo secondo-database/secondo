@@ -32,17 +32,83 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
-namespace DBService {
+namespace DBService
+{
 
-string CommandBuilder::buildCreateCommand()
+string CommandBuilder::getTypeName(AttributeType type)
+{
+    switch(type)
+    {
+    case STRING:
+        return string("string");
+    case INT:
+        return string("int");
+    default:
+        return string("ERROR");
+    }
+}
+
+string CommandBuilder::buildCreateCommand(
+        string relationName,
+        RelationDefinition& rel)
 {
     stringstream createCommand;
+    createCommand << "let " << relationName << " = [const rel(tuple([";
+    for(RelationDefinition::const_iterator it = rel.begin();
+            it != rel.end(); it++)
+    {
+        createCommand << it->first.name << ": "
+                      << getTypeName(it->first.type);
+        if(it != rel.begin() + rel.size() - 1)
+        {
+            createCommand << ", ";
+        }
+    }
+    createCommand << "])) value((";
+    for(RelationDefinition::const_iterator it = rel.begin();
+                it != rel.end(); it++)
+    {
+        if(it->first.type == STRING)
+        {
+            createCommand << "\"";
+        }
+        createCommand << it->second;
+        if(it->first.type == STRING)
+        {
+            createCommand << "\"";
+        }
+        if(it != rel.begin() + rel.size() - 1)
+        {
+            createCommand << ", ";
+        }
+    }
+    createCommand << "))]";
     return createCommand.str();
 }
 
-string CommandBuilder::buildInsertCommand()
+string CommandBuilder::buildInsertCommand(string relationName,
+                                          RelationDefinition& rel)
 {
     stringstream insertCommand;
+    insertCommand << "query " << relationName << " inserttuple[";
+    for(RelationDefinition::const_iterator it = rel.begin();
+                    it != rel.end(); it++)
+    {
+        if(it->first.type == STRING)
+        {
+            insertCommand << "\"";
+        }
+        insertCommand << it->second;
+        if(it->first.type == STRING)
+        {
+            insertCommand << "\"";
+        }
+        if(it != rel.begin() + rel.size() - 1)
+        {
+            insertCommand << ", ";
+        }
+    }
+    insertCommand << "] consume";
     return insertCommand.str();
 }
 
