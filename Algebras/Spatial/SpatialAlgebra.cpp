@@ -25207,7 +25207,7 @@ ListExpr elementsTM(ListExpr args){
 
 class elementsInfo{
   public:
-     elementsInfo(Points* _ps): ps(_ps), pos(0){
+     elementsInfo(Points* _ps): ps(_ps), pos(0),max(0),tmp(0,0){
         max = ps->Size();
      }
 
@@ -25215,27 +25215,32 @@ class elementsInfo{
         if(pos>=max){
            return 0;
         }
-        Point* p = new Point(0,0);
-        ps->Get(pos,*p);
+        ps->Get(pos,tmp);
         pos++;
-        return p;
+        return new Point(tmp);
      }
 
    private:
       Points* ps;
       size_t pos;
       size_t max;
+      Point tmp; 
 }; 
 
 int elementsVM(Word* args, Word& result, int message, Word& local,Supplier s){
    elementsInfo* li = (elementsInfo*) local.addr;
    switch(message){
-      case OPEN: 
+      case OPEN:  {
             if(li){
                delete li;
+               local.addr = 0;
              }
-             local.addr = new elementsInfo((Points*) args[0].addr);
+             Points* ps = (Points*) args[0].addr;
+             if(ps->IsDefined()){
+                local.addr = new elementsInfo(ps);
+             }
              return 0;
+      }
       case REQUEST:
              result.addr=li?li->next():0;
              return result.addr?YIELD:CANCEL;
