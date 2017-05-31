@@ -1,0 +1,527 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_map_matching"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="de.fernunihagen.dna.mapmatching.MapMatchingActivity">
+
+    <TabHost
+        android:id="@+id/tabHost"
+        android:layout_width="200dip"
+        android:layout_height="300dip"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_above="@+id/startStopButton">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <TabWidget
+                android:id="@android:id/tabs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <FrameLayout
+                android:id="@android:id/tabcontent"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <LinearLayout
+                    android:id="@+id/tab1"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
+
+                        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                            android:id="@+id/mapOptions"
+                            android:layout_width="fill_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentLeft="true"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentTop="true"
+                            android:orientation="horizontal"
+                            android:weightSum="1" >
+                            <CheckBox
+                                android:id="@+id/checkBoxGpsPoints"
+                                android:layout_width="fill_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="0.5"
+                                android:gravity="center"
+                                android:maxLines="1"
+                                android:text="Show GPS Points"/>
+                            <CheckBox
+                                android:id="@+id/checkBoxMatchFootways"
+                                android:layout_width="fill_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="0.5"
+                                android:gravity="center"
+                                android:maxLines="1"
+                                android:text="Match Footways"/>
+                        </LinearLayout>
+
+                        <org.osmdroid.views.MapView android:id="@+id/map"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_alignParentStart="true"
+
+                            android:layout_above="@+id/mapLabels"
+                            android:layout_below="@+id/mapOptions"
+                            tilesource="Mapnik"/>
+
+
+                        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                            android:id="@+id/mapLabels"
+                            android:layout_width="fill_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentBottom="true"
+                            android:layout_alignParentLeft="true"
+                            android:layout_alignParentStart="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_alignParentEnd="true"
+                            android:orientation="horizontal"
+                            android:weightSum="1" >
+                            <TextView
+                                android:id="@+id/labelMapStreetname"
+                                android:layout_width="fill_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="0.5"
+                                android:gravity="center"
+                                android:maxLines="1"
+                                android:text="-"
+                                android:textSize="18sp"/>
+                            <TextView
+                                android:id="@+id/labelMapDirection"
+                                android:layout_width="fill_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="0.5"
+                                android:gravity="center"
+                                android:maxLines="1"
+                                android:text="-"
+                                android:textSize="18sp"/>
+
+                        </LinearLayout>
+
+                    </RelativeLayout>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/tab2"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                    <ScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:paddingLeft="@dimen/activity_horizontal_margin"
+                        android:paddingRight="@dimen/activity_horizontal_margin"
+                        android:paddingTop="@dimen/activity_vertical_margin"
+                        android:paddingBottom="@dimen/activity_vertical_margin"
+                        android:id="@+id/consoleScrollView">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/console"
+                            android:textSize="16sp"/>
+                    </ScrollView>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/tab3"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                    <ScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:paddingLeft="@dimen/activity_horizontal_margin"
+                        android:paddingRight="@dimen/activity_horizontal_margin"
+                        android:paddingTop="@dimen/activity_vertical_margin"
+                        android:paddingBottom="@dimen/activity_vertical_margin"
+                        android:id="@+id/overviewScrollView">
+
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent">
+
+                            <TextView
+                                android:text="@string/activityOverviewStreetnames"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewStreetnames"
+                                android:layout_alignParentTop="true"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textAlignment="center"
+                                android:textSize="16sp"
+                                android:textColor="@color/colorAccent"/>
+
+                            <TextView
+                                android:text="1. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_below="@+id/labelOverviewStreetnames"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:id="@+id/labelOverviewStreetname1"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="2. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewStreetname2"
+                                android:layout_below="@+id/labelOverviewStreetname1"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="3. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewStreetname3"
+                                android:layout_below="@+id/labelOverviewStreetname2"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="4. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_below="@+id/labelOverviewStreetname3"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:id="@+id/labelOverviewStreetname4"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="5. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_below="@+id/labelOverviewStreetname4"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:id="@+id/labelOverviewStreetname5"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="@string/activityOverviewDirections"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewDirections"
+                                android:textAlignment="center"
+                                android:textSize="16sp"
+                                android:layout_below="@+id/labelOverviewStreetname5"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:paddingTop="@dimen/activity_vertical_margin"
+                                android:textColor="@color/colorAccent"/>
+
+                            <TextView
+                                android:text="1. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewDirection1"
+                                android:layout_below="@+id/labelOverviewDirections"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="2. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewDirection2"
+                                android:layout_below="@+id/labelOverviewDirection1"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="3. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewDirection3"
+                                android:layout_below="@+id/labelOverviewDirection2"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="4. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewDirection4"
+                                android:layout_below="@+id/labelOverviewDirection3"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="5. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewDirection5"
+                                android:layout_below="@+id/labelOverviewDirection4"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="@string/activityOverviewSpeed"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewSpeed"
+                                android:textAlignment="center"
+                                android:textSize="16sp"
+                                android:layout_below="@+id/labelOverviewDirection5"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:paddingTop="@dimen/activity_vertical_margin"
+                                android:textColor="@color/colorAccent"/>
+
+                            <TextView
+                                android:text="1. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewSpeed1"
+                                android:layout_below="@+id/labelOverviewSpeed"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="2. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewSpeed2"
+                                android:layout_below="@+id/labelOverviewSpeed1"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="3. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewSpeed3"
+                                android:layout_below="@+id/labelOverviewSpeed2"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="4. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewSpeed4"
+                                android:layout_below="@+id/labelOverviewSpeed3"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="5. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewSpeed5"
+                                android:layout_below="@+id/labelOverviewSpeed4"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="@string/activityOverviewHeight"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewHeight"
+                                android:textAlignment="center"
+                                android:textSize="16sp"
+                                android:layout_below="@+id/labelOverviewSpeed5"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:paddingTop="@dimen/activity_vertical_margin"
+                                android:textColor="@color/colorAccent"/>
+
+                            <TextView
+                                android:text="1. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewHeight1"
+                                android:layout_below="@+id/labelOverviewHeight"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="2. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewHeight2"
+                                android:layout_below="@+id/labelOverviewHeight1"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="3. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewHeight3"
+                                android:layout_below="@+id/labelOverviewHeight2"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="4. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewHeight4"
+                                android:layout_below="@+id/labelOverviewHeight3"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+
+                            <TextView
+                                android:text="5. -"
+                                android:maxLines="1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/labelOverviewHeight5"
+                                android:layout_below="@+id/labelOverviewHeight4"
+                                android:layout_alignParentLeft="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentRight="true"
+                                android:layout_alignParentEnd="true"
+                                android:textSize="16sp"
+                                android:paddingTop="@dimen/activity_small_margin"/>
+                        </RelativeLayout>
+
+                    </ScrollView>
+                </LinearLayout>
+
+            </FrameLayout>
+        </LinearLayout>
+    </TabHost>
+
+    <Button
+        android:id="@+id/startStopButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentStart="true"
+        android:text="@string/activityMapMatchingButtonStart" />
+
+</RelativeLayout>

@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:title="@string/preferenceCategory_advancedReset">
+        <Preference
+            android:key="@string/preference_advancedReset_key"
+            android:title="@string/preference_advancedReset"
+            android:summary="@string/preference_advancedReset_summary"/>
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/preferenceCategory_advancedNetwork">
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedRandomizePosition_default"
+            android:key="@string/preference_advancedRandomizePosition_key"
+            android:summary="@string/preference_advancedRandomizePosition_summary"
+            android:title="@string/preference_advancedRandomizePosition" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedBoundingBoxSize_default"
+            android:key="@string/preference_advancedBoundingBoxSize_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedBoundingBoxSize_summary"
+            android:title="@string/preference_advancedBoundingBoxSize" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedBoundingBoxRadius_default"
+            android:key="@string/preference_advancedBoundingBoxRadius_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedBoundingBoxRadius_summary"
+            android:title="@string/preference_advancedBoundingBoxRadius" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/preferenceCategory_advancedUTurn">
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedUTurn_default"
+            android:key="@string/preference_advancedUTurn_key"
+            android:summary="@string/preference_advancedUTurn_summary"
+            android:title="@string/preference_advancedUTurn" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedUTurnMalus_default"
+            android:key="@string/preference_advancedUTurnMalus_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedUTurnMalus_summary"
+            android:title="@string/preference_advancedUTurnMalus" />
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedMultipleUTurn_default"
+            android:key="@string/preference_advancedMultipleUTurn_key"
+            android:summary="@string/preference_advancedMultipleUTurn_summary"
+            android:title="@string/preference_advancedMultipleUTurn" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/preferenceCategory_advancedMatchingFootways">
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedFootwaysPerformance_default"
+            android:key="@string/preference_advancedFootwaysPerformance_key"
+            android:summary="@string/preference_advancedFootwaysPerformance_summary"
+            android:title="@string/preference_advancedFootwaysPerformance" />
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedFootwaysDifferent_default"
+            android:key="@string/preference_advancedFootwaysDifferent_key"
+            android:summary="@string/preference_advancedFootwaysDifferent_summary"
+            android:title="@string/preference_advancedFootwaysDifferent" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedFootwaySpeed_default"
+            android:key="@string/preference_advancedFootwaySpeed_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedFootwaySpeed_summary"
+            android:title="@string/preference_advancedFootwaySpeed" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedWayOrRoadMalus_default"
+            android:key="@string/preference_advancedWayOrRoadMalus_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedWayOrRoadMalus_summary"
+            android:title="@string/preference_advancedWayOrRoadMalus" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/preferenceCategory_advancedScore">
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedScoreDistanceMulti_default"
+            android:key="@string/preference_advancedScoreDistanceMulti_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedScoreDistanceMulti_summary"
+            android:title="@string/preference_advancedScoreDistanceMulti" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/preferenceCategory_advancedHypothesis">
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedMaxPathsSize_default"
+            android:key="@string/preference_advancedMaxPathsSize_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedMaxPathsSize_summary"
+            android:title="@string/preference_advancedMaxPathsSize" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedResetDistance_default"
+            android:key="@string/preference_advancedResetDistance_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedResetDistance_summary"
+            android:title="@string/preference_advancedResetDistance" />
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedPreferSmallerPaths_default"
+            android:key="@string/preference_advancedPreferSmallerPaths_key"
+            android:summary="@string/preference_advancedPreferSmallerPaths_summary"
+            android:title="@string/preference_advancedPreferSmallerPaths" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedPreferSmallerPathsMalus_default"
+            android:key="@string/preference_advancedPreferSmallerPathsMalus_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedPreferSmallerPathsMalus_summary"
+            android:title="@string/preference_advancedPreferSmallerPathsMalus" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/preferenceCategory_advancedExtensions">
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedExtensionDepth_default"
+            android:key="@string/preference_advancedExtensionDepth_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedExtensionDepth_summary"
+            android:title="@string/preference_advancedExtensionDepth" />
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedAlwaysExtend_default"
+            android:key="@string/preference_advancedAlwaysExtend_key"
+            android:summary="@string/preference_advancedAlwaysExtend_summary"
+            android:title="@string/preference_advancedAlwaysExtend" />
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedCompareAngle_default"
+            android:key="@string/preference_advancedCompareAngle_key"
+            android:summary="@string/preference_advancedCompareAngle_summary"
+            android:title="@string/preference_advancedCompareAngle" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedCompareAngleTolerance_default"
+            android:key="@string/preference_advancedCompareAngleTolerance_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedCompareAngleTolerance_summary"
+            android:title="@string/preference_advancedCompareAngleTolerance" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/preferenceCategory_symbolicTrajectories">
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedStreetnameCalc_default"
+            android:key="@string/preference_advancedStreetnameCalc_key"
+            android:summary="@string/preference_advancedStreetnameCalc_summary"
+            android:title="@string/preference_advancedStreetnameCalc" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/preferenceCategory_movementData">
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedPreciseMPoint_default"
+            android:key="@string/preference_advancedPreciseMPoint_key"
+            android:summary="@string/preference_advancedPreciseMPoint_summary"
+            android:title="@string/preference_advancedPreciseMPoint" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/preferenceCategory_advancedClean">
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedCleanPaths_default"
+            android:key="@string/preference_advancedCleanPaths_key"
+            android:summary="@string/preference_advancedCleanPaths_summary"
+            android:title="@string/preference_advancedCleanPaths" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedCleanPathsCount_default"
+            android:key="@string/preference_advancedCleanPathsCount_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedCleanPathsCount_summary"
+            android:title="@string/preference_advancedCleanPathsCount" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedCleanPathsEdges_default"
+            android:key="@string/preference_advancedCleanPathsEdges_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedCleanPathsEdges_summary"
+            android:title="@string/preference_advancedCleanPathsEdges" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/preferenceCategory_advancedCleanMap">
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedCleanMap_default"
+            android:key="@string/preference_advancedCleanMap_key"
+            android:summary="@string/preference_advancedCleanMap_summary"
+            android:title="@string/preference_advancedCleanMap" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedCleanMapCount_default"
+            android:key="@string/preference_advancedCleanMapCount_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedCleanMapCount_summary"
+            android:title="@string/preference_advancedCleanMapCount" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/preferenceCategory_advancedHeightInterval">
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedHeightIntervalRange_default"
+            android:key="@string/preference_advancedHeightIntervalRange_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedHeightIntervalRange_summary"
+            android:title="@string/preference_advancedHeightIntervalRange" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/preferenceCategory_advancedSpeedInterval">
+        <CheckBoxPreference
+            android:defaultValue="@string/preference_advancedUseSpeedIntervalRange_default"
+            android:key="@string/preference_advancedUseSpeedIntervalRange_key"
+            android:summary="@string/preference_advancedUseSpeedIntervalRange_summary"
+            android:title="@string/preference_advancedUseSpeedIntervalRange" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedSpeedIntervalRange_default"
+            android:key="@string/preference_advancedSpeedIntervalRange_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedSpeedIntervalRange_summary"
+            android:title="@string/preference_advancedSpeedIntervalRange" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedSpeedIntervalEndpoint1_default"
+            android:key="@string/preference_advancedSpeedIntervalEndpoint1_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedSpeedIntervalEndpoint1_summary"
+            android:title="@string/preference_advancedSpeedIntervalEndpoint1" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedSpeedIntervalEndpoint2_default"
+            android:key="@string/preference_advancedSpeedIntervalEndpoint2_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedSpeedIntervalEndpoint2_summary"
+            android:title="@string/preference_advancedSpeedIntervalEndpoint2" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedSpeedIntervalEndpoint3_default"
+            android:key="@string/preference_advancedSpeedIntervalEndpoint3_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedSpeedIntervalEndpoint3_summary"
+            android:title="@string/preference_advancedSpeedIntervalEndpoint3" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedSpeedIntervalEndpoint4_default"
+            android:key="@string/preference_advancedSpeedIntervalEndpoint4_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedSpeedIntervalEndpoint4_summary"
+            android:title="@string/preference_advancedSpeedIntervalEndpoint4" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedSpeedIntervalEndpoint5_default"
+            android:key="@string/preference_advancedSpeedIntervalEndpoint5_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedSpeedIntervalEndpoint5_summary"
+            android:title="@string/preference_advancedSpeedIntervalEndpoint5" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedSpeedIntervalEndpoint6_default"
+            android:key="@string/preference_advancedSpeedIntervalEndpoint6_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedSpeedIntervalEndpoint6_summary"
+            android:title="@string/preference_advancedSpeedIntervalEndpoint6" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedSpeedIntervalEndpoint7_default"
+            android:key="@string/preference_advancedSpeedIntervalEndpoint7_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedSpeedIntervalEndpoint7_summary"
+            android:title="@string/preference_advancedSpeedIntervalEndpoint7" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedSpeedIntervalEndpoint8_default"
+            android:key="@string/preference_advancedSpeedIntervalEndpoint8_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedSpeedIntervalEndpoint8_summary"
+            android:title="@string/preference_advancedSpeedIntervalEndpoint8" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedSpeedIntervalEndpoint9_default"
+            android:key="@string/preference_advancedSpeedIntervalEndpoint9_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedSpeedIntervalEndpoint9_summary"
+            android:title="@string/preference_advancedSpeedIntervalEndpoint9" />
+        <EditTextPreference
+            android:defaultValue="@string/preference_advancedSpeedIntervalEndpoint10_default"
+            android:key="@string/preference_advancedSpeedIntervalEndpoint10_key"
+            android:singleLine="true"
+            android:inputType="number"
+            android:summary="@string/preference_advancedSpeedIntervalEndpoint10_summary"
+            android:title="@string/preference_advancedSpeedIntervalEndpoint10" />
+    </PreferenceCategory>
+</PreferenceScreen>
