@@ -8718,9 +8718,7 @@ Word
     && (nl->AtomType(nl->Second(instance))==BoolType)){
      startSmaller = nl->BoolValue(nl->Second(instance));
      instance = nl->First(instance);
- }  else {
-    cout << "use old representation" << endl;
- }
+ }  
  HalfSegment* hs;
  SimpleLine* line= new SimpleLine(10);
  int edgeno = 0;
