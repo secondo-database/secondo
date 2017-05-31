@@ -36,8 +36,12 @@ January 2017 Michael Loris
 #include<vector>
 #include<string>
 
-//using namespace std;
 
+/* 
+Color model conversion functions were taken 
+from the GeneralTree Algebra .
+ 
+*/
 /********************************************************************
 1.1 Struct Lab
 
@@ -118,6 +122,7 @@ public:
     void importJPEGFile(const std::string _fileName, 
                         const int colorSpace, 
                         const int picRange,
+                        const int patchSize,
                         const int percentSamples,
                         const int noClusters);
     
@@ -142,12 +147,16 @@ public:
     double* weights; // of clusters
     void createSignature();
     std::vector<ImageSignatureTuple> signature;
+    int getNoDataPoints() { return this->noDataPoints; };
+    
+    // destructor
+    ~JPEGImage(); 
     
 private:
     bool isGrayscale;
     unsigned char* pixels; 
     unsigned char*** pixMat4;  // write clustered circle image
-    double*** pixMat5; // for use with HSV values
+    double*** pixMat5; 
 
     double ak( int x, int y, unsigned int k);
     double ekh(int x, int y, unsigned int k);
@@ -170,6 +179,7 @@ private:
     double* contrasts;
     int colorSpace;
     int patchSize; // size of sub images to be extracted
+    int noDataPoints;    
 };
 
 
