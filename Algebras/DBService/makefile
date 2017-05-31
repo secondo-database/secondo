@@ -33,7 +33,7 @@ include ../../makefile.env
 ADDINCLUDES := -I$(BUILDDIR)/Algebras/OrderedRelation -I$(BUILDDIR)/Algebras/Stream
 
 # expand compile flags if necessary
-CCFLAGS += -Werror $(ADDINCLUDES)
+CCFLAGS += -Werror $(ADDINCLUDES) -std=c++11 -Wno-error=deprecated-declarations
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

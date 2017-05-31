@@ -47,17 +47,19 @@ struct AttributeInfo
     std::string name;
 };
 
-typedef std::vector<std::pair<AttributeInfo, std::string> > RelationDefinition;
+typedef std::vector<AttributeInfo> RelationDefinition;
 
 class CommandBuilder {
 public:
     static std::string getTypeName(AttributeType type);
     static std::string buildCreateCommand(
-            std::string relationName,
-            RelationDefinition& rel);
+            const std::string& relationName,
+            const RelationDefinition& rel,
+            const std::vector<std::string>& values);
     static std::string buildInsertCommand(
-            std::string relationName,
-            RelationDefinition& rel);
+            const std::string& relationName,
+            const RelationDefinition& rel,
+            const std::vector<std::string>& values);
 };
 
 } /* namespace DBService */

@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "Google/googletest/include/gtest/gtest.h"
 
+#include "SecondoException.h"
+
 #include "CommandBuilder.hpp" //TODO proper path
 
 #include <queue>
@@ -45,17 +47,16 @@ class CommandBuilderTest: public ::testing::Test
 public:
     CommandBuilderTest() : relationName("myRel")
 {
-    rel.push_back(
-            pair<AttributeInfo, string>(
-                    { AttributeType::STRING, string("Col1")}, string("val1")));
-    rel.push_back(
-            pair<AttributeInfo, string>(
-                    { AttributeType::INT, string("Col2")}, string("2")));
+    rel.push_back({AttributeType::STRING, string("Col1")});
+    values.push_back(string("val1"));
+    rel.push_back({AttributeType::INT, string("Col2")});
+    values.push_back(string("2"));
 }
 
 protected:
     string relationName;
     RelationDefinition rel;
+    vector<string> values;
 };
 
 TEST_F(CommandBuilderTest, testGetTypeNameString)
@@ -81,7 +82,8 @@ TEST_F(CommandBuilderTest, testBuildCreateCommand)
     string expectedCreateCommand("let myRel = [const rel(tuple([Col1: string,"
             " Col2: int])) value((\"val1\", 2))]");
     ASSERT_STREQ(expectedCreateCommand.c_str(),
-            CommandBuilder::buildCreateCommand(relationName, rel).c_str());
+            CommandBuilder::buildCreateCommand(
+                    relationName, rel, values).c_str());
 }
 
 TEST_F(CommandBuilderTest, testBuildInsertCommand)
@@ -89,7 +91,23 @@ TEST_F(CommandBuilderTest, testBuildInsertCommand)
     string expectedInsertCommand("query myRel inserttuple["
             "\"val1\", 2] consume");
     ASSERT_STREQ(expectedInsertCommand.c_str(),
-            CommandBuilder::buildInsertCommand(relationName, rel).c_str());
+            CommandBuilder::buildInsertCommand(
+                    relationName, rel, values).c_str());
+}
+
+TEST_F(CommandBuilderTest, testBuildCreateCommandThrowsIfLenghtsDoNotMatch)
+{
+    vector<string> wrongValues;
+
+    ASSERT_THROW(CommandBuilder::buildCreateCommand(
+                    relationName, rel, wrongValues), SecondoException*);
+}
+
+TEST_F(CommandBuilderTest, testBuildInsertCommandThrowsIfLenghtsDoNotMatch)
+{
+    vector<string> wrongValues;
+    ASSERT_THROW(CommandBuilder::buildInsertCommand(
+                    relationName, rel, wrongValues), SecondoException*);
 }
 
 }

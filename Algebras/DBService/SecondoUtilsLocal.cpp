@@ -65,6 +65,7 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
 {
     printFunction("SecondoUtilsLocal::executeQuery");
     SecParser secondoParser;
+    print("queryAsString", queryAsString);
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {
         print("could not parse query");
@@ -178,6 +179,7 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
 
     ListExpr resultType = nl->TheEmptyList();
 
+    print("queryAsString", queryAsString);
     SecParser secondoParser;
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {
@@ -248,7 +250,6 @@ bool SecondoUtilsLocal::excuteQueryCommand(const std::string& queryAsString)
 bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
         ListExpr& resultList, string& errorMessage) {
     printFunction("SecondoUtilsLocal::excuteQueryCommand");
-    print("queryAsString", queryAsString);
     bool correct = false;
     bool evaluable = false;
     bool defined = false;
@@ -265,6 +266,7 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
 
     ListExpr resultType = nl->TheEmptyList();
 
+    print("queryAsString", queryAsString);
     SecParser secondoParser;
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {

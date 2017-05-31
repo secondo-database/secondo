@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <sstream>
 
+#include "SecondoException.h"
+
 #include "Algebras/DBService/CommandBuilder.hpp"
 
 using namespace std;
@@ -49,35 +51,38 @@ string CommandBuilder::getTypeName(AttributeType type)
 }
 
 string CommandBuilder::buildCreateCommand(
-        string relationName,
-        RelationDefinition& rel)
+        const string& relationName,
+        const RelationDefinition& rel,
+        const vector<string>& values)
 {
+    if(rel.size() != values.size())
+    {
+        throw new SecondoException("rel.size() != values.size()");
+    }
     stringstream createCommand;
     createCommand << "let " << relationName << " = [const rel(tuple([";
-    for(RelationDefinition::const_iterator it = rel.begin();
-            it != rel.end(); it++)
+    for(size_t i = 0; i < rel.size(); i++)
     {
-        createCommand << it->first.name << ": "
-                      << getTypeName(it->first.type);
-        if(it != rel.begin() + rel.size() - 1)
+        createCommand << rel[i].name << ": "
+                      << getTypeName(rel[i].type);
+        if(i != rel.size() - 1)
         {
             createCommand << ", ";
         }
     }
     createCommand << "])) value((";
-    for(RelationDefinition::const_iterator it = rel.begin();
-                it != rel.end(); it++)
+    for(size_t i = 0; i < rel.size(); i++)
     {
-        if(it->first.type == STRING)
+        if(rel[i].type == STRING)
         {
             createCommand << "\"";
         }
-        createCommand << it->second;
-        if(it->first.type == STRING)
+        createCommand << values[i];
+        if(rel[i].type == STRING)
         {
             createCommand << "\"";
         }
-        if(it != rel.begin() + rel.size() - 1)
+        if(i != rel.size() - 1)
         {
             createCommand << ", ";
         }
@@ -86,24 +91,28 @@ string CommandBuilder::buildCreateCommand(
     return createCommand.str();
 }
 
-string CommandBuilder::buildInsertCommand(string relationName,
-                                          RelationDefinition& rel)
+string CommandBuilder::buildInsertCommand(const string& relationName,
+                                          const RelationDefinition& rel,
+                                          const vector<string>& values)
 {
+    if(rel.size() != values.size())
+    {
+        throw new SecondoException("rel.size() != values.size()");
+    }
     stringstream insertCommand;
     insertCommand << "query " << relationName << " inserttuple[";
-    for(RelationDefinition::const_iterator it = rel.begin();
-                    it != rel.end(); it++)
+    for(size_t i = 0; i < rel.size(); i++)
     {
-        if(it->first.type == STRING)
+        if(rel[i].type == STRING)
         {
             insertCommand << "\"";
         }
-        insertCommand << it->second;
-        if(it->first.type == STRING)
+        insertCommand << values[i];
+        if(rel[i].type == STRING)
         {
             insertCommand << "\"";
         }
-        if(it != rel.begin() + rel.size() - 1)
+        if(i != rel.size() - 1)
         {
             insertCommand << ", ";
         }

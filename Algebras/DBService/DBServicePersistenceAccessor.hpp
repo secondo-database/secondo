@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "NestedList.h"
 
+#include "Algebras/DBService/CommandBuilder.hpp"
 #include "Algebras/DBService/LocationInfo.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
 
@@ -60,9 +61,12 @@ private:
             std::vector<ConnectionID>::const_iterator nodesBegin,
             std::vector<ConnectionID>::const_iterator nodesEnd);
     static bool createOrInsert(
-            std::string& relationName,
-            const std::string& createQuery,
-            const std::string& insertQuery);
+            const std::string& relationName,
+            const RelationDefinition& rel,
+            const std::vector<std::string>& values);
+    static RelationDefinition locations;
+    static RelationDefinition relations;
+    static RelationDefinition mapping;
 };
 
 } /* namespace DBService */

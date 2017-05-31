@@ -29,19 +29,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sstream>
 
 #include "SecondoException.h"
+#include "StringUtils.h"
 
 #include "Algebras/DBService/DBServicePersistenceAccessor.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
-#include "SecondoUtilsLocal.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
 
 using namespace std;
 
 namespace DBService {
 
 bool DBServicePersistenceAccessor::createOrInsert(
-        string& relationName,
-        const string& createQuery,
-        const string& insertQuery)
+        const string& relationName,
+        const RelationDefinition& rel,
+        const vector<string>& values)
 {
     printFunction("DBServicePersistenceAccessor::createOrInsert");
     string databaseName("dbservice");
@@ -56,7 +57,11 @@ bool DBServicePersistenceAccessor::createOrInsert(
     {
         print("relation does not exist: ", relationName);
         resultOk = SecondoUtilsLocal::createRelation(
-                createQuery, errorMessage);
+                CommandBuilder::buildCreateCommand(
+                        relationName,
+                        rel,
+                        values),
+                errorMessage);
         if(resultOk)
         {
             print("created relation: ", relationName);
@@ -68,7 +73,11 @@ bool DBServicePersistenceAccessor::createOrInsert(
     }
     print("relation exists, trying insert command");
 
-    resultOk = SecondoUtilsLocal::excuteQueryCommand(insertQuery);
+    resultOk = SecondoUtilsLocal::excuteQueryCommand(
+            CommandBuilder::buildInsertCommand(
+                    relationName,
+                    rel,
+                    values));
 
     if(resultOk)
     {
@@ -86,38 +95,19 @@ bool DBServicePersistenceAccessor::persistLocationInfo(
     printFunction("DBServicePersistenceAccessor::persistLocationInfo");
 
     string relationName("locations_DBSP");
-    stringstream createQuery;
-    createQuery << "let locations_DBSP = [const rel(tuple(["
-            << "ConnectionID: int, "
-            << "Host: string, "
-            << "Port: string, "
-            << "Config: string, "
-            << "Disk: string, "
-            << "CommPort: string, "
-            << "TransferPort: string])) value(("
-            << connID << " "
-            << "\"" << locationInfo.getHost() << "\" "
-            << "\"" << locationInfo.getPort() << "\" "
-            << "\"" << locationInfo.getConfig() << "\" "
-            << "\"" << locationInfo.getDisk() << "\" "
-            << "\"" << locationInfo.getCommPort() << "\" "
-            << "\"" << locationInfo.getTransferPort() << "\""
-            << "))]";
-    print("createQuery", createQuery.str());
 
-    stringstream insertQuery;
-    insertQuery << "query locations_DBSP inserttuple["
-            << connID << ", "
-            << "\"" << locationInfo.getHost() << "\", "
-            << "\"" << locationInfo.getPort() << "\", "
-            << "\"" << locationInfo.getConfig() << "\", "
-            << "\"" << locationInfo.getDisk() << "\", "
-            << "\"" << locationInfo.getCommPort() << "\", "
-            << "\"" << locationInfo.getTransferPort() << "\""
-            << "] consume";
-    print("insertQuery", insertQuery.str());
+    vector<string> values =
+    {
+        { stringutils::int2str(connID) },
+        { locationInfo.getHost() },
+        { locationInfo.getPort() },
+        { locationInfo.getConfig() },
+        { locationInfo.getDisk() },
+        { locationInfo.getCommPort() },
+        { locationInfo.getTransferPort() },
+    };
 
-    return createOrInsert(relationName, createQuery.str(), insertQuery.str());
+    return createOrInsert(relationName, locations, values);
 }
 
 bool DBServicePersistenceAccessor::persistRelationInfo(
@@ -127,36 +117,18 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
 
     string relationName("relations_DBSP");
 
-    stringstream createQuery;
-    createQuery << "let relations_DBSP = [const rel(tuple(["
-            << "RelationID: string, "
-            << "DatabaseName: string, "
-            << "RelationName: string, "
-            << "Host: string, "
-            << "Port: string, "
-            << "Disk: string])) value(("
-            << "\"" << relationInfo.toString() << "\" "
-            << "\"" << relationInfo.getDatabaseName() << "\" "
-            << "\"" << relationInfo.getRelationName() << "\" "
-            << "\"" << relationInfo.getOriginalLocation().getHost() << "\" "
-            << "\"" << relationInfo.getOriginalLocation().getPort() << "\" "
-            << "\"" << relationInfo.getOriginalLocation().getDisk() << "\""
-            << "))]";
-    print("createQuery", createQuery.str());
-
-    stringstream insertQuery;
-    insertQuery << "query relations_DBSP inserttuple["
-            << "\"" << relationInfo.toString() << "\", "
-            << "\"" << relationInfo.getDatabaseName() << "\", "
-            << "\"" << relationInfo.getRelationName() << "\", "
-            << "\"" << relationInfo.getOriginalLocation().getHost() << "\", "
-            << "\"" << relationInfo.getOriginalLocation().getPort() << "\", "
-            << "\"" << relationInfo.getOriginalLocation().getDisk() << "\""
-            << "] consume";
-    print("insertQuery", insertQuery.str());
+    vector<string> values =
+    {
+        { relationInfo.toString() },
+        { relationInfo.getDatabaseName() },
+        { relationInfo.getRelationName() },
+        { relationInfo.getOriginalLocation().getHost() },
+        { relationInfo.getOriginalLocation().getPort() },
+        { relationInfo.getOriginalLocation().getDisk() },
+    };
 
     bool resultOk =
-            createOrInsert(relationName, createQuery.str(), insertQuery.str());
+            createOrInsert(relationName, relations, values);
     if(resultOk)
     {
         print("RelationInfo persisted");
@@ -184,25 +156,15 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
     {
         string relationName("mapping_DBSP");
 
-        stringstream createQuery;
-        createQuery << "let mapping_DBSP = [const rel(tuple(["
-                << "RelationID: string, "
-                << "ConnectionID: int])) value(("
-                << "\"" << relationID << "\" "
-                << *it
-                << "))]";
-        print("createQuery", createQuery.str());
-
-        stringstream insertQuery;
-        insertQuery << "query mapping_DBSP inserttuple["
-                << "\"" << relationID << "\", "
-                << *it
-                << "] consume";
-        print("insertQuery", insertQuery.str());
+        vector<string> values =
+        {
+            { relationID },
+            { stringutils::int2str(*it) },
+        };
 
         resultOk = resultOk &&
                 createOrInsert(
-                        relationName, createQuery.str(), insertQuery.str());
+                        relationName, mapping, values);
         if(!resultOk)
         {
             print("failed to persist location mapping");
@@ -347,6 +309,33 @@ bool DBServicePersistenceAccessor::restoreLocationMapping(
         }
         return resultOk;
 }
+
+RelationDefinition DBServicePersistenceAccessor::locations =
+{
+    { AttributeType::INT, "ConnectionID" },
+    { AttributeType::STRING, "Host" },
+    { AttributeType::STRING, "Port" },
+    { AttributeType::STRING, "Config" },
+    { AttributeType::STRING, "Disk" },
+    { AttributeType::STRING, "CommPort" },
+    { AttributeType::STRING, "TransferPort" }
+};
+
+RelationDefinition DBServicePersistenceAccessor::relations =
+{
+    { AttributeType::STRING, "RelationID" },
+    { AttributeType::STRING, "DatabaseName" },
+    { AttributeType::STRING, "RelationName" },
+    { AttributeType::STRING, "Host" },
+    { AttributeType::STRING, "Port" },
+    { AttributeType::STRING, "Disk" },
+};
+
+RelationDefinition DBServicePersistenceAccessor::mapping =
+{
+    { AttributeType::STRING, "RelationID" },
+    { AttributeType::STRING, "ConnectionID" },
+};
 
 } /* namespace DBService */
 

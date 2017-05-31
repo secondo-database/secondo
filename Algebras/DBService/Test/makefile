@@ -62,6 +62,7 @@ FTEXT_DIR = $(ALGEBRA_DIR)/FText
 STREAM_DIR = $(ALGEBRA_DIR)/Stream
 ARRAY_DIR = $(ALGEBRA_DIR)/Array
 STANDARDC_DIR = $(ALGEBRA_DIR)/Standard-C++
+INCLUDE_DIR = $(BUILDDIR)/include
 
 # required (algebra) libraries
 LIBDBSERVICE = $(LIBDIR)/libDBServiceAlgebra.$(LIBEXT)
@@ -152,7 +153,7 @@ LocationInfoTest.o : $(USER_DIR)/LocationInfoTest.cpp \
 
 CommandBuilderTest.o : $(USER_DIR)/CommandBuilderTest.cpp \
     $(DBSERVICE_DIR)/CommandBuilder.cpp $(GMOCK_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -I $(INCLUDE_DIR) -c $< -o $@
 
 SuiteDBService : CommunicationUtilsTest.o  ReplicationUtilsTest.o \
     RelationInfoTest.o LocationInfoTest.o CommandBuilderTest.o \
