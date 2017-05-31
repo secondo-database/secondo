@@ -8210,31 +8210,39 @@ ListExpr OpTMSegment2RegionTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 3 )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return listutils::typeError("3 arguments expected");
   }
   ListExpr param1 = nl->First ( args );
   ListExpr attrName = nl->Second(args);
   ListExpr param3 = nl->Third(args);
-  ListExpr attrType;
+  
+  if(!Relation::checkType(param1)){
+    return listutils::typeError("first arg is not a relation");
+  }
+  if(nl->AtomType(attrName)!=SymbolType){
+    return listutils::typeError("second arg is not a valid attribute name");
+  }
+  if(!CcInt::checkType(param3)){
+    return listutils::typeError("third arg ist not an int");
+  }
+
   string aname = nl->SymbolValue(attrName);
+  ListExpr attrType;
   int j = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname,attrType);
 
-  if(j == 0 || !listutils::isSymbol(attrType,"sline")){
-      return listutils::typeError("attr name" + aname + "not found"
-                      "or not of type sline");
+  if(j == 0 ){
+      return listutils::typeError("attr name" + aname + "not found");
+  }
+  if(!SimpleLine::checkType(attrType)){
+     return listutils::typeError("attribute " + aname + " not of type sline");
   }
 
-    if (listutils::isRelDescription(param1) &&
-        nl->IsAtom(param3) && nl->AtomType(param3) == SymbolType &&
-        nl->SymbolValue(param3) == "int"){
-
-    ListExpr result =
-          nl->TwoElemList(
-              nl->SymbolAtom("stream"),
-                nl->TwoElemList(
-
-                  nl->SymbolAtom("tuple"),
+  ListExpr result =
+        nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+              nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
                     nl->Cons(
                       nl->TwoElemList(nl->SymbolAtom("Oid"),
                                     nl->SymbolAtom("int")),
@@ -8257,11 +8265,8 @@ ListExpr OpTMSegment2RegionTypeMap ( ListExpr args )
                 )
           );
 
-//    return result;
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-                             nl->OneElemList(nl->IntAtom(j)),result);
-  }
-  return nl->SymbolAtom ( "typeerror" );
+ return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                          nl->OneElemList(nl->IntAtom(j)),result);
 }
 
 /*
