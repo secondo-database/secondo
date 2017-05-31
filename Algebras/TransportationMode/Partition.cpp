@@ -3170,8 +3170,8 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
                                     vector<Region>& regs)
 {
     /////////note that points are counter_clock_wise ordered///////////////
-//    for(unsigned i = 0;i < outer_region.size();i++)
-//      cout<<outer_region[i];
+    //for(unsigned i = 0;i < outer_region.size();i++)
+    //  cout<<outer_region[i] << endl;
     
       ///////////////////////////////////////////////////////////////
       //////////// check for overlapping segments///////////////////
@@ -3258,7 +3258,7 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
 //             currvertex.GetX(), currvertex.GetY());
 
       ////////////////////last segment//////////////////////////
-      edno++;
+      //edno++; // edgeno already increased
       HalfSegment* hs = new HalfSegment(true, firstPoint, currvertex);
       hs->attr.faceno=fcno;
       hs->attr.cycleno=ccno;
