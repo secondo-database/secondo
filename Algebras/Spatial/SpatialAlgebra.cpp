@@ -8714,17 +8714,12 @@ Word
  }
 
  bool startSmaller = true;
- if(nl->HasLength(instance,2)){
-   if(nl->AtomType(nl->Second(instance))==BoolType){
+ if(   nl->HasLength(instance,2) 
+    && (nl->AtomType(nl->Second(instance))==BoolType)){
      startSmaller = nl->BoolValue(nl->Second(instance));
      instance = nl->First(instance);
-   } else {
-     correct = false;
-     return SetWord(Address(0));
-   }
- } else {
-   correct = false;
-   return SetWord(Address(0));
+ }  else {
+    cout << "use old representation" << endl;
  }
  HalfSegment* hs;
  SimpleLine* line= new SimpleLine(10);
@@ -8760,9 +8755,11 @@ Word
    rest = nl->Rest(rest);
  }
  if(!line->EndBulkLoad()){
+   correct = false;
    line->DeleteIfAllowed();
    return SetWord(Address(0));
  }else{
+   correct = true;
    line->SetStartSmaller(startSmaller);
    return SetWord(line);
  }
