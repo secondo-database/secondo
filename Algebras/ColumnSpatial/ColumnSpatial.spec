@@ -17,7 +17,11 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator intersects alias INTERSECTS pattern _ infixop _
-operator inside alias INSIDE pattern _ infixop _
-operator mp alias MP pattern _ op [ _ ] 
+#operator intersects alias INTERSECTS pattern _ infixop _
 
+operator inside alias INSIDE pattern _ infixop _
+operator contains alias CONTAINS pattern _ infixop _
+operator mp alias MP pattern _ op [ _ ] 
+operator + alias PLUS pattern _ infixop _ 
+operator count alias COUNT pattern _ op 
+operator showarray alias SHOWARRAY pattern _ op 

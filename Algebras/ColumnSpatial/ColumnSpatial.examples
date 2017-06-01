@@ -13,6 +13,12 @@ Signature: aline x aregion -> longints
 Example  : query cl1 inside cr1
 Result   : (longints(0))
 
+Operator : contains
+Number   : 1
+Signature: aregion x apoint -> longints
+Example  : query cr1 contains cp1
+Result   : (longints(0 1))
+
 Operator : mp
 Number   : 1
 Signature: (stream(tuple) attribute) -> apoint
@@ -54,3 +60,33 @@ Number   : 1
 Signature: apoint -> int 
 Example  : query cp1 count
 Result   : (int 7)
+
+Operator : count
+Number   : 2
+Signature: aline -> int 
+Example  : query cl1 count
+Result   : (int 2)
+
+Operator : count
+Number   : 3
+Signature: aregion -> int 
+Example  : query cr1 count
+Result   : (int 2)
+
+Operator : +
+Number   : 1
+Signature: (apoint apoint) -> apoint 
+Example  : query cp2 + cp3
+Result   : (apoint((1.0 2.0)(3.0 4.0)(5.0 6.0)))
+
+Operator : +
+Number   : 2
+Signature: (aline aline) -> aline 
+Example  : query (cl1 + cl2) count
+Result   : (int 3)
+
+Operator : showarray
+Number   : 1
+Signature: (apoint) -> array 
+Example  : query cp1 showarray
+Result   : (bool TRUE)

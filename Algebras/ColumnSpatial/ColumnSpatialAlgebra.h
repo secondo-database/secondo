@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Header of a column oriented spatial algebra
 
-[2] May 2017 by Sascha Radke for bachelor thesis
+[2] June 2017 by Sascha Radke for bachelor thesis
 
 \setcounter{tocdepth}{2}
 \tableofcontents
@@ -104,6 +104,24 @@ long allocBytes[20] = {     0,   //   initial value
                   17179852800};  //  16 GB maximum, more memory = error
 
 /*
+The global inline function ~getCycles~ calls the cpu instruction ~tsc~
+of x86/x64 machines and returns the number of passed cycles
+since system start.
+
+For it is an unsigned long integer, it can grow very big without
+any overflow. E. g. on a system with 3 GHz core clock speed it lasts
+more than 233 years before the counter turns to 0.
+
+Clock cycles are useful to compare systems with different clock speeds
+and can be used for low level benchmarking.
+
+Another result of this function is the time in nanoseconds passed
+since system start.
+
+*/
+inline void benchmark(long &cycles, long &ns);
+
+/*
 3.2 Class ColPoint for column-oriented representation of points
 
 This class handles an array of points to reduce costs of processing.
@@ -116,7 +134,7 @@ class ColPoint {
 
 /*
 In the private section the internal data structure is defined:
-The array ~array~ contains all points. It's size in bytes is set in both the
+The array ~aPoint~ contains all points. It's size in bytes is set in both the
 ~In~ and the ~Out~ function. The variable ~count~ holds the amount
 of points in the array. It is set in the ~In~ Function by counting the incoming
 points and in the ~Open~ function by reading it from disc.
@@ -147,7 +165,7 @@ and contains all static functions for the neccessary class operations.
 
 /*
 This is the main constructor. it initializes the internal point array
-and the counter given as parameters.
+and the counter given by parameters.
 
 */
   ColPoint(sPoint* newArray, long newCount);
@@ -161,63 +179,71 @@ new signature regardless of it's value.
   ColPoint(bool min);
 
 /*
-Destructor
+Destructor:
 
 */
   ~ColPoint();
 
 /*
-~BasicType~ returns "apoint".
+~BasicType~ returns "apoint":
 
 */
   static const string BasicType();
 
 /*
-~checkType~ compares the type of the given object with the class type.
+~checkType~ compares the type of the given object with the class type:
 
 */
   static const bool checkType(const ListExpr list);
 
 /*
-Description of the Secondo type ~apoint~ for the user
+Description of the Secondo type ~apoint~ for the user:
 
 */
   static ListExpr Property();
 
 /*
-~getCount~ returns the number of elements in the point array.
+~getCount~ returns the number of elements in the point array:
 
 */
   long getCount();
 
 /*
-~getX~ returns the x coordinate of the indexed point entry
+~getX~ returns the x coordinate of the indexed point entry:
 
 */
   double getX(long index);
 
 /*
-~getY~ returns the y coordinate of the indexed point entry
+~getY~ returns the y coordinate of the indexed point entry:
 
 */
   double getY(long index);
 
 /*
 The following function appends one point of the spatial algebra to the
-array apoint of the column spatial algebra.
+array apoint of the column spatial algebra:
 
 */
   bool append(Point* point);
 
 /*
 The function ~finalize~ reallocates the memory used for the array ~apoint~
-to the real needed bytes.
+to the real needed bytes:
 
 */
   void finalize();
 
 /*
-Shows the content of the array aPoint. This function is useful for debugging.
+The ~merge~ function expects two ~apoint~ objects as input parameters
+and creates a new ~apoint~ object with the contents of both input objects.
+It is called by the ~+~-operator.
+
+*/
+  bool merge(ColPoint* cPoint1, ColPoint* cPoint2);
+
+/*
+Shows the content of the array aPoint. This function is useful for debugging:
 
 */
   void showArray(string title);
@@ -233,6 +259,7 @@ Memory is allocated on a logarithmic scale from 16 KB up to 16 GB trying to
 consider known cache-sizes as well as common memory sizes with subtracting
 16 KB for control data. The possible allocation sizes are stored in the array
 ~allocBytes~ which is desfined in the global section of this file.
+After all values are safely stored, the oversized memory is truncated.
 
 */
   static Word In(const ListExpr typeInfo, ListExpr instance,
@@ -303,7 +330,7 @@ The argument points to a memory block which is to cast to the object.
 
 /*
 The function ~TypeCheck~ tests if a given list corresponds to the class type.
-This function is quite similar to the ~checkType~ function the class.
+This function is quite similar to the ~checkType~ function.
 
 */
   static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
@@ -476,6 +503,14 @@ The result is fully generated ColLine object that can be used further on.
   void finalize();
 
 /*
+The ~merge~ function expects two ~aline~ objects as input parameters
+and creates a new ~aline~ object with the contents of both input objects.
+It is called by the ~+~-operator.
+
+*/
+  bool merge(ColLine* cLine1, ColLine* cLine2);
+
+/*
 The auxiliary function ~showArrays~ prints the contents of the internal arrays,
 there sizes and counters to the screen.
 It is useful during the debugging phase.
@@ -502,9 +537,7 @@ the standard funtions for the ~ColPoint~ object (analogical with ~ColPoint~)
 */
   static Word Create(const ListExpr typeInfo);
 
-
   static void Delete(const ListExpr typeInfo, Word& w);
-
 
   static bool Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value);
@@ -777,8 +810,18 @@ Additional the arrays are allocated to their real used memory.
   void finalize();
 
 /*
+The ~merge~ function expects two ~aregion~ objects as input parameters
+and creates a new ~aregion~ object with the contents of both input objects.
+It is called by the ~+~-operator.
+
+*/
+  bool merge(ColRegion* cRegion1, ColRegion* cRegion2);
+
+
+/*
 The auxiliary function ~showArrays~ prints the contents of the internal arrays,
-there sizes and counters to the screen. It is useful during the debugging phase.
+there sizes and counters to the screen. It can be accessed by the
+Secondo-operator ~showarray~.
 
 */
   void showArrays(string title, bool showPoints);
@@ -835,21 +878,36 @@ To do so, the first point of the line is checked whether it is inside or
 outside the region. If it is outside, then the whole line
 can not be inside the region and the next line is processed.
 If it is inside, the number of intersections are counted. if the
-number is even then the line is completely inside one of the regions.
+number is even then the line is completely inside one of the regions
+and the line index will be stored in a ~longints~ result type.
 In any other case the line only crosses the region.
 
 */
   LongInts* linesInside(ColLine* cLine);
 
 /*
+The ~contain~ function is similar to the inside function except that not
+the indices of the elements within are returned by result but the indices
+of the containing regions are returned as a ~longints~ type.
+
+*/
+  LongInts* containsPoints(ColPoint* cPoint);
+
+/*
 3.8 Standard functions
 
 The ~In~ function scans a nested-list (parameter ~instance~) and converts it
-into an internal array representation. Memory is allocated on a logarithmic
-scale from 16 KB up to 16 GB, trying to consider known cache-sizes as well as
-common memory sizes with subtracting 16 KB for control data. The possible
-allocation sizes are stored in the array ~allocBytes~ which is defined in the
-global section of this file.
+into an internal array representation.
+One way to acquire the length of a nested list
+would be to call nl->ListLength(instance), but for a large number of regions
+this method is very expensive due to a full scan.
+An alternative way is implemented in this function. It provides an algorithm
+to process an unknown number of elements:
+Memory is allocated on a logarithmic scale from 16 KB up to 16 GB trying to
+consider known cache-sizes as well as common memory sizes with subtracting
+16 KB for control data. The possible allocation sizes are stored in the array
+~allocBytes~ which is desfined in the global section of this file.
+After all region values are safely read in, the oversized memory is truncated.
 
 */
   static Word In(const ListExpr typeInfo, const ListExpr instance,
@@ -933,7 +991,7 @@ The argument points to a memory block which is to cast to the object.
 
 /*
 The function ~TypeCheck~ tests if a given list corresponds to the class type.
-This function is quite similar to the ~checkType~ function the class.
+This function is quite similar to the ~checkType~ function.
 
 */
   static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
@@ -974,12 +1032,12 @@ Without an example, the operator will be switched off by the Secondo framework.
 
 */
 ListExpr insideTM(ListExpr args);
-
+ListExpr containsTM(ListExpr args);
 ListExpr mapTM(ListExpr args);
-
 ListExpr mapColTM(ListExpr args);
-
 ListExpr countTM(ListExpr args);
+ListExpr plusTM(ListExpr args);
+ListExpr showarrayTM(ListExpr args);
 
 /*
 4.2 Value mapping functions
@@ -995,13 +1053,18 @@ the types should only contain single elements.
 */
 int pointsInsideVM (Word* args, Word& result, int message,
                     Word& local, Supplier s);
-
 int linesInsideVM (Word* args, Word& result, int message,
                    Word& local, Supplier s);
-
 // not implemented yet
 int regionsInsideVM (Word* args, Word& result, int message,
                      Word& local, Supplier s);
+
+/*
+Checks on each region whether it contains an object.
+
+*/
+int containsPointsVM (Word* args, Word& result, int message,
+                    Word& local, Supplier s);
 
 /*
 The ~map~ operators convert streams of the standard types points,
@@ -1023,10 +1086,8 @@ or ~aregion~ into their corresponding spatial types.
 */
 int mapColPointVM (Word* args, Word& result, int message,
                    Word& local, Supplier s);
-
 int mapColLineVM (Word* args, Word& result, int message,
                   Word& local, Supplier s);
-
 int mapColRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s);
 
@@ -1036,26 +1097,54 @@ The ~count~ operators returns the number of elements of a column spatial type
 */
 int countPointVM (Word* args, Word& result, int message,
                    Word& local, Supplier s);
-
 int countLineVM (Word* args, Word& result, int message,
                  Word& local, Supplier s);
-
 int countRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s);
 
+
+/*
+The ~+~ Operators merges two arrays of the same type into a new array
+
+*/
+int plusPointVM (Word* args, Word& result, int message,
+                   Word& local, Supplier s);
+int plusLineVM (Word* args, Word& result, int message,
+                 Word& local, Supplier s);
+int plusRegionVM (Word* args, Word& result, int message,
+                  Word& local, Supplier s);
+
+/*
+The ~showarray~ operators makes the content and structure of the internal
+arrays visible. This is useful to see what's going on at the lower level.
+
+*/
+int showarrayPointVM (Word* args, Word& result, int message,
+                   Word& local, Supplier s);
+int showarrayLineVM (Word* args, Word& result, int message,
+                 Word& local, Supplier s);
+int showarrayRegionVM (Word* args, Word& result, int message,
+                  Word& local, Supplier s);
 /*
 4.3 Value Mapping Array and Selection Function
 
 */
 ValueMapping insideVM[] = {pointsInsideVM, linesInsideVM, regionsInsideVM};
+ValueMapping containsVM[] = {containsPointsVM};
 ValueMapping mapVM[]    = {mapPointVM, mapLineVM, mapRegionVM};
 ValueMapping mapColVM[] = {mapColPointVM, mapColLineVM, mapColRegionVM};
 ValueMapping countVM[]  = {countPointVM, countLineVM, countRegionVM};
+ValueMapping plusVM[]  = {plusPointVM, plusLineVM, plusRegionVM};
+ValueMapping showarrayVM[]  = {showarrayPointVM, showarrayLineVM,
+                               showarrayRegionVM};
 
 int insideSelect(ListExpr args);
+int containsSelect(ListExpr args);
 int mapSelect(ListExpr args);
 int mapColSelect(ListExpr args);
 int countSelect(ListExpr args);
+int plusSelect(ListExpr args);
+int showarraySelect(ListExpr args);
 
 /*
 4.4 Specification
@@ -1068,26 +1157,36 @@ example query.
 remark (optional)
 
 */
-OperatorSpec insideSpec("obj x region -> ints, obj={apoint,aline,aregion} ",
+OperatorSpec insideSpec("obj x aregion -> longints, obj={apoint,aline,aregion}",
                         "_ inside _ ",
                         "checks each element of obj whether in region",
-                        "query cp1 inside r1 ");
+                        "query cFluss inside cKreis ");
 
+OperatorSpec containsSpec("aregion x apoint -> longints ",
+                        "_ contains _ ",
+                        "checks which region contains points",
+                        "query cKreis contains CStadt ");
 OperatorSpec mapSpec("stream(tuple) -> {apoint, aline, aregion} ",
-                     "mp [_] ",
-                     "maps a stream of standard type to attribute array",
-                     "query Kreis feed mp[Gebiet] ");
-
+                        "mp [_] ",
+                        "maps a stream of standard type to attribute array",
+                        "query Kreis feed mp[Gebiet] ");
 OperatorSpec mapColSpec("{apoint, aline, aregion} x int "
                         "-> {point, line, region} ",
                         "mp [_] ",
                         "maps one entry of attribute array to standard type",
                         "query cKreis mp[1] ");
-
 OperatorSpec countSpec("{apoint, aline, aregion} -> int ",
-                       "count ",
-                       "returns the number of elements of the spatial type",
-                       "query cKreis count ");
+                        "count ",
+                        "returns the number of elements of the spatial type",
+                        "query cKreis count ");
+OperatorSpec plusSpec("obj x obj -> obj, obj={apoint,aline,aregion} ",
+                        "_ + _ ",
+                        "merges two array types into a new array type",
+                        "query cSee + cWald ");
+OperatorSpec showarraySpec("{apoint,aline,aregion} -> array of atype",
+                        "_ showarray ",
+                        "shows the internal attribut arrays of the type",
+                        "query cSee showarray ");
 
 /*
 4.5 Operator Instance
@@ -1100,8 +1199,13 @@ selection function
 type mapping
 
 */
+
+
 Operator insideOp("inside", insideSpec.getStr(), 3,
                   insideVM, insideSelect, insideTM);
+
+Operator containsOp("contains", containsSpec.getStr(), 1,
+                  containsVM, containsSelect, containsTM);
 
 Operator mapOp("mp", mapSpec.getStr(), 3,
                mapVM, mapSelect, mapTM);
@@ -1111,6 +1215,12 @@ Operator mapColOp("mp", mapColSpec.getStr(), 3,
 
 Operator countOp("count", countSpec.getStr(), 3,
                   countVM, countSelect, countTM);
+
+Operator plusOp("+", plusSpec.getStr(), 3,
+                  plusVM, plusSelect, plusTM);
+
+Operator showarrayOp("showarray", showarraySpec.getStr(), 3,
+                    showarrayVM, showarraySelect, showarrayTM);
 
 
 /*
@@ -1135,9 +1245,12 @@ class ColumnSpatialAlgebra : public Algebra {
     ColRegionTC.AssociateKind(Kind::SIMPLE());
 
    AddOperator(&insideOp);
+   AddOperator(&containsOp);
    AddOperator(&mapOp);
    AddOperator(&mapColOp);
    AddOperator(&countOp);
+   AddOperator(&plusOp);
+   AddOperator(&showarrayOp);
   }
 };
 

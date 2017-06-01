@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-// TODO: remove relative paths.
+// TODO: remove relative paths and int64_t.
 // they are only needed for a better syntax hilighting with qt-creator.
 #include "ColumnSpatialAlgebra.h"             // header for this algebra
 #include "../../include/Symbols.h"            // predefined strings
@@ -53,6 +53,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../Stream/Stream.h"                 // wrapper for secondo streams
 #include "../CRel/Ints.h"                     // type for id result list
 #include "../CRel/TypeConstructors/LongIntsTI.h"
+#include <ctime>
 
 using std::vector;
 using namespace CRelAlgebra;
@@ -60,7 +61,28 @@ using namespace CRelAlgebra;
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
+typedef long int64_t;
+
 namespace col {
+
+
+
+/*
+Benchmark cycles and nanoseconds.
+
+*/
+inline void benchmark(long &cycles, long &ns) {
+  struct timespec ttime;
+  long lo, hi;
+  // get timestamp counter (tsc) from cpu
+  asm( "rdtsc" : "=a" (lo), "=d" (hi) );
+  cycles = lo | (hi << 32);
+  // get nanoseconds from timer
+  clock_gettime(CLOCK_MONOTONIC, &ttime);
+  ns = (long)ttime.tv_sec * 1.0e9 + ttime.tv_nsec;
+}
+
+
 
 /*
 2 Class ColPoint for column-oriented representation of points
@@ -176,6 +198,32 @@ namespace col {
 
 
 
+  // merges two apoints into one apoint
+  bool ColPoint::merge(ColPoint* cPoint1, ColPoint* cPoint2) {
+
+    // calculate and allocate sufficient memory for the result array
+    long cc1 = cPoint1->getCount();
+    long cc2 = cPoint2->getCount();
+    aPoint = static_cast<sPoint*> (realloc(aPoint, cc1 * 16 + cc2 * 16));
+    if (aPoint == NULL) {  // exit on memory overflow
+      cmsg.inFunError("not enough memory for all points!");
+      return false;
+    }
+    for (long i=0; i < cc1; i++) {
+      aPoint[i].x = cPoint1->getX(i);
+      aPoint[i].y = cPoint1->getY(i);
+    }
+    for (long i=0; i < cc2; i++) {
+      aPoint[cc1+i].x = cPoint2->getX(i);
+      aPoint[cc1+i].y = cPoint2->getY(i);
+    }
+    count = cc1 + cc2;
+
+    return true;
+  }
+
+
+
   // test output of the array aPoint and there parameters
   void ColPoint::showArray(string title) {
     cout << "\n--------------------------------------------\n" << title << "\n";
@@ -226,7 +274,7 @@ namespace col {
         // allocate more memory - in C++ a type casting is necessary unlike in C
         inArray = static_cast<sPoint*>(realloc(inArray, allocBytes[++step]));
         if (inArray == NULL) {    // exit on memory overflow
-          cmsg.inFunError("not enough memory (??? allocBytes needed)!");
+          cmsg.inFunError("out of memory");
           return error;
         }
       }
@@ -296,6 +344,10 @@ namespace col {
 
   bool ColPoint::Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
+
+    cout << "open apoint...\n";
+
+
     sPoint* aPoint = NULL;  // array which contains the input point values
     long count;           // amount of points
     double x, y;          // actual read coordinates
@@ -327,6 +379,8 @@ namespace col {
     } else {  // error
       value.addr = 0;
     }
+
+    cout << count * sizeof(sPoint) << " bytes used." << endl;
 
     return ok;
   }
@@ -378,7 +432,7 @@ each entry to the clone object.
     tmpPoint = static_cast<sPoint*>(realloc(tmpPoint,sizeof(sPoint)*tmpCount));
 
     if (tmpPoint == NULL) {    // exit on memory overflow
-      cmsg.inFunError("not enough memory (??? allocBytes needed)!");
+      cmsg.inFunError("out of memory");
       return (void*)0;
     }
 
@@ -575,7 +629,7 @@ each entry to the clone object.
     // make a copy of the input line to avoid modifying the original data
     Line *lCopy = new Line(*line);
 
-    for(int i = 0; i < lCopy->Size(); i++) {
+    for (int i = 0; i < lCopy->Size(); i++) {
       lCopy->Get(i, hs);  // extract actual halfsegment
 
       if(hs.IsLeftDomPoint() == true) {
@@ -628,6 +682,61 @@ each entry to the clone object.
     cout << countLine * sizeof(sLine) + countSegment * sizeof(sSegment)
          << " bytes used.\n";
   }
+
+
+
+  // merges two alines into one aline
+  bool ColLine::merge(ColLine* cLine1, ColLine* cLine2) {
+
+    // calculate and allocate sufficient memory for the result array
+    long ccl1 = cLine1->getCount();
+    long ccl2 = cLine2->getCount();
+    long ccs1 = cLine1->getSegments();
+    long ccs2 = cLine2->getSegments();
+    long index, dummy;
+
+    aLine = static_cast<sLine*> (realloc(aLine, (ccl1 + ccl2 + 1) *  8));
+    if (aLine == NULL) {  // exit on memory overflow
+      cmsg.inFunError("not enough memory for all lines!");
+      return false;
+    }
+
+    aSegment = static_cast<sSegment*> (realloc(aSegment,
+                                               (ccs1 + ccs2 + 1) * 32));
+    if (aSegment == NULL) {  // exit on memory overflow
+      cmsg.inFunError("not enough memory for all segments!");
+      return false;
+    }
+
+    for (long i = 0; i < ccl1; i++)
+      cLine1->getLineSegments(i, aLine[i].index, dummy);
+    for (long i = 0; i < ccl2; i++) {
+      cLine2->getLineSegments(i, index, dummy);
+      aLine[ccl1 + i].index = index + ccs1;
+    }
+
+    for (long i = 0; i < ccs1; i++)
+      cLine1->getSegmentPoints(i, aSegment[i].x1, aSegment[i].y1,
+                                  aSegment[i].x2, aSegment[i].y2);
+    for (long i = 0; i < ccs2; i++)
+      cLine2->getSegmentPoints(i, aSegment[ccs1+i].x1, aSegment[ccs1+i].y1,
+                                  aSegment[ccs1+i].x2, aSegment[ccs1+i].y2);
+
+    countLine = ccl1 + ccl2;
+    countSegment = ccs1 + ccs2;
+
+    aLine[countLine].index = countSegment;
+    aSegment[countSegment].x1 = 0;
+    aSegment[countSegment].y1 = 0;
+    aSegment[countSegment].x2 = 0;
+    aSegment[countSegment].y2 = 0;
+
+    countLine++;
+    countSegment++;
+
+    return true;
+  }
+
 
 
 
@@ -843,6 +952,10 @@ each entry to the clone object.
   // Reads an array from disc via an ~SmiRecord~.
   bool ColLine::Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
+
+    cout << "open aline...\n";
+
+
     sLine* inLine = NULL;  // array which contains the input line values
     sSegment* inSegment = NULL;  // array which contains the input line values
     long cl;           // number of lines
@@ -901,6 +1014,8 @@ each entry to the clone object.
       value.addr = 0;
     }
 
+    cout << cl * sizeof(sLine) + cs * sizeof(sSegment)
+         << " bytes used." << endl;
     return ok;
   }
 
@@ -972,7 +1087,7 @@ each entry to the clone object.
     sLine* tmpLine = NULL;
     tmpLine = static_cast<sLine*>(realloc(tmpLine, sizeof(sLine) * tmpCL));
     if (tmpLine == NULL) {    // exit on memory overflow
-      cmsg.inFunError("not enough memory (??? allocBytes needed)!");
+      cmsg.inFunError("out of memory");
       return (void*)0;
     }
 
@@ -980,7 +1095,7 @@ each entry to the clone object.
     sSegment* tmpSeg = NULL;
     tmpSeg = static_cast<sSegment*>(realloc(tmpSeg, sizeof(sSegment) * tmpCS));
     if (tmpSeg == NULL) {    // exit on memory overflow
-      cmsg.inFunError("not enough memory (??? allocBytes needed)!");
+      cmsg.inFunError("out of memory");
       return (void*)0;
     }
 
@@ -1402,6 +1517,51 @@ The ~finalize~ function appends a terminator to each array of the aregion type.
 
 
 
+  // merges two aregions into one aregions
+  bool ColRegion::merge(ColRegion* cRegion1, ColRegion* cRegion2) {
+    long ccr1 = cRegion1->getCount();
+    long ccc1 = cRegion1->getCountCycles();
+    long ccp1 = cRegion1->getCountPoints();
+    long ccr2 = cRegion2->getCount();
+    long ccc2 = cRegion2->getCountCycles();
+    long ccp2 = cRegion2->getCountPoints();
+
+    // allocate memory for the input arrays
+    aRegion = static_cast<sRegion*>
+              (realloc(aRegion, (ccr1 + ccr2 + 1) * 48));
+    aCycle = static_cast<sCycle*>
+             (realloc(aCycle, (ccc1 + ccc2 + 1) * 8));
+    aPoint = static_cast<sPoint*>
+             (realloc(aPoint, (ccp1 + ccp2 + 1) * 16));
+
+    for (long i = 0; i < (ccr1 + ccr2); i++) {
+      aRegion[i].indexCycle = 0;
+      aRegion[i].indexPoint = 0;
+      aRegion[i].mbrX1 = 0;
+      aRegion[i].mbrX2 = 0;
+      aRegion[i].mbrY1 = 0;
+      aRegion[i].mbrY2 = 0;
+    }
+    countRegion = ccr1 + ccr2;
+
+    for (long i = 0; i < (ccc1 + ccc2); i++)
+      aCycle[i].index = 0;
+    countCycle = ccc1 + ccc2;
+
+    for (long i = 0; i < (ccp1 + ccp2); i++) {
+      aPoint[i].x = 0;
+      aPoint[i].y = 0;
+    }
+    countPoint = ccp1 + ccp2;
+
+    cout << "operator not correctly implemented, all values set to zero."
+         << endl;
+
+    return true;
+  }
+
+
+
   // test output of the arrays aRegion, aCycle and aPoint and there parameters
   void ColRegion::showArrays(string title, bool showPoints) {
 
@@ -1531,17 +1691,17 @@ one of the regions of the actual ~ColRegions~ object.
 Precondition:
 - cycle points must be in clockwise or in counterclockwise order,
   no matter if they are faces or holes. this precondition is always true.
-- the first point of a region must be the leftmost point.
+- the first point of a region must be the leftmost/bottom point.
   this precondition is always true.
 Complexity: $O(m . n)$,
 where ~m~ is the number of points and ~n~ is the number of regions.
 known weakness:
-if the region overlaps the 180th longitude then the function fails.
+if a tested region overlaps the 180th longitude then the function fails.
 
 */
   LongInts* ColRegion::pointsInside(ColPoint* cPoint) {
 
-    const long cp1 = cPoint->getCount();  // index of point
+    const long cp1 = cPoint->getCount();  // number of points
     long cr = countRegion - 1;  // number of regions without terminator
     double idPx1;
     double idPy1;
@@ -1642,7 +1802,8 @@ any other case the line only crosses the region.
                 y4 = aPoint[aCycle[idCyc].index].y;
               }
 
-              // check intersection between line segment and region segment
+              // if intersection between line segment and region segment
+              // -> continue with next region
               if (intersects(x1, y1, x2, y2,
                              aPoint[idPnt].x, aPoint[idPnt].y, x4, y4)) {
                 intersect_flag = true;
@@ -1653,6 +1814,49 @@ any other case the line only crosses the region.
         }
         // if no intersection has occured -> append
         if (!intersect_flag) id->Append(idL);
+      }
+    }
+
+    return id;
+  }
+
+
+
+/*
+checks for each point of the ~ColPoint~ object whether it is inside
+one of the regions of the actual ~ColRegions~ object
+and returns the region indices.
+
+*/
+  LongInts* ColRegion::containsPoints(ColPoint* cPoint) {
+
+    const long cp1 = cPoint->getCount();  // number of points
+    long cr = countRegion - 1;  // number of regions without terminator
+    double idPx1;
+    double idPy1;
+
+    // result array of matching indices
+    LongInts* id = new LongInts();
+    // scan all regions
+    for (long idReg = 0; idReg < cr; idReg++) {
+
+      // scan all points
+      for (long idP = 0; idP < cp1; idP++) {
+
+        // this is the actual point to be checked
+        idPx1 = cPoint->getX(idP);
+        idPy1 = cPoint->getY(idP);
+
+        // check if actual point is inside the bounding box of actual region
+        if ((idPx1 < aRegion[idReg].mbrX1) || (idPx1 > aRegion[idReg].mbrX2) ||
+            (idPy1 < aRegion[idReg].mbrY1) || (idPy1 > aRegion[idReg].mbrY2))
+          continue;  // if not inside bbox then continue with next point
+
+        if (pointInsideRegion(idPx1, idPy1, idReg)) {
+          id->Append(idReg);
+          // no need to check further points, continue with next region
+          break;
+        }
       }
     }
 
@@ -1803,7 +2007,7 @@ any other case the line only crosses the region.
       regionNL = nl->Rest(regionNL);      // "move" to next region
     }
 
-    // add terminator entries to arrays. they are needed for the Out-function.
+    // add terminator entries to arrays.
     inPoint[cp].x = 0;
     inPoint[cp].y = 0;
     inCycle[cc].index = cp;
@@ -1826,12 +2030,14 @@ any other case the line only crosses the region.
     answer.addr = new ColRegion(inRegion, inCycle, inPoint, cr, cc, cp);
 
     // the following two lines are only for debugging mode
-    // ColRegion* cRegion = static_cast<ColRegion*>(answer.addr);
-    // cRegion->showArrays("ColRegion after In-function", true);
+    ColRegion* cRegion = static_cast<ColRegion*>(answer.addr);
+    cRegion->showArrays("ColRegion after In-function", false);
 
     correct = true;
     return answer;  // return the object
   }
+
+
 
   ListExpr ColRegion::Out(ListExpr typeInfo, Word value) {
     ColRegion* cRegion = static_cast<ColRegion*>(value.addr);
@@ -1941,6 +2147,7 @@ any other case the line only crosses the region.
   bool ColRegion::Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
 
+    cout << "open aregion...\n";
     // initialize arrays
     sRegion* region = NULL;
     sCycle* cycle = NULL;
@@ -1971,19 +2178,19 @@ any other case the line only crosses the region.
     // allocate memory depending on the counters
     region = static_cast<sRegion*>(malloc(cr * sizeof(sRegion)));
     if (region == NULL) {    // exit on memory overflow
-      cmsg.inFunError("not enough memory (??? Bytes needed)!");
+      cmsg.inFunError("out of memory!");
       return false;
     }
 
     cycle = static_cast<sCycle*>(malloc(cc * sizeof(sCycle)));
     if (cycle == NULL) {    // exit on memory overflow
-      cmsg.inFunError("not enough memory (??? Bytes needed)!");
+      cmsg.inFunError("out of memory!");
       return false;
     }
 
     point = static_cast<sPoint*>(malloc(cp * sizeof(sPoint)));
     if (point == NULL) {    // exit on memory overflow
-      cmsg.inFunError("not enough memory (??? Bytes needed)!");
+      cmsg.inFunError("out of memory!");
       return false;
     }
 
@@ -2040,6 +2247,9 @@ any other case the line only crosses the region.
     } else {  // error
       value.addr = 0;
     }
+
+    cout << cr * sizeof(sRegion) + cc * sizeof(sCycle) + cp * sizeof(sPoint)
+         << " bytes used." << endl;
 
     return ok;  // ok can be true or false
   }
@@ -2133,14 +2343,14 @@ each entry to the clone object.
 */
   Word ColRegion::Clone(const ListExpr typeInfo, const Word& w) {
     ColRegion* cRegion = static_cast<ColRegion*>(w.addr);
-    cRegion->showArrays("before ColRegion Clone...", false);
+    cRegion->showArrays("ColRegion Clone...", false);
 
     long tmpCR = cRegion->getCount() + 1; // add 1 for terminator
     sRegion* tmpRegion = NULL;
     tmpRegion = static_cast<sRegion*>
                 (realloc(tmpRegion, sizeof(sRegion) * tmpCR));
     if (tmpRegion == NULL) {    // exit on memory overflow
-      cmsg.inFunError("not enough memory (??? allocBytes needed)!");
+      cmsg.inFunError("out of memory");
       return (void*)0;
     }
 
@@ -2149,7 +2359,7 @@ each entry to the clone object.
     tmpCycle = static_cast<sCycle*>
                (realloc(tmpCycle, sizeof(sCycle) * tmpCC));
     if (tmpCycle == NULL) {    // exit on memory overflow
-      cmsg.inFunError("not enough memory (??? allocBytes needed)!");
+      cmsg.inFunError("out of memory");
       return (void*)0;
     }
 
@@ -2158,7 +2368,7 @@ each entry to the clone object.
     tmpPoint = static_cast<sPoint*>
                (realloc(tmpPoint, sizeof(sPoint) * tmpCP));
     if (tmpPoint == NULL) {    // exit on memory overflow
-      cmsg.inFunError("not enough memory (??? allocBytes needed)!");
+      cmsg.inFunError("out of memory");
       return (void*)0;
     }
 
@@ -2210,19 +2420,32 @@ each entry to the clone object.
 ListExpr insideTM(ListExpr args) {
     string err = "{apoint | aline} x aregion expected\n";
 
-    cout << nl->ToString(args);
-
     if (!nl->HasLength(args, 2)) {
         return listutils::typeError(err + " (wrong number of arguments)");
     }
 
     if ((ColPoint::checkType(nl->First(args)) ||
-         ColLine::checkType(nl->First(args)) ||
-         ColRegion::checkType(nl->First(args))) &&
+         ColLine::checkType(nl->First(args))) &&
          ColRegion::checkType(nl->Second(args))) {
       return LongIntsTI(false).GetTypeExpr();  // list of long ints for id
     }
 
+    return listutils::typeError(err);
+}
+
+
+
+ListExpr containsTM(ListExpr args) {
+    string err = "aregion x apoint expected\n";
+
+    if (!nl->HasLength(args, 2)) {
+      return listutils::typeError(err + " (wrong number of arguments)");
+    }
+
+    if (ColRegion::checkType(nl->First(args)) &&
+        ColPoint::checkType(nl->Second(args))) {
+      return LongIntsTI(false).GetTypeExpr();  // list of long ints for id
+    }
     return listutils::typeError(err);
 }
 
@@ -2316,21 +2539,62 @@ ListExpr countTM(ListExpr args) {
 }
 
 
+
+ListExpr plusTM(ListExpr args) {
+
+  if (!nl->HasLength(args,2)) {
+     return listutils::typeError("Expected two column spatial types!");
+  }
+
+  // check for column spatial object and return corresponding spatial type
+  if (ColPoint::checkType(nl->First(args)) &&
+      ColPoint::checkType(nl->Second(args)))
+    return listutils::basicSymbol<ColPoint>();
+
+  if (ColLine::checkType(nl->First(args)) &&
+       ColLine::checkType(nl->Second(args)))
+    return listutils::basicSymbol<ColLine>();
+
+  if (ColRegion::checkType(nl->First(args)) &&
+       ColRegion::checkType(nl->Second(args)))
+    return listutils::basicSymbol<ColRegion>();
+
+  return listutils::typeError("Expected two column spatial types!");
+}
+
+
+
+ListExpr showarrayTM(ListExpr args) {
+
+  if (!nl->HasLength(args,1)) {
+     return listutils::typeError("Expected a column spatial type!");
+  }
+
+  // check for column spatial object and return corresponding spatial type
+  if ((ColPoint::checkType(nl->First(args))) ||
+      (ColLine::checkType(nl->First(args))) ||
+      (ColRegion::checkType(nl->First(args))))
+    return listutils::basicSymbol<CcBool>();
+
+  return listutils::typeError("Expected a column spatial type!");
+}
+
+
+
 /*
 
 5.2 Value Mapping
 
 checks for each point of the apoint array if it's inside each region
 of a aregion array. If only one point or one region should be checked,
-then the arrays have to contain only one element. But the strength of
-this function lies within the bulk processing. The more elements are
-processed the more efficient it will be.
+then the arrays have to contain only one element.
 
 */
-
-// TODO: benchmark to verify the statement above
 int pointsInsideVM (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
+
+  long cStart, cStop, tStart, tStop;
+  benchmark(cStart, tStart);
 
   ColPoint* cPoint = (ColPoint*) args[0].addr;
   ColRegion* cRegion = (ColRegion*) args[1].addr;
@@ -2342,6 +2606,10 @@ int pointsInsideVM (Word* args, Word& result, int message,
   LongInts* id = cRegion->pointsInside(cPoint);
   result.addr = id;
 
+  benchmark(cStop, tStop);
+  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << endl;
+
   return 0;
 }
 
@@ -2349,6 +2617,9 @@ int pointsInsideVM (Word* args, Word& result, int message,
 
 int linesInsideVM (Word* args, Word& result, int message,
                   Word& local, Supplier s) {
+
+  long cStart, cStop, tStart, tStop;
+  benchmark(cStart, tStart);
 
   ColLine* cLine = (ColLine*) args[0].addr;
   ColRegion* cRegion = (ColRegion*) args[1].addr;
@@ -2360,6 +2631,10 @@ int linesInsideVM (Word* args, Word& result, int message,
   LongInts* id = cRegion->linesInside(cLine);
   result.addr = id;
 
+  benchmark(cStop, tStop);
+  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << endl;
+
   return 0;
 }
 
@@ -2367,6 +2642,37 @@ int linesInsideVM (Word* args, Word& result, int message,
 
 int regionsInsideVM (Word* args, Word& result, int message,
                     Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  // initialized and empty result array
+  LongInts* id = new LongInts();
+  result.addr = id;
+  return 0;
+}
+
+
+/*
+~contain~ functions
+
+*/
+int containsPointsVM (Word* args, Word& result, int message,
+                   Word& local, Supplier s) {
+  long cStart, cStop, tStart, tStop;
+  benchmark(cStart, tStart);
+
+  ColRegion* cRegion = (ColRegion*) args[0].addr;
+  ColPoint* cPoint = (ColPoint*) args[1].addr;
+
+  cout << "check " << cPoint->getCount() << " points "
+       << "and " << cRegion->getCount() << " regions..." << endl;
+
+  result = qp->ResultStorage(s);
+  LongInts* id = cRegion->containsPoints(cPoint);
+  result.addr = id;
+
+  benchmark(cStop, tStop);
+  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << endl;
+
   return 0;
 }
 
@@ -2586,28 +2892,187 @@ value mapping of the count functions
 */
 int countPointVM (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
+
+  long cStart, cStop, tStart, tStop;
+  benchmark(cStart, tStart);
+
   result = qp->ResultStorage(s);
   ColPoint* cPoint = static_cast<ColPoint*> (args[0].addr);
   CcInt* res = (CcInt*) result.addr;
   res->Set(true, cPoint->getCount());
+
+  benchmark(cStop, tStop);
+  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << endl;
+
   return 0;
 }
 
 int countLineVM (Word* args, Word& result, int message,
                  Word& local, Supplier s) {
+
+  long cStart, cStop, tStart, tStop;
+  benchmark(cStart, tStart);
+
   result = qp->ResultStorage(s);
   ColLine* cLine = static_cast<ColLine*> (args[0].addr);
   CcInt* res = (CcInt*) result.addr;
   res->Set(true, cLine->getCount());
+
+  benchmark(cStop, tStop);
+  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << endl;
+
   return 0;
 }
 
 int countRegionVM (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
+
+  long cStart, cStop, tStart, tStop;
+  benchmark(cStart, tStart);
+
   result = qp->ResultStorage(s);
-  ColRegion* cRegion = static_cast<ColRegion*> (args[0].addr);
+  //ColRegion* cRegion = static_cast<ColRegion*> (args[0].addr);
+  ColRegion* cRegion = (ColRegion*) (args[0].addr);
   CcInt* res = (CcInt*) result.addr;
   res->Set(true, cRegion->getCount());
+
+  benchmark(cStop, tStop);
+  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << endl;
+
+  return 0;
+}
+
+/*
+value mappings of the plus functions
+
+*/
+int plusPointVM (Word* args, Word& result, int message,
+                 Word& local, Supplier s) {
+
+  long cStart, cStop, tStart, tStop;
+  benchmark(cStart, tStart);
+
+  result = qp->ResultStorage(s);
+  result.addr = new ColPoint(true);
+  ColPoint* cPoint = static_cast<ColPoint*> (result.addr);
+
+  ColPoint* cPoint1 = (ColPoint*) (args[0].addr);
+  ColPoint* cPoint2 = (ColPoint*) (args[1].addr);
+
+  if (!cPoint->merge(cPoint1, cPoint2)) {
+    cout << "Error in merging two apoint types!" << endl;
+    return 0;
+  }
+
+  benchmark(cStop, tStop);
+  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << endl;
+
+  return 0;
+}
+
+
+
+int plusLineVM (Word* args, Word& result, int message,
+                Word& local, Supplier s) {
+
+  long cStart, cStop, tStart, tStop;
+  benchmark(cStart, tStart);
+
+  result = qp->ResultStorage(s);
+  result.addr = new ColLine(true);
+  ColLine* cLine = static_cast<ColLine*> (result.addr);
+
+  ColLine* cLine1 = (ColLine*) (args[0].addr);
+  ColLine* cLine2 = (ColLine*) (args[1].addr);
+
+  if (!cLine->merge(cLine1, cLine2)) {
+    cout << "Error in merging two aline types!" << endl;
+    return 0;
+  }
+
+  benchmark(cStop, tStop);
+
+  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << endl;
+
+  return 0;
+}
+
+
+
+int plusRegionVM (Word* args, Word& result, int message,
+                  Word& local, Supplier s) {
+
+  long cStart, cStop, tStart, tStop;
+  benchmark(cStart, tStart);
+
+  result = qp->ResultStorage(s);
+  result.addr = new ColRegion(true);     // result set to cRegion object
+  ColRegion* cRegion = static_cast<ColRegion*> (result.addr);
+
+  ColRegion* cRegion1 = (ColRegion*) (args[0].addr);
+  ColRegion* cRegion2 = (ColRegion*) (args[1].addr);
+
+  if (!cRegion->merge(cRegion1, cRegion2)) {
+    cout << "Error in merging two aregion types!" << endl;
+    return 0;
+  }
+
+  benchmark(cStop, tStop);
+  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << endl;
+
+  return 0;
+}
+
+
+
+int showarrayPointVM (Word* args, Word& result, int message,
+                       Word& local, Supplier s) {
+  ColPoint* cPoint = (ColPoint*) (args[0].addr);
+
+  cPoint->showArray("show internal arrays of apoint");
+
+  result.addr = new CcBool();
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  res->Set(true, true);
+  return 0;
+}
+
+
+
+int showarrayLineVM (Word* args, Word& result, int message,
+                       Word& local, Supplier s) {
+
+  ColLine* cLine = (ColLine*) (args[0].addr);
+
+  cLine->showArrays("show internal arrays of aregion");
+
+  result.addr = new CcBool();
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  res->Set(true, true);
+  return 0;
+}
+
+
+
+int showarrayRegionVM (Word* args, Word& result, int message,
+                       Word& local, Supplier s) {
+
+  ColRegion* cRegion = (ColRegion*) (args[0].addr);
+
+  cRegion->showArrays("show internal arrays of aregion", true);
+
+  result.addr = new CcBool();
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  res->Set(true, true);
   return 0;
 }
 
@@ -2620,7 +3085,14 @@ int countRegionVM (Word* args, Word& result, int message,
 int insideSelect(ListExpr args) {
   if (ColPoint::checkType(nl->First(args))) { return 0; }
   if (ColLine::checkType(nl->First(args))) { return 1; }
+  return 2; // ColRegion
+}
 
+
+
+int containsSelect(ListExpr args) {
+  if (ColPoint::checkType(nl->Second(args))) { return 0; }
+  if (ColLine::checkType(nl->Second(args))) { return 1; }
   return 2; // ColRegion
 }
 
@@ -2668,6 +3140,7 @@ int mapColSelect(ListExpr args) {
 }
 
 
+
 int countSelect(ListExpr args) {
 
   // first check for column spatial objects
@@ -2677,6 +3150,31 @@ int countSelect(ListExpr args) {
   if (ColRegion::checkType(arg1)) return 2;  // countRegionVM
 
   return 0;  // if no match then return dummy, type mapping will be done later
+}
+
+
+
+int plusSelect(ListExpr args) {
+  // first check for column spatial objects
+  ListExpr arg1 = nl->First( args );
+  if (ColPoint::checkType(arg1)) return 0;   // plusColPointVM
+  if (ColLine::checkType(arg1)) return 1;    // plusColLineVM
+  if (ColRegion::checkType(arg1)) return 2;  // plusColRegionVM
+
+  return 0;  // if no match then return dummy, type mapping will be done later
+
+}
+
+
+int showarraySelect(ListExpr args) {
+  // first check for column spatial objects
+  ListExpr arg1 = nl->First( args );
+  if (ColPoint::checkType(arg1)) return 0;   // showarrayColPointVM
+  if (ColLine::checkType(arg1)) return 1;    // showarrayColLineVM
+  if (ColRegion::checkType(arg1)) return 2;  // showarrayColRegionVM
+
+  return 0;  // if no match then return dummy, type mapping will be done later
+
 }
 
 }  // namespace col
