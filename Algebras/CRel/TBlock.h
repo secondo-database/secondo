@@ -379,6 +379,14 @@ namespace CRelAlgebra
     size_t GetRefCount() const;
 
   private:
+    class ColumnInfo
+    {
+    public:
+      size_t size;
+
+      SmiRecordId recordId;
+    };
+
     TBlockHeader m_header;
 
     PTBlockInfo m_info;
@@ -387,7 +395,7 @@ namespace CRelAlgebra
     //Corresponds the count of attributes in each block.
     const size_t m_columnCount;
 
-    SmiRecordId *m_recordIds;
+    ColumnInfo *m_columnInfos;
 
     //The attribute-blocks.
     AttrArray **m_columns;

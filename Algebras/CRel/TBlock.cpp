@@ -35,7 +35,7 @@ extern NestedList *nl;
 
 size_t TBlock::GetSaveSize(size_t columnCount, bool includeHeader)
 {
-  size_t size = sizeof(size_t) + (columnCount * sizeof(SmiRecordId));
+  size_t size = sizeof(size_t) + (columnCount * sizeof(ColumnInfo));
 
   if (includeHeader)
   {
@@ -56,7 +56,7 @@ TBlock::TBlock(const PTBlockInfo &info, SmiFileId columnFileId,
   m_header(0, sizeof(TBlock), columnFileId, flobFileId),
   m_info(info),
   m_columnCount(m_info->columnCount),
-  m_recordIds(new SmiRecordId[m_columnCount]),
+  m_columnInfos(new ColumnInfo[m_columnCount]),
   m_columns(new AttrArray*[m_columnCount]),
   m_columnFile(columnFileId != 0 ?
     (!columnFile.IsNull() ? columnFile : new SmiRecordFile(false)) : nullptr),
@@ -65,7 +65,7 @@ TBlock::TBlock(const PTBlockInfo &info, SmiFileId columnFileId,
 {
   for (size_t i = 0; i < m_columnCount; i++)
   {
-    m_recordIds[i] = 0;
+    m_columnInfos[i] = {0, 0};
     m_columns[i] = nullptr;
   }
 }
@@ -92,14 +92,14 @@ TBlock::TBlock(const PTBlockInfo &info, const TBlockHeader &header,
   m_header(header),
   m_info(info),
   m_columnCount(m_info->columnCount),
-  m_recordIds(new SmiRecordId[m_columnCount]),
+  m_columnInfos(new ColumnInfo[m_columnCount]),
   m_columns(new AttrArray*[m_columnCount]),
   m_columnFile(header.columnFileId != 0 ?
     (!columnFile.IsNull() ? columnFile : new SmiRecordFile(false)) : nullptr),
   m_filter(*this),
   m_refCount(1)
 {
-  source.ReadOrThrow((char*)m_recordIds, m_columnCount * sizeof(SmiRecordId));
+  source.ReadOrThrow((char*)m_columnInfos, m_columnCount * sizeof(ColumnInfo));
 
   for (size_t i = 0; i < m_columnCount; i++)
   {
@@ -111,7 +111,7 @@ TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
                size_t columnCount) :
   m_header(instance.m_header),
   m_columnCount(columnCount),
-  m_recordIds(new SmiRecordId[columnCount]),
+  m_columnInfos(new ColumnInfo[columnCount]),
   m_columns(new AttrArray*[columnCount]),
   m_columnFile(instance.m_columnFile),
   m_filter(*this, instance.m_filter.m_filter),
@@ -124,6 +124,8 @@ TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
 
   SharedArray<const size_t> filter = m_filter.m_filter;
 
+  size_t size = sizeof(TBlock);
+
   for (size_t i = 0; i < columnCount; ++i)
   {
     AttrArray *column = instance.m_columns[columnIndices[i]];
@@ -143,13 +145,16 @@ TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
       instance.m_info->columnFactories[columnIndices[i]];
     columnManager->IncRef();
 
-    m_recordIds[i] = instance.m_recordIds[columnIndices[i]];
+    m_columnInfos[i] = instance.m_columnInfos[columnIndices[i]];
     m_columns[i] = column;
+
+    size += m_columnInfos[i].size;
 
     info->columnTypes[i] = instance.m_info->columnTypes[columnIndices[i]];
     info->columnFactories[i] = columnManager;
   }
 
+  m_header.size = size;
   m_info = info;
 }
 
@@ -157,7 +162,7 @@ TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
                size_t columnCount, const SharedArray<const size_t> &filter) :
   m_header(instance.m_header),
   m_columnCount(columnCount),
-  m_recordIds(new SmiRecordId[columnCount]),
+  m_columnInfos(new ColumnInfo[columnCount]),
   m_columns(new AttrArray*[columnCount]),
   m_columnFile(instance.m_columnFile),
   m_filter(*this, filter),
@@ -168,6 +173,8 @@ TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
   info->columnTypes = new ListExpr[columnCount];
   info->columnFactories = new AttrArrayManager*[columnCount];
 
+  size_t size = sizeof(TBlock);
+
   for (size_t i = 0; i < columnCount; ++i)
   {
     AttrArray *column = instance.m_columns[columnIndices[i]];
@@ -187,13 +194,16 @@ TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
       instance.m_info->columnFactories[columnIndices[i]];
     columnManager->IncRef();
 
-    m_recordIds[i] = instance.m_recordIds[columnIndices[i]];
+    m_columnInfos[i] = instance.m_columnInfos[columnIndices[i]];
     m_columns[i] = column;
+
+    size += m_columnInfos[i].size;
 
     info->columnTypes[i] = instance.m_info->columnTypes[columnIndices[i]];
     info->columnFactories[i] = columnManager;
   }
 
+  m_header.size = size;
   m_info = info;
 }
 
@@ -201,7 +211,7 @@ TBlock::TBlock(const TBlock &block, const SharedArray<const size_t> &filter) :
   m_header(block.m_header),
   m_info(block.m_info),
   m_columnCount(block.m_columnCount),
-  m_recordIds(new SmiRecordId[m_columnCount]),
+  m_columnInfos(new ColumnInfo[m_columnCount]),
   m_columns(new AttrArray*[m_columnCount]),
   m_columnFile(block.m_columnFile),
   m_filter(*this, filter),
@@ -223,7 +233,7 @@ TBlock::TBlock(const TBlock &block, const SharedArray<const size_t> &filter) :
       }
     }
 
-    m_recordIds[i] = block.m_recordIds[i];
+    m_columnInfos[i] = block.m_columnInfos[i];
     m_columns[i] = column;
   }
 }
@@ -239,7 +249,7 @@ TBlock::~TBlock()
   }
 
   delete[] m_columns;
-  delete[] m_recordIds;
+  delete[] m_columnInfos;
 }
 
 const PTBlockInfo &TBlock::GetInfo() const
@@ -271,14 +281,15 @@ void TBlock::Save(Writer &target, bool includeHeader)
 
   for (size_t i = 0; i < m_columnCount; i++)
   {
-    SmiRecordId &recordId = m_recordIds[i];
+    SmiRecordId &recordId = m_columnInfos[i].recordId;
+
     if (recordId == 0)
     {
       AppendOrThrow(*m_columnFile, recordId);
     }
   }
 
-  target.WriteOrThrow((char*)m_recordIds, m_columnCount * sizeof(SmiRecordId));
+  target.WriteOrThrow((char*)m_columnInfos, m_columnCount * sizeof(ColumnInfo));
 
   for (size_t i = 0; i < m_columnCount; i++)
   {
@@ -287,7 +298,8 @@ void TBlock::Save(Writer &target, bool includeHeader)
     if (column != nullptr)
     {
       SmiRecord record;
-      SelectOrThrow(*m_columnFile, m_recordIds[i], SmiFile::Update, record);
+      SelectOrThrow(*m_columnFile, m_columnInfos[i].recordId, SmiFile::Update,
+                    record);
 
       SmiWriter columnTarget(record, 0);
 
@@ -314,7 +326,7 @@ void TBlock::DeleteRecords()
     {
       if (m_columns[i] == nullptr)
       {
-        SmiRecordId recordId = m_recordIds[i];
+        const SmiRecordId recordId = m_columnInfos[i].recordId;
 
         if (recordId != 0)
         {
@@ -330,18 +342,20 @@ void TBlock::DeleteRecords()
           record.Finish();
           DeleteOrThrow(*m_columnFile, recordId);
 
-          m_recordIds[i] = 0;
+          m_columnInfos[i].recordId = 0;
         }
       }
       else
       {
         m_columns[i]->DeleteRecords();
 
-        if (m_recordIds[i] != 0)
-        {
-          DeleteOrThrow(*m_columnFile, m_recordIds[i]);
+        const SmiRecordId recordId = m_columnInfos[i].recordId;
 
-          m_recordIds[i] = 0;
+        if (recordId != 0)
+        {
+          DeleteOrThrow(*m_columnFile, recordId);
+
+          m_columnInfos[i].recordId = 0;
         }
       }
     }
@@ -352,11 +366,13 @@ void TBlock::DeleteRecords()
     {
       m_columns[i]->DeleteRecords();
 
-      if (m_recordIds[i] != 0)
-      {
-        DeleteOrThrow(*m_columnFile, m_recordIds[i]);
+      const SmiRecordId recordId = m_columnInfos[i].recordId;
 
-        m_recordIds[i] = 0;
+      if (recordId != 0)
+      {
+        DeleteOrThrow(*m_columnFile, recordId);
+
+        m_columnInfos[i].recordId = 0;
       }
     }
   }
@@ -389,7 +405,7 @@ void TBlock::Append(const AttrArrayEntry* tuple)
 
     array.Append(tuple[i]);
 
-    size += array.GetSize();
+    size += (m_columnInfos[i].size = array.GetSize());
   }
 
   TBlockHeader &header = m_header;
@@ -411,7 +427,7 @@ void TBlock::Append(Attribute** tuple)
 
     array.Append(*tuple[i]);
 
-    size += array.GetSize();
+    size += (m_columnInfos[i].size = array.GetSize());
   }
 
   TBlockHeader &header = m_header;
@@ -433,7 +449,7 @@ void TBlock::Append(const TBlockEntry &tuple)
 
     array.Append(tuple[i]);
 
-    size += array.GetSize();
+    size += (m_columnInfos[i].size = array.GetSize());
   }
 
   TBlockHeader &header = m_header;
@@ -455,7 +471,7 @@ void TBlock::Append(const Tuple &tuple)
 
     array.Append(*tuple.GetAttribute(i));
 
-    size += array.GetSize();
+    size += (m_columnInfos[i].size = array.GetSize());
   }
 
   TBlockHeader &header = m_header;
@@ -471,7 +487,7 @@ AttrArray &TBlock::GetAt(size_t index) const
 
   if (column == nullptr)
   {
-    SmiRecordId recordId = m_recordIds[index];
+    SmiRecordId recordId = m_columnInfos[index].recordId;
 
     if (recordId == 0)
     {
