@@ -478,6 +478,8 @@ Returns the coordinates of a single segment:
   void getSegmentPoints(long index,
                         double &x1, double &y1, double &x2, double &y2);
 
+
+  void *getLineAdress();
 /*
 The function ~createLine~ extracts a line from the aline and
 stores it in a standard spatial type,

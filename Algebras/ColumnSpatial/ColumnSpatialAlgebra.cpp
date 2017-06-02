@@ -54,8 +54,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../CRel/Ints.h"                     // type for id result list
 #include "../CRel/TypeConstructors/LongIntsTI.h"
 #include <ctime>
+#include <fstream>
 
 using std::vector;
+using std::fstream;
+
 using namespace CRelAlgebra;
 
 extern NestedList *nl;
@@ -74,12 +77,12 @@ Benchmark cycles and nanoseconds.
 inline void benchmark(long &cycles, long &ns) {
   struct timespec ttime;
   long lo, hi;
-  // get timestamp counter (tsc) from cpu
-  asm( "rdtsc" : "=a" (lo), "=d" (hi) );
-  cycles = lo | (hi << 32);
   // get nanoseconds from timer
   clock_gettime(CLOCK_MONOTONIC, &ttime);
   ns = (long)ttime.tv_sec * 1.0e9 + ttime.tv_nsec;
+  // get timestamp counter (tsc) from cpu
+  asm( "rdtsc" : "=a" (lo), "=d" (hi) );
+  cycles = lo | (hi << 32);
 }
 
 
@@ -568,6 +571,12 @@ each entry to the clone object.
 
 
 
+  void* ColLine::getLineAdress() {
+    cout << sizeof(aLine);
+    return &aLine;
+  }
+
+
   // returns the line found at index of aline
   bool ColLine::createLine(Line* line, long index) {
     long start = aLine[index].index;
@@ -707,6 +716,21 @@ each entry to the clone object.
       cmsg.inFunError("not enough memory for all segments!");
       return false;
     }
+
+/*
+TODO:
+Instead of loop copying it is much more faster to use block copying.
+But there is still a problem to retrieve the correct address of the
+private aLine arrays of the two objects cLine1 and cLine2!!!
+
+If this is getting to work, it can be used in different parts of this
+algebra and speed should raise up significantly.
+
+It could also be used for ~Open~ and ~Save~ functions...
+
+*/
+//    memcpy(aLine, cLine1->getLineAdress(), ccl1 * 8);
+//    memcpy((void*)(&aLine + ccl1), cLine2->getLineAdress(), ccl2 * 8);
 
     for (long i = 0; i < ccl1; i++)
       cLine1->getLineSegments(i, aLine[i].index, dummy);
@@ -1517,7 +1541,11 @@ The ~finalize~ function appends a terminator to each array of the aregion type.
 
 
 
-  // merges two aregions into one aregions
+/*
+merges two aregions into one aregion.
+
+
+*/
   bool ColRegion::merge(ColRegion* cRegion1, ColRegion* cRegion2) {
     long ccr1 = cRegion1->getCount();
     long ccc1 = cRegion1->getCountCycles();
@@ -1534,7 +1562,17 @@ The ~finalize~ function appends a terminator to each array of the aregion type.
     aPoint = static_cast<sPoint*>
              (realloc(aPoint, (ccp1 + ccp2 + 1) * 16));
 
-    for (long i = 0; i < (ccr1 + ccr2); i++) {
+    // scan all regions of first aregion
+    for (long i = 0; i < ccr1; i++) {
+      aRegion[i].indexCycle = 0;
+      aRegion[i].indexPoint = 0;
+      aRegion[i].mbrX1 = 0;
+      aRegion[i].mbrX2 = 0;
+      aRegion[i].mbrY1 = 0;
+      aRegion[i].mbrY2 = 0;
+    }
+    // scan all regions of second aregion
+    for (long i = 0; i < ccr2; i++) {
       aRegion[i].indexCycle = 0;
       aRegion[i].indexPoint = 0;
       aRegion[i].mbrX1 = 0;
@@ -1544,11 +1582,21 @@ The ~finalize~ function appends a terminator to each array of the aregion type.
     }
     countRegion = ccr1 + ccr2;
 
-    for (long i = 0; i < (ccc1 + ccc2); i++)
+    // scan all cycles of first aregion
+    for (long i = 0; i < ccc1; i++)
+      aCycle[i].index = 0;
+    // scan all cycles of second aregion
+    for (long i = 0; i < ccc2; i++)
       aCycle[i].index = 0;
     countCycle = ccc1 + ccc2;
 
-    for (long i = 0; i < (ccp1 + ccp2); i++) {
+    // scan all points of first aregion
+    for (long i = 0; i < ccp1; i++) {
+      aPoint[i].x = 0;
+      aPoint[i].y = 0;
+    }
+    // scan all points of second aregion
+    for (long i = 0; i < ccp2; i++) {
       aPoint[i].x = 0;
       aPoint[i].y = 0;
     }
@@ -1556,7 +1604,6 @@ The ~finalize~ function appends a terminator to each array of the aregion type.
 
     cout << "operator not correctly implemented, all values set to zero."
          << endl;
-
     return true;
   }
 
@@ -2609,6 +2656,11 @@ int pointsInsideVM (Word* args, Word& result, int message,
   benchmark(cStop, tStop);
   cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
        << (long) tStop - tStart << " nanoseconds." << endl;
+    fstream f;
+    f.open("benchmark.dat", std::fstream::out|std::fstream::app);
+    f  << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << endl;
+    f.close();
 
   return 0;
 }
@@ -3025,7 +3077,7 @@ int plusRegionVM (Word* args, Word& result, int message,
   benchmark(cStop, tStop);
   cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
        << (long) tStop - tStart << " nanoseconds." << endl;
-
+  cRegion->showArrays("after merge of two aregions", false);
   return 0;
 }
 
