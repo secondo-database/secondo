@@ -51,6 +51,8 @@ public:
     values.push_back(string("val1"));
     rel.push_back({AttributeType::INT, string("Col2")});
     values.push_back(string("2"));
+    rel.push_back({AttributeType::BOOL, string("Col3")});
+    values.push_back(string("FALSE"));
 }
 
 protected:
@@ -71,16 +73,22 @@ TEST_F(CommandBuilderTest, testGetTypeNameInt)
             CommandBuilder::getTypeName(AttributeType::INT).c_str());
 }
 
+TEST_F(CommandBuilderTest, testGetTypeNameBool)
+{
+    ASSERT_STREQ("bool",
+            CommandBuilder::getTypeName(AttributeType::BOOL).c_str());
+}
+
 TEST_F(CommandBuilderTest, testGetTypeNameWrongType)
 {
     ASSERT_STREQ("ERROR",
-            CommandBuilder::getTypeName(AttributeType(3)).c_str());
+            CommandBuilder::getTypeName(AttributeType(99)).c_str());
 }
 
 TEST_F(CommandBuilderTest, testBuildCreateCommand)
 {
     string expectedCreateCommand("let myRel = [const rel(tuple([Col1: string,"
-            " Col2: int])) value((\"val1\", 2))]");
+            " Col2: int, Col3: bool])) value((\"val1\" 2 FALSE))]");
     ASSERT_STREQ(expectedCreateCommand.c_str(),
             CommandBuilder::buildCreateCommand(
                     relationName, rel, values).c_str());
@@ -89,7 +97,7 @@ TEST_F(CommandBuilderTest, testBuildCreateCommand)
 TEST_F(CommandBuilderTest, testBuildInsertCommand)
 {
     string expectedInsertCommand("query myRel inserttuple["
-            "\"val1\", 2] consume");
+            "\"val1\", 2, FALSE] consume");
     ASSERT_STREQ(expectedInsertCommand.c_str(),
             CommandBuilder::buildInsertCommand(
                     relationName, rel, values).c_str());

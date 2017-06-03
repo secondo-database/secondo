@@ -45,6 +45,8 @@ string CommandBuilder::getTypeName(AttributeType type)
         return string("string");
     case INT:
         return string("int");
+    case BOOL:
+        return string("bool");
     default:
         return string("ERROR");
     }
@@ -84,7 +86,7 @@ string CommandBuilder::buildCreateCommand(
         }
         if(i != rel.size() - 1)
         {
-            createCommand << ", ";
+            createCommand << " ";
         }
     }
     createCommand << "))]";

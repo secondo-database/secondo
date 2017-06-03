@@ -38,7 +38,8 @@ namespace DBService
 enum AttributeType
 {
     STRING = 1,
-    INT = 2
+    INT = 2,
+    BOOL = 3
 };
 
 struct AttributeInfo

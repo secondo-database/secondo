@@ -335,6 +335,7 @@ RelationDefinition DBServicePersistenceAccessor::mapping =
 {
     { AttributeType::STRING, "RelationID" },
     { AttributeType::STRING, "ConnectionID" },
+    { AttributeType::BOOL, "Replicated" },
 };
 
 } /* namespace DBService */
