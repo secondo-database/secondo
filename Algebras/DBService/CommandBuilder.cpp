@@ -149,5 +149,24 @@ string CommandBuilder::buildUpdateCommand(
     return updateCommand.str();
 }
 
+string CommandBuilder::buildDeleteCommand(
+        const string& relationName,
+        const vector<AttributeInfoWithValue>& filterConditions)
+{
+    stringstream deleteCommand;
+    deleteCommand << "query " << relationName << " feed ";
+    for(auto condition : filterConditions)
+    {
+        deleteCommand << "filter[." << condition.attributeInfo.name << " = ";
+        addAttributeValue(
+                deleteCommand,
+                condition.attributeInfo,
+                condition.value);
+        deleteCommand << "] ";
+    }
+    deleteCommand << relationName << " deletedirect consume";
+    return deleteCommand.str();
+}
+
 
 } /* namespace DBService */

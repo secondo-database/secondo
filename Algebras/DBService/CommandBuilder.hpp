@@ -73,6 +73,9 @@ public:
             const std::string& relationName,
             const std::vector<AttributeInfoWithValue>& filterConditions,
             const AttributeInfoWithValue& valueToUpdate);
+    static std::string buildDeleteCommand(
+            const std::string& relationName,
+            const std::vector<AttributeInfoWithValue>& filterConditions);
 protected:
     static void addAttributeValue(
             std::stringstream& stream,

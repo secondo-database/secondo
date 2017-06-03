@@ -168,6 +168,22 @@ TEST_F(CommandBuilderTest, testBuildUpdateCommand)
                     relationName, filterConditions, valueToUpdate).c_str());
 }
 
+TEST_F(CommandBuilderTest, testBuildDeleteCommand)
+{
+    string expectedDeleteCommand("query myRel feed filter[.Col1 = \"val1\"]"
+            " filter[.Col2 = 2] filter[.Col3 = FALSE]"
+            " myRel deletedirect consume");
+    FilterConditions filterConditions =
+    {
+        { {AttributeType::STRING, string("Col1") }, "val1" },
+        { {AttributeType::INT, string("Col2") }, "2" },
+        { {AttributeType::BOOL, string("Col3") }, "FALSE" }
+    };
+    ASSERT_STREQ(expectedDeleteCommand.c_str(),
+                CommandBuilder::buildDeleteCommand(
+                        relationName, filterConditions).c_str());
+}
+
 }/* namespace Test */
 
 }/* namespace DBService */
