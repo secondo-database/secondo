@@ -47,7 +47,7 @@ ReplicationServer::ReplicationServer(int port) :
  MultiClientServer(port), FileTransferServer(port)
 {
     string context("ReplicationServer");
-    traceWriter= auto_ptr<TraceWriter>
+    traceWriter= unique_ptr<TraceWriter>
     (new TraceWriter(context));
     traceWriter->writeFunction("ReplicationServer::ReplicationServer");
     traceWriter->write("port", port);

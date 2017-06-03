@@ -47,7 +47,7 @@ CommunicationClient::CommunicationClient(
 :Client(server, port, socket)
 {
     string context("CommunicationClient");
-    traceWriter= auto_ptr<TraceWriter>
+    traceWriter= unique_ptr<TraceWriter>
     (new TraceWriter(context));
 
     traceWriter->writeFunction("CommunicationClient::CommunicationClient");

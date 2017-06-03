@@ -63,7 +63,7 @@ public:
 protected:
     void getLocationParameter(std::string& location, const char* key);
 private:
-    std::auto_ptr<TraceWriter> traceWriter;
+    std::unique_ptr<TraceWriter> traceWriter;
 };
 
 } /* namespace DBService */

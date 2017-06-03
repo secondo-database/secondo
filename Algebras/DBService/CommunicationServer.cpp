@@ -45,7 +45,7 @@ CommunicationServer::CommunicationServer(int port) :
         MultiClientServer(port)
 {
     string context("CommunicationServer");
-    traceWriter= auto_ptr<TraceWriter>
+    traceWriter= unique_ptr<TraceWriter>
     (new TraceWriter(context));
 
     traceWriter->writeFunction("CommunicationServer::CommunicationServer");

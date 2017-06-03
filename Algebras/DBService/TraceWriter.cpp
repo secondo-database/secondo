@@ -61,7 +61,7 @@ TraceWriter::TraceWriter(string& context)
              << port << "_"
              << currentTime << ".trc";
 
-    traceFile= auto_ptr<ofstream>
+    traceFile= unique_ptr<ofstream>
     (new ofstream(fileName.str().c_str(),std::ios::binary));
 }
 

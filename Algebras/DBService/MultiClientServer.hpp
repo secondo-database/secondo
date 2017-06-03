@@ -54,7 +54,7 @@ public:
 protected:
     virtual int communicate(std::iostream& io) = 0;
     bool handleCommunicationThread();
-    std::auto_ptr<TraceWriter> traceWriter;
+    std::unique_ptr<TraceWriter> traceWriter;
 private:
     std::queue<Socket*> socketBuffer;
     boost::mutex queueGuard;

@@ -52,7 +52,7 @@ public:
     void writeFunction(const char* text);
 private:
     std::string fileName;
-    std::auto_ptr<std::ofstream> traceFile;
+    std::unique_ptr<std::ofstream> traceFile;
 };
 
 } /* namespace DBService */

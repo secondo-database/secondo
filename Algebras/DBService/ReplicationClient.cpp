@@ -57,7 +57,7 @@ ReplicationClient::ReplicationClient(
   relationName(relationName)
 {
     string context("ReplicationClient");
-    traceWriter= auto_ptr<TraceWriter>
+    traceWriter= unique_ptr<TraceWriter>
     (new TraceWriter(context));
 
     traceWriter->writeFunction("ReplicationClient::ReplicationClient");
