@@ -98,6 +98,10 @@ storing relation replicas.
                              std::vector<std::pair<ConnectionID, bool> >& ids);
     void deleteReplicaLocations(const std::string& databaseName,
                                 const std::string& relationName);
+    void maintainSuccessfulReplication(
+            const std::string& relID,
+            const std::string& replicaLocationHost,
+            const std::string& replicaLocationPort);
 
 protected:
 /*

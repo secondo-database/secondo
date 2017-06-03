@@ -52,6 +52,7 @@ public:
     static std::string SendReplicaForUsage();
     static std::string FunctionRequest();
     static std::string None();
+    static std::string ReplicationSuccessful();
 };
 
 } /* namespace DBService */

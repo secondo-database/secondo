@@ -309,6 +309,31 @@ RelationInfo& DBServiceManager::getRelationInfo(const string& relationAsString)
     return relations.at(relationAsString);
 }
 
+void DBServiceManager::maintainSuccessfulReplication(
+        const string& relID,
+        const string& replicaLocationHost,
+        const string& replicaLocationPort)
+{
+    RelationInfo& relInfo = getRelationInfo(relID);
+    // TODO catch out_of_range exception
+
+    for(map<ConnectionID, bool>::const_iterator it
+            = relInfo.nodesBegin(); it != relInfo.nodesEnd(); it++)
+    {
+        LocationInfo& location = getLocation(it->first);
+        if(location.isEqual(replicaLocationHost, replicaLocationPort))
+        {
+            relInfo.updateReplicationStatus(it->first, true);
+            DBServicePersistenceAccessor::updateLocationMapping(
+                    relID,
+                    it->first,
+                    true);
+            // TODO check return values
+            break;
+        }
+    }
+}
+
 DBServiceManager* DBServiceManager::_instance = NULL;
 
 } /* namespace DBService */

@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "Google/googletest/include/gtest/gtest.h"
 
-#include "LocationInfo.hpp"
+#include "LocationInfo.hpp" // TODO
 
 #include <queue>
 
@@ -45,8 +45,27 @@ class LocationInfoTest: public ::testing::Test
 public:
     LocationInfoTest()
 : host("myHost"), port("12345"), config("myConfig"), disk("myDisk"),
-  commPort("98765"), transferPort("65432")
+  commPort("98765"), transferPort("65432"), locationInfo(0)
 {}
+
+void SetUp()
+{
+    locationInfo = new LocationInfo(host,
+                                    port,
+                                    config,
+                                    disk,
+                                    commPort,
+                                    transferPort);
+}
+
+void TearDown()
+{
+    if(locationInfo)
+    {
+        delete locationInfo;
+        locationInfo = 0;
+    }
+}
 
 protected:
     string host;
@@ -55,72 +74,47 @@ protected:
     string disk;
     string commPort;
     string transferPort;
+    LocationInfo* locationInfo;
 };
 
 TEST_F(LocationInfoTest, testGetHost)
 {
-    LocationInfo locationInfo(host,
-                              port,
-                              config,
-                              disk,
-                              commPort,
-                              transferPort);
-    ASSERT_STREQ(host.c_str(), locationInfo.getHost().c_str());
+    ASSERT_STREQ(host.c_str(), locationInfo->getHost().c_str());
 }
 
 TEST_F(LocationInfoTest, testGetPort)
 {
-    LocationInfo locationInfo(host,
-                              port,
-                              config,
-                              disk,
-                              commPort,
-                              transferPort);
-    ASSERT_STREQ(port.c_str(), locationInfo.getPort().c_str());
+    ASSERT_STREQ(port.c_str(), locationInfo->getPort().c_str());
 }
 
 TEST_F(LocationInfoTest, testGetConfig)
 {
-    LocationInfo locationInfo(host,
-                              port,
-                              config,
-                              disk,
-                              commPort,
-                              transferPort);
-    ASSERT_STREQ(config.c_str(), locationInfo.getConfig().c_str());
+    ASSERT_STREQ(config.c_str(), locationInfo->getConfig().c_str());
 }
 
 TEST_F(LocationInfoTest, testGetDisk)
 {
-    LocationInfo locationInfo(host,
-                              port,
-                              config,
-                              disk,
-                              commPort,
-                              transferPort);
-    ASSERT_STREQ(disk.c_str(), locationInfo.getDisk().c_str());
+    ASSERT_STREQ(disk.c_str(), locationInfo->getDisk().c_str());
 }
 
 TEST_F(LocationInfoTest, testGetCommPort)
 {
-    LocationInfo locationInfo(host,
-                              port,
-                              config,
-                              disk,
-                              commPort,
-                              transferPort);
-    ASSERT_STREQ(commPort.c_str(), locationInfo.getCommPort().c_str());
+    ASSERT_STREQ(commPort.c_str(), locationInfo->getCommPort().c_str());
 }
 
 TEST_F(LocationInfoTest, testGetTransferPort)
 {
-    LocationInfo locationInfo(host,
-                              port,
-                              config,
-                              disk,
-                              commPort,
-                              transferPort);
-    ASSERT_STREQ(transferPort.c_str(), locationInfo.getTransferPort().c_str());
+    ASSERT_STREQ(transferPort.c_str(), locationInfo->getTransferPort().c_str());
+}
+
+TEST_F(LocationInfoTest, testEqual)
+{
+    ASSERT_TRUE(locationInfo->isEqual(host, port));
+}
+
+TEST_F(LocationInfoTest, testNotEqual)
+{
+    ASSERT_FALSE(locationInfo->isEqual(string("blaHost"), string("blaPort")));
 }
 
 }

@@ -104,6 +104,10 @@ int CommunicationServer::communicate(iostream& io)
                 CommunicationProtocol::ReplicaLocationRequest())
         {
             handleProvideReplicaLocationRequest(io);
+        }else if(request ==
+                CommunicationProtocol::ReplicationSuccessful())
+        {
+            reportSuccessfulReplication(io);
         }else
         {
             traceWriter->write("Protocol error: invalid request: ", request);
@@ -265,6 +269,31 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
     sendBuffer.push(location.getTransferPort());
     CommunicationUtils::sendBatch(io, sendBuffer);
 
+    return true;
+}
+
+bool CommunicationServer::reportSuccessfulReplication(iostream& io)
+{
+    traceWriter->writeFunction(
+            "CommunicationServer::reportSuccessfulReplication");
+
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::RelationRequest());
+
+    string relID;
+    CommunicationUtils::receiveLine(io, relID);
+
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::LocationRequest());
+
+    queue<string> receivedLines;
+    CommunicationUtils::receiveLines(io, 2, receivedLines);
+    string host = receivedLines.front();
+    receivedLines.pop();
+    string port = receivedLines.front();
+    receivedLines.pop();
+    DBServiceManager::getInstance()->maintainSuccessfulReplication(
+            relID, host, port);
     return true;
 }
 

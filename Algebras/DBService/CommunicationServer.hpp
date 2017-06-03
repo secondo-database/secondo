@@ -44,6 +44,7 @@ protected:
     bool handleTriggerReplicationRequest(std::iostream& io);
     bool handleTriggerFileTransferRequest(std::iostream& io);
     bool handleProvideReplicaLocationRequest(std::iostream& io);
+    bool reportSuccessfulReplication(std::iostream& io);
 private:
     void lookupMinimumReplicaCount();
     int minimumReplicaCount;

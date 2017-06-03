@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_RELATIONINFO_HPP_
 #define ALGEBRAS_DBSERVICE_RELATIONINFO_HPP_
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -53,21 +54,20 @@ public:
     const std::string& getRelationName() const;
     void addNode(ConnectionID id);
     void addNodes(std::vector<ConnectionID>& nodesToAdd);
-    const std::vector<std::pair<ConnectionID, bool> >::const_iterator
-        nodesBegin() const;
-    const std::vector<std::pair<ConnectionID, bool> >::const_iterator
-        nodesEnd() const;
+    const std::map<ConnectionID, bool>::const_iterator nodesBegin() const;
+    const std::map<ConnectionID, bool>::const_iterator nodesEnd() const;
     const LocationInfo& getOriginalLocation() const;
     const std::string toString() const;
     static std::string getIdentifier(const std::string dbName,
                                      const std::string relName);
     const size_t getNodeCount();
     const ConnectionID getRandomReplicaLocation();
+    void updateReplicationStatus(ConnectionID connID, bool replicated);
 
 private:
     const std::string& databaseName;
     const std::string relationName;
-    std::vector<std::pair<ConnectionID, bool> > nodes;
+    std::map<ConnectionID, bool> nodes;
     const LocationInfo originalLocation;
 
 };

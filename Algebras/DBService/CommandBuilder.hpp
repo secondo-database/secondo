@@ -71,7 +71,7 @@ public:
             const std::vector<std::string>& values);
     static std::string buildUpdateCommand(
             const std::string& relationName,
-            const std::vector<AttributeInfoWithValue>& filterConditions,
+            const FilterConditions& filterConditions,
             const AttributeInfoWithValue& valueToUpdate);
     static std::string buildDeleteCommand(
             const std::string& relationName,

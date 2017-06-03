@@ -125,7 +125,7 @@ string CommandBuilder::buildInsertCommand(const string& relationName,
 
 string CommandBuilder::buildUpdateCommand(
         const string& relationName,
-        const vector<AttributeInfoWithValue>& filterConditions,
+        const FilterConditions& filterConditions,
         const AttributeInfoWithValue& valueToUpdate)
 {
     stringstream updateCommand;

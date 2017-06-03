@@ -48,7 +48,7 @@ public:
   host("myHost"), port("12345"), disk("myDisk"),
   relationInfo(0)
 {}
-    virtual void SetUp()
+    void SetUp()
     {
         relationInfo = new RelationInfo(
                                     dbName,
@@ -58,7 +58,7 @@ public:
                                     disk);
     }
 
-    virtual void TearDown()
+    void TearDown()
     {
         if(relationInfo)
         {
@@ -110,7 +110,7 @@ TEST_F(RelationInfoTest, testAddNode)
     ConnectionID connID = 5;
     relationInfo->addNode(connID);
     ASSERT_EQ(1u, relationInfo->getNodeCount());
-    vector<pair<ConnectionID, bool> >::const_iterator it =
+    map<ConnectionID, bool>::const_iterator it =
             relationInfo->nodesBegin();
     ASSERT_EQ(connID, it->first);
     ASSERT_FALSE(it->second);
@@ -125,7 +125,7 @@ TEST_F(RelationInfoTest, testAddNodes)
     nodesToAdd.push_back(9);
     relationInfo->addNodes(nodesToAdd);
     ASSERT_EQ(2u, relationInfo->getNodeCount());
-    vector<pair<ConnectionID, bool> >::const_iterator it =
+    map<ConnectionID, bool>::const_iterator it =
             relationInfo->nodesBegin();
     ASSERT_EQ(3, it->first);
     ASSERT_FALSE(it->second);
@@ -147,6 +147,14 @@ TEST_F(RelationInfoTest, testGetIdentifier)
     string relName("myRel");
     ASSERT_STREQ("myDBxDBSxmyRel",
             RelationInfo::getIdentifier(dbName, relName).c_str());
+}
+
+TEST_F(RelationInfoTest, testUpdateReplicationStatus)
+{
+    relationInfo->addNode(1);
+    ASSERT_FALSE(relationInfo->nodesBegin()->second);
+    relationInfo->updateReplicationStatus(1, true);
+    ASSERT_TRUE(relationInfo->nodesBegin()->second);
 }
 
 }

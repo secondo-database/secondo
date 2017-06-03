@@ -60,6 +60,9 @@ public:
             const std::string& transferServerPort,
             const std::string& databaseName,
             const std::string& relationName);
+    bool reportSuccessfulReplication(
+            const std::string& databaseName,
+            const std::string& relationName);
 protected:
     void getLocationParameter(std::string& location, const char* key);
 private:

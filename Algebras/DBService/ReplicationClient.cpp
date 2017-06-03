@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SocketIO.h"
 #include "StringUtils.h"
 
+#include "Algebras/DBService/CommunicationClient.hpp"
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
 #include "Algebras/DBService/ReplicationClient.hpp"
@@ -164,6 +165,7 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
 
 void ReplicationClient::receiveFileFromServer()
 {
+    traceWriter->writeFunction("ReplicationClient::receiveFileFromServer");
     int rc = receiveFile();
     if(rc != 0)
     {
@@ -173,6 +175,41 @@ void ReplicationClient::receiveFileFromServer()
     {
         traceWriter->write("received file");
     }
+}
+
+void ReplicationClient::reportSuccessfulReplication()
+{
+    traceWriter->writeFunction(
+            "ReplicationClient::reportSuccessfulReplication");
+    string dbServiceHost;
+    SecondoUtilsLocal::readFromConfigFile(dbServiceHost,
+                                           "DBService",
+                                           "DBServiceHost",
+                                           "");
+    if(dbServiceHost.length() == 0)
+    {
+        traceWriter->write("could not find DBServiceHost in config file");
+        throw new SecondoException("DBServiceHost not configured");
+    }
+
+    string dbServicePort;
+    SecondoUtilsLocal::readFromConfigFile(dbServicePort,
+                                       "DBService",
+                                       "DBServicePort",
+                                       "");
+    if(dbServicePort.length() == 0)
+    {
+        traceWriter->write("could not find DBServicePort in config file");
+        throw new SecondoException("DBServicePort not configured");
+    }
+    CommunicationClient clientToDBServiceMaster(
+            dbServiceHost,
+            atoi(dbServicePort.c_str()),
+            0);
+    clientToDBServiceMaster.start(); // TODO check return value
+    clientToDBServiceMaster.reportSuccessfulReplication(
+            databaseName,
+            relationName);
 }
 
 } /* namespace DBService */

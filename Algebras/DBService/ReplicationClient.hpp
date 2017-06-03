@@ -52,6 +52,7 @@ public:
     int requestReplica(
             const std::string& functionAsNestedListString,
             std::string& fileName);
+    void reportSuccessfulReplication();
 private:
     void receiveFileFromServer();
     const std::string fileNameDBS;

@@ -68,9 +68,15 @@ const string& LocationInfo::getCommPort() const
 {
     return commPort;
 }
+
 const string& LocationInfo::getTransferPort() const
 {
     return transferPort;
+}
+
+bool LocationInfo::isEqual(const string& cmpHost, const string& cmpPort) const
+{
+    return (host == cmpHost) && (port == cmpPort);
 }
 
 } /* namespace DBService */

@@ -145,13 +145,13 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
 
 bool DBServicePersistenceAccessor::persistLocationMapping(
         std::string relationID,
-        vector<pair<ConnectionID, bool> >::const_iterator nodesBegin,
-        vector<pair<ConnectionID, bool> >::const_iterator nodesEnd)
+        map<ConnectionID, bool>::const_iterator nodesBegin,
+        map<ConnectionID, bool>::const_iterator nodesEnd)
 {
     printFunction("DBServicePersistenceAccessor::persistLocationMapping");
 
     bool resultOk = true;
-    for(vector<pair<ConnectionID, bool> >::const_iterator it = nodesBegin;
+    for(map<ConnectionID, bool>::const_iterator it = nodesBegin;
             it != nodesEnd; it++)
     {
         string relationName("mapping_DBSP");
@@ -159,7 +159,8 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
         vector<string> values =
         {
             { relationID },
-            { stringutils::int2str((*it).first) },
+            { stringutils::int2str(it->first) },
+            { it->second ? string("TRUE") : string("FALSE") },
         };
 
         resultOk = resultOk &&
@@ -308,6 +309,30 @@ bool DBServicePersistenceAccessor::restoreLocationMapping(
             print(errorMessage);
         }
         return resultOk;
+}
+
+bool DBServicePersistenceAccessor::updateLocationMapping(
+        std::string relationID,
+        ConnectionID connID,
+        bool replicated)
+{
+    printFunction("DBServicePersistenceAccessor::updateLocationMapping");
+
+    FilterConditions filterConditions =
+    {
+        { {AttributeType::STRING, string("RelationID") }, relationID },
+        { {AttributeType::INT, string("ConnectionID") },
+                stringutils::int2str(connID) }
+    };
+    AttributeInfoWithValue valueToUpdate =
+    { {AttributeType::BOOL, string("Replicated") },
+            replicated ? string("TRUE") : string("FALSE") };
+
+    return SecondoUtilsLocal::excuteQueryCommand(
+            CommandBuilder::buildUpdateCommand(
+                    relationID,
+                    filterConditions,
+                    valueToUpdate));
 }
 
 RelationDefinition DBServicePersistenceAccessor::locations =

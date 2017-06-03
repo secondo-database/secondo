@@ -224,4 +224,49 @@ bool CommunicationClient::getReplicaLocation(const string databaseName,
     return false;
 }
 
+bool CommunicationClient::reportSuccessfulReplication(
+        const string& databaseName,
+        const string& relationName)
+{
+    traceWriter->writeFunction(
+            "CommunicationClient::reportSuccessfulReplication");
+    iostream& io = socket->GetSocketStream();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::CommunicationServer()))
+    {
+        traceWriter->write("Not connected to CommunicationServer");
+        return false;
+    }
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::ReplicationSuccessful());
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::RelationRequest()))
+    {
+        traceWriter->write("Expected RelationRequest");
+        return false;
+    }
+
+    CommunicationUtils::sendLine(io,
+            RelationInfo::getIdentifier(databaseName, relationName));
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::LocationRequest()))
+    {
+        traceWriter->write("Expected LocationRequest");
+        return false;
+    }
+
+    string replicaLocation;
+    getLocationParameter(replicaLocation, "SecondoHost");
+    sendBuffer.push(replicaLocation);
+    getLocationParameter(replicaLocation, "SecondoPort");
+    sendBuffer.push(replicaLocation);
+    CommunicationUtils::sendBatch(io, sendBuffer);
+    return true;
+}
+
 } /* namespace DBService */

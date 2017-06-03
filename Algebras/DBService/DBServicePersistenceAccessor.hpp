@@ -55,13 +55,15 @@ public:
             std::map<std::string, RelationInfo>& relations);
     static bool restoreLocationMapping(
             std::queue<std::pair<std::string, ConnectionID> >& mapping);
+    static bool updateLocationMapping(
+            std::string relationID,
+            ConnectionID connID,
+            bool replicated);
 private:
     static bool persistLocationMapping(
             std::string relationID,
-            std::vector<std::pair<ConnectionID, bool> >::const_iterator
-            nodesBegin,
-            std::vector<std::pair<ConnectionID, bool> >::const_iterator
-            nodesEnd);
+            std::map<ConnectionID, bool>::const_iterator nodesBegin,
+            std::map<ConnectionID, bool>::const_iterator nodesEnd);
     static bool createOrInsert(
             const std::string& relationName,
             const RelationDefinition& rel,

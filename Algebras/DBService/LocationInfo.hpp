@@ -47,6 +47,7 @@ public:
     const std::string& getDisk() const;
     const std::string& getCommPort() const;
     const std::string& getTransferPort() const;
+    bool isEqual(const std::string& cmpHost, const std::string& cmpPort) const;
 private:
     std::string host;
     std::string port;

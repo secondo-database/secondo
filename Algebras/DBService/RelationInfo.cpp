@@ -56,26 +56,24 @@ const string& RelationInfo::getRelationName() const
 
 void RelationInfo::addNode(ConnectionID id)
 {
-    nodes.push_back(pair<ConnectionID, bool>(id, false));
+    nodes.insert(pair<ConnectionID, bool>(id, false));
 }
 
-void RelationInfo::addNodes(std::vector<ConnectionID>& nodesToAdd)
+void RelationInfo::addNodes(vector<ConnectionID>& nodesToAdd)
 {
     for (std::vector<ConnectionID>::const_iterator i = nodesToAdd.begin();
             i != nodesToAdd.end(); ++i)
     {
-        nodes.push_back(pair<ConnectionID, bool>(*i, false));
+        nodes.insert(pair<ConnectionID, bool>(*i, false));
     }
 }
 
-const vector<pair<ConnectionID, bool> >::const_iterator
-RelationInfo::nodesBegin() const
+const map<ConnectionID, bool>::const_iterator RelationInfo::nodesBegin() const
 {
     return nodes.begin();
 }
 
-const vector<pair<ConnectionID, bool> >::const_iterator
-RelationInfo::nodesEnd() const
+const map<ConnectionID, bool>::const_iterator RelationInfo::nodesEnd() const
 {
     return nodes.end();
 }
@@ -103,8 +101,13 @@ return originalLocation;
 
 const ConnectionID RelationInfo::getRandomReplicaLocation()
 {
-    int offset = rand() % nodes.size();
-    return (*(nodes.begin() + offset)).first; // TODO if .second is true
+    // TODO
+    return nodes.begin()->first; // TODO what if .second is false
+}
+
+void RelationInfo::updateReplicationStatus(ConnectionID connID, bool replicated)
+{
+    nodes.find(connID)->second = replicated;
 }
 
 } /* namespace DBService */

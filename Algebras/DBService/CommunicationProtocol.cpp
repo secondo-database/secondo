@@ -116,4 +116,9 @@ string CommunicationProtocol::None()
     return "<NONE>";
 }
 
+string CommunicationProtocol::ReplicationSuccessful()
+{
+    return "<REPLICATIONSUCCESSFUL>";
+}
+
 } /* namespace DBService */
