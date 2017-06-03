@@ -95,7 +95,7 @@ storing relation replicas.
     void persistReplicaLocations(const std::string& databaseName,
             const std::string& relationName);
     void getReplicaLocations(const std::string& relationAsString,
-                             std::vector<ConnectionID>& ids);
+                             std::vector<std::pair<ConnectionID, bool> >& ids);
     void deleteReplicaLocations(const std::string& databaseName,
                                 const std::string& relationName);
 

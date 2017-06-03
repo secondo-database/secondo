@@ -110,8 +110,10 @@ TEST_F(RelationInfoTest, testAddNode)
     ConnectionID connID = 5;
     relationInfo->addNode(connID);
     ASSERT_EQ(1u, relationInfo->getNodeCount());
-    vector<ConnectionID>::const_iterator it = relationInfo->nodesBegin();
-    ASSERT_EQ(connID, *it);
+    vector<pair<ConnectionID, bool> >::const_iterator it =
+            relationInfo->nodesBegin();
+    ASSERT_EQ(connID, it->first);
+    ASSERT_FALSE(it->second);
     ASSERT_EQ(relationInfo->nodesEnd(), ++it);
 }
 
@@ -123,9 +125,12 @@ TEST_F(RelationInfoTest, testAddNodes)
     nodesToAdd.push_back(9);
     relationInfo->addNodes(nodesToAdd);
     ASSERT_EQ(2u, relationInfo->getNodeCount());
-    vector<ConnectionID>::const_iterator it = relationInfo->nodesBegin();
-    ASSERT_EQ(3, *it);
-    ASSERT_EQ(9, *(++it));
+    vector<pair<ConnectionID, bool> >::const_iterator it =
+            relationInfo->nodesBegin();
+    ASSERT_EQ(3, it->first);
+    ASSERT_FALSE(it->second);
+    ASSERT_EQ(9, (++it)->first);
+    ASSERT_FALSE(it->second);
     ASSERT_EQ(relationInfo->nodesEnd(), ++it);
 }
 

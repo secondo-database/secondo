@@ -53,8 +53,10 @@ public:
     const std::string& getRelationName() const;
     void addNode(ConnectionID id);
     void addNodes(std::vector<ConnectionID>& nodesToAdd);
-    const std::vector<ConnectionID>::const_iterator nodesBegin() const;
-    const std::vector<ConnectionID>::const_iterator nodesEnd() const;
+    const std::vector<std::pair<ConnectionID, bool> >::const_iterator
+        nodesBegin() const;
+    const std::vector<std::pair<ConnectionID, bool> >::const_iterator
+        nodesEnd() const;
     const LocationInfo& getOriginalLocation() const;
     const std::string toString() const;
     static std::string getIdentifier(const std::string dbName,
@@ -65,7 +67,7 @@ public:
 private:
     const std::string& databaseName;
     const std::string relationName;
-    std::vector<ConnectionID> nodes;
+    std::vector<std::pair<ConnectionID, bool> > nodes;
     const LocationInfo originalLocation;
 
 };

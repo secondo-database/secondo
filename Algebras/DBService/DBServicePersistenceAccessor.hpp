@@ -58,8 +58,10 @@ public:
 private:
     static bool persistLocationMapping(
             std::string relationID,
-            std::vector<ConnectionID>::const_iterator nodesBegin,
-            std::vector<ConnectionID>::const_iterator nodesEnd);
+            std::vector<std::pair<ConnectionID, bool> >::const_iterator
+            nodesBegin,
+            std::vector<std::pair<ConnectionID, bool> >::const_iterator
+            nodesEnd);
     static bool createOrInsert(
             const std::string& relationName,
             const RelationDefinition& rel,

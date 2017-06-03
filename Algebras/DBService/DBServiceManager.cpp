@@ -256,8 +256,9 @@ void DBServiceManager::persistReplicaLocations(const string& databaseName,
     DBServicePersistenceAccessor::persistRelationInfo(relationInfo);
 }
 
-void DBServiceManager::getReplicaLocations(const string& relationAsString,
-                                           vector<ConnectionID>& ids)
+void DBServiceManager::getReplicaLocations(
+        const string& relationAsString,
+        vector<pair<ConnectionID, bool> >& ids)
 {
     printFunction("DBServiceManager::getReplicaLocations");
     RelationInfo& relInfo = getRelationInfo(relationAsString);

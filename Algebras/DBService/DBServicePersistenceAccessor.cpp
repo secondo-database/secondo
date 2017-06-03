@@ -145,13 +145,13 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
 
 bool DBServicePersistenceAccessor::persistLocationMapping(
         std::string relationID,
-        vector<ConnectionID>::const_iterator nodesBegin,
-        vector<ConnectionID>::const_iterator nodesEnd)
+        vector<pair<ConnectionID, bool> >::const_iterator nodesBegin,
+        vector<pair<ConnectionID, bool> >::const_iterator nodesEnd)
 {
     printFunction("DBServicePersistenceAccessor::persistLocationMapping");
 
     bool resultOk = true;
-    for(vector<ConnectionID>::const_iterator it = nodesBegin;
+    for(vector<pair<ConnectionID, bool> >::const_iterator it = nodesBegin;
             it != nodesEnd; it++)
     {
         string relationName("mapping_DBSP");
@@ -159,7 +159,7 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
         vector<string> values =
         {
             { relationID },
-            { stringutils::int2str(*it) },
+            { stringutils::int2str((*it).first) },
         };
 
         resultOk = resultOk &&

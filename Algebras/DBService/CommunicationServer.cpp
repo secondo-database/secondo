@@ -160,7 +160,7 @@ bool CommunicationServer::handleTriggerReplicationRequest(
                                  host,
                                  port,
                                  disk);
-    vector<ConnectionID> locations;
+    vector<pair<ConnectionID, bool> > locations;
     dbService->getReplicaLocations(RelationInfo::getIdentifier(
             databaseName, relationName),
             locations);
@@ -177,10 +177,10 @@ bool CommunicationServer::handleTriggerReplicationRequest(
                 CommunicationProtocol::ReplicationTriggered());
     }
 
-    for(vector<ConnectionID>::const_iterator it = locations.begin();
-            it != locations.end(); it++)
+    for(vector<pair<ConnectionID, bool> >::const_iterator it
+            = locations.begin(); it != locations.end(); it++)
     {
-        LocationInfo locationInfo = dbService->getLocation(*it);
+        LocationInfo locationInfo = dbService->getLocation((*it).first);
         CommunicationClientRunnable clientToDBServiceWorker(
                 host, /*original location*/
                 atoi(transferPort.c_str()), /*original location*/
