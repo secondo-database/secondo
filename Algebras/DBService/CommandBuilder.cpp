@@ -52,6 +52,22 @@ string CommandBuilder::getTypeName(AttributeType type)
     }
 }
 
+void CommandBuilder::addAttributeValue(
+        stringstream& stream,
+        const AttributeInfo& info,
+        const string& value)
+{
+    if(info.type == STRING)
+    {
+        stream << "\"";
+    }
+    stream << value;
+    if(info.type == STRING)
+    {
+        stream << "\"";
+    }
+}
+
 string CommandBuilder::buildCreateCommand(
         const string& relationName,
         const RelationDefinition& rel,
@@ -75,15 +91,7 @@ string CommandBuilder::buildCreateCommand(
     createCommand << "])) value((";
     for(size_t i = 0; i < rel.size(); i++)
     {
-        if(rel[i].type == STRING)
-        {
-            createCommand << "\"";
-        }
-        createCommand << values[i];
-        if(rel[i].type == STRING)
-        {
-            createCommand << "\"";
-        }
+        addAttributeValue(createCommand, rel[i], values[i]);
         if(i != rel.size() - 1)
         {
             createCommand << " ";
@@ -105,15 +113,7 @@ string CommandBuilder::buildInsertCommand(const string& relationName,
     insertCommand << "query " << relationName << " inserttuple[";
     for(size_t i = 0; i < rel.size(); i++)
     {
-        if(rel[i].type == STRING)
-        {
-            insertCommand << "\"";
-        }
-        insertCommand << values[i];
-        if(rel[i].type == STRING)
-        {
-            insertCommand << "\"";
-        }
+        addAttributeValue(insertCommand, rel[i], values[i]);
         if(i != rel.size() - 1)
         {
             insertCommand << ", ";
@@ -122,5 +122,32 @@ string CommandBuilder::buildInsertCommand(const string& relationName,
     insertCommand << "] consume";
     return insertCommand.str();
 }
+
+string CommandBuilder::buildUpdateCommand(
+        const string& relationName,
+        const vector<AttributeInfoWithValue>& filterConditions,
+        const AttributeInfoWithValue& valueToUpdate)
+{
+    stringstream updateCommand;
+    updateCommand << "query " << relationName << " feed ";
+    for(auto condition : filterConditions)
+    {
+        updateCommand << "filter[." << condition.attributeInfo.name << " = ";
+        addAttributeValue(
+                updateCommand,
+                condition.attributeInfo,
+                condition.value);
+        updateCommand << "] ";
+    }
+    updateCommand << relationName << " updatedirect [";
+    updateCommand << valueToUpdate.attributeInfo.name << ": ";
+    addAttributeValue(
+            updateCommand,
+            valueToUpdate.attributeInfo,
+            valueToUpdate.value);
+    updateCommand << "] consume";
+    return updateCommand.str();
+}
+
 
 } /* namespace DBService */

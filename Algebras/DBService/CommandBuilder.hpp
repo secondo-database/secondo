@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_COMMANDBUILDER_HPP_
 #define ALGEBRAS_DBSERVICE_COMMANDBUILDER_HPP_
 
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -48,7 +49,14 @@ struct AttributeInfo
     std::string name;
 };
 
+struct AttributeInfoWithValue
+{
+    AttributeInfo attributeInfo;
+    std::string value;
+};
+
 typedef std::vector<AttributeInfo> RelationDefinition;
+typedef std::vector<AttributeInfoWithValue> FilterConditions;
 
 class CommandBuilder {
 public:
@@ -61,6 +69,15 @@ public:
             const std::string& relationName,
             const RelationDefinition& rel,
             const std::vector<std::string>& values);
+    static std::string buildUpdateCommand(
+            const std::string& relationName,
+            const std::vector<AttributeInfoWithValue>& filterConditions,
+            const AttributeInfoWithValue& valueToUpdate);
+protected:
+    static void addAttributeValue(
+            std::stringstream& stream,
+            const AttributeInfo& info,
+            const std::string& value);
 };
 
 } /* namespace DBService */
