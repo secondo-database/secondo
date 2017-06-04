@@ -58,6 +58,9 @@ public:
             const std::string& queryAsString,
             ListExpr& resultList,
             std::string& errorMessage);
+    static bool lookupDBServiceLocation(
+            std::string& host,
+            std::string commPort);
 };
 
 } /* namespace DBService */

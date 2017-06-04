@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#include "CommunicationClientRunnable.hpp"
+#include "TriggerReplicaDeletionRunnable.hpp"
 
 #include "StringUtils.h"
 
@@ -37,63 +37,51 @@ using namespace std;
 
 namespace DBService {
 
-CommunicationClientRunnable::CommunicationClientRunnable(
-                               string sourceSystemHost,
-                               int sourceSystemTransferPort,
+TriggerReplicaDeletionRunnable::TriggerReplicaDeletionRunnable(
                                string dbServiceWorkerHost,
                                int dbServiceWorkerCommPort,
-                               std::string databaseName,
-                               std::string relationName)
+                               std::string relID)
 :runner(0),
- sourceSystemHost(sourceSystemHost),
- sourceSystemTransferPort(sourceSystemTransferPort),
  dbServiceWorkerHost(dbServiceWorkerHost),
  dbServiceWorkerCommPort(dbServiceWorkerCommPort),
- databaseName(databaseName), relationName(relationName)
+ relID(relID)
 {
-    printFunction("CommunicationClientRunnable::CommunicationClientRunnable");
+    printFunction(
+            "TriggerReplicaDeletionRunnable::TriggerReplicaDeletionRunnable");
 }
 
-CommunicationClientRunnable::~CommunicationClientRunnable()
+TriggerReplicaDeletionRunnable::~TriggerReplicaDeletionRunnable()
 {
-    printFunction("CommunicationClientRunnable::~CommunicationClientRunnable");
+    printFunction(
+            "TriggerReplicaDeletionRunnable::~TriggerReplicaDeletionRunnable");
 }
 
-void CommunicationClientRunnable::run()
+void TriggerReplicaDeletionRunnable::run()
 {
-    printFunction("CommunicationClientRunnable::run");
+    printFunction("TriggerReplicaDeletionRunnable::run");
     if(runner){
         runner->join();
         delete runner;
     }
     runner = new boost::thread(boost::bind(
-            &CommunicationClientRunnable::createClient,
+            &TriggerReplicaDeletionRunnable::createClient,
             this,
-            sourceSystemHost,
-            sourceSystemTransferPort,
             dbServiceWorkerHost,
             dbServiceWorkerCommPort,
-            databaseName,
-            relationName));
+            relID));
 }
-void CommunicationClientRunnable::createClient(
-        string sourceSystemHost,
-        int sourceSystemTransferPort,
+void TriggerReplicaDeletionRunnable::createClient(
         string dbServiceWorkerHost,
         int dbServiceWorkerCommPort,
-        std::string databaseName,
-        std::string relationName)
+        std::string relID)
 {
-    printFunction("CommunicationClientRunnable::createClient");
+    printFunction("TriggerReplicaDeletionRunnable::createClient");
     CommunicationClient client(dbServiceWorkerHost, dbServiceWorkerCommPort, 0);
     if(client.start() != 0)
     {
         return;
     }
-    client.triggerFileTransfer(sourceSystemHost,
-                               stringutils::int2str(sourceSystemTransferPort),
-                               databaseName,
-                               relationName);
+    client.triggerReplicaDeletion(relID);
 }
 
 } /* namespace DBService */

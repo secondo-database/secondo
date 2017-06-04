@@ -49,32 +49,13 @@ DBServiceConnector::DBServiceConnector()
 {
     printFunction("DBServiceConnector::DBServiceConnector");
 
-    lookupDBServiceLocation();
+    if(!SecondoUtilsLocal::lookupDBServiceLocation(
+            dbServiceHost,
+            dbServicePort))
+    {
+        throw new SecondoException("Unable to connect to DBService");
+    }
     startReplicationServer();
-}
-
-void DBServiceConnector::lookupDBServiceLocation()
-{
-    printFunction("DBServiceConnector::lookupDBServiceLocation");
-    SecondoUtilsLocal::readFromConfigFile(dbServiceHost,
-                                           "DBService",
-                                           "DBServiceHost",
-                                           "");
-    if(dbServiceHost.length() == 0)
-    {
-        print("could not find DBServiceHost in config file");
-        throw new SecondoException("DBServiceHost not configured");
-    }
-
-    SecondoUtilsLocal::readFromConfigFile(dbServicePort,
-                                       "DBService",
-                                       "DBServicePort",
-                                       "");
-    if(dbServicePort.length() == 0)
-    {
-        print("could not find DBServicePort in config file");
-        throw new SecondoException("DBServicePort not configured");
-    }
 }
 
 void DBServiceConnector::startReplicationServer()
@@ -156,6 +137,18 @@ string DBServiceConnector::retrieveReplicaAndGetFileName(
             functionAsNestedListString,
             fileName);
     return fileName;
+}
+
+void DBServiceConnector::deleteReplicas(const string& databaseName,
+                                        const string& relationName)
+{
+    CommunicationClient dbServiceMasterClient(dbServiceHost,
+                                              atoi(dbServicePort.c_str()),
+                                              0);
+    dbServiceMasterClient.start();
+    dbServiceMasterClient.requestReplicaDeletion(
+            databaseName,
+            relationName);
 }
 
 DBServiceConnector* DBServiceConnector::_instance = NULL;

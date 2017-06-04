@@ -334,6 +334,12 @@ void DBServiceManager::maintainSuccessfulReplication(
     }
 }
 
+void DBServiceManager::deleteReplicaMetadata(const string& relID)
+{
+    DBServicePersistenceAccessor::deleteRelationInfo(getRelationInfo(relID));
+    relations.erase(relID);
+}
+
 DBServiceManager* DBServiceManager::_instance = NULL;
 
 } /* namespace DBService */

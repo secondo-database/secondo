@@ -59,6 +59,7 @@ public:
             std::string relationID,
             ConnectionID connID,
             bool replicated);
+    static bool deleteRelationInfo(RelationInfo& relationInfo);
 private:
     static bool persistLocationMapping(
             std::string relationID,
@@ -68,6 +69,9 @@ private:
             const std::string& relationName,
             const RelationDefinition& rel,
             const std::vector<std::string>& values);
+    static bool deleteLocationMapping(std::string relationID,
+            std::map<ConnectionID, bool>::const_iterator nodesBegin,
+            std::map<ConnectionID, bool>::const_iterator nodesEnd);
     static RelationDefinition locations;
     static RelationDefinition relations;
     static RelationDefinition mapping;

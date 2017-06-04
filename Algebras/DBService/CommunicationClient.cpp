@@ -269,4 +269,52 @@ bool CommunicationClient::reportSuccessfulReplication(
     return true;
 }
 
+
+bool CommunicationClient::requestReplicaDeletion(
+        const string& databaseName,
+        const string& relationName)
+{
+    traceWriter->writeFunction("CommunicationClient::requestReplicaDeletion");
+    traceWriter->write("databaseName: ", databaseName);
+    traceWriter->write("relationName: ", relationName);
+
+    iostream& io = socket->GetSocketStream();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::CommunicationServer()))
+    {
+        traceWriter->write("Not connected to CommunicationServer");
+        return false;
+    }
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::DeleteReplicaRequest());
+    sendBuffer.push(RelationInfo::getIdentifier(databaseName, relationName));
+    CommunicationUtils::sendBatch(io, sendBuffer);
+    return true;
+}
+
+bool CommunicationClient::triggerReplicaDeletion(
+        const std::string& relID)
+{
+    traceWriter->writeFunction("CommunicationClient::triggerReplicaDeletion");
+    traceWriter->write("relID: ", relID);
+
+    iostream& io = socket->GetSocketStream();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::CommunicationServer()))
+    {
+        traceWriter->write("Not connected to CommunicationServer");
+        return false;
+    }
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::TriggerReplicaDeletion());
+    sendBuffer.push(relID);
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    return true;
+}
+
 } /* namespace DBService */

@@ -53,6 +53,8 @@ public:
     static std::string FunctionRequest();
     static std::string None();
     static std::string ReplicationSuccessful();
+    static std::string DeleteReplicaRequest();
+    static std::string TriggerReplicaDeletion();
 };
 
 } /* namespace DBService */

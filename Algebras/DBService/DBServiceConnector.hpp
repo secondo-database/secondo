@@ -71,6 +71,10 @@ Returns the DBServiceConnector instance (singleton).
             const std::string&
             functionAsNestedListString);
 
+    void deleteReplicas(
+            const std::string& databaseName,
+            const std::string& relationName);
+
 protected:
 /*
 1.2 Constructor
@@ -89,7 +93,6 @@ Deletes existing DBServiceConnector instance.
     ~DBServiceConnector();
 
 private:
-    void lookupDBServiceLocation();
     void startReplicationServer();
 
     std::string dbServiceHost;

@@ -121,4 +121,14 @@ string CommunicationProtocol::ReplicationSuccessful()
     return "<REPLICATIONSUCCESSFUL>";
 }
 
+string CommunicationProtocol::DeleteReplicaRequest()
+{
+    return "<DELETEREPLICAREQUEST>";
+}
+
+string CommunicationProtocol::TriggerReplicaDeletion()
+{
+    return "<TRIGGERREPLICADELETION>";
+}
+
 } /* namespace DBService */

@@ -26,15 +26,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
+
+#include "FileSystem.h"
 #include "StringUtils.h"
 
-#include "Algebras/DBService/CommunicationClientRunnable.hpp"
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationServer.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
 #include "Algebras/DBService/DBServiceManager.hpp"
 #include "Algebras/DBService/ReplicationClientRunnable.hpp"
+#include "Algebras/DBService/ReplicationUtils.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService/TriggerFileTransferRunnable.hpp"
+#include "Algebras/DBService/TriggerReplicaDeletionRunnable.hpp"
 
 using namespace distributed2;
 using namespace std;
@@ -108,6 +112,14 @@ int CommunicationServer::communicate(iostream& io)
                 CommunicationProtocol::ReplicationSuccessful())
         {
             reportSuccessfulReplication(io);
+        }else if(request ==
+                CommunicationProtocol::DeleteReplicaRequest())
+        {
+            handleRequestReplicaDeletion(io);
+        }else if(request ==
+                CommunicationProtocol::TriggerReplicaDeletion())
+        {
+            handleTriggerReplicaDeletion(io);
         }else
         {
             traceWriter->write("Protocol error: invalid request: ", request);
@@ -129,13 +141,13 @@ bool CommunicationServer::handleTriggerReplicationRequest(
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::RelationRequest());
 
-    queue<string> receivedLines;
-    CommunicationUtils::receiveLines(io, 2, receivedLines);
+    queue<string> receiveBuffer;
+    CommunicationUtils::receiveLines(io, 2, receiveBuffer);
 
-    string databaseName = receivedLines.front();
-    receivedLines.pop();
-    string relationName = receivedLines.front();
-    receivedLines.pop();
+    string databaseName = receiveBuffer.front();
+    receiveBuffer.pop();
+    string relationName = receiveBuffer.front();
+    receiveBuffer.pop();
 
     traceWriter->write("databaseName", databaseName);
     traceWriter->write("relationName", relationName);
@@ -143,15 +155,15 @@ bool CommunicationServer::handleTriggerReplicationRequest(
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
 
-    CommunicationUtils::receiveLines(io, 4, receivedLines);
-    string host = receivedLines.front();
-    receivedLines.pop();
-    string port = receivedLines.front();
-    receivedLines.pop();
-    string disk = receivedLines.front();
-    receivedLines.pop();
-    string transferPort = receivedLines.front();
-    receivedLines.pop();
+    CommunicationUtils::receiveLines(io, 4, receiveBuffer);
+    string host = receiveBuffer.front();
+    receiveBuffer.pop();
+    string port = receiveBuffer.front();
+    receiveBuffer.pop();
+    string disk = receiveBuffer.front();
+    receiveBuffer.pop();
+    string transferPort = receiveBuffer.front();
+    receiveBuffer.pop();
 
     traceWriter->write("host", host);
     traceWriter->write("port", port);
@@ -185,7 +197,7 @@ bool CommunicationServer::handleTriggerReplicationRequest(
             = locations.begin(); it != locations.end(); it++)
     {
         LocationInfo locationInfo = dbService->getLocation((*it).first);
-        CommunicationClientRunnable clientToDBServiceWorker(
+        TriggerFileTransferRunnable clientToDBServiceWorker(
                 host, /*original location*/
                 atoi(transferPort.c_str()), /*original location*/
                 locationInfo.getHost(), /*DBService*/
@@ -206,18 +218,18 @@ bool CommunicationServer::handleTriggerFileTransferRequest(std::iostream& io)
             CommunicationProtocol::ReplicationDetailsRequest());
     traceWriter->write("sent ReplicationDetailsRequest");
 
-    queue<string> receivedLines;
-    CommunicationUtils::receiveLines(io, 5, receivedLines);
-    string host = receivedLines.front();
-    receivedLines.pop();
-    string port = receivedLines.front();
-    receivedLines.pop();
-    string fileName = receivedLines.front();
-    receivedLines.pop();
-    string databaseName = receivedLines.front();
-    receivedLines.pop();
-    string relationName = receivedLines.front();
-    receivedLines.pop();
+    queue<string> receiveBuffer;
+    CommunicationUtils::receiveLines(io, 5, receiveBuffer);
+    string host = receiveBuffer.front();
+    receiveBuffer.pop();
+    string port = receiveBuffer.front();
+    receiveBuffer.pop();
+    string fileName = receiveBuffer.front();
+    receiveBuffer.pop();
+    string databaseName = receiveBuffer.front();
+    receiveBuffer.pop();
+    string relationName = receiveBuffer.front();
+    receiveBuffer.pop();
     traceWriter->write("received replication details");
     traceWriter->write("host", host);
     traceWriter->write("port", port);
@@ -244,13 +256,13 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::RelationRequest());
 
-    queue<string> receivedLines;
-    CommunicationUtils::receiveLines(io, 2, receivedLines);
+    queue<string> receiveBuffer;
+    CommunicationUtils::receiveLines(io, 2, receiveBuffer);
 
-    string databaseName = receivedLines.front();
-    receivedLines.pop();
-    string relationName = receivedLines.front();
-    receivedLines.pop();
+    string databaseName = receiveBuffer.front();
+    receiveBuffer.pop();
+    string relationName = receiveBuffer.front();
+    receiveBuffer.pop();
 
     traceWriter->write("databaseName", databaseName);
     traceWriter->write("relationName", relationName);
@@ -286,16 +298,66 @@ bool CommunicationServer::reportSuccessfulReplication(iostream& io)
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
 
-    queue<string> receivedLines;
-    CommunicationUtils::receiveLines(io, 2, receivedLines);
-    string host = receivedLines.front();
-    receivedLines.pop();
-    string port = receivedLines.front();
-    receivedLines.pop();
+    queue<string> receiveBuffer;
+    CommunicationUtils::receiveLines(io, 2, receiveBuffer);
+    string host = receiveBuffer.front();
+    receiveBuffer.pop();
+    string port = receiveBuffer.front();
+    receiveBuffer.pop();
     DBServiceManager::getInstance()->maintainSuccessfulReplication(
             relID, host, port);
     return true;
 }
 
+
+bool CommunicationServer::handleRequestReplicaDeletion(iostream& io)
+{
+    traceWriter->writeFunction(
+                "CommunicationServer::handleRequestReplicaDeletion");
+
+    string relID;
+    CommunicationUtils::receiveLine(io, relID);
+
+    DBServiceManager* dbService = DBServiceManager::getInstance();
+    RelationInfo& relationInfo = dbService->getRelationInfo(relID);
+    for(map<ConnectionID, bool>::const_iterator it = relationInfo.nodesBegin();
+            it != relationInfo.nodesEnd(); it++)
+    {
+        if(it->second)
+        {
+            LocationInfo& locationInfo = dbService->getLocation(it->first);
+            TriggerReplicaDeletionRunnable replicaEraser(
+                    locationInfo.getHost(),
+                    atoi(locationInfo.getCommPort().c_str()),
+                    relID);
+            replicaEraser.run();
+        }
+        dbService->deleteReplicaMetadata(relID);
+    }
+
+    return true;
+}
+
+bool CommunicationServer::handleTriggerReplicaDeletion(std::iostream& io)
+{
+    traceWriter->writeFunction(
+                "CommunicationServer::handleTriggerReplicaDeletion");
+
+    string relID;
+    CommunicationUtils::receiveLine(io, relID);
+
+    string databaseName;
+    string relationName;
+    RelationInfo::parseIdentifier(relID, databaseName, relationName);
+
+    FileSystem::DeleteFileOrFolder(
+            ReplicationUtils::getFileNameOnDBServiceWorker(
+                    databaseName,
+                    relationName));
+
+    //TODO check return code etc
+    //TODO tracing
+    return true;
+}
 
 } /* namespace DBService */

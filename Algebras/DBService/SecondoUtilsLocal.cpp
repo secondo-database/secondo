@@ -43,7 +43,7 @@ using namespace distributed2;
 
 namespace DBService {
 
-void SecondoUtilsLocal::readFromConfigFile(std::string& resultValue,
+void SecondoUtilsLocal::readFromConfigFile(string& resultValue,
         const char* section,
         const char* key,
         const char* defaultValue)
@@ -119,7 +119,7 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
     return success;
 }
 
-bool SecondoUtilsLocal::adjustDatabase(const std::string& databaseName)
+bool SecondoUtilsLocal::adjustDatabase(const string& databaseName)
 {
     printFunction("SecondoUtilsLocal::adjustDatabase");
     const string currentDB = SecondoSystem::GetInstance()->GetDatabaseName();
@@ -128,7 +128,7 @@ bool SecondoUtilsLocal::adjustDatabase(const std::string& databaseName)
 
     string databaseNameUppered(databaseName);
 
-    std::transform(
+    transform(
             databaseNameUppered.begin(),
             databaseNameUppered.end(),
             databaseNameUppered.begin(),
@@ -227,7 +227,7 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     return true;
 }
 
-bool SecondoUtilsLocal::excuteQueryCommand(const std::string& queryAsString)
+bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString)
 {
     ListExpr resultList;
     string errorMessage;
@@ -318,6 +318,33 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
         return false;
     }
 
+    return true;
+}
+
+bool SecondoUtilsLocal::lookupDBServiceLocation(
+            string& host,
+            string commPort)
+{
+    printFunction("DBServiceConnector::lookupDBServiceLocation");
+    SecondoUtilsLocal::readFromConfigFile(host,
+                                           "DBService",
+                                           "DBServiceHost",
+                                           "");
+    if(host.length() == 0)
+    {
+        print("could not find DBServiceHost in config file");
+        return false;
+    }
+
+    SecondoUtilsLocal::readFromConfigFile(commPort,
+                                       "DBService",
+                                       "DBServicePort",
+                                       "");
+    if(commPort.length() == 0)
+    {
+        print("could not find DBServicePort in config file");
+        return false;
+    }
     return true;
 }
 

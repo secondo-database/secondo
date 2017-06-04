@@ -144,7 +144,7 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
 }
 
 bool DBServicePersistenceAccessor::persistLocationMapping(
-        std::string relationID,
+        string relationID,
         map<ConnectionID, bool>::const_iterator nodesBegin,
         map<ConnectionID, bool>::const_iterator nodesEnd)
 {
@@ -272,7 +272,7 @@ bool DBServicePersistenceAccessor::restoreRelationInfo(
 }
 
 bool DBServicePersistenceAccessor::restoreLocationMapping(
-        queue<pair<std::string, ConnectionID> >& mapping)
+        queue<pair<string, ConnectionID> >& mapping)
 {
     printFunction("DBServicePersistenceAccessor::restoreLocationMapping");
     string query("query mapping_DBSP");
@@ -312,7 +312,7 @@ bool DBServicePersistenceAccessor::restoreLocationMapping(
 }
 
 bool DBServicePersistenceAccessor::updateLocationMapping(
-        std::string relationID,
+        string relationID,
         ConnectionID connID,
         bool replicated)
 {
@@ -333,6 +333,68 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
                     relationID,
                     filterConditions,
                     valueToUpdate));
+}
+
+bool DBServicePersistenceAccessor::deleteRelationInfo(
+        RelationInfo& relationInfo)
+{
+    string relationName("relations_DBSP");
+    // TODO adjust database just to be sure
+
+    string relationID = relationInfo.toString();
+    FilterConditions filterConditions =
+    {
+        { {AttributeType::STRING, string("RelationID") }, relationID },
+    };
+
+    bool resultOk = SecondoUtilsLocal::excuteQueryCommand(
+            CommandBuilder::buildDeleteCommand(
+                    relationName,
+                    filterConditions));
+
+    if(!resultOk)
+    {
+        print("Could not delete relation metadata");
+        print("RelationID: ", relationID);
+    }
+
+    return resultOk && deleteLocationMapping(
+            relationID,
+            relationInfo.nodesBegin(),
+            relationInfo.nodesEnd());
+}
+
+bool DBServicePersistenceAccessor::deleteLocationMapping(
+        string relID,
+        map<ConnectionID, bool>::const_iterator nodesBegin,
+        map<ConnectionID, bool>::const_iterator nodesEnd)
+{
+    bool resultOk = true;
+    // TODO adjust database just to be sure
+    string relationName("mapping_DBSP");
+
+    for(map<ConnectionID, bool>::const_iterator it = nodesBegin;
+            it != nodesEnd; it++)
+    {
+        FilterConditions filterConditions =
+        {
+            { {AttributeType::STRING, string("RelationID") }, relID },
+            { {AttributeType::INT, string("ConnectionID") },
+                    stringutils::int2str(it->first) }
+        };
+
+        resultOk = resultOk && SecondoUtilsLocal::excuteQueryCommand(
+                CommandBuilder::buildDeleteCommand(
+                        relationName,
+                        filterConditions));
+        if(!resultOk)
+        {
+            print("Could not delete mapping");
+            print("RelationID: ", relID);
+            print("ConnectionID: ", it->first);
+        }
+    }
+    return resultOk;
 }
 
 RelationDefinition DBServicePersistenceAccessor::locations =

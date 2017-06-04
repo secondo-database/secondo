@@ -26,32 +26,32 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_CommunicationServer_HPP_
-#define ALGEBRAS_DBSERVICE_CommunicationServer_HPP_
+#ifndef ALGEBRAS_DBSERVICE_COMMUNICATIONTriggerReplicaDeletionRunnable_HPP_
+#define ALGEBRAS_DBSERVICE_COMMUNICATIONTriggerReplicaDeletionRunnable_HPP_
 
-#include "Algebras/DBService/MultiClientServer.hpp"
-
-class Socket;
+#include <boost/thread.hpp>
 
 namespace DBService {
 
-class CommunicationServer: public MultiClientServer {
+class TriggerReplicaDeletionRunnable {
 public:
-    explicit CommunicationServer(int port);
-    virtual ~CommunicationServer();
-protected:
-    int communicate(std::iostream& io);
-    bool handleTriggerReplicationRequest(std::iostream& io);
-    bool handleTriggerFileTransferRequest(std::iostream& io);
-    bool handleProvideReplicaLocationRequest(std::iostream& io);
-    bool reportSuccessfulReplication(std::iostream& io);
-    bool handleRequestReplicaDeletion(std::iostream& io);
-    bool handleTriggerReplicaDeletion(std::iostream& io);
+    TriggerReplicaDeletionRunnable(
+            std::string dbServiceWorkerHost,
+            int dbServiceWorkerCommPort,
+            std::string relID);
+    ~TriggerReplicaDeletionRunnable();
+    void run();
 private:
-    void lookupMinimumReplicaCount();
-    int minimumReplicaCount;
+    void createClient(
+            std::string dbServiceWorkerHost,
+            int dbServiceWorkerCommPort,
+            std::string relID);
+    boost::thread* runner;
+    std::string dbServiceWorkerHost;
+    int dbServiceWorkerCommPort;
+    std::string relID;
 };
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_CommunicationServer_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_COMMUNICATIONTriggerReplicaDeletionRunnable_HPP_ */

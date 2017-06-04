@@ -26,23 +26,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
-#ifndef ALGEBRAS_DBSERVICE_COMMUNICATIONCommunicationClientRunnable_HPP_
-#define ALGEBRAS_DBSERVICE_COMMUNICATIONCommunicationClientRunnable_HPP_
+#ifndef ALGEBRAS_DBSERVICE_COMMUNICATIONTriggerFileTransferRunnable_HPP_
+#define ALGEBRAS_DBSERVICE_COMMUNICATIONTriggerFileTransferRunnable_HPP_
 
 #include <boost/thread.hpp>
 
 namespace DBService {
 
-class CommunicationClientRunnable {
+class TriggerFileTransferRunnable {
 public:
-    CommunicationClientRunnable(
+    TriggerFileTransferRunnable(
             std::string sourceSystemHost,
             int sourceSystemTransferPort,
             std::string dbServiceWorkerHost,
             int dbServiceWorkerCommPort,
             std::string databaseName,
             std::string relationName);
-    ~CommunicationClientRunnable();
+    ~TriggerFileTransferRunnable();
     void run();
 private:
     void createClient(
@@ -63,4 +63,4 @@ private:
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_COMMUNICATIONCommunicationClientRunnable_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_COMMUNICATIONTriggerFileTransferRunnable_HPP_ */

@@ -63,12 +63,17 @@ public:
     const size_t getNodeCount();
     const ConnectionID getRandomReplicaLocation();
     void updateReplicationStatus(ConnectionID connID, bool replicated);
+    static void parseIdentifier(
+            const std::string& relID,
+            std::string& dbName,
+            std::string& relName);
 
 private:
-    const std::string& databaseName;
+    const std::string databaseName;
     const std::string relationName;
     std::map<ConnectionID, bool> nodes;
     const LocationInfo originalLocation;
+    static std::string separator;
 
 };
 

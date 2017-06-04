@@ -181,27 +181,16 @@ void ReplicationClient::reportSuccessfulReplication()
 {
     traceWriter->writeFunction(
             "ReplicationClient::reportSuccessfulReplication");
+
     string dbServiceHost;
-    SecondoUtilsLocal::readFromConfigFile(dbServiceHost,
-                                           "DBService",
-                                           "DBServiceHost",
-                                           "");
-    if(dbServiceHost.length() == 0)
+    string dbServicePort;
+    if(!SecondoUtilsLocal::lookupDBServiceLocation(
+            dbServiceHost,
+            dbServicePort))
     {
-        traceWriter->write("could not find DBServiceHost in config file");
-        throw new SecondoException("DBServiceHost not configured");
+        throw new SecondoException("Unable to connect to DBService");
     }
 
-    string dbServicePort;
-    SecondoUtilsLocal::readFromConfigFile(dbServicePort,
-                                       "DBService",
-                                       "DBServicePort",
-                                       "");
-    if(dbServicePort.length() == 0)
-    {
-        traceWriter->write("could not find DBServicePort in config file");
-        throw new SecondoException("DBServicePort not configured");
-    }
     CommunicationClient clientToDBServiceMaster(
             dbServiceHost,
             atoi(dbServicePort.c_str()),

@@ -89,9 +89,21 @@ const string RelationInfo::toString() const
 }
 
 string RelationInfo::getIdentifier(const string dbName,
-                                 const std::string relName)
+                                   const std::string relName)
 {
-    return dbName + "xDBSx" + relName;
+    return dbName + separator + relName;
+}
+
+void RelationInfo::parseIdentifier(
+        const string& relID,
+        string& dbName,
+        string& relName)
+{
+    size_t dbNameEndPos = relID.find(separator, 0);
+    dbName = relID.substr(0, dbNameEndPos);
+
+    size_t relNameStartPos = dbNameEndPos+separator.length();
+    relName = relID.substr(relNameStartPos, relID.length());
 }
 
 const LocationInfo& RelationInfo::getOriginalLocation() const
@@ -109,5 +121,7 @@ void RelationInfo::updateReplicationStatus(ConnectionID connID, bool replicated)
 {
     nodes.find(connID)->second = replicated;
 }
+
+string RelationInfo::separator("xDBSx");
 
 } /* namespace DBService */

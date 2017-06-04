@@ -157,6 +157,18 @@ TEST_F(RelationInfoTest, testUpdateReplicationStatus)
     ASSERT_TRUE(relationInfo->nodesBegin()->second);
 }
 
+TEST_F(RelationInfoTest, testParseIdentifier)
+{
+    string dbName("myDB");
+    string relName("myRel");
+    string relID = RelationInfo::getIdentifier(dbName, relName);
+    string parsedDBName;
+    string parsedRelName;
+    RelationInfo::parseIdentifier(relID, parsedDBName, parsedRelName);
+    ASSERT_STREQ(dbName.c_str(), parsedDBName.c_str());
+    ASSERT_STREQ(parsedRelName.c_str(), parsedRelName.c_str());
+}
+
 }
 
 }

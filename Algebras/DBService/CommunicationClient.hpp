@@ -63,6 +63,12 @@ public:
     bool reportSuccessfulReplication(
             const std::string& databaseName,
             const std::string& relationName);
+    bool requestReplicaDeletion(
+            const std::string& databaseName,
+            const std::string& relationName);
+    bool triggerReplicaDeletion(
+            const std::string& relID);
+
 protected:
     void getLocationParameter(std::string& location, const char* key);
 private:

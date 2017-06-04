@@ -102,6 +102,7 @@ storing relation replicas.
             const std::string& relID,
             const std::string& replicaLocationHost,
             const std::string& replicaLocationPort);
+    void deleteReplicaMetadata(const std::string& relID);
 
 protected:
 /*
