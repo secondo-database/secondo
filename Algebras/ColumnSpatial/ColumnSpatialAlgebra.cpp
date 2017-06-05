@@ -55,6 +55,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../CRel/TypeConstructors/LongIntsTI.h"
 #include <ctime>
 #include <fstream>
+#include <cstring>
 
 using std::vector;
 using std::fstream;
@@ -163,6 +164,13 @@ inline void benchmark(long &cycles, long &ns) {
 
 
 
+  // returns the address of the first element of the apoint array
+  void* ColPoint::getArrayAddress() {
+    return &aPoint[0].x;
+  }
+
+
+
   // appends one point to the point array
   bool ColPoint::append(Point* point) {
     if(!point->IsDefined()) {
@@ -201,25 +209,27 @@ inline void benchmark(long &cycles, long &ns) {
 
 
 
+/*
+The ~merge~ - function concatenates two apoints and returns a single apoint.
+It uses the memcpy - function of the string-library
+
+*/
   // merges two apoints into one apoint
   bool ColPoint::merge(ColPoint* cPoint1, ColPoint* cPoint2) {
 
     // calculate and allocate sufficient memory for the result array
     long cc1 = cPoint1->getCount();
     long cc2 = cPoint2->getCount();
-    aPoint = static_cast<sPoint*> (realloc(aPoint, cc1 * 16 + cc2 * 16));
+    aPoint = static_cast<sPoint*>
+             (realloc(aPoint, (cc1 + cc2) * sizeof(sPoint)));
     if (aPoint == NULL) {  // exit on memory overflow
       cmsg.inFunError("not enough memory for all points!");
       return false;
     }
-    for (long i=0; i < cc1; i++) {
-      aPoint[i].x = cPoint1->getX(i);
-      aPoint[i].y = cPoint1->getY(i);
-    }
-    for (long i=0; i < cc2; i++) {
-      aPoint[cc1+i].x = cPoint2->getX(i);
-      aPoint[cc1+i].y = cPoint2->getY(i);
-    }
+
+    memcpy(&aPoint[0].x, cPoint1->getArrayAddress(), cc1 * sizeof(sPoint));
+    memcpy(&aPoint[cc1].x, cPoint2->getArrayAddress(), cc2 * sizeof(sPoint));
+
     count = cc1 + cc2;
 
     return true;
@@ -292,15 +302,11 @@ inline void benchmark(long &cycles, long &ns) {
     // truncate oversized memory to allocate the real used memory
     inArray = static_cast<sPoint*>(realloc(inArray, inCount * sizeof(sPoint)));
     cout << inCount * sizeof(sPoint) << " bytes used\n";
+
     Word answer(static_cast<void*>(0));
     answer.addr = new ColPoint(inArray, inCount);  // create new point object
-
-    // the following two lines are only for debugging mode
-    // ColPoint* cPoint = static_cast<ColPoint*>(answer.addr);
-    // cPoint->showArray("ColPoint after In-function");
-
     correct = true;
-    return answer;  // return its adress
+    return answer;
   }
 
   // converts the internal array structure int a nested list
@@ -383,13 +389,16 @@ inline void benchmark(long &cycles, long &ns) {
       value.addr = 0;
     }
 
-    cout << count * sizeof(sPoint) << " bytes used." << endl;
+    // cout << count * sizeof(sPoint) << " bytes used." << endl;
 
     return ok;
   }
 
   bool ColPoint::Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
+
+    cout << "save apoint...\n";
+
     ColPoint* cPoint = static_cast<ColPoint*>(value.addr);
     size_t sizeL = sizeof(long);
     size_t sizeD = sizeof(double);
@@ -571,9 +580,12 @@ each entry to the clone object.
 
 
 
-  void* ColLine::getLineAdress() {
-    cout << sizeof(aLine);
-    return &aLine;
+  void* ColLine::getLineAddress() {
+    return &aLine[0].index;
+  }
+
+  void* ColLine::getSegmentAddress() {
+    return &aSegment[0].x1;
   }
 
 
@@ -686,8 +698,6 @@ each entry to the clone object.
     aSegment = static_cast<sSegment*>
              (realloc(aSegment, countSegment * sizeof(sSegment)));
 
-    // next line is only for debugging cases - should be commented out
-    // showArrays("Nach append aller Linien");
     cout << countLine * sizeof(sLine) + countSegment * sizeof(sSegment)
          << " bytes used.\n";
   }
@@ -702,65 +712,41 @@ each entry to the clone object.
     long ccl2 = cLine2->getCount();
     long ccs1 = cLine1->getSegments();
     long ccs2 = cLine2->getSegments();
-    long index, dummy;
 
-    aLine = static_cast<sLine*> (realloc(aLine, (ccl1 + ccl2 + 1) *  8));
+    aLine = static_cast<sLine*>
+            (realloc(aLine, (ccl1 + ccl2 + 1) *  sizeof(sLine)));
     if (aLine == NULL) {  // exit on memory overflow
       cmsg.inFunError("not enough memory for all lines!");
       return false;
     }
 
-    aSegment = static_cast<sSegment*> (realloc(aSegment,
-                                               (ccs1 + ccs2 + 1) * 32));
+    aSegment = static_cast<sSegment*>
+               (realloc(aSegment, (ccs1 + ccs2 + 1) * sizeof(sSegment)));
     if (aSegment == NULL) {  // exit on memory overflow
       cmsg.inFunError("not enough memory for all segments!");
       return false;
     }
 
-/*
-TODO:
-Instead of loop copying it is much more faster to use block copying.
-But there is still a problem to retrieve the correct address of the
-private aLine arrays of the two objects cLine1 and cLine2!!!
+    // fast block copy
+    memcpy(&aLine[0].index, cLine1->getLineAddress(),
+           ccl1 * sizeof(sLine));
+    memcpy(&aLine[ccl1].index, cLine2->getLineAddress(),
+           (ccl2 + 1) * sizeof(sLine));
 
-If this is getting to work, it can be used in different parts of this
-algebra and speed should raise up significantly.
+    memcpy(&aSegment[0].x1, cLine1->getSegmentAddress(),
+           ccs1 * sizeof(sSegment));
+    memcpy(&aSegment[ccs1].x1, cLine2->getSegmentAddress(),
+           (ccs2 + 1) * sizeof(sSegment));
 
-It could also be used for ~Open~ and ~Save~ functions...
+    // correct indices of second aline
+    for (long i = ccl1; i < (ccl1 + ccl2 + 1); i++)
+      aLine[i].index += ccs1;
 
-*/
-//    memcpy(aLine, cLine1->getLineAdress(), ccl1 * 8);
-//    memcpy((void*)(&aLine + ccl1), cLine2->getLineAdress(), ccl2 * 8);
-
-    for (long i = 0; i < ccl1; i++)
-      cLine1->getLineSegments(i, aLine[i].index, dummy);
-    for (long i = 0; i < ccl2; i++) {
-      cLine2->getLineSegments(i, index, dummy);
-      aLine[ccl1 + i].index = index + ccs1;
-    }
-
-    for (long i = 0; i < ccs1; i++)
-      cLine1->getSegmentPoints(i, aSegment[i].x1, aSegment[i].y1,
-                                  aSegment[i].x2, aSegment[i].y2);
-    for (long i = 0; i < ccs2; i++)
-      cLine2->getSegmentPoints(i, aSegment[ccs1+i].x1, aSegment[ccs1+i].y1,
-                                  aSegment[ccs1+i].x2, aSegment[ccs1+i].y2);
-
-    countLine = ccl1 + ccl2;
-    countSegment = ccs1 + ccs2;
-
-    aLine[countLine].index = countSegment;
-    aSegment[countSegment].x1 = 0;
-    aSegment[countSegment].y1 = 0;
-    aSegment[countSegment].x2 = 0;
-    aSegment[countSegment].y2 = 0;
-
-    countLine++;
-    countSegment++;
+    countLine = ccl1 + ccl2 + 1;
+    countSegment = ccs1 + ccs2 + 1;
 
     return true;
   }
-
 
 
 
@@ -891,10 +877,6 @@ It could also be used for ~Open~ and ~Save~ functions...
     Word answer(static_cast<void*>(0));
     answer.addr = new ColLine(inLine, inSeg, cl, cs);  // create new line object
 
-    // the following two lines are only for debugging mode
-    // ColLine* cLine = static_cast<ColLine*>(answer.addr);
-    // cLine->showArrays("ColLine after In-function");
-
     correct = true;
     return answer;  // return the object
   }
@@ -979,7 +961,6 @@ It could also be used for ~Open~ and ~Save~ functions...
 
     cout << "open aline...\n";
 
-
     sLine* inLine = NULL;  // array which contains the input line values
     sSegment* inSegment = NULL;  // array which contains the input line values
     long cl;           // number of lines
@@ -1048,6 +1029,9 @@ It could also be used for ~Open~ and ~Save~ functions...
   // Saves an array of lines into a SmiRecord.
   bool ColLine::Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
+
+    cout << "save aline...\n";
+
     ColLine* cLine = static_cast<ColLine*>(value.addr);
 
     size_t sizeL = sizeof(long);
@@ -1169,12 +1153,15 @@ each entry to the clone object.
 
   // non-standard constructor initializing the object with minimum data
   ColRegion::ColRegion(bool min) {
+
     aRegion = NULL;
     aCycle = NULL;
     aPoint = NULL;
+
     aRegion = static_cast<sRegion*>(calloc(1, sizeof(sRegion)));
     aCycle = static_cast<sCycle*>(calloc(1, sizeof(sCycle)));
     aPoint = static_cast<sPoint*>(calloc(1, sizeof(sPoint)));
+
     countRegion = 0;
     countCycle = 0;
     countPoint = 0;
@@ -1230,16 +1217,16 @@ each entry to the clone object.
 
 
 
-  // returns the number of cycles with terminator
+  // returns the number of cycles within the aCycle array
   long ColRegion::getCountCycles() {
-    return countCycle;
+    return countCycle - 1;  // subtract the terminator element
   }
 
 
 
-  // returns the number of points with terminator
+  // returns the number of points within the aPoint array
   long ColRegion::getCountPoints() {
-    return countPoint;
+    return countPoint - 1;  // subtract the terminator element
   }
 
 
@@ -1247,6 +1234,51 @@ each entry to the clone object.
   // returns the number of points of a given region
   long ColRegion::getCountPoints(const long index) {
     return aRegion[index + 1].indexPoint - aRegion[index].indexPoint - 1;
+  }
+
+
+
+  void ColRegion::getRegion(const long index,
+                            long &indexCycle, long &indexPoint,
+                            double &mbrX1, double &mbrY1,
+                            double &mbrX2, double &mbrY2) {
+    indexCycle = aRegion[index].indexCycle;
+    indexPoint = aRegion[index].indexPoint;
+    mbrX1 = aRegion[index].mbrX1;
+    mbrY1 = aRegion[index].mbrY1;
+    mbrX2 = aRegion[index].mbrX2;
+    mbrY2 = aRegion[index].mbrY2;
+  }
+
+
+
+  long ColRegion::getCycle(const long index) {
+    return aCycle[index].index;
+  }
+
+
+
+  void ColRegion::getPoint(const long index, double &x, double &y) {
+    x = aPoint[index].x;
+    y = aPoint[index].y;
+  }
+
+
+
+  void* ColRegion::getRegionAddress() {
+    return &aRegion[0].indexCycle;
+  }
+
+
+
+  void* ColRegion::getCycleAddress() {
+    return &aCycle[0].index;
+  }
+
+
+
+  void* ColRegion::getPointAddress() {
+    return &aPoint[0].x;
   }
 
 
@@ -1532,11 +1564,6 @@ The ~finalize~ function appends a terminator to each array of the aregion type.
              (realloc(aCycle, countCycle * sizeof(sCycle)));
     aPoint = static_cast<sPoint*>
              (realloc(aPoint, countPoint * sizeof(sPoint)));
-
-    // next lines is only for debugging cases - should be commented out
-    // showArrays("arrays after appending regions (no points)", false);
-    // cout << countRegion * sizeof(sRegion) + countCycle * sizeof(sCycle)
-    //       + countPoint * sizeof(sPoint) << " bytes used.\n";
   }
 
 
@@ -1544,66 +1571,94 @@ The ~finalize~ function appends a terminator to each array of the aregion type.
 /*
 merges two aregions into one aregion.
 
-
 */
   bool ColRegion::merge(ColRegion* cRegion1, ColRegion* cRegion2) {
     long ccr1 = cRegion1->getCount();
-    long ccc1 = cRegion1->getCountCycles();
-    long ccp1 = cRegion1->getCountPoints();
     long ccr2 = cRegion2->getCount();
+    long ccc1 = cRegion1->getCountCycles();
     long ccc2 = cRegion2->getCountCycles();
+    long ccp1 = cRegion1->getCountPoints();
     long ccp2 = cRegion2->getCountPoints();
 
     // allocate memory for the input arrays
     aRegion = static_cast<sRegion*>
-              (realloc(aRegion, (ccr1 + ccr2 + 1) * 48));
+              (realloc(aRegion, (ccr1 + ccr2 + 1) * sizeof(sRegion)));
     aCycle = static_cast<sCycle*>
-             (realloc(aCycle, (ccc1 + ccc2 + 1) * 8));
+             (realloc(aCycle, (ccc1 + ccc2 + 1) * sizeof(sCycle)));
     aPoint = static_cast<sPoint*>
-             (realloc(aPoint, (ccp1 + ccp2 + 1) * 16));
+             (realloc(aPoint, (ccp1 + ccp2 + 1) * sizeof(sPoint)));
+
+/*
+The following instructions are commented out because there is still
+a problem with memory allocation. Instead the loops below are used.
+
+----
+    // fast block copy
+    memcpy(&aRegion[0].indexCycle, cRegion1->getRegionAddress(),
+           ccr1 * sizeof(sRegion));
+    memcpy(&aRegion[ccr1].indexCycle, cRegion2->getRegionAddress(),
+           (ccr1 + 1) * sizeof(sRegion));
+
+    memcpy(&aCycle[0].index, cRegion1->getCycleAddress(),
+           ccc1 * sizeof(sCycle));
+    memcpy(&aCycle[ccc1].index, cRegion2->getCycleAddress(),
+           (ccc1 + 1) * sizeof(sCycle));
+
+    memcpy(&aPoint[0].x, cRegion1->getPointAddress(),
+           ccp1 * sizeof(sPoint));
+    memcpy(&aPoint[ccp1].x, cRegion2->getPointAddress(),
+           (ccp1 + 1) * sizeof(sPoint));
+
+    // correct indices of second aRegion
+    for (long i = ccr1; i < (ccr1 + ccr2 + 1); i++) {
+      aRegion[i].indexCycle += ccc1;
+      aRegion[i].indexPoint += ccp1;
+    }
+
+    // correct indices of second aCycle
+    for (long i = ccc1; i < (ccc1 + ccc2 + 1); i++)
+      aCycle[i].index += ccp1;
+----
+
+*/
 
     // scan all regions of first aregion
-    for (long i = 0; i < ccr1; i++) {
-      aRegion[i].indexCycle = 0;
-      aRegion[i].indexPoint = 0;
-      aRegion[i].mbrX1 = 0;
-      aRegion[i].mbrX2 = 0;
-      aRegion[i].mbrY1 = 0;
-      aRegion[i].mbrY2 = 0;
+    for (long i = 0; i < ccr1; i++)
+      cRegion1->getRegion(i, aRegion[i].indexCycle, aRegion[i].indexPoint,
+                          aRegion[i].mbrX1, aRegion[i].mbrY1,
+                          aRegion[i].mbrX2, aRegion[i].mbrY2);
+
+    // scan all regions of second aregion including terminator
+    long iCycle, iPoint;
+    for (long i = 0; i <= ccr2; i++) {
+      cRegion2->getRegion(i, iCycle, iPoint,
+                          aRegion[i+ccr1].mbrX1, aRegion[i+ccr1].mbrY1,
+                          aRegion[i+ccr1].mbrX2, aRegion[i+ccr1].mbrY2);
+      aRegion[i+ccr1].indexCycle = iCycle + ccc1;
+      aRegion[i+ccr1].indexPoint = iPoint + ccp1;
     }
-    // scan all regions of second aregion
-    for (long i = 0; i < ccr2; i++) {
-      aRegion[i].indexCycle = 0;
-      aRegion[i].indexPoint = 0;
-      aRegion[i].mbrX1 = 0;
-      aRegion[i].mbrX2 = 0;
-      aRegion[i].mbrY1 = 0;
-      aRegion[i].mbrY2 = 0;
-    }
-    countRegion = ccr1 + ccr2;
 
     // scan all cycles of first aregion
     for (long i = 0; i < ccc1; i++)
-      aCycle[i].index = 0;
-    // scan all cycles of second aregion
-    for (long i = 0; i < ccc2; i++)
-      aCycle[i].index = 0;
-    countCycle = ccc1 + ccc2;
+      aCycle[i].index = cRegion1->getCycle(i);
+
+      // scan all cycles of second aregion including terminator
+    for (long i = 0; i <= ccc2; i++)
+      aCycle[i+ccc1].index = cRegion2->getCycle(i) + ccp1;
 
     // scan all points of first aregion
-    for (long i = 0; i < ccp1; i++) {
-      aPoint[i].x = 0;
-      aPoint[i].y = 0;
-    }
-    // scan all points of second aregion
-    for (long i = 0; i < ccp2; i++) {
-      aPoint[i].x = 0;
-      aPoint[i].y = 0;
-    }
-    countPoint = ccp1 + ccp2;
+    for (long i = 0; i < ccp1; i++)
+      cRegion1->getPoint(i, aPoint[i].x, aPoint[i].y);
 
-    cout << "operator not correctly implemented, all values set to zero."
-         << endl;
+      // scan all points of second aregion including terminator
+    for (long i = 0; i <= ccp2; i++)
+      cRegion2->getPoint(i, aPoint[i+ccp1].x, aPoint[i+ccp1].y);
+
+
+    countRegion = ccr1 + ccr2 + 1;
+    countCycle = ccc1 + ccc2 + 1;
+    countPoint = ccp1 + ccp2 + 1;
+
     return true;
   }
 
@@ -1612,7 +1667,6 @@ merges two aregions into one aregion.
   // test output of the arrays aRegion, aCycle and aPoint and there parameters
   void ColRegion::showArrays(string title, bool showPoints) {
 
-    // example output of a nested list: cout << nl->ToString(list) << endl;
     cout << "\n--------------------------------------------\n" << title << "\n";
 
     // output of the array aRegion
@@ -2075,13 +2129,9 @@ and returns the region indices.
 
     // create new region object with the just read in arrays
     answer.addr = new ColRegion(inRegion, inCycle, inPoint, cr, cc, cp);
-
-    // the following two lines are only for debugging mode
-    ColRegion* cRegion = static_cast<ColRegion*>(answer.addr);
-    cRegion->showArrays("ColRegion after In-function", false);
-
     correct = true;
-    return answer;  // return the object
+
+    return answer;
   }
 
 
@@ -2305,6 +2355,9 @@ and returns the region indices.
 
   bool ColRegion::Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
+
+    cout << "save aregion...\n";
+
     ColRegion* cRegion = static_cast<ColRegion*>(value.addr);
     size_t sizeL = sizeof(long);
     size_t sizeD = sizeof(double);
@@ -2390,7 +2443,6 @@ each entry to the clone object.
 */
   Word ColRegion::Clone(const ListExpr typeInfo, const Word& w) {
     ColRegion* cRegion = static_cast<ColRegion*>(w.addr);
-    cRegion->showArrays("ColRegion Clone...", false);
 
     long tmpCR = cRegion->getCount() + 1; // add 1 for terminator
     sRegion* tmpRegion = NULL;
@@ -2401,7 +2453,7 @@ each entry to the clone object.
       return (void*)0;
     }
 
-    long tmpCC = cRegion->getCountCycles();
+    long tmpCC = cRegion->getCountCycles() + 1;  // add terminator entry
     sCycle* tmpCycle = NULL;
     tmpCycle = static_cast<sCycle*>
                (realloc(tmpCycle, sizeof(sCycle) * tmpCC));
@@ -2410,7 +2462,7 @@ each entry to the clone object.
       return (void*)0;
     }
 
-    long tmpCP = cRegion->getCountPoints();
+    long tmpCP = cRegion->getCountPoints() + 1;  // add terminator entry
     sPoint* tmpPoint = NULL;
     tmpPoint = static_cast<sPoint*>
                (realloc(tmpPoint, sizeof(sPoint) * tmpCP));
@@ -2923,15 +2975,15 @@ int mapColRegionVM (Word* args, Word& result, int message,
   }
   cout << "map aregion[" << index << "] to region.\n";
 
-  // create a new region object with space for all halfs segments
-  //result.addr = new Region(cRegion->getCountPoints(index) * 2);
   Region* region = static_cast<Region*> (result.addr);
+  region = new Region(cRegion->getCountPoints(index)*2);
 
   if (!cRegion->createRegion(region, index)) {
     cout << "Error mapping aregion to region!" << endl;
     region->SetDefined(false);
     return 0;
   }
+  region->SetDefined(true);
   result.addr = region;
   return 0;
 }
@@ -2985,8 +3037,7 @@ int countRegionVM (Word* args, Word& result, int message,
   benchmark(cStart, tStart);
 
   result = qp->ResultStorage(s);
-  //ColRegion* cRegion = static_cast<ColRegion*> (args[0].addr);
-  ColRegion* cRegion = (ColRegion*) (args[0].addr);
+  ColRegion* cRegion = static_cast<ColRegion*> (args[0].addr);
   CcInt* res = (CcInt*) result.addr;
   res->Set(true, cRegion->getCount());
 
@@ -3062,6 +3113,7 @@ int plusRegionVM (Word* args, Word& result, int message,
   long cStart, cStop, tStart, tStop;
   benchmark(cStart, tStart);
 
+
   result = qp->ResultStorage(s);
   result.addr = new ColRegion(true);     // result set to cRegion object
   ColRegion* cRegion = static_cast<ColRegion*> (result.addr);
@@ -3077,7 +3129,7 @@ int plusRegionVM (Word* args, Word& result, int message,
   benchmark(cStop, tStop);
   cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
        << (long) tStop - tStart << " nanoseconds." << endl;
-  cRegion->showArrays("after merge of two aregions", false);
+
   return 0;
 }
 
@@ -3087,7 +3139,7 @@ int showarrayPointVM (Word* args, Word& result, int message,
                        Word& local, Supplier s) {
   ColPoint* cPoint = (ColPoint*) (args[0].addr);
 
-  cPoint->showArray("show internal arrays of apoint");
+  cPoint->showArray("show internal array of apoint");
 
   result.addr = new CcBool();
   result = qp->ResultStorage(s);

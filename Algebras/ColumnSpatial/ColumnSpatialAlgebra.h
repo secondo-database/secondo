@@ -221,6 +221,14 @@ Description of the Secondo type ~apoint~ for the user:
   double getY(long index);
 
 /*
+The function ~getArrayAddress~ returns the address of the ~aPoint~ array.
+It is used for the block copy in the ~merge~ function.
+
+*/
+
+  void* getArrayAddress();
+
+/*
 The following function appends one point of the spatial algebra to the
 array apoint of the column spatial algebra:
 
@@ -478,8 +486,20 @@ Returns the coordinates of a single segment:
   void getSegmentPoints(long index,
                         double &x1, double &y1, double &x2, double &y2);
 
+/*
+Returns the address of the first element of the ~aLine~ array.
+This is needed for the block copy of the ~merge~ funtion.
 
-  void *getLineAdress();
+*/
+  void *getLineAddress();
+
+/*
+Returns the address of the first element of the ~aLine~ array.
+This is needed for the block copy of the ~merge~ funtion.
+
+*/
+  void* getSegmentAddress();
+
 /*
 The function ~createLine~ extracts a line from the aline and
 stores it in a standard spatial type,
@@ -771,6 +791,31 @@ it is used to calculate the needed halfsegments for a new region object.
 
 */
   long getCountPoints(const long index);
+
+
+/*
+The next three functions returns single elements of the aregion's arrays.
+
+*/
+  void getRegion(const long index, long &indexCycle, long &indexPoint,
+                 double &mbrX1, double &mbrY1,
+                 double &mbrX2, double &mbrY2);
+
+  long getCycle(const long index);
+
+  void getPoint(const long index, double &x, double &y);
+
+
+/*
+The next three functions return the address of the specified array.
+They are used for block copy of the ~merge~ function.
+
+*/
+  void* getRegionAddress();
+
+  void* getCycleAddress();
+
+  void* getPointAddress();
 
 /*
 The function ~createRegion~ extracts the region with given index to a
