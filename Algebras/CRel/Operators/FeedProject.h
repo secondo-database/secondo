@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AlgebraTypes.h"
 #include "CRel.h"
-#include <cstddef>
+#include <cstdint>
 #include "NestedList.h"
 #include "Operator.h"
 #include "SecondoSMI.h"
@@ -53,7 +53,7 @@ namespace CRelAlgebra
       private:
         CRelBlockIterator m_blockIterator;
 
-        std::vector<size_t> m_indices;
+        std::vector<uint64_t> m_indices;
       };
 
       static const OperatorInfo info;

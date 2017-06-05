@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraTypes.h"
 #include "AttrArray.h"
 #include "Attribute.h"
-#include <cstddef>
+#include <cstdint>
 #include "Geoid.h"
 #include "NestedList.h"
 #include "ReadWrite.h"
@@ -57,7 +57,7 @@ namespace CRelAlgebra
   class GAttrArrayHeader
   {
   public:
-    size_t count;
+    uint64_t count;
 
     SmiFileId flobFileId;
 
@@ -71,7 +71,7 @@ namespace CRelAlgebra
     Creates a ~GAttrArrayHeader~ with the provided ~count~ and ~flobFileId~.
 
     */
-    GAttrArrayHeader(size_t count, SmiFileId flobFileId);
+    GAttrArrayHeader(uint64_t count, SmiFileId flobFileId);
 
     /*
     Creates a ~GAttrArrayHeader~ with the ~count~ and ~flobFileId~ from a
@@ -129,11 +129,11 @@ namespace CRelAlgebra
                const GAttrArrayHeader &header);
 
     GAttrArray(const GAttrArray &array,
-               const SharedArray<const size_t> &filter);
+               const SharedArray<const uint64_t> &filter);
 
     virtual ~GAttrArray();
 
-    virtual AttrArray *Filter(const SharedArray<const size_t> filter) const;
+    virtual AttrArray *Filter(const SharedArray<const uint64_t> filter) const;
 
     /*
     Returns a shared pointer to the ~GAttrArrayInfo~ specifying this arrays
@@ -143,7 +143,7 @@ namespace CRelAlgebra
     const PGAttrArrayInfo &GetInfo() const;
 
     //~AttrArray.GetCount~
-    virtual size_t GetCount() const;
+    virtual uint64_t GetCount() const;
 
     /*
     Returns the ammount of memory occupied ~Attribute~ root blocks.
@@ -151,7 +151,7 @@ namespace CRelAlgebra
 
     */
     //~AttrArray.GetSize~
-    virtual size_t GetSize() const;
+    virtual uint64_t GetSize() const;
 
     //~AttrArray.Save~
     virtual void Save(Writer &target, bool includeHeader = true) const;
@@ -160,7 +160,7 @@ namespace CRelAlgebra
     virtual void DeleteRecords();
 
     //~AttrArray.Append~
-    virtual void Append(const AttrArray &array, size_t row);
+    virtual void Append(const AttrArray &array, uint64_t row);
 
     //~AttrArray.Append~
     virtual void Append(Attribute &value);
@@ -177,38 +177,38 @@ namespace CRelAlgebra
     Precondition: ~row~ < ~GetCount()~
 
     */
-    Attribute &GetAt(size_t row) const;
-    Attribute &operator[](size_t row) const;
+    Attribute &GetAt(uint64_t row) const;
+    Attribute &operator[](uint64_t row) const;
 
     //AttrArray.IsDefined
-    virtual bool IsDefined(size_t row) const;
+    virtual bool IsDefined(uint64_t row) const;
 
     //AttrArray.Compare
-    virtual int Compare(size_t rowA, const AttrArray &arrayB,
-                        size_t rowB) const;
+    virtual int Compare(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const;
 
     //AttrArray.Compare
-    virtual int Compare(size_t row, Attribute &value) const;
+    virtual int Compare(uint64_t row, Attribute &value) const;
 
     //AttrArray.CompareAlmost
-    virtual int CompareAlmost(size_t rowA, const AttrArray &arrayB,
-                              size_t rowB) const;
+    virtual int CompareAlmost(uint64_t rowA, const AttrArray &arrayB,
+                              uint64_t rowB) const;
 
     //AttrArray.CompareAlmost
-    virtual int CompareAlmost(size_t row, Attribute &value) const;
+    virtual int CompareAlmost(uint64_t row, Attribute &value) const;
 
     //AttrArray.Equals
-    virtual bool Equals(size_t rowA, const AttrArray &arrayB,
-                        size_t rowB) const;
+    virtual bool Equals(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const;
 
     //AttrArray.Equals
-    virtual bool Equals(size_t row, Attribute &value) const;
+    virtual bool Equals(uint64_t row, Attribute &value) const;
 
     //AttrArray.GetHash
-    virtual size_t GetHash(size_t row) const;
+    virtual uint64_t GetHash(uint64_t row) const;
 
     //AttrArray.GetAttribute
-    virtual Attribute *GetAttribute(size_t row, bool clone) const;
+    virtual Attribute *GetAttribute(uint64_t row, bool clone) const;
 
     /*
     Returns a ~GAttrArrayIterator~ over the stored attributes.
@@ -230,13 +230,12 @@ namespace CRelAlgebra
 
     const PGAttrArrayInfo m_info;
 
-    size_t m_capacity,
+    uint64_t m_capacity,
       m_size;
 
     SharedArray<char> m_data;
 
-    char *m_attributes,
-      *m_attributesEnd;
+    char *m_attributesEnd;
 
     /*
     Deleted copy-constructor to prevent copying pointers.
@@ -253,19 +252,10 @@ namespace CRelAlgebra
   class GAttrArrayInfo
   {
   public:
-    int attributeAlgebraId,
-      attributeTypeId;
-
-    size_t attributeSize,
+    uint64_t attributeSize,
       attributeFLOBCount;
 
-    InObject attributeInFunction;
-
-    OutObject attributeOutFunction;
-
     ObjectCast attributeCastFunction;
-
-    ListExpr attributeType;
 
     /*
     Creates a uninitialized ~GAttrArrayInfo~
@@ -275,10 +265,6 @@ namespace CRelAlgebra
 
     /*
     Creates a ~GAttrArrayInfo~ specifying the provided attribute type.
-
-    Note that ~attributeType~ = ~attributeTypeExpr~ but
-    ~attributeInFunction~ and ~attributeOutFunction~ only accept numeric type
-    representations.
 
     */
     GAttrArrayInfo(ListExpr attributeTypeExpr);
@@ -316,7 +302,7 @@ namespace CRelAlgebra
     GAttrArrayIterator(const GAttrArray &array) :
       m_instance(&array),
       m_attributeSize(array.m_info->attributeSize),
-      m_current(array.m_attributes),
+      m_current(array.m_data.GetPointer()),
       m_end(array.m_attributesEnd)
     {
     }
@@ -409,7 +395,7 @@ namespace CRelAlgebra
   private:
     const GAttrArray *m_instance;
 
-    size_t m_attributeSize;
+    uint64_t m_attributeSize;
 
     char *m_current,
       *m_end;
@@ -450,15 +436,15 @@ namespace CRelAlgebra
                       const GAttrArrayHeader &header);
 
     GSpatialAttrArray(const GSpatialAttrArray &array,
-                      const SharedArray<const size_t> &filter);
+                      const SharedArray<const uint64_t> &filter);
 
-    virtual AttrArray *Filter(const SharedArray<const size_t> filter) const;
+    virtual AttrArray *Filter(const SharedArray<const uint64_t> filter) const;
 
     //~AttrArray.GetCount~
-    virtual size_t GetCount() const;
+    virtual uint64_t GetCount() const;
 
     //~AttrArray.GetSize~
-    virtual size_t GetSize() const;
+    virtual uint64_t GetSize() const;
 
     //~AttrArray.Save~
     virtual void Save(Writer &target, bool includeHeader = true) const;
@@ -467,7 +453,7 @@ namespace CRelAlgebra
     virtual void DeleteRecords();
 
     //~AttrArray.Append~
-    virtual void Append(const AttrArray &array, size_t row);
+    virtual void Append(const AttrArray &array, uint64_t row);
 
     //~AttrArray.Append~
     virtual void Append(Attribute &value);
@@ -484,61 +470,61 @@ namespace CRelAlgebra
     Precondition: ~row~ < ~GetCount()~
 
     */
-    StandardSpatialAttribute<dim> &GetAt(size_t index) const;
+    StandardSpatialAttribute<dim> &GetAt(uint64_t index) const;
 
-    StandardSpatialAttribute<dim> &operator[](size_t index) const;
+    StandardSpatialAttribute<dim> &operator[](uint64_t index) const;
 
     //~AttrArray.IsDefined~
-    virtual bool IsDefined(size_t row) const;
+    virtual bool IsDefined(uint64_t row) const;
 
     //~AttrArray.Compare~
-    virtual int Compare(size_t rowA, const AttrArray &arrayB,
-                        size_t rowB) const;
+    virtual int Compare(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const;
 
     //~AttrArray.Compare~
-    virtual int Compare(size_t row, Attribute &value) const;
+    virtual int Compare(uint64_t row, Attribute &value) const;
 
     //~AttrArray.CompareAlmost~
-    virtual int CompareAlmost(size_t rowA, const AttrArray &arrayB,
-                              size_t rowB) const;
+    virtual int CompareAlmost(uint64_t rowA, const AttrArray &arrayB,
+                              uint64_t rowB) const;
 
     //~AttrArray.CompareAlmost~
-    virtual int CompareAlmost(size_t row, Attribute &value) const;
+    virtual int CompareAlmost(uint64_t row, Attribute &value) const;
 
     //~AttrArray.Equals~
-    virtual bool Equals(size_t rowA, const AttrArray &arrayB,
-                        size_t rowB) const;
+    virtual bool Equals(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const;
 
     //~AttrArray.Equals~
-    virtual bool Equals(size_t row, Attribute &value) const;
+    virtual bool Equals(uint64_t row, Attribute &value) const;
 
     //~AttrArray.EqualsAlmost~
-    virtual bool EqualsAlmost(size_t rowA, const AttrArray &arrayB,
-                              size_t rowB) const;
+    virtual bool EqualsAlmost(uint64_t rowA, const AttrArray &arrayB,
+                              uint64_t rowB) const;
 
     //~AttrArray.EqualsAlmost~
-    virtual bool EqualsAlmost(size_t row, Attribute &value) const;
+    virtual bool EqualsAlmost(uint64_t row, Attribute &value) const;
 
     //~AttrArray.GetHash~
-    virtual size_t GetHash(size_t row) const;
+    virtual uint64_t GetHash(uint64_t row) const;
 
     //~AttrArray.GetAttribute~
-    virtual Attribute *GetAttribute(size_t row, bool clone) const;
+    virtual Attribute *GetAttribute(uint64_t row, bool clone) const;
 
     //~SpatialAttrArray<dim>.GetBoundingBox~
-    virtual Rectangle<dim> GetBoundingBox(size_t row,
+    virtual Rectangle<dim> GetBoundingBox(uint64_t row,
                                           const Geoid* geoid = nullptr) const;
 
     //~SpatialAttrArray<dim>.GetDistance~
-    virtual double GetDistance(size_t row, const Rectangle<dim>& rect,
+    virtual double GetDistance(uint64_t row, const Rectangle<dim>& rect,
                                const Geoid* geoid = nullptr) const;
 
     //~SpatialAttrArray<dim>.Intersects~
-    virtual bool Intersects(size_t row, const Rectangle<dim>& rect,
+    virtual bool Intersects(uint64_t row, const Rectangle<dim>& rect,
                             const Geoid* geoid = nullptr) const;
 
     //~SpatialAttrArray<dim>.IsEmpty~
-    virtual bool IsEmpty(size_t row) const;
+    virtual bool IsEmpty(uint64_t row) const;
 
     /*
     Returns a ~GSpatialAttrArrayIterator<dim>~ over the stored attributes.

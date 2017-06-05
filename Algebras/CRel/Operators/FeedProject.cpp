@@ -90,9 +90,9 @@ FeedProject::State::State(ArgVector args, Supplier s) :
 {
   qp->DeleteResultStorage(s);
 
-  const size_t indexCount = ((CcInt*)args[2].addr)->GetValue();
+  const uint64_t indexCount = ((CcInt*)args[2].addr)->GetValue();
 
-  for (size_t i = 0; i < indexCount; ++i)
+  for (uint64_t i = 0; i < indexCount; ++i)
   {
     m_indices.push_back(((CcInt*)args[i + 3].addr)->GetValue());
   }

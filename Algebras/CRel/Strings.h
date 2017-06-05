@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include "Attribute.h"
-#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include "FTextAlgebra.h"
 #include "SimpleAttrArray.h"
@@ -41,7 +41,7 @@ namespace CRelAlgebra
 
     static const bool isPrecise = true;
 
-    static size_t GetSize(const A &value)
+    static uint64_t GetSize(const A &value)
     {
       if (value.IsDefined())
       {
@@ -55,7 +55,7 @@ namespace CRelAlgebra
     {
       if (value.IsDefined())
       {
-        const size_t length = target.size - 1;
+        const uint64_t length = target.size - 1;
 
         memcpy(target.data, *value.GetStringval(), length);
 
@@ -67,7 +67,7 @@ namespace CRelAlgebra
     {
       if (value.IsDefined())
       {
-        const size_t length = target.size - 1;
+        const uint64_t length = target.size - 1;
 
         memcpy(target.data, value.Get(), length);
 
@@ -94,7 +94,7 @@ namespace CRelAlgebra
 
     int Compare(const StringEntry &value) const
     {
-      const size_t sizeA = size,
+      const uint64_t sizeA = size,
         sizeB = value.size;
 
       if (sizeA > sizeB)
@@ -152,11 +152,11 @@ namespace CRelAlgebra
       return Compare(value) == 0;
     }
 
-    size_t GetHash() const
+    uint64_t GetHash() const
     {
-      size_t h = 0;
+      uint64_t h = 0;
 
-      for (size_t i = 0; i < size; ++i)
+      for (uint64_t i = 0; i < size; ++i)
       {
         h = 5 * h + data[i];
       }
@@ -172,7 +172,7 @@ namespace CRelAlgebra
   private:
     const char *data;
 
-    size_t size;
+    uint64_t size;
   };
 
   typedef SimpleVSAttrArray<StringEntry<CcString>> Strings;

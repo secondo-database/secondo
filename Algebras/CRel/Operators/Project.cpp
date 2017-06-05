@@ -67,9 +67,9 @@ Project::Info::Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames,
     return;
   }
 
-  const size_t columnCount = blockTypeInfo.columnInfos.size();
+  const uint64_t columnCount = blockTypeInfo.columnInfos.size();
 
-  size_t i = 0;
+  uint64_t i = 0;
 
   set<string> names;
 
@@ -93,7 +93,7 @@ Project::Info::Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames,
       break;
     }
 
-    size_t index = 0;
+    uint64_t index = 0;
 
     for (const TBlockTI::ColumnInfo &columnInfo : blockTypeInfo.columnInfos)
     {
@@ -116,11 +116,11 @@ Project::Info::Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames,
 
   if (invert)
   {
-    vector<size_t> indices;
+    vector<uint64_t> indices;
 
     i = 0;
 
-    for (const size_t excludedIndex : m_indices)
+    for (const uint64_t excludedIndex : m_indices)
     {
       while (i < excludedIndex)
       {
@@ -143,7 +143,7 @@ Project::Info::Info(const TBlockTI &blockTypeInfo, const ListExpr columnNames,
     m_error = "Resulting column list is empty!";
   }
 
-  for (const size_t index : m_indices)
+  for (const uint64_t index : m_indices)
   {
     m_blockTypeInfo.columnInfos.push_back(blockTypeInfo.columnInfos[index]);
   }
@@ -164,7 +164,7 @@ const TBlockTI &Project::Info::GetBlockTypeInfo() const
   return m_blockTypeInfo;
 }
 
-const vector<size_t> &Project::Info::GetIndices() const
+const vector<uint64_t> &Project::Info::GetIndices() const
 {
   return m_indices;
 }
@@ -175,7 +175,7 @@ ListExpr Project::Info::GetIndicesExpr() const
 
   ListExpr indicesEnd = indices;
 
-  for (const size_t &index : m_indices)
+  for (const uint64_t &index : m_indices)
   {
     indicesEnd = nl->Append(indicesEnd, nl->IntAtom(index));
   }
@@ -187,7 +187,7 @@ ListExpr Project::Info::GetIndicesExpr(ListExpr listEnd) const
 {
   ListExpr indicesEnd = nl->Append(listEnd, nl->IntAtom(m_indices.size()));
 
-  for (const size_t &index : m_indices)
+  for (const uint64_t &index : m_indices)
   {
     indicesEnd = nl->Append(indicesEnd, nl->IntAtom(index));
   }
@@ -259,11 +259,11 @@ int Project::TBlockValueMapping(ArgVector args, Word &result, int, Word&,
 
     const TBlock &block = *(TBlock*)args[0].addr;
 
-    const size_t indexCount = ((CcInt*)args[2].addr)->GetValue();
+    const uint64_t indexCount = ((CcInt*)args[2].addr)->GetValue();
 
-    size_t indices[indexCount];
+    uint64_t indices[indexCount];
 
-    for (size_t i = 0; i < indexCount; ++i)
+    for (uint64_t i = 0; i < indexCount; ++i)
     {
       indices[i] = ((CcInt*)args[i + 3].addr)->GetValue();
     }
@@ -295,9 +295,9 @@ Project::State::State(ArgVector args, Supplier s) :
 {
   qp->DeleteResultStorage(s);
 
-  const size_t indexCount = ((CcInt*)args[2].addr)->GetValue();
+  const uint64_t indexCount = ((CcInt*)args[2].addr)->GetValue();
 
-  for (size_t i = 0; i < indexCount; ++i)
+  for (uint64_t i = 0; i < indexCount; ++i)
   {
     m_indices.push_back(((CcInt*)args[i + 3].addr)->GetValue());
   }

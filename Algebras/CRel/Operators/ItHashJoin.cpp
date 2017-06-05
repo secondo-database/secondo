@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ItHashJoin.h"
 
 #include <algorithm>
+#include <iostream>
 #include "ListExprUtils.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
@@ -41,6 +42,7 @@ using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
 using std::copy;
+using std::cout;
 using std::set;
 using std::string;
 using std::vector;
@@ -92,7 +94,7 @@ const OperatorInfo ItHashJoin::info = OperatorInfo(
 
 ListExpr ItHashJoin::TypeMapping(ListExpr args)
 {
-  const size_t argCount = nl->ListLength(args);
+  const uint64_t argCount = nl->ListLength(args);
 
   if (argCount < 4 || argCount > 8)
   {
@@ -128,7 +130,7 @@ ListExpr ItHashJoin::TypeMapping(ListExpr args)
     return GetTypeError(2, "column-name a", error);
   }
 
-  size_t nameAIndex;
+  uint64_t nameAIndex;
 
   if (!GetIndexOfColumn(blockAInfo, nameA, nameAIndex))
   {
@@ -145,7 +147,7 @@ ListExpr ItHashJoin::TypeMapping(ListExpr args)
     return GetTypeError(3, "column-name b", error);
   }
 
-  size_t nameBIndex;
+  uint64_t nameBIndex;
 
   if (!GetIndexOfColumn(blockBInfo, nameB, nameBIndex))
   {
@@ -186,7 +188,7 @@ ListExpr ItHashJoin::TypeMapping(ListExpr args)
 
   //Check optional arguments
 
-  size_t argNo = 5;
+  uint64_t argNo = 5;
 
   ListExpr appendArgs = nl->TwoElemList(nl->IntAtom(nameAIndex),
                                         nl->IntAtom(nameBIndex));
@@ -283,19 +285,19 @@ int ItHashJoin::SelectValueMapping(ListExpr args)
 template<bool project>
 ItHashJoin::State<project> *ItHashJoin::CreateState(ArgVector args, Supplier s)
 {
-  static const size_t defaultBucketCount = 1024 * 1024;
+  static const uint64_t defaultBucketCount = 1024 * 1024;
 
-  const size_t argCount = qp->GetNoSons(s);
+  const uint64_t argCount = qp->GetNoSons(s);
 
   Supplier streamA = args[0].addr,
     streamB = args[1].addr;
 
-  size_t joinIndexA = ((CcInt*)args[argCount - 2].addr)->GetValue(),
+  uint64_t joinIndexA = ((CcInt*)args[argCount - 2].addr)->GetValue(),
     joinIndexB = ((CcInt*)args[argCount - 1].addr)->GetValue();
 
   const TBlockTI blockTypeInfo = TBlockTI(qp->GetType(s), false);
 
-  size_t columnCountA =
+  uint64_t columnCountA =
     TBlockTI(qp->GetType(streamA), false).columnInfos.size(),
     columnCountB = TBlockTI(qp->GetType(streamB), false).columnInfos.size();
 
@@ -315,11 +317,11 @@ ItHashJoin::State<project> *ItHashJoin::CreateState(ArgVector args, Supplier s)
     vector<IndexProjection> tmpProjectionsA,
       tmpProjectionsB;
 
-    size_t index = 0;
+    uint64_t index = 0;
 
     for (const Word &subArg : GetSubArgvector(args[argCount - 3].addr))
     {
-      const size_t projectedIndex = ((CcInt*)subArg.addr)->GetValue();
+      const uint64_t projectedIndex = ((CcInt*)subArg.addr)->GetValue();
 
       if (projectedIndex < columnCountA)
       {
@@ -373,11 +375,11 @@ ItHashJoin::State<project> *ItHashJoin::CreateState(ArgVector args, Supplier s)
 
 template<bool project>
 ItHashJoin::State<project>::State(Supplier streamA, Supplier streamB,
-                                  size_t joinIndexA, size_t joinIndexB,
-                                  size_t columnCountA, size_t columnCountB,
+                                  uint64_t joinIndexA, uint64_t joinIndexB,
+                                  uint64_t columnCountA, uint64_t columnCountB,
                                   IndexProjection *projectionsA,
                                   IndexProjection *projectionsB,
-                                  size_t bucketCount, size_t memLimit,
+                                  uint64_t bucketCount, uint64_t memLimit,
                                   const TBlockTI &blockTypeInfo) :
   m_joinIndexA(joinIndexA),
   m_joinIndexB(joinIndexB),
@@ -393,7 +395,8 @@ ItHashJoin::State<project>::State(Supplier streamA, Supplier streamB,
   m_blockInfo(blockTypeInfo.GetBlockInfo()),
   m_tuple(new AttrArrayEntry[blockTypeInfo.columnInfos.size()]),
   m_projectionsA(projectionsA),
-  m_projectionsB(projectionsB)
+  m_projectionsB(projectionsB),
+  m_iterations(0)
 {
   m_streamA.open();
   m_streamB.open();
@@ -426,6 +429,9 @@ ItHashJoin::State<project>::~State()
 
   m_streamA.close();
   m_streamB.close();
+
+  cout << "iterative hash join finished with " << m_iterations
+       << " iterations\n";
 }
 
 template<bool project>
@@ -436,7 +442,7 @@ TBlock *ItHashJoin::State<project>::Request()
     return nullptr;
   }
 
-  const size_t columnCountA = m_columnCountA,
+  const uint64_t columnCountA = m_columnCountA,
     columnCountB = m_columnCountB;
 
   if (m_blockA == nullptr)
@@ -462,7 +468,7 @@ TBlock *ItHashJoin::State<project>::Request()
 
       if (m_mapResult.IsValid())
       {
-        for (size_t i = 0; i < columnCountA; ++i)
+        for (uint64_t i = 0; i < columnCountA; ++i)
         {
           if (project)
           {
@@ -493,13 +499,13 @@ TBlock *ItHashJoin::State<project>::Request()
 
           if ((m_blockA = m_streamA.request()) == nullptr)
           {
-            m_streamA.close();
-            m_streamA.open();
-
             if (!ProceedStreamB())
             {
               break;
             }
+
+            m_streamA.close();
+            m_streamA.open();
 
             if ((m_blockA = m_streamA.request()) == nullptr)
             {
@@ -523,7 +529,7 @@ TBlock *ItHashJoin::State<project>::Request()
 
       if (m_mapResult.IsValid())
       {
-        for (size_t i = 0; i < columnCountA; ++i)
+        for (uint64_t i = 0; i < columnCountA; ++i)
         {
           if (project)
           {
@@ -548,7 +554,7 @@ TBlock *ItHashJoin::State<project>::Request()
 
     const TBlockEntry tupleB = m_mapResult.GetValue();
 
-    for (size_t i = 0; i < columnCountB; ++i)
+    for (uint64_t i = 0; i < columnCountB; ++i)
     {
       if (project)
       {
@@ -572,7 +578,7 @@ TBlock *ItHashJoin::State<project>::Request()
 }
 
 template<bool project>
-size_t ItHashJoin::State<project>::HashKey(const AttrArrayEntry &entry)
+uint64_t ItHashJoin::State<project>::HashKey(const AttrArrayEntry &entry)
 {
   return entry.GetHash();
 }
@@ -598,7 +604,9 @@ bool ItHashJoin::State<project>::ProceedStreamB()
 
   if (!m_isBExhausted)
   {
-    size_t size = sizeof(ItHashJoin::State<project>),
+    ++m_iterations;
+
+    uint64_t size = sizeof(ItHashJoin::State<project>),
       lastBlockSize = 0;
 
     do

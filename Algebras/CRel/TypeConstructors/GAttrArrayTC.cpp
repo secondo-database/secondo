@@ -184,13 +184,13 @@ void GAttrArrayTC::Delete(const ListExpr typeExpr, Word &value)
   DefaultDelete(typeExpr, value);
 }
 
-bool GAttrArrayTC::Open(SmiRecord &valueRecord, size_t &offset,
+bool GAttrArrayTC::Open(SmiRecord &valueRecord, uint64_t &offset,
                         const ListExpr typeExpr, Word &value)
 {
   return DefaultOpen(valueRecord, offset, typeExpr, value);
 }
 
-bool GAttrArrayTC::Save(SmiRecord &valueRecord, size_t &offset,
+bool GAttrArrayTC::Save(SmiRecord &valueRecord, uint64_t &offset,
                         const ListExpr typeExpr, Word &value)
 {
   return DefaultSave(valueRecord, offset, typeExpr, value);

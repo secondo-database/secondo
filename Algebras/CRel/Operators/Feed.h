@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AlgebraTypes.h"
 #include "CRel.h"
-#include <cstddef>
+#include <cstdint>
 #include "NestedList.h"
 #include "Operator.h"
 #include "TBlock.h"
@@ -60,7 +60,7 @@ namespace CRelAlgebra
       private:
         CRel &m_relation;
 
-        size_t m_blockIndex;
+        uint64_t m_blockIndex;
       };
 
       static const OperatorInfo info;

@@ -33,9 +33,9 @@ extern NestedList *nl;
 
 //TBlock------------------------------------------------------------------------
 
-size_t TBlock::GetSaveSize(size_t columnCount, bool includeHeader)
+uint64_t TBlock::GetSaveSize(uint64_t columnCount, bool includeHeader)
 {
-  size_t size = sizeof(size_t) + (columnCount * sizeof(ColumnInfo));
+  uint64_t size = sizeof(uint64_t) + (columnCount * sizeof(ColumnInfo));
 
   if (includeHeader)
   {
@@ -63,7 +63,7 @@ TBlock::TBlock(const PTBlockInfo &info, SmiFileId columnFileId,
   m_filter(*this),
   m_refCount(1)
 {
-  for (size_t i = 0; i < m_columnCount; i++)
+  for (uint64_t i = 0; i < m_columnCount; i++)
   {
     m_columnInfos[i] = {0, 0};
     m_columns[i] = nullptr;
@@ -101,14 +101,14 @@ TBlock::TBlock(const PTBlockInfo &info, const TBlockHeader &header,
 {
   source.ReadOrThrow((char*)m_columnInfos, m_columnCount * sizeof(ColumnInfo));
 
-  for (size_t i = 0; i < m_columnCount; i++)
+  for (uint64_t i = 0; i < m_columnCount; i++)
   {
     m_columns[i] = nullptr;
   }
 }
 
-TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
-               size_t columnCount) :
+TBlock::TBlock(const TBlock &instance, const uint64_t *columnIndices,
+               uint64_t columnCount) :
   m_header(instance.m_header),
   m_columnCount(columnCount),
   m_columnInfos(new ColumnInfo[columnCount]),
@@ -122,11 +122,11 @@ TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
   info->columnTypes = new ListExpr[columnCount];
   info->columnFactories = new AttrArrayManager*[columnCount];
 
-  SharedArray<const size_t> filter = m_filter.m_filter;
+  SharedArray<const uint64_t> filter = m_filter.m_filter;
 
-  size_t size = sizeof(TBlock);
+  uint64_t size = sizeof(TBlock);
 
-  for (size_t i = 0; i < columnCount; ++i)
+  for (uint64_t i = 0; i < columnCount; ++i)
   {
     AttrArray *column = instance.m_columns[columnIndices[i]];
     if (column != nullptr)
@@ -158,8 +158,9 @@ TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
   m_info = info;
 }
 
-TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
-               size_t columnCount, const SharedArray<const size_t> &filter) :
+TBlock::TBlock(const TBlock &instance, const uint64_t *columnIndices,
+               uint64_t columnCount,
+               const SharedArray<const uint64_t> &filter) :
   m_header(instance.m_header),
   m_columnCount(columnCount),
   m_columnInfos(new ColumnInfo[columnCount]),
@@ -173,9 +174,9 @@ TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
   info->columnTypes = new ListExpr[columnCount];
   info->columnFactories = new AttrArrayManager*[columnCount];
 
-  size_t size = sizeof(TBlock);
+  uint64_t size = sizeof(TBlock);
 
-  for (size_t i = 0; i < columnCount; ++i)
+  for (uint64_t i = 0; i < columnCount; ++i)
   {
     AttrArray *column = instance.m_columns[columnIndices[i]];
     if (column != nullptr)
@@ -207,7 +208,7 @@ TBlock::TBlock(const TBlock &instance, const size_t *columnIndices,
   m_info = info;
 }
 
-TBlock::TBlock(const TBlock &block, const SharedArray<const size_t> &filter) :
+TBlock::TBlock(const TBlock &block, const SharedArray<const uint64_t> &filter) :
   m_header(block.m_header),
   m_info(block.m_info),
   m_columnCount(block.m_columnCount),
@@ -217,7 +218,7 @@ TBlock::TBlock(const TBlock &block, const SharedArray<const size_t> &filter) :
   m_filter(*this, filter),
   m_refCount(1)
 {
-  for (size_t i = 0; i < m_columnCount; ++i)
+  for (uint64_t i = 0; i < m_columnCount; ++i)
   {
     AttrArray *column = block.m_columns[i];
 
@@ -240,7 +241,7 @@ TBlock::TBlock(const TBlock &block, const SharedArray<const size_t> &filter) :
 
 TBlock::~TBlock()
 {
-  for (size_t i = 0; i < m_columnCount; i++)
+  for (uint64_t i = 0; i < m_columnCount; i++)
   {
     if (m_columns[i] != nullptr)
     {
@@ -279,7 +280,7 @@ void TBlock::Save(Writer &target, bool includeHeader)
     target.WriteOrThrow(m_header);
   }
 
-  for (size_t i = 0; i < m_columnCount; i++)
+  for (uint64_t i = 0; i < m_columnCount; i++)
   {
     SmiRecordId &recordId = m_columnInfos[i].recordId;
 
@@ -291,7 +292,7 @@ void TBlock::Save(Writer &target, bool includeHeader)
 
   target.WriteOrThrow((char*)m_columnInfos, m_columnCount * sizeof(ColumnInfo));
 
-  for (size_t i = 0; i < m_columnCount; i++)
+  for (uint64_t i = 0; i < m_columnCount; i++)
   {
     AttrArray *column = m_columns[i];
 
@@ -322,7 +323,7 @@ void TBlock::DeleteRecords()
       OpenOrThrow(*m_columnFile, m_header.columnFileId);
     }
 
-    for (size_t i = 0; i < m_columnCount; i++)
+    for (uint64_t i = 0; i < m_columnCount; i++)
     {
       if (m_columns[i] == nullptr)
       {
@@ -362,7 +363,7 @@ void TBlock::DeleteRecords()
   }
   else if (m_header.flobFileId != 0)
   {
-    for (size_t i = 0; i < m_columnCount; i++)
+    for (uint64_t i = 0; i < m_columnCount; i++)
     {
       m_columns[i]->DeleteRecords();
 
@@ -378,28 +379,28 @@ void TBlock::DeleteRecords()
   }
 }
 
-size_t TBlock::GetColumnCount() const
+uint64_t TBlock::GetColumnCount() const
 {
   return m_columnCount;
 }
 
-size_t TBlock::GetRowCount() const
+uint64_t TBlock::GetRowCount() const
 {
   return m_header.rowCount;
 }
 
-size_t TBlock::GetSize() const
+uint64_t TBlock::GetSize() const
 {
   return m_header.size;
 }
 
 void TBlock::Append(const AttrArrayEntry* tuple)
 {
-  const size_t columnCount = m_columnCount;
+  const uint64_t columnCount = m_columnCount;
 
-  size_t size = sizeof(TBlock);
+  uint64_t size = sizeof(TBlock);
 
-  for (size_t i = 0; i < columnCount; i++)
+  for (uint64_t i = 0; i < columnCount; i++)
   {
     AttrArray &array = GetAt(i);
 
@@ -417,11 +418,11 @@ void TBlock::Append(const AttrArrayEntry* tuple)
 
 void TBlock::Append(Attribute** tuple)
 {
-  const size_t columnCount = m_columnCount;
+  const uint64_t columnCount = m_columnCount;
 
-  size_t size = sizeof(TBlock);
+  uint64_t size = sizeof(TBlock);
 
-  for (size_t i = 0; i < columnCount; i++)
+  for (uint64_t i = 0; i < columnCount; i++)
   {
     AttrArray &array = GetAt(i);
 
@@ -439,11 +440,11 @@ void TBlock::Append(Attribute** tuple)
 
 void TBlock::Append(const TBlockEntry &tuple)
 {
-  const size_t columnCount = m_columnCount;
+  const uint64_t columnCount = m_columnCount;
 
-  size_t size = sizeof(TBlock);
+  uint64_t size = sizeof(TBlock);
 
-  for (size_t i = 0; i < columnCount; i++)
+  for (uint64_t i = 0; i < columnCount; i++)
   {
     AttrArray &array = GetAt(i);
 
@@ -461,11 +462,11 @@ void TBlock::Append(const TBlockEntry &tuple)
 
 void TBlock::Append(const Tuple &tuple)
 {
-  const size_t columnCount = m_columnCount;
+  const uint64_t columnCount = m_columnCount;
 
-  size_t size = sizeof(TBlock);
+  uint64_t size = sizeof(TBlock);
 
-  for (size_t i = 0; i < columnCount; i++)
+  for (uint64_t i = 0; i < columnCount; i++)
   {
     AttrArray &array = GetAt(i);
 
@@ -481,7 +482,7 @@ void TBlock::Append(const Tuple &tuple)
   ++header.rowCount;
 }
 
-AttrArray &TBlock::GetAt(size_t index) const
+AttrArray &TBlock::GetAt(uint64_t index) const
 {
   AttrArray *column = m_columns[index];
 
@@ -528,7 +529,7 @@ AttrArray &TBlock::GetAt(size_t index) const
   return *column;
 }
 
-AttrArray &TBlock::operator[](size_t index) const
+AttrArray &TBlock::operator[](uint64_t index) const
 {
   return GetAt(index);
 }
@@ -561,7 +562,7 @@ void TBlock::DecRef() const
   }
 }
 
-size_t TBlock::GetRefCount() const
+uint64_t TBlock::GetRefCount() const
 {
   return m_refCount;
 }
@@ -584,7 +585,7 @@ TBlockInfo::TBlockInfo(ListExpr columnTypes) :
 {
   ListExpr types = columnTypes;
 
-  for (size_t i = 0; i < columnCount; ++i)
+  for (uint64_t i = 0; i < columnCount; ++i)
   {
     const ListExpr columnType = nl->First(types);
 
@@ -605,7 +606,7 @@ TBlockInfo::TBlockInfo(ListExpr columnTypes) :
 
 TBlockInfo::~TBlockInfo()
 {
-  for (size_t i = 0; i < columnCount; ++i)
+  for (uint64_t i = 0; i < columnCount; ++i)
   {
     columnFactories[i]->DecRef();
   }
@@ -632,8 +633,8 @@ TBlockHeader::TBlockHeader()
 {
 }
 
-TBlockHeader::TBlockHeader(size_t rowCount, size_t size, SmiFileId columnFileId,
-                           SmiFileId flobFileId) :
+TBlockHeader::TBlockHeader(uint64_t rowCount, uint64_t size,
+                           SmiFileId columnFileId, SmiFileId flobFileId) :
   rowCount(rowCount),
   size(size),
   columnFileId(columnFileId),

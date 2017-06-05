@@ -180,7 +180,7 @@ typename Filter<project>::State *Filter<project>::CreateState(ArgVector args,
 
   const TBlockTI blockType = TBlockTI(qp->GetType(s), false);
 
-  size_t *projection;
+  uint64_t *projection;
 
   double copyLimit;
 
@@ -189,9 +189,9 @@ typename Filter<project>::State *Filter<project>::CreateState(ArgVector args,
     const vector<Word> subArgVector =
       GetSubArgvector(args[qp->GetNoSons(s) - 1].addr);
 
-    projection = new size_t[subArgVector.size()];
+    projection = new uint64_t[subArgVector.size()];
 
-    size_t i = 0;
+    uint64_t i = 0;
 
     for (const Word &subArg : subArgVector)
     {
@@ -214,7 +214,7 @@ typename Filter<project>::State *Filter<project>::CreateState(ArgVector args,
 
 template<bool project>
 Filter<project>::State::State(Supplier stream, Supplier filter,
-                              const TBlockTI &blockType, size_t *projection,
+                              const TBlockTI &blockType, uint64_t *projection,
                               double copyLimit) :
   m_sourceBlock(nullptr),
   m_targetBlock(nullptr),
@@ -267,16 +267,16 @@ TBlock *Filter<project>::State::Request()
 
       m_filteredIndices = (LongInts*)filteredIndices.addr;
 
-      const size_t count = m_filteredIndices->GetCount();
+      const uint64_t count = m_filteredIndices->GetCount();
 
       if (count > 0)
       {
         if ((count / (double)m_sourceBlock->GetRowCount()) > m_copyLimit)
         {
-          SharedArray<size_t> filter(m_filteredIndices->GetCount());
+          SharedArray<uint64_t> filter(m_filteredIndices->GetCount());
 
-          size_t i = 0;
-          for (size_t filteredIndex :
+          uint64_t i = 0;
+          for (uint64_t filteredIndex :
               (SimpleFSAttrArray<LongIntEntry>&)*m_filteredIndices)
           {
             filter[i++] = filteredIndex;
@@ -307,7 +307,7 @@ TBlock *Filter<project>::State::Request()
     }
   }
 
-  const size_t desiredBlockSize = m_desiredBlockSize,
+  const uint64_t desiredBlockSize = m_desiredBlockSize,
     columnCount = m_blockInfo->columnCount;
 
   TBlock *target = m_targetBlock != nullptr ? m_targetBlock :
@@ -319,18 +319,18 @@ TBlock *Filter<project>::State::Request()
   {
     AttrArray *columns[columnCount];
 
-    for (size_t i = 0; i < columnCount; ++i)
+    for (uint64_t i = 0; i < columnCount; ++i)
     {
       columns[i] = &m_sourceBlock->GetAt(project ? m_projection[i] : i);
     }
 
-    const size_t filteredCount = m_filteredIndices->GetCount();
+    const uint64_t filteredCount = m_filteredIndices->GetCount();
 
-    for (size_t i = m_filteredIndex; i < filteredCount; ++i)
+    for (uint64_t i = m_filteredIndex; i < filteredCount; ++i)
     {
-      const size_t index = m_filteredIndices->GetAt(i).value;
+      const uint64_t index = m_filteredIndices->GetAt(i).value;
 
-      for (size_t j = 0; j < columnCount; ++j)
+      for (uint64_t j = 0; j < columnCount; ++j)
       {
         tuple[j] = columns[j]->GetAt(index);
       }
@@ -366,16 +366,16 @@ TBlock *Filter<project>::State::Request()
 
       m_filteredIndices = (LongInts*)filteredIndices.addr;
 
-      const size_t count = m_filteredIndices->GetCount();
+      const uint64_t count = m_filteredIndices->GetCount();
 
       if (count > 0)
       {
         if ((count / (double)m_sourceBlock->GetRowCount()) > m_copyLimit)
         {
-          SharedArray<size_t> filter(m_filteredIndices->GetCount());
+          SharedArray<uint64_t> filter(m_filteredIndices->GetCount());
 
-          size_t i = 0;
-          for (size_t filteredIndex :
+          uint64_t i = 0;
+          for (uint64_t filteredIndex :
               (SimpleFSAttrArray<LongIntEntry>&)*m_filteredIndices)
           {
             filter[i++] = filteredIndex;

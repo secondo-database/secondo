@@ -24,7 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ItSpatialJoin.h"
 
-#include <cstddef>
+#include <cstdint>
+#include <iostream>
 #include "ListExprUtils.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
@@ -43,6 +44,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace CRelAlgebra;
 using namespace CRelAlgebra::Operators;
 
+using std::cout;
 using std::set;
 using std::string;
 using std::vector;
@@ -160,7 +162,7 @@ ValueMapping ItSpatialJoin::valueMappings[] =
 
 ListExpr ItSpatialJoin::TypeMapping(ListExpr args)
 {
-  const size_t argCount = nl->ListLength(args);
+  const uint64_t argCount = nl->ListLength(args);
 
   if (argCount < 4 || argCount > 9)
   {
@@ -196,7 +198,7 @@ ListExpr ItSpatialJoin::TypeMapping(ListExpr args)
     return GetTypeError(2, "column-name a", error);
   }
 
-  size_t nameAIndex;
+  uint64_t nameAIndex;
 
   if (!GetIndexOfColumn(blockAInfo, nameA, nameAIndex))
   {
@@ -229,7 +231,7 @@ ListExpr ItSpatialJoin::TypeMapping(ListExpr args)
     return GetTypeError(3, "column-name b", error);
   }
 
-  size_t nameBIndex;
+  uint64_t nameBIndex;
 
   if (!GetIndexOfColumn(blockBInfo, nameB, nameBIndex))
   {
@@ -280,7 +282,7 @@ ListExpr ItSpatialJoin::TypeMapping(ListExpr args)
 
   //Check optional arguments
 
-  size_t argNo = 5;
+  uint64_t argNo = 5;
 
   ListExpr appendArgs = nl->TwoElemList(nl->IntAtom(nameAIndex),
                                         nl->IntAtom(nameBIndex));
@@ -417,7 +419,7 @@ int ItSpatialJoin::SelectValueMapping(ListExpr args)
     const TBlockTI blockInfo = TBlockTI(GetStreamType(nl->Nth(1 + i, args)),
                                         false);
 
-    size_t nameIndex;
+    uint64_t nameIndex;
 
     GetIndexOfColumn(blockInfo, nl->SymbolValue(nl->Nth(3 + i, args)),
                      nameIndex);
@@ -425,7 +427,7 @@ int ItSpatialJoin::SelectValueMapping(ListExpr args)
     TypeConstructor *typeConstructor =
       GetTypeConstructor(blockInfo.columnInfos[nameIndex].type);
 
-    const size_t inc = i == 0 ? 5 : 1;
+    const uint64_t inc = i == 0 ? 5 : 1;
 
     for (const string &kind : kinds)
     {
@@ -445,17 +447,17 @@ template<int dimA, int dimB, bool project>
 ItSpatialJoin::State<dimA, dimB, project> *ItSpatialJoin::CreateState(
   ArgVector args, Supplier s)
 {
-  const size_t argCount = qp->GetNoSons(s);
+  const uint64_t argCount = qp->GetNoSons(s);
 
   Supplier streamA = args[0].addr,
     streamB = args[1].addr;
 
-  size_t joinIndexA = ((CcInt*)args[argCount - 2].addr)->GetValue(),
+  uint64_t joinIndexA = ((CcInt*)args[argCount - 2].addr)->GetValue(),
     joinIndexB = ((CcInt*)args[argCount - 1].addr)->GetValue();
 
   const TBlockTI blockTypeInfo = TBlockTI(qp->GetType(s), false);
 
-  size_t columnCountA =
+  uint64_t columnCountA =
     TBlockTI(qp->GetType(streamA), false).columnInfos.size(),
     columnCountB = TBlockTI(qp->GetType(streamB), false).columnInfos.size();
 
@@ -478,11 +480,11 @@ ItSpatialJoin::State<dimA, dimB, project> *ItSpatialJoin::CreateState(
     vector<IndexProjection> tmpProjectionsA,
       tmpProjectionsB;
 
-    size_t index = 0;
+    uint64_t index = 0;
 
     for (const Word &subArg : GetSubArgvector(args[argCount - 3].addr))
     {
-      const size_t projectedIndex = ((CcInt*)subArg.addr)->GetValue();
+      const uint64_t projectedIndex = ((CcInt*)subArg.addr)->GetValue();
 
       if (projectedIndex < columnCountA)
       {
@@ -546,10 +548,10 @@ ItSpatialJoin::State<dimA, dimB, project> *ItSpatialJoin::CreateState(
 
 template<int dimA, int dimB, bool project>
 ItSpatialJoin::State<dimA, dimB, project>::State(
-  Supplier streamA, Supplier streamB, size_t joinIndexA, size_t joinIndexB,
-  size_t columnCountA, size_t columnCountB, IndexProjection *projectionsA,
-  IndexProjection *projectionsB, size_t nodeMin, size_t nodeMax,
-  size_t memLimit, const TBlockTI &blockTypeInfo) :
+  Supplier streamA, Supplier streamB, uint64_t joinIndexA, uint64_t joinIndexB,
+  uint64_t columnCountA, uint64_t columnCountB, IndexProjection *projectionsA,
+  IndexProjection *projectionsB, uint64_t nodeMin, uint64_t nodeMax,
+  uint64_t memLimit, const TBlockTI &blockTypeInfo) :
   m_joinIndexA(joinIndexA),
   m_joinIndexB(joinIndexB),
   m_columnCountA(columnCountA),
@@ -564,7 +566,8 @@ ItSpatialJoin::State<dimA, dimB, project>::State(
   m_blockInfo(blockTypeInfo.GetBlockInfo()),
   m_tuple(new AttrArrayEntry[blockTypeInfo.columnInfos.size()]),
   m_projectionsA(projectionsA),
-  m_projectionsB(projectionsB)
+  m_projectionsB(projectionsB),
+  m_iterations(0)
 {
   m_streamA.open();
   m_streamB.open();
@@ -597,6 +600,9 @@ ItSpatialJoin::State<dimA, dimB, project>::~State()
 
   m_streamA.close();
   m_streamB.close();
+
+  cout << "iterative spatial join finished with " << m_iterations
+       << " iterations\n";
 }
 
 template<int dimA, int dimB, bool project>
@@ -607,7 +613,7 @@ TBlock *ItSpatialJoin::State<dimA, dimB, project>::Request()
     return nullptr;
   }
 
-  const size_t columnCountA = m_columnCountA,
+  const uint64_t columnCountA = m_columnCountA,
     columnCountB = m_columnCountB;
 
   if (m_blockA == nullptr)
@@ -644,7 +650,7 @@ TBlock *ItSpatialJoin::State<dimA, dimB, project>::Request()
 
       if (m_mapResult.IsValid())
       {
-        for (size_t i = 0; i < columnCountA; ++i)
+        for (uint64_t i = 0; i < columnCountA; ++i)
         {
           if (project)
           {
@@ -675,13 +681,13 @@ TBlock *ItSpatialJoin::State<dimA, dimB, project>::Request()
 
           if ((m_blockA = m_streamA.request()) == nullptr)
           {
-            m_streamA.close();
-            m_streamA.open();
-
             if (!ProceedStreamB())
             {
               break;
             }
+
+            m_streamA.close();
+            m_streamA.open();
 
             if ((m_blockA = m_streamA.request()) == nullptr)
             {
@@ -716,7 +722,7 @@ TBlock *ItSpatialJoin::State<dimA, dimB, project>::Request()
 
       if (m_mapResult.IsValid())
       {
-        for (size_t i = 0; i < columnCountA; ++i)
+        for (uint64_t i = 0; i < columnCountA; ++i)
         {
           if (project)
           {
@@ -741,7 +747,7 @@ TBlock *ItSpatialJoin::State<dimA, dimB, project>::Request()
 
     const MapEntry tupleB = m_mapResult.GetValue();
 
-    for (size_t i = 0; i < columnCountB; ++i)
+    for (uint64_t i = 0; i < columnCountB; ++i)
     {
       if (project)
       {
@@ -780,7 +786,9 @@ bool ItSpatialJoin::State<dimA, dimB, project>::ProceedStreamB()
 
   if (!m_isBExhausted)
   {
-    size_t size = sizeof(ItSpatialJoin::State<dimA, dimB, project>),
+    ++m_iterations;
+
+    uint64_t size = sizeof(ItSpatialJoin::State<dimA, dimB, project>),
       rowCount = 0,
       lastBlockSize = 0;
 

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AttrArray.h"
 #include "Attribute.h"
-#include <cstddef>
+#include <cstdint>
 #include "NestedList.h"
 #include "ReadWrite.h"
 #include "RelationAlgebra.h"
@@ -52,7 +52,7 @@ namespace CRelAlgebra
   class TBlockHeader
   {
   public:
-    size_t rowCount,
+    uint64_t rowCount,
       size;
 
     SmiFileId columnFileId,
@@ -60,8 +60,8 @@ namespace CRelAlgebra
 
     TBlockHeader();
 
-    TBlockHeader(size_t rowCount, size_t size, SmiFileId columnFileId,
-            SmiFileId flobFileId);
+    TBlockHeader(uint64_t rowCount, uint64_t size,
+                 SmiFileId columnFileId, SmiFileId flobFileId);
 
     operator AttrArrayHeader() const;
   };
@@ -97,7 +97,7 @@ namespace CRelAlgebra
 
     */
     TBlockFilter(const TBlock &block,
-                 const SharedArray<const size_t> &filter) :
+                 const SharedArray<const uint64_t> &filter) :
       m_block(&block),
       m_filter(filter)
     {
@@ -108,11 +108,11 @@ namespace CRelAlgebra
     ~row~.
 
     */
-    size_t GetAt(size_t row) const
+    uint64_t GetAt(uint64_t row) const
     {
       return m_filter.IsNull() ? row : m_filter[row];
     }
-    size_t operator [] (size_t row) const
+    uint64_t operator [] (uint64_t row) const
     {
       return m_filter.IsNull() ? row : m_filter[row];
     }
@@ -121,7 +121,7 @@ namespace CRelAlgebra
     Returns number of row numbers contained in this ~TBlockFilter~.
 
     */
-    size_t GetRowCount() const;
+    uint64_t GetRowCount() const;
 
     /*
     Returns a iterator over the ~TBlock~'s tuples taking this
@@ -143,7 +143,7 @@ namespace CRelAlgebra
 
     const TBlock * const m_block;
 
-    const SharedArray<const size_t> m_filter;
+    const SharedArray<const uint64_t> m_filter;
   };
 
   /*
@@ -171,7 +171,8 @@ namespace CRelAlgebra
     ~include~ header determines if ~TBlockHeader~ data should be included.
 
     */
-    static size_t GetSaveSize(size_t columnCount, bool includeHeader = true);
+    static uint64_t GetSaveSize(uint64_t columnCount,
+                                bool includeHeader = true);
 
     /*
     Creates a ~TBlock~ parameterized by a ~TBlockInfo~ and the provided column-
@@ -224,8 +225,8 @@ namespace CRelAlgebra
     God knows what might happen if one trys to actually modify or save it.
 
     */
-    TBlock(const TBlock &block, const size_t *columnIndices,
-           size_t columnCount);
+    TBlock(const TBlock &block, const uint64_t *columnIndices,
+           uint64_t columnCount);
 
     /*
     Creates the projection of a existing ~block~ and applies a filter to it.
@@ -237,15 +238,15 @@ namespace CRelAlgebra
     God knows what might happen if one trys to actually modify or save it.
 
     */
-    TBlock(const TBlock &block, const size_t *columnIndices, size_t columnCount,
-           const SharedArray<const size_t> &filter);
+    TBlock(const TBlock &block, const uint64_t *columnIndices,
+           uint64_t columnCount, const SharedArray<const uint64_t> &filter);
 
     /*
     Creates filtered ~TBlock~ from the passed ~block~.
     The rows to include are specified by ~filter~.
 
     */
-    TBlock(const TBlock &block, const SharedArray<const size_t> &filter);
+    TBlock(const TBlock &block, const SharedArray<const uint64_t> &filter);
 
     virtual ~TBlock();
 
@@ -278,19 +279,19 @@ namespace CRelAlgebra
     Returns the number of columns of this ~TBlock~.
 
     */
-    size_t GetColumnCount() const;
+    uint64_t GetColumnCount() const;
 
     /*
     Returns the number of tuples in this ~TBlock~.
 
     */
-    size_t GetRowCount() const;
+    uint64_t GetRowCount() const;
 
     /*
     Returns the size of this ~TBlock~ in bytes.
 
     */
-    size_t GetSize() const;
+    uint64_t GetSize() const;
 
     /*
     Appends a tuple to this tuple-block.
@@ -341,8 +342,8 @@ namespace CRelAlgebra
     Accesses the column with the specified ~index~
 
     */
-    AttrArray &GetAt(size_t index) const;
-    AttrArray &operator[](size_t index) const;
+    AttrArray &GetAt(uint64_t index) const;
+    AttrArray &operator[](uint64_t index) const;
 
     /*
     Returns a ~TBlockIterator~ over this tuple-block's tuples.
@@ -376,13 +377,13 @@ namespace CRelAlgebra
     Returns the reference count.
 
     */
-    size_t GetRefCount() const;
+    uint64_t GetRefCount() const;
 
   private:
     class ColumnInfo
     {
     public:
-      size_t size;
+      uint64_t size;
 
       SmiRecordId recordId;
     };
@@ -393,7 +394,7 @@ namespace CRelAlgebra
 
     //The count of tuples in this block.
     //Corresponds the count of attributes in each block.
-    const size_t m_columnCount;
+    const uint64_t m_columnCount;
 
     ColumnInfo *m_columnInfos;
 
@@ -404,12 +405,12 @@ namespace CRelAlgebra
 
     TBlockFilter m_filter;
 
-    mutable size_t m_refCount;
+    mutable uint64_t m_refCount;
 
     TBlock(const TBlock&) = delete;
   };
 
-  inline size_t TBlockFilter::GetRowCount() const
+  inline uint64_t TBlockFilter::GetRowCount() const
   {
     return m_filter.IsNull() ? m_block->GetRowCount() : m_filter.GetCapacity();
   }
@@ -422,7 +423,7 @@ namespace CRelAlgebra
   class TBlockInfo
   {
   public:
-    size_t columnCount;
+    uint64_t columnCount;
 
     ListExpr *columnTypes,
       *columnAttributeTypes;
@@ -461,13 +462,13 @@ namespace CRelAlgebra
     {
     }
 
-    TBlockEntry(const TBlock *block, size_t row) :
+    TBlockEntry(const TBlock *block, uint64_t row) :
       m_block(block),
       m_row(row)
     {
     }
 
-    size_t GetRow() const
+    uint64_t GetRow() const
     {
       return m_row;
     }
@@ -477,7 +478,7 @@ namespace CRelAlgebra
       return m_block;
     }
 
-    const AttrArrayEntry operator[](size_t index) const
+    const AttrArrayEntry operator[](uint64_t index) const
     {
       return AttrArrayEntry(&m_block->GetAt(index), m_row);
     }
@@ -495,7 +496,7 @@ namespace CRelAlgebra
   private:
     const TBlock *m_block;
 
-    size_t m_row;
+    uint64_t m_row;
 
     friend class TBlockIterator;
     friend class FilteredTBlockIterator;
@@ -580,7 +581,7 @@ namespace CRelAlgebra
   private:
     TBlockEntry m_tuple;
 
-    size_t m_rowCount;
+    uint64_t m_rowCount;
   };
 
   class FilteredTBlockIterator
@@ -662,7 +663,7 @@ namespace CRelAlgebra
   private:
     const TBlockFilter * m_filter;
 
-    size_t m_rowCount,
+    uint64_t m_rowCount,
       m_row;
 
     TBlockEntry m_tuple;

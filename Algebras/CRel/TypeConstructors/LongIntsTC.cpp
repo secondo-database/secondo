@@ -100,13 +100,13 @@ void LongIntsTC::Delete(const ListExpr typeExpr, Word &value)
   return DefaultDelete(typeExpr, value);
 }
 
-bool LongIntsTC::Open(SmiRecord &valueRecord, size_t &offset,
+bool LongIntsTC::Open(SmiRecord &valueRecord, uint64_t &offset,
                   const ListExpr typeExpr, Word &value)
 {
   return DefaultOpen(valueRecord, offset, typeExpr, value);
 }
 
-bool LongIntsTC::Save(SmiRecord &valueRecord, size_t &offset,
+bool LongIntsTC::Save(SmiRecord &valueRecord, uint64_t &offset,
                   const ListExpr typeExpr, Word &value)
 {
   return DefaultSave(valueRecord, offset, typeExpr, value);

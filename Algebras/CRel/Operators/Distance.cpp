@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Distance.h"
 
 #include "AttrArray.h"
-#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
@@ -179,9 +179,9 @@ int Distance::RectangleValueMapping(ArgVector args, Word &result,
     }
     else
     {
-      const size_t count = values.GetCount();
+      const uint64_t count = values.GetCount();
 
-      for (size_t i = 0; i < count; ++i)
+      for (uint64_t i = 0; i < count; ++i)
       {
         distances.Append(distance);
       }

@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include "SecondoException.h"
 #include "SecondoSMI.h"
@@ -34,12 +34,12 @@ namespace CRelAlgebra
   class Reader
   {
   public:
-    virtual size_t GetPosition() = 0;
-    virtual void SetPosition(size_t position) = 0;
+    virtual uint64_t GetPosition() = 0;
+    virtual void SetPosition(uint64_t position) = 0;
 
-    virtual bool Read(char *target, size_t count) = 0;
+    virtual bool Read(char *target, uint64_t count) = 0;
 
-    inline void ReadOrThrow(char *target, size_t count)
+    inline void ReadOrThrow(char *target, uint64_t count)
     {
       if (!Read(target, count))
       {
@@ -75,12 +75,12 @@ namespace CRelAlgebra
   class Writer
   {
   public:
-    virtual size_t GetPosition() = 0;
-    virtual void SetPosition(size_t position) = 0;
+    virtual uint64_t GetPosition() = 0;
+    virtual void SetPosition(uint64_t position) = 0;
 
-    virtual bool Write(char *source, size_t count) = 0;
+    virtual bool Write(char *source, uint64_t count) = 0;
 
-    inline void WriteOrThrow(char *source, size_t count)
+    inline void WriteOrThrow(char *source, uint64_t count)
     {
       if (!Write(source, count))
       {
@@ -107,23 +107,23 @@ namespace CRelAlgebra
   class BufferReader : public Reader
   {
   public:
-    BufferReader(char *buffer, size_t offset) :
+    BufferReader(char *buffer, uint64_t offset) :
       m_offset(offset),
       m_buffer(buffer)
     {
     }
 
-    virtual inline size_t GetPosition()
+    virtual inline uint64_t GetPosition()
     {
       return m_offset;
     }
 
-    virtual inline void SetPosition(size_t position)
+    virtual inline void SetPosition(uint64_t position)
     {
       m_offset = position;
     }
 
-    virtual inline bool Read(char *target, size_t count)
+    virtual inline bool Read(char *target, uint64_t count)
     {
       memcpy(target, m_buffer + m_offset, count);
 
@@ -133,7 +133,7 @@ namespace CRelAlgebra
     }
 
   private:
-    size_t m_offset;
+    uint64_t m_offset;
 
     char *m_buffer;
   };
@@ -141,23 +141,23 @@ namespace CRelAlgebra
   class BufferWriter : public Writer
   {
   public:
-    BufferWriter(char *buffer, size_t offset) :
+    BufferWriter(char *buffer, uint64_t offset) :
       m_offset(offset),
       m_buffer(buffer)
     {
     }
 
-    virtual inline size_t GetPosition()
+    virtual inline uint64_t GetPosition()
     {
       return m_offset;
     }
 
-    virtual inline void SetPosition(size_t position)
+    virtual inline void SetPosition(uint64_t position)
     {
       m_offset = position;
     }
 
-    virtual inline bool Write(char *source, size_t count)
+    virtual inline bool Write(char *source, uint64_t count)
     {
       memcpy(m_buffer + m_offset, source, count);
 
@@ -167,7 +167,7 @@ namespace CRelAlgebra
     }
 
   private:
-    size_t m_offset;
+    uint64_t m_offset;
 
     char *m_buffer;
   };
@@ -175,23 +175,23 @@ namespace CRelAlgebra
   class BufferReadWriter : public Reader, public Writer
   {
   public:
-    BufferReadWriter(char *buffer, size_t offset) :
+    BufferReadWriter(char *buffer, uint64_t offset) :
       m_offset(offset),
       m_buffer(buffer)
     {
     }
 
-    virtual inline size_t GetPosition()
+    virtual inline uint64_t GetPosition()
     {
       return m_offset;
     }
 
-    virtual inline void SetPosition(size_t position)
+    virtual inline void SetPosition(uint64_t position)
     {
       m_offset = position;
     }
 
-    virtual inline bool Read(char *target, size_t count)
+    virtual inline bool Read(char *target, uint64_t count)
     {
       memcpy(target, m_buffer + m_offset, count);
 
@@ -200,7 +200,7 @@ namespace CRelAlgebra
       return true;
     }
 
-    virtual inline bool Write(char *source, size_t count)
+    virtual inline bool Write(char *source, uint64_t count)
     {
       memcpy(m_buffer + m_offset, source, count);
 
@@ -210,7 +210,7 @@ namespace CRelAlgebra
     }
 
   private:
-    size_t m_offset;
+    uint64_t m_offset;
 
     char *m_buffer;
   };
@@ -218,25 +218,25 @@ namespace CRelAlgebra
   class SmiReader : public Reader
   {
   public:
-    SmiReader(SmiRecord &record, size_t offset) :
+    SmiReader(SmiRecord &record, uint64_t offset) :
       m_offset(offset),
       m_record(record)
     {
     }
 
-    virtual inline size_t GetPosition()
+    virtual inline uint64_t GetPosition()
     {
       return m_offset;
     }
 
-    virtual inline void SetPosition(size_t position)
+    virtual inline void SetPosition(uint64_t position)
     {
       m_offset = position;
     }
 
-    virtual inline bool Read(char *target, size_t count)
+    virtual inline bool Read(char *target, uint64_t count)
     {
-      size_t read = m_record.Read(target, count, m_offset);
+      uint64_t read = m_record.Read(target, count, m_offset);
 
       m_offset += read;
 
@@ -244,7 +244,7 @@ namespace CRelAlgebra
     }
 
   private:
-    size_t m_offset;
+    uint64_t m_offset;
 
     SmiRecord &m_record;
   };
@@ -252,25 +252,25 @@ namespace CRelAlgebra
   class SmiWriter : public Writer
   {
   public:
-    SmiWriter(SmiRecord &record, size_t offset) :
+    SmiWriter(SmiRecord &record, uint64_t offset) :
       m_offset(offset),
       m_record(record)
     {
     }
 
-    virtual inline size_t GetPosition()
+    virtual inline uint64_t GetPosition()
     {
       return m_offset;
     }
 
-    virtual inline void SetPosition(size_t position)
+    virtual inline void SetPosition(uint64_t position)
     {
       m_offset = position;
     }
 
-    virtual inline bool Write(char *source, size_t count)
+    virtual inline bool Write(char *source, uint64_t count)
     {
-      size_t written = m_record.Write(source, count, m_offset);
+      uint64_t written = m_record.Write(source, count, m_offset);
 
       m_offset += written;
 
@@ -278,7 +278,7 @@ namespace CRelAlgebra
     }
 
   private:
-    size_t m_offset;
+    uint64_t m_offset;
 
     SmiRecord &m_record;
   };
@@ -286,34 +286,34 @@ namespace CRelAlgebra
   class SmiReadWriter : public Reader, public Writer
   {
   public:
-    SmiReadWriter(SmiRecord &record, size_t offset) :
+    SmiReadWriter(SmiRecord &record, uint64_t offset) :
       m_offset(offset),
       m_record(record)
     {
     }
 
-    virtual inline size_t GetPosition()
+    virtual inline uint64_t GetPosition()
     {
       return m_offset;
     }
 
-    virtual inline void SetPosition(size_t position)
+    virtual inline void SetPosition(uint64_t position)
     {
       m_offset = position;
     }
 
-    virtual inline bool Read(char *target, size_t count)
+    virtual inline bool Read(char *target, uint64_t count)
     {
-      size_t read = m_record.Read(target, count, m_offset);
+      uint64_t read = m_record.Read(target, count, m_offset);
 
       m_offset += read;
 
       return read == count;
     }
 
-    virtual inline bool Write(char *source, size_t count)
+    virtual inline bool Write(char *source, uint64_t count)
     {
-      size_t written = m_record.Write(source, count, m_offset);
+      uint64_t written = m_record.Write(source, count, m_offset);
 
       m_offset += written;
 
@@ -321,7 +321,7 @@ namespace CRelAlgebra
     }
 
   private:
-    size_t m_offset;
+    uint64_t m_offset;
 
     SmiRecord &m_record;
   };

@@ -32,16 +32,15 @@ using std::string;
 
 //CRel--------------------------------------------------------------------------
 
-CRel::CRel(const PTBlockInfo &blockInfo, size_t desiredBlockSize,
-           size_t cacheSize) :
+CRel::CRel(const PTBlockInfo &blockInfo, uint64_t desiredBlockSize,
+           uint64_t cacheSize) :
   m_blockInfo(blockInfo),
-  m_columnCount(blockInfo->columnCount),
   m_desiredBlockSize(desiredBlockSize),
   m_rowCount(0),
   m_blockCount(0),
   m_nextBlockIndex(0),
   m_recordCount(0),
-  m_blockRecordEntrySize(TBlock::GetSaveSize(m_columnCount, false) +
+  m_blockRecordEntrySize(TBlock::GetSaveSize(blockInfo->columnCount, false) +
                          sizeof(BlockHeader)),
   m_blockRecordEntryCount((BlockRecord::sizeLimit + m_blockRecordEntrySize - 1)
                           / m_blockRecordEntrySize),
@@ -57,15 +56,14 @@ CRel::CRel(const PTBlockInfo &blockInfo, size_t desiredBlockSize,
   m_columnFileId = m_columnFile->GetFileId();
 }
 
-CRel::CRel(const PTBlockInfo &blockInfo, size_t cacheSize, Reader &source) :
+CRel::CRel(const PTBlockInfo &blockInfo, uint64_t cacheSize, Reader &source) :
   m_blockInfo(blockInfo),
-  m_columnCount(blockInfo->columnCount),
-  m_desiredBlockSize(source.ReadOrThrow<size_t>()),
-  m_rowCount(source.ReadOrThrow<size_t>()),
-  m_blockCount(source.ReadOrThrow<size_t>()),
-  m_nextBlockIndex(source.ReadOrThrow<size_t>()),
-  m_recordCount(m_blockCount),
-  m_blockRecordEntrySize(TBlock::GetSaveSize(m_columnCount, false) +
+  m_desiredBlockSize(source.ReadOrThrow<uint64_t>()),
+  m_rowCount(source.ReadOrThrow<uint64_t>()),
+  m_blockCount(source.ReadOrThrow<uint64_t>()),
+  m_nextBlockIndex(source.ReadOrThrow<uint64_t>()),
+  m_recordCount(source.ReadOrThrow<uint64_t>()),
+  m_blockRecordEntrySize(TBlock::GetSaveSize(blockInfo->columnCount, false) +
                          sizeof(BlockHeader)),
   m_blockRecordEntryCount((BlockRecord::sizeLimit + m_blockRecordEntrySize - 1)
                           / m_blockRecordEntrySize),
@@ -86,25 +84,10 @@ CRel::~CRel()
   {
     if (m_blockRecord.modified)
     {
-      size_t offset = 0;
+      uint64_t offset = 0;
 
-      if (m_recordCount > m_blockRecord.index)
-      {
-        WriteOrThrow(m_blockFile, m_blockRecord.index + 1, m_blockRecord.data,
-                     m_blockRecordSize, offset);
-      }
-      else
-      {
-        SmiRecord record;
-
-        do
-        {
-          AppendOrThrow(m_blockFile, record);
-        }
-        while (++m_recordCount <= m_blockRecord.index);
-
-        WriteOrThrow(record, m_blockRecord.data, m_blockRecordSize, offset);
-      }
+      WriteOrThrow(m_blockFile, m_blockRecord.index + 1, m_blockRecord.data,
+                    m_blockRecordSize, offset);
     }
   }
 
@@ -116,7 +99,7 @@ CRel::~CRel()
     {
       do
       {
-        size_t index;
+        uint64_t index;
         BlockCacheEntry &entry = iterator.GetValue(index);
 
         if (entry.modified)
@@ -137,7 +120,7 @@ CRel::~CRel()
     {
       do
       {
-        size_t index;
+        uint64_t index;
         iterator.GetValue(index).block->DecRef();
       }
       while (iterator.MoveToNext());
@@ -157,20 +140,13 @@ const PTBlockInfo &CRel::GetBlockInfo() const
 
 void CRel::Save(Writer &target)
 {
-  target.WriteOrThrow(m_desiredBlockSize);
-  target.WriteOrThrow(m_rowCount);
-  target.WriteOrThrow(m_blockCount);
-  target.WriteOrThrow(m_nextBlockIndex);
-  target.WriteOrThrow(m_blockFileId);
-  target.WriteOrThrow(m_columnFileId);
-
   LRUCache<BlockCacheEntry>::Iterator iterator(m_blockCache);
 
   if (iterator.IsValid())
   {
     do
     {
-      size_t index;
+      uint64_t index;
       BlockCacheEntry &entry = iterator.GetValue(index);
 
       if (entry.modified)
@@ -181,6 +157,15 @@ void CRel::Save(Writer &target)
     }
     while (iterator.MoveToNext());
   }
+
+  target.WriteOrThrow(m_desiredBlockSize);
+  target.WriteOrThrow(m_rowCount);
+  target.WriteOrThrow(m_blockCount);
+  target.WriteOrThrow(m_nextBlockIndex);
+  //It is important to write the m_recordCount AFTER saving the tupleblocks
+  target.WriteOrThrow(m_recordCount);
+  target.WriteOrThrow(m_blockFileId);
+  target.WriteOrThrow(m_columnFileId);
 }
 
 void CRel::Clear()
@@ -191,7 +176,7 @@ void CRel::Clear()
   {
     do
     {
-      size_t index;
+      uint64_t index;
       iterator.GetValue(index).block->DecRef();
     }
     while (iterator.MoveToNext());
@@ -256,27 +241,27 @@ void CRel::DeleteFiles()
   m_columnFileId = 0;
 }
 
-size_t CRel::GetColumnCount() const
+uint64_t CRel::GetColumnCount() const
 {
-  return m_columnCount;
+  return m_blockInfo->columnCount;
 }
 
-size_t CRel::GetRowCount() const
+uint64_t CRel::GetRowCount() const
 {
   return m_rowCount;
 }
 
-size_t CRel::GetBlockCount() const
+uint64_t CRel::GetBlockCount() const
 {
   return m_blockCount;
 }
 
-size_t CRel::GetDesiredBlockSize() const
+uint64_t CRel::GetDesiredBlockSize() const
 {
   return m_desiredBlockSize;
 }
 
-size_t CRel::GetCacheSize() const
+uint64_t CRel::GetCacheSize() const
 {
   return m_blockCache.GetSize();
 }
@@ -301,9 +286,9 @@ void CRel::Append(const Tuple &tuple)
   TAppend<const Tuple&>(tuple);
 }
 
-TBlock &CRel::GetBlock(size_t index) const
+TBlock &CRel::GetBlock(uint64_t index) const
 {
-  size_t replacedIndex;
+  uint64_t replacedIndex;
   BlockCacheEntry &entry = m_blockCache.Get(index, replacedIndex);
 
   if (replacedIndex != index)
@@ -352,7 +337,7 @@ void CRel::TAppend(T tuple)
 {
   TBlock *block;
 
-  size_t index = m_nextBlockIndex,
+  uint64_t index = m_nextBlockIndex,
     replacedIndex;
 
   if (index < m_blockCount)
@@ -392,11 +377,11 @@ void CRel::TAppend(T tuple)
   ++m_rowCount;
 }
 
-TBlock *CRel::LoadBlock(size_t index) const
+TBlock *CRel::LoadBlock(uint64_t index) const
 {
   BlockRecord &blockRecord = GetBlockRecord(index);
 
-  const size_t offset =
+  const uint64_t offset =
     (index % m_blockRecordEntryCount) * m_blockRecordEntrySize;
 
   BufferReader source(blockRecord.data, offset);
@@ -407,13 +392,13 @@ TBlock *CRel::LoadBlock(size_t index) const
                     source, m_columnFile);
 }
 
-void CRel::SaveBlock(size_t index, TBlock &block) const
+void CRel::SaveBlock(uint64_t index, TBlock &block) const
 {
   BlockRecord &blockRecord = GetBlockRecord(index);
 
   blockRecord.modified = true;
 
-  const size_t offset =
+  const uint64_t offset =
     (index % m_blockRecordEntryCount) * m_blockRecordEntrySize;
 
   BufferWriter target(blockRecord.data, offset);
@@ -424,9 +409,9 @@ void CRel::SaveBlock(size_t index, TBlock &block) const
 }
 
 
-CRel::BlockRecord &CRel::GetBlockRecord(size_t blockIndex) const
+CRel::BlockRecord &CRel::GetBlockRecord(uint64_t blockIndex) const
 {
-  const size_t recordIndex = blockIndex / m_blockRecordEntryCount;
+  const uint64_t recordIndex = blockIndex / m_blockRecordEntryCount;
 
   BlockRecord &blockRecord = m_blockRecord;
 
@@ -434,25 +419,10 @@ CRel::BlockRecord &CRel::GetBlockRecord(size_t blockIndex) const
   {
     if (blockRecord.modified)
     {
-      size_t offset = 0;
+      uint64_t offset = 0;
 
-      if (m_recordCount > blockRecord.index)
-      {
-        WriteOrThrow(m_blockFile, blockRecord.index + 1, blockRecord.data,
-                    m_blockRecordSize, offset);
-      }
-      else
-      {
-        SmiRecord record;
-
-        do
-        {
-          AppendOrThrow(m_blockFile, record);
-        }
-        while (++m_recordCount <= blockRecord.index);
-
-        WriteOrThrow(record, blockRecord.data, m_blockRecordSize, offset);
-      }
+      WriteOrThrow(m_blockFile, blockRecord.index + 1, blockRecord.data,
+                   m_blockRecordSize, offset);
     }
 
     delete[] blockRecord.data;
@@ -462,7 +432,7 @@ CRel::BlockRecord &CRel::GetBlockRecord(size_t blockIndex) const
 
   if (blockRecord.data == nullptr)
   {
-    size_t offset = 0;
+    uint64_t offset = 0;
 
     blockRecord.index = recordIndex;
 
@@ -476,6 +446,14 @@ CRel::BlockRecord &CRel::GetBlockRecord(size_t blockIndex) const
     else
     {
       blockRecord.data = new char[m_blockRecordSize];
+
+      SmiRecord record;
+
+      do
+      {
+        AppendOrThrow(m_blockFile, record);
+      }
+      while (++m_recordCount <= recordIndex);
     }
   }
 

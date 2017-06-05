@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <algorithm>
 #include "AttrArray.h"
-#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include "Ints.h"
 #include "LongInt.h"
@@ -157,11 +157,11 @@ int Not::TBlockValueMapping(ArgVector args, Word &result, int, Word&,
 
     setInversion.Clear();
 
-    const size_t countA = filter.GetRowCount();
+    const uint64_t countA = filter.GetRowCount();
 
     if (countA > 0)
     {
-      size_t indexA = 0;
+      uint64_t indexA = 0;
 
       for (int64_t b : set)
       {
@@ -203,11 +203,11 @@ int Not::AttrArrayValueMapping(ArgVector args, Word &result, int, Word&,
 
     setInversion.Clear();
 
-    const size_t countA = filter.GetCount();
+    const uint64_t countA = filter.GetCount();
 
     if (countA > 0)
     {
-      size_t indexA = 0;
+      uint64_t indexA = 0;
 
       for (int64_t b : set)
       {

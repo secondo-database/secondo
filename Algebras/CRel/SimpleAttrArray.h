@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <algorithm>
 #include "AttrArray.h"
 #include "Attribute.h"
-#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include "NestedList.h"
 #include "ReadWrite.h"
@@ -64,18 +64,18 @@ namespace CRelAlgebra
     }
 
     SimpleFSAttrArray(Reader &source) :
-      SimpleFSAttrArray(source, source.ReadOrThrow<size_t>())
+      SimpleFSAttrArray(source, source.ReadOrThrow<uint64_t>())
     {
     }
 
-    SimpleFSAttrArray(Reader &source, size_t rowCount) :
+    SimpleFSAttrArray(Reader &source, uint64_t rowCount) :
       m_count(rowCount),
       m_size(sizeof(SimpleFSAttrArray) + (rowCount * sizeof(T))),
       m_capacity(rowCount),
       m_data(rowCount * sizeof(T)),
       m_values((T*)m_data.GetPointer())
     {
-      const size_t size = m_data.GetCapacity();
+      const uint64_t size = m_data.GetCapacity();
 
       if (size > 0)
       {
@@ -84,7 +84,7 @@ namespace CRelAlgebra
     }
 
     SimpleFSAttrArray(const SimpleFSAttrArray &array,
-                      const SharedArray<const size_t> &filter) :
+                      const SharedArray<const uint64_t> &filter) :
       AttrArray(filter),
       m_count(array.m_count),
       m_size(array.m_size),
@@ -98,17 +98,17 @@ namespace CRelAlgebra
     {
     }
 
-    virtual AttrArray *Filter(SharedArray<const size_t> filter) const
+    virtual AttrArray *Filter(SharedArray<const uint64_t> filter) const
     {
       return new SimpleFSAttrArray<T>(*this, filter);
     }
 
-    virtual size_t GetCount() const
+    virtual uint64_t GetCount() const
     {
       return m_count;
     }
 
-    virtual size_t GetSize() const
+    virtual uint64_t GetSize() const
     {
       return m_size;
     }
@@ -126,7 +126,7 @@ namespace CRelAlgebra
       }
     }
 
-    virtual void Append(const AttrArray &array, size_t row)
+    virtual void Append(const AttrArray &array, uint64_t row)
     {
       Append(((SimpleFSAttrArray<T>&)array).m_values[row]);
     }
@@ -138,7 +138,7 @@ namespace CRelAlgebra
 
     void Append(const T &value)
     {
-      size_t capacity = m_capacity,
+      uint64_t capacity = m_capacity,
         count = m_count++;
 
       T *values;
@@ -155,7 +155,7 @@ namespace CRelAlgebra
         }
         else
         {
-          const size_t newCapacity = capacity + capacity,
+          const uint64_t newCapacity = capacity + capacity,
             newByteCapacity = newCapacity * sizeof(T);
 
           char *data = new char[newByteCapacity];
@@ -192,77 +192,79 @@ namespace CRelAlgebra
       m_size = sizeof(SimpleFSAttrArray);
     }
 
-    const T &GetAt(size_t index) const
+    const T &GetAt(uint64_t index) const
     {
       return m_values[index];
     }
 
-    const T &operator[](size_t index) const
+    const T &operator[](uint64_t index) const
     {
       return m_values[index];
     }
 
-    virtual bool IsDefined(size_t row) const
+    virtual bool IsDefined(uint64_t row) const
     {
       return m_values[row].IsDefined();
     }
 
-    virtual int Compare(size_t rowA, const AttrArray &arrayB, size_t rowB) const
+    virtual int Compare(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const
     {
       const T &value = ((SimpleFSAttrArray<T>&)arrayB).m_values[rowB];
 
       return m_values[rowA].Compare(value);
     }
 
-    virtual int Compare(size_t row, Attribute &value) const
+    virtual int Compare(uint64_t row, Attribute &value) const
     {
       return m_values[row].Compare((AttributeType&)value);
     }
 
-    virtual int CompareAlmost(size_t rowA, const AttrArray &arrayB,
-                              size_t rowB) const
+    virtual int CompareAlmost(uint64_t rowA, const AttrArray &arrayB,
+                              uint64_t rowB) const
     {
       const T &value = ((const SimpleFSAttrArray<T>&)arrayB).GetAt(rowB);
 
       return TCompareAlmost(GetAt(rowA), value);
     }
 
-    virtual int CompareAlmost(size_t row, Attribute &value) const
+    virtual int CompareAlmost(uint64_t row, Attribute &value) const
     {
       return TCompareAlmost(GetAt(row), (const AttributeType&)value);
     }
 
-    virtual bool Equals(size_t rowA, const AttrArray &arrayB, size_t rowB) const
+    virtual bool Equals(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const
     {
       const T &value = ((SimpleFSAttrArray<T>&)arrayB).m_values[rowB];
 
       return m_values[rowA].Equals(value);
     }
 
-    virtual bool Equals(size_t row, Attribute &value) const
+    virtual bool Equals(uint64_t row, Attribute &value) const
     {
       return m_values[row].Equals((AttributeType&)value);
     }
 
-    virtual bool EqualsAlmost(size_t rowA, const AttrArray &arrayB,
-                              size_t rowB) const
+    virtual bool EqualsAlmost(uint64_t rowA, const AttrArray &arrayB,
+                              uint64_t rowB) const
     {
       const T &value = ((const SimpleFSAttrArray<T>&)arrayB).GetAt(rowB);
 
       return TEqualsAlmost(GetAt(rowA), value);
     }
 
-    virtual bool EqualsAlmost(size_t row, Attribute &value) const
+    virtual bool EqualsAlmost(uint64_t row, Attribute &value) const
     {
       return TEqualsAlmost(GetAt(row), (const AttributeType&)value);
     }
 
-    virtual size_t GetHash(size_t row) const
+    virtual uint64_t GetHash(uint64_t row) const
     {
       return m_values[row].GetHash();
     }
 
-    virtual Attribute *GetAttribute(size_t row, bool clone = true) const
+    virtual Attribute *GetAttribute(uint64_t row, bool clone = true) const
     {
       return GetAt(row).GetAttribute(clone);
     }
@@ -285,7 +287,7 @@ namespace CRelAlgebra
   private:
     friend class SimpleFSAttrArrayIterator<T>;
 
-    size_t m_count,
+    uint64_t m_count,
       m_size,
       m_capacity;
 
@@ -412,7 +414,7 @@ namespace CRelAlgebra
   public:
     char *data;
 
-    size_t size;
+    uint64_t size;
   };
 
   template <class T>
@@ -433,14 +435,14 @@ namespace CRelAlgebra
     {
     }
 
-    SimpleVSAttrArray(Reader &source, size_t rowCount) :
+    SimpleVSAttrArray(Reader &source, uint64_t rowCount) :
       SimpleVSAttrArray(source,
-                        Header({rowCount, source.ReadOrThrow<size_t>()}))
+                        Header({rowCount, source.ReadOrThrow<uint64_t>()}))
     {
     }
 
     SimpleVSAttrArray(const SimpleVSAttrArray &array,
-                      const SharedArray<const size_t> &filter) :
+                      const SharedArray<const uint64_t> &filter) :
       AttrArray(filter),
       m_header(array.m_header),
       m_data(array.m_data),
@@ -454,27 +456,27 @@ namespace CRelAlgebra
     {
     }
 
-    virtual AttrArray *Filter(SharedArray<const size_t> filter) const
+    virtual AttrArray *Filter(SharedArray<const uint64_t> filter) const
     {
       return new SimpleVSAttrArray<T>(*this, filter);
     }
 
-    const T GetAt(size_t index) const
+    const T GetAt(uint64_t index) const
     {
       return T(GetEntry(index));
     }
 
-    const T operator [](size_t index) const
+    const T operator [](uint64_t index) const
     {
       return T(GetEntry(index));
     }
 
-    virtual size_t GetCount() const
+    virtual uint64_t GetCount() const
     {
       return m_header.count;
     }
 
-    virtual size_t GetSize() const
+    virtual uint64_t GetSize() const
     {
       return m_size;
     }
@@ -494,11 +496,11 @@ namespace CRelAlgebra
       {
         target.WriteOrThrow(m_data.GetPointer(), m_header.dataSize);
         target.WriteOrThrow((char*)m_positions.GetPointer(),
-                            m_header.count * sizeof(size_t));
+                            m_header.count * sizeof(uint64_t));
       }
     }
 
-    virtual void Append(const AttrArray &array, size_t row)
+    virtual void Append(const AttrArray &array, uint64_t row)
     {
       const SimpleVSAttrArrayEntry source =
         ((const SimpleVSAttrArray<T>&)array).GetEntry(row),
@@ -516,12 +518,12 @@ namespace CRelAlgebra
 
     virtual void Remove()
     {
-      const size_t oldDataSize = m_header.dataSize,
+      const uint64_t oldDataSize = m_header.dataSize,
         newDataSize = m_positions[--m_header.count];
 
       m_header.dataSize = newDataSize;
 
-      m_size -= (oldDataSize - newDataSize) + sizeof(size_t);
+      m_size -= (oldDataSize - newDataSize) + sizeof(uint64_t);
 
       m_dataEnd = m_data.GetPointer() + newDataSize;
     }
@@ -534,67 +536,69 @@ namespace CRelAlgebra
       m_dataEnd = m_data.GetPointer();
     }
 
-    virtual bool IsDefined(size_t row) const
+    virtual bool IsDefined(uint64_t row) const
     {
       return GetAt(row).IsDefined();
     }
 
-    virtual int Compare(size_t rowA, const AttrArray &arrayB, size_t rowB) const
+    virtual int Compare(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const
     {
       const T &value = ((const SimpleVSAttrArray<T>&)arrayB).GetAt(rowB);
 
       return GetAt(rowA).Compare(value);
     }
 
-    virtual int Compare(size_t row, Attribute &value) const
+    virtual int Compare(uint64_t row, Attribute &value) const
     {
       return GetAt(row).Compare((AttributeType&)value);
     }
 
-    virtual int CompareAlmost(size_t rowA, const AttrArray &arrayB,
-                              size_t rowB) const
+    virtual int CompareAlmost(uint64_t rowA, const AttrArray &arrayB,
+                              uint64_t rowB) const
     {
       const T &value = ((const SimpleVSAttrArray<T>&)arrayB).GetAt(rowB);
 
       return TCompareAlmost(GetAt(rowA), value);
     }
 
-    virtual int CompareAlmost(size_t row, Attribute &value) const
+    virtual int CompareAlmost(uint64_t row, Attribute &value) const
     {
       return TCompareAlmost(GetAt(row), (const AttributeType&)value);
     }
 
-    virtual bool Equals(size_t rowA, const AttrArray &arrayB, size_t rowB) const
+    virtual bool Equals(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const
     {
       const T &value = ((const SimpleVSAttrArray<T>&)arrayB).GetAt(rowB);
 
       return GetAt(rowA).Equals(value);
     }
 
-    virtual bool Equals(size_t row, Attribute &value) const
+    virtual bool Equals(uint64_t row, Attribute &value) const
     {
       return GetAt(row).Equals((AttributeType&)value);
     }
 
-    virtual bool EqualsAlmost(size_t rowA, const AttrArray &arrayB,
-                              size_t rowB) const
+    virtual bool EqualsAlmost(uint64_t rowA, const AttrArray &arrayB,
+                              uint64_t rowB) const
     {
       const T &value = ((const SimpleVSAttrArray<T>&)arrayB).GetAt(rowB);
 
       return TEqualsAlmost(GetAt(rowA), value);
     }
 
-    virtual bool EqualsAlmost(size_t row, Attribute &value) const
+    virtual bool EqualsAlmost(uint64_t row, Attribute &value) const
     {
       return TEqualsAlmost(GetAt(row), (const AttributeType&)value);
     }
 
-    virtual size_t GetHash(size_t row) const
+    virtual uint64_t GetHash(uint64_t row) const
     {
       return GetAt(row).GetHash();
     }
 
-    virtual Attribute *GetAttribute(size_t row, bool clone = true) const
+    virtual Attribute *GetAttribute(uint64_t row, bool clone = true) const
     {
       return GetAt(row).GetAttribute(clone);
     }
@@ -603,7 +607,7 @@ namespace CRelAlgebra
     class Header
     {
     public:
-      size_t count,
+      uint64_t count,
         dataSize;
     };
 
@@ -613,9 +617,9 @@ namespace CRelAlgebra
 
     char* m_dataEnd;
 
-    SharedArray<size_t> m_positions;
+    SharedArray<uint64_t> m_positions;
 
-    size_t m_size;
+    uint64_t m_size;
 
     SimpleVSAttrArray(Reader &source, const Header &header) :
       m_header(header),
@@ -623,14 +627,14 @@ namespace CRelAlgebra
       m_dataEnd(m_data.GetPointer() + header.dataSize),
       m_positions(header.count),
       m_size(sizeof(SimpleVSAttrArray) + header.dataSize +
-             (header.count * sizeof(size_t)))
+             (header.count * sizeof(uint64_t)))
     {
       char * data = m_data.GetPointer();
-      size_t * positions = m_positions.GetPointer();
+      uint64_t * positions = m_positions.GetPointer();
 
       source.ReadOrThrow(data, m_data.GetCapacity());
       source.ReadOrThrow((char*)positions,
-                         m_positions.GetCapacity() * sizeof(size_t));
+                         m_positions.GetCapacity() * sizeof(uint64_t));
     }
 
     SimpleVSAttrArray(const SimpleVSAttrArray &instance) = delete;
@@ -663,9 +667,9 @@ namespace CRelAlgebra
       return entry.Equals(value);
     }
 
-    SimpleVSAttrArrayEntry GetEntry(size_t row) const
+    SimpleVSAttrArrayEntry GetEntry(uint64_t row) const
     {
-      const size_t position = m_positions[row],
+      const uint64_t position = m_positions[row],
         nextRow = row + 1,
         size = nextRow < m_header.count ? m_positions[nextRow] - position :
                                           m_header.dataSize - position;
@@ -673,9 +677,9 @@ namespace CRelAlgebra
       return {m_data.GetPointer() + position, size};
     }
 
-    SimpleVSAttrArrayEntry AppendEntry(const size_t valueSize)
+    SimpleVSAttrArrayEntry AppendEntry(const uint64_t valueSize)
     {
-      const size_t dataSize = m_header.dataSize,
+      const uint64_t dataSize = m_header.dataSize,
         count = m_header.count++,
         capacity = m_data.GetCapacity(),
         freeCapacity = capacity - dataSize;
@@ -686,20 +690,20 @@ namespace CRelAlgebra
       {
         if (count == 0)
         {
-          m_positions = SharedArray<size_t>(1);
+          m_positions = SharedArray<uint64_t>(1);
           m_positions[0] = 0;
         }
         else
         {
-          const size_t newCapacity = count + count;
+          const uint64_t newCapacity = count + count;
 
-          size_t *positions = new size_t[newCapacity];
+          uint64_t *positions = new uint64_t[newCapacity];
 
           positions[count] = dataSize;
 
-          memcpy(positions, m_positions.GetPointer(), count * sizeof(size_t));
+          memcpy(positions, m_positions.GetPointer(), count * sizeof(uint64_t));
 
-          m_positions = SharedArray<size_t>(positions, newCapacity);
+          m_positions = SharedArray<uint64_t>(positions, newCapacity);
         }
       }
       else
@@ -712,7 +716,7 @@ namespace CRelAlgebra
       //Provide space for the new value
       if (freeCapacity < valueSize)
       {
-        const size_t diffCapacity = valueSize - freeCapacity,
+        const uint64_t diffCapacity = valueSize - freeCapacity,
           newCapacity = capacity == 0 ?
             diffCapacity : capacity + std::max(capacity, diffCapacity);
 
@@ -734,7 +738,7 @@ namespace CRelAlgebra
 
       m_header.dataSize = dataSize + valueSize;
       m_dataEnd = dataEnd + valueSize;
-      m_size += valueSize + sizeof(size_t);
+      m_size += valueSize + sizeof(uint64_t);
 
       return {dataEnd, valueSize};
     }
@@ -753,13 +757,13 @@ namespace CRelAlgebra
     {
     }
 
-    SimpleSpatialVSAttrArray(Reader &source, size_t rowCount) :
+    SimpleSpatialVSAttrArray(Reader &source, uint64_t rowCount) :
       m_array(source, rowCount)
     {
     }
 
     SimpleSpatialVSAttrArray(const SimpleSpatialVSAttrArray &array,
-                             const SharedArray<const size_t> &filter) :
+                             const SharedArray<const uint64_t> &filter) :
       m_array(array.m_array, filter)
     {
     }
@@ -768,27 +772,27 @@ namespace CRelAlgebra
     {
     }
 
-    virtual AttrArray *Filter(SharedArray<const size_t> filter) const
+    virtual AttrArray *Filter(SharedArray<const uint64_t> filter) const
     {
       return new SimpleSpatialVSAttrArray<T>(*this, filter);
     }
 
-    const T GetAt(size_t index) const
+    const T GetAt(uint64_t index) const
     {
       return m_array.GetAt(index);
     }
 
-    const T operator [](size_t index) const
+    const T operator [](uint64_t index) const
     {
       return m_array.GetAt(index);
     }
 
-    virtual size_t GetCount() const
+    virtual uint64_t GetCount() const
     {
       return m_array.GetCount();
     }
 
-    virtual size_t GetSize() const
+    virtual uint64_t GetSize() const
     {
       return m_array.GetSize();
     }
@@ -798,7 +802,7 @@ namespace CRelAlgebra
       m_array.Save(target, includeHeader);
     }
 
-    virtual void Append(const AttrArray &array, size_t row)
+    virtual void Append(const AttrArray &array, uint64_t row)
     {
       m_array.Append(((const SimpleSpatialVSAttrArray<T>&)array).m_array, row);
     }
@@ -818,64 +822,67 @@ namespace CRelAlgebra
       m_array.Clear();
     }
 
-    virtual bool IsDefined(size_t row) const
+    virtual bool IsDefined(uint64_t row) const
     {
       return m_array.IsDefined(row);
     }
 
-    virtual int Compare(size_t rowA, const AttrArray &arrayB, size_t rowB) const
+    virtual int Compare(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const
     {
       return m_array.Compare(rowA,
                              ((const SimpleSpatialVSAttrArray&)arrayB).m_array,
                              rowB);
     }
 
-    virtual int Compare(size_t row, Attribute &value) const
+    virtual int Compare(uint64_t row, Attribute &value) const
     {
       return m_array.Compare(row, value);
     }
 
-    virtual bool Equals(size_t rowA, const AttrArray &arrayB, size_t rowB) const
+    virtual bool Equals(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const
     {
       return m_array.Equals(rowA,
                             ((const SimpleSpatialVSAttrArray&)arrayB).m_array,
                             rowB);
     }
 
-    virtual bool Equals(size_t row, Attribute &value) const
+    virtual bool Equals(uint64_t row, Attribute &value) const
     {
       return m_array.Equals(row, value);
     }
 
-    virtual size_t GetHash(size_t row) const
+    virtual uint64_t GetHash(uint64_t row) const
     {
       return m_array.GetAt(row).GetHash();
     }
 
-    virtual Attribute *GetAttribute(size_t row, bool clone = true) const
+    virtual Attribute *GetAttribute(uint64_t row, bool clone = true) const
     {
       return m_array.GetAt(row).GetAttribute(clone);
     }
 
     virtual Rectangle<T::dimension> GetBoundingBox(
-      size_t row, const Geoid *geoid = nullptr) const
+      uint64_t row, const Geoid *geoid = nullptr) const
     {
       return m_array.GetAt(row).GetBoundingBox();
     }
 
-    virtual double GetDistance(size_t row, const Rectangle<T::dimension>& rect,
+    virtual double GetDistance(uint64_t row,
+                               const Rectangle<T::dimension>& rect,
                                const Geoid *geoid = nullptr) const
     {
       return m_array.GetAt(row).GetDistance(rect, geoid);
     }
 
-    virtual bool Intersects(size_t row, const Rectangle<T::dimension>& rect,
+    virtual bool Intersects(uint64_t row, const Rectangle<T::dimension>& rect,
                             const Geoid *geoid = nullptr) const
     {
       return m_array.GetAt(row).Intersects(rect, geoid);
     }
 
-    virtual bool IsEmpty(size_t row) const
+    virtual bool IsEmpty(uint64_t row) const
     {
       return m_array.GetAt(row).IsEmpty();
     }

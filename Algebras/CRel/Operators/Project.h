@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include "AlgebraTypes.h"
-#include <cstddef>
+#include <cstdint>
 #include "NestedList.h"
 #include "Operator.h"
 #include "SecondoSMI.h"
@@ -53,7 +53,7 @@ namespace CRelAlgebra
 
         const TBlockTI &GetBlockTypeInfo() const;
 
-        const std::vector<size_t> &GetIndices() const;
+        const std::vector<uint64_t> &GetIndices() const;
 
         ListExpr GetIndicesExpr() const;
 
@@ -62,7 +62,7 @@ namespace CRelAlgebra
       private:
         TBlockTI m_blockTypeInfo;
 
-        std::vector<size_t> m_indices;
+        std::vector<uint64_t> m_indices;
 
         std::string m_error;
       };
@@ -82,7 +82,7 @@ namespace CRelAlgebra
       private:
         Stream<TBlock> m_stream;
 
-        std::vector<size_t> m_indices;
+        std::vector<uint64_t> m_indices;
       };
 
       static const OperatorInfo info;

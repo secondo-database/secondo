@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Compare.h"
 
 #include "AttrArray.h"
-#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include "GAttrArray.h"
 #include "GAttrArrayTC.h"

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AttrArray.h"
 #include "AlgebraTypes.h"
-#include <cstddef>
+#include <cstdint>
 #include "GAttrArray.h"
 #include "NestedList.h"
 #include "SecondoSMI.h"
@@ -81,10 +81,10 @@ namespace CRelAlgebra
 
     static void Delete(const ListExpr typeExpr, Word &value);
 
-    static bool Open(SmiRecord &valueRecord, size_t &offset,
+    static bool Open(SmiRecord &valueRecord, uint64_t &offset,
                      const ListExpr typeExpr, Word &value);
 
-    static bool Save(SmiRecord &valueRecord, size_t &offset,
+    static bool Save(SmiRecord &valueRecord, uint64_t &offset,
                      const ListExpr typeExpr, Word &value);
 
     static void Close(const ListExpr typeExpr, Word &value);

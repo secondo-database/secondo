@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ToTuples.h"
 
-#include <cstddef>
+#include <cstdint>
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
@@ -127,8 +127,8 @@ Tuple *ToTuples::State::Request()
   const TBlockEntry &blockTuple = m_blockIterator.Get();
   Tuple *tuple = new Tuple(m_tupleType);
 
-  const size_t columnCount = m_block->GetColumnCount();
-  for (size_t i = 0; i < columnCount; ++i)
+  const uint64_t columnCount = m_block->GetColumnCount();
+  for (uint64_t i = 0; i < columnCount; ++i)
   {
     Attribute *attribute = blockTuple[i].GetAttribute(true);
 

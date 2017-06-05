@@ -32,9 +32,9 @@ using namespace CRelAlgebra;
 using stringutils::any2str;
 
 void CRelAlgebra::WriteOrThrow(SmiRecordFile &target, SmiRecordId recordId,
-                               char *source, size_t count, size_t &offset)
+                               char *source, uint64_t count, uint64_t &offset)
 {
-  size_t writtenCount;
+  uint64_t writtenCount;
 
   target.Write(recordId, source, count, offset, writtenCount);
 
@@ -48,10 +48,10 @@ void CRelAlgebra::WriteOrThrow(SmiRecordFile &target, SmiRecordId recordId,
   }
 }
 
-void CRelAlgebra::WriteOrThrow(SmiRecord &target, char *source, size_t count,
-                               size_t &offset)
+void CRelAlgebra::WriteOrThrow(SmiRecord &target, char *source, uint64_t count,
+                               uint64_t &offset)
 {
-  size_t writtenCount = target.Write(source, count, offset);
+  uint64_t writtenCount = target.Write(source, count, offset);
 
   if (writtenCount != count)
   {
@@ -64,10 +64,10 @@ void CRelAlgebra::WriteOrThrow(SmiRecord &target, char *source, size_t count,
 }
 
 void CRelAlgebra::ReadOrThrow(char *target, SmiRecordFile &source,
-                              SmiRecordId recordId, size_t count,
-                              size_t &offset)
+                              SmiRecordId recordId, uint64_t count,
+                              uint64_t &offset)
 {
-  size_t readCount;
+  uint64_t readCount;
 
   source.Read(recordId, target, count, offset, readCount);
 
@@ -81,10 +81,10 @@ void CRelAlgebra::ReadOrThrow(char *target, SmiRecordFile &source,
   }
 }
 
-void CRelAlgebra::ReadOrThrow(char *target, SmiRecord &source, size_t count,
-                              size_t &offset)
+void CRelAlgebra::ReadOrThrow(char *target, SmiRecord &source, uint64_t count,
+                              uint64_t &offset)
 {
-  size_t readCount = source.Read(target, count, offset);
+  uint64_t readCount = source.Read(target, count, offset);
 
   if (readCount != count)
   {
@@ -97,9 +97,9 @@ void CRelAlgebra::ReadOrThrow(char *target, SmiRecord &source, size_t count,
 }
 
 char *CRelAlgebra::ReadOrThrow(SmiRecordFile &source, SmiRecordId recordId,
-                               size_t count, size_t &offset)
+                               uint64_t count, uint64_t &offset)
 {
-  size_t readCount;
+  uint64_t readCount;
 
   char *target = new char[count];
 
@@ -119,10 +119,11 @@ char *CRelAlgebra::ReadOrThrow(SmiRecordFile &source, SmiRecordId recordId,
   }
 }
 
-char *CRelAlgebra::ReadOrThrow(SmiRecord &source, size_t count, size_t &offset)
+char *CRelAlgebra::ReadOrThrow(SmiRecord &source, uint64_t count,
+                               uint64_t &offset)
 {
   char *target = new char[count];
-  size_t readCount = source.Read(target, count, offset);
+  uint64_t readCount = source.Read(target, count, offset);
 
   if (readCount != count)
   {

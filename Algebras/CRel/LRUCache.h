@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include <cstddef>
+#include <cstdint>
 #include "TBlock.h"
 
 namespace CRelAlgebra
@@ -38,7 +38,7 @@ namespace CRelAlgebra
     public:
       T value;
 
-      size_t key;
+      uint64_t key;
 
       Entry *next,
         *previous,
@@ -72,7 +72,7 @@ namespace CRelAlgebra
       {
       }
 
-      T &GetValue(size_t &key)
+      T &GetValue(uint64_t &key)
       {
         key = m_entry->key;
 
@@ -103,10 +103,10 @@ namespace CRelAlgebra
         *m_end;
     };
 
-    LRUCache(size_t maxCount) :
+    LRUCache(uint64_t maxCount) :
       m_count(0)
     {
-      size_t size = 2,
+      uint64_t size = 2,
         hash = ~0;
 
       while (size <= maxCount && size != 0)
@@ -136,7 +136,7 @@ namespace CRelAlgebra
 
       m_map = new Entry*[size];
 
-      for (size_t i = 0; i < size; i++)
+      for (uint64_t i = 0; i < size; i++)
       {
         m_map[i] = nullptr;
       }
@@ -148,7 +148,7 @@ namespace CRelAlgebra
       delete[] m_entries;
     }
 
-    T &Get(size_t key, size_t &recycledKey)
+    T &Get(uint64_t key, uint64_t &recycledKey)
     {
       if (m_mru->key == key)
       {
@@ -156,7 +156,7 @@ namespace CRelAlgebra
         return m_mru->value;
       }
 
-      const size_t hash = key & m_hash;
+      const uint64_t hash = key & m_hash;
 
       Entry *entry = m_map[hash],
         *previous,
@@ -286,7 +286,7 @@ namespace CRelAlgebra
       return entry->value;
     }
 
-    bool TryGet(size_t key, const T &value) const
+    bool TryGet(uint64_t key, const T &value) const
     {
       Entry *entry(m_map[m_hash & key]);
 
@@ -309,12 +309,12 @@ namespace CRelAlgebra
       return false;
     }
 
-    size_t GetCount() const
+    uint64_t GetCount() const
     {
       return m_count;
     }
 
-    size_t GetSize() const
+    uint64_t GetSize() const
     {
       return m_size;
     }
@@ -327,7 +327,7 @@ namespace CRelAlgebra
 
     Entry** m_map;
 
-    size_t m_size,
+    uint64_t m_size,
       m_hash,
       m_count;
 

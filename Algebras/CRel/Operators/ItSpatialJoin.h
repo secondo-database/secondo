@@ -48,14 +48,14 @@ namespace CRelAlgebra
       class IndexProjection
       {
       public:
-        size_t index,
+        uint64_t index,
           projection;
 
         IndexProjection()
         {
         }
 
-        IndexProjection(size_t index, size_t projection) :
+        IndexProjection(uint64_t index, uint64_t projection) :
           index(index),
           projection(projection)
         {
@@ -66,10 +66,10 @@ namespace CRelAlgebra
       class State
       {
       public:
-        State(Supplier streamA, Supplier streamB, size_t joinIndexA,
-              size_t joinIndexB, size_t columnCountA, size_t columnCountB,
+        State(Supplier streamA, Supplier streamB, uint64_t joinIndexA,
+              uint64_t joinIndexB, uint64_t columnCountA, uint64_t columnCountB,
               IndexProjection *projectionsA, IndexProjection *projectionsB,
-              size_t nodeMin, size_t nodeMax, size_t memLimit,
+              uint64_t nodeMin, uint64_t nodeMax, uint64_t memLimit,
               const TBlockTI &blockTypeInfo);
 
         ~State();
@@ -112,7 +112,7 @@ namespace CRelAlgebra
           const MapEntry *m_current;
         };
 
-        const size_t m_joinIndexA,
+        const uint64_t m_joinIndexA,
           m_joinIndexB,
           m_columnCountA,
           m_columnCountB,
@@ -140,6 +140,8 @@ namespace CRelAlgebra
 
         const IndexProjection * const m_projectionsA,
           * const m_projectionsB;
+
+        uint64_t m_iterations;
 
         bool ProceedStreamB();
       };

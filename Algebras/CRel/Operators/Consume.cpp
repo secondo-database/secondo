@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "CRel.h"
 #include "CRelTC.h"
-#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include "LogMsg.h"
 #include "OperatorUtils.h"

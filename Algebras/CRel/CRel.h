@@ -67,8 +67,8 @@ namespace CRelAlgebra
     blocks to cache.
 
     */
-    CRel(const PTBlockInfo &blockInfo, size_t desiredBlockSize,
-        size_t cacheSize);
+    CRel(const PTBlockInfo &blockInfo, uint64_t desiredBlockSize,
+        uint64_t cacheSize);
 
     /*
     Creates a ~CRel~ using ~TBlock~s specified by ~blockInfo~ and ~cacheSize~
@@ -80,7 +80,7 @@ namespace CRelAlgebra
                   ~blockInfo~
 
     */
-    CRel(const PTBlockInfo &blockInfo, size_t cacheSize, Reader &source);
+    CRel(const PTBlockInfo &blockInfo, uint64_t cacheSize, Reader &source);
 
     /*
     Destroys this ~CRel~ instance.
@@ -119,31 +119,31 @@ namespace CRelAlgebra
     Returns the number of columns of this ~CRel~.
 
     */
-    size_t GetColumnCount() const;
+    uint64_t GetColumnCount() const;
 
     /*
     Returns the number of tuples in this ~CRel~.
 
     */
-    size_t GetRowCount() const;
+    uint64_t GetRowCount() const;
 
     /*
     Returns the number of tuple-blocks in this ~CRel~.
 
     */
-    size_t GetBlockCount() const;
+    uint64_t GetBlockCount() const;
 
     /*
     Returns the desired block size of this ~CRel~.
 
     */
-    size_t GetDesiredBlockSize() const;
+    uint64_t GetDesiredBlockSize() const;
 
     /*
     Returns the maximum number of tuple blocks cached by this ~CRel~.
 
     */
-    size_t GetCacheSize() const;
+    uint64_t GetCacheSize() const;
 
     /*
     Appends a tuple to this relation.
@@ -194,7 +194,7 @@ namespace CRelAlgebra
     Accesses a tuple block by it's ~index~.
 
     */
-    TBlock &GetBlock(size_t index) const;
+    TBlock &GetBlock(uint64_t index) const;
 
     /*
     Returns a ~CRelIterator~ over this relation's tuples.
@@ -240,7 +240,7 @@ namespace CRelAlgebra
     class BlockHeader
     {
     public:
-      size_t rowCount,
+      uint64_t rowCount,
         size;
 
       BlockHeader();
@@ -260,9 +260,9 @@ namespace CRelAlgebra
     class BlockRecord
     {
     public:
-      static const size_t sizeLimit = 1024 * 1024;
+      static const uint64_t sizeLimit = 1024 * 1024;
 
-      size_t index;
+      uint64_t index;
 
       char *data;
 
@@ -277,16 +277,15 @@ namespace CRelAlgebra
 
     PTBlockInfo m_blockInfo;
 
-    const size_t m_columnCount,
-      m_desiredBlockSize;
+    const uint64_t m_desiredBlockSize;
 
-    size_t m_rowCount,
+    uint64_t m_rowCount,
       m_blockCount,
       m_nextBlockIndex;
 
-    mutable size_t m_recordCount;
+    mutable uint64_t m_recordCount;
 
-    const size_t m_blockRecordEntrySize,
+    const uint64_t m_blockRecordEntrySize,
       m_blockRecordEntryCount,
       m_blockRecordSize;
 
@@ -319,20 +318,20 @@ namespace CRelAlgebra
     Saves a ~TBlock~ with the provided ~index~.
 
     */
-    void SaveBlock(size_t index, TBlock &block) const;
+    void SaveBlock(uint64_t index, TBlock &block) const;
 
     /*
     Restores a ~TBlock~ with the provided ~index~.
 
     */
-    TBlock *LoadBlock(size_t index) const;
+    TBlock *LoadBlock(uint64_t index) const;
 
     /*
     Gets the ~BlockRecord~ containing the metadata for the requested
     ~blockIndex~.
 
     */
-    BlockRecord &GetBlockRecord(size_t blockIndex) const;
+    BlockRecord &GetBlockRecord(uint64_t blockIndex) const;
   };
 
   /*
@@ -434,7 +433,7 @@ namespace CRelAlgebra
 
     TBlock *m_block;
 
-    size_t m_index;
+    uint64_t m_index;
   };
 
   /*

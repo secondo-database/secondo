@@ -24,12 +24,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 namespace CRelAlgebra
 {
-  template<class K, class V, size_t(*hash)(const K&),
+  template<class K, class V, uint64_t(*hash)(const K&),
            int(*compare)(const K&, const K&)>
   class SortedHashMap
   {
@@ -85,13 +85,13 @@ namespace CRelAlgebra
       Node *m_node;
     };
 
-    SortedHashMap(size_t bucketCount) :
+    SortedHashMap(uint64_t bucketCount) :
       m_bucketCount(bucketCount),
       m_count(0),
       m_nodePool(nullptr),
       m_buckets(new Node*[bucketCount])
     {
-      for (size_t i = 0; i < bucketCount; ++i)
+      for (uint64_t i = 0; i < bucketCount; ++i)
       {
         m_buckets[i] = nullptr;
       }
@@ -99,7 +99,7 @@ namespace CRelAlgebra
 
     ~SortedHashMap()
     {
-      for (size_t i = 0, j = 0; i < m_bucketCount && j < m_count; ++i)
+      for (uint64_t i = 0, j = 0; i < m_bucketCount && j < m_count; ++i)
       {
         Node *node = m_buckets[i];
 
@@ -214,7 +214,7 @@ namespace CRelAlgebra
 
     void Clear()
     {
-      for (size_t i = 0, j = 0; i < m_bucketCount && j < m_count; ++i)
+      for (uint64_t i = 0, j = 0; i < m_bucketCount && j < m_count; ++i)
       {
         Node *&bucket = m_buckets[i];
 
@@ -243,26 +243,26 @@ namespace CRelAlgebra
       m_count = 0;
     }
 
-    size_t GetCount() const
+    uint64_t GetCount() const
     {
       return m_count;
     }
 
-    size_t GetBucketCount() const
+    uint64_t GetBucketCount() const
     {
       return m_bucketCount;
     }
 
   private:
-    const size_t m_bucketCount;
+    const uint64_t m_bucketCount;
 
-    size_t m_count;
+    uint64_t m_count;
 
     Node* m_nodePool,
       ** m_buckets;
   };
 
-  template<class K, class V, size_t(*hash)(const K&),
+  template<class K, class V, uint64_t(*hash)(const K&),
           bool(*equals)(const K&, const K&)>
   class HashMap
   {
@@ -296,9 +296,9 @@ namespace CRelAlgebra
       {
         if (bucket != nullptr)
         {
-          const size_t bucketSize = bucket->size();
+          const uint64_t bucketSize = bucket->size();
 
-          for (size_t i = 0; i < bucketSize; ++i)
+          for (uint64_t i = 0; i < bucketSize; ++i)
           {
             if (equals(key, bucket->at(i).key))
             {
@@ -328,7 +328,7 @@ namespace CRelAlgebra
       {
         if (m_bucket != nullptr)
         {
-          for (size_t i = m_index + 1; i < m_bucketSize; ++i)
+          for (uint64_t i = m_index + 1; i < m_bucketSize; ++i)
           {
             if (equals(m_key, m_bucket->at(i).key))
             {
@@ -349,17 +349,17 @@ namespace CRelAlgebra
 
       K m_key;
 
-      size_t m_index,
+      uint64_t m_index,
         m_bucketSize;
     };
 
-    HashMap(size_t bucketCount) :
+    HashMap(uint64_t bucketCount) :
       m_bucketCount(bucketCount),
       m_count(0),
       m_size(sizeof(HashMap<K, V, hash, equals>)),
       m_buckets(new Bucket*[bucketCount])
     {
-      for (size_t i = 0; i < bucketCount; ++i)
+      for (uint64_t i = 0; i < bucketCount; ++i)
       {
         m_buckets[i] = nullptr;
       }
@@ -369,7 +369,7 @@ namespace CRelAlgebra
 
     ~HashMap()
     {
-      for (size_t i = 0, j = 0; i < m_bucketCount && j < m_count; ++i)
+      for (uint64_t i = 0, j = 0; i < m_bucketCount && j < m_count; ++i)
       {
         Bucket *bucket = m_buckets[i];
 
@@ -379,8 +379,8 @@ namespace CRelAlgebra
         }
       }
 
-      const size_t bucketPoolSize = m_bucketPool.size();
-      for (size_t i = 0; i < bucketPoolSize; ++i)
+      const uint64_t bucketPoolSize = m_bucketPool.size();
+      for (uint64_t i = 0; i < bucketPoolSize; ++i)
       {
         delete m_bucketPool[i];
       }
@@ -425,7 +425,7 @@ namespace CRelAlgebra
 
     void Clear()
     {
-      for (size_t i = 0, j = 0; i < m_bucketCount && j < m_count; ++i)
+      for (uint64_t i = 0, j = 0; i < m_bucketCount && j < m_count; ++i)
       {
         Bucket *&bucket = m_buckets[i];
 
@@ -448,25 +448,25 @@ namespace CRelAlgebra
                ((sizeof(Bucket) + sizeof(Bucket*)) * m_bucketPool.size());
     }
 
-    size_t GetCount() const
+    uint64_t GetCount() const
     {
       return m_count;
     }
 
-    size_t GetBucketCount() const
+    uint64_t GetBucketCount() const
     {
       return m_bucketCount;
     }
 
-    size_t GetSize() const
+    uint64_t GetSize() const
     {
       return m_size;
     }
 
   private:
-    const size_t m_bucketCount;
+    const uint64_t m_bucketCount;
 
-    size_t m_count,
+    uint64_t m_count,
       m_size;
 
     std::vector<Bucket*> m_bucketPool;

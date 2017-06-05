@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include <cstddef>
+#include <cstdint>
 #include <cstring>
 
 namespace CRelAlgebra
@@ -63,7 +63,7 @@ namespace CRelAlgebra
       {
         if (m_refCount == nullptr)
         {
-          m_refCount = new size_t(2);
+          m_refCount = new uint64_t(2);
           instance.m_refCount = m_refCount;
         }
         else
@@ -82,7 +82,7 @@ namespace CRelAlgebra
       {
         if (m_refCount == nullptr)
         {
-          m_refCount = new size_t(2);
+          m_refCount = new uint64_t(2);
           instance.m_refCount = m_refCount;
         }
         else
@@ -122,7 +122,7 @@ namespace CRelAlgebra
       return m_instance == nullptr;
     }
 
-    size_t GetCount()
+    uint64_t GetCount()
     {
       return m_refCount != nullptr ? *m_refCount : 1;
     }
@@ -165,7 +165,7 @@ namespace CRelAlgebra
 
     T *m_instance;
 
-    mutable size_t *m_refCount;
+    mutable uint64_t *m_refCount;
   };
 
   /*
@@ -184,14 +184,14 @@ namespace CRelAlgebra
     {
     };
 
-    SharedArray(size_t capacity) :
+    SharedArray(uint64_t capacity) :
       m_instance(capacity > 0 ? new T[capacity] : nullptr),
       m_capacity(capacity),
       m_refCount(nullptr)
     {
     };
 
-    SharedArray(size_t capacity, T *source, size_t count) :
+    SharedArray(uint64_t capacity, T *source, uint64_t count) :
       m_instance(capacity > 0 ? new T[capacity] : nullptr),
       m_capacity(capacity),
       m_refCount(nullptr)
@@ -202,7 +202,7 @@ namespace CRelAlgebra
       }
     };
 
-    SharedArray(T *instance, size_t capacity) :
+    SharedArray(T *instance, uint64_t capacity) :
       m_instance(instance),
       m_capacity(capacity),
       m_refCount(nullptr)
@@ -220,7 +220,7 @@ namespace CRelAlgebra
       }
       else
       {
-        m_refCount = instance.m_refCount = new size_t(2);
+        m_refCount = instance.m_refCount = new uint64_t(2);
       }
     }
 
@@ -236,7 +236,7 @@ namespace CRelAlgebra
       }
       else
       {
-        m_refCount = instance.m_refCount = new size_t(2);
+        m_refCount = instance.m_refCount = new uint64_t(2);
       }
     }
 
@@ -274,7 +274,7 @@ namespace CRelAlgebra
       return m_instance == nullptr;
     }
 
-    size_t GetCapacity() const
+    uint64_t GetCapacity() const
     {
       return m_capacity;
     }
@@ -287,7 +287,7 @@ namespace CRelAlgebra
       return *this;
     }
 
-    T& operator[](size_t index) const
+    T& operator[](uint64_t index) const
     {
       return m_instance[index];
     }
@@ -303,8 +303,8 @@ namespace CRelAlgebra
 
     T *m_instance;
 
-    size_t m_capacity;
+    uint64_t m_capacity;
 
-    mutable size_t *m_refCount;
+    mutable uint64_t *m_refCount;
   };
 }

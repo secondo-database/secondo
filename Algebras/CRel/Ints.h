@@ -96,7 +96,7 @@ namespace CRelAlgebra
       return this->value == undefined;
     }
 
-    size_t GetHash() const
+    uint64_t GetHash() const
     {
       return value;
     }

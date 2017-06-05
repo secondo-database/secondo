@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include "AttrArray.h"
-#include <cstddef>
+#include <cstdint>
 #include "Geoid.h"
 #include "RectangleAlgebra.h"
 
@@ -69,8 +69,8 @@ namespace CRelAlgebra
     Precondition: ~row~ < ~GetCount()~
 
     */
-    SpatialAttrArrayEntry<dim> GetAt(size_t row) const;
-    SpatialAttrArrayEntry<dim> operator[](size_t row) const;
+    SpatialAttrArrayEntry<dim> GetAt(uint64_t row) const;
+    SpatialAttrArrayEntry<dim> operator[](uint64_t row) const;
 
     /*
     Returns the bounding box of the entry in the specified ~row~.
@@ -78,7 +78,7 @@ namespace CRelAlgebra
     Precondition: ~row~ < ~GetCount()~
 
     */
-    virtual Rectangle<dim> GetBoundingBox(size_t row,
+    virtual Rectangle<dim> GetBoundingBox(uint64_t row,
       const Geoid *geoid = nullptr) const = 0;
 
     /*
@@ -87,7 +87,7 @@ namespace CRelAlgebra
     Precondition: ~row~ < ~GetCount()~
 
     */
-    virtual double GetDistance(size_t row, const Rectangle<dim>& rect,
+    virtual double GetDistance(uint64_t row, const Rectangle<dim>& rect,
                                const Geoid *geoid = nullptr) const = 0;
 
     /*
@@ -96,7 +96,7 @@ namespace CRelAlgebra
     Precondition: ~row~ < ~GetCount()~
 
     */
-    virtual bool Intersects(size_t row, const Rectangle<dim>& rect,
+    virtual bool Intersects(uint64_t row, const Rectangle<dim>& rect,
                             const Geoid *geoid = nullptr) const = 0;
 
     /*
@@ -105,7 +105,7 @@ namespace CRelAlgebra
     Precondition: ~row~ < ~GetCount()~
 
     */
-    virtual bool IsEmpty(size_t row) const = 0;
+    virtual bool IsEmpty(uint64_t row) const = 0;
 
     /*
     Returns a ~SpatialAttrArrayIterator<dim>~ over the entries.
@@ -160,7 +160,7 @@ namespace CRelAlgebra
     ~array->GetCount()~ < ~row~ <=> the returned entry is valid
 
     */
-    SpatialAttrArrayEntry(const SpatialAttrArray<dim> *array, size_t row) :
+    SpatialAttrArrayEntry(const SpatialAttrArray<dim> *array, uint64_t row) :
       AttrArrayEntry(array, row)
     {
     }
@@ -224,14 +224,14 @@ namespace CRelAlgebra
 
   template<int dim>
   inline SpatialAttrArrayEntry<dim> SpatialAttrArray<dim>::GetAt(
-    size_t row) const
+    uint64_t row) const
   {
     return SpatialAttrArrayEntry<dim>(this, row);
   }
 
   template<int dim>
   inline SpatialAttrArrayEntry<dim> SpatialAttrArray<dim>::operator[](
-    size_t row) const
+    uint64_t row) const
   {
     return SpatialAttrArrayEntry<dim>(this, row);
   }
@@ -362,7 +362,7 @@ namespace CRelAlgebra
   private:
     const SpatialAttrArray<dim> *m_array;
 
-    size_t m_count;
+    uint64_t m_count;
 
     SpatialAttrArrayEntry<dim> m_current;
   };

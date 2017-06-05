@@ -234,14 +234,14 @@ void GSpatialAttrArrayTC<dim>::Delete(const ListExpr typeExpr, Word &value)
 }
 
 template <int dim>
-bool GSpatialAttrArrayTC<dim>::Open(SmiRecord &valueRecord, size_t &offset,
+bool GSpatialAttrArrayTC<dim>::Open(SmiRecord &valueRecord, uint64_t &offset,
                                     const ListExpr typeExpr, Word &value)
 {
   return DefaultOpen(valueRecord, offset, typeExpr, value);
 }
 
 template <int dim>
-bool GSpatialAttrArrayTC<dim>::Save(SmiRecord &valueRecord, size_t &offset,
+bool GSpatialAttrArrayTC<dim>::Save(SmiRecord &valueRecord, uint64_t &offset,
                                     const ListExpr typeExpr, Word &value)
 {
   return DefaultSave(valueRecord, offset, typeExpr, value);

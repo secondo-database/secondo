@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Attribute.h"
 #include "AttrArray.h"
-#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include "Ints.h"
 #include "LongIntsTC.h"
@@ -184,7 +184,7 @@ int ApplyPredicate::TBlockValueMapping(ArgVector args, Word &result, int,
 
     const TBlock &block = *(TBlock*)args[0].addr;
 
-    const size_t columnCount = block.GetColumnCount();
+    const uint64_t columnCount = block.GetColumnCount();
 
     const ListExpr tupleType =
       TBlockTI(qp->GetType(qp->GetSon(s, 0)), false).GetTupleTypeExpr();
@@ -196,7 +196,7 @@ int ApplyPredicate::TBlockValueMapping(ArgVector args, Word &result, int,
 
     for (const TBlockEntry &entry : block.GetFilter())
     {
-      for (size_t i = 0; i < columnCount; ++i)
+      for (uint64_t i = 0; i < columnCount; ++i)
       {
         tuple.PutAttribute(i, entry[i].GetAttribute());
       }

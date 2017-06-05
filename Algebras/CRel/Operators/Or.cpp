@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Or.h"
 
 #include <algorithm>
-#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include "Ints.h"
 #include "LongIntsTC.h"
@@ -307,14 +307,14 @@ int COr::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
 
     LongInts &indicesA = *(LongInts*)resultA.addr;
 
-    const size_t rowCount = block->GetRowCount(),
+    const uint64_t rowCount = block->GetRowCount(),
       countA = indicesA.GetCount();
 
     if (countA < rowCount)
     {
-      SharedArray<size_t> filter(rowCount - indicesA.GetCount());
+      SharedArray<uint64_t> filter(rowCount - indicesA.GetCount());
 
-      size_t i = 0;
+      uint64_t i = 0;
       int64_t j = 0;
 
       for (const LongIntEntry &entry : indicesA)
@@ -327,7 +327,7 @@ int COr::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
         ++j;
       }
 
-      while ((size_t)j < rowCount)
+      while ((uint64_t)j < rowCount)
       {
         filter[i++] = j++;
       }

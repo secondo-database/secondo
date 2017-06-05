@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include "AlgebraTypes.h"
-#include <cstddef>
+#include <cstdint>
 #include "Ints.h"
 #include "NestedList.h"
 #include "Operator.h"
@@ -50,7 +50,7 @@ namespace CRelAlgebra
       {
       public:
         State(Supplier stream, Supplier filter, const TBlockTI &blockType,
-              size_t *projection, double copyLimit);
+              uint64_t *projection, double copyLimit);
 
         ~State();
 
@@ -62,9 +62,9 @@ namespace CRelAlgebra
 
         LongInts *m_filteredIndices;
 
-        const size_t m_desiredBlockSize;
+        const uint64_t m_desiredBlockSize;
 
-        size_t m_filteredIndex;
+        uint64_t m_filteredIndex;
 
         Stream<TBlock> m_stream;
 
@@ -74,7 +74,7 @@ namespace CRelAlgebra
 
         const PTBlockInfo m_blockInfo;
 
-        const size_t * const m_projection;
+        const uint64_t * const m_projection;
 
         const double m_copyLimit;
       };

@@ -73,7 +73,7 @@ namespace CRelAlgebra
 
         Stream<Tuple> m_stream;
 
-        const size_t m_blockSize;
+        const uint64_t m_blockSize;
 
         const SmiFileId m_fileId;
 

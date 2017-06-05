@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include "AlgebraTypes.h"
-#include <cstddef>
+#include <cstdint>
 #include "HashMap.h"
 #include "NestedList.h"
 #include "Operator.h"
@@ -48,14 +48,14 @@ namespace CRelAlgebra
       class IndexProjection
       {
       public:
-        size_t index,
+        uint64_t index,
           projection;
 
         IndexProjection()
         {
         }
 
-        IndexProjection(size_t index, size_t projection) :
+        IndexProjection(uint64_t index, uint64_t projection) :
           index(index),
           projection(projection)
         {
@@ -66,10 +66,10 @@ namespace CRelAlgebra
       class State
       {
       public:
-        State(Supplier streamA, Supplier streamB, size_t joinIndexA,
-              size_t joinIndexB, size_t columnCountA, size_t columnCountB,
+        State(Supplier streamA, Supplier streamB, uint64_t joinIndexA,
+              uint64_t joinIndexB, uint64_t columnCountA, uint64_t columnCountB,
               IndexProjection *projectionsA, IndexProjection *projectionsB,
-              size_t bucketCount, size_t memLimit,
+              uint64_t bucketCount, uint64_t memLimit,
               const TBlockTI &blockTypeInfo);
 
         ~State();
@@ -77,14 +77,14 @@ namespace CRelAlgebra
         TBlock *Request();
 
       private:
-        static size_t HashKey(const AttrArrayEntry &entry);
+        static uint64_t HashKey(const AttrArrayEntry &entry);
 
         static bool CompareKey(const AttrArrayEntry &a,
                                const AttrArrayEntry &b);
 
         typedef HashMap<AttrArrayEntry, TBlockEntry, HashKey, CompareKey> Map;
 
-        const size_t m_joinIndexA,
+        const uint64_t m_joinIndexA,
           m_joinIndexB,
           m_columnCountA,
           m_columnCountB,
@@ -112,6 +112,8 @@ namespace CRelAlgebra
 
         const IndexProjection * const m_projectionsA,
           * const m_projectionsB;
+
+        uint64_t m_iterations;
 
         bool ProceedStreamB();
       };

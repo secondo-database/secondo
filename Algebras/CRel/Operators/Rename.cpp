@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Rename.h"
 
-#include <cstddef>
+#include <cstdint>
 #include "ListUtils.h"
 #include "LogMsg.h"
 #include "OperatorUtils.h"
@@ -91,8 +91,8 @@ ListExpr Rename::TypeMapping(ListExpr args)
 
   TBlockTI blockInfo(tblock, false);
 
-  const size_t blockAttributeCount = blockInfo.columnInfos.size();
-  for (size_t i = 0; i < blockAttributeCount; ++i)
+  const uint64_t blockAttributeCount = blockInfo.columnInfos.size();
+  for (uint64_t i = 0; i < blockAttributeCount; ++i)
   {
     const string name = blockInfo.columnInfos[i].name + "_" + suffix;
 

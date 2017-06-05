@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AlgebraTypes.h"
 #include "Attribute.h"
-#include <cstddef>
+#include <cstdint>
 #include "NestedList.h"
 #include "ReadWrite.h"
 #include "SecondoSMI.h"
@@ -83,7 +83,7 @@ namespace CRelAlgebra
 
     */
     AttrArrayFilter(const AttrArray &array,
-                    const SharedArray<const size_t> &filter) :
+                    const SharedArray<const uint64_t> &filter) :
       m_array(&array),
       m_filter(filter)
     {
@@ -94,11 +94,11 @@ namespace CRelAlgebra
     ~row~.
 
     */
-    size_t GetAt(size_t row) const
+    uint64_t GetAt(uint64_t row) const
     {
       return m_filter.IsNull() ? row : m_filter[row];
     }
-    size_t operator [] (size_t row) const
+    uint64_t operator [] (uint64_t row) const
     {
       return m_filter.IsNull() ? row : m_filter[row];
     }
@@ -107,7 +107,7 @@ namespace CRelAlgebra
     Returns number of row numbers contained in this ~AttrArrayFilter~.
 
     */
-    size_t GetCount() const;
+    uint64_t GetCount() const;
 
     /*
     Returns a iterator over the ~AttrArray~'s attributes taking this
@@ -126,7 +126,7 @@ namespace CRelAlgebra
   protected:
     const AttrArray * const m_array;
 
-    const SharedArray<const size_t> m_filter;
+    const SharedArray<const uint64_t> m_filter;
   };
 
   /*
@@ -155,7 +155,7 @@ namespace CRelAlgebra
     This constructor must be called in the ~Filter~ functions implementation.
 
     */
-    AttrArray(const SharedArray<const size_t> &filter) :
+    AttrArray(const SharedArray<const uint64_t> &filter) :
       m_filter(*this, filter),
       m_refCount(1)
     {
@@ -171,8 +171,8 @@ namespace CRelAlgebra
     Precondition: ~row~ < ~GetCount()~
 
     */
-    AttrArrayEntry GetAt(size_t row) const;
-    AttrArrayEntry operator[](size_t row) const;
+    AttrArrayEntry GetAt(uint64_t row) const;
+    AttrArrayEntry operator[](uint64_t row) const;
 
     /*
     Returns a new ~AttrArray~ instance holding this ~AttrArray~'s attributes
@@ -183,7 +183,7 @@ namespace CRelAlgebra
     This function is supposed to filter a ~AttrArray~ WITHOUT copying it's
     attributes.
 
-    Make shure to make use of ~AttrArray(const SharedArray<const size_t>&)~ in
+    Make shure to make use of ~AttrArray(const SharedArray<const uint64_t>&)~ in
     this function's implementation.
 
     The row numbers are NOT copied to support sharing them among multiple
@@ -191,7 +191,8 @@ namespace CRelAlgebra
     function.
 
     */
-    virtual AttrArray *Filter(const SharedArray<const size_t> filter) const = 0;
+    virtual AttrArray *Filter(
+      const SharedArray<const uint64_t> filter) const = 0;
 
     /*
     Returns the applied ~AttrArrayFilter~.
@@ -210,7 +211,7 @@ namespace CRelAlgebra
       *~row~ < ~array.GetCount()~
 
     */
-    virtual void Append(const AttrArray &array, size_t row) = 0;
+    virtual void Append(const AttrArray &array, uint64_t row) = 0;
 
     /*
     Appends a entry created from the passed ~Attribute~.
@@ -247,13 +248,13 @@ namespace CRelAlgebra
     Returns the number of entries.
 
     */
-    virtual size_t GetCount() const = 0;
+    virtual uint64_t GetCount() const = 0;
 
     /*
     Returns the size of this ~AttrArray~ in bytes.
 
     */
-    virtual size_t GetSize() const = 0;
+    virtual uint64_t GetSize() const = 0;
 
     /*
     Returns true if the entry specified by ~row~ is defined, false otherwise.
@@ -261,7 +262,7 @@ namespace CRelAlgebra
     Precondition: ~row~ < ~GetCount()~
 
     */
-    virtual bool IsDefined(size_t row) const = 0;
+    virtual bool IsDefined(uint64_t row) const = 0;
 
     /*
     All entry comparisons behave like ~Attribute~ comparisons.
@@ -287,8 +288,8 @@ namespace CRelAlgebra
       *~rowB~ < ~arrayB.GetCount()~
 
     */
-    virtual int Compare(size_t rowA, const AttrArray &arrayB,
-                        size_t rowB) const = 0;
+    virtual int Compare(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const = 0;
 
     /*
     Compares this array's entry in ~row~ with the passed ~Attribute~'s value.
@@ -298,7 +299,7 @@ namespace CRelAlgebra
       *~value~ must be of this array's attribute type
 
     */
-    virtual int Compare(size_t row, Attribute &value) const = 0;
+    virtual int Compare(uint64_t row, Attribute &value) const = 0;
 
     /*
     Compares this array's entry in ~row~ the entry represented by ~value~.
@@ -308,7 +309,7 @@ namespace CRelAlgebra
       *~value~ represents the entry of a ~AttrArray~ of this array's type
 
     */
-    int Compare(size_t row, const AttrArrayEntry &value) const;
+    int Compare(uint64_t row, const AttrArrayEntry &value) const;
 
     /*
     Compares this array's entry in ~rowA~ with ~arrayB~'s entry in ~rowB~.
@@ -320,8 +321,8 @@ namespace CRelAlgebra
       *~rowB~ < ~arrayB.GetCount()~
 
     */
-    virtual int CompareAlmost(size_t rowA, const AttrArray &arrayB,
-                              size_t rowB) const
+    virtual int CompareAlmost(uint64_t rowA, const AttrArray &arrayB,
+                              uint64_t rowB) const
     {
       return Compare(rowA, arrayB, rowB);
     }
@@ -335,7 +336,7 @@ namespace CRelAlgebra
       *~value~ must be of this array's attribute type
 
     */
-    virtual int CompareAlmost(size_t row, Attribute &value) const
+    virtual int CompareAlmost(uint64_t row, Attribute &value) const
     {
       return Compare(row, value);
     }
@@ -349,7 +350,7 @@ namespace CRelAlgebra
       *~value~ represents the entry of a ~AttrArray~ of this array's type
 
     */
-    int CompareAlmost(size_t row, const AttrArrayEntry &value) const;
+    int CompareAlmost(uint64_t row, const AttrArrayEntry &value) const;
 
     /*
     Checks this array's entry in ~rowA~ with ~arrayB~'s entry in ~rowB~ for
@@ -361,7 +362,8 @@ namespace CRelAlgebra
       *~rowB~ < ~arrayB.GetCount()~
 
     */
-    virtual bool Equals(size_t rowA, const AttrArray &arrayB, size_t rowB) const
+    virtual bool Equals(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const
     {
       return Compare(rowA, arrayB, rowB) == 0;
     }
@@ -375,7 +377,7 @@ namespace CRelAlgebra
       *~value~ must be of this array's attribute type
 
     */
-    virtual bool Equals(size_t row, Attribute &value) const
+    virtual bool Equals(uint64_t row, Attribute &value) const
     {
       return Compare(row, value) == 0;
     }
@@ -389,7 +391,7 @@ namespace CRelAlgebra
       *~value~ represents the entry of a ~AttrArray~ of this array's type
 
     */
-    bool Equals(size_t row, const AttrArrayEntry &value) const;
+    bool Equals(uint64_t row, const AttrArrayEntry &value) const;
 
     /*
     Checks this array's entry in ~rowA~ with ~arrayB~'s entry in ~rowB~ for
@@ -401,8 +403,8 @@ namespace CRelAlgebra
       *~rowB~ < ~arrayB.GetCount()~
 
     */
-    virtual bool EqualsAlmost(size_t rowA, const AttrArray &arrayB,
-                              size_t rowB) const
+    virtual bool EqualsAlmost(uint64_t rowA, const AttrArray &arrayB,
+                              uint64_t rowB) const
     {
       return CompareAlmost(rowA, arrayB, rowB) == 0;
     }
@@ -416,7 +418,7 @@ namespace CRelAlgebra
       *~value~ must be of this array's attribute type
 
     */
-    virtual bool EqualsAlmost(size_t row, Attribute &value) const
+    virtual bool EqualsAlmost(uint64_t row, Attribute &value) const
     {
       return CompareAlmost(row, value) == 0;
     }
@@ -430,7 +432,7 @@ namespace CRelAlgebra
       *~value~ represents the entry of a ~AttrArray~ of this array's type
 
     */
-    bool EqualsAlmost(size_t row, const AttrArrayEntry &value) const;
+    bool EqualsAlmost(uint64_t row, const AttrArrayEntry &value) const;
 
     /*
     Returns a hash value for the entry specified by ~row~
@@ -438,7 +440,7 @@ namespace CRelAlgebra
     Precondition: ~row~ < ~GetCount()~
 
     */
-    virtual size_t GetHash(size_t row) const = 0;
+    virtual uint64_t GetHash(uint64_t row) const = 0;
 
     /*
     Returns a ~Attribute~ representation of the entry in the specified ~row~.
@@ -451,7 +453,7 @@ namespace CRelAlgebra
     Precondition: ~row~ < ~GetCount()~
 
     */
-    virtual Attribute *GetAttribute(size_t row, bool clone = false) const = 0;
+    virtual Attribute *GetAttribute(uint64_t row, bool clone = false) const = 0;
 
     /*
     Writes this array's data into the passed target.
@@ -509,7 +511,7 @@ namespace CRelAlgebra
     Returns the reference count.
 
     */
-    size_t GetRefCount() const
+    uint64_t GetRefCount() const
     {
       return m_refCount;
     }
@@ -517,10 +519,10 @@ namespace CRelAlgebra
   private:
     const AttrArrayFilter m_filter;
 
-    mutable size_t m_refCount;
+    mutable uint64_t m_refCount;
   };
 
-  inline size_t AttrArrayFilter::GetCount() const
+  inline uint64_t AttrArrayFilter::GetCount() const
   {
     return m_filter.IsNull() ? m_array->GetCount() : m_filter.GetCapacity();
   }
@@ -560,7 +562,7 @@ namespace CRelAlgebra
     ~array->GetCount()~ < ~row~ <=> the returned entry is valid
 
     */
-    AttrArrayEntry(const AttrArray *array, size_t row) :
+    AttrArrayEntry(const AttrArray *array, uint64_t row) :
       m_array(array),
       m_row(row)
     {
@@ -579,7 +581,7 @@ namespace CRelAlgebra
     Returns the row number
 
     */
-    size_t GetRow() const
+    uint64_t GetRow() const
     {
       return m_row;
     }
@@ -589,7 +591,7 @@ namespace CRelAlgebra
       return m_array->IsDefined(m_row);
     }
 
-    int Compare(const AttrArray &array, size_t row) const
+    int Compare(const AttrArray &array, uint64_t row) const
     {
       return m_array->Compare(m_row, array, row);
     }
@@ -599,7 +601,7 @@ namespace CRelAlgebra
       return m_array->Compare(m_row, *value.m_array, value.m_row);
     }
 
-    int Compare(size_t row, Attribute &value) const
+    int Compare(uint64_t row, Attribute &value) const
     {
       return m_array->Compare(m_row, value);
     }
@@ -644,7 +646,7 @@ namespace CRelAlgebra
       return m_array->Compare(m_row, value) >= 0;
     }
 
-    bool Equals(const AttrArray &array, size_t row) const
+    bool Equals(const AttrArray &array, uint64_t row) const
     {
       return m_array->Equals(m_row, array, row);
     }
@@ -679,7 +681,7 @@ namespace CRelAlgebra
       return !m_array->Equals(m_row, value);
     }
 
-    size_t GetHash() const
+    uint64_t GetHash() const
     {
       return m_array->GetHash(m_row);
     }
@@ -692,7 +694,7 @@ namespace CRelAlgebra
   protected:
     const AttrArray *m_array;
 
-    size_t m_row;
+    uint64_t m_row;
 
     friend class AttrArray;
     friend class AttrArrayIterator;
@@ -705,12 +707,12 @@ namespace CRelAlgebra
 
   */
 
-  inline AttrArrayEntry AttrArray::GetAt(size_t row) const
+  inline AttrArrayEntry AttrArray::GetAt(uint64_t row) const
   {
     return AttrArrayEntry(this, row);
   }
 
-  inline AttrArrayEntry AttrArray::operator[](size_t row) const
+  inline AttrArrayEntry AttrArray::operator[](uint64_t row) const
   {
     return AttrArrayEntry(this, row);
   }
@@ -720,23 +722,23 @@ namespace CRelAlgebra
     Append(*value.m_array, value.m_row);
   }
 
-  inline int AttrArray::Compare(size_t row, const AttrArrayEntry &value) const
+  inline int AttrArray::Compare(uint64_t row, const AttrArrayEntry &value) const
   {
     return Compare(row, *value.m_array, value.m_row);
   }
 
-  inline int AttrArray::CompareAlmost(size_t row,
+  inline int AttrArray::CompareAlmost(uint64_t row,
                                       const AttrArrayEntry &value) const
   {
     return CompareAlmost(row, *value.m_array, value.m_row);
   }
 
-  inline bool AttrArray::Equals(size_t row, const AttrArrayEntry &value) const
+  inline bool AttrArray::Equals(uint64_t row, const AttrArrayEntry &value) const
   {
     return Equals(row, *value.m_array, value.m_row);
   }
 
-  inline bool AttrArray::EqualsAlmost(size_t row,
+  inline bool AttrArray::EqualsAlmost(uint64_t row,
                                      const AttrArrayEntry &value) const
   {
     return EqualsAlmost(row, *value.m_array, value.m_row);
@@ -858,7 +860,7 @@ namespace CRelAlgebra
   private:
     const AttrArray *m_array;
 
-    size_t m_count;
+    uint64_t m_count;
 
     AttrArrayEntry m_entry;
   };
@@ -997,7 +999,7 @@ namespace CRelAlgebra
   private:
     const AttrArrayFilter *m_filter;
 
-    size_t m_count,
+    uint64_t m_count,
       m_row;
 
     AttrArrayEntry m_entry;
@@ -1032,7 +1034,7 @@ namespace CRelAlgebra
   {
   public:
     //number of rows in a ~AttrArray~.
-    size_t count;
+    uint64_t count;
 
     //id of the file a ~AttrArray~ should use for ~Flob~ storage.
     SmiFileId flobFileId;
@@ -1041,7 +1043,7 @@ namespace CRelAlgebra
     {
     }
 
-    AttrArrayHeader(size_t count, SmiFileId flobFileId) :
+    AttrArrayHeader(uint64_t count, SmiFileId flobFileId) :
       count(count),
       flobFileId(flobFileId)
     {
@@ -1119,10 +1121,10 @@ namespace CRelAlgebra
     Returns the reference count.
 
     */
-    size_t GetRefCount() const;
+    uint64_t GetRefCount() const;
 
   private:
-    mutable size_t m_refCount;
+    mutable uint64_t m_refCount;
   };
 
   /*
@@ -1224,10 +1226,10 @@ namespace CRelAlgebra
 
     static void DefaultDelete(const ListExpr typeExpr, Word &value);
 
-    static bool DefaultOpen(SmiRecord &valueRecord, size_t &offset,
+    static bool DefaultOpen(SmiRecord &valueRecord, uint64_t &offset,
                             const ListExpr typeExpr, Word &value);
 
-    static bool DefaultSave(SmiRecord &valueRecord, size_t &offset,
+    static bool DefaultSave(SmiRecord &valueRecord, uint64_t &offset,
                             const ListExpr typeExpr, Word &value);
 
     static void DefaultClose(const ListExpr typeExpr, Word &value);

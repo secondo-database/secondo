@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AttrArray.h"
 #include "CRel.h"
 #include "CRelTC.h"
-#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
@@ -145,7 +145,7 @@ int Count::BlockStreamValueMapping(ArgVector args, Word &result, int, Word&,
 
     stream.open();
 
-    size_t count = 0;
+    uint64_t count = 0;
 
     while ((block = stream.request()) != nullptr)
     {
@@ -198,7 +198,7 @@ int Count::ArrayStreamValueMapping(ArgVector args, Word &result, int, Word&,
 
     stream.open();
 
-    size_t count = 0;
+    uint64_t count = 0;
 
     while ((array = stream.request()) != nullptr)
     {

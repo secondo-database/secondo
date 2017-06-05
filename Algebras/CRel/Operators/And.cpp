@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "And.h"
 
-#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include "Ints.h"
 #include "LongIntsTC.h"
@@ -254,13 +254,13 @@ int CAnd::ValueMapping(ArgVector args, Word &result, int, Word&, Supplier s)
 
     LongInts &indicesA = *(LongInts*)resultA.addr;
 
-    const size_t countA = indicesA.GetCount();
+    const uint64_t countA = indicesA.GetCount();
 
     if (countA > 0)
     {
-      SharedArray<size_t> filter(countA);
+      SharedArray<uint64_t> filter(countA);
 
-      size_t i = 0;
+      uint64_t i = 0;
       for (const LongIntEntry &entry : indicesA)
       {
         filter[i++] = entry.value;

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <algorithm>
 #include "Attribute.h"
-#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include "ConstraintAlgebra.h"
 #include "GeoDist.h"
@@ -49,7 +49,7 @@ namespace CRelAlgebra
 
     static const int dimension = 2;
 
-    static size_t GetSize(const Line &value)
+    static uint64_t GetSize(const Line &value)
     {
       if (value.IsDefined())
       {
@@ -193,9 +193,9 @@ namespace CRelAlgebra
       return Compare(value) == 0;
     }
 
-    size_t GetHash() const
+    uint64_t GetHash() const
     {
-      size_t h = 0;
+      uint64_t h = 0;
 
       if (size != 0)
       {
@@ -203,7 +203,7 @@ namespace CRelAlgebra
 
         for (const SimpleHalfSegment& segment : *this)
         {
-          h += (size_t)((5 * segment.lp.x + segment.lp.y) +
+          h += (uint64_t)((5 * segment.lp.x + segment.lp.y) +
                         (5 * segment.rp.x + segment.rp.y));
 
           if (++i == 5)
@@ -929,7 +929,7 @@ namespace CRelAlgebra
 
     const char *data;
 
-    size_t size;
+    uint64_t size;
   };
 
   typedef SimpleSpatialVSAttrArray<LineEntry> Lines;

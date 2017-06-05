@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include "AlgebraTypes.h"
-#include <cstddef>
+#include <cstdint>
 #include "NestedList.h"
 #include "Operator.h"
 #include "Stream.h"
@@ -54,9 +54,9 @@ namespace CRelAlgebra
         void *Request();
 
       private:
-        const size_t m_count;
+        const uint64_t m_count;
 
-        size_t m_index;
+        uint64_t m_index;
 
         Stream<void> m_stream;
       };

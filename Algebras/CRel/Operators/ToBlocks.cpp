@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ToBlocks.h"
 
 #include "AttrArray.h"
-#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include "ListUtils.h"
 #include "LogMsg.h"
@@ -65,7 +65,7 @@ const OperatorInfo ToBlocks::info = OperatorInfo(
 
 ListExpr ToBlocks::TypeMapping(ListExpr args)
 {
-  const size_t argCount = nl->ListLength(args);
+  const uint64_t argCount = nl->ListLength(args);
 
   if (argCount < 2 || argCount > 3)
   {

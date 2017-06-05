@@ -96,7 +96,7 @@ CRelTI::CRelTI(bool numeric) :
 {
 }
 
-CRelTI::CRelTI(const TBlockTI &info, size_t cacheSize) :
+CRelTI::CRelTI(const TBlockTI &info, uint64_t cacheSize) :
   TBlockTI(info),
   m_cacheSize(cacheSize)
 {
@@ -117,12 +117,12 @@ CRelTI::CRelTI(ListExpr typeExpr, bool numeric) :
                  nl->IntValue(nl->First(parameters)));
 }
 
-size_t CRelTI::GetCacheSize() const
+uint64_t CRelTI::GetCacheSize() const
 {
   return m_cacheSize;
 }
 
-void CRelTI::SetCacheSize(size_t value)
+void CRelTI::SetCacheSize(uint64_t value)
 {
   m_cacheSize = value;
 }
@@ -178,12 +178,12 @@ Word CRelTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
   {
     const CRelTI typeInfo = CRelTI(typeExpr, true);
     const PTBlockInfo blockInfo = typeInfo.GetBlockInfo();
-    const size_t columnCount = blockInfo->columnCount;
+    const uint64_t columnCount = blockInfo->columnCount;
 
     SharedArray<InObject> inFunctions(columnCount);
     SharedArray<ListExpr> attributeTypes(columnCount);
 
-    for (size_t i = 0; i < columnCount; i++)
+    for (uint64_t i = 0; i < columnCount; i++)
     {
       const ListExpr type = blockInfo->columnAttributeTypes[i];
 
@@ -222,7 +222,7 @@ Word CRelTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
 
     SharedArray<Attribute*> tuple(columnCount);
 
-    size_t index = 0;
+    uint64_t index = 0;
 
     while (!nl->IsEmpty(tupleValues))
     {
@@ -243,7 +243,7 @@ Word CRelTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
 
       tupleValues = nl->Rest(tupleValues);
 
-      for (size_t i = 0; i < columnCount; ++i)
+      for (uint64_t i = 0; i < columnCount; ++i)
       {
         if (nl->IsEmpty(attributeValues))
         {
@@ -281,7 +281,7 @@ Word CRelTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
 
       relation->Append(tuple.GetPointer());
 
-      for (size_t i = 0; i < columnCount; ++i)
+      for (uint64_t i = 0; i < columnCount; ++i)
       {
         tuple[i]->DeleteIfAllowed();
       }
@@ -303,13 +303,13 @@ ListExpr CRelTC::Out(ListExpr typeExpr, Word value)
 {
   const CRel &instance = *(CRel*)value.addr;
 
-  const size_t columnCount = instance.GetColumnCount();
+  const uint64_t columnCount = instance.GetColumnCount();
 
   OutObject *attrOuts = new OutObject[columnCount];
 
   const ListExpr *attrTypes = instance.GetBlockInfo()->columnAttributeTypes;
 
-  for (size_t i = 0; i < columnCount; ++i)
+  for (uint64_t i = 0; i < columnCount; ++i)
   {
     attrOuts[i] = GetOutFunction(attrTypes[i]);
   }
@@ -326,7 +326,7 @@ ListExpr CRelTC::Out(ListExpr typeExpr, Word value)
       const ListExpr tupleExpr = nl->OneElemList(nl->Empty());
       ListExpr tupleExprEnd = tupleExpr;
 
-      for (size_t i = 0; i < columnCount; ++i)
+      for (uint64_t i = 0; i < columnCount; ++i)
       {
         Attribute *attr = tuple[i].GetAttribute();
 
@@ -364,7 +364,7 @@ void CRelTC::Delete(const ListExpr, Word &value)
   value.addr = nullptr;
 }
 
-bool CRelTC::Open(SmiRecord &valueRecord, size_t &offset,
+bool CRelTC::Open(SmiRecord &valueRecord, uint64_t &offset,
                   const ListExpr typeExpr, Word &value)
 {
   try
@@ -388,7 +388,7 @@ bool CRelTC::Open(SmiRecord &valueRecord, size_t &offset,
   }
 }
 
-bool CRelTC::Save(SmiRecord &valueRecord, size_t &offset, const ListExpr,
+bool CRelTC::Save(SmiRecord &valueRecord, uint64_t &offset, const ListExpr,
                   Word &value)
 {
   try

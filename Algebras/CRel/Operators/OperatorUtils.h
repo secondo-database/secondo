@@ -39,7 +39,7 @@ extern QueryProcessor *qp;
 
 namespace CRelAlgebra
 {
-  inline std::string GetTypeErrorString(size_t argumentIndex,
+  inline std::string GetTypeErrorString(uint64_t argumentIndex,
                                  const std::string &argumentName,
                                  const std::string &error)
   {
@@ -53,7 +53,7 @@ namespace CRelAlgebra
            "not valid: " + error;
   }
 
-  inline std::string GetTypeErrorString(size_t argumentIndex,
+  inline std::string GetTypeErrorString(uint64_t argumentIndex,
                                         const std::string &error)
   {
     static const std::string numberStrings[] =
@@ -70,7 +70,7 @@ namespace CRelAlgebra
     return listutils::typeError(error);
   }
 
-  inline ListExpr GetTypeError(size_t argumentIndex,
+  inline ListExpr GetTypeError(uint64_t argumentIndex,
                                const std::string &argumentName,
                                const std::string &error)
   {
@@ -78,7 +78,7 @@ namespace CRelAlgebra
                                                    error));
   }
 
-  inline ListExpr GetTypeError(size_t argumentIndex, const std::string &error)
+  inline ListExpr GetTypeError(uint64_t argumentIndex, const std::string &error)
   {
     return listutils::typeError(GetTypeErrorString(argumentIndex, error));
   }
@@ -182,9 +182,9 @@ namespace CRelAlgebra
   }
 
   inline bool GetIndexOfColumn(const TBlockTI &typeInfo,
-                               const std::string &name, size_t &index)
+                               const std::string &name, uint64_t &index)
   {
-    size_t i = 0;
+    uint64_t i = 0;
 
     for (const TBlockTI::ColumnInfo &columnInfo : typeInfo.columnInfos)
     {
@@ -202,11 +202,11 @@ namespace CRelAlgebra
 
   inline std::vector<Word> GetSubArgvector(const Word &arg)
   {
-    const size_t argCount = qp->GetNoSons(arg.addr);
+    const uint64_t argCount = qp->GetNoSons(arg.addr);
 
     std::vector<Word> subArgs;
 
-    for (size_t i = 0; i < argCount; ++i)
+    for (uint64_t i = 0; i < argCount; ++i)
     {
       Word subArg;
 

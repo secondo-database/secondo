@@ -44,19 +44,17 @@ GAttrArrayInfo::GAttrArrayInfo()
 {
 }
 
-GAttrArrayInfo::GAttrArrayInfo(ListExpr attributeTypeExpr) :
-  attributeType(attributeTypeExpr)
+GAttrArrayInfo::GAttrArrayInfo(ListExpr attributeTypeExpr)
 {
+  int attributeAlgebraId,
+    attributeTypeId;
+
   ResolveTypeOrThrow(attributeTypeExpr, attributeAlgebraId, attributeTypeId);
 
   TypeConstructor &typeConstructor = *am->GetTC(attributeAlgebraId,
                                                 attributeTypeId);
 
   attributeSize =  typeConstructor.SizeOf();
-
-  attributeInFunction = am->InObj(attributeAlgebraId, attributeTypeId);
-
-  attributeOutFunction = am->OutObj(attributeAlgebraId, attributeTypeId);
 
   attributeCastFunction = am->Cast(attributeAlgebraId, attributeTypeId);
 
@@ -68,7 +66,6 @@ GAttrArray::GAttrArray(const PGAttrArrayInfo &info, SmiFileId flobFileId) :
   m_info(info),
   m_capacity(0),
   m_size(sizeof(GAttrArray)),
-  m_attributes(nullptr),
   m_attributesEnd(nullptr)
 {
 }
@@ -86,21 +83,21 @@ GAttrArray::GAttrArray(const PGAttrArrayInfo &info, Reader &source,
   m_size(sizeof(GAttrArray) + (m_header.count * info->attributeSize)),
   m_data(m_header.count * info->attributeSize)
 {
-  const size_t count = m_header.count;
+  const uint64_t count = m_header.count;
 
   if (count > 0)
   {
-    const size_t attributeSize = info->attributeSize;
+    const uint64_t attributeSize = info->attributeSize;
 
-    m_attributes = m_data.GetPointer();
-    m_attributesEnd = m_attributes + (attributeSize * count);
+    char *attribute = m_data.GetPointer();
 
-    source.ReadOrThrow(m_attributes, attributeSize * count);
+    m_attributesEnd = attribute + (attributeSize * count);
+
+    source.ReadOrThrow(attribute, attributeSize * count);
 
     ObjectCast cast = m_info->attributeCastFunction;
 
-    char *attribute = m_attributes,
-      *end = m_attributesEnd;
+    char *end = m_attributesEnd;
 
     while (attribute < end)
     {
@@ -111,45 +108,43 @@ GAttrArray::GAttrArray(const PGAttrArrayInfo &info, Reader &source,
   }
   else
   {
-    m_attributes = nullptr;
     m_attributesEnd = nullptr;
   }
 }
 
 GAttrArray::GAttrArray(const GAttrArray &array,
-                       const SharedArray<const size_t> &filter) :
+                       const SharedArray<const uint64_t> &filter) :
   AttrArray(filter),
   m_header(array.m_header),
   m_info(array.m_info),
   m_capacity(array.m_capacity),
   m_size(array.m_size),
   m_data(array.m_data),
-  m_attributes(array.m_attributes),
   m_attributesEnd(array.m_attributesEnd)
 {
 }
 
 GAttrArray::~GAttrArray()
 {
-  const size_t count = m_header.count;
+  const uint64_t count = m_header.count;
 
   if (count > 0)
   {
     const GAttrArrayInfo &info = *m_info;
 
-    const size_t flobCount = info.attributeFLOBCount,
+    const uint64_t flobCount = info.attributeFLOBCount,
       attributeSize = info.attributeSize;
 
     if (flobCount > 0)
     {
-      char *currentAttribute = m_attributes,
+      char *currentAttribute = m_data.GetPointer(),
            *attributesEnd = m_attributesEnd;
 
       while (currentAttribute < attributesEnd)
       {
         Attribute *attribute = (Attribute*)currentAttribute;
 
-        for (size_t i = 0; i < flobCount; i++)
+        for (uint64_t i = 0; i < flobCount; i++)
         {
           attribute->GetFLOB(i)->~Flob();
         }
@@ -161,7 +156,7 @@ GAttrArray::~GAttrArray()
 }
 
 
-AttrArray *GAttrArray::Filter(const SharedArray<const size_t> filter) const
+AttrArray *GAttrArray::Filter(const SharedArray<const uint64_t> filter) const
 {
   return new GAttrArray(*this, filter);
 }
@@ -171,12 +166,12 @@ const PGAttrArrayInfo &GAttrArray::GetInfo() const
   return m_info;
 }
 
-size_t GAttrArray::GetCount() const
+uint64_t GAttrArray::GetCount() const
 {
   return m_header.count;
 }
 
-size_t GAttrArray::GetSize() const
+uint64_t GAttrArray::GetSize() const
 {
   return m_size;
 }
@@ -188,11 +183,11 @@ void GAttrArray::Save(Writer &target, bool includeHeader) const
     target.WriteOrThrow(m_header);
   }
 
-  const size_t count = m_header.count;
+  const uint64_t count = m_header.count;
 
   if (count > 0)
   {
-    target.WriteOrThrow(m_attributes, count * m_info->attributeSize);
+    target.WriteOrThrow(m_data.GetPointer(), count * m_info->attributeSize);
   }
 }
 
@@ -205,24 +200,24 @@ void GAttrArray::DeleteRecords()
 
   const GAttrArrayInfo &info = *m_info;
 
-  const size_t flobCount = info.attributeFLOBCount;
+  const uint64_t flobCount = info.attributeFLOBCount;
 
   if (m_header.flobFileId != 0 && flobCount > 0)
   {
-    const size_t count = m_header.count;
+    const uint64_t count = m_header.count;
 
     if (count > 0)
     {
-      const size_t attributeSize = info.attributeSize;
+      const uint64_t attributeSize = info.attributeSize;
 
-      char *currentAttributeData = m_attributes,
+      char *currentAttributeData = m_data.GetPointer(),
         *attributeDataEnd = m_attributesEnd;
 
       while (currentAttributeData < attributeDataEnd)
       {
         Attribute *attribute = (Attribute*)currentAttributeData;
 
-        for (size_t i = 0; i < flobCount; i++)
+        for (uint64_t i = 0; i < flobCount; i++)
         {
           attribute->GetFLOB(i)->destroy();
         }
@@ -233,7 +228,7 @@ void GAttrArray::DeleteRecords()
   }
 }
 
-void GAttrArray::Append(const AttrArray &array, size_t row)
+void GAttrArray::Append(const AttrArray &array, uint64_t row)
 {
   Append(((GAttrArray&)array).GetAt(row));
 }
@@ -241,9 +236,9 @@ void GAttrArray::Append(const AttrArray &array, size_t row)
 void GAttrArray::Append(Attribute &value)
 {
   const GAttrArrayInfo &info = *m_info;
-  const size_t attributeSize = info.attributeSize;
+  const uint64_t attributeSize = info.attributeSize;
 
-  size_t capacity = m_capacity,
+  uint64_t capacity = m_capacity,
     count = m_header.count;
 
   char *attributeData,
@@ -257,19 +252,19 @@ void GAttrArray::Append(Attribute &value)
     {
       capacity = 1;
 
-      attributeData = m_attributes = new char[attributeSize];
+      attributeData = new char[attributeSize];
       attributeDataEnd = m_attributesEnd = attributeData;
 
       m_data = SharedArray<char>(attributeData, attributeSize);
     }
     else
     {
-      const size_t oldByteCapacity = capacity * attributeSize,
+      const uint64_t oldByteCapacity = capacity * attributeSize,
         byteCapacity = oldByteCapacity + oldByteCapacity;
 
       capacity += capacity;
 
-      attributeData = m_attributes = new char[byteCapacity];
+      attributeData = new char[byteCapacity];
       attributeDataEnd = m_attributesEnd = attributeData + oldByteCapacity;
 
       //copy existing values
@@ -282,7 +277,7 @@ void GAttrArray::Append(Attribute &value)
   }
   else
   {
-    attributeData = m_attributes;
+    attributeData = m_data.GetPointer();
     attributeDataEnd = m_attributesEnd;
   }
 
@@ -291,7 +286,7 @@ void GAttrArray::Append(Attribute &value)
   //copy the new attribute's data
   memcpy(attribute, &value, attributeSize);
 
-  const size_t flobCount = info.attributeFLOBCount;
+  const uint64_t flobCount = info.attributeFLOBCount;
 
   //copy Flobs?
   if (flobCount > 0)
@@ -300,7 +295,7 @@ void GAttrArray::Append(Attribute &value)
 
     if (flobFileId != 0)
     {
-      for (size_t j = 0; j < flobCount; j++)
+      for (uint64_t j = 0; j < flobCount; j++)
       {
         Flob &sourceFlob = *value.GetFLOB(j),
           *targetFlob = attribute->GetFLOB(j);
@@ -312,7 +307,7 @@ void GAttrArray::Append(Attribute &value)
     }
     else
     {
-      for (size_t j = 0; j < flobCount; j++)
+      for (uint64_t j = 0; j < flobCount; j++)
       {
         Flob &sourceFlob = *value.GetFLOB(j),
           *targetFlob = attribute->GetFLOB(j);
@@ -342,16 +337,16 @@ void GAttrArray::Remove()
   */
   const GAttrArrayInfo &info = *m_info;
 
-  const size_t flobCount = info.attributeFLOBCount,
+  const uint64_t flobCount = info.attributeFLOBCount,
    count = m_header.count;
 
   if (count > 0 && flobCount > 0 && m_header.flobFileId != 0)
   {
-    const size_t attributeSize = info.attributeSize;
+    const uint64_t attributeSize = info.attributeSize;
 
     Attribute *attribute = (Attribute*)(m_attributesEnd -= attributeSize);
 
-    for (size_t i = 0; i < flobCount; i++)
+    for (uint64_t i = 0; i < flobCount; i++)
     {
       attribute->GetFLOB(i)->destroy();
     }
@@ -370,65 +365,66 @@ void GAttrArray::Clear()
 
     m_header.count = 0;
 
-    m_attributesEnd = m_attributes;
+    m_attributesEnd = m_data.GetPointer();
 
     m_size = sizeof(GAttrArray);
   }
 }
 
-Attribute &GAttrArray::GetAt(size_t row) const
+Attribute &GAttrArray::GetAt(uint64_t row) const
 {
-  return *(Attribute*)(m_attributes + (row * m_info->attributeSize));
+  return *(Attribute*)(m_data.GetPointer() + (row * m_info->attributeSize));
 }
 
-Attribute &GAttrArray::operator[](size_t row) const
+Attribute &GAttrArray::operator[](uint64_t row) const
 {
-  return *(Attribute*)(m_attributes + (row * m_info->attributeSize));
+  return *(Attribute*)(m_data.GetPointer() + (row * m_info->attributeSize));
 }
 
-bool GAttrArray::IsDefined(size_t row) const
+bool GAttrArray::IsDefined(uint64_t row) const
 {
   return GetAt(row).IsDefined();
 }
 
-int GAttrArray::Compare(size_t rowA, const AttrArray &arrayB, size_t rowB) const
+int GAttrArray::Compare(uint64_t rowA, const AttrArray &arrayB,
+                        uint64_t rowB) const
 {
   return GetAt(rowA).Compare(&((GAttrArray&)arrayB).GetAt(rowB));
 }
 
-int GAttrArray::Compare(size_t row, Attribute &value) const
+int GAttrArray::Compare(uint64_t row, Attribute &value) const
 {
   return GetAt(row).Compare(&value);
 }
 
-int GAttrArray::CompareAlmost(size_t rowA, const AttrArray &arrayB,
-                              size_t rowB) const
+int GAttrArray::CompareAlmost(uint64_t rowA, const AttrArray &arrayB,
+                              uint64_t rowB) const
 {
   return GetAt(rowA).CompareAlmost(&((GAttrArray&)arrayB).GetAt(rowB));
 }
 
-int GAttrArray::CompareAlmost(size_t row, Attribute &value) const
+int GAttrArray::CompareAlmost(uint64_t row, Attribute &value) const
 {
   return GetAt(row).CompareAlmost(&value);
 }
 
-bool GAttrArray::Equals(size_t rowA, const AttrArray &arrayB,
-                              size_t rowB) const
+bool GAttrArray::Equals(uint64_t rowA, const AttrArray &arrayB,
+                              uint64_t rowB) const
 {
   return GetAt(rowA).Equal(&((GAttrArray&)arrayB).GetAt(rowB));
 }
 
-bool GAttrArray::Equals(size_t row, Attribute &value) const
+bool GAttrArray::Equals(uint64_t row, Attribute &value) const
 {
   return GetAt(row).Equal(&value);
 }
 
-size_t GAttrArray::GetHash(size_t row) const
+uint64_t GAttrArray::GetHash(uint64_t row) const
 {
   return GetAt(row).HashValue();
 }
 
-Attribute *GAttrArray::GetAttribute(size_t row, bool clone) const
+Attribute *GAttrArray::GetAttribute(uint64_t row, bool clone) const
 {
   return clone ? GetAt(row).Clone() : GetAt(row).Copy();
 }
@@ -454,7 +450,7 @@ GAttrArrayHeader::GAttrArrayHeader()
 {
 }
 
-GAttrArrayHeader::GAttrArrayHeader(size_t count, SmiFileId flobFileId) :
+GAttrArrayHeader::GAttrArrayHeader(uint64_t count, SmiFileId flobFileId) :
   count(count),
   flobFileId(flobFileId)
 {
@@ -498,26 +494,26 @@ GSpatialAttrArray<dim>::GSpatialAttrArray(const PGAttrArrayInfo &info,
 
 template<int dim>
 GSpatialAttrArray<dim>::GSpatialAttrArray(const GSpatialAttrArray &array,
-  const SharedArray<const size_t> &filter) :
+  const SharedArray<const uint64_t> &filter) :
   m_array(array.m_array, filter)
 {
 }
 
 template<int dim>
 AttrArray *GSpatialAttrArray<dim>::Filter(
-  const SharedArray<const size_t> filter) const
+  const SharedArray<const uint64_t> filter) const
 {
   return new GSpatialAttrArray<dim>(*this, filter);
 }
 
 template<int dim>
-size_t GSpatialAttrArray<dim>::GetCount() const
+uint64_t GSpatialAttrArray<dim>::GetCount() const
 {
   return m_array.GetCount();
 }
 
 template<int dim>
-size_t GSpatialAttrArray<dim>::GetSize() const
+uint64_t GSpatialAttrArray<dim>::GetSize() const
 {
   return m_array.GetSize();
 }
@@ -535,7 +531,7 @@ void GSpatialAttrArray<dim>::DeleteRecords()
 }
 
 template<int dim>
-void GSpatialAttrArray<dim>::Append(const AttrArray &array, size_t row)
+void GSpatialAttrArray<dim>::Append(const AttrArray &array, uint64_t row)
 {
   m_array.Append(((GSpatialAttrArray<dim>&)array).m_array, row);
 }
@@ -559,99 +555,102 @@ void GSpatialAttrArray<dim>::Clear()
 }
 
 template<int dim>
-StandardSpatialAttribute<dim> &GSpatialAttrArray<dim>::GetAt(size_t index) const
+StandardSpatialAttribute<dim> &GSpatialAttrArray<dim>::GetAt(
+  uint64_t index) const
 {
   return (StandardSpatialAttribute<dim>&)m_array.GetAt(index);
 }
 
 template<int dim>
 StandardSpatialAttribute<dim> &GSpatialAttrArray<dim>::operator[](
-  size_t index) const
+  uint64_t index) const
 {
   return (StandardSpatialAttribute<dim>&)m_array.GetAt(index);
 }
 
 template<int dim>
-bool GSpatialAttrArray<dim>::IsDefined(size_t row) const
+bool GSpatialAttrArray<dim>::IsDefined(uint64_t row) const
 {
   return m_array.IsDefined(row);
 }
 
 template<int dim>
-int GSpatialAttrArray<dim>::Compare(size_t rowA, const AttrArray &arrayB,
-                                    size_t rowB) const
+int GSpatialAttrArray<dim>::Compare(uint64_t rowA, const AttrArray &arrayB,
+                                    uint64_t rowB) const
 {
   return m_array.Compare(rowA, ((GSpatialAttrArray<dim>&)arrayB).m_array, rowB);
 }
 
 template<int dim>
-int GSpatialAttrArray<dim>::Compare(size_t row, Attribute &value) const
+int GSpatialAttrArray<dim>::Compare(uint64_t row, Attribute &value) const
 {
   return m_array.Compare(row, value);
 }
 
 template<int dim>
-int GSpatialAttrArray<dim>::CompareAlmost(size_t rowA, const AttrArray &arrayB,
-                                          size_t rowB) const
+int GSpatialAttrArray<dim>::CompareAlmost(uint64_t rowA,
+                                          const AttrArray &arrayB,
+                                          uint64_t rowB) const
 {
   return m_array.CompareAlmost(rowA,
                                ((GSpatialAttrArray<dim>&)arrayB).m_array, rowB);
 }
 
 template<int dim>
-int GSpatialAttrArray<dim>::CompareAlmost(size_t row, Attribute &value) const
+int GSpatialAttrArray<dim>::CompareAlmost(uint64_t row, Attribute &value) const
 {
   return m_array.CompareAlmost(row, value);
 }
 
 template<int dim>
-bool GSpatialAttrArray<dim>::Equals(size_t rowA, const AttrArray &arrayB,
-                                   size_t rowB) const
+bool GSpatialAttrArray<dim>::Equals(uint64_t rowA, const AttrArray &arrayB,
+                                   uint64_t rowB) const
 {
   return m_array.Equals(rowA, ((GSpatialAttrArray<dim>&)arrayB).m_array, rowB);
 }
 
 template<int dim>
-bool GSpatialAttrArray<dim>::Equals(size_t row, Attribute &value) const
+bool GSpatialAttrArray<dim>::Equals(uint64_t row, Attribute &value) const
 {
   return m_array.Equals(row, value);
 }
 
 template<int dim>
-bool GSpatialAttrArray<dim>::EqualsAlmost(size_t rowA, const AttrArray &arrayB,
-                                          size_t rowB) const
+bool GSpatialAttrArray<dim>::EqualsAlmost(uint64_t rowA,
+                                          const AttrArray &arrayB,
+                                          uint64_t rowB) const
 {
   return m_array.EqualsAlmost(rowA,
                               ((GSpatialAttrArray<dim>&)arrayB).m_array, rowB);
 }
 
 template<int dim>
-bool GSpatialAttrArray<dim>::EqualsAlmost(size_t row, Attribute &value) const
+bool GSpatialAttrArray<dim>::EqualsAlmost(uint64_t row, Attribute &value) const
 {
   return m_array.EqualsAlmost(row, value);
 }
 
 template<int dim>
-size_t GSpatialAttrArray<dim>::GetHash(size_t row) const
+uint64_t GSpatialAttrArray<dim>::GetHash(uint64_t row) const
 {
   return m_array.GetHash(row);
 }
 
 template<int dim>
-Attribute *GSpatialAttrArray<dim>::GetAttribute(size_t row, bool clone) const
+Attribute *GSpatialAttrArray<dim>::GetAttribute(uint64_t row, bool clone) const
 {
   return m_array.GetAttribute(row, clone);
 }
 
 template<int dim>
-Rectangle<dim> GSpatialAttrArray<dim>::GetBoundingBox(size_t row,
+Rectangle<dim> GSpatialAttrArray<dim>::GetBoundingBox(uint64_t row,
                                                       const Geoid* geoid) const
 {
   return GetAt(row).BoundingBox(geoid);
 }
 
 template<int dim>
-double GSpatialAttrArray<dim>::GetDistance(size_t row,
+double GSpatialAttrArray<dim>::GetDistance(uint64_t row,
                                            const Rectangle<dim>& rect,
                                            const Geoid* geoid) const
 {
@@ -659,14 +658,15 @@ double GSpatialAttrArray<dim>::GetDistance(size_t row,
 }
 
 template<int dim>
-bool GSpatialAttrArray<dim>::Intersects(size_t row, const Rectangle<dim>& rect,
+bool GSpatialAttrArray<dim>::Intersects(uint64_t row,
+                                        const Rectangle<dim>& rect,
                                         const Geoid* geoid) const
 {
   return GetAt(row).Intersects(rect, geoid);
 }
 
 template<int dim>
-bool GSpatialAttrArray<dim>::IsEmpty(size_t row) const
+bool GSpatialAttrArray<dim>::IsEmpty(uint64_t row) const
 {
   return GetAt(row).IsEmpty();
 }

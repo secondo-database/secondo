@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include <cstddef>
+#include <cstdint>
 #include "CRel.h"
 #include "NestedList.h"
 #include "ReadWrite.h"
@@ -44,18 +44,18 @@ namespace CRelAlgebra
 
     CRelTI(bool numeric);
 
-    CRelTI(const TBlockTI &info, size_t cacheSize);
+    CRelTI(const TBlockTI &info, uint64_t cacheSize);
 
     CRelTI(ListExpr typeExpr, bool numeric);
 
-    size_t GetCacheSize() const;
+    uint64_t GetCacheSize() const;
 
-    void SetCacheSize(size_t value);
+    void SetCacheSize(uint64_t value);
 
     ListExpr GetTypeExpr() const;
 
   private:
-    size_t m_cacheSize;
+    uint64_t m_cacheSize;
   };
 
   class CRelTC : public TypeConstructor
@@ -76,10 +76,10 @@ namespace CRelAlgebra
 
     static void Delete(const ListExpr typeExpr, Word &value);
 
-    static bool Open(SmiRecord &valueRecord, size_t &offset,
+    static bool Open(SmiRecord &valueRecord, uint64_t &offset,
                      const ListExpr typeExpr, Word &value);
 
-    static bool Save(SmiRecord &valueRecord, size_t &offset,
+    static bool Save(SmiRecord &valueRecord, uint64_t &offset,
                      const ListExpr typeExpr, Word &value);
 
     static void Close(const ListExpr typeExpr, Word &w);

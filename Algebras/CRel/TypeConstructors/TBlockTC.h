@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include <cstddef>
+#include <cstdint>
 #include "NestedList.h"
 #include "ReadWrite.h"
 #include "SecondoSMI.h"
@@ -45,7 +45,7 @@ namespace CRelAlgebra
       ListExpr type;
     };
 
-    static const size_t blockSizeFactor;
+    static const uint64_t blockSizeFactor;
 
     static bool Check(ListExpr typeExpr);
 
@@ -59,9 +59,9 @@ namespace CRelAlgebra
 
     bool IsNumeric() const;
 
-    size_t GetDesiredBlockSize() const;
+    uint64_t GetDesiredBlockSize() const;
 
-    void SetDesiredBlockSize(size_t value);
+    void SetDesiredBlockSize(uint64_t value);
 
     void AppendColumnInfos(ListExpr columnList);
 
@@ -76,7 +76,7 @@ namespace CRelAlgebra
   private:
     bool m_isNumeric;
 
-    size_t m_desiredBlockSize;
+    uint64_t m_desiredBlockSize;
 
     mutable PTBlockInfo m_info;
   };
@@ -99,10 +99,10 @@ namespace CRelAlgebra
 
     static void Delete(const ListExpr typeInfo, Word &value);
 
-    static bool Open(SmiRecord &valueRecord, size_t &offset,
+    static bool Open(SmiRecord &valueRecord, uint64_t &offset,
                     const ListExpr typeInfo, Word &value);
 
-    static bool Save(SmiRecord &valueRecord, size_t &offset,
+    static bool Save(SmiRecord &valueRecord, uint64_t &offset,
                     const ListExpr typeInfo, Word &value);
 
     static void Close(const ListExpr typeInfo, Word &value);

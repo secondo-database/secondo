@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attr.h"
 
 #include "AttrArray.h"
-#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include "LogMsg.h"
 #include "OperatorUtils.h"
@@ -84,7 +84,7 @@ ListExpr Attr::TypeMapping(ListExpr args)
   //Find the column with matching name
   const string columnName = nl->SymbolValue(columnNameExpr);
   const TBlockTI tblockInfo(tblockType, false);
-  size_t index = 0;
+  uint64_t index = 0;
 
   for (const TBlockTI::ColumnInfo &columnInfo : tblockInfo.columnInfos)
   {

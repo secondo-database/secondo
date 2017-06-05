@@ -16,7 +16,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-asize_t with SECONDO; if not, write to the Free Software
+auint64_t with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "AlgebraTypes.h"
 #include "AttrArray.h"
-#include <cstddef>
+#include <cstdint>
 #include "IntsTC.h"
 #include "NestedList.h"
 #include "ReadWrite.h"
@@ -68,10 +68,10 @@ namespace CRelAlgebra
 
     static void Delete(const ListExpr typeExpr, Word &value);
 
-    static bool Open(SmiRecord &valueRecord, size_t &offset,
+    static bool Open(SmiRecord &valueRecord, uint64_t &offset,
                      const ListExpr typeExpr, Word &value);
 
-    static bool Save(SmiRecord &valueRecord, size_t &offset,
+    static bool Save(SmiRecord &valueRecord, uint64_t &offset,
                      const ListExpr typeExpr, Word &value);
 
     static void Close(const ListExpr typeExpr, Word &w);

@@ -148,7 +148,7 @@ namespace CRelAlgebra
               AlmostEqual(a, value.GetValue());
     }
 
-    size_t GetHash() const
+    uint64_t GetHash() const
     {
       static const std::hash<double> hashFunction;
 

@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "BlockCount.h"
 
-#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include "LogMsg.h"
 #include "OperatorUtils.h"
@@ -83,7 +83,7 @@ int BlockCount::ValueMapping(ArgVector args, Word &result, int, Word&,
 
     stream.open();
 
-    size_t count = 0;
+    uint64_t count = 0;
 
     while ((block = stream.request()) != nullptr)
     {

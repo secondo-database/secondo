@@ -92,7 +92,7 @@ void AttrArrayManager::DecRef() const
   }
 }
 
-size_t AttrArrayManager::GetRefCount() const
+uint64_t AttrArrayManager::GetRefCount() const
 {
   return m_refCount;
 }
@@ -269,7 +269,7 @@ Word AttrArrayTypeConstructor::DefaultIn(ListExpr typeExpr, ListExpr value,
 
     std::string error;
 
-    size_t row = 0;
+    uint64_t row = 0;
 
     while (!nl->IsEmpty(attributeValues))
     {
@@ -369,7 +369,7 @@ void AttrArrayTypeConstructor::DefaultDelete(const ListExpr typeExpr,
 }
 
 bool AttrArrayTypeConstructor::DefaultOpen(SmiRecord &valueRecord,
-                                           size_t &offset,
+                                           uint64_t &offset,
                                            const ListExpr typeExpr, Word &value)
 {
   try
@@ -400,7 +400,7 @@ bool AttrArrayTypeConstructor::DefaultOpen(SmiRecord &valueRecord,
 }
 
 bool AttrArrayTypeConstructor::DefaultSave(SmiRecord &valueRecord,
-                                           size_t &offset,
+                                           uint64_t &offset,
                                            const ListExpr typeExpr, Word &value)
 {
   try

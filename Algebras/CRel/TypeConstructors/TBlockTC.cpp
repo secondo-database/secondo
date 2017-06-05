@@ -53,7 +53,7 @@ extern CMsg cmsg;
 
 //TBlockTI----------------------------------------------------------------------
 
-const size_t TBlockTI::blockSizeFactor = 1024 * 1024; //MiB
+const uint64_t TBlockTI::blockSizeFactor = 1024 * 1024; //MiB
 
 bool TBlockTI::Check(ListExpr typeExpr)
 {
@@ -107,7 +107,7 @@ bool TBlockTI::Check(ListExpr typeExpr, string &error)
 
   ListExpr errorExpr = emptyErrorInfo();
   set<string> names;
-  size_t i = 0;
+  uint64_t i = 0;
 
   while (!nl->IsEmpty(columnList))
   {
@@ -182,12 +182,12 @@ bool TBlockTI::IsNumeric() const
   return m_isNumeric;
 }
 
-size_t TBlockTI::GetDesiredBlockSize() const
+uint64_t TBlockTI::GetDesiredBlockSize() const
 {
   return m_desiredBlockSize;
 }
 
-void TBlockTI::SetDesiredBlockSize(size_t value)
+void TBlockTI::SetDesiredBlockSize(uint64_t value)
 {
   m_desiredBlockSize = value;
   m_info = nullptr;
@@ -355,12 +355,12 @@ Word TBlockTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
     }
 
     const PTBlockInfo blockInfo = TBlockTI(typeExpr, true).GetBlockInfo();
-    const size_t columnCount = blockInfo->columnCount;
+    const uint64_t columnCount = blockInfo->columnCount;
 
     SharedArray<InObject> inFunctions(columnCount);
     SharedArray<ListExpr> attributeTypes(columnCount);
 
-    for (size_t i = 0; i < columnCount; i++)
+    for (uint64_t i = 0; i < columnCount; i++)
     {
       const ListExpr columnType = blockInfo->columnAttributeTypes[i];
 
@@ -383,7 +383,7 @@ Word TBlockTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
 
       SharedArray<Attribute*> tuple(columnCount);
 
-      size_t tupleIndex = 0;
+      uint64_t tupleIndex = 0;
 
       do
       {
@@ -395,11 +395,11 @@ Word TBlockTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
           throw SecondoException("Tuple value isn't a list of attributes.");
         }
 
-        for (size_t i = 0; i < columnCount; ++i)
+        for (uint64_t i = 0; i < columnCount; ++i)
         {
           if (nl->IsEmpty(attributeValues))
           {
-            for (size_t j = 0; j < i; ++j)
+            for (uint64_t j = 0; j < i; ++j)
             {
               tuple[j]->DeleteIfAllowed();
             }
@@ -417,7 +417,7 @@ Word TBlockTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
 
           if (!correct)
           {
-            for (size_t j = 0; j < i; ++j)
+            for (uint64_t j = 0; j < i; ++j)
             {
               tuple[j]->DeleteIfAllowed();
             }
@@ -436,7 +436,7 @@ Word TBlockTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
 
         result->Append(tuple.GetPointer());
 
-        for (size_t i = 0; i < columnCount; ++i)
+        for (uint64_t i = 0; i < columnCount; ++i)
         {
           tuple[i]->DeleteIfAllowed();
         }
@@ -457,13 +457,13 @@ Word TBlockTC::In(ListExpr typeExpr, ListExpr value, int errorPos,
 ListExpr TBlockTC::Out(ListExpr typeExpr, Word value)
 {
   const TBlock &instance = *(TBlock*)value.addr;
-  const size_t columnCount = instance.GetColumnCount();
+  const uint64_t columnCount = instance.GetColumnCount();
 
   OutObject *attrOuts = new OutObject[columnCount];
 
   const ListExpr *attrTypes = instance.GetInfo()->columnAttributeTypes;
 
-  for (size_t i = 0; i < columnCount; ++i)
+  for (uint64_t i = 0; i < columnCount; ++i)
   {
     attrOuts[i] = GetOutFunction(attrTypes[i]);
   }
@@ -476,7 +476,7 @@ ListExpr TBlockTC::Out(ListExpr typeExpr, Word value)
     const ListExpr tupleExpr = nl->OneElemList(nl->Empty());
     ListExpr tupleExprEnd = tupleExpr;
 
-    for (size_t i = 0; i < columnCount; i++)
+    for (uint64_t i = 0; i < columnCount; i++)
     {
       Attribute *attr = tuple[i].GetAttribute();
 
@@ -512,7 +512,7 @@ void TBlockTC::Delete(const ListExpr, Word &value)
   value.addr = nullptr;
 }
 
-bool TBlockTC::Open(SmiRecord &valueRecord, size_t &offset,
+bool TBlockTC::Open(SmiRecord &valueRecord, uint64_t &offset,
                     const ListExpr typeExpr, Word &value)
 {
   try
@@ -533,7 +533,7 @@ bool TBlockTC::Open(SmiRecord &valueRecord, size_t &offset,
   }
 }
 
-bool TBlockTC::Save(SmiRecord &valueRecord, size_t &offset, const ListExpr,
+bool TBlockTC::Save(SmiRecord &valueRecord, uint64_t &offset, const ListExpr,
                     Word &value)
 {
   try
