@@ -571,13 +571,13 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
                         if (this->assignments[tmpY + l][tmpX + kk] == n)
                         {   
                             feature f = {(double)tmpY + l, 
-                        (double)tmpX + kk, 
-                        this->pixMat5[tmpY + l][tmpX + kk][0],
-                        this->pixMat5[tmpY + l][tmpX + kk][1], 
-                        this->pixMat5[tmpY + l][tmpX + kk][2], 
-                        this->pixMat5[tmpY + l][tmpX + kk][3], 
-                        this->pixMat5[tmpY + l][tmpX + kk][4]};
-                        this->clusters->at(n).push_back(f);
+                            (double)tmpX + kk, 
+                            this->pixMat5[tmpY + l][tmpX + kk][0],
+                            this->pixMat5[tmpY + l][tmpX + kk][1], 
+                            this->pixMat5[tmpY + l][tmpX + kk][2], 
+                            this->pixMat5[tmpY + l][tmpX + kk][3], 
+                            this->pixMat5[tmpY + l][tmpX + kk][4]};
+                            this->clusters->at(n).push_back(f);
                         }	
 					}
 				}
