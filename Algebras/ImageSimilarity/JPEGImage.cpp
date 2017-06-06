@@ -207,28 +207,28 @@ Destructor for JPEGImage class
  
 JPEGImage::~JPEGImage() 
 {
-	delete[] centersX;  // output of k-kmeans
+    delete[] centersX;  // output of k-kmeans
     delete[] centersY;  // output of k-means
     delete[] weights; // of clusters
     delete[] pixels; 
     
     for (int i = 0; i < this->height; i++)
     {
-		for (int j = 0; j < this->width; j++)
-		{
-			delete [] this->pixMat5[i][j];			
-		}
-		delete [] this->pixMat5[i];
-	}
-	delete [] this->pixMat5;
-		
-    
-	for (int i = 0; i < this->height; i++)
-    {
-    	delete [] this->assignments[i];
+        for (int j = 0; j < this->width; j++)
+        {
+            delete [] this->pixMat5[i][j];            
+        }
+        delete [] this->pixMat5[i];
     }
-	delete [] this->assignments;
-		
+    delete [] this->pixMat5;
+        
+    
+    for (int i = 0; i < this->height; i++)
+    {
+        delete [] this->assignments[i];
+    }
+    delete [] this->assignments;
+        
     
     delete [] samplesX;
     delete [] samplesY;    
@@ -236,8 +236,8 @@ JPEGImage::~JPEGImage()
     delete [] contrasts;
     
  
-	
-	for (int i = 0; i < this->height; i++)  
+    
+    for (int i = 0; i < this->height; i++)  
     {        
         for (int j = 0; j < this->width; j++)
         {
@@ -248,12 +248,12 @@ JPEGImage::~JPEGImage()
     delete [] this->pixMat4;
    
    for (unsigned int i = 0; i < this->clusters->size(); i++)
-	{
-		this->clusters->at(i).clear();		
-	}
-	this->clusters->clear();	
-	delete this->clusters;
-	 
+    {
+        this->clusters->at(i).clear();        
+    }
+    this->clusters->clear();    
+    delete this->clusters;
+     
 };
 
 
@@ -265,9 +265,9 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
     const int noClusters = 50) 
 {
 
-	auto t1 = std::chrono::high_resolution_clock::now();
-			
-	const char* fileName = _fileName.c_str();
+    auto t1 = std::chrono::high_resolution_clock::now();
+            
+    const char* fileName = _fileName.c_str();
     
     std::cout << "filename:" << fileName << std::endl;
     struct jpeg_decompress_struct cinfo;
@@ -307,41 +307,41 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
         cinfo.output_height * 
         cinfo.output_components)]; 
 
-	this->patchSize = patchSize;
-	this->noDataPoints = static_cast<double>(percentSamples) / 100.0 
+    this->patchSize = patchSize;
+    this->noDataPoints = static_cast<double>(percentSamples) / 100.0 
         * (this->width * this->height);
-	
-	
-	this->noSamples = static_cast<unsigned int>(this->noDataPoints 
+    
+    
+    this->noSamples = static_cast<unsigned int>(this->noDataPoints 
         / (double)(this->patchSize * this->patchSize));
-	
-	this->coarsenesses = new double[this->noSamples]; 
+    
+    this->coarsenesses = new double[this->noSamples]; 
     this->contrasts = new double[this->noSamples]; 
-	
-	this->colorSpace = colorSpace;
-	
-	std::random_device rd;  
+    
+    this->colorSpace = colorSpace;
+    
+    std::random_device rd;  
     std::mt19937 gen(rd()); 
     std::uniform_int_distribution<> randX(0, this->width);
     
     this->samplesX = new int[this->noSamples];  
        
-	for (int i = 0; i < this->noSamples; i++)
-	{
-		int rx = randX(gen);
-		this->samplesX[i] = rx;
-	}
+    for (int i = 0; i < this->noSamples; i++)
+    {
+        int rx = randX(gen);
+        this->samplesX[i] = rx;
+    }
     
-	this->samplesY = new int[this->noSamples];  
+    this->samplesY = new int[this->noSamples];  
     
-	std::uniform_int_distribution<> randY(0, this->height);
-	for (int i = 0; i < this->noSamples; i++)
-	{
-		int ry = randY(gen);
-		this->samplesY[i] = ry;
-	}
+    std::uniform_int_distribution<> randY(0, this->height);
+    for (int i = 0; i < this->noSamples; i++)
+    {
+        int ry = randY(gen);
+        this->samplesY[i] = ry;
+    }
 
-	this->pixMat5 = new double**[this->height];  
+    this->pixMat5 = new double**[this->height];  
     for (int i = 0; i < this->height; i++)
     {
         this->pixMat5[i] = new double*[this->width 
@@ -361,7 +361,7 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
             this->pixMat4[i][j] = new unsigned char[3];
         }
     } 
-	
+    
 
     JSAMPROW output_data;
     unsigned int cnt = 0;
@@ -371,35 +371,35 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
         unsigned int c = 0;
         for (int i = 0; i < this->width; i++)
         {
-			if (colorSpace == 1) // HSV
-			{
-				HSV hsv = {output_data[c], output_data[c+1], 
+            if (colorSpace == 1) // HSV
+            {
+                HSV hsv = {output_data[c], output_data[c+1], 
                             output_data[c+2]};
-	            this->pixMat5[cnt][i][0] = static_cast<double>(hsv.h);
-	            this->pixMat5[cnt][i][1] = static_cast<double>(hsv.s);
-	            this->pixMat5[cnt][i][2] = static_cast<double>(hsv.v);
-			} 
-			else if (colorSpace == 2) // RGB 
-			{
-				this->pixMat5[cnt][i][0] 
+                this->pixMat5[cnt][i][0] = static_cast<double>(hsv.h);
+                this->pixMat5[cnt][i][1] = static_cast<double>(hsv.s);
+                this->pixMat5[cnt][i][2] = static_cast<double>(hsv.v);
+            } 
+            else if (colorSpace == 2) // RGB 
+            {
+                this->pixMat5[cnt][i][0] 
                     = static_cast<double>(output_data[c]);
-				this->pixMat5[cnt][i][1] 
+                this->pixMat5[cnt][i][1] 
                     = static_cast<double>(output_data[c+1]);
-				this->pixMat5[cnt][i][2] 
+                this->pixMat5[cnt][i][2] 
                     = static_cast<double>(output_data[c+2]);
-			} 
-			else // Lab
-			{
-				Lab lab = {output_data[c], output_data[c+1], 
+            } 
+            else // Lab
+            {
+                Lab lab = {output_data[c], output_data[c+1], 
                             output_data[c+2]};
-				this->pixMat5[cnt][i][0] = lab.L;
-	            this->pixMat5[cnt][i][1] = lab.a;
-	            this->pixMat5[cnt][i][2] = lab.b;
-			}
-			
-			// always grab a grayscale image, 
+                this->pixMat5[cnt][i][0] = lab.L;
+                this->pixMat5[cnt][i][1] = lab.a;
+                this->pixMat5[cnt][i][2] = lab.b;
+            }
+            
+            // always grab a grayscale image, 
             //as it's needed for the texture features
-			this->pixMat5[cnt][i][6] = (double) (output_data[c] + 
+            this->pixMat5[cnt][i][6] = (double) (output_data[c] + 
                 output_data[c+1] + output_data[c+2]) / 3.0;
             c += 3;
         }
@@ -411,10 +411,10 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
     fclose(infile);    
     
     auto t2 = std::chrono::high_resolution_clock::now();
-	std::cout << "import() took "
-	<< 
+    std::cout << "import() took "
+    << 
     std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
-	<< " milliseconds\n";	
+    << " milliseconds\n";    
 }
 
 
@@ -425,17 +425,17 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
 void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions, 
     unsigned int noDataPoints) 
 {
-	auto t1 = std::chrono::high_resolution_clock::now();
-	
-	// 1. create dataset
+    auto t1 = std::chrono::high_resolution_clock::now();
+    
+    // 1. create dataset
     int xcNdx = 0;
     Dataset* ds = new Dataset(this->noDataPoints, DIMENSIONS);
-	
-	unsigned int cnt = 0;
-	
-	int countr = 0;
-	for (int z = 0; z < this->noSamples; z++)
-	{
+    
+    unsigned int cnt = 0;
+    
+    int countr = 0;
+    for (int z = 0; z < this->noSamples; z++)
+    {
         if (this->samplesX[z] >= 0 && 
             this->samplesX[z] < this->width &&
             this->samplesY[z] >= 0 &&
@@ -470,32 +470,32 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
                 }
             }
         }
-	}
-	
-
-	// 2. init k-means, either random or k++ -> k++ as default : 
+    }
     
-	Dataset* c;
-	
-	if (this->colorSpace == 1)
-		c = init_centers(*ds, k);
-	else
-		c = init_centers_kmeanspp_v2(*ds, k); 
+
+    // 2. init k-means, either random or k++ -> k++ as default : 
+    
+    Dataset* c;
+    
+    if (this->colorSpace == 1)
+        c = init_centers(*ds, k);
+    else
+        c = init_centers_kmeanspp_v2(*ds, k); 
 
     // cluster number for each point
-	unsigned short* assignment = new unsigned short[ds->n]; 
-	for (int i = 0; i < ds->n; ++i)
-		assignment[i] = 0;
+    unsigned short* assignment = new unsigned short[ds->n]; 
+    for (int i = 0; i < ds->n; ++i)
+        assignment[i] = 0;
 
-	assign(*ds, *c, assignment);
-	
-	delete c;
-	// 3. setting up parameters
-	//Kmeans* algorithm = new AnnulusKmeans();
-	AnnulusKmeans* algorithm = new AnnulusKmeans();
+    assign(*ds, *c, assignment);
+    
+    delete c;
+    // 3. setting up parameters
+    //Kmeans* algorithm = new AnnulusKmeans();
+    AnnulusKmeans* algorithm = new AnnulusKmeans();
 
-	int numThreads = 0;
-	int maxIterations = 20;
+    int numThreads = 0;
+    int maxIterations = 20;
     std::vector<int>* numItersHistory = new std::vector<int>;
     std::string command = "annulus";
 
@@ -504,17 +504,17 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
     std::copy(assignment, assignment + ds->n, workingAssignment);
     algorithm->initialize(ds, k, workingAssignment, numThreads);
 
-	// 4 a. running algorithm
+    // 4 a. running algorithm
     int iterations = algorithm->run(maxIterations);
 
     // 5. iterations
     while (numItersHistory->size() <= (size_t)xcNdx)
     {
-    	numItersHistory->push_back(iterations);
+        numItersHistory->push_back(iterations);
     }
 
     if (iterations != numItersHistory->back()) {
-    	std::cerr << "ERROR: iterations = " 
+        std::cerr << "ERROR: iterations = " 
         << iterations << " but last iterations was " 
         << numItersHistory->back() << std::endl;
     }
@@ -523,51 +523,51 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
     this->assignments = new unsigned short*[this->height]; 
     for (int i = 0; i < this->height; i++)
     {
-    	this->assignments[i] = new unsigned short[this->width];
+        this->assignments[i] = new unsigned short[this->width];
     }
     
     
-	int cnt2 = 0;
-	int l = 0;
-	for (int z = 0; z < this->noSamples; z++)
-	{
-		int tmpX = this->samplesX[z];
-		int tmpY = this->samplesY[z];
-						
-		for (int kk = 0; kk < 10; kk++) 
-		{
-			for (int ll = 0; ll < 10; ll++) 
-			{
-				cnt2++;
-				if (((tmpY + ll) < this->height) 
+    int cnt2 = 0;
+    int l = 0;
+    for (int z = 0; z < this->noSamples; z++)
+    {
+        int tmpX = this->samplesX[z];
+        int tmpY = this->samplesY[z];
+                        
+        for (int kk = 0; kk < 10; kk++) 
+        {
+            for (int ll = 0; ll < 10; ll++) 
+            {
+                cnt2++;
+                if (((tmpY + ll) < this->height) 
                 && ((tmpX + kk) < this->width))
-				{	
-					this->assignments[tmpY+ll][tmpX+kk] 
+                {    
+                    this->assignments[tmpY+ll][tmpX+kk] 
                         = workingAssignment[l];
-					l++;
-				}
-			}
-		}
-	}
-	
+                    l++;
+                }
+            }
+        }
+    }
+    
 
     // 7. assigning clusters
     this->clusters = new std::vector<std::vector<feature>>(k); 
     
     for (unsigned int n = 0; n < k; n++)
     {
-		for (int z = 0; z < this->noSamples; z++)
-		{
-			int tmpX = this->samplesX[z];
-			int tmpY = this->samplesY[z];
-						
-			for (int kk = 0; kk < 10; kk++) 
-			{
-				for (int l = 0; l < 10; l++) 
-				{
-					if (((tmpY + l) < this->height) 
+        for (int z = 0; z < this->noSamples; z++)
+        {
+            int tmpX = this->samplesX[z];
+            int tmpY = this->samplesY[z];
+                        
+            for (int kk = 0; kk < 10; kk++) 
+            {
+                for (int l = 0; l < 10; l++) 
+                {
+                    if (((tmpY + l) < this->height) 
                         && ((tmpX + kk) < this->width))
-					{
+                    {
                         if (this->assignments[tmpY + l][tmpX + kk] == n)
                         {   
                             feature f = {(double)tmpY + l, 
@@ -578,50 +578,50 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
                             this->pixMat5[tmpY + l][tmpX + kk][3], 
                             this->pixMat5[tmpY + l][tmpX + kk][4]};
                             this->clusters->at(n).push_back(f);
-                        }	
-					}
-				}
-			}
-		}
-	}
+                        }    
+                    }
+                }
+            }
+        }
+    }
     
-	// "9. assigning centroids"
+    // "9. assigning centroids"
     this->centersX = new int[k];  // todo: delete them after usage...
     this->centersY = new int[k];
-	this->weights = new double[k];
+    this->weights = new double[k];
 
-	int kk = 0;
+    int kk = 0;
     for (unsigned int l = 0; l < this->clusters->size(); l++)
     {
-	   double tmpX = 0;
-	   double tmpY = 0;
-	   for (unsigned int i = 0; i < this->clusters->at(l).size(); i++)
-	   {
-			tmpX += this->clusters->at(l).at(i).x;
-			tmpY += this->clusters->at(l).at(i).y;
-	   }
-	   this->centersX[l]= round(tmpX / this->clusters->at(l).size());  
-	   this->centersY[l]= round(tmpY / this->clusters->at(l).size());  
-	   this->weights[l] = (double)this->clusters->at(l).size() 
+       double tmpX = 0;
+       double tmpY = 0;
+       for (unsigned int i = 0; i < this->clusters->at(l).size(); i++)
+       {
+            tmpX += this->clusters->at(l).at(i).x;
+            tmpY += this->clusters->at(l).at(i).y;
+       }
+       this->centersX[l]= round(tmpX / this->clusters->at(l).size());  
+       this->centersY[l]= round(tmpY / this->clusters->at(l).size());  
+       this->weights[l] = (double)this->clusters->at(l).size() 
         / (double)(this->height * this->width);
         if (this->weights[l] > 0) 
         {
             this->signature.push_back({this->weights[l], 
-                        this->centersX[l], this->centersY[l]});	
+                        this->centersX[l], this->centersY[l]});    
             kk++;
             
-		}
+        }
     }
     std::cout << "# signature tuples:" << kk << std::endl;
     
     auto t2 = std::chrono::high_resolution_clock::now();
-	std::cout << "clustering() took "
-	<< 
+    std::cout << "clustering() took "
+    << 
     std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
-	<< " milliseconds\n";			
+    << " milliseconds\n";            
     
-	// "10. done, cleaning up
-	delete numItersHistory;
+    // "10. done, cleaning up
+    delete numItersHistory;
     delete [] workingAssignment;
     delete []assignment;
     delete ds;
@@ -635,8 +635,8 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
 void JPEGImage::writeColorImage(const char* fileName)
 {
 
-	auto t1 = std::chrono::high_resolution_clock::now();
-		
+    auto t1 = std::chrono::high_resolution_clock::now();
+        
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
     FILE * outfile;
@@ -666,16 +666,16 @@ void JPEGImage::writeColorImage(const char* fileName)
     unsigned int c = 0;
 
 
-	this->pixMat4 = new unsigned char**[this->height];
+    this->pixMat4 = new unsigned char**[this->height];
     for (int i = 0; i < this->height; i++)  
     {
         this->pixMat4[i] = new unsigned char*[this->width]; 
         for (int j = 0; j < this->width; j++)
         {
             this->pixMat4[i][j] = new unsigned char[3];
-	    	this->pixMat4[i][j][0] = 255;
-	    	this->pixMat4[i][j][1] = 255;
-	    	this->pixMat4[i][j][2] = 255;
+            this->pixMat4[i][j][0] = 255;
+            this->pixMat4[i][j][1] = 255;
+            this->pixMat4[i][j][2] = 255;
         }
     }
     
@@ -683,7 +683,7 @@ void JPEGImage::writeColorImage(const char* fileName)
     {
         int tmpX = this->samplesX[z];
         int tmpY = this->samplesY[z];
-				
+                
         for (int k = 0; k < this->patchSize; k++) 
         {
             for (int n = 0; n < this->patchSize; n++) 
@@ -705,17 +705,17 @@ void JPEGImage::writeColorImage(const char* fileName)
         }
     }
   
-	// writing to tmp_pixels now to preserve order of features
-	for (int i = 0; i < this->height; i++)
+    // writing to tmp_pixels now to preserve order of features
+    for (int i = 0; i < this->height; i++)
     {
         for (int j = 0; j < this->width; j++)
         {
-			tmp_pixels[c] = this->pixMat4[i][j][0];
-      	    tmp_pixels[c+1] = this->pixMat4[i][j][1];
-      	    tmp_pixels[c+2] = this->pixMat4[i][j][2];
-      	    c += 3;
-		}	
-	}
+            tmp_pixels[c] = this->pixMat4[i][j][0];
+              tmp_pixels[c+1] = this->pixMat4[i][j][1];
+              tmp_pixels[c+2] = this->pixMat4[i][j][2];
+              c += 3;
+        }    
+    }
 
     while (cinfo.next_scanline < cinfo.image_height)
     {
@@ -728,72 +728,72 @@ void JPEGImage::writeColorImage(const char* fileName)
     jpeg_destroy_compress(&cinfo);
  
     auto t2 = std::chrono::high_resolution_clock::now();
-	std::cout << "writeColor() took "
-	<< 
+    std::cout << "writeColor() took "
+    << 
     std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
-	<< " milliseconds\n";		
+    << " milliseconds\n";        
 }
 
 
 void JPEGImage::writeGrayscaleImage(const char* fileName) 
 {
-	auto t1 = std::chrono::high_resolution_clock::now();
-	
-	bool grayscale = true;
-	struct jpeg_compress_struct cinfo;
-	struct jpeg_error_mgr jerr;
-	FILE * outfile;
-	JSAMPROW row_pointer[1];
-	int row_stride;
-	cinfo.err = jpeg_std_error(&jerr);
-	jpeg_create_compress(&cinfo);
-	
-	if ((outfile = fopen(fileName, "wb")) == NULL)
-	{
-		fprintf(stderr, "can't open %s\n", fileName);
-		exit(1);
-	}
-	
-	jpeg_stdio_dest(&cinfo, outfile);
-	cinfo.image_width = this->width;
-	cinfo.image_height = this->height;
-	
-	if (grayscale)
-	{
-		cinfo.input_components = 1;
-		cinfo.in_color_space = JCS_GRAYSCALE;
-	}
-	else
-	{
-		cinfo.input_components = 3;
-		cinfo.in_color_space = JCS_RGB;
-	}
-	
-	jpeg_set_defaults(&cinfo);
-	jpeg_start_compress(&cinfo, TRUE);
-	row_stride = this->width * cinfo.input_components;
-	unsigned char* tmp_pixels 
+    auto t1 = std::chrono::high_resolution_clock::now();
+    
+    bool grayscale = true;
+    struct jpeg_compress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+    FILE * outfile;
+    JSAMPROW row_pointer[1];
+    int row_stride;
+    cinfo.err = jpeg_std_error(&jerr);
+    jpeg_create_compress(&cinfo);
+    
+    if ((outfile = fopen(fileName, "wb")) == NULL)
+    {
+        fprintf(stderr, "can't open %s\n", fileName);
+        exit(1);
+    }
+    
+    jpeg_stdio_dest(&cinfo, outfile);
+    cinfo.image_width = this->width;
+    cinfo.image_height = this->height;
+    
+    if (grayscale)
+    {
+        cinfo.input_components = 1;
+        cinfo.in_color_space = JCS_GRAYSCALE;
+    }
+    else
+    {
+        cinfo.input_components = 3;
+        cinfo.in_color_space = JCS_RGB;
+    }
+    
+    jpeg_set_defaults(&cinfo);
+    jpeg_start_compress(&cinfo, TRUE);
+    row_stride = this->width * cinfo.input_components;
+    unsigned char* tmp_pixels 
         = new unsigned char[(this->height * row_stride) + 1];
 
-	int c = 0;
-	if (grayscale)
-	{
-		for (int i = 0; i < this->height; i++)
+    int c = 0;
+    if (grayscale)
+    {
+        for (int i = 0; i < this->height; i++)
         {
-        	for (int j = 0; j < this->width; j++)
-        	{
-				tmp_pixels[c] 
+            for (int j = 0; j < this->width; j++)
+            {
+                tmp_pixels[c] 
                     = static_cast<unsigned char>(pixMat5[i][j][6]); 
-        		c++;
-        	}
+                c++;
+            }
         }
-	}
-	else
-	{
-		unsigned int c = 0;
-		for (int i = 0; i < this->height; i++)
-		{
-			for (int j = 0; j < this->width; j++)
+    }
+    else
+    {
+        unsigned int c = 0;
+        for (int i = 0; i < this->height; i++)
+        {
+            for (int j = 0; j < this->width; j++)
             {
                 tmp_pixels[c] 
                 = static_cast<unsigned char>(this->pixMat5[i][j][0]);
@@ -803,32 +803,32 @@ void JPEGImage::writeGrayscaleImage(const char* fileName)
                 = static_cast<unsigned char>(this->pixMat5[i][j][2]);
                 c += 3;
             }
-		}
-	}
-	
-	while (cinfo.next_scanline < cinfo.image_height)
-	{
-		row_pointer[0] = &tmp_pixels[cinfo.next_scanline * row_stride];
-		(void) jpeg_write_scanlines(&cinfo, row_pointer, 1);
-	}
-	
-	jpeg_finish_compress(&cinfo);
-	fclose(outfile);
-	jpeg_destroy_compress(&cinfo);
-	
-	auto t2 = std::chrono::high_resolution_clock::now();
-	std::cout << "writeGrayscaleImage() took "
-	<< 
+        }
+    }
+    
+    while (cinfo.next_scanline < cinfo.image_height)
+    {
+        row_pointer[0] = &tmp_pixels[cinfo.next_scanline * row_stride];
+        (void) jpeg_write_scanlines(&cinfo, row_pointer, 1);
+    }
+    
+    jpeg_finish_compress(&cinfo);
+    fclose(outfile);
+    jpeg_destroy_compress(&cinfo);
+    
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::cout << "writeGrayscaleImage() took "
+    << 
     std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
-	<< " milliseconds\n";		
+    << " milliseconds\n";        
 }
 
 
 void JPEGImage::writeContrastImage(const char* filename, 
     double normalization)
 {
-	auto t1 = std::chrono::high_resolution_clock::now();
-	
+    auto t1 = std::chrono::high_resolution_clock::now();
+    
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
     FILE * outfile;
@@ -860,9 +860,9 @@ void JPEGImage::writeContrastImage(const char* filename,
         for (int j = 0; j < this->width; j++)
         {
             this->pixMat4[i][j] = new unsigned char[3];
-	    	this->pixMat4[i][j][0] = 255;
-	    	this->pixMat4[i][j][1] = 255;
-	    	this->pixMat4[i][j][2] = 255;
+            this->pixMat4[i][j][0] = 255;
+            this->pixMat4[i][j][1] = 255;
+            this->pixMat4[i][j][2] = 255;
         }
     }
     
@@ -870,7 +870,7 @@ void JPEGImage::writeContrastImage(const char* filename,
     {
         int tmpX = this->samplesX[z];
         int tmpY = this->samplesY[z];
-				
+                
         for (int k = 0; k < this->patchSize; k++) 
         {
             for (int n = 0; n < this->patchSize; n++) 
@@ -881,21 +881,21 @@ void JPEGImage::writeContrastImage(const char* filename,
                     this->pixMat4[tmpY+k][tmpX+n][0]
                     = static_cast<unsigned char>(
                     (this->pixMat5[tmpY+k][tmpX+n][4] 
-                    * normalization));	
+                    * normalization));    
                 }
             }
-        }				
+        }                
     }
-	
-	int c = 0;
-	for (int i = 0; i < this->height; i++)
+    
+    int c = 0;
+    for (int i = 0; i < this->height; i++)
     {
         for (int j = 0; j < this->width; j++)
         {
-			tmp_pixels[c] = this->pixMat4[i][j][0];
-      	    c ++;
-		}	
-	}
+            tmp_pixels[c] = this->pixMat4[i][j][0];
+              c ++;
+        }    
+    }
 
     while (cinfo.next_scanline < cinfo.image_height)
     {
@@ -909,10 +909,10 @@ void JPEGImage::writeContrastImage(const char* filename,
     
    
     auto t2 = std::chrono::high_resolution_clock::now();
-	std::cout << "writeConstrastImage() took "
-	<< 
+    std::cout << "writeConstrastImage() took "
+    << 
     std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
-	<< " milliseconds\n";	
+    << " milliseconds\n";    
 }
 
 
@@ -921,8 +921,8 @@ void JPEGImage::writeContrastImage(const char* filename,
 void JPEGImage::writeCoarsenessImage(const char* filename, 
     double normalization = 100.0)
 {
-	auto t1 = std::chrono::high_resolution_clock::now();
-	
+    auto t1 = std::chrono::high_resolution_clock::now();
+    
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
     FILE * outfile;
@@ -952,12 +952,12 @@ void JPEGImage::writeCoarsenessImage(const char* filename,
     {
         for (int j = 0; j < this->width; j++)
         {
-	    	this->pixMat4[i][j][0] = 255;
+            this->pixMat4[i][j][0] = 255;
         }
     }
         
     for (int z = 0; z < this->noSamples; z++)
-	{
+    {
         if (this->samplesX[z] >= 0 && 
             this->samplesX[z] < this->width &&
             this->samplesY[z] >= 0 &&
@@ -973,7 +973,7 @@ void JPEGImage::writeCoarsenessImage(const char* filename,
                     {
                         if (((tmpY + k) < this->height) 
                         && ((tmpX + n) < this->width))
-                        {	
+                        {    
                             this->pixMat4[tmpY+k][tmpX+n][0] 
                             = static_cast<unsigned char>(
                             (this->pixMat5[tmpY+k][tmpX+n][3] 
@@ -981,20 +981,20 @@ void JPEGImage::writeCoarsenessImage(const char* filename,
                         }
                     }
                 }
-        }   		
-	}		
-	
-	
-	
-	int c = 0;
-	for (int i = 0; i < this->height; i++)
+        }           
+    }        
+    
+    
+    
+    int c = 0;
+    for (int i = 0; i < this->height; i++)
     {
         for (int j = 0; j < this->width; j++)
         {
-			tmp_pixels[c] = this->pixMat4[i][j][0];
-      	    c ++;
-		}	
-	}
+            tmp_pixels[c] = this->pixMat4[i][j][0];
+              c ++;
+        }    
+    }
 
     while (cinfo.next_scanline < cinfo.image_height)
     {
@@ -1009,34 +1009,34 @@ void JPEGImage::writeCoarsenessImage(const char* filename,
  
     
     auto t2 = std::chrono::high_resolution_clock::now();
-	std::cout << "writeCoarsenessImage() took "
+    std::cout << "writeCoarsenessImage() took "
 << std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
-	<< " milliseconds\n";	
+    << " milliseconds\n";    
 }
 
 
 void JPEGImage::drawCircle(int x0, int y0, int radius)
-{	
+{    
     for(int y = -radius; y<=radius; y++) 
     {
         for(int x = -radius; x<=radius; x++) 
-		{
-			if ((x*x) + (y*y) <= (radius*radius))
-			{
-				double xSum = static_cast<double>(x) 
+        {
+            if ((x*x) + (y*y) <= (radius*radius))
+            {
+                double xSum = static_cast<double>(x) 
                     + static_cast<double>(x0);
-				double ySum = static_cast<double>(y) 
+                double ySum = static_cast<double>(y) 
                     + static_cast<double>(y0);
-				if (xSum < 0) continue;
-				if (ySum < 0) continue;
-				if (xSum >= this->width) continue;
-				if (ySum >= this->height) continue;
-		
-				this->pixMat4[(int)ySum][(int)xSum][0] 
+                if (xSum < 0) continue;
+                if (ySum < 0) continue;
+                if (xSum >= this->width) continue;
+                if (ySum >= this->height) continue;
+        
+                this->pixMat4[(int)ySum][(int)xSum][0] 
                 = static_cast<unsigned char>(this->pixMat5[y0][x0][0]);
-				this->pixMat4[(int)ySum][(int)xSum][1] 
+                this->pixMat4[(int)ySum][(int)xSum][1] 
                 = static_cast<unsigned char>(this->pixMat5[y0][x0][1]);
-				this->pixMat4[(int)ySum][(int)xSum][2] 
+                this->pixMat4[(int)ySum][(int)xSum][2] 
                 = static_cast<unsigned char>(this->pixMat5[y0][x0][2]);
             }
         }
@@ -1047,8 +1047,8 @@ void JPEGImage::drawCircle(int x0, int y0, int radius)
 void JPEGImage::writeClusterImage(const char* fileName, 
     double normalization = 1.0)
 {
-	auto t1 = std::chrono::high_resolution_clock::now();
-	
+    auto t1 = std::chrono::high_resolution_clock::now();
+    
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
     FILE * outfile;
@@ -1075,25 +1075,25 @@ void JPEGImage::writeClusterImage(const char* fileName,
     unsigned char* tmp_pixels 
         = new unsigned char[(this->height * row_stride) + 1];
 
-	
+    
     for (int i = 0; i < this->height; i++)  
     {
         for (int j = 0; j < this->width; j++)
         {
-	    	this->pixMat4[i][j][0] = 255;
-	    	this->pixMat4[i][j][1] = 255;
-	    	this->pixMat4[i][j][2] = 255;
+            this->pixMat4[i][j][0] = 255;
+            this->pixMat4[i][j][1] = 255;
+            this->pixMat4[i][j][2] = 255;
         }
     }        
-	
-	
+    
+    
     for (unsigned int k = 0; k < this->clusters->size(); k++)  
-    {	
-		
-		unsigned int x = this->centersX[k];
-    	unsigned int y = this->centersY[k];		
-		int r = (int)(this->weights[k] * normalization);		
-		drawCircle(y, x, r);
+    {    
+        
+        unsigned int x = this->centersX[k];
+        unsigned int y = this->centersY[k];        
+        int r = (int)(this->weights[k] * normalization);        
+        drawCircle(y, x, r);
     }
     
     
@@ -1101,15 +1101,15 @@ void JPEGImage::writeClusterImage(const char* fileName,
     int c = 0;
     for (int i = 0; i < this->height; i++)
     {
-    	for (int j = 0; j < this->width; j++)
-    	{
-      	    tmp_pixels[c] = this->pixMat4[i][j][0];
-      	    tmp_pixels[c+1] = this->pixMat4[i][j][1];
-      	    tmp_pixels[c+2] = this->pixMat4[i][j][2];
-      	    c += 3;
-    	}
+        for (int j = 0; j < this->width; j++)
+        {
+              tmp_pixels[c] = this->pixMat4[i][j][0];
+              tmp_pixels[c+1] = this->pixMat4[i][j][1];
+              tmp_pixels[c+2] = this->pixMat4[i][j][2];
+              c += 3;
+        }
     }  
-    		    
+                
     while (cinfo.next_scanline < cinfo.image_height)
     {
         row_pointer[0] = &tmp_pixels[cinfo.next_scanline * row_stride];
@@ -1121,10 +1121,10 @@ void JPEGImage::writeClusterImage(const char* fileName,
     jpeg_destroy_compress(&cinfo);
     
     auto t2 = std::chrono::high_resolution_clock::now();
-	std::cout << "writeClusterImage() took "
-	<< 
+    std::cout << "writeClusterImage() took "
+    << 
     std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
-	<< " milliseconds\n";	
+    << " milliseconds\n";    
 }
 
 
@@ -1134,16 +1134,16 @@ double JPEGImage::ak(int x, int y, unsigned int k)
     double tmpSum = 0.0;
     for (int i = (-1) * pow(2,k-1);  i < pow(2, k-1) - 1; i++) 
     {
-    	for (int j = (-1) * pow(2, k-1); j < pow(2, k-1) - 1; j++)
-    	{
-    		if (((x+i) < this->width) && 
-			((y+j) < this->height) &&
-			((x+i) > 0) &&
-			((y+j) > 0))
-    		{
-    			tmpSum += this->pixMat5[y+j][x+i][6];
-    		}
-    	}
+        for (int j = (-1) * pow(2, k-1); j < pow(2, k-1) - 1; j++)
+        {
+            if (((x+i) < this->width) && 
+            ((y+j) < this->height) &&
+            ((x+i) > 0) &&
+            ((y+j) > 0))
+            {
+                tmpSum += this->pixMat5[y+j][x+i][6];
+            }
+        }
     }
     return (1.0/(double)pow(2, 2*k))  * tmpSum;
 }
@@ -1151,9 +1151,9 @@ double JPEGImage::ak(int x, int y, unsigned int k)
 
 double JPEGImage::ekh(int x, int y, unsigned int k)
 {
-	double res 
+    double res 
     = std::abs(ak(x + pow(2, k-1), y, k) - ak(x - pow(2, k-1), y, k));
-	return res;
+    return res;
 }
 
 
@@ -1177,26 +1177,26 @@ double JPEGImage::localCoarseness(int x, int y, const int range)
         
         if (tmpE > maxE)
         {
-      	    maxE = tmpE;
+              maxE = tmpE;
             maxK = k;
         }
     }
 
     if (std::isnan(maxE))
-    	return 0.0;
+        return 0.0;
     else
-    	return (double)maxK;
+        return (double)maxK;
 }
 
 void JPEGImage::computeCoarsenessValues(bool parallel, 
     const int range = 5)
 {
-			
-	auto t1 = std::chrono::high_resolution_clock::now();
+            
+    auto t1 = std::chrono::high_resolution_clock::now();
   
  
-	for (int z = 0; z < this->noSamples; z++)
-	{
+    for (int z = 0; z < this->noSamples; z++)
+    {
         if (this->samplesX[z] >= 0 && 
             this->samplesX[z] < this->width &&
             this->samplesY[z] >= 0 &&
@@ -1212,67 +1212,67 @@ void JPEGImage::computeCoarsenessValues(bool parallel,
                     {
                         if (((tmpY + k) < this->height) 
                             && ((tmpX + n) < this->width))
-                        {	
+                        {    
                             double coa = localCoarseness((tmpX+k),
                                 (tmpY+n), range);
                             this->pixMat5[tmpY+k][tmpX+n][3] = coa;
                         }
                     }
                 }
-        }   		
-	}		
-		
-	auto t2 = std::chrono::high_resolution_clock::now();
-	std::cout << "coarseness() took "
-	<< 
+        }           
+    }        
+        
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::cout << "coarseness() took "
+    << 
     std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
-	<< " milliseconds\n";			
+    << " milliseconds\n";            
     
 }
 
 double JPEGImage::my(int x, int y, const int range)
 {
 
-	int firstHalfRange = (-1) * (range / 2); 
-	int secondHalfRange = range / 2;
+    int firstHalfRange = (-1) * (range / 2); 
+    int secondHalfRange = range / 2;
     
     double tmpSum = 0.0;
     for (int j = firstHalfRange; j <= secondHalfRange; j++) 
     {
-		for (int i = firstHalfRange; i <= secondHalfRange; i++)
-		{
-			if (((x+i) <= this->width - 1) && 
-				((y+j) <= this->height - 1) &&
-				((x+i) > 0) &&
-				((y+j) > 0))
-			{
-				tmpSum += this->pixMat5[y+j][x+i][6];
-			}
-		}
+        for (int i = firstHalfRange; i <= secondHalfRange; i++)
+        {
+            if (((x+i) <= this->width - 1) && 
+                ((y+j) <= this->height - 1) &&
+                ((x+i) > 0) &&
+                ((y+j) > 0))
+            {
+                tmpSum += this->pixMat5[y+j][x+i][6];
+            }
+        }
     }
     return (1.0/9.0) * (double)tmpSum;
 }
 
 
 double JPEGImage::sigma(int x, int y, const int range)
-{	
-	int firstHalfRange = (-1) * (range / 2); 
-	int secondHalfRange = range / 2;
+{    
+    int firstHalfRange = (-1) * (range / 2); 
+    int secondHalfRange = range / 2;
     double tmpSum = 0.0;
     
     for (int j = firstHalfRange; j <= secondHalfRange; j++)
     {
-		for (int i = firstHalfRange; i <= secondHalfRange; i++)
-		{
-			if (((x+i) < this->width) && 
-				((y+j) < this->height) &&
-				((x+i) > 0) &&
-				((y+j) > 0))
-			{
-				tmpSum += pow(this->pixMat5[y+j][x+i][6] 
+        for (int i = firstHalfRange; i <= secondHalfRange; i++)
+        {
+            if (((x+i) < this->width) && 
+                ((y+j) < this->height) &&
+                ((x+i) > 0) &&
+                ((y+j) > 0))
+            {
+                tmpSum += pow(this->pixMat5[y+j][x+i][6] 
                     - my(x, y, range), 2);
-			}
-		}
+            }
+        }
     }
     return sqrt((1.0/9.0) * tmpSum);
 }
@@ -1280,25 +1280,25 @@ double JPEGImage::sigma(int x, int y, const int range)
 
 double JPEGImage::eta(int x, int y, const int range)
 {
-	int firstHalfRange = (-1) * (range / 2); 
-	int secondHalfRange = range / 2;
+    int firstHalfRange = (-1) * (range / 2); 
+    int secondHalfRange = range / 2;
     
-	double tmpSum = 0.0;
+    double tmpSum = 0.0;
     for (int j = firstHalfRange; j <= secondHalfRange; j++)
     {
         for (int i = firstHalfRange; i <= secondHalfRange; i++)
         {
-			if (((x+i) < this->width) && 
-				((y+j) < this->height) &&
-				((x+i) > 0) &&
-				((y+j) > 0))
-            	{					
-					tmpSum += pow(this->pixMat5[y+j][x+i][6]
-                    - my(x, y, range), 4);	
-            	}
-		}
-	}
-	return (1.0/9.0) * tmpSum;
+            if (((x+i) < this->width) && 
+                ((y+j) < this->height) &&
+                ((x+i) > 0) &&
+                ((y+j) > 0))
+                {                    
+                    tmpSum += pow(this->pixMat5[y+j][x+i][6]
+                    - my(x, y, range), 4);    
+                }
+        }
+    }
+    return (1.0/9.0) * tmpSum;
 }
 
 
@@ -1311,20 +1311,20 @@ double JPEGImage::localContrast(int x, int y, const int range)
     double res = sig / (double)pow(denominator, 0.25);
 
     if (!std::isnan(res))
-    	return res;
+        return res;
     else
-    	return 0.0;
+        return 0.0;
 }
 
 
 void JPEGImage::computeContrastValues(bool parallel, 
     const int range = 5)
 {
-		
-	auto t1 = std::chrono::high_resolution_clock::now();
+        
+    auto t1 = std::chrono::high_resolution_clock::now();
     
-	for (int z = 0; z < this->noSamples; z++)
-	{
+    for (int z = 0; z < this->noSamples; z++)
+    {
         if (this->samplesX[z] >= 0 && 
             this->samplesX[z] < this->width &&
             this->samplesY[z] >= 0 &&
@@ -1340,21 +1340,21 @@ void JPEGImage::computeContrastValues(bool parallel,
                 {
                     if (((tmpY + k) < this->height) 
                         && ((tmpX + n) < this->width))
-                    {			
+                    {            
                         double con = localContrast((tmpX+k), 
                             (tmpY+n), range);
                         this->pixMat5[tmpY+k][tmpX+n][4] = con;
                     }
                 }
             }
-        }		
-	}
-    		 
-	auto t2 = std::chrono::high_resolution_clock::now();
-	std::cout << "contrasts() took "
-	<< 
+        }        
+    }
+             
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::cout << "contrasts() took "
+    << 
     std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()
-	<< " milliseconds\n";				
+    << " milliseconds\n";                
 }
 
 
