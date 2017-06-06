@@ -358,8 +358,8 @@ It uses the memcpy - function of the string-library
 
 
     sPoint* aPoint = NULL;  // array which contains the input point values
-    long count;           // amount of points
-    double x, y;          // actual read coordinates
+    long count;             // amount of points
+    double x, y;            // actual read coordinates
     size_t sizeL = sizeof(long);
     size_t sizeD = sizeof(double);
     bool ok = (valueRecord.Read(&count, sizeL, offset) == sizeL);
@@ -389,7 +389,7 @@ It uses the memcpy - function of the string-library
       value.addr = 0;
     }
 
-    // cout << count * sizeof(sPoint) << " bytes used." << endl;
+    cout << count * sizeof(sPoint) << " bytes used." << endl;
 
     return ok;
   }

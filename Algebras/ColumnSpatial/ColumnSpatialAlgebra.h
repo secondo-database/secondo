@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2016,
+Copyright (C) 2017,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -44,12 +44,9 @@ line arrays and region arrays. The corresponding Secondo types are
 
 Also the operators on these types are defined.
 
-2 Includes and global variables and classes
+2 Includes, global variables and classes
 
 */
-
-// TODO: remove relative paths
-// TODO: change type of indices to int64_t
 
 #include "../../include/Symbols.h"          // predefined strings
 #include "../../include/ListUtils.h"        // useful functions for nested lists
@@ -70,14 +67,7 @@ class ColPoint;
 class ColLine;
 class ColRegion;
 
-
 /*
-3 Implementation of column-oriented spatial types
-
-In this chapter the former mentioned spatial types are implemented.
-
-3.1 Global variables
-
 In the array ~allocBytes~ are listed several steps of memory allocation as
 they are used in the ~In~ function of each spatial type.
 
@@ -122,7 +112,11 @@ since system start.
 inline void benchmark(long &cycles, long &ns);
 
 /*
-3.2 Class ColPoint for column-oriented representation of points
+3 Implementation of column-oriented spatial types
+
+In this chapter the former mentioned spatial types are implemented.
+
+3.1 Class ColPoint for column-oriented representation of points
 
 This class handles an array of points to reduce costs of processing.
 A point is the smallest unit and is considered as an attribute.
@@ -158,7 +152,7 @@ and contains all static functions for the neccessary class operations.
  public:
 
 /*
-  Standard constructor
+Standard constructor
 
 */
   ColPoint();
@@ -366,7 +360,7 @@ TypeConstructor ColPointTC(
 
 
 /*
-3.3 Class ColLine for column-oriented representation of lines
+3.2 Class ColLine for column-oriented representation of lines
 
 This class handles an array of lines and their internal
 representation. A line consists of consecutive coherent segments.
@@ -598,7 +592,7 @@ TypeConstructor ColLineTC(
 
 
 /*
-3.4 Class ColRegion for column-oriented representation of Regions
+3.3 Class ColRegion for column-oriented representation of Regions
 
 The Class ~ColRegion~ implements the Secondo datatype ~attrarray(region)~,
 in short ~aregion~. It is used to deal with a big amount of regions.
@@ -713,8 +707,6 @@ The following step - variables mark the indices in the ~allocBytes~ - array
  public:
 
 /*
-3.6 Constructors and destructor
-
 Standard constructor doing nothing:
 
 */
@@ -760,8 +752,6 @@ Description of the Secondo type for the user:
   static ListExpr Property();
 
 /*
-3.7 Auxiliary functions
-
 In this section there are defined some useful functions which can be used in
 different contextes. But there are also functions which are used in a special
 context, e. g. the append- and finalize functions make only sense
@@ -883,15 +873,12 @@ is appended to an attribute array of integer. The attribute array is returned.
   inline bool intersects(double x1, double y1, double x2, double y2,
                          double x3, double y3, double x4, double y4);
 
-
 /*
 The following function checks whether a single point is inside a region
 Needs x and y of the point and the index of aRegion.
 
 */
   inline bool pointInsideRegion(double x, double y, long idReg);
-
-
 
 /*
 The function ~pointsInside~ checks for each point of the ~apoint~ type
@@ -917,7 +904,6 @@ if the region overlaps the 180th longitude then the function fails.
 */
   LongInts* pointsInside(ColPoint* cPoint);
 
-
 /*
 The function ~linesInside~ checks for each line of an ~aline~ type
 whether it is inside one of the regions of the actual ~aregion~ type.
@@ -941,8 +927,6 @@ of the containing regions are returned as a ~longints~ type.
   LongInts* containsPoints(ColPoint* cPoint);
 
 /*
-3.8 Standard functions
-
 The ~In~ function scans a nested-list (parameter ~instance~) and converts it
 into an internal array representation.
 One way to acquire the length of a nested list
@@ -1149,7 +1133,6 @@ int countLineVM (Word* args, Word& result, int message,
 int countRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s);
 
-
 /*
 The ~+~ Operators merges two arrays of the same type into a new array
 
@@ -1238,6 +1221,7 @@ OperatorSpec showarraySpec("{apoint,aline,aregion} -> array of atype",
 /*
 4.5 Operator Instance
 
+The ordered values are:
 operator's name
 specification
 number of Value Mappings
@@ -1246,7 +1230,6 @@ selection function
 type mapping
 
 */
-
 
 Operator insideOp("inside", insideSpec.getStr(), 3,
                   insideVM, insideSelect, insideTM);
@@ -1268,7 +1251,6 @@ Operator plusOp("+", plusSpec.getStr(), 3,
 
 Operator showarrayOp("showarray", showarraySpec.getStr(), 3,
                     showarrayVM, showarraySelect, showarrayTM);
-
 
 /*
 5 Definition of the Algebra
