@@ -125,17 +125,18 @@ struct OpNode
 {
   bool         evaluable;
   ListExpr     typeExpr;
-  OpNodeType   nodetype;
+  ListExpr     numTypeExpr;
+  const OpNodeType   nodetype;
   int          id;
   bool         isRoot;
+  ArgVector    tmpArg;
   struct OpNodeStruct
   {
-/*
-common members of OpNodeDirecObject and OpNodeOperator ~symbol~
+  /*
+     common members of OpNodeDirecObject and OpNodeOperator ~symbol~
+     common members of OpNodeInDirecObject and OpNodeOperator ~received~
 
-common members of OpNodeInDirecObject and OpNodeOperator ~received~
-
-*/
+  */
     ListExpr symbol;
     bool received;
     struct OpNodeDirectObject
@@ -172,6 +173,7 @@ arguments. In this case the operator must
       int funNo; // needed for testing only
       bool isStream;
       Word local;
+      Word local2; // can be used for init/finish messages
       int resultAlgId;
       int resultTypeId;
       Word resultWord;
@@ -189,33 +191,6 @@ arguments. In this case the operator must
       bool argsAvailable;
     } op;
   } u;
-
-/*
-Constructor for a proper initialization of an ~OpNode~
-
-*/
-
-
-OpNode(OpNodeType type);
-
-  string symbol() const;
-
-  string nodeIdStr() const;
-
-  string nodeLabelStr() const;
-
-  string nodeTypeStr() const;
-
- /** Checks wether this node is an abstraction **/
- bool isAbstraction();
-
- /** checks wether this opnode is a stream operator **/
- bool isStreamOp();
-
-
-
-private:
-  OpNode(); // bad idea to use an uninitialized object
 
 };
 
@@ -277,7 +252,11 @@ be created which will be deleted after completion of the query processing.
       delete ptrCodeGenVisitor;
     mapResultTypes.clear();
     FileSystem::SetCurrentFolder(currentPath);
-    FileSystem::EraseFolder(codeGenPath);
+/*
+Remove the comment to delete the temporarily generated files of the query.
+
+*/
+    //FileSystem::EraseFolder(codeGenPath);
   }
     
 /*
@@ -629,6 +608,14 @@ It is demonstrated with the filter operator in the relation algebra.
             cout  << traceMsg.str() << "rejected!" << endl;
           else
             cout << traceMsg.str() << "accepted!" << endl;
+        }
+
+        bool excluded = am->getOperator(alId,opId)->isExcluded();
+        if(excluded) {
+          resultType = nl->TypeError();
+          std::string msg = "";
+          ErrorReporter::GetErrorMessage(msg);
+          ErrorReporter::ReportError("operator has been excluded (no example)");
         }
 
         if ( !ErrorReporter::TypeMapError ) {
