@@ -51,8 +51,8 @@ CommunicationClient::CommunicationClient(
     (new TraceWriter(context));
 
     traceWriter->writeFunction("CommunicationClient::CommunicationClient");
-    traceWriter->write("server", server);
-    traceWriter->write("port", port);
+    traceWriter->write("Connecting to server: ", server);
+    traceWriter->write("On port:", port);
 }
 
 CommunicationClient::~CommunicationClient()

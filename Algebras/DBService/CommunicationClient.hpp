@@ -38,39 +38,184 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace DBService {
 
-class CommunicationClient: public distributed2::Client {
+/*
 
+1 \textit{CommunicationClient}
+
+The \textit{CommunicationClient} is the counterpart of the
+\textit{CommunicationServer}. Whenever communication associated with the
+ \textit{DBService's} functionality takes place the \textit{CommunicationClient}
+is the initiator. The \textit{CommunicationClient} is deducted from the more
+generic class \textit{Client} of the \textit{Distributed2Algebra} which had
+to be extracted from the \textit{FileTransferClient} for this purpose.
+
+*/
+
+class CommunicationClient: public distributed2::Client {
+/*
+
+1.1 Function Definitions
+
+The \textit{CommunicationClient} provides several member functions that cover
+the different \textit{DBService} communication scenarios.
+
+*/
 public:
+/*
+
+1.1.1 Constructor
+
+*/
     CommunicationClient(
             std::string& server,
             int port,
             Socket* socket);
+
+/*
+
+1.1.2 Destructor
+
+*/
     ~CommunicationClient();
+
+/*
+
+1.1.2 \textit{start}
+
+This function starts the \textit{CommunicationClient} by connecting to the
+specified server.
+
+*/
     int start();
+
+/*
+
+1.1.2 \textit{triggerReplication}
+
+This function is meant to be called by on \textit{CommunicationClient} that
+resides on the original node of a relation that needs to be replicated.
+It establishes a connection to the \textit{CommunicationServer} on the
+\textit{DBService master node} and provides all relevant information about the
+relation that shall be replicated, such as database name, relation name and
+original location.
+
+*/
     bool triggerReplication(
             const std::string& databaseName,
             const std::string& relationName);
+
+/*
+1.1.2 \textit{getReplicaLocation}
+
+This function establishes a connection to the \textit{CommunicationServer} on
+the DBService master node in order to request the replica location for a
+certain location. It passes the database name and relation name and receives
+the host and the transfer port of the node that holds the replica.
+
+*/
     bool getReplicaLocation(
             const std::string databaseName,
             const std::string relationName,
             std::string& host,
             std::string& transferPort);
+
+/*
+1.1.2 \textit{triggerFileTransfer}
+
+The file transfer between the nodes was implemented following the approach that
+is already used by the \textit{Distributed2Algebra}. The
+\textit{ReplicationServer} and \textit{ReplicationClient} of the
+\textit{DBServiceAlgebra} are deducted from the \textit{FileTransferServer} and
+the \textit{FileTransferClient} of the \textit{Distributed2Algebra}.
+Therefore, the \textit{ReplicationServer} can only send files and the
+\textit{ReplicationClient} can only receive files. This means if we want to
+ship a replica from the original location to a \textit{DBService} worker node,
+the \textit{DBService} worker node needs to instantiate a
+\textit{ReplicationClient} that connects to the \textit{ReplicationServer} that
+is running on the original node and request the file transfer.
+The \textit{triggerFileTransfer} function is responsible for notifying the
+respective \textit{DBService} worker and providing it with the host and port
+of the responsible \textit{ReplicationServer}.
+
+*/
     int triggerFileTransfer(
             const std::string& transferServerHost,
             const std::string& transferServerPort,
             const std::string& databaseName,
             const std::string& relationName);
+
+/*
+1.1.2 \textit{reportSuccessfulReplication}
+
+Once a relation was successfully replicated, the \textit{DBService} worker node
+has to notify the \textit{DBService} master so that the corresponding metadata
+can be updated. Therefore a \textit{CommunicationClient} needs to be
+instantiated that connects to the \textit{CommunicationServer} on the DBService
+master and executes the function \textit{reportSuccessfulReplication}.
+
+*/
     bool reportSuccessfulReplication(
             const std::string& databaseName,
             const std::string& relationName);
+
+/*
+1.1.2 \textit{requestReplicaDeletion}
+
+If a relation is deleted at its original location, it does not make sense to
+keep the corresponding replicas. Therefore, using the function
+\textit{requestReplicaDeletion}, of a \textit{CommunicationClient} on
+the original node, one can request the deletion of the replicas by contacting
+the \textit{CommunicationServer} on the DBService master.
+
+*/
     bool requestReplicaDeletion(
             const std::string& databaseName,
             const std::string& relationName);
+
+
+/*
+1.1.2 \textit{triggerReplicaDeletion}
+
+Once the deletion of a replica has been requested, the \textit{DBService}
+master will determine the replica locations and instantiate
+\textit{CommunicationClients} to establish connections to each of them in order
+to trigger the deletion of the replicas by calling function
+\textit{triggerReplicaDeletion}.
+
+
+*/
     bool triggerReplicaDeletion(
             const std::string& relID);
 
+
+
+/*
+1.1.2 \textit{getLocationParameter}
+
+This function simplifies reading information from the "Environment" section of
+a SECONDO configuration file.
+
+*/
 protected:
     void getLocationParameter(std::string& location, const char* key);
+
+/*
+
+1.1 Member Definitions
+
+The constructor arguments are all passed on to the superclass, therefore the
+\textit{CommunicationClient} class only has one member.
+
+1.1.1 \textit{traceWriter}
+
+As the \textit{DBService} acts in a highly distributed environment, it
+is important to provide comprehensive tracing in order to be able to understand
+the behaviour of the individual components which is important for potential
+error analysis. Therefore, each communication client holds its own instance of
+a \textit{TraceWriter} object which documents all important events in a trace
+file.
+
+*/
 private:
     std::unique_ptr<TraceWriter> traceWriter;
 };
