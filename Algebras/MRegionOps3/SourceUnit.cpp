@@ -41,19 +41,154 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 */
 
 #include "SourceUnit.h"
-#include "Container.tpp"
 
 using namespace std;
 
 namespace temporalalgebra { 
-  namespace mregionops3 {
+  namespace mregionops3 {  
+/*
+3 class Segment
+
+*/      
+    Segment::Segment (){
+      this->head = 0;
+      this->tail = 0;
+      this->predicate = UNDEFINED;
+    }// Konstruktor    
     
-        
-    template class Container<IntersectionPoint>;
-    template std::ostream& operator<<(
-      std::ostream& os, const Container<IntersectionPoint>& container); 
-   
+    Segment::Segment (size_t tail, size_t head, Predicate predicate){
+      this->head = head;
+      this->tail = tail;
+      this->predicate = predicate;
+    }// Konstruktor
     
+    Segment::Segment (const Segment& segment){
+      set(segment);
+    }// KOnstruktor
+    
+    void Segment::set(const Segment& segment){
+      this->head = segment.head;
+      this->tail = segment.tail;
+      this->predicate = segment.predicate;
+    }// set
+    
+    size_t Segment::getHead()const{
+      return this->head;
+    }// getHead
+    
+    size_t Segment::getTail()const{
+      return this->tail;
+    }// getTail
+      
+    Predicate Segment::getPredicate() const{
+      return this->predicate;
+    }// getPredicate
+
+    std::ostream& operator <<(std::ostream& os, const Segment& segment){
+      os << "Segment (" << segment.getTail() << ", " << segment.getHead();
+      os << ", " << IntersectionSegment::toString(segment.getPredicate()) <<")";
+      return os;
+    }// operator <<
+
+    bool Segment::operator ==(const Segment& segment) const{
+      if((this->head == segment.head) &&
+         (this->tail  == segment.tail) &&
+         (this->predicate == segment.predicate)) return true;
+      return false;
+    }// Operator ==
+
+    Segment& Segment::operator =(const Segment& segment){
+      set(segment);
+      return *this;
+    }// Operator =
+/*
+4 class ResultPfaceFactory
+
+*/  
+    ResultPfaceFactory::ResultPfaceFactory(
+        ContainerPoint3D& points,
+        GlobalTimeValues &timeValues1,
+        IntSegContainer &container1){
+      size_t size = timeValues1.size()-1;
+      for(size_t i = 0; i < size; i++){
+        this->edge.push_back(vector<Segment>());
+        this->orthogonal.push_back(vector<Segment>());
+      }// for
+      list<IntersectionSegment> result,resultOrthogonal;
+      list<IntersectionSegment>::iterator iter;
+      double t1,t2;
+      size_t i = 0;
+      if (timeValues1.first(t1)){                     
+        container1.first(t1,result,resultOrthogonal);
+        while(timeValues1.next(t2)){
+          edge[i] = vector<Segment>();
+          orthogonal[i] = vector<Segment>(); 
+          for(iter = result.begin();
+              iter != result.end(); iter++){
+            edge[i].push_back(createEdge(points,*iter,t1,t2));
+          }// for
+          for(iter = resultOrthogonal.begin(); 
+              iter != resultOrthogonal.end(); iter++){
+            orthogonal[i].push_back(createEdge(points,*iter,t1,t2));
+          }// for
+          i++;
+          t1 = t2;
+          container1.next(t1,result,resultOrthogonal);
+        }// while
+      }// if                          
+    }// Konstruktor
+    
+    Segment ResultPfaceFactory::createEdge(
+        ContainerPoint3D& points,
+        const IntersectionSegment& segment,double t1, double t2){
+      Point3D tail, head;
+      if(segment.isOrthogonalToTAxis()){
+        tail = segment.getTail().getPoint3D();
+        head = segment.getHead().getPoint3D(); 
+      }// if
+      else {
+        tail = segment.evaluate(t1);
+        head = segment.evaluate(t2);
+      }// else
+      size_t p1     = points.add(tail);
+      size_t p2     = points.add(head);
+      Predicate predicate = segment.getPredicate();
+      return Segment(p1,p2,predicate); 
+    }// create Edge
+    
+    
+    std::ostream& ResultPfaceFactory::print(std::ostream& os, 
+                                            std::string prefix)const{
+      os << prefix << "ResultPfaceFactory(" << endl; 
+      os << prefix << "  Edge for PFaces(" << endl;
+      for(size_t i = 0; i < edge.size(); i++){
+        os << prefix << "    Index:="<< i << " (";
+        for(size_t j = 0; j < edge[i].size();j++){
+          os << edge[i][j];
+          if(j < edge[i].size()-1) os << ", ";
+        }// for  
+        os << ")" << endl;
+      }// for
+      os << prefix << "  )" << endl;
+      os << prefix << "  Orthogonal Edge to t-Axis(" << endl;
+      for(size_t i = 0; i < orthogonal.size(); i++){
+        os << prefix << "    Index:="<< i << " (";
+        for(size_t j = 0; j < orthogonal[i].size();j++){
+          os << orthogonal[i][j];
+          if(j < orthogonal[i].size()-1) os << ", ";
+        }// for  
+        os << ")" << endl;
+      }// for
+      os << prefix << "  )" << endl;
+      os << prefix << ")" << endl;
+      return os;
+    }// operator <<
+    
+    std::ostream& operator <<(std::ostream& os, 
+                              const ResultPfaceFactory& factory){   
+      return factory.print(os,"");
+    }// operator 
+     
     SourceUnit::SourceUnit():pFaceTree(4,8){
     }// Konstruktor
     
@@ -101,8 +236,8 @@ namespace temporalalgebra {
           // check planes
           if (planeSelf.isParallelTo(planeOther)) {
             if(planeSelf.isCoplanarTo(planeOther)) {
-              pFaceA->setState(RELEVANT_CRITICAL);
-              pFaceB->setState(RELEVANT_CRITICAL);           
+              pFaceA->setState(CRITICAL);
+              pFaceB->setState(CRITICAL);           
             }// if 
             break;
           }// if

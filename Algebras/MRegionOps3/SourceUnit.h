@@ -43,10 +43,7 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 #include "PFace.h"
 #include "PointVectorSegment.h"
 #include "NumericUtil.h"
-// #include <memory>
-// #include <gmp.h>
-// #include <gmpxx.h>
-// #include <set>
+
 
 #ifndef SOURCEUNIT_H
 #define SOURCEUNIT_H
@@ -54,40 +51,151 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 namespace temporalalgebra {
   namespace mregionops3 {
 
-    class SourceUnit{
-    public:
-      SourceUnit();
-      ~SourceUnit();
-      void addPFace(const PFace& pf);
-      void addPFace(const Point3D& a, const Point3D& b, 
-                    const Point3D& c, const Point3D& d);
-      bool intersection(SourceUnit& other, GlobalTimeValues& timeValues);  
-      
 /*
-12.3 Operators and Predicates
+3 class Segment
 
-12.3.3 Operator <<
+*/     
+    class Segment {
+    public:
+/*
+3.1 Constructor
+
+*/        
+      Segment ();
+      Segment (size_t head, size_t tail, Predicate predicate);
+      Segment (const Segment& segment);
+/*
+3.2 Getter methods
+
+*/      
+      size_t getHead()const;
+      size_t getTail()const;
+      Predicate getPredicate() const;
+/*
+3.3 Methods, Operators and Predicates
+
+3.3.1 Operator <<
     
 Print the object values to stream.
 
-*/         
+*/      
       friend std::ostream& operator <<(std::ostream& os, 
-                                       const SourceUnit& unit);
-      bool operator ==(const SourceUnit& unit)const; 
-    private:    
-/*
-1.1.1 pFaces
-
-A ~std::vector~ to store all ~PFaces~.
+                                       const Segment& segment);
+/*      
+3.3.2 Operator for comparison.
 
 */
-      std::vector<PFace*> pFaces;
+      bool operator ==(const Segment& segment) const; 
 /*
-1.1.1 boundingRect
+3.3.3 operator =
+    
+*/
+      Segment& operator =(const Segment& segment);     
+    private:
+/*
+3.4 Private methods
 
-The projection bounding rectangle of this ~SourceUnit~ to the xy-plane.
+3.4.1 set
 
-*/  
+*/        
+      void set(const Segment& segment);  
+/*
+3.5 Attributes
+
+*/
+      size_t head;
+      size_t tail;
+      Predicate predicate;
+    };// Segment
+/*
+4 class ResultPfaceFactory
+
+*/      
+    class ResultPfaceFactory {
+    public:  
+/*
+4.1 Constructor
+
+*/        
+      ResultPfaceFactory(ContainerPoint3D& points,
+                        GlobalTimeValues &timeValues1,
+                        IntSegContainer &container1);
+/*
+4.3 Methods, Operators and Predicates
+
+4.3.1 createEdge
+
+*/
+      Segment createEdge( ContainerPoint3D& points,
+        const IntersectionSegment& segment,double t1, double t2);
+/*
+4.3.2 operator <<
+
+*/     
+      friend std::ostream& operator <<(std::ostream& os, 
+                                       const ResultPfaceFactory& unit);
+/*
+4.3.3 print
+
+*/     
+      std::ostream& print(std::ostream& os,std::string prefix)const;
+    private: 
+/*
+4.4 Attributes
+
+*/      
+      std::vector<std::vector<Segment>> edge;
+      std::vector<std::vector<Segment>> orthogonal;
+    }; // ResultPfaceFactory 
+/*
+5 class SourceUnit
+
+*/        
+    class SourceUnit{
+    public:
+/*
+5.1 Constructor
+
+*/       
+      SourceUnit();
+/*
+5.1 Destructor
+
+*/       
+      ~SourceUnit();
+/*
+5.2 Methods, operators and predicates
+
+5.2.3 addPFace
+    
+*/        
+      void addPFace(const PFace& pf);
+      void addPFace(const Point3D& a, const Point3D& b, 
+                    const Point3D& c, const Point3D& d);
+/*
+5.2.4 intersection
+    
+*/       
+      bool intersection(SourceUnit& other, GlobalTimeValues& timeValues);    
+/*
+5.2.5 Operator <<
+    
+Print the object values to stream.
+
+*/          
+      friend std::ostream& operator <<(std::ostream& os, 
+                                       const SourceUnit& unit);
+/*
+5.2.6 Operator ==  
+
+*/       
+      bool operator ==(const SourceUnit& unit)const; 
+    private: 
+/*
+5.3 Attributes
+
+*/       
+      std::vector<PFace*> pFaces;
       mmrtree::RtreeT<2, size_t> pFaceTree;  
     };// class SourceUnit  
   } // end of namespace mregionops3

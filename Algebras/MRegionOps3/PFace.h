@@ -39,7 +39,6 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 2 Defines and Includes
 
 */
-
 #include "PointVectorSegment.h"
 #include "NumericUtil.h"
 #include "TemporalAlgebra.h"
@@ -57,7 +56,9 @@ namespace temporalalgebra {
     
     class PFace;
 /*
-3 Enumeration SourceFlag
+3 Enumeration 
+
+3.1 SourceFlag
 
 Indicates the source unit of a ~RationalPoint3DExt~.
 
@@ -67,33 +68,38 @@ Indicates the source unit of a ~RationalPoint3DExt~.
       PFACE_B
     };
 /*
-4 Enumeration State
+3.2 Enumeration State
 
 Used in the class ~PFace~ to indicate it's current state.
 
 */
     enum State {
       UNKNOWN,
-      ENTIRELY_INSIDE,
-      ENTIRELY_OUTSIDE,
-      RELEVANT_NOT_CRITICAL,
-      RELEVANT_CRITICAL,
+      RELEVANT,
+      CRITICAL,
       NOT_RELEVANT
     };
-    
-    enum Indicator {
+/*
+3.3 Enumeration Predicate
+
+*/    
+    enum Predicate { 
+      UNDEFINED,
       LEFT_IS_INNER,
       RIGHT_IS_INNER,
-      BORDER
+      INSIDE,
+      OUTSIDE
     };
-    
+/*
+3.4 Enumeration Border
+
+*/        
     enum Border {
       LEFT,
       RIGHT
     };
-    
 /*
-5 Class RationalPoint3DExt
+4 Class RationalPoint3DExt
 
 This datastructure is used in the class ~RationalPointExtSet~.
 It simply extends ~Point3D~ with the attribute ~sourceFlag~.
@@ -102,27 +108,27 @@ It simply extends ~Point3D~ with the attribute ~sourceFlag~.
     class RationalPoint3DExt : public RationalPoint3D {
     public:
 /*
-5.1 Constructors
+4.1 Constructors
 
 */
       RationalPoint3DExt();
       RationalPoint3DExt(const mpq_class& a, const mpq_class& b, 
                          const mpq_class& c, SourceFlag sourceFlag);
 /*
-5.2 Setter and getter methods
+4.2 Setter and getter methods
 
 */      
       void setSourceFlag(SourceFlag flag);
       SourceFlag getSourceFlag()const;
 /*
-5.3 Operators and Predicates
+4.3 Operators and Predicates
 
-5.3.1 operator $<$
+4.3.1 operator $<$
 
 */
       bool operator < (const RationalPoint3DExt& point) const;
 /*
-5.3.2 Operator <<
+4.3.2 Operator <<
     
 Print the object values to stream.
 
@@ -131,9 +137,9 @@ Print the object values to stream.
                                        const RationalPoint3DExt& point);      
     private:  
 /*
-5.4 Attributes
+4.4 Attributes
 
-5.4.1 sourceFlag
+4.4.1 sourceFlag
 
 An enum, indicating the ~PFace~, this ~RationalPoint3DExt~ belongs to.
 Possible values are:
@@ -147,7 +153,7 @@ Possible values are:
 };
 
 /*
-6 Class RationalPoint3DExtSet
+5 Class RationalPoint3DExtSet
 
 This set is used in the class ~PFace~ to compute the intersection segment of
 two ~PFaces~.
@@ -156,82 +162,84 @@ two ~PFaces~.
     class RationalPoint3DExtSet {
     public:
 /*
-6.1 Constructors
+5.1 Constructors
 
 */
       RationalPoint3DExtSet();
 /*
-6.2 Operators and Predicates
+5.2 Methods, operators and predicates
 
-6.2.1 insert
+5.2.1 insert
 
 Inserts point, if point isn't already inserted.
 
 */
       void insert(const RationalPoint3DExt& point); 
 /*
-6.2.2 size
+5.2.2 size
 
 Returns the number of points in the set.
 
 */
       size_t size() const; 
 /*
-6.2.3 getIntersectionSegment
+5.2.3 getIntersectionSegment
 
 Returns ~true~, if there is an intersection segment and writes it to result.
 
 */
       bool getIntersectionSegment(RationalSegment3D& result) const;
 /*
-6.2.4 Operator <<
+5.2.4 Operator <<
 
 */
       friend std::ostream& operator <<(std::ostream& os, 
                                        const RationalPoint3DExtSet& points);
+/*
+5.2.5 print
+
+*/      
+      std::ostream& print(std::ostream& os, std::string prefix)const;
+      
     private:
 /*
-6.3 Attributes
+5.3 Attributes
 
-6.3.1 point
+5.3.1 points
 
 A ~std::set~, using the overloaded operator $<$ for comparison.
 
 */
       std::set<RationalPoint3DExt> points;
-    };  
- 
+    };   
 /*
-7 Class RationalPlane3D
+6 Class RationalPlane3D
 
 */   
     class RationalPlane3D{
     public:
 /*
-7.1 Constructors
+6.1 Constructors
 
 */      
       RationalPlane3D();
       RationalPlane3D(const RationalPlane3D& plane);
       RationalPlane3D(const PFace& pf);
 /*
-7.2 Setter and getter methods
+6.2 Getter methods
 
 */      
-      void set(const RationalVector3D& normalVector,
-               const RationalPoint3D& pointOnPlane);
-      void set(const RationalPlane3D& plane);     
       RationalPoint3D getPointOnPlane() const;
       RationalVector3D getNormalVector() const;
 /*
-7.3 Operators and Predicates
+6.3 Methods, operators and predicates
 
-7.3.1 distance2ToPlane
+6.3.1 distance2ToPlane
 
 */            
       mpq_class distance2ToPlane(const RationalPoint3D& point) const;
 /*
-7.3.2 isParallelTo
+6.3.2 isParallelTo
 
 Returns ~true~, if this ~RationalPlane3D~ is parallel to the 
 ~RationalPlane3D~ plane.
@@ -239,14 +247,14 @@ Returns ~true~, if this ~RationalPlane3D~ is parallel to the
 */      
       bool isParallelTo(const RationalPlane3D& plane) const;
 /*
-7.3.2 isCoplanarTo
+6.3.3 isCoplanarTo
 
 Returns ~true~, if this ~RationalPlane3D~ is coplanar to the argument.
 
 */      
       bool isCoplanarTo(const RationalPlane3D& plane)const;
 /*
-7.3.3 intersection
+6.3.4 intersection
 
 
 */           
@@ -259,7 +267,7 @@ Returns ~true~, if this ~RationalPlane3D~ is coplanar to the argument.
 */                                     
       RationalPlane3D& operator =(const RationalPlane3D& point);       
 /*
-7.3.5 Operator <<
+6.3.5 Operator <<
     
 Print the object values to stream.
 
@@ -267,20 +275,29 @@ Print the object values to stream.
       friend std::ostream& operator <<(std::ostream& os, 
                                        const RationalPlane3D& plane);
 /*
-7.3.6 isLeftAreaInner   
+6.3.6 isLeftAreaInner   
 
 */       
       bool isLeftAreaInner(const RationalSegment3D segment,
                            const RationalPlane3D other)const;
 /*
-7.3.7 transform   
+6.3.7 transform   
 
 */                              
       Point2D transform(const RationalPoint3D& point) const;
       Segment2D transform(const RationalSegment3D& segment) const;
     private:
 /*
-7.4 Attributes
+6.4 Private methods
+
+6.4.1 set
+
+*/       
+      void set(const RationalVector3D& normalVector,
+               const RationalPoint3D& pointOnPlane);
+      void set(const RationalPlane3D& plane);       
+/*
+6.5 Attributes
 
 */     
       RationalVector3D  normalVector;
@@ -288,13 +305,13 @@ Print the object values to stream.
       RationalPoint3D   pointOnPlane;
     };
 /*
-8 Class IntersectionPoint
+7 Class IntersectionPoint
 
 */       
     class IntersectionPoint {
     public:  
 /*
-8.1 Constructors
+7.1 Constructors
 
 */        
      IntersectionPoint();
@@ -302,10 +319,9 @@ Print the object values to stream.
      IntersectionPoint(const Point3D& point3D, const Point2D& point2D); 
      IntersectionPoint(double x, double y, double z, double w);
 /*
-8.2 Setter and getter methods
+7.2 Getter methods
 
 */        
-      void set(const IntersectionPoint& point);
       Point3D getPoint3D() const;
       Point2D getPoint2D() const;
       double getX()const;
@@ -315,7 +331,9 @@ Print the object values to stream.
       double getT()const;
       Rectangle<3> getBoundingBox()const;
 /*
-8.3.1 Operator <<
+7.3 Methods, operators and predicates
+
+7.3.1 Operator <<
     
 Print the object values to stream.
 
@@ -323,56 +341,63 @@ Print the object values to stream.
       friend std::ostream& operator <<(std::ostream& os, 
                                        const IntersectionPoint& point);
 /*
-8.3.2 operator =
+7.3.2 operator =
     
 */
       IntersectionPoint& operator =(const IntersectionPoint& point);  
 /*
-8.3.3 operator ==
+7.3.3 operator ==
     
 */      
       bool operator ==(const IntersectionPoint& point) const;
     private:  
+/*
+7.4 Private methods
+
+7.4.1 set
+
+*/        
+      void set(const IntersectionPoint& point);
+/*
+7.5 Attributes
+
+*/       
       double x;
       double y;
       double z;
       double w;
     };
 /*
-9 Class IntersectionSegment
+8 Class IntersectionSegment
 
 */      
     class IntersectionSegment{
     public:
 /*
-9.1 Constructors
+8.1 Constructors
 
 */         
       IntersectionSegment();
       IntersectionSegment(const IntersectionSegment& segment);
       IntersectionSegment(const IntersectionPoint& tail,
                           const IntersectionPoint& head, 
-                          const Indicator indicator);
+                          const Predicate predicate);
       IntersectionSegment(const Segment3D& segment3D, 
                           const Segment2D& segment2D, 
-                          const Indicator indicator);
+                          const Predicate predicate);
 /*
-9.2 Setter and getter methods
+8.2 Getter methods
 
 */        
-
       Segment3D getSegment3D()const;
       Segment2D getSegment2D()const;
       IntersectionPoint getTail() const;
       IntersectionPoint getHead() const;
-      Indicator getIndicator()const;
-      
-      bool isOrthogonalToTAxis()const;      
-      bool isOutOfRange(double t) const;
-      bool isLeftOf(const IntersectionSegment& intSeg) const;
-      Point3D evaluate(double t) const;
+      Predicate getPredicate()const;
 /*
-9.3.1 Operator <<
+8.3 Methods, operators and predicates
+
+8.3.1 Operator <<
     
 Print the object values to stream.
 
@@ -380,34 +405,61 @@ Print the object values to stream.
       friend std::ostream& operator <<(std::ostream& os, 
                                        const IntersectionSegment& segment);
 /*
-9.3.2 operator =
+8.3.2 operator =
     
 */
       IntersectionSegment& operator =(const IntersectionSegment& segment);
 /*
-9.3.3 operator ==
+8.3.3 operator ==
     
 */      
       bool operator ==( const IntersectionSegment& segment) const;
 /*
-12.3.5 toString
+8.3.4 toString
 
 */      
-      static std::string toString(Indicator indicator);      
+      static std::string toString(Predicate predicate); 
+/*
+8.3.5 isOrthogonalToTAxis
+
+*/      
+      bool isOrthogonalToTAxis()const;  
+/*
+8.3.6 isOutOfRange
+
+*/       
+      bool isOutOfRange(double t) const;
+/*      
+8.3.7 isLeftOf
+
+*/      
+      bool isLeftOf(const IntersectionSegment& intSeg) const;
+/*
+8.3.8 evaluate
+
+*/       
+      Point3D evaluate(double t) const;     
     private: 
+/*
+8.4 Private methods
+
+8.4.1 set
+
+*/       
       void set(const IntersectionPoint& tail,const IntersectionPoint& head,
-               Indicator indicator);
+               Predicate predicate);
       void set(const IntersectionSegment& segment);
 /*
- 12.4 Attributes
+8.6 Attributes
  
 */
       IntersectionPoint tail;
       IntersectionPoint head;
-      Indicator indicator;  
+      Predicate predicate;  
     };
+
 /*
-10 Struct IntSegCompare
+9 Struct IntSegCompare
 
 This struct implements the ~IntersectionSegment~ order,
 used in ~IntSegContainer~.
@@ -417,9 +469,9 @@ used in ~IntSegContainer~.
 
       bool operator()(const IntersectionSegment* const& s1,
                       const IntersectionSegment* const& s2) const;
-    };        
-/*
-11 Class IntSegContainer
+    };             
+/*    
+10 Class IntSegContainer
 
 This class is used by the class ~PFace~ and provides essentially
 an ordered set of ~IntersectionSegments~
@@ -428,33 +480,41 @@ an ordered set of ~IntersectionSegments~
     class IntSegContainer {
     public: 
 /*
-11.1 Constructor
+10.1 Constructor
 
 */     
       IntSegContainer();
       IntSegContainer(const IntSegContainer& container);
 /*
-11.2 Destructor
+10.2 Destructor
 
 */
       ~IntSegContainer();
-      void set(const IntSegContainer& container);
 /*
-11.3 Operators
+10.3 Methods and Operators
 
-11.3.1 AddIntSeg
-s
+10.3.1 addIntSeg
+
 Adds seg to the set of ~IntersectionSegments~.
 
 */  
       void addIntSeg(const IntersectionSegment& seg);
-      size_t size()const;
-     
 /*
-11.3.2 operator =
+10.3.2 size
+
+Adds seg to the set of ~IntersectionSegments~.
+
+*/        
+      size_t size()const;   
+/*
+10.3.3 print
     
 */    
       std::ostream& print(std::ostream& os, std::string prefix)const; 
+/*
+10.3.4 operator <<
+    
+*/        
       friend std::ostream& operator <<(std::ostream& os, 
                                        const IntSegContainer& container);
 /*
@@ -462,20 +522,40 @@ Adds seg to the set of ~IntersectionSegments~.
     
 */     
       bool operator ==(const IntSegContainer& container)const; 
-      IntSegContainer& operator =(const IntSegContainer& container);  
-      
-      void first(double t,std::vector<IntersectionSegment>& result);
-      void next(double t,std::vector<IntersectionSegment>& result);
-      
- //     void updateTimeLevel(double _t);
-      
-    private:
-      
-      bool hasMoreSegsToInsert() const; 
 /*
-11.4 Attributes
+11.3.4 operator =
+    
+*/       
+      IntSegContainer& operator =(const IntSegContainer& container);  
+/*
+11.3.5 first
+    
+*/       
+      void first(double t, std::list<IntersectionSegment>& result, 
+                           std::list<IntersectionSegment>& resultOrth);
+/*
+11.3.6 next
+    
+*/         
+      void next(double t, std::list<IntersectionSegment>& result,
+                          std::list<IntersectionSegment>& resultOrthogonal);
+    private:
+/*
+11.4 Private methods
 
-11.4.1 intSegs, intSegIter
+11.4.1 hasMoreSegsToInsert
+
+*/        
+      bool hasMoreSegsToInsert(double t) const; 
+/*
+11.4.2 set
+    
+*/                 
+      void set(const IntSegContainer& container);
+/*
+11.5 Attributes
+
+11.5.1 intSegs, intSegIter
 
 A ~std::set~ to store the ~IntersectionSegments~ using the order
 provided by ~IntSegCompare~ and a suitable iterator.
@@ -483,21 +563,16 @@ provided by ~IntSegCompare~ and a suitable iterator.
 */
       std::set<IntersectionSegment*, IntSegCompare> intSegs;
       std::set<IntersectionSegment*, IntSegCompare>::iterator intSegIter;
-      
 /*
-1.1.1 active, activeIter
+11.5.2 orthogonal, active
 
-A ~std::list~ to store the active ~IntersectionSegments~ during the plane-sweep
-and a suitable iterator.
+A ~std::list~ to store the active ~IntersectionSegments~ and the a
+orthogonal ~IntersectionSegments~during the plane-sweep.
 
 */
-      std::list<IntersectionSegment*> active;
-      std::list<IntersectionSegment*>::iterator activeIter;
-      
-      double t;
-//      bool firstTimeLevel;
-      
-    };   
+      std::list<IntersectionSegment*> orthogonal;
+      std::list<IntersectionSegment*> active;    
+    };
 /*
 12 struct DoubleCompare
 
@@ -512,34 +587,48 @@ and a suitable iterator.
     class GlobalTimeValues{
     public:  
 /*
-13.3 Operators and Predicates
+13.3 Methods, operators and predicates
 
 13.3.1 addTimeValue
 
 */      
       void addTimeValue(double t);
 /*
-13.3.2 Operator <<
+13.3.2 size
+
+*/      
+      size_t size()const; 
+/*
+13.3.3 Operator <<
 
 */       
       friend std::ostream& operator <<(std::ostream& os, 
                                        GlobalTimeValues& timeValues);
 /*
-13.3.3 Operator ==
+13.3.4 Operator ==
 
 */                                        
       bool operator ==(const GlobalTimeValues& other)const; 
-      
+/*
+13.3.2 first
+
+*/        
       bool first(double& t);
-      
-      bool next(double& t);
-            
+/*
+13.3.2 next
+
+*/        
+      bool next(double& t);           
     private: 
+/*
+13.4 Attributes
+
+*/      
       std::set<double, DoubleCompare> time;
       std::set<double, DoubleCompare>::const_iterator timeIter;
       double t1;
       double t2;
-    };
+    }; // GlobalTimeValues       
 /*
 14 Class PFace
 
@@ -567,7 +656,7 @@ and a suitable iterator.
       State   getState() const;
       Rectangle<2> getBoundingRec()const;
 /*
-14.3 Operators and Predicates
+14.3 Methods, operators and predicates
 
 14.3.1 existsIntSegs
 
@@ -622,19 +711,32 @@ Computes the intersection of this ~PFace~ with pf.
 
 */        
       bool operator ==(const PFace& pf)const;
-    private:    
+    private:  
+/*
+14.4 Private methods
+
+14.4.1 getBoundingRec
+
+*/
       Rectangle<2> getBoundingRec(const Point3D& point)const;   
-      
+/*
+14.4.2 createIntSeg
+
+*/      
       IntersectionSegment createIntSeg(const RationalPlane3D& planeSelf, 
                                        const RationalPlane3D& planeOther,
                                        const RationalSegment3D& intSeg); 
+/*
+14.4.3 createBorder
+
+*/        
       IntersectionSegment createBorder(const RationalPlane3D &planeSelf,
                                        Border border);
 /*
-14.4 Attributes
+14.5 Attributes
 
 */      
-      IntSegContainer   intSegContainer;
+      IntSegContainer   intSegs;
       State             state;
       Rectangle<2>      boundingRect;  
       Point3D           a;

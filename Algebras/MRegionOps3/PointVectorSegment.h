@@ -53,7 +53,7 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 #define POINTVECTORSEGMENT_H
 
 namespace temporalalgebra {
-  namespace mregionops3 {
+  namespace mregionops3 {    
 /*
 2.2 Forward declarations
 
@@ -81,12 +81,9 @@ It's components are represented by three double values.
       Point3D(const RationalPoint3D& point);
       Point3D(double x, double y, double z);
 /*
-3.2 Getter and setter methods
+3.2 Getter methods
 
-*/
-      void set(const Point3D& point);
-      void set(const RationalPoint3D& point);
-      void set(double x, double y, double z);
+*/      
       double getX() const; 
       double getY() const;
       double getZ() const;
@@ -112,7 +109,20 @@ Print the object values to stream.
 
 */         
       friend std::ostream& operator <<(std::ostream& os, const Point3D& point);
-    private:          
+    private:  
+/*
+3.4 Private methods
+
+3.4.1 set
+
+*/    
+      void set(const Point3D& point);
+      void set(const RationalPoint3D& point);
+      void set(double x, double y, double z);
+/*
+3.5 Attributes
+
+*/      
       double x;
       double y;
       double z;     
@@ -135,18 +145,15 @@ It's components are represented by three rational values.
       RationalPoint3D(const RationalPoint3D& point);
       RationalPoint3D(mpq_class x, mpq_class y, mpq_class z);    
 /*
-4.2 Getter and setter methods
+4.2 Getter methods
 
 */
-      void set(const Point3D& point);
-      void set(const RationalPoint3D& point);
-      void set(mpq_class x, mpq_class y, mpq_class z);
       mpq_class getX() const; 
       mpq_class getY() const;
       mpq_class getZ() const;
       Point3D getD()const;  
 /*
-4.3 Operators and Predicates
+4.3 Methods, operators and predicates
     
 4.3.1 Operators for comparison.
 
@@ -202,10 +209,23 @@ Returns the quadratic distance between this and point.
 */
       mpq_class distance2(const RationalPoint3D& point)const;
     protected:  
+/*
+4.4 Private methods
+
+4.4.1 set
+
+*/  
+      void set(const Point3D& point);
+      void set(const RationalPoint3D& point);
+      void set(mpq_class x, mpq_class y, mpq_class z);
+/*
+4.5 Attributes
+
+*/       
       mpq_class x;
       mpq_class y;
       mpq_class z;
-    };
+    };// RationalPoint3D
     
 /*
 5 Class RationalVector3D
@@ -225,16 +245,14 @@ It's components are represented by three rational values.
       RationalVector3D(const mpq_class& x, const mpq_class& y, 
                        const mpq_class& z);    
 /*
-5.2 Getter and setter methods
+5.2 Getter methods
 
 */  
-      void set(const RationalVector3D& vector);  
-      void set(const mpq_class& x, const mpq_class& y, const mpq_class& z);
       mpq_class getX() const; 
       mpq_class getY() const;
       mpq_class getZ() const; 
 /*
-5.3 Operators and Predicates
+5.3 Methods, operators and predicates
  
 5.3.1 Operators for comparison.
 
@@ -308,6 +326,18 @@ Returns the quadratic length of this vector.
       mpq_class length2() const;
     
     private:
+/*
+5.4 Private methods
+
+5.4.1 set
+
+*/    
+      void set(const RationalVector3D& vector);  
+      void set(const mpq_class& x, const mpq_class& y, const mpq_class& z);
+/*
+5.5 Attributes
+
+*/        
       mpq_class x;
       mpq_class y;
       mpq_class z;
@@ -333,18 +363,17 @@ It's start- and endpoint is represented by a Point3D each.
 6.2 Getter methods.
 
 */
-      void set(const Segment3D& segment);
       Point3D getHead() const; 
       Point3D getTail() const; 
       RationalSegment3D getR() const;
 /*
-6.3 Operators and Predicates
+6.3 Operators and predicates
         
 6.3.1 Operator <<
     
 Print the object values to stream.
 
-*/        
+*/    
       friend std::ostream& operator <<(std::ostream& os, 
                                        const Segment3D& segment);
 /*      
@@ -357,10 +386,21 @@ Print the object values to stream.
     
 */
       Segment3D& operator =(const Segment3D& segment);         
-    protected:
+    private:
+/*
+6.4 Private methods
+
+6.4.1 set
+
+*/
+      void set(const Segment3D& segment);
+/*
+6.5 Attributes
+
+*/        
       Point3D tail;
       Point3D head;
-    };    
+    };// Segment3D    
 /*
 7 Class RationalSegment3D
 
@@ -383,12 +423,12 @@ It's start- and endpoint is represented by a RationalPoint3D each.
 7.2 Getter methods.
 
 */
-      void set(const RationalSegment3D& segment);
       RationalPoint3D getHead() const; 
       RationalPoint3D getTail() const; 
       Segment3D getD() const;
-
 /*
+7.3 Operators and predicates
+
 7.3.1 Operator <<
     
 Print the object values to stream.
@@ -406,12 +446,22 @@ Print the object values to stream.
 7.3.3 operator =   
 
 */
-      RationalSegment3D& operator =(const RationalSegment3D& point); 
-      
+      RationalSegment3D& operator =(const RationalSegment3D& point);      
     private:
+/*
+7.4 Private methods
+
+7.4.1 set
+
+*/     
+      void set(const RationalSegment3D& segment);
+/*
+7.5 Attributes
+
+*/        
       RationalPoint3D tail;
       RationalPoint3D head;
-    };
+    };// RationalSegment3D
     
 /*
 8 Class Point2D
@@ -431,16 +481,14 @@ It's components are represented by two double values.
       Point2D(const RationalPoint2D& point);
       Point2D(double x, double y);
 /*
-8.2 Getter and setter methods
+8.2 Getter methods
 
 */
-      void set(const Point2D& point);
-      void set(double x, double y);
       double getX() const; 
       double getY() const;
       RationalPoint2D getR()const;
 /*
-8.3 Operators and Predicates
+8.3 Operators and predicates
 
 8.3.1 Operator for comparison.
 
@@ -458,7 +506,19 @@ Print the object values to stream.
 
 */         
       friend std::ostream& operator <<(std::ostream& os, const Point2D& point);
-    private:          
+    private:  
+/*
+8.4 Private methods
+
+8.4.1 set
+
+*/    
+      void set(const Point2D& point);
+      void set(double x, double y);
+/*
+8.5 Attributes
+
+*/       
       double x;
       double y;
     };// class Point2D
@@ -481,16 +541,14 @@ It's components are represented by two rational values.
       RationalPoint2D(const Point2D& point);
       RationalPoint2D(const mpq_class& x, const mpq_class& y);
 /*
-9.2 Getter and setter methods
+9.2 Getter methods
 
 */
-      void set(const RationalPoint2D& point);
-      void set(const mpq_class& x, const mpq_class& y);
       mpq_class getX() const; 
       mpq_class getY() const;  
       Point2D getD()const;
 /*
-9.3 Operators and Predicates
+9.3 Operators and predicates
 
 9.3.1 Operator for comparison.
 
@@ -516,8 +574,19 @@ Returns the Vector2D pointing from p to this.
 
 */       
       RationalVector2D operator -(const RationalPoint2D& point) const;
+    private:  
+/*
+9.4 Private methods
 
-    private:          
+9.4.1 set
+
+*/    
+      void set(const RationalPoint2D& point);
+      void set(const mpq_class& x, const mpq_class& y);
+/*
+9.5 Attributes
+
+*/         
       mpq_class x;
       mpq_class y;
     };// class RationalPoint2D
@@ -542,12 +611,10 @@ It's components are represented by two rational values.
 10.2 Getter and setter methods
 
 */
-      void set(const RationalVector2D& vector);
-      void set(const mpq_class& x, const mpq_class& y);
       mpq_class getX() const; 
       mpq_class getY() const;  
 /*
-10.3 Operators and Predicates
+10.3 Methodes, operators and predicates
 
 10.3.1 Operator for comparison.
 
@@ -579,8 +646,20 @@ Normalize this vector to length one.
 Returns the perp product of this and vector: a scalar.
 
 */   
-     mpq_class operator |(const RationalVector2D& vector) const; 
-    private:          
+      mpq_class operator |(const RationalVector2D& vector) const; 
+    private:  
+/*
+10.4 Private methods
+
+10.4.1 set
+
+*/    
+      void set(const RationalVector2D& vector);
+      void set(const mpq_class& x, const mpq_class& y);
+/*
+10.5 Attributes
+
+*/        
       mpq_class x;
       mpq_class y;
     };// class RationalVector2D
@@ -606,7 +685,7 @@ It's start- and endpoint is represented by a Point2D each.
       Point2D getHead() const; 
       Point2D getTail() const; 
 /*
-11.3 Operators and Predicates
+11.3 Methods, operators and predicates
         
 11.3.1 Operator <<
 
@@ -620,7 +699,10 @@ Print the object values to stream.
 
 */
       bool operator ==(const Segment2D& segment) const; 
-      
+/*      
+11.3.2 whichSide.
+
+*/      
       double whichSide(const Point2D& point)const;
 /*      
 11.3.3 isLeft
@@ -628,32 +710,79 @@ Print the object values to stream.
 */      
       bool isLeft(const Point2D& point) const;    
     protected:
+/*
+11.4 Attributes
+
+*/       
       Point2D tail;
       Point2D head;
-    };   
+    };// Segment2D   
     
-    template <typename T> class Container{
+/*
+12 Class ContainerPoint3D
+
+This class provides a containervector for Point3d values.
+
+*/      
+    class ContainerPoint3D{
     public:
-      // Konstruktor
-      Container();
-      Container(const Container<T>& points);
-      // Destruktor
-      ~Container();      
-      size_t          add(const T& points);
-      T               get(const size_t index)const;
+/*
+12.1 Constructors
+
+*/    
+      ContainerPoint3D();
+      ContainerPoint3D(const ContainerPoint3D& points);
+/*
+12.2 Getter methods.
+
+*/     
+      Point3D         get(size_t index)const;
       size_t          size()const;
-      std::ostream& print(std::ostream& os, std::string prefix)const;
-      bool operator == (const Container<T>& points)const;
-      Container<T>& operator = (const Container<T>& points);
-    private:
-      void set(const Container<T>& points);
-      
-      std::vector<T> points; 
-      mmrtree::RtreeT<3, size_t> pointsTree;
-    };
+/*
+12.3 Methods, oOperators and predicates
+        
+12.3.1 Operator <<
+
+Print the object values to stream.
+
+*/            
+      friend std::ostream& operator<<( std::ostream& os, 
+                                       const ContainerPoint3D& container); 
+/*      
+12.3.2 Operator for comparison.
+
+*/      
+      bool operator == (const ContainerPoint3D& points)const;
+/*
+12.3.3 operator =
     
-    template <typename T> std::ostream& operator<<(
-      std::ostream& os, const Container<T>& container); 
+*/      
+      ContainerPoint3D& operator = (const ContainerPoint3D& points);
+/*
+12.3.4 add.
+
+*/       
+      size_t          add(const Point3D& points);
+/*
+12.3.5 print.
+
+*/       
+      std::ostream& print(std::ostream& os, std::string prefix)const;           
+    private:
+/*
+12.4 Private methods
+
+12.4.1 set
+
+*/      
+      void set(const ContainerPoint3D& points);
+/*
+12.5 Attributes
+
+*/        
+      std::vector<Point3D> points; 
+      mmrtree::RtreeT<3, size_t> pointsTree;
+    };// Segment2D
     
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

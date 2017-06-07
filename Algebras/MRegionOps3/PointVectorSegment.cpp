@@ -41,7 +41,6 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 */
 
 #include "PointVectorSegment.h"
-#include "Container.tpp"
 
 namespace temporalalgebra{
   namespace mregionops3 {          
@@ -354,13 +353,13 @@ namespace temporalalgebra{
 
 */      
     Segment3D::Segment3D(){   
-    }// Konstruktor
+    }// Konstruktor    
     
     Segment3D::Segment3D(const Point3D& tail, const Point3D& head){
       this->tail = tail;
-      this->head = head;    
+      this->head = head; 
     }// Konstruktor
-       
+    
     Segment3D::Segment3D(const Segment3D& segment){
       set(segment);
     }// konstruktor
@@ -382,11 +381,11 @@ namespace temporalalgebra{
     Point3D Segment3D::getTail() const{
       return this->tail;
     }// getTail 
-    
+
     RationalSegment3D Segment3D::getR()const {
       return RationalSegment3D(tail,head);
     }// getR
-        
+          
     std::ostream& operator <<(std::ostream& os, const Segment3D& segment){
       os << "Segment3D (" << segment.tail << ", " << segment.head << ")";
       return os; 
@@ -627,7 +626,6 @@ namespace temporalalgebra{
       return os; 
     }// Oparator <<
     
-      
     void RationalVector2D::normalize(){
       mpq_class len2 = this->x * this->x + 
                        this->y * this->y;                       
@@ -689,9 +687,80 @@ namespace temporalalgebra{
       return NumericUtil::greater(whichSide(point), 0.0); 
     }// isLeft
     
-    template class Container<Point3D>;
-    template std::ostream& operator<<(
-      std::ostream& os, const Container<Point3D>& container); 
-  
+/*
+12 Class ContainerPoint3D
+
+*/       
+    ContainerPoint3D::ContainerPoint3D():pointsTree(4, 8){
+    }// Konstruktor
+
+    ContainerPoint3D::ContainerPoint3D(
+       const ContainerPoint3D& other):pointsTree(4, 8){
+      set(other);
+    }// Konstruktor  
+    
+    void ContainerPoint3D::set(const ContainerPoint3D& other){
+      for(size_t i = 0; i< other.size(); i++){
+        add(other.get(i));
+      }// for
+    }// set
+              
+    Point3D ContainerPoint3D::get(size_t index)const{
+      if(index >= points.size()){
+        NUM_FAIL("point index is out of range.");
+      }// if  
+      return points[index];
+    } // get
+    
+    size_t ContainerPoint3D::add( 
+        const Point3D& point){
+      Rectangle<3> bbox=point.getBoundingBox(); 
+      bbox.Extend(NumericUtil::eps2);
+      std::unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> 
+        it(pointsTree.find(bbox));
+      size_t const* index;
+      while((index = it->next()) != 0){
+        if(points[*index] == point) return *index;
+      }// while
+      size_t newIndex = points.size();
+      points.push_back(point);
+      pointsTree.insert(bbox, newIndex);
+      return newIndex;
+    }// add
+    
+    size_t ContainerPoint3D::size()const{
+      return points.size();
+    } // size
+
+    std::ostream& ContainerPoint3D::print(
+        std::ostream& os, std::string prefix)const{ 
+      os << prefix << "Container( " << endl;
+      for(size_t i = 0; i< points.size(); i++){
+        os << prefix << "  Index:="<< i<<", " << points[i] << endl; 
+      }// for
+      os << prefix << ")" << endl;
+      return os;
+    }// print
+       
+    bool ContainerPoint3D::operator==(
+        const ContainerPoint3D& other)const{
+      if(this->points.size() != other.points.size()) return false;
+      for(size_t i = 0; i < points.size(); i++){
+        if(other.points[i] == this->points[i]) return false;
+      }// for
+      return true;
+    }// Operator ==
+    
+    ContainerPoint3D& ContainerPoint3D::operator=(
+        const ContainerPoint3D& points){
+      set(points);
+      return *this;
+    }// Operator =
+    
+    std::ostream& operator<<(
+        std::ostream& os, const ContainerPoint3D& container){
+      return container.print(os,"");
+    }// Operator << 
+
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra
