@@ -36,18 +36,19 @@ January 2017 Michael Loris
 #include<vector>
 #include<string>
 
-
 /* 
 Color model conversion functions were taken 
 from the GeneralTree Algebra .
  
 */
+namespace conversion {
 /********************************************************************
 1.1 Struct Lab
 
 This struct models a lab-color value, which will be computed in the constructor from a rgb-color value.
 
 ********************************************************************/
+
 struct Lab
 {
     double L, a, b;
@@ -61,6 +62,7 @@ struct Lab
 This struct models a hsv-color value, which will be computed in the constructor from a rgb-color value.
 
 ********************************************************************/
+
 struct HSV
 {
     int h, s, v;
@@ -69,6 +71,7 @@ struct HSV
 }; // struct HSV
 
 
+} //end namespace
 
 struct feature //todo: Uppercase for type feature
 {
@@ -170,7 +173,7 @@ private:
     unsigned int* randomRepresentantsX;
     unsigned int* randomRepresentantsY;
     unsigned short** assignments; // to which cluster is each centroid assigned
-    std::vector<std::vector<feature>>* clusters; // output of k-means
+    std::vector<std::vector<feature> >* clusters; // output of k-means
     void drawCircle(int x, int y, int r);
     int* samplesX;
     int* samplesY;
@@ -181,9 +184,6 @@ private:
     int patchSize; // size of sub images to be extracted
     int noDataPoints;    
 };
-
-
-
 
 
 

@@ -69,6 +69,7 @@ January 2017 Michael Loris
 
 #define DIMENSIONS 7
 
+namespace conversion {
 
 Lab::Lab (unsigned char r_, unsigned char g_, unsigned char b_)
 {
@@ -132,14 +133,11 @@ Lab::Lab (unsigned char r_, unsigned char g_, unsigned char b_)
     double Lab_ad = (500 * (fx - fy));
     double Lab_bd = (200 * (fy - fz));
 
-    //L = (signed char) Lab_Ld;
-    //a = (signed char) Lab_ad;
-    //b = (signed char) Lab_bd;
-    
-    L = Lab_Ld;
-    a = Lab_ad;
-    b = Lab_bd;
+    L = (signed char) Lab_Ld;
+    a = (signed char) Lab_ad;
+    b = (signed char) Lab_bd;
 }
+
 
 
 HSV::HSV (unsigned char r, unsigned char g, unsigned char b)
@@ -181,6 +179,8 @@ HSV::HSV (unsigned char r, unsigned char g, unsigned char b)
     // compute v
     v = rgbMax;
 }
+
+} // end namespace
 
 // required for jpeg import 
 struct my_error_mgr
@@ -373,7 +373,7 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
         {
             if (colorSpace == 1) // HSV
             {
-                HSV hsv = {output_data[c], output_data[c+1], 
+                conversion::HSV hsv = {output_data[c], output_data[c+1], 
                             output_data[c+2]};
                 this->pixMat5[cnt][i][0] = static_cast<double>(hsv.h);
                 this->pixMat5[cnt][i][1] = static_cast<double>(hsv.s);
@@ -390,7 +390,7 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
             } 
             else // Lab
             {
-                Lab lab = {output_data[c], output_data[c+1], 
+                conversion::Lab lab = {output_data[c], output_data[c+1], 
                             output_data[c+2]};
                 this->pixMat5[cnt][i][0] = lab.L;
                 this->pixMat5[cnt][i][1] = lab.a;

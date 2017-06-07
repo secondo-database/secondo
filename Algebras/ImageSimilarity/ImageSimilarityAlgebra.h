@@ -29,7 +29,7 @@ MA  02111-1307  USA
 
 March 2017 Michael Loris
 
-he Image Similarity Algebra for SECONDO provides operations to store 
+The Image Similarity Algebra for SECONDO provides operations to store 
 pictures in JPEG format into m-trees. It consists a ~Signature~ object 
 representing a the signature of a single JPEG image. The object is a 
 subtype of the Attribute class. The Image Similarity Algebra consists of 
@@ -50,7 +50,8 @@ multiple files, including external files for k-means clustering.
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include "Algebra.h"
-#include "../../Tools/Flob/Flob.h"
+//#include "../../Tools/Flob/Flob.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "JPEGImage.h"
@@ -60,8 +61,9 @@ multiple files, including external files for k-means clustering.
 #include <string>
 #include "JPEGImage.h"
 
+#define DIMENSIONS 7
 
-enum ImageSignatureState { partial, complete };
+
 
 
 /*
@@ -73,6 +75,7 @@ so that ~imageSignature~ objects can be used in relations.
 
 
 namespace ImageSignaturealg{
+    
 
 
 class ImageSignature : public Attribute
@@ -100,19 +103,21 @@ class ImageSignature : public Attribute
     bool Adjacent(const Attribute*) const;
     ImageSignature *Clone() const;
     size_t Sizeof() const;
-    std::ostream& Print( std::ostream& os ) const;
+    std::ostream& Print(std::ostream& os) const;
 
-    void Append( const ImageSignatureTuple& ist );
+    void Append(const ImageSignatureTuple& ist);
     void Complete();
     bool Correct();
     void Destroy();
     int GetNoEdges() const { return GetNoImageSignatureTuples(); }
     int GetNoImageSignatureTuples() const;
     ImageSignatureTuple GetImageSignatureTuple(int i) const;
-    std::string GetState() const;
+    //std::string GetState() const;
     const bool IsEmpty() const;
     void CopyFrom(const Attribute* right);
     size_t HashValue() const;
+
+    void ClearDBArray() { this->imageSignatureTuples.clean();}
 
     friend std::ostream& 
     operator <<(std::ostream& os,const ImageSignature& p);
@@ -151,6 +156,7 @@ class ImageSignature : public Attribute
     bool readSignatureFromFile(const std::string _fileName, 
         const int colorSpace, 
         const int texRange, 
+        const int patchSize, 
         const int percentSamples, 
         const int noClusters);
 
@@ -164,7 +170,6 @@ class ImageSignature : public Attribute
   private:
     ImageSignature() {} 
     DbArray<ImageSignatureTuple> imageSignatureTuples;    
-    ImageSignatureState state;
     std::string fileName;
     //int width;
     //int height;    

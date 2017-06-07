@@ -81,8 +81,8 @@ namespace ImageSignaturealg{
 
 bool 
 ImageSignature::readSignatureFromFile(const std::string _fileName, 
-    const int colorSpace, const int texRange, const int percentSamples, 
-    const int noClusters)
+    const int colorSpace, const int texRange, const int patchSize,
+    const int percentSamples, const int noClusters)
 {
     int range = 10; //todo: range parameter
     
@@ -101,7 +101,8 @@ ImageSignature::readSignatureFromFile(const std::string _fileName,
     JPEGImage ji;
     
     ji.importJPEGFile(this->fileName, colorSpace, 
-                        texRange, 
+                        texRange,
+                        patchSize, 
                         percentSamples, 
                         noClusters);
     
@@ -129,13 +130,14 @@ ImageSignature::readSignatureFromFile(const std::string _fileName,
 */
 ListExpr readSignatureFromFileTM(ListExpr args) 
 {
-    if ( nl->ListLength(args) == 5) 
+    if ( nl->ListLength(args) == 6) 
     {
         ListExpr arg1 = nl->First(args);
         ListExpr arg2 = nl->Second(args);
         ListExpr arg3 = nl->Third(args);
         ListExpr arg4 = nl->Fourth(args);
         ListExpr arg5 = nl->Fifth(args);
+        ListExpr arg6 = nl->Sixth(args);
         
         if (
             (nl->IsEqual(arg1, FText::BasicType()) ||
@@ -144,7 +146,8 @@ ListExpr readSignatureFromFileTM(ListExpr args)
             nl->IsEqual(arg2, CcInt::BasicType()) &&
             nl->IsEqual(arg3, CcInt::BasicType()) &&
             nl->IsEqual(arg4, CcInt::BasicType()) &&
-            nl->IsEqual(arg5, CcInt::BasicType()))
+            nl->IsEqual(arg5, CcInt::BasicType()) &&
+            nl->IsEqual(arg6, CcInt::BasicType()))
             {
             return nl->SymbolAtom(ImageSignature::BasicType());
         }
@@ -175,19 +178,22 @@ int readSignatureFromFileFun(Word* args, Word& result,
 {
     result = qp->ResultStorage(s);
     ImageSignature* res = static_cast<ImageSignature*>(result.addr);
+    res->ClearDBArray();
     
     StringType* fileName = static_cast<StringType*>(args[0].addr);
     
     CcInt* colorSpace = static_cast<CcInt*>(args[1].addr);
     CcInt* texRange = static_cast<CcInt*>(args[2].addr);
-    CcInt* percentSamples = static_cast<CcInt*>(args[3].addr);
-    CcInt* noClusters = static_cast<CcInt*>(args[4].addr);
+    CcInt* patchSize = static_cast<CcInt*>(args[3].addr);
+    CcInt* percentSamples = static_cast<CcInt*>(args[4].addr);
+    CcInt* noClusters = static_cast<CcInt*>(args[5].addr);
 
     if(fileName->IsDefined())
     {
         res->readSignatureFromFile(fileName->GetValue(),
-            colorSpace->GetIntval(),texRange->GetIntval(),
-            percentSamples->GetIntval(), noClusters->GetIntval());
+            colorSpace->GetIntval(), patchSize->GetIntval(),
+            texRange->GetIntval(), percentSamples->GetIntval(), 
+            noClusters->GetIntval());
     } 
     else 
     {
@@ -204,8 +210,8 @@ int readSignatureFromFileFun(Word* args, Word& result,
 
 ValueMapping readSignatureFromFileVM[] = 
 {
-  readSignatureFromFileFun<FText>,
-  readSignatureFromFileFun<CcString>
+    readSignatureFromFileFun<FText>,
+    readSignatureFromFileFun<CcString>
 };
 
 
@@ -218,9 +224,9 @@ static const std::string readSignatureFromFileSpec  =
     "\"Example\" ) "
     "( <text> {text|string} -> imagesignature"
     "</text--->"
-    "<text>readSignatureFromFile(fileName, col, tex, perc, clus) </text--->"
-    "<text>Creates an ImageSignature instance from a jpeg file.</text--->"
-    "<text>query readSignatureFromFile('test.jpg', 1, 3, 10, 50)</text--->"
+"<text>readSignatureFromFile(fileName,col,tex,pat,pct,clus) </text--->"
+    "<text>Creates an ImageSignature from a jpeg file.</text--->"
+"<text>query readSignatureFromFile('test.jpg',1,3,10,10,50)</text--->"
     ") )";
 
 /*
@@ -241,7 +247,8 @@ static Operator readSignatureFromFileOp(
 
 */
 
-std::ostream& operator<<(std::ostream& os, const ImageSignatureTuple& ist)
+std::ostream& operator<<(std::ostream& os, 
+    const ImageSignatureTuple& ist)
 {
   os << "(" << ist.weight << "," 
   << ist.centroidXpos << "," 
@@ -252,9 +259,9 @@ std::ostream& operator<<(std::ostream& os, const ImageSignatureTuple& ist)
 
 std::ostream& operator<<(std::ostream& os, const ImageSignature& p)
 {
-  os << " State: " << p.GetState()
-  << "<" << p.GetFileName() << ">"
-  << "<";
+  //os << " State: " << p.GetState()
+  //<< "<" << p.GetFileName() << ">"
+  //<< "<";
 
   for(int i = 0; i < p.GetNoImageSignatureTuples(); i++)
     os << p.GetImageSignatureTuple(i) << " ";
@@ -304,7 +311,6 @@ ImageSignature::ImageSignature(const int n,
 ImageSignature::ImageSignature(const ImageSignature& src):
   Attribute(src.IsDefined()),
   imageSignatureTuples(src.imageSignatureTuples.Size()),
-  state(src.state),
   fileName(src.fileName)
 {
   imageSignatureTuples.copyFrom(src.imageSignatureTuples);
@@ -322,7 +328,6 @@ ImageSignature::~ImageSignature()
 
 
 ImageSignature& ImageSignature::operator=(const ImageSignature& src){
-  this->state = src.state;
   imageSignatureTuples.copyFrom(src.imageSignatureTuples);
   return *this;
 }
@@ -365,7 +370,7 @@ int ImageSignature::Compare(const Attribute*) const
 Because Compare returns alway 0, we can only return a constant hash value.
 
 */
-size_t ImageSignature::HashValue() const{        //todo
+size_t ImageSignature::HashValue() const{   
   return  1;
 }
 
@@ -612,7 +617,7 @@ ImageSignature::In(const ListExpr typeInfo, const ListExpr instance,
         }
     }
     
-  imgsig->Complete();
+  //imgsig->Complete();
   correct = true;
   return SetWord(imgsig);
 }
