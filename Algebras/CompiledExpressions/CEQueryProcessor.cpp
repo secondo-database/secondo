@@ -74,6 +74,10 @@ The ~CEQueryProcessor~-class implements the interface to the ~QueryProcessor~ of
 #include <algorithm>
 #include <stdlib.h>
 
+#include <fstream>
+#include <iostream>
+
+
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "LogMsg.h"
@@ -231,12 +235,57 @@ be created which will be deleted after completion of the query processing.
   : ptrQP(0),
     ptrCEQP(0),
     useCEQP(use),
+    delTempFiles(true),
     isGeneratedQuery(false),
     ptrCodeGenVisitor(new CECOpTreeVisitorGenerateCode()),
     ceLibrary(new DynamicLibrary()),
     ptrFuncCloseCELib(0) {
       FuncPtrGetUseCEQP = &CEQuery::getUseCEQP;
       FuncPtrSetPtrQueryProcessors = &CEQuery::setPtrQueryProcessors;
+      
+      if (use) {
+        std::string cfgFileName = FileSystem::GetCurrentFolder();
+        FileSystem::AppendItem(cfgFileName, "..");
+        FileSystem::AppendItem(cfgFileName, "Algebras");
+        FileSystem::AppendItem(cfgFileName, "CompiledExpressions");
+        FileSystem::AppendItem(cfgFileName, "CEARunTime.cfg");
+
+        if (FileSystem::FileOrFolderExists(cfgFileName)) {
+          std::string line;
+          std::ifstream cfgFileStream;
+          bool foundUseCEQP, foundDeleteTempFiles;
+          foundUseCEQP = foundDeleteTempFiles = false;
+          cfgFileStream.open(cfgFileName.c_str(), ios::in);
+          while (!cfgFileStream.eof()
+                 && !(foundUseCEQP && foundDeleteTempFiles)) {
+            getline(cfgFileStream, line);
+            if (!foundUseCEQP && line.find("usedCEA=") == 0) {
+              if (line.substr(8, 5) == "FALSE"
+                 || line.substr(8, 5) == "false")
+                useCEQP = false;
+              else
+                useCEQP = true;
+              foundUseCEQP = true;
+            }
+    
+            if (!foundDeleteTempFiles
+                && line.find("deleteTempFiles=") == 0) {
+              if (line.substr(16, 5) == "FALSE"
+                 || line.substr(16, 5) == "false")
+                delTempFiles = false;
+              else
+                delTempFiles = true;
+              foundDeleteTempFiles = true;
+            }
+
+          }
+          cfgFileStream.close();
+          if (!foundUseCEQP)
+            useCEQP = true;
+          if (!foundDeleteTempFiles)
+            delTempFiles = true;
+        }
+      }
     }
     
 /*
@@ -252,11 +301,9 @@ be created which will be deleted after completion of the query processing.
       delete ptrCodeGenVisitor;
     mapResultTypes.clear();
     FileSystem::SetCurrentFolder(currentPath);
-/*
-Remove the comment to delete the temporarily generated files of the query.
-
-*/
-    //FileSystem::EraseFolder(codeGenPath);
+    
+    if (delTempFiles)
+      FileSystem::EraseFolder(codeGenPath);
   }
     
 /*

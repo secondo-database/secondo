@@ -238,6 +238,7 @@ the given node key.
     QueryProcessor* ptrQP;
     CEQueryProcessor* ptrCEQP;
     bool useCEQP;
+    bool delTempFiles;
     bool isGeneratedQuery;
     std::string currentPath;
     std::string codeGenPath;
