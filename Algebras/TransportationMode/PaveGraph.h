@@ -555,7 +555,7 @@ struct RegVertex{
                                          rel1(r1), rel2(r2){}
 
   ~RegVertex(){
-    if(resulttype != NULL) delete resulttype;
+    if(resulttype != NULL) resulttype->DeleteIfAllowed();
   }
   void CreateVertex();
   void TriangulationNew();
@@ -680,7 +680,7 @@ struct MHSNode;
 struct Hole{
   Hole(char* input):in(input){count = 0;resulttype=NULL;}
   Hole(){count=0;resulttype = NULL;}
-  ~Hole(){if(resulttype != NULL) delete resulttype;}
+  ~Hole(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
   std::ifstream in;
   unsigned int count;
   TupleType* resulttype;
@@ -895,7 +895,7 @@ struct MaxRect{
 
 
     ~MaxRect(){
-      if(resulttype != NULL) delete resulttype;
+      if(resulttype != NULL) resulttype->DeleteIfAllowed();
     }
 
     void Init(){

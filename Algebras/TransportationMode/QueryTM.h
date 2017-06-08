@@ -81,7 +81,7 @@ struct QueryTM{
   std::vector<Line3D> line3d_list; 
 
   QueryTM(){ count = 0; resulttype = NULL;} 
-  ~QueryTM(){if(resulttype != NULL) delete resulttype;}
+  ~QueryTM(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
  
  
   ////////////////////////////////////////////////////////////////////////////

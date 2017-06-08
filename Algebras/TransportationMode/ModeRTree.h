@@ -183,7 +183,7 @@ struct Q_ModeRtree{
   TupleType* resulttype; 
   
   Q_ModeRtree(){ count = 0; resulttype = NULL;} 
-  ~Q_ModeRtree(){if(resulttype != NULL) delete resulttype;}
+  ~Q_ModeRtree(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
   
   
   std::vector<int> oid_list;  

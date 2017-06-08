@@ -125,7 +125,7 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3, Relation* bus_para)
     BBox<2>* reg = new BBox<2>(true,min,max);
     Section_Cell* sc_ptr = new Section_Cell(0,0,0,false,*reg);
     cell_list.push_back(*sc_ptr);
-    delete reg;
+    reg->DeleteIfAllowed();
     delete sc_ptr;
   }
 
@@ -457,7 +457,7 @@ void BusRoute::ConnectCell(RoadGraph* rg, int attr,int from_cell_id,
         tuple_cell->DeleteIfAllowed();
     }
     delete btree_iter1;
-    delete search_cell_id_from;
+    search_cell_id_from->DeleteIfAllowed();
 
     ////////////////////create first gpoint////////////////////////
     int index1 = 0;
@@ -496,7 +496,7 @@ void BusRoute::ConnectCell(RoadGraph* rg, int attr,int from_cell_id,
         tuple_cell->DeleteIfAllowed();
     }
     delete btree_iter2;
-    delete search_cell_id_end;
+    search_cell_id_end->DeleteIfAllowed();
 
 
     ///////////////////create second gpoint/////////////////////////////
@@ -556,11 +556,11 @@ void BusRoute::ConnectCell(RoadGraph* rg, int attr,int from_cell_id,
       }
     }
 
-    delete location1; 
-    delete gp1;
+    location1->DeleteIfAllowed(); 
+    gp1->DeleteIfAllowed();
 
-    delete location2; 
-    delete gp2; 
+    location2->DeleteIfAllowed(); 
+    gp2->DeleteIfAllowed(); 
     
     tuple_sec_1->DeleteIfAllowed();
     tuple_sec_2->DeleteIfAllowed(); 
@@ -572,8 +572,8 @@ void BusRoute::ConnectCell(RoadGraph* rg, int attr,int from_cell_id,
     Line* l = new Line(0);
     gl->Gline2line(l);
     bus_lines2.push_back(*l);
-    delete l; 
-    delete gl; 
+    l->DeleteIfAllowed(); 
+    gl->DeleteIfAllowed(); 
 
     bus_route_type.push_back(route_type);
 
@@ -910,10 +910,10 @@ void BusRoute::CreateRoute3(int attr1, int attr2, int attr3, int w)
 
       ////////////////////////////////////////////////////////////
 
-      delete l1;
-      delete l2;
+      l1->DeleteIfAllowed();
+      l2->DeleteIfAllowed();
       delete sp; 
-      delete sl; 
+      sl->DeleteIfAllowed(); 
       tuple_bus_route->DeleteIfAllowed();
       
       
@@ -1197,7 +1197,7 @@ void BusRoute::CreateStops(int br_id, GLine* gl, Line* l,
 
 
 //      delete p;
-      delete gp;
+      gp->DeleteIfAllowed();
 
       br_id_list.push_back(br_id);
       br_stop_id.push_back(stop_count + 1);
@@ -1319,7 +1319,7 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
       assert(res.IsDefined());
       bus_stop_loc_2.push_back(res);
 
-   delete gp;
+   gp->DeleteIfAllowed();
 
    return true; 
    
@@ -1409,7 +1409,7 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
     assert(res.IsDefined());
     bus_stop_loc_2.push_back(res);
 
-    delete gp;
+    gp->DeleteIfAllowed();
 
     return true; 
   }
@@ -1470,20 +1470,20 @@ void BusRoute::CheckBusStopZC(unsigned int cur_size, Relation* pave_rel,
             if(new_p->Inside(*reg) == false){
               bus_stop_loc_1[cur_size] = *new_gp;
               bus_stop_loc_2[cur_size] = *new_p; 
-              delete new_p;
+              new_p->DeleteIfAllowed();
               break; 
             } 
-            delete new_p; 
+            new_p->DeleteIfAllowed(); 
 
             assert(new_gp->GetPosition() > m1 && new_gp->GetPosition() < m2); 
           }
-          delete new_gp;
+          new_gp->DeleteIfAllowed();
 
         }
         pave_tuple->DeleteIfAllowed();
     }
     delete btree_iter;
-    delete search_id;    
+    search_id->DeleteIfAllowed();    
   }
 
 }
@@ -1591,7 +1591,7 @@ void BusRoute::MergeBusStop1(vector<BusStop>& stop_list)
     assert(res.IsDefined());
     bus_stop_loc_2.push_back(res);
 
-    delete gp;
+    gp->DeleteIfAllowed();
 
 //    point_id_list.push_back(point_id);
     sec_id_list.push_back(stop_list[0].sid);
@@ -1634,8 +1634,8 @@ void BusRoute::MergeBusStop1(vector<BusStop>& stop_list)
         MyToPoint(n, gp, *p);
         assert(p->IsDefined());
         bus_stop_loc_2.push_back(*p);
-        delete p; 
-        delete gp;   
+        p->DeleteIfAllowed(); 
+        gp->DeleteIfAllowed();   
         count1++;
 
         sec_id_list.push_back(stop_list[i].sid);
@@ -1693,9 +1693,9 @@ void BusRoute::MergeBusStop1(vector<BusStop>& stop_list)
         MyToPoint(n, gp, *p);
         assert(p->IsDefined());
         bus_stop_loc_2.push_back(*p);
-        delete p; 
+        p->DeleteIfAllowed(); 
 
-        delete gp; 
+        gp->DeleteIfAllowed(); 
 
         sec_id_list.push_back(stop_list[i].sid);
       }
@@ -1901,8 +1901,8 @@ void BusRoute::CreateBusStop3(int attr,int attr1,int attr2,int attr3)
       MyToPoint(n, gp, *p);
       assert(p->IsDefined());
       bus_stop_loc_2.push_back(*p);
-      delete p;
-      delete gp;
+      p->DeleteIfAllowed();
+      gp->DeleteIfAllowed();
    }
    ///////////////////////calculate the startsmaller value/////////////
 
@@ -1934,8 +1934,8 @@ void BusRoute::CreateBusStop3(int attr,int attr1,int attr2,int attr3)
     
     CalculateStartSmaller(bus_stop_list,start,end,sec_list,
                              start_from, dist_list, sl);
-    delete sl;
-    delete l;
+    sl->DeleteIfAllowed();
+    l->DeleteIfAllowed();
     
     /////////////////////////////////////////////////////////////////////
     
@@ -1987,7 +1987,7 @@ void BusRoute::MergeBusStop2(vector<SectTreeEntry> sec_down,
           }
         }
         delete btree_iter;
-        delete search_cell_id;
+        search_cell_id->DeleteIfAllowed();
 
       }
       //check whether the route of the bus stop changed position /////////////
@@ -2254,7 +2254,7 @@ void BusRoute::GetSectionList(GLine* gl,vector<SectTreeEntry>& sec_list,
       
 
     }  
-      delete ri; 
+    delete ri; 
   }
 
 }
@@ -2332,8 +2332,8 @@ void BusRoute::CalculateStartSmaller(vector<BusStop>& bus_stop_list,
         startSmaller.push_back(startsmaller); 
 
         //////////////////////////////////////////////////////////////
-        delete p; 
-        delete gp; 
+        p->DeleteIfAllowed(); 
+        gp->DeleteIfAllowed(); 
         //////////////////////////////////////////////////////////////
         bus_stop_index++; 
         dist -= temp_dist; 
@@ -2414,8 +2414,8 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
       assert(false);
     }
 
-    delete sl1;
-    delete sl2; 
+    sl1->DeleteIfAllowed();
+    sl2->DeleteIfAllowed(); 
 
     tuple_bus_route1->DeleteIfAllowed();
     tuple_bus_route2->DeleteIfAllowed(); 
@@ -2672,9 +2672,9 @@ void BusRoute::GetInterestingPoints(HalfSegment hs, Point ip,
             list.push_back(temp2[0]); 
 
             delete sp;
-            delete ps1;
-            delete ps2;
-            delete line1; 
+            ps1->DeleteIfAllowed();
+            ps2->DeleteIfAllowed();
+            line1->DeleteIfAllowed(); 
             return;
         }
 
@@ -2704,9 +2704,9 @@ void BusRoute::GetInterestingPoints(HalfSegment hs, Point ip,
         sort(temp2.begin(),temp2.end());
         list.push_back(temp2[0]); 
         
-        delete ps1;
-        delete ps2;
-        delete line1; 
+        ps1->DeleteIfAllowed();
+        ps2->DeleteIfAllowed();
+        line1->DeleteIfAllowed(); 
 }
 
 /*
@@ -2807,9 +2807,9 @@ void BusRoute::CreateRoute4(int attr1, int attr2, int attr3, int attr4,
 //    cout<<br_id1 - 1<<endl;
     CalculateUpandDown(sl1, sl2, start_small_list[br_id1 - 1]); 
 
-    delete sl1;
+    sl1->DeleteIfAllowed();
 
-    delete sl2; 
+    sl2->DeleteIfAllowed(); 
 
     int route_type1 = 
         ((CcInt*)tuple_bus_route1->GetAttribute(attr3))->GetIntval();
@@ -3019,7 +3019,7 @@ void BusRoute::GetBusStops()
         bs_tuple->DeleteIfAllowed();
     }
     delete btree_iter;
-    delete search_id;
+    search_id->DeleteIfAllowed();
 
     br_tuple->DeleteIfAllowed();
   }
@@ -3062,9 +3062,9 @@ void BusRoute::GetBusRoutes()
 
     CreateRoutes(tid_list, br_id, sl, small, direction);
 
-    delete sl; 
+    sl->DeleteIfAllowed(); 
     delete btree_iter;
-    delete search_id;
+    search_id->DeleteIfAllowed();
 
     br_tuple->DeleteIfAllowed();
 
@@ -3279,7 +3279,7 @@ void BusRoute::CreateRoutes(vector<TupleId>& tid_list, int br_id,
   br->EndBulkLoad(); 
   br_id_list.push_back(br_id);
   bus_route_list.push_back(*br); 
-  delete br; 
+  br->DeleteIfAllowed(); 
 }
 
 
@@ -3531,7 +3531,7 @@ void RoadDenstiy::GetNightRoutes(int attr1, int attr2, int attr_a,
           tuple_traffic->DeleteIfAllowed();
         }
         delete btree_iter;
-        delete search_sec_id;
+        search_sec_id->DeleteIfAllowed();
         //////////////////////////////////////////////////////////
     }
     delete br; 
@@ -3547,7 +3547,7 @@ void RoadDenstiy::GetNightRoutes(int attr1, int attr2, int attr_a,
     p1->EndBulkLoad();
     duration1.push_back(*p1);
     
-    delete p1; 
+    p1->DeleteIfAllowed(); 
     
     Periods* p2 = new Periods(0);
     p2->StartBulkLoad();
@@ -3555,7 +3555,7 @@ void RoadDenstiy::GetNightRoutes(int attr1, int attr2, int attr_a,
     p2->EndBulkLoad();
     duration2.push_back(*p2);
     
-    delete p2; 
+    p2->DeleteIfAllowed(); 
   }
   
 }
@@ -3615,7 +3615,7 @@ void RoadDenstiy::SetTSNightBus(int attr1,int attr2, int attr3,
     p1->EndBulkLoad();
     duration1.push_back(*p1);
     
-    delete p1; 
+    p1->DeleteIfAllowed(); 
     
     Periods* p2 = new Periods(0);
     p2->StartBulkLoad();
@@ -3623,7 +3623,7 @@ void RoadDenstiy::SetTSNightBus(int attr1,int attr2, int attr3,
     p2->EndBulkLoad();
     duration2.push_back(*p2);
     
-    delete p2; 
+    p2->DeleteIfAllowed(); 
     
     time_interval.push_back(1.0/24.0); //1 means 1 day , 1.0/24.0 = 1 hour 
     tuple_bus_route->DeleteIfAllowed();
@@ -3683,7 +3683,7 @@ void RoadDenstiy::SetTSDayTimeBus(int attr1,int attr2, int attr3,
     p1->EndBulkLoad();
     duration1.push_back(*p1);
     
-    delete p1; 
+    p1->DeleteIfAllowed(); 
     
 //    cout<<time_span2<<endl; 
     
@@ -3693,7 +3693,7 @@ void RoadDenstiy::SetTSDayTimeBus(int attr1,int attr2, int attr3,
     p2->EndBulkLoad();
     duration2.push_back(*p2);
     
-    delete p2; 
+    p2->DeleteIfAllowed(); 
     time_interval.push_back(interval);
     time_interval2.push_back(2.0*interval);
     /////////////////////////////////////////////////////////////////////////
@@ -3967,12 +3967,12 @@ void RoadDenstiy::SetBRSpeed(int attr1, int attr2, int attr, int attr_sm)
       Line* sub_l = new Line(0);
       sub_line->toLine(*sub_l);
       br_subroute.push_back(*sub_l);
-      delete sub_l; 
-      delete sub_line;
+      sub_l->DeleteIfAllowed(); 
+      sub_line->DeleteIfAllowed();
       /////////////////////////////////////////////////////////////////////
     }  
-    delete sl;
-    delete l;
+    sl->DeleteIfAllowed();
+    l->DeleteIfAllowed();
     
     //////////////////////////////////////////////////////////////
     tuple_bus_route->DeleteIfAllowed();
@@ -4043,7 +4043,7 @@ void RoadDenstiy::CreateSegmentSpeed(int attr1, int attr2, int attr3, int attr4,
       
     
     delete btree_iter2;
-    delete search_speed_id;
+    search_speed_id->DeleteIfAllowed();
     
 /*    cout<<"speed limit"<<endl; 
     for(unsigned int j = 0;j < br_speed_list.size();j++){
@@ -4072,7 +4072,7 @@ void RoadDenstiy::CreateSegmentSpeed(int attr1, int attr2, int attr3, int attr4,
         tuple_bs->DeleteIfAllowed();
     }
     delete btree_iter1;
-    delete search_bs_id;
+    search_bs_id->DeleteIfAllowed();
     
     sort(bus_stop_list.begin(),bus_stop_list.end(),CompareBusStop);
     
@@ -4088,7 +4088,7 @@ void RoadDenstiy::CreateSegmentSpeed(int attr1, int attr2, int attr3, int attr4,
     
     CalculateRouteSegment(sl, br_speed_list, bus_stop_list, startsmaller);
 
-    delete sl;
+    sl->DeleteIfAllowed();
 
     ////////////////////////////////////////////////////////////////////////
     tuple_bus_route->DeleteIfAllowed();
@@ -4138,7 +4138,7 @@ void RoadDenstiy::CalculateRouteSegment(SimpleLine* sl,
           sl->SubLine(last_stop.pos,cur_stop.pos,sm,*sub_line1);
 //          cout<<"sub length1 "<<sub_line1->Length()<<endl;
           sub_line_list.push_back(*sub_line1);
-          delete sub_line1; 
+          sub_line1->DeleteIfAllowed(); 
           speed_val_list.push_back(br_speed_list[index_speed].speed_val);
           bus_segment_id_list.push_back(i);
           
@@ -4152,7 +4152,7 @@ void RoadDenstiy::CalculateRouteSegment(SimpleLine* sl,
                       sm,*sub_line2);
 //          cout<<"sub length2 "<<sub_line2->Length()<<endl;
           sub_line_list.push_back(*sub_line2);
-          delete sub_line2; 
+          sub_line2->DeleteIfAllowed(); 
           speed_val_list.push_back(br_speed_list[index_speed].speed_val);
           bus_segment_id_list.push_back(i); 
           
@@ -4167,7 +4167,7 @@ void RoadDenstiy::CalculateRouteSegment(SimpleLine* sl,
                       sm,*sub_line3);
 //            cout<<"sub length3 "<<sub_line3->Length()<<endl;
             sub_line_list.push_back(*sub_line3);
-            delete sub_line3; 
+            sub_line3->DeleteIfAllowed(); 
             speed_val_list.push_back(br_speed_list[index_speed_tmp].speed_val);
 
             bus_segment_id_list.push_back(i); 
@@ -4181,7 +4181,7 @@ void RoadDenstiy::CalculateRouteSegment(SimpleLine* sl,
                       sm,*sub_line4);
 //          cout<<"sub length4 "<<sub_line4->Length()<<endl;
           sub_line_list.push_back(*sub_line4);
-          delete sub_line4; 
+          sub_line4->DeleteIfAllowed(); 
           
           if(index_speed_tmp < br_speed_list.size())
             speed_val_list.push_back(br_speed_list[index_speed_tmp].speed_val);
@@ -4215,7 +4215,7 @@ void RoadDenstiy::CalculateRouteSegment(SimpleLine* sl,
     Line* temp_l = new Line(0);
     sub_line_list[i].toLine(*temp_l);
     br_subroute.push_back(*temp_l);
-    delete temp_l; 
+    temp_l->DeleteIfAllowed(); 
 
 
     speed_limit.push_back(speed_val_list[i]);
@@ -4309,7 +4309,7 @@ void RoadDenstiy::CreateUp(int br_id, Periods* peri,
         SimpleLine* sl = new SimpleLine(0);
         sl->fromLine(*l);
         sub_sline_list.push_back(*sl);
-        delete sl; 
+        sl->DeleteIfAllowed(); 
         speed_list.push_back(speed_val); 
   
         int segid = ((CcInt*)tuple_bs->GetAttribute(SEGMENT_ID))->GetIntval();
@@ -4322,7 +4322,7 @@ void RoadDenstiy::CreateUp(int br_id, Periods* peri,
       tuple_bs->DeleteIfAllowed();
   }
   delete btree_iter;
-  delete search_bs_id;
+  search_bs_id->DeleteIfAllowed();
   
 
   /////////////////create one bus trip movement///////////////////////////////
@@ -4386,7 +4386,7 @@ void RoadDenstiy::CreateUp(int br_id, Periods* peri,
             UPoint* up = new UPoint(up_interval,temp_sp1,temp_sp1);
             bus_mo->Add(*up);
             
-            delete up; 
+            up->DeleteIfAllowed(); 
             bus_periods.start = newend; 
         }
         
@@ -4414,7 +4414,7 @@ void RoadDenstiy::CreateUp(int br_id, Periods* peri,
             UPoint* up = new UPoint(up_interval,temp_sp2,temp_sp2);
             bus_mo->Add(*up);
             last_upoint = *up; 
-            delete up; 
+            up->DeleteIfAllowed(); 
             bus_periods.start = newend; 
         }
         //start = false;
@@ -4509,7 +4509,7 @@ void RoadDenstiy::CreateBusTrip1(MPoint* mo,
 //    cout<<*up<<endl; 
     mo->Add(*up);
     last_up = *up; 
-    delete up; 
+    up->DeleteIfAllowed(); 
     //////////////////////////////////////////////////////////////
     st = et; 
   }
@@ -4570,7 +4570,7 @@ void RoadDenstiy::CreateBusTrip2(MPoint* mo,
     UPoint* up = new UPoint(up_interval,from_loc,to_loc);
     mo->Add(*up);
     last_up = *up; 
-    delete up; 
+    up->DeleteIfAllowed(); 
     //////////////////////////////////////////////////////////////
     st = et; 
   }
@@ -4610,7 +4610,7 @@ void RoadDenstiy::CreateDown(int br_id, Periods* peri,
         SimpleLine* sl = new SimpleLine(0);
         sl->fromLine(*l);
         sub_sline_list.push_back(*sl);
-        delete sl; 
+        sl->DeleteIfAllowed(); 
         speed_list.push_back(speed_val); 
   
         int segid = ((CcInt*)tuple_bs->GetAttribute(SEGMENT_ID))->GetIntval();
@@ -4623,7 +4623,7 @@ void RoadDenstiy::CreateDown(int br_id, Periods* peri,
       tuple_bs->DeleteIfAllowed();
   }
   delete btree_iter;
-  delete search_bs_id;
+  search_bs_id->DeleteIfAllowed();
   
   
   /////////////////create one bus trip movement///////////////////////////////
@@ -4806,7 +4806,7 @@ void RoadDenstiy::CopyBusTrip(int br_id,bool direction,
         schedule_id_list.push_back(schedule_id);
         schedule_id++;
         ////////////////////////////////////////////////////////
-        delete mo1; 
+        mo1->DeleteIfAllowed(); 
   }
   //////////////////////////copy the trip one day more//////////////////////
   if(daytime == false){ //only for night bus 
@@ -4845,7 +4845,7 @@ void RoadDenstiy::CopyBusTrip(int br_id,bool direction,
         schedule_id_list.push_back(schedule_id);
         schedule_id++;
         //////////////////////////////////////////////
-        delete mo1; 
+        mo1->DeleteIfAllowed(); 
     }
   }
 }
@@ -5059,7 +5059,7 @@ void RoadDenstiy::CreateLocTable_Compact(vector<BusStop_Ext> bus_stop_list_new,
         tuple_trip->DeleteIfAllowed();
      }
      delete btree_iter;
-     delete search_trip_id;
+     search_trip_id->DeleteIfAllowed();
     ////////////////////////////////////////////////////////////////////
 //    cout<<"night_mo "<<night_mo.size()<<endl;
 //    cout<<"workday_mo "<<day_mo1.size()<<endl;
@@ -5217,7 +5217,7 @@ void RoadDenstiy::CreatTableAtStop(vector<MPoint> trip_list, Point& loc,
   duration1.push_back(*peri);
   unique_id_list.push_back(count_id);
   schedule_interval.push_back(sch_interval);
-  delete peri; 
+  peri->DeleteIfAllowed(); 
 
 
     ////////////////////////    check time  ////////////////////////////// 
@@ -5510,10 +5510,10 @@ void RoadDenstiy::GetRGEdges2(Relation* rel)
             sl->SubLine(pos2, pos1, true, *sub_l);
           
           sline_path_list.push_back(*sub_l);
-          delete sub_l;
+          sub_l->DeleteIfAllowed();
 
     
-          delete gl;
+          gl->DeleteIfAllowed();
 
        }else if(k == sub_list.size() - 1){
          jun_id_list1.push_back((int)sub_list[k].pos2);
@@ -5539,9 +5539,9 @@ void RoadDenstiy::GetRGEdges2(Relation* rel)
             sl->SubLine(pos1, pos2, true, *sub_l);
           
           sline_path_list.push_back(*sub_l);
-          delete sub_l;
+          sub_l->DeleteIfAllowed();
 
-         delete gl;
+          gl->DeleteIfAllowed();
 
        }else{
         jun_id_list1.push_back((int)sub_list[k].pos2);
@@ -5573,10 +5573,10 @@ void RoadDenstiy::GetRGEdges2(Relation* rel)
           sl->SubLine(pos1_1, pos1_2, true, *sub_l1);
 
         sline_path_list.push_back(*sub_l1);
-        delete sub_l1;
+        sub_l1->DeleteIfAllowed();
           
 
-        delete gl1;
+        gl1->DeleteIfAllowed();
 
 
         GLine* gl2 = new GLine(0);
@@ -5595,9 +5595,9 @@ void RoadDenstiy::GetRGEdges2(Relation* rel)
           sl->SubLine(pos2_2, pos2_1, true, *sub_l2);
 
         sline_path_list.push_back(*sub_l2);
-        delete sub_l2;
+        sub_l2->DeleteIfAllowed();
 
-        delete gl2;
+        gl2->DeleteIfAllowed();
        }
  
       }
@@ -7145,7 +7145,7 @@ void BusNetwork:: LoadBuses(Relation* r3)
     if(time_span.end.ToDouble() > end_time)
         end_time = time_span.end.ToDouble();
   }
-  delete peri;
+  peri->DeleteIfAllowed();
   //////////////////////////////////////////////////////////////////////
 
   for( int j = 0; j < mo->GetNoComponents(); j++ ){
@@ -7250,7 +7250,7 @@ void BusNetwork::GetBusStopGeoData(Bus_Stop* bs, Point* p)
         tuple->DeleteIfAllowed();
   }
   delete btree_iter;
-  delete search_id;
+  search_id->DeleteIfAllowed();
 }
 
 /*
@@ -7370,7 +7370,7 @@ int BusNetwork::GetMOBus_Oid(Bus_Stop* bs, Point* bs_loc, Instant& t)
       tuple->DeleteIfAllowed();
   }
   delete btree_iter1;
-  delete search_id1;
+  search_id1->DeleteIfAllowed();
   assert(br_uoid > 0);
 
 //  cout<<"br_uoid "<<br_uoid<<endl;
@@ -7416,11 +7416,11 @@ int BusNetwork::GetMOBus_Oid(Bus_Stop* bs, Point* bs_loc, Instant& t)
           }
         }
       }
-      delete peri;
+      peri->DeleteIfAllowed();
       tuple->DeleteIfAllowed();
   }
   delete btree_iter2;
-  delete search_id2;
+  search_id2->DeleteIfAllowed();
   sort(res_list.begin(), res_list.end());
 //  for(unsigned int i = 0;i < res_list.size();i++)
 //    res_list[i].Print();
@@ -7459,7 +7459,7 @@ int BusNetwork::GetMOBus_MP(Bus_Stop* bs, Point* bs_loc, Instant t, MPoint& mp)
       tuple->DeleteIfAllowed();
   }
   delete btree_iter1;
-  delete search_id1;
+  search_id1->DeleteIfAllowed();
   assert(br_uoid > 0);
 
 //  cout<<"br_uoid "<<br_uoid<<endl;
@@ -7501,14 +7501,14 @@ int BusNetwork::GetMOBus_MP(Bus_Stop* bs, Point* bs_loc, Instant t, MPoint& mp)
         }
 
       }
-      delete peri;
+      peri->DeleteIfAllowed();
       tuple->DeleteIfAllowed();
   }
 
   if(bus_oid <= 0) cout<<"time "<<t<<" br_uoid "<<br_uoid<<endl;
 
   delete btree_iter2;
-  delete search_id2;
+  search_id2->DeleteIfAllowed();
   assert(bus_oid > 0);
   return bus_oid; 
 }
@@ -7532,7 +7532,7 @@ void BusNetwork::GetMOBUS(int trip_id, MPoint& mp, int& br_uid)
       tuple->DeleteIfAllowed();
   }
   delete btree_iter;
-  delete search_id;
+  search_id->DeleteIfAllowed();
   assert(br_uid > 0);
 }
 
@@ -7551,7 +7551,7 @@ void BusNetwork::GetBusRouteGeoData(int br_uoid, SimpleLine& sl)
       tuple->DeleteIfAllowed();
   }
   delete btree_iter;
-  delete search_id;
+  search_id->DeleteIfAllowed();
   
 }
 
@@ -7735,7 +7735,7 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
 
   SmiRecordId adr = rtree->RootRecordId();
   DFTraverse(rtree, pave_rel, adr, l, it_p_list);
-  delete l;
+  l->DeleteIfAllowed();
 
 //  cout<<it_p_list.size()<<endl;
 
@@ -8081,11 +8081,11 @@ void BN::BsNeighbors1(DualGraph* dg, VisualGraph* vg, Relation* rel1,
                 }
                 sl2->EndBulkLoad(); 
                 path2_sl_list.push_back(*sl2); 
-                delete sl2; 
+                sl2->DeleteIfAllowed(); 
                 //////////////////////////////////////////////////////////////
 
-                delete sub_sl1; 
-                delete sub_sl2; 
+                sub_sl1->DeleteIfAllowed(); 
+                sub_sl2->DeleteIfAllowed(); 
 
               }else{
                 Point sl_ep;
@@ -8140,11 +8140,11 @@ void BN::BsNeighbors1(DualGraph* dg, VisualGraph* vg, Relation* rel1,
                 }
                 sl2->EndBulkLoad(); 
                 path2_sl_list.push_back(*sl2); 
-                delete sl2; 
+                sl2->DeleteIfAllowed(); 
                 //////////////////////////////////////////////////////////////
 
-                delete sub_sl1; 
-                delete sub_sl2; 
+                sub_sl1->DeleteIfAllowed(); 
+                sub_sl2->DeleteIfAllowed(); 
 
               }
 
@@ -8152,13 +8152,13 @@ void BN::BsNeighbors1(DualGraph* dg, VisualGraph* vg, Relation* rel1,
               //////////////////////////////////////////////////////
 
               bs_uoid_list.push_back(bs1->GetUOid());
-              delete sl; 
+              sl->DeleteIfAllowed(); 
            }
            neighbor_no++;
            tuple2->DeleteIfAllowed(); 
         }
 
-        delete path; 
+        path->DeleteIfAllowed(); 
 
       }
     }
@@ -8360,7 +8360,7 @@ bool BN::FindNeighbor(int tid1, int tid2, DualGraph* dg, VisualGraph* vg,
 //        top.Print();
 
         if(top.real_w > dist){ //already larger than the threshold distance 
-              delete neighbor_end;
+              neighbor_end->DeleteIfAllowed();
               delete vg2;
               return false; 
         }
@@ -8421,7 +8421,7 @@ bool BN::FindNeighbor(int tid1, int tid2, DualGraph* dg, VisualGraph* vg,
         ///////////////////////////////////////////////////////////////
   }
 
-  delete neighbor_end;
+  neighbor_end->DeleteIfAllowed();
   delete vg2;
   /////////////construct path///////////////////////////////////////////
   double len = 0.0;
@@ -8580,7 +8580,7 @@ void BN::GetAdjNodeBG1(BusGraph* bg, int nodeid)
     bs_list1.push_back(*bs1);
     bs_list2.push_back(*bs2);
     path_sl_list.push_back(*path);
-    delete path; 
+    path->DeleteIfAllowed(); 
     edge_tuple->DeleteIfAllowed();
     type_list.push_back(2); 
   }
@@ -8699,7 +8699,7 @@ void BN::GetAdjNodeBG2(BusGraph* bg, Bus_Stop* bs)
         bs_tid = btree_iter->GetId();
     }
     delete btree_iter;
-    delete search_id;
+    search_id->DeleteIfAllowed();
     if(!(1 <= bs_tid && bs_tid <= bg->node_rel->GetNoTuples())){
       cout<<"invalid bus stop "<<*bs<<endl;
       return;
@@ -8884,7 +8884,7 @@ void BN::ConnectionOneRoute(Relation* table_rel, vector<int> tid_list,
       if(find)break; 
     }
     delete btree_iter;
-    delete search_id;
+    search_id->DeleteIfAllowed();
     /////////////////////////////////////////////////////////////////////
 /*    cout<<"count "<<count<<endl;
     cout<<*bs<<endl;
@@ -8916,8 +8916,8 @@ void BN::DecomposeBR(Line* l1, Line* l2)
   sp->ReorderLine(sl1, seq_halfseg1);
   sp->ReorderLine(sl2, seq_halfseg2);
 
-  delete sl1;
-  delete sl2;
+  sl1->DeleteIfAllowed();
+  sl2->DeleteIfAllowed();
   delete sp;
 
 //  cout<<seq_halfseg1.size()<<" "<<seq_halfseg2.size()<<endl;
@@ -8962,7 +8962,7 @@ void BN::DecomposeBR(Line* l1, Line* l2)
 
         l->EndBulkLoad();
         line_list1.push_back(*l);
-        delete l;
+        l->DeleteIfAllowed();
 
         if( i >= 1){
           HalfSegment hs0;
@@ -9017,7 +9017,7 @@ void BN::DecomposeBR(Line* l1, Line* l2)
         ul->EndBulkLoad();
         line_list2.push_back(*ul);
 
-        delete ul;
+        ul->DeleteIfAllowed();
 
   }
 
@@ -9041,7 +9041,7 @@ void BN::DecomposeBR(Line* l1, Line* l2)
 
         l->EndBulkLoad();
         line_list1.push_back(*l);
-        delete l;
+        l->DeleteIfAllowed();
 
         if( i >= 1 ){
           HalfSegment hs0;
@@ -9096,7 +9096,7 @@ void BN::DecomposeBR(Line* l1, Line* l2)
         ul->EndBulkLoad();
         line_list2.push_back(*ul);
 
-        delete ul;
+        ul->DeleteIfAllowed();
 
   }
 
@@ -10130,7 +10130,7 @@ void BNNav::ShortestPath_Length(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
       if(visit_flag1[neighbor_id2 - 1]){
         edge_tuple->DeleteIfAllowed();
-        delete path;
+        path->DeleteIfAllowed();
         continue; 
       }
 
@@ -10148,7 +10148,7 @@ void BNNav::ShortestPath_Length(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
       path_queue.push(elem);
       expand_queue.push_back(elem);
 
-      delete path; 
+      path->DeleteIfAllowed(); 
 
       edge_tuple->DeleteIfAllowed();
     }
@@ -10281,7 +10281,7 @@ void BNNav::InitializeQueue1(Bus_Stop* bs1, Bus_Stop* bs2,
     BNPath_elem elem(-1, cur_size, bs_tid, w + hw, w, *sl, TM_BUS);
     path_queue.push(elem);
     expand_queue.push_back(elem); 
-    delete sl; 
+    sl->DeleteIfAllowed(); 
 }
 
 
@@ -10454,7 +10454,7 @@ void BNNav::ShortestPath_Time(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
       if(visit_flag1[neighbor_id2 - 1]){
         edge_tuple->DeleteIfAllowed();
-        delete path;
+        path->DeleteIfAllowed();
         continue; 
       }
 
@@ -10477,7 +10477,7 @@ void BNNav::ShortestPath_Time(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
       path_queue.push(elem);
       expand_queue.push_back(elem); 
 
-      delete path; 
+      path->DeleteIfAllowed(); 
       edge_tuple->DeleteIfAllowed();
     }
 
@@ -10722,7 +10722,7 @@ void BNNav::ShortestPath_Time(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri->EndBulkLoad();
           peri_list.push_back(*peri); 
           t1 = t2; 
-          delete peri; 
+          peri->DeleteIfAllowed(); 
         }else{ //////////to dinstinguish time of waiting for the bus 
           t2.ReadFrom(elem.w + qt->ToDouble());
 //        cout<<t1<<" "<<t2<<endl; 
@@ -10745,13 +10745,13 @@ void BNNav::ShortestPath_Time(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri1->EndBulkLoad();
           peri_list.push_back(*peri1); 
           t1 = t2; 
-          delete peri1; 
+          peri1->DeleteIfAllowed(); 
 
           SimpleLine* sl = new SimpleLine(0);
           sl->StartBulkLoad();
           sl->EndBulkLoad();
           path_list[path_list.size() - 1] = *sl;
-          delete sl; 
+          sl->DeleteIfAllowed(); 
 
           tm_list[tm_list.size() - 1] = "none"; //waiting is no tm 
           string str = bs2_list[bs2_list.size() - 1];
@@ -10781,7 +10781,7 @@ void BNNav::ShortestPath_Time(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri2->EndBulkLoad();
           peri_list.push_back(*peri2); 
           t1 = t2; 
-          delete peri2; 
+          peri2->DeleteIfAllowed(); 
           path_list.push_back(elem.path);
           tm_list.push_back(str_tm[elem.tm]);
           bs1_list.push_back(str1);
@@ -10988,7 +10988,7 @@ void BNNav::ShortestPath_TimeNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
         if(visit_flag1[neighbor_id2 - 1]){
           edge_tuple->DeleteIfAllowed();
-          delete path;
+          path->DeleteIfAllowed();
           continue; 
         }
 
@@ -11012,7 +11012,7 @@ void BNNav::ShortestPath_TimeNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
         path_queue.push(elem);
         expand_queue.push_back(elem); 
 
-        delete path; 
+        path->DeleteIfAllowed(); 
         edge_tuple->DeleteIfAllowed();
       }
     }
@@ -11292,7 +11292,7 @@ void BNNav::ShortestPath_TimeNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri->EndBulkLoad();
           peri_list.push_back(*peri); 
           t1 = t2; 
-          delete peri; 
+          peri->DeleteIfAllowed(); 
         }else{ //////////to dinstinguish time of waiting for the bus 
           t2.ReadFrom(elem.w + qt->ToDouble());
 //        cout<<t1<<" "<<t2<<endl; 
@@ -11315,13 +11315,13 @@ void BNNav::ShortestPath_TimeNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri1->EndBulkLoad();
           peri_list.push_back(*peri1); 
           t1 = t2; 
-          delete peri1; 
+          peri1->DeleteIfAllowed(); 
 
           SimpleLine* sl = new SimpleLine(0);
           sl->StartBulkLoad();
           sl->EndBulkLoad();
           path_list[path_list.size() - 1] = *sl;
-          delete sl; 
+          sl->DeleteIfAllowed(); 
 
           tm_list[tm_list.size() - 1] = "none"; //waiting is no tm 
           string str = bs2_list[bs2_list.size() - 1];
@@ -11351,7 +11351,7 @@ void BNNav::ShortestPath_TimeNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri2->EndBulkLoad();
           peri_list.push_back(*peri2); 
           t1 = t2; 
-          delete peri2; 
+          peri2->DeleteIfAllowed(); 
           path_list.push_back(elem.path);
           tm_list.push_back(str_tm[elem.tm]);
           bs1_list.push_back(str1);
@@ -11398,7 +11398,7 @@ void BNNav::InitializeQueue2(Bus_Stop* bs1, Bus_Stop* bs2,
     
     path_queue.push(elem);
     expand_queue.push_back(elem); 
-    delete sl;
+    sl->DeleteIfAllowed();
 }
 
 /*
@@ -11645,7 +11645,7 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
         path_queue.push(elem);
         expand_queue.push_back(elem);
 
-        delete path; 
+        path->DeleteIfAllowed(); 
         edge_tuple->DeleteIfAllowed();
 
 
@@ -11958,7 +11958,7 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri->EndBulkLoad();
           peri_list.push_back(*peri); 
           t1 = t2; 
-          delete peri; 
+          peri->DeleteIfAllowed(); 
         }else{ //////////to dinstinguish time of waiting for the bus 
           t2.ReadFrom(elem.w + qt->ToDouble());
 //        cout<<t1<<" "<<t2<<endl; 
@@ -11987,13 +11987,13 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri1->EndBulkLoad();
           peri_list.push_back(*peri1); 
           t1 = t2; 
-          delete peri1; 
+          peri1->DeleteIfAllowed(); 
 
           SimpleLine* sl = new SimpleLine(0);
           sl->StartBulkLoad();
           sl->EndBulkLoad();
           path_list[path_list.size() - 1] = *sl;
-          delete sl; 
+          sl->DeleteIfAllowed(); 
 
           tm_list[tm_list.size() - 1] = "none"; //waiting is no tm 
           string str = bs2_list[bs2_list.size() - 1];
@@ -12029,7 +12029,7 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri2->EndBulkLoad();
           peri_list.push_back(*peri2); 
           t1 = t2; 
-          delete peri2; 
+          peri2->DeleteIfAllowed(); 
           path_list.push_back(elem.path);
           tm_list.push_back(str_tm[elem.tm]);
           bs1_list.push_back(str1);
@@ -12210,7 +12210,7 @@ void BNNav::ShortestPath_Transfer(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
       if(visit_flag1[neighbor_id2 - 1]){
         edge_tuple->DeleteIfAllowed();
-        delete path;
+        path->DeleteIfAllowed();
         continue; 
       }
 
@@ -12230,7 +12230,7 @@ void BNNav::ShortestPath_Transfer(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
       path_queue.push(elem);
       expand_queue.push_back(elem); 
 
-      delete path; 
+      path->DeleteIfAllowed(); 
       edge_tuple->DeleteIfAllowed();
     }
 
@@ -12454,7 +12454,7 @@ void BNNav::ShortestPath_Transfer(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri->EndBulkLoad();
           peri_list.push_back(*peri); 
           t1 = t2; 
-          delete peri; 
+          peri->DeleteIfAllowed(); 
         }else{ //////////to dinstinguish time of waiting for the bus 
           t2.ReadFrom(elem.w + qt->ToDouble());
 //        cout<<t1<<" "<<t2<<endl; 
@@ -12477,13 +12477,13 @@ void BNNav::ShortestPath_Transfer(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri1->EndBulkLoad();
           peri_list.push_back(*peri1); 
           t1 = t2; 
-          delete peri1; 
+          peri1->DeleteIfAllowed(); 
 
           SimpleLine* sl = new SimpleLine(0);
           sl->StartBulkLoad();
           sl->EndBulkLoad();
           path_list[path_list.size() - 1] = *sl;
-          delete sl; 
+          sl->DeleteIfAllowed(); 
 
           tm_list[tm_list.size() - 1] = "none"; //waiting is no tm 
           string str = bs2_list[bs2_list.size() - 1];
@@ -12513,7 +12513,7 @@ void BNNav::ShortestPath_Transfer(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri2->EndBulkLoad();
           peri_list.push_back(*peri2); 
           t1 = t2; 
-          delete peri2; 
+          peri2->DeleteIfAllowed(); 
           path_list.push_back(elem.path);
           tm_list.push_back(str_tm[elem.tm]);
           bs1_list.push_back(str1);
@@ -12700,7 +12700,7 @@ void BNNav::ShortestPath_TransferNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
           if(visit_flag1[neighbor_id2 - 1]){
             edge_tuple->DeleteIfAllowed();
-            delete path;
+            path->DeleteIfAllowed();
             continue; 
           }
 
@@ -12721,7 +12721,7 @@ void BNNav::ShortestPath_TransferNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           path_queue.push(elem);
           expand_queue.push_back(elem); 
 
-          delete path; 
+          path->DeleteIfAllowed(); 
           edge_tuple->DeleteIfAllowed();
       }
     }
@@ -12973,7 +12973,7 @@ void BNNav::ShortestPath_TransferNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri->EndBulkLoad();
           peri_list.push_back(*peri); 
           t1 = t2; 
-          delete peri; 
+          peri->DeleteIfAllowed(); 
         }else{ //////////to dinstinguish time of waiting for the bus 
           t2.ReadFrom(elem.w + qt->ToDouble());
 //        cout<<t1<<" "<<t2<<endl; 
@@ -12996,13 +12996,13 @@ void BNNav::ShortestPath_TransferNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri1->EndBulkLoad();
           peri_list.push_back(*peri1); 
           t1 = t2; 
-          delete peri1; 
+          peri1->DeleteIfAllowed(); 
 
           SimpleLine* sl = new SimpleLine(0);
           sl->StartBulkLoad();
           sl->EndBulkLoad();
           path_list[path_list.size() - 1] = *sl;
-          delete sl; 
+          sl->DeleteIfAllowed(); 
 
           tm_list[tm_list.size() - 1] = "none"; //waiting is no tm 
           string str = bs2_list[bs2_list.size() - 1];
@@ -13032,7 +13032,7 @@ void BNNav::ShortestPath_TransferNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri2->EndBulkLoad();
           peri_list.push_back(*peri2); 
           t1 = t2; 
-          delete peri2; 
+          peri2->DeleteIfAllowed(); 
           path_list.push_back(elem.path);
           tm_list.push_back(str_tm[elem.tm]);
           bs1_list.push_back(str1);
@@ -13224,7 +13224,7 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
           if(visit_flag1[neighbor_id2 - 1]){
             edge_tuple->DeleteIfAllowed();
-            delete path;
+            path->DeleteIfAllowed();
             continue; 
           }
 
@@ -13244,7 +13244,7 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           path_queue.push(elem);
           expand_queue.push_back(elem); 
 
-          delete path; 
+          path->DeleteIfAllowed(); 
           edge_tuple->DeleteIfAllowed();
       }
     }
@@ -13506,7 +13506,7 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri->EndBulkLoad();
           peri_list.push_back(*peri); 
           t1 = t2; 
-          delete peri; 
+          peri->DeleteIfAllowed(); 
         }else{ //////////to dinstinguish time of waiting for the bus 
           t2.ReadFrom(elem.w + qt->ToDouble());
 //        cout<<t1<<" "<<t2<<endl; 
@@ -13534,13 +13534,13 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri1->EndBulkLoad();
           peri_list.push_back(*peri1); 
           t1 = t2; 
-          delete peri1; 
+          peri1->DeleteIfAllowed(); 
 
           SimpleLine* sl = new SimpleLine(0);
           sl->StartBulkLoad();
           sl->EndBulkLoad();
           path_list[path_list.size() - 1] = *sl;
-          delete sl; 
+          sl->DeleteIfAllowed(); 
 
           tm_list[tm_list.size() - 1] = "none"; //waiting is no tm 
           string str = bs2_list[bs2_list.size() - 1];
@@ -13574,7 +13574,7 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           peri2->EndBulkLoad();
           peri_list.push_back(*peri2); 
           t1 = t2; 
-          delete peri2; 
+          peri2->DeleteIfAllowed(); 
           path_list.push_back(elem.path);
           tm_list.push_back(str_tm[elem.tm]);
           bs1_list.push_back(str1);
@@ -13618,7 +13618,7 @@ void BNNav::InitializeQueue3(Bus_Stop* bs1, Bus_Stop* bs2,
 
     path_queue.push(elem);
     expand_queue.push_back(elem); 
-    delete sl;
+    sl->DeleteIfAllowed();
 }
 
 
@@ -13731,14 +13731,14 @@ void BNNav::MPToGenMO(MPoint* mp,unsigned int br_id, bool dir, Relation* br_rel,
       delete unit2; 
 
     }
-    delete sl;
+    sl->DeleteIfAllowed();
 
     genmo->EndBulkLoad();
 
     genmo_list.push_back(*genmo);
     br_id_list.push_back(bus_line_uoid);
     mp_list.push_back(*mp);
-    delete genmo; 
+    genmo->DeleteIfAllowed(); 
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -13953,7 +13953,7 @@ void UBTrain::TimeTableCompact(vector<MPoint>& trip_list, Point loc,int br_id,
   duration.push_back(*peri);
   loc_id_list.push_back(count_id);
   schedule_interval.push_back(sch_interval);
-  delete peri; 
+  peri->DeleteIfAllowed(); 
    
   ////////////////////////    check time  ////////////////////////////// 
   for(unsigned int i = 0;i < trip_list.size();i++){ 
@@ -14039,7 +14039,7 @@ void UBTrain::TrainsToGenMO()
     br_id_list.push_back(line_id);
     direction_list.push_back(dir);
 
-    delete genmo; 
+    genmo->DeleteIfAllowed(); 
     train_tuple->DeleteIfAllowed(); 
 
 //    break; 
@@ -14100,7 +14100,7 @@ void UBTrain::MPToGenMO(MPoint* mp, GenMO* mo, int l_id)
 
     }
 
-    delete sl; 
+    sl->DeleteIfAllowed(); 
 
     mo->EndBulkLoad();
 }
@@ -14308,7 +14308,7 @@ bool MetroStruct::BuildMetroRoute(vector<int> path_list, DualGraph* dg,
     mroute->EndBulkLoad();
     const double min_len = 10000.0;
     if(mroute->Length() < min_len){
-      delete mroute;
+      mroute->DeleteIfAllowed();
       return false;
     }
 
@@ -14320,7 +14320,7 @@ bool MetroStruct::BuildMetroRoute(vector<int> path_list, DualGraph* dg,
     vector<MyHalfSegment> seq_halfseg;
     sp->ReorderLine(mroute, seq_halfseg);
     
-    delete mroute;
+    mroute->DeleteIfAllowed();
     
 //    cout<<seq_halfseg.size()<<endl;
     ////////////////////////////////////////////////////////////
@@ -14338,7 +14338,7 @@ bool MetroStruct::BuildMetroRoute(vector<int> path_list, DualGraph* dg,
 
      br1->EndBulkLoad();
      mroute_list.push_back(*br1);
-     delete br1;
+     br1->DeleteIfAllowed();
      ///////////////////////////////////////////////////////////////
      Bus_Route* br2 = new Bus_Route(count, false);
      br2->StartBulkLoad(); 
@@ -14352,7 +14352,7 @@ bool MetroStruct::BuildMetroRoute(vector<int> path_list, DualGraph* dg,
 
      br2->EndBulkLoad();
      mroute_list.push_back(*br2);
-     delete br2;
+     br2->DeleteIfAllowed();
 
 
     id_list.push_back(count);
@@ -14592,8 +14592,8 @@ void MetroStruct::CreateMetroUp(vector<MyHalfSegment>& seg_list,
 
   CopyMetroTrip(genmo, mo, peri, start_time, mr_id, mr_oid, dir);
 
-  delete mo;
-  delete genmo;
+  mo->DeleteIfAllowed();
+  genmo->DeleteIfAllowed();
 }
 
 /*
@@ -14737,8 +14737,8 @@ void MetroStruct::CreateMetroDown(vector<MyHalfSegment>& seg_list,
 
   CopyMetroTrip(genmo, mo, peri, start_time, mr_id, mr_oid, dir);
 
-  delete mo;
-  delete genmo;
+  mo->DeleteIfAllowed();
+  genmo->DeleteIfAllowed();
 
 }
 
@@ -14808,8 +14808,8 @@ void MetroStruct::CopyMetroTrip(GenMO* genmo, MPoint* mo,
 
     dir_list.push_back(dir);
 
-    delete new_mo;
-    delete new_genmo;
+    new_mo->DeleteIfAllowed();
+    new_genmo->DeleteIfAllowed();
 
     new_start.ReadFrom(new_start.ToDouble() + schedule);
     sched_id++;
@@ -14877,8 +14877,8 @@ void MetroStruct::CopyTripOneDayBefore()
       mtrip_list1.push_back(*new_genmo);
       mtrip_list2.push_back(*new_mo);
 
-      delete new_mo;
-      delete new_genmo;
+      new_mo->DeleteIfAllowed();
+      new_genmo->DeleteIfAllowed();
   
   }
 
@@ -15963,7 +15963,7 @@ void MetroNetwork::LoadMetros(Relation* r3)
     if(time_span.end.ToDouble() > end_time)
         end_time = time_span.end.ToDouble();
   }
-  delete peri;
+  peri->DeleteIfAllowed();
   ///////////////////////////////////////////////////////////////////////
 
   for( int j = 0; j < mo->GetNoComponents(); j++ ){
@@ -16247,7 +16247,7 @@ int MetroNetwork::GetMOMetro_Oid(Bus_Stop* ms, Point* ms_loc, Instant& t)
           }
         }
       }
-      delete peri;
+      peri->DeleteIfAllowed();
       tuple->DeleteIfAllowed();
   }
 
@@ -16336,7 +16336,7 @@ int MetroNetwork::GetMOMetro_MP(Bus_Stop* ms, Point* ms_loc,
         }
 
       }
-      delete peri;
+      peri->DeleteIfAllowed();
       tuple->DeleteIfAllowed();
   }
   delete btree_iter2;
@@ -17115,7 +17115,7 @@ void MNNav::ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant* qt)
 
         if(visit_flag1[neighbor_id1 - 1]){
           edge_tuple->DeleteIfAllowed();
-          delete path;
+          path->DeleteIfAllowed();
           continue; 
         }
 
@@ -17144,7 +17144,7 @@ void MNNav::ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant* qt)
 //       elem.Print();
 //       cout<<endl; 
 
-        delete path; 
+        path->DeleteIfAllowed(); 
         edge_tuple->DeleteIfAllowed();
       }
     }
@@ -17399,7 +17399,7 @@ void MNNav::ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant* qt)
           peri->EndBulkLoad();
           peri_list.push_back(*peri); 
           t1 = t2; 
-          delete peri; 
+          peri->DeleteIfAllowed(); 
         }else{ //////////to dinstinguish time of waiting for the metro 
           t2.ReadFrom(elem.w + qt->ToDouble());
 //        cout<<t1<<" "<<t2<<endl; 
@@ -17426,13 +17426,13 @@ void MNNav::ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant* qt)
           peri1->EndBulkLoad();
           peri_list.push_back(*peri1); 
           t1 = t2; 
-          delete peri1; 
+          peri1->DeleteIfAllowed(); 
 
           SimpleLine* sl = new SimpleLine(0);
           sl->StartBulkLoad();
           sl->EndBulkLoad();
           path_list[path_list.size() - 1] = *sl;
-          delete sl; 
+          sl->DeleteIfAllowed(); 
 
           tm_list[tm_list.size() - 1] = "none"; //waiting is no tm 
           string str = ms2_list[ms2_list.size() - 1];
@@ -17465,7 +17465,7 @@ void MNNav::ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant* qt)
           peri2->EndBulkLoad();
           peri_list.push_back(*peri2); 
           t1 = t2; 
-          delete peri2; 
+          peri2->DeleteIfAllowed(); 
           path_list.push_back(elem.path);
           tm_list.push_back(str_tm[elem.tm]);
           ms1_list.push_back(str1);
@@ -17515,7 +17515,7 @@ void MNNav::InitializeQueue(Bus_Stop* ms1, Bus_Stop* ms2,
     
     path_queue.push(elem);
     expand_queue.push_back(elem); 
-    delete sl;
+    sl->DeleteIfAllowed();
 }
 
 /*
@@ -17567,7 +17567,7 @@ void MNNav::GetAdjNodeMG(MetroGraph* mg, int nodeid)
     ms_list1.push_back(*ms1);
     ms_list2.push_back(*ms2);
     path_list.push_back(*path);
-    delete path; 
+    path->DeleteIfAllowed(); 
 
     ms_neighbor1->DeleteIfAllowed();
     type_list.push_back(1); 
@@ -17686,7 +17686,7 @@ void TM_Join::Road_Cell_Join(Relation* rel1, Relation* rel2,
         }
       }
     }
-    delete l;
+    l->DeleteIfAllowed();
     road_tuple->DeleteIfAllowed();
   }
 

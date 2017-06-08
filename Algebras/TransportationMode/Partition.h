@@ -1081,7 +1081,7 @@ struct DataClean{
   TupleType* resulttype; 
   
   DataClean(){ count = 0; resulttype = NULL;} 
-  ~DataClean(){if(resulttype != NULL) delete resulttype;}
+  ~DataClean(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
 
   std::vector<SimpleLine> sl_list;
 

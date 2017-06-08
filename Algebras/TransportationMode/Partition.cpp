@@ -3253,7 +3253,7 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
         }else assert(false);
       }//end for
 
-      delete cyclepoints;
+      cyclepoints->DeleteIfAllowed();
 //     printf("(%.6f %.6f) (%.6f %.6f)\n", firstPoint.GetX(), firstPoint.GetY(),
 //             currvertex.GetX(), currvertex.GetY());
 
@@ -3316,7 +3316,7 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
             cr->UpdateAttr(h+1,auxhsIA.attr);
             h+=2;
           }
-          delete rDir;
+          rDir->DeleteIfAllowed();
         }else assert(false);
 
 
@@ -3324,7 +3324,7 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
       cr->EndBulkLoad( true, true, true, false );
 
       regs.push_back(*cr);
-      delete cr;
+      cr->DeleteIfAllowed();
 
 }
 
@@ -3450,9 +3450,9 @@ void SpacePartition::ClipPaveRegion(Region& reg,
       MyMinus(reg,*comm_reg,*result);
 
       paves[rid - 1] = *result;
-      delete result;
+      result->DeleteIfAllowed();
 
-      delete comm_reg;
+      comm_reg->DeleteIfAllowed();
 }
 
 /*
@@ -3584,7 +3584,7 @@ void SpacePartition::FilterDirtyRegion(vector<Region>& regs, Region* reg)
   for(int i = 0;i < no_faces;i++){
         Region* temp = new Region(0);
         subregions.push_back(*temp);
-        delete temp;
+        temp->DeleteIfAllowed();
         subregions[i].StartBulkLoad();
   }
   for(int i = 0;i < reg->Size();i++){
@@ -3608,7 +3608,7 @@ void SpacePartition::FilterDirtyRegion(vector<Region>& regs, Region* reg)
     Region* temp = new Region(0);
     subregions[i].Union(*result, *temp);
     *result = *temp;
-    delete temp;
+    temp->DeleteIfAllowed();
     count++;
   }
 //  cout<<"count "<<count<<endl;
@@ -3617,7 +3617,7 @@ void SpacePartition::FilterDirtyRegion(vector<Region>& regs, Region* reg)
   result->SetNoComponents(count);
   regs.push_back(*result);
 
-  delete result;
+  result->DeleteIfAllowed();
 
 }
 
@@ -3715,7 +3715,7 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
         Region* reg = new Region(0);
         newpave1.push_back(*reg);
         newpave2.push_back(*reg);
-        delete reg;
+        reg->DeleteIfAllowed();
       }
       FillPave(n, pavements1, pavements2, routes_length, newpave1, newpave2);
 
@@ -3723,12 +3723,12 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
         Region* reg1 = new Region(0);
         MyUnion(pavements1[i], newpave1[i], *reg1);
         pavements1[i] = *reg1;
-        delete reg1;
+        reg1->DeleteIfAllowed();
 
         Region* reg2 = new Region(0);
         MyUnion(pavements2[i], newpave2[i], *reg2);
         pavements2[i] = *reg2;
-        delete reg2;
+        reg2->DeleteIfAllowed();
       }
 
     /////////////////////////////////////////////////////////////
@@ -3975,13 +3975,13 @@ bool SpacePartition::BuildZebraCrossing(vector<MyPoint>& endpoints1,
                  result1[0].Intersects(*last_zc) == false){
                   *crossregion = result1[0];
                   *pave1 = *pave;
-                  delete pave;
+                  pave->DeleteIfAllowed();
                   return true;
               }
             }
           }
 
-          delete pave;
+          pave->DeleteIfAllowed();
        ///////////////////////////////////////////////////////////////
       }
       endpoints1.clear();
@@ -4108,10 +4108,10 @@ void SpacePartition::GetZebraCrossing(SimpleLine* subcurve,
         }
         p1 = p2;
 
-        delete ps1;
-        delete ps2;
+        ps1->DeleteIfAllowed();
+        ps2->DeleteIfAllowed();
 
-        delete line1;
+        line1->DeleteIfAllowed();
 
       }else if(MyAlmostEqual(p1.GetY(), p2.GetY())){
             double y1 = p2.GetY() - (roadwidth + 2);
@@ -4166,9 +4166,9 @@ void SpacePartition::GetZebraCrossing(SimpleLine* subcurve,
           }
           p1 = p2;
 
-          delete ps1;
-          delete ps2;
-          delete line1;
+          ps1->DeleteIfAllowed();
+          ps2->DeleteIfAllowed();
+          line1->DeleteIfAllowed();
       }else{//not vertical
         double k1 = (p2.GetY() - p1.GetY())/(p2.GetX() - p1.GetX());
         double k2 = -1/k1;
@@ -4226,15 +4226,15 @@ void SpacePartition::GetZebraCrossing(SimpleLine* subcurve,
 
         p1 = p2;
 
-        delete ps1;
-        delete ps2;
-        delete line1;
+        ps1->DeleteIfAllowed();
+        ps2->DeleteIfAllowed();
+        line1->DeleteIfAllowed();
       }
 
     }
 
-    delete subline1;
-    delete subline2;
+    subline1->DeleteIfAllowed();
+    subline2->DeleteIfAllowed();
 
 }
 
@@ -4261,7 +4261,7 @@ void SpacePartition::Decrease(SimpleLine* curve, Region* reg_pave1,
       GetZebraCrossing(subcurve, reg_pave1,
                    reg_pave2, roadwidth, pave, delta_l, p1,
                    crossregion, last_zc);
-      delete subcurve;
+      subcurve->DeleteIfAllowed();
 
 
       if(pave->Size() > 0 || delta_l >= curve->Length()) break;
@@ -4300,7 +4300,7 @@ void SpacePartition::Increase(SimpleLine* curve, Region* reg_pave1,
                 reg_pave2, roadwidth, pave, delta_l, p1,
                 crossregion, last_zc);
 
-      delete subcurve;
+      subcurve->DeleteIfAllowed();
       if(pave->Size() > 0 || delta_l >= route_length) break;
 
       delta_l += delta_l;
@@ -4337,7 +4337,7 @@ void SpacePartition::CreatePavement(SimpleLine* curve, Region* reg_pave1,
       Region* temp = new Region(0);
       cross1->Union(*last_zc, *temp);
       *last_zc = *temp;
-      delete temp;
+      temp->DeleteIfAllowed();
       /////////////////////////////////////////////////
 
       Decrease(curve, reg_pave1, reg_pave2, len, pave2,
@@ -4351,8 +4351,8 @@ void SpacePartition::CreatePavement(SimpleLine* curve, Region* reg_pave1,
 //    delete crossreg1;
 //    delete crossreg2;
 
-    delete pave1;
-    delete pave2;
+    pave1->DeleteIfAllowed();
+    pave2->DeleteIfAllowed();
 
 }
 
@@ -4391,7 +4391,7 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
     for(int i = 0;i < routes->GetNoTuples();i++){
         Region* reg = new Region(0);
         zc_reg.push_back(*reg);
-        delete reg;
+        reg->DeleteIfAllowed();
 
         vector<float> real_list;
         rid_pos_list.push_back(real_list);
@@ -4452,18 +4452,18 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
               Region* temp = new Region(0);
               zc_reg[id1 - 1].Union(*crossregion1, *temp);
               zc_reg[id1 - 1] = *temp;
-              delete temp;
+              temp->DeleteIfAllowed();
           }
 
           if(zc_reg[id1 - 1].Intersects(*crossregion2) == false){
             Region* temp = new Region(0);
             zc_reg[id1 - 1].Union(*crossregion2, *temp);
             zc_reg[id1 - 1] = *temp;
-            delete temp;
+            temp->DeleteIfAllowed();
           }
       }
 
-      delete temp_reg;
+      temp_reg->DeleteIfAllowed();
 
       Tuple* route_tuple2 = routes->GetTuple(id2, false);
       SimpleLine* curve2 = (SimpleLine*)route_tuple2->GetAttribute(ROUTE_CURVE);
@@ -4493,24 +4493,24 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
               Region* temp = new Region(0);
               zc_reg[id2 - 1].Union(*crossregion3, *temp);
               zc_reg[id2 - 1] = *temp;
-              delete temp;
+              temp->DeleteIfAllowed();
           }
 
           if(zc_reg[id2 - 1].Intersects(*crossregion4) == false){
             Region* temp = new Region(0);
             zc_reg[id2 - 1].Union(*crossregion4, *temp);
             zc_reg[id2 - 1] = *temp;
-            delete temp;
+            temp->DeleteIfAllowed();
           }
       }
 
 
-      delete cross12;
+      cross12->DeleteIfAllowed();
 
-      delete crossregion1;
-      delete crossregion2;
-      delete crossregion3;
-      delete crossregion4;
+      crossregion1->DeleteIfAllowed();
+      crossregion2->DeleteIfAllowed();
+      crossregion3->DeleteIfAllowed();
+      crossregion4->DeleteIfAllowed();
 
 
       route_tuple1->DeleteIfAllowed();
@@ -4590,6 +4590,11 @@ bool SpacePartition::SameSide1(Region* reg1, Region* reg2, Line* r1r2,
 
 //      cout<<mps1[0].loc<<mps2[0].loc<<mps1[2].loc<<mps2[2].loc<<endl;
 
+      if(mps1.size()<3) return false; // not a region
+      if(mps2.size()<3) return false; // not a region
+      
+
+
       vector<Point> border1;
       border1.push_back(mps1[0].loc);
       border1.push_back(mps1[2].loc);
@@ -4625,12 +4630,12 @@ bool SpacePartition::SameSide1(Region* reg1, Region* reg2, Line* r1r2,
           hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
           *temp += hs;
           if(temp->Intersects(*r1r2)){
-            delete temp;
+            temp->DeleteIfAllowed();
             return false;
           }
           count++;
           index++;
-          delete temp;
+          temp->DeleteIfAllowed();
         }
         //three points collineation
         if(Collineation(border[0], border[1], border[2])) return false;
@@ -4665,10 +4670,10 @@ bool SpacePartition::SameSide1(Region* reg1, Region* reg2, Line* r1r2,
           hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
           *temp += hs;
           if(temp->Intersects(*r1r2)){
-            delete temp;
+            temp->DeleteIfAllowed();
             return false;
           }else{
-            delete temp;
+            temp->DeleteIfAllowed();
             vector<Point> ps;
 
 //            cout<<border[3]<< border[0]<< border[2]<<endl;
@@ -4840,12 +4845,12 @@ bool SpacePartition::SameSide2(Region* reg1, Region* reg2, Line* r1r2,
               flag = false;
 
             if(temp->Intersects(*r1r2) || flag == false){
-              delete temp;
+              temp->DeleteIfAllowed();
               return false;
             }
             count++;
             index++;
-            delete temp;
+            temp->DeleteIfAllowed();
           }
           if(Collineation(border[0], border[1], border[2])) return false;
 
@@ -4886,10 +4891,10 @@ bool SpacePartition::SameSide2(Region* reg1, Region* reg2, Line* r1r2,
             flag = false;
 
           if(temp->Intersects(*r1r2) || flag == false){
-            delete temp;
+            temp->DeleteIfAllowed();
             return false;
           }else{
-            delete temp;
+            temp->DeleteIfAllowed();
             vector<Point> ps;
 
             if(GetClockwise(border[3], border[0], border[2])){
@@ -4949,7 +4954,7 @@ inline bool SpacePartition::PavementIntersection(Region* reg1, Region* reg2)
     double regarea = reg->Area();
 
 //    cout<<"intersection area "<<regarea<<endl;
-    delete reg;
+    reg->DeleteIfAllowed();
     if(MyAlmostEqual(regarea,0.0)) return false;
     return true;
 }
@@ -5019,7 +5024,7 @@ void SpacePartition::NewFillPavementDebug(Relation* rel, Relation* routes,
        assert(reg1_pave1->GetCycleDirection());
        assert(reg2_pave1->GetCycleDirection());
        outer_fillgap.push_back(*result1);
-       delete result1;
+       result1->DeleteIfAllowed();
 
     }
     if(reg1_pave1->Intersects(*reg2_pave2) == false){
@@ -5035,7 +5040,7 @@ void SpacePartition::NewFillPavementDebug(Relation* rel, Relation* routes,
 
       Region* result1 = new Region(0);
       outer_fillgap.push_back(*result1);
-      delete result1;
+      result1->DeleteIfAllowed();
 
     }
     if(reg1_pave2->Intersects(*reg2_pave1) == false ){
@@ -5051,7 +5056,7 @@ void SpacePartition::NewFillPavementDebug(Relation* rel, Relation* routes,
 
       Region* result1 = new Region(0);
       outer_fillgap.push_back(*result1);
-      delete result1;
+      result1->DeleteIfAllowed();
 
     }
     if(reg1_pave2->Intersects(*reg2_pave2) == false){
@@ -5067,13 +5072,13 @@ void SpacePartition::NewFillPavementDebug(Relation* rel, Relation* routes,
 
       Region* result1 = new Region(0);
       outer_fillgap.push_back(*result1);
-      delete result1;
+      result1->DeleteIfAllowed();
 
     }
 
     pave_tuple1->DeleteIfAllowed();
     pave_tuple2->DeleteIfAllowed();
-    delete r1r2;
+    r1r2->DeleteIfAllowed();
 
 }
 
@@ -5158,7 +5163,7 @@ void SpacePartition::NewFillPavement1(Relation* rel, Relation* routes,
 
 //      outer_fillgap1.push_back(*result1);
 //      outer_fillgap2.push_back(*reg2_pave1);
-      delete result1;
+      result1->DeleteIfAllowed();
 
     }
 //   if(reg1_pave1->Intersects(*reg2_pave2) == false &&
@@ -5179,7 +5184,7 @@ void SpacePartition::NewFillPavement1(Relation* rel, Relation* routes,
 
 //      outer_fillgap1.push_back(*result1);
 //      outer_fillgap2.push_back(*reg2_pave1);
-      delete result1;
+      result1->DeleteIfAllowed();
 
     }
 //    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
@@ -5200,7 +5205,7 @@ void SpacePartition::NewFillPavement1(Relation* rel, Relation* routes,
 
 //      outer_fillgap1.push_back(*result1);
 //      outer_fillgap2.push_back(*reg2_pave1);
-      delete result1;
+      result1->DeleteIfAllowed();
 
     }
 //    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
@@ -5221,13 +5226,13 @@ void SpacePartition::NewFillPavement1(Relation* rel, Relation* routes,
 
 //    outer_fillgap1.push_back(*result1);
 //    outer_fillgap2.push_back(*reg2_pave1);
-      delete result1;
+      result1->DeleteIfAllowed();
 
     }
 
     pave_tuple1->DeleteIfAllowed();
     pave_tuple2->DeleteIfAllowed();
-    delete r1r2;
+    r1r2->DeleteIfAllowed();
 
 }
 
@@ -5315,7 +5320,7 @@ void SpacePartition:: NewFillPavement2(Relation* rel, Relation* routes,
     }
     r1r2->EndBulkLoad();
     if(third_seg > 2){
-        delete r1r2;
+        r1r2->DeleteIfAllowed();
         return;
     }
 
@@ -5327,21 +5332,21 @@ void SpacePartition:: NewFillPavement2(Relation* rel, Relation* routes,
     if(clock2){
       if(clock1){
         if(angle1 > angle2){
-          delete r1r2;
+          r1r2->DeleteIfAllowed();
           return;
         }
       }else{
-        delete r1r2;
+        r1r2->DeleteIfAllowed();
         return;
       }
     }else{
       if(clock1 == false){
         if(angle1 > angle2){
-          delete r1r2;
+          r1r2->DeleteIfAllowed();
           return;
         }
       }else{
-        delete r1r2;
+        r1r2->DeleteIfAllowed();
         return;
       }
     }
@@ -5387,7 +5392,7 @@ void SpacePartition:: NewFillPavement2(Relation* rel, Relation* routes,
 
       MyUnion(*reg1_pave1, outer_fillgap[outer_fillgap.size() - 1], *result1);
 
-      delete result1;
+      result1->DeleteIfAllowed();
 
     }
 
@@ -5411,7 +5416,7 @@ void SpacePartition:: NewFillPavement2(Relation* rel, Relation* routes,
       Region* result1 = new Region(0);
       MyUnion(*reg1_pave1, outer_fillgap[outer_fillgap.size() - 1], *result1);
 
-      delete result1;
+      result1->DeleteIfAllowed();
 
     }
 
@@ -5434,7 +5439,7 @@ void SpacePartition:: NewFillPavement2(Relation* rel, Relation* routes,
 
       Region* result1 = new Region(0);
       MyUnion(*reg1_pave2, outer_fillgap[outer_fillgap.size() - 1], *result1);
-      delete result1;
+      result1->DeleteIfAllowed();
 
     }
 
@@ -5457,13 +5462,13 @@ void SpacePartition:: NewFillPavement2(Relation* rel, Relation* routes,
 
       Region* result1 = new Region(0);
       MyUnion(*reg1_pave2, outer_fillgap[outer_fillgap.size() - 1], *result1);
-      delete result1;
+      result1->DeleteIfAllowed();
 
     }
 
     pave_tuple1->DeleteIfAllowed();
     pave_tuple2->DeleteIfAllowed();
-    delete r1r2;
+    r1r2->DeleteIfAllowed();
 
 }
 
@@ -5526,7 +5531,7 @@ void SpacePartition::NewFillPavement3(Relation* routes, int id1, int id2,
       MyUnion(newpaves1[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
               *result);
       newpaves1[id1 - 1] = *result;
-      delete result;
+      result->DeleteIfAllowed();
 
     }
 
@@ -5540,7 +5545,7 @@ void SpacePartition::NewFillPavement3(Relation* routes, int id1, int id2,
       MyUnion(newpaves1[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
               *result);
       newpaves1[id1 - 1] = *result;
-      delete result;
+      result->DeleteIfAllowed();
 
     }
 
@@ -5554,7 +5559,7 @@ void SpacePartition::NewFillPavement3(Relation* routes, int id1, int id2,
       MyUnion(newpaves2[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
               *result);
       newpaves2[id1 - 1] = *result;
-      delete result;
+      result->DeleteIfAllowed();
 
     }
 
@@ -5568,11 +5573,11 @@ void SpacePartition::NewFillPavement3(Relation* routes, int id1, int id2,
       MyUnion(newpaves2[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
               *result);
       newpaves2[id1 - 1] = *result;
-      delete result;
+      result->DeleteIfAllowed();
 
     }
 
-    delete r1r2;
+    r1r2->DeleteIfAllowed();
 
 }
 
@@ -5658,7 +5663,7 @@ void SpacePartition::NewFillPavement4(Relation* routes, int id1, int id2,
     }
     r1r2->EndBulkLoad();
     if(third_seg > 2){
-        delete r1r2;
+        r1r2->DeleteIfAllowed();
         return;
     }
 
@@ -5670,21 +5675,21 @@ void SpacePartition::NewFillPavement4(Relation* routes, int id1, int id2,
     if(clock2){
       if(clock1){
         if(angle1 > angle2){
-          delete r1r2;
+          r1r2->DeleteIfAllowed();
           return;
         }
       }else{
-        delete r1r2;
+        r1r2->DeleteIfAllowed();
         return;
       }
     }else{
       if(clock1 == false){
         if(angle1 > angle2){
-          delete r1r2;
+          r1r2->DeleteIfAllowed();
           return;
         }
       }else{
-        delete r1r2;
+        r1r2->DeleteIfAllowed();
         return;
       }
     }
@@ -5717,7 +5722,7 @@ void SpacePartition::NewFillPavement4(Relation* routes, int id1, int id2,
         MyUnion(newpaves1[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
                 *result);
         newpaves1[id1 - 1] = *result;
-        delete result;
+        result->DeleteIfAllowed();
 
     }
 
@@ -5731,7 +5736,7 @@ void SpacePartition::NewFillPavement4(Relation* routes, int id1, int id2,
       MyUnion(newpaves1[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
               *result);
       newpaves1[id1 - 1] = *result;
-      delete result;
+      result->DeleteIfAllowed();
 
     }
 
@@ -5745,7 +5750,7 @@ void SpacePartition::NewFillPavement4(Relation* routes, int id1, int id2,
       MyUnion(newpaves2[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
               *result);
       newpaves2[id1 - 1] = *result;
-      delete result;
+      result->DeleteIfAllowed();
 
     }
 
@@ -5759,11 +5764,11 @@ void SpacePartition::NewFillPavement4(Relation* routes, int id1, int id2,
       MyUnion(newpaves2[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
               *result);
       newpaves2[id1 - 1] = *result;
-      delete result;
+      result->DeleteIfAllowed();
 
     }
 
-    delete r1r2;
+    r1r2->DeleteIfAllowed();
 
 }
 
@@ -5824,10 +5829,10 @@ void SpacePartition::NewFillPavement5(Relation* routes, int id1, int id2,
       MyUnion(newpaves1[id1 - 1], outer_fillgap[outer_fillgap.size() - 1],
               *result);
       newpaves1[id1 - 1] = *result;
-      delete result;
+      result->DeleteIfAllowed();
 
     }
-    delete r1r2;
+    r1r2->DeleteIfAllowed();
 }
 
 
@@ -5999,7 +6004,7 @@ StrRS::StrRS()
 
 StrRS::~StrRS()
 {
-    if(resulttype != NULL) delete resulttype;
+    if(resulttype != NULL) resulttype->DeleteIfAllowed();
 }
 
 StrRS::StrRS(Network* net,Relation* rel1, Relation* rel2):n(net), r1(rel1),
@@ -6058,15 +6063,15 @@ void StrRS::GetSections(int attr_pos1, int attr_pos2, int attr_pos3)
                         if(l->Intersects(*cross_reg) == false){
                             rids.push_back(rid->GetIntval());
                             lines.push_back(*l);
-                            delete l;
-                            delete sub_sl; 
+                            l->DeleteIfAllowed();
+                            sub_sl->DeleteIfAllowed(); 
                             break; 
                         }else{
                             pos1 += dist_delta;
                             pos2 -= dist_delta;     
                         }
-                        delete l;
-                        delete sub_sl; 
+                        l->DeleteIfAllowed();
+                        sub_sl->DeleteIfAllowed(); 
                     }
                 }else{
 
@@ -6080,15 +6085,15 @@ void StrRS::GetSections(int attr_pos1, int attr_pos2, int attr_pos3)
                         if(l->Intersects(*cross_reg) == false){
                             rids.push_back(rid->GetIntval());
                             lines.push_back(*l);
-                            delete l;
-                            delete sub_sl; 
+                            l->DeleteIfAllowed();
+                            sub_sl->DeleteIfAllowed(); 
                             break; 
                         }else{
                             pos1 += dist_delta;
                             pos2 -= dist_delta; 
                         }
-                        delete l;
-                        delete sub_sl; 
+                        l->DeleteIfAllowed();
+                        sub_sl->DeleteIfAllowed(); 
                     }
                 }
             }else{
@@ -6102,15 +6107,15 @@ void StrRS::GetSections(int attr_pos1, int attr_pos2, int attr_pos3)
                     if(l->Intersects(*cross_reg) == false){
                         rids.push_back(rid->GetIntval());
                         lines.push_back(*l);
-                        delete l;
-                        delete sub_sl; 
+                        l->DeleteIfAllowed();
+                        sub_sl->DeleteIfAllowed(); 
                         break; 
                     }else{
                         pos1 += dist_delta;
                         pos2 -= dist_delta;     
                     }
-                    delete l;
-                    delete sub_sl; 
+                    l->DeleteIfAllowed();
+                    sub_sl->DeleteIfAllowed(); 
                 }
                 /////////////process the last part/////////////////
                 if(j == cross_pos.size() - 1){
@@ -6124,15 +6129,15 @@ void StrRS::GetSections(int attr_pos1, int attr_pos2, int attr_pos3)
                         if(l->Intersects(*cross_reg) == false){
                             rids.push_back(rid->GetIntval());
                             lines.push_back(*l);
-                            delete l;
-                            delete sub_sl; 
+                            l->DeleteIfAllowed();
+                            sub_sl->DeleteIfAllowed(); 
                             break; 
                         }else{
                             pos1 += dist_delta;
                             pos2 -= dist_delta;     
                         }
-                        delete l;
-                        delete sub_sl; 
+                        l->DeleteIfAllowed();
+                        sub_sl->DeleteIfAllowed(); 
                     }
                 }
             }
@@ -6259,10 +6264,10 @@ void StrRS::GetInterestingPoints(HalfSegment hs, Point ip,
             for(unsigned int i = 0;i < 4;i++){
                 intersect_ps.push_back(temp[i]);
             }
-            delete l1;
-            delete l2;    
+            l1->DeleteIfAllowed();
+            l2->DeleteIfAllowed();    
         
-            delete line1;
+            line1->DeleteIfAllowed();
         }
 }
 
@@ -6724,7 +6729,7 @@ void DataClean::CheckRoads(Relation* rel, R_Tree<2,TupleId>* rtree)
 
     vector<int> oid_list;
     DFTraverse2(rel,rtree,rtree->RootRecordId(), l, oid_list, id);
-    delete l;
+    l->DeleteIfAllowed();
     road_tuple->DeleteIfAllowed();
 
     if(oid_list.size() == 0){
@@ -6798,7 +6803,7 @@ void DataClean::DFTraverse2(Relation* rel,
                     id_list.push_back(e.info);
                   }
 
-                  delete temp_l;
+                  temp_l->DeleteIfAllowed();
               }
               dg_tuple->DeleteIfAllowed();
       }else{

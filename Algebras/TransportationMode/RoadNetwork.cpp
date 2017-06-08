@@ -1261,7 +1261,7 @@ void RoadNav::DFTraverse(Network* rn, R_Tree<2,TupleId>* rtree,
                     }
                   }
               }
-              delete ps;
+              ps->DeleteIfAllowed();
               route_tuple->DeleteIfAllowed();
       }else{
             R_TreeInternalEntry<2> e =
@@ -1706,12 +1706,12 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
 //      cout<<sub_sl->Length()<<endl;
       if(center_area.Contains(sub_sl->BoundingBox())){
-        delete sub_sl;
+        sub_sl->DeleteIfAllowed();
         road_tuple->DeleteIfAllowed();
         continue;
       }
 
-      delete sub_sl;
+      sub_sl->DeleteIfAllowed();
       road_tuple->DeleteIfAllowed();
       //////////////////////////////////////////////////////////////////
 
@@ -2213,7 +2213,7 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
 //      cout<<sub_sl->Length()<<endl;
 
-      delete sub_sl;
+      sub_sl->DeleteIfAllowed();
       road_tuple->DeleteIfAllowed();
       //////////////////////////////////////////////////////////////////
 
@@ -2354,7 +2354,7 @@ void RoadNav::GetAdjNodeRG(RoadGraph* rg, int nodeid)
     jun_list1.push_back(*jun1);
     jun_list2.push_back(*gp2);
     gline_list.push_back(*path);
-    delete path; 
+    path->DeleteIfAllowed(); 
 
     jun_neighbor1->DeleteIfAllowed();
     type_list.push_back(1); 

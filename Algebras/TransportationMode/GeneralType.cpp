@@ -1544,7 +1544,7 @@ void GenMO::Trajectory(GenRange* genrange, Space* sp)
       l->EndBulkLoad();
 
       genrange->Add(oid, l, tm);
-      delete l;
+      l->DeleteIfAllowed();
   }
 
   sp->CloseInfra(infra_pointer);
@@ -1893,7 +1893,7 @@ void GenMO::AtInstant(Instant& t, Intime<GenLoc>& result)
           }
       }
     }
-    delete peri; 
+    peri->DeleteIfAllowed(); 
   }else
     result.SetDefined(false);
 
@@ -1917,10 +1917,10 @@ void GenMO::AtPeriods(Periods* peri_q, GenMO& result)
     peri->Minimum(s_mo);
     peri->Maximum(e_mo);
     if(s_q > e_mo || e_q < s_mo){
-      delete peri;
+      peri->DeleteIfAllowed();
       return;
     }
-    delete peri;
+    peri->DeleteIfAllowed();
     result.StartBulkLoad();
 
     int64_t st = s_q.ToDouble()*86400000.0;
@@ -2170,10 +2170,10 @@ bool GenMO::Passes(Region* reg, Space* sp)
         Line* l = new Line(0);
         GetLine(p1, p2, l);
         if(l->Intersects(*reg)){
-          delete l;
+          l->DeleteIfAllowed();
           return true;
         }
-        delete l;
+        l->DeleteIfAllowed();
 
       }else if(unit.GetTM() == TM_WALK){
         if(box_init == 0){
@@ -2203,10 +2203,10 @@ bool GenMO::Passes(Region* reg, Space* sp)
         Line* l = new Line(0);
         GetLine(p1, p2, l);
         if(l->Intersects(*reg)){
-          delete l;
+          l->DeleteIfAllowed();
           return true;
         }
-        delete l;
+        l->DeleteIfAllowed();
       }
 
     }
@@ -2299,8 +2299,8 @@ void GenMO::MapGenMO(MPoint* in, MPoint& res)
 //     delete peri_new;
 //   }
 
-  delete peri2; 
-  delete peri1; 
+  peri2->DeleteIfAllowed(); 
+  peri1->DeleteIfAllowed(); 
 
 }
 
@@ -2824,7 +2824,7 @@ void GenMObject::GenerateCar(Space* sp, Periods* peri, int mo_no,
     GLine* gl = new GLine(0);
     road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
     GenerateCarMO(rn, count, peri, gl, rel, *start_loc);
-    delete gl;
+    gl->DeleteIfAllowed();
 
 //    loc_list1.push_back(gp_loc1);
 //    loc_list2.push_back(gp_loc2);
@@ -2934,7 +2934,7 @@ void GenMObject::GenerateCarMO(Network* rn, int i, Periods* peri,
     sp->ReorderLine(sl, seq_halfseg);
     delete sp;
     //////////////////////////////////////////////////////////////////
-    delete sl;
+    sl->DeleteIfAllowed();
 
 //    ri->Print(cout);
     double start_pos = ri->GetStartPos();
@@ -3013,8 +3013,8 @@ void GenMObject::GenerateCarMO(Network* rn, int i, Periods* peri,
     trip3_list.push_back(*mo_gp);
   }
 
-  delete mo; 
-  delete mo_gp;
+  mo->DeleteIfAllowed(); 
+  mo_gp->DeleteIfAllowed();
 
 
 }
@@ -3285,7 +3285,7 @@ void GenMObject::GenerateWalkMovement(DualGraph* dg, Line* l, Point start_loc,
    vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
    sp->ReorderLine(path, seq_halfseg);
    delete sp;
-   delete path;
+   path->DeleteIfAllowed();
    Point temp_sp1 = seq_halfseg[0].from; 
    Point temp_sp2 = seq_halfseg[seq_halfseg.size() - 1].to; 
 //   const double delta_dist = 0.01;
@@ -3405,7 +3405,7 @@ void GenMObject::GenerateFreeMovement(Line* l, Point start_loc,
    vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
    sp->ReorderLine(path, seq_halfseg);
    delete sp;
-   delete path;
+   path->DeleteIfAllowed();
    Point temp_sp1 = seq_halfseg[0].from; 
    Point temp_sp2 = seq_halfseg[seq_halfseg.size() - 1].to; 
 //   const double delta_dist = 0.01;
@@ -3789,8 +3789,8 @@ void GenMObject::GenerateGenMO_CTBWalk(Space* sp, Periods* peri, int mo_no,
     bool correct = true;
     PaveLoc2GPoint(loc1, loc2, sp, rel, btree, gpoint_list, p_list, correct,rn);
     if(correct == false){
-      delete mo;
-      delete genmo;
+      mo->DeleteIfAllowed();
+      genmo->DeleteIfAllowed();
       continue;
     }
 
@@ -3799,8 +3799,8 @@ void GenMObject::GenerateGenMO_CTBWalk(Space* sp, Periods* peri, int mo_no,
     Point start_loc = p_list[0];
     Point end_loc = p_list[1];
     if(start_loc.Distance(end_loc) < min_len){
-      delete mo;
-      delete genmo;
+      mo->DeleteIfAllowed();
+      genmo->DeleteIfAllowed();
       continue;
     }
 
@@ -3817,7 +3817,7 @@ void GenMObject::GenerateGenMO_CTBWalk(Space* sp, Periods* peri, int mo_no,
     road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
     ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, 
                   speed_rel, mode);
-    delete gl;
+    gl->DeleteIfAllowed();
 
     //////////////////////////////////////////////////////////////////////
     ////////////4 connect the path to the end point//////////////////////
@@ -3836,8 +3836,8 @@ void GenMObject::GenerateGenMO_CTBWalk(Space* sp, Periods* peri, int mo_no,
     trip1_list.push_back(*genmo);
     trip2_list.push_back(*mo);
 
-    delete mo;
-    delete genmo; 
+    mo->DeleteIfAllowed();
+    genmo->DeleteIfAllowed(); 
   }
   
   delete road_nav;
@@ -3988,7 +3988,7 @@ void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
           genmo->Add(*unit); 
           delete unit; 
       }
-    delete l;
+    l->DeleteIfAllowed();
     pm->CloseDualGraph(dg);
     return;
   }
@@ -4003,7 +4003,7 @@ void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
     Line* temp = new Line(0);
     line->Union(line_list[i], *temp);
     *line = *temp;
-    delete temp;
+    temp->DeleteIfAllowed();
   }  
 
      ///////////////////////////////////////////////////////////////
@@ -4154,8 +4154,8 @@ void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
 //  line_list1.push_back(*line);
 //  line_list1.push_back(*l);
 
-  delete l;
-  delete line;
+  l->DeleteIfAllowed();
+  line->DeleteIfAllowed();
   //////////////////////////////////////////////////////////////////////
 
   pm->CloseDualGraph(dg);
@@ -4207,7 +4207,7 @@ void GenMObject::ConnectGP1GP2(Network* rn, Point start_loc, GLine* newgl,
       sp->ReorderLine(sl, seq_halfseg);
       delete sp;
     //////////////////////////////////////////////////////////////////
-      delete sl;
+      sl->DeleteIfAllowed();
 
     /////////////////////////////////////////////////////////////////////
 
@@ -4332,7 +4332,7 @@ void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo,
           genmo->Add(*unit); 
           delete unit; 
       }
-    delete l;
+    l->DeleteIfAllowed();
     pm->CloseDualGraph(dg);
     return;
   }
@@ -4348,7 +4348,7 @@ void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo,
     Line* temp = new Line(0);
     line->Union(line_list[i], *temp);
     *line = *temp;
-    delete temp;
+    temp->DeleteIfAllowed();
   }
 
    ///////////////////////////////////////////////////////////////
@@ -4493,8 +4493,8 @@ void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo,
 //   delete res;
 
 
-  delete l;
-  delete line;
+  l->DeleteIfAllowed();
+  line->DeleteIfAllowed();
   //////////////////////////////////////////////////////////////////////
   pm->CloseDualGraph(dg);
 
@@ -4618,8 +4618,8 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
         if((b1 && b2) == false) {
             mo->EndBulkLoad();
             genmo->EndBulkLoad();
-            delete mo;
-            delete genmo;
+            mo->DeleteIfAllowed();
+            genmo->DeleteIfAllowed();
             obj_no_rep = 0;
             continue;
         }
@@ -4650,10 +4650,10 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
 //          cout<<"two unreachable bus stops"<<endl;
           mo->EndBulkLoad();
           genmo->EndBulkLoad();
-          delete mo;
-          delete genmo;
+          mo->DeleteIfAllowed();
+          genmo->DeleteIfAllowed();
           delete bn_nav;
-          delete res_path;
+          res_path->DeleteIfAllowed();
           obj_no_rep = 0;
           continue;
         }
@@ -4681,10 +4681,10 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
         if(periods.Contains(temp_periods) == false){
             mo->EndBulkLoad();
             genmo->EndBulkLoad();
-            delete mo;
-            delete genmo;
+            mo->DeleteIfAllowed();
+            genmo->DeleteIfAllowed();
             delete bn_nav;
-            delete res_path;
+            res_path->DeleteIfAllowed();
             obj_no_rep = 0;
             continue;
         }
@@ -4729,10 +4729,10 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
         trip1_list.push_back(*genmo);
         trip2_list.push_back(*mo);
 
-        delete res_path;
+        res_path->DeleteIfAllowed();
 
-        delete mo;
-        delete genmo;
+        mo->DeleteIfAllowed();
+        genmo->DeleteIfAllowed();
 
         //////////////////////////////////////////////////////////////////
         ////////////reduce the time cost of generating moving object//////
@@ -4902,7 +4902,7 @@ void GenMObject::ConnectStartStop(DualGraph* dg, VisualGraph* vg,
 
   path->Union(*path2, *res_path);
 
-  delete path2;
+  path2->DeleteIfAllowed();
 
 
   ///////////////////////////////////////////////////////////////////////
@@ -4910,7 +4910,7 @@ void GenMObject::ConnectStartStop(DualGraph* dg, VisualGraph* vg,
   ///////////////////////////////////////////////////////////////////////
   ShortMovement(genmo, mo, start_time, &ps_list1[0], &ps_list1[1]);
 
-  delete path;
+  path->DeleteIfAllowed();
   delete wsp;
 }
 
@@ -5053,7 +5053,7 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
 
         if(l1->IsDefined() && l1->Length() > 0.01)
           GenerateWalkMovement(dg, l1, new_start_loc, genmo, mo, start_time);
-        delete l1;
+        l1->DeleteIfAllowed();
 
         ShortMovement(genmo, mo, start_time, &new_end_loc, end_loc);
         /////////////////////////////////
@@ -5262,9 +5262,9 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
     Line* temp_l = new Line(0);
     l->Union(*res_path, *temp_l);
     *res_path = *temp_l;
-    delete temp_l;
+    temp_l->DeleteIfAllowed();
 
-    delete l;
+    l->DeleteIfAllowed();
 
 
     genmo->EndBulkLoad();
@@ -5311,7 +5311,7 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
     for(unsigned int i = 0;i < ugloc_list.size();i++)
       genmo_input->Add(ugloc_list[i]);
    ////////////////////////////////////////////////////
-   delete genmo; 
+   genmo->DeleteIfAllowed(); 
 
    return last_walk_id;
 }
@@ -5664,13 +5664,13 @@ void GenMObject::ConnectEndStop(DualGraph* dg, VisualGraph* vg,
   Line* temp_l = new Line(0);
   path12->Union(*res_path, *temp_l);
   *res_path = *temp_l;
-  delete temp_l;
-  delete path12;
+  temp_l->DeleteIfAllowed();
+  path12->DeleteIfAllowed();
 
-  delete path2; 
+  path2->DeleteIfAllowed(); 
 
   //////////////////////////////////////////////////////////////////////////
-  delete path;
+  path->DeleteIfAllowed();
   delete wsp;
 }
 
@@ -5847,7 +5847,7 @@ void GenMObject::GenerateGenMO4(Space* sp,
 
          ID_Length id_len(path_tid1, path_tid2, path->Length());
          id_len_list.push_back(id_len);
-         delete path;
+         path->DeleteIfAllowed();
       }
     }
     sort(id_len_list.begin(), id_len_list.end());
@@ -5917,7 +5917,7 @@ void GenMObject::GenerateGenMO4(Space* sp,
     if(path->Length() > min_path)
       GenerateWalkMovement(dg, path, *ep1_2, genmo, mo, start_time);
 
-    delete path; 
+    path->DeleteIfAllowed(); 
 
     //////////////////path2: from pavement to building/////////////////////////
     GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time);
@@ -5959,8 +5959,8 @@ void GenMObject::GenerateGenMO4(Space* sp,
     build_type_list1.push_back(build_id1_list[count].type); 
     build_type_list2.push_back(build_id2_list[count].type); 
 
-    delete mo; 
-    delete genmo; 
+    mo->DeleteIfAllowed(); 
+    genmo->DeleteIfAllowed(); 
     ///////////////////////////////////////////////////////////////////////
     count++;
 
@@ -6094,7 +6094,7 @@ void GenMObject::GenerateIndoorMovementToExit(IndoorInfra* i_infra,
     mp3d->StartBulkLoad();
     indoor_mo_list1.push_back(*mp3d);
     mp3d->EndBulkLoad();
-    delete mp3d;
+    mp3d->DeleteIfAllowed();
   }else{
 //    cout<<"load indoor graph (to exit)"<<endl;
     assert(maxrect->igraph_pointer[build_type] != NULL);
@@ -6202,7 +6202,7 @@ void GenMObject::GenerateIndoorMovementToExitExt(IndoorInfra* i_infra,
     mp3d->StartBulkLoad();
     indoor_mo_list1.push_back(*mp3d);
     mp3d->EndBulkLoad();
-    delete mp3d;
+    mp3d->DeleteIfAllowed();
   }else{
 //    cout<<"load indoor graph (to exit)"<<endl;
     assert(maxrect->igraph_pointer[build_type] != NULL);
@@ -6279,7 +6279,7 @@ void GenMObject::GenerateIndoorMovementToExitExt(IndoorInfra* i_infra,
 
     MapMP3DToMP(mo, mp3d, build_rect, build_box2);
     indoor_mo_list3.push_back(*mp3d);
-    delete mp3d;
+    mp3d->DeleteIfAllowed();
 
     delete indoor_nav;
   }
@@ -6314,7 +6314,7 @@ void GenMObject::GenerateIndoorMovementFromExit(IndoorInfra* i_infra,
   if(build_type == BUILD_HOUSE){///not necessary to load the indoor graph
     MPoint3D* mp3d = new MPoint3D(0); 
     indoor_mo_list2.push_back(*mp3d);
-    delete mp3d;
+    mp3d->DeleteIfAllowed();
   }else{
 //    int t_span = 4*60; //4 hours
     int t_span = para*60; //4 hours 
@@ -6437,7 +6437,7 @@ void GenMObject::GenerateIndoorMovementFromExit(IndoorInfra* i_infra,
    //////////////////project indoor movement into free space/////////////////
     MapMP3DToMP(mo, mp3d, build_rect, build_box2);
     indoor_mo_list2.push_back(*mp3d);
-    delete mp3d;
+    mp3d->DeleteIfAllowed();
 
     delete indoor_nav;
   }
@@ -6784,7 +6784,7 @@ void GenMObject::GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
     GLine* gl = new GLine(0);
     road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
     ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, speed_rel ,mode);
-    delete gl;
+    gl->DeleteIfAllowed();
     /////////////////////////////////////////////////////////////////////
     //////////////////6 end network location to pavement//////////////////
     ////////////////////////////////////////////////////////////////////
@@ -6831,8 +6831,8 @@ void GenMObject::GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
 //    build_type_list1.push_back(build_id1_list[count].type); 
 //    build_type_list2.push_back(build_id2_list[count].type); 
 
-    delete mo; 
-    delete genmo; 
+    mo->DeleteIfAllowed(); 
+    genmo->DeleteIfAllowed(); 
 
 
     path_tuple1->DeleteIfAllowed();
@@ -7380,7 +7380,7 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
    ////////////////////////////////////////////////////////////////////
    if(path_id_list1.size() == 0 || path_id_list2.size() == 0){
       count++;
-      delete peri;
+      peri->DeleteIfAllowed();
       continue;
    }
 
@@ -7432,7 +7432,7 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
       path_tuple1->DeleteIfAllowed();
       path_tuple2->DeleteIfAllowed();
       count++;
-      delete peri;
+      peri->DeleteIfAllowed();
       continue;
     }
 
@@ -7445,7 +7445,7 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
       path_tuple1->DeleteIfAllowed();
       path_tuple2->DeleteIfAllowed();
       count++;
-      delete peri;
+      peri->DeleteIfAllowed();
       continue;
     }
 
@@ -7514,12 +7514,12 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
         mo->EndBulkLoad();
         genmo->EndBulkLoad();
 
-        delete mo;
-        delete genmo;
+        mo->DeleteIfAllowed();
+        genmo->DeleteIfAllowed();
         delete bn_nav;
-        delete res_path;
-        delete mp3d;
-        delete peri;
+        res_path->DeleteIfAllowed();
+        mp3d->DeleteIfAllowed();
+        peri->DeleteIfAllowed();
         path_tuple1->DeleteIfAllowed();
         path_tuple2->DeleteIfAllowed();
         count++;
@@ -7528,7 +7528,7 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
 
     //////////put the first part of movement inside a building/////////////////
     indoor_mo_list1.push_back(*mp3d);
-    delete mp3d; 
+    mp3d->DeleteIfAllowed(); 
 
 
 //    line_list1.push_back(*path1);
@@ -7545,11 +7545,11 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
             mo->EndBulkLoad(); 
             genmo->EndBulkLoad();
 
-            delete mo;
-            delete genmo;
+            mo->DeleteIfAllowed();
+            genmo->DeleteIfAllowed();
             delete bn_nav;
-            delete res_path;
-            delete peri;
+            res_path->DeleteIfAllowed();
+            peri->DeleteIfAllowed();
             path_tuple1->DeleteIfAllowed();
             path_tuple2->DeleteIfAllowed();
             count++;
@@ -7678,8 +7678,8 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
             trip1_list.push_back(*genmo_tmp);
             trip2_list.push_back(*mo_tmp);
 
-            delete genmo_tmp;
-            delete mo_tmp;
+            genmo_tmp->DeleteIfAllowed();
+            mo_tmp->DeleteIfAllowed();
 
      }else{
 
@@ -7690,10 +7690,10 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
 
 //    path_list.push_back(*res_path);
 
-     delete res_path;
-     delete genmo;
-     delete mo;
-     delete peri;
+     res_path->DeleteIfAllowed();
+     genmo->DeleteIfAllowed();
+     mo->DeleteIfAllowed();
+     peri->DeleteIfAllowed();
 
     ///////////////////////////////////////////////////////////////////////
     path_tuple1->DeleteIfAllowed();
@@ -7947,7 +7947,7 @@ void GenMObject::GenerateGenMO7(Space* sp, Periods* peri, int mo_no,
 /*          cout<<" loc1 "<<pave_loc1<<" ms1 "<<ms1<<endl;
           cout<<" loc2 "<<pave_loc2<<" ms2 "<<ms2<<endl;
           cout<<"more than one hour"<<endl;*/
-          delete res_path;
+          res_path->DeleteIfAllowed();
           continue;
        }
 
@@ -7964,10 +7964,10 @@ void GenMObject::GenerateGenMO7(Space* sp, Periods* peri, int mo_no,
 //          cout<<"two unreachable metro stops"<<endl;
           mo->EndBulkLoad();
           genmo->EndBulkLoad();
-          delete mo;
-          delete genmo;
+          mo->DeleteIfAllowed();
+          genmo->DeleteIfAllowed();
           delete mn_nav;
-          delete res_path;
+          res_path->DeleteIfAllowed();
           continue;
         }
 
@@ -7996,9 +7996,9 @@ void GenMObject::GenerateGenMO7(Space* sp, Periods* peri, int mo_no,
 
 //        line_list1.push_back(*res_path);
 
-        delete mo;
-        delete genmo;
-        delete res_path;
+        mo->DeleteIfAllowed();
+        genmo->DeleteIfAllowed();
+        res_path->DeleteIfAllowed();
 
         cout<<count<<" generic moving object "<<endl;
 
@@ -8388,7 +8388,7 @@ void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep,
     for(unsigned int i = 0;i < ugloc_list.size();i++)
       genmo_input->Add(ugloc_list[i]);
    ////////////////////////////////////////////////////
-   delete genmo; 
+   genmo->DeleteIfAllowed(); 
 }
 
 /*
@@ -8591,7 +8591,7 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
    ////////////////////////////////////////////////////////////////////
    if(path_id_list1.size() == 0 || path_id_list2.size() == 0) {
       count++;
-      delete peri;
+      peri->DeleteIfAllowed();
       continue;
     }
    //////////////////////////////////////////////////////////////////////
@@ -8648,7 +8648,7 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
       path_tuple1->DeleteIfAllowed();
       path_tuple2->DeleteIfAllowed();
       count++;
-      delete peri; 
+      peri->DeleteIfAllowed(); 
       continue;
     }
 
@@ -8662,7 +8662,7 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
       path_tuple1->DeleteIfAllowed();
       path_tuple2->DeleteIfAllowed();
       count++;
-      delete peri; 
+      peri->DeleteIfAllowed(); 
       continue;
     }
 
@@ -8717,12 +8717,12 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
     double delta_minute = delta_time*86400.0/60.0;
 
     if(delta_minute > 60.0){ // more than one hour, ignore such a place
-          delete res_path;
-          delete mp3d;
+          res_path->DeleteIfAllowed();
+          mp3d->DeleteIfAllowed();
           mo->EndBulkLoad();
           genmo->EndBulkLoad();
-          delete mo;
-          delete genmo;
+          mo->DeleteIfAllowed();
+          genmo->DeleteIfAllowed();
           path_tuple1->DeleteIfAllowed();
           path_tuple2->DeleteIfAllowed();
           continue;
@@ -8741,12 +8741,12 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
 //          cout<<"two unreachable metro stops"<<endl;
         mo->EndBulkLoad();
         genmo->EndBulkLoad();
-        delete mo;
-        delete genmo;
+        mo->DeleteIfAllowed();
+        genmo->DeleteIfAllowed();
         delete mn_nav;
-        delete res_path;
+        res_path->DeleteIfAllowed();
 
-        delete mp3d;
+        mp3d->DeleteIfAllowed();
         path_tuple1->DeleteIfAllowed();
         path_tuple2->DeleteIfAllowed();
         count++;
@@ -8773,12 +8773,12 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
             mo->EndBulkLoad();
             genmo->EndBulkLoad();
 
-            delete mo;
-            delete genmo;
+            mo->DeleteIfAllowed();
+            genmo->DeleteIfAllowed();
             delete mn_nav;
-            delete res_path;
-            delete peri;
-            delete mp3d;
+            res_path->DeleteIfAllowed();
+            peri->DeleteIfAllowed();
+            mp3d->DeleteIfAllowed();
             path_tuple1->DeleteIfAllowed();
             path_tuple2->DeleteIfAllowed();
             count++;
@@ -8841,7 +8841,7 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
     }
     //////////put the first part of movement inside a building//////////////
     indoor_mo_list1.push_back(*mp3d);
-    delete mp3d; 
+    mp3d->DeleteIfAllowed(); 
 
 
     ///////////////////////////////////////////////////////////////////////
@@ -8912,8 +8912,8 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
             trip1_list.push_back(*genmo_tmp);
             trip2_list.push_back(*mo_tmp);
 
-            delete genmo_tmp;
-            delete mo_tmp;
+            genmo_tmp->DeleteIfAllowed();
+            mo_tmp->DeleteIfAllowed();
 
      }else{
         trip1_list.push_back(*genmo);
@@ -8921,10 +8921,10 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
      }
 //     path_list.push_back(*res_path);
 
-     delete genmo;
-     delete mo;
+     genmo->DeleteIfAllowed();
+     mo->DeleteIfAllowed();
 
-     delete res_path;
+     res_path->DeleteIfAllowed();
 
 //      cout<<"building 1 "<<GetBuildingStr(build_id1_list[index1].type)
 //         <<" building 2 "<<GetBuildingStr(build_id2_list[index2].type)<<endl;
@@ -9327,10 +9327,10 @@ void GenMObject::GenMOBenchRBO(Space* sp, Periods* peri, int mo_no,
     trip1_list.push_back(*genmo);
     trip2_list.push_back(*mo);
     
-    delete mo; 
-    delete genmo; 
+    mo->DeleteIfAllowed(); 
+    genmo->DeleteIfAllowed(); 
 
-    delete path;
+    path->DeleteIfAllowed();
 
     cout<<count<<" generic moving object"<<endl;
     count++;
@@ -9449,8 +9449,8 @@ void GenMObject::GenMOBenchIndoor(Space* sp, Periods* peri, int mo_no,
     trip1_list.push_back(*genmo);
     trip2_list.push_back(*mo);
 
-    delete mo;
-    delete genmo;
+    mo->DeleteIfAllowed();
+    genmo->DeleteIfAllowed();
 
     path_tuple->DeleteIfAllowed();
     cout<<count<<" generic moving objects "<<endl;
@@ -10030,7 +10030,7 @@ void GenMObject::GenerateGenMOBench3(Space* sp, Periods* peri, int mo_no,
     GLine* gl = new GLine(0);
     road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
     ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, speed_rel, "Car");
-    delete gl;
+    gl->DeleteIfAllowed();
 
     /////////////////////////////////////////////////////////////////////
     //////////////////6 end network location to pavement//////////////////
@@ -10069,8 +10069,8 @@ void GenMObject::GenerateGenMOBench3(Space* sp, Periods* peri, int mo_no,
 //    loc_list1.push_back(p_loc_list[count_tmp]);
 //    rect_list1.push_back(nn_build_list[count_tmp].rect);
 
-    delete mo; 
-    delete genmo; 
+    mo->DeleteIfAllowed(); 
+    genmo->DeleteIfAllowed(); 
 
     path_tuple->DeleteIfAllowed();   
    //////////////////////////////////////////////////////////////////////
@@ -10489,7 +10489,7 @@ void GenMObject::GenerateBench4_Taxi(Space* sp, IndoorInfra* i_infra,
         if(w_path->IsDefined() && w_path->Length() > min_path)
            GenerateWalkMovement(dg, w_path, p1, genmo, mo, start_time);
 
-        delete w_path; 
+        w_path->DeleteIfAllowed(); 
 
         delete wsp;
 
@@ -10503,7 +10503,7 @@ void GenMObject::GenerateBench4_Taxi(Space* sp, IndoorInfra* i_infra,
     GLine* gl = new GLine(0);
     road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
     ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, speed_rel, "Taxi");
-    delete gl;
+    gl->DeleteIfAllowed();
 
     /////////////////////////////////////////////////////////////////////
     //////////////////6 end network location to pavement//////////////////
@@ -10545,8 +10545,8 @@ void GenMObject::GenerateBench4_Taxi(Space* sp, IndoorInfra* i_infra,
 //    loc_list1.push_back(p_loc_list[count_tmp]);
 //    rect_list1.push_back(nn_build_list[count_tmp].rect);
 
-    delete mo; 
-    delete genmo; 
+    mo->DeleteIfAllowed(); 
+    genmo->DeleteIfAllowed(); 
 
     path_tuple->DeleteIfAllowed(); 
 
@@ -10711,7 +10711,7 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
    ////////////////////////////////////////////////////////////////////
    if(path_id_list.size() == 0){
      count_tmp++;
-     delete peri;
+     peri->DeleteIfAllowed();
      continue;
    }
 
@@ -10760,7 +10760,7 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
         if(w_path->IsDefined() && w_path->Length() > min_path)
            GenerateWalkMovement(dg, w_path, p1, genmo, mo, start_time);
 
-        delete w_path; 
+        w_path->DeleteIfAllowed(); 
 
         delete wsp;
 
@@ -10785,7 +10785,7 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
     if((b1 && b2) == false){
       path_tuple->DeleteIfAllowed();
       count_tmp++;
-      delete peri;
+      peri->DeleteIfAllowed();
       continue;
     }
 
@@ -10796,7 +10796,7 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
     if(start_p.Distance(end_p) < min_path){
       path_tuple->DeleteIfAllowed();
       count_tmp++;
-      delete peri;
+      peri->DeleteIfAllowed();
       continue;
     }
 
@@ -10829,11 +10829,11 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
         mo->EndBulkLoad();
         genmo->EndBulkLoad();
 
-        delete mo;
-        delete genmo;
+        mo->DeleteIfAllowed();
+        genmo->DeleteIfAllowed();
         delete bn_nav;
-        delete res_path;
-        delete peri;
+        res_path->DeleteIfAllowed();
+        peri->DeleteIfAllowed();
         path_tuple->DeleteIfAllowed();
         count_tmp++;
         continue;
@@ -10845,11 +10845,11 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
             mo->EndBulkLoad();
             genmo->EndBulkLoad();
 
-            delete mo;
-            delete genmo;
+            mo->DeleteIfAllowed();
+            genmo->DeleteIfAllowed();
             delete bn_nav;
-            delete res_path;
-            delete peri;
+            res_path->DeleteIfAllowed();
+            peri->DeleteIfAllowed();
             path_tuple->DeleteIfAllowed();
             count++;
             continue;
@@ -10878,7 +10878,7 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
 
      ////////////////////////////////////////////////////////////////////
 
-    delete res_path; 
+    res_path->DeleteIfAllowed(); 
 
     }
 
@@ -10969,8 +10969,8 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
             trip1_list.push_back(*genmo_tmp);
             trip2_list.push_back(*mo_tmp);
 
-            delete genmo_tmp;
-            delete mo_tmp;
+            genmo_tmp->DeleteIfAllowed();
+            mo_tmp->DeleteIfAllowed();
 
      }else{
 
@@ -10978,11 +10978,11 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
       trip2_list.push_back(*mo);
      }
 
-    delete mo; 
-    delete genmo; 
+    mo->DeleteIfAllowed(); 
+    genmo->DeleteIfAllowed(); 
 
     path_tuple->DeleteIfAllowed();
-    delete peri;
+    peri->DeleteIfAllowed();
     //////////////////////////////////////////////////////////////////
     ////////////reduce the time cost of generating moving object//////
     ////////////if two bus stops are reachable, it generates the second////
@@ -11206,8 +11206,8 @@ void GenMObject::GenerateGenMO_IWC(Space* sp, MaxRect* maxrect,
     if(res1 == false){
         mo->EndBulkLoad();
         genmo->EndBulkLoad();
-        delete mo;
-        delete genmo;
+        mo->DeleteIfAllowed();
+        genmo->DeleteIfAllowed();
         count++;
         continue;
     }
@@ -11221,8 +11221,8 @@ void GenMObject::GenerateGenMO_IWC(Space* sp, MaxRect* maxrect,
 //    cout<<groom_oid<<endl;
     if(groom_oid == 0){
       cout<<"groom oid cannot be zero"<<endl;
-      delete mo;
-      delete genmo;
+      mo->DeleteIfAllowed();
+      genmo->DeleteIfAllowed();
       break;
     }
     Loc loc(last_unit.gloc2.GetLoc().loc1, last_unit.gloc2.GetLoc().loc2);
@@ -11238,8 +11238,8 @@ void GenMObject::GenerateGenMO_IWC(Space* sp, MaxRect* maxrect,
     if(res2 == false){
         mo->EndBulkLoad();
         genmo->EndBulkLoad();
-        delete mo;
-        delete genmo;
+        mo->DeleteIfAllowed();
+        genmo->DeleteIfAllowed();
         count++;
         continue;
     }
@@ -11251,8 +11251,8 @@ void GenMObject::GenerateGenMO_IWC(Space* sp, MaxRect* maxrect,
 //    cout<<groom_oid<<endl;
     if(groom_oid == 0){
       cout<<"groom oid cannot be zero"<<endl;
-      delete mo;
-      delete genmo;
+      mo->DeleteIfAllowed();
+      genmo->DeleteIfAllowed();
       break;
     }
     loc.loc1 = last_unit.gloc2.GetLoc().loc1;
@@ -11269,8 +11269,8 @@ void GenMObject::GenerateGenMO_IWC(Space* sp, MaxRect* maxrect,
     if(res3 == false){
         mo->EndBulkLoad();
         genmo->EndBulkLoad();
-        delete mo;
-        delete genmo;
+        mo->DeleteIfAllowed();
+        genmo->DeleteIfAllowed();
         count++;
         continue;
     }
@@ -11282,8 +11282,8 @@ void GenMObject::GenerateGenMO_IWC(Space* sp, MaxRect* maxrect,
 //    cout<<groom_oid<<endl;
     if(groom_oid == 0){
       cout<<"groom oid cannot be zero"<<endl;
-      delete mo;
-      delete genmo;
+      mo->DeleteIfAllowed();
+      genmo->DeleteIfAllowed();
       break;
     }
     loc.loc1 = last_unit.gloc2.GetLoc().loc1;
@@ -11300,8 +11300,8 @@ void GenMObject::GenerateGenMO_IWC(Space* sp, MaxRect* maxrect,
     if(res4 == false){
         mo->EndBulkLoad();
         genmo->EndBulkLoad();
-        delete mo;
-        delete genmo;
+        mo->DeleteIfAllowed();
+        genmo->DeleteIfAllowed();
         count++;
         continue;
     }
@@ -11314,8 +11314,8 @@ void GenMObject::GenerateGenMO_IWC(Space* sp, MaxRect* maxrect,
     trip1_list.push_back(*genmo);
     trip2_list.push_back(*mo);
 
-    delete mo; 
-    delete genmo; 
+    mo->DeleteIfAllowed(); 
+    genmo->DeleteIfAllowed(); 
 
 
    //////////////////////////////////////////////////////////////////////
@@ -11484,7 +11484,7 @@ bool GenMObject::SubTrip_C1(Space* sp, IndoorInfra* i_infra, MaxRect* maxrect,
     GLine* gl = new GLine(0);
     road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
     ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, speed_rel, "Car");
-    delete gl;
+    gl->DeleteIfAllowed();
     /////////////////////////////////////////////////////////////////////
     //////////////////6 end network location to pavement//////////////////
     ////////////////////////////////////////////////////////////////////
@@ -11680,7 +11680,7 @@ bool GenMObject::SubTrip_C2(Space* sp, IndoorInfra* i_infra, MaxRect* maxrect,
     GLine* gl = new GLine(0);
     road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
     ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, speed_rel, "Car");
-    delete gl;
+    gl->DeleteIfAllowed();
     /////////////////////////////////////////////////////////////////////
     //////////////////6 end network location to pavement//////////////////
     ////////////////////////////////////////////////////////////////////
@@ -12087,10 +12087,10 @@ void Navigation::Navigation1(Space* sp, Relation* rel1, Relation* rel2,
         res_list1.push_back(*genmo2);
         res_list2.push_back(*mo2);
 
-        delete genmo2;
-        delete mo2;
+        genmo2->DeleteIfAllowed();
+        mo2->DeleteIfAllowed();
 
-        delete path;
+        path->DeleteIfAllowed();
         delete wsp; 
         continue;
      }
@@ -12124,10 +12124,10 @@ void Navigation::Navigation1(Space* sp, Relation* rel1, Relation* rel2,
 //          cout<<"two unreachable bus stops"<<endl;
         mo->EndBulkLoad();
         genmo->EndBulkLoad();
-        delete mo;
-        delete genmo;
+        mo->DeleteIfAllowed();
+        genmo->DeleteIfAllowed();
         delete bn_nav;
-        delete res_path;
+        res_path->DeleteIfAllowed();
         delete genobj;
         continue;
     }
@@ -12179,10 +12179,10 @@ void Navigation::Navigation1(Space* sp, Relation* rel1, Relation* rel2,
      res_list2.push_back(*mo);
 
    /////////////////////////////////////////////////////////////////////
-      delete res_path;
+      res_path->DeleteIfAllowed();
       delete genobj; 
-      delete mo;
-      delete genmo;
+      mo->DeleteIfAllowed();
+      genmo->DeleteIfAllowed();
     }
 
   }
@@ -14195,7 +14195,7 @@ void Space::GetLineInRoad(int oid, GenLoc gl1, GenLoc gl2, Line* l, Network* rn)
     *l += hs2;
   }
 
-  delete sub_sl;
+  sub_sl->DeleteIfAllowed();
   route_tuple->DeleteIfAllowed();
 }
 
@@ -14263,7 +14263,7 @@ void Space::GetLineInBusNetwork(int& oid, Line* l, BusNetwork* bn,
   peri->EndBulkLoad();
   MPoint sub_mp(0);
   mp.AtPeriods(*peri, sub_mp);
-  delete peri; 
+  peri->DeleteIfAllowed(); 
 
 //  cout<<sub_mp.GetNoComponents()<<endl; 
 

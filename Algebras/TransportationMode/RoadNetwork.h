@@ -262,7 +262,7 @@ struct RoadNav{
   RoadNav(){count = 0; resulttype = NULL;}
 
 
-  ~RoadNav(){if(resulttype != NULL) delete resulttype;}
+  ~RoadNav(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
 
   void GenerateRoadLoc(network::Network* rn, int no, 
                        std::vector<network::GPoint>& gp_list, 

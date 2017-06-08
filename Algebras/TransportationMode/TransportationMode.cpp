@@ -14428,7 +14428,7 @@ int OpTMCheckSlinemap ( Word* args, Word& result, int message,
   }
   sline->EndBulkLoad();
   *res = *sline;
-  delete sline;
+  sline->DeleteIfAllowed();
 
   count++;
   return 0;
@@ -14711,7 +14711,7 @@ struct DecomposeRegion{
         Region* temp = new Region(0);
 
         result.push_back(*temp);
-        delete temp;
+        temp->DeleteIfAllowed();
         result[i].StartBulkLoad();
     }
     for(int i = 0;i < reg->Size();i++){
@@ -15711,7 +15711,7 @@ struct ZCurve{
       *l += hs;
       l->EndBulkLoad();
       curve.push_back(*l);
-      delete l;
+      l->DeleteIfAllowed();
       t1->DeleteIfAllowed();
       t2->DeleteIfAllowed();
     }

@@ -352,7 +352,7 @@ public:
   {
       Point* p = new Point(true, loc.loc1, loc.loc2);
       Rectangle<2> bbox = p->BoundingBox();
-      delete p;
+      p->DeleteIfAllowed();
       return bbox;
   }
   double Distance(const Rectangle<2>& r,const Geoid* geoid=0)const
@@ -936,7 +936,7 @@ struct GenMObject{
   std::vector<UGenLoc> units_list;
   
   GenMObject(){ count = 0; resulttype = NULL;} 
-  ~GenMObject(){if(resulttype != NULL) delete resulttype;}
+  ~GenMObject(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
   void GetMode(GenMO* mo); 
   void GetTMStr(bool v);
   void GetIdList(GenMO*);
@@ -1321,7 +1321,7 @@ struct Navigation{
   std::vector<temporalalgebra::MPoint> trip_list2;
   
   Navigation(){ count = 0; resulttype = NULL;} 
-  ~Navigation(){if(resulttype != NULL) delete resulttype;}
+  ~Navigation(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
 
   void Navigation1(Space* sp, Relation* rel1, Relation* rel2, 
                    Instant* start_time, Relation* rel3, Relation* rel4, 

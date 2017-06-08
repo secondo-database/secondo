@@ -705,7 +705,7 @@ struct Elevator{
             double max[2] = {0, 1};
             Rectangle<2>* r = new Rectangle<2>(true, min, max);
             el_rect = *r;
-            delete r;
+            r->DeleteIfAllowed();
           }
   Elevator(const Elevator& el):h(el.h), t1(el.t1), t2(el.t2), 
           m_t(el.m_t), w_t(el.w_t), el_rect(el.el_rect){}
@@ -784,7 +784,7 @@ struct IndoorNav{
   {
   }
 
-  ~IndoorNav(){if(resulttype != NULL) delete resulttype;}
+  ~IndoorNav(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
 
   void CreateLine3D(int oid, Line* l, float h);
   void CreateDoor3D();

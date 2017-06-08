@@ -711,7 +711,7 @@ StandardSpatialAttribute<2>(true),reg(0)
   Region* r = (Region*)Attribute::Open(valueRecord,offset,xNumericType);
   reg = *r;
 //  cout<<*r<<endl; 
-  delete r;
+  r->DeleteIfAllowed();
   SetDefined(true);
 }
 
@@ -813,7 +813,7 @@ Word InFloor3D(const ListExpr typeInfo, const ListExpr instance,
 
     Region* cr = (Region*)reg_addr.addr; 
     Floor3D* fl = new Floor3D(height, *cr);
-//    delete cr; 
+    cr->DeleteIfAllowed(); 
     return SetWord(fl);
 
 }
@@ -905,13 +905,13 @@ Door3D::Door3D(SmiRecord& valueRecord, size_t& offset,
     SecondoSystem::GetCatalog()->NumericType(xType);
   Line* l1 = (Line*)Attribute::Open(valueRecord,offset,xNumericType);
   door_pos1 = *l1;
-  delete l1;
+  l1->DeleteIfAllowed();
 
   valueRecord.Read(&oid2, sizeof(unsigned int), offset);
   offset += sizeof(unsigned int);
   Line* l2 = (Line*)Attribute::Open(valueRecord,offset,xNumericType);
   door_pos2 = *l2;
-  delete l2;
+  l2->DeleteIfAllowed();
   
 
   xType = nl->SymbolAtom("mbool");
@@ -1069,7 +1069,7 @@ Word InDoor3D( const ListExpr typeInfo, const ListExpr instance,
     } else {
       correct = false;
       m->Destroy();
-      delete m;
+      m->DeleteIfAllowed();
       return SetWord( Address( 0 ) );
     }
   }
@@ -1124,9 +1124,9 @@ Word InDoor3D( const ListExpr typeInfo, const ListExpr instance,
   ///////////////////////////////////////////////////////////////////////
   Door3D* dr = new Door3D(oid1, oid2,*l1,*l2, *m, dr_type);
 
-  delete l1;
-  delete l2;
-  delete m; 
+  l1->DeleteIfAllowed();
+  l2->DeleteIfAllowed();
+  m->DeleteIfAllowed(); 
   return SetWord(dr);
 
 }
@@ -1380,7 +1380,7 @@ Word MyInRegion(const ListExpr typeInfo, const ListExpr instance,
             }
 
           }
-          delete cyclepoints;
+          cyclepoints->DeleteIfAllowed();
           
 
           edno++;
@@ -1571,7 +1571,7 @@ void GRoom::GetRegion(Region& r)
     Region* res = new Region(0);
     r.Union(temp_reg, *res);
     r = *res;
-    delete res;
+    res->DeleteIfAllowed();
   }
 }
 
@@ -1984,7 +1984,7 @@ void IndoorNav::CreateLine3D(int oid, Line* l, float h)
 
       groom_oid_list.push_back(oid);
       path_list.push_back(*l3d); 
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
 
   }
 
@@ -2317,12 +2317,12 @@ void IndoorNav::CreateResDoor(int id, int oid, int tid, vector<TupleId> id_list,
     door_heights.push_back(bbox3d_1->MinD(2));
 
 
-    delete l1;
-    delete l2;
-    delete l3; 
+    l1->DeleteIfAllowed();
+    l2->DeleteIfAllowed();
+    l3->DeleteIfAllowed(); 
     delete door_obj1; 
-    delete l3d_1; 
-    delete mb1; 
+    l3d_1->DeleteIfAllowed(); 
+    mb1->DeleteIfAllowed(); 
 
     /////////////////////////////////////////////////////////////
     box_tuple1->DeleteIfAllowed();
@@ -2498,12 +2498,12 @@ void IndoorNav::CreateEntranceDoor(int id, int oid, int tid,
     door_heights.push_back(bbox3d_1->MinD(2));
 
 
-    delete l1;
-    delete l2;
-    delete l3; 
+    l1->DeleteIfAllowed();
+    l2->DeleteIfAllowed();
+    l3->DeleteIfAllowed(); 
     delete door_obj1; 
-    delete l3d_1; 
-    delete mb1; 
+    l3d_1->DeleteIfAllowed(); 
+    mb1->DeleteIfAllowed(); 
 
     /////////////////////////////////////////////////////////////
     box_tuple1->DeleteIfAllowed();
@@ -2584,14 +2584,14 @@ void IndoorNav::CreateDoor2()
     door_heights.push_back(h2);
 
 
-    delete l1;
-    delete l2; 
-    delete l3;
-    delete l4; 
-    delete l3d1;
-    delete l3d2; 
-    delete mb1;
-    delete mb2; 
+    l1->DeleteIfAllowed();
+    l2->DeleteIfAllowed(); 
+    l3->DeleteIfAllowed();
+    l4->DeleteIfAllowed(); 
+    l3d1->DeleteIfAllowed();
+    l3d2->DeleteIfAllowed(); 
+    mb1->DeleteIfAllowed();
+    mb2->DeleteIfAllowed(); 
     delete door_obj1; 
     delete door_obj2; 
     groom_tuple->DeleteIfAllowed();
@@ -2649,7 +2649,7 @@ float IndoorNav::GetVirtualDoor1(GRoom* groom, Line* l1, Line* l2, Line3D* l3d)
   l2->Get(0, hs);
 
 
-  delete boundary;
+  boundary->DeleteIfAllowed();
 
 
   Rectangle<2> groom_box = groom->BoundingBox();
@@ -2721,7 +2721,7 @@ float IndoorNav::GetVirtualDoor2(GRoom* groom, Line* l1, Line* l2, Line3D* l3d)
   l2->Get(0, hs);
 
 
-  delete boundary;
+  boundary->DeleteIfAllowed();
 
 
   Rectangle<2> groom_box = groom->BoundingBox();
@@ -2973,7 +2973,7 @@ void IndoorNav::BuildPathEL(int groom_oid, GRoom* groom, vector<int> tid_list,
       door_tid_list1.push_back(tid_list[i]);
       door_tid_list2.push_back(tid_list[j]);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
 
 //      cout<<"groom_oid "<<groom_oid<<"tid1 "<<tid_list[i]
 //          <<" tid2 "<<tid_list[j]<<endl; 
@@ -3090,7 +3090,7 @@ void IndoorNav::ST_ConnectOneFloor(int groom_oid, GRoom* groom, Line* l1,
   door_tid_list2.push_back(tid2);
   path_list.push_back(*l3d);
   
-  delete l3d; 
+  l3d->DeleteIfAllowed(); 
 }
 
 /*
@@ -3128,20 +3128,20 @@ void IndoorNav::FindPathInRegion(GRoom* groom, float h,
 //  cout<<"l "<<*l<<endl; 
 
   if(l->Size() == 0) {
-    delete r;
-    delete l;
+    r->DeleteIfAllowed();
+    l->DeleteIfAllowed();
     return;
   }
 
   SimpleLine* sl = new SimpleLine(0);
   sl->fromLine(*l); 
-  delete l; 
+  l->DeleteIfAllowed(); 
   SpacePartition* sp = new SpacePartition();
 
   sp->ReorderLine(sl, mhs);
   delete sp; 
-  delete sl;
-  delete r; 
+  sl->DeleteIfAllowed();
+  r->DeleteIfAllowed(); 
 
   
   
@@ -3217,10 +3217,10 @@ void IndoorNav::ConstructMiddlePath(GRoom* groom,
     il1->Get(0, hs1);
     il2->Get(0, hs2); 
 
-    delete il1;
-    delete il2; 
-    delete l1;
-    delete l2; 
+    il1->DeleteIfAllowed();
+    il2->DeleteIfAllowed(); 
+    l1->DeleteIfAllowed();
+    l2->DeleteIfAllowed(); 
 
     
     double x1 = (hs1.GetLeftPoint().GetX() + hs1.GetRightPoint().GetX())/2;
@@ -3326,8 +3326,8 @@ void IndoorNav::ConstructMiddlePath2(GRoom* groom,
     assert(il1->Size() == 2);
     HalfSegment hs1;
     il1->Get(0, hs1);
-    delete il1;
-    delete l1;
+    il1->DeleteIfAllowed();
+    l1->DeleteIfAllowed();
 
     double x = (hs1.GetLeftPoint().GetX() + hs1.GetRightPoint().GetX())/2;
     double y = (hs1.GetLeftPoint().GetY() + hs1.GetRightPoint().GetY())/2;
@@ -3732,7 +3732,7 @@ void IndoorNav::ConnectComplexRegion(int groom_oid, Line* l1, Line* l2,
 
 
     if(sp_path->Size() == 0){
-      delete sp_path;
+      sp_path->DeleteIfAllowed();
       return;
     }
 
@@ -3743,8 +3743,8 @@ void IndoorNav::ConnectComplexRegion(int groom_oid, Line* l1, Line* l2,
     SpacePartition* sp = new SpacePartition();
     sp->ReorderLine(sl, mhs);
     delete sp; 
-    delete sl;
-    delete sp_path;
+    sl->DeleteIfAllowed();
+    sp_path->DeleteIfAllowed();
 
     if(mhs[0].from.Distance(p1) < dist_delta && 
          mhs[mhs.size() - 1].to.Distance(p2) < dist_delta){
@@ -3791,7 +3791,7 @@ void IndoorNav::ConnectComplexRegion(int groom_oid, Line* l1, Line* l2,
     door_tid_list2.push_back(tid2);
     path_list.push_back(*l3d);
   
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
 
 }
 /*
@@ -3829,7 +3829,7 @@ void IndoorNav::CreateAdjDoor2(R_Tree<3,TupleId>* rtree)
       door_tid_list2.push_back(id_list[j]);
       Line3D* l3d = new Line3D(0); 
       path_list.push_back(*l3d); 
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
     }
 
 
@@ -3931,7 +3931,7 @@ void ShortestPath_InRegion(Region* reg, Point* s, Point* d, Line* pResult)
     delete paid; 
     visit_flag.push_back(true);
   }
-  delete ps; 
+  ps->DeleteIfAllowed(); 
   ////////////////////collec all segments////////////////////////////////////
   vector<HalfSegment> seg_list; 
   for(int i = 0;i < reg->Size();i++){
@@ -4191,7 +4191,7 @@ void GetBoundaryPoints(Region* reg, vector<Point>& ps, unsigned int i)
     for(unsigned int j = 0;j < mhs.size();j++)
        ps.push_back(mhs[j].from);
     delete sp; 
-    delete sl; 
+    sl->DeleteIfAllowed(); 
     
     
     CompTriangle* ct = new CompTriangle();
@@ -5300,7 +5300,7 @@ void IndoorNav::GenerateIP1(int num)
         i++;
       }
 
-    delete reg; 
+    reg->DeleteIfAllowed(); 
     room_tuple->DeleteIfAllowed(); 
   }
 
@@ -5377,7 +5377,7 @@ void IndoorNav::GenerateIP2(int num)
         }
       }
 
-    delete reg; 
+    reg->DeleteIfAllowed(); 
     room_tuple->DeleteIfAllowed(); 
 
   }
@@ -5424,7 +5424,7 @@ void IndoorNav::GenerateIP3(int num)
     int complex_reg = ct->ComplexRegion(); 
     delete ct; 
     if(complex_reg == 1){
-      delete reg;
+      reg->DeleteIfAllowed();
       room_tuple->DeleteIfAllowed();
       continue; 
     }
@@ -5470,7 +5470,7 @@ void IndoorNav::GenerateIP3(int num)
         i++;
       }
 
-    delete reg; 
+    reg->DeleteIfAllowed(); 
     room_tuple->DeleteIfAllowed(); 
   }
 
@@ -5678,7 +5678,7 @@ void IndoorNav::GenerateMO1(IndoorGraph* ig, BTree* btree,
       ///////////////////////////////////////////////////////////////////
         if(convert)
           ToGenLoc(mp3d, rtree);
-        delete mp3d; 
+        mp3d->DeleteIfAllowed(); 
         count++; 
       }
       if(count == num)break; 
@@ -5845,7 +5845,7 @@ void IndoorNav::GenerateMO2_Start(IndoorGraph* ig, BTree* btree,
       ///////////////////////////////////////////////////////////////////
         if(convert)
           ToGenLoc(mp3d, rtree);
-        delete mp3d; 
+        mp3d->DeleteIfAllowed(); 
         count++; 
       }
       if(count == num)break; 
@@ -5964,7 +5964,7 @@ void IndoorNav::GenerateMO2_End(IndoorGraph* ig, BTree* btree,
       ///////////////////////////////////////////////////////////////////
         if(convert)
           ToGenLoc(mp3d, rtree);
-        delete mp3d; 
+        mp3d->DeleteIfAllowed(); 
         count++; 
       }
       if(count == num)break; 
@@ -7058,7 +7058,7 @@ void IndoorNav::GenerateMO1_New(IndoorGraph* ig, BTree* btree,
       ///////////////////////////////////////////////////////////////////
         if(convert)
           ToGenLoc(mp3d, rtree);
-        delete mp3d; 
+        mp3d->DeleteIfAllowed(); 
         count++; 
       }
       if(count == num)break; 
@@ -7634,7 +7634,7 @@ void IndoorNav::GenerateMO2_New_Start(IndoorGraph* ig, BTree* btree,
       ///////////////////////////////////////////////////////////////////
         if(convert)
           ToGenLoc(mp3d, rtree);
-        delete mp3d; 
+        mp3d->DeleteIfAllowed(); 
         count++; 
       }
       if(count == num)break; 
@@ -7751,7 +7751,7 @@ void IndoorNav::GenerateMO2_New_End(IndoorGraph* ig, BTree* btree,
       ///////////////////////////////////////////////////////////////////
         if(convert)
           ToGenLoc(mp3d, rtree);
-        delete mp3d; 
+        mp3d->DeleteIfAllowed(); 
         count++; 
       }
       if(count == num)break; 
@@ -8863,7 +8863,7 @@ void IndoorNav::ToGenLoc(MPoint3D* mp3d, R_Tree<3,TupleId>* rtree)
   }
   genmo->EndBulkLoad(); 
   genmo_list.push_back(*genmo);
-  delete genmo; 
+  genmo->DeleteIfAllowed(); 
 }
 
 
@@ -9237,7 +9237,7 @@ void IndoorNav::ShortestPath_Length_Start(GenLoc* gloc1, GenLoc* gloc2,
     cout<<"the two locations are equal to each other"<<endl;
     Line3D* l3d = new Line3D(0);
     path_list.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
     return; 
   }
 
@@ -9290,7 +9290,7 @@ void IndoorNav::ShortestPath_Length_Start(GenLoc* gloc1, GenLoc* gloc2,
       cout<<"connect start location to doors error"<<endl;
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return;
    }
 //  cout<<start_h1<<" "<<start_h2<<endl;
@@ -9316,7 +9316,7 @@ void IndoorNav::ShortestPath_Length_Start(GenLoc* gloc1, GenLoc* gloc2,
       cout<<"connect end location to doors error"<<endl;
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return;
    }
 
@@ -9380,7 +9380,7 @@ void IndoorNav::ShortestPath_Length_Start(GenLoc* gloc1, GenLoc* gloc2,
 //    cout<<"no path available"<<endl; 
     Line3D* l3d = new Line3D(0);
     path_list.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
   }
   
   
@@ -9399,7 +9399,7 @@ void IndoorNav::ShortestPath_Length_Start2(GenLoc* gloc1, GenLoc* gloc2,
     cout<<"the two locations are equal to each other"<<endl;
     Line3D* l3d = new Line3D(0);
     path_list.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
     return; 
   }
 
@@ -9456,7 +9456,7 @@ void IndoorNav::ShortestPath_Length_Start2(GenLoc* gloc1, GenLoc* gloc2,
       cout<<"connect start location to doors error"<<endl;
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return;
    }
 //  cout<<start_h1<<" "<<start_h2<<endl;
@@ -9473,7 +9473,7 @@ void IndoorNav::ShortestPath_Length_Start2(GenLoc* gloc1, GenLoc* gloc2,
       cout<<"connect end location to doors error"<<endl;
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return;
    }
 
@@ -9531,8 +9531,8 @@ void IndoorNav::ShortestPath_Length_Start2(GenLoc* gloc1, GenLoc* gloc2,
           candidate_path.push_back(*l3d);
           rooms_oid.push_back(*l_room);
 
-          delete l3d;
-          delete l_room;
+          l3d->DeleteIfAllowed();
+          l_room->DeleteIfAllowed();
         }else{
           cout<<"path_id "<<path_oid<<" not found "<<endl;
           cout<<"this should not occur here"<<endl;
@@ -9560,7 +9560,7 @@ void IndoorNav::ShortestPath_Length_Start2(GenLoc* gloc1, GenLoc* gloc2,
     Line3D* l3d = new Line3D(0);
     path_list.push_back(*l3d);
     rooms_id_list.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
   }
 
 }
@@ -9580,7 +9580,7 @@ void IndoorNav::ShortestPath_Length_End(GenLoc* gloc1, GenLoc* gloc2,
     cout<<"the two locations are equal to each other"<<endl;
     Line3D* l3d = new Line3D(0);
     path_list.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
     return; 
   }
   unsigned int groom_oid1 = gloc1->GetOid();
@@ -9630,7 +9630,7 @@ void IndoorNav::ShortestPath_Length_End(GenLoc* gloc1, GenLoc* gloc2,
       cout<<"connect start location to doors error"<<endl;
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return;
    }
 //  cout<<start_h1<<" "<<start_h2<<endl; 
@@ -9657,7 +9657,7 @@ void IndoorNav::ShortestPath_Length_End(GenLoc* gloc1, GenLoc* gloc2,
       cout<<"connect end location to doors error"<<endl;
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return;
    }
    
@@ -9720,7 +9720,7 @@ void IndoorNav::ShortestPath_Length_End(GenLoc* gloc1, GenLoc* gloc2,
 //    cout<<"no path available"<<endl; 
     Line3D* l3d = new Line3D(0);
     path_list.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
   }
   
   
@@ -9741,7 +9741,7 @@ void IndoorNav::ShortestPath_Length_End2(GenLoc* gloc1, GenLoc* gloc2,
     cout<<"the two locations are equal to each other"<<endl;
     Line3D* l3d = new Line3D(0);
     path_list.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
     return; 
   }
   unsigned int groom_oid1 = gloc1->GetOid();
@@ -9799,7 +9799,7 @@ void IndoorNav::ShortestPath_Length_End2(GenLoc* gloc1, GenLoc* gloc2,
       cout<<"connect start location to doors error"<<endl;
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return;
    }
 //  cout<<start_h1<<" "<<start_h2<<endl; 
@@ -9817,7 +9817,7 @@ void IndoorNav::ShortestPath_Length_End2(GenLoc* gloc1, GenLoc* gloc2,
       cout<<"connect end location to doors error"<<endl;
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return;
    }
 
@@ -9894,8 +9894,8 @@ void IndoorNav::ShortestPath_Length_End2(GenLoc* gloc1, GenLoc* gloc2,
          candidate_path.push_back(*l3d);
          rooms_oid.push_back(*l_room);
 
-         delete l3d;
-         delete l_room;
+         l3d->DeleteIfAllowed();
+         l_room->DeleteIfAllowed();
 
 
       }else{
@@ -9926,7 +9926,7 @@ void IndoorNav::ShortestPath_Length_End2(GenLoc* gloc1, GenLoc* gloc2,
     Line3D* l3d = new Line3D(0);
     path_list.push_back(*l3d);
     rooms_id_list.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
   }
 
 }
@@ -9954,7 +9954,7 @@ void IndoorNav::ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2,
     cout<<"the two locations are equal to each other"<<endl;
     Line3D* l3d = new Line3D(0);
     path_list.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
     return; 
   }
   unsigned int groom_oid1 = gloc1->GetOid();
@@ -10015,7 +10015,7 @@ void IndoorNav::ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2,
       cout<<"connect start location to doors error"<<endl;
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return;
    }
 //  cout<<start_h1<<" "<<start_h2<<endl; 
@@ -10041,7 +10041,7 @@ void IndoorNav::ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2,
       cout<<"connect end location to doors error"<<endl;
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return;
    }
 
@@ -10103,7 +10103,7 @@ void IndoorNav::ShortestPath_Length(GenLoc* gloc1, GenLoc* gloc2,
 //    cout<<"no path available"<<endl; 
     Line3D* l3d = new Line3D(0);
     path_list.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
   }
   
   
@@ -10169,7 +10169,7 @@ bool IndoorNav::ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list,
   double y1 = gloc->GetLoc().loc2 + bbox.MinD(1);
   Point p1(true, x1, y1);
   Modify_Point2(p1);// numeric problem, not so many digit after dot
-  delete reg;
+  reg->DeleteIfAllowed();
   
   /////////////////////////////////////////////////////////////////////////
   /////////////////////////get the 2D area/////////////////////////////////
@@ -10222,7 +10222,7 @@ bool IndoorNav::ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list,
           assert(1 <= oid1 && oid1 <= dg->node_rel->GetNoTuples());
       }else{
         cout<<"open dual graph or visual graph error"<<endl; 
-        delete r; 
+        r->DeleteIfAllowed(); 
         groom_tuple->DeleteIfAllowed();
         DeleteSecondoObj(obj_name);
         return false;
@@ -10289,9 +10289,9 @@ bool IndoorNav::ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list,
               *l3d += q;
               l3d->EndBulkLoad();
               candidate_path.push_back(*l3d); 
-              delete l3d; 
+              l3d->DeleteIfAllowed(); 
         }
-        delete sp_path;
+        sp_path->DeleteIfAllowed();
         continue;
      }
      /////////////////////////////////////////////////////////////////////
@@ -10301,8 +10301,8 @@ bool IndoorNav::ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list,
       vector<MyHalfSegment> mhs; 
       sp->ReorderLine(sl, mhs);
       delete sp; 
-      delete sl;
-      delete sp_path;
+      sl->DeleteIfAllowed();
+      sp_path->DeleteIfAllowed();
 
       if(mhs[0].from.Distance(p2) < dist_delta && 
          mhs[mhs.size() - 1].to.Distance(p1) < dist_delta){
@@ -10344,10 +10344,10 @@ bool IndoorNav::ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list,
       l3d->EndBulkLoad();
 
       candidate_path.push_back(*l3d); 
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
 
    }
-  delete r; 
+  r->DeleteIfAllowed(); 
   groom_tuple->DeleteIfAllowed();
   if(complex_reg == 1)DeleteSecondoObj(obj_name); 
   return true; 
@@ -10385,7 +10385,7 @@ bool IndoorNav::ConnectEndLoc2(GenLoc* gloc, Relation* rel,
 
   Line3D* l3d = new Line3D(0);
   candidate_path.push_back(*l3d);
-  delete l3d;
+  l3d->DeleteIfAllowed();
 
   return true; 
 }
@@ -10417,7 +10417,7 @@ void IndoorNav::ComputePath3DST(GRoom* groom, Point loc1, Point loc2, float h1,
         }
         l3d->EndBulkLoad();
         candidate_path.push_back(*l3d);
-        delete l3d; 
+        l3d->DeleteIfAllowed(); 
     }else if(h1 < h2){
 
           vector<Point3D> middle_path;  //from low to high 
@@ -10456,7 +10456,7 @@ void IndoorNav::ComputePath3DST(GRoom* groom, Point loc1, Point loc2, float h1,
 
         l3d->EndBulkLoad();
         candidate_path.push_back(*l3d);
-        delete l3d;
+        l3d->DeleteIfAllowed();
     }else if(h1 > h2){
           vector<Point3D> middle_path;  //from low to high 
           ConstructMiddlePath2(groom, middle_path, h2, h1);
@@ -10497,7 +10497,7 @@ void IndoorNav::ComputePath3DST(GRoom* groom, Point loc1, Point loc2, float h1,
 
       l3d->EndBulkLoad();
       candidate_path.push_back(*l3d);
-      delete l3d;
+      l3d->DeleteIfAllowed();
     }else assert(false);
 
 }
@@ -10515,7 +10515,7 @@ void IndoorNav::ConnectEndLocST(Tuple* groom_tuple, GenLoc* gloc,
   Region* reg = new Region(0);
   groom->GetRegion(*reg); 
   BBox<2> bbox = reg->BoundingBox();
-  delete reg; 
+  reg->DeleteIfAllowed(); 
   
   Point loc2;
   Coord x_cord1 = gloc->GetLoc().loc1 + bbox.MinD(0);
@@ -10618,7 +10618,7 @@ bool IndoorNav::ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list,
   double y1 = gloc->GetLoc().loc2 + bbox.MinD(1);
   Point p1(true, x1, y1);
   Modify_Point2(p1);//numeric problem, we do not need so many number after dot
-  delete reg;
+  reg->DeleteIfAllowed();
 
   /////////////////////////////////////////////////////////////////////////
   /////////////////////////get the 2D area/////////////////////////////////
@@ -10670,7 +10670,7 @@ bool IndoorNav::ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list,
           assert(1 <= oid1 && oid1 <= dg->node_rel->GetNoTuples());
       }else{
         cout<<"open dual graph or visual graph error"<<endl; 
-        delete r; 
+        r->DeleteIfAllowed(); 
         groom_tuple->DeleteIfAllowed();
         DeleteSecondoObj(obj_name);
         return false;
@@ -10735,9 +10735,9 @@ bool IndoorNav::ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list,
             *l3d += q;
             l3d->EndBulkLoad();
             candidate_path.push_back(*l3d); 
-            delete l3d; 
+            l3d->DeleteIfAllowed(); 
         }
-        delete sp_path;
+        sp_path->DeleteIfAllowed();
         continue;
      }
      /////////////////////////////////////////////////////////////////////
@@ -10748,8 +10748,8 @@ bool IndoorNav::ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list,
       sp->ReorderLine(sl, mhs);
       delete sp; 
 
-      delete sl;
-      delete sp_path;
+      sl->DeleteIfAllowed();
+      sp_path->DeleteIfAllowed();
 
 
 //      cout<<mhs[0].from.Distance(p1)<<" "
@@ -10798,10 +10798,10 @@ bool IndoorNav::ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list,
       l3d->EndBulkLoad();
 
       candidate_path.push_back(*l3d); 
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
 
    }
-  delete r; 
+  r->DeleteIfAllowed(); 
   groom_tuple->DeleteIfAllowed();
   if(complex_reg == 1)DeleteSecondoObj(obj_name);
   return true;
@@ -10820,7 +10820,7 @@ void IndoorNav::ConnectStartLocST(Tuple* groom_tuple, GenLoc* gloc,
   Region* reg = new Region(0);
   groom->GetRegion(*reg); 
   BBox<2> bbox = reg->BoundingBox();
-  delete reg; 
+  reg->DeleteIfAllowed(); 
   
   Point loc1;
   Coord x_cord1 = gloc->GetLoc().loc1 + bbox.MinD(0);
@@ -11008,8 +11008,8 @@ bool IndoorNav::IsLocEqual(GenLoc* gloc1, GenLoc* gloc2, Relation* rel)
   float h1 = groom1->GetLowHeight();
   float h2 = groom2->GetLowHeight();
   
-  delete reg1; 
-  delete reg2; 
+  reg1->DeleteIfAllowed(); 
+  reg2->DeleteIfAllowed(); 
   groom_tuple1->DeleteIfAllowed();
   groom_tuple2->DeleteIfAllowed(); 
   
@@ -11060,7 +11060,7 @@ void IndoorNav::PathInOneRoom(GenLoc* gloc1, GenLoc* gloc2,
     PathInOneST(groom_tuple, gloc1, gloc2, l3d);
     groom_tuple->DeleteIfAllowed();
     path_list.push_back(*l3d); 
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
     return; 
   }
 
@@ -11069,7 +11069,7 @@ void IndoorNav::PathInOneRoom(GenLoc* gloc1, GenLoc* gloc2,
       groom_tuple->DeleteIfAllowed();
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d); 
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       cout<<"inside the elevator. not interesting places"<<endl;
       cout<<"it should not arrive here"<<endl; 
       return; 
@@ -11098,7 +11098,7 @@ void IndoorNav::PathInOneRoom(GenLoc* gloc1, GenLoc* gloc2,
 
   FindPathInRegion(groom, h, mhs, &p1, &p2); 
   
-  delete reg; 
+  reg->DeleteIfAllowed(); 
   groom_tuple->DeleteIfAllowed();
   
   ///////////////// conver to 3D line //////////////////////////////
@@ -11118,7 +11118,7 @@ void IndoorNav::PathInOneRoom(GenLoc* gloc1, GenLoc* gloc2,
   l3d->EndBulkLoad();
   
   path_list.push_back(*l3d); 
-  delete l3d; 
+  l3d->DeleteIfAllowed(); 
 }
 
 /*
@@ -11154,7 +11154,7 @@ void IndoorNav::PathInOneST(Tuple* groom_tuple, GenLoc* gloc1, GenLoc* gloc2,
   Region* reg = new Region(0);
   groom->GetRegion(*reg); 
   BBox<2> bbox = reg->BoundingBox();
-  delete reg;
+  reg->DeleteIfAllowed();
 
   Point loc1, loc2;
   Coord x_cord1 = gloc1->GetLoc().loc1 + bbox.MinD(0);
@@ -11242,7 +11242,7 @@ void IndoorNav::IndoorShortestPath(int id1, int id2,
 
     l3d->EndBulkLoad(); 
     candidate_path.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
 
     return; 
   }
@@ -11436,14 +11436,14 @@ void IndoorNav::IndoorShortestPath(int id1, int id2,
     }
 
 //    cout<<"length: "<<l3d->Length()<<endl;
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
   }else{
 //    cout<<"no path available "<<endl; 
     Line3D* l3d = new Line3D(0);
     l3d->StartBulkLoad();
     l3d->EndBulkLoad(); 
     candidate_path.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
   }
   
 }
@@ -11467,7 +11467,7 @@ void IndoorNav::InitializeQueue(int id, Point3D* start_p,
     IPath_elem elem(-1, cur_size, id, w + hw, w, *l3d);
     path_queue.push(elem);
     expand_queue.push_back(elem); 
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -11878,7 +11878,7 @@ void IndoorNav::IndoorShortestPath_Room(int id1, int id2,
   IPath_elem elem(-1, cur_size, id1, w + hw, w, *l3d, s_room_oid);
   path_queue.push(elem);
   expand_queue.push_back(elem); 
-  delete l3d; 
+  l3d->DeleteIfAllowed(); 
  ////////////////////////////////////////////////////////////////
   bool find = false;
   IPath_elem dest;//////////destination
@@ -12013,7 +12013,7 @@ void IndoorNav::ShortestPath_Time(GenLoc* gloc1, GenLoc* gloc2,
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
       cost_list.push_back(0.0); 
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return; 
     }
 
@@ -12129,7 +12129,7 @@ void IndoorNav::ShortestPath_Time(GenLoc* gloc1, GenLoc* gloc2,
       cout<<"connect start location to doors error"<<endl;
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return;
    }
 
@@ -12147,7 +12147,7 @@ void IndoorNav::ShortestPath_Time(GenLoc* gloc1, GenLoc* gloc2,
       cout<<"connect end location to doors error"<<endl;
       Line3D* l3d = new Line3D(0);
       path_list.push_back(*l3d);
-      delete l3d; 
+      l3d->DeleteIfAllowed(); 
       return;
     }
 
@@ -12289,7 +12289,7 @@ void IndoorNav::IndoorShortestPath_Time1(int id1, int id2,
     candidate_path.push_back(*l3d);
     double cost_t = l3d->Length()/param.speed_person;
     timecost.push_back(cost_t);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
     return; 
   }
 
@@ -12312,7 +12312,7 @@ void IndoorNav::IndoorShortestPath_Time1(int id1, int id2,
   IPath_elem elem(-1, cur_size, id1, w + hw, w, *l3d);
   path_queue.push(elem);
   expand_queue.push_back(elem); 
-  delete l3d; 
+  l3d->DeleteIfAllowed(); 
  ////////////////////////////////////////////////////////////////
    ///////////////////the path belongs to an elevator//////////////////////
   vector<float> h_list; //all possible values 
@@ -12480,7 +12480,7 @@ void IndoorNav::IndoorShortestPath_Time1(int id1, int id2,
 
     l3d->EndBulkLoad(); 
     candidate_path.push_back(*l3d);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
 
     if(l3d_s->Size() > 0)
       cost_t += l3d_s->Length() / param.speed_person; 
@@ -12635,7 +12635,7 @@ void IndoorNav::IndoorShortestPath_Time2(int id1, int id2,
     candidate_path.push_back(*l3d);
     double cost_t = l3d->Length()/param.speed_person;
     timecost.push_back(cost_t);
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
     return; 
   }
   
@@ -12655,7 +12655,7 @@ void IndoorNav::IndoorShortestPath_Time2(int id1, int id2,
   IPath_elem elem(-1, cur_size, id1, w + hw, w, *l3d);
   path_queue.push(elem);
   expand_queue.push_back(elem); 
-  delete l3d; 
+  l3d->DeleteIfAllowed(); 
 
  //////////////////////////////////////////////////////////////////
   bool find = false;
@@ -12827,7 +12827,7 @@ void IndoorNav::IndoorShortestPath_Time2(int id1, int id2,
     }else
       cost_t = l3d->Length() / param.speed_person; 
 
-    delete l3d; 
+    l3d->DeleteIfAllowed(); 
 
     timecost.push_back(cost_t);
 
@@ -13734,8 +13734,8 @@ void Building::StorePaths()
           WritePathToFile(fp, &to_path_list[0], i + 1, groom_oid, k, false);
         }
 
-        delete l3d_s;
-        delete l3d_e;
+        l3d_s->DeleteIfAllowed();
+        l3d_e->DeleteIfAllowed();
 
         room_tuple->DeleteIfAllowed();
 
@@ -13939,7 +13939,7 @@ void ReadIndoorPath(string name, int path_oid, Line3D* l3d_res)
 //      IndoorPath i_path(path_id, *l3d);
 //      path_list.push_back(i_path);
       path_list.insert(pair<int, Line3D>(path_id, *l3d));
-      delete l3d;
+      l3d->DeleteIfAllowed();
       
       
   }
@@ -14099,7 +14099,7 @@ void Building::LoadPaths(map<int, Line3D>& path_list,
       path_list.insert(pair<int, Line3D>(path_id, *l3d));
       room_id_list.insert(pair<int, Line3D>(path_id, *room_id));
 
-      delete l3d;
+      l3d->DeleteIfAllowed();
       delete room_id;
   }
 

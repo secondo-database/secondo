@@ -286,7 +286,7 @@ struct BusRoute{
   
   
   BusRoute(){count=0;resulttype = NULL;}
-  ~BusRoute(){if(resulttype != NULL) delete resulttype;}
+  ~BusRoute(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
   
   static std::string StreetSectionCellTypeInfo;
   static std::string BusRoutesTmpTypeInfo;
@@ -516,7 +516,7 @@ struct RoadDenstiy{
   rel1(r1),rel2(r2), rel3(r3), btree_a(b1), btree_b(b2)
   {count=0;resulttype = NULL;}
   
-  ~RoadDenstiy(){if(resulttype != NULL) delete resulttype;}
+  ~RoadDenstiy(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
 
   void GetNightRoutes(int attr1, int attr2, int attr_a, int attr_b,
                       temporalalgebra::Periods*, 
@@ -1244,7 +1244,7 @@ struct BNNav{
     resulttype = NULL;
   }
 
-  ~BNNav(){if(resulttype != NULL) delete resulttype;}
+  ~BNNav(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
 
   void ShortestPath_Length(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
   void ShortestPath_Time(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
@@ -1325,8 +1325,8 @@ struct UBTrainTrip{
     peri1->Get(0, periods1);
     peri2->Get(0, periods2);
     
-    delete peri1;
-    delete peri2; 
+    peri1->DeleteIfAllowed();
+    peri2->DeleteIfAllowed(); 
     
     return periods1.start < periods2.start; 
   }
@@ -1435,7 +1435,7 @@ struct UBTrain{
   UBTrain(Relation* r):rel1(r),count(0),resulttype(NULL){}
   UBTrain(Relation* r1,Relation* r2,BTree* b):
   rel1(r1), rel2(r2), btree1(b), count(0), resulttype(NULL){}
-  ~UBTrain(){if(resulttype != NULL) delete resulttype;}
+  ~UBTrain(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
 
   //////////    for UBahn Trips ///////////////////////////////////////
   enum UBAHN_TRAIN{T_ID,T_LINE,T_UP,T_TRIP,T_SCHEDULE};
@@ -1478,7 +1478,7 @@ create Metro: create metro routes and stops from road data
 struct MetroStruct{
 
   MetroStruct(){count = 0;resulttype = NULL;}
-  ~MetroStruct(){if(resulttype != NULL) delete resulttype;}
+  ~MetroStruct(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
   
   unsigned int count;
   TupleType* resulttype;
@@ -1809,7 +1809,7 @@ struct MNNav{
   }
 
 
-  ~MNNav(){if(resulttype != NULL) delete resulttype;}
+  ~MNNav(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
   
   void ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant*);
   void InitializeQueue(Bus_Stop* ms1, Bus_Stop* ms2, 
@@ -1844,7 +1844,7 @@ struct TM_Join{
   std::string type;
   
   TM_Join(){count = 0; resulttype = NULL;}
-  ~TM_Join(){if(resulttype != NULL) delete resulttype;}
+  ~TM_Join(){if(resulttype != NULL) resulttype->DeleteIfAllowed();}
   
   static std::string CellBoxTypeInfo;
   static std::string RoadSectionTypeInfo;

@@ -69,7 +69,7 @@ void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
         Region* temp = new Region(0);
 
         result1.push_back(*temp);
-        delete temp;
+        temp->DeleteIfAllowed();
         result1[i].StartBulkLoad();
     }
 
@@ -108,7 +108,7 @@ void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
         Region* temp = new Region(0);
 
         result2.push_back(*temp);
-        delete temp;
+        temp->DeleteIfAllowed();
         result2[i].StartBulkLoad();
     }
     for(int i = 0;i < reg2->Size();i++){
@@ -138,8 +138,8 @@ void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
 
         vector<MyHalfSegment> mhs;
         ReorderLine(sline, mhs);
-        delete sline;
-        delete line;
+        sline->DeleteIfAllowed();
+        line->DeleteIfAllowed();
         vector<Point> ps;
         for(unsigned int j = 0;j < mhs.size();j++){
           Point p = mhs[j].from;
@@ -447,7 +447,7 @@ void SpacePartition::DecomposePavement2(int start_oid, Relation* rel,
           oid++;
       }
 
-      delete temp;
+      temp->DeleteIfAllowed();
       zc_regs.clear();
       zc_tuple->DeleteIfAllowed();
     }
@@ -619,7 +619,7 @@ void SpacePartition::GetCommPave1(vector<Region_Oid>& pave1,
                 junid2.push_back(pave2[j].oid);
                 Line* l = new Line(0);
                 pave_line1.push_back(*l);
-                delete l;
+                l->DeleteIfAllowed();
             }
           }
       /////////////////////////////////////////////////////////////
@@ -651,10 +651,10 @@ void SpacePartition::GetCommPave2(Region* reg, int oid,
               junid2.push_back(pave2[i].oid);
               Line* l = new Line(0);
               pave_line1.push_back(*l);
-              delete l;
+              l->DeleteIfAllowed();
           }
-          delete result;
-          delete boundary;
+          result->DeleteIfAllowed();
+          boundary->DeleteIfAllowed();
         }
     }
 }
@@ -678,7 +678,7 @@ path(NULL),resulttype(NULL)
 
 CompTriangle:: ~CompTriangle()
 {
-  if(path != NULL) delete path;
+  if(path != NULL) path->DeleteIfAllowed();
   if(resulttype != NULL) delete resulttype;
 }
 
@@ -895,12 +895,12 @@ void CompTriangle::Triangulation()
     sp->ReorderLine(sboundary, mhs);
   else{
     cout<<"can't covert the boundary to a sline"<<endl;
-    delete boundary;
-    delete sboundary;
+    boundary->DeleteIfAllowed();
+    sboundary->DeleteIfAllowed();
     return;
   }
-  delete boundary;
-  delete sboundary;
+  boundary->DeleteIfAllowed();
+  sboundary->DeleteIfAllowed();
 
 /*  for(unsigned int i = 0;i < mhs.size();i++)
         mhs[i].Print();*/
@@ -1002,13 +1002,13 @@ bool CompTriangle::PolygonConvex()
     sp->ReorderLine(sboundary, mhs);
   else{
     cout<<"can't covert the boundary to a sline"<<endl;
-    delete boundary;
-    delete sboundary;
+    boundary->DeleteIfAllowed();
+    sboundary->DeleteIfAllowed();
     delete sp;
     return false;
   }
-  delete boundary;
-  delete sboundary;
+  boundary->DeleteIfAllowed();
+  sboundary->DeleteIfAllowed();
   delete sp;
 
 /*  for(unsigned int i = 0;i < mhs.size();i++)
@@ -1078,12 +1078,12 @@ bool CompTriangle::PolygonConvex2(int& error)
   else{
     error = 3;
     cout<<"can't covert the boundary to a sline"<<endl;
-    delete boundary;
-    delete sboundary;
+    boundary->DeleteIfAllowed();
+    sboundary->DeleteIfAllowed();
     return false;
   }
-  delete boundary;
-  delete sboundary;
+  boundary->DeleteIfAllowed();
+  sboundary->DeleteIfAllowed();
 
 /*  for(unsigned int i = 0;i < mhs.size();i++)
         mhs[i].Print();*/
@@ -2084,8 +2084,8 @@ void CompTriangle::PtoSegSPath(Point* start, HalfSegment* end,
   else
     *res_line = *l2;
 
-  delete l1;
-  delete l2;
+  l1->DeleteIfAllowed();
+  l2->DeleteIfAllowed();
 }
 
 
@@ -2213,7 +2213,7 @@ void CompTriangle::PolygonContourPoint(unsigned int no_cyc, int no_p_contour[],
         }
       }
 
-      delete sl_contour[i];
+      sl_contour[i]->DeleteIfAllowed();
   }
   delete sp;
 
@@ -2311,7 +2311,7 @@ void CompTriangle::PolygonContourPoint2(unsigned int no_cyc, int no_p_contour[],
         }
       }
 
-      delete sl_contour[i];
+      sl_contour[i]->DeleteIfAllowed();
   }
   delete sp;
 
@@ -2900,12 +2900,12 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
       sp->ReorderLine(sboundary, mhs);
     else{
       cout<<"can't covert the boundary to a sline, maybe there is a hole"<<endl;
-      delete boundary;
-      delete sboundary;
+      boundary->DeleteIfAllowed();
+      sboundary->DeleteIfAllowed();
       return;
     }
-    delete boundary;
-    delete sboundary;
+    boundary->DeleteIfAllowed();
+    sboundary->DeleteIfAllowed();
 
     vector<Point> ps;
     for(unsigned int i = 0;i < mhs.size();i++)
@@ -3014,7 +3014,7 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
             *l += hs;
             l->EndBulkLoad();
             connection.push_back(*l);
-            delete l;
+            l->DeleteIfAllowed();
           }
           last_angle = top.angle;
 /*          ProcessNeighbor(sss, top, *query_p,
@@ -3088,7 +3088,7 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
               *l += hs;
               l->EndBulkLoad();
               connection.push_back(*l);
-              delete l;
+              l->DeleteIfAllowed();
           }
       }
 //      ProcessNeighbor(sss, top, *query_p,top.n1, hp, sp, outfile);
@@ -3729,7 +3729,7 @@ void DualGraph::DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
               if(res->Length() > delta_dist){
                 line_list.push_back(*res);
               }
-              delete res;
+              res->DeleteIfAllowed();
               dg_tuple->DeleteIfAllowed();
       }else{
             R_TreeInternalEntry<2> e =
@@ -4099,7 +4099,7 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
       path.push_back(*res);
 //   double len = res->Length(); 
 // printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
-      delete res; 
+      res->DeleteIfAllowed(); 
       return; 
   }
 
@@ -4122,7 +4122,7 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
       oids1.push_back(tid1); //vertex id 
       oids2.push_back(tid2); //vertex id 
       path.push_back(*res);
-      delete res;
+      res->DeleteIfAllowed();
 //    double len = res->Length(); 
 // printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
     return; 
@@ -4281,7 +4281,7 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
     l->EndBulkLoad();
     path.push_back(*l);
     len = l->Length();
-    delete l;
+    l->DeleteIfAllowed();
 
     finish = clock();
     printf("tid1: %d, tid2: %d, Euclidean: %.4f Walk: %.4f Time: %f\n",
@@ -4524,7 +4524,7 @@ bool Walk_SP::EuclideanConnect(Point loc1, Point loc2)
     double len2 = 0.0;
     DFTraverse2(dg->rtree_node, dg->rtree_node->RootRecordId(), 
                 l, len2);
-    delete l;
+    l->DeleteIfAllowed();
 
 //    cout<<"l1: "<<len1<<"l2: "<<len2<<endl;
 
@@ -4563,7 +4563,7 @@ void Walk_SP::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
               if(candi_reg->Area() > delta_area && len->Length() > 0.0){
                 l += len->Length();
               }
-              delete len;
+              len->DeleteIfAllowed();
               dg_tuple->DeleteIfAllowed();
       }else{
             R_TreeInternalEntry<2> e =
@@ -4599,7 +4599,7 @@ bool Walk_SP::EuclideanConnect2(int oid1, Point loc1, int oid2, Point loc2)
     Region* reg = (Region*)node_tuple->GetAttribute(DualGraph::PAVEMENT);
     Line* res = new Line(0);
     MyIntersection(*l, *reg, *res);
-    delete res;
+    res->DeleteIfAllowed();
     node_tuple->DeleteIfAllowed();
 
     bool flag = true;
@@ -4635,11 +4635,11 @@ bool Walk_SP::EuclideanConnect2(int oid1, Point loc1, int oid2, Point loc2)
 
               last_tri = start_tri;
               start_tri = tri_id;
-              delete res;
+              res->DeleteIfAllowed();
               tuple->DeleteIfAllowed();
               break;
            }
-           delete res;
+           res->DeleteIfAllowed();
            tuple->DeleteIfAllowed();
         }
         if(i == adj_list.size()){
@@ -4650,7 +4650,7 @@ bool Walk_SP::EuclideanConnect2(int oid1, Point loc1, int oid2, Point loc2)
         }
    }
 
-    delete l;
+    l->DeleteIfAllowed();
 
     return find;
 }
@@ -4763,7 +4763,7 @@ void Walk_SP::GenerateData2(int no_p)
       q_loc1.push_back(p1);//relative position in the polygon
       q_loc2.push_back(p2);//absolute position
 
-      delete ps;
+      ps->DeleteIfAllowed();
       tuple->DeleteIfAllowed();
   }
 }
@@ -5206,7 +5206,7 @@ void VGraph::GetAdjNodeVG(int oid)
       *l += hs;
       l->EndBulkLoad();
       line.push_back(*l);
-      delete l;
+      l->DeleteIfAllowed();
       ////////////////////////////////////////////////
       node_tuple->DeleteIfAllowed();
     }
@@ -5327,7 +5327,7 @@ void VGraph::GetVGEdge()
           *l += hs;
           l->EndBulkLoad();
           line.push_back(*l);
-          delete l;
+          l->DeleteIfAllowed();
           loc_tuple2->DeleteIfAllowed();
       }
       vertex_tuple->DeleteIfAllowed();
@@ -6603,7 +6603,7 @@ void VGraph::GetVNode()
       *l += hs;
       l->EndBulkLoad();
       line.push_back(*l);
-      delete l;
+      l->DeleteIfAllowed();
   }
   delete query_p;
 }
@@ -6714,7 +6714,7 @@ void RegVertex::CreateVertex()
           }
         }
 
-        delete sl_contour[i];
+        sl_contour[i]->DeleteIfAllowed();
       }
       delete ct;
       delete sp;
@@ -7169,7 +7169,7 @@ void RegVertex::GetDGEdge()
 //            }
             l->EndBulkLoad();
             line.push_back(*l);
-            delete l;
+            l->DeleteIfAllowed();
 
 
             //////////////////////////////////////////////////////
@@ -7249,7 +7249,7 @@ void RegVertex::ShareEdge(Region* reg1, Region* reg2, int oid1,
               *l += hs1;
               l->EndBulkLoad();
               line.push_back(*l);
-              delete l;
+              l->DeleteIfAllowed();
               v1_list.push_back(oid1);
               v2_list.push_back(oid2);
               adj_node[oid1 - 1].push_back(oid2);
@@ -7267,7 +7267,7 @@ void RegVertex::ShareEdge(Region* reg1, Region* reg2, int oid1,
                 *l += hs1;
                 l->EndBulkLoad();
                 line.push_back(*l);
-                delete l;
+                l->DeleteIfAllowed();
                 v1_list.push_back(oid1);
                 v2_list.push_back(oid2);
                 adj_node[oid1 - 1].push_back(oid2);
@@ -7716,7 +7716,7 @@ void Hole::GetHole(Region* r)
       new_reg->StartBulkLoad();
       new_reg->EndBulkLoad();
       regs.push_back(*new_reg);
-      delete new_reg;
+      new_reg->DeleteIfAllowed();
       edgeno.push_back(0);
       partnerno.push_back(0);
   }
@@ -7829,7 +7829,7 @@ void Hole::GetContour()
     Region* outer_contour = new Region(bbox);
 //    GrahamScan::convexHull(ps,outer_contour);
     regs.push_back(*outer_contour);//the first is the outer contour
-    delete outer_contour;
+    outer_contour->DeleteIfAllowed();
 
 
   ////////////////////////////////////////////////
@@ -7935,7 +7935,7 @@ void Hole::GetContour()
            NoSelfIntersects(&regs1[i]))regs.push_back(regs1[i]);
     }
     delete head;
-    delete ps;
+    ps->DeleteIfAllowed();
 }
 
 /*
@@ -8019,20 +8019,20 @@ void Hole::GetContour(unsigned int no_reg)
             Region* newregion = new Region(0);
             GrahamScan::convexHull(outer_ps,newregion);
             regs.push_back(*newregion);
-            delete newregion;
+            newregion->DeleteIfAllowed();
           }
           else if(no_reg % 3 == 1){
             Region* newregion = new Region(0);
             DiscoverContour(outer_ps,newregion);
             regs.push_back(*newregion);
-            delete newregion;
+            newregion->DeleteIfAllowed();
           }
           else{
             Region* newregion = new Region(outer_ps->BoundingBox());
             regs.push_back(*newregion);
-            delete newregion;
+            newregion->DeleteIfAllowed();
           }
-          delete outer_ps;
+          outer_ps->DeleteIfAllowed();
           /////////////////////////////////////////////////
 //          regs.push_back(regions[0]);
           no_reg--;
@@ -8237,8 +8237,8 @@ void Hole::GetPolygon(int no_ps)
     Region* reg = new Region(0);
     DiscoverContour(gen_ps, reg);//store the polygon in regs
     regs.push_back(*reg);
-    delete reg;
-    delete gen_ps;
+    reg->DeleteIfAllowed();
+    gen_ps->DeleteIfAllowed();
 }
 
 /*
@@ -8406,8 +8406,8 @@ Rectangle<2> GetMaxRect(Region* reg)
     sp->ReorderLine(sboundary, mhs);
   else{
     cout<<"can't covert the boundary to a sline"<<endl;
-    delete boundary;
-    delete sboundary;
+    boundary->DeleteIfAllowed();
+    sboundary->DeleteIfAllowed();
     delete sp;
     delete ct; 
     return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
@@ -8462,8 +8462,8 @@ Rectangle<2> GetMaxRect(Region* reg)
       Point p1 = ps[i - 1];
       Point p2 = ps[i]; 
       if(AlmostEqual(p1, p2)){
-          delete boundary;
-          delete sboundary;
+          boundary->DeleteIfAllowed();
+          sboundary->DeleteIfAllowed();
 
           delete sp;
           delete ct; 
@@ -8486,8 +8486,8 @@ Rectangle<2> GetMaxRect(Region* reg)
     }
   }
 
-  delete boundary;
-  delete sboundary;
+  boundary->DeleteIfAllowed();
+  sboundary->DeleteIfAllowed();
 
   if(AlmostEqual(ps[0], ps[ps.size() - 1])){
       delete sp;
@@ -9202,7 +9202,7 @@ void MaxRect::RemoveDirtyRegion(int regid, Region* reg)
         if(sl->Length() > 0)
           sl_contour.push_back(*sl);
 //        cout<<sl->Length()<<endl; 
-        delete sl; 
+        sl->DeleteIfAllowed(); 
       }
   }
 
@@ -9349,7 +9349,7 @@ void MaxRect::MergeTriangle(CompTriangle* ct, int reg_id)
         Region* res = new Region(0);
         r1->Union(*r2, *res);
         convex_list.push_back(*res);
-        delete res; 
+        res->DeleteIfAllowed(); 
 
         mark_list[j] = true;
         break; 
@@ -10293,20 +10293,20 @@ void MaxRect::Path_BuildingPave(Point sp, Point ep, Rectangle<2>* rect,
 
           path2->EndBulkLoad();
           path_list.push_back(*path2);
-          delete path2;
+          path2->DeleteIfAllowed();
 
           ep_list.push_back(new_ep);
           MapToPavement(dg, new_ep);
         }else assert(false);
 
-        delete ps;
+        ps->DeleteIfAllowed();
     }
 
     ///////////////////////////////////////////////////////////////
-    delete boundary_temp;
-    delete temp_reg;
-    delete path;
-    delete boundary; 
+    boundary_temp->DeleteIfAllowed();
+    temp_reg->DeleteIfAllowed();
+    path->DeleteIfAllowed();
+    boundary->DeleteIfAllowed(); 
 
 }
 
@@ -10355,7 +10355,7 @@ void MaxRect::PathOnBorder(Line* boundary_temp, Point sp, Point cp_border,
    sline->fromLine(*boundary_temp);
    vector<MyHalfSegment> seq_halfseg; 
    s_p->ReorderLine(sline, seq_halfseg);
-   delete sline;
+   sline->DeleteIfAllowed();
 
    int index1 = -1;
    for(unsigned int i = 0;i < seq_halfseg.size();i++){
@@ -10464,9 +10464,9 @@ void MaxRect::PathOnBorder(Line* boundary_temp, Point sp, Point cp_border,
               hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
               *path2 += hs2;
           }
-          delete res;
+          res->DeleteIfAllowed();
       }
-      delete temp;
+      temp->DeleteIfAllowed();
     }
     delete s_p;
 }
@@ -10505,16 +10505,16 @@ bool MaxRect::RegionWithHole(vector<Rectangle<2> >& hole_list, Region* reg)
       Region* res = new Region(0);
       temp->Union(*r, *res);
       *r = *res;
-      delete res;
-      delete temp; 
+      res->DeleteIfAllowed();
+      temp->DeleteIfAllowed(); 
   }
 
   Region* res = new Region(0);
   reg->Minus(*r, *res);
   *reg = *res;
 
-  delete res;
-  delete r;
+  res->DeleteIfAllowed();
+  r->DeleteIfAllowed();
 
   return true;
 }

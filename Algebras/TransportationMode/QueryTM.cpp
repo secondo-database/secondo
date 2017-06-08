@@ -125,7 +125,7 @@ void QueryTM::GetLineInRoad(int oid, Line* l, Space* sp)
   newl->EndBulkLoad();
   
   line_list1.push_back(*newl);
-  delete newl;
+  newl->DeleteIfAllowed();
 
 /*  Line3D* l3d = new Line3D(0);
   line3d_list.push_back(*l3d);
@@ -168,7 +168,7 @@ void QueryTM::GetLineInRegion(int oid, Line* l, Space* sp)
   newl->EndBulkLoad();
   
   line_list1.push_back(*newl);
-  delete newl;
+  newl->DeleteIfAllowed();
 
 //   Line3D* l3d = new Line3D(0);
 //   line3d_list.push_back(*l3d);
@@ -221,7 +221,7 @@ void QueryTM::GetLineInBusNetwork(int oid, Line* l, BusNetwork* bn)
   newl->EndBulkLoad();
 
   line_list1.push_back(*newl);
-  delete newl;
+  newl->DeleteIfAllowed();
 
 /*  Line3D* l3d = new Line3D(0);
   line3d_list.push_back(*l3d);
