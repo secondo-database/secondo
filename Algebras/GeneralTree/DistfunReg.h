@@ -93,6 +93,15 @@ const std::string DFUN_SYMTRAJ_DIST1("symtraj1");
 const std::string DFUN_SYMTRAJ_DIST1_DESCR("distance function for symbolic "
   "trajectories, normalized to [0,1]");
 
+#ifndef NO_IMAGESIMILARITY
+const std::string DFUN_EMD("emd");
+const std::string DFUN_EMD_DESCR("Earth Mover's distance function");
+
+const std::string DFUN_SQFD("sqfd");
+const std::string DFUN_SQFD_DESCR(
+    "Signature Quadratic Form Distance function");
+#endif
+
 /////////////////////////////////////////////////////////////////////
 // Flags for the "DistfunInfo" class
 /////////////////////////////////////////////////////////////////////
@@ -392,6 +401,26 @@ Euclidean distance function for the ~fvector~ type constructor.
              const DistData *data1, const DistData *data2,
              double &result);
 //--------------------------------------------------------
+#endif
+
+#ifndef NO_IMAGESIMILARITY
+
+/*
+First distance function (SQFD) for the ~ImageSignature~ data type
+
+*/
+static void sqfdImageSignature(
+            const DistData* data1, const DistData* data2,
+            double &result);
+
+/*
+Second distance function (EMD) for the ~ImageSignature~ data type
+
+*/
+static void emdImageSignature(
+            const DistData* data1, const DistData* data2,
+            double &result);
+
 #endif
 
 

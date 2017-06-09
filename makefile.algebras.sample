@@ -215,6 +215,11 @@ ALGEBRAS     += ArrayAlgebra
 #ALGEBRAS     += MP3Algebra
 CCFLAGS += -DNO_MP3
 
+#ALGEBRA_DIRS += ImageSimilarity
+#ALGEBRAS  += ImageSimilarityAlgebra
+CCFLAGS += -DNO_IMAGESIMILARITY
+
+
 
 ALGEBRA_DIRS += Picture
 ALGEBRAS     += PictureAlgebra

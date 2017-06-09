@@ -44,6 +44,49 @@ January-May 2008, Mirko Dibbert
 #include "FVector.h"
 //----------------------------------
 #endif
+
+
+#ifndef NO_IMAGESIMILARITY
+
+#include "../ImageSimilarity/JPEGImage.h"
+#include "../ImageSimilarity/ImageSimilarityAlgebra.h"
+#include <vector>
+#include <math.h>
+#include <iostream>
+
+
+
+static double l_2(int x1, int y1, int x2, int y2) // euclidean ground distance
+{
+    return sqrt(((x1 - x2) * (x1 - x2)) + ((y1 - y2) * (y1 - y2)));
+}
+
+
+static double f_s(int x1, int y1, int x2, int y2)
+{
+  return 1.0 / (1.0 + l_2(x1, y1, x2, y2));
+}
+
+
+struct Flow
+{
+    double fromWeight;
+    double distance;
+    double toWeight;
+};
+
+
+
+static double euclid(double p, double q)
+{
+    double res = std::pow((p - q), 2);
+    return std::sqrt(res);
+}
+
+
+#endif
+
+
 using namespace gta;
 using namespace std;
 
@@ -527,6 +570,261 @@ void DistfunReg::euclidFVector(
 //------------------------------------------
 #endif
 
+#ifndef NO_IMAGESIMILARITY
+
+/*
+Method ~DistfunReg::sqfdImageSignature~:
+
+*/
+
+void DistfunReg::sqfdImageSignature(
+    const DistData* data1, const DistData* data2,
+    double &result)
+{    
+  if(data1->size() == 0 && data2->size() == 0)
+    {
+       result = 0;
+       return ;
+    }
+          
+  std::vector<ImageSignatureTuple> istVector1;
+    std::vector<ImageSignatureTuple> istVector2;    
+    size_t offset;
+    
+    
+    
+    // init ist vectors 
+    offset = 0;
+    for (unsigned int i = 0; i < data1->size(); i++)
+    {
+    ImageSignatureTuple ist = {};
+    memcpy(&ist.weight, (char*)data1->value() + offset, 
+        sizeof(double));
+        offset += sizeof(double);
+    memcpy(&ist.centroidXpos, (char*)data1->value() + offset, 
+        sizeof(int));
+        offset += sizeof(int);
+    memcpy(&ist.centroidYpos, (char*)data1->value() + offset, 
+        sizeof(int));
+        offset += sizeof(int);
+    
+        istVector1.push_back(ist);
+  }
+     
+    offset = 0;
+    for (unsigned int i = 0; i < data2->size(); i++)
+    {
+    ImageSignatureTuple ist = {};
+    memcpy(&ist.weight, (char*)data2->value(), sizeof(double));
+        offset += sizeof(double);
+    memcpy(&ist.centroidXpos, (char*)data2->value(), sizeof(int));
+        offset += sizeof(int);
+    memcpy(&ist.centroidYpos, (char*)data2->value(), sizeof(int));
+        offset += sizeof(int);
+    
+        istVector2.push_back(ist);
+  }
+     
+    int width = data1->size() + data2->size();
+  
+  // init arr1
+  double* arr1 = new double[width + 1];
+  
+  // fill arr1
+  for (unsigned int i = 0; i < istVector1.size(); i++)
+    arr1[i] = istVector1.at(i).weight;
+  
+  for (int i = istVector1.size(); i < width; i++)
+  {  
+    arr1[i] = (-1.0) * istVector2.at(i - istVector1.size()).weight;
+  }   
+    
+  // set up matrix
+  double** mat = new double*[width]; 
+     
+  for (int i = 0; i < width; i++)
+    mat[i] = new double[width];
+  
+  std::vector<ImageSignatureTuple> ist; 
+  
+  for (auto i : istVector1)
+    ist.push_back(i);
+  for (auto i: istVector2)
+    ist.push_back(i);
+      
+  int i;
+  int j;
+  for (int y = 0; y < width; y++)
+  {
+    for (int x = 0; x < width; x++)
+    {
+      i = y;
+      j = x;      
+      mat[y][x] = f_s(ist.at(i).centroidXpos,
+              ist.at(i).centroidYpos,  
+              ist.at(j).centroidXpos,
+              ist.at(j).centroidYpos);      
+    }    
+  }
+  
+  // 1. multiply array arr1 with A_f_s
+  // init result matrix / array
+  double* resMat = new double[width];
+  for (int x = 0; x < width; x++)
+  {
+    resMat[x] = 0.0;
+  }   
+  
+  // multiply arr1 with mat
+  for (int x = 0; x < width; x++)
+  {
+    for (int y = 0; y < width; y++)
+    {    
+      resMat[x] += (arr1[y] * (double)mat[y][x]);
+    }  
+  }      
+  
+  // 2. multiply mat with arr`T
+  double distance = 0.0;
+  for (int x = 0; x < width; x++)
+  {
+    distance += (arr1[x] * resMat[x]);
+  }
+  
+  delete[] resMat;
+  delete arr1;          
+    for (int i = 0; i < width; i++)
+    delete mat[i];    
+    delete [] mat;
+    
+  result = sqrt(distance);
+  return;
+}    
+
+
+/*
+Earth Mover's distance function for ImageSignatures
+
+*/
+
+
+void DistfunReg::emdImageSignature(
+    const DistData* data1, 
+    const DistData* data2,
+    double &result)
+{
+   if(data1->size() == 0 && data2->size() == 0){
+        result = 0;
+        return ;
+     }
+     
+     if(data1->size() == 0 || data2->size() == 0){
+        result = numeric_limits<double>::max(); 
+        return;
+     }
+          
+    std::vector<ImageSignatureTuple> ist1;
+    std::vector<ImageSignatureTuple> ist2;
+    
+    size_t offset;
+    
+    // init ist vectors 
+    offset = 0;
+    for (unsigned int i = 0; i < data1->size(); i++)
+    {
+    ImageSignatureTuple ist = {};
+    memcpy(&ist, data1->value(), sizeof(ist));
+    ist1.push_back(ist);
+    offset += sizeof(ist);
+  }
+     
+    offset = 0;
+    for (unsigned int i = 0; i < data2->size(); i++) 
+    {
+    ImageSignatureTuple ist = {};
+    memcpy(&ist, data2->value(), sizeof(ist));
+    ist2.push_back(ist);
+    offset += sizeof(ist);
+  }
+    
+      
+    std::vector<ImageSignatureTuple> p;
+    std::vector<ImageSignatureTuple> q;
+
+  if (ist1.size() > ist2.size())
+  {
+    p = ist1;
+    q = ist2;
+  }
+  else
+  {
+    p = ist2;
+    q = ist1;
+  }
+    
+    double** distMat = new double*[q.size()];
+    for (unsigned int i = 0; i < q.size(); i++)
+    distMat[i] = new double[p.size()];
+   
+    // fill distance matrix
+    for (unsigned int i = 0; i < q.size(); i++) // rows
+    {
+    for (unsigned int j = 0; j < p.size(); j++) // columns
+    {
+      distMat[i][j] = euclid(q.at(i).weight, p.at(j).weight);           
+    }  
+    }
+
+    // side preliminaries
+    // 1. indices start with 1
+    // 2. no negative signs
+    double cost =  0.0;
+    unsigned int i = 0;
+    unsigned int j = 0;
+  
+  
+    // start in top left corner
+    // supply and demand are equal -> no costs, move one down
+    // supply < demand -> move one down,
+    // supply > demand -> move one right, adjust supply(demand - supply)    
+  while (i < q.size() && j < p.size())
+  {
+    if (p.at(j).weight > q.at(i).weight) // supply higher
+      {      
+      p.at(j).weight -= q.at(i).weight;
+        cost += distMat[i][j] * q.at(i).weight;
+      q.at(i).weight = 0;
+          i++;
+      }
+      else if (p.at(j).weight < q.at(i).weight) // demand higher
+      {    
+      q.at(i).weight -= p.at(j).weight;
+        cost += distMat[i][j] * q.at(j).weight;
+      p.at(j).weight = 0;
+          j++;
+      }
+      else
+      {    
+        distMat[i][j] *= q.at(i).weight; 
+      p.at(j).weight = 0;
+      q.at(i).weight = 0;
+          j++;
+      }
+  }
+      
+    for (unsigned int i = 0; i < q.size(); i++)
+    delete [] distMat[i];
+    
+    delete [] distMat;
+    
+  result = cost;
+    return;
+}
+
+#endif
+
+
+
 /********************************************************************
 Method ~DistfunReg::initialize~:
 
@@ -631,6 +929,25 @@ void DistfunReg::initialize()
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 //---------------------------------------------------
 #endif
+
+
+#ifndef NO_IMAGESIMILARITY
+  addInfo(DistfunInfo(
+        DFUN_SQFD, DFUN_SQFD_DESCR,
+        sqfdImageSignature,
+        DistDataReg::getInfo(
+        ImageSignaturealg::ImageSignature::BasicType(), DDATA_NATIVE),
+        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+
+
+  addInfo(DistfunInfo(
+       DFUN_EMD, DFUN_EMD_DESCR,
+       emdImageSignature,
+        DistDataReg::getInfo(
+        ImageSignaturealg::ImageSignature::BasicType(), DDATA_NATIVE),
+        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+#endif
+
 
     PictureFuns::initDistfuns();
 

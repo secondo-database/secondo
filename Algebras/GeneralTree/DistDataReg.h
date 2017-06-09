@@ -68,6 +68,8 @@ New distdata-types must be registered in the "DistDataReg::initialize"[4] method
 #include "NestedList.h"
 #include "ListUtils.h"
 
+
+
 namespace gta
 {
 
@@ -710,7 +712,15 @@ Getdata function for the symbolic trajectory type constructors.
  //--------------------cru------------------------
 #endif
 
+#ifndef NO_IMAGESIMILARITY
 
+/*
+GetData function for the ~ImageSignature~ type
+
+*/
+	static DistData* getImageSignature(const void* attr);
+    
+#endif
 
 }; // class DistDataReg
 

@@ -45,6 +45,12 @@ January-May 2008, Mirko Dibbert
 //--------------------
 #endif
 
+#ifndef NO_IMAGESIMILARITY
+#include "../ImageSimilarity/JPEGImage.h"
+#include "../ImageSimilarity/ImageSimilarityAlgebra.h"
+#include "../../Tools/Flob/DbArray.h"
+#endif
+
 using namespace gta;
 using namespace std;
 
@@ -243,6 +249,59 @@ string DistDataReg::definedNames(const string& typeName)
 
     return result.str();
 }
+
+#ifndef NO_IMAGESIMILARITY
+/*
+Method ~DistDataReg::getImageSignature~:
+Dbarray<ImageSignatureTuple> will be used 
+
+*/
+
+DistData* DistDataReg::getImageSignature(const void* attr)
+{
+  const ImageSignaturealg::ImageSignature* sig 
+        = static_cast<const ImageSignaturealg::ImageSignature*>(attr);
+  if (!sig->IsDefined())
+  {
+    char def = 0;
+    return new DistData(1, &def);
+  }
+    
+  if (sig->GetNoImageSignatureTuples() == 0)
+    return new DistData(0, 0);
+  
+  size_t siz = 2 * sig->GetNoImageSignatureTuples() 
+                    * sizeof(ImageSignatureTuple);
+  char* buffer = new char[siz];
+  size_t offset = 0;
+  
+  ImageSignatureTuple ist;    
+    
+  for (int i = 0; i < sig->GetNoImageSignatureTuples(); i++)
+  {
+    ist = sig->GetImageSignatureTuple(i);
+       /* 
+        int x = ist.centroidXpos;
+        int y = ist.centroidYpos;
+        double w = ist.weight;
+        memcpy(buffer + offset, &w, sizeof(double));
+        offset += sizeof(double);
+    memcpy(buffer + offset, &x, sizeof(int));
+    offset += sizeof(int);
+        memcpy(buffer + offset, &y, sizeof(int));
+        offset += sizeof(int);
+        */
+        memcpy(buffer + offset, &ist, sizeof(ImageSignatureTuple));
+        offset += sizeof(ImageSignatureTuple);
+  }
+  
+    DistData* res = new DistData(siz, buffer);
+  delete[] buffer;
+  return res;
+}
+
+#endif
+
 
 /********************************************************************
 Implementation of getdata functions:
@@ -479,6 +538,15 @@ void DistDataReg::initialize()
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
         stj::MPlaces::BasicType(), getDataSymTraj<stj::MPlaces>));
+       
+#ifndef NO_IMAGESIMILARITY 
+    // data type for ImageSignature
+    addInfo(DistDataInfo(
+       DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+       ImageSignaturealg::ImageSignature::BasicType(), 
+       getImageSignature));
+#endif
+
 
     PictureFuns::initDistData();
 
