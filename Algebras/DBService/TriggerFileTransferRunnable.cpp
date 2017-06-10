@@ -86,10 +86,6 @@ void TriggerFileTransferRunnable::createClient(
 {
     printFunction("TriggerFileTransferRunnable::createClient");
     CommunicationClient client(dbServiceWorkerHost, dbServiceWorkerCommPort, 0);
-    if(client.start() != 0)
-    {
-        return;
-    }
     client.triggerFileTransfer(sourceSystemHost,
                                stringutils::int2str(sourceSystemTransferPort),
                                databaseName,

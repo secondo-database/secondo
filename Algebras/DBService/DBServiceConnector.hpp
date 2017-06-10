@@ -71,7 +71,7 @@ Returns the DBServiceConnector instance (singleton).
             const std::string&
             functionAsNestedListString);
 
-    void deleteReplicas(
+    bool deleteReplicas(
             const std::string& databaseName,
             const std::string& relationName);
 

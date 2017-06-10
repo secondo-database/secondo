@@ -80,6 +80,18 @@ bool CommunicationClient::triggerReplication(const string& databaseName,
                                             const string& relationName)
 {
     traceWriter->writeFunction("CommunicationClient::triggerReplication");
+
+    if(!connectionTargetIsDBServiceMaster())
+    {
+        traceWriter->write("Aborting due to wrong node specification");
+        return false;
+    }
+
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
     iostream& io = socket->GetSocketStream();
 
     if(!CommunicationUtils::receivedExpectedLine(io,
@@ -149,6 +161,12 @@ int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
     traceWriter->write("databaseName", databaseName);
     traceWriter->write("relationName", relationName);
 
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
+
     iostream& io = socket->GetSocketStream();
 
     if(!CommunicationUtils::receivedExpectedLine(io,
@@ -198,6 +216,13 @@ bool CommunicationClient::getReplicaLocation(const string databaseName,
                                              std::string& transferPort)
 {
     traceWriter->writeFunction("CommunicationClient::getReplicaLocation");
+
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
+
     iostream& io = socket->GetSocketStream();
 
     if(!CommunicationUtils::receivedExpectedLine(io,
@@ -230,6 +255,13 @@ bool CommunicationClient::reportSuccessfulReplication(
 {
     traceWriter->writeFunction(
             "CommunicationClient::reportSuccessfulReplication");
+
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
+
     iostream& io = socket->GetSocketStream();
 
     if(!CommunicationUtils::receivedExpectedLine(io,
@@ -278,6 +310,18 @@ bool CommunicationClient::requestReplicaDeletion(
     traceWriter->write("databaseName: ", databaseName);
     traceWriter->write("relationName: ", relationName);
 
+    if(!connectionTargetIsDBServiceMaster())
+    {
+        traceWriter->write("Aborting due to wrong node specification");
+        return false;
+    }
+
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
+
     iostream& io = socket->GetSocketStream();
 
     if(!CommunicationUtils::receivedExpectedLine(io,
@@ -300,6 +344,12 @@ bool CommunicationClient::triggerReplicaDeletion(
     traceWriter->writeFunction("CommunicationClient::triggerReplicaDeletion");
     traceWriter->write("relID: ", relID);
 
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
+
     iostream& io = socket->GetSocketStream();
 
     if(!CommunicationUtils::receivedExpectedLine(io,
@@ -313,6 +363,30 @@ bool CommunicationClient::triggerReplicaDeletion(
     sendBuffer.push(CommunicationProtocol::TriggerReplicaDeletion());
     sendBuffer.push(relID);
     CommunicationUtils::sendBatch(io, sendBuffer);
+
+    return true;
+}
+
+bool CommunicationClient::connectionTargetIsDBServiceMaster()
+{
+    string host;
+    string commPort;
+    if(!SecondoUtilsLocal::lookupDBServiceLocation(
+                host, commPort))
+    {
+        traceWriter->write("DBService not configured");
+        return false;
+    }
+    if(host.compare(server) != 0)
+    {
+        traceWriter->write("host does not match with DBService host");
+        return false;
+    }
+    if(atoi(commPort.c_str()) != port)
+    {
+        traceWriter->write("port does not match with DBService commPort");
+        return false;
+    }
 
     return true;
 }

@@ -90,7 +90,6 @@ bool DBServiceConnector::triggerReplication(const std::string& databaseName,
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
-    dbServiceMasterClient.start();
 
     return dbServiceMasterClient.triggerReplication(
             databaseName,
@@ -105,7 +104,6 @@ bool DBServiceConnector::getReplicaLocation(const string& databaseName,
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
-    dbServiceMasterClient.start();
     return dbServiceMasterClient.getReplicaLocation(databaseName,
                                                     relationName,
                                                     host,
@@ -131,7 +129,6 @@ string DBServiceConnector::retrieveReplicaAndGetFileName(
             *(const_cast<string*>(&databaseName)),
             *(const_cast<string*>(&relationName)));
 
-    clientToDBServiceWorker.start();
     string fileName;
     clientToDBServiceWorker.requestReplica(
             functionAsNestedListString,
@@ -139,16 +136,19 @@ string DBServiceConnector::retrieveReplicaAndGetFileName(
     return fileName;
 }
 
-void DBServiceConnector::deleteReplicas(const string& databaseName,
+bool DBServiceConnector::deleteReplicas(const string& databaseName,
                                         const string& relationName)
 {
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
-    dbServiceMasterClient.start();
-    dbServiceMasterClient.requestReplicaDeletion(
+    if(!dbServiceMasterClient.requestReplicaDeletion(
             databaseName,
-            relationName);
+            relationName))
+    {
+        return false;
+    }
+    return true;
 }
 
 DBServiceConnector* DBServiceConnector::_instance = NULL;

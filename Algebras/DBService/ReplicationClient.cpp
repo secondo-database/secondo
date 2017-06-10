@@ -195,10 +195,10 @@ void ReplicationClient::reportSuccessfulReplication()
             dbServiceHost,
             atoi(dbServicePort.c_str()),
             0);
-    clientToDBServiceMaster.start(); // TODO check return value
     clientToDBServiceMaster.reportSuccessfulReplication(
             databaseName,
             relationName);
+    // TODO check return value
 }
 
 } /* namespace DBService */

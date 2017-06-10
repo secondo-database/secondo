@@ -77,11 +77,7 @@ void TriggerReplicaDeletionRunnable::createClient(
 {
     printFunction("TriggerReplicaDeletionRunnable::createClient");
     CommunicationClient client(dbServiceWorkerHost, dbServiceWorkerCommPort, 0);
-    if(client.start() != 0)
-    {
-        return;
-    }
-    client.triggerReplicaDeletion(relID);
+    client.triggerReplicaDeletion(relID); // TODO check return value
 }
 
 } /* namespace DBService */

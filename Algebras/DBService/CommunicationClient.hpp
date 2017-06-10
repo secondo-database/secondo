@@ -80,16 +80,6 @@ public:
 
 /*
 
-1.1.2 \textit{start}
-
-This function starts the \textit{CommunicationClient} by connecting to the
-specified server.
-
-*/
-    int start();
-
-/*
-
 1.1.2 \textit{triggerReplication}
 
 This function is meant to be called by on \textit{CommunicationClient} that
@@ -196,8 +186,28 @@ This function simplifies reading information from the "Environment" section of
 a SECONDO configuration file.
 
 */
-protected:
+private:
     void getLocationParameter(std::string& location, const char* key);
+
+/*
+
+1.1.2 \textit{start}
+
+This function starts the \textit{CommunicationClient} by connecting to the
+specified server.
+
+*/
+    int start();
+
+/*
+
+1.1.2 \textit{connectionTargetIsDBServiceMaster}
+
+This function checks whether the \textit{CommunicationServer} to which we would
+like to connect is actually the one on the \textit{DBService} master node.
+
+*/
+    bool connectionTargetIsDBServiceMaster();
 
 /*
 
@@ -216,7 +226,6 @@ a \textit{TraceWriter} object which documents all important events in a trace
 file.
 
 */
-private:
     std::unique_ptr<TraceWriter> traceWriter;
 };
 
