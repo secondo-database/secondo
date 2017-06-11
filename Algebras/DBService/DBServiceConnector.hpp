@@ -40,10 +40,12 @@ namespace DBService {
 
 /*
 
-1 \textit{}
+1 \textit{DBServiceConnector}
 
-\textit{DBService}
-TODO
+The \textit{DBServiceConnector} is the central component of the system which
+shall be equipped with fault-tolerant query execution. The
+\textit{DBServiceConnector} is the single point of entry for all operators
+which need access to the \textit{DBService}.
 
 */
 
@@ -51,7 +53,15 @@ class DBServiceConnector {
 public:
 
 /*
-1.1 getInstance
+
+1.1 Function Definitions
+
+The \textit{DBServiceConnector} provides several member functions of which each
+covers a scenario where an operator needs to access \textit{DBService}
+functionality.
+
+
+1.1.1 getInstance
 
 Returns the DBServiceConnector instance (singleton).
 
@@ -59,53 +69,108 @@ Returns the DBServiceConnector instance (singleton).
     static DBServiceConnector* getInstance();
 
 /*
-1.2 replicateRelation
+1.1.1 \textit{triggerReplication}
 
-//TODO
+This function needs to be called if a relation shall be replicated.
 
 */
     bool triggerReplication(
             const std::string& databaseName,
             const std::string& relationName);
 
-    bool getReplicaLocation(
-            const std::string& databaseName,
-            const std::string& relationName,
-            std::string& host,
-            std::string& transferPort);
 
+/*
+1.1.1 \textit{retrieveReplicaAndGetFileName}
+
+This function triggers the transfer of a file containing the replica of the
+specified relation and returns the file name to the caller. The file name can
+then be used to read a tuple stream from the file.
+
+*/
     std::string retrieveReplicaAndGetFileName(
             const std::string& databaseName,
             const std::string& relationName,
             const std::string&
             functionAsNestedListString);
 
+/*
+1.1.1 \textit{deleteReplicas}
+
+In case a relation is deleted locally, its replicas are also not longer needed.
+This function triggers the deletion of the replicas as well as the removal of
+all metadata related to this relation on the \textit{DBService} master node.
+
+*/
     bool deleteReplicas(
             const std::string& databaseName,
             const std::string& relationName);
 
-protected:
+private:
 /*
-1.2 Constructor
-
-Creates a new DBServiceConnector instance.
+1.1.1 Constructor
 
 */
     DBServiceConnector();
 
 /*
-1.3 Destructor
-
-Deletes existing DBServiceConnector instance.
+1.1.1 Destructor
 
 */
     ~DBServiceConnector();
 
-private:
+/*
+1.1.1 \textit{startReplicationServer}
+
+This function is called by the constructor and starts a
+\textit{ReplicationServer} on the current node.
+
+*/
     void startReplicationServer();
 
+/*
+1.1.1 \textit{getReplicaLocation}
+
+This function retrieves one of the replica locations of a relation from the
+\textit{DBService} master. It is only called internally by the
+\textit{retrieveReplicaAndGetFileName} function.
+
+*/
+    bool getReplicaLocation(
+            const std::string& databaseName,
+            const std::string& relationName,
+            std::string& host,
+            std::string& transferPort);
+
+/*
+
+1.1 Member Definitions
+
+The \textit{DBServiceConnector} has some members that store information which
+is important for its functionality.
+
+1.1.1 \textit{dbServiceHost}
+
+Hostname of the node on which the \textit{DBService} master resides.
+
+*/
     std::string dbServiceHost;
+
+/*
+
+1.1.1 \textit{dbServicePort}
+
+Port of the \textit{CommunicationServer} on the \textit{DBService} master node.
+
+*/
     std::string dbServicePort;
+
+/*
+
+1.1.1 \textit{\_instance}
+
+Pointer to the \textit{DBServiceConnector} instance (singleton).
+
+*/
     static DBServiceConnector* _instance;
 };
 
