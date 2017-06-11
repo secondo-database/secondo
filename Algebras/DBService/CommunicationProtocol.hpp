@@ -33,28 +33,39 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace DBService {
 
+/*
+1 \textit{CommunicationProtocol}
+
+The \textit{CommunicationProtocol} defines the keywords that are used for the
+communication between the \textit{CommunicationClient} and the
+\textit{CommunicationServer}. Furthermore, also the keywords for the
+communication between the \textit{ReplicationClient} and the
+\textit{ReplicationServer} are defined by the \textit{CommunicationProtocol}.
+
+*/
+
 class CommunicationProtocol {
 public:
-    static std::string CommunicationServer();
     static std::string CommunicationClient();
-    static std::string ReplicationCanceled();
-    static std::string ReplicationTriggered();
+    static std::string CommunicationServer();
+    static std::string DeleteReplicaRequest();
     static std::string LocationRequest();
-    static std::string RelationRequest();
-    static std::string ReplicaLocationRequest();
-    static std::string ReplicationServer();
-    static std::string ReplicationClient();
-    static std::string ReplicationClientRequest();
-    static std::string TriggerReplication();
-    static std::string TriggerFileTransfer();
-    static std::string ReplicationDetailsRequest();
-    static std::string SendReplicaForStorage();
-    static std::string SendReplicaForUsage();
     static std::string FunctionRequest();
     static std::string None();
+    static std::string RelationRequest();
+    static std::string ReplicaLocationRequest();
+    static std::string ReplicationCanceled();
+    static std::string ReplicationClient();
+    static std::string ReplicationClientRequest();
+    static std::string ReplicationDetailsRequest();
+    static std::string ReplicationServer();
     static std::string ReplicationSuccessful();
-    static std::string DeleteReplicaRequest();
+    static std::string ReplicationTriggered();
+    static std::string SendReplicaForStorage();
+    static std::string SendReplicaForUsage();
+    static std::string TriggerFileTransfer();
     static std::string TriggerReplicaDeletion();
+    static std::string TriggerReplication();
 };
 
 } /* namespace DBService */
