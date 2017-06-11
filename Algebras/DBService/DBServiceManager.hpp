@@ -44,10 +44,12 @@ namespace DBService
 
 /*
 
-1 \textit{}
+1 \textit{DBServiceManager}
 
-\textit{DBService}
-TODO
+The \textit{DBServiceManager} is the central component of the
+\textit{DBService} system. It is involved by the \textit{CommunicationServer}
+on the \textit{DBService} master node in order to coordinate the execution of
+all \textit{DBService} functionality.
 
 */
 
@@ -56,7 +58,12 @@ class DBServiceManager
 public:
 
 /*
-1.1 getInstance
+1.1 Function Definitions
+
+The \textit{DBServiceManager} provides several member functions that help
+realizing the necessary functionality.
+
+1.1.1 getInstance
 
 Returns the DBServiceManager instance (singleton).
 
@@ -64,18 +71,10 @@ Returns the DBServiceManager instance (singleton).
     static DBServiceManager* getInstance();
 
 /*
-1.1 getNodes
 
-Returns pointers to the selected alternative storage locations
-when provided with a node.
+1.1.1 \textit{addNode}
 
-*/
-    void getNodes();
-
-/*
-1.2 addNode
-
-Adds a node to the connection manager's pool that can be used for
+This function adds a node to the connection manager's pool that can be used for
 storing relation replicas.
 
 */
@@ -83,78 +82,250 @@ storing relation replicas.
                  const int port,
                  std::string config);
 
-
 /*
-1.2 getConnection
 
-//TODO
+1.1.1 \textit{getConnection}
+
+This function returns a pointer to the \textit{ConnectionInfo} object identified
+by the specified \textit{ConnectionID}.
 
 */
     distributed2::ConnectionInfo* getConnection(ConnectionID id);
 
+/*
+
+1.1.1 \textit{getLocation}
+
+This function returns a reference to the \textit{LocationInfo} object identified
+by the specified \textit{ConnectionID}.
+
+*/
     LocationInfo& getLocation(ConnectionID id);
 
+/*
+
+1.1.1 \textit{getRelationInfo}
+
+This function returns a reference to the \textit{RelationInfo} object identified
+by the specified string.
+
+*/
     RelationInfo& getRelationInfo(const std::string& relationAsString);
 
-    void determineReplicaLocations(const std::string& databaseName,
+/*
+
+1.1.1 \textit{determineReplicaLocations}
+
+This function determines the replica locations for a certain relation and is
+therefore provided with the name of the database and relation as well as all
+relevant information on the original location.
+
+*/
+    void determineReplicaLocations(
+            const std::string& databaseName,
             const std::string& relationName,
             const std::string& host,
             const std::string& port,
             const std::string& disk);
-    void persistReplicaLocations(const std::string& databaseName,
+
+/*
+
+1.1.1 \textit{persistReplicaLocations}
+
+This function persists the identified replica locations in case the replication
+shall be executed. It triggers storing them in a persistent SECONDO table
+as well as adding them to internal data structures.
+
+*/
+    void persistReplicaLocations(
+            const std::string& databaseName,
             const std::string& relationName);
+
+/*
+
+1.1.1 \textit{getReplicaLocations}
+
+This function retrieves all replica locations of the relation identified by the
+given string and stores them in the provided vector.
+
+*/
     void getReplicaLocations(const std::string& relationAsString,
                              std::vector<std::pair<ConnectionID, bool> >& ids);
+
+/*
+
+1.1.1 \textit{deleteReplicaLocations}
+
+This function deletes the replica information of the specified relation from
+the internal data structures.
+
+*/
     void deleteReplicaLocations(const std::string& databaseName,
                                 const std::string& relationName);
+
+/*
+
+1.1.1 \textit{maintainSuccessfulReplication}
+
+This function updates the internal data structures after a successful
+replication has been reported. It also triggers updating the persistent metadata
+relations accordingly.
+
+*/
     void maintainSuccessfulReplication(
             const std::string& relID,
             const std::string& replicaLocationHost,
             const std::string& replicaLocationPort);
-    void deleteReplicaMetadata(const std::string& relID);
 
-protected:
 /*
-1.2 Constructor
 
-Creates a new DBServiceManager instance.
+1.1.1 \textit{}
+
+This function removes the metadata of a certain relation from the internal data
+structures and from the persistent metadata relations.
 
 */
-    DBServiceManager();
-/*
-1.3 Copy Constructor
+    void deleteReplicaMetadata(const std::string& relID);
 
-Does not do anything.
+/*
+1.1.1 Constructor
+
+*/
+private:
+    DBServiceManager();
+
+/*
+1.1.1 Copy Constructor
 
 */
     DBServiceManager(const DBServiceManager&)
     {}
 
 /*
-1.3 Destructor
+1.1.1 Destructor
 
 Deletes existing DBServiceManager instance.
 
 */
     ~DBServiceManager();
 
-private:
+/*
+
+1.1.1 \textit{getNextFreeConnectionID}
+
+This function determines the next free \textit{ConnectionID} which is used as
+unique identifier of connections.
+
+*/
     ConnectionID getNextFreeConnectionID();
+
+/*
+
+1.1.1 \textit{getWorkerNodesForReplication}
+
+This function adds the specified number of replicas to the given vector.
+
+*/
     void getWorkerNodesForReplication(std::vector<
                                       ConnectionID>& nodes);
+
+/*
+
+1.1.1 \textit{startServersOnWorker}
+
+This function triggers the startup of one \textit{CommunicationServer} and one
+\textit{ReplicationServer} on the node that is addressed by the specified
+\textit{ConnectionInfo}.
+
+*/
     bool startServersOnWorker(distributed2::ConnectionInfo* connectionInfo);
+
+/*
+
+1.1.1 \textit{getConfigParamFromWorker}
+
+This function retrieves information from the workers that is only stored in
+their local configuration files.
+
+*/
     bool getConfigParamFromWorker(std::string& dir,
             distributed2::ConnectionInfo* connectionInfo, const char* section,
             const char* key);
-    ConnectionID determineReplicaLocation();
-    void restoreConfiguration();
-    void restoreReplicaInformation();
 
+/*
+
+1.1.1 \textit{determineReplicaLocation}
+
+This function determines one single replica location and returns the
+corresponding \textit{ConnectionID}.
+
+*/
+    ConnectionID determineReplicaLocation();
+
+/*
+
+1.1.1 \textit{restoreConfiguration}
+
+On \textit{DBServiceManager} instantiation, this function restores the
+connections from the persistent relation in case it exists. It reopens all
+available connections.
+
+*/
+    void restoreConfiguration();
+
+/*
+
+1.1.1 \textit{restoreReplicaInformation}
+
+On \textit{DBServiceManager} instantiation, this function restores all replica
+information from the persistent relations in case they exist.
+
+*/
+    void restoreReplicaInformation();
+/*
+
+1.1 Member Definitions
+
+The \textit{DBServiceManager} has some members that store information which
+is important for its functionality.
+
+1.1.1 \textit{\_instance}
+
+Pointer to the \textit{DBServiceManager} instance (singleton).
+
+*/
     static DBServiceManager* _instance;
+
+/*
+
+1.1.1 \textit{connections}
+
+This member maps a \textit{ConnectionID} to a pair that contains the
+corresponding \textit{LocationInfo} and \textit{ConnectionInfo}.
+
+*/
     std::map<ConnectionID,
                     std::pair<LocationInfo,
                               distributed2::ConnectionInfo*> > connections;
+
+/*
+
+1.1.1 \textit{relations}
+
+This member maps a relation identifier to the corresponding
+\textit{RelationInfo} object.
+
+*/
     std::map<std::string, RelationInfo> relations;
+
+/*
+
+1.1.1 \textit{replicaCount}
+
+This member stores the target number of replicas that is read from the
+configuration file.
+
+*/
     size_t replicaCount;
 
 };
