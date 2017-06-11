@@ -35,10 +35,11 @@ namespace DBService {
 
 /*
 
-1 \textit{}
+1 \textit{CommunicationUtils}
 
 \textit{DBService}
-TODO
+The \textit{CommunicationUtils} provide functions to send and receive messages
+using an \textit{std::iostream}.
 
 */
 
@@ -47,24 +48,76 @@ class CommunicationUtils
 public:
 /*
 
-1.1 \textit{}
+1.1 \textit{receivedExpectedLine}
 
-TODO
+This function checks whether an expected line was received on a specified
+stream.
 
 */
     static bool receivedExpectedLine(std::iostream& io,
             const std::string& expectedLine);
+
+/*
+
+1.1 \textit{receivedExpectedLines}
+
+This function checks whether the expected lines were received on a specified
+stream.
+
+*/
     static bool receivedExpectedLines(std::iostream& io,
             std::queue<std::string>& expectedLines);
+
+/*
+
+1.1 \textit{receiveLine}
+
+This function stores a received line in the specified string object.
+
+*/
     static void receiveLine(std::iostream& io,
             std::string& line);
+
+/*
+
+1.1 \textit{receiveLines}
+
+This function stores the specified numbers of received lines in the specified
+queue of string objects.
+
+*/
     static void receiveLines(std::iostream& io,
             const size_t count,
             std::queue<std::string>& lines);
+
+/*
+
+1.1 \textit{sendLine}
+
+This function writes the specified message into the stream.
+
+*/
     static void sendLine(std::iostream& io,
             const std::string& line);
+
+/*
+
+1.1 \textit{sendBatch}
+
+This function writes the specified queue of messages into the stream.
+
+*/
     static void sendBatch(std::iostream& io,
             std::queue<std::string>& lines);
+
+/*
+
+1.1 \textit{streamStatusOk}
+
+This function checks whether the stream is in any kind of error state which
+would lead to crashes if we use it for sending or receiving messages.
+
+*/
 protected:
     static bool streamStatusOk(std::iostream& io);
 };
