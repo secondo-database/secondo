@@ -35,20 +35,159 @@ class Socket;
 
 namespace DBService {
 
+/*
+
+1 \textit{CommunicationServer}
+
+The \textit{CommunicationServer} is the counterpart of the
+\textit{CommunicationClient}. Whenever communication associated with the
+ \textit{DBService's} functionality takes place,
+ the \textit{CommunicationServer} is contacted by a
+ \textit{CommunicationClient}.
+ The \textit{CommunicationServer} is deducted from the more generic class
+ \textit{Server} of the \textit{Distributed2Algebra} which had to be extracted
+ from the \textit{FileTransferServer} for this purpose. The second superclass
+ of the \textit{CommunicationServer} is \textit{MultiClientServer}, as we only
+ want to have one \textit{CommunicationServer} per node which is able to handle
+ multiple client requests.
+
+*/
+
 class CommunicationServer: public MultiClientServer {
+
+/*
+
+1.1 Function Definitions
+
+The \textit{CommunicationServer} provides several member functions that cover
+the different \textit{DBService} communication scenarios initiated by the
+\textit{CommunicationClient}.
+
+*/
 public:
+/*
+
+1.1.1 Constructor
+
+*/
     explicit CommunicationServer(int port);
+/*
+
+1.1.1 Destructor
+
+*/
     virtual ~CommunicationServer();
+
+/*
+
+1.1.1 \textit{communicate}
+
+This function is called as soon as an incoming connection from a
+\textit{CommunicationClient} is detected. Based on the used keywords, it decides
+which function shall be executed.
+
+*/
 protected:
     int communicate(std::iostream& io);
+/*
+
+1.1.1 \textit{handleTriggerReplicationRequest}
+
+This function is executed when a \textit{CommunicationClient} on the original
+node of a relation requests its replication. The \textit{DBServiceManager} on
+the \textit{DBService} master node is contacted in order to determine suitable
+replica locations and if a sufficient number of worker nodes is available, the
+replication is triggered.
+
+*/
     bool handleTriggerReplicationRequest(std::iostream& io);
+
+/*
+
+1.1.1 \textit{handleTriggerFileTransferRequest}
+
+This function is executed when a \textit{CommunicationClient} residing on the
+ \textit{DBService} master node requests triggering the file transfer between
+ the \textit{DBService} worker node and the original node.
+ A \textit{ReplicationClient} is instantiated that connects to the
+ \textit{ReplicationServer} on the original node in order to request the file
+ transfer.
+
+*/
     bool handleTriggerFileTransferRequest(std::iostream& io);
+
+/*
+
+1.1.1 \textit{handleProvideReplicaLocationRequest}
+
+This function retrieves one of the replica locations from the
+\textit{DBServiceManager} on the \textit{DBService} master node and provides
+it to the connected \textit{CommunicationClient}.
+
+*/
     bool handleProvideReplicaLocationRequest(std::iostream& io);
+
+/*
+
+1.1.1 \textit{reportSuccessfulReplication}
+
+This function notifies the \textit{DBServiceManager} on the \textit{DBService}
+master node so that the successful replication can be maintained in the
+corresponding mapping table.
+
+*/
     bool reportSuccessfulReplication(std::iostream& io);
+
+/*
+
+1.1.1 \textit{handleRequestReplicaDeletion}
+
+This function retrieves all replica locations from the
+\textit{DBServiceManager} on the \textit{DBService} master node and initializes
+one \textit{CommunicationClient} for each worker node which triggers the
+deletion of the replica.
+
+*/
     bool handleRequestReplicaDeletion(std::iostream& io);
+
+/*
+
+1.1.1 \textit{handleTriggerReplicaDeletion}
+
+This function triggers the deletion of a certain replica on the
+\textit{DBService} worker node where the \textit{CommunicationServer} is
+running.
+
+*/
     bool handleTriggerReplicaDeletion(std::iostream& io);
+
+/*
+
+1.1.1 \textit{lookupMinimumReplicaCount}
+
+This function retrieves the minimum number of replicas from the configuration
+file and stores it in the corresponding member variable.
+
+*/
 private:
     void lookupMinimumReplicaCount();
+/*
+
+1.1 Member Definitions
+
+The constructor arguments are all passed on to the superclass, therefore the
+\textit{CommunicationServer} class only has one member.
+
+1.1.1 \textit{minimumReplicaCount}
+
+One configuration parameter of the \textit{DBService} is the number of replicas
+that shall be available for each relation. As it does not make sense to read
+this information from the configuration file again every time a relation shall
+be replicated, each \textit{CommunicationServer} looks it up once during
+initialization. However, it is actually only used on the \textit{DBService}
+master node.
+
+*/
     int minimumReplicaCount;
 };
 
