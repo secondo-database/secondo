@@ -43,46 +43,163 @@ namespace DBService {
 
 /*
 
-1 \textit{}
+1 \textit{DBServicePersistenceAccessor}
 
-\textit{DBService}
-TODO
+The \textit{DBServicePersistenceAccessor} is the interface towards the
+\textit{DBService's} persistant storage in SECONDO relations. It exposes
+functions to create relations as well as inserting, updating and deleting
+tuples.
 
 */
 
 class DBServicePersistenceAccessor {
+
+/*
+
+1.1 \textit{persistLocationInfo}
+
+This function persists the provided \textit{ConnectionID} and the corresponding
+\textit{LocationInfo} object into the respective SECONDO relation.
+
+*/
 public:
     static bool persistLocationInfo(
             ConnectionID connID, LocationInfo& locationInfo);
+
+/*
+
+1.1 \textit{persistRelationInfo}
+
+This function persists the provided \textit{RelationInfo} object into the
+respective SECONDO relation.
+
+*/
     static bool persistRelationInfo(
             RelationInfo& relationInfo);
 
+/*
+
+1.1 \textit{restoreLocationInfo}
+
+This function restores the persisted \textit{ConnectionIDs} and their
+corresponding \textit{LocationInfo} objects from the respective SECONDO
+relation.
+
+*/
     static bool restoreLocationInfo(
             std::map<ConnectionID, LocationInfo>& locations);
 
+/*
+
+1.1 \textit{restoreRelationInfo}
+
+This function restores the persisted \textit{RelationInfo} objects from the
+respective SECONDO relation.
+
+*/
     static bool restoreRelationInfo(
             std::map<std::string, RelationInfo>& relations);
+
+/*
+
+1.1 \textit{restoreLocationMapping}
+
+This function restores the mapping of relation to location from the respective
+SECONDO relation.
+
+*/
     static bool restoreLocationMapping(
             std::queue<std::pair<std::string, ConnectionID> >& mapping);
+
+/*
+
+1.1 \textit{updateLocationMapping}
+
+This function updates the replication status flag of the mapping of relation to
+location in the respective SECONDO relation.
+
+*/
     static bool updateLocationMapping(
             std::string relationID,
             ConnectionID connID,
             bool replicated);
+
+/*
+
+1.1 \textit{deleteRelationInfo}
+
+This function deletes a persisted \textit{RelationInfo} object and also triggers
+the deletion of the corresponding location mapping.
+
+*/
     static bool deleteRelationInfo(RelationInfo& relationInfo);
 private:
+
+/*
+
+1.1 \textit{persistLocationMapping}
+
+This function persists the mapping of a relation to its replica locations.
+
+*/
     static bool persistLocationMapping(
             std::string relationID,
             std::map<ConnectionID, bool>::const_iterator nodesBegin,
             std::map<ConnectionID, bool>::const_iterator nodesEnd);
+
+/*
+
+1.1 \textit{createOrInsert}
+
+This function creates a relation or inserts the specified tuple if the relation
+already exists.
+
+*/
     static bool createOrInsert(
             const std::string& relationName,
             const RelationDefinition& rel,
             const std::vector<std::string>& values);
+
+/*
+
+1.1 \textit{deleteLocationMapping}
+
+This function deletes the mapping of relation to location for a specified
+relation identifier and a given range of connections.
+
+*/
     static bool deleteLocationMapping(std::string relationID,
             std::map<ConnectionID, bool>::const_iterator nodesBegin,
             std::map<ConnectionID, bool>::const_iterator nodesEnd);
+
+/*
+
+1.1 \textit{locations}
+
+This member specifies the attributes of the SECONDO relation that is used for
+persisting the \textit{DBService} worker node locations.
+
+*/
     static RelationDefinition locations;
+
+/*
+
+1.1 \textit{relations}
+
+This member specifies the attributes of the SECONDO relation that is used for
+persisting \textit{RelationInfo} objects.
+
+*/
     static RelationDefinition relations;
+
+/*
+
+1.1 \textit{mapping}
+
+This member specifies the attributes of the SECONDO relation that is used for
+persisting the mapping of relations to locations.
+
+*/
     static RelationDefinition mapping;
 };
 
