@@ -38,10 +38,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /*
 
-1 \textit{}
+1 \textit{DebugOutput}
 
-\textit{DBService}
-TODO
+This is a collection of print functions in order to simplify error analysis.
 
 */
 
