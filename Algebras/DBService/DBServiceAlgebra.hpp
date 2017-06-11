@@ -39,6 +39,15 @@ extern QueryProcessor* qp;
 namespace DBService
 {
 
+/*
+
+1 \textit{}
+
+\textit{DBService}
+TODO
+
+*/
+
 class DBServiceAlgebra: public Algebra
 {
 public:

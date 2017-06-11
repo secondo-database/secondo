@@ -33,9 +33,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace DBService {
 
+/*
+
+1 \textit{}
+
+\textit{DBService}
+TODO
+
+*/
+
 class CommunicationUtils
 {
 public:
+/*
+
+1.1 \textit{}
+
+TODO
+
+*/
     static bool receivedExpectedLine(std::iostream& io,
             const std::string& expectedLine);
     static bool receivedExpectedLines(std::iostream& io,

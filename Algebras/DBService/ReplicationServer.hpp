@@ -37,6 +37,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace DBService {
 
+/*
+
+1 \textit{}
+
+\textit{DBService}
+TODO
+
+*/
+
 class ReplicationServer: public MultiClientServer,
                                 distributed2::FileTransferServer {
 public:

@@ -46,6 +46,15 @@ class Socket;
 
 namespace DBService {
 
+/*
+
+1 \textit{}
+
+\textit{DBService}
+TODO
+
+*/
+
 class MultiClientServer : public distributed2::Server {
 public:
     explicit MultiClientServer(int port);
