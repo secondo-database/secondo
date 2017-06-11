@@ -41,20 +41,38 @@ namespace DBService
 
 /*
 
-1 \textit{}
+1 \textit{DBServiceAlgebra}
 
-\textit{DBService}
-TODO
+The \textit{DBServiceAlgebra} registers the \textit{DBService} functionality
+with the \textit{AlgebraManager}.
 
 */
 
 class DBServiceAlgebra: public Algebra
 {
 public:
+
+/*
+
+1.1 \textit{Constructor}
+
+The constructor adds the implemented operators to the \textit{DBServiceAlgebra}
+so that they can be recognized by the \textit{QueryProcessor}.
+
+*/
     DBServiceAlgebra();
 };
 
 } /* namespace DBService */
+
+/*
+
+1.1 \textit{InitializeDBServiceAlgebra}
+
+This function initializes the \textit{DBServiceAlgebra} so that it can expose
+its functionality to the SECONDO system.
+
+*/
 
 extern "C" Algebra*
 InitializeDBServiceAlgebra(NestedList* nlRef, QueryProcessor* qpRef)
