@@ -1091,6 +1091,14 @@ void Tuple::InitializeSomeAttributes( SmiFileId fileId,
     }
 
     SHOW( attributes[i]->IsDefined() )
+    // create uncontrollable Flobs
+    for(int k=0; k< attributes[i]->NumOfFLOBs();k++){
+      Flob* flob = attributes[i]->GetFLOB(k);
+      if(flob->getSize() < extensionLimit){
+         Flob::createFromBlock(*flob, src + flob->getOffset(),
+                               flob->getSize(), true);
+      }
+    }
 
     // Call the Initialize function for every attribute
     // and initialize the reference counter
