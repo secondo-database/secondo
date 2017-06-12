@@ -6,6 +6,7 @@ This file contains functions for random text generation.
 */   
 
 #include "math.h"
+#include <string>
 
 
 /*
@@ -14,9 +15,9 @@ Creates a random string of length ~l~. Possible characters are
 
 */
 
-string randomText(int l)
+std::string randomText(int l)
 {
-  string s;
+  std::string s;
 
   for (int j = 0; j < l; j++) 
   { 
