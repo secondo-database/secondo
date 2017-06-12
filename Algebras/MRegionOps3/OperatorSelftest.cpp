@@ -120,7 +120,8 @@ namespace temporalalgebra {
         
         SegmentTest();
     
-        ResultPfaceFactoryTest1();
+        // ResultPfaceFactoryTest1();
+        SourceUnitTest4();
         
         
         cerr << endl;
@@ -1754,6 +1755,43 @@ namespace temporalalgebra {
         cout << points << endl;
         cout << result << endl;
       }// ResultPfaceFactoryTest1
+      
+      void SourceUnitTest4(){
+        SourceUnit sourceUnit1,sourceUnit2;
+        GlobalTimeValues timeValues;
+        // points from unit 1 
+        Point3D point0(2,1,0);
+        Point3D point1(5,1,0);         
+        Point3D point2(3.5,4,0);
+        Point3D point3(2,1,5);
+        Point3D point4(5,1,5);         
+        Point3D point5(3.5,4,5);
+        // points from pface 2
+        Point3D point6(6,1,0);
+        Point3D point7(9,1,0);         
+        Point3D point8(7.5,4,0);
+        Point3D point9(0,4,5);
+        Point3D point10(3,4,5);         
+        Point3D point11(1.5,7,5);
+        // add pfaces to unit 1 
+        sourceUnit1.addPFace(point4,point3,point1,point0);
+        sourceUnit1.addPFace(point5,point4,point2,point1);
+        sourceUnit1.addPFace(point3,point5,point0,point2);
+        // add pfaces to unit 2
+        sourceUnit2.addPFace(point10,point9,point7,point6);
+        sourceUnit2.addPFace(point11,point10,point8,point7);
+        sourceUnit2.addPFace(point9,point11,point6,point8);
+        // intersection
+        sourceUnit1.intersection(sourceUnit2,timeValues); 
+        ContainerPoint3D points;
+        sourceUnit1.createResultPfaces(points,timeValues);
+        cout << points;
+        
+        // cout << setprecision(9);
+        // cout << sourceUnit1 << endl;
+        // cout << sourceUnit2 << endl;
+        // cout << timeValues << endl;
+      }// SourceUnitTest4
       
       
       int numberOfTestsRun;

@@ -711,6 +711,18 @@ Computes the intersection of this ~PFace~ with pf.
 
 */        
       bool operator ==(const PFace& pf)const;
+/*
+14.3.10 first
+    
+*/       
+      void first(double t, std::list<IntersectionSegment>& result, 
+                           std::list<IntersectionSegment>& resultOrth);
+/*
+14.3.11 next
+    
+*/         
+      void next(double t, std::list<IntersectionSegment>& result,
+                          std::list<IntersectionSegment>& resultOrthogonal);
     private:  
 /*
 14.4 Private methods

@@ -83,10 +83,15 @@ namespace temporalalgebra {
     Predicate Segment::getPredicate() const{
       return this->predicate;
     }// getPredicate
+    
+    void Segment::setPredicate(Predicate predicate){
+      this->predicate = predicate;
+    }// setPredicate
 
     std::ostream& operator <<(std::ostream& os, const Segment& segment){
       os << "Segment (" << segment.getTail() << ", " << segment.getHead();
-      os << ", " << IntersectionSegment::toString(segment.getPredicate()) <<")";
+      os << ", ";
+      os << IntersectionSegment::toString(segment.getPredicate()) <<")";
       return os;
     }// operator <<
 
@@ -107,36 +112,198 @@ namespace temporalalgebra {
 */  
     ResultPfaceFactory::ResultPfaceFactory(
         ContainerPoint3D& points,
-        GlobalTimeValues &timeValues1,
-        IntSegContainer &container1){
-      size_t size = timeValues1.size()-1;
-      for(size_t i = 0; i < size; i++){
-        this->edge.push_back(vector<Segment>());
-        this->orthogonal.push_back(vector<Segment>());
-      }// for
-      list<IntersectionSegment> result,resultOrthogonal;
-      list<IntersectionSegment>::iterator iter;
+        GlobalTimeValues &timeValues,
+        IntSegContainer &container){
+      size_t size      = timeValues.size();
+      this->edges      = vector<list<Segment>>(size-1,list<Segment>());
+      this->orthogonal = vector<list<Segment>>(size,list<Segment>());
+      this->touch      = vector<size_t>(size,0);
+      list<IntersectionSegment> resultEdges,resultOrthogonal;
+      vector<list<Segment>>::iterator edgeIter, orthogonalIter;
+      edgeIter         = edges.begin();
+      orthogonalIter   = orthogonal.begin();
       double t1,t2;
-      size_t i = 0;
-      if (timeValues1.first(t1)){                     
-        container1.first(t1,result,resultOrthogonal);
-        while(timeValues1.next(t2)){
-          edge[i] = vector<Segment>();
-          orthogonal[i] = vector<Segment>(); 
-          for(iter = result.begin();
-              iter != result.end(); iter++){
-            edge[i].push_back(createEdge(points,*iter,t1,t2));
-          }// for
-          for(iter = resultOrthogonal.begin(); 
-              iter != resultOrthogonal.end(); iter++){
-            orthogonal[i].push_back(createEdge(points,*iter,t1,t2));
-          }// for
-          i++;
+      if (timeValues.first(t1)){                     
+        container.first(t1,resultEdges,resultOrthogonal);
+        while(timeValues.next(t2)){
+          computeSegments(points, *edgeIter, t1, t2, resultEdges);
+          computeSegments(points, *orthogonalIter, t1, t2, resultOrthogonal);
+          edgeIter++;
+          orthogonalIter++;
           t1 = t2;
-          container1.next(t1,result,resultOrthogonal);
+          container.next(t1,resultEdges,resultOrthogonal);
         }// while
-      }// if                          
+        computeSegments(points, *orthogonalIter, t1, t2, resultOrthogonal);
+      }// if 
     }// Konstruktor
+    
+    ResultPfaceFactory::ResultPfaceFactory(
+        ContainerPoint3D& points,
+        GlobalTimeValues &timeValues,
+        PFace &pface){
+      size_t size      = timeValues.size();
+      this->edges      = vector<list<Segment>>(size-1,list<Segment>());
+      this->orthogonal = vector<list<Segment>>(size,list<Segment>());
+      this->touch      = vector<size_t>(size,0);
+      list<IntersectionSegment> resultEdges,resultOrthogonal;
+      vector<list<Segment>>::iterator edgeIter, orthogonalIter;
+      edgeIter         = edges.begin();
+      orthogonalIter   = orthogonal.begin();
+      double t1,t2;
+      if (timeValues.first(t1)){                     
+        pface.first(t1,resultEdges,resultOrthogonal);
+        while(timeValues.next(t2)){
+          computeSegments(points, *edgeIter, t1, t2, resultEdges);
+          computeSegments(points, *orthogonalIter, t1, t2, resultOrthogonal);
+          edgeIter++;
+          orthogonalIter++;
+          t1 = t2;
+          pface.next(t1,resultEdges,resultOrthogonal);
+        }// while
+        computeSegments(points, *orthogonalIter, t1, t2, resultOrthogonal); 
+      }// if  
+    }// Konstruktor
+    
+    void ResultPfaceFactory::evaluate(){
+      vector<list<Segment>>::iterator edgeIter, orthogonalIter;
+      vector<size_t>::iterator touchIter;
+      orthogonalIter = orthogonal.begin();
+      touchIter      = touch.begin();        
+      for( edgeIter  = edges.begin(); edgeIter != edges.end(); edgeIter++){
+        evaluate(edgeIter, orthogonalIter, touchIter);
+        orthogonalIter++;
+        touchIter++;
+      }// for
+    }// evaluate
+      
+    void ResultPfaceFactory::evaluate(
+        vector<list<Segment>>::iterator edgeIter, 
+        vector<list<Segment>>::iterator orthogonalIter,
+        vector<size_t>::iterator touchIter){                
+      list<Segment>::iterator first, predecessor, successor;
+      list<Segment>::iterator segment;
+      if(edgeIter->size() < 2) return;
+      first = edgeIter->begin();
+      successor = predecessor = first;    
+      for(successor++; successor != edgeIter->end(); successor++){
+        Predicate predicate = UNDEFINED;
+        checkPredicate(*predecessor,LEFT,predicate); 
+        checkPredicate(*successor,RIGHT,predicate);        
+        if(first->getTail() == successor->getTail()) (*touchIter)++;
+        if(first->getHead() == successor->getHead()) (*(touchIter + 1))++;
+        if(predicate == UNDEFINED){
+          // check bottom
+          for(segment  = orthogonalIter->begin(); 
+              segment != orthogonalIter->end(); 
+              segment ++){  
+            if(predecessor->getTail() == segment->getTail() && 
+               successor->getTail()   == segment->getHead()){
+              // cout << "Bottom" <<endl;
+              checkPredicate(*segment,RIGHT,predicate); 
+              break;
+            }// if
+          }// for
+          // check top
+          for(segment  = (orthogonalIter + 1)->begin(); 
+              segment != (orthogonalIter + 1)->end(); 
+              segment ++){ 
+            if(predecessor->getHead() == segment->getTail() && 
+               successor->getHead() == segment->getHead()){
+              // cout << "Top" <<endl;
+             checkPredicate(*segment,LEFT,predicate);
+             break;
+           }// if
+          }// for
+        }// if
+        setPredicate(*predecessor, predicate);
+        setPredicate(*successor, predicate);
+        predecessor = successor; 
+      }// for
+      for(segment  = orthogonalIter->begin(); 
+          segment != orthogonalIter->end(); 
+          segment ++){ 
+        if(first->getTail() == segment->getTail()) (*touchIter)++;
+        if(first->getHead() == segment->getTail()) (*(touchIter + 1))++;
+      }// for   
+    }// evaluate   
+    
+    void ResultPfaceFactory::setPredicate(Segment& segment, 
+                                          Predicate& predicate)const{
+       if(segment.getPredicate() == UNDEFINED) 
+          segment.setPredicate(predicate);
+    }// setPredicate
+          
+    void ResultPfaceFactory::checkPredicate(const Segment& segment,
+                                            const Border border, 
+                                            Predicate& result)const{
+      Predicate predicate = UNDEFINED;
+      switch(segment.getPredicate()){        
+        case INSIDE:         predicate = INSIDE;  
+                             break;                          
+        case OUTSIDE:        predicate = OUTSIDE;
+                             break;
+        case LEFT_IS_INNER:  if(border == LEFT) predicate = OUTSIDE;
+                             else predicate = INSIDE;
+                             break;    
+        case RIGHT_IS_INNER: if(border == LEFT) predicate = INSIDE;
+                             else predicate = OUTSIDE;
+                             break;     
+        default:             return;           
+      }// switch
+      if(result == UNDEFINED) result = predicate;
+      else if (!(result == predicate)) {
+        cout << "Error "  << endl;
+      }// else if 
+    }// checkPredicate
+    
+    void ResultPfaceFactory::computeSegments(
+        ContainerPoint3D& points, list<Segment>& edges,
+        double t1, double t2,
+        const list<IntersectionSegment>& segments){
+      list<IntersectionSegment>::const_iterator iter; 
+      Segment predecessor;
+      for(iter = segments.begin(); iter != segments.end(); iter++){
+        Segment segment = createEdge(points,*iter,t1,t2);
+        if(edges.size() == 0 || checkSegment(predecessor, segment)){
+          edges.push_back(segment);
+          predecessor = edges.back(); 
+        }// if
+//        else {
+//           if(checkSegment(*predecessor, segment)){
+//             edges.push_back(segment);
+//             predecessor = edges.end()-1; 
+//           }// if
+//           // existiert das Segment bereits
+//         }// else
+      }// for
+    }// computeSegments
+    
+    bool ResultPfaceFactory::checkSegment(Segment& predecessor,
+                                          const Segment& segment)const {
+      if(segment.getTail() == predecessor.getTail() &&
+         segment.getHead() == predecessor.getHead()){
+        Predicate predicate1 = predecessor.getPredicate();
+        Predicate predicate2 = segment.getPredicate(); 
+        if(predicate1 == UNDEFINED){
+          if (predicate2 == LEFT_IS_INNER || predicate2 == RIGHT_IS_INNER){
+            predecessor.setPredicate(predicate2);
+            return false;
+          }// if
+          if (predicate2 == UNDEFINED) return false;
+        }// if
+        else if( predicate1 == LEFT_IS_INNER &&
+                (predicate2 == LEFT_IS_INNER ||
+                 predicate2 == UNDEFINED)) return false;
+        else if( predicate1 == RIGHT_IS_INNER &&
+                (predicate2 == RIGHT_IS_INNER ||
+                 predicate2 == UNDEFINED)) return false;
+        else {
+          cout << "Error "  << endl;
+          return false;
+        }// else
+      }// if
+      return true;       
+    }// checkSegment
     
     Segment ResultPfaceFactory::createEdge(
         ContainerPoint3D& points,
@@ -155,29 +322,38 @@ namespace temporalalgebra {
       Predicate predicate = segment.getPredicate();
       return Segment(p1,p2,predicate); 
     }// create Edge
-    
-    
+        
     std::ostream& ResultPfaceFactory::print(std::ostream& os, 
                                             std::string prefix)const{
       os << prefix << "ResultPfaceFactory(" << endl; 
       os << prefix << "  Edge for PFaces(" << endl;
-      for(size_t i = 0; i < edge.size(); i++){
-        os << prefix << "    Index:="<< i << " (";
-        for(size_t j = 0; j < edge[i].size();j++){
-          os << edge[i][j];
-          if(j < edge[i].size()-1) os << ", ";
+      vector<list<Segment>>::const_iterator iter1; 
+      list<Segment>::const_iterator iter2;
+      for(iter1 = edges.begin(); iter1 != edges.end(); iter1++){
+        os << prefix << "    Index:=" << iter1 - edges.begin() << " (";
+        for(iter2 = iter1->begin(); iter2 != iter1->end();){
+          os << *iter2;
+          iter2++;
+          if(iter2 == iter1->end()) os << ", ";
         }// for  
         os << ")" << endl;
       }// for
       os << prefix << "  )" << endl;
-      os << prefix << "  Orthogonal Edge to t-Axis(" << endl;
-      for(size_t i = 0; i < orthogonal.size(); i++){
-        os << prefix << "    Index:="<< i << " (";
-        for(size_t j = 0; j < orthogonal[i].size();j++){
-          os << orthogonal[i][j];
-          if(j < orthogonal[i].size()-1) os << ", ";
+      for(iter1 = orthogonal.begin(); iter1 != orthogonal.end(); iter1++){
+        os << prefix << "    Index:=" << iter1 - orthogonal.begin() << " (";
+        for(iter2 = iter1->begin(); iter2 != iter1->end();){
+          os << *iter2;
+          iter2++;
+          if(iter2 == iter1->end()) os << ", ";
         }// for  
         os << ")" << endl;
+      }// for
+      os << prefix << "  )" << endl;
+      vector<size_t>::const_iterator iter3;
+      os << prefix << "  Touch on left border(" << endl;
+      for(iter3 = touch.begin(); iter3 != touch.end(); iter3++){
+        os << prefix << "    Index:="<< iter3 - touch.begin() << " (";
+        os << *iter3 << ")" << endl;
       }// for
       os << prefix << "  )" << endl;
       os << prefix << ")" << endl;
@@ -268,6 +444,17 @@ namespace temporalalgebra {
       }// for
       return result;
     }// intersection
+    
+    void SourceUnit::createResultPfaces(ContainerPoint3D& points, 
+                                        GlobalTimeValues &timeValues){
+      vector<PFace*>::iterator iter; 
+      for (iter = this->pFaces.begin(); iter != this->pFaces.end(); iter++) {
+         ResultPfaceFactory factory(points,timeValues,**iter);
+         // cout << factory;
+         factory.evaluate();
+         cout << factory;
+      }// for
+    }// createResultPfaces
     
     std::ostream& operator <<(std::ostream& os, const SourceUnit& unit){
       vector<PFace*>::const_iterator iter; 

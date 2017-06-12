@@ -974,6 +974,16 @@ namespace temporalalgebra {
       timeValues.addTimeValue(iSeg.getHead().getT());
       addIntSeg(iSeg); 
     }// addBorder   
+       
+     void PFace::first(double t, std::list<IntersectionSegment>& result, 
+                       std::list<IntersectionSegment>& resultOrthogonal){
+       intSegs.first(t,result,resultOrthogonal);       
+     }// first
+       
+     void PFace::next(double t, std::list<IntersectionSegment>& result,
+                      std::list<IntersectionSegment>& resultOrthogonal){
+       intSegs.next(t,result,resultOrthogonal);   
+     }// next
     
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra
