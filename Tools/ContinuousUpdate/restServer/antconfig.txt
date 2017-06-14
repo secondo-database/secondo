@@ -11,7 +11,7 @@ Set the ANT_OPTS environment variable:
 export ANT_OPTS="-Xmx256M".
 
 Set the ANT_HOME environment variable to the directory where you installed Ant:
-export ANT_HOME=${ant_dir}.
+export ANT_HOME={ant_dir}.
 
 Set the PATH environment variable to include the directory where you installed the Ant bin directory:
 export PATH=${PATH}:${ANT_HOME}/bin
