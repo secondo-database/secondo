@@ -120,7 +120,10 @@ namespace temporalalgebra {
         
         SegmentTest();
     
-        // ResultPfaceFactoryTest1();
+        ResultPfaceFactoryTest1();
+        ResultPfaceFactoryTest2();
+        ResultPfaceFactoryTest3();
+        
         SourceUnitTest4();
         
         
@@ -1717,9 +1720,54 @@ namespace temporalalgebra {
 
 */       
       void ResultPfaceFactoryTest1(){
+        ResultPfaceFactory factory1(4),factory2(4);
+        assert_("ResultPfaceFactoryTest 1.1", "factorys are equal.",
+                 factory1 == factory2);
+        factory1.addEdge(0,Segment(0,1,UNDEFINED));
+        factory1.addEdge(0,Segment(2,3,UNDEFINED));
+        factory1.addEdge(1,Segment(4,5,LEFT_IS_INNER));
+        factory1.addEdge(2,Segment(5,6,UNDEFINED));
+        factory1.addOrthogonal(0,Segment(7,8,LEFT_IS_INNER));
+        factory1.addOrthogonal(3,Segment(9,10,LEFT_IS_INNER));
+        factory1.setTouch(1,2);
+        assert_("ResultPfaceFactoryTest 1.2", "factorys aren't equal.",
+                (!(factory1 == factory2)));
+        // result
+        factory2.addEdge(0,Segment(0,1,UNDEFINED));
+        factory2.addEdge(0,Segment(2,3,UNDEFINED));
+        factory2.addEdge(1,Segment(4,5,LEFT_IS_INNER));
+        factory2.addEdge(2,Segment(5,6,UNDEFINED));
+        factory2.addOrthogonal(0,Segment(7,8,LEFT_IS_INNER));
+        factory2.addOrthogonal(3,Segment(9,10,LEFT_IS_INNER));
+        factory2.setTouch(1,2); 
+        assert_("ResultPfaceFactoryTest 1.3", "factorys are equal.",
+                 factory1 == factory2);
+        // cout << factory1 << endl;
+        // cout << factory2 << endl;
+      }// ResultPfaceFactoryTest1
+      
+      void ResultPfaceFactoryTest2(){
+        ResultPfaceFactory factory1(4),factory2(4);
+        factory1.addEdge(0,Segment(0,1,UNDEFINED));
+        factory1.addEdge(1,Segment(2,3,UNDEFINED));
+        factory1.addEdge(1,Segment(2,3,LEFT_IS_INNER));
+        factory1.addEdge(2,Segment(4,5,RIGHT_IS_INNER));
+        factory1.addEdge(2,Segment(4,5,UNDEFINED));
+        factory1.addEdge(2,Segment(4,5,RIGHT_IS_INNER));
+        // result
+        factory2.addEdge(0,Segment(0,1,UNDEFINED));
+        factory2.addEdge(1,Segment(2,3,LEFT_IS_INNER));
+        factory2.addEdge(2,Segment(4,5,RIGHT_IS_INNER));
+        assert_("ResultPfaceFactoryTest 2.1", "factorys are equal.",
+                 factory1 == factory2);
+        // cout << factory1 << endl;
+        // cout << factory2 << endl;
+      }// ResultPfaceFactoryTest2
+      
+      void ResultPfaceFactoryTest3(){
         GlobalTimeValues timeValues1;
         IntSegContainer container1;
-        ContainerPoint3D points;
+        ContainerPoint3D points1,points2;
         container1.addIntSeg(IntersectionSegment(
           IntersectionPoint(2, 1, 0, 1.78885438), 
           IntersectionPoint(2, 1, 5, 1.78885438), 
@@ -1747,13 +1795,48 @@ namespace temporalalgebra {
         timeValues1.addTimeValue(4.66666667);
         timeValues1.addTimeValue(5); 
         // Ergebnissatz bestimmen
-        ResultPfaceFactory result(points,timeValues1,container1);
-        
-        cout << setprecision(2);
-        cout << container1 << endl;
-        cout << timeValues1 << endl;
-        cout << points << endl;
-        cout << result << endl;
+        ResultPfaceFactory factory1(points1,timeValues1,container1);
+        ResultPfaceFactory factory2(6);
+        points2.add(Point3D (2, 1, 0));
+        points2.add(Point3D (2, 1, 1.11111111));
+        points2.add(Point3D (3.5, 4, 0));
+        points2.add(Point3D (3.5, 4, 1.11111111));
+        points2.add(Point3D (2, 1, 2.66666667));
+        points2.add(Point3D (3.5, 4, 2.66666667));
+        points2.add(Point3D (2, 1, 4.44444444));
+        points2.add(Point3D (2.8, 2.6, 2.66666667));
+        points2.add(Point3D (3.33333333, 3.66666666, 4.44444444));
+        points2.add(Point3D (3.5, 4, 4.44444444));
+        points2.add(Point3D (2, 1, 4.66666667));
+        points2.add(Point3D (3.4, 3.8, 4.66666667));
+        points2.add(Point3D (3.5, 4, 4.66666667));
+        points2.add(Point3D (2, 1, 5));
+        points2.add(Point3D (3.5, 4, 5));
+        assert_("ResultPfaceFactoryTest 3.1", "points are equal.",
+                 points1 == points2);
+        factory2.addEdge(0, Segment(0,1,UNDEFINED));
+        factory2.addEdge(0, Segment(2,3,UNDEFINED));
+        factory2.addEdge(1, Segment (1, 4, UNDEFINED));
+        factory2.addEdge(1, Segment (3, 5, UNDEFINED));
+        factory2.addEdge(2, Segment (4, 6, UNDEFINED));
+        factory2.addEdge(2, Segment (7, 8, RIGHT_IS_INNER));
+        factory2.addEdge(2, Segment (5, 9, UNDEFINED));
+        factory2.addEdge(3, Segment (6, 10, UNDEFINED));
+        factory2.addEdge(3, Segment (8, 11, RIGHT_IS_INNER));
+        factory2.addEdge(3, Segment (9, 11, LEFT_IS_INNER));
+        factory2.addEdge(3, Segment (9, 12, UNDEFINED));
+        factory2.addEdge(4, Segment (10, 13, UNDEFINED));
+        factory2.addEdge(4, Segment (12, 14, UNDEFINED));
+        factory2.addOrthogonal(2, Segment (7, 5, LEFT_IS_INNER));
+        assert_("ResultPfaceFactoryTest 3.2", "factorys are equal.",
+                 factory1 == factory2);
+        // cout << setprecision(9);
+        // cout << container1 << endl;
+        // cout << timeValues1 << endl;
+        // cout << points1 << endl;
+        // cout << points2 << endl;
+        // cout << factory1 << endl;
+        // cout << factory2 << endl;
       }// ResultPfaceFactoryTest1
       
       void SourceUnitTest4(){

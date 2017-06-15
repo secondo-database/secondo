@@ -124,6 +124,8 @@ Print the object values to stream.
       ResultPfaceFactory(ContainerPoint3D& points,
                          GlobalTimeValues &timeValues,
                          PFace &pface);
+      ResultPfaceFactory(size_t size);
+      
 /*
 4.3 Methods, Operators and Predicates
 
@@ -133,6 +135,20 @@ Print the object values to stream.
       Segment createEdge( ContainerPoint3D& points,
                           const IntersectionSegment& segment,
                           double t1, double t2);
+      void inittialize(size_t size);
+      
+      void addEdge(size_t slide, const Segment& segment);
+      
+      void addOrthogonal(size_t slide, const Segment& segment);
+      
+      void setTouch(size_t slide, size_t touch);
+      
+      bool compare(const std::vector<std::list<Segment>>& edges1,
+                   const std::vector<std::list<Segment>>& edges2)const;
+      
+      bool operator ==(const ResultPfaceFactory& factory)const;
+      
+      
       void evaluate();
       
       void evaluate(std::vector<std::list<Segment>>::iterator edgeIter, 
@@ -166,8 +182,8 @@ Print the object values to stream.
 
 */      
       std::vector<std::list<Segment>> edges;
-      std::vector<std::list<Segment>> orthogonal;
-      std::vector<size_t> touch;
+      std::vector<std::list<Segment>> orthogonals;
+      std::vector<size_t> touchs;
     }; // ResultPfaceFactory 
 /*
 5 class SourceUnit

@@ -746,7 +746,12 @@ namespace temporalalgebra{
         const ContainerPoint3D& other)const{
       if(this->points.size() != other.points.size()) return false;
       for(size_t i = 0; i < points.size(); i++){
-        if(other.points[i] == this->points[i]) return false;
+        if(other.points[i] != this->points[i]) {
+          // cout << "Faile on Index:=" << i << ", ";
+          // cout << this->points[i] << ", ";
+          // cout << other.points[i] << endl;
+          return false;
+        }// if
       }// for
       return true;
     }// Operator ==
