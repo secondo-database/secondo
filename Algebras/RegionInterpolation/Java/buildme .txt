@@ -30,7 +30,7 @@ ant -f fetch.xml -Ddest=system
 ------------------------------------------------
 
 
-Then built the project with the following command
+Then build the project with the following command
 
 
 ant -Dplatforms.Java_HotSpot_TM__Client_VM_1.4.2_13-b06.home=/home/userxy/jdk1.8.0_112 jar
