@@ -129,7 +129,7 @@ class ColPoint {
 /*
 In the private section the internal data structure is defined:
 The array ~aPoint~ contains all points. It's size in bytes is set in both the
-~In~ and the ~Out~ function. The variable ~count~ holds the amount
+~In~ and the ~Open~ function. The variable ~count~ holds the amount
 of points in the array. It is set in the ~In~ Function by counting the incoming
 points and in the ~Open~ function by reading it from disc.
 
@@ -665,10 +665,10 @@ Defining the structure for attribute arrays:
   typedef struct {    // defines one region - head data
     long indexPoint;  // index of region's first point in the point array
     long indexCycle;  // index of region's first cycle in the cycle array
-    double mbrX1;     // minimum bounding rectangle left x coordinate
-    double mbrY1;     // minimum bounding rectangle lower y coordinate
-    double mbrX2;     // minimum bounding rectangle right x coordinate
-    double mbrY2;     // minimum bounding rectangle upper y coordinate
+    double mbbX1;     // minimum bounding rectangle left x coordinate
+    double mbbY1;     // minimum bounding rectangle lower y coordinate
+    double mbbX2;     // minimum bounding rectangle right x coordinate
+    double mbbY2;     // minimum bounding rectangle upper y coordinate
   } sRegion;
   typedef struct {    // one cycle
     long index;       // index of cycle's first point in the point array
@@ -788,8 +788,8 @@ The next three functions returns single elements of the aregion's arrays.
 
 */
   void getRegion(const long index, long &indexCycle, long &indexPoint,
-                 double &mbrX1, double &mbrY1,
-                 double &mbrX2, double &mbrY2);
+                 double &mbbX1, double &mbbY1,
+                 double &mbbX2, double &mbbY2);
 
   long getCycle(const long index);
 

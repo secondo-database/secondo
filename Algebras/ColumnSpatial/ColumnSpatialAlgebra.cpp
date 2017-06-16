@@ -1240,14 +1240,14 @@ each entry to the clone object.
 
   void ColRegion::getRegion(const long index,
                             long &indexCycle, long &indexPoint,
-                            double &mbrX1, double &mbrY1,
-                            double &mbrX2, double &mbrY2) {
+                            double &mbbX1, double &mbbY1,
+                            double &mbbX2, double &mbbY2) {
     indexCycle = aRegion[index].indexCycle;
     indexPoint = aRegion[index].indexPoint;
-    mbrX1 = aRegion[index].mbrX1;
-    mbrY1 = aRegion[index].mbrY1;
-    mbrX2 = aRegion[index].mbrX2;
-    mbrY2 = aRegion[index].mbrY2;
+    mbbX1 = aRegion[index].mbbX1;
+    mbbY1 = aRegion[index].mbbY1;
+    mbbX2 = aRegion[index].mbbX2;
+    mbbY2 = aRegion[index].mbbY2;
   }
 
 
@@ -1339,11 +1339,11 @@ each entry to the clone object.
     aPoint[countPoint].x = x;
     aPoint[countPoint].y = y;
 
-    // adjust mbr coordinates if neccessary
-    if (x < aRegion[countRegion].mbrX1) aRegion[countRegion].mbrX1 = x;
-    if (x > aRegion[countRegion].mbrX2) aRegion[countRegion].mbrX2 = x;
-    if (y < aRegion[countRegion].mbrY1) aRegion[countRegion].mbrY1 = y;
-    if (y > aRegion[countRegion].mbrY2) aRegion[countRegion].mbrY2 = y;
+    // adjust mbb coordinates if neccessary
+    if (x < aRegion[countRegion].mbbX1) aRegion[countRegion].mbbX1 = x;
+    if (x > aRegion[countRegion].mbbX2) aRegion[countRegion].mbbX2 = x;
+    if (y < aRegion[countRegion].mbbY1) aRegion[countRegion].mbbY1 = y;
+    if (y > aRegion[countRegion].mbbY2) aRegion[countRegion].mbbY2 = y;
 
     countPoint++;  // increase index of point array
 
@@ -1404,11 +1404,11 @@ each entry to the clone object.
     aRegion[countRegion].indexCycle = countCycle;
     aRegion[countRegion].indexPoint = countPoint;
 
-    // mbr set to extremes, so they will be adapted in any case
-    aRegion[countRegion].mbrX1 = 999999;
-    aRegion[countRegion].mbrY1 = 999999;
-    aRegion[countRegion].mbrX2 = -999999;
-    aRegion[countRegion].mbrY2 = -999999;
+    // mbb set to extremes, so they will be adapted in any case
+    aRegion[countRegion].mbbX1 = 999999;
+    aRegion[countRegion].mbbY1 = 999999;
+    aRegion[countRegion].mbbX2 = -999999;
+    aRegion[countRegion].mbbY2 = -999999;
 
     Point outputP, leftoverP;
     HalfSegment hs, hsnext;
@@ -1548,10 +1548,10 @@ The ~finalize~ function appends a terminator to each array of the aregion type.
     aCycle[countCycle].index = countPoint;
     aRegion[countRegion].indexCycle = countCycle;
     aRegion[countRegion].indexPoint = countPoint;
-    aRegion[countRegion].mbrX1 = 0;
-    aRegion[countRegion].mbrY1 = 0;
-    aRegion[countRegion].mbrX2 = 0;
-    aRegion[countRegion].mbrY2 = 0;
+    aRegion[countRegion].mbbX1 = 0;
+    aRegion[countRegion].mbbY1 = 0;
+    aRegion[countRegion].mbbX2 = 0;
+    aRegion[countRegion].mbbY2 = 0;
 
     countRegion++;
     countCycle++;
@@ -1625,15 +1625,15 @@ a problem with memory allocation. Instead the loops below are used.
     // scan all regions of first aregion
     for (long i = 0; i < ccr1; i++)
       cRegion1->getRegion(i, aRegion[i].indexCycle, aRegion[i].indexPoint,
-                          aRegion[i].mbrX1, aRegion[i].mbrY1,
-                          aRegion[i].mbrX2, aRegion[i].mbrY2);
+                          aRegion[i].mbbX1, aRegion[i].mbbY1,
+                          aRegion[i].mbbX2, aRegion[i].mbbY2);
 
     // scan all regions of second aregion including terminator
     long iCycle, iPoint;
     for (long i = 0; i <= ccr2; i++) {
       cRegion2->getRegion(i, iCycle, iPoint,
-                          aRegion[i+ccr1].mbrX1, aRegion[i+ccr1].mbrY1,
-                          aRegion[i+ccr1].mbrX2, aRegion[i+ccr1].mbrY2);
+                          aRegion[i+ccr1].mbbX1, aRegion[i+ccr1].mbbY1,
+                          aRegion[i+ccr1].mbbX2, aRegion[i+ccr1].mbbY2);
       aRegion[i+ccr1].indexCycle = iCycle + ccc1;
       aRegion[i+ccr1].indexPoint = iPoint + ccp1;
     }
@@ -1672,14 +1672,14 @@ a problem with memory allocation. Instead the loops below are used.
     // output of the array aRegion
     cout << "aRegion (" << countRegion << "):\n";
     cout << "Bytes allocated: " << countRegion * sizeof(aRegion[0]) << "\n";
-    cout << "index\tcycle\tpoint\tmbr-l\tmbr-b\tmbr-r\tmbr-t\n";
+    cout << "index\tcycle\tpoint\tmbb-l\tmbb-b\tmbb-r\tmbb-t\n";
     for (long cr = 0; cr < countRegion; cr++) {
       cout << cr << ":\t" << aRegion[cr].indexCycle << "\t"
            << aRegion[cr].indexPoint << "\t"
-           << aRegion[cr].mbrX1 << "\t"
-           << aRegion[cr].mbrY1 << "\t"
-           << aRegion[cr].mbrX2 << "\t"
-           << aRegion[cr].mbrY2 << "\n";
+           << aRegion[cr].mbbX1 << "\t"
+           << aRegion[cr].mbbY1 << "\t"
+           << aRegion[cr].mbbX2 << "\t"
+           << aRegion[cr].mbbY2 << "\n";
     }
 
     // output of the array aCycle
@@ -1738,7 +1738,7 @@ Needs x and y of the point and the index of aRegion.
 inline bool ColRegion::pointInsideRegion(double x, double y, long idReg) {
 
   // define a x coordinate outside the region
-  long x2 = aRegion[idReg].mbrX1 - 1;
+  long x2 = aRegion[idReg].mbbX1 - 1;
   // first and last cycle within the region
   long ccStart = aRegion[idReg].indexCycle;
   long ccStop = aRegion[idReg + 1].indexCycle;
@@ -1820,8 +1820,8 @@ if a tested region overlaps the 180th longitude then the function fails.
       // scan all regions
       for (long idReg = 0; idReg < cr; idReg++) {
         // check if actual point is inside the bounding box of actual region
-        if ((idPx1 < aRegion[idReg].mbrX1) || (idPx1 > aRegion[idReg].mbrX2) ||
-            (idPy1 < aRegion[idReg].mbrY1) || (idPy1 > aRegion[idReg].mbrY2))
+        if ((idPx1 < aRegion[idReg].mbbX1) || (idPx1 > aRegion[idReg].mbbX2) ||
+            (idPy1 < aRegion[idReg].mbbY1) || (idPy1 > aRegion[idReg].mbbY2))
           continue;  // if not inside bbox then continue with next region
 
         if (pointInsideRegion(idPx1, idPy1, idReg)) {
@@ -1949,8 +1949,8 @@ and returns the region indices.
         idPy1 = cPoint->getY(idP);
 
         // check if actual point is inside the bounding box of actual region
-        if ((idPx1 < aRegion[idReg].mbrX1) || (idPx1 > aRegion[idReg].mbrX2) ||
-            (idPy1 < aRegion[idReg].mbrY1) || (idPy1 > aRegion[idReg].mbrY2))
+        if ((idPx1 < aRegion[idReg].mbbX1) || (idPx1 > aRegion[idReg].mbbX2) ||
+            (idPy1 < aRegion[idReg].mbbY1) || (idPy1 > aRegion[idReg].mbbY2))
           continue;  // if not inside bbox then continue with next point
 
         if (pointInsideRegion(idPx1, idPy1, idReg)) {
@@ -2020,10 +2020,10 @@ and returns the region indices.
       inRegion[cr].indexPoint = cp;
 
       // values for the actual minimum bounding rectangle per region
-      inRegion[cr].mbrX1 = 999999;
-      inRegion[cr].mbrY1 = 999999;
-      inRegion[cr].mbrX2 = -999999;
-      inRegion[cr].mbrY2 = -999999;
+      inRegion[cr].mbbX1 = 999999;
+      inRegion[cr].mbbY1 = 999999;
+      inRegion[cr].mbbX2 = -999999;
+      inRegion[cr].mbbY2 = -999999;
 
       ListExpr tupleNL = nl->First(regionNL);
 
@@ -2088,11 +2088,11 @@ and returns the region indices.
             inPoint[cp].x = x;
             inPoint[cp].y = y;
 
-            // calculate the mbr
-            if (x < inRegion[cr].mbrX1) inRegion[cr].mbrX1 = x;
-            if (x > inRegion[cr].mbrX2) inRegion[cr].mbrX2 = x;
-            if (y < inRegion[cr].mbrY1) inRegion[cr].mbrY1 = y;
-            if (y > inRegion[cr].mbrY2) inRegion[cr].mbrY2 = y;
+            // calculate the mbb
+            if (x < inRegion[cr].mbbX1) inRegion[cr].mbbX1 = x;
+            if (x > inRegion[cr].mbbX2) inRegion[cr].mbbX2 = x;
+            if (y < inRegion[cr].mbbY1) inRegion[cr].mbbY1 = y;
+            if (y > inRegion[cr].mbbY2) inRegion[cr].mbbY2 = y;
 
             cp++;
 
@@ -2114,10 +2114,10 @@ and returns the region indices.
     inCycle[cc].index = cp;
     inRegion[cr].indexCycle = cc;
     inRegion[cr].indexPoint = cp;
-    inRegion[cr].mbrX1 = 0;
-    inRegion[cr].mbrY1 = 0;
-    inRegion[cr].mbrX2 = 0;
-    inRegion[cr].mbrY2 = 0;
+    inRegion[cr].mbbX1 = 0;
+    inRegion[cr].mbbY1 = 0;
+    inRegion[cr].mbbX2 = 0;
+    inRegion[cr].mbbY2 = 0;
 
     // truncate oversized memory to allocate only the real used memory
     inRegion = static_cast<sRegion*>(realloc(inRegion, ++cr * sizeof(sRegion)));
@@ -2302,19 +2302,19 @@ and returns the region indices.
       offset += sizeL;
 
       ok = ok && (valueRecord.Read(&valueD, sizeD, offset) == sizeD);
-      region[i].mbrX1 = valueD;
+      region[i].mbbX1 = valueD;
       offset += sizeD;
 
       ok = ok && (valueRecord.Read(&valueD, sizeD, offset) == sizeD);
-      region[i].mbrY1 = valueD;
+      region[i].mbbY1 = valueD;
       offset += sizeD;
 
       ok = ok && (valueRecord.Read(&valueD, sizeD, offset) == sizeD);
-      region[i].mbrX2 = valueD;
+      region[i].mbbX2 = valueD;
       offset += sizeD;
 
       ok = ok && (valueRecord.Read(&valueD, sizeD, offset) == sizeD);
-      region[i].mbrY2 = valueD;
+      region[i].mbbY2 = valueD;
       offset += sizeD;
 
       if (!ok) { break; }
@@ -2389,19 +2389,19 @@ and returns the region indices.
 
       ok = ok && valueRecord.Write(&valueL, sizeL, offset);
       offset += sizeL;
-      valueD = cRegion->aRegion[i].mbrX1;
+      valueD = cRegion->aRegion[i].mbbX1;
 
       ok = ok && valueRecord.Write(&valueD, sizeD, offset);
       offset += sizeD;
-      valueD = cRegion->aRegion[i].mbrY1;
+      valueD = cRegion->aRegion[i].mbbY1;
 
       ok = ok && valueRecord.Write(&valueD, sizeD, offset);
       offset += sizeD;
-      valueD = cRegion->aRegion[i].mbrX2;
+      valueD = cRegion->aRegion[i].mbbX2;
 
       ok = ok && valueRecord.Write(&valueD, sizeD, offset);
       offset += sizeD;
-      valueD = cRegion->aRegion[i].mbrY2;
+      valueD = cRegion->aRegion[i].mbbY2;
 
       ok = ok && valueRecord.Write(&valueD, sizeD, offset);
       offset += sizeD;
