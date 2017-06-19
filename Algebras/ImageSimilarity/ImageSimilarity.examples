@@ -4,5 +4,5 @@ Restore: No
 Operator: readSignatureFromFile
 Number: 1
 Signature: string -> imagesignature
-Example: query readSignatureFromFile('/home/secondo/Downloads/images/Amur.jpg', 1, 3, 10, 10, 50) feed count
-Result: 1
+Example: query readSignatureFromFile ('/home/secondo/Downloads/images/Amur.jpg', 1, 3, 10, 50) 
+Result: FeatureSignature ()

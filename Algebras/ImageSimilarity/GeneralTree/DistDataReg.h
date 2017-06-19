@@ -700,10 +700,10 @@ Getdata function for the symbolic trajectory type constructors.
     static DistData *getDataSymTraj(const void *attr);
     
 /*
-GetData function for the ~ImageSignature~ type
+GetData function for the ~FeatureSignature~ type
 
 */
-	static DistData* getImageSignature(const void* attr);
+	static DistData* getFeatureSignature(const void* attr);
     
     
 }; // class DistDataReg

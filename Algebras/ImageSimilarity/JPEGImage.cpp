@@ -573,9 +573,7 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
                     {
                         if (this->assignments[tmpY + l][tmpX + kk] == n)
                         {   
-                            Feature f = {
-							tmpY + l, 
-                            tmpX + kk, 
+                            Feature f = {tmpY + l, tmpX + kk, 
                             this->pixMat5[tmpY + l][tmpX + kk][0],
                             this->pixMat5[tmpY + l][tmpX + kk][1], 
                             this->pixMat5[tmpY + l][tmpX + kk][2], 
