@@ -207,8 +207,13 @@ Destructor for JPEGImage class
  
 JPEGImage::~JPEGImage() 
 {
-    delete[] centersX;  // output of k-kmeans
-    delete[] centersY;  // output of k-means
+    //delete[] centersX;  // output of k-kmeans
+    //delete[] centersY;  // output of k-means
+    delete[] colVal1;
+    delete[] colVal2;
+    delete[] colVal3;
+    delete[] coa;
+    delete[] con;
     delete[] weights; // of clusters
     delete[] pixels; 
     
@@ -426,6 +431,7 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
     unsigned int noDataPoints) 
 {
     auto t1 = std::chrono::high_resolution_clock::now();
+
     
     // 1. create dataset
     int xcNdx = 0;
@@ -471,13 +477,11 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
             }
         }
     }
-    
 
-    // 2. init k-means, either random or k++ -> k++ as default : 
-    
+    // 2. init k-means, either random or k++ -> k++ as default :   
     Dataset* c;
     
-    if (this->colorSpace == 1)
+    if (this->colorSpace == 1) //todo: adopt other color spaces
         c = init_centers(*ds, k);
     else
         c = init_centers_kmeanspp_v2(*ds, k); 
@@ -526,7 +530,7 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
         this->assignments[i] = new unsigned short[this->width];
     }
     
-    
+  
     int cnt2 = 0;
     int l = 0;
     for (int z = 0; z < this->noSamples; z++)
@@ -534,9 +538,9 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
         int tmpX = this->samplesX[z];
         int tmpY = this->samplesY[z];
                         
-        for (int kk = 0; kk < 10; kk++) 
+        for (int kk = 0; kk < this->patchSize; kk++) // magic number...
         {
-            for (int ll = 0; ll < 10; ll++) 
+            for (int ll = 0; ll < this->patchSize; ll++) 
             {
                 cnt2++;
                 if (((tmpY + ll) < this->height) 
@@ -550,9 +554,8 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
         }
     }
     
-
     // 7. assigning clusters
-    this->clusters = new std::vector<std::vector<feature>>(k); 
+    this->clusters = new std::vector<std::vector<Feature>>(k); 
     
     for (unsigned int n = 0; n < k; n++)
     {
@@ -561,17 +564,18 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
             int tmpX = this->samplesX[z];
             int tmpY = this->samplesY[z];
                         
-            for (int kk = 0; kk < 10; kk++) 
+            for (int kk = 0; kk < this->patchSize; kk++) 
             {
-                for (int l = 0; l < 10; l++) 
+                for (int l = 0; l < this->patchSize; l++) 
                 {
                     if (((tmpY + l) < this->height) 
                         && ((tmpX + kk) < this->width))
                     {
                         if (this->assignments[tmpY + l][tmpX + kk] == n)
                         {   
-                            feature f = {(double)tmpY + l, 
-                            (double)tmpX + kk, 
+                            Feature f = {
+							tmpY + l, 
+                            tmpX + kk, 
                             this->pixMat5[tmpY + l][tmpX + kk][0],
                             this->pixMat5[tmpY + l][tmpX + kk][1], 
                             this->pixMat5[tmpY + l][tmpX + kk][2], 
@@ -586,34 +590,61 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
     }
     
     // "9. assigning centroids"
-    this->centersX = new int[k];  // todo: delete them after usage...
+    this->centersX = new int[k];  
     this->centersY = new int[k];
+    this->colVal1 = new double[k];
+    this->colVal2 = new double[k];
+    this->colVal3 = new double[k];
+    this->coa = new double[k];
+    this->con = new double[k];
+    
     this->weights = new double[k];
 
     int kk = 0;
-    for (unsigned int l = 0; l < this->clusters->size(); l++)
+    for (unsigned int l = 0; l < this->clusters->size(); l++)  
     {
-       double tmpX = 0;
-       double tmpY = 0;
+       double tmpX = 0.0;
+       double tmpY = 0.0;
+       double tmpColVal1 = 0.0;
+       double tmpColVal2 = 0.0;
+       double tmpColVal3 = 0.0;
+       double tmpCoa = 0.0;
+       double tmpCon = 0.0;
+       
        for (unsigned int i = 0; i < this->clusters->at(l).size(); i++)
        {
             tmpX += this->clusters->at(l).at(i).x;
             tmpY += this->clusters->at(l).at(i).y;
+            tmpColVal1 += this->clusters->at(l).at(i).r;
+            tmpColVal2 += this->clusters->at(l).at(i).g;
+            tmpColVal3 += this->clusters->at(l).at(i).b;
+            tmpCoa += this->clusters->at(l).at(i).coarseness;
+            tmpCon += this->clusters->at(l).at(i).contrast;
        }
+       
        this->centersX[l]= round(tmpX / this->clusters->at(l).size());  
-       this->centersY[l]= round(tmpY / this->clusters->at(l).size());  
+       this->centersY[l]= round(tmpY / this->clusters->at(l).size());
+       this->colVal1[l] = round(tmpColVal1 / this->clusters->at(l).size());  
+       this->colVal2[l] = round(tmpColVal2 / this->clusters->at(l).size());
+       this->colVal3[l] = round(tmpColVal3 / this->clusters->at(l).size());
+       this->coa[l] = round(tmpCoa / this->clusters->at(l).size());
+       this->con[l] = round(tmpCon / this->clusters->at(l).size());
+       
        this->weights[l] = (double)this->clusters->at(l).size() 
-        / (double)(this->height * this->width);
+                        / this->noDataPoints;
+       
         if (this->weights[l] > 0) 
         {
-            this->signature.push_back({this->weights[l], 
-                        this->centersX[l], this->centersY[l]});    
+            //std::cout << "weight:" << this->weights[l] << std::endl; 
+            Feature tmpCentroid = {this->centersX[l], this->centersY[l],
+            this->colVal1[l], this->colVal2[l], this->colVal3[l],
+            this->coa[l], this->con[l]};   
+            this->signature.push_back({this->weights[l], tmpCentroid});
             kk++;
             
         }
     }
-    std::cout << "# signature tuples:" << kk << std::endl;
-    
+
     auto t2 = std::chrono::high_resolution_clock::now();
     std::cout << "clustering() took "
     << 
@@ -866,6 +897,8 @@ void JPEGImage::writeContrastImage(const char* filename,
         }
     }
     
+
+    
     for (int z = 0; z < this->noSamples; z++)
     {
         int tmpX = this->samplesX[z];
@@ -878,15 +911,17 @@ void JPEGImage::writeContrastImage(const char* filename,
                 if (((tmpY + k) < this->height)
                 && ((tmpX + n) < this->width))
                 {
-                    this->pixMat4[tmpY+k][tmpX+n][0]
+                    this->pixMat4[tmpY+k][tmpX+n][0] 
                     = static_cast<unsigned char>(
-                    (this->pixMat5[tmpY+k][tmpX+n][4] 
-                    * normalization));    
+                    (this->pixMat5[tmpY+k][tmpX+n][4]));
+                    // todo: fix parameter
+                   // std::cout << "const:" << this->pixMat5[tmpY+k][tmpX+n][4] 
+                   // * normalization << std::endl;  
                 }
             }
         }                
     }
-    
+ 
     int c = 0;
     for (int i = 0; i < this->height; i++)
     {
@@ -903,10 +938,9 @@ void JPEGImage::writeContrastImage(const char* filename,
         (void) jpeg_write_scanlines(&cinfo, row_pointer, 1);
     }
 
-    jpeg_finish_compress(&cinfo);
-    fclose(outfile);
+    jpeg_finish_compress(&cinfo);    
     jpeg_destroy_compress(&cinfo);
-    
+    fclose(outfile);
    
     auto t2 = std::chrono::high_resolution_clock::now();
     std::cout << "writeConstrastImage() took "
@@ -1234,7 +1268,7 @@ double JPEGImage::my(int x, int y, const int range)
 {
 
     int firstHalfRange = (-1) * (range / 2); 
-    int secondHalfRange = range / 2;
+    int secondHalfRange = range - (-1) * firstHalfRange;
     
     double tmpSum = 0.0;
     for (int j = firstHalfRange; j <= secondHalfRange; j++) 
@@ -1250,14 +1284,19 @@ double JPEGImage::my(int x, int y, const int range)
             }
         }
     }
-    return (1.0/9.0) * (double)tmpSum;
+    //return (1.0 / 9.0) * tmpSum;
+    double tmpDev = static_cast<double>(range);
+    return (1.0 / tmpDev) * tmpSum;
 }
 
 
 double JPEGImage::sigma(int x, int y, const int range)
 {    
+    //int firstHalfRange = (-1) * (range / 2); 
+    //int secondHalfRange = range / 2;
     int firstHalfRange = (-1) * (range / 2); 
-    int secondHalfRange = range / 2;
+    int secondHalfRange = range - (-1) * firstHalfRange;
+  
     double tmpSum = 0.0;
     
     for (int j = firstHalfRange; j <= secondHalfRange; j++)
@@ -1274,14 +1313,19 @@ double JPEGImage::sigma(int x, int y, const int range)
             }
         }
     }
-    return sqrt((1.0/9.0) * tmpSum);
+    double tmpDev = static_cast<double>(range);
+    return sqrt((1.0/tmpDev) * tmpSum);
+    //return sqrt((1.0/9.0) * tmpSum);
 }
 
 
 double JPEGImage::eta(int x, int y, const int range)
 {
+    //int firstHalfRange = (-1) * (range / 2); 
+    //int secondHalfRange = range / 2;
     int firstHalfRange = (-1) * (range / 2); 
-    int secondHalfRange = range / 2;
+    int secondHalfRange = range - (-1) * firstHalfRange;
+  
     
     double tmpSum = 0.0;
     for (int j = firstHalfRange; j <= secondHalfRange; j++)
@@ -1298,7 +1342,9 @@ double JPEGImage::eta(int x, int y, const int range)
                 }
         }
     }
-    return (1.0/9.0) * tmpSum;
+    double tmpDev = static_cast<double>(range);
+    return (1.0/tmpDev) * tmpSum;
+    //return (1.0/9.0) * tmpSum;
 }
 
 
@@ -1318,7 +1364,7 @@ double JPEGImage::localContrast(int x, int y, const int range)
 
 
 void JPEGImage::computeContrastValues(bool parallel, 
-    const int range = 5)
+    const int range = 3)
 {
         
     auto t1 = std::chrono::high_resolution_clock::now();
@@ -1343,7 +1389,7 @@ void JPEGImage::computeContrastValues(bool parallel,
                     {            
                         double con = localContrast((tmpX+k), 
                             (tmpY+n), range);
-                        this->pixMat5[tmpY+k][tmpX+n][4] = con;
+                        this->pixMat5[tmpY+k][tmpX+n][4] = (con * 0.1);
                     }
                 }
             }
