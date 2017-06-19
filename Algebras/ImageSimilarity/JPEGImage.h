@@ -73,10 +73,10 @@ struct HSV
 
 } //end namespace
 
-struct feature //todo: Uppercase for type feature
+struct Feature //todo: Uppercase for type feature
 {
-    double x;
-    double y;
+    int x;
+    int y;
     double r;
     double g;
     double b;
@@ -86,30 +86,49 @@ struct feature //todo: Uppercase for type feature
 
 
 
-struct ImageSignatureTuple
+struct FeatureSignatureTuple
 {
-  ImageSignatureTuple() {}
+	FeatureSignatureTuple() {}
 
-  ImageSignatureTuple(double _weight, int _centroidXpos, int _centroidYpos):
-    weight(_weight), centroidXpos(_centroidXpos), centroidYpos(_centroidYpos)
+	FeatureSignatureTuple(double _weight, int _x, int _y, double _r, 
+    double _g, double _b, double _coa, double _con)
+	{
+		weight = _weight;
+		centroid.x = _x;
+		centroid.y = _y;
+		centroid.r = _r;
+		centroid.g = _g;
+		centroid.b = _b;
+		centroid.coarseness = _coa;
+		centroid.contrast = _con; }
+	//FeatureSignatureTuple(double _weight, 
+    //int _centroidXpos, int _centroidYpos):
+	FeatureSignatureTuple(double _weight, Feature _centroid):
+    //weight(_weight), centroidXpos(_centroidXpos), 
+    //centroidYpos(_centroidYpos)
+    weight(_weight), centroid(_centroid)
     {}
 
-  ImageSignatureTuple(const ImageSignatureTuple& ist) : 
-    weight(ist.weight), centroidXpos(ist.centroidXpos), 
-    centroidYpos(ist.centroidYpos) {}
+	FeatureSignatureTuple(const FeatureSignatureTuple& ist) : 
+    weight(ist.weight), centroid(ist.centroid) {}
+    //centroidXpos(ist.centroidXpos), 
+    //centroidYpos(ist.centroidYpos) {}
 
-  ImageSignatureTuple& operator=(const ImageSignatureTuple& ist){
-    weight = ist.weight;
-    centroidXpos = ist.centroidXpos;
-    centroidYpos = ist.centroidYpos;
-    return *this;
-  }
+	FeatureSignatureTuple& operator=(const FeatureSignatureTuple& ist)
+	{
+		weight = ist.weight;
+		//centroidXpos = ist.centroidXpos;
+		//centroidYpos = ist.centroidYpos;
+		centroid = ist.centroid;
+		return *this;
+	}
 
-  ~ImageSignatureTuple(){}
+  ~FeatureSignatureTuple(){}
 
   double weight;
-  int centroidXpos;
-  int centroidYpos;
+  Feature centroid;
+  //int centroidXpos;
+  //int centroidYpos;
 };
 
 
@@ -139,7 +158,8 @@ public:
     
     void writeColorImage(const char* fileName);
     void writeGrayscaleImage(const char* fileName);
-    void writeCoarsenessImage(const char* fileName, double normalization);
+    void writeCoarsenessImage(const char* fileName, 
+    double normalization);
     void writeContrastImage(const char* fileName, double normalization);
     void writeClusterImage(const char* fileName, double normalization);
     int width;
@@ -147,9 +167,15 @@ public:
 
     int* centersX;  // output of k-kmeans
     int* centersY;  // output of k-means
+    double* colVal1;
+    double* colVal2;
+    double* colVal3;
+    double* coa;
+    double* con;
+    
     double* weights; // of clusters
     void createSignature();
-    std::vector<ImageSignatureTuple> signature;
+    std::vector<FeatureSignatureTuple> signature;
     int getNoDataPoints() { return this->noDataPoints; };
     
     // destructor
@@ -173,7 +199,7 @@ private:
     unsigned int* randomRepresentantsX;
     unsigned int* randomRepresentantsY;
     unsigned short** assignments; // to which cluster is each centroid assigned
-    std::vector<std::vector<feature> >* clusters; // output of k-means
+    std::vector<std::vector<Feature> >* clusters; // output of k-means
     void drawCircle(int x, int y, int r);
     int* samplesX;
     int* samplesY;

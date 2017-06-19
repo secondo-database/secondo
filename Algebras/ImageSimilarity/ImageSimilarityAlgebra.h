@@ -74,53 +74,57 @@ so that ~imageSignature~ objects can be used in relations.
 */
 
 
-namespace ImageSignaturealg{
-    
+
+namespace FeatureSignaturealg{
 
 
-class ImageSignature : public Attribute
+class FeatureSignature : public Attribute
 {
 
   public:
   
-    ImageSignature(const ImageSignature& src);  
+    FeatureSignature(const FeatureSignature& src);  
    
-    ~ImageSignature(); 
+    ~FeatureSignature(); 
 
-    ImageSignature& operator=(const ImageSignature& src);
+    FeatureSignature& operator=(const FeatureSignature& src);
     
-    ImageSignature(const int n);
+    FeatureSignature(const int n);
     
-    ImageSignature(const int n, 
+    FeatureSignature(const int n, 
         const double *W, 
         const int *X, 
-        const int *Y );    
+        const int *Y,
+        const double *R,
+        const double *G,
+        const double *B,
+        const double *COA,
+        const double *CON);    
     
    
     int NumOfFLOBs() const;
     Flob *GetFLOB(const int i);
     int Compare(const Attribute*) const;
     bool Adjacent(const Attribute*) const;
-    ImageSignature *Clone() const;
+    FeatureSignature *Clone() const;
     size_t Sizeof() const;
     std::ostream& Print(std::ostream& os) const;
 
-    void Append(const ImageSignatureTuple& ist);
+    void Append(const FeatureSignatureTuple& ist);
     void Complete();
     bool Correct();
     void Destroy();
-    int GetNoEdges() const { return GetNoImageSignatureTuples(); }
+    int GetNoEdges() const { return GetNoFeatureSignatureTuples(); }
+    int GetNoFeatureSignatureTuples() const;
+    FeatureSignatureTuple GetFeatureSignatureTuple(int i) const;
     int GetNoImageSignatureTuples() const;
-    ImageSignatureTuple GetImageSignatureTuple(int i) const;
-    //std::string GetState() const;
     const bool IsEmpty() const;
     void CopyFrom(const Attribute* right);
     size_t HashValue() const;
 
-    void ClearDBArray() { this->imageSignatureTuples.clean();}
-
+    void ClearDBArray() { this->FeatureSignatureTuples.clean();}
     friend std::ostream& 
-    operator <<(std::ostream& os,const ImageSignature& p);
+    operator <<(std::ostream& os,const FeatureSignature& p);
 
     static Word     In( const ListExpr typeInfo, 
                         const ListExpr instance,
@@ -140,7 +144,7 @@ class ImageSignature : public Attribute
     static int      SizeOfObj();
     static ListExpr Property();
     static void* Cast(void* addr);
-    static const std::string BasicType() { return "imagesignature"; }
+    static const std::string BasicType() { return "FeatureSignature"; }
     static const bool checkType(const ListExpr type)
     {
       return listutils::isSymbol(type, BasicType());
@@ -168,8 +172,8 @@ class ImageSignature : public Attribute
     
 
   private:
-    ImageSignature() {} 
-    DbArray<ImageSignatureTuple> imageSignatureTuples;    
+    FeatureSignature() {} 
+    DbArray<FeatureSignatureTuple> FeatureSignatureTuples;    
     std::string fileName;
     //int width;
     //int height;    

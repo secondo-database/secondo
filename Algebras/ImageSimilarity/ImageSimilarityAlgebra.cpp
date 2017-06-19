@@ -70,7 +70,7 @@ extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
 
-namespace ImageSignaturealg{
+namespace FeatureSignaturealg{
 
 
 
@@ -80,7 +80,7 @@ namespace ImageSignaturealg{
 */
 
 bool 
-ImageSignature::readSignatureFromFile(const std::string _fileName, 
+FeatureSignature::readSignatureFromFile(const std::string _fileName, 
     const int colorSpace, const int texRange, const int patchSize,
     const int percentSamples, const int noClusters)
 {
@@ -149,7 +149,7 @@ ListExpr readSignatureFromFileTM(ListExpr args)
             nl->IsEqual(arg5, CcInt::BasicType()) &&
             nl->IsEqual(arg6, CcInt::BasicType()))
             {
-            return nl->SymbolAtom(ImageSignature::BasicType());
+            return nl->SymbolAtom(FeatureSignature::BasicType());
         }
     }
     return nl->SymbolAtom(Symbol::TYPEERROR());
@@ -177,7 +177,7 @@ int readSignatureFromFileFun(Word* args, Word& result,
                    int message, Word& local, Supplier s)
 {
     result = qp->ResultStorage(s);
-    ImageSignature* res = static_cast<ImageSignature*>(result.addr);
+    FeatureSignature* res = static_cast<FeatureSignature*>(result.addr);
     res->ClearDBArray();
     
     StringType* fileName = static_cast<StringType*>(args[0].addr);
@@ -199,6 +199,7 @@ int readSignatureFromFileFun(Word* args, Word& result,
     {
         res->SetDefined(false);
     }
+    
     return 0;
 }
 
@@ -222,7 +223,7 @@ ValueMapping readSignatureFromFileVM[] =
 static const std::string readSignatureFromFileSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text> {text|string} -> imagesignature"
+    "( <text> {text|string} -> FeatureSignature"
     "</text--->"
 "<text>readSignatureFromFile(fileName,col,tex,pat,pct,clus) </text--->"
     "<text>Creates an ImageSignature from a jpeg file.</text--->"
@@ -248,23 +249,30 @@ static Operator readSignatureFromFileOp(
 */
 
 std::ostream& operator<<(std::ostream& os, 
-    const ImageSignatureTuple& ist)
+const FeatureSignatureTuple& ist)
 {
-  os << "(" << ist.weight << "," 
-  << ist.centroidXpos << "," 
-  << ist.centroidYpos << ")";
+  os << "(" 
+  << ist.weight << "," 
+  << ist.centroid.x << "," 
+  << ist.centroid.y << ","
+  << ist.centroid.r << "," 
+  << ist.centroid.g << ","
+  << ist.centroid.b << ","
+  << ist.centroid.coarseness << ","
+  << ist.centroid.contrast << ","
+  << ")";
   return os;
 }
 
 
-std::ostream& operator<<(std::ostream& os, const ImageSignature& p)
+std::ostream& operator<<(std::ostream& os, const FeatureSignature& p)
 {
   //os << " State: " << p.GetState()
   //<< "<" << p.GetFileName() << ">"
   //<< "<";
 
-  for(int i = 0; i < p.GetNoImageSignatureTuples(); i++)
-    os << p.GetImageSignatureTuple(i) << " ";
+  for(int i = 0; i < p.GetNoFeatureSignatureTuples(); i++)
+    os << p.GetFeatureSignatureTuple(i) << " ";
 
   os << ">";
 
@@ -273,31 +281,39 @@ std::ostream& operator<<(std::ostream& os, const ImageSignature& p)
 
 
 /*
-4 Constructors for ImageSignature class
+4 Constructors for FeatureSignature class
 
-This first constructor creates a new ImageSignature.
+This first constructor creates a new FeatureSignature.
 
 */
-ImageSignature::ImageSignature(const int n) :
+FeatureSignature::FeatureSignature(const int n) :
   Attribute(true),
-  imageSignatureTuples(n)
+  FeatureSignatureTuples(n)
 {
   SetDefined(true);
 }
 
 
-ImageSignature::ImageSignature(const int n, 
-    const double *W, const int *X, const int *Y ) :
+FeatureSignature::FeatureSignature(const int n, 
+    const double *W, 
+    const int *X, 
+    const int *Y,
+    const double *R,
+    const double *G,
+    const double *B,
+    const double *COA,
+    const double *CON) :
   Attribute(true),
-  imageSignatureTuples(n) 
+  FeatureSignatureTuples(n) 
 {
   SetDefined(true);
   
   if( n > 0 )
   {
     for( int i = 0; i < n; i++ )
-    {
-      ImageSignatureTuple ist(W[i], X[i], Y[i]);
+    {	  
+      FeatureSignatureTuple ist(W[i], X[i], Y[i], R[i], 
+      G[i], B[i], COA[i], CON[i]);
       Append(ist);
     }  
   }
@@ -308,12 +324,12 @@ ImageSignature::ImageSignature(const int n,
 4.1 Copy Constructor
 
 */
-ImageSignature::ImageSignature(const ImageSignature& src):
+FeatureSignature::FeatureSignature(const FeatureSignature& src):
   Attribute(src.IsDefined()),
-  imageSignatureTuples(src.imageSignatureTuples.Size()),
+  FeatureSignatureTuples(src.FeatureSignatureTuples.Size()),
   fileName(src.fileName)
 {
-  imageSignatureTuples.copyFrom(src.imageSignatureTuples);
+  FeatureSignatureTuples.copyFrom(src.FeatureSignatureTuples);
 }
 
 
@@ -322,13 +338,14 @@ ImageSignature::ImageSignature(const ImageSignature& src):
 4.2 Destructor
 
 */
-ImageSignature::~ImageSignature()
+FeatureSignature::~FeatureSignature()
 {
 }
 
 
-ImageSignature& ImageSignature::operator=(const ImageSignature& src){
-  imageSignatureTuples.copyFrom(src.imageSignatureTuples);
+FeatureSignature& 
+FeatureSignature::operator=(const FeatureSignature& src){
+  FeatureSignatureTuples.copyFrom(src.FeatureSignatureTuples);
   return *this;
 }
 
@@ -337,7 +354,7 @@ ImageSignature& ImageSignature::operator=(const ImageSignature& src){
 4.3 NumOfFLOBs method
 
 */
-int ImageSignature::NumOfFLOBs() const
+int FeatureSignature::NumOfFLOBs() const
 {
   return 1;
 }
@@ -347,10 +364,10 @@ int ImageSignature::NumOfFLOBs() const
 4.4 GetFLOB method
 
 */
-Flob *ImageSignature::GetFLOB(const int i)
+Flob *FeatureSignature::GetFLOB(const int i)
 {
   assert(i >= 0 && i < NumOfFLOBs());
-  return &imageSignatureTuples;
+  return &FeatureSignatureTuples;
 }
 
 
@@ -359,7 +376,7 @@ Flob *ImageSignature::GetFLOB(const int i)
 todo: Not yet implemented. Needed to be a tuple attribute.
 
 */
-int ImageSignature::Compare(const Attribute*) const
+int FeatureSignature::Compare(const Attribute*) const
 {
   return 0;
 }
@@ -370,7 +387,7 @@ int ImageSignature::Compare(const Attribute*) const
 Because Compare returns alway 0, we can only return a constant hash value.
 
 */
-size_t ImageSignature::HashValue() const{   
+size_t FeatureSignature::HashValue() const{   
   return  1;
 }
 
@@ -381,7 +398,7 @@ size_t ImageSignature::HashValue() const{
 Not required.
 
 */
-bool ImageSignature::Adjacent(const Attribute*) const
+bool FeatureSignature::Adjacent(const Attribute*) const
 {
   return 0;
 }
@@ -390,13 +407,13 @@ bool ImageSignature::Adjacent(const Attribute*) const
 /*
 4.7 Clone method
 
-Returns a new created ImageSignature (clone) which is a
+Returns a new created FeatureSignature (clone) which is a
 copy of ~this~.
 
 */
-ImageSignature *ImageSignature::Clone() const
+FeatureSignature *FeatureSignature::Clone() const
 { 
-  ImageSignature *is = new ImageSignature(*this);
+  FeatureSignature *is = new FeatureSignature(*this);
   return is;
 }
 
@@ -406,8 +423,8 @@ ImageSignature *ImageSignature::Clone() const
 
 
 */
-void ImageSignature::CopyFrom(const Attribute* right){
-  *this = *((ImageSignature*)right);
+void FeatureSignature::CopyFrom(const Attribute* right){
+  *this = *((FeatureSignature*)right);
 }
 
 
@@ -415,7 +432,7 @@ void ImageSignature::CopyFrom(const Attribute* right){
 4.9 Sizeof method
 
 */
-size_t ImageSignature::Sizeof() const
+size_t FeatureSignature::Sizeof() const
 {
   return sizeof(*this);
 }
@@ -425,7 +442,7 @@ size_t ImageSignature::Sizeof() const
 5 Print method
 
 */
-std::ostream& ImageSignature::Print(std::ostream& os) const
+std::ostream& FeatureSignature::Print(std::ostream& os) const
 {
   return (os << *this);
 }
@@ -434,19 +451,19 @@ std::ostream& ImageSignature::Print(std::ostream& os) const
 /*
 5.1 Append method
 
-Appends an ImageSignatureTple ~ist~ at the end of the ImageSignature.
+Appends an FeatureSignatureTple ~ist~ at the end of the FeatureSignature.
 
 */
-void ImageSignature::Append(const ImageSignatureTuple& ist)
+void FeatureSignature::Append(const FeatureSignatureTuple& ist)
 {
-  imageSignatureTuples.Append(ist);
+  FeatureSignatureTuples.Append(ist);
 }
 
 
 /*
 2.3.10 Complete
 
-Turns the ImageSignature into the ~complete~ state.
+Turns the FeatureSignature into the ~complete~ state.
 
 *Precondition* ~state == partial~. // todo: remove states
 
@@ -459,7 +476,7 @@ Turns the ImageSignature into the ~complete~ state.
 Not yet implemented.
 
 */
-bool ImageSignature::Correct()
+bool FeatureSignature::Correct()
 {
   return true;
 }
@@ -468,41 +485,42 @@ bool ImageSignature::Correct()
 /*
 5.3 Destroy method
 
-Turns the ImageSignature into the ~closed~ state destroying the
-ImageSignatureTuple array.
+Turns the FeatureSignature into the ~closed~ state destroying the
+FeatureSignatureTuple array.
 
 */
-void ImageSignature::Destroy()
+void FeatureSignature::Destroy()
 {
-  imageSignatureTuples.destroy();
+  FeatureSignatureTuples.destroy();
 }
 
 
 /*
-5.4 NoImageSignatureTuples
+5.4 NoFeatureSignatureTuples
 
-Returns the number of tuples of the ImageSignature.
+Returns the number of tuples of the FeatureSignature.
 
 */
-int ImageSignature::GetNoImageSignatureTuples() const
+int FeatureSignature::GetNoFeatureSignatureTuples() const
 {
-  return imageSignatureTuples.Size();
+  return FeatureSignatureTuples.Size();
 }
 
 
 /*
-5.5 GetImageSignatureTuple
+5.5 GetFeatureSignatureTuple
 
 Returns a signature tuple indexed by ~i~.
 
 */
-ImageSignatureTuple ImageSignature::GetImageSignatureTuple(int i) const
+FeatureSignatureTuple 
+FeatureSignature::GetFeatureSignatureTuple(int i) const
 {
  // assert(state == complete);
-  assert(0 <= i && i < GetNoImageSignatureTuples());
+  assert(0 <= i && i < GetNoFeatureSignatureTuples());
 
-  ImageSignatureTuple ist;
-  imageSignatureTuples.Get(i, &ist);
+  FeatureSignatureTuple ist;
+  FeatureSignatureTuples.Get(i, &ist);
   return ist;
 }
 
@@ -510,18 +528,18 @@ ImageSignatureTuple ImageSignature::GetImageSignatureTuple(int i) const
 /*
 5.6 IsEmpty method
 
-Returns if the ImageSignature is empty or not.
+Returns if the FeatureSignature is empty or not.
 
 */
-const bool ImageSignature::IsEmpty() const
+const bool FeatureSignature::IsEmpty() const
 {
     // todo: report correct number
-    return GetNoImageSignatureTuples() == 0;
+    return GetNoFeatureSignatureTuples() == 0;
 }
 
 
 /*
-6 ImageSignature Algebra.
+6 FeatureSignature Algebra.
 
 */
 
@@ -530,9 +548,10 @@ const bool ImageSignature::IsEmpty() const
 6.2 In method, gets information of the object from an nl
 
 */  
-ListExpr ImageSignature::Out(ListExpr typeInfo, Word value)
+ListExpr FeatureSignature::Out(ListExpr typeInfo, Word value)
 {    
-    ImageSignature* imgsig = static_cast<ImageSignature*>(value.addr);
+    FeatureSignature* imgsig 
+    = static_cast<FeatureSignature*>(value.addr);
   
     if(!imgsig->IsDefined())
     {
@@ -544,22 +563,69 @@ ListExpr ImageSignature::Out(ListExpr typeInfo, Word value)
         return (nl->TheEmptyList());
     }
     else
-    {        
-    ListExpr result = nl->OneElemList(nl->ThreeElemList(
-        nl->RealAtom(imgsig->GetImageSignatureTuple(0).weight),
-        nl->IntAtom(imgsig->GetImageSignatureTuple(0).centroidXpos),
-        nl->IntAtom(imgsig->GetImageSignatureTuple(0).centroidYpos))
-        );                
-     
-    ListExpr last = result;
-
-    for(int i = 1; i < imgsig->GetNoImageSignatureTuples(); i++)
     {
-        last = nl->Append(last,nl->ThreeElemList(
-        nl->RealAtom(imgsig->GetImageSignatureTuple(i).weight),
-        nl->IntAtom(imgsig->GetImageSignatureTuple(i).centroidXpos),
-        nl->IntAtom(imgsig->GetImageSignatureTuple(i).centroidYpos)));
+
+     
+    ListExpr tmpRes = nl->OneElemList(
+    nl->RealAtom(imgsig->GetFeatureSignatureTuple(0).weight));
+			
+	ListExpr lst = tmpRes;
+	
+	lst = nl->Append(lst, 
+    nl->IntAtom(imgsig->GetFeatureSignatureTuple(0).centroid.x));
+	lst = nl->Append(lst, 
+    nl->IntAtom(imgsig->GetFeatureSignatureTuple(0).centroid.y));
+	lst = nl->Append(lst, 
+    nl->RealAtom(imgsig->GetFeatureSignatureTuple(0).centroid.r));
+	lst = nl->Append(lst, 
+    nl->RealAtom(imgsig->GetFeatureSignatureTuple(0).centroid.g));
+	lst = nl->Append(lst, 
+    nl->RealAtom(imgsig->GetFeatureSignatureTuple(0).centroid.b));
+	lst = nl->Append(lst, 
+    nl->RealAtom(
+    imgsig->GetFeatureSignatureTuple(0).centroid.coarseness));
+	lst = nl->Append(lst, 
+    nl->RealAtom(
+    imgsig->GetFeatureSignatureTuple(0).centroid.contrast));
+	
+	ListExpr result = nl->OneElemList(tmpRes);
+			
+    ListExpr last = result;
+    
+	for(int i = 1; i < imgsig->GetNoFeatureSignatureTuples(); i++)
+    {
+		ListExpr tmpRes = nl->OneElemList(
+            nl->RealAtom(
+            imgsig->GetFeatureSignatureTuple(i).weight));
+				
+		ListExpr lst = tmpRes;
+        
+		//lst = nl->Append(lst, 
+        //nl->RealAtom(imgsig->GetFeatureSignatureTuple(i).weight));
+		lst = nl->Append(
+        lst, nl->IntAtom(
+        imgsig->GetFeatureSignatureTuple(i).centroid.x));
+        lst = nl->Append(
+        lst, nl->IntAtom(
+        imgsig->GetFeatureSignatureTuple(i).centroid.y));
+        lst = nl->Append(
+        lst, nl->RealAtom(
+        imgsig->GetFeatureSignatureTuple(i).centroid.r));
+        lst = nl->Append(
+        lst, nl->RealAtom(
+        imgsig->GetFeatureSignatureTuple(i).centroid.g));
+        lst = nl->Append(
+        lst, nl->RealAtom(
+        imgsig->GetFeatureSignatureTuple(i).centroid.b));
+        lst = nl->Append(
+        lst, nl->RealAtom(
+        imgsig->GetFeatureSignatureTuple(i).centroid.coarseness));
+        lst = nl->Append(
+        lst, nl->RealAtom(
+        imgsig->GetFeatureSignatureTuple(i).centroid.contrast));	
+        last = nl->Append(last, tmpRes);
     }
+
     return result;
   }
 }
@@ -571,10 +637,10 @@ ListExpr ImageSignature::Out(ListExpr typeInfo, Word value)
 
 */  
 Word
-ImageSignature::In(const ListExpr typeInfo, const ListExpr instance,
+FeatureSignature::In(const ListExpr typeInfo, const ListExpr instance,
            const int errorPos, ListExpr& errorInfo, bool& correct)
 {
-    ImageSignature* imgsig = new ImageSignature(0);
+    FeatureSignature* imgsig = new FeatureSignature(0);
     
     if(listutils::isSymbolUndefined(instance)){
         imgsig->SetDefined(false);
@@ -593,19 +659,34 @@ ImageSignature::In(const ListExpr typeInfo, const ListExpr instance,
         first = nl->First(rest);
         rest = nl->Rest(rest);
         
-        if( nl->ListLength(first) == 3 &&
+        if( nl->ListLength(first) == 8 &&
             nl->IsAtom(nl->First(first )) &&
             nl->AtomType(nl->First(first)) == RealType &&
             nl->IsAtom(nl->Second(first)) &&
             nl->AtomType(nl->Second(first)) == IntType && 
             nl->IsAtom(nl->Third(first)) &&
-            nl->AtomType(nl->Third(first)) == IntType 
+            nl->AtomType(nl->Third(first)) == IntType &&
+            nl->IsAtom(nl->Fourth(first)) &&
+            nl->AtomType(nl->Fourth(first)) == RealType &&
+            nl->IsAtom(nl->Fifth(first )) &&
+            nl->AtomType(nl->Fifth(first)) == RealType &&
+            nl->IsAtom(nl->Sixth(first )) &&
+            nl->AtomType(nl->Sixth(first)) == RealType &&
+            nl->IsAtom(nl->Seventh(first )) &&
+            nl->AtomType(nl->Seventh(first)) == RealType &&
+            nl->IsAtom(nl->Eigth(first)) &&            
+            nl->AtomType(nl->Eigth(first)) == RealType 
          )
         {
-            ImageSignatureTuple ist( 
+            FeatureSignatureTuple ist( 
                 nl->RealValue(nl->First(first)),
                 nl->IntValue(nl->Second(first)),
-                nl->IntValue(nl->Third(first))
+                nl->IntValue(nl->Third(first)),
+                nl->RealValue(nl->Fourth(first)),
+                nl->RealValue(nl->Fifth(first)),
+                nl->RealValue(nl->Sixth(first)),
+                nl->RealValue(nl->Seventh(first)),
+                nl->RealValue(nl->Eigth(first))                                
             );
             imgsig->Append(ist);
         }
@@ -627,7 +708,7 @@ ImageSignature::In(const ListExpr typeInfo, const ListExpr instance,
 6.3 Property method, describing the signature of the type constructor
 
 */
-ListExpr ImageSignature::Property()
+ListExpr FeatureSignature::Property()
 {
   return (nl->TwoElemList(
          nl->FiveElemList(
@@ -638,11 +719,11 @@ ListExpr ImageSignature::Property()
             nl->StringAtom("Remarks")),
          nl->FiveElemList(
             nl->StringAtom("->" + Kind::DATA() ),
-            nl->StringAtom(ImageSignature::BasicType()),
+            nl->StringAtom(FeatureSignature::BasicType()),
             nl->StringAtom("(<tuple>*) where <tuple> is "
-            "(real int int)"),
-            nl->StringAtom("( (1.2 3 4) (2.3 10 10) )"),
-            nl->StringAtom("weight double, x- and y-coordinates int"
+            "(r i i r r r r r)"),
+            nl->StringAtom("((1.2 3 4 1.0 2.3 3.1 2.1 2.3))"),
+    nl->StringAtom("weight(double), position (int), texture (double)"
                           ))));
 }
 
@@ -654,9 +735,9 @@ This method checks whether the type constructor is applied correctly.
 
 */
 bool
-ImageSignature::KindCheck( ListExpr type, ListExpr& errorInfo )
+FeatureSignature::KindCheck( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, ImageSignature::BasicType() ));
+  return (nl->IsEqual( type, FeatureSignature::BasicType() ));
 }
 
 
@@ -665,9 +746,9 @@ ImageSignature::KindCheck( ListExpr type, ListExpr& errorInfo )
 6.5 ~Create~-function
 
 */
-Word ImageSignature::Create(const ListExpr typeInfo)
+Word FeatureSignature::Create(const ListExpr typeInfo)
 {    
-    ImageSignature* imgsig = new ImageSignature(0);
+    FeatureSignature* imgsig = new FeatureSignature(0);
     return (SetWord(imgsig));
 }
 
@@ -676,9 +757,9 @@ Word ImageSignature::Create(const ListExpr typeInfo)
 6.6 ~Delete~-function
 
 */
-void ImageSignature::Delete(const ListExpr typeInfo, Word& w)
+void FeatureSignature::Delete(const ListExpr typeInfo, Word& w)
 {
-  ImageSignature* imgsig = (ImageSignature*)w.addr;
+  FeatureSignature* imgsig = (FeatureSignature*)w.addr;
 
   imgsig->Destroy();
   delete imgsig;
@@ -690,13 +771,13 @@ void ImageSignature::Delete(const ListExpr typeInfo, Word& w)
 
 */
 bool
-ImageSignature::Open( SmiRecord& valueRecord,
+FeatureSignature::Open( SmiRecord& valueRecord,
              size_t& offset,
              const ListExpr typeInfo,
              Word& value )
 {
-  ImageSignature *p = 
-  (ImageSignature*)Attribute::Open(valueRecord, offset, typeInfo);
+  FeatureSignature *p = 
+  (FeatureSignature*)Attribute::Open(valueRecord, offset, typeInfo);
   value.setAddr( p );
   return true;
 }
@@ -707,12 +788,12 @@ ImageSignature::Open( SmiRecord& valueRecord,
 
 */
 bool
-ImageSignature::Save( SmiRecord& valueRecord,
+FeatureSignature::Save( SmiRecord& valueRecord,
              size_t& offset,
              const ListExpr typeInfo,
              Word& value )
 {
-  ImageSignature *p = (ImageSignature *)value.addr;
+  FeatureSignature *p = (FeatureSignature *)value.addr;
   Attribute::Save( valueRecord, offset, typeInfo, p );
   return true;
 }
@@ -722,9 +803,9 @@ ImageSignature::Save( SmiRecord& valueRecord,
 6.8 ~Close~-function
 
 */
-void ImageSignature::Close(const ListExpr typeInfo, Word& w)
+void FeatureSignature::Close(const ListExpr typeInfo, Word& w)
 {
-  ImageSignature* imgsig = (ImageSignature*)w.addr;
+  FeatureSignature* imgsig = (FeatureSignature*)w.addr;
   delete imgsig;
 }
 
@@ -733,18 +814,18 @@ void ImageSignature::Close(const ListExpr typeInfo, Word& w)
 6.9 ~Clone~-method
 
 */
-Word ImageSignature::Clone(const ListExpr typeInfo, const Word& w)
+Word FeatureSignature::Clone(const ListExpr typeInfo, const Word& w)
 {
-  return SetWord( ((ImageSignature*)w.addr)->Clone() );
+  return SetWord( ((FeatureSignature*)w.addr)->Clone() );
 }
 
 /*
 7 ~SizeOf~-method
 
 */
-int ImageSignature::SizeOfObj()
+int FeatureSignature::SizeOfObj()
 {
-  return sizeof(ImageSignature);
+  return sizeof(FeatureSignature);
 }
 
 
@@ -752,9 +833,9 @@ int ImageSignature::SizeOfObj()
 7.1 ~Cast~-method
 
 */
-void* ImageSignature::Cast(void* addr)
+void* FeatureSignature::Cast(void* addr)
 {
-  return (new (addr) ImageSignature);
+  return (new (addr) FeatureSignature);
 }
 
 
@@ -763,20 +844,20 @@ void* ImageSignature::Cast(void* addr)
 
 */
 TypeConstructor imgsig(
-        ImageSignature::BasicType(),               
-        ImageSignature::Property,
-        ImageSignature::Out,   ImageSignature::In,
+        FeatureSignature::BasicType(),               
+        FeatureSignature::Property,
+        FeatureSignature::Out,   FeatureSignature::In,
         0,              0,                  
-        ImageSignature::Create,  ImageSignature::Delete,
-        ImageSignature::Open,    ImageSignature::Save,
-        ImageSignature::Close,   ImageSignature::Clone,
-        ImageSignature::Cast,
-        ImageSignature::SizeOfObj,
-        ImageSignature::KindCheck);
+        FeatureSignature::Create,  FeatureSignature::Delete,
+        FeatureSignature::Open,    FeatureSignature::Save,
+        FeatureSignature::Close,   FeatureSignature::Clone,
+        FeatureSignature::Cast,
+        FeatureSignature::SizeOfObj,
+        FeatureSignature::KindCheck);
 
 
 /*
-4 ImageSignatureAlgebra
+4 FeatureSignatureAlgebra
 
 */
 
@@ -804,7 +885,8 @@ class ImageSimilarityAlgebra : public Algebra
 
 extern "C"
 Algebra*
-InitializeImageSimilarityAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
+InitializeImageSimilarityAlgebra(NestedList *nlRef, 
+QueryProcessor *qpRef)
 {
   nl = nlRef;
   qp = qpRef;
