@@ -50,141 +50,7 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 
 namespace temporalalgebra {
   namespace mregionops3 {
-
-/*
-3 class Segment
-
-*/     
-    class Segment {
-    public:
-/*
-3.1 Constructor
-
-*/        
-      Segment ();
-      Segment (size_t head, size_t tail, Predicate predicate);
-      Segment (const Segment& segment);
-/*
-3.2 Getter methods
-
-*/     
-      void setPredicate(Predicate predicate);
-      size_t getHead()const;
-      size_t getTail()const;
-      Predicate getPredicate() const;
-/*
-3.3 Methods, Operators and Predicates
-
-3.3.1 Operator <<
     
-Print the object values to stream.
-
-*/      
-      friend std::ostream& operator <<(std::ostream& os, 
-                                       const Segment& segment);
-/*      
-3.3.2 Operator for comparison.
-
-*/
-      bool operator ==(const Segment& segment) const; 
-/*
-3.3.3 operator =
-    
-*/
-      Segment& operator =(const Segment& segment);     
-    private:
-/*
-3.4 Private methods
-
-3.4.1 set
-
-*/        
-      void set(const Segment& segment);  
-/*
-3.5 Attributes
-
-*/
-      size_t head;
-      size_t tail;
-      Predicate predicate;
-    };// Segment
-/*
-4 class ResultPfaceFactory
-
-*/      
-    class ResultPfaceFactory {
-    public:  
-/*
-4.1 Constructor
-
-*/        
-      ResultPfaceFactory(ContainerPoint3D& points,
-                        GlobalTimeValues &timeValues1,
-                        IntSegContainer &container1);
-      ResultPfaceFactory(ContainerPoint3D& points,
-                         GlobalTimeValues &timeValues,
-                         PFace &pface);
-      ResultPfaceFactory(size_t size);
-      
-/*
-4.3 Methods, Operators and Predicates
-
-4.3.1 createEdge
-
-*/
-      Segment createEdge( ContainerPoint3D& points,
-                          const IntersectionSegment& segment,
-                          double t1, double t2);
-      void inittialize(size_t size);
-      
-      void addEdge(size_t slide, const Segment& segment);
-      
-      void addOrthogonal(size_t slide, const Segment& segment);
-      
-      void setTouch(size_t slide, size_t touch);
-      
-      bool compare(const std::vector<std::list<Segment>>& edges1,
-                   const std::vector<std::list<Segment>>& edges2)const;
-      
-      bool operator ==(const ResultPfaceFactory& factory)const;
-      
-      
-      void evaluate();
-      
-      void evaluate(std::vector<std::list<Segment>>::iterator edgeIter, 
-                    std::vector<std::list<Segment>>::iterator orthogonalIter,
-                    std::vector<size_t>::iterator touchIter);
-      
-      void setPredicate(Segment& segment, Predicate& predicate)const;
-      
-      void checkPredicate(const Segment& segment, const Border border, 
-                          Predicate& result)const;
-      
-      bool checkSegment(Segment& predecessor, const Segment& segment)const;
-      
-      
-      void computeSegments(ContainerPoint3D& points, std::list<Segment>& edges,
-        double t1, double t2, const std::list<IntersectionSegment>& segments);
-/*
-4.3.2 operator <<
-
-*/     
-      friend std::ostream& operator <<(std::ostream& os, 
-                                       const ResultPfaceFactory& unit);
-/*
-4.3.3 print
-
-*/     
-      std::ostream& print(std::ostream& os,std::string prefix)const;
-    private: 
-/*
-4.4 Attributes
-
-*/      
-      std::vector<std::list<Segment>> edges;
-      std::vector<std::list<Segment>> orthogonals;
-      std::vector<size_t> touchs;
-    }; // ResultPfaceFactory 
 /*
 5 class SourceUnit
 
@@ -229,8 +95,9 @@ Print the object values to stream.
 */       
       bool operator ==(const SourceUnit& unit)const; 
       
-      void createResultPfaces( ContainerPoint3D& points, 
-                               GlobalTimeValues &timeValues);
+//       void createResultPfaces( ContainerPoint3D& points, 
+//                                GlobalTimeValues& timeValues,
+//                                std::list<ResultPfaceFactory*>& factorys);
       
     private: 
 /*

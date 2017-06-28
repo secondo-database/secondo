@@ -63,6 +63,21 @@ namespace temporalalgebra {
     class RationalSegment3D;
     class RationalPoint2D;
     class RationalVector2D;
+    
+/*
+2.3 Enumeration Predicate
+
+*/    
+    enum Predicate { 
+      UNDEFINED,
+      LEFT_IS_INNER,
+      RIGHT_IS_INNER,
+      INSIDE,
+      OUTSIDE,
+      INTERSECT
+    };
+    
+    std::string toString(Predicate predicate); 
 /*
 3 Class Point3D
 
@@ -736,8 +751,8 @@ This class provides a containervector for Point3d values.
 12.2 Getter methods.
 
 */     
-      Point3D         get(size_t index)const;
-      size_t          size()const;
+      Point3D  get(size_t index)const;
+      size_t   size()const;
 /*
 12.3 Methods, oOperators and predicates
         
@@ -762,7 +777,7 @@ Print the object values to stream.
 12.3.4 add.
 
 */       
-      size_t          add(const Point3D& points);
+      size_t add(const Point3D& point);
 /*
 12.3.5 print.
 
@@ -782,8 +797,103 @@ Print the object values to stream.
 */        
       std::vector<Point3D> points; 
       mmrtree::RtreeT<3, size_t> pointsTree;
-    };// Segment2D
+    };// ContainerPoint3D
     
+/*
+3 class Segment
+
+*/     
+    class Segment {
+    public:
+/*
+3.1 Constructor
+
+*/        
+      Segment ();
+      Segment (size_t head, size_t tail, Predicate predicate);
+      Segment (const Segment& segment);
+/*
+3.2 Getter methods
+
+*/     
+      void setPredicate(Predicate predicate);
+      size_t getHead()const;
+      size_t getTail()const;
+      Predicate getPredicate() const;
+/*
+3.3 Methods, Operators and Predicates
+
+3.3.1 Operator <<
+    
+Print the object values to stream.
+
+*/      
+      friend std::ostream& operator <<(std::ostream& os, 
+                                       const Segment& segment);
+/*      
+3.3.2 Operator for comparison.
+
+*/
+      bool operator ==(const Segment& segment) const; 
+/*
+3.3.3 operator =
+    
+*/
+      Segment& operator =(const Segment& segment);     
+    private:
+/*
+3.4 Private methods
+
+3.4.1 set
+
+*/        
+      void set(const Segment& segment);  
+/*
+3.5 Attributes
+
+*/
+      size_t head;
+      size_t tail;
+      Predicate predicate;
+    };// Segment     
+    
+    class ContainerSegment {
+    public:  
+      // Konstruktor
+      ContainerSegment();
+      
+      ContainerSegment(const ContainerSegment& other);
+      
+      size_t size()const;
+
+      size_t add(const Segment& segment);
+      
+      void clear();
+      
+      void set(size_t index, Predicate predicate);
+      
+      Segment   get(size_t index)const;
+      
+      std::ostream& print(std::ostream& os, std::string prefix)const;
+      
+      friend std::ostream& operator<<( std::ostream& os, 
+                                       const ContainerSegment& container); 
+      
+      bool operator == (const ContainerSegment& segments)const;
+      
+      ContainerSegment& operator = (const ContainerSegment& segments);
+    private:  
+      
+      size_t getHash(const Segment& segment)const;
+      
+      void set(const ContainerSegment& other);
+      
+      const size_t buckets = 47;
+      
+      std::vector<std::list<size_t>> segmentBuckets;
+      std::vector<Segment> segments; 
+    }; //ContainerSegment
+
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra
 #endif 

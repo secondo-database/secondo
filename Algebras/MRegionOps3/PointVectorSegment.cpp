@@ -43,7 +43,19 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 #include "PointVectorSegment.h"
 
 namespace temporalalgebra{
-  namespace mregionops3 {          
+  namespace mregionops3 {   
+    
+    std::string toString(Predicate predicate){
+      switch(predicate){
+        case UNDEFINED: return "UNDEFINED";
+        case LEFT_IS_INNER:   return "LEFT_IS_INNER";
+        case RIGHT_IS_INNER:  return "RIGHT_IS_INNER";
+        case INSIDE: return "INSIDE";
+        case OUTSIDE: return "OUTSIDE";
+        case INTERSECT: return "INTERSECT";
+        default: return "";
+      }// switch
+    }// toString
 /*
 3 Class Point3D
 
@@ -747,9 +759,9 @@ namespace temporalalgebra{
       if(this->points.size() != other.points.size()) return false;
       for(size_t i = 0; i < points.size(); i++){
         if(other.points[i] != this->points[i]) {
-          // cout << "Faile on Index:=" << i << ", ";
-          // cout << this->points[i] << ", ";
-          // cout << other.points[i] << endl;
+           cout << "Faile on Index:=" << i << ", ";
+           cout << this->points[i] << ", ";
+           cout << other.points[i] << endl;
           return false;
         }// if
       }// for
@@ -766,6 +778,188 @@ namespace temporalalgebra{
         std::ostream& os, const ContainerPoint3D& container){
       return container.print(os,"");
     }// Operator << 
+/*
+13 class Segment
+
+*/      
+    Segment::Segment (){
+      this->head = 0;
+      this->tail = 0;
+      this->predicate = UNDEFINED;
+    }// Konstruktor    
+    
+    Segment::Segment (size_t tail, size_t head, Predicate predicate){
+      this->head = head;
+      this->tail = tail;
+      this->predicate = predicate;
+    }// Konstruktor
+    
+    Segment::Segment (const Segment& segment){
+      set(segment);
+    }// KOnstruktor
+    
+    void Segment::set(const Segment& segment){
+      this->head = segment.head;
+      this->tail = segment.tail;
+      this->predicate = segment.predicate;
+    }// set
+    
+    size_t Segment::getHead()const{
+      return this->head;
+    }// getHead
+    
+    size_t Segment::getTail()const{
+      return this->tail;
+    }// getTail
+      
+    Predicate Segment::getPredicate() const{
+      return this->predicate;
+    }// getPredicate
+    
+    void Segment::setPredicate(Predicate predicate){
+      this->predicate = predicate;
+    }// setPredicate
+
+    std::ostream& operator <<(std::ostream& os, const Segment& segment){
+      os << "Segment (" << segment.getTail() << ", " << segment.getHead();
+      os << ", ";
+      os << toString(segment.getPredicate()) <<")";
+      return os;
+    }// operator <<
+
+    bool Segment::operator ==(const Segment& segment) const{
+      if((this->head == segment.head) &&
+         (this->tail  == segment.tail) &&
+         (this->predicate == segment.predicate)) return true;
+      return false;
+    }// Operator ==
+
+    Segment& Segment::operator =(const Segment& segment){
+      set(segment);
+      return *this;
+    }// Operator = 
+/*
+14 class ContainerSegment
+
+*/      
+    ContainerSegment::ContainerSegment():
+       segmentBuckets(std::vector<std::list<size_t>>(buckets,
+                                                     std::list<size_t>())){
+    }// Konstruktor
+      
+    ContainerSegment::ContainerSegment(const ContainerSegment& other):
+       segmentBuckets(std::vector<std::list<size_t>>(buckets,
+                                                     std::list<size_t>())){
+      set(other);
+    }// Konstruktor
+    
+    void ContainerSegment::set(const ContainerSegment& other){
+      for(size_t i = 0; i< other.size(); i++){
+        add(other.get(i));
+      }// for
+    }// set
+    
+    size_t ContainerSegment::size()const {
+      return segments.size(); 
+    }// size    
+    
+    size_t ContainerSegment::getHash(const Segment& segment)const{
+      return (segment.getTail() + 
+             this->buckets * segment.getHead()) % this->buckets;
+    }// getHash
+
+    size_t ContainerSegment::add(const Segment& segment){
+      size_t hash = getHash(segment);
+      std::list<size_t>::const_iterator iterator;
+      for(iterator = segmentBuckets[hash].begin(); 
+          iterator != segmentBuckets[hash].end(); iterator ++){
+        Segment other = segments[*iterator];
+        if(other.getTail() == segment.getTail() &&
+           other.getHead() == segment.getHead()){
+          if(other.getPredicate() == UNDEFINED) {
+            segments[*iterator] = segment;
+            return *iterator;
+          }// if
+          else if(other.getPredicate() == segment.getPredicate()){
+            return *iterator;
+          }// else if
+          else if(segment.getPredicate()== UNDEFINED){
+            return *iterator;
+          }// else if  
+          NUM_FAIL("Segments with same points and different predicates.");
+        }// if 
+      }// for
+      size_t index = segments.size();
+      segments.push_back(segment);
+      segmentBuckets[hash].push_back(index);
+      return index;
+    }// add
+      
+    void ContainerSegment::set(size_t index, Predicate predicate){
+      if(index < segments.size()){
+        if(segments[index].getPredicate() == UNDEFINED){
+          segments[index].setPredicate(predicate);
+        }// if  
+        else NUM_FAIL("Old predicate must be UNDEFINED."); 
+      }// if
+      else NUM_FAIL("Index is out of range.");        
+    }// set
+      
+    Segment ContainerSegment::get(size_t index)const{
+      if(index < segments.size()){
+        return segments[index];
+      }// if
+      else NUM_FAIL("Index is out of range.");  
+    }// get
+      
+    std::ostream& ContainerSegment::print(std::ostream& os, 
+                                          std::string prefix)const{
+      os << prefix << "ContainerSegment ( " << endl;
+      for(size_t i = 0; i < segments.size(); i++){
+        os << prefix << "  Index:=" << i << ", " << segments[i] << endl;
+      }// for
+      //for(size_t i = 0; i < segmentBuckets.size(); i++){
+      //  os << prefix << "  Bucket:=" << i << "( ";
+      //  std::list<size_t>::const_iterator iterator;
+      //  for(iterator  = segmentBuckets[i].begin(); 
+      //      iterator != segmentBuckets[i].end();){  
+      //    os << *iterator;
+      //     iterator++;
+      //    if(iterator != segmentBuckets[i].end()) os << ", "; 
+      //  }// for
+      //  os << ")" << endl;
+      //}// for
+      os << prefix << ")" << endl;
+      return os;
+    }// print
+      
+    std::ostream& operator<<( std::ostream& os,
+                              const ContainerSegment& container){
+      return container.print(os,"");
+    }// Operator <<
+      
+    bool ContainerSegment::operator == (const ContainerSegment& other)const{
+      if(this->segments.size() != other.segments.size()) return false;
+      for(size_t i = 0; i < this->segments.size(); i++){
+        if(!(other.segments[i] == this->segments[i])) {
+          // cout << "Faile on Index:=" << i << ", ";
+          // cout << this->segments[i] << ", ";
+          // cout << other.segments[i] << endl;
+          return false;
+        }// if
+      }// for
+      return true;
+    }// Operator ==
+      
+    ContainerSegment& ContainerSegment::operator = (
+        const ContainerSegment& segments){
+      set(segments);
+      return *this;
+    }// Operator =
+    
+    void ContainerSegment::clear(){
+      segments.clear();      
+    }// clear
 
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

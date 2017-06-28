@@ -80,18 +80,7 @@ Used in the class ~PFace~ to indicate it's current state.
       NOT_RELEVANT
     };
 /*
-3.3 Enumeration Predicate
-
-*/    
-    enum Predicate { 
-      UNDEFINED,
-      LEFT_IS_INNER,
-      RIGHT_IS_INNER,
-      INSIDE,
-      OUTSIDE
-    };
-/*
-3.4 Enumeration Border
+3.3 Enumeration Border
 
 */        
     enum Border {
@@ -415,11 +404,6 @@ Print the object values to stream.
 */      
       bool operator ==( const IntersectionSegment& segment) const;
 /*
-8.3.4 toString
-
-*/      
-      static std::string toString(Predicate predicate); 
-/*
 8.3.5 isOrthogonalToTAxis
 
 */      
@@ -469,76 +453,106 @@ used in ~IntSegContainer~.
 
       bool operator()(const IntersectionSegment* const& s1,
                       const IntersectionSegment* const& s2) const;
-    };             
+    };    
+/*
+10 Class PlaneSweepAccess
+
+*/     
+    class PlaneSweepAccess {
+    public:
+/*
+10.1 Destructor
+
+*/         
+      virtual ~PlaneSweepAccess();
+/*
+10.2 Methods and Operators
+
+10.2.1 first
+
+first step in the Plane Sweep.
+
+*/       
+      virtual void first(double t1, double t2, ContainerPoint3D& points,
+                                       ContainerSegment& segments);
+/*
+10.2.2 next
+
+next step in the Plane Sweep.
+
+*/          
+      virtual void next(double t1, double t2, ContainerPoint3D& points, 
+                                      ContainerSegment& segments);  
+    };// PlaneSweepAccess 
 /*    
-10 Class IntSegContainer
+11 Class IntSegContainer
 
 This class is used by the class ~PFace~ and provides essentially
 an ordered set of ~IntersectionSegments~
 
 */
-    class IntSegContainer {
+    class IntSegContainer: public PlaneSweepAccess{
     public: 
 /*
-10.1 Constructor
+11.1 Constructor
 
 */     
       IntSegContainer();
       IntSegContainer(const IntSegContainer& container);
 /*
-10.2 Destructor
+11.2 Destructor
 
 */
       ~IntSegContainer();
 /*
-10.3 Methods and Operators
+11.3 Methods and Operators
 
-10.3.1 addIntSeg
+11.3.1 addIntSeg
 
 Adds seg to the set of ~IntersectionSegments~.
 
 */  
       void addIntSeg(const IntersectionSegment& seg);
 /*
-10.3.2 size
+11.3.2 size
 
 Adds seg to the set of ~IntersectionSegments~.
 
 */        
       size_t size()const;   
 /*
-10.3.3 print
+11.3.3 print
     
 */    
       std::ostream& print(std::ostream& os, std::string prefix)const; 
 /*
-10.3.4 operator <<
+11.3.4 operator <<
     
 */        
       friend std::ostream& operator <<(std::ostream& os, 
                                        const IntSegContainer& container);
 /*
-11.3.3 operator ==
+11.3.5 operator ==
     
 */     
       bool operator ==(const IntSegContainer& container)const; 
 /*
-11.3.4 operator =
+11.3.6 operator =
     
 */       
       IntSegContainer& operator =(const IntSegContainer& container);  
 /*
-11.3.5 first
+11.3.7 first
     
 */       
-      void first(double t, std::list<IntersectionSegment>& result, 
-                           std::list<IntersectionSegment>& resultOrth);
+      void first(double t1, double t2, ContainerPoint3D& points,
+                                       ContainerSegment& segments);
 /*
-11.3.6 next
+11.3.8 next
     
-*/         
-      void next(double t, std::list<IntersectionSegment>& result,
-                          std::list<IntersectionSegment>& resultOrthogonal);
+*/  
+      void next(double t1, double t2, ContainerPoint3D& points, 
+                                      ContainerSegment& segments);
     private:
 /*
 11.4 Private methods
@@ -628,31 +642,118 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
       std::set<double, DoubleCompare>::const_iterator timeIter;
       double t1;
       double t2;
-    }; // GlobalTimeValues       
+    }; // GlobalTimeValues   
+    
+/*
+4 class ResultPfaceFactory
+
+*/      
+    class ResultPfaceFactory {
+    public:  
+/*
+4.1 Constructor
+
+*/        
+      ResultPfaceFactory(const ResultPfaceFactory& other);
+       
+      ResultPfaceFactory();
+       
+      ResultPfaceFactory(size_t size);
+ 
+      ResultPfaceFactory(ContainerPoint3D& points,
+                         GlobalTimeValues &timeValues,
+                         PlaneSweepAccess &access);    
+/*
+4.3 Methods, Operators and Predicates
+
+*/
+      ResultPfaceFactory& operator =(const ResultPfaceFactory& other);
+
+      void addNonOrthogonalEdges(size_t slide, const Segment& segment);
+      
+      void addOrthogonalEdges(size_t slide,const Segment& segment);
+      
+      void setTouchsOnLeftBorder(size_t slide, size_t value);
+      
+      bool operator ==(const ResultPfaceFactory& factory)const;
+      
+      void getBorderPredicates(Predicate& left, Predicate& right)const;
+   
+      void evaluate();
+      
+/*
+4.3.2 operator <<
+
+*/     
+      friend std::ostream& operator <<(std::ostream& os, 
+                                       const ResultPfaceFactory& unit);
+/*
+4.3.3 print
+
+*/     
+      std::ostream& print(std::ostream& os,std::string prefix)const;
+
+    private: 
+      
+      void inittialize(size_t size);
+      
+      void set(      std::vector<std::list<size_t>>& edges1,
+               const std::vector<std::list<size_t>>& edges2);
+       
+      void set(const ResultPfaceFactory& other);
+      
+      void print(std::ostream& os,std::string prefix,
+                 std::vector<std::list<size_t>> edges)const;
+                 
+      bool iSEqual(const std::vector<std::list<size_t>>& edges1,
+                   const std::vector<std::list<size_t>>& edges2)const;
+      
+      void setPredicate(size_t index, Predicate& predicate);
+      
+      Predicate createPredicate(const Predicate source,
+                                const Border border)const;
+      
+      void checkPredicate(const Segment& segment, const Border border,
+                          Predicate& result)const;
+      
+      void evaluate(size_t i);
+                          
+      void setSlidePredicates(Predicate predicate,size_t i, size_t touch);
+/*
+4.4 Attributes
+
+*/    
+      ContainerSegment segments;
+      std::vector<std::list<size_t>> nonOrthogonalEdges;
+      std::vector<std::list<size_t>> orthogonalEdges;
+      std::vector<size_t> touchsOnLeftBorder;
+    }; // ResultPfaceFactory 
+ 
 /*
 14 Class PFace
 
 */    
-    class PFace {
+    class PFace: public PlaneSweepAccess {
     friend class Selftest;    
     public:
 /*
 14.1 Constructors
 
 */
-      PFace(const Point3D& a, const Point3D& b, const Point3D& c, 
-            const Point3D& d);
-      PFace(const PFace& pf);     
+      PFace(size_t left, size_t right,const ContainerPoint3D& points, 
+            const ContainerSegment& segments);
+      
+      PFace(const PFace& pf); 
 /*
 14.2 Setter and Getter methods
 
 */
       void    set(const PFace& pf);
       void    setState(State state);
-      Point3D getA() const; 
-      Point3D getB() const;
-      Point3D getC() const;       
-      Point3D getD() const; 
+      Point3D getLeftStart() const; 
+      Point3D getLeftEnd() const;
+      Point3D getRightStart() const;       
+      Point3D getRightEnd() const; 
       State   getState() const;
       Rectangle<2> getBoundingRec()const;
 /*
@@ -680,7 +781,7 @@ Print the object values to stream.
 Computes the intersection of this ~PFace~ with pf. 
 
 */
-      bool intersection(PFace& other);
+      bool intersection(PFace& other,GlobalTimeValues &timeValues);
 /*
 14.3.5 toString
 
@@ -690,7 +791,9 @@ Computes the intersection of this ~PFace~ with pf.
 14.3.6 addIntSeg
 
 */       
+      // für den Selbsttest
       void addIntSeg(const IntersectionSegment& seg);
+      
       void addIntSeg(const RationalPlane3D &planeSelf, 
                      const RationalPlane3D &planeOther,
                      const RationalSegment3D &intSeg,
@@ -701,6 +804,8 @@ Computes the intersection of this ~PFace~ with pf.
 */        
       void addBorder(const RationalPlane3D &plane,
                      GlobalTimeValues &timeValues);
+      
+      void addBorder(GlobalTimeValues &timeValues);
 /*
 14.3.8 Operator =
 
@@ -714,15 +819,15 @@ Computes the intersection of this ~PFace~ with pf.
 /*
 14.3.10 first
     
-*/       
-      void first(double t, std::list<IntersectionSegment>& result, 
-                           std::list<IntersectionSegment>& resultOrth);
+*/    
+     void first(double t1, double t2, ContainerPoint3D& points,
+                                       ContainerSegment& segments);
 /*
 14.3.11 next
     
-*/         
-      void next(double t, std::list<IntersectionSegment>& result,
-                          std::list<IntersectionSegment>& resultOrthogonal);
+*/     
+      void next(double t1, double t2, ContainerPoint3D& points, 
+                                      ContainerSegment& segments);
     private:  
 /*
 14.4 Private methods
@@ -730,14 +835,7 @@ Computes the intersection of this ~PFace~ with pf.
 14.4.1 getBoundingRec
 
 */
-      Rectangle<2> getBoundingRec(const Point3D& point)const;   
-/*
-14.4.2 createIntSeg
-
-*/      
-      IntersectionSegment createIntSeg(const RationalPlane3D& planeSelf, 
-                                       const RationalPlane3D& planeOther,
-                                       const RationalSegment3D& intSeg); 
+      Rectangle<2> getBoundingRec(const Point3D& point)const;    
 /*
 14.4.3 createBorder
 
@@ -750,11 +848,13 @@ Computes the intersection of this ~PFace~ with pf.
 */      
       IntSegContainer   intSegs;
       State             state;
-      Rectangle<2>      boundingRect;  
-      Point3D           a;
-      Point3D           b;
-      Point3D           c;
-      Point3D           d;            
+      Rectangle<2>      boundingRect;   
+      Point3D           leftStart;
+      Point3D           leftEnd;
+      Point3D           rightStart;
+      Point3D           rightEnd;
+      size_t            left;
+      size_t            right;   
     };// class PFace   
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

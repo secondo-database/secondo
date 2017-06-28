@@ -88,10 +88,10 @@ namespace temporalalgebra {
         RationalPoint3DExtSetTest3();
         RationalPoint3DExtSetTest4();
         
-        RationalPlane3DTest1();
-        RationalPlane3DTest2();
+        RationalPlane3DTest1();      
+        RationalPlane3DTest2();       
         RationalPlane3DTest3();
-        
+
         IntersectionPointTest();
         
         IntersectionSegmentTest1();
@@ -100,16 +100,18 @@ namespace temporalalgebra {
         
         IntSegContainerTest1();
         IntSegContainerTest2();
-        
-        PFaceTest1();
+     
+        PFaceTest1();        
         PFaceTest2();
         PFaceTest3();
         PFaceTest4();
         PFaceTest5();
+      
         PFaceTest6();
         PFaceTest7();
         
         GlobalTimeValuesTest();
+        
      
         SourceUnitTest1();
         SourceUnitTest2();
@@ -117,16 +119,18 @@ namespace temporalalgebra {
         
         IntSegContainerTest3();
         IntSegContainerTest4();
+        IntSegContainerTest5();
         
         SegmentTest();
     
         ResultPfaceFactoryTest1();
         ResultPfaceFactoryTest2();
         ResultPfaceFactoryTest3();
+        ResultPfaceFactoryTest4();
+        ResultPfaceFactoryTest5();
         
-        SourceUnitTest4();
-        
-        
+        ContainerSegmentTest1();
+       
         cerr << endl;
         cerr << numberOfTestsRun << " tests run, ";
         cerr << numberOfTestsFailed << " tests failed." << endl <<endl;  
@@ -531,72 +535,89 @@ namespace temporalalgebra {
 
 */        
       void RationalPlane3DTest1(){
-        // points from pfaces 
+        ContainerPoint3D points;
+        ContainerSegment segments;
+        // points for pfaces 
+        points.add( Point3D(1,2,0));
+        points.add( Point3D(3,4,0));         
+        points.add( Point3D(1,2,3));
+        points.add( Point3D(3,4,3));
+        // segments for pface
+        segments.add( Segment(0,2, UNDEFINED));
+        segments.add( Segment(1,3, UNDEFINED));
+        // test points
         Point3D point1(1,2,0);
-        Point3D point2(3,4,0);         
-        Point3D point3(1,2,3);
-        Point3D point4(3,4,3);
+        Point3D point2(3,4,3);
         // points from segment1 
-        Point3D point5(2,2,0);
-        Point3D point6(1,3,3);
+        Point3D point3(2,2,0);
+        Point3D point4(1,3,3);
         // points from segment 2
-        Point3D point7(2,2,3);
-        Point3D point8(1,3,0);
+        Point3D point5(2,2,3);
+        Point3D point6(1,3,0);
         // results
-        RationalPoint3D point9,point10;
+        RationalPoint3D point7;
         // planes
-        RationalPlane3D plane1(PFace(point1,point2,point3,point4));
-        RationalPlane3D plane2(PFace(point3,point4,point1,point2));
+        RationalPlane3D plane1(PFace(0,1, points, segments));
+        RationalPlane3D plane2(PFace(1,0, points, segments));
         // intersection point
-        RationalPoint3D iPoint(1.5,2.5,1.5);  
+        RationalPoint3D point8(1.5,2.5,1.5);  
         // distance check
         assert_("RationalPlane3DTest 1.1", "distance to plane is zero.", 
-                plane1.distance2ToPlane(point4) == 0.0); 
+                plane1.distance2ToPlane(point2) == 0.0); 
         assert_("RationalPlane3DTest 1.2", "distance to plane is zero.", 
                 plane2.distance2ToPlane(point1) == 0.0);  
         assert_("RationalPlane3DTest 1.3", "distance to plane is incorrect.", 
-                plane1.distance2ToPlane(point5) == 0.5); 
+                plane1.distance2ToPlane(point4) == 0.5); 
         assert_("RationalPlane3DTest 1.4", "distance to plane is incorrect.", 
-                plane2.distance2ToPlane(point8) == 0.5);  
+                plane2.distance2ToPlane(point6) == 0.5);  
         // intersection
-        bool result = plane1.intersection(Segment3D(point5,point6),
-                                          point9);
+        bool result = plane1.intersection(Segment3D(point3,point4),
+                                          point7);
         assert_("RationalPlane3DTest 1.5", "segment intersect plane.",result);
         assert_("RationalPlane3DTest 1.6", "intersection point is incorrect.",
-                point9 == iPoint);
-        result = plane1.intersection(Segment3D(point7,point8),
-                                     point10);
+                point7 == point8);
+        result = plane1.intersection(Segment3D(point5,point6),
+                                     point7);
         assert_("RationalPlane3DTest 1.7", "segment intersect plane.",result);
         assert_("RationalPlane3DTest 1.8", "intersection point is incorrect.",
-                point10 == iPoint);
+                point7 == point8);
       }// RationalPlane3DTest1
-      
+  
       void RationalPlane3DTest2(){
-         // points from pface 1 
-        Point3D point1(1,2,0);
-        Point3D point2(3,4,0);         
-        Point3D point3(1,2,3);
-        Point3D point4(3,4,3);
-        // points from pface 2
-        Point3D point5(2,2,0);
-        Point3D point6(4,4,0);         
-        Point3D point7(2,2,3);
-        Point3D point8(4,4,3);
-        // points form pface 3
-        Point3D point9(0,1,0);
-        Point3D point10(5,6,0);         
-        Point3D point11(0,1,3);
-        Point3D point12(5,6,3);
-        // points form pface 4
-        Point3D point13(2,2,0);
-        Point3D point14(4,4,0);         
-        Point3D point15(1,2,3);
-        Point3D point16(3,4,3);
-        // pfaces
-        RationalPlane3D plane1(PFace(point1,point2,point3,point4));
-        RationalPlane3D plane2(PFace(point5,point6,point7,point8));
-        RationalPlane3D plane3(PFace(point9,point10,point11,point12));
-        RationalPlane3D plane4(PFace(point13,point14,point15,point16));
+        ContainerPoint3D points;
+        ContainerSegment segments;
+        // points for pface 1 
+        points.add( Point3D(1,2,0));// 0
+        points.add( Point3D(3,4,0));         
+        points.add( Point3D(1,2,3));
+        points.add( Point3D(3,4,3)); 
+        // points for pface 2
+        points.add( Point3D(2,2,0));// 4
+        points.add( Point3D(4,4,0));         
+        points.add( Point3D(2,2,3));
+        points.add( Point3D(4,4,3));
+        // points for pface 3 
+        points.add( Point3D(0,1,0));// 8
+        points.add( Point3D(5,6,0));         
+        points.add( Point3D(0,1,3));
+        points.add( Point3D(5,6,3));
+        // segments for pface 1
+        segments.add( Segment(0,2, UNDEFINED));
+        segments.add( Segment(1,3, UNDEFINED));
+        // segments for pface 2
+        segments.add( Segment(4,6, UNDEFINED));
+        segments.add( Segment(5,7, UNDEFINED));
+        // segments for pface 3
+        segments.add( Segment(8,10, UNDEFINED));
+        segments.add( Segment(9,11, UNDEFINED));
+        // segments for pface 4
+        segments.add( Segment(4,2, UNDEFINED));
+        segments.add( Segment(5,3, UNDEFINED));
+        // planes for pfaces
+        RationalPlane3D plane1(PFace(0, 1, points,segments));
+        RationalPlane3D plane2(PFace(2, 3, points,segments));
+        RationalPlane3D plane3(PFace(4, 5, points,segments));
+        RationalPlane3D plane4(PFace(6, 7, points,segments));
         bool result1, result2;
         result1 = plane1.isParallelTo(plane2);
         result2 = plane1.isCoplanarTo(plane2); 
@@ -609,15 +630,25 @@ namespace temporalalgebra {
         result1 = plane1.isParallelTo(plane4); 
         assert_("RationalPlane3DTest 2.5", "pface isn't parallel.",!result1);
       }// RationalPlane3DTest2  
-      
+     
       void RationalPlane3DTest3(){
-         // points from pface 1 
+        ContainerPoint3D points;
+        ContainerSegment segments;
+        // points for pface 1 
+        points.add( Point3D(1,2,0));// 0
+        points.add( Point3D(3,4,0));         
+        points.add( Point3D(1,2,3));
+        points.add( Point3D(3,4,3)); 
+        // segments for pface 1
+        segments.add( Segment(0,2, UNDEFINED));
+        segments.add( Segment(1,3, UNDEFINED));
+        // points for transformation 
         Point3D point1(1,2,0);
         Point3D point2(3,4,0);         
         Point3D point3(1,2,3);
         Point3D point4(3,4,3);
         // pfaces
-        RationalPlane3D plane1(PFace(point1,point2,point3,point4));
+        RationalPlane3D plane1(PFace(0, 1, points,segments));
         // transformation
         Point2D point5 = plane1.transform(point1);
         Point2D point6 = plane1.transform(point2);
@@ -645,7 +676,7 @@ namespace temporalalgebra {
 /*
 14 Test IntersectionPoint
 
-*/        
+*/         
       void IntersectionPointTest(){
         Point3D point1(1,2,3);
         Point2D point2(4,3);       
@@ -670,7 +701,7 @@ namespace temporalalgebra {
 /*
 15 Test IntersectionSegment
 
-*/        
+*/       
       void IntersectionSegmentTest1(){
         Point3D point1(1,2,0);
         Point3D point2(4,5,3);
@@ -750,7 +781,7 @@ namespace temporalalgebra {
 /*
 16 Test IntSegContainer
 
-*/       
+*/      
       void IntSegContainerTest1(){
         IntSegContainer container1,container2;
         container1.addIntSeg(IntersectionSegment(
@@ -817,34 +848,43 @@ namespace temporalalgebra {
 /*
 17 Test PFace
 
-*/        
+*/   
       void PFaceTest1(){
-        // points from pface 1 
-        Point3D point1(2,1,0);
-        Point3D point2(4,3,0);         
-        Point3D point3(1,2,3);
-        Point3D point4(3,4,3);
-        // points from pface 2
-        Point3D point5(2.5,1,0);
-        Point3D point6(5,1,0);         
-        Point3D point7(2.5,4.5,3);
-        Point3D point8(5,4.5,3);
+        ContainerPoint3D points;
+        ContainerSegment segments;
+        GlobalTimeValues timeValues;
+        // points for pface 1 
+        points.add( Point3D(2,1,0));// 0
+        points.add( Point3D(4,3,0));         
+        points.add( Point3D(1,2,3));
+        points.add( Point3D(3,4,3)); 
+        // points for pface 2 
+        points.add( Point3D(2.5,1,0));// 4
+        points.add( Point3D(5,1,0));         
+        points.add( Point3D(2.5,4.5,3));
+        points.add( Point3D(5,4.5,3)); 
+        // segments for pface 1
+        segments.add( Segment(0,2, UNDEFINED));
+        segments.add( Segment(1,3, UNDEFINED));
+        // segments for pface 2
+        segments.add( Segment(4,6, UNDEFINED));
+        segments.add( Segment(5,7, UNDEFINED)); 
         // Result points
         IntersectionPoint point9(2.5, 2.16666667, 1.0, -3.29983165);
         IntersectionPoint point10(3.2, 3.8, 2.4, -4.94974747);
         IntersectionPoint point11(2.5, 2.16666667, 1, -2.5);
         IntersectionPoint point12(3.2, 3.8, 2.4, -3.2);
-        // pfaces
-        PFace pf1(point1,point2,point3,point4);
-        PFace pf3(point1,point2,point3,point4);
-        PFace pf2(point5,point6,point7,point8);
-        PFace pf4(point5,point6,point7,point8);
-        bool result = pf1.intersection(pf2);    
+        // pfaces  
+        PFace pf1(0, 1, points,segments);
+        PFace pf3(0, 1, points,segments);
+        PFace pf2(2, 3, points,segments);
+        PFace pf4(2, 3, points,segments);
+        bool result = pf1.intersection(pf2,timeValues);    
         pf3.addIntSeg(IntersectionSegment(point9,point10,LEFT_IS_INNER));
         pf3.setState(RELEVANT);
         pf4.addIntSeg(IntersectionSegment(point11,point12,RIGHT_IS_INNER));
         pf4.setState(RELEVANT);
-        assert_("PFaceTest 1.1", "pfaces intersect.",result);
+        assert_("PFaceTest 1.1", "pfaces does intersect.",result);
         assert_("PFaceTest 1.2", "intersection segment is incorrect.",
                 pf1 == pf3);
         assert_("PFaceTest 1.3", "intersection segment is incorrect.",
@@ -855,88 +895,123 @@ namespace temporalalgebra {
         // cout << pf2 << endl; 
         // cout << pf4 << endl;
       }// PFaceTest1
-      
+     
       void PFaceTest2(){
-        // points from pface 1 
-        Point3D point1(11,12,0);
-        Point3D point2(13,14,0);         
-        Point3D point3(11,12,3);
-        Point3D point4(13,14,3);
-        // points from pface 2
-        Point3D point5(2,1,0);
-        Point3D point6(4,3,0);         
-        Point3D point7(2,1,3);
-        Point3D point8(4,3,3);
+        ContainerPoint3D points;
+        ContainerSegment segments;
+        GlobalTimeValues timeValues;
+        // points for pface 1 
+        points.add( Point3D(11,12,0));
+        points.add( Point3D(13,14,0));         
+        points.add( Point3D(11,12,3));
+        points.add( Point3D(13,14,3));
+        // points for pface 2
+        points.add( Point3D(2,1,0));
+        points.add( Point3D(4,3,0));         
+        points.add( Point3D(2,1,3));
+        points.add( Point3D(4,3,3));
+        // segments for pface 1
+        segments.add( Segment(0,2, UNDEFINED));
+        segments.add( Segment(1,3, UNDEFINED));
+        // segments for pface 2
+        segments.add( Segment(4,6, UNDEFINED));
+        segments.add( Segment(5,7, UNDEFINED));  
         // pfaces
-        PFace pf1(point1,point2,point3,point4);
-        PFace pf2(point5,point6,point7,point8);
-        bool result = pf1.intersection(pf2);
-        assert_("PFaceTest 2.1", "pfaces not intersect.",!result);
+        PFace pf1(0, 1, points,segments);
+        PFace pf2(2, 3, points,segments);
+        bool result = pf1.intersection(pf2,timeValues);
+        assert_("PFaceTest 2.1", "pfaces does not intersect.",!result);
       }// PFaceTest2
       
       void PFaceTest3(){
-        // points from pface 1 
-        Point3D point1(1,2,0);
-        Point3D point2(3,4,0);         
-        Point3D point3(1,2,3);
-        Point3D point4(3,4,3);
-        // points from pface 2
-        Point3D point5(2,1,0);
-        Point3D point6(4,3,0);         
-        Point3D point7(2,1,3);
-        Point3D point8(4,3,3);
+        ContainerPoint3D points;
+        ContainerSegment segments;
+        GlobalTimeValues timeValues;
+        // points for pface 1 
+        points.add( Point3D(1,2,0));
+        points.add( Point3D(3,4,0));         
+        points.add( Point3D(1,2,3));
+        points.add( Point3D(3,4,3));
+        // points for pface 2
+        points.add( Point3D(2,1,0));
+        points.add( Point3D(4,3,0));         
+        points.add( Point3D(2,1,3));
+        points.add( Point3D(4,3,3));
+        // segments for pface 1
+        segments.add( Segment(0,2, UNDEFINED));
+        segments.add( Segment(1,3, UNDEFINED));
+        // segments for pface 2
+        segments.add( Segment(4,6, UNDEFINED));
+        segments.add( Segment(5,7, UNDEFINED));  
         // pfaces
-        PFace pf1(point1,point2,point3,point4);
-        PFace pf2(point5,point6,point7,point8);
-        bool result = pf1.intersection(pf2);
-        assert_("PFaceTest 3.1", "pfaces not intersect.",!result);
+        PFace pf1(0, 1, points,segments);
+        PFace pf2(2, 3, points,segments);
+        bool result = pf1.intersection(pf2,timeValues);
+        assert_("PFaceTest 3.1", "pfaces does not intersect.",!result);
       }// PFaceTest3
       
       void PFaceTest4(){
-        // points from pface 1 
-        Point3D point1(1,2,0);
-        Point3D point2(3,4,0);         
-        Point3D point3(1,2,3);
-        Point3D point4(3,4,3);
-        // points from pface 2
-        Point3D point5(2,3,0);
-        Point3D point6(4,5,0);         
-        Point3D point7(2,3,3);
-        Point3D point8(4,5,3);
+        ContainerPoint3D points;
+        ContainerSegment segments;
+        GlobalTimeValues timeValues;
+        // points for pface 1 
+        points.add( Point3D(1,2,0));
+        points.add( Point3D(3,4,0));         
+        points.add( Point3D(1,2,3));
+        points.add( Point3D(3,4,3));
+        // points for pface 2
+        points.add( Point3D(2,3,0));
+        points.add( Point3D(4,5,0));         
+        points.add( Point3D(2,3,3));
+        points.add( Point3D(4,5,3));
+        // segments for pface 1
+        segments.add( Segment(0,2, UNDEFINED));
+        segments.add( Segment(1,3, UNDEFINED));
+        // segments for pface 2
+        segments.add( Segment(4,6, UNDEFINED));
+        segments.add( Segment(5,7, UNDEFINED));  
         // pfaces
-        PFace pf1(point1,point2,point3,point4);
-        PFace pf2(point5,point6,point7,point8);
-        bool result = pf1.intersection(pf2);
-        assert_("PFaceTest 4.1", "pfaces not intersect.",!result);
+        PFace pf1(0, 1, points,segments);
+        PFace pf2(2, 3, points,segments);
+        bool result = pf1.intersection(pf2,timeValues);
+        assert_("PFaceTest 4.1", "pfaces does not intersect.",!result);
       }// PFaceTest4
       
       void PFaceTest5(){
-        // points from pface 1 
-        Point3D point1(1,2,0);
-        Point3D point2(3,4,0);         
-        Point3D point3(1,2,3);
-        Point3D point4(3,4,3);
-        // points from pface 2
-        Point3D point5(3,2,0);
-        Point3D point6(1,4,0);         
-        Point3D point7(3,2,3);
-        Point3D point8(1,4,3);
+        ContainerPoint3D points;
+        ContainerSegment segments;
+        GlobalTimeValues timeValues;
+        // points for pface 1 
+        points.add( Point3D(1,2,0));
+        points.add( Point3D(3,4,0));         
+        points.add( Point3D(1,2,3));
+        points.add( Point3D(3,4,3));
+        // points for pface 2
+        points.add( Point3D(3,2,0));
+        points.add( Point3D(1,4,0));         
+        points.add( Point3D(3,2,3));
+        points.add( Point3D(1,4,3));
+        // segments for pface 1
+        segments.add( Segment(0,2, UNDEFINED));
+        segments.add( Segment(1,3, UNDEFINED));
+        // segments for pface 2
+        segments.add( Segment(4,6, UNDEFINED));
+        segments.add( Segment(5,7, UNDEFINED));  
         // result     
         IntersectionPoint point9(2, 3, 0, -3.53553391);
         IntersectionPoint point10(2, 3, 3, -3.53553391);
         IntersectionPoint point11(2, 3, 0, -0.707106781);
-        IntersectionPoint point12(2, 3, 3, -0.707106781);
-        
-        PFace pf1(point1,point2,point3,point4);
-        PFace pf3(point1,point2,point3,point4);
-        PFace pf2(point5,point6,point7,point8);
-        PFace pf4(point5,point6,point7,point8);
-        bool result = pf1.intersection(pf2);    
+        IntersectionPoint point12(2, 3, 3, -0.707106781); 
+        PFace pf1(0, 1, points,segments);
+        PFace pf2(2, 3, points,segments);
+        PFace pf3(0, 1, points,segments);
+        PFace pf4(2, 3, points,segments);      
+        bool result = pf1.intersection(pf2,timeValues);    
         pf3.addIntSeg(IntersectionSegment(point9,point10,RIGHT_IS_INNER));
         pf3.setState(RELEVANT);
         pf4.addIntSeg(IntersectionSegment(point11,point12,LEFT_IS_INNER));
         pf4.setState(RELEVANT);
-        assert_("PFaceTest 5.1", "pfaces intersect.",result);
+        assert_("PFaceTest 5.1", "pfaces does intersect.",result);
         assert_("PFaceTest 5.2", "intersection segment is incorrect.",
                 pf1 == pf3);
         assert_("PFaceTest 5.3", "intersection segment is incorrect.",
@@ -947,47 +1022,65 @@ namespace temporalalgebra {
         // cout << pf3 << endl;
         // cout << pf4 << endl;
       }// PFaceTest5    
-      
+    
       void PFaceTest6(){
-        // points from pface 1 
-        Point3D point1(1,2,0);
-        Point3D point2(3,4,0);         
-        Point3D point3(1,2,3);
-        Point3D point4(3,4,3);
-        // points from pface 2
-        Point3D point5(1,0,0);
-        Point3D point6(-1,2,0);         
-        Point3D point7(1,0,3);
-        Point3D point8(-1,2,3);
+        ContainerPoint3D points;
+        ContainerSegment segments;
+        GlobalTimeValues timeValues;
+        // points for pface 1 
+        points.add( Point3D(1,2,0));
+        points.add( Point3D(3,4,0));         
+        points.add( Point3D(1,2,3));
+        points.add( Point3D(3,4,3));
+        // points for pface 2
+        points.add( Point3D(1,0,0));
+        points.add( Point3D(-1,2,0));         
+        points.add( Point3D(1,0,3));
+        points.add( Point3D(-1,2,3));
+        // segments for pface 1
+        segments.add( Segment(0,2, UNDEFINED));
+        segments.add( Segment(1,3, UNDEFINED));
+        // segments for pface 2
+        segments.add( Segment(4,6, UNDEFINED));
+        segments.add( Segment(5,7, UNDEFINED));  
         // pfaces
-        PFace pf1(point1,point2,point3,point4);
-        PFace pf2(point5,point6,point7,point8);
-        bool result = pf1.intersection(pf2);
+        PFace pf1(0, 1, points,segments);
+        PFace pf2(2, 3, points,segments);
+        bool result = pf1.intersection(pf2,timeValues);
         assert_("PFaceTest 6.1", "pfaces not intersect.",!result);
       }// PFaceTest4
       
       void PFaceTest7(){
-        // points from pface 1 
-        Point3D point1(2,1,0);
-        Point3D point2(4,3,0);         
-        Point3D point3(1,2,3);
-        Point3D point4(3,4,3);
-        // points from pface 2
-        Point3D point5(2.5,1,0);
-        Point3D point6(5,1,0);         
-        Point3D point7(2.5,4.5,3);
-        Point3D point8(5,4.5,3);
+        ContainerPoint3D points;
+        ContainerSegment segments;
+        GlobalTimeValues timeValues;
+        // points for pface 1 
+        points.add( Point3D(2,1,0));// 0
+        points.add( Point3D(4,3,0));         
+        points.add( Point3D(1,2,3));
+        points.add( Point3D(3,4,3)); 
+        // points for pface 2 
+        points.add( Point3D(2.5,1,0));
+        points.add( Point3D(5,1,0));         
+        points.add( Point3D(2.5,4.5,3));
+        points.add( Point3D(5,4.5,3));
+        // segments for pface 1
+        segments.add( Segment(0,2, UNDEFINED));
+        segments.add( Segment(1,3, UNDEFINED));
+        // segments for pface 2
+        segments.add( Segment(4,6, UNDEFINED));
+        segments.add( Segment(5,7, UNDEFINED));  
         // Result points
         IntersectionPoint point9(2.5, 2.16666667, 1.0, -3.29983165);
         IntersectionPoint point10(3.2, 3.8, 2.4, -4.94974747);
         IntersectionPoint point11(2.5, 2.16666667, 1, -2.5);
         IntersectionPoint point12(3.2, 3.8, 2.4, -3.2);
         // pfaces
-        PFace pf1(point1,point2,point3,point4);
-        PFace pf2(point5,point6,point7,point8);
-        bool result = pf1.intersection(pf2);
-        PFace pf3(point1,point2,point3,point4);
-        PFace pf4(point5,point6,point7,point8); 
+        PFace pf1(0, 1, points,segments);
+        PFace pf2(2, 3, points,segments);
+        PFace pf3(0, 1, points,segments);
+        PFace pf4(2, 3, points,segments);
+        bool result = pf1.intersection(pf2,timeValues);
         pf3.addIntSeg(IntersectionSegment(point9,point10,LEFT_IS_INNER));
         pf3.setState(RELEVANT);
         pf4.addIntSeg(IntersectionSegment(point11,point12,RIGHT_IS_INNER));
@@ -1006,7 +1099,7 @@ namespace temporalalgebra {
 /*
 18 Test GlobalTimeValues
 
-*/        
+*/       
       void GlobalTimeValuesTest(){
         GlobalTimeValues timeValues1,timeValues2,timeValues3;
         timeValues1.addTimeValue(1);
@@ -1050,26 +1143,35 @@ namespace temporalalgebra {
 /*
 19 Test SourceUnit
 
-*/       
+*/    
       void SourceUnitTest1(){
-        SourceUnit sourceUnit1,sourceUnit2,sourceUnit3,sourceUnit4;
+        ContainerPoint3D points;
+        ContainerSegment segments;
         GlobalTimeValues timeValues1,timeValues2;
-        // points from pface 1 
-        Point3D point1(1,2,0);
-        Point3D point2(3,4,0);         
-        Point3D point3(1,2,3);
-        Point3D point4(3,4,3);
-        // points from pface 2
-        Point3D point5(3,2,0);
-        Point3D point6(1,4,0);         
-        Point3D point7(3,2,3);
-        Point3D point8(1,4,3);
-        sourceUnit1.addPFace(point1,point2,point3,point4);
-        sourceUnit2.addPFace(point5,point6,point7,point8);       
-        sourceUnit1.intersection(sourceUnit2,timeValues1);
+        // points for pface 1 
+        points.add( Point3D(1,2,0));// 0
+        points.add( Point3D(3,4,0));         
+        points.add( Point3D(1,2,3));
+        points.add( Point3D(3,4,3)); 
+        // points for pface 2 
+        points.add( Point3D(3,2,0));// 4
+        points.add( Point3D(1,4,0));         
+        points.add( Point3D(3,2,3));
+        points.add( Point3D(1,4,3));
+        // segments for pface 1
+        segments.add( Segment(0,2, UNDEFINED));
+        segments.add( Segment(1,3, UNDEFINED));
+        // segments for pface 2
+        segments.add( Segment(4,6, UNDEFINED));
+        segments.add( Segment(5,7, UNDEFINED));              
         // result
-        PFace pf1(point1,point2,point3,point4);
-        PFace pf2(point5,point6,point7,point8);
+        PFace pf1(0, 1, points,segments);
+        PFace pf2(2, 3, points,segments);
+        pf1.intersection(pf2,timeValues1);
+        pf1.addBorder(timeValues1);
+        pf2.addBorder(timeValues1);
+        PFace pf3(0, 1, points,segments);
+        PFace pf4(2, 3, points,segments);
         // Intersection points
         IntersectionPoint point9(3, 4, 0, -4.94974747);
         IntersectionPoint point10(3, 4, 3, -4.94974747);
@@ -1084,177 +1186,191 @@ namespace temporalalgebra {
         IntersectionPoint point19(3, 2, 0, 0.707106781);
         IntersectionPoint point20(3, 2, 3, 0.707106781);
         // Intersection segments
-        pf1.addIntSeg(
+        pf3.addIntSeg(
           IntersectionSegment(point9,point10,UNDEFINED));
-        pf1.addIntSeg(
+        pf3.addIntSeg(
           IntersectionSegment(point11,point12,RIGHT_IS_INNER));
-        pf1.addIntSeg(  
+        pf3.addIntSeg(  
           IntersectionSegment(point13,point14,UNDEFINED));
-        pf2.addIntSeg(
+        pf4.addIntSeg(
           IntersectionSegment(point15,point16,UNDEFINED));
-        pf2.addIntSeg( 
+        pf4.addIntSeg( 
           IntersectionSegment(point17,point18,LEFT_IS_INNER));
-        pf2.addIntSeg(   
+        pf4.addIntSeg(   
           IntersectionSegment(point19,point20,UNDEFINED));
         // state 
-        pf1.setState(RELEVANT);
-        pf2.setState(RELEVANT);
-        sourceUnit3.addPFace(pf1);
-        sourceUnit4.addPFace(pf2); 
+        pf3.setState(RELEVANT);
+        pf4.setState(RELEVANT);
         // global time values
         timeValues2.addTimeValue(0);
         timeValues2.addTimeValue(3);
-        assert_("GlobalTimeValuesTest 2", "time values are equal.",
+        assert_("SourceUnitTest1 1.1", "time values are equal.",
                 timeValues1 == timeValues2);
-        assert_("SourceUnitTest1 1.1", "source units are equal.",
-                sourceUnit1 == sourceUnit3);
         assert_("SourceUnitTest1 1.2", "source units are equal.",
-                sourceUnit2 == sourceUnit4);
-        assert_("SourceUnitTest1 1.3", "time values are equal.",
+                pf1 == pf3);
+        assert_("SourceUnitTest1 1.3", "source units are equal.",
+                pf2 == pf4);
+        assert_("SourceUnitTest1 1.4", "time values are equal.",
                 timeValues1 == timeValues2);
         // cout << setprecision(9);
-        // cout << sourceUnit1 << endl;
-        // cout << sourceUnit2 << endl;
-        // cout << sourceUnit3 << endl;
-        // cout << sourceUnit4 << endl;
+        // cout << pf1 << endl;
+        // cout << pf2 << endl;
+        // cout << pf3 << endl;
+        // cout << pf4 << endl;
         // cout << timeValues1 << endl;
       }// SourceUnitTest1
-      
+    
       void SourceUnitTest2(){
-        SourceUnit sourceUnit1,sourceUnit2, sourceUnit3, sourceUnit4;
+        ContainerPoint3D points;
+        ContainerSegment segments;
         GlobalTimeValues timeValues1,timeValues2;
-        // points from unit 1 
-        Point3D point0(2,1,0);
-        Point3D point1(5,1,0);         
-        Point3D point2(3.5,4,0);
-        Point3D point3(2,1,5);
-        Point3D point4(5,1,5);         
-        Point3D point5(3.5,4,5);
-        // points from pface 2
-        Point3D point6(6,1,0);
-        Point3D point7(8,1,0);         
-        Point3D point8(7,3.5,0);
-        Point3D point9(0,4,5);
-        Point3D point10(2,4,5);         
-        Point3D point11(1,6.5,5);
-        // add pfaces to unit 1 
-        sourceUnit1.addPFace(point4,point3,point1,point0);
-        sourceUnit1.addPFace(point5,point4,point2,point1);
-        sourceUnit1.addPFace(point3,point5,point0,point2);
-        // add pfaces to unit 2
-        sourceUnit2.addPFace(point10,point9,point7,point6);
-        sourceUnit2.addPFace(point11,point10,point8,point7);
-        sourceUnit2.addPFace(point9,point11,point6,point8);
+        // points for unit 1 
+        points.add( Point3D(2,1,0));// 0
+        points.add( Point3D(5,1,0));         
+        points.add( Point3D(3.5,4,0));
+        points.add( Point3D(2,1,5));
+        points.add( Point3D(5,1,5));         
+        points.add( Point3D(3.5,4,5));
+        // points for unit 2 
+        points.add( Point3D(6,1,0));// 6
+        points.add( Point3D(8,1,0));         
+        points.add( Point3D(7,3.5,0));
+        points.add( Point3D(0,4,5));
+        points.add( Point3D(2,4,5));         
+        points.add( Point3D(1,6.5,5));
+        // segments for pface 1
+        segments.add( Segment(3,0, UNDEFINED));
+        segments.add( Segment(4,1, UNDEFINED));
+        segments.add( Segment(5,2, UNDEFINED));
+        // segments for pface 2
+        segments.add( Segment(9,6, UNDEFINED));
+        segments.add( Segment(10,7, UNDEFINED)); 
+        segments.add( Segment(11,8, UNDEFINED));  
+        // pfaces for unit 1 
+        PFace pf0(1, 0, points,segments);
+        PFace pf1(2, 1, points,segments);
+        PFace pf2(0, 2, points,segments);
+        // pfaces for unit 2
+        PFace pf3(4, 3, points,segments);
+        PFace pf4(5, 4, points,segments);
+        PFace pf5(3, 5, points,segments);
         // intersection
-        sourceUnit1.intersection(sourceUnit2,timeValues1);  
+        pf0.intersection(pf4, timeValues1);
+        pf0.intersection(pf5, timeValues1);
+        pf0.addBorder(timeValues1);
+        pf1.intersection(pf3, timeValues1);
+        pf1.intersection(pf4, timeValues1);
+        pf1.intersection(pf5, timeValues1);
+        pf1.addBorder(timeValues1);
+        pf2.intersection(pf3, timeValues1);
+        pf2.intersection(pf4, timeValues1);
+        pf2.intersection(pf5, timeValues1);
+        pf2.addBorder(timeValues1);
+        pf3.addBorder(timeValues1);
+        pf4.addBorder(timeValues1);
+        pf5.addBorder(timeValues1);
         // pfaces from result unit 3
-        PFace pf1(point4,point3,point1,point0);
-        pf1.setState(UNKNOWN);
-        PFace pf2(point5,point4,point2,point1);
-        pf2.addIntSeg(IntersectionSegment(
+        PFace pf6(1, 0, points,segments);
+        pf6.setState(UNKNOWN);
+        PFace pf7(2, 1, points,segments);
+        pf7.addIntSeg(IntersectionSegment(
           IntersectionPoint(3.5, 4, 0, -2.01246118), 
           IntersectionPoint(3.5, 4, 5, -2.01246118), 
           UNDEFINED));
-        pf2.addIntSeg(IntersectionSegment(
+        pf7.addIntSeg(IntersectionSegment(
           IntersectionPoint(5, 1, 0, 1.34164079), 
           IntersectionPoint(5, 1, 5, 1.34164079), 
           UNDEFINED));
-        pf2.addIntSeg(IntersectionSegment(
+        pf7.addIntSeg(IntersectionSegment(
           IntersectionPoint(4.66666667, 1.66666667, 1.11111111, 0.596284794),
           IntersectionPoint(3.5, 4, 2.56944444, -2.01246118),
           RIGHT_IS_INNER));
-        pf2.addIntSeg(IntersectionSegment(
+        pf7.addIntSeg(IntersectionSegment(
           IntersectionPoint(4.66666667, 1.66666667, 1.11111111, 0.596284794),
           IntersectionPoint(4, 3, 3.33333333, -0.894427191),             
           LEFT_IS_INNER));
-        pf2.addIntSeg(IntersectionSegment(
+        pf7.addIntSeg(IntersectionSegment(
           IntersectionPoint(4, 3, 3.33333333, -0.894427191),
           IntersectionPoint(3.5, 4, 3.4375, -2.01246118), 
           LEFT_IS_INNER));
-        pf2.setState(RELEVANT);
-        PFace pf3(point3,point5,point0,point2);
-        pf3.addIntSeg(IntersectionSegment(
+        pf7.setState(RELEVANT);
+        PFace pf8(0, 2, points,segments);
+        pf8.addIntSeg(IntersectionSegment(
           IntersectionPoint(2, 1, 0, 1.78885438), 
           IntersectionPoint(2, 1, 5, 1.78885438), 
           UNDEFINED));
-        pf3.addIntSeg(IntersectionSegment(
+        pf8.addIntSeg(IntersectionSegment(
           IntersectionPoint(3.5, 4, 0, 5.14295635), 
           IntersectionPoint(3.5, 4, 5, 5.14295635), 
           UNDEFINED));
-        pf3.addIntSeg(IntersectionSegment(
+        pf8.addIntSeg(IntersectionSegment(
           IntersectionPoint(3.5, 4, 2.56944444, 5.14295635),
           IntersectionPoint(2.8, 2.6, 2.66666667, 3.57770876), 
           RIGHT_IS_INNER)); 
-        pf3.addIntSeg(IntersectionSegment(
+        pf8.addIntSeg(IntersectionSegment(
           IntersectionPoint(2.8, 2.6, 2.66666667, 3.57770876), 
           IntersectionPoint(3.2, 3.4, 4, 4.47213595), 
           RIGHT_IS_INNER));
-        pf3.addIntSeg(IntersectionSegment(
+        pf8.addIntSeg(IntersectionSegment(
           IntersectionPoint(3.5, 4, 3.4375, 5.14295635), 
           IntersectionPoint(3.2, 3.4, 4, 4.47213595), 
           LEFT_IS_INNER));
-        pf3.setState(RELEVANT);
-        sourceUnit3.addPFace(pf1);
-        sourceUnit3.addPFace(pf2);
-        sourceUnit3.addPFace(pf3);
+        pf8.setState(RELEVANT);
         // pfaces from result unit 4
-        PFace pf4(point10,point9,point7,point6);
-        pf4.addIntSeg(IntersectionSegment(
+        PFace pf9(4, 3, points,segments);
+        pf9.addIntSeg(IntersectionSegment(
           IntersectionPoint(8, 1, 0, -8),
           IntersectionPoint(2, 4, 5, -2), 
           UNDEFINED));
-        pf4.addIntSeg(IntersectionSegment(
+        pf9.addIntSeg(IntersectionSegment(
           IntersectionPoint(6, 1, 0, -6),
           IntersectionPoint(0, 4, 5, 0),  
           UNDEFINED));
-        pf4.addIntSeg(IntersectionSegment(
+        pf9.addIntSeg(IntersectionSegment(
           IntersectionPoint(4.66666667, 1.66666667, 1.11111111, -4.66666667),
           IntersectionPoint(4, 3, 3.33333333, -4), 
           RIGHT_IS_INNER));
-        pf4.addIntSeg(IntersectionSegment(
+        pf9.addIntSeg(IntersectionSegment(
           IntersectionPoint(2.8, 2.6, 2.66666667, -2.8), 
           IntersectionPoint(3.2, 3.4, 4, -3.2),
           LEFT_IS_INNER));
-        pf4.setState(RELEVANT);
-        PFace pf5(point11,point10,point8,point7);
-        pf5.addIntSeg(IntersectionSegment (
+        pf9.setState(RELEVANT);
+        PFace pf10(5, 4, points,segments);
+        pf10.addIntSeg(IntersectionSegment (
           IntersectionPoint(7, 3.5, 0, -0.649933684), 
           IntersectionPoint(1, 6.5, 5, -5.66370781), 
           UNDEFINED));
-        pf5.addIntSeg(IntersectionSegment (
+        pf10.addIntSeg(IntersectionSegment (
           IntersectionPoint(8, 1, 0, 2.04264872),
           IntersectionPoint(2, 4, 5, -2.97112541), 
           UNDEFINED));
-        pf5.addIntSeg(IntersectionSegment (
+        pf10.addIntSeg(IntersectionSegment (
           IntersectionPoint(4, 3, 3.33333333, -1.29986737), 
           IntersectionPoint(3.5, 4, 3.4375, -2.4140394), 
           RIGHT_IS_INNER));
-        pf5.addIntSeg(IntersectionSegment (
+        pf10.addIntSeg(IntersectionSegment (
           IntersectionPoint(3.5, 4, 3.4375, -2.4140394), 
           IntersectionPoint(3.2, 3.4, 4, -1.96837058), 
           RIGHT_IS_INNER));     
-        pf5.setState(RELEVANT);
-        PFace pf6(point9,point11,point6,point8);
-        pf6.addIntSeg(IntersectionSegment (
+        pf10.setState(RELEVANT);
+        PFace pf11(3, 5, points,segments);
+        pf11.addIntSeg(IntersectionSegment (
           IntersectionPoint(6, 1, 0, 3.15682075), 
           IntersectionPoint(0, 4, 5, 3.71390676), 
           UNDEFINED));
-        pf6.addIntSeg(IntersectionSegment (
+        pf11.addIntSeg(IntersectionSegment (
           IntersectionPoint(7, 3.5, 0, 5.84940315), 
           IntersectionPoint(1, 6.5, 5, 6.40648917), 
           UNDEFINED));
-        pf6.addIntSeg(IntersectionSegment (
+        pf11.addIntSeg(IntersectionSegment (
           IntersectionPoint(4.66666667, 1.66666667, 1.11111111, 3.28061764), 
           IntersectionPoint(3.5, 4, 2.56944444, 5.01377413), 
           LEFT_IS_INNER));
-        pf6.addIntSeg(IntersectionSegment (
+        pf11.addIntSeg(IntersectionSegment (
           IntersectionPoint(3.5, 4, 2.56944444, 5.01377413), 
           IntersectionPoint(2.8, 2.6, 2.66666667, 3.45393329), 
           LEFT_IS_INNER));
-        pf6.setState(RELEVANT);
-        sourceUnit4.addPFace(pf4);
-        sourceUnit4.addPFace(pf5);
-        sourceUnit4.addPFace(pf6);
+        pf11.setState(RELEVANT);
         timeValues2.addTimeValue(0);
         timeValues2.addTimeValue(1.11111111);
         timeValues2.addTimeValue(2.56944444); 
@@ -1263,167 +1379,199 @@ namespace temporalalgebra {
         timeValues2.addTimeValue(3.4375);
         timeValues2.addTimeValue(4);
         timeValues2.addTimeValue(5);
-        assert_("SourceUnitTest1 2.1", "source units are equal.",
-                sourceUnit1 == sourceUnit3);
-        assert_("SourceUnitTest1 2.2", "source units are equal.",
-                sourceUnit2 == sourceUnit4);
-        assert_("SourceUnitTest1 2.3", "time values are equal.",
+        assert_("SourceUnitTest 2.1", "pface does not equal.",
+                pf0 == pf6);
+        assert_("SourceUnitTest 2.2", "pface does not equal.",
+                pf1 == pf7);
+        assert_("SourceUnitTest 2.3", "pface does not equal.",
+                pf2 == pf8);
+        assert_("SourceUnitTest 2.4", "pface does not equal.",
+                pf3 == pf9);
+        assert_("SourceUnitTest 2.5", "pface does not equal.",
+                pf4 == pf10);
+        assert_("SourceUnitTest 2.6", "pface does not equal.",
+                pf5 == pf11);
+        assert_("SourceUnitTest 2.7", "time values are equal.",
                 timeValues1 == timeValues2);
         // cout << setprecision(2);
-        // cout << sourceUnit1 << endl;
-        // cout << sourceUnit2 << endl;
-        // cout << sourceUnit3 << endl;
-        // cout << sourceUnit4 << endl;
+        // cout << pf0 << endl;
+        // cout << pf6 << endl;
         // cout << timeValues1 << endl;
       }// SourceUnitTest2
-     
+   
      void SourceUnitTest3(){
-        SourceUnit sourceUnit1,sourceUnit2, sourceUnit3, sourceUnit4;
+        ContainerPoint3D points;
+        ContainerSegment segments;
         GlobalTimeValues timeValues1,timeValues2;
-        // points from unit 1 
-        Point3D point0(2,1,0);
-        Point3D point1(5,1,0);         
-        Point3D point2(3.5,4,0);
-        Point3D point3(2,1,5);
-        Point3D point4(5,1,5);         
-        Point3D point5(3.5,4,5);
-        // points from pface 2
-        Point3D point6(6,1,0);
-        Point3D point7(9,1,0);         
-        Point3D point8(7.5,4,0);
-        Point3D point9(0,4,5);
-        Point3D point10(3,4,5);         
-        Point3D point11(1.5,7,5);
+        // points for unit 1 
+        points.add( Point3D(2,1,0));// 0
+        points.add( Point3D(5,1,0));         
+        points.add( Point3D(3.5,4,0));
+        points.add( Point3D(2,1,5));
+        points.add( Point3D(5,1,5));         
+        points.add( Point3D(3.5,4,5));
+        // points for unit 2 
+        points.add( Point3D(6,1,0));// 6
+        points.add( Point3D(9,1,0));         
+        points.add( Point3D(7.5,4,0));
+        points.add( Point3D(0,4,5));
+        points.add( Point3D(3,4,5));         
+        points.add( Point3D(1.5,7,5));
+        // segments for pface 1
+        segments.add( Segment(3,0, UNDEFINED));
+        segments.add( Segment(4,1, UNDEFINED));
+        segments.add( Segment(5,2, UNDEFINED));
+        // segments for pface 2
+        segments.add( Segment(9,6, UNDEFINED));
+        segments.add( Segment(10,7, UNDEFINED)); 
+        segments.add( Segment(11,8, UNDEFINED)); 
         // add pfaces to unit 1 
-        sourceUnit1.addPFace(point4,point3,point1,point0);
-        sourceUnit1.addPFace(point5,point4,point2,point1);
-        sourceUnit1.addPFace(point3,point5,point0,point2);
+        PFace pf0(1, 0, points,segments);
+        PFace pf1(2, 1, points,segments);
+        PFace pf2(0, 2, points,segments);
         // add pfaces to unit 2
-        sourceUnit2.addPFace(point10,point9,point7,point6);
-        sourceUnit2.addPFace(point11,point10,point8,point7);
-        sourceUnit2.addPFace(point9,point11,point6,point8);
+        PFace pf3(4, 3, points,segments);
+        PFace pf4(5, 4, points,segments);
+        PFace pf5(3, 5, points,segments);
         // intersection
-        sourceUnit1.intersection(sourceUnit2,timeValues1); 
-        // intersection
-        PFace pf1(point4,point3,point1,point0);
-        pf1.setState(UNKNOWN);
-        PFace pf2(point5,point4,point2,point1);
-        pf2.addIntSeg(IntersectionSegment(
+        pf0.intersection(pf3, timeValues1);
+        pf0.intersection(pf4, timeValues1);
+        pf0.intersection(pf5, timeValues1);
+        pf0.addBorder(timeValues1);
+        pf1.intersection(pf3, timeValues1);
+        pf1.intersection(pf4, timeValues1);
+        pf1.intersection(pf5, timeValues1);
+        pf1.addBorder(timeValues1);
+        pf2.intersection(pf3, timeValues1);
+        pf2.intersection(pf4, timeValues1);
+        pf2.intersection(pf5, timeValues1);
+        pf2.addBorder(timeValues1);
+        pf3.addBorder(timeValues1);
+        pf4.addBorder(timeValues1);
+        pf5.addBorder(timeValues1);
+        PFace pf6(1, 0, points,segments);
+        pf6.setState(UNKNOWN);
+        PFace pf7(2, 1, points,segments);
+        pf7.addIntSeg(IntersectionSegment(
           IntersectionPoint(3.5, 4, 0, -2.01246118), 
           IntersectionPoint(3.5, 4, 5, -2.01246118), 
           UNDEFINED));
-        pf2.addIntSeg(IntersectionSegment(
+        pf7.addIntSeg(IntersectionSegment(
           IntersectionPoint(5, 1, 0, 1.34164079), 
           IntersectionPoint(5, 1, 5, 1.34164079), 
           UNDEFINED));
-        pf2.addIntSeg(IntersectionSegment(
+        pf7.addIntSeg(IntersectionSegment(
           IntersectionPoint(4.66666667, 1.66666667, 1.11111111, 0.596284794),
           IntersectionPoint(3.5, 4, 2.66666667, -2.01246118), 
           RIGHT_IS_INNER));
-        pf2.addIntSeg(IntersectionSegment(
+        pf7.addIntSeg(IntersectionSegment(
           IntersectionPoint(4.66666667, 1.66666667, 1.11111111, 0.596284794), 
           IntersectionPoint(3.66666667, 3.66666667, 4.44444444, -1.63978318), 
           LEFT_IS_INNER));
-        pf2.addIntSeg(IntersectionSegment(
+        pf7.addIntSeg(IntersectionSegment(
           IntersectionPoint(3.5, 4, 4.44444444, -2.01246118), 
           IntersectionPoint(3.66666667, 3.66666667, 4.44444444, -1.63978318), 
           RIGHT_IS_INNER));
-        pf2.setState(RELEVANT);
-        PFace pf3(point3,point5,point0,point2);
-        pf3.addIntSeg(IntersectionSegment(
+        pf7.setState(RELEVANT);
+        PFace pf8(0, 2, points,segments);
+        pf8.addIntSeg(IntersectionSegment(
           IntersectionPoint(2, 1, 0, 1.78885438), 
           IntersectionPoint(2, 1, 5, 1.78885438), 
           UNDEFINED));
-        pf3.addIntSeg(IntersectionSegment(
+        pf8.addIntSeg(IntersectionSegment(
           IntersectionPoint(3.5, 4, 0, 5.14295635), 
           IntersectionPoint (3.5, 4, 5, 5.14295635), 
           UNDEFINED));
-        pf3.addIntSeg(IntersectionSegment(
+        pf8.addIntSeg(IntersectionSegment(
           IntersectionPoint(2.8, 2.6, 2.66666667, 3.57770876), 
           IntersectionPoint(3.4, 3.8, 4.66666667, 4.91934955), 
           RIGHT_IS_INNER));
-        pf3.addIntSeg(IntersectionSegment(
+        pf8.addIntSeg(IntersectionSegment(
           IntersectionPoint(2.8, 2.6, 2.66666667, 3.57770876), 
           IntersectionPoint(3.5, 4, 2.66666667, 5.14295635), 
           LEFT_IS_INNER));
-        pf3.addIntSeg(IntersectionSegment(
+        pf8.addIntSeg(IntersectionSegment(
           IntersectionPoint(3.5, 4, 4.44444444, 5.14295635), 
           IntersectionPoint(3.4, 3.8, 4.66666667, 4.91934955), 
           LEFT_IS_INNER));
-        pf3.setState(RELEVANT);
-        sourceUnit3.addPFace(pf1);
-        sourceUnit3.addPFace(pf2);
-        sourceUnit3.addPFace(pf3);
+        pf8.setState(RELEVANT);
         // pfaces from result unit 4
-        PFace pf4(point10,point9,point7,point6);
-        pf4.addIntSeg(IntersectionSegment(
+        PFace pf9(4, 3, points,segments);
+        pf9.addIntSeg(IntersectionSegment(
           IntersectionPoint(9, 1, 0, -9), 
           IntersectionPoint(3, 4, 5, -3), 
           UNDEFINED));
-        pf4.addIntSeg(IntersectionSegment(
+        pf9.addIntSeg(IntersectionSegment(
           IntersectionPoint(6, 1, 0, -6), 
           IntersectionPoint(0, 4, 5, 0), 
           UNDEFINED));
-        pf4.addIntSeg(IntersectionSegment(
+        pf9.addIntSeg(IntersectionSegment(
           IntersectionPoint(4.66666667, 1.66666667, 1.11111111, -4.66666667),
           IntersectionPoint(3.66666667, 3.66666667, 4.44444444, -3.66666667), 
           RIGHT_IS_INNER));
-        pf4.addIntSeg(IntersectionSegment (
+        pf9.addIntSeg(IntersectionSegment (
           IntersectionPoint(2.8, 2.6, 2.66666667, -2.8), 
           IntersectionPoint(3.4, 3.8, 4.66666667, -3.4), 
           LEFT_IS_INNER));
-        pf4.setState(RELEVANT);
-        PFace pf5(point11,point10,point8,point7);
-        pf5.addIntSeg(IntersectionSegment(
+        pf9.setState(RELEVANT);
+
+        PFace pf10(5, 4, points,segments);
+        pf10.addIntSeg(IntersectionSegment(
           IntersectionPoint(7.5, 4, 0, -0.223606798),
           IntersectionPoint(1.5, 7, 5, -5.59016994), 
           UNDEFINED));
-        pf5.addIntSeg(IntersectionSegment(
+        pf10.addIntSeg(IntersectionSegment(
           IntersectionPoint(9, 1, 0, 3.13049517), 
           IntersectionPoint(3, 4, 5, -2.23606798), 
           UNDEFINED));
-        pf5.addIntSeg(IntersectionSegment(
+        pf10.addIntSeg(IntersectionSegment(
           IntersectionPoint(3.5, 4, 4.44444444, -2.01246118), 
           IntersectionPoint(3.4, 3.8, 4.66666667, -1.8782971), 
           RIGHT_IS_INNER));
-        pf5.addIntSeg(IntersectionSegment(
+        pf10.addIntSeg(IntersectionSegment(
           IntersectionPoint(3.5, 4, 4.44444444, -2.01246118), 
           IntersectionPoint(3.66666667, 3.66666667, 4.44444444, -1.63978318), 
           LEFT_IS_INNER));
-        pf5.setState(RELEVANT);
-        PFace pf6(point9,point11,point6,point8);
-        pf6.addIntSeg(IntersectionSegment(
+        pf10.setState(RELEVANT);
+        PFace pf11(3, 5, points,segments);
+        pf11.addIntSeg(IntersectionSegment(
           IntersectionPoint(6, 1, 0, 3.57770876), 
           IntersectionPoint(0, 4, 5, 3.57770876), 
           UNDEFINED));
-        pf6.addIntSeg(IntersectionSegment(
+        pf11.addIntSeg(IntersectionSegment(
           IntersectionPoint(7.5, 4, 0, 6.93181073), 
           IntersectionPoint(1.5, 7, 5, 6.93181073), 
           UNDEFINED));
-        pf6.addIntSeg(IntersectionSegment (
+        pf11.addIntSeg(IntersectionSegment (
           IntersectionPoint(4.66666667, 1.66666667, 1.11111111, 3.57770876), 
           IntersectionPoint(3.5, 4, 2.66666667, 5.14295635), 
           LEFT_IS_INNER));
-        pf6.addIntSeg(IntersectionSegment (
+        pf11.addIntSeg(IntersectionSegment (
           IntersectionPoint(2.8, 2.6, 2.66666667, 3.57770876), 
           IntersectionPoint(3.5, 4, 2.66666667, 5.14295635), 
           RIGHT_IS_INNER));
-        pf6.setState(RELEVANT);
-        sourceUnit4.addPFace(pf4);
-        sourceUnit4.addPFace(pf5);
-        sourceUnit4.addPFace(pf6);
+        pf11.setState(RELEVANT);
         timeValues2.addTimeValue(0);
         timeValues2.addTimeValue(1.11111111);
         timeValues2.addTimeValue(2.66666667); 
         timeValues2.addTimeValue(4.44444444);
         timeValues2.addTimeValue(4.66666667);
-        timeValues2.addTimeValue(5);      
-        assert_("SourceUnitTest1 3.1", "source units are equal.",
-                sourceUnit1 == sourceUnit3);
-        assert_("SourceUnitTest1 3.2", "source units are equal.",
-                sourceUnit2 == sourceUnit4);
-        assert_("SourceUnitTest1 2.3", "time values are equal.",
+        timeValues2.addTimeValue(5); 
+        assert_("SourceUnitTest 3.1", "pface does not equal.",
+                pf0 == pf6);
+        assert_("SourceUnitTest 3.2", "pface does not equal.",
+                pf1 == pf7);
+        assert_("SourceUnitTest 3.3", "pface does not equal.",
+                pf2 == pf8);
+        assert_("SourceUnitTest 3.4", "pface does not equal.",
+                pf3 == pf9);
+        assert_("SourceUnitTest 3.5", "pface does not equal.",
+                pf4 == pf10);
+        assert_("SourceUnitTest 3.6", "pface does not equal.",
+                pf5 == pf11);
+        assert_("SourceUnitTest 3.7", "time values are equal.",
                 timeValues1 == timeValues2);
+
         // cout << setprecision(9);
         // cout << sourceUnit1 << endl;
         // cout << sourceUnit2 << endl;
@@ -1431,10 +1579,10 @@ namespace temporalalgebra {
         // cout << sourceUnit4 << endl;
         // cout << timeValues1 << endl;
       }// SourceUnitTest2
-/*
+/*       
 16 Test IntSegContainer 2
 
-*/   
+*/ 
       bool compareList(const list<IntersectionSegment>& list1,  
                        const list<IntersectionSegment>& list2){
         if (list1.size() != list2.size()) return false;
@@ -1453,7 +1601,7 @@ namespace temporalalgebra {
           cout << *iter << endl;
         }// for
       }// printList        
-          
+       
       void IntSegContainerTest3(){
         GlobalTimeValues timeValues1;
         IntSegContainer container1;
@@ -1490,93 +1638,154 @@ namespace temporalalgebra {
         timeValues1.addTimeValue(3.4375);
         timeValues1.addTimeValue(4);
         timeValues1.addTimeValue(5);
-        list<IntersectionSegment> result1,resultOrthogonal1;
-        list<IntersectionSegment> result2,resultOrthogonal2;        
+        ContainerPoint3D points1,points2;
+        ContainerSegment segments1,segments2;            
         double t1,t2;
-        timeValues1.first(t1);                     
-        container1.first(t1,result1,resultOrthogonal1);
-        timeValues1.next(t2);    
-        result2.push_back(segment1);
-        result2.push_back(segment2);
-        assert_("SourceUnitTest1 4.1", "result lists are equal.",
-                compareList(result1,result2));
-        assert_("SourceUnitTest1 4.1", "orthogonal result lists are equal.",
-                compareList(resultOrthogonal1,resultOrthogonal2));
-        // printList(result1);
-        // printList(result2);
+        timeValues1.first(t1);  
+        timeValues1.next(t2); 
+        container1.first(t1,t2,points1,segments1); 
+        points2.add(Point3D(3.5,4,0));
+        points2.add(Point3D(3.5,4,1.11111111));
+        points2.add(Point3D(5,1,0));
+        points2.add(Point3D(5,1,1.11111111));
+        segments2.add(Segment(0,1,UNDEFINED));
+        segments2.add(Segment(2,3,UNDEFINED));
+        cout << setprecision(9);
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 3.1", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 3.1", "result segments are incorect.",
+                segments1 == segments2);    
         t1 = t2;
-        container1.next(t1,result1,resultOrthogonal1);
         timeValues1.next(t2);
-        result2.clear();
-        result2.push_back(segment1);
-        result2.push_back(segment3);
-        result2.push_back(segment4);
-        result2.push_back(segment2);
-        assert_("SourceUnitTest1 4.2", "result lists are equal.",
-                compareList(result1,result2));
-        assert_("SourceUnitTest1 4.3", "orthogonal result lists are equal.",
-                compareList(resultOrthogonal1,resultOrthogonal2));
-        // printList(result1);
-        // printList(result2);
+        segments1.clear();
+        segments2.clear();
+        container1.next(t1,t2,points1,segments1); 
+        points2.add(Point3D(3.5,4,2.56944444));
+        points2.add(Point3D(4.66666667, 1.66666667, 1.11111111));
+        points2.add(Point3D(4.22916667, 2.54166667, 2.56944444));
+        points2.add(Point3D(5,1,2.56944444));        
+        segments2.add(Segment(1,4,UNDEFINED));
+        segments2.add(Segment (5, 4, RIGHT_IS_INNER));
+        segments2.add(Segment (5, 6, LEFT_IS_INNER));
+        segments2.add(Segment (3, 7, UNDEFINED));
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 3.2", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 3.2", "result segments are incorect.",
+                segments1 == segments2);         
         t1 = t2;
-        container1.next(t1,result1,resultOrthogonal1);
         timeValues1.next(t2);
-        result2.clear();
-        result2.push_back(segment1);
-        result2.push_back(segment4);
-        result2.push_back(segment2);
-        assert_("SourceUnitTest1 4.3", "result lists are equal.",
-                compareList(result1,result2));
-        assert_("SourceUnitTest1 4.3", "orthogonal result lists are equal.",
-                compareList(resultOrthogonal1,resultOrthogonal2));
-        // printList(result1);
-        // printList(result2);
+        segments1.clear();
+        segments2.clear();
+        container1.next(t1,t2,points1,segments1); 
+        points2.add(Point3D(3.5, 4, 2.66666667));
+        points2.add(Point3D(4.2, 2.6, 2.66666667));
+        points2.add(Point3D(5, 1, 2.66666667));
+        segments2.add(Segment(4, 8, UNDEFINED));
+        segments2.add(Segment(6, 9, LEFT_IS_INNER));
+        segments2.add(Segment(7, 10, UNDEFINED));
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 3.3", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 3.3", "result segments are incorect.",
+                segments1 == segments2);         
         t1 = t2;
-        container1.next(t1,result1,resultOrthogonal1);
         timeValues1.next(t2);
-        assert_("SourceUnitTest1 4.4", "result lists are equal.",
-                compareList(result1,result2));
-        assert_("SourceUnitTest1 4.4", "orthogonal result lists are equal.",
-                compareList(resultOrthogonal1,resultOrthogonal2));
-        // printList(result1);
-        // printList(result2);
+        segments1.clear();
+        segments2.clear();
+        container1.next(t1,t2,points1,segments1); 
+        points2.add(Point3D(3.5, 4, 3.33333333));
+        points2.add(Point3D(4, 3, 3.33333333));
+        points2.add(Point3D(5, 1, 3.33333333));
+        segments2.add(Segment(8, 11, UNDEFINED));
+        segments2.add(Segment(9, 12, LEFT_IS_INNER));
+        segments2.add(Segment(10, 13, UNDEFINED));
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 3.4", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 3.4", "result segments are incorect.",
+                segments1 == segments2);       
         t1 = t2;
-        container1.next(t1,result1,resultOrthogonal1);
-        timeValues1.next(t2);        
-        result2.clear();
-        result2.push_back(segment1);
-        result2.push_back(segment5);
-        result2.push_back(segment2);
-        assert_("SourceUnitTest1 4.5", "result lists are equal.",
-                compareList(result1,result2));
-        assert_("SourceUnitTest1 4.5", "orthogonal result lists are equal.",
-                compareList(resultOrthogonal1,resultOrthogonal2));
-        // printList(result1);
-        // printList(result2);
+        timeValues1.next(t2);
+        segments1.clear();
+        segments2.clear();
+        container1.next(t1,t2,points1,segments1); 
+        points2.add(Point3D(3.5, 4, 3.4375));
+        points2.add(Point3D(5, 1, 3.4375));
+        segments2.add(Segment(11, 14, UNDEFINED));
+        segments2.add(Segment(12, 14, LEFT_IS_INNER));
+        segments2.add(Segment(13, 15, UNDEFINED));
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 3.5", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 3.5", "result segments are incorect.",
+                segments1 == segments2);     
         t1 = t2;
-        container1.next(t1,result1,resultOrthogonal1);
-        timeValues1.next(t2);    
-        result2.clear();
-        result2.push_back(segment1);
-        result2.push_back(segment2);
-        assert_("SourceUnitTest1 4.6", "result lists are equal.",
-                compareList(result1,result2));
-        assert_("SourceUnitTest1 4.6", "orthogonal result lists are equal.",
-                compareList(resultOrthogonal1,resultOrthogonal2));
-        // printList(result1);
-        // printList(result2);
+        timeValues1.next(t2);
+        segments1.clear();
+        segments2.clear();
+        container1.next(t1,t2,points1,segments1); 
+        points2.add(Point3D(3.5, 4, 4));
+        points2.add(Point3D(5, 1, 4));
+        segments2.add(Segment(14, 16, UNDEFINED));
+        segments2.add(Segment(15, 17, UNDEFINED));
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 3.6", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 3.6", "result segments are incorect.",
+                segments1 == segments2);              
         t1 = t2;
-        container1.next(t1,result1,resultOrthogonal1);
-        timeValues1.next(t2);         
-        assert_("SourceUnitTest1 4.7", "result lists are equal.",            
-                compareList(result1,result2)); 
-        assert_("SourceUnitTest1 4.7", "orthogonal result lists are equal.",
-                compareList(resultOrthogonal1,resultOrthogonal2));
-        // printList(result1);
-        // printList(result2);
+        timeValues1.next(t2);
+        segments1.clear();
+        segments2.clear();
+        container1.next(t1,t2,points1,segments1); 
+        points2.add(Point3D(3.5, 4, 5));
+        points2.add(Point3D(5, 1, 5));
+        segments2.add(Segment(16, 18, UNDEFINED));
+        segments2.add(Segment(17, 19, UNDEFINED));
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 3.7", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 3.7", "result segments are incorect.",
+                segments1 == segments2);        
+        t1 = t2;
+        segments1.clear();
+        segments2.clear();
+        container1.next(t1,t2,points1,segments1); 
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 3.8", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 3.8", "result segments are incorect.",
+                segments1 == segments2); 
         // cout << setprecision(2);
         // cout << container1 << endl;
         // cout << timeValues1 << endl;
+        
       }// IntSegContainerTest3
       
       void IntSegContainerTest4(){
@@ -1612,85 +1821,195 @@ namespace temporalalgebra {
         timeValues1.addTimeValue(2.66666667); 
         timeValues1.addTimeValue(4.44444444);
         timeValues1.addTimeValue(4.66666667);
-        timeValues1.addTimeValue(5); 
-        list<IntersectionSegment> result1,resultOrthogonal1;
-        list<IntersectionSegment> result2,resultOrthogonal2;        
-        double t1,t2;      
-        timeValues1.first(t1);                     
-        container1.first(t1,result1,resultOrthogonal1);
-        timeValues1.next(t2);    
-        result2.push_back(segment1);
-        result2.push_back(segment2);
-        assert_("SourceUnitTest1 5.1", "result lists are equal.",
-                compareList(result1,result2));
-        assert_("SourceUnitTest1 5.1", "orthogonal result lists are equal.",
-                compareList(resultOrthogonal1,resultOrthogonal2));
-        // printList(result1);
-        // printList(result2);
+        timeValues1.addTimeValue(5);        
+        ContainerPoint3D points1,points2;
+        ContainerSegment segments1,segments2;       
+        double t1,t2;
+        timeValues1.first(t1);  
+        timeValues1.next(t2); 
+        container1.first(t1,t2,points1,segments1); 
+        points2.add(Point3D(2,1,0));
+        points2.add(Point3D(2,1,1.11111111));
+        points2.add(Point3D(3.5,4,0));
+        points2.add(Point3D(3.5,4,1.11111111));
+        segments2.add(Segment(0,1,UNDEFINED));
+        segments2.add(Segment(2,3,UNDEFINED));
+         cout << setprecision(9);
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 4.1", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 4.1", "result segments are incorect.",
+                segments1 == segments2);   
         t1 = t2;
-        container1.next(t1,result1,resultOrthogonal1);
         timeValues1.next(t2);
-        assert_("SourceUnitTest1 5.2", "result lists are equal.",
-                compareList(result1,result2));
-        assert_("SourceUnitTest1 5.2", "orthogonal result lists are equal.",
-                compareList(resultOrthogonal1,resultOrthogonal2));
-        // printList(result1);
-        // printList(result2);
+        segments1.clear();
+        segments2.clear();     
+        container1.next(t1,t2,points1,segments1); 
+        points2.add(Point3D (2, 1, 2.66666667));
+        points2.add(Point3D (3.5, 4, 2.66666667));
+        segments2.add(Segment(1,4,UNDEFINED));
+        segments2.add(Segment (3, 5, UNDEFINED));
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 4.2", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 4.2", "result segments are incorect.",
+                segments1 == segments2);    
         t1 = t2;
-        container1.next(t1,result1,resultOrthogonal1);
         timeValues1.next(t2);
-        result2.clear();
-        result2.push_back(segment1);
-        result2.push_back(segment3);
-        result2.push_back(segment2);
-        resultOrthogonal2.push_back(segment4);
-        assert_("SourceUnitTest1 5.3", "result lists are equal.",
-                compareList(result1,result2));
-        assert_("SourceUnitTest1 5.3", "orthogonal result lists are equal.",
-                compareList(resultOrthogonal1,resultOrthogonal2));
-        // printList(result1);
-        // printList(result2);
-        // printList(resultOrthogonal1);
-        // printList(resultOrthogonal2);
+        segments1.clear();
+        segments2.clear();     
+        container1.next(t1,t2,points1,segments1); 
+        points2.add(Point3D (2, 1, 4.44444444));
+        points2.add(Point3D (2.8, 2.6, 2.66666667));
+        points2.add(Point3D (3.33333333, 3.66666666, 4.44444444));
+        points2.add(Point3D (3.5, 4, 4.44444444));
+        segments2.add(Segment (4, 6, UNDEFINED));
+        segments2.add(Segment (7, 8, RIGHT_IS_INNER));
+        segments2.add(Segment (7, 5, LEFT_IS_INNER));
+        segments2.add(Segment (5, 9, UNDEFINED));
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 4.3", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 4.3", "result segments are incorect.",
+                segments1 == segments2);
         t1 = t2;
-        container1.next(t1,result1,resultOrthogonal1);
         timeValues1.next(t2);
-        result2.clear();
-        resultOrthogonal2.clear();
-        result2.push_back(segment1);
-        result2.push_back(segment3);
-        result2.push_back(segment5);
-        result2.push_back(segment2);
-        assert_("SourceUnitTest1 5.4", "result lists are equal.",
-                compareList(result1,result2));
-        assert_("SourceUnitTest1 5.4", "orthogonal result lists are equal.",
-                compareList(resultOrthogonal1,resultOrthogonal2));
-        // printList(result1);
-        // printList(result2);
-        // printList(resultOrthogonal1);
-        // printList(resultOrthogonal2);
+        segments1.clear();
+        segments2.clear();     
+        container1.next(t1,t2,points1,segments1); 
+        points2.add(Point3D (2, 1, 4.66666667));
+        points2.add(Point3D (3.4, 3.8, 4.66666667));
+        points2.add(Point3D (3.5, 4, 4.66666667));
+        segments2.add(Segment (6, 10, UNDEFINED));
+        segments2.add(Segment (8, 11, RIGHT_IS_INNER));
+        segments2.add(Segment (9, 11, LEFT_IS_INNER));
+        segments2.add(Segment (9, 12, UNDEFINED));
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 4.4", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 4.4", "result segments are incorect.",
+                segments1 == segments2);
         t1 = t2;
-        container1.next(t1,result1,resultOrthogonal1);
         timeValues1.next(t2);
-        result2.clear();
-        result2.push_back(segment1);
-        result2.push_back(segment2);
-        assert_("SourceUnitTest1 5.5", "result lists are equal.",
-                compareList(result1,result2));
-        assert_("SourceUnitTest1 5.5", "orthogonal result lists are equal.",
-                compareList(resultOrthogonal1,resultOrthogonal2));
-        // printList(result1);
-        // printList(result2);
-        // printList(resultOrthogonal1);
-        // printList(resultOrthogonal2);
-        // cout << setprecision(2);
-        // cout << container1 << endl;
-        // cout << timeValues1 << endl;
+        segments1.clear();
+        segments2.clear();     
+        container1.next(t1,t2,points1,segments1); 
+        points2.add(Point3D (2, 1, 5));
+        points2.add(Point3D (3.5, 4, 5));
+        segments2.add(Segment (10, 13, UNDEFINED));
+        segments2.add(Segment (12, 14, UNDEFINED));
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 4.5", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 4.5", "result segments are incorect.",
+                segments1 == segments2);     
+        t1 = t2;
+        segments1.clear();
+        segments2.clear();     
+        container1.next(t1,t2,points1,segments1); 
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 4.6", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 4.6", "result segments are incorect.",
+                segments1 == segments2);         
+         // cout << setprecision(2);
+         // cout << container1 << endl;
+         // cout << timeValues1 << endl;
       }// IntSegContainerTest4
+      
+      void IntSegContainerTest5(){
+        GlobalTimeValues timeValues1;
+        IntSegContainer container1;
+        IntersectionSegment segment1(
+          IntersectionPoint(2, 1, 0, 1.78885438), 
+          IntersectionPoint(2, 1, 5, 1.78885438), 
+          UNDEFINED);
+        IntersectionSegment segment2(
+          IntersectionPoint(3.5, 4, 0, 5.14295635), 
+          IntersectionPoint(3.5, 4, 5, 5.14295635), 
+          RIGHT_IS_INNER);
+        IntersectionSegment segment3(
+          IntersectionPoint(2, 1, 0, 1.78885438), 
+          IntersectionPoint(3.5, 4, 0, 5.14295635), 
+          UNDEFINED);
+        IntersectionSegment segment4(
+          IntersectionPoint(2, 1, 5, 1.78885438), 
+          IntersectionPoint(3.5, 4, 5, 5.14295635), 
+          UNDEFINED);
+        IntersectionSegment segment5(
+          IntersectionPoint(2, 1, 0, 1.78885438), 
+          IntersectionPoint(2, 1, 5, 1.78885438), 
+          LEFT_IS_INNER);
+        IntersectionSegment segment6(
+          IntersectionPoint(3.5, 4, 0, 5.14295635), 
+          IntersectionPoint(3.5, 4, 5, 5.14295635), 
+          UNDEFINED);
+        container1.addIntSeg(segment1);
+        container1.addIntSeg(segment2);
+        container1.addIntSeg(segment3);
+        container1.addIntSeg(segment4);
+        container1.addIntSeg(segment5);
+        container1.addIntSeg(segment6);
+        timeValues1.addTimeValue(0);
+        timeValues1.addTimeValue(5);
+        ContainerPoint3D points1,points2;
+        ContainerSegment segments1,segments2;       
+        double t1,t2;
+        timeValues1.first(t1);  
+        timeValues1.next(t2); 
+        container1.first(t1,t2,points1,segments1); 
+        points2.add(Point3D(2,1,0));
+        points2.add(Point3D(2,1,5));
+        points2.add(Point3D(3.5,4,0));
+        points2.add(Point3D(3.5,4,5));
+        segments2.add(Segment(0,1,LEFT_IS_INNER));
+        segments2.add(Segment(0,2,UNDEFINED));
+        segments2.add(Segment(2,3,RIGHT_IS_INNER));
+         cout << setprecision(9);
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;  
+        assert_("IntSegContainerTest 5.1", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 5.1", "result segments are incorect.",
+                segments1 == segments2); 
+         t1 = t2;
+        segments1.clear();
+        segments2.clear();     
+        container1.next(t1,t2,points1,segments1); 
+        segments2.add(Segment(1,3,UNDEFINED));
+        // cout << points1;
+        // cout << points2;
+        // cout << segments1;
+        // cout << segments2;
+        assert_("IntSegContainerTest 5.2", "result points are incorect.",
+                points1 == points2);
+        assert_("IntSegContainerTest 5.2", "result segments are incorect.",
+                segments1 == segments2); 
+      }// IntSegContainerTest5
 /*
 17 Test SegmentTest
 
-*/           
+*/          
       void SegmentTest(){
         Segment segment1;
         Segment segment2(3,7,INSIDE);
@@ -1718,53 +2037,36 @@ namespace temporalalgebra {
 /*
 18 Test ResultPfaceFactory
 
-*/       
+*/ 
+
       void ResultPfaceFactoryTest1(){
         ResultPfaceFactory factory1(4),factory2(4);
         assert_("ResultPfaceFactoryTest 1.1", "factorys are equal.",
                  factory1 == factory2);
-        factory1.addEdge(0,Segment(0,1,UNDEFINED));
-        factory1.addEdge(0,Segment(2,3,UNDEFINED));
-        factory1.addEdge(1,Segment(4,5,LEFT_IS_INNER));
-        factory1.addEdge(2,Segment(5,6,UNDEFINED));
-        factory1.addOrthogonal(0,Segment(7,8,LEFT_IS_INNER));
-        factory1.addOrthogonal(3,Segment(9,10,LEFT_IS_INNER));
-        factory1.setTouch(1,2);
+        factory1.addNonOrthogonalEdges(0,Segment(0,1,UNDEFINED));
+        factory1.addNonOrthogonalEdges(0,Segment(2,3,UNDEFINED));
+        factory1.addNonOrthogonalEdges(1,Segment(4,5,LEFT_IS_INNER));
+        factory1.addNonOrthogonalEdges(2,Segment(5,6,UNDEFINED));
+        factory1.addOrthogonalEdges(0,Segment(7,8,LEFT_IS_INNER));
+        factory1.addOrthogonalEdges(3,Segment(9,10,LEFT_IS_INNER));
+        factory1.setTouchsOnLeftBorder(1,2);
         assert_("ResultPfaceFactoryTest 1.2", "factorys aren't equal.",
                 (!(factory1 == factory2)));
         // result
-        factory2.addEdge(0,Segment(0,1,UNDEFINED));
-        factory2.addEdge(0,Segment(2,3,UNDEFINED));
-        factory2.addEdge(1,Segment(4,5,LEFT_IS_INNER));
-        factory2.addEdge(2,Segment(5,6,UNDEFINED));
-        factory2.addOrthogonal(0,Segment(7,8,LEFT_IS_INNER));
-        factory2.addOrthogonal(3,Segment(9,10,LEFT_IS_INNER));
-        factory2.setTouch(1,2); 
+        factory2.addNonOrthogonalEdges(0,Segment(0,1,UNDEFINED));
+        factory2.addNonOrthogonalEdges(0,Segment(2,3,UNDEFINED));
+        factory2.addNonOrthogonalEdges(1,Segment(4,5,LEFT_IS_INNER));
+        factory2.addNonOrthogonalEdges(2,Segment(5,6,UNDEFINED));
+        factory2.addOrthogonalEdges(0,Segment(7,8,LEFT_IS_INNER));
+        factory2.addOrthogonalEdges(3,Segment(9,10,LEFT_IS_INNER));
+        factory2.setTouchsOnLeftBorder(1,2); 
         assert_("ResultPfaceFactoryTest 1.3", "factorys are equal.",
                  factory1 == factory2);
         // cout << factory1 << endl;
         // cout << factory2 << endl;
       }// ResultPfaceFactoryTest1
-      
+ 
       void ResultPfaceFactoryTest2(){
-        ResultPfaceFactory factory1(4),factory2(4);
-        factory1.addEdge(0,Segment(0,1,UNDEFINED));
-        factory1.addEdge(1,Segment(2,3,UNDEFINED));
-        factory1.addEdge(1,Segment(2,3,LEFT_IS_INNER));
-        factory1.addEdge(2,Segment(4,5,RIGHT_IS_INNER));
-        factory1.addEdge(2,Segment(4,5,UNDEFINED));
-        factory1.addEdge(2,Segment(4,5,RIGHT_IS_INNER));
-        // result
-        factory2.addEdge(0,Segment(0,1,UNDEFINED));
-        factory2.addEdge(1,Segment(2,3,LEFT_IS_INNER));
-        factory2.addEdge(2,Segment(4,5,RIGHT_IS_INNER));
-        assert_("ResultPfaceFactoryTest 2.1", "factorys are equal.",
-                 factory1 == factory2);
-        // cout << factory1 << endl;
-        // cout << factory2 << endl;
-      }// ResultPfaceFactoryTest2
-      
-      void ResultPfaceFactoryTest3(){
         GlobalTimeValues timeValues1;
         IntSegContainer container1;
         ContainerPoint3D points1,points2;
@@ -1812,24 +2114,24 @@ namespace temporalalgebra {
         points2.add(Point3D (3.5, 4, 4.66666667));
         points2.add(Point3D (2, 1, 5));
         points2.add(Point3D (3.5, 4, 5));
-        assert_("ResultPfaceFactoryTest 3.1", "points are equal.",
+        assert_("ResultPfaceFactoryTest 2.1", "points are equal.",
                  points1 == points2);
-        factory2.addEdge(0, Segment(0,1,UNDEFINED));
-        factory2.addEdge(0, Segment(2,3,UNDEFINED));
-        factory2.addEdge(1, Segment (1, 4, UNDEFINED));
-        factory2.addEdge(1, Segment (3, 5, UNDEFINED));
-        factory2.addEdge(2, Segment (4, 6, UNDEFINED));
-        factory2.addEdge(2, Segment (7, 8, RIGHT_IS_INNER));
-        factory2.addEdge(2, Segment (5, 9, UNDEFINED));
-        factory2.addEdge(3, Segment (6, 10, UNDEFINED));
-        factory2.addEdge(3, Segment (8, 11, RIGHT_IS_INNER));
-        factory2.addEdge(3, Segment (9, 11, LEFT_IS_INNER));
-        factory2.addEdge(3, Segment (9, 12, UNDEFINED));
-        factory2.addEdge(4, Segment (10, 13, UNDEFINED));
-        factory2.addEdge(4, Segment (12, 14, UNDEFINED));
-        factory2.addOrthogonal(2, Segment (7, 5, LEFT_IS_INNER));
-        assert_("ResultPfaceFactoryTest 3.2", "factorys are equal.",
-                 factory1 == factory2);
+        factory2.addNonOrthogonalEdges(0, Segment(0,1,UNDEFINED));
+        factory2.addNonOrthogonalEdges(0, Segment(2,3,UNDEFINED));
+        factory2.addNonOrthogonalEdges(1, Segment (1, 4, UNDEFINED));
+        factory2.addNonOrthogonalEdges(1, Segment (3, 5, UNDEFINED));
+        factory2.addNonOrthogonalEdges(2, Segment (4, 6, UNDEFINED));
+        factory2.addNonOrthogonalEdges(2, Segment (7, 8, RIGHT_IS_INNER));
+        factory2.addOrthogonalEdges(2, Segment (7, 5, LEFT_IS_INNER));
+        factory2.addNonOrthogonalEdges(2, Segment (5, 9, UNDEFINED));
+        factory2.addNonOrthogonalEdges(3, Segment (6, 10, UNDEFINED));
+        factory2.addNonOrthogonalEdges(3, Segment (8, 11, RIGHT_IS_INNER));
+        factory2.addNonOrthogonalEdges(3, Segment (9, 11, LEFT_IS_INNER));
+        factory2.addNonOrthogonalEdges(3, Segment (9, 12, UNDEFINED));
+        factory2.addNonOrthogonalEdges(4, Segment (10, 13, UNDEFINED));
+        factory2.addNonOrthogonalEdges(4, Segment (12, 14, UNDEFINED));
+        assert_("ResultPfaceFactoryTest 2.2", "factorys are equal.",
+                 factory1 == factory2);                 
         // cout << setprecision(9);
         // cout << container1 << endl;
         // cout << timeValues1 << endl;
@@ -1837,45 +2139,278 @@ namespace temporalalgebra {
         // cout << points2 << endl;
         // cout << factory1 << endl;
         // cout << factory2 << endl;
-      }// ResultPfaceFactoryTest1
-      
-      void SourceUnitTest4(){
-        SourceUnit sourceUnit1,sourceUnit2;
-        GlobalTimeValues timeValues;
-        // points from unit 1 
-        Point3D point0(2,1,0);
-        Point3D point1(5,1,0);         
-        Point3D point2(3.5,4,0);
-        Point3D point3(2,1,5);
-        Point3D point4(5,1,5);         
-        Point3D point5(3.5,4,5);
-        // points from pface 2
-        Point3D point6(6,1,0);
-        Point3D point7(9,1,0);         
-        Point3D point8(7.5,4,0);
-        Point3D point9(0,4,5);
-        Point3D point10(3,4,5);         
-        Point3D point11(1.5,7,5);
-        // add pfaces to unit 1 
-        sourceUnit1.addPFace(point4,point3,point1,point0);
-        sourceUnit1.addPFace(point5,point4,point2,point1);
-        sourceUnit1.addPFace(point3,point5,point0,point2);
-        // add pfaces to unit 2
-        sourceUnit2.addPFace(point10,point9,point7,point6);
-        sourceUnit2.addPFace(point11,point10,point8,point7);
-        sourceUnit2.addPFace(point9,point11,point6,point8);
-        // intersection
-        sourceUnit1.intersection(sourceUnit2,timeValues); 
+      }// ResultPfaceFactoryTest2
+         
+      void ResultPfaceFactoryTest3(){
         ContainerPoint3D points;
-        sourceUnit1.createResultPfaces(points,timeValues);
-        cout << points;
-        
+        ContainerSegment segments;
+        ContainerPoint3D points1,points2,points3;
+        GlobalTimeValues timeValues1,timeValues2;
+        // points for unit 1 
+        points1.add( Point3D(2,1,0));// 0
+        points1.add( Point3D(5,1,0));         
+        points1.add( Point3D(3.5,4,0));
+        points1.add( Point3D(2,1,5));
+        points1.add( Point3D(5,1,5));         
+        points1.add( Point3D(3.5,4,5));
+        // points for unit 2 
+        points1.add( Point3D(6,1,0));// 6
+        points1.add( Point3D(9,1,0));         
+        points1.add( Point3D(7.5,4,0));
+        points1.add( Point3D(0,4,5));
+        points1.add( Point3D(3,4,5));         
+        points1.add( Point3D(1.5,7,5));
+        // segments for pface 1
+        segments.add( Segment(3,0, UNDEFINED));
+        segments.add( Segment(4,1, UNDEFINED));
+        segments.add( Segment(5,2, UNDEFINED));
+        // segments for pface 2
+        segments.add( Segment(9,6, UNDEFINED));
+        segments.add( Segment(10,7, UNDEFINED)); 
+        segments.add( Segment(11,8, UNDEFINED));        
+        // add pfaces to unit 1 
+        PFace pf0(1, 0, points1,segments);
+        PFace pf1(2, 1, points1,segments);
+        PFace pf2(0, 2, points1,segments);
+        // add pfaces to unit 2
+        PFace pf3(4, 3, points1,segments);
+        PFace pf4(5, 4, points1,segments);
+        PFace pf5(3, 5, points1,segments);        
+        // intersection
+        pf0.intersection(pf3, timeValues1);
+        pf0.intersection(pf4, timeValues1);
+        pf0.intersection(pf5, timeValues1);
+        pf0.addBorder(timeValues1);
+        pf1.intersection(pf3, timeValues1);
+        pf1.intersection(pf4, timeValues1);
+        pf1.intersection(pf5, timeValues1);
+        pf1.addBorder(timeValues1);
+        pf2.intersection(pf3, timeValues1);
+        pf2.intersection(pf4, timeValues1);
+        pf2.intersection(pf5, timeValues1);
+        pf2.addBorder(timeValues1);
+        pf3.addBorder(timeValues1);
+        pf4.addBorder(timeValues1);
+        pf5.addBorder(timeValues1);
+        ResultPfaceFactory factory0( points2, timeValues1, pf0);
+        ResultPfaceFactory factory1( points2, timeValues1, pf1);
+        ResultPfaceFactory factory2( points2, timeValues1, pf2);
+        // Results
+        ResultPfaceFactory factory3(6), factory4(6),factory5(6);
+        points3.add( Point3D (3.5, 4, 0));
+        points3.add( Point3D (3.5, 4, 1.11111111));
+        points3.add( Point3D (5, 1, 0));
+        points3.add( Point3D (5, 1, 1.11111111));
+        points3.add( Point3D (3.5, 4, 2.66666667));
+        points3.add( Point3D (4.66666667, 1.66666667, 1.11111111));
+        points3.add( Point3D (4.2, 2.6, 2.66666667));
+        points3.add( Point3D (5, 1, 2.66666667));
+        points3.add( Point3D (3.5, 4, 4.44444444));
+        points3.add( Point3D (3.66666667, 3.66666667, 4.44444444));
+        points3.add( Point3D (5, 1, 4.44444444));
+        points3.add( Point3D (3.5, 4, 4.66666667));
+        points3.add( Point3D (5, 1, 4.66666667));
+        points3.add( Point3D (3.5, 4, 5));
+        points3.add( Point3D (5, 1, 5));
+        points3.add( Point3D (2, 1, 0));
+        points3.add( Point3D (2, 1, 1.11111111));
+        points3.add( Point3D (2, 1, 2.66666667));
+        points3.add( Point3D (2, 1, 4.44444444));
+        points3.add( Point3D (2.8, 2.6, 2.66666667));
+        points3.add( Point3D (3.33333333, 3.66666667, 4.44444444));
+        points3.add( Point3D (2, 1, 4.66666667));
+        points3.add( Point3D (3.4, 3.8, 4.66666667));
+        points3.add( Point3D (2, 1, 5));             
+        assert_("ResultPfaceFactoryTest 3.1", "points are equal.",
+                points2 == points3);
         // cout << setprecision(9);
-        // cout << sourceUnit1 << endl;
-        // cout << sourceUnit2 << endl;
-        // cout << timeValues << endl;
-      }// SourceUnitTest4
+        // cout << points2 << endl;
+        // cout << points3 << endl;
+        factory4.addNonOrthogonalEdges(0, Segment (0, 1, UNDEFINED)); 
+        factory4.addNonOrthogonalEdges(0, Segment (2, 3, UNDEFINED));
+        factory4.addNonOrthogonalEdges(1, Segment (1, 4, UNDEFINED));
+        factory4.addNonOrthogonalEdges(1, Segment (5, 4, RIGHT_IS_INNER));
+        factory4.addNonOrthogonalEdges(1, Segment (5, 6, LEFT_IS_INNER));
+        factory4.addNonOrthogonalEdges(1, Segment (3, 7, UNDEFINED));
+        factory4.addNonOrthogonalEdges(2, Segment (4, 8, UNDEFINED));
+        factory4.addNonOrthogonalEdges(2, Segment (6, 9, LEFT_IS_INNER)); 
+        factory4.addNonOrthogonalEdges(2, Segment (7, 10, UNDEFINED));
+        factory4.addNonOrthogonalEdges(3, Segment (8, 11, UNDEFINED)); 
+        factory4.addOrthogonalEdges(3, Segment (8, 9, RIGHT_IS_INNER));
+        factory4.addNonOrthogonalEdges(3, Segment (10, 12, UNDEFINED));
+        factory4.addNonOrthogonalEdges(4, Segment (11, 13, UNDEFINED)); 
+        factory4.addNonOrthogonalEdges(4, Segment (12, 14, UNDEFINED));
+        factory5.addNonOrthogonalEdges(0, Segment (15, 16, UNDEFINED));
+        factory5.addNonOrthogonalEdges(0, Segment (0, 1, UNDEFINED));
+        factory5.addNonOrthogonalEdges(1, Segment (16, 17, UNDEFINED)); 
+        factory5.addNonOrthogonalEdges(1, Segment (1, 4, UNDEFINED));
+        factory5.addNonOrthogonalEdges(2, Segment (17, 18, UNDEFINED)); 
+        factory5.addNonOrthogonalEdges(2, Segment (19, 20, RIGHT_IS_INNER)); 
+        factory5.addOrthogonalEdges(2, Segment (19, 4, LEFT_IS_INNER)); 
+        factory5.addNonOrthogonalEdges(2, Segment (4, 8, UNDEFINED));
+        factory5.addNonOrthogonalEdges(3, Segment (18, 21, UNDEFINED)); 
+        factory5.addNonOrthogonalEdges(3, Segment (20, 22, RIGHT_IS_INNER)); 
+        factory5.addNonOrthogonalEdges(3, Segment (8, 22, LEFT_IS_INNER)); 
+        factory5.addNonOrthogonalEdges(3, Segment (8, 11, UNDEFINED));
+        factory5.addNonOrthogonalEdges(4, Segment (21, 23, UNDEFINED)); 
+        factory5.addNonOrthogonalEdges(4, Segment (11, 13, UNDEFINED));
+        assert_("ResultPfaceFactoryTest 3.2", 
+                " Content in Factory  is incorrect.",
+                factory0 == factory3);
+        // cout << factory0 << endl;
+        // cout << factory3 << endl;
+        assert_("ResultPfaceFactoryTest 3.3", 
+                " Content in Factory is incorrect.",
+                 factory1 == factory4);;
+         // cout << factory1 << endl;
+         // cout << factory4 << endl;
+        assert_("ResultPfaceFactoryTest 3.4", 
+                " Content in Factory is incorrect.",
+                 factory2 == factory5);
+         // cout << factory2 << endl;
+         // cout << factory5 << endl;
+      }// ResultPfaceFactoryTest3
+ 
+      void ResultPfaceFactoryTest4(){
+        ResultPfaceFactory factory1(6),factory2(6);
+        factory1.addNonOrthogonalEdges(0, Segment (14, 2, UNDEFINED)); 
+        factory1.addNonOrthogonalEdges(0, Segment (0, 2, RIGHT_IS_INNER));
+        factory1.addNonOrthogonalEdges(0, Segment (1, 3, LEFT_IS_INNER));
+        factory1.addNonOrthogonalEdges(0, Segment (15, 16, UNDEFINED));
+        factory1.addOrthogonalEdges(0, Segment (0, 1, LEFT_IS_INNER));
+        factory1.addNonOrthogonalEdges(1, Segment (2, 17, UNDEFINED));
+        factory1.addNonOrthogonalEdges(1, Segment (2, 4, RIGHT_IS_INNER));
+        factory1.addNonOrthogonalEdges(1, Segment (3, 6, LEFT_IS_INNER));       
+        factory1.addNonOrthogonalEdges(1, Segment (16, 6, UNDEFINED));
+        factory1.addNonOrthogonalEdges(2, Segment (17, 18, UNDEFINED));
+        factory1.addNonOrthogonalEdges(2, Segment (4, 7, RIGHT_IS_INNER));
+        factory1.addNonOrthogonalEdges(2, Segment (5, 8, LEFT_IS_INNER));
+        factory1.addNonOrthogonalEdges(2, Segment (5, 9, RIGHT_IS_INNER));
+        factory1.addNonOrthogonalEdges(2, Segment (6, 9, UNDEFINED));
+        factory1.addNonOrthogonalEdges(3, Segment (18, 10, UNDEFINED));
+        factory1.addNonOrthogonalEdges(3, Segment (7, 10, RIGHT_IS_INNER));
+        factory1.addNonOrthogonalEdges(3, Segment (8, 11, LEFT_IS_INNER)); 
+        factory1.addNonOrthogonalEdges(3, Segment (9, 19, UNDEFINED));
+        factory1.addNonOrthogonalEdges(4, Segment (10, 12, UNDEFINED)); 
+        factory1.addNonOrthogonalEdges(4, Segment (11, 13, LEFT_IS_INNER)); 
+        factory1.addNonOrthogonalEdges(4, Segment (19, 20, UNDEFINED));
+        factory1.addOrthogonalEdges(5, Segment (12, 13, RIGHT_IS_INNER));
+        factory1.evaluate();
+        // result
+        factory2.addNonOrthogonalEdges(0, Segment (14, 2, OUTSIDE)); 
+        factory2.addNonOrthogonalEdges(0, Segment (0, 2, RIGHT_IS_INNER));
+        factory2.addNonOrthogonalEdges(0, Segment (1, 3, LEFT_IS_INNER));
+        factory2.addNonOrthogonalEdges(0, Segment (15, 16, OUTSIDE));
+        factory2.addOrthogonalEdges(0, Segment (0, 1, LEFT_IS_INNER));
+        factory2.addNonOrthogonalEdges(1, Segment (2, 17, OUTSIDE));
+        factory2.addNonOrthogonalEdges(1, Segment (2, 4, RIGHT_IS_INNER));
+        factory2.addNonOrthogonalEdges(1, Segment (3, 6, LEFT_IS_INNER));       
+        factory2.addNonOrthogonalEdges(1, Segment (16, 6, OUTSIDE));
+        factory2.addNonOrthogonalEdges(2, Segment (17, 18, OUTSIDE));
+        factory2.addNonOrthogonalEdges(2, Segment (4, 7, RIGHT_IS_INNER));
+        factory2.addNonOrthogonalEdges(2, Segment (5, 8, LEFT_IS_INNER));
+        factory2.addNonOrthogonalEdges(2, Segment (5, 9, RIGHT_IS_INNER));
+        factory2.addNonOrthogonalEdges(2, Segment (6, 9, INSIDE));
+        factory2.addNonOrthogonalEdges(3, Segment (18, 10, OUTSIDE));
+        factory2.addNonOrthogonalEdges(3, Segment (7, 10, RIGHT_IS_INNER));
+        factory2.addNonOrthogonalEdges(3, Segment (8, 11, LEFT_IS_INNER)); 
+        factory2.addNonOrthogonalEdges(3, Segment (9, 19, OUTSIDE));
+        factory2.addNonOrthogonalEdges(4, Segment (10, 12, INSIDE)); 
+        factory2.addNonOrthogonalEdges(4, Segment (11, 13, LEFT_IS_INNER)); 
+        factory2.addNonOrthogonalEdges(4, Segment (19, 20, OUTSIDE));
+        factory2.addOrthogonalEdges(5, Segment (12, 13, RIGHT_IS_INNER));
+        factory2.setTouchsOnLeftBorder(1,2);
+        factory2.setTouchsOnLeftBorder(4,1);
+        Predicate left, right;
+        factory1.getBorderPredicates(left,right);
+        assert_("ResultPfaceFactoryTest 4.1",
+                " Content in Factory is incorrect.",
+                 factory1 == factory2);
+        assert_("ResultPfaceFactoryTest 4.2",
+                " Border predicates from Factory are incorrect.",
+                 left == INTERSECT && right == INTERSECT);
+        // cout << factory1 << endl;
+        // cout << factory2 << endl;     
+      }// ResultPfaceFactoryTest4
       
+      void ResultPfaceFactoryTest5(){
+        ResultPfaceFactory factory1(4),factory2(4);
+        factory1.addNonOrthogonalEdges(0, Segment (0, 3, UNDEFINED)); 
+        factory1.addNonOrthogonalEdges(0, Segment (1, 4, UNDEFINED));
+        factory1.addNonOrthogonalEdges(0, Segment (2, 5, UNDEFINED));
+        factory1.addNonOrthogonalEdges(1, Segment (3, 6, UNDEFINED));
+        factory1.addNonOrthogonalEdges(1, Segment (4, 7, UNDEFINED));
+        factory1.addNonOrthogonalEdges(1, Segment (5, 8, RIGHT_IS_INNER));
+        factory1.addNonOrthogonalEdges(1, Segment (5, 9, UNDEFINED));
+        factory1.addNonOrthogonalEdges(2, Segment (6, 10, UNDEFINED));
+        factory1.addNonOrthogonalEdges(2, Segment (6, 11, UNDEFINED));
+        factory1.addNonOrthogonalEdges(2, Segment (7, 11, UNDEFINED));
+        factory1.addOrthogonalEdges(2, Segment (8, 9, RIGHT_IS_INNER)); 
+        factory1.addNonOrthogonalEdges(2, Segment (9, 12, UNDEFINED));
+        factory1.evaluate();
+        // result
+        factory2.addNonOrthogonalEdges(0, Segment (0, 3, OUTSIDE)); 
+        factory2.addNonOrthogonalEdges(0, Segment (1, 4, OUTSIDE));
+        factory2.addNonOrthogonalEdges(0, Segment (2, 5, OUTSIDE));
+        factory2.addNonOrthogonalEdges(1, Segment (3, 6, OUTSIDE));
+        factory2.addNonOrthogonalEdges(1, Segment (4, 7, OUTSIDE));
+        factory2.addNonOrthogonalEdges(1, Segment (5, 8, RIGHT_IS_INNER));
+        factory2.addNonOrthogonalEdges(1, Segment (5, 9, INSIDE));
+        factory2.addNonOrthogonalEdges(2, Segment (6, 10, OUTSIDE));
+        factory2.addNonOrthogonalEdges(2, Segment (6, 11, OUTSIDE));
+        factory2.addNonOrthogonalEdges(2, Segment (7, 11, OUTSIDE));
+        factory2.addOrthogonalEdges(2, Segment (8, 9, RIGHT_IS_INNER)); 
+        factory2.addNonOrthogonalEdges(2, Segment (9, 12, OUTSIDE));
+        Predicate left, right;
+        factory1.getBorderPredicates(left,right);
+        assert_("ResultPfaceFactoryTest 5.1",
+                " Content in Factory is incorrect.",
+                 factory1 == factory2);
+        assert_("ResultPfaceFactoryTest 5.2",
+                " Border predicates from Factory are incorrect.",
+                 left == OUTSIDE && right == INTERSECT);
+        // cout << factory1 << endl;
+        // cout << factory2 << endl; 
+        // cout << "Predicate on left border:=" << toString(left) << endl;
+        // cout << "Predicate on right border:=" << toString(right) << endl;
+      }// ResultPfaceFactoryTest5
+    
+      
+      void ContainerSegmentTest1(){
+        ContainerSegment container1,container2,container3;
+        container1.add(Segment (0, 3, UNDEFINED));
+        container1.add(Segment (5, 8, RIGHT_IS_INNER));
+        container1.add(Segment (8, 9, LEFT_IS_INNER));
+        container3 = container1;
+        container1.add(Segment (0, 3, LEFT_IS_INNER));
+        container1.add(Segment (8, 9, LEFT_IS_INNER));
+        
+        container2.add(Segment (0, 3, LEFT_IS_INNER));
+        container2.add(Segment (5, 8, RIGHT_IS_INNER));
+        container2.add(Segment (8, 9, LEFT_IS_INNER));
+        assert_("ContainerSegmentTest 1.1", 
+                " Container of segments are not different.",
+                 container1 == container2);
+        assert_("ContainerSegmentTest 1.2", 
+                " Container of segments not different.",
+                 !(container1 == container3));
+        container3.set(0, LEFT_IS_INNER);
+        assert_("ContainerSegmentTest 1.3", 
+                " Container of segments are not different.",
+                 container1 == container3);
+        container3 = container1;
+        ContainerSegment container4(container1);
+        assert_("ContainerSegmentTest 1.4", 
+                " Container of segments are not different.",
+                 container1 == container3);
+        assert_("ContainerSegmentTest 1.5", 
+                " Container of segments are not different.",
+                 container1 == container4);
+        // cout << container1;
+        // cout << container2;
+        // cout << container3;
+        // cout << container4;        
+      }// ContainerSegmentTest1
       
       int numberOfTestsRun;
       int numberOfTestsFailed; 
