@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
@@ -77,7 +78,13 @@ void DBServiceManager::restoreConfiguration()
     SecondoUtilsLocal::readFromConfigFile(
             replicaNumber, "DBService","ReplicaNumber", "1");
     replicaCount = atoi(replicaNumber.c_str());
+
+    string faultToleranceMode;
+    SecondoUtilsLocal::readFromConfigFile(
+            faultToleranceMode, "DBService","FaultToleranceLevel", "2");
+    mode = static_cast<FaultToleranceMode>(atoi(faultToleranceMode.c_str()));
 }
+
 void DBServiceManager::restoreReplicaInformation()
 {
     printFunction("DBServiceManager::restoreReplicaInformation");
@@ -183,6 +190,16 @@ void DBServiceManager::addNode(const string host,
         // TODO more descriptive error message (host, port, etc)
         throw new SecondoException("could not start file transfer server");
     }
+
+    for(auto& replicaLocation : possibleReplicaLocations)
+    {
+        addToPossibleReplicaLocations(
+                connID,
+                location,
+                replicaLocation.second,
+                host,
+                dir);
+    }
 }
 
 bool DBServiceManager::startServersOnWorker(
@@ -235,7 +252,9 @@ void DBServiceManager::determineReplicaLocations(const string& databaseName,
                               disk);
 
     vector<ConnectionID> locations;
-    getWorkerNodesForReplication(locations);
+    getWorkerNodesForReplication(locations,
+                                 host,
+                                 disk);
     relationInfo.addNodes(locations);
     relations.insert(pair<string, RelationInfo>(relationInfo.toString(),
             relationInfo));
@@ -265,30 +284,75 @@ void DBServiceManager::getReplicaLocations(
     ids.insert(ids.begin(), relInfo.nodesBegin(), relInfo.nodesEnd());
 }
 
-void DBServiceManager::getWorkerNodesForReplication(
-        vector<ConnectionID>& nodes)
+void DBServiceManager::addToPossibleReplicaLocations(
+        const ConnectionID connectionID,
+        const LocationInfo& location,
+        vector<ConnectionID>& potentialReplicaLocations,
+        const string& host,
+        const string& disk)
 {
-    printFunction("DBServiceManager::getWorkerNodesForReplication");
-
-    //TODO multiple locations
-
-//    if (connections.size() < replicaCount)
-//    {
-//        throw new SecondoException("not enough DBService worker nodes");
-//    }
-//    while(nodes.size() < replicaCount)
-//    {
-    nodes.push_back(determineReplicaLocation());
-//    }
+    switch(mode)
+    {
+    case FaultToleranceMode::DISK:
+        if(!location.isSameDisk(host, disk))
+        {
+            potentialReplicaLocations.push_back(connectionID);
+        }
+        break;
+    case FaultToleranceMode::NODE:
+        if(!location.isSameHost(host))
+        {
+            potentialReplicaLocations.push_back(connectionID);
+        }
+        break;
+    case FaultToleranceMode::NONE:
+    default:
+        potentialReplicaLocations.push_back(connectionID);
+        break;
+    }
 }
 
-ConnectionID DBServiceManager::determineReplicaLocation()
+void DBServiceManager::getWorkerNodesForReplication(
+        vector<ConnectionID>& nodes,
+        const string& host,
+        const string& disk)
 {
-    printFunction("DBServiceManager::determineReplicaLocation");
-    // TODO consider fault tolerance mode etc
-    // maybe introduce a helper structure to store all possible locations
-    // for each node
-    return rand() % connections.size() + 1;
+    printFunction("DBServiceManager::getWorkerNodesForReplication");
+    string locationID = LocationInfo::getIdentifier(host, disk);
+    AlternativeLocations::const_iterator it =
+            possibleReplicaLocations.find(locationID);
+    if(it == possibleReplicaLocations.end())
+    {
+        vector<ConnectionID> potentialReplicaLocations;
+        for(const auto& connection : connections)
+        {
+            const LocationInfo& location = connection.second.first;
+            addToPossibleReplicaLocations(
+                    connection.first,
+                    location,
+                    potentialReplicaLocations,
+                    host,
+                    disk);
+        }
+        possibleReplicaLocations.insert(
+                pair<std::string, vector<ConnectionID> >(
+                        locationID, potentialReplicaLocations));
+        it = possibleReplicaLocations.find(locationID);
+    }
+    vector<ConnectionID>& connectionsForLocation =
+            const_cast<vector<ConnectionID>& >(it->second);
+    random_shuffle(
+            connectionsForLocation.begin(),
+            connectionsForLocation.end());
+
+    nodes.insert(nodes.begin(),
+            connectionsForLocation.begin(),
+            connectionsForLocation.end());
+
+    if(connectionsForLocation.size() > replicaCount)
+    {
+        nodes.resize(replicaCount);
+    }
 }
 
 ConnectionInfo* DBServiceManager::getConnection(ConnectionID id)
@@ -321,7 +385,7 @@ void DBServiceManager::maintainSuccessfulReplication(
             = relInfo.nodesBegin(); it != relInfo.nodesEnd(); it++)
     {
         LocationInfo& location = getLocation(it->first);
-        if(location.isEqual(replicaLocationHost, replicaLocationPort))
+        if(location.isSameWorker(replicaLocationHost, replicaLocationPort))
         {
             relInfo.updateReplicationStatus(it->first, true);
             DBServicePersistenceAccessor::updateLocationMapping(

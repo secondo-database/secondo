@@ -127,9 +127,9 @@ TEST_F(RelationInfoTest, testAddNodes)
     ASSERT_EQ(2u, relationInfo->getNodeCount());
     map<ConnectionID, bool>::const_iterator it =
             relationInfo->nodesBegin();
-    ASSERT_EQ(3, it->first);
+    ASSERT_EQ(3u, it->first);
     ASSERT_FALSE(it->second);
-    ASSERT_EQ(9, (++it)->first);
+    ASSERT_EQ(9u, (++it)->first);
     ASSERT_FALSE(it->second);
     ASSERT_EQ(relationInfo->nodesEnd(), ++it);
 }

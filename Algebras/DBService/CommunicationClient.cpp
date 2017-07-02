@@ -242,7 +242,8 @@ bool CommunicationClient::getReplicaLocation(const string databaseName,
     receivedLines.pop();
     transferPort = receivedLines.front();
     receivedLines.pop();
-    if(!host.empty() && !transferPort.empty())
+    if(!host.empty() && host != CommunicationProtocol::None()
+    && !transferPort.empty() && transferPort != CommunicationProtocol::None())
     {
         return true;
     }

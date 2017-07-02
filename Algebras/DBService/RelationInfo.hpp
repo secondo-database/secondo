@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // TODO use fully qualified path (need to change test makefile)
 //#include "Algebras/DBService/LocationInfo.hpp"
 #include "LocationInfo.hpp"
+#include "MetadataObject.hpp"
 
 namespace DBService
 {
@@ -51,7 +52,7 @@ TODO
 
 typedef size_t ConnectionID;
 
-class RelationInfo
+class RelationInfo : public MetadataObject
 {
 public:
     RelationInfo(const std::string& dbName,
@@ -67,22 +68,18 @@ public:
     const std::map<ConnectionID, bool>::const_iterator nodesEnd() const;
     const LocationInfo& getOriginalLocation() const;
     const std::string toString() const;
-    static std::string getIdentifier(const std::string dbName,
-                                     const std::string relName);
     const size_t getNodeCount();
+
+    // replica locations are shuffeled before they're added and we retrieve
+    // the first of them with successful replication flag set
     const ConnectionID getRandomReplicaLocation();
     void updateReplicationStatus(ConnectionID connID, bool replicated);
-    static void parseIdentifier(
-            const std::string& relID,
-            std::string& dbName,
-            std::string& relName);
 
 private:
     const std::string databaseName;
     const std::string relationName;
     std::map<ConnectionID, bool> nodes;
     const LocationInfo originalLocation;
-    static std::string separator;
 
 };
 

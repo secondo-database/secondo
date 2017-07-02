@@ -44,7 +44,7 @@ class LocationInfoTest: public ::testing::Test
 {
 public:
     LocationInfoTest()
-: host("myHost"), port("12345"), config("myConfig"), disk("myDisk"),
+: host("myHost"), port("12345"), config("myConfig"), disk("/opt/sec/myDisk"),
   commPort("98765"), transferPort("65432"), locationInfo(0)
 {}
 
@@ -107,14 +107,71 @@ TEST_F(LocationInfoTest, testGetTransferPort)
     ASSERT_STREQ(transferPort.c_str(), locationInfo->getTransferPort().c_str());
 }
 
-TEST_F(LocationInfoTest, testEqual)
+TEST_F(LocationInfoTest, testSameWorker)
 {
-    ASSERT_TRUE(locationInfo->isEqual(host, port));
+    ASSERT_TRUE(locationInfo->isSameWorker(host, port));
 }
 
-TEST_F(LocationInfoTest, testNotEqual)
+TEST_F(LocationInfoTest, testNotSameWorker)
 {
-    ASSERT_FALSE(locationInfo->isEqual(string("blaHost"), string("blaPort")));
+    ASSERT_FALSE(
+            locationInfo->isSameWorker(string("blaHost"), string("blaPort")));
+}
+
+TEST_F(LocationInfoTest, testSameHost)
+{
+    ASSERT_TRUE(locationInfo->isSameHost(host));
+}
+
+TEST_F(LocationInfoTest, testNotSameHost)
+{
+    ASSERT_FALSE(locationInfo->isSameHost(string("blaHost")));
+}
+
+TEST_F(LocationInfoTest, testSameDiskSameHost)
+{
+    ASSERT_TRUE(locationInfo->isSameDisk(host, disk));
+}
+
+TEST_F(LocationInfoTest, testNotReallyDifferentDiskSameHost)
+{
+    ASSERT_TRUE(
+            locationInfo->isSameDisk(
+                    host, string("/opt/secondo/myDisk")));
+}
+
+TEST_F(LocationInfoTest, testSameDiskDifferentHost)
+{
+    ASSERT_FALSE(
+            locationInfo->isSameDisk(string("blaHost"), disk));
+}
+
+TEST_F(LocationInfoTest, testDifferentDiskSameHost)
+{
+    ASSERT_FALSE(locationInfo->isSameDisk(
+            host, string("/disks/secondo/myDisk")));
+}
+
+TEST_F(LocationInfoTest, testDifferentDiskDifferentHost)
+{
+    ASSERT_FALSE(
+            locationInfo->isSameDisk(string("blaHost"), string("blaDisk")));
+}
+
+TEST_F(LocationInfoTest, testGetIdentifier)
+{
+    ASSERT_STREQ("myHostxDBSx12345",
+            LocationInfo::getIdentifier(host, port).c_str());
+}
+
+TEST_F(LocationInfoTest, testParseIdentifier)
+{
+    string locID = LocationInfo::getIdentifier(host, port);
+    string parsedHost;
+    string parsedPort;
+    LocationInfo::parseIdentifier(locID, parsedHost, parsedPort);
+    ASSERT_STREQ(host.c_str(), parsedHost.c_str());
+    ASSERT_STREQ(port.c_str(), parsedPort.c_str());
 }
 
 }

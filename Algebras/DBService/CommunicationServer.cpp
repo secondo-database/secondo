@@ -272,11 +272,15 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
             dbService->getRelationInfo(
                 RelationInfo::getIdentifier(databaseName, relationName)).
                         getRandomReplicaLocation();
-    // TODO check whether replication to this node was successful
-    //      once status table exists
+    queue<string> sendBuffer;
+    if(randomReplicaLocation == 0)
+    {
+        sendBuffer.push(CommunicationProtocol::None());
+        sendBuffer.push(CommunicationProtocol::None());
+        return false;
+    }
     LocationInfo location = dbService->getLocation(randomReplicaLocation);
 
-    queue<string> sendBuffer;
     sendBuffer.push(location.getHost());
     sendBuffer.push(location.getTransferPort());
     CommunicationUtils::sendBatch(io, sendBuffer);

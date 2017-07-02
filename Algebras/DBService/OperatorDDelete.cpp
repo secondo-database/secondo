@@ -29,8 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "StandardTypes.h"
 
-#include "Algebras/DBService/OperatorDDelete.hpp"
+#include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/OperatorDDelete.hpp"
 
 namespace DBService
 {
@@ -38,6 +39,28 @@ namespace DBService
 ListExpr OperatorDDelete::mapType(ListExpr nestedList)
 {
     print(nestedList);
+
+    if (!nl->HasLength(nestedList, 2))
+    {
+        ErrorReporter::ReportError(
+                "expected signature: string x bool");
+                return nl->TypeError();
+    }
+
+    if(!CcString::checkType(nl->First(nestedList)))
+    {
+        ErrorReporter::ReportError(
+                "first argument must be: string");
+        return nl->TypeError();
+    }
+
+    if(!CcBool::checkType(nl->Second(nestedList)))
+    {
+        ErrorReporter::ReportError(
+                "second argument must be: bool");
+        return nl->TypeError();
+    }
+
     return listutils::basicSymbol<CcBool>();
 }
 
@@ -47,8 +70,33 @@ int OperatorDDelete::mapValue(Word* args,
                               Word& local,
                               Supplier s)
 {
-    result = qp->ResultStorage(s);
-    static_cast<CcBool*>(result.addr)->Set(true,true);
+    CcString* relationName = static_cast<CcString*>(args[0].addr);
+    CcBool* deleteLocalRelation = static_cast<CcBool*>(args[1].addr);
+
+    print("relationName", relationName->GetValue());
+    print("deleteLocalRelation", deleteLocalRelation->GetValue());
+
+    bool success =
+            DBServiceConnector::getInstance()->deleteReplicas(
+                    SecondoSystem::GetInstance()->GetDatabaseName(),
+                    relationName->GetValue());
+
+    if(deleteLocalRelation)
+    {
+        SecondoCatalog* catalog = SecondoSystem::GetCatalog();
+        SecondoSystem::BeginTransaction();
+
+        result = qp->ResultStorage(s);
+        if (!catalog->DeleteObject(relationName->GetValue()))
+        {
+            success &= false;
+            SecondoSystem::AbortTransaction(false);
+        }else
+        {
+            SecondoSystem::CommitTransaction(false);
+        }
+    }
+    static_cast<CcBool*>(result.addr)->Set(true, success);
     return 0;
 }
 

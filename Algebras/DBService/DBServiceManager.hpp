@@ -227,7 +227,9 @@ This function adds the specified number of replicas to the given vector.
 
 */
     void getWorkerNodesForReplication(std::vector<
-                                      ConnectionID>& nodes);
+                                      ConnectionID>& nodes,
+                                      const std::string& host,
+                                      const std::string& disk);
 
 /*
 
@@ -254,13 +256,18 @@ their local configuration files.
 
 /*
 
-1.1.1 \textit{determineReplicaLocation}
+1.1.1 \textit{addToPossibleReplicaLocations}
 
-This function determines one single replica location and returns the
-corresponding \textit{ConnectionID}.
+This function maintains the potential replica locations for a locations
+in consideration of the configured fault tolerance mode.
 
 */
-    ConnectionID determineReplicaLocation();
+    void addToPossibleReplicaLocations(
+            const ConnectionID connectionID,
+            const LocationInfo& location,
+            std::vector<ConnectionID>& potentialReplicaLocations,
+            const std::string& host,
+            const std::string& disk);
 
 /*
 
@@ -310,6 +317,19 @@ corresponding \textit{LocationInfo} and \textit{ConnectionInfo}.
 
 /*
 
+1.1.1 \textit{possibleReplicaLocations}
+
+This member maps a location identifier to a vector of possible replica
+locations.
+
+*/
+
+typedef std::map<std::string, std::vector<ConnectionID> > AlternativeLocations;
+
+AlternativeLocations possibleReplicaLocations;
+
+/*
+
 1.1.1 \textit{relations}
 
 This member maps a relation identifier to the corresponding
@@ -327,6 +347,25 @@ configuration file.
 
 */
     size_t replicaCount;
+
+    /*
+
+1.1.1 \textit{faultToleranceMode}
+
+This member stores the target number of replicas that is read from the
+configuration file.
+
+*/
+
+enum FaultToleranceMode
+{
+    NONE = 0,
+    DISK = 1,
+    NODE = 2,
+};
+
+FaultToleranceMode mode;
+
 
 };
 

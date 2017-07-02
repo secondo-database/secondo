@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <algorithm>
 #include <sstream>
 
+#include <boost/thread/mutex.hpp>
+
 #include "CharTransform.h"
 #include "NestedList.h"
 #include "Profiles.h"
@@ -42,6 +44,8 @@ using namespace std;
 using namespace distributed2;
 
 namespace DBService {
+
+boost::mutex utilsMutex;
 
 void SecondoUtilsLocal::readFromConfigFile(string& resultValue,
         const char* section,
@@ -64,6 +68,7 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
                                      Word& queryResult)
 {
     printFunction("SecondoUtilsLocal::executeQuery");
+    boost::lock_guard<boost::mutex> lock(utilsMutex);
     SecParser secondoParser;
     print("queryAsString", queryAsString);
     string queryAsNestedListString;
@@ -137,6 +142,7 @@ bool SecondoUtilsLocal::adjustDatabase(const string& databaseName)
     if(currentDB
             != databaseNameUppered)
     {
+        boost::lock_guard<boost::mutex> lock(utilsMutex);
         print("need to adjust database");
         string queryClose("close database");
         SecondoUtilsLocal::executeQuery(queryClose);
@@ -165,6 +171,7 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     bool defined = false;
     bool isFunction = false;
 
+    boost::lock_guard<boost::mutex> lock(utilsMutex);
     NestedList* nli = SecondoSystem::GetNestedList();
     QueryProcessor* queryProcessor = new QueryProcessor( nli,
             SecondoSystem::GetAlgebraManager(),
@@ -229,6 +236,7 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
 
 bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString)
 {
+    printFunction("SecondoUtilsLocal::excuteQueryCommand (1 arg)");
     ListExpr resultList;
     string errorMessage;
     bool resultOk = SecondoUtilsLocal::excuteQueryCommand(
@@ -249,12 +257,13 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString)
 
 bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
         ListExpr& resultList, string& errorMessage) {
-    printFunction("SecondoUtilsLocal::excuteQueryCommand");
+    printFunction("SecondoUtilsLocal::excuteQueryCommand (2 args)");
     bool correct = false;
     bool evaluable = false;
     bool defined = false;
     bool isFunction = false;
 
+    boost::lock_guard<boost::mutex> lock(utilsMutex);
     NestedList* nli = SecondoSystem::GetNestedList();
     QueryProcessor* queryProcessor = new QueryProcessor( nli,
             SecondoSystem::GetAlgebraManager(),
@@ -317,13 +326,12 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
         queryProcessor->Destroy(tree, true);
         return false;
     }
-
     return true;
 }
 
 bool SecondoUtilsLocal::lookupDBServiceLocation(
             string& host,
-            string commPort)
+            string& commPort)
 {
     printFunction("DBServiceConnector::lookupDBServiceLocation");
     SecondoUtilsLocal::readFromConfigFile(host,

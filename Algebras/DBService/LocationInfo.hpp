@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 
+#include "MetadataObject.hpp"
+
 namespace DBService {
 
 /*
@@ -42,7 +44,8 @@ data that is relevant in the context of the \textit{DBService}.
 
 */
 
-class LocationInfo {
+class LocationInfo : public MetadataObject
+{
 public:
 
 /*
@@ -119,13 +122,38 @@ listening on the represented instance.
 
 /*
 
-1.1.1 \textit{isEqual}
+1.1.1 \textit{isSameWorker}
 
-This function returns whether the specified host and port is equal to the
+This function returns whether the specified host and port are equal to the
 stored ones.
 
 */
-    bool isEqual(const std::string& cmpHost, const std::string& cmpPort) const;
+    bool isSameWorker(
+            const std::string& cmpHost,
+            const std::string& cmpPort) const;
+
+
+/*
+
+1.1.1 \textit{isSameHost}
+
+This function returns whether the specified host is equal to the stored ones.
+
+*/
+    bool isSameHost(
+            const std::string& cmpHost) const;
+
+/*
+
+1.1.1 \textit{isSameDisk}
+
+This function returns whether the data of the specified worker is located on the
+same disk as the data of the stored one.
+
+*/
+    bool isSameDisk(
+            const std::string& cmpHost, const std::string& cmpDisk) const;
+
 /*
 
 1.1 Member Definitions
@@ -186,6 +214,7 @@ listening on the represented instance.
 
 */
     std::string transferPort;
+
 };
 
 } /* namespace DBService */

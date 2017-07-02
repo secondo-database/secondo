@@ -69,7 +69,7 @@ public:
             std::string& errorMessage);
     static bool lookupDBServiceLocation(
             std::string& host,
-            std::string commPort);
+            std::string& commPort);
 };
 
 } /* namespace DBService */

@@ -40,7 +40,8 @@ LocationInfo::LocationInfo(const string& host,
                            const string& disk,
                            const string& commPort,
                            const string& transferPort)
-: host(host), port(port), config(config), disk(disk),
+: MetadataObject(),
+  host(host), port(port), config(config), disk(disk),
   commPort(commPort), transferPort(transferPort)
 {}
 
@@ -74,9 +75,34 @@ const string& LocationInfo::getTransferPort() const
     return transferPort;
 }
 
-bool LocationInfo::isEqual(const string& cmpHost, const string& cmpPort) const
+bool LocationInfo::isSameWorker(
+        const string& cmpHost,
+        const string& cmpPort) const
 {
-    return (host == cmpHost) && (port == cmpPort);
+    return isSameHost(cmpHost) && (port == cmpPort);
+}
+
+bool LocationInfo::isSameHost(
+        const std::string& cmpHost) const
+{
+    return host == cmpHost;
+}
+
+bool LocationInfo::isSameDisk(
+        const std::string& cmpHost, const std::string& cmpDisk) const
+{
+    if(!isSameHost(cmpHost))
+    {
+        return false;
+    }
+
+    size_t slashPos = disk.find("/", 1);
+
+    if(slashPos != cmpDisk.find("/", 1))
+    {
+        return false;
+    }
+    return disk.substr(0, slashPos).compare(cmpDisk.substr(0, slashPos)) == 0;
 }
 
 } /* namespace DBService */

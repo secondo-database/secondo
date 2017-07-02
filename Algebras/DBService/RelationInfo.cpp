@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_][\_]
 
 */
+#include <algorithm>
 #include <cstdlib>
 
 #include "Algebras/DBService/RelationInfo.hpp"
@@ -40,6 +41,7 @@ RelationInfo::RelationInfo(const string& dbName,
                            const string& host,
                            const string& port,
                            const string& disk) :
+                                   MetadataObject(),
         databaseName(dbName), relationName(relName),
         originalLocation(host, port, "", disk, "", "")
 {}
@@ -88,24 +90,6 @@ const string RelationInfo::toString() const
     return RelationInfo::getIdentifier(databaseName, relationName);
 }
 
-string RelationInfo::getIdentifier(const string dbName,
-                                   const std::string relName)
-{
-    return dbName + separator + relName;
-}
-
-void RelationInfo::parseIdentifier(
-        const string& relID,
-        string& dbName,
-        string& relName)
-{
-    size_t dbNameEndPos = relID.find(separator, 0);
-    dbName = relID.substr(0, dbNameEndPos);
-
-    size_t relNameStartPos = dbNameEndPos+separator.length();
-    relName = relID.substr(relNameStartPos, relID.length());
-}
-
 const LocationInfo& RelationInfo::getOriginalLocation() const
 {
 return originalLocation;
@@ -113,15 +97,19 @@ return originalLocation;
 
 const ConnectionID RelationInfo::getRandomReplicaLocation()
 {
-    // TODO
-    return nodes.begin()->first; // TODO what if .second is false
+    for(const auto& node : nodes)
+    {
+        if(node.second)
+        {
+            return node.first;
+        }
+    }
+    return 0;
 }
 
 void RelationInfo::updateReplicationStatus(ConnectionID connID, bool replicated)
 {
     nodes.find(connID)->second = replicated;
 }
-
-string RelationInfo::separator("xDBSx");
 
 } /* namespace DBService */
