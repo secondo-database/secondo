@@ -51,62 +51,30 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 namespace temporalalgebra {
   namespace mregionops3 {
     
-/*
-5 class SourceUnit
-
-*/        
-    class SourceUnit{
+    enum SetOp {
+      INTERSECTION,
+      UNION,
+      MINUS
+    };
+    
+    class UnitPair {
     public:
-/*
-5.1 Constructor
-
-*/       
-      SourceUnit();
-/*
-5.1 Destructor
-
-*/       
-      ~SourceUnit();
-/*
-5.2 Methods, operators and predicates
-
-5.2.3 addPFace
-    
-*/        
-      void addPFace(const PFace& pf);
-      void addPFace(const Point3D& a, const Point3D& b, 
-                    const Point3D& c, const Point3D& d);
-/*
-5.2.4 intersection
-    
-*/       
-      bool intersection(SourceUnit& other, GlobalTimeValues& timeValues);    
-/*
-5.2.5 Operator <<
-    
-Print the object values to stream.
-
-*/          
-      friend std::ostream& operator <<(std::ostream& os, 
-                                       const SourceUnit& unit);
-/*
-5.2.6 Operator ==  
-
-*/       
-      bool operator ==(const SourceUnit& unit)const; 
+      UnitPair();
       
-//       void createResultPfaces( ContainerPoint3D& points, 
-//                                GlobalTimeValues& timeValues,
-//                                std::list<ResultPfaceFactory*>& factorys);
-      
-    private: 
-/*
-5.3 Attributes
+      void addPFace(SourceFlag flag, const ContainerPoint3D& points, 
+                    Segment& left, Segment&right);
+      bool operate(SetOp setOp);
+      size_t countResultUnits();
+      void getResultUnit(size_t slide, Unit& unit);
 
-*/       
-      std::vector<PFace*> pFaces;
-      mmrtree::RtreeT<2, size_t> pFaceTree;  
-    };// class SourceUnit  
+    private:
+      Unit unitA;
+      Unit unitB;
+      GlobalTimeValues timeValues;  
+      ContainerPoint3D points; 
+    };
+    
+
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra
 #endif 

@@ -55,6 +55,7 @@ namespace temporalalgebra {
   namespace mregionops3 {
     
     class PFace;
+    class Unit;
 /*
 3 Enumeration 
 
@@ -681,6 +682,8 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
    
       void evaluate();
       
+      void getResultUnit(size_t slide, Predicate predicate, bool reverse, 
+                         const ContainerPoint3D& points, Unit& unit);
 /*
 4.3.2 operator <<
 
@@ -768,6 +771,8 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
 
 */        
       std::ostream& print(std::ostream& os, std::string prefix)const;
+      std::ostream& printShort(std::ostream& os, std::string prefix)const;
+      
 /*
 14.3.3 Operator <<
     
@@ -803,9 +808,14 @@ Computes the intersection of this ~PFace~ with pf.
 
 */        
       void addBorder(const RationalPlane3D &plane,
-                     GlobalTimeValues &timeValues);
+                     GlobalTimeValues &timeValues,
+                     Predicate predicate);
       
       void addBorder(GlobalTimeValues &timeValues);
+      
+      void addBorder(GlobalTimeValues &timeValues, 
+                     const ContainerSegment& segments, 
+                     Predicate predicate);
 /*
 14.3.8 Operator =
 
@@ -828,6 +838,12 @@ Computes the intersection of this ~PFace~ with pf.
 */     
       void next(double t1, double t2, ContainerPoint3D& points, 
                                       ContainerSegment& segments);
+      
+      bool finalize(ContainerPoint3D& points, ContainerSegment& segments, 
+                    GlobalTimeValues& timeValues);
+      
+      void getResultUnit(size_t slide, Predicate predicate, bool reverse, 
+                         const ContainerPoint3D& points, Unit& unit);      
     private:  
 /*
 14.4 Private methods
@@ -841,21 +857,94 @@ Computes the intersection of this ~PFace~ with pf.
 
 */        
       IntersectionSegment createBorder(const RationalPlane3D &planeSelf,
-                                       Border border);
+                                       Border border, Predicate predicate);
 /*
 14.5 Attributes
 
 */      
-      IntSegContainer   intSegs;
-      State             state;
-      Rectangle<2>      boundingRect;   
-      Point3D           leftStart;
-      Point3D           leftEnd;
-      Point3D           rightStart;
-      Point3D           rightEnd;
-      size_t            left;
-      size_t            right;   
+      IntSegContainer    intSegs;
+      ResultPfaceFactory factory;
+      State              state;
+      Rectangle<2>       boundingRect;   
+      Point3D            leftStart;
+      Point3D            leftEnd;
+      Point3D            rightStart;
+      Point3D            rightEnd;
+      size_t             left;
+      size_t             right;   
     };// class PFace   
+    
+/*
+5 class Unit
+
+*/        
+    class Unit{
+    public:
+/*
+5.1 Constructor
+
+*/       
+      Unit();
+      Unit(const Unit& other);
+/*
+5.1 Destructor
+
+*/       
+      ~Unit();
+/*
+5.2 Methods, operators and predicates
+
+5.2.3 addPFace
+    
+*/        
+//      void addPFace(const PFace& pf);
+//      void addPFace(const Point3D& a, const Point3D& b, 
+//                     const Point3D& c, const Point3D& d);
+      void addPFace(const Segment& left, const Segment& right, 
+                    const ContainerPoint3D& points);
+      
+/*
+5.2.4 intersection
+    
+*/       
+      bool intersection(Unit& other, GlobalTimeValues& timeValues); 
+      
+      bool finalize(ContainerPoint3D& points, GlobalTimeValues& timeValues,
+                    Predicate predicate);
+      
+      void getResultUnit(size_t slide, Predicate predicate,bool reverse, 
+                         const ContainerPoint3D& points, Unit& unit);
+      
+      std::ostream& print(std::ostream& os, std::string prefix)const;
+/*
+5.2.5 Operator <<
+    
+Print the object values to stream.
+
+*/          
+      friend std::ostream& operator <<(std::ostream& os, 
+                                       const Unit& unit);
+/*
+5.2.6 Operator ==  
+
+*/       
+      bool operator ==(const Unit& unit)const; 
+      
+      Unit& operator =(const Unit& unit);
+           
+    private: 
+      
+      void set(const Unit& other);
+/*
+5.3 Attributes
+
+*/       
+      std::vector<size_t> itersectedPFace;
+      ContainerSegment segments;
+      std::vector<PFace*> pFaces;
+      mmrtree::RtreeT<2, size_t> pFaceTree;  
+
+    };// class Unit  
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra
 #endif 

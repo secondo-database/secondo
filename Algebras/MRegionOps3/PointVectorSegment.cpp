@@ -900,7 +900,10 @@ namespace temporalalgebra{
         if(segments[index].getPredicate() == UNDEFINED){
           segments[index].setPredicate(predicate);
         }// if  
-        else NUM_FAIL("Old predicate must be UNDEFINED."); 
+        else if(segments[index].getPredicate() == predicate) return;
+        else {
+          NUM_FAIL("Combination from old and new predicate is invalid."); 
+        }
       }// if
       else NUM_FAIL("Index is out of range.");        
     }// set
@@ -916,7 +919,7 @@ namespace temporalalgebra{
                                           std::string prefix)const{
       os << prefix << "ContainerSegment ( " << endl;
       for(size_t i = 0; i < segments.size(); i++){
-        os << prefix << "  Index:=" << i << ", " << segments[i] << endl;
+        os << prefix << "    Index:=" << i << ", " << segments[i] << endl;
       }// for
       //for(size_t i = 0; i < segmentBuckets.size(); i++){
       //  os << prefix << "  Bucket:=" << i << "( ";
@@ -929,7 +932,7 @@ namespace temporalalgebra{
       //  }// for
       //  os << ")" << endl;
       //}// for
-      os << prefix << ")" << endl;
+      os << prefix << "  )" << endl;
       return os;
     }// print
       

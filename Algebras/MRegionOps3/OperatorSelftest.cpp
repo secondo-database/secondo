@@ -131,6 +131,10 @@ namespace temporalalgebra {
         
         ContainerSegmentTest1();
        
+        UnitTest1();
+        UnitTest2();
+        UnitTest3();
+        
         cerr << endl;
         cerr << numberOfTestsRun << " tests run, ";
         cerr << numberOfTestsFailed << " tests failed." << endl <<endl;  
@@ -2038,7 +2042,6 @@ namespace temporalalgebra {
 18 Test ResultPfaceFactory
 
 */ 
-
       void ResultPfaceFactoryTest1(){
         ResultPfaceFactory factory1(4),factory2(4);
         assert_("ResultPfaceFactoryTest 1.1", "factorys are equal.",
@@ -2374,8 +2377,10 @@ namespace temporalalgebra {
         // cout << "Predicate on left border:=" << toString(left) << endl;
         // cout << "Predicate on right border:=" << toString(right) << endl;
       }// ResultPfaceFactoryTest5
-    
-      
+/*
+19 Test ContainerSegment
+
+*/      
       void ContainerSegmentTest1(){
         ContainerSegment container1,container2,container3;
         container1.add(Segment (0, 3, UNDEFINED));
@@ -2411,6 +2416,230 @@ namespace temporalalgebra {
         // cout << container3;
         // cout << container4;        
       }// ContainerSegmentTest1
+/*
+20 Test Unit
+
+*/        
+      void UnitTest1(){
+        ContainerPoint3D points;
+        // points for unit 0 
+        points.add( Point3D(2,1,0));// 0
+        points.add( Point3D(5,1,0));         
+        points.add( Point3D(3.5,4,0));
+        points.add( Point3D(2,1,5));
+        points.add( Point3D(5,1,5));         
+        points.add( Point3D(3.5,4,5));
+        // segments for unit 0
+        Segment segment0(3,0, UNDEFINED);
+        Segment segment1(4,1, UNDEFINED);
+        Segment segment2(5,2, UNDEFINED);
+        // Build unit 0
+        Unit unit0, unit1,unit3;        
+        unit0.addPFace(segment0, segment1, points);
+        unit0.addPFace(segment1, segment2, points);
+        unit0.addPFace(segment2, segment0, points);
+        unit1 = unit0;
+        Unit unit2(unit0);
+        assert_("UnitTest 1.1", 
+                " Units are equal.",
+                 unit0 == unit1);
+        assert_("UnitTest 1.2", 
+                " Units are equal.",
+                 unit0 == unit2);
+        assert_("UnitTest 1.3", 
+                " Units are not equal.",
+                (!( unit0 == unit3)));
+        // cout << unit0 <<endl;       
+      }// Unittest1
+      
+      void UnitTest2(){
+        ContainerPoint3D points;
+        ContainerSegment segments;
+        GlobalTimeValues timeValues;
+        // points for unit 1 
+        points.add( Point3D(2,1,0));// 0
+        points.add( Point3D(5,1,0));         
+        points.add( Point3D(3.5,4,0));
+        points.add( Point3D(2,1,5));
+        points.add( Point3D(5,1,5));         
+        points.add( Point3D(3.5,4,5));
+        // points for unit 2 
+        points.add( Point3D(6,1,0));// 6
+        points.add( Point3D(9,1,0));         
+        points.add( Point3D(7.5,4,0));
+        points.add( Point3D(0,4,5));
+        points.add( Point3D(3,4,5));         
+        points.add( Point3D(1.5,7,5));
+        // segments for pfaces 0, 1, 2
+        segments.add( Segment(3,0, UNDEFINED));
+        segments.add( Segment(4,1, UNDEFINED));
+        segments.add( Segment(5,2, UNDEFINED));
+        // segments for pfaces 3, 4, 5
+        segments.add( Segment(9,6, UNDEFINED));
+        segments.add( Segment(10,7, UNDEFINED)); 
+        segments.add( Segment(11,8, UNDEFINED));        
+        // add pfaces to unit 1 
+        PFace pf0(1, 0, points,segments);
+        PFace pf1(2, 1, points,segments);
+        PFace pf2(0, 2, points,segments);
+        // add pfaces to unit 2
+        PFace pf3(4, 3, points,segments);
+        PFace pf4(5, 4, points,segments);
+        PFace pf5(3, 5, points,segments);   
+        // intersection
+        pf0.intersection(pf3, timeValues);
+        pf0.intersection(pf4, timeValues);
+        pf0.intersection(pf5, timeValues);
+        // pf0.addBorder(timeValues);
+        pf1.intersection(pf3, timeValues);
+        pf1.intersection(pf4, timeValues);
+        pf1.intersection(pf5, timeValues);
+        pf1.addBorder(timeValues);
+        pf2.intersection(pf3, timeValues);
+        pf2.intersection(pf4, timeValues);
+        pf2.intersection(pf5, timeValues);
+        pf2.addBorder(timeValues);
+        pf3.addBorder(timeValues);
+        pf4.addBorder(timeValues);
+        pf5.addBorder(timeValues);
+        // result from pface 1
+        // pface with Intersection
+        pf1.finalize(points, segments, timeValues);
+        pf2.finalize(points, segments, timeValues);
+        // pface without intersection
+        pf0.addBorder(timeValues,segments,INSIDE);
+        pf0.finalize(points, segments, timeValues);              
+        // result from pface 2
+        // pface with Intersection
+        pf3.finalize(points, segments, timeValues);
+        pf4.finalize(points, segments, timeValues);
+        pf5.finalize(points, segments, timeValues);
+        vector<Unit> units = vector<Unit>(timeValues.size(),Unit());
+        for(size_t i = 0; i < timeValues.size(); i++){  
+           pf0.getResultUnit(i, INSIDE, false, points, units[i]);
+           pf1.getResultUnit(i, INSIDE, false, points, units[i]);
+           pf2.getResultUnit(i, INSIDE, false, points, units[i]);
+           pf3.getResultUnit(i, INSIDE, false, points, units[i]);
+           pf4.getResultUnit(i, INSIDE, false, points, units[i]);
+           pf5.getResultUnit(i, INSIDE, false, points, units[i]);
+        }// for
+        vector<Unit> result = vector<Unit>(6,Unit());
+        Segment segment0(15,14,UNDEFINED);
+        Segment segment1(15,16,UNDEFINED);
+        Segment segment2(15,26,UNDEFINED);
+        result[1].addPFace(segment0, segment1, points);
+        result[1].addPFace(segment1, segment2, points);
+        result[1].addPFace(segment2, segment0, points);
+        segment0 = Segment(14,18,UNDEFINED);
+        segment1 = Segment(16,19,UNDEFINED);
+        segment2 = Segment(26,27,UNDEFINED);
+        result[2].addPFace(segment0, segment1, points);
+        result[2].addPFace(segment2, segment0, points);
+        result[2].addPFace(segment1, segment2, points);
+        segment0 = Segment(27,29,UNDEFINED);
+        segment1 = Segment(18,29,UNDEFINED);
+        segment2 = Segment(19,29,UNDEFINED);
+        result[3].addPFace(segment0, segment1, points);
+        result[3].addPFace(segment2, segment0, points);
+        result[3].addPFace(segment1, segment2, points);
+        assert_("UnitTest 2.1", 
+                " size of units vectors are different.",
+                 units.size() == result.size());
+        for(size_t i = 0; i < timeValues.size(); i++){ 
+          assert_("UnitTest 2.2", 
+                  " Unit are different.",
+                   units[i] == result[i]);
+          // cout << result[i];
+          // cout << units[i];
+        }// for
+        // cout << points << endl;
+        // cout << segments << endl;
+        // cout << pf0 << endl;
+        // cout << pf1 << endl;
+        // cout << pf2 << endl;
+        // cout << pf3 << endl;
+        // cout << pf4 << endl;
+        // cout << pf5 << endl;
+      }// UnitTest2
+      
+      void UnitTest3(){
+        ContainerPoint3D points;
+        GlobalTimeValues timeValues;
+        // points for unit 0 
+        points.add( Point3D(2,1,0));// 0
+        points.add( Point3D(5,1,0));         
+        points.add( Point3D(3.5,4,0));
+        points.add( Point3D(2,1,5));
+        points.add( Point3D(5,1,5));         
+        points.add( Point3D(3.5,4,5));
+        // points for unit 2 
+        points.add( Point3D(6,1,0));// 6
+        points.add( Point3D(9,1,0));         
+        points.add( Point3D(7.5,4,0));
+        points.add( Point3D(0,4,5));
+        points.add( Point3D(3,4,5));         
+        points.add( Point3D(1.5,7,5));
+        // segments for pfaces 0, 1, 2
+        Segment segment0(3,0, UNDEFINED);
+        Segment segment1(4,1, UNDEFINED);
+        Segment segment2(5,2, UNDEFINED);
+        // segments for pfaces 3, 4, 5
+        Segment segment3(9,6, UNDEFINED);
+        Segment segment4(10,7, UNDEFINED); 
+        Segment segment5(11,8, UNDEFINED);   
+        // Build unit 0
+        Unit unit0;        
+        unit0.addPFace(segment1, segment0, points);
+        unit0.addPFace(segment2, segment1, points);
+        unit0.addPFace(segment0, segment2, points);
+        // Build unit 1
+        Unit unit1;        
+        unit1.addPFace(segment4, segment3, points);
+        unit1.addPFace(segment5, segment4, points);
+        unit1.addPFace(segment3, segment5, points);
+        // Intersection
+        unit0.intersection(unit1, timeValues);
+        // Finalize
+        unit0.finalize(points, timeValues,INSIDE);
+        unit1.finalize(points, timeValues,INSIDE);
+        // get result Units
+        vector<Unit> units = vector<Unit>(timeValues.size(),Unit());
+        for(size_t i = 0; i < timeValues.size(); i++){  
+           unit0.getResultUnit(i, INSIDE, false, points, units[i]);
+           unit1.getResultUnit(i, INSIDE, false, points, units[i]);
+        }// for
+        vector<Unit> result = vector<Unit>(6,Unit());
+        Segment segment6(15,14,UNDEFINED);
+        Segment segment7(15,16,UNDEFINED);
+        Segment segment8(15,26,UNDEFINED);
+        result[1].addPFace(segment6, segment7, points);
+        result[1].addPFace(segment7, segment8, points);
+        result[1].addPFace(segment8, segment6, points);
+        segment6 = Segment(14,18,UNDEFINED);
+        segment7 = Segment(16,19,UNDEFINED);
+        segment8 = Segment(26,27,UNDEFINED);
+        result[2].addPFace(segment6, segment7, points);
+        result[2].addPFace(segment8, segment6, points);
+        result[2].addPFace(segment7, segment8, points);
+        segment6 = Segment(27,29,UNDEFINED);
+        segment7 = Segment(18,29,UNDEFINED);
+        segment8 = Segment(19,29,UNDEFINED);
+        result[3].addPFace(segment6, segment7, points);
+        result[3].addPFace(segment8, segment6, points);
+        result[3].addPFace(segment7, segment8, points);
+        assert_("UnitTest 3.1", 
+                " size of units vectors are different.",
+                 units.size() == result.size());
+        for(size_t i = 0; i < timeValues.size(); i++){ 
+          assert_("UnitTest 3.2", 
+                  " Unit are different.",
+                   units[i] == result[i]);
+          // cout << result[i];
+          // cout << units[i];
+        }// for
+        // cout << unit0 << endl;
+        // cout << unit1 << endl;
+      }// UnitTest3
       
       int numberOfTestsRun;
       int numberOfTestsFailed; 
