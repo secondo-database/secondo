@@ -390,15 +390,15 @@ a hash value is calculated and returned.
 */
 size_t FeatureSignature::HashValue() const 
 {   
-	std::string hashString;
-	for (int i = 0; this->GetNoFeatureSignatureTuples(); i++)
-	{
-		FeatureSignatureTuple fst = GetFeatureSignatureTuple(i);
-		hashString += std::to_string(fst.weight);
-	}
-	std::hash<std::string> hashFunction;
-	size_t hashValue = hashFunction(hashString);	
-	return  hashValue;
+    std::string hashString;
+    for (int i = 0; this->GetNoFeatureSignatureTuples(); i++)
+    {
+        FeatureSignatureTuple fst = GetFeatureSignatureTuple(i);
+        hashString += std::to_string(fst.weight);
+    }
+    std::hash<std::string> hashFunction;
+    size_t hashValue = hashFunction(hashString);    
+    return  hashValue;
 }
 
 
@@ -578,38 +578,38 @@ ListExpr FeatureSignature::Out(ListExpr typeInfo, Word value)
      
     ListExpr tmpRes = nl->OneElemList(
         nl->RealAtom(imgsig->GetFeatureSignatureTuple(0).weight));
-			
-	ListExpr lst = tmpRes;
-	
-	lst = nl->Append(lst, nl->IntAtom(
+            
+    ListExpr lst = tmpRes;
+    
+    lst = nl->Append(lst, nl->IntAtom(
         imgsig->GetFeatureSignatureTuple(0).centroid.x));
-	lst = nl->Append(lst, nl->IntAtom(
+    lst = nl->Append(lst, nl->IntAtom(
         imgsig->GetFeatureSignatureTuple(0).centroid.y));
-	lst = nl->Append(lst, nl->RealAtom(
+    lst = nl->Append(lst, nl->RealAtom(
         imgsig->GetFeatureSignatureTuple(0).centroid.colorValue1));
-	lst = nl->Append(lst, nl->RealAtom(
+    lst = nl->Append(lst, nl->RealAtom(
         imgsig->GetFeatureSignatureTuple(0).centroid.colorValue2));
-	lst = nl->Append(lst, nl->RealAtom(
+    lst = nl->Append(lst, nl->RealAtom(
         imgsig->GetFeatureSignatureTuple(0).centroid.colorValue3));
-	lst = nl->Append(lst, nl->RealAtom(
+    lst = nl->Append(lst, nl->RealAtom(
         imgsig->GetFeatureSignatureTuple(0).centroid.coarseness));
-	lst = nl->Append(lst, nl->RealAtom(
+    lst = nl->Append(lst, nl->RealAtom(
         imgsig->GetFeatureSignatureTuple(0).centroid.contrast));
-	
-	ListExpr result = nl->OneElemList(tmpRes);
-			
+    
+    ListExpr result = nl->OneElemList(tmpRes);
+            
     ListExpr last = result;
     
-	for(int i = 1; i < imgsig->GetNoFeatureSignatureTuples(); i++)
+    for(int i = 1; i < imgsig->GetNoFeatureSignatureTuples(); i++)
     {
-		ListExpr tmpRes = nl->OneElemList(
+        ListExpr tmpRes = nl->OneElemList(
             nl->RealAtom(imgsig->GetFeatureSignatureTuple(i).weight));
-				
-		ListExpr lst = tmpRes;
+                
+        ListExpr lst = tmpRes;
         
-		//lst = nl->Append(lst, nl->RealAtom(
+        //lst = nl->Append(lst, nl->RealAtom(
         //imgsig->GetFeatureSignatureTuple(i).weight));
-		lst = nl->Append(lst, nl->IntAtom(
+        lst = nl->Append(lst, nl->IntAtom(
             imgsig->GetFeatureSignatureTuple(i).centroid.x));
         lst = nl->Append(lst, nl->IntAtom(
             imgsig->GetFeatureSignatureTuple(i).centroid.y));
@@ -622,7 +622,7 @@ ListExpr FeatureSignature::Out(ListExpr typeInfo, Word value)
         lst = nl->Append(lst, nl->RealAtom(
             imgsig->GetFeatureSignatureTuple(i).centroid.coarseness));
         lst = nl->Append(lst, nl->RealAtom(
-            imgsig->GetFeatureSignatureTuple(i).centroid.contrast));	
+            imgsig->GetFeatureSignatureTuple(i).centroid.contrast));    
         last = nl->Append(last, tmpRes);
     }
 

@@ -114,10 +114,10 @@ class FeatureSignature : public Attribute
     void Complete();
     bool Correct();
     void Destroy();
-    int GetNoEdges() const { return GetNoFeatureSignatureTuples(); }
+    //int GetNoEdges() const { return GetNoFeatureSignatureTuples(); }
     int GetNoFeatureSignatureTuples() const;
     FeatureSignatureTuple GetFeatureSignatureTuple(int i) const;
-    int GetNoImageSignatureTuples() const;
+    //int GetNoImageSignatureTuples() const;
     const bool IsEmpty() const;
     void CopyFrom(const Attribute* right);
     size_t HashValue() const;
@@ -168,16 +168,12 @@ class FeatureSignature : public Attribute
     void SetFileName(const std::string _fileName) 
     { 
         this->fileName = _fileName; 
-    }
-    
+    }    
 
   private:
     FeatureSignature() {} 
     DbArray<FeatureSignatureTuple> FeatureSignatureTuples;    
-    std::string fileName;
-    //int width;
-    //int height;    
-    // char* imageData; // do want to keep that along as well?
+    std::string fileName;    
 };
 
 } // namespace

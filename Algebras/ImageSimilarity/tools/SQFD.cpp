@@ -47,16 +47,16 @@ double euclidDist(FeatureSignatureTuple ist1,
 		
 	tmpRes += pow((int)ist1.centroid.x - (int)ist2.centroid.x, 2);
 	tmpRes += pow((int)ist1.centroid.y - (int)ist2.centroid.y, 2);
-	tmpRes += pow((double)ist1.centroid.colorValue1 
-    - (double)ist2.centroid.colorValue1, 2);
-	tmpRes += pow((double)ist1.centroid.colorValue2 
-    - (double)ist2.centroid.colorValue2, 2);
-	tmpRes += pow((double)ist1.centroid.colorValue3 
-    - (double)ist2.centroid.colorValue3, 2);
+	tmpRes += pow(ist1.centroid.colorValue1 
+        - ist2.centroid.colorValue1, 2);
+	tmpRes += pow(ist1.centroid.colorValue2 
+        - ist2.centroid.colorValue2, 2);
+	tmpRes += pow(ist1.centroid.colorValue3 
+        - ist2.centroid.colorValue3, 2);
 	tmpRes += pow((double)ist1.centroid.coarseness 
-    - (double)ist2.centroid.coarseness, 2);
+        - (double)ist2.centroid.coarseness, 2);
 	tmpRes += pow((double)ist1.centroid.contrast 
-    - (double)ist2.centroid.contrast, 2);
+        - (double)ist2.centroid.contrast, 2);
 	return sqrt(tmpRes);	
 }
 
@@ -68,122 +68,77 @@ double euclidDistSquared(FeatureSignatureTuple ist1,
 	tmpRes += pow((int)ist1.centroid.x - (int)ist2.centroid.x, 2);
 	tmpRes += pow((int)ist1.centroid.y - (int)ist2.centroid.y, 2);
 	tmpRes += pow((double)ist1.centroid.colorValue1 
-    - (double)ist2.centroid.colorValue1, 2);
+        - (double)ist2.centroid.colorValue1, 2);
 	tmpRes += pow((double)ist1.centroid.colorValue2 
-    - (double)ist2.centroid.colorValue2, 2);
+        - (double)ist2.centroid.colorValue2, 2);
 	tmpRes += pow((double)ist1.centroid.colorValue3 
-    - (double)ist2.centroid.colorValue3, 2);
+        - (double)ist2.centroid.colorValue3, 2);
 	tmpRes += pow((double)ist1.centroid.coarseness 
-    - (double)ist2.centroid.coarseness, 2);
+        - (double)ist2.centroid.coarseness, 2);
 	tmpRes += pow((double)ist1.centroid.contrast 
-    - (double)ist2.centroid.contrast, 2);
+        - (double)ist2.centroid.contrast, 2);
 	return tmpRes;	
 }
 
 
 
-double f_s(FeatureSignatureTuple fst1,
-                    FeatureSignatureTuple fst2)
-{
-	double dist = euclidDist(fst1, fst2);
-	return -dist;
-}
-
-
-
-
-//double f_s(FeatureSignatureTuple fst1,
+//double f_gaussian(FeatureSignatureTuple fst1,
 //                    FeatureSignatureTuple fst2)
 //{
-    //const double sigma = 2.0;
 //    const double alpha = 2.0;
 //    double euDist = euclidDistSquared(fst1, fst2);
 //    double expo = -alpha * euDist;
-    //std::cout << "expo:" << expo << std::endl;
-//    double res  = exp(expo);
-    //std::cout << "res:" << res << std::endl;
+//    std::cout << "expo:" << expo << std::endl;
+//    double res  = exp((double)expo);
+//    std::cout << "res:" << res << std::endl;
 //    return res;
 //}
 
 
-//double f_s2(FeatureSignatureTuple fst1,
-//                    FeatureSignatureTuple fst2)
-//{
-//	const double alpha = 2.0;
-//	double eucDist = euclidDist(fst1, fst2);		
+double f_s(FeatureSignatureTuple fst1,
+                    FeatureSignatureTuple fst2)
+{
+	const double alpha = 2.0;
+	double eucDist = euclidDist(fst1, fst2);		
 	
-//	if (eucDist == 0.0)
-//		return 1.0;
+	if (eucDist == 0.0)
+		return 1;
 		
-//	double res = 1.0 /  (alpha * eucDist);
-	//std::cout << "res:" << res << std::endl;	
-//	return res;
-//}
+	double res = 1.0 /  (1.0 + eucDist);
+	return res;
+}
 
 
 static double sqfd(std::vector<FeatureSignatureTuple> fst1,
                     std::vector<FeatureSignatureTuple> fst2)
 {
-
-    // scale weights
-    double minW = 0.0;
-    double maxW = 0.0;
-    const double a = 0.0;
-    const double b = 1.0; 
-    
-    for (int i = 0; i < fst1.size(); i++)
-    {
-        if (fst1.at(i).weight > maxW)
-            maxW = fst1.at(i).weight;
-        if (fst1.at(i).weight <= minW)
-            minW = fst1.at(i).weight;
-    }
-    
-    for (int i = 0; i < fst1.size(); i++)
-    {
-        fst1.at(i).weight 
-        = (((b - a) * (fst1.at(i).weight - minW)) / (maxW - minW)) + a;
-    }
-    
-    minW = 0.0;
-    maxW = 0.0;
-    
-    for (int i = 0; i < fst2.size(); i++)
-    {
-        if (fst2.at(i).weight > maxW)
-            maxW = fst2.at(i).weight;
-        if (fst2.at(i).weight <= minW)
-            minW = fst2.at(i).weight;
-    }
-    
-     for (int i = 0; i < fst2.size(); i++)
-    {
-        fst2.at(i).weight 
-        = (((b - a) * (fst2.at(i).weight - minW)) / (maxW - minW)) + a;
-    }
-   
+		
+	//const double scale = 0.01;
 
     int width = fst1.size() + fst2.size();    
 
 	// build up weight vector
-    double* arr1 = new double[width];
+    long* arr1 = new long[width];
     for (unsigned int i = 0; i < fst1.size(); i++)
     {
-        arr1[i] = fst1.at(i).weight;
-        std::cout << "arr1:" << arr1[i] << std::endl;
+        //arr1[i] = floor(fst1.at(i).weight / scale + 0.5) * scale;
+        arr1[i] = round(fst1.at(i).weight * 1000);
+        //std::cout << "arr1:" << arr1[i] << std::endl;
     }
     for (int i = fst1.size(); i < width; i++)
     {    
-        arr1[i] = (-1.0) * fst2.at(i - fst1.size()).weight;
-        std::cout << "arr 1:" << arr1[i] << std::endl;
+        //arr1[i] 
+    //= -floor(fst2.at(i - fst1.size()).weight / scale + 0.5) * scale;
+        arr1[i] = -round(fst2.at(i - fst1.size()).weight * 1000);
+        //std::cout << "arr1:" << arr1[i] << std::endl;
     }     
         
     
     // init distance matrix
-    double** mat = new double*[width]; 
+    long** mat = new long*[width]; 
        
     for (int i = 0; i < width; i++)
-        mat[i] = new double[width];
+        mat[i] = new long[width];
     
     
     // fill vector with features to be compared
@@ -198,47 +153,31 @@ static double sqfd(std::vector<FeatureSignatureTuple> fst1,
         
     // calculate distance matrix
     //std::cout << "distance matrix:" << std::endl;
+    //for (int i = 0; i < width; i++)
+    //{
+	//		std::cout << arr1[i] << "|";
+	//}
+			
+	std::cout << std::endl;
+	
     for (int y = 0; y < width; y++)
     {
+		//std::cout << y << ":";
         for (int x = 0; x < width; x++)
         {   
 			double tmpDist =  f_s(ist.at(y), ist.at(x));        
-			mat[y][x] = tmpDist;
-           // std::cout << mat[y][x] << "|";            
+			//mat[y][x] = floor(tmpDist / scale + 0.5) * scale;
+            mat[y][x] = round(tmpDist * 1000);
+            //std::cout << mat[y][x] << "|";            
         }
-       // std::cout << std::endl;
+        //std::cout << std::endl;        
     }
     
-    // scale distance matrix
-    double minD = 0.0;
-    double maxD = 0.0;
-    
-    for (int y = 0; y < width; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
-            if (mat[y][x] > maxD)
-                maxD = mat[y][x];
-            if (mat[y][x] <= minD)
-                minD = mat[y][x];
-        }
-    }
-    /*
-    std::cout << "scaled distances" << std::endl;  
-    for (int y = 0; y < width; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
-            mat[y][x] = (((b-a) * (mat[y][x] - minD)) / (maxD - minD)) + a;
-            std::cout << mat[y][x] << "|";
-        }
-        std::cout << std::endl;
-    }
-      */  
-    
-
+        //std::cout << std::endl;
+         //   std::cout << std::endl;
+	
     // init temporary matrix (weight vector * mat)
-    double* resMat = new double[width];
+    long* resMat = new long[width];
     for (int x = 0; x < width; x++)
     {
         resMat[x] = 0.0;
@@ -246,36 +185,51 @@ static double sqfd(std::vector<FeatureSignatureTuple> fst1,
     
     
     // multiply weight vector with dist matrix
+    //std::cout << "tmpVector, resMat" << std::endl;
+    
     for (int x = 0; x < width; x++)
     {
+		
         for (int y = 0; y < width; y++)
         {
-			resMat[x] += arr1[y] * mat[y][x]; 
-			std::cout << "resMat:" << resMat[x] << "|";
+			double tmp = abs(arr1[y]) * abs(mat[y][x]); 
+			if (!(arr1[y] > 0 && mat[y][x] > 0))
+			{
+				tmp = -tmp;
+			}
+			resMat[x] += tmp; //arr1[y] * mat[y][x]; 
+			//std::cout << arr1[y] 
+            //<< "*" << mat[y][x] << "=" 
+            //<< resMat[x] << "|";                       
         }
-        std::cout << std::endl;
+        //std::cout << std::endl;
     }
 
-
+	//std::cout << std::endl;
+	
 	// multiply temporary matrix with transposed weight vector
 	// 
-    double distance = 0.0;
+    //double distance = 0.0;
+    long distance = 0;
     for (int x = 0; x < width; x++)
     {
-        distance += resMat[x] * arr1[x];         
+        distance += resMat[x] * arr1[x];
+        //std::cout << "dist:" << distance 
+        //<< " resMat:" << resMat[x] << " * " 
+        //<< arr1[x] << std::endl;         
     }
     
-    if (distance < 0)
-		std::cout << "here's the problematic distance:" 
-        << distance << std::endl;
+    //if (distance < 0)
+	//	std::cout << "here's the problematic distance:" 
+    //    << distance << std::endl;
     
     delete[] resMat;
     delete[] mat;
     delete[] arr1;
     
     // return square root
-    std::cout << "distance:" << distance << std::endl;
-    return sqrt(distance);
+    //std::cout << "distance:" << distance << std::endl;
+    return sqrt((double)distance);
         
 }
 
@@ -285,8 +239,7 @@ int main(int argc, char** argv)
 {
     if (argc < 2)
     {
-        std::cout 
-        << "usage: ./SQFD <signature.file> <another_signature.file>";
+        std::cout << "usage: ./SQFD <signature.file> <another_signature.file>";
         return 0;
     }
     std::vector<FeatureSignatureTuple> ist1;
