@@ -209,9 +209,9 @@ JPEGImage::~JPEGImage()
 {
     //delete[] centersX;  // output of k-kmeans
     //delete[] centersY;  // output of k-means
-    delete[] colVal1;
-    delete[] colVal2;
-    delete[] colVal3;
+    delete[] colorValues1;
+    delete[] colorValues2;
+    delete[] colorValues3;
     delete[] coa;
     delete[] con;
     delete[] weights; // of clusters
@@ -404,8 +404,19 @@ void JPEGImage::importJPEGFile(const std::string _fileName,
             
             // always grab a grayscale image, 
             //as it's needed for the texture features
-            this->pixMat5[cnt][i][6] = (double) (output_data[c] + 
-                output_data[c+1] + output_data[c+2]) / 3.0;
+            
+            // average method
+            //this->pixMat5[cnt][i][6] = (double) (output_data[c] + 
+            //    output_data[c+1] + output_data[c+2]) / 3.0;
+            
+            // emphasis on green 
+            //http://docs.opencv.org/3.1.0/de/d25/imgproc_color_conversions.html
+            this->pixMat5[cnt][i][6] = 
+            static_cast<double>(output_data[c]) * 0.299 
+            + static_cast<double>(output_data[c+1]) * 0.587
+            + static_cast<double>(output_data[c+2]) * 0.115 
+            ;
+            
             c += 3;
         }
          cnt++;
@@ -590,9 +601,9 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
     // "9. assigning centroids"
     this->centersX = new int[k];  
     this->centersY = new int[k];
-    this->colVal1 = new double[k];
-    this->colVal2 = new double[k];
-    this->colVal3 = new double[k];
+    this->colorValues1 = new double[k];
+    this->colorValues2 = new double[k];
+    this->colorValues3 = new double[k];
     this->coa = new double[k];
     this->con = new double[k];
     
@@ -613,18 +624,21 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
        {
             tmpX += this->clusters->at(l).at(i).x;
             tmpY += this->clusters->at(l).at(i).y;
-            tmpColVal1 += this->clusters->at(l).at(i).r;
-            tmpColVal2 += this->clusters->at(l).at(i).g;
-            tmpColVal3 += this->clusters->at(l).at(i).b;
+            tmpColVal1 += this->clusters->at(l).at(i).colorValue1;
+            tmpColVal2 += this->clusters->at(l).at(i).colorValue2;
+            tmpColVal3 += this->clusters->at(l).at(i).colorValue3;
             tmpCoa += this->clusters->at(l).at(i).coarseness;
             tmpCon += this->clusters->at(l).at(i).contrast;
        }
        
        this->centersX[l]= round(tmpX / this->clusters->at(l).size());  
        this->centersY[l]= round(tmpY / this->clusters->at(l).size());
-       this->colVal1[l] = round(tmpColVal1 / this->clusters->at(l).size());  
-       this->colVal2[l] = round(tmpColVal2 / this->clusters->at(l).size());
-       this->colVal3[l] = round(tmpColVal3 / this->clusters->at(l).size());
+       this->colorValues1[l] 
+        = round(tmpColVal1 / this->clusters->at(l).size());  
+       this->colorValues2[l] 
+        = round(tmpColVal2 / this->clusters->at(l).size());
+       this->colorValues3[l] 
+        = round(tmpColVal3 / this->clusters->at(l).size());
        this->coa[l] = round(tmpCoa / this->clusters->at(l).size());
        this->con[l] = round(tmpCon / this->clusters->at(l).size());
        
@@ -635,7 +649,7 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
         {
             //std::cout << "weight:" << this->weights[l] << std::endl; 
             Feature tmpCentroid = {this->centersX[l], this->centersY[l],
-            this->colVal1[l], this->colVal2[l], this->colVal3[l],
+    this->colorValues1[l], this->colorValues2[l], this->colorValues3[l],
             this->coa[l], this->con[l]};   
             this->signature.push_back({this->weights[l], tmpCentroid});
             kk++;
@@ -1223,7 +1237,8 @@ double JPEGImage::localCoarseness(int x, int y, const int range)
 void JPEGImage::computeCoarsenessValues(bool parallel, 
     const int range = 5)
 {
-            
+    const double normalize = 1;
+    
     auto t1 = std::chrono::high_resolution_clock::now();
   
  
@@ -1247,7 +1262,8 @@ void JPEGImage::computeCoarsenessValues(bool parallel,
                         {    
                             double coa = localCoarseness((tmpX+k),
                                 (tmpY+n), range);
-                            this->pixMat5[tmpY+k][tmpX+n][3] = coa;
+                            this->pixMat5[tmpY+k][tmpX+n][3] 
+                                = coa * normalize;
                         }
                     }
                 }
@@ -1364,7 +1380,9 @@ double JPEGImage::localContrast(int x, int y, const int range)
 void JPEGImage::computeContrastValues(bool parallel, 
     const int range = 3)
 {
-        
+    
+    const double normalize = 0.01;
+    
     auto t1 = std::chrono::high_resolution_clock::now();
     
     for (int z = 0; z < this->noSamples; z++)
@@ -1387,7 +1405,8 @@ void JPEGImage::computeContrastValues(bool parallel,
                     {            
                         double con = localContrast((tmpX+k), 
                             (tmpY+n), range);
-                        this->pixMat5[tmpY+k][tmpX+n][4] = (con * 0.1);
+                        this->pixMat5[tmpY+k][tmpX+n][4] 
+                            = (con * normalize);
                     }
                 }
             }
