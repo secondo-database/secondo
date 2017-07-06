@@ -248,16 +248,15 @@ static Operator readSignatureFromFileOp(
 
 */
 
-std::ostream& operator<<(std::ostream& os, 
-const FeatureSignatureTuple& ist)
+std::ostream& operator<<(std::ostream& os, const FeatureSignatureTuple& ist)
 {
   os << "(" 
   << ist.weight << "," 
   << ist.centroid.x << "," 
   << ist.centroid.y << ","
-  << ist.centroid.r << "," 
-  << ist.centroid.g << ","
-  << ist.centroid.b << ","
+  << ist.centroid.colorValue1 << "," 
+  << ist.centroid.colorValue2 << ","
+  << ist.centroid.colorValue3 << ","
   << ist.centroid.coarseness << ","
   << ist.centroid.contrast << ","
   << ")";
@@ -312,9 +311,9 @@ FeatureSignature::FeatureSignature(const int n,
   {
     for( int i = 0; i < n; i++ )
     {	  
-      FeatureSignatureTuple ist(W[i], X[i], Y[i], R[i], 
-      G[i], B[i], COA[i], CON[i]);
-      Append(ist);
+      FeatureSignatureTuple fst(
+      W[i], X[i], Y[i], R[i], G[i], B[i], COA[i], CON[i]);
+      Append(fst);
     }  
   }
 }
@@ -343,8 +342,8 @@ FeatureSignature::~FeatureSignature()
 }
 
 
-FeatureSignature& 
-FeatureSignature::operator=(const FeatureSignature& src){
+FeatureSignature& FeatureSignature::operator=(
+    const FeatureSignature& src){
   FeatureSignatureTuples.copyFrom(src.FeatureSignatureTuples);
   return *this;
 }
@@ -383,12 +382,23 @@ int FeatureSignature::Compare(const Attribute*) const
 
 
 /*
+ * 
 4.6 HashValue method
-Because Compare returns alway 0, we can only return a constant hash value.
+Only the weights are taken, converted to string, concantenated and then
+a hash value is calculated and returned.
 
 */
-size_t FeatureSignature::HashValue() const{   
-  return  1;
+size_t FeatureSignature::HashValue() const 
+{   
+	std::string hashString;
+	for (int i = 0; this->GetNoFeatureSignatureTuples(); i++)
+	{
+		FeatureSignatureTuple fst = GetFeatureSignatureTuple(i);
+		hashString += std::to_string(fst.weight);
+	}
+	std::hash<std::string> hashFunction;
+	size_t hashValue = hashFunction(hashString);	
+	return  hashValue;
 }
 
 
@@ -513,8 +523,8 @@ int FeatureSignature::GetNoFeatureSignatureTuples() const
 Returns a signature tuple indexed by ~i~.
 
 */
-FeatureSignatureTuple 
-FeatureSignature::GetFeatureSignatureTuple(int i) const
+FeatureSignatureTuple FeatureSignature::GetFeatureSignatureTuple(int i) 
+const
 {
  // assert(state == complete);
   assert(0 <= i && i < GetNoFeatureSignatureTuples());
@@ -551,7 +561,7 @@ const bool FeatureSignature::IsEmpty() const
 ListExpr FeatureSignature::Out(ListExpr typeInfo, Word value)
 {    
     FeatureSignature* imgsig 
-    = static_cast<FeatureSignature*>(value.addr);
+        = static_cast<FeatureSignature*>(value.addr);
   
     if(!imgsig->IsDefined())
     {
@@ -567,26 +577,24 @@ ListExpr FeatureSignature::Out(ListExpr typeInfo, Word value)
 
      
     ListExpr tmpRes = nl->OneElemList(
-    nl->RealAtom(imgsig->GetFeatureSignatureTuple(0).weight));
+        nl->RealAtom(imgsig->GetFeatureSignatureTuple(0).weight));
 			
 	ListExpr lst = tmpRes;
 	
-	lst = nl->Append(lst, 
-    nl->IntAtom(imgsig->GetFeatureSignatureTuple(0).centroid.x));
-	lst = nl->Append(lst, 
-    nl->IntAtom(imgsig->GetFeatureSignatureTuple(0).centroid.y));
-	lst = nl->Append(lst, 
-    nl->RealAtom(imgsig->GetFeatureSignatureTuple(0).centroid.r));
-	lst = nl->Append(lst, 
-    nl->RealAtom(imgsig->GetFeatureSignatureTuple(0).centroid.g));
-	lst = nl->Append(lst, 
-    nl->RealAtom(imgsig->GetFeatureSignatureTuple(0).centroid.b));
-	lst = nl->Append(lst, 
-    nl->RealAtom(
-    imgsig->GetFeatureSignatureTuple(0).centroid.coarseness));
-	lst = nl->Append(lst, 
-    nl->RealAtom(
-    imgsig->GetFeatureSignatureTuple(0).centroid.contrast));
+	lst = nl->Append(lst, nl->IntAtom(
+        imgsig->GetFeatureSignatureTuple(0).centroid.x));
+	lst = nl->Append(lst, nl->IntAtom(
+        imgsig->GetFeatureSignatureTuple(0).centroid.y));
+	lst = nl->Append(lst, nl->RealAtom(
+        imgsig->GetFeatureSignatureTuple(0).centroid.colorValue1));
+	lst = nl->Append(lst, nl->RealAtom(
+        imgsig->GetFeatureSignatureTuple(0).centroid.colorValue2));
+	lst = nl->Append(lst, nl->RealAtom(
+        imgsig->GetFeatureSignatureTuple(0).centroid.colorValue3));
+	lst = nl->Append(lst, nl->RealAtom(
+        imgsig->GetFeatureSignatureTuple(0).centroid.coarseness));
+	lst = nl->Append(lst, nl->RealAtom(
+        imgsig->GetFeatureSignatureTuple(0).centroid.contrast));
 	
 	ListExpr result = nl->OneElemList(tmpRes);
 			
@@ -595,34 +603,26 @@ ListExpr FeatureSignature::Out(ListExpr typeInfo, Word value)
 	for(int i = 1; i < imgsig->GetNoFeatureSignatureTuples(); i++)
     {
 		ListExpr tmpRes = nl->OneElemList(
-            nl->RealAtom(
-            imgsig->GetFeatureSignatureTuple(i).weight));
+            nl->RealAtom(imgsig->GetFeatureSignatureTuple(i).weight));
 				
 		ListExpr lst = tmpRes;
         
-		//lst = nl->Append(lst, 
-        //nl->RealAtom(imgsig->GetFeatureSignatureTuple(i).weight));
-		lst = nl->Append(
-        lst, nl->IntAtom(
-        imgsig->GetFeatureSignatureTuple(i).centroid.x));
-        lst = nl->Append(
-        lst, nl->IntAtom(
-        imgsig->GetFeatureSignatureTuple(i).centroid.y));
-        lst = nl->Append(
-        lst, nl->RealAtom(
-        imgsig->GetFeatureSignatureTuple(i).centroid.r));
-        lst = nl->Append(
-        lst, nl->RealAtom(
-        imgsig->GetFeatureSignatureTuple(i).centroid.g));
-        lst = nl->Append(
-        lst, nl->RealAtom(
-        imgsig->GetFeatureSignatureTuple(i).centroid.b));
-        lst = nl->Append(
-        lst, nl->RealAtom(
-        imgsig->GetFeatureSignatureTuple(i).centroid.coarseness));
-        lst = nl->Append(
-        lst, nl->RealAtom(
-        imgsig->GetFeatureSignatureTuple(i).centroid.contrast));	
+		//lst = nl->Append(lst, nl->RealAtom(
+        //imgsig->GetFeatureSignatureTuple(i).weight));
+		lst = nl->Append(lst, nl->IntAtom(
+            imgsig->GetFeatureSignatureTuple(i).centroid.x));
+        lst = nl->Append(lst, nl->IntAtom(
+            imgsig->GetFeatureSignatureTuple(i).centroid.y));
+        lst = nl->Append(lst, nl->RealAtom(
+            imgsig->GetFeatureSignatureTuple(i).centroid.colorValue1));
+        lst = nl->Append(lst, nl->RealAtom(
+            imgsig->GetFeatureSignatureTuple(i).centroid.colorValue2));
+        lst = nl->Append(lst, nl->RealAtom(
+            imgsig->GetFeatureSignatureTuple(i).centroid.colorValue3));
+        lst = nl->Append(lst, nl->RealAtom(
+            imgsig->GetFeatureSignatureTuple(i).centroid.coarseness));
+        lst = nl->Append(lst, nl->RealAtom(
+            imgsig->GetFeatureSignatureTuple(i).centroid.contrast));	
         last = nl->Append(last, tmpRes);
     }
 
@@ -723,7 +723,7 @@ ListExpr FeatureSignature::Property()
             nl->StringAtom("(<tuple>*) where <tuple> is "
             "(r i i r r r r r)"),
             nl->StringAtom("((1.2 3 4 1.0 2.3 3.1 2.1 2.3))"),
-    nl->StringAtom("weight(double), position (int), texture (double)"
+            nl->StringAtom("weight(double), position (int), texture (double)"
                           ))));
 }
 
@@ -885,8 +885,7 @@ class ImageSimilarityAlgebra : public Algebra
 
 extern "C"
 Algebra*
-InitializeImageSimilarityAlgebra(NestedList *nlRef, 
-QueryProcessor *qpRef)
+InitializeImageSimilarityAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
 {
   nl = nlRef;
   qp = qpRef;
