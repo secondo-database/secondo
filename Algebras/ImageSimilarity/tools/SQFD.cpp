@@ -225,7 +225,7 @@ static double sqfd(std::vector<FeatureSignatureTuple> fst1,
     
     // return square root
     //std::cout << "distance:" << distance << std::endl;
-    return sqrt((double)distance);
+    return sqrt(distance/100000);
         
 }
 
