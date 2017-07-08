@@ -109,6 +109,8 @@ int ReplicationClient::receiveReplica()
         sendBuffer.push(CommunicationProtocol::ReplicationClient());
         sendBuffer.push(CommunicationProtocol::SendReplicaForStorage());
         sendBuffer.push(fileNameOrigin);
+        traceWriter->write("fileNameOrigin", fileNameOrigin);
+        traceWriter->write("fileNameDBS", fileNameDBS);
         CommunicationUtils::sendBatch(io, sendBuffer);
 
         receiveFileFromServer();

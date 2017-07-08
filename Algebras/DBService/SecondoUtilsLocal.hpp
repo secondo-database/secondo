@@ -56,6 +56,7 @@ public:
     static bool executeQuery(const std::string& queryAsString);
     static bool executeQuery(const std::string& queryAsString,
                              Word& queryResult);
+    static bool executeQuery2(const std::string& queryAsString);
 
     static bool adjustDatabase(const std::string& databaseName);
     static bool createRelation(
@@ -71,6 +72,9 @@ public:
             std::string& host,
             std::string& commPort);
 private:
+    static bool prepareQueryForProcessing(
+            const std::string& queryAsString,
+            std::string& queryAsPreparedNestedListString);
     static boost::mutex utilsMutex;
 };
 

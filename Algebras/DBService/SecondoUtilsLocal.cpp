@@ -62,13 +62,52 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString)
     return executeQuery(queryAsString, queryResult);
 }
 
+bool SecondoUtilsLocal::prepareQueryForProcessing(
+            const string& queryAsString,
+            string& queryAsPreparedNestedListString)
+{
+    SecParser secondoParser;
+    string queryAsNestedListString;
+    if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0)
+    {
+        print("could not parse query");
+        return false;
+    }
+    print("query converted to nested list string");
+    print("queryAsNestedListString", queryAsNestedListString);
+    queryAsNestedListString.erase(0, strlen("(query "));
+    print("queryAsNestedListString", queryAsNestedListString);
+    queryAsPreparedNestedListString =
+            queryAsNestedListString.substr(0, queryAsNestedListString.size()-2);
+    print("queryAsPreparedNestedListString", queryAsNestedListString);
+    return true;
+
+}
+
+bool SecondoUtilsLocal::executeQuery2(const string& queryAsString)
+{
+    Word queryResult;
+    string queryAsPreparedNestedListString;
+    if(!prepareQueryForProcessing(
+            queryAsString,
+            queryAsPreparedNestedListString))
+    {
+        return false;
+    }
+    return QueryProcessor::ExecuteQuery(
+            queryAsPreparedNestedListString,
+            queryResult,
+            DEFAULT_GLOBAL_MEMORY,
+            3);
+}
+
 bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
                                      Word& queryResult)
 {
     printFunction("SecondoUtilsLocal::executeQuery");
     boost::lock_guard<boost::mutex> lock(utilsMutex);
-    SecParser secondoParser;
     print("queryAsString", queryAsString);
+    SecParser secondoParser;
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {
         print("could not parse query");

@@ -172,6 +172,17 @@ void ReplicationServer::sendFileToClient(iostream& io, bool fileCreated)
     CommunicationUtils::sendLine(io,
             distributed2::FileTransferKeywords::FileTransferServer());
 
+    queue<string> expectedLines;
+    expectedLines.push(
+            distributed2::FileTransferKeywords::FileTransferClient());
+    expectedLines.push(distributed2::FileTransferKeywords::SendFile());
+
+    if(!CommunicationUtils::receivedExpectedLines(io, expectedLines))
+    {
+        traceWriter->write(
+                "communication error while initiating file transfer");
+    }
+
     if(fileCreated)
     {
         traceWriter->write("file created, sending file");
