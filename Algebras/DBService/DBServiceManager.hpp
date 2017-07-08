@@ -78,7 +78,7 @@ This function adds a node to the connection manager's pool that can be used for
 storing relation replicas.
 
 */
-    void addNode(const std::string host,
+    bool addNode(const std::string host,
                  const int port,
                  std::string config);
 

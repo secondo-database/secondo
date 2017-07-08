@@ -148,22 +148,28 @@ ConnectionID DBServiceManager::getNextFreeConnectionID()
     return connections.size() + 1;
 }
 
-void DBServiceManager::addNode(const string host,
+bool DBServiceManager::addNode(const string host,
         const int port,
         string config)
 {
     printFunction("DBServiceManager::addNode");
-    // TODO check that connection does not already exist!
-    cout << "Adding connection: "
-            << host << ":" << port << " -> " << config << endl;
+
+    for(const auto& connection : connections)
+    {
+        if(connection.second.first.isSameWorker(
+                host, stringutils::int2str(port)))
+        {
+            return false;
+        }
+    }
+
     ConnectionInfo* connectionInfo =
             ConnectionInfo::createConnection(host, port, config);
 
     SecondoUtilsRemote::createDatabase(connectionInfo, "dbservice");
-
     SecondoUtilsRemote::openDatabase(connectionInfo, "dbservice");
 
-    // retrieve location info from worker
+    // retrieve location parameters from worker
     string dir;
     getConfigParamFromWorker(dir, connectionInfo,
             "Environment", "SecondoHome");
@@ -173,6 +179,12 @@ void DBServiceManager::addNode(const string host,
     string transferPort;
     getConfigParamFromWorker(transferPort, connectionInfo,
             "DBService", "FileTransferPort");
+
+    if(!startServersOnWorker(connectionInfo))
+    {
+        return false;
+    }
+
     LocationInfo location(host, stringutils::int2str(port), config, dir,
             commPort, transferPort);
 
@@ -185,12 +197,6 @@ void DBServiceManager::addNode(const string host,
 
     DBServicePersistenceAccessor::persistLocationInfo(connID, location);
 
-    if(!startServersOnWorker(connectionInfo))
-    {
-        // TODO more descriptive error message (host, port, etc)
-        throw new SecondoException("could not start file transfer server");
-    }
-
     for(auto& replicaLocation : possibleReplicaLocations)
     {
         addToPossibleReplicaLocations(
@@ -200,6 +206,7 @@ void DBServiceManager::addNode(const string host,
                 host,
                 dir);
     }
+    return true;
 }
 
 bool DBServiceManager::startServersOnWorker(

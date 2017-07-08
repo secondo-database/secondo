@@ -70,6 +70,8 @@ public:
     static bool lookupDBServiceLocation(
             std::string& host,
             std::string& commPort);
+private:
+    static boost::mutex utilsMutex;
 };
 
 } /* namespace DBService */

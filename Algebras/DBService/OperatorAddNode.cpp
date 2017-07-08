@@ -85,12 +85,14 @@ int OperatorAddNode::mapValue(Word* args,
     print(port->GetValue());
     print(config->GetValue());
 
-    DBServiceManager::getInstance()->addNode(host->GetValue(),
-                                             port->GetValue(),
-                                             config->getCsvStr());
+    bool success =
+            DBServiceManager::getInstance()->addNode(
+                    host->GetValue(),
+                    port->GetValue(),
+                    config->getCsvStr());
 
     result = qp->ResultStorage(s);
-    static_cast<CcBool*>(result.addr)->Set(true,true);
+    static_cast<CcBool*>(result.addr)->Set(true,success);
     return 0;
 }
 

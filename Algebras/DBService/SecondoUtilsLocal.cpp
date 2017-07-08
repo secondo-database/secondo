@@ -45,8 +45,6 @@ using namespace distributed2;
 
 namespace DBService {
 
-boost::mutex utilsMutex;
-
 void SecondoUtilsLocal::readFromConfigFile(string& resultValue,
         const char* section,
         const char* key,
@@ -88,6 +86,7 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
     if(!nli->ReadFromString(queryAsNestedListString,
             queryAsNestedList))
     {
+        print("could not read nested list from string");
         return false;
     }
 
@@ -268,6 +267,7 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
     QueryProcessor* queryProcessor = new QueryProcessor( nli,
             SecondoSystem::GetAlgebraManager(),
             DEFAULT_GLOBAL_MEMORY);
+    queryProcessor->SetDebugLevel(3);
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
 
     Word result = SetWord(Address(0));
@@ -355,5 +355,7 @@ bool SecondoUtilsLocal::lookupDBServiceLocation(
     }
     return true;
 }
+
+boost::mutex SecondoUtilsLocal::utilsMutex;
 
 } /* namespace DBService */
