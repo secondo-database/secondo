@@ -236,12 +236,24 @@ bool CommunicationClient::getReplicaLocation(const string databaseName,
     sendBuffer.push(CommunicationProtocol::ReplicaLocationRequest());
     CommunicationUtils::sendBatch(io, sendBuffer);
 
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::RelationRequest()))
+    {
+        traceWriter->write("Did not receive expected RelationRequest");
+        return false;
+    }
+
+    sendBuffer.push(databaseName);
+    sendBuffer.push(relationName);
+
     queue<string> receivedLines;
     CommunicationUtils::receiveLines(io, 2, receivedLines);
     host = receivedLines.front();
     receivedLines.pop();
     transferPort = receivedLines.front();
     receivedLines.pop();
+    traceWriter->write("host", host);
+    traceWriter->write("transferPort", transferPort);
     if(!host.empty() && host != CommunicationProtocol::None()
     && !transferPort.empty() && transferPort != CommunicationProtocol::None())
     {

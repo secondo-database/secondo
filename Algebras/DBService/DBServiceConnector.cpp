@@ -101,6 +101,7 @@ bool DBServiceConnector::getReplicaLocation(const string& databaseName,
                                             string& host,
                                             string& transferPort)
 {
+    printFunction("DBServiceConnector::getReplicaLocation");
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
@@ -115,9 +116,15 @@ string DBServiceConnector::retrieveReplicaAndGetFileName(
                                 const string& relationName,
                                 const string& functionAsNestedListString)
 {
+    printFunction("DBServiceConnector::retrieveReplicaAndGetFileName");
+    print("databaseName", databaseName);
+    print("relationName", relationName);
+
     string host;
     string transferPort;
     getReplicaLocation(databaseName, relationName, host, transferPort);
+    print("host", host);
+    print("transferPort", transferPort);
 
     ReplicationClient clientToDBServiceWorker(
             host,

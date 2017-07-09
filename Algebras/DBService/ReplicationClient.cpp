@@ -114,6 +114,7 @@ int ReplicationClient::receiveReplica()
         CommunicationUtils::sendBatch(io, sendBuffer);
 
         receiveFileFromServer();
+        reportSuccessfulReplication();
     } catch (...)
     {
         cerr << "ReplicationClient: communication error" << endl;
@@ -165,7 +166,7 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
     return 0;
 }
 
-void ReplicationClient::receiveFileFromServer()
+bool ReplicationClient::receiveFileFromServer()
 {
     traceWriter->writeFunction("ReplicationClient::receiveFileFromServer");
     int rc = receiveFile();
@@ -173,9 +174,11 @@ void ReplicationClient::receiveFileFromServer()
     {
         traceWriter->write("receive failed");
         traceWriter->write("rc=", rc);
+        return false;
     }else
     {
         traceWriter->write("received file");
+        return true;
     }
 }
 
@@ -197,10 +200,13 @@ void ReplicationClient::reportSuccessfulReplication()
             dbServiceHost,
             atoi(dbServicePort.c_str()),
             0);
-    clientToDBServiceMaster.reportSuccessfulReplication(
+    bool reported = clientToDBServiceMaster.reportSuccessfulReplication(
             databaseName,
             relationName);
-    // TODO check return value
+    if(!reported)
+    {
+        traceWriter->write("Unable to report successful replication");
+    }
 }
 
 } /* namespace DBService */

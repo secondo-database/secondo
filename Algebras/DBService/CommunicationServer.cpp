@@ -298,6 +298,7 @@ bool CommunicationServer::reportSuccessfulReplication(iostream& io)
 
     string relID;
     CommunicationUtils::receiveLine(io, relID);
+    traceWriter->write("relID", relID);
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
@@ -308,6 +309,10 @@ bool CommunicationServer::reportSuccessfulReplication(iostream& io)
     receiveBuffer.pop();
     string port = receiveBuffer.front();
     receiveBuffer.pop();
+
+    traceWriter->write("host", host);
+    traceWriter->write("port", port);
+
     DBServiceManager::getInstance()->maintainSuccessfulReplication(
             relID, host, port);
     return true;

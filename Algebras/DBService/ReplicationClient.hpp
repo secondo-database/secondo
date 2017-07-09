@@ -63,7 +63,7 @@ public:
             std::string& fileName);
     void reportSuccessfulReplication();
 private:
-    void receiveFileFromServer();
+    bool receiveFileFromServer();
     const std::string fileNameDBS;
     const std::string fileNameOrigin;
     std::string databaseName;

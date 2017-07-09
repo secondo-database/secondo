@@ -182,46 +182,53 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
         map<ConnectionID, LocationInfo>& locations)
 {
     printFunction("DBServicePersistenceAccessor::restoreLocationInfo");
-
-    string query("query locations_DBSP");
-    string errorMessage;
-    ListExpr resultList;
-    bool resultOk = SecondoUtilsLocal::excuteQueryCommand(
-            query, resultList, errorMessage);
-    if(resultOk)
+    bool resultOk = true;
+    if(SecondoSystem::GetCatalog()->IsObjectName(string("locations_DBSP")))
     {
-        print("resultList", resultList);
-        ListExpr resultData = nl->Second(resultList);
-        print("resultData", resultData);
-
-        int resultCount = nl->ListLength(resultData);
-        print(resultCount);
-
-        for(int i = 0; i < resultCount; i++)
+        string query("query locations_DBSP");
+        string errorMessage;
+        ListExpr resultList;
+        resultOk = SecondoUtilsLocal::excuteQueryCommand(
+                query, resultList, errorMessage);
+        if(resultOk)
         {
-            if(!nl->IsEmpty(resultData))
-            {
-                print("resultData", resultData);
-                ListExpr currentRow = nl->First(resultData);
-                ConnectionID conn(nl->IntValue(nl->First(currentRow)));
-                string host(nl->StringValue(nl->Second(currentRow)));
-                string port(nl->StringValue(nl->Third(currentRow)));
-                string config(nl->StringValue(nl->Fourth(currentRow)));
-                string disk(nl->StringValue(nl->Fifth(currentRow)));
-                string commPort(nl->StringValue(nl->Sixth(currentRow)));
-                string transferPort(nl->StringValue(nl->Seventh(currentRow)));
+            print("resultList", resultList);
+            ListExpr resultData = nl->Second(resultList);
+            print("resultData", resultData);
 
-                LocationInfo location(
-                        host, port, config, disk, commPort, transferPort);
-                print(location);
-                locations.insert(
-                        pair<ConnectionID, LocationInfo>(conn, location));
-                resultData = nl->Rest(resultData);
+            int resultCount = nl->ListLength(resultData);
+            print(resultCount);
+
+            for(int i = 0; i < resultCount; i++)
+            {
+                if(!nl->IsEmpty(resultData))
+                {
+                    print("resultData", resultData);
+                    ListExpr currentRow = nl->First(resultData);
+                    ConnectionID conn(nl->IntValue(nl->First(currentRow)));
+                    string host(nl->StringValue(nl->Second(currentRow)));
+                    string port(nl->StringValue(nl->Third(currentRow)));
+                    string config(nl->StringValue(nl->Fourth(currentRow)));
+                    string disk(nl->StringValue(nl->Fifth(currentRow)));
+                    string commPort(nl->StringValue(nl->Sixth(currentRow)));
+                    string transferPort(
+                            nl->StringValue(nl->Seventh(currentRow)));
+
+                    LocationInfo location(
+                            host, port, config, disk, commPort, transferPort);
+                    print(location);
+                    locations.insert(
+                            pair<ConnectionID, LocationInfo>(conn, location));
+                    resultData = nl->Rest(resultData);
+                }
             }
+        }else
+        {
+            print(errorMessage);
         }
     }else
     {
-        print(errorMessage);
+        print("locations_DBSP not found -> nothing to restore");
     }
     return resultOk;
 }
@@ -231,54 +238,13 @@ bool DBServicePersistenceAccessor::restoreRelationInfo(
 {
     printFunction("DBServicePersistenceAccessor::restoreRelationInfo");
 
-    string query("query relations_DBSP");
-    string errorMessage;
-    ListExpr resultList;
-    bool resultOk = SecondoUtilsLocal::excuteQueryCommand(
-            query, resultList, errorMessage);
-    if(resultOk)
+    bool resultOk = true;
+    if(SecondoSystem::GetCatalog()->IsObjectName(string("relations_DBSP")))
     {
-        print("resultList", resultList);
-        ListExpr resultData = nl->Second(resultList);
-        print("resultData", resultData);
-
-        int resultCount = nl->ListLength(resultData);
-        print(resultCount);
-
-        for(int i = 0; i < resultCount; i++)
-        {
-            if(!nl->IsEmpty(resultData))
-            {
-                print("resultData", resultData);
-                ListExpr currentRow = nl->First(resultData);
-                string relID(nl->StringValue(nl->First(currentRow)));
-                string dbName(nl->StringValue(nl->Second(currentRow)));
-                string relName(nl->StringValue(nl->Third(currentRow)));
-                string host(nl->StringValue(nl->Fourth(currentRow)));
-                string port(nl->StringValue(nl->Fifth(currentRow)));
-                string disk(nl->StringValue(nl->Sixth(currentRow)));
-                RelationInfo relationInfo(dbName, relName, host, port, disk);
-                print(relationInfo);
-                relations.insert(
-                        pair<string, RelationInfo>(relID, relationInfo));
-                resultData = nl->Rest(resultData);
-            }
-        }
-    }else
-    {
-        print(errorMessage);
-    }
-    return resultOk;
-}
-
-bool DBServicePersistenceAccessor::restoreLocationMapping(
-        queue<pair<string, ConnectionID> >& mapping)
-{
-    printFunction("DBServicePersistenceAccessor::restoreLocationMapping");
-    string query("query mapping_DBSP");
+        string query("query relations_DBSP");
         string errorMessage;
         ListExpr resultList;
-        bool resultOk = SecondoUtilsLocal::excuteQueryCommand(
+        resultOk = SecondoUtilsLocal::excuteQueryCommand(
                 query, resultList, errorMessage);
         if(resultOk)
         {
@@ -296,11 +262,16 @@ bool DBServicePersistenceAccessor::restoreLocationMapping(
                     print("resultData", resultData);
                     ListExpr currentRow = nl->First(resultData);
                     string relID(nl->StringValue(nl->First(currentRow)));
-                    ConnectionID conn(nl->IntValue(nl->Second(currentRow)));
-                    print("RelationID: ", relID);
-                    print("ConnectionID: ", conn);
-                    mapping.push(
-                            pair<string, ConnectionID>(relID, conn));
+                    string dbName(nl->StringValue(nl->Second(currentRow)));
+                    string relName(nl->StringValue(nl->Third(currentRow)));
+                    string host(nl->StringValue(nl->Fourth(currentRow)));
+                    string port(nl->StringValue(nl->Fifth(currentRow)));
+                    string disk(nl->StringValue(nl->Sixth(currentRow)));
+                    RelationInfo relationInfo(
+                            dbName, relName, host, port, disk);
+                    print(relationInfo);
+                    relations.insert(
+                            pair<string, RelationInfo>(relID, relationInfo));
                     resultData = nl->Rest(resultData);
                 }
             }
@@ -308,7 +279,59 @@ bool DBServicePersistenceAccessor::restoreLocationMapping(
         {
             print(errorMessage);
         }
-        return resultOk;
+    }else
+    {
+        print("relations_DBSP not found -> nothing to restore");
+    }
+    return resultOk;
+}
+
+bool DBServicePersistenceAccessor::restoreLocationMapping(
+        queue<pair<string, ConnectionID> >& mapping)
+{
+    printFunction("DBServicePersistenceAccessor::restoreLocationMapping");
+    bool resultOk = true;
+    if(SecondoSystem::GetCatalog()->IsObjectName(string("mapping_DBSP")))
+    {
+        string query("query mapping_DBSP");
+        string errorMessage;
+        ListExpr resultList;
+        resultOk = SecondoUtilsLocal::excuteQueryCommand(
+                query, resultList, errorMessage);
+        if(resultOk)
+        {
+            print("resultList", resultList);
+            ListExpr resultData = nl->Second(resultList);
+            print("resultData", resultData);
+
+            int resultCount = nl->ListLength(resultData);
+            print(resultCount);
+
+            for(int i = 0; i < resultCount; i++)
+            {
+                if(!nl->IsEmpty(resultData))
+                {
+                    print("resultData", resultData);
+                    ListExpr currentRow = nl->First(resultData);
+                    string relID(nl->StringValue(nl->First(currentRow)));
+                    string conn(nl->StringValue(nl->Second(currentRow)));
+                    print("RelationID: ", relID);
+                    print("ConnectionID: ", conn);
+                    mapping.push(
+                            pair<string, ConnectionID>(
+                                    relID, atoi(conn.c_str())));
+                    resultData = nl->Rest(resultData);
+                }
+            }
+        }else
+        {
+            print(errorMessage);
+        }
+    }else
+    {
+        print("mapping_DBSP not found -> nothing to restore");
+    }
+    return resultOk;
 }
 
 bool DBServicePersistenceAccessor::updateLocationMapping(
@@ -317,6 +340,15 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
         bool replicated)
 {
     printFunction("DBServicePersistenceAccessor::updateLocationMapping");
+
+    string databaseName;
+    string relationName;
+    RelationInfo::parseIdentifier(
+            relationID,
+            databaseName,
+            relationName);
+
+    SecondoUtilsLocal::adjustDatabase(databaseName);
 
     FilterConditions filterConditions =
     {
@@ -330,7 +362,7 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
 
     return SecondoUtilsLocal::excuteQueryCommand(
             CommandBuilder::buildUpdateCommand(
-                    relationID,
+                    relationName,
                     filterConditions,
                     valueToUpdate));
 }
@@ -338,8 +370,9 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
 bool DBServicePersistenceAccessor::deleteRelationInfo(
         RelationInfo& relationInfo)
 {
+    printFunction("DBServicePersistenceAccessor::deleteRelationInfo");
     string relationName("relations_DBSP");
-    // TODO adjust database just to be sure
+    SecondoUtilsLocal::adjustDatabase(relationInfo.getDatabaseName());
 
     string relationID = relationInfo.toString();
     FilterConditions filterConditions =
@@ -369,10 +402,18 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
         map<ConnectionID, bool>::const_iterator nodesBegin,
         map<ConnectionID, bool>::const_iterator nodesEnd)
 {
-    bool resultOk = true;
-    // TODO adjust database just to be sure
-    string relationName("mapping_DBSP");
+    printFunction("DBServicePersistenceAccessor::deleteLocationMapping");
+    string dbName;
+    string relName;
+    RelationInfo::parseIdentifier(
+            relID,
+            dbName,
+            relName);
 
+    SecondoUtilsLocal::adjustDatabase(dbName);
+
+    string relationName("mapping_DBSP");
+    bool resultOk = true;
     for(map<ConnectionID, bool>::const_iterator it = nodesBegin;
             it != nodesEnd; it++)
     {
