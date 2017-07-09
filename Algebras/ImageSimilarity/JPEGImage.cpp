@@ -492,10 +492,10 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
     // 2. init k-means, either random or k++ -> k++ as default :   
     Dataset* c;
     
-    if (this->colorSpace == 1) //todo: adopt other color spaces
+    //if (k < 100) // there's a bug in kmeans++ for smaller values of k
         c = init_centers(*ds, k);
-    else
-        c = init_centers_kmeanspp_v2(*ds, k); 
+    //else
+    //    c = init_centers_kmeanspp_v2(*ds, k); 
 
     // cluster number for each point
     unsigned short* assignment = new unsigned short[ds->n]; 
@@ -507,7 +507,7 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
     delete c;
     // 3. setting up parameters
     //Kmeans* algorithm = new AnnulusKmeans();
-    AnnulusKmeans* algorithm = new AnnulusKmeans();
+    Kmeans* algorithm = new HamerlyKmeans();
 
     int numThreads = 0;
     int maxIterations = 20;
@@ -649,7 +649,7 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
         {
             //std::cout << "weight:" << this->weights[l] << std::endl; 
             Feature tmpCentroid = {this->centersX[l], this->centersY[l],
-    this->colorValues1[l], this->colorValues2[l], this->colorValues3[l],
+            this->colorValues1[l], this->colorValues2[l], this->colorValues3[l],
             this->coa[l], this->con[l]};   
             this->signature.push_back({this->weights[l], tmpCentroid});
             kk++;
