@@ -222,8 +222,6 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     queryProcessor->SetDebugLevel(3);
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
 
-    // TODO check for existing catalog object
-
     Word result = SetWord(Address(0));
     OpTree tree = 0;
 

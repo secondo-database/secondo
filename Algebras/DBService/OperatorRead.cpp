@@ -29,26 +29,70 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "StandardTypes.h"
 
+#include "Algebras/Relation-C++/OperatorFeed.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
+
+#include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorRead.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
+
+using namespace std;
 
 namespace DBService {
 
 ListExpr OperatorRead::mapType(ListExpr nestedList)
 {
     print(nestedList);
-    return listutils::basicSymbol<CcBool>();
+
+    if (!nl->HasLength(nestedList, 1))
+    {
+        ErrorReporter::ReportError(
+                "expected one argument");
+                return nl->TypeError();
+    }
+
+    ListExpr feedTypeMapResult = OperatorFeed::FeedTypeMap(nestedList);
+
+    if(feedTypeMapResult == nl->TypeError())
+    {
+
+        string relationName = nl->ToString(nl->First(nestedList));
+        string fileName =
+                DBServiceConnector::getInstance()->
+                retrieveReplicaAndGetFileName(
+                        SecondoSystem::GetInstance()->GetDatabaseName(),
+                        relationName,
+                        string(""));
+        stringstream createCommand;
+        createCommand << "let "
+                << nl->ToString(nl->First(nestedList))
+                << " =  '"
+                << fileName
+                << "' getObjectFromFile consume";
+        print("createCommand", createCommand.str());
+        string errorMessage;
+        if(!SecondoUtilsLocal::createRelation(
+                createCommand.str(),
+                errorMessage))
+        {
+            throw new SecondoException("Could not create relation from file");
+        }
+    }
+
+    feedTypeMapResult = OperatorFeed::FeedTypeMap(nestedList);
+    print("feedTypeMapResult", feedTypeMapResult);
+    return feedTypeMapResult;
 }
 
 int OperatorRead::mapValue(Word* args,
-                              Word& result,
-                              int message,
-                              Word& local,
-                              Supplier s)
+                            Word& result,
+                            int message,
+                            Word& local,
+                            Supplier s)
 {
-    result = qp->ResultStorage(s);
-    static_cast<CcBool*>(result.addr)->Set(true,true);
-    return 0;
+    return OperatorFeed::Feed(args, result,
+            message, local, s);
 }
 
 } /* namespace DBService */

@@ -60,7 +60,7 @@ Remark    : None
 Operator  : read
 Number    : 1
 Signature : rel(tuple(X)) x fun -> ?
-Example   : query myRelation read[ . feed filter[ .Name startsWith "A"] consume ]
+Example   : query read(myRelation)
 Result    : ()
 Remark    : None
 

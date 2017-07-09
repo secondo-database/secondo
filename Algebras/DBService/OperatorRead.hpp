@@ -49,7 +49,7 @@ struct ReadInfo: OperatorInfo
         name = "read";
         signature = ""; // TODO
         syntax = ""; // TODO
-        meaning = "execute a certain query and fall back to"
+        meaning = "execute a certain query and fall back to "
                   "replica provided by DBService if necessary";
         usesArgsInTypeMapping = false;
     }
