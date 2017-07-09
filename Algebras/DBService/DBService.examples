@@ -70,3 +70,10 @@ Signature : string x bool -> bool
 Example   : query ddelete("myRelation", TRUE)
 Result    : TRUE
 Remark    : None
+
+Operator  : settracelevel
+Number    : 1
+Signature : int -> bool
+Example   : query settracelevel(0)
+Result    : TRUE
+Remark    : None

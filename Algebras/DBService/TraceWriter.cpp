@@ -29,9 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <ctime>
 #include <sstream>
 
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
-#include "Algebras/DBService/TraceWriter.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService/TraceSettings.hpp"
+#include "Algebras/DBService/TraceWriter.hpp"
 
 using namespace std;
 
@@ -76,58 +77,82 @@ TraceWriter::~TraceWriter()
 void TraceWriter::write(const string& text)
 {
     print(text);
-    *traceFile << text << endl;
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        *traceFile << text << endl;
+    }
 }
 
 void TraceWriter::write(const char* text)
 {
     print(text);
-    *traceFile << text << endl;
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        *traceFile << text << endl;
+    }
 }
 
 void TraceWriter::write(const size_t text)
 {
     print(text);
-    *traceFile << text << endl;
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        *traceFile << text << endl;
+    }
 }
 
 void TraceWriter::write(const LocationInfo& location)
 {
     print(location);
-    *traceFile << location.getHost() << endl;
-    *traceFile << location.getPort() << endl;
-    *traceFile << location.getDisk() << endl;
-    *traceFile << location.getCommPort() << endl;
-    *traceFile << location.getTransferPort() << endl;
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        *traceFile << location.getHost() << endl;
+        *traceFile << location.getPort() << endl;
+        *traceFile << location.getDisk() << endl;
+        *traceFile << location.getCommPort() << endl;
+        *traceFile << location.getTransferPort() << endl;
+    }
 }
 
 void TraceWriter::write(const RelationInfo& relationInfo)
 {
-    *traceFile << "RelationInfo:" << endl;
-    *traceFile << relationInfo.getDatabaseName() << endl;
-    *traceFile << relationInfo.getRelationName() << endl;
-    *traceFile << relationInfo.getOriginalLocation().getHost() << endl;
-    *traceFile << relationInfo.getOriginalLocation().getPort() << endl;
-    *traceFile << relationInfo.getOriginalLocation().getDisk() << endl;
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        *traceFile << "RelationInfo:" << endl;
+        *traceFile << relationInfo.getDatabaseName() << endl;
+        *traceFile << relationInfo.getRelationName() << endl;
+        *traceFile << relationInfo.getOriginalLocation().getHost() << endl;
+        *traceFile << relationInfo.getOriginalLocation().getPort() << endl;
+        *traceFile << relationInfo.getOriginalLocation().getDisk() << endl;
+    }
 }
 
 void TraceWriter::write(const char* description, const string& text)
 {
     print(description, text);
-    *traceFile << description << ": " << text << endl;
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        *traceFile << description << ": " << text << endl;
+    }
 }
 
 void TraceWriter::write(const char* description, int number)
 {
     print(description, number);
-    *traceFile << description << ": " << number << endl;
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        *traceFile << description << ": " << number << endl;
+    }
 }
 
 void TraceWriter::writeFunction(const char* text)
 {
     printFunction(text);
-    *traceFile << "********************************" << endl;
-    *traceFile << text << endl;
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        *traceFile << "********************************" << endl;
+        *traceFile << text << endl;
+    }
 }
 
 } /* namespace DBService */

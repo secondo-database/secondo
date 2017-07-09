@@ -411,6 +411,6 @@ void DBServiceManager::deleteReplicaMetadata(const string& relID)
     relations.erase(relID);
 }
 
-DBServiceManager* DBServiceManager::_instance = NULL;
+DBServiceManager* DBServiceManager::_instance = nullptr;
 
 } /* namespace DBService */

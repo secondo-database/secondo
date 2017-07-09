@@ -151,6 +151,6 @@ bool DBServiceConnector::deleteReplicas(const string& databaseName,
     return true;
 }
 
-DBServiceConnector* DBServiceConnector::_instance = NULL;
+DBServiceConnector* DBServiceConnector::_instance = nullptr;
 
 } /* namespace DBService */

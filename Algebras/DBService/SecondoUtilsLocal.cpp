@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService/TraceSettings.hpp"
 
 
 using namespace std;
@@ -86,19 +87,23 @@ bool SecondoUtilsLocal::prepareQueryForProcessing(
 
 bool SecondoUtilsLocal::executeQuery2(const string& queryAsString)
 {
+    printFunction("SecondoUtilsLocal::executeQuery2");
     Word queryResult;
     string queryAsPreparedNestedListString;
+    boost::lock_guard<boost::mutex> lock(utilsMutex);
     if(!prepareQueryForProcessing(
             queryAsString,
             queryAsPreparedNestedListString))
     {
         return false;
     }
+    int traceLevel =
+            TraceSettings::getInstance()->isDebugTraceOn() ? 3 : 0;
     return QueryProcessor::ExecuteQuery(
             queryAsPreparedNestedListString,
             queryResult,
             DEFAULT_GLOBAL_MEMORY,
-            3);
+            traceLevel);
 }
 
 bool SecondoUtilsLocal::executeQuery(const string& queryAsString,

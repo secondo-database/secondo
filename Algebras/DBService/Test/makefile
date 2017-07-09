@@ -155,8 +155,13 @@ CommandBuilderTest.o : $(USER_DIR)/CommandBuilderTest.cpp \
     $(DBSERVICE_DIR)/CommandBuilder.cpp $(GMOCK_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -I $(INCLUDE_DIR) -c $< -o $@
 
+TraceSettingsTest.o : $(USER_DIR)/TraceSettingsTest.cpp \
+    $(DBSERVICE_DIR)/TraceSettings.cpp $(GMOCK_HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -c $< -o $@
+
 SuiteDBService : CommunicationUtilsTest.o  ReplicationUtilsTest.o \
     RelationInfoTest.o LocationInfoTest.o CommandBuilderTest.o \
+    TraceSettingsTest.o \
     gmock_main.a \
     $(LIBDBSERVICE)# $(LIBDISTRIBUTED2) $(LIBUTILS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ -lpthread $(COMMON_LD_FLAGS)
