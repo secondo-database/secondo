@@ -1,0 +1,10 @@
+Database : berlintest
+Restore  : NO
+
+
+Operator : sendmail
+Number   : 1
+Signature: text, text, text, text  -> bool
+Example  : query sendmail ('subject', 'sender@universe.com',  'barbapapas@universe.com', 'any message is good')
+Result   : TRUE
+
