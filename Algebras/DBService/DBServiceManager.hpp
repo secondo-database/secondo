@@ -21,10 +21,6 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-
-//[$][\$]
-//[_][\_]
-
 */
 #ifndef ALGEBRAS_DBSERVICE_DBSERVICEMANAGER_HPP_
 #define ALGEBRAS_DBSERVICE_DBSERVICEMANAGER_HPP_
@@ -348,7 +344,7 @@ configuration file.
 */
     size_t replicaCount;
 
-    /*
+/*
 
 1.1.1 \textit{faultToleranceMode}
 

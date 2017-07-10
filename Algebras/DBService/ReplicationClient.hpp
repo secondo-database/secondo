@@ -21,10 +21,6 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-
-//[$][\$]
-//[_][\_]
-
 */
 #ifndef ALGEBRAS_DBSERVICE_REPLICATIONCLIENT_HPP_
 #define ALGEBRAS_DBSERVICE_REPLICATIONCLIENT_HPP_
@@ -35,15 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/TraceWriter.hpp"
 
 namespace DBService {
-
-/*
-
-1 \textit{}
-
-\textit{DBService}
-TODO
-
-*/
 
 class ReplicationClient: public distributed2::FileTransferClient
 {

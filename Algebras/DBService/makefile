@@ -26,14 +26,49 @@
 
 CURRENT_ALGEBRA := DBServiceAlgebra
 
-
 # include global definitions
 include ../../makefile.env
 
+# workaround, as the Algebras below don't use fully qualified include paths
 ADDINCLUDES := -I$(BUILDDIR)/Algebras/OrderedRelation -I$(BUILDDIR)/Algebras/Stream
 
 # expand compile flags if necessary
 CCFLAGS += -Werror $(ADDINCLUDES) -std=c++11
+
+DOCU_FILES = CommandBuilder.hpp CommandBuilder.cpp \
+			 CommunicationClient.hpp CommunicationClient.cpp \
+			 CommunicationProtocol.hpp CommunicationProtocol.cpp \
+			 CommunicationServer.hpp CommunicationServer.cpp \
+			 CommunicationUtils.hpp CommunicationUtils.cpp \
+			 DBServiceAlgebra.hpp DBServiceAlgebra.cpp \
+			 DBServiceConnector.hpp DBServiceConnector.cpp \
+			 DBServiceManager.hpp DBServiceManager.cpp \
+			 DBServicePersistenceAccessor.hpp DBServicePersistenceAccessor.cpp \
+			 DebugOutput.hpp DebugOutput.cpp \
+			 LocationInfo.hpp LocationInfo.cpp \
+			 MetadataObject.hpp MetadataObject.cpp \
+			 MultiClientServer.hpp MultiClientServer.cpp \
+			 OperatorAddNode.hpp OperatorAddNode.cpp \
+			 OperatorCheckDBServiceStatus.hpp OperatorCheckDBServiceStatus.cpp \
+			 OperatorDDelete.hpp OperatorDDelete.cpp \
+			 OperatorFeedPF.hpp OperatorFeedPF.cpp \
+			 OperatorGetConfigParam.hpp OperatorGetConfigParam.cpp \
+			 OperatorInitDBServiceWorker.hpp OperatorInitDBServiceWorker.cpp \
+			 OperatorLetDConsume.hpp OperatorLetDConsume.cpp \
+			 OperatorRead.hpp OperatorRead.cpp \
+			 OperatorStartDBService.hpp OperatorStartDBService.cpp \
+			 RelationInfo.hpp RelationInfo.cpp \
+			 ReplicationClient.hpp ReplicationClient.cpp \
+			 ReplicationClientRunnable.hpp ReplicationClientRunnable.cpp \
+			 ReplicationServer.hpp ReplicationServer.cpp \
+			 ReplicationUtils.hpp ReplicationUtils.cpp \
+			 SecondoUtilsLocal.hpp SecondoUtilsLocal.cpp \
+			 SecondoUtilsRemote.hpp SecondoUtilsRemote.cpp \
+			 ServerRunnable.hpp ServerRunnable.cpp \
+			 TraceSettings.hpp TraceSettings.cpp \
+			 TraceWriter.hpp TraceWriter.cpp \
+			 TriggerFileTransferRunnable.hpp TriggerFileTransferRunnable.cpp \
+			 TriggerReplicaDeletionRunnable.hpp TriggerFileTransferRunnable.cpp
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
@@ -62,3 +97,6 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
+
+docu: $(DOCU_FILES)
+	cat $^ > $@

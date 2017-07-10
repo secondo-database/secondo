@@ -21,10 +21,6 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-
-//[$][\$]
-//[_][\_]
-
 */
 #include "Algebras/DBService/CommunicationServer.hpp"
 #include "Algebras/DBService/ReplicationServer.hpp"
