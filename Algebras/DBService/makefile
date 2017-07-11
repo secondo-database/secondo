@@ -35,40 +35,41 @@ ADDINCLUDES := -I$(BUILDDIR)/Algebras/OrderedRelation -I$(BUILDDIR)/Algebras/Str
 # expand compile flags if necessary
 CCFLAGS += -Werror $(ADDINCLUDES) -std=c++11
 
-DOCU_FILES = CommandBuilder.hpp CommandBuilder.cpp \
-			 CommunicationClient.hpp CommunicationClient.cpp \
-			 CommunicationProtocol.hpp CommunicationProtocol.cpp \
-			 CommunicationServer.hpp CommunicationServer.cpp \
-			 CommunicationUtils.hpp CommunicationUtils.cpp \
-			 DBServiceAlgebra.hpp DBServiceAlgebra.cpp \
-			 DBServiceConnector.hpp DBServiceConnector.cpp \
+DOCU_FILES = DBServiceAlgebra.hpp DBServiceAlgebra.cpp \
 			 DBServiceManager.hpp DBServiceManager.cpp \
-			 DBServicePersistenceAccessor.hpp DBServicePersistenceAccessor.cpp \
-			 DebugOutput.hpp DebugOutput.cpp \
-			 LocationInfo.hpp LocationInfo.cpp \
+			 DBServiceConnector.hpp DBServiceConnector.cpp \
 			 MetadataObject.hpp MetadataObject.cpp \
+			 LocationInfo.hpp LocationInfo.cpp \
+			 RelationInfo.hpp RelationInfo.cpp \
+			 DBServicePersistenceAccessor.hpp DBServicePersistenceAccessor.cpp \
+			 CommandBuilder.hpp CommandBuilder.cpp \
 			 MultiClientServer.hpp MultiClientServer.cpp \
+			 CommunicationServer.hpp CommunicationServer.cpp \
+			 CommunicationClient.hpp CommunicationClient.cpp \
+			 ReplicationServer.hpp ReplicationServer.cpp \
+			 ReplicationClient.hpp ReplicationClient.cpp \
+			 CommunicationProtocol.hpp CommunicationProtocol.cpp \
+			 ServerRunnable.hpp ServerRunnable.cpp \
+			 ReplicationClientRunnable.hpp ReplicationClientRunnable.cpp \
+			 TriggerFileTransferRunnable.hpp TriggerFileTransferRunnable.cpp \
+			 TriggerReplicaDeletionRunnable.hpp TriggerFileTransferRunnable.cpp \
 			 OperatorAddNode.hpp OperatorAddNode.cpp \
 			 OperatorCheckDBServiceStatus.hpp OperatorCheckDBServiceStatus.cpp \
-			 OperatorDDelete.hpp OperatorDDelete.cpp \
-			 OperatorFeedPF.hpp OperatorFeedPF.cpp \
-			 OperatorGetConfigParam.hpp OperatorGetConfigParam.cpp \
-			 OperatorInitDBServiceWorker.hpp OperatorInitDBServiceWorker.cpp \
+			 OperatorSetTraceLevel.hpp OperatorSetTraceLevel.cpp \
 			 OperatorLetDConsume.hpp OperatorLetDConsume.cpp \
+			 OperatorFeedPF.hpp OperatorFeedPF.cpp \
 			 OperatorRead.hpp OperatorRead.cpp \
+			 OperatorDDelete.hpp OperatorDDelete.cpp \
+			 OperatorInitDBServiceWorker.hpp OperatorInitDBServiceWorker.cpp \
+			 OperatorGetConfigParam.hpp OperatorGetConfigParam.cpp \
 			 OperatorStartDBService.hpp OperatorStartDBService.cpp \
-			 RelationInfo.hpp RelationInfo.cpp \
-			 ReplicationClient.hpp ReplicationClient.cpp \
-			 ReplicationClientRunnable.hpp ReplicationClientRunnable.cpp \
-			 ReplicationServer.hpp ReplicationServer.cpp \
-			 ReplicationUtils.hpp ReplicationUtils.cpp \
+			 CommunicationUtils.hpp CommunicationUtils.cpp \
 			 SecondoUtilsLocal.hpp SecondoUtilsLocal.cpp \
 			 SecondoUtilsRemote.hpp SecondoUtilsRemote.cpp \
-			 ServerRunnable.hpp ServerRunnable.cpp \
+			 ReplicationUtils.hpp ReplicationUtils.cpp \
 			 TraceSettings.hpp TraceSettings.cpp \
-			 TraceWriter.hpp TraceWriter.cpp \
-			 TriggerFileTransferRunnable.hpp TriggerFileTransferRunnable.cpp \
-			 TriggerReplicaDeletionRunnable.hpp TriggerFileTransferRunnable.cpp
+			 DebugOutput.hpp DebugOutput.cpp \
+			 TraceWriter.hpp TraceWriter.cpp
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
