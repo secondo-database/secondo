@@ -240,18 +240,18 @@ return 0; //never happens
 
 const string sendmailSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> text, text, text, text   -> bool, text </text--->"
-    "<text> sendmail (text, text, text, text ) </text--->"
+    "( <text> text x text x text x text   -> bool </text--->"
+    "<text> sendmail (subject, sender, receiver, message ) </text--->"
     "<text>Sends a mail specified to the address specified" 
-    "with the third argument. The second argument" 
-    "is the sender address"
-    "The first argument is the subject of the mail" 
-    "and the fourth is the message"
-    " True is returned if there are no email adress syntax errors," 
-    "false in the other case" 
-    "and UNDEFINED if any error occurs.</text--->"
-    "<text> query sendmail('subject', 'sender@universe2.com', " 
-    "'receiver@universe.com', 'message')  </text--->"
+    "with the third argument. The second argument " 
+    "is the sender address. "
+    "The first argument is the subject of the mail " 
+    "and the fourth is the message."
+    " TRUE is returned if there are no email adress syntax errors." 
+    " FALSE is returned in the other case " 
+    "and UNDEFINED if any other error occurs.</text--->"
+    "<text> query sendmail('a subject', 'sender@universe2.com', " 
+    "'receiver@universe1.com', 'message')  </text--->"
     ") )";
 
 
