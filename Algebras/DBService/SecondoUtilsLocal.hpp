@@ -58,9 +58,9 @@ public:
     static bool createRelation(
             const std::string& queryAsString,
             std::string& errorMessage);
-    static bool excuteQueryCommand(
+    static bool executeQueryCommand(
                 const std::string& queryAsString);
-    static bool excuteQueryCommand(
+    static bool executeQueryCommand(
             const std::string& queryAsString,
             ListExpr& resultList,
             std::string& errorMessage);

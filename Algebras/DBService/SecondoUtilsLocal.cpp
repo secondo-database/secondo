@@ -271,12 +271,12 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     return true;
 }
 
-bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString)
+bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString)
 {
-    printFunction("SecondoUtilsLocal::excuteQueryCommand (1 arg)");
+    printFunction("SecondoUtilsLocal::executeQueryCommand (1 arg)");
     ListExpr resultList;
     string errorMessage;
-    bool resultOk = SecondoUtilsLocal::excuteQueryCommand(
+    bool resultOk = SecondoUtilsLocal::executeQueryCommand(
                                                     queryAsString,
                                                     resultList,
                                                     errorMessage);
@@ -292,9 +292,9 @@ bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString)
     return resultOk;
 }
 
-bool SecondoUtilsLocal::excuteQueryCommand(const string& queryAsString,
+bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
         ListExpr& resultList, string& errorMessage) {
-    printFunction("SecondoUtilsLocal::excuteQueryCommand (2 args)");
+    printFunction("SecondoUtilsLocal::executeQueryCommand (2 args)");
     bool correct = false;
     bool evaluable = false;
     bool defined = false;

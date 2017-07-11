@@ -184,7 +184,7 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
         string query("query locations_DBSP");
         string errorMessage;
         ListExpr resultList;
-        resultOk = SecondoUtilsLocal::excuteQueryCommand(
+        resultOk = SecondoUtilsLocal::executeQueryCommand(
                 query, resultList, errorMessage);
         if(resultOk)
         {
@@ -240,7 +240,7 @@ bool DBServicePersistenceAccessor::restoreRelationInfo(
         string query("query relations_DBSP");
         string errorMessage;
         ListExpr resultList;
-        resultOk = SecondoUtilsLocal::excuteQueryCommand(
+        resultOk = SecondoUtilsLocal::executeQueryCommand(
                 query, resultList, errorMessage);
         if(resultOk)
         {
@@ -292,7 +292,7 @@ bool DBServicePersistenceAccessor::restoreLocationMapping(
         string query("query mapping_DBSP");
         string errorMessage;
         ListExpr resultList;
-        resultOk = SecondoUtilsLocal::excuteQueryCommand(
+        resultOk = SecondoUtilsLocal::executeQueryCommand(
                 query, resultList, errorMessage);
         if(resultOk)
         {
@@ -344,7 +344,7 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
             databaseName,
             relationName);
 
-    SecondoUtilsLocal::adjustDatabase(databaseName);
+    SecondoUtilsLocal::adjustDatabase(string("dbservice"));
 
     FilterConditions filterConditions =
     {
@@ -356,7 +356,7 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
     { {AttributeType::BOOL, string("Replicated") },
             replicated ? string("TRUE") : string("FALSE") };
 
-    return SecondoUtilsLocal::excuteQueryCommand(
+    return SecondoUtilsLocal::executeQuery2(
             CommandBuilder::buildUpdateCommand(
                     relationName,
                     filterConditions,
@@ -376,7 +376,7 @@ bool DBServicePersistenceAccessor::deleteRelationInfo(
         { {AttributeType::STRING, string("RelationID") }, relationID },
     };
 
-    bool resultOk = SecondoUtilsLocal::excuteQueryCommand(
+    bool resultOk = SecondoUtilsLocal::executeQuery2(
             CommandBuilder::buildDeleteCommand(
                     relationName,
                     filterConditions));
@@ -420,7 +420,7 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
                     stringutils::int2str(it->first) }
         };
 
-        resultOk = resultOk && SecondoUtilsLocal::excuteQueryCommand(
+        resultOk = resultOk && SecondoUtilsLocal::executeQuery2(
                 CommandBuilder::buildDeleteCommand(
                         relationName,
                         filterConditions));

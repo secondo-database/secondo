@@ -381,23 +381,35 @@ void DBServiceManager::maintainSuccessfulReplication(
         const string& replicaLocationHost,
         const string& replicaLocationPort)
 {
-    RelationInfo& relInfo = getRelationInfo(relID);
-    // TODO catch out_of_range exception
+    printFunction("DBServiceManager::maintainSuccessfulReplication");
+    print("relID", relID);
+    print("replicaLocationHost", replicaLocationHost);
+    print("replicaLocationPort", replicaLocationPort);
 
-    for(map<ConnectionID, bool>::const_iterator it
-            = relInfo.nodesBegin(); it != relInfo.nodesEnd(); it++)
+    try
     {
-        LocationInfo& location = getLocation(it->first);
-        if(location.isSameWorker(replicaLocationHost, replicaLocationPort))
+        RelationInfo& relInfo = getRelationInfo(relID);
+
+        for(map<ConnectionID, bool>::const_iterator it
+                = relInfo.nodesBegin(); it != relInfo.nodesEnd(); it++)
         {
-            relInfo.updateReplicationStatus(it->first, true);
-            DBServicePersistenceAccessor::updateLocationMapping(
-                    relID,
-                    it->first,
-                    true);
-            // TODO check return values
-            break;
+            LocationInfo& location = getLocation(it->first);
+            if(location.isSameWorker(replicaLocationHost, replicaLocationPort))
+            {
+                relInfo.updateReplicationStatus(it->first, true);
+                if(!DBServicePersistenceAccessor::updateLocationMapping(
+                        relID,
+                        it->first,
+                        true))
+                {
+                    print("Could not update location mapping");
+                }
+                break;
+            }
         }
+    }catch(...)
+    {
+        print("Relation does not exist");
     }
 }
 

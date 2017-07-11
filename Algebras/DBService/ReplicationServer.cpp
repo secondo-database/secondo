@@ -149,8 +149,7 @@ bool ReplicationServer::createFile(string fileName) const
           << "\"]";
     traceWriter->write("query", query.str());
 
-//    SecondoUtilsLocal::executeQuery(query.str());
-    bool resultOk = SecondoUtilsLocal::excuteQueryCommand(query.str());
+    bool resultOk = SecondoUtilsLocal::executeQuery2(query.str());
     if(resultOk)
     {
         traceWriter->write("file created");
@@ -189,7 +188,6 @@ void ReplicationServer::sendFileToClient(iostream& io, bool fileCreated)
         {
             traceWriter->write("file sent");
         }
-        // TODO delete file
     }else
     {
         traceWriter->write("notifying client");

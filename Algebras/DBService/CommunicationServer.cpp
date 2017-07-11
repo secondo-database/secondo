@@ -323,20 +323,26 @@ bool CommunicationServer::handleRequestReplicaDeletion(iostream& io)
     CommunicationUtils::receiveLine(io, relID);
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
-    RelationInfo& relationInfo = dbService->getRelationInfo(relID);
-    for(map<ConnectionID, bool>::const_iterator it = relationInfo.nodesBegin();
-            it != relationInfo.nodesEnd(); it++)
-    {
-        if(it->second)
+    try{
+        RelationInfo& relationInfo = dbService->getRelationInfo(relID);
+        for(map<ConnectionID, bool>::const_iterator it =
+                relationInfo.nodesBegin(); it != relationInfo.nodesEnd(); it++)
         {
-            LocationInfo& locationInfo = dbService->getLocation(it->first);
-            TriggerReplicaDeletionRunnable replicaEraser(
-                    locationInfo.getHost(),
-                    atoi(locationInfo.getCommPort().c_str()),
-                    relID);
-            replicaEraser.run();
+            if(it->second)
+            {
+                LocationInfo& locationInfo = dbService->getLocation(it->first);
+                TriggerReplicaDeletionRunnable replicaEraser(
+                        locationInfo.getHost(),
+                        atoi(locationInfo.getCommPort().c_str()),
+                        relID);
+                replicaEraser.run();
+            }
+            dbService->deleteReplicaMetadata(relID);
         }
-        dbService->deleteReplicaMetadata(relID);
+    }catch(...)
+    {
+        traceWriter->write("Relation does not exist");
+        return false;
     }
 
     return true;

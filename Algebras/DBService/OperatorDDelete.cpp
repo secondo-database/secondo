@@ -22,12 +22,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+#include "FileSystem.h"
 #include "NestedList.h"
 #include "StandardTypes.h"
 
 #include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorDDelete.hpp"
+#include "Algebras/DBService/ReplicationUtils.hpp"
+
+using namespace std;
 
 namespace DBService
 {
@@ -66,16 +70,21 @@ int OperatorDDelete::mapValue(Word* args,
                               Word& local,
                               Supplier s)
 {
-    CcString* relationName = static_cast<CcString*>(args[0].addr);
-    CcBool* deleteLocalRelation = static_cast<CcBool*>(args[1].addr);
+    string relationName = static_cast<CcString*>(args[0].addr)->GetValue();
+    bool deleteLocalRelation = static_cast<CcBool*>(args[1].addr)->GetValue();
 
-    print("relationName", relationName->GetValue());
-    print("deleteLocalRelation", deleteLocalRelation->GetValue());
+    print("relationName", relationName);
+    print("deleteLocalRelation", deleteLocalRelation);
+
+    FileSystem::DeleteFileOrFolder(
+            ReplicationUtils::getFileName(
+                    SecondoSystem::GetInstance()->GetDatabaseName(),
+                    relationName));
 
     bool success =
             DBServiceConnector::getInstance()->deleteReplicas(
                     SecondoSystem::GetInstance()->GetDatabaseName(),
-                    relationName->GetValue());
+                    relationName);
 
     if(deleteLocalRelation)
     {
@@ -83,13 +92,9 @@ int OperatorDDelete::mapValue(Word* args,
         SecondoSystem::BeginTransaction();
 
         result = qp->ResultStorage(s);
-        if (!catalog->DeleteObject(relationName->GetValue()))
+        if (!catalog->DeleteObject(relationName))
         {
             success &= false;
-            SecondoSystem::AbortTransaction(false);
-        }else
-        {
-            SecondoSystem::CommitTransaction(false);
         }
     }
     static_cast<CcBool*>(result.addr)->Set(true, success);
