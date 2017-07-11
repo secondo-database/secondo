@@ -62,7 +62,6 @@ DOCU_FILES = DBServiceAlgebra.hpp DBServiceAlgebra.cpp \
 			 OperatorDDelete.hpp OperatorDDelete.cpp \
 			 OperatorInitDBServiceWorker.hpp OperatorInitDBServiceWorker.cpp \
 			 OperatorGetConfigParam.hpp OperatorGetConfigParam.cpp \
-			 OperatorStartDBService.hpp OperatorStartDBService.cpp \
 			 CommunicationUtils.hpp CommunicationUtils.cpp \
 			 SecondoUtilsLocal.hpp SecondoUtilsLocal.cpp \
 			 SecondoUtilsRemote.hpp SecondoUtilsRemote.cpp \
