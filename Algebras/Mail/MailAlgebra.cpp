@@ -247,7 +247,7 @@ const string sendmailSpec  =
     "is the sender address"
     "The first argument is the subject of the mail" 
     "and the fourth is the message"
-    " True is returned if there are no email adress syntax errors, 
+    " True is returned if there are no email adress syntax errors," 
     "false in the other case" 
     "and UNDEFINED if any error occurs.</text--->"
     "<text> query sendmail('subject', 'sender@universe2.com', " 
