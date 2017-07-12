@@ -10358,17 +10358,19 @@ ListExpr mupdatebyidTypeMap(ListExpr args) {
   ListExpr map = nl->Third(args);
   
   // argument is not a map
-  if(nl->ListLength(map<1)) {
+  ListExpr maprest = nl->First(map);
+  if(nl->ListLength(maprest<1)) {
     return listutils::typeError("arg must be a list of maps");
   }
-  ListExpr maprest = nl->First(map);
-  int noAttrs = nl->ListLength(map);
+  int noAttrs = nl->ListLength(maprest);
+
   
   // Go through all functions
   ListExpr mapfirst, mapsecond;
   ListExpr attrType;
   ListExpr indices, indicescurrent;
   
+  bool firstcall = true;
   while (!(nl->IsEmpty(maprest))) {
     map = nl->First(maprest);
     maprest = nl->Rest(maprest);
@@ -10403,7 +10405,6 @@ ListExpr mupdatebyidTypeMap(ListExpr args) {
     
     // construct list with all indices of the changed attributes
     // in the inputstream to be appended to the resultstream
-    bool firstcall = true;
     if(firstcall) {
       indices = nl->OneElemList(nl->IntAtom(attrIndex));
       indicescurrent = indices;
@@ -10446,7 +10447,7 @@ ListExpr mupdatebyidTypeMap(ListExpr args) {
                                      nl->TwoElemList(
                                        nl->SymbolAtom(Tuple::BasicType()),
                                        attrlist));
-  
+ 
   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
                            nl->TwoElemList(nl->IntAtom(noAttrs),
                                            indices),
@@ -10456,10 +10457,16 @@ ListExpr mupdatebyidTypeMap(ListExpr args) {
 class mupdatebyidInfo {
   public:
     mupdatebyidInfo(vector<Tuple*>* _relation,
-                    TupleIdentifier* _tid, Word& _arg,
-                    Word& _arg2, TupleType* _type)
-      : relation(_relation), tid(_tid), arg(_arg), 
-        arg2(_arg2), type(_type) {
+                    TupleIdentifier* _tid, 
+                    Word& _funlist,
+                    int _noAttr,
+                    Word& _indices, 
+                    TupleType* _type)
+      : relation(_relation), tid(_tid), 
+        funlist(_funlist), noAttr(_noAttr),
+        indices(_indices), 
+        type(_type) {
+        type->IncReference();
         firstcall = true;
       }
     
@@ -10468,62 +10475,88 @@ class mupdatebyidInfo {
     }
     
     Tuple* next() {
+      // returns only a single tuple
       if(!firstcall) return 0;
       firstcall = false;
+      // special case tid undefined
       if(!tid->IsDefined()){
           return 0;
       } 
       TupleId id = tid->GetTid();
+      // special case tid ouside the allowed range
       if(id<1 || id>relation->size()){
           return 0;
       } 
-      Tuple* res = relation->at(id-1);
-      if(!res) return 0;
-      
-      Tuple* newtup = copyAttributes(res,type);
-        
-      // Supplier for the functions
-      Supplier supplier = arg.addr;
 
-      elem.addr = 0;
-      value.addr = 0;
- 
-      Supplier son = qp->GetSupplier(arg2.addr, 0);
-      qp->Request(son, elem);
-      int changedIndex = ((CcInt*)elem.addr)->GetIntval()-1;
+      Tuple* orig = relation->at(id-1);
+      // special case: tuple already removed
+      if(!orig) return 0;
+      return computeResult(orig);
 
-      // Get next appended index
-      Supplier s1 = qp->GetSupplier(supplier, 0);
-      // Get the function
-      Supplier s2 = qp->GetSupplier(s1, 1);
-      ArgVectorPointer funargs = qp->Argument(s2);
-      ((*funargs)[0]).setAddr(res);
-      qp->Request(s2,value);
-      Attribute* newAttr = ((Attribute*)value.addr)->Clone();
-      
-      update(relation,res,changedIndex,newAttr); 
-      res->SetTupleId(tid->GetTid());
-      for(int i = 0; i < res->GetNoAttributes(); i++) {
-        if(i!=changedIndex)
-          newtup->CopyAttribute(i,res,i);
-        else
-          newtup->PutAttribute(i,newAttr);
-      }
-      //get tuple id and append it to tuple
-      Attribute* tidAttr = new TupleIdentifier(true,tid->GetTid());
-      newtup->PutAttribute(newtup->GetNoAttributes()-1,tidAttr);
-        
-      return newtup;
     }
 
+
+      
   private:
      vector<Tuple*>* relation;
      TupleIdentifier* tid;
-     Word arg;
-     Word arg2;
+     Word funlist;
+     int noAttr;
+     Word indices;
      TupleType* type;
      bool firstcall;
      Word elem, value; 
+
+
+     Tuple* computeResult(Tuple* orig) {
+
+        Tuple* res = new Tuple(type);
+
+        // copy all attributes from orig to res
+        for(int i=0;i<orig->GetNoAttributes();i++){
+          res->CopyAttribute(i,orig,i);
+        }
+
+        // collect changed indexes and 
+        // computes attributes into vectors
+
+        Word Index;
+        vector<int> indexv;
+        vector<Attribute*> attrv;
+
+        for(int i=0;i<noAttr;i++){
+           // get the attribute id
+           Supplier son = qp->GetSupplier(indices.addr,i);
+           qp->Request(son,Index);
+           int index = ((CcInt*)Index.addr)->GetIntval()-1;
+           res->CopyAttribute(index, orig, orig->GetNoAttributes()+i);
+
+           Attribute* replacement = computeFun(orig, i);
+           indexv.push_back(index);
+           attrv.push_back(replacement);
+        }
+        // replace attributes in orig and result
+        for(int i=0;i<noAttr; i++){
+           orig->PutAttribute(indexv[i], attrv[i]);
+           res->PutAttribute(indexv[i], attrv[i]->Copy());
+        }
+        // finally copy the tid into result and change its tid
+        res->PutAttribute(res->GetNoAttributes()-1, tid->Copy());
+        res->SetTupleId(tid->GetTid());
+
+        return res;
+     }
+
+     Attribute* computeFun( Tuple* orig, int funNo){
+        Supplier funs = funlist.addr;
+        Supplier s1   = qp->GetSupplier(funs, funNo);
+        Supplier fun  = qp->GetSupplier(s1, 1);
+        ArgVectorPointer funargs = qp->Argument(fun);
+        ((*funargs)[0]).setAddr(orig);
+        Word value;
+        qp->Request(fun,value);
+        return  ((Attribute*)value.addr)->Clone();
+     }
 };
 
 
@@ -10537,11 +10570,24 @@ int mupdatebyidValueMap (Word* args, Word& result,
                     int message, Word& local, Supplier s) {
   
   mupdatebyidInfo* li = (mupdatebyidInfo*) local.addr;
+  TupleType*  tt = (TupleType*) qp->GetLocal2(s).addr;
 
   switch (message) {
+
+   case INIT: {
+       tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       qp->GetLocal2(s).addr=tt;
+       return 0;
+    }
+
+    case FINISH: {
+       if(tt){
+           tt->DeleteIfAllowed();
+       }     
+       return 0;
+    }
     
     case OPEN : {
-      
       if(li){
         delete li;
         local.addr=0;
@@ -10549,12 +10595,13 @@ int mupdatebyidValueMap (Word* args, Word& result,
       
       T* oN = (T*) args[0].addr;
       MemoryRelObject* rel = getMemRel(oN);
+
       if(!rel) {return 0;}
       
       TupleIdentifier* tid = (TupleIdentifier*)(args[1].addr);
-      TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
-      
-      local.addr = new mupdatebyidInfo(rel->getmmrel(),tid,args[2],args[4],tt);
+      int noAttr = ((CcInt*) args[3].addr)->GetValue();
+      local.addr = new mupdatebyidInfo(rel->getmmrel(),tid,args[2],
+                                       noAttr,args[4],tt);
       return 0;
     }
     
@@ -21823,6 +21870,7 @@ class MainMemory2Algebra : public Algebra {
           mupdatesaveOp.SetUsesArgsInTypeMapping();
           AddOperator(&mupdatebyidOp);
           mupdatebyidOp.SetUsesArgsInTypeMapping();
+          mupdatebyidOp.enableInitFinishSupport();
           
           AddOperator(&moinsertOp);
           moinsertOp.SetUsesArgsInTypeMapping();
