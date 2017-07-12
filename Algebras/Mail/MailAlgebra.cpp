@@ -329,7 +329,7 @@ const string sendmailSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>text x text x text x text, text   -> bool </text--->"
     "<text>sendmail (subject, sender, receiver, message, carboncopy) </text--->"
-    "<text>Sends a mail to the address specified" 
+    "<text>Sends a mail to the address specified " 
     "with the third argument. The second argument " 
     "is the sender address. "
     "The first argument is the subject of the mail " 
