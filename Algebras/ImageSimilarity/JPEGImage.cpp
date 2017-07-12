@@ -925,7 +925,7 @@ void JPEGImage::writeContrastImage(const char* filename,
                 {
                     this->pixMat4[tmpY+k][tmpX+n][0] 
                     = static_cast<unsigned char>(
-                    (this->pixMat5[tmpY+k][tmpX+n][4]));
+                    (this->pixMat5[tmpY+k][tmpX+n][4]) * normalization);
                     // todo: fix parameter
                    // std::cout << "const:" << this->pixMat5[tmpY+k][tmpX+n][4] 
                    // * normalization << std::endl;  
@@ -1235,7 +1235,7 @@ double JPEGImage::localCoarseness(int x, int y, const int range)
 }
 
 void JPEGImage::computeCoarsenessValues(bool parallel, 
-    const int range = 5)
+    const int range)
 {
     const double normalize = 1;
     
@@ -1378,7 +1378,7 @@ double JPEGImage::localContrast(int x, int y, const int range)
 
 
 void JPEGImage::computeContrastValues(bool parallel, 
-    const int range = 3)
+    const int range)
 {
     
     const double normalize = 0.01;
