@@ -549,7 +549,7 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
         int tmpX = this->samplesX[z];
         int tmpY = this->samplesY[z];
                         
-        for (int kk = 0; kk < this->patchSize; kk++) // magic number...
+        for (int kk = 0; kk < this->patchSize; kk++) 
         {
             for (int ll = 0; ll < this->patchSize; ll++) 
             {
@@ -634,11 +634,11 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
        this->centersX[l]= round(tmpX / this->clusters->at(l).size());  
        this->centersY[l]= round(tmpY / this->clusters->at(l).size());
        this->colorValues1[l] 
-        = round(tmpColVal1 / this->clusters->at(l).size());  
+       = round(tmpColVal1 / this->clusters->at(l).size());  
        this->colorValues2[l] 
-        = round(tmpColVal2 / this->clusters->at(l).size());
+       = round(tmpColVal2 / this->clusters->at(l).size());
        this->colorValues3[l] 
-        = round(tmpColVal3 / this->clusters->at(l).size());
+       = round(tmpColVal3 / this->clusters->at(l).size());
        this->coa[l] = round(tmpCoa / this->clusters->at(l).size());
        this->con[l] = round(tmpCon / this->clusters->at(l).size());
        
@@ -649,7 +649,8 @@ void JPEGImage::clusterFeatures(unsigned int k, unsigned int dimensions,
         {
             //std::cout << "weight:" << this->weights[l] << std::endl; 
             Feature tmpCentroid = {this->centersX[l], this->centersY[l],
-            this->colorValues1[l], this->colorValues2[l], this->colorValues3[l],
+            this->colorValues1[l], this->colorValues2[l], 
+            this->colorValues3[l],
             this->coa[l], this->con[l]};   
             this->signature.push_back({this->weights[l], tmpCentroid});
             kk++;
@@ -965,7 +966,7 @@ void JPEGImage::writeContrastImage(const char* filename,
 
 
 void JPEGImage::writeCoarsenessImage(const char* filename, 
-    double normalization = 100.0)
+    double normalization)
 {
     auto t1 = std::chrono::high_resolution_clock::now();
     
@@ -1091,7 +1092,7 @@ void JPEGImage::drawCircle(int x0, int y0, int radius)
 
 
 void JPEGImage::writeClusterImage(const char* fileName, 
-    double normalization = 1.0)
+    double normalization)
 {
     auto t1 = std::chrono::high_resolution_clock::now();
     

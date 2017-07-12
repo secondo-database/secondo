@@ -73,13 +73,13 @@ struct HSV
 
 } //end namespace
 
-struct Feature //todo: Uppercase for type feature
+struct Feature 
 {
     int x;
     int y;
-    double r;
-    double g;
-    double b;
+    double colorValue1;
+    double colorValue2;
+    double colorValue3;
     double coarseness;
     double contrast;
 };
@@ -90,36 +90,28 @@ struct FeatureSignatureTuple
 {
 	FeatureSignatureTuple() {}
 
-	FeatureSignatureTuple(double _weight, int _x, int _y, double _r, 
-    double _g, double _b, double _coa, double _con)
+	FeatureSignatureTuple(double _weight, int _x, int _y, 
+				double _colorValue1, double _colorValue2, 
+				double _colorValue3, 
+				double _coa, double _con)
 	{
 		weight = _weight;
 		centroid.x = _x;
 		centroid.y = _y;
-		centroid.r = _r;
-		centroid.g = _g;
-		centroid.b = _b;
+		centroid.colorValue1 = _colorValue1;
+		centroid.colorValue2 = _colorValue2;
+		centroid.colorValue3 = _colorValue3;
 		centroid.coarseness = _coa;
-		centroid.contrast = _con; }
-	//FeatureSignatureTuple(double _weight, 
-    //int _centroidXpos, int _centroidYpos):
+		centroid.contrast = _con;
+	}	
 	FeatureSignatureTuple(double _weight, Feature _centroid):
-    //weight(_weight), centroidXpos(_centroidXpos), 
-    //centroidYpos(_centroidYpos)
-    weight(_weight), centroid(_centroid)
-    {}
-
-	FeatureSignatureTuple(const FeatureSignatureTuple& ist) : 
-    weight(ist.weight), centroid(ist.centroid) {}
-    //centroidXpos(ist.centroidXpos), 
-    //centroidYpos(ist.centroidYpos) {}
-
-	FeatureSignatureTuple& operator=(const FeatureSignatureTuple& ist)
+    weight(_weight), centroid(_centroid) {}
+	FeatureSignatureTuple(const FeatureSignatureTuple& fst) : 
+    weight(fst.weight), centroid(fst.centroid) {}    
+	FeatureSignatureTuple& operator=(const FeatureSignatureTuple& fst)
 	{
-		weight = ist.weight;
-		//centroidXpos = ist.centroidXpos;
-		//centroidYpos = ist.centroidYpos;
-		centroid = ist.centroid;
+		weight = fst.weight;		
+		centroid = fst.centroid;
 		return *this;
 	}
 
@@ -127,8 +119,6 @@ struct FeatureSignatureTuple
 
   double weight;
   Feature centroid;
-  //int centroidXpos;
-  //int centroidYpos;
 };
 
 
@@ -154,38 +144,39 @@ public:
     void clusterFeatures(const unsigned int k, 
             unsigned int dimensions, 
             unsigned int noDataPoints);
-    //void clusterFeatures2(int _k, int dimensions, int noDataPoints);
     
     void writeColorImage(const char* fileName);
     void writeGrayscaleImage(const char* fileName);
-    void writeCoarsenessImage(const char* fileName, 
-    double normalization);
+    void writeCoarsenessImage(
+        const char* fileName, double normalization);
     void writeContrastImage(const char* fileName, double normalization);
     void writeClusterImage(const char* fileName, double normalization);
-    int width;
-    int height;
-
-    int* centersX;  // output of k-kmeans
-    int* centersY;  // output of k-means
-    double* colVal1;
-    double* colVal2;
-    double* colVal3;
-    double* coa;
-    double* con;
     
-    double* weights; // of clusters
-    void createSignature();
+    int width; // image's height
+    int height; // image's width
+
+    int* centersX; // position as array
+    int* centersY; // position as array
+    double* colorValues1; // color value as array
+    double* colorValues2; // color value as array
+    double* colorValues3; // color value as array
+    double* coa; // coarseness as array
+    double* con; // constrast as array
+    
+    double* weights; // weights of centroids/representants
+    
+    //void createSignature();
+    
     std::vector<FeatureSignatureTuple> signature;
     int getNoDataPoints() { return this->noDataPoints; };
-    
-    // destructor
+        
     ~JPEGImage(); 
     
 private:
     bool isGrayscale;
-    unsigned char* pixels; 
+    unsigned char* pixels;
     unsigned char*** pixMat4;  // write clustered circle image
-    double*** pixMat5; 
+    double*** pixMat5; 			// stores features
 
     double ak( int x, int y, unsigned int k);
     double ekh(int x, int y, unsigned int k);
