@@ -4,7 +4,7 @@ Restore  : NO
 
 Operator : sendmail
 Number   : 1
-Signature: text, text, text, text  -> bool
-Example  : query sendmail ('subject', 'sender@universe.com',  'barbapapas@universe.com', 'any message is good')
+Signature: text, text, text, text, text   -> bool
+Example  : query sendmail('a subject', 'sender@universe2.com', 'receiver@universe1.com', 'message', 'copytosomeone@universe3.com')
 Result   : TRUE
 

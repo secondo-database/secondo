@@ -3,6 +3,23 @@ On Suse 42.2 is installed by default. You can use Yast if this is not the case.
 
 Use "sudo apt install postfix" to install it on Ubuntu.
 
+
+You have to make sure that the bash is your standart shell.
+On Ubuntu you have to change the standart from dash to bash.
+
+Use the command :
+
+sudo dpkg-reconfigure dash 
+
+and then choose the "No" Option.
+
+
+
+
+
+
+
+
 Then you have to modify two files 
 /etc/postfix/main.cf  and /etc/postfix/sasl_passwd.
 
