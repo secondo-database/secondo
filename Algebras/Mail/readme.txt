@@ -1,11 +1,11 @@
 First you have to install postfix to use the sendmail operator.
-On Suse 42.2 is installed by default. You can use Yast if this is not the case. 
+On SuSe 42.2 it is installed by default. You can use Yast if this is not the case. 
 
 Use "sudo apt install postfix" to install it on Ubuntu.
 
 
-You have to make sure that the bash is your standart shell.
-On Ubuntu you have to change the standart from dash to bash.
+You have to make sure that the bash is your standard shell.
+On Ubuntu you have to change the standard from dash to bash.
 
 Use the command :
 
@@ -14,18 +14,10 @@ sudo dpkg-reconfigure dash
 and then choose the "No" Option.
 
 
-
-
-
-
-
-
 Then you have to modify two files 
 /etc/postfix/main.cf  and /etc/postfix/sasl_passwd.
 
-If the later one does not exists, you have to create it.
-
-
+If the latter one does not exist, you need to create it.
 
 
 
@@ -33,7 +25,9 @@ In the sasl_passwd.db you have to edit (default port 25):
 
 [smtp.isp.example]:25  username:password
 
+For example:
 
+[bassi.fernuni-hagen.de]:25	klaus:strenggeheim
 
 In the main.cf you have to adapt the entries to your purposes (smtp Server without tls).
 
@@ -57,21 +51,12 @@ smtp_use_tls = no
 
 
 
-
-
-
-
-
-
 Example for a smtp server with tls:
 
 
 In the sasl_passwd.db you have to edit:
 
 [smtp.isp.example]:587  username:password
-
-
-
 
 
 In the main.cf you have to edit:
