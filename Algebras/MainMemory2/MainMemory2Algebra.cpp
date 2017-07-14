@@ -10662,6 +10662,303 @@ Operator mupdatebyidOp (
     mupdatebyidTypeMap
 );
 
+/*
+7.19 Operator ~mupdatedirect2~
+
+*/
+ListExpr mupdatedirect2TM(ListExpr args){
+    if(!nl->HasLength(args,4)){
+      return listutils::typeError("4 arguments expected");
+    }
+    if(!checkUsesArgs(args)){
+      return listutils::typeError("internal error");
+    }
+    ListExpr stream = nl->First(nl->First(args));
+    if(!Stream<Tuple>::checkType(stream)){
+      return listutils::typeError("first argument is not a tuple stream");
+    }
+    ListExpr tt1 = nl->Second(stream);
+
+    ListExpr  mrel = nl->Second(args);
+    string errMsg;
+    if(!getMemType(nl->First(mrel), nl->Second(mrel), mrel, errMsg,true)){
+      return listutils::typeError(errMsg + "\n problem in second arg:" 
+                                  + errMsg);
+    }
+    mrel = nl->Second(mrel); 
+    if(!Relation::checkType(mrel)){
+      return listutils::typeError("Second argument is not a memory relation");
+    }
+    ListExpr Attr = nl->First(nl->Third(args));
+    if(nl->AtomType(Attr) != SymbolType){
+      return listutils::typeError("Third arg is not a valid attribute name");
+    } 
+    ListExpr funlist = nl->First(nl->Fourth(args));
+    if(nl->AtomType(funlist) != NoAtom){
+       return listutils::typeError("fourth arg is not a list of functions");
+    }
+    int noFuns = nl->ListLength(funlist);
+    if(noFuns < 1){
+       return listutils::typeError("at least 1 function required");
+    }
+    ListExpr type;
+    ListExpr attrList = nl->Second(nl->Second(mrel));
+    string attrName = nl->SymbolValue(Attr);
+    
+    int tidIndex = listutils::findAttribute(nl->Second(nl->Second(stream)),
+                                            attrName, type);
+    if(!tidIndex){
+       return listutils::typeError("Attribute " + attrName 
+                                   + " not part of the tuple stream");
+    } 
+    if(!TupleIdentifier::checkType(type)){
+       return listutils::typeError("Attribute " + attrName
+                                   + " not of type tid");
+    }
+
+    
+    ListExpr tt2 = nl->Second(mrel);
+    attrList = nl->Second(tt2);
+
+    ListExpr funindexes;
+    ListExpr last;
+    set<int> used;
+    bool first = true;
+    while(!nl->IsEmpty(funlist)){
+       ListExpr namedFun = nl->First(funlist);
+       funlist = nl->Rest(funlist);
+       if(!nl->HasLength(namedFun,2)){
+         return listutils::typeError("invalid named function in list");
+       }
+       Attr = nl->First(namedFun);
+       if(nl->AtomType(Attr) != SymbolType){
+          return listutils::typeError("invalid function name found");
+       }
+       attrName = nl->SymbolValue(Attr);
+       int attrIndex = listutils::findAttribute(attrList, attrName, type);
+       if(used.find(attrIndex)!=used.end()){
+          return listutils::typeError("found more than one function for " 
+                                      + attrName);
+       }
+       used.insert(attrIndex);
+       if(!attrIndex){
+         return listutils::typeError("Attribute " + attrName 
+                                     + " not found in Relation");
+       }
+       ListExpr fun = nl->Second(namedFun);
+       if(!listutils::isMap<2>(fun)){
+         return listutils::typeError("no binary fun for attribute" + attrName);
+       }
+       // check that the funtion argument ist the relation tuple
+       if(!nl->Equal(tt1, nl->Second(fun))){
+          return listutils::typeError("first function argument and tuple"
+                                      " type of stream differ");
+       }
+       if(!nl->Equal(tt2, nl->Third(fun))){
+          return listutils::typeError("second function argument and tuple"
+                                      " type of relation differ");
+       }
+       // check that the function result corresponds to the attribute type
+       if(!nl->Equal(type, nl->Fourth(fun))){
+         return listutils::typeError("function result and type of " 
+                                     + attrName + " differ");
+       }
+       // append attrIndex to indexes
+       if(first){
+          funindexes = nl->OneElemList(nl->IntAtom(attrIndex - 1 ));
+          last = funindexes;
+          first = false;
+       } else {
+          last = nl->Append(last,nl->IntAtom(attrIndex - 1));
+       }
+    }
+
+    ListExpr res =  nl->ThreeElemList(
+             nl->SymbolAtom(Symbols::APPEND()),
+             nl->ThreeElemList(nl->IntAtom(tidIndex-1), 
+                               nl->IntAtom(noFuns),
+                               funindexes),
+             stream  
+           );
+    return res; 
+
+}
+
+
+class mupdatedirect2LocalInfo{
+
+  public:
+     mupdatedirect2LocalInfo(Word _stream, vector<Tuple*>* _relation,
+                        int _tidIndex, Word _funs, vector<int>& _funindexes):
+         stream(_stream), relation(_relation), tidIndex(_tidIndex), 
+         funindexes(_funindexes)
+     {
+
+        stream.open();
+        for(size_t i=0;i<_funindexes.size();i++){
+          Supplier s1 = qp->GetSupplier(_funs.addr,i);
+          Supplier fun = qp->GetSupplier(s1,1);
+          ArgVectorPointer avp = qp->Argument(fun);
+          funs.push_back(fun);
+          funargs.push_back(avp); 
+        }
+     }
+     ~mupdatedirect2LocalInfo(){
+        stream.close();
+     }
+
+   Tuple* next(){
+      Tuple* tuple = stream.request();
+      while(tuple) {
+         TupleIdentifier* Tid = (TupleIdentifier*)tuple->GetAttribute(tidIndex);
+         if(Tid->IsDefined()){
+            TupleId tid = Tid->GetTid();
+            if((tid > 0) && (tid <=  relation->size())){
+              Tuple* relTuple = relation->at(tid-1);
+              if(relTuple){
+                updateTuple(tuple, relTuple);
+                return tuple;
+              }
+            }
+         }
+         tuple->DeleteIfAllowed();
+         tuple = stream.request();
+      }
+      return 0;
+   }
+
+
+   private:
+      Stream<Tuple> stream;
+      vector<Tuple*>* relation;
+      int tidIndex;
+      vector<int> funindexes;
+      vector<Supplier> funs;
+      vector<ArgVectorPointer> funargs; 
+      Word result;
+
+      void updateTuple(Tuple* streamTuple, Tuple* relTuple){
+         vector<Attribute*> uattrs;
+         for(size_t i=0;i<funs.size();i++){
+            ArgVectorPointer avp = funargs[i];
+            (*avp)[0].addr = streamTuple;
+            (*avp)[1].addr = relTuple;
+            qp->Request(funs[i], result);
+            uattrs.push_back( ((Attribute*) result.addr)->Clone());
+         }
+         for(size_t i=0;i<funindexes.size();i++){
+            relTuple->PutAttribute(funindexes[i], uattrs[i]);
+         }
+      }
+};
+
+
+
+template<class T>
+int mupdatedirect2VMT (Word* args, Word& result,
+                    int message, Word& local, Supplier s) {
+  
+  mupdatedirect2LocalInfo* li = (mupdatedirect2LocalInfo*) local.addr;
+
+  switch (message) {
+
+    
+    case OPEN : {
+      if(li){
+        delete li;
+        local.addr=0;
+      }
+      
+      T* oN = (T*) args[1].addr;
+      MemoryRelObject* rel = getMemRel(oN);
+
+      if(!rel) {return 0;}
+
+      int tidIndex = ((CcInt*) args[4].addr)->GetValue();
+      int noFuns = ((CcInt*) args[5].addr)->GetValue();
+      vector<int> funindexes;
+      Word elem;
+      for(size_t i=0;i<noFuns;i++){
+         Supplier s = qp->GetSupplier(args[6].addr, i);
+         qp->Request(s,elem);
+         int index = ((CcInt*) elem.addr)->GetValue();
+         funindexes.push_back(index);
+      } 
+ 
+      local.addr = new mupdatedirect2LocalInfo(args[0], rel->getmmrel(), 
+                                              tidIndex, 
+                                              args[3], funindexes);  
+    
+      return 0;
+    }
+    
+    case REQUEST : {
+      result.addr=li?li->next():0;
+      return result.addr?YIELD:CANCEL;
+    }
+    
+    case CLOSE :
+      if(li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+      
+  }
+  return 0;
+
+}
+
+
+ValueMapping mupdatedirect2VM[] = {
+   mupdatedirect2VMT<CcString>,
+   mupdatedirect2VMT<Mem>,
+   mupdatedirect2VMT<MPointer>
+};
+
+int mupdatedirect2Select(ListExpr args){
+   return getRepNum(nl->Second(args));
+}
+
+/*
+7.18.4 Description of operator ~mupdatedirect2~
+
+*/
+OperatorSpec mupdatedirect2Spec(
+    "stream(tuple(X)  x mrel(tuple(Y) x IDENT x funlist -> stream(tuple(X))",
+    "_ _ mupdatedirect2[_; funlist]",
+    "The first argument represents a stream of tuple containing a TID "
+    "attribute. "
+    "The second represents a main memory relation. " 
+    "The third argument specifies the name of the tid attribute in the stream."
+    "The last argument is a list of named functions taking a tuple(X) and "
+    "a tuple(Y) producing an attribute according to the name's type "
+    " in the relation. The operator updates the tuples in the relation "
+    " with the tid coming from the tuple stream by replacing the attributes "
+    " in the funlist by the function results. The result is the incoming tuple "
+    " stream. Tuples having containing a tid that point to non existing tuples" 
+    " in the relation are removed from the output stream.",
+    "query ten feed filter[.No > 3] addid \"ten\" "
+    "mupdatedirect2[TID; No : .No + ..No * 10] consume"
+);
+
+/*
+
+7.18.5 Instance of operator ~mupdatebyid~
+
+*/
+Operator mupdatedirect2Op (
+    "mupdatedirect2",
+    mupdatedirect2Spec.getStr(),
+    3,
+    mupdatedirect2VM,
+    mupdatedirect2Select,
+    mupdatedirect2TM
+);
+
+
+
+
 
 /////////////////////////////////////// ORDERED RELATION ////
 enum ChangeType{
@@ -21871,6 +22168,9 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mupdatebyidOp);
           mupdatebyidOp.SetUsesArgsInTypeMapping();
           mupdatebyidOp.enableInitFinishSupport();
+          
+          AddOperator(&mupdatedirect2Op);
+          mupdatedirect2Op.SetUsesArgsInTypeMapping();
           
           AddOperator(&moinsertOp);
           moinsertOp.SetUsesArgsInTypeMapping();

@@ -768,6 +768,14 @@ Signature : string -> bool
 Example   : query memload("otestrel")
 Result    : TRUE
 
+Operator  : mupdatedirect2
+Number    : 121
+Signature : stream(tuple(X)) x MREL(tuple(Y)) x INDENT x funlist -> stream(tuple(X))
+Example   : query thousand feed addid "ten" mupdatedirect2[TID; No : .No + ..No] count = "ten" mfeed count 
+Result    : TRUE
+
+
+
 Operator  : moshortestpathd
 Number    : 200
 Signature : {string, mem(orel(tuple(x)))} x int x int x int x (tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))

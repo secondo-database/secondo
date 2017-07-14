@@ -90,6 +90,7 @@ operator mupdate alias MUPDATE pattern _ op[_; funlist] implicit parameter tuple
 operator mupdatesave alias MUPDATESAVE pattern _ op[_,_; funlist] implicit parameter tuple type MTUPLE2
 operator mupdatebyid alias MUPDATEBYID pattern _ op[_; funlist] 
          implicit parameter tuple type MTUPLE
+operator mupdatedirect2 alias MUPDATEDIRECT2 pattern _ _ op[_; funlist] implicit parameters tuple1, tuple2 types STREAMELEM, MTUPLE2
 
 operator moinsert alias MOINSERT pattern _ op [_]
 operator modelete alias MODELETE pattern _ op [_]
