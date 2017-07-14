@@ -1,0 +1,8 @@
+# How to use OPTICS & MTrees and Secondo to cluster
+# picture objects in Secondo
+# July 2017, Michael Loris 
+#
+#
+# 1. run pictures2relation against directory with files
+# 2. let optic =  wangrelation feed opticsM[Pic, 10.0, 5] consume;
+# 3. adjust cluster parameters

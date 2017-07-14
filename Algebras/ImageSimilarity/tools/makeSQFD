@@ -1,0 +1,1 @@
+g++ SQFD.cpp -o SQFD -std=c++11
