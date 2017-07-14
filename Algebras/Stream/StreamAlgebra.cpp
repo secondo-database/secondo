@@ -3023,7 +3023,12 @@ Print the elements of a Tuple-type stream.
           string attrName = (static_cast<CcString*>
                                    (args[i+1].addr))->GetValue();
           cout << attrName << ": ";
-          ((Attribute*) (tuple->GetAttribute(i)))->Print(cout);
+          Attribute* attr = (Attribute*) (tuple->GetAttribute(i));
+          if(attr){
+             attr->Print(cout);
+          } else {
+            cout << "Invalid attribute: NULL";
+          }
           cout << endl;
         }
         cout << "       )" << endl;
