@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+#include <algorithm>
 #include <cstring>
 #include <sstream>
 
@@ -63,6 +64,13 @@ void ReplicationUtils::parseFileName(const std::string& fileName,
     size_t relNameLength = fileName.length() - strlen(".bin") - relNameStartPos;
 
     relationName = fileName.substr(relNameStartPos, relNameLength);
+}
+
+void ReplicationUtils::removeQuotes(std::string& relationName)
+{
+    relationName.erase(
+            remove(relationName.begin(), relationName.end(), '\"'),
+            relationName.end());
 }
 
 string ReplicationUtils::separator("xDBSx");

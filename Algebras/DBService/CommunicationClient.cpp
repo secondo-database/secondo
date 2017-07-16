@@ -44,7 +44,7 @@ CommunicationClient::CommunicationClient(
 {
     string context("CommunicationClient");
     traceWriter= unique_ptr<TraceWriter>
-    (new TraceWriter(context));
+    (new TraceWriter(context, port));
 
     traceWriter->writeFunction("CommunicationClient::CommunicationClient");
     traceWriter->write("Connecting to server: ", server);
@@ -206,12 +206,14 @@ void CommunicationClient::getLocationParameter(
                                        "");
 }
 
-bool CommunicationClient::getReplicaLocation(const string databaseName,
-                                             const string relationName,
+bool CommunicationClient::getReplicaLocation(const string& databaseName,
+                                             const string& relationName,
                                              std::string& host,
                                              std::string& transferPort)
 {
     traceWriter->writeFunction("CommunicationClient::getReplicaLocation");
+    traceWriter->write("databaseName", databaseName);
+    traceWriter->write("relationName", relationName);
 
     if(start() != 0)
     {
@@ -241,6 +243,9 @@ bool CommunicationClient::getReplicaLocation(const string databaseName,
 
     sendBuffer.push(databaseName);
     sendBuffer.push(relationName);
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    traceWriter->write("Sent relation details to DBService master");
 
     queue<string> receivedLines;
     CommunicationUtils::receiveLines(io, 2, receivedLines);

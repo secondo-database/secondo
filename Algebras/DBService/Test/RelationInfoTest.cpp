@@ -117,6 +117,32 @@ TEST_F(RelationInfoTest, testAddNode)
     ASSERT_EQ(relationInfo->nodesEnd(), ++it);
 }
 
+TEST_F(RelationInfoTest, testAddNodeReplicatedTrue)
+{
+    ASSERT_EQ(0u, relationInfo->getNodeCount());
+    ConnectionID connID = 5;
+    relationInfo->addNode(connID, true);
+    ASSERT_EQ(1u, relationInfo->getNodeCount());
+    map<ConnectionID, bool>::const_iterator it =
+            relationInfo->nodesBegin();
+    ASSERT_EQ(connID, it->first);
+    ASSERT_TRUE(it->second);
+    ASSERT_EQ(relationInfo->nodesEnd(), ++it);
+}
+
+TEST_F(RelationInfoTest, testAddNodeReplicatedFalse)
+{
+    ASSERT_EQ(0u, relationInfo->getNodeCount());
+    ConnectionID connID = 5;
+    relationInfo->addNode(connID, false);
+    ASSERT_EQ(1u, relationInfo->getNodeCount());
+    map<ConnectionID, bool>::const_iterator it =
+            relationInfo->nodesBegin();
+    ASSERT_EQ(connID, it->first);
+    ASSERT_FALSE(it->second);
+    ASSERT_EQ(relationInfo->nodesEnd(), ++it);
+}
+
 TEST_F(RelationInfoTest, testAddNodes)
 {
     ASSERT_EQ(0u, relationInfo->getNodeCount());

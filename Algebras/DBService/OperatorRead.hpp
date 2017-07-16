@@ -47,7 +47,7 @@ struct ReadInfo: OperatorInfo
         syntax = ""; // TODO
         meaning = "execute a certain query and fall back to "
                   "replica provided by DBService if necessary";
-        usesArgsInTypeMapping = false;
+        usesArgsInTypeMapping = true;
     }
 };
 

@@ -53,7 +53,8 @@ int OperatorCheckDBServiceStatus::mapValue(Word* args,
                               Supplier s)
 {
 
-    DBServiceManager::getInstance();
+    DBServiceManager* dbService = DBServiceManager::getInstance();
+    dbService->printMetadata();
 
     result = qp->ResultStorage(s);
     static_cast<CcBool*>(result.addr)->Set(true,true);

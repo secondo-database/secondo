@@ -44,7 +44,7 @@ namespace DBService {
 
 class TraceWriter {
 public:
-    TraceWriter(std::string& context);
+    TraceWriter(std::string& context, int port);
     ~TraceWriter();
     void write(const std::string& text);
     void write(const char* text);

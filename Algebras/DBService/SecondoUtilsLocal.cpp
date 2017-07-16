@@ -63,6 +63,8 @@ bool SecondoUtilsLocal::prepareQueryForProcessing(
             const string& queryAsString,
             string& queryAsPreparedNestedListString)
 {
+    printFunction("SecondoUtilsLocal::prepareQueryForProcessing");
+    print("queryAsString", queryAsString);
     SecParser secondoParser;
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0)
@@ -71,14 +73,22 @@ bool SecondoUtilsLocal::prepareQueryForProcessing(
         return false;
     }
     print("query converted to nested list string");
-    print("queryAsNestedListString", queryAsNestedListString);
-    queryAsNestedListString.erase(0, strlen("(query "));
-    print("queryAsNestedListString", queryAsNestedListString);
-    queryAsPreparedNestedListString =
-            queryAsNestedListString.substr(0, queryAsNestedListString.size()-2);
-    print("queryAsPreparedNestedListString", queryAsNestedListString);
-    return true;
+    print("queryAsNestedListString 1", queryAsNestedListString);
 
+    if(queryAsNestedListString.find("(query ") == 0)
+    {
+        queryAsNestedListString.erase(0, strlen("(query "));
+        print("queryAsNestedListString 2", queryAsNestedListString);
+        queryAsPreparedNestedListString =
+                queryAsNestedListString.substr(
+                        0, queryAsNestedListString.rfind(")"));
+    }else
+    {
+        queryAsPreparedNestedListString = queryAsNestedListString;
+    }
+    print("queryAsPreparedNestedListString",
+            queryAsPreparedNestedListString);
+    return true;
 }
 
 bool SecondoUtilsLocal::executeQuery2(const string& queryAsString)

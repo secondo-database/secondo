@@ -175,13 +175,23 @@ relations accordingly.
 
 /*
 
-1.1.1 \textit{}
+1.1.1 ~deleteReplicaMetadata~
 
 This function removes the metadata of a certain relation from the internal data
 structures and from the persistent metadata relations.
 
 */
     void deleteReplicaMetadata(const std::string& relID);
+
+/*
+
+1.1.1 ~printMetadata~
+
+This function prints all DBService metadata used for replica provisioning to
+the command line.
+
+*/
+        void printMetadata();
 
 /*
 1.1.1 Constructor
@@ -362,6 +372,15 @@ enum FaultToleranceMode
 
 FaultToleranceMode mode;
 
+/*
+
+1.1.1 ~managerMutex~
+
+Mutex used to coordinate multi-threaded access by different servers.
+
+*/
+
+boost::mutex managerMutex;
 
 };
 

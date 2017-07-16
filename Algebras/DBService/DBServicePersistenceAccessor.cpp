@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include <sstream>
+#include <utility>
 
 #include "SecondoException.h"
 #include "StringUtils.h"
@@ -283,7 +284,7 @@ bool DBServicePersistenceAccessor::restoreRelationInfo(
 }
 
 bool DBServicePersistenceAccessor::restoreLocationMapping(
-        queue<pair<string, ConnectionID> >& mapping)
+        queue<pair<string, pair<ConnectionID, bool> > >& mapping)
 {
     printFunction("DBServicePersistenceAccessor::restoreLocationMapping");
     bool resultOk = true;
@@ -310,12 +311,14 @@ bool DBServicePersistenceAccessor::restoreLocationMapping(
                     print("resultData", resultData);
                     ListExpr currentRow = nl->First(resultData);
                     string relID(nl->StringValue(nl->First(currentRow)));
-                    string conn(nl->StringValue(nl->Second(currentRow)));
+                    int conn = nl->IntValue(nl->Second(currentRow));
+                    bool replicated = nl->BoolValue(nl->Third(currentRow));
                     print("RelationID: ", relID);
                     print("ConnectionID: ", conn);
+                    print("Replicated: ", replicated);
                     mapping.push(
-                            pair<string, ConnectionID>(
-                                    relID, atoi(conn.c_str())));
+                            pair<string, pair<ConnectionID, bool> >(
+                                    relID, make_pair(conn, replicated)));
                     resultData = nl->Rest(resultData);
                 }
             }
@@ -337,13 +340,6 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
 {
     printFunction("DBServicePersistenceAccessor::updateLocationMapping");
 
-    string databaseName;
-    string relationName;
-    RelationInfo::parseIdentifier(
-            relationID,
-            databaseName,
-            relationName);
-
     SecondoUtilsLocal::adjustDatabase(string("dbservice"));
 
     FilterConditions filterConditions =
@@ -358,7 +354,7 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
 
     return SecondoUtilsLocal::executeQuery2(
             CommandBuilder::buildUpdateCommand(
-                    relationName,
+                    string("mapping_DBSP"),
                     filterConditions,
                     valueToUpdate));
 }
@@ -458,7 +454,7 @@ RelationDefinition DBServicePersistenceAccessor::relations =
 RelationDefinition DBServicePersistenceAccessor::mapping =
 {
     { AttributeType::STRING, "RelationID" },
-    { AttributeType::STRING, "ConnectionID" },
+    { AttributeType::INT, "ConnectionID" },
     { AttributeType::BOOL, "Replicated" },
 };
 

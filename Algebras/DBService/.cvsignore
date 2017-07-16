@@ -4,3 +4,7 @@
 Test/SuiteDBService
 README.md
 *.pdf
+*.tex
+*.dvi
+docu
+*.aux

@@ -34,7 +34,7 @@ using namespace std;
 
 namespace DBService {
 
-TraceWriter::TraceWriter(string& context)
+TraceWriter::TraceWriter(string& context, int port)
 {
     std::time_t currentTime = std::time(0);
     stringstream fileName;
@@ -44,13 +44,6 @@ TraceWriter::TraceWriter(string& context)
             host,
             "Environment",
             "SecondoHost",
-            "");
-
-    string port;
-    SecondoUtilsLocal::readFromConfigFile(
-            port,
-            "Environment",
-            "SecondoPort",
             "");
 
     fileName << context << "_"

@@ -59,6 +59,7 @@ public:
     const std::string& getDatabaseName() const;
     const std::string& getRelationName() const;
     void addNode(ConnectionID id);
+    void addNode(ConnectionID id, bool replicated);
     void addNodes(std::vector<ConnectionID>& nodesToAdd);
     const std::map<ConnectionID, bool>::const_iterator nodesBegin() const;
     const std::map<ConnectionID, bool>::const_iterator nodesEnd() const;

@@ -54,7 +54,12 @@ const string& RelationInfo::getRelationName() const
 
 void RelationInfo::addNode(ConnectionID id)
 {
-    nodes.insert(pair<ConnectionID, bool>(id, false));
+    addNode(id, false);
+}
+
+void RelationInfo::addNode(ConnectionID id, bool replicated)
+{
+    nodes.insert(pair<ConnectionID, bool>(id, replicated));
 }
 
 void RelationInfo::addNodes(vector<ConnectionID>& nodesToAdd)

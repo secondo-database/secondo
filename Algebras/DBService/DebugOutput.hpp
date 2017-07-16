@@ -56,6 +56,8 @@ void print(const char* text1, const std::string& text2);
 void print(const std::string& text1, const char* text2);
 void print(const LocationInfo& locationInfo);
 void print(const RelationInfo& relationInfo);
+void printLocationInfo(const LocationInfo& locationInfo);
+void printRelationInfo(const RelationInfo& relationInfo);
 
 }
 

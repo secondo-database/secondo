@@ -55,7 +55,7 @@ ReplicationClient::ReplicationClient(
 {
     string context("ReplicationClient");
     traceWriter= unique_ptr<TraceWriter>
-    (new TraceWriter(context));
+    (new TraceWriter(context, port));
 
     traceWriter->writeFunction("ReplicationClient::ReplicationClient");
     traceWriter->write("server", server);

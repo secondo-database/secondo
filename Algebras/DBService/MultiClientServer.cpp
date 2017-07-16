@@ -44,7 +44,7 @@ int MultiClientServer::start()
         return 1;
     }
 
-    const size_t MAX_THREADS = 4;
+    const size_t MAX_THREADS = 256;
 
     boost::thread_group threads;
     for(size_t i = 0; i < MAX_THREADS; i++)

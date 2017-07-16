@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorRead.hpp"
+#include "Algebras/DBService/ReplicationUtils.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
 
 using namespace std;
@@ -50,16 +51,22 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
 
     ListExpr feedTypeMapResult = OperatorFeed::FeedTypeMap(nestedList);
 
+    string relationName = nl->ToString(nl->Second(nl->First(nestedList)));
+    ReplicationUtils::removeQuotes(relationName);
+
     if(feedTypeMapResult == nl->TypeError())
     {
 
-        string relationName = nl->ToString(nl->First(nestedList));
         string fileName =
                 DBServiceConnector::getInstance()->
                 retrieveReplicaAndGetFileName(
                         SecondoSystem::GetInstance()->GetDatabaseName(),
                         relationName,
                         string(""));
+        if(fileName.empty())
+        {
+            return listutils::typeError("File does not exist");
+        }
         stringstream createCommand;
         createCommand << "let "
                 << nl->ToString(nl->First(nestedList))
@@ -72,7 +79,7 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
                 createCommand.str(),
                 errorMessage))
         {
-            throw new SecondoException("Could not create relation from file");
+            return listutils::typeError("Could not create relation from file");
         }
     }
 

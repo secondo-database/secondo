@@ -51,6 +51,7 @@ public:
             const std::string& fileName,
             std::string& databaseName,
             std::string& relationName);
+    static void removeQuotes(std::string& relationName);
 private:
     static std::string separator;
 };

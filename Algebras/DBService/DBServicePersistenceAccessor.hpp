@@ -105,7 +105,8 @@ SECONDO relation.
 
 */
     static bool restoreLocationMapping(
-            std::queue<std::pair<std::string, ConnectionID> >& mapping);
+            std::queue<
+            std::pair<std::string, std::pair<ConnectionID, bool> > >& mapping);
 
 /*
 

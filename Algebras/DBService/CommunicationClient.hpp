@@ -100,8 +100,8 @@ the host and the transfer port of the node that holds the replica.
 
 */
     bool getReplicaLocation(
-            const std::string databaseName,
-            const std::string relationName,
+            const std::string& databaseName,
+            const std::string& relationName,
             std::string& host,
             std::string& transferPort);
 

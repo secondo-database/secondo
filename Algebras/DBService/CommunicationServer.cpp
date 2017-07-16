@@ -45,7 +45,7 @@ CommunicationServer::CommunicationServer(int port) :
 {
     string context("CommunicationServer");
     traceWriter= unique_ptr<TraceWriter>
-    (new TraceWriter(context));
+    (new TraceWriter(context, port));
 
     traceWriter->writeFunction("CommunicationServer::CommunicationServer");
     traceWriter->write("Initializing CommunicationServer");
@@ -263,15 +263,23 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
     traceWriter->write("relationName", relationName);
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
-    ConnectionID randomReplicaLocation =
+    ConnectionID randomReplicaLocation = 0;
+    try
+    {
+        randomReplicaLocation =
             dbService->getRelationInfo(
                 RelationInfo::getIdentifier(databaseName, relationName)).
                         getRandomReplicaLocation();
+    }catch(...)
+    {
+        traceWriter->write("RelationInfo does not exist");
+    }
     queue<string> sendBuffer;
     if(randomReplicaLocation == 0)
     {
         sendBuffer.push(CommunicationProtocol::None());
         sendBuffer.push(CommunicationProtocol::None());
+        CommunicationUtils::sendBatch(io, sendBuffer);
         return false;
     }
     LocationInfo location = dbService->getLocation(randomReplicaLocation);
