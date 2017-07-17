@@ -7900,7 +7900,8 @@ class minsertInfo {
      Tuple* next(){
        Tuple* res = stream.request();
 
-       if(!res) { return 0; }
+       if(!res) {return 0; }
+
        if(flob) {
          res->bringToMemory();
        }
@@ -7962,13 +7963,11 @@ int minsertValMap (Word* args, Word& result,
     }
     
     case OPEN : {
-      
       if(li) {
         delete li;
         local.addr=0;
       }
       
-      qp->Open(args[0].addr);
 
       assert(gi);
 
