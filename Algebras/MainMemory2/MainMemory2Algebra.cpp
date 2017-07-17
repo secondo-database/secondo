@@ -10329,7 +10329,6 @@ added.
 
 */
 ListExpr mupdatebyidTypeMap(ListExpr args) {
-  
   if(nl->ListLength(args) != 3) {
     return listutils::typeError("wrong number of arguments");
   }
@@ -10364,13 +10363,30 @@ ListExpr mupdatebyidTypeMap(ListExpr args) {
   }
   int noAttrs = nl->ListLength(maprest);
 
+
+  // copy all original attributes to resAttrList
+  ListExpr inAttrList = nl->Second(nl->Second(first));
+  ListExpr resAttrList;
+  ListExpr resAttrListLast;
+  bool firstcall = true;
+  while(!nl->IsEmpty(inAttrList)){
+    ListExpr attr = nl->First(inAttrList);
+    inAttrList = nl->Rest(inAttrList);
+    if(firstcall){
+       resAttrList = nl->OneElemList(attr);
+       resAttrListLast = resAttrList;
+       firstcall = false;
+    } else {
+       resAttrListLast = nl->Append(resAttrListLast, attr);
+    }  
+  } 
   
   // Go through all functions
   ListExpr mapfirst, mapsecond;
   ListExpr attrType;
   ListExpr indices, indicescurrent;
   
-  bool firstcall = true;
+  firstcall = true;
   while (!(nl->IsEmpty(maprest))) {
     map = nl->First(maprest);
     maprest = nl->Rest(maprest);
@@ -10409,49 +10425,35 @@ ListExpr mupdatebyidTypeMap(ListExpr args) {
       indices = nl->OneElemList(nl->IntAtom(attrIndex));
       indicescurrent = indices;
       firstcall = false;
-    }
-    else 
+    } else {
       indicescurrent = nl->Append(indicescurrent,
                                   nl->IntAtom(attrIndex));
+    }
+    argstr += "_old";
+    ListExpr newAttr = nl->TwoElemList( nl->SymbolAtom(argstr),
+                                        attrType);
+    resAttrListLast= nl->Append(resAttrListLast, newAttr);
   }
   
-  maprest = nl->Second(nl->Second(first));
-  
-  ListExpr attrlist = nl->OneElemList(nl->First(maprest));
-  ListExpr currentattr = attrlist;
-  maprest = nl->Rest(maprest);
-  
-  while (!(nl->IsEmpty(maprest))) {
-    currentattr = nl->Append(currentattr,nl->First(maprest));
-    maprest = nl->Rest(maprest);
-  }
-  
-  // build second part of the resultstream
-  maprest = nl->Second(nl->Second(first));
-  string oldName;
-  ListExpr oldattr;
-  while (!(nl->IsEmpty(maprest))) {
-    nl->WriteToString(oldName, nl->First(nl->First(maprest)));
-    oldName += "_old";
-    oldattr = nl->TwoElemList(nl->SymbolAtom(oldName),
-                              nl->Second(nl->First(maprest)));
-    currentattr = nl->Append(currentattr,oldattr);
-    maprest = nl->Rest(maprest);
-  }
-  currentattr = nl->Append(currentattr,
-                           nl->TwoElemList(
-                             nl->SymbolAtom("TID"),
-                             nl->SymbolAtom(TupleIdentifier::BasicType())));
+
+  // append TID as the last attribute for result
+  ListExpr newAttr = nl->TwoElemList(nl->SymbolAtom("TID"),
+                                     listutils::basicSymbol<TupleIdentifier>());
+  resAttrListLast = nl->Append(resAttrListLast, newAttr);
+
   
   ListExpr resType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                      nl->TwoElemList(
                                        nl->SymbolAtom(Tuple::BasicType()),
-                                       attrlist));
- 
-  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                                       resAttrList));
+
+
+  ListExpr res =  nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
                            nl->TwoElemList(nl->IntAtom(noAttrs),
                                            indices),
                            resType);
+  return res;
+ 
 }
 
 class mupdatebyidInfo {
@@ -10459,11 +10461,10 @@ class mupdatebyidInfo {
     mupdatebyidInfo(vector<Tuple*>* _relation,
                     TupleIdentifier* _tid, 
                     Word& _funlist,
-                    int _noAttr,
                     Word& _indices, 
                     TupleType* _type)
       : relation(_relation), tid(_tid), 
-        funlist(_funlist), noAttr(_noAttr),
+        funlist(_funlist), 
         indices(_indices), 
         type(_type) {
         type->IncReference();
@@ -10501,7 +10502,6 @@ class mupdatebyidInfo {
      vector<Tuple*>* relation;
      TupleIdentifier* tid;
      Word funlist;
-     int noAttr;
      Word indices;
      TupleType* type;
      bool firstcall;
@@ -10511,6 +10511,8 @@ class mupdatebyidInfo {
      Tuple* computeResult(Tuple* orig) {
 
         Tuple* res = new Tuple(type);
+
+        int noAttr = res->GetNoAttributes() - (orig->GetNoAttributes() + 1);
 
         // copy all attributes from orig to res
         for(int i=0;i<orig->GetNoAttributes();i++){
@@ -10524,6 +10526,7 @@ class mupdatebyidInfo {
         vector<int> indexv;
         vector<Attribute*> attrv;
 
+
         for(int i=0;i<noAttr;i++){
            // get the attribute id
            Supplier son = qp->GetSupplier(indices.addr,i);
@@ -10535,6 +10538,7 @@ class mupdatebyidInfo {
            indexv.push_back(index);
            attrv.push_back(replacement);
         }
+
         // replace attributes in orig and result
         for(int i=0;i<noAttr; i++){
            orig->PutAttribute(indexv[i], attrv[i]);
@@ -10599,9 +10603,9 @@ int mupdatebyidValueMap (Word* args, Word& result,
       if(!rel) {return 0;}
       
       TupleIdentifier* tid = (TupleIdentifier*)(args[1].addr);
-      int noAttr = ((CcInt*) args[3].addr)->GetValue();
+      //int noAttr = ((CcInt*) args[3].addr)->GetValue();
       local.addr = new mupdatebyidInfo(rel->getmmrel(),tid,args[2],
-                                       noAttr,args[4],tt);
+                                       args[4],tt);
       return 0;
     }
     
