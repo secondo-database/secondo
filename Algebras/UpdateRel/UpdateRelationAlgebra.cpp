@@ -4412,6 +4412,8 @@ ListExpr updatedirect2TM(ListExpr args){
      return listutils::typeError(err + "(second arg is not a relation)");
   }
 
+  ListExpr tt2 = nl->Second(nl->Second(args));
+
   if(nl->AtomType(nl->Third(args)) != SymbolType){
      return listutils::typeError(err + 
                                  "(third arg is not a valid attribute name)");
@@ -4486,7 +4488,7 @@ ListExpr updatedirect2TM(ListExpr args){
   return nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()),
             appendList,
-            nl->First(args));
+            nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),tt2));
 }
 
 
@@ -4518,10 +4520,24 @@ class updatedirect2Info{
 
      Tuple* next(){
          Tuple*  tuple = stream.request();
-         if(tuple){
-              update(tuple);
+         while(tuple){
+           TupleIdentifier* Tid =(TupleIdentifier*) tuple->GetAttribute(tidPos);
+           if(Tid->IsDefined()){
+              TupleId tid = Tid->GetTid();
+              if(tid!=0){
+                Tuple* relTuple = rel->GetTuple(tid, true);  
+                if(relTuple){
+                   vector<Attribute*> changes = getChanges(tuple, relTuple);
+                   rel->UpdateTuple(relTuple, attrPos, changes);
+                   tuple->DeleteIfAllowed();
+                   return relTuple;
+                }
+              }
+           }
+           tuple->DeleteIfAllowed();
+           tuple = stream.request();
          }
-         return tuple;
+         return 0;
      }
 
 
@@ -4534,26 +4550,6 @@ class updatedirect2Info{
      vector<int> attrPos;
      vector<Supplier> funs;
      vector<ArgVectorPointer> funargs;
-
-
-     void update(Tuple* tuple){
-        TupleIdentifier* Tid = (TupleIdentifier*) tuple->GetAttribute(tidPos);
-        if(!Tid->IsDefined()){ // undefined tuple id
-            return;
-        }
-        TupleId tid = Tid->GetTid();
-        if(tid==0){ // invalid tuple id
-           return;
-        }
-        Tuple* relTuple = rel->GetTuple(tid, true);
-        if(!relTuple){ // tuple id not found in relation
-           return;
-        }
-        vector<Attribute*> changes = getChanges(tuple, relTuple);
-        rel->UpdateTuple(relTuple, attrPos, changes);
-        // updateTuple also deletes the tuples in vector
-        relTuple->DeleteIfAllowed();
-     }
 
      vector<Attribute*> getChanges(Tuple* streamTuple, Tuple* relTuple){
         vector<Attribute*> res;
