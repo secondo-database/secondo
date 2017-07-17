@@ -10881,7 +10881,7 @@ int mupdatedirect2VMT (Word* args, Word& result,
       int noFuns = ((CcInt*) args[5].addr)->GetValue();
       vector<int> funindexes;
       Word elem;
-      for(size_t i=0;i<noFuns;i++){
+      for(int i=0;i<noFuns;i++){
          Supplier s = qp->GetSupplier(args[6].addr, i);
          qp->Request(s,elem);
          int index = ((CcInt*) elem.addr)->GetValue();
