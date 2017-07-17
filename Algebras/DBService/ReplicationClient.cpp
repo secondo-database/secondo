@@ -94,6 +94,12 @@ int ReplicationClient::receiveReplica()
     traceWriter->writeFunction("ReplicationClient::receiveReplica");
     try
     {
+        if(start() != 0)
+        {
+            traceWriter->write("Could not connect to Server");
+            return false;
+        }
+
         iostream& io = socket->GetSocketStream();
         if(!CommunicationUtils::receivedExpectedLine(io,
                 CommunicationProtocol::ReplicationServer()))
@@ -125,6 +131,12 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
     traceWriter->writeFunction("ReplicationClient::requestReplica");
     try
     {
+        if(start() != 0)
+        {
+            traceWriter->write("Could not connect to Server");
+            return false;
+        }
+
         iostream& io = socket->GetSocketStream();
         if(!CommunicationUtils::receivedExpectedLine(io,
                 CommunicationProtocol::ReplicationServer()))

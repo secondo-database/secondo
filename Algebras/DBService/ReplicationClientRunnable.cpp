@@ -87,7 +87,6 @@ void ReplicationClientRunnable::create(
                              fileNameOrigin,
                              databaseName,
                              relationName);
-    client.start();
     client.receiveReplica();
 }
 
