@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <sstream>
 
+#include <boost/thread.hpp>
+
 #include "Algebra.h"
 
 #include "Algebras/DBService/LocationInfo.hpp"
@@ -45,6 +47,7 @@ namespace DBService
 
 void print(std::string& text);
 void printFunction(const char* text);
+void printFunction(const boost::thread::id tid, const char* text);
 void print(const std::string& text);
 void print(const char* text);
 void print(ListExpr nestedList);
@@ -53,6 +56,7 @@ void print(const char* text, int number);
 void print(const char* text, ListExpr nestedList);
 void print(const char* text1, std::string& text2);
 void print(const char* text1, const std::string& text2);
+void print(boost::thread::id tid, const char* text1, const std::string& text2);
 void print(const std::string& text1, const char* text2);
 void print(const LocationInfo& locationInfo);
 void print(const RelationInfo& relationInfo);

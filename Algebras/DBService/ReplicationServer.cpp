@@ -62,7 +62,8 @@ int ReplicationServer::start()
 
 int ReplicationServer::communicate(iostream& io)
 {
-    traceWriter->writeFunction("ReplicationServer::communicate");
+    const boost::thread::id tid = boost::this_thread::get_id();
+    traceWriter->writeFunction(tid, "ReplicationServer::communicate");
     try
     {
         CommunicationUtils::sendLine(io,
@@ -71,7 +72,7 @@ int ReplicationServer::communicate(iostream& io)
         if(!CommunicationUtils::receivedExpectedLine(io,
                 CommunicationProtocol::ReplicationClient()))
         {
-            traceWriter->write("not connected to ReplicationClient");
+            traceWriter->write(tid, "not connected to ReplicationClient");
             return 1;
         }
 
@@ -87,15 +88,15 @@ int ReplicationServer::communicate(iostream& io)
             bool fileCreated = true;
             if(!FileSystem::FileOrFolderExists(fileName))
             {
-                traceWriter->write("file does not exist");
-                fileCreated = createFile(fileName);
+                traceWriter->write(tid, "file does not exist");
+                fileCreated = createFile(fileName, tid);
             }
-            sendFileToClient(io, fileCreated);
+            sendFileToClient(io, fileCreated, tid);
         }else if(purpose == CommunicationProtocol::SendReplicaForUsage())
         {
             if(!FileSystem::FileOrFolderExists(fileName))
             {
-                traceWriter->write("file not found, notifying client");
+                traceWriter->write(tid, "file not found, notifying client");
                 CommunicationUtils::sendLine(io,
                         distributed2::FileTransferKeywords::FileNotFound());
             }else
@@ -106,7 +107,7 @@ int ReplicationServer::communicate(iostream& io)
                 CommunicationUtils::receiveLine(io, function);
                 if(function == CommunicationProtocol::None())
                 {
-                    sendFileToClient(io, true);
+                    sendFileToClient(io, true, tid);
                 }else
                 {
                     // TODO
@@ -120,20 +121,22 @@ int ReplicationServer::communicate(iostream& io)
 
         }else
         {
-            traceWriter->write("unexpected purpose: ", purpose);
-            return 2;
+            traceWriter->write(tid, "unexpected purpose: ", purpose);
+            return 1;
         }
     } catch (...)
     {
-        traceWriter->write("ReplicationServer: communication error");
-        return 5;
+        traceWriter->write(tid, "ReplicationServer: communication error");
+        return 2;
     }
     return 0;
 }
 
-bool ReplicationServer::createFile(string fileName) const
+bool ReplicationServer::createFile(
+        string fileName,
+        const boost::thread::id tid) const
 {
-    traceWriter->writeFunction("ReplicationServer::createFile");
+    traceWriter->writeFunction(tid, "ReplicationServer::createFile");
 
     string databaseName;
     string relationName;
@@ -147,21 +150,25 @@ bool ReplicationServer::createFile(string fileName) const
           << " saveObjectToFile[\""
           << fileName
           << "\"]";
-    traceWriter->write("query", query.str());
+    traceWriter->write(tid, "query", query.str());
 
     bool resultOk = SecondoUtilsLocal::executeQuery2(query.str());
     if(resultOk)
     {
-        traceWriter->write("file created");
+        traceWriter->write(tid, "file created");
     }else
     {
-        traceWriter->write("could not create file");
+        traceWriter->write(tid, "could not create file");
     }
     return resultOk;
 }
 
-void ReplicationServer::sendFileToClient(iostream& io, bool fileCreated)
+void ReplicationServer::sendFileToClient(
+        iostream& io,
+        bool fileCreated,
+        const boost::thread::id tid)
 {
+    traceWriter->writeFunction(tid, "ReplicationServer::sendFileToClient");
     // expected by receiveFile function of FileTransferClient,
     // but not sent by sendFile function of FileTransferServer
     CommunicationUtils::sendLine(io,
@@ -174,23 +181,23 @@ void ReplicationServer::sendFileToClient(iostream& io, bool fileCreated)
 
     if(!CommunicationUtils::receivedExpectedLines(io, expectedLines))
     {
-        traceWriter->write(
+        traceWriter->write(tid,
                 "communication error while initiating file transfer");
     }
 
     if(fileCreated)
     {
-        traceWriter->write("file created, sending file");
+        traceWriter->write(tid, "file created, sending file");
         if(sendFile(io) != 0)
         {
-            traceWriter->write("send failed");
+            traceWriter->write(tid, "send failed");
         }else
         {
-            traceWriter->write("file sent");
+            traceWriter->write(tid, "file sent");
         }
     }else
     {
-        traceWriter->write("notifying client");
+        traceWriter->write(tid, "notifying client");
         CommunicationUtils::sendLine(io,
                 distributed2::FileTransferKeywords::FileNotFound());
     }

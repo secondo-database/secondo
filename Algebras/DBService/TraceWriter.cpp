@@ -81,6 +81,15 @@ void TraceWriter::write(const char* text)
     }
 }
 
+void TraceWriter::write(const boost::thread::id tid, const char* text)
+{
+    print(text);
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        *traceFile << "[Thread " << tid << "] " << text << endl;
+    }
+}
+
 void TraceWriter::write(const size_t text)
 {
     print(text);
@@ -125,6 +134,19 @@ void TraceWriter::write(const char* description, const string& text)
     }
 }
 
+void TraceWriter::write(
+        const boost::thread::id tid,
+        const char* description,
+        const string& text)
+{
+    print(tid, description, text);
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        *traceFile << "[Thread " << tid << "] "
+                << description << ": " << text << endl;
+    }
+}
+
 void TraceWriter::write(const char* description, int number)
 {
     print(description, number);
@@ -141,6 +163,17 @@ void TraceWriter::writeFunction(const char* text)
     {
         *traceFile << "********************************" << endl;
         *traceFile << text << endl;
+    }
+}
+
+void TraceWriter::writeFunction(const boost::thread::id tid, const char* text)
+{
+    printFunction(tid, text);
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        boost::lock_guard<boost::mutex> lock(traceWriterMutex);
+        *traceFile << "********************************" << endl;
+        *traceFile << "[Thread " << tid << "] " << text << endl;
     }
 }
 

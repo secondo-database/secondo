@@ -47,6 +47,15 @@ void printFunction(const char* text)
     }
 }
 
+void printFunction(boost::thread::id tid, const char* text)
+{
+    if(TraceSettings::getInstance()->isDebugTraceOn())
+    {
+        cout << "********************************" << endl;
+        cout << "[Thread " << tid << "] " << text << endl;
+    }
+}
+
 void print(const string& text)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
@@ -103,8 +112,7 @@ void print(const char* text1, string& text2)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << text1 << endl;
-        cout << text2 << endl;
+        cout << text1 <<  ": " << text2 << endl;
     }
 }
 
@@ -112,12 +120,19 @@ void print(const char* text1, const string& text2)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << text1 << endl;
-        cout << text2 << endl;
+        cout << text1 <<  ": " << text2 << endl;
     }
 }
 
-void print(const std::string& text1, const char* text2)
+void print(boost::thread::id tid, const char* text1, const string& text2)
+{
+    if(TraceSettings::getInstance()->isDebugTraceOn())
+    {
+        cout << "[Thread " << tid << "] " << text1 << ": " << text2 << endl;
+    }
+}
+
+void print(const string& text1, const char* text2)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {

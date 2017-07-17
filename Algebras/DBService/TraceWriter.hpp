@@ -29,6 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <memory>
 #include <string>
 
+#include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
+
 #include "Algebras/DBService/LocationInfo.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
 
@@ -48,15 +51,30 @@ public:
     ~TraceWriter();
     void write(const std::string& text);
     void write(const char* text);
+    void write(const boost::thread::id tid, const char* text);
     void write(const size_t text);
     void write(const LocationInfo& location);
     void write(const RelationInfo& relationInfo);
     void write(const char* description, const std::string& text);
+    void write(
+            const boost::thread::id tid,
+            const char* description,
+            const std::string& text);
     void write(const char* description, int number);
     void writeFunction(const char* text);
+    void writeFunction(const boost::thread::id tid, const char* text);
 private:
     std::string fileName;
     std::unique_ptr<std::ofstream> traceFile;
+/*
+
+1.1.1 ~managerMutex~
+
+Mutex used to coordinate multi-threaded access by different servers.
+
+*/
+
+    boost::mutex traceWriterMutex;
 };
 
 } /* namespace DBService */

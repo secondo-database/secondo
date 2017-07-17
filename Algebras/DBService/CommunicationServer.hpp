@@ -96,7 +96,9 @@ replica locations and if a sufficient number of worker nodes is available, the
 replication is triggered.
 
 */
-    bool handleTriggerReplicationRequest(std::iostream& io);
+    bool handleTriggerReplicationRequest(
+            std::iostream& io,
+            const boost::thread::id tid);
 
 /*
 
@@ -110,7 +112,9 @@ This function is executed when a \textit{CommunicationClient} residing on the
  transfer.
 
 */
-    bool handleTriggerFileTransferRequest(std::iostream& io);
+    bool handleTriggerFileTransferRequest(
+            std::iostream& io,
+            const boost::thread::id tid);
 
 /*
 
@@ -121,7 +125,9 @@ This function retrieves one of the replica locations from the
 it to the connected \textit{CommunicationClient}.
 
 */
-    bool handleProvideReplicaLocationRequest(std::iostream& io);
+    bool handleProvideReplicaLocationRequest(
+            std::iostream& io,
+            const boost::thread::id tid);
 
 /*
 
@@ -132,7 +138,9 @@ master node so that the successful replication can be maintained in the
 corresponding mapping table.
 
 */
-    bool reportSuccessfulReplication(std::iostream& io);
+    bool reportSuccessfulReplication(
+            std::iostream& io,
+            const boost::thread::id tid);
 
 /*
 
@@ -144,7 +152,9 @@ one \textit{CommunicationClient} for each worker node which triggers the
 deletion of the replica.
 
 */
-    bool handleRequestReplicaDeletion(std::iostream& io);
+    bool handleRequestReplicaDeletion(
+            std::iostream& io,
+            const boost::thread::id tid);
 
 /*
 
@@ -155,7 +165,9 @@ This function triggers the deletion of a certain replica on the
 running.
 
 */
-    bool handleTriggerReplicaDeletion(std::iostream& io);
+    bool handleTriggerReplicaDeletion(
+            std::iostream& io,
+            const boost::thread::id tid);
 
 /*
 

@@ -61,6 +61,8 @@ CommunicationServer::~CommunicationServer()
 
 void CommunicationServer::lookupMinimumReplicaCount()
 {
+    traceWriter->writeFunction(
+            "CommunicationServer::lookupMinimumReplicaCount");
     string replicaNumber;
     SecondoUtilsLocal::readFromConfigFile(replicaNumber,
                                            "DBService",
@@ -71,17 +73,18 @@ void CommunicationServer::lookupMinimumReplicaCount()
 
 int CommunicationServer::communicate(iostream& io)
 {
-    traceWriter->writeFunction("CommunicationServer::communicate");
+    const boost::thread::id tid = boost::this_thread::get_id();
+    traceWriter->writeFunction(tid, "CommunicationServer::communicate");
     try
     {
-        traceWriter->write("Communicating...");
+        traceWriter->write(tid, "Communicating...");
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::CommunicationServer());
 
         if (!CommunicationUtils::receivedExpectedLine(io,
                 CommunicationProtocol::CommunicationClient()))
         {
-            traceWriter->write(
+            traceWriter->write(tid,
             "Protocol error: Not connected to CommunicationClient");
             return 1;
         }
@@ -89,49 +92,50 @@ int CommunicationServer::communicate(iostream& io)
         string request;
         CommunicationUtils::receiveLine(io, request);
 
-        traceWriter->write("request", request);
+        traceWriter->write(tid, "request", request);
 
         if(request ==
                 CommunicationProtocol::TriggerReplication())
         {
-            handleTriggerReplicationRequest(io);
+            handleTriggerReplicationRequest(io, tid);
         }else if(request ==
                 CommunicationProtocol::TriggerFileTransfer())
         {
-            handleTriggerFileTransferRequest(io);
+            handleTriggerFileTransferRequest(io, tid);
         }else if(request ==
                 CommunicationProtocol::ReplicaLocationRequest())
         {
-            handleProvideReplicaLocationRequest(io);
+            handleProvideReplicaLocationRequest(io, tid);
         }else if(request ==
                 CommunicationProtocol::ReplicationSuccessful())
         {
-            reportSuccessfulReplication(io);
+            reportSuccessfulReplication(io, tid);
         }else if(request ==
                 CommunicationProtocol::DeleteReplicaRequest())
         {
-            handleRequestReplicaDeletion(io);
+            handleRequestReplicaDeletion(io, tid);
         }else if(request ==
                 CommunicationProtocol::TriggerReplicaDeletion())
         {
-            handleTriggerReplicaDeletion(io);
+            handleTriggerReplicaDeletion(io, tid);
         }else
         {
-            traceWriter->write("Protocol error: invalid request: ", request);
-            return 2;
+            traceWriter->write(
+                    tid, "Protocol error: invalid request: ", request);
+            return 1;
         }
     } catch (...)
     {
-        traceWriter->write("CommunicationServer: communication error");
-        return 5;
+        traceWriter->write(tid, "CommunicationServer: communication error");
+        return 2;
     }
     return 0;
 }
 
 bool CommunicationServer::handleTriggerReplicationRequest(
-        std::iostream& io)
+        std::iostream& io, const boost::thread::id tid)
 {
-    traceWriter->writeFunction(
+    traceWriter->writeFunction(tid,
             "CommunicationServer::handleProvideReplicaRequest");
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::RelationRequest());
@@ -144,8 +148,8 @@ bool CommunicationServer::handleTriggerReplicationRequest(
     string relationName = receiveBuffer.front();
     receiveBuffer.pop();
 
-    traceWriter->write("databaseName", databaseName);
-    traceWriter->write("relationName", relationName);
+    traceWriter->write(tid, "databaseName", databaseName);
+    traceWriter->write(tid, "relationName", relationName);
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
@@ -160,10 +164,10 @@ bool CommunicationServer::handleTriggerReplicationRequest(
     string transferPort = receiveBuffer.front();
     receiveBuffer.pop();
 
-    traceWriter->write("host", host);
-    traceWriter->write("port", port);
-    traceWriter->write("disk", disk);
-    traceWriter->write("transferPort", transferPort);
+    traceWriter->write(tid, "host", host);
+    traceWriter->write(tid, "port", port);
+    traceWriter->write(tid, "disk", disk);
+    traceWriter->write(tid, "transferPort", transferPort);
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
     dbService->determineReplicaLocations(databaseName,
@@ -205,13 +209,14 @@ bool CommunicationServer::handleTriggerReplicationRequest(
     return true;
 }
 
-bool CommunicationServer::handleTriggerFileTransferRequest(std::iostream& io)
+bool CommunicationServer::handleTriggerFileTransferRequest(
+        std::iostream& io, const boost::thread::id tid)
 {
-    traceWriter->writeFunction(
+    traceWriter->writeFunction(tid,
             "CommunicationServer::handleTriggerFileTransferRequest");
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::ReplicationDetailsRequest());
-    traceWriter->write("sent ReplicationDetailsRequest");
+    traceWriter->write(tid, "sent ReplicationDetailsRequest");
 
     queue<string> receiveBuffer;
     CommunicationUtils::receiveLines(io, 5, receiveBuffer);
@@ -225,13 +230,13 @@ bool CommunicationServer::handleTriggerFileTransferRequest(std::iostream& io)
     receiveBuffer.pop();
     string relationName = receiveBuffer.front();
     receiveBuffer.pop();
-    traceWriter->write("received replication details");
-    traceWriter->write("host", host);
-    traceWriter->write("port", port);
+    traceWriter->write(tid, "received replication details");
+    traceWriter->write(tid, "host", host);
+    traceWriter->write(tid, "port", port);
     // TODO remove filename, is determined automatically
-    traceWriter->write("fileName", fileName);
-    traceWriter->write("databaseName", databaseName);
-    traceWriter->write("relationName", relationName);
+    traceWriter->write(tid, "fileName", fileName);
+    traceWriter->write(tid, "databaseName", databaseName);
+    traceWriter->write(tid, "relationName", relationName);
 
     ReplicationClientRunnable replicationClient(
             host,
@@ -243,9 +248,9 @@ bool CommunicationServer::handleTriggerFileTransferRequest(std::iostream& io)
 }
 
 bool CommunicationServer::handleProvideReplicaLocationRequest(
-        std::iostream& io)
+        std::iostream& io, const boost::thread::id tid)
 {
-    traceWriter->writeFunction(
+    traceWriter->writeFunction(tid,
             "CommunicationServer::handleProvideReplicaLocationRequest");
 
     CommunicationUtils::sendLine(io,
@@ -259,8 +264,8 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
     string relationName = receiveBuffer.front();
     receiveBuffer.pop();
 
-    traceWriter->write("databaseName", databaseName);
-    traceWriter->write("relationName", relationName);
+    traceWriter->write(tid, "databaseName", databaseName);
+    traceWriter->write(tid, "relationName", relationName);
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
     ConnectionID randomReplicaLocation = 0;
@@ -272,7 +277,7 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
                         getRandomReplicaLocation();
     }catch(...)
     {
-        traceWriter->write("RelationInfo does not exist");
+        traceWriter->write(tid, "RelationInfo does not exist");
     }
     queue<string> sendBuffer;
     if(randomReplicaLocation == 0)
@@ -291,9 +296,11 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
     return true;
 }
 
-bool CommunicationServer::reportSuccessfulReplication(iostream& io)
+bool CommunicationServer::reportSuccessfulReplication(
+        iostream& io,
+        const boost::thread::id tid)
 {
-    traceWriter->writeFunction(
+    traceWriter->writeFunction(tid,
             "CommunicationServer::reportSuccessfulReplication");
 
     CommunicationUtils::sendLine(io,
@@ -301,7 +308,7 @@ bool CommunicationServer::reportSuccessfulReplication(iostream& io)
 
     string relID;
     CommunicationUtils::receiveLine(io, relID);
-    traceWriter->write("relID", relID);
+    traceWriter->write(tid, "relID", relID);
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
@@ -313,8 +320,8 @@ bool CommunicationServer::reportSuccessfulReplication(iostream& io)
     string port = receiveBuffer.front();
     receiveBuffer.pop();
 
-    traceWriter->write("host", host);
-    traceWriter->write("port", port);
+    traceWriter->write(tid, "host", host);
+    traceWriter->write(tid, "port", port);
 
     DBServiceManager::getInstance()->maintainSuccessfulReplication(
             relID, host, port);
@@ -322,9 +329,10 @@ bool CommunicationServer::reportSuccessfulReplication(iostream& io)
 }
 
 
-bool CommunicationServer::handleRequestReplicaDeletion(iostream& io)
+bool CommunicationServer::handleRequestReplicaDeletion(
+        iostream& io, const boost::thread::id tid)
 {
-    traceWriter->writeFunction(
+    traceWriter->writeFunction(tid,
                 "CommunicationServer::handleRequestReplicaDeletion");
 
     string relID;
@@ -349,16 +357,18 @@ bool CommunicationServer::handleRequestReplicaDeletion(iostream& io)
         }
     }catch(...)
     {
-        traceWriter->write("Relation does not exist");
+        traceWriter->write(tid, "Relation does not exist");
         return false;
     }
 
     return true;
 }
 
-bool CommunicationServer::handleTriggerReplicaDeletion(std::iostream& io)
+bool CommunicationServer::handleTriggerReplicaDeletion(
+        std::iostream& io,
+        const boost::thread::id tid)
 {
-    traceWriter->writeFunction(
+    traceWriter->writeFunction(tid,
                 "CommunicationServer::handleTriggerReplicaDeletion");
 
     string relID;

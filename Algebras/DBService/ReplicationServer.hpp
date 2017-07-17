@@ -51,8 +51,13 @@ public:
 protected:
     int communicate(std::iostream& io);
 private:
-    bool createFile(std::string fileName) const;
-    void sendFileToClient(std::iostream& io, bool fileCreated);
+    bool createFile(
+            std::string fileName,
+            const boost::thread::id tid) const;
+    void sendFileToClient(
+            std::iostream& io,
+            bool fileCreated,
+            const boost::thread::id tid);
 };
 
 } /* namespace DBService */
