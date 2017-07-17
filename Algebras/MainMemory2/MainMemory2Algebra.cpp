@@ -10851,6 +10851,7 @@ class mupdatedirect2LocalInfo{
          }
          for(size_t i=0;i<funindexes.size();i++){
             relTuple->PutAttribute(funindexes[i], uattrs[i]);
+            streamTuple->PutAttribute(funindexes[i], uattrs[i]->Copy());
          }
       }
 };
