@@ -3132,13 +3132,17 @@ public class HoeseViewer extends SecondoViewer {
 		}
 
     String defaultProj = configuration.getProperty("DEFAULTPROJECTION");
-    if(defaultProj!=null){
-       Projection p = PrjSelector.getProjection(defaultProj.trim());
-       if(p==null){
-         Reporter.writeWarning("Projection " + defaultProj + " not loaded");
-       }
-       PrjSelector.selectProjection(p);
-       Reporter.writeInfo("use Projection " + defaultProj);
+    try{
+      if(defaultProj!=null){
+         Projection p = PrjSelector.getProjection(defaultProj.trim());
+         if(p==null){
+           Reporter.writeWarning("Projection " + defaultProj + " not loaded");
+         }
+         PrjSelector.selectProjection(p);
+         Reporter.writeInfo("use Projection " + defaultProj);
+      }
+    } catch(Exception e){
+       Reporter.debug(e);
     }
 
 
@@ -3351,6 +3355,7 @@ public class HoeseViewer extends SecondoViewer {
 			}
 			selectedIndex = indexOf(p);
 			((JCheckBoxMenuItem) MenuItems.get(selectedIndex)).setState(true);
+			ProjectionManager.setProjection(Projections.get(selectedIndex));
 		}
 
 		public void actionPerformed(ActionEvent evt) {
