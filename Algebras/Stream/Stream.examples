@@ -72,6 +72,13 @@ Signature:((stream(tuple( T))) -> (stream(tuple (T)))
 Example  : query intstream (1,10) transformstream printstream count
 Result   : 10
 
+Operator : printstream2
+Number   : 1
+Signature:((stream T)) -> (stream T)
+Example  : query intstream (1,10) printstream2["Elem: ", "----"] count
+Result   : 10
+
+
 Operator : transformstream
 Number   : 1
 Signature: (stream T) -> stream(tuple((Elem T)))

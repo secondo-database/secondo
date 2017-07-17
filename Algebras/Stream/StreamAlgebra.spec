@@ -28,6 +28,7 @@ operator intstream alias INTSTREAM pattern op ( _, _ )
 operator kinds alias KINDS pattern _ op
 operator namedtransformstream alias NAMEDTRANSFORMSTREAM pattern _ op [_]
 operator printstream alias PRINTSTREAM pattern _ op
+operator printstream2 alias PRINTSTREAM2 pattern _ op[_,_]
 operator projecttransformstream alias PROJECTTRANSFORMSTREAM pattern _ op [_]
 operator realstream alias REALSTREAM pattern op ( _, _, _ )
 operator tail alias TAIL pattern _ op [ _ , _ ]

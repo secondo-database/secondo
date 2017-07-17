@@ -3099,6 +3099,127 @@ Operator streamprintstream (
 );
 
 
+
+/*
+5.30 printstream2
+
+*/
+ListExpr printstream2TM(ListExpr args){
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("3 arguments expected");
+  }
+  ListExpr stream = nl->First(args);
+  if(!Stream<Tuple>::checkType(stream)
+     && !Stream<Attribute>::checkType(stream)){
+    return listutils::typeError("first argument must be a stream of "
+                                "tuple or a stream of attribute");
+  }
+  if(!CcString::checkType(nl->Second(args))){
+    return listutils::typeError("second argument is not a string");
+  }
+  if(!CcString::checkType(nl->Third(args))){
+    return listutils::typeError("third argument is not a string");
+  }
+  return nl->First(args);
+}
+
+template<class StreamType>
+class printstream2Info{
+  public:
+    printstream2Info(Word& _stream, CcString* _pre, CcString* _after):
+        stream(_stream){
+       stream.open();
+       pre = _pre->IsDefined()?_pre->GetValue():"";
+       after = _after->IsDefined()?_after->GetValue():"";
+       elem = 1;
+    }
+
+    ~printstream2Info(){
+      stream.close();
+    }
+
+    StreamType* next(){
+      StreamType* res = stream.request();
+      if(res){
+        print(res);
+      }
+      return res;
+    }
+
+    private:
+      Stream<StreamType> stream;
+      string pre;
+      string after;
+      int elem;
+
+    void print(StreamType* elem){
+      cout << pre << "  " << this->elem << endl; 
+      this->elem++;
+      elem->Print(cout);
+      cout << endl << after << endl;
+    }
+
+
+};
+
+template<class StreamType>
+int printstream2VMT (Word* args, Word& result,
+               int message, Word& local, Supplier s){
+
+  printstream2Info<StreamType>* li = (printstream2Info<StreamType>*) local.addr;
+  switch(message){
+     case OPEN: if(li){
+                   delete li;
+                 }
+                 local.addr = new printstream2Info<StreamType>(args[0],
+                                 (CcString*) args[1].addr,
+                                 (CcString*) args[2].addr);
+                 return 0;
+     case REQUEST : {
+                 result.addr = li?li->next():0;
+                 return result.addr?YIELD:CANCEL;
+               }
+     case CLOSE: {
+             if(li){
+                delete li;
+                local.addr = 0;
+             }
+             return 0;
+     } 
+
+  }
+  return -1;
+}
+
+
+ValueMapping printstream2VM[] = {
+  printstream2VMT<Attribute>,
+  printstream2VMT<Tuple>
+};
+
+OperatorSpec printstream2Spec(
+  "stream(X) x string x string -> stream(X)",
+  "_ printstream2[_,_]",
+  "Outputs elements in the stream in a stream to standard out.",
+  "Each element in enclosed in the strings given as second and third"
+  "argument. The header is extended by the number of the element."
+  "query plz feed printstream2[\"Elem : \", \"-----\"] count"
+);
+
+int printstream2Select(ListExpr args){
+  return Stream<Attribute>::checkType(nl->First(args))?0:1;
+}
+
+Operator printstream2Op(
+  "printstream2",
+  printstream2Spec.getStr(),
+  2,
+  printstream2VM,
+  printstream2Select,
+  printstream2TM
+);
+
+
 /*
 5.30 Operator ~filter~
 
@@ -6330,6 +6451,7 @@ public:
   {
     AddOperator( &streamcount );
     AddOperator( &streamprintstream );
+    AddOperator( &printstream2Op );
     AddOperator( &streamtransformstream );
     AddOperator( &projecttransformstream );
     AddOperator( &namedtransformstream );
