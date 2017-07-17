@@ -10776,12 +10776,16 @@ ListExpr mupdatedirect2TM(ListExpr args){
        }
     }
 
+    ListExpr resType = nl->TwoElemList(
+                          listutils::basicSymbol<Stream<Tuple> >(),
+                          tt2);    
+
     ListExpr res =  nl->ThreeElemList(
              nl->SymbolAtom(Symbols::APPEND()),
              nl->ThreeElemList(nl->IntAtom(tidIndex-1), 
                                nl->IntAtom(noFuns),
                                funindexes),
-             stream  
+             resType  
            );
     return res; 
 
@@ -10819,8 +10823,10 @@ class mupdatedirect2LocalInfo{
             if((tid > 0) && (tid <=  relation->size())){
               Tuple* relTuple = relation->at(tid-1);
               if(relTuple){
-                updateTuple(tuple, relTuple);
-                return tuple;
+                Tuple* resTuple = updateTuple(tuple, relTuple);
+                tuple->DeleteIfAllowed();
+                resTuple->SetTupleId(tid);
+                return resTuple;
               }
             }
          }
@@ -10840,7 +10846,7 @@ class mupdatedirect2LocalInfo{
       vector<ArgVectorPointer> funargs; 
       Word result;
 
-      void updateTuple(Tuple* streamTuple, Tuple* relTuple){
+      Tuple* updateTuple(Tuple* streamTuple, Tuple* relTuple){
          vector<Attribute*> uattrs;
          for(size_t i=0;i<funs.size();i++){
             ArgVectorPointer avp = funargs[i];
@@ -10851,8 +10857,12 @@ class mupdatedirect2LocalInfo{
          }
          for(size_t i=0;i<funindexes.size();i++){
             relTuple->PutAttribute(funindexes[i], uattrs[i]);
-            streamTuple->PutAttribute(funindexes[i], uattrs[i]->Copy());
          }
+         Tuple* resTuple = new Tuple(relTuple->GetTupleType());
+         for(int i=0;i<relTuple->GetNoAttributes();i++){
+            resTuple->CopyAttribute(i,relTuple,i);
+         }
+         return resTuple; 
       }
 };
 
@@ -10929,7 +10939,7 @@ int mupdatedirect2Select(ListExpr args){
 
 */
 OperatorSpec mupdatedirect2Spec(
-    "stream(tuple(X)  x mrel(tuple(Y) x IDENT x funlist -> stream(tuple(X))",
+    "stream(tuple(X)  x mrel(tuple(Y) x IDENT x funlist -> stream(tuple(Y))",
     "_ _ mupdatedirect2[_; funlist]",
     "The first argument represents a stream of tuple containing a TID "
     "attribute. "
