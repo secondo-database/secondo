@@ -522,7 +522,15 @@ namespace temporalalgebra{
       os << "Point2D (" << point.x;
       os << ", " << point.y << ")";
       return os; 
-    }// Operator <<     
+    }// Operator <<
+    
+    bool Point2D::operator <(const Point2D& point) const {
+      if (NumericUtil::lower(x, point.x))
+        return true;
+      if (NumericUtil::greater(x, point.x))
+        return false;           
+      return NumericUtil::lower(y, point.y);
+    }// Operator <
 /*
 9 Class RationalPoint2D
 
@@ -902,6 +910,9 @@ namespace temporalalgebra{
         }// if  
         else if(segments[index].getPredicate() == predicate) return;
         else {
+          // cout << "Segment:=" << index << endl;
+          // cout << "Old:="<< toString(segments[index].getPredicate())<<endl;
+          // cout << "New:="<< toString(predicate)<<endl;          
           NUM_FAIL("Combination from old and new predicate is invalid."); 
         }
       }// if
@@ -919,7 +930,7 @@ namespace temporalalgebra{
                                           std::string prefix)const{
       os << prefix << "ContainerSegment ( " << endl;
       for(size_t i = 0; i < segments.size(); i++){
-        os << prefix << "    Index:=" << i << ", " << segments[i] << endl;
+        os << prefix << "  Index:=" << i << ", " << segments[i] << endl;
       }// for
       //for(size_t i = 0; i < segmentBuckets.size(); i++){
       //  os << prefix << "  Bucket:=" << i << "( ";
@@ -932,7 +943,7 @@ namespace temporalalgebra{
       //  }// for
       //  os << ")" << endl;
       //}// for
-      os << prefix << "  )" << endl;
+      os << prefix << ")" << endl;
       return os;
     }// print
       

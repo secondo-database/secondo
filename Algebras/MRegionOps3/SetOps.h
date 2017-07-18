@@ -41,21 +41,29 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 */
 #include "PointVectorSegment.h"
 #include "NumericUtil.h"
+#include "DateTime.h"
 #include "TemporalAlgebra.h"
+#include "MovingRegionAlgebra.h"
+
 #include <gmp.h>
 #include <gmpxx.h>
 #include <set>
 #include <vector>
+#include <list>
 #include <string>
 
-#ifndef PFACE_H
-#define PFACE_H
+#ifndef SETOPS_H
+#define SETOPS_H
 
+/*
+2 Enumeration SetOp
+
+Indicates the kind of set operation.
+
+*/
 namespace temporalalgebra {
   namespace mregionops3 {
-    
     class PFace;
-    class Unit;
 /*
 3 Enumeration 
 
@@ -65,8 +73,8 @@ Indicates the source unit of a ~RationalPoint3DExt~.
 
 */
     enum SourceFlag {
-      PFACE_A,
-      PFACE_B
+      UNIT_A,
+      UNIT_B
     };
 /*
 3.2 Enumeration State
@@ -602,6 +610,11 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
     class GlobalTimeValues{
     public:  
 /*
+11.1 Constructor
+
+*/   
+      GlobalTimeValues();
+/*
 13.3 Methods, operators and predicates
 
 13.3.1 addTimeValue
@@ -613,12 +626,13 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
 
 */      
       size_t size()const; 
+      
 /*
 13.3.3 Operator <<
 
 */       
       friend std::ostream& operator <<(std::ostream& os, 
-                                       GlobalTimeValues& timeValues);
+                                       const GlobalTimeValues& timeValues);
 /*
 13.3.4 Operator ==
 
@@ -644,7 +658,147 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
       double t1;
       double t2;
     }; // GlobalTimeValues   
+/*
+4 class MSegment
+
+*/ 
+    class MSegment{
+    public:  
+      MSegment();      
+      MSegment(const MSegment& msegment);      
+      MSegment(const Segment3D& left, const Segment3D& right);   
+      MSegment(const Segment2D& initialSegment, const Segment2D& finalSegment);
+      MSegment(const Segment2D& initialSegment,  const Segment2D& finalSegment,
+               int faceno, int cycleno, int edgeno, bool leftDomPoint, 
+               bool insideAbove);
+      
+      
+      
+      int getFaceNo() const; 
+      int getCycleNo() const;
+      int getSegmentNo() const; 
+      int getInsideAbove() const;
+      
+      Segment2D getInitial() const;
     
+      Segment2D getFinal() const;
+      
+      HalfSegment getMedianHS() const;
+      
+      bool isLeftDomPoint() const;
+      
+      void setLeftDomPoint(bool ldp);
+      void setSegmentNo(int sn);
+      
+      void copyIndicesFrom(const HalfSegment* hs);
+/*
+1.1.1 LessByMedianHS
+
+Returns ~true~, if the median ~HalfSegment~ of this is
+lower than the median ~HalfSegment~ of ms,
+according to the ~HalfSegment~ order, specified in the ~SpatialAlgebra~.
+
+*/
+      bool lessByMedianHS(const MSegment& other) const; 
+/*
+1.1.1 LogicLess
+
+Returns ~true~, if the median ~HalfSegment~ of this is
+lower than the median ~HalfSegment~ of ms,
+similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
+
+*/
+      bool logicLess(const MSegment& other) const; 
+/*
+11.3.3 print
+    
+*/    
+      std::ostream& print(std::ostream& os, std::string prefix)const; 
+/*
+11.3.4 operator <<
+
+*/
+      friend std::ostream& operator <<(std::ostream& os, 
+                                       const MSegment& mSegment);
+/*
+11.3.5 operator ==
+    
+*/     
+      bool operator ==(const MSegment& mSegment)const; 
+/*
+11.3.6 operator =
+    
+*/       
+      MSegment& operator =(const MSegment& mSegment);  
+
+    private:
+      
+      void set(const MSegment& msegment);
+      
+      void set(const Segment2D& initialSegment, const Segment2D& finalSegment);
+      
+      Segment2D initialSegment;
+      Segment2D finalSegment;
+      HalfSegment medianHS;  
+      bool insideAbove;
+    }; // MSegment
+/*
+4 class ResultUnit
+
+*/     
+    class ResultUnit{
+    public:
+      ResultUnit();
+
+      ResultUnit(double startTime,double endTime);
+      
+      ResultUnit(const ResultUnit& other);
+      
+      void addMSegment(MSegment& mSegment, bool completely );
+      
+      Interval<Instant> getTimeInterval() const;
+
+      size_t size();
+/*
+11.3.3 print
+    
+*/    
+      std::ostream& print(std::ostream& os, std::string prefix)const; 
+/*
+11.3.4 operator <<
+
+*/
+      friend std::ostream& operator <<(std::ostream& os, 
+                                       const ResultUnit& unit);
+/*
+11.3.5 operator ==
+    
+*/     
+      bool operator ==(const ResultUnit& unit)const; 
+/*
+11.3.6 operator =
+    
+*/       
+      ResultUnit& operator =(const ResultUnit& unit);  
+
+      void finalize();
+      
+      URegionEmb* convertToURegionEmb(DbArray<MSegmentData>* segments)const;
+      
+      
+    private:
+      void set(const ResultUnit& other);
+      
+      static bool less(const MSegment& ms1, const MSegment& ms2);
+
+      static bool logicLess(const MSegment& ms1, const MSegment& ms2); 
+      
+      std::vector<MSegment> mSegments;
+      int index;
+      double startTime;
+      double endTime;
+      
+    };// ResultUnit        
 /*
 4 class ResultPfaceFactory
 
@@ -683,7 +837,7 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
       void evaluate();
       
       void getResultUnit(size_t slide, Predicate predicate, bool reverse, 
-                         const ContainerPoint3D& points, Unit& unit);
+                         const ContainerPoint3D& points, ResultUnit& unit);
 /*
 4.3.2 operator <<
 
@@ -771,7 +925,7 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
 
 */        
       std::ostream& print(std::ostream& os, std::string prefix)const;
-      std::ostream& printShort(std::ostream& os, std::string prefix)const;
+//      std::ostream& printShort(std::ostream& os, std::string prefix)const;
       
 /*
 14.3.3 Operator <<
@@ -843,7 +997,7 @@ Computes the intersection of this ~PFace~ with pf.
                     GlobalTimeValues& timeValues);
       
       void getResultUnit(size_t slide, Predicate predicate, bool reverse, 
-                         const ContainerPoint3D& points, Unit& unit);      
+                         const ContainerPoint3D& points, ResultUnit& unit);
     private:  
 /*
 14.4 Private methods
@@ -872,48 +1026,58 @@ Computes the intersection of this ~PFace~ with pf.
       Point3D            rightEnd;
       size_t             left;
       size_t             right;   
-    };// class PFace   
+    };// class PFace  
+    
+    enum SetOp {
+      INTERSECTION,
+      UNION,
+      MINUS
+    };
     
 /*
-5 class Unit
+5 class SourceUnit
 
 */        
-    class Unit{
+    class SourceUnit{
     public:
 /*
 5.1 Constructor
 
 */       
-      Unit();
-      Unit(const Unit& other);
+      SourceUnit();
+      SourceUnit(const SourceUnit& other);
 /*
 5.1 Destructor
 
 */       
-      ~Unit();
+      ~SourceUnit();
 /*
 5.2 Methods, operators and predicates
 
 5.2.3 addPFace
     
 */        
-//      void addPFace(const PFace& pf);
-//      void addPFace(const Point3D& a, const Point3D& b, 
-//                     const Point3D& c, const Point3D& d);
+
       void addPFace(const Segment& left, const Segment& right, 
                     const ContainerPoint3D& points);
+      
+      bool isEmpty()const;
+      
+      bool intersect(const SourceUnit& other)const;
+      
+      void addToResult(std::vector<ResultUnit>& result)const;
       
 /*
 5.2.4 intersection
     
 */       
-      bool intersection(Unit& other, GlobalTimeValues& timeValues); 
+      bool intersection(SourceUnit& other, GlobalTimeValues& timeValues); 
       
       bool finalize(ContainerPoint3D& points, GlobalTimeValues& timeValues,
                     Predicate predicate);
       
       void getResultUnit(size_t slide, Predicate predicate,bool reverse, 
-                         const ContainerPoint3D& points, Unit& unit);
+                         const ContainerPoint3D& points, ResultUnit& unit);
       
       std::ostream& print(std::ostream& os, std::string prefix)const;
 /*
@@ -923,18 +1087,18 @@ Print the object values to stream.
 
 */          
       friend std::ostream& operator <<(std::ostream& os, 
-                                       const Unit& unit);
+                                       const SourceUnit& unit);
 /*
 5.2.6 Operator ==  
 
 */       
-      bool operator ==(const Unit& unit)const; 
+      bool operator ==(const SourceUnit& unit)const; 
       
-      Unit& operator =(const Unit& unit);
+      SourceUnit& operator =(const SourceUnit& unit);
            
     private: 
       
-      void set(const Unit& other);
+      void set(const SourceUnit& other);
 /*
 5.3 Attributes
 
@@ -943,9 +1107,63 @@ Print the object values to stream.
       ContainerSegment segments;
       std::vector<PFace*> pFaces;
       mmrtree::RtreeT<2, size_t> pFaceTree;  
+    };// class SourceUnit 
+    
+    class SourceUnitPair {
+    public:
+      SourceUnitPair();
+      
+      void addPFace(SourceFlag flag, Segment3D& left, Segment3D& right);
+      
+      bool operate(SetOp setOp);
+      
+      std::ostream& print(std::ostream& os, std::string prefix)const;
+      
+      friend std::ostream& operator <<(std::ostream& os, 
+                                       const SourceUnitPair& unitPair);
+      
+      size_t countResultUnits()const;
+      
+      ResultUnit getResultUnit(size_t slide)const;
+      
+      void createResultMRegion(MRegion* resMRegion);
 
-    };// class Unit  
+    private:      
+
+      SourceUnit unitA;
+      SourceUnit unitB;
+      std::vector<ResultUnit> result;
+      GlobalTimeValues timeValues;  
+      ContainerPoint3D points; 
+    };
+
+    class SetOperator {
+    public:  
+      SetOperator(MRegion* const _mRegionA, MRegion* const _mRegionB, 
+                  MRegion* const _mRegionResult):
+          mRegionA(_mRegionA), 
+          mRegionB(_mRegionB), 
+          mRegionResult(_mRegionResult) {
+      }// Konstruktor
+      
+      void operate(SetOp setOp);    
+
+    private:
+      
+      void createSourceUnit(const Interval<Instant>& interval, 
+                            MRegion* mregion,
+                            SourceFlag sourceFlag, 
+                            SourceUnitPair& unitPair);
+      
+      void addPFace(const MSegmentData& mSeg, const Interval<Instant>& interval,
+                    SourceFlag flag, SourceUnitPair& unitPair);
+      
+      MRegion* const mRegionA;
+      MRegion* const mRegionB;
+      MRegion* const mRegionResult;
+    }; // class SetOperator
+
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra
 #endif 
-// PFACE_H 
+// SETOPS_H

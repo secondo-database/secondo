@@ -521,6 +521,9 @@ Print the object values to stream.
 
 */         
       friend std::ostream& operator <<(std::ostream& os, const Point2D& point);
+      
+      bool operator <(const Point2D& point)const;
+      
     private:  
 /*
 8.4 Private methods
