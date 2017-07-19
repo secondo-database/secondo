@@ -62,6 +62,12 @@ DBServiceManager::DBServiceManager()
     restoreReplicaInformation();
 }
 
+DBServiceManager::~DBServiceManager()
+{
+    DBServicePersistenceAccessor::persistAllLocations(connections);
+    DBServicePersistenceAccessor::persistAllRelations(relations);
+}
+
 void DBServiceManager::restoreConfiguration()
 {
     printFunction("DBServiceManager::restoreConfiguration");
@@ -196,7 +202,7 @@ bool DBServiceManager::addNode(const string host,
             pair<size_t, pair<LocationInfo, ConnectionInfo*> >(
                     connID, workerConnDetails));
 
-    DBServicePersistenceAccessor::persistLocationInfo(connID, location);
+    //DBServicePersistenceAccessor::persistLocationInfo(connID, location);
 
     for(auto& replicaLocation : possibleReplicaLocations)
     {
@@ -283,7 +289,7 @@ void DBServiceManager::persistReplicaLocations(const string& databaseName,
     RelationInfo relationInfo =
             relations.at(
                     RelationInfo::getIdentifier(databaseName, relationName));
-    DBServicePersistenceAccessor::persistRelationInfo(relationInfo);
+    //DBServicePersistenceAccessor::persistRelationInfo(relationInfo);
 }
 
 void DBServiceManager::getReplicaLocations(
@@ -413,13 +419,13 @@ void DBServiceManager::maintainSuccessfulReplication(
             if(location.isSameWorker(replicaLocationHost, replicaLocationPort))
             {
                 relInfo.updateReplicationStatus(it->first, true);
-                if(!DBServicePersistenceAccessor::updateLocationMapping(
-                        relID,
-                        it->first,
-                        true))
-                {
-                    print("Could not update location mapping");
-                }
+//                if(!DBServicePersistenceAccessor::updateLocationMapping(
+//                        relID,
+//                        it->first,
+//                        true))
+//                {
+//                    print("Could not update location mapping");
+//                }
                 break;
             }
         }
@@ -435,8 +441,8 @@ void DBServiceManager::deleteReplicaMetadata(const string& relID)
     boost::lock_guard<boost::mutex> lock(managerMutex);
     try
     {
-        DBServicePersistenceAccessor::deleteRelationInfo(
-                getRelationInfo(relID));
+//        DBServicePersistenceAccessor::deleteRelationInfo(
+//                getRelationInfo(relID));
         relations.erase(relID);
     }catch(...)
     {

@@ -140,7 +140,7 @@ This function persists all locations passed as argument at once. All data that
 was persisted prior to the call of this function will be lost.
 
 */
-    bool persistAllLocations(DBServiceLocations dbsLocations);
+    static bool persistAllLocations(DBServiceLocations dbsLocations);
 
 /*
 
@@ -150,7 +150,7 @@ This function persists all relations passed as argument at once. All data that
 was persisted prior to the call of this function will be lost.
 
 */
-    bool persistAllRelations(DBServiceRelations dbsRelations);
+    static bool persistAllRelations(DBServiceRelations dbsRelations);
 
 private:
 
