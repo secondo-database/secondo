@@ -2588,11 +2588,11 @@ namespace temporalalgebra {
                 " size of units vectors are different.",
                  units.size() == result.size());
         for(size_t i = 0; i < timeValues.size(); i++){ 
+        // cout << result[i];
+        // cout << units[i];
           assert_("ResultUnitTest 1.2", 
                   " Unit are different.",
                   units[i] == result[i]);
-          // cout << result[i];
-          // cout << units[i];
         }// for
         // cout << points << endl;
         // cout << segments << endl;
@@ -2825,17 +2825,17 @@ namespace temporalalgebra {
         result1.addMSegment(mSegment0,false);
         result1.addMSegment(mSegment1,false);
         result1.addMSegment(mSegment2,false);
-        // cout << result; 
+        // cout << result1; 
         result1.finalize();
         // result
         ResultUnit result2(0,1);
-        MSegment mSegment3(segment10,segment12,0,0,0,true,true);
-        MSegment mSegment4(segment10,segment13,0,0,1,true,false);
-        MSegment mSegment5(segment10,segment11,0,0,2,true,false);  
+        MSegment mSegment3(segment10,segment12,0,0,0,true,false);
+        MSegment mSegment4(segment10,segment13,0,0,1,true,true);
+        MSegment mSegment5(segment10,segment11,0,0,2,true,true);  
         result2.addMSegment(mSegment3,true);
         result2.addMSegment(mSegment4,true);
         result2.addMSegment(mSegment5,true);
-        assert_("MSegmentTest 2.1", "msegments don't equal.",
+        assert_("MSegmentTest 2.1", "Msegments don't equal.",
                 result1 == result2); 
         // cout << result1;
         // cout << result2;
@@ -2858,21 +2858,21 @@ namespace temporalalgebra {
         unitPair.operate(INTERSECTION);
         // result
         ResultUnit result1 =  unitPair.getResultUnit(0);
-        ResultUnit result2;
+        ResultUnit result2(0,1.11111111);
         assert_("SourceUnitPairTest 1.1", "ResultUnits don't equal.",
                 result1 == result2); 
         // cout << result1;
         // cout << result2;
         ResultUnit result3 =  unitPair.getResultUnit(1);
-        ResultUnit result4;
+        ResultUnit result4(1.11111111,2.66666667);
         Segment2D segment10(Point2D (4.666666667, 1.666666667), 
                             Point2D (4.666666667, 1.666666667));
         Segment2D segment11(Point2D (2.8, 2.6), Point2D (4.2, 2.6));
         Segment2D segment12(Point2D (3.5, 4), Point2D (2.8, 2.6));
         Segment2D segment13(Point2D (4.2, 2.6), Point2D (3.5, 4));
-        MSegment mSegment0(segment10,segment11,0,0,0,true,false);
-        MSegment mSegment1(segment10,segment12,0,0,1,true,true);
-        MSegment mSegment2(segment10,segment13,0,0,2,true,true);  
+        MSegment mSegment0(segment10,segment11,0,0,0,true,true);
+        MSegment mSegment1(segment10,segment12,0,0,1,true,false);
+        MSegment mSegment2(segment10,segment13,0,0,2,true,false);  
         result4.addMSegment(mSegment0,true);
         result4.addMSegment(mSegment1,true);
         result4.addMSegment(mSegment2,true);
@@ -2881,7 +2881,7 @@ namespace temporalalgebra {
         // cout << result3;
         // cout << result4;
         ResultUnit result5 =  unitPair.getResultUnit(2);
-        ResultUnit result6;
+        ResultUnit result6(2.666666667,4.444444444);
         Segment2D segment14(Point2D (2.8, 2.6), Point2D (4.2, 2.6));        
         Segment2D segment15(Point2D (3.333333333, 3.666666667), 
                             Point2D (3.666666667, 3.666666667));
@@ -2891,9 +2891,9 @@ namespace temporalalgebra {
         Segment2D segment18(Point2D (4.2, 2.6), Point2D (3.5, 4));
         Segment2D segment19(Point2D (3.666666667, 3.666666667), 
                             Point2D (3.5, 4));
-        MSegment mSegment3(segment14,segment15,0,0,0,true,false);
-        MSegment mSegment4(segment16,segment17,0,0,1,true,true);
-        MSegment mSegment5(segment18,segment19,0,0,2,true,true);  
+        MSegment mSegment3(segment14,segment15,0,0,0,true,true);
+        MSegment mSegment4(segment16,segment17,0,0,1,true,false);
+        MSegment mSegment5(segment18,segment19,0,0,2,true,false);  
         result6.addMSegment(mSegment3,true);
         result6.addMSegment(mSegment4,true);
         result6.addMSegment(mSegment5,true);
@@ -2902,7 +2902,7 @@ namespace temporalalgebra {
         // cout << result5;
         // cout << result6;
         ResultUnit result7 =  unitPair.getResultUnit(3);
-        ResultUnit result8;
+        ResultUnit result8(4.444444444,4.666666667);
         Segment2D segment20(Point2D (3.333333333, 3.666666667), 
                             Point2D (3.666666667, 3.666666667)); 
         Segment2D segment21(Point2D (3.4, 3.8), Point2D (3.4, 3.8));
@@ -2910,9 +2910,9 @@ namespace temporalalgebra {
                             Point2D (3.333333333, 3.666666667));
         Segment2D segment23(Point2D (3.666666667, 3.666666667), 
                             Point2D (3.5, 4));
-        MSegment mSegment6(segment20,segment21,0,0,0,true,false);
-        MSegment mSegment7(segment22,segment21,0,0,1,true,true);
-        MSegment mSegment8(segment23,segment21,0,0,2,true,true);  
+        MSegment mSegment6(segment20,segment21,0,0,0,true,true);
+        MSegment mSegment7(segment22,segment21,0,0,1,true,false);
+        MSegment mSegment8(segment23,segment21,0,0,2,true,false);  
         result8.addMSegment(mSegment6,true);
         result8.addMSegment(mSegment7,true);
         result8.addMSegment(mSegment8,true);
@@ -2921,7 +2921,7 @@ namespace temporalalgebra {
         // cout << result7;
         // cout << result8;
         ResultUnit result9 =  unitPair.getResultUnit(4);
-        ResultUnit result10;
+        ResultUnit result10(4.666666667,5);
         assert_("SourceUnitPairTest 1.5", "ResultUnits don't equal.",
                 result9 == result10); 
         // cout << result9;

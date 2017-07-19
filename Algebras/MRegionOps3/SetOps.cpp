@@ -835,7 +835,7 @@ namespace temporalalgebra {
       medianHS.attr.cycleno = cycleno;
       medianHS.attr.edgeno  = edgeno;
       medianHS.SetLeftDomPoint(leftDomPoint);
-      insideAbove = medianHS.attr.insideAbove = insideAbove;
+      this->insideAbove = medianHS.attr.insideAbove = insideAbove;
     }// Konstruktor
                        
 
@@ -854,34 +854,20 @@ namespace temporalalgebra {
       Point medianStart(true,medianStartX, medianStartY);
       Point medianEnd  (true,medianEndX,medianEndY);
       medianHS = HalfSegment(true, medianStart, medianEnd);
-      insideAbove = medianHS.attr.insideAbove = medianStart > medianEnd;
+      insideAbove = medianHS.attr.insideAbove = !(medianStart > medianEnd);
       medianHS.attr.faceno     = -1;
       medianHS.attr.cycleno    = -1;
       medianHS.attr.edgeno     = -1;
       medianHS.attr.coverageno = -1;
-      medianHS.attr.partnerno  = -1;  
+      medianHS.attr.partnerno  = -1;       
     }// set
         
     void MSegment::set(const MSegment& mSegment){
       this->initialSegment = mSegment.initialSegment;
-      this->finalSegment = mSegment.finalSegment;
-      this->medianHS = mSegment.medianHS;
+      this->finalSegment   = mSegment.finalSegment;
+      this->medianHS       = mSegment.medianHS;
+      this->insideAbove    = mSegment.insideAbove;
     }// set
-    
-//     void MSegment::set(const Segment2D& initialSegment, 
-//                        const Segment2D& finalSegment,
-//                        int faceno,
-//                        int cycleno,
-//                        int edgeno,
-//                        bool leftDomPoint,
-//                        bool insideAbove){
-//       set(initialSegment,finalSegment);
-//       medianHS.attr.faceno  = faceno;
-//       medianHS.attr.cycleno = cycleno;
-//       medianHS.attr.edgeno  = edgeno;
-//       medianHS.SetLeftDomPoint(leftDomPoint);
-//       insideAbove = medianHS.attr.insideAbove = insideAbove;  
-//     }// set
     
     int MSegment::getFaceNo() const{
       return medianHS.attr.faceno;
@@ -943,7 +929,7 @@ namespace temporalalgebra {
       os << prefix << "MSegment (" << endl;
       os << prefix << "  Initial:=" << this->initialSegment << endl;
       os << prefix << "  Final:=" <<  this->finalSegment << endl;
-      os << prefix << "  MedianHS:=" << this-> medianHS << endl;
+      os << prefix << "  MedianHS:=" << this->medianHS << endl;
       os << prefix <<")" << endl;
       return os;
     }// print
@@ -956,7 +942,8 @@ namespace temporalalgebra {
     bool MSegment::operator ==(const MSegment& mSegment)const{
       if((this->initialSegment == mSegment.initialSegment) &&
          (this->finalSegment == mSegment.finalSegment) &&
-         (this->medianHS == mSegment.medianHS)) return true;
+         (this->medianHS == mSegment.medianHS)&&
+         (this->insideAbove == mSegment.insideAbove)) return true;
       return false;
     }// Operator ==
    
@@ -1037,7 +1024,8 @@ namespace temporalalgebra {
     }// Operator <<
    
     bool ResultUnit::operator ==(const ResultUnit& other)const{
-      
+      if(!(NumericUtil::nearlyEqual(this->startTime,other.startTime) &&
+           NumericUtil::nearlyEqual(this->endTime,other.endTime))) return false;
       if(this->mSegments.size() != other.mSegments.size()) return false;  
       for(size_t i = 0; i < this->mSegments.size(); i++){
         if(!(this->mSegments[i] == other.mSegments[i])) return false;
