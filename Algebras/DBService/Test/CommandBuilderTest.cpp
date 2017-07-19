@@ -125,7 +125,17 @@ TEST_F(CommandBuilderTest, testBuildCreateCommand)
             " Col2: int, Col3: bool])) value((\"val1\" 2 FALSE))]");
     ASSERT_STREQ(expectedCreateCommand.c_str(),
             CommandBuilder::buildCreateCommand(
-                    relationName, rel, values).c_str());
+                    relationName, rel, {values}).c_str());
+}
+
+TEST_F(CommandBuilderTest, testBuildCreateCommandForMoreThanOneTuple)
+{
+    string expectedCreateCommand("let myRel = [const rel(tuple([Col1: string,"
+            " Col2: int, Col3: bool]))"
+            " value((\"val1\" 2 FALSE)\n(\"val1\" 2 FALSE))]");
+    ASSERT_STREQ(expectedCreateCommand.c_str(),
+            CommandBuilder::buildCreateCommand(
+                    relationName, rel, {values, values}).c_str());
 }
 
 TEST_F(CommandBuilderTest, testBuildInsertCommand)
@@ -142,7 +152,7 @@ TEST_F(CommandBuilderTest, testBuildCreateCommandThrowsIfLenghtsDoNotMatch)
     vector<string> wrongValues;
 
     ASSERT_THROW(CommandBuilder::buildCreateCommand(
-                    relationName, rel, wrongValues), SecondoException*);
+                    relationName, rel, {wrongValues}), SecondoException*);
 }
 
 TEST_F(CommandBuilderTest, testBuildInsertCommandThrowsIfLenghtsDoNotMatch)

@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 
 #include "Algebras/DBService/CommandBuilder.hpp"
+#include "Algebras/DBService/DBServiceManager.hpp"
 #include "Algebras/DBService/LocationInfo.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
 
@@ -130,6 +131,27 @@ the deletion of the corresponding location mapping.
 
 */
     static bool deleteRelationInfo(RelationInfo& relationInfo);
+
+/*
+
+1.1 ~persistAllLocations~
+
+This function persists all locations passed as argument at once. All data that
+was persisted prior to the call of this function will be lost.
+
+*/
+    bool persistAllLocations(DBServiceLocations dbsLocations);
+
+/*
+
+1.1 ~persistAllRelations~
+
+This function persists all relations passed as argument at once. All data that
+was persisted prior to the call of this function will be lost.
+
+*/
+    bool persistAllRelations(DBServiceRelations dbsRelations);
+
 private:
 
 /*
@@ -155,7 +177,20 @@ already exists.
     static bool createOrInsert(
             const std::string& relationName,
             const RelationDefinition& rel,
-            const std::vector<std::string>& values);
+            const std::vector<std::vector<std::string> >& values);
+
+/*
+
+1.1 ~deleteAndCreate~
+
+This function deletes a relation in case it exists and recreates it using the
+given values.
+
+*/
+    static bool deleteAndCreate(
+            const std::string& relationName,
+            const RelationDefinition& rel,
+            const std::vector<std::vector<std::string> >& values);
 
 /*
 

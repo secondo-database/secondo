@@ -38,6 +38,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace DBService
 {
 
+typedef std::map<ConnectionID,
+        std::pair<LocationInfo,
+                  distributed2::ConnectionInfo*> > DBServiceLocations;
+
+typedef std::map<std::string, RelationInfo> DBServiceRelations;
+
 /*
 
 1 \textit{DBServiceManager}
@@ -317,9 +323,7 @@ This member maps a \textit{ConnectionID} to a pair that contains the
 corresponding \textit{LocationInfo} and \textit{ConnectionInfo}.
 
 */
-    std::map<ConnectionID,
-                    std::pair<LocationInfo,
-                              distributed2::ConnectionInfo*> > connections;
+    DBServiceLocations connections;
 
 /*
 
@@ -329,10 +333,10 @@ This member maps a location identifier to a vector of possible replica
 locations.
 
 */
+    typedef std::map<std::string, std::vector<ConnectionID> >
+    AlternativeLocations;
 
-typedef std::map<std::string, std::vector<ConnectionID> > AlternativeLocations;
-
-AlternativeLocations possibleReplicaLocations;
+    AlternativeLocations possibleReplicaLocations;
 
 /*
 
@@ -342,7 +346,7 @@ This member maps a relation identifier to the corresponding
 \textit{RelationInfo} object.
 
 */
-    std::map<std::string, RelationInfo> relations;
+    DBServiceRelations relations;
 
 /*
 

@@ -36,10 +36,29 @@ using namespace std;
 
 namespace DBService {
 
+
+bool DBServicePersistenceAccessor::deleteAndCreate(
+        const string& relationName,
+        const RelationDefinition& rel,
+        const vector<vector <string> >& values)
+{
+    printFunction("DBServicePersistenceAccessor::createOrInsert");
+    string databaseName("dbservice");
+    print(relationName);
+
+    SecondoUtilsLocal::adjustDatabase(databaseName);
+
+    if(SecondoSystem::GetCatalog()->IsObjectName(relationName))
+    {
+        SecondoSystem::GetCatalog()->DeleteObject(relationName);
+    }
+    return createOrInsert(relationName, rel, values);
+}
+
 bool DBServicePersistenceAccessor::createOrInsert(
         const string& relationName,
         const RelationDefinition& rel,
-        const vector<string>& values)
+        const vector<vector<string> >& values)
 {
     printFunction("DBServicePersistenceAccessor::createOrInsert");
     string databaseName("dbservice");
@@ -57,7 +76,7 @@ bool DBServicePersistenceAccessor::createOrInsert(
                 CommandBuilder::buildCreateCommand(
                         relationName,
                         rel,
-                        values),
+                        {values}),
                 errorMessage);
         if(resultOk)
         {
@@ -70,11 +89,16 @@ bool DBServicePersistenceAccessor::createOrInsert(
     }
     print("relation exists, trying insert command");
 
+    if(values.size() != 1)
+    {
+        print("values has wrong format for insert, aborting");
+        return false;
+    }
     resultOk = SecondoUtilsLocal::executeQuery2(
             CommandBuilder::buildInsertCommand(
                     relationName,
                     rel,
-                    values));
+                    values[0]));
 
     if(resultOk)
     {
@@ -93,18 +117,18 @@ bool DBServicePersistenceAccessor::persistLocationInfo(
 
     string relationName("locations_DBSP");
 
-    vector<string> values =
+    vector<string> value =
     {
-        { stringutils::int2str(connID) },
-        { locationInfo.getHost() },
-        { locationInfo.getPort() },
-        { locationInfo.getConfig() },
-        { locationInfo.getDisk() },
-        { locationInfo.getCommPort() },
-        { locationInfo.getTransferPort() },
+        stringutils::int2str(connID),
+        locationInfo.getHost(),
+        locationInfo.getPort(),
+        locationInfo.getConfig(),
+        locationInfo.getDisk(),
+        locationInfo.getCommPort(),
+        locationInfo.getTransferPort(),
     };
 
-    return createOrInsert(relationName, locations, values);
+    return createOrInsert(relationName, locations, {value});
 }
 
 bool DBServicePersistenceAccessor::persistRelationInfo(
@@ -114,18 +138,18 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
 
     string relationName("relations_DBSP");
 
-    vector<string> values =
+    vector<string> value =
     {
-        { relationInfo.toString() },
-        { relationInfo.getDatabaseName() },
-        { relationInfo.getRelationName() },
-        { relationInfo.getOriginalLocation().getHost() },
-        { relationInfo.getOriginalLocation().getPort() },
-        { relationInfo.getOriginalLocation().getDisk() },
+        relationInfo.toString(),
+        relationInfo.getDatabaseName(),
+        relationInfo.getRelationName(),
+        relationInfo.getOriginalLocation().getHost(),
+        relationInfo.getOriginalLocation().getPort(),
+        relationInfo.getOriginalLocation().getDisk()
     };
 
     bool resultOk =
-            createOrInsert(relationName, relations, values);
+            createOrInsert(relationName, relations, {value});
     if(resultOk)
     {
         print("RelationInfo persisted");
@@ -153,16 +177,16 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
     {
         string relationName("mapping_DBSP");
 
-        vector<string> values =
+        vector<string> value =
         {
-            { relationID },
-            { stringutils::int2str(it->first) },
-            { it->second ? string("TRUE") : string("FALSE") },
+            relationID ,
+            stringutils::int2str(it->first) ,
+            it->second ? string("TRUE") : string("FALSE") ,
         };
 
         resultOk = resultOk &&
                 createOrInsert(
-                        relationName, mapping, values);
+                        relationName, mapping, {value});
         if(!resultOk)
         {
             print("failed to persist location mapping");
@@ -344,12 +368,12 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
 
     FilterConditions filterConditions =
     {
-        { {AttributeType::STRING, string("RelationID") }, relationID },
-        { {AttributeType::INT, string("ConnectionID") },
+        { {AttributeType::STRING, string("RelationID")}, relationID },
+        { {AttributeType::INT, string("ConnectionID")},
                 stringutils::int2str(connID) }
     };
     AttributeInfoWithValue valueToUpdate =
-    { {AttributeType::BOOL, string("Replicated") },
+    {AttributeType::BOOL, string("Replicated"),
             replicated ? string("TRUE") : string("FALSE") };
 
     return SecondoUtilsLocal::executeQuery2(
@@ -369,7 +393,7 @@ bool DBServicePersistenceAccessor::deleteRelationInfo(
     string relationID = relationInfo.toString();
     FilterConditions filterConditions =
     {
-        { {AttributeType::STRING, string("RelationID") }, relationID },
+        { { AttributeType::STRING, string("RelationID")}, relationID },
     };
 
     bool resultOk = SecondoUtilsLocal::executeQuery2(
@@ -430,15 +454,78 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
     return resultOk;
 }
 
+bool DBServicePersistenceAccessor::persistAllLocations(
+        DBServiceLocations dbsLocations)
+{
+    vector<vector<string> > values;
+    for(const auto& location : dbsLocations)
+    {
+        const LocationInfo& locationInfo = location.second.first;
+        vector<string> value = {
+                stringutils::int2str(location.first),
+                locationInfo.getHost(),
+                locationInfo.getPort(),
+                locationInfo.getConfig(),
+                locationInfo.getDisk(),
+                locationInfo.getCommPort(),
+                locationInfo.getTransferPort(),
+        };
+        values.push_back(value);
+    }
+    return deleteAndCreate(
+            string("locations_DBSP"),
+            locations,
+            values);
+}
+
+bool DBServicePersistenceAccessor::persistAllRelations(
+        DBServiceRelations dbsRelations)
+{
+    vector<vector<string> > relationValues;
+    vector<vector<string> > mappingValues;
+    for(const auto& relation : dbsRelations)
+    {
+        const RelationInfo& relationInfo = relation.second;
+        vector<string> value = {
+            relation.first,
+            relationInfo.getDatabaseName(),
+            relationInfo.getRelationName(),
+            relationInfo.getOriginalLocation().getHost(),
+            relationInfo.getOriginalLocation().getPort(),
+            relationInfo.getOriginalLocation().getDisk()
+        };
+        relationValues.push_back(value);
+        for(map<ConnectionID, bool>::const_iterator it =
+                relationInfo.nodesBegin();
+                it != relationInfo.nodesEnd(); it++)
+        {
+            vector<string> mapping = {
+                    relation.first,
+                    stringutils::int2str(it->first),
+                    it->second ? string("TRUE") : string("FALSE")
+            };
+            mappingValues.push_back(mapping);
+        }
+    }
+    return deleteAndCreate(
+            string("relations_DBSP"),
+            relations,
+            relationValues)
+            && deleteAndCreate(
+                    string("mapping_DBSP"),
+                    mapping,
+                    mappingValues);
+}
+
 RelationDefinition DBServicePersistenceAccessor::locations =
 {
-    { AttributeType::INT, "ConnectionID" },
-    { AttributeType::STRING, "Host" },
-    { AttributeType::STRING, "Port" },
-    { AttributeType::STRING, "Config" },
-    { AttributeType::STRING, "Disk" },
-    { AttributeType::STRING, "CommPort" },
-    { AttributeType::STRING, "TransferPort" }
+     { AttributeType::INT, "ConnectionID" },
+     { AttributeType::STRING, "Host" },
+     { AttributeType::STRING, "Port" },
+     { AttributeType::STRING, "Config" },
+     { AttributeType::STRING, "Disk" },
+     { AttributeType::STRING, "CommPort" },
+     { AttributeType::STRING, "TransferPort" }
 };
 
 RelationDefinition DBServicePersistenceAccessor::relations =
@@ -448,14 +535,14 @@ RelationDefinition DBServicePersistenceAccessor::relations =
     { AttributeType::STRING, "RelationName" },
     { AttributeType::STRING, "Host" },
     { AttributeType::STRING, "Port" },
-    { AttributeType::STRING, "Disk" },
+    { AttributeType::STRING, "Disk" }
 };
 
 RelationDefinition DBServicePersistenceAccessor::mapping =
 {
     { AttributeType::STRING, "RelationID" },
     { AttributeType::INT, "ConnectionID" },
-    { AttributeType::BOOL, "Replicated" },
+    { AttributeType::BOOL, "Replicated" }
 };
 
 } /* namespace DBService */

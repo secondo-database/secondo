@@ -206,6 +206,9 @@ bool SecondoUtilsLocal::adjustDatabase(const string& databaseName)
                     << databaseName;
         SecondoUtilsLocal::executeQuery(queryOpen.str());
         return true;
+    }else
+    {
+        print("database name matches, no need to adjust");
     }
     return false;
 }

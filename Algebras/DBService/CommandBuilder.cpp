@@ -69,12 +69,8 @@ void CommandBuilder::addAttributeValue(
 string CommandBuilder::buildCreateCommand(
         const string& relationName,
         const RelationDefinition& rel,
-        const vector<string>& values)
+        const vector<vector<string> >& values)
 {
-    if(rel.size() != values.size())
-    {
-        throw new SecondoException("rel.size() != values.size()");
-    }
     stringstream createCommand;
     createCommand << "let " << relationName << " = [const rel(tuple([";
     for(size_t i = 0; i < rel.size(); i++)
@@ -87,12 +83,25 @@ string CommandBuilder::buildCreateCommand(
         }
     }
     createCommand << "])) value((";
-    for(size_t i = 0; i < rel.size(); i++)
+
+    for(size_t j = 0; j < values.size(); j++)
     {
-        addAttributeValue(createCommand, rel[i], values[i]);
-        if(i != rel.size() - 1)
+        if(rel.size() != values[j].size())
         {
-            createCommand << " ";
+            throw new SecondoException("wrong number of attributes");
+        }
+        for(size_t i = 0; i < values[j].size(); i++)
+        {
+            addAttributeValue(
+                    createCommand, rel[i], values[j][i]);
+            if(i != rel.size() - 1)
+            {
+                createCommand << " ";
+            }
+        }
+        if(j != values.size() - 1)
+        {
+            createCommand << ")\n(";
         }
     }
     createCommand << "))]";

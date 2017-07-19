@@ -27,7 +27,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <sstream>
 #include <string>
+#include <array>
+#include <utility>
+#include <tuple>
 #include <vector>
+
+#include "RelationInfo.hpp" //TODO fix test makefile
 
 namespace DBService
 {
@@ -139,7 +144,7 @@ creating a relation with the given name (\textit{relationName}) and attributes
     static std::string buildCreateCommand(
             const std::string& relationName,
             const RelationDefinition& rel,
-            const std::vector<std::string>& values);
+            const std::vector<std::vector<std::string> >& values);
 
 /*
 1.2.3 \textit{buildInsertCommand}
