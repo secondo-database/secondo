@@ -64,6 +64,7 @@ DBServiceManager::DBServiceManager()
 
 DBServiceManager::~DBServiceManager()
 {
+    printFunction("DBServiceManager::~DBServiceManager");
     DBServicePersistenceAccessor::persistAllLocations(connections);
     DBServicePersistenceAccessor::persistAllRelations(relations);
 }
@@ -204,6 +205,13 @@ bool DBServiceManager::addNode(const string host,
 
     //DBServicePersistenceAccessor::persistLocationInfo(connID, location);
 
+    if (!DBServicePersistenceAccessor::persistAllLocations(connections))
+    {
+        print("Could not persist DBService locations");
+        connections.erase(connID);
+        return false;
+    }
+
     for(auto& replicaLocation : possibleReplicaLocations)
     {
         addToPossibleReplicaLocations(
@@ -213,6 +221,7 @@ bool DBServiceManager::addNode(const string host,
                 host,
                 dir);
     }
+
     return true;
 }
 
@@ -290,6 +299,10 @@ void DBServiceManager::persistReplicaLocations(const string& databaseName,
             relations.at(
                     RelationInfo::getIdentifier(databaseName, relationName));
     //DBServicePersistenceAccessor::persistRelationInfo(relationInfo);
+    if(!DBServicePersistenceAccessor::persistAllRelations(relations))
+    {
+        print("Could not persist DBService relations");
+    }
 }
 
 void DBServiceManager::getReplicaLocations(
@@ -433,6 +446,10 @@ void DBServiceManager::maintainSuccessfulReplication(
     {
         print("RelationInfo does not exist");
     }
+    if(!DBServicePersistenceAccessor::persistAllRelations(relations))
+    {
+        print("Could not persist DBService relations");
+    }
 }
 
 void DBServiceManager::deleteReplicaMetadata(const string& relID)
@@ -454,6 +471,10 @@ void DBServiceManager::printMetadata()
 {
     cout << "WORKER NODES" << endl;
     cout << "********************************" << endl;
+    if(connections.empty())
+    {
+        cout << "*** NONE ***" << endl;
+    }
     for(const auto& connection : connections)
     {
         cout << "ConnectionID: " << connection.first << endl;
@@ -463,6 +484,10 @@ void DBServiceManager::printMetadata()
 
     cout << "REPLICAS" << endl;
     cout << "********************************" << endl;
+    if(relations.empty())
+    {
+        cout << "*** NONE ***" << endl;
+    }
     for(const auto& relation : relations)
     {
         cout << "RelationID: " << relation.first << endl;
