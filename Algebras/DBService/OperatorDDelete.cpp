@@ -88,15 +88,15 @@ int OperatorDDelete::mapValue(Word* args,
 
     if(deleteLocalRelation)
     {
+        print("deleting local relation");
         SecondoCatalog* catalog = SecondoSystem::GetCatalog();
-        SecondoSystem::BeginTransaction();
-
-        result = qp->ResultStorage(s);
         if (!catalog->DeleteObject(relationName))
         {
-            success &= false;
+            success = false;
         }
     }
+
+    result = qp->ResultStorage(s);
     static_cast<CcBool*>(result.addr)->Set(true, success);
     return 0;
 }

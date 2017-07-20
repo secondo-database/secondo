@@ -115,8 +115,12 @@ int ReplicationClient::receiveReplica()
         traceWriter->write("fileNameDBS", fileNameDBS);
         CommunicationUtils::sendBatch(io, sendBuffer);
 
-        receiveFileFromServer();
-        reportSuccessfulReplication();
+        if(receiveFileFromServer())
+        {
+            traceWriter->write(
+                    "Replication successful, notifying DBService master");
+            reportSuccessfulReplication();
+        }
     } catch (...)
     {
         cerr << "ReplicationClient: communication error" << endl;
@@ -134,7 +138,7 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
         if(start() != 0)
         {
             traceWriter->write("Could not connect to Server");
-            return false;
+            return 1;
         }
 
         iostream& io = socket->GetSocketStream();
@@ -142,7 +146,7 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
                 CommunicationProtocol::ReplicationServer()))
         {
             traceWriter->write("not connected to ReplicationServer");
-            return 1;
+            return 2;
         }
         queue<string> sendBuffer;
         sendBuffer.push(CommunicationProtocol::ReplicationClient());
@@ -153,7 +157,7 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
                 CommunicationProtocol::FunctionRequest()))
         {
             traceWriter->write("expected FunctionRequest");
-            return 2;
+            return 3;
         }
         if(functionAsNestedListString.empty())
         {
@@ -169,7 +173,7 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
     } catch (...)
     {
         cerr << "ReplicationClient: communication error" << endl;
-        return 5;
+        return 4;
     }
     return 0;
 }

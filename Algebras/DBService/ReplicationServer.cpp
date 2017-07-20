@@ -83,42 +83,33 @@ int ReplicationServer::communicate(iostream& io)
         string fileName = receiveBuffer.front();
         receiveBuffer.pop();
 
+        if(!FileSystem::FileOrFolderExists(fileName))
+        {
+            traceWriter->write(tid, "file not found, notifying client");
+            CommunicationUtils::sendLine(io,
+                    distributed2::FileTransferKeywords::FileNotFound());
+        }
         if(purpose == CommunicationProtocol::SendReplicaForStorage())
         {
-            bool fileCreated = true;
-            if(!FileSystem::FileOrFolderExists(fileName))
-            {
-                traceWriter->write(tid, "file does not exist");
-                fileCreated = createFile(fileName, tid);
-            }
-            sendFileToClient(io, fileCreated, tid);
+            sendFileToClient(io, true, tid);
         }else if(purpose == CommunicationProtocol::SendReplicaForUsage())
         {
-            if(!FileSystem::FileOrFolderExists(fileName))
+            CommunicationUtils::sendLine(io,
+                    CommunicationProtocol::FunctionRequest());
+            string function;
+            CommunicationUtils::receiveLine(io, function);
+            if(function == CommunicationProtocol::None())
             {
-                traceWriter->write(tid, "file not found, notifying client");
-                CommunicationUtils::sendLine(io,
-                        distributed2::FileTransferKeywords::FileNotFound());
+                sendFileToClient(io, true, tid);
             }else
             {
-                CommunicationUtils::sendLine(io,
-                        CommunicationProtocol::FunctionRequest());
-                string function;
-                CommunicationUtils::receiveLine(io, function);
-                if(function == CommunicationProtocol::None())
-                {
-                    sendFileToClient(io, true, tid);
-                }else
-                {
-                    // TODO
-                    // execute query with function on relation in file
-                    // create new file with new name
-                    // notify client about new name so that it can request file
-                    // send to client
-                    // delete
-                }
+                // TODO
+                // execute query with function on relation in file
+                // create new file with new name
+                // notify client about new name so that it can request file
+                // send to client
+                // delete
             }
-
         }else
         {
             traceWriter->write(tid, "unexpected purpose: ", purpose);
@@ -185,21 +176,13 @@ void ReplicationServer::sendFileToClient(
                 "communication error while initiating file transfer");
     }
 
-    if(fileCreated)
+    traceWriter->write(tid, "file created, sending file");
+    if(sendFile(io) != 0)
     {
-        traceWriter->write(tid, "file created, sending file");
-        if(sendFile(io) != 0)
-        {
-            traceWriter->write(tid, "send failed");
-        }else
-        {
-            traceWriter->write(tid, "file sent");
-        }
+        traceWriter->write(tid, "send failed");
     }else
     {
-        traceWriter->write(tid, "notifying client");
-        CommunicationUtils::sendLine(io,
-                distributed2::FileTransferKeywords::FileNotFound());
+        traceWriter->write(tid, "file sent");
     }
 }
 

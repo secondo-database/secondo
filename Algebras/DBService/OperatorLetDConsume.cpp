@@ -25,11 +25,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sstream>
 
 #include "Algebras/Distributed2/DArray.h"
+#include "Algebras/Distributed2/FileRelations.h"
+
 #include "Algebras/Relation-C++/OperatorConsume.h"
 
 #include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorLetDConsume.hpp"
+#include "Algebras/DBService/ReplicationUtils.hpp"
 
 
 using namespace std;
@@ -106,22 +109,58 @@ int OperatorLetDConsume::mapValue(Word* args,
     {
         printFunction("OperatorLetDConsume::mapValue<isDArray=false>");
 
-        CcString* relationName = static_cast<CcString*>(args[1].addr);
-        print(relationName->GetValue());
-        print("relationName", relationName->GetValue());
+        ListExpr tupleType = nl->Second(qp->GetType(s));
+        print("tupleType", tupleType);
 
-        int consumeValueMappingResult = OperatorConsume::Consume(args, result,
-                message, local, s);
+        string relationName = static_cast<CcString*>(args[1].addr)->GetValue();
+        print("relationName", relationName);
+
+        GenericRelation* rel = (GenericRelation*)((qp->ResultStorage(s)).addr);
+        if(rel->GetNoTuples() > 0)
+        {
+            rel->Clear();
+        }
+
+        const string databaseName =
+                SecondoSystem::GetInstance()->GetDatabaseName();
+        const string fileName = ReplicationUtils::getFileName(
+                databaseName,
+                relationName);
+        print("fileName", fileName);
+
+        ofstream out(fileName.c_str(),ios::out|ios::binary);
+        ListExpr type = nl->TwoElemList(
+                listutils::basicSymbol<Relation>(),
+                tupleType);
+        print("type", type);
+
+        BinRelWriter::writeHeader(out, type);
+
+        Stream<Tuple> stream(args[0]);
+        stream.open();
+
+        Tuple* t;
+        while( (t = stream.request()) != 0){
+            rel->AppendTuple(t);
+            BinRelWriter::writeNextTuple(out,t);
+            t->DeleteIfAllowed();
+        }
+        stream.close();
+        out.close();
+
+        result.setAddr(rel);
 
         bool replicationTriggered =
                 DBServiceConnector::getInstance()->triggerReplication(
-                SecondoSystem::GetInstance()->GetDatabaseName(),
-                relationName->GetValue());
+                databaseName,
+                relationName);
         if(!replicationTriggered)
         {
-            // TODO
+            print("Replication could not be triggered");
+            return 1;
         }
-        return consumeValueMappingResult;
+
+        return 0;
     }
 }
 

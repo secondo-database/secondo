@@ -152,6 +152,17 @@ was persisted prior to the call of this function will be lost.
 */
     static bool persistAllRelations(DBServiceRelations dbsRelations);
 
+/*
+
+1.1 ~getRecordCount~
+
+Retrieve the number of tuples that the specifies relation contains.
+
+*/
+    size_t getRecordCount(
+            const std::string& databaseName,
+            const std::string& relationName);
+
 private:
 
 /*

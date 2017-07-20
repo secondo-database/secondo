@@ -465,6 +465,10 @@ void DBServiceManager::deleteReplicaMetadata(const string& relID)
     {
         print("RelationInfo does not exist");
     }
+    if(!DBServicePersistenceAccessor::persistAllRelations(relations))
+    {
+        print("Could not persist DBService relations");
+    }
 }
 
 void DBServiceManager::printMetadata()

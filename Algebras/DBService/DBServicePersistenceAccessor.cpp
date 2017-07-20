@@ -52,6 +52,12 @@ bool DBServicePersistenceAccessor::deleteAndCreate(
     {
         SecondoSystem::GetCatalog()->DeleteObject(relationName);
     }
+
+    if(values.empty())
+    {
+        print("Nothing to persist");
+        return true;
+    }
     return createOrInsert(relationName, rel, values);
 }
 
@@ -457,20 +463,24 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
 bool DBServicePersistenceAccessor::persistAllLocations(
         DBServiceLocations dbsLocations)
 {
+    printFunction("DBServicePersistenceAccessor::persistAllLocations");
     vector<vector<string> > values;
-    for(const auto& location : dbsLocations)
+    if(!dbsLocations.empty())
     {
-        const LocationInfo& locationInfo = location.second.first;
-        vector<string> value = {
-                stringutils::int2str(location.first),
-                locationInfo.getHost(),
-                locationInfo.getPort(),
-                locationInfo.getConfig(),
-                locationInfo.getDisk(),
-                locationInfo.getCommPort(),
-                locationInfo.getTransferPort(),
-        };
-        values.push_back(value);
+        for(const auto& location : dbsLocations)
+        {
+            const LocationInfo& locationInfo = location.second.first;
+            vector<string> value = {
+                    stringutils::int2str(location.first),
+                    locationInfo.getHost(),
+                    locationInfo.getPort(),
+                    locationInfo.getConfig(),
+                    locationInfo.getDisk(),
+                    locationInfo.getCommPort(),
+                    locationInfo.getTransferPort(),
+            };
+            values.push_back(value);
+        }
     }
     return deleteAndCreate(
             string("locations_DBSP"),
@@ -481,30 +491,34 @@ bool DBServicePersistenceAccessor::persistAllLocations(
 bool DBServicePersistenceAccessor::persistAllRelations(
         DBServiceRelations dbsRelations)
 {
+    printFunction("DBServicePersistenceAccessor::persistAllRelations");
     vector<vector<string> > relationValues;
     vector<vector<string> > mappingValues;
-    for(const auto& relation : dbsRelations)
+    if(!dbsRelations.empty())
     {
-        const RelationInfo& relationInfo = relation.second;
-        vector<string> value = {
-            relation.first,
-            relationInfo.getDatabaseName(),
-            relationInfo.getRelationName(),
-            relationInfo.getOriginalLocation().getHost(),
-            relationInfo.getOriginalLocation().getPort(),
-            relationInfo.getOriginalLocation().getDisk()
-        };
-        relationValues.push_back(value);
-        for(map<ConnectionID, bool>::const_iterator it =
-                relationInfo.nodesBegin();
-                it != relationInfo.nodesEnd(); it++)
+        for(const auto& relation : dbsRelations)
         {
-            vector<string> mapping = {
-                    relation.first,
-                    stringutils::int2str(it->first),
-                    it->second ? string("TRUE") : string("FALSE")
+            const RelationInfo& relationInfo = relation.second;
+            vector<string> value = {
+                relation.first,
+                relationInfo.getDatabaseName(),
+                relationInfo.getRelationName(),
+                relationInfo.getOriginalLocation().getHost(),
+                relationInfo.getOriginalLocation().getPort(),
+                relationInfo.getOriginalLocation().getDisk()
             };
-            mappingValues.push_back(mapping);
+            relationValues.push_back(value);
+            for(map<ConnectionID, bool>::const_iterator it =
+                    relationInfo.nodesBegin();
+                    it != relationInfo.nodesEnd(); it++)
+            {
+                vector<string> mapping = {
+                        relation.first,
+                        stringutils::int2str(it->first),
+                        it->second ? string("TRUE") : string("FALSE")
+                };
+                mappingValues.push_back(mapping);
+            }
         }
     }
     return deleteAndCreate(
@@ -515,6 +529,16 @@ bool DBServicePersistenceAccessor::persistAllRelations(
                     string("mapping_DBSP"),
                     mapping,
                     mappingValues);
+}
+
+size_t getRecordCount(const string& databaseName, const string& relationName)
+{
+    printFunction("DBServicePersistenceAccessor::getRecordCount");
+    print(databaseName);
+    print(relationName);
+
+    SecondoUtilsLocal::adjustDatabase(databaseName);
+    return 0;
 }
 
 RelationDefinition DBServicePersistenceAccessor::locations =
