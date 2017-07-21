@@ -197,5 +197,5 @@ operator memgroupby alias MEMGROUPBY pattern _ op [list; funlist] implicit param
 
 operator importCH alias IMPORTCH pattern op(_,_)
 
-
+operator mmergejoinproject alias MMERGEJOINPROJECT pattern _ _ op[_,_,_;list] 
 

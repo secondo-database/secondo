@@ -17222,7 +17222,7 @@ ListExpr countTM(ListExpr args){
   }
   ListExpr a1 = nl->First(args);
   string err;
-  if(!getMemType(nl->First(a1), nl->Second(a1), a1,err, false)){
+  if(!getMemType(nl->First(a1), nl->Second(a1), a1,err, true)){
     return listutils::typeError(err);
   }
   a1 = nl->Second(a1); // remove leading mem
@@ -17261,14 +17261,32 @@ int countVMT(Word* args, Word& result, int message,
    }
    return 0;
 }
+
+
+int countVMMPointer(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+  MPointer* arg = (MPointer*) args[0].addr;
+  ListExpr rt = nl->First(nl->Second(nl->Second(qp->GetType(qp->GetSon(s,0)))));
+  int c;
+  if(listutils::isSymbol(rt,Relation::BasicType())){
+    c = ((MemoryRelObject*) arg->GetValue())->getSize();
+  } else {
+    c = ((MemoryORelObject*) arg->GetValue())->getSize();
+  }
+  result = qp->ResultStorage(s);
+  ((CcInt*) result.addr)->Set(true,c);
+  return 0;
+}
+
    
 ValueMapping countVM[] = {
   countVMT<CcString>,
-  countVMT<Mem>
+  countVMT<Mem>,
+  countVMMPointer
 }; 
 
 int countSelect(ListExpr args){
-   return CcString::checkType(nl->First(args))?0:1;
+  return getRepNum(nl->First(args)); 
 }
 
 OperatorSpec countSpec(
@@ -17281,7 +17299,7 @@ OperatorSpec countSpec(
 Operator countOp(
   "count",
   countSpec.getStr(),
-  2,
+  3,
   countVM,
   countSelect,
   countTM
@@ -22012,6 +22030,291 @@ Operator importCHOp(
 );
 
 
+
+/*
+Operator mmergejoinproject
+
+
+*/
+
+ListExpr mmergejoinprojectTM(ListExpr args){
+  // rel1 x rel2 x attr1 x attr2 resrelname x projectlist
+  if(!nl->HasLength(args,6)){
+    return listutils::typeError("6 arguments expected");
+  }
+  if(!checkUsesArgs(args)){
+    return listutils::typeError("internal error");
+  }
+  // first argument: an mrel
+  ListExpr rel1 = nl->First(args);
+  string err;
+  if(!getMemType(rel1,rel1,err,true,true)){
+    return listutils::typeError(err);
+  }
+  rel1 = nl->Second(rel1);
+  if(!Relation::checkType(rel1)){
+    return listutils::typeError("first arg is not a memory relation");
+  }
+  ListExpr tt1 = nl->Second(rel1);
+  ListExpr attrList1 = nl->Second(tt1);
+
+  // second argument: an mrel
+  ListExpr rel2 = nl->Second(args);
+  if(!getMemType(rel2,rel2,err,true,true)){
+    return listutils::typeError(err);
+  }
+  rel2 = nl->Second(rel2);
+  if(!Relation::checkType(rel2)){
+    return listutils::typeError("first arg is not a memory relation");
+  }
+  ListExpr tt2 = nl->Second(rel2);
+  ListExpr attrList2 = nl->Second(tt2);
+
+  // third argument: an attribute name of rel1 
+  ListExpr attr1 = nl->First(nl->Third(args));
+  if(nl->AtomType(attr1) != SymbolType){
+    return listutils::typeError("third arg is not a valid attribute name");
+  }
+  string attrName1 = nl->SymbolValue(attr1);
+  ListExpr attrType1;
+  int attrIndex1 = listutils::findAttribute(attrList1, attrName1, attrType1);
+  if(!attrIndex1){
+    return listutils::typeError("Attribute " + attrName1 
+                                 + " not part of the first relation");
+  }
+  // fourth argument: an attribute name of rel2
+  ListExpr attr2 = nl->First(nl->Fourth(args));
+  if(nl->AtomType(attr2) != SymbolType){
+    return listutils::typeError("fourth arg is not a valid attribute name");
+  }
+  string attrName2 = nl->SymbolValue(attr2);
+  ListExpr attrType2;
+  int attrIndex2 = listutils::findAttribute(attrList2, attrName2, attrType2);
+  if(!attrIndex2){
+    return listutils::typeError("Attribute " + attrName2 
+                                 + " not part of the second relation");
+  }
+  // check for equal types
+  if(!nl->Equal(attrType1, attrType2)){
+    return listutils::typeError("Types of attributes " + attrName1 + " and "
+                                + attrName2 + " differ.");
+  }
+  // fifth argument: the name of the resulting relation
+  ListExpr resNameT = nl->First(nl->Fifth(args));
+  if(!CcString::checkType(resNameT)){
+    return listutils::typeError("fifth argument is not a string");
+  }
+  ListExpr resNameV = nl->Second(nl->Fifth(args));
+  if(nl->AtomType(resNameV) != StringType){
+    return listutils::typeError("fifth argument is not a constant string");
+  }
+  string resName = nl->StringValue(resNameV);
+  if(catalog->isMMObject(resName)){
+    return listutils::typeError("object " + resName 
+                                + " is already a main memory object");
+  } 
+  // sixth argument: the projection list
+  ListExpr prjList = nl->First(nl->Sixth(args));
+  if(nl->AtomType(prjList) != NoAtom){
+    return listutils::typeError("sixth argument must be a list "
+                                "of attribute names");
+  }
+  ListExpr completeAttrList = listutils::concat(attrList1, attrList2); 
+  ListExpr prjIndexes = nl->TheEmptyList();
+  ListExpr prjIndexesLast;
+  ListExpr resAttrList = nl->TheEmptyList();
+  ListExpr resAttrListLast;
+  bool first = true;
+  while(!nl->IsEmpty(prjList)){
+    ListExpr attr = nl->First(prjList);
+    prjList = nl->Rest(prjList); 
+    if(nl->AtomType(attr)!=SymbolType){
+      return listutils::typeError("projection list contains an "
+                                  "invalid attribute");
+    }
+    ListExpr attrType;
+    string attrName = nl->SymbolValue(attr);
+    int attrIndex = listutils::findAttribute(completeAttrList, 
+                                             attrName, attrType);
+    if(!attrIndex){
+      return listutils::typeError("attribute " + attrName 
+                                  + " not part of the relations");
+    }
+    if(first){
+      prjIndexes = nl->OneElemList(nl->IntAtom(attrIndex-1));
+      resAttrList = nl->OneElemList(nl->TwoElemList(attr, attrType));
+      prjIndexesLast = prjIndexes;
+      resAttrListLast = resAttrList;
+      first = false;
+    } else {
+       prjIndexesLast = nl->Append(prjIndexesLast, nl->IntAtom(attrIndex-1));
+       resAttrListLast = nl->Append(resAttrListLast, 
+                                    nl->TwoElemList(attr, attrType));
+    }
+  }
+  if(!listutils::isAttrList(resAttrList)){
+    return listutils::typeError("There are name conflicts in projection list");
+  }
+  ListExpr resType = nl->TwoElemList(
+                         listutils::basicSymbol<MPointer>(),
+                         nl->TwoElemList(
+                              listutils::basicSymbol<Mem>(),
+                              nl->TwoElemList(
+                                 listutils::basicSymbol<Relation>(),
+                                 nl->TwoElemList(
+                                    listutils::basicSymbol<Tuple>(),
+                                    resAttrList)))); 
+
+  return nl->ThreeElemList(
+           nl->SymbolAtom(Symbols::APPEND()),
+           nl->ThreeElemList(nl->IntAtom(attrIndex1-1),
+                             nl->IntAtom(attrIndex2-1),
+                             prjIndexes),
+           resType
+         );
+}
+
+template<class R1, class R2>
+int mmergejoinprojectVMT(Word* args, Word& result, int message,
+                        Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   MPointer* res = (MPointer*) result.addr;
+   R1* r1 = (R1*) args[0].addr;
+   R2* r2 = (R2*) args[1].addr;
+   
+   MemoryRelObject* rel1 = getMemRel(r1);
+   MemoryRelObject* rel2 = getMemRel(r2);
+   if(!rel1 || !rel2){
+     res->setPointer(0);
+     return 0;      
+   }
+   // create result and insert into catalog
+   string resName = ((CcString*) args[4].addr)->GetValue();
+   ListExpr resType = nl->Second(qp->GetType(s));
+   MemoryRelObject* resRel = new MemoryRelObject(nl->ToString(resType));
+   catalog->insert(resName, resRel);
+   res->setPointer(resRel);
+
+   // do the join
+   vector<Tuple*>* v1 = rel1->getmmrel();
+   vector<Tuple*>* v2 = rel2->getmmrel();
+   
+   size_t s1 = v1->size();
+   size_t s2 = v2->size();
+   size_t pos1 = 0;
+   size_t pos2 = 0;
+   size_t posm = 0;
+
+   int ai1 = ((CcInt*)args[6].addr)->GetValue();
+   int ai2 = ((CcInt*)args[7].addr)->GetValue();
+
+   vector<int> prjList;
+   Supplier sup2 = qp->GetSon(s,8);
+   for( int i=0;i<qp->GetNoSons(sup2);i++){
+      Word elem;
+      Supplier s3 = qp->GetSupplier(sup2,i);
+      qp->Request(s3,elem);
+      prjList.push_back(((CcInt*) elem.addr)->GetValue());
+   }
+
+
+   TupleType* tt = new TupleType(nl->Second(nl->Second(
+                                 nl->Second(qp->GetNumType(s)))));
+
+   while((pos1 < s1) && (pos2 < s2)){
+       Tuple* t1 = v1->at(pos1);
+       Tuple* t2 = v2->at(pos2);
+       if(!t1){
+          pos1++;
+       } else if(!t2){
+          pos2++;
+       } else {
+          Attribute* a1 = t1->GetAttribute(ai1);
+          Attribute* a2 = t2->GetAttribute(ai2);
+          int cmp = a1->Compare(a2);
+          if(cmp < 0){
+             pos1++;
+          } else if(cmp>0){
+             pos2++;
+          } else {
+             // we scan v2 until the attribute is bigger or v2 is finished
+             // after that, we reset pos2 and increase
+             posm = pos2;
+             while(pos2 < s2 && cmp==0){
+                 // create result tuple
+                 Tuple* rt = new Tuple(tt);
+                 for(size_t i=0;i<prjList.size();i++){
+                    int a = prjList[i];
+                    if(a< t1->GetNoAttributes()){
+                       rt->CopyAttribute(a,t1,i);
+                     } else {
+                        a = a - t1->GetNoAttributes();
+                        rt->CopyAttribute(a,t2,i);
+                    }
+                 }
+                 resRel->addTuple(rt);
+                 // next undeleted tuple
+                 pos2++;
+                 while( (pos2<s2)  && ( (t2 = v2->at(pos2))==0)){
+                    pos2++;
+                 }
+                 if(pos2 < s2){
+                     a2 = t2->GetAttribute(ai2);
+                     cmp = a1->Compare(a2);
+                 }
+             }
+             pos2 = posm;
+             pos1++;
+          }
+       }
+   }
+   tt->DeleteIfAllowed();
+   return 0;
+}
+
+ValueMapping mmergejoinprojectVM[] = {
+    mmergejoinprojectVMT<CcString,CcString>,
+    mmergejoinprojectVMT<CcString,Mem>,
+    mmergejoinprojectVMT<CcString,MPointer>,
+    mmergejoinprojectVMT<Mem,CcString>,
+    mmergejoinprojectVMT<Mem,Mem>,
+    mmergejoinprojectVMT<Mem,MPointer>,
+    mmergejoinprojectVMT<MPointer,CcString>,
+    mmergejoinprojectVMT<MPointer,Mem>,
+    mmergejoinprojectVMT<MPointer,MPointer>
+  };
+
+OperatorSpec mmergejoinprojectSpec(
+  " MREL x MREL x IDENT x IDENT x string x INDENT^+  -> mpointer ",
+  " rel1 rel2 mmergejoinproject[attr1, attr2, resname, prjlist] ",
+  " joins the relations rel1 and rel on attributes attr1 and attr2,"
+  " respectively." 
+  "It's assumed rel1 and rel2 are sorted by the join attributes. "
+  "The concatenated tuples are projected to the prjlist. "
+  "The result is stored as a new memory rel object with resname as name.",
+  "query \"ten\" \"plz\" mmergerjoinproject[No, PLZ, \"noPlz\"; "
+  "no,PLZ,Ort] count" 
+);
+
+int mmergejoinprojectSelect(ListExpr args){
+  int n1 = getRepNum(nl->First(args)) * 3;
+  int n2 = getRepNum(nl->Second(args));
+  return n1+n2;
+}
+
+Operator mmergejoinprojectOp(
+   "mmergejoinproject",
+   mmergejoinprojectSpec.getStr(),
+   9, 
+   mmergejoinprojectVM,
+   mmergejoinprojectSelect,
+   mmergejoinprojectTM
+);
+
+
+
+
 /*
 23 Algebra Definition
 
@@ -22372,6 +22675,9 @@ class MainMemory2Algebra : public Algebra {
 
           AddOperator(&importCHOp),
           importCHOp.SetUsesArgsInTypeMapping();
+
+          AddOperator(&mmergejoinprojectOp);
+          mmergejoinprojectOp.SetUsesArgsInTypeMapping();
 
         }
         

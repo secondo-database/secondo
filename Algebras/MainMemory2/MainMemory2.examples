@@ -770,10 +770,39 @@ Result    : TRUE
 
 Operator  : mupdatedirect2
 Number    : 121
-Signature : stream(tuple(X)) x MREL(tuple(Y)) x INDENT x funlist -> stream(tuple(X))
+Signature : stream(tuple(X)) x MREL(tuple(Y)) x IDENT x funlist -> stream(tuple(X))
 Example   : query thousand feed addid "ten" mupdatedirect2[TID; No : .No + ..No] count = "ten" mfeed count 
 Result    : TRUE
 
+Operator : memload
+Number   : 122
+Signature : string -> bool
+Example   : query memload("plz")
+Result    : TRUE
+
+Operator : mquicksortby
+Number   : 123
+Signature : mrel x id -> stream(tuple)
+Example   : query "plz" mquicksortby[PLZ] count
+Result    : 41267
+
+Operator  : memlet
+Number    : 124
+Signature : stream(tuple) x string -> mrel
+Example   : query memlet("TR", intstream(1000, 4000) namedtransformstream[No] consume)
+Result    : TRUE
+
+Operator  : mmergejoinproject
+Number    : 125
+Signature : MRel x MREL x IDENT x IDENT x string x IDENT_list -> mpointer(mem(rel))
+Example   : query "TR" "plz" mmergejoinproject[No, PLZ, "noPlz"; Ort,PLZ,No] count = "TR" mfeed "plz" mfeed mergejoin[No,PLZ] count
+Result    : TRUE
+
+Operator : memdelete
+Number   : 126
+Signature : string -> bool
+Example   : query memdelete("plz")
+Result    : TRUE
 
 
 Operator  : moshortestpathd
