@@ -1,5 +1,4 @@
-operator letdconsume alias LETDCONSUME pattern _ op [_]
-operator feedpf alias FEEDPF pattern _ op [_,_]
+operator write alias WRITE pattern _ op [_]
 operator checkdbservicestatus alias CHECKDBSERVICESTATUS pattern op()
 operator addnode alias ADDNODE pattern op(_,_,_)
 operator initdbserviceworker alias INITDBSERVICEWORKER pattern op()

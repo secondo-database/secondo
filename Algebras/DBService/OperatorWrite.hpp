@@ -22,8 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-#ifndef ALGEBRAS_DBSERVICE_OPERATORFEEDPF_HPP_
-#define ALGEBRAS_DBSERVICE_OPERATORFEEDPF_HPP_
+#ifndef ALGEBRAS_DBSERVICE_OPERATORWRITE_HPP_
+#define ALGEBRAS_DBSERVICE_OPERATORWRITE_HPP_
 
 #include "Operator.h"
 
@@ -32,25 +32,25 @@ namespace DBService
 
 /*
 
-1 \textit{}
+1 ~write~
 
-\textit{DBService}
 TODO
 
 */
 
-struct FeedPFInfo: OperatorInfo
+struct WriteInfo: OperatorInfo
 {
-    FeedPFInfo()
+    WriteInfo()
     {
-        name = "feedpf";
+        name = "write";
         signature = ""; // TODO
         syntax = ""; // TODO
-        meaning = "feed project filter";
+        meaning = "write";
+        usesArgsInTypeMapping = false;
     }
 };
 
-class OperatorFeedPF
+class OperatorWrite
 {
 public:
     static ListExpr mapType(ListExpr nestedList);
@@ -63,4 +63,4 @@ public:
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_OPERATORFEEDPF_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_OPERATORWRITE_HPP_ */

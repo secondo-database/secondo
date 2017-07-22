@@ -1,33 +1,12 @@
 Database : berlintest
 Restore  : No
 
-Operator  : letdconsume
+Operator  : write
 Number    : 1
 Signature : stream(tuple) x string -> rel(tuple)
-Example   : let Roads2 = Roads filter[ .Name startsWith "A"] letdconsume["Roads2"]
+Example   : let Roads2 = Roads filter[ .Name startsWith "A"] write["Roads2"]
 Result    : bug
 Remark    : Requires a DBServiceSystem
-
-Operator  : letdconsume
-Number    : 2
-Signature : stream(tuple) x string -> rel(tuple)
-Example   : let Roads2 = Roads filter[ .Name startsWith "A"] letdconsume["Roads2"]
-Result    : bug
-Remark    : Requires a DBServiceSystem
-
-Operator  : feedpf
-Number    : 1
-Signature : ((rel (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik) (map x bool)) -> (stream (tuple ((ai1 Ti1) ... (aik Tik))))
-Example   : query Roads2 feedpf[.Name, .Name startsWith "A"]
-Result    : bug
-Remark    : Requires a DBServiceSystem
-
-#Operator  : startdbservice
-#Number    : 1
-#Signature : rel -> bool
-#Example   : query startdbservice(Workers14)
-#Result    : TRUE
-#Remark    : Requires a remote server
 
 Operator  : addnode
 Number    : 1

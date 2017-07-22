@@ -26,12 +26,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/OperatorAddNode.hpp"
 #include "Algebras/DBService/OperatorCheckDBServiceStatus.hpp"
 #include "Algebras/DBService/OperatorDDelete.hpp"
-#include "Algebras/DBService/OperatorFeedPF.hpp"
 #include "Algebras/DBService/OperatorGetConfigParam.hpp"
 #include "Algebras/DBService/OperatorInitDBServiceWorker.hpp"
-#include "Algebras/DBService/OperatorLetDConsume.hpp"
 #include "Algebras/DBService/OperatorRead.hpp"
 #include "Algebras/DBService/OperatorSetTraceLevel.hpp"
+#include "Algebras/DBService/OperatorWrite.hpp"
 
 namespace DBService
 {
@@ -45,13 +44,9 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(CheckDBServiceStatusInfo(),
                 OperatorCheckDBServiceStatus::mapValue,
                 OperatorCheckDBServiceStatus::mapType);
-    AddOperator(FeedPFInfo(),
-                OperatorFeedPF::mapValue,
-                OperatorFeedPF::mapType);
-    AddOperator(LetDConsumeInfo(),
-                OperatorLetDConsume::letdconsumeVM,
-                OperatorLetDConsume::selectFunction,
-                OperatorLetDConsume::mapType);
+    AddOperator(WriteInfo(),
+                OperatorWrite::mapValue,
+                OperatorWrite::mapType);
     AddOperator(GetConfigParamInfo(),
                 OperatorGetConfigParam::mapValue,
                 OperatorGetConfigParam::mapType);
