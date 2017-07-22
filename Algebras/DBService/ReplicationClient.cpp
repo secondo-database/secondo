@@ -169,7 +169,11 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
             // new file name due to function execution
             // -> adapt before requesting file
         }
-        receiveFileFromServer();
+
+        if(receiveFileFromServer())
+        {
+            fileName = fileNameDBS;
+        }
     } catch (...)
     {
         cerr << "ReplicationClient: communication error" << endl;

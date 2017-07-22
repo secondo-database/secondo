@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Relation-C++/OperatorFeed.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 
+#include "Algebras/Distributed2/FileRelations.h"
+
 #include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorRead.hpp"
@@ -42,7 +44,7 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
 {
     print(nestedList);
 
-    if (!nl->HasLength(nestedList, 1))
+    if(!nl->HasLength(nestedList, 1))
     {
         ErrorReporter::ReportError(
                 "expected one argument");
@@ -51,41 +53,51 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
 
     ListExpr feedTypeMapResult = OperatorFeed::FeedTypeMap(nestedList);
 
-    string relationName = nl->ToString(nl->Second(nl->First(nestedList)));
-    ReplicationUtils::removeQuotes(relationName);
 
-    if(feedTypeMapResult == nl->TypeError())
+    bool relationLocallyAvailable = (feedTypeMapResult != nl->TypeError());
+    print("relationLocallyAvailable",
+            string(relationLocallyAvailable ? "TRUE" : "FALSE"));
+    string fileName;
+    if(!relationLocallyAvailable)
     {
-
-        string fileName =
+        print("Trying to retrieve relation from DBService");
+        const string databaseName =
+                SecondoSystem::GetInstance()->GetDatabaseName();
+        const string relationName = nl->ToString(nl->First(nestedList));
+        print("databaseName", databaseName);
+        print("relationName", relationName);
+        fileName =
                 DBServiceConnector::getInstance()->
                 retrieveReplicaAndGetFileName(
-                        SecondoSystem::GetInstance()->GetDatabaseName(),
+                        databaseName,
                         relationName,
                         string(""));
         if(fileName.empty())
         {
+            print("Did not receive file");
             return listutils::typeError("File does not exist");
         }
-        stringstream createCommand;
-        createCommand << "let "
-                << nl->ToString(nl->First(nestedList))
-                << " =  '"
-                << fileName
-                << "' getObjectFromFile consume";
-        print("createCommand", createCommand.str());
-        string errorMessage;
-        if(!SecondoUtilsLocal::createRelation(
-                createCommand.str(),
-                errorMessage))
+        print("fileName", fileName);
+        ffeed5Info info(fileName);
+        if(info.isOK()){
+           feedTypeMapResult = nl->TwoElemList(
+                   nl->SymbolAtom(Symbol::STREAM()),
+                   nl->Second(info.getRelType()));
+        }else
         {
-            return listutils::typeError("Could not create relation from file");
+            print("Could not determine relation type from file");
+            return listutils::typeError("Unreadable file");
         }
     }
-
-    feedTypeMapResult = OperatorFeed::FeedTypeMap(nestedList);
     print("feedTypeMapResult", feedTypeMapResult);
-    return feedTypeMapResult;
+
+    ListExpr readTypeMapResult = nl->ThreeElemList(
+            nl->SymbolAtom(Symbols::APPEND()),
+            nl->OneElemList((relationLocallyAvailable ?
+                    nl->StringAtom("") : nl->StringAtom(fileName))),
+                    feedTypeMapResult);
+    print("readTypeMapResult", readTypeMapResult);
+    return readTypeMapResult;
 }
 
 int OperatorRead::mapValue(Word* args,
@@ -94,8 +106,49 @@ int OperatorRead::mapValue(Word* args,
                             Word& local,
                             Supplier s)
 {
-    return OperatorFeed::Feed(args, result,
-            message, local, s);
+    string fileName =
+            static_cast<CcString*>(args[1].addr)->GetValue();
+    if(fileName.empty())
+    {
+        return OperatorFeed::Feed(args, result,
+                message, local, s);
+    }
+    print("Reading tuple stream from file", fileName);
+    ffeed5Info* info = (ffeed5Info*) local.addr;
+    switch(message){
+    case OPEN:{
+        if(info){
+            delete info;
+            local.addr = 0;
+        }
+        info = new ffeed5Info(fileName);
+        if(!info->isOK())
+        {
+            print("Could not read file");
+            delete info;
+            return 0;
+        }
+        ListExpr fileType = info->getRelType();
+        if(!Relation::checkType(fileType))
+        {
+            delete info;
+            return 0;
+        }
+        local.addr = info;
+        return 0;
+    }
+    case REQUEST:
+        result.addr = info ? info->next() : 0;
+        return result.addr? YIELD : CANCEL;
+    case CLOSE:
+        if(info)
+        {
+            delete info;
+            local.addr = 0;
+        }
+        return 0;
+    }
+    return -1;
 }
 
 } /* namespace DBService */

@@ -66,13 +66,6 @@ void ReplicationUtils::parseFileName(const std::string& fileName,
     relationName = fileName.substr(relNameStartPos, relNameLength);
 }
 
-void ReplicationUtils::removeQuotes(std::string& relationName)
-{
-    relationName.erase(
-            remove(relationName.begin(), relationName.end(), '\"'),
-            relationName.end());
-}
-
 string ReplicationUtils::separator("xDBSx");
 
 } /* namespace DBService */
