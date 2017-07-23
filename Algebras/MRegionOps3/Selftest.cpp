@@ -136,7 +136,9 @@ namespace temporalalgebra {
         MSegmentTest1();
         MSegmentTest2();
       
-        SourceUnitPairTest1();       
+        SourceUnitPairTest1();     
+        
+        // ResultUnitTest2();
         
         cerr << endl;
         cerr << numberOfTestsRun << " tests run, ";
@@ -1793,7 +1795,7 @@ namespace temporalalgebra {
         factory4.addNonOrthogonalEdges(2, Segment (15, 17, RIGHT_IS_INNER));
         factory4.addNonOrthogonalEdges(2, Segment (16, 18, UNDEFINED));
         factory4.addNonOrthogonalEdges(3, Segment (7, 9, UNDEFINED));
-        factory4.addOrthogonalEdges(3, Segment (18, 17, LEFT_IS_INNER));
+        factory4.addOrthogonalEdges(3, Segment (17, 18, RIGHT_IS_INNER));
         factory4.addNonOrthogonalEdges(3, Segment (18, 19, UNDEFINED));
         factory4.addNonOrthogonalEdges(4, Segment (9, 11, UNDEFINED));
         factory4.addNonOrthogonalEdges(4, Segment (19, 20, UNDEFINED));    
@@ -1802,7 +1804,7 @@ namespace temporalalgebra {
         factory5.addNonOrthogonalEdges(1, Segment (13, 16, UNDEFINED));
         factory5.addNonOrthogonalEdges(1, Segment (1, 4, UNDEFINED));
         factory5.addNonOrthogonalEdges(2, Segment (16, 18, UNDEFINED));
-        factory5.addOrthogonalEdges(2, Segment (21, 16, RIGHT_IS_INNER));
+        factory5.addOrthogonalEdges(2, Segment (16, 21, LEFT_IS_INNER));
         factory5.addNonOrthogonalEdges(2, Segment (21, 22, LEFT_IS_INNER));
         factory5.addNonOrthogonalEdges(2, Segment (4, 6, UNDEFINED));
         factory5.addNonOrthogonalEdges(3, Segment (18, 19, UNDEFINED));
@@ -2927,6 +2929,87 @@ namespace temporalalgebra {
         // cout << result9;
         // cout << result10;
       }// SourceUnitPairTest1
+      
+      void Selftest::ResultUnitTest2(){
+        ContainerPoint3D points;
+        ContainerSegment segments;
+        // points for unit 0 
+        points.add( Point3D(2,1,0));// 0
+        points.add( Point3D(5,1,0));         
+        points.add( Point3D(3.5,4,0));
+        points.add( Point3D(2,1,5));
+        points.add( Point3D(5,1,5));         
+        points.add( Point3D(3.5,4,5));
+        // points for unit 0 
+        points.add( Point3D(12,1,0));// 6
+        points.add( Point3D(15,1,0));         
+        points.add( Point3D(13.5,4,0));
+        points.add( Point3D(12,1,5));
+        points.add( Point3D(15,1,5));         
+        points.add( Point3D(13.5,4,5));
+        // Testpunkte
+        points.add( Point3D(3,1.5,0));// 12
+        points.add( Point3D(4,1.5,0)); 
+        points.add( Point3D(3,1.5,5));
+        points.add( Point3D(4,1.5,5)); 
+        points.add( Point3D(3,0,0));// 16
+        points.add( Point3D(4,0,0)); 
+        points.add( Point3D(3,0,5));
+        points.add( Point3D(4,0,5)); 
+        // segments for pfaces 0, 1, 2
+        Segment segment0(0,3, UNDEFINED);
+        Segment segment1(1,4, UNDEFINED);
+        Segment segment2(2,5, UNDEFINED);
+        // segments for pfaces 0, 1, 2
+        Segment segment3(6,9, UNDEFINED);
+        Segment segment4(7,10, UNDEFINED);
+        Segment segment5(8,11, UNDEFINED);
+        // TestSemente
+        Segment segment6(12,14, UNDEFINED);
+        Segment segment7(13,15, UNDEFINED);
+        Segment segment8(16,18, UNDEFINED);
+        Segment segment9(17,19, UNDEFINED);
+        segments.add(segment6);
+        segments.add(segment7);
+        segments.add(segment8);
+        segments.add(segment9);
+        
+        // Build unit 0
+        SourceUnit unit0;        
+        unit0.addPFace(segment0, segment1, points);
+        unit0.addPFace(segment1, segment2, points);
+        unit0.addPFace(segment2, segment0, points);
+        
+        unit0.addPFace(segment3, segment4, points);
+        unit0.addPFace(segment4, segment5, points);
+        unit0.addPFace(segment5, segment3, points);       
+        
+        unit0.createTestRegion(); 
+        
+        Region region2(Point(true,2,1), Point(true,5,1), Point(true,3.5,4));
+      
+//         cout << region1 << endl;
+        cout << region2 << endl;
+
+        Point testPoint0(true, 3, 1.5);
+        Point testPoint1(true, 2, 0);
+        
+        cout << testPoint0 <<endl;
+        cout << testPoint1 <<endl;
+        PFace pFace0(0,1,points,segments);
+        PFace pFace1(2,3,points,segments);
+        
+        bool result0 = unit0.isInside(pFace0);
+        bool result1 = unit0.isInside(pFace1);
+
+      
+        cout << result0 <<result1 <<endl;
+        
+        result0 = region2.Contains(testPoint0);
+        result1 = region2.Contains(testPoint1);
+        
+        cout << result0 <<result1 <<endl;
+      }
       
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

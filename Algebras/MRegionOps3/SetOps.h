@@ -562,6 +562,7 @@ Adds seg to the set of ~IntersectionSegments~.
 */  
       void next(double t1, double t2, ContainerPoint3D& points, 
                                       ContainerSegment& segments);
+
     private:
 /*
 11.4 Private methods
@@ -594,7 +595,7 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
 
 */
       std::list<IntersectionSegment*> orthogonal;
-      std::list<IntersectionSegment*> active;    
+      std::list<IntersectionSegment*> active;   
     };
 /*
 12 struct DoubleCompare
@@ -785,7 +786,8 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       
       URegionEmb* convertToURegionEmb(DbArray<MSegmentData>* segments)const;
       
-      
+//     Region* createTestRegion();
+            
     private:
       void set(const ResultUnit& other);
       
@@ -998,6 +1000,9 @@ Computes the intersection of this ~PFace~ with pf.
       
       void getResultUnit(size_t slide, Predicate predicate, bool reverse, 
                          const ContainerPoint3D& points, ResultUnit& unit);
+      
+            
+      HalfSegment getMedianHS() const;
     private:  
 /*
 14.4 Private methods
@@ -1025,7 +1030,8 @@ Computes the intersection of this ~PFace~ with pf.
       Point3D            rightStart;
       Point3D            rightEnd;
       size_t             left;
-      size_t             right;   
+      size_t             right;  
+//    int                index;
     };// class PFace  
     
     enum SetOp {
@@ -1065,7 +1071,9 @@ Computes the intersection of this ~PFace~ with pf.
       
       bool intersect(const SourceUnit& other)const;
       
-      void addToResult(std::vector<ResultUnit>& result)const;
+      bool createResultUnit(ResultUnit& result)const;
+      
+      void addToResultUnit(ResultUnit& result)const;
       
 /*
 5.2.4 intersection
@@ -1095,6 +1103,10 @@ Print the object values to stream.
       bool operator ==(const SourceUnit& unit)const; 
       
       SourceUnit& operator =(const SourceUnit& unit);
+      
+      void createTestRegion();
+      
+      bool isInside(PFace& pFace);
            
     private: 
       
@@ -1104,9 +1116,13 @@ Print the object values to stream.
 
 */       
       std::vector<size_t> itersectedPFace;
-      ContainerSegment segments;
       std::vector<PFace*> pFaces;
-      mmrtree::RtreeT<2, size_t> pFaceTree;  
+      ContainerSegment segments;
+      mmrtree::RtreeT<2, size_t> pFaceTree;
+      
+      Region testRegion;
+      bool   testRegionDefined;
+      
     };// class SourceUnit 
     
     class SourceUnitPair {

@@ -143,6 +143,8 @@ namespace temporalalgebra {
 
       void SourceUnitPairTest1();
       
+      void ResultUnitTest2();
+      
       void assert_(std::string test,  std::string message, bool success);
       
       int numberOfTestsRun;

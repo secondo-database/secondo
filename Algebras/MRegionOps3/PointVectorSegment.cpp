@@ -884,17 +884,40 @@ namespace temporalalgebra{
         Segment other = segments[*iterator];
         if(other.getTail() == segment.getTail() &&
            other.getHead() == segment.getHead()){
+          // altes Prädikat ist "UNDEFINED"
           if(other.getPredicate() == UNDEFINED) {
             segments[*iterator] = segment;
             return *iterator;
           }// if
+          // altes und neues Prädikat sind gleich
           else if(other.getPredicate() == segment.getPredicate()){
             return *iterator;
           }// else if
+          // neues Prädikat ist undefined
           else if(segment.getPredicate()== UNDEFINED){
             return *iterator;
           }// else if  
-          NUM_FAIL("Segments with same points and different predicates.");
+          // altes und nues Prädikat sind unterschiedlich
+          else {
+            segments[*iterator].setPredicate(INTERSECT);
+            return *iterator;
+          }// else  
+//           else if((segment.getPredicate() == RIGHT_IS_INNER && 
+//                    other.getPredicate()   == LEFT_IS_INNER) || 
+//                   (segment.getPredicate() == LEFT_IS_INNER && 
+//                    other.getPredicate()   == RIGHT_IS_INNER)){
+// //            cout << *this;
+//             segments[*iterator].setPredicate(INTERSECT);
+// //            cout << *this;  
+//             return *iterator;  
+//           }// else if
+//           else if (other.getPredicate() == INTERSECT){
+//             return *iterator;            
+//           }// else if
+//                   
+//           cout << *this;
+//           cout << segment <<endl;
+//           NUM_FAIL("Segments with same points and different predicates.");
         }// if 
       }// for
       size_t index = segments.size();
@@ -905,14 +928,15 @@ namespace temporalalgebra{
       
     void ContainerSegment::set(size_t index, Predicate predicate){
       if(index < segments.size()){
-        if(segments[index].getPredicate() == UNDEFINED){
+        if((segments[index].getPredicate() == UNDEFINED) || 
+           (predicate == INTERSECT)){
           segments[index].setPredicate(predicate);
         }// if  
         else if(segments[index].getPredicate() == predicate) return;
         else {
-          // cout << "Segment:=" << index << endl;
-          // cout << "Old:="<< toString(segments[index].getPredicate())<<endl;
-          // cout << "New:="<< toString(predicate)<<endl;          
+          cout << "Segment:=" << index << endl;
+          cout << "Old:="<< toString(segments[index].getPredicate())<<endl;
+          cout << "New:="<< toString(predicate)<<endl;          
           NUM_FAIL("Combination from old and new predicate is invalid."); 
         }
       }// if

@@ -432,7 +432,8 @@ namespace temporalalgebra {
     void IntersectionSegment::set(const IntersectionPoint& tail,
                                   const IntersectionPoint& head,
                                   Predicate predicate){
-      if(tail.getT()<= head.getT()){
+      if((tail.getT() < head.getT())||
+         (tail.getT() == head.getT() && tail.getW() < head.getW())){
         this->tail = tail;
         this->head = head;
         this->predicate = predicate; 
@@ -1077,7 +1078,8 @@ namespace temporalalgebra {
       // which contains all MSegments with right dominating point:
       mSegments.erase(mSegments.begin() + mSegments.size() / 2, 
                       mSegments.end());
-    }// finilize
+    }// finalize
+        
     
     URegionEmb* ResultUnit::convertToURegionEmb(
         DbArray<MSegmentData>* segments)const {
@@ -1309,19 +1311,37 @@ namespace temporalalgebra {
     
     void ResultPfaceFactory::getBorderPredicates(Predicate& left, 
                                                  Predicate& right)const{
+      // Index für die erste und letzte Kante
       size_t first,last;
+      // aktuelle Prädikat
       Predicate predicate;
+      // Prädikat für die linke kante
       left  = UNDEFINED;
+      // Prädikat für die rechte Kante
       right = UNDEFINED;
+      // existieren Segmente
       if(segments.size() != 0){
+        // über alle Slides  
         for(size_t i = 0; i < nonOrthogonalEdges.size(); i++){
+          // erste Kante
           first = *nonOrthogonalEdges[i].begin();
+          // Bestimme das Prädikat der ersten Kante
           predicate = createPredicate(segments.get(first).getPredicate(),LEFT);
+          // Prädikat übernehmen, wenn bisher kein Prädikat festgelegt war
           if( left == UNDEFINED) left = predicate;
+          // waren bisher keine Schnitte auf der Kante vermerkt und wurde 
+          // jetzt ein abweichendes Prädikat ermittelt, 
+          // dann das Pädikat "INTERSECT" setzen
           else if( left != INTERSECT && left != predicate )left = INTERSECT;  
+          // letztes Kante
           last = *nonOrthogonalEdges[i].rbegin();
+          // Bestimme das Prädikat der letzten Kante
           predicate = createPredicate(segments.get(last).getPredicate(),RIGHT);
+          // Prädikat übernehmen, wenn bisher kein Prädikat festgelegt war
           if( right == UNDEFINED) right = predicate;
+          // waren bisher keine Schnitte auf der Kante vermerkt und wurde 
+          // jetzt ein abweichendes Prädikat ermittelt, 
+          // dann das Pädikat "INTERSECT" setzen
           else if( right != INTERSECT && right != predicate )right = INTERSECT;
         }// for
       }// if
@@ -1354,90 +1374,151 @@ namespace temporalalgebra {
     void ResultPfaceFactory::evaluate(size_t i ){      
       list<size_t>::iterator first, left, right, orthogonal;
       Segment firstSegment, leftSegment, rightSegment, orthogonalSegment;
-      
+      // Existieren weniger als zwei Kanten, Funktion verlassen
       if(nonOrthogonalEdges[i].size()< 2) return;
+      // Index (Iterator) der erste kante der Slide bestimmen
       first = nonOrthogonalEdges[i].begin();
+      // Index (Iterator) auch für die linke und rechte Kante vwerwenden
       right = left = first;  
+      // Erste Kante betimmen
       firstSegment = segments.get(*first);
+      // Die Schleife solange abarbeiten, bis die rechte die letzte Kante 
+      // der Slide ist
       for(right++; right !=  nonOrthogonalEdges[i].end(); 
           right++){
+        // Prädicat vorbelegen
         Predicate predicate = UNDEFINED;
+        // linke Kante bestimmen
         leftSegment  = segments.get(*left);
+        // rechte Kante bestimmen
         rightSegment = segments.get(*right);
+        // Prädikat der Kante als mögliche linke Kante eines
+        // PFace auswerten und Ergebnis übernehmen
         checkPredicate(leftSegment,LEFT,predicate); 
-        checkPredicate(rightSegment,RIGHT,predicate);   
+        // Prädikat der Kante als mögliche rechte Kante eines
+        // PFace auswerten und Ergebnis übernehmen
+        checkPredicate(rightSegment,RIGHT,predicate); 
+        // ist das Prädikat der linken Kante nicht UNDEFINED,
+        // so muss überprüft werden, ob die linke Kante die erste 
+        // Kante der Slide berührt. 
         if(leftSegment.getPredicate() != UNDEFINED){
+          // berühren sich das Ende der ersten und das Ende der linken
+          // Kante
           if(firstSegment.getTail() == leftSegment.getTail()){
+            // Berührung registrieren (Anfang der Slide)
             touchsOnLeftBorder[i]++;
           }// if
+          // berühren sich der Anfang der ersten uud der Anfang der 
+          // letzten Kante 
           if(firstSegment.getHead() == leftSegment.getHead()){
+            // Berührung registrieren (Ende der Slide)
             touchsOnLeftBorder[i+1]++;
           }// if
         }// if
+        // konnte kein Predicate ermittelt werden
         if(predicate == UNDEFINED){
           // check bottom 
+          // Die orthogonalen Kanten auswerten,
+          // zuerst die orthogonalen Kanten am Boden
           for(orthogonal  = orthogonalEdges[i].begin(); 
               orthogonal != orthogonalEdges[i].end(); 
               orthogonal ++){  
+            // ortogonale Kante laden
             orthogonalSegment = segments.get(*orthogonal);
+            // berühren sich das Ende der linken Kante und das
+            // Ende der ortogonalen Kante und das Ende der rechten Kante
+            // und das Ende der orthogonalen Kante, dann sollte die Kante
+            // ausgwertet werden
             if(leftSegment.getTail() == orthogonalSegment.getTail() && 
                rightSegment.getTail()== orthogonalSegment.getHead()){
               // cout << "Bottom" <<endl;
+              // orthogonale Kante als rechte Kante für eine PFace 
+              // auswerten
               checkPredicate(orthogonalSegment,RIGHT,predicate); 
+              // Nach dem das Predicate bestimmt wurde, kann die
+              // Schleife verlassen werden
               break;
             }// if
-          }// for
+          }// for          
           // check top
+          // Die orthogonalen Kanten auswerten,
+          // jetzt die oberen Kanten
           for(orthogonal  = orthogonalEdges[i+1].begin(); 
               orthogonal != orthogonalEdges[i+1].end(); 
               orthogonal ++){
+            // orthogonale Kante laden
             orthogonalSegment = segments.get(*orthogonal);
+            // berühren sich der Anfang der linken Kante und der Anfang 
+            // der orthogonalen Kanten und der Anfang der rechten Kante
+            // und der Anfang der orthogonalen Kante, dann sollte die Kante
+            // ausgwertet werden
             if(leftSegment.getHead()  == orthogonalSegment.getTail() && 
                rightSegment.getHead() == orthogonalSegment.getHead()){
               // cout << "Top" <<endl;
+              // orthogonale Kante als linke Kante für eine mögliches 
+              // PFace auswerten
               checkPredicate(orthogonalSegment,LEFT,predicate);
+              // nachdem ein Predicat bestimmt wurde, kann die Schleife 
+              // verlassen werden
               break;
             }// if
           }// for
         }// if
+        // Predikat der linken Kante setzen, falls erforderlich
         setPredicate(*left, predicate);
+        // Predicate der rechten Kante setzen, falls erforderlich
         setPredicate(*right, predicate);
+        // in der nächsten Runde, ist die ehemals rechte Kante, jetzt die
+        // linke Kante
         left = right; 
       }// for
-      for(orthogonal  = orthogonalEdges[i].begin(); 
-          orthogonal != orthogonalEdges[i].end(); 
-          orthogonal ++){
-         orthogonalSegment = segments.get(*orthogonal);
+      // Berührungen der orthogonalen Kanten mit der ersten kante auswerten
+      if(orthogonalEdges[i].size()!=0){
+        // orthogonale Kante bestimmen 
+        orthogonalSegment = segments.get(*orthogonalEdges[i].begin());      
+        // berührt das Ende der orthogonale Kante, das Ende
+        // das ersten Kante der Slide ???
         if(firstSegment.getTail() == orthogonalSegment.getTail()){
+          // Berührung vermerken
           touchsOnLeftBorder[i]++;
-        }// if
-        if(firstSegment.getHead() == orthogonalSegment.getTail()){
-          touchsOnLeftBorder[i+1]++;
-        }// if  
-        if(firstSegment.getTail() == orthogonalSegment.getHead()){
-          touchsOnLeftBorder[i]++;
-        }// if
-        if(firstSegment.getHead() == orthogonalSegment.getHead()){
-          touchsOnLeftBorder[i+1]++;          
-        }// if
-      }// for  
+        }// if 
+      }// if
+      // Falls erforderlich den Slide mit Prädikaten auffüllen 
+      // Hierbi wird von letzten Element zum ersten Element iteriert
       list<size_t>::reverse_iterator last, riter;
+      // Iteerator auf das letzte Element setzen
       riter = last = nonOrthogonalEdges[i].rbegin();
+      // Letzte Kante laden
       rightSegment = segments.get(*last); 
+      // Ist die erste Kante auf "UNDEFINED" gesetzt und hat die
+      // letzte Kante ein von UNDEFINED abweichendes Prädikat, dann den Slide
+      // durchlaufen
       if(firstSegment.getPredicate() == UNDEFINED && 
         rightSegment.getPredicate()  != UNDEFINED){
+        // von der letzten zur ersten Kante
         for (riter++; riter != nonOrthogonalEdges[i].rend(); riter++){
+          // rechte Kante laden
           rightSegment= segments.get(*last);
+          // linke Kante laden
           leftSegment = segments.get(*riter);
+          // ist die linke Kante nicht gesetzt
           if(leftSegment.getPredicate() == UNDEFINED){
+            // Prädikat für die linke Kante aus der rechten Kante
+            // bestimmen
             Predicate predicate =
               createPredicate(rightSegment.getPredicate(), LEFT);
+            // ist das Prädikt nicht "UNDEFINED"  
             if(predicate != UNDEFINED){
-              setPredicate(*riter, predicate);
+              // Das Prädikat "INTERSECT" wird nicht auf eine andere Kante
+              // übertragen
+              if(predicate != INTERSECT){
+                // Predikat setzen
+                setPredicate(*riter, predicate);
+              }// if
             }// if
             else {
               NUM_FAIL("Predicate UNDEFINED ist not allowed.");
-            }// esle
+            }// else
           }// if
           last++;
         }// for
@@ -1446,8 +1527,9 @@ namespace temporalalgebra {
      
     void ResultPfaceFactory::setPredicate(size_t index, 
                                           Predicate& predicate){
-       if(segments.get(index).getPredicate() == UNDEFINED) 
-          segments.set(index,predicate);
+      if( segments.get(index).getPredicate() == UNDEFINED){        
+        segments.set(index,predicate);
+      }// if
     }// setPredicate
      
     Predicate ResultPfaceFactory::createPredicate(const Predicate source,
@@ -1536,8 +1618,12 @@ namespace temporalalgebra {
               createPredicate(leftSegment.getPredicate(),LEFT);
             Predicate rightPredicate = 
               createPredicate(rightSegment.getPredicate(),RIGHT);
-            if(leftPredicate == rightPredicate){
-              if(leftPredicate == predicate){
+              // Prädikat für die linke und rechte Kante müssen gleich sein
+              // oder eins der Prädikate "INTERSECT" sein
+              if((leftPredicate == rightPredicate)|| 
+                 ((leftPredicate == INTERSECT && rightPredicate != INTERSECT) ||
+                  (leftPredicate != INTERSECT && rightPredicate == INTERSECT))){
+              if((leftPredicate == predicate) || (rightPredicate == predicate)){
                 if(reverse){
                   Segment temp = leftSegment;
                   leftSegment  = rightSegment;
@@ -1553,6 +1639,8 @@ namespace temporalalgebra {
               }// if
             }// if
             else {
+              cout << "Left Segment :=" << leftSegment << endl;
+              cout << "Right Segment:=" << rightSegment<< endl;
               NUM_FAIL ("Predicate on left and right border are different.");
             }// else  
             left = right;
@@ -1751,6 +1839,12 @@ namespace temporalalgebra {
           state = NOT_RELEVANT;
         }// if
       }// if
+      // Ein Pface mit einem Schnitt konnte in einer vorhergehenden 
+      // Runde nicht bearbeitet werden
+      if(state == RELEVANT || state == CRITICAL){
+        RationalPlane3D plane(*this);
+        addBorder(plane,timeValues,predicate);
+      }// if      
     }// addBorder 
  
     bool PFace::intersection(PFace& other,GlobalTimeValues &timeValues){
@@ -1804,18 +1898,35 @@ namespace temporalalgebra {
       Predicate leftPredicate, rightPredicate;
       bool result;
       if(this->state == RELEVANT || this->state == CRITICAL){
-        this->factory = ResultPfaceFactory(points, timeValues, *this);
+        this->factory = ResultPfaceFactory(points, timeValues, *this);         
         this->factory.evaluate();
-        this->factory.getBorderPredicates(leftPredicate,rightPredicate);
-        segments.set(this->left,leftPredicate);
-        segments.set(this->right,rightPredicate); 
+        this->factory.getBorderPredicates(leftPredicate,rightPredicate);  
         if(leftPredicate == UNDEFINED && rightPredicate == UNDEFINED){
           result = false;
         }// if
         else if(leftPredicate != UNDEFINED && rightPredicate != UNDEFINED){
+          segments.set(this->left,leftPredicate);
+          segments.set(this->right,rightPredicate); 
           result =true;
         }// else if
-        else NUM_FAIL ("Only one edge with predicate 'UNDEFINED' exists.");
+        else {
+          if(leftPredicate == INTERSECT){
+            segments.set(this->left,leftPredicate);
+            if(rightPredicate != UNDEFINED) {
+              segments.set(this->right,rightPredicate);
+              result = true;
+            }// if
+            else result = false;            
+          }// if
+          if(rightPredicate == INTERSECT){
+            segments.set(this->right,rightPredicate);
+            if(leftPredicate != UNDEFINED) {
+              segments.set(this->left,leftPredicate);
+              result = false;
+            }// if
+            else result = false; 
+          }// if
+        }// else      
       }// if
       else {
         leftPredicate  = segments.get(this->left).getPredicate();
@@ -1842,15 +1953,39 @@ namespace temporalalgebra {
                                const ContainerPoint3D& points, 
                                ResultUnit& unit){
       this->factory.getResultUnit(slide,predicate,reverse,points,unit);
-    }// getResultPFace
-    /*
+    }// getResultPFace   
+    
+    HalfSegment PFace::getMedianHS() const{
+      double medianStartX = (leftStart.getX() + 
+                             leftEnd.getX())/2;
+      double medianStartY = (leftStart.getY() + 
+                             leftEnd.getY())/2;
+      double medianEndX   = (rightStart.getX() + 
+                             rightEnd.getX())/2;
+      double medianEndY   = (rightStart.getY() + 
+                             rightEnd.getY())/2;
+      Point medianStart(true,medianStartX, medianStartY);
+      Point medianEnd  (true,medianEndX,medianEndY);
+      HalfSegment medianHS(true, medianStart, medianEnd);
+      medianHS.attr.insideAbove = !(medianStart > medianEnd);
+      medianHS.attr.faceno     = -1;
+      medianHS.attr.cycleno    = -1;
+      medianHS.attr.edgeno     = -1;
+      medianHS.attr.coverageno = -1;
+      medianHS.attr.partnerno  = -1;
+      return medianHS;
+    }// getMedianHS
+    
+/*
 16 class SourceUnit
 
 */          
-    SourceUnit::SourceUnit():pFaceTree(4,8){      
+    SourceUnit::SourceUnit():pFaceTree(4,8),testRegion(0),
+        testRegionDefined(false){      
     }// Konstruktor
     
-    SourceUnit::SourceUnit(const SourceUnit& other):pFaceTree(4,8){
+    SourceUnit::SourceUnit(const SourceUnit& other):pFaceTree(4,8),
+        testRegion(0),testRegionDefined(false){
       set(other);
     }// Konstruktor
     
@@ -1870,6 +2005,8 @@ namespace temporalalgebra {
         this->pFaces.push_back(pFace);
         this->pFaceTree.insert(boundigRec,index);
       }// for
+      this->testRegion = other.testRegion;
+      this->testRegionDefined =other.testRegionDefined;
     }// set     
 
     void SourceUnit::addPFace(const Segment& leftSegment, 
@@ -1894,25 +2031,28 @@ namespace temporalalgebra {
       return bRecA.Intersects(bRecB);
     }// intersect
         
-    void SourceUnit::addToResult(std::vector<ResultUnit>& result)const{
+    bool SourceUnit::createResultUnit(ResultUnit& result)const {
       if(pFaces.size()!=0){
         PFace pFace = *pFaces[0];
-        if(result.size() == 0){
-          double t1 = pFace.getLeftStart().getZ();
-          double t2 = pFace.getLeftEnd().getZ();        
-          result.push_back(ResultUnit(t1,t2));
-        }// if
-        for(size_t i = 0; i < pFaces.size(); i ++){
-          pFace = *pFaces[i];
-          Point3D leftStart = pFace.getLeftStart();
-          Point3D leftEnd   = pFace.getLeftEnd();
-          Point3D rightStart= pFace.getRightStart();
-          Point3D rightEnd  = pFace.getRightEnd();
-          MSegment msegment(Segment3D(leftStart,leftEnd), 
-                            Segment3D(rightStart, rightEnd));
-          result[0].addMSegment(msegment,false);
-        }// for
+        double t1 = pFace.getLeftStart().getZ();
+        double t2 = pFace.getLeftEnd().getZ();        
+        result =  ResultUnit(t1,t2);
+        return true;
       }// if
+      return false;
+    }// createResultUnit
+                
+    void SourceUnit::addToResultUnit(ResultUnit& result)const{
+      for(size_t i = 0; i < pFaces.size(); i ++){
+        PFace pFace = *pFaces[i];
+        Point3D leftStart = pFace.getLeftStart();
+        Point3D leftEnd   = pFace.getLeftEnd();
+        Point3D rightStart= pFace.getRightStart();
+        Point3D rightEnd  = pFace.getRightEnd();
+        MSegment msegment(Segment3D(leftStart,leftEnd), 
+                          Segment3D(rightStart, rightEnd));
+        result.addMSegment(msegment,false);
+      }// for
     }// addToResult
     
     bool SourceUnit::intersection(SourceUnit& other, 
@@ -1923,7 +2063,7 @@ namespace temporalalgebra {
         Rectangle<2> bRec = (*pFaceA).getBoundingRec();
         // Boundingbox etwas vergrößern
         bRec.Extend(NumericUtil::eps2);
-        // Iterator über die gefundenen Dreiecke erstellen
+        // Iterator über die gefundenen PFaces erstellen
         std::unique_ptr<mmrtree::RtreeT<2, size_t>::iterator> 
           it(other.pFaceTree.find(bRec)); 
         size_t const* j;  
@@ -1950,37 +2090,48 @@ namespace temporalalgebra {
                               GlobalTimeValues& timeValues, 
                               Predicate predicate){
       vector<bool> ok = vector<bool>(pFaces.size(),false);
-      // zuerst alle PFaces mit Schnitte
+      // zuerst alle PFaces mit Schnitten
       size_t j =0;
       bool finalize;
-      do{        
-        finalize = true;
-        for(size_t i = 0; i < this->itersectedPFace.size(); i++){
-          size_t index = itersectedPFace[i];
-          if(!ok[index]){
-            bool result = this->pFaces[index]->finalize(
-              points, this->segments,timeValues);
-            if(result != true) finalize = false;
-            else ok[index] = result;
-          }// if
-        }// for 
-        j++;
-        if(j >2) return false;
-      } while (!finalize);
+      // über alle PFaces, welche an Schnitten beteidigt sind
+      for(size_t i = 0; i < this->itersectedPFace.size(); i++){
+        // index eines geschnittenden PFace laden
+        size_t index = itersectedPFace[i];
+        // wurde die Kante noch nicht behandelt
+        if(!ok[index]){
+          // Ergebnis ermitteln
+          bool result = this->pFaces[index]->finalize(
+          points, this->segments,timeValues);           
+          if(result != true) finalize = false;
+          // erfolgreiche Bearbeitung vermerken
+          else ok[index] = result;
+        }// if
+      }// for 
       // jetzt alle anderen PFaces
       j = 0;
+      // zwei Durchläufe, falls nach dem ersten Durchlauf noch 
+      // kein Ergebnis vorliegt
       do{
+        // Ergebnis ist korekt 
         finalize = true;
+        // über alle PFaces
         for(size_t i = 0; i < this->pFaces.size(); i++){
+          // wurde das PFace bereits erfolgreich bearbeitet
           if(!ok[i]){
+            // Grenzen dem PFace hinzufügen
             this->pFaces[i]->addBorder(timeValues,segments,predicate);
+            // Ergebnis bestimmen
             bool result = this->pFaces[i]->finalize(
               points,this->segments,timeValues);
+            // operation erolgreich
             if(result != true) finalize = false;
+            // erfolgreiche Verarbeitung vermerken
             else ok[i] = result;
           }// if
         }// for  
+        // Anzahl der Durchläufe erhöhen
         j++;
+        // nach zwei Durchläufen Funktion beenden
         if(j >2) return false;
       } while (!finalize);
       return true;
@@ -2085,8 +2236,34 @@ namespace temporalalgebra {
       return *this;
     }// Operator =
     
+    void SourceUnit::createTestRegion(){
+
+      this->testRegion.StartBulkLoad();
+      for( size_t i = 0; i < pFaces.size(); i++){
+        HalfSegment medianHS = pFaces[i]->getMedianHS();
+        medianHS.attr.edgeno  = i;
+        medianHS.SetLeftDomPoint(false);
+        this->testRegion += medianHS;
+        medianHS.SetLeftDomPoint(true);
+        this->testRegion += medianHS;
+      }// for
+      this->testRegion.EndBulkLoad();
+      this->testRegionDefined = true;
+    }// createTestRegion
+    
+    bool SourceUnit::isInside(PFace& pFace){
+      if(!(this->testRegionDefined)){
+        NUM_FAIL ("Test region is not defined.");
+      }// if
+      HalfSegment halfSegment = pFace.getMedianHS();
+      Point left  = halfSegment.GetLeftPoint();
+//      Point right = halfSegment.GetRightPoint();
+      return testRegion.Contains(left);
+    }// isInside
+    
+    
     SourceUnitPair::SourceUnitPair(){
-    }
+    }// Konstruktor
       
     void SourceUnitPair::addPFace(SourceFlag flag, Segment3D& leftSegment, 
                                   Segment3D& rightSegment){
@@ -2153,14 +2330,18 @@ namespace temporalalgebra {
           }// if
           // unitB is empty
           else{
-            unitA.addToResult(result);
+            result = vector<ResultUnit>(1,ResultUnit());
+            unitA.createResultUnit(result[0]);      
+            unitA.addToResultUnit(result[0]);            
             result[0].finalize();
             return false;
           }// if
         }// if
         // setOp == UNION
-        unitA.addToResult(result);
-        unitB.addToResult(result);
+        result = vector<ResultUnit>(1,ResultUnit());
+        unitA.createResultUnit(result[0]);      
+        unitA.addToResultUnit(result[0]);
+        unitB.addToResultUnit(result[0]);
         result[0].finalize();
         return false;
       }// if
@@ -2177,9 +2358,14 @@ namespace temporalalgebra {
       else if(setOp == INTERSECTION){
         predicateA = INSIDE;
         predicateB = INSIDE;
-      }// else if      
-      unitA.finalize(points, timeValues,predicateA);      
+      }// else if     
+      // cout << points;
+      // cout << unitA;
+      // cout << unitB;
+      unitA.finalize(points, timeValues,predicateA); 
+      // cout << unitA;
       unitB.finalize(points, timeValues,predicateB);
+      // cout << unitB;
       // get result Units          
       result = vector<ResultUnit>(timeValues.size()-1, ResultUnit());
       double t1,t2;
@@ -2192,7 +2378,7 @@ namespace temporalalgebra {
         result[i].finalize();
         t1 = t2;
         i++;
-      }// while           
+      }// while    
       return false;      
     }// operate
     
