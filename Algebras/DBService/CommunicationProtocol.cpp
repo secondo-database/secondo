@@ -127,4 +127,9 @@ string CommunicationProtocol::TriggerReplicaDeletion()
     return "<TRIGGERREPLICADELETION>";
 }
 
+string CommunicationProtocol::ReplicaExists()
+{
+    return "<REPLICAEXISTS>";
+}
+
 } /* namespace DBService */

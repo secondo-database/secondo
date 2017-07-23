@@ -200,6 +200,19 @@ the command line.
         void printMetadata();
 
 /*
+
+1.1.1 ~replicaExists~
+
+This function returns whether a replica exists in ~DBService~ for the specified
+database and relation name.
+
+*/
+        bool replicaExists(
+                const std::string& databaseName,
+                const std::string& relationName);
+
+
+/*
 1.1.1 Constructor
 
 */

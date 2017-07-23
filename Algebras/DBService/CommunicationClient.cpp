@@ -112,8 +112,15 @@ bool CommunicationClient::triggerReplication(const string& databaseName,
     sendBuffer.push(relationName);
     CommunicationUtils::sendBatch(io, sendBuffer);
 
-    if(!CommunicationUtils::receivedExpectedLine(io,
-            CommunicationProtocol::LocationRequest()))
+    string receivedLine;
+    CommunicationUtils::receiveLine(io, receivedLine);
+
+    if(receivedLine == CommunicationProtocol::ReplicaExists())
+    {
+        traceWriter->write("Relation already exists in DBService");
+        return false;
+    }
+    if(receivedLine != CommunicationProtocol::LocationRequest())
     {
         traceWriter->write("Did not receive expected LocationRequest keyword");
         return false;

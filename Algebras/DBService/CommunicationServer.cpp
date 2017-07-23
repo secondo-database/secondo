@@ -136,7 +136,7 @@ bool CommunicationServer::handleTriggerReplicationRequest(
         std::iostream& io, const boost::thread::id tid)
 {
     traceWriter->writeFunction(tid,
-            "CommunicationServer::handleProvideReplicaRequest");
+            "CommunicationServer::handleTriggerReplicationRequest");
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::RelationRequest());
 
@@ -150,6 +150,14 @@ bool CommunicationServer::handleTriggerReplicationRequest(
 
     traceWriter->write(tid, "databaseName", databaseName);
     traceWriter->write(tid, "relationName", relationName);
+
+    DBServiceManager* dbService = DBServiceManager::getInstance();
+    if(dbService->replicaExists(databaseName, relationName))
+    {
+        CommunicationUtils::sendLine(io,
+                CommunicationProtocol::ReplicaExists());
+        return false;
+    }
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
@@ -169,7 +177,6 @@ bool CommunicationServer::handleTriggerReplicationRequest(
     traceWriter->write(tid, "disk", disk);
     traceWriter->write(tid, "transferPort", transferPort);
 
-    DBServiceManager* dbService = DBServiceManager::getInstance();
     dbService->determineReplicaLocations(databaseName,
                                  relationName,
                                  host,

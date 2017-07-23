@@ -500,6 +500,17 @@ void DBServiceManager::printMetadata()
     }
 }
 
+bool DBServiceManager::replicaExists(
+        const std::string& databaseName,
+        const std::string& relationName)
+{
+    DBServiceRelations::const_iterator it =
+            relations.find(RelationInfo::getIdentifier(
+                    databaseName,
+                    relationName));
+    return it != relations.end();
+}
+
 DBServiceManager* DBServiceManager::_instance = nullptr;
 
 } /* namespace DBService */
