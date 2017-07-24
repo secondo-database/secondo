@@ -424,9 +424,9 @@ geometry.
 
 */
 
-void SubLine(const double pos1, const double pos2,
+void SubLine(double pos1, double pos2,
              bool startsSmaller, SimpleLineT<Array>& l) const;
-void SubLine(const double pos1, const double pos2, SimpleLineT<Array>& l) const;
+void SubLine(double pos1, double pos2, SimpleLineT<Array>& l) const;
 
 /*
 ~Crossings~

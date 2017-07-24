@@ -48,7 +48,7 @@ template<template<typename T> class ArrayT> class RegionT;
 template<template<typename T> class ArrayT> class SimpleLineT;
 
 class EdgePoint;
-class AttrType;
+struct AttrType;
 
 
 template<template<typename T>class ArrayT>
