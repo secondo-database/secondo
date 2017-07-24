@@ -714,6 +714,17 @@ Persistent storage.
     }
   }
 
+
+  inline static void printStatistics(std::ostream& out){
+    FlobManager::getInstance().printStatistics(out);
+  }
+  
+
+  inline static void resetStatistics(){
+    FlobManager::getInstance().resetStatistics();
+  }
+
+
   private:
     FlobId id;          // encodes fileid, recordid, offset
     SmiSize size;       // size of the Flob data segment in Bytes

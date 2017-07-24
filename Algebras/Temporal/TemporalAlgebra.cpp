@@ -95,6 +95,11 @@ file.
 #include <set>
 #include <map>
 #include <algorithm>
+
+
+#include "LineT.h"
+#include "LineTImpl.h"
+
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
@@ -2640,7 +2645,10 @@ bool UPoint::AtRegion(const Region *r, vector<UPoint> &result) const {
   r->Intersection(traj, segs1);         // compute linear intersections
 
   Line segs(segs1.Size());
-  segs1.Simplify(segs, FACTOR);
+  Points* ps = new Points(0);
+  segs1.Simplify(segs, FACTOR,*ps);
+  ps->DeleteIfAllowed();
+
 
 
   if(!segs.IsDefined()){

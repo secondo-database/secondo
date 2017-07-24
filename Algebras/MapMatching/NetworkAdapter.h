@@ -47,7 +47,6 @@ This header file contains the class ~NetworkAdapter~
 
 class NetworkRoute;
 class DirectedNetworkSection;
-class Region;
 
 
 
@@ -107,7 +106,7 @@ public:
     NetworkSectionAdapter(const NetworkSectionAdapter& rNetworkSectionAdapter);
     virtual ~NetworkSectionAdapter();
 
-    virtual const class SimpleLine* GetCurve(void) const;
+    virtual const SimpleLine* GetCurve(void) const;
 
     virtual double GetCurveLength(const double dScale) const;
 

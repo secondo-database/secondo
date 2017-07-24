@@ -666,5 +666,11 @@ inline double ApplyFactor( const double d )
   return FACTOR;
 }
 
+
+int HalfSegmentCompare(const void *a, const void *b);
+int PointHalfSegmentCompare( const void *a, const void *b );
+int PointHalfSegmentCompareAlmost( const void *a, const void *b );
+
+
 #endif
 

@@ -23,8 +23,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef REGIONCREATOR_H
+#define REGIONCREATOR_H
 
-#include "SpatialAlgebra.h"
+
+
+#include "RegionT.h"
 #include <vector>
 /*
 1 Class RegionCreator
@@ -34,6 +38,7 @@ of halfsegments.
 
 */
 
+ template<template<typename T>class Array>
 class RegionCreator{
 
   public:
@@ -49,13 +54,13 @@ The Halfsegmentarray must be:
   - sorted with respect to the halfsegment order
 
 */
-   static  void createRegion(const DbArray<HalfSegment>*, Region* result);
+   static  void createRegion(const Array<HalfSegment>*, RegionT<Array>* result);
 
     // sets the partner, assumes equal edgenos for partners
-    static void setPartnerNo(DbArray<HalfSegment>* hss);
+    static void setPartnerNo(Array<HalfSegment>* hss);
 
     // find the critical points within hss
-    static void findCritical(const DbArray<HalfSegment>* hss, char* critical);
+    static void findCritical(const Array<HalfSegment>* hss, char* critical);
 
     // returns the length of the segment starting at (x,y) 
     // going horizontal to left
@@ -101,31 +106,31 @@ The Halfsegmentarray must be:
                                           // point of each cycle
 
      // Constructor
-     RegionCreator(const DbArray<HalfSegment>* hss, Region* _result);
+     RegionCreator(const Array<HalfSegment>* hss, RegionT<Array>* _result);
 
 
 
     // forcePairsFromLeftDom
-    static DbArray<HalfSegment>* 
-       forcePairsFromLeftDom(const DbArray<HalfSegment>* hss);
+    static Array<HalfSegment>* 
+       forcePairsFromLeftDom(const Array<HalfSegment>* hss);
 
 
 
     // findCycles, fills the cycles vector from the halfsegments
-    void findCycles(const DbArray<HalfSegment>* hss);
+    void findCycles(const Array<HalfSegment>* hss);
 
     // finds a single cycle
-    void findCycle(const DbArray<HalfSegment>* hss, int pos, 
+    void findCycle(const Array<HalfSegment>* hss, int pos, 
                    char* usage, const char* critical);
 
     
     // returns the Halfsegment with maximum slope at a given dominating point 
     // i.e. the dominating point of the halfsgement indexed by pos within hss
-    static int getStartPos(const DbArray<HalfSegment>* hss, 
+    static int getStartPos(const Array<HalfSegment>* hss, 
                            int pos, char* usage);
 
     // returns an extension of a cycle, or -1 if no extension is possible
-    static int getNext(const DbArray<HalfSegment>* hss, int pos,  
+    static int getNext(const Array<HalfSegment>* hss, int pos,  
                        const char* usage);
 
     
@@ -160,18 +165,24 @@ The Halfsegmentarray must be:
     // sets the insideAbove flags for the halfsegments of a specified cycle
     void setInsideAbove(const int i);
     // creates a region from the halfsegments and all other vectors
-    void buildRegion(Region* result) const;
+    void buildRegion(RegionT<Array>* result) const;
     // saves a single face
     void saveFace(const int cycle, const int faceno, 
-                  int& edgeno, Region * result) const;
+                  int& edgeno, RegionT<Array> * result) const;
     // saves a single cycle
     bool saveCycle(const int cycle, const int faceno, 
-                   const int cycleno, int& edgeno, Region* result) const;
+                   const int cycleno, int& edgeno, 
+                   RegionT<Array>* result) const;
 
 };
 
+template<template<typename T> class Array>
+void markUsage(const Array<HalfSegment>* line, char* usage, char* critical );
 
-void markUsage(const DbArray<HalfSegment>* line, char* usage, char* critical );
 
+#include "RegionCreatorImpl.h"
+
+
+#endif
 
 

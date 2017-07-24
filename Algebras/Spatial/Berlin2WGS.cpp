@@ -53,17 +53,8 @@ void Berlin2WGS::convert(const Point* source, Point* result) {
               ((source->GetX()-x0)*y1-(source->GetY()-y0)*x1)/(x2*y1-x1*y2));
 }
 
-void Berlin2WGS::convert(const Points* source, Points* result) {
-  result->Clear();
-  Point src, res;
-  for (int i = 0; i < source->Size(); i++) {
-    source->Get(i, src);
-    convert(&src, &res);
-    *result += res;
-  }
-}
-
-void Berlin2WGS::convert(const Line* source, Line* result) {
+template<template<typename T>class Array>
+void Berlin2WGS::convert(const LineT<Array>* source, LineT<Array>* result) {
   result->Clear();
   HalfSegment src;
   result->Resize(source->Size());
@@ -74,7 +65,8 @@ void Berlin2WGS::convert(const Line* source, Line* result) {
   }
 }
 
-void Berlin2WGS::convert(const Region* source, Region* result) {
+template<template<typename T>class Array>
+void Berlin2WGS::convert(const RegionT<Array>* source, RegionT<Array>* result) {
   result->Clear();
   HalfSegment src;
   result->Resize(source->Size());
@@ -102,3 +94,15 @@ HalfSegment Berlin2WGS::b2wgs(const HalfSegment& source) {
 }
 
 
+// Instantiations
+
+
+template void Berlin2WGS::convert<DbArray>(const LineT<DbArray>* source, 
+                                           LineT<DbArray>* result);
+template void Berlin2WGS::convert<MMDbArray>(const LineT<MMDbArray>* source, 
+                                             LineT<MMDbArray>* result);
+
+template void Berlin2WGS::convert<DbArray>(const RegionT<DbArray>* source, 
+                                           RegionT<DbArray>* result);
+template void Berlin2WGS::convert<MMDbArray>(const RegionT<MMDbArray>* source, 
+                                             RegionT<MMDbArray>* result);

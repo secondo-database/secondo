@@ -29,9 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ROBUSTSETOPS_H
 #define ROBUSTSETOPS_H
 
-#include "SpatialAlgebra.h"
+#include "RegionT.h"
 #include "MMRTree.h"
-#include "RelationAlgebra.h"
+#include "../Relation-C++/RelationAlgebra.h"
 
 
 
@@ -43,9 +43,13 @@ Results in a line.
 
 */
 
-void intersection(const Region& r, const Line& line, Line& result);
+template<template<typename T>class Array>
+void intersection(const RegionT<Array>& r, const LineT<Array>& line, 
+                  LineT<Array>& result);
 
-void intersection(const Line& l, const Region& r, Line& result);
+template<template<typename T>class Array>
+void intersection(const LineT<Array>& l, const RegionT<Array>& r, 
+                  LineT<Array>& result);
 
 
 /*
@@ -55,8 +59,8 @@ is 1 if the point is inside the region and 2 if the point is onborder of the
 region.
 
 */
-
-int contains(const Region& reg, const Point& p);
+template<template<typename T>class Array>
+int contains(const RegionT<Array>& reg, const Point& p);
 
 
 
@@ -66,9 +70,9 @@ int contains(const Region& reg, const Point& p);
 Realminize function
 
 */
-
-void realminize(const DbArray<HalfSegment>& src, 
-                      DbArray<HalfSegment>& result);
+template<template<typename T>class Array>
+void realminize(const Array<HalfSegment>& src, 
+                      Array<HalfSegment>& result);
 
 
 /*
@@ -78,10 +82,13 @@ Checks whether the given set of halfsegments is realminized.
 
 */
 
+template<template<typename T>class Array>
 class RealmChecker{
 
   public:
-     RealmChecker(const DbArray<HalfSegment>* _hss);
+     RealmChecker(const Array<HalfSegment>* _hss);
+     RealmChecker(const Array<HalfSegment>* _hss,
+                  TupleType* _tt);
 
      ~RealmChecker();
 
@@ -96,15 +103,15 @@ class RealmChecker{
                          const bool print = false);
 
 
-      static Line* getLine(HalfSegment hs); 
+      static LineT<Array>* getLine(HalfSegment hs); 
 
   private:
-     const DbArray<HalfSegment>* hss;
+     const Array<HalfSegment>* hss;
      mmrtree::RtreeT<2,int> tree;
      int pos;
      mmrtree::RtreeT<2,int>::iterator* it;
      TupleType* tt;
-     HalfSegment currentHs; 
+     HalfSegment currentHs;
 
      void reset(); 
     
@@ -116,11 +123,14 @@ class RealmChecker{
 };
 
 
-void intersection(const Line& l1, const Line& l2,  Line& result);
+template<template<typename T>class Array>
+void intersection(const LineT<Array>& l1, const LineT<Array>& l2,  
+                  LineT<Array>& result);
 
 
-
-void crossings(const Line& l1, const Line& l2, Points& result);
+template<template<typename T>class Array>
+void crossings(const LineT<Array>& l1, const LineT<Array>& l2, 
+               PointsT<Array>& result);
 
 
 } // end of namespace robust

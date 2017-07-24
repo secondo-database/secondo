@@ -105,7 +105,7 @@ public:
                                    rONetworkSectionAdapter);
     virtual ~ONetworkSectionAdapter();
 
-    virtual const class SimpleLine* GetCurve(void) const;
+    virtual const SimpleLine* GetCurve(void) const;
 
     virtual double GetCurveLength(const double dScale) const;
 

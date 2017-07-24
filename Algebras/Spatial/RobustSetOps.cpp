@@ -46,7 +46,8 @@ The function returns 0 if the point is outside the region,
 1 if the point is in interior and 2 if the point is onborder.
 
 */
-int contains(const Region& reg, const Point& p){
+template<template<typename T> class Array>
+int contains(const RegionT<Array>& reg, const Point& p){
    if(!reg.IsDefined() || !p.IsDefined()){
      return false;
    }
@@ -61,7 +62,7 @@ int contains(const Region& reg, const Point& p){
          if(hs.Contains(p)){
             return 2;
          } 
-         if( RegionCreator::intersects(p.GetX(),p.GetY(),hs)){
+         if( RegionCreator<Array>::intersects(p.GetX(),p.GetY(),hs)){
              count++;
          }
       }
@@ -69,6 +70,11 @@ int contains(const Region& reg, const Point& p){
    size_t mask = 1;
    return (count & mask) > 0;
 }
+
+template int contains<DbArray >(const RegionT<DbArray>& reg, 
+                                const Point& p);
+template int contains<MMDbArray >(const RegionT<MMDbArray>& reg, 
+                                  const Point& p);
 
 
 bool lineContains(const HalfSegment& hs, const Point& p, double& delta){
@@ -286,6 +292,8 @@ bool computeSplitPoint(const HalfSegment& hs1,
 }
 
 
+
+template<template<typename T>class Array>
 void addSplitPoint( const HalfSegment hsline, 
                     const HalfSegment& hsreg , 
                     vector<pair<double, bool> >& res){
@@ -320,7 +328,6 @@ void addSplitPoint( const HalfSegment hsline,
 
    //cout << "k = " << k << endl; 
 
-   //if(AlmostEqual(k,0)){ // parallel segments
    if(k==0){
       //cout << "parallel segments found " << endl;
       processParallel(hsline,hsreg,res);
@@ -353,7 +360,7 @@ void addSplitPoint( const HalfSegment hsline,
    if(AlmostEqual(delta1,1.0)){
       return;
    }
-   bool leftBehindDelta = !RegionCreator::isRight(hsreg.GetDomPoint(), 
+   bool leftBehindDelta = !RegionCreator<Array>::isRight(hsreg.GetDomPoint(), 
                                                   hsreg.GetSecPoint(), 
                                                   hsline.GetSecPoint()); 
    bool insideLeft = hsreg.insideLeft();
@@ -393,10 +400,11 @@ Evaluates the splitpoints and creates the halfsegment
 parts inside the region.
 
 */
+template<template<typename T>class Array>
 void insertLineParts(HalfSegment& hs, 
                      vector<pair<double,bool> > splitpoints, 
-                     const Region& region,
-                     Line& result,
+                     const RegionT<Array>& region,
+                     LineT<Array>& result,
                      int& edgeno){
 
 
@@ -531,9 +539,10 @@ void insertLineParts(HalfSegment& hs,
 
 
 */
-void intersection(const Region& region, const Line& line, Line& result){
-
-
+template<template<typename T>class Array>
+void intersection(const RegionT<Array>& region, 
+                  const LineT<Array>& line, 
+                  LineT<Array>& result){
 
    result.Clear();
    if(!region.IsDefined() || ! line.IsDefined()){
@@ -579,7 +588,7 @@ void intersection(const Region& region, const Line& line, Line& result){
           int const* pos;
           while(  (pos = it->next()) != 0){
              region.Get(*pos,hs2);
-             addSplitPoint(hs,hs2,splitPoints);
+             addSplitPoint<Array>(hs,hs2,splitPoints);
           }
           delete it;
           insertLineParts(hs,splitPoints, region, result, edgeno);
@@ -623,9 +632,10 @@ string splitkind(splitKind i){
    }
 }
 
+template<template<typename T> class Array>
 bool insertSegment(const HalfSegment& hs, 
                    const double pos1, const double pos2, 
-                   DbArray<HalfSegment>& result, int& edgeno){
+                   Array<HalfSegment>& result, int& edgeno){
 
     Point p1 = atDelta(hs,pos1);
     Point p2 = atDelta(hs,pos2);
@@ -643,9 +653,10 @@ bool insertSegment(const HalfSegment& hs,
 }
 
 
+template<template<typename T> class Array>
 void insertSegmentParts(HalfSegment& hs, 
                         vector< pair<double, splitKind> >& splitpoints, 
-                        DbArray<HalfSegment>& result, 
+                        Array<HalfSegment>& result, 
                         int& edgeno){
 
 
@@ -795,8 +806,9 @@ void realminize(HalfSegment& hs1, HalfSegment& hs2, const bool secondFirst,
 }
 
 
-void realminize(const DbArray<HalfSegment>& src, 
-                      DbArray<HalfSegment>& result){
+template<template<typename T> class Array>
+void realminize(const Array<HalfSegment>& src, 
+                      Array<HalfSegment>& result){
     if(src.Size()==0){
       result.clean();
       return;
@@ -837,7 +849,11 @@ void realminize(const DbArray<HalfSegment>& src,
     }
 }
 
+template void realminize<DbArray>(const DbArray<HalfSegment>& src, 
+                      DbArray<HalfSegment>& result);
 
+template void realminize<MMDbArray>(const MMDbArray<HalfSegment>& src, 
+                      MMDbArray<HalfSegment>& result);
 
 
 void crossings(const HalfSegment& hs1, 
@@ -863,9 +879,10 @@ void crossings(const HalfSegment& hs1,
    
 }
 
-void crossings(const Line& l1, 
-               const Line& l2,
-               Points& result) {
+template<template<typename T>class Array>
+void crossings(const LineT<Array>& l1, 
+               const LineT<Array>& l2,
+               PointsT<Array>& result) {
     if(!l1.IsDefined() || !l2.IsDefined()){
        result.SetDefined(false);
        return;
@@ -917,7 +934,17 @@ void crossings(const Line& l1,
 }
 
 
- bool RealmChecker::isRealm(const HalfSegment& hs1, 
+template void crossings<DbArray>(const LineT<DbArray>& l1, 
+               const LineT<DbArray>& l2,
+               PointsT<DbArray>& result);
+
+template void crossings<MMDbArray>(const LineT<MMDbArray>& l1, 
+               const LineT<MMDbArray>& l2,
+               PointsT<MMDbArray>& result);
+
+
+template<template<typename T>class Array>
+ bool RealmChecker<Array>::isRealm(const HalfSegment& hs1, 
                             const HalfSegment& hs2, 
                             const bool print){
     if(onSameLine(hs1,hs2)){
@@ -972,7 +999,8 @@ void crossings(const Line& l1,
 
 
 
-RealmChecker::RealmChecker(const DbArray<HalfSegment>* _hss):
+template<template<typename T>class Array>
+RealmChecker<Array>::RealmChecker(const Array<HalfSegment>* _hss):
     hss(_hss), tree(4,8), pos(0), it(0) {
 
     ListExpr numTupleType = 
@@ -987,7 +1015,24 @@ RealmChecker::RealmChecker(const DbArray<HalfSegment>* _hss):
     }
 }
 
-void RealmChecker::reset(){
+template<template<typename T>class Array>
+RealmChecker<Array>::RealmChecker(const Array<HalfSegment>* _hss,
+                                  TupleType* _tt):
+    hss(_hss), tree(4,8), pos(0), it(0) {
+
+    tt = _tt;
+    tt->IncReference();
+    HalfSegment hs1;
+    for(int i=0;i<hss->Size();i++){
+      hss->Get(i,hs1);
+      if(hs1.IsLeftDomPoint()){
+         tree.insert(hs1.BoundingBox(),i);
+      }  
+    }
+}
+
+template<template<typename T>class Array>
+void RealmChecker<Array>::reset(){
    if(it){
      delete it;
      it = 0;
@@ -996,7 +1041,8 @@ void RealmChecker::reset(){
 }
 
 
-RealmChecker::~RealmChecker(){
+template<template<typename T>class Array>
+RealmChecker<Array>::~RealmChecker(){
     hss = 0;
     if(it){
       delete it; 
@@ -1005,7 +1051,8 @@ RealmChecker::~RealmChecker(){
 }
 
 
-bool RealmChecker::checkRealm(){
+template<template<typename T>class Array>
+bool RealmChecker<Array>::checkRealm(){
     reset();
     Tuple* t = nextTuple(true);
     if(t){
@@ -1018,7 +1065,8 @@ bool RealmChecker::checkRealm(){
 
 
 
-Tuple* RealmChecker::nextTuple(const bool print /* = false */ ){
+template<template<typename T>class Array>
+Tuple* RealmChecker<Array>::nextTuple(const bool print /* = false */ ){
   while(pos < hss->Size()){
       while(!it){
         hss->Get(pos,currentHs);
@@ -1050,7 +1098,8 @@ Tuple* RealmChecker::nextTuple(const bool print /* = false */ ){
    return 0;
 }
 
-Tuple* RealmChecker::createTuple(const int pos1, const int pos2, 
+template<template<typename T>class Array>
+Tuple* RealmChecker<Array>::createTuple(const int pos1, const int pos2, 
                    const HalfSegment& hs1, const HalfSegment& hs2) const{
 
    Tuple* res = new Tuple(tt);
@@ -1063,8 +1112,9 @@ Tuple* RealmChecker::createTuple(const int pos1, const int pos2,
    return res;
 }
 
-Line* RealmChecker::getLine( HalfSegment hs){
-   Line* result = new Line(2);
+template<template<typename T>class Array>
+LineT<Array>* RealmChecker<Array>::getLine( HalfSegment hs){
+   LineT<Array>* result = new LineT<Array>(2);
    result->StartBulkLoad();
    hs.attr.edgeno = 0;
    hs.SetLeftDomPoint(true);
@@ -1076,7 +1126,8 @@ Line* RealmChecker::getLine( HalfSegment hs){
 }
 
 
-ListExpr RealmChecker::getTupleType(){
+template<template<typename T>class Array>
+ListExpr RealmChecker<Array>::getTupleType(){
 
   ListExpr attr = nl->TwoElemList(
                        nl->SymbolAtom("No1"),
@@ -1110,7 +1161,10 @@ ListExpr RealmChecker::getTupleType(){
 }
 
 
-void intersection(const Line& l1, const Line& l2,  Line& result){
+template<template<typename T>class Array>
+void intersection(const LineT<Array>& l1, 
+                  const LineT<Array>& l2,  
+                  LineT<Array>& result){
 
    if(!l1.IsDefined() || !l1.IsDefined()){
       result.SetDefined(false);
@@ -1174,8 +1228,41 @@ void intersection(const Line& l1, const Line& l2,  Line& result){
   result.EndBulkLoad( true,false); // sort, no realminize
 }
 
-void intersection(const Line& l, const Region& r, Line& result){
+template<template<typename T>class Array>
+void intersection(const LineT<Array>& l, 
+                  const RegionT<Array>& r, 
+                  LineT<Array>& result){
    intersection(r,l,result);
 }
+
+
+// INstantiations
+
+template void intersection<DbArray>(const LineT<DbArray>& l1, 
+                                    const LineT<DbArray>& l2,  
+                                    LineT<DbArray>& result);
+template void intersection<MMDbArray>(const LineT<MMDbArray>& l1, 
+                                      const LineT<MMDbArray>& l2,  
+                                      LineT<MMDbArray>& result);
+
+template void intersection<DbArray>(const RegionT<DbArray>& region, 
+                                    const LineT<DbArray>& line, 
+                                    LineT<DbArray>& result);
+template void intersection<MMDbArray>(const RegionT<MMDbArray>& region, 
+                                      const LineT<MMDbArray>& line, 
+                                      LineT<MMDbArray>& result);
+
+
+template void intersection<DbArray>(const LineT<DbArray>& l, 
+                                    const RegionT<DbArray>& r, 
+                                    LineT<DbArray>& result);
+template void intersection<MMDbArray>(const LineT<MMDbArray>& l, 
+                                      const RegionT<MMDbArray>& r, 
+                                      LineT<MMDbArray>& result);
+
+
+template class RealmChecker<DbArray>;
+template class RealmChecker<MMDbArray>;
+
 
 } // end of namespace robust

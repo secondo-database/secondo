@@ -30,12 +30,17 @@ This file contains functions handling with regions.
 
 */
 
-#include "SpatialAlgebra.h"
+#include "AVLSegment.h"
+#include "RegionT.h"
 #include "RegionTools.h"
 #include "../TopOps/TopOpsAlgebra.h"
 #include <vector>
 
 using namespace std;
+
+template<template<typename T> class Array>
+Array<HalfSegment>* Split(const Array<HalfSegment>& segments,
+             const bool forceThrow);
 
 
 /*
@@ -53,6 +58,9 @@ void reverseCycle(vector<Point>& cycle){
      cycle[cycle.size()-(i+1)] = tmp;
   }
 }
+
+
+
 
 
 

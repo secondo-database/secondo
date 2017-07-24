@@ -18,10 +18,10 @@ of a point data type.
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 
 class Point;
-class Points;
-class Line;
-class SimpleLine;
-class Region;
+template<template<typename T> class ArrayT> class PointsT;
+template<template<typename T> class ArrayT> class LineT;
+template<template<typename T> class ArrayT> class RegionT;
+template<template<typename T> class ArrayT> class SimpleLineT;
 
 #ifndef M_PI
 #define M_PI   3.14159265358979323846  
@@ -183,7 +183,8 @@ Operators redefinition.
 */
     inline bool operator==( const Point& p ) const;
 
-    inline bool operator==( const Points& p) const;
+    template<template<typename T> class ArrayT>
+    inline bool operator==( const PointsT<ArrayT>& p) const;
 
 /*
 4.3.2 Operation $\neq$ (~not equal~)
@@ -206,7 +207,8 @@ Operators redefinition.
 *Complexity:* $O(log(n))$, where ~n~ is the size of the point set ~V~
 
 */
-  bool Inside( const Points& ps, const Geoid* geoid=0 ) const;
+  template<template<typename T> class Array>
+  bool Inside( const PointsT<Array>& ps, const Geoid* geoid=0 ) const;
 /*
 4.3.8 Operation ~inside~ (with ~rectangle~)
 
@@ -228,8 +230,10 @@ Operators redefinition.
 *Complexity:* $O(n)$, where ~n~ is the size of ~V~.
 
 */
-  bool Inside( const Line& l, const Geoid* geoid=0 ) const;
-  bool Inside( const SimpleLine& l, const Geoid* geoid = 0) const;
+  template<template<typename T> class Array>
+  bool Inside( const LineT<Array>& l, const Geoid* geoid=0 ) const;
+  template<template<typename T> class Array>
+  bool Inside( const SimpleLineT<Array>& l, const Geoid* geoid = 0) const;
 /*
 6.4.4 Operation ~inside~ (with ~region~)
 
@@ -240,7 +244,8 @@ Operators redefinition.
 *Complexity:* $O(log(n))$, where ~n~ is the size of ~V~.
 
 */
-  bool Inside( const Region& r, const Geoid* geoid=0 ) const;
+  template<template<typename T> class Array>
+  bool Inside( const RegionT<Array>& r, const Geoid* geoid=0 ) const;
 /*
 4.3.13 Operation ~distance~ (with ~point~)
 
@@ -264,7 +269,8 @@ If ~geoid~ is NULL, euclidean geometry is used, otherwise spherical geometry.
 *Complexity:* $O(n)$, where ~n~ is the size of ~V~
 
 */
-    double Distance( const Points& ps, const Geoid* geoid = 0 ) const;
+    template<template<typename T>class Array>
+    double Distance( const PointsT<Array>& ps, const Geoid* geoid = 0 ) const;
 /*
 4.3.13 Operation ~distance~ (with ~rect2~)
 
@@ -553,15 +559,20 @@ with a degree of alpha. The result is stored in res.
 4.3.16 Intersection with different other spatial types
 
 */
-  void Intersection(const Point& p, Points& result,
+  template<template<typename T>class Array>
+  void Intersection(const Point& p, PointsT<Array>& result,
                     const Geoid* geoid=0) const;
-  void Intersection(const Points& ps, Points& result,
+  template<template<typename T>class Array>
+  void Intersection(const PointsT<Array>& ps, PointsT<Array>& result,
                     const Geoid* geoid=0) const;
-  void Intersection(const Line& l, Points& result,
+  template<template<typename T>class Array>
+  void Intersection(const LineT<Array>& l, PointsT<Array>& result,
                     const Geoid* geoid=0) const;
-  void Intersection(const Region& r, Points& result,
+  template<template<typename T>class Array>
+  void Intersection(const RegionT<Array>& r, PointsT<Array>& result,
                     const Geoid* geoid=0) const;
-  void Intersection(const SimpleLine& l, Points& result,
+  template<template<typename T>class Array>
+  void Intersection(const SimpleLineT<Array>& l, PointsT<Array>& result,
                     const Geoid* geoid=0) const;
 
 
@@ -569,22 +580,41 @@ with a degree of alpha. The result is stored in res.
 4.3.16 Minus with different other spatial types
 
 */
-  void Minus(const Point& p, Points& result, const Geoid* geoid=0) const;
-  void Minus(const Points& ps, Points& result, const Geoid* geoid=0) const;
-  void Minus(const Line& l, Points& result, const Geoid* geoid=0) const;
-  void Minus(const Region& r, Points& result, const Geoid* geoid=0) const;
-  void Minus(const SimpleLine& l, Points& result, const Geoid* geoid=0) const;
+  template<template<typename T>class Array>
+  void Minus(const Point& p, PointsT<Array>& result, 
+             const Geoid* geoid=0) const;
+  template<template<typename T>class Array>
+  void Minus(const PointsT<Array>& ps, PointsT<Array>& result, 
+             const Geoid* geoid=0) const;
+  template<template<typename T>class Array>
+  void Minus(const LineT<Array>& l, PointsT<Array>& result, 
+             const Geoid* geoid=0) const;
+  template<template<typename T>class Array>
+  void Minus(const RegionT<Array>& r, PointsT<Array>& result, 
+             const Geoid* geoid=0) const;
+  template<template<typename T>class Array>
+  void Minus(const SimpleLineT<Array>& l, PointsT<Array>& result, 
+             const Geoid* geoid=0) const;
 
 
 /*
 4.3.16 Union with different other spatial types
 
 */
-  void Union(const Point& p, Points& result, const Geoid* geoid=0) const;
-  void Union(const Points& ps, Points& result, const Geoid* geoid=0) const;
-  void Union(const Line& l, Line& result, const Geoid* geoid=0) const;
-  void Union(const Region& r, Region& result, const Geoid* geoid=0) const;
-  void Union(const SimpleLine& l, SimpleLine& result,
+  template<template<typename T>class Array>
+  void Union(const Point& p, PointsT<Array>& result, 
+             const Geoid* geoid=0) const;
+  template<template<typename T>class Array>
+  void Union(const PointsT<Array>& ps, PointsT<Array>& result, 
+             const Geoid* geoid=0) const;
+  template<template<typename T>class Array>
+  void Union(const LineT<Array>& l, LineT<Array>& result, 
+             const Geoid* geoid=0) const;
+  template<template<typename T>class Array>
+  void Union(const RegionT<Array>& r, RegionT<Array>& result, 
+             const Geoid* geoid=0) const;
+  template<template<typename T>class Array>
+  void Union(const SimpleLineT<Array>& l, SimpleLineT<Array>& result,
              const Geoid* geoid=0) const;
 
 

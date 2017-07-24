@@ -44,9 +44,9 @@ This header file essentially contains the definition of the class
 
 #include "MapMatchingMHT.h"
 #include "MHTRouteCandidate.h"
-#include <TemporalAlgebra.h>
+#include "TemporalAlgebra.h"
+#include "SpatialAlgebra.h"
 
-class Points;
 
 
 namespace mapmatch {

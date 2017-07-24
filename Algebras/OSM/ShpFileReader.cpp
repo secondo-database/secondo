@@ -45,8 +45,8 @@ For more detailed information see ShpFileReader.h.
 #define __TRACE__
 
 // --- Including header-files
-#include "ShpFileReader.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
+#include "ShpFileReader.h"
 #include "Algebras/Spatial/RegionTools.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "ScalingEngine.h"

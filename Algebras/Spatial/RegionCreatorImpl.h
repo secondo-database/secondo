@@ -30,16 +30,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
-void RegionCreator::createRegion(const DbArray<HalfSegment>* hss, 
-                                 Region* result){
+template<template<typename T> class Array>
+void RegionCreator<Array>::createRegion(const Array<HalfSegment>* hss, 
+                                 RegionT<Array>* result){
    RegionCreator rc(hss, result);
 }
 
 
 
-RegionCreator::RegionCreator(const DbArray<HalfSegment>* hss, Region* result){
+template<template<typename T> class Array>
+RegionCreator<Array>::RegionCreator(const Array<HalfSegment>* hss, 
+                                    RegionT<Array>* result){
    
-   const DbArray<HalfSegment>* realm=0;
+   const Array<HalfSegment>* realm=0;
 
    if(false){
      // the following steps can be omitted, if the 
@@ -49,10 +52,10 @@ RegionCreator::RegionCreator(const DbArray<HalfSegment>* hss, Region* result){
      // - sorted (according halfsegment order
 
      // ensure to have for each halfsegment the corresponding partner
-     DbArray<HalfSegment>* pairs = forcePairsFromLeftDom(hss); 
+     Array<HalfSegment>* pairs = forcePairsFromLeftDom(hss); 
      // split intersecting halfsegments and remove overlappings
      pairs->Sort(HalfSegmentCompare);
-     DbArray<HalfSegment>* realm = Realminize(*pairs);
+     Array<HalfSegment>* realm = Realminize(*pairs);
      pairs->Destroy();
      delete pairs;
      // sort realminized halfsegments
@@ -76,7 +79,8 @@ RegionCreator::RegionCreator(const DbArray<HalfSegment>* hss, Region* result){
    
 }
 
-void RegionCreator::printCycles() const{
+template<template<typename T> class Array>
+void RegionCreator<Array>::printCycles() const{
     cout << "found " << cycles.size() << " cycles " << endl;
 
     for(size_t i=0;i<cycles.size();i++){
@@ -87,7 +91,8 @@ void RegionCreator::printCycles() const{
     }
 }
 
-void RegionCreator::printCycle(size_t c) const{
+template<template<typename T> class Array>
+void RegionCreator<Array>::printCycle(size_t c) const{
    cout << "cout cycle contains " << cycles[c].size() 
         << " halfSegments" << endl;
    cout << "cycle belongs to outer cycle " << correspondingOuters[c] << endl;
@@ -101,14 +106,16 @@ void RegionCreator::printCycle(size_t c) const{
 }
 
 
-void RegionCreator::detectHoles(){
+template<template<typename T> class Array>
+void RegionCreator<Array>::detectHoles(){
     holes.clear();
     for(size_t i=0;i<cycles.size();i++){
         holes.push_back(isHole(i));
     }
 }
 
-bool RegionCreator::isHole(size_t i) const{
+template<template<typename T> class Array>
+bool RegionCreator<Array>::isHole(size_t i) const{
     HalfSegment hs = cycles[i][0];
     Point dp = hs.GetDomPoint();
     Point sp = hs.GetSecPoint();
@@ -117,7 +124,8 @@ bool RegionCreator::isHole(size_t i) const{
                     i);
 }
 
-bool RegionCreator::isInside(const double x, const double y, 
+template<template<typename T> class Array>
+bool RegionCreator<Array>::isInside(const double x, const double y, 
                              size_t ommit) const{
     size_t count = 0;
     for(size_t c=0;c<cycles.size();c++){
@@ -131,7 +139,8 @@ bool RegionCreator::isInside(const double x, const double y,
     return (count & mask) > 0;
 }
 
-size_t RegionCreator::intersects(const double x, const double y, 
+template<template<typename T> class Array>
+size_t RegionCreator<Array>::intersects(const double x, const double y, 
                                  const HalfSegment& hs) {
   // returns 1 if a ray starting at (x,y) horizontaly to left 
   // intersects hs, 0 otherwise
@@ -181,7 +190,8 @@ After the cycles are detected and the kind of each cycle (hole, outercycle) is
 stored, this function can be used to assign each cycle to an outer cycle.
 
 */
-  void RegionCreator::findCorrespondingOuters(){
+template<template<typename T> class Array>
+  void RegionCreator<Array>::findCorrespondingOuters(){
     correspondingOuters.clear();
     for(size_t i=0;i<cycles.size();i++){
        // find left most point within cycle
@@ -208,7 +218,9 @@ stored, this function can be used to assign each cycle to an outer cycle.
     }
   }
 
-  int RegionCreator::findLeftNearestOuter(const double x, const double y) const{
+template<template<typename T> class Array>
+  int RegionCreator<Array>::findLeftNearestOuter(const double x, 
+                                                 const double y) const{
      int index = -1;
      double dist = 0;
      for(size_t i=0; i< cycles.size();i++){
@@ -241,7 +253,8 @@ stored, this function can be used to assign each cycle to an outer cycle.
    minimum distance. If no intersection point exists, -1 is returned. 
 
   */
-  double RegionCreator::getLeftDist(const int cycle, 
+template<template<typename T> class Array>
+  double RegionCreator<Array>::getLeftDist(const int cycle, 
                                     const double x, const double y) const{
      double dist = -1;
      for(size_t i=0;i<cycles[cycle].size();i++){
@@ -263,7 +276,8 @@ stored, this function can be used to assign each cycle to an outer cycle.
    between the intersection point and (x,y).
 
   */
-  double RegionCreator::getLeftDist(const HalfSegment& hs, 
+template<template<typename T> class Array>
+  double RegionCreator<Array>::getLeftDist(const HalfSegment& hs, 
                             const double x, const double y, const bool move){
 
 
@@ -306,7 +320,8 @@ stored, this function can be used to assign each cycle to an outer cycle.
   }
 
 
-  double RegionCreator::getRightDist(const HalfSegment& hs, 
+template<template<typename T> class Array>
+  double RegionCreator<Array>::getRightDist(const HalfSegment& hs, 
                             const double x, const double y){
 
      //cout << "check " << hs.SimpleString() << endl;
@@ -352,7 +367,8 @@ ray in upper direction. If the ray does not intersects the halfsegment,
 -1 is returned.
 
 */
-  double RegionCreator::getUpDist(const HalfSegment& hs, 
+template<template<typename T> class Array>
+  double RegionCreator<Array>::getUpDist(const HalfSegment& hs, 
                             const double x, const double y){
 
      double x1 = hs.GetDomPoint().GetX();
@@ -397,7 +413,8 @@ ray in upper direction. If the ray does not intersects the halfsegment,
      return abs(ycut-y) ;
   }
 
-  double RegionCreator::getDownDist(const HalfSegment& hs, 
+template<template<typename T> class Array>
+  double RegionCreator<Array>::getDownDist(const HalfSegment& hs, 
                             const double x, const double y){
 
      double x1 = hs.GetDomPoint().GetX();
@@ -452,9 +469,10 @@ Creates for each HalfSegment having a left dominating point two entries
 within the result array
 
 */
-DbArray<HalfSegment>* 
-   RegionCreator::forcePairsFromLeftDom(const DbArray<HalfSegment>* src){
-   DbArray<HalfSegment>* res = new DbArray<HalfSegment>(src->Size());
+template<template<typename T> class Array>
+Array<HalfSegment>* 
+   RegionCreator<Array>::forcePairsFromLeftDom(const Array<HalfSegment>* src){
+   Array<HalfSegment>* res = new Array<HalfSegment>(src->Size());
    HalfSegment hs;
    int edgeno = 0;
    for(int i=0;i<src->Size();i++){
@@ -470,7 +488,8 @@ DbArray<HalfSegment>*
 }
 
 
-void RegionCreator::setPartnerNo(DbArray<HalfSegment>* hss){
+template<template<typename T> class Array>
+void RegionCreator<Array>::setPartnerNo(Array<HalfSegment>* hss){
   int size = hss->Size();
   int* tmp = new int[size/2];
 
@@ -507,7 +526,8 @@ void RegionCreator::setPartnerNo(DbArray<HalfSegment>* hss){
 find minimal cycles within a sorted dbarray
 
 */
-   void RegionCreator::findCycles(const DbArray<HalfSegment>* hss) {
+template<template<typename T> class Array>
+   void RegionCreator<Array>::findCycles(const Array<HalfSegment>* hss) {
       cycles.clear();
       int size = hss->Size();
       if(size < 3){
@@ -535,7 +555,8 @@ find minimal cycles within a sorted dbarray
       delete[] critical;
    }
 
-   void RegionCreator::findCycle(const DbArray<HalfSegment>* hss, 
+template<template<typename T> class Array>
+   void RegionCreator<Array>::findCycle(const Array<HalfSegment>* hss, 
                                  int pos, char* usage, const char* critical){
       pos = getStartPos(hss,pos,usage);  
       if( pos <  0 ) {
@@ -623,7 +644,8 @@ following properties:
 - from all these halfsegments, it has the maximum slope 
 
 */
-   int RegionCreator::getStartPos(const DbArray<HalfSegment>* hss, 
+template<template<typename T> class Array>
+   int RegionCreator<Array>::getStartPos(const Array<HalfSegment>* hss, 
                                   int pos, char* usage){
       vector<pair<HalfSegment,int> > candidates;
       // stores all unused halfsegments with same dompoint 
@@ -701,7 +723,8 @@ Marks the halfsegments of hss as
 
 */
 
-   void RegionCreator::findCritical(const DbArray<HalfSegment>* hss, 
+template<template<typename T> class Array>
+   void RegionCreator<Array>::findCritical(const Array<HalfSegment>* hss, 
                                     char* critical){
 
      memset(critical,0,hss->Size()); // initialize with 0
@@ -738,7 +761,8 @@ Marks the halfsegments of hss as
      }
    }
 
-int RegionCreator::getNext(const DbArray<HalfSegment>* hss, int pos, 
+template<template<typename T> class Array>
+int RegionCreator<Array>::getNext(const Array<HalfSegment>* hss, int pos, 
                            const char* usage) {
       HalfSegment hs;
       hss->Get(pos,hs);
@@ -819,7 +843,9 @@ int RegionCreator::getNext(const DbArray<HalfSegment>* hss, int pos,
    }
 
 
-  bool RegionCreator::isRight(const Point& p, const Point& q, const Point& r) {
+template<template<typename T> class Array>
+  bool RegionCreator<Array>::isRight(const Point& p, const Point& q, 
+                                     const Point& r) {
 
 
     double rx=r.GetX();
@@ -839,7 +865,8 @@ int RegionCreator::getNext(const DbArray<HalfSegment>* hss, int pos,
   }
 
 
-  bool RegionCreator::moreRight(const HalfSegment& hs1, 
+template<template<typename T> class Array>
+  bool RegionCreator<Array>::moreRight(const HalfSegment& hs1, 
                                 const HalfSegment& hs2) {
      Point dp1 = hs1.GetDomPoint();
      Point dp2 = hs2.GetDomPoint();
@@ -849,13 +876,15 @@ int RegionCreator::getNext(const DbArray<HalfSegment>* hss, int pos,
      return isRight(dp1,sp1,sp2);
   }
 
-  void RegionCreator::setInsideAbove(){
+template<template<typename T> class Array>
+  void RegionCreator<Array>::setInsideAbove(){
      for(size_t i=0;i<cycles.size(); i++){
         setInsideAbove(i);
      }
   }
 
-  void RegionCreator::setInsideAbove(const int i){
+template<template<typename T> class Array>
+  void RegionCreator<Array>::setInsideAbove(const int i){
      int leftMost = leftMostPoints[i];
      int size = cycles[i].size();
      int pos1 = (leftMost + size - 1) % size;
@@ -863,7 +892,7 @@ int RegionCreator::getNext(const DbArray<HalfSegment>* hss, int pos,
      Point p1 = cycles[i][pos1].GetDomPoint();
      Point p2 = cycles[i][leftMost].GetDomPoint();
      Point p3 = cycles[i][pos2].GetDomPoint();
-     bool clockwise = Region::GetCycleDirection(p1,p2,p3);
+     bool clockwise = RegionT<Array>::GetCycleDirection(p1,p2,p3);
      bool isRight = holes[i]?!clockwise:clockwise;
      for(int h=0;h<size;h++){
         if(isRight){
@@ -874,7 +903,8 @@ int RegionCreator::getNext(const DbArray<HalfSegment>* hss, int pos,
      }
   }
 
-  void RegionCreator::buildRegion(Region* result) const{
+template<template<typename T> class Array>
+  void RegionCreator<Array>::buildRegion(RegionT<Array>* result) const{
      result->Clear();
      result->SetDefined(true);
      result->StartBulkLoad();
@@ -890,8 +920,9 @@ int RegionCreator::getNext(const DbArray<HalfSegment>* hss, int pos,
      result->EndBulkLoad(true, true, true, false); //sort,coverageNo,Partnerno
   }
 
-  void RegionCreator::saveFace(const int cycle, const int faceno,  
-                               int& edgeno, Region* result) const{
+template<template<typename T> class Array>
+  void RegionCreator<Array>::saveFace(const int cycle, const int faceno,  
+                               int& edgeno, RegionT<Array>* result) const{
      int cycleno = 0;
      if(!saveCycle(cycle, faceno, cycleno, edgeno, result)){
          return;
@@ -906,9 +937,10 @@ int RegionCreator::getNext(const DbArray<HalfSegment>* hss, int pos,
      }
   }
 
-  bool RegionCreator::saveCycle(const int cycle, const int faceno, 
+template<template<typename T> class Array>
+  bool RegionCreator<Array>::saveCycle(const int cycle, const int faceno, 
                                 const int cycleno, int& edgeno, 
-                                Region* result)const{
+                                RegionT<Array>* result)const{
 
       if(cycles[cycle].size() < 3){
           cerr << "found cycle with less than 3 halfsegments -> ignore" << endl;
@@ -928,5 +960,7 @@ int RegionCreator::getNext(const DbArray<HalfSegment>* hss, int pos,
       return true;
   }
 
-
+// Instantiations
+// template class RegionCreator<DbArray>;
+// template class RegionCreator<MMDbArray>;
 

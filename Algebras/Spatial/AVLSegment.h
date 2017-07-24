@@ -16,6 +16,10 @@ This enumeration is used to indicate the source of an ~AVLSegment~.
 #include "Coord.h"
 
 
+int HalfSegmentCompare(const void *a, const void *b);
+
+
+
 class myexception: public std::exception
 {
   public:
@@ -660,6 +664,9 @@ std::ostream& operator<<(std::ostream& o, const AVLSegment& s);
 std::ostream& operator<<(std::ostream& o, 
                          const avlseg::ExtendedHalfSegment& hs);
 
-#endif
 
+
+#include "AVLSegmentImpl.h"
+
+#endif
 

@@ -45,6 +45,7 @@ This header file contains interfaces to access networks from map matching:
 
 #include "RectangleAlgebra.h"
 #include "../Spatial/Point.h"
+#include "../Spatial/SpatialAlgebra.h"
 #include <vector>
 #include <string>
 #ifdef SECONDO_WIN32
@@ -66,7 +67,7 @@ public:
 
     virtual ~IMMNetworkSection() {}
 
-    virtual const class SimpleLine* GetCurve(void) const = 0;
+    virtual const SimpleLine* GetCurve(void) const = 0;
 
     virtual double GetCurveLength(const double dScale) const = 0;
 

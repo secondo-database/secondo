@@ -40,8 +40,11 @@ This header file contains the convenience-class ~NetworkRoute~
 #ifndef __NETWORK_ROUTE_H__
 #define __NETWORK_ROUTE_H__
 
+#include "Tools/Flob/DbArray.h"
+
 class Tuple;
-class SimpleLine;
+template<template<typename T> class ArrayT> class SimpleLineT;
+typedef SimpleLineT<DbArray> SimpleLine;
 
 #include <stdio.h>
 

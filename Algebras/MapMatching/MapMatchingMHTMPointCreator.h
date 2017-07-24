@@ -47,8 +47,7 @@ This header file essentially contains the definition of the class
 #include <TemporalAlgebra.h>
 #include <vector>
 
-class SimpleLine;
-
+#include "SpatialAlgebra.h"
 
 namespace mapmatch {
 

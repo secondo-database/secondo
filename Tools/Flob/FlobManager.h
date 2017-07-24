@@ -384,6 +384,12 @@ Flob, that does not use fixed main memory buffer.
  bool makeControllable(Flob& flob);
 
 
+
+void printStatistics(std::ostream& out) const;
+
+void resetStatistics() const;
+
+
 /*
 ~mutex member~
 

@@ -21,6 +21,8 @@ of that class.
 #include <fstream>
 #include "ExternalFileCache.h"
 
+#include "WinUnix.h"
+
 
 #ifdef THREAD_SAFE
 #include <boost/thread.hpp>
@@ -69,12 +71,41 @@ FlobManager instance.
 
 */   
 
+#define FM_useStats
+
+#ifdef FM_useStats
+static size_t createdFlobs;
+static size_t reusedFlobs;
+#endif
+
+
+void FlobManager::printStatistics(std::ostream& out) const{
+#ifndef FM_useStats
+  out << "no statistics available" << std::endl;
+#else
+  out << "created Flobs" << createdFlobs << std::endl;
+  out << "reusedFlobs "  << reusedFlobs << std::endl;
+#endif
+
+}
+
+
+void FlobManager::resetStatistics() const{
+#ifdef FM_useStats
+   createdFlobs = 0;
+   reusedFlobs = 0;
+#endif
+}
+
+
+
 
 
 FlobManager& FlobManager::getInstance(){
  __TRACE_ENTER__
   if(!instance){
     instance = new FlobManager();
+    instance->resetStatistics();
   }
 __TRACE_LEAVE__
   return *instance;
@@ -603,6 +634,15 @@ bool FlobManager::destroy(Flob& victim) {
     assert(!victim.id.isDestroyed());
    bool isTemp = id.mode == 1;
    if(victim.id.fileId == nativeFlobs && isTemp){
+
+    /*
+      std::cout << "Destroy native Flob " << victim.id << std::endl;
+      char* buffer = new char[2048];
+      WinUnix::stacktrace("SecondoBDB", buffer);
+      std::cout << "Stacktrace : " << buffer << std::endl << std::endl;
+      delete[] buffer;
+     */
+
       #ifdef THREAD_SAFE
       ncmtx.lock();
       #endif
@@ -1133,6 +1173,12 @@ Warning: this function does not change the dataPointer.
 */
 
  bool FlobManager::create(const SmiSize size, Flob& result) {  // result flob
+
+#ifdef FM_useStats
+  createdFlobs++;
+#endif
+
+
  __TRACE_ENTER__
    SmiRecord rec;
    SmiRecordId recId;
@@ -1148,8 +1194,21 @@ Warning: this function does not change the dataPointer.
 
 
    if(!DestroyedFlobs->isEmpty()){
+#ifdef FM_useStats
+   reusedFlobs++;
+#endif
      result = DestroyedFlobs->pop();
+
+
+
      result.size = size;
+
+     if(!nativeFlobCache->create(result)){
+       if(size>0){
+         resize(result,size,true);
+       }
+     }
+
      #ifdef THREAD_SAFE
      omtx.unlock();
      #endif
@@ -1211,6 +1270,9 @@ must exists.
  __TRACE_ENTER__
    assert((mode==0) || (mode==1));
 
+#ifdef FM_useStats
+  createdFlobs++;
+#endif
    bool isTemp = mode==1;
    assert(fileId != nativeFlobs || !isTemp);
    #ifdef THREAD_SAFE

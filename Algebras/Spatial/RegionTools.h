@@ -57,6 +57,9 @@ You can ensure this using code like:
 
 */
 
+#include "SpatialAlgebra.h"
+
+
 
 Region* buildRegion(std::vector< std::vector<Point> >& cycles);
 Region* buildRegion2(std::vector< std::vector<Point> >& cycles);

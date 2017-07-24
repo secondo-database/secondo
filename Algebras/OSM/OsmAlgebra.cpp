@@ -1350,7 +1350,7 @@ void FullOsmImport::processStream(Stream<Tuple> &stream, int attrNo,
   LongInt wayId = 0;
   while (tuple) {
     Line *line = (Line*)(tuple->GetAttribute(attrNo));
-    LineSplitter *ls = new LineSplitter(line, true, false);
+    LineSplitter<DbArray> *ls = new LineSplitter<DbArray>(line, true, false);
     do {
       points.clear();
       ls->NextLine(&points);

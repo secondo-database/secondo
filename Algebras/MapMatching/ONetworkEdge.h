@@ -41,8 +41,10 @@ This header file contains the class ~ONetworkEdge~
 #ifndef __ONETWORKEDGE_H_
 #define __ONETWORKEDGE_H_
 
+#include "SpatialAlgebra.h"
+
 class Tuple;
-class SimpleLine;
+
 
 
 template<class T> class ONetwork;
