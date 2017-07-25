@@ -5786,7 +5786,9 @@ class ffeed5fsrelInfo{
   public:
       ffeed5fsrelInfo(fsrel* _fn, ListExpr _tt):
         fn(_fn), tt(new TupleType(_tt)), pos(0), 
-        li(0) {}
+        li(0) {
+           assert(fn);
+        }
 
       Tuple* next(){
          while(pos <= fn->size()){
