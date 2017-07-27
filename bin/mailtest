@@ -1,0 +1,54 @@
+
+(DATABASE MAILTEST 
+    (TYPES) 
+    (OBJECTS 
+        (OBJECT testrel 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (Datum date) 
+                        (Name string) 
+                        (Geschlecht string) 
+                        (Kurs string) 
+                        (Versuch int) 
+                        (Note real) 
+                        (Studiengang string) 
+                        (Nachname string) 
+                        (Dr string) 
+                        (Brief text)))) 
+            (
+                ("10.01.2017" "Karl Mustermann" "m" "DS/BS" 1 2.3 "" "Mustermann" "Dr." 
+                    'Lieber Herr <<Dr>><<Nachname>>,wir freuen uns sehr, ihnen mitzuteilen, dass Sie die Pruefung mit der Note <<Note>> bestanden haben. Mit freundlichen Grüßen Ihr Sekretariat') 
+                ("10.01.2027" "Hannes Vorlage" "m" "IDB/DB II" 2 1.7 "" "Vorlage" "" 
+                    'Lieber Herr <<Dr>><<Nachname>>,wir freuen uns sehr, ihnen mitzuteilen, dass Sie die Pruefung mit der Note <<Note>> bestanden haben. Mit freundlichen Grüßen Ihr Sekretariat') 
+                ("10.01.2027" "Heinz Pattern" "m" "DS/BS" 1 5.0 "" "Pattern" "" 
+                    'Lieber Herr <<Dr>><<Nachname>>,wir müssen Ihnen leider mitteilen, dass Sie die Prüfung zum Modul <<Kurs>> nicht bestanden haben. Mit freundlichen Grüßen Ihr Sekretariat') 
+                ("17.01.2042" "Jochen Baller" "m" "DS/BS" 0 5.0 "" "Baller" "" 
+                    'Lieber Herr <<Dr>><<Nachname>>,wir müssen Ihnen leider mitteilen, dass Sie die Prüfung zum Modul <<Kurs>> nicht bestanden haben. Mit freundlichen Grüßen Ihr Sekretariat'))) 
+        (OBJECT uv2loadprofiles 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (ProfileName string) 
+                        (FormatType string) 
+                        (FormatAliases text) 
+                        (FormatQuery text) 
+                        (FormatScript text) 
+                        (OutputDir text) 
+                        (FormatTemplateHead text) 
+                        (FormatTemplateBody text) 
+                        (FormatTemplateTail text)))) 
+            ()) 
+        (OBJECT uv2loadprofilespos 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (ProfileName string) 
+                        (RelName string) 
+                        (FilterExpr text) 
+                        (ProjectExpr text) 
+                        (SortExpr text)))) 
+            ())))
