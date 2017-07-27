@@ -81,6 +81,7 @@ This file contains the implementation import / export operators.
 #include "ListUtils.h"
 
 #include "version.h"
+
 #include "DbVersion.h"
 #include "RegionTools.h"
 #include "NMEAImporter.h"
