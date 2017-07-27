@@ -19,3 +19,4 @@
 
 
 operator sendmail alias SENDMAIL pattern  op( _, _, _, _, _ )
+operator embedTags alias EMBEDTAGS pattern _ op [ _, _, _]
