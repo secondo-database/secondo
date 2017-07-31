@@ -81,6 +81,7 @@ buffer's content.
 #define FLOB_H
 
 #include <ostream>
+#include <string>
 
 #include "FlobId.h"
 #include "FlobManager.h"
@@ -130,6 +131,13 @@ Flob is kept within a special file controlled by the ~FlobManager~.
       id(), size( size_ ), dataPointer(0){
       FlobManager::getInstance().create(size_, *this);
     };
+
+
+    explicit inline Flob(const std::string& dummy):
+     id(),size(0),dataPointer(0)
+    {
+       id.destroy();
+    }
 
 
 /*

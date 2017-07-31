@@ -1186,6 +1186,8 @@ Warning: this function does not change the dataPointer.
   if(size > 536870912){ // 512 MB
     std::cerr << "Warning try to cretae a very big flob , size = " 
               << size <<std::endl;
+    //assert(false);
+
   }
 
   #ifdef THREAD_SAFE
