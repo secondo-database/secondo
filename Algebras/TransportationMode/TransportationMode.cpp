@@ -10235,9 +10235,9 @@ ListExpr OpTMCellBoxTypeMap ( ListExpr args )
   
   ListExpr param1 = nl->First ( args );
   ListExpr param2 = nl->Second ( args );
-  ListExpr MBR_ATOM;
+  //ListExpr MBR_ATOM;
   if(nl->IsEqual(param1,"rect") && nl->IsEqual(param2,"int")){
-    MBR_ATOM = nl->SymbolAtom("rect");
+    //MBR_ATOM = nl->SymbolAtom("rect");
      return nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(

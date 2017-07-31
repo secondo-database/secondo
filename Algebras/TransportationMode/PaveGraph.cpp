@@ -53,6 +53,7 @@ Decompose the pavement on one side of the road into a set of subregions
 void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
                      vector<Region>& result)
 {
+
     vector<Region> temp_result;
 
     vector<Region> result1;
@@ -73,8 +74,6 @@ void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
         result1[i].StartBulkLoad();
     }
 
-//    cout<<"no faces "<<no_faces<<endl;
-
     for(int index = 0;index < reg1->Size();index++){
       HalfSegment temp_hs;
       reg1->Get(index, temp_hs);
@@ -83,6 +82,7 @@ void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
         result1[face] += temp_hs;
       }
     }
+
 
     for(int i = 0;i < no_faces;i++){
         result1[i].SetNoComponents(1);
@@ -106,11 +106,12 @@ void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
 
     for(int i = 0;i < no_faces;i++){
         Region* temp = new Region(0);
-
         result2.push_back(*temp);
         temp->DeleteIfAllowed();
         result2[i].StartBulkLoad();
     }
+
+
     for(int i = 0;i < reg2->Size();i++){
       HalfSegment hs;
       reg2->Get(i,hs);
@@ -119,35 +120,44 @@ void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
           result2[face] += hs;
       }
     }
+
+
     for(int i = 0;i < no_faces;i++){
         result2[i].SetNoComponents(1);
         result2[i].EndBulkLoad(false,false,false,false);
-        if(result2[i].Size() >= 6)
+        if(result2[i].Size() >= 6) {
           temp_result.push_back(result2[i]);
+        }
     }
+
+    
+
+
     //////////////////////////////////////////////////////////
 
-//    cout<<temp_result.size()<<endl;
 
     for(unsigned int i = 0;i < temp_result.size();i++){
+
         Line* line = new Line(0);
         temp_result[i].Boundary(line);
-//        cout<<"i "<<i<<" len "<<line->Length()<<endl;
         SimpleLine* sline = new SimpleLine(0);
         sline->fromLine(*line);
 
         vector<MyHalfSegment> mhs;
         ReorderLine(sline, mhs);
+
         sline->DeleteIfAllowed();
         line->DeleteIfAllowed();
         vector<Point> ps;
+
         for(unsigned int j = 0;j < mhs.size();j++){
           Point p = mhs[j].from;
 //          cout<<"before "<<setprecision(10)<<p;
-          Modify_Point(p);
+        //  Modify_Point(p);
           ps.push_back(p);
 //          cout<<"after "<<setprecision(10)<<p<<endl;
         }
+
 
         //////////////////////////////////
         vector<Point> newps;
@@ -177,7 +187,9 @@ void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
         vector<Region> regs;
 //        ComputeRegion(ps, regs);
         ComputeRegion(newps, regs);
-        result.push_back(regs[0]);
+        if(!regs.empty()){
+           result.push_back(regs[0]);
+        }
         //////////////////////////////////////////////////////
 
     }
@@ -388,7 +400,7 @@ void SpacePartition::DecomposePavement1(Network* n, Relation* rel,
       for(unsigned int j = 0;j < pavements1.size();j++){
           junid1.push_back(oid);
           junid2.push_back(rid);
-          outer_regions1.push_back(pavements1[j]);
+          outer_regions1.push_back(Region(pavements1[j],false));
           oid++;
       }
       pave_tuple->DeleteIfAllowed();
@@ -443,7 +455,7 @@ void SpacePartition::DecomposePavement2(int start_oid, Relation* rel,
       for(unsigned int j = 0;j < zc_regs_filter.size();j++){
           junid1.push_back(oid);
           junid2.push_back(rid);
-          outer_regions1.push_back(zc_regs_filter[j]);
+          outer_regions1.push_back(Region(zc_regs_filter[j],false));
           oid++;
       }
 

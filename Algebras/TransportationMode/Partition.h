@@ -612,19 +612,44 @@ inline void Modify_Point3(Point& p, double f)
 
 }
 
-void MySetOp(const Region& reg1, const Region& reg2,Region& result,
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T2> class Array3 >
+void MySetOp(const RegionT<Array1>& reg1, 
+             const RegionT<Array2>& reg2,
+             RegionT<Array3>& result,
            myavlseg::SetOperation op);
+
 void MySetOp(const Line& line, const Region& region, Line& result,
            myavlseg::SetOperation op);
 void MySetOp(const Line& line1, const Line& line2, Line& result,
              myavlseg::SetOperation op);
 
-void MyMinus(const Region& reg1, const Region& reg2, Region& result);
-void MyIntersection(const Region& reg1, const Region& reg2, Region& result);
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3>
+void MyMinus(const RegionT<Array1>& reg1, 
+             const RegionT<Array2>& reg2, 
+             RegionT<Array3>& result);
+
+
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3>
+void MyIntersection(const RegionT<Array1>& reg1, 
+                    const RegionT<Array2>& reg2, 
+                    RegionT<Array3>& result);
+
 void MyIntersection(const Line& line, const Region& reg, Line& result);
 void MyIntersection(const Line& l1, const Line& l2, Line& result);
 
-void MyUnion(const Region& reg1, const Region& reg2, Region& result);
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3>
+void MyUnion(const RegionT<Array1>& reg1, 
+             const RegionT<Array2>& reg2, 
+             RegionT<Array3>& result);
+
 bool MyRegIntersects(const Region* reg1, const Region* reg2);
 bool MyHSIntersects(const HalfSegment* hs1, const HalfSegment* hs2);
 bool MyInside(Line*,Region*);
@@ -906,8 +931,11 @@ struct SpacePartition{
 
   void ReorderLine(SimpleLine*, std::vector<MyHalfSegment>&);
   //create a region from the given set of ordered points
+  template<template<typename T> class Array>
   void ComputeRegion(std::vector<Point>& outer_region, 
-                     std::vector<Region>& regs);
+                     std::vector<RegionT<Array> >& regs);
+
+
   bool CheckRegionPS(std::vector<Point>& outer_region);
   //extend each road to a region
   void ExtendRoad(int attr_pos, int w);
@@ -931,34 +959,76 @@ struct SpacePartition{
   //transfer the halfsegment by a deviation
   void TransferHalfSegment(HalfSegment& hs, int delta, bool flag);
   //for the given line, get its curve after transfer
-  void GetSubCurve(SimpleLine* curve, Line* newcurve,int roadwidth, bool clock);
+  template< template<typename T1> class Array1,
+          template<typename T2> class Array2>
+  void GetSubCurve(SimpleLineT<Array1>* curve, 
+                   LineT<Array2>* newcurve,
+                   int roadwidth, 
+                   bool clock);
 
   //build zebra crossing at junction position, called by GetZebraCrossing()
+  template< template<typename T1> class Array1,
+            template<typename T2> class Array2, 
+            template<typename T3> class Array3, 
+            template<typename T4> class Array4,
+            template<typename T5> class Array5> 
   bool BuildZebraCrossing(std::vector<MyPoint>& endpoints1,
                           std::vector<MyPoint>& endpoints2,
-                          Region* reg_pave1, Region* reg_pave2,
-                          Line* pave1, Region* crossregion,
-                          Point& junp, Region* last_zc);
+                          RegionT<Array1>* reg_pave1, 
+                          RegionT<Array2>* reg_pave2,
+                          LineT<Array3>* pave1, 
+                          RegionT<Array4>* crossregion,
+                          Point& junp, 
+                          RegionT<Array5>* last_zc);
 //for the road line around the junction position, it creates the zebra crossing
-  void GetZebraCrossing(SimpleLine* subcurve,
-                        Region* reg_pave1, Region* reg_pave2,
-                        int roadwidth, Line* pave1, double delta_l,
-                        Point p1, Region* crossregion, Region* last_zc);
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3,
+          template<typename T4> class Array4,
+          template<typename T5> class Array5,
+          template<typename T6> class Array6>
+  void GetZebraCrossing(SimpleLineT<Array1>* subcurve,
+                        RegionT<Array2>* reg_pave1, RegionT<Array3>* reg_pave2,
+                        int roadwidth, LineT<Array4>* pave1, double delta_l,
+                        Point p1, RegionT<Array5>* crossregion, 
+                        RegionT<Array6>* last_zc);
 
 
    // Extend the line in decreasing direction
-  void Decrease(SimpleLine* curve, Region* reg_pave1,
-                      Region* reg_pave2, double len, Line* pave,
-                      int roadwidth, Region* crossregion, Region* last_zc);
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3,
+          template<typename T4> class Array4,
+          template<typename T5> class Array5,
+          template<typename T6> class Array6>
+  void Decrease(SimpleLineT<Array1>* curve, RegionT<Array2>* reg_pave1,
+                      RegionT<Array3>* reg_pave2, double len, 
+                      LineT<Array4>* pave,
+                      int roadwidth, RegionT<Array5>* crossregion, 
+                      RegionT<Array6>* last_zc);
   //Extend the line in increasing direction
-  void Increase(SimpleLine* curve, Region* reg_pave1,
-                      Region* reg_pave2, double len, Line* pave,
-                      int roadwidth, Region* crossregion, Region* last_zc);
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3,
+          template<typename T4> class Array4,
+          template<typename T5> class Array5,
+          template<typename T6> class Array6>
+  void Increase(SimpleLineT<Array1>* curve, RegionT<Array2>* reg_pave1,
+                      RegionT<Array3>* reg_pave2, double len, 
+                      LineT<Array4>* pave,
+                      int roadwidth, RegionT<Array5>* crossregion, 
+                      RegionT<Array6>* last_zc);
   //create the pavement at each junction position
-  void CreatePavement(SimpleLine* curve, Region* reg_pave1,
-                      Region* reg_pave2, double len, 
-                      int roadwidth, Region* crossregion1,
-                      Region* crossregion2, Region* last_zc);
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3,
+          template<typename T4> class Array4,
+          template<typename T5> class Array5,
+          template<typename T6> class Array6>
+  void CreatePavement(SimpleLineT<Array1>* curve, RegionT<Array2>* reg_pave1,
+                      RegionT<Array3>* reg_pave2, double len, 
+                      int roadwidth, RegionT<Array4>* crossregion1,
+                      RegionT<Array5>* crossregion2, RegionT<Array6>* last_zc);
 
   //cut the common pavements of two roads at the junction position
   void DecomposePave(Region* reg1, Region* reg2, std::vector<Region>& result);
@@ -981,13 +1051,27 @@ struct SpacePartition{
   //Detect whether three points collineation
   bool Collineation(Point& p1, Point& p2, Point& p3);
   //Check that the pavement gap should not intersect the two roads
-  bool SameSide1(Region* reg1, Region* reg2, Line* r1r2,Point* junp);
+  
+  template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3>
+  bool SameSide1(RegionT<Array1>* reg1, RegionT<Array2>* reg2, 
+                 LineT<Array3>* r1r2,Point* junp);
   //build a small region around the three halfsegments
-  bool SameSide2(Region* reg1, Region* reg2, Line* r1r2,
-                  Point* junp, MyHalfSegment thirdseg, Region& smallreg);
+  template< template<typename T1> class Array1,
+            template<typename T2> class Array2,
+            template<typename T3> class Array3,
+            template<typename T4> class Array4>
+  bool SameSide2(RegionT<Array1>* reg1, RegionT<Array2>* reg2, 
+                 LineT<Array3>* r1r2,
+                 Point* junp, MyHalfSegment thirdseg, 
+                 RegionT<Array4>& smallreg);
 
   //the common area of two regions
-  inline bool PavementIntersection(Region* reg1, Region* reg2);
+  template< template<typename T1> class Array1,
+            template<typename T2> class Array2>
+  inline bool PavementIntersection(RegionT<Array1>* reg1, 
+                                   RegionT<Array2>* reg2);
   //check the junction position rids.size() != 2 rids.size() != 6
   void NewFillPavementDebug(Relation* rel, Relation* routes,
                       int id1, int id2,
@@ -1093,6 +1177,1011 @@ struct DataClean{
   void DFTraverse2(Relation* rel,R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                           Line* sl, std::vector<int>& id_list, unsigned int id);
 };
+
+/*
+Implementation of template functions.
+
+*/
+
+void myinsertEvents(const myavlseg::MyAVLSegment& seg,
+                  const bool createLeft,
+                  const bool createRight,
+                  priority_queue<HalfSegment,
+                                 vector<HalfSegment>,
+                                 greater<HalfSegment> >& q1,
+                  priority_queue<HalfSegment,
+                                 vector<HalfSegment>,
+                                 greater<HalfSegment> >& q2);
+
+bool MysplitByNeighbour(avltree::AVLTree<myavlseg::MyAVLSegment>& sss,
+                      myavlseg::MyAVLSegment& current,
+                      myavlseg::MyAVLSegment*& neighbour,
+                      priority_queue<HalfSegment,
+                                     vector<HalfSegment>,
+                                     greater<HalfSegment> >& q1,
+                      priority_queue<HalfSegment,
+                                     vector<HalfSegment>,
+                                     greater<HalfSegment> >& q2);
+
+
+void MysplitNeighbours(avltree::AVLTree<myavlseg::MyAVLSegment>& sss,
+                     myavlseg::MyAVLSegment *& leftN,
+                     myavlseg::MyAVLSegment *& rightN,
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
+                                    greater<HalfSegment> >& q2);
+
+
+/*
+The first region minuses the seccond region and store the result as the third
+
+*/
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3>
+void MyMinus(const RegionT<Array1>& reg1, 
+             const RegionT<Array2>& reg2, 
+             RegionT<Array3>& result)
+{
+  MySetOp(reg1,reg2,result,myavlseg::difference_op);
+}
+
+/*
+The first region unions the seccond region and store the result as the third
+
+*/
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3>
+void MyUnion(const RegionT<Array1>& reg1, 
+             const RegionT<Array2>& reg2, 
+             RegionT<Array3>& result)
+{
+  MySetOp(reg1,reg2,result,myavlseg::union_op);
+}
+
+template<template<typename T> class Array>
+void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
+                                    vector<RegionT<Array> >& regs)
+{
+    /////////note that points are counter_clock_wise ordered///////////////
+    //for(unsigned i = 0;i < outer_region.size();i++)
+    //  cout<<outer_region[i] << endl;
+    
+      ///////////////////////////////////////////////////////////////
+      //////////// check for overlapping segments///////////////////
+      //////////////////////////////////////////////////////////////
+//      CheckRegionPS(outer_region);
+      bool check = CheckRegionPS(outer_region);
+      if(check == false) return;
+
+      ////////////////////////////////////////////////////////////
+      MMRegion* cr = new MMRegion( 0 );
+      cr->StartBulkLoad();
+
+      int fcno=-1;
+      int ccno=-1;
+      int edno= 0;
+      int partnerno = 0;
+
+      fcno++;
+      ccno++;
+      bool isCycle = true;
+
+      Point firstPoint = outer_region[0];
+      Point prevPoint = firstPoint;
+
+      //Starting to compute a new cycle
+
+      MMPoints *cyclepoints= new MMPoints( 8 ); 
+
+      MMRegion *rDir = new MMRegion(32);
+      rDir->StartBulkLoad();
+      Point currvertex = firstPoint;
+
+      cyclepoints->StartBulkLoad();
+      *cyclepoints += currvertex;
+      Point p1 = currvertex;
+      Point firstP = p1;
+      cyclepoints->EndBulkLoad();
+
+      for(unsigned int i = 1;i < outer_region.size();i++){
+        currvertex = outer_region[i];
+
+//        if(cyclepoints->Contains(currvertex))assert(false);
+        if(cyclepoints->Contains(currvertex))continue;
+
+        ////////////////step -- 1/////////////////////////////
+        Point p2 = currvertex;
+        cyclepoints->StartBulkLoad();
+        *cyclepoints += currvertex;
+        cyclepoints->EndBulkLoad(true,false,false);
+        /////////////step --- 2 create halfsegment/////////////////////////
+
+        HalfSegment* hs = new HalfSegment(true, prevPoint, currvertex);
+        hs->attr.faceno=fcno;
+        hs->attr.cycleno=ccno;
+        hs->attr.edgeno=edno;
+        hs->attr.partnerno=partnerno;
+        partnerno++;
+        hs->attr.insideAbove = (hs->GetLeftPoint() == p1);
+        ////////////////////////////////////////////////////////
+        p1 = p2;
+        edno++;
+        prevPoint= currvertex;
+
+        if(cr->InsertOk(*hs)){
+           *cr += *hs;
+//           cout<<"cr+1 "<<*hs<<endl;
+           if( hs->IsLeftDomPoint()){
+              *rDir += *hs;
+//              cout<<"rDr+1 "<<*hs<<endl;
+              hs->SetLeftDomPoint( false );
+           }else{
+                hs->SetLeftDomPoint( true );
+//                cout<<"rDr+2 "<<*hs<<endl;
+                (*rDir) += (*hs);
+                }
+            (*cr) += (*hs);
+//            cout<<"cr+2 "<<*hs<<endl;
+            delete hs;
+        }else assert(false);
+      }//end for
+
+      cyclepoints->DeleteIfAllowed();
+//     printf("(%.6f %.6f) (%.6f %.6f)\n", firstPoint.GetX(), firstPoint.GetY(),
+//             currvertex.GetX(), currvertex.GetY());
+
+      ////////////////////last segment//////////////////////////
+      //edno++; // edgeno already increased
+      HalfSegment* hs = new HalfSegment(true, firstPoint, currvertex);
+      hs->attr.faceno=fcno;
+      hs->attr.cycleno=ccno;
+      hs->attr.edgeno=edno;
+      hs->attr.partnerno=partnerno;
+      hs->attr.insideAbove = (hs->GetRightPoint() == firstP);
+      partnerno++;
+
+      //////////////////////////////////////////////////////////
+      if (cr->InsertOk(*hs)){
+//          cout<<"insert last segment"<<endl;
+          *cr += *hs;
+//          cout<<"cr+3 "<<*hs<<endl;
+          if(hs->IsLeftDomPoint()){
+             *rDir += *hs;
+//            cout<<"rDr+3 "<<*hs<<endl;
+            hs->SetLeftDomPoint( false );
+          }else{
+              hs->SetLeftDomPoint( true );
+//              cout<<"rDr+4 "<<*hs<<endl;
+              *rDir += *hs;
+            }
+          *cr += *hs;
+//          cout<<"cr+4 "<<*hs<<endl;
+          delete hs;
+          rDir->EndBulkLoad(true, false, false, false);
+
+
+          //To calculate the inside above attribute
+//          bool direction = rDir->GetCycleDirection();
+          ////explicitly define it for all regions, false -- area > 0////
+          bool direction = false;//counter_wise
+//          cout<<"direction "<<direction<<endl;
+          int h = cr->Size() - ( rDir->Size() * 2 );
+          while(h < cr->Size()){
+            //after each left half segment of the region is its
+            //correspondig right half segment
+            HalfSegment hsIA;
+            bool insideAbove;
+            cr->Get(h,hsIA);
+
+            if (direction == hsIA.attr.insideAbove)
+               insideAbove = false;
+            else
+               insideAbove = true;
+            if (!isCycle)
+                insideAbove = !insideAbove;
+            HalfSegment auxhsIA( hsIA );
+            auxhsIA.attr.insideAbove = insideAbove;
+            cr->UpdateAttr(h,auxhsIA.attr);
+            //Get right half segment
+            cr->Get(h+1,hsIA);
+            auxhsIA = hsIA;
+            auxhsIA.attr.insideAbove = insideAbove;
+            cr->UpdateAttr(h+1,auxhsIA.attr);
+            h+=2;
+          }
+          rDir->DeleteIfAllowed();
+        }else assert(false);
+
+
+      cr->SetNoComponents( fcno+1 );
+      cr->EndBulkLoad( true, true, true, false );
+      //regs.push_back(RegionT<Array>(*cr,false));
+      regs.push_back(*cr);
+
+      cr->DeleteIfAllowed();
+
+}
+
+/*
+Check that the pavement gap should not intersect the two roads
+
+*/
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3>
+bool SpacePartition::SameSide1(RegionT<Array1>* reg1, 
+                               RegionT<Array2>* reg2, 
+                               LineT<Array3>* r1r2,
+                               Point* junp)
+{
+      vector<MyPoint> mps1;
+      vector<MyPoint> mps2;
+      for(int i = 0;i < reg1->Size();i++){
+          HalfSegment hs;
+          reg1->Get(i,hs);
+          if(hs.IsLeftDomPoint()){
+            Point lp = hs.GetLeftPoint();
+            Point rp = hs.GetRightPoint();
+            MyPoint mp1(lp, lp.Distance(*junp));
+            MyPoint mp2(rp, rp.Distance(*junp));
+            mps1.push_back(mp1);
+            mps1.push_back(mp2);
+          }
+      }
+      for(int i = 0;i < reg2->Size();i++){
+          HalfSegment hs;
+          reg2->Get(i,hs);
+          if(hs.IsLeftDomPoint()){
+            Point lp = hs.GetLeftPoint();
+            Point rp = hs.GetRightPoint();
+            MyPoint mp1(lp, lp.Distance(*junp));
+            MyPoint mp2(rp, rp.Distance(*junp));
+            mps2.push_back(mp1);
+            mps2.push_back(mp2);
+          }
+      }
+      sort(mps1.begin(), mps1.end());
+      sort(mps2.begin(), mps2.end());
+
+
+//      cout<<mps1[0].loc<<mps2[0].loc<<mps1[2].loc<<mps2[2].loc<<endl;
+
+      if(mps1.size()<3) return false; // not a region
+      if(mps2.size()<3) return false; // not a region
+      
+
+
+      vector<Point> border1;
+      border1.push_back(mps1[0].loc);
+      border1.push_back(mps1[2].loc);
+      border1.push_back(mps2[2].loc);
+      border1.push_back(mps2[0].loc);
+      vector<Point> border;
+      const double delta_dist = 0.1;
+      for(unsigned int i = 0;i < border1.size();i++){
+        unsigned int j = 0;
+        for(;j < border.size();j++){
+          if(border[j].Distance(border1[i]) < delta_dist) break;
+        }
+        if(j == border.size())
+          border.push_back(border1[i]);
+      }
+
+//      for(unsigned int i = 0;i < border.size();i++)
+//        cout<<border[i]<<endl;
+
+
+      if(border.size() < 3) return false; //not a region
+      if(border.size() == 3){
+        unsigned int count = 0;
+        unsigned int index = 0;
+
+        while(count < 3){
+          HalfSegment hs;
+          hs.Set(true, border[index], border[(index + 1)%border.size()]);
+          Line* temp =  new Line(0);
+          int edgeno = 0;
+          hs.attr.edgeno = edgeno++;
+          *temp += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *temp += hs;
+          if(temp->Intersects(*r1r2)){
+            temp->DeleteIfAllowed();
+            return false;
+          }
+          count++;
+          index++;
+          temp->DeleteIfAllowed();
+        }
+        //three points collineation
+        if(Collineation(border[0], border[1], border[2])) return false;
+
+            vector<Point> ps;
+            if(GetClockwise(border[0], border[1], border[2])){
+                ps.push_back(border[1]);
+                ps.push_back(border[0]);
+                ps.push_back(border[2]);
+            }else{
+                ps.push_back(border[2]);
+                ps.push_back(border[0]);
+                ps.push_back(border[1]);
+            }
+
+        //should be counter clock wise
+            vector<Region> gap;
+            ComputeRegion(ps, gap);
+            assert(gap.size() > 0);
+            outer_fillgap.push_back(gap[0]);
+            return true;
+            ////////////////////////////////////////////
+
+
+      }else{ // four points construct a region
+          HalfSegment hs;
+          hs.Set(true, border[0], border[3]);
+          Line* temp =  new Line(0);
+          int edgeno = 0;
+          hs.attr.edgeno = edgeno++;
+          *temp += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *temp += hs;
+          if(temp->Intersects(*r1r2)){
+            temp->DeleteIfAllowed();
+            return false;
+          }else{
+            temp->DeleteIfAllowed();
+            vector<Point> ps;
+
+//            cout<<border[3]<< border[0]<< border[2]<<endl;
+            if(GetClockwise(border[3], border[0], border[2])){
+                ps.push_back(border[0]);
+                ps.push_back(border[3]);
+                ps.push_back(border[2]);
+                ps.push_back(border[1]);
+            }else{
+                ps.push_back(border[2]);
+                ps.push_back(border[3]);
+                ps.push_back(border[0]);
+                ps.push_back(border[1]);
+            }
+
+
+/*            for(unsigned int i = 0;i < ps.size();i++)
+                cout<<ps[i]<<endl; */
+            unsigned int i = 0;
+            for(;i < ps.size();i++){
+                unsigned int index1 = i;
+                unsigned int index2 = (i + 1)%ps.size();
+                unsigned int index3 = (i + 2)%ps.size();
+
+/*                cout<<i<<" "<<ps[index1]<<" "<<ps[index2]
+                    <<" "<<ps[index3]<<endl;*/
+                ////////////the special case that three points collineartion///
+                if(Collineation(ps[index1], ps[index2], ps[index3]))continue;
+
+                if(GetClockwise(ps[index2], ps[index1], ps[index3]))break;
+
+                vector<Point> temp_ps;
+                for(int j = ps.size() - 1;j >= 0;j--)
+                  temp_ps.push_back(ps[j]);
+                ps.clear();
+                for(unsigned int j = 0;j < temp_ps.size();j++)
+                  ps.push_back(temp_ps[j]);
+                break;
+            }
+
+            ////////old checking////////////////
+//             assert( i < ps.size());
+//            //should be counter clock wise
+//             vector<Region> gap;
+//             ComputeRegion(ps, gap);
+//             outer_fillgap.push_back(gap[0]);
+//             return true;
+
+            /////four points can also be collineartion/////////
+            if(i < ps.size()){
+              vector<Region> gap;
+              ComputeRegion(ps, gap);
+              assert(gap.size() > 0);
+              outer_fillgap.push_back(gap[0]);
+              return true;
+            }else{
+              return false;
+            }
+
+            /////////////////////////////////////////////////
+/*            cout<<"four points"<<endl;
+            for(unsigned int j = 0;j < ps.size();j++){
+              vector<Point> ps1;
+              int index = (j + 1) % ps.size();
+              for(int i = 0 ; i < ps.size() ;i++){
+                  Point p = ps[index];
+                  ps1.push_back(p);
+                  index = (index + 1) % ps.size();
+              }
+              vector<Region> result1;
+              ComputeRegion(ps1, result1);
+
+
+              if(result1[0].GetCycleDirection()){
+                  outer_fillgap.push_back(result1[0]);
+                  return true;
+              }
+            }
+            assert(false);*/
+            //////////////////////////////////////////////////
+          }
+      }
+}
+
+
+/*
+build a small region around the three halfsegments
+the pavement gap should not intersect the small region
+
+*/
+
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3,
+          template<typename T4> class Array4>
+bool SpacePartition::SameSide2(RegionT<Array1>* reg1, 
+                               RegionT<Array2>* reg2, 
+                               LineT<Array3>* r1r2,
+                               Point* junp, MyHalfSegment thirdseg, 
+                               RegionT<Array4>& smallreg)
+{
+      if(reg1->Size() < 3 || reg2->Size() < 3){
+        return false;
+      }
+
+      vector<MyPoint> mps1;
+      vector<MyPoint> mps2;
+      for(int i = 0;i < reg1->Size();i++){
+          HalfSegment hs;
+          reg1->Get(i,hs);
+          if(hs.IsLeftDomPoint()){
+            Point lp = hs.GetLeftPoint();
+            Point rp = hs.GetRightPoint();
+            MyPoint mp1(lp, lp.Distance(*junp));
+            MyPoint mp2(rp, rp.Distance(*junp));
+            mps1.push_back(mp1);
+            mps1.push_back(mp2);
+          }
+      }
+
+      for(int i = 0;i < reg2->Size();i++){
+          HalfSegment hs;
+          reg2->Get(i,hs);
+          if(hs.IsLeftDomPoint()){
+            Point lp = hs.GetLeftPoint();
+            Point rp = hs.GetRightPoint();
+            MyPoint mp1(lp, lp.Distance(*junp));
+            MyPoint mp2(rp, rp.Distance(*junp));
+            mps2.push_back(mp1);
+            mps2.push_back(mp2);
+          }
+      }
+      sort(mps1.begin(), mps1.end());
+      sort(mps2.begin(), mps2.end());
+
+//      cout<<mps1[0].loc<<mps2[0].loc<<mps1[2].loc<<mps2[2].loc<<endl;
+
+      vector<Point> border1;
+      border1.push_back(mps1[0].loc);
+      border1.push_back(mps1[2].loc);
+      border1.push_back(mps2[2].loc);
+      border1.push_back(mps2[0].loc);
+      vector<Point> border;
+      const double delta_dist = 0.1;
+      for(unsigned int i = 0;i < border1.size();i++){
+        unsigned int j = 0;
+        for(;j < border.size();j++){
+          if(border[j].Distance(border1[i]) < delta_dist) break;
+        }
+        if(j == border.size())
+          border.push_back(border1[i]);
+      }
+
+//      for(unsigned int i = 0;i < border.size();i++)
+//        cout<<border[i]<<endl;
+
+
+      if(border.size() < 3) return false; //not a region
+      if(border.size() == 3){
+//          cout<<"3"<<endl;
+          unsigned int count = 0;
+          unsigned int index = 0;
+
+          while(count < 3){
+            HalfSegment hs;
+            hs.Set(true, border[index], border[(index + 1)%border.size()]);
+            Line* temp =  new Line(0);
+            int edgeno = 0;
+            hs.attr.edgeno = edgeno++;
+            *temp += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            *temp += hs;
+
+            bool flag = true;
+            if(border[index].Inside(smallreg) == false)
+              flag = true;
+            else
+              flag = false;
+
+            if(temp->Intersects(*r1r2) || flag == false){
+              temp->DeleteIfAllowed();
+              return false;
+            }
+            count++;
+            index++;
+            temp->DeleteIfAllowed();
+          }
+          if(Collineation(border[0], border[1], border[2])) return false;
+
+          vector<Point> ps;
+          if(GetClockwise(border[0], border[1], border[2])){
+                ps.push_back(border[1]);
+                ps.push_back(border[0]);
+                ps.push_back(border[2]);
+          }else{
+                ps.push_back(border[2]);
+                ps.push_back(border[0]);
+                ps.push_back(border[1]);
+          }
+
+        //should be counter clock wise
+            vector<Region> gap;
+            ComputeRegion(ps, gap);
+            assert(gap.size() > 0);
+            outer_fillgap.push_back(gap[0]);
+            return true;
+
+      }else{ // four points construct a region
+//          cout<<"4"<<endl;
+          HalfSegment hs;
+          hs.Set(true, border[0], border[3]);
+          Line* temp =  new Line(0);
+          int edgeno = 0;
+          hs.attr.edgeno = edgeno++;
+          *temp += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          *temp += hs;
+
+          bool flag = true;
+          if(border[0].Inside(smallreg) == false &&
+             border[3].Inside(smallreg) == false)
+            flag = true;
+          else
+            flag = false;
+
+          if(temp->Intersects(*r1r2) || flag == false){
+            temp->DeleteIfAllowed();
+            return false;
+          }else{
+            temp->DeleteIfAllowed();
+            vector<Point> ps;
+
+            if(GetClockwise(border[3], border[0], border[2])){
+                ps.push_back(border[0]);
+                ps.push_back(border[3]);
+                ps.push_back(border[2]);
+                ps.push_back(border[1]);
+            }else{
+                ps.push_back(border[2]);
+                ps.push_back(border[3]);
+                ps.push_back(border[0]);
+                ps.push_back(border[1]);
+            }
+
+            unsigned int i = 0;
+            for(;i < ps.size();i++){
+                unsigned int index1 = i;
+                unsigned int index2 = (i + 1)%ps.size();
+                unsigned int index3 = (i + 2)%ps.size();
+                ////////////the special case that three points collineartion///
+                if(Collineation(ps[index1], ps[index2], ps[index3]))continue;
+                if(GetClockwise(ps[index2], ps[index1], ps[index3]))break;
+
+                vector<Point> temp_ps;
+                for(int j = ps.size() - 1;j >= 0;j--)
+                  temp_ps.push_back(ps[j]);
+                ps.clear();
+                for(unsigned int j = 0;j < temp_ps.size();j++)
+                  ps.push_back(temp_ps[j]);
+                break;
+            }
+            assert( i < ps.size());
+
+        //should be counter clock wise
+
+            vector<Region> gap;
+            ComputeRegion(ps, gap);
+            assert(gap.size() > 0);
+            outer_fillgap.push_back(gap[0]);
+            return true;
+          }
+
+      }
+}
+
+
+/*
+the common area of two regions
+
+*/
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2>
+inline bool SpacePartition::PavementIntersection(RegionT<Array1>* reg1, 
+                                                 RegionT<Array2>* reg2)
+{
+    if(reg1->Intersects(*reg2) == false)
+      return false;
+
+    Region* reg = new Region(0);
+    MyIntersection(*reg1, *reg2, *reg);
+    double regarea = reg->Area();
+
+//    cout<<"intersection area "<<regarea<<endl;
+    reg->DeleteIfAllowed();
+    if(MyAlmostEqual(regarea,0.0)) return false;
+    return true;
+}
+
+/*
+Intersection, union and minus between two regions
+
+*/
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3>
+void MySetOp(const RegionT<Array1>& reg1,
+           const RegionT<Array2>& reg2,
+           RegionT<Array3>& result,
+           myavlseg::SetOperation op){
+
+   result.Clear();
+   if(!reg1.IsDefined() || !reg2.IsDefined()){
+       result.SetDefined(false);
+       return;
+   }
+   result.SetDefined(true);
+   if(reg1.Size()==0){
+       switch(op){
+         case myavlseg::union_op : result = reg2;
+                         return;
+         case myavlseg::intersection_op : return; // empty region
+         case myavlseg::difference_op : return; // empty region
+         default : assert(false);
+       }
+   }
+   if(reg2.Size()==0){
+      switch(op){
+         case myavlseg::union_op: result = reg1;
+                        return;
+         case myavlseg::intersection_op: return;
+         case myavlseg::difference_op: result = reg1;
+                             return;
+         default : assert(false);
+      }
+   }
+
+   if(!reg1.BoundingBox().Intersects(reg2.BoundingBox())){
+      switch(op){
+        case myavlseg::union_op: {
+          result.StartBulkLoad();
+          int edgeno=0;
+          int s = reg1.Size();
+          HalfSegment hs;
+          for(int i=0;i<s;i++){
+              reg1.Get(i,hs);
+              if(hs.IsLeftDomPoint()){
+                 HalfSegment HS(hs);
+                 HS.attr.edgeno = edgeno;
+                 result += HS;
+                 HS.SetLeftDomPoint(false);
+                 result += HS;
+                 edgeno++;
+              }
+          }
+          s = reg2.Size();
+          for(int i=0;i<s;i++){
+              reg2.Get(i,hs);
+              if(hs.IsLeftDomPoint()){
+                 HalfSegment HS(hs);
+                 HS.attr.edgeno = edgeno;
+                 result += HS;
+                 HS.SetLeftDomPoint(false);
+                 result += HS;
+                 edgeno++;
+              }
+          }
+          result.EndBulkLoad();
+          return;
+        } case myavlseg::difference_op: {
+           result = reg1;
+           return;
+        } case myavlseg::intersection_op:{
+           return;
+        } default: assert(false);
+      }
+   }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  avltree::AVLTree<myavlseg::MyAVLSegment> sss;
+  myavlseg::ownertype owner;
+  int pos1 = 0;
+  int pos2 = 0;
+  HalfSegment nextHs;
+  int src = 0;
+
+  myavlseg::MyAVLSegment* member = 0;
+  myavlseg::MyAVLSegment* leftN  = 0;
+  myavlseg::MyAVLSegment* rightN = 0;
+
+  myavlseg::MyAVLSegment left1,right1,common1,
+             left2,right2;
+
+  int edgeno =0;
+  myavlseg::MyAVLSegment tmpL,tmpR;
+
+  result.StartBulkLoad();
+
+  while( (owner=myselectNext(reg1,pos1,
+                           reg2,pos2,
+                           q1,q2,nextHs,src))!=myavlseg::none){
+
+       myavlseg::MyAVLSegment current(nextHs,owner);
+       member = sss.getMember(current,leftN,rightN);
+
+//       cout<<"current "<<current <<"owner "<<owner<<endl;
+
+//       sss.Print(cout);
+
+        if(leftN){
+          tmpL = *leftN;
+          leftN = &tmpL;
+        }
+        if(rightN){
+          tmpR = *rightN;
+          rightN = &tmpR;
+        }
+        if(nextHs.IsLeftDomPoint()){
+          if(member){ // overlapping segment found
+            if((member->getOwner()==myavlseg::both) ||
+               (member->getOwner()==owner)){
+               cerr << "overlapping segments detected within a single region"
+                    << endl;
+               cerr << "the argument is "
+                    << (owner==myavlseg::first?"first":"second")
+                    << endl;
+               cerr.precision(16);
+               cerr << "stored is " << *member << endl;
+               cerr << "current = " << current << endl;
+               myavlseg::MyAVLSegment tmp_left, tmp_common, tmp_right;
+               member->split(current,tmp_left, tmp_common, tmp_right, false);
+               cerr << "The common part is " << tmp_common << endl;
+               cerr << "The lenth = " << tmp_common.length() << endl;
+               assert(false);
+            }
+            int parts = member->split(current,left1,common1,right1);
+            sss.remove(*member);
+            if(parts & myavlseg::LEFT){
+              if(!left1.isPoint()){
+//                cout<<"left1 "<<left1<<endl;
+                sss.insert(left1);
+                myinsertEvents(left1,false,true,q1,q2);
+              }
+            }
+            assert(parts & myavlseg::COMMON);
+            // update coverage numbers
+            if(current.getInsideAbove()){
+               common1.con_above++;
+            }  else {
+               common1.con_above--;
+            }
+            if(!common1.isPoint()){
+//              cout<<"comm1 "<<common1<<endl;
+              sss.insert(common1);
+              myinsertEvents(common1,false,true,q1,q2);
+            }
+            if(parts & myavlseg::RIGHT){
+               myinsertEvents(right1,true,true,q1,q2);
+            }
+          } else { // there is no overlapping segment
+            // try to split segments if required
+
+              MysplitByNeighbour(sss, current, leftN, q1, q2);
+              MysplitByNeighbour(sss, current, rightN,q1, q2);
+
+
+//              cout<<"current "<<current<<endl;
+            // update coverage numbers
+            bool iac = current.getOwner()== myavlseg::first
+                            ?current.getInsideAbove_first()
+                            :current.getInsideAbove_second();
+
+
+
+/*            iac = current.getOwner()== myavlseg::first
+                                           ?current.getInsideAbove_first()
+                                           :current.getInsideAbove_second();*/
+
+
+
+            if(leftN){
+//              cout<<"leftN "<<leftN->con_below<<" "<<leftN->con_above<<endl;
+//              cout<<*leftN<<endl;
+            }
+            if(leftN && current.extends(*leftN)){
+              current.con_below = leftN->con_below;
+              current.con_above = leftN->con_above;
+            }else{
+              if(leftN && leftN->isVertical()){
+                 current.con_below = leftN->con_below;
+              } else if(leftN){
+                 current.con_below = leftN->con_above;
+              } else {
+                 current.con_below = 0;
+              }
+              if(iac){
+                 current.con_above = current.con_below+1;
+              } else {
+                 current.con_above = current.con_below-1;
+              }
+            }
+            // insert element
+            if(!current.isPoint()){
+//              cout<<"current2 "<<current<<endl;
+              sss.insert(current);
+              myinsertEvents(current,false,true,q1,q2);
+            }
+          }
+        } else{  // nextHs.IsRightDomPoint
+            if(member && member->exactEqualsTo(current)){
+              switch(op){
+                case myavlseg::union_op :{
+
+                   if( (member->con_above==0) || (member->con_below==0)) {
+                      HalfSegment hs1 = member->getOwner()==myavlseg::both
+                                      ?member->convertToHs(true,myavlseg::first)
+                                      :member->convertToHs(true);
+                      hs1.attr.edgeno = edgeno;
+                      result += hs1;
+                      hs1.SetLeftDomPoint(false);
+                      result += hs1;
+                      edgeno++;
+                   }
+                   break;
+                }
+                case myavlseg::intersection_op: {
+
+                  if(member->con_above==2 || member->con_below==2){
+                      HalfSegment hs1 = member->getOwner()==myavlseg::both
+                                      ?member->convertToHs(true,myavlseg::first)
+                                      :member->convertToHs(true);
+                      hs1.attr.edgeno = edgeno;
+                      hs1.attr.insideAbove = (member->con_above==2);
+                      result += hs1;
+                      hs1.SetLeftDomPoint(false);
+                      result += hs1;
+                      edgeno++;
+
+                  }
+                  break;
+                }
+                case myavlseg::difference_op : {
+                  switch(member->getOwner()){
+                    case myavlseg::first:{
+                      if(member->con_above + member->con_below == 1){
+                         HalfSegment hs1 = member->getOwner()==myavlseg::both
+                                      ?member->convertToHs(true,myavlseg::first)
+                                      :member->convertToHs(true);
+                         hs1.attr.edgeno = edgeno;
+                         result += hs1;
+                         hs1.SetLeftDomPoint(false);
+                         result += hs1;
+                         edgeno++;
+                      }
+                      break;
+                    }
+                    case myavlseg::second:{
+                      if(member->con_above + member->con_below == 3){
+                         HalfSegment hs1 = member->getOwner()==myavlseg::both
+                                     ?member->convertToHs(true,myavlseg::second)
+                                      :member->convertToHs(true);
+                         hs1.attr.insideAbove = ! hs1.attr.insideAbove;
+                         hs1.attr.edgeno = edgeno;
+                         result += hs1;
+                         hs1.SetLeftDomPoint(false);
+                         result += hs1;
+                         edgeno++;
+                      }
+                      break;
+                    }
+                    case myavlseg::both: {
+                      if((member->con_above==1) && (member->con_below== 1)){
+                         HalfSegment hs1 = member->getOwner()==myavlseg::both
+                                     ?member->convertToHs(true,myavlseg::first)
+                                      :member->convertToHs(true);
+                         hs1.attr.insideAbove = member->getInsideAbove_first();
+                         hs1.attr.edgeno = edgeno;
+                         result += hs1;
+                         hs1.SetLeftDomPoint(false);
+                         result += hs1;
+                         edgeno++;
+                      }
+                      break;
+                    }
+                    default : assert(false);
+                  } // switch member->getOwner
+                  break;
+                } // case difference
+                default : assert(false);
+              } // end of switch
+              sss.remove(*member);
+              MysplitNeighbours(sss,leftN,rightN,q1,q2);
+          } // current found in sss
+        } // right endpoint
+  }
+
+    if(result.Size() > 0 && result.Size() < 6){////its not a region
+        result.Clear();
+        result.EndBulkLoad(false, false, false, false);
+    }
+    else{
+        result.EndBulkLoad();
+
+    ////////////////////////////////
+/*        Region* reg = new Region(0);
+        reg->StartBulkLoad();
+        int edgeno = 0;
+        for(int i = 0;i < result.Size();i++){
+          HalfSegment hs1;
+          result.Get(i, hs1);
+          if(!hs1.IsLeftDomPoint()) continue;
+          HalfSegment hs2(hs1);
+          Point lp = hs1.GetLeftPoint();
+          Point rp = hs1.GetRightPoint();
+          ModifyPoint(lp);
+          ModifyPoint(rp);
+          hs2.Set(true, lp, rp);
+          hs2.attr.edgeno = edgeno++;
+          *reg += hs2;
+          hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+          *reg += hs2;
+        }
+        reg->SetNoComponents(result.NoComponents());
+        reg->EndBulkLoad();
+        result.Clear();
+        result = *reg;
+        delete reg; */
+    ///////////////////////////////
+    }
+
+} // setOP region x region -> region
+
+
+/*
+The first region intersects the seccond region and store the result as the third
+
+*/
+template< template<typename T1> class Array1,
+          template<typename T2> class Array2,
+          template<typename T3> class Array3>
+void MyIntersection(const RegionT<Array1>& reg1, 
+                    const RegionT<Array2>& reg2, 
+                    RegionT<Array3>& result)
+{
+  MySetOp(reg1,reg2,result,myavlseg::intersection_op);
+}
+
 
 
 #endif

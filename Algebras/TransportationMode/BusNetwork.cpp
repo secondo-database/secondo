@@ -2910,7 +2910,7 @@ void BusRoute::CalculateUpandDown( SimpleLine* sl1, SimpleLine* sl2, bool sm)
       point_list.push_back(seq_halfseg2[index3].to);
     }
   }
-    vector<Region> regs;
+    vector<MMRegion> regs;
     sp->ComputeRegion(point_list,regs);
     assert(regs.size() == 1);
     delete sp; 
