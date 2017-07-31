@@ -46,7 +46,8 @@ the defined flag is set to false;
 
 */
 template<template<typename T> class Array>
-SimpleLineT<Array>::SimpleLineT(const LineT<Array>& src):
+template<template<typename T2> class Array2>
+SimpleLineT<Array>::SimpleLineT(const LineT<Array2>& src):
      StandardSpatialAttribute<2>(src.IsDefined()), segments(0),lrsArray(0),
      startSmaller(true), isCycle(false),isOrdered(true),length(0.0),
      bbox(false),currentHS(-1)
@@ -223,7 +224,8 @@ bool SimpleLineT<Array>::Contains( const Point& p,
 }
 
 template<template<typename T> class Array>
-bool SimpleLineT<Array>::Inside(const SimpleLineT<Array> & l, 
+template<template<typename T2> class Array2>
+bool SimpleLineT<Array>::Inside(const SimpleLineT<Array2> & l, 
                                 const Geoid* geoid) const
 {
   assert( IsDefined() );
@@ -263,7 +265,8 @@ bool SimpleLineT<Array>::Inside(const SimpleLineT<Array> & l,
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Intersection(const Point& p, PointsT<Array>& result,
+template<template<typename T2> class Array2>
+void SimpleLineT<Array>::Intersection(const Point& p, PointsT<Array2>& result,
                               const Geoid* geoid/*=0*/)const {
   result.Clear();
   if(!IsDefined() || !p.IsDefined() || (geoid&& !geoid->IsDefined()) ){
@@ -277,8 +280,10 @@ void SimpleLineT<Array>::Intersection(const Point& p, PointsT<Array>& result,
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Intersection(const PointsT<Array>& ps, 
-                                      PointsT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T2> class Array3>
+void SimpleLineT<Array>::Intersection(const PointsT<Array2>& ps, 
+                                      PointsT<Array3>& result,
                                       const Geoid* geoid/*=0*/) const{
   // naive implementation, should be changed to be faster
   result.Clear();
@@ -298,30 +303,37 @@ void SimpleLineT<Array>::Intersection(const PointsT<Array>& ps,
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Intersection( const LineT<Array>& l, 
-                               SimpleLineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SimpleLineT<Array>::Intersection( const LineT<Array2>& l, 
+                               SimpleLineT<Array3>& result,
                                const Geoid* geoid/*=0*/ ) const
 {
   SetOp(*this,l,result,avlseg::intersection_op, geoid);
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Intersection( const SimpleLineT<Array>& l, 
-                                       SimpleLineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SimpleLineT<Array>::Intersection( const SimpleLineT<Array2>& l, 
+                                       SimpleLineT<Array3>& result,
                                const Geoid* geoid/*=0*/ ) const
 {
   SetOp(*this,l,result,avlseg::intersection_op, geoid);
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Intersection(const RegionT<Array>& r, 
-                                      SimpleLineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SimpleLineT<Array>::Intersection(const RegionT<Array2>& r, 
+                                      SimpleLineT<Array3>& result,
                                       const Geoid* geoid/*=0*/) const{
   r.Intersection(*this,result,geoid);
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Minus(const Point& p, SimpleLineT<Array>& result,
+template<template<typename T2> class Array2>
+void SimpleLineT<Array>::Minus(const Point& p, SimpleLineT<Array2>& result,
                        const Geoid* geoid/*=0*/) const {
   result.Clear();
   if(!IsDefined() || !p.IsDefined()){
@@ -332,8 +344,10 @@ void SimpleLineT<Array>::Minus(const Point& p, SimpleLineT<Array>& result,
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Minus(const PointsT<Array>& ps, 
-                               SimpleLineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SimpleLineT<Array>::Minus(const PointsT<Array2>& ps, 
+                               SimpleLineT<Array3>& result,
                        const Geoid* geoid/*=0*/) const {
  result.Clear();
  if(!IsDefined() || !ps.IsDefined() || (geoid&& !geoid->IsDefined()) ){
@@ -344,29 +358,36 @@ void SimpleLineT<Array>::Minus(const PointsT<Array>& ps,
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Minus(const LineT<Array>& line, 
-                               SimpleLineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SimpleLineT<Array>::Minus(const LineT<Array2>& line, 
+                               SimpleLineT<Array3>& result,
                        const Geoid* geoid/*=0*/) const{
   SetOp(*this,line,result,avlseg::difference_op,geoid);
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Minus(const RegionT<Array>& region, 
-                               SimpleLineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SimpleLineT<Array>::Minus(const RegionT<Array2>& region, 
+                               SimpleLineT<Array3>& result,
                        const Geoid* geoid/*=0*/) const{
   SetOp(*this,region, result,avlseg::difference_op,geoid);
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Minus(const SimpleLineT<Array>& line, 
-                               SimpleLineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SimpleLineT<Array>::Minus(const SimpleLineT<Array2>& line, 
+                               SimpleLineT<Array3>& result,
                        const Geoid* geoid/*=0*/) const{
   SetOp(*this,line,result,avlseg::difference_op,geoid);
 }
 
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Union(const Point& p, SimpleLineT<Array>& result,
+template<template<typename T2> class Array2>
+void SimpleLineT<Array>::Union(const Point& p, SimpleLineT<Array2>& result,
                        const Geoid* geoid/*=0*/) const{
   result.Clear();
   if(!IsDefined() || !p.IsDefined() || (geoid&& !geoid->IsDefined()) ){
@@ -378,8 +399,10 @@ void SimpleLineT<Array>::Union(const Point& p, SimpleLineT<Array>& result,
 
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Union(const PointsT<Array>& ps, 
-                               SimpleLineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SimpleLineT<Array>::Union(const PointsT<Array2>& ps, 
+                               SimpleLineT<Array3>& result,
                        const Geoid* geoid/*=0*/) const{
   result.Clear();
   if(!IsDefined() || !ps.IsDefined() || (geoid&& !geoid->IsDefined())){
@@ -390,21 +413,27 @@ void SimpleLineT<Array>::Union(const PointsT<Array>& ps,
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Union(const LineT<Array>& line, LineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SimpleLineT<Array>::Union(const LineT<Array2>& line, LineT<Array3>& result,
                        const Geoid* geoid/*=0*/) const{
   SetOp(*this, line, result, avlseg::union_op,geoid);
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Union(const RegionT<Array>& region,
-                               RegionT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SimpleLineT<Array>::Union(const RegionT<Array2>& region,
+                               RegionT<Array3>& result,
                        const Geoid* geoid/*=0*/) const{
   region.Union(*this,result,geoid);
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Union(const SimpleLineT<Array>& line,
-                               LineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SimpleLineT<Array>::Union(const SimpleLineT<Array2>& line,
+                               LineT<Array3>& result,
                        const Geoid* geoid/*=0*/) const{
   SetOp(*this, line, result, avlseg::union_op,geoid);
 }
@@ -431,7 +460,8 @@ double SimpleLineT<Array>::Distance(const Point& p,
 
 
 template<template<typename T> class Array>
-double SimpleLineT<Array>::Distance(const PointsT<Array>& ps, 
+template<template<typename T2> class Array2>
+double SimpleLineT<Array>::Distance(const PointsT<Array2>& ps, 
                                     const Geoid* geoid /* =0 */)const{
   assert( !IsEmpty() );
   assert( !ps.IsEmpty() );
@@ -455,7 +485,8 @@ double SimpleLineT<Array>::Distance(const PointsT<Array>& ps,
 }
 
 template<template<typename T> class Array>
-double SimpleLineT<Array>::Distance(const SimpleLineT<Array>& sl,
+template<template<typename T2> class Array2>
+double SimpleLineT<Array>::Distance(const SimpleLineT<Array2>& sl,
                             const Geoid* geoid /* =0 */ )const{
   assert( !IsEmpty() );
   assert( !sl.IsEmpty() );
@@ -532,6 +563,7 @@ bool SimpleLineT<Array>::AtPosition( double pos,
     return false;
   }
   LRS lrs2;
+
   lrsArray.Get( lrsPos, lrs2 );
   HalfSegment hs;
   segments.Get( lrs2.hsPos, &hs );
@@ -545,6 +577,7 @@ bool SimpleLineT<Array>::AtPosition( double pos,
                              bool startsSmaller,
                              Point& p,
                              const Geoid* geoid /* = 0 */) const {
+
   if (IsDefined() && 0.0 <= pos && pos <= length){
     if(startSmaller == startsSmaller)
       return AtPosition(pos, p, geoid);
@@ -640,8 +673,9 @@ bool SimpleLineT<Array>::AtPoint( const Point& p,
 
 
 template<template<typename T> class Array>
+template<template<typename T2> class Array2>
 void SimpleLineT<Array>::SubLine( double pos1, double pos2, 
-                                  SimpleLineT<Array>& l ) const {
+                                  SimpleLineT<Array2>& l ) const {
   l.Clear();
   if( !IsDefined() ){
     l.SetDefined( false );
@@ -728,8 +762,9 @@ void SimpleLineT<Array>::SubLine( double pos1, double pos2,
 
 
 template<template<typename T> class Array>
+template<template<typename T2> class Array2>
 void SimpleLineT<Array>::SubLine( double pos1, double pos2,
-                         bool startsSmaller, SimpleLineT<Array> & l ) const {
+                         bool startsSmaller, SimpleLineT<Array2> & l ) const {
   l.Clear();
   if( !IsDefined() ){
     l.SetDefined( false );
@@ -817,8 +852,10 @@ void SimpleLineT<Array>::SubLine( double pos1, double pos2,
 
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::Crossings( const SimpleLineT<Array>& l, 
-                            PointsT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SimpleLineT<Array>::Crossings( const SimpleLineT<Array2>& l, 
+                            PointsT<Array3>& result,
                             const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
@@ -851,7 +888,8 @@ void SimpleLineT<Array>::Crossings( const SimpleLineT<Array>& l,
 
 
 template<template<typename T> class Array>
-bool SimpleLineT<Array>::Intersects(const SimpleLineT<Array> & l,
+template<template<typename T2> class Array2>
+bool SimpleLineT<Array>::Intersects(const SimpleLineT<Array2> & l,
                             const Geoid* geoid /*=0*/ ) const{
   assert( IsDefined() );
   assert( l.IsDefined() );
@@ -972,13 +1010,15 @@ bool SimpleLineT<Array>::getWaypoint( Point &destination ) const{
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::fromLine(const LineT<Array>& src)
+template<template<typename T2> class Array2>
+void SimpleLineT<Array>::fromLine(const LineT<Array2>& src)
 {
   fromLine(src,true);
 }
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::fromLine(const LineT<Array>& src, const bool smaller)
+template<template<typename T2> class Array2>
+void SimpleLineT<Array>::fromLine(const LineT<Array2>& src, const bool smaller)
 {
   Clear(); // remove all old segments
   if(!src.IsDefined()){
@@ -1008,7 +1048,8 @@ void SimpleLineT<Array>::fromLine(const LineT<Array>& src, const bool smaller)
 
 
 template<template<typename T> class Array>
-void SimpleLineT<Array>::toLine(LineT<Array>& result)const{
+template<template<typename T2> class Array2>
+void SimpleLineT<Array>::toLine(LineT<Array2>& result)const{
   result.Clear();
   if(!IsDefined()){
     result.SetDefined(false);
@@ -1193,6 +1234,13 @@ template<template<typename T> class Array>
 int SimpleLineT<Array>::Compare(const Attribute* arg)const{
   const SimpleLineT<Array> * line =  
                  static_cast<const SimpleLineT<Array> *>(arg);
+  return Compare(line);
+}
+
+
+template<template<typename T> class Array>
+template<template<typename T2> class Array2>
+int SimpleLineT<Array>::Compare(const SimpleLineT<Array2>* line)const{
   if(!IsDefined() && !line->IsDefined()){
      return true;
   }
@@ -1309,8 +1357,3 @@ std::ostream& operator<<(std::ostream& o, const SimpleLineT<Array>& cl){
 }
 
 
-  /*
-
-template class SimpleLineT<DbArray>;
-template class SimpleLineT<MMDbArray >;
-  */

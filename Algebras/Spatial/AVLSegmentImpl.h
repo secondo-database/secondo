@@ -253,10 +253,11 @@ avlseg::ownertype selectNext(const T1& v1,
 
 
 
-template<template<typename T> class Array>
-avlseg::ownertype selectNext(const RegionT<Array>& reg1,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2>
+avlseg::ownertype selectNext(const RegionT<Array1>& reg1,
                      int& pos1,
-                     const RegionT<Array>& reg2,
+                     const RegionT<Array2>& reg2,
                      int& pos2,
                      std::priority_queue<avlseg::ExtendedHalfSegment,
                                 std::vector<avlseg::ExtendedHalfSegment>,
@@ -267,25 +268,9 @@ avlseg::ownertype selectNext(const RegionT<Array>& reg1,
                      avlseg::ExtendedHalfSegment& result,
                      int& src // for debugging only
                     ){
-   return selectNext<RegionT<Array>,RegionT<Array> >(reg1,pos1,reg2,pos2,q1,
+   return selectNext<RegionT<Array1>,RegionT<Array2> >(reg1,pos1,reg2,pos2,q1,
                                                      q2,result,src);
 }
-
-
-template
-avlseg::ownertype selectNext<DbArray>(const RegionT<DbArray>& reg1,
-                     int& pos1,
-                     const RegionT<DbArray>& reg2,
-                     int& pos2,
-                     std::priority_queue<avlseg::ExtendedHalfSegment,
-                                std::vector<avlseg::ExtendedHalfSegment>,
-                                std::greater<avlseg::ExtendedHalfSegment> >& q1,
-                     std::priority_queue<avlseg::ExtendedHalfSegment,
-                                std::vector<avlseg::ExtendedHalfSegment>,
-                                std::greater<avlseg::ExtendedHalfSegment> >& q2,
-                     avlseg::ExtendedHalfSegment& result,
-                     int& src // for debugging only
-                    );
 
 
 /*
@@ -295,10 +280,11 @@ avlseg::ownertype selectNext<DbArray>(const RegionT<DbArray>& reg1,
 Instantiation of the ~selectNext~ function.
 
 */
-template<template<typename T> class Array>
-avlseg::ownertype selectNext(const LineT<Array>& line1,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2>
+avlseg::ownertype selectNext(const LineT<Array1>& line1,
                      int& pos1,
-                     const LineT<Array>& line2,
+                     const LineT<Array2>& line2,
                      int& pos2,
                      std::priority_queue<avlseg::ExtendedHalfSegment,
                                 std::vector<avlseg::ExtendedHalfSegment>,
@@ -310,7 +296,7 @@ avlseg::ownertype selectNext(const LineT<Array>& line1,
                      int& src
                     ){
 
-   return selectNext<LineT<Array>,LineT<Array> >(line1,pos1,line2,
+   return selectNext<LineT<Array1>,LineT<Array2> >(line1,pos1,line2,
                                                  pos2,q1,q2,result, src);
 }
 
@@ -323,10 +309,11 @@ avlseg::ownertype selectNext(const LineT<Array>& line1,
 Instantiation of the ~selectNext~ function for ~line~ [x] ~region~.
 
 */
-template<template<typename T> class Array>
-avlseg::ownertype selectNext(const LineT<Array>& line,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2>
+avlseg::ownertype selectNext(const LineT<Array1>& line,
                      int& pos1,
-                     const RegionT<Array>& region,
+                     const RegionT<Array2>& region,
                      int& pos2,
                      std::priority_queue<avlseg::ExtendedHalfSegment,
                                 std::vector<avlseg::ExtendedHalfSegment>,
@@ -338,7 +325,7 @@ avlseg::ownertype selectNext(const LineT<Array>& line,
                      int& src
                     ){
 
-   return selectNext<LineT<Array>,RegionT<Array> >(line,pos1,region,pos2,
+   return selectNext<LineT<Array1>,RegionT<Array2> >(line,pos1,region,pos2,
                                                    q1,q2,result,src);
 }
 
@@ -564,8 +551,9 @@ avlseg::ownertype selectNext(const LineT<Array>& src, int& pos,
  }
 }
 
-template<template<typename T> class Array>
-void Realminize2(const LineT<Array>& src, LineT<Array>& result, 
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2>
+void Realminize2(const LineT<Array1>& src, LineT<Array2>& result, 
                  const bool forceThrow=false){
 
   result.Clear();
@@ -1066,10 +1054,12 @@ This combination can be used for all possible set operations.
 
 
 */
-template<template<typename T> class Array>
-void SetOp(const LineT<Array>& line1,
-           const LineT<Array>& line2,
-           LineT<Array>& result,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SetOp(const LineT<Array1>& line1,
+           const LineT<Array2>& line2,
+           LineT<Array3>& result,
            avlseg::SetOperation op,
            const Geoid* geoid=0,
            const bool forceThrow =false){
@@ -1229,11 +1219,12 @@ void SetOp(const LineT<Array>& line1,
   result.EndBulkLoad(true,false);
 } // setop line x line -> line
 
-template<template<typename T> class Array>
-LineT<Array>* SetOp(const LineT<Array>& line1, const LineT<Array>& line2,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2>
+LineT<Array1>* SetOp(const LineT<Array1>& line1, const LineT<Array2>& line2,
                     avlseg::SetOperation op,
                     const Geoid* geoid=0){
-  LineT<Array>* result = new LineT<Array>(1);
+  LineT<Array1>* result = new LineT<Array1>(1);
   SetOp(line1,line2,*result,op,geoid);
   return result;
 }
@@ -1244,10 +1235,12 @@ LineT<Array>* SetOp(const LineT<Array>& line1, const LineT<Array>& line2,
 9.3 ~region~ [x] ~region~ [->] ~region~
 
 */
-template<template<typename T> class Array>
-void SetOp(const RegionT<Array>& reg1,
-           const RegionT<Array>& reg2,
-           RegionT<Array>& result,
+template<template<typename T1> class Array1, 
+         template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SetOp(const RegionT<Array1>& reg1,
+           const RegionT<Array2>& reg2,
+           RegionT<Array3>& result,
            avlseg::SetOperation op,
            const Geoid* geoid=0,
            const bool forceThrow=false){
@@ -1706,10 +1699,12 @@ This combination can only be used for the operations
 the original region value.
 
 */
-template<template<typename T> class Array>
-void SetOp(const RegionT<Array>& region,
-           const LineT<Array>& line,
-           RegionT<Array>& result,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SetOp(const RegionT<Array1>& region,
+           const LineT<Array2>& line,
+           RegionT<Array3>& result,
            avlseg::SetOperation op,
            const Geoid* geoid=0){
 
@@ -1731,10 +1726,12 @@ Here, only the ~difference~ and ~intersection~ operation are applicable.
 
 
 */
-template<template<typename T> class Array>
-void SetOp(const LineT<Array>& line,
-           const RegionT<Array>& region,
-           LineT<Array>& result,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SetOp(const LineT<Array1>& line,
+           const RegionT<Array2>& region,
+           LineT<Array3>& result,
            avlseg::SetOperation op,
            const Geoid* geoid=0,
            const bool forceThrow =false){
@@ -1936,10 +1933,12 @@ line x sline -> sline
 Here is only ~intersection~ applicable.
 
 */
-template<template<typename T> class Array>
-void SetOp(const LineT<Array>& line1, 
-           const SimpleLineT<Array>& line2, 
-           SimpleLineT<Array>& result,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SetOp(const LineT<Array1>& line1, 
+           const SimpleLineT<Array2>& line2, 
+           SimpleLineT<Array3>& result,
            avlseg::SetOperation op, const Geoid* geoid =0,
            const bool forceThrow=false){
   result.Clear();
@@ -2061,10 +2060,12 @@ line x sline -> line
 applicable for difference  and union
 
 */
-template<template<typename T> class Array>
-void SetOp(const LineT<Array>& line1, 
-           const SimpleLineT<Array>& line2, 
-           LineT<Array>& result,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SetOp(const LineT<Array1>& line1, 
+           const SimpleLineT<Array2>& line2, 
+           LineT<Array3>& result,
            avlseg::SetOperation op, const Geoid* geoid =0,
            const bool forceThrow=false){
   result.Clear();
@@ -2215,9 +2216,11 @@ sline x line -> sline
 applicable for intersection and difference
 
 */
-template<template<typename T> class Array>
-void SetOp(const SimpleLineT<Array>& line1, const LineT<Array>& line2,
-           SimpleLineT<Array>& result,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SetOp(const SimpleLineT<Array1>& line1, const LineT<Array2>& line2,
+           SimpleLineT<Array3>& result,
            avlseg::SetOperation op, const Geoid* geoid =0,
             const bool forceThrow=false){
   result.Clear();
@@ -2375,9 +2378,11 @@ for union only
 */
 
 
-template<template<typename T> class Array>
-void SetOp(const SimpleLineT<Array>& line1, 
-           const LineT<Array>& line2, LineT<Array>& result,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SetOp(const SimpleLineT<Array1>& line1, 
+           const LineT<Array2>& line2, LineT<Array3>& result,
            avlseg::SetOperation op, const Geoid* geoid=0,
            const bool forceThrow=false)
 {
@@ -2502,10 +2507,12 @@ sline x sline -> sline
 for ~intersection~ and ~minus~
 
 */
-template<template<typename T> class Array>
-void SetOp(const SimpleLineT<Array>& line1, 
-           const SimpleLineT<Array>& line2, 
-           SimpleLineT<Array>& result,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SetOp(const SimpleLineT<Array1>& line1, 
+           const SimpleLineT<Array2>& line2, 
+           SimpleLineT<Array3>& result,
            avlseg::SetOperation op, const Geoid* geoid =0,
            const bool forceThrow=false)
 {
@@ -2661,10 +2668,12 @@ sline x sline -> line
 for union only
 
 */
-template<template<typename T> class Array>
-void SetOp(const SimpleLineT<Array>& line1, 
-           const SimpleLineT<Array>& line2, 
-           LineT<Array>& result,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SetOp(const SimpleLineT<Array1>& line1, 
+           const SimpleLineT<Array2>& line2, 
+           LineT<Array3>& result,
            avlseg::SetOperation op, const Geoid* geoid =0,
            const bool forceThrow=false){
   result.Clear();
@@ -2791,10 +2800,12 @@ region x sline -> region
 for union and difference the result is always the given region.
 
 */
-template<template<typename T> class Array>
-void SetOp(const RegionT<Array>& region, 
-           const SimpleLineT<Array>& line, 
-           RegionT<Array>& result,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SetOp(const RegionT<Array1>& region, 
+           const SimpleLineT<Array2>& line, 
+           RegionT<Array3>& result,
            avlseg::SetOperation op, const Geoid* geoid =0){
   assert(op == avlseg::union_op || op == avlseg::difference_op);
   result.Clear();
@@ -2813,9 +2824,11 @@ sline x region -> sline
 for intersection and difference only.
 
 */
-template<template<typename T> class Array>
-void SetOp(const SimpleLineT<Array>& line, 
-           const RegionT<Array>& region, SimpleLineT<Array>& result,
+template<template<typename T1> class Array1,
+         template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void SetOp(const SimpleLineT<Array1>& line, 
+           const RegionT<Array2>& region, SimpleLineT<Array3>& result,
            avlseg::SetOperation op, const Geoid* geoid =0,
            const bool forceThrow = false){
   assert(op==avlseg::intersection_op || op == avlseg::difference_op);

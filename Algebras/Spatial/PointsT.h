@@ -39,6 +39,33 @@ template<template<typename T> class ArrayT> class LineT;
 template<template<typename T> class ArrayT> class RegionT;
 template<template<typename T> class ArrayT> class SimpleLineT;
 
+/* 
+auxiliary functions 
+
+*/
+
+int PointCompare( const void *a, const void *b );
+int PointCompareAlmost( const void *a, const void *b );
+enum object {none, first, second, both};
+enum status {endnone, endfirst, endsecond, endboth};
+
+template<template<typename T1>class Array1,
+         template<typename T2>class Array2>
+void SelectFirst_pp( const PointsT<Array1>& P1, 
+                     const PointsT<Array2>& P2,
+                     object& obj, status& stat );
+
+template<template<typename T1>class Array1,
+         template<typename T2>class Array2>
+void SelectNext_pp( const PointsT<Array1>& P1, 
+                    const PointsT<Array2>& P2,
+                    object& obj, status& stat );
+
+/*
+1 The class PointsT
+
+*/
+
 template<template<typename T> class ArrayT>
 class PointsT: public StandardSpatialAttribute<2>
 {
@@ -60,8 +87,11 @@ The first one constructs an empty point set but open space for ~initsize~
 points.
 
 */
-    //template<template<typename T2> class ArrayT2>
-    PointsT( const PointsT<ArrayT>& ps);
+    PointsT( const PointsT& ps);
+
+    template< template<typename T2> class Array2>
+    PointsT(const PointsT<Array2>&);
+
 /*
 The second one receives another point set ~ps~ as argument and constructs 
 a point set which is a copy of ~ps~.
@@ -159,7 +189,10 @@ Retrieves the point ~p~ at position ~i~ in the point set.
 *Precondition:* $0 \leq i < Size()$
 
 */
-    PointsT<ArrayT>& operator=( const PointsT<ArrayT>& ps );
+    PointsT<ArrayT>& operator=( const PointsT& ps );
+    
+    template<template<typename T2> class Array2>
+    PointsT<ArrayT>& operator=( const PointsT<Array2>& ps );
 /*
 Assignement operator redefinition.
 
@@ -172,7 +205,8 @@ return ~true~ if found and ~false~ if not.
 *Precondition:* ~this.IsOrdered() $\&\&$ p.IsDefined()~
 
 */
-    bool Contains( const PointsT<ArrayT>& ps, const Geoid* geoid=0 ) const;
+    template<template<typename T2> class Array2>
+    bool Contains( const PointsT<Array2>& ps, const Geoid* geoid=0 ) const;
 /*
 Returns ~true~ if this point set contains the ~ps~ point set and
 ~false~ otherwise.
@@ -254,7 +288,8 @@ otherwise, where ~n~ is the size of ~U~ and ~m~ is the size of ~V~.
 *Complexity:* $O(n+m)$, where ~n~ is the size of ~U~ and m the size of ~V~.
 
 */
-  bool Inside( const PointsT<ArrayT>& ps, const Geoid* geoid=0 ) const;
+  template<template<typename T2> class Array2>
+  bool Inside( const PointsT<Array2>& ps, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~inside~ (with ~line~)
 
@@ -265,7 +300,8 @@ otherwise, where ~n~ is the size of ~U~ and ~m~ is the size of ~V~.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-  bool Inside( const LineT<ArrayT>& l, const Geoid* geoid=0 ) const;
+  template<template<typename T2> class Array2>
+  bool Inside( const LineT<Array2>& l, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~inside~ (with ~region~)
 
@@ -277,7 +313,8 @@ otherwise, where ~n~ is the size of ~U~ and ~m~ is the size of ~V~.
 size of ~V~.
 
 */
-    bool Inside( const RegionT<ArrayT>& r, const Geoid* geoid=0 ) const;
+    template<template<typename T2> class Array2>
+    bool Inside( const RegionT<Array2>& r, const Geoid* geoid=0 ) const;
 /*
 5.4.7 Operation ~intersects~ (with ~points~)
 
@@ -288,7 +325,8 @@ size of ~V~.
 *Complexity:* $O(m+n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Intersects( const PointsT<ArrayT>& ps, const Geoid* geoid=0 ) const;
+    template<template<typename T2> class Array2>
+    bool Intersects( const PointsT<Array2>& ps, const Geoid* geoid=0 ) const;
 /*
 5.4.7 Operation ~intersects~ (with ~line~)
 
@@ -300,7 +338,8 @@ size of ~V~.
 the size of ~V~.
 
 */
-    bool Intersects( const LineT<ArrayT>& l, const Geoid* geoid=0 ) const;
+    template<template<typename T2> class Array2>
+    bool Intersects( const LineT<Array2>& l, const Geoid* geoid=0 ) const;
 /*
 5.4.7 Operation ~intersects~ (with ~region~)
 
@@ -312,7 +351,8 @@ the size of ~V~.
 of ~V~.
 
 */
-    bool Intersects( const RegionT<ArrayT>& r, const Geoid* geoid=0 ) const;
+    template<template<typename T2> class Array2>
+    bool Intersects( const RegionT<Array2>& r, const Geoid* geoid=0 ) const;
 /*
 5.4.7 Operation ~adjacent~ (with ~region~)
 
@@ -324,35 +364,61 @@ of ~V~.
 *Complexity:* $O(n.m)$, where ~n~ is the size of ~U~ and m the size of ~V~.
 
 */
-  bool Adjacent( const RegionT<ArrayT>& r, const Geoid* geoid=0 ) const;
+  template<template<typename T2> class Array2>
+  bool Adjacent( const RegionT<Array2>& r, const Geoid* geoid=0 ) const;
 /*
 5.4.8 Operation ~intersection~
 
 */
-  void Intersection(const Point& p, PointsT<ArrayT>& result,
+  template<template<typename T2> class Array2>
+  void Intersection(const Point& p, PointsT<Array2>& result,
                     const Geoid* geoid=0) const;
-  void Intersection( const PointsT<ArrayT>& ps, PointsT<ArrayT>& result,
+
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Intersection( const PointsT<Array2>& ps, PointsT<Array3>& result,
                      const Geoid* geoid=0 ) const;
-  void Intersection( const LineT<ArrayT>& l, PointsT<ArrayT>& result,
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Intersection( const LineT<Array2>& l, PointsT<Array3>& result,
                      const Geoid* geoid=0 ) const;
-  void Intersection( const RegionT<ArrayT>& r, PointsT<ArrayT>& result ,
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Intersection( const RegionT<Array2>& r, PointsT<Array3>& result ,
                      const Geoid* geoid=0) const;
-  void Intersection(const SimpleLineT<ArrayT>&l, PointsT<ArrayT>& result,
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Intersection(const SimpleLineT<Array2>&l, PointsT<Array3>& result,
                     const Geoid* geoid=0) const;
 
 /*
 5.4.8 Operation ~minus~
 
 */
-  void Minus( const Point& p, PointsT<ArrayT>& result, 
+  
+  template<template<typename T2> class Array2>
+  void Minus( const Point& p, PointsT<Array2>& result, 
               const Geoid* geoid=0 ) const;
-  void Minus( const PointsT<ArrayT>& ps, PointsT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Minus( const PointsT<Array2>& ps, PointsT<Array3>& result, 
               const Geoid* geoid=0 ) const;
-  void Minus( const LineT<ArrayT>& l, PointsT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Minus( const LineT<Array2>& l, PointsT<Array3>& result, 
               const Geoid* geoid=0 ) const;
-  void Minus( const RegionT<ArrayT>& r, PointsT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Minus( const RegionT<Array2>& r, PointsT<Array3>& result, 
               const Geoid* geoid=0 ) const;
-  void Minus( const SimpleLineT<ArrayT>& l, PointsT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Minus( const SimpleLineT<Array2>& l, PointsT<Array3>& result, 
               const Geoid* geoid=0 ) const;
 
 
@@ -360,20 +426,33 @@ of ~V~.
 5.4.9 Operation ~union~
 
 */
-  void Union(const Point& p, PointsT<ArrayT>& result, 
+  template<template<typename T2> class Array2>
+  void Union(const Point& p, PointsT<Array2>& result, 
              const Geoid* geoid=0 ) const;
-  void Union(const PointsT<ArrayT>& ps, PointsT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Union(const PointsT<Array2>& ps, PointsT<Array3>& result, 
              const Geoid* geoid=0 ) const;
-  void Union(const LineT<ArrayT>& line, LineT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Union(const LineT<Array2>& line, LineT<Array3>& result, 
              const Geoid* geoid=0 ) const;
-  void Union(const RegionT<ArrayT>& region, RegionT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Union(const RegionT<Array2>& region, RegionT<Array3>& result, 
              const Geoid* geoid=0 ) const;
-  void Union(const SimpleLineT<ArrayT>& line, SimpleLineT<ArrayT>& result,
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Union(const SimpleLineT<Array2>& line, SimpleLineT<Array3>& result,
              const Geoid* geoid=0 ) const;
 
 
 
-    double Distance( const Point& p, const Geoid* geoid=0 ) const;
+  double Distance( const Point& p, const Geoid* geoid=0 ) const;
 /*
 5.4.9 Operation ~distance~ (with ~points~)
 
@@ -384,7 +463,8 @@ of ~V~.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~
 
 */
-    double Distance( const PointsT<ArrayT>& ps, const Geoid* geoid=0 ) const;
+  template<template<typename T2> class Array2>
+  double Distance( const PointsT<Array2>& ps, const Geoid* geoid=0 ) const;
 /*
 5.4.9 Operation ~distance~ (with ~rect2~)
 
@@ -409,7 +489,8 @@ of ~V~.
 *Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
 */
-  void Translate( const Coord& x, const Coord& y, PointsT<ArrayT>& ps ) const;
+  template<template<typename T2> class Array2>
+  void Translate( const Coord& x, const Coord& y, PointsT<Array2>& ps ) const;
 
 
 /*
@@ -420,8 +501,9 @@ angle ~alpha~.
 
 */
 
+  template<template<typename T2> class Array2>
   void Rotate( const Coord& x, const Coord& y, double alpha,
-               PointsT<ArrayT>& res ) const;
+               PointsT<Array2>& res ) const;
 
 /*
 4.3.15 Operation ~scale~
@@ -430,7 +512,8 @@ Performes a scale transformation.
 
 */
 
-  void Scale( const Coord& x, const Coord& y, PointsT<ArrayT>& res ) const;
+  template<template<typename T2> class Array2>
+  void Scale( const Coord& x, const Coord& y, PointsT<Array2>& res ) const;
 
 /*
 4.3.16 Operation ~center~
@@ -486,8 +569,16 @@ definition as an attribute.
     size_t HashValue() const;
     void CopyFrom( const Attribute* right );
     int Compare( const Attribute *arg ) const;
+
+    template<template<typename T2> class Array2>
+    int Compare( const PointsT<Array2>* ) const;
+
     int CompareAlmost( const Attribute *arg ) const;
+    template<template<typename T2> class Array2>
+    int CompareAlmost( const PointsT<Array2>* ) const;
+
     bool Adjacent( const Attribute *arg ) const;
+
     virtual PointsT<ArrayT>* Clone() const;
     std::ostream& Print( std::ostream &os ) const;
 
@@ -634,10 +725,6 @@ pos pointer
 */
 };
 
-int PointCompare( const void *a, const void *b );
-int PointCompareAlmost( const void *a, const void *b );
-enum object {none, first, second, both};
-enum status {endnone, endfirst, endsecond, endboth};
 
 
 /*
@@ -661,10 +748,23 @@ bool PointsT<ArrayT>::Find( const Point& p, int& pos, const bool& exact ) const
 }
 
 template<template<typename T>class ArrayT>
-PointsT<ArrayT>& PointsT<ArrayT>::operator=( const PointsT<ArrayT>& ps )
+PointsT<ArrayT>& PointsT<ArrayT>::operator=( const PointsT& ps )
 {
   assert( ps.IsOrdered() );
   points.copyFrom(ps.points);
+  bbox = ps.BoundingBox();
+  ordered = true;
+  SetDefined(ps.IsDefined());
+  return *this;
+}
+
+
+template<template<typename T>class ArrayT>
+template<template<typename T2>class ArrayT2>
+PointsT<ArrayT>& PointsT<ArrayT>::operator=( const PointsT<ArrayT2>& ps )
+{
+  assert( ps.IsOrdered() );
+  convertDbArrays(ps.points,points);
   bbox = ps.BoundingBox();
   ordered = true;
   SetDefined(ps.IsDefined());
@@ -871,15 +971,5 @@ PointsT<ArrayT>& PointsT<ArrayT>::operator-=( const Point& p )
   }
   return *this;
 }
-
-template<template<typename T>class ArrayT>
-void SelectFirst_pp( const PointsT<ArrayT>& P1, 
-                     const PointsT<ArrayT>& P2,
-                     object& obj, status& stat );
-
-template<template<typename T>class ArrayT>
-void SelectNext_pp( const PointsT<ArrayT>& P1, 
-                    const PointsT<ArrayT>& P2,
-                    object& obj, status& stat );
 
 #endif

@@ -65,7 +65,11 @@ class LineT: public StandardSpatialAttribute<2>
 Constructs an empty line allocating space for ~n~ half segments.
 
 */
-    LineT( const LineT<ArrayT>& cl );
+    LineT( const LineT& cl );
+    
+    template<template<typename T2> class Array2>
+    LineT(const LineT<Array2>& cl);
+
 /*
 The copy constructor.
 
@@ -217,7 +221,10 @@ amount really required.
 Writes the the half segment ~hs~ to the ith position.
 
 */
-    LineT& operator=( const LineT<ArrayT>& cl );
+    template<template<typename T2> class Array2>
+    LineT& operator=( const LineT<Array2>& cl );
+
+    LineT& operator=( const LineT& cl );
 /*
 Assignement operator redefinition.
 
@@ -286,7 +293,8 @@ This instance must must be in bulkload mode.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-  bool Intersects( const LineT<ArrayT>& l, const Geoid* geoid=0 ) const;
+  template<template<typename T2> class Array2>
+  bool Intersects( const LineT<Array2>& l, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~intersects~ (with ~region~)
 
@@ -298,7 +306,8 @@ This instance must must be in bulkload mode.
 the size of ~V~.
 
 */
-bool Intersects( const RegionT<ArrayT>& r, const Geoid* geoid=0 ) const;
+template<template<typename T2> class Array2>
+bool Intersects( const RegionT<Array2>& r, const Geoid* geoid=0 ) const;
 
 
 
@@ -312,7 +321,8 @@ bool Intersects( const RegionT<ArrayT>& r, const Geoid* geoid=0 ) const;
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Inside( const LineT<ArrayT>& l, const Geoid* geoid=0 ) const;
+    template<template<typename T2> class Array2>
+    bool Inside( const LineT<Array2>& l, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~inside~ (with ~region~)
 
@@ -324,7 +334,9 @@ bool Intersects( const RegionT<ArrayT>& r, const Geoid* geoid=0 ) const;
 size of ~V~.
 
 */
-    bool Inside( const RegionT<ArrayT>& r, const Geoid* geoid=0 ) const;
+
+    template<template<typename T2> class Array2>
+    bool Inside( const RegionT<Array2>& r, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~adjacent~ (with ~region~)
 
@@ -336,50 +348,92 @@ U^0 \cap V^0 = \emptyset$
 *Complexity:* $O(n.m)$, where ~n~ is the size of ~U~ and m the size of ~V~.
 
 */
-    bool Adjacent( const RegionT<ArrayT>& r, const Geoid* geoid=0 ) const;
+    template<template<typename T2> class Array2>
+    bool Adjacent( const RegionT<Array2>& r, const Geoid* geoid=0 ) const;
 
 /*
 6.4.4 Operation ~intersection~
 
 */
-  void Intersection(const Point& p, PointsT<ArrayT>& result, 
+  template<template<typename T2> class Array2>
+  void Intersection(const Point& p, PointsT<Array2>& result, 
                     const Geoid* geoid=0) const;
-  void Intersection(const PointsT<ArrayT>& ps, PointsT<ArrayT>& result,
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Intersection(const PointsT<Array2>& ps, PointsT<Array3>& result,
                     const Geoid* geoid=0) const;
-  void Intersection(const LineT<ArrayT>& l, LineT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Intersection(const LineT<Array2>& l, LineT<Array3>& result, 
                     const Geoid* geoid=0 ) const;
-  void Intersection( const RegionT<ArrayT>& l, LineT<ArrayT>& result,
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Intersection( const RegionT<Array2>& l, LineT<Array3>& result,
                      const Geoid* geoid=0 ) const;
-  void Intersection( const SimpleLineT<ArrayT>& l, SimpleLineT<ArrayT>& result,
+  
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Intersection( const SimpleLineT<Array2>& l, SimpleLineT<Array3>& result,
                      const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~minus~
 
 */
-  void Minus( const Point& l, LineT<ArrayT>& result, 
+  template<template<typename T2> class Array2>
+  void Minus( const Point& l, LineT<Array2>& result, 
               const Geoid* geoid=0 ) const;
-  void Minus( const PointsT<ArrayT>& l, LineT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Minus( const PointsT<Array2>& l, LineT<Array3>& result, 
               const Geoid* geoid=0 ) const;
-  void Minus( const LineT<ArrayT>& l, LineT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Minus( const LineT<Array2>& l, LineT<Array3>& result, 
               const Geoid* geoid=0 ) const;
-  void Minus( const RegionT<ArrayT>& l, LineT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Minus( const RegionT<Array2>& l, LineT<Array3>& result, 
               const Geoid* geoid=0 ) const;
-  void Minus( const SimpleLineT<ArrayT>& l, LineT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Minus( const SimpleLineT<Array2>& l, LineT<Array3>& result, 
               const Geoid* geoid=0 ) const;
 
 /*
 6.4.4 Operation ~union~
 
 */
-  void Union( const Point& l, LineT<ArrayT>& result, 
+  template<template<typename T2> class Array2>
+  void Union( const Point& l, LineT<Array2>& result, 
               const Geoid* geoid=0 ) const;
-  void Union( const PointsT<ArrayT>& l, LineT<ArrayT>& result, 
+
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Union( const PointsT<Array2>& l, LineT<Array3>& result, 
               const Geoid* geoid=0 ) const;
-  void Union( const LineT<ArrayT>& l, LineT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Union( const LineT<Array2>& l, LineT<Array3>& result, 
               const Geoid* geoid=0 ) const;
-  void Union( const RegionT<ArrayT>& l, RegionT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Union( const RegionT<Array2>& l, RegionT<Array3>& result, 
               const Geoid* geoid=0 ) const;
-  void Union( const SimpleLineT<ArrayT>& l, LineT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Union( const SimpleLineT<Array2>& l, LineT<Array3>& result, 
               const Geoid* geoid=0 ) const;
 
 /*
@@ -393,7 +447,10 @@ U^0 \cap V^0 = \emptyset$
 of ~V~, and ~r~ is the ~points~ result size.
 
 */
-  void Crossings( const LineT<ArrayT>& l, PointsT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Crossings( const LineT<Array2>& l, PointsT<Array3>& result, 
                   const Geoid* geoid=0 ) const;
 
 
@@ -404,7 +461,9 @@ This operation returns all internal crossing nodes, i.e. all
 points where more than 2 segments have a common endpoint.
 
 */
-  void Crossings(PointsT<ArrayT>& result, const Geoid* geoid=0) const;
+
+  template<template<typename T2> class Array2>
+  void Crossings(PointsT<Array2>& result, const Geoid* geoid=0) const;
 
 /*
 6.4.5 Operation ~distance~ (with ~point~)
@@ -428,7 +487,8 @@ points where more than 2 segments have a common endpoint.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ is the size of ~V~.
 
 */
-    double Distance( const PointsT<ArrayT>& ps, const Geoid* geoid=0 ) const;
+  template<template<typename T2> class Array2>
+  double Distance( const PointsT<Array2>& ps, const Geoid* geoid=0 ) const;
 /*
 6.4.5 Operation ~distance~ (with ~line~)
 
@@ -443,7 +503,8 @@ points where more than 2 segments have a common endpoint.
     double Distance(const LineType& l , const Geoid* geoid=0) const;
 
 
-    void DistanceSmallerThan(const LineT<ArrayT>& l,
+    template<template<typename T2> class Array2>
+    void DistanceSmallerThan(const LineT<Array2>& l,
                             const double  maxDist,
                             const bool allowEqual,
                             CcBool& result,
@@ -493,12 +554,15 @@ points where more than 2 segments have a common endpoint.
 *Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
 */
-    void Translate( const Coord& x, const Coord& y, LineT<ArrayT>& l ) const;
+    template<template<typename T2> class Array2>
+    void Translate( const Coord& x, const Coord& y, LineT<Array2>& l ) const;
 
+    template<template<typename T2> class Array2>
     void Rotate( const Coord& x, const Coord& y, double alpha,
-                    LineT<ArrayT>& l ) const;
+                    LineT<Array2>& l ) const;
     
-    void Scale( const Coord& x, const Coord& y, LineT<ArrayT>& l ) const;
+    template<template<typename T2> class Array2>
+    void Scale( const Coord& x, const Coord& y, LineT<Array2>& l ) const;
 
 /*
 4.3.14 Operation ~transform~
@@ -510,7 +574,8 @@ points where more than 2 segments have a common endpoint.
 *Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
 */
-    void Transform( RegionT<ArrayT>& r ) const;
+    template<template<typename T2> class Array2>
+    void Transform( RegionT<Array2>& r ) const;
 
 /*
 6.4.6 ~Simplify~
@@ -528,8 +593,10 @@ created. We remove them in a final step.
 
 
 */  
-    void Simplify(LineT<ArrayT>& result, const double epsilon,
-                  const PointsT<ArrayT>& importantPoint,
+    template<template<typename T2> class Array2,
+             template<typename T3> class Array3>
+    void Simplify(LineT<Array2>& result, const double epsilon,
+                  const PointsT<Array3>& importantPoint,
                   const Geoid* geoid=0 ) const;
 
 
@@ -555,7 +622,8 @@ many parts in the result.
 *Complexity:* $O(m)$, where ~m~ is the size of ~U~.
 
 */ 
-    void Vertices( PointsT<ArrayT>* result ) const;
+    template<template<typename T2> class Array2>
+    void Vertices( PointsT<Array2>* result ) const;
 
 /*
 6.4.6 Operation ~boundary~
@@ -567,7 +635,8 @@ many parts in the result.
 *Complexity:* $O(m)$, where ~m~ is the size of ~U~.
 
 */
-    void Boundary( PointsT<ArrayT>* result ) const;
+    template<template<typename T2> class Array2>
+    void Boundary( PointsT<Array2>* result ) const;
 
 /*
 4.4 Object Traversal Functions
@@ -611,8 +680,9 @@ part inside the window. If the intersection part is a point, then
 it is not considered in the result.
 
 */
+    template<template<typename T2> class Array2>
     void WindowClippingIn( const Rectangle<2> &window,
-                           LineT<ArrayT> &clippedLine,
+                           LineT<Array2> &clippedLine,
                            bool &inside ) const;
 /*
 6.7.2 WindowClippingOut
@@ -623,8 +693,9 @@ the segment that is outside of the window. If the intersection part is
 a point, then it is not considered in the result.
 
 */
+    template<template<typename T2> class Array2>
     void WindowClippingOut( const Rectangle<2> &window,
-                            LineT<ArrayT> &clippedLine,
+                            LineT<Array2> &clippedLine,
                             bool &outside ) const;
 /*
 6.8 Functions needed to import the the ~line~ data type to tuple
@@ -656,9 +727,18 @@ definition as an attribute.
 
     size_t HashValue() const;
     void CopyFrom( const Attribute* right );
+
+    template<template<typename T2> class Array2>
+    void CopyFrom( const LineT<Array2>* right );
+
+    
     int Compare( const Attribute *arg ) const;
-//     int CompareAlmost( const Attribute *arg ) const;
+    
+    template<template<typename T2> class Array2>
+    int Compare( const LineT<Array2>& l ) const;
+
     virtual LineT<ArrayT> *Clone() const;
+
     std::ostream& Print( std::ostream &os ) const;
     void Clear();
 
@@ -746,6 +826,7 @@ definition as an attribute.
    static const std::string BasicType(){
       return "line";
    }
+
    static const bool checkType(const ListExpr type){
      return listutils::isSymbol(type, BasicType());
    }
@@ -808,6 +889,7 @@ segment partnerno points to the position to the left one.
     void computeComponents();
 
     void collectFace(int faceno, int startPos, ArrayT<bool>& used);
+
     int getUnusedExtension(int startPos, const ArrayT<bool>& used) const;
 
 /*

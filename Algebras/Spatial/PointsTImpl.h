@@ -153,7 +153,8 @@ bool PointsT<Array>::Contains( const Point& p, const Geoid* geoid /*=0*/ ) const
 }
 
 template<template<typename T>class Array>
-bool PointsT<Array>::Contains( const PointsT<Array>& ps, 
+template<template<typename T2>class Array2>
+bool PointsT<Array>::Contains( const PointsT<Array2>& ps, 
                                const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
@@ -190,7 +191,8 @@ bool PointsT<Array>::Contains( const PointsT<Array>& ps,
 }
 
 template<template<typename T>class Array>
-bool PointsT<Array>::Inside( const PointsT<Array>& ps, 
+template<template<typename T2>class Array2>
+bool PointsT<Array>::Inside( const PointsT<Array2>& ps, 
                              const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
@@ -202,7 +204,8 @@ bool PointsT<Array>::Inside( const PointsT<Array>& ps,
 }
 
 template<template<typename T>class Array>
-bool PointsT<Array>::Inside( const LineT<Array>& l, 
+template<template<typename T2>class Array2>
+bool PointsT<Array>::Inside( const LineT<Array2>& l, 
                              const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
@@ -231,7 +234,8 @@ bool PointsT<Array>::Inside( const LineT<Array>& l,
 }
 
 template<template<typename T>class Array>
-bool PointsT<Array>::Inside( const RegionT<Array>& r, 
+template<template<typename T2>class Array2>
+bool PointsT<Array>::Inside( const RegionT<Array2>& r, 
                              const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
@@ -266,7 +270,8 @@ bool PointsT<Array>::Inside( const RegionT<Array>& r,
 }
 
 template<template<typename T>class Array>
-bool PointsT<Array>::Intersects( const PointsT<Array>& ps, 
+template<template<typename T2>class Array2>
+bool PointsT<Array>::Intersects( const PointsT<Array2>& ps, 
                                  const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
@@ -295,7 +300,8 @@ bool PointsT<Array>::Intersects( const PointsT<Array>& ps,
 }
 
 template<template<typename T>class Array>
-bool PointsT<Array>::Intersects( const LineT<Array>& l, 
+template<template<typename T2>class Array2>
+bool PointsT<Array>::Intersects( const LineT<Array2>& l, 
                                  const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
@@ -328,7 +334,8 @@ bool PointsT<Array>::Intersects( const LineT<Array>& l,
 }
 
 template<template<typename T>class Array>
-bool PointsT<Array>::Intersects( const RegionT<Array>& r, 
+template<template<typename T2>class Array2>
+bool PointsT<Array>::Intersects( const RegionT<Array2>& r, 
                                  const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
@@ -360,7 +367,8 @@ bool PointsT<Array>::Intersects( const RegionT<Array>& r,
 }
 
 template<template<typename T>class Array>
-bool PointsT<Array>::Adjacent( const RegionT<Array>& r, 
+template<template<typename T2>class Array2>
+bool PointsT<Array>::Adjacent( const RegionT<Array2>& r, 
                                const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() );
@@ -401,7 +409,8 @@ bool PointsT<Array>::Adjacent( const RegionT<Array>& r,
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Intersection(const Point& p, PointsT<Array>& result,
+template<template<typename T2>class Array2>
+void PointsT<Array>::Intersection(const Point& p, PointsT<Array2>& result,
                           const Geoid* geoid /*=0*/) const{
    result.Clear();
    if(!IsDefined() || ! p.IsDefined() || (geoid && !geoid->IsDefined()) ){
@@ -414,8 +423,10 @@ void PointsT<Array>::Intersection(const Point& p, PointsT<Array>& result,
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Intersection( const PointsT<Array>& ps, 
-                                   PointsT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void PointsT<Array>::Intersection( const PointsT<Array2>& ps, 
+                                   PointsT<Array3>& result,
                                    const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
@@ -451,8 +462,10 @@ void PointsT<Array>::Intersection( const PointsT<Array>& ps,
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Intersection( const LineT<Array>& l, 
-                                   PointsT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void PointsT<Array>::Intersection( const LineT<Array2>& l, 
+                                   PointsT<Array3>& result,
                            const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
@@ -479,8 +492,10 @@ void PointsT<Array>::Intersection( const LineT<Array>& l,
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Intersection( const RegionT<Array>& r, 
-                                   PointsT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void PointsT<Array>::Intersection( const RegionT<Array2>& r, 
+                                   PointsT<Array3>& result,
                                    const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
@@ -507,9 +522,11 @@ void PointsT<Array>::Intersection( const RegionT<Array>& r,
 }
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
 void PointsT<Array>::Intersection( 
-                           const SimpleLineT<Array>& l, 
-                           PointsT<Array>& result,
+                           const SimpleLineT<Array2>& l, 
+                           PointsT<Array3>& result,
                            const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
@@ -536,7 +553,8 @@ void PointsT<Array>::Intersection(
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Minus( const Point& p, PointsT<Array>& ps,
+template<template<typename T2>class Array2>
+void PointsT<Array>::Minus( const Point& p, PointsT<Array2>& ps,
                     const Geoid* geoid /*=0*/ ) const
 {
   ps.Clear();
@@ -558,7 +576,9 @@ void PointsT<Array>::Minus( const Point& p, PointsT<Array>& ps,
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Minus( const PointsT<Array>& ps, PointsT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void PointsT<Array>::Minus( const PointsT<Array2>& ps, PointsT<Array3>& result,
                     const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
@@ -598,7 +618,9 @@ void PointsT<Array>::Minus( const PointsT<Array>& ps, PointsT<Array>& result,
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Minus( const LineT<Array>& l, PointsT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void PointsT<Array>::Minus( const LineT<Array2>& l, PointsT<Array3>& result,
                     const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
@@ -622,7 +644,9 @@ void PointsT<Array>::Minus( const LineT<Array>& l, PointsT<Array>& result,
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Minus( const RegionT<Array>& r, PointsT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void PointsT<Array>::Minus( const RegionT<Array2>& r, PointsT<Array3>& result,
                     const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
@@ -646,8 +670,11 @@ void PointsT<Array>::Minus( const RegionT<Array>& r, PointsT<Array>& result,
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Minus( const SimpleLineT<Array>& l, PointsT<Array>& result,
-                    const Geoid* geoid /*=0*/ ) const
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void PointsT<Array>::Minus( const SimpleLineT<Array2>& l, 
+                            PointsT<Array3>& result,
+                            const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
   if( !IsDefined() || !l.IsDefined() || (geoid && !geoid->IsDefined()) ) {
@@ -670,7 +697,8 @@ void PointsT<Array>::Minus( const SimpleLineT<Array>& l, PointsT<Array>& result,
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Union( const Point& p, PointsT<Array>& result,
+template<template<typename T2>class Array2>
+void PointsT<Array>::Union( const Point& p, PointsT<Array2>& result,
                     const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
@@ -705,8 +733,10 @@ void PointsT<Array>::Union( const Point& p, PointsT<Array>& result,
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Union( const PointsT<Array>& ps, 
-                                  PointsT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void PointsT<Array>::Union( const PointsT<Array2>& ps, 
+                                  PointsT<Array3>& result,
                     const Geoid* geoid /*=0*/ ) const
 {
   result.Clear();
@@ -744,21 +774,27 @@ void PointsT<Array>::Union( const PointsT<Array>& ps,
 
 
 template<template<typename T>class Array>
-void PointsT<Array>::Union( const LineT<Array>& line, LineT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void PointsT<Array>::Union( const LineT<Array2>& line, LineT<Array3>& result,
                     const Geoid* geoid /*=0*/ ) const{
    line.Union(*this,result,geoid);
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Union( const RegionT<Array>& region, 
-                            RegionT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void PointsT<Array>::Union( const RegionT<Array2>& region, 
+                            RegionT<Array3>& result,
                             const Geoid* geoid /*=0*/) const{
    region.Union(*this,result,geoid);
 }
 
 template<template<typename T>class Array>
-void PointsT<Array>::Union(const SimpleLineT<Array>& line, 
-                           SimpleLineT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void PointsT<Array>::Union(const SimpleLineT<Array2>& line, 
+                           SimpleLineT<Array3>& result,
                            const Geoid* geoid /*=0*/) const{
   line.Union(*this,result, geoid);
 }
@@ -784,7 +820,8 @@ double PointsT<Array>::Distance( const Point& p,
 }
 
 template<template<typename T>class Array>
-double PointsT<Array>::Distance( const PointsT<Array>& ps, 
+template<template<typename T2>class Array2>
+double PointsT<Array>::Distance( const PointsT<Array2>& ps, 
                                  const Geoid* geoid /* = 0 */ ) const
 {
   assert( !IsEmpty() );
@@ -847,8 +884,9 @@ bool PointsT<Array>::Intersects( const Rectangle<2>& r,
 }
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void PointsT<Array>::Translate( const Coord& x, const Coord& y, 
-                                PointsT<Array>& result ) const
+                                PointsT<Array2>& result ) const
 {
   result.Clear();
   if( !IsDefined() ) {
@@ -871,8 +909,9 @@ void PointsT<Array>::Translate( const Coord& x, const Coord& y,
 
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void PointsT<Array>::Scale( const Coord& x, const Coord& y, 
-                            PointsT<Array>& result ) const
+                            PointsT<Array2>& result ) const
 {
   result.Clear();
   if( !IsDefined() ) {
@@ -893,9 +932,10 @@ void PointsT<Array>::Scale( const Coord& x, const Coord& y,
 }
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void PointsT<Array>::Rotate( const Coord& x, const Coord& y,
                      const double alpha,
-                     PointsT<Array>& result ) const
+                     PointsT<Array2>& result ) const
 {
   result.Clear();
   if(!IsDefined()){
@@ -1023,7 +1063,12 @@ template<template<typename T>class Array>
 int PointsT<Array>::Compare( const Attribute* arg ) const
 {
   const PointsT<Array>* ps = (const PointsT<Array>*)arg;
+  return Compare(ps);
+}
 
+template<template<typename T>class Array>
+template<template<typename T2>class Array2>
+int PointsT<Array>::Compare( const PointsT<Array2>* ps) const{
   if( !ps )
     return (-2);
 
@@ -1071,11 +1116,15 @@ template<template<typename T>class Array>
 int PointsT<Array>::CompareAlmost( const Attribute* arg ) const
 {
   const PointsT<Array>* ps = (const PointsT<Array>*)arg;
+  return CompareAlmost(ps);
+}
 
+template<template<typename T>class Array>
+template<template<typename T2>class Array2>
+int PointsT<Array>::CompareAlmost( const PointsT<Array2>* ps ) const
+{
   if( !ps )
     return (-2);
-
-
   if(!IsDefined() && !ps->IsDefined()){
     return 0;
   }
@@ -1122,7 +1171,7 @@ int PointsT<Array>::CompareAlmost( const Attribute* arg ) const
 template<template<typename T>class Array>
 bool PointsT<Array>::Adjacent( const Attribute* arg ) const
 {
-  return 0;
+  return false;
   // for points which takes double values, we can not decide whether they are
   //adjacent or not.
 }
@@ -1138,21 +1187,34 @@ std::ostream& PointsT<Array>::Print( std::ostream &os ) const
 {
   return os << *this;
 }
-/*
-11.2 Class ~Points~
 
-*/
+
 template<template<typename T>class Array>
 inline PointsT<Array>::PointsT( const int initsize ) :
-StandardSpatialAttribute<2>(true),
-points( initsize ),
-bbox( false ),
-ordered( true )
-{ }
+  StandardSpatialAttribute<2>(true),
+  points( initsize ),
+  bbox( false ),
+  ordered( true )
+  { }
 
 
 template<template<typename T>class Array>
-inline PointsT<Array>::PointsT( const PointsT<Array>& ps ) :
+inline PointsT<Array>::PointsT( const PointsT& ps ) :
+StandardSpatialAttribute<2>(ps.IsDefined()),
+points( ps.Size() ),
+bbox( ps.BoundingBox() ),
+ordered( true )
+{
+  if( IsDefined() ) {
+    assert( ps.IsOrdered() );
+    convertDbArrays<Point>(ps.points,points);
+  }
+}
+
+
+template<template<typename T>class Array>
+template<template<typename T2> class Array2>
+inline PointsT<Array>::PointsT( const PointsT<Array2>& ps ) :
 StandardSpatialAttribute<2>(ps.IsDefined()),
 points( ps.Size() ),
 bbox( ps.BoundingBox() ),
@@ -1283,9 +1345,10 @@ inline void PointsT<Array>::TrimToSize(){
 }
 
 
-template<template<typename T>class Array>
-void SelectFirst_pp( const PointsT<Array>& P1, 
-                     const PointsT<Array>& P2,
+template<template<typename T2>class Array1,
+         template<typename T3>class Array2>
+void SelectFirst_pp( const PointsT<Array1>& P1, 
+                     const PointsT<Array2>& P2,
                      object& obj, status& stat )
 {
   P1.SelectFirst();
@@ -1322,9 +1385,10 @@ void SelectFirst_pp( const PointsT<Array>& P1,
   }
 }
 
-template<template<typename T>class Array>
-void SelectNext_pp( const PointsT<Array>& P1, 
-                    const PointsT<Array>& P2,
+template<template<typename T1>class Array1,
+         template<typename T2> class Array2>
+void SelectNext_pp( const PointsT<Array1>& P1, 
+                    const PointsT<Array2>& P2,
                     object& obj, status& stat )
 {
   // 1. get the current elements
@@ -1397,35 +1461,3 @@ void SelectNext_pp( const PointsT<Array>& P1,
 }
 
 
-
-
-// explicit instantiations
-
-  /*
-
-template class PointsT<DbArray > ;
-template class PointsT<MMDbArray >;
-
-
-template void SelectFirst_pp<DbArray>( 
-                     const PointsT<DbArray>& P1, 
-                     const PointsT<DbArray>& P2,
-                     object& obj, status& stat );
-
-template void SelectFirst_pp<MMDbArray>( 
-                     const PointsT<MMDbArray>& P1, 
-                     const PointsT<MMDbArray>& P2,
-                     object& obj, status& stat );
-
-
-template void SelectNext_pp<DbArray>( 
-                    const PointsT<DbArray>& P1, 
-                    const PointsT<DbArray>& P2,
-                    object& obj, status& stat );
-
-template void SelectNext_pp<MMDbArray>( 
-                    const PointsT<MMDbArray>& P1, 
-                    const PointsT<MMDbArray>& P2,
-                    object& obj, status& stat );
-
- */

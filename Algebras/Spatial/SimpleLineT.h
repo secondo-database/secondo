@@ -72,13 +72,14 @@ contained arrays to have ~size~ number od slots.
 Constructs a ~SimpleLineT~ from a complex one.
 
 */
-  explicit SimpleLineT(const LineT<Array>& src);
+  template<template<typename T2> class Array2>
+  explicit SimpleLineT(const LineT<Array2>& src);
 
 /*
 ~CopyConstructor~
 
 */
-  SimpleLineT(const SimpleLineT<Array>& src):
+  SimpleLineT(const SimpleLineT& src):
     StandardSpatialAttribute<2>(src.IsDefined()),
     segments(src.Size()+1),lrsArray(src.Size()/2 + 2),
     startSmaller(src.GetStartSmaller()), isCycle(src.IsCycle()),
@@ -91,6 +92,20 @@ Constructs a ~SimpleLineT~ from a complex one.
     segments.TrimToSize();
     //Equalize(src);
   }
+  
+  template<template<typename T2> class Array2>
+  SimpleLineT(const SimpleLineT<Array2>& src):
+    StandardSpatialAttribute<2>(src.IsDefined()),
+    segments(src.Size()+1),lrsArray(src.Size()/2 + 2),
+    startSmaller(src.GetStartSmaller()), isCycle(src.IsCycle()),
+    isOrdered(src.IsOrdered()), length(src.Length()), bbox(src.BoundingBox()),
+    currentHS(src.currentHS)
+  {
+    convertDbArrays(src.segments, segments);
+    convertDbArrays(src.lrsArray, lrsArray);
+    lrsArray.TrimToSize();
+    segments.TrimToSize();
+  }
 
 /*
 ~Destructor~
@@ -102,7 +117,13 @@ Constructs a ~SimpleLineT~ from a complex one.
 ~Assignment Operator~
 
 */
-  SimpleLineT<Array>& operator=(const SimpleLineT<Array>& src){
+  SimpleLineT<Array>& operator=(const SimpleLineT& src){
+     Equalize(src);
+     return *this;
+  }
+  
+  template<template<typename T2> class Array2>
+  SimpleLineT<Array>& operator=(const SimpleLineT<Array2>& src){
      Equalize(src);
      return *this;
   }
@@ -245,24 +266,35 @@ Inside
 
 */
 
-bool Inside( const SimpleLineT& l, const Geoid* geoid=0 ) const;
+template<template<typename T2> class Array2>
+bool Inside( const SimpleLineT<Array2>& l, const Geoid* geoid=0 ) const;
 
 /*
 6.4.4 Operation ~intersection~
 
 */
-void Intersection(const Point& p, PointsT<Array>& result, 
-                  const Geoid* geoid=0) const;
-void Intersection(const PointsT<Array>& ps, PointsT<Array>& result,
+template<template<typename T2> class Array2>
+void Intersection(const Point& p, PointsT<Array2>& result, 
                   const Geoid* geoid=0) const;
 
-void Intersection( const LineT<Array>& l, SimpleLineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Intersection(const PointsT<Array2>& ps, PointsT<Array3>& result,
+                  const Geoid* geoid=0) const;
+
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Intersection( const LineT<Array2>& l, SimpleLineT<Array3>& result,
                    const Geoid* geoid=0 ) const;
 
-void Intersection( const RegionT<Array>& l, SimpleLineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Intersection( const RegionT<Array2>& l, SimpleLineT<Array3>& result,
                    const Geoid* geoid=0 ) const;
 
-void Intersection( const SimpleLineT<Array>& l, SimpleLineT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Intersection( const SimpleLineT<Array2>& l, SimpleLineT<Array3>& result,
                    const Geoid* geoid = 0) const;
 
 /*
@@ -270,17 +302,28 @@ void Intersection( const SimpleLineT<Array>& l, SimpleLineT<Array>& result,
 
 */
 
-void Minus( const Point& l, SimpleLineT<Array>& result, 
-            const Geoid* geoid=0 ) const;
-void Minus( const PointsT<Array>& l, SimpleLineT<Array>& result, 
-            const Geoid* geoid=0 ) const;
-
-void Minus( const LineT<Array>& l, SimpleLineT<Array>& result, 
+template<template<typename T2> class Array2>
+void Minus( const Point& l, SimpleLineT<Array2>& result, 
             const Geoid* geoid=0 ) const;
 
-void Minus( const RegionT<Array>& l, SimpleLineT<Array>& result, 
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Minus( const PointsT<Array2>& l, SimpleLineT<Array3>& result, 
             const Geoid* geoid=0 ) const;
-void Minus( const SimpleLineT<Array>& l, SimpleLineT<Array>& result,
+
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Minus( const LineT<Array2>& l, SimpleLineT<Array3>& result, 
+            const Geoid* geoid=0 ) const;
+
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Minus( const RegionT<Array2>& l, SimpleLineT<Array3>& result, 
+            const Geoid* geoid=0 ) const;
+
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Minus( const SimpleLineT<Array2>& l, SimpleLineT<Array3>& result,
             const Geoid* geoid=0 ) const;
 
 /*
@@ -288,16 +331,28 @@ void Minus( const SimpleLineT<Array>& l, SimpleLineT<Array>& result,
 
 */
 
-void Union( const Point& l, SimpleLineT<Array>& result, 
-            const Geoid* geoid=0 ) const;
-void Union( const PointsT<Array>& l, SimpleLineT<Array>& result, 
+template<template<typename T2> class Array2>
+void Union( const Point& l, SimpleLineT<Array2>& result, 
             const Geoid* geoid=0 ) const;
 
-void Union( const LineT<Array>& l, LineT<Array>& result, 
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Union( const PointsT<Array2>& l, SimpleLineT<Array3>& result, 
             const Geoid* geoid=0 ) const;
-void Union( const RegionT<Array>& l, RegionT<Array>& result, 
+
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Union( const LineT<Array2>& l, LineT<Array3>& result, 
             const Geoid* geoid=0 ) const;
-void Union( const SimpleLineT<Array>& l, LineT<Array>& result, 
+
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Union( const RegionT<Array2>& l, RegionT<Array3>& result, 
+            const Geoid* geoid=0 ) const;
+
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Union( const SimpleLineT<Array2>& l, LineT<Array3>& result, 
             const Geoid* geoid=0 ) const;
 
 
@@ -373,9 +428,11 @@ geometry.
 
   double Distance(const Point& p, const Geoid* geoid=0 )const;
 
-  double Distance(const PointsT<Array>& ps, const Geoid* geoid=0 ) const;
+  template<template<typename T2> class Array2>
+  double Distance(const PointsT<Array2>& ps, const Geoid* geoid=0 ) const;
 
-  double Distance(const SimpleLineT<Array>& sl, const Geoid* geoid=0) const;
+  template<template<typename T2> class Array2>
+  double Distance(const SimpleLineT<Array2>& sl, const Geoid* geoid=0) const;
 
   double Distance(const Rectangle<2>& r, const Geoid* geoid=0) const;
 
@@ -423,17 +480,21 @@ geometry.
 ~SubLine~
 
 */
-
+template< template<typename T1> class Array1>
 void SubLine(double pos1, double pos2,
-             bool startsSmaller, SimpleLineT<Array>& l) const;
-void SubLine(double pos1, double pos2, SimpleLineT<Array>& l) const;
+             bool startsSmaller, SimpleLineT<Array1>& l) const;
+
+template< template<typename T1> class Array1>
+void SubLine(double pos1, double pos2, SimpleLineT<Array1>& l) const;
 
 /*
 ~Crossings~
 
 */
 
-void Crossings(const SimpleLineT<Array>& l, PointsT<Array>& result,
+template<template<typename T2> class Array2,
+         template<typename T3> class Array3>
+void Crossings(const SimpleLineT<Array2>& l, PointsT<Array3>& result,
                const Geoid* geoid=0) const;
 
 
@@ -441,7 +502,9 @@ void Crossings(const SimpleLineT<Array>& l, PointsT<Array>& result,
 ~Union~
 
 */
-  bool Intersects(const SimpleLineT<Array>& l, const Geoid* geoid=0) const;
+
+  template<template<typename T2> class Array2>
+  bool Intersects(const SimpleLineT<Array2>& l, const Geoid* geoid=0) const;
 
 /*
 ~Attribute Functions~
@@ -472,13 +535,16 @@ The following functions are needed to act as an attribute type.
   }
 
   void CopyFrom(const Attribute* right){
-     Equalize(*(static_cast<const SimpleLineT*>(right)));
+     Equalize(*(static_cast<const SimpleLineT<Array>*>(right)));
   }
 
   int Compare(const Attribute* arg) const;
 
+  template< template<typename T1> class Array1>
+  int Compare( const SimpleLineT<Array1>* line) const;
+
   bool operator<(SimpleLineT *sl) const{
-    return (Compare((Attribute*) sl) < 0);
+    return (Compare(sl) < 0);
   }
 
   virtual SimpleLineT* Clone() const{
@@ -509,10 +575,13 @@ The following functions are needed to act as an attribute type.
     return isCycle;
   }
 
-  void toLine(LineT<Array>& result) const;
+  template<template<typename T2> class Array2>
+  void toLine(LineT<Array2>& result) const;
 
-  void fromLine(const LineT<Array>& src);
-  void fromLine(const LineT<Array>& src, const bool smaller);
+  template<template<typename T2> class Array2>
+  void fromLine(const LineT<Array2>& src);
+  template<template<typename T2> class Array2>
+  void fromLine(const LineT<Array2>& src, const bool smaller);
 
   static void* Cast(void* addr){
     return new (addr) SimpleLineT<Array>();
@@ -564,8 +633,8 @@ The following functions are needed to act as an attribute type.
      return false;
    }
 
-   if( lrs.lrsPos < 0 && !AlmostEqual( lrs.lrsPos, 0 ) &&
-       lrs.lrsPos > Length() && !AlmostEqual( lrs.lrsPos, Length() ) ){
+   if( (lrs.lrsPos < 0 && !AlmostEqual( lrs.lrsPos, 0 )) ||
+       (lrs.lrsPos > Length() && !AlmostEqual( lrs.lrsPos, Length() ) )){
      return false;
    }
 
@@ -577,6 +646,16 @@ The following functions are needed to act as an attribute type.
    return true;
  }
 
+ void printLRS(std::ostream& o) const{
+    LRS lrs;
+    for(int i=0;i<lrsArray.Size();i++){
+       lrsArray.Get(i,lrs);
+       o << "lsr[" << i << "] = "  << lrs << std::endl;
+    }
+ }
+
+
+
   private:
     Array<HalfSegment> segments;
     Array<LRS> lrsArray;
@@ -587,9 +666,10 @@ The following functions are needed to act as an attribute type.
     Rectangle<2> bbox;
     int currentHS;
 
-    void Equalize(const SimpleLineT<Array>& src){
-        segments.copyFrom(src.segments);
-        lrsArray.copyFrom(src.lrsArray);
+    template<template <typename T2> class Array2>
+    void Equalize(const SimpleLineT<Array2>& src){
+        convertDbArrays(src.segments, segments);
+        convertDbArrays(src.lrsArray, lrsArray);
         this->SetDefined( src.IsDefined() );
         this->startSmaller = src.startSmaller;
         this->isCycle = src.isCycle;

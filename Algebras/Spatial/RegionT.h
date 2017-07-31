@@ -55,6 +55,9 @@ template<template<typename T>class ArrayT>
 class RegionT : public StandardSpatialAttribute<2>
 {
   public:
+
+  template<template<typename T3> class Array3> friend class RegionT;
+
 /*
 7.1 Constructors and Destructor
 
@@ -64,7 +67,14 @@ class RegionT : public StandardSpatialAttribute<2>
 Constructs an empty region allocating space for ~n~ half segments.
 
 */
-    RegionT( const RegionT<ArrayT>& cr, bool onlyLeft = false );
+    template<template<typename T2> class ArrayT2>
+    RegionT( const RegionT<ArrayT2>& cr, bool onlyLeft);
+    
+    template<template<typename T2> class ArrayT2>
+    RegionT( const RegionT<ArrayT2>& cr);
+
+    RegionT( const RegionT& cr);
+
 /*
 The copy constructor. If the flag ~onlyLeft~ is set, then only the half 
 segments with left dominating point are copied.
@@ -243,7 +253,11 @@ not in their middle points;
 edges do not intersect.
 
 */
-    RegionT<ArrayT>& operator=( const RegionT<ArrayT>& r );
+    template<template<typename T2> class Array2>
+    RegionT<ArrayT>& operator=( const RegionT<Array2>& r );
+
+    RegionT<ArrayT>& operator=( const RegionT& r );
+
 /*
 Assignement operator redefinition.
 
@@ -299,35 +313,62 @@ otherwise; where ~n~ is the size of ~U~.
 *Complexity:* $O()$, where ~m~ is the size of ~U~ and ~m~ the size of ~V~.
 
 */
-  bool Intersects( const RegionT<ArrayT>& r, const Geoid* geoid = 0 ) const;
+  template<template<typename T2> class ArrayT2> 
+  bool Intersects( const RegionT<ArrayT2>& r, const Geoid* geoid = 0 ) const;
 /*
 6.4.4 Operation ~intersection~
 
 */
-  void Intersection(const Point& p, PointsT<ArrayT>& result, 
+  template<template<typename T2> class Array2>
+  void Intersection(const Point& p, PointsT<Array2>& result, 
                     const Geoid* geoid=0) const;
-  void Intersection(const PointsT<ArrayT>& ps, PointsT<ArrayT>& result,
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Intersection(const PointsT<Array2>& ps, PointsT<Array3>& result,
                     const Geoid* geoid=0) const;
-  void Intersection(const LineT<ArrayT>& l, LineT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Intersection(const LineT<Array2>& l, LineT<Array3>& result, 
                     const Geoid* geoid=0) const;
-  void Intersection(const RegionT<ArrayT>& r, RegionT<ArrayT>& result,
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Intersection(const RegionT<Array2>& r, RegionT<Array3>& result,
                     const Geoid* geoid=0) const;
-  void Intersection(const SimpleLineT<ArrayT>& l, SimpleLineT<ArrayT>& result,
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Intersection(const SimpleLineT<Array2>& l, SimpleLineT<Array3>& result,
                     const Geoid* geoid=0) const;
 
 /*
 6.4.4 Operation ~Union~
 
 */
-  void Union(const Point& p, RegionT<ArrayT>& result, 
+  template<template<typename T2> class Array2>
+  void Union(const Point& p, RegionT<Array2>& result, 
              const Geoid* geoid=0) const;
-  void Union(const PointsT<ArrayT>& ps, RegionT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Union(const PointsT<Array2>& ps, RegionT<Array3>& result, 
              const Geoid* geoid=0) const;
-  void Union(const LineT<ArrayT>& l, RegionT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Union(const LineT<Array2>& l, RegionT<Array3>& result, 
              const Geoid* geoid=0) const;
-  void Union(const RegionT<ArrayT>& r, RegionT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Union(const RegionT<Array2>& r, RegionT<Array3>& result, 
              const Geoid* geoid=0) const;
-  void Union(const SimpleLineT<ArrayT>& l, RegionT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Union(const SimpleLineT<Array2>& l, RegionT<Array3>& result, 
              const Geoid* geoid=0) const;
 
 
@@ -335,15 +376,28 @@ otherwise; where ~n~ is the size of ~U~.
 6.4.4 Operation ~Minus~
 
 */
-  void Minus(const Point& p, RegionT<ArrayT>& result, 
+  template<template<typename T2> class Array2>
+  void Minus(const Point& p, RegionT<Array2>& result, 
              const Geoid* geoid=0) const;
-  void Minus(const PointsT<ArrayT>& ps, RegionT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Minus(const PointsT<Array2>& ps, RegionT<Array3>& result, 
              const Geoid* geoid=0) const;
-  void Minus(const LineT<ArrayT>& l, RegionT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Minus(const LineT<Array2>& l, RegionT<Array3>& result, 
              const Geoid* geoid=0) const;
-  void Minus(const RegionT<ArrayT>& r, RegionT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Minus(const RegionT<Array2>& r, RegionT<Array3>& result, 
              const Geoid* geoid=0) const;
-  void Minus(const SimpleLineT<ArrayT>& l, RegionT<ArrayT>& result, 
+
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void Minus(const SimpleLineT<Array2>& l, RegionT<Array3>& result, 
              const Geoid* geoid=0) const;
 
 
@@ -357,7 +411,8 @@ otherwise; where ~n~ is the size of ~U~.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-  bool Inside( const RegionT<ArrayT>& r, const Geoid* geoid=0 ) const;
+  template<template<typename T2> class Array2>
+  bool Inside( const RegionT<Array2>& r, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~adjacent~
 
@@ -369,7 +424,8 @@ otherwise; where ~n~ is the size of ~U~.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-    bool Adjacent( const RegionT<ArrayT>& r, const Geoid* geoid =0 ) const;
+  template<template<typename T2> class Array2>
+  bool Adjacent( const RegionT<Array2>& r, const Geoid* geoid =0 ) const;
 /*
 6.4.4 Operation ~overlaps~
 
@@ -379,8 +435,9 @@ otherwise; where ~n~ is the size of ~U~.
 
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
-*/
-  bool Overlaps( const RegionT<ArrayT>& r, const Geoid* geoid=0 ) const;
+*/ 
+  template<template<typename T2> class Array2>
+  bool Overlaps( const RegionT<Array2>& r, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~onborder~
 
@@ -424,7 +481,8 @@ otherwise; where ~n~ is the size of ~U~.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-  double Distance( const PointsT<ArrayT>& p, const Geoid* geoid=0 ) const;
+  template<template<typename T2> class Array2>
+  double Distance( const PointsT<Array2>& p, const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~distance~ (with ~points~)
 
@@ -435,7 +493,8 @@ otherwise; where ~n~ is the size of ~U~.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
-  double Distance( const RegionT<ArrayT>& r, const Geoid* geoid=0 ) const;
+  template<template<typename T2> class Array2>
+  double Distance( const RegionT<Array2>& r, const Geoid* geoid=0 ) const;
 /*
   6.4.4 Operation ~distance~ (with ~region~)
 
@@ -477,7 +536,8 @@ The pointers inside the array ~components~ are here initialized
 and must be deleted outside.
 
 */
-  void Components( std::vector<RegionT<ArrayT>*>& components );
+  template<template<typename T2> class Array2>
+  void Components( std::vector<RegionT<Array2>*>& components );
 
 /*
 6.4.5 Operation ~getHoles~
@@ -485,7 +545,8 @@ and must be deleted outside.
 This operation returns all holes of the region as another region.
 
 */
-   void getHoles(RegionT<ArrayT>& result) const;
+  template<template<typename T2> class Array2>
+  void getHoles(RegionT<Array2>& result) const;
 
 
 /*
@@ -500,8 +561,10 @@ This operation returns all holes of the region as another region.
               ~n~ the size of ~V~, and ~r~
 is the ~points~ result size.
 
-*/
-  void TouchPoints( const LineT<ArrayT>& l, PointsT<ArrayT>& result, 
+*/ 
+  template<template<typename T2> class Array2,
+           template<typename T3> class Array3>
+  void TouchPoints( const LineT<Array2>& l, PointsT<Array3>& result, 
                     const Geoid* geoid=0 ) const;
 /*
 6.4.5 Operation ~touch[_]points~ (with ~region~)
@@ -516,7 +579,9 @@ is the ~points~ result size.
 is the ~points~ result size.
 
 */
-  void TouchPoints( const RegionT<ArrayT>& r, PointsT<ArrayT>& result,
+  template<template<typename T2>class Array2,
+           template<typename Ti3>class Array3>
+  void TouchPoints( const RegionT<Array2>& r, PointsT<Array3>& result,
                     const Geoid* geoid=0 ) const;
 /*
 6.4.5 Operation ~common[_]border~
@@ -530,7 +595,9 @@ is the ~points~ result size.
 is the ~line~ result size.
 
 */
-  void CommonBorder( const RegionT<ArrayT>& r, LineT<ArrayT>& result,
+  template<template<typename T2>class Array2,
+           template<typename Ti3>class Array3>
+  void CommonBorder( const RegionT<Array2>& r, LineT<Array3>& result,
                      const Geoid* geoid=0 ) const;
 /*
 6.4.5 Operation ~no\_components~
@@ -553,7 +620,8 @@ is the ~line~ result size.
 *Complexity:* $O(m)$, where ~m~ is the size of ~U~.
 
 */
-    void Vertices( PointsT<ArrayT>* result, const Geoid* geoid=0 ) const;
+    template<template<typename T2>class Array2>
+    void Vertices( PointsT<Array2>* result, const Geoid* geoid=0 ) const;
 
 
 /*
@@ -566,7 +634,8 @@ is the ~line~ result size.
 *Complexity:* $O(m)$, where ~m~ is the size of ~U~.
 
 */
-    void Boundary(LineT<ArrayT>* result, const Geoid* geoid=0) const;
+    template<template<typename T2>class Array2>
+    void Boundary(LineT<Array2>* result, const Geoid* geoid=0) const;
 
 /*
 4.4 Object Traversal Functions
@@ -697,6 +766,11 @@ definition as an attribute.
 
     size_t HashValue() const;
     void CopyFrom( const Attribute* right );
+    template<template<typename T2>class Array2>
+    void CopyFrom( const RegionT<Array2>* right );
+
+    template<template<typename T2>class Array2>
+    int Compare( const RegionT<Array2>* cr ) ;
     int Compare( const Attribute *arg ) const;
 //     int CompareAlmost( const Attribute *arg ) const;
     std::ostream& Print( std::ostream &os ) const;
@@ -712,12 +786,15 @@ Moves the region according x and y and stores the result in result.
 
 */
 
+    template<template<typename T2>class Array2>
     void Translate(const Coord& x, const Coord& y, 
-                   RegionT<ArrayT>& result) const;
-    void Scale(const Coord& x, const Coord& y, RegionT<ArrayT>& result) const;
+                   RegionT<Array2>& result) const;
+    template<template<typename T2>class Array2>
+    void Scale(const Coord& x, const Coord& y, RegionT<Array2>& result) const;
 
+    template<template<typename T2>class Array2>
     void Rotate(const Coord& x, const Coord& y, const double alpha,
-                RegionT<ArrayT>& result) const;
+                RegionT<Array2>& result) const;
 
 /*
 ~Translate~
@@ -787,8 +864,9 @@ This function returns the clipped half segments that are within a window, which
 result from the clipping of a region to a clip window.
 
 */
+  template<template<typename T2>class Array2>
   void WindowClippingIn(const Rectangle<2> &window,
-                        RegionT<ArrayT> &clippedRegion, 
+                        RegionT<Array2> &clippedRegion, 
                         const Geoid* geoid=0) const;
 
 /*
@@ -799,8 +877,9 @@ result from the clipping of a region to a clip window.
 
 */
 
+  template<template<typename T2>class Array2>
   void WindowClippingOut(const Rectangle<2> &window,
-                         RegionT<ArrayT> &clippedRegion, 
+                         RegionT<Array2> &clippedRegion, 
                          const Geoid* geoid=0) const;
 /*
 7.15.3 Get clipped half segment function
@@ -816,8 +895,9 @@ segments corresponding to the edges of the window. These half segments are only
 created if the window's edge is completly inside the window.
 
 */
+  template<template<typename T2>class Array2>
   void GetClippedHS(const Rectangle<2> &window,
-                    RegionT<ArrayT> &clippedRegion, bool inside,
+                    RegionT<Array2> &clippedRegion, bool inside,
                     const Geoid* geoid=0) const;
 /*
 7.15.4 Get clipped half segment IN function
@@ -827,8 +907,9 @@ resulting from the clipping of a region to a clip window.
 
 */
 
+  template<template<typename T2>class Array2>
   void GetClippedHSIn(const Rectangle<2> &window,
-                      RegionT<ArrayT> &clippedRegion,
+                      RegionT<Array2> &clippedRegion,
                       std::vector<EdgePoint> pointsOnEdge[4],
                       int &partnerno, const Geoid* geoid=0) const;
 /*
@@ -838,8 +919,9 @@ This function returns the clipped half segments (that are outside the window)
 resulting from the clipping of a region to a clip window.
 
 */
+ template<template<typename T2>class Array2>
  void GetClippedHSOut(const Rectangle<2> &window,
-                      RegionT<ArrayT> &clippedRegion,
+                      RegionT<Array2> &clippedRegion,
                       std::vector<EdgePoint> pointsOnEdge[4],
                       int &partnerno, const Geoid* geoid=0) const;
 /*
@@ -875,8 +957,9 @@ This function creates the half segments resulting from the connection
 of the points that lies on the window's edges.
 
 */
+   template<template<typename T2>class Array2>
    static void CreateNewSegments(std::vector <EdgePoint>pointsOnEdge,
-                                 RegionT<ArrayT> &cr,
+                                 RegionT<Array2> &cr,
                                  const Point &bPoint,const Point &ePoint,
                                  WindowEdge edge,int &partnerno,bool inside,
                                  const Geoid* geoid=0);
@@ -889,9 +972,10 @@ These half segments are only created if the window's edge is completly inside
 the window.
 
 */
+   template<template<typename T2>class Array2>
    void CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
                                 std::vector<EdgePoint> pointsOnEdge[4],
-                                RegionT<ArrayT> &cr,
+                                RegionT<Array2> &cr,
                                 int &partnerno,bool inside,
                                 const Geoid* geoid=0) const;
 /*

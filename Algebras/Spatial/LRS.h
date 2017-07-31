@@ -59,6 +59,9 @@ struct LRS
 
 int LRSCompare( const void *a, const void *b );
 
+std::ostream& operator<<(std::ostream& o, const LRS& lrs);
+
+
 
 #endif
 

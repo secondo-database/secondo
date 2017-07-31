@@ -43,13 +43,17 @@ Results in a line.
 
 */
 
-template<template<typename T>class Array>
-void intersection(const RegionT<Array>& r, const LineT<Array>& line, 
-                  LineT<Array>& result);
+template<template<typename T1>class Array1,
+         template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void intersection(const RegionT<Array1>& r, const LineT<Array2>& line, 
+                  LineT<Array3>& result);
 
-template<template<typename T>class Array>
-void intersection(const LineT<Array>& l, const RegionT<Array>& r, 
-                  LineT<Array>& result);
+template<template<typename T1>class Array1,
+         template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void intersection(const LineT<Array1>& l, const RegionT<Array2>& r, 
+                  LineT<Array3>& result);
 
 
 /*
@@ -70,9 +74,10 @@ int contains(const RegionT<Array>& reg, const Point& p);
 Realminize function
 
 */
-template<template<typename T>class Array>
-void realminize(const Array<HalfSegment>& src, 
-                      Array<HalfSegment>& result);
+template<template<typename T1>class Array1,
+         template<typename T2>class Array2>
+void realminize(const Array1<HalfSegment>& src, 
+                      Array2<HalfSegment>& result);
 
 
 /*
@@ -123,17 +128,24 @@ class RealmChecker{
 };
 
 
-template<template<typename T>class Array>
-void intersection(const LineT<Array>& l1, const LineT<Array>& l2,  
-                  LineT<Array>& result);
+template<template<typename T1>class Array1,
+         template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void intersection(const LineT<Array1>& l1, const LineT<Array2>& l2,  
+                  LineT<Array3>& result);
 
 
-template<template<typename T>class Array>
-void crossings(const LineT<Array>& l1, const LineT<Array>& l2, 
-               PointsT<Array>& result);
+template<template<typename T1>class Array1,
+         template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void crossings(const LineT<Array1>& l1, const LineT<Array2>& l2, 
+               PointsT<Array3>& result);
 
 
 } // end of namespace robust
+
+
+#include "RobustSetOpsImpl.h"
 
 
 #endif

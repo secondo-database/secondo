@@ -35,8 +35,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "RobustSetOps.h"
 
+#include "WinUnix.h"
+
 /*
-11.4 Class ~Region~
+11.4 Implementation of Class ~Region~
+
+11.4.1 Constructors
 
 */
 template<template<typename T>class Array>
@@ -46,148 +50,78 @@ region( initsize ),
 bbox( false ),
 noComponents( 0 ),
 ordered( true )
-{ }
+{
+ }
+
+
+bool IsInsideAbove(const HalfSegment& hs,
+                   const Point& thirdPoint);
+
 
 template<template<typename T>class Array>
-inline void RegionT<Array>::Destroy()
+RegionT<Array>::RegionT( const Point& p1, const Point& p2, const Point& p3 ):
+   StandardSpatialAttribute<2>(true),region(6)
 {
-  region.destroy();
-}
+  Clear();
+  if( !p1.IsDefined() || !p2.IsDefined() || !p3.IsDefined() ){
+    SetDefined(false); // UNDEFINED region
+  } else if(AlmostEqual(p1,p2) || AlmostEqual(p2,p3) || AlmostEqual(p3,p1) ){
+    SetDefined(true);  // EMPTY region
+  } else {             // triangular region
+    SetDefined(true);
+    StartBulkLoad();
 
-template<template<typename T>class Array>
-inline const Rectangle<2> RegionT<Array>::BoundingBox(
-                                  const Geoid* geoid /*=0*/) const
-{
-  if(geoid){ // spherical geometry case:
-    if(!geoid->IsDefined() || !IsDefined()){
-      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
-    }
-    Rectangle<2> geobbox = Rectangle<2>(false);
-    for (int i=0; i<Size() ;i++){
-      HalfSegment hs;
-      Get( i, hs );
-      if( hs.IsLeftDomPoint() ){
-        if(!geobbox.IsDefined()){
-          geobbox = hs.BoundingBox(geoid);
-        } else {
-          geobbox = geobbox.Union(hs.BoundingBox(geoid));
-        }
-      } // else: ignore inverse HalfSegments
-    } // endfor
-  } // else: euclidean case
-  return bbox;
-}
-
-template<template<typename T>class Array>
-inline bool RegionT<Array>::IsOrdered() const
-{
-  return ordered;
-}
-
-template<template<typename T>class Array>
-inline const AttrType& RegionT<Array>::GetAttr( int position ) const
-{
-  assert(( position>=0) && (position<=Size()-1));
-  HalfSegment hs;
-  region.Get( position, &hs);
-  return hs.GetAttr();
-}
-
-template<template<typename T>class Array>
-inline void RegionT<Array>::UpdateAttr( AttrType& attr )
-{
-  if (( pos>=0) && (pos<=Size()-1))
-  {
     HalfSegment hs;
-    region.Get( pos, &hs);
-    hs.SetAttr( attr );
-    region.Put( pos, hs );
+    int edgecnt = 0;
+
+    hs.Set(true,p1,p2);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = edgecnt;
+    hs.attr.partnerno = edgecnt++;
+    hs.attr.insideAbove = IsInsideAbove(hs,p3);
+    *this += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    *this += hs;
+
+    hs.Set(true,p2,p3);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = edgecnt;
+    hs.attr.partnerno = edgecnt++;
+    hs.attr.insideAbove = IsInsideAbove(hs,p1);
+    *this += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    *this += hs;
+
+    hs.Set(true,p3,p1);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = edgecnt;
+    hs.attr.partnerno = edgecnt++;
+    hs.attr.insideAbove = IsInsideAbove(hs,p2);
+    *this += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    *this += hs;
+
+    EndBulkLoad();
   }
 }
 
 template<template<typename T>class Array>
-inline void RegionT<Array>::UpdateAttr( int position, AttrType& attr )
-{
-  if (( position>=0) && (position<=Size()-1))
-  {
-    HalfSegment hs;
-    region.Get( position, &hs );
-    hs.SetAttr( attr );
-    region.Put( position, hs );
-  }
-}
-
-template<template<typename T>class Array>
-inline void RegionT<Array>::SelectFirst() const
-{
-  if( IsEmpty() )
-    pos = -1;
-  else pos = 0;
-}
-
-template<template<typename T>class Array>
-inline void RegionT<Array>::SelectNext() const
-{
-  if( pos >= 0 && pos < Size() - 1 )
-    pos++;
-  else pos = -1;
-}
-
-template<template<typename T>class Array>
-inline bool RegionT<Array>::EndOfHs() const
-{
-  return (pos==-1);
-}
-
-template<template<typename T>class Array>
-inline bool RegionT<Array>::GetHs(HalfSegment& hs ) const
-{
-  assert( IsDefined() );
-  if( pos >= 0 && pos <= Size()-1 )
-  {
-    region.Get( pos, &hs );
-    return true;
-  }
-  return false;
-}
-
-template<template<typename T>class Array>
-inline void RegionT<Array>::Resize(const int newSize){
-  if(newSize>Size()){
-    region.resize(newSize);
-  }
-}
-
-template<template<typename T>class Array>
-inline void RegionT<Array>::TrimToSize(){
-  region.TrimToSize();
-}
-
-
-/*
-8 Type Constructor ~region~
-
-A ~region~ value is a set of halfsegments. In the external (nestlist)
-representation, a region value is expressed as a set of faces, and each
-face is composed of a set of cycles.  However, in the internal
-(class) representation, it is expressed as a set of sorted halfsegments,
-which are stored as a PArray.
-
-8.1 Implementation of the class ~region~
-
-*/
-template<template<typename T>class Array>
-RegionT<Array>::RegionT( const RegionT<Array>& cr, bool onlyLeft ) :
+template<template<typename T2> class Array2>
+RegionT<Array>::RegionT( const RegionT<Array2>& cr, bool onlyLeft ) :
 StandardSpatialAttribute<2>(cr.IsDefined()),
 region( cr.Size() ),
 bbox( cr.bbox ),
-noComponents( cr.noComponents ),
+noComponents( cr.NoComponents() ),
 ordered( true )
 {
+
   if( IsDefined() && cr.Size() >0 ) {
     assert( cr.IsOrdered() );
     if( !onlyLeft ){
-      region.copyFrom(cr.region);
+      convertDbArrays(cr.region,region);
     } else {
       StartBulkLoad();
       HalfSegment hs;
@@ -201,6 +135,36 @@ ordered( true )
       }
       EndBulkLoad( false, false, false, false );
     }
+  }
+}
+
+
+template<template<typename T>class Array>
+RegionT<Array>::RegionT( const RegionT& cr) :
+StandardSpatialAttribute<2>(cr.IsDefined()),
+region( cr.Size() ),
+bbox( cr.bbox ),
+noComponents( cr.NoComponents() ),
+ordered( true )
+{
+  if( IsDefined() && cr.Size() >0 ) {
+    assert( cr.IsOrdered() );
+    region.copyFrom(cr.region);
+  }
+}
+
+template<template<typename T>class Array>
+template<template<typename T2> class Array2>
+RegionT<Array>::RegionT( const RegionT<Array2>& cr) :
+StandardSpatialAttribute<2>(cr.IsDefined()),
+region( cr.Size() ),
+bbox( cr.bbox ),
+noComponents( cr.NoComponents() ),
+ordered( true )
+{
+  if( IsDefined() && cr.Size() >0 ) {
+    assert( cr.IsOrdered() );
+    convertDbArrays(cr.region,region);
   }
 }
 
@@ -282,59 +246,202 @@ RegionT<Array>::RegionT( const Rectangle<2>& r )
     }
 }
 
-bool IsInsideAbove(const HalfSegment& hs,
-                   const Point& thirdPoint);
+
+/*
+Destroy
+
+This will destroy the contained flob.
+
+*/
 
 
 template<template<typename T>class Array>
-RegionT<Array>::RegionT( const Point& p1, const Point& p2, const Point& p3 ):
-   StandardSpatialAttribute<2>(true),region(6)
+inline void RegionT<Array>::Destroy()
 {
-  Clear();
-  if( !p1.IsDefined() || !p2.IsDefined() || !p3.IsDefined() ){
-    SetDefined(false); // UNDEFINED region
-  } else if(AlmostEqual(p1,p2) || AlmostEqual(p2,p3) || AlmostEqual(p3,p1) ){
-    SetDefined(true);  // EMPTY region
-  } else {             // triangular region
-    SetDefined(true);
-    StartBulkLoad();
+  region.destroy();
+}
 
+/*
+~Bounding Box~
+
+If the geoid is null, this function just returns the
+internally stored box. Otherwise, a box is computed
+according the given geoid.
+
+*/
+
+template<template<typename T>class Array>
+inline const Rectangle<2> RegionT<Array>::BoundingBox(
+                                  const Geoid* geoid /*=0*/) const
+{
+  if(geoid){ // spherical geometry case:
+    if(!geoid->IsDefined() || !IsDefined()){
+      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+    }
+    Rectangle<2> geobbox = Rectangle<2>(false);
+    for (int i=0; i<Size() ;i++){
+      HalfSegment hs;
+      Get( i, hs );
+      if( hs.IsLeftDomPoint() ){
+        if(!geobbox.IsDefined()){
+          geobbox = hs.BoundingBox(geoid);
+        } else {
+          geobbox = geobbox.Union(hs.BoundingBox(geoid));
+        }
+      } // else: ignore inverse HalfSegments
+    } // endfor
+  } // else: euclidean case
+  return bbox;
+}
+
+/*
+~isOrdered~
+
+CHecks whether the halfsegment array is sorted.
+
+*/
+
+template<template<typename T>class Array>
+inline bool RegionT<Array>::IsOrdered() const
+{
+  return ordered;
+}
+
+
+/*
+~GetAttr~
+
+Returns the attributes of the halfsegment stored at the 
+specified position.
+
+*/
+template<template<typename T>class Array>
+inline const AttrType& RegionT<Array>::GetAttr( int position ) const
+{
+  assert(( position>=0) && (position<=Size()-1));
+  HalfSegment hs;
+  region.Get( position, &hs);
+  return hs.GetAttr();
+}
+
+
+/*
+~UpdateAttr~
+
+Changes the attributes of the halfsegment at the current position of
+the 'iterator'.
+
+*/
+template<template<typename T>class Array>
+inline void RegionT<Array>::UpdateAttr( AttrType& attr )
+{
+  if (( pos>=0) && (pos<=Size()-1))
+  {
     HalfSegment hs;
-    int edgecnt = 0;
-
-    hs.Set(true,p1,p2);
-    hs.attr.faceno = 0;         // only one face
-    hs.attr.cycleno = 0;        // only one cycle
-    hs.attr.edgeno = edgecnt;
-    hs.attr.partnerno = edgecnt++;
-    hs.attr.insideAbove = IsInsideAbove(hs,p3);
-    *this += hs;
-    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-    *this += hs;
-
-    hs.Set(true,p2,p3);
-    hs.attr.faceno = 0;         // only one face
-    hs.attr.cycleno = 0;        // only one cycle
-    hs.attr.edgeno = edgecnt;
-    hs.attr.partnerno = edgecnt++;
-    hs.attr.insideAbove = IsInsideAbove(hs,p1);
-    *this += hs;
-    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-    *this += hs;
-
-    hs.Set(true,p3,p1);
-    hs.attr.faceno = 0;         // only one face
-    hs.attr.cycleno = 0;        // only one cycle
-    hs.attr.edgeno = edgecnt;
-    hs.attr.partnerno = edgecnt++;
-    hs.attr.insideAbove = IsInsideAbove(hs,p2);
-    *this += hs;
-    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-    *this += hs;
-
-    EndBulkLoad();
+    region.Get( pos, &hs);
+    hs.SetAttr( attr );
+    region.Put( pos, hs );
   }
 }
+
+/*
+~UpdateAttr~
+
+Changes the attributes of the halfssegment at the speicfied position,
+
+*/
+
+template<template<typename T>class Array>
+inline void RegionT<Array>::UpdateAttr( int position, AttrType& attr )
+{
+  if (( position>=0) && (position<=Size()-1))
+  {
+    HalfSegment hs;
+    region.Get( position, &hs );
+    hs.SetAttr( attr );
+    region.Put( position, hs );
+  }
+}
+
+/*
+Resets the internally 'iterator'.
+
+*/
+
+template<template<typename T>class Array>
+inline void RegionT<Array>::SelectFirst() const
+{
+  if( IsEmpty() )
+    pos = -1;
+  else pos = 0;
+}
+
+/*
+moves the internally iterator forward.
+
+*/
+
+template<template<typename T>class Array>
+inline void RegionT<Array>::SelectNext() const
+{
+  if( pos >= 0 && pos < Size() - 1 )
+    pos++;
+  else pos = -1;
+}
+
+/*
+Checks whether the internally iterator is at the end.
+
+*/
+
+template<template<typename T>class Array>
+inline bool RegionT<Array>::EndOfHs() const
+{
+  return (pos==-1);
+}
+
+
+/*
+Returns the halfsegment at the current iterator position.
+
+*/
+template<template<typename T>class Array>
+inline bool RegionT<Array>::GetHs(HalfSegment& hs ) const
+{
+  assert( IsDefined() );
+  if( pos >= 0 && pos <= Size()-1 )
+  {
+    region.Get( pos, &hs );
+    return true;
+  }
+  return false;
+}
+
+/*
+resizes the halfsegment array.
+
+*/
+
+template<template<typename T>class Array>
+inline void RegionT<Array>::Resize(const int newSize){
+  if(newSize>Size()){
+    region.resize(newSize);
+  }
+}
+
+/*
+Resizes the halfsegment array to fit exactly the contained halfsegments.
+
+*/
+template<template<typename T>class Array>
+inline void RegionT<Array>::TrimToSize(){
+  region.TrimToSize();
+}
+
+/*
+switches to bulkload mode
+
+*/
 
 template<template<typename T>class Array>
 void RegionT<Array>::StartBulkLoad()
@@ -342,6 +449,12 @@ void RegionT<Array>::StartBulkLoad()
   ordered = false;
 }
 
+
+/*
+Finishes the bulkload mode.
+Be carefully with the flags. 
+
+*/
 template<template<typename T>class Array>
 void RegionT<Array>::EndBulkLoad( bool sort, bool setCoverageNo,
                           bool setPartnerNo, bool computeRegion )
@@ -391,6 +504,12 @@ void RegionT<Array>::EndBulkLoad( bool sort, bool setCoverageNo,
   ordered = true;
 }
 
+
+/*
+Checks whether the region contains p. Returns also true if the p 
+is located of the region's boundary.
+
+*/
 template<template<typename T>class Array>
 bool RegionT<Array>::Contains( const Point& p, const Geoid* geoid/*=0*/ ) const
 {
@@ -478,6 +597,11 @@ bool RegionT<Array>::Contains( const Point& p, const Geoid* geoid/*=0*/ ) const
   }
   return false;
 }
+
+/*
+Checks whether p is located in the interior of this region.
+
+*/
 
 template<template<typename T>class Array>
 bool RegionT<Array>::InnerContains( const Point& p, 
@@ -567,6 +691,11 @@ bool RegionT<Array>::InnerContains( const Point& p,
 }
 
 
+/*
+Checks whether this regions intersects inHs.
+
+*/
+
 template<template<typename T>class Array>
 bool RegionT<Array>::Intersects( const HalfSegment& inHs,
                          const Geoid* geoid/*=0*/) const
@@ -590,6 +719,11 @@ bool RegionT<Array>::Intersects( const HalfSegment& inHs,
   return false;
 }
 
+
+/*
+CHecks whether this region contains hs.
+
+*/
 
 template<template<typename T>class Array>
 bool RegionT<Array>::Contains( const HalfSegment& hs, 
@@ -666,6 +800,11 @@ bool RegionT<Array>::Contains( const HalfSegment& hs,
   return true;
 }
 
+
+/*
+Checks wther hs is completely in the interior of this region.
+
+*/
 template<template<typename T>class Array>
 bool RegionT<Array>::InnerContains( const HalfSegment& hs,
                             const Geoid* geoid/*=0*/ ) const
@@ -723,7 +862,8 @@ bool RegionT<Array>::HoleEdgeContain( const HalfSegment& hs,
 
 */
 template<template<typename T>class Array>
-bool RegionT<Array>::Intersects( const RegionT<Array> &r, 
+template<template<typename T2> class ArrayT2> 
+bool RegionT<Array>::Intersects( const RegionT<ArrayT2> &r, 
                                  const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
@@ -757,8 +897,14 @@ bool RegionT<Array>::Intersects( const RegionT<Array> &r,
 }
 
 
+/*
+Intersection with different data types
+
+*/
+
 template<template<typename T>class Array>
-void RegionT<Array>::Intersection(const Point& p, PointsT<Array>& result,
+template<template<typename T2>class Array2>
+void RegionT<Array>::Intersection(const Point& p, PointsT<Array2>& result,
                           const Geoid* geoid/*=0*/) const{
   result.Clear();
   if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
@@ -772,8 +918,10 @@ void RegionT<Array>::Intersection(const Point& p, PointsT<Array>& result,
 }
 
 template<template<typename T>class Array>
-void RegionT<Array>::Intersection(const PointsT<Array>& ps, 
-                          PointsT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void RegionT<Array>::Intersection(const PointsT<Array2>& ps, 
+                          PointsT<Array3>& result,
                           const Geoid* geoid/*=0*/) const{
   result.Clear();
   if(!IsDefined() || !ps.IsDefined() || (geoid && !geoid->IsDefined()) ){
@@ -793,7 +941,9 @@ void RegionT<Array>::Intersection(const PointsT<Array>& ps,
 
 
 template<template<typename T>class Array>
-void RegionT<Array>::Intersection(const LineT<Array>& l, LineT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void RegionT<Array>::Intersection(const LineT<Array2>& l, LineT<Array3>& result,
                           const Geoid* geoid/*=0*/) const{
 
   try{
@@ -808,21 +958,26 @@ void RegionT<Array>::Intersection(const LineT<Array>& l, LineT<Array>& result,
 
 
 template<template<typename T>class Array>
-void RegionT<Array>::Intersection(const RegionT<Array>& r, 
-                                  RegionT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void RegionT<Array>::Intersection(const RegionT<Array2>& r, 
+                                  RegionT<Array3>& result,
                                   const Geoid* geoid/*=0*/) const{
   SetOp(*this,r,result,avlseg::intersection_op, geoid);
 }
 
 template<template<typename T>class Array>
-void RegionT<Array>::Intersection(const SimpleLineT<Array>& l, 
-                                  SimpleLineT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void RegionT<Array>::Intersection(const SimpleLineT<Array2>& l, 
+                                  SimpleLineT<Array3>& result,
                                   const Geoid* geoid/*=0*/) const{
   SetOp(l,*this,result,avlseg::intersection_op, geoid);
 }
 
 template<template<typename T>class Array>
-void RegionT<Array>::Union(const Point& p, RegionT<Array>& result,
+template<template<typename T2>class Array2>
+void RegionT<Array>::Union(const Point& p, RegionT<Array2>& result,
                    const Geoid* geoid/*=0*/) const{
   if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
@@ -833,8 +988,16 @@ void RegionT<Array>::Union(const Point& p, RegionT<Array>& result,
   result.CopyFrom(this);
 }
 
+
+/*
+Union with different spatial types.
+
+*/
+
 template<template<typename T>class Array>
-void RegionT<Array>::Union(const PointsT<Array>& ps, RegionT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void RegionT<Array>::Union(const PointsT<Array2>& ps, RegionT<Array3>& result,
                    const Geoid* geoid/*=0*/) const{
   if(!IsDefined() || !ps.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
@@ -846,7 +1009,9 @@ void RegionT<Array>::Union(const PointsT<Array>& ps, RegionT<Array>& result,
 }
 
 template<template<typename T>class Array>
-void RegionT<Array>::Union(const LineT<Array>& line, RegionT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void RegionT<Array>::Union(const LineT<Array2>& line, RegionT<Array3>& result,
                    const Geoid* geoid/*=0*/) const{
   if(!IsDefined() || !line.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
@@ -858,15 +1023,19 @@ void RegionT<Array>::Union(const LineT<Array>& line, RegionT<Array>& result,
 }
 
 template<template<typename T>class Array>
-void RegionT<Array>::Union(const RegionT<Array>& region, 
-                           RegionT<Array>& result,
+template<template<typename T2> class ArrayT2,
+         template<typename T3> class ArrayT3>
+void RegionT<Array>::Union(const RegionT<ArrayT2>& region, 
+                           RegionT<ArrayT3>& result,
                            const Geoid* geoid/*=0*/) const{
    SetOp(*this,region,result,avlseg::union_op, geoid);
 }
 
 template<template<typename T>class Array>
-void RegionT<Array>::Union(const SimpleLineT<Array>& line, 
-                           RegionT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void RegionT<Array>::Union(const SimpleLineT<Array2>& line, 
+                           RegionT<Array3>& result,
                            const Geoid* geoid/*=0*/) const{
   if(!IsDefined() || !line.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
@@ -878,7 +1047,8 @@ void RegionT<Array>::Union(const SimpleLineT<Array>& line,
 }
 
 template<template<typename T>class Array>
-void RegionT<Array>::Minus(const Point& p, RegionT<Array>& result,
+template<template<typename T2>class Array2>
+void RegionT<Array>::Minus(const Point& p, RegionT<Array2>& result,
                    const Geoid* geoid/*=0*/) const{
   if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
@@ -889,8 +1059,16 @@ void RegionT<Array>::Minus(const Point& p, RegionT<Array>& result,
   result.CopyFrom(this);
 }
 
+
+/*
+Implementation of Minus.
+
+*/
+
 template<template<typename T>class Array>
-void RegionT<Array>::Minus(const PointsT<Array>& ps, RegionT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void RegionT<Array>::Minus(const PointsT<Array2>& ps, RegionT<Array3>& result,
                    const Geoid* geoid/*=0*/) const{
   if(!IsDefined() || !ps.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
@@ -902,7 +1080,9 @@ void RegionT<Array>::Minus(const PointsT<Array>& ps, RegionT<Array>& result,
 }
 
 template<template<typename T>class Array>
-void RegionT<Array>::Minus(const LineT<Array>& line, RegionT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void RegionT<Array>::Minus(const LineT<Array2>& line, RegionT<Array3>& result,
                    const Geoid* geoid/*=0*/) const{
   if(!IsDefined() || !line.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
@@ -914,14 +1094,19 @@ void RegionT<Array>::Minus(const LineT<Array>& line, RegionT<Array>& result,
 }
 
 template<template<typename T>class Array>
-void RegionT<Array>::Minus(const RegionT<Array>& region, RegionT<Array>& result,
-                   const Geoid* geoid/*=0*/) const{
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void RegionT<Array>::Minus(const RegionT<Array2>& region, 
+                           RegionT<Array3>& result,
+                           const Geoid* geoid/*=0*/) const{
    SetOp(*this,region,result,avlseg::difference_op, geoid);
 }
 
 template<template<typename T>class Array>
-void RegionT<Array>::Minus(const SimpleLineT<Array> & line,
-                           RegionT<Array>& result,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void RegionT<Array>::Minus(const SimpleLineT<Array2> & line,
+                           RegionT<Array3>& result,
                            const Geoid* geoid/*=0*/) const{
   if(!IsDefined() || !line.IsDefined() || (geoid && !geoid->IsDefined()) ){
     result.Clear();
@@ -932,8 +1117,14 @@ void RegionT<Array>::Minus(const SimpleLineT<Array> & line,
   result.CopyFrom(this);
 }
 
+/*
+Inside check.
+
+*/
+
 template<template<typename T>class Array>
-bool RegionT<Array>::Inside( const RegionT<Array>& r, 
+template<template<typename T2> class Array2>
+bool RegionT<Array>::Inside( const RegionT<Array2>& r, 
                              const Geoid* geoid/*=0*/ ) const
 {
 
@@ -985,8 +1176,14 @@ bool RegionT<Array>::Inside( const RegionT<Array>& r,
   return true;
 }
 
+/*
+Check for adjacency with another region.
+
+*/
+
 template<template<typename T>class Array>
-bool RegionT<Array>::Adjacent( const RegionT<Array>& r,
+template<template<typename T2>class Array2>
+bool RegionT<Array>::Adjacent( const RegionT<Array2>& r,
                        const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
@@ -1022,8 +1219,14 @@ bool RegionT<Array>::Adjacent( const RegionT<Array>& r,
   return found;
 }
 
+/*
+Check for overlap.
+
+*/
+
 template<template<typename T>class Array>
-bool RegionT<Array>::Overlaps( const RegionT<Array>& r, 
+template<template<typename T2>class Array2>
+bool RegionT<Array>::Overlaps( const RegionT<Array2>& r, 
                                const Geoid* geoid/*=0*/ ) const
 {
   assert( IsDefined() );
@@ -1056,6 +1259,11 @@ bool RegionT<Array>::Overlaps( const RegionT<Array>& r,
   }
   return false;
 }
+
+/*
+Checks whether p is on border of this region.
+
+*/
 
 template<template<typename T>class Array>
 bool RegionT<Array>::OnBorder( const Point& p, const Geoid* geoid/*=0*/ ) const
@@ -1092,6 +1300,11 @@ bool RegionT<Array>::InInterior( const Point& p,
   return InnerContains( p, geoid );
 }
 
+
+/*
+Minimum distance to p.
+
+*/
 template<template<typename T>class Array>
 double RegionT<Array>::Distance( const Point& p, 
                                  const Geoid* geoid /*=0*/ ) const
@@ -1122,6 +1335,11 @@ double RegionT<Array>::Distance( const Point& p,
   }
   return result;
 }
+
+/*
+Minimum distance to r.
+
+*/
 
 template<template<typename T>class Array>
 double RegionT<Array>::Distance( const Rectangle<2>& r,
@@ -1165,6 +1383,11 @@ double RegionT<Array>::Distance( const Rectangle<2>& r,
 }
 
 
+/*
+Check for intersection. 
+
+*/
+
 template<template<typename T>class Array>
 bool RegionT<Array>::Intersects( const Rectangle<2>& r,
                          const Geoid* geoid /*=0*/ ) const{
@@ -1202,7 +1425,10 @@ bool RegionT<Array>::Intersects( const Rectangle<2>& r,
 }
 
 
+/*
+Size of the covered area.
 
+*/
 
 template<template<typename T>class Array>
 double RegionT<Array>::Area(const Geoid* geoid/*=0*/) const
@@ -1242,8 +1468,15 @@ double RegionT<Array>::Area(const Geoid* geoid/*=0*/) const
   return area;
 }
 
+/*
+Distance to other spatial types.
+
+
+*/
+
 template<template<typename T>class Array>
-double RegionT<Array>::Distance( const PointsT<Array>& ps, 
+template<template<typename T2>class Array2>
+double RegionT<Array>::Distance( const PointsT<Array2>& ps, 
                                  const Geoid* geoid /*=0*/ ) const
 {
   assert( !IsEmpty() ); // subsumes IsDefined()
@@ -1277,7 +1510,8 @@ double RegionT<Array>::Distance( const PointsT<Array>& ps,
 }
 
 template<template<typename T>class Array>
-double RegionT<Array>::Distance( const RegionT<Array> &r, 
+template<template<typename T2>class Array2>
+double RegionT<Array>::Distance( const RegionT<Array2> &r, 
                                  const Geoid* geoid /*=0*/ ) const
 {
   assert( !IsEmpty() ); // subsumes IsDefined()
@@ -1316,17 +1550,21 @@ double RegionT<Array>::Distance( const RegionT<Array> &r,
 
 
 
+/*
+Divides this region into their faces.
 
+*/
 
 template<template<typename T>class Array>
-void RegionT<Array>::Components( std::vector<RegionT<Array>*>& components )
+template<template<typename T2>class Array2>
+void RegionT<Array>::Components( std::vector<RegionT<Array2>*>& components )
 {
   components.clear();
   if( IsEmpty() ) { // subsumes IsDefined()
     return;
   }
   for(int i=0;i<noComponents;i++){
-   components.push_back(new RegionT<Array>(1));
+   components.push_back(new RegionT<Array2>(1));
    components[i]->StartBulkLoad();
   }
   HalfSegment hs;
@@ -1341,8 +1579,13 @@ void RegionT<Array>::Components( std::vector<RegionT<Array>*>& components )
   }
 }
 
+/*
+Returns the holes of this region.
+
+*/
 template<template<typename T>class Array>
-void RegionT<Array>::getHoles(RegionT<Array>& result) const{
+template<template<typename T2>class Array2>
+void RegionT<Array>::getHoles(RegionT<Array2>& result) const{
    if(!IsDefined()){
       result.SetDefined(false);
    }
@@ -1368,11 +1611,15 @@ void RegionT<Array>::getHoles(RegionT<Array>& result) const{
 }
 
 
+/*
+Affine transformations.
 
+*/
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void RegionT<Array>::Translate( const Coord& x, const Coord& y, 
-                                RegionT<Array>& result ) const
+                                RegionT<Array2>& result ) const
 {
   result.Clear();
   if( !IsDefined() ) {
@@ -1394,9 +1641,10 @@ void RegionT<Array>::Translate( const Coord& x, const Coord& y,
 }
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void RegionT<Array>::Rotate( const Coord& x, const Coord& y,
                    const double alpha,
-                   RegionT<Array>& result ) const
+                   RegionT<Array2>& result ) const
 {
   result.Clear();
   if( !IsDefined() ) {
@@ -1454,8 +1702,9 @@ void RegionT<Array>::Rotate( const Coord& x, const Coord& y,
 
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void RegionT<Array>::Scale( const Coord& sx, const Coord& sy,
-                   RegionT<Array>& result ) const
+                   RegionT<Array2>& result ) const
 {
   result.Clear();
   if( !IsDefined() ) {
@@ -1479,9 +1728,17 @@ void RegionT<Array>::Scale( const Coord& sx, const Coord& sy,
 }
 
 
+/*
+Computres touchpooints with l.
+
+*/
+
 template<template<typename T>class Array>
-void RegionT<Array>::TouchPoints( const LineT<Array>& l, PointsT<Array>& result,
-                          const Geoid* geoid/*=0*/ ) const
+template<template<typename T2>class Array2,
+         template<typename Ti3>class Array3>
+void RegionT<Array>::TouchPoints( const LineT<Array2>& l, 
+                                  PointsT<Array3>& result,
+                                  const Geoid* geoid/*=0*/ ) const
 {
   result.Clear();
   if( !IsDefined() || !l.IsDefined() || (geoid && !geoid->IsDefined()) ) {
@@ -1514,9 +1771,11 @@ void RegionT<Array>::TouchPoints( const LineT<Array>& l, PointsT<Array>& result,
 }
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2,
+         template<typename Ti3>class Array3>
 void RegionT<Array>::TouchPoints( 
-                          const RegionT<Array>& r, 
-                          PointsT<Array>& result,
+                          const RegionT<Array2>& r, 
+                          PointsT<Array3>& result,
                           const Geoid* geoid/*=0*/ ) const
 {
 
@@ -1549,10 +1808,17 @@ void RegionT<Array>::TouchPoints(
   result.EndBulkLoad( true);
 }
 
+/*
+Computes the common part of the boundary.
+
+*/
+
 template<template<typename T>class Array>
+template<template<typename T2>class Array2,
+         template<typename Ti3>class Array3>
 void RegionT<Array>::CommonBorder( 
-                           const RegionT<Array>& r, 
-                           LineT<Array>& result,
+                           const RegionT<Array2>& r, 
+                           LineT<Array3>& result,
                            const Geoid* geoid/*=0*/ ) const
 {
   result.Clear();
@@ -1589,6 +1855,11 @@ void RegionT<Array>::CommonBorder(
   result.EndBulkLoad();
 }
 
+/*
+returns the number of components.
+
+*/
+
 template<template<typename T>class Array>
 int RegionT<Array>::NoComponents() const
 {
@@ -1596,8 +1867,13 @@ int RegionT<Array>::NoComponents() const
   return noComponents;
 }
 
+/*
+Returns all points of the containes halfsegments.
+
+*/
 template<template<typename T>class Array>
-void RegionT<Array>::Vertices( PointsT<Array>* result, 
+template<template<typename T2>class Array2>
+void RegionT<Array>::Vertices( PointsT<Array2>* result, 
                               const Geoid* geoid/*=0*/ ) const
 {
   result->Clear();
@@ -1620,9 +1896,13 @@ void RegionT<Array>::Vertices( PointsT<Array>* result,
   result->EndBulkLoad( false, true );
 }
 
+/*
+Computes the boundary of this region.
 
+*/
 template<template<typename T>class Array>
-void RegionT<Array>::Boundary( LineT<Array>* result, 
+template<template<typename T2>class Array2>
+void RegionT<Array>::Boundary( LineT<Array2>* result, 
                                const Geoid* geoid/*=0*/ ) const
 {
   result->Clear();
@@ -1651,9 +1931,24 @@ void RegionT<Array>::Boundary( LineT<Array>* result,
 }
 
 
+/*
+Assignment operator.
+
+*/
+template<template<typename T>class Array>
+template<template<typename T2>class Array2>
+RegionT<Array>& RegionT<Array>::operator=( const RegionT<Array2>& r )
+{
+  assert( r.IsOrdered() );
+  convertDbArrays(r.region, region); 
+  bbox = r.bbox;
+  noComponents = r.noComponents;
+  del.isDefined = r.del.isDefined;
+  return *this;
+}
 
 template<template<typename T>class Array>
-RegionT<Array>& RegionT<Array>::operator=( const RegionT<Array>& r )
+RegionT<Array>& RegionT<Array>::operator=( const RegionT& r )
 {
   assert( r.IsOrdered() );
   region.copyFrom(r.region);
@@ -1664,8 +1959,14 @@ RegionT<Array>& RegionT<Array>::operator=( const RegionT<Array>& r )
 }
 
 
-template<template<typename T>class Array>
-void SelectFirst_rr( const RegionT<Array>& R1, const RegionT<Array>& R2,
+
+/*
+auxiliary functions for parallel scan through 2 regions.
+
+*/
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void SelectFirst_rr( const RegionT<Array2>& R1, const RegionT<Array3>& R2,
                      object& obj, status& stat )
 {
   R1.SelectFirst();
@@ -1702,8 +2003,9 @@ void SelectFirst_rr( const RegionT<Array>& R1, const RegionT<Array>& R2,
   }
 }
 
-template<template<typename T>class Array>
-void SelectNext_rr( const RegionT<Array>& R1, const RegionT<Array>& R2,
+template<template<typename T2>class Array2,
+         template<typename T3>class Array3>
+void SelectNext_rr( const RegionT<Array2>& R1, const RegionT<Array3>& R2,
                     object& obj, status& stat )
 {
   // 1. get the current elements
@@ -1775,7 +2077,10 @@ void SelectNext_rr( const RegionT<Array>& R1, const RegionT<Array>& R2,
   }
 }
 
+/*
+Check for equality.
 
+*/
 template<template<typename T>class Array>
 bool RegionT<Array>::operator==( const RegionT<Array>& r ) const
 {
@@ -1817,6 +2122,11 @@ bool RegionT<Array>::operator!=( const RegionT<Array> &cr) const
   return !(*this==cr);
 }
 
+
+/*
+Adding and subtracting halfsegments.
+
+*/
 template<template<typename T>class Array>
 RegionT<Array>& RegionT<Array>::operator+=( const HalfSegment& hs )
 {
@@ -1881,6 +2191,11 @@ RegionT<Array>& RegionT<Array>::operator-=( const HalfSegment& hs )
   return *this;
 }
 
+
+/*
+Searches the index of a speified halfsegmnst.
+
+*/
 template<template<typename T>class Array>
 bool RegionT<Array>::Find( const HalfSegment& hs, int& pos ) const
 {
@@ -1912,6 +2227,7 @@ void RegionT<Array>::Sort()
 
 
 int HalfSegmentLogicCompare(const void *a, const void *b);
+
 template<template<typename T>class Array>
 void RegionT<Array>::LogicSort()
 {
@@ -1946,6 +2262,13 @@ std::ostream& operator<<( std::ostream& os, const RegionT<Array>& cr )
   return os;
 }
 
+
+
+/*
+Sets the partner numbers. Is is assumed, that corresponding edges have
+the same edgeno,
+
+*/
 template<template<typename T>class Array>
 void RegionT<Array>::SetPartnerNo()
 {
@@ -1983,8 +2306,9 @@ bool GetAcceptedPoint( std::vector <EdgePoint>pointsOnEdge,
 
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void RegionT<Array>::CreateNewSegments(std::vector<EdgePoint>pointsOnEdge,
-                                       RegionT<Array> &cr,
+                                       RegionT<Array2> &cr,
                                        const Point &bPoint,const Point &ePoint,
                                        WindowEdge edge,int &partnerno,
                                        bool inside, const Geoid* geoid/*=0*/)
@@ -2131,9 +2455,10 @@ void RegionT<Array>::CreateNewSegments(std::vector<EdgePoint>pointsOnEdge,
 }
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void RegionT<Array>::CreateNewSegmentsWindowVertices(const Rectangle<2> &window,
                                 std::vector<EdgePoint> pointsOnEdge[4],
-                                RegionT<Array> &cr,
+                                RegionT<Array2> &cr,
                                 int &partnerno,bool inside,
                                 const Geoid* geoid/*=0*/) const
 //The inside attribute indicates if the points on edge will originate
@@ -2438,8 +2763,9 @@ void AddPointToEdgeArray( const Point &p,
 
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void RegionT<Array>::GetClippedHSIn(const Rectangle<2> &window,
-                            RegionT<Array> &clippedRegion,
+                            RegionT<Array2> &clippedRegion,
                             std::vector<EdgePoint> pointsOnEdge[4],
                             int &partnerno,
                             const Geoid* geoid/*=0*/) const
@@ -2501,8 +2827,9 @@ void RegionT<Array>::AddClippedHS( const Point &pl,
 }
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void RegionT<Array>::GetClippedHSOut(const Rectangle<2> &window,
-                             RegionT<Array> &clippedRegion,
+                             RegionT<Array2> &clippedRegion,
                              std::vector<EdgePoint> pointsOnEdge[4],
                              int &partnerno,
                              const Geoid* geoid/*=0*/) const
@@ -2569,8 +2896,9 @@ void RegionT<Array>::GetClippedHSOut(const Rectangle<2> &window,
 }
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void RegionT<Array>::GetClippedHS(const Rectangle<2> &window,
-                          RegionT<Array> &clippedRegion,
+                          RegionT<Array2> &clippedRegion,
                           bool inside,
                           const Geoid* geoid/*=0*/) const
 {
@@ -3132,8 +3460,9 @@ void RegionT<Array>::ComputeRegion()
 }
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void RegionT<Array>::WindowClippingIn(const Rectangle<2> &window,
-                              RegionT<Array> &clippedRegion,
+                              RegionT<Array2> &clippedRegion,
                               const Geoid* geoid/*=0*/) const
 {
   clippedRegion.Clear();
@@ -3162,8 +3491,9 @@ void RegionT<Array>::WindowClippingIn(const Rectangle<2> &window,
 }
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
 void RegionT<Array>::WindowClippingOut(const Rectangle<2> &window,
-                               RegionT<Array> &clippedRegion,
+                               RegionT<Array2> &clippedRegion,
                                const Geoid* geoid/*=0*/) const
 {
   clippedRegion.Clear();
@@ -3247,9 +3577,23 @@ void RegionT<Array>::CopyFrom( const Attribute* right )
 }
 
 template<template<typename T>class Array>
+template<template<typename T2>class Array2>
+void RegionT<Array>::CopyFrom( const RegionT<Array2>* right )
+{
+  *this = *right;
+}
+
+template<template<typename T>class Array>
 int RegionT<Array>::Compare( const Attribute* arg ) const
 {
   RegionT<Array>* cr = (RegionT<Array>* )(arg);
+  return Compare(cr);
+}
+
+
+template<template<typename T>class Array>
+template<template<typename T2>class Array2>
+int RegionT<Array>::Compare( const RegionT<Array2>* cr ) {
   if ( !cr )
     return -2;
 
@@ -3312,7 +3656,7 @@ std::ostream& RegionT<Array>::Print( std::ostream &os ) const
 template<template<typename T>class Array>
 RegionT<Array> *RegionT<Array>::Clone() const
 {
-  return new RegionT<Array>( *this );
+  return new RegionT( *this);
 }
 
 template<template<typename T>class Array>
