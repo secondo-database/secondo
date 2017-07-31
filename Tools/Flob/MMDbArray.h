@@ -72,6 +72,7 @@ constructor to create a new ~DbArray~!
 
 */
    inline MMDbArray( const int n ):
+      Flob("dummy"), 
       content()
       { }
 
@@ -244,20 +245,42 @@ bool Find( const void *key,
            int (*cmp)( const void *a, const void *b),
            int& result ) const {
 
+  DbArrayElement elem;
 
-  for(size_t i=0;i<content.size();i++){
-     const DbArrayElement& elem= content[i];
-     int c = cmp(&key,&elem);
-     if(c<0){
-        result = -1;
-        return false;
-     } else if (c==0){
-        result = i;
-        return true;
-     }
+  if(content.size() == 0) {
+     result = 0;
+     return false;
   }
-  result = -1;
-  return false;
+
+  // check if key is smaller than the smallest element
+  Get( 0, &elem );
+  if( cmp( key, &elem ) < 0 ) {
+    result = 0;
+    return false;
+  }
+  // check if key is larger than the largest element
+  Get( content.size() - 1, elem );
+  if( cmp( key, &elem ) > 0 ) {
+     result = content.size();
+     return false;
+  }
+
+   int first = 0, last = content.size() - 1, mid;
+
+   while (first <= last) {
+     mid = ( first + last ) / 2;
+     Get( mid, &elem );
+     if( cmp( key, &elem ) > 0 ){
+       first = mid + 1;
+     } else if( cmp( key, &elem ) < 0 ) {
+       last = mid - 1;
+     } else {
+       result = mid;
+       return true;
+     }
+   }
+   result = first < last ? first + 1 : last + 1;
+   return false;
 
  }
 
@@ -547,9 +570,9 @@ class const_iterator{
 template< class DbArrayElement>
 void convertDbArrays(const DbArray<DbArrayElement>& src, 
                      MMDbArray<DbArrayElement>& result) {
-   result.Resize(src.Size());
+   result.resize(src.Size());
    DbArrayElement elem;
-   for(int i=0;i<src.size;i++){
+   for(int i=0;i<src.Size();i++){
       src.Get(i,elem);
       result.Put(i,elem);
    }
