@@ -842,10 +842,10 @@ const string sendmailSpec  =
     "is the sender address. "
     "The first argument is the subject of the mail " 
     "and the fourth is the message. "
-    " With the fith argumemt you can put in a carbon copy address."
-    " Just type in the empty text ('') if you do not want a copy."
-    " TRUE is returned if there are no email adress syntax errors." 
-    " FALSE is returned if the adress is not syntactical correct" 
+    " With the fifth argumemt you can put in a carbon copy address."
+    " Just type in the empty text ('') if you do not want a copy. "
+    " TRUE is returned if there are no email address syntax errors." 
+    " FALSE is returned if the address is not syntactically correct" 
     " and UNDEFINED if any other error occurs.</text--->"
     "<text> query sendmail('a subject', 'sender@universe2.com', " 
     "'receiver@universe1.com', 'message' 'someone@universe3.com)  </text--->"
@@ -866,20 +866,20 @@ const string embedTagsSpec  =
   "(xn Tn)))) (ak1, ak2, ak3)) -> (stream (tuple"
   " ((ai1 Ti1) ... (ain Tin) (ak2, Tk2) (ak3, Tk3))))</text--->"
   "<text>_ embedTags [ list ]</text--->"
-  "<text>Produces a  tuple with each "
+  "<text>Produces a tuple for each "
   "tuple of its input stream "
-  " and two additional appended attributes. "
-  "The realtion that is feed in must have "
-  "some certain attributes including one"
+  "with two additional appended attributes. "
+  "The tuple stream that is fed in must have "
+  "certain attributes including one "
   "that is specified by ak1. This must be a "
-  " FText value with some tags in << >> brackets "
-  "These tags are <<Note>>, <<Kurs>>, <<Nachname<< and <<Dr>>. "
-  "Note, Kurs, Nachname, Dr must also be attributes in the "
-  "relation that is feed in. In the result stream the tags are "
+  "text value with some tags in << >> brackets. "
+  "For example, if these tags are <<Note>>, <<Kurs>>, <<Nachname<< and <<Dr>> "
+  "then Note, Kurs, Nachname, Dr must also be attributes in the "
+  "tuple stream that is fed in. In the result stream the tags are "
   "replaced with the corresponding attribute values and the modified "
   "text is a value of the attribute ak2. Furthermore a bool attribute "
-  "is appended which will have the value 'false' if something went wrong, "
-  "or 'true' if the text was modified correctly. </text--->"  
+  "is appended which will have the value FALSE if something went wrong, "
+  "or TRUE if the text was modified correctly. </text--->"  
   "<text> query pruefung feed embedTags[Brief, Brief2, Erfolg] " 
   " consume  </text--->"
   ") )";
@@ -921,7 +921,7 @@ public:
 };
 
 /*
-1.7  Initialization8 9 4 6
+1.7  Initialization 8 9 4 6
 
 
 */
