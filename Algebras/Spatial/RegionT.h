@@ -770,7 +770,7 @@ definition as an attribute.
     void CopyFrom( const RegionT<Array2>* right );
 
     template<template<typename T2>class Array2>
-    int Compare( const RegionT<Array2>* cr ) ;
+    int Compare( const RegionT<Array2>* cr ) const;
     int Compare( const Attribute *arg ) const;
 //     int CompareAlmost( const Attribute *arg ) const;
     std::ostream& Print( std::ostream &os ) const;

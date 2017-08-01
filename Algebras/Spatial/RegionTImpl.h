@@ -3584,16 +3584,8 @@ void RegionT<Array>::CopyFrom( const RegionT<Array2>* right )
 }
 
 template<template<typename T>class Array>
-int RegionT<Array>::Compare( const Attribute* arg ) const
-{
-  RegionT<Array>* cr = (RegionT<Array>* )(arg);
-  return Compare(cr);
-}
-
-
-template<template<typename T>class Array>
 template<template<typename T2>class Array2>
-int RegionT<Array>::Compare( const RegionT<Array2>* cr ) {
+int RegionT<Array>::Compare( const RegionT<Array2>* cr ) const{
   if ( !cr )
     return -2;
 
@@ -3633,6 +3625,14 @@ int RegionT<Array>::Compare( const RegionT<Array2>* cr ) {
   }
   return 0;
 }
+template<template<typename T>class Array>
+int RegionT<Array>::Compare( const Attribute* arg ) const
+{
+  RegionT<Array>* cr = (RegionT<Array>* )(arg);
+  return Compare(cr);
+}
+
+
 
 template<template<typename T>class Array>
 std::ostream& RegionT<Array>::Print( std::ostream &os ) const
