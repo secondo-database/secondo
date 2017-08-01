@@ -201,6 +201,8 @@ public:
    virtual int getPid();
    virtual bool cancelQuery(int pid);
 
+   std::string getHome();
+
    std::string getHost() const;
 
    std::string getConnectionInfo() const;

@@ -1042,6 +1042,18 @@ int SecondoInterfaceCS::getPid(){
    return server_pid;
 }
 
+
+std::string SecondoInterfaceCS::getHome(){
+   iostream& iosock = server->GetSocketStream();
+   iosock << "<GET_HOME>" << endl;
+   iosock.flush();
+   string line;
+   getline(iosock,line);
+   return line;
+}
+
+
+
 bool SecondoInterfaceCS::cancelQuery(int pid){
    iostream& iosock = server->GetSocketStream();
    iosock << "<CANCEL_QUERY>" << endl;

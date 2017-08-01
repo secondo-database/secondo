@@ -1078,6 +1078,9 @@ virtual bool getFunction(const int algId,
 virtual int getPid() = 0;
 virtual bool cancelQuery(int pid) = 0;
 
+virtual std::string getHome() = 0;
+
+
    void setId(const int i){
       id = i;
    }

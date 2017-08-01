@@ -120,6 +120,7 @@ class SecondoServer : public Application
   void CallSendFileFolder();
   void CallSendFilePath();
   void CallServerPid();
+  void CallGetHome();
   void Connect();
   void Disconnect();
   void WriteResponse( const int errorCode, const int errorPos,
@@ -230,6 +231,14 @@ SecondoServer::CallNumericType()
            << "</SecondoError>" << endl;
   }
 }
+
+
+void SecondoServer::CallGetHome(){
+   iostream& iosock = client->GetSocketStream();
+   iosock << SmiEnvironment::GetSecondoHome() << endl;
+   iosock.flush();
+}
+
 
 void
 SecondoServer::CallGetTypeId()
@@ -626,6 +635,7 @@ SecondoServer::CreateTmpName(const string& prefix)
 }       
 
 
+
 void
 SecondoServer::CallSave(const string& tag, bool database /*=false*/)
 {
@@ -986,6 +996,7 @@ int SecondoServer::Execute() {
   commandTable["<GETLINEARCOSTFUN>"] = &SecondoServer::CallGetLinearCostFun;
   commandTable["<GETCOSTFUN>"] = &SecondoServer::CallGetCostFun;
   commandTable["<CANCEL_QUERY>"] = &SecondoServer::CallCancelQuery;
+  commandTable["<GET_HOME>"] = &SecondoServer::CallGetHome;
   
   string logMsgList = SmiProfile::GetParameter( "Environment", 
                                                 "RTFlags", "", parmFile );

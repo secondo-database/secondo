@@ -2810,3 +2810,9 @@ bool SecondoInterfaceTTY::cancelQuery(int pid) {
     
     return true;
 }
+
+std::string SecondoInterfaceTTY::getHome() {
+  return SmiEnvironment::GetSecondoHome();
+}
+
+

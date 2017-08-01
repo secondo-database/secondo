@@ -180,6 +180,7 @@ public:
 
    virtual int getPid();
    virtual bool cancelQuery(int pid);
+   virtual std::string getHome();
 
 protected:
      virtual void StartCommand();
