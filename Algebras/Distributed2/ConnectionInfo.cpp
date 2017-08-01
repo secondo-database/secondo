@@ -57,6 +57,7 @@ ConnectionInfo::ConnectionInfo(const string& _host,
     sendFolder = "";
     sendPath = "";
     serverPID=0;
+    num = -1; 
     if(si!=0){
       try{
         serverPID = si->getPid();
@@ -120,6 +121,7 @@ string ConnectionInfo::getConfig() const
  1.6 check
 
  Checks whether the remote server is working by sending a simple command.
+ Here, the command is always executed even if the command logger is not null.
 
 */
 bool ConnectionInfo::check(bool showCommands, bool logOn, 
@@ -174,7 +176,8 @@ void ConnectionInfo::simpleCommand(string command1,
                                    double& runtime,
                                    bool showCommands,
                                    bool logOn,
-                                   CommandLog& commandLog)
+                                   CommandLog& commandLog,
+                                   bool forceExec /*=false*/)
 {
     string command;
     if (rewrite)
@@ -190,7 +193,14 @@ void ConnectionInfo::simpleCommand(string command1,
         boost::lock_guard < boost::recursive_mutex > guard(simtx);
         StopWatch sw;
         showCommand(si, host, port, command, true, showCommands);
-        si->Secondo(command, resList, serr);
+        if(!cmdLog || forceExec){
+          si->Secondo(command, resList, serr);
+        } else {
+          cmdLog->insert(this, command);
+          serr.code = 0;
+          serr.msg = "command not evaluated";
+          resList = mynl->TheEmptyList();
+        }
         showCommand(si, host, port, command, false, showCommands);
         runtime = sw.diffSecondsReal();
         err = serr.code;
@@ -279,7 +289,8 @@ bool ConnectionInfo::cleanUp1() {
 */
 bool ConnectionInfo::switchDatabase(const string& dbname,
                                     bool createifnotexists,
-                                    bool showCommands)
+                                    bool showCommands,
+                                    bool forceExec)
 {
     boost::lock_guard < boost::recursive_mutex > guard(simtx);
     ;
@@ -288,20 +299,41 @@ bool ConnectionInfo::switchDatabase(const string& dbname,
     ListExpr resList;
     string cmd = "close database";
     showCommand(si, host, port, cmd, true, showCommands);
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     showCommand(si, host, port, cmd, false, showCommands);
     // create database ignore errors
     if (createifnotexists)
     {
         cmd = "create database " + dbname;
         showCommand(si, host, port, cmd, true, showCommands);
-        si->Secondo(cmd, resList, serr);
+        if(!cmdLog || forceExec){
+           si->Secondo(cmd, resList, serr);
+        } else {
+           cmdLog->insert(this, cmd);
+           resList = mynl->TheEmptyList();
+           serr.code = 0;
+           serr.msg = "command not executed";
+        }
         showCommand(si, host, port, cmd, false, showCommands);
     }
     // open database
     cmd = "open database " + dbname;
     showCommand(si, host, port, cmd, true, showCommands);
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     showCommand(si, host, port, cmd, false, showCommands);
     bool res = serr.code == 0;
     return res;
@@ -322,7 +354,8 @@ void ConnectionInfo::simpleCommand(const string& command1,
                                    double& runtime,
                                    bool showCommands,
                                    bool logOn,
-                                   CommandLog& commandLog)
+                                   CommandLog& commandLog,
+                                   bool forceExec)
 {
 
     string command;
@@ -340,7 +373,14 @@ void ConnectionInfo::simpleCommand(const string& command1,
         ListExpr myResList = mynl->TheEmptyList();
         StopWatch sw;
         showCommand(si, host, port, command, true, showCommands);
-        si->Secondo(command, myResList, serr);
+        if(!cmdLog || forceExec){
+           si->Secondo(command, myResList, serr);
+        } else {
+           cmdLog->insert(this, command);
+           myResList = mynl->TheEmptyList();
+           serr.code = 0;
+           serr.msg = "command not executed";
+        }
         showCommand(si, host, port, command, false, showCommands);
         runtime = sw.diffSecondsReal();
         if (logOn)
@@ -371,7 +411,8 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
                                            double& runtime,
                                            bool showCommands,
                                            bool logOn,
-                                           CommandLog& commandLog)
+                                           CommandLog& commandLog,
+                                           bool forceExec)
 {
 
     string command;
@@ -397,7 +438,14 @@ void ConnectionInfo::simpleCommandFromList(const string& command1,
     ListExpr myResList = mynl->TheEmptyList();
     StopWatch sw;
     showCommand(si, host, port, command, true, showCommands);
-    si->Secondo(cmd, myResList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, myResList, serr);
+    } else {
+       cmdLog->insert(this, mynl->ToString(cmd));
+       myResList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     showCommand(si, host, port, command, false, showCommands);
     runtime = sw.diffSecondsReal();
     if (logOn)
@@ -436,7 +484,8 @@ void ConnectionInfo::simpleCommand(const string& command1,
                                    double& runtime,
                                    bool showCommands,
                                    bool logOn,
-                                   CommandLog& commandLog)
+                                   CommandLog& commandLog,
+                                   bool forceExec)
 {
 
     string command;
@@ -453,7 +502,14 @@ void ConnectionInfo::simpleCommand(const string& command1,
     ListExpr myResList = mynl->TheEmptyList();
     StopWatch sw;
     showCommand(si, host, port, command, true, showCommands);
-    si->Secondo(command, myResList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(command, resList, serr);
+    } else {
+       cmdLog->insert(this, command);
+       myResList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     showCommand(si, host, port, command, false, showCommands);
     runtime = sw.diffSecondsReal();
     if (logOn)
@@ -610,7 +666,8 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
                                           Word& value,
                                           bool showCommands,
                                           bool logOn,
-                                          CommandLog& commandLog)
+                                          CommandLog& commandLog,
+                                          bool forceExec)
 {
     if (Relation::checkType(typelist))
     {
@@ -624,7 +681,14 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
     string cmd = "delete " + name;
     showCommand(si, host, port, cmd, true, showCommands);
     StopWatch sw;
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     double runtime = sw.diffSecondsReal();
     if (logOn)
     {
@@ -641,7 +705,14 @@ bool ConnectionInfo::createOrUpdateObject(const string& name,
     cmd = "restore " + name + " from '" + filename + "'";
     showCommand(si, host, port, cmd, true, showCommands);
     sw.start();
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     runtime = sw.diffSecondsReal();
     if (logOn)
     {
@@ -665,7 +736,8 @@ bool ConnectionInfo::createOrUpdateRelation(const string& name,
                                             Word& value,
                                             bool showCommands,
                                             bool logOn,
-                                            CommandLog& commandLog)
+                                            CommandLog& commandLog,
+                                            bool forceExec)
 {
 
     // write relation to a file
@@ -677,7 +749,8 @@ bool ConnectionInfo::createOrUpdateRelation(const string& name,
     }
     // restore remote relation from local file
     bool ok = createOrUpdateRelationFromBinFile(name, filename, 
-                                   showCommands, logOn, commandLog);
+                                   showCommands, logOn, commandLog,
+                                   forceExec);
     // remove temporarly file
     FileSystem::DeleteFileOrFolder(filename);
     return ok;
@@ -696,7 +769,8 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
                                                      bool showCommands,
                                                      bool logOn,
                                                      CommandLog& commandLog,
-                                                     const bool allowOverwrite)
+                                                     const bool allowOverwrite,
+                                                     bool forceExec)
 {
     boost::lock_guard < boost::recursive_mutex > guard(simtx);
 
@@ -720,7 +794,14 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
     {
         showCommand(si, host, port, cmd, true, showCommands);
         StopWatch sw;
-        si->Secondo(cmd, resList, serr);
+        if(!cmdLog || forceExec){
+           si->Secondo(cmd, resList, serr);
+        } else {
+           cmdLog->insert(this, cmd);
+           resList = mynl->TheEmptyList();
+           serr.code = 0;
+           serr.msg = "command not executed";
+        }
         double runtime = sw.diffSecondsReal();
         if (logOn)
         {
@@ -735,7 +816,14 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
 
     showCommand(si, host, port, cmd, true, showCommands);
     StopWatch sw;
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     double runtime = sw.diffSecondsReal();
     if (logOn)
     {
@@ -749,7 +837,14 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const string& name,
 
     cmd = "query removeFile('" + rfilename + "')";
     sw.start();
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     runtime = sw.diffSecondsReal();
     if (logOn)
     {
@@ -773,7 +868,8 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
                                                      bool showCommands,
                                                      bool logOn,
                                                      CommandLog& commandLog,
-                                                     const bool allowOverwrite)
+                                                     const bool allowOverwrite,
+                                                     bool forceExec)
 {
     boost::lock_guard < boost::recursive_mutex > guard(simtx);
 
@@ -797,7 +893,14 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
     {
         showCommand(si, host, port, cmd, true, showCommands);
         StopWatch sw;
-        si->Secondo(cmd, resList, serr);
+        if(!cmdLog || forceExec){
+           si->Secondo(cmd, resList, serr);
+        } else {
+           cmdLog->insert(this, cmd);
+           resList = mynl->TheEmptyList();
+           serr.code = 0;
+           serr.msg = "command not executed";
+        }
         double runtime = sw.diffSecondsReal();
         if (logOn)
         {
@@ -812,7 +915,14 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
 
     showCommand(si, host, port, cmd, true, showCommands);
     StopWatch sw;
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     double runtime = sw.diffSecondsReal();
     if (logOn)
     {
@@ -826,7 +936,14 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const string& name,
 
     cmd = "query removeFile('" + rfilename + "')";
 
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
 
     return ok;
 }
@@ -918,7 +1035,8 @@ bool ConnectionInfo::retrieve(const string& objName,
                               bool checkType,
                               bool showCommands,
                               bool logOn,
-                              CommandLog& commandLog)
+                              CommandLog& commandLog,
+                              bool forceExec)
 {
     boost::lock_guard < boost::recursive_mutex > guard(simtx);
     if (Relation::checkType(resType))
@@ -937,7 +1055,14 @@ bool ConnectionInfo::retrieve(const string& objName,
     string cmd = "query " + objName;
     showCommand(si, host, port, cmd, true, showCommands);
     StopWatch sw;
-    si->Secondo(cmd, myResList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, myResList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       myResList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     double runtime = sw.diffSecondsReal();
     if (logOn)
     {
@@ -994,11 +1119,13 @@ bool ConnectionInfo::retrieveRelation(const string& objName,
                                       Word& result,
                                       bool showCommands,
                                       bool logOn,
-                                      CommandLog& commandLog)
+                                      CommandLog& commandLog,
+                                      bool forceExec)
 {
 
     string fname1 = objName + ".bin";
-    if (!retrieveRelationFile(objName, fname1, showCommands, logOn, commandLog))
+    if (!retrieveRelationFile(objName, fname1, showCommands, logOn, 
+                              commandLog, forceExec))
     {
         return false;
     }
@@ -1018,7 +1145,8 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
                                             Word& result,
                                             bool showCommands,
                                             bool logOn,
-                                            CommandLog& commandLog)
+                                            CommandLog& commandLog,
+                                            bool forceExec)
 {
     boost::lock_guard < boost::recursive_mutex > guard(simtx);
     result.addr = 0;
@@ -1045,7 +1173,14 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
     ListExpr resList;
     showCommand(si, host, port, cmd, true, showCommands);
     StopWatch sw;
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     double runtime = sw.diffSecondsReal();
     if (logOn)
     {
@@ -1087,7 +1222,14 @@ bool ConnectionInfo::retrieveRelationInFile(const string& fileName,
     cmd = "query removeFile('" + rfpath + base + ".tmp' )";
     showCommand(si, host, port, cmd, true, showCommands);
     sw.start();
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     runtime = sw.diffSecondsReal();
     if (logOn)
     {
@@ -1114,7 +1256,8 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
                                           const string& fname1,
                                           bool showCommands,
                                           bool logOn,
-                                          CommandLog& commandLog)
+                                          CommandLog& commandLog,
+                                          bool forceExec)
 {
     boost::lock_guard < boost::recursive_mutex > guard(simtx);
 
@@ -1126,7 +1269,14 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
             + "', TRUE) ";
     showCommand(si, host, port, cmd, true, showCommands);
     StopWatch sw;
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     double runtime = sw.diffSecondsReal();
     if (logOn)
     {
@@ -1145,7 +1295,14 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
     cmd = "query " + objName + " feed fconsume5['" + rfname + "'] count";
     showCommand(si, host, port, cmd, true, showCommands);
     sw.start();
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     runtime = sw.diffSecondsReal();
     if (logOn)
     {
@@ -1169,7 +1326,14 @@ bool ConnectionInfo::retrieveRelationFile(const string& objName,
     cmd = "query removeFile('" + rfname + "')";
     showCommand(si, host, port, cmd, true, showCommands);
     sw.start();
-    si->Secondo(cmd, resList, serr);
+    if(!cmdLog || forceExec){
+       si->Secondo(cmd, resList, serr);
+    } else {
+       cmdLog->insert(this, cmd);
+       resList = mynl->TheEmptyList();
+       serr.code = 0;
+       serr.msg = "command not executed";
+    }
     runtime = sw.diffSecondsReal();
     if (logOn)
     {
@@ -1192,7 +1356,8 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
                                      const string& localName,
                                      bool showCommands,
                                      bool logOn,
-                                     CommandLog& commandLog)
+                                     CommandLog& commandLog,
+                                     bool forceExec)
 {
     string rf = getRequestFolder();
     bool copyRequired = !stringutils::startsWith(remoteName, rf);
@@ -1209,7 +1374,7 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
         // create request dir
         string cmd = "query createDirectory('" + rf + "', TRUE)";
         simpleCommand(cmd, err, errMsg, result, false, rt, 
-                      showCommands, logOn, commandLog);
+                      showCommands, logOn, commandLog, forceExec);
         if (err)
         {
             showError(this, cmd, err, errMsg);
@@ -1221,7 +1386,7 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
                   + "/" + rf + "/" + cn;
         cmd = "query copyFile('" + remoteName + "','" + cf + "')";
         simpleCommand(cmd, err, errMsg, result, false, rt, showCommands, 
-                      logOn, commandLog);
+                      logOn, commandLog, forceExec);
         if (err)
         {
             cerr << "command " << cmd << " failed" << endl;
@@ -1256,7 +1421,7 @@ bool ConnectionInfo::retrieveAnyFile(const string& remoteName,
         // remove copy
         string cmd = "query removeFile('" + cn + "')";
         simpleCommand(cmd, err, errMsg, result, false, rt, showCommands, 
-                      logOn, commandLog);
+                      logOn, commandLog, forceExec);
         if (err)
         {
             cerr << "command " << cmd << " failed" << endl;
@@ -1326,27 +1491,7 @@ ostream& ConnectionInfo::print(ostream& o) const
 void ConnectionInfo::retrieveSecondoHome(bool showCommands,
                                          CommandLog& commandLog)
 {
-    string cmd = "query secondoHome()";
-    int err;
-    string errmsg;
-    ListExpr result;
-    double rt;
-    simpleCommand(cmd, err, errmsg, result, false, rt, 
-                  false /*log*/, showCommands, commandLog);
-    if (err != 0)
-    {
-        cerr << "command " << cmd << " failed" << endl;
-        cerr << err << " : " << errmsg << endl;
-        return;
-    }
-    if (!nl->HasLength(result, 2)
-            || nl->AtomType(nl->Second(result)) != TextType)
-    {
-        cerr << "invalid result for secondoHome() query " << endl;
-        cerr << nl->ToString(result);
-        return;
-    }
-    secondoHome = nl->Text2String(nl->Second(result));
+   secondoHome = si?si->getHome():"";
 }
 
 std::ostream& operator<<(std::ostream& o, const ConnectionInfo& sc)

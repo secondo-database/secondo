@@ -61,6 +61,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileRelations.h"
 #include "FileAttribute.h"
 #include "CommandLog.h"
+#include "CommandLogger.h"
 
 namespace distributed2
 {
@@ -100,7 +101,8 @@ public:
                        double& runtime,
                        bool showCommands,
                        bool logOn,
-                       CommandLog& commandLog);
+                       CommandLog& commandLog,
+                       bool forceExec = false);
 
     std::string getSecondoHome(bool showCommands,
                                CommandLog& commandLog);
@@ -113,7 +115,8 @@ public:
 
     bool switchDatabase(const std::string& dbname,
                         bool createifnotexists,
-                        bool showCommands);
+                        bool showCommands,
+                        bool forceExec = false);
 
     void simpleCommand(const std::string& command1,
                        int& error,
@@ -123,7 +126,8 @@ public:
                        double& runtime,
                        bool log,
                        bool showCommands,
-                       CommandLog& commandLog);
+                       CommandLog& commandLog,
+                       bool forceExec = false);
 
     void simpleCommandFromList(const std::string& command1,
                                int& error,
@@ -133,7 +137,8 @@ public:
                                double& runtime,
                                bool showCommands,
                                bool logOn,
-                               CommandLog& commandLog);
+                               CommandLog& commandLog,
+                               bool forceExec = false);
 
     void simpleCommand(const std::string& command1,
                        int& error,
@@ -143,7 +148,8 @@ public:
                        double& runtime,
                        bool showCommands,
                        bool logOn,
-                       CommandLog& commandLog);
+                       CommandLog& commandLog,
+                       bool forceExec = false);
 
     int serverPid();
 
@@ -170,28 +176,32 @@ public:
                               Word& value,
                               bool showCommands,
                               bool logOn,
-                              CommandLog& commandLog);
+                              CommandLog& commandLog,
+                              bool forceExec = false);
 
     bool createOrUpdateRelation(const std::string& name,
                                 ListExpr typeList,
                                 Word& value,
                                 bool showCommands,
                                 bool logOn,
-                                CommandLog& commandLog);
+                                CommandLog& commandLog,
+                                bool forceExec = false);
 
     bool createOrUpdateRelationFromBinFile(const std::string& name,
                                            const std::string& filename,
                                            bool showCommands,
                                            bool logOn,
                                            CommandLog& commandLog,
-                                           const bool allowOverwrite = true);
+                                           const bool allowOverwrite = true,
+                                           bool forceExec = false);
 
     bool createOrUpdateAttributeFromBinFile(const std::string& name,
                                             const std::string& filename,
                                             bool showCommands,
                                             bool logOn,
                                             CommandLog& commandLog,
-                                            const bool allowOverwrite = true);
+                                            const bool allowOverwrite = true,
+                                            bool forceExec = false);
 
     bool saveRelationToFile(ListExpr relType,
                             Word& value,
@@ -211,37 +221,54 @@ public:
                   bool checkType,
                   bool showCommands,
                   bool logOn,
-                  CommandLog& commandLog);
+                  CommandLog& commandLog,
+                  bool forceExec = false);
 
     bool retrieveRelation(const std::string& objName,
                           ListExpr& resType,
                           Word& result,
                           bool showCommands,
                           bool logOn,
-                          CommandLog& commandLog);
+                          CommandLog& commandLog,
+                          bool forceExec = false);
 
     bool retrieveRelationInFile(const std::string& fileName,
                                 ListExpr& resType,
                                 Word& result,
                                 bool showCommands,
                                 bool logOn,
-                                CommandLog& commandLog);
+                                CommandLog& commandLog,
+                                bool forceExec = false);
 
     bool retrieveRelationFile(const std::string& objName,
                               const std::string& fname1,
                               bool showCommands,
                               bool logOn,
-                              CommandLog& commandLog);
+                              CommandLog& commandLog,
+                              bool forceExec = false);
 
     bool retrieveAnyFile(const std::string& remoteName,
                          const std::string& localName,
                          bool showCommands,
                          bool logOn,
-                         CommandLog& commandLog);
+                         CommandLog& commandLog,
+                         bool forceExec = false);
     Word createRelationFromFile(const std::string& fname, ListExpr& resType);
 
     std::ostream& print(std::ostream& o) const;
 
+
+    void setLogger(CommandLogger* cmdlog){
+      this->cmdLog = cmdlog;
+    }
+
+    void setNum(const int num){
+       this->num = num;
+    }
+
+    int getNum() const{
+      return num;
+    }
 
 private:
     void retrieveSecondoHome(bool showCommands,
@@ -259,6 +286,11 @@ private:
     std::string sendPath;
     boost::recursive_mutex simtx; // mutex for synchronizing 
                                   // access to the interface
+    CommandLogger* cmdLog;  // if this is nor null, commands are
+                         // written to log instead of sending
+                         // to the server
+    int num; // some number that can be used to store additional information
+
 };
 
 std::ostream& operator<<(std::ostream& o, const ConnectionInfo& sc);

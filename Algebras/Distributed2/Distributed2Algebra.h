@@ -268,7 +268,8 @@ connections coming from darray elements.
 
 */
     ConnectionInfo* getWorkerConnection(const DArrayElement& info,
-                                        const std::string& dbname);
+                                        const std::string& dbname,
+                                        CommandLogger* log = 0);
 
 /*
 ~getDBName~

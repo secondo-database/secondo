@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileTransferClient.h"
 #include "FileTransferKeywords.h"
 #include "SocketIO.h"
+#include "CommandLogger.h"
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
@@ -605,7 +606,9 @@ bool Distributed2Algebra::serverExists(int s){
 
   ConnectionInfo* Distributed2Algebra::getWorkerConnection(
                                        const DArrayElement& info,
-                                       const string& dbname ){
+                                       const string& dbname,
+                                       CommandLogger* log ){
+
      boost::lock_guard<boost::mutex> guard(workerMtx);
      map<DArrayElement, pair<string, ConnectionInfo*> >::iterator it;
      it = workerconnections.find(info);
@@ -619,6 +622,8 @@ bool Distributed2Algebra::serverExists(int s){
      } else {
          pr = it->second;
      }
+     pr.second->setLogger(log);
+     pr.second->setNum(info.getNum());
      string wdbname = dbname;
      if(pr.first!=wdbname){
          if(!pr.second->switchDatabase(wdbname,true, showCommands)){
@@ -11037,18 +11042,19 @@ template<class A>
 class Mapper{
  public: 
    Mapper(A* _array, ListExpr _aType, CcString* _name, FText* _funText ,
-          bool _isRel, bool _isStream, void* res):
+          bool _isRel, bool _isStream, void* res,
+          CommandLogger* _log):
           array(_array), aType(_aType), ccname(_name), 
           funText(_funText), isRel(_isRel),
-          isStream(_isStream) {
+          isStream(_isStream), log(_log) {
 
        dbname = SecondoSystem::GetInstance()->GetDatabaseName();
        if(isRel || isStream){
-         dfarray = (DFArray*) res;
+         dfarray = !log?(DFArray*) res:(DFArray*)1;
          darray = 0; 
        } else {
          dfarray = 0;
-         darray = (DArray*) res;
+         darray = !log?(DArray*) res:(DArray*)1;
        }
    }
 
@@ -11067,6 +11073,7 @@ class Mapper{
     FText* funText;
     bool isRel;
     bool isStream;
+    CommandLogger* log;
     DFArray* dfarray;
     DArray* darray;
     string name;
@@ -11075,11 +11082,17 @@ class Mapper{
 
     void startDArray(){
        if(!array->IsDefined()){
-         darray->makeUndefined();
+         if(!log){
+            darray->makeUndefined();
+         }
+         return;
        }
        *darray = (*array);
        if(array->numOfWorkers()<1){
-         darray->makeUndefined();
+         if(!log){
+             darray->makeUndefined();
+         }
+         return;
        }
        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
        if(!ccname->IsDefined() || ccname->GetValue().length()==0){
@@ -11089,10 +11102,14 @@ class Mapper{
           name = ccname->GetValue();
        }
        if(!stringutils::isIdent(name)){
-           darray->makeUndefined();
+           if(!log){
+              darray->makeUndefined();
+           }
            return;
        }
-       darray->setName(name);
+       if(!log){
+          darray->setName(name);
+       }
        if(array->getSize()<1){
           // no slots -> nothing to do
           return;
@@ -11103,6 +11120,7 @@ class Mapper{
        for( size_t i=0;i< array->getSize();i++){
           ConnectionInfo* ci = algInstance->getWorkerConnection(
                                  array->getWorkerForSlot(i), dbname);
+          ci->setLogger(log);
           dRun* r = new dRun(ci,dbname, i, this);
           w.push_back(r);
           boost::thread* runner = new boost::thread(&dRun::run, r);
@@ -11114,19 +11132,29 @@ class Mapper{
           delete runners[i];
           delete w[i];
        }
-       
+       for( size_t i=0;i< array->getSize();i++){
+          ConnectionInfo* ci = algInstance->getWorkerConnection(
+                                 array->getWorkerForSlot(i), dbname);
+          ci->setLogger(0);
+       }
     }
 
 
     void startDFArray(){
        if(!array->IsDefined()){
-           dfarray->makeUndefined();
+           if(!log){
+              dfarray->makeUndefined();
+           }
            return;
        }
-      *dfarray = *array;
+       if(!log){
+          *dfarray = *array;
+       }
        
        if(array->numOfWorkers()<1){
-          dfarray->makeUndefined();
+          if(!log){
+             dfarray->makeUndefined();
+          }
           return;
        }
 
@@ -11140,10 +11168,14 @@ class Mapper{
 
 
        if(!stringutils::isIdent(name)){
-           dfarray->makeUndefined();
+           if(!log){
+               dfarray->makeUndefined();
+           }
            return;
        }
-       dfarray->setName(name);
+       if(!log){
+          dfarray->setName(name);
+       }
        if(array->getSize()<1){
           return;
        }
@@ -11152,7 +11184,8 @@ class Mapper{
        vector<boost::thread*> runners;
        for( size_t i=0;i< array->getSize();i++){
           ConnectionInfo* ci = algInstance->getWorkerConnection(
-                                 array->getWorkerForSlot(i), dbname);
+                                 array->getWorkerForSlot(i), dbname, log);
+          ci->setLogger(log);
           fRun* r = new fRun(ci,dbname, i, this);
           w.push_back(r);
           boost::thread* runner = new boost::thread(&fRun::run, r);
@@ -11162,6 +11195,11 @@ class Mapper{
           runners[i]->join();
           delete runners[i];
           delete w[i];
+       }
+       for( size_t i=0;i< array->getSize();i++){
+          ConnectionInfo* ci = algInstance->getWorkerConnection(
+                                 array->getWorkerForSlot(i), dbname);
+          ci->setLogger(0);
        }
     }
 
@@ -11303,7 +11341,6 @@ class Mapper{
         string dbname;
         size_t nr;
         Mapper* mapper;
-
     };
 };
 
@@ -11318,11 +11355,30 @@ int dmapVMT(Word* args, Word& result, int message,
   bool isRel = ((CcBool*) args[4].addr)->GetValue();
   bool isStream = ((CcBool*) args[5].addr)->GetValue();
   Mapper<A> mapper(array, qp->GetType(qp->GetSon(s,0)), name, funText, 
-                   isRel, isStream, result.addr);
+                   isRel, isStream, result.addr, 0);
   mapper.start();
   return 0;
 }
 
+template<class A>
+void dmapcommandsVMT(Word* args, Supplier s, CommandLogger* log ){
+  A* array = (A*) args[0].addr;
+  CcString* name = (CcString*) args[1].addr;
+   // ignore original fun at args[2];
+  FText* funText = (FText*) args[3].addr;
+  bool isRel = ((CcBool*) args[4].addr)->GetValue();
+  bool isStream = ((CcBool*) args[5].addr)->GetValue();
+  Mapper<A> mapper(array, qp->GetType(qp->GetSon(s,0)), name, funText, 
+                   isRel, isStream, 0, log);
+  mapper.start();
+}
+
+// explicit instantiation
+template
+void dmapcommandsVMT<DArray>(Word*,Supplier,CommandLogger*);
+
+template
+void dmapcommandsVMT<DFArray>(Word*,Supplier,CommandLogger*);
 
 ValueMapping dmapVM[] = {
    dmapVMT<DArray>,
