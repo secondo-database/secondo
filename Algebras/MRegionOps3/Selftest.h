@@ -145,6 +145,13 @@ namespace temporalalgebra {
       
       void ResultUnitTest2();
       
+      void CriticalMSegmentTest1();
+      
+      void UnitTest2();
+      
+      void PFaceTest9();
+      
+      
       void assert_(std::string test,  std::string message, bool success);
       
       int numberOfTestsRun;

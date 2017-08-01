@@ -131,6 +131,18 @@ namespace temporalalgebra{
              NumericUtil::nearlyEqual(this->z, point.z);
     }// Operator ==
     
+    bool Point3D::operator <(const Point3D& point) const {
+      if (NumericUtil::lower(x, point.x))
+        return true;
+      if (NumericUtil::greater(x, point.x))
+        return false;   
+      if (NumericUtil::lower(y, point.y))
+        return true;
+      if (NumericUtil::greater(y, point.y))
+        return false; 
+      return NumericUtil::lower(z, point.z);
+    }// Operatot <
+    
     Point3D& Point3D::operator =(const Point3D& point){
       set(point);
       return *this;

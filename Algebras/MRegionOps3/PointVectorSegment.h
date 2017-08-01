@@ -111,7 +111,8 @@ It's components are represented by three double values.
 
 */
       bool operator !=(const Point3D& point) const;
-      bool operator ==(const Point3D& point) const;   
+      bool operator ==(const Point3D& point) const;
+      bool operator <(const Point3D& point) const;
 /*
 3.3.2 operator =
     
@@ -174,7 +175,7 @@ It's components are represented by three rational values.
 
 */
       bool operator !=(const RationalPoint3D& point) const;
-      bool operator ==(const RationalPoint3D& point) const;   
+      bool operator ==(const RationalPoint3D& point) const; 
 /*
 4.3.2 operator =   
 
