@@ -25,6 +25,7 @@ import gui.ViewerControl;
 import gui.idmanager.ID;
 import gui.idmanager.IDManager;
 
+import java.awt.BasicStroke;
 import java.awt.AlphaComposite;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -2748,6 +2749,7 @@ public class HoeseViewer extends SecondoViewer {
 											// painted ?
 		private boolean isEnabled = false;
 		private boolean selectionEnabled = true;
+                private BasicStroke rstroke = new BasicStroke(6.0f);
 
 		public void drawRectangle() {
 			if (!isEnabled)
@@ -2757,7 +2759,8 @@ public class HoeseViewer extends SecondoViewer {
 			int y1 = startY;
 			int y2 = targetY;
 			Graphics2D G = (Graphics2D) GraphDisplay.getGraphics();
-			G.setXORMode(Color.white);
+			G.setXORMode(Color.WHITE);
+                        G.setStroke(rstroke);
 			int x = Math.min(x1, x2);
 			int w = Math.abs(x1 - x2);
 			int y = Math.min(y1, y2);
