@@ -503,7 +503,7 @@ void ConnectionInfo::simpleCommand(const string& command1,
     StopWatch sw;
     showCommand(si, host, port, command, true, showCommands);
     if(!cmdLog || forceExec){
-       si->Secondo(command, resList, serr);
+       si->Secondo(command, myResList, serr);
     } else {
        cmdLog->insert(this, command);
        myResList = mynl->TheEmptyList();
