@@ -11087,7 +11087,9 @@ class Mapper{
          }
          return;
        }
-       *darray = (*array);
+       if(!log){ 
+          *darray = (*array);
+       }
        if(array->numOfWorkers()<1){
          if(!log){
              darray->makeUndefined();
