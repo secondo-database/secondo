@@ -70,6 +70,7 @@ in a R-Tree. A new datatype is not given but there are some operators:
 #include "BTreeAlgebra.h"
 #include "TBTree.h"
 #include "ListUtils.h"
+#include "Stream.h"
 #include "CoverInterval.h"
 #include "AlmostEqual.h"
 #include "Symbols.h"
@@ -559,185 +560,70 @@ ListExpr distanceScan4TypeMap(ListExpr args){
 The function knearestTypeMap is the type map for the operator knearest
 
 */
+template<bool allowZone>
 ListExpr KnearestTypeMap( ListExpr args )
 {
-  string msg = "stream x attrname x mpoint x int expected";
-
-  if(!(nl->ListLength(args)==4 || nl->ListLength(args)==5)){
-    ErrorReporter::ReportError(msg + "(invalid number of arguments");
-    return nl->TypeError();
+  string msg = "stream x attrname x mpoint x int ";
+  if(allowZone){
+     msg += "[x int] expected";
+  } else {
+     msg += "expected";
   }
 
-  if(nl->ListLength(args) == 4){
-    ListExpr stream = nl->First(args);
-    ListExpr attrName = nl->Second(args);
-    ListExpr mpoint = nl->Third(args);
-    ListExpr card = nl->Fourth(args);
-
-    if(!IsStreamDescription(stream)){
-      ErrorReporter::ReportError(msg+" (first arg is not a stream)");
-      return nl->TypeError();
-    }
-
-    if(!nl->IsEqual(mpoint,MPoint::BasicType())){
-      ErrorReporter::ReportError(msg+" (third arg is not an mpoint)");
-      return nl->TypeError();
-    }
-
-    if(!nl->IsEqual(card,CcInt::BasicType())){
-      ErrorReporter::ReportError(msg+" (fourth arg is not an int)");
-      return nl->TypeError();
-    }
-
-    if(nl->AtomType(attrName)!=SymbolType){
-      ErrorReporter::ReportError(msg+" (second arg is not an attrname)");
-      return nl->TypeError();
-    }
-
-    int j;
-    ListExpr attrType;
-    j = FindAttribute(nl->Second(nl->Second(stream)),
-                    nl->SymbolValue(attrName),attrType);
-
-    if(j==0) {
-      ErrorReporter::ReportError(msg+" (attrName not found in attributes)");
-      return nl->TypeError();
-    }
-
-    if(!nl->IsEqual(attrType,UPoint::BasicType())){
-      ErrorReporter::ReportError(msg+" (attrName does not refer to an upoint)");
-      return nl->TypeError();
-    }
-
-
-    return
-        nl->ThreeElemList(
-            nl->SymbolAtom(Symbol::APPEND()),
-            nl->OneElemList(nl->IntAtom(j)),
-          stream);
-  }else if(nl->ListLength(args) == 5){
-  
-   ListExpr stream = nl->First(args);
-    ListExpr attrName = nl->Second(args);
-    ListExpr mpoint = nl->Third(args);
-    ListExpr card = nl->Fourth(args);
-
-    ListExpr zone = nl->Fifth(args);
-    
-    if(!IsStreamDescription(stream)){
-      ErrorReporter::ReportError(msg+" (first arg is not a stream)");
-      return nl->TypeError();
-    }
-
-    if(!nl->IsEqual(mpoint,MPoint::BasicType())){
-      ErrorReporter::ReportError(msg+" (third arg is not an mpoint)");
-      return nl->TypeError();
-    }
-
-    if(!nl->IsEqual(card,CcInt::BasicType())){
-      ErrorReporter::ReportError(msg+" (fourth arg is not an int)");
-      return nl->TypeError();
-    }
-
-    if(nl->AtomType(attrName)!=SymbolType){
-      ErrorReporter::ReportError(msg+" (second arg is not an attrname)");
-      return nl->TypeError();
-    }
-
-    int j;
-    ListExpr attrType;
-    j = FindAttribute(nl->Second(nl->Second(stream)),
-                    nl->SymbolValue(attrName),attrType);
-
-    if(j==0) {
-      ErrorReporter::ReportError(msg+" (attrName not found in attributes)");
-      return nl->TypeError();
-    }
-
-    if(!nl->IsEqual(attrType,UPoint::BasicType())){
-      ErrorReporter::ReportError(msg+" (attrName does not refer to an upoint)");
-      return nl->TypeError();
-    }
-
-    
-    if(!nl->IsEqual(zone,CcInt::BasicType())){
-      ErrorReporter::ReportError(msg+" (fifth arg is not an int)");
-      return nl->TypeError();
-    }
-    
-    return
-        nl->ThreeElemList(
-            nl->SymbolAtom(Symbol::APPEND()),
-            nl->OneElemList(nl->IntAtom(j)),
-          stream);
-          
-  
-  }else{
-    assert(false);
+  int len = nl->ListLength(args);
+  if(len !=4 && len!=5){
+    return listutils::typeError(msg + "(invalid number of arguments)");
   }
-  
-}
-
-
-/*
-The function knearestTypeMap is the type map for the operator knearest
-
-*/
-ListExpr knearestTypeMap( ListExpr args )
-{
-  string msg = "stream x attrname x mpoint x int expected";
-  if(nl->ListLength(args)!=4){
-    ErrorReporter::ReportError(msg + "(invalid number of arguments");
-    return nl->TypeError();
-  }
+  if(!allowZone && len!=4){
+    return listutils::typeError(msg + "(invalid number of arguments)");
+  } 
 
   ListExpr stream = nl->First(args);
   ListExpr attrName = nl->Second(args);
   ListExpr mpoint = nl->Third(args);
   ListExpr card = nl->Fourth(args);
 
-  if(!IsStreamDescription(stream)){
-    ErrorReporter::ReportError(msg+" (first arg is not a stream)");
-    return nl->TypeError();
+  if(!Stream<Tuple>::checkType(stream)){
+     return listutils::typeError(msg+" (first arg is not a stream)");
   }
-
-  if(!nl->IsEqual(mpoint,MPoint::BasicType())){
-    ErrorReporter::ReportError(msg+" (third arg is not an mpoint)");
-    return nl->TypeError();
+  if(!MPoint::checkType(mpoint)){
+      return listutils::typeError(msg+" (third arg is not an mpoint)");
   }
-
-  if(!nl->IsEqual(card,CcInt::BasicType())){
-    ErrorReporter::ReportError(msg+" (fourth arg is not an int)");
-    return nl->TypeError();
+  if(!CcInt::checkType(card)){
+     return listutils::typeError(msg+" (fourth arg is not an int)");
   }
-
   if(nl->AtomType(attrName)!=SymbolType){
-    ErrorReporter::ReportError(msg+" (second arg is not an attrname)");
-    return nl->TypeError();
+     return listutils::typeError(msg+" (second arg is not an attrname)");
   }
 
   int j;
   ListExpr attrType;
+  string attr = nl->SymbolValue(attrName);
   j = FindAttribute(nl->Second(nl->Second(stream)),
-                    nl->SymbolValue(attrName),attrType);
+                    attr,attrType);
 
   if(j==0) {
-    ErrorReporter::ReportError(msg+" (attrName not found in attributes)");
-    return nl->TypeError();
+      return listutils::typeError(msg+" (attrName " + attr 
+                                  + "not found in attributes)");
+  }
+  if(!UPoint::checkType(attrType)){
+    return listutils::typeError(msg+" (attrName " + attr
+                                + "  does not refer to an upoint)");
   }
 
-  if(!nl->IsEqual(attrType,UPoint::BasicType())){
-    ErrorReporter::ReportError(msg+" (attrName does not refer to an upoint)");
-    return nl->TypeError();
+  if(len==5){ // zone given 
+     ListExpr zone = nl->Fifth(args);
+     if(!CcInt::checkType(zone)){
+       return listutils::typeError(msg + " (fifth argument is not an int)");
+     }
   }
-
-
-  return
-    nl->ThreeElemList(
-      nl->SymbolAtom(Symbol::APPEND()),
-      nl->OneElemList(nl->IntAtom(j)),
-      stream);
+  return nl->ThreeElemList(
+            nl->SymbolAtom(Symbol::APPEND()),
+            nl->OneElemList(nl->IntAtom(j)),
+            stream);
 }
+
+
 /*
 The function knearestdistTypeMap is the type map for the operator knearestdist
 
@@ -1123,21 +1009,6 @@ int knearestdistSelect(ListExpr args)
 
 }
 
-int KnearestSelect(ListExpr args)
-{
-
-  if(nl->ListLength(args) == 4){
-    return 0;
-  }
-
-  if(nl->ListLength(args) == 5){
-    return 1;
-  }
-
-  return -1;
-
-
-}
 /*
 2.3 Value Mapping Functions
 
@@ -2670,6 +2541,16 @@ double CalcDistance( const MReal *mr, Instant t, double &slope)
       return erg;
     }
   }
+
+  cout << "Try to compute the value and the slope for an mreal failed" << endl;
+  if( noCo==0){
+     cout << "The moving real does not contain units " << endl;
+  } else {
+     mr->Get(noCo-1,ur);
+     cout << "time is " << t << endl;
+     cout << "last Unit is " << ur << endl;  
+  }
+  assert(false);
   return -1;
 }
 
@@ -3108,11 +2989,14 @@ IT findActiveElem( NNTree<ActiveElem> &t, MReal *distance,
 {
   double slope1, slope2;
   double dist = CalcDistance(distance,time,slope1);
+
   IT it = t.root();
   bool havePos = false;
   while( !havePos && it != t.end())
   {
+
     double storeDistance = CalcDistance(it->distance,time,slope2);
+
     if( dist < storeDistance
       || (dist == storeDistance && slope1 < slope2))
     {
@@ -3280,110 +3164,16 @@ public:
    KNearestQueue(Word& src, QueryProcessor* qp1,
                  int pos1, const MPoint* mpoint1):
         stream(src),qp(qp1),pos(pos1),mpoint(mpoint1), mpos(0){
-          
       zone_flag = false;
-
-     if(!mpoint->IsDefined() || mpoint->IsEmpty()){
-       lastTuple = 0;
-       return;
-     }
-     UPoint tmp;
-     mpoint->Get(0,tmp);
-     Instant tmpstart = tmp.timeInterval.start;
-     bool lc = tmp.timeInterval.lc;
-     mpoint->Get(mpoint->GetNoComponents()-1, tmp);
-     Instant tmpend = tmp.timeInterval.end;
-     bool rc = tmp.timeInterval.rc;
-
-     iv = Interval<Instant>(tmpstart, tmpend,lc,rc);
-
-     Word current(Address(0));
-
-     qp->Request(stream.addr,current);
-
-     if(!qp->Received(stream.addr)){ // stream is empty
-       lastTuple = 0;
-       return;
-     }
-
-     bool finished = false;
-     while(!finished){
-        lastTuple = static_cast<Tuple*>(current.addr);
-        UPoint* up = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
-        tupleStart = up->timeInterval.start;
-        Instant tupleEnd(up->timeInterval.end);
-        if(up->timeInterval.end <= iv.start){
-          lastTuple->DeleteIfAllowed();
-          lastTuple = 0;
-          qp->Request(stream.addr,current);
-          finished =  !qp->Received(stream.addr);
-         } else {
-           finished = true;
-           if(up->timeInterval.start > iv.end){
-              lastTuple->DeleteIfAllowed();
-              lastTuple = 0;
-           }
-         }
-     }
-     if(lastTuple){
-       tmp = *static_cast<UPoint*>(lastTuple->GetAttribute(pos));
-       tupleStart = tmp.timeInterval.start;
-     }
- }
+      init();
+   }
 
     KNearestQueue(Word& src, QueryProcessor* qp1,
                  int pos1, const MPoint* mpoint1, int z):
         stream(src),qp(qp1),pos(pos1),mpoint(mpoint1), mpos(0), zone(z){
-          
       zone_flag = true;
-
-     if(!mpoint->IsDefined() || mpoint->IsEmpty()){
-       lastTuple = 0;
-       return;
-     }
-     UPoint tmp;
-     mpoint->Get(0,tmp);
-     Instant tmpstart = tmp.timeInterval.start;
-     bool lc = tmp.timeInterval.lc;
-     mpoint->Get(mpoint->GetNoComponents()-1, tmp);
-     Instant tmpend = tmp.timeInterval.end;
-     bool rc = tmp.timeInterval.rc;
-
-     iv = Interval<Instant>(tmpstart, tmpend,lc,rc);
-
-     Word current(Address(0));
-
-     qp->Request(stream.addr,current);
-
-     if(!qp->Received(stream.addr)){ // stream is empty
-       lastTuple = 0;
-       return;
-     }
-
-     bool finished = false;
-     while(!finished){
-        lastTuple = static_cast<Tuple*>(current.addr);
-        UPoint* up = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
-        tupleStart = up->timeInterval.start;
-        Instant tupleEnd(up->timeInterval.end);
-        if(up->timeInterval.end <= iv.start){
-          lastTuple->DeleteIfAllowed();
-          lastTuple = 0;
-          qp->Request(stream.addr,current);
-          finished =  !qp->Received(stream.addr);
-         } else {
-           finished = true;
-           if(up->timeInterval.start > iv.end){
-              lastTuple->DeleteIfAllowed();
-              lastTuple = 0;
-           }
-         }
-     }
-     if(lastTuple){
-       tmp = *static_cast<UPoint*>(lastTuple->GetAttribute(pos));
-       tupleStart = tmp.timeInterval.start;
-     }
- }
+      init();
+   }
 
 
 /*
@@ -3411,20 +3201,12 @@ public:
    }
 
    EventElem& top(){
-     if(zone_flag == false)
-      next();
-     else
-      next2();
-
+     next();
      return const_cast<EventElem &>(queue.top());
    }
 
    void pop(){
-     if(zone_flag == false)
-      next();
-     else
-      next2();
-
+     next();
      queue.pop();
    }
    int GetPos(){return pos;}
@@ -3450,6 +3232,65 @@ public:
   KNearestQueue& operator=(const KNearestQueue& src){
      assert(false);
   }
+
+
+/*
+~init~
+
+common initialization in both constructors
+
+*/
+void init(){
+     if(!mpoint->IsDefined() || mpoint->IsEmpty()){
+       lastTuple = 0;
+       return;
+     }
+     UPoint tmp;
+     mpoint->Get(0,tmp);
+     Instant tmpstart = tmp.timeInterval.start;
+     bool lc = tmp.timeInterval.lc;
+     mpoint->Get(mpoint->GetNoComponents()-1, tmp);
+     Instant tmpend = tmp.timeInterval.end;
+     bool rc = tmp.timeInterval.rc;
+
+     iv = Interval<Instant>(tmpstart, tmpend,lc,rc);
+
+     Word current(Address(0));
+
+     qp->Request(stream.addr,current);
+
+     if(!qp->Received(stream.addr)){ // stream is empty
+       lastTuple = 0;
+       return;
+     }
+     // search the first tuple in stream having a time interval 
+     // intersecting the interval of the mving point
+     bool finished = false;
+     while(!finished){
+        lastTuple = static_cast<Tuple*>(current.addr);
+        UPoint* up = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
+        tupleStart = up->timeInterval.start;
+        Instant tupleEnd(up->timeInterval.end);
+        if(up->timeInterval.end <= iv.start){
+          lastTuple->DeleteIfAllowed();
+          lastTuple = 0;
+          qp->Request(stream.addr,current);
+          finished =  !qp->Received(stream.addr);
+         } else {
+           finished = true;
+           if(up->timeInterval.start > iv.end){
+              lastTuple->DeleteIfAllowed();
+              lastTuple = 0;
+           }
+         }
+     }
+     if(lastTuple){
+       tmp = *static_cast<UPoint*>(lastTuple->GetAttribute(pos));
+       tupleStart = tmp.timeInterval.start;
+     }
+
+}
+
 
 /*
 ~next~
@@ -3498,88 +3339,17 @@ lasttuple must be exist.
     assert(lastTuple);
 
    // create a new Event for the queue
-    MReal* mr = new MReal(0);
     const UPoint* up = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
 
     bool transferred = false;
 
     if(iv.Intersects(up->timeInterval) ){ // intersecting interval
-      GetDistance(mpoint, up, mpos, mr);
-      Instant t1 = up->timeInterval.start;
-      Instant t2 = up->timeInterval.end;
-      Instant t3 = t1>= iv.start ? t1 : iv.start;
-      Instant t4 = t2 <= iv.end ? t2 : iv.end;
-      queue.push(EventElem(E_LEFT, t3, lastTuple, up, mr));
-      queue.push(EventElem(E_RIGHT, t4, lastTuple, up, mr));
-      // get the next tuple from the stream
-      transferred = true;
-    }else{
-      delete mr;
-      // if there is no Event created from the tuple, we just
-      // delete it
-      lastTuple->DeleteIfAllowed();
-      lastTuple = 0;
-    }
-
-    Word current(Address(0));
-    qp->Request(stream.addr,current);
-    if(qp->Received(stream.addr)){
-       lastTuple = static_cast<Tuple*>(current.addr);
-         const UPoint* up =
-               static_cast<const UPoint*>(lastTuple->GetAttribute(pos));
-         tupleStart = up->timeInterval.start;
-         if(tupleStart > iv.end){
-            // tuple starts after the end of the query point
-            lastTuple->DeleteIfAllowed();
-            lastTuple = 0;
-         }
-    } else {
-      lastTuple = 0;
-      transferred = false;
-    }
-    return transferred;
-  }
-  
-   ///////////////////////////////////////////////////////////////////////
-   ////////////////if the input has zone value ///////////////////////////
-   ////////////////////////////////////////////////////////////////////////
-   
-    inline void next2(){
-//        cout<<"next2"<<endl;
-        if(lastTuple){ // otherwise, we have nothing to do
-          if(queue.empty()){
-          transfer2(tupleStart);
-        }  else {
-            DateTime i = queue.top().pointInTime;
-            transfer2(i);
-        }
+      MReal* mr = new MReal(0);
+      if(zone_flag){
+         GetDistance2(mpoint, up, mpos, mr, zone);
+      } else {
+         GetDistance(mpoint, up, mpos, mr);
       }
-    }
-  
-    inline void transfer2(DateTime& i){
-//      cout<<"transfer2"<<endl;
-     bool t = false;
-     while( (lastTuple && tupleStart <= i)  ||
-            (lastTuple && !t)){
-       t = transfersingle2();
-     }
-    }
-    
-    
-    
-   inline bool transfersingle2(){
-
-//   cout<<"transfersingl2"<<endl;
-    assert(lastTuple);
-
-   // create a new Event for the queue
-    MReal* mr = new MReal(0);
-    const UPoint* up = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
-
-    bool transferred = false;
-
-    if(iv.Intersects(up->timeInterval) ){ // intersecting interval
-      GetDistance2(mpoint, up, mpos, mr, zone);
       Instant t1 = up->timeInterval.start;
       Instant t2 = up->timeInterval.end;
       Instant t3 = t1>= iv.start ? t1 : iv.start;
@@ -3589,7 +3359,6 @@ lasttuple must be exist.
       // get the next tuple from the stream
       transferred = true;
     }else{
-      delete mr;
       // if there is no Event created from the tuple, we just
       // delete it
       lastTuple->DeleteIfAllowed();
@@ -3614,7 +3383,6 @@ lasttuple must be exist.
     }
     return transferred;
   }
-
 
 };
 
@@ -3743,26 +3511,43 @@ void deleteDupElements(KNearestQueue& evq, EventType type,
 struct KnearestLocalInfo
 {
   KnearestLocalInfo(Word& stream, int attrPos,
-                    const MPoint* mp, int k1, bool scanFlag1):
-     k(k1),scanFlag(scanFlag1), eventQueue(stream, qp, attrPos, mp){}
+                    const MPoint* mp, int k1):
+     k(k1), eventQueue(stream, qp, attrPos, mp)
+  {
+     init(mp);
+  }
      
   KnearestLocalInfo(Word& stream, int attrPos,
-                    const MPoint* mp, int k1, bool scanFlag1, int zone):
-     k(k1),scanFlag(scanFlag1), eventQueue(stream, qp, attrPos, mp, zone){}
+                    const MPoint* mp, int k1, int zone):
+     k(k1), eventQueue(stream, qp, attrPos, mp, zone){
+     init(mp);
+  }
 
-  unsigned int k;
-  bool scanFlag;
+  int k;
   KNearestQueue eventQueue;
-  Instant startTime, endTime;
+  Instant startTime;
+  Instant endTime;
   NNTree< ActiveElem > activeLine;
-
-
-  bool AddNewUnit(UPoint* up);
-  void MergeUnit(UPoint* up);
   unsigned int count;
   vector<UPoint> up_list;
   vector<MReal> dist_list;
   TupleType* resulttype;
+
+
+  bool AddNewUnit(UPoint* up);
+  void MergeUnit(UPoint* up);
+
+  private:
+     void init(const MPoint* mp){
+         if(!mp || mp->IsEmpty()){
+           return;
+         }
+         UPoint up1, up2;
+         mp->Get( 0, up1);
+         mp->Get( mp->GetNoComponents() - 1, up2);
+         startTime = up1.timeInterval.start;
+         endTime = up2.timeInterval.end;
+     }
 
 };
 
@@ -3882,11 +3667,12 @@ args[0] = stream of tuples,
 args[1] = attribute name
 args[2] = mpoint
 args[3] = int k, how many nearest are searched
-args[4] = int j, attributenumber
+args[4] optional zone number, value is ignored
+args[4] or args[5] = int j, attributenumber
 
 */
 
-int knearestFun1 (Word* args, Word& result, int message,
+int knearestFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   switch (message)
@@ -3905,358 +3691,9 @@ int knearestFun1 (Word* args, Word& result, int message,
       if(!mp->IsDefined() || mp->IsEmpty() || !k->IsDefined()){
          local.addr = 0;
       } else{
-         KnearestLocalInfo* localInfo =
-                new KnearestLocalInfo(args[0], attrPos, mp,
-                                      k->GetIntval(), true);
-         UPoint up1, up2;
-         mp->Get( 0, up1);
-         mp->Get( mp->GetNoComponents() - 1, up2);
-         localInfo->startTime = up1.timeInterval.start;
-         localInfo->endTime = up2.timeInterval.end;
-         local = SetWord(localInfo);
-      }
-      return 0;
-    }
-
-    /*
-    in request the eventqueue is executed. new intersect events
-    are computed
-
-    */
-    case REQUEST :
-    {
-     if(!local.addr){
-       return CANCEL;
-     }
-     int attrNr = ((CcInt*)args[4].addr)->GetIntval() - 1;
-     KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
-      if ( !localInfo->scanFlag )
-      {
-        return CANCEL;
-      }
-
-      if ( !localInfo->k)
-      {
-        return CANCEL;
-      }
-
-      while ( !localInfo->eventQueue.empty() )
-      {
-        EventElem elem = localInfo->eventQueue.top();
-        localInfo->eventQueue.pop();
-        ActiveElem::currtime = elem.pointInTime;
-
-        //eleminate same elements
-        deleteDupElements( localInfo->eventQueue, elem.type,
-          elem.tuple, elem.tuple2, elem.pointInTime);
-
-        switch ( elem.type ){
-          case E_LEFT:
-          {
-
-            bool lc = elem.pointInTime >= localInfo->startTime
-              ? elem.up->timeInterval.lc : false;
-            ActiveElem newElem(elem.distance, elem.tuple, elem.pointInTime,
-              elem.up->timeInterval.end, lc, elem.up->timeInterval.rc);
-            IT newPos = insertActiveElem( localInfo->activeLine,
-              newElem, elem.pointInTime);
-
-            // check intersections
-            checkIntersections(E_LEFT, elem.pointInTime,
-              newPos, localInfo->activeLine, localInfo->eventQueue,
-              localInfo->endTime);
-
-            bool hasChangedFirstK = false;
-            IT posAfterK;
-            if( localInfo->activeLine.size() > localInfo->k )
-            {
-              posAfterK = checkFirstK(localInfo->activeLine,
-                localInfo->k,newPos,hasChangedFirstK);
-            }
-            if( hasChangedFirstK)
-            {
-              //something in the first k has changed
-              //now give out the k. element, but only until this time.
-              //Clone the tuple and change the unit-attribut to the
-              //new time interval
-              bool rc = newPos->lc ? false
-                : (posAfterK->end == elem.pointInTime ? posAfterK->rc : true);
-              if( posAfterK->start != elem.pointInTime
-                || (rc && posAfterK->lc))
-              {
-                Tuple* cloneTuple = changeTupleUnit(
-                  posAfterK->tuple, attrNr, posAfterK->start,
-                  elem.pointInTime, posAfterK->lc, rc);
-                posAfterK->start = elem.pointInTime;
-                posAfterK->lc = false;
-                if(cloneTuple != NULL)
-                {
-                  result = SetWord(cloneTuple);
-                  return YIELD;
-                }
-              }
-            }
-
-            break;
-          }
-          case E_RIGHT:
-          {
-            //a unit ends. It has to be removed from the map
-            IT posDel = findActiveElem( localInfo->activeLine,
-              elem.distance, elem.pointInTime, elem.tuple);
-            Tuple* cloneTuple = NULL;
-            if( posDel != localInfo->activeLine.end())
-            {
-              //check if this tuple is one of the first k, then give out this
-              //and change the start of the k+1 and the following to this time
-              bool hasDelFirstK = false;
-              IT posAfterK;
-              posAfterK = checkFirstK(localInfo->activeLine,
-                  localInfo->k,posDel,hasDelFirstK);
-
-              if( hasDelFirstK && (posDel->start != elem.pointInTime
-                || (posDel->lc && posDel->rc)))
-              {
-                if( posDel->start < localInfo->endTime )
-                {
-                  cloneTuple = changeTupleUnit(
-                    posDel->tuple, attrNr, posDel->start, elem.pointInTime,
-                    posDel->lc, posDel->rc);
-                }
-                for( ; posAfterK != localInfo->activeLine.end(); ++posAfterK)
-                {
-                  posAfterK->start = elem.pointInTime;
-                  posAfterK->lc = false;
-                }
-              }
-              //now calculate the intersection of the neighbors
-              checkIntersections(E_RIGHT, elem.pointInTime,
-                posDel, localInfo->activeLine, localInfo->eventQueue,
-                localInfo->endTime);
-
-              localInfo->activeLine.erase( posDel );
-              elem.distance->Destroy();
-              delete elem.distance;
-              elem.tuple->DeleteIfAllowed();
-            }
-            else
-            {
-              //the program should never be here. This is a program error!
-              double slope;
-              for( IT it=localInfo->activeLine.begin();
-                it!=localInfo->activeLine.end(); ++it)
-              {
-                cout << "dist: " << CalcDistance(it->distance,
-                  elem.pointInTime,slope) << ", Tuple: " << it->tuple << endl;
-              }
-              assert(false);
-            }
-            if( cloneTuple != NULL)
-            {
-              result = SetWord(cloneTuple);
-              return YIELD;
-            }
-            break;
-          }
-
-          case E_INTERSECT:
-          {
-            IT posFirst = findActiveElem( localInfo->activeLine,
-              elem.distance, elem.pointInTime, elem.tuple);
-            IT posNext = posFirst;
-            ++posNext;
-
-            IT posSec;
-            if( posNext == localInfo->activeLine.end() )
-            {
-              //perhaps changed before
-              bool t1 = check(localInfo->activeLine ,elem.pointInTime);
-              assert(t1);
-
-              break;
-            }
-            if( posNext->tuple != elem.tuple2 )
-            {
-              posSec = findActiveElem( localInfo->activeLine,
-                elem.distance, elem.pointInTime, elem.tuple2);
-            }
-            else
-              posSec = posNext;
-
-            //check if the first of the inters.-tuples is the k. and give it out
-            Tuple* cloneTuple = NULL;
-            if( checkK(localInfo->activeLine,localInfo->k,posFirst))
-            {
-              cloneTuple = changeTupleUnit( posFirst->tuple,
-                attrNr, posFirst->start, elem.pointInTime,
-                posFirst->lc,posFirst->rc);
-              posFirst->start = elem.pointInTime;
-              posFirst->lc = true;
-              if( posNext != localInfo->activeLine.end() )
-              {
-                posNext->start = elem.pointInTime;
-                posNext->lc = true;
-              }
-            }
-
-            if( posNext == posSec)
-            {
-              //look for intersections between the new neighbors
-              checkIntersections(E_INTERSECT, elem.pointInTime,
-                posFirst, localInfo->activeLine, localInfo->eventQueue,
-                localInfo->endTime);
-
-              //swap the two entries in activeline
-              ActiveElem e = *posFirst;
-              *posFirst = *posSec;
-              *posSec = e;
-            }
-            else
-            {
-              //the are some elements which has the same distance between
-              //the two intersect elements, so calc like delete then insert
-              vector<ActiveElem> va;
-              set<Tuple*> s;
-              pair< set<Tuple*>::iterator, bool > pr;
-
-              ActiveElem newElem1(posFirst->distance,
-                  posFirst->tuple, elem.pointInTime,
-                  posFirst->end, posFirst->lc, posFirst->rc);
-              va.push_back(newElem1);
-              s.insert(posFirst->tuple);
-              localInfo->activeLine.erase( posFirst );
-              ActiveElem newElem2(posSec->distance,
-                  posSec->tuple, elem.pointInTime,
-                  posSec->end, posSec->lc, posSec->rc);
-              va.push_back(newElem2);
-              s.insert(posSec->tuple);
-              localInfo->activeLine.erase( posSec );
-
-              while( !localInfo->eventQueue.empty() )
-              {
-                //handle all intersections at the same time
-                EventElem elemIs = localInfo->eventQueue.top();
-
-                if( elemIs.type == E_INTERSECT
-                  && elem.pointInTime == elemIs.pointInTime)
-                {
-
-                  localInfo->eventQueue.pop();
-                  //eleminate same elements
-                  deleteDupElements( localInfo->eventQueue, elemIs.type,
-                      elemIs.tuple, elemIs.tuple2, elem.pointInTime);
-
-                  pr = s.insert( elemIs.tuple );
-                  if(pr.second == true)
-                  {
-                    //the element was not removed yet
-                    IT pos = findActiveElem( localInfo->activeLine,
-                      elemIs.distance, elemIs.pointInTime, elemIs.tuple);
-                    ActiveElem newElem(pos->distance,
-                      pos->tuple, elem.pointInTime,
-                      pos->end, pos->lc, pos->rc);
-                    localInfo->activeLine.erase( pos );
-                    va.push_back(newElem);
-                  }
-                  pr = s.insert( elemIs.tuple2 );
-                  if(pr.second == true)
-                  {
-                    //the element was not removed yet
-                    IT pos = findActiveElem( localInfo->activeLine,
-                      elemIs.distance, elemIs.pointInTime, elemIs.tuple2);
-                    ActiveElem newElem(pos->distance,
-                      pos->tuple, elem.pointInTime,
-                      pos->end, pos->lc, pos->rc);
-                    localInfo->activeLine.erase( pos );
-                    va.push_back(newElem);
-                  }
-                }
-                else
-                {
-
-                  break;
-                }
-              }
-
-              vector<IT> vit;
-              for( unsigned int ii=0; ii < va.size(); ++ii )
-              {
-                  IT newPos = insertActiveElem( localInfo->activeLine,
-                    va[ii], elem.pointInTime);
-                  vit.push_back(newPos);
-              }
-              // check intersections
-              for( unsigned int ii=0; ii < vit.size(); ++ii )
-              {
-                checkIntersections(E_LEFT, elem.pointInTime, vit[ii],
-                  localInfo->activeLine, localInfo->eventQueue,
-                  localInfo->endTime);
-              }
-            }
-            if( cloneTuple != NULL )
-            {
-              result = SetWord(cloneTuple);
-              return YIELD;
-            }
-
-            break;
-          }
-        }
-      }
-      return CANCEL;
-    }
-
-    case CLOSE :
-    {
-
-      qp->Close(args[0].addr);
-      KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
-      if(localInfo){
-
-        delete localInfo;
-        local.setAddr(0);
-      }
-      return 0;
-    }
-  }
-
-  return 0;
-}
-
-/*
-one more input parameter for converting longituide and latitude 
-
-*/
-int knearestFun2 (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  switch (message)
-  {
-
-    case OPEN :
-    {
-      qp->Open(args[0].addr);
-      CcInt* k = static_cast<CcInt*>(args[3].addr);
-      const MPoint* mp = static_cast<const MPoint*>(args[2].addr);
-//      const MPoint* oldmp = static_cast<const MPoint*>(args[2].addr);
-      int attrPos = (static_cast<CcInt*>(args[5].addr))->GetIntval() - 1;
-      int zone = (static_cast<CcInt*>(args[4].addr))->GetIntval();
-
-//       MPoint* mp = new MPoint(0);
-//       mp->StartBulkLoad();
-//       for(int i = 0;i < oldmp->GetNoComponents();i++){
-//         UPoint up;
-//         oldmp->Get(i, up);
-//         mp->MergeAdd(up);
-//       }
-//       mp->EndBulkLoad();
-
-      if(zone >= 0){
-          if(zone > 119){
-            cout<<"invalid zone value "<<zone<<endl;
-            local.addr = 0;
-            return 0;
-          }else{
+         int zone = -1;
+         if(qp->GetNoSons(s)==6){ // zone given as an int
+            // compute the zone from the first point of mpoint
             int de = 3;
             int count = 120;
             vector<int> de_list;
@@ -4279,55 +3716,13 @@ int knearestFun2 (Word* args, Word& result, int message,
                 }
               }
             }
-            if(index != zone){
-              cout<<"input zone is not correct, should be "<<index<<endl;
-              local.addr = 0;
-              return 0;
-            }
-        }
-      }else if(zone == -1){/////////calculate the value 
-        int de = 3;
-        int count = 120;
-        vector<int> de_list;
-        for(int i = 0;i < count ;i ++){
-          de_list.push_back(i*de);
-        }
-
-        double delta = numeric_limits<double>::max();
-        UPoint up;
-        mp->Get( 0, up);
-        int index = -1;
-        for(unsigned int i = 0;i < de_list.size();i++){
-          if(i == 0){
-            delta = fabs(up.p0.GetX() - de_list[i]);
-            index = i;
-          }else{
-            if(fabs(up.p0.GetX() - de_list[i]) < delta){
-              delta = fabs(up.p0.GetX() - de_list[i]);
-              index = i;
-            }
-          }
-        }
-        zone = index;
-        cout<<"zone "<<zone<<endl;
-      }else{
-        cout<<"invalid zone value "<<zone<<endl;
-        local.addr = 0;
-        return 0;
-      }
-
-      if(!mp->IsDefined() || mp->IsEmpty() || !k->IsDefined()){
-         local.addr = 0;
-      } else{
-         KnearestLocalInfo* localInfo =
-                new KnearestLocalInfo(args[0], attrPos, mp,
-                                      k->GetIntval(), true, zone);
-         UPoint up1, up2;
-         mp->Get( 0, up1);
-         mp->Get( mp->GetNoComponents() - 1, up2);
-         localInfo->startTime = up1.timeInterval.start;
-         localInfo->endTime = up2.timeInterval.end;
-         local = SetWord(localInfo);
+            // ignore the value given by the user.
+            zone = index;
+         }
+         local.addr = zone<0? new KnearestLocalInfo(args[0], attrPos, mp,
+                                      k->GetValue())
+                            : new KnearestLocalInfo(args[0], attrPos, mp,
+                                      k->GetValue(), zone);
       }
       return 0;
     }
@@ -4342,14 +3737,10 @@ int knearestFun2 (Word* args, Word& result, int message,
      if(!local.addr){
        return CANCEL;
      }
-     int attrNr = ((CcInt*)args[5].addr)->GetIntval() - 1;
+     int attrNr = ((CcInt*)args[qp->GetNoSons(s)-1].addr)->GetIntval() - 1;
      KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
-      if ( !localInfo->scanFlag )
-      {
-        return CANCEL;
-      }
 
-      if ( !localInfo->k)
+      if (localInfo->k <= 0)
       {
         return CANCEL;
       }
@@ -4382,7 +3773,7 @@ int knearestFun2 (Word* args, Word& result, int message,
 
             bool hasChangedFirstK = false;
             IT posAfterK;
-            if( localInfo->activeLine.size() > localInfo->k )
+            if( localInfo->activeLine.size() > (unsigned) localInfo->k )
             {
               posAfterK = checkFirstK(localInfo->activeLine,
                 localInfo->k,newPos,hasChangedFirstK);
@@ -4668,11 +4059,6 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
       } else{
          KnearestLocalInfo* localInfo =
                 new KnearestLocalInfo(args[0], attrPos, mp, k, true);
-         UPoint up1, up2;
-         mp->Get( 0, up1);
-         mp->Get( mp->GetNoComponents() - 1, up2);
-         localInfo->startTime = up1.timeInterval.start;
-         localInfo->endTime = up2.timeInterval.end;
 
          localInfo->count = 0;
          localInfo->resulttype =
@@ -4708,7 +4094,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
 
             bool hasChangedFirstK = false;
             IT posAfterK;
-            if( localInfo->activeLine.size() > localInfo->k ){
+            if( localInfo->activeLine.size() > (unsigned) (localInfo->k) ){
                posAfterK = checkFirstK(localInfo->activeLine,
                  localInfo->k,newPos,hasChangedFirstK);
 
@@ -5102,10 +4488,6 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
        return CANCEL;
      }
      KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
-      if ( !localInfo->scanFlag )
-      {
-        return CANCEL;
-      }
 
       if ( !localInfo->k)
       {
@@ -5171,11 +4553,6 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
 
          KnearestLocalInfo* localInfo =
              new KnearestLocalInfo(args[0], attrPos, mp, k->GetIntval(), true);
-         UPoint up1, up2;
-         mp->Get( 0, up1);
-         mp->Get( mp->GetNoComponents() - 1, up2);
-         localInfo->startTime = up1.timeInterval.start;
-         localInfo->endTime = up2.timeInterval.end;
 
         ////////////////first calculate the result/////////////////////////
         unsigned int last_result_tid = 0;
@@ -5208,7 +4585,7 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
 
             bool hasChangedFirstK = false;
             IT posAfterK;
-            if( localInfo->activeLine.size() > localInfo->k ){
+            if( localInfo->activeLine.size() > (unsigned) localInfo->k ){
                posAfterK = checkFirstK(localInfo->activeLine,
                  localInfo->k,newPos,hasChangedFirstK);
 
@@ -7020,11 +6397,6 @@ int rect2periodsFun (Word* args, Word& result, int message,
 }
 
 
-ValueMapping KnearestMap [] = {
-  knearestFun1,
-  knearestFun2
-};
-
 /*
 2.5 Specification of operators
 
@@ -7276,10 +6648,9 @@ Operator distancescan4 (
 Operator knearest (
          "knearest",            // name
          knearestSpec,          // specification
-         2,
-         KnearestMap,           // value mapping
-         KnearestSelect,
-         KnearestTypeMap        // type mapping
+         knearestFun,           // value mapping
+         Operator::SimpleSelect,
+         KnearestTypeMap<true>        // type mapping
 );
 
 Operator knearest_dist (
@@ -7296,7 +6667,7 @@ Operator knearestvector (
          knearestvectorSpec,          // specification
          knearestFunVector,     // value mapping
          Operator::SimpleSelect,// trivial selection function
-         knearestTypeMap        // type mapping
+         KnearestTypeMap<false>        // type mapping
 );
 
 Operator oldknearestfilter (
