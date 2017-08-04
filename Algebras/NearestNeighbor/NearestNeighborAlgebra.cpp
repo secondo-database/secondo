@@ -2247,7 +2247,6 @@ by time. A lower time cannot come
 void GetDistance( const MPoint* mp, const UPoint* up,
                    int &mpos, MReal *erg)
 {
-
   Instant time1 = up->timeInterval.start;
   Instant time2 = up->timeInterval.end;
 
@@ -3163,14 +3162,16 @@ public:
 
    KNearestQueue(Word& src, QueryProcessor* qp1,
                  int pos1, const MPoint* mpoint1):
-        stream(src),qp(qp1),pos(pos1),mpoint(mpoint1), mpos(0){
+        stream(src),qp(qp1),pos(pos1),mpoint(mpoint1), mpos(0), 
+        lastStart(datetime::instanttype){
       zone_flag = false;
       init();
    }
 
     KNearestQueue(Word& src, QueryProcessor* qp1,
                  int pos1, const MPoint* mpoint1, int z):
-        stream(src),qp(qp1),pos(pos1),mpoint(mpoint1), mpos(0), zone(z){
+        stream(src),qp(qp1),pos(pos1),mpoint(mpoint1), mpos(0), 
+        lastStart(datetime::instanttype),zone(z){
       zone_flag = true;
       init();
    }
@@ -3217,6 +3218,7 @@ public:
    int pos;                           // position of the attribute
    const MPoint* mpoint;
    int mpos;
+   DateTime lastStart;
    Tuple* lastTuple;                  // last Tuple read from stream
    DateTime tupleStart;               // start instance of the next tuple
    priority_queue<EventElem> queue;   // the event queue
@@ -3241,6 +3243,7 @@ common initialization in both constructors
 
 */
 void init(){
+     lastStart.ToMinimum();
      if(!mpoint->IsDefined() || mpoint->IsEmpty()){
        lastTuple = 0;
        return;
@@ -3266,10 +3269,18 @@ void init(){
      // search the first tuple in stream having a time interval 
      // intersecting the interval of the mving point
      bool finished = false;
+
      while(!finished){
-        lastTuple = static_cast<Tuple*>(current.addr);
+        lastTuple  = static_cast<Tuple*>(current.addr);
         UPoint* up = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
-        tupleStart = up->timeInterval.start;
+        if(up->timeInterval.start < lastStart){
+           cerr << "Detected invalid order in tuple stream" << endl;
+           lastTuple->DeleteIfAllowed();
+           lastTuple = 0;
+           return;
+        }
+        lastStart = up->timeInterval.start;        
+
         Instant tupleEnd(up->timeInterval.end);
         if(up->timeInterval.end <= iv.start){
           lastTuple->DeleteIfAllowed();
@@ -3305,10 +3316,8 @@ to a EventElement and inserted into the queue.
       if(queue.empty()){
         transfer(tupleStart);
       }  else {
-//        EventElem ev = queue.top();
-//        transfer(ev.pointInTime);
-          DateTime i = queue.top().pointInTime;
-          transfer(i);
+        DateTime i = queue.top().pointInTime;
+        transfer(i);
       }
     }
   }
@@ -3369,14 +3378,20 @@ lasttuple must be exist.
     qp->Request(stream.addr,current);
     if(qp->Received(stream.addr)){
        lastTuple = static_cast<Tuple*>(current.addr);
-         const UPoint* up =
+       const UPoint* up =
                static_cast<const UPoint*>(lastTuple->GetAttribute(pos));
-         tupleStart = up->timeInterval.start;
-         if(tupleStart > iv.end){
-            // tuple starts after the end of the query point
-            lastTuple->DeleteIfAllowed();
-            lastTuple = 0;
-         }
+       tupleStart = up->timeInterval.start;
+       if(tupleStart < lastStart){
+          cout << "Detected invalid order in tuple stream" << endl;
+          lastTuple->DeleteIfAllowed();
+          lastTuple = 0;
+       }
+       lastStart = tupleStart;
+       if(tupleStart > iv.end){
+          // tuple starts after the end of the query point
+          lastTuple->DeleteIfAllowed();
+          lastTuple = 0;
+       }
     } else {
       lastTuple = 0;
       transferred = false;
