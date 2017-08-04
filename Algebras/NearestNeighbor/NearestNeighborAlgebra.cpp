@@ -2203,8 +2203,10 @@ from one to next function call
 the type EventElem and ActiveElem are defined in NearestNeighborAlgebra.h
 
 */
-class KNearestQueue;
+
+// instantiate static member currtime
 Instant ActiveElem::currtime(datetime::instanttype);
+
 typedef vector< ActiveElem >::iterator ITV;
 typedef NNTree< ActiveElem >::iter IT;
 
@@ -2509,15 +2511,22 @@ void GetDistance2( const MPoint* mp, const UPoint* up, int &mpos, MReal *erg,
 }
 
 /*
-CalcDistance calculate the result of the given MReal mr
+CalcDistance calculates the result of the given MReal mr
 at the given time t. The value of the derivation (slope)
-is also calculated
+is also calculated.
 
 */
 double CalcDistance( const MReal *mr, Instant t, double &slope)
 {
+  
   int noCo = mr->GetNoComponents();
   UReal ur;
+  if(noCo==0){
+    return -1;
+  }
+
+  /*
+   // sequential search
   for (int ii=0; ii < noCo; ++ii)
   {
     mr->Get( ii, ur);
@@ -2540,17 +2549,53 @@ double CalcDistance( const MReal *mr, Instant t, double &slope)
       return erg;
     }
   }
-
-  cout << "Try to compute the value and the slope for an mreal failed" << endl;
-  if( noCo==0){
-     cout << "The moving real does not contain units " << endl;
-  } else {
-     mr->Get(noCo-1,ur);
-     cout << "time is " << t << endl;
-     cout << "last Unit is " << ur << endl;  
-  }
-  assert(false);
   return -1;
+  */
+
+  // use binary search
+  int min = 0;
+  int max = noCo-1;
+  while(min<max){
+     int mid = (min+max) / 2;
+     mr->Get(mid,ur);
+     if( (ur.timeInterval.start< t) || 
+         ((ur.timeInterval.start == t) && ur.timeInterval.lc)){
+        // t is after ur's start
+        if((ur.timeInterval.end > t) ||
+           ((ur.timeInterval.end == t) && ur.timeInterval.rc)){
+           // found unit containing m
+           min = mid;
+           max = mid;
+        } else {
+           // t is after ur's end
+           min = mid + 1;
+        }
+     } else { // t is before ur's start
+        max = mid -1;
+     }
+  }
+  // now min==max holds, check if t is contained in ur
+  mr->Get(min,ur); // case mr contains only one unit
+  if( ( (ur.timeInterval.start< t) || 
+         ((ur.timeInterval.start == t) && ur.timeInterval.lc))
+       && ((ur.timeInterval.end > t) ||
+           ((ur.timeInterval.end == t) && ur.timeInterval.rc)) ) {
+      double time = (t - ur.timeInterval.start).ToDouble();
+      double erg = ur.a * time * time + ur.b * time + ur.c;
+      if( ur.r && erg < 0) erg = 0;
+      erg = ( ur.r) ? sqrt(erg) : erg;
+      //the slope is if not r: 2a * time + b
+      // else 2a * time + b / 2 * erg
+      slope = 2 * ur.a * time + ur.b;
+      if( ur.r && erg){ slope /= 2 * erg; }
+      if( ur.r && !erg && ur.b == 0 && ur.c == 0 && ur.a > 0)
+      {
+        slope = sqrt(ur.a);
+      }
+      return erg;
+  } else {
+     return -1;
+  }
 }
 
 double CalcSlope( const UReal& ur, Instant t)
@@ -3509,15 +3554,14 @@ void deleteDupElements(KNearestQueue& evq, EventType type,
 {
   while( !evq.empty() )
   {
+    EventElem& e=evq.top();
     //eleminate same elements
-    if( type != evq.top().type || time != evq.top().pointInTime
-      || tuple1 != evq.top().tuple || tuple2 != evq.top().tuple2)
-    {
-      break;
-    }
-    else
-    {
-      evq.pop();
+    if( type != e.type || time != e.pointInTime
+      || tuple1 != e.tuple || tuple2 != e.tuple2) {
+      // ignore other members of EventElement
+      return; 
+    } else { 
+       evq.pop();
     }
   }
 }
@@ -3699,46 +3743,52 @@ int knearestFun (Word* args, Word& result, int message,
     */
     case OPEN :
     {
+      
       qp->Open(args[0].addr);
       CcInt* k = static_cast<CcInt*>(args[3].addr);
       const MPoint* mp = static_cast<const MPoint*>(args[2].addr);
       int attrPos = (static_cast<CcInt*>(args[4].addr))->GetIntval() - 1;
       if(!mp->IsDefined() || mp->IsEmpty() || !k->IsDefined()){
          local.addr = 0;
-      } else{
-         int zone = -1;
-         if(qp->GetNoSons(s)==6){ // zone given as an int
-            // compute the zone from the first point of mpoint
-            int de = 3;
-            int count = 120;
-            vector<int> de_list;
-            for(int i = 0;i < count ;i ++){
-              de_list.push_back(i*de);
-            }
-
-            double delta = numeric_limits<double>::max();
-            UPoint up;
-            mp->Get( 0, up);
-            int index = -1;
-            for(unsigned int i = 0;i < de_list.size();i++){
-              if(i == 0){
-                delta = fabs(up.p0.GetX() - de_list[i]);
-                index = i;
-              }else{
-                if(fabs(up.p0.GetX() - de_list[i]) < delta){
-                  delta = fabs(up.p0.GetX() - de_list[i]);
-                  index = i;
-                }
-              }
-            }
-            // ignore the value given by the user.
-            zone = index;
-         }
-         local.addr = zone<0? new KnearestLocalInfo(args[0], attrPos, mp,
-                                      k->GetValue())
-                            : new KnearestLocalInfo(args[0], attrPos, mp,
-                                      k->GetValue(), zone);
+         return 0;
+      } 
+      int ik = k->GetValue();
+      if(ik<=0){ // invalid number of neighbors
+        local.addr = 0;
+        return 0;
       }
+      int zone = -1;
+      if(qp->GetNoSons(s)==6){ // zone given as an int
+         // compute the zone from the first point of mpoint
+         int de = 3;
+         int count = 120;
+         vector<int> de_list;
+         for(int i = 0;i < count ;i ++){
+           de_list.push_back(i*de);
+         }
+
+         double delta = numeric_limits<double>::max();
+         UPoint up;
+         mp->Get( 0, up);
+         int index = -1;
+         for(unsigned int i = 0;i < de_list.size();i++){
+           if(i == 0){
+             delta = fabs(up.p0.GetX() - de_list[i]);
+             index = i;
+           }else{
+             if(fabs(up.p0.GetX() - de_list[i]) < delta){
+               delta = fabs(up.p0.GetX() - de_list[i]);
+               index = i;
+             }
+           }
+         }
+         // ignore the value given by the user.
+         zone = index;
+      }
+      local.addr = zone<0? new KnearestLocalInfo(args[0], attrPos, mp,
+                                   k->GetValue())
+                         : new KnearestLocalInfo(args[0], attrPos, mp,
+                                   k->GetValue(), zone);
       return 0;
     }
 
@@ -3749,16 +3799,12 @@ int knearestFun (Word* args, Word& result, int message,
     */
     case REQUEST :
     {
-     if(!local.addr){
+     if(!local.addr){ // special case something in the arguments 
+                      // was wrong in open
        return CANCEL;
      }
      int attrNr = ((CcInt*)args[qp->GetNoSons(s)-1].addr)->GetIntval() - 1;
      KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
-
-      if (localInfo->k <= 0)
-      {
-        return CANCEL;
-      }
 
       while ( !localInfo->eventQueue.empty() )
       {
@@ -3766,8 +3812,7 @@ int knearestFun (Word* args, Word& result, int message,
         localInfo->eventQueue.pop();
         ActiveElem::currtime = elem.pointInTime;
 
-        //eleminate same elements
-        deleteDupElements( localInfo->eventQueue, elem.type,
+        deleteDupElements( localInfo->eventQueue, elem.type, 
           elem.tuple, elem.tuple2, elem.pointInTime);
 
         switch ( elem.type ){
