@@ -38,54 +38,6 @@ using namespace distributed2;
 
 namespace DBService {
 
-bool SecondoUtilsRemote::openDatabase(
-        distributed2::ConnectionInfo* connectionInfo,
-        const char* dbName)
-{
-    printFunction("SecondoUtilsRemote::openDatabase");
-    return SecondoUtilsRemote::handleDatabase(connectionInfo,
-                                                "open",
-                                                dbName);
-}
-
-bool SecondoUtilsRemote::createDatabase(
-        distributed2::ConnectionInfo* connectionInfo,
-        const char* dbName)
-{
-    printFunction("SecondoUtilsRemote::createDatabase");
-    return SecondoUtilsRemote::handleDatabase(connectionInfo,
-                                                "create",
-                                                dbName);
-}
-
-bool SecondoUtilsRemote::closeDatabase(
-        distributed2::ConnectionInfo* connectionInfo)
-{
-    printFunction("SecondoUtilsRemote::closeDatabase");
-    return SecondoUtilsRemote::handleDatabase(connectionInfo,
-                                                "close",
-                                                "");
-}
-
-bool SecondoUtilsRemote::handleDatabase(ConnectionInfo* connectionInfo,
-                                          const string& action,
-                                          const string& dbName)
-{
-    printFunction("SecondoUtilsRemote::handleDatabase");
-    stringstream query;
-    query << action << " database " << dbName;
-    print(query.str());
-    bool resultOk =
-            SecondoUtilsRemote::executeQuery(connectionInfo,
-                    query.str());
-    if(!resultOk)
-    {
-        //throw new SecondoException("could not open database 'dbservice'");
-        print("Boo");
-    }
-    return resultOk;
-}
-
 bool SecondoUtilsRemote::executeQuery(
         distributed2::ConnectionInfo* connectionInfo,
         const std::string& query)

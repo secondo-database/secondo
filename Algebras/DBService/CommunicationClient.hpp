@@ -91,6 +91,22 @@ original location.
             const std::string& relationName);
 
 /*
+
+1.1.2 ~giveStartingSignalForReplication~
+
+This function is meant to be called by on \textit{CommunicationClient} that
+resides on the original node of a relation that needs to be replicated.
+It establishes a connection to the \textit{CommunicationServer} on the
+\textit{DBService master node} and gives the starting signal for the
+replication, so that the ~DBService~ worker nodes can be notified and request
+file transfer.
+
+*/
+    bool giveStartingSignalForReplication(
+            const std::string& databaseName,
+            const std::string& relationName);
+
+/*
 1.1.2 \textit{getReplicaLocation}
 
 This function establishes a connection to the \textit{CommunicationServer} on

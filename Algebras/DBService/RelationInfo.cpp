@@ -113,4 +113,9 @@ void RelationInfo::updateReplicationStatus(ConnectionID connID, bool replicated)
     nodes.find(connID)->second = replicated;
 }
 
+void RelationInfo::setTransferPortOfOriginalLocation(std::string& newPort)
+{
+    originalLocation.setTransferPort(newPort);
+}
+
 } /* namespace DBService */

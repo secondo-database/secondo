@@ -90,55 +90,31 @@ int OperatorWrite::mapValue(Word* args,
     ListExpr tupleType = nl->Second(qp->GetType(s));
     print("tupleType", tupleType);
 
+    ListExpr relType = nl->TwoElemList(
+            listutils::basicSymbol<Relation>(),
+            tupleType);
+    print("relType", relType);
+
     string relationName = static_cast<CcString*>(args[1].addr)->GetValue();
     print("relationName", relationName);
 
-    GenericRelation* rel = (GenericRelation*)((qp->ResultStorage(s)).addr);
-    if(rel->GetNoTuples() > 0)
-    {
-        rel->Clear();
-    }
+    int consumeResult =
+            OperatorConsume::Consume(
+                    args, result, message, local, s);
 
     const string databaseName =
             SecondoSystem::GetInstance()->GetDatabaseName();
-    const string fileName = ReplicationUtils::getFileName(
+
+    if(!DBServiceConnector::getInstance()->triggerReplication(
             databaseName,
-            relationName);
-    print("fileName", fileName);
-
-    ofstream out(fileName.c_str(),ios::out|ios::binary);
-    ListExpr type = nl->TwoElemList(
-            listutils::basicSymbol<Relation>(),
-            tupleType);
-    print("type", type);
-
-    BinRelWriter::writeHeader(out, type);
-
-    Stream<Tuple> stream(args[0]);
-    stream.open();
-
-    Tuple* t;
-    while( (t = stream.request()) != 0){
-        rel->AppendTuple(t);
-        BinRelWriter::writeNextTuple(out,t);
-        t->DeleteIfAllowed();
-    }
-    stream.close();
-    out.close();
-
-    result.setAddr(rel);
-
-    bool replicationTriggered =
-            DBServiceConnector::getInstance()->triggerReplication(
-            databaseName,
-            relationName);
-    if(!replicationTriggered)
+            relationName,
+            relType))
     {
         print("Replication could not be triggered");
         return 1;
     }
 
-    return 0;
+    return consumeResult;
 }
 
 } /* namespace DBService */

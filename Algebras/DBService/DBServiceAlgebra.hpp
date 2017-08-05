@@ -1,4 +1,22 @@
 /*
+//paragraph [1] Title: [{\Large \bf] [}]
+//[ue] [\"{u}]
+//[us] [\_]
+//[_] [\_]
+
+
+[1] The DBServiceAlgebra: {Fault-Tolerant Query Execution in SECONDO}
+
+\tableofcontents
+\newpage
+
+1 Core Components
+
+1.1 \textit{DBServiceAlgebra}
+
+The \textit{DBServiceAlgebra} registers the \textit{DBService} functionality
+with the \textit{AlgebraManager}.
+
 ----
 This file is part of SECONDO.
 
@@ -37,10 +55,7 @@ namespace DBService
 
 /*
 
-1 \textit{DBServiceAlgebra}
-
-The \textit{DBServiceAlgebra} registers the \textit{DBService} functionality
-with the \textit{AlgebraManager}.
+1.1.1 Class Definition
 
 */
 
@@ -50,10 +65,10 @@ public:
 
 /*
 
-1.1 \textit{Constructor}
+1.1.1.1 Constructor
 
-The constructor adds the implemented operators to the \textit{DBServiceAlgebra}
-so that they can be recognized by the \textit{QueryProcessor}.
+In the constructor, the implemented operators are registered at the
+~DBServiceAlgebra~ so that they can be recognized by the ~QueryProcessor~.
 
 */
     DBServiceAlgebra();
@@ -63,7 +78,7 @@ so that they can be recognized by the \textit{QueryProcessor}.
 
 /*
 
-1.1 \textit{InitializeDBServiceAlgebra}
+1.1.1 Algebra Initialization
 
 This function initializes the \textit{DBServiceAlgebra} so that it can expose
 its functionality to the SECONDO system.

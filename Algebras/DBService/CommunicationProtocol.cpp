@@ -132,4 +132,9 @@ string CommunicationProtocol::ReplicaExists()
     return "<REPLICAEXISTS>";
 }
 
+string CommunicationProtocol::StartingSignal()
+{
+    return "<STARTINGSIGNAL>";
+}
+
 } /* namespace DBService */

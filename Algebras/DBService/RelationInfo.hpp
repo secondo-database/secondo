@@ -64,6 +64,7 @@ public:
     const std::map<ConnectionID, bool>::const_iterator nodesBegin() const;
     const std::map<ConnectionID, bool>::const_iterator nodesEnd() const;
     const LocationInfo& getOriginalLocation() const;
+    void setTransferPortOfOriginalLocation(std::string& newPort);
     const std::string toString() const;
     const size_t getNodeCount();
 
@@ -76,7 +77,7 @@ private:
     const std::string databaseName;
     const std::string relationName;
     std::map<ConnectionID, bool> nodes;
-    const LocationInfo originalLocation;
+    LocationInfo originalLocation;
 
 };
 

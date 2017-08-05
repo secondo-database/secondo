@@ -153,6 +153,48 @@ bool CommunicationClient::triggerReplication(const string& databaseName,
     return true;
 }
 
+bool CommunicationClient::giveStartingSignalForReplication(
+        const string& databaseName,
+        const string& relationName)
+{
+    traceWriter->writeFunction("CommunicationClient::triggerReplication");
+
+    if(!connectionTargetIsDBServiceMaster())
+    {
+        traceWriter->write("Aborting due to wrong node specification");
+        return false;
+    }
+
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
+    iostream& io = socket->GetSocketStream();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::CommunicationServer()))
+    {
+        traceWriter->write("Not connected to CommunicationServer");
+        return false;
+    }
+
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::StartingSignal());
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::RelationRequest()))
+    {
+        traceWriter->write("Did not receive expected RelationRequest keyword");
+        return false;
+    }
+    CommunicationUtils::sendLine(io,
+            RelationInfo::getIdentifier(databaseName, relationName));
+    return true;
+}
+
 int CommunicationClient::triggerFileTransfer(const string& transferServerHost,
                                              const string& transferServerPort,
                                              const string& databaseName,

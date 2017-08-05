@@ -1,4 +1,7 @@
 /*
+
+1 Inter-Node Communication and File Transfer
+
 ----
 This file is part of SECONDO.
 
@@ -44,7 +47,7 @@ namespace DBService {
 
 /*
 
-1 \textit{MultiClientServer}
+1.1 \textit{MultiClientServer}
 
 The \textit{MultiClientServer} can be used as superclass for servers in order to
 enable them to handle multiple incoming client connections at once.
@@ -54,26 +57,26 @@ enable them to handle multiple incoming client connections at once.
 class MultiClientServer : public distributed2::Server {
 /*
 
-1.1 Function Definitions
+1.1.1 Function Definitions
 
 The functions provided by the \textit{MultiClientServer} class are explained
 below.
 
-1.1.1 Constructor
+1.1.1.1 Constructor
 
 */
 public:
     explicit MultiClientServer(int port);
 /*
 
-1.1.1 Destructor
+1.1.1.1 Destructor
 
 */
     virtual ~MultiClientServer();
 
 /*
 
-1.1.1 \textit{start}
+1.1.1.1 \textit{start}
 
 This function starts the \textit{MultiClientServer}.
 
@@ -81,7 +84,7 @@ This function starts the \textit{MultiClientServer}.
     int start();
 /*
 
-1.1.1 \textit{communicate}
+1.1.1.1 \textit{communicate}
 
 The communicate function needs to be overwritten by the respective subclass. It
 shall provide the main functionality of the respective server.
@@ -92,7 +95,7 @@ protected:
 
 /*
 
-1.1.1 \textit{handleCommunicationThread}
+1.1.1.1 \textit{handleCommunicationThread}
 
 This function is called within a new thread. It pops a socket from the queue
 and processes it by calling the \textit{communicate} function of the respective
@@ -103,7 +106,7 @@ subclass.
 
 /*
 
-1.1.1 \textit{traceWriter}
+1.1.1.1 \textit{traceWriter}
 
 As the \textit{DBService} acts in a highly distributed environment, it
 is important to provide comprehensive tracing in order to be able to understand
@@ -117,9 +120,9 @@ file.
 
 /*
 
-1.1 Member Definitions
+1.1.1 Member Definitions
 
-1.1.1 \textit{socketBuffer}
+1.1.1.1 \textit{socketBuffer}
 
 This queue stores the sockets of client connections to be popped for further
 processing.
@@ -130,7 +133,7 @@ private:
 
 /*
 
-1.1.1 \textit{queueGuard}
+1.1.1.1 \textit{queueGuard}
 
 This mutex takes care that only one thread can access the \textit{socketBuffer}
 at a time.
@@ -140,7 +143,7 @@ at a time.
 
 /*
 
-1.1.1 \textit{queueIndicator}
+1.1.1.1 \textit{queueIndicator}
 
 This semaphore is used to give a notification when a new client socket has been
 added to the queue.

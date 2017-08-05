@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/ReplicationClient.hpp"
 #include "Algebras/DBService/ReplicationServer.hpp"
 #include "Algebras/DBService/ReplicationUtils.hpp"
+#include "Algebras/DBService/Replicator.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/ServerRunnable.hpp"
 
@@ -78,18 +79,29 @@ DBServiceConnector* DBServiceConnector::getInstance()
 }
 
 bool DBServiceConnector::triggerReplication(const std::string& databaseName,
-                                            const std::string& relationName)
+                                            const std::string& relationName,
+                                            const ListExpr relType)
 {
     printFunction("DBServiceConnector::triggerReplication");
-    print(relationName, "relationName");
+    print("databaseName", relationName);
+    print("relationName", relationName);
+    print(relType);
 
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
 
-    return dbServiceMasterClient.triggerReplication(
+    if(dbServiceMasterClient.triggerReplication(
             databaseName,
-            relationName);
+            relationName))
+    {
+        Replicator replicator(
+                *(const_cast<string*>(&databaseName)),
+                *(const_cast<string*>(&relationName)),
+                relType);
+        replicator.run();
+    }
+    return true;
 }
 
 bool DBServiceConnector::getReplicaLocation(const string& databaseName,

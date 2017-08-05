@@ -56,8 +56,7 @@ DOCU_FILES = DBServiceAlgebra.hpp DBServiceAlgebra.cpp \
 			 OperatorAddNode.hpp OperatorAddNode.cpp \
 			 OperatorCheckDBServiceStatus.hpp OperatorCheckDBServiceStatus.cpp \
 			 OperatorSetTraceLevel.hpp OperatorSetTraceLevel.cpp \
-			 OperatorLetDConsume.hpp OperatorLetDConsume.cpp \
-			 OperatorFeedPF.hpp OperatorFeedPF.cpp \
+			 OperatorWrite.hpp OperatorWrite.cpp \
 			 OperatorRead.hpp OperatorRead.cpp \
 			 OperatorDDelete.hpp OperatorDDelete.cpp \
 			 OperatorInitDBServiceWorker.hpp OperatorInitDBServiceWorker.cpp \
@@ -68,7 +67,15 @@ DOCU_FILES = DBServiceAlgebra.hpp DBServiceAlgebra.cpp \
 			 ReplicationUtils.hpp ReplicationUtils.cpp \
 			 TraceSettings.hpp TraceSettings.cpp \
 			 DebugOutput.hpp DebugOutput.cpp \
-			 TraceWriter.hpp TraceWriter.cpp
+			 TraceWriter.hpp TraceWriter.cpp \
+			 makefile \
+			 Test/CommandBuilderTest.cpp \
+			 Test/CommunicationUtilsTest.cpp \
+			 Test/LocationInfoTest.cpp \
+			 Test/RelationInfoTest.cpp \
+			 Test/ReplicationUtilsTest.cpp \
+			 Test/TraceSettingsTest.cpp \
+			 Test/makefile
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

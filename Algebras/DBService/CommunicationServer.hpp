@@ -96,6 +96,19 @@ replica locations and if a sufficient number of worker nodes is available, the
 replication is triggered.
 
 */
+    bool handleStartingSignalRequest(
+            std::iostream& io,
+            const boost::thread::id tid);
+
+/*
+
+1.1.1 ~handleStartingSignalRequest~
+
+This function is executed when a \textit{CommunicationClient} on the original
+node of a relation gives the starting signal for the replication.
+The replication is triggered by notifying the ~DBService~ workers
+
+*/
     bool handleTriggerReplicationRequest(
             std::iostream& io,
             const boost::thread::id tid);

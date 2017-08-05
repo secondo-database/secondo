@@ -1,4 +1,7 @@
 /*
+
+1 Asynchronous Operation
+
 ----
 This file is part of SECONDO.
 
@@ -22,14 +25,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-#ifndef ALGEBRAS_DBSERVICE_SecondoUtilsRemote_HPP_
-#define ALGEBRAS_DBSERVICE_SecondoUtilsRemote_HPP_
+#ifndef ALGEBRAS_DBSERVICE_REPLICATOR_HPP_
+#define ALGEBRAS_DBSERVICE_REPLICATOR_HPP_
 
-#include <string>
-
-#include "NestedList.h"
-
-#include "Algebras/Distributed2/ConnectionInfo.h"
+#include <boost/thread.hpp>
 
 namespace DBService {
 
@@ -42,18 +41,25 @@ TODO
 
 */
 
-class SecondoUtilsRemote {
+class Replicator {
 public:
-    static bool executeQuery(
-            distributed2::ConnectionInfo* connectionInfo,
-            const std::string& query);
-
-    static bool executeQuery(
-            distributed2::ConnectionInfo* connectionInfo,
-            const std::string& query,
-            std::string& result);
+    explicit Replicator(
+            std::string& dbName,
+            std::string& relName,
+            ListExpr type);
+    ~Replicator();
+    void run();
+private:
+    void createReplica(
+            const std::string databaseName,
+            const std::string relationName,
+            const ListExpr relType);
+    boost::thread* runner;
+    std::string databaseName;
+    std::string& relationName;
+    ListExpr relType;
 };
 
 } /* namespace DBService */
 
-#endif /* ALGEBRAS_DBSERVICE_SecondoUtilsRemote_HPP_ */
+#endif /* ALGEBRAS_DBSERVICE_Replicator_HPP_ */

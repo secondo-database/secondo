@@ -32,7 +32,7 @@
 # specified below AND it exists!
 # Note: On windows you need absolute path names, e.g.
 # C:\msys\1.0\home\user\secondo-dbtest
-SecondoHome=/opt/psec/secondo_disks/disk1
+SecondoHome=/opt/psec/skurz/secondo_disks/disk1
 
 # Algebralevel after startup (Executable|Descriptive|Hybrid).
 AlgebraLevel=Executable

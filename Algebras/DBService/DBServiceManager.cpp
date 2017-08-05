@@ -108,7 +108,12 @@ void DBServiceManager::restoreReplicaInformation()
                 pair<size_t, pair<LocationInfo, ConnectionInfo*> >(
                         it->first, workerConnDetails));
 
-        SecondoUtilsRemote::openDatabase(connectionInfo, "dbservice");
+        connectionInfo->switchDatabase(
+                string("dbservice"),
+                true /*createifnotexists*/,
+                false /*showCommands*/,
+                true /*forceExec*/);
+
         if(!startServersOnWorker(connectionInfo))
         {
             // TODO more descriptive error message (host, port, etc)
@@ -118,7 +123,7 @@ void DBServiceManager::restoreReplicaInformation()
 
     DBServicePersistenceAccessor::restoreRelationInfo(relations);
 
-    queue<pair<std::string, pair<ConnectionID, bool> > > mapping;
+    queue<pair<string, pair<ConnectionID, bool> > > mapping;
     DBServicePersistenceAccessor::restoreLocationMapping(mapping);
 
     while(!mapping.empty())
@@ -174,22 +179,46 @@ bool DBServiceManager::addNode(const string host,
     ConnectionInfo* connectionInfo =
             ConnectionInfo::createConnection(host, port, config);
 
-    SecondoUtilsRemote::createDatabase(connectionInfo, "dbservice");
-    SecondoUtilsRemote::openDatabase(connectionInfo, "dbservice");
+    if(!connectionInfo)
+    {
+        print("Could not connect to remote server");
+        return false;
+    }
+
+    connectionInfo->switchDatabase(
+            string("dbservice"),
+            true /*createifnotexists*/,
+            false /*showCommands*/,
+            true /*forceExec*/);
 
     // retrieve location parameters from worker
     string dir;
-    getConfigParamFromWorker(dir, connectionInfo,
-            "Environment", "SecondoHome");
+    if(!getConfigParamFromWorker(dir, connectionInfo,
+            "Environment", "SecondoHome"))
+    {
+        print("could not retrieve SecondoHome of remote host");
+        return false;
+    }
+
     string commPort;
-    getConfigParamFromWorker(commPort, connectionInfo,
-            "DBService", "CommunicationPort");
+    if(!getConfigParamFromWorker(commPort, connectionInfo,
+            "DBService", "CommunicationPort"))
+    {
+        print("could not retrieve CommunicationPort of remote host");
+        return false;
+    }
+
     string transferPort;
-    getConfigParamFromWorker(transferPort, connectionInfo,
-            "DBService", "FileTransferPort");
+    if(!getConfigParamFromWorker(transferPort, connectionInfo,
+            "DBService", "FileTransferPort"))
+    {
+        print("could not retrieve FileTransferPort of remote host");
+        return false;
+    }
 
     if(!startServersOnWorker(connectionInfo))
     {
+        print("could not start servers on worker");
         return false;
     }
 
@@ -253,12 +282,18 @@ bool DBServiceManager::getConfigParamFromWorker(string& result,
             resultAsString);
     print("resultAsString", resultAsString);
 
+    if(!resultOk)
+    {
+        print("error during remote query execution");
+        return false;
+    }
+
     ListExpr resultAsNestedList;
     nl->ReadFromString(resultAsString, resultAsNestedList);
     result.assign(nl->StringValue(nl->Second(resultAsNestedList)));
     print("result", result);
 
-    return resultOk && result.size() != 0;
+    return result.size() != 0;
 }
 
 void DBServiceManager::determineReplicaLocations(const string& databaseName,
@@ -371,7 +406,7 @@ void DBServiceManager::getWorkerNodesForReplication(
                     disk);
         }
         possibleReplicaLocations.insert(
-                pair<std::string, vector<ConnectionID> >(
+                pair<string, vector<ConnectionID> >(
                         locationID, potentialReplicaLocations));
         it = possibleReplicaLocations.find(locationID);
     }
@@ -501,14 +536,28 @@ void DBServiceManager::printMetadata()
 }
 
 bool DBServiceManager::replicaExists(
-        const std::string& databaseName,
-        const std::string& relationName)
+        const string& databaseName,
+        const string& relationName)
 {
     DBServiceRelations::const_iterator it =
             relations.find(RelationInfo::getIdentifier(
                     databaseName,
                     relationName));
     return it != relations.end();
+}
+
+void DBServiceManager::setOriginalLocationTransferPort(
+        const string& relID,
+        const string& transferPort)
+{
+    DBServiceRelations::const_iterator it =
+            relations.find(relID);
+    if(it != relations.end())
+    {
+        RelationInfo& relInfo = getRelationInfo(relID);
+        relInfo.setTransferPortOfOriginalLocation(
+                *(const_cast<string*>(&transferPort)));
+    }
 }
 
 DBServiceManager* DBServiceManager::_instance = nullptr;

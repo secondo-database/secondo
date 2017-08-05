@@ -213,6 +213,19 @@ database and relation name.
 
 
 /*
+
+1.1.1 ~setOriginalLocationTransferPort~
+
+This function allows setting the transfer port of the original location for an
+already existing ~RelationInfo~ object maintained by the ~DBServiceManager~.
+
+*/
+
+        void setOriginalLocationTransferPort(
+                const std::string& relID,
+                const std::string& transferPort);
+
+/*
 1.1.1 Constructor
 
 */

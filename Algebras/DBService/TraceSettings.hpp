@@ -1,4 +1,7 @@
 /*
+
+1 Maintainability
+
 ----
 This file is part of SECONDO.
 
@@ -27,12 +30,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace DBService {
 
+/*
+
+1.1 ~TraceSettings~
+
+The ~TraceSettings~ class stores the DBService trace level which is valid for
+the whole SECONDO instance.
+
+1.1.1 Data Type Definitions
+
+For realizing the mentioned functionality, some helper structures are required
+which are introduced below.
+
+1.1.1.1 ~TraceLevel~
+
+This enum covers all implemented trace levels.
+
+*/
+
 enum TraceLevel
 {
     OFF = 0, // no command line output, no trace files
     FILE = 1, // no command line output, but trace files
     DEBUG = 2 // both command line output and trace files
 };
+
+/*
+1.1.1 Class Definition
+
+Definition of the class ~TraceSettings~.
+
+*/
 
 class TraceSettings {
 public:

@@ -1,4 +1,7 @@
 /*
+
+1 Metadata Structures and Persistent Storage
+
 ----
 This file is part of SECONDO.
 
@@ -26,6 +29,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DBSERVICE_METADATAOBJECT_HPP_
 
 namespace DBService {
+
+/*
+
+1.1 ~MetadataObject~
+
+Is the string used for composing the identifier.
+
+*/
 
 class MetadataObject {
 public:

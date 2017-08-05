@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <boost/shared_ptr.hpp>
 
+#include "NList.h"
+
 #include "Algebras/DBService/CommunicationClient.hpp"
 #include "Algebras/DBService/LocationInfo.hpp"
 
@@ -72,7 +74,8 @@ This function needs to be called if a relation shall be replicated.
 */
     bool triggerReplication(
             const std::string& databaseName,
-            const std::string& relationName);
+            const std::string& relationName,
+            const ListExpr relType);
 
 
 /*

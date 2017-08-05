@@ -174,6 +174,16 @@ TEST_F(LocationInfoTest, testParseIdentifier)
     ASSERT_STREQ(port.c_str(), parsedPort.c_str());
 }
 
+TEST_F(LocationInfoTest, testSetTransferPort)
+{
+    string newTransferPort("myNewTransferPort");
+    ASSERT_STRNE(
+            newTransferPort.c_str(), locationInfo->getTransferPort().c_str());
+    locationInfo->setTransferPort(newTransferPort);
+    ASSERT_STREQ(
+            newTransferPort.c_str(), locationInfo->getTransferPort().c_str());
+}
+
 }
 
 }

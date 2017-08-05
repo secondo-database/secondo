@@ -99,6 +99,10 @@ int CommunicationServer::communicate(iostream& io)
         {
             handleTriggerReplicationRequest(io, tid);
         }else if(request ==
+                CommunicationProtocol::StartingSignal())
+        {
+            handleStartingSignalRequest(io, tid);
+        }else if(request ==
                 CommunicationProtocol::TriggerFileTransfer())
         {
             handleTriggerFileTransferRequest(io, tid);
@@ -186,33 +190,67 @@ bool CommunicationServer::handleTriggerReplicationRequest(
     dbService->getReplicaLocations(RelationInfo::getIdentifier(
             databaseName, relationName),
             locations);
+    dbService->setOriginalLocationTransferPort(
+            RelationInfo::getIdentifier(databaseName, relationName),
+            transferPort);
 
     if(locations.size() < (size_t)minimumReplicaCount)
     {
+        dbService->deleteReplicaLocations(databaseName, relationName);
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::ReplicationCanceled());
-        dbService->deleteReplicaLocations(databaseName, relationName);
     }else
     {
         dbService->persistReplicaLocations(databaseName, relationName);
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::ReplicationTriggered());
     }
+    return true;
+}
 
+bool CommunicationServer::handleStartingSignalRequest(
+        std::iostream& io, const boost::thread::id tid)
+{
+    traceWriter->writeFunction(tid,
+            "CommunicationServer::handleStartingSignalRequest");
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::RelationRequest());
+
+    string relID;
+    CommunicationUtils::receiveLine(io, relID);
+    traceWriter->write(tid, "relID", relID);
+
+    vector<pair<ConnectionID, bool> > locations;
+    DBServiceManager* dbService = DBServiceManager::getInstance();
+    dbService->getReplicaLocations(relID, locations);
+    RelationInfo& relationInfo = dbService->getRelationInfo(relID);
+
+    string originalLocationHost = relationInfo.
+            getOriginalLocation().getHost();
+    traceWriter->write("originalLocationHost", originalLocationHost);
+    string originalLocationTransferPort = relationInfo.
+            getOriginalLocation().
+            getTransferPort();
+    traceWriter->write("originalLocationTransferPort",
+            originalLocationTransferPort);
+
+    traceWriter->write("Triggering file transfers");
     for(vector<pair<ConnectionID, bool> >::const_iterator it
-            = locations.begin(); it != locations.end(); it++)
-    {
-        LocationInfo locationInfo = dbService->getLocation((*it).first);
-        TriggerFileTransferRunnable clientToDBServiceWorker(
-                host, /*original location*/
-                atoi(transferPort.c_str()), /*original location*/
-                locationInfo.getHost(), /*DBService*/
-                atoi(locationInfo.getCommPort().c_str()), /*DBService*/
-                databaseName,
-                relationName);
+                = locations.begin(); it != locations.end(); it++)
+        {
+            LocationInfo locationInfo = dbService->getLocation((*it).first);
+            traceWriter->write(locationInfo);
+            TriggerFileTransferRunnable clientToDBServiceWorker(
+                    originalLocationHost, /*original location*/
+                    atoi(originalLocationTransferPort.
+                            c_str()), /*original location*/
+                    locationInfo.getHost(), /*DBService*/
+                    atoi(locationInfo.getCommPort().c_str()), /*DBService*/
+                    relationInfo.getDatabaseName(),
+                    relationInfo.getRelationName());
 
-        clientToDBServiceWorker.run();
-    }
+            clientToDBServiceWorker.run();
+        }
     return true;
 }
 

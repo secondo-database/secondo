@@ -63,6 +63,7 @@ public:
     static std::string TriggerFileTransfer();
     static std::string TriggerReplicaDeletion();
     static std::string TriggerReplication();
+    static std::string StartingSignal();
 };
 
 } /* namespace DBService */

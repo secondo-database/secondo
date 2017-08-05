@@ -71,6 +71,11 @@ const string& LocationInfo::getTransferPort() const
     return transferPort;
 }
 
+void LocationInfo::setTransferPort(string& port)
+{
+    transferPort = port;
+}
+
 bool LocationInfo::isSameWorker(
         const string& cmpHost,
         const string& cmpPort) const

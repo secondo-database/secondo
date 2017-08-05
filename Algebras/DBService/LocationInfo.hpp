@@ -118,6 +118,15 @@ listening on the represented instance.
 
 /*
 
+1.1.1 ~setTransferPort~
+
+This function allows to set the value of member ~transferPort~.
+
+*/
+    void setTransferPort(std::string& port);
+
+/*
+
 1.1.1 \textit{isSameWorker}
 
 This function returns whether the specified host and port are equal to the

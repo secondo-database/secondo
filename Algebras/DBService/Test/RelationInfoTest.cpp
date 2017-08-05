@@ -195,6 +195,18 @@ TEST_F(RelationInfoTest, testParseIdentifier)
     ASSERT_STREQ(parsedRelName.c_str(), parsedRelName.c_str());
 }
 
+TEST_F(RelationInfoTest, testSetTransferPortOfOriginalLocation)
+{
+    string newTransferPort("myNewTransferPort");
+    ASSERT_STRNE(
+            newTransferPort.c_str(),
+            relationInfo->getOriginalLocation().getTransferPort().c_str());
+    relationInfo->setTransferPortOfOriginalLocation(newTransferPort);
+    ASSERT_STREQ(
+            newTransferPort.c_str(),
+            relationInfo->getOriginalLocation().getTransferPort().c_str());
+}
+
 }
 
 }

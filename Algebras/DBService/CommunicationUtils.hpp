@@ -1,4 +1,7 @@
 /*
+
+1 Helper Classes
+
 ----
 This file is part of SECONDO.
 
@@ -31,7 +34,7 @@ namespace DBService {
 
 /*
 
-1 \textit{CommunicationUtils}
+1.1 \textit{CommunicationUtils}
 
 \textit{DBService}
 The \textit{CommunicationUtils} provide functions to send and receive messages
@@ -44,7 +47,7 @@ class CommunicationUtils
 public:
 /*
 
-1.1 \textit{receivedExpectedLine}
+1.1.1 \textit{receivedExpectedLine}
 
 This function checks whether an expected line was received on a specified
 stream.
@@ -55,7 +58,7 @@ stream.
 
 /*
 
-1.1 \textit{receivedExpectedLines}
+1.1.1 \textit{receivedExpectedLines}
 
 This function checks whether the expected lines were received on a specified
 stream.
@@ -66,7 +69,7 @@ stream.
 
 /*
 
-1.1 \textit{receiveLine}
+1.1.1 \textit{receiveLine}
 
 This function stores a received line in the specified string object.
 
@@ -76,7 +79,7 @@ This function stores a received line in the specified string object.
 
 /*
 
-1.1 \textit{receiveLines}
+1.1.1 \textit{receiveLines}
 
 This function stores the specified numbers of received lines in the specified
 queue of string objects.
@@ -88,7 +91,7 @@ queue of string objects.
 
 /*
 
-1.1 \textit{sendLine}
+1.1.1 \textit{sendLine}
 
 This function writes the specified message into the stream.
 
@@ -98,7 +101,7 @@ This function writes the specified message into the stream.
 
 /*
 
-1.1 \textit{sendBatch}
+1.1.1 \textit{sendBatch}
 
 This function writes the specified queue of messages into the stream.
 
@@ -108,7 +111,7 @@ This function writes the specified queue of messages into the stream.
 
 /*
 
-1.1 \textit{streamStatusOk}
+1.1.1 \textit{streamStatusOk}
 
 This function checks whether the stream is in any kind of error state which
 would lead to crashes if we use it for sending or receiving messages.

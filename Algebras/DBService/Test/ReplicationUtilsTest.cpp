@@ -71,14 +71,6 @@ TEST_F(ReplicationUtilsTest, testParseFileName)
     ASSERT_STREQ("myRel", relationName.c_str());
 }
 
-TEST_F(ReplicationUtilsTest, testRemoveQuotes)
-{
-
-    string myString("\"myRelation\"");
-    ReplicationUtils::removeQuotes(myString);
-    ASSERT_STREQ("myRelation", myString.c_str());
-}
-
 }
 
 }
