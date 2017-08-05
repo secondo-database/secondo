@@ -50,12 +50,14 @@ DOCU_FILES = DBServiceAlgebra.hpp DBServiceAlgebra.cpp \
 			 ReplicationClient.hpp ReplicationClient.cpp \
 			 CommunicationProtocol.hpp CommunicationProtocol.cpp \
 			 ServerRunnable.hpp ServerRunnable.cpp \
+			 Replicator.hpp Replicator.cpp \
 			 ReplicationClientRunnable.hpp ReplicationClientRunnable.cpp \
 			 TriggerFileTransferRunnable.hpp TriggerFileTransferRunnable.cpp \
 			 TriggerReplicaDeletionRunnable.hpp TriggerFileTransferRunnable.cpp \
 			 OperatorAddNode.hpp OperatorAddNode.cpp \
 			 OperatorCheckDBServiceStatus.hpp OperatorCheckDBServiceStatus.cpp \
 			 OperatorSetTraceLevel.hpp OperatorSetTraceLevel.cpp \
+			 OperatorPingDBService.hpp OperatorPingDBService.cpp \
 			 OperatorWrite.hpp OperatorWrite.cpp \
 			 OperatorRead.hpp OperatorRead.cpp \
 			 OperatorDDelete.hpp OperatorDDelete.cpp \

@@ -78,6 +78,7 @@ TEST_F(CommunicationUtilsTest, testReceiveBatchExpected)
     q.push(bla);
 
     ASSERT_TRUE(CommunicationUtils::receivedExpectedLines(io, q));
+    ASSERT_TRUE(q.empty());
 }
 
 TEST_F(CommunicationUtilsTest, testReceiveBatchUnexpected)
@@ -97,6 +98,7 @@ TEST_F(CommunicationUtilsTest, testReceiveBatchUnexpected)
     q.push(blub);
 
     ASSERT_FALSE(CommunicationUtils::receivedExpectedLines(io, q));
+    ASSERT_TRUE(q.empty());
 }
 
 TEST_F(CommunicationUtilsTest, testReceiveExpected)

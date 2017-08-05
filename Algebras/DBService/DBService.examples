@@ -56,3 +56,10 @@ Signature : int -> bool
 Example   : query settracelevel(0)
 Result    : TRUE
 Remark    : None
+
+Operator  : pingdbservice
+Number    : 1
+Signature : -> bool
+Example   : query pingdbservice()
+Result    : TRUE
+Remark    : None

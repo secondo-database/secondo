@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/OperatorDDelete.hpp"
 #include "Algebras/DBService/OperatorGetConfigParam.hpp"
 #include "Algebras/DBService/OperatorInitDBServiceWorker.hpp"
+#include "Algebras/DBService/OperatorPingDBService.hpp"
 #include "Algebras/DBService/OperatorRead.hpp"
 #include "Algebras/DBService/OperatorSetTraceLevel.hpp"
 #include "Algebras/DBService/OperatorWrite.hpp"
@@ -65,6 +66,9 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(SetTraceLevelInfo(),
                 OperatorSetTraceLevel::mapValue,
                 OperatorSetTraceLevel::mapType);
+    AddOperator(PingDBServiceInfo(),
+                OperatorPingDBService::mapValue,
+                OperatorPingDBService::mapType);
 }
 
 } /* namespace DBService */

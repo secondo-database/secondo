@@ -1,4 +1,7 @@
 /*
+
+1.1.1 Class Implementation
+
 ----
 This file is part of SECONDO.
 
@@ -451,6 +454,44 @@ bool CommunicationClient::connectionTargetIsDBServiceMaster()
         return false;
     }
 
+    return true;
+}
+
+bool CommunicationClient::pingDBService()
+{
+    traceWriter->writeFunction("CommunicationClient::pingDBService");
+
+    if(!connectionTargetIsDBServiceMaster())
+    {
+        traceWriter->write("Aborting due to wrong node specification");
+        return false;
+    }
+
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
+
+    iostream& io = socket->GetSocketStream();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::CommunicationServer()))
+    {
+        traceWriter->write("Not connected to CommunicationServer");
+        return false;
+    }
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::Ping());
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::Ping()))
+    {
+        traceWriter->write("Did not receive ping");
+        return false;
+    }
     return true;
 }
 

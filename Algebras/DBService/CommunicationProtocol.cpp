@@ -137,4 +137,9 @@ string CommunicationProtocol::StartingSignal()
     return "<STARTINGSIGNAL>";
 }
 
+string CommunicationProtocol::Ping()
+{
+    return "<PING>";
+}
+
 } /* namespace DBService */

@@ -1,4 +1,7 @@
 /*
+
+1.1.1 Class Definition
+
 ----
 This file is part of SECONDO.
 
@@ -57,6 +60,12 @@ CommunicationServer::CommunicationServer(int port) :
 CommunicationServer::~CommunicationServer()
 {
     traceWriter->writeFunction("CommunicationServer::~CommunicationServer");
+}
+
+int CommunicationServer::start()
+{
+    traceWriter->writeFunction("CommunicationServer::start");
+    return MultiClientServer::start();
 }
 
 void CommunicationServer::lookupMinimumReplicaCount()
@@ -122,6 +131,10 @@ int CommunicationServer::communicate(iostream& io)
                 CommunicationProtocol::TriggerReplicaDeletion())
         {
             handleTriggerReplicaDeletion(io, tid);
+        }else if(request ==
+                CommunicationProtocol::Ping())
+        {
+            handlePing(io, tid);
         }else
         {
             traceWriter->write(
@@ -430,6 +443,16 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
 
     //TODO check return code etc
     //TODO tracing
+    return true;
+}
+
+bool CommunicationServer::handlePing(
+        std::iostream& io, const boost::thread::id tid)
+{
+    traceWriter->writeFunction(tid,
+            "CommunicationServer::handlePing");
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::Ping());
     return true;
 }
 

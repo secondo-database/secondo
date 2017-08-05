@@ -54,17 +54,9 @@ bool CommunicationUtils::streamStatusOk(iostream& io)
 bool CommunicationUtils::receivedExpectedLine(iostream& io,
                                               const string& expectedLine)
 {
-    if(!streamStatusOk(io))
-    {
-        return false;
-    }
-    string line;
-    getline(io, line);
-    if (line != expectedLine)
-    {
-        return false;
-    }
-    return true;
+    queue<string> expectedLines;
+    expectedLines.push(expectedLine);
+    return receivedExpectedLines(io, expectedLines);
 }
 
 bool CommunicationUtils::receivedExpectedLines(iostream& io,
@@ -80,6 +72,11 @@ bool CommunicationUtils::receivedExpectedLines(iostream& io,
         getline(io, line);
         if (line != expectedLines.front())
         {
+            cout << "Wrong line received."
+                    "Expected: " << expectedLines.front()
+                    << ", received: " << line << endl;
+            queue<string> empty;
+            expectedLines.swap(empty);
             return false;
         }
         expectedLines.pop();

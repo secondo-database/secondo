@@ -1,4 +1,14 @@
 /*
+
+1.1 \textit{CommunicationClient}
+
+The \textit{CommunicationClient} is the counterpart of the
+\textit{CommunicationServer}. Whenever communication associated with the
+ \textit{DBService's} functionality takes place the \textit{CommunicationClient}
+is the initiator. The \textit{CommunicationClient} is deducted from the more
+generic class \textit{Client} of the \textit{Distributed2Algebra} which had
+to be extracted from the \textit{FileTransferClient} for this purpose.
+
 ----
 This file is part of SECONDO.
 
@@ -36,30 +46,17 @@ namespace DBService {
 
 /*
 
-1 \textit{CommunicationClient}
-
-The \textit{CommunicationClient} is the counterpart of the
-\textit{CommunicationServer}. Whenever communication associated with the
- \textit{DBService's} functionality takes place the \textit{CommunicationClient}
-is the initiator. The \textit{CommunicationClient} is deducted from the more
-generic class \textit{Client} of the \textit{Distributed2Algebra} which had
-to be extracted from the \textit{FileTransferClient} for this purpose.
+1.1.1 Class Definition
 
 */
 
-class CommunicationClient: public distributed2::Client {
-/*
+class CommunicationClient: public distributed2::Client
+{
 
-1.1 Function Definitions
-
-The \textit{CommunicationClient} provides several member functions that cover
-the different \textit{DBService} communication scenarios.
-
-*/
 public:
 /*
 
-1.1.1 Constructor
+1.1.1.1 Constructor
 
 */
     CommunicationClient(
@@ -69,14 +66,14 @@ public:
 
 /*
 
-1.1.2 Destructor
+1.1.1.2 Destructor
 
 */
     ~CommunicationClient();
 
 /*
 
-1.1.2 \textit{triggerReplication}
+1.1.1.2 \textit{triggerReplication}
 
 This function is meant to be called by on \textit{CommunicationClient} that
 resides on the original node of a relation that needs to be replicated.
@@ -92,7 +89,7 @@ original location.
 
 /*
 
-1.1.2 ~giveStartingSignalForReplication~
+1.1.1.2 ~giveStartingSignalForReplication~
 
 This function is meant to be called by on \textit{CommunicationClient} that
 resides on the original node of a relation that needs to be replicated.
@@ -107,7 +104,7 @@ file transfer.
             const std::string& relationName);
 
 /*
-1.1.2 \textit{getReplicaLocation}
+1.1.1.2 \textit{getReplicaLocation}
 
 This function establishes a connection to the \textit{CommunicationServer} on
 the DBService master node in order to request the replica location for a
@@ -122,7 +119,7 @@ the host and the transfer port of the node that holds the replica.
             std::string& transferPort);
 
 /*
-1.1.2 \textit{triggerFileTransfer}
+1.1.1.2 \textit{triggerFileTransfer}
 
 The file transfer between the nodes was implemented following the approach that
 is already used by the \textit{Distributed2Algebra}. The
@@ -147,7 +144,7 @@ of the responsible \textit{ReplicationServer}.
             const std::string& relationName);
 
 /*
-1.1.2 \textit{reportSuccessfulReplication}
+1.1.1.2 \textit{reportSuccessfulReplication}
 
 Once a relation was successfully replicated, the \textit{DBService} worker node
 has to notify the \textit{DBService} master so that the corresponding metadata
@@ -161,7 +158,7 @@ master and executes the function \textit{reportSuccessfulReplication}.
             const std::string& relationName);
 
 /*
-1.1.2 \textit{requestReplicaDeletion}
+1.1.1.2 \textit{requestReplicaDeletion}
 
 If a relation is deleted at its original location, it does not make sense to
 keep the corresponding replicas. Therefore, using the function
@@ -176,7 +173,7 @@ the \textit{CommunicationServer} on the DBService master.
 
 
 /*
-1.1.2 \textit{triggerReplicaDeletion}
+1.1.1.2 \textit{triggerReplicaDeletion}
 
 Once the deletion of a replica has been requested, the \textit{DBService}
 master will determine the replica locations and instantiate
@@ -192,18 +189,28 @@ to trigger the deletion of the replicas by calling function
 
 
 /*
-1.1.2 \textit{getLocationParameter}
+1.1.1.2 \textit{getLocationParameter}
 
 This function simplifies reading information from the "Environment" section of
 a SECONDO configuration file.
 
 */
+
+/*
+1.1.1.2 \textit{getLocationParameter}
+
+This function simplifies reading information from the "Environment" section of
+a SECONDO configuration file.
+
+*/
+    bool pingDBService();
+
 private:
     void getLocationParameter(std::string& location, const char* key);
 
 /*
 
-1.1.2 \textit{start}
+1.1.1.2 \textit{start}
 
 This function starts the \textit{CommunicationClient} by connecting to the
 specified server.
@@ -213,7 +220,7 @@ specified server.
 
 /*
 
-1.1.2 \textit{connectionTargetIsDBServiceMaster}
+1.1.1.2 \textit{connectionTargetIsDBServiceMaster}
 
 This function checks whether the \textit{CommunicationServer} to which we would
 like to connect is actually the one on the \textit{DBService} master node.
@@ -223,12 +230,7 @@ like to connect is actually the one on the \textit{DBService} master node.
 
 /*
 
-1.1 Member Definitions
-
-The constructor arguments are all passed on to the superclass, therefore the
-\textit{CommunicationClient} class only has one member.
-
-1.1.1 \textit{traceWriter}
+1.1.1.1 \textit{traceWriter}
 
 As the \textit{DBService} acts in a highly distributed environment, it
 is important to provide comprehensive tracing in order to be able to understand

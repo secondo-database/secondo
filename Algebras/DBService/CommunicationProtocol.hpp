@@ -48,6 +48,7 @@ public:
     static std::string LocationRequest();
     static std::string FunctionRequest();
     static std::string None();
+    static std::string Ping();
     static std::string RelationRequest();
     static std::string ReplicaExists();
     static std::string ReplicaLocationRequest();

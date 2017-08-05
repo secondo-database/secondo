@@ -1,4 +1,12 @@
 /*
+
+1.1 \textit{DBServiceManager}
+
+The \textit{DBServiceManager} is the central component of the
+\textit{DBService} system. It is involved by the \textit{CommunicationServer}
+on the \textit{DBService} master node in order to coordinate the execution of
+all \textit{DBService} functionality.
+
 ----
 This file is part of SECONDO.
 
@@ -46,12 +54,7 @@ typedef std::map<std::string, RelationInfo> DBServiceRelations;
 
 /*
 
-1 \textit{DBServiceManager}
-
-The \textit{DBServiceManager} is the central component of the
-\textit{DBService} system. It is involved by the \textit{CommunicationServer}
-on the \textit{DBService} master node in order to coordinate the execution of
-all \textit{DBService} functionality.
+1.1.1 Class Definition
 
 */
 
@@ -60,12 +63,8 @@ class DBServiceManager
 public:
 
 /*
-1.1 Function Definitions
 
-The \textit{DBServiceManager} provides several member functions that help
-realizing the necessary functionality.
-
-1.1.1 getInstance
+1.1.1.1 getInstance
 
 Returns the DBServiceManager instance (singleton).
 
@@ -74,7 +73,7 @@ Returns the DBServiceManager instance (singleton).
 
 /*
 
-1.1.1 \textit{addNode}
+1.1.1.1 \textit{addNode}
 
 This function adds a node to the connection manager's pool that can be used for
 storing relation replicas.
@@ -86,7 +85,7 @@ storing relation replicas.
 
 /*
 
-1.1.1 \textit{getConnection}
+1.1.1.1 \textit{getConnection}
 
 This function returns a pointer to the \textit{ConnectionInfo} object identified
 by the specified \textit{ConnectionID}.
@@ -96,7 +95,7 @@ by the specified \textit{ConnectionID}.
 
 /*
 
-1.1.1 \textit{getLocation}
+1.1.1.1 \textit{getLocation}
 
 This function returns a reference to the \textit{LocationInfo} object identified
 by the specified \textit{ConnectionID}.
@@ -106,7 +105,7 @@ by the specified \textit{ConnectionID}.
 
 /*
 
-1.1.1 \textit{getRelationInfo}
+1.1.1.1 \textit{getRelationInfo}
 
 This function returns a reference to the \textit{RelationInfo} object identified
 by the specified string.
@@ -116,7 +115,7 @@ by the specified string.
 
 /*
 
-1.1.1 \textit{determineReplicaLocations}
+1.1.1.1 \textit{determineReplicaLocations}
 
 This function determines the replica locations for a certain relation and is
 therefore provided with the name of the database and relation as well as all
@@ -132,7 +131,7 @@ relevant information on the original location.
 
 /*
 
-1.1.1 \textit{persistReplicaLocations}
+1.1.1.1 \textit{persistReplicaLocations}
 
 This function persists the identified replica locations in case the replication
 shall be executed. It triggers storing them in a persistent SECONDO table
@@ -145,7 +144,7 @@ as well as adding them to internal data structures.
 
 /*
 
-1.1.1 \textit{getReplicaLocations}
+1.1.1.1 \textit{getReplicaLocations}
 
 This function retrieves all replica locations of the relation identified by the
 given string and stores them in the provided vector.
@@ -156,7 +155,7 @@ given string and stores them in the provided vector.
 
 /*
 
-1.1.1 \textit{deleteReplicaLocations}
+1.1.1.1 \textit{deleteReplicaLocations}
 
 This function deletes the replica information of the specified relation from
 the internal data structures.
@@ -167,7 +166,7 @@ the internal data structures.
 
 /*
 
-1.1.1 \textit{maintainSuccessfulReplication}
+1.1.1.1 \textit{maintainSuccessfulReplication}
 
 This function updates the internal data structures after a successful
 replication has been reported. It also triggers updating the persistent metadata
@@ -181,7 +180,7 @@ relations accordingly.
 
 /*
 
-1.1.1 ~deleteReplicaMetadata~
+1.1.1.1 ~deleteReplicaMetadata~
 
 This function removes the metadata of a certain relation from the internal data
 structures and from the persistent metadata relations.
@@ -191,7 +190,7 @@ structures and from the persistent metadata relations.
 
 /*
 
-1.1.1 ~printMetadata~
+1.1.1.1 ~printMetadata~
 
 This function prints all DBService metadata used for replica provisioning to
 the command line.
@@ -201,7 +200,7 @@ the command line.
 
 /*
 
-1.1.1 ~replicaExists~
+1.1.1.1 ~replicaExists~
 
 This function returns whether a replica exists in ~DBService~ for the specified
 database and relation name.
@@ -214,7 +213,7 @@ database and relation name.
 
 /*
 
-1.1.1 ~setOriginalLocationTransferPort~
+1.1.1.1 ~setOriginalLocationTransferPort~
 
 This function allows setting the transfer port of the original location for an
 already existing ~RelationInfo~ object maintained by the ~DBServiceManager~.
@@ -226,21 +225,21 @@ already existing ~RelationInfo~ object maintained by the ~DBServiceManager~.
                 const std::string& transferPort);
 
 /*
-1.1.1 Constructor
+1.1.1.1 Constructor
 
 */
 private:
     DBServiceManager();
 
 /*
-1.1.1 Copy Constructor
+1.1.1.1 Copy Constructor
 
 */
     DBServiceManager(const DBServiceManager&)
     {}
 
 /*
-1.1.1 Destructor
+1.1.1.1 Destructor
 
 Deletes existing DBServiceManager instance.
 
@@ -249,7 +248,7 @@ Deletes existing DBServiceManager instance.
 
 /*
 
-1.1.1 \textit{getNextFreeConnectionID}
+1.1.1.1 \textit{getNextFreeConnectionID}
 
 This function determines the next free \textit{ConnectionID} which is used as
 unique identifier of connections.
@@ -259,7 +258,7 @@ unique identifier of connections.
 
 /*
 
-1.1.1 \textit{getWorkerNodesForReplication}
+1.1.1.1 \textit{getWorkerNodesForReplication}
 
 This function adds the specified number of replicas to the given vector.
 
@@ -271,7 +270,7 @@ This function adds the specified number of replicas to the given vector.
 
 /*
 
-1.1.1 \textit{startServersOnWorker}
+1.1.1.1 \textit{startServersOnWorker}
 
 This function triggers the startup of one \textit{CommunicationServer} and one
 \textit{ReplicationServer} on the node that is addressed by the specified
@@ -282,7 +281,7 @@ This function triggers the startup of one \textit{CommunicationServer} and one
 
 /*
 
-1.1.1 \textit{getConfigParamFromWorker}
+1.1.1.1 \textit{getConfigParamFromWorker}
 
 This function retrieves information from the workers that is only stored in
 their local configuration files.
@@ -294,7 +293,7 @@ their local configuration files.
 
 /*
 
-1.1.1 \textit{addToPossibleReplicaLocations}
+1.1.1.1 \textit{addToPossibleReplicaLocations}
 
 This function maintains the potential replica locations for a locations
 in consideration of the configured fault tolerance mode.
@@ -309,7 +308,7 @@ in consideration of the configured fault tolerance mode.
 
 /*
 
-1.1.1 \textit{restoreConfiguration}
+1.1.1.1 \textit{restoreConfiguration}
 
 On \textit{DBServiceManager} instantiation, this function restores the
 connections from the persistent relation in case it exists. It reopens all
@@ -320,7 +319,7 @@ available connections.
 
 /*
 
-1.1.1 \textit{restoreReplicaInformation}
+1.1.1.1 \textit{restoreReplicaInformation}
 
 On \textit{DBServiceManager} instantiation, this function restores all replica
 information from the persistent relations in case they exist.
@@ -329,12 +328,7 @@ information from the persistent relations in case they exist.
     void restoreReplicaInformation();
 /*
 
-1.1 Member Definitions
-
-The \textit{DBServiceManager} has some members that store information which
-is important for its functionality.
-
-1.1.1 \textit{\_instance}
+1.1.1.1 \textit{\_instance}
 
 Pointer to the \textit{DBServiceManager} instance (singleton).
 
@@ -343,7 +337,7 @@ Pointer to the \textit{DBServiceManager} instance (singleton).
 
 /*
 
-1.1.1 \textit{connections}
+1.1.1.1 \textit{connections}
 
 This member maps a \textit{ConnectionID} to a pair that contains the
 corresponding \textit{LocationInfo} and \textit{ConnectionInfo}.
@@ -353,7 +347,7 @@ corresponding \textit{LocationInfo} and \textit{ConnectionInfo}.
 
 /*
 
-1.1.1 \textit{possibleReplicaLocations}
+1.1.1.1 \textit{possibleReplicaLocations}
 
 This member maps a location identifier to a vector of possible replica
 locations.
@@ -366,7 +360,7 @@ locations.
 
 /*
 
-1.1.1 \textit{relations}
+1.1.1.1 \textit{relations}
 
 This member maps a relation identifier to the corresponding
 \textit{RelationInfo} object.
@@ -376,7 +370,7 @@ This member maps a relation identifier to the corresponding
 
 /*
 
-1.1.1 \textit{replicaCount}
+1.1.1.1 \textit{replicaCount}
 
 This member stores the target number of replicas that is read from the
 configuration file.
@@ -386,7 +380,7 @@ configuration file.
 
 /*
 
-1.1.1 \textit{faultToleranceMode}
+1.1.1.1 \textit{faultToleranceMode}
 
 This member stores the target number of replicas that is read from the
 configuration file.
@@ -404,7 +398,7 @@ FaultToleranceMode mode;
 
 /*
 
-1.1.1 ~managerMutex~
+1.1.1.1 ~managerMutex~
 
 Mutex used to coordinate multi-threaded access by different servers.
 

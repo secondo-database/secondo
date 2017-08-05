@@ -52,6 +52,8 @@ DBServiceConnector::DBServiceConnector()
     {
         throw new SecondoException("Unable to connect to DBService");
     }
+    print("dbServiceHost", dbServiceHost);
+    print("dbServicePort", dbServicePort);
     startReplicationServer();
 }
 
@@ -163,6 +165,7 @@ string DBServiceConnector::retrieveReplicaAndGetFileName(
 bool DBServiceConnector::deleteReplicas(const string& databaseName,
                                         const string& relationName)
 {
+    printFunction("DBServiceConnector::deleteReplicas");
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
@@ -173,6 +176,15 @@ bool DBServiceConnector::deleteReplicas(const string& databaseName,
         return false;
     }
     return true;
+}
+
+bool DBServiceConnector::pingDBService()
+{
+    printFunction("DBServiceConnector::pingDBService");
+    CommunicationClient dbServiceMasterClient(dbServiceHost,
+                                              atoi(dbServicePort.c_str()),
+                                              0);
+    return dbServiceMasterClient.pingDBService();
 }
 
 DBServiceConnector* DBServiceConnector::_instance = nullptr;
