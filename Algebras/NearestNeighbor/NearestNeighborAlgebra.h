@@ -627,19 +627,19 @@ unsigned int NNTree<T>::nodeCount( NNnode *n )
 template<class T>
 typename NNTree<T>::NNnode *NNTree<T>::maxNode( NNnode *n)
 {
-  if( n->right != NULL )
-    return maxNode( n->right );
-  else
-    return n;
+   while(n->right){
+       n = n->right;
+   }
+   return n;  
 }
 
 template<class T>
 typename NNTree<T>::NNnode *NNTree<T>::minNode( NNnode *n)
 {
-  if( n->left != NULL )
-    return minNode( n->left );
-  else
-    return n;
+   while(n->left){
+       n = n->left;
+   }
+   return n;  
 }
 
 template<class T>

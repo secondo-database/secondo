@@ -2243,7 +2243,7 @@ the function GetDistance calculates the distance.
 Result is the MReal erg. The function expects a pointer to an empty MReal.
 mpos ist the startposition in mp where the function start to look
 This is a optimization cause the upoints are sorted
-by time. A lower time cannot come
+by time.A lower time cannot come
 
 */
 void GetDistance( const MPoint* mp, const UPoint* up,
@@ -2525,33 +2525,6 @@ double CalcDistance( const MReal *mr, Instant t, double &slope)
     return -1;
   }
 
-  /*
-   // sequential search
-  for (int ii=0; ii < noCo; ++ii)
-  {
-    mr->Get( ii, ur);
-    if( t < ur.timeInterval.end
-      || (t == ur.timeInterval.end && ur.timeInterval.rc)
-      || (t == ur.timeInterval.end && ii+1 == noCo))
-    {
-      double time = (t - ur.timeInterval.start).ToDouble();
-      double erg = ur.a * time * time + ur.b * time + ur.c;
-      if( ur.r && erg < 0) erg = 0;
-      erg = ( ur.r) ? sqrt(erg) : erg;
-      //the slope is if not r: 2a * time + b
-      // else 2a * time + b / 2 * erg
-      slope = 2 * ur.a * time + ur.b;
-      if( ur.r && erg){ slope /= 2 * erg; }
-      if( ur.r && !erg && ur.b == 0 && ur.c == 0 && ur.a > 0)
-      {
-        slope = sqrt(ur.a);
-      }
-      return erg;
-    }
-  }
-  return -1;
-  */
-
   // use binary search
   int min = 0;
   int max = noCo-1;
@@ -2576,10 +2549,9 @@ double CalcDistance( const MReal *mr, Instant t, double &slope)
   }
   // now min==max holds, check if t is contained in ur
   mr->Get(min,ur); // case mr contains only one unit
-  if( ( (ur.timeInterval.start< t) || 
-         ((ur.timeInterval.start == t) && ur.timeInterval.lc))
-       && ((ur.timeInterval.end > t) ||
-           ((ur.timeInterval.end == t) && ur.timeInterval.rc)) ) {
+
+  if(   (ur.timeInterval.start<= t)  // ignore closed flags 
+     && (ur.timeInterval.end >= t) ) {
       double time = (t - ur.timeInterval.start).ToDouble();
       double erg = ur.a * time * time + ur.b * time + ur.c;
       if( ur.r && erg < 0) erg = 0;
@@ -3034,12 +3006,25 @@ IT findActiveElem( NNTree<ActiveElem> &t, MReal *distance,
   double slope1, slope2;
   double dist = CalcDistance(distance,time,slope1);
 
+  if(dist < 0){
+    cout << "found invalid dist " << dist << endl;
+    cout << "mreal is " << (*distance) << endl;
+    cout << "time is " << time << endl;
+    assert(dist>=0);
+  }
+
   IT it = t.root();
   bool havePos = false;
   while( !havePos && it != t.end())
   {
 
     double storeDistance = CalcDistance(it->distance,time,slope2);
+    if(storeDistance < 0){
+      cout << "found invalid storedist " << storeDistance << endl;
+      cout << "mreal is " << (it->distance) << endl;
+      cout << "time is " << time << endl;
+      assert(false);
+    }
 
     if( dist < storeDistance
       || (dist == storeDistance && slope1 < slope2))
@@ -3569,20 +3554,69 @@ void deleteDupElements(KNearestQueue& evq, EventType type,
 
 struct KnearestLocalInfo
 {
-  KnearestLocalInfo(Word& stream, int attrPos,
+
+public:
+  // temporarly make friendship to some functions
+
+  friend int newknearest_distFun1 (Word*, Word&,int, Word&, Supplier);
+  friend int newknearest_distFun2 (Word*, Word&,int, Word&, Supplier);
+
+
+  KnearestLocalInfo(Word& stream, int _attrPos,
                     const MPoint* mp, int k1):
-     k(k1), eventQueue(stream, qp, attrPos, mp)
+     k(k1), attrPos(_attrPos),
+     eventQueue(stream, qp, _attrPos, mp)
   {
      init(mp);
   }
      
-  KnearestLocalInfo(Word& stream, int attrPos,
+  KnearestLocalInfo(Word& stream, int _attrPos,
                     const MPoint* mp, int k1, int zone):
-     k(k1), eventQueue(stream, qp, attrPos, mp, zone){
+     k(k1), attrPos(_attrPos),
+     eventQueue(stream, qp, _attrPos, mp, zone){
      init(mp);
   }
 
-  int k;
+  Tuple* next(){
+
+     //int attrNr = ((CcInt*)args[qp->GetNoSons(s)-1].addr)->GetIntval() - 1;
+      while ( !eventQueue.empty() ) {
+        EventElem elem = eventQueue.top();
+        eventQueue.pop();
+        ActiveElem::currtime = elem.pointInTime;
+        deleteDupElements( eventQueue, elem.type, 
+          elem.tuple, elem.tuple2, elem.pointInTime);
+
+        switch ( elem.type ){
+          case E_LEFT: {
+            Tuple* res = processLeft(elem);
+            if(res) return res;
+            break;
+          }
+          case E_RIGHT: {
+            Tuple* res = processRight(elem);
+            if(res) return res;
+            break;
+          }
+
+
+          case E_INTERSECT: {
+            Tuple* res = processIntersection(elem);
+            if(res) return res;
+            break;
+          }
+        }
+      }
+      return 0;
+  }
+
+
+
+
+
+private:
+  size_t k;
+  int attrPos;
   KNearestQueue eventQueue;
   Instant startTime;
   Instant endTime;
@@ -3598,6 +3632,7 @@ struct KnearestLocalInfo
 
   private:
      void init(const MPoint* mp){
+         count = 0;
          if(!mp || mp->IsEmpty()){
            return;
          }
@@ -3607,6 +3642,222 @@ struct KnearestLocalInfo
          startTime = up1.timeInterval.start;
          endTime = up2.timeInterval.end;
      }
+
+
+     Tuple* processLeft(EventElem& elem){
+        bool lc = elem.pointInTime >= startTime
+             ? elem.up->timeInterval.lc : false;
+        ActiveElem newElem(elem.distance, elem.tuple, elem.pointInTime,
+          elem.up->timeInterval.end, lc, elem.up->timeInterval.rc);
+        IT newPos = insertActiveElem( activeLine,
+          newElem, elem.pointInTime);
+
+        // check intersections
+        checkIntersections(E_LEFT, elem.pointInTime,
+          newPos, activeLine, eventQueue,endTime);
+
+        bool hasChangedFirstK = false;
+        IT posAfterK;
+        if( activeLine.size() > k ) {
+          posAfterK = checkFirstK(activeLine,k,newPos,hasChangedFirstK);
+        }
+        if( hasChangedFirstK) {
+          //something in the first k has changed
+          //now give out the k. element, but only until this time.
+          //Clone the tuple and change the unit-attribut to the
+          //new time interval
+          bool rc = newPos->lc ? false
+            : (posAfterK->end == elem.pointInTime ? posAfterK->rc : true);
+          if( posAfterK->start != elem.pointInTime
+            || (rc && posAfterK->lc)) {
+            Tuple* cloneTuple = changeTupleUnit(
+              posAfterK->tuple, attrPos, posAfterK->start,
+              elem.pointInTime, posAfterK->lc, rc);
+            posAfterK->start = elem.pointInTime;
+            posAfterK->lc = false;
+            if(cloneTuple != NULL) {
+              return cloneTuple;
+            }
+          }
+        }
+        return 0;
+      }
+
+
+      Tuple* processRight(EventElem& elem){
+            //a unit ends. It has to be removed from the map
+            IT posDel = findActiveElem( activeLine,
+              elem.distance, elem.pointInTime, elem.tuple);
+            Tuple* cloneTuple = NULL;
+            if( posDel != activeLine.end())
+            {
+              //check if this tuple is one of the first k, then give out this
+              //and change the start of the k+1 and the following to this time
+              bool hasDelFirstK = false;
+              IT posAfterK;
+              posAfterK = checkFirstK(activeLine,k,posDel,hasDelFirstK);
+
+              if( hasDelFirstK && (posDel->start != elem.pointInTime
+                || (posDel->lc && posDel->rc)))
+              {
+                if( posDel->start < endTime )
+                {
+                  cloneTuple = changeTupleUnit(
+                    posDel->tuple, attrPos, posDel->start, elem.pointInTime,
+                    posDel->lc, posDel->rc);
+                }
+                for( ; posAfterK != activeLine.end(); ++posAfterK)
+                {
+                  posAfterK->start = elem.pointInTime;
+                  posAfterK->lc = false;
+                }
+              }
+              //now calculate the intersection of the neighbors
+              checkIntersections(E_RIGHT, elem.pointInTime,
+                posDel, activeLine, eventQueue,endTime);
+
+              activeLine.erase( posDel );
+              elem.distance->Destroy();
+              delete elem.distance;
+              elem.tuple->DeleteIfAllowed();
+            }
+            else
+            {
+              //the program should never be here. This is a program error!
+              double slope;
+              for( IT it=activeLine.begin();
+                it!=activeLine.end(); ++it)
+              {
+                cout << "dist: " << CalcDistance(it->distance,
+                  elem.pointInTime,slope) << ", Tuple: " << it->tuple << endl;
+              }
+              assert(false);
+            }
+            return cloneTuple;
+          }
+
+
+        Tuple* processIntersection(EventElem& elem) {
+            IT posFirst = findActiveElem( activeLine,
+              elem.distance, elem.pointInTime, elem.tuple);
+            IT posNext = posFirst;
+            ++posNext;
+
+            IT posSec;
+            if( posNext == activeLine.end() ) {
+              //perhaps changed before
+              bool t1 = check(activeLine ,elem.pointInTime);
+              assert(t1);
+              return 0;
+            }
+            if( posNext->tuple != elem.tuple2 ) {
+              posSec = findActiveElem( activeLine,
+                elem.distance, elem.pointInTime, elem.tuple2);
+            } else {
+              posSec = posNext;
+            }
+
+            //check if the first of the inters.-tuples is the k. and give it out
+            Tuple* cloneTuple = NULL;
+            if( checkK(activeLine,k,posFirst)) {
+                cloneTuple = changeTupleUnit( posFirst->tuple,
+                attrPos, posFirst->start, elem.pointInTime,
+                posFirst->lc,posFirst->rc);
+              posFirst->start = elem.pointInTime;
+              posFirst->lc = true;
+              if( posNext != activeLine.end() ) {
+                posNext->start = elem.pointInTime;
+                posNext->lc = true;
+              }
+            }
+
+            if( posNext == posSec) {
+              //look for intersections between the new neighbors
+              checkIntersections(E_INTERSECT, elem.pointInTime,
+                posFirst, activeLine, eventQueue, endTime);
+
+              //swap the two entries in activeline
+              ActiveElem e = *posFirst;
+              *posFirst = *posSec;
+              *posSec = e;
+            } else {
+              //the are some elements which has the same distance between
+              //the two intersect elements, so calc like delete then insert
+              vector<ActiveElem> va;
+              set<Tuple*> s;
+              pair< set<Tuple*>::iterator, bool > pr;
+
+              ActiveElem newElem1(posFirst->distance,
+                  posFirst->tuple, elem.pointInTime,
+                  posFirst->end, posFirst->lc, posFirst->rc);
+              va.push_back(newElem1);
+              s.insert(posFirst->tuple);
+              activeLine.erase( posFirst );
+              ActiveElem newElem2(posSec->distance,
+                  posSec->tuple, elem.pointInTime,
+                  posSec->end, posSec->lc, posSec->rc);
+              va.push_back(newElem2);
+              s.insert(posSec->tuple);
+              activeLine.erase( posSec );
+
+              while( !eventQueue.empty() )
+              {
+                //handle all intersections at the same time
+                EventElem elemIs = eventQueue.top();
+
+                if( elemIs.type == E_INTERSECT
+                  && elem.pointInTime == elemIs.pointInTime) {
+
+                  eventQueue.pop();
+                  //eleminate same elements
+                  deleteDupElements( eventQueue, elemIs.type,
+                      elemIs.tuple, elemIs.tuple2, elem.pointInTime);
+
+                  pr = s.insert( elemIs.tuple );
+                  if(pr.second == true) {
+                    //the element was not removed yet
+                    IT pos = findActiveElem(activeLine,
+                      elemIs.distance, elemIs.pointInTime, elemIs.tuple);
+                    ActiveElem newElem(pos->distance,
+                      pos->tuple, elem.pointInTime,
+                      pos->end, pos->lc, pos->rc);
+                    activeLine.erase( pos );
+                    va.push_back(newElem);
+                  }
+                  pr = s.insert( elemIs.tuple2 );
+                  if(pr.second == true) {
+                    //the element was not removed yet
+                    IT pos = findActiveElem(activeLine,
+                      elemIs.distance, elemIs.pointInTime, elemIs.tuple2);
+                    ActiveElem newElem(pos->distance,
+                      pos->tuple, elem.pointInTime,
+                      pos->end, pos->lc, pos->rc);
+                    activeLine.erase( pos );
+                    va.push_back(newElem);
+                  }
+                } else {
+                  break;
+                }
+              }
+
+              vector<IT> vit;
+              for( unsigned int ii=0; ii < va.size(); ++ii )
+              {
+                  IT newPos = insertActiveElem( activeLine,
+                    va[ii], elem.pointInTime);
+                  vit.push_back(newPos);
+              }
+              // check intersections
+              for( unsigned int ii=0; ii < vit.size(); ++ii )
+              {
+                checkIntersections(E_LEFT, elem.pointInTime, vit[ii],
+                  activeLine, eventQueue,endTime);
+              }
+            }
+            return cloneTuple;
+          }
+
+
 
 };
 
@@ -3743,11 +3994,11 @@ int knearestFun (Word* args, Word& result, int message,
     */
     case OPEN :
     {
-      
       qp->Open(args[0].addr);
       CcInt* k = static_cast<CcInt*>(args[3].addr);
       const MPoint* mp = static_cast<const MPoint*>(args[2].addr);
-      int attrPos = (static_cast<CcInt*>(args[4].addr))->GetIntval() - 1;
+      int attrPos = (static_cast<CcInt*>
+                     (args[qp->GetNoSons(s)-1].addr))->GetIntval() - 1;
       if(!mp->IsDefined() || mp->IsEmpty() || !k->IsDefined()){
          local.addr = 0;
          return 0;
@@ -3770,14 +4021,15 @@ int knearestFun (Word* args, Word& result, int message,
          double delta = numeric_limits<double>::max();
          UPoint up;
          mp->Get( 0, up);
+         double x = up.p0.GetX();
          int index = -1;
          for(unsigned int i = 0;i < de_list.size();i++){
            if(i == 0){
-             delta = fabs(up.p0.GetX() - de_list[i]);
+             delta = fabs(x - de_list[i]);
              index = i;
            }else{
-             if(fabs(up.p0.GetX() - de_list[i]) < delta){
-               delta = fabs(up.p0.GetX() - de_list[i]);
+             if(fabs(x - de_list[i]) < delta){
+               delta = fabs(x - de_list[i]);
                index = i;
              }
            }
@@ -3785,6 +4037,7 @@ int knearestFun (Word* args, Word& result, int message,
          // ignore the value given by the user.
          zone = index;
       }
+      cout << "use zone " << zone << endl;
       local.addr = zone<0? new KnearestLocalInfo(args[0], attrPos, mp,
                                    k->GetValue())
                          : new KnearestLocalInfo(args[0], attrPos, mp,
@@ -3799,285 +4052,17 @@ int knearestFun (Word* args, Word& result, int message,
     */
     case REQUEST :
     {
-     if(!local.addr){ // special case something in the arguments 
-                      // was wrong in open
-       return CANCEL;
-     }
-     int attrNr = ((CcInt*)args[qp->GetNoSons(s)-1].addr)->GetIntval() - 1;
-     KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
-
-      while ( !localInfo->eventQueue.empty() )
-      {
-        EventElem elem = localInfo->eventQueue.top();
-        localInfo->eventQueue.pop();
-        ActiveElem::currtime = elem.pointInTime;
-
-        deleteDupElements( localInfo->eventQueue, elem.type, 
-          elem.tuple, elem.tuple2, elem.pointInTime);
-
-        switch ( elem.type ){
-          case E_LEFT:
-          {
-
-            bool lc = elem.pointInTime >= localInfo->startTime
-              ? elem.up->timeInterval.lc : false;
-            ActiveElem newElem(elem.distance, elem.tuple, elem.pointInTime,
-              elem.up->timeInterval.end, lc, elem.up->timeInterval.rc);
-            IT newPos = insertActiveElem( localInfo->activeLine,
-              newElem, elem.pointInTime);
-
-            // check intersections
-            checkIntersections(E_LEFT, elem.pointInTime,
-              newPos, localInfo->activeLine, localInfo->eventQueue,
-              localInfo->endTime);
-
-            bool hasChangedFirstK = false;
-            IT posAfterK;
-            if( localInfo->activeLine.size() > (unsigned) localInfo->k )
-            {
-              posAfterK = checkFirstK(localInfo->activeLine,
-                localInfo->k,newPos,hasChangedFirstK);
-            }
-            if( hasChangedFirstK)
-            {
-              //something in the first k has changed
-              //now give out the k. element, but only until this time.
-              //Clone the tuple and change the unit-attribut to the
-              //new time interval
-              bool rc = newPos->lc ? false
-                : (posAfterK->end == elem.pointInTime ? posAfterK->rc : true);
-              if( posAfterK->start != elem.pointInTime
-                || (rc && posAfterK->lc))
-              {
-                Tuple* cloneTuple = changeTupleUnit(
-                  posAfterK->tuple, attrNr, posAfterK->start,
-                  elem.pointInTime, posAfterK->lc, rc);
-                posAfterK->start = elem.pointInTime;
-                posAfterK->lc = false;
-                if(cloneTuple != NULL)
-                {
-                  result = SetWord(cloneTuple);
-                  return YIELD;
-                }
-              }
-            }
-
-            break;
-          }
-          case E_RIGHT:
-          {
-            //a unit ends. It has to be removed from the map
-            IT posDel = findActiveElem( localInfo->activeLine,
-              elem.distance, elem.pointInTime, elem.tuple);
-            Tuple* cloneTuple = NULL;
-            if( posDel != localInfo->activeLine.end())
-            {
-              //check if this tuple is one of the first k, then give out this
-              //and change the start of the k+1 and the following to this time
-              bool hasDelFirstK = false;
-              IT posAfterK;
-              posAfterK = checkFirstK(localInfo->activeLine,
-                  localInfo->k,posDel,hasDelFirstK);
-
-              if( hasDelFirstK && (posDel->start != elem.pointInTime
-                || (posDel->lc && posDel->rc)))
-              {
-                if( posDel->start < localInfo->endTime )
-                {
-                  cloneTuple = changeTupleUnit(
-                    posDel->tuple, attrNr, posDel->start, elem.pointInTime,
-                    posDel->lc, posDel->rc);
-                }
-                for( ; posAfterK != localInfo->activeLine.end(); ++posAfterK)
-                {
-                  posAfterK->start = elem.pointInTime;
-                  posAfterK->lc = false;
-                }
-              }
-              //now calculate the intersection of the neighbors
-              checkIntersections(E_RIGHT, elem.pointInTime,
-                posDel, localInfo->activeLine, localInfo->eventQueue,
-                localInfo->endTime);
-
-              localInfo->activeLine.erase( posDel );
-              elem.distance->Destroy();
-              delete elem.distance;
-              elem.tuple->DeleteIfAllowed();
-            }
-            else
-            {
-              //the program should never be here. This is a program error!
-              double slope;
-              for( IT it=localInfo->activeLine.begin();
-                it!=localInfo->activeLine.end(); ++it)
-              {
-                cout << "dist: " << CalcDistance(it->distance,
-                  elem.pointInTime,slope) << ", Tuple: " << it->tuple << endl;
-              }
-              assert(false);
-            }
-            if( cloneTuple != NULL)
-            {
-              result = SetWord(cloneTuple);
-              return YIELD;
-            }
-            break;
-          }
-
-          case E_INTERSECT:
-          {
-            IT posFirst = findActiveElem( localInfo->activeLine,
-              elem.distance, elem.pointInTime, elem.tuple);
-            IT posNext = posFirst;
-            ++posNext;
-
-            IT posSec;
-            if( posNext == localInfo->activeLine.end() )
-            {
-              //perhaps changed before
-              bool t1 = check(localInfo->activeLine ,elem.pointInTime);
-              assert(t1);
-
-              break;
-            }
-            if( posNext->tuple != elem.tuple2 )
-            {
-              posSec = findActiveElem( localInfo->activeLine,
-                elem.distance, elem.pointInTime, elem.tuple2);
-            }
-            else
-              posSec = posNext;
-
-            //check if the first of the inters.-tuples is the k. and give it out
-            Tuple* cloneTuple = NULL;
-            if( checkK(localInfo->activeLine,localInfo->k,posFirst))
-            {
-              cloneTuple = changeTupleUnit( posFirst->tuple,
-                attrNr, posFirst->start, elem.pointInTime,
-                posFirst->lc,posFirst->rc);
-              posFirst->start = elem.pointInTime;
-              posFirst->lc = true;
-              if( posNext != localInfo->activeLine.end() )
-              {
-                posNext->start = elem.pointInTime;
-                posNext->lc = true;
-              }
-            }
-
-            if( posNext == posSec)
-            {
-              //look for intersections between the new neighbors
-              checkIntersections(E_INTERSECT, elem.pointInTime,
-                posFirst, localInfo->activeLine, localInfo->eventQueue,
-                localInfo->endTime);
-
-              //swap the two entries in activeline
-              ActiveElem e = *posFirst;
-              *posFirst = *posSec;
-              *posSec = e;
-            }
-            else
-            {
-              //the are some elements which has the same distance between
-              //the two intersect elements, so calc like delete then insert
-              vector<ActiveElem> va;
-              set<Tuple*> s;
-              pair< set<Tuple*>::iterator, bool > pr;
-
-              ActiveElem newElem1(posFirst->distance,
-                  posFirst->tuple, elem.pointInTime,
-                  posFirst->end, posFirst->lc, posFirst->rc);
-              va.push_back(newElem1);
-              s.insert(posFirst->tuple);
-              localInfo->activeLine.erase( posFirst );
-              ActiveElem newElem2(posSec->distance,
-                  posSec->tuple, elem.pointInTime,
-                  posSec->end, posSec->lc, posSec->rc);
-              va.push_back(newElem2);
-              s.insert(posSec->tuple);
-              localInfo->activeLine.erase( posSec );
-
-              while( !localInfo->eventQueue.empty() )
-              {
-                //handle all intersections at the same time
-                EventElem elemIs = localInfo->eventQueue.top();
-
-                if( elemIs.type == E_INTERSECT
-                  && elem.pointInTime == elemIs.pointInTime)
-                {
-
-                  localInfo->eventQueue.pop();
-                  //eleminate same elements
-                  deleteDupElements( localInfo->eventQueue, elemIs.type,
-                      elemIs.tuple, elemIs.tuple2, elem.pointInTime);
-
-                  pr = s.insert( elemIs.tuple );
-                  if(pr.second == true)
-                  {
-                    //the element was not removed yet
-                    IT pos = findActiveElem( localInfo->activeLine,
-                      elemIs.distance, elemIs.pointInTime, elemIs.tuple);
-                    ActiveElem newElem(pos->distance,
-                      pos->tuple, elem.pointInTime,
-                      pos->end, pos->lc, pos->rc);
-                    localInfo->activeLine.erase( pos );
-                    va.push_back(newElem);
-                  }
-                  pr = s.insert( elemIs.tuple2 );
-                  if(pr.second == true)
-                  {
-                    //the element was not removed yet
-                    IT pos = findActiveElem( localInfo->activeLine,
-                      elemIs.distance, elemIs.pointInTime, elemIs.tuple2);
-                    ActiveElem newElem(pos->distance,
-                      pos->tuple, elem.pointInTime,
-                      pos->end, pos->lc, pos->rc);
-                    localInfo->activeLine.erase( pos );
-                    va.push_back(newElem);
-                  }
-                }
-                else
-                {
-
-                  break;
-                }
-              }
-
-              vector<IT> vit;
-              for( unsigned int ii=0; ii < va.size(); ++ii )
-              {
-                  IT newPos = insertActiveElem( localInfo->activeLine,
-                    va[ii], elem.pointInTime);
-                  vit.push_back(newPos);
-              }
-              // check intersections
-              for( unsigned int ii=0; ii < vit.size(); ++ii )
-              {
-                checkIntersections(E_LEFT, elem.pointInTime, vit[ii],
-                  localInfo->activeLine, localInfo->eventQueue,
-                  localInfo->endTime);
-              }
-            }
-            if( cloneTuple != NULL )
-            {
-              result = SetWord(cloneTuple);
-              return YIELD;
-            }
-
-            break;
-          }
-        }
-      }
-      return CANCEL;
+       KnearestLocalInfo* li = (KnearestLocalInfo*) local.addr;
+       result.addr = li?li->next(): 0;
+       return result.addr?YIELD:CANCEL;
     }
+
 
     case CLOSE :
     {
-
       qp->Close(args[0].addr);
       KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
       if(localInfo){
-
         delete localInfo;
         local.setAddr(0);
       }
@@ -4085,8 +4070,11 @@ int knearestFun (Word* args, Word& result, int message,
     }
   }
 
-  return 0;
+  return -1;
 }
+
+
+
 
 
 /*
@@ -4099,6 +4087,21 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
 {
   switch (message)
   {
+
+    case INIT : {
+       TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
+       qp->GetLocal2(s).addr = tt;
+       return 0;    
+    }
+    case FINISH : {
+        TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
+        if(tt){
+          tt->DeleteIfAllowed();
+          qp->GetLocal2(s).addr=0;
+        }
+        return 0;
+    }
+
     /*
     in open the eventqueue is initialized with the left
     and the right elements
@@ -4106,6 +4109,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
     */
     case OPEN :
     {
+      TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
       qp->Open(args[0].addr);
 //      CcInt* k = static_cast<CcInt*>(args[3].addr);
       int k = (int)static_cast<CcReal*>(args[3].addr)->GetRealval();
@@ -4120,9 +4124,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
          KnearestLocalInfo* localInfo =
                 new KnearestLocalInfo(args[0], attrPos, mp, k, true);
 
-         localInfo->count = 0;
-         localInfo->resulttype =
-            new TupleType(nl->Second(GetTupleResultType(s)));
+         localInfo->resulttype = tt;
 
          unsigned int last_result_tid = 0;
          ////////////////first calculate the result/////////////////////////
@@ -12293,6 +12295,7 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &distancescan2S );
     AddOperator( &distancescan3 );
     AddOperator( &knearest );
+    knearest.enableInitFinishSupport();
     AddOperator( &knearestvector );
     AddOperator( &oldknearestfilter );
     AddOperator( &bboxes );
