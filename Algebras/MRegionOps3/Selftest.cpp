@@ -144,7 +144,7 @@ namespace temporalalgebra {
         
         // ResultUnitTest2();
         
-        PFaceTest9();
+        // PFaceTest9();
         
         cerr << endl;
         cerr << numberOfTestsRun << " tests run, ";
@@ -1595,7 +1595,7 @@ namespace temporalalgebra {
 
 */ 
       void Selftest::ResultUnitFactoryTest1(){
-        ResultPfaceFactory factory1(4),factory2(4);
+        ResultUnitFactory factory1(4),factory2(4);
         assert_("ResultUnitFactoryTest 1.1", "factorys are equal.",
                  factory1 == factory2);
         factory1.addNonOrthogonalEdges(0,Segment(0,1,UNDEFINED));
@@ -1619,7 +1619,7 @@ namespace temporalalgebra {
                  factory1 == factory2);
         // cout << factory1 << endl;
         // cout << factory2 << endl;
-      }// ResultPfaceFactoryTest1
+      }// ResultUnitFactoryTest1
  
       void Selftest::ResultUnitFactoryTest2(){
         GlobalTimeValues timeValues1;
@@ -1652,8 +1652,8 @@ namespace temporalalgebra {
         timeValues1.addTimeValue(4.66666667);
         timeValues1.addTimeValue(5); 
         // Ergebnissatz bestimmen
-        ResultPfaceFactory factory1(points1,timeValues1,container1);
-        ResultPfaceFactory factory2(6);
+        ResultUnitFactory factory1(points1,timeValues1,container1);
+        ResultUnitFactory factory2(6);
         points2.add(Point3D (2, 1, 0));
         points2.add(Point3D (2, 1, 1.11111111));
         points2.add(Point3D (3.5, 4, 0));
@@ -1694,7 +1694,7 @@ namespace temporalalgebra {
         // cout << points2 << endl;
         // cout << factory1 << endl;
         // cout << factory2 << endl;
-      }// ResultPfaceFactoryTest2
+      }// ResultUnitFactoryTest2
          
       void Selftest::ResultUnitFactoryTest3(){
         ContainerPoint3D points;
@@ -1747,11 +1747,11 @@ namespace temporalalgebra {
         pf3.addBorder(timeValues1);
         pf4.addBorder(timeValues1);
         pf5.addBorder(timeValues1);
-        ResultPfaceFactory factory0( points2, timeValues1, pf0);
-        ResultPfaceFactory factory1( points2, timeValues1, pf1);
-        ResultPfaceFactory factory2( points2, timeValues1, pf2);
+        ResultUnitFactory factory0( points2, timeValues1, pf0);
+        ResultUnitFactory factory1( points2, timeValues1, pf1);
+        ResultUnitFactory factory2( points2, timeValues1, pf2);
         // Results
-        ResultPfaceFactory factory3(6), factory4(6),factory5(6);        
+        ResultUnitFactory factory3(6), factory4(6),factory5(6);        
         points3.add( Point3D (2, 1, 0));
         points3.add( Point3D (2, 1, 1.11111111));
         points3.add( Point3D (5, 1, 0));
@@ -1834,10 +1834,10 @@ namespace temporalalgebra {
                  factory2 == factory5);
         // cout << factory2 << endl;
         // cout << factory5 << endl;
-      }// ResultPfaceFactoryTest3
+      }// ResultUnitFactoryTest3
  
       void Selftest::ResultUnitFactoryTest4(){
-        ResultPfaceFactory factory1(6),factory2(6);
+        ResultUnitFactory factory1(6),factory2(6);
         factory1.addNonOrthogonalEdges(0, Segment (14, 2, UNDEFINED)); 
         factory1.addNonOrthogonalEdges(0, Segment (0, 2, RIGHT_IS_INNER));
         factory1.addNonOrthogonalEdges(0, Segment (1, 3, LEFT_IS_INNER));
@@ -1896,10 +1896,10 @@ namespace temporalalgebra {
                  left == INTERSECT && right == INTERSECT);
         // cout << factory1 << endl;
         // cout << factory2 << endl;     
-      }// ResultPfaceFactoryTest4
+      }// ResultUnitFactoryTest4
       
       void Selftest::ResultUnitFactoryTest5(){
-        ResultPfaceFactory factory1(4),factory2(4);
+        ResultUnitFactory factory1(4),factory2(4);
         factory1.addNonOrthogonalEdges(0, Segment (0, 3, UNDEFINED)); 
         factory1.addNonOrthogonalEdges(0, Segment (1, 4, UNDEFINED));
         factory1.addNonOrthogonalEdges(0, Segment (2, 5, UNDEFINED));
@@ -1938,7 +1938,7 @@ namespace temporalalgebra {
         // cout << factory2 << endl; 
         // cout << "Predicate on left border:=" << toString(left) << endl;
         // cout << "Predicate on right border:=" << toString(right) << endl;
-      }// ResultPfaceFactoryTest5  
+      }// ResultUnitFactoryTest5  
 /*
 19 Test ContainerSegment
 

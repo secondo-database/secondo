@@ -63,9 +63,9 @@ namespace temporalalgebra {
 */
     class NumericUtil{
     public:
-      static constexpr double eps  = 0.000001;
+      static constexpr double eps  = 0.00000001;
       // for bounding
-      static constexpr double eps2 = 0.000001;
+      static constexpr double eps2 = 0.0000001;
 /*
 3.1 nearlyEqual
 

@@ -617,7 +617,7 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
     class GlobalTimeValues{
     public:  
 /*
-11.1 Constructor
+13.1 Constructor
 
 */   
       GlobalTimeValues();
@@ -666,7 +666,7 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
       double t2;
     }; // GlobalTimeValues   
 /*
-4 class MSegment
+14 class MSegment
 
 */ 
     class MSegment{
@@ -681,7 +681,8 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
                int faceno, int cycleno, int edgeno, bool leftDomPoint, 
                bool insideAbove);
       
-      MSegment(const MSegmentData& mSeg, const Interval<Instant>& interval);
+      MSegment(const MSegmentData& mSeg, const Interval<Instant>& interval,
+               double tScale);
                   
       int getFaceNo() const; 
       int getCycleNo() const;
@@ -696,11 +697,12 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
       bool isLeftDomPoint() const;
       
       void setLeftDomPoint(bool ldp);
+      
       void setSegmentNo(int sn);
       
       void copyIndicesFrom(const HalfSegment* hs);
 /*
-1.1.1 LessByMedianHS
+14.1.1 LessByMedianHS
 
 Returns ~true~, if the median ~HalfSegment~ of this is
 lower than the median ~HalfSegment~ of ms,
@@ -709,7 +711,7 @@ according to the ~HalfSegment~ order, specified in the ~SpatialAlgebra~.
 */
       bool lessByMedianHS(const MSegment& other) const; 
 /*
-1.1.1 LogicLess
+14.1.1 LogicLess
 
 Returns ~true~, if the median ~HalfSegment~ of this is
 lower than the median ~HalfSegment~ of ms,
@@ -718,23 +720,23 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
 */
       bool logicLess(const MSegment& other) const; 
 /*
-11.3.3 print
+14.3.3 print
     
 */    
       std::ostream& print(std::ostream& os, std::string prefix)const; 
 /*
-11.3.4 operator <<
+14.3.4 operator <<
 
 */
       friend std::ostream& operator <<(std::ostream& os, 
                                        const MSegment& mSegment);
 /*
-11.3.5 operator ==
+14.3.5 operator ==
     
 */     
       bool operator ==(const MSegment& mSegment)const; 
 /*
-11.3.6 operator =
+14.3.6 operator =
     
 */       
       MSegment& operator =(const MSegment& mSegment);  
@@ -748,17 +750,22 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
                const Point3D rightStart, const Point3D rightEnd);
       
       void createMedianHS();
-      
+/*
+14.4 Attributes
+
+*/               
       Point3D leftStart;
       Point3D leftEnd;
       Point3D rightStart;
-      Point3D rightEnd;
-      
+      Point3D rightEnd;      
       HalfSegment medianHS;  
       bool insideAbove;
-    }; // MSegment
-    
-    
+    }; // MSegment  
+/*
+
+15 Class CriticalMSegment
+
+*/    
     class CriticalMSegment {
     public:
       
@@ -778,23 +785,23 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       bool hasEqualNormalVector(const CriticalMSegment& other) const;
       
 /*
-11.3.3 print
+15.3.3 print
     
 */    
       std::ostream& print(std::ostream& os, std::string prefix)const; 
 /*
-11.3.4 operator <<
+15.3.4 operator <<
 
 */
       friend std::ostream& operator <<(std::ostream& os, 
                                        const CriticalMSegment& cmSegment);
 /*
-11.3.5 operator ==
+15.3.5 operator ==
     
 */     
       bool operator ==(const CriticalMSegment& cmSegment)const; 
 /*
-11.3.6 operator =
+15.3.6 operator =
     
 */       
       CriticalMSegment& operator =(const CriticalMSegment& cmSegment); 
@@ -809,7 +816,10 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       
       void set(const Segment3D& left, const Segment3D& right, 
                SourceFlag source, Predicate predicate);
-      
+/*
+15.4 Attributes
+
+*/         
       SourceFlag       source;
       Predicate        predicate; 
       Segment3D        left;
@@ -819,7 +829,7 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
     };
     
 /*
-4 class ResultUnit
+16 class ResultUnit
 
 */     
     class ResultUnit{
@@ -836,36 +846,35 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       
       void addCMSegment(const CriticalMSegment& mSegment);
       
-      Interval<Instant> getTimeInterval() const;
+      Interval<Instant> getTimeInterval(double tScale) const;
 
       size_t size();
 /*
-11.3.3 print
+16.3.3 print
     
 */    
       std::ostream& print(std::ostream& os, std::string prefix)const; 
 /*
-11.3.4 operator <<
+16.3.4 operator <<
 
 */
       friend std::ostream& operator <<(std::ostream& os, 
                                        const ResultUnit& unit);
 /*
-11.3.5 operator ==
+16.3.5 operator ==
     
 */     
       bool operator ==(const ResultUnit& unit)const; 
 /*
-11.3.6 operator =
+16.3.6 operator =
     
 */       
       ResultUnit& operator =(const ResultUnit& unit);  
 
       void finalize();
       
-      URegionEmb* convertToURegionEmb(DbArray<MSegmentData>* segments)const;
-      
-//     Region* createTestRegion();
+      URegionEmb* convertToURegionEmb(double tScale, 
+                                      DbArray<MSegmentData>* segments)const;
       
       void evaluateCriticalMSegmens(SetOp setOp);
             
@@ -877,40 +886,40 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       static bool logicLess(const MSegment& ms1, const MSegment& ms2); 
       
       void copyCriticalMSegmens(const CriticalMSegment& cmSeg0, SetOp setOp);
-      
+/*
+16.4 Attributes
+
+*/         
       std::vector<MSegment> mSegments;
       std::vector<CriticalMSegment> mCSegments;
-      
-      
       int index;
       double startTime;
-      double endTime;
-      
+      double endTime;      
     };// ResultUnit        
 /*
-4 class ResultPfaceFactory
+17 class ResultUnitFactory
 
 */      
-    class ResultPfaceFactory {
+    class ResultUnitFactory {
     public:  
 /*
-4.1 Constructor
+17.1 Constructor
 
 */        
-      ResultPfaceFactory(const ResultPfaceFactory& other);
+      ResultUnitFactory(const ResultUnitFactory& other);
        
-      ResultPfaceFactory();
+      ResultUnitFactory();
        
-      ResultPfaceFactory(size_t size);
+      ResultUnitFactory(size_t size);
  
-      ResultPfaceFactory(ContainerPoint3D& points,
-                         GlobalTimeValues &timeValues,
-                         PlaneSweepAccess &access);    
+      ResultUnitFactory(ContainerPoint3D& points,
+                        GlobalTimeValues &timeValues,
+                        PlaneSweepAccess &access);    
 /*
-4.3 Methods, Operators and Predicates
+17.3 Methods, Operators and Predicates
 
 */
-      ResultPfaceFactory& operator =(const ResultPfaceFactory& other);
+      ResultUnitFactory& operator =(const ResultUnitFactory& other);
 
       void addNonOrthogonalEdges(size_t slide, const Segment& segment);
       
@@ -918,7 +927,7 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       
       void setTouchsOnLeftBorder(size_t slide, size_t value);
       
-      bool operator ==(const ResultPfaceFactory& factory)const;
+      bool operator ==(const ResultUnitFactory& factory)const;
       
       void getBorderPredicates(Predicate& left, Predicate& right)const;
    
@@ -928,13 +937,13 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
                          const ContainerPoint3D& points, ResultUnit& unit, 
                          State pfState, SourceFlag source);
 /*
-4.3.2 operator <<
+17.3.2 operator <<
 
 */     
       friend std::ostream& operator <<(std::ostream& os, 
-                                       const ResultPfaceFactory& unit);
+                                       const ResultUnitFactory& unit);
 /*
-4.3.3 print
+17.3.3 print
 
 */     
       std::ostream& print(std::ostream& os,std::string prefix)const;
@@ -946,7 +955,7 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       void set(      std::vector<std::list<size_t>>& edges1,
                const std::vector<std::list<size_t>>& edges2);
        
-      void set(const ResultPfaceFactory& other);
+      void set(const ResultUnitFactory& other);
       
       void print(std::ostream& os,std::string prefix,
                  std::vector<std::list<size_t>> edges)const;
@@ -966,80 +975,75 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
                           
       void setSlidePredicates(Predicate predicate,size_t i, size_t touch);
 /*
-4.4 Attributes
+17.4 Attributes
 
 */    
       ContainerSegment segments;
       std::vector<std::list<size_t>> nonOrthogonalEdges;
       std::vector<std::list<size_t>> orthogonalEdges;
       std::vector<size_t> touchsOnLeftBorder;
-    }; // ResultPfaceFactory 
+    }; // ResultUnitFactory 
  
 /*
-14 Class PFace
+18 Class PFace
 
 */    
     class PFace: public MSegment, public PlaneSweepAccess {
     friend class Selftest;    
     public:
 /*
-14.1 Constructors
+18.1 Constructors
 
 */
       PFace(size_t left, size_t right,const ContainerPoint3D& points, 
-            const ContainerSegment& segments, size_t index = -1);
+            const ContainerSegment& segments);
       
       PFace(const MSegmentData& mSeg, const Interval<Instant>& interval,
-            ContainerPoint3D& points, ContainerSegment& segments);
+            double tScale, ContainerPoint3D& points, 
+            ContainerSegment& segments);
             
       PFace(const PFace& pf); 
 /*
-14.2 Setter and Getter methods
+18.2 Setter and Getter methods
 
 */
       void    set(const PFace& pf);
       void    setState(State state);
-/*      Point3D getLeftStart() const; 
-      Point3D getLeftEnd() const;
-      Point3D getRightStart() const;       
-      Point3D getRightEnd() const;*/ 
       State   getState() const;
       Rectangle<2> getBoundingRec()const;
 /*
-14.3 Methods, operators and predicates
+18.3 Methods, operators and predicates
 
-14.3.1 existsIntSegs
+18.3.1 existsIntSegs
 
 */
       bool existsIntSegs()const;
 /*
-14.3.2 print
+18.3.2 print
 
 */        
-      std::ostream& print(std::ostream& os, std::string prefix)const;
-//      std::ostream& printShort(std::ostream& os, std::string prefix)const;
-      
+      std::ostream& print(std::ostream& os, std::string prefix)const;     
 /*
-14.3.3 Operator <<
+18.3.3 Operator <<
     
 Print the object values to stream.
 
 */            
       friend std::ostream& operator <<(std::ostream& os, const PFace& pf);      
 /*
-14.3.4 intersection
+18.3.4 intersection
 
 Computes the intersection of this ~PFace~ with pf. 
 
 */
       bool intersection(PFace& other,GlobalTimeValues &timeValues);
 /*
-14.3.5 toString
+18.3.5 toString
 
 */      
       static std::string toString(State state);
 /*
-14.3.6 addIntSeg
+18.3.6 addIntSeg
 
 */       
       // für den Selbsttest
@@ -1050,7 +1054,7 @@ Computes the intersection of this ~PFace~ with pf.
                      const RationalSegment3D &intSeg,
                      GlobalTimeValues &timeValues);
 /*
-14.3.7 addBorder
+18.3.7 addBorder
 
 */        
       void addBorder(const RationalPlane3D &plane,
@@ -1065,23 +1069,23 @@ Computes the intersection of this ~PFace~ with pf.
       
       void setBorderPredicate(ContainerSegment& segment, Predicate predicate);
 /*
-14.3.8 Operator =
+18.3.8 Operator =
 
 */  
       PFace& operator =(const PFace& pf);
 /*
-14.3.9 Operator ==
+18.3.9 Operator ==
 
 */        
       bool operator ==(const PFace& pf)const;
 /*
-14.3.10 first
+18.3.10 first
     
 */    
       void first(double t1, double t2, ContainerPoint3D& points,
                                        ContainerSegment& segments);
 /*
-14.3.11 next
+18.3.11 next
     
 */     
       void next(double t1, double t2, ContainerPoint3D& points, 
@@ -1093,42 +1097,36 @@ Computes the intersection of this ~PFace~ with pf.
       void getResultUnit(size_t slide, Predicate predicate, bool reverse, 
                          const ContainerPoint3D& points, ResultUnit& unit,
                          SourceFlag source);
-           
-      
-            
-//       HalfSegment getMedianHS() const;
     private:  
 /*
-14.4 Private methods
+18.4 Private methods
 
-14.4.1 getBoundingRec
+18.4.1 getBoundingRec
 
 */
       Rectangle<2> getBoundingRec(const Point3D& point)const;    
 /*
-14.4.3 createBorder
+18.4.3 createBorder
 
 */        
       IntersectionSegment createBorder(const RationalPlane3D &planeSelf,
                                        Border border, Predicate predicate);
 /*
-14.5 Attributes
+18.5 Attributes
 
 */      
       IntSegContainer    intSegs;
-      ResultPfaceFactory factory;
+      ResultUnitFactory factory;
       State              state;
       Rectangle<2>       boundingRect;   
-//       Point3D            leftStart;
-//       Point3D            leftEnd;
-//       Point3D            rightStart;
-//       Point3D            rightEnd;
       size_t             left;
       size_t             right;  
-//    int                index;
     };// class PFace  
     
+/*
+19 Class FaceCycleInfo
 
+*/
     class FaceCycleInfo {
     public:
       FaceCycleInfo();
@@ -1139,40 +1137,42 @@ Computes the intersection of this ~PFace~ with pf.
       size_t getFirstIndex() const;
       
     private:
+/*
+19.5 Attributes
+
+*/        
       size_t firstIndex;
       bool   touch;
     };
     
-    
 /*
-5 class SourceUnit
+20 class SourceUnit
 
 */        
     class SourceUnit{
     public:
 /*
-5.1 Constructor
+20.1 Constructor
 
 */       
       SourceUnit();
       SourceUnit(const SourceUnit& other);
 /*
-5.1 Destructor
+20.1 Destructor
 
 */       
       ~SourceUnit();
 /*
-5.2 Methods, operators and predicates
+20.2 Methods, operators and predicates
 
-5.2.3 addPFace
+20.2.3 addPFace
     
 */        
-
       void addPFace(const Segment& left, const Segment& right, 
                     const ContainerPoint3D& points);
       
       void addMSegmentData(const MSegmentData& mSeg, 
-                           const Interval<Instant>& interval,
+                           const Interval<Instant>& interval, double tScale,
                            ContainerPoint3D& points);
       
       bool isEmpty()const;
@@ -1184,7 +1184,7 @@ Computes the intersection of this ~PFace~ with pf.
       void addToResultUnit(ResultUnit& result)const;
       
 /*
-5.2.4 intersection
+20.2.4 intersection
     
 */       
       bool intersection(SourceUnit& other, GlobalTimeValues& timeValues); 
@@ -1198,7 +1198,7 @@ Computes the intersection of this ~PFace~ with pf.
       
       std::ostream& print(std::ostream& os, std::string prefix)const;
 /*
-5.2.5 Operator <<
+20.2.5 Operator <<
     
 Print the object values to stream.
 
@@ -1206,7 +1206,7 @@ Print the object values to stream.
       friend std::ostream& operator <<(std::ostream& os, 
                                        const SourceUnit& unit);
 /*
-5.2.6 Operator ==  
+20.2.6 Operator ==  
 
 */       
       bool operator ==(const SourceUnit& unit)const; 
@@ -1216,8 +1216,7 @@ Print the object values to stream.
       void createTestRegion();
       
       bool isInside(const PFace* pFace)const;
-      
-      
+            
       void createFaceCycleEntry(const PFace* pf, size_t index);
       
       void touchFaceCycleEntry(const PFace* pf);
@@ -1225,11 +1224,7 @@ Print the object values to stream.
       void checkFaceCycleEntrys(SourceUnit& other);
       
       void printFaceCycleEntrys();
-      
-      
-      
-      
-      // wird nur im Rahmen des Selbsttestes verwendet
+
       void reSort();      
            
     private: 
@@ -1238,28 +1233,24 @@ Print the object values to stream.
              
       static bool logicLess(const PFace* pf1, const PFace *pf2);
       
-        
       void set(const SourceUnit& other);
 /*
-5.3 Attributes
+20.3 Attributes
 
 */       
       std::vector<size_t> itersectedPFace;
       std::vector<PFace*> pFaces;
       ContainerSegment segments;
-      mmrtree::RtreeT<2, size_t> pFaceTree;
-      
+      mmrtree::RtreeT<2, size_t> pFaceTree;      
       Region testRegion;
-      bool   testRegionDefined;
-      
+      bool   testRegionDefined;      
       std::vector<std::vector<FaceCycleInfo>> faceCycleInfo;
       
     };// class SourceUnit 
 /*
-class SourceUnitPair
+21 Class SourceUnitPair
 
-*/
-    
+*/ 
     class SourceUnitPair {
     public:
       SourceUnitPair();
@@ -1267,7 +1258,7 @@ class SourceUnitPair
       void addPFace(SourceFlag flag, Segment3D& left, Segment3D& right);
       
       void addMSegmentData(const MSegmentData& mSeg, 
-                           const Interval<Instant>& interval,
+                           const Interval<Instant>& interval, double tScale,
                            SourceFlag sourceFlag);
       
       bool operate(SetOp setOp);
@@ -1281,25 +1272,28 @@ class SourceUnitPair
       
       ResultUnit getResultUnit(size_t slide)const;
       
-      void createResultMRegion(MRegion* resMRegion);
+      void createResultMRegion(double tScale, MRegion* resMRegion);
 
     private:      
+/*
+21.4 Attributes
 
+*/
       SourceUnit unitA;
       SourceUnit unitB;
       std::vector<ResultUnit> result;
       GlobalTimeValues timeValues;  
       ContainerPoint3D points; 
     };
+/*
+22 class SetOperator
 
+*/
     class SetOperator {
     public:  
+
       SetOperator(MRegion* const _mRegionA, MRegion* const _mRegionB, 
-                  MRegion* const _mRegionResult):
-          mRegionA(_mRegionA), 
-          mRegionB(_mRegionB), 
-          mRegionResult(_mRegionResult) {
-      }// Konstruktor
+                  MRegion* const _mRegionResult);
       
       void operate(SetOp setOp);    
 
@@ -1309,10 +1303,14 @@ class SourceUnitPair
                             MRegion* mregion,
                             SourceFlag sourceFlag, 
                             SourceUnitPair& unitPair);      
-      
+/*
+22.4 Attributes
+
+*/
       MRegion* const mRegionA;
       MRegion* const mRegionB;
       MRegion* const mRegionResult;
+      double tScale;
     }; // class SetOperator
 
   } // end of namespace mregionops3
