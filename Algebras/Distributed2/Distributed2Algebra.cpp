@@ -19076,6 +19076,64 @@ Operator deleteRemoteDatabasesOp(
 );
 
 
+ListExpr writeRelTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("2 arguments expected");
+  }
+  ListExpr rel = nl->First(args);
+  if(!Relation::checkType(rel)){
+    return listutils::typeError("expected relation as 1st arg");
+  }
+  ListExpr fn = nl->Second(args);
+  if(!CcString::checkType(fn) && !FText::checkType(fn)){
+    return listutils::typeError("second arg is not a string or text");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+template<class F>
+int writeRelVMT(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  Relation* rel = (Relation*) args[0].addr;
+  F* Name = (F*) args[1].addr;
+  if(!Name->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  ListExpr rt = qp->GetType(qp->GetSon(s,0));
+  bool r = BinRelWriter::writeRelationToFile(rel,rt,Name->GetValue());
+  res->Set(true,r);
+  return 0;
+}
+
+ValueMapping writeRelVM[] = {
+   writeRelVMT<CcString>,
+   writeRelVMT<FText>
+};
+
+int writeRelSelect(ListExpr args){
+  return CcString::checkType(nl->Second(args))?0:1;
+}
+
+OperatorSpec writeRelSpec(
+  "rel x {string,text} -> bool",
+  "_ op[_]",
+  "Write the relation in the first argument into a "
+  "binary file specified by the second arg",
+  "query ten writeRel['ten.bin']"
+);
+
+Operator writeRelOp(
+  "writeRel",
+  writeRelSpec.getStr(),
+  2,
+  writeRelVM,
+  writeRelSelect,
+  writeRelTM
+);
+
 
 /*
 3 Implementation of the Algebra
@@ -19281,6 +19339,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&da2LogOp);
    
    AddOperator(&deleteRemoteDatabasesOp);
+
+   AddOperator(&writeRelOp);
 
 
    pprogView = new PProgressView();

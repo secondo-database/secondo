@@ -128,3 +128,7 @@ operator deleteRemoteDatabases alias DELETEREMOTEDATABASES pattern op(_,_)
 
 operator setAccount alias SETACCOUNT pattern op(_,_)
 
+operator writeRel alias WRITEREL pattern _ op[_]
+
+
+
