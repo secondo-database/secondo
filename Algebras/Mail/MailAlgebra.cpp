@@ -143,7 +143,7 @@ ListExpr sendmailtypemap( ListExpr args )
  
 ListExpr embedTagstypemap( ListExpr args )
 {
-  cout << nl->ListLength(args) <<  endl;
+  
 
   if(nl->ListLength(args)!=4){
     ErrorReporter::ReportError("four elements expected");
@@ -214,44 +214,20 @@ if (!listutils::isSymbol(third)) {
   // reset attrList
   attrList = nl->Second(nl->Second(stream));
   
-  ListExpr attrtype, attrtype1,  attrtype2,  attrtype3,  attrtype4; 
-
+  ListExpr attrtype;
  
     
   // check argues
-  set<string> usedNames;
-  //ListExpr arg1 = nl->Second(argues);
+  
+  
   ListExpr firstname, secondname, thirdname; 
   string firstnamestr, secondnamestr, thirdnamestr; 
-  int posit, posit2,posit3, pos1, pos2, pos3, pos4;
-  string namestr;
+  int posit, posit2, posit3;
   ListExpr typea, typeb;
-  string nachname = "Nachname";
-  string dr = "Dr";
-  string kurs = "Kurs";
-  string note = "Note";
   
   
   
-  pos1 = FindAttribute(attrList,nachname, attrtype1);
-  pos2 = FindAttribute(attrList,dr, attrtype2);
-  pos3 = FindAttribute(attrList,kurs, attrtype3);
-  pos4 = FindAttribute(attrList,note, attrtype4);
-   
-  
-  cout << pos1 << " " << pos2 << " " << pos3 << " "  << pos4 << endl;
-  
-  
-  if( (pos1==0) || (pos2==0) || (pos3==0) || (pos4==0))  {
-       ErrorReporter::ReportError("Attributes "+ nachname + "," + dr
-                                   + "," + kurs + " and " + note +
-                                  " must be members of the tuple");
-       return nl->TypeError();
-    }
-  
-  
-   
-  
+ 
   
   if (nl->AtomType(first) == SymbolType)
    {   
@@ -342,42 +318,6 @@ posit = FindAttribute(attrList,firstnamestr,attrtype);
 
   
  
- 
-   
-if (!CcString::checkType(attrtype1)) {
-   
- return listutils::typeError("Attribute" + 
- nachname + " must have a String value");          
-}
-  
-  
-  
-  
-   
- if (!CcString::checkType(attrtype2)) {
-   
-  return listutils::typeError("Attribute" + 
-         dr + " must have a String value");    
-      
-  }
-  
-   
- if (!CcString::checkType(attrtype3)) {
-     
-  return listutils::typeError("Attribute" + 
-  kurs + " must have a String value");         
-  }
-  
-  
-  
-  
-  if (!CcReal::checkType(attrtype4)) {   
-      return listutils::typeError
-      ("Attribute" + note + " must have a Real value");         
-  }
-  
-   
-  
 
         
 typea = nl->SymbolAtom(CcBool::BasicType());
@@ -397,12 +337,7 @@ return
      nl->ThreeElemList(
             
         nl->SymbolAtom(Symbol::APPEND()),
-        nl->FiveElemList(
-          nl->IntAtom(posit),
-          nl->IntAtom(pos1),           
-          nl->IntAtom(pos2),             
-          nl->IntAtom(pos3),
-          nl->IntAtom(pos4)),                     
+        nl->OneElemList(nl->IntAtom(posit)),                     
         nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),newAttrList)));
             
@@ -597,7 +532,14 @@ return 0; //never happens
    
    
    
-   
+struct embedTagsInfo {
+ 
+map<string, int> toposvalue;
+
+map<string, string> totypevalue;
+    
+    
+};
    
    
  
@@ -609,6 +551,11 @@ int embedTagsVM(Word* args, Word& result, int message, Word& local, Supplier s)
   
   Tuple* tup;
   
+  
+  embedTagsInfo*  localInfo = (embedTagsInfo*) qp->GetLocal2(s).addr;
+
+  
+  
 switch (message)
   {
     
@@ -617,19 +564,72 @@ switch (message)
      ListExpr resultType = GetTupleResultType(s);
      TupleType *tupleType = new TupleType(nl->Second(resultType));
      local.addr = tupleType;
+     
+     
+     ListExpr attrsave = qp->GetType(qp->GetSon(s,0));
+     ListExpr attrsave2 = nl->Second(nl->Second(attrsave));
+     map<string, int> toposvalue2;
+     map<string, string> totypevalue2;
+     
+     localInfo = new embedTagsInfo;
+     qp->GetLocal2(s).addr = localInfo;        
+     
+     int count = 0; 
+    
+      
+      
+     
+     while (!(nl->IsEmpty(attrsave2)))
+     {
+     ListExpr temp = nl->First(attrsave2); 
+     ListExpr temp2 = nl->First(temp);   
+     ListExpr temp3 = nl->Second(temp);
+     string attrname = nl->SymbolValue(temp2);
+     string typen = nl->SymbolValue(temp3);
+     
+     
+     
+     localInfo->toposvalue.insert(pair<string, int> (attrname, count));
+     localInfo->totypevalue.insert(pair<string, string> (attrname, typen));
+     
+     attrsave2 = nl->Rest(attrsave2);
+     
+     count++;
+     }
+     
+     
+     
+    
+    
+     
      qp->Open(args[0].addr);
+     
+    
+     
       return 0;
     }
     
     
-    case REQUEST : {
-     
+   case REQUEST : {
+        
+      
+        
+      int veclen;
       bool wert = true;  
+      size_t pos1 = 0;
+      string brack = "<<";
+      string brack2 = ">>";
+      vector<string> vstr;
+      map<string, int>::iterator iter=localInfo->toposvalue.begin();
       
       qp->Request(args[0].addr,t);
       
+      
+      
+    
+      
      
-      if (qp->Received(args[0].addr))
+    if (qp->Received(args[0].addr))
           
       { 
         tup = (Tuple*)t.addr;
@@ -643,143 +643,225 @@ switch (message)
         
         
         
-        for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
+     for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
           
           newTuple->CopyAttribute( i, tup, i );
         }
         
         
         
+   
             
-        // get needed Tuple Values
+     // get needed Tuple values
         
         
-        int briefpos = ((CcInt*)args[4].addr)->GetIntval();
-        int nachnamepos = ((CcInt*)args[5].addr)->GetIntval();
-        int drpos = ((CcInt*)args[6].addr)->GetIntval();
-        int kurspos = ((CcInt*)args[7].addr)->GetIntval();
-        int notepos = ((CcInt*)args[8].addr)->GetIntval();
+      int briefpos = ((CcInt*)args[4].addr)->GetIntval();
+     
         
-        
-        
-        
-        Attribute* brief = tup->GetAttribute(briefpos-1);
-        Attribute* nachname = tup->GetAttribute(nachnamepos-1);
-        Attribute* dr = tup->GetAttribute(drpos-1);
-        Attribute* kurs  = tup->GetAttribute(kurspos-1);
-        Attribute* note = tup->GetAttribute(notepos-1);
-        
-        
-        
-        if((!(brief->IsDefined())) || (!(nachname->IsDefined())) 
-            || (!(dr->IsDefined()))
-            || (!(kurs->IsDefined())) || (!(note->IsDefined())))
-        
-        
-        {
-            
-        wert = false;    
-        FText* brief2 = new FText (true, "---");
-        newTuple->PutAttribute(10, brief2);
-            
-            
-        CcBool* wert2 = new CcBool(true, wert);
-        newTuple->PutAttribute(11, wert2);      
-        tup->DeleteIfAllowed();
-        result = SetWord(newTuple);
-        
-        return YIELD;
-            
-                    
-            
-        }
-        
-        
-        
-        
-        
-        
-            
-        FText* briefval = static_cast<FText*>(brief);
-        CcString* nachnameval = static_cast<CcString*>(nachname);
-        CcString* drval = static_cast<CcString*>(dr);
-        CcString* kursval = static_cast<CcString*>(kurs);
-        CcReal* noteval = static_cast<CcReal*> (note);
-        
-        
+      Attribute* brief = tup->GetAttribute(briefpos-1);      
+     
+      FText* briefval = static_cast<FText*>(brief);
+      string briefvalstr =  briefval->GetValue();
        
-        
        
-        
-        string  briefvalstr =  briefval->GetValue();
-        string  nachnamevalstr =  nachnameval->GetValue();
-        string  drvalstr = drval->GetValue();
-        string  kursvalstr =  kursval->GetValue();
-        double  noteval2 = noteval-> GetRealval();
        
-        ostringstream Str;
-        Str <<  noteval2;
-        string notevalstr(Str.str());
+       //find the tags
+
+       
+       while ((pos1 = briefvalstr.find(brack, pos1)) != std::string::npos)
+         {
+            size_t found = briefvalstr.find(brack,pos1);
+            size_t found2 = briefvalstr.find(brack2,pos1);
+            size_t lenght = found2-found-2;
+  
+  
+  
+             string substr = briefvalstr.substr(found+2, lenght);
+  
+                     
+             pos1 += substr.length();               
+  
+             vstr.push_back(substr);
+  
+            }  
+            
+            
+            
+         
+
+            veclen = vstr.size();        
+            Attribute*  attrar[veclen];
+            string typear[veclen];
+            string strvalues[veclen];
+            
+        
+        
+         for (int i=0; i<veclen; i++)
+            {
+                
+            iter = localInfo->toposvalue.find(vstr[i]);
+         
+            if (iter == localInfo->toposvalue.end())
+             {
+                
+                wert = false;    
+                FText* brief2 = new FText (true, 
+                               "Error: one tag is not related to an attribute");
+                newTuple->PutAttribute(10, brief2);
+            
+            
+                CcBool* wert2 = new CcBool(true, wert);
+                newTuple->PutAttribute(11, wert2);      
+                tup->DeleteIfAllowed();
+                result = SetWord(newTuple);
+        
+                return YIELD;
+                
+             }    
+                
+                       
+                
+             
+             attrar[i] = tup->GetAttribute(localInfo->toposvalue.at(vstr[i]));
+             
+             
+              if (!(attrar[i]->IsDefined()))
+                 
+        
+             {
+            
+                wert = false;    
+                FText* brief2 = new FText (true,
+                                "ERROR: tag related attribute undef");
+                newTuple->PutAttribute(10, brief2);
+            
+            
+                CcBool* wert2 = new CcBool(true, wert);
+                newTuple->PutAttribute(11, wert2);      
+                tup->DeleteIfAllowed();
+                result = SetWord(newTuple);
+        
+                return YIELD;
+            
+             }
+             
+             
+             
+                             
+                          
+             typear[i] = localInfo->totypevalue.at(vstr[i]);
+             
+             
+             if (  !( (typear[i] == "string") || (typear[i] == "text")
+                || (typear[i] == "real") || (typear[i] == "int") )  )
+             
+             
+             {  wert = false;    
+                FText* brief2 = new FText (true,
+                       "ERROR: tag related attribute type is not supported");
+                newTuple->PutAttribute(10, brief2);
+            
+            
+                CcBool* wert2 = new CcBool(true, wert);
+                newTuple->PutAttribute(11, wert2);      
+                tup->DeleteIfAllowed();
+                result = SetWord(newTuple);
+        
+                return YIELD;
+            
+              
+                 
+             }   
+             
+             
+             if (typear[i] == "string")
+             {
+                 
+              CcString* temp1 = static_cast<CcString*>(attrar[i]);
+              strvalues[i] =  temp1->GetValue();
+       
+             }    
+             
+             
+                        
+             
+            if (typear[i] == "text")
+             {
+                 
+              FText* temp3= static_cast<FText*>(attrar[i]);
+              
+              strvalues[i] =  temp3->GetValue();
+       
+             }    
+             
+             
+             
+            if (typear[i] == "real")
+            {
+             CcReal* temp4 = static_cast<CcReal*>(attrar[i]);
+             double  val = temp4-> GetRealval();       
+             ostringstream Str;
+             Str <<  val;
+             string valstr(Str.str());
+             strvalues[i] = valstr;
+             
+            }
+                
+            
+            
+             if (typear[i] == "int")
+             {
+                 
+             CcInt* temp5= static_cast<CcInt*>(attrar[i]);
+             int  val2 = temp5-> GetIntval();       
+             ostringstream Str2;
+             Str2 <<  val2;
+             string valstr2(Str2.str());
+             strvalues[i] = valstr2;
+              
+              
+             }    
+             
+            
+            
+            
+                
+            }   
+        
+        
+           
+           
+        
+        
+        
+        
+        
+        for (int i= 0; i<veclen; i++)
+            { string tagme = "<<" + vstr[i] + ">>";
+              size_t prosit = 0;
+             
+             if (briefvalstr.find(tagme, prosit) != string::npos) {
+       
+                
+             while ( (prosit = briefvalstr.find(tagme, prosit)) 
+                     != std::string::npos) {
+                 
+                      briefvalstr.replace(prosit, tagme.length(), strvalues[i]);
+                      prosit += strvalues[i].length();
+                     }
+        
+                 }
+        
+                
+                
+
+            }
+            
           
         
-        string nname = "<<Nachname>>";
-        string nkurs = "<<Kurs>>";
-        string nnote = "<<Note>>";
-        string ndr = "<<Dr>>";
-        size_t pos = 0;
         
         
-      if (briefvalstr.find(nname) != string::npos) {
-        
-        
-      
-       while ((pos = briefvalstr.find(nname, pos)) != std::string::npos) {
-         briefvalstr.replace(pos, nname.length(), nachnamevalstr);
-         pos += nachnamevalstr.length();
-        }
-        
-      }
-      
-      else {
-          wert = false; 
-            
-            }
-      
-      
-    if (briefvalstr.find(nkurs) != string::npos) {
-       
-     pos = 0;
-       while ((pos = briefvalstr.find(nkurs, pos)) != std::string::npos) {
-         briefvalstr.replace(pos, nkurs.length(), kursvalstr);
-         pos += kursvalstr.length();
-        }
-        
-    }
-        
-        
-        
-    if (briefvalstr.find(nnote) != string::npos) {
-        
-      pos = 0;
-       while ((pos = briefvalstr.find(nnote, pos)) != std::string::npos) {
-         briefvalstr.replace(pos, nnote.length(), notevalstr);
-         pos += notevalstr.length();
-        }
-    } 
-       
-       
-       
-       
-     if (briefvalstr.find(ndr) != string::npos) {
-       
-      pos = 0;
-       while ((pos = briefvalstr.find(ndr, pos)) != std::string::npos) {
-         briefvalstr.replace(pos, ndr.length(), drvalstr);
-         pos += drvalstr.length();
-        }
-        
-     } 
-        
+        wert = true;
         FText* brief2 = new FText (true, briefvalstr);
         newTuple->PutAttribute(10, brief2);
         
@@ -798,7 +880,22 @@ switch (message)
     } 
 
     case CLOSE : {
+        
+      if(localInfo){
+        delete localInfo;
+         qp->GetLocal2(s).addr=0;
+      }
+        
       qp->Close(args[0].addr);
+      
+      if (local.addr)
+      {
+        ((TupleType*)local.addr)->DeleteIfAllowed();
+        local.setAddr(0);
+          
+          
+          
+      }    
       
       
       return 0;
