@@ -82,7 +82,8 @@ DBServiceConnector* DBServiceConnector::getInstance()
 
 bool DBServiceConnector::triggerReplication(const std::string& databaseName,
                                             const std::string& relationName,
-                                            const ListExpr relType)
+                                            const ListExpr relType,
+                                            const bool async)
 {
     printFunction("DBServiceConnector::triggerReplication");
     print("databaseName", relationName);
@@ -101,7 +102,7 @@ bool DBServiceConnector::triggerReplication(const std::string& databaseName,
                 *(const_cast<string*>(&databaseName)),
                 *(const_cast<string*>(&relationName)),
                 relType);
-        replicator.run();
+        replicator.run(async);
     }
     return true;
 }

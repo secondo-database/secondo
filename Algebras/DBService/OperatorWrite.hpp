@@ -1,4 +1,10 @@
 /*
+
+1.1  OperatorWrite
+
+This operator creates a relation from a tuple stream and triggers its
+replication into the ~DBService~.
+
 ----
 This file is part of SECONDO.
 
@@ -32,9 +38,7 @@ namespace DBService
 
 /*
 
-1 ~write~
-
-TODO
+1.1.1  Operator Specification
 
 */
 
@@ -43,17 +47,39 @@ struct WriteInfo: OperatorInfo
     WriteInfo()
     {
         name = "write";
-        signature = ""; // TODO
-        syntax = ""; // TODO
-        meaning = "write";
+        signature = "stream(tuple) x string x  bool -> rel(tuple)";
+        syntax = "stream(tuple) write[relationName, async]";
+        meaning = "Create a relation from a tuple stream and let the DBService "
+                "create replicas for it";
+        example = "let RoadsFT = Roads feed write['RoadsFT', FALSE]";
+        remark = "requires a DBService system";
         usesArgsInTypeMapping = false;
     }
 };
 
+/*
+
+1.1.1  Class Definition
+
+*/
+
 class OperatorWrite
 {
 public:
+
+/*
+
+1.1.1.1  Type Mapping Function
+
+*/
     static ListExpr mapType(ListExpr nestedList);
+
+/*
+
+1.1.1.1  Value Mapping Function
+
+*/
+
     static int mapValue(Word* args,
                         Word& result,
                         int message,

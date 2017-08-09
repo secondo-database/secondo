@@ -48,12 +48,13 @@ public:
             std::string& relName,
             ListExpr type);
     ~Replicator();
-    void run();
+    void run(const bool async);
 private:
     void createReplica(
             const std::string databaseName,
             const std::string relationName,
-            const ListExpr relType);
+            const ListExpr relType,
+            const bool async);
     boost::thread* runner;
     std::string databaseName;
     std::string& relationName;

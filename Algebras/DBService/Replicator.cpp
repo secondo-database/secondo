@@ -47,65 +47,64 @@ Replicator::Replicator(
 Replicator::~Replicator()
 {
     printFunction("Replicator::~Replicator");
- /*   if(runner){
-        runner->join();
-        delete runner;
-    }*/
 }
 
 void Replicator::createReplica(
         const std::string databaseName,
         const std::string relationName,
-        const ListExpr relType)
+        const ListExpr relType,
+        const bool async)
 {
     printFunction("Replicator::createReplica");
     print("databaseName", databaseName);
     print("relationName", relationName);
+    print("async", string(async ? "TRUE" : "FALSE"));
 
-    const string fileName = ReplicationUtils::getFileName(
-            databaseName,
-            relationName);
-
-    SecondoCatalog* catalog = SecondoSystem::GetCatalog();
-    if(!catalog->IsObjectName(relationName))
+    if(async)
     {
-        print("not an object");
-        return;
-    }
-
-    Word value;
-    bool defined;
-    do
-    {
-        print("object not yet defined");
-        catalog->GetObject(relationName, value, defined);
-    }while(!defined);
-
-    Relation* rel = (Relation*)value.addr;
-
-    if(BinRelWriter::writeRelationToFile(rel, relType,
-            fileName))
-    {
-        string dbServiceHost;
-        string dbServiceCommPort;
-        SecondoUtilsLocal::lookupDBServiceLocation(
-                dbServiceHost, dbServiceCommPort);
-
-        print("Relation written to file, triggering replication");
-        CommunicationClient dbServiceMasterClient(dbServiceHost,
-                atoi(dbServiceCommPort.c_str()),
-                0);
-
-        dbServiceMasterClient.giveStartingSignalForReplication(
+        const string fileName = ReplicationUtils::getFileName(
                 databaseName,
                 relationName);
-    }else
-    {
-        print("Could not write relation to file");
+
+        SecondoCatalog* catalog = SecondoSystem::GetCatalog();
+        if(!catalog->IsObjectName(relationName))
+        {
+            print("not an object");
+            return;
+        }
+
+        Word value;
+        bool defined;
+        do
+        {
+            print("object not yet defined");
+            catalog->GetObject(relationName, value, defined);
+        }while(!defined);
+
+        Relation* rel = (Relation*)value.addr;
+
+        if(!BinRelWriter::writeRelationToFile(rel, relType,
+                fileName))
+        {
+            print("Could not write relation to file");
+            return;
+        }
     }
+
+    print("Giving starting signal for replication");
+    string dbServiceHost;
+    string dbServiceCommPort;
+    SecondoUtilsLocal::lookupDBServiceLocation(
+            dbServiceHost, dbServiceCommPort);
+    CommunicationClient dbServiceMasterClient(dbServiceHost,
+            atoi(dbServiceCommPort.c_str()),
+            0);
+    dbServiceMasterClient.giveStartingSignalForReplication(
+            databaseName,
+            relationName);
 }
 
-void Replicator::run()
+void Replicator::run(const bool async)
 {
     printFunction("Replicator::run");
     if(runner){
@@ -117,7 +116,8 @@ void Replicator::run()
             this,
             databaseName,
             relationName,
-            relType));
+            relType,
+            async));
 }
 
 } /* namespace DBService */

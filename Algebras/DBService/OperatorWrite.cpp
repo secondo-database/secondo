@@ -1,4 +1,7 @@
 /*
+
+1.1.1 Class Implementation
+
 ----
 This file is part of SECONDO.
 
@@ -46,10 +49,10 @@ ListExpr OperatorWrite::mapType(ListExpr nestedList)
     printFunction("OperatorWrite::mapType");
     print("nestedList", nestedList);
 
-    if (nl->ListLength(nestedList) != 2)
+    if (nl->ListLength(nestedList) != 3)
     {
         ErrorReporter::ReportError(
-                "expected signature: stream(tuple(...)) x string");
+                "expected signature: stream(tuple(...)) x string x bool");
         return nl->TypeError();
     }
 
@@ -67,12 +70,21 @@ ListExpr OperatorWrite::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
+    if(!CcBool::checkType(nl->Third(nestedList)))
+    {
+        ErrorReporter::ReportError(
+                "third argument must be: bool");
+        return nl->TypeError();
+    }
+
     ListExpr consumeTypeMapInput = nl->OneElemList(
             nl->First(nestedList));
     print("consumeTypeMapInput", consumeTypeMapInput);
 
     ListExpr consumeTypeMapResult = OperatorConsume::ConsumeTypeMap<false>(
             consumeTypeMapInput);
+
+    print("consumeTypeMapResult", consumeTypeMapResult);
 
     return consumeTypeMapResult;
 }
@@ -95,20 +107,54 @@ int OperatorWrite::mapValue(Word* args,
             tupleType);
     print("relType", relType);
 
+    const string databaseName =
+            SecondoSystem::GetInstance()->GetDatabaseName();
     string relationName = static_cast<CcString*>(args[1].addr)->GetValue();
     print("relationName", relationName);
 
-    int consumeResult =
-            OperatorConsume::Consume(
-                    args, result, message, local, s);
+    const string fileName =
+            ReplicationUtils::getFileName(databaseName, relationName);
 
-    const string databaseName =
-            SecondoSystem::GetInstance()->GetDatabaseName();
+    bool async = static_cast<CcBool*>(args[1].addr)->GetValue();
+
+    int consumeResult;
+    if(async)
+    {
+        consumeResult =
+                OperatorConsume::Consume(
+                        args, result, message, local, s);
+    }else
+    {
+        GenericRelation* rel = (GenericRelation*)((qp->ResultStorage(s)).addr);
+        if(rel->GetNoTuples() > 0)
+        {
+            rel->Clear();
+        }
+
+        ofstream out(fileName.c_str(),ios::out|ios::binary);
+
+        BinRelWriter::writeHeader(out, relType);
+
+        Stream<Tuple> stream(args[0]);
+        stream.open();
+
+        Tuple* t;
+        while ((t = stream.request()))
+        {
+            rel->AppendTuple(t);
+            BinRelWriter::writeNextTuple(out, t);
+            t->DeleteIfAllowed();
+        }
+        stream.close();
+        out.close();
+        result.setAddr(rel);
+    }
 
     if(!DBServiceConnector::getInstance()->triggerReplication(
             databaseName,
             relationName,
-            relType))
+            relType,
+            async))
     {
         print("Replication could not be triggered");
         return 1;

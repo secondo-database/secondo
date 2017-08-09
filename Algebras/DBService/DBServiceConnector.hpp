@@ -72,7 +72,8 @@ This function needs to be called if a relation shall be replicated.
     bool triggerReplication(
             const std::string& databaseName,
             const std::string& relationName,
-            const ListExpr relType);
+            const ListExpr relType,
+            const bool async);
 
 
 /*

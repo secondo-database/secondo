@@ -3,10 +3,10 @@ Restore  : No
 
 Operator  : write
 Number    : 1
-Signature : stream(tuple) x string -> rel(tuple)
-Example   : let Roads2 = Roads filter[ .Name startsWith "A"] write["Roads2"]
-Result    : bug
-Remark    : Requires a DBServiceSystem
+Signature : stream(tuple) x string x bool -> rel(tuple)
+Example   : let RoadsFT = Roads feed write['RoadsFT', FALSE]
+Result    : relation
+Remark    : Requires a DBService system
 
 Operator  : addnode
 Number    : 1

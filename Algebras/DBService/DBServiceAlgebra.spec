@@ -1,4 +1,4 @@
-operator write alias WRITE pattern _ op [_]
+operator write alias WRITE pattern _ op [_,_]
 operator checkdbservicestatus alias CHECKDBSERVICESTATUS pattern op()
 operator addnode alias ADDNODE pattern op(_,_,_)
 operator initdbserviceworker alias INITDBSERVICEWORKER pattern op()
