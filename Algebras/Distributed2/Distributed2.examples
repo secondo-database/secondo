@@ -682,7 +682,7 @@ Example   : query setAccount("", "");
 Result    : TRUE
 
 
-Operatir : writeRel
+Operator : writeRel
 Number   : 1
 Signature : rel x {string, text} -> bool
 Example   : query ten writeRel['ten.bin']
