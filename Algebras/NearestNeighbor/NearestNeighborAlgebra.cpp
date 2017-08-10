@@ -142,10 +142,11 @@ a namespace ~near~ in order to avoid name conflicts with other modules.
 namespace near {
 
 //const double DISTDELTA = 0.000000001;
-const double DISTDELTA = 0.00000000001;
-//const double DISTDELTA = 0.0;
+//const double DISTDELTA = 0.00000000001;
+
+const double DISTDELTA = 0.00001;
 const double RDELTA = -0.000000015;
-const double QUADDIFF = 0.01;
+const double QUADDIFF = 0.0001;
 
 
 inline bool almostEqual(double d1, double d2){
@@ -12403,18 +12404,20 @@ class UnitCounter{
 
   public:
      UnitCounter(MInt* _res, Instant _start, Instant _end, bool _lc, bool _rc):
-        res(_res), current(_start), lc(_lc) {
+        res(_res), current(_start), lc(_lc), lastStart(_start), lastClosed(_lc){
        ends.push(End(_end,_rc));
        count = 1;
      }
 
      void add(Instant _start, Instant _end, bool _lc, bool _rc){
 
-        if( (_start<current)
-           || ( (_start==current) && lc && !_lc)){
-           cerr << "invalid order in units 1" << endl;
-           return;
+        if(    (lastStart > _start)
+            || ((lastStart == _start) && lastClosed && !lc)){
+           cerr << "Tuples are in invalid order " << endl;
         }
+        lastStart = _start;
+        lastClosed = _lc;
+
         if(_start==current && lc == _lc){
            count++;
            ends.push(End(_end,_rc));
@@ -12491,6 +12494,9 @@ class UnitCounter{
       bool lc;
       priority_queue<End, vector<End>, iCompare> ends;     
       size_t count; 
+
+      Instant lastStart;  
+      bool lastClosed;
 };
 
 
