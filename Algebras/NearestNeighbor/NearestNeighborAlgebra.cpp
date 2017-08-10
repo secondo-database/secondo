@@ -12517,7 +12517,10 @@ int countUnitsVM(Word* args, Word& result, int message,Word& local, Supplier s){
      }
      tuple->DeleteIfAllowed();
   }
-  uc->finish(); 
+  if(uc){
+    uc->finish(); 
+    delete uc;
+  }
   in.close();
   return 0;
 }
