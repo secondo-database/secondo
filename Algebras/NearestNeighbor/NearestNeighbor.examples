@@ -160,7 +160,11 @@ Signature: rtree x rel(tuple(X)) x rtree x rel(tuple(Y)) x int -> stream(tuple(X
 Example  : query Kinos_GeoData_rtree Kinos SWP_Pos_rtree SWP  closestPairs[7] count 
 Result   : 7
 
-
+Operator : countUnits
+Number   : 1
+Signature : strem(tuple) x INDENT - > mint
+Example   : query  maximum(UnitTrains feed sortby[UTrip]   countUnits[UTrip]) = maximum(Trains feed projectextend[; N :  periods2mint(deftime(.Trip))] aggregateB[ N ; fun(a : mint , b: mint) a +  b; [const mint value()] ])
+Result    : TRUE
 
 
 

@@ -141,9 +141,33 @@ a namespace ~near~ in order to avoid name conflicts with other modules.
 
 namespace near {
 
-const double DISTDELTA = 0.001;
+//const double DISTDELTA = 0.000000001;
+const double DISTDELTA = 0.00000000001;
+//const double DISTDELTA = 0.0;
 const double RDELTA = -0.000000015;
 const double QUADDIFF = 0.01;
+
+
+inline bool almostEqual(double d1, double d2){
+  return abs(d1-d2) <= DISTDELTA;
+}
+
+
+inline bool almostSmaller(double d1, double slope1, double d2, double slope2){
+  if(almostEqual(d1,d2) && slope1<slope2){
+     return true;
+  }
+  return d1 < d2;
+}
+
+inline bool almostGreater(double d1, double slope1, double d2, double slope2){
+  if(almostEqual(d1,d2) && slope1>slope2){
+     return true;
+  }
+  return d1 > d2;
+}
+
+
 
 /*
 2 Creating Operators
@@ -2765,7 +2789,8 @@ bool check(NNTree<ActiveElem> &t, Instant time)
   IT itOld = t.begin();
   for( IT ittest=t.begin(); ittest != t.end(); ++ittest)
   {
-    if(d-0.05 > CalcDistance(ittest->distance,time,slope))
+    double d2 = CalcDistance(ittest->distance,time,slope);
+    if(d-0.05 > d2)
     {
       //swap the two entries in activeline
       ActiveElem e = *itOld;
@@ -2856,21 +2881,13 @@ unsigned int insertActiveElem( vector<ActiveElem> &v, ActiveElem &e,
   {
     pos = (max + start) / 2;
     double storeDistance = CalcDistance(v[pos].distance,time,slope2);
-    if( dist + DISTDELTA < storeDistance
-      || (abs(dist - storeDistance) <= DISTDELTA && slope1 < slope2))
-    {
+    if( almostSmaller(dist, slope1, storeDistance, slope2)) {
       max = pos - 1;
-    }
-    else if( dist + DISTDELTA > storeDistance
-      || (abs(dist - storeDistance) <= DISTDELTA && slope1 > slope2))
-    {
+    } else if( almostGreater(dist,slope1, storeDistance, slope2)) {
       start = pos + 1;
-    }
-    else //same distance and same slope
-    {
-      while( abs(dist - storeDistance) < DISTDELTA && slope1 == slope2
-        && ++pos < (int)v.size() )
-      {
+    } else { //same distance and same slope
+      while( almostEqual(dist, storeDistance ) && slope1 == slope2
+             && ++pos < (int)v.size() ) {
         storeDistance = CalcDistance(v[pos].distance,time,slope2);
       }
       havePos = true;
@@ -2960,8 +2977,7 @@ IT insertActiveElem( NNTree<ActiveElem> &t, ActiveElem &e,
   while( true)
   {
     double storeDistance = CalcDistance(it->distance,time,slope2);
-    if( dist + DISTDELTA < storeDistance
-      || (abs(dist - storeDistance) <= DISTDELTA && slope1 < slope2))
+    if( almostSmaller(dist,slope1, storeDistance, slope2) )
     {
       if( it.hasLeft() )
       {
@@ -2972,8 +2988,7 @@ IT insertActiveElem( NNTree<ActiveElem> &t, ActiveElem &e,
         return t.addLeft( e, it);
       }
     }
-    else if( dist + DISTDELTA > storeDistance
-      || (abs(dist - storeDistance) <= DISTDELTA && slope1 > slope2))
+    else if( almostGreater(dist, slope1, storeDistance, slope2))
     {
       if( it.hasRight() )
       {
@@ -2989,7 +3004,7 @@ IT insertActiveElem( NNTree<ActiveElem> &t, ActiveElem &e,
       IT pos = it;
       ++pos;
       while( pos != t.end()
-        && abs(dist - CalcDistance(pos->distance,time,slope2)) < DISTDELTA
+        && almostEqual(dist,  CalcDistance(pos->distance,time,slope2))
         && slope1 == slope2)
       {
         it = pos;
@@ -2999,6 +3014,9 @@ IT insertActiveElem( NNTree<ActiveElem> &t, ActiveElem &e,
     }
   }
 }
+
+
+
 
 IT findActiveElem( NNTree<ActiveElem> &t, MReal *distance,
                             Instant time, Tuple *tuple)
@@ -3610,10 +3628,6 @@ public:
       return 0;
   }
 
-
-
-
-
 private:
   size_t k;
   int attrPos;
@@ -3647,8 +3661,11 @@ private:
      Tuple* processLeft(EventElem& elem){
         bool lc = elem.pointInTime >= startTime
              ? elem.up->timeInterval.lc : false;
+
+        // convert EventElem into Active Elem
         ActiveElem newElem(elem.distance, elem.tuple, elem.pointInTime,
           elem.up->timeInterval.end, lc, elem.up->timeInterval.rc);
+
         IT newPos = insertActiveElem( activeLine,
           newElem, elem.pointInTime);
 
@@ -9915,10 +9932,10 @@ void TBKnearestLocalInfo::GreeceknnFunDF(MPoint* mp,int level,hpelem& elem)
         double t1((double)e.box.MinD(2));
         double t2((double)e.box.MaxD(2));
 
-	// The following lines were used in published experiments, that
-	// were done on a modified R-tree that scaled up the R-tree temporal
-	// dimension by the same factor. They are commented out for use with
-	// the standard R-tree.
+  // The following lines were used in published experiments, that
+  // were done on a modified R-tree that scaled up the R-tree temporal
+  // dimension by the same factor. They are commented out for use with
+  // the standard R-tree.
 
 //         t1 = t1/864000.0;
 //         t2 = t2/864000.0;
@@ -9987,10 +10004,10 @@ void TBKnearestLocalInfo::GreeceknnFunDF(MPoint* mp,int level,hpelem& elem)
           double t1((double)e.box.MinD(2));
           double t2((double)e.box.MaxD(2));
 
-	// The following lines were used in published experiments, that
-	// were done on a modified R-tree that scaled up the R-tree temporal
-	// dimension by the same factor. They are commented out for use with
-	// the standard R-tree.
+  // The following lines were used in published experiments, that
+  // were done on a modified R-tree that scaled up the R-tree temporal
+  // dimension by the same factor. They are commented out for use with
+  // the standard R-tree.
 
 //        t1 = t1/864000.0;
 //        t2 = t2/864000.0;
@@ -10093,10 +10110,10 @@ int Greeceknearest(Word* args, Word& result, int message,
       double t1(root->BoundingBox().MinD(2));
       double t2(root->BoundingBox().MaxD(2));
 
-	// The following lines were used in published experiments, that
-	// were done on a modified R-tree that scaled up the R-tree temporal
-	// dimension by the same factor. They are commented out for use with
-	// the standard R-tree.
+  // The following lines were used in published experiments, that
+  // were done on a modified R-tree that scaled up the R-tree temporal
+  // dimension by the same factor. They are commented out for use with
+  // the standard R-tree.
 
 //       t1 = t1/864000.0;
 //       t2 = t2/864000.0;
@@ -12271,8 +12288,257 @@ Operator closestPairsOP
 
 
 
+/*
+4.39 Operator ~countUnits~
+
+*/
+
+ListExpr countUnitsTM(ListExpr args){
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError("2 args expected");
+   }
+   if(!Stream<Tuple>::checkType(nl->First(args))){
+     return listutils::typeError("1st arg is not a tuple stream");
+   }
+   ListExpr an = nl->Second(args);
+   if(nl->AtomType(an)!=SymbolType){
+     return listutils::typeError("second arg is not an attribute name");
+   }
+   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+   string name = nl->SymbolValue(an);
+   ListExpr attrType;
+   int index = listutils::findAttribute(attrList, name, attrType);
+   if(!index){
+      return listutils::typeError("attribute " + name + " not found");
+   }
+   if(!UPoint::checkType(attrType)){
+      return listutils::typeError("attribute " + name 
+                                   + " not of type upoint");
+   }
+   return nl->ThreeElemList(
+                nl->SymbolAtom(Symbols::APPEND()),
+                nl->OneElemList( nl->IntAtom(index-1)),
+                listutils::basicSymbol<MInt>());
+}
 
 
+
+
+class End{
+  public:
+    End(Instant _i, bool _rc): i(_i),rc(_rc){}
+
+    End(const End& e): i(e.i), rc(e.rc) {}
+
+    End& operator=(const End& e){
+       i = e.i;
+       rc = e.rc;
+       return *this;
+    }
+
+    bool operator<(const End& e)const{
+       if(i < e.i) return true;
+       if(i > e.i) return false;
+       if(!rc && e.rc) return true;
+       if(rc && !e.rc) return false;
+       return false;
+    }
+
+    bool operator>(const End& e)const{
+       if(i > e.i) return true;
+       if(i < e.i) return false;
+       if(!rc && e.rc) return false;
+       if(rc && !e.rc) return true;
+       return false;
+    }
+
+
+    bool operator==(const End& e) const{
+      return i==e.i && rc == e.rc;
+    }
+
+    bool equal(const Instant& _i, const bool _rc) const{
+       return i==_i && rc ==_rc;
+    }
+
+    bool smaller(const Instant& _i, const bool _rc) const{
+       if(i<_i) return true;
+       if(i>_i) return false;
+       if(!rc && _rc) return true;
+       return false;
+    }
+    
+    bool smallerOrEqual(const Instant& _i, const bool _rc) const{
+       if(i<_i) return true;
+       if(i>_i) return false;
+       if(!rc && _rc) return true;
+       if(rc == _rc) return true;
+       return false;
+    }
+   
+    bool greater(const Instant _i, const bool _rc) const{
+       if(i>_i) return true;
+       if(i<_i) return false;
+       if(!rc) return false;
+       return !_rc;
+    }
+    Instant i;
+    bool rc;
+};
+
+class iCompare{
+  public:
+  inline bool operator()(const End& e1, const End& e2) const{
+    return e1 > e2;
+  }
+};
+
+
+ostream& operator<<(ostream& o, const End& e){
+  o << e.i << ", " << e.rc;
+  return o;
+}
+
+class UnitCounter{
+
+  public:
+     UnitCounter(MInt* _res, Instant _start, Instant _end, bool _lc, bool _rc):
+        res(_res), current(_start), lc(_lc) {
+       ends.push(End(_end,_rc));
+       count = 1;
+     }
+
+     void add(Instant _start, Instant _end, bool _lc, bool _rc){
+
+        if( (_start<current)
+           || ( (_start==current) && lc && !_lc)){
+           cerr << "invalid order in units 1" << endl;
+           return;
+        }
+        if(_start==current && lc == _lc){
+           count++;
+           ends.push(End(_end,_rc));
+           return;
+        }
+        // new start after the current position
+        // step 1 process ends that are before the new start
+        bool done = false;
+        while(!done){
+           if(ends.empty()){
+              done = true;
+           } else {
+              End e = ends.top();
+              if(e.greater(_start,_lc)){ // after the new instant
+                 done = true;
+              } else { // we hve to process the end
+                ends.pop();
+                if(e.equal(current,lc)){ // current instant
+                   count--; 
+                } else {
+                   // e is after the current position, 
+                   //add a new unit to res and update current pos
+                   if( (current < e.i) || ((current==e.i) && e.rc && lc)){ 
+                      Interval<Instant> iv(current,e.i, lc, e.rc);
+                      UInt ui(iv,CcInt(true,count));
+                      res->MergeAdd(ui);
+                      current = e.i;
+                      lc = !e.rc;
+                   }
+                   count--;
+                }
+              }
+           }
+        }
+        // all ends up to the new start are processed now 
+ 
+        // step 2 if current is before start of new unit, 
+        // add a unit to res and update current
+        if( (current < _start) || ((current == _start) && !lc && _lc)){
+            Interval<Instant> iv(current,_start, lc, !_rc);
+            UInt ui(iv,CcInt(true,count));
+            res->MergeAdd(ui);
+            current = _start;
+            lc = _lc;
+        }
+        count++;
+        ends.push(End(_end,_rc));
+     }
+
+     void finish(){
+           while(!ends.empty()){
+              End e = ends.top();
+              ends.pop();
+              if(e.equal(current,lc)){ // current instant
+                 count--; 
+              } else {
+                 if( (current < e.i) || ((current == e.i) && lc && e.rc)){
+                    Interval<Instant> iv(current,e.i, lc, e.rc);
+                    UInt ui(iv, CcInt(true,count));
+                    res->MergeAdd(ui);
+                 }
+                 count--;
+                 current = e.i;
+                 lc = !e.rc;
+              }
+           }
+
+     }
+
+
+   private:
+      MInt* res;
+      Instant current;
+      bool lc;
+      priority_queue<End, vector<End>, iCompare> ends;     
+      size_t count; 
+};
+
+
+int countUnitsVM(Word* args, Word& result, int message,Word& local, Supplier s){
+  Stream<Tuple> in(args[0]);
+  int attrPos = ((CcInt*)args[2].addr)->GetValue();
+  result = qp->ResultStorage(s);
+  MInt* res = (MInt*) result.addr;
+  res->Clear();
+  res->SetDefined(true);
+  in.open();
+  Tuple* tuple;
+  UnitCounter* uc = 0;
+  while((tuple=in.request())){
+     UPoint* p = (UPoint*) tuple->GetAttribute(attrPos);
+     Instant start = p->timeInterval.start;
+     Instant end = p->timeInterval.end;
+     bool lc = p->timeInterval.lc;
+     bool rc = p->timeInterval.rc;
+     if(uc == 0){
+       uc = new UnitCounter(res, start, end, lc, rc);
+     } else {
+       uc->add(start,end,lc,rc);
+     }
+     tuple->DeleteIfAllowed();
+  }
+  uc->finish(); 
+  in.close();
+  return 0;
+}
+
+
+OperatorSpec countUnitsSpec(
+   " stream(tuple) x IDENT -> mint",
+   " _ op[_]",
+   " Counts how many units are present in the tuple stream. "
+   " The units have to be sorted by time. ",
+   " query UnitTrains feed sortby[UTrip] countUnits[UTrip] "
+);
+
+
+Operator countUnitsOp(
+  "countUnits",
+  countUnitsSpec.getStr(),
+  countUnitsVM,
+  Operator::SimpleSelect,
+  countUnitsTM
+);
 
 
 /*
@@ -12317,6 +12583,8 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &knearest_dist);//return the k th nearghbor distanceA
 
     AddOperator(&closestPairsOP);
+
+    AddOperator(&countUnitsOp);
 
 
   }

@@ -50,4 +50,5 @@ operator knearest_dist alias KNEAREST_DIST pattern _ op [_,_, _]
 
 operator closestPairs alias CLOSESTPAIRS pattern _ _ _ _ op [_]
 
+operator countUnits alias COUNTUNITS pattern _ op[_]
 
