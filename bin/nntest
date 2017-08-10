@@ -209,7 +209,10 @@
                     '( numbers )') 
                 ("Kinos_GeoData_rtree" 
                     '(creatertree Kinos GeoData)' 
-                    '( Kinos )'))) 
+                    '( Kinos )') 
+                ("Trains" 
+                    '(importObject \'Trains.obj\')' 
+                    '()'))) 
         (OBJECT box1000 
             () 
             rect3 
