@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+#include <chrono>
+
 #include "SocketIO.h"
 #include "StringUtils.h"
 
@@ -185,7 +187,12 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
 bool ReplicationClient::receiveFileFromServer()
 {
     traceWriter->writeFunction("ReplicationClient::receiveFileFromServer");
+
+    std::chrono::steady_clock::time_point begin =
+            std::chrono::steady_clock::now();
     int rc = receiveFile();
+    std::chrono::steady_clock::time_point end =
+            std::chrono::steady_clock::now();
     if(rc != 0)
     {
         traceWriter->write("receive failed");
@@ -194,6 +201,9 @@ bool ReplicationClient::receiveFileFromServer()
     }else
     {
         traceWriter->write("received file");
+        traceWriter->write("duration of receive [microseconds]",
+                std::chrono::duration_cast
+                <std::chrono::microseconds>(end - begin).count());
         return true;
     }
 }

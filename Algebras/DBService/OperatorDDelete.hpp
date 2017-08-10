@@ -1,4 +1,11 @@
 /*
+
+1.1 OperatorDDelete
+
+The operator ~ddelete~ deletes all replicas of a relation that is stored in the
+~DBService~. Whether or not the corresponding local relation shall also be
+deleted can be specified using the boolean parameter.
+
 ----
 This file is part of SECONDO.
 
@@ -32,9 +39,7 @@ namespace DBService
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
+1.1.1 Operator Specification
 
 */
 
@@ -43,17 +48,37 @@ struct DDeleteInfo: OperatorInfo
     DDeleteInfo()
     {
         name = "ddelete";
-        signature = ""; // TODO
-        syntax = ""; // TODO
-        meaning = "delete the replicas of a (distributed) relation";
+        signature = "string x bool -> bool";
+        syntax = "ddelete(string, bool)";
+        meaning = "delete the replicas of a relation";
+        example = "query ddelete('myRelation', TRUE)";
+        remark = "needs a DBService system";
         usesArgsInTypeMapping = false;
     }
 };
 
+/*
+
+1.1.1 Class Definition
+
+*/
+
 class OperatorDDelete
 {
 public:
+
+/*
+
+1.1.1 Type Mapping Function
+
+*/
     static ListExpr mapType(ListExpr nestedList);
+
+/*
+
+1.1.1 Value Mapping Function
+
+*/
     static int mapValue(Word* args,
                         Word& result,
                         int message,

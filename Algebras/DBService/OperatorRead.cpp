@@ -113,7 +113,6 @@ int OperatorRead::mapValue(Word* args,
         return OperatorFeed::Feed(args, result,
                 message, local, s);
     }
-    print("Reading tuple stream from file", fileName);
     ffeed5Info* info = (ffeed5Info*) local.addr;
     switch(message){
     case OPEN:{
@@ -121,6 +120,7 @@ int OperatorRead::mapValue(Word* args,
             delete info;
             local.addr = 0;
         }
+        print("Reading tuple stream from file", fileName);
         info = new ffeed5Info(fileName);
         if(!info->isOK())
         {

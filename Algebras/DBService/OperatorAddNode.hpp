@@ -2,6 +2,10 @@
 
 1 Operators
 
+1.1 OperatorAddNode
+
+The operator ~addnode~ allows adding a worker node to the ~DBService~ system.
+
 ----
 This file is part of SECONDO.
 
@@ -35,10 +39,7 @@ namespace DBService
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
-TODO
+1.1.1 Operator Specification
 
 */
 
@@ -47,17 +48,37 @@ struct AddNodeInfo: OperatorInfo
     AddNodeInfo()
     {
         name = "addnode";
-        signature = ""; // TODO
-        syntax = ""; // TODO
-        meaning = "add a worker node to the fault-tolerant DBService";
+        signature = "string x int x string -> bool";
+        syntax = "addnode(string, int, string)";
+        meaning = "add a worker node to the DBService system";
+        example = "query addnode('132.176.69.181', 9989, '/secondo/config')";
+        remark = "requres a remote server";
         usesArgsInTypeMapping = false;
     }
 };
 
+/*
+
+1.1.1 Class Definition
+
+*/
+
 class OperatorAddNode
 {
 public:
+
+/*
+
+1.1.1.1  Type Mapping Function
+
+*/
     static ListExpr mapType(ListExpr nestedList);
+
+/*
+
+1.1.1.1  Value Mapping Function
+
+*/
     static int mapValue(Word* args,
                         Word& result,
                         int message,

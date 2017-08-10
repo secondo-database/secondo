@@ -115,7 +115,7 @@ int OperatorWrite::mapValue(Word* args,
     const string fileName =
             ReplicationUtils::getFileName(databaseName, relationName);
 
-    bool async = static_cast<CcBool*>(args[1].addr)->GetValue();
+    bool async = static_cast<CcBool*>(args[2].addr)->GetValue();
 
     int consumeResult;
     if(async)

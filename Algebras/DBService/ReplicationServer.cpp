@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+#include <chrono>
 #include <iostream>
 
 #include "FileSystem.h"
@@ -177,12 +178,21 @@ void ReplicationServer::sendFileToClient(
     }
 
     traceWriter->write(tid, "file created, sending file");
-    if(sendFile(io) != 0)
+
+    std::chrono::steady_clock::time_point begin =
+            std::chrono::steady_clock::now();
+    int rc = sendFile(io);
+    std::chrono::steady_clock::time_point end =
+            std::chrono::steady_clock::now();
+    if(rc != 0)
     {
         traceWriter->write(tid, "send failed");
     }else
     {
         traceWriter->write(tid, "file sent");
+        traceWriter->write("duration of send [microseconds]",
+                std::chrono::duration_cast
+                <std::chrono::microseconds>(end - begin).count());
     }
 }
 
