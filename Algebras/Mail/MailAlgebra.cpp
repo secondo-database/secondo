@@ -569,8 +569,7 @@ switch (message)
      
      ListExpr attrsave = qp->GetType(qp->GetSon(s,0));
      ListExpr attrsave2 = nl->Second(nl->Second(attrsave));
-     map<string, int> toposvalue2;
-     map<string, string> totypevalue2;
+     
      
      localInfo = new embedTagsInfo;
      qp->GetLocal2(s).addr = localInfo;        
