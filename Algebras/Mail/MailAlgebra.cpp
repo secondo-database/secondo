@@ -59,7 +59,7 @@ This file contains the implementation import / export operators.
 #include <stdio.h>
 #include <iostream>
 #include <unistd.h>
-
+#include <stdio.h>
 #include <fcntl.h>
 #include "SocketIO.h"
 
@@ -79,7 +79,8 @@ This file contains the implementation import / export operators.
 #include "Symbols.h"
 #include "FileSystem.h"
 #include "ListUtils.h"
-
+#include "Attribute.h"
+#include "StringUtils.h"
 #include "version.h"
 
 #include "DbVersion.h"
@@ -687,7 +688,7 @@ switch (message)
             
             
             
-         
+        //get the tag related attribute values  
 
             veclen = vstr.size();        
             Attribute*  attrar[veclen];
@@ -751,9 +752,9 @@ switch (message)
                           
              typear[i] = localInfo->totypevalue.at(vstr[i]);
              
-             
              if (  !( (typear[i] == "string") || (typear[i] == "text")
-                || (typear[i] == "real") || (typear[i] == "int") )  )
+                || (typear[i] == "real") || (typear[i] == "int") 
+                || (typear[i] == "date") )  )
              
              
              {  wert = false;    
@@ -822,17 +823,28 @@ switch (message)
               
              }    
              
-            
-            
+             
+           
+             if (typear[i] == "date")
+             {
+                 
+             string datevalue = attrar[i]->getCsvStr();
+             strvalues[i] = datevalue;
+             
+             
+              
+             }    
+             
+             
             
                 
-            }   
+            }   //end of for
         
         
            
            
         
-        
+        //replace tags with attribute values
         
         
         
@@ -840,26 +852,25 @@ switch (message)
             { string tagme = "<<" + vstr[i] + ">>";
               size_t prosit = 0;
              
-             if (briefvalstr.find(tagme, prosit) != string::npos) {
+             if (briefvalstr.find(tagme, prosit) != string::npos) 
+             {
        
                 
              while ( (prosit = briefvalstr.find(tagme, prosit)) 
-                     != std::string::npos) {
-                 
+                     != std::string::npos) 
+                     {                 
                       briefvalstr.replace(prosit, tagme.length(), strvalues[i]);
                       prosit += strvalues[i].length();
                      }
         
-                 }
-        
-                
+             }                
                 
 
             }
             
           
         
-        
+       
         
         wert = true;
         FText* brief2 = new FText (true, briefvalstr);
@@ -873,9 +884,9 @@ switch (message)
         result = SetWord(newTuple);
         
         return YIELD;
-      }
-      else
-        return CANCEL;
+      }   
+      else  
+        return CANCEL;   // no args left
       
     } 
 
