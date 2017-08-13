@@ -1,4 +1,9 @@
 /*
+
+1.1 OperatorPingDBService
+
+This operator checks whether the configured ~DBService~ system is available.
+
 ----
 This file is part of SECONDO.
 
@@ -32,10 +37,7 @@ namespace DBService
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
-TODO
+1.1.1 Operator Specification
 
 */
 
@@ -44,9 +46,11 @@ struct PingDBServiceInfo: OperatorInfo
     PingDBServiceInfo()
     {
         name = "pingdbservice";
-        signature = ""; // TODO
-        syntax = ""; // TODO
+        signature = "-> bool";
+        syntax = "pingdbservice()";
         meaning = "check whether it is possible to connect to the DBService";
+        example = "query pingdbservice()";
+        remark = "None";
         usesArgsInTypeMapping = false;
     }
 };
@@ -54,7 +58,19 @@ struct PingDBServiceInfo: OperatorInfo
 class OperatorPingDBService
 {
 public:
+
+/*
+
+1.1.1 Type Mapping Function
+
+*/
     static ListExpr mapType(ListExpr nestedList);
+
+/*
+
+1.1.1 Value Mapping Function
+
+*/
     static int mapValue(Word* args,
                         Word& result,
                         int message,

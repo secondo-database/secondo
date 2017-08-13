@@ -1,11 +1,11 @@
-Database : berlintest
+Database : None
 Restore  : No
 
 Operator  : write
 Number    : 1
-Signature : stream(tuple) x string x bool -> rel(tuple)
+Signature : stream(tuple(X)) x string x bool -> rel(tuple(X))
 Example   : let RoadsFT = Roads feed write['RoadsFT', FALSE]
-Result    : relation
+Result    : (rel(tuple))
 Remark    : Requires a DBService system
 
 Operator  : addnode
@@ -38,9 +38,9 @@ Remark    : None
 
 Operator  : read
 Number    : 1
-Signature : rel(tuple(X)) x fun -> ?
+Signature : rel(tuple(X)) -> stream(tuple(X))
 Example   : query read(myRelation)
-Result    : ()
+Result    : (stream(tuple))
 Remark    : None
 
 Operator  : ddelete

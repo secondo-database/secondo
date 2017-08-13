@@ -1,6 +1,6 @@
 /*
 
-1.1  OperatorWrite
+1.1 OperatorWrite
 
 This operator creates a relation from a tuple stream and triggers its
 replication into the ~DBService~.
@@ -38,7 +38,7 @@ namespace DBService
 
 /*
 
-1.1.1  Operator Specification
+1.1.1 Operator Specification
 
 */
 
@@ -59,7 +59,7 @@ struct WriteInfo: OperatorInfo
 
 /*
 
-1.1.1  Class Definition
+1.1.1 Class Definition
 
 */
 
@@ -69,14 +69,14 @@ public:
 
 /*
 
-1.1.1.1  Type Mapping Function
+1.1.1.1 Type Mapping Function
 
 */
     static ListExpr mapType(ListExpr nestedList);
 
 /*
 
-1.1.1.1  Value Mapping Function
+1.1.1.1 Value Mapping Function
 
 */
 

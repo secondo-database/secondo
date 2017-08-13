@@ -1,4 +1,10 @@
 /*
+
+1.1 OperatorGetConfigParam
+
+This operator retrieves the value of the specified configuration parameter of
+the current SECONDO instance.
+
 ----
 This file is part of SECONDO.
 
@@ -31,10 +37,7 @@ namespace DBService {
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
-TODO
+1.1.1 Operator Specification
 
 */
 
@@ -43,17 +46,36 @@ struct GetConfigParamInfo: OperatorInfo
     GetConfigParamInfo()
     {
         name = "getconfigparam";
-        signature = ""; // TODO
-        syntax = ""; // TODO
+        signature = "string x string -> string";
+        syntax = "getconfigparam(string, string)";
         meaning = "get parameter setting from the configuration file";
+        example = "query getconfigparam('DBService', 'TransferPort')";
+        remark = "None";
         usesArgsInTypeMapping = true;
     }
 };
 
+/*
+
+1.1.1 Class Definition
+
+*/
+
 class OperatorGetConfigParam
 {
 public:
+/*
+
+1.1.1.1 Type Mapping Function
+
+*/
     static ListExpr mapType(ListExpr nestedList);
+
+/*
+
+1.1.1.1 Value Mapping Function
+
+*/
     static int mapValue(Word* args,
                         Word& result,
                         int message,

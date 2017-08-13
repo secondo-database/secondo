@@ -3,7 +3,7 @@
 1.1 \textit{DBServiceClient}
 
 The \textit{DBServiceClient} is the central component of the system which
-shall be equipped with fault-tolerant query execution. The
+shall be equipped with fault-tolerant query execution capabilities. The
 \textit{DBServiceClient} is the single point of entry for all operators
 which need access to the \textit{DBService}.
 

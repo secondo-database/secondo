@@ -1,4 +1,10 @@
 /*
+
+1.1  OperatorCheckDBServiceStatus
+
+This operator allows to check the status of the ~DBService~. It checks and
+prints the stored metadata and reconnects the ~DBService~ workers if applicable.
+
 ----
 This file is part of SECONDO.
 
@@ -32,10 +38,7 @@ namespace DBService
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
-TODO
+1.1.1  Operator Specification
 
 */
 
@@ -44,17 +47,37 @@ struct CheckDBServiceStatusInfo: OperatorInfo
     CheckDBServiceStatusInfo()
     {
         name = "checkdbservicestatus";
-        signature = ""; // TODO
-        syntax = ""; // TODO
-        meaning = "check status of DBService and reconnect to worker nodes";
+        signature = "-> bool";
+        syntax = "checkdbservicestatus()";
+        meaning = "check status of DBService, reconnect worker nodes and "
+                "print currently stored metadata to the command line";
+        example = "query checkdbservicestatus()";
+        remark = "needs to be executed on a DBService system";
         usesArgsInTypeMapping = false;
     }
 };
 
+/*
+
+1.1.1  Class Definition
+
+*/
+
 class OperatorCheckDBServiceStatus
 {
 public:
+/*
+
+1.1.1.1 Type Mapping Function
+
+*/
     static ListExpr mapType(ListExpr nestedList);
+
+/*
+
+1.1.1.1 Value Mapping Function
+
+*/
     static int mapValue(Word* args,
                         Word& result,
                         int message,

@@ -36,7 +36,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService/TraceSettings.hpp"
 
-
 using namespace std;
 using namespace distributed2;
 
@@ -125,11 +124,6 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
         return false;
     }
     print("query converted to nested list string");
-//    ListExpr queryAsNestedList;
-//    if (!nl->ReadFromString(queryAsNestedListString, queryAsNestedList)) {
-//        print("could not convert string to list");
-//        return false;
-//    }
 
     ListExpr queryAsNestedList;
     NestedList* nli = SecondoSystem::GetNestedList();
@@ -250,9 +244,6 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     }
     print("nested list string converted to nested list");
 
-    //TODO check open database?
-    //TODO transaction?
-    // SecondoSystem::BeginTransaction();
     string objectName = nl->SymbolValue(nl->Second(queryAsNestedList));
     ListExpr valueExpr = nl->Fourth(queryAsNestedList);
 
@@ -275,8 +266,6 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
         queryProcessor->Destroy(tree, true);
     }
 
-    // TODO
-    //SecondoSystem::CommitTransaction(true);
     cout << "correct: " << correct << endl;
     cout << "evaluable: " << evaluable << endl;
     cout << "defined: " << defined << endl;
@@ -330,7 +319,6 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
     SecParser secondoParser;
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {
-        // TODO
         print("could not parse query");
         return false;
     }
@@ -343,10 +331,6 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
     }
     print("nested list string converted to nested list");
     print("queryAsNestedList", queryAsNestedList);
-
-    // database open?
-
-    // transaction?
 
     try {
         print("queryProcessor->Construct");

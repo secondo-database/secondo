@@ -1,4 +1,9 @@
 /*
+
+1.1 OperatorSetTraceLevel
+
+This operator sets the ~DBService~ trace level to the specified value.
+
 ----
 This file is part of SECONDO.
 
@@ -29,21 +34,47 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace DBService {
 
+/*
+
+1.1.1 Operator Specification
+
+*/
+
 struct SetTraceLevelInfo: OperatorInfo
 {
     SetTraceLevelInfo()
     {
         name = "settracelevel";
-        signature = "int"; // TODO
-        syntax = "settracelevel(0)"; // TODO
+        signature = "int";
+        syntax = "settracelevel(int)";
         meaning = "set the trace level to the specified number";
+        example = "query settracelevel(0)";
+        remark = "None";
         usesArgsInTypeMapping = false;
     }
 };
 
+/*
+
+1.1.1 Class Definition
+
+*/
+
 class OperatorSetTraceLevel {
 public:
+
+/*
+
+1.1.1.1 Type Mapping Function
+
+*/
     static ListExpr mapType(ListExpr nestedList);
+
+/*
+
+1.1.1.1 Value Mapping Function
+
+*/
     static int mapValue(Word* args,
                         Word& result,
                         int message,

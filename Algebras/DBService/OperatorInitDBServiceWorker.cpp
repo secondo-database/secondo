@@ -1,4 +1,7 @@
 /*
+
+1.1.1 Class Implementation
+
 ----
 This file is part of SECONDO.
 
@@ -60,7 +63,6 @@ int OperatorInitDBServiceWorker::mapValue(Word* args,
                                        "DBService",
                                        "CommunicationPort",
                                        "0");
-    // TODO ErrorHandling
 
     ServerRunnable commServer(atoi(commPort.c_str()));
     commServer.run<CommunicationServer>();
@@ -70,7 +72,7 @@ int OperatorInitDBServiceWorker::mapValue(Word* args,
                                            "DBService",
                                            "FileTransferPort",
                                            "0");
-    // TODO ErrorHandling
+
     ServerRunnable fileServer(atoi(fileTransferPort.c_str()));
     fileServer.run<ReplicationServer>();
 

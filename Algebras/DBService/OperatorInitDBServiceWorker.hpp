@@ -1,4 +1,11 @@
 /*
+
+1.1 OperatorInitDBServiceWorker
+
+This operator initializes a SECONDO instance so that it can serve as a
+~DBService~ worker node by starting the ~CommunicationServer~ and the
+~ReplicationServer~.
+
 ----
 This file is part of SECONDO.
 
@@ -31,10 +38,7 @@ namespace DBService {
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
-TODO
+1.1.1 Operator Specification
 
 */
 
@@ -43,16 +47,36 @@ struct InitDBServiceWorkerInfo : OperatorInfo
     InitDBServiceWorkerInfo()
     {
         name = "initdbserviceworker";
-        signature = ""; // TODO
-        syntax = ""; // TODO
-        meaning = "initialize listeners on DBService worker node";
+        signature = "-> bool";
+        syntax = "initdbserviceworker()";
+        meaning = "prepare DBService worker node for operation";
+        example = "query initdbserviceworker()";
+        remark = "Internal operator, not meant to be used in commands";
         usesArgsInTypeMapping = false;
     }
 };
 
+/*
+
+1.1.1 Class Definition
+
+*/
+
 class OperatorInitDBServiceWorker {
 public:
+
+/*
+
+1.1.1.1 Type Mapping Function
+
+*/
     static ListExpr mapType(ListExpr nestedList);
+
+/*
+
+1.1.1.1 Value Mapping Function
+
+*/
     static int mapValue(Word* args,
             Word& result,
             int message,
