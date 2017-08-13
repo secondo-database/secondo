@@ -1,4 +1,11 @@
 /*
+
+1.1 ~LocationInfo~
+
+This object is mainly used to store metadata about the ~DBService~ worker nodes
+that are available in the system. It is also used to store the original location
+of a relation.
+
 ----
 This file is part of SECONDO.
 
@@ -33,10 +40,7 @@ namespace DBService {
 
 /*
 
-1 \textit{LocationInfo}
-
-The \textit{LocationInfo} object represents a SECONDO instance and stores all
-data that is relevant in the context of the \textit{DBService}.
+1.1.1 Class Definition
 
 */
 
@@ -46,11 +50,7 @@ public:
 
 /*
 
-1.1 Function Definitions
-
-The \textit{LocationInfo} object provides several member functions.
-
-1.1.1 Constructor
+1.1.1.1 Constructor
 
 */
     LocationInfo(const std::string& host,
@@ -61,7 +61,7 @@ The \textit{LocationInfo} object provides several member functions.
                  const std::string& transferPort);
 /*
 
-1.1.1 \textit{getHost}
+1.1.1.1 \textit{getHost}
 
 This function returns the hostname of the represented instance.
 
@@ -70,7 +70,7 @@ This function returns the hostname of the represented instance.
 
 /*
 
-1.1.1 \textit{getPort}
+1.1.1.1 \textit{getPort}
 
 This function returns the port of the represented instance.
 
@@ -79,7 +79,7 @@ This function returns the port of the represented instance.
 
 /*
 
-1.1.1 \textit{getConfig}
+1.1.1.1 \textit{getConfig}
 
 This function returns the path where the config file of the represented instance
 is located.
@@ -89,7 +89,7 @@ is located.
 
 /*
 
-1.1.1 \textit{getDisk}
+1.1.1.1 \textit{getDisk}
 
 This function returns the path where the represented instance stores its data.
 
@@ -98,7 +98,7 @@ This function returns the path where the represented instance stores its data.
 
 /*
 
-1.1.1 \textit{getCommPort}
+1.1.1.1 \textit{getCommPort}
 
 This function returns the port on which the \textit{CommunicationServer} is
 listening on the represented instance.
@@ -108,7 +108,7 @@ listening on the represented instance.
 
 /*
 
-1.1.1 \textit{getTransferPort}
+1.1.1.1 \textit{getTransferPort}
 
 This function returns the port on which the \textit{ReplicationServer} is
 listening on the represented instance.
@@ -118,7 +118,7 @@ listening on the represented instance.
 
 /*
 
-1.1.1 ~setTransferPort~
+1.1.1.1 ~setTransferPort~
 
 This function allows to set the value of member ~transferPort~.
 
@@ -127,7 +127,7 @@ This function allows to set the value of member ~transferPort~.
 
 /*
 
-1.1.1 \textit{isSameWorker}
+1.1.1.1 \textit{isSameWorker}
 
 This function returns whether the specified host and port are equal to the
 stored ones.
@@ -140,7 +140,7 @@ stored ones.
 
 /*
 
-1.1.1 \textit{isSameHost}
+1.1.1.1 \textit{isSameHost}
 
 This function returns whether the specified host is equal to the stored ones.
 
@@ -150,7 +150,7 @@ This function returns whether the specified host is equal to the stored ones.
 
 /*
 
-1.1.1 \textit{isSameDisk}
+1.1.1.1 \textit{isSameDisk}
 
 This function returns whether the data of the specified worker is located on the
 same disk as the data of the stored one.
@@ -161,11 +161,7 @@ same disk as the data of the stored one.
 
 /*
 
-1.1 Member Definitions
-
-The \textit{LocationInfo} object has several class members.
-
-1.1.1 \textit{host}
+1.1.1.1 \textit{host}
 
 Stores the hostname of the represented instance.
 
@@ -175,7 +171,7 @@ private:
 
 /*
 
-1.1.1 \textit{port}
+1.1.1.1 \textit{port}
 
 Stores the port of the represented instance.
 
@@ -184,7 +180,7 @@ Stores the port of the represented instance.
 
 /*
 
-1.1.1 \textit{config}
+1.1.1.1 \textit{config}
 
 Stores the configuration file path of the represented instance.
 
@@ -193,7 +189,7 @@ Stores the configuration file path of the represented instance.
 
 /*
 
-1.1.1 \textit{disk}
+1.1.1.1 \textit{disk}
 
 Stores the data path of the represented instance.
 
@@ -202,7 +198,7 @@ Stores the data path of the represented instance.
 
 /*
 
-1.1.1 \textit{commPort}
+1.1.1.1 \textit{commPort}
 
 Stores the port on which the \textit{CommunicationServer} is
 listening on the represented instance.
@@ -212,7 +208,7 @@ listening on the represented instance.
 
 /*
 
-1.1.1 \textit{transferPort}
+1.1.1.1 \textit{transferPort}
 
 Stores the port on which the \textit{ReplicationServer} is
 listening on the represented instance.

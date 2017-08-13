@@ -53,7 +53,7 @@ DOCU_FILES =DBServiceAlgebra.hpp DBServiceAlgebra.cpp \
 			Replicator.hpp Replicator.cpp \
 			ReplicationClientRunnable.hpp ReplicationClientRunnable.cpp \
 			TriggerFileTransferRunnable.hpp TriggerFileTransferRunnable.cpp \
-			TriggerReplicaDeletionRunnable.hpp TriggerFileTransferRunnable.cpp \
+			TriggerReplicaDeletionRunnable.hpp TriggerReplicaDeletionRunnable.cpp \
 			OperatorAddNode.hpp OperatorAddNode.cpp \
 			OperatorCheckDBServiceStatus.hpp OperatorCheckDBServiceStatus.cpp \
 			OperatorSetTraceLevel.hpp OperatorSetTraceLevel.cpp \

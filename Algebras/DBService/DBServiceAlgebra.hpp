@@ -5,7 +5,7 @@
 //[_] [\_]
 
 
-[1] The DBServiceAlgebra: {Fault-Tolerant Query Execution in SECONDO}
+[1] The DBServiceAlgebra:\newline{Fault-Tolerant Query Execution in SECONDO}
 
 \tableofcontents
 \newpage

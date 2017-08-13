@@ -1,4 +1,7 @@
 /*
+
+1.1.1 Class Implementation
+
 ----
 This file is part of SECONDO.
 

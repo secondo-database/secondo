@@ -1,4 +1,11 @@
 /*
+
+1.1 ~ReplicationClient~
+
+The ~ReplicationClient~ connects to a ~ReplicationServer~ and requests the
+~DBService~ worker node, in order to create a replica, or from an arbitrary
+node in the original system, in order to request a replica.
+
 ----
 This file is part of SECONDO.
 
@@ -32,9 +39,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace DBService {
 
+/*
+
+1.1.1 Class Definition
+
+*/
+
 class ReplicationClient: public distributed2::FileTransferClient
 {
 public:
+
+/*
+
+1.1.1.1 Constructor
+
+*/
     ReplicationClient(
             std::string& server,
             int port,
@@ -42,19 +61,108 @@ public:
             const std::string& fileNameOrigin,
             std::string& databaseName,
             std::string& relationName);
+
+/*
+
+1.1.1.1 Destructor
+
+*/
     ~ReplicationClient();
+
+/*
+
+1.1.1.1 ~start~
+
+This function starts the ~ReplicationClient~ by opening the socket connection.
+
+*/
     int start();
+
+/*
+
+1.1.1.1 ~receiveReplica~
+
+This function is called in order to request the transmission of a replica
+from the original node.
+
+*/
     int receiveReplica();
+
+/*
+
+1.1.1.1 ~requestReplica~
+
+This function is called in order to request the transmission of a replica from
+the ~DBService~ worker node.
+
+*/
     int requestReplica(
             const std::string& functionAsNestedListString,
             std::string& fileName);
+
+/*
+
+1.1.1.1 ~reportSuccessfulReplication~
+
+By calling this function, the ~DBService~ master is notified about the
+successful replication.
+
+*/
     void reportSuccessfulReplication();
+
+/*
+
+1.1.1.1 ~receiveFileFromServer~
+
+This function is called in order to start the file transfer.
+
+*/
 private:
     bool receiveFileFromServer();
+
+/*
+
+1.1.1.1 ~fileNameDBS~
+
+Stores the name of the file that contains the replica on the local side.
+
+*/
     const std::string fileNameDBS;
+
+/*
+
+1.1.1.1 ~fileNameOrigin~
+
+Stores the name of the file that contains the replica on the remote side.
+
+*/
     const std::string fileNameOrigin;
+
+/*
+
+1.1.1.1 ~databaseName~
+
+Stores the database name of the relation.
+
+*/
     std::string databaseName;
+
+/*
+
+1.1.1.1 ~relationName~
+
+Stores the name of the relation.
+
+*/
     std::string relationName;
+
+/*
+
+1.1.1.1 ~traceWriter~
+
+Stores a pointer to the ~TraceWriter~ that is needed to write trace files.
+
+*/
     std::unique_ptr<TraceWriter> traceWriter;
 };
 

@@ -1,4 +1,12 @@
 /*
+
+1.1 ~DBServicePersistenceAccessor~
+
+The \textit{DBServicePersistenceAccessor} is the interface towards the
+\textit{DBService's} persistant storage in SECONDO relations. It provides
+functions to create relations as well as inserting, updating and deleting
+tuples.
+
 ----
 This file is part of SECONDO.
 
@@ -40,12 +48,7 @@ namespace DBService {
 
 /*
 
-1 \textit{DBServicePersistenceAccessor}
-
-The \textit{DBServicePersistenceAccessor} is the interface towards the
-\textit{DBService's} persistant storage in SECONDO relations. It exposes
-functions to create relations as well as inserting, updating and deleting
-tuples.
+1.1.1 Class Definition
 
 */
 
@@ -53,7 +56,7 @@ class DBServicePersistenceAccessor {
 
 /*
 
-1.1 \textit{persistLocationInfo}
+1.1.1.1 \textit{persistLocationInfo}
 
 This function persists the provided \textit{ConnectionID} and the corresponding
 \textit{LocationInfo} object into the respective SECONDO relation.
@@ -65,7 +68,7 @@ public:
 
 /*
 
-1.1 \textit{persistRelationInfo}
+1.1.1.1 \textit{persistRelationInfo}
 
 This function persists the provided \textit{RelationInfo} object into the
 respective SECONDO relation.
@@ -76,7 +79,7 @@ respective SECONDO relation.
 
 /*
 
-1.1 \textit{restoreLocationInfo}
+1.1.1.1 \textit{restoreLocationInfo}
 
 This function restores the persisted \textit{ConnectionIDs} and their
 corresponding \textit{LocationInfo} objects from the respective SECONDO
@@ -88,7 +91,7 @@ relation.
 
 /*
 
-1.1 \textit{restoreRelationInfo}
+1.1.1.1 \textit{restoreRelationInfo}
 
 This function restores the persisted \textit{RelationInfo} objects from the
 respective SECONDO relation.
@@ -99,7 +102,7 @@ respective SECONDO relation.
 
 /*
 
-1.1 \textit{restoreLocationMapping}
+1.1.1.1 \textit{restoreLocationMapping}
 
 This function restores the mapping of relation to location from the respective
 SECONDO relation.
@@ -111,7 +114,7 @@ SECONDO relation.
 
 /*
 
-1.1 \textit{updateLocationMapping}
+1.1.1.1 \textit{updateLocationMapping}
 
 This function updates the replication status flag of the mapping of relation to
 location in the respective SECONDO relation.
@@ -124,7 +127,7 @@ location in the respective SECONDO relation.
 
 /*
 
-1.1 \textit{deleteRelationInfo}
+1.1.1.1 \textit{deleteRelationInfo}
 
 This function deletes a persisted \textit{RelationInfo} object and also triggers
 the deletion of the corresponding location mapping.
@@ -134,7 +137,7 @@ the deletion of the corresponding location mapping.
 
 /*
 
-1.1 ~persistAllLocations~
+1.1.1.1 ~persistAllLocations~
 
 This function persists all locations passed as argument at once. All data that
 was persisted prior to the call of this function will be lost.
@@ -144,7 +147,7 @@ was persisted prior to the call of this function will be lost.
 
 /*
 
-1.1 ~persistAllRelations~
+1.1.1.1 ~persistAllRelations~
 
 This function persists all relations passed as argument at once. All data that
 was persisted prior to the call of this function will be lost.
@@ -154,7 +157,7 @@ was persisted prior to the call of this function will be lost.
 
 /*
 
-1.1 ~getRecordCount~
+1.1.1.1 ~getRecordCount~
 
 Retrieve the number of tuples that the specifies relation contains.
 
@@ -167,7 +170,7 @@ private:
 
 /*
 
-1.1 \textit{persistLocationMapping}
+1.1.1.1 \textit{persistLocationMapping}
 
 This function persists the mapping of a relation to its replica locations.
 
@@ -179,7 +182,7 @@ This function persists the mapping of a relation to its replica locations.
 
 /*
 
-1.1 \textit{createOrInsert}
+1.1.1.1 \textit{createOrInsert}
 
 This function creates a relation or inserts the specified tuple if the relation
 already exists.
@@ -192,7 +195,7 @@ already exists.
 
 /*
 
-1.1 ~deleteAndCreate~
+1.1.1.1 ~deleteAndCreate~
 
 This function deletes a relation in case it exists and recreates it using the
 given values.
@@ -205,7 +208,7 @@ given values.
 
 /*
 
-1.1 \textit{deleteLocationMapping}
+1.1.1.1 \textit{deleteLocationMapping}
 
 This function deletes the mapping of relation to location for a specified
 relation identifier and a given range of connections.
@@ -217,7 +220,7 @@ relation identifier and a given range of connections.
 
 /*
 
-1.1 \textit{locations}
+1.1.1.1 \textit{locations}
 
 This member specifies the attributes of the SECONDO relation that is used for
 persisting the \textit{DBService} worker node locations.
@@ -227,7 +230,7 @@ persisting the \textit{DBService} worker node locations.
 
 /*
 
-1.1 \textit{relations}
+1.1.1.1 \textit{relations}
 
 This member specifies the attributes of the SECONDO relation that is used for
 persisting \textit{RelationInfo} objects.
@@ -237,7 +240,7 @@ persisting \textit{RelationInfo} objects.
 
 /*
 
-1.1 \textit{mapping}
+1.1.1.1 \textit{mapping}
 
 This member specifies the attributes of the SECONDO relation that is used for
 persisting the mapping of relations to locations.

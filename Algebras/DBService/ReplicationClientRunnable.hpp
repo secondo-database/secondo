@@ -1,4 +1,9 @@
 /*
+
+1.1 ~ReplicationClientRunnable~
+
+This class is used in order to run a ~ReplicationClient~ in a separate thread.
+
 ----
 This file is part of SECONDO.
 
@@ -33,31 +38,99 @@ namespace DBService {
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
-TODO
+1.1.1 Class Definition
 
 */
 
 class ReplicationClientRunnable {
-    public:
+public:
+
+/*
+
+1.1.1.1 Constructor
+
+*/
     ReplicationClientRunnable(std::string targetHost,
                 int targetTransferPort,
                 std::string databaseName,
                 std::string relationName);
+
+/*
+
+1.1.1.1 Destructor
+
+*/
         ~ReplicationClientRunnable();
+
+/*
+
+1.1.1.1 ~run~
+
+This function is executed in order to create a separate thread in which the
+~ReplicationClient~ will be run.
+
+*/
         void run();
+
+/*
+
+1.1.1.1 ~create~
+
+This function is passed to the new thread and creates a ~ReplicationClient~
+which connects to the specified host and requests the transfer of a file
+containing the specified relation.
+
+*/
     private:
         void create(
                 std::string& targetHost,
                 int targetTransferPort,
                 std::string& databaseName,
                 std::string& relationName);
+
+/*
+
+1.1.1.1 ~targetHost~
+
+Stores the name of the host on which the ~ReplicationServer~ is running.
+
+*/
         std::string targetHost;
+
+/*
+
+1.1.1.1 ~targetTransferPort~
+
+Stores the number of the port on which the ~ReplicationServer~ is listening.
+
+*/
         int targetTransferPort;
+
+/*
+
+1.1.1.1 ~databaseName~
+
+Stores the name of the database in which the relation resides.
+
+*/
         std::string databaseName;
+
+/*
+
+1.1.1.1 ~relationName~
+
+Stores the name of the relation.
+
+*/
         std::string relationName;
+
+/*
+
+1.1.1.1 ~runner~
+
+Stores a pointer to the created thread.
+
+*/
         boost::thread* runner;
 };
 

@@ -2,6 +2,11 @@
 
 1 Asynchronous Operation
 
+1.1 ~ServerRunnable~
+
+The ~ServerRunnable~ is used to run a ~CommunicationServer~ or a
+~ReplicationServer~ in a separate thread.
+
 ----
 This file is part of SECONDO.
 
@@ -34,23 +39,67 @@ namespace DBService {
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
-TODO
+1.1.1 Class Definition
 
 */
 
 class ServerRunnable {
+
+/*
+
+1.1.1.1 Constructor
+
+*/
 public:
     explicit ServerRunnable(int serverPort);
+
+/*
+
+1.1.1.1 Destructor
+
+*/
     ~ServerRunnable();
+
+/*
+
+1.1.1.1 ~run~
+
+By calling this function with either the class ~CommunicationServer~ or
+~ReplicationServer~ as its template argument, the respective server instance is
+created and started in a separate thread.
+
+*/
     template <typename T>
     void run();
+
+/*
+
+1.1.1.1 ~createServer~
+
+This function is passed to the created thread. It contains the logic to create
+and run a server.
+
+*/
 private:
     template <typename T>
     void createServer(int port);
+
+/*
+
+1.1.1.1 ~runner~
+
+Stores a pointer to the created thread.
+
+*/
     boost::thread* runner;
+
+/*
+
+1.1.1.1 ~port~
+
+Stores the port on which the created server shall listen.
+
+*/
     int port;
 };
 

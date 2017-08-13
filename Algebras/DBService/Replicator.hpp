@@ -1,6 +1,8 @@
 /*
 
-1 Asynchronous Operation
+1.1 ~Replicator~
+
+The ~Replicator~ is used to replicate a relation in a separate thread.
 
 ----
 This file is part of SECONDO.
@@ -34,30 +36,90 @@ namespace DBService {
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
-TODO
+1.1.1 Class Definition
 
 */
 
 class Replicator {
+
+/*
+
+1.1.1.1 Constructor
+
+*/
 public:
     explicit Replicator(
             std::string& dbName,
             std::string& relName,
             ListExpr type);
+
+/*
+
+1.1.1.1 Destructor
+
+*/
     ~Replicator();
+
+/*
+
+1.1.1.1 ~run~
+
+When calling this function, a new thread is created in which the replication
+will be triggered.
+
+*/
     void run(const bool async);
+
+/*
+
+1.1.1.1 ~createReplica~
+
+This function is passed to the new thread. It triggers the replication of a
+relation.
+
+*/
 private:
     void createReplica(
             const std::string databaseName,
             const std::string relationName,
             const ListExpr relType,
             const bool async);
+
+/*
+
+1.1.1.1 ~runner~
+
+Stores a pointer to the created thread.
+
+*/
     boost::thread* runner;
+
+/*
+
+1.1.1.1 ~databaseName~
+
+Stores the name of the database in which the relation that shall be replicated
+resides.
+
+*/
     std::string databaseName;
+
+/*
+
+1.1.1.1 ~relationName~
+
+Stores the name of the relation that shall be replicated.
+
+*/
     std::string& relationName;
+
+/*
+
+1.1.1.1 ~relType~
+
+Stores the type of the relation in a nested list.
+
+*/
     ListExpr relType;
 };
 

@@ -2,7 +2,7 @@
 
 1 Metadata Structures and Persistent Storage
 
-1.1 MetadataObject
+1.1 ~MetadataObject~
 
 This is a base class that shall be used for all objects that store metadata of
 the ~DBService~.

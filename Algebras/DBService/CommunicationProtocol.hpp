@@ -1,4 +1,13 @@
 /*
+
+1.1 ~CommunicationProtocol~
+
+The \textit{CommunicationProtocol} defines the keywords that are used for the
+communication between the \textit{CommunicationClient} and the
+\textit{CommunicationServer}. Furthermore, also the keywords for the
+communication between the \textit{ReplicationClient} and the
+\textit{ReplicationServer} are defined by the \textit{CommunicationProtocol}.
+
 ----
 This file is part of SECONDO.
 
@@ -30,13 +39,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace DBService {
 
 /*
-1 \textit{CommunicationProtocol}
 
-The \textit{CommunicationProtocol} defines the keywords that are used for the
-communication between the \textit{CommunicationClient} and the
-\textit{CommunicationServer}. Furthermore, also the keywords for the
-communication between the \textit{ReplicationClient} and the
-\textit{ReplicationServer} are defined by the \textit{CommunicationProtocol}.
+1.1.1 Class Definition
 
 */
 

@@ -1,4 +1,7 @@
 /*
+
+1.1.1 Class Implementation
+
 ----
 This file is part of SECONDO.
 
@@ -122,37 +125,6 @@ int ReplicationServer::communicate(iostream& io)
         return 2;
     }
     return 0;
-}
-
-bool ReplicationServer::createFile(
-        string fileName,
-        const boost::thread::id tid) const
-{
-    traceWriter->writeFunction(tid, "ReplicationServer::createFile");
-
-    string databaseName;
-    string relationName;
-    ReplicationUtils::parseFileName(fileName, databaseName, relationName);
-
-    SecondoUtilsLocal::adjustDatabase(databaseName);
-
-    stringstream query;
-    query << "query "
-          << relationName
-          << " saveObjectToFile[\""
-          << fileName
-          << "\"]";
-    traceWriter->write(tid, "query", query.str());
-
-    bool resultOk = SecondoUtilsLocal::executeQuery2(query.str());
-    if(resultOk)
-    {
-        traceWriter->write(tid, "file created");
-    }else
-    {
-        traceWriter->write(tid, "could not create file");
-    }
-    return resultOk;
 }
 
 void ReplicationServer::sendFileToClient(

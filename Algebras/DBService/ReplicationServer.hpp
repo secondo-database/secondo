@@ -1,4 +1,10 @@
 /*
+
+1.1 ~ReplicationServer~
+
+The ~ReplicationServer~ sends a file containing the replica of a relation to a
+~ReplicationClient~ on request.
+
 ----
 This file is part of SECONDO.
 
@@ -35,25 +41,58 @@ namespace DBService {
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
-TODO
+1.1.1 Class Implementation
 
 */
 
 class ReplicationServer: public MultiClientServer,
                                 distributed2::FileTransferServer {
+
+/*
+
+1.1.1.1 Constructor
+
+*/
 public:
     explicit ReplicationServer(int port);
+
+/*
+
+1.1.1.1 Destructor
+
+*/
     ~ReplicationServer();
-    int start();
+
+/*
+
+1.1.1.1 ~start~
+
+This function starts the ~ReplicationServer~ and leaves it waiting for incoming
+client connections.
+
+*/
+int start();
+
+/*
+
+1.1.1.1 ~communicate~
+
+This function is called as soon as a ~ReplicationClient~ establishes a
+connection to the ~ReplicationServer~. It reacts on the incoming messages from
+the client.
+
+*/
 protected:
     int communicate(std::iostream& io);
+
+/*
+
+1.1.1.1 ~sendFileToClient~
+
+This function is called in order to send a file to a client.
+
+*/
 private:
-    bool createFile(
-            std::string fileName,
-            const boost::thread::id tid) const;
     void sendFileToClient(
             std::iostream& io,
             bool fileCreated,
