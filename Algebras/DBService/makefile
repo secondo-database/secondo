@@ -35,49 +35,47 @@ ADDINCLUDES := -I$(BUILDDIR)/Algebras/OrderedRelation -I$(BUILDDIR)/Algebras/Str
 # expand compile flags if necessary
 CCFLAGS += -Werror $(ADDINCLUDES) -std=c++11
 
-DOCU_FILES = DBServiceAlgebra.hpp DBServiceAlgebra.cpp \
-			 DBServiceManager.hpp DBServiceManager.cpp \
-			 DBServiceClient.hpp DBServiceClient.cpp \
-			 MetadataObject.hpp MetadataObject.cpp \
-			 LocationInfo.hpp LocationInfo.cpp \
-			 RelationInfo.hpp RelationInfo.cpp \
-			 DBServicePersistenceAccessor.hpp DBServicePersistenceAccessor.cpp \
-			 CommandBuilder.hpp CommandBuilder.cpp \
-			 MultiClientServer.hpp MultiClientServer.cpp \
-			 CommunicationServer.hpp CommunicationServer.cpp \
-			 CommunicationClient.hpp CommunicationClient.cpp \
-			 ReplicationServer.hpp ReplicationServer.cpp \
-			 ReplicationClient.hpp ReplicationClient.cpp \
-			 CommunicationProtocol.hpp CommunicationProtocol.cpp \
-			 ServerRunnable.hpp ServerRunnable.cpp \
-			 Replicator.hpp Replicator.cpp \
-			 ReplicationClientRunnable.hpp ReplicationClientRunnable.cpp \
-			 TriggerFileTransferRunnable.hpp TriggerFileTransferRunnable.cpp \
-			 TriggerReplicaDeletionRunnable.hpp TriggerFileTransferRunnable.cpp \
-			 OperatorAddNode.hpp OperatorAddNode.cpp \
-			 OperatorCheckDBServiceStatus.hpp OperatorCheckDBServiceStatus.cpp \
-			 OperatorSetTraceLevel.hpp OperatorSetTraceLevel.cpp \
-			 OperatorPingDBService.hpp OperatorPingDBService.cpp \
-			 OperatorWrite.hpp OperatorWrite.cpp \
-			 OperatorRead.hpp OperatorRead.cpp \
-			 OperatorDDelete.hpp OperatorDDelete.cpp \
-			 OperatorInitDBServiceWorker.hpp OperatorInitDBServiceWorker.cpp \
-			 OperatorGetConfigParam.hpp OperatorGetConfigParam.cpp \
-			 CommunicationUtils.hpp CommunicationUtils.cpp \
-			 SecondoUtilsLocal.hpp SecondoUtilsLocal.cpp \
-			 SecondoUtilsRemote.hpp SecondoUtilsRemote.cpp \
-			 ReplicationUtils.hpp ReplicationUtils.cpp \
-			 TraceSettings.hpp TraceSettings.cpp \
-			 DebugOutput.hpp DebugOutput.cpp \
-			 TraceWriter.hpp TraceWriter.cpp \
-			 makefile \
-			 Test/CommandBuilderTest.cpp \
-			 Test/CommunicationUtilsTest.cpp \
-			 Test/LocationInfoTest.cpp \
-			 Test/RelationInfoTest.cpp \
-			 Test/ReplicationUtilsTest.cpp \
-			 Test/TraceSettingsTest.cpp \
-			 Test/makefile
+DOCU_FILES =DBServiceAlgebra.hpp DBServiceAlgebra.cpp \
+			DBServiceManager.hpp DBServiceManager.cpp \
+			DBServiceClient.hpp DBServiceClient.cpp \
+			MetadataObject.hpp MetadataObject.cpp \
+			LocationInfo.hpp LocationInfo.cpp \
+			RelationInfo.hpp RelationInfo.cpp \
+			DBServicePersistenceAccessor.hpp DBServicePersistenceAccessor.cpp \
+			CommandBuilder.hpp CommandBuilder.cpp \
+			MultiClientServer.hpp MultiClientServer.cpp \
+			CommunicationServer.hpp CommunicationServer.cpp \
+			CommunicationClient.hpp CommunicationClient.cpp \
+			ReplicationServer.hpp ReplicationServer.cpp \
+			ReplicationClient.hpp ReplicationClient.cpp \
+			CommunicationProtocol.hpp CommunicationProtocol.cpp \
+			ServerRunnable.hpp ServerRunnable.cpp \
+			Replicator.hpp Replicator.cpp \
+			ReplicationClientRunnable.hpp ReplicationClientRunnable.cpp \
+			TriggerFileTransferRunnable.hpp TriggerFileTransferRunnable.cpp \
+			TriggerReplicaDeletionRunnable.hpp TriggerFileTransferRunnable.cpp \
+			OperatorAddNode.hpp OperatorAddNode.cpp \
+			OperatorCheckDBServiceStatus.hpp OperatorCheckDBServiceStatus.cpp \
+			OperatorSetTraceLevel.hpp OperatorSetTraceLevel.cpp \
+			OperatorPingDBService.hpp OperatorPingDBService.cpp \
+			OperatorWrite.hpp OperatorWrite.cpp \
+			OperatorRead.hpp OperatorRead.cpp \
+			OperatorDDelete.hpp OperatorDDelete.cpp \
+			OperatorInitDBServiceWorker.hpp OperatorInitDBServiceWorker.cpp \
+			OperatorGetConfigParam.hpp OperatorGetConfigParam.cpp \
+			CommunicationUtils.hpp CommunicationUtils.cpp \
+			SecondoUtilsLocal.hpp SecondoUtilsLocal.cpp \
+			SecondoUtilsRemote.hpp SecondoUtilsRemote.cpp \
+			ReplicationUtils.hpp ReplicationUtils.cpp \
+			TraceSettings.hpp TraceSettings.cpp \
+			DebugOutput.hpp DebugOutput.cpp \
+			TraceWriter.hpp TraceWriter.cpp \
+			Test/CommandBuilderTest.cpp \
+			Test/CommunicationUtilsTest.cpp \
+			Test/LocationInfoTest.cpp \
+			Test/RelationInfoTest.cpp \
+			Test/ReplicationUtilsTest.cpp \
+			Test/TraceSettingsTest.cpp
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

@@ -2,6 +2,11 @@
 
 1 Metadata Structures and Persistent Storage
 
+1.1 MetadataObject
+
+This is a base class that shall be used for all objects that store metadata of
+the ~DBService~.
+
 ----
 This file is part of SECONDO.
 
@@ -32,26 +37,48 @@ namespace DBService {
 
 /*
 
-1.1 ~MetadataObject~
-
-Is the string used for composing the identifier.
+1.1.1 Class Definition
 
 */
 
 class MetadataObject {
 public:
+/*
+
+1.1.1.1 Constructor
+
+*/
     MetadataObject(){};
+
+/*
+
+1.1.1.1 ~getIdentifier~
+
+This function creates an identifier for an arbitrary metadata object using
+the provided prefix and suffix.
+
+*/
     static std::string getIdentifier(const std::string& prefix,
                                      const std::string& suffix);
+
+/*
+
+1.1.1.1 ~parseIdentifier~
+
+This function allows parsing an identifier and thus retrieving the contained
+prefix and suffix.
+
+*/
     static void parseIdentifier(
             const std::string& identifier,
             std::string& prefix,
             std::string& suffix);
+
 /*
 
-1.1.1 \textit{separator}
+1.1.1.1 \textit{separator}
 
-Is the string used for composing the identifier.
+For composing the identifier, a fixed string is used as a separator.
 
 */
 protected:

@@ -56,18 +56,10 @@ GMOCK_HEADERS = $(GMOCK_DIR)/include/gmock/*.h \
 #required include directories
 ALGEBRA_DIR = $(BUILDDIR)/Algebras
 DBSERVICE_DIR = $(ALGEBRA_DIR)/DBService
-DISTRIBUTED2_DIR = $(ALGEBRA_DIR)/Distributed2
-RELATION_DIR = $(ALGEBRA_DIR)/Relation-C++
-FTEXT_DIR = $(ALGEBRA_DIR)/FText
-STREAM_DIR = $(ALGEBRA_DIR)/Stream
-ARRAY_DIR = $(ALGEBRA_DIR)/Array
-STANDARDC_DIR = $(ALGEBRA_DIR)/Standard-C++
-INCLUDE_DIR = $(BUILDDIR)/include
+DBSERVICE_INCLUDE_DIRS := -I $(DBSERVICE_DIR)
 
 # required (algebra) libraries
 LIBDBSERVICE = $(LIBDIR)/libDBServiceAlgebra.$(LIBEXT)
-LIBDISTRIBUTED2 = $(LIBDIR)/libDistributed2Algebra.$(LIBEXT)
-LIBUTILS = $(LIBDIR)/libsdbutils.$(LIBEXT)
 
 # House-keeping build targets.
 all : $(TESTS)
@@ -111,31 +103,6 @@ gmock_main.a : gmock-all.o gtest-all.o gmock_main.o
 
 # Builds a sample test.
 
-DBSERVICE_INCLUDE_DIRS := -I $(DBSERVICE_DIR) -I $(DISTRIBUTED2_DIR)
-DBSERVICE_INCLUDE_DIRS += -I $(RELATION_DIR) -I $(FTEXT_DIR) -I $(STREAM_DIR)
-DBSERVICE_INCLUDE_DIRS += -I $(ARRAY_DIR) -I $(STANDARDC_DIR) $(DEFAULTCCFLAGS)
-
-#ALG_INC_DIRS?
-#DBServiceManagerTest.o : $(USER_DIR)/DBServiceManagerTest.cpp $(GMOCK_HEADERS)
-#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -I $(DISTRIBUTED2_DIR) \
-#    -I $(INCLUDEDIR) -I $(RELATION_DIR) -I $(FTEXT_DIR) -I $(STREAM_DIR) \
-#    -I $(ARRAY_DIR) -I $(STANDARDC_DIR) $(DEFAULTCCFLAGS) \
-#    -c $< -o $@
-
-#OperatorFeedPFTest.o : $(USER_DIR)/OperatorFeedPFTest.cpp $(GMOCK_HEADERS)
-#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) $(DEFAULTCCFLAGS) \
-#    -c $< -o $@
-#
-#OperatorLetDConsumeTest.o : $(USER_DIR)/OperatorLetDConsumeTest.cpp $(GMOCK_HEADERS)
-#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) $(DEFAULTCCFLAGS) \
-#    -c $< -o $@
-
-#DBServiceManagerTest.o : $(USER_DIR)/DBServiceManagerTest.cpp $(GMOCK_HEADERS)
-#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-#CommunicationServerTest.o : $(USER_DIR)/CommunicationServerTest.cpp $(GMOCK_HEADERS)
-#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DBSERVICE_INCLUDE_DIRS) -c $< -o $@
-
 CommunicationUtilsTest.o : $(USER_DIR)/CommunicationUtilsTest.cpp $(GMOCK_HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I $(DBSERVICE_DIR) -c $< -o $@
 
@@ -163,5 +130,5 @@ SuiteDBService : CommunicationUtilsTest.o  ReplicationUtilsTest.o \
     RelationInfoTest.o LocationInfoTest.o CommandBuilderTest.o \
     TraceSettingsTest.o \
     gmock_main.a \
-    $(LIBDBSERVICE)# $(LIBDISTRIBUTED2) $(LIBUTILS)
+    $(LIBDBSERVICE)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ -lpthread $(COMMON_LD_FLAGS)
