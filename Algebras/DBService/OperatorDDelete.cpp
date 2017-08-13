@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "StandardTypes.h"
 
-#include "Algebras/DBService/DBServiceConnector.hpp"
+#include "Algebras/DBService/DBServiceClient.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorDDelete.hpp"
 #include "Algebras/DBService/ReplicationUtils.hpp"
@@ -85,7 +85,7 @@ int OperatorDDelete::mapValue(Word* args,
                     relationName));
 
     bool success =
-            DBServiceConnector::getInstance()->deleteReplicas(
+            DBServiceClient::getInstance()->deleteReplicas(
                     SecondoSystem::GetInstance()->GetDatabaseName(),
                     relationName);
 

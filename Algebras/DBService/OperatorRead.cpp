@@ -1,4 +1,7 @@
 /*
+
+1.1.1 Class Implementation
+
 ----
 This file is part of SECONDO.
 
@@ -30,11 +33,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Distributed2/FileRelations.h"
 
-#include "Algebras/DBService/DBServiceConnector.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorRead.hpp"
 #include "Algebras/DBService/ReplicationUtils.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "DBServiceClient.hpp"
 
 using namespace std;
 
@@ -53,7 +56,6 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
 
     ListExpr feedTypeMapResult = OperatorFeed::FeedTypeMap(nestedList);
 
-
     bool relationLocallyAvailable = (feedTypeMapResult != nl->TypeError());
     print("relationLocallyAvailable",
             string(relationLocallyAvailable ? "TRUE" : "FALSE"));
@@ -67,7 +69,7 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
         print("databaseName", databaseName);
         print("relationName", relationName);
         fileName =
-                DBServiceConnector::getInstance()->
+                DBServiceClient::getInstance()->
                 retrieveReplicaAndGetFileName(
                         databaseName,
                         relationName,

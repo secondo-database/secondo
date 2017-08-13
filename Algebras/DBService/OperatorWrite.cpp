@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Relation-C++/OperatorConsume.h"
 
-#include "Algebras/DBService/DBServiceConnector.hpp"
+#include "Algebras/DBService/DBServiceClient.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorWrite.hpp"
 #include "Algebras/DBService/ReplicationUtils.hpp"
@@ -150,7 +150,7 @@ int OperatorWrite::mapValue(Word* args,
         result.setAddr(rel);
     }
 
-    if(!DBServiceConnector::getInstance()->triggerReplication(
+    if(!DBServiceClient::getInstance()->triggerReplication(
             databaseName,
             relationName,
             relType,

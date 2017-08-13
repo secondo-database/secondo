@@ -1,4 +1,7 @@
 /*
+
+1.1.1 Class Implementation
+
 ----
 This file is part of SECONDO.
 
@@ -29,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SecondoException.h"
 
 #include "Algebras/DBService/CommunicationClient.hpp"
-#include "Algebras/DBService/DBServiceConnector.hpp"
+#include "Algebras/DBService/DBServiceClient.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/ReplicationClient.hpp"
 #include "Algebras/DBService/ReplicationServer.hpp"
@@ -42,9 +45,9 @@ using namespace std;
 
 namespace DBService {
 
-DBServiceConnector::DBServiceConnector()
+DBServiceClient::DBServiceClient()
 {
-    printFunction("DBServiceConnector::DBServiceConnector");
+    printFunction("DBServiceClient::DBServiceClient");
 
     if(!SecondoUtilsLocal::lookupDBServiceLocation(
             dbServiceHost,
@@ -57,9 +60,9 @@ DBServiceConnector::DBServiceConnector()
     startReplicationServer();
 }
 
-void DBServiceConnector::startReplicationServer()
+void DBServiceClient::startReplicationServer()
 {
-    printFunction("DBServiceConnector::startReplicationServer");
+    printFunction("DBServiceClient::startReplicationServer");
     string fileTransferPort;
     SecondoUtilsLocal::readFromConfigFile(fileTransferPort,
             "DBService",
@@ -70,22 +73,22 @@ void DBServiceConnector::startReplicationServer()
     replicationServer.run<ReplicationServer>();
 }
 
-DBServiceConnector* DBServiceConnector::getInstance()
+DBServiceClient* DBServiceClient::getInstance()
 {
-    printFunction("DBServiceConnector::getInstance");
+    printFunction("DBServiceClient::getInstance");
     if (!_instance)
     {
-        _instance = new DBServiceConnector();
+        _instance = new DBServiceClient();
     }
     return _instance;
 }
 
-bool DBServiceConnector::triggerReplication(const std::string& databaseName,
+bool DBServiceClient::triggerReplication(const std::string& databaseName,
                                             const std::string& relationName,
                                             const ListExpr relType,
                                             const bool async)
 {
-    printFunction("DBServiceConnector::triggerReplication");
+    printFunction("DBServiceClient::triggerReplication");
     print("databaseName", relationName);
     print("relationName", relationName);
     print(relType);
@@ -107,12 +110,12 @@ bool DBServiceConnector::triggerReplication(const std::string& databaseName,
     return true;
 }
 
-bool DBServiceConnector::getReplicaLocation(const string& databaseName,
+bool DBServiceClient::getReplicaLocation(const string& databaseName,
                                             const string& relationName,
                                             string& host,
                                             string& transferPort)
 {
-    printFunction("DBServiceConnector::getReplicaLocation");
+    printFunction("DBServiceClient::getReplicaLocation");
     print("databaseName", databaseName);
     print("relationName", relationName);
     CommunicationClient dbServiceMasterClient(dbServiceHost,
@@ -124,12 +127,12 @@ bool DBServiceConnector::getReplicaLocation(const string& databaseName,
                                                     transferPort);
 }
 
-string DBServiceConnector::retrieveReplicaAndGetFileName(
+string DBServiceClient::retrieveReplicaAndGetFileName(
                                 const string& databaseName,
                                 const string& relationName,
                                 const string& functionAsNestedListString)
 {
-    printFunction("DBServiceConnector::retrieveReplicaAndGetFileName");
+    printFunction("DBServiceClient::retrieveReplicaAndGetFileName");
     print("databaseName", databaseName);
     print("relationName", relationName);
 
@@ -163,10 +166,10 @@ string DBServiceConnector::retrieveReplicaAndGetFileName(
     return fileName;
 }
 
-bool DBServiceConnector::deleteReplicas(const string& databaseName,
+bool DBServiceClient::deleteReplicas(const string& databaseName,
                                         const string& relationName)
 {
-    printFunction("DBServiceConnector::deleteReplicas");
+    printFunction("DBServiceClient::deleteReplicas");
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
@@ -179,15 +182,15 @@ bool DBServiceConnector::deleteReplicas(const string& databaseName,
     return true;
 }
 
-bool DBServiceConnector::pingDBService()
+bool DBServiceClient::pingDBService()
 {
-    printFunction("DBServiceConnector::pingDBService");
+    printFunction("DBServiceClient::pingDBService");
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
     return dbServiceMasterClient.pingDBService();
 }
 
-DBServiceConnector* DBServiceConnector::_instance = nullptr;
+DBServiceClient* DBServiceClient::_instance = nullptr;
 
 } /* namespace DBService */

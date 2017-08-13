@@ -1,4 +1,7 @@
 /*
+
+1.1.1 Class Implementation
+
 ----
 This file is part of SECONDO.
 
@@ -25,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "StandardTypes.h"
 
-#include "Algebras/DBService/DBServiceConnector.hpp"
+#include "Algebras/DBService/DBServiceClient.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/OperatorPingDBService.hpp"
 
@@ -54,8 +57,8 @@ int OperatorPingDBService::mapValue(Word* args,
                               Supplier s)
 {
     printFunction("OperatorPingDBService::mapValue");
-    DBServiceConnector* dbServiceConnector = DBServiceConnector::getInstance();
-    bool isReachable = dbServiceConnector->pingDBService();
+    DBServiceClient* dbServiceClient = DBServiceClient::getInstance();
+    bool isReachable = dbServiceClient->pingDBService();
 
     result = qp->ResultStorage(s);
     static_cast<CcBool*>(result.addr)->Set(true, isReachable);

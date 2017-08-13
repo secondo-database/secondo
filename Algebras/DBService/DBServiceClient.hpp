@@ -1,10 +1,10 @@
 /*
 
-1.1 \textit{DBServiceConnector}
+1.1 \textit{DBServiceClient}
 
-The \textit{DBServiceConnector} is the central component of the system which
+The \textit{DBServiceClient} is the central component of the system which
 shall be equipped with fault-tolerant query execution. The
-\textit{DBServiceConnector} is the single point of entry for all operators
+\textit{DBServiceClient} is the single point of entry for all operators
 which need access to the \textit{DBService}.
 
 ----
@@ -30,8 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-#ifndef ALGEBRAS_DBSERVICE_DBSERVICECONNECTOR_HPP_
-#define ALGEBRAS_DBSERVICE_DBSERVICECONNECTOR_HPP_
+#ifndef ALGEBRAS_DBSERVICE_DBSERVICECLIENT_HPP_
+#define ALGEBRAS_DBSERVICE_DBSERVICECLIENT_HPP_
 
 #include <string>
 
@@ -50,7 +50,7 @@ namespace DBService {
 
 */
 
-class DBServiceConnector {
+class DBServiceClient {
 public:
 
 /*
@@ -58,10 +58,10 @@ public:
 
 1.1.1.1 getInstance
 
-Returns the DBServiceConnector instance (singleton).
+Returns the DBServiceClient instance (singleton).
 
 */
-    static DBServiceConnector* getInstance();
+    static DBServiceClient* getInstance();
 
 /*
 1.1.1.1 \textit{triggerReplication}
@@ -115,13 +115,13 @@ private:
 1.1.1.1 Constructor
 
 */
-    DBServiceConnector();
+    DBServiceClient();
 
 /*
 1.1.1.1 Destructor
 
 */
-    ~DBServiceConnector();
+    ~DBServiceClient();
 
 /*
 1.1.1.1 \textit{startReplicationServer}
@@ -168,10 +168,10 @@ Port of the \textit{CommunicationServer} on the \textit{DBService} master node.
 
 1.1.1.1 \textit{\_instance}
 
-Pointer to the \textit{DBServiceConnector} instance (singleton).
+Pointer to the \textit{DBServiceClient} instance (singleton).
 
 */
-    static DBServiceConnector* _instance;
+    static DBServiceClient* _instance;
 };
 
 } /* namespace DBService */

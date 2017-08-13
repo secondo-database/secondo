@@ -37,7 +37,7 @@ CCFLAGS += -Werror $(ADDINCLUDES) -std=c++11
 
 DOCU_FILES = DBServiceAlgebra.hpp DBServiceAlgebra.cpp \
 			 DBServiceManager.hpp DBServiceManager.cpp \
-			 DBServiceConnector.hpp DBServiceConnector.cpp \
+			 DBServiceClient.hpp DBServiceClient.cpp \
 			 MetadataObject.hpp MetadataObject.cpp \
 			 LocationInfo.hpp LocationInfo.cpp \
 			 RelationInfo.hpp RelationInfo.cpp \
