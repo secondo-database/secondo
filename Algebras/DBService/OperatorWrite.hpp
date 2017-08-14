@@ -1,6 +1,6 @@
 /*
 
-1.1 OperatorWrite
+1.1 ~OperatorWrite~
 
 This operator creates a relation from a tuple stream and triggers its
 replication into the ~DBService~.

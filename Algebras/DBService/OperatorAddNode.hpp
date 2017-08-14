@@ -2,7 +2,7 @@
 
 1 Operators
 
-1.1 OperatorAddNode
+1.1 ~OperatorAddNode~
 
 The operator ~addnode~ allows adding a worker node to the ~DBService~ system.
 
@@ -69,14 +69,14 @@ public:
 
 /*
 
-1.1.1.1  Type Mapping Function
+1.1.1.1 Type Mapping Function
 
 */
     static ListExpr mapType(ListExpr nestedList);
 
 /*
 
-1.1.1.1  Value Mapping Function
+1.1.1.1 Value Mapping Function
 
 */
     static int mapValue(Word* args,

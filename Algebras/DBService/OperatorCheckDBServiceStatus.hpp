@@ -1,6 +1,6 @@
 /*
 
-1.1  OperatorCheckDBServiceStatus
+1.1 ~OperatorCheckDBServiceStatus~
 
 This operator allows to check the status of the ~DBService~. It checks and
 prints the stored metadata and reconnects the ~DBService~ workers if applicable.
@@ -38,7 +38,7 @@ namespace DBService
 
 /*
 
-1.1.1  Operator Specification
+1.1.1 Operator Specification
 
 */
 
@@ -59,7 +59,7 @@ struct CheckDBServiceStatusInfo: OperatorInfo
 
 /*
 
-1.1.1  Class Definition
+1.1.1 Class Definition
 
 */
 

@@ -1,6 +1,6 @@
 /*
 
-1.1 OperatorGetConfigParam
+1.1 ~OperatorGetConfigParam~
 
 This operator retrieves the value of the specified configuration parameter of
 the current SECONDO instance.

@@ -1,4 +1,9 @@
 /*
+
+1.1 ~ReplicationUtils~
+
+This class provides some functions that are useful for the replication.
+
 ----
 This file is part of SECONDO.
 
@@ -31,26 +36,57 @@ namespace DBService {
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
-TODO
+1.1.1 Class Definition
 
 */
 
 class ReplicationUtils {
+
+/*
+
+1.1.1.1 ~getFileName~
+
+This function constructs a file name, applicable in the original system,
+from a database name and a relation name.
+
+*/
 public:
     static const std::string getFileName(
             const std::string& databaseName,
             const std::string& relationName);
 
+/*
+
+1.1.1.1 ~getFileNameOnDBServiceWorker~
+
+This function constructs a file name, applicable in the ~DBService~ system,
+from a database name and a relation name.
+
+*/
     static const std::string getFileNameOnDBServiceWorker(
             const std::string& databaseName,
             const std::string& relationName);
+
+/*
+
+1.1.1.1 ~parseFileName~
+
+This function parses a file name and returns the corresponding database and
+relation name.
+
+*/
     static void parseFileName(
             const std::string& fileName,
             std::string& databaseName,
             std::string& relationName);
+
+/*
+
+1.1.1.1 ~separator~
+
+This separator is used when constructing a file name.
+
+*/
 private:
     static std::string separator;
 };

@@ -1,6 +1,6 @@
 /*
 
-1.1 OperatorInitDBServiceWorker
+1.1 ~OperatorInitDBServiceWorker~
 
 This operator initializes a SECONDO instance so that it can serve as a
 ~DBService~ worker node by starting the ~CommunicationServer~ and the

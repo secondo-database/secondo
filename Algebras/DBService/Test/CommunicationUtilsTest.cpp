@@ -1,4 +1,7 @@
 /*
+
+1.1 ~CommunicationUtilsTest~
+
 ----
 This file is part of SECONDO.
 

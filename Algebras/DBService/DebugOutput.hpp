@@ -1,4 +1,10 @@
 /*
+
+1.1 ~DebugOutput~
+
+This is a collection of functions that helps to simplify error analysis by
+printing information to the command line.
+
 ----
 This file is part of SECONDO.
 
@@ -34,16 +40,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/LocationInfo.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
 
-/*
-
-1 \textit{DebugOutput}
-
-This is a collection of print functions in order to simplify error analysis.
-
-*/
-
 namespace DBService
 {
+
+/*
+
+1.1.1 Function Definitions
+
+These functions allow writing information into the tracefile. They are available
+for all necessary data types.
+
+*/
 
 void print(std::string& text);
 void printFunction(const char* text);

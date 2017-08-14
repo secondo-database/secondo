@@ -1,4 +1,9 @@
 /*
+
+1.1 ~SecondoUtilsLocal~
+
+This class allows interacting with the local SECONDO instance.
+
 ----
 This file is part of SECONDO.
 
@@ -35,42 +40,129 @@ namespace DBService {
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
-TODO
+1.1.1 Class Definition
 
 */
 
 class SecondoUtilsLocal {
 public:
+
+/*
+
+1.1.1.1 ~readFromConfigFile~
+
+This function retrieves a value from the local configuration file.
+
+*/
     static void readFromConfigFile(std::string& resultValue,
             const char* section,
             const char* key,
             const char* defaultValue);
 
+/*
+
+1.1.1.1 ~executeQuery~
+
+This function allows executing a query.
+
+*/
     static bool executeQuery(const std::string& queryAsString);
-    static bool executeQuery(const std::string& queryAsString,
-                             Word& queryResult);
+
+/*
+
+1.1.1.1 ~executeQuery2~
+
+This function allows executing a query. The query is prepared before execution.
+
+*/
     static bool executeQuery2(const std::string& queryAsString);
 
+/*
+
+1.1.1.1 ~adjustDatabase~
+
+This function allows adjusting the currently opened database to the specified
+value.
+
+*/
     static bool adjustDatabase(const std::string& databaseName);
+
+/*
+
+1.1.1.1 ~createRelation~
+
+This function allows creating a relation.
+
+*/
     static bool createRelation(
             const std::string& queryAsString,
             std::string& errorMessage);
+
+/*
+
+1.1.1.1 ~executeQueryCommand~
+
+This function allows executing a query.
+
+*/
     static bool executeQueryCommand(
                 const std::string& queryAsString);
+
+/*
+
+1.1.1.1 ~executeQueryCommand~
+
+This function allows executing a query and accessing the result
+
+*/
     static bool executeQueryCommand(
             const std::string& queryAsString,
             ListExpr& resultList,
             std::string& errorMessage);
+
+/*
+
+1.1.1.1 ~lookupDBServiceLocation~
+
+This function retrieves the host name and the port number of the ~DBService~,
+to be precise of the ~CommunicationServer~ that is running on the ~DBService~
+master node.
+
+*/
     static bool lookupDBServiceLocation(
             std::string& host,
             std::string& commPort);
+
+/*
+
+1.1.1.1 ~prepareQueryForProcessing~
+
+This function prepares a query before it is executed by removing unnecessary
+parts.
+
+*/
 private:
     static bool prepareQueryForProcessing(
             const std::string& queryAsString,
             std::string& queryAsPreparedNestedListString);
+
+/*
+
+1.1.1.1 ~executeQuery~
+
+This function allows executing a query.
+
+*/
+    static bool executeQuery(const std::string& queryAsString,
+                             Word& queryResult);
+
+/*
+
+1.1.1.1 ~utilsMutex~
+
+This mutex ensures that only one nested list is processed at a time.
+
+*/
     static boost::mutex utilsMutex;
 };
 

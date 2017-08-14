@@ -1,6 +1,6 @@
 /*
 
-1.1 OperatorDDelete
+1.1 ~OperatorDDelete~
 
 The operator ~ddelete~ deletes all replicas of a relation that is stored in the
 ~DBService~. Whether or not the corresponding local relation shall also be

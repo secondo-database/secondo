@@ -54,9 +54,10 @@ GMOCK_HEADERS = $(GMOCK_DIR)/include/gmock/*.h \
                 $(GTEST_HEADERS)
 
 #required include directories
+INCLUDE_DIR = $(BUILDDIR)/include
 ALGEBRA_DIR = $(BUILDDIR)/Algebras
 DBSERVICE_DIR = $(ALGEBRA_DIR)/DBService
-DBSERVICE_INCLUDE_DIRS := -I $(DBSERVICE_DIR)
+DBSERVICE_INCLUDE_DIRS := -I $(DBSERVICE_DIR) -I $(INCLUDE_DIR)
 
 # required (algebra) libraries
 LIBDBSERVICE = $(LIBDIR)/libDBServiceAlgebra.$(LIBEXT)

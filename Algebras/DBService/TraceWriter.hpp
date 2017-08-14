@@ -1,4 +1,9 @@
 /*
+
+1.1 ~TraceWriter~
+
+The ~TraceWriter~ allows writing information into a trace file.
+
 ----
 This file is part of SECONDO.
 
@@ -39,16 +44,35 @@ namespace DBService {
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
+1.1.1 Class Definition
 
 */
 
 class TraceWriter {
 public:
+
+/*
+
+1.1.1.1 Constructor
+
+*/
     TraceWriter(std::string& context, int port);
+
+/*
+
+1.1.1.1 Destructor
+
+*/
     ~TraceWriter();
+
+/*
+
+1.1.1.1 Write Functions
+
+These functions allow writing information into the tracefile. They are available
+for all necessary data types.
+
+*/
     void write(const std::string& text);
     void write(const char* text);
     void write(const boost::thread::id tid, const char* text);
@@ -63,17 +87,32 @@ public:
     void write(const char* description, int number);
     void writeFunction(const char* text);
     void writeFunction(const boost::thread::id tid, const char* text);
+
+/*
+
+1.1.1.1 ~fileName~
+
+Stores the name of the trace file
+
+*/
 private:
     std::string fileName;
+
+/*
+
+1.1.1.1 ~traceFile~
+
+Stores a pointer to the trace file.
+
+*/
     std::unique_ptr<std::ofstream> traceFile;
 /*
 
-1.1.1 ~managerMutex~
+1.1.1.1 ~traceWriterMutex~
 
 Mutex used to coordinate multi-threaded access by different servers.
 
 */
-
     boost::mutex traceWriterMutex;
 };
 

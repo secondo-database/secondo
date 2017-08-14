@@ -1,6 +1,6 @@
 /*
 
-1.1 OperatorSetTraceLevel
+1.1 ~OperatorSetTraceLevel~
 
 This operator sets the ~DBService~ trace level to the specified value.
 

@@ -43,13 +43,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/LocationInfo.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
 
+
+/*
+
+1.1.1 Type Definitions
+
+*/
+
 namespace DBService
 {
 
+/*
+
+1.1.1.1 ~DBServiceLocations~
+
+Maps a ~ConnectionID~ to the corresponding ~LocationInfo~ and ~ConnectionInfo~
+objects.
+
+*/
 typedef std::map<ConnectionID,
         std::pair<LocationInfo,
                   distributed2::ConnectionInfo*> > DBServiceLocations;
 
+/*
+
+1.1.1.1 ~DBServiceRelations~
+
+Maps a relation identified to the corresponding ~RelationInfo~ object.
+
+*/
 typedef std::map<std::string, RelationInfo> DBServiceRelations;
 
 /*

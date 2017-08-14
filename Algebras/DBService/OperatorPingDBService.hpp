@@ -1,6 +1,6 @@
 /*
 
-1.1 OperatorPingDBService
+1.1 ~OperatorPingDBService~
 
 This operator checks whether the configured ~DBService~ system is available.
 

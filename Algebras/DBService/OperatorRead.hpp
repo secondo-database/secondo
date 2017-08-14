@@ -1,6 +1,6 @@
 /*
 
-1.1 OperatorRead
+1.1 ~OperatorRead~
 
 This operator reads a tuple stream from a relation and requests its replica
 from the ~DBService~ if the relation is not available locally.
@@ -37,7 +37,7 @@ namespace DBService {
 
 /*
 
-1.1.1  Operator Specification
+1.1.1 Operator Specification
 
 */
 

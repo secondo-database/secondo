@@ -1,4 +1,7 @@
 /*
+
+1.1 ~RelationInfoTest~
+
 ----
 This file is part of SECONDO.
 

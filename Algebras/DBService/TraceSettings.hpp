@@ -2,6 +2,11 @@
 
 1 Maintainability
 
+1.1 ~TraceSettings~
+
+The ~TraceSettings~ class stores the DBService trace level which is valid for
+the whole SECONDO instance.
+
 ----
 This file is part of SECONDO.
 
@@ -32,15 +37,7 @@ namespace DBService {
 
 /*
 
-1.1 ~TraceSettings~
-
-The ~TraceSettings~ class stores the DBService trace level which is valid for
-the whole SECONDO instance.
-
-1.1.1 Data Type Definitions
-
-For realizing the mentioned functionality, some helper structures are required
-which are introduced below.
+1.1.1 Type Definitions
 
 1.1.1.1 ~TraceLevel~
 
@@ -56,16 +53,15 @@ enum TraceLevel
 };
 
 /*
-1.1.1 Class Definition
 
-Definition of the class ~TraceSettings~.
+1.1.1 Class Definition
 
 */
 
 class TraceSettings {
 public:
 /*
-1.1.1 ~getInstance~
+1.1.1.1 ~getInstance~
 
 Returns the TraceSettings instance (singleton).
 
@@ -73,7 +69,7 @@ Returns the TraceSettings instance (singleton).
     static TraceSettings* getInstance();
 
 /*
-1.1.1 ~setTraceLevel~
+1.1.1.1 ~setTraceLevel~
 
 Sets the trace level as specified.
 
@@ -81,7 +77,7 @@ Sets the trace level as specified.
     void setTraceLevel(TraceLevel level);
 
 /*
-1.1.1 ~getTraceLevel~
+1.1.1.1 ~getTraceLevel~
 
 Retrieves the current trace level.
 
@@ -89,7 +85,7 @@ Retrieves the current trace level.
     TraceLevel getTraceLevel();
 
 /*
-1.1.1 ~isDebugTraceOn~
+1.1.1.1 ~isDebugTraceOn~
 
 Checks whether the trace level is ~TraceLevel::DEBUG~.
 
@@ -97,28 +93,28 @@ Checks whether the trace level is ~TraceLevel::DEBUG~.
     bool isDebugTraceOn();
 
 /*
-1.1.1 ~isFileTraceOn~
+1.1.1.1 ~isFileTraceOn~
 
 Checks whether the trace level is ~TraceLevel::FILE~.
 
 */
     bool isFileTraceOn();
 
-private:
 /*
-1.1.1 Constructor
+1.1.1.1 Constructor
 
 */
+private:
     TraceSettings();
 
 /*
-1.1.1 Destructor
+1.1.1.1 Destructor
 
 */
     ~TraceSettings(){};
 /*
 
-1.1.1 \textit{traceLevel}
+1.1.1.1 \textit{traceLevel}
 
 Member variable that stores the current trace level.
 
@@ -127,7 +123,7 @@ Member variable that stores the current trace level.
 
 /*
 
-1.1.1 \textit{\_instance}
+1.1.1.1 \textit{\_instance}
 
 Pointer to the \textit{TraceSettings} instance (singleton).
 

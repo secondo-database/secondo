@@ -2,6 +2,14 @@
 
 1 Unit Tests
 
+The unit tests are realized with the help of the GoogleTest/GoogleMock
+framework. The sources of the framework are located in the directory ~Google~.
+
+An introduction can be found here:
+https://github.com/google/googletest/blob/master/googletest/docs/Primer.md
+
+1.1 ~CommandBuilderTest~
+
 ----
 This file is part of SECONDO.
 

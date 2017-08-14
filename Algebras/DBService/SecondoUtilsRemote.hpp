@@ -1,4 +1,9 @@
 /*
+
+1.1 ~SecondoUtilsRemote~
+
+This class allows executing commands on a remote SECONDO instance.
+
 ----
 This file is part of SECONDO.
 
@@ -35,19 +40,31 @@ namespace DBService {
 
 /*
 
-1 \textit{}
-
-\textit{DBService}
-TODO
+1.1.1 Class Definition
 
 */
 
 class SecondoUtilsRemote {
+
+/*
+
+1.1.1.1 ~executeQuery~
+
+This function allows executing a query.
+
+*/
 public:
     static bool executeQuery(
             distributed2::ConnectionInfo* connectionInfo,
             const std::string& query);
 
+/*
+
+1.1.1.1 ~executeQuery~
+
+This function allows executing a query and provides the result.
+
+*/
     static bool executeQuery(
             distributed2::ConnectionInfo* connectionInfo,
             const std::string& query,
