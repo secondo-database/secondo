@@ -1,0 +1,40 @@
+# This file is part of SECONDO.
+
+# Copyright (C) 2017, University in Hagen, Department of Computer Science,
+# Database Systems for New Applications.
+
+# SECONDO is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2 of the License, or (at your option) any later
+# version.
+
+# SECONDO is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along with
+# SECONDO; if not, write to the Free Software Foundation, Inc., 59 Temple
+# Place, Suite 330, Boston, MA  02111-1307  USA
+
+CURRENT_ALGEBRA := PSTAlgebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra
+
+include ../../makefile.env
+
+CCFLAGS += $(ALG_INC_DIRS) -std=c++11 -Werror
+
+.PHONY: all
+all: check_dependencies $(OBJECTS) $(LIBOBJ)
+
+.PHONY: check_dependencies
+check_dependencies:
+	$(check-algebra-dependencies)
+
+.PHONY: clean
+clean:
+	$(clean-algebra)
+
+include $(DEP_FILES)
+
+$(LIBOBJ): $(OBJECTS)
+	$(create-lib)
