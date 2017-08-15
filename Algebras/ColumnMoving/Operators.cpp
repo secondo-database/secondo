@@ -428,7 +428,7 @@ namespace ColumnMovingAlgebra
     if (!nl->IsEqual(thirdArg, CcInt::BasicType())) 
       return NList::typeError("Third Argument isn't of type INT");
 
-	  return MPointsType::TI(false).GetTypeExpr();       
+    return MPointsType::TI(false).GetTypeExpr();       
   }
 
   int IndexOperator::SelectValueMapping(ListExpr args) {
