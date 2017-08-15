@@ -55,13 +55,13 @@ namespace ColumnMovingAlgebra {
   extern char ipointsInfo[];
   extern char ipointsExample[];
   typedef AttrArrayType<IPoints, temporalalgebra::IPoint, ipointsName, 
-  	ipointsInfo, ipointsExample> IPointsType;
+    ipointsInfo, ipointsExample> IPointsType;
 
   extern char mpointsName[]; 
   extern char mpointsInfo[];
   extern char mpointsExample[];
   typedef AttrArrayType<MPoints, temporalalgebra::MPoint, mpointsName, 
-  	mpointsInfo, mpointsExample> MPointsType;
+    mpointsInfo, mpointsExample> MPointsType;
 
 }
 
