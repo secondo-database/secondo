@@ -1,0 +1,193 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+#
+# run with : 
+#
+#  TestRunner -i ColumnMovingAlgebra.test
+#
+
+delete database mytestdb;
+
+#setup ColumnMovingAlgebraTest StandardAlgebra CRelAlgebra TemporalAlgebra ColumnMovingAlgebra
+
+create database mytestdb;
+open database mytestdb;
+
+let mpoints = [const mpoints value ( 
+  ( (("2000-01-01" "2000-01-01" TRUE  TRUE )  ( 1.0  2.0  1.0  2.0)) 
+    (("2000-01-02" "2000-01-04" FALSE TRUE )  ( 3.0  4.0  5.0 -4.0))
+    (("2000-01-04" "2000-01-06" FALSE FALSE)  ( 1.0  2.0  3.0  4.0))
+    (("2000-01-06" "2000-01-08" TRUE  FALSE)  ( 2.0  3.0  4.0  5.0))   
+    (("2000-01-08" "2000-01-10" TRUE  FALSE)  ( 4.0  5.0  6.0 -5.0)) )
+  ( (("2001-01-01" "2001-01-02" TRUE  FALSE)  ( 4.0  5.0  6.0 -5.0)) 
+    (("2001-01-02" "2001-01-03" FALSE TRUE )  ( 2.0  3.0  4.0  5.0)) 
+    (("2001-01-09" "2001-01-11" TRUE  FALSE)  ( 4.0  0.0  4.0  0.0)) 
+    (("2001-01-12" "2001-01-14" FALSE FALSE)  ( 0.0  0.0  2.0  0.0)) )  
+)];
+
+let impoints = mpoints index [10,10];
+
+#testcase mpointsPresentUndefined
+#yields (longints ())
+query mpoints present [const instant value undefined];
+
+#testcase mpointsPresentInstant
+#yields (longints (0))
+query mpoints present [const instant value "2000-01-01"];
+
+#testcase mpointsPresentPeriods
+#yields (longints (1))
+query mpoints present [const periods value (("2000-01-01" "2000-01-02" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
+
+#testcase mpointsPresentInt
+#yields error
+query mpoints present 1;
+
+
+#testcase impointsPresentUndefined
+#yields (longints ())
+query impoints present [const instant value undefined];
+
+#testcase impointsPresentInstant
+#yields (longints (0))
+query impoints present [const instant value "2000-01-01"];
+
+#testcase impointsPresentPeriods
+#yields (longints (1))
+query impoints present [const periods value (("2000-01-01" "2000-01-02" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
+
+#testcase impointsPresentInt
+#yields error
+query impoints present 1;
+
+
+
+#testcase mpointsAtInstantUndefined
+#yields ( ipoints ( undefined undefined ) )
+query mpoints atinstant [const instant value undefined];
+
+#testcase mpointsAtInstantInstant
+#yields ( ipoints ( ("2000-01-03" (4.0 0.0)) undefined ) )
+query mpoints atinstant [const instant value "2000-01-03"];
+
+#testcase mpointsAtInstantInt
+#yields error
+query mpoints atinstant 1;
+
+
+#testcase impointsAtInstantUndefined
+#yields ( ipoints ( undefined undefined ) )
+query impoints atinstant [const instant value undefined];
+
+#testcase impointsAtInstantInstant
+#yields ( ipoints ( ("2000-01-03" (4.0 0.0)) undefined ) )
+query impoints atinstant [const instant value "2000-01-03"];
+
+#testcase impointsAtInstantInt
+#yields error
+query impoints atinstant 1;
+
+
+
+#testcase mpointsAtPeriodsUndefined
+#yields (   mpoints ( () () )   )
+query mpoints atperiods [const periods value undefined];
+
+#testcase mpointsAtPeriodsPeriods
+#yields (   mpoints ( ((("2000-01-03" "2000-01-04" FALSE TRUE) (4.0 0.0 5.0 -4.0)) (("2000-01-04" "2000-01-05" FALSE TRUE) (1.0 2.0 2.0 3.0))) ((("2001-01-01" "2001-01-01" TRUE TRUE) (4.0 5.0 4.0 5.0))) )   )
+query mpoints atperiods [const periods value (("2000-01-03" "2000-01-05" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
+
+#testcase mpointsAtPeriodsInt
+#yields error
+query mpoints atperiods 1;
+
+
+#testcase impointsAtPeriodsUndefined
+#yields (   mpoints ( () () )   )
+query impoints atperiods [const periods value undefined];
+
+#testcase impointsAtPeriodsPeriods
+#yields (   mpoints ( ((("2000-01-03" "2000-01-04" FALSE TRUE) (4.0 0.0 5.0 -4.0)) (("2000-01-04" "2000-01-05" FALSE TRUE) (1.0 2.0 2.0 3.0))) ((("2001-01-01" "2001-01-01" TRUE TRUE) (4.0 5.0 4.0 5.0))) )   )
+query impoints atperiods [const periods value (("2000-01-03" "2000-01-05" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
+
+#testcase impointsAtPeriodsInt
+#yields error
+query impoints atperiods 1;
+
+
+
+#testcase mpointsPassesUndefined
+#yields (longints ())
+query mpoints passes [const point value undefined];
+
+#testcase mpointsPassesPoint
+#yields (longints (0))
+query mpoints passes [const point value (1.0 2.0)];
+
+#testcase mpointsPassesRegion
+#yields (longints (0))
+query mpoints passes [const region value ((((1.0 2.0)(1.1 2.0)(1.0 2.1))))];
+
+#testcase mpointsPassesInt
+#yields error
+query mpoints passes 1;
+
+
+#testcase impointsPassesUndefined
+#yields (longints ())
+query impoints passes [const point value undefined];
+
+#testcase impointsPassesPoint
+#yields (longints (0))
+query impoints passes [const point value (1.0 2.0)];
+
+#testcase impointsPassesRegion
+#yields (longints (0))
+query impoints passes [const region value ((((1.0 2.0)(1.1 2.0)(1.0 2.1))))];
+
+#testcase impointsPassesInt
+#yields error
+query impoints passes 1;
+
+
+
+#testcase mpointsAtUndefined
+#yields (   mpoints (  ()  ()  )   )
+query mpoints at [const point value undefined];
+
+#testcase mpointsAtPoint
+#yields (   mpoints (  ( (("2000-01-03" "2000-01-03" TRUE TRUE) (4.0 0.0 4.0 0.0)) )  ( (("2001-01-09" "2001-01-11" TRUE FALSE) (4.0 0.0 4.0 0.0)) )  )   )
+query mpoints at [const point value (4.0 0.0)];
+
+#testcase mpointsAtRegion
+#yields (   mpoints (  (  )  ( (("2001-01-13" "2001-01-14" TRUE FALSE) (1.0 0.0 2.0 0.0)) )  )   )
+query mpoints at [const region value ((((1.0 0.0)(2.0 1.0)(2.0 -1.0))))];
+
+#testcase mpointsAtInt
+#yields error
+query mpoints at 1;
+
+
+
+#teardown
+
+close database;
+delete database mytestdb;
+

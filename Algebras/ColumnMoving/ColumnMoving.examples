@@ -1,0 +1,45 @@
+Database : columnMovingtest
+Restore  : YES
+
+Operator : present
+Number   : 0
+Signature: (mints | mpoints) x (instant | periods) -> (bools | longints)
+Example  : query movingIntegers present [const instant value "2000-01-01"]
+Result   : 1
+
+Operator : atinstant
+Number   : 0
+Signature: (mints | mpoints) x instant -> (iint | ipoint)
+Example  : query movingPoints atinstant [const instant value "2000-01-01"]
+Result   : 1
+
+Operator : atperiods
+Number   : 0
+Signature: (mints | mpoints) x periods -> (mints | mpoints)
+Example  : query movingIntegers atperiods [const periods value (("2000-01-01" "2000-01-01" TRUE TRUE))]
+Result   : 1
+
+Operator : passes
+Number   : 0
+Signature: (mints | mpoints) x (int | (point | region)) -> (bools | longints)
+Example  : query movingIntegers present "2006-10-10"
+Result   : 1
+
+Operator : at
+Number   : 0
+Signature: (mints | mpoints) x ((int | rint) | (point | region)) -> (mints | mpoints)
+Example  : query movingIntegers present 1
+Result   : 1
+
+Operator : addrandom
+Number   : 0
+Signature: (mpoints) x int -> (mpoints)
+Example  : query movingPoints addrandom 100
+Result   : 1
+
+Operator : index
+Number   : 0
+Signature: (mpoints) x int x int -> (mpoints)
+Example  : query movingPoints index [100, 100]
+Result   : 1
+---
