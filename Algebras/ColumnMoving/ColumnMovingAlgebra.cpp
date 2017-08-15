@@ -1,0 +1,74 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+*/
+
+#include "Algebra.h"
+#include "DisplayTTY.h"
+#include "NestedList.h"
+#include "DisplayAttrArray.h"
+
+#include "Types.h"
+#include "Operators.h"
+
+extern NestedList *nl;
+extern QueryProcessor *qp;
+
+using namespace ColumnMovingAlgebra;
+
+
+
+
+extern "C" Algebra *InitializeColumnMovingAlgebra(NestedList *nlRef,
+                                          QueryProcessor *qpRef)
+{
+  class CustomAlgebra : public Algebra
+  {
+  public:
+    CustomAlgebra() :
+      Algebra()
+    {
+      AddTypeConstructor(new BoolsType::TC(), true);
+      AddTypeConstructor(new IIntsType::TC(), true);
+      AddTypeConstructor(new MIntsType::TC(), true);
+      AddTypeConstructor(new IPointsType::TC(), true);
+      AddTypeConstructor(new MPointsType::TC(), true);
+      AddOperator(new PresentOperator(), true);
+      AddOperator(new AtInstantOperator(), true);
+      AddOperator(new AtPeriodsOperator(), true);
+      AddOperator(new PassesOperator(), true);
+      AddOperator(new AtOperator(), true);
+      AddOperator(new AddRandomOperator(), true);
+      AddOperator(new IndexOperator(), true);
+    }
+  };
+
+  DisplayTTY &display = DisplayTTY::GetInstance();
+
+  display.Insert(BoolsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+  display.Insert(IIntsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+  display.Insert(MIntsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+  display.Insert(IPointsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+  display.Insert(MPointsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+
+  return new CustomAlgebra();
+}
