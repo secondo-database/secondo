@@ -63,6 +63,10 @@ namespace temporalalgebra {
       return abs(a - b) <= eps;
     }// nearlyEqual
     
+    bool NumericUtil::lower(double a, double b){
+      return a < b - eps;  
+    }// lower
+        
     bool NumericUtil::lower(const mpq_class& a, const mpq_class& b){
       return a < b - eps;    
     }// lower
@@ -75,6 +79,10 @@ namespace temporalalgebra {
                                          const mpq_class&  b) {
       return a < b || nearlyEqual(a, b);
     }// lowerOrNearlyEqual
+   
+    bool NumericUtil::greater(double a, double b){
+      return a > b + eps;
+    }// greater
  
     bool NumericUtil::greater(const mpq_class& a, const mpq_class& b){
       return a > b + eps;

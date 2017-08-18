@@ -146,7 +146,7 @@ namespace temporalalgebra {
       void ResultUnitTest2();
       
       void CriticalMSegmentTest1();
-      
+
       void UnitTest2();
       
       void PFaceTest9();

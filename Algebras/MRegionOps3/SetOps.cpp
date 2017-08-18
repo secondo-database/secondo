@@ -72,12 +72,12 @@ namespace temporalalgebra {
     }// getSourceFlag
     
     bool RationalPoint3DExt::operator < (const RationalPoint3DExt& point)const{
-      if (NumericUtil::lower(this->x,  point.x))return true;
-      if (NumericUtil::greater(this->x,point.x))return false;
-      if (NumericUtil::lower(this->y,  point.y))return true;
-      if (NumericUtil::greater(this->y,point.y))return false;
-      if (NumericUtil::lower(this->z,  point.z))return true;
-      if (NumericUtil::greater(this->z,point.z))return false;
+      if (NumericUtil::lower(this->x,  point.x)) return true;
+      if (NumericUtil::greater(this->x,point.x)) return false;
+      if (NumericUtil::lower(this->y,  point.y)) return true;
+      if (NumericUtil::greater(this->y,point.y)) return false;
+      if (NumericUtil::lower(this->z,  point.z)) return true;
+      if (NumericUtil::greater(this->z,point.z)) return false;
       return this->sourceFlag < point.sourceFlag;
     }// Operator <
     
@@ -86,7 +86,7 @@ namespace temporalalgebra {
       os << "RationalPoint3DExt (" << point.x.get_d();
       os << ", " << point.y.get_d();
       os << ", " << point.z.get_d() <<", ";
-      if(point.sourceFlag == UNIT_A) os << "UNIT_A)";
+      if (point.sourceFlag == UNIT_A) os << "UNIT_A)";
       else os << "UNIT_B)";
       return os; 
     }// operator <<
@@ -132,7 +132,7 @@ namespace temporalalgebra {
                                                std::string prefix)const{
       set<RationalPoint3DExt>::const_iterator iter;
       os << prefix << "RationalPoint3DExtSet(" << endl;
-      for(iter = points.begin(); iter != points.end(); ++iter){
+      for (iter = points.begin(); iter != points.end(); ++iter) {
         os << prefix << "  " << *iter << endl;
       }// for
       os << prefix << ")" << endl;
@@ -160,7 +160,7 @@ namespace temporalalgebra {
         // Cross product of vector ab and ac
         this->normalVector = (rightStart - leftStart) ^ (leftEnd - leftStart);
         // check point d on plane
-        if(!NumericUtil::nearlyEqual(distance2ToPlane(rightEnd),0.0)){
+        if (!NumericUtil::nearlyEqual(distance2ToPlane(rightEnd),0.0)) {
            NUM_FAIL("Not all points from the pface are located on plane.");
         }// if
       }// if
@@ -266,20 +266,20 @@ namespace temporalalgebra {
       // edgesPFace.
       edgesPFace.push_back(Segment3D(leftStart, leftEnd));
       edgesPFace.push_back(Segment3D(rightStart, rightEnd));
-      if (leftStart != rightStart){
+      if (leftStart != rightStart) {
         edgesPFace.push_back(Segment3D(leftStart,rightStart));
       }// if
-      if (leftEnd != rightEnd){
+      if (leftEnd != rightEnd) {
         edgesPFace.push_back(Segment3D(leftEnd,rightEnd));
       }// if
       // Intersect the plane - defined by the other PFace - 
       // with all edges of this PFace:
       RationalPoint3DExt temp;
-      for(size_t i = 0, j = 0 ; j < 2 && i < edgesPFace.size();i++){        
-        if(intersection(edgesPFace[i], intPoint)){          
+      for (size_t i = 0, j = 0 ; j < 2 && i < edgesPFace.size();i++) {        
+        if (intersection(edgesPFace[i], intPoint)) {          
           intPoint.setSourceFlag(sourceFlag);
           intPointSet.insert(intPoint); 
-          if(j == 0){ 
+          if (j == 0) { 
             temp = intPoint;
             j++;
           }// if
@@ -295,13 +295,13 @@ namespace temporalalgebra {
       RationalVector3D segmentVector(segment.getHead() - segment.getTail());
       segmentVector.normalize();
       RationalVector3D vector = this->normalVector ^ segmentVector;
-      if((vector * other.normalVector) > 0) return false;
+      if ((vector * other.normalVector) > 0) return false;
       return true;
     }// isLeftAreaInner
                        
     Point2D RationalPlane3D::transform(const RationalPoint3D& point) const{
       // check point d on plane
-      if(!NumericUtil::nearlyEqual(distance2ToPlane(point),0.0)){
+      if (!NumericUtil::nearlyEqual(distance2ToPlane(point),0.0)) {
         // cout << "Distance " << distance2ToPlane(point).get_d() << endl;
         NUM_FAIL("Point isn,t located on plane.");
       }// if
@@ -328,7 +328,7 @@ namespace temporalalgebra {
     
     IntersectionPoint::IntersectionPoint(const Point3D& point3D, 
                                          const Point2D& point2D){
-      if(!(point3D.getZ() == point2D.getY())){
+      if (!(point3D.getZ() == point2D.getY())) {
         NUM_FAIL("Point3D and Point2D don't discribe the same.");
       }// if
       this->x = point3D.getX();
@@ -432,9 +432,11 @@ namespace temporalalgebra {
       
     void IntersectionSegment::set(const IntersectionPoint& tail,
                                   const IntersectionPoint& head,
-                                  Predicate predicate){
-      if((tail.getT() < head.getT())||
-         (tail.getT() == head.getT() && tail.getW() < head.getW())){
+                                  Predicate predicate){      
+      
+      if ((NumericUtil::lower(tail.getT(), head.getT())) ||
+          (NumericUtil::nearlyEqual(tail.getT(), head.getT()) &&
+           NumericUtil::lower(tail.getW(), head.getW()))) {   
         this->tail = tail;
         this->head = head;
         this->predicate = predicate; 
@@ -473,14 +475,13 @@ namespace temporalalgebra {
     Predicate IntersectionSegment::getPredicate()const{
       return predicate;
     }// getSegment3D
-    
-    
+        
     bool IntersectionSegment::isOrthogonalToTAxis()const{
       return NumericUtil::nearlyEqual(tail.getT(),head.getT());
     }// isOrthogonalToTAxis
     
     bool IntersectionSegment::isOutOfRange(double t)const{
-      if(NumericUtil::lower(this->head.getT(),t)) return true;
+      if (NumericUtil::lower(this->head.getT(),t)) return true;
       return NumericUtil::nearlyEqual(this->head.getT(),t);
     }// isOutOfRange
     
@@ -492,15 +493,15 @@ namespace temporalalgebra {
       // this->getTail().getT() is inside the interval 
       // [intSeg.getTail().getT(), intSeg.getHead().getT()]
       // and this and intSeg don't intersect in their interior.
-      if(NumericUtil::lower(tail1T,tail2T) ||
-         NumericUtil::greater(tail1T,head2T)){
+      if (NumericUtil::lower(tail1T,tail2T) ||
+          NumericUtil::greater(tail1T,head2T)) {
         NUM_FAIL ("t must between the t value form tail und haed.");
       }// if
       Segment2D segment2D1 =  this->getSegment2D();
       Segment2D segment2D2 = intSeg.getSegment2D();
       double sideOfStart = segment2D2.whichSide(segment2D1.getTail());   
-      if(sideOfStart >   NumericUtil::eps) return true;
-      if(sideOfStart < - NumericUtil::eps) return false;
+      if (sideOfStart >   NumericUtil::eps) return true;
+      if (sideOfStart < - NumericUtil::eps) return false;
       double sideOfEnd = segment2D2.whichSide(segment2D1.getHead());
       return sideOfEnd > NumericUtil::eps;
     }// bool
@@ -515,8 +516,8 @@ namespace temporalalgebra {
       if(!(NumericUtil::between(tailT, t, headT))){
         NUM_FAIL ("t must between the t value form tail und haed.");
       }// if
-      if(t == headT) return head3D;
-      if(t == tailT) return tail3D;
+      if (t == headT) return head3D;
+      if (t == tailT) return tail3D;
       // Point3D pointInPlane(0.0, 0.0, t);
       // Vector3D normalVectorOfPlane(0.0, 0.0, 1.0);
       // Vector3D u = this->getHead().getPoint3D() - 
@@ -530,11 +531,11 @@ namespace temporalalgebra {
       mpq_class d =  mpq_class(headT) - tailT;
       mpq_class n =  mpq_class(t) - tailT;
       // this segment must not be parallel to plane
-      if(NumericUtil::nearlyEqual(d, 0.0)){
+      if (NumericUtil::nearlyEqual(d, 0.0)) {
         NUM_FAIL ("Intersection segment must not be parallel to plane."); 
       }// if  
       mpq_class s = n/d;
-      if(!(NumericUtil::between(0.0, s, 1.0))){
+      if (!(NumericUtil::between(0.0, s, 1.0))) {
         NUM_FAIL ("No point on segment found.");
       }// if
       // compute segment intersection point
@@ -615,7 +616,7 @@ namespace temporalalgebra {
     
     IntSegContainer::~IntSegContainer(){  
       std::set<IntersectionSegment*>::iterator iter;
-      for (iter = intSegs.begin(); iter != intSegs.end(); ++iter){
+      for (iter = intSegs.begin(); iter != intSegs.end(); ++iter) {
         delete *iter;
       }// for  
     }// Destruktor
@@ -623,7 +624,7 @@ namespace temporalalgebra {
     void IntSegContainer::set(const IntSegContainer& container){
       std::set<IntersectionSegment*>::iterator iter;
       for (iter = container.intSegs.begin(); 
-           iter != container.intSegs.end(); ++iter){
+           iter != container.intSegs.end(); ++iter) {
         this->intSegs.insert(new IntersectionSegment(**iter));
       }// for
     }// set
@@ -657,11 +658,11 @@ namespace temporalalgebra {
     }// print
     
     bool IntSegContainer::operator ==(const IntSegContainer& container)const{
-      if(this->intSegs.size() != container.intSegs.size()) return false;
+      if (this->intSegs.size() != container.intSegs.size()) return false;
       std::set<IntersectionSegment*>::iterator iter1, iter2;
-      for(iter1  = this->intSegs.begin(), iter2 =  container.intSegs.begin();
-          iter1 != this->intSegs.end() && iter2 != container.intSegs.end();
-          ++iter1, ++iter2){
+      for (iter1  = this->intSegs.begin(), iter2 =  container.intSegs.begin();
+           iter1 != this->intSegs.end() && iter2 != container.intSegs.end();
+          ++iter1, ++iter2) {
         if(!(*(*iter1) == *(*iter2))) return false;
       }// for
       return true;
@@ -674,7 +675,7 @@ namespace temporalalgebra {
     }// Operator = 
     
     bool IntSegContainer::hasMoreSegsToInsert(double t)const{
-      if(intSegIter == intSegs.end()) return false;
+      if (intSegIter == intSegs.end()) return false;
       IntersectionPoint tail((*intSegIter)->getTail());
       return NumericUtil::nearlyEqual(tail.getT(),t);
     }// hasMoreSegsToInsert
@@ -712,12 +713,12 @@ namespace temporalalgebra {
         activeIter = active.end();
       }// while
       // create result segments   
-      for(activeIter = active.begin();
-          activeIter != active.end();
-          activeIter++){       
+      for (activeIter = active.begin();
+           activeIter != active.end();
+           activeIter++) {       
         Point3D tail, head;
         IntersectionSegment* segment = *activeIter;
-        if(segment->isOrthogonalToTAxis()){
+        if (segment->isOrthogonalToTAxis()) {
           tail = segment->getTail().getPoint3D();
           head = segment->getHead().getPoint3D(); 
         }// if
@@ -743,8 +744,65 @@ namespace temporalalgebra {
 
 */      
     GlobalTimeValues::GlobalTimeValues(){
-    }
-
+      this->orginalStartTime = 0;
+      this->orginalEndTime   = 1;
+      this->scale            = 1;
+    }// Konstruktor
+    
+    GlobalTimeValues::GlobalTimeValues(
+        const Interval<Instant>& orginalInterval){
+      this->orginalStartTime = orginalInterval.start.ToDouble();
+      this->orginalEndTime   = orginalInterval.end.ToDouble();
+      this->scale            = 1000;
+    }// Konstruktor
+    
+    void GlobalTimeValues::setScaleFactor(double scaleFactor) {
+      if (scaleFactor > 0){
+        this->scale = scaleFactor;
+      }// if
+      else NUM_FAIL("Scale factor must be greate as zero"); 
+    }// setScale
+    
+    Interval<Instant> GlobalTimeValues::getOrginalInterval()const{
+      return createInterval(this->orginalStartTime, this->orginalEndTime);
+    }// getOrginalInterval
+    
+    Interval<Instant> GlobalTimeValues::getScaledInterval()const{
+      return createInterval(0.0, this->scale);
+    }// getScalingInterval
+    
+    double GlobalTimeValues::getOrginalStartTime()const{
+      return this->orginalStartTime;
+    }// getOrginalStartTime
+    
+    double GlobalTimeValues::getOrginalEndTime()const{
+      return this->orginalEndTime;
+    }// getOrginalEndTime
+    
+    double GlobalTimeValues::getScaledStartTime()const {
+      return 0.0;
+    }// getScaledStartTime
+    
+    double GlobalTimeValues::getScaledEndTime() const{
+      return this->scale;
+    }// getScaledEndTime
+    
+    Interval<Instant> GlobalTimeValues::createInterval(double start, 
+                                                       double end) const{
+      Instant starttime(datetime::instanttype);
+      Instant endtime(datetime::instanttype);
+      starttime.ReadFrom(start);
+      endtime.ReadFrom(end);
+      return (Interval<Instant>(starttime, endtime, true, false));
+    }// createInterval
+    
+    double GlobalTimeValues::computeOrginalTimeValue(
+        double scaledTimeValue)const {
+      double temp = scaledTimeValue/scale;          
+      return ((1.0 - temp) * this->orginalStartTime + 
+               temp * orginalEndTime);
+    }// computeOrginalTimeValue 
+          
     void GlobalTimeValues::addTimeValue(double t){
         time.insert(t);
     }// addTimeValue
@@ -757,6 +815,7 @@ namespace temporalalgebra {
                               const GlobalTimeValues& timeValues){
       std::set<double, DoubleCompare>::const_iterator iter;
       os << "GlobalTimeValues (";
+//      
       for (iter = timeValues.time.begin(); 
            iter != timeValues.time.end(); iter++){
         if (iter != timeValues.time.begin()) os << ", " ;      
@@ -776,15 +835,15 @@ namespace temporalalgebra {
       return true;
     }// Operator ==
     
-     bool GlobalTimeValues::first(double& t){
+     bool GlobalTimeValues::scaledFirst(double& t){
        // es gibt keine zwei Zeitwerte
        if(time.size() < 2) return false;
        timeIter = time.begin();
        t = t2 = t1 = *timeIter;
        return true;
-     }// first
+     }// scaledFirst
       
-     bool GlobalTimeValues::next(double& t){
+     bool GlobalTimeValues::scaledNext(double& t){
        if((++timeIter) != time.end()){
          // Set the new initial timelevel:
          t1 = t2;
@@ -793,7 +852,22 @@ namespace temporalalgebra {
          return true;
        }// if
        return false;
-     }// next  
+     }// scaledNext  
+     
+    bool GlobalTimeValues::orginalFirst(double& t){
+      double scaledT;
+      bool result = scaledFirst(scaledT);
+      t = computeOrginalTimeValue(scaledT);
+      return result;
+    }// orginalFirst
+    
+    bool GlobalTimeValues::orginalNext(double& t){
+      double scaledT;
+      bool result = scaledNext(scaledT);
+      t = computeOrginalTimeValue(scaledT);
+      return result;
+    }// orginalFirst
+     
 /*
 14 class MSegment 
  
@@ -827,11 +901,11 @@ namespace temporalalgebra {
     }// Konstruktor
     
     MSegment::MSegment(const MSegmentData& mSeg, 
-                       const Interval<Instant>& interval, double tScale){
+                       const GlobalTimeValues& timeValues){
       Point2D start;
       Point2D end;
-      double startTime = interval.start.ToDouble()*tScale;
-      double endTime   = interval.end.ToDouble()*tScale;
+      double startTime = timeValues.getScaledStartTime(); 
+      double endTime   = timeValues.getScaledEndTime();
       // Fallen die Initialpunkte zusammen
       if (!mSeg.GetPointInitial()) {
         // Start und Endpunkt am initialen Sgement bestimmen
@@ -843,8 +917,8 @@ namespace temporalalgebra {
         start = Point2D(mSeg.GetFinalStartX(), mSeg.GetFinalStartY());
         end   = Point2D(mSeg.GetFinalEndX(), mSeg.GetFinalEndY());
       }// else
-      // Startpunkt A festlegen
-      if ((start < end) == mSeg.GetInsideAbove()){                     
+      // Startpunkte festlegen
+      if ((start < end) == mSeg.GetInsideAbove()) {                     
         this->leftStart  = Point3D(mSeg.GetInitialStartX(), 
                                    mSeg.GetInitialStartY(),
                                    startTime);
@@ -879,7 +953,11 @@ namespace temporalalgebra {
       medianHS.attr.edgeno  = mSeg.GetSegmentNo();
       medianHS.attr.cycleno = mSeg.GetCycleNo();
       medianHS.attr.coverageno = -1;
-      medianHS.attr.partnerno  = -1;         
+      medianHS.attr.partnerno  = -1;
+      boundingRect = getBoundingRec(leftStart);
+      boundingRect.Extend(getBoundingRec(leftEnd));
+      boundingRect.Extend(getBoundingRec(rightStart));
+      boundingRect.Extend(getBoundingRec(rightEnd));       
     }// KonstruktorCreate           
 
     void MSegment::set(const Point3D leftStart, const Point3D leftEnd,
@@ -893,7 +971,11 @@ namespace temporalalgebra {
       medianHS.attr.cycleno    = -1;
       medianHS.attr.edgeno     = -1;
       medianHS.attr.coverageno = -1;
-      medianHS.attr.partnerno  = -1;       
+      medianHS.attr.partnerno  = -1;
+      boundingRect = getBoundingRec(leftStart);
+      boundingRect.Extend(getBoundingRec(leftEnd));
+      boundingRect.Extend(getBoundingRec(rightStart));
+      boundingRect.Extend(getBoundingRec(rightEnd)); 
     }// set
         
     void MSegment::set(const MSegment& mSegment){
@@ -903,6 +985,10 @@ namespace temporalalgebra {
       this->rightEnd    = mSegment.rightEnd;
       this->medianHS    = mSegment.medianHS;
       this->insideAbove = mSegment.insideAbove;
+      boundingRect = getBoundingRec(leftStart);
+      boundingRect.Extend(getBoundingRec(leftEnd));
+      boundingRect.Extend(getBoundingRec(rightStart));
+      boundingRect.Extend(getBoundingRec(rightEnd)); 
     }// set
     
     void MSegment::createMedianHS(){
@@ -956,7 +1042,27 @@ namespace temporalalgebra {
       return rightEnd;
     }// getRightEnd
     
-      
+    Rectangle<2> MSegment::getBoundingRec(const Point3D& point)const{
+      double array[2] = {point.getX(),point.getY()};
+      return Rectangle<2>(true,array,array);
+    }// getBoundingBox 
+    
+    Rectangle<2> MSegment::getBoundingRec()const{
+      return boundingRect;
+    }// getBoundingBox 
+    
+    MSegmentData MSegment::getMSegmentData() const{
+       MSegmentData msd(getFaceNo(), getCycleNo(), getSegmentNo(), 
+                        getInsideAbove(),
+                        leftStart.getX(),leftStart.getY(), 
+                        rightStart.getX(),rightStart.getY(), 
+                        leftEnd.getX(),leftEnd.getY(),    
+                        rightEnd.getX(), rightEnd.getY());        
+       msd.SetDegeneratedInitial(DGM_NONE);
+       msd.SetDegeneratedFinal(DGM_NONE);
+       return msd;
+    }// getMSegmentData
+    
     bool MSegment::isLeftDomPoint() const{
       return medianHS.IsLeftDomPoint();
     }// isLeftDomPoint
@@ -1051,12 +1157,12 @@ namespace temporalalgebra {
       RationalPoint3D finalEnd     = right.getHead().getR();      
       // We compute the normalvector
       if (initialStart != initialEnd) {
-        // Cross product of vector ab and ac
+        // Cross product of vector 
         this->normalVector = (initialEnd - initialStart) ^ 
                              (finalStart - initialStart);
       }// if
       else { // A == B
-        // Cross product of vector dc and db:
+        // Cross product of vector :
         this->normalVector = (finalStart - finalEnd) ^ 
                              (initialEnd - finalEnd);
       }// else
@@ -1138,12 +1244,14 @@ namespace temporalalgebra {
 14 class ResultUnit 
  
 */
-    ResultUnit::ResultUnit():index(0),startTime(0),endTime(1){  
+    ResultUnit::ResultUnit(){
+      this->orginalStartTime = 0;
+      this->orginalEndTime   = 1;      
     }// Konstruktor
     
-    ResultUnit::ResultUnit(double startTime, double endTime):index(0){
-      this->startTime = startTime;
-      this->endTime   = endTime;
+    ResultUnit::ResultUnit(double orginalStartTime, double orginalEndTime){
+      this->orginalStartTime = orginalStartTime;
+      this->orginalEndTime   = orginalEndTime;     
     }// Konstruktor
     
     ResultUnit::ResultUnit(const ResultUnit& other){
@@ -1151,10 +1259,9 @@ namespace temporalalgebra {
     }// Konstruktor
     
     void ResultUnit::set(const ResultUnit& other){
-      this->index     = other.index;
-      this->startTime = other.startTime;
-      this->endTime   = other.endTime;
-      for(size_t i = 0; i < other.mSegments.size(); i++){
+      this->orginalStartTime = other.orginalStartTime;
+      this->orginalEndTime   = other.orginalEndTime;   
+      for (size_t i = 0; i < other.mSegments.size(); i++) {
         this->mSegments.push_back(other.mSegments[i]);
       }// for
     }// set
@@ -1164,11 +1271,11 @@ namespace temporalalgebra {
     }// size(
     
     void ResultUnit::addMSegment(MSegment& mSegment, bool completely ){
-      if(completely){
+      if (completely) {
         mSegments.push_back(mSegment);
       }// if
       else {
-        mSegment.setSegmentNo(this->index++);
+        mSegment.setSegmentNo(this->mSegments.size()/2);
         mSegment.setLeftDomPoint(true);
         mSegments.push_back(mSegment);
         mSegment.setLeftDomPoint(false);
@@ -1185,29 +1292,29 @@ namespace temporalalgebra {
       mCSegments.push_back(mSegment);
     }// set
     
-    Interval<Instant> ResultUnit::getTimeInterval(double tScale) const {
+    Interval<Instant> ResultUnit::getTimeInterval() const {
       Instant start(datetime::instanttype);
       Instant end(datetime::instanttype);
-      start.ReadFrom(this->startTime/tScale);
-      end.ReadFrom(this->endTime/tScale);
+      start.ReadFrom(this->orginalStartTime);
+      end.ReadFrom(this->orginalEndTime);
       return Interval<Instant>(start, end, true, false);
     }// getTimeInterval
  
     std::ostream& ResultUnit::print(std::ostream& os, std::string prefix)const{
       os << prefix << "ResultUnit (";
-      if (mSegments.size() == 0) os << "is empty)" << endl;
+      if (this->mSegments.size() == 0) os << "is empty)" << endl;
       else {
         os << endl;
-        os << prefix << "  Startime:=" << this->startTime;
-        os << ", EndTime:=" << this->endTime << endl;
+        os << prefix << "  Startime:=" << this->orginalStartTime;
+        os << ", EndTime:=" << this->orginalEndTime << endl;
         os << prefix << "  MSegments (" << endl;
-        for(size_t i = 0; i < mSegments.size(); i++){
+        for (size_t i = 0; i < this->mSegments.size(); i++) {
           os << prefix << "    Index:=" << i << ", "; 
           this->mSegments[i].print(os,prefix + "    ");
         }// for
-        os << prefix << "  )"<<endl;
+        os << prefix << "  )" << endl;
         os << prefix << "  CriticalMSegment (" << endl;
-        for(size_t i = 0; i < mCSegments.size(); i++){
+        for (size_t i = 0; i < this->mCSegments.size(); i++) {
           os << prefix << "    Index:=" << i << ", "; 
           this->mCSegments[i].print(os,prefix + "    ");
         }// for
@@ -1223,13 +1330,15 @@ namespace temporalalgebra {
     }// Operator <<
    
     bool ResultUnit::operator ==(const ResultUnit& other)const{
-      if(!(NumericUtil::nearlyEqual(this->startTime,other.startTime) &&
-           NumericUtil::nearlyEqual(this->endTime,other.endTime))) return false;
-      if(this->mSegments.size() != other.mSegments.size()) return false;  
-      for(size_t i = 0; i < this->mSegments.size(); i++){
-        if(!(this->mSegments[i] == other.mSegments[i])) {
-          // cout << "ResultUnit is not equal on Index for MSegment:=";
-          // cout << i << endl;
+      if (!(NumericUtil::nearlyEqual(this->orginalStartTime,
+                                     other.orginalStartTime) &&
+            NumericUtil::nearlyEqual(this->orginalEndTime,
+                                     other.orginalEndTime))) return false;
+      if (this->mSegments.size() != other.mSegments.size())  return false;  
+      for (size_t i = 0; i < this->mSegments.size(); i++) {
+        if (!(this->mSegments[i] == other.mSegments[i])) {
+//         cout << "ResultUnit is not equal on Index for MSegment:=";
+//         cout << i << endl;
           return false;
         }// if
       }// for
@@ -1260,7 +1369,7 @@ namespace temporalalgebra {
       Region region(mSegments.size());
       region.StartBulkLoad();
       for (size_t i = 0; i < mSegments.size(); i++) {
-        //cout << mSegments[i].getMedianHS() << endl;
+//        cout << mSegments[i].getMedianHS() << endl;
         region.Put(i, mSegments[i].getMedianHS());
       }// for
       // Note: Sorting is already done.
@@ -1275,86 +1384,50 @@ namespace temporalalgebra {
       }// for
       // Sort mSegments by faceno, cycleno and segmentno:
       sort(mSegments.begin(), mSegments.end(), ResultUnit::logicLess);
-      //this->Print();
+//      this->Print();
       // Erase the second half of mSegments, 
       // which contains all MSegments with right dominating point:
       mSegments.erase(mSegments.begin() + mSegments.size() / 2, 
                       mSegments.end());
     }// finalize
-        
-    
-    URegionEmb* ResultUnit::convertToURegionEmb(double tScale,
-        DbArray<MSegmentData>* segments)const {
+
+    URegionEmb* ResultUnit::convertToURegionEmb(
+        DbArray<MSegmentData>* segments) const {
       size_t segmentsStartPos = segments->Size();
-      URegionEmb* uregion     = new URegionEmb(this->getTimeInterval(tScale), 
+      URegionEmb* uregion     = new URegionEmb(getTimeInterval(), 
                                                segmentsStartPos);
-      double minX = DBL_MAX; 
-      double maxX = DBL_MIN;
-      double minY = DBL_MAX;
-      double maxY = DBL_MIN;     
+      Rectangle<2> resultBRec;      
+      if(mSegments.size() > 0){      
+        resultBRec = mSegments[0].getBoundingRec();
+      }// if      
       for(unsigned int i = 0; i < mSegments.size(); i++) {            
-        const MSegment* mSeg = &mSegments[i];
-         
-        MSegmentData msd(mSeg->getFaceNo(), 
-                         mSeg->getCycleNo(), 
-                         mSeg->getSegmentNo(), 
-                         mSeg->getInsideAbove(), 
-
-                         mSeg->getLeftStart().getX(), 
-                         mSeg->getLeftStart().getY(), 
-                         mSeg->getRightStart().getX(), 
-                         mSeg->getRightStart().getY(), 
-                         mSeg->getLeftEnd().getX(),    
-                         mSeg->getLeftEnd().getY(),    
-                         mSeg->getRightEnd().getX(),   
-                         mSeg->getRightEnd().getY());  
-         msd.SetDegeneratedInitial(DGM_NONE);
-         msd.SetDegeneratedFinal(DGM_NONE);            
-        
-         uregion->PutSegment(segments, i, msd, true);                     
-         // Update the min/max values:
-         minX = min(minX, msd.GetInitialStartX());
-         minX = min(minX, msd.GetInitialEndX());
-         minX = min(minX, msd.GetFinalStartX());
-         minX = min(minX, msd.GetFinalEndX());
-
-         minY = min(minY, msd.GetInitialStartY());
-         minY = min(minY, msd.GetInitialEndY());
-         minY = min(minY, msd.GetFinalStartY());
-         minY = min(minY, msd.GetFinalEndY());
-
-         maxX = max(maxX, msd.GetInitialStartX());
-         maxX = max(maxX, msd.GetInitialEndX());
-         maxX = max(maxX, msd.GetFinalStartX());
-         maxX = max(maxX, msd.GetFinalEndX());
-
-         maxY = max(maxY, msd.GetInitialStartY());
-         maxY = max(maxY, msd.GetInitialEndY());
-         maxY = max(maxY, msd.GetFinalStartY());
-         maxY = max(maxY, msd.GetFinalEndY());
+         MSegmentData msd  = mSegments[i].getMSegmentData();   
+         uregion->PutSegment(segments, i, msd, true);
+         Rectangle<2> bRec = mSegments[i].getBoundingRec();
+         resultBRec.Extend(bRec);
       }// for
-      // Set the bbox:        
-      double min[3] = { minX, minY, 
-        this->getTimeInterval(tScale).start.ToDouble() };
-      double max[3] = { maxX, maxY, 
-        this->getTimeInterval(tScale).end.ToDouble() };
+      // Set the bbox           
+      double min[3] = { resultBRec.MinD(0),resultBRec.MinD(1), 
+        this->orginalStartTime };        
+      double max[3] = { resultBRec.MaxD(0),resultBRec.MaxD(1), 
+        this->orginalEndTime };   
       uregion->SetBBox(Rectangle<3>(true, min, max));
       return uregion;
     }// convertToURegionEmb
     
     void ResultUnit::copyCriticalMSegmens(const CriticalMSegment& cmSeg, 
                                           SetOp setOp){
-      if(setOp == UNION && cmSeg.getPredicate() == OUTSIDE){
+      if (setOp == UNION && cmSeg.getPredicate() == OUTSIDE) {
         addMSegment(cmSeg); 
         return;
       }// if
-      if(setOp == INTERSECTION && cmSeg.getPredicate() == INSIDE){
+      if (setOp == INTERSECTION && cmSeg.getPredicate() == INSIDE) {
         addMSegment(cmSeg);  
         return; 
       }// if
-      if(setOp == MINUS && 
-         (( cmSeg.isPartOfUnitA() && cmSeg.getPredicate() == OUTSIDE)||
-         (!cmSeg.isPartOfUnitA() && cmSeg.getPredicate() == INSIDE))){
+      if ( setOp == MINUS && 
+          ((cmSeg.isPartOfUnitA() && cmSeg.getPredicate() == OUTSIDE)||
+          (!cmSeg.isPartOfUnitA() && cmSeg.getPredicate() == INSIDE))) {
         addMSegment(cmSeg);  
         return;
       }// if
@@ -1364,17 +1437,17 @@ namespace temporalalgebra {
       // Sort by midpoints:
       sort(mCSegments.begin(), mCSegments.end());
       // Existieren kritische Segmente
-      if(mCSegments.size() > 0){
+      if (mCSegments.size() > 0) {
         // über alle Segmente
         size_t i;
-        for(i = 0; i < mCSegments.size()-1; i++){
+        for (i = 0; i < mCSegments.size()-1; i++) {
           CriticalMSegment cmSeg0 = mCSegments[i];
           CriticalMSegment cmSeg1 = mCSegments[i+1];
           // besitze die beiden Segmente den gleichen Mittelpunkt
-          if(cmSeg0.getMidPoint() == cmSeg1.getMidPoint()){
-            if (setOp == UNION || setOp == INTERSECTION){
-              if (cmSeg0.hasEqualNormalVector(cmSeg1)){
-                if (cmSeg0.isPartOfUnitA()){
+          if(cmSeg0.getMidPoint() == cmSeg1.getMidPoint()) {
+            if (setOp == UNION || setOp == INTERSECTION) {
+              if (cmSeg0.hasEqualNormalVector(cmSeg1)) {
+                if (cmSeg0.isPartOfUnitA()) {
                   addMSegment(cmSeg0);
                 }// if
                 else {
@@ -1386,8 +1459,8 @@ namespace temporalalgebra {
               // op == MINUS
               // Bei der Operation "MINUS" ist das MSegment
               // Seitenverkehrt gespeichert
-              if (cmSeg0.hasEqualNormalVector(cmSeg1)){
-                if (cmSeg0.isPartOfUnitA()){
+              if (cmSeg0.hasEqualNormalVector(cmSeg1)) {
+                if (cmSeg0.isPartOfUnitA()) {
                   addMSegment(cmSeg0);
                 }// if
                 else {
@@ -1403,7 +1476,7 @@ namespace temporalalgebra {
             copyCriticalMSegmens(cmSeg0,setOp);
           }// else          
         }// for
-        if(i == mCSegments.size()-1){
+        if (i == mCSegments.size()-1) {
           // Letztes Segment hat auch keinen Partner
           CriticalMSegment cmSeg = mCSegments[i];
           copyCriticalMSegmens(cmSeg,setOp);
@@ -1437,7 +1510,7 @@ namespace temporalalgebra {
       // der Start- und Endzeitwert für ein Slide
       double t1,t2;
       // Die ersten beiden Zeitwerte bestimmen
-      if (timeValues.first(t1) && timeValues.next(t2)){ 
+      if (timeValues.scaledFirst(t1) && timeValues.scaledNext(t2)) { 
         // Anzahl der Segmente bestimmen ?? = 0
         size_t n = this->segments.size();
         // Punkte und Segmente fütr den ersten Slide 
@@ -1446,9 +1519,9 @@ namespace temporalalgebra {
         // Zähler für alle weiteren Slides
         size_t k;
         // über die restlichen Slides (Units)
-        for(k = 0; k < timeValues.size(); k++){  
+        for (k = 0; k < timeValues.size(); k++) {  
           // über die neu hinzugefügten Segmente
-          for(size_t i = n; i < segments.size(); i++){
+          for (size_t i = n; i < segments.size(); i++) {
             // Start- und Endpunkt des Segments
             Point3D head, tail;
             // Segment laden
@@ -1459,7 +1532,7 @@ namespace temporalalgebra {
             tail = points.get(segment.getTail());
             // Ist der Z-Wert von Start- und Endpunkt gleich,
             // dann ahndelt es sich um ein orthogonales Segment
-            if(head.getZ() == tail.getZ()){
+            if (NumericUtil::nearlyEqual(head.getZ(),tail.getZ())) {
               // Segment abspeichern
               orthogonalEdges[k].push_back(i);
             }// if
@@ -1467,7 +1540,7 @@ namespace temporalalgebra {
             else {
               // nicht orthogonale Segment, können nicht
               // beim letzten Zeitwert beginnen
-              if(k != timeValues.size()-1){
+              if (k != timeValues.size()-1) {
                 // Segment speichern
                 nonOrthogonalEdges[k].push_back(i); 
               }// if
@@ -1479,7 +1552,7 @@ namespace temporalalgebra {
           // Neuer Startwert ist der alte Endwert
           t1 = t2;
           // Im letzten Durchlauf gibt es keinen neuen Startwert
-          if(k != timeValues.size()-1) timeValues.next(t2);
+          if (k != timeValues.size()-1) timeValues.scaledNext(t2);
           // derzeitg verarbeite Segmentanzahl abspeichern
           n = this->segments.size();
           // nächsten Slide erfassen
@@ -1498,8 +1571,8 @@ namespace temporalalgebra {
                                  const vector<list<size_t>>& edges2){
       edges1 = vector<list<size_t>>(edges2.size(),list<size_t>());
       list<size_t>::const_iterator edgeIter;
-      for(size_t i = 0; i < edges2.size(); i++ ){
-        for(edgeIter  = edges2[i].begin();
+      for (size_t i = 0; i < edges2.size(); i++ ) {
+        for (edgeIter  = edges2[i].begin();
             edgeIter != edges2[i].end();
             edgeIter++) {
           edges1[i].push_back(*edgeIter);
@@ -1513,20 +1586,20 @@ namespace temporalalgebra {
       set(this->orthogonalEdges, other.orthogonalEdges);
       this->touchsOnLeftBorder = vector<size_t>(
         other.touchsOnLeftBorder.size(),0);
-      for(size_t i = 0; i < other.touchsOnLeftBorder.size(); i++){
+      for (size_t i = 0; i < other.touchsOnLeftBorder.size(); i++) {
         this->touchsOnLeftBorder[i] = other.touchsOnLeftBorder[i];
       }// for
     }// set
     
-    ResultUnitFactory& ResultUnitFactory::operator =(
+    ResultUnitFactory& ResultUnitFactory::operator = (
       const ResultUnitFactory& other){
       set(other);
       return *this;
     }// Operator =
       
     void ResultUnitFactory::addNonOrthogonalEdges(size_t slide, 
-                                                   const Segment& segment){
-      if(slide < nonOrthogonalEdges.size()){
+                                                  const Segment& segment){
+      if (slide < nonOrthogonalEdges.size()) {
         size_t index = segments.add(segment);
         nonOrthogonalEdges[slide].push_back(index);
       }// if
@@ -1534,8 +1607,8 @@ namespace temporalalgebra {
     }// addNonOrthogonalEdges
     
     void ResultUnitFactory::addOrthogonalEdges(size_t slide, 
-                                                const Segment& segment){
-      if(slide < orthogonalEdges.size()){
+                                               const Segment& segment){
+      if (slide < orthogonalEdges.size()) {
         size_t index = segments.add(segment);
         orthogonalEdges[slide].push_back(index);
       }// if
@@ -1543,24 +1616,22 @@ namespace temporalalgebra {
     }// addOrthogonalEdge
      
     void ResultUnitFactory::setTouchsOnLeftBorder(size_t slide, size_t value){
-      if(slide < touchsOnLeftBorder.size()) touchsOnLeftBorder[slide] = value;
+      if (slide < touchsOnLeftBorder.size()) touchsOnLeftBorder[slide] = value;
       else NUM_FAIL("Index for slide is out of range.");
     }// setTouch
     
     bool ResultUnitFactory::iSEqual(const vector<list<size_t>>& edges1,
                                      const vector<list<size_t>>& edges2)const{
-      if(edges1.size() != edges2.size()) return false;
+      if (edges1.size() != edges2.size()) return false;
       list<size_t>::const_iterator edge1Iter,edge2Iter;
-      for(size_t i = 0; i < edges1.size(); i++){
-        if(edges1[i].size() != edges2[i].size()) return false;
+      for (size_t i = 0; i < edges1.size(); i++) {
+        if (edges1[i].size() != edges2[i].size()) return false;
         size_t j = 0;
-        for(edge1Iter  = edges1[i].begin(), 
+        for (edge1Iter  = edges1[i].begin(), 
             edge2Iter  = edges2[i].begin();
             edge1Iter != edges1[i].end();
             edge1Iter++,edge2Iter++){
-          if(!(*edge1Iter == *edge2Iter)){
-            // cout << "ResultUnitFactory is not equal on unit:=" << i;
-            // cout << ", Index for MSegment:=" << j << endl;
+          if (!(*edge1Iter == *edge2Iter)) {
             return false;
           }// if
           j++;
@@ -1569,24 +1640,20 @@ namespace temporalalgebra {
       return true;
     }// compare
 
-    bool ResultUnitFactory::operator ==(
-        const ResultUnitFactory& other)const{
-      // cout << "Check segments" << endl;    
-      if(!(this->segments == other.segments)) return false;     
-      // cout << "Check orthogonal edges" << endl;
-      if(!(iSEqual(this->orthogonalEdges,other.orthogonalEdges))) 
+    bool ResultUnitFactory::operator == (
+        const ResultUnitFactory& other)const{  
+      if (!(this->segments == other.segments)) return false;     
+      if (!(iSEqual(this->orthogonalEdges,other.orthogonalEdges))) 
         return false;
-      // cout << "Check non orthogonal edges" << endl;
-      if(!(iSEqual(this->nonOrthogonalEdges,other.nonOrthogonalEdges)))
+      if (!(iSEqual(this->nonOrthogonalEdges,other.nonOrthogonalEdges)))
         return false;
-      // cout << "Check touchs on left border" << endl;
       vector<size_t>::const_iterator iter1,iter2;
-      if(this->touchsOnLeftBorder.size() != other.touchsOnLeftBorder.size())
+      if (this->touchsOnLeftBorder.size() != other.touchsOnLeftBorder.size())
         return false;
-      for(iter1  = this->touchsOnLeftBorder.begin(), 
+      for (iter1  = this->touchsOnLeftBorder.begin(), 
           iter2 = other.touchsOnLeftBorder.begin();
-          iter1 != this->touchsOnLeftBorder.end(); iter1++, iter2 ++){
-         if(*iter1 != *iter2) return false;
+          iter1 != this->touchsOnLeftBorder.end(); iter1++, iter2 ++) {
+         if (*iter1 != *iter2) return false;
       }// for
       return true;
     }// Operator ==
@@ -1594,17 +1661,17 @@ namespace temporalalgebra {
     void ResultUnitFactory::evaluate(){
       list<size_t>::iterator first;
       list<size_t>::reverse_iterator last; 
-      for(size_t i = 0; i < nonOrthogonalEdges.size(); i++){
+      for (size_t i = 0; i < nonOrthogonalEdges.size(); i++) {
         evaluate(i);
       }// for
-      for(size_t i = 1; i < nonOrthogonalEdges.size(); i++){
-        if(nonOrthogonalEdges[i-1].size() < 2) break;
+      for (size_t i = 1; i < nonOrthogonalEdges.size(); i++) {
+        if (nonOrthogonalEdges[i-1].size() < 2) break;
         first = nonOrthogonalEdges[i-1].begin();
          Predicate predicate = segments.get(*first).getPredicate();
          setSlidePredicates(predicate, i, touchsOnLeftBorder[i]);
        }// for  
-       for(int i = nonOrthogonalEdges.size()-2; i >= 0; i--){
-         if(nonOrthogonalEdges[i+1].size() < 2) break;
+       for (int i = nonOrthogonalEdges.size()-2; i >= 0; i--) {
+         if (nonOrthogonalEdges[i+1].size() < 2) break;
          first = nonOrthogonalEdges[i+1].begin();
          Predicate predicate = segments.get(*first).getPredicate();
          setSlidePredicates(predicate, i, touchsOnLeftBorder[i+1]);
@@ -1622,29 +1689,29 @@ namespace temporalalgebra {
       // Prädikat für die rechte Kante
       right = UNDEFINED;
       // existieren Segmente
-      if(segments.size() != 0){
+      if (segments.size() != 0) {
         // über alle Slides  
-        for(size_t i = 0; i < nonOrthogonalEdges.size(); i++){
+        for (size_t i = 0; i < nonOrthogonalEdges.size(); i++) {
           // erste Kante
           first = *nonOrthogonalEdges[i].begin();
           // Bestimme das Prädikat der ersten Kante
           predicate = createPredicate(segments.get(first).getPredicate(),LEFT);
           // Prädikat übernehmen, wenn bisher kein Prädikat festgelegt war
-          if( left == UNDEFINED) left = predicate;
+          if (left == UNDEFINED) left = predicate;
           // waren bisher keine Schnitte auf der Kante vermerkt und wurde 
           // jetzt ein abweichendes Prädikat ermittelt, 
           // dann das Pädikat "INTERSECT" setzen
-          else if( left != INTERSECT && left != predicate )left = INTERSECT;  
+          else if (left != INTERSECT && left != predicate) left = INTERSECT;  
           // letztes Kante
           last = *nonOrthogonalEdges[i].rbegin();
           // Bestimme das Prädikat der letzten Kante
           predicate = createPredicate(segments.get(last).getPredicate(),RIGHT);
           // Prädikat übernehmen, wenn bisher kein Prädikat festgelegt war
-          if( right == UNDEFINED) right = predicate;
+          if (right == UNDEFINED) right = predicate;
           // waren bisher keine Schnitte auf der Kante vermerkt und wurde 
           // jetzt ein abweichendes Prädikat ermittelt, 
           // dann das Pädikat "INTERSECT" setzen
-          else if( right != INTERSECT && right != predicate )right = INTERSECT;
+          else if (right != INTERSECT && right != predicate) right = INTERSECT;
         }// for
       }// if
     }// getBorderPredicates
@@ -1652,18 +1719,18 @@ namespace temporalalgebra {
     void ResultUnitFactory::setSlidePredicates(Predicate predicate,
                                                 size_t slide, size_t touch){
        list<size_t>::iterator first, iter;
-       if(nonOrthogonalEdges[slide].size() < 2) return;
+       if (nonOrthogonalEdges[slide].size() < 2) return;
        first = nonOrthogonalEdges[slide].begin();
-       if( predicate != UNDEFINED &&
-           segments.get(*first).getPredicate() == UNDEFINED){
+       if (predicate != UNDEFINED &&
+           segments.get(*first).getPredicate() == UNDEFINED) {
          predicate =createPredicate(predicate, LEFT);
-         if (touch%2 == 1){
+         if (touch%2 == 1) {
            if (predicate == OUTSIDE) predicate = INSIDE;
            else predicate = OUTSIDE;
          }// if
-         for(iter = nonOrthogonalEdges[slide].begin(); 
-             iter != nonOrthogonalEdges[slide].end(); iter++){
-           if (segments.get(*iter).getPredicate() == UNDEFINED){
+         for (iter = nonOrthogonalEdges[slide].begin(); 
+              iter != nonOrthogonalEdges[slide].end(); iter++) {
+           if (segments.get(*iter).getPredicate() == UNDEFINED) {
              setPredicate(*iter,predicate);
            }// if
            else {
@@ -1677,7 +1744,7 @@ namespace temporalalgebra {
       list<size_t>::iterator first, left, right, orthogonal;
       Segment firstSegment, leftSegment, rightSegment, orthogonalSegment;
       // Existieren weniger als zwei Kanten, Funktion verlassen
-      if(nonOrthogonalEdges[i].size()< 2) return;
+      if (nonOrthogonalEdges[i].size()< 2) return;
       // Index (Iterator) der erste kante der Slide bestimmen
       first = nonOrthogonalEdges[i].begin();
       // Index (Iterator) auch für die linke und rechte Kante vwerwenden
@@ -1686,8 +1753,8 @@ namespace temporalalgebra {
       firstSegment = segments.get(*first);
       // Die Schleife solange abarbeiten, bis die rechte die letzte Kante 
       // der Slide ist
-      for(right++; right !=  nonOrthogonalEdges[i].end(); 
-          right++){
+      for (right++; right !=  nonOrthogonalEdges[i].end(); 
+           right++) {
         // Prädicat vorbelegen
         Predicate predicate = UNDEFINED;
         // linke Kante bestimmen
@@ -1703,37 +1770,37 @@ namespace temporalalgebra {
         // ist das Prädikat der linken Kante nicht UNDEFINED,
         // so muss überprüft werden, ob die linke Kante die erste 
         // Kante der Slide berührt. 
-        if(leftSegment.getPredicate() != UNDEFINED){
+        if (leftSegment.getPredicate() != UNDEFINED) {
           // berühren sich das Ende der ersten und das Ende der linken
           // Kante
-          if(firstSegment.getTail() == leftSegment.getTail()){
+          if (firstSegment.getTail() == leftSegment.getTail()) {
             // Berührung registrieren (Anfang der Slide)
             touchsOnLeftBorder[i]++;
           }// if
           // berühren sich der Anfang der ersten uud der Anfang der 
           // letzten Kante 
-          if(firstSegment.getHead() == leftSegment.getHead()){
+          if (firstSegment.getHead() == leftSegment.getHead()) {
             // Berührung registrieren (Ende der Slide)
             touchsOnLeftBorder[i+1]++;
           }// if
         }// if
         // konnte kein Predicate ermittelt werden
-        if(predicate == UNDEFINED){
+        if (predicate == UNDEFINED) {
           // check bottom 
           // Die orthogonalen Kanten auswerten,
           // zuerst die orthogonalen Kanten am Boden
-          for(orthogonal  = orthogonalEdges[i].begin(); 
-              orthogonal != orthogonalEdges[i].end(); 
-              orthogonal ++){  
+          for (orthogonal  = orthogonalEdges[i].begin(); 
+               orthogonal != orthogonalEdges[i].end(); 
+               orthogonal ++) {  
             // ortogonale Kante laden
             orthogonalSegment = segments.get(*orthogonal);
             // berühren sich das Ende der linken Kante und das
             // Ende der ortogonalen Kante und das Ende der rechten Kante
             // und das Ende der orthogonalen Kante, dann sollte die Kante
             // ausgwertet werden
-            if(leftSegment.getTail() == orthogonalSegment.getTail() && 
-               rightSegment.getTail()== orthogonalSegment.getHead()){
-              // cout << "Bottom" <<endl;
+            if (leftSegment.getTail() == orthogonalSegment.getTail() && 
+                rightSegment.getTail()== orthogonalSegment.getHead()) {
+//              cout << "Bottom" <<endl;
               // orthogonale Kante als rechte Kante für eine PFace 
               // auswerten
               checkPredicate(orthogonalSegment,RIGHT,predicate); 
@@ -1745,18 +1812,18 @@ namespace temporalalgebra {
           // check top
           // Die orthogonalen Kanten auswerten,
           // jetzt die oberen Kanten
-          for(orthogonal  = orthogonalEdges[i+1].begin(); 
-              orthogonal != orthogonalEdges[i+1].end(); 
-              orthogonal ++){
+          for (orthogonal  = orthogonalEdges[i+1].begin(); 
+               orthogonal != orthogonalEdges[i+1].end(); 
+               orthogonal ++) {
             // orthogonale Kante laden
             orthogonalSegment = segments.get(*orthogonal);
             // berühren sich der Anfang der linken Kante und der Anfang 
             // der orthogonalen Kanten und der Anfang der rechten Kante
             // und der Anfang der orthogonalen Kante, dann sollte die Kante
             // ausgwertet werden
-            if(leftSegment.getHead()  == orthogonalSegment.getTail() && 
-               rightSegment.getHead() == orthogonalSegment.getHead()){
-              // cout << "Top" <<endl;
+            if (leftSegment.getHead()  == orthogonalSegment.getTail() && 
+                rightSegment.getHead() == orthogonalSegment.getHead()) {
+//              cout << "Top" <<endl;
               // orthogonale Kante als linke Kante für eine mögliches 
               // PFace auswerten
               checkPredicate(orthogonalSegment,LEFT,predicate);
@@ -1775,12 +1842,12 @@ namespace temporalalgebra {
         left = right; 
       }// for
       // Berührungen der orthogonalen Kanten mit der ersten kante auswerten
-      if(orthogonalEdges[i].size()!=0){
+      if (orthogonalEdges[i].size()!=0) {
         // orthogonale Kante bestimmen 
         orthogonalSegment = segments.get(*orthogonalEdges[i].begin());      
         // berührt das Ende der orthogonale Kante, das Ende
         // das ersten Kante der Slide ???
-        if(firstSegment.getTail() == orthogonalSegment.getTail()){
+        if (firstSegment.getTail() == orthogonalSegment.getTail()) {
           // Berührung vermerken
           touchsOnLeftBorder[i]++;
         }// if 
@@ -1795,25 +1862,25 @@ namespace temporalalgebra {
       // Ist die erste Kante auf "UNDEFINED" gesetzt und hat die
       // letzte Kante ein von UNDEFINED abweichendes Prädikat, dann den Slide
       // durchlaufen
-      if(firstSegment.getPredicate() == UNDEFINED && 
-        rightSegment.getPredicate()  != UNDEFINED){
+      if (firstSegment.getPredicate() == UNDEFINED && 
+          rightSegment.getPredicate()  != UNDEFINED) {
         // von der letzten zur ersten Kante
-        for (riter++; riter != nonOrthogonalEdges[i].rend(); riter++){
+        for (riter++; riter != nonOrthogonalEdges[i].rend(); riter++) {
           // rechte Kante laden
           rightSegment= segments.get(*last);
           // linke Kante laden
           leftSegment = segments.get(*riter);
           // ist die linke Kante nicht gesetzt
-          if(leftSegment.getPredicate() == UNDEFINED){
+          if (leftSegment.getPredicate() == UNDEFINED) {
             // Prädikat für die linke Kante aus der rechten Kante
             // bestimmen
             Predicate predicate =
               createPredicate(rightSegment.getPredicate(), LEFT);
             // ist das Prädikt nicht "UNDEFINED"  
-            if(predicate != UNDEFINED){
+            if (predicate != UNDEFINED) {
               // Das Prädikat "INTERSECT" wird nicht auf eine andere Kante
               // übertragen
-              if(predicate != INTERSECT){
+              if (predicate != INTERSECT) {
                 // Predikat setzen
                 setPredicate(*riter, predicate);
               }// if
@@ -1829,15 +1896,15 @@ namespace temporalalgebra {
      
     void ResultUnitFactory::setPredicate(size_t index, 
                                           Predicate& predicate){
-      if( segments.get(index).getPredicate() == UNDEFINED){        
+      if (segments.get(index).getPredicate() == UNDEFINED) {        
         segments.set(index,predicate);
       }// if
     }// setPredicate
      
     Predicate ResultUnitFactory::createPredicate(const Predicate source,
-                                                  const Border border)const{
+                                                 const Border border)const{
       Predicate predicate;
-      switch(source){        
+      switch (source) {        
         case LEFT_IS_INNER:  if(border == LEFT) predicate = OUTSIDE;
                              else predicate = INSIDE;
                              break;    
@@ -1853,8 +1920,8 @@ namespace temporalalgebra {
                                             const Border border, 
                                              Predicate& result)const{
       Predicate predicate = createPredicate(segment.getPredicate(), border);
-      if(predicate == INSIDE || predicate == OUTSIDE){
-        if(result == UNDEFINED) result = predicate;
+      if (predicate == INSIDE || predicate == OUTSIDE) {
+        if (result == UNDEFINED) result = predicate;
         else if (!(result == predicate)) {
           cout << "Segment "<< segment <<endl;
           cout << "Aktuelle Prädikat" << toString(predicate) << endl;
@@ -1868,12 +1935,12 @@ namespace temporalalgebra {
                                    std::string prefix,
                                    vector<list<size_t>> edges)const{
       list<size_t>::const_iterator iter;
-      for (size_t i = 0; i < edges.size();i++){
+      for (size_t i = 0; i < edges.size();i++) {
         os << prefix << "     Index:=" << i << " (";
-        for (iter = edges[i].begin(); iter != edges[i].end();){
+        for (iter = edges[i].begin(); iter != edges[i].end();) {
           os << *iter; 
           iter++;
-          if(iter != edges[i].end()) os << ", ";           
+          if (iter != edges[i].end()) os << ", ";           
         }// for  
         os << ")" << endl;
       }// for
@@ -1881,7 +1948,7 @@ namespace temporalalgebra {
     }// print  
 
     std::ostream& ResultUnitFactory::print(std::ostream& os, 
-                                             std::string prefix)const{
+                                           std::string prefix)const{
       os << prefix << "ResultPFaceFactory(";
       if (segments.size() == 0) os << "is empty)" << endl;
       else {
@@ -1893,7 +1960,7 @@ namespace temporalalgebra {
         print(os, prefix, orthogonalEdges);
         vector<size_t>::const_iterator iter;       
         os << prefix << "  Touch on left border(" << endl;
-        for(size_t i = 0; i < touchsOnLeftBorder.size(); i++){
+        for (size_t i = 0; i < touchsOnLeftBorder.size(); i++) {
           os << prefix << "    Index:="<< i << " (";
           os << touchsOnLeftBorder[i] << ")" << endl;
         }// for
@@ -1914,10 +1981,10 @@ namespace temporalalgebra {
                                            ResultUnit& unit, State pfState, 
                                            SourceFlag source){ 
       list<size_t>::const_iterator left, right;
-      if(slide < nonOrthogonalEdges.size()){
-        if(nonOrthogonalEdges[slide].size() > 1){
+      if (slide < nonOrthogonalEdges.size()) {
+        if (nonOrthogonalEdges[slide].size() > 1) {
           left = right = nonOrthogonalEdges[slide].begin();
-          for(right++; right != nonOrthogonalEdges[slide].end(); right++){
+          for (right++; right != nonOrthogonalEdges[slide].end(); right++) {
             Segment leftSegment  = segments.get(*left);
             Segment rightSegment = segments.get(*right);
             Predicate leftPredicate  = 
@@ -1926,12 +1993,12 @@ namespace temporalalgebra {
               createPredicate(rightSegment.getPredicate(),RIGHT);
             // Prädikat für die linke und rechte Kante müssen gleich sein
             // oder eins der Prädikate muss "INTERSECT" sein
-            if((leftPredicate == rightPredicate)|| 
+            if ((leftPredicate == rightPredicate)|| 
                ((leftPredicate == INTERSECT && rightPredicate != INTERSECT)||
-                (leftPredicate != INTERSECT && rightPredicate == INTERSECT))){
-              if((leftPredicate == predicate)||(rightPredicate == predicate)||
-                  pfState == CRITICAL){
-                if(reverse){
+                (leftPredicate != INTERSECT && rightPredicate == INTERSECT))) {
+              if ((leftPredicate == predicate)||(rightPredicate == predicate)||
+                  pfState == CRITICAL) {
+                if (reverse) {
                   Segment temp = leftSegment;
                   leftSegment  = rightSegment;
                   rightSegment = temp;
@@ -1942,9 +2009,9 @@ namespace temporalalgebra {
                 Point3D rightHead = points.get(rightSegment.getHead());
                 Segment3D left    = Segment3D(leftTail,leftHead);
                 Segment3D right   = Segment3D(rightTail,rightHead);
-                if(pfState == CRITICAL){
+                if (pfState == CRITICAL) {
                   Predicate p = leftPredicate;
-                  if(p == INTERSECT) p = rightPredicate;
+                  if (p == INTERSECT) p = rightPredicate;
                   CriticalMSegment segment(left,right,source,p);
                   unit.addCMSegment(segment);
                 }// if
@@ -1978,19 +2045,14 @@ namespace temporalalgebra {
                     points.get(borderRight.getHead())); 
       this->left      = left;
       this->right     = right;
-      this->state     = UNKNOWN;
-      // setSegmentNo(index);
-      boundingRect = getBoundingRec(leftStart);
-      boundingRect.Extend(getBoundingRec(leftEnd));
-      boundingRect.Extend(getBoundingRec(rightStart));
-      boundingRect.Extend(getBoundingRec(rightEnd));      
+      this->state     = UNKNOWN;     
     }// Konstruktor 
     
-    PFace::PFace(const MSegmentData& mSeg, const Interval<Instant>& interval,
-                 double tScale,
+    PFace::PFace(const MSegmentData& mSeg, 
+                 const GlobalTimeValues& timeValues,                 
                  ContainerPoint3D& points,
                  ContainerSegment& segments):
-        MSegment(mSeg,interval,tScale){
+        MSegment(mSeg,timeValues){
       size_t iLeftStart = points.add(this->leftStart);
       size_t iLeftEnd   = points.add(this->leftEnd);
       size_t iRightStart= points.add(this->rightStart); 
@@ -2000,10 +2062,6 @@ namespace temporalalgebra {
       this->left  = segments.add(leftSegment);
       this->right = segments.add(rightSegment);
       this->state = UNKNOWN;
-      boundingRect = getBoundingRec(leftStart);
-      boundingRect.Extend(getBoundingRec(leftEnd));
-      boundingRect.Extend(getBoundingRec(rightStart));
-      boundingRect.Extend(getBoundingRec(rightEnd)); 
     }// Konstruktor
        
     
@@ -2038,7 +2096,7 @@ namespace temporalalgebra {
     }// hasIntseg
     
     string PFace::toString(State state){
-      switch(state){
+      switch (state) {
         case UNKNOWN:      return "UNKNOWN";
         case RELEVANT:     return "RELEVANT";
         case CRITICAL:     return "CRITICAL";
@@ -2046,15 +2104,6 @@ namespace temporalalgebra {
         default: return "";
       }// switch
     }// toString
-    
-    Rectangle<2> PFace::getBoundingRec(const Point3D& point)const{
-      double array[2] = {point.getX(),point.getY()};
-      return Rectangle<2>(true,array,array);
-    }// getBoundingBox 
-    
-    Rectangle<2> PFace::getBoundingRec()const{
-      return boundingRect;
-    }// getBoundingBox 
     
     std::ostream& operator <<(std::ostream& os, const PFace& pf){
       return pf.print(os,"");
@@ -2103,11 +2152,11 @@ namespace temporalalgebra {
                           const RationalSegment3D &intSeg,
                           GlobalTimeValues &timeValues){
       Predicate result = LEFT_IS_INNER;
-      if(!planeSelf.isLeftAreaInner(intSeg,planeOther)){
+      if (!planeSelf.isLeftAreaInner(intSeg,planeOther)) {
         result = RIGHT_IS_INNER;
       } // if
       Segment2D segment = planeSelf.transform(intSeg);
-      if(this->state != CRITICAL)this->state = RELEVANT;     
+      if (this->state != CRITICAL) this->state = RELEVANT;     
       IntersectionSegment iSeg(intSeg,segment,result);
       timeValues.addTimeValue(iSeg.getTail().getT());
       timeValues.addTimeValue(iSeg.getHead().getT());
@@ -2118,7 +2167,7 @@ namespace temporalalgebra {
         const RationalPlane3D &planeSelf, Border border, Predicate predicate){
       Segment3D segment3D;
       Segment2D segment2D;
-      if(border == LEFT){
+      if (border == LEFT) {
         segment3D = Segment3D(this->leftStart,this->leftEnd);
         segment2D = planeSelf.transform(segment3D);
       }// if
@@ -2154,10 +2203,9 @@ namespace temporalalgebra {
                           Predicate predicate){
       Predicate leftPredicate  = segments.get(left).getPredicate();
       Predicate rightPredicate = segments.get(right).getPredicate();  
-      // cout << "      Add Border"<< endl;
-      if((state == UNKNOWN) && (leftPredicate == rightPredicate) && 
-        ((leftPredicate == INSIDE) || (leftPredicate == OUTSIDE))){
-        if(leftPredicate == predicate){
+      if ((state == UNKNOWN) && (leftPredicate == rightPredicate) && 
+         ((leftPredicate == INSIDE) || (leftPredicate == OUTSIDE))) {
+        if (leftPredicate == predicate) {
           state = RELEVANT;
           RationalPlane3D plane(*this);
           addBorder(plane,timeValues,predicate);          
@@ -2169,8 +2217,8 @@ namespace temporalalgebra {
       // Ein Pface mit einem Schnitt konnte in einer vorhergehenden 
       // Runde nicht bearbeitet werden. Die Kanten werden mit
       // ihren Predikaten erneut hinzugefügt
-      else if((state == RELEVANT || state == CRITICAL) && 
-              (leftPredicate != UNDEFINED || rightPredicate != UNDEFINED)){
+      else if ((state == RELEVANT || state == CRITICAL) && 
+              (leftPredicate != UNDEFINED || rightPredicate != UNDEFINED)) {
         RationalPlane3D plane(*this);        
         IntersectionSegment iSeg = createBorder(plane,LEFT,leftPredicate);
         addIntSeg(iSeg); 
@@ -2183,9 +2231,9 @@ namespace temporalalgebra {
                                    Predicate predicate){
       Predicate leftPredicate  = segments.get(this->left).getPredicate();
       Predicate rightPredicate = segments.get(this->right).getPredicate();      
-      if(leftPredicate == UNDEFINED) segments.set(this->left,predicate);
+      if (leftPredicate == UNDEFINED) segments.set(this->left,predicate);
       else NUM_FAIL("Left border predicate for PFace should not be set.");
-      if(rightPredicate == UNDEFINED) segments.set(this->right,predicate);
+      if (rightPredicate == UNDEFINED) segments.set(this->right,predicate);
       else NUM_FAIL("Right border predicate for PFace should not be set.");
     }// setBorderPredicate   
       
@@ -2194,7 +2242,7 @@ namespace temporalalgebra {
       // Boundingbox etwas vergrößern
       bRec.Extend(NumericUtil::eps2);
       // check bounding rectangles
-      if(!(this->boundingRect.Intersects(other.boundingRect))){
+      if (!(this->boundingRect.Intersects(other.boundingRect))) {
          return false; 
       }// if
       // create planes
@@ -2202,12 +2250,11 @@ namespace temporalalgebra {
       RationalPlane3D planeOther(other);
       // check planes
       if (planeSelf.isParallelTo(planeOther)) {
-        if(planeSelf.isCoplanarTo(planeOther)) {          
+        if (planeSelf.isCoplanarTo(planeOther)) {          
           this->state = CRITICAL;
           other.state = CRITICAL;  
         }// if 
-        else {
-        }// else
+        else { }// else
         return false;
       }// if
       RationalPoint3DExtSet intPointSet;
@@ -2217,7 +2264,7 @@ namespace temporalalgebra {
       planeOther.intersection(*this, UNIT_B, intPointSet);  
       // There is no intersection
       RationalSegment3D intSeg;
-      if(!intPointSet.getIntersectionSegment(intSeg)) return false;  
+      if (!intPointSet.getIntersectionSegment(intSeg)) return false;  
       IntersectionSegment iSeg;
       // create and save result segments
       addIntSeg(planeSelf,planeOther,intSeg,timeValues);
@@ -2242,7 +2289,7 @@ namespace temporalalgebra {
       // Variable für das Ergebnis
       bool result;
       // Für relevante und Kritrsche PFaces
-      if(this->state == RELEVANT || this->state == CRITICAL){
+      if (this->state == RELEVANT || this->state == CRITICAL) {
         // Ergebnis Factory erstellen
         this->factory = ResultUnitFactory(points, timeValues, *this);
         // Ergebnis Factory auswerten
@@ -2251,13 +2298,13 @@ namespace temporalalgebra {
         this->factory.getBorderPredicates(leftPredicate,rightPredicate); 
         // Wird für die Kanten kein definierter Wert geleifert, ist die 
         // Berechnung nicht erfolgreich geweseniefern 
-        if(leftPredicate == UNDEFINED && rightPredicate == UNDEFINED){
+        if (leftPredicate == UNDEFINED && rightPredicate == UNDEFINED) {
           // Berechnung war nicht erfolgreich 
           result = false;
         }// if
         // wird für beide Kanten ein definierter Wert geliefert,
         // so kann  dieser Wert übernommen werden
-        else if(leftPredicate != UNDEFINED && rightPredicate != UNDEFINED){
+        else if (leftPredicate != UNDEFINED && rightPredicate != UNDEFINED) {
           // Wert übernehmen
           segments.set(this->left,leftPredicate);
           segments.set(this->right,rightPredicate); 
@@ -2268,7 +2315,7 @@ namespace temporalalgebra {
         else {
           // wird für die linke Kante das Prädikat "INTERSECT" geliefert,
           // dann dieses übernehmen
-          if(leftPredicate == INTERSECT){
+          if (leftPredicate == INTERSECT) {
             // Segment entsprechend setzen
             segments.set(this->left,leftPredicate);
             // Ergebnis wurde noch nicht vollständig ermittelt.
@@ -2278,7 +2325,7 @@ namespace temporalalgebra {
           }// if
           // wird für die rechte Kante das Prädikat "INTERSECT" geleifert,
           // dan dieses übernehmen
-          if(rightPredicate == INTERSECT){
+          if (rightPredicate == INTERSECT) {
             // segment entsprechend setzen
             segments.set(this->right,rightPredicate);
             // Ergebnis wurde noch nicht vollständig ermittelt.
@@ -2288,7 +2335,7 @@ namespace temporalalgebra {
           }// if
         }// else      
       }// if
-      else if(this->state == NOT_RELEVANT) result = true;
+      else if (this->state == NOT_RELEVANT) result = true;
       // Für PFaces ohne Schnitte wird das Prädikat von der einen kante
       // zur anderen Kantew eiter gereicht
       else {
@@ -2298,9 +2345,9 @@ namespace temporalalgebra {
         rightPredicate = segments.get(this->right).getPredicate();
         // die Prädikate "INSIDE" und "OUTSIDE" werden von der linken Kante
         // auf die rechte Kante übernommen, falls erforderlich
-        if(leftPredicate == INSIDE || leftPredicate == OUTSIDE){
+        if (leftPredicate == INSIDE || leftPredicate == OUTSIDE) {
           // Prädikat ändern, wenn dieses "UNDEFINED"
-          if(rightPredicate == UNDEFINED) {
+          if (rightPredicate == UNDEFINED) {
             // Prädikat der rechten kante setzen
             segments.set(this->right,leftPredicate);
           }// if
@@ -2309,9 +2356,9 @@ namespace temporalalgebra {
         }// if
         // die Prädikate "INSIDE" und "OUTSIDE" werden von der rechten Kante
         // auf die linke Kante übernommen, falls erforderlich
-        if(rightPredicate == INSIDE || rightPredicate == OUTSIDE){
+        if (rightPredicate == INSIDE || rightPredicate == OUTSIDE) {
           // Prädikat ändern, falls dieses "UNDEFINED" ist
-          if(leftPredicate == UNDEFINED) {
+          if (leftPredicate == UNDEFINED) {
             // Prädikat der linken Kante setzen
             segments.set(this->left,rightPredicate);
           }// if
@@ -2376,7 +2423,7 @@ namespace temporalalgebra {
     
     void SourceUnit::set(const SourceUnit& other){
       this->segments = other.segments;
-      for(size_t i = 0; i < other.pFaces.size(); i++){
+      for (size_t i = 0; i < other.pFaces.size(); i++) {
         
         PFace* pFace = new PFace(PFace(*other.pFaces[i]));
         size_t index = this->pFaces.size();
@@ -2402,10 +2449,10 @@ namespace temporalalgebra {
     }// addPFace
     
     void SourceUnit::addMSegmentData(const MSegmentData& mSeg, 
-         const Interval<Instant>& interval, double tScale, 
+         const GlobalTimeValues& timeValues,
          ContainerPoint3D& points){
       size_t index = pFaces.size();
-      PFace* pFace = new PFace(mSeg, interval, tScale, points,this->segments);
+      PFace* pFace = new PFace(mSeg, timeValues, points,this->segments);
       pFaces.push_back(pFace);      
       Rectangle<2> boundigRec = pFace->getBoundingRec();
       pFaceTree.insert(boundigRec,index);  
@@ -2421,27 +2468,10 @@ namespace temporalalgebra {
       Rectangle<2> bRecB = other.pFaceTree.getBBox();
       return bRecA.Intersects(bRecB);
     }// intersect
-        
-    bool SourceUnit::createResultUnit(ResultUnit& result)const {
-      if(pFaces.size()!=0){
-        PFace pFace = *pFaces[0];
-        double t1 = pFace.getLeftStart().getZ();
-        double t2 = pFace.getLeftEnd().getZ();        
-        result =  ResultUnit(t1,t2);
-        return true;
-      }// if
-      return false;
-    }// createResultUnit
-                
+            
     void SourceUnit::addToResultUnit(ResultUnit& result)const{
-      for(size_t i = 0; i < pFaces.size(); i ++){
-        PFace pFace = *pFaces[i];
-        Point3D leftStart = pFace.getLeftStart();
-        Point3D leftEnd   = pFace.getLeftEnd();
-        Point3D rightStart= pFace.getRightStart();
-        Point3D rightEnd  = pFace.getRightEnd();
-        MSegment msegment(Segment3D(leftStart,leftEnd), 
-                          Segment3D(rightStart, rightEnd));
+      for (size_t i = 0; i < pFaces.size(); i ++) {
+        MSegment msegment = static_cast<MSegment> (*pFaces[i]);
         result.addMSegment(msegment,false);
       }// for
     }// addToResult
@@ -2449,7 +2479,7 @@ namespace temporalalgebra {
     bool SourceUnit::intersection(SourceUnit& other, 
                                   GlobalTimeValues& timeValues){
       bool result =false;
-      for(size_t i = 0; i < this->pFaces.size(); i++){
+      for (size_t i = 0; i < this->pFaces.size(); i++) {
         PFace* pFaceA = this->pFaces[i];
         Rectangle<2> bRec = (*pFaceA).getBoundingRec();
         // Boundingbox etwas vergrößern
@@ -2458,11 +2488,11 @@ namespace temporalalgebra {
         std::unique_ptr<mmrtree::RtreeT<2, size_t>::iterator> 
           it(other.pFaceTree.find(bRec)); 
         size_t const* j;  
-        while((j = it->next()) != 0) {
+        while ((j = it->next()) != 0) {
           PFace* pFaceB = other.pFaces[*j];
           pFaceA->intersection(*pFaceB,timeValues);
         }// while
-        if(pFaceA->existsIntSegs() || pFaceA->getState()==CRITICAL){
+        if (pFaceA->existsIntSegs() || pFaceA->getState()==CRITICAL) {
           pFaceA->addBorder(timeValues);
           this->itersectedPFace.push_back(i);
           touchFaceCycleEntry(pFaceA);
@@ -2470,7 +2500,7 @@ namespace temporalalgebra {
       }//for 
       for (size_t j = 0; j < other.pFaces.size(); j++) {
         PFace* pFaceB =other.pFaces[j];
-        if(pFaceB->existsIntSegs() || pFaceB->getState()==CRITICAL){
+        if (pFaceB->existsIntSegs() || pFaceB->getState()==CRITICAL) {
           pFaceB->addBorder(timeValues);
           other.itersectedPFace.push_back(j);
           other.touchFaceCycleEntry(pFaceB);
@@ -2492,11 +2522,11 @@ namespace temporalalgebra {
       // zuerst alle PFaces mit Schnitten
       //
       // über alle PFaces, welche an Schnitten beteidigt sind
-      for(size_t i = 0; i < this->itersectedPFace.size(); i++){
+      for (size_t i = 0; i < this->itersectedPFace.size(); i++) {
         // index eines geschnittenden PFace laden
         size_t index = itersectedPFace[i];
         // wurde die Kante noch nicht behandelt
-        if(!ok[index]){
+        if (!ok[index]) {
           // Ergebnis ermitteln
           bool result = this->pFaces[index]->finalize(
             points, this->segments,timeValues); 
@@ -2512,13 +2542,13 @@ namespace temporalalgebra {
       size_t j = 0;
       // zwei Durchläufe, falls nach dem ersten Durchlauf noch 
       // kein Ergebnis vorliegt
-      do{
+      do {
         // Ergebnis ist korrekt 
         finalize = true;
         // über alle PFaces
-        for(size_t i = 0; i < this->pFaces.size(); i++){
+        for (size_t i = 0; i < this->pFaces.size(); i++) {
           // wurde das PFace bereits erfolgreich bearbeitet
-          if(!ok[i]){
+          if (!ok[i]) {
             // Grenzen des PFace dem Ergebnis hinzufügen bzw. die
             // Grenzen aktualisieren
             this->pFaces[i]->addBorder(timeValues,segments,predicate);
@@ -2526,7 +2556,7 @@ namespace temporalalgebra {
             bool result = this->pFaces[i]->finalize(
               points,this->segments,timeValues);
             // war die operation erolgreich
-            if(result != true) finalize = false;
+            if (result != true) finalize = false;
             // erfolgreiche Verarbeitung vermerken
             else ok[i] = result;
           }// if
@@ -2535,12 +2565,12 @@ namespace temporalalgebra {
         j++;
         // zwei Durchläufe werden maximal benötigt. Der dritte
         // Durchlauf läuft ohne Bearbeitung durch
-        if(j >3) {          
-          // for(size_t i = 0; i< ok.size(); i++){
-          //   cout << ok[i];
-          // }// for
-          // cout << endl;
-          // cout << *this;
+        if (j >3) {          
+//         for (size_t i = 0; i< ok.size(); i++) {
+//           cout << ok[i];
+//          }// for
+//          cout << endl;
+//          cout << *this;
           NUM_FAIL("Finalize for Source Unit is not possible.");
         }// if
       } while (!finalize);
@@ -2551,7 +2581,7 @@ namespace temporalalgebra {
                               bool reverse, 
                               const ContainerPoint3D& points, 
                               ResultUnit& unit, SourceFlag source){
-       for(size_t i = 0; i < this->pFaces.size(); i++){
+       for (size_t i = 0; i < this->pFaces.size(); i++) {
          this->pFaces[i]->getResultUnit(slide,predicate,reverse,points,unit,
                                         source);
        }// for
@@ -2618,7 +2648,7 @@ namespace temporalalgebra {
         os << endl;
         this->segments.print(os,prefix+"  ");
         os << prefix << "  PFaces (" << endl;
-        for(size_t i = 0; i < pFaces.size(); i++){
+        for (size_t i = 0; i < pFaces.size(); i++) {
           os << prefix << "    Index:=" << i << ", " ; 
           this->pFaces[i]->print(os,prefix+"    ");
         }// for
@@ -2628,16 +2658,16 @@ namespace temporalalgebra {
       return os;
     }// print
     
-    std::ostream& operator <<(std::ostream& os, const SourceUnit& unit){
+    std::ostream& operator << (std::ostream& os, const SourceUnit& unit){
       unit.print(os,"");
       return os;
     }// Operator <<
     
-    bool SourceUnit::operator ==(const SourceUnit& unit)const{
-      if(!(this->segments == unit.segments)) return false;
-      if(this->pFaces.size() != unit.pFaces.size()) return false;
-      for(size_t i = 0; i < this->pFaces.size(); i++){
-        if(!(*(this->pFaces[i]) == *(unit.pFaces[i]))) return false;
+    bool SourceUnit::operator == (const SourceUnit& unit)const{
+      if (!(this->segments == unit.segments)) return false;
+      if (this->pFaces.size() != unit.pFaces.size()) return false;
+      for (size_t i = 0; i < this->pFaces.size(); i++) {
+        if (!(*(this->pFaces[i]) == *(unit.pFaces[i]))) return false;
       }// for
       return true;
     }// Operator ==
@@ -2658,7 +2688,7 @@ namespace temporalalgebra {
     void SourceUnit::reSort(){
       // Alte Einträge im R-Tree löschen
       size_t size = pFaces.size();
-      for(size_t i = 0; i < size; i++){
+      for (size_t i = 0; i < size; i++) {
         // PFace laden
         PFace* pf1 = pFaces[i];
         // Boundingbox bestimmen
@@ -2681,7 +2711,7 @@ namespace temporalalgebra {
       // Testregion aufbauen
       this->testRegion.StartBulkLoad();
       // über alle PFaces      
-      for(size_t i = 0; i < pFaces.size(); i++){
+      for (size_t i = 0; i < pFaces.size(); i++) {
         // Halbsegment des PFaces zur Testregion hinzufügen
         this->testRegion += pFaces[i]->getMedianHS();
       }// for
@@ -2690,7 +2720,7 @@ namespace temporalalgebra {
       // Testregion ist jetzt definiert
       this->testRegionDefined = true;
       // Ergebnis aus der Testregion in die PFaces eintragen     
-      for(size_t i = 0; i < pFaces.size(); i++) {
+      for (size_t i = 0; i < pFaces.size(); i++) {
         HalfSegment halfSegment;
         this->testRegion.Get(i, halfSegment);
         pFaces[i]->copyIndicesFrom(&halfSegment);
@@ -2699,12 +2729,12 @@ namespace temporalalgebra {
       sort(pFaces.begin(), pFaces.end(), SourceUnit::logicLess);
       // Erase the second half of mSegments, 
       // which contains all MSegments with right dominating point:
-      for(size_t i = pFaces.size()/2; i < pFaces.size(); i++){
+      for (size_t i = pFaces.size()/2; i < pFaces.size(); i++) {
         delete pFaces[i];
       }// for
       pFaces.erase(pFaces.begin() + pFaces.size()/2,  pFaces.end());
       // Rebuild R-Tree
-      for(size_t i = 0; i < pFaces.size(); i++){
+      for (size_t i = 0; i < pFaces.size(); i++) {
         PFace* pf1 = pFaces[i];
         // Boundingbox bestimmen
         Rectangle<2> boundigRec = pf1->getBoundingRec();
@@ -2722,11 +2752,11 @@ namespace temporalalgebra {
       if(segmentNo == -1 || cycleNo == -1 || faceNo == -1){
         NUM_FAIL("SegmentNo, CycleNo or FaceNo for a PFace schould not be -1.");
       }// if
-      if(segmentNo == 0){
-        while(faceNo >= static_cast<int>(faceCycleInfo.size())){
+      if (segmentNo == 0) {
+        while (faceNo >= static_cast<int>(faceCycleInfo.size())) {
           faceCycleInfo.push_back(vector<FaceCycleInfo>());
         }// while
-        while(cycleNo >= static_cast<int>(faceCycleInfo[faceNo].size())){
+        while (cycleNo >= static_cast<int>(faceCycleInfo[faceNo].size())) {
           faceCycleInfo[faceNo].push_back(FaceCycleInfo());
         }// while
         faceCycleInfo[faceNo][cycleNo].setFirstIndex(index);
@@ -2736,24 +2766,24 @@ namespace temporalalgebra {
     void SourceUnit::touchFaceCycleEntry(const PFace* pf){
       int cycleNo   = pf->getCycleNo();
       int faceNo    = pf->getFaceNo();
-      if(cycleNo == -1 || faceNo == -1) return; 
-      if(faceNo < static_cast<int>(faceCycleInfo.size())){
-        if(cycleNo < static_cast<int>(faceCycleInfo[faceNo].size())){
+      if (cycleNo == -1 || faceNo == -1) return; 
+      if (faceNo < static_cast<int>(faceCycleInfo.size())) {
+        if (cycleNo < static_cast<int>(faceCycleInfo[faceNo].size())) {
           faceCycleInfo[faceNo][cycleNo].setTouch();
         }// if
       }//if     
     }// touchFaceCycleSegment
     
     void SourceUnit::checkFaceCycleEntrys(SourceUnit& other){
-      for(size_t i = 0; i < faceCycleInfo.size(); i++){
-        for(size_t j = 0; j < faceCycleInfo[i].size();j++){      
+      for (size_t i = 0; i < faceCycleInfo.size(); i++) {
+        for (size_t j = 0; j < faceCycleInfo[i].size();j++) {      
           FaceCycleInfo info = faceCycleInfo[i][j];
-          if(!info.getTouch()){
-            if(!other.testRegionDefined){
-                other.createTestRegion();
+          if (!info.getTouch()){
+            if (!other.testRegionDefined) {
+              other.createTestRegion();
             }// if
             PFace* pFace = pFaces[info.getFirstIndex()];
-            if(other.isInside(pFace)){
+            if (other.isInside(pFace)) {
               pFace->setBorderPredicate(this->segments,INSIDE);
             }// if
             else {
@@ -2765,12 +2795,12 @@ namespace temporalalgebra {
     }// checkFaceCycleEntrys
     
     void SourceUnit::printFaceCycleEntrys(){       
-      for(size_t i = 0; i < faceCycleInfo.size(); i++){
-        for(size_t j = 0; j < faceCycleInfo[i].size();j++){
+      for (size_t i = 0; i < faceCycleInfo.size(); i++) {
+        for (size_t j = 0; j < faceCycleInfo[i].size();j++) {
           FaceCycleInfo info = faceCycleInfo[i][j];
           cout << "FaceNo:=" << i << ", CycleNo:=" << j;
           cout << ", FirstIndex:=" << info.getFirstIndex();
-          if(info.getTouch()){
+          if (info.getTouch()) {
             cout << ", Touch:=true"<< endl;
           }// if
           else {
@@ -2782,7 +2812,7 @@ namespace temporalalgebra {
         
     void SourceUnit::createTestRegion(){
       this->testRegion.StartBulkLoad();
-      for( size_t i = 0; i < pFaces.size(); i++){
+      for (size_t i = 0; i < pFaces.size(); i++) {
         HalfSegment medianHS = pFaces[i]->getMedianHS();
         medianHS.attr.edgeno  = i;
         medianHS.attr.cycleno = -1;
@@ -2797,21 +2827,24 @@ namespace temporalalgebra {
     }// createTestRegion
     
     bool SourceUnit::isInside(const PFace* pFace)const {
-      if(!(this->testRegionDefined)){
+      if (!(this->testRegionDefined)) {
         NUM_FAIL ("Test region is not defined.");
       }// if
       HalfSegment halfSegment = pFace->getMedianHS();
       Point left  = halfSegment.GetLeftPoint();
       return testRegion.Contains(left);
-    }// isInside
-    
+    }// isInside    
 /*
 Class SourceUnitPair      
 
 */     
-    SourceUnitPair::SourceUnitPair(){
+    SourceUnitPair::SourceUnitPair():timeValues(){
     }// Konstruktor
-      
+    
+    SourceUnitPair::SourceUnitPair(const Interval<Instant>& orginalInterval):
+                                   timeValues(orginalInterval){
+    }// Konstruktor
+          
     void SourceUnitPair::addPFace(SourceFlag flag, Segment3D& leftSegment, 
                                   Segment3D& rightSegment){
       Point3D leftStart = leftSegment.getTail();
@@ -2822,9 +2855,9 @@ Class SourceUnitPair
       size_t iLeftEnd   = points.add(leftEnd);
       size_t iRightStart= points.add(rightStart); 
       size_t iRightEnd  = points.add(rightEnd);
-      Segment left(iLeftStart,iLeftEnd, UNDEFINED);
+      Segment left(iLeftStart, iLeftEnd, UNDEFINED);
       Segment right(iRightStart, iRightEnd, UNDEFINED);      
-      if(flag == UNIT_A){
+      if (flag == UNIT_A) {
         unitA.addPFace(left,right,points); 
       }// if
       else {
@@ -2833,12 +2866,12 @@ Class SourceUnitPair
     }// addPFace
       
     void SourceUnitPair::addMSegmentData(const MSegmentData& mSeg, 
-        const Interval<Instant>& interval, double tScale, SourceFlag flag){
-      if(flag == UNIT_A){
-        unitA.addMSegmentData(mSeg, interval, tScale, points); 
+                                         SourceFlag flag){
+      if (flag == UNIT_A){
+        unitA.addMSegmentData(mSeg, this->timeValues, points); 
       }// if
       else {
-        unitB.addMSegmentData(mSeg, interval, tScale, points); 
+        unitB.addMSegmentData(mSeg, this->timeValues, points); 
       }// else     
     }// addPFace
     
@@ -2855,10 +2888,10 @@ Class SourceUnitPair
       os << prefix << "  UnitB:= "<< endl;
       this->unitB.print(os,"    ");
       os << prefix << "  )" << endl;
-      if(result.size() == 0) os << prefix << "  No result exist" << endl;
+      if (result.size() == 0) os << prefix << "  No result exist" << endl;
       else {
         os << prefix << "  Result:=" << endl;
-        for(size_t i = 0; i < result.size(); i++){
+        for (size_t i = 0; i < result.size(); i++) {
           result[i].print(os, prefix+"    ");
         }// for
       }// if
@@ -2873,21 +2906,23 @@ Class SourceUnitPair
     }// Operator <<
     
     bool SourceUnitPair::operate(SetOp setOp){  
-      if(unitA.isEmpty()|| unitB.isEmpty() ||
-        (!unitA.intersect(unitB))){
-        if(setOp == INTERSECTION) {
+      if (unitA.isEmpty()|| unitB.isEmpty() ||
+         (!unitA.intersect(unitB))) {
+        if (setOp == INTERSECTION) {
           // Result is empty: nothing to do.
           return false;
         }// if
-        if(setOp == MINUS){
-          if(unitA.isEmpty()){
+        if (setOp == MINUS) {
+          if (unitA.isEmpty()) {
             // Result is empty: nothing to do.
             return false;
           }// if
           // unitB is empty
-          else{
+          else {
             result = vector<ResultUnit>(1,ResultUnit());
-            unitA.createResultUnit(result[0]);      
+            // unitA.createResultUnit(result[0]); 
+            result[0] = ResultUnit(timeValues.getOrginalStartTime(),
+                                   timeValues.getOrginalEndTime());
             unitA.addToResultUnit(result[0]);            
             result[0].finalize();
             return false;
@@ -2895,7 +2930,9 @@ Class SourceUnitPair
         }// if
         // setOp == UNION
         result = vector<ResultUnit>(1,ResultUnit());
-        unitA.createResultUnit(result[0]);      
+        // unitA.createResultUnit(result[0]);
+        result[0] = ResultUnit(timeValues.getOrginalStartTime(),
+                               timeValues.getOrginalEndTime());
         unitA.addToResultUnit(result[0]);
         unitB.addToResultUnit(result[0]);
         result[0].finalize();
@@ -2907,34 +2944,33 @@ Class SourceUnitPair
       bool inverseB = false;
       Predicate predicateA = OUTSIDE;
       Predicate predicateB = OUTSIDE;
-      if(setOp == MINUS){
+      if (setOp == MINUS){
         inverseB   = true;
         predicateB = INSIDE;
       }// if
-      else if(setOp == INTERSECTION){
+      else if (setOp == INTERSECTION){
         predicateA = INSIDE;
         predicateB = INSIDE;
       }// else if        
-      // cout << points;
-      // cout << timeValues;
-      // cout << unitA;
-      // cout << unitB;      
+//       cout << points;
+//       cout << timeValues;
+//       cout << unitA;
+//       cout << unitB;      
       unitA.finalize(points, timeValues, predicateA);  
-      // cout << unitA;       
+//       cout << unitA;       
       unitB.finalize(points, timeValues, predicateB);      
-      // cout << unitB;      
+//       cout << unitB;      
       // get result Units          
-      if(timeValues.size() != 0){
+      if (timeValues.size() != 0){
         result = vector<ResultUnit>(timeValues.size()-1, ResultUnit());
         double t1,t2;
         size_t i = 0;
-        timeValues.first(t1);
-        while(timeValues.next(t2)){
+        timeValues.orginalFirst(t1);
+        while (timeValues.orginalNext(t2)){
           result[i] = ResultUnit(t1,t2);
-          unitA.getResultUnit(i, predicateA, false, points, result[i], 
-                              UNIT_A);
-          unitB.getResultUnit(i, predicateB, inverseB, points, result[i], 
-                              UNIT_B);
+          unitA.getResultUnit(i, predicateA, false, points, result[i], UNIT_A);
+          unitB.getResultUnit(i, predicateB, inverseB, points, 
+                              result[i], UNIT_B);
           result[i].evaluateCriticalMSegmens(setOp);
           result[i].finalize();
           t1 = t2;
@@ -2944,13 +2980,12 @@ Class SourceUnitPair
       return false;      
     }// operate
     
-    void SourceUnitPair::createResultMRegion(double tScale, 
-                                             MRegion* resMRegion){
+    void SourceUnitPair::createResultMRegion(MRegion* resMRegion){
       DbArray<MSegmentData>* array = 
         (DbArray<MSegmentData>*)resMRegion->GetFLOB(1);
-      for(size_t i = 0; i < result.size(); i++){        
+      for (size_t i = 0; i < result.size(); i++){        
         if (result[i].size()!=0) {
-          URegionEmb* ure = result[i].convertToURegionEmb(tScale,array);
+          URegionEmb* ure = result[i].convertToURegionEmb(array);
           resMRegion->Add(*ure);
           delete ure;
         }// if
@@ -2965,18 +3000,16 @@ Class SourceUnitPair
       return result[slide];
     }// getResultUnit 
 /*
-classe SetOperator
+class SetOperator
 
 */
-      SetOperator::SetOperator(MRegion* const _mRegionA, 
-                               MRegion* const _mRegionB,
-                               MRegion* const _mRegionResult):
-          mRegionA(_mRegionA), 
-          mRegionB(_mRegionB), 
-          mRegionResult(_mRegionResult),
-          tScale(1){
-      }// Konstruktor
-
+    SetOperator::SetOperator(MRegion* const _mRegionA, 
+                             MRegion* const _mRegionB,
+                             MRegion* const _mRegionResult):
+        mRegionA(_mRegionA), 
+        mRegionB(_mRegionB), 
+        mRegionResult(_mRegionResult){
+    }// Konstruktor
 
     void SetOperator::operate(SetOp setOp){
       // Beide MRegionen müssen definiert sein
@@ -2987,7 +3020,7 @@ classe SetOperator
       // Compute the RefinementPartition of the two MRegions
       RefinementPartition< MRegion, MRegion, URegionEmb, URegionEmb> 
         rp(*mRegionA, *mRegionB);
-      //cout << "RefinementPartition with " << rp.Size() << " units created.";
+//      cout << "RefinementPartition with " << rp.Size() << " units created.";
       // MRegion des Ergebnisses löschen
       mRegionResult->Clear();
       // Speicherbereich der MSegmentData löschen
@@ -2999,22 +3032,22 @@ classe SetOperator
         Interval<Instant> interval;
         int aPos, bPos;
         bool aIsEmpty, bIsEmpty;
-        SourceUnitPair unitPair;
         // liefere den entsprechenden Eintrag
-        rp.Get(i, interval, aPos, bPos);        
+        rp.Get(i, interval, aPos, bPos);         
+        SourceUnitPair unitPair(interval);
         // Bestimmen ob eine der beiden zu erzuegenden Units leer ist  
         aIsEmpty = (aPos == -1);
         bIsEmpty = (bPos == -1);
         // Vereinfachungen suchen     
         if (!aIsEmpty) {
           createSourceUnit(interval, mRegionA, UNIT_A, unitPair);
-       }// if
+        }// if
         if (!bIsEmpty) {
           createSourceUnit(interval, mRegionB, UNIT_B, unitPair);
         }// if
         unitPair.operate(setOp);        
-        // cout << unitPair;               
-        unitPair.createResultMRegion(this->tScale, mRegionResult);        
+//        cout << unitPair;               
+        unitPair.createResultMRegion( mRegionResult);        
       }// for
       mRegionResult->EndBulkLoad(false);
     }// operate  
@@ -3023,29 +3056,28 @@ classe SetOperator
                           MRegion* mregion,
                           SourceFlag sourceFlag, 
                           SourceUnitPair& unitPair){
-        MRegion* temp;
-        URegionEmb unitRestrict;
-        URegionEmb* unit;
-        const DbArray<MSegmentData>* array;     
+      MRegion* temp;
+      URegionEmb unitRestrict;
+      URegionEmb* unit;
+      const DbArray<MSegmentData>* array;     
 
-        Periods intervalAsPeriod(1);
-        intervalAsPeriod.Add(interval);        
-        temp = new MRegion(1);
-        temp->AtPeriods(&intervalAsPeriod, mregion);
-        temp->Get(0, unitRestrict);        
-        array = temp->GetMSegmentData();      
-        unit = new URegionEmb(unitRestrict.timeInterval,
-                              unitRestrict.GetStartPos());
-        unit->SetSegmentsNum(unitRestrict.GetSegmentsNum());
-        unit->SetBBox(unitRestrict.BoundingBox());
-        MSegmentData segment;
-        for(int i = 0; i < unit->GetSegmentsNum();i++){
-          unit->GetSegment(array, i, segment);
-          unitPair.addMSegmentData( segment, interval, this->tScale, 
-                                    sourceFlag);
-        }// for  
-        delete temp;
-        delete unit;        
+      Periods intervalAsPeriod(1);
+      intervalAsPeriod.Add(interval);        
+      temp = new MRegion(1);
+      temp->AtPeriods(&intervalAsPeriod, mregion);
+      temp->Get(0, unitRestrict);        
+      array = temp->GetMSegmentData();      
+      unit = new URegionEmb(unitRestrict.timeInterval,
+                            unitRestrict.GetStartPos());
+      unit->SetSegmentsNum(unitRestrict.GetSegmentsNum());
+      unit->SetBBox(unitRestrict.BoundingBox());
+      MSegmentData segment;
+      for(int i = 0; i < unit->GetSegmentsNum();i++){
+        unit->GetSegment(array, i, segment);
+        unitPair.addMSegmentData(segment, sourceFlag);
+      }// for  
+      delete temp;
+      delete unit;        
     }// CreateSourceUnit
 
   } // end of namespace mregionops3

@@ -80,6 +80,7 @@ Returns ~true~ if $-eps \le a-b \le eps$.
 Returns ~true~ if $a < b-eps$.
 
 */      
+      static bool lower(double a, double b);
       static bool lower(const mpq_class& a, const mpq_class& b);
       
       static bool lowerOrNearlyEqual(double a, double b);
@@ -93,6 +94,7 @@ Returns ~true~ if $a > b+eps$.
 
 */ 
       static bool greater(const mpq_class& a, const mpq_class& b);
+      static bool greater(double a, double b);
       
       static bool greaterOrNearlyEqual(double a, double b); 
       static bool greaterOrNearlyEqual(const mpq_class&  a, 

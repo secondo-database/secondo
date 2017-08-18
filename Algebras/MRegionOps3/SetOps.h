@@ -621,6 +621,8 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
 
 */   
       GlobalTimeValues();
+      
+      GlobalTimeValues(const Interval<Instant>& orginalInterval);
 /*
 13.3 Methods, operators and predicates
 
@@ -628,6 +630,21 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
 
 */      
       void addTimeValue(double t);
+      
+      void setScaleFactor(double scaleFactor);
+      
+      Interval<Instant> getOrginalInterval()const;
+      
+      Interval<Instant> getScaledInterval()const;
+      
+      double getOrginalStartTime()const;
+    
+      double getOrginalEndTime()const;
+    
+      double getScaledStartTime()const;
+    
+      double getScaledEndTime()const;
+         
 /*
 13.3.2 size
 
@@ -649,13 +666,22 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
 13.3.2 first
 
 */        
-      bool first(double& t);
+      bool scaledFirst(double& t);
+      
+      bool orginalFirst(double& t);
 /*
 13.3.2 next
 
 */        
-      bool next(double& t);           
-    private: 
+      bool scaledNext(double& t); 
+      
+      bool orginalNext(double& t);       
+      
+    private:             
+      
+      Interval<Instant> createInterval(double start, double end) const;
+      
+      double computeOrginalTimeValue(double scaledTimeValue)const;
 /*
 13.4 Attributes
 
@@ -664,6 +690,10 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
       std::set<double, DoubleCompare>::const_iterator timeIter;
       double t1;
       double t2;
+      double orginalStartTime;
+      double orginalEndTime;
+      double scale;
+      
     }; // GlobalTimeValues   
 /*
 14 class MSegment
@@ -681,8 +711,7 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
                int faceno, int cycleno, int edgeno, bool leftDomPoint, 
                bool insideAbove);
       
-      MSegment(const MSegmentData& mSeg, const Interval<Instant>& interval,
-               double tScale);
+      MSegment(const MSegmentData& mSeg, const GlobalTimeValues& timeValues);
                   
       int getFaceNo() const; 
       int getCycleNo() const;
@@ -693,6 +722,10 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
       Point3D getRightStart() const;
       Point3D getRightEnd() const;
       HalfSegment getMedianHS() const;
+      
+      Rectangle<2> getBoundingRec()const;
+      
+      MSegmentData getMSegmentData() const;
       
       bool isLeftDomPoint() const;
       
@@ -750,6 +783,8 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
                const Point3D rightStart, const Point3D rightEnd);
       
       void createMedianHS();
+      
+      Rectangle<2> getBoundingRec(const Point3D& point)const; 
 /*
 14.4 Attributes
 
@@ -760,6 +795,7 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       Point3D rightEnd;      
       HalfSegment medianHS;  
       bool insideAbove;
+      Rectangle<2> boundingRect;  
     }; // MSegment  
 /*
 
@@ -836,7 +872,7 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
     public:
       ResultUnit();
 
-      ResultUnit(double startTime,double endTime);
+      ResultUnit(double orginalStartTime,double orginalEndTime);
       
       ResultUnit(const ResultUnit& other);
       
@@ -846,7 +882,7 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       
       void addCMSegment(const CriticalMSegment& mSegment);
       
-      Interval<Instant> getTimeInterval(double tScale) const;
+      Interval<Instant> getTimeInterval() const;
 
       size_t size();
 /*
@@ -864,17 +900,16 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
 16.3.5 operator ==
     
 */     
-      bool operator ==(const ResultUnit& unit)const; 
+      bool operator ==(const ResultUnit& unit) const; 
 /*
 16.3.6 operator =
     
 */       
-      ResultUnit& operator =(const ResultUnit& unit);  
+      ResultUnit& operator = (const ResultUnit& unit);  
 
       void finalize();
       
-      URegionEmb* convertToURegionEmb(double tScale, 
-                                      DbArray<MSegmentData>* segments)const;
+      URegionEmb* convertToURegionEmb(DbArray<MSegmentData>* segments) const;
       
       void evaluateCriticalMSegmens(SetOp setOp);
             
@@ -891,10 +926,9 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
 
 */         
       std::vector<MSegment> mSegments;
-      std::vector<CriticalMSegment> mCSegments;
-      int index;
-      double startTime;
-      double endTime;      
+      std::vector<CriticalMSegment> mCSegments;                
+      double orginalStartTime;
+      double orginalEndTime;      
     };// ResultUnit        
 /*
 17 class ResultUnitFactory
@@ -998,8 +1032,8 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       PFace(size_t left, size_t right,const ContainerPoint3D& points, 
             const ContainerSegment& segments);
       
-      PFace(const MSegmentData& mSeg, const Interval<Instant>& interval,
-            double tScale, ContainerPoint3D& points, 
+      PFace(const MSegmentData& mSeg, const GlobalTimeValues& timeValues,
+            ContainerPoint3D& points, 
             ContainerSegment& segments);
             
       PFace(const PFace& pf); 
@@ -1010,7 +1044,6 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       void    set(const PFace& pf);
       void    setState(State state);
       State   getState() const;
-      Rectangle<2> getBoundingRec()const;
 /*
 18.3 Methods, operators and predicates
 
@@ -1099,13 +1132,6 @@ Computes the intersection of this ~PFace~ with pf.
                          SourceFlag source);
     private:  
 /*
-18.4 Private methods
-
-18.4.1 getBoundingRec
-
-*/
-      Rectangle<2> getBoundingRec(const Point3D& point)const;    
-/*
 18.4.3 createBorder
 
 */        
@@ -1118,7 +1144,6 @@ Computes the intersection of this ~PFace~ with pf.
       IntSegContainer    intSegs;
       ResultUnitFactory factory;
       State              state;
-      Rectangle<2>       boundingRect;   
       size_t             left;
       size_t             right;  
     };// class PFace  
@@ -1172,15 +1197,13 @@ Computes the intersection of this ~PFace~ with pf.
                     const ContainerPoint3D& points);
       
       void addMSegmentData(const MSegmentData& mSeg, 
-                           const Interval<Instant>& interval, double tScale,
+                           const GlobalTimeValues& timeValues,
                            ContainerPoint3D& points);
       
       bool isEmpty()const;
       
       bool intersect(const SourceUnit& other)const;
-      
-      bool createResultUnit(ResultUnit& result)const;
-      
+
       void addToResultUnit(ResultUnit& result)const;
       
 /*
@@ -1255,11 +1278,11 @@ Print the object values to stream.
     public:
       SourceUnitPair();
       
+      SourceUnitPair(const Interval<Instant>& orginalInterval);
+                  
       void addPFace(SourceFlag flag, Segment3D& left, Segment3D& right);
       
-      void addMSegmentData(const MSegmentData& mSeg, 
-                           const Interval<Instant>& interval, double tScale,
-                           SourceFlag sourceFlag);
+      void addMSegmentData(const MSegmentData& mSeg, SourceFlag sourceFlag);
       
       bool operate(SetOp setOp);
       
@@ -1272,7 +1295,7 @@ Print the object values to stream.
       
       ResultUnit getResultUnit(size_t slide)const;
       
-      void createResultMRegion(double tScale, MRegion* resMRegion);
+      void createResultMRegion( MRegion* resMRegion);
 
     private:      
 /*
@@ -1282,7 +1305,8 @@ Print the object values to stream.
       SourceUnit unitA;
       SourceUnit unitB;
       std::vector<ResultUnit> result;
-      GlobalTimeValues timeValues;  
+      
+      GlobalTimeValues timeValues;        
       ContainerPoint3D points; 
     };
 /*
@@ -1310,7 +1334,7 @@ Print the object values to stream.
       MRegion* const mRegionA;
       MRegion* const mRegionB;
       MRegion* const mRegionResult;
-      double tScale;
+//      double tScale;
     }; // class SetOperator
 
   } // end of namespace mregionops3
