@@ -40,11 +40,11 @@ namespace ColumnMovingAlgebra
 
   size_t MPoints::GetSize() const
   {
-    return	m_MPointsData->savedSize() +
-        m_DefTimes->savedSize() +
-        sizeof(m_Mbr) +
-        sizeof(bool) +
-        (m_GridIndex.get() != 0 ? m_GridIndex->savedSize() : 0);
+    return m_MPointsData->savedSize() +
+           m_DefTimes->savedSize() +
+           sizeof(m_Mbr) +
+           sizeof(bool) +
+           (m_GridIndex.get() != 0 ? m_GridIndex->savedSize() : 0);
   }
 
   void MPoints::Save(CRelAlgebra::Writer &target, bool includeHeader) const
@@ -482,8 +482,7 @@ namespace ColumnMovingAlgebra
     result.Clear();
 
     if (!value.IsDefined()) {
-
-      return;			
+      return;
 
     } else if (m_GridIndex.get() != 0) {
 
