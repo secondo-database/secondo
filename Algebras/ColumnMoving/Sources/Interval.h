@@ -24,84 +24,142 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include "SimpleAttrArray.h"
-#include "StandardTypes.h"
+#include "TemporalAlgebra.h"
 
 namespace ColumnMovingAlgebra
 {
-  class BoolEntry
-  {
-  public:
-    enum Values { UNDEFINED, DEFINED_FALSE, DEFINED_TRUE };
-    
-    typedef CcBool AttributeType;
+  struct Interval {
+    int64_t s, e;
+    bool lc, rc;
 
-    static const bool isPrecise = true;
+    Interval() = default;
+    Interval(int64_t s, int64_t e, bool lc, bool rc);
+    Interval(temporalalgebra::Interval<Instant> i);
+    temporalalgebra::Interval<Instant> convert();
 
-    BoolEntry()
-    {
-    }
-
-    BoolEntry(Values value) :
-      m_Value(value)
-    {
-    }
-
-    BoolEntry(const CcBool &value) :
-      m_Value(value.IsDefined() ? 
-        (value.GetValue() ? DEFINED_TRUE : DEFINED_FALSE) : 
-        UNDEFINED)
-    {
-    }
-
-    bool IsDefined() const
-    {
-      return m_Value != UNDEFINED;
-    }
-
-    int Compare(const BoolEntry &value) const
-    {
-      int d = this->m_Value - value.m_Value;
-      if (d != 0)
-        return d < 0 ? -1 : 1;
-        
-      return 0;
-    }
-
-    int Compare(const CcBool &value) const
-    {
-      BoolEntry b(value);
-      return Compare(b);
-    }
-
-    bool Equals(const BoolEntry &value) const
-    {
-      return Compare(value) == 0;
-    }
-
-    bool Equals(const CcBool &value) const
-    {
-      return Compare(value) == 0;
-    }
-
-    size_t GetHash() const
-    {
-      return m_Value;
-    }
-
-    CcBool *GetAttribute(bool clone = true) const
-    {
-      return new CcBool(m_Value != UNDEFINED, m_Value == DEFINED_TRUE);
-    }
-
-    operator bool() const
-    {
-      return m_Value == DEFINED_TRUE;
-    }
-
-    Values m_Value;
+    int64_t length();
+    bool before(int64_t instant);
+    bool after(int64_t instant);
+    bool contains(int64_t instant);
+    bool before(Interval & b);
+    bool after(Interval & b);
+    bool intersects(Interval & b);
+    Interval intersection(Interval & b);
+    bool endsFirstComparedTo(Interval & b);
+    int compare(Interval b);
   };
 
-  typedef CRelAlgebra::SimpleFSAttrArray<BoolEntry> Bools;
-  typedef CRelAlgebra::SimpleFSAttrArrayIterator<BoolEntry> BoolsIterator;
+
+
+  inline Interval::Interval(int64_t s, int64_t e, bool lc, bool rc) :
+    s(s),
+    e(e),
+    lc(lc),
+    rc(rc)
+  {
+  }
+
+  inline Interval::Interval(temporalalgebra::Interval<Instant> i) :
+    s(i.start.millisecondsToNull()),
+    e(i.end.millisecondsToNull()),
+    lc(i.lc),
+    rc(i.rc)
+  {
+  }
+
+  inline temporalalgebra::Interval<Instant> Interval::convert()
+  {
+    return temporalalgebra::Interval<Instant>(s, e, lc, rc);
+  }
+
+  inline int64_t ColumnMovingAlgebra::Interval::length()
+  {
+    return e - s;
+  }
+
+  inline bool Interval::before(int64_t instant)
+  {
+    return e < instant || (e == instant && !rc);
+  }
+
+  inline bool Interval::after(int64_t instant)
+  {
+    return s > instant || (s == instant && !lc);
+  }
+
+  inline bool ColumnMovingAlgebra::Interval::contains(int64_t instant)
+  {
+    return !before(instant) && !after(instant);
+  }
+
+  inline bool Interval::before(Interval & b)
+  {
+    return e < b.s || (e == b.s && (!rc || !b.lc));
+  }
+
+  inline bool Interval::after(Interval & b)
+  {
+    return s > b.e || (s == b.e && (!lc || !b.rc));
+  }
+
+  inline bool Interval::intersects(Interval & b)
+  {
+    return !before(b) && !after(b);
+  }
+
+  inline Interval Interval::intersection(Interval & b)
+  {
+    Interval i;
+
+    if (s > b.s) {
+      i.s = s;
+      i.lc = lc;
+    }
+    else if (s < b.s) {
+      i.s = b.s;
+      i.lc = b.lc;
+    } else {
+      i.s = s;
+      i.lc = lc && b.lc;
+    }
+
+    if (e < b.e) {
+      i.e = e;
+      i.rc = rc;
+    } else if (e > b.e) {
+      i.e = b.e;
+      i.rc = b.rc;
+    } else {
+      i.e = e;
+      i.rc = rc && b.rc;
+    }
+
+    return i;
+  }
+
+  inline bool Interval::endsFirstComparedTo(Interval & b)
+  {
+    return e < b.e || (e == b.e && !rc && b.rc);
+  }
+
+  inline int Interval::compare(Interval b)
+  {
+    int64_t tDiff;
+
+    tDiff = s - b.s;
+    if (tDiff != 0)
+      return tDiff < 0 ? -1 : 1;
+
+    tDiff = e - b.e;
+    if (tDiff != 0)
+      return tDiff < 0 ? -1 : 1;
+
+    if (lc != b.lc)
+      return lc ? -1 : 1;
+
+    if (rc != b.rc)
+      return rc ? -1 : 1;
+
+    return 0;
+  }
 }
