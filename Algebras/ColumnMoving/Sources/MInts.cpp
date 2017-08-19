@@ -40,16 +40,16 @@ namespace ColumnMovingAlgebra
 
   size_t MInts::GetSize() const
   {
-    return	m_DefTimes         ->savedSize() + 
-        m_Units            ->savedSize() + 
-        m_Rows             ->savedSize();
+    return m_DefTimes->savedSize() + 
+           m_Units   ->savedSize() + 
+           m_Rows    ->savedSize();
   }
 
   void MInts::Save(CRelAlgebra::Writer &target, bool includeHeader) const
   {
-    m_DefTimes         ->save(target);
-    m_Units            ->save(target);
-    m_Rows             ->save(target, includeHeader);
+    m_DefTimes->save(target);
+    m_Units   ->save(target);
+    m_Rows    ->save(target, includeHeader);
   }
 
   void MInts::Append(const CRelAlgebra::AttrArray & array, size_t row)
