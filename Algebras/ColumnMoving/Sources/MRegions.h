@@ -89,12 +89,12 @@ namespace ColumnMovingAlgebra
     struct Unit { Interval interval; int firstFace; };
     struct MRegion { int firstUnit; };
 
-    shared_ptr<Array<Edge>> m_Edges;
-    shared_ptr<Array<Cycle>> m_Cycles;
-    shared_ptr<Array<Face>> m_Faces;
-    shared_ptr<Array<Unit>> m_Units;
-    shared_ptr<Array<MRegion>> m_MRegions;
-    shared_ptr<DefTimes> m_DefTimes;
+    std::shared_ptr<Array<Edge>> m_Edges;
+    std::shared_ptr<Array<Cycle>> m_Cycles;
+    std::shared_ptr<Array<Face>> m_Faces;
+    std::shared_ptr<Array<Unit>> m_Units;
+    std::shared_ptr<Array<MRegion>> m_MRegions;
+    std::shared_ptr<DefTimes> m_DefTimes;
 
     void addMRegion();
     void addUnit(Interval interval);
@@ -123,33 +123,33 @@ namespace ColumnMovingAlgebra
 
 
   inline MRegions::MRegions() :
-    m_Edges(make_shared<Array<Edge>>()),
-    m_Cycles(make_shared<Array<Cycle>>()),
-    m_Faces(make_shared<Array<Face>>()),
-    m_Units(make_shared<Array<Unit>>()),
-    m_MRegions(make_shared<Array<MRegion>>()),
-    m_DefTimes(make_shared<DefTimes>())
+    m_Edges(std::make_shared<Array<Edge>>()),
+    m_Cycles(std::make_shared<Array<Cycle>>()),
+    m_Faces(std::make_shared<Array<Face>>()),
+    m_Units(std::make_shared<Array<Unit>>()),
+    m_MRegions(std::make_shared<Array<MRegion>>()),
+    m_DefTimes(std::make_shared<DefTimes>())
   {
   }
 
   inline MRegions::MRegions(CRelAlgebra::Reader& source)
   {
-    m_Edges = make_shared<Array<Edge>>(source);
-    m_Cycles = make_shared<Array<Cycle>>(source);
-    m_Faces = make_shared<Array<Face>>(source);
-    m_Units = make_shared<Array<Unit>>(source);
-    m_MRegions = make_shared<Array<MRegion>>(source);
-    m_DefTimes = make_shared<DefTimes>(source);
+    m_Edges = std::make_shared<Array<Edge>>(source);
+    m_Cycles = std::make_shared<Array<Cycle>>(source);
+    m_Faces = std::make_shared<Array<Face>>(source);
+    m_Units = std::make_shared<Array<Unit>>(source);
+    m_MRegions = std::make_shared<Array<MRegion>>(source);
+    m_DefTimes = std::make_shared<DefTimes>(source);
   }
 
   inline MRegions::MRegions(CRelAlgebra::Reader& source, size_t rowsCount)
   {
-    m_Edges = make_shared<Array<Edge>>(source);
-    m_Cycles = make_shared<Array<Cycle>>(source);
-    m_Faces = make_shared<Array<Face>>(source);
-    m_Units = make_shared<Array<Unit>>(source);
-    m_MRegions = make_shared<Array<MRegion>>(source);
-    m_DefTimes = make_shared<DefTimes>(source);
+    m_Edges = std::make_shared<Array<Edge>>(source);
+    m_Cycles = std::make_shared<Array<Cycle>>(source);
+    m_Faces = std::make_shared<Array<Face>>(source);
+    m_Units = std::make_shared<Array<Unit>>(source);
+    m_MRegions = std::make_shared<Array<MRegion>>(source);
+    m_DefTimes = std::make_shared<DefTimes>(source);
   }
 
   inline MRegions::MRegions(const MRegions &array, 

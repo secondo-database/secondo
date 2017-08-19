@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MRegions.h"
 #include "RegionTools.h"
 
+using namespace std;
+
 namespace temporalalgebra {
 Word InMRegion(const ListExpr typeInfo,
   const ListExpr instance,

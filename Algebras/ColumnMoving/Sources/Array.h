@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace ColumnMovingAlgebra {
 
   template<class T>
-  class Array : public vector<T> {
+  class Array : public std::vector<T> {
   public:
     Array() = default;
     Array(size_t count);
@@ -44,7 +44,7 @@ namespace ColumnMovingAlgebra {
   };
 
   template<class T>
-  inline Array<T>::Array(size_t count) : vector<T>(count) 
+  inline Array<T>::Array(size_t count) : std::vector<T>(count) 
   {
   }
 
@@ -53,16 +53,16 @@ namespace ColumnMovingAlgebra {
   {
     size_t count;
     source.ReadOrThrow(reinterpret_cast<char*>(&count), sizeof(size_t));
-    vector<T>::resize(count);
-    source.ReadOrThrow(reinterpret_cast<char*>(vector<T>::data()), 
+    std::vector<T>::resize(count);
+    source.ReadOrThrow(reinterpret_cast<char*>(std::vector<T>::data()), 
                                                count * sizeof(T));
   }
 
   template<class T>
   inline Array<T>::Array(CRelAlgebra::Reader& source, size_t count)
   {
-    vector<T>::resize(count);
-    source.ReadOrThrow(reinterpret_cast<char*>(vector<T>::data()), 
+    std::vector<T>::resize(count);
+    source.ReadOrThrow(reinterpret_cast<char*>(std::vector<T>::data()), 
                                                count * sizeof(T));
   }
 
@@ -71,8 +71,8 @@ namespace ColumnMovingAlgebra {
   {
     size_t count;
     source.ReadOrThrow(reinterpret_cast<char*>(&count), sizeof(size_t));
-    vector<T>::resize(count);
-    source.ReadOrThrow(reinterpret_cast<char*>(vector<T>::data()), 
+    std::vector<T>::resize(count);
+    source.ReadOrThrow(reinterpret_cast<char*>(std::vector<T>::data()), 
                                                count * sizeof(T));
   }
 
@@ -81,17 +81,17 @@ namespace ColumnMovingAlgebra {
     bool includeHeader)
   {
     if (includeHeader) {
-      size_t count = vector<T>::size();
+      size_t count = std::vector<T>::size();
       target.WriteOrThrow(reinterpret_cast<char*>(&count), sizeof(size_t));
     }
 
-    target.WriteOrThrow(reinterpret_cast<char*>(vector<T>::data()), 
-                                               vector<T>::size() * sizeof(T));
+    target.WriteOrThrow(reinterpret_cast<char*>(std::vector<T>::data()), 
+      std::vector<T>::size() * sizeof(T));
   }
 
   template<class T>
   inline int Array<T>::savedSize() {
-    return sizeof(size_t) + sizeof(T) * vector<T>::size();
+    return sizeof(size_t) + sizeof(T) * std::vector<T>::size();
   }
 
   template<class T>

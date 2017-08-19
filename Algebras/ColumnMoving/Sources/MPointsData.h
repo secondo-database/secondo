@@ -359,7 +359,7 @@ namespace ColumnMovingAlgebra {
     Frame * first = m_Frames.data() + iFirst;
     Frame * afterLast = m_Frames.data() + iAfterLast;
 
-    Frame * f1 = lower_bound(first, afterLast, time,
+    Frame * f1 = std::lower_bound(first, afterLast, time,
       [](const Frame &a, const int64_t &b) -> bool { return a.time < b; } );
 
     if (f1 == afterLast)

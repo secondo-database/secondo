@@ -103,43 +103,43 @@ namespace ColumnMovingAlgebra
 
     typedef Grid<3, 31, GridEntry> GridIndex;
 
-    shared_ptr<MPointsData> m_MPointsData;
-    shared_ptr<DefTimes> m_DefTimes;
+    std::shared_ptr<MPointsData> m_MPointsData;
+    std::shared_ptr<DefTimes> m_DefTimes;
     GridIndex::Mbr m_Mbr;
-    shared_ptr<GridIndex> m_GridIndex;
+    std::shared_ptr<GridIndex> m_GridIndex;
   };
 
 
 
 
   inline MPoints::MPoints() :
-    m_MPointsData(make_shared<MPointsData>()),
-    m_DefTimes(make_shared<DefTimes>())
+    m_MPointsData(std::make_shared<MPointsData>()),
+    m_DefTimes(std::make_shared<DefTimes>())
   {
   }
 
   inline MPoints::MPoints(CRelAlgebra::Reader& source)
   {
-    m_MPointsData = make_shared<MPointsData>(source);
-    m_DefTimes = make_shared<DefTimes>(source);
+    m_MPointsData = std::make_shared<MPointsData>(source);
+    m_DefTimes = std::make_shared<DefTimes>(source);
     source.ReadOrThrow(reinterpret_cast<char*>(&m_Mbr), sizeof(m_Mbr));
 
     bool hasGrid;
     source.ReadOrThrow(reinterpret_cast<char*>(&hasGrid), sizeof(bool));
     if (hasGrid)
-      m_GridIndex = make_shared<GridIndex>(source);
+      m_GridIndex = std::make_shared<GridIndex>(source);
   }
 
   inline MPoints::MPoints(CRelAlgebra::Reader& source, size_t rowsCount)
   {
-    m_MPointsData = make_shared<MPointsData>(source);
-    m_DefTimes = make_shared<DefTimes>(source);
+    m_MPointsData = std::make_shared<MPointsData>(source);
+    m_DefTimes = std::make_shared<DefTimes>(source);
     source.ReadOrThrow(reinterpret_cast<char*>(&m_Mbr), sizeof(m_Mbr));
 
     bool hasGrid;
     source.ReadOrThrow(reinterpret_cast<char*>(&hasGrid), sizeof(bool));
     if (hasGrid)
-      m_GridIndex = make_shared<GridIndex>(source);
+      m_GridIndex = std::make_shared<GridIndex>(source);
   }
 
   inline MPoints::MPoints(const MPoints &array, 
@@ -169,10 +169,10 @@ namespace ColumnMovingAlgebra
     m_DefTimes->addInterval(interval);
 
     GridIndex::Mbr mbr;
-    mbr.l[0] = min(x0, x1);
-    mbr.h[0] = max(x0, x1);
-    mbr.l[1] = min(y0, y1);
-    mbr.h[1] = max(y0, y1);
+    mbr.l[0] = std::min(x0, x1);
+    mbr.h[0] = std::max(x0, x1);
+    mbr.l[1] = std::min(y0, y1);
+    mbr.h[1] = std::max(y0, y1);
     mbr.l[2] = static_cast<double>(interval.s);
     mbr.h[2] = static_cast<double>(interval.e);
     

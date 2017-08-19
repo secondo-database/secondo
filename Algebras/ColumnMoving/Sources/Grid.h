@@ -63,7 +63,7 @@ namespace ColumnMovingAlgebra {
     void addRow();
     void removeRow();
     void add(Mbr mbr, Value value);
-    set<Value> selection(Mbr mbr);
+    std::set<Value> selection(Mbr mbr);
     Mbr mbr();
 
   private:
@@ -84,7 +84,7 @@ namespace ColumnMovingAlgebra {
     void translateMbrToPositionMbr(Mbr & mbr, PositionMbr & positionMbr);
     int blockIndex(IVector position);
     void createSelection(PositionMbr & pmbr, IVector & position, int iDim, 
-                         set<Value> & selection);
+                         std::set<Value> & selection);
     void add(PositionMbr & pmbr, IVector & position, int iDim, Value & value);
   };
 
@@ -97,8 +97,8 @@ namespace ColumnMovingAlgebra {
     Mbr r;
 
     for (int i = 0; i < dim; i++) {
-      r.l[i] = min(l[i], b.l[i]);
-      r.h[i] = max(h[i], b.h[i]);
+      r.l[i] = std::min(l[i], b.l[i]);
+      r.h[i] = std::max(h[i], b.h[i]);
     }
 
     return r;
@@ -252,13 +252,13 @@ namespace ColumnMovingAlgebra {
   }
 
   template<int dim, int blockSize, class Value>
-  inline set<Value> Grid<dim, blockSize, Value>::selection(Mbr mbr)
+  inline std::set<Value> Grid<dim, blockSize, Value>::selection(Mbr mbr)
   {
     PositionMbr pmbr;
     translateMbrToPositionMbr(mbr, pmbr);
 
     IVector p = IVector();
-    set<Value> s;
+    std::set<Value> s;
     createSelection(pmbr, p, 0, s);
 
     return s;
@@ -300,7 +300,7 @@ namespace ColumnMovingAlgebra {
 
   template<int dim, int blockSize, class Value>
   inline void Grid<dim, blockSize, Value>::createSelection(PositionMbr & pmbr, 
-    IVector & position, int iDim, set<Value> & selection)
+    IVector & position, int iDim, std::set<Value> & selection)
   {
     if (iDim < dim) {
       position.p[iDim] = pmbr.l[iDim];

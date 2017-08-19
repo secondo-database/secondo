@@ -97,9 +97,9 @@ namespace ColumnMovingAlgebra
       int firstUnitIndex;
     };
 
-    shared_ptr<DefTimes> m_DefTimes;
-    shared_ptr<Array<Unit>> m_Units;
-    shared_ptr<Array<Row>> m_Rows;
+    std::shared_ptr<DefTimes> m_DefTimes;
+    std::shared_ptr<Array<Unit>> m_Units;
+    std::shared_ptr<Array<Row>> m_Rows;
 
     int firstUnitIndex(int row) const;
     int lastUnitIndex(int row) const;
@@ -109,24 +109,24 @@ namespace ColumnMovingAlgebra
 
 
   MInts::MInts() :
-    m_DefTimes         (make_shared<DefTimes   >()),
-    m_Units            (make_shared<Array<Unit>>()),
-    m_Rows             (make_shared<Array<Row> >())
+    m_DefTimes         (std::make_shared<DefTimes   >()),
+    m_Units            (std::make_shared<Array<Unit>>()),
+    m_Rows             (std::make_shared<Array<Row> >())
   {
   }
 
   MInts::MInts(CRelAlgebra::Reader& source)
   {
-    m_DefTimes          = make_shared<DefTimes   >(source);
-    m_Units             = make_shared<Array<Unit>>(source);
-    m_Rows              = make_shared<Array<Row> >(source);
+    m_DefTimes          = std::make_shared<DefTimes   >(source);
+    m_Units             = std::make_shared<Array<Unit>>(source);
+    m_Rows              = std::make_shared<Array<Row> >(source);
   }
 
   MInts::MInts(CRelAlgebra::Reader& source, size_t rowsCount)
   {
-    m_DefTimes          = make_shared<DefTimes   >(source);
-    m_Units             = make_shared<Array<Unit>>(source);
-    m_Rows              = make_shared<Array<Row> >(source, rowsCount);
+    m_DefTimes          = std::make_shared<DefTimes   >(source);
+    m_Units             = std::make_shared<Array<Unit>>(source);
+    m_Rows              = std::make_shared<Array<Row> >(source, rowsCount);
   }
 
   MInts::MInts(const MInts &array, 
