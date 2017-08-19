@@ -244,8 +244,8 @@ namespace ColumnMovingAlgebra {
   }
 
   inline int MPointsData::savedSize() {
-    return	m_Frames.savedSize() + 
-        m_Rows.savedSize();
+    return m_Frames.savedSize() + 
+           m_Rows.savedSize();
   }
 
   inline void MPointsData::clear()
