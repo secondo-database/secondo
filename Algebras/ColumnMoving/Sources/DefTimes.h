@@ -24,84 +24,154 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include "SimpleAttrArray.h"
-#include "StandardTypes.h"
+#include <cassert>
+#include "Array.h"
+#include "Interval.h"
 
 namespace ColumnMovingAlgebra
 {
-  class BoolEntry
-  {
+  class DefTimes {
   public:
-    enum Values { UNDEFINED, DEFINED_FALSE, DEFINED_TRUE };
-    
-    typedef CcBool AttributeType;
+    DefTimes() = default;
+    DefTimes(CRelAlgebra::Reader& source);
 
-    static const bool isPrecise = true;
+    void save(CRelAlgebra::Writer &target);
+    int savedSize();
 
-    BoolEntry()
-    {
-    }
+    void addRow();
+    void removeRow();
+    void clear();
 
-    BoolEntry(Values value) :
-      m_Value(value)
-    {
-    }
+    void addInterval(Interval interval);
 
-    BoolEntry(const CcBool &value) :
-      m_Value(value.IsDefined() ? 
-        (value.GetValue() ? DEFINED_TRUE : DEFINED_FALSE) : 
-        UNDEFINED)
-    {
-    }
+    bool present(int collection, Instant instant);
+    bool present(int collection, temporalalgebra::Periods periods);
 
-    bool IsDefined() const
-    {
-      return m_Value != UNDEFINED;
-    }
+  private:
+    Array<int> m_CollectionsFirstIndizes;
+    Array<Interval> m_Intervals;
 
-    int Compare(const BoolEntry &value) const
-    {
-      int d = this->m_Value - value.m_Value;
-      if (d != 0)
-        return d < 0 ? -1 : 1;
-        
-      return 0;
-    }
-
-    int Compare(const CcBool &value) const
-    {
-      BoolEntry b(value);
-      return Compare(b);
-    }
-
-    bool Equals(const BoolEntry &value) const
-    {
-      return Compare(value) == 0;
-    }
-
-    bool Equals(const CcBool &value) const
-    {
-      return Compare(value) == 0;
-    }
-
-    size_t GetHash() const
-    {
-      return m_Value;
-    }
-
-    CcBool *GetAttribute(bool clone = true) const
-    {
-      return new CcBool(m_Value != UNDEFINED, m_Value == DEFINED_TRUE);
-    }
-
-    operator bool() const
-    {
-      return m_Value == DEFINED_TRUE;
-    }
-
-    Values m_Value;
+    int collectionsLastIndizes(int collection);
   };
 
-  typedef CRelAlgebra::SimpleFSAttrArray<BoolEntry> Bools;
-  typedef CRelAlgebra::SimpleFSAttrArrayIterator<BoolEntry> BoolsIterator;
+
+
+
+  inline DefTimes::DefTimes(CRelAlgebra::Reader & source)
+  {
+    m_CollectionsFirstIndizes.load(source);
+    m_Intervals.load(source);
+  }
+
+  inline void DefTimes::save(CRelAlgebra::Writer & target)
+  {
+    m_CollectionsFirstIndizes.save(target);
+    m_Intervals.save(target);
+  }
+
+  inline int DefTimes::savedSize()
+  {
+    return m_CollectionsFirstIndizes.savedSize() + m_Intervals.savedSize();
+  }
+
+  inline void DefTimes::addRow()
+  {
+    m_CollectionsFirstIndizes.push_back(m_Intervals.size());
+  }
+
+  inline void DefTimes::removeRow()
+  {
+    while ((int)m_Intervals.size() > m_CollectionsFirstIndizes.back())
+      m_Intervals.pop_back();
+
+    m_CollectionsFirstIndizes.pop_back();
+  }
+
+  inline void DefTimes::clear()
+  {
+    m_CollectionsFirstIndizes.clear();
+    m_Intervals.clear();
+  }
+
+  inline void DefTimes::addInterval(Interval interval)
+  {
+    if (m_CollectionsFirstIndizes.back() < (int)m_Intervals.size() - 1) {
+      Interval & last = m_Intervals.back();
+      assert(last.e <= interval.s);
+
+      if (last.e == interval.s && (last.rc || interval.lc)) {
+        assert(!last.rc || !interval.lc);
+        last.e = interval.e;
+        last.rc = interval.rc;
+        return;
+      }
+      else {
+        m_Intervals.push_back(interval);
+      }
+    }
+    else {
+      m_Intervals.push_back(interval);
+    }
+  }
+
+  inline bool DefTimes::present(int collection, Instant instant)
+  {
+    if (!instant.IsDefined())
+      return false;
+
+    int64_t t = instant.millisecondsToNull();
+
+    int l = m_CollectionsFirstIndizes[collection];
+    int h = collectionsLastIndizes(collection);
+
+    while (l <= h) {
+      int m = (l + h) / 2;
+      Interval & mi = m_Intervals[m];
+
+      if (mi.before(t))
+        l = m + 1;
+      else if (mi.after(t))
+        h = m - 1;
+      else
+        return true;
+    }
+
+    return false;
+  }
+
+  inline bool DefTimes::present(int collection, 
+    temporalalgebra::Periods periods)
+  {
+    if (!periods.IsDefined())
+      return false;
+
+    int iA = m_CollectionsFirstIndizes[collection];
+    int lastA = collectionsLastIndizes(collection);
+    int iB = 0;
+    int lastB = periods.GetNoComponents() - 1;
+
+    while (iA <= lastA && iB <= lastB) {
+      Interval & a = m_Intervals[iA];
+      temporalalgebra::Interval<Instant> bInterval;
+      periods.Get(iB, bInterval);
+      Interval b(bInterval);
+
+      if (a.before(b))
+        iA++;
+      else if (b.before(a))
+        iB++;
+      else
+        return true;
+    }
+
+    return false;
+  }
+
+  inline int DefTimes::collectionsLastIndizes(int collection)
+  {
+    if (collection == static_cast<int>(m_CollectionsFirstIndizes.size()) - 1)
+      return m_Intervals.size() - 1;
+    else
+      return m_CollectionsFirstIndizes[collection + 1] - 1;
+  }
 }
