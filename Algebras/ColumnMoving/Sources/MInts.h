@@ -24,84 +24,157 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include "SimpleAttrArray.h"
-#include "StandardTypes.h"
+#include <memory>
+#include "AttrArray.h"
+#include "DefTimes.h"
+#include "Bools.h"
+#include "IInts.h"
 
 namespace ColumnMovingAlgebra
 {
-  class BoolEntry
+  class MInts : public CRelAlgebra::AttrArray
   {
   public:
-    enum Values { UNDEFINED, DEFINED_FALSE, DEFINED_TRUE };
-    
-    typedef CcBool AttributeType;
+    inline MInts();
+    inline MInts(CRelAlgebra::Reader& source);
+    inline MInts(CRelAlgebra::Reader& source, size_t rowsCount);
+    inline MInts(const MInts &array,
+      const CRelAlgebra::SharedArray<const size_t> &filter);
+    virtual ~MInts() { }
 
-    static const bool isPrecise = true;
+    virtual AttrArray* Filter(CRelAlgebra::SharedArray<const size_t> filter)
+      const;
 
-    BoolEntry()
-    {
-    }
+    virtual size_t GetCount() const;
+    virtual size_t GetSize() const;
+    virtual Attribute *GetAttribute(size_t row, bool clone = true) const;
 
-    BoolEntry(Values value) :
-      m_Value(value)
-    {
-    }
+    virtual void Save(CRelAlgebra::Writer &target, bool includeHeader = true)
+      const;
 
-    BoolEntry(const CcBool &value) :
-      m_Value(value.IsDefined() ? 
-        (value.GetValue() ? DEFINED_TRUE : DEFINED_FALSE) : 
-        UNDEFINED)
-    {
-    }
+    virtual void Append(const CRelAlgebra::AttrArray & array, size_t row);
+    virtual void Append(Attribute & value);
+    virtual void Remove();
+    virtual void Clear();
 
-    bool IsDefined() const
-    {
-      return m_Value != UNDEFINED;
-    }
+    virtual bool IsDefined(size_t row) const;
 
-    int Compare(const BoolEntry &value) const
-    {
-      int d = this->m_Value - value.m_Value;
-      if (d != 0)
-        return d < 0 ? -1 : 1;
-        
-      return 0;
-    }
+    virtual int  Compare(size_t rowA, const AttrArray& arrayB, 
+                         size_t rowB) const;
+    virtual int  CompareAlmost(size_t rowA, const AttrArray &arrayB, 
+                         size_t rowB) const;
+    virtual bool Equals(size_t rowA, const AttrArray &arrayB, 
+                         size_t rowB) const;
+    virtual bool EqualsAlmost(size_t rowA, const AttrArray &arrayB, 
+                         size_t rowB) const;
 
-    int Compare(const CcBool &value) const
-    {
-      BoolEntry b(value);
-      return Compare(b);
-    }
+    virtual int  Compare(size_t row, Attribute &value) const;
+    virtual int  CompareAlmost(size_t row, Attribute &value) const;
+    virtual bool Equals(size_t row, Attribute &value) const;
+    virtual bool EqualsAlmost(size_t row, Attribute &value) const;
 
-    bool Equals(const BoolEntry &value) const
-    {
-      return Compare(value) == 0;
-    }
+    virtual size_t GetHash(size_t row) const;
 
-    bool Equals(const CcBool &value) const
-    {
-      return Compare(value) == 0;
-    }
+    void present(::Instant instant, Bools & result);
+    void present(temporalalgebra::Periods periods, Bools & result);
+    void atInstant(Instant instant, IInts & result);
+    void atPeriods(temporalalgebra::Periods periods, MInts & result);
+    void passes(CcInt & value, Bools & result);
+    void at(CcInt & value, MInts & result);
+    void at(temporalalgebra::RInt & value, MInts & result);
 
-    size_t GetHash() const
-    {
-      return m_Value;
-    }
+    void addRow();
+    void addUnit(int64_t s, int64_t e, bool lc, bool rc, int value);
+    int unitCount(int row) const;
 
-    CcBool *GetAttribute(bool clone = true) const
-    {
-      return new CcBool(m_Value != UNDEFINED, m_Value == DEFINED_TRUE);
-    }
+  private:
+    struct Unit {
+      Interval interval;
+      int value;
+    };
 
-    operator bool() const
-    {
-      return m_Value == DEFINED_TRUE;
-    }
+    struct Row {
+      int firstUnitIndex;
+    };
 
-    Values m_Value;
+    shared_ptr<DefTimes> m_DefTimes;
+    shared_ptr<Array<Unit>> m_Units;
+    shared_ptr<Array<Row>> m_Rows;
+
+    int firstUnitIndex(int row) const;
+    int lastUnitIndex(int row) const;
   };
 
-  typedef CRelAlgebra::SimpleFSAttrArray<BoolEntry> Bools;
-  typedef CRelAlgebra::SimpleFSAttrArrayIterator<BoolEntry> BoolsIterator;
+
+
+
+  MInts::MInts() :
+    m_DefTimes         (make_shared<DefTimes   >()),
+    m_Units            (make_shared<Array<Unit>>()),
+    m_Rows             (make_shared<Array<Row> >())
+  {
+  }
+
+  MInts::MInts(CRelAlgebra::Reader& source)
+  {
+    m_DefTimes          = make_shared<DefTimes   >(source);
+    m_Units             = make_shared<Array<Unit>>(source);
+    m_Rows              = make_shared<Array<Row> >(source);
+  }
+
+  MInts::MInts(CRelAlgebra::Reader& source, size_t rowsCount)
+  {
+    m_DefTimes          = make_shared<DefTimes   >(source);
+    m_Units             = make_shared<Array<Unit>>(source);
+    m_Rows              = make_shared<Array<Row> >(source, rowsCount);
+  }
+
+  MInts::MInts(const MInts &array, 
+               const CRelAlgebra::SharedArray<const size_t> &filter) :
+    AttrArray(filter),
+    m_DefTimes(array.m_DefTimes),
+    m_Units(array.m_Units),
+    m_Rows(array.m_Rows)		
+  {
+  }
+
+  inline void MInts::addUnit(int64_t s, int64_t e, bool lc, bool rc, int value) 
+  {
+    Unit unit;
+    unit.value = value;
+
+    Interval & interval = unit.interval;
+    interval.s  = s;
+    interval.e  = e;
+    interval.lc = lc;
+    interval.rc = rc;
+
+    m_Units->push_back(unit);
+
+    m_DefTimes->addInterval(interval);
+  }
+
+  inline void MInts::addRow() {
+    m_Rows->emplace_back();
+    m_Rows->back().firstUnitIndex = m_Units->size();
+    m_DefTimes->addRow();
+  }
+
+  inline int MInts::firstUnitIndex(int row) const
+  {
+    return (*m_Rows)[row].firstUnitIndex;
+  }
+
+  inline int MInts::lastUnitIndex(int row) const
+  {
+    if (row == static_cast<int>(m_Rows->size()) - 1)
+      return m_Units->size() - 1;
+    else
+      return (*m_Rows)[row + 1].firstUnitIndex - 1;
+  }
+
+  inline int MInts::unitCount(int row) const
+  {
+    return lastUnitIndex(row) - (*m_Rows)[row].firstUnitIndex + 1;
+  }
 }
