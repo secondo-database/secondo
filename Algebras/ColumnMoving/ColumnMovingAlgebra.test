@@ -30,7 +30,7 @@ delete database mytestdb;
 create database mytestdb;
 open database mytestdb;
 
-let mpoints = [const mpoints value ( 
+let mps = [const mpoints value ( 
   ( (("2000-01-01" "2000-01-01" TRUE  TRUE )  ( 1.0  2.0  1.0  2.0)) 
     (("2000-01-02" "2000-01-04" FALSE TRUE )  ( 3.0  4.0  5.0 -4.0))
     (("2000-01-04" "2000-01-06" FALSE FALSE)  ( 1.0  2.0  3.0  4.0))
@@ -42,147 +42,259 @@ let mpoints = [const mpoints value (
     (("2001-01-12" "2001-01-14" FALSE FALSE)  ( 0.0  0.0  2.0  0.0)) )  
 )];
 
-let impoints = mpoints index [10,10];
+let imps = mps index [10,10];
+
+let mrs = [const mregions value (
+  ( 
+    ( 
+      ("2000-01-01" "2000-01-03" TRUE FALSE) 
+      ((((-1.0 -1.0  0.0  0.0) ( 1.0 -1.0  0.0  0.0) ( 1.0  1.0  0.0  0.0) (-1.0  1.0  0.0  0.0)))) 
+    )
+    ( 
+      ("2000-01-03" "2000-01-05" TRUE FALSE) 
+      (
+        ( 
+          (( 0.0  0.0  0.0  0.0) ( 1.0  0.0  0.0  0.0) ( 1.0  1.0  0.0  0.0) ( 0.0  1.0  0.0  0.0)) 
+          (( 0.2  0.2  0.0  0.0) ( 0.4  0.2  0.0  0.0) ( 0.2  0.4  0.0  0.0)) 
+          (( 0.6  0.6  0.0  0.0) ( 0.8  0.6  0.0  0.0) ( 0.6  0.8  0.0  0.0)) 
+        )
+        ( 
+          ((-1.0 -1.0  0.0  0.0) (-1.0 -2.0  0.0  0.0) (-2.0 -1.0  0.0  0.0)) 
+        )
+      ) 
+    )
+  )
+  ( 
+    ( 
+      ("2000-01-01" "2000-01-03" TRUE FALSE) 
+      ((((-1.0 -1.0  0.0 -1.0) ( 1.0 -1.0  3.0 -1.0) ( 1.0  1.0  3.0  1.0) (-1.0  1.0  0.0  1.0)))) 
+    )
+    ( 
+      ("2001-01-01" "2001-01-03" TRUE FALSE) 
+      ((((-1.0 -1.0  0.0 -1.0) ( 1.0 -1.0  3.0 -1.0) ( 1.0  1.0  3.0  1.0) (-1.0  1.0  0.0  1.0)))) 
+    )
+  )
+)];
+
 
 #testcase mpointsPresentUndefined
 #yields (longints ())
-query mpoints present [const instant value undefined];
+query mps present [const instant value undefined];
 
 #testcase mpointsPresentInstant
 #yields (longints (0))
-query mpoints present [const instant value "2000-01-01"];
+query mps present [const instant value "2000-01-01"];
 
 #testcase mpointsPresentPeriods
 #yields (longints (1))
-query mpoints present [const periods value (("2000-01-01" "2000-01-02" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
+query mps present [const periods value (("2000-01-01" "2000-01-02" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
 
 #testcase mpointsPresentInt
 #yields error
-query mpoints present 1;
+query mps present 1;
 
 
 #testcase impointsPresentUndefined
 #yields (longints ())
-query impoints present [const instant value undefined];
+query imps present [const instant value undefined];
 
 #testcase impointsPresentInstant
 #yields (longints (0))
-query impoints present [const instant value "2000-01-01"];
+query imps present [const instant value "2000-01-01"];
 
 #testcase impointsPresentPeriods
 #yields (longints (1))
-query impoints present [const periods value (("2000-01-01" "2000-01-02" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
+query imps present [const periods value (("2000-01-01" "2000-01-02" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
 
 #testcase impointsPresentInt
 #yields error
-query impoints present 1;
+query imps present 1;
 
 
 
 #testcase mpointsAtInstantUndefined
 #yields ( ipoints ( undefined undefined ) )
-query mpoints atinstant [const instant value undefined];
+query mps atinstant [const instant value undefined];
 
 #testcase mpointsAtInstantInstant
 #yields ( ipoints ( ("2000-01-03" (4.0 0.0)) undefined ) )
-query mpoints atinstant [const instant value "2000-01-03"];
+query mps atinstant [const instant value "2000-01-03"];
 
 #testcase mpointsAtInstantInt
 #yields error
-query mpoints atinstant 1;
+query mps atinstant 1;
 
 
 #testcase impointsAtInstantUndefined
 #yields ( ipoints ( undefined undefined ) )
-query impoints atinstant [const instant value undefined];
+query imps atinstant [const instant value undefined];
 
 #testcase impointsAtInstantInstant
 #yields ( ipoints ( ("2000-01-03" (4.0 0.0)) undefined ) )
-query impoints atinstant [const instant value "2000-01-03"];
+query imps atinstant [const instant value "2000-01-03"];
 
 #testcase impointsAtInstantInt
 #yields error
-query impoints atinstant 1;
+query imps atinstant 1;
 
 
 
 #testcase mpointsAtPeriodsUndefined
 #yields (   mpoints ( () () )   )
-query mpoints atperiods [const periods value undefined];
+query mps atperiods [const periods value undefined];
 
 #testcase mpointsAtPeriodsPeriods
 #yields (   mpoints ( ((("2000-01-03" "2000-01-04" FALSE TRUE) (4.0 0.0 5.0 -4.0)) (("2000-01-04" "2000-01-05" FALSE TRUE) (1.0 2.0 2.0 3.0))) ((("2001-01-01" "2001-01-01" TRUE TRUE) (4.0 5.0 4.0 5.0))) )   )
-query mpoints atperiods [const periods value (("2000-01-03" "2000-01-05" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
+query mps atperiods [const periods value (("2000-01-03" "2000-01-05" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
 
 #testcase mpointsAtPeriodsInt
 #yields error
-query mpoints atperiods 1;
+query mps atperiods 1;
 
 
 #testcase impointsAtPeriodsUndefined
 #yields (   mpoints ( () () )   )
-query impoints atperiods [const periods value undefined];
+query imps atperiods [const periods value undefined];
 
 #testcase impointsAtPeriodsPeriods
 #yields (   mpoints ( ((("2000-01-03" "2000-01-04" FALSE TRUE) (4.0 0.0 5.0 -4.0)) (("2000-01-04" "2000-01-05" FALSE TRUE) (1.0 2.0 2.0 3.0))) ((("2001-01-01" "2001-01-01" TRUE TRUE) (4.0 5.0 4.0 5.0))) )   )
-query impoints atperiods [const periods value (("2000-01-03" "2000-01-05" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
+query imps atperiods [const periods value (("2000-01-03" "2000-01-05" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
 
 #testcase impointsAtPeriodsInt
 #yields error
-query impoints atperiods 1;
+query imps atperiods 1;
 
 
 
 #testcase mpointsPassesUndefined
 #yields (longints ())
-query mpoints passes [const point value undefined];
+query mps passes [const point value undefined];
 
 #testcase mpointsPassesPoint
 #yields (longints (0))
-query mpoints passes [const point value (1.0 2.0)];
+query mps passes [const point value (1.0 2.0)];
 
 #testcase mpointsPassesRegion
 #yields (longints (0))
-query mpoints passes [const region value ((((1.0 2.0)(1.1 2.0)(1.0 2.1))))];
+query mps passes [const region value ((((1.0 2.0)(1.1 2.0)(1.0 2.1))))];
 
 #testcase mpointsPassesInt
 #yields error
-query mpoints passes 1;
+query mps passes 1;
 
 
 #testcase impointsPassesUndefined
 #yields (longints ())
-query impoints passes [const point value undefined];
+query imps passes [const point value undefined];
 
 #testcase impointsPassesPoint
 #yields (longints (0))
-query impoints passes [const point value (1.0 2.0)];
+query imps passes [const point value (1.0 2.0)];
 
 #testcase impointsPassesRegion
 #yields (longints (0))
-query impoints passes [const region value ((((1.0 2.0)(1.1 2.0)(1.0 2.1))))];
+query imps passes [const region value ((((1.0 2.0)(1.1 2.0)(1.0 2.1))))];
 
 #testcase impointsPassesInt
 #yields error
-query impoints passes 1;
+query imps passes 1;
 
 
 
 #testcase mpointsAtUndefined
 #yields (   mpoints (  ()  ()  )   )
-query mpoints at [const point value undefined];
+query mps at [const point value undefined];
 
 #testcase mpointsAtPoint
 #yields (   mpoints (  ( (("2000-01-03" "2000-01-03" TRUE TRUE) (4.0 0.0 4.0 0.0)) )  ( (("2001-01-09" "2001-01-11" TRUE FALSE) (4.0 0.0 4.0 0.0)) )  )   )
-query mpoints at [const point value (4.0 0.0)];
+query mps at [const point value (4.0 0.0)];
 
 #testcase mpointsAtRegion
 #yields (   mpoints (  (  )  ( (("2001-01-13" "2001-01-14" TRUE FALSE) (1.0 0.0 2.0 0.0)) )  )   )
-query mpoints at [const region value ((((1.0 0.0)(2.0 1.0)(2.0 -1.0))))];
+query mps at [const region value ((((1.0 0.0)(2.0 1.0)(2.0 -1.0))))];
 
 #testcase mpointsAtInt
 #yields error
-query mpoints at 1;
+query mps at 1;
+
+
+
+#testcase mregionsPresentUndefined
+#yields (longints ())
+query mrs present [const instant value undefined];
+
+#testcase mregionsPresentInstant
+#yields (longints (0))
+query mrs present [const instant value "2000-01-03"];
+
+#testcase mregionsPresentPeriods
+#yields (longints (1))
+query mrs present [const periods value (("1999-01-01" "2000-01-01" TRUE FALSE) ("2000-01-05" "2001-01-01" TRUE TRUE))];
+
+#testcase mregionsPresentInt
+#yields error
+query mrs present 1;
+
+
+#testcase mregionsAtInstantUndefined
+#yields ( iregions ( undefined undefined ) )
+query mrs atinstant [const instant value undefined];
+
+#testcase mregionsAtInstantInstant
+#yields ( iregions ( \
+   ("2000-01-02" (((( 0.5 -0.5) (-0.5 -0.5) (-0.5  0.5) ( 0.5  0.5)))) )\
+   ("2000-01-02" (((( 2.0 -1.0) (-0.5 -1.0) (-0.5  1.0) ( 2.0  1.0)))) )\
+ ) )
+query mrs atinstant [const instant value "2000-01-02"];
+
+#testcase mregionsAtInstantInt
+#yields error
+query mrs atinstant 1;
+
+
+#testcase mregionsAtPeriodsUndefined
+#yields (   mregions ( () () )   )
+query mrs atperiods [const periods value undefined];
+
+#testcase mregionsAtPeriodsPeriods
+#yields (   mregions \
+( \
+  ( \
+    ( \
+      ("2000-01-02" "2000-01-03" FALSE FALSE) \
+      ((((-0.5 -0.5  0.0  0.0) ( 0.5 -0.5  0.0  0.0) ( 0.5  0.5  0.0  0.0) (-0.5  0.5  0.0  0.0)))) \
+    ) \
+    ( \
+      ("2000-01-03" "2000-01-04" TRUE TRUE) \
+      ( \
+        ( \
+          (( 0.0  0.0  0.0  0.0) ( 1.0  0.0  0.5  0.0) ( 1.0  1.0  0.5  0.5) ( 0.0  1.0  0.0  0.5)) \
+          (( 0.2  0.2  0.1  0.1) ( 0.4  0.2  0.2  0.1) ( 0.2  0.4  0.1  0.2)) \
+          (( 0.6  0.6  0.3  0.3) ( 0.8  0.6  0.4  0.3) ( 0.6  0.8  0.3  0.4)) \
+        ) \
+        ( \
+          ((-1.0 -1.0 -0.5 -0.5) (-1.0 -2.0 -0.5 -1.0) (-2.0 -1.0 -1.0 -0.5)) \
+        ) \
+      ) \
+    ) \
+  ) \
+  ( \
+    ( \
+      ("2000-01-02" "2000-01-03" FALSE FALSE) \
+      ((((-0.5 -1.0  0.0 -1.0) ( 2.0 -1.0  3.0 -1.0) ( 2.0  1.0  3.0  1.0) (-0.5  1.0  0.0  1.0)))) \
+    ) \
+    ( \
+      ("2001-01-01" "2001-01-01" TRUE TRUE) \
+      ((((-1.0 -1.0 -1.0 -1.0) ( 1.0 -1.0  1.0 -1.0) ( 1.0  1.0  1.0  1.0) (-1.0  1.0 -1.0  1.0)))) \
+    ) \
+  ) \
+))
+query mrs atperiods [const periods value (("2000-01-02" "2000-01-04" FALSE TRUE) ("2000-01-05" "2000-01-05" TRUE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
+
+#testcase mregionsAtPeriodsInt
+#yields error
+query mrs atperiods 1;
+
 
 
 

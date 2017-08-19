@@ -25,12 +25,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #pragma once
 
 #include "AttrArrayType.h"
-#include "MPoints.h"
 #include "Sources/Bools.h"
 #include "Sources/IInts.h"
 #include "Sources/MInts.h"
 #include "Sources/IPoints.h"
 #include "Sources/MPoints.h"
+#include "Sources/IRegions.h"
+#include "Sources/MRegions.h"
 
 namespace ColumnMovingAlgebra {
   extern char boolsName[]; 
@@ -62,6 +63,18 @@ namespace ColumnMovingAlgebra {
   extern char mpointsExample[];
   typedef AttrArrayType<MPoints, temporalalgebra::MPoint, mpointsName, 
     mpointsInfo, mpointsExample> MPointsType;
+
+  extern char iregionsName[]; 
+  extern char iregionsInfo[];
+  extern char iregionsExample[];
+  typedef AttrArrayType<IRegions, temporalalgebra::IRegion, iregionsName, 
+    iregionsInfo, iregionsExample> IRegionsType;
+
+  extern char mregionsName[]; 
+  extern char mregionsInfo[];
+  extern char mregionsExample[];
+  typedef AttrArrayType<MRegions, temporalalgebra::MRegion, mregionsName, 
+    mregionsInfo, mregionsExample> MRegionsType;
 
 }
 

@@ -51,6 +51,10 @@ namespace ColumnMovingAlgebra
                               Word &local, Supplier s);
     static int ValueMapping11(ArgVector args, Word &result, int message, 
                               Word &local, Supplier s);
+    static int ValueMapping20(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
+    static int ValueMapping21(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
   };
   
   class AtInstantOperator : public AttrArrayOperator
@@ -72,6 +76,8 @@ namespace ColumnMovingAlgebra
                               Word &local, Supplier s);
     static int ValueMapping1(ArgVector args, Word &result, int message, 
                               Word &local, Supplier s);
+    static int ValueMapping2(ArgVector args, Word &result, int message, 
+                              Word &local, Supplier s);
   };
   
   class AtPeriodsOperator : public AttrArrayOperator
@@ -92,6 +98,8 @@ namespace ColumnMovingAlgebra
     static int ValueMapping0(ArgVector args, Word &result, int message, 
                              Word &local, Supplier s);
     static int ValueMapping1(ArgVector args, Word &result, int message, 
+                             Word &local, Supplier s);
+    static int ValueMapping2(ArgVector args, Word &result, int message, 
                              Word &local, Supplier s);
   };
   

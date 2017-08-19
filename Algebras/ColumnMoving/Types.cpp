@@ -53,7 +53,7 @@ namespace ColumnMovingAlgebra {
                           "(\"2002-10-10\" (3.0 4.0))) \n";
 
   char mpointsName[] = "mpoints"; 
-  char mpointsInfo[] = "(ai*) where ai is a mint";
+  char mpointsInfo[] = "(ai*) where ai is a mpoint";
   char mpointsExample[] = 
     "( \n"
     "  ( \n"
@@ -63,6 +63,30 @@ namespace ColumnMovingAlgebra {
     "  ( \n"
     "    ((\"2001-10-10\" \"2002-10-10\" TRUE TRUE) (1.5 8.0 3.0 4.0)) \n"
     "    ((\"2002-10-10\" \"2007-10-10\" FALSE TRUE) (6.7 2.0 5.0 8.0)) \n"
+    "  ) \n"
+    ") \n";
+
+  char iregionsName[] = "iregions"; 
+  char iregionsInfo[] = "(ai*) where ai is a iregion";
+  char iregionsExample[] = 
+    "(( \"2001-10-10\" ((((0.0 0.0) (1.0 0.0) (0.0 1.0)))) ) \n"
+    " ( \"2001-10-10\" ((((1.0 1.0) (1.0 0.0) (0.0 1.0)))) ))";
+
+  char mregionsName[] = "mregions"; 
+  char mregionsInfo[] = "(ai*) where ai is a mregion";
+  char mregionsExample[] = 
+    "( \n"
+    "  ( \n"
+    "    ( (\"2001-10-10\" \"2002-10-10\" TRUE TRUE) \n"
+    "      ((((0.0 0.0 0.5 0.5) (1.0 0.0 1.5 0.5) (0.0 1.0 0.5 1.5)))) ) \n"
+    "    ( (\"2002-10-10\" \"2003-10-10\" FALSE TRUE) \n"
+    "      ((((0.5 0.5 0.5 0.5) (1.5 0.5 1.5 0.5) (0.5 1.5 0.5 1.5)))) ) \n"
+    "  ) \n"
+    "  ( \n"
+    "    ( (\"2001-10-10\" \"2002-10-10\" TRUE TRUE) \n"
+    "      ((((0.0 0.0 0.5 0.5) (2.0 0.0 2.5 0.5) (0.0 2.0 0.5 2.5)))) ) \n"
+    "    ( (\"2002-10-10\" \"2003-10-10\" FALSE TRUE) \n"
+    "      ((((0.5 0.5 0.5 0.5) (2.5 0.5 2.5 0.5) (0.5 2.5 0.5 2.5)))) ) \n"
     "  ) \n"
     ") \n";
 

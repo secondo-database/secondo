@@ -52,6 +52,8 @@ extern "C" Algebra *InitializeColumnMovingAlgebra(NestedList *nlRef,
       AddTypeConstructor(new MIntsType::TC(), true);
       AddTypeConstructor(new IPointsType::TC(), true);
       AddTypeConstructor(new MPointsType::TC(), true);
+      AddTypeConstructor(new IRegionsType::TC(), true);
+      AddTypeConstructor(new MRegionsType::TC(), true);
       AddOperator(new PresentOperator(), true);
       AddOperator(new AtInstantOperator(), true);
       AddOperator(new AtPeriodsOperator(), true);
@@ -69,6 +71,8 @@ extern "C" Algebra *InitializeColumnMovingAlgebra(NestedList *nlRef,
   display.Insert(MIntsType::TC::name, new CRelAlgebra::DisplayAttrArray());
   display.Insert(IPointsType::TC::name, new CRelAlgebra::DisplayAttrArray());
   display.Insert(MPointsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+  display.Insert(IRegionsType::TC::name, new CRelAlgebra::DisplayAttrArray());
+  display.Insert(MRegionsType::TC::name, new CRelAlgebra::DisplayAttrArray());
 
   return new CustomAlgebra();
 }
