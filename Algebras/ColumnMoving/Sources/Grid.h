@@ -191,7 +191,7 @@ namespace ColumnMovingAlgebra {
   template<int dim, int blockSize, class Value>
   inline int Grid<dim, blockSize, Value>::savedSize() 
   {
-    return	m_Blocks.savedSize() +
+    return m_Blocks.savedSize() +
         sizeof(m_Splits) +
         sizeof(m_CellSize) +
         sizeof(m_Mbr) +
