@@ -134,7 +134,7 @@ namespace ColumnMovingAlgebra
     AttrArray(filter),
     m_DefTimes(array.m_DefTimes),
     m_Units(array.m_Units),
-    m_Rows(array.m_Rows)		
+    m_Rows(array.m_Rows)
   {
   }
 
