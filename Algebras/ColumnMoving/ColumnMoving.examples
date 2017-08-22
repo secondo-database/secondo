@@ -1,45 +1,91 @@
-Database : columnMovingtest
+Database : columnmoving
 Restore  : YES
 
 Operator : present
 Number   : 0
-Signature: (mints | mpoints) x (instant | periods) -> (bools | longints)
-Example  : query movingIntegers present [const instant value "2000-01-01"]
-Result   : 1
+Signature: mpoints x instant -> longints
+Example  : query mps present [const instant value "2000-01-01"];
+Result   : (longints (0))
+
+Operator : present
+Number   : 1
+Signature: mpoints x periods -> longints
+Example  : query mps present [const periods value (("2000-01-01" "2000-01-02" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
+Result   : (longints (1))
+
+Operator : present
+Number   : 2
+Signature: mregions x instant -> longints
+Example  : query mrs present [const instant value "2000-01-03"];
+Result   : (longints (0))
+
+Operator : present
+Number   : 3
+Signature: mregions x periods -> longints
+Example  : query mrs present [const periods value (("1999-01-01" "2000-01-01" TRUE FALSE) ("2000-01-05" "2001-01-01" TRUE TRUE))];
+Result   : (longints (1))
+
+
 
 Operator : atinstant
 Number   : 0
-Signature: (mints | mpoints) x instant -> (iint | ipoint)
-Example  : query movingPoints atinstant [const instant value "2000-01-01"]
-Result   : 1
+Signature: mpoints x instant -> ipoint
+Example  : query mps atinstant [const instant value "2000-01-03"];
+Result   : ( ipoints ( ("2000-01-03" (4.0 0.0)) undefined ) )
+
+Operator : atinstant
+Number   : 1
+Signature: mregions x instant -> iregion
+Example  : query mrs atinstant [const instant value "2000-01-02"];
+Result   : ( iregions ( ("2000-01-02" (((( 0.5 -0.5) (-0.5 -0.5) (-0.5  0.5) ( 0.5  0.5)))) ) ("2000-01-02" (((( 2.0 -1.0) (-0.5 -1.0) (-0.5  1.0) ( 2.0  1.0)))) )  ) )
+
+
 
 Operator : atperiods
 Number   : 0
-Signature: (mints | mpoints) x periods -> (mints | mpoints)
-Example  : query movingIntegers atperiods [const periods value (("2000-01-01" "2000-01-01" TRUE TRUE))]
-Result   : 1
+Signature: mpoints x periods -> mpoints
+Example  : query mps atperiods [const periods value (("2000-01-03" "2000-01-05" FALSE TRUE) ("2001-01-01" "2001-01-01" TRUE TRUE))];
+Result   : (   mpoints ( ((("2000-01-03" "2000-01-04" FALSE TRUE) (4.0 0.0 5.0 -4.0)) (("2000-01-04" "2000-01-05" FALSE TRUE) (1.0 2.0 2.0 3.0))) ((("2001-01-01" "2001-01-01" TRUE TRUE) (4.0 5.0 4.0 5.0))) )   )
+
+
 
 Operator : passes
 Number   : 0
-Signature: (mints | mpoints) x (int | (point | region)) -> (bools | longints)
-Example  : query movingIntegers present "2006-10-10"
-Result   : 1
+Signature: mpoints x point -> longints
+Example  : query mps passes [const point value (1.0 2.0)];
+Result   : (longints (0))
+
+Operator : passes
+Number   : 1
+Signature: mpoints x region -> longints
+Example  : query mps passes [const region value ((((1.0 2.0)(1.1 2.0)(1.0 2.1))))];
+Result   : (longints (0))
+
+
 
 Operator : at
 Number   : 0
-Signature: (mints | mpoints) x ((int | rint) | (point | region)) -> (mints | mpoints)
-Example  : query movingIntegers present 1
-Result   : 1
+Signature: mpoints x point -> mpoints
+Example  : query mps at [const point value (4.0 0.0)];
+Result   : (   mpoints (  ( (("2000-01-03" "2000-01-03" TRUE TRUE) (4.0 0.0 4.0 0.0)) )  ( (("2001-01-09" "2001-01-11" TRUE FALSE) (4.0 0.0 4.0 0.0)) )  )   )
+
+Operator : at
+Number   : 1
+Signature: mpoints x region -> mpoints
+Example  : query mps at [const region value ((((1.0 0.0)(2.0 1.0)(2.0 -1.0))))];
+Result   : (   mpoints (  (  )  ( (("2001-01-13" "2001-01-14" TRUE FALSE) (1.0 0.0 2.0 0.0)) )  )   )
+
+
+
 
 Operator : addrandom
 Number   : 0
-Signature: (mpoints) x int -> (mpoints)
-Example  : query movingPoints addrandom 100
-Result   : 1
+Signature: mpoints x int -> mpoints
+Example  : query [const mpoints value ()] addrandom 0;
+Result   : (mpoints ())
 
 Operator : index
 Number   : 0
-Signature: (mpoints) x int x int -> (mpoints)
-Example  : query movingPoints index [100, 100]
-Result   : 1
----
+Signature: mpoints x int x int -> mpoints
+Example  : query [const mpoints value ()] index [100, 100]
+Result   : (mpoints ())
