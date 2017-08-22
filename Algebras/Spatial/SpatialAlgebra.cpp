@@ -18639,6 +18639,199 @@ Operator distanceWithinOp(
 );
 
 
+/*
+53 Operator ~orderLine~
+
+Orders the segments of a simple line so that the segments are connected.
+
+\subsection{Type Mapping}
+*/
+ListExpr orderLineTM(ListExpr args) {
+  string err = "one argument of the type sline expected";
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(err);
+  }
+  if (!SimpleLine::checkType(nl->First(args))) {
+    return listutils::typeError(err);
+  }
+  ListExpr attrList = nl->TwoElemList(nl->TwoElemList(
+                                        nl->SymbolAtom("Start"),
+                                        nl->SymbolAtom(Point::BasicType())),
+                                      nl->TwoElemList(
+                                        nl->SymbolAtom("End"),
+                                        nl->SymbolAtom(Point::BasicType())));
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                         attrList));
+}
+
+/*
+\subsection{Class ~OrderLineLI~}
+
+*/
+class OrderSLineLI {
+  
+ public:
+  OrderSLineLI(const SimpleLine& src) {
+    tt = 0;
+    pos = 0;
+    if (!src.IsDefined()) {
+      return;
+    }
+    tt = getTupleType();
+    multimap<Point, int> point2seg;
+    vector<HalfSegment> halfSegments;
+    Point pt1(true, 0.0, 0.0);
+    Point pt2(true, 1.0, 1.0);
+    HalfSegment hs(true, pt1, pt2);
+    for (int i = 0; i < src.Size(); i++) {
+      halfSegments.push_back(hs);
+    }
+    vector<bool> isActive;
+    isActive.resize(src.Size());
+    int noActiveSegs = 0;
+    for (int i = 0; i < src.Size(); i++) {
+      src.Get(i, hs);
+      if (hs.IsLeftDomPoint()) {
+        point2seg.insert(make_pair(hs.GetLeftPoint(), i));
+        point2seg.insert(make_pair(hs.GetRightPoint(), i));
+        HalfSegment tempHs(hs);
+        halfSegments[i] = tempHs;
+        isActive[i] = true;
+        noActiveSegs++;
+      }
+    }
+//     cout << point2seg.size() << " pts and " << noActiveSegs 
+//          << " hs inserted" << endl;
+    int segNo = 0;
+    hs = halfSegments[segNo];
+    pt1 = hs.GetLeftPoint();
+    seq.push_back(pt1);
+    pt2 = pt1;
+    bool successorFound = true;
+    pair<multimap<Point, int>::iterator, multimap<Point, int>::iterator> it;
+    while (successorFound && noActiveSegs > 0) {
+      isActive[segNo] = false;
+      noActiveSegs--;
+//       cout << "segment " << segNo << " deactivated; " << noActiveSegs 
+//            << " active" << endl << "search successor of " << pt1 << endl;
+      it = point2seg.equal_range(pt1);
+      multimap<Point, int>::iterator it1 = it.first;
+      while (!isActive[it1->second] && it1 != it.second) {
+        it1++;
+      }
+      if (it1 == it.second) { // no successor
+        successorFound = false;
+      }
+      else {
+        segNo = it1->second;
+//         cout << "segment " << segNo << " is active" << endl;
+        hs = halfSegments[segNo];
+        if (hs.GetLeftPoint() == pt1) { // last added
+          pt1 = hs.GetRightPoint();
+        }
+        else {
+          pt1 = hs.GetLeftPoint();
+        }
+        seq.push_back(pt1);
+      }
+    }
+  }
+  
+  ~OrderSLineLI() {
+    if (tt) {
+      tt->DeleteIfAllowed();
+    }
+  }
+  
+  TupleType *getTupleType() {
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    ListExpr resultTupleType = nl->TwoElemList(
+      nl->SymbolAtom(Tuple::BasicType()),
+      nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Start"),
+                                      nl->SymbolAtom(Point::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("End"),
+                                      nl->SymbolAtom(Point::BasicType()))));
+    ListExpr numResultTupleType = sc->NumericType(resultTupleType);
+    return new TupleType(numResultTupleType);
+  }
+  
+  Tuple *nextTuple() {
+    if (pos == seq.size()) {
+      return 0;
+    }
+    if (!tt) {
+      tt = getTupleType();
+    }
+    Point *p2 = 0;
+    if (pos == seq.size() - 1) {
+      p2 = new Point(seq[0]);
+    }
+    else {
+      p2 = new Point(seq[pos + 1]);
+    }
+    Point *p1 = new Point(seq[pos]);
+    pos++;
+    Tuple *result = new Tuple(tt);
+    result->PutAttribute(0, p1);
+    result->PutAttribute(1, p2);
+    return result;
+  }
+  
+ private:
+  TupleType *tt;
+  vector<Point> seq;
+  unsigned int pos;
+};
+
+/*
+
+\subsection{Value Mapping}
+*/
+int orderLineVM(Word* args, Word& result, int message, Word& local,Supplier s) {
+  SimpleLine *src = static_cast<SimpleLine*>(args[0].addr);
+  OrderSLineLI *li = static_cast<OrderSLineLI*>(local.addr);
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      li = new OrderSLineLI(*src);
+      local.addr = li;
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (local.addr) {
+        li = (OrderSLineLI*)local.addr;
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+OperatorSpec orderLineSpec(
+  "sline -> stream(Start: point, End: point)",
+  "orderLine( _ )",
+  "Orders the segments of a simple line so that they are connected.",
+  "query orderLine(fromline(BGrenzenLine))"
+);
+
+Operator orderLine(
+  "orderLine",
+  orderLineSpec.getStr(),
+  orderLineVM,
+  Operator::SimpleSelect,
+  orderLineTM
+);
+
 
 
 /*
@@ -18824,6 +19017,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&simpleProject);
     AddOperator(&todlineOp);
     AddOperator(&distanceWithinOp);
+    AddOperator(&orderLine);
   }
   ~SpatialAlgebra() {};
 };

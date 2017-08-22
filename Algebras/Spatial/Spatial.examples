@@ -1296,6 +1296,8 @@ Signature : SPATIAL x SPATIAL x {int, real} [x geoid] -> bool
 Example   : query distanceWithin(alexanderplatz, mehringdamm, 2000)
 Result    : FALSE
 
-
-
-
+Operator  : orderLine
+Number    : 1
+Signature : sline -> stream(Start: point, End: point)
+Example   : query no_segments(fromline(boundary(westhafen))) = orderLine(fromline(boundary(westhafen))) count
+Result    : TRUE
