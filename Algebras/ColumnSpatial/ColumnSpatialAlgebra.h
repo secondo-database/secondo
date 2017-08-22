@@ -1111,7 +1111,7 @@ int mapRegionVM (Word* args, Word& result, int message,
                  Word& local, Supplier s);
 
 /*
-The ~mapCol~ operators convert an column spatial type ~apoint~, ~aline~
+The ~mapCol~ operators convert a column spatial type ~apoint~, ~aline~
 or ~aregion~ into their corresponding spatial types.
 
 */

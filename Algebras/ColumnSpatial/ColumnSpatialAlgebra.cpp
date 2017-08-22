@@ -1287,7 +1287,7 @@ each entry to the clone object.
   bool ColRegion::createRegion(Region* region, const long index) {
     vector<vector<Point> > cycles;
     long firstCyc = aRegion[index].indexCycle;
-    long lastCyc  = aRegion[index + 1].indexCycle;
+    long lastCyc  = aRegion[index + 1].indexCycle; // first cycle of next region
 
     // scan all cycles of the region
     for (long indexCyc = firstCyc; indexCyc < lastCyc; indexCyc++) {
@@ -2929,6 +2929,7 @@ int mapColPointVM (Word* args, Word& result, int message,
   return 0;
 }
 
+
 /*
 maps the column spatial type ~aline~ to a single spatial type ~line~.
 needs an index.
@@ -2958,6 +2959,7 @@ int mapColLineVM (Word* args, Word& result, int message,
   return 0;
 }
 
+
 /*
 maps column spatial type ~aregion~ to a single spatial type ~region~.
 needs an index.
@@ -2976,13 +2978,16 @@ int mapColRegionVM (Word* args, Word& result, int message,
   cout << "map aregion[" << index << "] to region.\n";
 
   Region* region = static_cast<Region*> (result.addr);
-  region = new Region(cRegion->getCountPoints(index)*2);
+  region = new Region(cRegion->getCountPoints(index));
 
   if (!cRegion->createRegion(region, index)) {
     cout << "Error mapping aregion to region!" << endl;
     region->SetDefined(false);
     return 0;
   }
+
+  cout << region->getMaxX() << endl;
+
   region->SetDefined(true);
   result.addr = region;
   return 0;
