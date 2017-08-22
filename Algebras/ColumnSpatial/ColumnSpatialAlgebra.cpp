@@ -1315,6 +1315,8 @@ each entry to the clone object.
 
     region = buildRegion(cycles);
 
+    // cout << region->getMaxX() << endl;      returns a valid value
+
     return true;
   }
 
@@ -2978,7 +2980,7 @@ int mapColRegionVM (Word* args, Word& result, int message,
   cout << "map aregion[" << index << "] to region.\n";
 
   Region* region = static_cast<Region*> (result.addr);
-  region = new Region(cRegion->getCountPoints(index));
+  region = new Region(cRegion->getCountPoints(index) * 2);
 
   if (!cRegion->createRegion(region, index)) {
     cout << "Error mapping aregion to region!" << endl;
@@ -2986,7 +2988,7 @@ int mapColRegionVM (Word* args, Word& result, int message,
     return 0;
   }
 
-  cout << region->getMaxX() << endl;
+  // cout << region->getMaxX() << endl;        returns 0 !?!?!
 
   region->SetDefined(true);
   result.addr = region;
