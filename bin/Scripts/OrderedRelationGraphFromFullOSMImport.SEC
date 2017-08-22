@@ -15,7 +15,7 @@
 
 # Database arnsberg
 
-query fullosmimport('arnsberg-regbez-latest.osm', "City")
+query fullosmimport('Raetsel/arnsberg.osm', "City")
 
 # 155 secs
 
