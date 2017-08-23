@@ -18717,7 +18717,7 @@ class OrderSLineLI {
 //            << " active" << endl << "search successor of " << pt1 << endl;
       it = point2seg.equal_range(pt1);
       multimap<Point, int>::iterator it1 = it.first;
-      while (!isActive[it1->second] && it1 != it.second) {
+      while (it1 != it.second && !isActive[it1->second]) {
         it1++;
       }
       if (it1 == it.second) { // no successor
