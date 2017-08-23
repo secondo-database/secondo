@@ -812,7 +812,7 @@ The function ~createRegion~ extracts the region with given index to a
 region object of the spatial algebra.
 
 */
-  bool createRegion(Region* region, const long index);
+  bool createRegion(Region*& region, const long index);
 
 /*
 The ~appendPoint~ function allocates memory for the point array

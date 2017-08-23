@@ -1284,7 +1284,7 @@ each entry to the clone object.
 
 
   // extracts one region from aregion to region of the spatial algebra.
-  bool ColRegion::createRegion(Region* region, const long index) {
+  bool ColRegion::createRegion(Region*& region, const long index) {
     vector<vector<Point> > cycles;
     long firstCyc = aRegion[index].indexCycle;
     long lastCyc  = aRegion[index + 1].indexCycle; // first cycle of next region
@@ -2979,25 +2979,16 @@ int mapColRegionVM (Word* args, Word& result, int message,
   }
   cout << "map aregion[" << index << "] to region.\n";
 
-  long segCount = cRegion->getCountPoints(index) * 2;
-  result.addr = new Region(segCount);
-  Region* region = static_cast<Region*> (result.addr);
-
-  // Region* region = static_cast<Region*> (result.addr);
-  // region = new Region(cRegion->getCountPoints(index)* 2);
-
+  Region* region = 0;
   if (!cRegion->createRegion(region, index)) {
     cout << "Error mapping aregion to region!" << endl;
-    //region->SetDefined(false);
     return 0;
   }
-
-  //region->Print(cout);
-  // cout << region->getMaxX() << endl;        returns 0 !?!?!
-
-  //region->SetDefined(true);
-  //result.addr = region;
-  return 0;
+  Region* res = static_cast<Region*> (result.addr);
+  *res = *region;
+  region->DeleteIfAllowed();
+  res->Print(cout);
+    return 0;
 }
 
 
