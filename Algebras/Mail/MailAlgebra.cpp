@@ -548,7 +548,7 @@ map<string, string> totypevalue;
    
 int embedTagsVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word t, value;
+  Word t;
   
   Tuple* tup;
   
@@ -561,6 +561,8 @@ switch (message)
   {
     
     case OPEN : {
+     
+    if(localInfo) {delete localInfo;}
         
      ListExpr resultType = GetTupleResultType(s);
      TupleType *tupleType = new TupleType(nl->Second(resultType));
@@ -575,9 +577,9 @@ switch (message)
      qp->GetLocal2(s).addr = localInfo;        
      
      int count = 0; 
-    
-      
-      
+     
+     
+       
      
      while (!(nl->IsEmpty(attrsave2)))
      {
