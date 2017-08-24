@@ -57,7 +57,8 @@ ConnectionInfo::ConnectionInfo(const string& _host,
     sendFolder = "";
     sendPath = "";
     serverPID=0;
-    num = -1; 
+    num = -1;
+    cmdLog = 0; 
     if(si!=0){
       try{
         serverPID = si->getPid();
