@@ -225,6 +225,9 @@ Signature : stream(text) -> sint
 Example   : query bbox('test.tif' feed importTiff)
 Result    : (rect   (-124.625 -113.0 44.0 56.125))
 
-
-
+Operator  : createHgtIndex
+Number    : 1
+Signature : sint -> hash
+Example   : query isdefined(getFileInfo(createHgtIndex('../Data/Raster2/N51E007.hgt' feed importHgt)))
+Result    : TRUE
 

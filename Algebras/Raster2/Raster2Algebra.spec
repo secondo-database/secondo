@@ -47,5 +47,5 @@ operator addLayer alias ADDLAYER pattern _ op[_,_]
 
 operator importTiff alias IMPORTTIFF pattern _ op
 
-
+operator createHgtIndex alias CREATEHGTINDEX pattern op( _ )
 

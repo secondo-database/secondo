@@ -68,6 +68,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/createGrid3.h"
 #include "Operators/distance3D.h"
 #include "Operators/importtiff.h"
+#include "Operators/createHgtIndex.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -155,9 +156,9 @@ Raster2Algebra::Raster2Algebra()
   AddOperator(&distance3D);
   AddOperator(&length3D);
 
-  AddOperator(&importTiffOP); 
+  AddOperator(&importTiffOP);
 
-
+  AddOperator(createHgtIndexInfo(), createHgtIndexVM, createHgtIndexTM);
 }
 
 Raster2Algebra::~Raster2Algebra()
