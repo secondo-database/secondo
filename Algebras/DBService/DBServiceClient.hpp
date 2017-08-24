@@ -105,10 +105,32 @@ all metadata related to this relation on the \textit{DBService} master node.
 /*
 1.1.1.1 ~pingDBService~
 
-This operator checks whether a connection to the ~DBService~ is possible.
+This function checks whether a connection to the ~DBService~ is possible.
 
 */
     bool pingDBService();
+
+/*
+1.1.1.1 ~getStreamType~
+
+This function checks whether a relation exists in the ~DBService~ and provides
+the corresponding tuple type if applicable.
+
+*/
+    bool getStreamType(
+            const std::string& databaseName,
+            const std::string& relationName,
+            std::string& nestedListAsString);
+
+/*
+1.1.1.1 ~relationExists~
+
+This function returns whether or not a relation exists in the ~DBService~.
+
+*/
+    bool relationExists(
+            const std::string& databaseName,
+            const std::string& relationName);
 
 private:
 /*
@@ -144,7 +166,8 @@ This function retrieves one of the replica locations of a relation from the
             const std::string& databaseName,
             const std::string& relationName,
             std::string& host,
-            std::string& transferPort);
+            std::string& transferPort,
+            std::string& commPort);
 
 /*
 

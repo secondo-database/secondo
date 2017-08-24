@@ -43,6 +43,26 @@ Example   : query read(myRelation)
 Result    : (stream(tuple))
 Remark    : None
 
+Operator  : read2
+Number    : 1
+Signature : rel(tuple(X)) x map(attr, value) x list(attrnames) -> stream(tuple(X))
+Example   : query myRelation read2[Host : node3; Host, Port] consume
+Result    : (stream(tuple))
+Remark    : None
+
+Operator  : read3
+Number    : 1
+Signature : rel(tuple(X)) x fun -> stream(tuple(X))
+Example   : query myRelation read3[. filter[.Host = "node3"] project[Host, Port]] consume
+Result    : (stream(tuple))
+Remark    : None
+
+Operator : DBSARG
+Number   : 1
+Signature: (rel(tuple(X)))) -> (stream(tuple(X)))
+Example  : query myRelation
+Result   : 1
+
 Operator  : ddelete
 Number    : 1
 Signature : string x bool -> bool

@@ -25,8 +25,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+#include "Algebra.h"
 #include "FileSystem.h"
 #include "StringUtils.h"
+
+#include "Algebras/Distributed2/FileRelations.h"
 
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationServer.hpp"
@@ -135,6 +138,10 @@ int CommunicationServer::communicate(iostream& io)
                 CommunicationProtocol::Ping())
         {
             handlePing(io, tid);
+        }else if(request ==
+                CommunicationProtocol::RelTypeRequest())
+        {
+            handleRelTypeRequest(io, tid);
         }else
         {
             traceWriter->write(
@@ -342,6 +349,7 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
     {
         sendBuffer.push(CommunicationProtocol::None());
         sendBuffer.push(CommunicationProtocol::None());
+        sendBuffer.push(CommunicationProtocol::None());
         CommunicationUtils::sendBatch(io, sendBuffer);
         return false;
     }
@@ -349,6 +357,7 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
 
     sendBuffer.push(location.getHost());
     sendBuffer.push(location.getTransferPort());
+    sendBuffer.push(location.getCommPort());
     CommunicationUtils::sendBatch(io, sendBuffer);
 
     return true;
@@ -453,6 +462,39 @@ bool CommunicationServer::handlePing(
             "CommunicationServer::handlePing");
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::Ping());
+    return true;
+}
+
+bool CommunicationServer::handleRelTypeRequest(
+        std::iostream& io, const boost::thread::id tid)
+{
+    traceWriter->writeFunction(tid,
+            "CommunicationServer::handleRelTypeRequest");
+    string relID;
+    CommunicationUtils::receiveLine(io, relID);
+
+    string databaseName;
+    string relationName;
+    RelationInfo::parseIdentifier(relID, databaseName, relationName);
+    traceWriter->write("databaseName", databaseName);
+    traceWriter->write("relationName", relationName);
+
+    string fileName = ReplicationUtils::getFileNameOnDBServiceWorker(
+                        databaseName,
+                        relationName);
+
+    traceWriter->write("fileName", fileName);
+
+    ffeed5Info info(fileName);
+    if(info.isOK()){
+       ListExpr type = nl->TwoElemList(
+               nl->SymbolAtom(Symbol::STREAM()),
+               nl->Second(info.getRelType()));
+       CommunicationUtils::sendLine(io, nl->ToString(type));
+    }else
+    {
+        CommunicationUtils::sendLine(io, CommunicationProtocol::None());
+    }
     return true;
 }
 

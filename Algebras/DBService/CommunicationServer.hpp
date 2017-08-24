@@ -190,15 +190,6 @@ running.
 
 /*
 
-1.1.1.1 \textit{lookupMinimumReplicaCount}
-
-This function retrieves the minimum number of replicas from the configuration
-file and stores it in the corresponding member variable.
-
-*/
-
-/*
-
 1.1.1.1 \textit{handlePing}
 
 This function triggers reacts on the ping of a client by sending a ping
@@ -209,6 +200,26 @@ back.
             std::iostream& io,
             const boost::thread::id tid);
 
+/*
+
+1.1.1.1 ~handleRelTypeRequest~
+
+This function provides the connected client with the type of a relation for
+which a replica is stored in the ~DBService~.
+
+*/
+        bool handleRelTypeRequest(
+                std::iostream& io,
+                const boost::thread::id tid);
+
+/*
+
+1.1.1.1 \textit{lookupMinimumReplicaCount}
+
+This function retrieves the minimum number of replicas from the configuration
+file and stores it in the corresponding member variable.
+
+*/
 private:
     void lookupMinimumReplicaCount();
 /*

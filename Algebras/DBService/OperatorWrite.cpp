@@ -86,9 +86,17 @@ ListExpr OperatorWrite::mapType(ListExpr nestedList)
 
     print("consumeTypeMapResult", consumeTypeMapResult);
 
+//    TODO useargsintypemapping
+//    if(DBServiceClient::getInstance()->relationExists(
+//            databaseName, relationName))
+//    {
+//        ErrorReporter::ReportError(
+//                "relation is already replicated");
+//        return nl->TypeError();
+//    }
+
     return consumeTypeMapResult;
 }
-
 
 int OperatorWrite::mapValue(Word* args,
                                   Word& result,

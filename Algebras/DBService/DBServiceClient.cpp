@@ -110,10 +110,12 @@ bool DBServiceClient::triggerReplication(const std::string& databaseName,
     return true;
 }
 
-bool DBServiceClient::getReplicaLocation(const string& databaseName,
-                                            const string& relationName,
-                                            string& host,
-                                            string& transferPort)
+bool DBServiceClient::getReplicaLocation(
+        const string& databaseName,
+        const string& relationName,
+        string& host,
+        string& transferPort,
+        string& commPort)
 {
     printFunction("DBServiceClient::getReplicaLocation");
     print("databaseName", databaseName);
@@ -124,7 +126,8 @@ bool DBServiceClient::getReplicaLocation(const string& databaseName,
     return dbServiceMasterClient.getReplicaLocation(databaseName,
                                                     relationName,
                                                     host,
-                                                    transferPort);
+                                                    transferPort,
+                                                    commPort);
 }
 
 string DBServiceClient::retrieveReplicaAndGetFileName(
@@ -138,11 +141,11 @@ string DBServiceClient::retrieveReplicaAndGetFileName(
 
     string host;
     string transferPort;
-    if(!getReplicaLocation(databaseName, relationName, host, transferPort))
+    string dummyCommPort;
+    if(!getReplicaLocation(
+            databaseName, relationName, host, transferPort, dummyCommPort))
     {
         print("No replica available");
-        print("host", host);
-        print("transferPort", transferPort);
         return string("");
     }
 
@@ -189,6 +192,64 @@ bool DBServiceClient::pingDBService()
                                               atoi(dbServicePort.c_str()),
                                               0);
     return dbServiceMasterClient.pingDBService();
+}
+
+bool DBServiceClient::getStreamType(
+        const string& databaseName,
+        const string& relationName,
+        string& nestedListAsString)
+{
+    printFunction("DBServiceClient::getRelType");
+    CommunicationClient dbServiceMasterClient(dbServiceHost,
+                                              atoi(dbServicePort.c_str()),
+                                              0);
+
+    string dbServiceWorkerHost;
+    string dummyTransferPort;
+    string commPort;
+    if(!dbServiceMasterClient.getReplicaLocation(
+            databaseName,
+            relationName,
+            dbServiceWorkerHost,
+            dummyTransferPort,
+            commPort))
+    {
+        print("Relation does not exist in DBService");
+        return false;
+    }
+
+    CommunicationClient dbServiceWorkerClient(dbServiceWorkerHost,
+                                              atoi(commPort.c_str()),
+                                              0);
+
+    return dbServiceWorkerClient.getRelType(
+            RelationInfo::getIdentifier(databaseName, relationName),
+            nestedListAsString);
+}
+
+bool DBServiceClient::relationExists(
+        const std::string& databaseName,
+        const std::string& relationName)
+{
+    printFunction("DBServiceClient::getRelType");
+    CommunicationClient dbServiceMasterClient(dbServiceHost,
+                                              atoi(dbServicePort.c_str()),
+                                              0);
+
+    string dbServiceWorkerHost;
+    string dummyTransferPort;
+    string commPort;
+    if(!dbServiceMasterClient.getReplicaLocation(
+            databaseName,
+            relationName,
+            dbServiceWorkerHost,
+            dummyTransferPort,
+            commPort))
+    {
+        print("Relation does not exist in DBService");
+        return false;
+    }
+    return true;
 }
 
 DBServiceClient* DBServiceClient::_instance = nullptr;

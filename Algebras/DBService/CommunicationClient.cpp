@@ -42,7 +42,7 @@ using namespace distributed2;
 namespace DBService {
 
 CommunicationClient::CommunicationClient(
-        std::string& server, int port, Socket* socket)
+        string& server, int port, Socket* socket)
 :Client(server, port, socket)
 {
     string context("CommunicationClient");
@@ -260,8 +260,9 @@ void CommunicationClient::getLocationParameter(
 
 bool CommunicationClient::getReplicaLocation(const string& databaseName,
                                              const string& relationName,
-                                             std::string& host,
-                                             std::string& transferPort)
+                                             string& host,
+                                             string& transferPort,
+                                             string& commPort)
 {
     traceWriter->writeFunction("CommunicationClient::getReplicaLocation");
     traceWriter->write("databaseName", databaseName);
@@ -300,15 +301,18 @@ bool CommunicationClient::getReplicaLocation(const string& databaseName,
     traceWriter->write("Sent relation details to DBService master");
 
     queue<string> receivedLines;
-    CommunicationUtils::receiveLines(io, 2, receivedLines);
+    CommunicationUtils::receiveLines(io, 3, receivedLines);
     host = receivedLines.front();
     receivedLines.pop();
     transferPort = receivedLines.front();
     receivedLines.pop();
+    commPort = receivedLines.front();
+    receivedLines.pop();
     traceWriter->write("host", host);
     traceWriter->write("transferPort", transferPort);
     if(!host.empty() && host != CommunicationProtocol::None()
-    && !transferPort.empty() && transferPort != CommunicationProtocol::None())
+    && !transferPort.empty() && transferPort != CommunicationProtocol::None()
+    && !commPort.empty() && commPort != CommunicationProtocol::None())
     {
         return true;
     }
@@ -405,10 +409,10 @@ bool CommunicationClient::requestReplicaDeletion(
 }
 
 bool CommunicationClient::triggerReplicaDeletion(
-        const std::string& relID)
+        const string& relID)
 {
     traceWriter->writeFunction("CommunicationClient::triggerReplicaDeletion");
-    traceWriter->write("relID: ", relID);
+    traceWriter->write("relID", relID);
 
     if(start() != 0)
     {
@@ -494,5 +498,44 @@ bool CommunicationClient::pingDBService()
     }
     return true;
 }
+
+bool CommunicationClient::getRelType(
+        const string& relID,
+        string& nestedListAsString)
+{
+    traceWriter->writeFunction("CommunicationClient::getRelType");
+    traceWriter->write("relID", relID);
+
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
+
+    iostream& io = socket->GetSocketStream();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+            CommunicationProtocol::CommunicationServer()))
+    {
+        traceWriter->write("Not connected to CommunicationServer");
+        return false;
+    }
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::RelTypeRequest());
+    sendBuffer.push(relID);
+    CommunicationUtils::sendBatch(io, sendBuffer);
+    traceWriter->write("Sent relID");
+
+    CommunicationUtils::receiveLine(io, nestedListAsString);
+    if(nestedListAsString != CommunicationProtocol::None())
+    {
+        traceWriter->write("Rel type", nestedListAsString);
+        return true;
+    }
+    traceWriter->write("Relation does not exist in DBService");
+    return false;
+}
+
 
 } /* namespace DBService */

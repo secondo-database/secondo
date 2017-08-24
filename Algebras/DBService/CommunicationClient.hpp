@@ -116,7 +116,8 @@ the host and the transfer port of the node that holds the replica.
             const std::string& databaseName,
             const std::string& relationName,
             std::string& host,
-            std::string& transferPort);
+            std::string& transferPort,
+            std::string& commPort);
 
 /*
 1.1.1.2 \textit{triggerFileTransfer}
@@ -186,25 +187,31 @@ to trigger the deletion of the replicas by calling function
     bool triggerReplicaDeletion(
             const std::string& relID);
 
-
-
 /*
-1.1.1.2 \textit{getLocationParameter}
+1.1.1.2 ~pingDBService~
 
-This function simplifies reading information from the "Environment" section of
-a SECONDO configuration file.
-
-*/
-
-/*
-1.1.1.2 \textit{getLocationParameter}
-
-This function simplifies reading information from the "Environment" section of
-a SECONDO configuration file.
+This function allows checking the ~DBService~ availability.
 
 */
     bool pingDBService();
 
+/*
+1.1.1.2 ~getRelType~
+
+This function allows checking whether a relation exists in the DBService and
+provides the corresponding tuple type in this case.
+
+*/
+
+    bool getRelType(const std::string& relID, std::string& nestedListAsString);
+
+/*
+1.1.1.2 \textit{getLocationParameter}
+
+This function simplifies reading information from the "Environment" section of
+a SECONDO configuration file.
+
+*/
 private:
     void getLocationParameter(std::string& location, const char* key);
 

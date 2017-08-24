@@ -145,4 +145,9 @@ string CommunicationProtocol::Ping()
     return "<PING>";
 }
 
+string CommunicationProtocol::RelTypeRequest()
+{
+    return "<RELTYPEREQUEST>";
+}
+
 } /* namespace DBService */
