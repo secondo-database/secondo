@@ -83,48 +83,6 @@ ListExpr OperatorDBSARG::mapType(ListExpr nestedList)
         }
     }
     return feedTypeMapResult;
-
-//    string fileName;
-//    if(!relationLocallyAvailable)
-//    {
-//        print("Trying to retrieve relation from DBService");
-//        const string databaseName =
-//                SecondoSystem::GetInstance()->GetDatabaseName();
-//        const string relationName = nl->ToString(nl->First(nestedList));
-//        print("databaseName", databaseName);
-//        print("relationName", relationName);
-//        fileName =
-//                DBServiceClient::getInstance()->
-//                retrieveReplicaAndGetFileName(
-//                        databaseName,
-//                        relationName,
-//                        string(""));
-//        if(fileName.empty())
-//        {
-//            print("Did not receive file");
-//            return listutils::typeError("File does not exist");
-//        }
-//        print("fileName", fileName);
-//        ffeed5Info info(fileName);
-//        if(info.isOK()){
-//           feedTypeMapResult = nl->TwoElemList(
-//                   nl->SymbolAtom(Symbol::STREAM()),
-//                   nl->Second(info.getRelType()));
-//        }else
-//        {
-//            print("Could not determine relation type from file");
-//            return listutils::typeError("Unreadable file");
-//        }
-//    }
-//    print("feedTypeMapResult", feedTypeMapResult);
-//
-//    ListExpr readTypeMapResult = nl->ThreeElemList(
-//            nl->SymbolAtom(Symbols::APPEND()),
-//            nl->OneElemList((relationLocallyAvailable ?
-//                    nl->StringAtom("") : nl->StringAtom(fileName))),
-//                    feedTypeMapResult);
-//    print("readTypeMapResult", readTypeMapResult);
-//    return readTypeMapResult;
 }
 
 } /* namespace DBService */
