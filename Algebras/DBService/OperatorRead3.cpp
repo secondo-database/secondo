@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+#include "ListUtils.h"
 #include "NestedList.h"
 #include "StandardTypes.h"
 
@@ -45,63 +46,74 @@ namespace DBService {
 
 ListExpr OperatorRead3::mapType(ListExpr nestedList)
 {
+    printFunction("OperatorRead3::mapType");
     print(nestedList);
 
-    if(!nl->HasLength(nestedList, 1))
+    if(!nl->HasLength(nestedList, 2))
     {
         ErrorReporter::ReportError(
-                "expected one argument");
-                return nl->TypeError();
+                "expected two arguments");
+        return nl->TypeError();
     }
+
+    listutils::isAnyMap(nl->Second(nestedList));
 
     ListExpr feedTypeMapResult = OperatorFeed::FeedTypeMap(nestedList);
     print("feedTypeMapResult", feedTypeMapResult);
-    return feedTypeMapResult;
 
-//    bool relationLocallyAvailable = (feedTypeMapResult != nl->TypeError());
-//    print("relationLocallyAvailable",
-//            string(relationLocallyAvailable ? "TRUE" : "FALSE"));
-//    string fileName;
-//    if(!relationLocallyAvailable)
-//    {
-//        print("Trying to retrieve relation from DBService");
-//        const string databaseName =
-//                SecondoSystem::GetInstance()->GetDatabaseName();
-//        const string relationName = nl->ToString(nl->First(nestedList));
-//        print("databaseName", databaseName);
-//        print("relationName", relationName);
-//        fileName =
-//                DBServiceClient::getInstance()->
-//                retrieveReplicaAndGetFileName(
-//                        databaseName,
-//                        relationName,
-//                        string(""));
-//        if(fileName.empty())
-//        {
-//            print("Did not receive file");
-//            return listutils::typeError("File does not exist");
-//        }
-//        print("fileName", fileName);
-//        ffeed5Info info(fileName);
-//        if(info.isOK()){
-//           feedTypeMapResult = nl->TwoElemList(
-//                   nl->SymbolAtom(Symbol::STREAM()),
-//                   nl->Second(info.getRelType()));
-//        }else
-//        {
-//            print("Could not determine relation type from file");
-//            return listutils::typeError("Unreadable file");
-//        }
-//    }
-//    print("feedTypeMapResult", feedTypeMapResult);
-//
-//    ListExpr readTypeMapResult = nl->ThreeElemList(
-//            nl->SymbolAtom(Symbols::APPEND()),
-//            nl->OneElemList((relationLocallyAvailable ?
-//                    nl->StringAtom("") : nl->StringAtom(fileName))),
-//                    feedTypeMapResult);
-//    print("readTypeMapResult", readTypeMapResult);
-//    return readTypeMapResult;
+    bool relationLocallyAvailable = (feedTypeMapResult != nl->TypeError());
+    print("relationLocallyAvailable",
+            string(relationLocallyAvailable ? "TRUE" : "FALSE"));
+
+    string fileName;
+    if(!relationLocallyAvailable)
+    {
+        print("Relation not available locally");
+        if(!nl->IsAtom(nl->First(nestedList)))
+        {
+            ErrorReporter::ReportError(
+                    "expected symbol atom");
+            return nl->TypeError();
+        }
+
+        print("Trying to retrieve relation from DBService");
+        const string databaseName =
+                SecondoSystem::GetInstance()->GetDatabaseName();
+        const string relationName = nl->ToString(nl->First(nestedList));
+        print("databaseName", databaseName);
+        print("relationName", relationName);
+        fileName =
+                DBServiceClient::getInstance()->
+                retrieveReplicaAndGetFileName(
+                        databaseName,
+                        relationName,
+                        nl->ToString(nl->Second(nestedList)));
+        if(fileName.empty())
+        {
+            print("Did not receive file");
+            return listutils::typeError("File does not exist");
+        }
+        print("fileName", fileName);
+        ffeed5Info info(fileName);
+        if(info.isOK()){
+           feedTypeMapResult = nl->TwoElemList(
+                   nl->SymbolAtom(Symbol::STREAM()),
+                   nl->Second(info.getRelType()));
+        }else
+        {
+            print("Could not determine relation type from file");
+            return listutils::typeError("Unreadable file");
+        }
+    }
+    print("feedTypeMapResult", feedTypeMapResult);
+
+    ListExpr readTypeMapResult = nl->ThreeElemList(
+            nl->SymbolAtom(Symbols::APPEND()),
+            nl->OneElemList((relationLocallyAvailable ?
+                    nl->StringAtom("") : nl->StringAtom(fileName))),
+                    feedTypeMapResult);
+    print("readTypeMapResult", readTypeMapResult);
+    return readTypeMapResult;
 }
 
 int OperatorRead3::mapValue(Word* args,

@@ -47,7 +47,7 @@ struct Read3Info: OperatorInfo
 {
     Read3Info()
     {
-        name = "read2";
+        name = "read3";
         signature = "rel(tuple) x fun -> stream(tuple)";
         syntax = "read(rel, fun)";
         meaning = "read a tuple stream from a relation and fall back to the "

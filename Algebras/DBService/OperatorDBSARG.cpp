@@ -64,24 +64,35 @@ ListExpr OperatorDBSARG::mapType(ListExpr nestedList)
 
     if(!relationLocallyAvailable)
     {
-        if((nl->AtomType(nl->First(nestedList)) == SymbolType))
+        print("Relation not available locally");
+        if(!nl->IsAtom(nl->First(nestedList)))
         {
             ErrorReporter::ReportError(
                     "expected symbol atom");
                     return nl->TypeError();
         }
         const string relationName = nl->ToString(nl->First(nestedList));
+        print("relationName", relationName);
         string nestedListString;
-        DBServiceClient::getInstance()->getStreamType(
+        if(!DBServiceClient::getInstance()->getStreamType(
                 SecondoSystem::GetInstance()->GetDatabaseName(),
                 relationName,
-                nestedListString);
+                nestedListString))
+        {
+            ErrorReporter::ReportError(
+                    "Could not connect to DBService");
+                    return nl->TypeError();
+        }
+
+        print("nestedListString", nestedListString);
 
         if(!nl->ReadFromString(nestedListString, feedTypeMapResult))
         {
+            print("could not read nested list from string");
             return nl->TypeError();
         }
     }
+    print("feedTypeMapResult", feedTypeMapResult);
     return feedTypeMapResult;
 }
 

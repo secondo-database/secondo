@@ -97,6 +97,20 @@ private:
             std::iostream& io,
             bool fileCreated,
             const boost::thread::id tid);
+
+/*
+
+1.1.1.1 ~applyFunctionAndCreateNewFile~
+
+This function applies a function to a tuple stream read from a file and stores
+the resulting tuple stream in a new file.
+
+*/
+    void applyFunctionAndCreateNewFile(
+            std::iostream& io,
+            const std::string& oldFileName,
+            const std::string& newFileName,
+            const boost::thread::id tid);
 };
 
 } /* namespace DBService */

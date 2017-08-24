@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+#include <ctime>
 #include <chrono>
 #include <iostream>
 
@@ -107,13 +108,33 @@ int ReplicationServer::communicate(iostream& io)
                 sendFileToClient(io, true, tid);
             }else
             {
-                // TODO
-                // execute query with function on relation in file
-                // create new file with new name
-                // notify client about new name so that it can request file
-                // send to client
-                // delete
+                CommunicationUtils::sendLine(io,
+                        CommunicationProtocol::FileName());
+
+                string replicaFileName;
+                CommunicationUtils::receiveLine(io, replicaFileName);
+                if(!FileSystem::FileOrFolderExists(replicaFileName))
+                {
+                    traceWriter->write(tid, "file not found, notifying client");
+                    CommunicationUtils::sendLine(io,
+                            distributed2::FileTransferKeywords::FileNotFound());
+                    return 6;
+                }
+
+                CommunicationUtils::sendLine(io,
+                        CommunicationProtocol::FileName());
+
+                std::time_t currentTime = std::time(0);
+                stringstream fileName;
+                fileName << currentTime << "_" << replicaFileName;
+
+                CommunicationUtils::sendLine(io,
+                        fileName.str());
+
+                applyFunctionAndCreateNewFile(
+                        io, replicaFileName, fileName.str(), tid);
             }
+            sendFileToClient(io, true, tid);
         }else
         {
             traceWriter->write(tid, "unexpected purpose: ", purpose);
@@ -166,6 +187,15 @@ void ReplicationServer::sendFileToClient(
                 std::chrono::duration_cast
                 <std::chrono::microseconds>(end - begin).count());
     }
+}
+
+void ReplicationServer::applyFunctionAndCreateNewFile(
+        iostream& io,
+        const string& oldFileName,
+        const string& newFileName,
+        const boost::thread::id tid)
+{
+
 }
 
 } /* namespace DBService */

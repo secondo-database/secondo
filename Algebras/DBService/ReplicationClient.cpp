@@ -170,9 +170,26 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
         }else
         {
             CommunicationUtils::sendLine(io, functionAsNestedListString);
-            // TODO
-            // new file name due to function execution
-            // -> adapt before requesting file
+            if(!CommunicationUtils::receivedExpectedLine(io,
+                    CommunicationProtocol::FileName()))
+            {
+                traceWriter->write("expected file name keyword");
+                return 4;
+            }
+            CommunicationUtils::sendLine(io, fileNameOrigin);
+            traceWriter->write("sent original filename");
+
+            if(!CommunicationUtils::receivedExpectedLine(io,
+                    CommunicationProtocol::FileName()))
+            {
+                traceWriter->write("expected file name keyword");
+                return 5;
+            }
+
+            string newFileName;
+            CommunicationUtils::receiveLine(io, newFileName);
+            traceWriter->write("new filename is", newFileName);
+            fileNameOrigin = remoteName = newFileName;
         }
 
         if(receiveFileFromServer())
@@ -190,6 +207,7 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
 bool ReplicationClient::receiveFileFromServer()
 {
     traceWriter->writeFunction("ReplicationClient::receiveFileFromServer");
+    traceWriter->write("requesting file", remoteName);
 
     std::chrono::steady_clock::time_point begin =
             std::chrono::steady_clock::now();

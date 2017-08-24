@@ -150,4 +150,9 @@ string CommunicationProtocol::RelTypeRequest()
     return "<RELTYPEREQUEST>";
 }
 
+string CommunicationProtocol::FileName()
+{
+    return "<FILENAME>";
+}
+
 } /* namespace DBService */

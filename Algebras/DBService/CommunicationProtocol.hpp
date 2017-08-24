@@ -49,8 +49,9 @@ public:
     static std::string CommunicationClient();
     static std::string CommunicationServer();
     static std::string DeleteReplicaRequest();
-    static std::string LocationRequest();
+    static std::string FileName();
     static std::string FunctionRequest();
+    static std::string LocationRequest();
     static std::string None();
     static std::string Ping();
     static std::string RelationRequest();

@@ -136,7 +136,7 @@ Stores the name of the file that contains the replica on the local side.
 Stores the name of the file that contains the replica on the remote side.
 
 */
-    const std::string fileNameOrigin;
+    std::string fileNameOrigin;
 
 /*
 
