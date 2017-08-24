@@ -814,7 +814,8 @@ Print the object values to stream.
 
 */        
       Segment ();
-      Segment (size_t head, size_t tail, Predicate predicate);
+      Segment (size_t head, size_t tail, 
+               const Predicate& predicate = UNDEFINED);
       Segment (const Segment& segment);
 /*
 3.2 Getter methods

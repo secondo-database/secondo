@@ -56,6 +56,7 @@ namespace temporalalgebra{
         default: return "";
       }// switch
     }// toString
+    
 /*
 3 Class Point3D
 
@@ -766,9 +767,9 @@ namespace temporalalgebra{
 
     std::ostream& ContainerPoint3D::print(
         std::ostream& os, std::string prefix)const{ 
-      os << prefix << "Container( " << endl;
+      os << "ContainerPoint3D( " << endl;
       for(size_t i = 0; i< points.size(); i++){
-        os << prefix << "  Index:="<< i<<", " << points[i] << endl; 
+        os << prefix + "  Index:="<< i<<", " << points[i] << endl; 
       }// for
       os << prefix << ")" << endl;
       return os;
@@ -803,15 +804,16 @@ namespace temporalalgebra{
 
 */      
     Segment::Segment (){
-      this->head = 0;
-      this->tail = 0;
-      this->predicate = UNDEFINED;
+      this->head       = 0;
+      this->tail       = 0;
+      this->predicate  = UNDEFINED;
     }// Konstruktor    
     
-    Segment::Segment (size_t tail, size_t head, Predicate predicate){
-      this->head = head;
-      this->tail = tail;
-      this->predicate = predicate;
+    Segment::Segment (size_t tail, size_t head, 
+                      const Predicate& predicate /* = UNDEFINED */){
+      this->head       = head;
+      this->tail       = tail;
+      this->predicate  = predicate;
     }// Konstruktor
     
     Segment::Segment (const Segment& segment){
@@ -819,9 +821,9 @@ namespace temporalalgebra{
     }// KOnstruktor
     
     void Segment::set(const Segment& segment){
-      this->head = segment.head;
-      this->tail = segment.tail;
-      this->predicate = segment.predicate;
+      this->head       = segment.head;
+      this->tail       = segment.tail;
+      this->predicate  = segment.predicate;
     }// set
     
     size_t Segment::getHead()const{
@@ -835,11 +837,11 @@ namespace temporalalgebra{
     Predicate Segment::getPredicate() const{
       return this->predicate;
     }// getPredicate
-    
+
     void Segment::setPredicate(Predicate predicate){
       this->predicate = predicate;
     }// setPredicate
-
+    
     std::ostream& operator <<(std::ostream& os, const Segment& segment){
       os << "Segment (" << segment.getTail() << ", " << segment.getHead();
       os << ", ";
@@ -848,9 +850,9 @@ namespace temporalalgebra{
     }// operator <<
 
     bool Segment::operator ==(const Segment& segment) const{
-      if((this->head == segment.head) &&
-         (this->tail  == segment.tail) &&
-         (this->predicate == segment.predicate)) return true;
+      if(this->head       == segment.head &&
+         this->tail       == segment.tail &&
+         this->predicate  == segment.predicate) return true;
       return false;
     }// Operator ==
 
@@ -894,42 +896,35 @@ namespace temporalalgebra{
       for(iterator = segmentBuckets[hash].begin(); 
           iterator != segmentBuckets[hash].end(); iterator ++){
         Segment other = segments[*iterator];
-        if(other.getTail() == segment.getTail() &&
-           other.getHead() == segment.getHead()){
+        // Existiert bereits ein Segment mit den angegebnen Endpunkten
+        if( other.getTail() == segment.getTail() &&
+            other.getHead() == segment.getHead()){
           // altes Prädikat ist "UNDEFINED"
-          if(other.getPredicate() == UNDEFINED) {
+          if (other.getPredicate() == UNDEFINED) {
             segments[*iterator] = segment;
             return *iterator;
           }// if
           // altes und neues Prädikat sind gleich
-          else if(other.getPredicate() == segment.getPredicate()){
+          else if (other.getPredicate() == segment.getPredicate()){
             return *iterator;
           }// else if
           // neues Prädikat ist undefined
           else if(segment.getPredicate()== UNDEFINED){
             return *iterator;
           }// else if  
-          // altes und nues Prädikat sind unterschiedlich
+          // altes und nues Schnitträdikat sind unterschiedlich
+          else if((segment.getPredicate() == RIGHT_IS_INNER && 
+                   other.getPredicate()   == LEFT_IS_INNER) || 
+                  (segment.getPredicate() == LEFT_IS_INNER && 
+                   other.getPredicate()   == RIGHT_IS_INNER)){
+            segments[*iterator].setPredicate(OUTSIDE);  
+            return *iterator;  
+          }// else if
+          // alle anderen Fälle z.B INSIDE mit OUTSIDE
           else {
-            segments[*iterator].setPredicate(INTERSECT);
-            return *iterator;
-          }// else  
-//           else if((segment.getPredicate() == RIGHT_IS_INNER && 
-//                    other.getPredicate()   == LEFT_IS_INNER) || 
-//                   (segment.getPredicate() == LEFT_IS_INNER && 
-//                    other.getPredicate()   == RIGHT_IS_INNER)){
-// //            cout << *this;
-//             segments[*iterator].setPredicate(INTERSECT);
-// //            cout << *this;  
-//             return *iterator;  
-//           }// else if
-//           else if (other.getPredicate() == INTERSECT){
-//             return *iterator;            
-//           }// else if
-//                   
-//           cout << *this;
-//           cout << segment <<endl;
-//           NUM_FAIL("Segments with same points and different predicates.");
+            segments[*iterator].setPredicate(INTERSECT); 
+            return *iterator; 
+          }// else
         }// if 
       }// for
       size_t index = segments.size();
@@ -946,11 +941,8 @@ namespace temporalalgebra{
         }// if  
         else if(segments[index].getPredicate() == predicate) return;
         else {
-          cout << "Segment:=" << index << endl;
-          cout << "Old:="<< toString(segments[index].getPredicate())<<endl;
-          cout << "New:="<< toString(predicate)<<endl;          
-          NUM_FAIL("Combination from old and new predicate is invalid."); 
-        }
+          segments[index].setPredicate(INTERSECT);
+        }// else
       }// if
       else NUM_FAIL("Index is out of range.");        
     }// set
@@ -964,9 +956,9 @@ namespace temporalalgebra{
       
     std::ostream& ContainerSegment::print(std::ostream& os, 
                                           std::string prefix)const{
-      os << prefix << "ContainerSegment ( " << endl;
+      os <<  "ContainerSegment ( " << endl;
       for(size_t i = 0; i < segments.size(); i++){
-        os << prefix << "  Index:=" << i << ", " << segments[i] << endl;
+        os << prefix + "  Index:=" << i << ", " << segments[i] << endl;
       }// for
       //for(size_t i = 0; i < segmentBuckets.size(); i++){
       //  os << prefix << "  Bucket:=" << i << "( ";

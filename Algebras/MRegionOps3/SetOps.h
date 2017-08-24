@@ -279,10 +279,10 @@ Print the object values to stream.
       friend std::ostream& operator <<(std::ostream& os, 
                                        const RationalPlane3D& plane);
 /*
-6.3.6 isLeftAreaInner   
+6.3.6 isLeftSideInner   
 
 */       
-      bool isLeftAreaInner(const RationalSegment3D segment,
+      bool isLeftSideInner(const RationalSegment3D segment,
                            const RationalPlane3D other)const;
 /*
 6.3.7 transform   
@@ -385,10 +385,10 @@ Print the object values to stream.
       IntersectionSegment(const IntersectionSegment& segment);
       IntersectionSegment(const IntersectionPoint& tail,
                           const IntersectionPoint& head, 
-                          const Predicate predicate);
+                          const Predicate& predicate = UNDEFINED);
       IntersectionSegment(const Segment3D& segment3D, 
                           const Segment2D& segment2D, 
-                          const Predicate predicate);
+                          const Predicate& predicate = UNDEFINED);
 /*
 8.2 Getter methods
 
@@ -446,7 +446,7 @@ Print the object values to stream.
 
 */       
       void set(const IntersectionPoint& tail,const IntersectionPoint& head,
-               Predicate predicate);
+               const Predicate& predicate);
       void set(const IntersectionSegment& segment);
 /*
 8.6 Attributes
@@ -620,7 +620,9 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
 13.1 Constructor
 
 */   
-      GlobalTimeValues();
+      GlobalTimeValues(double scale = 1,
+                       double orginalStartTime = 0,
+                       double orginalEndTime = 1);
       
       GlobalTimeValues(const Interval<Instant>& orginalInterval);
 /*
@@ -650,6 +652,8 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
 
 */      
       size_t size()const; 
+      
+      std::ostream& print(std::ostream& os, std::string prefix) const;
       
 /*
 13.3.3 Operator <<
@@ -1192,7 +1196,7 @@ Computes the intersection of this ~PFace~ with pf.
 
 20.2.3 addPFace
     
-*/        
+*/      
       void addPFace(const Segment& left, const Segment& right, 
                     const ContainerPoint3D& points);
       
@@ -1276,9 +1280,12 @@ Print the object values to stream.
 */ 
     class SourceUnitPair {
     public:
-      SourceUnitPair();
+      SourceUnitPair(double orginalStartTime = 0,double orginalEndTime = 1, 
+                     double scale = 1);
       
       SourceUnitPair(const Interval<Instant>& orginalInterval);
+      
+      void setScaleFactor(double scale);
                   
       void addPFace(SourceFlag flag, Segment3D& left, Segment3D& right);
       
@@ -1334,7 +1341,6 @@ Print the object values to stream.
       MRegion* const mRegionA;
       MRegion* const mRegionB;
       MRegion* const mRegionResult;
-//      double tScale;
     }; // class SetOperator
 
   } // end of namespace mregionops3
