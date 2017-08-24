@@ -27,12 +27,25 @@ using namespace std;
 namespace raster2 {
 
 ListExpr createHgtIndexTM(ListExpr args) {
-  const std::string error_message = "expected single argument (sint)";
-  if (!nl->HasLength(args, 1)) {
+  const std::string error_message = "expects an object of the type sint and "
+                                    "an optional integer";
+  if (!nl->HasLength(args, 1) && !nl->HasLength(args, 2)) {
     return listutils::typeError(error_message);
   }
   if (!sint::checkType(nl->First(args))) {
     return listutils::typeError(error_message);
+  }
+  if (nl->HasLength(args, 1)) {
+    return nl->ThreeElemList(
+             nl->SymbolAtom(Symbol::APPEND()),
+             nl->OneElemList(nl->IntAtom(1)),
+             nl->ThreeElemList(nl->SymbolAtom(Hash::BasicType()), nl->Empty(),
+                               nl->SymbolAtom(CcInt::BasicType())));
+  }
+  else {
+    if (!CcInt::checkType(nl->Second(args))) {
+      return listutils::typeError(error_message);
+    }
   }
   return nl->ThreeElemList(nl->SymbolAtom(Hash::BasicType()), nl->Empty(),
                            nl->SymbolAtom(CcInt::BasicType()));
@@ -42,12 +55,14 @@ int createHgtIndexVM(Word* args, Word& result, int message, Word& local,
                      Supplier s) {
   result = qp->ResultStorage(s);
   sint *hgt = static_cast<sint*>(args[0].addr);
+  int precision = (static_cast<CcInt*>(args[1].addr))->GetIntval();
   Hash *hash = static_cast<Hash*>(result.addr);
   hash->Truncate();
   sint::storage_type& rs = hgt->getStorage();
   for (raster2::sint::iter_type it = rs.begin(), e = rs.end(); it != e; ++it) {
-    hash->Append((int)*it, it.getIndex()[0]);
-    hash->Append((int)*it, it.getIndex()[1]);
+    int value = ((int)((int)*it / precision)) * precision;
+    hash->Append(value, it.getIndex()[0]);
+    hash->Append(value, it.getIndex()[1]);
   }
   return 0;
 }

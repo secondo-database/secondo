@@ -38,7 +38,9 @@ namespace raster2 {
       signature = sint::BasicType() + " -> " + Hash::BasicType();
       syntax    = "createHgtIndex( _ )";
       meaning   = "Creates a hash file from an sint object. All tiles with "
-                  "a certain value can then be retrieved efficiently.";
+                  "a certain value can then be retrieved efficiently. An "
+                  "optional integer can be specified to use rougher values, 
+                  "e.g., 220 for all values between 220 and 229.";
     }
   };
 }
