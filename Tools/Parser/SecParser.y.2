@@ -473,6 +473,17 @@ typeexpr  :  constructor  {$$ = $1;}
     
     ;
 
+
+typeexpr2  :  constructor  {$$ = $1;}
+    |  constructor '(' typeexprs ')'
+        {$$ = NestedText::Concat(NestedText::AtomC("("),
+          NestedText::Concat($1,
+            NestedText::Concat(NestedText::AtomC(" "),
+              NestedText::Concat($3, NestedText::AtomC(")")))));}
+    |  nestedlist 
+        {$$ = $1;}
+    ;
+
 constructor  :  ZZIDENTIFIER  {$$ = $1;}
     |  ZZTUPLE    {$$ = $1;}
     |  ZZGROUP    {$$ = $1;}
@@ -574,6 +585,8 @@ rest    : ')'      {$$ = $1;}
 atom    : constant    {$$ = $1;}
     | ZZIDENTIFIER    {$$ = $1;}
     | ZZFILE    {$$ = $1;}
+    | ZZTUPLE    {$$ = $1;}
+    | ZZGROUP   {$$ = $1;}
     ;
 
 list    : elems      {$$ = NestedText::Concat(NestedText::AtomC("("),
@@ -627,13 +640,13 @@ valueexpr  : ZZIDENTIFIER        {$$ = $1;}
     | attribute        {$$ = $1;}
     | attribute2        {$$ = $1;}
     | '(' valueexpr ')'      {$$ = $2;}
-    | '[' ZZCONST typeexpr ZZVALUE nestedlist ']'
+    | '[' ZZCONST typeexpr2 ZZVALUE nestedlist ']'
       {$$ = NestedText::Concat(NestedText::AtomC("("),
         NestedText::Concat($3,
         NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($5,
           NestedText::AtomC(")")  ))));}
-    | '[' ZZCONST typeexpr ZZPOINTER nestedlist ']'
+    | '[' ZZCONST typeexpr2 ZZPOINTER nestedlist ']'
       {$$ = NestedText::Concat(NestedText::AtomC("("),
         NestedText::Concat($3,
         NestedText::Concat(NestedText::AtomC(" ( ptr"),
