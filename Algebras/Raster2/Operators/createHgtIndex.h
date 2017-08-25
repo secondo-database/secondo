@@ -39,7 +39,7 @@ namespace raster2 {
       syntax    = "createHgtIndex( _ )";
       meaning   = "Creates a hash file from an sint object. All tiles with "
                   "a certain value can then be retrieved efficiently. An "
-                  "optional integer can be specified to use rougher values, 
+                  "optional integer can be specified to use rougher values, "
                   "e.g., 220 for all values between 220 and 229.";
     }
   };
