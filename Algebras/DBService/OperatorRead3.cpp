@@ -56,9 +56,18 @@ ListExpr OperatorRead3::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
-    listutils::isAnyMap(nl->Second(nestedList));
+    print("nl->First(nestedList)", nl->First(nestedList));
+    print("nl->Second(nestedList)", nl->Second(nestedList));
 
-    ListExpr feedTypeMapResult = OperatorFeed::FeedTypeMap(nestedList);
+    if(!listutils::isAnyMap(nl->Second(nestedList)))
+    {
+        ErrorReporter::ReportError(
+                "no map found");
+        return nl->TypeError();
+    }
+
+    ListExpr feedTypeMapResult =
+            OperatorFeed::FeedTypeMap(nl->OneElemList(nl->First(nestedList)));
     print("feedTypeMapResult", feedTypeMapResult);
 
     bool relationLocallyAvailable = (feedTypeMapResult != nl->TypeError());
