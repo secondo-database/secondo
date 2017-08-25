@@ -330,7 +330,9 @@ ConnectionInfo* Distributed2Algebra::getConnection(const int i){
         return 0;
     }
     ConnectionInfo* res =  connections[i];
-    res->setId(i);;
+    if(res){
+      res->setId(i);
+    }
     return res;
 }
 
