@@ -49,6 +49,8 @@ namespace DBService
 
 typedef size_t ConnectionID;
 
+typedef std::vector<std::pair<ConnectionID, bool> > ReplicaLocations;
+
 /*
 
 1.1.1 Class Definition
@@ -127,7 +129,7 @@ This function provides an iterator to the begin of the structure that stores
 the nodes that were added as replica locations.
 
 */
-    const std::map<ConnectionID, bool>::const_iterator nodesBegin() const;
+    const ReplicaLocations::const_iterator nodesBegin() const;
 
 /*
 
@@ -137,7 +139,7 @@ This function provides an iterator to the end of the structure that stores
 the nodes that were added as replica locations.
 
 */
-    const std::map<ConnectionID, bool>::const_iterator nodesEnd() const;
+    const ReplicaLocations::const_iterator nodesEnd() const;
 
 /*
 
@@ -221,7 +223,7 @@ Stores the name of the associated relation.
 Stores the replica locations of the associated relation.
 
 */
-    std::map<ConnectionID, bool> nodes;
+    ReplicaLocations nodes;
 
 /*
 

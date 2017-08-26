@@ -172,8 +172,9 @@ This function retrieves all replica locations of the relation identified by the
 given string and stores them in the provided vector.
 
 */
-    void getReplicaLocations(const std::string& relationAsString,
-                             std::vector<std::pair<ConnectionID, bool> >& ids);
+    void getReplicaLocations(
+            const std::string& relationAsString,
+            ReplicaLocations& ids);
 
 /*
 

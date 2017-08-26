@@ -345,7 +345,7 @@ void DBServiceManager::persistReplicaLocations(const string& databaseName,
 
 void DBServiceManager::getReplicaLocations(
         const string& relationAsString,
-        vector<pair<ConnectionID, bool> >& ids)
+        ReplicaLocations& ids)
 {
     printFunction("DBServiceManager::getReplicaLocations");
     try
@@ -463,7 +463,7 @@ void DBServiceManager::maintainSuccessfulReplication(
     {
         RelationInfo& relInfo = getRelationInfo(relID);
 
-        for(map<ConnectionID, bool>::const_iterator it
+        for(ReplicaLocations::const_iterator it
                 = relInfo.nodesBegin(); it != relInfo.nodesEnd(); it++)
         {
             LocationInfo& location = getLocation(it->first);
@@ -511,7 +511,8 @@ void DBServiceManager::deleteReplicaMetadata(const string& relID)
 
 void DBServiceManager::printMetadata()
 {
-    cout << "WORKER NODES" << endl;
+    cout << "********************************" << endl;
+    cout << "* WORKER NODES                 *" << endl;
     cout << "********************************" << endl;
     if(connections.empty())
     {
@@ -519,12 +520,12 @@ void DBServiceManager::printMetadata()
     }
     for(const auto& connection : connections)
     {
-        cout << "ConnectionID: " << connection.first << endl;
+        cout << "ConnectionID:\t" << connection.first << endl;
         printLocationInfo(connection.second.first);
         cout << endl;
     }
-
-    cout << "REPLICAS" << endl;
+    cout << "********************************" << endl;
+    cout << "* REPLICAS                     *" << endl;
     cout << "********************************" << endl;
     if(relations.empty())
     {
@@ -532,7 +533,7 @@ void DBServiceManager::printMetadata()
     }
     for(const auto& relation : relations)
     {
-        cout << "RelationID: " << relation.first << endl;
+        cout << "RelationID:\t" << relation.first << endl;
         printRelationInfo(relation.second);
         cout << endl;
     }

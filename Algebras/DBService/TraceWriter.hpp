@@ -37,6 +37,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
+#include "NestedList.h"
+
 #include "Algebras/DBService/LocationInfo.hpp"
 #include "Algebras/DBService/RelationInfo.hpp"
 
@@ -87,6 +89,10 @@ for all necessary data types.
     void write(const char* description, int number);
     void writeFunction(const char* text);
     void writeFunction(const boost::thread::id tid, const char* text);
+    void write(
+            const boost::thread::id tid,
+            const char* text,
+            ListExpr nestedList);
 
 /*
 

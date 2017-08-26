@@ -107,13 +107,19 @@ TEST_F(RelationInfoTest, testGetDisk)
             relationInfo->getOriginalLocation().getDisk().c_str());
 }
 
+TEST_F(RelationInfoTest, testGetSeparator)
+{
+    ASSERT_STREQ("xDBSx",
+            relationInfo->getSeparator().c_str());
+}
+
 TEST_F(RelationInfoTest, testAddNode)
 {
     ASSERT_EQ(0u, relationInfo->getNodeCount());
     ConnectionID connID = 5;
     relationInfo->addNode(connID);
     ASSERT_EQ(1u, relationInfo->getNodeCount());
-    map<ConnectionID, bool>::const_iterator it =
+    ReplicaLocations::const_iterator it =
             relationInfo->nodesBegin();
     ASSERT_EQ(connID, it->first);
     ASSERT_FALSE(it->second);
@@ -126,7 +132,7 @@ TEST_F(RelationInfoTest, testAddNodeReplicatedTrue)
     ConnectionID connID = 5;
     relationInfo->addNode(connID, true);
     ASSERT_EQ(1u, relationInfo->getNodeCount());
-    map<ConnectionID, bool>::const_iterator it =
+    ReplicaLocations::const_iterator it =
             relationInfo->nodesBegin();
     ASSERT_EQ(connID, it->first);
     ASSERT_TRUE(it->second);
@@ -139,7 +145,7 @@ TEST_F(RelationInfoTest, testAddNodeReplicatedFalse)
     ConnectionID connID = 5;
     relationInfo->addNode(connID, false);
     ASSERT_EQ(1u, relationInfo->getNodeCount());
-    map<ConnectionID, bool>::const_iterator it =
+    ReplicaLocations::const_iterator it =
             relationInfo->nodesBegin();
     ASSERT_EQ(connID, it->first);
     ASSERT_FALSE(it->second);
@@ -154,7 +160,7 @@ TEST_F(RelationInfoTest, testAddNodes)
     nodesToAdd.push_back(9);
     relationInfo->addNodes(nodesToAdd);
     ASSERT_EQ(2u, relationInfo->getNodeCount());
-    map<ConnectionID, bool>::const_iterator it =
+    ReplicaLocations::const_iterator it =
             relationInfo->nodesBegin();
     ASSERT_EQ(3u, it->first);
     ASSERT_FALSE(it->second);

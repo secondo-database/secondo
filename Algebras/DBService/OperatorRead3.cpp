@@ -29,12 +29,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "StandardTypes.h"
 
-#include "Algebras/Relation-C++/OperatorFeed.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 
 #include "Algebras/Distributed2/FileRelations.h"
 
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/OperatorCommon.hpp"
 #include "Algebras/DBService/OperatorRead3.hpp"
 #include "Algebras/DBService/ReplicationUtils.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
@@ -59,6 +59,7 @@ ListExpr OperatorRead3::mapType(ListExpr nestedList)
     print("nl->First(nestedList)", nl->First(nestedList));
     print("nl->Second(nestedList)", nl->Second(nestedList));
 
+//    if(!listutils::isAnyMap(nl->First(nl->Second(nestedList)))) //usesArgsInTM
     if(!listutils::isAnyMap(nl->Second(nestedList)))
     {
         ErrorReporter::ReportError(
@@ -66,15 +67,22 @@ ListExpr OperatorRead3::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
-    ListExpr feedTypeMapResult =
-            OperatorFeed::FeedTypeMap(nl->OneElemList(nl->First(nestedList)));
+//    ListExpr feedTypeMapResult =
+//            OperatorFeed::FeedTypeMap( //usesArgsInTM
+//                    nl->OneElemList(nl->First(nl->First(nestedList))));
+//            OperatorFeed::FeedTypeMap(
+//                    nl->OneElemList(nl->First(nestedList)));
+
+    bool relationLocallyAvailable;
+    print("nl->First(nestedList)", nl->First(nestedList));
+    ListExpr feedTypeMapResult = OperatorCommon::getStreamType(
+            nl->OneElemList(nl->First(nestedList)), relationLocallyAvailable);
     print("feedTypeMapResult", feedTypeMapResult);
 
-    bool relationLocallyAvailable = (feedTypeMapResult != nl->TypeError());
     print("relationLocallyAvailable",
             string(relationLocallyAvailable ? "TRUE" : "FALSE"));
 
-    string fileName;
+    string relationName;
     if(!relationLocallyAvailable)
     {
         print("Relation not available locally");
@@ -84,42 +92,14 @@ ListExpr OperatorRead3::mapType(ListExpr nestedList)
                     "expected symbol atom");
             return nl->TypeError();
         }
-
-        print("Trying to retrieve relation from DBService");
-        const string databaseName =
-                SecondoSystem::GetInstance()->GetDatabaseName();
-        const string relationName = nl->ToString(nl->First(nestedList));
-        print("databaseName", databaseName);
+        relationName = nl->ToString(nl->First(nestedList));
         print("relationName", relationName);
-        fileName =
-                DBServiceClient::getInstance()->
-                retrieveReplicaAndGetFileName(
-                        databaseName,
-                        relationName,
-                        nl->ToString(nl->Second(nestedList)));
-        if(fileName.empty())
-        {
-            print("Did not receive file");
-            return listutils::typeError("File does not exist");
-        }
-        print("fileName", fileName);
-        ffeed5Info info(fileName);
-        if(info.isOK()){
-           feedTypeMapResult = nl->TwoElemList(
-                   nl->SymbolAtom(Symbol::STREAM()),
-                   nl->Second(info.getRelType()));
-        }else
-        {
-            print("Could not determine relation type from file");
-            return listutils::typeError("Unreadable file");
-        }
     }
-    print("feedTypeMapResult", feedTypeMapResult);
 
     ListExpr readTypeMapResult = nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()),
             nl->OneElemList((relationLocallyAvailable ?
-                    nl->StringAtom("") : nl->StringAtom(fileName))),
+                    nl->StringAtom("") : nl->StringAtom(relationName))),
                     feedTypeMapResult);
     print("readTypeMapResult", readTypeMapResult);
     return readTypeMapResult;
@@ -131,49 +111,130 @@ int OperatorRead3::mapValue(Word* args,
                             Word& local,
                             Supplier s)
 {
-    string fileName =
-            static_cast<CcString*>(args[1].addr)->GetValue();
-    if(fileName.empty())
+    printFunction("OperatorRead3::mapValue");
+    string relationName =
+            static_cast<CcString*>(args[2].addr)->GetValue();
+    print("relationName", relationName);
+//    Word fun = args[1];
+//    print("fun", fun.list);
+    if(relationName.empty()) // relation locally available
     {
-        return OperatorFeed::Feed(args, result,
-                message, local, s);
-    }
-    ffeed5Info* info = (ffeed5Info*) local.addr;
-    switch(message){
-    case OPEN:{
-        if(info){
-            delete info;
-            local.addr = 0;
-        }
-        print("Reading tuple stream from file", fileName);
-        info = new ffeed5Info(fileName);
-        if(!info->isOK())
+        GenericRelation* r;
+        GenericRelationIterator* rit;
+
+        switch (message)
         {
-            print("Could not read file");
-            delete info;
+        case OPEN:
+            r = (GenericRelation*)args[0].addr;
+            rit = r->MakeScan();
+
+            local.addr = rit;
+            return 0;
+
+        case REQUEST:
+        {
+            rit = (GenericRelationIterator*)local.addr;
+            Tuple* tuple;
+            bool found = false;
+            ArgVectorPointer funArg = qp->Argument(args[1].addr);
+            while(!found && ((tuple = rit->GetNextTuple()) != 0))
+            {
+                print("no matching tuple found yet");
+                (*funArg)[0].addr = tuple;
+                Word funResult;
+                qp->Request(args[1].addr, funResult);
+                if(funResult.addr)
+                {
+                    print("matching tuple found");
+                    found = true;
+                    result.setAddr(tuple);
+                }else
+                {
+                    print("tuple does not match");
+                    tuple->DeleteIfAllowed();
+                }
+                if(found)
+                {
+                    print("yield");
+                    return YIELD;
+                }
+            }
+            if(!tuple)
+            {
+                print("cancel");
+                return CANCEL;
+            }
+            break;
+        }
+        case CLOSE:
+        {
+            if(local.addr)
+            {
+                rit = (GenericRelationIterator*)local.addr;
+                delete rit;
+                local.addr = 0;
+            }
             return 0;
         }
-        ListExpr fileType = info->getRelType();
-        if(!Relation::checkType(fileType))
+        }
+        return 0;
+    }else
+    {
+        print("Trying to retrieve relation from DBService");
+        const string databaseName =
+                SecondoSystem::GetInstance()->GetDatabaseName();
+        print("databaseName", databaseName);
+        print("relationName", relationName);
+        string fileName =
+                DBServiceClient::getInstance()->
+                retrieveReplicaAndGetFileName(
+                        databaseName,
+                        relationName,
+                        string("TODO")
+                        /*nl->ToString(fun.list)*/);
+        if(fileName.empty())
         {
-            delete info;
+            print("Did not receive file");
+            return listutils::typeError("File does not exist");
+        }
+
+        ffeed5Info* info = (ffeed5Info*) local.addr;
+        switch(message){
+        case OPEN:{
+            if(info){
+                delete info;
+                local.addr = 0;
+            }
+            print("Reading tuple stream from file", fileName);
+            info = new ffeed5Info(fileName);
+            if(!info->isOK())
+            {
+                print("Could not read file");
+                delete info;
+                return 0;
+            }
+            ListExpr relType = info->getRelType();
+            if(!Relation::checkType(relType))
+            {
+                delete info;
+                return 0;
+            }
+            local.addr = info;
             return 0;
         }
-        local.addr = info;
-        return 0;
-    }
-    case REQUEST:
-        result.addr = info ? info->next() : 0;
-        return result.addr? YIELD : CANCEL;
-    case CLOSE:
-        if(info)
-        {
-            delete info;
-            local.addr = 0;
+        case REQUEST:
+            result.addr = info ? info->next() : 0;
+            return result.addr? YIELD : CANCEL;
+        case CLOSE:
+            if(info)
+            {
+                delete info;
+                local.addr = 0;
+            }
+            return 0;
         }
-        return 0;
+        return -1;
     }
-    return -1;
 }
 
 } /* namespace DBService */

@@ -125,6 +125,14 @@ void TraceWriter::write(const RelationInfo& relationInfo)
         *traceFile << relationInfo.getOriginalLocation().getHost() << endl;
         *traceFile << relationInfo.getOriginalLocation().getPort() << endl;
         *traceFile << relationInfo.getOriginalLocation().getDisk() << endl;
+        for(ReplicaLocations::const_iterator it
+                = relationInfo.nodesBegin();
+                it != relationInfo.nodesEnd(); it++)
+        {
+            *traceFile << "Node:\t\t" << it->first << " (Replicated: " <<
+                    (it->second ? "TRUE" : "FALSE") << ")"
+                    << endl;
+        }
     }
 }
 
@@ -177,6 +185,21 @@ void TraceWriter::writeFunction(const boost::thread::id tid, const char* text)
         boost::lock_guard<boost::mutex> lock(traceWriterMutex);
         *traceFile << "********************************" << endl;
         *traceFile << "[Thread " << tid << "] " << text << endl;
+    }
+}
+
+void TraceWriter::write(
+        const boost::thread::id tid,
+        const char* text,
+        ListExpr nestedList)
+{
+    print(text, nestedList);
+    if(TraceSettings::getInstance()->isFileTraceOn())
+    {
+        *traceFile << "[Thread " << tid << "] " << endl;
+        *traceFile << text << endl;
+        *traceFile << "length: " << nl->ListLength(nestedList) << endl;
+        *traceFile << nl->ToString(nestedList) << endl;
     }
 }
 

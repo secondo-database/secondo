@@ -62,7 +62,7 @@ void RelationInfo::addNode(ConnectionID id)
 
 void RelationInfo::addNode(ConnectionID id, bool replicated)
 {
-    nodes.insert(pair<ConnectionID, bool>(id, replicated));
+    nodes.push_back(pair<ConnectionID, bool>(id, replicated));
 }
 
 void RelationInfo::addNodes(vector<ConnectionID>& nodesToAdd)
@@ -70,16 +70,16 @@ void RelationInfo::addNodes(vector<ConnectionID>& nodesToAdd)
     for (std::vector<ConnectionID>::const_iterator i = nodesToAdd.begin();
             i != nodesToAdd.end(); ++i)
     {
-        nodes.insert(pair<ConnectionID, bool>(*i, false));
+        nodes.push_back(pair<ConnectionID, bool>(*i, false));
     }
 }
 
-const map<ConnectionID, bool>::const_iterator RelationInfo::nodesBegin() const
+const ReplicaLocations::const_iterator RelationInfo::nodesBegin() const
 {
     return nodes.begin();
 }
 
-const map<ConnectionID, bool>::const_iterator RelationInfo::nodesEnd() const
+const ReplicaLocations::const_iterator RelationInfo::nodesEnd() const
 {
     return nodes.end();
 }
@@ -101,6 +101,10 @@ return originalLocation;
 
 const ConnectionID RelationInfo::getRandomReplicaLocation()
 {
+    random_shuffle(
+            nodes.begin(),
+            nodes.end());
+
     for(const auto& node : nodes)
     {
         if(node.second)
@@ -113,7 +117,13 @@ const ConnectionID RelationInfo::getRandomReplicaLocation()
 
 void RelationInfo::updateReplicationStatus(ConnectionID connID, bool replicated)
 {
-    nodes.find(connID)->second = replicated;
+    for(auto& node : nodes)
+    {
+        if(node.first == connID)
+        {
+            node.second = replicated;
+        }
+    }
 }
 
 void RelationInfo::setTransferPortOfOriginalLocation(std::string& newPort)

@@ -28,11 +28,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <ctime>
 #include <chrono>
 #include <iostream>
+#include <sstream>
 
 #include "FileSystem.h"
 #include "SocketIO.h"
 
 #include "Algebras/Distributed2/FileTransferKeywords.h"
+#include "Algebras/Distributed2/FileRelations.h"
 
 #include "Algebras/DBService/CommunicationProtocol.hpp"
 #include "Algebras/DBService/CommunicationUtils.hpp"
@@ -132,7 +134,7 @@ int ReplicationServer::communicate(iostream& io)
                         fileName.str());
 
                 applyFunctionAndCreateNewFile(
-                        io, replicaFileName, fileName.str(), tid);
+                        io, function, replicaFileName, fileName.str(), tid);
             }
             sendFileToClient(io, true, tid);
         }else
@@ -191,11 +193,114 @@ void ReplicationServer::sendFileToClient(
 
 void ReplicationServer::applyFunctionAndCreateNewFile(
         iostream& io,
+        const string& function,
         const string& oldFileName,
         const string& newFileName,
         const boost::thread::id tid)
 {
+    traceWriter->writeFunction(
+            tid, "ReplicationServer::applyFunctionAndCreateNewFile");
+    ffeed5Info* oldFileInfo = new ffeed5Info(oldFileName);
+    if(!oldFileInfo->isOK())
+    {
+        traceWriter->write("Could not read file");
+        delete oldFileInfo;
+        return;
+    }
+    traceWriter->write("File opened");
+    ListExpr relType = oldFileInfo->getRelType();
+    traceWriter->write(tid, "relType", relType);
+    if(!Relation::checkType(relType))
+    {
+        traceWriter->write("file does not contain a relation");
+        delete oldFileInfo;
+        return;
+    }
+    traceWriter->write("relType ok");
 
+    NestedList* nli = SecondoSystem::GetNestedList();
+    QueryProcessor* queryProcessor = new QueryProcessor(nli,
+            SecondoSystem::GetAlgebraManager(),
+            DEFAULT_GLOBAL_MEMORY);
+
+    ofstream out(newFileName.c_str(),ios::out|ios::binary);
+
+    Tuple* tuple = oldFileInfo->next();
+
+    if(tuple)
+    {
+        traceWriter->write("found tuple in file");
+        ListExpr functionAsNestedList;
+        if(!nli->ReadFromString(function, functionAsNestedList))
+        {
+            traceWriter->write("not a valid function");
+            return;
+        }
+        traceWriter->write(tid, "functionAsNestedList", functionAsNestedList);
+        Word fun(functionAsNestedList);
+        Word funResult;
+        Tuple* resultTuple = nullptr;
+        applyFunction(queryProcessor, tuple, fun, funResult, resultTuple);
+        if(resultTuple)
+        {
+            // TODO determine new rel type depending on resulting tuple type
+
+//            TupleType* tupleType = resultTuple->GetTupleType();
+//            stringstream ss;
+//            ss << "rel( " << tupleType << ")";
+//            traceWriter->write("new rel type", ss.str());
+//            if(!nli->ReadFromString(ss.str(), relType))
+//            {
+//                traceWriter->write("file does not contain a relation");
+//                return;
+//            }
+
+            traceWriter->write("relType", relType);
+            BinRelWriter::writeHeader(out, relType);
+
+            while ((tuple = oldFileInfo->next()))
+            {
+                traceWriter->write("next tuple");
+                applyFunction(
+                        queryProcessor, tuple, fun, funResult, resultTuple);
+                if(resultTuple)
+                {
+                    BinRelWriter::writeNextTuple(out, resultTuple);
+                }
+            }
+        }else
+        {
+            traceWriter->write("resultTuple is nullptr");
+        }
+        out.close();
+    }else
+    {
+        traceWriter->write("empty rel file");
+    }
+
+    delete oldFileInfo;
+    oldFileInfo = 0;
+}
+
+void ReplicationServer::applyFunction(
+        QueryProcessor* qp,
+        Tuple* input,
+        Word function,
+        Word funResult,
+        Tuple* output)
+{
+    traceWriter->writeFunction("ReplicationServer::applyFunction");
+    output = input;
+//    ArgVectorPointer funArg = qp->Argument(function.addr);
+//    (*funArg)[0].addr = input;
+//    qp->Request(function.addr, funResult);
+//    if(funResult.addr)
+//    {
+//        output = (Tuple*)funResult.addr;
+//    }else
+//    {
+//        output = nullptr;
+//    }
 }
 
 } /* namespace DBService */

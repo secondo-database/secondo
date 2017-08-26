@@ -155,11 +155,11 @@ void print(const LocationInfo& locationInfo)
 
 void printLocationInfo(const LocationInfo& locationInfo)
 {
-    cout << locationInfo.getHost() << endl;
-    cout << locationInfo.getPort() << endl;
-    cout << locationInfo.getDisk() << endl;
-    cout << locationInfo.getCommPort() << endl;
-    cout << locationInfo.getTransferPort() << endl;
+    cout << "Host:\t\t" << locationInfo.getHost() << endl;
+    cout << "Port:\t\t" << locationInfo.getPort() << endl;
+    cout << "Disk:\t\t" << locationInfo.getDisk() << endl;
+    cout << "CommPort:\t" << locationInfo.getCommPort() << endl;
+    cout << "TransferPort:\t" << locationInfo.getTransferPort() << endl;
 }
 
 void print(const RelationInfo& relationInfo)
@@ -173,15 +173,15 @@ void print(const RelationInfo& relationInfo)
 
 void printRelationInfo(const RelationInfo& relationInfo)
 {
-    cout << relationInfo.getDatabaseName() << endl;
-    cout << relationInfo.getRelationName() << endl;
-    cout << relationInfo.getOriginalLocation().getHost() << endl;
-    cout << relationInfo.getOriginalLocation().getPort() << endl;
-    cout << relationInfo.getOriginalLocation().getDisk() << endl;
-    for(map<ConnectionID, bool>::const_iterator it
+    cout << "DatabaseName:\t" << relationInfo.getDatabaseName() << endl;
+    cout << "RelationName:\t" << relationInfo.getRelationName() << endl;
+    cout << "Host:\t\t" << relationInfo.getOriginalLocation().getHost() << endl;
+    cout << "Port:\t\t" << relationInfo.getOriginalLocation().getPort() << endl;
+    cout << "Disk:\t\t" << relationInfo.getOriginalLocation().getDisk() << endl;
+    for(ReplicaLocations::const_iterator it
             = relationInfo.nodesBegin(); it != relationInfo.nodesEnd(); it++)
     {
-        cout << "Node: " << it->first << " (Replicated: " <<
+        cout << "Node:\t\t" << it->first << " (Replicated: " <<
                 (it->second ? "TRUE" : "FALSE") << ")"
                 << endl;
     }

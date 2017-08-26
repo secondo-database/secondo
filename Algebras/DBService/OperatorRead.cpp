@@ -130,8 +130,9 @@ int OperatorRead::mapValue(Word* args,
             delete info;
             return 0;
         }
-        ListExpr fileType = info->getRelType();
-        if(!Relation::checkType(fileType))
+        ListExpr relType = info->getRelType();
+        print("relType", relType);
+        if(!Relation::checkType(relType))
         {
             delete info;
             return 0;

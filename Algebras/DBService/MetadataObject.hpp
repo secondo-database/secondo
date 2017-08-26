@@ -76,6 +76,15 @@ prefix and suffix.
 
 /*
 
+1.1.1.1 ~getSeparator~
+
+This function returns the used separator.
+
+*/
+    static std::string getSeparator();
+
+/*
+
 1.1.1.1 \textit{separator}
 
 For composing the identifier, a fixed string is used as a separator.

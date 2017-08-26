@@ -408,7 +408,7 @@ bool CommunicationServer::handleRequestReplicaDeletion(
     DBServiceManager* dbService = DBServiceManager::getInstance();
     try{
         RelationInfo& relationInfo = dbService->getRelationInfo(relID);
-        for(map<ConnectionID, bool>::const_iterator it =
+        for(ReplicaLocations::const_iterator it =
                 relationInfo.nodesBegin(); it != relationInfo.nodesEnd(); it++)
         {
             if(it->second)

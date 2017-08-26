@@ -177,8 +177,8 @@ This function persists the mapping of a relation to its replica locations.
 */
     static bool persistLocationMapping(
             std::string relationID,
-            std::map<ConnectionID, bool>::const_iterator nodesBegin,
-            std::map<ConnectionID, bool>::const_iterator nodesEnd);
+            ReplicaLocations::const_iterator nodesBegin,
+            ReplicaLocations::const_iterator nodesEnd);
 
 /*
 
@@ -215,8 +215,8 @@ relation identifier and a given range of connections.
 
 */
     static bool deleteLocationMapping(std::string relationID,
-            std::map<ConnectionID, bool>::const_iterator nodesBegin,
-            std::map<ConnectionID, bool>::const_iterator nodesEnd);
+            ReplicaLocations::const_iterator nodesBegin,
+            ReplicaLocations::const_iterator nodesEnd);
 
 /*
 

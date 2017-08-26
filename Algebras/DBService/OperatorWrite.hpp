@@ -53,7 +53,7 @@ struct WriteInfo: OperatorInfo
                 "create replicas for it";
         example = "let RoadsFT = Roads feed write['RoadsFT', FALSE]";
         remark = "requires a DBService system";
-        usesArgsInTypeMapping = false;
+        usesArgsInTypeMapping = true;
     }
 };
 

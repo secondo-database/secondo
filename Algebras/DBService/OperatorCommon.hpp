@@ -1,6 +1,10 @@
 /*
 
-1.1.1 Class Implementation
+1.1 ~OperatorCommon~
+
+This operator takes a relation name and checks whether there is a relation with
+this name in the local SECONDO system. Otherwise, it connects to the DBService
+and retrieves the type of the relation from there in case the relation exists.
 
 ----
 This file is part of SECONDO.
@@ -25,37 +29,31 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-#include <string>
+#ifndef ALGEBRAS_DBSERVICE_OperatorCommon_HPP_
+#define ALGEBRAS_DBSERVICE_OperatorCommon_HPP_
 
-#include "Algebras/DBService/MetadataObject.hpp"
-
-using namespace std;
+#include "Operator.h"
 
 namespace DBService {
 
-string MetadataObject::getIdentifier(const string& prefix,
-                                     const string& suffix)
+/*
+
+1.1.1 Class Definition
+
+*/
+
+class OperatorCommon
 {
-    return prefix + separator + suffix;
-}
+public:
 
-void MetadataObject::parseIdentifier(
-        const string& identifier,
-        string& prefix,
-        string& suffix)
-{
-    size_t prefixEndPos = identifier.find(separator, 0);
-    prefix = identifier.substr(0, prefixEndPos);
+/*
 
-    size_t suffixStartPos = prefixEndPos+separator.length();
-    suffix = identifier.substr(suffixStartPos, identifier.length());
-}
+1.1.1.1 Type Mapping Function
 
-string MetadataObject::getSeparator()
-{
-    return separator;
-}
-
-string MetadataObject::separator("xDBSx");
+*/
+    static ListExpr getStreamType(ListExpr nestedList, bool& locallyAvailable);
+};
 
 } /* namespace DBService */
+
+#endif /* ALGEBRAS_DBSERVICE_OPERATORREAD_HPP_ */

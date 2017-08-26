@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService/DBServiceClient.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService/OperatorCommon.hpp"
 #include "Algebras/DBService/OperatorDBSARG.hpp"
 #include "Algebras/DBService/ReplicationUtils.hpp"
 #include "Algebras/DBService/SecondoUtilsLocal.hpp"
@@ -48,52 +49,8 @@ ListExpr OperatorDBSARG::mapType(ListExpr nestedList)
     printFunction("OperatorDBSARG::mapType");
     print(nestedList);
 
-    if(!nl->HasLength(nestedList, 1))
-    {
-        ErrorReporter::ReportError(
-                "expected one argument");
-                return nl->TypeError();
-    }
-
-    ListExpr feedTypeMapResult = OperatorFeed::FeedTypeMap(nestedList);
-    print("feedTypeMapResult", feedTypeMapResult);
-
-    bool relationLocallyAvailable = (feedTypeMapResult != nl->TypeError());
-    print("relationLocallyAvailable",
-            string(relationLocallyAvailable ? "TRUE" : "FALSE"));
-
-    if(!relationLocallyAvailable)
-    {
-        print("Relation not available locally");
-        if(!nl->IsAtom(nl->First(nestedList)))
-        {
-            ErrorReporter::ReportError(
-                    "expected symbol atom");
-                    return nl->TypeError();
-        }
-        const string relationName = nl->ToString(nl->First(nestedList));
-        print("relationName", relationName);
-        string nestedListString;
-        if(!DBServiceClient::getInstance()->getStreamType(
-                SecondoSystem::GetInstance()->GetDatabaseName(),
-                relationName,
-                nestedListString))
-        {
-            ErrorReporter::ReportError(
-                    "Could not connect to DBService");
-                    return nl->TypeError();
-        }
-
-        print("nestedListString", nestedListString);
-
-        if(!nl->ReadFromString(nestedListString, feedTypeMapResult))
-        {
-            print("could not read nested list from string");
-            return nl->TypeError();
-        }
-    }
-    print("feedTypeMapResult", feedTypeMapResult);
-    return feedTypeMapResult;
+    bool dummy;
+    return OperatorCommon::getStreamType(nestedList, dummy);
 }
 
 } /* namespace DBService */

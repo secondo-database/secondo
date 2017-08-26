@@ -81,6 +81,8 @@ bool DBServicePersistenceAccessor::createOrInsert(
     if(!SecondoSystem::GetCatalog()->IsObjectName(relationName))
     {
         print("relation does not exist: ", relationName);
+//        SecondoSystem::CommitTransaction(true);
+//        SecondoSystem::BeginTransaction();
         resultOk = SecondoUtilsLocal::createRelation(
                 CommandBuilder::buildCreateCommand(
                         relationName,
@@ -89,9 +91,11 @@ bool DBServicePersistenceAccessor::createOrInsert(
                 errorMessage);
         if(resultOk)
         {
+//            SecondoSystem::CommitTransaction(true);
             print("created relation: ", relationName);
         }else
         {
+//            SecondoSystem::AbortTransaction(true);
             print("failed to create relation: ", relationName);
         }
         return resultOk;
@@ -103,6 +107,7 @@ bool DBServicePersistenceAccessor::createOrInsert(
         print("values has wrong format for insert, aborting");
         return false;
     }
+//    SecondoSystem::BeginTransaction();
     resultOk = SecondoUtilsLocal::executeQuery2(
             CommandBuilder::buildInsertCommand(
                     relationName,
@@ -111,9 +116,11 @@ bool DBServicePersistenceAccessor::createOrInsert(
 
     if(resultOk)
     {
+//        SecondoSystem::CommitTransaction(true);
         print("insert successful");
     }else
     {
+//        SecondoSystem::AbortTransaction(true);
         print("insert failed");
     }
     return resultOk;
@@ -175,13 +182,13 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
 
 bool DBServicePersistenceAccessor::persistLocationMapping(
         string relationID,
-        map<ConnectionID, bool>::const_iterator nodesBegin,
-        map<ConnectionID, bool>::const_iterator nodesEnd)
+        ReplicaLocations::const_iterator nodesBegin,
+        ReplicaLocations::const_iterator nodesEnd)
 {
     printFunction("DBServicePersistenceAccessor::persistLocationMapping");
 
     bool resultOk = true;
-    for(map<ConnectionID, bool>::const_iterator it = nodesBegin;
+    for(ReplicaLocations::const_iterator it = nodesBegin;
             it != nodesEnd; it++)
     {
         string relationName("mapping_DBSP");
@@ -424,8 +431,8 @@ bool DBServicePersistenceAccessor::deleteRelationInfo(
 
 bool DBServicePersistenceAccessor::deleteLocationMapping(
         string relID,
-        map<ConnectionID, bool>::const_iterator nodesBegin,
-        map<ConnectionID, bool>::const_iterator nodesEnd)
+        ReplicaLocations::const_iterator nodesBegin,
+        ReplicaLocations::const_iterator nodesEnd)
 {
     printFunction("DBServicePersistenceAccessor::deleteLocationMapping");
     string dbName;
@@ -439,7 +446,7 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
 
     string relationName("mapping_DBSP");
     bool resultOk = true;
-    for(map<ConnectionID, bool>::const_iterator it = nodesBegin;
+    for(ReplicaLocations::const_iterator it = nodesBegin;
             it != nodesEnd; it++)
     {
         FilterConditions filterConditions =
@@ -511,7 +518,7 @@ bool DBServicePersistenceAccessor::persistAllRelations(
                 relationInfo.getOriginalLocation().getDisk()
             };
             relationValues.push_back(value);
-            for(map<ConnectionID, bool>::const_iterator it =
+            for(ReplicaLocations::const_iterator it =
                     relationInfo.nodesBegin();
                     it != relationInfo.nodesEnd(); it++)
             {

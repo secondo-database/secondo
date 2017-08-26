@@ -56,21 +56,21 @@ ListExpr OperatorWrite::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
-    if (!Stream<Tuple>::checkType(nl->First(nestedList)))
+    if (!Stream<Tuple>::checkType(nl->First(nl->First(nestedList))))
     {
         ErrorReporter::ReportError(
                 "first argument must be: stream(tuple(...))");
         return nl->TypeError();
     }
 
-    if(!CcString::checkType(nl->Second(nestedList)))
+    if(!CcString::checkType(nl->First(nl->Second(nestedList))))
     {
         ErrorReporter::ReportError(
                 "second argument must be: string");
         return nl->TypeError();
     }
 
-    if(!CcBool::checkType(nl->Third(nestedList)))
+    if(!CcBool::checkType(nl->First(nl->Third(nestedList))))
     {
         ErrorReporter::ReportError(
                 "third argument must be: bool");
@@ -78,7 +78,7 @@ ListExpr OperatorWrite::mapType(ListExpr nestedList)
     }
 
     ListExpr consumeTypeMapInput = nl->OneElemList(
-            nl->First(nestedList));
+            nl->First(nl->First(nestedList)));
     print("consumeTypeMapInput", consumeTypeMapInput);
 
     ListExpr consumeTypeMapResult = OperatorConsume::ConsumeTypeMap<false>(
@@ -86,23 +86,49 @@ ListExpr OperatorWrite::mapType(ListExpr nestedList)
 
     print("consumeTypeMapResult", consumeTypeMapResult);
 
-//    TODO useargsintypemapping
-//    if(DBServiceClient::getInstance()->relationExists(
-//            databaseName, relationName))
-//    {
-//        ErrorReporter::ReportError(
-//                "relation is already replicated");
-//        return nl->TypeError();
-//    }
+    const string databaseName =
+            SecondoSystem::GetInstance()->GetDatabaseName();
+
+    if(databaseName.find(RelationInfo::getSeparator()) != string::npos)
+    {
+        stringstream ss;
+        ss << "database name contains invalid character sequence '" <<
+                RelationInfo::getSeparator() << "'";
+        ErrorReporter::ReportError(
+                ss.str());
+        return nl->TypeError();
+    }
+
+    const string relationName =
+            nl->StringValue(nl->Second(nl->Second(nestedList)));
+
+    if(relationName.find(RelationInfo::getSeparator()) != string::npos)
+    {
+        stringstream ss;
+        ss << "relationName name contains invalid character sequence '" <<
+                RelationInfo::getSeparator() << "'";
+        ErrorReporter::ReportError(
+                ss.str());
+        return nl->TypeError();
+    }
+
+    if(DBServiceClient::getInstance()->relationExists(
+            databaseName, relationName))
+    {
+        ErrorReporter::ReportError(
+                "relation already exists in DBService");
+        return nl->TypeError();
+    }
 
     return consumeTypeMapResult;
 }
 
-int OperatorWrite::mapValue(Word* args,
-                                  Word& result,
-                                  int message,
-                                  Word& local,
-                                  Supplier s)
+int OperatorWrite::mapValue(
+        Word* args,
+        Word& result,
+        int message,
+        Word& local,
+        Supplier s)
 {
 
     printFunction("OperatorWrite::mapValue");
