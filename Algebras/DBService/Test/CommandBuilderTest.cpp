@@ -77,6 +77,8 @@ public:
     values.push_back(string("2"));
     rel.push_back({AttributeType::BOOL, string("Col3")});
     values.push_back(string("FALSE"));
+    rel.push_back({AttributeType::TEXT, string("Col4")});
+    values.push_back(string("val2inCol4"));
 }
 
 protected:
@@ -133,7 +135,8 @@ TEST_F(CommandBuilderTest, testAddAttributeValueBool)
 TEST_F(CommandBuilderTest, testBuildCreateCommand)
 {
     string expectedCreateCommand("let myRel = [const rel(tuple([Col1: string,"
-            " Col2: int, Col3: bool])) value((\"val1\" 2 FALSE))]");
+            " Col2: int, Col3: bool, Col4: text]))"
+            " value((\"val1\" 2 FALSE 'val2inCol4'))]");
     ASSERT_STREQ(expectedCreateCommand.c_str(),
             CommandBuilder::buildCreateCommand(
                     relationName, rel, {values}).c_str());
@@ -142,8 +145,9 @@ TEST_F(CommandBuilderTest, testBuildCreateCommand)
 TEST_F(CommandBuilderTest, testBuildCreateCommandForMoreThanOneTuple)
 {
     string expectedCreateCommand("let myRel = [const rel(tuple([Col1: string,"
-            " Col2: int, Col3: bool]))"
-            " value((\"val1\" 2 FALSE)\n(\"val1\" 2 FALSE))]");
+            " Col2: int, Col3: bool, Col4: text]))"
+            " value((\"val1\" 2 FALSE 'val2inCol4')\n"
+            "(\"val1\" 2 FALSE 'val2inCol4'))]");
     ASSERT_STREQ(expectedCreateCommand.c_str(),
             CommandBuilder::buildCreateCommand(
                     relationName, rel, {values, values}).c_str());
@@ -152,7 +156,7 @@ TEST_F(CommandBuilderTest, testBuildCreateCommandForMoreThanOneTuple)
 TEST_F(CommandBuilderTest, testBuildInsertCommand)
 {
     string expectedInsertCommand("query myRel inserttuple["
-            "\"val1\", 2, FALSE] consume");
+            "\"val1\", 2, FALSE, 'val2inCol4'] consume");
     ASSERT_STREQ(expectedInsertCommand.c_str(),
             CommandBuilder::buildInsertCommand(
                     relationName, rel, values).c_str());
@@ -193,12 +197,13 @@ TEST_F(CommandBuilderTest, testBuildDeleteCommand)
 {
     string expectedDeleteCommand("query myRel feed filter[.Col1 = \"val1\"]"
             " filter[.Col2 = 2] filter[.Col3 = FALSE]"
-            " myRel deletedirect consume");
+            " filter[.Col4 = 'val2inCol4'] myRel deletedirect consume");
     FilterConditions filterConditions =
     {
         { {AttributeType::STRING, string("Col1") }, "val1" },
         { {AttributeType::INT, string("Col2") }, "2" },
-        { {AttributeType::BOOL, string("Col3") }, "FALSE" }
+        { {AttributeType::BOOL, string("Col3") }, "FALSE" },
+        { {AttributeType::TEXT, string("Col4") }, "val2inCol4" }
     };
     ASSERT_STREQ(expectedDeleteCommand.c_str(),
                 CommandBuilder::buildDeleteCommand(

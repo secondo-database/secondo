@@ -46,6 +46,8 @@ string CommandBuilder::getTypeName(AttributeType type)
         return string("int");
     case BOOL:
         return string("bool");
+    case TEXT:
+        return string("text");
     default:
         return string("ERROR");
     }
@@ -56,14 +58,28 @@ void CommandBuilder::addAttributeValue(
         const AttributeInfo& info,
         const string& value)
 {
-    if(info.type == STRING)
+    switch(info.type)
     {
+    case STRING:
         stream << "\"";
+        break;
+    case TEXT:
+        stream << "'";
+        break;
+    default:
+        break;
     }
     stream << value;
-    if(info.type == STRING)
+    switch(info.type)
     {
+    case STRING:
         stream << "\"";
+        break;
+    case TEXT:
+        stream << "'";
+        break;
+    default:
+        break;
     }
 }
 

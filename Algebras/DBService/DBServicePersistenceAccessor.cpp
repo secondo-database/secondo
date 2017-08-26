@@ -238,8 +238,8 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
                     ConnectionID conn(nl->IntValue(nl->First(currentRow)));
                     string host(nl->StringValue(nl->Second(currentRow)));
                     string port(nl->StringValue(nl->Third(currentRow)));
-                    string config(nl->StringValue(nl->Fourth(currentRow)));
-                    string disk(nl->StringValue(nl->Fifth(currentRow)));
+                    string config(nl->Text2String(nl->Fourth(currentRow)));
+                    string disk(nl->Text2String(nl->Fifth(currentRow)));
                     string commPort(nl->StringValue(nl->Sixth(currentRow)));
                     string transferPort(
                             nl->StringValue(nl->Seventh(currentRow)));
@@ -296,7 +296,7 @@ bool DBServicePersistenceAccessor::restoreRelationInfo(
                     string relName(nl->StringValue(nl->Third(currentRow)));
                     string host(nl->StringValue(nl->Fourth(currentRow)));
                     string port(nl->StringValue(nl->Fifth(currentRow)));
-                    string disk(nl->StringValue(nl->Sixth(currentRow)));
+                    string disk(nl->Text2String(nl->Sixth(currentRow)));
                     RelationInfo relationInfo(
                             dbName, relName, host, port, disk);
                     print(relationInfo);
@@ -549,8 +549,8 @@ RelationDefinition DBServicePersistenceAccessor::locations =
      { AttributeType::INT, "ConnectionID" },
      { AttributeType::STRING, "Host" },
      { AttributeType::STRING, "Port" },
-     { AttributeType::STRING, "Config" },
-     { AttributeType::STRING, "Disk" },
+     { AttributeType::TEXT, "Config" },
+     { AttributeType::TEXT, "Disk" },
      { AttributeType::STRING, "CommPort" },
      { AttributeType::STRING, "TransferPort" }
 };
@@ -562,7 +562,7 @@ RelationDefinition DBServicePersistenceAccessor::relations =
     { AttributeType::STRING, "RelationName" },
     { AttributeType::STRING, "Host" },
     { AttributeType::STRING, "Port" },
-    { AttributeType::STRING, "Disk" }
+    { AttributeType::TEXT, "Disk" }
 };
 
 RelationDefinition DBServicePersistenceAccessor::mapping =

@@ -58,7 +58,8 @@ enum AttributeType
 {
     STRING = 1,
     INT = 2,
-    BOOL = 3
+    BOOL = 3,
+    TEXT = 4
 };
 
 /*
