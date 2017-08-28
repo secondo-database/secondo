@@ -738,19 +738,19 @@ Print the object values to stream.
     };// Segment2D   
     
 /*
-12 Class ContainerPoint3D
+12 Class Point3DContainer
 
 This class provides a containervector for Point3d values.
 
 */      
-    class ContainerPoint3D{
+    class Point3DContainer{
     public:
 /*
 12.1 Constructors
 
 */    
-      ContainerPoint3D();
-      ContainerPoint3D(const ContainerPoint3D& points);
+      Point3DContainer();
+      Point3DContainer(const Point3DContainer& points);
 /*
 12.2 Getter methods.
 
@@ -766,17 +766,17 @@ Print the object values to stream.
 
 */            
       friend std::ostream& operator<<( std::ostream& os, 
-                                       const ContainerPoint3D& container); 
+                                       const Point3DContainer& container); 
 /*      
 12.3.2 Operator for comparison.
 
 */      
-      bool operator == (const ContainerPoint3D& points)const;
+      bool operator == (const Point3DContainer& points)const;
 /*
 12.3.3 operator =
     
 */      
-      ContainerPoint3D& operator = (const ContainerPoint3D& points);
+      Point3DContainer& operator = (const Point3DContainer& points);
 /*
 12.3.4 add.
 
@@ -794,14 +794,14 @@ Print the object values to stream.
 12.4.1 set
 
 */      
-      void set(const ContainerPoint3D& points);
+      void set(const Point3DContainer& points);
 /*
 12.5 Attributes
 
 */        
       std::vector<Point3D> points; 
       mmrtree::RtreeT<3, size_t> pointsTree;
-    };// ContainerPoint3D
+    };// Point3DContainer
     
 /*
 3 class Segment
@@ -862,16 +862,16 @@ Print the object values to stream.
       Predicate predicate;
     };// Segment     
     
-    class ContainerSegment {
+    class SegmentContainer {
     public:  
       // Konstruktor
-      ContainerSegment();
+      SegmentContainer();
       
-      ContainerSegment(const ContainerSegment& other);
+      SegmentContainer(const SegmentContainer& other);
       
       size_t size()const;
 
-      size_t add(const Segment& segment);
+      size_t add(const Segment& segment, bool pFaceIsCritical = false);
       
       void clear();
       
@@ -882,22 +882,22 @@ Print the object values to stream.
       std::ostream& print(std::ostream& os, std::string prefix)const;
       
       friend std::ostream& operator<<( std::ostream& os, 
-                                       const ContainerSegment& container); 
+                                       const SegmentContainer& container); 
       
-      bool operator == (const ContainerSegment& segments)const;
+      bool operator == (const SegmentContainer& segments)const;
       
-      ContainerSegment& operator = (const ContainerSegment& segments);
+      SegmentContainer& operator = (const SegmentContainer& segments);
     private:  
       
       size_t getHash(const Segment& segment)const;
       
-      void set(const ContainerSegment& other);
+      void set(const SegmentContainer& other);
       
       const size_t buckets = 47;
       
       std::vector<std::list<size_t>> segmentBuckets;
       std::vector<Segment> segments; 
-    }; //ContainerSegment
+    }; //SegmentContainer
 
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

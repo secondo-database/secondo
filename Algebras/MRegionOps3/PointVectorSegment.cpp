@@ -42,6 +42,8 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 
 #include "PointVectorSegment.h"
 
+using namespace std;
+
 namespace temporalalgebra{
   namespace mregionops3 {   
     
@@ -721,31 +723,31 @@ namespace temporalalgebra{
     }// isLeft
     
 /*
-12 Class ContainerPoint3D
+12 Class Point3DContainer
 
 */       
-    ContainerPoint3D::ContainerPoint3D():pointsTree(4, 8){
+    Point3DContainer::Point3DContainer():pointsTree(4, 8){
     }// Konstruktor
 
-    ContainerPoint3D::ContainerPoint3D(
-       const ContainerPoint3D& other):pointsTree(4, 8){
+    Point3DContainer::Point3DContainer(
+       const Point3DContainer& other):pointsTree(4, 8){
       set(other);
     }// Konstruktor  
     
-    void ContainerPoint3D::set(const ContainerPoint3D& other){
+    void Point3DContainer::set(const Point3DContainer& other){
       for(size_t i = 0; i< other.size(); i++){
         add(other.get(i));
       }// for
     }// set
               
-    Point3D ContainerPoint3D::get(size_t index)const{
+    Point3D Point3DContainer::get(size_t index)const{
       if(index >= points.size()){
         NUM_FAIL("point index is out of range.");
       }// if  
       return points[index];
     } // get
     
-    size_t ContainerPoint3D::add( 
+    size_t Point3DContainer::add( 
         const Point3D& point){
       Rectangle<3> bbox=point.getBoundingBox(); 
       bbox.Extend(NumericUtil::eps2);
@@ -761,13 +763,13 @@ namespace temporalalgebra{
       return newIndex;
     }// add
     
-    size_t ContainerPoint3D::size()const{
+    size_t Point3DContainer::size()const{
       return points.size();
     } // size
 
-    std::ostream& ContainerPoint3D::print(
+    std::ostream& Point3DContainer::print(
         std::ostream& os, std::string prefix)const{ 
-      os << "ContainerPoint3D( " << endl;
+      os << "Point3DContainer( " << endl;
       for(size_t i = 0; i< points.size(); i++){
         os << prefix + "  Index:="<< i<<", " << points[i] << endl; 
       }// for
@@ -775,28 +777,28 @@ namespace temporalalgebra{
       return os;
     }// print
        
-    bool ContainerPoint3D::operator==(
-        const ContainerPoint3D& other)const{
+    bool Point3DContainer::operator==(
+        const Point3DContainer& other)const{
       if(this->points.size() != other.points.size()) return false;
       for(size_t i = 0; i < points.size(); i++){
         if(other.points[i] != this->points[i]) {
-           cout << "Faile on Index:=" << i << ", ";
-           cout << this->points[i] << ", ";
-           cout << other.points[i] << endl;
+           cerr << "Faile on Index:=" << i << ", ";
+           cerr << this->points[i] << ", ";
+           cerr << other.points[i] << endl;
           return false;
         }// if
       }// for
       return true;
     }// Operator ==
     
-    ContainerPoint3D& ContainerPoint3D::operator=(
-        const ContainerPoint3D& points){
+    Point3DContainer& Point3DContainer::operator=(
+        const Point3DContainer& points){
       set(points);
       return *this;
     }// Operator =
     
     std::ostream& operator<<(
-        std::ostream& os, const ContainerPoint3D& container){
+        std::ostream& os, const Point3DContainer& container){
       return container.print(os,"");
     }// Operator << 
 /*
@@ -861,58 +863,62 @@ namespace temporalalgebra{
       return *this;
     }// Operator = 
 /*
-14 class ContainerSegment
+14 class SegmentContainer
 
 */      
-    ContainerSegment::ContainerSegment():
+    SegmentContainer::SegmentContainer():
        segmentBuckets(std::vector<std::list<size_t>>(buckets,
                                                      std::list<size_t>())){
     }// Konstruktor
       
-    ContainerSegment::ContainerSegment(const ContainerSegment& other):
+    SegmentContainer::SegmentContainer(const SegmentContainer& other):
        segmentBuckets(std::vector<std::list<size_t>>(buckets,
                                                      std::list<size_t>())){
       set(other);
     }// Konstruktor
     
-    void ContainerSegment::set(const ContainerSegment& other){
+    void SegmentContainer::set(const SegmentContainer& other){
       for(size_t i = 0; i< other.size(); i++){
         add(other.get(i));
       }// for
     }// set
     
-    size_t ContainerSegment::size()const {
+    size_t SegmentContainer::size()const {
       return segments.size(); 
     }// size    
     
-    size_t ContainerSegment::getHash(const Segment& segment)const{
+    size_t SegmentContainer::getHash(const Segment& segment)const{
       return (segment.getTail() + 
              this->buckets * segment.getHead()) % this->buckets;
     }// getHash
 
-    size_t ContainerSegment::add(const Segment& segment){
+    size_t SegmentContainer::add(const Segment& segment, 
+                                 bool pFaceIsCritical /* = false*/){
       size_t hash = getHash(segment);
       std::list<size_t>::const_iterator iterator;
       for(iterator = segmentBuckets[hash].begin(); 
           iterator != segmentBuckets[hash].end(); iterator ++){
         Segment other = segments[*iterator];
-        // Existiert bereits ein Segment mit den angegebnen Endpunkten
+        // two segment with equal tail und head
         if( other.getTail() == segment.getTail() &&
-            other.getHead() == segment.getHead()){
-          // altes Prädikat ist "UNDEFINED"
+            other.getHead() == segment.getHead()){          
+          // cout << other << endl;
+          // cout << segment << endl;        
+          // old predicate is "UNDEFINED"
           if (other.getPredicate() == UNDEFINED) {
-            segments[*iterator] = segment;
+            // state of source PFace is "critical"
+            if (pFaceIsCritical){
+              segments[*iterator].setPredicate(INTERSECT);
+            }// if
+            // state of source PFace is "relevant"
+            else segments[*iterator] = segment;
             return *iterator;
           }// if
-          // altes und neues Prädikat sind gleich
+          // old and new predecate are the same
           else if (other.getPredicate() == segment.getPredicate()){
             return *iterator;
           }// else if
-          // neues Prädikat ist undefined
-          else if(segment.getPredicate()== UNDEFINED){
-            return *iterator;
-          }// else if  
-          // altes und nues Schnitträdikat sind unterschiedlich
+          // old and new interesction predicate are differnt
           else if((segment.getPredicate() == RIGHT_IS_INNER && 
                    other.getPredicate()   == LEFT_IS_INNER) || 
                   (segment.getPredicate() == LEFT_IS_INNER && 
@@ -920,11 +926,19 @@ namespace temporalalgebra{
             segments[*iterator].setPredicate(OUTSIDE);  
             return *iterator;  
           }// else if
-          // alle anderen Fälle z.B INSIDE mit OUTSIDE
+          // intersection on segments from non critical pfaces
+          // ??? Wann tritt dieser Fall auf
+          else if (other.getPredicate() == INTERSECT && 
+                  !pFaceIsCritical){
+            NUM_FAIL("Overide the predicate INTERSECT is not possible");
+            // segments[*iterator] = segment;
+            // return *iterator;      
+          }// else if
+          // all other combination from old and new predicate
           else {
-            segments[*iterator].setPredicate(INTERSECT); 
-            return *iterator; 
-          }// else
+          //  cout << segment << ", " << pFaceIsCritical << endl;
+            return *iterator;   
+          }// else                    
         }// if 
       }// for
       size_t index = segments.size();
@@ -933,7 +947,7 @@ namespace temporalalgebra{
       return index;
     }// add
       
-    void ContainerSegment::set(size_t index, Predicate predicate){
+    void SegmentContainer::set(size_t index, Predicate predicate){
       if(index < segments.size()){
         if((segments[index].getPredicate() == UNDEFINED) || 
            (predicate == INTERSECT)){
@@ -947,16 +961,21 @@ namespace temporalalgebra{
       else NUM_FAIL("Index is out of range.");        
     }// set
       
-    Segment ContainerSegment::get(size_t index)const{
+    Segment SegmentContainer::get(size_t index)const{
       if(index < segments.size()){
         return segments[index];
       }// if
-      else NUM_FAIL("Index is out of range.");  
+      else {
+        cerr << *this;
+        cerr << "Index is:=" << index << endl;
+        NUM_FAIL("Index is out of range."); 
+        return segments[0];
+      }// else
     }// get
       
-    std::ostream& ContainerSegment::print(std::ostream& os, 
+    std::ostream& SegmentContainer::print(std::ostream& os, 
                                           std::string prefix)const{
-      os <<  "ContainerSegment ( " << endl;
+      os <<  "SegmentContainer ( " << endl;
       for(size_t i = 0; i < segments.size(); i++){
         os << prefix + "  Index:=" << i << ", " << segments[i] << endl;
       }// for
@@ -976,11 +995,11 @@ namespace temporalalgebra{
     }// print
       
     std::ostream& operator<<( std::ostream& os,
-                              const ContainerSegment& container){
+                              const SegmentContainer& container){
       return container.print(os,"");
     }// Operator <<
       
-    bool ContainerSegment::operator == (const ContainerSegment& other)const{
+    bool SegmentContainer::operator == (const SegmentContainer& other)const{
       if(this->segments.size() != other.segments.size()) return false;
       for(size_t i = 0; i < this->segments.size(); i++){
         if(!(other.segments[i] == this->segments[i])) {
@@ -993,13 +1012,13 @@ namespace temporalalgebra{
       return true;
     }// Operator ==
       
-    ContainerSegment& ContainerSegment::operator = (
-        const ContainerSegment& segments){
+    SegmentContainer& SegmentContainer::operator = (
+        const SegmentContainer& segments){
       set(segments);
       return *this;
     }// Operator =
     
-    void ContainerSegment::clear(){
+    void SegmentContainer::clear(){
       segments.clear();      
     }// clear
 

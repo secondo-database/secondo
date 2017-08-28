@@ -144,6 +144,14 @@ namespace temporalalgebra {
        return this->message.c_str();
     }// what
   
+    void displayError(const std::string &message, const char *file, int line){
+      cerr << "!!! Error !!!" << endl;
+      cerr << message << endl;
+      cerr << "Numeric exception has occurred in file '";
+      cerr <<  file << "' at line " << line << ". " << message << endl << endl;
+      assert(false);
+    }// displayError
+  
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra
    

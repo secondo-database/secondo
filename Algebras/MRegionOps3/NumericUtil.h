@@ -51,6 +51,7 @@ floating point values.
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <assert.h>
 
 #ifndef NUMERICUTIL_H
 #define NUMERICUTIL_H
@@ -139,11 +140,13 @@ idea from http://stackoverflow.com/questions/348833 (11.03.2017)
 */      
       const char *what() const throw();
     private:
-      std::string message;
-    
+      std::string message;    
     };
+    
+    void displayError(const std::string &message, const char *file, int line);
  
-#define NUM_FAIL(arg) throw NumericFailure(arg, __FILE__, __LINE__,__func__);
+// #define NUM_FAIL(arg) throw NumericFailure(arg, __FILE__, __LINE__,__func__);
+#define NUM_FAIL(arg) displayError(arg, __FILE__, __LINE__);    
 
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

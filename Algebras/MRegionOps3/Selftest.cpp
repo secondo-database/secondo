@@ -54,7 +54,7 @@ namespace temporalalgebra {
       }// Destruktortor
     
       bool Selftest::run(){
-  
+ 
         Point3DTest1();
         Point2DTest1();
         
@@ -78,7 +78,7 @@ namespace temporalalgebra {
         Segment2DTest1();
         Segment2DTest2();
         
-        ContainerPoint3DTest();
+        Point3DContainerTest();
         
         RationalPoint3DExtTest();
         RationalPoint3DExtSetTest1();
@@ -112,6 +112,7 @@ namespace temporalalgebra {
         PFaceTest6();
         PFaceTest7();
         PFaceTest8();
+        PFaceTest9();
        
         GlobalTimeValuesTest1();
         GlobalTimeValuesTest2();
@@ -132,7 +133,7 @@ namespace temporalalgebra {
         ResultUnitFactoryTest4();
         ResultUnitFactoryTest5();
         
-        ContainerSegmentTest1();
+        SegmentContainerTest1();
      
         SourceUnitTest4();        
 
@@ -142,10 +143,13 @@ namespace temporalalgebra {
         UnitsTest4();
         UnitsTest5();
         UnitsTest6();
+
         UnitsTest7();
 
-        SourceUnitPairTest1();             
+        SourceUnitPairTest1();   
         
+        IntersectionSegmentTest4();
+
         cerr << endl;
         cerr << numberOfTestsRun << " tests run, ";
         cerr << numberOfTestsFailed << " tests failed." << endl <<endl;  
@@ -429,11 +433,11 @@ namespace temporalalgebra {
         // cout << segment1 << endl; ;
       }// Segment3DTest 
 /*
-10 Test ContainerPoint3D
+10 Test Point3DContainer
 
 */   
-      void Selftest::ContainerPoint3DTest(){
-        ContainerPoint3D container;
+      void Selftest::Point3DContainerTest(){
+        Point3DContainer container;
         Point3D point1(1,2,0);
         Point3D point2(3,4,0);  
         Point3D point3(3,4,1);
@@ -441,11 +445,11 @@ namespace temporalalgebra {
         size_t i2 = container.add(point2);
         size_t i3 = container.add(point3);
         size_t i4 = container.add(point2);
-        assert_("ContainerPoint3DTest", " points index is incoorect.", 
+        assert_("Point3DContainerTest", " points index is incoorect.", 
                 i1 == 0 && i2 ==1 && i3 == 2 && i4 == 1);
         // cout << container;
         // cout << i1 <<i2 <<i3 << i4<<endl;        
-      }// ContainerPoint3DTest     
+      }// Point3DContainerTest     
 /*
 11 Test RationalPoint3DExt
 
@@ -550,8 +554,8 @@ namespace temporalalgebra {
 
 */ 
       void Selftest::RationalPlane3DTest1(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         // points for pfaces 
         points.add( Point3D(1,2,0));
         points.add( Point3D(3,4,0));         
@@ -599,8 +603,8 @@ namespace temporalalgebra {
       }// RationalPlane3DTest1
   
       void Selftest::RationalPlane3DTest2(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         // points for pface 1 
         points.add( Point3D(1,2,0));// 0
         points.add( Point3D(3,4,0));         
@@ -647,8 +651,8 @@ namespace temporalalgebra {
       }// RationalPlane3DTest2  
      
       void Selftest::RationalPlane3DTest3(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         // points for pface 1 
         points.add( Point3D(1,2,0));// 0
         points.add( Point3D(3,4,0));         
@@ -981,8 +985,8 @@ namespace temporalalgebra {
 
 */
       void Selftest::PFaceTest1(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues;
         timeValues.setScaleFactor(3);
         // points for pface 1 
@@ -1029,8 +1033,8 @@ namespace temporalalgebra {
       }// PFaceTest1
      
       void Selftest::PFaceTest2(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues(3);
         // points for pface 1 
         points.add(Point3D(11,12,0));
@@ -1056,8 +1060,8 @@ namespace temporalalgebra {
       }// PFaceTest2
      
       void Selftest::PFaceTest3(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues(3);
         // points for pface 1 
         points.add(Point3D(1,2,0));
@@ -1083,8 +1087,8 @@ namespace temporalalgebra {
       }// PFaceTest3
       
       void Selftest::PFaceTest4(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues(3);
         // points for pface 1 
         points.add(Point3D(1,2,0));
@@ -1110,8 +1114,8 @@ namespace temporalalgebra {
       }// PFaceTest4
       
       void Selftest::PFaceTest5(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues(3);
         // points for pface 1 
         points.add(Point3D(1,2,0));
@@ -1156,8 +1160,8 @@ namespace temporalalgebra {
       }// PFaceTest5    
     
       void Selftest::PFaceTest6(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues(3);
         // points for pface 1 
         points.add(Point3D(1,2,0));
@@ -1183,8 +1187,8 @@ namespace temporalalgebra {
       }// PFaceTest4
       
       void Selftest::PFaceTest7(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues(3);
         // points for pface 1 
         points.add(Point3D(2,1,0));// 0
@@ -1232,8 +1236,8 @@ namespace temporalalgebra {
       void Selftest::PFaceTest8(){
         // Spezieller Test für die Fehlersuche beim Verschneiden von 
         // pFaces un der Bestimmung des Schnittsegments        
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues(5);
         // points for pface 1 
         points.add(Point3D(3.5,4,0));// 0
@@ -1329,16 +1333,17 @@ namespace temporalalgebra {
                 !(timeValues1 == timeValues3));
         // cout << timeValues1;
         // cout << timeValues2;
-        double value1,value2;
+        double t1,t2;
+        double t3,t4;
         bool result = true;
-        if (timeValues1.scaledFirst(value1) && 
-            timeValues2.scaledFirst(value2)){
-          if(value1 != value2) result = false;
-          // cout << "time:=" << value1<< endl;
-          while(timeValues1.scaledNext(value1) && 
-                timeValues2.scaledNext(value2)){
-            if(value1 != value2) result = false;
-            // cout << "time:=" << value1 << endl;            
+        if (timeValues1.scaledFirst(t1,t2) && 
+            timeValues2.scaledFirst(t3,t4)){
+          if(t1 != t3 && t2 != t4) result = false;
+          // cout << "time:=" << t1 << "," << t2 << endl;
+          while(timeValues1.scaledNext(t1,t2) && 
+                timeValues2.scaledNext(t3,t4)){
+            if(t1 != t3 && t2 != t4) result = false;
+            // cout << "time:=" << t1 << "," << t2 << endl;       
           }// while
         }// if
         assert_("GlobalTimeValuesTest 1.4", "time values are equal.",
@@ -1362,22 +1367,25 @@ namespace temporalalgebra {
         assert_("GlobalTimeValuesTest 2.4", 
                 "Orginal scaled time is not equal.",
                 timeValues.getScaledEndTime() == 100);
-        double value;
-        timeValues.orginalFirst(value);
+        double t1,t2;
+        timeValues.orginalFirst(t1,t2);
         assert_("GlobalTimeValuesTest 2.5", 
                 "value is no correct.",
-                value == 1001);        
-        // cout << value << endl; 
-        timeValues.orginalNext(value);
+                t1 == 1001); 
         assert_("GlobalTimeValuesTest 2.6", 
                 "value is no correct.",
-                value == 1001.25);  
-        // cout << value << endl;        
-        timeValues.orginalNext(value);
+                t2 == 1001.25); 
+        // cout << t1 << endl;
+        // cout << t2 << endl;       
+        timeValues.orginalNext(t1, t2);
         assert_("GlobalTimeValuesTest 2.7", 
                 "value is no correct.",
-                value == 1002);  
-        // cout << value << endl; 
+                t1 == 1001.25); 
+        assert_("GlobalTimeValuesTest 2.8", 
+                "value is no correct.",
+                t2 == 1002);  
+        // cout << t1 << endl;
+        // cout << t2 << endl;  
         // cout << timeValues;
       }// GlobalTimeValuesTest2
       
@@ -1419,12 +1427,11 @@ namespace temporalalgebra {
         timeValues.addTimeValue(3.4375);
         timeValues.addTimeValue(4);
         timeValues.addTimeValue(5);
-        ContainerPoint3D points1,points2;
-        ContainerSegment segments1,segments2;            
+        Point3DContainer points1,points2;
+        SegmentContainer segments1,segments2;            
         double t1,t2;
-        timeValues.scaledFirst(t1);  
-        timeValues.scaledNext(t2); 
-        container.first(t1,t2,points1,segments1); 
+        timeValues.scaledFirst(t1,t2);  
+        container.first(t1,t2,points1,segments1,false); 
         points2.add(Point3D(5,1,0));
         points2.add(Point3D(5,1,1.11111111));
         points2.add(Point3D(3.5,4,0));
@@ -1440,11 +1447,10 @@ namespace temporalalgebra {
                 points1 == points2);
         assert_("IntSegContainerTest 3.1", "result segments are incorect.",
                 segments1 == segments2);    
-        t1 = t2;
-        timeValues.scaledNext(t2);
+        timeValues.scaledNext(t1,t2);
         segments1.clear();
         segments2.clear();
-        container.next(t1,t2,points1,segments1); 
+        container.next(t1,t2,points1,segments1,false); 
         points2.add(Point3D(5,1,2.56944444)); 
         points2.add(Point3D(4.66666667, 1.66666667, 1.11111111));
         points2.add(Point3D(4.22916667, 2.54166667, 2.56944444));
@@ -1461,11 +1467,10 @@ namespace temporalalgebra {
                 points1 == points2);
         assert_("IntSegContainerTest 3.2", "result segments are incorect.",
                 segments1 == segments2);         
-        t1 = t2;
-        timeValues.scaledNext(t2);
+        timeValues.scaledNext(t1,t2);
         segments1.clear();
         segments2.clear();
-        container.next(t1,t2,points1,segments1); 
+        container.next(t1,t2,points1,segments1,false); 
         points2.add(Point3D(5, 1, 2.66666667));
         points2.add(Point3D(4.2, 2.6, 2.66666667));
         points2.add(Point3D(3.5, 4, 2.66666667));
@@ -1480,11 +1485,10 @@ namespace temporalalgebra {
                 points1 == points2);
         assert_("IntSegContainerTest 3.3", "result segments are incorect.",
                 segments1 == segments2);         
-        t1 = t2;
-        timeValues.scaledNext(t2);
+        timeValues.scaledNext(t1,t2);
         segments1.clear();
         segments2.clear();
-        container.next(t1,t2,points1,segments1);
+        container.next(t1,t2,points1,segments1,false);
         points2.add(Point3D(5, 1, 3.33333333));
         points2.add(Point3D(4, 3, 3.33333333));
         points2.add(Point3D(3.5, 4, 3.33333333));
@@ -1499,11 +1503,10 @@ namespace temporalalgebra {
                 points1 == points2);
         assert_("IntSegContainerTest 3.4", "result segments are incorect.",
                 segments1 == segments2);       
-        t1 = t2;
-        timeValues.scaledNext(t2);
+        timeValues.scaledNext(t1,t2);
         segments1.clear();
         segments2.clear();
-        container.next(t1,t2,points1,segments1); 
+        container.next(t1,t2,points1,segments1,false); 
         points2.add(Point3D(5, 1, 3.4375));
         points2.add(Point3D(3.5, 4, 3.4375));
         segments2.add(Segment(11, 14));
@@ -1517,11 +1520,10 @@ namespace temporalalgebra {
                 points1 == points2);
         assert_("IntSegContainerTest 3.5", "result segments are incorect.",
                 segments1 == segments2);     
-        t1 = t2;
-        timeValues.scaledNext(t2);
+        timeValues.scaledNext(t1,t2);
         segments1.clear();
         segments2.clear();
-        container.next(t1,t2,points1,segments1); 
+        container.next(t1,t2,points1,segments1,false); 
         points2.add(Point3D(5, 1, 4));
         points2.add(Point3D(3.5, 4, 4));
         segments2.add(Segment(14, 16));
@@ -1534,11 +1536,10 @@ namespace temporalalgebra {
                 points1 == points2);
         assert_("IntSegContainerTest 3.6", "result segments are incorect.",
                 segments1 == segments2);              
-        t1 = t2;
-        timeValues.scaledNext(t2);
+        timeValues.scaledNext(t1,t2);
         segments1.clear();
         segments2.clear();
-        container.next(t1,t2,points1,segments1); 
+        container.next(t1,t2,points1,segments1,false); 
         points2.add(Point3D(5, 1, 5));
         points2.add(Point3D(3.5, 4, 5));
         segments2.add(Segment(16, 18));
@@ -1554,7 +1555,7 @@ namespace temporalalgebra {
         t1 = t2;
         segments1.clear();
         segments2.clear();
-        container.next(t1,t2,points1,segments1); 
+        container.next(t1,t2,points1,segments1,false); 
         // cout << points1;
         // cout << points2;
         // cout << segments1;
@@ -1602,12 +1603,11 @@ namespace temporalalgebra {
         timeValues.addTimeValue(4.44444444);
         timeValues.addTimeValue(4.66666667);
         timeValues.addTimeValue(5);        
-        ContainerPoint3D points1,points2;
-        ContainerSegment segments1,segments2;       
+        Point3DContainer points1,points2;
+        SegmentContainer segments1,segments2;       
         double t1,t2;
-        timeValues.scaledFirst(t1);  
-        timeValues.scaledNext(t2); 
-        container.first(t1,t2,points1,segments1); 
+        timeValues.scaledFirst(t1,t2);  
+        container.first(t1,t2,points1,segments1,false); 
         points2.add(Point3D(2,1,0));
         points2.add(Point3D(2,1,1.11111111));
         points2.add(Point3D(3.5,4,0));
@@ -1623,11 +1623,10 @@ namespace temporalalgebra {
                 points1 == points2);
         assert_("IntSegContainerTest 4.1", "result segments are incorect.",
                 segments1 == segments2);   
-        t1 = t2;
-        timeValues.scaledNext(t2);
+        timeValues.scaledNext(t1,t2);
         segments1.clear();
         segments2.clear();     
-        container.next(t1,t2,points1,segments1); 
+        container.next(t1,t2,points1,segments1,false); 
         points2.add(Point3D (2, 1, 2.66666667));
         points2.add(Point3D (3.5, 4, 2.66666667));
         segments2.add(Segment(1,4,UNDEFINED));
@@ -1640,11 +1639,10 @@ namespace temporalalgebra {
                 points1 == points2);
         assert_("IntSegContainerTest 4.2", "result segments are incorect.",
                 segments1 == segments2);    
-        t1 = t2;
-        timeValues.scaledNext(t2);
+        timeValues.scaledNext(t1,t2);
         segments1.clear();
         segments2.clear();     
-        container.next(t1,t2,points1,segments1); 
+        container.next(t1,t2,points1,segments1,false); 
         points2.add(Point3D (2, 1, 4.44444444));
         points2.add(Point3D (2.8, 2.6, 2.66666667));
         points2.add(Point3D (3.33333333, 3.66666666, 4.44444444));
@@ -1661,11 +1659,10 @@ namespace temporalalgebra {
                 points1 == points2);
         assert_("IntSegContainerTest 4.3", "result segments are incorect.",
                 segments1 == segments2);
-        t1 = t2;
-        timeValues.scaledNext(t2);
+        timeValues.scaledNext(t1,t2);
         segments1.clear();
         segments2.clear();     
-        container.next(t1,t2,points1,segments1); 
+        container.next(t1,t2,points1,segments1,false); 
         points2.add(Point3D (2, 1, 4.66666667));
         points2.add(Point3D (3.4, 3.8, 4.66666667));
         points2.add(Point3D (3.5, 4, 4.66666667));
@@ -1681,11 +1678,10 @@ namespace temporalalgebra {
                 points1 == points2);
         assert_("IntSegContainerTest 4.4", "result segments are incorect.",
                 segments1 == segments2);
-        t1 = t2;
-        timeValues.scaledNext(t2);
+        timeValues.scaledNext(t1,t2);
         segments1.clear();
         segments2.clear();     
-        container.next(t1,t2,points1,segments1); 
+        container.next(t1,t2,points1,segments1,false); 
         points2.add(Point3D (2, 1, 5));
         points2.add(Point3D (3.5, 4, 5));
         segments2.add(Segment (10, 13));
@@ -1701,7 +1697,7 @@ namespace temporalalgebra {
         t1 = t2;
         segments1.clear();
         segments2.clear();     
-        container.next(t1,t2,points1,segments1); 
+        container.next(t1,t2,points1,segments1,false); 
         // cout << points1;
         // cout << points2;
         // cout << segments1;
@@ -1750,12 +1746,11 @@ namespace temporalalgebra {
         container.addIntSeg(segment6);
         timeValues.addTimeValue(0);
         timeValues.addTimeValue(5);
-        ContainerPoint3D points1,points2;
-        ContainerSegment segments1,segments2;       
+        Point3DContainer points1,points2;
+        SegmentContainer segments1,segments2;       
         double t1,t2;
-        timeValues.scaledFirst(t1);  
-        timeValues.scaledNext(t2); 
-        container.first(t1,t2,points1,segments1); 
+        timeValues.scaledFirst(t1,t2);  
+        container.first(t1,t2,points1,segments1,false); 
         points2.add(Point3D(2,1,0));
         points2.add(Point3D(2,1,5));
         points2.add(Point3D(3.5,4,0));
@@ -1775,7 +1770,7 @@ namespace temporalalgebra {
          t1 = t2;
         segments1.clear();
         segments2.clear();     
-        container.next(t1,t2,points1,segments1); 
+        container.next(t1,t2,points1,segments1,false); 
         segments2.add(Segment(1,3));
         // cout << points1;
         // cout << points2;
@@ -1848,7 +1843,7 @@ namespace temporalalgebra {
       void Selftest::ResultUnitFactoryTest2(){
         GlobalTimeValues timeValues(5);
         IntSegContainer container;
-        ContainerPoint3D points1,points2;
+        Point3DContainer points1,points2;
         container.addIntSeg(IntersectionSegment(
           IntersectionPoint(2, 1, 0, 1.78885438), 
           IntersectionPoint(2, 1, 5, 1.78885438)));
@@ -1874,7 +1869,7 @@ namespace temporalalgebra {
         timeValues.addTimeValue(4.66666667);
         timeValues.addTimeValue(5); 
         // Ergebnissatz bestimmen
-        ResultUnitFactory factory1(points1,timeValues,container);
+        ResultUnitFactory factory1(points1,timeValues,container,false);
         ResultUnitFactory factory2(6);
         points2.add(Point3D (2, 1, 0));
         points2.add(Point3D (2, 1, 1.11111111));
@@ -1919,9 +1914,9 @@ namespace temporalalgebra {
       }// ResultUnitFactoryTest2
          
       void Selftest::ResultUnitFactoryTest3(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
-        ContainerPoint3D points1,points2,points3;
+        Point3DContainer points;
+        SegmentContainer segments;
+        Point3DContainer points1,points2,points3;
         GlobalTimeValues timeValues1(5);
         GlobalTimeValues timeValues2(5);
         // points for unit 1 
@@ -1970,9 +1965,9 @@ namespace temporalalgebra {
         pf3.addBorder(timeValues1);
         pf4.addBorder(timeValues1);
         pf5.addBorder(timeValues1);
-        ResultUnitFactory factory0(points2,timeValues1,pf0);
-        ResultUnitFactory factory1(points2,timeValues1,pf1);
-        ResultUnitFactory factory2(points2,timeValues1,pf2);
+        ResultUnitFactory factory0(points2,timeValues1,pf0,false);
+        ResultUnitFactory factory1(points2,timeValues1,pf1,false);
+        ResultUnitFactory factory2(points2,timeValues1,pf2,false);
         // Results
         ResultUnitFactory factory3(6), factory4(6),factory5(6);        
         points3.add(Point3D(2, 1, 0));
@@ -2163,11 +2158,11 @@ namespace temporalalgebra {
         // cout << "Predicate on right border:=" << toString(right) << endl;
       }// ResultUnitFactoryTest5  
 /*
-19 Test ContainerSegment
+19 Test SegmentContainer
 
 */
-      void Selftest::ContainerSegmentTest1(){
-        ContainerSegment container1,container2,container3;
+      void Selftest::SegmentContainerTest1(){
+        SegmentContainer container1,container2,container3;
         container1.add(Segment (0, 3));
         container1.add(Segment (5, 8, RIGHT_IS_INNER));
         container1.add(Segment (8, 9, LEFT_IS_INNER));
@@ -2178,36 +2173,36 @@ namespace temporalalgebra {
         container2.add(Segment (0, 3, LEFT_IS_INNER));
         container2.add(Segment (5, 8, RIGHT_IS_INNER));
         container2.add(Segment (8, 9, LEFT_IS_INNER));
-        assert_("ContainerSegmentTest 1.1", 
+        assert_("SegmentContainerTest 1.1", 
                 " Container of segments are not different.",
                  container1 == container2);
-        assert_("ContainerSegmentTest 1.2", 
+        assert_("SegmentContainerTest 1.2", 
                 " Container of segments not different.",
                  !(container1 == container3));
         container3.set(0, LEFT_IS_INNER);
-        assert_("ContainerSegmentTest 1.3", 
+        assert_("SegmentContainerTest 1.3", 
                 " Container of segments are not different.",
                  container1 == container3);
         container3 = container1;
-        ContainerSegment container4(container1);
-        assert_("ContainerSegmentTest 1.4", 
+        SegmentContainer container4(container1);
+        assert_("SegmentContainerTest 1.4", 
                 " Container of segments are not different.",
                  container1 == container3);
-        assert_("ContainerSegmentTest 1.5", 
+        assert_("SegmentContainerTest 1.5", 
                 " Container of segments are not different.",
                  container1 == container4);
         // cout << container1;
         // cout << container2;
         // cout << container3;
         // cout << container4;        
-      }// ContainerSegmentTest1        
+      }// SegmentContainerTest1        
 /*
 19 Test SourceUnit
 
 */  
       void Selftest::SourceUnitTest1(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues1(3);
         GlobalTimeValues timeValues2(3);
         // points for pface 1 
@@ -2283,8 +2278,8 @@ namespace temporalalgebra {
       }// SourceUnitTest1
     
       void Selftest::SourceUnitTest2(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues1(5);
         GlobalTimeValues timeValues2(5);
         // points for unit 1 
@@ -2463,8 +2458,8 @@ namespace temporalalgebra {
       }// SourceUnitTest2
    
      void Selftest::SourceUnitTest3(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues1(5);
         GlobalTimeValues timeValues2(5);
         // points for unit 1 
@@ -2640,7 +2635,7 @@ namespace temporalalgebra {
       }// SourceUnitTest2
 
       void Selftest::SourceUnitTest4(){
-        ContainerPoint3D points;
+        Point3DContainer points;
         // points for unit 0 
         points.add(Point3D(2,1,0));// 0
         points.add(Point3D(5,1,0));         
@@ -2675,8 +2670,8 @@ namespace temporalalgebra {
 
 */       
       void Selftest::UnitsTest1(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues(5);
         // points for unit 1 
         points.add(Point3D(2,1,0));// 0
@@ -2824,8 +2819,8 @@ namespace temporalalgebra {
       
       void Selftest::UnitsTest2(){
         GlobalTimeValues timeValues(5);
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         // points for unit 0 
         points.add(Point3D(2,1,0));// 0
         points.add(Point3D(5,1,0));         
@@ -3152,7 +3147,7 @@ namespace temporalalgebra {
       }// ResultUnitTest2   
      
       void Selftest::UnitsTest3(){
-        ContainerPoint3D points;
+        Point3DContainer points;
         GlobalTimeValues timeValues(5);
         // points for unit 0 
         points.add(Point3D(2,1,0));// 0
@@ -3268,7 +3263,7 @@ namespace temporalalgebra {
       }// UnitTest3
       
       void Selftest::UnitsTest4(){
-        ContainerPoint3D points;
+        Point3DContainer points;
         GlobalTimeValues timeValues(5);
         // points for unit 0 
         size_t i0 = points.add(Point3D(6,1,0));// 0
@@ -3346,8 +3341,8 @@ namespace temporalalgebra {
       }// UnitsTest4
       
       void Selftest::UnitsTest5(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues(5);
         // points for pface 0, 1, 2 
         points.add(Point3D(1,1,0));
@@ -3432,8 +3427,8 @@ namespace temporalalgebra {
       }// UnitsTest5
       
       void Selftest::UnitsTest6(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues(5);
         // points for pface 0, 1, 2 
         points.add(Point3D(1,1,0));
@@ -3506,8 +3501,8 @@ namespace temporalalgebra {
       }// UnitsTest6
       
       void Selftest::UnitsTest7(){
-        ContainerPoint3D points;
-        ContainerSegment segments;
+        Point3DContainer points;
+        SegmentContainer segments;
         GlobalTimeValues timeValues(5);
         // points for pface 0, 1, 2 
         points.add(Point3D(1,1,0));
@@ -3543,7 +3538,10 @@ namespace temporalalgebra {
         unit1.addPFace(segment4,segment2,points);
         unit1.addPFace(segment2,segment5,points);
         // Intersection
-        unit0.intersection(unit1,timeValues);        
+        unit0.intersection(unit1,timeValues);  
+        // cout << unit0;
+        // cout << unit1;  
+        // cout << timeValues;
         // Finalize
         unit0.finalize(points,timeValues,OUTSIDE);
         unit1.finalize(points,timeValues,OUTSIDE);
@@ -3694,6 +3692,72 @@ namespace temporalalgebra {
         // cout << result9;
         // cout << result10;
       }// SourceUnitPairTest1
+      
+      void Selftest::PFaceTest9(){        
+        Point3DContainer points;
+        SegmentContainer segments1,segments2;
+        GlobalTimeValues timeValues(6);
+        // points for pface 1
+        Point3D point0(2.8, 2.6, 0);
+        Point3D point1(3.333333333, 3.666666667, 5.133333333);
+        Point3D point2(2, 1, 0);
+        Point3D point3(2, 1, 5.133333333);
+        // points for pface 2
+        Point3D point4(2.8, 2.6, 0);
+        Point3D point5(0.666666667, 3.666666667, 5.133333333);
+        Point3D point6(4.8, 2.6, 0);
+        Point3D point7(2.666666667, 3.666666667, 5.133333333);
+        // points in container
+        size_t i0 = points.add(point0);
+        size_t i1 = points.add(point1);
+        size_t i2 = points.add(point2);
+        size_t i3 = points.add(point3);
+        size_t i4 = points.add(point4);
+        size_t i5 = points.add(point5);
+        size_t i6 = points.add(point6);
+        size_t i7 = points.add(point7);
+        // segments for pface 1
+        segments1.add(Segment(i0,i1));
+        segments1.add(Segment(i2,i3)); 
+        segments2.add(Segment(i4,i5));
+        segments2.add(Segment(i6,i7)); 
+        // pface
+        PFace pf0(0,1,points,segments1);
+        PFace pf1(0,1,points,segments2);
+        pf0.intersection(pf1,timeValues); 
+        pf0.addBorder(timeValues);
+        pf1.addBorder(timeValues);
+        // Build result factory
+        ResultUnitFactory factory1(points,timeValues,pf0,false);
+        ResultUnitFactory factory2(points,timeValues,pf1,false);
+        factory1.evaluate();
+        factory2.evaluate();        
+        ResultUnitFactory factory3(3),factory4(3);
+        factory3.addNonOrthogonalEdges(0,Segment(0,7,LEFT_IS_INNER));
+        factory3.addNonOrthogonalEdges(0,Segment(2,8,OUTSIDE));
+        factory3.addNonOrthogonalEdges(1,Segment(7,1,OUTSIDE));
+        factory3.addNonOrthogonalEdges(1,Segment(8,3,OUTSIDE));
+        
+        factory4.addNonOrthogonalEdges(0,Segment(0,9,OUTSIDE));
+        factory4.addNonOrthogonalEdges(0,Segment(0,7,RIGHT_IS_INNER));
+        factory4.addNonOrthogonalEdges(0,Segment(5,7,INSIDE));
+        factory4.addNonOrthogonalEdges(1,Segment(9,4,OUTSIDE));
+        factory4.addNonOrthogonalEdges(1,Segment(7,6,OUTSIDE));
+        factory4.setTouchsOnLeftBorder(0,1);
+        assert_("PFaceTest 9.1", "factorys are equal.",
+                factory1 == factory3);
+        assert_("PFaceTest 9.2", "factorys are equal.",
+                factory2 == factory4);
+        // cout << points;
+        // cout << segments;
+        // cout << pf0;
+        // cout << pf1;
+        // cout << factory1;
+        // cout << factory2;
+      }// PFaceTest9
+      
+      void Selftest::IntersectionSegmentTest4() {
+      }
               
   } // end of namespace mregionops3
 } // end of namespace temporalalgebra

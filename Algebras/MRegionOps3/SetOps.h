@@ -488,16 +488,18 @@ used in ~IntSegContainer~.
 first step in the Plane Sweep.
 
 */       
-      virtual void first(double t1, double t2, ContainerPoint3D& points,
-                                       ContainerSegment& segments);
+      virtual void first(double t1, double t2, Point3DContainer& points,
+                                               SegmentContainer& segments,
+                                               bool pFaceIsCritical);
 /*
 10.2.2 next
 
 next step in the Plane Sweep.
 
 */          
-      virtual void next(double t1, double t2, ContainerPoint3D& points, 
-                                      ContainerSegment& segments);  
+      virtual void next(double t1, double t2, Point3DContainer& points, 
+                                              SegmentContainer& segments,
+                                              bool pFaceIsCritical);  
     };// PlaneSweepAccess 
 /*    
 11 Class IntSegContainer
@@ -560,14 +562,16 @@ Adds seg to the set of ~IntersectionSegments~.
 11.3.7 first
     
 */       
-      void first(double t1, double t2, ContainerPoint3D& points,
-                                       ContainerSegment& segments);
+      void first(double t1, double t2, Point3DContainer& points,
+                                       SegmentContainer& segments,
+                                       bool pFaceIsCritical);
 /*
 11.3.8 next
     
 */  
-      void next(double t1, double t2, ContainerPoint3D& points, 
-                                      ContainerSegment& segments);
+      void next(double t1, double t2, Point3DContainer& points, 
+                                      SegmentContainer& segments,
+                                      bool pFaceIsCritical);
 
     private:
 /*
@@ -670,16 +674,16 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
 13.3.2 first
 
 */        
-      bool scaledFirst(double& t);
+      bool scaledFirst(double& t1, double& t2);
       
-      bool orginalFirst(double& t);
+      bool orginalFirst(double& t1, double& t2);
 /*
 13.3.2 next
 
 */        
-      bool scaledNext(double& t); 
+      bool scaledNext(double& t1, double& t2); 
       
-      bool orginalNext(double& t);       
+      bool orginalNext(double& t1, double& t2);       
       
     private:             
       
@@ -694,10 +698,11 @@ orthogonal ~IntersectionSegments~during the plane-sweep.
       std::set<double, DoubleCompare>::const_iterator timeIter;
       double t1;
       double t2;
+      double orginalT1;
+      double orginalT2;      
       double orginalStartTime;
       double orginalEndTime;
-      double scale;
-      
+      double scale;      
     }; // GlobalTimeValues   
 /*
 14 class MSegment
@@ -950,9 +955,10 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
        
       ResultUnitFactory(size_t size);
  
-      ResultUnitFactory(ContainerPoint3D& points,
+      ResultUnitFactory(Point3DContainer& points,
                         GlobalTimeValues &timeValues,
-                        PlaneSweepAccess &access);    
+                        PlaneSweepAccess &access,
+                        bool isCritcal);    
 /*
 17.3 Methods, Operators and Predicates
 
@@ -972,7 +978,7 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
       void evaluate();
       
       void getResultUnit(size_t slide, Predicate predicate, bool reverse, 
-                         const ContainerPoint3D& points, ResultUnit& unit, 
+                         const Point3DContainer& points, ResultUnit& unit, 
                          State pfState, SourceFlag source);
 /*
 17.3.2 operator <<
@@ -1016,7 +1022,8 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
 17.4 Attributes
 
 */    
-      ContainerSegment segments;
+      bool pFaceIsCritical;
+      SegmentContainer segments;
       std::vector<std::list<size_t>> nonOrthogonalEdges;
       std::vector<std::list<size_t>> orthogonalEdges;
       std::vector<size_t> touchsOnLeftBorder;
@@ -1033,12 +1040,12 @@ similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
 18.1 Constructors
 
 */
-      PFace(size_t left, size_t right,const ContainerPoint3D& points, 
-            const ContainerSegment& segments);
+      PFace(size_t left, size_t right,const Point3DContainer& points, 
+            const SegmentContainer& segments);
       
       PFace(const MSegmentData& mSeg, const GlobalTimeValues& timeValues,
-            ContainerPoint3D& points, 
-            ContainerSegment& segments);
+            Point3DContainer& points, 
+            SegmentContainer& segments);
             
       PFace(const PFace& pf); 
 /*
@@ -1101,10 +1108,10 @@ Computes the intersection of this ~PFace~ with pf.
       void addBorder(GlobalTimeValues &timeValues);
       
       void addBorder(GlobalTimeValues &timeValues, 
-                     const ContainerSegment& segments, 
+                     const SegmentContainer& segments, 
                      Predicate predicate);
       
-      void setBorderPredicate(ContainerSegment& segment, Predicate predicate);
+      void setBorderPredicate(SegmentContainer& segment, Predicate predicate);
 /*
 18.3.8 Operator =
 
@@ -1119,20 +1126,22 @@ Computes the intersection of this ~PFace~ with pf.
 18.3.10 first
     
 */    
-      void first(double t1, double t2, ContainerPoint3D& points,
-                                       ContainerSegment& segments);
+      void first(double t1, double t2, Point3DContainer& points,
+                                       SegmentContainer& segments,
+                                       bool pFaceIsCritical);
 /*
 18.3.11 next
     
 */     
-      void next(double t1, double t2, ContainerPoint3D& points, 
-                                      ContainerSegment& segments);
+      void next(double t1, double t2, Point3DContainer& points, 
+                                      SegmentContainer& segments,
+                                      bool pFaceIsCritical);
       
-      bool finalize(ContainerPoint3D& points, ContainerSegment& segments, 
+      bool finalize(Point3DContainer& points, SegmentContainer& segments, 
                     GlobalTimeValues& timeValues);
       
       void getResultUnit(size_t slide, Predicate predicate, bool reverse, 
-                         const ContainerPoint3D& points, ResultUnit& unit,
+                         const Point3DContainer& points, ResultUnit& unit,
                          SourceFlag source);
     private:  
 /*
@@ -1198,11 +1207,11 @@ Computes the intersection of this ~PFace~ with pf.
     
 */      
       void addPFace(const Segment& left, const Segment& right, 
-                    const ContainerPoint3D& points);
+                    const Point3DContainer& points);
       
       void addMSegmentData(const MSegmentData& mSeg, 
                            const GlobalTimeValues& timeValues,
-                           ContainerPoint3D& points);
+                           Point3DContainer& points);
       
       bool isEmpty()const;
       
@@ -1216,11 +1225,11 @@ Computes the intersection of this ~PFace~ with pf.
 */       
       bool intersection(SourceUnit& other, GlobalTimeValues& timeValues); 
       
-      bool finalize(ContainerPoint3D& points, GlobalTimeValues& timeValues,
+      bool finalize(Point3DContainer& points, GlobalTimeValues& timeValues,
                     Predicate predicate);
       
       void getResultUnit(size_t slide, Predicate predicate,bool reverse, 
-                         const ContainerPoint3D& points, ResultUnit& unit,
+                         const Point3DContainer& points, ResultUnit& unit,
                          SourceFlag source);
       
       std::ostream& print(std::ostream& os, std::string prefix)const;
@@ -1267,7 +1276,7 @@ Print the object values to stream.
 */       
       std::vector<size_t> itersectedPFace;
       std::vector<PFace*> pFaces;
-      ContainerSegment segments;
+      SegmentContainer segments;
       mmrtree::RtreeT<2, size_t> pFaceTree;      
       Region testRegion;
       bool   testRegionDefined;      
@@ -1314,7 +1323,7 @@ Print the object values to stream.
       std::vector<ResultUnit> result;
       
       GlobalTimeValues timeValues;        
-      ContainerPoint3D points; 
+      Point3DContainer points; 
     };
 /*
 22 class SetOperator
