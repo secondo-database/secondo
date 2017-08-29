@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/Attr.h"
 #include "Operators/BlockEntry.h"
 #include "Operators/BlockCount.h"
+#include "Operators/BoxIntersects.h"
 #include "Operators/Consume.h"
 #include "Operators/CConsume.h"
 #include "Operators/Compare.h"
@@ -116,6 +117,8 @@ extern "C" Algebra *InitializeCRelAlgebra(NestedList *nlRef,
       AddOperator(new Operators::BlockEntry(), true);
 
       AddOperator(new BlockCount(), true);
+
+      AddOperator(new BoxIntersects(), true);
 
       AddOperator(new Consume(), true);
 

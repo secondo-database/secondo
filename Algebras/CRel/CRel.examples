@@ -37,6 +37,12 @@ Signature: stream tblock -> int
 Example  : query cplz feed blockcount
 Result   : 1
 
+Operator : boxintersects
+Number   : 0
+Signature: SPATIALATTRARRAY x (SPATIALATTRARRAY | SPATIAL) -> longints
+Example  : query cstrassen feed filter[.GeoData boxintersects [const rect value (0 1000 0 1000)]] count
+Result   : 3
+
 Operator : cconsume
 Number   : 0
 Signature: stream(tuple | tblock) x (int | crel) -> crel

@@ -20,6 +20,7 @@
 operator apply alias APPLYPREDICATE pattern _ op [fun] implicit parameter blockentry type BLOCKENTRY
 operator attr alias ATTR pattern op (_, _)
 operator blockcount alias BLOCKCOUNT pattern _ op
+operator boxintersects alias BOXINTERSECTS pattern _ infixop _
 operator count alias COUNT pattern _ op
 operator consume alias CONSUME pattern _ op
 operator cconsume alias CCONSUME pattern _ op [ _ ]

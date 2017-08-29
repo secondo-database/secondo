@@ -274,4 +274,61 @@ namespace CRelAlgebra
 
     return IsSpatialAttrArray(typeExpr, dimension);
   }
+
+  inline bool IsSpatialAttr(TypeConstructor &constructor, int &dimension)
+  {
+    if (constructor.MemberOf(Kind::SPATIAL1D()))
+    {
+      dimension = 1;
+      return true;
+    }
+
+    if (constructor.MemberOf(Kind::SPATIAL2D()))
+    {
+      dimension = 2;
+      return true;
+    }
+
+    if (constructor.MemberOf(Kind::SPATIAL3D()))
+    {
+      dimension = 3;
+      return true;
+    }
+
+    if (constructor.MemberOf(Kind::SPATIAL4D()))
+    {
+      dimension = 4;
+      return true;
+    }
+
+    if (constructor.MemberOf(Kind::SPATIAL8D()))
+    {
+      dimension = 8;
+      return true;
+    }
+
+    return false;
+  }
+
+  inline bool IsSpatialAttr(TypeConstructor &constructor)
+  {
+    int dimension;
+
+    return IsSpatialAttr(constructor, dimension);
+  }
+
+  inline bool IsSpatialAttr(ListExpr typeExpr, int &dimension)
+  {
+    TypeConstructor *constructor = GetTypeConstructor(typeExpr);
+
+    return constructor != nullptr &&
+           IsSpatialAttr(*constructor, dimension);
+  }
+
+  inline bool IsSpatialAttr(ListExpr typeExpr)
+  {
+    int dimension;
+
+    return IsSpatialAttr(typeExpr, dimension);
+  }
 }
