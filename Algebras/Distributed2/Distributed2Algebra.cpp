@@ -11135,9 +11135,9 @@ class Mapper{
 
    void start(){
        if(dfarray){
-          startDFArray();
+          startXArray<DFARRAY,fRun>(dfarray);
        } else {
-          startDArray();
+          startXArray<DARRAY,dRun>(darray);
        }
     }
 
@@ -11154,20 +11154,20 @@ class Mapper{
     string name;
     string dbname;
 
-
-    void startDArray(){
+    template<arrayType type, class rtype>
+    void startXArray(DArrayT<type>*& resArray ){
        if(!array->IsDefined()){
          if(!log){
-            darray->makeUndefined();
+            resArray->makeUndefined();
          }
          return;
        }
        if(!log){ 
-          *darray = (*array);
+          *resArray = (*array);
        }
        if(array->numOfWorkers()<1){
          if(!log){
-             darray->makeUndefined();
+             resArray->makeUndefined();
          }
          return;
        }
@@ -11179,94 +11179,30 @@ class Mapper{
        }
        if(!stringutils::isIdent(name)){
            if(!log){
-              darray->makeUndefined();
+              resArray->makeUndefined();
            }
            return;
        }
        if(!log){
-          darray->setName(name);
+          resArray->setName(name);
        }
        if(array->getSize()<1){
           // no slots -> nothing to do
           return;
        }
-       vector<dRun*> w;
+       vector<rtype*> w;
        vector<boost::thread*> runners;
 
        for( size_t i=0;i< array->getSize();i++){
           ConnectionInfo* ci = algInstance->getWorkerConnection(
                                  array->getWorkerForSlot(i), dbname);
           ci->setLogger(log);
-          dRun* r = new dRun(ci,dbname, i, this);
+          rtype* r = new rtype(ci,dbname, i, this);
           w.push_back(r);
-          boost::thread* runner = new boost::thread(&dRun::run, r);
+          boost::thread* runner = new boost::thread(&rtype::run, r);
           runners.push_back(runner);
        }
 
-       for( size_t i=0;i< array->getSize();i++){
-          runners[i]->join();
-          delete runners[i];
-          delete w[i];
-       }
-       for( size_t i=0;i< array->getSize();i++){
-          ConnectionInfo* ci = algInstance->getWorkerConnection(
-                                 array->getWorkerForSlot(i), dbname);
-          ci->setLogger(0);
-       }
-    }
-
-
-    void startDFArray(){
-       if(!array->IsDefined()){
-           if(!log){
-              dfarray->makeUndefined();
-           }
-           return;
-       }
-       if(!log){
-          *dfarray = *array;
-       }
-       
-       if(array->numOfWorkers()<1){
-          if(!log){
-             dfarray->makeUndefined();
-          }
-          return;
-       }
-
-       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-       if(!ccname->IsDefined() || ccname->GetValue().length()==0){
-          algInstance->getWorkerConnection(array->getWorker(0),dbname);
-          name = algInstance->getTempName();            
-       } else {
-          name = ccname->GetValue();
-       }
-
-
-       if(!stringutils::isIdent(name)){
-           if(!log){
-               dfarray->makeUndefined();
-           }
-           return;
-       }
-       if(!log){
-          dfarray->setName(name);
-       }
-       if(array->getSize()<1){
-          return;
-       }
-
-       vector<fRun*> w;
-       vector<boost::thread*> runners;
-       for( size_t i=0;i< array->getSize();i++){
-          ConnectionInfo* ci = algInstance->getWorkerConnection(
-                                 array->getWorkerForSlot(i), dbname, log);
-          ci->setLogger(log);
-          fRun* r = new fRun(ci,dbname, i, this);
-          w.push_back(r);
-          boost::thread* runner = new boost::thread(&fRun::run, r);
-          runners.push_back(runner);
-       }
        for( size_t i=0;i< array->getSize();i++){
           runners[i]->join();
           delete runners[i];
