@@ -925,10 +925,7 @@ string fun2cmd(const string& fundef, const vector<string>& funargs){
      replacements[nl->SymbolValue(nl->First(first))] = funargs[pos];
      pos++;
   }
-  ListExpr rep = replaceSymbols(funlist, replacements);
-  if(nl->HasLength(rep,1)){
-     rep = nl->First(rep);
-  }
+  ListExpr rep = replaceSymbols(nl->First(funlist), replacements);
   return nl->ToString(rep);
 }
 
