@@ -27,7 +27,11 @@ include ../../makefile.env
 
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
+CCFLAGS += $(ALG_INC_DIRS)
+ifneq ($(platform),mac_osx)
+  CCFLAGS += -std=c++11
+  PARSEFLAGS = -std=c++11
+endif
 
 OBJECTS += scan.o parse.o PatternRegExParser.o PatternRegExScanner.o
 
@@ -59,7 +63,7 @@ lex.pattern.c: $(BASE).l parse.o
 	        flex $(BASE).l
 
 parse.o: $(BASE).tab.c
-	        $(CPPC) -c -ggdb -o $@ $< -lstd -I ../../include -I ../../Tools/ListsAndTables -I $(BDB_INCLUDE_DIR) $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)  $(DEFAULTCCFLAGS)
+	        $(CPPC) -c $(PARSEFLAGS) -ggdb -o $@ $< -lstd -I ../../include -I ../../Tools/ListsAndTables -I $(BDB_INCLUDE_DIR) $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)  $(DEFAULTCCFLAGS)
 
 
 $(BASE).tab.c: $(BASE).y

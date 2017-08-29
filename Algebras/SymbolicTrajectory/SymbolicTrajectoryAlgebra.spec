@@ -31,3 +31,4 @@ operator createml alias CREATEML pattern op ( _ , _ )
 operator createmlrelation alias CREATEMLRELATION pattern op ( _ , _ , _ )
 operator createtrie alias CREATETRIE pattern _ op [ _ ]
 operator derivegroups alias DERIVEGROUPS pattern _ op [ _ , _ ]
+operator restoreTraj alias RESTORETRAJ pattern op ( _ , _ , _ , _ , _ , _ , _ , _ )

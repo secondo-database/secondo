@@ -5074,6 +5074,126 @@ struct derivegroupsInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~restoreTraj~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr restoreTrajTM(ListExpr args) {
+  if (!nl->HasLength(args, 8)) {
+    return listutils::typeError("Eight arguments expected.");
+  }
+  if (!BTree::checkType(nl->Second(args))) {
+    return listutils::typeError("Second argument must be a btree");
+  }
+  if (!RTree2TID::checkType(nl->Third(args))) {
+    return listutils::typeError("Third argument must be an rtree");
+  }
+  if (!raster2::sint::checkType(nl->Fourth(args))) {
+    return listutils::typeError("Fourth argument must be an sint");
+  }
+  if (!nl->Equal(nl->SymbolAtom(Hash::BasicType()), nl->First(nl->Fifth(args)))
+      || !CcInt::checkType(nl->Third(nl->Fifth(args)))) {
+    cout << nl->ToString(nl->Fifth(args)) << endl;
+    return listutils::typeError("Fifth argument must be a hash file");
+  }
+  for (int i = 6; i <= 8; i++) {
+    if (!MLabel::checkType(nl->Nth(i, args))) {
+      std::stringstream sstr;
+      sstr << "Argument " << i << " must be an mlabel";
+      return listutils::typeError(sstr.str());
+    }
+  }
+  if (Relation::checkType(nl->First(args))) { // extended edges relation
+    if (Tuple::checkType(nl->First(nl->Rest(nl->First(args))))) {
+      ListExpr attrList =
+               nl->First(nl->Rest(nl->First(nl->Rest(nl->First(args)))));
+      if (nl->ListLength(attrList) != 5) {
+        return listutils::typeError("Edges relation must have five attributes");
+      }
+      if (!LongInt::checkType(nl->Second(nl->First(attrList)))) {
+        return listutils::typeError("Edges: type error in first attribute");
+      }
+      if (!FText::checkType(nl->Second(nl->Second(attrList)))) {
+        return listutils::typeError("Edges: type error in second attribute");
+      }
+      if (!SimpleLine::checkType(nl->Second(nl->Third(attrList)))) {
+        return listutils::typeError("Edges: type error in third attribute");
+      }
+      if (!CcString::checkType(nl->Second(nl->Fourth(attrList)))) {
+        return listutils::typeError("Edges: type error in fourth attribute");
+      }
+      if (!CcInt::checkType(nl->Second(nl->Fifth(attrList)))) {
+        return listutils::typeError("Edges: type error in fifth attribute");
+      }
+      return nl->TwoElemList(listutils::basicSymbol<Stream<MPoint> >(),
+                             listutils::basicSymbol<MPoint>());
+    }
+  }
+  return listutils::typeError("Argument types must be rel(tuple(longint, text, "
+    "sline, string, int)) x btree x rtree x mlabel x mlabel x mlabel");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int restoreTrajVM(Word* args, Word& result, int message, Word& local, 
+                  Supplier s) {
+  Relation *edgesRel = static_cast<Relation*>(args[0].addr);
+  BTree *heightBtree = static_cast<BTree*>(args[1].addr);
+  RTree2TID *segmentsRtree = static_cast<RTree2TID*>(args[2].addr);
+  raster2::sint *raster = static_cast<raster2::sint*>(args[3].addr);
+  Hash *rhash = static_cast<Hash*>(args[4].addr);
+  MLabel *direction = static_cast<MLabel*>(args[5].addr);
+  MLabel *height = static_cast<MLabel*>(args[6].addr);
+  MLabel *speed = static_cast<MLabel*>(args[7].addr);
+  RestoreTrajLI *li = static_cast<RestoreTrajLI*>(local.addr);
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      li = new RestoreTrajLI(edgesRel, heightBtree, segmentsRtree, raster,
+                             rhash, height, direction, speed);
+      local.addr = li;
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextCandidate() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (local.addr) {
+        li = (RestoreTrajLI*)local.addr;
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct restoreTrajInfo : OperatorInfo {
+  restoreTrajInfo() {
+    name      = "restoreTraj";
+    signature = "rel(tuple(longint, text, sline, string, int)) x btree x rtree "
+                "x mlabel x mlabel x mlabel";
+    syntax    = "restoreTraj( _ , _ , _ , _ , _ , _)";
+    meaning   = "Restores the original trajectory (mpoint) from symbolic "
+                "direction, height, and speed information as well as a road "
+                "network with elevatio data.";
+  }
+};
+
+/*
 \section{Class ~SymbolicTrajectoryAlgebra~}
 
 */
@@ -5411,6 +5531,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   ValueMapping createtrieVMs[] = {createtrieVM<MLabel>, createtrieVM<MLabels>,
                                 createtrieVM<MPlace>, createtrieVM<MPlaces>, 0};
   AddOperator(createtrieInfo(), createtrieVMs, createtrieSelect, createtrieTM);
+  
+  AddOperator(restoreTrajInfo(), restoreTrajVM, restoreTrajTM);
   
 //   ValueMapping derivegroupsVMs[] = {derivegroupsVM<MLabel>,
 //     derivegroupsVM<MLabels>, derivegroupsVM<MPlace>, 

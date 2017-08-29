@@ -2627,32 +2627,43 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans,
 void TMatchIndexLI::extendBinding2(IndexMatchInfo2& imi, const int elem, 
                                    const bool totalMatch) {
   if (imi.binding.find(elem) == imi.binding.end()) { // elem not bound yet
-    SecInterval iv(imi.inst, imi.inst);
+    SecInterval iv(imi.inst, imi.inst, true, true);
     imi.binding[elem] = iv;
-    if (elem > 1 && imi.binding.find(elem - 1) == imi.binding.end() &&
-        imi.binding.find(elem - 2) != imi.binding.end()) { // X (..) Y *Z* (..)
-      iv.start = imi.binding[elem - 2].start;
-      iv.lc = false;
-      iv.rc = false;
-      imi.binding[elem - 1] = iv;
+    if (elem == 0) { // X *Y (__)* ...
+      iv.start.ToMinimum();
     }
+    else { // ... X *Y (__)* ...
+      iv.start = imi.binding[elem - 1].start;
+      iv.lc = false;
+    }
+    iv.rc = false;
+    imi.binding[-1 * elem - 1] = iv; // bind intervals between elements
+    
+//     if (elem > 1 && imi.binding.find(elem - 1) == imi.binding.end() &&
+//       imi.binding.find(elem - 2) != imi.binding.end()) { // X (..) Y *Z* (..)
+//       iv.start = imi.binding[elem - 2].start;
+//       iv.lc = false;
+//       iv.rc = false;
+//       imi.binding[elem - 1] = iv;
+//     }
   }
   else { // extend existing binding
     imi.binding[elem].end = imi.inst;
+    imi.binding[elem].rc = false;
   }
-  if (totalMatch && p->getElemFromAtom(p->getSize() - 1) == elem + 1) {
-    Instant in; // *Y* (..) Z
+  if (totalMatch) {
+    Instant in(datetime::instanttype); // ... *Y (..)* Z
     in.ToMaximum();
-    SecInterval iv(imi.inst, in, false, false);
-    imi.binding[elem + 1] = iv;
+    SecInterval iv(imi.inst, in, false, true);
+    imi.binding[-1 * elem - 2] = iv;
   }
-  if (elem == 1 && imi.binding.find(elem - 1) == imi.binding.end()) {
-    Instant in; // X *Y* (..)
-    in.ToMinimum();
-    SecInterval iv(imi.inst, in, false, false);
-    imi.binding[elem - 1] = iv;
-  }
-  
+//   if (elem == 1 && imi.binding.find(elem - 1) == imi.binding.end()) {
+//     Instant in; // X *Y* (..)
+//     in.ToMinimum();
+//     SecInterval iv(imi.inst, in, false, false);
+//     imi.binding[elem - 1] = iv;
+//   }
+  cout << "elem " << elem << ": "; imi.print();
 }
 
 /*
@@ -2813,7 +2824,7 @@ void Condition::copyAndRestrictPtr(const int pos, Tuple *tuple,
                       const ListExpr ttype, const int key, const Periods& per) {
   string attrtype = nl->ToString(nl->Second(nl->Nth(key, 
                                         nl->Second(ttype))));
-  if (instantVars.find(getVar(pos)) == instantVars.end()) {
+  if (instantVars.find(getVar(pos)) == instantVars.end()) { // interval variable
     if (attrtype == "mbool") {
       ((temporalalgebra::MBool*)tuple->GetAttribute(key - 1))->AtPeriods(per,
                                     *((temporalalgebra::MBool*)pointers[pos]));
@@ -2956,6 +2967,7 @@ bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
           return false;
         }
         if (Tools::isMovingAttr(ttList, key - 99)) {
+          cout << "restrict ptr to " << per << endl;
           conds->at(i).copyAndRestrictPtr(j, t, ttList, key - 99, per);
         }
         else { // constant attribute type
@@ -5418,13 +5430,174 @@ void IndexMatchInfo::print(const bool printBinding) {
 }
 
 void IndexMatchInfo2::print() {
-  cout << "inst: " << inst << endl;
-  cout << "binding has " << binding.size() << " components:" << endl;
+  cout << "inst: " << inst << " | binding: ";
   for (map<int, SecInterval>::iterator it = binding.begin(); 
        it != binding.end(); it++) {
-    cout << it->first << " ---> " << it->second << ";    ";
+    cout << it->first << " ---> " << it->second << " | ";
   }
   cout << endl;
+}
+
+/*
+\section{Implementation of class ~RestoreTrajLI~}
+
+Applied for the operator ~restoreTraj~.
+
+*/
+RestoreTrajLI::RestoreTrajLI(Relation *e, BTree *ht, RTree2TID *st, 
+                  raster2::sint *r, Hash *rh, MLabel *h, MLabel *d, MLabel *s) :
+    edgesRel(e), heightBtree(ht), segmentsRtree(st), raster(r), rhash(rh),
+    height(h), direction(d), speed(s) {
+  RefinementPartition<MLabel, MLabel, ULabel, ULabel> rp(*h, *d);
+  vector<Tile> tiles;
+  retrieveTiles(0, tiles);
+  cout << "tiles.size() == " << tiles.size() << endl;
+  vector<TileTransition> tileTransitions;
+  retrieveTransitions(0, tiles, tileTransitions);
+  exchangeTiles(tileTransitions, tiles);
+  cout << tiles.size() << " updated" << endl;
+  
+  
+  for (int i = 1; i < 2 /* height->GetNoComponents() */; i++) {
+    
+    
+    
+  }
+//   for (int i = 0; i < tiles.size(); i++) {
+//     cout << tiles[i] << endl;
+//   }
+}
+
+void RestoreTrajLI::exchangeTiles(const vector<TileTransition>& transitions,
+                                  vector<Tile>& result) {
+  result.clear();
+  for (unsigned int i = 0; i < transitions.size(); i++) {
+    result.push_back(transitions[i].first);
+  }
+}
+
+bool RestoreTrajLI::retrieveTransitions(const int startPos, 
+                        vector<Tile>& origins, vector<TileTransition>& result) {
+  if (startPos < 0 || startPos + 1 >= height->GetNoComponents()) {
+    return false;
+  }
+  string nextHeightLabel;
+  SecInterval iv1(true), iv2(true);
+  height->GetInterval(startPos, iv1);
+  height->GetInterval(startPos + 1, iv2);
+  if (iv1.end != iv2.start) {
+    return false;
+  }
+  height->GetValue(startPos + 1, nextHeightLabel); // next height value
+  int nextHeightNum = stoi(nextHeightLabel.substr(0,nextHeightLabel.find("-")));
+  TileTransition transition;
+  int counter = 0;
+  for (unsigned int i = 0; i < origins.size(); i++) {
+    if (checkNeighbor(origins[i].first, origins[i].second, iv2.start, 
+                      nextHeightNum, transition)) {
+      result.push_back(transition);
+      counter++;
+    }
+  }
+  cout << counter << endl;
+  return true;
+}
+
+bool RestoreTrajLI::checkNeighbor(int x, int y, const Instant& inst,
+                                  const int height, TileTransition& result) {
+  ILabel iDir(true);
+  Label dirLabel(true);
+  direction->AtInstant(inst, iDir);
+  iDir.Val(dirLabel);
+  DirectionNum dirNum = dirLabelToNum(dirLabel);
+  updateCoords(dirNum, x, y);
+  int rasterPos[2];
+  rasterPos[0] = x;
+  rasterPos[1] = y;
+  raster2::sint::index_type rasterIndex(rasterPos);
+  if (raster->get(rasterIndex) == height) {
+    cout << "transition (" << x << ", " << y << ")   " << height << endl;
+    return true;
+  }
+  return false;
+}
+
+void RestoreTrajLI::retrieveTiles(const int pos, vector<Tile>& result) {
+  string heightLabel;
+  height->GetValue(pos, heightLabel);
+  int heightNum = stoi(heightLabel.substr(0, heightLabel.find("-")));
+  CcInt *key = new CcInt(heightNum, true);
+  HashIterator *hit = rhash->ExactMatch(key);
+  NewPair<int, int> tileCoords;
+  while (hit->Next()) {
+    tileCoords.first = (int)hit->GetId();
+    if (hit->Next()) {
+      tileCoords.second = (int)hit->GetId();
+    }
+    result.push_back(tileCoords);
+  }
+  key->DeleteIfAllowed();
+  result.shrink_to_fit();
+}
+
+void RestoreTrajLI::updateCoords(const DirectionNum dir, int& x, int& y) {
+  switch (dir) {
+    case EAST: {
+      x++;
+      break;
+    }
+    case NORTHEAST: {
+      x++;
+      y--;
+      break;
+    }
+    case NORTH: {
+      y--;
+      break;
+    }
+    case NORTHWEST: {
+      x--;
+      y--;
+      break;
+    }
+    case WEST: {
+      x--;
+      break;
+    }
+    case SOUTHWEST: {
+      x--;
+      y++;
+      break;
+    }
+    case SOUTH: {
+      y++;
+      break;
+    }
+    case SOUTHEAST: {
+      x++;
+      y++;
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+}
+
+RestoreTrajLI::DirectionNum RestoreTrajLI::dirLabelToNum(const Label& dirLabel){
+  if (dirLabel == "East")      return EAST;
+  if (dirLabel == "Northeast") return NORTHEAST;
+  if (dirLabel == "North")     return NORTH;
+  if (dirLabel == "Northwest") return NORTHWEST;
+  if (dirLabel == "West")      return WEST;
+  if (dirLabel == "Southwest") return SOUTHWEST;
+  if (dirLabel == "South")     return SOUTH;
+  if (dirLabel == "Southeast") return SOUTHEAST;
+  return ERROR;
+}
+
+MLabel* RestoreTrajLI::nextCandidate() {
+  return 0;
 }
 
 }

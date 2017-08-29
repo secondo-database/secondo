@@ -53,6 +53,8 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #include "TemporalUnitAlgebra.h"
 #include "GenericTC.h"
 #include "OrderedRelationAlgebra.h"
+#include "../Raster2/sint.h"
+#include "HashAlgebra.h"
 #include "Tools.h"
 #include <string>
 #include <set>
@@ -151,7 +153,7 @@ class IBasics : public temporalalgebra::Intime<B> {
 template<class B>
 class UBasic : public temporalalgebra::ConstTemporalUnit<B> {
  public:
-  UBasic() {}
+  UBasic() : temporalalgebra::ConstTemporalUnit<B>(true) {}
   explicit UBasic(bool def) : temporalalgebra::ConstTemporalUnit<B>(def) {}
   explicit UBasic(const temporalalgebra::SecInterval &iv, const B& val);
   UBasic(const UBasic& ub);
@@ -183,7 +185,7 @@ class UBasic : public temporalalgebra::ConstTemporalUnit<B> {
 template<class B>
 class UBasics : public temporalalgebra::ConstTemporalUnit<B> {
  public:
-  UBasics() {}
+  UBasics() : temporalalgebra::ConstTemporalUnit<B>(true) {}
   UBasics(const temporalalgebra::SecInterval& iv, const B& values);
   UBasics(const UBasics& rhs) : temporalalgebra::ConstTemporalUnit<B>(rhs) {}
   explicit UBasics(const bool def) : 
@@ -771,7 +773,13 @@ class Pattern {
                         regEx.find_first_of("()|") != std::string::npos;}
   void  addRelevantVar(std::string var) {relevantVars.insert(var);}
   bool  isRelevant(std::string var)  {return relevantVars.count(var);}
-  std::string       getVarFromElem(int elem){return elemToVar[elem];}
+  std::string       getVarFromElem(int elem){
+                                  if (elemToVar.find(elem) != elemToVar.end()) {
+                                    return elemToVar[elem];
+                                  }
+                                  else {
+                                    return "";
+                                  }}
   std::map<std::string, int> getVarToElem() {return varToElem;}
   void              setVarToElem(std::map<std::string, int> &vte)
                                                               {varToElem = vte;}
@@ -7939,5 +7947,46 @@ void TupleIndex<PosType, PosType2>::collectSortInsert(Relation *rel,
   }
 }
 
+/*
+\section{class ~RestoreTrajLI~}
+
+Applied for the operator ~restoreTraj~.
+
+*/
+class RestoreTrajLI {
+ public:
+  enum DirectionNum {ERROR = -1, EAST, NORTHEAST, NORTH, NORTHWEST, WEST,
+                     SOUTHWEST, SOUTH, SOUTHEAST};
+  typedef NewPair<int, int> Tile;
+  typedef NewPair<NewPair<int, int>, DirectionNum> TileTransition;
+   
+  RestoreTrajLI(Relation *e, BTree *ht, RTree2TID *st, raster2::sint *r,
+                Hash *rh, MLabel *h, MLabel *d, MLabel *s);
+  
+  RestoreTrajLI() {}
+  
+  void exchangeTiles(const std::vector<TileTransition>& transitions,
+                     std::vector<Tile>& result);
+  bool retrieveTransitions(const int startPos, std::vector<Tile>& origins,
+                           std::vector<TileTransition>& result);
+  bool checkNeighbor(int x, int y, const Instant& inst,
+                     const int height, TileTransition& result);
+  void retrieveTiles(const int pos, std::vector<Tile>& result);
+  void updateCoords(const DirectionNum dir, int& x, int& y);
+  DirectionNum dirLabelToNum(const Label& dirLabel);
+  MLabel* nextCandidate();
+  
+ private:
+  Relation *edgesRel;
+  BTree *heightBtree;
+  RTree2TID *segmentsRtree;
+  raster2::sint *raster;
+  Hash *rhash;
+  MLabel *height;
+  MLabel *direction;
+  MLabel *speed;
+  
+//   std::vector<std::vector<NewPair<int> > > tileSequences;
+};
 
 }

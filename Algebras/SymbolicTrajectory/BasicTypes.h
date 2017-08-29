@@ -68,6 +68,11 @@ class NewPair {
     return false;
   }
   
+  friend std::ostream& operator<<(std::ostream& os, const NewPair& np) {
+    os << np.first << ", " << np.second;
+    return os;
+  }
+  
   template<class X>
   void copy2ndFrom(const X newValue) {
     if (sizeof(S) == sizeof(X)) {
@@ -113,7 +118,8 @@ class Label : public Attribute {
   
   ~Label() {}
   
-  void Clean() {value.clean();}
+  void Clean() {
+    if (value.getSize() > 0) {value.clean();}}
   void Destroy() {value.destroy();}
   void GetValue(std::string &text) const;
   std::string GetLabel() const {return GetValue();}
