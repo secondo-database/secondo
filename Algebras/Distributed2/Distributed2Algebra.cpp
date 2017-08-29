@@ -858,6 +858,82 @@ void writeLog(ConnectionInfo* ci, const string& cmd, const string& msg){
   }
 }
 
+
+/*
+Auxiliary function fun2cmd.
+
+*/
+ListExpr replaceSymbols(ListExpr list, 
+                        const map<string,string>& replacements){
+
+  if(nl->IsEmpty(list)){
+     return nl->TheEmptyList();
+  }
+  switch(nl->AtomType(list)){
+     case SymbolType: {
+       string symb = nl->SymbolValue(list);
+       map<string,string>::const_iterator it = replacements.find(symb);
+       if(it==replacements.end()){
+         return list;
+       } else {
+         return nl->SymbolAtom(it->second);
+       }
+     }
+     case NoAtom: {
+       ListExpr first = nl->OneElemList( replaceSymbols(nl->First(list),
+                                               replacements));
+       ListExpr last = first;
+       list = nl->Rest(list);
+       while(!nl->IsEmpty(list)){
+          last = nl->Append(last, replaceSymbols(nl->First(list),replacements));
+          list = nl->Rest(list);
+       }
+       return first;
+     }
+     default: return list;    
+  } 
+}
+
+
+string fun2cmd(const string& fundef, const vector<string>& funargs){
+  ListExpr funlist;
+  if(!nl->ReadFromString(fundef,funlist)){
+    cerr << "Function is not a nested list" << endl;
+    return "";
+  }
+  if(!nl->HasLength(funlist, 2+ funargs.size())){
+    cout << "invalid length of list" << endl;
+    return "";
+  } 
+  if(!listutils::isSymbol(nl->First(funlist),"fun")){
+    return "";
+  }
+  funlist = nl->Rest(funlist);
+  map<string,string> replacements;
+  int pos = 0;
+  while(!nl->HasLength(funlist,1)){
+     ListExpr first = nl->First(funlist);
+     funlist = nl->Rest(funlist);
+     if(!nl->HasLength(first,2)){
+       cerr << "invalid function argument" << endl;
+       return "";
+     }
+     if(nl->AtomType(nl->First(first))!=SymbolType){
+       cerr << "invalid function argument name " << endl;
+       return "";
+     }
+     replacements[nl->SymbolValue(nl->First(first))] = funargs[pos];
+     pos++;
+  }
+  ListExpr rep = replaceSymbols(funlist, replacements);
+  if(nl->HasLength(rep,1)){
+     rep = nl->First(rep);
+  }
+  return nl->ToString(rep);
+}
+
+
+
 /*
 2. Class ConnectionTask
 
@@ -11098,7 +11174,6 @@ class Mapper{
          }
          return;
        }
-       string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
        if(!ccname->IsDefined() || ccname->GetValue().length()==0){
           algInstance->getWorkerConnection(array->getWorker(0),dbname);
           name = algInstance->getTempName();            
@@ -11226,9 +11301,10 @@ class Mapper{
 
            string fun = mapper->funText->GetValue();
 
+
            string n = mapper->array->getName()+"_"+stringutils::int2str(nr);
            string cmd;
-
+           string funarg;
            if(mapper->array->getType()==DFARRAY){
                string fname1 = ci->getSecondoHome(
                        showCommands, commandLog)+"/dfarrays/"+dbname+"/"
@@ -11238,12 +11314,16 @@ class Mapper{
                                      listutils::basicSymbol<frel>(),
                                      nl->Second(nl->Second(mapper->aType))); 
 
-                string funarg =   "(" + nl->ToString(frelType) 
+               funarg =   "(" + nl->ToString(frelType) 
                                 + " '" +fname1+"' )";
-               cmd = " ("+ fun +" "+funarg +" )";
            } else {
-               cmd = " (" + fun+" " + n +" )";
+               funarg = n;
            }
+
+           vector<string> args;
+           args.push_back(funarg);
+           cmd = fun2cmd(fun, args);
+
             
            string targetDir = ci->getSecondoHome(
                    showCommands, commandLog)+"/dfarrays/"+dbname+"/"
@@ -11328,8 +11408,15 @@ class Mapper{
                funarg = n + " ";
           }
 
+          vector<string> funargs;
+          funargs.push_back(funarg);
+          string funcmd = fun2cmd(fundef, funargs);
+          
+
+
           string name2 = mapper->name + "_" + stringutils::int2str(nr);
-          string cmd = "(let "+ name2 +" = (" + fundef +" " + funarg + " ))";
+      //    string cmd = "(let "+ name2 +" = (" + fundef +" " + funarg + " ))";
+          string cmd = "(let " + name2 + " = " + funcmd + ")";
 
           ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
                                     showCommands, logOn, commandLog);
@@ -12292,11 +12379,16 @@ Creates the command for computing the result for this slot.
 */
        string createCommand(ConnectionInfo* ci){
           string funText = info->funText;
+
+          /* 
           string funCall = "( " + funText;
           for(size_t i=0;i<funargs.size(); i++){
             funCall = funCall + " " + funargs[i];
           }
           funCall += " )";
+          */
+          string funCall  = fun2cmd(funText, funargs);
+
 
           arrayType resType = info->res->getType();
           if(resType == DARRAY){
