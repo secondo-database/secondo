@@ -297,7 +297,7 @@ If $delta \ne -1$, check for maximum distance of items in original
 sequences.
 
 */
-        if (delta != -1 && dist(i1,i2) > delta)
+        if (delta != -1 && (int)(dist(i1,i2)) > delta)
           return false;
 
 /*
