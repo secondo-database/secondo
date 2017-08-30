@@ -4556,7 +4556,7 @@ void Condition::setPointerToValue(const int pos, M *traj, const int from,
     }
     case 2: { // time
       clearTimePtr(pos);
-      for (unsigned int j = from; j <= to; j++) {
+      for (int j = from; j <= to; j++) {
         traj->GetInterval(j, iv);
         mergeAddTimePtr(pos, iv);
       }
@@ -4589,14 +4589,14 @@ void Condition::setPointerToValue(const int pos, M *traj, const int from,
     case 8: { // labels
       cleanLabelsPtr(pos);
       if (M::BasicType() == MLabel::BasicType()) {
-        for (unsigned int j = from; j <= to; j++) {
+        for (int j = from; j <= to; j++) {
           std::string value;
           ((MLabel*)traj)->GetValue(j, value);
           appendToLabelsPtr(pos, value);
         }
       }
       else {
-        for (unsigned int j = from; j <= to; j++) {
+        for (int j = from; j <= to; j++) {
           std::set<std::string> values;
           ((MLabels*)traj)->GetValues(j, values);
           appendToLabelsPtr(pos, values);
@@ -4607,14 +4607,14 @@ void Condition::setPointerToValue(const int pos, M *traj, const int from,
     default: { // places
       cleanPlacesPtr(pos);
       if (M::BasicType() == MPlace::BasicType()) {
-        for (unsigned int j = from; j <= to; j++) {
+        for (int j = from; j <= to; j++) {
           std::pair<std::string, unsigned int> value;
           ((MPlace*)traj)->GetValue(j, value);
           appendToPlacesPtr(pos, value);
         }
       }
       else {
-        for (unsigned int j = from; j <= to; j++) {
+        for (int j = from; j <= to; j++) {
           std::set<std::pair<std::string, unsigned int> > values;
           ((MPlaces*)traj)->GetValues(j, values);
           appendToPlacesPtr(pos, values);
