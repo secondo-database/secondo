@@ -34,6 +34,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileTransferKeywords.h"
 #include "SocketIO.h"
 #include "CommandLogger.h"
+#include "Algebras/Relation-C++/OperatorConsume.h"
+
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
@@ -895,18 +897,18 @@ ListExpr replaceSymbols(ListExpr list,
 }
 
 
-string fun2cmd(const string& fundef, const vector<string>& funargs){
+ListExpr fun2cmd(const string& fundef, const vector<string>& funargs){
   ListExpr funlist;
   if(!nl->ReadFromString(fundef,funlist)){
     cerr << "Function is not a nested list" << endl;
-    return "";
+    return nl->TheEmptyList();
   }
   if(!nl->HasLength(funlist, 2+ funargs.size())){
     cout << "invalid length of list" << endl;
-    return "";
+    return nl->TheEmptyList();
   } 
   if(!listutils::isSymbol(nl->First(funlist),"fun")){
-    return "";
+    return nl->TheEmptyList();
   }
   funlist = nl->Rest(funlist);
   map<string,string> replacements;
@@ -916,18 +918,51 @@ string fun2cmd(const string& fundef, const vector<string>& funargs){
      funlist = nl->Rest(funlist);
      if(!nl->HasLength(first,2)){
        cerr << "invalid function argument" << endl;
-       return "";
+       return nl->TheEmptyList();
      }
      if(nl->AtomType(nl->First(first))!=SymbolType){
        cerr << "invalid function argument name " << endl;
-       return "";
+       return nl->TheEmptyList();
      }
      replacements[nl->SymbolValue(nl->First(first))] = funargs[pos];
      pos++;
   }
   ListExpr rep = replaceSymbols(nl->First(funlist), replacements);
-  return nl->ToString(rep);
+  return rep;}
+
+
+ListExpr replaceWrite2(ListExpr list, string& name){
+  if(nl->IsEmpty(list)){
+     return nl->TheEmptyList();
+  }
+  switch(nl->AtomType(list)){
+     case NoAtom: {
+       if(nl->HasLength(list,2)){
+          if(listutils::isSymbol(nl->First(list), "write2")) {
+            return nl->FourElemList(
+                       nl->SymbolAtom("write"),
+                       replaceWrite2(nl->Second(list), name),
+                       nl->StringAtom(name),
+                       nl->BoolAtom(false));
+          }
+       }
+
+
+       ListExpr first = nl->OneElemList( replaceWrite2(nl->First(list),
+                                               name));
+       ListExpr last = first;
+       list = nl->Rest(list);
+       while(!nl->IsEmpty(list)){
+          last = nl->Append(last, replaceWrite2(nl->First(list),name));
+          list = nl->Rest(list);
+       }
+       return first;
+     }
+     default: return list;    
+  } 
+
 }
+
 
 
 
@@ -11343,13 +11378,19 @@ class Mapper{
 
           vector<string> funargs;
           funargs.push_back(funarg);
-          string funcmd = fun2cmd(fundef, funargs);
+          ListExpr funCmdList = fun2cmd(fundef, funargs);
           
 
 
           string name2 = mapper->name + "_" + stringutils::int2str(nr);
       //    string cmd = "(let "+ name2 +" = (" + fundef +" " + funarg + " ))";
+
+          funCmdList = replaceWrite2(funCmdList, name2);
+          string funcmd = nl->ToString(funCmdList);
+
           string cmd = "(let " + name2 + " = " + funcmd + ")";
+          
+
 
           ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
                                     showCommands, logOn, commandLog);
@@ -12320,7 +12361,10 @@ Creates the command for computing the result for this slot.
           }
           funCall += " )";
           */
-          string funCall  = fun2cmd(funText, funargs);
+          ListExpr funCallList  = fun2cmd(funText, funargs);
+          string resultName = info->res->getObjectNameForSlot(slot);
+          funCallList = replaceWrite2(funCallList, resultName);
+          string funCall = nl->ToString(funCallList);
 
 
           arrayType resType = info->res->getType();
@@ -12329,7 +12373,6 @@ Creates the command for computing the result for this slot.
               if(info->isStreamRes){
                  funCall ="( consume " + funCall +")";
               }
-              string resultName = info->res->getObjectNameForSlot(slot);
               string res = "( let " + resultName + " = " + funCall +")";
               return res;
 
@@ -19163,6 +19206,42 @@ Operator writeRelOp(
 
 
 /*
+Operator ~write2~
+
+just an alias for consume will be replaced in dmap functions by write.
+
+*/
+
+ListExpr write2TM(ListExpr args){
+ return OperatorConsume::ConsumeTypeMap<false>(args);
+}
+
+int write2VM(Word* args, Word& result, int message,
+               Word& local, Supplier s) {
+  return OperatorConsume::Consume(args, result, message, local, s);
+}
+
+OperatorSpec write2Spec(
+  "stream(tuple(X)) -> rel(tuple(X))",
+  "_ write2",
+  "An alias for the consume operator. This operator will "
+  "be replaced in remote query of the dmapX operator by write.",
+  " query ten feed write2 count"
+);
+
+Operator write2Op(
+  "write2",
+  write2Spec.getStr(),
+  write2VM,
+  Operator::SimpleSelect,
+  write2TM
+);
+
+
+
+
+
+/*
 3 Implementation of the Algebra
 
 */
@@ -19368,6 +19447,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&deleteRemoteDatabasesOp);
 
    AddOperator(&writeRelOp);
+
+   AddOperator(&write2Op);
 
 
    pprogView = new PProgressView();

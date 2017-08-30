@@ -689,3 +689,11 @@ Example   : query ten writeRel['ten.bin']
 Result    : TRUE
 
 
+Operator  : write2
+Number    : 1
+Signature : stream(tuple(X)) -> real(tuple(X))
+Example   : query ten feed write2 count
+Result    : 10
+
+
+

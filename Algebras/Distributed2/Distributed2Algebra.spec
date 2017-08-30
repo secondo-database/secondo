@@ -130,5 +130,6 @@ operator setAccount alias SETACCOUNT pattern op(_,_)
 
 operator writeRel alias WRITEREL pattern _ op[_]
 
+operator write2 alias WRITE2 pattern _ op
 
 
