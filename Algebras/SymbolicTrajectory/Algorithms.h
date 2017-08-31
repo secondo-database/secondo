@@ -53,8 +53,6 @@ This is the implementation of the Symbolic Trajectory Algebra.
 #include "TemporalUnitAlgebra.h"
 #include "GenericTC.h"
 #include "OrderedRelationAlgebra.h"
-#include "../Raster2/sint.h"
-#include "HashAlgebra.h"
 #include "Tools.h"
 #include <string>
 #include <set>
@@ -741,6 +739,7 @@ class Pattern {
   void              setText(std::string newText) {text = newText;}
   std::pair<int, int>    getVarPos(std::string var)   {return varPos[var];}
   int               getSize() const         {return elems.size();}
+  int               getNoElems() const      {return elemToVar.size();}
   std::map<std::string, std::pair<int, int> > getVarPos()  {return varPos;}
   std::map<int, std::set<int> > getEasyCondPos()      {return easyCondPos;}
   std::set<int>          getEasyCondPos(const int e) {return easyCondPos[e];}
@@ -1547,7 +1546,7 @@ class TMatchIndexLI : public IndexMatchSuper {
   bool canBeDeactivated2(const TupleId id, const int state, const int atom);
   bool geoMatch(const int atomNo, Tuple *t, temporalalgebra::Periods *per);
   bool condsMatch(Tuple *t, const IndexMatchInfo2& imi);
-  bool easyCondsMatch(const int atomNo, Tuple *t, IndexMatchInfo2& imi);
+  bool easyCondsMatch(const int atomNo,Tuple *t, temporalalgebra::Periods *per);
   bool atomMatch2(const int state, std::pair<int, int> trans);
   void applyNFA(const bool mainAttr, const bool rewrite = false);
   bool initialize(const bool mainAttr, const bool rewrite = false);
@@ -7946,47 +7945,5 @@ void TupleIndex<PosType, PosType2>::collectSortInsert(Relation *rel,
     }
   }
 }
-
-/*
-\section{class ~RestoreTrajLI~}
-
-Applied for the operator ~restoreTraj~.
-
-*/
-class RestoreTrajLI {
- public:
-  enum DirectionNum {ERROR = -1, EAST, NORTHEAST, NORTH, NORTHWEST, WEST,
-                     SOUTHWEST, SOUTH, SOUTHEAST};
-  typedef NewPair<int, int> Tile;
-  typedef NewPair<NewPair<int, int>, DirectionNum> TileTransition;
-   
-  RestoreTrajLI(Relation *e, BTree *ht, RTree2TID *st, raster2::sint *r,
-                Hash *rh, MLabel *h, MLabel *d, MLabel *s);
-  
-  RestoreTrajLI() {}
-  
-  void exchangeTiles(const std::vector<TileTransition>& transitions,
-                     std::vector<Tile>& result);
-  bool retrieveTransitions(const int startPos, std::vector<Tile>& origins,
-                           std::vector<TileTransition>& result);
-  bool checkNeighbor(int x, int y, const Instant& inst,
-                     const int height, TileTransition& result);
-  void retrieveTiles(const int pos, std::vector<Tile>& result);
-  void updateCoords(const DirectionNum dir, int& x, int& y);
-  DirectionNum dirLabelToNum(const Label& dirLabel);
-  MLabel* nextCandidate();
-  
- private:
-  Relation *edgesRel;
-  BTree *heightBtree;
-  RTree2TID *segmentsRtree;
-  raster2::sint *raster;
-  Hash *rhash;
-  MLabel *height;
-  MLabel *direction;
-  MLabel *speed;
-  
-//   std::vector<std::vector<NewPair<int> > > tileSequences;
-};
 
 }

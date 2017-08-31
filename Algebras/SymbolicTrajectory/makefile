@@ -27,7 +27,7 @@ include ../../makefile.env
 
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS)
+CCFLAGS += $(ALG_INC_DIRS) -Werror
 ifneq ($(platform),mac_osx)
   CCFLAGS += -std=c++11
   PARSEFLAGS = -std=c++11

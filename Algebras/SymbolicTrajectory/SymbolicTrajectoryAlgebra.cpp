@@ -36,7 +36,8 @@ This file contains the operators of the Symbolic Trajectory Algebra.
 
 */
 
-#include "Algorithms.h"
+// #include "Algorithms.h"
+#include "RestoreTraj.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -5094,7 +5095,6 @@ ListExpr restoreTrajTM(ListExpr args) {
   }
   if (!nl->Equal(nl->SymbolAtom(Hash::BasicType()), nl->First(nl->Fifth(args)))
       || !CcInt::checkType(nl->Third(nl->Fifth(args)))) {
-    cout << nl->ToString(nl->Fifth(args)) << endl;
     return listutils::typeError("Fifth argument must be a hash file");
   }
   for (int i = 6; i <= 8; i++) {
