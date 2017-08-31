@@ -755,7 +755,6 @@ bool Distributed2Algebra::serverExists(int s){
         sh = stringutils::hashCode(ci->getHost());
         spid = ci->serverPid();
      } else {
-        srand(time(0));
         spid = rand();
         sh = rand();
      }
@@ -878,7 +877,10 @@ ListExpr replaceSymbols(ListExpr list,
        if(it==replacements.end()){
          return list;
        } else {
-         return nl->SymbolAtom(it->second);
+         ListExpr res;
+         boost::lock_guard<boost::mutex> guard(nlparsemtx);
+         nl->ReadFromString(it->second, res);
+         return res;
        }
      }
      case NoAtom: {
@@ -898,10 +900,13 @@ ListExpr replaceSymbols(ListExpr list,
 
 
 ListExpr fun2cmd(const string& fundef, const vector<string>& funargs){
-  ListExpr funlist;
-  if(!nl->ReadFromString(fundef,funlist)){
-    cerr << "Function is not a nested list" << endl;
-    return nl->TheEmptyList();
+  ListExpr funlist; 
+  {
+     boost::lock_guard<boost::mutex> guard(nlparsemtx);
+     if(!nl->ReadFromString(fundef,funlist)){
+       cerr << "Function is not a nested list" << endl;
+       return nl->TheEmptyList();
+     }
   }
   if(!nl->HasLength(funlist, 2+ funargs.size())){
     cout << "invalid length of list" << endl;
@@ -6297,6 +6302,8 @@ int createDArrayVMT(Word* args, Word& result, int message,
            string ObjectName = nl->StringValue(nl->First(tuple));
            string typeDescr = nl->Text2String(nl->Second(tuple));
            ListExpr typelist;
+          {
+           boost::lock_guard<boost::mutex> guard(nlparsemtx);
            if(nl->ReadFromString(typeDescr, typelist)){
              if(nl->Equal(typelist, expType)){
                 bool ok;
@@ -6315,6 +6322,7 @@ int createDArrayVMT(Word* args, Word& result, int message,
                 return 0;
              }
    
+           }
            }
          }
        } // processing tuple list
