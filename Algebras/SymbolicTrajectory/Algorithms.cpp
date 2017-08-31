@@ -681,7 +681,6 @@ pair<string, Attribute*> Pattern::getPointer(const int key,
         result.second = tuple->GetAttribute(key - 100)->Clone();
         result.first = "[const " + type + " pointer "
                     + nl->ToString(listutils::getPtrList(result.second)) + "]";
-        cout << result.first << endl;
       }
     }
     else {
@@ -792,14 +791,13 @@ bool Condition::initOpTree(Tuple *tuple /* = 0 */, ListExpr ttype /* = 0 */) {
     for (unsigned int i = 0; i < varKeys.size(); i++) { // init pointers
 //       cout << "|| " << varKeys[i].first << "|" << varKeys[i].second 
 //            << "|" << endl;
-      bool isInterval = instantVars.find(varKeys[i].first) == instantVars.end();
+//    bool isInterval = instantVars.find(varKeys[i].first) == instantVars.end();
+      bool isInterval = true;
       strAttr = Pattern::getPointer(getKey(i), isInterval, tuple);
-//       strAttr = Pattern::getPointer(getKey(i), isInterval[varKeys[i].first]],
-//                                     tuple);
       ptrs.push_back(strAttr.second);
       toReplace = getVar(i) + getType(getKey(i), tuple, ttype);
       q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
-//       cout << "§ " << q << endl;
+      cout << "§ " << q << endl;
     }
     pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
     if (!qp_optree.first) {
@@ -831,11 +829,13 @@ bool Pattern::initEasyCondOpTrees(const bool mainAttr, Tuple *tuple /* = 0 */,
 //        cout << "|" << easyConds[i].getVar(j) << "|" << easyConds[i].getKey(j)
 //             << "|" << varPos[easyConds[i].getVar(j)].first << " " 
 //             << varPos[easyConds[i].getVar(j)].second << endl;
-        strAttr = getPointer(easyConds[i].getKey(j), false, tuple);
+        
+        strAttr = getPointer(easyConds[i].getKey(j), !mainAttr, tuple);
         ptrs.push_back(strAttr.second);
         toReplace = easyConds[i].getVar(j)
                   + Condition::getType(easyConds[i].getKey(j), tuple, ttype);
         q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
+        cout << "# " << q << endl;
       }
       pair<QueryProcessor*, OpTree> qp_optree = Tools::processQueryStr(q, -1);
       if (!qp_optree.first) {
@@ -2624,45 +2624,39 @@ bool TMatchIndexLI::atomMatch(int state, pair<int, int> trans,
 \subsection{Function ~extendBinding2~}
 
 */
-void TMatchIndexLI::extendBinding2(IndexMatchInfo2& imi, const int elem, 
-                                   const bool totalMatch) {
+void TMatchIndexLI::extendBinding2(Periods *per, const int elem, 
+                                  const bool totalMatch, IndexMatchInfo2& imi) {
   if (imi.binding.find(elem) == imi.binding.end()) { // elem not bound yet
-    SecInterval iv(imi.inst, imi.inst, true, true);
-    imi.binding[elem] = iv;
-    if (elem == 0) { // X *Y (__)* ...
+    imi.binding[elem] = *per;
+    Periods inter(true);
+    SecInterval iv(true);
+    if (elem == 0) { // *X (__)* ...
       iv.start.ToMinimum();
+      per->Minimum(iv.end);
+      inter.Add(iv);
     }
-    else { // ... X *Y (__)* ...
-      iv.start = imi.binding[elem - 1].start;
-      iv.lc = false;
+    else { // ... *Y (__)* ...
+      Periods lastBinding(true), unionResult(true);
+      imi.getBinding(elem - 1, lastBinding);
+      lastBinding.Minimum(iv.start);
+      per->Maximum(iv.end);
+      inter.Add(iv);
+      lastBinding.Union(*per, unionResult);
+      inter.Minus(unionResult, inter); // [p_B.start, p_B.end] \ (p_B U p_D)
     }
-    iv.rc = false;
-    imi.binding[-1 * elem - 1] = iv; // bind intervals between elements
-    
-//     if (elem > 1 && imi.binding.find(elem - 1) == imi.binding.end() &&
-//       imi.binding.find(elem - 2) != imi.binding.end()) { // X (..) Y *Z* (..)
-//       iv.start = imi.binding[elem - 2].start;
-//       iv.lc = false;
-//       iv.rc = false;
-//       imi.binding[elem - 1] = iv;
-//     }
+    imi.binding[-1 * elem - 1] = inter; // bind intervals between elements
+    if (totalMatch && elem == p->getNoElems() - 1) { // ... *X (__)*
+      Periods after(true);
+      per->Maximum(iv.start);
+      iv.end.ToMaximum();
+      after.Add(iv);
+      imi.binding[-1 * elem - 2] = after;
+    }
   }
-  else { // extend existing binding
-    imi.binding[elem].end = imi.inst;
-    imi.binding[elem].rc = false;
+  else { // extend existing binding; ... X [(__) | (__) (__) *(__)*] ...
+    Periods unionResult(true);
+    imi.binding[elem].Union(*per, imi.binding[elem]);
   }
-  if (totalMatch) {
-    Instant in(datetime::instanttype); // ... *Y (..)* Z
-    in.ToMaximum();
-    SecInterval iv(imi.inst, in, false, true);
-    imi.binding[-1 * elem - 2] = iv;
-  }
-//   if (elem == 1 && imi.binding.find(elem - 1) == imi.binding.end()) {
-//     Instant in; // X *Y* (..)
-//     in.ToMinimum();
-//     SecInterval iv(imi.inst, in, false, false);
-//     imi.binding[elem - 1] = iv;
-//   }
   cout << "elem " << elem << ": "; imi.print();
 }
 
@@ -2781,6 +2775,34 @@ bool Condition::evaluateInstant(const ListExpr tt, Tuple *t,
 }
 
 /*
+\subsection{Function ~evaluatePeriods~}
+
+*/
+bool Condition::evaluatePeriods(const ListExpr tt, Tuple *t, Periods *per) {
+  Word qResult;
+//   cout << "evaluate cond | " << text << endl;
+  for (int i = 0; i < getVarKeysSize(); i++) {
+    int key = getKey(i);
+    if (key > 99) { // reference to attribute of tuple, e.g., X.Trip
+      if (Tools::isMovingAttr(tt, key - 99)) {
+        string type = nl->ToString(nl->Second(nl->Nth(key-99, nl->Second(tt))));
+        copyAndRestrictPtr(i, t, tt, key - 99, *per);
+      }
+      else { // constant attribute, e.g., X.Id
+        pointers[i]->CopyFrom(t->GetAttribute(key - 100));
+      }
+    }
+    else {
+      ((Periods*)pointers[i])->CopyFrom(per);
+    }
+  }
+  getQP()->EvalS(getOpTree(), qResult, OPEN);
+//   cout << "result for |" << text << "| is "
+//        << (((CcBool*)qResult.addr)->GetValue() ? "TRUE" : "FALSE") << endl;
+  return ((CcBool*)qResult.addr)->GetValue();
+}
+
+/*
 \subsection{Function ~easyCondsMatch~}
 
 applied for indextmatches2
@@ -2795,6 +2817,9 @@ bool TMatchIndexLI::easyCondsMatch(const int atomNo, Tuple *t, Periods *per) {
 //     if (!p->easyConds[*it].evaluateInstant(ttList, t, imi)) {
 //       return false;
 //     }
+    if (!p->easyConds[*it].evaluatePeriods(ttList, t, per)) {
+      return false;
+    }
   }
   return true;
 }
@@ -2943,21 +2968,16 @@ bool TMatchIndexLI::condsMatch(Tuple *t, const IndexMatchInfo2& imi) {
   }
   Word qResult;
   vector<Condition> *conds = p->getConds();
-  Instant i1(datetime::instanttype), i2(datetime::instanttype);
-  i1.ToMinimum();
-  i2.ToMaximum();
   Periods per(true);
   for (unsigned int i = 0; i < conds->size(); i++) {
-//     cout << "evaluate cond " << i << " % " << conds->at(i).getText() << endl;
+    cout << "evaluate cond " << i << " % " << conds->at(i).getText() << endl;
 //     conds->at(i).evaluate(t, imi);
     for (int j = 0; j < conds->at(i).getVarKeysSize(); j++) {
       int elem = p->getElemFromVar(conds->at(i).getVar(j));
-      SecInterval iv(i1, i2);
-      if (!imi.getBinding(elem, iv)) {
-        cout << "ERROR" << endl;
+      if (!imi.getBinding(elem, per)) {
+        cout << "ERROR, binding for elem " << elem << " does not exist" << endl;
         return false;
       }
-      per.Add(iv);
       int key = conds->at(i).getKey(j);
 //       cout << conds->at(i).getVar(j) << " $ " << key << " $ "
 //            << elem << " $ " << iv << endl;
@@ -3031,9 +3051,8 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
               transition = true;
               totalMatch = p->isFinalState(trans.second);
               if (p->hasConds()) {
-                extendBinding2(newIMI, p->getElemFromAtom(trans.first),
-                               totalMatch);
-//                 newIMI.print();
+                extendBinding2(per, p->getElemFromAtom(trans.first), totalMatch,
+                               newIMI);
                 if (totalMatch && p->hasConds()) {
                   totalMatch = condsMatch(t, newIMI);
                 }
@@ -3101,7 +3120,8 @@ bool TMatchIndexLI::atomMatch2(const int state, std::pair<int, int> trans) {
           IndexMatchInfo2 newIMI(imiPtr);
           totalMatch = p->isFinalState(trans.second);
           if (p->hasConds()) {
-            extendBinding2(newIMI, p->getElemFromAtom(trans.first), totalMatch);
+            extendBinding2(per, p->getElemFromAtom(trans.first), totalMatch, 
+                           newIMI);
             if (totalMatch && p->hasConds()) {
               totalMatch = condsMatch(t, newIMI);
             }
@@ -5422,15 +5442,6 @@ void IndexMatchInfo::print(const bool printBinding) {
     }
     cout << endl;
   }
-}
-
-void IndexMatchInfo2::print() {
-  cout << "inst: " << inst << " | binding: ";
-  for (map<int, SecInterval>::iterator it = binding.begin(); 
-       it != binding.end(); it++) {
-    cout << it->first << " ---> " << it->second << " | ";
-  }
-  cout << endl;
 }
 
 }

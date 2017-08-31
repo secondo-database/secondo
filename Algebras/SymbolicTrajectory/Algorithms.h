@@ -505,6 +505,8 @@ class Condition {
                    std::map<std::string, int> &varToElem,
                    Tuple *tuple = 0, ListExpr ttype = 0);
   bool    evaluateInstant(const ListExpr tt, Tuple *t, IndexMatchInfo2& imi);
+  bool    evaluatePeriods(const ListExpr tt, Tuple *t,
+                          temporalalgebra::Periods *per);
   bool    copyPtrFromAttr(const int pos, Attribute *attr);
   void    copyAndRestrictPtr(const int pos, Tuple *tuple, const ListExpr ttype,
                             const int key, const temporalalgebra::Periods& per);
@@ -1243,16 +1245,14 @@ struct IndexMatchInfo2 {
   IndexMatchInfo2(IndexMatchInfo2 *imi) : 
                                        inst(imi->inst), binding(imi->binding) {}
   IndexMatchInfo2(IndexMatchInfo2 *imi, temporalalgebra::Periods *per) :
-                                                   inst(datetime::instanttype) {
-    
+                            inst(datetime::instanttype), binding(imi->binding) {
     per->Minimum(inst);
     inst = std::max(imi->inst, inst);
-    binding = imi->binding;
   }
   IndexMatchInfo2(const Instant& ins) : inst(ins) {}
   IndexMatchInfo2(const Instant& ins, const int elem,
-                  const temporalalgebra::SecInterval& iv) : inst(ins) {
-    binding.insert(std::make_pair(elem, iv));
+                  const temporalalgebra::Periods *per) : inst(ins) {
+    binding.insert(std::make_pair(elem, *per));
   }
   
   ~IndexMatchInfo2() {}
@@ -1260,20 +1260,14 @@ struct IndexMatchInfo2 {
   void setInstant(const Instant& ins) {inst = ins;}
   
   void extend(const Instant& ins, const int elem,
-         const temporalalgebra::SecInterval& iv) {
+         const temporalalgebra::Periods *per) {
     inst = ins;
-    binding.insert(std::make_pair(elem, iv));
-  }
-  
-  void extend(const Instant& ins, const int elem) {
-    inst = ins;
-    temporalalgebra::SecInterval iv(ins, ins, true, true);
-    binding.insert(std::make_pair(elem, iv));
+    binding.insert(std::make_pair(elem, *per));
   }
   
   Instant getInstant() {return inst;}
   
-  void getInterval(const int elem, temporalalgebra::SecInterval& result) {
+  void getPeriods(const int elem, temporalalgebra::Periods& result) {
     if (binding.find(elem) == binding.end()) { // elem not found
       result.SetDefined(false);
     }
@@ -1299,48 +1293,27 @@ struct IndexMatchInfo2 {
     return inst.millisecondsToNull() > end;
   }
   
-  void print();
+  void print() {
+    cout << "inst: " << inst << " | binding: ";
+    for (map<int, temporalalgebra::Periods>::iterator it = binding.begin(); 
+         it != binding.end(); it++) {
+      cout << it->first << " ---> " << it->second << " |   ";
+    }
+    cout << endl;
+}
   
-  bool getBinding(const int elem, temporalalgebra::SecInterval& result) const {
+  bool getBinding(const int elem, temporalalgebra::Periods& result) const {
+    if (binding.find(elem) == binding.end()) { // not found
+      result.SetDefined(false);
+      return false;
+    }
     result.SetDefined(true);
-    if (elem >= 0) { // variable directly precedes elem
-      if (binding.find(elem) == binding.end()) { // not found
-        result.SetDefined(false);
-        return false;
-      }
-      result = binding.at(elem);
-    }
-    else { // between case
-      int pred = std::abs(elem) - 2;
-      if (pred == -1) { // variable before first element
-        if (binding.find(0) == binding.end()) { // not found
-          result.SetDefined(false);
-          return false;
-        }
-        result.start.ToMinimum();
-        result.lc = false;
-        result.SetEnd(binding.at(0).start, false);
-      }
-      else {
-        if (binding.find(pred) == binding.end()) { // not found
-          result.SetDefined(false);
-          return false;
-        }
-        result.SetStart(binding.at(pred).end, false);
-        if (binding.find(pred + 1) == binding.end()) { // end not found
-          result.end.ToMaximum();
-          result.rc = false;
-        }
-        else {
-          result.SetEnd(binding.at(pred + 1).start, false);
-        }
-      }
-    }
+    result = binding.at(elem);
     return true;
   }
   
   Instant inst; 
-  std::map<int, temporalalgebra::SecInterval> binding; // patelem --> interval
+  std::map<int, temporalalgebra::Periods> binding; // patelem --> interval
 };
 
 /*
@@ -1541,8 +1514,8 @@ class TMatchIndexLI : public IndexMatchSuper {
   void initMatchInfo(const bool mainAttr);
   bool atomMatch(int state, std::pair<int, int> trans,
                  const bool rewrite = false);
-  void extendBinding2(IndexMatchInfo2& imi, const int elem, 
-                      const bool totalMatch);
+  void extendBinding2(temporalalgebra::Periods *per, const int elem, 
+                      const bool totalMatch, IndexMatchInfo2& imi);
   bool canBeDeactivated2(const TupleId id, const int state, const int atom);
   bool geoMatch(const int atomNo, Tuple *t, temporalalgebra::Periods *per);
   bool condsMatch(Tuple *t, const IndexMatchInfo2& imi);
