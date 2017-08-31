@@ -13,6 +13,8 @@ if [ "$1" == "--help" ]; then
   echo "stop stops running monitors"
   echo "check shows status of monitors"
   echo "update updates secondo on remote server via CVS"
+  echo "createHomes creates secondo database directories on remote computers"
+  echo "copycfg copies configuration files to remote computers"
   echo
   echo "each line within the config file has to be in format"
   echo "<server> <config> [<bin> [<home> [<port> [<user>]]]]"
@@ -43,13 +45,15 @@ if [ $action != start ]; then
     if [ $action != check ]; then
       if [ $action != update ]; then
         if [ $action != createHomes ]; then
-           echo "invalid action"
-           echo allowed are start, stop, update, and check
-           exit 1
+          if [ $action != copycfg ]; then
+             echo "invalid action"
+             echo allowed are start, stop, update, and check
+             exit 1
         fi
       fi
     fi
   fi
+fi
 fi
 
 function createHomesLine {
@@ -66,10 +70,27 @@ function createHomesLine {
     user="$6@"
   fi
   ssh "$user$server mkdir -p $home"
-
 }
 
   
+function copyConfigLine {
+
+  if [ -z "$1" ]; then  # empty line
+    return
+  fi
+  server=$1
+  cfg=$2
+  bin=$3
+  if [ -z "$bin" ]; then
+     echo "no bin directory specified for server $server"
+     return
+  fi
+  if [ -n "$6" ]; then
+    user="$6@"
+  fi
+  scp $cfg $user$server:$bin
+}
+
 
 
 # global variable holding server values 
@@ -77,11 +98,9 @@ function createHomesLine {
 usedServers=""
 
 function updateLine {
-
   if [ -z "$1" ]; then  # empty line
     return
   fi
-
 
   server=$1
   if [ -n "$6" ]; then
@@ -346,12 +365,17 @@ else if [ $action == stop ]; then
    while read line; do stopLine $line ;done <$1
 else if [ $action == check ]; then
    while read line; do checkLine $line ;done <$1
-else if [$action == update ]; then 
+else if [ $action == update ]; then 
    while read line; do updateLine $line ;done <$1
-else 
+else if [ $action == copycfg ]; then 
+   while read line; do copyConfigLine $line ;done <$1
+else if [ $action == createHomes ]; then 
    while read line; do createHomesLine $line ;done <$1
+else
+   echo "unknown command"
 fi
 fi
 fi
 fi
-
+fi
+fi
