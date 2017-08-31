@@ -70,7 +70,7 @@ RestoreTrajLI::RestoreTrajLI(Relation *e, BTree *ht, RTree2TID *st,
   
   
   edgesRel = 0;
-  height = 0;
+  speed = 0;
   heightBtree = 0;
   segmentsRtree = 0;
   
