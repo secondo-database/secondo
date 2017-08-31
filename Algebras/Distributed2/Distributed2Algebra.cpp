@@ -11051,9 +11051,9 @@ Operator gettuplesOp(
 /*
 16 Operator ~dmap~
 
-This operator maps the content of a dfarray to another value.
+This operator maps the content of a d[f]array to another value.
 Depending on the result of the function, the result is a 
-dfarray (result is a relation) or a darray (result is 
+dfarray (result is a tuple stream) or a darray (result is 
 something other).
 
 */
@@ -11137,7 +11137,7 @@ ListExpr dmapTM(ListExpr args){
   
 
   ListExpr resType = nl->TwoElemList(
-              isRel||isStream?listutils::basicSymbol<DFArray>()
+               isStream?listutils::basicSymbol<DFArray>()
                    :listutils::basicSymbol<DArray>(),
                funRes);
 
@@ -11161,7 +11161,7 @@ class Mapper{
           isStream(_isStream), log(_log) {
 
        dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-       if(isRel || isStream){
+       if(isStream){
          dfarray = !log?(DFArray*) res:(DFArray*)1;
          darray = 0; 
        } else {
@@ -11263,7 +11263,6 @@ class Mapper{
            if(!ci){
              return;
            }
-
 
            // create temporal function
            //string funName = "tmpfun_"+stringutils::int2str(ci->serverPid())
@@ -11386,7 +11385,7 @@ class Mapper{
 
 
           string name2 = mapper->name + "_" + stringutils::int2str(nr);
-      //    string cmd = "(let "+ name2 +" = (" + fundef +" " + funarg + " ))";
+          //string cmd = "(let "+ name2 +" = (" + fundef +" " + funarg + " ))";
 
           funCmdList = replaceWrite(funCmdList, "write2",name2);
           funCmdList = replaceWrite(funCmdList, "write3",n);
@@ -11394,8 +11393,6 @@ class Mapper{
 
           string cmd = "(let " + name2 + " = " + funcmd + ")";
           
-
-
           ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
                                     showCommands, logOn, commandLog);
           if((err!=0)  ){ // ignore type map errors
