@@ -695,5 +695,11 @@ Signature : stream(tuple(X)) -> real(tuple(X))
 Example   : query ten feed write2 count
 Result    : 10
 
+Operator  : write3
+Number    : 1
+Signature : stream(tuple(X)) -> real(tuple(X))
+Example   : query ten feed write3 count
+Result    : 10
+
 
 

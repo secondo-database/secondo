@@ -931,29 +931,31 @@ ListExpr fun2cmd(const string& fundef, const vector<string>& funargs){
   return rep;}
 
 
-ListExpr replaceWrite2(ListExpr list, string& name){
+ListExpr replaceWrite(ListExpr list, const string& writeVer, 
+                      const string& name){
   if(nl->IsEmpty(list)){
      return nl->TheEmptyList();
   }
   switch(nl->AtomType(list)){
      case NoAtom: {
        if(nl->HasLength(list,2)){
-          if(listutils::isSymbol(nl->First(list), "write2")) {
+          if(listutils::isSymbol(nl->First(list), writeVer)) {
             return nl->FourElemList(
                        nl->SymbolAtom("write"),
-                       replaceWrite2(nl->Second(list), name),
+                       replaceWrite(nl->Second(list), writeVer, name),
                        nl->StringAtom(name),
                        nl->BoolAtom(false));
           }
        }
 
 
-       ListExpr first = nl->OneElemList( replaceWrite2(nl->First(list),
+       ListExpr first = nl->OneElemList( replaceWrite(nl->First(list),
+                                               writeVer,
                                                name));
        ListExpr last = first;
        list = nl->Rest(list);
        while(!nl->IsEmpty(list)){
-          last = nl->Append(last, replaceWrite2(nl->First(list),name));
+          last = nl->Append(last, replaceWrite(nl->First(list),writeVer,name));
           list = nl->Rest(list);
        }
        return first;
@@ -11290,8 +11292,9 @@ class Mapper{
 
            vector<string> args;
            args.push_back(funarg);
-           cmd = fun2cmd(fun, args);
-
+           ListExpr cmdList = fun2cmd(fun, args);
+           cmdList = replaceWrite(cmdList, "write3",n);
+           cmd = nl->ToString(cmdList);
             
            string targetDir = ci->getSecondoHome(
                    showCommands, commandLog)+"/dfarrays/"+dbname+"/"
@@ -11385,7 +11388,8 @@ class Mapper{
           string name2 = mapper->name + "_" + stringutils::int2str(nr);
       //    string cmd = "(let "+ name2 +" = (" + fundef +" " + funarg + " ))";
 
-          funCmdList = replaceWrite2(funCmdList, name2);
+          funCmdList = replaceWrite(funCmdList, "write2",name2);
+          funCmdList = replaceWrite(funCmdList, "write3",n);
           string funcmd = nl->ToString(funCmdList);
 
           string cmd = "(let " + name2 + " = " + funcmd + ")";
@@ -12363,7 +12367,7 @@ Creates the command for computing the result for this slot.
           */
           ListExpr funCallList  = fun2cmd(funText, funargs);
           string resultName = info->res->getObjectNameForSlot(slot);
-          funCallList = replaceWrite2(funCallList, resultName);
+          funCallList = replaceWrite(funCallList, "write2", resultName);
           string funCall = nl->ToString(funCallList);
 
 
@@ -19237,7 +19241,21 @@ Operator write2Op(
   write2TM
 );
 
+OperatorSpec write3Spec(
+  "stream(tuple(X)) -> rel(tuple(X))",
+  "_ write3",
+  "An alias for the consume operator. This operator will "
+  "be replaced in remote query of the dmapX operator by write.",
+  " query ten feed write3 count"
+);
 
+Operator write3Op(
+  "write3",
+  write3Spec.getStr(),
+  write2VM,
+  Operator::SimpleSelect,
+  write2TM
+);
 
 
 
@@ -19449,6 +19467,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&writeRelOp);
 
    AddOperator(&write2Op);
+   AddOperator(&write3Op);
 
 
    pprogView = new PProgressView();
