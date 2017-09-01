@@ -11364,7 +11364,10 @@ class Mapper{
           if(!ci){
              return;
           }
-             // create temporal function
+          int numtries = 8;
+          bool allWorkersTried = false;
+          do {
+
           string fundef =  mapper->funText->GetValue();
           int err; string errMsg; string r;
           double runtime;
@@ -11403,11 +11406,24 @@ class Mapper{
           
           ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
                                     showCommands, logOn, commandLog);
-          if((err!=0)  ){ // ignore type map errors
-                                    // because reason is a missing file
+          if((err!=0)  ){ 
              showError(ci,cmd,err,errMsg);
              writeLog(ci,cmd,errMsg);
+             // TODO: 
+             // if err==80 and number of tries < 2: try reconnect and try 
+             // the command again
+             // may be is a temporarly crash
+             // otherwise delegate command to another server
+             // step 1: replace the ConnectionInfo
+             // step 2: repeat until maximum number of tries is reached or 
+             //         all workers are down
+             // step 3: change assigment of slot to worker in result array
+              
+          } else { // successful finished command
+             return;   
           }
+              numtries--;
+          } while(numtries>0 && !allWorkersTried); 
         }
 
       private:
@@ -19234,7 +19250,9 @@ OperatorSpec write2Spec(
   "stream(tuple(X)) -> rel(tuple(X))",
   "_ write2",
   "An alias for the consume operator. This operator will "
-  "be replaced in remote query of the dmapX operator by write.",
+  "be replaced in remote query of the dmapX operator by write."
+  "The file name used by the write operator is taken from the "
+  "name of the result of the dmapX operator. ",
   " query ten feed write2 count"
 );
 
@@ -19250,7 +19268,11 @@ OperatorSpec write3Spec(
   "stream(tuple(X)) -> rel(tuple(X))",
   "_ write3",
   "An alias for the consume operator. This operator will "
-  "be replaced in remote query of the dmapX operator by write.",
+  "be replaced in remote query of the dmap operator by write."
+  "The file name used for write corresponds to the name of "
+  "dmap's argument. "
+  "Note, that in dmap[2..8] nothing will be replaced in the remote "
+  "command.",
   " query ten feed write3 count"
 );
 
