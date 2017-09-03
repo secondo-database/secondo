@@ -52,7 +52,7 @@ multiple files, including external files for k-means clustering.
 class EMDCalculator
 {
 public:
-	double calcEMD(std::vector<FeatureSignatureTuple> fst1,
+    double calcEMD(std::vector<FeatureSignatureTuple> fst1,
                     std::vector<FeatureSignatureTuple> fst2);
 };
 
