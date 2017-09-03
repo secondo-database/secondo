@@ -1079,6 +1079,7 @@ class ImageSimilarityAlgebra : public Algebra
       AddTypeConstructor(&imgsig);
       AddOperator(&readSignatureFromFileOp);
       AddOperator(&calcSQFDOp);
+      AddOperator(&calcEMDOp);
 
       imgsig.AssociateKind(Kind::DATA());
     }
