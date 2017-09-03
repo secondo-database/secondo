@@ -3,6 +3,18 @@ Restore: No
 
 Operator: readSignatureFromFile
 Number: 1
-Signature: string -> imagesignature
-Example: query readSignatureFromFile ('/home/secondo/Downloads/images/Amur.jpg', 1, 3, 10, 50) 
-Result: FeatureSignature ()
+Signature: string -> featuresignature
+Example: query readSignatureFromFile ('/home/secondo/Downloads/images/Amur.jpg', 1, 3, 5, 5, 10, 50) 
+Result: featuresignature ()
+
+Operator: calcSQFD
+Number: 2
+Signature: featuresignature x featuresignature -> real
+Example: query calcSQFD(sig1, sig2) consume;
+Result: 23.0
+
+Operator: calcSQFD
+Number: 3
+Signature: featuresignature x featuresignature -> real
+Example: query calcSQFD(sig1, sig2) consume;
+Result: 99000.0

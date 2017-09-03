@@ -62,7 +62,10 @@ multiple files, including external files for k-means clustering.
 #include <unistd.h>
 #include <string>
 #include "JPEGImage.h"
+#include "SQFDCalculator.h" // this is not pretty, it duplicates code 
+#include "EMDCalculator.h"  
 #include "ImageSimilarityAlgebra.h"
+
 
 
 extern NestedList* nl;
@@ -73,6 +76,145 @@ extern AlgebraManager* am;
 namespace FeatureSignaturealg{
 
 
+/*
+1.5 Operator ~calcSQFD~
+
+*/
+
+
+ListExpr calcSQFDTM(ListExpr args) 
+{
+    if ( nl->ListLength(args) == 2) 
+    {
+        ListExpr arg1 = nl->First(args);
+        ListExpr arg2 = nl->Second(args);
+        
+        if (
+            nl->IsEqual(arg1, FeatureSignature::BasicType()) &&
+            nl->IsEqual(arg2, FeatureSignature::BasicType()))
+            {
+            return nl->SymbolAtom(CcReal::BasicType());
+        }
+    }
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+
+int calcSQFDVM(Word* args, Word& result,
+                   int message, Word& local, Supplier s)
+{
+    //res = static_cast<double*>(result.addr);
+    //res->ClearDBArray();
+    FeatureSignature* fs1 = static_cast<FeatureSignature*>(args[0].addr);
+    FeatureSignature* fs2 = static_cast<FeatureSignature*>(args[1].addr);
+    
+    result = qp->ResultStorage(s);
+    
+    CcReal* res = (CcReal*) result.addr;
+    SQFDCalculator sqfd;
+    
+    std::vector<FeatureSignatureTuple> fst1;
+    for (int i = 0; i < fs1->GetNoFeatureSignatureTuples(); i++)
+    {
+		fst1.push_back(fs1->GetFeatureSignatureTuple(i));
+	}
+	
+	std::vector<FeatureSignatureTuple> fst2;
+    for (int i = 0; i < fs2->GetNoFeatureSignatureTuples(); i++)
+    {
+		fst2.push_back(fs2->GetFeatureSignatureTuple(i));
+	}
+    
+    res->Set(true, sqfd.calcSQFD(fst1, fst2));
+        
+    return 0;
+}
+
+OperatorSpec calcSQFDSpec(
+	"featuresignature x featuresignature -> real",
+	"calcSQFD(_,_)",
+	"Computes the SQFD between two signatures",
+	"query calcSQFD (sig1, sig2)"
+);
+
+Operator calcSQFDOp(
+	"calcSQFD",
+	calcSQFDSpec.getStr(),
+	calcSQFDVM,
+	Operator::SimpleSelect,
+	calcSQFDTM
+);
+
+/*
+1.6 Operator ~calcEMD~
+
+*/
+
+ListExpr calcEMDTM(ListExpr args) 
+{
+    if ( nl->ListLength(args) == 2) 
+    {
+        ListExpr arg1 = nl->First(args);
+        ListExpr arg2 = nl->Second(args);
+        
+        if (
+            nl->IsEqual(arg1, FeatureSignature::BasicType()) &&
+            nl->IsEqual(arg2, FeatureSignature::BasicType()))
+            {
+            return nl->SymbolAtom(CcReal::BasicType());
+        }
+    }
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+
+int calcEMDVM(Word* args, Word& result,
+                   int message, Word& local, Supplier s)
+{
+    //res = static_cast<double*>(result.addr);
+    //res->ClearDBArray();
+    FeatureSignature* fs1 = static_cast<FeatureSignature*>(args[0].addr);
+    FeatureSignature* fs2 = static_cast<FeatureSignature*>(args[1].addr);
+    
+    result = qp->ResultStorage(s);
+    
+    CcReal* res = (CcReal*) result.addr;
+    
+    EMDCalculator emdCalc;
+    
+    std::vector<FeatureSignatureTuple> fst1;
+    for (int i = 0; i < fs1->GetNoFeatureSignatureTuples(); i++)
+    {
+		fst1.push_back(fs1->GetFeatureSignatureTuple(i));
+	}
+	
+	std::vector<FeatureSignatureTuple> fst2;
+    for (int i = 0; i < fs2->GetNoFeatureSignatureTuples(); i++)
+    {
+		fst2.push_back(fs2->GetFeatureSignatureTuple(i));
+	}
+    
+    res->Set(true, emdCalc.calcEMD(fst1, fst2));
+        
+    return 0;
+}
+
+OperatorSpec calcEMDSpec(
+	"featuresignature x featuresignature -> real",
+	"calcEMD(_,_)",
+	"Computes the EMD between two signatures",
+	"query calcEMD (sig1, sig2)"
+);
+
+Operator calcEMDOp(
+	"calcEMD",
+	calcEMDSpec.getStr(),
+	calcEMDVM,
+	Operator::SimpleSelect,
+	calcEMDTM
+);
+
+
 
 /*
 2 Operator ~readSignatureFromFile~
@@ -80,11 +222,15 @@ namespace FeatureSignaturealg{
 */
 
 bool 
-FeatureSignature::readSignatureFromFile(const std::string _fileName, 
-    const int colorSpace, const int texRange, const int patchSize,
-    const int percentSamples, const int noClusters)
+FeatureSignature::readSignatureFromFile(
+	const std::string _fileName, 
+    const int colorSpace, 
+    const int coaRange, 
+    const int conRange, 
+    const int patchSize,
+    const int percentSamples, 
+    const int noClusters)
 {
-    int range = 10; //todo: range parameter
     
     this->fileName = _fileName;
     
@@ -100,17 +246,23 @@ FeatureSignature::readSignatureFromFile(const std::string _fileName,
     
     JPEGImage ji;
     
-    ji.importJPEGFile(this->fileName, colorSpace, 
-                        texRange,
+    ji.importJPEGFile(this->fileName, 
+                        colorSpace, 
+                        coaRange,
+                        conRange,
                         patchSize, 
                         percentSamples, 
                         noClusters);
     
-    ji.computeCoarsenessValues(false, range);
+    ji.computeCoarsenessValues(coaRange);
 
-    ji.computeContrastValues(false, range);
+    ji.computeContrastValues(conRange);
 
-    unsigned int noDataPoints = ji.height * ji.width;
+    //unsigned int noDataPoints = ji.height * ji.width;
+    
+    unsigned int noDataPoints 
+		= (unsigned int) static_cast<double>(ji.width * ji.height) 
+		/ static_cast<double>(percentSamples);
 
     ji.clusterFeatures(noClusters, DIMENSIONS, noDataPoints);
 
@@ -130,7 +282,7 @@ FeatureSignature::readSignatureFromFile(const std::string _fileName,
 */
 ListExpr readSignatureFromFileTM(ListExpr args) 
 {
-    if ( nl->ListLength(args) == 6) 
+    if ( nl->ListLength(args) == 7) 
     {
         ListExpr arg1 = nl->First(args);
         ListExpr arg2 = nl->Second(args);
@@ -138,6 +290,7 @@ ListExpr readSignatureFromFileTM(ListExpr args)
         ListExpr arg4 = nl->Fourth(args);
         ListExpr arg5 = nl->Fifth(args);
         ListExpr arg6 = nl->Sixth(args);
+        ListExpr arg7 = nl->Seventh(args);
         
         if (
             (nl->IsEqual(arg1, FText::BasicType()) ||
@@ -147,7 +300,8 @@ ListExpr readSignatureFromFileTM(ListExpr args)
             nl->IsEqual(arg3, CcInt::BasicType()) &&
             nl->IsEqual(arg4, CcInt::BasicType()) &&
             nl->IsEqual(arg5, CcInt::BasicType()) &&
-            nl->IsEqual(arg6, CcInt::BasicType()))
+            nl->IsEqual(arg6, CcInt::BasicType()) &&
+            nl->IsEqual(arg7, CcInt::BasicType()))
             {
             return nl->SymbolAtom(FeatureSignature::BasicType());
         }
@@ -183,17 +337,22 @@ int readSignatureFromFileFun(Word* args, Word& result,
     StringType* fileName = static_cast<StringType*>(args[0].addr);
     
     CcInt* colorSpace = static_cast<CcInt*>(args[1].addr);
-    CcInt* texRange = static_cast<CcInt*>(args[2].addr);
-    CcInt* patchSize = static_cast<CcInt*>(args[3].addr);
-    CcInt* percentSamples = static_cast<CcInt*>(args[4].addr);
-    CcInt* noClusters = static_cast<CcInt*>(args[5].addr);
+    CcInt* coaRange = static_cast<CcInt*>(args[2].addr);
+    CcInt* conRange = static_cast<CcInt*>(args[3].addr);
+    CcInt* patchSize = static_cast<CcInt*>(args[4].addr);
+    CcInt* percentSamples = static_cast<CcInt*>(args[5].addr);
+    CcInt* noClusters = static_cast<CcInt*>(args[6].addr);
 
     if(fileName->IsDefined())
     {
-        res->readSignatureFromFile(fileName->GetValue(),
-            colorSpace->GetIntval(), patchSize->GetIntval(),
-            texRange->GetIntval(), percentSamples->GetIntval(), 
-            noClusters->GetIntval());
+        res->readSignatureFromFile(
+				fileName->GetValue(),
+				colorSpace->GetIntval(), 
+				coaRange->GetIntval(), 
+				conRange->GetIntval(), 
+				patchSize->GetIntval(),
+				percentSamples->GetIntval(), 
+				noClusters->GetIntval());
     } 
     else 
     {
@@ -220,14 +379,15 @@ ValueMapping readSignatureFromFileVM[] =
 2.4 Specificaton for operator ~readSignatureFromFile~
 
 */
+    
 static const std::string readSignatureFromFileSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text> {text|string} -> FeatureSignature"
+    "( <text> {text|string} -> featuresignature"
     "</text--->"
-"<text>readSignatureFromFile(fileName,col,tex,pat,pct,clus) </text--->"
-    "<text>Creates an ImageSignature from a jpeg file.</text--->"
-"<text>query readSignatureFromFile('test.jpg',1,3,10,10,50)</text--->"
+"<text>readSignatureFromFile(fileName,col,coa,con,pat,pct,clus) </text--->"
+    "<text>Creates a feature signature from a jpeg file.</text--->"
+"<text>query readSignatureFromFile('test.jpg',3,3,7,1,10,100)</text--->"
     ") )";
 
 /*
@@ -464,9 +624,9 @@ std::ostream& FeatureSignature::Print(std::ostream& os) const
 Appends an FeatureSignatureTple ~ist~ at the end of the FeatureSignature.
 
 */
-void FeatureSignature::Append(const FeatureSignatureTuple& ist)
+void FeatureSignature::Append(const FeatureSignatureTuple& fst)
 {
-  FeatureSignatureTuples.Append(ist);
+  FeatureSignatureTuples.Append(fst);
 }
 
 
@@ -526,12 +686,11 @@ Returns a signature tuple indexed by ~i~.
 FeatureSignatureTuple FeatureSignature::GetFeatureSignatureTuple(int i) 
 const
 {
- // assert(state == complete);
-  assert(0 <= i && i < GetNoFeatureSignatureTuples());
+    assert(0 <= i && i < GetNoFeatureSignatureTuples());
 
-  FeatureSignatureTuple ist;
-  FeatureSignatureTuples.Get(i, &ist);
-  return ist;
+    FeatureSignatureTuple fst;
+    FeatureSignatureTuples.Get(i, &fst);
+    return fst;
 }
 
 
@@ -574,8 +733,25 @@ ListExpr FeatureSignature::Out(ListExpr typeInfo, Word value)
     }
     else
     {
-
-     
+        
+        
+    // SECONDO will sometimes give weird numbers for the first
+    // coarseness value of a signature
+    double tmpHotFix = 
+    imgsig->GetFeatureSignatureTuple(0).centroid.coarseness;
+    
+    if (tmpHotFix < 1.0)
+    {
+        tmpHotFix = 1.0;
+      //  std::cout << "cout, < 0.0:" << tmpHotFix << std::endl;
+    } else if (tmpHotFix > 5.0)
+    { 
+     //   std::cout << "cout, > 5.0:" << tmpHotFix << std::endl;
+        tmpHotFix = 5.0;
+    }
+        
+    //ListExpr tmpRes = nl->OneElemList(
+    //    nl->RealAtom(imgsig->GetFeatureSignatureTuple(0).weight));
     ListExpr tmpRes = nl->OneElemList(
         nl->RealAtom(imgsig->GetFeatureSignatureTuple(0).weight));
             
@@ -592,9 +768,20 @@ ListExpr FeatureSignature::Out(ListExpr typeInfo, Word value)
     lst = nl->Append(lst, nl->RealAtom(
         imgsig->GetFeatureSignatureTuple(0).centroid.colorValue3));
     lst = nl->Append(lst, nl->RealAtom(
-        imgsig->GetFeatureSignatureTuple(0).centroid.coarseness));
+        tmpHotFix));
     lst = nl->Append(lst, nl->RealAtom(
         imgsig->GetFeatureSignatureTuple(0).centroid.contrast));
+        
+        
+    //std::cout << "out:" << std::endl
+    //<< " " << imgsig->GetFeatureSignatureTuple(0).weight
+    //<< " " << imgsig->GetFeatureSignatureTuple(0).centroid.x
+    //<< " " << imgsig->GetFeatureSignatureTuple(0).centroid.colorValue1
+    //<< " " << imgsig->GetFeatureSignatureTuple(0).centroid.colorValue2
+    //<< " " << imgsig->GetFeatureSignatureTuple(0).centroid.colorValue3
+    //<< " " << tmpHotFix
+    //<< " " << imgsig->GetFeatureSignatureTuple(0).centroid.contrast 
+    //<< std::endl;
     
     ListExpr result = nl->OneElemList(tmpRes);
             
@@ -606,9 +793,7 @@ ListExpr FeatureSignature::Out(ListExpr typeInfo, Word value)
             nl->RealAtom(imgsig->GetFeatureSignatureTuple(i).weight));
                 
         ListExpr lst = tmpRes;
-        
-        //lst = nl->Append(lst, nl->RealAtom(
-        //imgsig->GetFeatureSignatureTuple(i).weight));
+
         lst = nl->Append(lst, nl->IntAtom(
             imgsig->GetFeatureSignatureTuple(i).centroid.x));
         lst = nl->Append(lst, nl->IntAtom(
@@ -624,6 +809,16 @@ ListExpr FeatureSignature::Out(ListExpr typeInfo, Word value)
         lst = nl->Append(lst, nl->RealAtom(
             imgsig->GetFeatureSignatureTuple(i).centroid.contrast));    
         last = nl->Append(last, tmpRes);
+        
+    //std::cout 
+    //<< imgsig->GetFeatureSignatureTuple(i).weight
+    //<< " " << imgsig->GetFeatureSignatureTuple(i).centroid.x
+    //<< " " << imgsig->GetFeatureSignatureTuple(i).centroid.colorValue1
+    //<< " " << imgsig->GetFeatureSignatureTuple(i).centroid.colorValue2
+    //<< " " << imgsig->GetFeatureSignatureTuple(i).centroid.colorValue3
+    //<< " " << imgsig->GetFeatureSignatureTuple(i).centroid.coarseness
+    //<< " " << imgsig->GetFeatureSignatureTuple(i).centroid.contrast 
+    //<< std::endl;
     }
 
     return result;
@@ -633,7 +828,7 @@ ListExpr FeatureSignature::Out(ListExpr typeInfo, Word value)
 
 /*
 
-6.2 In function, puts an object's information into a nested list
+6.2 In function, gets object's info from a nested list
 
 */  
 Word
@@ -653,6 +848,8 @@ FeatureSignature::In(const ListExpr typeInfo, const ListExpr instance,
     
     ListExpr first = nl->Empty();
     ListExpr rest = instance;
+      
+    std::cout << "in:" << std::endl;
       
     while(!nl->IsEmpty(rest))
     {
@@ -678,7 +875,7 @@ FeatureSignature::In(const ListExpr typeInfo, const ListExpr instance,
             nl->AtomType(nl->Eigth(first)) == RealType 
          )
         {
-            FeatureSignatureTuple ist( 
+            FeatureSignatureTuple fst( 
                 nl->RealValue(nl->First(first)),
                 nl->IntValue(nl->Second(first)),
                 nl->IntValue(nl->Third(first)),
@@ -688,7 +885,19 @@ FeatureSignature::In(const ListExpr typeInfo, const ListExpr instance,
                 nl->RealValue(nl->Seventh(first)),
                 nl->RealValue(nl->Eigth(first))                                
             );
-            imgsig->Append(ist);
+            imgsig->Append(fst);
+            
+            //std::cout 
+            //<< " " << nl->RealValue(nl->First(first))
+            //<< " " << nl->IntValue(nl->Second(first)) 
+            //<< " " << nl->IntValue(nl->Third(first))
+            //<< " " << nl->RealValue(nl->Fourth(first))
+            //<< " " << nl->RealValue(nl->Fifth(first))
+            //<< " " << nl->RealValue(nl->Sixth(first))
+            //<< " " << nl->RealValue(nl->Seventh(first))
+            //<< " " << nl->RealValue(nl->Eigth(first)) 
+            //<< " " << std::endl;
+            
         }
         else
         {
@@ -869,6 +1078,7 @@ class ImageSimilarityAlgebra : public Algebra
     {
       AddTypeConstructor(&imgsig);
       AddOperator(&readSignatureFromFileOp);
+      AddOperator(&calcSQFDOp);
 
       imgsig.AssociateKind(Kind::DATA());
     }
