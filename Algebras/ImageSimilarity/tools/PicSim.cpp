@@ -64,10 +64,11 @@ and the number of clusters that the k-means algorithm shall produce.
 int main(int argc, char* argv[])
 {
     
-    if (argc != 7)
+    if (argc != 9)
     {
         std::cout << "usage: PicSim <infile> <outfile> colorSpace" 
-		<<"texRange percentSamples noClusters" << std::endl;
+		<<" coaRange conRange patchSize percentSamples noClusters" 
+        << std::endl;
         return 0;
     }
     
@@ -84,13 +85,23 @@ int main(int argc, char* argv[])
     const char* out_file5 = "a_clustered_outfile.jpg";
  
     unsigned int colorSpace = atoi(argv[3]);
-    unsigned int picRange = atoi(argv[4]);
-    unsigned int percentSamples = atoi(argv[5]);
-    unsigned int noClusters = atoi(argv[6]);
+    unsigned int coaRange = atoi(argv[4]);
+    unsigned int conRange = atoi(argv[5]);
+    unsigned int patchSize = atoi(argv[6]);
+    unsigned int percentSamples = atoi(argv[7]);
+    unsigned int noClusters = atoi(argv[8]);
+    
+    std::cout << "colorSpace:" << colorSpace << std::endl;
+    std::cout << "coaRange:" << coaRange << std::endl;
+    std::cout << "conRange:" << conRange << std::endl;
+    std::cout << "patchSize:" << patchSize << std::endl;
+    std::cout << "percentSamples:" << percentSamples << std::endl;
+    std::cout << "noClusters:" << noClusters << std::endl;
+    
  
     JPEGImage ji;
-    ji.importJPEGFile(vFile, colorSpace, picRange, 
-						percentSamples, noClusters);
+    ji.importJPEGFile(vFile, colorSpace, coaRange, conRange, 
+                        patchSize, percentSamples, noClusters);
 
     std::cout << "writing color image" << std::endl;
     ji.writeColorImage(out_file);
@@ -99,38 +110,48 @@ int main(int argc, char* argv[])
     ji.writeGrayscaleImage(out_file2);
 
     std::cout << "computing coarseness" << std::endl;
-    ji.computeCoarsenessValues(false, picRange);
+    ji.computeCoarsenessValues(coaRange);
  
     std::cout << "writing coarseness file" << std::endl;
-    ji.writeCoarsenessImage(out_file3, 100.0);
+    ji.writeCoarsenessImage(out_file3, 1.0);
 
     std::cout << "computing contrasts:" << std::endl;
-    ji.computeContrastValues(false, picRange);
+    ji.computeContrastValues(conRange);
+
 
     std::cout << "writing contrast file" << std::endl;
-    ji.writeContrastImage(out_file4, 100.0);
+    ji.writeContrastImage(out_file4, 1.0);
 
     unsigned int noDataPoints 
 		= (unsigned int) static_cast<double>(ji.width * ji.height) 
 		/ static_cast<double>(percentSamples);
-    //unsigned int noDataPoints = ji.height * ji.width;
-    //std::cout << "starting clustering" << std::endl;
-    //    ji.clusterFeatures(noClusters, 7, noDataPoints);
-    //std::cout << "clustering finished" << std::endl;    
-    //    ji.writeClusterImage(out_file5, 1000.0);
-
+    
+    std::cout << "no data points:" << noDataPoints << std::endl;
+    std::cout << "no pixels:" << ji.width * ji.height << std::endl;
     int dimensions = 7;
-    noDataPoints *= 100;
-    //noClusters = 100;
+    //noDataPoints *= 100;    
+    noDataPoints = ji.getNoDataPoints();
     ji.clusterFeatures(noClusters, dimensions, noDataPoints);
     std::cout << "clustering finished" << std::endl;    
     
-    ji.writeClusterImage(out_file5, 1000.0);
+    ji.writeClusterImage(out_file5, 500.0);
 
     std::cout << "done" << std::endl;
+    
+    for (auto sig : ji.signature)
+		std::cout << sig.weight 
+		<< " " << sig.centroid.x 
+		<< " " << sig.centroid.y 
+		<< " " << sig.centroid.colorValue1 
+		<< " " << sig.centroid.colorValue2
+		<< " " << sig.centroid.colorValue3
+		<< " " << sig.centroid.coarseness 
+		<< " " << sig.centroid.contrast
+		<< std::endl;
+		
 
 
-    delete[] vFile;
+   delete[] vFile;
 
     return 0;
 }
